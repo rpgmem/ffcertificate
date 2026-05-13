@@ -351,20 +351,69 @@ if ( ! defined( 'ABSPATH' ) ) {
 				<!-- GPS Failure Fallback -->
 				<tr>
 					<th scope="row">
-						<label for="ffc_gps_fallback"><?php esc_html_e( 'When GPS Fails', 'ffcertificate' ); ?></label>
+						<label for="ffc_gps_fallback_preset"><?php esc_html_e( 'When GPS Fails', 'ffcertificate' ); ?></label>
 					</th>
 					<td>
-						<select name="gps_fallback" id="ffc_gps_fallback">
-							<option value="allow" <?php selected( $settings['gps_fallback'], 'allow' ); ?>>
-								<?php esc_html_e( 'Allow access', 'ffcertificate' ); ?>
+						<?php
+						$fallback_preset = $settings['gps_fallback_preset'] ?? 'hybrid';
+						$fallback_cases  = $settings['gps_fallback_cases'] ?? array();
+						$case_labels     = array(
+							'permission_denied'    => __( 'User denied location permission', 'ffcertificate' ),
+							'no_api'               => __( 'Browser does not support geolocation', 'ffcertificate' ),
+							'position_unavailable' => __( 'Location unavailable (GPS off, no signal)', 'ffcertificate' ),
+							'timeout'              => __( 'Browser timed out', 'ffcertificate' ),
+							'safety_timer'         => __( 'Device never responded (40 s safety timer)', 'ffcertificate' ),
+						);
+						?>
+						<select name="gps_fallback_preset" id="ffc_gps_fallback_preset">
+							<option value="tolerant" <?php selected( $fallback_preset, 'tolerant' ); ?>>
+								<?php esc_html_e( 'Tolerant — allow access on every failure', 'ffcertificate' ); ?>
 							</option>
-							<option value="block" <?php selected( $settings['gps_fallback'], 'block' ); ?>>
-								<?php esc_html_e( 'Block access', 'ffcertificate' ); ?>
+							<option value="hybrid" <?php selected( $fallback_preset, 'hybrid' ); ?>>
+								<?php esc_html_e( 'Hybrid — allow only when the user denied or the browser lacks support', 'ffcertificate' ); ?>
+							</option>
+							<option value="strict" <?php selected( $fallback_preset, 'strict' ); ?>>
+								<?php esc_html_e( 'Strict — block access on every failure', 'ffcertificate' ); ?>
+							</option>
+							<option value="custom" <?php selected( $fallback_preset, 'custom' ); ?>>
+								<?php esc_html_e( 'Custom — choose case by case', 'ffcertificate' ); ?>
 							</option>
 						</select>
 						<p class="description">
-							<?php esc_html_e( 'What to do when user denies GPS permission or browser does not support geolocation.', 'ffcertificate' ); ?>
+							<?php esc_html_e( 'What to do when geolocation fails. Hybrid is recommended for most sites: the user is let through if they explicitly denied permission or their browser cannot run geolocation, but technical failures (timeout, location unavailable) keep the form locked.', 'ffcertificate' ); ?>
 						</p>
+
+						<table class="ffc-gps-fallback-cases widefat striped" <?php echo 'custom' === $fallback_preset ? '' : 'hidden'; ?> style="margin-top: 12px; max-width: 720px;">
+							<thead>
+								<tr>
+									<th scope="col"><?php esc_html_e( 'Failure case', 'ffcertificate' ); ?></th>
+									<th scope="col" style="text-align: center;"><?php esc_html_e( 'Allow', 'ffcertificate' ); ?></th>
+									<th scope="col" style="text-align: center;"><?php esc_html_e( 'Block', 'ffcertificate' ); ?></th>
+								</tr>
+							</thead>
+							<tbody>
+								<?php foreach ( $case_labels as $case_key => $case_label ) : ?>
+									<?php $case_value = $fallback_cases[ $case_key ] ?? 'block'; ?>
+									<tr>
+										<td><?php echo esc_html( $case_label ); ?></td>
+										<td style="text-align: center;">
+											<input type="radio"
+												name="gps_fallback_cases[<?php echo esc_attr( $case_key ); ?>]"
+												value="allow"
+												<?php checked( $case_value, 'allow' ); ?>
+												aria-label="<?php echo esc_attr( sprintf( /* translators: %s = failure case label */ __( 'Allow access when %s', 'ffcertificate' ), $case_label ) ); ?>">
+										</td>
+										<td style="text-align: center;">
+											<input type="radio"
+												name="gps_fallback_cases[<?php echo esc_attr( $case_key ); ?>]"
+												value="block"
+												<?php checked( $case_value, 'block' ); ?>
+												aria-label="<?php echo esc_attr( sprintf( /* translators: %s = failure case label */ __( 'Block access when %s', 'ffcertificate' ), $case_label ) ); ?>">
+										</td>
+									</tr>
+								<?php endforeach; ?>
+							</tbody>
+						</table>
 					</td>
 				</tr>
 

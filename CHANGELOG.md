@@ -7,6 +7,11 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Changed
+
+- **Geolocation fallback policy is now per-case.** The single "When GPS fails" dropdown was replaced by a preset combobox (`Tolerant` / `Hybrid` / `Strict` / `Custom`) backed by a five-row matrix the admin can edit directly when `Custom` is selected. Each row decides whether to allow or block access for one specific failure mode: user denied permission, browser doesn't support geolocation, position unavailable, browser timeout, and the 40-second iOS safety timer. The previous binary setting routed every failure through the same answer; the new structure lets sites be tolerant with conscious user decisions (permission denied / no API) while still locking the form on technical failures (timeout / safety). New installs default to `Hybrid`; existing installs are migrated silently — `gps_fallback='allow'` → `Tolerant`, `gps_fallback='block'` → `Strict`. No admin action required to preserve the current behaviour.
+- **Blocked-form messages got more actionable copy.** The strings shown when GPS fails (permission denied, position unavailable, browser timeout, safety timeout) now tell the user exactly what to do to recover — enable location services, check the connection, reload — instead of restating the error code. Each transient-failure block also renders a **"Reload page" button** so the user doesn't have to figure out how to reload on mobile.
+
 ---
 
 ## [6.5.3] (2026-05-13)

@@ -35,6 +35,121 @@ class TabGeolocation extends SettingsTab {
 		$this->tab_title = __( 'Geolocation', 'ffcertificate' );
 		$this->tab_icon  = 'ffc-icon-globe';
 		$this->tab_order = 50;
+
+		// Enqueue the preset-toggle script only on this settings tab.
+		add_action( 'admin_enqueue_scripts', array( $this, 'enqueue_scripts' ) );
+	}
+
+	/**
+	 * Enqueue admin scripts for the Geolocation settings tab.
+	 *
+	 * The script hides/shows the per-case fallback table based on the
+	 * `When GPS fails` preset combobox and snaps the radios to the
+	 * preset's defaults when the admin switches presets.
+	 *
+	 * @param string $hook Current admin page hook.
+	 */
+	public function enqueue_scripts( string $hook ): void {
+		if ( 'ffc_form_page_ffc-settings' !== $hook ) {
+			return;
+		}
+
+		$active_tab = isset( $_GET['tab'] ) ? sanitize_key( $_GET['tab'] ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Tab parameter for conditional script loading.
+		if ( 'geolocation' !== $active_tab ) {
+			return;
+		}
+
+		$s = \FreeFormCertificate\Core\Utils::asset_suffix();
+		wp_enqueue_script(
+			'ffc-geolocation-settings',
+			FFC_PLUGIN_URL . "assets/js/ffc-geolocation-settings{$s}.js",
+			array( 'jquery' ),
+			FFC_VERSION,
+			true
+		);
+
+		// Pass the preset → cases map to the script so radio snapping
+		// stays in sync with PHP without hard-coding it on both sides.
+		wp_localize_script(
+			'ffc-geolocation-settings',
+			'ffcGeolocationSettings',
+			array(
+				'presetCases' => array(
+					'tolerant' => self::preset_to_cases( 'tolerant' ),
+					'hybrid'   => self::preset_to_cases( 'hybrid' ),
+					'strict'   => self::preset_to_cases( 'strict' ),
+				),
+			)
+		);
+	}
+
+	/**
+	 * Per-case allow/block keys the frontend honours when GPS fails.
+	 *
+	 * The presets below derive their cases from this list. New cases get
+	 * a default of 'block' (safer side).
+	 *
+	 * @return array<int, string>
+	 */
+	public static function gps_fallback_case_keys(): array {
+		return array( 'permission_denied', 'no_api', 'position_unavailable', 'timeout', 'safety_timer' );
+	}
+
+	/**
+	 * Map a preset name to its per-case allow/block matrix.
+	 *
+	 * Presets:
+	 *   - 'tolerant': allow on every failure (legacy 'allow' behaviour).
+	 *   - 'hybrid':   allow only when the user explicitly denied access or
+	 *                 the browser doesn't expose the geolocation API; block
+	 *                 on every technical failure (timeout / unavailable /
+	 *                 safety-timer). Default for new installs.
+	 *   - 'strict':   block on every failure (legacy 'block' behaviour).
+	 *
+	 * For the 'custom' preset callers should ignore this helper and read
+	 * the persisted gps_fallback_cases directly.
+	 *
+	 * @param string $preset One of 'tolerant', 'hybrid', 'strict'.
+	 * @return array<string, string> case key → 'allow' | 'block'
+	 */
+	public static function preset_to_cases( string $preset ): array {
+		switch ( $preset ) {
+			case 'tolerant':
+				$allow = self::gps_fallback_case_keys();
+				break;
+			case 'strict':
+				$allow = array();
+				break;
+			case 'hybrid':
+			default:
+				$allow = array( 'permission_denied', 'no_api' );
+				break;
+		}
+
+		$cases = array();
+		foreach ( self::gps_fallback_case_keys() as $key ) {
+			$cases[ $key ] = in_array( $key, $allow, true ) ? 'allow' : 'block';
+		}
+		return $cases;
+	}
+
+	/**
+	 * Derive the preset name from a per-case matrix.
+	 *
+	 * Returns 'tolerant' / 'hybrid' / 'strict' if the matrix exactly
+	 * matches one of those, otherwise 'custom'. Used by the admin UI to
+	 * pre-select the right combobox option on page load.
+	 *
+	 * @param array<string, string> $cases case key → 'allow' | 'block'.
+	 * @return string
+	 */
+	public static function cases_to_preset( array $cases ): string {
+		foreach ( array( 'tolerant', 'hybrid', 'strict' ) as $preset ) {
+			if ( self::preset_to_cases( $preset ) === $cases ) {
+				return $preset;
+			}
+		}
+		return 'custom';
 	}
 
 	/**
@@ -57,7 +172,13 @@ class TabGeolocation extends SettingsTab {
 
 			// Fallback behavior when API fails.
 			'api_fallback'          => 'gps_only', // 'allow', 'block', 'gps_only'
-			'gps_fallback'          => 'allow', // When GPS fails: 'allow' or 'block'.
+
+			// Per-case GPS fallback (preset is a UX hint, cases are
+			// canonical at runtime). New installs default to 'hybrid';
+			// legacy installs are migrated in get_settings().
+			'gps_fallback_preset'   => 'hybrid',
+			'gps_fallback_cases'    => self::preset_to_cases( 'hybrid' ),
+
 			'both_fail_fallback'    => 'block', // When GPS + IP both fail: 'allow' or 'block'.
 
 			// Admin Bypass (independent of debug mode).
@@ -72,10 +193,20 @@ class TabGeolocation extends SettingsTab {
 	 * @return array<string, mixed>
 	 */
 	private function get_settings(): array {
-		return wp_parse_args(
-			get_option( 'ffc_geolocation_settings', array() ),
-			$this->get_default_settings()
-		);
+		$stored = get_option( 'ffc_geolocation_settings', array() );
+
+		// Backward-compat migration: pre-fallback-presets installs stored
+		// a single `gps_fallback` string ('allow' | 'block'). Map it to
+		// the new preset + cases structure so existing sites keep their
+		// behaviour without admin action.
+		if ( is_array( $stored ) && isset( $stored['gps_fallback'] ) && ! isset( $stored['gps_fallback_preset'] ) ) {
+			$legacy_preset                 = ( 'block' === $stored['gps_fallback'] ) ? 'strict' : 'tolerant';
+			$stored['gps_fallback_preset'] = $legacy_preset;
+			$stored['gps_fallback_cases']  = self::preset_to_cases( $legacy_preset );
+			unset( $stored['gps_fallback'] );
+		}
+
+		return wp_parse_args( $stored, $this->get_default_settings() );
 	}
 
 	/**
@@ -104,8 +235,28 @@ class TabGeolocation extends SettingsTab {
         // phpcs:disable WordPress.Security.NonceVerification.Missing -- Nonce verified in render() via check_admin_referer.
 		$ffc_ip_api_service     = sanitize_key( wp_unslash( $_POST['ip_api_service'] ?? '' ) );
 		$ffc_api_fallback       = sanitize_key( wp_unslash( $_POST['api_fallback'] ?? '' ) );
-		$ffc_gps_fallback       = sanitize_key( wp_unslash( $_POST['gps_fallback'] ?? '' ) );
 		$ffc_both_fail_fallback = sanitize_key( wp_unslash( $_POST['both_fail_fallback'] ?? '' ) );
+
+		// GPS fallback: preset + per-case matrix. For tolerant/hybrid/
+		// strict presets the cases snap to the preset defaults; for the
+		// 'custom' preset each case is read from POST and validated.
+		$preset_raw = sanitize_key( wp_unslash( $_POST['gps_fallback_preset'] ?? '' ) );
+		$preset     = in_array( $preset_raw, array( 'tolerant', 'hybrid', 'strict', 'custom' ), true )
+			? $preset_raw
+			: 'hybrid';
+		if ( 'custom' === $preset ) {
+			$raw_cases = wp_unslash( $_POST['gps_fallback_cases'] ?? array() ); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Each value sanitised below.
+			if ( ! is_array( $raw_cases ) ) {
+				$raw_cases = array();
+			}
+			$cases = array();
+			foreach ( self::gps_fallback_case_keys() as $case_key ) {
+				$value              = sanitize_key( $raw_cases[ $case_key ] ?? 'block' );
+				$cases[ $case_key ] = in_array( $value, array( 'allow', 'block' ), true ) ? $value : 'block';
+			}
+		} else {
+			$cases = self::preset_to_cases( $preset );
+		}
 
 		$settings = array(
 			'ip_api_enabled'        => isset( $_POST['ip_api_enabled'] ),
@@ -122,9 +273,8 @@ class TabGeolocation extends SettingsTab {
 			'api_fallback'          => in_array( $ffc_api_fallback, array( 'allow', 'block', 'gps_only' ), true )
 				? $ffc_api_fallback
 				: 'gps_only',
-			'gps_fallback'          => in_array( $ffc_gps_fallback, array( 'allow', 'block' ), true )
-				? $ffc_gps_fallback
-				: 'allow',
+			'gps_fallback_preset'   => $preset,
+			'gps_fallback_cases'    => $cases,
 			'both_fail_fallback'    => in_array( $ffc_both_fail_fallback, array( 'allow', 'block' ), true )
 				? $ffc_both_fail_fallback
 				: 'block',

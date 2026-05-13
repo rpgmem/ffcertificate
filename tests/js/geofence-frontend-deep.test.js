@@ -210,7 +210,7 @@ describe('FFCGeofence.validateGeolocation', () => {
 		restore();
 	});
 
-	it('blocks when navigator.geolocation is unavailable', () => {
+	it('blocks when navigator.geolocation is unavailable (no fallback config defaults to block)', () => {
 		const restore = installLocation('https:', 'example.com');
 		Object.defineProperty(window.navigator, 'geolocation', {
 			configurable: true,
@@ -218,7 +218,9 @@ describe('FFCGeofence.validateGeolocation', () => {
 		});
 		const $w = mountForm(102);
 		window.FFCGeofence.validateGeolocation($w, { hideMode: 'message' });
-		expect($w.find('.ffc-geofence-blocked').text()).toContain('does not support geolocation');
+		// New copy nudges the user to a modern browser; assert on the
+		// stable substring so a future translation tweak doesn't break us.
+		expect($w.find('.ffc-geofence-blocked').text()).toContain('does not support location services');
 		restore();
 	});
 
@@ -313,7 +315,7 @@ describe('FFCGeofence.validateGeolocation', () => {
 			areas: [],
 			gpsFallback: 'block',
 		});
-		expect($w.find('.ffc-geofence-blocked').text()).toContain('Location permission denied');
+		expect($w.find('.ffc-geofence-blocked').text()).toContain('Location access is required');
 		restore();
 	});
 
@@ -333,7 +335,7 @@ describe('FFCGeofence.validateGeolocation', () => {
 			areas: [],
 			gpsFallback: 'block',
 		});
-		expect($w.find('.ffc-geofence-blocked').text()).toContain('timed out');
+		expect($w.find('.ffc-geofence-blocked').text()).toContain('took too long');
 		restore();
 	});
 });

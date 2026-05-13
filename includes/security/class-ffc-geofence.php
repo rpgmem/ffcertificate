@@ -680,7 +680,51 @@ class Geofence {
 		$gps_cache_ttl        = ! empty( $geolocation_settings['gps_cache_ttl'] )
 			? absint( $geolocation_settings['gps_cache_ttl'] )
 			: 600; // Default 10 minutes.
-		$gps_fallback         = $geolocation_settings['gps_fallback'] ?? 'allow';
+
+		// Compose the per-case allow/block map for the frontend. Source
+		// of truth is `gps_fallback_cases` from the settings tab; if it's
+		// missing (pre-fallback-presets installs that haven't re-saved
+		// settings yet) fall back to the legacy single-string field. The
+		// hybrid defaults below are kept inline (rather than calling
+		// TabGeolocation::preset_to_cases) so this method has no
+		// settings-tab dependency at unit-test time.
+		$cases = $geolocation_settings['gps_fallback_cases'] ?? null;
+		if ( ! is_array( $cases ) ) {
+			$legacy = $geolocation_settings['gps_fallback'] ?? '';
+			if ( 'block' === $legacy ) {
+				$cases = array(
+					'permission_denied'    => 'block',
+					'no_api'               => 'block',
+					'position_unavailable' => 'block',
+					'timeout'              => 'block',
+					'safety_timer'         => 'block',
+				);
+			} elseif ( 'allow' === $legacy ) {
+				$cases = array(
+					'permission_denied'    => 'allow',
+					'no_api'               => 'allow',
+					'position_unavailable' => 'allow',
+					'timeout'              => 'allow',
+					'safety_timer'         => 'allow',
+				);
+			} else {
+				// Hybrid: user-driven failures allow, technical block.
+				$cases = array(
+					'permission_denied'    => 'allow',
+					'no_api'               => 'allow',
+					'position_unavailable' => 'block',
+					'timeout'              => 'block',
+					'safety_timer'         => 'block',
+				);
+			}
+		}
+		$gps_fallback = array(
+			'permissionDenied'    => 'allow' === ( $cases['permission_denied'] ?? 'block' ),
+			'noApi'               => 'allow' === ( $cases['no_api'] ?? 'block' ),
+			'positionUnavailable' => 'allow' === ( $cases['position_unavailable'] ?? 'block' ),
+			'timeout'             => 'allow' === ( $cases['timeout'] ?? 'block' ),
+			'safetyTimer'         => 'allow' === ( $cases['safety_timer'] ?? 'block' ),
+		);
 
 		$frontend_config = array(
 			'formId'      => $form_id,
@@ -712,7 +756,7 @@ class Geofence {
 				'messageBlocked' => $config['msg_geo_blocked'] ?? '',
 				'messageError'   => $config['msg_geo_error'] ?? '',
 				'hideMode'       => $config['geo_hide_mode'] ?? 'message', // 'hide' or 'message'
-				'gpsFallback'    => $gps_fallback, // 'allow' or 'block' — honoured by frontend on GPS failure
+				'gpsFallback'    => $gps_fallback, // Per-case allow/block map — honoured by frontend on GPS failure.
 				'cacheEnabled'   => true, // Always enable frontend cache.
 				'cacheTtl'       => $gps_cache_ttl, // From global settings.
 			),
