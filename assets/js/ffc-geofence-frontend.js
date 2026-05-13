@@ -11,6 +11,14 @@
     'use strict';
 
     const FFCGeofence = {
+        // Minimum time the loading spinner stays up before the form is
+        // released. Used by the cache-hit fast path so the user gets a
+        // visual "verifying location" tick instead of an instant
+        // transition from loading state to ready form. Exposed on the
+        // object so unit tests can pin the value without monkey-patching
+        // setTimeout.
+        MIN_LOADING_MS: 600,
+
         /**
          * Initialize geofence validation
          */
@@ -268,7 +276,21 @@
             const cached = this.getLocationCache(formWrapper.attr('id'));
             if (cached) {
                 this.debug('Using cached location', cached);
-                this.checkLocation(formWrapper, cached, config);
+                // Show the same loading state real fetches see, then resolve
+                // after a short minimum hold so the user gets a visual
+                // confirmation the form just validated location instead of
+                // an instant "form appeared from nowhere" transition.
+                formWrapper.find('.ffc-submission-form').hide();
+                formWrapper.addClass('ffc-geofence-loading');
+                this.showLoadingMessage(
+                    formWrapper,
+                    this.getString('detectingLocation', 'Verifying your location\u2026')
+                );
+                setTimeout(function() {
+                    self.hideLoadingMessage(formWrapper);
+                    formWrapper.removeClass('ffc-geofence-loading');
+                    self.checkLocation(formWrapper, cached, config);
+                }, FFCGeofence.MIN_LOADING_MS);
                 return;
             }
 
@@ -278,31 +300,45 @@
             formWrapper.find('.ffc-submission-form').hide();
             formWrapper.addClass('ffc-geofence-loading');
 
-            // Safari/iOS: progressive loading messages so the user knows
-            // the page is alive and gets increasingly specific guidance.
-            // Android/Chrome shows the permission prompt immediately so a
-            // single static message is enough.
+            // Progressive loading messages so the user knows the page is
+            // alive and gets increasingly specific guidance. Safari/iOS
+            // takes notoriously longer to show the permission prompt so
+            // each stage runs later than on the other platforms.
             var progressTimers = [];
-            if (isSafariBrowser) {
-                this.showLoadingMessage(
+            var phase2Ms = isSafariBrowser ? 8000 : 3000;
+            var phase3Ms = isSafariBrowser ? 20000 : 10000;
+
+            this.showLoadingMessage(
+                formWrapper,
+                this.getString(
+                    isSafariBrowser ? 'safariPhase1' : 'detectingLocation',
+                    isSafariBrowser
+                        ? 'Requesting your location\u2026 If prompted, tap "Allow".'
+                        : 'Verifying your location\u2026'
+                )
+            );
+            progressTimers.push(setTimeout(function() {
+                self.updateLoadingMessage(
                     formWrapper,
-                    this.getString('safariPhase1', 'Requesting your location\u2026 If prompted, tap "Allow".')
+                    self.getString(
+                        isSafariBrowser ? 'safariPhase2' : 'awaitingPermission',
+                        isSafariBrowser
+                            ? 'Waiting for location permission\u2026 Check if a browser prompt appeared.'
+                            : 'Waiting for location permission. Confirm the browser prompt if it appeared.'
+                    )
                 );
-                progressTimers.push(setTimeout(function() {
-                    self.updateLoadingMessage(
-                        formWrapper,
-                        self.getString('safariPhase2', 'Waiting for location permission\u2026 Check if a browser prompt appeared.')
-                    );
-                }, 8000));
-                progressTimers.push(setTimeout(function() {
-                    self.updateLoadingMessage(
-                        formWrapper,
-                        self.getString('safariPhase3', 'Still trying to get your location\u2026 If it is not working, check that Location Services is enabled in Settings > Privacy & Security > Location Services.')
-                    );
-                }, 20000));
-            } else {
-                this.showLoadingMessage(formWrapper, this.getString('detectingLocation', 'Detecting your location...'));
-            }
+            }, phase2Ms));
+            progressTimers.push(setTimeout(function() {
+                self.updateLoadingMessage(
+                    formWrapper,
+                    self.getString(
+                        isSafariBrowser ? 'safariPhase3' : 'stillTrying',
+                        isSafariBrowser
+                            ? 'Still trying to get your location\u2026 If it is not working, check that Location Services is enabled in Settings > Privacy & Security > Location Services.'
+                            : 'Still trying to get your location\u2026 Check that location is enabled in your device settings.'
+                    )
+                );
+            }, phase3Ms));
 
             var retried = false;
             // Safari/iOS: allow a SHORT cached position on the first attempt

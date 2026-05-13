@@ -223,6 +223,7 @@ describe('FFCGeofence.validateGeolocation', () => {
 	});
 
 	it('uses the cached location when present (no getCurrentPosition call)', () => {
+		vi.useFakeTimers();
 		const restore = installLocation('https:', 'example.com');
 		const cb = vi.fn();
 		Object.defineProperty(window.navigator, 'geolocation', {
@@ -245,9 +246,14 @@ describe('FFCGeofence.validateGeolocation', () => {
 			messageBlocked: 'no',
 		});
 
+		// Cache-hit now defers checkLocation by FFCGeofence.MIN_LOADING_MS
+		// to give the user a visual "verifying location" confirmation.
+		vi.advanceTimersByTime(window.FFCGeofence.MIN_LOADING_MS + 50);
+
 		expect(cb).not.toHaveBeenCalled();
 		expect($w.hasClass('ffc-validated')).toBe(true);
 		restore();
+		vi.useRealTimers();
 	});
 
 	it('on getCurrentPosition success: calls checkLocation', () => {
