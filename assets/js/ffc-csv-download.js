@@ -22,8 +22,8 @@
 
 	// DOM refs (set in init)
 	var $container, $form, $btn, $overlay;
-	// Saved form data for reuse across AJAX calls
-	var formData, savedFormId, savedHash;
+	// Serialised form payload reused across the start / batch AJAX calls.
+	var formData;
 	// Job state
 	var jobId, nonceBatch, total, startTime, safetyTimer;
 
@@ -55,9 +55,7 @@
 		disableBtn();
 		showOverlay(strings.validating || 'Validating…');
 
-		formData    = $form.serialize();
-		savedFormId = $form.find('[name="form_id"]').val();
-		savedHash   = $form.find('[name="hash"]').val();
+		formData = $form.serialize();
 
 		$.ajax({
 			url:      cfg.ajax_url,
@@ -280,7 +278,7 @@
 		return html;
 	}
 
-	function buildCsvSection(csv, status) {
+	function buildCsvSection(csv, _status) {
 		var html = '<div class="ffc-info-section">';
 		html += '<h3>' + esc(strings.csvDownload || 'CSV Download') + '</h3>';
 		html += '<div class="ffc-info-row">';

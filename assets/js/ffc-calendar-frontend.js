@@ -692,7 +692,7 @@
                     calendar.refresh();
                 });
             },
-            onDayClick: function(dateStr, $day) {
+            onDayClick: function(dateStr, _$day) {
                 $('#ffc-selected-date').val(dateStr);
                 self.loadTimeSlots(calendarId, dateStr);
             }
