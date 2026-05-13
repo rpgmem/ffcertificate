@@ -103,6 +103,7 @@ describe('FFCGeofence.showForm — clears inline display:none from validateGeolo
 	});
 
 	it('after a cache-hit checkLocation success: also no inline display:none', () => {
+		vi.useFakeTimers();
 		const restoreLoc = installLocationHttps();
 		// Seed a cached location inside the test area.
 		window.localStorage.setItem(
@@ -124,11 +125,16 @@ describe('FFCGeofence.showForm — clears inline display:none from validateGeolo
 			areas: [{ lat: 0, lng: 0, radius: 1 }],
 		});
 
+		// Cache-hit now mounts the spinner first and only resolves to
+		// showForm after MIN_LOADING_MS — fast-forward past it.
+		vi.advanceTimersByTime(window.FFCGeofence.MIN_LOADING_MS + 50);
+
 		expect($w.hasClass('ffc-validated')).toBe(true);
 		const inlineDisplay = $w.find('.ffc-submission-form')[0].style.display;
 		expect(inlineDisplay).not.toBe('none');
 
 		restoreLoc();
+		vi.useRealTimers();
 	});
 
 	it('direct showForm() call clears prior inline display:none', () => {
