@@ -87,12 +87,6 @@
 		} catch ( e ) {}
 	}
 
-	function escapeHtml( str ) {
-		var div = document.createElement( 'div' );
-		div.textContent = String( str );
-		return div.innerHTML;
-	}
-
 	function maybeRenderNotice( $form ) {
 		var formIdStr = $form.find( '[name="form_id"]' ).val();
 		var formId    = parseInt( formIdStr, 10 );

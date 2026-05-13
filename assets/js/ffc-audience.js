@@ -821,22 +821,6 @@
     }
 
     /**
-     * Get environment name by ID
-     */
-    function getEnvironmentName(id) {
-        var schedules = state.config.schedules || [];
-        for (var i = 0; i < schedules.length; i++) {
-            var envs = schedules[i].environments || [];
-            for (var j = 0; j < envs.length; j++) {
-                if (envs[j].id === id) {
-                    return envs[j].name;
-                }
-            }
-        }
-        return '';
-    }
-
-    /**
      * Get environment color by ID
      */
     function getEnvironmentColor(envId) {

@@ -356,7 +356,7 @@
                         $submitBtn.prop('disabled', false).text(originalBtnText);
                     }
                 },
-                error: function(xhr, status, error) {
+                error: function(xhr, _status, _error) {
                     try {
                         var response = xhr.responseJSON;
                         if (response && response.data && response.data.rate_limit) {

@@ -34,10 +34,6 @@
         var fetchId = 0;
         var calendarInstance = null;
 
-        function escapeHtml(str) {
-            return $('<div>').text(str == null ? '' : String(str)).html();
-        }
-
         function formatDateLabel(dateStr) {
             // dateStr is Y-m-d. Build a Date in the *local* TZ to avoid a
             // one-day drift when toLocaleDateString interprets a UTC string.
