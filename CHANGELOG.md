@@ -7,6 +7,11 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Changed
+
+- **Vendored thumbmarkjs bumped 1.8.1 → 1.9.0** (`libs/js/thumbmark-1.9.0.umd.js`, `FFC_THUMBMARK_VERSION`). API surface used by `assets/js/ffc-device-signals.js` (`setOption('logging', false)`, `getFingerprintData()`, `stableStringify`) is preserved. The `DeviceSignalsLoggingOffTest::test_vendored_thumbmarkjs_present_at_pinned_path` path assertion was updated to track the new bundle name; both JS and PHP test suites pass against the bumped version.
+- **jQuery UI theme bumped 1.14.1 → 1.14.2** (`libs/css/jquery-ui-smoothness.css`, `FFC_JQUERY_UI_VERSION`). The CSS payload is byte-identical between the two upstream releases — only the file-header comment moves to `v1.14.2 - 2026-01-28` — so the visible change is the cache-bust version string emitted by `wp_enqueue_style`.
+
 ### Fixed
 
 - **Form editor: turning the Public CSV Download (group 7) or Device Fingerprint Limit (group 8) toggle OFF did not persist.** The browser strips unchecked checkboxes from the POST and the admin JS also disables every sub-field on uncheck, so the entire `ffc_csv_public` / `ffc_device_limit` array vanished from `$_POST` and the save handler's `isset()` guard skipped the block — leaving `_ffc_csv_public_enabled` / `_ffc_device_limit_enabled` stuck at `'1'`. Each metabox now emits a hidden `[present]=1` marker outside the `<table>` (out of reach of both the sub-field disable JS and the globally-off disable), so the array is always submitted and the save handler always sees the user's intent to disable.

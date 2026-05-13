@@ -7,7 +7,7 @@
  * (selector: `form.ffc-submission-form`).
  *
  * The actual signal probes are delegated to the vendored thumbmarkjs
- * library (libs/js/thumbmark-1.8.1.umd.js, MIT) which exposes its raw
+ * library (libs/js/thumbmark-1.9.0.umd.js, MIT) which exposes its raw
  * components via `getFingerprintData()`. We map those components 1:1
  * onto our 10-column SQL schema, hash each one independently with
  * SubtleCrypto SHA-256, and ship the JSON to the server. The server
