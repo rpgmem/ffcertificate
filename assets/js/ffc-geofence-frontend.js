@@ -305,10 +305,15 @@
             }
 
             var retried = false;
-            // Safari/iOS: allow a recent cached position on the first attempt
+            // Safari/iOS: allow a SHORT cached position on the first attempt
             // so the browser can respond instantly instead of forcing a fresh
-            // GPS fix that may time out.
-            var firstMaxAge = isSafariBrowser ? 30000 : 0;
+            // GPS fix that may time out. The earlier 30000 ms window was too
+            // permissive — iOS would happily return a fix from before the
+            // user walked out of the allowed area, so the form rendered as
+            // valid despite the user being elsewhere. 5 s still avoids the
+            // GPS-prompt latency on warm-cache reloads while keeping the
+            // position fresh enough to reflect "the user is here right now".
+            var firstMaxAge = isSafariBrowser ? 5000 : 0;
             var geoTimeout  = isSafariBrowser ? 15000 : 10000;
 
             // Safety timeout: if neither success nor error fires (Safari can
