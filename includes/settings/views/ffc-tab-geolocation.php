@@ -383,7 +383,18 @@ if ( ! defined( 'ABSPATH' ) ) {
 							<?php esc_html_e( 'What to do when geolocation fails. Hybrid is recommended for most sites: the user is let through if they explicitly denied permission or their browser cannot run geolocation, but technical failures (timeout, location unavailable) keep the form locked.', 'ffcertificate' ); ?>
 						</p>
 
-						<table class="ffc-gps-fallback-cases widefat striped" <?php echo 'custom' === $fallback_preset ? '' : 'hidden'; ?> style="margin-top: 12px; max-width: 720px;">
+						<?php
+						// The HTML `hidden` attribute is too weak vs. the WP admin
+						// CSS for `.widefat` (which forces display:table at author
+						// origin and wins the cascade), so initial visibility is
+						// driven by inline display:none instead. The companion JS
+						// toggles inline display via jQuery `.toggle()`.
+						$table_style = 'margin-top: 12px; max-width: 720px;';
+						if ( 'custom' !== $fallback_preset ) {
+							$table_style .= ' display: none;';
+						}
+						?>
+						<table class="ffc-gps-fallback-cases widefat striped" style="<?php echo esc_attr( $table_style ); ?>">
 							<thead>
 								<tr>
 									<th scope="col"><?php esc_html_e( 'Failure case', 'ffcertificate' ); ?></th>
