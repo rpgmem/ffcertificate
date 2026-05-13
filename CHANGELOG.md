@@ -7,15 +7,31 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+---
+
+## [6.5.3] (2026-05-13)
+
+Maintenance release — bumps two vendored libraries, fixes two form-editor save bugs, normalises CPF/RF values on recruitment CSV import, and clears two jQuery 4 compatibility regressions in the reregistration form. Internal: large JS test-coverage push (49% → 73% line coverage on `assets/js/`), CI tightening, ESLint warnings cleared.
+
 ### Changed
 
 - **Vendored thumbmarkjs bumped 1.8.1 → 1.9.0** (`libs/js/thumbmark-1.9.0.umd.js`, `FFC_THUMBMARK_VERSION`). API surface used by `assets/js/ffc-device-signals.js` (`setOption('logging', false)`, `getFingerprintData()`, `stableStringify`) is preserved. The `DeviceSignalsLoggingOffTest::test_vendored_thumbmarkjs_present_at_pinned_path` path assertion was updated to track the new bundle name; both JS and PHP test suites pass against the bumped version.
 - **jQuery UI theme bumped 1.14.1 → 1.14.2** (`libs/css/jquery-ui-smoothness.css`, `FFC_JQUERY_UI_VERSION`). The CSS payload is byte-identical between the two upstream releases — only the file-header comment moves to `v1.14.2 - 2026-01-28` — so the visible change is the cache-bust version string emitted by `wp_enqueue_style`.
+- **Recruitment CSV import: CPF and RF columns are now normalised at parse time** (#172). The importer strips punctuation (`.`, `-`, spaces, slashes), accepts canonical-length values as-is, and left-pads shorter values with leading zeros up to the canonical width (11 digits for CPF, 7 for RF). Pre-formatted values from Excel/Sheets (`123.456.789-09`, `123.456-7`) are accepted directly; values that exceed the canonical width are rejected with new `recruitment_csv_cpf_too_long` / `recruitment_csv_rf_too_long` error codes instead of being accepted silently. The normalised digit string is written back into the row before downstream consumers see it.
 
 ### Fixed
 
 - **Form editor: turning the Public CSV Download (group 7) or Device Fingerprint Limit (group 8) toggle OFF did not persist.** The browser strips unchecked checkboxes from the POST and the admin JS also disables every sub-field on uncheck, so the entire `ffc_csv_public` / `ffc_device_limit` array vanished from `$_POST` and the save handler's `isset()` guard skipped the block — leaving `_ffc_csv_public_enabled` / `_ffc_device_limit_enabled` stuck at `'1'`. Each metabox now emits a hidden `[present]=1` marker outside the `<table>` (out of reach of both the sub-field disable JS and the globally-off disable), so the array is always submitted and the save handler always sees the user's intent to disable.
 - **Form editor: explicitly choosing "No — only Form ID + Hash" for the public CSV CPF gate silently reverted to "Audit".** `FormEditorSaveHandler::save_form_data()` unconditionally coerced `'none' → 'audit'` on every save, masking the user's choice. Coercion now only applies on the very first enable transition (toggle flipping `0 → 1` while the dropdown is at the default `'none'`); on later saves the user's explicit selection sticks.
+- **Reregistration form: every blur threw `TypeError: $.trim is not a function` under jQuery 4**, blocking all blur-based field validation. `assets/js/ffc-reregistration-frontend.js` now uses the native `String.prototype.trim()` via `($field.val() || '').trim()`.
+- **Reregistration form: save-draft and submit always sent `fields: {}` under jQuery 4.** jQuery 4's stricter attribute-value parser rejects the unescaped `[` inside `[name^="fields["]`, so `getFields()` silently returned an empty set. The selector is now `[name^="fields"]` — every reregistration field is named `fields[…]`, so the bare prefix is sufficient.
+
+### Internal
+
+- **JS unit coverage `assets/js/` raised from 7.37% to 72.84%** across multiple sprints. Per-file highlights: `ffc-admin.js` 54 → 95 %, `ffc-frontend.js` 56 → 95 %, `ffc-frontend-helpers.js` 69 → 95 %, `ffc-geofence-frontend.js` 57 → 92 %, `ffc-csv-download.js` 25 → 90 %, `ffc-reregistration-frontend.js` 22 → 96 %, `ffc-audience.js` 0 → 47 %. Two 0% blind spots closed (`ffc-working-hours.js`, `ffc-geofence-admin.js` shell). `JS_COVERAGE_FLOOR_LINES` gate ratcheted from 47 to 70.
+- **CI: Coverage job timeout raised 15 → 20 min** to absorb the wider PHP suite (pcov + ~3 800 tests routinely lands at 14-15 min and was tripping the prior ceiling).
+- **ESLint: the nine pre-existing `no-unused-vars` warnings cleared.** Dead `escapeHtml` / `getEnvironmentName` helpers removed; legitimate callback-signature args (`onDayClick($day)`, jQuery AJAX `error(xhr, status, error)`) underscore-prefixed.
+- **`CLAUDE.md` added at repo root** documenting the auto-merge convention, webhook semantics, CI gates, and test-infrastructure notes that new agent sessions inherit nothing of on cold start.
 
 ---
 
