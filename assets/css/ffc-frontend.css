@@ -890,6 +890,10 @@ details.ffc-consent-description > p {
     font-size: 15px;
 }
 
+.ffc-shortcode .ffc-geofence-reload-btn {
+    margin-top: 12px;
+}
+
 /* Admin bypass message (informational - blue theme) */
 .ffc-shortcode .ffc-geofence-admin-bypass {
     background: var(--ffc-info-bg);

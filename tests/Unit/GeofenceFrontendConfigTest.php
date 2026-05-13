@@ -230,7 +230,17 @@ class GeofenceFrontendConfigTest extends TestCase {
         $this->assertSame( 'Blocked by location.', $result['geo']['messageBlocked'] );
         $this->assertSame( 'Location error.', $result['geo']['messageError'] );
         $this->assertSame( 'message', $result['geo']['hideMode'] );
-        $this->assertSame( 'block', $result['geo']['gpsFallback'] );
+        // gps_fallback='block' legacy → all-block per-case map.
+        $this->assertSame(
+            array(
+                'permissionDenied'    => false,
+                'noApi'               => false,
+                'positionUnavailable' => false,
+                'timeout'             => false,
+                'safetyTimer'         => false,
+            ),
+            $result['geo']['gpsFallback']
+        );
         $this->assertTrue( $result['geo']['cacheEnabled'] );
         $this->assertSame( 300, $result['geo']['cacheTtl'] );
 
@@ -298,7 +308,17 @@ class GeofenceFrontendConfigTest extends TestCase {
 
         $this->assertTrue( $result['geo']['enabled'] );
 
-        $this->assertSame( 'allow', $result['geo']['gpsFallback'] );
+        // gps_fallback='allow' legacy → all-allow per-case map.
+        $this->assertSame(
+            array(
+                'permissionDenied'    => true,
+                'noApi'               => true,
+                'positionUnavailable' => true,
+                'timeout'             => true,
+                'safetyTimer'         => true,
+            ),
+            $result['geo']['gpsFallback']
+        );
         $this->assertSame( 900, $result['geo']['cacheTtl'] );
         $this->assertFalse( $result['global']['debug'] );
     }

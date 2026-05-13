@@ -262,12 +262,21 @@
                 return;
             }
 
-            // Check browser support
+            // Check browser support. Honour the admin's allow/block choice
+            // for the `noApi` case: 'allow' lets the user through despite
+            // the missing API (the geofence becomes effectively trust-
+            // the-browser); 'block' keeps the form locked.
             if (!navigator.geolocation) {
+                if (this.shouldAllow(config, 'noApi')) {
+                    this.debug('Geolocation API unavailable but fallback case noApi=allow, showing form');
+                    this.showForm(formWrapper);
+                    return;
+                }
                 this.handleBlocked(
                     formWrapper,
                     config.hideMode,
-                    this.getString('browserNoSupport', 'Your browser does not support geolocation.')
+                    this.getString('browserNoSupport', 'Your browser does not support location services required by this form. Please use a modern browser to access it.'),
+                    false
                 );
                 return;
             }
@@ -426,40 +435,49 @@
 
                 var activeConfig = self.getFreshGeoConfig(formWrapper, config);
 
+                // Map the error code to a fallback case key (must match the
+                // keys the server emits via `gpsFallback`). For unknown error
+                // codes (iOS sometimes reports code=0) treat as position
+                // unavailable since that's the strictest assumption that
+                // still produces actionable guidance.
+                var caseKey;
                 var errorMessage;
-
                 switch (error.code) {
                     case error.PERMISSION_DENIED:
+                        caseKey      = 'permissionDenied';
                         errorMessage = isSafariBrowser
                             ? self.getString('safariPermissionDenied', 'Location access was denied. On Safari/iOS, go to Settings > Privacy & Security > Location Services and ensure it is enabled for your browser.')
-                            : self.getString('permissionDenied', 'Location permission denied. Please enable location services.');
+                            : self.getString('permissionDenied', 'Location access is required to use this form. Allow location access in your browser settings and reload the page.');
                         break;
                     case error.POSITION_UNAVAILABLE:
+                        caseKey      = 'positionUnavailable';
                         errorMessage = isSafariBrowser
                             ? self.getString('safariPositionUnavailable', 'Unable to determine your location. On Safari/iOS, ensure Location Services is enabled in Settings > Privacy & Security > Location Services.')
-                            : self.getString('positionUnavailable', 'Location information is unavailable.');
+                            : self.getString('positionUnavailable', "We couldn't determine your location. Make sure GPS / location services are enabled on your device and reload the page.");
                         break;
                     case error.TIMEOUT:
+                        caseKey      = 'timeout';
                         errorMessage = isSafariBrowser
                             ? self.getString('safariTimeout', 'Location request timed out. On Safari/iOS, ensure Location Services is enabled in Settings > Privacy & Security > Location Services.')
-                            : self.getString('timeout', 'Location request timed out.');
+                            : self.getString('timeout', 'Location request took too long. Check your connection and reload the page.');
                         break;
                     default:
-                        // Some iOS versions return error.code = 0 for unknown
-                        // errors; give Safari users actionable guidance instead
-                        // of a generic message.
+                        caseKey      = 'positionUnavailable';
                         errorMessage = isSafariBrowser
                             ? self.getString('safariPositionUnavailable', 'Unable to determine your location. On Safari/iOS, ensure Location Services is enabled in Settings > Privacy & Security > Location Services.')
                             : (activeConfig.messageError || self.getString('locationError', 'Unable to determine your location.'));
                 }
 
-                if (activeConfig.gpsFallback === 'allow') {
-                    self.debug('GPS failed but gps_fallback=allow, showing form');
+                if (self.shouldAllow(activeConfig, caseKey)) {
+                    self.debug('GPS failed but case ' + caseKey + '=allow, showing form');
                     self.showForm(formWrapper);
                     return;
                 }
 
-                self.handleBlocked(formWrapper, activeConfig.hideMode, errorMessage);
+                // Surface a "Reload page" affordance for the three transient
+                // failure cases — the user can usually recover from these
+                // by reloading after enabling location / fixing connectivity.
+                self.handleBlocked(formWrapper, activeConfig.hideMode, errorMessage, true);
             }
 
             // Request geolocation
@@ -471,21 +489,42 @@
         },
 
         /**
-         * Apply the gps_fallback admin setting when GPS is unavailable.
+         * Resolve whether a given GPS-failure case should allow access.
+         *
+         * The server sends a per-case allow/block map via `config.gpsFallback`
+         * (object). For pre-fallback-presets servers that may still emit
+         * the legacy 'allow' | 'block' string, fall back to the old binary
+         * semantic (allow ↔ true, block ↔ false).
+         *
+         * @param {object} config  Geo configuration emitted by the server.
+         * @param {string} caseKey One of permissionDenied / noApi /
+         *                         positionUnavailable / timeout / safetyTimer.
+         * @returns {boolean}      true → showForm, false → handleBlocked.
+         */
+        shouldAllow: function(config, caseKey) {
+            var fb = (config && config.gpsFallback);
+            if (typeof fb === 'string') {
+                return 'allow' === fb;
+            }
+            return !!(fb && fb[caseKey]);
+        },
+
+        /**
+         * Apply the safety-timer fallback when geolocation never responded.
          *
          * @param {jQuery} formWrapper Form wrapper element
          * @param {object} config      Geo configuration
          */
         applyGpsFallback: function(formWrapper, config) {
-            if (config.gpsFallback === 'allow') {
-                this.debug('gps_fallback=allow, showing form despite GPS failure');
+            if (this.shouldAllow(config, 'safetyTimer')) {
+                this.debug('safetyTimer=allow, showing form despite GPS never responding');
                 this.showForm(formWrapper);
-            } else {
-                var msg = this.isSafari()
-                    ? this.getString('safariTimeout', 'Location request timed out. On Safari/iOS, ensure Location Services is enabled in Settings > Privacy & Security > Location Services.')
-                    : this.getString('timeout', 'Location request timed out.');
-                this.handleBlocked(formWrapper, config.hideMode, msg);
+                return;
             }
+            var msg = this.isSafari()
+                ? this.getString('safariSafetyTimeout', "Your device didn't respond to the location request. On Safari/iOS, ensure Location Services is enabled in Settings > Privacy & Security > Location Services, then reload the page.")
+                : this.getString('safetyTimeout', "Your device didn't respond to the location request. Make sure location is enabled and reload the page.");
+            this.handleBlocked(formWrapper, config.hideMode, msg, true);
         },
 
         getFreshGeoConfig: function(formWrapper, fallback) {
@@ -638,13 +677,17 @@
         /**
          * Handle blocked form
          *
-         * @param {jQuery} formWrapper Form wrapper element
-         * @param {string} hideMode Display mode ('hide', 'message', 'title_message')
-         * @param {string} message  The message to display (already resolved by caller)
+         * @param {jQuery}  formWrapper Form wrapper element
+         * @param {string}  hideMode    Display mode ('hide', 'message', 'title_message')
+         * @param {string}  message     The message to display (already resolved by caller)
+         * @param {boolean} [showReload] If true, append a "Reload page" button under
+         *                  the message. Used for transient GPS failures the user
+         *                  can usually recover from (denied → enable in settings,
+         *                  unavailable → toggle GPS, timeout → check connection).
          */
-        handleBlocked: function(formWrapper, hideMode, message) {
+        handleBlocked: function(formWrapper, hideMode, message, showReload) {
 
-            this.debug('Blocking form', { hideMode, message });
+            this.debug('Blocking form', { hideMode: hideMode, message: message, showReload: !!showReload });
 
             switch (hideMode) {
                 case 'hide':
@@ -656,19 +699,19 @@
                     // Hide form, show message only
                     formWrapper.find('.ffc-submission-form').hide();
                     formWrapper.find('.ffc-form-title').hide();
-                    this.showBlockedMessage(formWrapper, message);
+                    this.showBlockedMessage(formWrapper, message, showReload);
                     break;
 
                 case 'title_message':
                     // Show title + description + message
                     formWrapper.find('.ffc-submission-form').hide();
-                    this.showBlockedMessage(formWrapper, message);
+                    this.showBlockedMessage(formWrapper, message, showReload);
                     break;
 
                 default:
                     // Default to showing message
                     formWrapper.find('.ffc-submission-form').hide();
-                    this.showBlockedMessage(formWrapper, message);
+                    this.showBlockedMessage(formWrapper, message, showReload);
                     break;
             }
         },
@@ -676,9 +719,21 @@
         /**
          * Show blocked message
          */
-        showBlockedMessage: function(formWrapper, message) {
-            const html = '<div class="ffc-geofence-blocked"><p>' + this.escapeHtml(message) + '</p></div>';
+        showBlockedMessage: function(formWrapper, message, showReload) {
+            var html = '<div class="ffc-geofence-blocked"><p>' + this.escapeHtml(message) + '</p>';
+            if (showReload) {
+                var label = this.getString('reloadPageBtn', 'Reload page');
+                html += '<button type="button" class="ffc-btn ffc-geofence-reload-btn">'
+                    + this.escapeHtml(label) + '</button>';
+            }
+            html += '</div>';
             formWrapper.append(html);
+
+            if (showReload) {
+                formWrapper.find('.ffc-geofence-reload-btn').on('click', function() {
+                    window.location.reload();
+                });
+            }
         },
 
         /**
