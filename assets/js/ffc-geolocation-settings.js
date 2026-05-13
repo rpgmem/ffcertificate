@@ -26,11 +26,15 @@
         var presetCases = (window.ffcGeolocationSettings && window.ffcGeolocationSettings.presetCases) || {};
 
         function applyPreset(preset) {
-            if ('custom' === preset) {
-                $table.removeAttr('hidden');
+            var isCustom = 'custom' === preset;
+            // jQuery `.toggle(bool)` sets inline display, which beats the
+            // WP admin CSS that forces `.widefat { display: table }` at
+            // author origin — an HTML `hidden` attribute would lose that
+            // cascade and the table would stay visible.
+            $table.toggle(isCustom);
+            if (isCustom) {
                 return;
             }
-            $table.attr('hidden', 'hidden');
             var cases = presetCases[preset];
             if (!cases) {
                 return;
