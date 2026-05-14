@@ -47,12 +47,13 @@ if ( ! defined( 'ABSPATH' ) ) {
 				<tbody>
 					<?php if ( ! empty( $ffc_locations ) ) : ?>
 						<?php foreach ( $ffc_locations as $ffc_loc ) : ?>
-							<tr>
+							<tr class="ffc-location-row" data-location-id="<?php echo esc_attr( $ffc_loc['id'] ); ?>">
 								<td>
 									<input type="text"
 											name="ffc_locations[<?php echo esc_attr( $ffc_loc['id'] ); ?>][name]"
 											value="<?php echo esc_attr( $ffc_loc['name'] ); ?>"
-											class="regular-text"
+											class="regular-text ffc-location-field"
+											data-field="name"
 											required>
 									<?php if ( $ffc_loc['id'] === $ffc_default_gps_id ) : ?>
 										<span class="description">(GPS)</span>
@@ -66,40 +67,50 @@ if ( ! defined( 'ABSPATH' ) ) {
 											name="ffc_locations[<?php echo esc_attr( $ffc_loc['id'] ); ?>][lat]"
 											value="<?php echo esc_attr( $ffc_loc['lat'] ); ?>"
 											step="any" min="-90" max="90"
-											style="width: 120px;" required>
+											style="width: 120px;"
+											class="ffc-location-field"
+											data-field="lat"
+											required>
 								</td>
 								<td>
 									<input type="number"
 											name="ffc_locations[<?php echo esc_attr( $ffc_loc['id'] ); ?>][lng]"
 											value="<?php echo esc_attr( $ffc_loc['lng'] ); ?>"
 											step="any" min="-180" max="180"
-											style="width: 120px;" required>
+											style="width: 120px;"
+											class="ffc-location-field"
+											data-field="lng"
+											required>
 								</td>
 								<td>
 									<input type="number"
 											name="ffc_locations[<?php echo esc_attr( $ffc_loc['id'] ); ?>][radius]"
 											value="<?php echo esc_attr( $ffc_loc['radius'] ); ?>"
 											step="any" min="1"
-											style="width: 100px;" required>
+											style="width: 100px;"
+											class="ffc-location-field"
+											data-field="radius"
+											required>
 								</td>
 								<td>
 									<input type="radio"
 											name="ffc_location_default_gps"
+											class="ffc-location-default-gps"
 											value="<?php echo esc_attr( $ffc_loc['id'] ); ?>"
 											<?php checked( $ffc_loc['id'], $ffc_default_gps_id ); ?>>
 								</td>
 								<td>
 									<input type="radio"
 											name="ffc_location_default_ip"
+											class="ffc-location-default-ip"
 											value="<?php echo esc_attr( $ffc_loc['id'] ); ?>"
 											<?php checked( $ffc_loc['id'], $ffc_default_ip_id ); ?>>
 								</td>
 								<td>
-									<a href="<?php echo esc_url( wp_nonce_url( add_query_arg( 'ffc_delete_location', $ffc_loc['id'] ), 'ffc_delete_location_' . $ffc_loc['id'] ) ); ?>"
-										class="button button-small"
-										onclick="return confirm('<?php echo esc_js( __( 'Are you sure you want to delete this location?', 'ffcertificate' ) ); ?>');">
+									<button type="button" class="button button-small ffc-location-delete">
 										<?php esc_html_e( 'Delete', 'ffcertificate' ); ?>
-									</a>
+									</button>
+									<span class="ffc-autosave-badge" hidden></span>
 								</td>
 							</tr>
 						<?php endforeach; ?>
@@ -133,34 +144,44 @@ if ( ! defined( 'ABSPATH' ) ) {
 					<tr>
 						<th colspan="7"><?php esc_html_e( 'Add New Location', 'ffcertificate' ); ?></th>
 					</tr>
-					<tr>
+					<tr id="ffc-location-new-row">
 						<td>
 							<input type="text" name="ffc_location_new[name]" value=""
-									class="regular-text"
+									class="regular-text ffc-location-new-field"
+									data-field="name"
 									placeholder="<?php esc_attr_e( 'Location name', 'ffcertificate' ); ?>">
 						</td>
 						<td>
 							<input type="number" name="ffc_location_new[lat]" value=""
 									step="any" min="-90" max="90"
 									style="width: 120px;"
+									class="ffc-location-new-field"
+									data-field="lat"
 									placeholder="<?php esc_attr_e( 'Latitude', 'ffcertificate' ); ?>">
 						</td>
 						<td>
 							<input type="number" name="ffc_location_new[lng]" value=""
 									step="any" min="-180" max="180"
 									style="width: 120px;"
+									class="ffc-location-new-field"
+									data-field="lng"
 									placeholder="<?php esc_attr_e( 'Longitude', 'ffcertificate' ); ?>">
 						</td>
 						<td>
 							<input type="number" name="ffc_location_new[radius]" value=""
 									step="any" min="1"
 									style="width: 100px;"
+									class="ffc-location-new-field"
+									data-field="radius"
 									placeholder="1000">
 						</td>
-						<td colspan="3">
-							<p class="description">
-								<?php esc_html_e( 'Fill in the fields and click "Save" to add.', 'ffcertificate' ); ?>
-							</p>
+						<td colspan="2">
+							<button type="button" class="button button-primary" id="ffc-location-add">
+								<?php esc_html_e( 'Add location', 'ffcertificate' ); ?>
+							</button>
+						</td>
+						<td>
+							<span class="ffc-autosave-badge" hidden></span>
 						</td>
 					</tr>
 				</tfoot>
@@ -182,10 +203,15 @@ if ( ! defined( 'ABSPATH' ) ) {
 						<label><?php esc_html_e( 'IP Geolocation', 'ffcertificate' ); ?></label>
 					</th>
 					<td>
-						<label>
-							<input type="checkbox" name="ip_api_enabled" value="1" <?php checked( $settings['ip_api_enabled'], true ); ?>>
-							<?php esc_html_e( 'Enable IP geolocation API for backend validation', 'ffcertificate' ); ?>
-						</label>
+						<?php
+						\FreeFormCertificate\Admin\AdminUI::render_toggle(
+							array(
+								'name'    => 'ip_api_enabled',
+								'checked' => (bool) $settings['ip_api_enabled'],
+								'label'   => __( 'Enable IP geolocation API for backend validation', 'ffcertificate' ),
+							)
+						);
+						?>
 						<p class="description">
 							<?php esc_html_e( 'When enabled, validates user location by IP address on the server (in addition to GPS).', 'ffcertificate' ); ?>
 						</p>
@@ -218,10 +244,15 @@ if ( ! defined( 'ABSPATH' ) ) {
 						<label><?php esc_html_e( 'Service Cascade', 'ffcertificate' ); ?></label>
 					</th>
 					<td>
-						<label>
-							<input type="checkbox" name="ip_api_cascade" value="1" <?php checked( $settings['ip_api_cascade'], true ); ?>>
-							<?php esc_html_e( 'Enable cascade: if primary fails, try the other service', 'ffcertificate' ); ?>
-						</label>
+						<?php
+						\FreeFormCertificate\Admin\AdminUI::render_toggle(
+							array(
+								'name'    => 'ip_api_cascade',
+								'checked' => (bool) $settings['ip_api_cascade'],
+								'label'   => __( 'Enable cascade: if primary fails, try the other service', 'ffcertificate' ),
+							)
+						);
+						?>
 						<p class="description">
 							<?php esc_html_e( 'When enabled, if the primary service fails, automatically try the alternative service.', 'ffcertificate' ); ?>
 						</p>
@@ -253,10 +284,15 @@ if ( ! defined( 'ABSPATH' ) ) {
 						<label><?php esc_html_e( 'IP Cache', 'ffcertificate' ); ?></label>
 					</th>
 					<td>
-						<label>
-							<input type="checkbox" name="ip_cache_enabled" value="1" <?php checked( $settings['ip_cache_enabled'], true ); ?>>
-							<?php esc_html_e( 'Cache IP geolocation results to reduce API calls', 'ffcertificate' ); ?>
-						</label>
+						<?php
+						\FreeFormCertificate\Admin\AdminUI::render_toggle(
+							array(
+								'name'    => 'ip_cache_enabled',
+								'checked' => (bool) $settings['ip_cache_enabled'],
+								'label'   => __( 'Cache IP geolocation results to reduce API calls', 'ffcertificate' ),
+							)
+						);
+						?>
 						<p class="description">
 							<?php esc_html_e( 'Recommended. Caches geolocation by IP to avoid repeated API calls.', 'ffcertificate' ); ?>
 						</p>
@@ -465,10 +501,17 @@ if ( ! defined( 'ABSPATH' ) ) {
 						<label><?php esc_html_e( 'Bypass Date/Time', 'ffcertificate' ); ?></label>
 					</th>
 					<td>
-						<label>
-							<input type="checkbox" name="admin_bypass_datetime" value="1" <?php checked( $settings['admin_bypass_datetime'], true ); ?>>
-							<?php esc_html_e( 'Administrators bypass date/time restrictions', 'ffcertificate' ); ?>
-						</label>
+						<?php
+						\FreeFormCertificate\Admin\AdminUI::render_toggle(
+							array(
+								'name'    => 'admin_bypass_datetime',
+								'id'      => 'ffc_admin_bypass_datetime',
+								'checked' => (bool) $settings['admin_bypass_datetime'],
+								'label'   => __( 'Administrators bypass date/time restrictions', 'ffcertificate' ),
+								'data'    => array( 'ffc-autosave-key' => 'admin_bypass_datetime' ),
+							)
+						);
+						?>
 						<p class="description">
 							<?php esc_html_e( 'Logged-in administrators can access forms regardless of date/time configuration. A visual message will appear indicating bypass is active.', 'ffcertificate' ); ?>
 						</p>
@@ -481,10 +524,17 @@ if ( ! defined( 'ABSPATH' ) ) {
 						<label><?php esc_html_e( 'Bypass Geolocation', 'ffcertificate' ); ?></label>
 					</th>
 					<td>
-						<label>
-							<input type="checkbox" name="admin_bypass_geo" value="1" <?php checked( $settings['admin_bypass_geo'], true ); ?>>
-							<?php esc_html_e( 'Administrators bypass geolocation restrictions', 'ffcertificate' ); ?>
-						</label>
+						<?php
+						\FreeFormCertificate\Admin\AdminUI::render_toggle(
+							array(
+								'name'    => 'admin_bypass_geo',
+								'id'      => 'ffc_admin_bypass_geo',
+								'checked' => (bool) $settings['admin_bypass_geo'],
+								'label'   => __( 'Administrators bypass geolocation restrictions', 'ffcertificate' ),
+								'data'    => array( 'ffc-autosave-key' => 'admin_bypass_geo' ),
+							)
+						);
+						?>
 						<p class="description">
 							<?php esc_html_e( 'Logged-in administrators can access forms regardless of GPS/IP geolocation configuration. A visual message will appear indicating bypass is active.', 'ffcertificate' ); ?>
 						</p>

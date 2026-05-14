@@ -60,12 +60,68 @@ class TabGeolocation extends SettingsTab {
 		}
 
 		$s = \FreeFormCertificate\Core\Utils::asset_suffix();
+		// Core is needed for FFC.request; autosave depends on FFC.Admin.
 		wp_enqueue_script(
-			'ffc-geolocation-settings',
-			FFC_PLUGIN_URL . "assets/js/ffc-geolocation-settings{$s}.js",
+			'ffc-core',
+			FFC_PLUGIN_URL . "assets/js/ffc-core{$s}.js",
 			array( 'jquery' ),
 			FFC_VERSION,
 			true
+		);
+		wp_enqueue_script(
+			'ffc-admin-autosave',
+			FFC_PLUGIN_URL . "assets/js/ffc-admin-autosave{$s}.js",
+			array( 'jquery', 'ffc-core', 'ffc-admin' ),
+			FFC_VERSION,
+			true
+		);
+		wp_enqueue_script(
+			'ffc-geolocation-settings',
+			FFC_PLUGIN_URL . "assets/js/ffc-geolocation-settings{$s}.js",
+			array( 'jquery', 'ffc-admin-autosave' ),
+			FFC_VERSION,
+			true
+		);
+		wp_enqueue_script(
+			'ffc-locations-crud',
+			FFC_PLUGIN_URL . "assets/js/ffc-locations-crud{$s}.js",
+			array( 'jquery', 'ffc-core' ),
+			FFC_VERSION,
+			true
+		);
+		wp_localize_script(
+			'ffc-locations-crud',
+			'ffcLocationsCrud',
+			array(
+				'nonces'  => array(
+					'save'   => wp_create_nonce( 'ffc_location_save' ),
+					'delete' => wp_create_nonce( 'ffc_location_delete' ),
+				),
+				'strings' => array(
+					'saving'        => __( 'Saving…', 'ffcertificate' ),
+					'saved'         => __( 'Saved', 'ffcertificate' ),
+					'deleting'      => __( 'Deleting…', 'ffcertificate' ),
+					'error'         => __( 'Save failed', 'ffcertificate' ),
+					'confirmDelete' => __( 'Delete this location?', 'ffcertificate' ),
+					'deleteText'    => __( 'Delete', 'ffcertificate' ),
+				),
+			)
+		);
+
+		// FFC.request needs ffc_ajax.nonce — for the
+		// ffc_update_setting endpoint we localise the nonce here so the
+		// shared core config picks it up.
+		wp_localize_script(
+			'ffc-core',
+			'ffc_ajax',
+			array(
+				'ajax_url' => admin_url( 'admin-ajax.php' ),
+				'nonce'    => wp_create_nonce( 'ffc_update_setting' ),
+				'strings'  => array(
+					'error'           => __( 'Error', 'ffcertificate' ),
+					'connectionError' => __( 'Connection error', 'ffcertificate' ),
+				),
+			)
 		);
 
 		// Pass the preset → cases map to the script so radio snapping

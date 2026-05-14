@@ -528,3 +528,114 @@
 .ffc-mb-md         { margin-bottom: 12px; }
 .ffc-color-dot     { display: inline-block; width: 12px; height: 12px; border-radius: 50%; background-color: var(--ffc-color, currentColor); }
 
+/* ==========================================================================
+   TOGGLE SWITCH — mobile-style ON/OFF for boolean settings.
+   Replaces native checkbox visuals while preserving the underlying input
+   for accessibility (screen readers, keyboard nav, form-POST semantics).
+   Markup contract:
+     <label class="ffc-toggle">
+         <input type="checkbox" name="..." value="1" checked>
+         <span class="ffc-toggle-track" aria-hidden="true"></span>
+         <span class="ffc-toggle-label">Field label text</span>
+     </label>
+   ========================================================================== */
+.ffc-toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    cursor: pointer;
+    user-select: none;
+    line-height: 1.3;
+}
+
+.ffc-toggle input[type="checkbox"] {
+    /* Visually hidden but reachable by keyboard + assistive tech. */
+    position: absolute;
+    opacity: 0;
+    width: 0;
+    height: 0;
+    pointer-events: none;
+}
+
+.ffc-toggle-track {
+    position: relative;
+    flex: 0 0 auto;
+    width: 38px;
+    height: 22px;
+    background: var(--ffc-border-medium, #c3c4c7);
+    border-radius: 11px;
+    transition: background-color 0.15s ease;
+}
+
+.ffc-toggle-track::after {
+    content: "";
+    position: absolute;
+    top: 2px;
+    left: 2px;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: #fff;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+    transition: transform 0.15s ease;
+}
+
+.ffc-toggle input[type="checkbox"]:checked + .ffc-toggle-track {
+    background: var(--ffc-primary, #2271b1);
+}
+
+.ffc-toggle input[type="checkbox"]:checked + .ffc-toggle-track::after {
+    transform: translateX(16px);
+}
+
+.ffc-toggle input[type="checkbox"]:focus-visible + .ffc-toggle-track {
+    outline: 2px solid var(--ffc-primary, #2271b1);
+    outline-offset: 2px;
+}
+
+.ffc-toggle input[type="checkbox"]:disabled + .ffc-toggle-track {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.ffc-toggle-label {
+    color: inherit;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .ffc-toggle-track,
+    .ffc-toggle-track::after {
+        transition: none;
+    }
+}
+
+/* ==========================================================================
+   AUTO-SAVE BADGE — companion to FFC.Admin.autoSaveField.
+   Renders next to a field showing the live save state.
+   ========================================================================== */
+.ffc-autosave-badge {
+    display: inline-block;
+    margin-left: 8px;
+    padding: 2px 8px;
+    border-radius: 10px;
+    font-size: 12px;
+    font-weight: 500;
+    line-height: 1.5;
+    vertical-align: middle;
+}
+
+.ffc-autosave-badge--saving {
+    background: var(--ffc-bg-subtle, #f0f0f1);
+    color: var(--ffc-text-muted, #646970);
+}
+
+.ffc-autosave-badge--saved {
+    background: var(--ffc-success-light, #ecf7ed);
+    color: var(--ffc-success, #00a32a);
+}
+
+.ffc-autosave-badge--error {
+    background: var(--ffc-danger-light, #fcf0f1);
+    color: var(--ffc-danger, #d63638);
+}
+
