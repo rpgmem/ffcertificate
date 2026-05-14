@@ -509,9 +509,9 @@ class AdminAssetsManager {
 			array(
 				'nonce'   => wp_create_nonce( \FreeFormCertificate\Admin\SubmissionsBulkActionsAjaxEndpoint::AJAX_ACTION ),
 				'strings' => array(
-					'error'              => __( 'Action failed.', 'ffcertificate' ),
-					'confirmDelete'      => __( 'Permanently delete this submission?', 'ffcertificate' ),
-					'confirmBulkDelete'  => __( 'Permanently delete the selected submissions? This cannot be undone.', 'ffcertificate' ),
+					'error'             => __( 'Action failed.', 'ffcertificate' ),
+					'confirmDelete'     => __( 'Permanently delete this submission?', 'ffcertificate' ),
+					'confirmBulkDelete' => __( 'Permanently delete the selected submissions? This cannot be undone.', 'ffcertificate' ),
 				),
 			)
 		);
