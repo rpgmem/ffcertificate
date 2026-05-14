@@ -86,9 +86,9 @@
     display: inline-block;
 }
 
-/* Email notification checkbox labels */
-.ffc-email-checkbox-label {
-    display: block;
+/* Email notification toggles — vertical stack with breathing room. */
+.ffc-email-toggles .ffc-toggle {
+    display: flex;
     margin-bottom: 8px;
 }
 

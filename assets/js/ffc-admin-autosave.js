@@ -48,14 +48,25 @@
      * badge jQuery node.
      */
     function ensureBadge($field, $explicit) {
-        var $existing = $explicit && $explicit.length
-            ? $explicit
-            : $field.siblings('.' + BADGE_CLASS).first();
+        if ($explicit && $explicit.length) {
+            return $explicit;
+        }
+        // `.ffc-toggle` wraps `<input>` + `<span.ffc-toggle-track>` + label
+        // text. Injecting the badge between the input and the track kills
+        // the `input:checked + .ffc-toggle-track` CSS rule that recolors
+        // the track on toggle-on — so the toggle visually stays "off"
+        // even after the save succeeds. Anchor the badge AFTER the
+        // wrapping label instead so the track stays adjacent.
+        var $anchor = $field.closest('.ffc-toggle');
+        if (!$anchor.length) {
+            $anchor = $field;
+        }
+        var $existing = $anchor.next('.' + BADGE_CLASS);
         if ($existing.length) {
             return $existing;
         }
         var $badge = $('<span class="' + BADGE_CLASS + '" aria-live="polite" hidden></span>');
-        $field.after($badge);
+        $anchor.after($badge);
         return $badge;
     }
 

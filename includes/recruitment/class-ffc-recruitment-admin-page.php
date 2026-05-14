@@ -241,7 +241,7 @@ final class RecruitmentAdminPage {
 
 		// Edit screens hijack the whole render — they have their own
 		// chrome (h1 + back link) and don't share the tab strip.
-		if ( 'edit-notice' === $action || 'edit-candidate' === $action || 'edit-reason' === $action ) {
+		if ( 'edit-notice' === $action || 'edit-candidate' === $action || 'edit-reason' === $action || 'edit-adjutancy' === $action ) {
 			echo '<div class="wrap ffc-recruitment-admin">';
 			echo '<h1>' . esc_html__( 'Recruitment', 'ffcertificate' ) . '</h1>';
 			// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- read-only flash.
@@ -253,6 +253,8 @@ final class RecruitmentAdminPage {
 				RecruitmentNoticeEditPage::render();
 			} elseif ( 'edit-candidate' === $action ) {
 				RecruitmentCandidateEditPage::render();
+			} elseif ( 'edit-adjutancy' === $action ) {
+				RecruitmentAdjutancyEditPage::render();
 			} else {
 				RecruitmentReasonEditPage::render();
 			}
@@ -425,6 +427,8 @@ final class RecruitmentAdminPage {
 			'unlink-user-ok'              => array( 'success', __( 'Candidate unlinked from the WP user. The wp_user account was not deleted.', 'ffcertificate' ) ),
 			'rank-mandatory'              => array( 'error', __( 'public_columns_config rejected: `rank` cannot be set to false (mandatory column).', 'ffcertificate' ) ),
 			'name-mandatory'              => array( 'error', __( 'public_columns_config rejected: `name` cannot be set to false (mandatory column).', 'ffcertificate' ) ),
+			'slug-taken'                  => array( 'error', __( 'Slug rejected: another adjutancy already uses this slug. Pick a different value.', 'ffcertificate' ) ),
+			'save-failed'                 => array( 'error', __( 'Save failed. Please try again.', 'ffcertificate' ) ),
 		);
 		if ( ! isset( $map[ $key ] ) ) {
 			return;

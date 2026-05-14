@@ -16,6 +16,8 @@ declare(strict_types=1);
 
 namespace FreeFormCertificate\SelfScheduling;
 
+use FreeFormCertificate\Admin\AdminUI;
+
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
@@ -391,10 +393,16 @@ class SelfSchedulingEditor {
 			<tr>
 				<th><label for="allow_cancellation"><?php esc_html_e( 'Allow User Cancellation', 'ffcertificate' ); ?></label></th>
 				<td>
-					<label>
-						<input type="checkbox" id="allow_cancellation" name="ffc_self_scheduling_config[allow_cancellation]" value="1" <?php checked( $config['allow_cancellation'], 1 ); ?> />
-						<?php esc_html_e( 'Users can cancel their own appointments', 'ffcertificate' ); ?>
-					</label>
+					<?php
+					AdminUI::render_toggle(
+						array(
+							'id'      => 'allow_cancellation',
+							'name'    => 'ffc_self_scheduling_config[allow_cancellation]',
+							'checked' => (bool) $config['allow_cancellation'],
+							'label'   => __( 'Users can cancel their own appointments', 'ffcertificate' ),
+						)
+					);
+					?>
 				</td>
 			</tr>
 			<tr class="ffc-cancellation-hours" <?php echo esc_attr( $config['allow_cancellation'] ? '' : 'style="display:none;"' ); ?>>
@@ -414,10 +422,16 @@ class SelfSchedulingEditor {
 			<tr>
 				<th><label for="requires_approval"><?php esc_html_e( 'Require Manual Approval', 'ffcertificate' ); ?></label></th>
 				<td>
-					<label>
-						<input type="checkbox" id="requires_approval" name="ffc_self_scheduling_config[requires_approval]" value="1" <?php checked( $config['requires_approval'], 1 ); ?> />
-						<?php esc_html_e( 'Admin must manually approve all bookings', 'ffcertificate' ); ?>
-					</label>
+					<?php
+					AdminUI::render_toggle(
+						array(
+							'id'      => 'requires_approval',
+							'name'    => 'ffc_self_scheduling_config[requires_approval]',
+							'checked' => (bool) $config['requires_approval'],
+							'label'   => __( 'Admin must manually approve all bookings', 'ffcertificate' ),
+						)
+					);
+					?>
 				</td>
 			</tr>
 			<tr>
@@ -452,30 +466,48 @@ class SelfSchedulingEditor {
 			<tr>
 				<th><label for="restrict_viewing_to_hours"><?php esc_html_e( 'Restrict Viewing to Business Hours', 'ffcertificate' ); ?></label></th>
 				<td>
-					<label>
-						<input type="checkbox" id="restrict_viewing_to_hours" name="ffc_self_scheduling_config[restrict_viewing_to_hours]" value="1" <?php checked( $config['restrict_viewing_to_hours'], 1 ); ?> />
-						<?php esc_html_e( 'Calendar can only be viewed during working hours', 'ffcertificate' ); ?>
-					</label>
+					<?php
+					AdminUI::render_toggle(
+						array(
+							'id'      => 'restrict_viewing_to_hours',
+							'name'    => 'ffc_self_scheduling_config[restrict_viewing_to_hours]',
+							'checked' => (bool) $config['restrict_viewing_to_hours'],
+							'label'   => __( 'Calendar can only be viewed during working hours', 'ffcertificate' ),
+						)
+					);
+					?>
 					<p class="description"><?php esc_html_e( 'When enabled, the calendar will only be visible during the configured working hours. Outside those hours, a message will be displayed instead.', 'ffcertificate' ); ?></p>
 				</td>
 			</tr>
 			<tr>
 				<th><label for="restrict_booking_to_hours"><?php esc_html_e( 'Restrict Booking to Business Hours', 'ffcertificate' ); ?></label></th>
 				<td>
-					<label>
-						<input type="checkbox" id="restrict_booking_to_hours" name="ffc_self_scheduling_config[restrict_booking_to_hours]" value="1" <?php checked( $config['restrict_booking_to_hours'], 1 ); ?> />
-						<?php esc_html_e( 'Bookings can only be made during working hours', 'ffcertificate' ); ?>
-					</label>
+					<?php
+					AdminUI::render_toggle(
+						array(
+							'id'      => 'restrict_booking_to_hours',
+							'name'    => 'ffc_self_scheduling_config[restrict_booking_to_hours]',
+							'checked' => (bool) $config['restrict_booking_to_hours'],
+							'label'   => __( 'Bookings can only be made during working hours', 'ffcertificate' ),
+						)
+					);
+					?>
 					<p class="description"><?php esc_html_e( 'When enabled, users can view the calendar at any time but can only make bookings during the configured working hours.', 'ffcertificate' ); ?></p>
 				</td>
 			</tr>
 			<tr>
 				<th><label for="admin_bypass"><?php esc_html_e( 'Admin Bypass', 'ffcertificate' ); ?></label></th>
 				<td>
-					<label>
-						<input type="checkbox" id="admin_bypass" name="ffc_self_scheduling_config[admin_bypass]" value="1" <?php checked( $config['admin_bypass'], 1 ); ?> />
-						<?php esc_html_e( 'Allow administrators to bypass booking restrictions on this calendar', 'ffcertificate' ); ?>
-					</label>
+					<?php
+					AdminUI::render_toggle(
+						array(
+							'id'      => 'admin_bypass',
+							'name'    => 'ffc_self_scheduling_config[admin_bypass]',
+							'checked' => (bool) $config['admin_bypass'],
+							'label'   => __( 'Allow administrators to bypass booking restrictions on this calendar', 'ffcertificate' ),
+						)
+					);
+					?>
 					<p class="description"><?php esc_html_e( 'When enabled, users with the "manage_options" capability or the "ffc_scheduling_bypass" capability can book outside the advance-booking window, on blocked dates, outside working hours, and past the daily/interval limits. Slot capacity is always enforced. Disable this to apply all booking rules uniformly, including to administrators.', 'ffcertificate' ); ?></p>
 				</td>
 			</tr>
@@ -517,28 +549,55 @@ class SelfSchedulingEditor {
 			<tr>
 				<th><?php esc_html_e( 'Notifications', 'ffcertificate' ); ?></th>
 				<td>
-					<fieldset>
-						<label class="ffc-email-checkbox-label">
-							<input type="checkbox" name="ffc_self_scheduling_email_config[send_user_confirmation]" value="1" <?php checked( $email_config['send_user_confirmation'], 1 ); ?> />
-							<?php esc_html_e( 'Send confirmation email to user', 'ffcertificate' ); ?>
-						</label>
-						<label class="ffc-email-checkbox-label">
-							<input type="checkbox" name="ffc_self_scheduling_email_config[send_admin_notification]" value="1" <?php checked( $email_config['send_admin_notification'], 1 ); ?> />
-							<?php esc_html_e( 'Send notification to admin on new booking', 'ffcertificate' ); ?>
-						</label>
-						<label class="ffc-email-checkbox-label">
-							<input type="checkbox" name="ffc_self_scheduling_email_config[send_approval_notification]" value="1" <?php checked( $email_config['send_approval_notification'], 1 ); ?> />
-							<?php esc_html_e( 'Send notification when booking is approved', 'ffcertificate' ); ?>
-						</label>
-						<label class="ffc-email-checkbox-label">
-							<input type="checkbox" name="ffc_self_scheduling_email_config[send_cancellation_notification]" value="1" <?php checked( $email_config['send_cancellation_notification'], 1 ); ?> />
-							<?php esc_html_e( 'Send notification when booking is cancelled', 'ffcertificate' ); ?>
-						</label>
-						<label class="ffc-email-checkbox-label">
-							<input type="checkbox" name="ffc_self_scheduling_email_config[send_reminder]" value="1" <?php checked( $email_config['send_reminder'], 1 ); ?> />
-							<?php esc_html_e( 'Send reminder before appointment', 'ffcertificate' ); ?>
-						</label>
-					</fieldset>
+					<div class="ffc-email-toggles">
+						<?php
+						AdminUI::render_toggle(
+							array(
+								'id'      => 'ffc_send_user_confirmation',
+								'name'    => 'ffc_self_scheduling_email_config[send_user_confirmation]',
+								'checked' => (bool) $email_config['send_user_confirmation'],
+								'label'   => __( 'Send confirmation email to user', 'ffcertificate' ),
+								'class'   => 'ffc-email-toggle',
+							)
+						);
+						AdminUI::render_toggle(
+							array(
+								'id'      => 'ffc_send_admin_notification',
+								'name'    => 'ffc_self_scheduling_email_config[send_admin_notification]',
+								'checked' => (bool) $email_config['send_admin_notification'],
+								'label'   => __( 'Send notification to admin on new booking', 'ffcertificate' ),
+								'class'   => 'ffc-email-toggle',
+							)
+						);
+						AdminUI::render_toggle(
+							array(
+								'id'      => 'ffc_send_approval_notification',
+								'name'    => 'ffc_self_scheduling_email_config[send_approval_notification]',
+								'checked' => (bool) $email_config['send_approval_notification'],
+								'label'   => __( 'Send notification when booking is approved', 'ffcertificate' ),
+								'class'   => 'ffc-email-toggle',
+							)
+						);
+						AdminUI::render_toggle(
+							array(
+								'id'      => 'ffc_send_cancellation_notification',
+								'name'    => 'ffc_self_scheduling_email_config[send_cancellation_notification]',
+								'checked' => (bool) $email_config['send_cancellation_notification'],
+								'label'   => __( 'Send notification when booking is cancelled', 'ffcertificate' ),
+								'class'   => 'ffc-email-toggle',
+							)
+						);
+						AdminUI::render_toggle(
+							array(
+								'id'      => 'ffc_send_reminder',
+								'name'    => 'ffc_self_scheduling_email_config[send_reminder]',
+								'checked' => (bool) $email_config['send_reminder'],
+								'label'   => __( 'Send reminder before appointment', 'ffcertificate' ),
+								'class'   => 'ffc-email-toggle',
+							)
+						);
+						?>
+					</div>
 					<p class="description"><?php esc_html_e( 'Default: All notifications disabled', 'ffcertificate' ); ?></p>
 				</td>
 			</tr>
