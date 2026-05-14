@@ -120,11 +120,11 @@ $ffcertificate_stats = \FreeFormCertificate\Security\RateLimiter::get_stats();
 					),
 					array(
 						'input' => array(
-							'type'                   => true,
-							'name'                   => true,
-							'value'                  => true,
-							'min'                    => true,
-							'data-ffc-autosave-key'  => true,
+							'type'                  => true,
+							'name'                  => true,
+							'value'                 => true,
+							'min'                   => true,
+							'data-ffc-autosave-key' => true,
 						),
 					)
 				);
@@ -143,11 +143,11 @@ $ffcertificate_stats = \FreeFormCertificate\Security\RateLimiter::get_stats();
 					),
 					array(
 						'input' => array(
-							'type'                   => true,
-							'name'                   => true,
-							'value'                  => true,
-							'min'                    => true,
-							'data-ffc-autosave-key'  => true,
+							'type'                  => true,
+							'name'                  => true,
+							'value'                 => true,
+							'min'                   => true,
+							'data-ffc-autosave-key' => true,
 						),
 					)
 				);
