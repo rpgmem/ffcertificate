@@ -46,10 +46,16 @@ class FormEditorQuizMetabox {
 			<tr>
 				<th><label><?php esc_html_e( 'Enable Quiz Mode', 'ffcertificate' ); ?></label></th>
 				<td>
-					<label>
-						<input type="checkbox" name="ffc_config[quiz_enabled]" value="1" id="ffc_quiz_enabled" <?php checked( $quiz_enabled ); ?>>
-						<?php esc_html_e( 'Turn this form into a quiz/evaluation', 'ffcertificate' ); ?>
-					</label>
+					<?php
+					\FreeFormCertificate\Admin\AdminUI::render_toggle(
+						array(
+							'name'    => 'ffc_config[quiz_enabled]',
+							'id'      => 'ffc_quiz_enabled',
+							'checked' => (bool) $quiz_enabled,
+							'label'   => __( 'Turn this form into a quiz/evaluation', 'ffcertificate' ),
+						)
+					);
+					?>
 					<p class="description"><?php esc_html_e( 'When enabled, radio and select fields can have point values per option. The form is scored on submission.', 'ffcertificate' ); ?></p>
 				</td>
 			</tr>
@@ -70,14 +76,25 @@ class FormEditorQuizMetabox {
 			<tr class="ffc-quiz-setting<?php echo $quiz_enabled ? '' : ' ffc-hidden'; ?>">
 				<th><label><?php esc_html_e( 'Display Options', 'ffcertificate' ); ?></label></th>
 				<td>
-					<label>
-						<input type="checkbox" name="ffc_config[quiz_show_score]" value="1" <?php checked( $quiz_show_score ); ?>>
-						<?php esc_html_e( 'Show score after submission', 'ffcertificate' ); ?>
-					</label><br>
-					<label>
-						<input type="checkbox" name="ffc_config[quiz_show_correct]" value="1" <?php checked( $quiz_show_correct ); ?>>
-						<?php esc_html_e( 'Show which answers were correct/incorrect', 'ffcertificate' ); ?>
-					</label>
+					<?php
+					\FreeFormCertificate\Admin\AdminUI::render_toggle(
+						array(
+							'name'    => 'ffc_config[quiz_show_score]',
+							'checked' => (bool) $quiz_show_score,
+							'label'   => __( 'Show score after submission', 'ffcertificate' ),
+						)
+					);
+					?>
+					<br>
+					<?php
+					\FreeFormCertificate\Admin\AdminUI::render_toggle(
+						array(
+							'name'    => 'ffc_config[quiz_show_correct]',
+							'checked' => (bool) $quiz_show_correct,
+							'label'   => __( 'Show which answers were correct/incorrect', 'ffcertificate' ),
+						)
+					);
+					?>
 				</td>
 			</tr>
 		</table>

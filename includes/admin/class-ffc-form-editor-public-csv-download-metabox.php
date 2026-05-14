@@ -76,14 +76,16 @@ class FormEditorPublicCsvDownloadMetabox {
 					</label>
 				</th>
 				<td>
-					<label>
-						<input type="checkbox"
-								name="ffc_csv_public[enabled]"
-								id="ffc_csv_public_enabled"
-								value="1"
-								<?php checked( $enabled, '1' ); ?>>
-						<?php esc_html_e( 'Allow visitors with the hash to download this form\'s CSV.', 'ffcertificate' ); ?>
-					</label>
+					<?php
+					\FreeFormCertificate\Admin\AdminUI::render_toggle(
+						array(
+							'name'    => 'ffc_csv_public[enabled]',
+							'id'      => 'ffc_csv_public_enabled',
+							'checked' => '1' === (string) $enabled,
+							'label'   => __( 'Allow visitors with the hash to download this form\'s CSV.', 'ffcertificate' ),
+						)
+					);
+					?>
 
 					<?php if ( '' === $date_end ) : ?>
 						<p class="description ffc-warning-text">

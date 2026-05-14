@@ -28,7 +28,7 @@ $ffcertificate_get_option = \Closure::fromCallable( array( $settings, 'get_optio
 			<tbody>
 				<tr>
 					<th scope="row">
-						<label for="disable_all_emails"><?php esc_html_e( 'Email Status', 'ffcertificate' ); ?></label>
+						<label for="disable_all_emails"><?php esc_html_e( 'Disable All Emails', 'ffcertificate' ); ?></label>
 					</th>
 					<td>
 						<?php

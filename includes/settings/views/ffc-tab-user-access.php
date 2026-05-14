@@ -51,14 +51,16 @@ $ffcertificate_dashboard_url     = $ffcertificate_dashboard_page_id ? get_permal
 						</label>
 					</th>
 					<td>
-						<label>
-							<input type="checkbox"
-									name="block_wp_admin"
-									id="block_wp_admin"
-									value="1"
-									<?php checked( $ffcertificate_settings['block_wp_admin'], true ); ?>>
-							<?php esc_html_e( 'Prevent selected roles from accessing /wp-admin', 'ffcertificate' ); ?>
-						</label>
+						<?php
+						\FreeFormCertificate\Admin\AdminUI::render_toggle(
+							array(
+								'name'    => 'block_wp_admin',
+								'id'      => 'block_wp_admin',
+								'checked' => (bool) $ffcertificate_settings['block_wp_admin'],
+								'label'   => __( 'Prevent selected roles from accessing /wp-admin', 'ffcertificate' ),
+							)
+						);
+						?>
 						<p class="description">
 							<?php esc_html_e( 'When enabled, users with selected roles will be redirected when trying to access the WordPress admin panel.', 'ffcertificate' ); ?>
 						</p>
@@ -99,14 +101,16 @@ $ffcertificate_dashboard_url     = $ffcertificate_dashboard_page_id ? get_permal
 						</label>
 					</th>
 					<td>
-						<label>
-							<input type="checkbox"
-									name="bypass_for_admins"
-									id="bypass_for_admins"
-									value="1"
-									<?php checked( $ffcertificate_settings['bypass_for_admins'], true ); ?>>
-							<?php esc_html_e( 'Allow administrators to bypass the block (recommended)', 'ffcertificate' ); ?>
-						</label>
+						<?php
+						\FreeFormCertificate\Admin\AdminUI::render_toggle(
+							array(
+								'name'    => 'bypass_for_admins',
+								'id'      => 'bypass_for_admins',
+								'checked' => (bool) $ffcertificate_settings['bypass_for_admins'],
+								'label'   => __( 'Allow administrators to bypass the block (recommended)', 'ffcertificate' ),
+							)
+						);
+						?>
 						<p class="description">
 							<?php esc_html_e( 'Even if an admin has a blocked role, they can still access wp-admin.', 'ffcertificate' ); ?>
 						</p>
@@ -174,14 +178,16 @@ $ffcertificate_dashboard_url     = $ffcertificate_dashboard_page_id ? get_permal
 						</label>
 					</th>
 					<td>
-						<label>
-							<input type="checkbox"
-									name="allow_admin_bar"
-									id="allow_admin_bar"
-									value="1"
-									<?php checked( $ffcertificate_settings['allow_admin_bar'], true ); ?>>
-							<?php esc_html_e( 'Show admin bar on frontend for blocked roles', 'ffcertificate' ); ?>
-						</label>
+						<?php
+						\FreeFormCertificate\Admin\AdminUI::render_toggle(
+							array(
+								'name'    => 'allow_admin_bar',
+								'id'      => 'allow_admin_bar',
+								'checked' => (bool) $ffcertificate_settings['allow_admin_bar'],
+								'label'   => __( 'Show admin bar on frontend for blocked roles', 'ffcertificate' ),
+							)
+						);
+						?>
 						<p class="description">
 							<?php esc_html_e( 'If unchecked, the WordPress admin bar will be hidden for blocked roles.', 'ffcertificate' ); ?>
 						</p>

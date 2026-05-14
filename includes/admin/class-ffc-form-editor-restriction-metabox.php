@@ -54,45 +54,30 @@ class FormEditorRestrictionMetabox {
 						<?php esc_html_e( 'Select which restrictions to apply (can combine multiple):', 'ffcertificate' ); ?>
 					</p>
 
-					<label class="ffc-restriction-label">
-						<input type="checkbox"
-								name="ffc_config[restrictions][password]"
-								value="1"
-								id="ffc_restriction_password"
-								<?php checked( $password_active, true ); ?>>
-						<strong><?php esc_html_e( 'Single Password', 'ffcertificate' ); ?></strong>
-						<span class="description"> — <?php esc_html_e( 'Shared password for all users', 'ffcertificate' ); ?></span>
-					</label>
-
-					<label class="ffc-restriction-label">
-						<input type="checkbox"
-								name="ffc_config[restrictions][allowlist]"
-								value="1"
-								id="ffc_restriction_allowlist"
-								<?php checked( $allowlist_active, true ); ?>>
-						<strong><?php esc_html_e( 'Allowlist (CPF/RF)', 'ffcertificate' ); ?></strong>
-						<span class="description"> — <?php esc_html_e( 'Only approved CPF/RF can submit', 'ffcertificate' ); ?></span>
-					</label>
-
-					<label class="ffc-restriction-label">
-						<input type="checkbox"
-								name="ffc_config[restrictions][denylist]"
-								value="1"
-								id="ffc_restriction_denylist"
-								<?php checked( $denylist_active, true ); ?>>
-						<strong><?php esc_html_e( 'Denylist (CPF/RF)', 'ffcertificate' ); ?></strong>
-						<span class="description"> — <?php esc_html_e( 'Blocked CPF/RF cannot submit', 'ffcertificate' ); ?></span>
-					</label>
-
-					<label class="ffc-restriction-label">
-						<input type="checkbox"
-								name="ffc_config[restrictions][ticket]"
-								value="1"
-								id="ffc_restriction_ticket"
-								<?php checked( $ticket_active, true ); ?>>
-						<strong><?php esc_html_e( 'Ticket (Unique Codes)', 'ffcertificate' ); ?></strong>
-						<span class="description"> — <?php esc_html_e( 'Requires valid ticket (consumed after use)', 'ffcertificate' ); ?></span>
-					</label>
+					<?php
+					$ffc_restriction_rows = array(
+						'password'  => array( 'ffc_restriction_password', $password_active, __( 'Single Password', 'ffcertificate' ), __( 'Shared password for all users', 'ffcertificate' ) ),
+						'allowlist' => array( 'ffc_restriction_allowlist', $allowlist_active, __( 'Allowlist (CPF/RF)', 'ffcertificate' ), __( 'Only approved CPF/RF can submit', 'ffcertificate' ) ),
+						'denylist'  => array( 'ffc_restriction_denylist', $denylist_active, __( 'Denylist (CPF/RF)', 'ffcertificate' ), __( 'Blocked CPF/RF cannot submit', 'ffcertificate' ) ),
+						'ticket'    => array( 'ffc_restriction_ticket', $ticket_active, __( 'Ticket (Unique Codes)', 'ffcertificate' ), __( 'Requires valid ticket (consumed after use)', 'ffcertificate' ) ),
+					);
+					foreach ( $ffc_restriction_rows as $ffc_key => $ffc_row ) :
+						list( $ffc_id, $ffc_active, $ffc_title, $ffc_hint ) = $ffc_row;
+						?>
+						<div class="ffc-restriction-label">
+							<?php
+							\FreeFormCertificate\Admin\AdminUI::render_toggle(
+								array(
+									'name'    => 'ffc_config[restrictions][' . $ffc_key . ']',
+									'id'      => $ffc_id,
+									'checked' => (bool) $ffc_active,
+									'label'   => $ffc_title,
+								)
+							);
+							?>
+							<span class="description"> — <?php echo esc_html( $ffc_hint ); ?></span>
+						</div>
+					<?php endforeach; ?>
 
 					<p class="description ffc-mt-15">
 						<em><?php esc_html_e( 'Note: If no restriction is selected, form is Open (no restrictions).', 'ffcertificate' ); ?></em>

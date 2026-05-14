@@ -44,10 +44,16 @@ $all_post_types = get_post_types( array( 'public' => true ), 'objects' );
 			<label for="url_shortener_enabled"><?php esc_html_e( 'Enable URL Shortener', 'ffcertificate' ); ?></label>
 		</th>
 		<td>
-			<label>
-				<input type="checkbox" name="ffc_settings[url_shortener_enabled]" id="url_shortener_enabled" value="1" <?php checked( $enabled, 1 ); ?> />
-				<?php esc_html_e( 'Enable the URL Shortener module', 'ffcertificate' ); ?>
-			</label>
+			<?php
+			\FreeFormCertificate\Admin\AdminUI::render_toggle(
+				array(
+					'name'    => 'ffc_settings[url_shortener_enabled]',
+					'id'      => 'url_shortener_enabled',
+					'checked' => 1 === (int) $enabled,
+					'label'   => __( 'Enable the URL Shortener module', 'ffcertificate' ),
+				)
+			);
+			?>
 		</td>
 	</tr>
 
@@ -102,10 +108,16 @@ $all_post_types = get_post_types( array( 'public' => true ), 'objects' );
 			<label for="url_shortener_auto_create"><?php esc_html_e( 'Auto-create Short URLs', 'ffcertificate' ); ?></label>
 		</th>
 		<td>
-			<label>
-				<input type="checkbox" name="ffc_settings[url_shortener_auto_create]" id="url_shortener_auto_create" value="1" <?php checked( $auto_create, 1 ); ?> />
-				<?php esc_html_e( 'Automatically generate a short URL when a post/page is published', 'ffcertificate' ); ?>
-			</label>
+			<?php
+			\FreeFormCertificate\Admin\AdminUI::render_toggle(
+				array(
+					'name'    => 'ffc_settings[url_shortener_auto_create]',
+					'id'      => 'url_shortener_auto_create',
+					'checked' => 1 === (int) $auto_create,
+					'label'   => __( 'Automatically generate a short URL when a post/page is published', 'ffcertificate' ),
+				)
+			);
+			?>
 		</td>
 	</tr>
 

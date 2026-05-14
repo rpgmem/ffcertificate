@@ -232,7 +232,19 @@ $ffcertificate_stats = \FreeFormCertificate\Security\RateLimiter::get_stats();
 				foreach ( $ffcertificate_signals_options as $ffcertificate_sig_key => $ffcertificate_sig_label ) :
 					$ffcertificate_sig_checked = in_array( $ffcertificate_sig_key, (array) $ffcertificate_s['device']['signals_enabled'], true );
 					?>
-					<p><label><input type="checkbox" name="device_signals_enabled[]" value="<?php echo esc_attr( $ffcertificate_sig_key ); ?>" <?php checked( $ffcertificate_sig_checked ); ?>> <?php echo esc_html( $ffcertificate_sig_label ); ?></label></p>
+					<p>
+						<?php
+						\FreeFormCertificate\Admin\AdminUI::render_toggle(
+							array(
+								'name'    => 'device_signals_enabled[]',
+								'id'      => 'device_signal_' . $ffcertificate_sig_key,
+								'value'   => $ffcertificate_sig_key,
+								'checked' => $ffcertificate_sig_checked,
+								'label'   => $ffcertificate_sig_label,
+							)
+						);
+						?>
+					</p>
 				<?php endforeach; ?>
 				<p class="description"><?php esc_html_e( 'Disable canvas/audio/fonts for a privacy-minimal profile (lower entropy, easier to bypass).', 'ffcertificate' ); ?></p>
 			</td>
@@ -311,9 +323,39 @@ $ffcertificate_stats = \FreeFormCertificate\Security\RateLimiter::get_stats();
 
 <div class="card">
 	<h2 class="ffc-icon-clipboard"><?php esc_html_e( 'Logs', 'ffcertificate' ); ?></h2>
-	<p><label><input type="checkbox" name="logging_enabled" <?php checked( $ffcertificate_s['logging']['enabled'] ); ?>> <?php esc_html_e( 'Enable logs', 'ffcertificate' ); ?></label></p>
-	<p><label><input type="checkbox" name="logging_log_allowed" <?php checked( $ffcertificate_s['logging']['log_allowed'] ); ?>> <?php esc_html_e( 'Log allowed requests', 'ffcertificate' ); ?></label></p>
-	<p><label><input type="checkbox" name="logging_log_blocked" <?php checked( $ffcertificate_s['logging']['log_blocked'] ); ?>> <?php esc_html_e( 'Log blocked requests', 'ffcertificate' ); ?></label></p>
+	<p>
+		<?php
+		\FreeFormCertificate\Admin\AdminUI::render_toggle(
+			array(
+				'name'    => 'logging_enabled',
+				'checked' => (bool) $ffcertificate_s['logging']['enabled'],
+				'label'   => __( 'Enable logs', 'ffcertificate' ),
+			)
+		);
+		?>
+	</p>
+	<p>
+		<?php
+		\FreeFormCertificate\Admin\AdminUI::render_toggle(
+			array(
+				'name'    => 'logging_log_allowed',
+				'checked' => (bool) $ffcertificate_s['logging']['log_allowed'],
+				'label'   => __( 'Log allowed requests', 'ffcertificate' ),
+			)
+		);
+		?>
+	</p>
+	<p>
+		<?php
+		\FreeFormCertificate\Admin\AdminUI::render_toggle(
+			array(
+				'name'    => 'logging_log_blocked',
+				'checked' => (bool) $ffcertificate_s['logging']['log_blocked'],
+				'label'   => __( 'Log blocked requests', 'ffcertificate' ),
+			)
+		);
+		?>
+	</p>
 	<table class="form-table" role="presentation"><tbody>
 		<tr><th><?php esc_html_e( 'Retention', 'ffcertificate' ); ?></th><td><input type="number" name="logging_retention_days" value="<?php echo esc_attr( $ffcertificate_s['logging']['retention_days'] ); ?>" min="1" data-ffc-autosave-key="logging_retention_days"> <?php esc_html_e( 'days', 'ffcertificate' ); ?></td></tr>
 		<tr><th><?php esc_html_e( 'Max logs', 'ffcertificate' ); ?></th><td><input type="number" name="logging_max_logs" value="<?php echo esc_attr( $ffcertificate_s['logging']['max_logs'] ); ?>" min="100" data-ffc-autosave-key="logging_max_logs"></td></tr>
@@ -322,9 +364,39 @@ $ffcertificate_stats = \FreeFormCertificate\Security\RateLimiter::get_stats();
 
 <div class="card">
 	<h2 class="ffc-icon-palette"><?php esc_html_e( 'Interface', 'ffcertificate' ); ?></h2>
-	<p><label><input type="checkbox" name="ui_show_remaining" <?php checked( $ffcertificate_s['ui']['show_remaining'] ); ?>> <?php esc_html_e( 'Show remaining attempts', 'ffcertificate' ); ?></label></p>
-	<p><label><input type="checkbox" name="ui_show_wait_time" <?php checked( $ffcertificate_s['ui']['show_wait_time'] ); ?>> <?php esc_html_e( 'Show wait time', 'ffcertificate' ); ?></label></p>
-	<p><label><input type="checkbox" name="ui_countdown_timer" <?php checked( $ffcertificate_s['ui']['countdown_timer'] ); ?>> <?php esc_html_e( 'Countdown timer', 'ffcertificate' ); ?></label></p>
+	<p>
+		<?php
+		\FreeFormCertificate\Admin\AdminUI::render_toggle(
+			array(
+				'name'    => 'ui_show_remaining',
+				'checked' => (bool) $ffcertificate_s['ui']['show_remaining'],
+				'label'   => __( 'Show remaining attempts', 'ffcertificate' ),
+			)
+		);
+		?>
+	</p>
+	<p>
+		<?php
+		\FreeFormCertificate\Admin\AdminUI::render_toggle(
+			array(
+				'name'    => 'ui_show_wait_time',
+				'checked' => (bool) $ffcertificate_s['ui']['show_wait_time'],
+				'label'   => __( 'Show wait time', 'ffcertificate' ),
+			)
+		);
+		?>
+	</p>
+	<p>
+		<?php
+		\FreeFormCertificate\Admin\AdminUI::render_toggle(
+			array(
+				'name'    => 'ui_countdown_timer',
+				'checked' => (bool) $ffcertificate_s['ui']['countdown_timer'],
+				'label'   => __( 'Countdown timer', 'ffcertificate' ),
+			)
+		);
+		?>
+	</p>
 </div>
 
 <div class="card">
