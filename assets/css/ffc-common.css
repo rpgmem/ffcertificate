@@ -539,13 +539,19 @@
          <span class="ffc-toggle-label">Field label text</span>
      </label>
    ========================================================================== */
-.ffc-toggle {
+.ffc-toggle,
+.form-table td .ffc-toggle,
+.form-table td fieldset .ffc-toggle {
+    /* Multiple selectors win the specificity battle against WP admin's
+       `.form-table td fieldset label { display: inline-block }` which
+       would otherwise collapse the toggle and overlap the label text. */
     display: inline-flex;
     align-items: center;
     gap: 10px;
     cursor: pointer;
     user-select: none;
     line-height: 1.3;
+    position: relative;
 }
 
 .ffc-toggle input[type="checkbox"] {

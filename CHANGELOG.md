@@ -7,6 +7,15 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Fixed
+
+- **Reregistration "Email Notifications" toggles overlapping their labels.** WordPress admin core ships a `.form-table td fieldset label { display: inline-block }` rule that overrode the plugin's `.ffc-toggle { display: inline-flex }`, collapsing the toggle track over the start of the label text. The reregistration edit page wrapped the three notification toggles in a `<fieldset>` (triggering that rule); `.ffc-toggle` now also declares the rule on `.form-table td .ffc-toggle` + `.form-table td fieldset .ffc-toggle` to win the specificity battle, and the offending `<fieldset>` was replaced with a plain `<div>` since it carried no `<legend>`. `position: relative` is also added so the visually-hidden checkbox is scoped to the label, not the viewport.
+
+### Changed
+
+- **Calendar edit page — 6 more `.ffc-toggle` conversions** (`page=ffc-scheduling-calendars&action=edit`). Notifications block (3 checkboxes): `schedule_notify_booking`, `schedule_notify_cancel`, `schedule_include_ics`. Event list block: `schedule_show_event_list`. Isolated Calendar: `schedule_is_isolated`. `Status` `<select>` (active/inactive) collapses to a hidden-sibling + toggle pair, same shape as the audience Status conversion in #220.
+- **Environment edit page — 2 more `.ffc-toggle` conversions** (`page=ffc-scheduling-environments&action=edit`). The per-weekday "Closed" checkbox in the working-hours editor renders as a toggle. `Status` `<select>` collapses to hidden-sibling + toggle.
+
 ---
 
 ## [6.5.5] (2026-05-14)

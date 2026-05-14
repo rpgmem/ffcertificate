@@ -263,37 +263,55 @@ class AudienceAdminCalendar {
 				<tr>
 					<th scope="row"><?php esc_html_e( 'Notifications', 'ffcertificate' ); ?></th>
 					<td>
-						<fieldset>
-							<label>
-								<input type="checkbox" name="schedule_notify_booking" value="1"
-										<?php checked( $schedule->notify_on_booking ?? 1, 1 ); ?>>
-								<?php esc_html_e( 'Send email on new booking', 'ffcertificate' ); ?>
-							</label>
-							<br>
-							<label>
-								<input type="checkbox" name="schedule_notify_cancel" value="1"
-										<?php checked( $schedule->notify_on_cancellation ?? 1, 1 ); ?>>
-								<?php esc_html_e( 'Send email on cancellation', 'ffcertificate' ); ?>
-							</label>
-							<br>
-							<label>
-								<input type="checkbox" name="schedule_include_ics" value="1"
-										<?php checked( $schedule->include_ics ?? 0, 1 ); ?>>
-								<?php esc_html_e( 'Include .ics calendar file in emails', 'ffcertificate' ); ?>
-							</label>
-						</fieldset>
+						<div>
+							<p>
+								<?php
+								\FreeFormCertificate\Admin\AdminUI::render_toggle(
+									array(
+										'name'    => 'schedule_notify_booking',
+										'checked' => 1 === (int) ( $schedule->notify_on_booking ?? 1 ),
+										'label'   => __( 'Send email on new booking', 'ffcertificate' ),
+									)
+								);
+								?>
+							</p>
+							<p>
+								<?php
+								\FreeFormCertificate\Admin\AdminUI::render_toggle(
+									array(
+										'name'    => 'schedule_notify_cancel',
+										'checked' => 1 === (int) ( $schedule->notify_on_cancellation ?? 1 ),
+										'label'   => __( 'Send email on cancellation', 'ffcertificate' ),
+									)
+								);
+								?>
+							</p>
+							<p>
+								<?php
+								\FreeFormCertificate\Admin\AdminUI::render_toggle(
+									array(
+										'name'    => 'schedule_include_ics',
+										'checked' => 1 === (int) ( $schedule->include_ics ?? 0 ),
+										'label'   => __( 'Include .ics calendar file in emails', 'ffcertificate' ),
+									)
+								);
+								?>
+							</p>
+						</div>
 					</td>
 				</tr>
 				<tr>
 					<th scope="row"><?php esc_html_e( 'Event List', 'ffcertificate' ); ?></th>
 					<td>
-						<fieldset>
-							<label>
-								<input type="checkbox" name="schedule_show_event_list" value="1"
-										<?php checked( $schedule->show_event_list ?? 0, 1 ); ?>>
-								<?php esc_html_e( 'Show event list alongside the calendar', 'ffcertificate' ); ?>
-							</label>
-						</fieldset>
+						<?php
+						\FreeFormCertificate\Admin\AdminUI::render_toggle(
+							array(
+								'name'    => 'schedule_show_event_list',
+								'checked' => 1 === (int) ( $schedule->show_event_list ?? 0 ),
+								'label'   => __( 'Show event list alongside the calendar', 'ffcertificate' ),
+							)
+						);
+						?>
 						<br>
 						<label for="schedule_event_list_position"><?php esc_html_e( 'Position', 'ffcertificate' ); ?></label>
 						<select name="schedule_event_list_position" id="schedule_event_list_position">
@@ -349,11 +367,15 @@ class AudienceAdminCalendar {
 				<tr>
 					<th scope="row"><?php esc_html_e( 'Isolated Calendar', 'ffcertificate' ); ?></th>
 					<td>
-						<label>
-							<input type="checkbox" name="schedule_is_isolated" value="1"
-									<?php checked( $schedule->is_isolated ?? 0, 1 ); ?>>
-							<?php esc_html_e( 'Ignore conflicts from other calendars', 'ffcertificate' ); ?>
-						</label>
+						<?php
+						\FreeFormCertificate\Admin\AdminUI::render_toggle(
+							array(
+								'name'    => 'schedule_is_isolated',
+								'checked' => 1 === (int) ( $schedule->is_isolated ?? 0 ),
+								'label'   => __( 'Ignore conflicts from other calendars', 'ffcertificate' ),
+							)
+						);
+						?>
 						<p class="description">
 							<?php esc_html_e( 'When enabled, audience same-day and user overlap checks only consider bookings within this calendar. Environment conflicts are always per-environment regardless of this setting.', 'ffcertificate' ); ?>
 						</p>
@@ -364,14 +386,18 @@ class AudienceAdminCalendar {
 						<label for="schedule_status"><?php esc_html_e( 'Status', 'ffcertificate' ); ?></label>
 					</th>
 					<td>
-						<select name="schedule_status" id="schedule_status">
-							<option value="active" <?php selected( $schedule->status ?? 'active', 'active' ); ?>>
-								<?php esc_html_e( 'Active', 'ffcertificate' ); ?>
-							</option>
-							<option value="inactive" <?php selected( $schedule->status ?? '', 'inactive' ); ?>>
-								<?php esc_html_e( 'Inactive', 'ffcertificate' ); ?>
-							</option>
-						</select>
+						<input type="hidden" name="schedule_status" value="inactive">
+						<?php
+						\FreeFormCertificate\Admin\AdminUI::render_toggle(
+							array(
+								'name'    => 'schedule_status',
+								'id'      => 'schedule_status',
+								'value'   => 'active',
+								'checked' => 'active' === (string) ( $schedule->status ?? 'active' ),
+								'label'   => __( 'Active', 'ffcertificate' ),
+							)
+						);
+						?>
 					</td>
 				</tr>
 			</tbody></table>
