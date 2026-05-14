@@ -49,93 +49,60 @@ $ffcertificate_get_option = \Closure::fromCallable( array( $settings, 'get_optio
 					</td>
 				</tr>
 
-				<tr>
-					<th scope="row">
-						<label for="send_wp_user_email_submission"><?php esc_html_e( 'User Creation Emails (Submission)', 'ffcertificate' ); ?></label>
-					</th>
-					<td>
-						<fieldset>
-							<label>
-								<input type="radio" name="ffc_settings[send_wp_user_email_submission]" value="1" <?php checked( '1', $ffcertificate_get_option( 'send_wp_user_email_submission', '1' ) ); ?>>
-								<strong><?php esc_html_e( 'Enabled', 'ffcertificate' ); ?></strong>
-							</label>
-							<br>
-							<label>
-								<input type="radio" name="ffc_settings[send_wp_user_email_submission]" value="0" <?php checked( '0', $ffcertificate_get_option( 'send_wp_user_email_submission', '1' ) ); ?>>
-								<strong><?php esc_html_e( 'Disabled', 'ffcertificate' ); ?></strong>
-							</label>
-						</fieldset>
-						<p class="description">
-							<?php esc_html_e( 'Send welcome email when a new WordPress user is created via form submission. The email contains a password reset link.', 'ffcertificate' ); ?>
-						</p>
-					</td>
-				</tr>
-
-				<tr>
-					<th scope="row">
-						<label for="send_wp_user_email_appointment"><?php esc_html_e( 'User Creation Emails (Appointment)', 'ffcertificate' ); ?></label>
-					</th>
-					<td>
-						<fieldset>
-							<label>
-								<input type="radio" name="ffc_settings[send_wp_user_email_appointment]" value="1" <?php checked( '1', $ffcertificate_get_option( 'send_wp_user_email_appointment', '1' ) ); ?>>
-								<strong><?php esc_html_e( 'Enabled', 'ffcertificate' ); ?></strong>
-							</label>
-							<br>
-							<label>
-								<input type="radio" name="ffc_settings[send_wp_user_email_appointment]" value="0" <?php checked( '0', $ffcertificate_get_option( 'send_wp_user_email_appointment', '1' ) ); ?>>
-								<strong><?php esc_html_e( 'Disabled', 'ffcertificate' ); ?></strong>
-							</label>
-						</fieldset>
-						<p class="description">
-							<?php esc_html_e( 'Send welcome email when a new WordPress user is created via appointment booking. The email contains a password reset link.', 'ffcertificate' ); ?>
-						</p>
-					</td>
-				</tr>
-
-				<tr>
-					<th scope="row">
-						<label for="send_wp_user_email_csv_import"><?php esc_html_e( 'User Creation Emails (CSV Import)', 'ffcertificate' ); ?></label>
-					</th>
-					<td>
-						<fieldset>
-							<label>
-								<input type="radio" name="ffc_settings[send_wp_user_email_csv_import]" value="1" <?php checked( '1', $ffcertificate_get_option( 'send_wp_user_email_csv_import', '0' ) ); ?>>
-								<strong><?php esc_html_e( 'Enabled', 'ffcertificate' ); ?></strong>
-							</label>
-							<br>
-							<label>
-								<input type="radio" name="ffc_settings[send_wp_user_email_csv_import]" value="0" <?php checked( '0', $ffcertificate_get_option( 'send_wp_user_email_csv_import', '0' ) ); ?>>
-								<strong><?php esc_html_e( 'Disabled (Recommended)', 'ffcertificate' ); ?></strong>
-							</label>
-						</fieldset>
-						<p class="description">
-							<?php esc_html_e( 'Send welcome email when a new WordPress user is created via CSV import. Recommended to keep disabled to avoid sending bulk emails.', 'ffcertificate' ); ?>
-						</p>
-					</td>
-				</tr>
-
-				<tr>
-					<th scope="row">
-						<label for="send_wp_user_email_migration"><?php esc_html_e( 'User Creation Emails (Migration)', 'ffcertificate' ); ?></label>
-					</th>
-					<td>
-						<fieldset>
-							<label>
-								<input type="radio" name="ffc_settings[send_wp_user_email_migration]" value="1" <?php checked( '1', $ffcertificate_get_option( 'send_wp_user_email_migration', '0' ) ); ?>>
-								<strong><?php esc_html_e( 'Enabled', 'ffcertificate' ); ?></strong>
-							</label>
-							<br>
-							<label>
-								<input type="radio" name="ffc_settings[send_wp_user_email_migration]" value="0" <?php checked( '0', $ffcertificate_get_option( 'send_wp_user_email_migration', '0' ) ); ?>>
-								<strong><?php esc_html_e( 'Disabled (Recommended)', 'ffcertificate' ); ?></strong>
-							</label>
-						</fieldset>
-						<p class="description">
-							<?php esc_html_e( 'Send welcome email when a new WordPress user is created during migration. Recommended to keep disabled to avoid sending bulk emails.', 'ffcertificate' ); ?>
-						</p>
-					</td>
-				</tr>
+				<?php
+				// Each row used to be a pair of Enabled/Disabled radios
+				// emitting '1' or '0'. Replaced with a hidden sibling
+				// (value=0) followed by a .ffc-toggle whose checked
+				// value is '1' — WordPress POST takes the last value
+				// with the same name, so unchecked → '0' / checked → '1'.
+				// The on-disk shape is unchanged.
+				$ffcertificate_email_toggles = array(
+					'send_wp_user_email_submission'  => array(
+						'th_label'    => __( 'User Creation Emails (Submission)', 'ffcertificate' ),
+						'description' => __( 'Send welcome email when a new WordPress user is created via form submission. The email contains a password reset link.', 'ffcertificate' ),
+						'default'     => '1',
+					),
+					'send_wp_user_email_appointment' => array(
+						'th_label'    => __( 'User Creation Emails (Appointment)', 'ffcertificate' ),
+						'description' => __( 'Send welcome email when a new WordPress user is created via appointment booking. The email contains a password reset link.', 'ffcertificate' ),
+						'default'     => '1',
+					),
+					'send_wp_user_email_csv_import'  => array(
+						'th_label'    => __( 'User Creation Emails (CSV Import)', 'ffcertificate' ),
+						'description' => __( 'Send welcome email when a new WordPress user is created via CSV import. Recommended to keep disabled to avoid sending bulk emails.', 'ffcertificate' ),
+						'default'     => '0',
+					),
+					'send_wp_user_email_migration'   => array(
+						'th_label'    => __( 'User Creation Emails (Migration)', 'ffcertificate' ),
+						'description' => __( 'Send welcome email when a new WordPress user is created during migration. Recommended to keep disabled to avoid sending bulk emails.', 'ffcertificate' ),
+						'default'     => '0',
+					),
+				);
+				foreach ( $ffcertificate_email_toggles as $ffcertificate_key => $ffcertificate_row ) :
+					$ffcertificate_current = (string) $ffcertificate_get_option( $ffcertificate_key, $ffcertificate_row['default'] );
+					?>
+					<tr>
+						<th scope="row">
+							<label for="<?php echo esc_attr( $ffcertificate_key ); ?>"><?php echo esc_html( $ffcertificate_row['th_label'] ); ?></label>
+						</th>
+						<td>
+							<input type="hidden" name="ffc_settings[<?php echo esc_attr( $ffcertificate_key ); ?>]" value="0">
+							<?php
+							\FreeFormCertificate\Admin\AdminUI::render_toggle(
+								array(
+									'name'    => 'ffc_settings[' . $ffcertificate_key . ']',
+									'id'      => $ffcertificate_key,
+									'checked' => '1' === $ffcertificate_current,
+									'label'   => __( 'Enabled', 'ffcertificate' ),
+								)
+							);
+							?>
+							<p class="description">
+								<?php echo esc_html( $ffcertificate_row['description'] ); ?>
+							</p>
+						</td>
+					</tr>
+				<?php endforeach; ?>
 
 				<tr>
 					<th scope="row">
