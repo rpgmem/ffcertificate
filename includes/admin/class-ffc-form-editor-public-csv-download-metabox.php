@@ -334,7 +334,7 @@ class FormEditorPublicCsvDownloadMetabox {
 
 		$start_ts   = \FreeFormCertificate\Security\Geofence::get_form_start_timestamp( $post->ID );
 		$end_ts     = \FreeFormCertificate\Security\Geofence::get_form_end_timestamp( $post->ID );
-		$now        = current_time( 'timestamp' );
+		$now        = time();
 		$enabled_ok = '1' === $enabled && '' !== $hash;
 
 		// Status string mirrors the eligibility branches in EarlyOpenAction.
