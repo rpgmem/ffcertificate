@@ -47,12 +47,13 @@ if ( ! defined( 'ABSPATH' ) ) {
 				<tbody>
 					<?php if ( ! empty( $ffc_locations ) ) : ?>
 						<?php foreach ( $ffc_locations as $ffc_loc ) : ?>
-							<tr>
+							<tr class="ffc-location-row" data-location-id="<?php echo esc_attr( $ffc_loc['id'] ); ?>">
 								<td>
 									<input type="text"
 											name="ffc_locations[<?php echo esc_attr( $ffc_loc['id'] ); ?>][name]"
 											value="<?php echo esc_attr( $ffc_loc['name'] ); ?>"
-											class="regular-text"
+											class="regular-text ffc-location-field"
+											data-field="name"
 											required>
 									<?php if ( $ffc_loc['id'] === $ffc_default_gps_id ) : ?>
 										<span class="description">(GPS)</span>
@@ -66,40 +67,50 @@ if ( ! defined( 'ABSPATH' ) ) {
 											name="ffc_locations[<?php echo esc_attr( $ffc_loc['id'] ); ?>][lat]"
 											value="<?php echo esc_attr( $ffc_loc['lat'] ); ?>"
 											step="any" min="-90" max="90"
-											style="width: 120px;" required>
+											style="width: 120px;"
+											class="ffc-location-field"
+											data-field="lat"
+											required>
 								</td>
 								<td>
 									<input type="number"
 											name="ffc_locations[<?php echo esc_attr( $ffc_loc['id'] ); ?>][lng]"
 											value="<?php echo esc_attr( $ffc_loc['lng'] ); ?>"
 											step="any" min="-180" max="180"
-											style="width: 120px;" required>
+											style="width: 120px;"
+											class="ffc-location-field"
+											data-field="lng"
+											required>
 								</td>
 								<td>
 									<input type="number"
 											name="ffc_locations[<?php echo esc_attr( $ffc_loc['id'] ); ?>][radius]"
 											value="<?php echo esc_attr( $ffc_loc['radius'] ); ?>"
 											step="any" min="1"
-											style="width: 100px;" required>
+											style="width: 100px;"
+											class="ffc-location-field"
+											data-field="radius"
+											required>
 								</td>
 								<td>
 									<input type="radio"
 											name="ffc_location_default_gps"
+											class="ffc-location-default-gps"
 											value="<?php echo esc_attr( $ffc_loc['id'] ); ?>"
 											<?php checked( $ffc_loc['id'], $ffc_default_gps_id ); ?>>
 								</td>
 								<td>
 									<input type="radio"
 											name="ffc_location_default_ip"
+											class="ffc-location-default-ip"
 											value="<?php echo esc_attr( $ffc_loc['id'] ); ?>"
 											<?php checked( $ffc_loc['id'], $ffc_default_ip_id ); ?>>
 								</td>
 								<td>
-									<a href="<?php echo esc_url( wp_nonce_url( add_query_arg( 'ffc_delete_location', $ffc_loc['id'] ), 'ffc_delete_location_' . $ffc_loc['id'] ) ); ?>"
-										class="button button-small"
-										onclick="return confirm('<?php echo esc_js( __( 'Are you sure you want to delete this location?', 'ffcertificate' ) ); ?>');">
+									<button type="button" class="button button-small ffc-location-delete">
 										<?php esc_html_e( 'Delete', 'ffcertificate' ); ?>
-									</a>
+									</button>
+									<span class="ffc-autosave-badge" hidden></span>
 								</td>
 							</tr>
 						<?php endforeach; ?>
@@ -133,34 +144,44 @@ if ( ! defined( 'ABSPATH' ) ) {
 					<tr>
 						<th colspan="7"><?php esc_html_e( 'Add New Location', 'ffcertificate' ); ?></th>
 					</tr>
-					<tr>
+					<tr id="ffc-location-new-row">
 						<td>
 							<input type="text" name="ffc_location_new[name]" value=""
-									class="regular-text"
+									class="regular-text ffc-location-new-field"
+									data-field="name"
 									placeholder="<?php esc_attr_e( 'Location name', 'ffcertificate' ); ?>">
 						</td>
 						<td>
 							<input type="number" name="ffc_location_new[lat]" value=""
 									step="any" min="-90" max="90"
 									style="width: 120px;"
+									class="ffc-location-new-field"
+									data-field="lat"
 									placeholder="<?php esc_attr_e( 'Latitude', 'ffcertificate' ); ?>">
 						</td>
 						<td>
 							<input type="number" name="ffc_location_new[lng]" value=""
 									step="any" min="-180" max="180"
 									style="width: 120px;"
+									class="ffc-location-new-field"
+									data-field="lng"
 									placeholder="<?php esc_attr_e( 'Longitude', 'ffcertificate' ); ?>">
 						</td>
 						<td>
 							<input type="number" name="ffc_location_new[radius]" value=""
 									step="any" min="1"
 									style="width: 100px;"
+									class="ffc-location-new-field"
+									data-field="radius"
 									placeholder="1000">
 						</td>
-						<td colspan="3">
-							<p class="description">
-								<?php esc_html_e( 'Fill in the fields and click "Save" to add.', 'ffcertificate' ); ?>
-							</p>
+						<td colspan="2">
+							<button type="button" class="button button-primary" id="ffc-location-add">
+								<?php esc_html_e( 'Add location', 'ffcertificate' ); ?>
+							</button>
+						</td>
+						<td>
+							<span class="ffc-autosave-badge" hidden></span>
 						</td>
 					</tr>
 				</tfoot>

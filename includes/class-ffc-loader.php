@@ -225,6 +225,7 @@ class Loader {
 			\FreeFormCertificate\Admin\AdminMenuVisibility::init();
 			\FreeFormCertificate\Admin\DeviceThresholdUpgradeNotice::init();
 			\FreeFormCertificate\Admin\SettingsAjaxEndpoint::init();
+			\FreeFormCertificate\Admin\LocationsAjaxEndpoint::init();
 			FormListColumns::init();
 			AdminUserCustomFields::init();
 			$reregistration_admin = new ReregistrationAdmin();

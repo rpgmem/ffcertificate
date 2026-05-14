@@ -82,6 +82,31 @@ class TabGeolocation extends SettingsTab {
 			FFC_VERSION,
 			true
 		);
+		wp_enqueue_script(
+			'ffc-locations-crud',
+			FFC_PLUGIN_URL . "assets/js/ffc-locations-crud{$s}.js",
+			array( 'jquery', 'ffc-core' ),
+			FFC_VERSION,
+			true
+		);
+		wp_localize_script(
+			'ffc-locations-crud',
+			'ffcLocationsCrud',
+			array(
+				'nonces'  => array(
+					'save'   => wp_create_nonce( 'ffc_location_save' ),
+					'delete' => wp_create_nonce( 'ffc_location_delete' ),
+				),
+				'strings' => array(
+					'saving'        => __( 'Saving…', 'ffcertificate' ),
+					'saved'         => __( 'Saved', 'ffcertificate' ),
+					'deleting'      => __( 'Deleting…', 'ffcertificate' ),
+					'error'         => __( 'Save failed', 'ffcertificate' ),
+					'confirmDelete' => __( 'Delete this location?', 'ffcertificate' ),
+					'deleteText'    => __( 'Delete', 'ffcertificate' ),
+				),
+			)
+		);
 
 		// FFC.request needs ffc_ajax.nonce — for the
 		// ffc_update_setting endpoint we localise the nonce here so the
