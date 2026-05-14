@@ -31,6 +31,7 @@ class TabRateLimitTest extends TestCase {
         Functions\when( 'esc_html' )->returnArg();
         Functions\when( 'esc_attr' )->returnArg();
         Functions\when( 'wp_kses_post' )->returnArg();
+        Functions\when( 'add_action' )->justReturn( true );
 
         $this->tab = new TabRateLimit();
     }
