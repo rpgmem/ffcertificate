@@ -937,4 +937,137 @@ class FormCacheTest extends TestCase {
     public function test_cache_group_constant(): void {
         $this->assertSame( 'ffc_forms', FormCache::CACHE_GROUP );
     }
+
+    // ==================================================================
+    // purge_external_caches() — third-party cache plugin integration
+    // ==================================================================
+
+    public function test_purge_external_caches_skips_when_form_id_is_zero(): void {
+        $fired = false;
+        Functions\when( 'do_action' )->alias( function () use ( &$fired ) {
+            $fired = true;
+        } );
+
+        FormCache::purge_external_caches( 0 );
+
+        $this->assertFalse( $fired, 'Hook should not fire for non-positive form_id' );
+    }
+
+    public function test_purge_external_caches_fires_action_hook_with_form_id_and_reason(): void {
+        $captured = array();
+        Functions\when( 'do_action' )->alias(
+            function ( $hook, $form_id = null, $reason = null ) use ( &$captured ) {
+                if ( 'ffc_form_cache_purged' === $hook ) {
+                    $captured = array( $form_id, $reason );
+                }
+            }
+        );
+
+        FormCache::purge_external_caches( 42, 'early_open' );
+
+        $this->assertSame( array( 42, 'early_open' ), $captured );
+    }
+
+    public function test_purge_external_caches_fires_with_empty_reason_by_default(): void {
+        $captured = array();
+        Functions\when( 'do_action' )->alias(
+            function ( $hook, $form_id = null, $reason = null ) use ( &$captured ) {
+                if ( 'ffc_form_cache_purged' === $hook ) {
+                    $captured = array( $form_id, $reason );
+                }
+            }
+        );
+
+        FormCache::purge_external_caches( 7 );
+
+        $this->assertSame( array( 7, '' ), $captured );
+    }
+
+    public function test_purge_external_caches_calls_wp_super_cache_when_available(): void {
+        $GLOBALS['__wpsc_called_with'] = null;
+        $GLOBALS['__wpsc_should_throw'] = false;
+        if ( ! function_exists( 'wpsc_delete_post_cache' ) ) {
+            // phpcs:ignore Squiz.PHP.Eval.Discouraged -- defining a missing global stub for the test.
+            eval( 'function wpsc_delete_post_cache( $id ) { if ( ! empty( $GLOBALS["__wpsc_should_throw"] ) ) { throw new \RuntimeException( "boom" ); } $GLOBALS["__wpsc_called_with"] = $id; }' );
+        }
+
+        Functions\when( 'do_action' )->justReturn( true );
+
+        FormCache::purge_external_caches( 99, 'test' );
+
+        $this->assertSame( 99, $GLOBALS['__wpsc_called_with'] );
+        unset( $GLOBALS['__wpsc_called_with'], $GLOBALS['__wpsc_should_throw'] );
+    }
+
+    public function test_purge_external_caches_calls_wp_rocket_when_available(): void {
+        $GLOBALS['__rocket_called_with'] = null;
+        if ( ! function_exists( 'rocket_clean_post' ) ) {
+            // phpcs:ignore Squiz.PHP.Eval.Discouraged -- defining a missing global stub for the test.
+            eval( 'function rocket_clean_post( $id ) { $GLOBALS["__rocket_called_with"] = $id; }' );
+        }
+
+        Functions\when( 'do_action' )->justReturn( true );
+
+        FormCache::purge_external_caches( 123, 'manual_clear_all' );
+
+        $this->assertSame( 123, $GLOBALS['__rocket_called_with'] );
+        unset( $GLOBALS['__rocket_called_with'] );
+    }
+
+    public function test_purge_external_caches_swallows_third_party_exceptions(): void {
+        $GLOBALS['__wpsc_should_throw'] = true;
+        if ( ! function_exists( 'wpsc_delete_post_cache' ) ) {
+            // phpcs:ignore Squiz.PHP.Eval.Discouraged -- stub already defined by sibling tests; harmless to redeclare guard.
+            eval( 'function wpsc_delete_post_cache( $id ) { if ( ! empty( $GLOBALS["__wpsc_should_throw"] ) ) { throw new \RuntimeException( "boom" ); } }' );
+        }
+        $hook_fired = false;
+        Functions\when( 'do_action' )->alias( function () use ( &$hook_fired ) {
+            $hook_fired = true;
+        } );
+
+        // Must NOT throw — the host action keeps going.
+        FormCache::purge_external_caches( 50 );
+
+        $this->assertTrue( $hook_fired, 'Hook should still fire after third-party throws' );
+        unset( $GLOBALS['__wpsc_should_throw'] );
+    }
+
+    // ==================================================================
+    // purge_external_caches_for_all_forms()
+    // ==================================================================
+
+    public function test_purge_external_caches_for_all_forms_iterates_published_forms(): void {
+        Functions\when( 'get_posts' )->justReturn( array( 11, 22, 33 ) );
+
+        $hook_calls = array();
+        Functions\when( 'do_action' )->alias(
+            function ( $hook, $form_id = null, $reason = null ) use ( &$hook_calls ) {
+                if ( 'ffc_form_cache_purged' === $hook ) {
+                    $hook_calls[] = array( $form_id, $reason );
+                }
+            }
+        );
+
+        $count = FormCache::purge_external_caches_for_all_forms( 'manual_clear_all' );
+
+        $this->assertSame( 3, $count );
+        $this->assertSame(
+            array(
+                array( 11, 'manual_clear_all' ),
+                array( 22, 'manual_clear_all' ),
+                array( 33, 'manual_clear_all' ),
+            ),
+            $hook_calls
+        );
+    }
+
+    public function test_purge_external_caches_for_all_forms_handles_empty_list(): void {
+        Functions\when( 'get_posts' )->justReturn( array() );
+        Functions\when( 'do_action' )->justReturn( true );
+
+        $count = FormCache::purge_external_caches_for_all_forms();
+
+        $this->assertSame( 0, $count );
+    }
+
 }

@@ -186,6 +186,12 @@ class FormEditorSaveHandler {
 				set_transient( 'ffc_geofence_error_' . get_current_user_id(), $validation_errors, 45 );
 			} else {
 				update_post_meta( $post_id, '_ffc_geofence_config', $clean_geofence );
+				// Public visibility of date_start/date_end (the form's
+				// availability window) flows through page caches —
+				// invalidate so the public CSV download page + the
+				// rendered form page pick up the change immediately.
+				\FreeFormCertificate\Submissions\FormCache::clear_form_cache( $post_id );
+				\FreeFormCertificate\Submissions\FormCache::purge_external_caches( $post_id, 'geofence_changed' );
 			}
 		}
 

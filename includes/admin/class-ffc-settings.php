@@ -587,6 +587,7 @@ class Settings {
 
 			// Autoloader handles class loading.
 			\FreeFormCertificate\Submissions\FormCache::clear_all_cache();
+			\FreeFormCertificate\Submissions\FormCache::purge_external_caches_for_all_forms( 'manual_clear_all' );
 
 			wp_safe_redirect(
 				add_query_arg(

@@ -179,6 +179,85 @@ class FormCache {
 	}
 
 	/**
+	 * Best-effort external page-cache purge across known third-party
+	 * plugins, plus an action hook for anything else (Cloudflare APO,
+	 * Redis page cache, custom setups).
+	 *
+	 * Call this IN ADDITION TO {@see self::clear_form_cache()} when
+	 * the form's public-facing state has changed in a way visitors
+	 * would notice on a cached page (form started early, datetime
+	 * edited, public toggles flipped). Routine internal-only cache
+	 * touches (every `save_post`, every submission) should only call
+	 * `clear_form_cache()` to keep them cheap.
+	 *
+	 * Each integration is wrapped in a try/catch so a misbehaving
+	 * third-party plugin can never break the host action.
+	 *
+	 * @param int    $form_id The form post id whose public pages
+	 *                        should be invalidated.
+	 * @param string $reason  Free-form tag passed to the action hook
+	 *                        ('early_open', 'geofence_changed', etc.)
+	 *                        — lets external integrations log /
+	 *                        rate-limit / branch on the source.
+	 */
+	public static function purge_external_caches( int $form_id, string $reason = '' ): void {
+		if ( $form_id <= 0 ) {
+			return;
+		}
+
+		// W3 Total Cache.
+		if ( class_exists( '\W3TC\Dispatcher' ) ) {
+			try {
+				\W3TC\Dispatcher::component( 'CacheFlush' )->flush_post( $form_id );
+			} catch ( \Throwable $e ) { // phpcs:ignore Generic.CodeAnalysis.EmptyStatement.DetectedCatch -- best-effort.
+				// Swallow — host action must not fail on a third-party glitch.
+			}
+		}
+
+		// LiteSpeed Cache.
+		if ( class_exists( '\LiteSpeed\Purge' ) ) {
+			try {
+				\LiteSpeed\Purge::add( 'P_' . $form_id );
+			} catch ( \Throwable $e ) { // phpcs:ignore Generic.CodeAnalysis.EmptyStatement.DetectedCatch -- best-effort.
+				// Swallow.
+			}
+		}
+
+		// WP Super Cache.
+		if ( function_exists( 'wpsc_delete_post_cache' ) ) {
+			try {
+				wpsc_delete_post_cache( $form_id );
+			} catch ( \Throwable $e ) { // phpcs:ignore Generic.CodeAnalysis.EmptyStatement.DetectedCatch -- best-effort.
+				// Swallow.
+			}
+		}
+
+		// WP Rocket.
+		if ( function_exists( 'rocket_clean_post' ) ) {
+			try {
+				rocket_clean_post( $form_id );
+			} catch ( \Throwable $e ) { // phpcs:ignore Generic.CodeAnalysis.EmptyStatement.DetectedCatch -- best-effort.
+				// Swallow.
+			}
+		}
+
+		/**
+		 * Fires after the plugin has invalidated the form's public-
+		 * page cache. Third-party integrations (Cloudflare APO, Redis
+		 * page cache, custom CDN purger) can hook this to invalidate
+		 * their own layer.
+		 *
+		 * @param int    $form_id The form post id whose pages just
+		 *                        had their cache invalidated.
+		 * @param string $reason  Source tag — currently one of
+		 *                        'early_open', 'geofence_changed',
+		 *                        'manual_clear_all', or empty when
+		 *                        unspecified.
+		 */
+		do_action( 'ffc_form_cache_purged', $form_id, $reason );
+	}
+
+	/**
 	 * Clear all form caches
 	 */
 	public static function clear_all_cache(): bool {
@@ -187,6 +266,38 @@ class FormCache {
 		}
 
 		return wp_cache_flush();
+	}
+
+	/**
+	 * Sweep external page-cache purges across every published form.
+	 *
+	 * Called by the "Clear all cache" admin button so that, after the
+	 * plugin's own object cache has been wiped, third-party page caches
+	 * (W3 Total Cache, LiteSpeed, Super Cache, WP Rocket, CDN APO via
+	 * the action hook) also drop their cached versions of FFC form
+	 * pages — otherwise an admin clicking "Clear all cache" still sees
+	 * stale public pages.
+	 *
+	 * @param string $reason Forwarded to {@see self::purge_external_caches()}.
+	 * @return int Number of forms iterated.
+	 */
+	public static function purge_external_caches_for_all_forms( string $reason = 'manual_clear_all' ): int {
+		$ids = get_posts(
+			array(
+				'post_type'        => 'ffc_form',
+				'post_status'      => 'publish',
+				'numberposts'      => -1,
+				'fields'           => 'ids',
+				'no_found_rows'    => true,
+				'orderby'          => 'ID',
+				'order'            => 'ASC',
+				'suppress_filters' => false,
+			)
+		);
+		foreach ( $ids as $id ) {
+			self::purge_external_caches( (int) $id, $reason );
+		}
+		return count( $ids );
 	}
 
 	/**

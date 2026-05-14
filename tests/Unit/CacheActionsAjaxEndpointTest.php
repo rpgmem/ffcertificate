@@ -129,7 +129,12 @@ class CacheActionsAjaxEndpointTest extends TestCase {
         Mockery::mock( 'alias:FreeFormCertificate\Submissions\FormCache' )
             ->shouldReceive( 'clear_all_cache' )
             ->once()
-            ->andReturn( true );
+            ->andReturn( true )
+            ->getMock()
+            ->shouldReceive( 'purge_external_caches_for_all_forms' )
+            ->once()
+            ->with( 'manual_clear_all' )
+            ->andReturn( 0 );
 
         try {
             CacheActionsAjaxEndpoint::handle_clear();
