@@ -239,10 +239,20 @@
         fieldHtml += '        <td><input type="text" class="ffc-field-name regular-text" name="ffc_fields[' + fieldCounter + '][name]" placeholder="' + fieldNamePlaceholder + '"></td>';
         fieldHtml += '      </tr>';
 
-        // Required row (standard fields only)
+        // Required row (standard fields only) — emit the same
+        // .ffc-toggle markup the PHP-rendered fields use so the new
+        // row looks native. The `.ffc-field-required` class stays on
+        // the inner <input> because the field-builder serialiser at
+        // line ~285 below reads its state via that class selector.
+        var requiredId = 'ffc_field_required_' + fieldCounter;
         fieldHtml += '      <tr class="ffc-standard-row"' + (isDisplayOnly ? ' style="display:none"' : '') + '>';
-        fieldHtml += '        <th><label>' + requiredText + '</label></th>';
-        fieldHtml += '        <td><input type="checkbox" class="ffc-field-required" name="ffc_fields[' + fieldCounter + '][required]" value="1"></td>';
+        fieldHtml += '        <th><label for="' + requiredId + '">' + requiredText + '</label></th>';
+        fieldHtml += '        <td>';
+        fieldHtml += '          <label class="ffc-toggle ffc-req-label" for="' + requiredId + '">';
+        fieldHtml += '            <input type="checkbox" id="' + requiredId + '" class="ffc-field-required" name="ffc_fields[' + fieldCounter + '][required]" value="1">';
+        fieldHtml += '            <span class="ffc-toggle-track" aria-hidden="true"></span>';
+        fieldHtml += '          </label>';
+        fieldHtml += '        </td>';
         fieldHtml += '      </tr>';
 
         // Additional options for select/radio/checkbox
