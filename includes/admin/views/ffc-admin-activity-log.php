@@ -105,6 +105,7 @@ $ffcertificate_base_url = admin_url( 'edit.php?post_type=ffc_form&page=ffc-activ
 	</div>
 
 	<!-- Logs Table -->
+	<div id="ffc-activity-log-table">
 	<?php if ( empty( $logs ) ) : ?>
 		<div class="notice notice-info">
 			<p><?php esc_html_e( 'No activity logs found.', 'ffcertificate' ); ?></p>
@@ -122,92 +123,21 @@ $ffcertificate_base_url = admin_url( 'edit.php?post_type=ffc_form&page=ffc-activ
 				</tr>
 			</thead>
 			<tbody>
-				<?php foreach ( $logs as $ffcertificate_log ) : ?>
-					<tr>
-						<!-- Date/Time -->
-						<td>
-							<strong><?php echo esc_html( date_i18n( 'Y-m-d', strtotime( $ffcertificate_log['created_at'] ) ) ); ?></strong><br>
-							<span class="description"><?php echo esc_html( date_i18n( 'H:i:s', strtotime( $ffcertificate_log['created_at'] ) ) ); ?></span>
-						</td>
-
-						<!-- Level -->
-						<td>
-							<?php echo wp_kses_post( \FreeFormCertificate\Admin\AdminActivityLogPage::get_level_badge( $ffcertificate_log['level'] ) ); ?>
-						</td>
-
-						<!-- Action -->
-						<td>
-							<strong><?php echo esc_html( \FreeFormCertificate\Admin\AdminActivityLogPage::get_action_label( $ffcertificate_log['action'] ) ); ?></strong><br>
-							<code class="description"><?php echo esc_html( $ffcertificate_log['action'] ); ?></code>
-						</td>
-
-						<!-- User -->
-						<td>
-							<?php
-							if ( $ffcertificate_log['user_id'] > 0 ) {
-								$ffcertificate_user = get_userdata( (int) $ffcertificate_log['user_id'] );
-								if ( $ffcertificate_user ) {
-									echo '<strong>' . esc_html( $ffcertificate_user->display_name ) . '</strong><br>';
-									echo '<span class="description">' . esc_html( $ffcertificate_user->user_login ) . '</span>';
-								} else {
-									/* translators: %d: user ID */
-									echo '<span class="description">' . esc_html( sprintf( __( 'User #%d (deleted)', 'ffcertificate' ), $ffcertificate_log['user_id'] ) ) . '</span>';
-								}
-							} else {
-								echo '<span class="description">' . esc_html__( 'System / Anonymous', 'ffcertificate' ) . '</span>';
-							}
-							?>
-						</td>
-
-						<!-- IP Address -->
-						<td>
-							<code><?php echo esc_html( $ffcertificate_log['user_ip'] ); ?></code>
-						</td>
-
-						<!-- Context -->
-						<td>
-							<?php if ( ! empty( $ffcertificate_log['context'] ) ) : ?>
-								<details>
-									<summary class="ffc-log-summary">
-										<?php esc_html_e( 'View Details', 'ffcertificate' ); ?> ▼
-									</summary>
-									<pre class="ffc-log-pre"><?php echo esc_html( wp_json_encode( $ffcertificate_log['context'], JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE ) ); ?></pre>
-								</details>
-							<?php else : ?>
-								<span class="description">—</span>
-							<?php endif; ?>
-						</td>
-					</tr>
-				<?php endforeach; ?>
+				<?php
+				// Server-rendered rows — the AJAX endpoint reuses the
+				// same helper so the JS swap doesn't drift.
+				echo \FreeFormCertificate\Admin\AdminActivityLogPage::render_rows_html( $logs ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- pre-escaped helper.
+				?>
 			</tbody>
 		</table>
 
-		<!-- Pagination -->
-		<?php if ( $total_pages > 1 ) : ?>
-			<div class="tablenav bottom">
-				<div class="tablenav-pages">
-					<span class="displaying-num">
-						<?php
-						/* translators: %s: number of logs */
-						printf( esc_html( _n( '%s log', '%s logs', $total_logs, 'ffcertificate' ) ), esc_html( number_format_i18n( $total_logs ) ) );
-						?>
-					</span>
-					<?php
-					$ffcertificate_pagination_args = array(
-						'base'      => add_query_arg( 'paged', '%#%' ),
-						'format'    => '',
-						'prev_text' => '&laquo;',
-						'next_text' => '&raquo;',
-						'total'     => $total_pages,
-						'current'   => $current_page,
-					);
-
-					echo wp_kses_post( paginate_links( $ffcertificate_pagination_args ) );
-					?>
-				</div>
-			</div>
-		<?php endif; ?>
+		<div id="ffc-activity-log-pagination">
+			<?php
+			echo \FreeFormCertificate\Admin\AdminActivityLogPage::render_pagination_html( (int) $total_logs, (int) $current_page, (int) $per_page ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- pre-escaped helper.
+			?>
+		</div>
 	<?php endif; ?>
+	</div>
 
 	<!-- Stats Summary -->
 	<div class="card ffc-activity-card">

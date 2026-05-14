@@ -679,3 +679,13 @@
     color: var(--ffc-danger, #d63638);
 }
 
+/* ==========================================================================
+   Activity Log — table loading state (AJAX filter / pagination)
+   ========================================================================== */
+#ffc-activity-log-table.ffc-loading {
+    position: relative;
+    opacity: 0.55;
+    pointer-events: none;
+    transition: opacity 0.15s ease;
+}
+
