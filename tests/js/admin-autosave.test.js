@@ -194,4 +194,37 @@ describe('FFC admin-autosave — bootAutoSaveFields page-init', () => {
 		expect(spy).not.toHaveBeenCalled();
 		spy.mockRestore();
 	});
+
+	it('honours a per-field data-ffc-autosave-debounce override', () => {
+		document.body.innerHTML = `
+			<textarea data-ffc-autosave-key="ip_message" data-ffc-autosave-debounce="800"></textarea>
+			<input type="number" data-ffc-autosave-key="ip_max_per_hour">
+		`;
+		const calls = [];
+		const spy = vi.spyOn(window.FFC.Admin, 'autoSaveField').mockImplementation(function ($el, config) {
+			calls.push({ key: config.key, debounce: config.debounce });
+			return { destroy: () => {} };
+		});
+
+		window.FFC.Admin.bootAutoSaveFields();
+
+		expect(calls).toEqual([
+			{ key: 'ip_message', debounce: 800 },   // explicit override
+			{ key: 'ip_max_per_hour', debounce: undefined }, // default (autoSaveField uses 400)
+		]);
+		spy.mockRestore();
+	});
+
+	it('ignores a non-numeric data-ffc-autosave-debounce attr', () => {
+		document.body.innerHTML = `
+			<input data-ffc-autosave-key="x" data-ffc-autosave-debounce="not-a-number">
+		`;
+		const spy = vi.spyOn(window.FFC.Admin, 'autoSaveField').mockImplementation(() => ({ destroy: () => {} }));
+
+		window.FFC.Admin.bootAutoSaveFields();
+
+		expect(spy).toHaveBeenCalledTimes(1);
+		expect(spy.mock.calls[0][1].debounce).toBeUndefined();
+		spy.mockRestore();
+	});
 });

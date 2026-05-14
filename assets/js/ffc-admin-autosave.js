@@ -166,9 +166,17 @@
                 return;
             }
             $input.data('ffcAutoSaveBound', true);
+            var config = { key: $input.data('ffc-autosave-key') };
+            // Optional per-field debounce override — useful for message
+            // textareas where the default 400 ms fires too eagerly while
+            // the admin is mid-sentence.
+            var debounceAttr = $input.attr('data-ffc-autosave-debounce');
+            if (debounceAttr && !isNaN(parseInt(debounceAttr, 10))) {
+                config.debounce = parseInt(debounceAttr, 10);
+            }
             // Call through the public API so a page or test can swap
             // the implementation between script load and boot.
-            window.FFC.Admin.autoSaveField($input, { key: $input.data('ffc-autosave-key') });
+            window.FFC.Admin.autoSaveField($input, config);
         });
     }
     window.FFC.Admin.bootAutoSaveFields = bootAutoSaveFields;
