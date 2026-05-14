@@ -110,10 +110,15 @@ class FormEditorGeofenceMetabox {
 					<tr>
 						<th><label><?php esc_html_e( 'Enable Date/Time Restrictions', 'ffcertificate' ); ?></label></th>
 						<td>
-							<label>
-								<input type="checkbox" name="ffc_geofence[datetime_enabled]" value="1" <?php checked( $datetime_enabled, '1' ); ?>>
-								<?php esc_html_e( 'Restrict form access by date and time', 'ffcertificate' ); ?>
-							</label>
+							<?php
+							\FreeFormCertificate\Admin\AdminUI::render_toggle(
+								array(
+									'name'    => 'ffc_geofence[datetime_enabled]',
+									'checked' => '1' === (string) $datetime_enabled,
+									'label'   => __( 'Restrict form access by date and time', 'ffcertificate' ),
+								)
+							);
+							?>
 							<p class="description"><?php esc_html_e( 'Control when users can access this form based on date range and daily hours.', 'ffcertificate' ); ?></p>
 						</td>
 					</tr>
@@ -211,24 +216,40 @@ class FormEditorGeofenceMetabox {
 					<tr>
 						<th><label><?php esc_html_e( 'Enable Geolocation', 'ffcertificate' ); ?></label></th>
 						<td>
-							<label>
-								<input type="checkbox" name="ffc_geofence[geo_enabled]" value="1" <?php checked( $geo_enabled, '1' ); ?>>
-								<?php esc_html_e( 'Restrict form access by geographic location', 'ffcertificate' ); ?>
-							</label>
+							<?php
+							\FreeFormCertificate\Admin\AdminUI::render_toggle(
+								array(
+									'name'    => 'ffc_geofence[geo_enabled]',
+									'checked' => '1' === (string) $geo_enabled,
+									'label'   => __( 'Restrict form access by geographic location', 'ffcertificate' ),
+								)
+							);
+							?>
 							<p class="description"><?php esc_html_e( 'Limit form access to users within specific geographic areas.', 'ffcertificate' ); ?></p>
 						</td>
 					</tr>
 					<tr>
 						<th><label><?php esc_html_e( 'Validation Methods', 'ffcertificate' ); ?></label></th>
 						<td>
-							<label>
-								<input type="checkbox" name="ffc_geofence[geo_gps_enabled]" value="1" <?php checked( $geo_gps_enabled, '1' ); ?>>
-								<?php esc_html_e( 'GPS (Browser geolocation)', 'ffcertificate' ); ?>
-							</label><br>
-							<label>
-								<input type="checkbox" name="ffc_geofence[geo_ip_enabled]" value="1" <?php checked( $geo_ip_enabled, '1' ); ?>>
-								<?php esc_html_e( 'IP Address (backend validation)', 'ffcertificate' ); ?>
-							</label>
+							<?php
+							\FreeFormCertificate\Admin\AdminUI::render_toggle(
+								array(
+									'name'    => 'ffc_geofence[geo_gps_enabled]',
+									'checked' => '1' === (string) $geo_gps_enabled,
+									'label'   => __( 'GPS (Browser geolocation)', 'ffcertificate' ),
+								)
+							);
+							?>
+							<br>
+							<?php
+							\FreeFormCertificate\Admin\AdminUI::render_toggle(
+								array(
+									'name'    => 'ffc_geofence[geo_ip_enabled]',
+									'checked' => '1' === (string) $geo_ip_enabled,
+									'label'   => __( 'IP Address (backend validation)', 'ffcertificate' ),
+								)
+							);
+							?>
 							<p class="description"><?php esc_html_e( 'Choose one or both methods. GPS is more accurate but requires user permission.', 'ffcertificate' ); ?></p>
 						</td>
 					</tr>
@@ -267,10 +288,15 @@ class FormEditorGeofenceMetabox {
 					<tr>
 						<th><label><?php esc_html_e( 'IP Geolocation Areas', 'ffcertificate' ); ?></label></th>
 						<td>
-							<label>
-								<input type="checkbox" name="ffc_geofence[geo_ip_areas_permissive]" value="1" <?php checked( $geo_ip_areas_permissive, '1' ); ?>>
-								<?php esc_html_e( 'Use different areas for IP validation', 'ffcertificate' ); ?>
-							</label>
+							<?php
+							\FreeFormCertificate\Admin\AdminUI::render_toggle(
+								array(
+									'name'    => 'ffc_geofence[geo_ip_areas_permissive]',
+									'checked' => '1' === (string) $geo_ip_areas_permissive,
+									'label'   => __( 'Use different areas for IP validation', 'ffcertificate' ),
+								)
+							);
+							?>
 							<p class="description"><?php esc_html_e( 'When unchecked, IP validation uses the same areas as GPS.', 'ffcertificate' ); ?></p>
 
 							<div class="<?php echo esc_attr( 'ffc-ip-areas-container' . ( '1' !== $geo_ip_areas_permissive ? ' ffc-initially-hidden' : '' ) ); ?>">

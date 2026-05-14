@@ -90,14 +90,17 @@ class FormEditorDeviceLimitMetabox {
 					<label for="ffc_device_limit_enabled"><?php esc_html_e( 'Enable for this form', 'ffcertificate' ); ?></label>
 				</th>
 				<td>
-					<label>
-						<input type="checkbox"
-							name="ffc_device_limit[enabled]"
-							id="ffc_device_limit_enabled"
-							value="1"
-							<?php checked( $enabled, '1' ); ?><?php disabled( ! $global_active ); ?>>
-						<?php esc_html_e( 'Apply the device-fingerprint limit to this form.', 'ffcertificate' ); ?>
-					</label>
+					<?php
+					\FreeFormCertificate\Admin\AdminUI::render_toggle(
+						array(
+							'name'     => 'ffc_device_limit[enabled]',
+							'id'       => 'ffc_device_limit_enabled',
+							'checked'  => '1' === (string) $enabled,
+							'disabled' => ! $global_active,
+							'label'    => __( 'Apply the device-fingerprint limit to this form.', 'ffcertificate' ),
+						)
+					);
+					?>
 				</td>
 			</tr>
 
