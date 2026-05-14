@@ -40,10 +40,22 @@ class FormEditorEmailMetabox {
 			<tr>
 				<th><label><?php esc_html_e( 'Send Email to User?', 'ffcertificate' ); ?></label></th>
 				<td>
-					<select name="ffc_config[send_user_email]" class="ffc-select-full">
-						<option value="0" <?php selected( $send_email, '0' ); ?>><?php esc_html_e( 'No', 'ffcertificate' ); ?></option>
-						<option value="1" <?php selected( $send_email, '1' ); ?>><?php esc_html_e( 'Yes', 'ffcertificate' ); ?></option>
-					</select>
+					<?php
+					// Hidden sibling holds the unchecked value so save_post
+					// always sees the field, mirroring the old select that
+					// was always present in the POST body.
+					?>
+					<input type="hidden" name="ffc_config[send_user_email]" value="0">
+					<?php
+					\FreeFormCertificate\Admin\AdminUI::render_toggle(
+						array(
+							'name'    => 'ffc_config[send_user_email]',
+							'id'      => 'ffc_config_send_user_email',
+							'checked' => '1' === (string) $send_email,
+							'label'   => __( 'Send the email to the submitter after a successful submission.', 'ffcertificate' ),
+						)
+					);
+					?>
 				</td>
 			</tr>
 			<tr>

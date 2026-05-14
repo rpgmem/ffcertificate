@@ -856,9 +856,14 @@ final class RecruitmentAdminPage {
 			'preview_reason_required_appeal_granted' => __( 'Appeal granted requires a reason', 'ffcertificate' ),
 		);
 		foreach ( $reason_required_rows as $field => $label ) {
-			$checked = ! empty( $settings[ $field ] ) ? ' checked' : '';
-			echo '<tr><th><label for="ffc-rs-' . esc_attr( $field ) . '">' . esc_html( $label ) . '</label></th><td>';
-			echo '<input id="ffc-rs-' . esc_attr( $field ) . '" type="checkbox" name="' . esc_attr( $opt ) . '[' . esc_attr( $field ) . ']" value="1"' . esc_attr( $checked ) . '>';
+			echo '<tr><th>' . esc_html( $label ) . '</th><td>';
+			\FreeFormCertificate\Admin\AdminUI::render_toggle(
+				array(
+					'name'    => $opt . '[' . $field . ']',
+					'id'      => 'ffc-rs-' . $field,
+					'checked' => ! empty( $settings[ $field ] ),
+				)
+			);
 			echo '</td></tr>';
 		}
 

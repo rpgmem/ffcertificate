@@ -428,28 +428,50 @@ class ReregistrationAdmin {
 				<tr>
 					<th scope="row"><?php esc_html_e( 'Approval', 'ffcertificate' ); ?></th>
 					<td>
-						<label>
-							<input type="checkbox" name="rereg_auto_approve" value="1" <?php checked( ! empty( $item->auto_approve ) ); ?>>
-							<?php esc_html_e( 'Auto-approve submissions (no manual review needed)', 'ffcertificate' ); ?>
-						</label>
+						<?php
+						\FreeFormCertificate\Admin\AdminUI::render_toggle(
+							array(
+								'name'    => 'rereg_auto_approve',
+								'checked' => ! empty( $item->auto_approve ),
+								'label'   => __( 'Auto-approve submissions (no manual review needed)', 'ffcertificate' ),
+							)
+						);
+						?>
 					</td>
 				</tr>
 				<tr>
 					<th scope="row"><?php esc_html_e( 'Email Notifications', 'ffcertificate' ); ?></th>
 					<td>
 						<fieldset>
-							<label>
-								<input type="checkbox" name="rereg_email_invitation" value="1" <?php checked( ! empty( $item->email_invitation_enabled ) ); ?>>
-								<?php esc_html_e( 'Send invitation email when activated', 'ffcertificate' ); ?>
-							</label><br>
-							<label>
-								<input type="checkbox" name="rereg_email_reminder" value="1" <?php checked( ! empty( $item->email_reminder_enabled ) ); ?>>
-								<?php esc_html_e( 'Send reminder email before deadline', 'ffcertificate' ); ?>
-							</label><br>
-							<label>
-								<input type="checkbox" name="rereg_email_confirmation" value="1" <?php checked( ! empty( $item->email_confirmation_enabled ) ); ?>>
-								<?php esc_html_e( 'Send confirmation email after submission', 'ffcertificate' ); ?>
-							</label>
+							<?php
+							\FreeFormCertificate\Admin\AdminUI::render_toggle(
+								array(
+									'name'    => 'rereg_email_invitation',
+									'checked' => ! empty( $item->email_invitation_enabled ),
+									'label'   => __( 'Send invitation email when activated', 'ffcertificate' ),
+								)
+							);
+							?>
+							<br>
+							<?php
+							\FreeFormCertificate\Admin\AdminUI::render_toggle(
+								array(
+									'name'    => 'rereg_email_reminder',
+									'checked' => ! empty( $item->email_reminder_enabled ),
+									'label'   => __( 'Send reminder email before deadline', 'ffcertificate' ),
+								)
+							);
+							?>
+							<br>
+							<?php
+							\FreeFormCertificate\Admin\AdminUI::render_toggle(
+								array(
+									'name'    => 'rereg_email_confirmation',
+									'checked' => ! empty( $item->email_confirmation_enabled ),
+									'label'   => __( 'Send confirmation email after submission', 'ffcertificate' ),
+								)
+							);
+							?>
 							<p class="description"><?php esc_html_e( 'All email notifications are disabled by default.', 'ffcertificate' ); ?></p>
 						</fieldset>
 					</td>
