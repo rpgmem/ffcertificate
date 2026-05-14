@@ -100,6 +100,16 @@ final class CsvDownloadFormInfoBuilder {
 				'form_ended'              => $form_ended,
 				'can_download'            => $form_ended && ! $quota_exhausted,
 				'can_preview_cert'        => $before_start,
+				// `can_open_early` powers the "Start Form Now" button — it
+				// fires only when CSV public is on (the hash is the cred),
+				// datetime restrictions are enabled, the form hasn't yet
+				// started, and (if there's an end date) it hasn't ended.
+				// Matches EarlyOpenAction::is_eligible() exactly so the JS
+				// can't see a stale "can-open" state across a state change.
+				'can_open_early'          => $before_start
+					&& ! $form_ended
+					&& '1' === (string) get_post_meta( $form_id, '_ffc_csv_public_enabled', true )
+					&& '1' === (string) ( $geofence_config['datetime_enabled'] ?? '' ),
 				'download_blocked_reason' => $download_reason,
 				'start_date_formatted'    => null !== $start_ts
 					? wp_date( get_option( 'date_format' ) . ' ' . get_option( 'time_format' ), $start_ts, $tz )
