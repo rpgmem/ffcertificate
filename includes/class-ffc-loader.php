@@ -226,6 +226,7 @@ class Loader {
 			\FreeFormCertificate\Admin\DeviceThresholdUpgradeNotice::init();
 			\FreeFormCertificate\Admin\SettingsAjaxEndpoint::init();
 			\FreeFormCertificate\Admin\LocationsAjaxEndpoint::init();
+			\FreeFormCertificate\Admin\CacheActionsAjaxEndpoint::init();
 			FormListColumns::init();
 			AdminUserCustomFields::init();
 			$reregistration_admin = new ReregistrationAdmin();
