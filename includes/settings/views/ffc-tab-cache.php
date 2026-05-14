@@ -131,10 +131,10 @@ $ffcertificate_get_option = \Closure::fromCallable( array( $settings, 'get_optio
 				<tr>
 					<th scope="row"><?php esc_html_e( 'Actions', 'ffcertificate' ); ?></th>
 					<td>
-						<a href="<?php echo esc_url( wp_nonce_url( admin_url( 'edit.php?post_type=ffc_form&page=ffc-settings&tab=cache&action=warm_cache' ), 'ffc_warm_cache' ) ); ?>" class="button">
+						<a href="<?php echo esc_url( wp_nonce_url( admin_url( 'edit.php?post_type=ffc_form&page=ffc-settings&tab=cache&action=warm_cache' ), 'ffc_warm_cache' ) ); ?>" class="button ffc-cache-warm-btn" data-ffc-action="ffc_cache_warm">
 							<?php esc_html_e( 'Warm Cache Now', 'ffcertificate' ); ?>
 						</a>
-						<a href="<?php echo esc_url( wp_nonce_url( admin_url( 'edit.php?post_type=ffc_form&page=ffc-settings&tab=cache&action=clear_cache' ), 'ffc_clear_cache' ) ); ?>" class="button" onclick="return confirm('<?php echo esc_js( __( 'Clear all cache?', 'ffcertificate' ) ); ?>');">
+						<a href="<?php echo esc_url( wp_nonce_url( admin_url( 'edit.php?post_type=ffc_form&page=ffc-settings&tab=cache&action=clear_cache' ), 'ffc_clear_cache' ) ); ?>" class="button ffc-cache-clear-btn" data-ffc-action="ffc_cache_clear" data-ffc-confirm="<?php echo esc_attr__( 'Clear all cache?', 'ffcertificate' ); ?>">
 							<span class="ffc-icon-delete"></span><?php esc_html_e( 'Clear Cache', 'ffcertificate' ); ?>
 						</a>
 					</td>
