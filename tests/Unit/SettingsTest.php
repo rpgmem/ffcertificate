@@ -381,6 +381,10 @@ class SettingsTest extends TestCase {
         $form_cache_mock = Mockery::mock( 'alias:FreeFormCertificate\Submissions\FormCache' );
         $form_cache_mock->shouldReceive( 'clear_all_cache' )
             ->once();
+        $form_cache_mock->shouldReceive( 'purge_external_caches_for_all_forms' )
+            ->once()
+            ->with( 'manual_clear_all' )
+            ->andReturn( 0 );
 
         Functions\when( 'wp_safe_redirect' )->alias( function () {
             throw new \RuntimeException( 'redirect_called' );

@@ -7,6 +7,10 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Changed
+
+- **FormCache now propagates invalidation to third-party page-cache plugins** (closes #225). New `FormCache::purge_external_caches( $form_id, $reason = '' )` is a best-effort sweep that calls `\W3TC\Dispatcher::component('CacheFlush')->flush_post( $form_id )`, `\LiteSpeed\Purge::add( 'P_' . $form_id )`, `wpsc_delete_post_cache( $form_id )` (WP Super Cache), `rocket_clean_post( $form_id )` (WP Rocket) — each guarded by `class_exists` / `function_exists` + a try/catch so a misbehaving cache plugin can never break the host action. Closes with `do_action( 'ffc_form_cache_purged', $form_id, $reason )` so Cloudflare APO, Redis page caches, and custom CDN purgers can hook the same signal. New `purge_external_caches_for_all_forms( $reason )` iterates every published form. Wired into: the "Clear all cache" admin AJAX endpoint, the legacy admin_init handler (same button, no-JS fallback), and the form-editor save handler when the geofence config changes — so a manual datetime edit propagates through to the public CSV download page + the rendered form page immediately. `clear_form_cache()` (the hot-path object-cache flush called on every save_post / submission) is unchanged — third-party purges only fire when the public-facing state actually moved.
+
 ### Fixed
 
 - **Reregistration "Email Notifications" toggles overlapping their labels.** WordPress admin core ships a `.form-table td fieldset label { display: inline-block }` rule that overrode the plugin's `.ffc-toggle { display: inline-flex }`, collapsing the toggle track over the start of the label text. The reregistration edit page wrapped the three notification toggles in a `<fieldset>` (triggering that rule); `.ffc-toggle` now also declares the rule on `.form-table td .ffc-toggle` + `.form-table td fieldset .ffc-toggle` to win the specificity battle, and the offending `<fieldset>` was replaced with a plain `<div>` since it carried no `<legend>`. `position: relative` is also added so the visually-hidden checkbox is scoped to the label, not the viewport.

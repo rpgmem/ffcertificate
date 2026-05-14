@@ -79,6 +79,10 @@ class CacheActionsAjaxEndpoint {
 		self::guard( self::ACTION_CLEAR );
 
 		\FreeFormCertificate\Submissions\FormCache::clear_all_cache();
+		// Also sweep page-cache invalidation on every form so visitors
+		// see the change immediately, not just the plugin's own object
+		// cache — admins clicking "Clear all cache" expect that scope.
+		\FreeFormCertificate\Submissions\FormCache::purge_external_caches_for_all_forms( 'manual_clear_all' );
 
 		wp_send_json_success(
 			array(
