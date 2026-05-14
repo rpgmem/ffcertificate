@@ -228,6 +228,7 @@ class Loader {
 			\FreeFormCertificate\Admin\LocationsAjaxEndpoint::init();
 			\FreeFormCertificate\Admin\CacheActionsAjaxEndpoint::init();
 			\FreeFormCertificate\Admin\FormFeaturesAjaxEndpoint::init();
+			\FreeFormCertificate\Admin\MigrationActionsAjaxEndpoint::init();
 			FormListColumns::init();
 			AdminUserCustomFields::init();
 			$reregistration_admin = new ReregistrationAdmin();

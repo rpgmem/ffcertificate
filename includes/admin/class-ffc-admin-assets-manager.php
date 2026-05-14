@@ -341,7 +341,7 @@ class AdminAssetsManager {
 			wp_enqueue_script(
 				'ffc-admin-migrations',
 				FFC_PLUGIN_URL . "assets/js/ffc-admin-migrations{$s}.js",
-				array( 'jquery' ),
+				array( 'jquery', 'ffc-core', 'ffc-admin-js' ),
 				FFC_VERSION,
 				true
 			);
@@ -350,6 +350,7 @@ class AdminAssetsManager {
 				'ffc-admin-migrations',
 				'ffcMigrations',
 				array(
+					'nonce'   => wp_create_nonce( \FreeFormCertificate\Admin\MigrationActionsAjaxEndpoint::AJAX_ACTION ),
 					'strings' => array(
 						'processing'         => __( 'Processing...', 'ffcertificate' ),
 						'complete'           => __( 'Complete', 'ffcertificate' ),
