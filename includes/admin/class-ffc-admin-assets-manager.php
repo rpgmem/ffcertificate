@@ -372,6 +372,7 @@ class AdminAssetsManager {
 		// Submissions list page (when filtered by a single form): "Move to form…" modal.
 		if ( $this->is_submissions_list_page() ) {
 			$this->enqueue_move_submissions_assets();
+			$this->enqueue_submissions_bulk_assets();
 		}
 
 		// Certificates Dashboard (calendar view).
@@ -478,6 +479,48 @@ class AdminAssetsManager {
 	 * so the modal's <select> can render without an extra round-trip.
 	 *
 	 * @return void
+	 */
+	/**
+	 * Enqueue the inline bulk-actions JS on the Submissions list. Handles
+	 * trash / restore / delete from both the WP-list-table bulk form and
+	 * the per-row buttons — `move_to_form` keeps its own dedicated modal
+	 * flow (see {@see enqueue_move_submissions_assets()}).
+	 */
+	private function enqueue_submissions_bulk_assets(): void {
+		$s = \FreeFormCertificate\Core\Utils::asset_suffix();
+
+		wp_enqueue_script(
+			'ffc-core',
+			FFC_PLUGIN_URL . "assets/js/ffc-core{$s}.js",
+			array( 'jquery' ),
+			FFC_VERSION,
+			true
+		);
+		wp_enqueue_script(
+			'ffc-admin-submissions-bulk',
+			FFC_PLUGIN_URL . "assets/js/ffc-admin-submissions-bulk{$s}.js",
+			array( 'jquery', 'ffc-core', 'ffc-admin-js' ),
+			FFC_VERSION,
+			true
+		);
+		wp_localize_script(
+			'ffc-admin-submissions-bulk',
+			'ffcSubmissionsBulk',
+			array(
+				'nonce'   => wp_create_nonce( \FreeFormCertificate\Admin\SubmissionsBulkActionsAjaxEndpoint::AJAX_ACTION ),
+				'strings' => array(
+					'error'              => __( 'Action failed.', 'ffcertificate' ),
+					'confirmDelete'      => __( 'Permanently delete this submission?', 'ffcertificate' ),
+					'confirmBulkDelete'  => __( 'Permanently delete the selected submissions? This cannot be undone.', 'ffcertificate' ),
+				),
+			)
+		);
+	}
+
+	/**
+	 * Enqueue the "Move to form…" modal assets on the Submissions list
+	 * (only when the list is filtered by a single source form so the
+	 * conflict-detection scope is well-defined).
 	 */
 	private function enqueue_move_submissions_assets(): void {
 		$source_form_id = $this->resolve_single_filter_form_id();
