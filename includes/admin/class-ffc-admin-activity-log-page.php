@@ -292,12 +292,15 @@ class AdminActivityLogPage {
 	 */
 	public static function get_action_label( string $action ): string {
 		$labels = array(
-			'submission_created' => __( 'Submission Created', 'ffcertificate' ),
-			'submission_updated' => __( 'Submission Updated', 'ffcertificate' ),
-			'submission_deleted' => __( 'Submission Deleted', 'ffcertificate' ),
-			'data_accessed'      => __( 'Data Accessed', 'ffcertificate' ),
-			'access_denied'      => __( 'Access Denied', 'ffcertificate' ),
-			'settings_changed'   => __( 'Settings Changed', 'ffcertificate' ),
+			'submission_created'      => __( 'Submission Created', 'ffcertificate' ),
+			'submission_updated'      => __( 'Submission Updated', 'ffcertificate' ),
+			'submission_deleted'      => __( 'Submission Deleted', 'ffcertificate' ),
+			'data_accessed'           => __( 'Data Accessed', 'ffcertificate' ),
+			'access_denied'           => __( 'Access Denied', 'ffcertificate' ),
+			'settings_changed'        => __( 'Settings Changed', 'ffcertificate' ),
+			// Public Operator Access (#224) — early-open + ticket cleanup.
+			'early_open_executed'     => __( 'Form Started Early', 'ffcertificate' ),
+			'tickets_purged_expired'  => __( 'Expired Form Tickets Cleared', 'ffcertificate' ),
 		);
 
 		return isset( $labels[ $action ] ) ? $labels[ $action ] : ucwords( str_replace( '_', ' ', $action ) );
