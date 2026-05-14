@@ -62,7 +62,7 @@ $ffcertificate_get_option = \Closure::fromCallable( array( $settings, 'get_optio
 						<label for="cache_expiration"><?php esc_html_e( 'Expiration Time', 'ffcertificate' ); ?></label>
 					</th>
 					<td>
-						<select name="ffc_settings[cache_expiration]" id="cache_expiration" class="regular-text">
+						<select name="ffc_settings[cache_expiration]" id="cache_expiration" class="regular-text" data-ffc-autosave-key="cache_expiration">
 							<option value="900" <?php selected( $ffcertificate_get_option( 'cache_expiration' ), 900 ); ?>><?php esc_html_e( '15 minutes', 'ffcertificate' ); ?></option>
 							<option value="1800" <?php selected( $ffcertificate_get_option( 'cache_expiration' ), 1800 ); ?>><?php esc_html_e( '30 minutes', 'ffcertificate' ); ?></option>
 							<option value="3600" <?php selected( $ffcertificate_get_option( 'cache_expiration' ), 3600 ); ?>><?php esc_html_e( '1 hour (default)', 'ffcertificate' ); ?></option>
