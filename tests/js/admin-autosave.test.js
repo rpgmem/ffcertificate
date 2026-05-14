@@ -142,3 +142,56 @@ describe('FFC.Admin.autoSaveField', () => {
 		expect(postSpy).not.toHaveBeenCalled();
 	});
 });
+
+// ----------------------------------------------------------------------
+// Generic page-init scan — every admin page that enqueues this script
+// auto-wires every input tagged with `data-ffc-autosave-key`. This
+// covers the wiring previously inlined in ffc-geolocation-settings.js.
+// ----------------------------------------------------------------------
+
+describe('FFC admin-autosave — bootAutoSaveFields page-init', () => {
+	it('wires autoSaveField on every input tagged with data-ffc-autosave-key', () => {
+		document.body.innerHTML = `
+			<input type="checkbox" name="cache_enabled" data-ffc-autosave-key="cache_enabled">
+			<input type="checkbox" name="disable_all_emails" data-ffc-autosave-key="disable_all_emails">
+			<input type="checkbox" name="not_tagged">
+		`;
+		const calls = [];
+		const spy = vi.spyOn(window.FFC.Admin, 'autoSaveField').mockImplementation(function ($el, config) {
+			calls.push({ name: $el.attr('name'), key: config.key });
+			return { destroy: () => {} };
+		});
+
+		window.FFC.Admin.bootAutoSaveFields();
+
+		expect(spy).toHaveBeenCalledTimes(2);
+		expect(calls).toEqual([
+			{ name: 'cache_enabled', key: 'cache_enabled' },
+			{ name: 'disable_all_emails', key: 'disable_all_emails' },
+		]);
+		spy.mockRestore();
+	});
+
+	it('skips inputs that have already been wired (idempotent re-scan)', () => {
+		document.body.innerHTML = `
+			<input type="checkbox" data-ffc-autosave-key="cache_enabled">
+		`;
+		const spy = vi.spyOn(window.FFC.Admin, 'autoSaveField').mockImplementation(() => ({ destroy: () => {} }));
+
+		window.FFC.Admin.bootAutoSaveFields();
+		window.FFC.Admin.bootAutoSaveFields();
+
+		expect(spy).toHaveBeenCalledTimes(1);
+		spy.mockRestore();
+	});
+
+	it('does nothing when no tagged inputs exist on the page', () => {
+		document.body.innerHTML = '<input type="checkbox" name="untagged">';
+		const spy = vi.spyOn(window.FFC.Admin, 'autoSaveField');
+
+		window.FFC.Admin.bootAutoSaveFields();
+
+		expect(spy).not.toHaveBeenCalled();
+		spy.mockRestore();
+	});
+});

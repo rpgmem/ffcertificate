@@ -152,4 +152,29 @@
     }
 
     window.FFC.Admin.autoSaveField = autoSaveField;
+
+    /**
+     * Scan the DOM for inputs tagged with `data-ffc-autosave-key` and
+     * wire each one to {@link autoSaveField}. Idempotent — fields that
+     * have already been bound carry an `ffcAutoSaveBound` data flag and
+     * are skipped on subsequent calls.
+     */
+    function bootAutoSaveFields() {
+        $('[data-ffc-autosave-key]').each(function () {
+            var $input = $(this);
+            if ($input.data('ffcAutoSaveBound')) {
+                return;
+            }
+            $input.data('ffcAutoSaveBound', true);
+            // Call through the public API so a page or test can swap
+            // the implementation between script load and boot.
+            window.FFC.Admin.autoSaveField($input, { key: $input.data('ffc-autosave-key') });
+        });
+    }
+    window.FFC.Admin.bootAutoSaveFields = bootAutoSaveFields;
+
+    // Generic page-init — any admin page that enqueues this script
+    // gets auto-wiring on document-ready. Tabs can also call
+    // FFC.Admin.autoSaveField($field, …) directly for custom strings.
+    $(bootAutoSaveFields);
 }(jQuery));

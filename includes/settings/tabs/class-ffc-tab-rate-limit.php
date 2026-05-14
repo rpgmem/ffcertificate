@@ -30,6 +30,25 @@ class TabRateLimit extends SettingsTab {
 		$this->tab_title = __( 'Rate Limit', 'ffcertificate' );
 		$this->tab_icon  = 'ffc-icon-shield';
 		$this->tab_order = 40;
+
+		add_action( 'admin_enqueue_scripts', array( $this, 'enqueue_scripts' ) );
+	}
+
+	/**
+	 * Enqueue auto-save infrastructure when this tab is active. Powers
+	 * the `.ffc-toggle` switches for the per-group feature flags
+	 * (ip/email/cpf/global/device "enabled" + their satellites).
+	 *
+	 * @param string $hook Current admin page hook.
+	 */
+	public function enqueue_scripts( string $hook ): void {
+		if ( 'ffc_form_page_ffc-settings' !== $hook ) {
+			return;
+		}
+		if ( ! $this->is_active() ) {
+			return;
+		}
+		$this->enqueue_autosave_infra();
 	}
 
 	/**
