@@ -36,13 +36,17 @@ jobs:
       # Ratcheted 3 → 6 → 7 → 15 → 24 → 28 across #163 / #165 / #168 /
       # #170 / #173, then 28 → 34 in Sprint Q of #175, 34 → 47 across
       # #176-#180, 47 → 54 in #183, 54 → 57 in #184, 57 → 64 in #185,
-      # 64 → 70 in #186, 70 → 74 in #190 (Sprint F1). Sprint F2 in
-      # this PR closes the last two Tier-3 admin scripts —
-      # ffc-reregistration-admin 37%→97% and ffc-audience-admin
-      # 33%→98% — taking overall line coverage to 80.10%. Bumping
-      # 74 → 77 locks the gain in with ~3pp buffer. Bump again
-      # whenever a PR genuinely improves the number.
-      JS_COVERAGE_FLOOR_LINES: '77'
+      # 64 → 70 in #186, 70 → 74 in #190 (Sprint F1), 74 → 77 in #199
+      # (Sprint F2). The gap-closeout PR for issue #200 covers the two
+      # remaining 0% files (ffc-geolocation-settings 0%→100%,
+      # ffc-locations-crud 0%→98.94%) plus the Tier-4 backlog
+      # (ffc-user-dashboard-core 51%→100%, ffc-custom-fields-admin
+      # 49%→100%, ffc-user-dashboard-audience-join 56%→96%,
+      # ffc-user-dashboard-appointments 66%→100%), taking overall line
+      # coverage to 85.53%. Bumping 77 → 82 locks the gain in with a
+      # ~3.5pp buffer. Bump again whenever a PR genuinely improves the
+      # number.
+      JS_COVERAGE_FLOOR_LINES: '82'
     steps:
       - uses: actions/checkout@v6
       - uses: actions/setup-node@v6
