@@ -19,6 +19,8 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 
 ### Fixed
 
+- **`WP_Scripts::add` doing_it_wrong notice — four enqueues declared a missing `ffc-admin` dependency.** WordPress 6.9.1 added a `doing_it_wrong` warning when a script is enqueued with a handle that hasn't been registered; the plugin's admin script is registered as `ffc-admin-js` but four call sites mistakenly listed it as `ffc-admin` (the *style* handle) in their deps array — `class-ffc-form-list-columns.php` (forms list inline toggles, added in #210), `class-ffc-settings-tab.php` (settings autosave), `class-ffc-tab-cache.php` (cache actions), and `class-ffc-tab-geolocation.php` (geolocation autosave). All four now declare `ffc-admin-js`. Functional impact was nil — WordPress still loaded the scripts — but the notice spammed `debug.log` on every admin page render.
+
 - **Reregistration "Email Notifications" toggles overlapping their labels.** WordPress admin core ships a `.form-table td fieldset label { display: inline-block }` rule that overrode the plugin's `.ffc-toggle { display: inline-flex }`, collapsing the toggle track over the start of the label text. The reregistration edit page wrapped the three notification toggles in a `<fieldset>` (triggering that rule); `.ffc-toggle` now also declares the rule on `.form-table td .ffc-toggle` + `.form-table td fieldset .ffc-toggle` to win the specificity battle, and the offending `<fieldset>` was replaced with a plain `<div>` since it carried no `<legend>`. `position: relative` is also added so the visually-hidden checkbox is scoped to the label, not the viewport.
 
 ### Changed

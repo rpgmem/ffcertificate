@@ -52,12 +52,12 @@ class TabCache extends SettingsTab {
 		$this->enqueue_autosave_infra();
 
 		// Inline AJAX for the Warm / Clear cache buttons. Depends on
-		// ffc-core (FFC.request) + ffc-admin (showNotification).
+		// ffc-core (FFC.request) + ffc-admin-js (showNotification).
 		$s = \FreeFormCertificate\Core\Utils::asset_suffix();
 		wp_enqueue_script(
 			'ffc-cache-actions',
 			FFC_PLUGIN_URL . "assets/js/ffc-cache-actions{$s}.js",
-			array( 'jquery', 'ffc-core', 'ffc-admin' ),
+			array( 'jquery', 'ffc-core', 'ffc-admin-js' ),
 			FFC_VERSION,
 			true
 		);

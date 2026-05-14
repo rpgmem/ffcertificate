@@ -71,7 +71,7 @@ class FormListColumns {
 		wp_enqueue_script(
 			'ffc-form-list-features',
 			FFC_PLUGIN_URL . "assets/js/ffc-form-list-features{$s}.js",
-			array( 'jquery', 'ffc-core', 'ffc-admin' ),
+			array( 'jquery', 'ffc-core', 'ffc-admin-js' ),
 			FFC_VERSION,
 			true
 		);

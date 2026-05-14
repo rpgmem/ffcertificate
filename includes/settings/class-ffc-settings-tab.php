@@ -212,7 +212,7 @@ abstract class SettingsTab {
 		wp_enqueue_script(
 			'ffc-admin-autosave',
 			FFC_PLUGIN_URL . "assets/js/ffc-admin-autosave{$s}.js",
-			array( 'jquery', 'ffc-core', 'ffc-admin' ),
+			array( 'jquery', 'ffc-core', 'ffc-admin-js' ),
 			FFC_VERSION,
 			true
 		);
