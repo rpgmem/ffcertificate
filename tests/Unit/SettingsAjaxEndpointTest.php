@@ -92,6 +92,71 @@ class SettingsAjaxEndpointTest extends TestCase {
     }
 
     // ==================================================================
+    // sanitize_value — int
+    // ==================================================================
+
+    public function test_sanitize_value_int_casts_numeric_strings(): void {
+        $this->assertSame( 42, SettingsAjaxEndpoint::sanitize_value( '42', 'int' ) );
+        $this->assertSame( 0, SettingsAjaxEndpoint::sanitize_value( '', 'int' ) );
+        $this->assertSame( 0, SettingsAjaxEndpoint::sanitize_value( 'not a number', 'int' ) );
+    }
+
+    public function test_sanitize_value_int_rejects_arrays(): void {
+        $this->assertSame( 0, SettingsAjaxEndpoint::sanitize_value( array( 5 ), 'int' ) );
+    }
+
+    public function test_sanitize_value_int_clamps_to_min(): void {
+        $this->assertSame( 10, SettingsAjaxEndpoint::sanitize_value( '5', 'int', array( 'min' => 10 ) ) );
+    }
+
+    public function test_sanitize_value_int_clamps_to_max(): void {
+        $this->assertSame( 100, SettingsAjaxEndpoint::sanitize_value( '999', 'int', array( 'max' => 100 ) ) );
+    }
+
+    public function test_sanitize_value_int_clamps_both_sides(): void {
+        $entry = array( 'min' => 1, 'max' => 10 );
+        $this->assertSame( 1, SettingsAjaxEndpoint::sanitize_value( '0', 'int', $entry ) );
+        $this->assertSame( 5, SettingsAjaxEndpoint::sanitize_value( '5', 'int', $entry ) );
+        $this->assertSame( 10, SettingsAjaxEndpoint::sanitize_value( '20', 'int', $entry ) );
+    }
+
+    // ==================================================================
+    // sanitize_value — string
+    // ==================================================================
+
+    public function test_sanitize_value_string_default_uses_sanitize_text_field(): void {
+        Functions\when( 'sanitize_text_field' )->alias( function ( $s ) {
+            return trim( preg_replace( '/\s+/', ' ', strip_tags( (string) $s ) ) );
+        } );
+        $this->assertSame( 'hello world', SettingsAjaxEndpoint::sanitize_value( "  <b>hello</b>\n  world  ", 'string' ) );
+    }
+
+    public function test_sanitize_value_string_url_uses_esc_url_raw(): void {
+        Functions\when( 'esc_url_raw' )->alias( function ( $u ) {
+            return 'esc:' . $u;
+        } );
+        $this->assertSame(
+            'esc:https://example.com/',
+            SettingsAjaxEndpoint::sanitize_value( 'https://example.com/', 'string', array( 'as' => 'url' ) )
+        );
+    }
+
+    public function test_sanitize_value_string_multiline_uses_sanitize_textarea_field(): void {
+        Functions\when( 'sanitize_textarea_field' )->alias( function ( $s ) {
+            // Trim and collapse only horizontal whitespace; preserve newlines.
+            return rtrim( preg_replace( '/[ \t]+/', ' ', (string) $s ) );
+        } );
+        $this->assertSame(
+            "first line\nsecond line",
+            SettingsAjaxEndpoint::sanitize_value( "first  line\nsecond  line  ", 'string', array( 'as' => 'multiline_text' ) )
+        );
+    }
+
+    public function test_sanitize_value_string_rejects_arrays(): void {
+        $this->assertSame( '', SettingsAjaxEndpoint::sanitize_value( array( 'x' ), 'string' ) );
+    }
+
+    // ==================================================================
     // handle() — guards
     // ==================================================================
 
@@ -288,6 +353,117 @@ class SettingsAjaxEndpointTest extends TestCase {
         }
 
         $this->assertTrue( $captured_option['device']['log_blocks'] );
+    }
+
+    // ==================================================================
+    // Allowlist — full-autosave additions (int + string fields)
+    // ==================================================================
+
+    public function test_allowlist_covers_flat_typed_non_boolean_keys(): void {
+        $list = SettingsAjaxEndpoint::allowlist();
+        $expected = array(
+            'cache_expiration'            => array( 'int', 'ffc_settings' ),
+            'activity_log_retention_days' => array( 'int', 'ffc_settings' ),
+            'public_csv_sync_max_rows'    => array( 'int', 'ffc_settings' ),
+            'public_csv_default_limit'    => array( 'int', 'ffc_settings' ),
+            'code_editor_theme'           => array( 'string', 'ffc_settings' ),
+            'dark_mode'                   => array( 'string', 'ffc_settings' ),
+            'cleanup_days'                => array( 'int', 'ffc_settings' ),
+            'date_format'                 => array( 'string', 'ffc_settings' ),
+            'date_format_custom'          => array( 'string', 'ffc_settings' ),
+            'main_address'                => array( 'string', 'ffc_settings' ),
+            'csv_download_page_url'       => array( 'string', 'ffc_settings' ),
+            'qr_default_size'             => array( 'int', 'ffc_settings' ),
+            'qr_default_margin'           => array( 'int', 'ffc_settings' ),
+            'qr_default_error_level'      => array( 'string', 'ffc_settings' ),
+        );
+        foreach ( $expected as $key => list( $type, $option ) ) {
+            $this->assertArrayHasKey( $key, $list );
+            $this->assertSame( $type, $list[ $key ]['type'] );
+            $this->assertSame( $option, $list[ $key ]['option'] );
+            $this->assertArrayNotHasKey( 'path', $list[ $key ], "{$key} should be flat" );
+        }
+        // The url-as field carries the modifier.
+        $this->assertSame( 'url', $list['csv_download_page_url']['as'] );
+        // Numeric clamps are present where the schema demands.
+        $this->assertSame( 100, $list['qr_default_size']['min'] );
+        $this->assertSame( 500, $list['qr_default_size']['max'] );
+    }
+
+    public function test_allowlist_covers_rate_limit_non_boolean_nested_keys(): void {
+        $list = SettingsAjaxEndpoint::allowlist();
+        $expected = array(
+            'ip_max_per_hour'        => array( array( 'ip',     'max_per_hour' ),     'int' ),
+            'ip_apply_to'            => array( array( 'ip',     'apply_to' ),         'string' ),
+            'ip_message'             => array( array( 'ip',     'message' ),          'string' ),
+            'cpf_block_duration'     => array( array( 'cpf',    'block_duration' ),   'int' ),
+            'device_message'         => array( array( 'device', 'message' ),          'string' ),
+            'logging_max_logs'       => array( array( 'logging', 'max_logs' ),        'int' ),
+        );
+        foreach ( $expected as $key => list( $path, $type ) ) {
+            $this->assertArrayHasKey( $key, $list );
+            $this->assertSame( 'ffc_rate_limit_settings', $list[ $key ]['option'] );
+            $this->assertSame( $path, $list[ $key ]['path'] );
+            $this->assertSame( $type, $list[ $key ]['type'] );
+        }
+        // Message textareas declare multiline_text so newlines survive.
+        $this->assertSame( 'multiline_text', $list['ip_message']['as'] );
+        $this->assertSame( 'multiline_text', $list['device_message']['as'] );
+    }
+
+    // ==================================================================
+    // handle() — int + string round-trip
+    // ==================================================================
+
+    public function test_handle_writes_int_with_clamping(): void {
+        $captured = null;
+        Functions\when( 'get_option' )->justReturn( array() );
+        Functions\when( 'update_option' )->alias( function ( $key, $value ) use ( &$captured ) {
+            if ( 'ffc_settings' === $key ) {
+                $captured = $value;
+            }
+            return true;
+        } );
+
+        $_POST = array(
+            'nonce' => 'x',
+            'key'   => 'qr_default_size',
+            'value' => '999', // above max=500
+        );
+
+        try {
+            SettingsAjaxEndpoint::handle();
+        } catch ( \RuntimeException $e ) {
+            // expected
+        }
+
+        $this->assertSame( 500, $captured['qr_default_size'] );
+    }
+
+    public function test_handle_writes_string_via_sanitize_text_field(): void {
+        Functions\when( 'sanitize_text_field' )->alias( function ( $s ) {
+            return strip_tags( (string) $s );
+        } );
+        $captured = null;
+        Functions\when( 'get_option' )->justReturn( array() );
+        Functions\when( 'update_option' )->alias( function ( $key, $value ) use ( &$captured ) {
+            $captured = $value;
+            return true;
+        } );
+
+        $_POST = array(
+            'nonce' => 'x',
+            'key'   => 'date_format',
+            'value' => 'd/m/Y <script>x</script>',
+        );
+
+        try {
+            SettingsAjaxEndpoint::handle();
+        } catch ( \RuntimeException $e ) {
+            // expected
+        }
+
+        $this->assertSame( 'd/m/Y x', $captured['date_format'] );
     }
 
     public function test_handle_replaces_non_array_intermediate_with_an_array(): void {
