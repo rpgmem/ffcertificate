@@ -206,10 +206,14 @@ final class RecruitmentNoticeEditPageRenderer {
 		$preview_checked = ! empty( $preview_state['preview_reason'] );
 
 		echo '<tr><th>' . esc_html__( 'Preliminary reasons', 'ffcertificate' ) . '</th><td>';
-		echo '<label for="ffc-notice-pcc-preview_reason" style="display:flex;align-items:center;gap:6px;">';
-		echo '<input id="ffc-notice-pcc-preview_reason" type="checkbox" name="public_columns[preview_reason]" value="1"' . ( $preview_checked ? ' checked' : '' ) . '>';
-		echo esc_html__( 'Show preliminary reasons publicly on this notice', 'ffcertificate' );
-		echo '</label>';
+		\FreeFormCertificate\Admin\AdminUI::render_toggle(
+			array(
+				'name'    => 'public_columns[preview_reason]',
+				'id'      => 'ffc-notice-pcc-preview_reason',
+				'checked' => $preview_checked,
+				'label'   => __( 'Show preliminary reasons publicly on this notice', 'ffcertificate' ),
+			)
+		);
 		echo '<p class="description">' . esc_html__( 'When on, the public shortcode will render the reason label next to the preliminary status badge. Off by default per notice — operators decide all-or-nothing per edital.', 'ffcertificate' ) . '</p>';
 		echo '</td></tr>';
 
