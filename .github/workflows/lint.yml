@@ -34,17 +34,15 @@ jobs:
     # Coverage floor enforced in S1 of #163 — see step below.
     env:
       # Ratcheted 3 → 6 → 7 → 15 → 24 → 28 across #163 / #165 / #168 /
-      # #170 / #173, then 28 → 34 in Sprint Q of #175 (admin+cert-
-      # dashboard sprints M+N+O+P), then 34 → 47 across #176 / #177 /
-      # #178 / #179 / #180, 47 → 54 in #183, 54 → 57 in #184,
-      # 57 → 64 in #185 (Sprint C), 64 → 70 in #186 (Sprint B).
-      # Sprint F1 in this PR deep-covers three Tier 4/T3 admin scripts
-      # (ffc-admin-move-submissions 26%→99%, ffc-certificates-dashboard
-      # 31%→99%, ffc-url-shortener-admin 33%→100%), pushing overall
-      # line coverage to 76.79%. Bumping 70 → 74 locks the gain in
-      # with ~2.8pp buffer. Bump again whenever a PR genuinely
-      # improves the number.
-      JS_COVERAGE_FLOOR_LINES: '74'
+      # #170 / #173, then 28 → 34 in Sprint Q of #175, 34 → 47 across
+      # #176-#180, 47 → 54 in #183, 54 → 57 in #184, 57 → 64 in #185,
+      # 64 → 70 in #186, 70 → 74 in #190 (Sprint F1). Sprint F2 in
+      # this PR closes the last two Tier-3 admin scripts —
+      # ffc-reregistration-admin 37%→97% and ffc-audience-admin
+      # 33%→98% — taking overall line coverage to 80.10%. Bumping
+      # 74 → 77 locks the gain in with ~3pp buffer. Bump again
+      # whenever a PR genuinely improves the number.
+      JS_COVERAGE_FLOOR_LINES: '77'
     steps:
       - uses: actions/checkout@v6
       - uses: actions/setup-node@v6
