@@ -409,12 +409,21 @@ class AdminActivityLogPage {
 					<code><?php echo esc_html( (string) ( $ffcertificate_log['user_ip'] ?? '' ) ); ?></code>
 				</td>
 				<td>
-					<?php if ( ! empty( $ffcertificate_log['context'] ) ) : ?>
+					<?php
+					if ( ! empty( $ffcertificate_log['context'] ) ) :
+						// wp_json_encode returns string|false. The false case (circular
+						// refs, malformed UTF-8) is treated as "no context" so the
+						// admin still sees a valid <details> block.
+						$ffcertificate_context_json = wp_json_encode( $ffcertificate_log['context'], JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE );
+						if ( false === $ffcertificate_context_json ) {
+							$ffcertificate_context_json = '';
+						}
+						?>
 						<details>
 							<summary class="ffc-log-summary">
 								<?php esc_html_e( 'View Details', 'ffcertificate' ); ?> ▼
 							</summary>
-							<pre class="ffc-log-pre"><?php echo esc_html( wp_json_encode( $ffcertificate_log['context'], JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE ) ); ?></pre>
+							<pre class="ffc-log-pre"><?php echo esc_html( $ffcertificate_context_json ); ?></pre>
 						</details>
 					<?php else : ?>
 						<span class="description">—</span>
