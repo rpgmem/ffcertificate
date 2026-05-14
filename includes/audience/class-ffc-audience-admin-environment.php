@@ -339,10 +339,16 @@ class AudienceAdminEnvironment {
 								?>
 								<div class="ffc-day-row">
 									<label class="ffc-day-label"><?php echo esc_html( $label ); ?></label>
-									<label>
-										<input type="checkbox" name="working_hours[<?php echo esc_attr( $key ); ?>][closed]" value="1" <?php checked( $closed ); ?>>
-										<?php esc_html_e( 'Closed', 'ffcertificate' ); ?>
-									</label>
+									<?php
+									\FreeFormCertificate\Admin\AdminUI::render_toggle(
+										array(
+											'name'    => 'working_hours[' . $key . '][closed]',
+											'id'      => 'ffc-wh-closed-' . $key,
+											'checked' => (bool) $closed,
+											'label'   => __( 'Closed', 'ffcertificate' ),
+										)
+									);
+									?>
 									<input type="time" name="working_hours[<?php echo esc_attr( $key ); ?>][start]" value="<?php echo esc_attr( $start ); ?>" <?php echo $closed ? 'disabled' : ''; ?>>
 									<span><?php esc_html_e( 'to', 'ffcertificate' ); ?></span>
 									<input type="time" name="working_hours[<?php echo esc_attr( $key ); ?>][end]" value="<?php echo esc_attr( $end ); ?>" <?php echo $closed ? 'disabled' : ''; ?>>
@@ -357,14 +363,18 @@ class AudienceAdminEnvironment {
 						<label for="environment_status"><?php esc_html_e( 'Status', 'ffcertificate' ); ?></label>
 					</th>
 					<td>
-						<select name="environment_status" id="environment_status">
-							<option value="active" <?php selected( $environment->status ?? 'active', 'active' ); ?>>
-								<?php esc_html_e( 'Active', 'ffcertificate' ); ?>
-							</option>
-							<option value="inactive" <?php selected( $environment->status ?? '', 'inactive' ); ?>>
-								<?php esc_html_e( 'Inactive', 'ffcertificate' ); ?>
-							</option>
-						</select>
+						<input type="hidden" name="environment_status" value="inactive">
+						<?php
+						\FreeFormCertificate\Admin\AdminUI::render_toggle(
+							array(
+								'name'    => 'environment_status',
+								'id'      => 'environment_status',
+								'value'   => 'active',
+								'checked' => 'active' === (string) ( $environment->status ?? 'active' ),
+								'label'   => __( 'Active', 'ffcertificate' ),
+							)
+						);
+						?>
 					</td>
 				</tr>
 			</tbody></table>
