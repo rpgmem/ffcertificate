@@ -162,10 +162,22 @@ class FormEditorBuilderMetabox {
 					</select>
 				</div>
 				<div class="ffc-grid-item ffc-flex-center ffc-standard-row<?php echo $is_display_only ? ' ffc-hidden' : ''; ?>">
-					<label class="ffc-req-label">
-						<input type="checkbox" name="ffc_fields[<?php echo esc_attr( $index ); ?>][required]" value="1" <?php checked( $req, '1' ); ?>>
-						<?php esc_html_e( 'Required?', 'ffcertificate' ); ?>
-					</label>
+					<?php
+					// Keep the .ffc-field-required class on the inner checkbox —
+					// ffc-admin-field-builder.js reads its state via
+					// `$row.find('.ffc-field-required').is(':checked')` when
+					// serialising the field row to JSON for save_post.
+					\FreeFormCertificate\Admin\AdminUI::render_toggle(
+						array(
+							'name'        => 'ffc_fields[' . $index . '][required]',
+							'id'          => 'ffc_field_required_' . $index,
+							'checked'     => '1' === (string) $req,
+							'label'       => __( 'Required?', 'ffcertificate' ),
+							'class'       => 'ffc-req-label',
+							'input_class' => 'ffc-field-required',
+						)
+					);
+					?>
 				</div>
 			</div>
 

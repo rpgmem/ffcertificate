@@ -47,21 +47,27 @@ class AdminUI {
 	 *                                    label next to the switch), `disabled` (optional
 	 *                                    bool, renders disabled), `class` (optional
 	 *                                    string, extra classes on the wrapper),
-	 *                                    `data` (optional array<string,string> of
-	 *                                    data-* attributes on the input).
+	 *                                    `input_class` (optional string, extra
+	 *                                    classes on the inner checkbox — needed
+	 *                                    when the rendered field is read by a JS
+	 *                                    serializer via class selector, e.g.
+	 *                                    `.ffc-field-required`), `data` (optional
+	 *                                    array<string,string> of data-* attributes
+	 *                                    on the input).
 	 */
 	public static function render_toggle( array $args ): void {
 		$name = $args['name'] ?? '';
 		if ( '' === $name ) {
 			return;
 		}
-		$id       = $args['id'] ?? $name;
-		$value    = $args['value'] ?? '1';
-		$checked  = ! empty( $args['checked'] );
-		$disabled = ! empty( $args['disabled'] );
-		$label    = $args['label'] ?? '';
-		$extra    = trim( (string) ( $args['class'] ?? '' ) );
-		$data     = $args['data'] ?? array();
+		$id          = $args['id'] ?? $name;
+		$value       = $args['value'] ?? '1';
+		$checked     = ! empty( $args['checked'] );
+		$disabled    = ! empty( $args['disabled'] );
+		$label       = $args['label'] ?? '';
+		$extra       = trim( (string) ( $args['class'] ?? '' ) );
+		$input_class = trim( (string) ( $args['input_class'] ?? '' ) );
+		$data        = $args['data'] ?? array();
 
 		$wrapper_class = 'ffc-toggle' . ( '' !== $extra ? ' ' . $extra : '' );
 
@@ -72,18 +78,21 @@ class AdminUI {
 			}
 		}
 
+		$input_class_attr = '' !== $input_class ? ' class="' . esc_attr( $input_class ) . '"' : '';
+
 		printf(
 			'<label class="%1$s" for="%2$s">',
 			esc_attr( $wrapper_class ),
 			esc_attr( $id )
 		);
 		printf(
-			'<input type="checkbox" id="%1$s" name="%2$s" value="%3$s"%4$s%5$s%6$s>',
+			'<input type="checkbox" id="%1$s" name="%2$s" value="%3$s"%4$s%5$s%6$s%7$s>',
 			esc_attr( $id ),
 			esc_attr( $name ),
 			esc_attr( (string) $value ),
 			$checked ? ' checked' : '',
 			$disabled ? ' disabled' : '',
+			$input_class_attr, // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- pre-escaped above.
 			$data_attrs // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- pre-escaped above.
 		);
 		echo '<span class="ffc-toggle-track" aria-hidden="true"></span>';

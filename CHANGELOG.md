@@ -7,7 +7,17 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+---
+
+## [6.5.5] (2026-05-14)
+
+**Admin UX modernisation release.** This drop chases a single thread across the WordPress admin: every flow that used to do a full page reload on every click now has an AJAX path that keeps the user in place, and every boolean feature flag now renders as the `.ffc-toggle` switch shipped in 6.5.4. The form-POST fallbacks and admin_init handlers stay intact so users with JavaScript disabled keep the original behaviour.
+
 ### Changed
+
+- **Form-builder "Required?" field flag → `.ffc-toggle`** (closes #221). The per-field "Required?" checkbox in Section 2 of the form editor now renders as a toggle switch in both the PHP template and the JS template that appends new field rows. The `.ffc-field-required` class is preserved on the inner `<input>` so the field-builder serialiser (which reads `$row.find('.ffc-field-required').is(':checked')` when packing rows for `save_post`) keeps working unchanged. `AdminUI::render_toggle()` gains an optional `input_class` arg for this use case.
+
+- **Hotfix: `.ffc-toggle` missing CSS on reregistration / audience pages + 4 more conversions** (closes #220). Visual bug: toggles rendered without their track / background on the reregistration edit screen. Root cause: `ffc-reregistration-admin.css` and `ffc-audience-admin.css` were enqueued with `array()` deps so WordPress's dependency graph never guaranteed `ffc-common.css` (which holds the `.ffc-toggle` rules) would load first. Defensive fix: register `ffc-common` up-front (guarded with `function_exists( 'wp_style_is' )`) and declare it as an explicit dep on the page CSS. While here, 4 more boolean UI elements converted to `.ffc-toggle`: audience `Status` `<select>` (hidden+toggle pair), audience `Allow Self-Join` checkbox, audience CSV importer `Create users` checkbox, recruitment notice `Show preliminary reasons publicly` checkbox.
 
 - **Toggle sweep round 3 — recruitment + reregistration + form-editor + SMTP radios** (closes #218). 13 more boolean UI elements move to `.ffc-toggle`:
   - **Recruitment Settings** (4 checkboxes): the four "Preliminary list — reason required?" flags (`preview_reason_required_denied/granted/appeal_denied/appeal_granted`).
