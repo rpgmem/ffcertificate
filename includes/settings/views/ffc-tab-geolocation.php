@@ -182,10 +182,15 @@ if ( ! defined( 'ABSPATH' ) ) {
 						<label><?php esc_html_e( 'IP Geolocation', 'ffcertificate' ); ?></label>
 					</th>
 					<td>
-						<label>
-							<input type="checkbox" name="ip_api_enabled" value="1" <?php checked( $settings['ip_api_enabled'], true ); ?>>
-							<?php esc_html_e( 'Enable IP geolocation API for backend validation', 'ffcertificate' ); ?>
-						</label>
+						<?php
+						\FreeFormCertificate\Admin\AdminUI::render_toggle(
+							array(
+								'name'    => 'ip_api_enabled',
+								'checked' => (bool) $settings['ip_api_enabled'],
+								'label'   => __( 'Enable IP geolocation API for backend validation', 'ffcertificate' ),
+							)
+						);
+						?>
 						<p class="description">
 							<?php esc_html_e( 'When enabled, validates user location by IP address on the server (in addition to GPS).', 'ffcertificate' ); ?>
 						</p>
@@ -218,10 +223,15 @@ if ( ! defined( 'ABSPATH' ) ) {
 						<label><?php esc_html_e( 'Service Cascade', 'ffcertificate' ); ?></label>
 					</th>
 					<td>
-						<label>
-							<input type="checkbox" name="ip_api_cascade" value="1" <?php checked( $settings['ip_api_cascade'], true ); ?>>
-							<?php esc_html_e( 'Enable cascade: if primary fails, try the other service', 'ffcertificate' ); ?>
-						</label>
+						<?php
+						\FreeFormCertificate\Admin\AdminUI::render_toggle(
+							array(
+								'name'    => 'ip_api_cascade',
+								'checked' => (bool) $settings['ip_api_cascade'],
+								'label'   => __( 'Enable cascade: if primary fails, try the other service', 'ffcertificate' ),
+							)
+						);
+						?>
 						<p class="description">
 							<?php esc_html_e( 'When enabled, if the primary service fails, automatically try the alternative service.', 'ffcertificate' ); ?>
 						</p>
@@ -253,10 +263,15 @@ if ( ! defined( 'ABSPATH' ) ) {
 						<label><?php esc_html_e( 'IP Cache', 'ffcertificate' ); ?></label>
 					</th>
 					<td>
-						<label>
-							<input type="checkbox" name="ip_cache_enabled" value="1" <?php checked( $settings['ip_cache_enabled'], true ); ?>>
-							<?php esc_html_e( 'Cache IP geolocation results to reduce API calls', 'ffcertificate' ); ?>
-						</label>
+						<?php
+						\FreeFormCertificate\Admin\AdminUI::render_toggle(
+							array(
+								'name'    => 'ip_cache_enabled',
+								'checked' => (bool) $settings['ip_cache_enabled'],
+								'label'   => __( 'Cache IP geolocation results to reduce API calls', 'ffcertificate' ),
+							)
+						);
+						?>
 						<p class="description">
 							<?php esc_html_e( 'Recommended. Caches geolocation by IP to avoid repeated API calls.', 'ffcertificate' ); ?>
 						</p>
@@ -465,10 +480,17 @@ if ( ! defined( 'ABSPATH' ) ) {
 						<label><?php esc_html_e( 'Bypass Date/Time', 'ffcertificate' ); ?></label>
 					</th>
 					<td>
-						<label>
-							<input type="checkbox" name="admin_bypass_datetime" value="1" <?php checked( $settings['admin_bypass_datetime'], true ); ?>>
-							<?php esc_html_e( 'Administrators bypass date/time restrictions', 'ffcertificate' ); ?>
-						</label>
+						<?php
+						\FreeFormCertificate\Admin\AdminUI::render_toggle(
+							array(
+								'name'    => 'admin_bypass_datetime',
+								'id'      => 'ffc_admin_bypass_datetime',
+								'checked' => (bool) $settings['admin_bypass_datetime'],
+								'label'   => __( 'Administrators bypass date/time restrictions', 'ffcertificate' ),
+								'data'    => array( 'ffc-autosave-key' => 'admin_bypass_datetime' ),
+							)
+						);
+						?>
 						<p class="description">
 							<?php esc_html_e( 'Logged-in administrators can access forms regardless of date/time configuration. A visual message will appear indicating bypass is active.', 'ffcertificate' ); ?>
 						</p>
@@ -481,10 +503,17 @@ if ( ! defined( 'ABSPATH' ) ) {
 						<label><?php esc_html_e( 'Bypass Geolocation', 'ffcertificate' ); ?></label>
 					</th>
 					<td>
-						<label>
-							<input type="checkbox" name="admin_bypass_geo" value="1" <?php checked( $settings['admin_bypass_geo'], true ); ?>>
-							<?php esc_html_e( 'Administrators bypass geolocation restrictions', 'ffcertificate' ); ?>
-						</label>
+						<?php
+						\FreeFormCertificate\Admin\AdminUI::render_toggle(
+							array(
+								'name'    => 'admin_bypass_geo',
+								'id'      => 'ffc_admin_bypass_geo',
+								'checked' => (bool) $settings['admin_bypass_geo'],
+								'label'   => __( 'Administrators bypass geolocation restrictions', 'ffcertificate' ),
+								'data'    => array( 'ffc-autosave-key' => 'admin_bypass_geo' ),
+							)
+						);
+						?>
 						<p class="description">
 							<?php esc_html_e( 'Logged-in administrators can access forms regardless of GPS/IP geolocation configuration. A visual message will appear indicating bypass is active.', 'ffcertificate' ); ?>
 						</p>
