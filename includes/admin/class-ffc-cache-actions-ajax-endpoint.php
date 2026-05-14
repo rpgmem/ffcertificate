@@ -35,7 +35,7 @@ class CacheActionsAjaxEndpoint {
 	 * Register hooks.
 	 */
 	public static function init(): void {
-		add_action( 'wp_ajax_' . self::ACTION_WARM,  array( self::class, 'handle_warm' ) );
+		add_action( 'wp_ajax_' . self::ACTION_WARM, array( self::class, 'handle_warm' ) );
 		add_action( 'wp_ajax_' . self::ACTION_CLEAR, array( self::class, 'handle_clear' ) );
 	}
 
