@@ -42,6 +42,51 @@ class FormListColumns {
 		add_filter( 'manage_edit-ffc_form_sortable_columns', array( __CLASS__, 'sortable_columns' ) );
 		add_action( 'admin_head-edit.php', array( __CLASS__, 'inline_styles' ) );
 		add_action( 'pre_get_posts', array( __CLASS__, 'search_by_id' ) );
+		add_action( 'admin_enqueue_scripts', array( __CLASS__, 'enqueue_features_script' ) );
+	}
+
+	/**
+	 * Enqueue the inline-toggle script + nonce only on the ffc_form
+	 * list table screen.
+	 *
+	 * @param string $hook Current admin page hook.
+	 */
+	public static function enqueue_features_script( string $hook ): void {
+		if ( 'edit.php' !== $hook ) {
+			return;
+		}
+		$screen = get_current_screen();
+		if ( ! $screen || 'ffc_form' !== $screen->post_type ) {
+			return;
+		}
+
+		$s = \FreeFormCertificate\Core\Utils::asset_suffix();
+		wp_enqueue_script(
+			'ffc-core',
+			FFC_PLUGIN_URL . "assets/js/ffc-core{$s}.js",
+			array( 'jquery' ),
+			FFC_VERSION,
+			true
+		);
+		wp_enqueue_script(
+			'ffc-form-list-features',
+			FFC_PLUGIN_URL . "assets/js/ffc-form-list-features{$s}.js",
+			array( 'jquery', 'ffc-core', 'ffc-admin' ),
+			FFC_VERSION,
+			true
+		);
+		wp_localize_script(
+			'ffc-form-list-features',
+			'ffcFormListFeatures',
+			array(
+				'nonce'   => wp_create_nonce( FormFeaturesAjaxEndpoint::AJAX_ACTION ),
+				'strings' => array(
+					'saving' => __( 'Saving…', 'ffcertificate' ),
+					'saved'  => __( 'Saved', 'ffcertificate' ),
+					'error'  => __( 'Save failed', 'ffcertificate' ),
+				),
+			)
+		);
 	}
 
 	/**
@@ -65,10 +110,72 @@ class FormListColumns {
 				$new['ffc_shortcode']     = __( 'Shortcode', 'ffcertificate' );
 				$new['ffc_submissions']   = __( 'Submissions', 'ffcertificate' );
 				$new['ffc_csv_downloads'] = __( 'CSV Downloads', 'ffcertificate' );
+				$new['ffc_features']      = __( 'Features', 'ffcertificate' );
 			}
 		}
 
 		return $new;
+	}
+
+	/**
+	 * Resolve the on/off state of each toggleable feature for a form.
+	 *
+	 * @param int $post_id Form post ID.
+	 * @return array<string, bool>
+	 */
+	private static function get_feature_states( int $post_id ): array {
+		$config       = get_post_meta( $post_id, '_ffc_form_config', true );
+		$device_meta  = get_post_meta( $post_id, '_ffc_device_limit', true );
+		$csv_enabled  = (string) get_post_meta( $post_id, '_ffc_csv_public_enabled', true );
+
+		return array(
+			'csv_public_enabled' => '1' === $csv_enabled,
+			'quiz_enabled'       => is_array( $config ) && ! empty( $config['quiz_enabled'] ),
+			'device_enabled'     => is_array( $device_meta ) && ! empty( $device_meta['enabled'] ),
+		);
+	}
+
+	/**
+	 * Render the three feature toggles for one row.
+	 *
+	 * Each toggle keeps the markup contract `.ffc-toggle` expects — the
+	 * underlying checkbox carries the `data-ffc-form-id` /
+	 * `data-ffc-feature` attributes the JS handler reads on change.
+	 *
+	 * @param int $post_id Form post ID.
+	 */
+	private static function render_features_column( int $post_id ): void {
+		// Capability gate at render time too: if the current user can't
+		// edit this form, render read-only state so they can't click.
+		$can_edit = current_user_can( 'edit_post', $post_id );
+
+		$states = self::get_feature_states( $post_id );
+
+		$features = array(
+			'csv_public_enabled' => __( 'CSV', 'ffcertificate' ),
+			'quiz_enabled'       => __( 'Quiz', 'ffcertificate' ),
+			'device_enabled'     => __( 'Device limit', 'ffcertificate' ),
+		);
+
+		echo '<div class="ffc-features-cell">';
+		foreach ( $features as $feature => $label ) {
+			\FreeFormCertificate\Admin\AdminUI::render_toggle(
+				array(
+					'name'     => 'ffc_features_' . $feature . '_' . $post_id,
+					'id'       => 'ffc_features_' . $feature . '_' . $post_id,
+					'checked'  => $states[ $feature ],
+					'disabled' => ! $can_edit,
+					'label'    => $label,
+					'class'    => 'ffc-features-toggle',
+					'data'     => array(
+						'ffc-form-id' => (string) $post_id,
+						'ffc-feature' => $feature,
+					),
+				)
+			);
+		}
+		echo '<span class="ffc-features-badge" aria-live="polite" hidden></span>';
+		echo '</div>';
 	}
 
 	/**
@@ -130,6 +237,10 @@ class FormListColumns {
 						echo esc_html( number_format_i18n( $dl_count ) );
 					}
 				}
+				break;
+
+			case 'ffc_features':
+				self::render_features_column( $post_id );
 				break;
 		}
 	}
