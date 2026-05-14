@@ -45,7 +45,12 @@ class ExpiredTicketsCleanup {
 	 * Register the action handler. Call from the loader at boot.
 	 */
 	public static function init(): void {
-		add_action( self::CRON_HOOK, array( self::class, 'run' ) );
+		add_action(
+			self::CRON_HOOK,
+			static function (): void {
+				self::run();
+			}
+		);
 	}
 
 	/**
@@ -131,7 +136,10 @@ class ExpiredTicketsCleanup {
 		}
 
 		// Count non-empty lines as "tickets removed" for the audit log.
-		$lines = preg_split( '/\R/', $codes_raw ) ?: array();
+		$lines = preg_split( '/\R/', $codes_raw );
+		if ( false === $lines ) {
+			$lines = array();
+		}
 		$count = 0;
 		foreach ( $lines as $line ) {
 			if ( '' !== trim( (string) $line ) ) {

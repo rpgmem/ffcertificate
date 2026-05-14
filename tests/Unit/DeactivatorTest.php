@@ -44,6 +44,8 @@ class DeactivatorTest extends TestCase {
 
         // Default stubs — overridden per test as needed
         Functions\when( 'wp_clear_scheduled_hook' )->justReturn( 0 );
+        Functions\when( 'wp_next_scheduled' )->justReturn( false );
+        Functions\when( 'wp_unschedule_event' )->justReturn( true );
         Functions\when( 'flush_rewrite_rules' )->justReturn( null );
         Functions\when( 'current_user_can' )->justReturn( true );
         Functions\when( 'wp_die' )->alias( function ( $msg ) {

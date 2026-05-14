@@ -475,7 +475,7 @@ class PublicCsvDownload {
 			// Map the eligibility reason to a localised user-facing
 			// message — keeps the EarlyOpenAction service free of UX
 			// strings.
-			$reason   = (string) ( $result['reason'] ?? 'unknown' );
+			$reason   = $result['reason'];
 			$messages = array(
 				'unknown_form'      => __( 'Form not found.', 'ffcertificate' ),
 				'csv_disabled'      => __( 'Public access is disabled for this form.', 'ffcertificate' ),

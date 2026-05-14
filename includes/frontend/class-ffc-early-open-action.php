@@ -54,7 +54,7 @@ class EarlyOpenAction {
 	 *
 	 * @param int    $form_id Form post id.
 	 * @param string $hash    Plaintext hash supplied by the public page.
-	 * @return array{ok: bool, reason?: string} ok=true when eligible.
+	 * @return array{ok: false, reason: string}|array{ok: true} ok=true when eligible.
 	 *                                          reason is a stable string
 	 *                                          tag for telemetry / UX
 	 *                                          (`unknown_form`, `csv_disabled`,
@@ -104,7 +104,7 @@ class EarlyOpenAction {
 			);
 		}
 
-		$now = current_time( 'timestamp' );
+		$now = time();
 		if ( $start_ts <= $now ) {
 			return array(
 				'ok'     => false,
@@ -139,12 +139,7 @@ class EarlyOpenAction {
 	 * @param array<string, mixed> $audit_meta Caller-supplied context for
 	 *                                         the audit row — typically
 	 *                                         { user_id, ip, ua }.
-	 * @return array{
-	 *     ok: bool,
-	 *     reason?: string,
-	 *     original_start_iso?: string,
-	 *     new_start_iso?: string
-	 * }
+	 * @return array{ok: false, reason: string}|array{ok: true, original_start_iso: string, new_start_iso: string}
 	 */
 	public static function execute( int $form_id, string $hash, array $audit_meta = array() ): array {
 		$eligibility = self::is_eligible( $form_id, $hash );
