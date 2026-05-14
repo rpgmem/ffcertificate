@@ -297,6 +297,148 @@ class FormEditorPublicCsvDownloadMetabox {
 				</td>
 			</tr>
 		</table>
+
 		<?php
+		// ──────────────────────────────────────────────────────────────.
+		// Start Form Early URL — same hash, different action surface.
+		// ──────────────────────────────────────────────────────────────.
+		$this->render_start_form_early_block( $post, $enabled, $hash );
+		?>
+		<?php
+	}
+
+	/**
+	 * Render the "Start Form Early" sub-block of the Public Operator
+	 * Access metabox.
+	 *
+	 * Reuses the form's CSV-public hash as the credential — operators
+	 * who hit the public CSV download page with this URL before the
+	 * scheduled start can click "Start Form Now" to flip the form's
+	 * `date_start` / `time_start` to "now". After the form's natural
+	 * start (or end), the block reports that the action is no longer
+	 * available so the admin understands why no URL is shown.
+	 *
+	 * @since 6.5.6
+	 * @param WP_Post $post    The form post.
+	 * @param string  $enabled CSV-public toggle ('1' or '').
+	 * @param string  $hash    The form's CSV-public hash, if any.
+	 */
+	private function render_start_form_early_block( WP_Post $post, string $enabled, string $hash ): void {
+		// Resolve the public download landing page so we can build a
+		// usable absolute URL for copy/QR — settings UI lets the admin
+		// configure this; fall back to home_url if unset.
+		$settings    = get_option( 'ffc_settings', array() );
+		$landing_url = ( is_array( $settings ) && ! empty( $settings['csv_download_page_url'] ) )
+			? (string) $settings['csv_download_page_url']
+			: home_url( '/' );
+
+		$start_ts   = \FreeFormCertificate\Security\Geofence::get_form_start_timestamp( $post->ID );
+		$end_ts     = \FreeFormCertificate\Security\Geofence::get_form_end_timestamp( $post->ID );
+		$now        = current_time( 'timestamp' );
+		$enabled_ok = '1' === $enabled && '' !== $hash;
+
+		// Status string mirrors the eligibility branches in EarlyOpenAction.
+		if ( ! $enabled_ok ) {
+			$status_label = __( 'Enable Public Download above to generate a URL.', 'ffcertificate' );
+			$status_kind  = 'warning';
+			$show_url     = false;
+		} elseif ( null === $start_ts ) {
+			$status_label = __( 'Set a start date in the Geolocation & Date/Time metabox to enable this action.', 'ffcertificate' );
+			$status_kind  = 'warning';
+			$show_url     = false;
+		} elseif ( null !== $end_ts && $end_ts <= $now ) {
+			$status_label = __( 'This form has already ended — early-start no longer applies.', 'ffcertificate' );
+			$status_kind  = 'info';
+			$show_url     = false;
+		} elseif ( $start_ts <= $now ) {
+			$status_label = __( 'This form has already started — early-start no longer applies.', 'ffcertificate' );
+			$status_kind  = 'info';
+			$show_url     = false;
+		} else {
+			$status_label = __( 'Available — share this URL with a trusted operator (a confirmation modal protects against accidental clicks).', 'ffcertificate' );
+			$status_kind  = 'success';
+			$show_url     = true;
+		}
+
+		$absolute_url = '';
+		if ( $show_url ) {
+			$absolute_url = add_query_arg(
+				array(
+					'form_id' => (int) $post->ID,
+					'hash'    => $hash,
+				),
+				$landing_url
+			);
+		}
+		?>
+		<h3 class="ffc-section-subtitle"><?php esc_html_e( 'Start Form Early URL', 'ffcertificate' ); ?></h3>
+		<p class="description">
+			<?php esc_html_e( 'Operators with this URL can open the form ahead of the scheduled start time. Uses the same hash as the CSV download — regenerating the hash above invalidates both URLs at once. Cancel button is emphasised on the public page to prevent accidental triggers.', 'ffcertificate' ); ?>
+		</p>
+		<table class="form-table ffc-csv-public-table">
+			<tr>
+				<th scope="row"><?php esc_html_e( 'Status', 'ffcertificate' ); ?></th>
+				<td>
+					<span class="ffc-status-pill ffc-status-pill--<?php echo esc_attr( $status_kind ); ?>">
+						<?php echo esc_html( $status_label ); ?>
+					</span>
+				</td>
+			</tr>
+			<?php if ( $show_url ) : ?>
+				<tr>
+					<th scope="row">
+						<label for="ffc_csv_public_start_form_url"><?php esc_html_e( 'Public URL', 'ffcertificate' ); ?></label>
+					</th>
+					<td>
+						<input type="text"
+							id="ffc_csv_public_start_form_url"
+							class="regular-text code ffc-csv-public-url"
+							value="<?php echo esc_attr( $absolute_url ); ?>"
+							readonly
+							onclick="this.select();">
+						<button type="button"
+							class="button ffc-csv-public-copy-url"
+							data-target="#ffc_csv_public_start_form_url">
+							<?php esc_html_e( 'Copy URL', 'ffcertificate' ); ?>
+						</button>
+					</td>
+				</tr>
+			<?php endif; ?>
+		</table>
+		<?php
+		// Copy-URL handler — tiny, self-contained, only emitted when
+		// at least one URL is present. Uses the navigator.clipboard
+		// API with a textarea fallback for older browsers.
+		if ( $show_url ) :
+			?>
+			<script>
+			(function () {
+				document.querySelectorAll('.ffc-csv-public-copy-url').forEach(function (btn) {
+					if (btn.dataset.ffcCopyBound) { return; }
+					btn.dataset.ffcCopyBound = '1';
+					btn.addEventListener('click', function (e) {
+						e.preventDefault();
+						var sel = btn.getAttribute('data-target');
+						var input = document.querySelector(sel);
+						if (!input) { return; }
+						var url = input.value;
+						var done = function () {
+							var orig = btn.textContent;
+							btn.textContent = '✓ ' + (window.ffcOperatorAccessL10n && window.ffcOperatorAccessL10n.copied || 'Copied');
+							setTimeout(function () { btn.textContent = orig; }, 1800);
+						};
+						if (navigator.clipboard) {
+							navigator.clipboard.writeText(url).then(done, function () {
+								input.select(); document.execCommand('copy'); done();
+							});
+						} else {
+							input.select(); document.execCommand('copy'); done();
+						}
+					});
+				});
+			})();
+			</script>
+			<?php
+		endif;
 	}
 }
