@@ -49,7 +49,7 @@ $ffcertificate_main_address   = $ffcertificate_get_option( 'main_address', '' );
 						<label for="ffc_dark_mode"><?php esc_html_e( 'Dark Mode', 'ffcertificate' ); ?></label>
 					</th>
 					<td>
-						<select name="ffc_settings[dark_mode]" id="ffc_dark_mode" class="regular-text">
+						<select name="ffc_settings[dark_mode]" id="ffc_dark_mode" class="regular-text" data-ffc-autosave-key="dark_mode">
 							<option value="off" <?php selected( $ffcertificate_get_option( 'dark_mode', 'off' ), 'off' ); ?>><?php esc_html_e( 'Off', 'ffcertificate' ); ?></option>
 							<option value="on" <?php selected( $ffcertificate_get_option( 'dark_mode', 'off' ), 'on' ); ?>><?php esc_html_e( 'On (always dark)', 'ffcertificate' ); ?></option>
 							<option value="auto" <?php selected( $ffcertificate_get_option( 'dark_mode', 'off' ), 'auto' ); ?>><?php esc_html_e( 'Auto (follow OS)', 'ffcertificate' ); ?></option>
@@ -65,7 +65,7 @@ $ffcertificate_main_address   = $ffcertificate_get_option( 'main_address', '' );
 						<label for="cleanup_days"><?php esc_html_e( 'Auto-delete (days)', 'ffcertificate' ); ?></label>
 					</th>
 					<td>
-						<input type="number" name="ffc_settings[cleanup_days]" id="cleanup_days" value="<?php echo esc_attr( $ffcertificate_get_option( 'cleanup_days' ) ); ?>" class="small-text" min="0">
+						<input type="number" name="ffc_settings[cleanup_days]" id="cleanup_days" value="<?php echo esc_attr( $ffcertificate_get_option( 'cleanup_days' ) ); ?>" class="small-text" min="0" data-ffc-autosave-key="cleanup_days">
 						<p class="description"><?php esc_html_e( 'Files removed after X days. Set to 0 to disable.', 'ffcertificate' ); ?></p>
 					</td>
 				</tr>
@@ -75,7 +75,7 @@ $ffcertificate_main_address   = $ffcertificate_get_option( 'main_address', '' );
 						<label for="ffc_date_format"><?php esc_html_e( 'Date Format', 'ffcertificate' ); ?></label>
 					</th>
 					<td>
-						<select name="ffc_settings[date_format]" id="ffc_date_format" class="regular-text">
+						<select name="ffc_settings[date_format]" id="ffc_date_format" class="regular-text" data-ffc-autosave-key="date_format">
 							<?php foreach ( $ffcertificate_date_formats as $ffcertificate_format => $ffcertificate_label ) : ?>
 								<option value="<?php echo esc_attr( $ffcertificate_format ); ?>" <?php selected( $ffcertificate_current_format, $ffcertificate_format ); ?>>
 									<?php echo esc_html( $ffcertificate_label ); ?>
@@ -98,7 +98,7 @@ $ffcertificate_main_address   = $ffcertificate_get_option( 'main_address', '' );
 							<div class="ffc-collapsible-content active">
 								<label>
 									<strong><?php esc_html_e( 'Custom Format:', 'ffcertificate' ); ?></strong><br>
-									<input type="text" name="ffc_settings[date_format_custom]" id="ffc_date_format_custom" value="<?php echo esc_attr( $ffcertificate_custom_format ); ?>" placeholder="d/m/Y H:i" class="regular-text">
+									<input type="text" name="ffc_settings[date_format_custom]" id="ffc_date_format_custom" value="<?php echo esc_attr( $ffcertificate_custom_format ); ?>" placeholder="d/m/Y H:i" class="regular-text" data-ffc-autosave-key="date_format_custom">
 								</label>
 								<p class="description">
 									<?php esc_html_e( 'Use PHP date format characters.', 'ffcertificate' ); ?>
@@ -114,7 +114,7 @@ $ffcertificate_main_address   = $ffcertificate_get_option( 'main_address', '' );
 						<label for="main_address"><?php esc_html_e( 'Main Address', 'ffcertificate' ); ?></label>
 					</th>
 					<td>
-						<input type="text" name="ffc_settings[main_address]" id="main_address" value="<?php echo esc_attr( $ffcertificate_main_address ); ?>" class="large-text">
+						<input type="text" name="ffc_settings[main_address]" id="main_address" value="<?php echo esc_attr( $ffcertificate_main_address ); ?>" class="large-text" data-ffc-autosave-key="main_address">
 						<p class="description">
 							<?php esc_html_e( 'Main institutional address. Available as {{main_address}} placeholder in certificate and appointment templates.', 'ffcertificate' ); ?>
 						</p>
@@ -125,7 +125,7 @@ $ffcertificate_main_address   = $ffcertificate_get_option( 'main_address', '' );
 						<label for="csv_download_page_url"><?php esc_html_e( 'CSV Download Page URL', 'ffcertificate' ); ?></label>
 					</th>
 					<td>
-						<input type="url" name="ffc_settings[csv_download_page_url]" id="csv_download_page_url" value="<?php echo esc_attr( $ffcertificate_get_option( 'csv_download_page_url', '' ) ); ?>" class="large-text" placeholder="https://example.com/csv-download/">
+						<input type="url" name="ffc_settings[csv_download_page_url]" id="csv_download_page_url" value="<?php echo esc_attr( $ffcertificate_get_option( 'csv_download_page_url', '' ) ); ?>" class="large-text" placeholder="https://example.com/csv-download/" data-ffc-autosave-key="csv_download_page_url">
 						<p class="description">
 							<?php esc_html_e( 'URL of the page containing the [ffc_csv_download] shortcode. When set, the form editor will display the full download link instead of just the query string.', 'ffcertificate' ); ?>
 						</p>
@@ -149,7 +149,7 @@ $ffcertificate_main_address   = $ffcertificate_get_option( 'main_address', '' );
 						<label for="qr_default_size"><?php esc_html_e( 'Default QR Code Size', 'ffcertificate' ); ?></label>
 					</th>
 					<td>
-						<input type="number" name="ffc_settings[qr_default_size]" id="qr_default_size" value="<?php echo esc_attr( $ffcertificate_get_option( 'qr_default_size', 100 ) ); ?>" min="100" max="500" step="10" class="small-text"> px
+						<input type="number" name="ffc_settings[qr_default_size]" id="qr_default_size" value="<?php echo esc_attr( $ffcertificate_get_option( 'qr_default_size', 100 ) ); ?>" min="100" max="500" step="10" class="small-text" data-ffc-autosave-key="qr_default_size"> px
 						<p class="description">
 							<?php esc_html_e( 'Default size when {{qr_code}} placeholder is used without size parameter. Range: 100-500px.', 'ffcertificate' ); ?>
 						</p>
@@ -161,7 +161,7 @@ $ffcertificate_main_address   = $ffcertificate_get_option( 'main_address', '' );
 						<label for="qr_default_margin"><?php esc_html_e( 'Default QR Code Margin', 'ffcertificate' ); ?></label>
 					</th>
 					<td>
-						<input type="number" name="ffc_settings[qr_default_margin]" id="qr_default_margin" value="<?php echo esc_attr( $ffcertificate_get_option( 'qr_default_margin', 0 ) ); ?>" min="0" max="10" step="1" class="small-text">
+						<input type="number" name="ffc_settings[qr_default_margin]" id="qr_default_margin" value="<?php echo esc_attr( $ffcertificate_get_option( 'qr_default_margin', 0 ) ); ?>" min="0" max="10" step="1" class="small-text" data-ffc-autosave-key="qr_default_margin">
 						<p class="description">
 							<?php esc_html_e( 'White space around QR Code in modules. 0 = no margin, higher values = more white space.', 'ffcertificate' ); ?>
 						</p>
@@ -173,7 +173,7 @@ $ffcertificate_main_address   = $ffcertificate_get_option( 'main_address', '' );
 						<label for="qr_default_error_level"><?php esc_html_e( 'Default Error Correction Level', 'ffcertificate' ); ?></label>
 					</th>
 					<td>
-						<select name="ffc_settings[qr_default_error_level]" id="qr_default_error_level" class="regular-text">
+						<select name="ffc_settings[qr_default_error_level]" id="qr_default_error_level" class="regular-text" data-ffc-autosave-key="qr_default_error_level">
 							<option value="L" <?php selected( 'L', $ffcertificate_get_option( 'qr_default_error_level', 'L' ) ); ?>>
 								L - <?php esc_html_e( 'Low (7% correction)', 'ffcertificate' ); ?>
 							</option>

@@ -68,7 +68,7 @@ $ffcertificate_get_option = \Closure::fromCallable( array( $settings, 'get_optio
 						<label for="activity_log_retention_days"><?php esc_html_e( 'Log Retention (days)', 'ffcertificate' ); ?></label>
 					</th>
 					<td>
-						<input type="number" name="ffc_settings[activity_log_retention_days]" id="activity_log_retention_days" value="<?php echo esc_attr( $ffcertificate_get_option( 'activity_log_retention_days', 90 ) ); ?>" min="0" max="365" class="small-text">
+						<input type="number" name="ffc_settings[activity_log_retention_days]" id="activity_log_retention_days" value="<?php echo esc_attr( $ffcertificate_get_option( 'activity_log_retention_days', 90 ) ); ?>" min="0" max="365" class="small-text" data-ffc-autosave-key="activity_log_retention_days">
 						<p class="description">
 							<?php esc_html_e( 'Automatically delete activity logs older than this many days. Set to 0 to keep logs indefinitely.', 'ffcertificate' ); ?><br>
 							<?php esc_html_e( 'Cleanup runs daily via scheduled cron task.', 'ffcertificate' ); ?>
@@ -80,7 +80,7 @@ $ffcertificate_get_option = \Closure::fromCallable( array( $settings, 'get_optio
 						<label for="public_csv_sync_max_rows"><?php esc_html_e( 'Public CSV Sync Export Limit', 'ffcertificate' ); ?></label>
 					</th>
 					<td>
-						<input type="number" name="ffc_settings[public_csv_sync_max_rows]" id="public_csv_sync_max_rows" value="<?php echo esc_attr( $ffcertificate_get_option( 'public_csv_sync_max_rows', \FreeFormCertificate\Frontend\PublicCsvExporter::DEFAULT_SYNC_MAX_ROWS ) ); ?>" min="<?php echo esc_attr( (string) \FreeFormCertificate\Frontend\PublicCsvExporter::SYNC_MAX_ROWS_MIN ); ?>" max="<?php echo esc_attr( (string) \FreeFormCertificate\Frontend\PublicCsvExporter::SYNC_MAX_ROWS_MAX ); ?>" class="small-text">
+						<input type="number" name="ffc_settings[public_csv_sync_max_rows]" id="public_csv_sync_max_rows" value="<?php echo esc_attr( $ffcertificate_get_option( 'public_csv_sync_max_rows', \FreeFormCertificate\Frontend\PublicCsvExporter::DEFAULT_SYNC_MAX_ROWS ) ); ?>" min="<?php echo esc_attr( (string) \FreeFormCertificate\Frontend\PublicCsvExporter::SYNC_MAX_ROWS_MIN ); ?>" max="<?php echo esc_attr( (string) \FreeFormCertificate\Frontend\PublicCsvExporter::SYNC_MAX_ROWS_MAX ); ?>" class="small-text" data-ffc-autosave-key="public_csv_sync_max_rows">
 						<p class="description">
 							<?php esc_html_e( 'Maximum rows allowed for the synchronous (no-JS) public CSV download. Exports above this limit must use the JavaScript batched flow.', 'ffcertificate' ); ?><br>
 							<?php esc_html_e( 'Typical shared hosting has a 30–60s execution timeout. Estimates:', 'ffcertificate' ); ?>
@@ -108,7 +108,7 @@ $ffcertificate_get_option = \Closure::fromCallable( array( $settings, 'get_optio
 					</th>
 					<td>
 						<?php $ffc_code_editor_theme = $ffcertificate_get_option( 'code_editor_theme', 'dark' ); ?>
-						<select name="ffc_settings[code_editor_theme]" id="code_editor_theme" class="regular-text">
+						<select name="ffc_settings[code_editor_theme]" id="code_editor_theme" class="regular-text" data-ffc-autosave-key="code_editor_theme">
 							<option value="auto" <?php selected( $ffc_code_editor_theme, 'auto' ); ?>><?php esc_html_e( 'Auto (follow plugin Dark Mode)', 'ffcertificate' ); ?></option>
 							<option value="light" <?php selected( $ffc_code_editor_theme, 'light' ); ?>><?php esc_html_e( 'Light', 'ffcertificate' ); ?></option>
 							<option value="dark" <?php selected( $ffc_code_editor_theme, 'dark' ); ?>><?php esc_html_e( 'Dark (VS Code style)', 'ffcertificate' ); ?></option>
@@ -458,7 +458,7 @@ $ffcertificate_get_option = \Closure::fromCallable( array( $settings, 'get_optio
 						<label for="public_csv_default_limit"><?php esc_html_e( 'Default Download Limit', 'ffcertificate' ); ?></label>
 					</th>
 					<td>
-						<input type="number" name="ffc_settings[public_csv_default_limit]" id="public_csv_default_limit" value="<?php echo esc_attr( $ffcertificate_get_option( 'public_csv_default_limit', 1 ) ); ?>" min="1" max="1000" class="small-text">
+						<input type="number" name="ffc_settings[public_csv_default_limit]" id="public_csv_default_limit" value="<?php echo esc_attr( $ffcertificate_get_option( 'public_csv_default_limit', 1 ) ); ?>" min="1" max="1000" class="small-text" data-ffc-autosave-key="public_csv_default_limit">
 						<p class="description">
 							<?php esc_html_e( 'Pre-filled value when enabling public CSV download on a new form. Minimum 1.', 'ffcertificate' ); ?>
 						</p>
