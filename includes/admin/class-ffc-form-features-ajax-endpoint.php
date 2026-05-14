@@ -111,7 +111,7 @@ class FormFeaturesAjaxEndpoint {
 			);
 		}
 
-		$raw      = wp_unslash( $_POST['value'] ?? '' );
+		$raw       = wp_unslash( $_POST['value'] ?? '' );
 		$is_truthy = in_array( strtolower( (string) $raw ), array( '1', 'true', 'on', 'yes' ), true );
 
 		$entry = $map[ $feature ];

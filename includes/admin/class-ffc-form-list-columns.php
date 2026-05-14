@@ -124,9 +124,9 @@ class FormListColumns {
 	 * @return array<string, bool>
 	 */
 	private static function get_feature_states( int $post_id ): array {
-		$config       = get_post_meta( $post_id, '_ffc_form_config', true );
-		$device_meta  = get_post_meta( $post_id, '_ffc_device_limit', true );
-		$csv_enabled  = (string) get_post_meta( $post_id, '_ffc_csv_public_enabled', true );
+		$config      = get_post_meta( $post_id, '_ffc_form_config', true );
+		$device_meta = get_post_meta( $post_id, '_ffc_device_limit', true );
+		$csv_enabled = (string) get_post_meta( $post_id, '_ffc_csv_public_enabled', true );
 
 		return array(
 			'csv_public_enabled' => '1' === $csv_enabled,
