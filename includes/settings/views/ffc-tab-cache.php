@@ -42,10 +42,17 @@ $ffcertificate_get_option = \Closure::fromCallable( array( $settings, 'get_optio
 						<label for="cache_enabled"><?php esc_html_e( 'Enable Cache', 'ffcertificate' ); ?></label>
 					</th>
 					<td>
-						<label>
-							<input type="checkbox" name="ffc_settings[cache_enabled]" id="cache_enabled" value="1" <?php checked( $ffcertificate_get_option( 'cache_enabled' ), 1 ); ?>>
-							<?php esc_html_e( 'Enable form caching', 'ffcertificate' ); ?>
-						</label>
+						<?php
+						\FreeFormCertificate\Admin\AdminUI::render_toggle(
+							array(
+								'name'    => 'ffc_settings[cache_enabled]',
+								'id'      => 'cache_enabled',
+								'checked' => (int) $ffcertificate_get_option( 'cache_enabled' ) === 1,
+								'label'   => __( 'Enable form caching', 'ffcertificate' ),
+								'data'    => array( 'ffc-autosave-key' => 'cache_enabled' ),
+							)
+						);
+						?>
 						<p class="description"><?php esc_html_e( 'Recommended for sites with many forms or high traffic.', 'ffcertificate' ); ?></p>
 					</td>
 				</tr>
@@ -70,10 +77,17 @@ $ffcertificate_get_option = \Closure::fromCallable( array( $settings, 'get_optio
 						<label for="cache_auto_warm"><?php esc_html_e( 'Automatic Warming', 'ffcertificate' ); ?></label>
 					</th>
 					<td>
-						<label>
-							<input type="checkbox" name="ffc_settings[cache_auto_warm]" id="cache_auto_warm" value="1" <?php checked( $ffcertificate_get_option( 'cache_auto_warm' ), 1 ); ?>>
-							<?php esc_html_e( 'Pre-load cache daily', 'ffcertificate' ); ?>
-						</label>
+						<?php
+						\FreeFormCertificate\Admin\AdminUI::render_toggle(
+							array(
+								'name'    => 'ffc_settings[cache_auto_warm]',
+								'id'      => 'cache_auto_warm',
+								'checked' => (int) $ffcertificate_get_option( 'cache_auto_warm' ) === 1,
+								'label'   => __( 'Pre-load cache daily', 'ffcertificate' ),
+								'data'    => array( 'ffc-autosave-key' => 'cache_auto_warm' ),
+							)
+						);
+						?>
 						<p class="description"><?php esc_html_e( 'Runs a daily cron job to keep the cache always updated.', 'ffcertificate' ); ?></p>
 					</td>
 				</tr>
@@ -144,10 +158,17 @@ $ffcertificate_get_option = \Closure::fromCallable( array( $settings, 'get_optio
 						<label for="qr_cache_enabled"><?php esc_html_e( 'Enable QR Code Cache', 'ffcertificate' ); ?></label>
 					</th>
 					<td>
-						<label>
-							<input type="checkbox" name="ffc_settings[qr_cache_enabled]" id="qr_cache_enabled" value="1" <?php checked( 1, $ffcertificate_get_option( 'qr_cache_enabled' ) ); ?>>
-							<?php esc_html_e( 'Store generated QR Codes in database', 'ffcertificate' ); ?>
-						</label>
+						<?php
+						\FreeFormCertificate\Admin\AdminUI::render_toggle(
+							array(
+								'name'    => 'ffc_settings[qr_cache_enabled]',
+								'id'      => 'qr_cache_enabled',
+								'checked' => (int) $ffcertificate_get_option( 'qr_cache_enabled' ) === 1,
+								'label'   => __( 'Store generated QR Codes in database', 'ffcertificate' ),
+								'data'    => array( 'ffc-autosave-key' => 'qr_cache_enabled' ),
+							)
+						);
+						?>
 						<p class="description">
 							<?php esc_html_e( 'Improves performance by caching QR Codes. Increases database size (~4KB per submission).', 'ffcertificate' ); ?>
 						</p>
