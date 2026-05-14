@@ -125,7 +125,7 @@ class TabSmtpTest extends TestCase {
             ->with( 'ffc-core', Mockery::type( 'string' ), array( 'jquery' ), Mockery::type( 'string' ), true )
             ->once();
         Functions\expect( 'wp_enqueue_script' )
-            ->with( 'ffc-admin-autosave', Mockery::type( 'string' ), array( 'jquery', 'ffc-core', 'ffc-admin' ), Mockery::type( 'string' ), true )
+            ->with( 'ffc-admin-autosave', Mockery::type( 'string' ), array( 'jquery', 'ffc-core', 'ffc-admin-js' ), Mockery::type( 'string' ), true )
             ->once();
 
         $this->tab->enqueue_scripts( 'ffc_form_page_ffc-settings' );
