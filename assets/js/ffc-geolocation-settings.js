@@ -14,15 +14,9 @@
     'use strict';
 
     $(function () {
-        // Wire auto-save on any field tagged with data-ffc-autosave-key.
-        // The data-attr is the allowlisted key in SettingsAjaxEndpoint;
-        // FFC.Admin.autoSaveField handles the debounce + badge.
-        if (window.FFC && window.FFC.Admin && typeof FFC.Admin.autoSaveField === 'function') {
-            $('input[data-ffc-autosave-key]').each(function () {
-                var $input = $(this);
-                FFC.Admin.autoSaveField($input, { key: $input.data('ffc-autosave-key') });
-            });
-        }
+        // Auto-save wiring for `data-ffc-autosave-key` inputs lives in
+        // ffc-admin-autosave.js (generic page-init). This file only
+        // handles the preset combobox → per-case radio snap.
 
         var $preset = $('#ffc_gps_fallback_preset');
         if (0 === $preset.length) {

@@ -31,6 +31,9 @@ class TabCacheTest extends TestCase {
         Functions\when( 'esc_html' )->returnArg();
         Functions\when( 'esc_attr' )->returnArg();
         Functions\when( 'wp_kses_post' )->returnArg();
+        // init() registers an admin_enqueue_scripts hook — stub so the
+        // CallbackStringForm doesn't trip on the bound-method callable.
+        Functions\when( 'add_action' )->justReturn( true );
 
         $this->tab = new TabCache();
     }

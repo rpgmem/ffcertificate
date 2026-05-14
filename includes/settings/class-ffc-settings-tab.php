@@ -193,6 +193,32 @@ abstract class SettingsTab {
 	}
 
 	/**
+	 * Enqueue the FFC auto-save infrastructure (ffc-core + the
+	 * autosave widget) on this tab. Idempotent — safe to call from
+	 * multiple tabs that each enqueue on `admin_enqueue_scripts`.
+	 *
+	 * Use when the tab renders one or more `data-ffc-autosave-key`
+	 * inputs (toggles, etc.) backed by `SettingsAjaxEndpoint`.
+	 */
+	protected function enqueue_autosave_infra(): void {
+		$s = \FreeFormCertificate\Core\Utils::asset_suffix();
+		wp_enqueue_script(
+			'ffc-core',
+			FFC_PLUGIN_URL . "assets/js/ffc-core{$s}.js",
+			array( 'jquery' ),
+			FFC_VERSION,
+			true
+		);
+		wp_enqueue_script(
+			'ffc-admin-autosave',
+			FFC_PLUGIN_URL . "assets/js/ffc-admin-autosave{$s}.js",
+			array( 'jquery', 'ffc-core', 'ffc-admin' ),
+			FFC_VERSION,
+			true
+		);
+	}
+
+	/**
 	 * Get option value from ffc_settings
 	 *
 	 * @param string $key Option key.

@@ -7,6 +7,12 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Changed
+
+- **Admin checkbox sweep — 28 settings now render as `.ffc-toggle` switches** (closes #202). The toggle infrastructure shipped in 6.5.4 spreads beyond the Geolocation tab: every boolean feature flag on **Cache** (3), **SMTP** (1), **Advanced** (1 + 14 debug flags), and **Rate Limit** (9) now uses the mobile-style switch styled with the plugin's primary colour. Each switch auto-saves inline via the `ffc_update_setting` AJAX endpoint — debounced 400 ms, with a "Saving… / Saved" badge — so admins no longer have to scroll to the bottom of the tab and click "Save Changes" just to flip one flag. The form-POST bulk save still works for every other field on the tab.
+- **Settings AJAX endpoint supports nested option arrays.** `SettingsAjaxEndpoint` allowlist entries can now declare a `path` (ordered list of keys) so a single endpoint can target deeply-nested settings like `ffc_rate_limit_settings[device][bypass_logged_in_managers]` without flattening the option shape. Used by the 9 rate-limit toggles.
+- **Auto-save wiring is now framework-wide.** The doc-ready scan that wires every `[data-ffc-autosave-key]` input moved from `ffc-geolocation-settings.js` into `ffc-admin-autosave.js` as `FFC.Admin.bootAutoSaveFields()`. Any admin page that enqueues the autosave widget gets the wiring for free — no per-tab JS needed.
+
 ---
 
 ## [6.5.4] (2026-05-13)

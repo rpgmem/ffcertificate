@@ -1,6 +1,7 @@
 // Tests for assets/js/ffc-geolocation-settings.js — the small admin
-// page-init script that powers the "When GPS fails" preset combobox +
-// auto-save wiring for tagged input fields.
+// page-init script that powers the "When GPS fails" preset combobox.
+// (Auto-save wiring for `data-ffc-autosave-key` inputs moved to
+// ffc-admin-autosave.js — see admin-autosave.test.js.)
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { loadScript } from './helpers.js';
 
@@ -67,42 +68,6 @@ function mountPresetFixture(preset = 'hybrid') {
 		</table>
 	`;
 }
-
-// ----------------------------------------------------------------------
-// Auto-save wiring
-// ----------------------------------------------------------------------
-
-describe('geolocation-settings — auto-save wiring', () => {
-	it('attaches autoSaveField to every input tagged with data-ffc-autosave-key', async () => {
-		const calls = [];
-		window.FFC = {
-			Admin: {
-				autoSaveField: vi.fn(function ($el, config) {
-					calls.push({ name: $el.attr('name'), key: config.key });
-				}),
-			},
-		};
-		document.body.innerHTML = `
-			<input type="checkbox" name="admin_bypass_datetime" data-ffc-autosave-key="admin_bypass_datetime">
-			<input type="checkbox" name="admin_bypass_geo" data-ffc-autosave-key="admin_bypass_geo">
-			<input type="checkbox" name="other" >
-		`;
-		await reload();
-
-		expect(window.FFC.Admin.autoSaveField).toHaveBeenCalledTimes(2);
-		expect(calls).toEqual([
-			{ name: 'admin_bypass_datetime', key: 'admin_bypass_datetime' },
-			{ name: 'admin_bypass_geo', key: 'admin_bypass_geo' },
-		]);
-	});
-
-	it('skips silently when FFC.Admin.autoSaveField is not available', async () => {
-		// No window.FFC defined.
-		document.body.innerHTML = `<input type="checkbox" data-ffc-autosave-key="x">`;
-		expect(() => reload()).not.toThrow();
-		await new Promise((r) => setTimeout(r, 0));
-	});
-});
 
 // ----------------------------------------------------------------------
 // Preset toggle behaviour

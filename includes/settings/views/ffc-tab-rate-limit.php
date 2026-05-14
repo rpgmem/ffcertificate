@@ -18,7 +18,19 @@ $ffcertificate_stats = \FreeFormCertificate\Security\RateLimiter::get_stats();
 
 <div class="card">
 	<h2 class="ffc-icon-globe"><?php esc_html_e( 'IP Rate Limit', 'ffcertificate' ); ?></h2>
-	<p><label><input type="checkbox" name="ip_enabled" <?php checked( $ffcertificate_s['ip']['enabled'] ); ?>> <?php esc_html_e( 'Enable', 'ffcertificate' ); ?></label></p>
+	<p>
+		<?php
+		\FreeFormCertificate\Admin\AdminUI::render_toggle(
+			array(
+				'name'    => 'ip_enabled',
+				'id'      => 'ip_enabled',
+				'checked' => (bool) $ffcertificate_s['ip']['enabled'],
+				'label'   => __( 'Enable', 'ffcertificate' ),
+				'data'    => array( 'ffc-autosave-key' => 'ip_enabled' ),
+			)
+		);
+		?>
+	</p>
 	<table class="form-table" role="presentation"><tbody>
 		<tr><th><?php esc_html_e( 'Max per hour', 'ffcertificate' ); ?></th><td><input type="number" name="ip_max_per_hour" value="<?php echo esc_attr( $ffcertificate_s['ip']['max_per_hour'] ); ?>" min="1" max="1000"></td></tr>
 		<tr><th><?php esc_html_e( 'Max per day', 'ffcertificate' ); ?></th><td><input type="number" name="ip_max_per_day" value="<?php echo esc_attr( $ffcertificate_s['ip']['max_per_day'] ); ?>" min="1" max="10000"></td></tr>
@@ -30,8 +42,32 @@ $ffcertificate_stats = \FreeFormCertificate\Security\RateLimiter::get_stats();
 
 <div class="card">
 	<h2 class="ffc-icon-email"><?php esc_html_e( 'Email Rate Limit', 'ffcertificate' ); ?></h2>
-	<p><label><input type="checkbox" name="email_enabled" <?php checked( $ffcertificate_s['email']['enabled'] ); ?>> <?php esc_html_e( 'Enable', 'ffcertificate' ); ?></label></p>
-	<p><label><input type="checkbox" name="email_check_database" <?php checked( $ffcertificate_s['email']['check_database'] ); ?>> <?php esc_html_e( 'Check database', 'ffcertificate' ); ?></label></p>
+	<p>
+		<?php
+		\FreeFormCertificate\Admin\AdminUI::render_toggle(
+			array(
+				'name'    => 'email_enabled',
+				'id'      => 'email_enabled',
+				'checked' => (bool) $ffcertificate_s['email']['enabled'],
+				'label'   => __( 'Enable', 'ffcertificate' ),
+				'data'    => array( 'ffc-autosave-key' => 'email_enabled' ),
+			)
+		);
+		?>
+	</p>
+	<p>
+		<?php
+		\FreeFormCertificate\Admin\AdminUI::render_toggle(
+			array(
+				'name'    => 'email_check_database',
+				'id'      => 'email_check_database',
+				'checked' => (bool) $ffcertificate_s['email']['check_database'],
+				'label'   => __( 'Check database', 'ffcertificate' ),
+				'data'    => array( 'ffc-autosave-key' => 'email_check_database' ),
+			)
+		);
+		?>
+	</p>
 	<table class="form-table" role="presentation"><tbody>
 		<tr><th><?php esc_html_e( 'Max per day', 'ffcertificate' ); ?></th><td><input type="number" name="email_max_per_day" value="<?php echo esc_attr( $ffcertificate_s['email']['max_per_day'] ); ?>" min="1"></td></tr>
 		<tr><th><?php esc_html_e( 'Max per week', 'ffcertificate' ); ?></th><td><input type="number" name="email_max_per_week" value="<?php echo esc_attr( $ffcertificate_s['email']['max_per_week'] ); ?>" min="1"></td></tr>
@@ -42,8 +78,32 @@ $ffcertificate_stats = \FreeFormCertificate\Security\RateLimiter::get_stats();
 
 <div class="card">
 	<h2 class="ffc-icon-id"><?php esc_html_e( 'Tax ID (CPF) Rate Limit', 'ffcertificate' ); ?></h2>
-	<p><label><input type="checkbox" name="cpf_enabled" <?php checked( $ffcertificate_s['cpf']['enabled'] ); ?>> <?php esc_html_e( 'Enable', 'ffcertificate' ); ?></label></p>
-	<p><label><input type="checkbox" name="cpf_check_database" <?php checked( $ffcertificate_s['cpf']['check_database'] ); ?>> <?php esc_html_e( 'Check database', 'ffcertificate' ); ?></label></p>
+	<p>
+		<?php
+		\FreeFormCertificate\Admin\AdminUI::render_toggle(
+			array(
+				'name'    => 'cpf_enabled',
+				'id'      => 'cpf_enabled',
+				'checked' => (bool) $ffcertificate_s['cpf']['enabled'],
+				'label'   => __( 'Enable', 'ffcertificate' ),
+				'data'    => array( 'ffc-autosave-key' => 'cpf_enabled' ),
+			)
+		);
+		?>
+	</p>
+	<p>
+		<?php
+		\FreeFormCertificate\Admin\AdminUI::render_toggle(
+			array(
+				'name'    => 'cpf_check_database',
+				'id'      => 'cpf_check_database',
+				'checked' => (bool) $ffcertificate_s['cpf']['check_database'],
+				'label'   => __( 'Check database', 'ffcertificate' ),
+				'data'    => array( 'ffc-autosave-key' => 'cpf_check_database' ),
+			)
+		);
+		?>
+	</p>
 	<table class="form-table" role="presentation"><tbody>
 		<tr><th><?php esc_html_e( 'Max per month', 'ffcertificate' ); ?></th><td><input type="number" name="cpf_max_per_month" value="<?php echo esc_attr( $ffcertificate_s['cpf']['max_per_month'] ); ?>" min="1"></td></tr>
 		<tr><th><?php esc_html_e( 'Max per year', 'ffcertificate' ); ?></th><td><input type="number" name="cpf_max_per_year" value="<?php echo esc_attr( $ffcertificate_s['cpf']['max_per_year'] ); ?>" min="1"></td></tr>
@@ -98,7 +158,19 @@ $ffcertificate_stats = \FreeFormCertificate\Security\RateLimiter::get_stats();
 
 <div class="card">
 	<h2 class="ffc-icon-shield"><?php esc_html_e( 'Global Rate Limit', 'ffcertificate' ); ?></h2>
-	<p><label><input type="checkbox" name="global_enabled" <?php checked( $ffcertificate_s['global']['enabled'] ); ?>> <?php esc_html_e( 'Enable', 'ffcertificate' ); ?></label></p>
+	<p>
+		<?php
+		\FreeFormCertificate\Admin\AdminUI::render_toggle(
+			array(
+				'name'    => 'global_enabled',
+				'id'      => 'global_enabled',
+				'checked' => (bool) $ffcertificate_s['global']['enabled'],
+				'label'   => __( 'Enable', 'ffcertificate' ),
+				'data'    => array( 'ffc-autosave-key' => 'global_enabled' ),
+			)
+		);
+		?>
+	</p>
 	<table class="form-table" role="presentation"><tbody>
 		<tr><th><?php esc_html_e( 'Max per minute', 'ffcertificate' ); ?></th><td><input type="number" name="global_max_per_minute" value="<?php echo esc_attr( $ffcertificate_s['global']['max_per_minute'] ); ?>" min="1"></td></tr>
 		<tr><th><?php esc_html_e( 'Max per hour', 'ffcertificate' ); ?></th><td><input type="number" name="global_max_per_hour" value="<?php echo esc_attr( $ffcertificate_s['global']['max_per_hour'] ); ?>" min="1"></td></tr>
@@ -109,7 +181,19 @@ $ffcertificate_stats = \FreeFormCertificate\Security\RateLimiter::get_stats();
 <div class="card">
 	<h2 class="ffc-icon-shield"><?php esc_html_e( 'Device Fingerprint', 'ffcertificate' ); ?></h2>
 	<p class="description"><?php esc_html_e( 'Limit submissions from the same physical device by combining a persistent cookie with multiple browser signals. The "N of M" rule treats two visits as the same device when at least the configured number of non-cookie signals match.', 'ffcertificate' ); ?></p>
-	<p><label><input type="checkbox" name="device_enabled" <?php checked( $ffcertificate_s['device']['enabled'] ); ?>> <?php esc_html_e( 'Enable device fingerprint limit', 'ffcertificate' ); ?></label></p>
+	<p>
+		<?php
+		\FreeFormCertificate\Admin\AdminUI::render_toggle(
+			array(
+				'name'    => 'device_enabled',
+				'id'      => 'device_enabled',
+				'checked' => (bool) $ffcertificate_s['device']['enabled'],
+				'label'   => __( 'Enable device fingerprint limit', 'ffcertificate' ),
+				'data'    => array( 'ffc-autosave-key' => 'device_enabled' ),
+			)
+		);
+		?>
+	</p>
 	<table class="form-table" role="presentation"><tbody>
 		<tr>
 			<th><?php esc_html_e( 'Max submissions per device/form', 'ffcertificate' ); ?></th>
@@ -154,7 +238,17 @@ $ffcertificate_stats = \FreeFormCertificate\Security\RateLimiter::get_stats();
 		<tr>
 			<th><?php esc_html_e( 'Bypass for managers', 'ffcertificate' ); ?></th>
 			<td>
-				<label><input type="checkbox" name="device_bypass_logged_in_managers" <?php checked( $ffcertificate_s['device']['bypass_logged_in_managers'] ); ?>> <?php esc_html_e( 'Skip device limit when the submitter is logged in as administrator or has the ffc_manage_settings capability', 'ffcertificate' ); ?></label>
+				<?php
+				\FreeFormCertificate\Admin\AdminUI::render_toggle(
+					array(
+						'name'    => 'device_bypass_logged_in_managers',
+						'id'      => 'device_bypass_logged_in_managers',
+						'checked' => (bool) $ffcertificate_s['device']['bypass_logged_in_managers'],
+						'label'   => __( 'Skip device limit when the submitter is logged in as administrator or has the ffc_manage_settings capability', 'ffcertificate' ),
+						'data'    => array( 'ffc-autosave-key' => 'device_bypass_logged_in_managers' ),
+					)
+				);
+				?>
 				<p class="description"><?php esc_html_e( 'Useful for staff registering certificates for legitimate participants from a single device. Bypassed submissions are tagged in the rate-limit log with reason "manager_bypass".', 'ffcertificate' ); ?></p>
 			</td>
 		</tr>
@@ -176,7 +270,19 @@ $ffcertificate_stats = \FreeFormCertificate\Security\RateLimiter::get_stats();
 		</tr>
 		<tr>
 			<th><?php esc_html_e( 'Log blocks', 'ffcertificate' ); ?></th>
-			<td><label><input type="checkbox" name="device_log_blocks" <?php checked( $ffcertificate_s['device']['log_blocks'] ); ?>> <?php esc_html_e( 'Record blocked device-fingerprint attempts in the rate-limit log', 'ffcertificate' ); ?></label></td>
+			<td>
+				<?php
+				\FreeFormCertificate\Admin\AdminUI::render_toggle(
+					array(
+						'name'    => 'device_log_blocks',
+						'id'      => 'device_log_blocks',
+						'checked' => (bool) $ffcertificate_s['device']['log_blocks'],
+						'label'   => __( 'Record blocked device-fingerprint attempts in the rate-limit log', 'ffcertificate' ),
+						'data'    => array( 'ffc-autosave-key' => 'device_log_blocks' ),
+					)
+				);
+				?>
+			</td>
 		</tr>
 	</tbody></table>
 </div>

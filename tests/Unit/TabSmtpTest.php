@@ -110,21 +110,23 @@ class TabSmtpTest extends TestCase {
         $_GET['tab'] = 'smtp';
         Functions\when( 'wp_unslash' )->returnArg();
 
-        // Mock Utils::asset_suffix()
+        // Mock Utils::asset_suffix() — called twice: once for the SMTP
+        // page script and once inside enqueue_autosave_infra() (which
+        // caches the suffix and reuses it for ffc-core + ffc-admin-autosave).
         $utils_mock = Mockery::mock( 'alias:FreeFormCertificate\Core\Utils' );
         $utils_mock->shouldReceive( 'asset_suffix' )
-            ->once()
+            ->twice()
             ->andReturn( '.min' );
 
         Functions\expect( 'wp_enqueue_script' )
-            ->once()
-            ->with(
-                'ffc-smtp-settings',
-                Mockery::type( 'string' ),
-                array( 'jquery' ),
-                Mockery::type( 'string' ),
-                true
-            );
+            ->with( 'ffc-smtp-settings', Mockery::type( 'string' ), array( 'jquery' ), Mockery::type( 'string' ), true )
+            ->once();
+        Functions\expect( 'wp_enqueue_script' )
+            ->with( 'ffc-core', Mockery::type( 'string' ), array( 'jquery' ), Mockery::type( 'string' ), true )
+            ->once();
+        Functions\expect( 'wp_enqueue_script' )
+            ->with( 'ffc-admin-autosave', Mockery::type( 'string' ), array( 'jquery', 'ffc-core', 'ffc-admin' ), Mockery::type( 'string' ), true )
+            ->once();
 
         $this->tab->enqueue_scripts( 'ffc_form_page_ffc-settings' );
     }

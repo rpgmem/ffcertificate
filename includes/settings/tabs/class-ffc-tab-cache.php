@@ -31,6 +31,25 @@ class TabCache extends SettingsTab {
 		$this->tab_title = __( 'Cache', 'ffcertificate' );
 		$this->tab_icon  = 'ffc-icon-package';
 		$this->tab_order = 30;
+
+		add_action( 'admin_enqueue_scripts', array( $this, 'enqueue_scripts' ) );
+	}
+
+	/**
+	 * Enqueue auto-save infrastructure when this tab is active so the
+	 * `.ffc-toggle` switches in the view persist inline via the
+	 * `ffc_update_setting` endpoint.
+	 *
+	 * @param string $hook Current admin page hook.
+	 */
+	public function enqueue_scripts( string $hook ): void {
+		if ( 'ffc_form_page_ffc-settings' !== $hook ) {
+			return;
+		}
+		if ( ! $this->is_active() ) {
+			return;
+		}
+		$this->enqueue_autosave_infra();
 	}
 
 	/**

@@ -31,10 +31,18 @@ $ffcertificate_get_option = \Closure::fromCallable( array( $settings, 'get_optio
 						<label for="disable_all_emails"><?php esc_html_e( 'Email Status', 'ffcertificate' ); ?></label>
 					</th>
 					<td>
-						<label>
-							<input type="checkbox" name="ffc_settings[disable_all_emails]" id="disable_all_emails" value="1" <?php checked( '1', $ffcertificate_get_option( 'disable_all_emails' ) ); ?>>
-							<strong class="ffc-text-error"><?php esc_html_e( 'Disable ALL emails from this plugin globally', 'ffcertificate' ); ?></strong>
-						</label>
+						<?php
+						\FreeFormCertificate\Admin\AdminUI::render_toggle(
+							array(
+								'name'    => 'ffc_settings[disable_all_emails]',
+								'id'      => 'disable_all_emails',
+								'checked' => '1' === (string) $ffcertificate_get_option( 'disable_all_emails' ),
+								'label'   => __( 'Disable ALL emails from this plugin globally', 'ffcertificate' ),
+								'class'   => 'ffc-text-error',
+								'data'    => array( 'ffc-autosave-key' => 'disable_all_emails' ),
+							)
+						);
+						?>
 						<p class="description">
 							<?php esc_html_e( 'When enabled, the plugin will NOT send any emails (certificates, notifications, password resets, etc.). Use this for testing or if you want to completely disable email functionality.', 'ffcertificate' ); ?>
 						</p>

@@ -169,4 +169,148 @@ class SettingsAjaxEndpointTest extends TestCase {
         $this->assertTrue( $captured_option['admin_bypass_datetime'] );
         $this->assertCount( 1, $captured_option );
     }
+
+    // ==================================================================
+    // Allowlist — toggle-sweep additions
+    // ==================================================================
+
+    public function test_allowlist_covers_ffc_settings_boolean_toggles(): void {
+        $list = SettingsAjaxEndpoint::allowlist();
+        foreach (
+            array(
+                'cache_enabled',
+                'cache_auto_warm',
+                'qr_cache_enabled',
+                'disable_all_emails',
+                'enable_activity_log',
+                'debug_pdf_generator',
+                'debug_email_handler',
+                'debug_form_processor',
+                'debug_encryption',
+                'debug_geofence',
+                'debug_user_manager',
+                'debug_rest_api',
+                'debug_migrations',
+                'debug_activity_log',
+                'debug_frontend',
+                'debug_admin',
+                'debug_self_scheduling',
+                'debug_audience',
+                'debug_qrcode',
+            ) as $key
+        ) {
+            $this->assertArrayHasKey( $key, $list, "missing allowlist entry for {$key}" );
+            $this->assertSame( 'ffc_settings', $list[ $key ]['option'] );
+            $this->assertSame( 'bool', $list[ $key ]['type'] );
+            $this->assertArrayNotHasKey( 'path', $list[ $key ], "{$key} should be a flat key, not nested" );
+        }
+    }
+
+    public function test_allowlist_covers_rate_limit_nested_toggles(): void {
+        $list = SettingsAjaxEndpoint::allowlist();
+        $expected = array(
+            'ip_enabled'                       => array( 'ip', 'enabled' ),
+            'email_enabled'                    => array( 'email', 'enabled' ),
+            'email_check_database'             => array( 'email', 'check_database' ),
+            'cpf_enabled'                      => array( 'cpf', 'enabled' ),
+            'cpf_check_database'               => array( 'cpf', 'check_database' ),
+            'global_enabled'                   => array( 'global', 'enabled' ),
+            'device_enabled'                   => array( 'device', 'enabled' ),
+            'device_bypass_logged_in_managers' => array( 'device', 'bypass_logged_in_managers' ),
+            'device_log_blocks'                => array( 'device', 'log_blocks' ),
+        );
+        foreach ( $expected as $key => $path ) {
+            $this->assertArrayHasKey( $key, $list );
+            $this->assertSame( 'ffc_rate_limit_settings', $list[ $key ]['option'] );
+            $this->assertSame( $path, $list[ $key ]['path'] );
+        }
+    }
+
+    // ==================================================================
+    // handle() — nested path writes
+    // ==================================================================
+
+    public function test_handle_writes_into_nested_path_preserving_siblings(): void {
+        $captured_option = null;
+        Functions\when( 'get_option' )->justReturn(
+            array(
+                'ip'    => array(
+                    'enabled'      => false,
+                    'max_per_hour' => 5,
+                ),
+                'email' => array( 'enabled' => true ),
+            )
+        );
+        Functions\when( 'update_option' )->alias( function ( $key, $value ) use ( &$captured_option ) {
+            if ( 'ffc_rate_limit_settings' === $key ) {
+                $captured_option = $value;
+            }
+            return true;
+        } );
+
+        $_POST = array(
+            'nonce' => 'x',
+            'key'   => 'ip_enabled',
+            'value' => '1',
+        );
+
+        try {
+            SettingsAjaxEndpoint::handle();
+        } catch ( \RuntimeException $e ) {
+            // wp_send_json_success throws; that's the success branch.
+        }
+
+        $this->assertTrue( $captured_option['ip']['enabled'] );
+        // Sibling values inside `ip` survive.
+        $this->assertSame( 5, $captured_option['ip']['max_per_hour'] );
+        // Sibling top-level groups survive.
+        $this->assertTrue( $captured_option['email']['enabled'] );
+    }
+
+    public function test_handle_creates_intermediate_groups_when_missing(): void {
+        $captured_option = null;
+        Functions\when( 'get_option' )->justReturn( array() );
+        Functions\when( 'update_option' )->alias( function ( $key, $value ) use ( &$captured_option ) {
+            $captured_option = $value;
+            return true;
+        } );
+
+        $_POST = array(
+            'nonce' => 'x',
+            'key'   => 'device_log_blocks',
+            'value' => 'true',
+        );
+
+        try {
+            SettingsAjaxEndpoint::handle();
+        } catch ( \RuntimeException $e ) {
+            // expected
+        }
+
+        $this->assertTrue( $captured_option['device']['log_blocks'] );
+    }
+
+    public function test_handle_replaces_non_array_intermediate_with_an_array(): void {
+        $captured_option = null;
+        // Existing option has a scalar where the path expects a group.
+        Functions\when( 'get_option' )->justReturn( array( 'cpf' => 'not_an_array' ) );
+        Functions\when( 'update_option' )->alias( function ( $key, $value ) use ( &$captured_option ) {
+            $captured_option = $value;
+            return true;
+        } );
+
+        $_POST = array(
+            'nonce' => 'x',
+            'key'   => 'cpf_check_database',
+            'value' => '1',
+        );
+
+        try {
+            SettingsAjaxEndpoint::handle();
+        } catch ( \RuntimeException $e ) {
+            // expected
+        }
+
+        $this->assertSame( array( 'check_database' => true ), $captured_option['cpf'] );
+    }
 }

@@ -48,18 +48,47 @@ class SettingsAjaxEndpoint {
 	 * Allowlist of writable keys for this endpoint.
 	 *
 	 * Each entry resolves to:
-	 *   - 'option'   — the WP option name that stores the parent array
-	 *                   ('ffc_geolocation_settings', etc.). Sub-key is the
-	 *                   array key inside it.
-	 *   - 'type'     — value type: 'bool' for checkbox-like toggles.
-	 *   - 'cap'      — required capability (default 'manage_options').
+	 *   - 'option' — the WP option name that stores the parent array
+	 *                ('ffc_settings', 'ffc_geolocation_settings', etc.).
+	 *   - 'path'   — optional array<int,string> of nested keys inside
+	 *                the option array. When omitted the key is treated
+	 *                as a flat top-level slot (i.e. `path = [ $key ]`).
+	 *                Use this for tabs that store settings nested by
+	 *                group, e.g. ffc_rate_limit_settings → ip → enabled.
+	 *   - 'type'   — value type: 'bool' for checkbox-like toggles.
+	 *   - 'cap'    — required capability (default 'manage_options').
 	 *
 	 * Adding a new auto-saveable field is a single-line append here.
 	 *
 	 * @return array<string, array<string, mixed>>
 	 */
 	public static function allowlist(): array {
-		return array(
+		$bool_settings = array(
+			// Cache tab (ffc_settings).
+			'cache_enabled',
+			'cache_auto_warm',
+			'qr_cache_enabled',
+			// SMTP tab.
+			'disable_all_emails',
+			// Advanced tab — activity log master switch + per-module debug.
+			'enable_activity_log',
+			'debug_pdf_generator',
+			'debug_email_handler',
+			'debug_form_processor',
+			'debug_encryption',
+			'debug_geofence',
+			'debug_user_manager',
+			'debug_rest_api',
+			'debug_migrations',
+			'debug_activity_log',
+			'debug_frontend',
+			'debug_admin',
+			'debug_self_scheduling',
+			'debug_audience',
+			'debug_qrcode',
+		);
+
+		$allowlist = array(
 			'admin_bypass_datetime' => array(
 				'option' => 'ffc_geolocation_settings',
 				'type'   => 'bool',
@@ -71,6 +100,40 @@ class SettingsAjaxEndpoint {
 				'cap'    => 'manage_options',
 			),
 		);
+
+		foreach ( $bool_settings as $key ) {
+			$allowlist[ $key ] = array(
+				'option' => 'ffc_settings',
+				'type'   => 'bool',
+				'cap'    => 'manage_options',
+			);
+		}
+
+		// Rate-limit tab stores feature toggles nested by group inside
+		// ffc_rate_limit_settings. The JS-side key matches the form
+		// input `name` for legibility; the `path` walks the array.
+		$rate_limit_paths = array(
+			'ip_enabled'                       => array( 'ip', 'enabled' ),
+			'email_enabled'                    => array( 'email', 'enabled' ),
+			'email_check_database'             => array( 'email', 'check_database' ),
+			'cpf_enabled'                      => array( 'cpf', 'enabled' ),
+			'cpf_check_database'               => array( 'cpf', 'check_database' ),
+			'global_enabled'                   => array( 'global', 'enabled' ),
+			'device_enabled'                   => array( 'device', 'enabled' ),
+			'device_bypass_logged_in_managers' => array( 'device', 'bypass_logged_in_managers' ),
+			'device_log_blocks'                => array( 'device', 'log_blocks' ),
+		);
+
+		foreach ( $rate_limit_paths as $key => $path ) {
+			$allowlist[ $key ] = array(
+				'option' => 'ffc_rate_limit_settings',
+				'path'   => $path,
+				'type'   => 'bool',
+				'cap'    => 'manage_options',
+			);
+		}
+
+		return $allowlist;
 	}
 
 	/**
@@ -110,7 +173,12 @@ class SettingsAjaxEndpoint {
 		if ( ! is_array( $option ) ) {
 			$option = array();
 		}
-		$option[ $key ] = $value;
+
+		$path = isset( $entry['path'] ) && is_array( $entry['path'] ) && ! empty( $entry['path'] )
+			? $entry['path']
+			: array( $key );
+		self::set_nested( $option, $path, $value );
+
 		update_option( $option_name, $option );
 
 		wp_send_json_success(
@@ -119,6 +187,26 @@ class SettingsAjaxEndpoint {
 				'value' => $value,
 			)
 		);
+	}
+
+	/**
+	 * Write $value into $arr at the location described by $path,
+	 * creating intermediate associative arrays as needed.
+	 *
+	 * @param array<string,mixed> $arr   Reference to the parent array.
+	 * @param array<int,string>   $path  Ordered list of keys to walk.
+	 * @param mixed               $value Value to set at the leaf.
+	 */
+	private static function set_nested( array &$arr, array $path, $value ): void {
+		$cursor = &$arr;
+		$last   = array_pop( $path );
+		foreach ( $path as $segment ) {
+			if ( ! isset( $cursor[ $segment ] ) || ! is_array( $cursor[ $segment ] ) ) {
+				$cursor[ $segment ] = array();
+			}
+			$cursor = &$cursor[ $segment ];
+		}
+		$cursor[ $last ] = $value;
 	}
 
 	/**
