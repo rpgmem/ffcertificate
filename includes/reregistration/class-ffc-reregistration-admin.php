@@ -127,10 +127,23 @@ class ReregistrationAdmin {
 
 		$s = \FreeFormCertificate\Core\Utils::asset_suffix();
 
+		// Make sure ffc-common.css is registered + available so the
+		// dependency below resolves even when this page isn't matched
+		// by AdminAssetsManager (post_type=empty + $_GET['page']
+		// already starts with ffc-, but defensive).
+		if ( function_exists( 'wp_style_is' ) && ! wp_style_is( 'ffc-common', 'registered' ) ) {
+			wp_register_style(
+				'ffc-common',
+				FFC_PLUGIN_URL . "assets/css/ffc-common{$s}.css",
+				array(),
+				FFC_VERSION
+			);
+		}
+
 		wp_enqueue_style(
 			'ffc-reregistration-admin',
 			FFC_PLUGIN_URL . "assets/css/ffc-reregistration-admin{$s}.css",
-			array(),
+			array( 'ffc-common' ),
 			FFC_VERSION
 		);
 

@@ -277,14 +277,23 @@ class AudienceAdminAudience {
 						<label for="audience_status"><?php esc_html_e( 'Status', 'ffcertificate' ); ?></label>
 					</th>
 					<td>
-						<select name="audience_status" id="audience_status">
-							<option value="active" <?php selected( $audience->status ?? 'active', 'active' ); ?>>
-								<?php esc_html_e( 'Active', 'ffcertificate' ); ?>
-							</option>
-							<option value="inactive" <?php selected( $audience->status ?? '', 'inactive' ); ?>>
-								<?php esc_html_e( 'Inactive', 'ffcertificate' ); ?>
-							</option>
-						</select>
+						<?php
+						// Hidden sibling carries the "inactive" value when the
+						// toggle is unchecked — POST keeps the same shape as
+						// the old <select> (one of 'active' / 'inactive').
+						?>
+						<input type="hidden" name="audience_status" value="inactive">
+						<?php
+						\FreeFormCertificate\Admin\AdminUI::render_toggle(
+							array(
+								'name'    => 'audience_status',
+								'id'      => 'audience_status',
+								'value'   => 'active',
+								'checked' => 'active' === (string) ( $audience->status ?? 'active' ),
+								'label'   => __( 'Active', 'ffcertificate' ),
+							)
+						);
+						?>
 					</td>
 				</tr>
 				<?php
@@ -307,11 +316,16 @@ class AudienceAdminAudience {
 							</p>
 							<input type="hidden" name="audience_self_join" value="<?php echo esc_attr( $is_self_join ? '1' : '0' ); ?>">
 						<?php else : ?>
-							<label>
-								<input type="checkbox" name="audience_self_join" id="audience_self_join" value="1"
-									<?php checked( $is_self_join ); ?>>
-								<?php esc_html_e( 'Users can join/leave child groups from their dashboard', 'ffcertificate' ); ?>
-							</label>
+							<?php
+							\FreeFormCertificate\Admin\AdminUI::render_toggle(
+								array(
+									'name'    => 'audience_self_join',
+									'id'      => 'audience_self_join',
+									'checked' => $is_self_join,
+									'label'   => __( 'Users can join/leave child groups from their dashboard', 'ffcertificate' ),
+								)
+							);
+							?>
 							<p class="description"><?php esc_html_e( 'When enabled, all descendant audiences inherit this setting. Users can join up to 2 child groups.', 'ffcertificate' ); ?></p>
 						<?php endif; ?>
 					</td>

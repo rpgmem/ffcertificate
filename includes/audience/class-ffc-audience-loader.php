@@ -195,10 +195,18 @@ class AudienceLoader {
 		$s = \FreeFormCertificate\Core\Utils::asset_suffix();
 
 		// Admin CSS.
+		if ( function_exists( 'wp_style_is' ) && ! wp_style_is( 'ffc-common', 'registered' ) ) {
+			wp_register_style(
+				'ffc-common',
+				FFC_PLUGIN_URL . "assets/css/ffc-common{$s}.css",
+				array(),
+				FFC_VERSION
+			);
+		}
 		wp_enqueue_style(
 			'ffc-audience-admin',
 			FFC_PLUGIN_URL . "assets/css/ffc-audience-admin{$s}.css",
-			array(),
+			array( 'ffc-common' ),
 			FFC_VERSION
 		);
 

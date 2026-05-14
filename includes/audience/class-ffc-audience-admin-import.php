@@ -108,10 +108,15 @@ class AudienceAdminImport {
 							<tr>
 								<th scope="row"><?php esc_html_e( 'Options', 'ffcertificate' ); ?></th>
 								<td>
-									<label>
-										<input type="checkbox" name="create_users" value="1" checked>
-										<?php esc_html_e( 'Create users if they do not exist (with ffc_user role)', 'ffcertificate' ); ?>
-									</label>
+									<?php
+									\FreeFormCertificate\Admin\AdminUI::render_toggle(
+										array(
+											'name'    => 'create_users',
+											'checked' => true,
+											'label'   => __( 'Create users if they do not exist (with ffc_user role)', 'ffcertificate' ),
+										)
+									);
+									?>
 								</td>
 							</tr>
 						</tbody></table>
