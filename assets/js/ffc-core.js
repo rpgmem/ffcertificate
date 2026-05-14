@@ -159,6 +159,56 @@
         },
 
         /**
+         * Promise-based AJAX helper (admin-ajax convention).
+         *
+         * Wraps `jQuery.post` so the entire admin/frontend codebase has a
+         * single chokepoint for cross-cutting concerns (nonce injection,
+         * response unwrapping, error normalisation). Returns a native
+         * Promise resolving with `response.data` on success or rejecting
+         * with an `Error` whose message comes from `response.data.message`.
+         *
+         * Why this lives alongside the legacy `FFC.ajax`:
+         *   - `FFC.ajax` is callback-based with options object — fine but
+         *     verbose and inconsistent with modern code.
+         *   - New code should use `FFC.request` for cleaner `.then/.catch`
+         *     ergonomics. Old call-sites keep using `FFC.ajax`; migrations
+         *     happen opportunistically when the file is touched.
+         *
+         * @param {string} action          WordPress AJAX action.
+         * @param {Object} [data]          Payload (action + nonce injected).
+         * @param {Object} [options]
+         * @param {string} [options.nonce] Override the default nonce.
+         * @param {string} [options.ajaxUrl] Override admin-ajax.php URL.
+         * @returns {Promise<*>} Resolves with `response.data` on success.
+         */
+        request: function(action, data, options) {
+            options = options || {};
+            var payload = jQuery.extend({}, data, {
+                action: action,
+                nonce: options.nonce || this.config.nonce || '',
+            });
+            var url = options.ajaxUrl || this.config.ajaxUrl || '/wp-admin/admin-ajax.php';
+            return new Promise(function(resolve, reject) {
+                jQuery.post(url, payload)
+                    .done(function(res) {
+                        if (!res || !res.success) {
+                            var msg = (res && res.data && res.data.message)
+                                || (FFC.config.strings && FFC.config.strings.error)
+                                || 'Request failed';
+                            reject(new Error(msg));
+                            return;
+                        }
+                        resolve(res.data);
+                    })
+                    .fail(function() {
+                        var msg = (FFC.config.strings && FFC.config.strings.connectionError)
+                            || 'Connection error';
+                        reject(new Error(msg));
+                    });
+            });
+        },
+
+        /**
          * Centralized field toggle helper
          *
          * @param {jQuery|string} $trigger - Trigger element (checkbox, radio, select)
