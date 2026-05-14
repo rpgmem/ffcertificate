@@ -1331,6 +1331,104 @@ details.ffc-consent-description > p {
     cursor: not-allowed;
 }
 
+/* "Start Form Now" — warning-tinted, less prominent than the
+   primary blue Cancel button so the operator can't trip the
+   destructive action by accident. */
+.ffc-public-csv-download .ffc-info-btn-warning {
+    background: var(--ffc-warning, #d9822b);
+    color: #fff;
+    border: 1px solid var(--ffc-warning, #d9822b);
+}
+
+.ffc-public-csv-download .ffc-info-btn-warning:hover:not([disabled]) {
+    background: var(--ffc-warning-dark, #b86a1f);
+    border-color: var(--ffc-warning-dark, #b86a1f);
+}
+
+.ffc-public-csv-download .ffc-info-btn-warning[disabled] {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+/* ────────────────────────────────────────────────────────────
+   Early-open confirmation modal — Cancel-button-emphasised
+   defensive UX (the action is irreversible from the public page).
+   ──────────────────────────────────────────────────────────── */
+.ffc-open-early-modal {
+    position: fixed;
+    inset: 0;
+    z-index: 100001;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.ffc-open-early-backdrop {
+    position: absolute;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.5);
+}
+
+.ffc-open-early-card {
+    position: relative;
+    background: #fff;
+    border-radius: 8px;
+    box-shadow: 0 8px 28px rgba(0, 0, 0, 0.25);
+    max-width: 540px;
+    width: 92%;
+    padding: 24px;
+    z-index: 1;
+}
+
+.ffc-open-early-card h3 {
+    margin: 0 0 12px;
+    font-size: 18px;
+}
+
+.ffc-open-early-times {
+    list-style: none;
+    padding: 0;
+    margin: 8px 0 12px;
+}
+
+.ffc-open-early-times li {
+    margin: 4px 0;
+}
+
+.ffc-open-early-warn {
+    color: var(--ffc-danger, #d63638);
+    margin: 12px 0 4px;
+}
+
+.ffc-open-early-warn-cache {
+    background: var(--ffc-warning-light, #fdf3e3);
+    border-left: 3px solid var(--ffc-warning, #d9822b);
+    padding: 10px 12px;
+    margin: 12px 0;
+    font-size: 13px;
+}
+
+.ffc-open-early-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 12px;
+    margin-top: 16px;
+}
+
+.ffc-open-early-actions .ffc-open-early-cancel {
+    /* Cancel is the prominent, defensive default. */
+    font-weight: 600;
+    padding: 10px 22px;
+    font-size: 15px;
+}
+
+.ffc-open-early-actions .ffc-open-early-confirm {
+    /* Confirm is smaller + warning-tinted so the operator has to
+       deliberately reach for it. */
+    padding: 8px 16px;
+    font-size: 13px;
+}
+
 /* Certificate preview modal (reuses admin modal structure) */
 #ffc-preview-modal {
     position: fixed;

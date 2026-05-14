@@ -366,6 +366,21 @@ class Frontend {
 						'certPreviewNote'    => __( 'Placeholders replaced with sample data. QR code shown as placeholder.', 'ffcertificate' ),
 						'close'              => __( 'Close', 'ffcertificate' ),
 						'loadingPreview'     => __( 'Loading preview…', 'ffcertificate' ),
+
+						// Info screen: Start Form Now (early-open).
+						'startFormNow'         => __( 'Start Form Now', 'ffcertificate' ),
+						'openEarlyTooltip'     => __( 'Overrides the scheduled start time. Form opens immediately.', 'ffcertificate' ),
+						'openEarlyTitle'       => __( 'Start form now?', 'ffcertificate' ),
+						'openEarlyBody1'       => __( 'This will override the scheduled start time. The form will open immediately for all users.', 'ffcertificate' ),
+						'openEarlyOrigLabel'   => __( 'Scheduled start:', 'ffcertificate' ),
+						'openEarlyNewLabel'    => __( 'New start will be:', 'ffcertificate' ),
+						'openEarlyNewNow'      => __( 'now', 'ffcertificate' ),
+						'openEarlyIrreversible' => __( 'This cannot be undone from this page.', 'ffcertificate' ),
+						'openEarlyCacheWarn'   => __( 'If your site uses page caching (Cloudflare, W3 Total Cache, etc.), some visitors may see the old "not yet started" state until the cache refreshes. Ask them to reload if needed.', 'ffcertificate' ),
+						'cancel'               => __( 'Cancel', 'ffcertificate' ),
+						'openEarlyConfirm'     => __( 'Confirm and start form', 'ffcertificate' ),
+						'starting'             => __( 'Starting…', 'ffcertificate' ),
+						'openEarlySuccess'     => __( 'Form is now open.', 'ffcertificate' ),
 					),
 				)
 			);
