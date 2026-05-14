@@ -38,16 +38,17 @@ class AdminUI {
 	 *       )
 	 *   );
 	 *
-	 * @param array<string, mixed> $args {
-	 *     @type string $name    Required. The form input name.
-	 *     @type string $id      Optional. The input id (defaults to `name`).
-	 *     @type string $value   Optional. Submitted value when checked (default '1').
-	 *     @type bool   $checked Optional. Whether the toggle starts on.
-	 *     @type string $label   Optional. Visible label text next to the switch.
-	 *     @type bool   $disabled Optional. Renders the switch in disabled state.
-	 *     @type string $class   Optional. Extra classes appended to the wrapper.
-	 *     @type array<string, string> $data Optional. data-* attributes on the input.
-	 * }
+	 * @param array<string, mixed> $args Render arguments — `name` (required string,
+	 *                                    form input name), `id` (optional string,
+	 *                                    defaults to `name`), `value` (optional string,
+	 *                                    submitted value when checked, defaults to '1'),
+	 *                                    `checked` (optional bool, whether the toggle
+	 *                                    starts on), `label` (optional string, visible
+	 *                                    label next to the switch), `disabled` (optional
+	 *                                    bool, renders disabled), `class` (optional
+	 *                                    string, extra classes on the wrapper),
+	 *                                    `data` (optional array<string,string> of
+	 *                                    data-* attributes on the input).
 	 */
 	public static function render_toggle( array $args ): void {
 		$name = $args['name'] ?? '';
