@@ -36,6 +36,51 @@ class AdminActivityLogPage {
 		);
 
 		add_action( 'admin_init', array( $this, 'handle_csv_export' ) );
+		add_action( 'admin_enqueue_scripts', array( $this, 'enqueue_scripts' ) );
+	}
+
+	/**
+	 * Enqueue the AJAX-filter script on the Activity Log page only.
+	 *
+	 * @param string $hook Current admin page hook.
+	 */
+	public function enqueue_scripts( string $hook ): void {
+		if ( 'ffc_form_page_ffc-activity-log' !== $hook ) {
+			return;
+		}
+		$s = \FreeFormCertificate\Core\Utils::asset_suffix();
+		wp_enqueue_script(
+			'ffc-core',
+			FFC_PLUGIN_URL . "assets/js/ffc-core{$s}.js",
+			array( 'jquery' ),
+			FFC_VERSION,
+			true
+		);
+		wp_enqueue_script(
+			'ffc-admin-activity-log',
+			FFC_PLUGIN_URL . "assets/js/ffc-admin-activity-log{$s}.js",
+			array( 'jquery', 'ffc-core', 'ffc-admin-js' ),
+			FFC_VERSION,
+			true
+		);
+		wp_localize_script(
+			'ffc-admin-activity-log',
+			'ffcActivityLog',
+			array(
+				'nonce'   => wp_create_nonce( ActivityLogAjaxEndpoint::AJAX_ACTION ),
+				'strings' => array(
+					'noLogs'     => __( 'No activity logs found.', 'ffcertificate' ),
+					'error'      => __( 'Failed to fetch logs.', 'ffcertificate' ),
+					'preparing'  => __( 'Preparing CSV download…', 'ffcertificate' ),
+					'colDate'    => __( 'Date/Time', 'ffcertificate' ),
+					'colLevel'   => __( 'Level', 'ffcertificate' ),
+					'colAction'  => __( 'Action', 'ffcertificate' ),
+					'colUser'    => __( 'User', 'ffcertificate' ),
+					'colIp'      => __( 'IP Address', 'ffcertificate' ),
+					'colContext' => __( 'Context', 'ffcertificate' ),
+				),
+			)
+		);
 	}
 
 	/**
@@ -274,5 +319,163 @@ class AdminActivityLogPage {
 		$class = isset( $classes[ $level ] ) ? $classes[ $level ] : 'ffc-badge-info';
 
 		return '<span class="ffc-badge ' . esc_attr( $class ) . '">' . esc_html( strtoupper( $level ) ) . '</span>';
+	}
+
+	/**
+	 * Build the args array passed to ActivityLog::get_activities /
+	 * count_activities. Reads filter params off the request shape
+	 * supplied by the page render OR the AJAX endpoint.
+	 *
+	 * @param array<string, mixed> $params Raw filter params
+	 *                                     (level / log_action / search / paged).
+	 * @param int                  $per_page Page size.
+	 * @return array<string, mixed>
+	 */
+	public static function build_query_args( array $params, int $per_page = 50 ): array {
+		$current_page = isset( $params['paged'] ) ? max( 1, absint( $params['paged'] ) ) : 1;
+
+		$args = array(
+			'limit'   => $per_page,
+			'offset'  => ( $current_page - 1 ) * $per_page,
+			'orderby' => 'created_at',
+			'order'   => 'DESC',
+		);
+
+		$level = isset( $params['level'] ) ? sanitize_key( $params['level'] ) : '';
+		if ( $level ) {
+			$args['level'] = $level;
+		}
+
+		$action = isset( $params['log_action'] ) ? sanitize_text_field( $params['log_action'] ) : '';
+		if ( $action ) {
+			$args['action'] = $action;
+		}
+
+		$search = isset( $params['search'] ) ? sanitize_text_field( $params['search'] ) : '';
+		if ( $search ) {
+			$args['search'] = $search;
+		}
+
+		return $args;
+	}
+
+	/**
+	 * Render the activity-log table body (all <tr> rows for the page).
+	 *
+	 * Extracted so the initial PHP render and the AJAX refresh share
+	 * the same HTML — the helper handles level badges, user lookup,
+	 * IP / context formatting consistently.
+	 *
+	 * @param array<int, array<string, mixed>> $logs Rows.
+	 * @return string HTML — sequence of <tr>…</tr>, no enclosing <tbody>.
+	 */
+	public static function render_rows_html( array $logs ): string {
+		if ( empty( $logs ) ) {
+			return '';
+		}
+		ob_start();
+		foreach ( $logs as $ffcertificate_log ) :
+			?>
+			<tr>
+				<td>
+					<strong><?php echo esc_html( date_i18n( 'Y-m-d', strtotime( (string) ( $ffcertificate_log['created_at'] ?? '' ) ) ) ); ?></strong><br>
+					<span class="description"><?php echo esc_html( date_i18n( 'H:i:s', strtotime( (string) ( $ffcertificate_log['created_at'] ?? '' ) ) ) ); ?></span>
+				</td>
+				<td>
+					<?php echo wp_kses_post( self::get_level_badge( (string) ( $ffcertificate_log['level'] ?? '' ) ) ); ?>
+				</td>
+				<td>
+					<strong><?php echo esc_html( self::get_action_label( (string) ( $ffcertificate_log['action'] ?? '' ) ) ); ?></strong><br>
+					<code class="description"><?php echo esc_html( (string) ( $ffcertificate_log['action'] ?? '' ) ); ?></code>
+				</td>
+				<td>
+					<?php
+					$ffcertificate_uid = (int) ( $ffcertificate_log['user_id'] ?? 0 );
+					if ( $ffcertificate_uid > 0 ) {
+						$ffcertificate_user = get_userdata( $ffcertificate_uid );
+						if ( $ffcertificate_user ) {
+							echo '<strong>' . esc_html( $ffcertificate_user->display_name ) . '</strong><br>';
+							echo '<span class="description">' . esc_html( $ffcertificate_user->user_login ) . '</span>';
+						} else {
+							/* translators: %d: user ID */
+							echo '<span class="description">' . esc_html( sprintf( __( 'User #%d (deleted)', 'ffcertificate' ), $ffcertificate_uid ) ) . '</span>';
+						}
+					} else {
+						echo '<span class="description">' . esc_html__( 'System / Anonymous', 'ffcertificate' ) . '</span>';
+					}
+					?>
+				</td>
+				<td>
+					<code><?php echo esc_html( (string) ( $ffcertificate_log['user_ip'] ?? '' ) ); ?></code>
+				</td>
+				<td>
+					<?php
+					if ( ! empty( $ffcertificate_log['context'] ) ) :
+						// wp_json_encode returns string|false. The false case (circular
+						// refs, malformed UTF-8) is treated as "no context" so the
+						// admin still sees a valid <details> block.
+						$ffcertificate_context_json = wp_json_encode( $ffcertificate_log['context'], JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE );
+						if ( false === $ffcertificate_context_json ) {
+							$ffcertificate_context_json = '';
+						}
+						?>
+						<details>
+							<summary class="ffc-log-summary">
+								<?php esc_html_e( 'View Details', 'ffcertificate' ); ?> ▼
+							</summary>
+							<pre class="ffc-log-pre"><?php echo esc_html( $ffcertificate_context_json ); ?></pre>
+						</details>
+					<?php else : ?>
+						<span class="description">—</span>
+					<?php endif; ?>
+				</td>
+			</tr>
+			<?php
+		endforeach;
+		return (string) ob_get_clean();
+	}
+
+	/**
+	 * Render the pagination block for the activity-log table.
+	 *
+	 * @param int    $total_logs   Total log rows (across all pages).
+	 * @param int    $current_page Current page (1-indexed).
+	 * @param int    $per_page     Page size.
+	 * @param string $base_url     Base admin URL — caller decides whether
+	 *                              to add the filter query string here.
+	 *                              The pagination links will append `paged`.
+	 * @return string HTML — empty when there's only one page.
+	 */
+	public static function render_pagination_html( int $total_logs, int $current_page, int $per_page, string $base_url = '' ): string {
+		$total_pages = (int) ceil( $total_logs / max( 1, $per_page ) );
+		if ( $total_pages <= 1 ) {
+			return '';
+		}
+
+		ob_start();
+		?>
+		<div class="tablenav bottom">
+			<div class="tablenav-pages">
+				<span class="displaying-num">
+					<?php
+					/* translators: %s: number of logs */
+					printf( esc_html( _n( '%s log', '%s logs', $total_logs, 'ffcertificate' ) ), esc_html( number_format_i18n( $total_logs ) ) );
+					?>
+				</span>
+				<?php
+				$pagination_args = array(
+					'base'      => '' !== $base_url ? add_query_arg( 'paged', '%#%', $base_url ) : add_query_arg( 'paged', '%#%' ),
+					'format'    => '',
+					'prev_text' => '&laquo;',
+					'next_text' => '&raquo;',
+					'total'     => $total_pages,
+					'current'   => $current_page,
+				);
+				echo wp_kses_post( (string) paginate_links( $pagination_args ) );
+				?>
+			</div>
+		</div>
+		<?php
+		return (string) ob_get_clean();
 	}
 }
