@@ -130,6 +130,12 @@
 			html += esc(strings.previewCertificate || 'Preview Certificate');
 			html += '</button>';
 		}
+		if (info.status.can_open_early) {
+			html += '<button type="button" class="ffc-info-btn ffc-info-btn-warning ffc-btn-open-early" '
+				+ 'title="' + esc(strings.openEarlyTooltip || 'Overrides the scheduled start time. Form opens immediately.') + '">';
+			html += esc(strings.startFormNow || 'Start Form Now');
+			html += '</button>';
+		}
 		if (info.status.can_download) {
 			html += '<button type="button" class="ffc-info-btn ffc-info-btn-primary ffc-btn-download-csv">';
 			html += esc(strings.downloadCsv || 'Download CSV');
@@ -143,11 +149,15 @@
 
 		// Replace container content.
 		$container.html('<div class="ffc-info-screen">' + html + '</div>');
+		// Stash for the open-early modal copy (needs original start
+		// formatted for the warning text).
+		$container.data('ffc-last-info', info);
 
 		// Bind events.
 		$container.find('.ffc-info-back').on('click', goBack);
 		$container.find('.ffc-btn-download-csv').not('[disabled]').on('click', onDownloadClick);
 		$container.find('.ffc-btn-cert-preview').on('click', onCertPreviewClick);
+		$container.find('.ffc-btn-open-early').on('click', onOpenEarlyClick);
 	}
 
 	// ── Section builders ────────────────────────────────────────
@@ -649,6 +659,123 @@
 
 	function enableBtn() {
 		if ($btn) $btn.prop('disabled', false).removeClass('ffc-btn-loading');
+	}
+
+	// ── Start Form Now (early-open) ─────────────────────────────
+
+	// Click handler for the .ffc-btn-open-early button. Pops the
+	// confirmation modal first — defensive UX since this is irreversible
+	// from the operator's phone (admin can still walk it back in the
+	// editor, but the operator on stage shouldn't trip it).
+	function onOpenEarlyClick() {
+		var info = lastInfo();
+		var origStart = info && info.status ? (info.status.start_date_formatted || '') : '';
+		showOpenEarlyModal(origStart);
+	}
+
+	function lastInfo() {
+		return $container && $container.data('ffc-last-info');
+	}
+
+	function showOpenEarlyModal(origStart) {
+		// Clean up any prior modal.
+		$('.ffc-open-early-modal').remove();
+
+		var nowDate = new Date();
+		var pad = function (n) { return n < 10 ? '0' + n : '' + n; };
+		var nowFormatted = pad(nowDate.getDate()) + '/' + pad(nowDate.getMonth() + 1) + '/' + nowDate.getFullYear()
+			+ ' ' + pad(nowDate.getHours()) + ':' + pad(nowDate.getMinutes());
+
+		var modalHtml = ''
+			+ '<div class="ffc-open-early-modal" role="dialog" aria-modal="true" aria-labelledby="ffc-open-early-title">'
+			+   '<div class="ffc-open-early-backdrop"></div>'
+			+   '<div class="ffc-open-early-card">'
+			+     '<h3 id="ffc-open-early-title">'
+			+       '<span aria-hidden="true">⚠️</span> '
+			+       esc(strings.openEarlyTitle || 'Start form now?')
+			+     '</h3>'
+			+     '<p>' + esc(strings.openEarlyBody1 || 'This will override the scheduled start time. The form will open immediately for all users.') + '</p>'
+			+     '<ul class="ffc-open-early-times">'
+			+       (origStart
+				? '<li>' + esc(strings.openEarlyOrigLabel || 'Scheduled start:') + ' <strong>' + esc(origStart) + '</strong></li>'
+				: '')
+			+       '<li>' + esc(strings.openEarlyNewLabel || 'New start will be:') + ' <strong>' + esc(strings.openEarlyNewNow || 'now') + ' (' + esc(nowFormatted) + ')</strong></li>'
+			+     '</ul>'
+			+     '<p class="ffc-open-early-warn"><strong>'
+			+       esc(strings.openEarlyIrreversible || 'This cannot be undone from this page.')
+			+     '</strong></p>'
+			+     '<p class="ffc-open-early-warn-cache">'
+			+       esc(strings.openEarlyCacheWarn || 'If your site uses page caching (Cloudflare, W3 Total Cache, etc.), some visitors may see the old "not yet started" state until the cache refreshes. Ask them to reload if needed.')
+			+     '</p>'
+			+     '<div class="ffc-open-early-actions">'
+			+       '<button type="button" class="ffc-info-btn ffc-info-btn-primary ffc-open-early-cancel" autofocus>'
+			+         esc(strings.cancel || 'Cancel')
+			+       '</button>'
+			+       '<button type="button" class="ffc-info-btn ffc-info-btn-warning ffc-open-early-confirm">'
+			+         esc(strings.openEarlyConfirm || 'Confirm and start form')
+			+       '</button>'
+			+     '</div>'
+			+   '</div>'
+			+ '</div>';
+
+		var $modal = $(modalHtml).appendTo(document.body);
+		// Trap Esc to cancel.
+		var onKey = function (e) {
+			if (e.key === 'Escape') {
+				closeModal();
+			}
+		};
+		$(document).on('keydown.ffcOpenEarly', onKey);
+
+		function closeModal() {
+			$(document).off('keydown.ffcOpenEarly');
+			$modal.remove();
+		}
+
+		$modal.find('.ffc-open-early-cancel, .ffc-open-early-backdrop').on('click', closeModal);
+		$modal.find('.ffc-open-early-confirm').on('click', function () {
+			closeModal();
+			submitOpenEarly();
+		});
+
+		// Ensure the Cancel button has focus on open.
+		setTimeout(function () { $modal.find('.ffc-open-early-cancel').focus(); }, 0);
+	}
+
+	function submitOpenEarly() {
+		var $btnEarly = $container.find('.ffc-btn-open-early');
+		$btnEarly.prop('disabled', true).text(strings.starting || 'Starting…');
+
+		// Page's existing form carries form_id + hash + nonce; we strip
+		// its `action` and append our own so we land on the new endpoint.
+		var payload = $form.serialize().replace(/(^|&)action=[^&]*/, '') + '&action=ffc_public_open_early';
+
+		$.ajax({
+			url:      cfg.ajax_url,
+			type:     'POST',
+			dataType: 'json',
+			data:     payload,
+			success: function (res) {
+				if (!res || !res.success) {
+					var msg = res && res.data && res.data.message
+						? res.data.message
+						: (strings.error || 'Action failed.');
+					window.alert(msg);
+					$btnEarly.prop('disabled', false).text(strings.startFormNow || 'Start Form Now');
+					return;
+				}
+				window.alert((res.data && res.data.message) || (strings.openEarlySuccess || 'Form is now open.'));
+				// Full reload — the original form was replaced by the
+				// info screen, so re-running the validation flow from
+				// scratch is the cleanest way to repaint with the new
+				// state (before_start is now false, button is gone).
+				window.location.reload();
+			},
+			error: function () {
+				window.alert(strings.error || 'Action failed.');
+				$btnEarly.prop('disabled', false).text(strings.startFormNow || 'Start Form Now');
+			},
+		});
 	}
 
 	// ── Utility ─────────────────────────────────────────────────

@@ -108,6 +108,10 @@ class PublicCsvDownload {
 		add_action( 'wp_ajax_ffc_public_cert_preview', array( $this, 'ajax_cert_preview' ) );
 		add_action( 'wp_ajax_nopriv_ffc_public_cert_preview', array( $this, 'ajax_cert_preview' ) );
 
+		// AJAX: open the form ahead of its scheduled start.
+		add_action( 'wp_ajax_ffc_public_open_early', array( $this, 'ajax_open_early' ) );
+		add_action( 'wp_ajax_nopriv_ffc_public_open_early', array( $this, 'ajax_open_early' ) );
+
 		// AJAX batched export (JS path).
 		$exporter = new PublicCsvExporter();
 		add_action( 'wp_ajax_ffc_public_csv_start', array( $exporter, 'ajax_start' ) );
@@ -434,6 +438,68 @@ class PublicCsvDownload {
 				'html'     => wp_kses_post( $config['pdf_layout'] ?? '' ),
 				'bg_image' => esc_url( $config['bg_image'] ?? '' ),
 				'fields'   => $field_names,
+			)
+		);
+	}
+
+	/**
+	 * Flip the form's scheduled start datetime to "now".
+	 *
+	 * Reuses the public CSV hash as the credential — only callable
+	 * before the form's scheduled start, and only when CSV public is
+	 * enabled (otherwise no hash exists). The action is naturally
+	 * one-shot via the form's own state machine: once `date_start` is
+	 * now/past, subsequent calls return `already_started` and the JS
+	 * never even renders the button.
+	 *
+	 * @since 6.5.6
+	 */
+	public function ajax_open_early(): void {
+		// phpcs:ignore WordPress.Security.ValidatedSanitizedInput
+		if ( ! isset( $_POST['_ffc_pcd_nonce'] ) || ! wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST['_ffc_pcd_nonce'] ) ), self::NONCE_ACTION ) ) {
+			wp_send_json_error( array( 'message' => __( 'Security check failed.', 'ffcertificate' ) ), 403 );
+		}
+
+		$form_id     = isset( $_POST['form_id'] ) ? absint( wp_unslash( $_POST['form_id'] ) ) : 0; // phpcs:ignore WordPress.Security.NonceVerification.Missing
+		$posted_hash = isset( $_POST['hash'] ) ? sanitize_text_field( wp_unslash( $_POST['hash'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Missing
+
+		$audit_meta = array(
+			'user_id' => get_current_user_id(),
+			'ip'      => isset( $_SERVER['REMOTE_ADDR'] ) ? sanitize_text_field( wp_unslash( $_SERVER['REMOTE_ADDR'] ) ) : '',
+			'ua'      => isset( $_SERVER['HTTP_USER_AGENT'] ) ? sanitize_text_field( wp_unslash( $_SERVER['HTTP_USER_AGENT'] ) ) : '',
+		);
+
+		$result = EarlyOpenAction::execute( $form_id, $posted_hash, $audit_meta );
+
+		if ( ! $result['ok'] ) {
+			// Map the eligibility reason to a localised user-facing
+			// message — keeps the EarlyOpenAction service free of UX
+			// strings.
+			$reason   = $result['reason'];
+			$messages = array(
+				'unknown_form'      => __( 'Form not found.', 'ffcertificate' ),
+				'csv_disabled'      => __( 'Public access is disabled for this form.', 'ffcertificate' ),
+				'bad_hash'          => __( 'Invalid access hash.', 'ffcertificate' ),
+				'datetime_disabled' => __( 'This form does not have a scheduled start time.', 'ffcertificate' ),
+				'no_start_date'     => __( 'This form does not have a scheduled start time.', 'ffcertificate' ),
+				'already_started'   => __( 'This form has already started.', 'ffcertificate' ),
+				'already_ended'     => __( 'This form has already ended.', 'ffcertificate' ),
+			);
+			$message  = $messages[ $reason ] ?? __( 'Unable to open the form right now.', 'ffcertificate' );
+			wp_send_json_error(
+				array(
+					'reason'  => $reason,
+					'message' => $message,
+				),
+				409
+			);
+		}
+
+		wp_send_json_success(
+			array(
+				'message'            => __( 'Form is now open.', 'ffcertificate' ),
+				'new_start_iso'      => $result['new_start_iso'],
+				'original_start_iso' => $result['original_start_iso'],
 			)
 		);
 	}

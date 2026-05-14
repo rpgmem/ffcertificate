@@ -165,7 +165,7 @@ class FormEditor {
 
 		add_meta_box(
 			'ffc_box_public_csv_download',
-			__( '7. Public CSV Download', 'ffcertificate' ),
+			__( '7. Public Operator Access', 'ffcertificate' ),
 			array( $this->metabox_renderer, 'render_box_public_csv_download' ),
 			'ffc_form',
 			'normal',

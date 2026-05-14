@@ -587,6 +587,39 @@
     display: table-row;
 }
 
+/* Section subtitles inside metaboxes (Start Form Early sub-block,
+   etc.) — sits below the main metabox h2 with a thin separator. */
+.ffc-section-subtitle {
+    margin: 24px 0 4px;
+    padding-top: 14px;
+    border-top: 1px solid var(--ffc-border, #e0e0e0);
+    font-size: 14px;
+    font-weight: 600;
+}
+
+/* Status pill — used by the Start Form Early row to surface
+   eligibility (Available / Already started / Form ended / etc.) */
+.ffc-status-pill {
+    display: inline-block;
+    padding: 3px 10px;
+    border-radius: 11px;
+    font-size: 12px;
+    font-weight: 500;
+    line-height: 1.5;
+}
+.ffc-status-pill--success {
+    background: var(--ffc-success-light, #ecf7ed);
+    color: var(--ffc-success, #00a32a);
+}
+.ffc-status-pill--warning {
+    background: var(--ffc-warning-light, #fdf3e3);
+    color: var(--ffc-warning, #d9822b);
+}
+.ffc-status-pill--info {
+    background: var(--ffc-info-light, #e6f3fb);
+    color: var(--ffc-info, #2271b1);
+}
+
 /* Public CSV Download / Device Fingerprint metaboxes — fade the
    sub-fields when the master toggle (or the global gate) is off. */
 .ffc-csv-public-disabled .ffc-csv-public-sub,

@@ -98,6 +98,9 @@ class Activator {
 			wp_schedule_event( time(), 'daily', 'ffcertificate_daily_cleanup_hook' );
 		}
 
+		// Schedule the per-form ticket-pool sweep for ended forms.
+		\FreeFormCertificate\Admin\ExpiredTicketsCleanup::schedule();
+
 		flush_rewrite_rules();
 	}
 
