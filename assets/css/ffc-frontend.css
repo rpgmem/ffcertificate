@@ -1289,7 +1289,14 @@ details.ffc-consent-description > p {
     box-sizing: border-box;
 }
 
-.ffc-public-csv-download .ffc-info-btn {
+/* Button variants shared by the public-CSV info screen AND its
+   modal dialogs (early-open + extend-end). The modals are appended
+   to `document.body` and therefore fall outside `.ffc-public-csv-download`
+   — listing both scopes here keeps the visual contract intact wherever
+   `.ffc-info-btn*` is rendered. */
+.ffc-public-csv-download .ffc-info-btn,
+.ffc-open-early-modal .ffc-info-btn,
+.ffc-extend-end-modal .ffc-info-btn {
     flex: 1;
     min-width: 160px;
     padding: 12px 20px;
@@ -1302,31 +1309,43 @@ details.ffc-consent-description > p {
     text-align: center;
 }
 
-.ffc-public-csv-download .ffc-info-btn-primary {
+.ffc-public-csv-download .ffc-info-btn-primary,
+.ffc-open-early-modal .ffc-info-btn-primary,
+.ffc-extend-end-modal .ffc-info-btn-primary {
     background: var(--ffc-primary, #0073aa);
     color: #fff;
 }
 
-.ffc-public-csv-download .ffc-info-btn-primary:hover:not([disabled]) {
+.ffc-public-csv-download .ffc-info-btn-primary:hover:not([disabled]),
+.ffc-open-early-modal .ffc-info-btn-primary:hover:not([disabled]),
+.ffc-extend-end-modal .ffc-info-btn-primary:hover:not([disabled]) {
     background: var(--ffc-primary-hover, #005d8c);
 }
 
-.ffc-public-csv-download .ffc-info-btn-primary[disabled] {
+.ffc-public-csv-download .ffc-info-btn-primary[disabled],
+.ffc-open-early-modal .ffc-info-btn-primary[disabled],
+.ffc-extend-end-modal .ffc-info-btn-primary[disabled] {
     opacity: 0.5;
     cursor: not-allowed;
 }
 
-.ffc-public-csv-download .ffc-info-btn-secondary {
+.ffc-public-csv-download .ffc-info-btn-secondary,
+.ffc-open-early-modal .ffc-info-btn-secondary,
+.ffc-extend-end-modal .ffc-info-btn-secondary {
     background: var(--ffc-bg-subtle, #f0f0f0);
     color: var(--ffc-text, #333);
     border: 1px solid var(--ffc-border, #e0e0e0);
 }
 
-.ffc-public-csv-download .ffc-info-btn-secondary:hover:not([disabled]) {
+.ffc-public-csv-download .ffc-info-btn-secondary:hover:not([disabled]),
+.ffc-open-early-modal .ffc-info-btn-secondary:hover:not([disabled]),
+.ffc-extend-end-modal .ffc-info-btn-secondary:hover:not([disabled]) {
     background: var(--ffc-border, #e0e0e0);
 }
 
-.ffc-public-csv-download .ffc-info-btn-secondary[disabled] {
+.ffc-public-csv-download .ffc-info-btn-secondary[disabled],
+.ffc-open-early-modal .ffc-info-btn-secondary[disabled],
+.ffc-extend-end-modal .ffc-info-btn-secondary[disabled] {
     opacity: 0.5;
     cursor: not-allowed;
 }
@@ -1334,18 +1353,24 @@ details.ffc-consent-description > p {
 /* "Start Form Now" — warning-tinted, less prominent than the
    primary blue Cancel button so the operator can't trip the
    destructive action by accident. */
-.ffc-public-csv-download .ffc-info-btn-warning {
+.ffc-public-csv-download .ffc-info-btn-warning,
+.ffc-open-early-modal .ffc-info-btn-warning,
+.ffc-extend-end-modal .ffc-info-btn-warning {
     background: var(--ffc-warning, #d9822b);
     color: #fff;
     border: 1px solid var(--ffc-warning, #d9822b);
 }
 
-.ffc-public-csv-download .ffc-info-btn-warning:hover:not([disabled]) {
+.ffc-public-csv-download .ffc-info-btn-warning:hover:not([disabled]),
+.ffc-open-early-modal .ffc-info-btn-warning:hover:not([disabled]),
+.ffc-extend-end-modal .ffc-info-btn-warning:hover:not([disabled]) {
     background: var(--ffc-warning-dark, #b86a1f);
     border-color: var(--ffc-warning-dark, #b86a1f);
 }
 
-.ffc-public-csv-download .ffc-info-btn-warning[disabled] {
+.ffc-public-csv-download .ffc-info-btn-warning[disabled],
+.ffc-open-early-modal .ffc-info-btn-warning[disabled],
+.ffc-extend-end-modal .ffc-info-btn-warning[disabled] {
     opacity: 0.5;
     cursor: not-allowed;
 }
@@ -1388,34 +1413,43 @@ details.ffc-consent-description > p {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 12px 16px;
-    background: #1d2327;
-    color: #fff;
+    padding: 16px 20px;
+    background: linear-gradient(135deg, var(--ffc-primary) 0%, var(--ffc-primary-hover) 100%);
+    color: var(--ffc-text-on-primary, #fff);
 }
 
 .ffc-open-early-header h2 {
     margin: 0;
-    font-size: 16px;
-    font-weight: 500;
-    color: #fff;
+    font-size: 18px;
+    font-weight: 600;
+    color: var(--ffc-text-on-primary, #fff);
+    display: flex;
+    align-items: center;
+    gap: 8px;
 }
 
 .ffc-open-early-close {
     background: none;
     border: none;
-    color: #ccc;
-    font-size: 24px;
+    color: rgba(255, 255, 255, 0.85);
+    font-size: 26px;
     cursor: pointer;
     padding: 0 4px;
     line-height: 1;
+    transition: color var(--ffc-transition-base);
 }
 
-.ffc-open-early-close:hover {
+.ffc-open-early-close:hover,
+.ffc-open-early-close:focus-visible {
     color: #fff;
+    outline: 0;
 }
 
 .ffc-open-early-body {
-    padding: 16px 20px;
+    padding: 20px 24px;
+    color: var(--ffc-text, #333);
+    font-size: 15px;
+    line-height: 1.55;
 }
 
 .ffc-open-early-body p {
@@ -1434,31 +1468,72 @@ details.ffc-consent-description > p {
 
 .ffc-open-early-warn {
     color: var(--ffc-danger, #d63638);
-    margin: 12px 0 4px;
+    background: var(--ffc-danger-bg, #fcebec);
+    border-left: 3px solid var(--ffc-danger, #d63638);
+    padding: 10px 14px;
+    margin: 14px 0 4px;
+    border-radius: var(--ffc-radius-sm, 4px);
+    font-weight: 500;
 }
 
 .ffc-open-early-warn-cache {
     background: var(--ffc-warning-light, #fdf3e3);
     border-left: 3px solid var(--ffc-warning, #d9822b);
-    padding: 10px 12px;
+    padding: 10px 14px;
     margin: 12px 0 0;
     font-size: 13px;
+    color: var(--ffc-warning-text, #856404);
+    border-radius: var(--ffc-radius-sm, 4px);
+}
+
+/* Time picker inside the extend-end modal — match the .ffc-input
+   look used across the plugin (45px tall, full-width, focus ring). */
+.ffc-extend-end-modal .ffc-extend-end-input {
+    width: 100%;
+    height: 45px;
+    padding: 10px 12px;
+    border: 1px solid var(--ffc-border, #e0e0e0);
+    border-radius: var(--ffc-radius-sm, 4px);
+    font-size: 16px;
+    line-height: 1.5;
+    background: var(--ffc-bg-input, #fff);
+    color: var(--ffc-text, #333);
+    box-sizing: border-box;
+    transition: border-color var(--ffc-transition-base), box-shadow var(--ffc-transition-base);
+}
+
+.ffc-extend-end-modal .ffc-extend-end-input:focus {
+    outline: 0;
+    border-color: var(--ffc-primary, #0073aa);
+    box-shadow: 0 0 0 3px var(--ffc-focus-ring, rgba(0, 115, 170, 0.2));
 }
 
 .ffc-open-early-actions {
     display: flex;
     justify-content: flex-end;
     gap: 12px;
-    padding: 12px 20px 16px;
+    padding: 14px 24px 18px;
     border-top: 1px solid var(--ffc-border, #e0e0e0);
     background: var(--ffc-bg-subtle, #fafafa);
 }
 
-.ffc-open-early-actions .ffc-open-early-cancel {
-    /* Cancel is the prominent, defensive default. */
+/* Cancel is the prominent, defensive default — keeps the operator
+   from tripping the destructive action by reflex. */
+.ffc-open-early-actions .ffc-open-early-cancel,
+.ffc-open-early-actions .ffc-extend-end-cancel {
+    flex: 0 1 auto;
+    min-width: 120px;
     font-weight: 600;
-    padding: 10px 22px;
+    padding: 12px 24px;
     font-size: 15px;
+}
+
+.ffc-open-early-actions .ffc-open-early-confirm,
+.ffc-open-early-actions .ffc-extend-end-confirm {
+    flex: 0 1 auto;
+    min-width: 120px;
+    padding: 12px 20px;
+    font-size: 14px;
 }
 
 .ffc-open-early-actions .ffc-open-early-confirm {
