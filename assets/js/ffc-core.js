@@ -183,9 +183,19 @@
          */
         request: function(action, data, options) {
             options = options || {};
+            // Nonce resolution order: explicit options.nonce wins (used
+            // by the locations CRUD style callers); a nonce baked into
+            // `data` wins next (used by callers localized via their own
+            // wp_localize_script that don't go through ffc_ajax — eg.
+            // ffc-form-list-features.js, ffc-admin-autosave.js); the
+            // global ffc_ajax nonce is the last-resort default.
+            var resolvedNonce = options.nonce
+                || (data && data.nonce)
+                || this.config.nonce
+                || '';
             var payload = jQuery.extend({}, data, {
                 action: action,
-                nonce: options.nonce || this.config.nonce || '',
+                nonce: resolvedNonce,
             });
             var url = options.ajaxUrl || this.config.ajaxUrl || '/wp-admin/admin-ajax.php';
             return new Promise(function(resolve, reject) {

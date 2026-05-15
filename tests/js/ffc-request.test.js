@@ -63,6 +63,48 @@ describe('FFC.request — payload composition', () => {
 		expect(calls[0][1].nonce).toBe('other');
 	});
 
+	it('preserves a data.nonce set by the caller when no options.nonce is given', async () => {
+		// Regression test for the bug where ffc-form-list-features.js,
+		// ffc-admin-autosave.js, ffc-admin-activity-log.js,
+		// ffc-admin-migrations.js, ffc-admin-submissions-bulk.js, and
+		// ffc-cache-actions.js all passed their per-action nonce via
+		// `data.nonce` — which used to be silently overwritten by the
+		// global FFC.config.nonce (an `ffc_admin_pdf_nonce` value that
+		// can't verify against any of those endpoints' actions). Server
+		// returned 403 → jQuery .fail() → user saw "Connection error".
+		const chain = { done: () => chain, fail: () => chain };
+		vi.spyOn(window.$, 'post').mockImplementation((url, payload) => {
+			chain.done = function (cb) { cb({ success: true, data: 'ok' }); return chain; };
+			return chain;
+		});
+
+		await window.FFC.request('ffc_update_form_feature', { nonce: 'per-action-nonce', form_id: 5 });
+
+		const payload = window.$.post.mock.calls[0][1];
+		expect(payload.nonce).toBe('per-action-nonce');
+		expect(payload.form_id).toBe(5);
+	});
+
+	it('options.nonce wins over data.nonce wins over config.nonce', async () => {
+		const chain = { done: () => chain, fail: () => chain };
+		const postSpy = vi.spyOn(window.$, 'post').mockImplementation((url, payload) => {
+			chain.done = function (cb) { cb({ success: true, data: 'ok' }); return chain; };
+			return chain;
+		});
+
+		// options.nonce + data.nonce both set → options wins.
+		await window.FFC.request('a', { nonce: 'data-n' }, { nonce: 'opt-n' });
+		expect(postSpy.mock.calls.at(-1)[1].nonce).toBe('opt-n');
+
+		// Only data.nonce → data wins over the core-nonce default.
+		await window.FFC.request('a', { nonce: 'data-only' });
+		expect(postSpy.mock.calls.at(-1)[1].nonce).toBe('data-only');
+
+		// Neither → config.nonce default.
+		await window.FFC.request('a', {});
+		expect(postSpy.mock.calls.at(-1)[1].nonce).toBe('core-nonce');
+	});
+
 	it('rejects with a server-supplied message on response.success=false', async () => {
 		const chain = { done: () => chain, fail: () => chain };
 		vi.spyOn(window.$, 'post').mockImplementation(() => {

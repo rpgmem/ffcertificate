@@ -138,6 +138,25 @@ class EarlyOpenActionTest extends TestCase {
         $this->assertSame( 'bad_hash', $r['reason'] );
     }
 
+    public function test_early_open_disabled_when_per_form_toggle_off(): void {
+        $this->stub_geofence( null, null );
+        $this->meta_store[1] = array(
+            '_ffc_csv_public_enabled'              => '1',
+            '_ffc_csv_public_hash'                 => 'h',
+            '_ffc_csv_public_start_early_enabled'  => '0',
+        );
+        $r = EarlyOpenAction::is_eligible( 1, 'h' );
+        $this->assertSame( 'early_open_disabled', $r['reason'] );
+    }
+
+    public function test_early_open_enabled_when_per_form_toggle_unset_defaults_to_on(): void {
+        // Pre-6.5.8 forms have no stored value — must NOT regress.
+        $this->configure_eligible_form( 1, 'h' );
+        // configure_eligible_form() doesn't set the new meta — leave unset.
+        $r = EarlyOpenAction::is_eligible( 1, 'h' );
+        $this->assertTrue( $r['ok'] );
+    }
+
     public function test_datetime_disabled(): void {
         $this->stub_geofence( null, null );
         $this->meta_store[1] = array(

@@ -102,13 +102,16 @@ final class CsvDownloadFormInfoBuilder {
 				'can_preview_cert'        => $before_start,
 				// `can_open_early` powers the "Start Form Now" button — it
 				// fires only when CSV public is on (the hash is the cred),
-				// datetime restrictions are enabled, the form hasn't yet
-				// started, and (if there's an end date) it hasn't ended.
-				// Matches EarlyOpenAction::is_eligible() exactly so the JS
-				// can't see a stale "can-open" state across a state change.
+				// the per-form opt-out is on, datetime restrictions are
+				// enabled, the form hasn't yet started, and (if there's an
+				// end date) it hasn't ended. Matches EarlyOpenAction::is_eligible()
+				// exactly so the JS can't see a stale "can-open" state.
+				// `_ffc_csv_public_start_early_enabled` defaults to '1' when
+				// unset so pre-6.5.8 forms don't regress.
 				'can_open_early'          => $before_start
 					&& ! $form_ended
 					&& '1' === (string) get_post_meta( $form_id, '_ffc_csv_public_enabled', true )
+					&& '1' === self::start_early_meta( $form_id )
 					&& '1' === (string) ( $geofence_config['datetime_enabled'] ?? '' ),
 				'download_blocked_reason' => $download_reason,
 				'start_date_formatted'    => null !== $start_ts
@@ -119,6 +122,18 @@ final class CsvDownloadFormInfoBuilder {
 					: null,
 			),
 		);
+	}
+
+	/**
+	 * Resolve the per-form Start Form Early opt-out. Empty (unset) reads
+	 * as '1' so forms saved before 6.5.8 keep the feature enabled.
+	 *
+	 * @param int $form_id Form post id.
+	 * @return string '1' (enabled) or '0' (disabled).
+	 */
+	private static function start_early_meta( int $form_id ): string {
+		$raw = (string) get_post_meta( $form_id, '_ffc_csv_public_start_early_enabled', true );
+		return '' === $raw ? '1' : $raw;
 	}
 
 	/**

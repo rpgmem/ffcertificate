@@ -137,10 +137,16 @@
             pendingTimer = null;
             setBadgeState($badge, 'saving', saving);
             var value = extractValue($field, config.transform);
-            window.FFC.request('ffc_update_setting', {
-                key: config.key,
-                value: value,
-            })
+            // Endpoint expects a nonce verified against `ffc_update_setting`.
+            // The global FFC.config.nonce is created for a different
+            // action (ffc_admin_pdf_nonce), so we pull the right one
+            // from window.ffcAdminAutosave (localized by enqueue_autosave_infra).
+            var payload = { key: config.key, value: value };
+            var autosaveCfg = window.ffcAdminAutosave;
+            if (autosaveCfg && autosaveCfg.nonce) {
+                payload.nonce = autosaveCfg.nonce;
+            }
+            window.FFC.request('ffc_update_setting', payload)
                 .then(function () {
                     setBadgeState($badge, 'saved', saved);
                     lingerTimer = setTimeout(function () { hideBadge($badge); }, SAVED_LINGER);

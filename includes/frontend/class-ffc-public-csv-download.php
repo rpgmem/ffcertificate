@@ -477,13 +477,14 @@ class PublicCsvDownload {
 			// strings.
 			$reason   = $result['reason'];
 			$messages = array(
-				'unknown_form'      => __( 'Form not found.', 'ffcertificate' ),
-				'csv_disabled'      => __( 'Public access is disabled for this form.', 'ffcertificate' ),
-				'bad_hash'          => __( 'Invalid access hash.', 'ffcertificate' ),
-				'datetime_disabled' => __( 'This form does not have a scheduled start time.', 'ffcertificate' ),
-				'no_start_date'     => __( 'This form does not have a scheduled start time.', 'ffcertificate' ),
-				'already_started'   => __( 'This form has already started.', 'ffcertificate' ),
-				'already_ended'     => __( 'This form has already ended.', 'ffcertificate' ),
+				'unknown_form'        => __( 'Form not found.', 'ffcertificate' ),
+				'csv_disabled'        => __( 'Public access is disabled for this form.', 'ffcertificate' ),
+				'early_open_disabled' => __( 'Early-start is disabled for this form.', 'ffcertificate' ),
+				'bad_hash'            => __( 'Invalid access hash.', 'ffcertificate' ),
+				'datetime_disabled'   => __( 'This form does not have a scheduled start time.', 'ffcertificate' ),
+				'no_start_date'       => __( 'This form does not have a scheduled start time.', 'ffcertificate' ),
+				'already_started'     => __( 'This form has already started.', 'ffcertificate' ),
+				'already_ended'       => __( 'This form has already ended.', 'ffcertificate' ),
 			);
 			$message  = $messages[ $reason ] ?? __( 'Unable to open the form right now.', 'ffcertificate' );
 			wp_send_json_error(
