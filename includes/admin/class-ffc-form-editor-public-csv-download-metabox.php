@@ -351,8 +351,20 @@ class FormEditorPublicCsvDownloadMetabox {
 			$status_label = __( 'This form has already started — early-start no longer applies.', 'ffcertificate' );
 			$status_kind  = 'info';
 		} else {
-			$status_label = __( 'Available — operators visiting the public download page (URL above) will see a "Start Form Now" button. A confirmation modal protects against accidental clicks.', 'ffcertificate' );
-			$status_kind  = 'success';
+			// Same-day guard mirrors EarlyOpenAction::is_eligible() —
+			// the early-open surface only exists when the configured
+			// start date is "today" in the site timezone (the action
+			// only rewrites time_start, never date_start).
+			$geofence_config = get_post_meta( $post->ID, '_ffc_geofence_config', true );
+			$date_start      = is_array( $geofence_config ) ? (string) ( $geofence_config['date_start'] ?? '' ) : '';
+			$today           = current_time( 'Y-m-d' );
+			if ( $date_start !== $today ) {
+				$status_label = __( 'Available only on the scheduled start day — the early-start button surfaces to operators on the day the form is configured to begin.', 'ffcertificate' );
+				$status_kind  = 'info';
+			} else {
+				$status_label = __( 'Available — operators visiting the public download page (URL above) will see a "Start Form Now" button. A confirmation modal protects against accidental clicks.', 'ffcertificate' );
+				$status_kind  = 'success';
+			}
 		}
 		?>
 		<h3 class="ffc-section-subtitle"><?php esc_html_e( 'Start Form Early', 'ffcertificate' ); ?></h3>
