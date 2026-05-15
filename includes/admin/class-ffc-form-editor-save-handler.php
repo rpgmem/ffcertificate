@@ -40,6 +40,26 @@ class FormEditorSaveHandler {
 			return;
 		}
 
+		// Reset the public-operator one-shot guards.
+		//
+		// `ExtendEndAction` persists `_ffc_csv_public_end_postponed_at`
+		// (Unix timestamp) the first time an operator postpones the
+		// close, after which `is_eligible()` returns `already_postponed`
+		// and the frontend button disappears. An admin edit of the form
+		// is the natural cycle boundary — whatever the admin is now
+		// configuring supersedes the prior operator state, so we wipe
+		// the one-shot pair and let the operator postpone again within
+		// the new window.
+		//
+		// `EarlyOpenAction` does NOT have a persistent flag — its
+		// "one-shot" is structural (once `date_start` moves into the
+		// past, `is_eligible()` returns `already_started`). Pushing
+		// `date_start` back into the future via the metabox naturally
+		// re-enables the early-open button without needing a reset
+		// hook here.
+		delete_post_meta( $post_id, \FreeFormCertificate\Frontend\ExtendEndAction::META_POSTPONED_AT );
+		delete_post_meta( $post_id, \FreeFormCertificate\Frontend\ExtendEndAction::META_POSTPONED_FROM );
+
 		// 1. Save Form Fields.
         // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized, WordPress.Security.ValidatedSanitizedInput.MissingUnslash -- isset()/is_array() existence and type checks only.
 		if ( isset( $_POST['ffc_fields'] ) && is_array( $_POST['ffc_fields'] ) ) {
