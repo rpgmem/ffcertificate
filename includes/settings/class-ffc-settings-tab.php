@@ -216,6 +216,19 @@ abstract class SettingsTab {
 			FFC_VERSION,
 			true
 		);
+		// Endpoint-specific nonce — the global ffc_ajax.nonce is created
+		// for `ffc_admin_pdf_nonce` and won't verify against
+		// `SettingsAjaxEndpoint::AJAX_ACTION` (`ffc_update_setting`).
+		// The autosave script reads this object and passes the nonce in
+		// the `data` payload; `FFC.request` preserves it when no
+		// `options.nonce` override is provided.
+		wp_localize_script(
+			'ffc-admin-autosave',
+			'ffcAdminAutosave',
+			array(
+				'nonce' => wp_create_nonce( \FreeFormCertificate\Admin\SettingsAjaxEndpoint::AJAX_ACTION ),
+			)
+		);
 	}
 
 	/**

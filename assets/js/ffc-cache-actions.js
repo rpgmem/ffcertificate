@@ -31,7 +31,15 @@
 
     function run(action, $btn) {
         disable($btn);
-        window.FFC.request(action, {})
+        // Each action has its own nonce; pull from the localized map.
+        // FFC.request preserves data.nonce so this overrides the
+        // (wrong-action) global FFC.config.nonce default.
+        var nonces = (window.ffcCacheActions && window.ffcCacheActions.nonces) || {};
+        var payload = {};
+        if (nonces[action]) {
+            payload.nonce = nonces[action];
+        }
+        window.FFC.request(action, payload)
             .then(function (data) {
                 restore($btn);
                 var msg = (data && data.message) ? data.message : (strings.success || 'Done.');

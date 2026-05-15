@@ -327,11 +327,20 @@ class FormEditorPublicCsvDownloadMetabox {
 		$end_ts     = \FreeFormCertificate\Security\Geofence::get_form_end_timestamp( $post->ID );
 		$now        = time();
 		$enabled_ok = '1' === $enabled && '' !== $hash;
+		// Per-form opt-out for the early-open action. Defaults to '1'
+		// (enabled) on existing forms so the feature doesn't regress for
+		// installs already using it via the CSV-public toggle.
+		$start_early_raw     = get_post_meta( $post->ID, '_ffc_csv_public_start_early_enabled', true );
+		$start_early_enabled = '' === (string) $start_early_raw ? '1' : (string) $start_early_raw;
+		$sub_disabled        = ! $enabled_ok;
 
 		// Status string mirrors the eligibility branches in EarlyOpenAction.
 		if ( ! $enabled_ok ) {
 			$status_label = __( 'Enable Public Download above to expose the early-start button to operators.', 'ffcertificate' );
 			$status_kind  = 'warning';
+		} elseif ( '1' !== $start_early_enabled ) {
+			$status_label = __( 'Early-start is disabled for this form — toggle it on to expose the button.', 'ffcertificate' );
+			$status_kind  = 'info';
 		} elseif ( null === $start_ts ) {
 			$status_label = __( 'Set a start date in the Geolocation & Date/Time metabox to enable this action.', 'ffcertificate' );
 			$status_kind  = 'warning';
@@ -351,6 +360,27 @@ class FormEditorPublicCsvDownloadMetabox {
 			<?php esc_html_e( 'When eligible, the "Start Form Now" button appears on the public download page above and lets a trusted operator flip the form\'s start time to "now" — no separate URL is generated. Regenerating the hash above invalidates this action along with the CSV download.', 'ffcertificate' ); ?>
 		</p>
 		<table class="form-table ffc-csv-public-table">
+			<tr>
+				<th scope="row">
+					<label for="ffc_csv_public_start_early_enabled"><?php esc_html_e( 'Start Form Early', 'ffcertificate' ); ?></label>
+				</th>
+				<td>
+					<?php
+					\FreeFormCertificate\Admin\AdminUI::render_toggle(
+						array(
+							'name'     => 'ffc_csv_public[start_early_enabled]',
+							'id'       => 'ffc_csv_public_start_early_enabled',
+							'checked'  => '1' === $start_early_enabled,
+							'disabled' => $sub_disabled,
+							'label'    => __( 'Allow operators to start the form before the scheduled time.', 'ffcertificate' ),
+						)
+					);
+					?>
+					<p class="description">
+						<?php esc_html_e( 'Independent of Public Download: you can keep public download on while disabling the early-start action — handy for forms where the public page is read-only.', 'ffcertificate' ); ?>
+					</p>
+				</td>
+			</tr>
 			<tr>
 				<th scope="row"><?php esc_html_e( 'Status', 'ffcertificate' ); ?></th>
 				<td>

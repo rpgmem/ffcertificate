@@ -58,9 +58,9 @@ class EarlyOpenAction {
 	 *                                          reason is a stable string
 	 *                                          tag for telemetry / UX
 	 *                                          (`unknown_form`, `csv_disabled`,
-	 *                                          `bad_hash`, `datetime_disabled`,
-	 *                                          `no_start_date`, `already_started`,
-	 *                                          `already_ended`).
+	 *                                          `bad_hash`, `early_open_disabled`,
+	 *                                          `datetime_disabled`, `no_start_date`,
+	 *                                          `already_started`, `already_ended`).
 	 */
 	public static function is_eligible( int $form_id, string $hash ): array {
 		if ( $form_id <= 0 || 'ffc_form' !== get_post_type( $form_id ) ) {
@@ -82,6 +82,18 @@ class EarlyOpenAction {
 			return array(
 				'ok'     => false,
 				'reason' => 'bad_hash',
+			);
+		}
+
+		// Per-form opt-out. Pre-6.5.8 forms have an empty value, which is
+		// treated as enabled so the feature doesn't disappear from forms
+		// that already used it through the CSV-public toggle.
+		$start_early_raw = get_post_meta( $form_id, '_ffc_csv_public_start_early_enabled', true );
+		$start_early     = '' === (string) $start_early_raw ? '1' : (string) $start_early_raw;
+		if ( '1' !== $start_early ) {
+			return array(
+				'ok'     => false,
+				'reason' => 'early_open_disabled',
 			);
 		}
 

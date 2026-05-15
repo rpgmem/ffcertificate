@@ -211,6 +211,16 @@ class FormEditorSaveHandler {
 			// hash / mode / whitelist instead of overwriting them with the
 			// "no fields submitted" defaults.
 			if ( '1' === $enabled ) {
+				// Start Form Early — per-form opt-out for the early-open
+				// action introduced in 6.5.6. Defaults to '1' for installs
+				// upgrading from 6.5.6 / 6.5.7 so the feature doesn't
+				// disappear from forms already using it. The metabox
+				// renders the toggle as enabled-by-default for new forms
+				// too, so a missing POST key means the admin intentionally
+				// flipped it off.
+				$start_early = ! empty( $public_raw['start_early_enabled'] ) ? '1' : '0';
+				update_post_meta( $post_id, '_ffc_csv_public_start_early_enabled', $start_early );
+
 				// Limit: positive integer ≥ 1. Fall back to settings default (min 1).
 				$limit = isset( $public_raw['limit'] ) ? absint( $public_raw['limit'] ) : 0;
 				if ( $limit < 1 ) {

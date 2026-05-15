@@ -127,6 +127,12 @@ class TabSmtpTest extends TestCase {
         Functions\expect( 'wp_enqueue_script' )
             ->with( 'ffc-admin-autosave', Mockery::type( 'string' ), array( 'jquery', 'ffc-core', 'ffc-admin-js' ), Mockery::type( 'string' ), true )
             ->once();
+        Functions\expect( 'wp_localize_script' )
+            ->with( 'ffc-admin-autosave', 'ffcAdminAutosave', Mockery::on( function ( $arg ) {
+                return is_array( $arg ) && isset( $arg['nonce'] ) && is_string( $arg['nonce'] );
+            } ) )
+            ->once();
+        Functions\when( 'wp_create_nonce' )->justReturn( 'autosave-nonce' );
 
         $this->tab->enqueue_scripts( 'ffc_form_page_ffc-settings' );
     }
