@@ -242,19 +242,22 @@ class FormEditorPublicCsvDownloadMetabox {
 					<?php esc_html_e( 'Download audit log', 'ffcertificate' ); ?>
 				</th>
 				<td>
-					<?php if ( $ffc_audit_summary['count'] > 0 ) : ?>
-						<div class="ffc-csv-audit-summary" role="group" aria-label="<?php esc_attr_e( 'Download attempts breakdown', 'ffcertificate' ); ?>">
-							<div class="ffc-csv-audit-card">
-								<span class="ffc-csv-audit-card-label"><?php esc_html_e( 'Total attempts', 'ffcertificate' ); ?></span>
-								<span class="ffc-csv-audit-card-value"><?php echo esc_html( (string) $ffc_audit_summary['count'] ); ?></span>
+					<?php if ( $ffc_audit_summary['count'] > 0 || $ffc_audit_summary['download_success'] > 0 ) : ?>
+						<div class="ffc-csv-audit-summary" role="group" aria-label="<?php esc_attr_e( 'Audit summary', 'ffcertificate' ); ?>">
+							<div class="ffc-csv-audit-card is-success">
+								<span class="ffc-csv-audit-card-label"><?php esc_html_e( 'Successful accesses', 'ffcertificate' ); ?></span>
+								<span class="ffc-csv-audit-card-value"><?php echo esc_html( (string) $ffc_audit_summary['access_success'] ); ?></span>
+								<span class="ffc-csv-audit-card-hint"><?php esc_html_e( 'CPF + CAPTCHA validated.', 'ffcertificate' ); ?></span>
 							</div>
 							<div class="ffc-csv-audit-card is-success">
-								<span class="ffc-csv-audit-card-label"><?php esc_html_e( 'Successful', 'ffcertificate' ); ?></span>
-								<span class="ffc-csv-audit-card-value"><?php echo esc_html( (string) $ffc_audit_summary['success'] ); ?></span>
+								<span class="ffc-csv-audit-card-label"><?php esc_html_e( 'Successful downloads', 'ffcertificate' ); ?></span>
+								<span class="ffc-csv-audit-card-value"><?php echo esc_html( (string) $ffc_audit_summary['download_success'] ); ?></span>
+								<span class="ffc-csv-audit-card-hint"><?php esc_html_e( 'CSV files actually delivered.', 'ffcertificate' ); ?></span>
 							</div>
 							<div class="ffc-csv-audit-card is-fail">
-								<span class="ffc-csv-audit-card-label"><?php esc_html_e( 'Failed', 'ffcertificate' ); ?></span>
-								<span class="ffc-csv-audit-card-value"><?php echo esc_html( (string) $ffc_audit_summary['fail'] ); ?></span>
+								<span class="ffc-csv-audit-card-label"><?php esc_html_e( 'Failed accesses', 'ffcertificate' ); ?></span>
+								<span class="ffc-csv-audit-card-value"><?php echo esc_html( (string) $ffc_audit_summary['failed_access'] ); ?></span>
+								<span class="ffc-csv-audit-card-hint"><?php esc_html_e( 'Wrong CPF + wrong CAPTCHA + other errors.', 'ffcertificate' ); ?></span>
 							</div>
 						</div>
 						<?php if ( $ffc_audit_summary['count'] >= \FreeFormCertificate\Frontend\PublicCsvDownload::DOWNLOAD_LOG_MAX ) : ?>

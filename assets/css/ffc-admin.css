@@ -678,6 +678,14 @@
     color: var(--ffc-text);
 }
 
+.ffc-csv-audit-card-hint {
+    display: block;
+    font-size: 11px;
+    color: var(--ffc-text-muted);
+    margin-top: 6px;
+    line-height: 1.3;
+}
+
 /* Inline warning text used by metaboxes (replaces inline style="color:#a00"). */
 .ffc-warning-text {
     color: #a00;
