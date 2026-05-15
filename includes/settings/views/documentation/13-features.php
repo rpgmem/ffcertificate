@@ -82,8 +82,8 @@ if ( ! defined( 'ABSPATH' ) ) {
 			<?php esc_html_e( 'Define reusable named locations in Settings > Geolocation, then assign them to forms via dropdown instead of entering coordinates manually', 'ffcertificate' ); ?>
 		</li>
 		<li>
-			<strong><?php esc_html_e( 'Public CSV Download:', 'ffcertificate' ); ?></strong><br>
-			<?php esc_html_e( 'Allow form organizers to download submission CSVs via a public page using a secure hash, gated by form expiration and per-form quota', 'ffcertificate' ); ?>
+			<strong><?php esc_html_e( 'Public Operator Access (formerly Public CSV Download):', 'ffcertificate' ); ?></strong><br>
+			<?php esc_html_e( 'Allow trusted operators without WordPress login to download submission CSVs, trigger Start Form Early, and Postpone Close — all gated by the same secure per-form hash, plus form expiration and per-form download quota for the CSV', 'ffcertificate' ); ?>
 		</li>
 		<li>
 			<strong><?php esc_html_e( 'CSV Download Page URL:', 'ffcertificate' ); ?></strong><br>

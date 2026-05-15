@@ -64,7 +64,7 @@ class FormEditorPublicCsvDownloadMetabox {
 		// Nonce is emitted by render_box_layout(), which always renders before this metabox.
 		?>
 		<p class="description">
-			<?php esc_html_e( 'Allow a person without WordPress access to download the submissions CSV for this form by providing the Form ID + a hash on a public page that contains the [ffc_csv_download] shortcode.', 'ffcertificate' ); ?>
+			<?php esc_html_e( 'Lets a trusted operator without a WordPress login interact with this form via the [ffc_csv_download] shortcode. Three sub-features ride on the same hash credential: downloading the submissions CSV, opening the form ahead of its scheduled start (Start Form Early), and pushing the close time later (Postpone Close). Formerly named "Public CSV Download".', 'ffcertificate' ); ?>
 		</p>
 
 		<input type="hidden" name="ffc_csv_public[present]" value="1">
@@ -72,7 +72,7 @@ class FormEditorPublicCsvDownloadMetabox {
 			<tr>
 				<th scope="row">
 					<label for="ffc_csv_public_enabled">
-						<?php esc_html_e( 'Enable Public Download', 'ffcertificate' ); ?>
+						<?php esc_html_e( 'Enable Public Operator Access', 'ffcertificate' ); ?>
 					</label>
 				</th>
 				<td>
@@ -82,7 +82,7 @@ class FormEditorPublicCsvDownloadMetabox {
 							'name'    => 'ffc_csv_public[enabled]',
 							'id'      => 'ffc_csv_public_enabled',
 							'checked' => '1' === (string) $enabled,
-							'label'   => __( 'Allow visitors with the hash to download this form\'s CSV.', 'ffcertificate' ),
+							'label'   => __( 'Allow operators with the hash to download the CSV and trigger Start Form Early / Postpone Close.', 'ffcertificate' ),
 						)
 					);
 					?>
@@ -95,6 +95,13 @@ class FormEditorPublicCsvDownloadMetabox {
 					<?php endif; ?>
 				</td>
 			</tr>
+		</table>
+
+		<h3 class="ffc-section-subtitle"><?php esc_html_e( 'CSV Download', 'ffcertificate' ); ?></h3>
+		<p class="description">
+			<?php esc_html_e( 'Configure the public CSV download that an operator can fetch once the form has ended.', 'ffcertificate' ); ?>
+		</p>
+		<table class="form-table ffc-csv-public-table<?php echo $sub_disabled ? ' ffc-csv-public-disabled' : ''; ?>">
 
 			<tr class="ffc-csv-public-sub">
 				<th scope="row">
@@ -344,7 +351,7 @@ class FormEditorPublicCsvDownloadMetabox {
 
 		// Status string mirrors the eligibility branches in EarlyOpenAction.
 		if ( ! $enabled_ok ) {
-			$status_label = __( 'Enable Public Download above to expose the early-start button to operators.', 'ffcertificate' );
+			$status_label = __( 'Enable Public Operator Access above to expose the early-start button to operators.', 'ffcertificate' );
 			$status_kind  = 'warning';
 		} elseif ( '1' !== $start_early_enabled ) {
 			$status_label = __( 'Early-start is disabled for this form — toggle it on to expose the button.', 'ffcertificate' );
@@ -397,7 +404,7 @@ class FormEditorPublicCsvDownloadMetabox {
 					);
 					?>
 					<p class="description">
-						<?php esc_html_e( 'Independent of Public Download: you can keep public download on while disabling the early-start action — handy for forms where the public page is read-only.', 'ffcertificate' ); ?>
+						<?php esc_html_e( 'Independent of the master toggle: you can keep Public Operator Access on (CSV download remains available) while disabling the early-start action — handy for forms where the public page is read-only.', 'ffcertificate' ); ?>
 					</p>
 				</td>
 			</tr>
@@ -440,7 +447,7 @@ class FormEditorPublicCsvDownloadMetabox {
 
 		// Status string mirrors ExtendEndAction::is_eligible() branches.
 		if ( ! $enabled_ok ) {
-			$status_label = __( 'Enable Public Download above to expose the postpone-close button to operators.', 'ffcertificate' );
+			$status_label = __( 'Enable Public Operator Access above to expose the postpone-close button to operators.', 'ffcertificate' );
 			$status_kind  = 'warning';
 		} elseif ( ! $extend_on ) {
 			$status_label = __( 'Postponing the close is disabled for this form — toggle it on to expose the button.', 'ffcertificate' );
