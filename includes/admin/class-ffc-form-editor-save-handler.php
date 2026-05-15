@@ -228,6 +228,13 @@ class FormEditorSaveHandler {
 				$start_early = ! empty( $public_raw['start_early_enabled'] ) ? '1' : '0';
 				update_post_meta( $post_id, '_ffc_csv_public_start_early_enabled', $start_early );
 
+				// Postergar fim — per-form opt-IN for the postpone-end
+				// action introduced in 6.5.12. Defaults to '0' when
+				// unset (conservative: extending a public-facing window
+				// is destructive enough to require explicit consent).
+				$extend_end = ! empty( $public_raw['extend_end_enabled'] ) ? '1' : '0';
+				update_post_meta( $post_id, '_ffc_csv_public_extend_end_enabled', $extend_end );
+
 				// Limit: positive integer ≥ 1. Fall back to settings default (min 1).
 				$limit = isset( $public_raw['limit'] ) ? absint( $public_raw['limit'] ) : 0;
 				if ( $limit < 1 ) {

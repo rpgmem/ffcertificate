@@ -301,6 +301,8 @@ class AdminActivityLogPage {
 			// Public Operator Access (#224) — early-open + ticket cleanup.
 			'early_open_executed'    => __( 'Form Started Early', 'ffcertificate' ),
 			'tickets_purged_expired' => __( 'Expired Form Tickets Cleared', 'ffcertificate' ),
+			// Postpone close (6.5.12).
+			'end_postponed'          => __( 'Form Close Postponed', 'ffcertificate' ),
 		);
 
 		return isset( $labels[ $action ] ) ? $labels[ $action ] : ucwords( str_replace( '_', ' ', $action ) );
