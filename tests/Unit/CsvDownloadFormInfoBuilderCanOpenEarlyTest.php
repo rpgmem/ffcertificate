@@ -52,6 +52,15 @@ class CsvDownloadFormInfoBuilderCanOpenEarlyTest extends TestCase {
             }
             return $default;
         } );
+        // Frozen "today" matches PHP's real `time()`, so tests can use
+        // `date('Y-m-d')` to set up `date_start` consistently across
+        // the same-day guard.
+        Functions\when( 'current_time' )->alias( function ( $fmt ) {
+            if ( 'Y-m-d' === $fmt ) {
+                return gmdate( 'Y-m-d', time() );
+            }
+            return gmdate( $fmt, time() );
+        } );
 
         $this->meta_store = array();
         Functions\when( 'get_post_meta' )->alias( function ( $id, $key ) {
@@ -86,7 +95,12 @@ class CsvDownloadFormInfoBuilderCanOpenEarlyTest extends TestCase {
     private function configure_form( int $form_id ): void {
         $this->meta_store[ $form_id ] = array(
             '_ffc_form_config'         => array(),
-            '_ffc_geofence_config'     => array( 'datetime_enabled' => '1' ),
+            '_ffc_geofence_config'     => array(
+                'datetime_enabled' => '1',
+                // Same-day guard: date_start must match today for the
+                // early-open button to surface.
+                'date_start'       => gmdate( 'Y-m-d', time() ),
+            ),
             '_ffc_csv_public_enabled'  => '1',
             '_ffc_csv_public_limit'    => 5,
             '_ffc_csv_public_count'    => 0,
@@ -135,6 +149,18 @@ class CsvDownloadFormInfoBuilderCanOpenEarlyTest extends TestCase {
         $this->stub_geofence( $now + 3600, $now + 7200 );
         $this->configure_form( 1 );
         $this->meta_store[1]['_ffc_geofence_config']['datetime_enabled'] = '';
+
+        $info = ( new CsvDownloadFormInfoBuilder() )->build_form_info( 1 );
+        $this->assertFalse( $info['status']['can_open_early'] );
+    }
+
+    public function test_can_open_early_false_when_date_start_is_not_today(): void {
+        // Same-day guard: button must not surface when the form's
+        // configured start date is a different calendar day.
+        $now = time();
+        $this->stub_geofence( $now + 86400, $now + 172800 );
+        $this->configure_form( 1 );
+        $this->meta_store[1]['_ffc_geofence_config']['date_start'] = gmdate( 'Y-m-d', $now + 86400 );
 
         $info = ( new CsvDownloadFormInfoBuilder() )->build_form_info( 1 );
         $this->assertFalse( $info['status']['can_open_early'] );

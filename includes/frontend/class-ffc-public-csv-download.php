@@ -483,6 +483,7 @@ class PublicCsvDownload {
 				'bad_hash'            => __( 'Invalid access hash.', 'ffcertificate' ),
 				'datetime_disabled'   => __( 'This form does not have a scheduled start time.', 'ffcertificate' ),
 				'no_start_date'       => __( 'This form does not have a scheduled start time.', 'ffcertificate' ),
+				'not_today'           => __( 'Early-start is only available on the form\'s scheduled start day.', 'ffcertificate' ),
 				'already_started'     => __( 'This form has already started.', 'ffcertificate' ),
 				'already_ended'       => __( 'This form has already ended.', 'ffcertificate' ),
 			);

@@ -112,7 +112,8 @@ final class CsvDownloadFormInfoBuilder {
 					&& ! $form_ended
 					&& '1' === (string) get_post_meta( $form_id, '_ffc_csv_public_enabled', true )
 					&& '1' === self::start_early_meta( $form_id )
-					&& '1' === (string) ( $geofence_config['datetime_enabled'] ?? '' ),
+					&& '1' === (string) ( $geofence_config['datetime_enabled'] ?? '' )
+					&& self::is_today_start_date( $geofence_config ),
 				'download_blocked_reason' => $download_reason,
 				'start_date_formatted'    => null !== $start_ts
 					? wp_date( get_option( 'date_format' ) . ' ' . get_option( 'time_format' ), $start_ts, $tz )
@@ -134,6 +135,23 @@ final class CsvDownloadFormInfoBuilder {
 	private static function start_early_meta( int $form_id ): string {
 		$raw = (string) get_post_meta( $form_id, '_ffc_csv_public_start_early_enabled', true );
 		return '' === $raw ? '1' : $raw;
+	}
+
+	/**
+	 * Match the same-day guard `EarlyOpenAction::is_eligible()` enforces:
+	 * the early-open button only surfaces when the configured `date_start`
+	 * equals the current site-tz date. Mirrors the server check so the JS
+	 * can't see a stale "can-open" state across a date boundary.
+	 *
+	 * @param array<string, mixed> $geofence Geofence config.
+	 * @return bool True when date_start matches today (site tz).
+	 */
+	private static function is_today_start_date( array $geofence ): bool {
+		$date_start = isset( $geofence['date_start'] ) ? trim( (string) $geofence['date_start'] ) : '';
+		if ( '' === $date_start ) {
+			return false;
+		}
+		return (string) current_time( 'Y-m-d' ) === $date_start;
 	}
 
 	/**

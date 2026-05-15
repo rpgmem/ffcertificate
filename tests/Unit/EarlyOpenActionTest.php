@@ -79,17 +79,20 @@ class EarlyOpenActionTest extends TestCase {
     }
 
     private function configure_eligible_form( int $form_id, string $hash ): void {
+        // date_start must match the frozen "today" (2026-05-14) for the
+        // same-day guard in is_eligible() to pass. The button only
+        // surfaces when the form is scheduled to start today.
         $this->meta_store[ $form_id ] = array(
             '_ffc_csv_public_enabled' => '1',
             '_ffc_csv_public_hash'    => $hash,
             '_ffc_geofence_config'    => array(
                 'datetime_enabled' => '1',
-                'date_start'       => '2026-12-31',
+                'date_start'       => '2026-05-14',
                 'time_start'       => '23:00',
             ),
         );
-        // start_ts: future (now + 1 day). end_ts: also future (now + 2 days).
-        $this->stub_geofence( 1778846400, 1778932800 );
+        // start_ts: later today (6 hours after frozen now). end_ts: tomorrow.
+        $this->stub_geofence( 1778781600, 1778846400 );
     }
 
     // ==================================================================
@@ -203,6 +206,24 @@ class EarlyOpenActionTest extends TestCase {
         $this->assertSame( 'already_ended', $r['reason'] );
     }
 
+    public function test_not_today_when_date_start_in_future(): void {
+        // date_start is a future calendar day → button must not appear
+        // because the action only rewrites time_start (operator can't
+        // shift the form to a different day from this surface).
+        $this->stub_geofence( 1778846400, 1778932800 );
+        $this->meta_store[1] = array(
+            '_ffc_csv_public_enabled' => '1',
+            '_ffc_csv_public_hash'    => 'h',
+            '_ffc_geofence_config'    => array(
+                'datetime_enabled' => '1',
+                'date_start'       => '2026-05-15',
+                'time_start'       => '21:00',
+            ),
+        );
+        $r = EarlyOpenAction::is_eligible( 1, 'h' );
+        $this->assertSame( 'not_today', $r['reason'] );
+    }
+
     // ==================================================================
     // is_eligible() — happy path
     // ==================================================================
@@ -217,7 +238,11 @@ class EarlyOpenActionTest extends TestCase {
     // execute() — happy path
     // ==================================================================
 
-    public function test_execute_writes_now_to_geofence_and_returns_ok(): void {
+    public function test_execute_writes_time_start_only_and_preserves_date_start(): void {
+        // The action narrows the write to time_start. date_start /
+        // date_end / time_end / time_mode are all preserved as-is —
+        // the operator opens the form earlier within the same scheduled
+        // day, nothing else.
         $this->configure_eligible_form( 1, 'h' );
         $this->stub_formcache();
 
@@ -227,8 +252,38 @@ class EarlyOpenActionTest extends TestCase {
         // Frozen now is 2026-05-14 12:00:00 (UTC for our gmdate stub).
         $this->assertSame( '2026-05-14', $this->meta_store[1]['_ffc_geofence_config']['date_start'] );
         $this->assertSame( '12:00',      $this->meta_store[1]['_ffc_geofence_config']['time_start'] );
-        $this->assertSame( '2026-12-31 23:00', $r['original_start_iso'] );
+        $this->assertSame( '2026-05-14 23:00', $r['original_start_iso'] );
         $this->assertSame( '2026-05-14 12:00', $r['new_start_iso'] );
+    }
+
+    public function test_execute_preserves_full_window_on_multi_day_forms(): void {
+        // Form scheduled for today with a future date_end. The action
+        // only touches time_start — date_end, time_end and time_mode
+        // all stay exactly as the admin configured them.
+        $this->meta_store[1] = array(
+            '_ffc_csv_public_enabled' => '1',
+            '_ffc_csv_public_hash'    => 'h',
+            '_ffc_geofence_config'    => array(
+                'datetime_enabled' => '1',
+                'date_start'       => '2026-05-14',
+                'time_start'       => '23:00',
+                'date_end'         => '2026-05-16',
+                'time_end'         => '21:00',
+                'time_mode'        => 'daily',
+            ),
+        );
+        $this->stub_geofence( 1778781600, 1778932800 );
+        $this->stub_formcache();
+
+        $r = EarlyOpenAction::execute( 1, 'h' );
+
+        $this->assertTrue( $r['ok'] );
+        $this->assertSame( '2026-05-14', $this->meta_store[1]['_ffc_geofence_config']['date_start'] );
+        $this->assertSame( '12:00',      $this->meta_store[1]['_ffc_geofence_config']['time_start'] );
+        // date_end + time_end + time_mode are preserved.
+        $this->assertSame( '2026-05-16', $this->meta_store[1]['_ffc_geofence_config']['date_end'] );
+        $this->assertSame( '21:00',      $this->meta_store[1]['_ffc_geofence_config']['time_end'] );
+        $this->assertSame( 'daily',      $this->meta_store[1]['_ffc_geofence_config']['time_mode'] );
     }
 
     public function test_execute_short_circuits_when_eligibility_fails(): void {

@@ -60,7 +60,8 @@ class EarlyOpenAction {
 	 *                                          (`unknown_form`, `csv_disabled`,
 	 *                                          `bad_hash`, `early_open_disabled`,
 	 *                                          `datetime_disabled`, `no_start_date`,
-	 *                                          `already_started`, `already_ended`).
+	 *                                          `not_today`, `already_started`,
+	 *                                          `already_ended`).
 	 */
 	public static function is_eligible( int $form_id, string $hash ): array {
 		if ( $form_id <= 0 || 'ffc_form' !== get_post_type( $form_id ) ) {
@@ -132,6 +133,23 @@ class EarlyOpenAction {
 			);
 		}
 
+		// Same-day guard — the early-open action only rewrites
+		// time_start (not date_start), so it must NOT be exposed when
+		// the configured start date is not "today" in the site timezone.
+		// Otherwise an operator could fire the action and merely shift
+		// the clock value while date_start remains in the future
+		// (Geofence's date-range check would then still reject the
+		// form). The frontend builder mirrors this check so the button
+		// is hidden in that case.
+		$today      = current_time( 'Y-m-d' );
+		$date_start = (string) ( $geofence['date_start'] ?? '' );
+		if ( $date_start !== $today ) {
+			return array(
+				'ok'     => false,
+				'reason' => 'not_today',
+			);
+		}
+
 		return array( 'ok' => true );
 	}
 
@@ -167,6 +185,7 @@ class EarlyOpenAction {
 		// Snapshot the original window for the audit row.
 		$original_date_start = (string) ( $geofence['date_start'] ?? '' );
 		$original_time_start = (string) ( $geofence['time_start'] ?? '' );
+		$original_time_mode  = (string) ( $geofence['time_mode'] ?? 'daily' );
 
 		// current_time honours the WP site timezone — date_start /
 		// time_start are stored as local-naive strings by the geofence
@@ -174,8 +193,14 @@ class EarlyOpenAction {
 		$now_date = current_time( 'Y-m-d' );
 		$now_time = current_time( 'H:i' );
 
-		$geofence['date_start'] = $now_date;
+		// Scope of the write is intentionally narrow: only `time_start`
+		// is rewritten. The configured date_start stays untouched —
+		// eligibility (above) and the frontend button guard ensure
+		// this action only fires on the same calendar day the form was
+		// scheduled to start. date_end / time_end / time_mode are all
+		// preserved so the form's scheduled close behaviour is intact.
 		$geofence['time_start'] = $now_time;
+		$new_time_start         = $now_time;
 
 		update_post_meta( $form_id, '_ffc_geofence_config', $geofence );
 
@@ -192,10 +217,10 @@ class EarlyOpenAction {
 				'warning',
 				array(
 					'form_id'             => $form_id,
-					'original_date_start' => $original_date_start,
+					'date_start'          => $original_date_start,
 					'original_time_start' => $original_time_start,
-					'new_date_start'      => $now_date,
-					'new_time_start'      => $now_time,
+					'time_mode'           => $original_time_mode,
+					'new_time_start'      => $new_time_start,
 					'triggered_by_ip'     => (string) ( $audit_meta['ip'] ?? '' ),
 					'triggered_by_ua'     => (string) ( $audit_meta['ua'] ?? '' ),
 				),
