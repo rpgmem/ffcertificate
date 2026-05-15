@@ -1070,4 +1070,53 @@ class FormCacheTest extends TestCase {
         $this->assertSame( 0, $count );
     }
 
+    // ==================================================================
+    // purge_all_pages() — aggressive site-wide page-cache flush
+    // ==================================================================
+
+    public function test_purge_all_pages_fires_action_hook_with_all_suffix(): void {
+        $captured = array();
+        Functions\when( 'do_action' )->alias(
+            function ( $hook, $form_id = null, $reason = null ) use ( &$captured ) {
+                if ( 'ffc_form_cache_purged' === $hook ) {
+                    $captured = array( $form_id, $reason );
+                }
+            }
+        );
+
+        FormCache::purge_all_pages( 42, 'early_open' );
+
+        // ':all' suffix lets subscribers distinguish the per-post hook
+        // (`early_open`) from the aggressive sweep (`early_open:all`).
+        $this->assertSame( array( 42, 'early_open:all' ), $captured );
+    }
+
+    public function test_purge_all_pages_calls_wp_super_cache_clear(): void {
+        $GLOBALS['__wpsc_cleared'] = false;
+        if ( ! function_exists( 'wp_cache_clear_cache' ) ) {
+            // phpcs:ignore Squiz.PHP.Eval.Discouraged -- stub for the test.
+            eval( 'function wp_cache_clear_cache() { $GLOBALS["__wpsc_cleared"] = true; }' );
+        }
+        Functions\when( 'do_action' )->justReturn( true );
+
+        FormCache::purge_all_pages( 7, 'geofence_changed' );
+
+        $this->assertTrue( $GLOBALS['__wpsc_cleared'] );
+        unset( $GLOBALS['__wpsc_cleared'] );
+    }
+
+    public function test_purge_all_pages_calls_wp_rocket_clean_domain(): void {
+        $GLOBALS['__rocket_cleaned'] = false;
+        if ( ! function_exists( 'rocket_clean_domain' ) ) {
+            // phpcs:ignore Squiz.PHP.Eval.Discouraged -- stub for the test.
+            eval( 'function rocket_clean_domain() { $GLOBALS["__rocket_cleaned"] = true; }' );
+        }
+        Functions\when( 'do_action' )->justReturn( true );
+
+        FormCache::purge_all_pages( 99 );
+
+        $this->assertTrue( $GLOBALS['__rocket_cleaned'] );
+        unset( $GLOBALS['__rocket_cleaned'] );
+    }
+
 }

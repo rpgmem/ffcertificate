@@ -190,8 +190,15 @@ class FormEditorSaveHandler {
 				// availability window) flows through page caches —
 				// invalidate so the public CSV download page + the
 				// rendered form page pick up the change immediately.
+				// The `ffc_form` CPT is `'public' => false`, so the
+				// per-post `flush_post()` doesn't help the page that
+				// embeds the form via `[ffc_form id=N]` shortcode.
+				// Use the aggressive site-wide purge — geofence edits
+				// are admin-triggered, infrequent, and the visible
+				// surface lives on whatever page hosts the shortcode.
 				\FreeFormCertificate\Submissions\FormCache::clear_form_cache( $post_id );
 				\FreeFormCertificate\Submissions\FormCache::purge_external_caches( $post_id, 'geofence_changed' );
+				\FreeFormCertificate\Submissions\FormCache::purge_all_pages( $post_id, 'geofence_changed' );
 			}
 		}
 
