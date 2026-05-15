@@ -282,7 +282,16 @@ class PublicCsvDownload {
 	 * with a flash message transient).
 	 */
 	public function handle_request(): void {
-		// 1. Rate limit by IP — run BEFORE anything expensive.
+		/*
+		 * 1. Rate limit by IP — run BEFORE anything expensive.
+		 *
+		 * Pre-form_id checks (rate-limit, nonce) are NOT logged into
+		 * the per-form audit ring buffer: those rejections happen
+		 * before we know which form the request was aimed at, and
+		 * overwhelmingly come from scanners / stale tabs anyway. The
+		 * audit dashboard cares about CPF / CAPTCHA / hash / quota
+		 * outcomes, which all run after we've parsed form_id below.
+		 */
 		if ( class_exists( RateLimiter::class ) ) {
 			$ip         = \FreeFormCertificate\Core\Utils::get_user_ip();
 			$rate_check = RateLimiter::check_ip_limit( $ip );
@@ -297,26 +306,37 @@ class PublicCsvDownload {
 			$this->fail_redirect( __( 'Security check failed. Please refresh the page and try again.', 'ffcertificate' ) );
 		}
 
-		// 3. Honeypot + CAPTCHA.
-		// phpcs:ignore WordPress.Security.NonceVerification.Missing -- Nonce verified above.
-		$security_check = \FreeFormCertificate\Core\SecurityService::validate_security_fields( $_POST );
-		if ( true !== $security_check ) {
-			$this->fail_redirect( (string) $security_check );
-		}
-
-		// 4. Form ID + hash input.
+		/*
+		 * 3. Parse form_id + hash up front so subsequent failures can
+		 * be attributed to the right form's audit log. This is a
+		 * read-only POST extraction — no DB access, no auth
+		 * implications; captcha still runs as a gate before any heavy
+		 * work below.
+		 */
 		// phpcs:ignore WordPress.Security.NonceVerification.Missing -- Nonce verified above.
 		$form_id = isset( $_POST['form_id'] ) ? absint( wp_unslash( $_POST['form_id'] ) ) : 0;
 		// phpcs:ignore WordPress.Security.NonceVerification.Missing -- Nonce verified above.
 		$posted_hash = isset( $_POST['hash'] ) ? sanitize_text_field( wp_unslash( $_POST['hash'] ) ) : '';
 
+		// 4. Honeypot + CAPTCHA.
+		// phpcs:ignore WordPress.Security.NonceVerification.Missing -- Nonce verified above.
+		$security_check = \FreeFormCertificate\Core\SecurityService::validate_security_fields( $_POST );
+		if ( true !== $security_check ) {
+			if ( $form_id > 0 ) {
+				$this->validator->record_download_log_entry( $form_id, 'captcha', '', 'fail_captcha' );
+			}
+			$this->fail_redirect( (string) $security_check );
+		}
+
+		// 5. Form-id / hash presence.
 		if ( $form_id <= 0 || '' === $posted_hash ) {
 			$this->fail_redirect( __( 'Please inform both the Form ID and the Access Hash.', 'ffcertificate' ) );
 		}
 
-		// 5–9. Business-logic validation.
+		// 6–9. Business-logic validation (hash mismatch, form ended, quota).
 		$error = $this->validate_form_access( $form_id, $posted_hash );
 		if ( null !== $error ) {
+			$this->validator->record_download_log_entry( $form_id, 'access', '', 'fail_other' );
 			$this->fail_redirect( $error );
 		}
 
@@ -348,7 +368,12 @@ class PublicCsvDownload {
 	 * (does NOT require the form to be ended or quota available).
 	 */
 	public function ajax_info(): void {
-		// 1. Rate limit.
+		/*
+		 * 1. Rate limit.
+		 *
+		 * See `handle_request()` for why pre-form_id rejections
+		 * (rate-limit, nonce) are intentionally not audit-logged.
+		 */
 		if ( class_exists( RateLimiter::class ) ) {
 			$ip         = \FreeFormCertificate\Core\Utils::get_user_ip();
 			$rate_check = RateLimiter::check_ip_limit( $ip );
@@ -362,23 +387,32 @@ class PublicCsvDownload {
 			wp_send_json_error( array( 'message' => __( 'Security check failed. Please refresh the page and try again.', 'ffcertificate' ) ) );
 		}
 
-		// 3. Honeypot + CAPTCHA.
-		$security_check = \FreeFormCertificate\Core\SecurityService::validate_security_fields( $_POST ); // phpcs:ignore WordPress.Security.NonceVerification.Missing
-		if ( true !== $security_check ) {
-			wp_send_json_error( array( 'message' => (string) $security_check ) );
-		}
-
-		// 4. Sanitize input.
+		/*
+		 * 3. Sanitize input up front so subsequent failures (captcha,
+		 * hash mismatch, etc.) can be attributed to the right form's
+		 * audit log.
+		 */
 		$form_id     = isset( $_POST['form_id'] ) ? absint( wp_unslash( $_POST['form_id'] ) ) : 0; // phpcs:ignore WordPress.Security.NonceVerification.Missing
 		$posted_hash = isset( $_POST['hash'] ) ? sanitize_text_field( wp_unslash( $_POST['hash'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Missing
 
+		// 4. Honeypot + CAPTCHA.
+		$security_check = \FreeFormCertificate\Core\SecurityService::validate_security_fields( $_POST ); // phpcs:ignore WordPress.Security.NonceVerification.Missing
+		if ( true !== $security_check ) {
+			if ( $form_id > 0 ) {
+				$this->validator->record_download_log_entry( $form_id, 'captcha', '', 'fail_captcha' );
+			}
+			wp_send_json_error( array( 'message' => (string) $security_check ) );
+		}
+
+		// 5. Form-id / hash presence.
 		if ( $form_id <= 0 || '' === $posted_hash ) {
 			wp_send_json_error( array( 'message' => __( 'Please inform both the Form ID and the Access Hash.', 'ffcertificate' ) ) );
 		}
 
-		// 5–7. Hash-only validation (form exists, feature enabled, hash matches).
+		// 6–7. Hash-only validation (form exists, feature enabled, hash matches).
 		$error = $this->validate_hash_only( $form_id, $posted_hash );
 		if ( null !== $error ) {
+			$this->validator->record_download_log_entry( $form_id, 'access', '', 'fail_other' );
 			wp_send_json_error( array( 'message' => $error ) );
 		}
 
@@ -753,31 +787,51 @@ class PublicCsvDownload {
 	/**
 	 * Public read-only count + URL builder for the metabox button.
 	 *
+	 * Returns three operator-facing buckets (6.5.13):
+	 *
+	 *   - `access_success` — captcha + CPF gate both passed (i.e. the
+	 *     visitor reached the info / preview screen successfully).
+	 *     Computed from the `success` / `audit_pass` / `voluntary` rows
+	 *     emitted by `CsvDownloadValidator::validate_cpf_requirement()`;
+	 *     by construction those rows imply captcha already passed,
+	 *     since captcha runs as an earlier gate.
+	 *   - `download_success` — count of CSV files actually delivered
+	 *     by `handle_request()`. Sourced from the long-lived
+	 *     `_ffc_csv_public_count` counter rather than from the audit
+	 *     ring buffer (which only keeps the most recent
+	 *     DOWNLOAD_LOG_MAX rows). A single counter survives log
+	 *     rotation and never under-counts after the buffer fills.
+	 *   - `failed_access` — every `fail_*` row in the ring buffer
+	 *     (`fail_missing`, `fail_format`, `fail_match`,
+	 *     `fail_unknown_mode`, `fail_captcha`, `fail_other`). Unknown
+	 *     future tags fall through to this bucket so a silent
+	 *     "success" inflation is impossible.
+	 *
+	 * The legacy keys `count` / `success` / `fail` are still returned
+	 * so any unforeseen external consumer doesn't blow up; metabox UI
+	 * has migrated to the new three-bucket shape.
+	 *
 	 * @param int $form_id Form ID.
-	 * @return array{count: int, success: int, fail: int, url: string|null}
+	 * @return array{count: int, success: int, fail: int, access_success: int, download_success: int, failed_access: int, url: string|null}
 	 */
 	public static function get_audit_log_summary( int $form_id ): array {
 		$log   = get_post_meta( $form_id, self::META_DOWNLOAD_LOG, true );
 		$log   = is_array( $log ) ? $log : array();
 		$count = count( $log );
 
-		// Categorise each entry's `result` tag into success / fail buckets.
-		// Success = the download was actually delivered. Failures cover all
-		// reasons the gate denied the request before streaming the CSV.
-		// `voluntary` is treated as success (it means the visitor passed an
-		// optional CPF and the download proceeded). Unknown future tags are
-		// counted as failures by default to avoid silently inflating success.
-		$success_tags = array( 'success', 'audit_pass', 'voluntary' );
-		$success      = 0;
-		$fail         = 0;
+		$access_success_tags = array( 'success', 'audit_pass', 'voluntary' );
+		$access_success      = 0;
+		$failed_access       = 0;
 		foreach ( $log as $entry ) {
 			$result = is_array( $entry ) && isset( $entry['result'] ) ? (string) $entry['result'] : '';
-			if ( in_array( $result, $success_tags, true ) ) {
-				++$success;
+			if ( in_array( $result, $access_success_tags, true ) ) {
+				++$access_success;
 			} else {
-				++$fail;
+				++$failed_access;
 			}
 		}
+
+		$download_success = (int) get_post_meta( $form_id, self::META_COUNT, true );
 
 		$url = null;
 		if ( $count > 0 ) {
@@ -791,10 +845,13 @@ class PublicCsvDownload {
 			);
 		}
 		return array(
-			'count'   => $count,
-			'success' => $success,
-			'fail'    => $fail,
-			'url'     => $url,
+			'count'            => $count,
+			'success'          => $access_success,
+			'fail'             => $failed_access,
+			'access_success'   => $access_success,
+			'download_success' => $download_success,
+			'failed_access'    => $failed_access,
+			'url'              => $url,
 		);
 	}
 

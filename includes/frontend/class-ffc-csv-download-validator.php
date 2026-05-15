@@ -256,14 +256,24 @@ final class CsvDownloadValidator {
 	 * after upgrade by maybe_wipe_legacy_logs() — see that method for the
 	 * justification (install base reality + clean break).
 	 *
+	 * Made `public` in 6.5.13 so `PublicCsvDownload` can record audit
+	 * rows for non-CPF outcomes too (captcha rejection, hash mismatch,
+	 * form-closed, quota exhausted). The encryption + ring-buffer
+	 * pruning belongs here, so promoting visibility beats duplicating
+	 * the logic into the AJAX handlers.
+	 *
 	 * @param int    $form_id Form ID.
-	 * @param string $mode    CPF gate mode that was active.
-	 * @param string $digits  Digits-only CPF (may be '' for fail_missing).
+	 * @param string $mode    CPF gate mode that was active (or a synthetic
+	 *                        label like 'captcha' / 'access' when this is
+	 *                        called outside the CPF gate).
+	 * @param string $digits  Digits-only CPF (may be '' for fail_missing
+	 *                        or for non-CPF outcomes).
 	 * @param string $result  Outcome tag: success | fail_missing |
 	 *                        fail_format | fail_match | fail_unknown_mode |
-	 *                        audit_pass | voluntary.
+	 *                        audit_pass | voluntary | fail_captcha |
+	 *                        fail_other.
 	 */
-	private function record_download_log_entry( int $form_id, string $mode, string $digits, string $result ): void {
+	public function record_download_log_entry( int $form_id, string $mode, string $digits, string $result ): void {
 		$cpf_encrypted = '';
 		if ( '' !== $digits
 			&& class_exists( '\FreeFormCertificate\Core\Encryption' )

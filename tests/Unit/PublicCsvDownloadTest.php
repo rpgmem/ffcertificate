@@ -409,6 +409,50 @@ class PublicCsvDownloadTest extends TestCase {
         $this->assertNull( $summary['url'] );
     }
 
+    public function test_get_audit_log_summary_three_buckets(): void {
+        $form_id = 99;
+        $this->meta_store[ $form_id . ':_ffc_csv_public_count' ] = 7;
+        $this->meta_store[ $form_id . ':_ffc_csv_public_download_log' ] = array(
+            array( 'result' => 'success' ),
+            array( 'result' => 'audit_pass' ),
+            array( 'result' => 'voluntary' ),
+            array( 'result' => 'fail_format' ),
+            array( 'result' => 'fail_captcha' ),
+            array( 'result' => 'fail_other' ),
+            array( 'result' => 'fail_match' ),
+            array( 'result' => 'fail_missing' ),
+        );
+        Functions\when( 'wp_create_nonce' )->justReturn( 'n' );
+        Functions\when( 'add_query_arg' )->alias( fn( $args, $url ) => $url . '?' . http_build_query( $args ) );
+
+        $summary = PublicCsvDownload::get_audit_log_summary( $form_id );
+
+        $this->assertSame( 3, $summary['access_success'], 'success + audit_pass + voluntary' );
+        $this->assertSame( 7, $summary['download_success'], 'META_COUNT (long-lived counter)' );
+        $this->assertSame( 5, $summary['failed_access'], 'all fail_* tags incl. fail_captcha + fail_other' );
+        // Legacy keys still populated for backwards compat.
+        $this->assertSame( 3, $summary['success'] );
+        $this->assertSame( 5, $summary['fail'] );
+    }
+
+    public function test_get_audit_log_summary_unknown_tag_counted_as_failure(): void {
+        $form_id = 100;
+        $this->meta_store[ $form_id . ':_ffc_csv_public_download_log' ] = array(
+            array( 'result' => 'success' ),
+            array( 'result' => 'totally_unknown_future_tag' ),
+        );
+        Functions\when( 'wp_create_nonce' )->justReturn( 'n' );
+        Functions\when( 'add_query_arg' )->alias( fn( $args, $url ) => $url . '?' . http_build_query( $args ) );
+
+        $summary = PublicCsvDownload::get_audit_log_summary( $form_id );
+
+        $this->assertSame( 1, $summary['access_success'] );
+        // Unknown tag falls through to failed_access — prevents silent
+        // inflation of the success bucket if we ever forget to update the
+        // tag list when adding a new positive outcome.
+        $this->assertSame( 1, $summary['failed_access'] );
+    }
+
     public function test_register_hooks_registers_shortcode_and_admin_post_actions(): void {
         $captured = array();
         Functions\when( 'add_shortcode' )->alias( function ( $tag, $cb ) use ( &$captured ) {
