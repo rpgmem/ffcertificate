@@ -215,6 +215,43 @@ describe('FFC admin-autosave — bootAutoSaveFields page-init', () => {
 		spy.mockRestore();
 	});
 
+	it('anchors the badge after the .ffc-toggle wrapper, not between input and track', async () => {
+		// Regression test for the user-reported bug where toggle change
+		// "didn't save" — actually saved fine, but the badge injected
+		// between <input> and <span.ffc-toggle-track> broke the CSS
+		// `input:checked + .ffc-toggle-track` sibling rule, so the
+		// track never recoloured and the toggle visually stayed off.
+		document.body.innerHTML = `
+			<label class="ffc-toggle" for="t">
+				<input type="checkbox" id="t" />
+				<span class="ffc-toggle-track"></span>
+				<span class="ffc-toggle-label">Test</span>
+			</label>
+		`;
+		vi.spyOn(window.$, 'post').mockImplementation(() => makeChain(() => ({
+			success: true, data: {},
+		})));
+		window.FFC.Admin.autoSaveField(window.$('#t'), { key: 'enable_activity_log' });
+
+		window.$('#t').prop('checked', true).trigger('change');
+		vi.advanceTimersByTime(400);
+		await Promise.resolve();
+		await Promise.resolve();
+
+		// Track must still be the immediate next sibling of the input.
+		const input = document.getElementById('t');
+		expect(input.nextElementSibling).not.toBeNull();
+		expect(input.nextElementSibling.className).toBe('ffc-toggle-track');
+
+		// Badge must exist and live outside the label.
+		const badge = document.querySelector('.ffc-autosave-badge');
+		expect(badge).not.toBeNull();
+		expect(badge.parentElement).toBe(document.body);
+		// Anchored right after the wrapping .ffc-toggle label.
+		const label = document.querySelector('.ffc-toggle');
+		expect(label.nextElementSibling).toBe(badge);
+	});
+
 	it('ignores a non-numeric data-ffc-autosave-debounce attr', () => {
 		document.body.innerHTML = `
 			<input data-ffc-autosave-key="x" data-ffc-autosave-debounce="not-a-number">
