@@ -243,4 +243,65 @@ class FormEditorSaveHandlerTest extends TestCase {
         $errors = $this->invoke( 'validate_areas_format', array( "bad", 'IP' ) );
         $this->assertStringContainsString( 'IP', $errors[0] );
     }
+
+    // ==================================================================
+    // save_form_data() — postpone-end one-shot reset
+    // ==================================================================
+
+    /**
+     * Admin save must clear the postpone-end one-shot meta so the operator
+     * can postpone again within the newly-configured close window.
+     *
+     * `EarlyOpenAction` has no persistent flag (its one-shot is structural:
+     * once `date_start` is in the past, eligibility flips to `already_started`),
+     * so only the postpone-end pair gets cleared here.
+     */
+    public function test_save_form_data_clears_postpone_end_one_shot(): void {
+        Functions\when( 'wp_verify_nonce' )->justReturn( true );
+        Functions\when( 'current_user_can' )->justReturn( true );
+        Functions\when( 'wp_unslash' )->returnArg();
+        Functions\when( 'sanitize_key' )->returnArg();
+        Functions\when( 'sanitize_textarea_field' )->returnArg();
+        Functions\when( 'absint' )->alias( static fn( $v ) => (int) $v );
+        Functions\when( 'get_option' )->justReturn( array() );
+
+        $deleted = array();
+        Functions\when( 'delete_post_meta' )->alias(
+            static function ( $id, $key ) use ( &$deleted ): bool {
+                $deleted[] = array( (int) $id, (string) $key );
+                return true;
+            }
+        );
+        Functions\when( 'update_post_meta' )->justReturn( true );
+        Functions\when( 'get_post_meta' )->justReturn( '' );
+        Functions\when( 'set_transient' )->justReturn( true );
+
+        $_POST = array( 'ffc_form_nonce' => 'abc' );
+
+        $this->handler->save_form_data( 42 );
+
+        $keys = array_column( $deleted, 1 );
+        $this->assertContains( '_ffc_csv_public_end_postponed_at', $keys );
+        $this->assertContains( '_ffc_csv_public_end_postponed_from', $keys );
+        $this->assertContains( 42, array_column( $deleted, 0 ) );
+    }
+
+    public function test_save_form_data_skips_reset_when_nonce_invalid(): void {
+        Functions\when( 'wp_verify_nonce' )->justReturn( false );
+        Functions\when( 'current_user_can' )->justReturn( true );
+        Functions\when( 'wp_unslash' )->returnArg();
+
+        $deleted = array();
+        Functions\when( 'delete_post_meta' )->alias(
+            static function ( $id, $key ) use ( &$deleted ): bool {
+                $deleted[] = $key;
+                return true;
+            }
+        );
+
+        $_POST = array( 'ffc_form_nonce' => 'bad' );
+        $this->handler->save_form_data( 42 );
+
+        $this->assertSame( array(), $deleted, 'No deletes when nonce check fails.' );
+    }
 }
