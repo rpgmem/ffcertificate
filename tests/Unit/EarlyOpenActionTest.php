@@ -75,7 +75,8 @@ class EarlyOpenActionTest extends TestCase {
     private function stub_formcache(): void {
         Mockery::mock( 'alias:FreeFormCertificate\Submissions\FormCache' )
             ->shouldReceive( 'clear_form_cache' )->andReturn( true )
-            ->getMock()->shouldReceive( 'purge_external_caches' )->andReturnNull();
+            ->getMock()->shouldReceive( 'purge_external_caches' )->andReturnNull()
+            ->getMock()->shouldReceive( 'purge_all_pages' )->andReturnNull();
     }
 
     private function configure_eligible_form( int $form_id, string $hash ): void {

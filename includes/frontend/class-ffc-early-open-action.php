@@ -204,11 +204,17 @@ class EarlyOpenAction {
 
 		update_post_meta( $form_id, '_ffc_geofence_config', $geofence );
 
-		// Invalidate the plugin's own object cache + any page-cache
-		// plugins (W3TC/LiteSpeed/Super Cache/WP Rocket/Cloudflare APO
-		// via the hook). Both lines added in #225 specifically for this.
+		// Invalidate the plugin's own object cache + page-cache plugins.
+		// The `ffc_form` CPT is registered with `'public' => false`, so
+		// the per-post `flush_post()` in purge_external_caches() doesn't
+		// help the visible surface — what visitors see is the page that
+		// embeds `[ffc_form id=N]`, a different post the cache plugins
+		// can't associate with the form id. Use the aggressive site-wide
+		// purge for this one-shot, deliberate state change so the page
+		// hosting the shortcode actually picks up the new time_start.
 		\FreeFormCertificate\Submissions\FormCache::clear_form_cache( $form_id );
 		\FreeFormCertificate\Submissions\FormCache::purge_external_caches( $form_id, 'early_open' );
+		\FreeFormCertificate\Submissions\FormCache::purge_all_pages( $form_id, 'early_open' );
 
 		// Audit log — best-effort, doesn't block the action on failure.
 		if ( class_exists( '\FreeFormCertificate\Core\ActivityLog' ) ) {

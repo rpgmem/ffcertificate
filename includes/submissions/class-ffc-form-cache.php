@@ -179,6 +179,87 @@ class FormCache {
 	}
 
 	/**
+	 * Aggressive page-cache purge across the whole site — for one-shot
+	 * admin-triggered events (early-open, geofence change) where the
+	 * per-post `flush_post()` calls in {@see purge_external_caches()}
+	 * don't help because the `ffc_form` CPT is registered with
+	 * `'public' => false`. The visible surface is the WP page that
+	 * embeds `[ffc_form id=N]` via shortcode — a different post the
+	 * cache plugins can't associate with the form id automatically.
+	 *
+	 * Hits each integration's broad "purge all" API instead of the
+	 * per-post one. Each call is best-effort (try/catch) so a
+	 * misbehaving cache plugin can never break the host action.
+	 *
+	 * Pair with {@see purge_external_caches()} — that one fires the
+	 * `ffc_form_cache_purged` action hook with the form id, while this
+	 * one is unconditional. The action hook below also fires here so
+	 * Cloudflare APO / Redis page cache integrations get the same
+	 * signal for both code paths.
+	 *
+	 * @param int    $form_id The form post id (passed to the action hook
+	 *                        for consumers that want it; the cache plugin
+	 *                        purges themselves are site-wide).
+	 * @param string $reason  Free-form tag — currently 'early_open' or
+	 *                        'geofence_changed'.
+	 */
+	public static function purge_all_pages( int $form_id, string $reason = '' ): void {
+		// W3 Total Cache — site-wide page cache flush.
+		if ( class_exists( '\W3TC\Dispatcher' ) ) {
+			try {
+				$component = \W3TC\Dispatcher::component( 'CacheFlush' );
+				if ( is_object( $component ) ) {
+					if ( method_exists( $component, 'flush_pgcache' ) ) {
+						$component->flush_pgcache();
+					} elseif ( method_exists( $component, 'flush_all' ) ) {
+						$component->flush_all();
+					}
+				}
+			} catch ( \Throwable $e ) { // phpcs:ignore Generic.CodeAnalysis.EmptyStatement.DetectedCatch -- best-effort.
+				// Swallow.
+			}
+		}
+
+		// LiteSpeed Cache.
+		if ( class_exists( '\LiteSpeed\Purge' ) ) {
+			try {
+				\LiteSpeed\Purge::purge_all( 'FFC ' . $reason );
+			} catch ( \Throwable $e ) { // phpcs:ignore Generic.CodeAnalysis.EmptyStatement.DetectedCatch -- best-effort.
+				// Swallow.
+			}
+		}
+
+		// WP Super Cache.
+		if ( function_exists( 'wp_cache_clear_cache' ) ) {
+			try {
+				wp_cache_clear_cache();
+			} catch ( \Throwable $e ) { // phpcs:ignore Generic.CodeAnalysis.EmptyStatement.DetectedCatch -- best-effort.
+				// Swallow.
+			}
+		}
+
+		// WP Rocket — clean entire site cache.
+		if ( function_exists( 'rocket_clean_domain' ) ) {
+			try {
+				rocket_clean_domain();
+			} catch ( \Throwable $e ) { // phpcs:ignore Generic.CodeAnalysis.EmptyStatement.DetectedCatch -- best-effort.
+				// Swallow.
+			}
+		}
+
+		/**
+		 * Mirror the per-form hook so consumers (Cloudflare APO, Redis
+		 * page cache, custom CDN purgers) receive the same signal on
+		 * the aggressive-purge path. `$reason` is suffixed `:all` so
+		 * subscribers that want to differentiate can.
+		 *
+		 * @param int    $form_id Form post id that triggered the purge.
+		 * @param string $reason  Source tag + ':all' suffix.
+		 */
+		do_action( 'ffc_form_cache_purged', $form_id, $reason . ':all' );
+	}
+
+	/**
 	 * Best-effort external page-cache purge across known third-party
 	 * plugins, plus an action hook for anything else (Cloudflare APO,
 	 * Redis page cache, custom setups).
