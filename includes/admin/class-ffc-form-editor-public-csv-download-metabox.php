@@ -303,6 +303,11 @@ class FormEditorPublicCsvDownloadMetabox {
 		// Start Form Early URL — same hash, different action surface.
 		// ──────────────────────────────────────────────────────────────.
 		$this->render_start_form_early_block( $post, $enabled, $hash );
+
+		// ──────────────────────────────────────────────────────────────.
+		// Postergar fim — sibling action, same hash, same modal pattern.
+		// ──────────────────────────────────────────────────────────────.
+		$this->render_extend_end_block( $post, $enabled, $hash );
 		?>
 		<?php
 	}
@@ -390,6 +395,105 @@ class FormEditorPublicCsvDownloadMetabox {
 					?>
 					<p class="description">
 						<?php esc_html_e( 'Independent of Public Download: you can keep public download on while disabling the early-start action — handy for forms where the public page is read-only.', 'ffcertificate' ); ?>
+					</p>
+				</td>
+			</tr>
+			<tr>
+				<th scope="row"><?php esc_html_e( 'Status', 'ffcertificate' ); ?></th>
+				<td>
+					<span class="ffc-status-pill ffc-status-pill--<?php echo esc_attr( $status_kind ); ?>">
+						<?php echo esc_html( $status_label ); ?>
+					</span>
+				</td>
+			</tr>
+		</table>
+		<?php
+	}
+
+	/**
+	 * Render the "Postergar fim" status sub-block of the Public Operator
+	 * Access metabox.
+	 *
+	 * Sibling of {@see render_start_form_early_block()} for the close
+	 * boundary. The operator can postpone `time_end` once per form,
+	 * within the same day as the configured `date_end`. Defaults to
+	 * opt-IN (conservative): admin must explicitly toggle on.
+	 *
+	 * @since 6.5.12
+	 * @param WP_Post $post    The form post.
+	 * @param string  $enabled CSV-public toggle ('1' or '').
+	 * @param string  $hash    The form's CSV-public hash, if any.
+	 */
+	private function render_extend_end_block( WP_Post $post, string $enabled, string $hash ): void {
+		$start_ts      = \FreeFormCertificate\Security\Geofence::get_form_start_timestamp( $post->ID );
+		$end_ts        = \FreeFormCertificate\Security\Geofence::get_form_end_timestamp( $post->ID );
+		$now           = time();
+		$enabled_ok    = '1' === $enabled && '' !== $hash;
+		$extend_raw    = (string) get_post_meta( $post->ID, '_ffc_csv_public_extend_end_enabled', true );
+		$extend_on     = '1' === $extend_raw;
+		$postponed_at  = (string) get_post_meta( $post->ID, \FreeFormCertificate\Frontend\ExtendEndAction::META_POSTPONED_AT, true );
+		$postponed_frm = (string) get_post_meta( $post->ID, \FreeFormCertificate\Frontend\ExtendEndAction::META_POSTPONED_FROM, true );
+		$sub_disabled  = ! $enabled_ok;
+
+		// Status string mirrors ExtendEndAction::is_eligible() branches.
+		if ( ! $enabled_ok ) {
+			$status_label = __( 'Enable Public Download above to expose the postpone-close button to operators.', 'ffcertificate' );
+			$status_kind  = 'warning';
+		} elseif ( ! $extend_on ) {
+			$status_label = __( 'Postponing the close is disabled for this form — toggle it on to expose the button.', 'ffcertificate' );
+			$status_kind  = 'info';
+		} elseif ( null === $end_ts ) {
+			$status_label = __( 'Set an end date in the Geolocation & Date/Time metabox to enable this action.', 'ffcertificate' );
+			$status_kind  = 'warning';
+		} elseif ( '' !== $postponed_at ) {
+			$status_label = sprintf(
+				/* translators: %s: original time_end value (HH:MM). */
+				__( 'Already postponed once for this form (was %s). Edit time_end manually below if you need to extend further.', 'ffcertificate' ),
+				'' !== $postponed_frm ? $postponed_frm : '—'
+			);
+			$status_kind = 'info';
+		} elseif ( $end_ts <= $now ) {
+			$status_label = __( 'This form has already ended — postponing no longer applies.', 'ffcertificate' );
+			$status_kind  = 'info';
+		} elseif ( null !== $start_ts && $start_ts > $now ) {
+			$status_label = __( 'Available once the form is open — the button surfaces between the start and the scheduled close.', 'ffcertificate' );
+			$status_kind  = 'info';
+		} else {
+			$geofence_config = get_post_meta( $post->ID, '_ffc_geofence_config', true );
+			$date_end        = is_array( $geofence_config ) ? (string) ( $geofence_config['date_end'] ?? '' ) : '';
+			$today           = current_time( 'Y-m-d' );
+			if ( $date_end !== $today ) {
+				$status_label = __( 'Available only on the scheduled close day — the button surfaces to operators on the day the form is configured to end.', 'ffcertificate' );
+				$status_kind  = 'info';
+			} else {
+				$status_label = __( 'Available — operators visiting the public download page will see a "Postpone close" button. One-shot per form.', 'ffcertificate' );
+				$status_kind  = 'success';
+			}
+		}
+		?>
+		<h3 class="ffc-section-subtitle"><?php esc_html_e( 'Postpone Close', 'ffcertificate' ); ?></h3>
+		<p class="description">
+			<?php esc_html_e( 'When eligible, a "Postpone close" button appears on the public download page above and lets a trusted operator push the form\'s close time later within the same day. Strictly one-shot per form — admin can edit time_end manually afterwards if needed.', 'ffcertificate' ); ?>
+		</p>
+		<table class="form-table ffc-csv-public-table">
+			<tr>
+				<th scope="row">
+					<label for="ffc_csv_public_extend_end_enabled"><?php esc_html_e( 'Postpone Close', 'ffcertificate' ); ?></label>
+				</th>
+				<td>
+					<?php
+					\FreeFormCertificate\Admin\AdminUI::render_toggle(
+						array(
+							'name'     => 'ffc_csv_public[extend_end_enabled]',
+							'id'       => 'ffc_csv_public_extend_end_enabled',
+							'checked'  => $extend_on,
+							'disabled' => $sub_disabled,
+							'label'    => __( 'Allow operators to postpone the close time once.', 'ffcertificate' ),
+						)
+					);
+					?>
+					<p class="description">
+						<?php esc_html_e( 'Off by default — turn on consciously since extending a public-facing window is destructive-ish.', 'ffcertificate' ); ?>
 					</p>
 				</td>
 			</tr>

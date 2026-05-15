@@ -114,6 +114,21 @@ final class CsvDownloadFormInfoBuilder {
 					&& '1' === self::start_early_meta( $form_id )
 					&& '1' === (string) ( $geofence_config['datetime_enabled'] ?? '' )
 					&& self::is_today_start_date( $geofence_config ),
+				// `can_extend_end` powers the "Postergar fim" button —
+				// it fires only when CSV public is on, the per-form
+				// opt-IN is on, datetime restrictions are enabled, the
+				// form has STARTED and not yet ended, today equals the
+				// configured date_end, and the one-shot guard hasn't
+				// fired. Mirrors ExtendEndAction::is_eligible() so JS
+				// can't see a stale "can-extend" state.
+				'can_extend_end'          => ! $before_start
+					&& ! $form_ended
+					&& '1' === (string) get_post_meta( $form_id, '_ffc_csv_public_enabled', true )
+					&& '1' === (string) get_post_meta( $form_id, \FreeFormCertificate\Frontend\ExtendEndAction::META_ENABLED, true )
+					&& '1' === (string) ( $geofence_config['datetime_enabled'] ?? '' )
+					&& self::is_today_end_date( $geofence_config )
+					&& '' === (string) get_post_meta( $form_id, \FreeFormCertificate\Frontend\ExtendEndAction::META_POSTPONED_AT, true ),
+				'current_time_end'        => isset( $geofence_config['time_end'] ) ? (string) $geofence_config['time_end'] : '',
 				'download_blocked_reason' => $download_reason,
 				'start_date_formatted'    => null !== $start_ts
 					? wp_date( get_option( 'date_format' ) . ' ' . get_option( 'time_format' ), $start_ts, $tz )
@@ -152,6 +167,21 @@ final class CsvDownloadFormInfoBuilder {
 			return false;
 		}
 		return (string) current_time( 'Y-m-d' ) === $date_start;
+	}
+
+	/**
+	 * Sibling of {@see is_today_start_date()} for the close boundary —
+	 * mirrors the `not_today` branch in `ExtendEndAction::is_eligible()`.
+	 *
+	 * @param array<string, mixed> $geofence Geofence config.
+	 * @return bool True when date_end matches today (site tz).
+	 */
+	private static function is_today_end_date( array $geofence ): bool {
+		$date_end = isset( $geofence['date_end'] ) ? trim( (string) $geofence['date_end'] ) : '';
+		if ( '' === $date_end ) {
+			return false;
+		}
+		return (string) current_time( 'Y-m-d' ) === $date_end;
 	}
 
 	/**

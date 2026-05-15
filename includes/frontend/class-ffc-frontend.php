@@ -381,6 +381,18 @@ class Frontend {
 						'openEarlyConfirm'      => __( 'Confirm and start form', 'ffcertificate' ),
 						'starting'              => __( 'Starting…', 'ffcertificate' ),
 						'openEarlySuccess'      => __( 'Form is now open.', 'ffcertificate' ),
+						// Postpone close (6.5.12).
+						'postponeClose'         => __( 'Postpone close', 'ffcertificate' ),
+						'postponeCloseTooltip'  => __( 'Move the form\'s close time later within the same day. One-shot per form.', 'ffcertificate' ),
+						'postponeCloseTitle'    => __( 'Postpone form close?', 'ffcertificate' ),
+						'postponeCloseBody'     => __( 'Pick a new close time within the same day. This action is one-shot — once confirmed it cannot be repeated from this page.', 'ffcertificate' ),
+						'postponeCurrentLabel'  => __( 'Current scheduled close:', 'ffcertificate' ),
+						'postponeNewLabel'      => __( 'New close time:', 'ffcertificate' ),
+						'postponeIrreversible'  => __( 'This action can only be performed once per form.', 'ffcertificate' ),
+						'postponeConfirm'       => __( 'Confirm postponement', 'ffcertificate' ),
+						'postponing'            => __( 'Postponing…', 'ffcertificate' ),
+						'postponeSuccess'       => __( 'Close time postponed.', 'ffcertificate' ),
+						'postponeInvalid'       => __( 'Please pick a valid time later than the current close (HH:MM).', 'ffcertificate' ),
 					),
 				)
 			);

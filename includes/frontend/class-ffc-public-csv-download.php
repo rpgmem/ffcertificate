@@ -112,6 +112,10 @@ class PublicCsvDownload {
 		add_action( 'wp_ajax_ffc_public_open_early', array( $this, 'ajax_open_early' ) );
 		add_action( 'wp_ajax_nopriv_ffc_public_open_early', array( $this, 'ajax_open_early' ) );
 
+		// AJAX: postpone the form's close time (one-shot, same day).
+		add_action( 'wp_ajax_ffc_public_extend_end', array( $this, 'ajax_extend_end' ) );
+		add_action( 'wp_ajax_nopriv_ffc_public_extend_end', array( $this, 'ajax_extend_end' ) );
+
 		// AJAX batched export (JS path).
 		$exporter = new PublicCsvExporter();
 		add_action( 'wp_ajax_ffc_public_csv_start', array( $exporter, 'ajax_start' ) );
@@ -502,6 +506,71 @@ class PublicCsvDownload {
 				'message'            => __( 'Form is now open.', 'ffcertificate' ),
 				'new_start_iso'      => $result['new_start_iso'],
 				'original_start_iso' => $result['original_start_iso'],
+			)
+		);
+	}
+
+	/**
+	 * AJAX: postpone the form's `time_end` within the same day.
+	 *
+	 * Mirrors `ajax_open_early()` in shape — nonce + hash gate, full
+	 * eligibility re-check via `ExtendEndAction::execute()`, reason
+	 * tags mapped to localised messages. Strictly one-shot per form
+	 * via `_ffc_csv_public_end_postponed_at`.
+	 *
+	 * @since 6.5.12
+	 */
+	public function ajax_extend_end(): void {
+		// phpcs:ignore WordPress.Security.ValidatedSanitizedInput
+		if ( ! isset( $_POST['_ffc_pcd_nonce'] ) || ! wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST['_ffc_pcd_nonce'] ) ), self::NONCE_ACTION ) ) {
+			wp_send_json_error( array( 'message' => __( 'Security check failed.', 'ffcertificate' ) ), 403 );
+		}
+
+		$form_id      = isset( $_POST['form_id'] ) ? absint( wp_unslash( $_POST['form_id'] ) ) : 0; // phpcs:ignore WordPress.Security.NonceVerification.Missing
+		$posted_hash  = isset( $_POST['hash'] ) ? sanitize_text_field( wp_unslash( $_POST['hash'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Missing
+		$new_time_end = isset( $_POST['new_time_end'] ) ? sanitize_text_field( wp_unslash( $_POST['new_time_end'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Missing
+
+		$audit_meta = array(
+			'user_id' => get_current_user_id(),
+			'ip'      => isset( $_SERVER['REMOTE_ADDR'] ) ? sanitize_text_field( wp_unslash( $_SERVER['REMOTE_ADDR'] ) ) : '',
+			'ua'      => isset( $_SERVER['HTTP_USER_AGENT'] ) ? sanitize_text_field( wp_unslash( $_SERVER['HTTP_USER_AGENT'] ) ) : '',
+		);
+
+		$result = ExtendEndAction::execute( $form_id, $posted_hash, $new_time_end, $audit_meta );
+
+		if ( ! $result['ok'] ) {
+			$reason   = $result['reason'];
+			$messages = array(
+				'unknown_form'        => __( 'Form not found.', 'ffcertificate' ),
+				'csv_disabled'        => __( 'Public access is disabled for this form.', 'ffcertificate' ),
+				'bad_hash'            => __( 'Invalid access hash.', 'ffcertificate' ),
+				'extend_end_disabled' => __( 'Postponing the close is disabled for this form.', 'ffcertificate' ),
+				'datetime_disabled'   => __( 'This form does not have a scheduled window.', 'ffcertificate' ),
+				'no_end_date'         => __( 'This form does not have a scheduled close.', 'ffcertificate' ),
+				'not_today'           => __( 'You can only postpone the close on the form\'s scheduled close day.', 'ffcertificate' ),
+				'not_started_yet'     => __( 'The form has not started yet — wait until it opens before postponing the close.', 'ffcertificate' ),
+				'already_ended'       => __( 'This form has already ended.', 'ffcertificate' ),
+				'already_postponed'   => __( 'This form\'s close has already been postponed once.', 'ffcertificate' ),
+				'bad_time_format'     => __( 'Please pick a valid time (HH:MM).', 'ffcertificate' ),
+				'not_extending'       => __( 'The new close time must be later than the current one.', 'ffcertificate' ),
+				'past_now'            => __( 'The new close time must be in the future.', 'ffcertificate' ),
+				'out_of_day'          => __( 'The new close time must stay within the same day.', 'ffcertificate' ),
+			);
+			$message  = $messages[ $reason ] ?? __( 'Unable to postpone the close right now.', 'ffcertificate' );
+			wp_send_json_error(
+				array(
+					'reason'  => $reason,
+					'message' => $message,
+				),
+				409
+			);
+		}
+
+		wp_send_json_success(
+			array(
+				'message'          => __( 'Close time postponed.', 'ffcertificate' ),
+				'new_end_iso'      => $result['new_end_iso'],
+				'original_end_iso' => $result['original_end_iso'],
 			)
 		);
 	}

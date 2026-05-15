@@ -136,6 +136,12 @@
 			html += esc(strings.startFormNow || 'Start Form Now');
 			html += '</button>';
 		}
+		if (info.status.can_extend_end) {
+			html += '<button type="button" class="ffc-info-btn ffc-info-btn-warning ffc-btn-extend-end" '
+				+ 'title="' + esc(strings.postponeCloseTooltip || 'Move the form\'s close time later within the same day. One-shot per form.') + '">';
+			html += esc(strings.postponeClose || 'Postpone close');
+			html += '</button>';
+		}
 		if (info.status.can_download) {
 			html += '<button type="button" class="ffc-info-btn ffc-info-btn-primary ffc-btn-download-csv">';
 			html += esc(strings.downloadCsv || 'Download CSV');
@@ -158,6 +164,7 @@
 		$container.find('.ffc-btn-download-csv').not('[disabled]').on('click', onDownloadClick);
 		$container.find('.ffc-btn-cert-preview').on('click', onCertPreviewClick);
 		$container.find('.ffc-btn-open-early').on('click', onOpenEarlyClick);
+		$container.find('.ffc-btn-extend-end').on('click', onExtendEndClick);
 	}
 
 	// ── Section builders ────────────────────────────────────────
@@ -779,6 +786,130 @@
 			error: function () {
 				window.alert(strings.error || 'Action failed.');
 				$btnEarly.prop('disabled', false).text(strings.startFormNow || 'Start Form Now');
+			},
+		});
+	}
+
+	// ── Postpone close (extend-end) ─────────────────────────────
+
+	function onExtendEndClick() {
+		var info = lastInfo();
+		var currentEnd  = info && info.status ? (info.status.end_date_formatted || '') : '';
+		var currentTime = info && info.status ? (info.status.current_time_end || '') : '';
+		showExtendEndModal(currentEnd, currentTime);
+	}
+
+	function showExtendEndModal(currentEnd, currentTime) {
+		// Clean up any prior modal.
+		$('.ffc-extend-end-modal').remove();
+
+		// Default the time picker to current_time_end + 30 min, clamped
+		// to 23:59. The user can edit freely; server validates.
+		var defaultNew = currentTime;
+		if (currentTime && /^\d{2}:\d{2}$/.test(currentTime)) {
+			var parts = currentTime.split(':');
+			var mins  = parseInt(parts[0], 10) * 60 + parseInt(parts[1], 10) + 30;
+			if (mins > 23 * 60 + 59) { mins = 23 * 60 + 59; }
+			var hh = Math.floor(mins / 60);
+			var mm = mins % 60;
+			defaultNew = (hh < 10 ? '0' : '') + hh + ':' + (mm < 10 ? '0' : '') + mm;
+		}
+
+		var modalHtml = ''
+			+ '<div class="ffc-extend-end-modal ffc-open-early-modal" role="dialog" aria-modal="true" aria-labelledby="ffc-extend-end-title">'
+			+   '<div class="ffc-open-early-backdrop"></div>'
+			+   '<div class="ffc-open-early-container">'
+			+     '<div class="ffc-open-early-header">'
+			+       '<h2 id="ffc-extend-end-title">'
+			+         '<span aria-hidden="true">⏰</span> '
+			+         esc(strings.postponeCloseTitle || 'Postpone form close?')
+			+       '</h2>'
+			+       '<button type="button" class="ffc-open-early-close ffc-extend-end-close" title="' + esc(strings.cancel || 'Cancel') + '">&times;</button>'
+			+     '</div>'
+			+     '<div class="ffc-open-early-body">'
+			+       '<p>' + esc(strings.postponeCloseBody || 'Pick a new close time within the same day. This action is one-shot — once confirmed it cannot be repeated from this page.') + '</p>'
+			+       '<ul class="ffc-open-early-times">'
+			+         (currentEnd
+				? '<li>' + esc(strings.postponeCurrentLabel || 'Current scheduled close:') + ' <strong>' + esc(currentEnd) + '</strong></li>'
+				: '')
+			+       '</ul>'
+			+       '<p>'
+			+         '<label for="ffc-extend-end-input"><strong>' + esc(strings.postponeNewLabel || 'New close time:') + '</strong></label> '
+			+         '<input type="time" id="ffc-extend-end-input" class="ffc-extend-end-input" value="' + esc(defaultNew) + '" '
+			+         (currentTime ? 'min="' + esc(currentTime) + '" ' : '')
+			+         'max="23:59" required>'
+			+       '</p>'
+			+       '<p class="ffc-open-early-warn"><strong>'
+			+         esc(strings.postponeIrreversible || 'This action can only be performed once per form.')
+			+       '</strong></p>'
+			+       '<p class="ffc-open-early-warn-cache">'
+			+         esc(strings.openEarlyCacheWarn || 'If your site uses page caching, some visitors may see the old close time until the cache refreshes.')
+			+       '</p>'
+			+     '</div>'
+			+     '<div class="ffc-open-early-actions">'
+			+       '<button type="button" class="ffc-info-btn ffc-info-btn-primary ffc-extend-end-cancel" autofocus>'
+			+         esc(strings.cancel || 'Cancel')
+			+       '</button>'
+			+       '<button type="button" class="ffc-info-btn ffc-info-btn-warning ffc-extend-end-confirm">'
+			+         esc(strings.postponeConfirm || 'Confirm postponement')
+			+       '</button>'
+			+     '</div>'
+			+   '</div>'
+			+ '</div>';
+
+		var $modal = $(modalHtml).appendTo(document.body);
+		var onKey = function (e) {
+			if (e.key === 'Escape') { closeModal(); }
+		};
+		$(document).on('keydown.ffcExtendEnd', onKey);
+
+		function closeModal() {
+			$(document).off('keydown.ffcExtendEnd');
+			$modal.remove();
+		}
+
+		$modal.find('.ffc-extend-end-cancel, .ffc-extend-end-close, .ffc-open-early-backdrop').on('click', closeModal);
+		$modal.find('.ffc-extend-end-confirm').on('click', function () {
+			var newTime = $modal.find('.ffc-extend-end-input').val();
+			if (!newTime || !/^\d{2}:\d{2}$/.test(newTime)) {
+				window.alert(strings.postponeInvalid || 'Please pick a valid time (HH:MM).');
+				return;
+			}
+			closeModal();
+			submitExtendEnd(newTime);
+		});
+
+		setTimeout(function () { $modal.find('.ffc-extend-end-cancel').focus(); }, 0);
+	}
+
+	function submitExtendEnd(newTime) {
+		var $btn = $container.find('.ffc-btn-extend-end');
+		$btn.prop('disabled', true).text(strings.postponing || 'Postponing…');
+
+		var payload = $form.serialize().replace(/(^|&)action=[^&]*/, '')
+			+ '&action=ffc_public_extend_end'
+			+ '&new_time_end=' + encodeURIComponent(newTime);
+
+		$.ajax({
+			url:      cfg.ajax_url,
+			type:     'POST',
+			dataType: 'json',
+			data:     payload,
+			success: function (res) {
+				if (!res || !res.success) {
+					var msg = res && res.data && res.data.message
+						? res.data.message
+						: (strings.error || 'Action failed.');
+					window.alert(msg);
+					$btn.prop('disabled', false).text(strings.postponeClose || 'Postpone close');
+					return;
+				}
+				window.alert((res.data && res.data.message) || (strings.postponeSuccess || 'Close time postponed.'));
+				window.location.reload();
+			},
+			error: function () {
+				window.alert(strings.error || 'Action failed.');
+				$btn.prop('disabled', false).text(strings.postponeClose || 'Postpone close');
 			},
 		});
 	}
