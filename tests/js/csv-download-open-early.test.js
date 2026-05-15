@@ -165,6 +165,17 @@ describe('csv-download — open-early modal', () => {
 		expect(window.$('.ffc-open-early-modal').length).toBe(0);
 	});
 
+	it('closes the modal when the header close (×) button is clicked', async () => {
+		await reachInfoScreen();
+		window.$('.ffc-btn-open-early').trigger('click');
+		expect(window.$('.ffc-open-early-modal').length).toBe(1);
+		expect(window.$('.ffc-open-early-close').length).toBe(1);
+
+		window.$('.ffc-open-early-close').trigger('click');
+
+		expect(window.$('.ffc-open-early-modal').length).toBe(0);
+	});
+
 	it('closes the modal on Escape key', async () => {
 		await reachInfoScreen();
 		window.$('.ffc-btn-open-early').trigger('click');

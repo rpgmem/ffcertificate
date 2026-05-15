@@ -1353,6 +1353,8 @@ details.ffc-consent-description > p {
 /* ────────────────────────────────────────────────────────────
    Early-open confirmation modal — Cancel-button-emphasised
    defensive UX (the action is irreversible from the public page).
+   Visually aligned with #ffc-preview-modal: dark slate header with
+   title + close X, white body, footer with action buttons.
    ──────────────────────────────────────────────────────────── */
 .ffc-open-early-modal {
     position: fixed;
@@ -1366,23 +1368,58 @@ details.ffc-consent-description > p {
 .ffc-open-early-backdrop {
     position: absolute;
     inset: 0;
-    background: rgba(0, 0, 0, 0.5);
+    background: rgba(0, 0, 0, 0.75);
 }
 
-.ffc-open-early-card {
+.ffc-open-early-container {
     position: relative;
-    background: #fff;
-    border-radius: 8px;
-    box-shadow: 0 8px 28px rgba(0, 0, 0, 0.25);
-    max-width: 540px;
-    width: 92%;
-    padding: 24px;
     z-index: 1;
+    width: 92%;
+    max-width: 540px;
+    background: var(--ffc-bg-card, #fff);
+    border-radius: var(--ffc-radius-lg, 8px);
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
 }
 
-.ffc-open-early-card h3 {
+.ffc-open-early-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 16px;
+    background: #1d2327;
+    color: #fff;
+}
+
+.ffc-open-early-header h2 {
+    margin: 0;
+    font-size: 16px;
+    font-weight: 500;
+    color: #fff;
+}
+
+.ffc-open-early-close {
+    background: none;
+    border: none;
+    color: #ccc;
+    font-size: 24px;
+    cursor: pointer;
+    padding: 0 4px;
+    line-height: 1;
+}
+
+.ffc-open-early-close:hover {
+    color: #fff;
+}
+
+.ffc-open-early-body {
+    padding: 16px 20px;
+}
+
+.ffc-open-early-body p {
     margin: 0 0 12px;
-    font-size: 18px;
 }
 
 .ffc-open-early-times {
@@ -1404,7 +1441,7 @@ details.ffc-consent-description > p {
     background: var(--ffc-warning-light, #fdf3e3);
     border-left: 3px solid var(--ffc-warning, #d9822b);
     padding: 10px 12px;
-    margin: 12px 0;
+    margin: 12px 0 0;
     font-size: 13px;
 }
 
@@ -1412,7 +1449,9 @@ details.ffc-consent-description > p {
     display: flex;
     justify-content: flex-end;
     gap: 12px;
-    margin-top: 16px;
+    padding: 12px 20px 16px;
+    border-top: 1px solid var(--ffc-border, #e0e0e0);
+    background: var(--ffc-bg-subtle, #fafafa);
 }
 
 .ffc-open-early-actions .ffc-open-early-cancel {
