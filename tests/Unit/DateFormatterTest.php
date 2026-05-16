@@ -200,4 +200,46 @@ class DateFormatterTest extends TestCase {
 		DateFormatter::flush_cache();
 		$this->assertSame( '04-01-2026', DateFormatter::format_date( 1767540600 ) );
 	}
+
+	// ──────────────────────────────────────────────────────────────
+	// Legacy `date_format` containing time chars — strip on read so
+	// `format_datetime()` doesn't append the time portion twice.
+	// ──────────────────────────────────────────────────────────────.
+
+	public function test_resolve_date_format_strips_time_chars_from_legacy_value(): void {
+		$this->ffc_settings = array( 'date_format' => 'd/m/Y H:i' );
+		$this->assertSame( 'd/m/Y', DateFormatter::resolve_date_format() );
+	}
+
+	public function test_resolve_date_format_strips_time_chars_with_separator(): void {
+		$this->ffc_settings = array( 'date_format' => 'F j, Y \a\t g:i a' );
+		// `\a` and `\t` are escaped literals, so the "at" word survives.
+		$this->assertSame( 'F j, Y \a\t', DateFormatter::resolve_date_format() );
+	}
+
+	public function test_format_datetime_no_longer_duplicates_time_for_legacy_value(): void {
+		$this->ffc_settings = array(
+			'date_format' => 'd/m/Y H:i',
+			'time_format' => 'H:i',
+		);
+		$this->assertSame( '12/05/2026 18:57', DateFormatter::format_datetime( '2026-05-12 18:57:00 UTC' ) );
+	}
+
+	public function test_format_date_strips_time_from_legacy_value(): void {
+		$this->ffc_settings = array( 'date_format' => 'd/m/Y H:i' );
+		$this->assertSame( '12/05/2026', DateFormatter::format_date( '2026-05-12 18:57:00 UTC' ) );
+	}
+
+	public function test_resolve_date_format_pdf_override_also_stripped(): void {
+		$this->ffc_settings = array(
+			'date_format'     => 'd/m/Y',
+			'date_format_pdf' => 'F j, Y g:i a',
+		);
+		$this->assertSame( 'F j, Y', DateFormatter::resolve_date_format( 'pdf' ) );
+	}
+
+	public function test_strip_falls_back_to_default_when_result_is_empty(): void {
+		$this->ffc_settings = array( 'date_format' => 'H:i:s' );
+		$this->assertSame( DateFormatter::DEFAULT_DATE_FORMAT, DateFormatter::resolve_date_format() );
+	}
 }
