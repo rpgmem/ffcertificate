@@ -55,6 +55,62 @@ When editing JS that ships to the browser, also run `npm run build:js`
 so the matching `*.min.js` and `.map` stay in sync — the
 `Verify minified assets are up to date` CI job fails otherwise.
 
+## Date / time storage convention
+
+Two categories. Pick the right one when adding a new column or touching
+an existing one — see #249 for the migration roadmap that retires the
+mixed pre-#244 patterns.
+
+### Category A — **Instants** (a moment in physical time)
+
+Things like "the user submitted this form at X", "the admin called this
+candidate at Y", "this audit row was written at Z". Use these rules:
+
+- **Schema**: `BIGINT UNSIGNED`.
+- **Write**: store `time()` (PHP) — returns UTC unix seconds by
+  construction, independent of `date.timezone` or the WP TZ setting.
+  Never `current_time('mysql')`, which respects WP TZ and produces a
+  string that drifts when the admin changes their site timezone.
+- **Read**: pass straight to `DateFormatter::format_datetime($ts)` or
+  `wp_date($fmt, $ts)`. Both apply `wp_timezone()` to render. Changing
+  the WP TZ re-renders correctly with no data migration.
+- **Compare**: ints compare directly — `WHERE ts > UNIX_TIMESTAMP(NOW())`,
+  `BETWEEN ? AND ?`, `ORDER BY ts DESC`. No `STR_TO_DATE`, no
+  `FROM_UNIXTIME` in the predicate.
+- **PHPDoc**: `@var int Unix UTC timestamp (seconds since epoch).`
+
+Existing examples: the Public Operator Access audit ring buffer
+(`entry['ts']`) was unix int from day one — that's why the only TZ bug
+that ever appeared there (#247) was a rendering choice (`gmdate` →
+`wp_date`), never a storage issue.
+
+### Category B — **Wall-clock** (a human commitment, no TZ semantics)
+
+Things like "the appointment is on May 20", "the doctor sees the patient
+at 09:00". The value means the same thing if the user travels or the
+server changes TZ — converting to UTC introduces DST/ambiguity bugs.
+
+- **Schema**: `DATE`, `TIME`, or `DATETIME` (the combined form). Stored
+  literally, no conversion at read or write.
+- **Write**: store what the user picked — `'2026-05-20'`, `'09:00:00'`.
+- **Read**: render via `DateFormatter::format_date()` /
+  `format_time()` / `format_datetime()` directly. `wp_date()` applies
+  the site TZ when given a unix int, but with a `DATE` / `TIME` string
+  source you feed the value as-is.
+- **PHPDoc**: `@var string Wall-clock DATE in 'Y-m-d' (no timezone semantics).`
+
+Existing examples: `appointment_date` (DATE), `start_time` / `end_time`
+(TIME), `date_to_assume` (DATE), `time_to_assume` (TIME).
+
+### Always
+
+- Display goes through `DateFormatter::format_*()`. No `gmdate()`,
+  no `date_i18n()`, no `wp_date()` outside the helper unless there's
+  a documented reason (e.g. building an iCal `DTSTAMP` per RFC 5545).
+- Filenames / log keys / API contracts that need a stable ISO format
+  may use `gmdate('Y-m-d\TH:i:s\Z', $ts)` — but the column those
+  filenames represent should still follow Category A or B.
+
 ## Branch naming
 
 Use `claude/<short-kebab-description>`. Examples in main history:
