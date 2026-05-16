@@ -58,8 +58,6 @@ class FormEditorDeviceLimitMetabox {
 		$table_classes = array( 'form-table', 'ffc-device-limit-table' );
 		if ( ! $global_active ) {
 			$table_classes[] = 'ffc-device-limit-globally-off';
-		} elseif ( '1' !== $enabled ) {
-			$table_classes[] = 'ffc-device-limit-disabled';
 		}
 
 		// Nonce is emitted by render_box_layout(), which always renders before this metabox.
@@ -103,7 +101,11 @@ class FormEditorDeviceLimitMetabox {
 					?>
 				</td>
 			</tr>
-
+		</table>
+		<div class="ffc-collapsed-target<?php echo $sub_disabled ? ' ffc-collapsed' : ''; ?>"
+			data-ffc-master="ffc_device_limit_enabled"
+			aria-hidden="<?php echo $sub_disabled ? 'true' : 'false'; ?>">
+		<table class="form-table ffc-device-limit-table">
 			<tr class="ffc-device-limit-sub">
 				<th scope="row">
 					<label for="ffc_device_limit_max"><?php esc_html_e( 'Max submissions per device', 'ffcertificate' ); ?></label>
@@ -115,7 +117,7 @@ class FormEditorDeviceLimitMetabox {
 						min="1"
 						max="100"
 						value="<?php echo esc_attr( $max ); ?>"
-						placeholder="<?php esc_attr_e( 'Default: 2', 'ffcertificate' ); ?>"<?php disabled( $sub_disabled ); ?>>
+						placeholder="<?php esc_attr_e( 'Default: 2', 'ffcertificate' ); ?>">
 					<p class="description"><?php esc_html_e( 'Defaults to 2 when this metabox is enabled. Override here to set a per-form value.', 'ffcertificate' ); ?></p>
 				</td>
 			</tr>
@@ -131,7 +133,7 @@ class FormEditorDeviceLimitMetabox {
 						min="3"
 						max="12"
 						value="<?php echo esc_attr( $threshold ); ?>"
-						placeholder="<?php esc_attr_e( 'Inherit from global', 'ffcertificate' ); ?>"<?php disabled( $sub_disabled ); ?>>
+						placeholder="<?php esc_attr_e( 'Inherit from global', 'ffcertificate' ); ?>">
 					<p class="description"><?php esc_html_e( 'Lower = more aggressive. Leave empty to inherit the global default.', 'ffcertificate' ); ?></p>
 				</td>
 			</tr>
@@ -145,10 +147,11 @@ class FormEditorDeviceLimitMetabox {
 						id="ffc_device_limit_message"
 						rows="2"
 						class="large-text"
-						placeholder="<?php esc_attr_e( 'Inherit from global', 'ffcertificate' ); ?>"<?php disabled( $sub_disabled ); ?>><?php echo esc_textarea( $message ); ?></textarea>
+						placeholder="<?php esc_attr_e( 'Inherit from global', 'ffcertificate' ); ?>"><?php echo esc_textarea( $message ); ?></textarea>
 				</td>
 			</tr>
 		</table>
+		</div><!-- /.ffc-collapsed-target -->
 		<?php
 	}
 }

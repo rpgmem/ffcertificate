@@ -93,37 +93,63 @@ class FormEditorSaveHandler {
 			$config       = wp_unslash( $_POST['ffc_config'] );
 			$allowed_html = \FreeFormCertificate\Core\Utils::get_allowed_html_tags();
 
+			// Form essentials — not gated by any toggle.
 			$clean_config               = array();
 			$clean_config['pdf_layout'] = wp_kses( (string) ( $config['pdf_layout'] ?? '' ), $allowed_html );
-			// Email body is authored in the teeny wp_editor; wp_kses_post() is the
-			// canonical WordPress allowlist for post-like rich content and already
-			// strips scripts/forms while keeping the formatting users expect.
-			$clean_config['email_body'] = wp_kses_post( (string) ( $config['email_body'] ?? '' ) );
 			$clean_config['bg_image']   = esc_url_raw( (string) ( $config['bg_image'] ?? '' ) );
 
 			$clean_config['enable_restriction'] = sanitize_key( (string) ( $config['enable_restriction'] ?? '' ) );
-			$clean_config['send_user_email']    = sanitize_key( (string) ( $config['send_user_email'] ?? '' ) );
-			$clean_config['email_subject']      = sanitize_text_field( (string) ( $config['email_subject'] ?? '' ) );
 
-			// Restrictions (checkboxes).
-			$clean_config['restrictions'] = array(
+			// Email — master toggle is `send_user_email`. Sub-options
+			// (subject + body) are only written when the toggle is on, so
+			// turning email off preserves the prior subject/body verbatim
+			// for when the admin turns it back on (Sprint 2 / #238).
+			$send_user_email                 = isset( $config['send_user_email'] ) && '1' === (string) $config['send_user_email'] ? '1' : '0';
+			$clean_config['send_user_email'] = $send_user_email;
+			if ( '1' === $send_user_email ) {
+				$clean_config['email_subject'] = sanitize_text_field( (string) ( $config['email_subject'] ?? '' ) );
+				// Email body is authored in the teeny wp_editor; wp_kses_post()
+				// is the canonical WordPress allowlist for post-like rich
+				// content and already strips scripts/forms while keeping the
+				// formatting users expect.
+				$clean_config['email_body'] = wp_kses_post( (string) ( $config['email_body'] ?? '' ) );
+			}
+
+			// Restrictions — 4 independent toggles. Each gates exactly one
+			// data field; when its toggle is off, the corresponding field
+			// is not written to $clean_config so the prior value rides
+			// through `array_merge` at the end of this block.
+			$restrictions                 = array(
 				'password'  => isset( $config['restrictions']['password'] ) ? '1' : '0',
 				'allowlist' => isset( $config['restrictions']['allowlist'] ) ? '1' : '0',
 				'denylist'  => isset( $config['restrictions']['denylist'] ) ? '1' : '0',
 				'ticket'    => isset( $config['restrictions']['ticket'] ) ? '1' : '0',
 			);
+			$clean_config['restrictions'] = $restrictions;
 
-			$clean_config['allowed_users_list']   = sanitize_textarea_field( (string) ( $config['allowed_users_list'] ?? '' ) );
-			$clean_config['denied_users_list']    = sanitize_textarea_field( (string) ( $config['denied_users_list'] ?? '' ) );
-			$clean_config['validation_code']      = sanitize_text_field( (string) ( $config['validation_code'] ?? '' ) );
-			$clean_config['generated_codes_list'] = sanitize_textarea_field( (string) ( $config['generated_codes_list'] ?? '' ) );
+			if ( '1' === $restrictions['password'] ) {
+				$clean_config['validation_code'] = sanitize_text_field( (string) ( $config['validation_code'] ?? '' ) );
+			}
+			if ( '1' === $restrictions['allowlist'] ) {
+				$clean_config['allowed_users_list'] = sanitize_textarea_field( (string) ( $config['allowed_users_list'] ?? '' ) );
+			}
+			if ( '1' === $restrictions['denylist'] ) {
+				$clean_config['denied_users_list'] = sanitize_textarea_field( (string) ( $config['denied_users_list'] ?? '' ) );
+			}
+			if ( '1' === $restrictions['ticket'] ) {
+				$clean_config['generated_codes_list'] = sanitize_textarea_field( (string) ( $config['generated_codes_list'] ?? '' ) );
+			}
 
-			// Quiz / Evaluation Mode.
-			$clean_config['quiz_enabled']       = isset( $config['quiz_enabled'] ) ? '1' : '0';
-			$clean_config['quiz_passing_score'] = absint( $config['quiz_passing_score'] ?? 70 );
-			$clean_config['quiz_max_attempts']  = absint( $config['quiz_max_attempts'] ?? 0 );
-			$clean_config['quiz_show_score']    = isset( $config['quiz_show_score'] ) ? '1' : '0';
-			$clean_config['quiz_show_correct']  = isset( $config['quiz_show_correct'] ) ? '1' : '0';
+			// Quiz / Evaluation Mode — 1 master toggle, 4 sub-options
+			// (passing_score / max_attempts / show_score / show_correct).
+			$quiz_enabled                 = isset( $config['quiz_enabled'] ) ? '1' : '0';
+			$clean_config['quiz_enabled'] = $quiz_enabled;
+			if ( '1' === $quiz_enabled ) {
+				$clean_config['quiz_passing_score'] = absint( $config['quiz_passing_score'] ?? 70 );
+				$clean_config['quiz_max_attempts']  = absint( $config['quiz_max_attempts'] ?? 0 );
+				$clean_config['quiz_show_score']    = isset( $config['quiz_show_score'] ) ? '1' : '0';
+				$clean_config['quiz_show_correct']  = isset( $config['quiz_show_correct'] ) ? '1' : '0';
+			}
 
 			// Tag Validation: Ensure the user didn't remove critical tags.
 			$missing_tags = array();
@@ -155,57 +181,82 @@ class FormEditorSaveHandler {
             // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Each field sanitized individually below.
 			$geofence = wp_unslash( $_POST['ffc_geofence'] );
 
-			// Per-phase datetime hide modes (#159 S1). Each new key falls back to
-			// the legacy single `datetime_hide_mode` POSTed value while the UI is
-			// being migrated, so a save under the old single-dropdown UI still
-			// produces a valid three-key payload. The legacy key is no longer
-			// persisted on save.
-			$legacy_hide_mode = isset( $geofence['datetime_hide_mode'] )
-				? sanitize_key( $geofence['datetime_hide_mode'] )
-				: 'message';
+			// Skip-on-off per master toggle (Sprint 2 / #238). Each
+			// $clean_geofence entry is only added when its gating toggle
+			// is on; the final array_merge() at the bottom of this block
+			// preserves any keys skipped here from the existing config.
 
-			$hide_mode_before = sanitize_key( $geofence['datetime_hide_mode_before'] ?? $legacy_hide_mode );
-			$hide_mode_during = sanitize_key( $geofence['datetime_hide_mode_during'] ?? $legacy_hide_mode );
-			$hide_mode_after  = sanitize_key( $geofence['datetime_hide_mode_after'] ?? $legacy_hide_mode );
+			$datetime_enabled = isset( $geofence['datetime_enabled'] ) ? '1' : '0';
+			$geo_enabled      = isset( $geofence['geo_enabled'] ) ? '1' : '0';
+			$ip_permissive    = isset( $geofence['geo_ip_areas_permissive'] ) ? '1' : '0';
 
 			$clean_geofence = array(
-				// DateTime settings.
-				'datetime_enabled'          => isset( $geofence['datetime_enabled'] ) ? '1' : '0',
-				'date_start'                => ! empty( $geofence['date_start'] ) ? sanitize_text_field( $geofence['date_start'] ) : '',
-				'date_end'                  => ! empty( $geofence['date_end'] ) ? sanitize_text_field( $geofence['date_end'] ) : '',
-				'time_start'                => ! empty( $geofence['time_start'] ) ? sanitize_text_field( $geofence['time_start'] ) : '',
-				'time_end'                  => ! empty( $geofence['time_end'] ) ? sanitize_text_field( $geofence['time_end'] ) : '',
-				'time_mode'                 => sanitize_key( $geofence['time_mode'] ?? 'daily' ),
-				'datetime_hide_mode_before' => $hide_mode_before,
-				'datetime_hide_mode_during' => $hide_mode_during,
-				'datetime_hide_mode_after'  => $hide_mode_after,
-				'msg_datetime'              => sanitize_textarea_field( $geofence['msg_datetime'] ?? '' ),
-
-				// Geolocation settings.
-				'geo_enabled'               => isset( $geofence['geo_enabled'] ) ? '1' : '0',
-				'geo_gps_enabled'           => isset( $geofence['geo_gps_enabled'] ) ? '1' : '0',
-				'geo_ip_enabled'            => isset( $geofence['geo_ip_enabled'] ) ? '1' : '0',
-				'geo_area_source'           => in_array( ( $geofence['geo_area_source'] ?? 'custom' ), array( 'locations', 'custom' ), true ) ? $geofence['geo_area_source'] : 'custom',
-				'geo_area_location_ids'     => array_map( 'sanitize_key', (array) ( $geofence['geo_area_location_ids'] ?? array() ) ),
-				'geo_areas'                 => sanitize_textarea_field( $geofence['geo_areas'] ?? '' ),
-				'geo_ip_areas_permissive'   => isset( $geofence['geo_ip_areas_permissive'] ) ? '1' : '0',
-				'geo_ip_area_source'        => in_array( ( $geofence['geo_ip_area_source'] ?? 'custom' ), array( 'locations', 'custom' ), true ) ? $geofence['geo_ip_area_source'] : 'custom',
-				'geo_ip_area_location_ids'  => array_map( 'sanitize_key', (array) ( $geofence['geo_ip_area_location_ids'] ?? array() ) ),
-				'geo_ip_areas'              => sanitize_textarea_field( $geofence['geo_ip_areas'] ?? '' ),
-				'geo_gps_ip_logic'          => sanitize_key( $geofence['geo_gps_ip_logic'] ?? 'or' ),
-				'geo_hide_mode'             => sanitize_key( $geofence['geo_hide_mode'] ?? 'message' ),
-				'msg_geo_blocked'           => sanitize_textarea_field( $geofence['msg_geo_blocked'] ?? '' ),
-				'msg_geo_error'             => sanitize_textarea_field( $geofence['msg_geo_error'] ?? '' ),
+				'datetime_enabled'        => $datetime_enabled,
+				'geo_enabled'             => $geo_enabled,
+				'geo_ip_areas_permissive' => $ip_permissive,
 			);
 
-			// Validate geolocation configuration. Surface errors via transient,
-			// but do not abort — independent sections (CSV download, device
-			// fingerprint limit) must still persist their own changes.
-			$validation_errors = $this->validate_geofence_config( $clean_geofence );
+			// DateTime — 1 master toggle gating 9 sub-options.
+			if ( '1' === $datetime_enabled ) {
+				// Per-phase datetime hide modes (#159 S1). Each new key
+				// falls back to the legacy single `datetime_hide_mode`
+				// POSTed value while the UI is being migrated, so a save
+				// under the old single-dropdown UI still produces a valid
+				// three-key payload. The legacy key is no longer
+				// persisted on save.
+				$legacy_hide_mode = isset( $geofence['datetime_hide_mode'] )
+					? sanitize_key( $geofence['datetime_hide_mode'] )
+					: 'message';
+
+				$clean_geofence['date_start']                = ! empty( $geofence['date_start'] ) ? sanitize_text_field( $geofence['date_start'] ) : '';
+				$clean_geofence['date_end']                  = ! empty( $geofence['date_end'] ) ? sanitize_text_field( $geofence['date_end'] ) : '';
+				$clean_geofence['time_start']                = ! empty( $geofence['time_start'] ) ? sanitize_text_field( $geofence['time_start'] ) : '';
+				$clean_geofence['time_end']                  = ! empty( $geofence['time_end'] ) ? sanitize_text_field( $geofence['time_end'] ) : '';
+				$clean_geofence['time_mode']                 = sanitize_key( $geofence['time_mode'] ?? 'daily' );
+				$clean_geofence['datetime_hide_mode_before'] = sanitize_key( $geofence['datetime_hide_mode_before'] ?? $legacy_hide_mode );
+				$clean_geofence['datetime_hide_mode_during'] = sanitize_key( $geofence['datetime_hide_mode_during'] ?? $legacy_hide_mode );
+				$clean_geofence['datetime_hide_mode_after']  = sanitize_key( $geofence['datetime_hide_mode_after'] ?? $legacy_hide_mode );
+				$clean_geofence['msg_datetime']              = sanitize_textarea_field( $geofence['msg_datetime'] ?? '' );
+			}
+
+			// Geolocation — 1 master toggle gating 8 sub-options +
+			// 1 nested toggle (`geo_ip_areas_permissive`) gating 3 more.
+			if ( '1' === $geo_enabled ) {
+				$gps_src                                 = (string) ( $geofence['geo_area_source'] ?? 'custom' );
+				$clean_geofence['geo_gps_enabled']       = isset( $geofence['geo_gps_enabled'] ) ? '1' : '0';
+				$clean_geofence['geo_ip_enabled']        = isset( $geofence['geo_ip_enabled'] ) ? '1' : '0';
+				$clean_geofence['geo_area_source']       = in_array( $gps_src, array( 'locations', 'custom' ), true ) ? $gps_src : 'custom';
+				$clean_geofence['geo_area_location_ids'] = array_map( 'sanitize_key', (array) ( $geofence['geo_area_location_ids'] ?? array() ) );
+				$clean_geofence['geo_areas']             = sanitize_textarea_field( $geofence['geo_areas'] ?? '' );
+				$clean_geofence['geo_gps_ip_logic']      = sanitize_key( $geofence['geo_gps_ip_logic'] ?? 'or' );
+				$clean_geofence['geo_hide_mode']         = sanitize_key( $geofence['geo_hide_mode'] ?? 'message' );
+				$clean_geofence['msg_geo_blocked']       = sanitize_textarea_field( $geofence['msg_geo_blocked'] ?? '' );
+				$clean_geofence['msg_geo_error']         = sanitize_textarea_field( $geofence['msg_geo_error'] ?? '' );
+
+				if ( '1' === $ip_permissive ) {
+					$ip_src                                     = (string) ( $geofence['geo_ip_area_source'] ?? 'custom' );
+					$clean_geofence['geo_ip_area_source']       = in_array( $ip_src, array( 'locations', 'custom' ), true ) ? $ip_src : 'custom';
+					$clean_geofence['geo_ip_area_location_ids'] = array_map( 'sanitize_key', (array) ( $geofence['geo_ip_area_location_ids'] ?? array() ) );
+					$clean_geofence['geo_ip_areas']             = sanitize_textarea_field( $geofence['geo_ip_areas'] ?? '' );
+				}
+			}
+
+			// Build the merged final state and validate THAT — so
+			// preserved sub-options participate in validation correctly.
+			// Without the merge, validating $clean_geofence alone would
+			// see missing fields when masters were just turned off and
+			// emit spurious errors.
+			$current_geofence = get_post_meta( $post_id, '_ffc_geofence_config', true );
+			if ( ! is_array( $current_geofence ) ) {
+				$current_geofence = array();
+			}
+			$merged_geofence = array_merge( $current_geofence, $clean_geofence );
+
+			$validation_errors = $this->validate_geofence_config( $merged_geofence );
 			if ( ! empty( $validation_errors ) ) {
 				set_transient( 'ffc_geofence_error_' . get_current_user_id(), $validation_errors, 45 );
 			} else {
-				update_post_meta( $post_id, '_ffc_geofence_config', $clean_geofence );
+				update_post_meta( $post_id, '_ffc_geofence_config', $merged_geofence );
 				// Public visibility of date_start/date_end (the form's
 				// availability window) flows through page caches —
 				// invalidate so the public CSV download page + the
@@ -383,24 +434,33 @@ class FormEditorSaveHandler {
 		$gps_source = $config['geo_area_source'] ?? 'custom';
 		$ip_source  = $config['geo_ip_area_source'] ?? 'custom';
 
+		// Defensive defaults — sub-options can be missing from $config when
+		// the master toggle is off and skip-on-off semantics (Sprint 2 /
+		// #238) preserved the prior values without re-emitting them here.
+		$gps_enabled   = $config['geo_gps_enabled'] ?? '0';
+		$ip_enabled    = $config['geo_ip_enabled'] ?? '0';
+		$ip_permissive = $config['geo_ip_areas_permissive'] ?? '0';
+		$geo_areas     = (string) ( $config['geo_areas'] ?? '' );
+		$geo_ip_areas  = (string) ( $config['geo_ip_areas'] ?? '' );
+
 		// Check if GPS is enabled but areas/locations are empty.
-		if ( '1' === $config['geo_gps_enabled'] ) {
+		if ( '1' === $gps_enabled ) {
 			if ( 'locations' === $gps_source ) {
 				if ( empty( $config['geo_area_location_ids'] ) ) {
 					$errors[] = __( 'GPS Geolocation is enabled but no locations are selected.', 'ffcertificate' );
 				}
-			} elseif ( '' === trim( $config['geo_areas'] ) ) {
+			} elseif ( '' === trim( $geo_areas ) ) {
 				$errors[] = __( 'GPS Geolocation is enabled but no allowed areas are defined.', 'ffcertificate' );
 			}
 		}
 
 		// Check if IP is enabled with independent areas but areas/locations are empty.
-		if ( '1' === $config['geo_ip_enabled'] && '1' === $config['geo_ip_areas_permissive'] ) {
+		if ( '1' === $ip_enabled && '1' === $ip_permissive ) {
 			if ( 'locations' === $ip_source ) {
 				if ( empty( $config['geo_ip_area_location_ids'] ) ) {
 					$errors[] = __( 'IP Geolocation is enabled with independent areas but no locations are selected.', 'ffcertificate' );
 				}
-			} elseif ( '' === trim( $config['geo_ip_areas'] ) ) {
+			} elseif ( '' === trim( $geo_ip_areas ) ) {
 				$errors[] = __( 'IP Geolocation is enabled with independent areas but no IP areas are defined.', 'ffcertificate' );
 			}
 		}
@@ -418,14 +478,14 @@ class FormEditorSaveHandler {
 		}
 
 		// Validate GPS areas format.
-		if ( '1' === $config['geo_gps_enabled'] && 'custom' === $gps_source && '' !== trim( $config['geo_areas'] ) ) {
-			$gps_errors = $this->validate_areas_format( $config['geo_areas'], 'GPS' );
+		if ( '1' === $gps_enabled && 'custom' === $gps_source && '' !== trim( $geo_areas ) ) {
+			$gps_errors = $this->validate_areas_format( $geo_areas, 'GPS' );
 			$errors     = array_merge( $errors, $gps_errors );
 		}
 
 		// Validate IP areas format (if using independent areas).
-		if ( '1' === $config['geo_ip_enabled'] && '1' === $config['geo_ip_areas_permissive'] && 'custom' === $ip_source && '' !== trim( $config['geo_ip_areas'] ) ) {
-			$ip_errors = $this->validate_areas_format( $config['geo_ip_areas'], 'IP' );
+		if ( '1' === $ip_enabled && '1' === $ip_permissive && 'custom' === $ip_source && '' !== trim( $geo_ip_areas ) ) {
+			$ip_errors = $this->validate_areas_format( $geo_ip_areas, 'IP' );
 			$errors    = array_merge( $errors, $ip_errors );
 		}
 

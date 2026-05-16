@@ -444,11 +444,11 @@ $ffcertificate_get_option = \Closure::fromCallable( array( $settings, 'get_optio
 		</table>
 </div>
 
-<!-- Public CSV Download Card -->
+<!-- Public Operator Access Card (formerly Public CSV Download) -->
 <div class="card">
-	<h2 class="ffc-icon-download"><?php esc_html_e( 'Public CSV Download', 'ffcertificate' ); ?></h2>
+	<h2 class="ffc-icon-download"><?php esc_html_e( 'Public Operator Access', 'ffcertificate' ); ?></h2>
 	<p class="description">
-		<?php esc_html_e( 'Default limit suggested when enabling the public CSV download feature on a form. Each form can override this value in its editor.', 'ffcertificate' ); ?>
+		<?php esc_html_e( 'Default download limit suggested when enabling Public Operator Access on a form (formerly named "Public CSV Download"). Each form can override this value in its editor.', 'ffcertificate' ); ?>
 	</p>
 
 		<table class="form-table" role="presentation">

@@ -383,72 +383,75 @@ describe('admin quiz mode toggle', () => {
 	});
 });
 
+// Public CSV / Device-Limit master toggles use the unified
+// `.ffc-collapsed-target` pattern after #238 Sprint 3. Sub-options are
+// no longer disabled at the input level — the wrapper collapses
+// visually instead. See `admin-collapsed-target.test.js` for the full
+// generic-handler suite.
 describe('admin CSV public toggle', () => {
 	beforeAll(async () => {
 		document.body.innerHTML = `
 			<button id="ffc-migrations-btn"></button>
 			<div id="ffc-migrations-menu"></div>
-			<input type="checkbox" id="ffc_csv_public_enabled">
-			<table class="ffc-csv-public-table">
-				<tr class="ffc-csv-public-sub"><td><input type="text" name="csv-sub-1"></td></tr>
-			</table>
+			<input type="checkbox" id="ffc_csv_public_enabled" checked>
+			<div class="ffc-collapsed-target" data-ffc-master="ffc_csv_public_enabled">
+				<table class="ffc-csv-public-table">
+					<tr class="ffc-csv-public-sub"><td><input type="text" name="csv-sub-1"></td></tr>
+				</table>
+			</div>
 		`;
 		loadScript('assets/js/ffc-admin.js');
 		await new Promise((r) => setTimeout(r, 0));
 	});
 
-	it('disables sub-inputs when the toggle is off', () => {
+	it('collapses the sub-options wrapper when the toggle is off', () => {
 		window.$('#ffc_csv_public_enabled').prop('checked', false).trigger('change');
-
-		expect(window.$('.ffc-csv-public-table').hasClass('ffc-csv-public-disabled')).toBe(true);
-		expect(window.$('.ffc-csv-public-sub input').prop('disabled')).toBe(true);
+		expect(window.$('.ffc-collapsed-target').hasClass('ffc-collapsed')).toBe(true);
 	});
 
-	it('enables sub-inputs when toggle is checked', () => {
+	it('reveals the sub-options wrapper when the toggle is on', () => {
 		window.$('#ffc_csv_public_enabled').prop('checked', true).trigger('change');
-
-		expect(window.$('.ffc-csv-public-table').hasClass('ffc-csv-public-disabled')).toBe(false);
-		expect(window.$('.ffc-csv-public-sub input').prop('disabled')).toBe(false);
+		expect(window.$('.ffc-collapsed-target').hasClass('ffc-collapsed')).toBe(false);
 	});
 });
 
 describe('admin device-limit toggle', () => {
-	it('locks every input in the table when the globally-off class is present', async () => {
-		// Production renders the master checkbox inside the table when the
-		// global setting is off so the disable-all sweep covers it too.
+	it('master checkbox stays server-disabled when global subsystem is off', async () => {
+		// When global is off, PHP renders the master with `disabled` attr.
+		// JS does not need to enforce it; we just verify the static state.
 		document.body.innerHTML = `
 			<button id="ffc-migrations-btn"></button>
 			<div id="ffc-migrations-menu"></div>
 			<table class="ffc-device-limit-table ffc-device-limit-globally-off">
-				<tr><td><input type="checkbox" id="ffc_device_limit_enabled"></td></tr>
-				<tr class="ffc-device-limit-sub"><td><input type="text" name="dl-sub"></td></tr>
+				<tr><td><input type="checkbox" id="ffc_device_limit_enabled" disabled></td></tr>
 			</table>
+			<div class="ffc-collapsed-target ffc-collapsed" data-ffc-master="ffc_device_limit_enabled">
+				<input type="text" name="dl-sub">
+			</div>
 		`;
 		loadScript('assets/js/ffc-admin.js');
 		await new Promise((r) => setTimeout(r, 0));
 
 		expect(window.$('#ffc_device_limit_enabled').prop('disabled')).toBe(true);
-		expect(window.$('.ffc-device-limit-sub input').prop('disabled')).toBe(true);
+		expect(window.$('.ffc-collapsed-target').hasClass('ffc-collapsed')).toBe(true);
 	});
 
-	it('mirrors the per-form toggle when global is on', async () => {
+	it('collapses the sub-options wrapper when the per-form toggle is off, reveals on', async () => {
 		document.body.innerHTML = `
 			<button id="ffc-migrations-btn"></button>
 			<div id="ffc-migrations-menu"></div>
 			<input type="checkbox" id="ffc_device_limit_enabled">
-			<table class="ffc-device-limit-table">
-				<tr class="ffc-device-limit-sub"><td><input type="text" name="dl-sub"></td></tr>
-			</table>
+			<div class="ffc-collapsed-target ffc-collapsed" data-ffc-master="ffc_device_limit_enabled">
+				<input type="text" name="dl-sub">
+			</div>
 		`;
 		loadScript('assets/js/ffc-admin.js');
 		await new Promise((r) => setTimeout(r, 0));
 
 		window.$('#ffc_device_limit_enabled').prop('checked', true).trigger('change');
-		expect(window.$('.ffc-device-limit-table').hasClass('ffc-device-limit-disabled')).toBe(false);
-		expect(window.$('.ffc-device-limit-sub input').prop('disabled')).toBe(false);
+		expect(window.$('.ffc-collapsed-target').hasClass('ffc-collapsed')).toBe(false);
 
 		window.$('#ffc_device_limit_enabled').prop('checked', false).trigger('change');
-		expect(window.$('.ffc-device-limit-table').hasClass('ffc-device-limit-disabled')).toBe(true);
-		expect(window.$('.ffc-device-limit-sub input').prop('disabled')).toBe(true);
+		expect(window.$('.ffc-collapsed-target').hasClass('ffc-collapsed')).toBe(true);
 	});
 });

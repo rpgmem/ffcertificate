@@ -304,4 +304,303 @@ class FormEditorSaveHandlerTest extends TestCase {
 
         $this->assertSame( array(), $deleted, 'No deletes when nonce check fails.' );
     }
+
+    // ==================================================================
+    // Sprint 2 / #238 — skip-on-off save semantics
+    // ==================================================================
+
+    /**
+     * Common stub setup for save_form_data() integration tests:
+     * green nonce + caps + helper stubs.
+     */
+    private function stub_for_save(): array {
+        Functions\when( 'wp_verify_nonce' )->justReturn( true );
+        Functions\when( 'current_user_can' )->justReturn( true );
+        Functions\when( 'wp_unslash' )->returnArg();
+        Functions\when( 'sanitize_key' )->returnArg();
+        Functions\when( 'sanitize_textarea_field' )->returnArg();
+        Functions\when( 'sanitize_text_field' )->returnArg();
+        Functions\when( 'wp_kses' )->alias( static fn( $s ) => (string) $s );
+        Functions\when( 'wp_kses_post' )->returnArg();
+        Functions\when( 'esc_url_raw' )->returnArg();
+        Functions\when( 'absint' )->alias( static fn( $v ) => (int) $v );
+        Functions\when( 'delete_post_meta' )->justReturn( true );
+        Functions\when( 'set_transient' )->justReturn( true );
+        Functions\when( 'get_option' )->justReturn( array() );
+        Functions\when( 'get_current_user_id' )->justReturn( 1 );
+        // Cache helpers used by the geofence save path's purge calls.
+        Functions\when( 'wp_cache_delete' )->justReturn( true );
+        Functions\when( 'wp_cache_flush_group' )->justReturn( true );
+        Functions\when( 'do_action' )->justReturn( null );
+
+        $written = array();
+        Functions\when( 'update_post_meta' )->alias(
+            static function ( $id, $key, $value ) use ( &$written ): bool {
+                $written[ $key ] = $value;
+                return true;
+            }
+        );
+        return [ &$written ];
+    }
+
+    /**
+     * Email send_user_email OFF → email_subject and email_body are NOT in
+     * the new $clean_config. The merge with $current_config preserves the
+     * prior values. (Sprint 2)
+     */
+    public function test_email_off_preserves_subject_and_body(): void {
+        $bag = $this->stub_for_save();
+        $written = &$bag[0];
+
+        Functions\when( 'get_post_meta' )->alias( static fn( $id, $key ) => array() );
+
+        $_POST = array(
+            'ffc_form_nonce' => 'ok',
+            'ffc_config'     => array(
+                'pdf_layout'       => '{{auth_code}} {{name}} {{cpf_rf}}',
+                'send_user_email'  => '0',
+                'email_subject'    => 'fresh subject from form',
+                'email_body'       => 'fresh body from form',
+            ),
+        );
+
+        $this->handler->save_form_data( 10 );
+
+        $form_config = $written['_ffc_form_config'];
+        $this->assertSame( '0', $form_config['send_user_email'] );
+        $this->assertArrayNotHasKey( 'email_subject', $form_config, 'email_subject must NOT be written when send_user_email is off' );
+        $this->assertArrayNotHasKey( 'email_body', $form_config, 'email_body must NOT be written when send_user_email is off' );
+    }
+
+    public function test_email_on_writes_subject_and_body(): void {
+        $bag = $this->stub_for_save();
+        $written = &$bag[0];
+
+        Functions\when( 'get_post_meta' )->alias( static fn( $id, $key ) => array() );
+
+        $_POST = array(
+            'ffc_form_nonce' => 'ok',
+            'ffc_config'     => array(
+                'pdf_layout'       => '{{auth_code}} {{name}} {{cpf_rf}}',
+                'send_user_email'  => '1',
+                'email_subject'    => 'hello',
+                'email_body'       => '<p>body</p>',
+            ),
+        );
+
+        $this->handler->save_form_data( 10 );
+
+        $form_config = $written['_ffc_form_config'];
+        $this->assertSame( '1', $form_config['send_user_email'] );
+        $this->assertSame( 'hello', $form_config['email_subject'] );
+        $this->assertSame( '<p>body</p>', $form_config['email_body'] );
+    }
+
+    /**
+     * The 4 restriction toggles independently gate their own data fields.
+     * Each off → the corresponding meta is omitted from the new write.
+     */
+    public function test_restriction_toggles_off_skip_their_data_fields(): void {
+        $bag = $this->stub_for_save();
+        $written = &$bag[0];
+
+        Functions\when( 'get_post_meta' )->alias( static fn( $id, $key ) => array() );
+
+        $_POST = array(
+            'ffc_form_nonce' => 'ok',
+            'ffc_config'     => array(
+                'pdf_layout'           => '{{auth_code}} {{name}} {{cpf_rf}}',
+                'restrictions'         => array(),   // ALL four off
+                'allowed_users_list'   => 'fresh-allow',
+                'denied_users_list'    => 'fresh-deny',
+                'validation_code'      => 'fresh-pass',
+                'generated_codes_list' => 'fresh-tickets',
+            ),
+        );
+
+        $this->handler->save_form_data( 10 );
+
+        $form_config = $written['_ffc_form_config'];
+        $this->assertArrayNotHasKey( 'allowed_users_list', $form_config );
+        $this->assertArrayNotHasKey( 'denied_users_list', $form_config );
+        $this->assertArrayNotHasKey( 'validation_code', $form_config );
+        $this->assertArrayNotHasKey( 'generated_codes_list', $form_config );
+        // The 4 toggle states themselves ARE recorded.
+        $this->assertSame( '0', $form_config['restrictions']['password'] );
+        $this->assertSame( '0', $form_config['restrictions']['allowlist'] );
+        $this->assertSame( '0', $form_config['restrictions']['denylist'] );
+        $this->assertSame( '0', $form_config['restrictions']['ticket'] );
+    }
+
+    public function test_restriction_password_only_on_writes_validation_code_only(): void {
+        $bag = $this->stub_for_save();
+        $written = &$bag[0];
+
+        Functions\when( 'get_post_meta' )->alias( static fn( $id, $key ) => array() );
+
+        $_POST = array(
+            'ffc_form_nonce' => 'ok',
+            'ffc_config'     => array(
+                'pdf_layout'           => '{{auth_code}} {{name}} {{cpf_rf}}',
+                'restrictions'         => array( 'password' => '1' ),
+                'validation_code'      => 'secret',
+                'allowed_users_list'   => 'should-not-save',
+                'denied_users_list'    => 'should-not-save',
+                'generated_codes_list' => 'should-not-save',
+            ),
+        );
+
+        $this->handler->save_form_data( 10 );
+
+        $form_config = $written['_ffc_form_config'];
+        $this->assertSame( 'secret', $form_config['validation_code'] );
+        $this->assertArrayNotHasKey( 'allowed_users_list', $form_config );
+        $this->assertArrayNotHasKey( 'denied_users_list', $form_config );
+        $this->assertArrayNotHasKey( 'generated_codes_list', $form_config );
+    }
+
+    /**
+     * Quiz quiz_enabled OFF → 4 sub-options skipped; merge preserves old.
+     */
+    public function test_quiz_off_skips_sub_options(): void {
+        $bag = $this->stub_for_save();
+        $written = &$bag[0];
+
+        Functions\when( 'get_post_meta' )->alias( static fn( $id, $key ) => array() );
+
+        $_POST = array(
+            'ffc_form_nonce' => 'ok',
+            'ffc_config'     => array(
+                'pdf_layout'         => '{{auth_code}} {{name}} {{cpf_rf}}',
+                // quiz_enabled key absent → '0'
+                'quiz_passing_score' => '99',
+                'quiz_max_attempts'  => '5',
+                'quiz_show_score'    => '1',
+                'quiz_show_correct'  => '1',
+            ),
+        );
+
+        $this->handler->save_form_data( 10 );
+
+        $form_config = $written['_ffc_form_config'];
+        $this->assertSame( '0', $form_config['quiz_enabled'] );
+        $this->assertArrayNotHasKey( 'quiz_passing_score', $form_config );
+        $this->assertArrayNotHasKey( 'quiz_max_attempts', $form_config );
+        $this->assertArrayNotHasKey( 'quiz_show_score', $form_config );
+        $this->assertArrayNotHasKey( 'quiz_show_correct', $form_config );
+    }
+
+    /**
+     * DateTime datetime_enabled OFF → 9 sub-options skipped; merge picks up
+     * preserved values from the prior _ffc_geofence_config meta.
+     */
+    public function test_datetime_off_preserves_via_merge_with_current_config(): void {
+        $bag = $this->stub_for_save();
+        $written = &$bag[0];
+
+        $existing_geofence = array(
+            'datetime_enabled' => '1',
+            'date_start'       => '2024-01-01',
+            'date_end'         => '2024-01-31',
+            'time_start'       => '08:00',
+            'time_end'         => '18:00',
+            'time_mode'        => 'daily',
+            'msg_datetime'     => 'old message',
+        );
+        Functions\when( 'get_post_meta' )->alias(
+            static function ( $id, $key ) use ( $existing_geofence ) {
+                if ( '_ffc_geofence_config' === $key ) {
+                    return $existing_geofence;
+                }
+                return array();
+            }
+        );
+
+        $_POST = array(
+            'ffc_form_nonce' => 'ok',
+            'ffc_geofence'   => array(
+                // datetime_enabled absent → '0'
+                'date_start'   => 'should-not-overwrite',
+                'time_start'   => 'should-not-overwrite',
+                'msg_datetime' => 'spurious value',
+            ),
+        );
+
+        $this->handler->save_form_data( 10 );
+
+        $merged = $written['_ffc_geofence_config'];
+        $this->assertSame( '0', $merged['datetime_enabled'], 'toggle state recorded as off' );
+        $this->assertSame( '2024-01-01', $merged['date_start'], 'date_start preserved from prior config' );
+        $this->assertSame( '08:00', $merged['time_start'], 'time_start preserved' );
+        $this->assertSame( 'old message', $merged['msg_datetime'], 'msg_datetime preserved' );
+    }
+
+    /**
+     * Geolocation geo_enabled OFF → all geo sub-options skipped, including
+     * the nested permissive ones. Merge preserves prior values.
+     */
+    public function test_geolocation_off_preserves_via_merge(): void {
+        $bag = $this->stub_for_save();
+        $written = &$bag[0];
+
+        $existing = array(
+            'geo_enabled'      => '1',
+            'geo_gps_enabled'  => '1',
+            'geo_areas'        => '-23.55,-46.63,500',
+            'geo_hide_mode'    => 'message',
+            'msg_geo_blocked'  => 'old blocked',
+        );
+        Functions\when( 'get_post_meta' )->alias(
+            static fn( $id, $key ) => ( '_ffc_geofence_config' === $key ) ? $existing : array()
+        );
+
+        $_POST = array(
+            'ffc_form_nonce' => 'ok',
+            'ffc_geofence'   => array(
+                // geo_enabled absent → '0'
+                'geo_areas'       => 'should-not-overwrite',
+                'msg_geo_blocked' => 'spurious',
+            ),
+        );
+
+        $this->handler->save_form_data( 10 );
+
+        $merged = $written['_ffc_geofence_config'];
+        $this->assertSame( '0', $merged['geo_enabled'] );
+        $this->assertSame( '-23.55,-46.63,500', $merged['geo_areas'] );
+        $this->assertSame( 'old blocked', $merged['msg_geo_blocked'] );
+    }
+
+    /**
+     * Nested toggle: geo_enabled ON + geo_ip_areas_permissive OFF →
+     * permissive sub-options (ip_area_source / ids / areas) preserved.
+     */
+    public function test_ip_permissive_off_preserves_ip_area_fields(): void {
+        $bag = $this->stub_for_save();
+        $written = &$bag[0];
+
+        $existing = array(
+            'geo_ip_areas_permissive'  => '1',
+            'geo_ip_area_source'       => 'custom',
+            'geo_ip_areas'             => 'old-ip-areas',
+        );
+        Functions\when( 'get_post_meta' )->alias(
+            static fn( $id, $key ) => ( '_ffc_geofence_config' === $key ) ? $existing : array()
+        );
+
+        $_POST = array(
+            'ffc_form_nonce' => 'ok',
+            'ffc_geofence'   => array(
+                'geo_enabled'   => '1',                 // outer master on
+                // geo_ip_areas_permissive absent → '0'
+                'geo_ip_areas'  => 'should-not-overwrite',
+            ),
+        );
+
+        $this->handler->save_form_data( 10 );
+
+        $merged = $written['_ffc_geofence_config'];
+        $this->assertSame( '0', $merged['geo_ip_areas_permissive'] );
+        $this->assertSame( 'old-ip-areas', $merged['geo_ip_areas'], 'IP areas preserved when permissive off' );
+    }
 }

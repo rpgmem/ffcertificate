@@ -41,8 +41,8 @@ if ( ! defined( 'ABSPATH' ) ) {
 			<tr>
 				<td><code>[ffc_csv_download]</code></td>
 				<td>
-					<?php esc_html_e( 'Displays a public page where visitors can download the submissions CSV of a specific form using a Form ID and an access hash.', 'ffcertificate' ); ?><br>
-					<strong><?php esc_html_e( 'Usage:', 'ffcertificate' ); ?></strong> <?php esc_html_e( 'Enable "Public CSV Download" on the form editor to generate a hash, then share the page URL together with the Form ID and hash (e.g. ?form_id=123&hash=...). Downloads are only released after the form end date has passed and are capped by the per-form quota configured in the form editor.', 'ffcertificate' ); ?><br>
+					<?php esc_html_e( 'Displays a public page where trusted operators can download the submissions CSV, trigger Start Form Early, and Postpone Close for a specific form — all gated by a Form ID and an access hash.', 'ffcertificate' ); ?><br>
+					<strong><?php esc_html_e( 'Usage:', 'ffcertificate' ); ?></strong> <?php esc_html_e( 'Enable "Public Operator Access" (formerly "Public CSV Download") on the form editor to generate a hash, then share the page URL together with the Form ID and hash (e.g. ?form_id=123&hash=...). CSV downloads are only released after the form end date has passed and are capped by the per-form quota configured in the form editor; Start Form Early and Postpone Close have their own eligibility windows configured per form.', 'ffcertificate' ); ?><br>
 					<strong><?php esc_html_e( 'Optional attribute:', 'ffcertificate' ); ?></strong> <code>title="Download attendees"</code>
 				</td>
 			</tr>

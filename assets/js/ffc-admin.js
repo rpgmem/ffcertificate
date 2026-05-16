@@ -454,41 +454,54 @@
     }
 
     // =========================================================================
-    // Public CSV Download — disable sub-fields when master toggle is off.
-    // Server-side render sets `disabled` on the initial paint; this mirrors the
-    // state on subsequent change events without needing a save round-trip.
+    // Generic toggle-gated sub-option visibility (#238 / Sprint 3).
+    //
+    // Markup contract: any element with class `.ffc-collapsed-target` is
+    // hidden whenever its master toggle is off. The master is identified
+    // by `data-ffc-master="<id-of-master-input>"`. For select-driven gates
+    // (e.g. the CPF whitelist row that shows only when cpf_mode === 'whitelist'),
+    // add `data-ffc-master-value="<expected-value>"`; otherwise checkbox
+    // checked state is used.
+    //
+    // Pre-#238 code used per-metabox handlers + per-input `disabled`. That
+    // collapsed into this single initializer to keep behavior uniform,
+    // including the formerly-save-required spots (Email send_user_email,
+    // CPF whitelist mode, IP-Areas permissive). The legacy
+    // `.ffc-csv-public-disabled` / `.ffc-device-limit-disabled` CSS lives
+    // on as a deprecated alias until 6.6.0.
     // =========================================================================
-    if ($('#ffc_csv_public_enabled').length) {
-        function toggleCsvPublicUI(on) {
-            var $table = $('.ffc-csv-public-table');
-            $table.toggleClass('ffc-csv-public-disabled', !on);
-            $table.find('.ffc-csv-public-sub :input').prop('disabled', !on);
-        }
-        $('#ffc_csv_public_enabled').on('change', function() {
-            toggleCsvPublicUI($(this).is(':checked'));
-        });
-    }
+    $('.ffc-collapsed-target').each(function() {
+        var $target   = $(this);
+        var masterId  = $target.data('ffc-master');
+        var expected  = $target.data('ffc-master-value');
+        if (!masterId) { return; }
+        var $master = $('#' + masterId);
+        if (!$master.length) { return; }
 
-    // =========================================================================
-    // Device Fingerprint Limit — disable per-form fields when global is off
-    // (.ffc-device-limit-globally-off is emitted by the renderer in that
-    // case). Otherwise, mirror the per-form "Enable for this form" checkbox.
-    // =========================================================================
-    if ($('#ffc_device_limit_enabled').length) {
-        var $deviceTable = $('.ffc-device-limit-table');
-        var globallyOff  = $deviceTable.hasClass('ffc-device-limit-globally-off');
-        function toggleDeviceLimitUI(on) {
-            $deviceTable.toggleClass('ffc-device-limit-disabled', !on);
-            $deviceTable.find('.ffc-device-limit-sub :input').prop('disabled', !on);
+        function isOn() {
+            if (typeof expected !== 'undefined' && expected !== null && expected !== '') {
+                // Select-driven gate: compare current value.
+                return String($master.val()) === String(expected);
+            }
+            // Checkbox-driven gate: use checked state. Master may be a
+            // hidden+checkbox pair (WP admin toggle widget); .is(':checked')
+            // resolves to the visible checkbox in either layout.
+            return $master.is(':checked');
         }
-        if (globallyOff) {
-            // Global off — every input is locked, including the master checkbox.
-            $deviceTable.find(':input').prop('disabled', true);
-        } else {
-            $('#ffc_device_limit_enabled').on('change', function() {
-                toggleDeviceLimitUI($(this).is(':checked'));
-            });
+
+        function sync() {
+            var on = isOn();
+            $target.toggleClass('ffc-collapsed', !on);
+            $target.attr('aria-hidden', on ? 'false' : 'true');
+            $master.attr('aria-expanded', on ? 'true' : 'false');
         }
-    }
+
+        $master.on('change', sync);
+        // Also bind on input for selects so we update without losing focus.
+        if ($master.is('select')) {
+            $master.on('input', sync);
+        }
+        sync();
+    });
 
 })(jQuery);
