@@ -54,6 +54,9 @@ class UserAppointmentsRestControllerTest extends TestCase {
         Functions\when( 'date_i18n' )->alias( function( $format, $timestamp = false ) {
             return date( $format, $timestamp ?: time() );
         });
+        Functions\when( 'wp_date' )->alias( function( $format, $timestamp = null, $tz = null ) {
+            return date( $format, $timestamp ?? time() );
+        });
         Functions\when( 'wp_timezone' )->alias( function() {
             return new \DateTimeZone( 'UTC' );
         });

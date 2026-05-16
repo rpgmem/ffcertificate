@@ -33,8 +33,12 @@ class ReregistrationFormRendererTest extends TestCase {
         Functions\when( 'wp_kses_post' )->returnArg();
         Functions\when( 'selected' )->justReturn( '' );
         Functions\when( 'checked' )->justReturn( '' );
-        Functions\when( 'wp_date' )->alias( function ( $format, $ts ) { return date( $format, $ts ); } );
-        Functions\when( 'get_option' )->justReturn( 'Y-m-d' );
+        Functions\when( 'wp_date' )->alias( function ( $format, $ts = null, $tz = null ) { return date( $format, $ts ?? time() ); } );
+        Functions\when( 'wp_timezone' )->alias( function () { return new \DateTimeZone( 'UTC' ); } );
+        Functions\when( 'get_option' )->alias( function ( $key, $default = false ) {
+            if ( $key === 'ffc_settings' ) return array( 'date_format' => 'Y-m-d', 'time_format' => 'H:i' );
+            return 'Y-m-d';
+        } );
         Functions\when( 'wp_nonce_field' )->justReturn( '' );
 
         $user_mock = Mockery::mock( 'WP_User' );

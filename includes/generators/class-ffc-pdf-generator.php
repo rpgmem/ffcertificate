@@ -182,18 +182,7 @@ class PdfGenerator {
 
 		// Add formatted date if missing.
 		if ( ! isset( $data['fill_date'] ) ) {
-			$settings    = get_option( 'ffc_settings', array() );
-			$date_format = isset( $settings['date_format'] ) ? $settings['date_format'] : 'F j, Y';
-
-			// If custom format selected, use it.
-			if ( 'custom' === $date_format && ! empty( $settings['date_format_custom'] ) ) {
-				$date_format = $settings['date_format_custom'];
-			}
-
-			$data['fill_date'] = date_i18n(
-				$date_format,
-				strtotime( $submission['submission_date'] )
-			);
+			$data['fill_date'] = \FreeFormCertificate\Core\DateFormatter::format_date( $submission['submission_date'], 'pdf' );
 		}
 
 		// Add date alias.
@@ -246,27 +235,18 @@ class PdfGenerator {
 			return $this->generate_default_html( $data, $form_title );
 		}
 
-		// Replace standard placeholders.
-		$settings    = get_option( 'ffc_settings', array() );
-		$date_format = isset( $settings['date_format'] ) ? $settings['date_format'] : 'F j, Y';
-
-		// If custom format selected, use it.
-		if ( 'custom' === $date_format && ! empty( $settings['date_format_custom'] ) ) {
-			$date_format = $settings['date_format_custom'];
-		}
-
 		// {{submission_date}} - Submission creation date in DB (to avoid issues with reprinting)
 		if ( ! empty( $submission_date ) ) {
-			$layout = str_replace( '{{submission_date}}', date_i18n( $date_format, strtotime( $submission_date ) ), $layout );
+			$layout = str_replace( '{{submission_date}}', \FreeFormCertificate\Core\DateFormatter::format_date( $submission_date, 'pdf' ), $layout );
 		}
 
 		// {{print_date}} - Current date/time of PDF generation/printing.
-		$print_date_raw = wp_date( $date_format );
-		$layout         = str_replace( '{{print_date}}', $print_date_raw ? $print_date_raw : '', $layout );
+		$layout = str_replace( '{{print_date}}', \FreeFormCertificate\Core\DateFormatter::format_date( time(), 'pdf' ), $layout );
 
 		$layout = str_replace( '{{form_title}}', esc_html( (string) $form_title ), $layout );
 
 		// Inject settings-based placeholders into data (v4.6.10).
+		$settings = get_option( 'ffc_settings', array() );
 		if ( ! isset( $data['main_address'] ) && ! empty( $settings['main_address'] ) ) {
 			$data['main_address'] = $settings['main_address'];
 		}
@@ -653,10 +633,7 @@ class PdfGenerator {
 
 		// Add formatted date.
 		if ( $submission_date ) {
-			$formatted_date               = date_i18n(
-				get_option( 'date_format' ) . ' ' . get_option( 'time_format' ),
-				strtotime( $submission_date )
-			);
+			$formatted_date               = \FreeFormCertificate\Core\DateFormatter::format_datetime( $submission_date, 'pdf' );
 			$submission_data['fill_date'] = $formatted_date;
 			$submission_data['date']      = $formatted_date;
 		}
@@ -701,40 +678,33 @@ class PdfGenerator {
 	 * @return array{html: string, filename: string, form_title: string, bg_image: mixed, type: string} PDF data array (html, template, filename, bg_image)
 	 */
 	public function generate_appointment_pdf_data( array $appointment, array $calendar ): array {
-		// Get date/time format settings.
-		$date_format = get_option( 'date_format' );
-		$time_format = get_option( 'time_format' );
-
-		// Format appointment date.
 		$formatted_date = __( 'N/A', 'ffcertificate' );
 		if ( ! empty( $appointment['appointment_date'] ) ) {
 			$ts = strtotime( $appointment['appointment_date'] );
 			if ( false !== $ts ) {
-				$formatted_date = date_i18n( $date_format, $ts );
+				$formatted_date = \FreeFormCertificate\Core\DateFormatter::format_date( $ts, 'pdf' );
 			}
 		}
 
-		// Format time range.
 		$formatted_time = __( 'N/A', 'ffcertificate' );
 		if ( ! empty( $appointment['start_time'] ) ) {
 			$ts = strtotime( $appointment['start_time'] );
 			if ( false !== $ts ) {
-				$formatted_time = date_i18n( $time_format, $ts );
+				$formatted_time = \FreeFormCertificate\Core\DateFormatter::format_time( $ts, 'pdf' );
 			}
 			if ( ! empty( $appointment['end_time'] ) ) {
 				$ts2 = strtotime( $appointment['end_time'] );
 				if ( false !== $ts2 ) {
-					$formatted_time .= ' - ' . date_i18n( $time_format, $ts2 );
+					$formatted_time .= ' - ' . \FreeFormCertificate\Core\DateFormatter::format_time( $ts2, 'pdf' );
 				}
 			}
 		}
 
-		// Format created_at.
 		$formatted_created = __( 'N/A', 'ffcertificate' );
 		if ( ! empty( $appointment['created_at'] ) ) {
 			$ts = strtotime( $appointment['created_at'] );
 			if ( false !== $ts ) {
-				$formatted_created = date_i18n( $date_format . ' ' . $time_format, $ts );
+				$formatted_created = \FreeFormCertificate\Core\DateFormatter::format_datetime( $ts, 'pdf' );
 			}
 		}
 

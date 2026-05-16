@@ -104,8 +104,6 @@ class UserAppointmentsRestController {
 
 			$appointments = $appointment_repository->findByUserId( $user_id );
 
-			$date_format = get_option( 'date_format', 'F j, Y' );
-
 			// Batch load all calendars to avoid N+1 queries.
 			$calendar_ids  = array_unique(
 				array_filter(
@@ -138,13 +136,13 @@ class UserAppointmentsRestController {
 				$date_formatted = '';
 				if ( ! empty( $appointment['appointment_date'] ) ) {
 					$timestamp      = strtotime( $appointment['appointment_date'] );
-					$date_formatted = ( false !== $timestamp ) ? date_i18n( $date_format, $timestamp ) : $appointment['appointment_date'];
+					$date_formatted = ( false !== $timestamp ) ? \FreeFormCertificate\Core\DateFormatter::format_date( $timestamp ) : $appointment['appointment_date'];
 				}
 
 				$time_formatted = '';
 				if ( ! empty( $appointment['start_time'] ) ) {
 					$time_timestamp = strtotime( $appointment['start_time'] );
-					$time_formatted = ( false !== $time_timestamp ) ? date_i18n( 'H:i', $time_timestamp ) : $appointment['start_time'];
+					$time_formatted = ( false !== $time_timestamp ) ? \FreeFormCertificate\Core\DateFormatter::format_time( $time_timestamp ) : $appointment['start_time'];
 				}
 
 				$email_display = \FreeFormCertificate\Core\Encryption::decrypt_field( $appointment, 'email' );
@@ -153,7 +151,7 @@ class UserAppointmentsRestController {
 				$end_time_formatted = '';
 				if ( ! empty( $appointment['end_time'] ) ) {
 					$end_timestamp      = strtotime( $appointment['end_time'] );
-					$end_time_formatted = ( false !== $end_timestamp ) ? date_i18n( 'H:i', $end_timestamp ) : '';
+					$end_time_formatted = ( false !== $end_timestamp ) ? \FreeFormCertificate\Core\DateFormatter::format_time( $end_timestamp ) : '';
 				}
 
 				$status_labels = array(

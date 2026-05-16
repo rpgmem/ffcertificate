@@ -116,17 +116,15 @@ class UserSummaryRestController {
 				);
 
 				if ( $next ) {
-					$settings       = get_option( 'ffc_settings', array() );
-					$date_format    = $settings['date_format'] ?? 'F j, Y';
 					$timestamp      = strtotime( $next['appointment_date'] );
 					$time_formatted = '';
 					if ( ! empty( $next['start_time'] ) ) {
 						$time_ts        = strtotime( $next['start_time'] );
-						$time_formatted = ( false !== $time_ts ) ? date_i18n( 'H:i', $time_ts ) : '';
+						$time_formatted = ( false !== $time_ts ) ? \FreeFormCertificate\Core\DateFormatter::format_time( $time_ts ) : '';
 					}
 
 					$summary['next_appointment'] = array(
-						'date'  => ( false !== $timestamp ) ? date_i18n( $date_format, $timestamp ) : $next['appointment_date'],
+						'date'  => ( false !== $timestamp ) ? \FreeFormCertificate\Core\DateFormatter::format_date( $timestamp ) : $next['appointment_date'],
 						'time'  => $time_formatted,
 						'title' => $next['calendar_title'] ?? '',
 					);

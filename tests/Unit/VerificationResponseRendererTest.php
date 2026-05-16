@@ -40,6 +40,12 @@ class VerificationResponseRendererTest extends TestCase {
         Functions\when( 'date_i18n' )->alias( function ( $format, $ts ) {
             return date( $format, $ts );
         } );
+        Functions\when( 'wp_date' )->alias( function ( $format, $ts = null, $tz = null ) {
+            return date( $format, $ts ?? time() );
+        } );
+        Functions\when( 'wp_timezone' )->alias( function () {
+            return new \DateTimeZone( 'UTC' );
+        } );
 
         if ( ! defined( 'ABSPATH' ) ) {
             define( 'ABSPATH', '/tmp/' );

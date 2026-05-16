@@ -152,10 +152,7 @@ class UserProfileRestController {
 
 			$member_since = '';
 			if ( ! empty( $user->user_registered ) ) {
-				$settings     = get_option( 'ffc_settings', array() );
-				$date_format  = $settings['date_format'] ?? 'F j, Y';
-				$timestamp    = strtotime( $user->user_registered );
-				$member_since = ( false !== $timestamp ) ? date_i18n( $date_format, $timestamp ) : '';
+				$member_since = \FreeFormCertificate\Core\DateFormatter::format_date( $user->user_registered );
 			}
 
 			$audience_groups = array();

@@ -165,7 +165,7 @@ class AdminSubmissionEditPage {
 					sprintf(
 					/* translators: %s: name */
 						__( 'This record was manually edited on <strong>%s</strong>', 'ffcertificate' ),
-						esc_html( date_i18n( get_option( 'date_format' ) . ' ' . get_option( 'time_format' ), strtotime( $edited_at ) ) )
+						esc_html( \FreeFormCertificate\Core\DateFormatter::format_datetime( $edited_at ) )
 					)
 				);
 				?>
@@ -188,7 +188,7 @@ class AdminSubmissionEditPage {
 	private function render_system_info_section(): void {
 		$magic_token    = isset( $this->sub_array['magic_token'] ) ? $this->sub_array['magic_token'] : '';
 		$formatted_date = isset( $this->sub_array['submission_date'] )
-			? date_i18n( get_option( 'date_format' ) . ' ' . get_option( 'time_format' ), strtotime( $this->sub_array['submission_date'] ) )
+			? \FreeFormCertificate\Core\DateFormatter::format_datetime( $this->sub_array['submission_date'] )
 			: __( 'Unknown', 'ffcertificate' );
 
 		?>

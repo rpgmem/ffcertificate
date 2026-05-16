@@ -85,7 +85,7 @@ final class DateFormatter {
 			return '';
 		}
 		// `wp_date()` may return false on invalid timezone; coerce defensively.
-		$formatted = wp_date( self::resolve_date_format( $context ), $ts, self::resolve_timezone( $tz ) );
+		$formatted = \wp_date( self::resolve_date_format( $context ), $ts, self::resolve_timezone( $tz ) );
 		return false === $formatted ? '' : $formatted;
 	}
 
@@ -104,7 +104,7 @@ final class DateFormatter {
 		if ( null === $ts ) {
 			return '';
 		}
-		$formatted = wp_date( self::resolve_time_format( $context ), $ts, self::resolve_timezone( $tz ) );
+		$formatted = \wp_date( self::resolve_time_format( $context ), $ts, self::resolve_timezone( $tz ) );
 		return false === $formatted ? '' : $formatted;
 	}
 
@@ -125,8 +125,8 @@ final class DateFormatter {
 			return '';
 		}
 		$resolved_tz = self::resolve_timezone( $tz );
-		$date        = wp_date( self::resolve_date_format( $context ), $ts, $resolved_tz );
-		$time        = wp_date( self::resolve_time_format( $context ), $ts, $resolved_tz );
+		$date        = \wp_date( self::resolve_date_format( $context ), $ts, $resolved_tz );
+		$time        = \wp_date( self::resolve_time_format( $context ), $ts, $resolved_tz );
 		if ( false === $date || false === $time ) {
 			return '';
 		}
@@ -210,10 +210,10 @@ final class DateFormatter {
 			try {
 				return new \DateTimeZone( $tz );
 			} catch ( \Exception $e ) {
-				// fall through to site default.
+				unset( $e ); // Intentional fall-through to site default below.
 			}
 		}
-		return wp_timezone();
+		return \wp_timezone();
 	}
 
 	/**

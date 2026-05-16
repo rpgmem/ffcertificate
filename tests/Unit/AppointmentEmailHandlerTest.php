@@ -58,6 +58,12 @@ class AppointmentEmailHandlerTest extends TestCase {
         Functions\when( 'date_i18n' )->alias( function ( $format, $timestamp = false ) {
             return gmdate( $format, $timestamp ?: time() );
         } );
+        Functions\when( 'wp_date' )->alias( function ( $format, $timestamp = null, $tz = null ) {
+            return gmdate( $format, $timestamp ?? time() );
+        } );
+        Functions\when( 'wp_timezone' )->alias( function () {
+            return new \DateTimeZone( 'UTC' );
+        } );
         Functions\when( 'is_email' )->alias( function ( $email ) {
             return (bool) filter_var( $email, FILTER_VALIDATE_EMAIL );
         } );

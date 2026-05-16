@@ -50,6 +50,12 @@ class PdfGeneratorTest extends TestCase {
         } );
         Functions\when( 'FreeFormCertificate\Generators\esc_url' )->returnArg();
         Functions\when( 'FreeFormCertificate\Generators\esc_attr' )->returnArg();
+        Functions\when( 'wp_date' )->alias( function ( $format, $ts = null, $tz = null ) {
+            return gmdate( $format, $ts ?? time() );
+        } );
+        Functions\when( 'wp_timezone' )->alias( function () {
+            return new \DateTimeZone( 'UTC' );
+        } );
 
         $this->generator = new PdfGenerator();
     }
@@ -293,9 +299,7 @@ class PdfGeneratorTest extends TestCase {
 
     public function test_enrich_adds_fill_date(): void {
         Functions\when( 'get_option' )->justReturn( array( 'date_format' => 'd/m/Y' ) );
-        Functions\expect( 'date_i18n' )
-            ->once()
-            ->andReturn( '01/01/2026' );
+        Functions\when( 'wp_date' )->justReturn( '01/01/2026' );
 
         $data = array();
         $submission = array(
@@ -316,9 +320,7 @@ class PdfGeneratorTest extends TestCase {
             'date_format' => 'custom',
             'date_format_custom' => 'Y-m-d',
         ) );
-        Functions\expect( 'date_i18n' )
-            ->once()
-            ->andReturn( '2026-01-01' );
+        Functions\when( 'wp_date' )->justReturn( '2026-01-01' );
 
         $data = array();
         $submission = array(

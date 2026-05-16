@@ -472,8 +472,8 @@ class SelfSchedulingCPT {
 			get_bloginfo( 'name' )
 		);
 
-		$date_formatted = date_i18n( get_option( 'date_format' ), strtotime( $appointment['appointment_date'] ) );
-		$time_formatted = date_i18n( get_option( 'time_format' ), strtotime( $appointment['start_time'] ) );
+		$date_formatted = \FreeFormCertificate\Core\DateFormatter::format_date( $appointment['appointment_date'] );
+		$time_formatted = \FreeFormCertificate\Core\DateFormatter::format_time( $appointment['start_time'] );
 
 		$message = sprintf(
 			/* translators: %1$s, %2$s, %4$s, %5$s, %6$s, %8$s, %10$s, %12$s, %13$s, %14$s, %15$s: line breaks, %3$s: calendar title, %7$s: appointment date, %9$s: appointment time, %11$s: calendar title, %16$s: site name */

@@ -316,8 +316,8 @@ class ReregistrationAdmin {
 		$stats     = ReregistrationSubmissionRepository::get_statistics( (int) $item->id );
 		$start_ts  = strtotime( $item->start_date );
 		$end_ts    = strtotime( $item->end_date );
-		$start     = wp_date( get_option( 'date_format' ), false === $start_ts ? null : $start_ts );
-		$end       = wp_date( get_option( 'date_format' ), false === $end_ts ? null : $end_ts );
+		$start     = \FreeFormCertificate\Core\DateFormatter::format_date( false === $start_ts ? null : $start_ts );
+		$end       = \FreeFormCertificate\Core\DateFormatter::format_date( false === $end_ts ? null : $end_ts );
 		$audiences = ReregistrationRepository::get_audiences( (int) $item->id );
 
 		?>
@@ -689,14 +689,14 @@ class ReregistrationAdmin {
 
 		if ( $sub->submitted_at ) {
 			$submitted_ts  = strtotime( $sub->submitted_at );
-			$submitted_raw = wp_date( get_option( 'date_format' ) . ' ' . get_option( 'time_format' ), $submitted_ts ? $submitted_ts : time() );
+			$submitted_raw = \FreeFormCertificate\Core\DateFormatter::format_datetime( $submitted_ts ? $submitted_ts : time() );
 			$submitted     = $submitted_raw ? $submitted_raw : '—';
 		} else {
 			$submitted = '—';
 		}
 		if ( $sub->reviewed_at ) {
 			$reviewed_ts  = strtotime( $sub->reviewed_at );
-			$reviewed_raw = wp_date( get_option( 'date_format' ) . ' ' . get_option( 'time_format' ), $reviewed_ts ? $reviewed_ts : time() );
+			$reviewed_raw = \FreeFormCertificate\Core\DateFormatter::format_datetime( $reviewed_ts ? $reviewed_ts : time() );
 			$reviewed     = $reviewed_raw ? $reviewed_raw : '—';
 		} else {
 			$reviewed = '—';

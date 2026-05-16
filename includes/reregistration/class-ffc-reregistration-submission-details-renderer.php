@@ -56,12 +56,10 @@ final class ReregistrationSubmissionDetailsRenderer {
 			$grouped[ $group ][] = $field;
 		}
 
-		$date_format  = get_option( 'date_format' );
-		$time_format  = get_option( 'time_format' );
 		$submitted_at = '';
 		if ( ! empty( $submission->submitted_at ) ) {
 			$submitted_ts = strtotime( $submission->submitted_at );
-			$submitted_at = wp_date( $date_format . ' ' . $time_format, false === $submitted_ts ? null : $submitted_ts );
+			$submitted_at = \FreeFormCertificate\Core\DateFormatter::format_datetime( false === $submitted_ts ? null : $submitted_ts );
 		}
 
 		ob_start();

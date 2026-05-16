@@ -116,7 +116,7 @@ class EmailTemplateService {
 	 * @return string Formatted date
 	 */
 	public static function format_date( string $date ): string {
-		return date_i18n( get_option( 'date_format' ), strtotime( $date ) );
+		return \FreeFormCertificate\Core\DateFormatter::format_date( $date );
 	}
 
 	/**
@@ -126,7 +126,7 @@ class EmailTemplateService {
 	 * @return string Formatted time
 	 */
 	public static function format_time( string $time ): string {
-		return date_i18n( 'H:i', strtotime( $time ) );
+		return \FreeFormCertificate\Core\DateFormatter::format_time( $time );
 	}
 
 	/**

@@ -540,8 +540,7 @@ class Utils {
 				: __( 'Success! Your certificate has been generated.', 'ffcertificate' );
 		}
 
-		// Format date.
-		$date_formatted = date_i18n( get_option( 'date_format' ) . ' ' . get_option( 'time_format' ), strtotime( $submission_date ) );
+		$date_formatted = \FreeFormCertificate\Core\DateFormatter::format_datetime( $submission_date );
 
 		// Auth code (formatted for display with certificate prefix).
 		$auth_code = isset( $submission_data['auth_code'] ) ? DocumentFormatter::format_auth_code( $submission_data['auth_code'], DocumentFormatter::PREFIX_CERTIFICATE ) : '';

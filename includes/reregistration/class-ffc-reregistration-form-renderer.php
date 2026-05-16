@@ -80,7 +80,7 @@ class ReregistrationFormRenderer {
 		$values = self::build_field_values( $fields, $saved_values, $user_id, $user );
 
 		$end_ts   = strtotime( $rereg->end_date );
-		$end_date = wp_date( get_option( 'date_format' ), false === $end_ts ? null : $end_ts );
+		$end_date = \FreeFormCertificate\Core\DateFormatter::format_date( false === $end_ts ? null : $end_ts );
 
 		// Group fields by field_group, preserving sort order.
 		$grouped      = self::group_fields( $fields );

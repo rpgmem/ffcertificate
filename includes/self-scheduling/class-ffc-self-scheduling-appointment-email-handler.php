@@ -80,9 +80,8 @@ class AppointmentEmailHandler {
 			$calendar['title']
 		);
 
-		// Format date and time.
-		$date_formatted = date_i18n( get_option( 'date_format' ), strtotime( $appointment['appointment_date'] ) );
-		$time_formatted = date_i18n( 'H:i', strtotime( $appointment['start_time'] ) );
+		$date_formatted = \FreeFormCertificate\Core\DateFormatter::format_date( $appointment['appointment_date'] );
+		$time_formatted = \FreeFormCertificate\Core\DateFormatter::format_time( $appointment['start_time'] );
 
 		// Status message.
 		$status_message = $calendar['requires_approval']
@@ -168,9 +167,8 @@ class AppointmentEmailHandler {
 			$calendar['title']
 		);
 
-		// Format date and time.
-		$date_formatted = date_i18n( get_option( 'date_format' ), strtotime( $appointment['appointment_date'] ) );
-		$time_formatted = date_i18n( 'H:i', strtotime( $appointment['start_time'] ) );
+		$date_formatted = \FreeFormCertificate\Core\DateFormatter::format_date( $appointment['appointment_date'] );
+		$time_formatted = \FreeFormCertificate\Core\DateFormatter::format_time( $appointment['start_time'] );
 
 		// Build email HTML.
 		$body  = '<div style="font-family: sans-serif; max-width: 600px; margin: 0 auto;">';
@@ -231,9 +229,8 @@ class AppointmentEmailHandler {
 			$calendar['title']
 		);
 
-		// Format date and time.
-		$date_formatted = date_i18n( get_option( 'date_format' ), strtotime( $appointment['appointment_date'] ) );
-		$time_formatted = date_i18n( 'H:i', strtotime( $appointment['start_time'] ) );
+		$date_formatted = \FreeFormCertificate\Core\DateFormatter::format_date( $appointment['appointment_date'] );
+		$time_formatted = \FreeFormCertificate\Core\DateFormatter::format_time( $appointment['start_time'] );
 
 		// Build email HTML.
 		$body = $this->get_email_template_header();
@@ -295,9 +292,8 @@ class AppointmentEmailHandler {
 			$calendar['title']
 		);
 
-		// Format date and time.
-		$date_formatted = date_i18n( get_option( 'date_format' ), strtotime( $appointment['appointment_date'] ) );
-		$time_formatted = date_i18n( 'H:i', strtotime( $appointment['start_time'] ) );
+		$date_formatted = \FreeFormCertificate\Core\DateFormatter::format_date( $appointment['appointment_date'] );
+		$time_formatted = \FreeFormCertificate\Core\DateFormatter::format_time( $appointment['start_time'] );
 
 		// Build email HTML.
 		$body = $this->get_email_template_header();
@@ -354,9 +350,8 @@ class AppointmentEmailHandler {
 			$calendar['title']
 		);
 
-		// Format date and time.
-		$date_formatted = date_i18n( get_option( 'date_format' ), strtotime( $appointment['appointment_date'] ) );
-		$time_formatted = date_i18n( 'H:i', strtotime( $appointment['start_time'] ) );
+		$date_formatted = \FreeFormCertificate\Core\DateFormatter::format_date( $appointment['appointment_date'] );
+		$time_formatted = \FreeFormCertificate\Core\DateFormatter::format_time( $appointment['start_time'] );
 
 		// Build email HTML.
 		$body = $this->get_email_template_header();
