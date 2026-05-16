@@ -197,8 +197,8 @@ class AudienceAdminSettings {
 							<tr>
 								<td>
 									<?php
-									$timestamp = strtotime( $holiday['date'] );
-									echo esc_html( $timestamp ? date_i18n( get_option( 'date_format', 'F j, Y' ), $timestamp ) : $holiday['date'] );
+									$formatted_holiday = \FreeFormCertificate\Core\DateFormatter::format_date( $holiday['date'] );
+									echo esc_html( '' !== $formatted_holiday ? $formatted_holiday : $holiday['date'] );
 									?>
 								</td>
 								<td><?php echo esc_html( $holiday['description'] ?? '' ); ?></td>

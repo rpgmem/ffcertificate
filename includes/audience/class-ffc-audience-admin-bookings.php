@@ -192,8 +192,8 @@ class AudienceAdminBookings {
 							?>
 							<tr>
 								<td><?php echo esc_html( $booking->id ); ?></td>
-								<td><?php echo esc_html( date_i18n( get_option( 'date_format' ), strtotime( $booking->booking_date ) ) ); ?></td>
-								<td><?php echo esc_html( date_i18n( 'H:i', strtotime( $booking->start_time ) ) . ' - ' . date_i18n( 'H:i', strtotime( $booking->end_time ) ) ); ?></td>
+								<td><?php echo esc_html( \FreeFormCertificate\Core\DateFormatter::format_date( $booking->booking_date ) ); ?></td>
+								<td><?php echo esc_html( \FreeFormCertificate\Core\DateFormatter::format_time( $booking->start_time ) . ' - ' . \FreeFormCertificate\Core\DateFormatter::format_time( $booking->end_time ) ); ?></td>
 								<td><?php echo esc_html( $booking->environment_name ); ?></td>
 								<td><?php echo esc_html( wp_trim_words( $booking->description, 10 ) ); ?></td>
 								<td>
