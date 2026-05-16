@@ -165,7 +165,10 @@ class SettingsTest extends TestCase {
         $this->assertArrayHasKey( 'cache_auto_warm', $defaults );
         $this->assertSame( 365, $defaults['cleanup_days'] );
         $this->assertSame( 'wp', $defaults['smtp_mode'] );
-        $this->assertSame( 'F j, Y', $defaults['date_format'] );
+        // Default changed from 'F j, Y' to 'd/m/Y' in #244 — Brazilian-
+        // locale friendly. Installs that explicitly saved 'F j, Y' keep
+        // it (get_option returns the persisted value, not the default).
+        $this->assertSame( 'd/m/Y', $defaults['date_format'] );
     }
 
     // ==================================================================

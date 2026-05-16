@@ -147,8 +147,18 @@ class Settings {
 			'qr_default_size'          => 200,
 			'qr_default_margin'        => 2,
 			'qr_default_error_level'   => 'M',
-			'date_format'              => 'F j, Y',
+			// `d/m/Y` default since #244 — Brazilian-locale friendly. Pre-
+			// #244 default was 'F j, Y'; installs that explicitly saved
+			// 'F j, Y' keep it because get_option() returns the persisted
+			// value, not the default. Fresh installs and any user who
+			// never visited Settings → General pick up `d/m/Y` now.
+			'date_format'              => 'd/m/Y',
 			'date_format_custom'       => '',
+			// New in #244 — time-of-day formatting + per-context PDF
+			// overrides. Empty `_pdf` values inherit the base format.
+			'time_format'              => 'H:i',
+			'date_format_pdf'          => '',
+			'time_format_pdf'          => '',
 			'cache_enabled'            => 1,      // Default: ON.
 			'cache_expiration'         => 3600,   // 1 hour
 			'cache_auto_warm'          => 0,      // Default: OFF.
