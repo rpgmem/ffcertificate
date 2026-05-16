@@ -172,6 +172,12 @@ final class ExtendEndAction {
 	 * @param string               $hash         The public hash (re-validated).
 	 * @param string               $new_time_end New close as HH:MM (site tz).
 	 * @param array<string, mixed> $audit_meta   { user_id, ip, ua }.
+	 * @param string               $cpf_digits   Operator's CPF (digits only),
+	 *                                           re-validated by the caller's
+	 *                                           AJAX endpoint. Written to the
+	 *                                           per-form audit ring buffer
+	 *                                           alongside `action_postpone_close`
+	 *                                           (#243 Sprint 6).
 	 * @return array{ok: false, reason: string}|array{ok: true, original_end_iso: string, new_end_iso: string}
 	 */
 	public static function execute( int $form_id, string $hash, string $new_time_end, array $audit_meta = array(), string $cpf_digits = '' ): array {

@@ -169,6 +169,12 @@ class EarlyOpenAction {
 	 * @param array<string, mixed> $audit_meta Caller-supplied context for
 	 *                                         the audit row — typically
 	 *                                         { user_id, ip, ua }.
+	 * @param string               $cpf_digits Operator's CPF (digits only),
+	 *                                         re-validated by the caller's
+	 *                                         AJAX endpoint. Written to the
+	 *                                         per-form audit ring buffer
+	 *                                         alongside the `action_early_open`
+	 *                                         result tag (#243 Sprint 6).
 	 * @return array{ok: false, reason: string}|array{ok: true, original_start_iso: string, new_start_iso: string}
 	 */
 	public static function execute( int $form_id, string $hash, array $audit_meta = array(), string $cpf_digits = '' ): array {
