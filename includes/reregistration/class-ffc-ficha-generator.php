@@ -70,13 +70,9 @@ class FichaGenerator {
 		// Status labels (centralized in SubmissionRepository).
 		$status_labels = ReregistrationSubmissionRepository::get_status_labels();
 
-		// Date formatting.
-		$date_format = get_option( 'date_format' );
-		$time_format = get_option( 'time_format' );
-
 		$submitted_at = '';
 		if ( ! empty( $submission->submitted_at ) ) {
-			$submitted_at = date_i18n( $date_format . ' ' . $time_format, strtotime( $submission->submitted_at ) );
+			$submitted_at = \FreeFormCertificate\Core\DateFormatter::format_datetime( $submission->submitted_at, 'pdf' );
 		}
 
 		// Check if user has acúmulo de cargos.
@@ -91,7 +87,7 @@ class FichaGenerator {
 			'submitted_at'         => $submitted_at,
 			'email'                => $user->user_email,
 			'site_name'            => get_bloginfo( 'name' ),
-			'generation_date'      => wp_date( $date_format . ' ' . $time_format ),
+			'generation_date'      => \FreeFormCertificate\Core\DateFormatter::format_datetime( time(), 'pdf' ),
 		);
 
 		foreach ( $standard_fields as $field ) {

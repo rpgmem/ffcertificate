@@ -27,12 +27,68 @@ $ffcertificate_date_formats = array(
 	'custom'             => __( 'Custom Format', 'ffcertificate' ),
 );
 
-$ffcertificate_current_format = $ffcertificate_get_option( 'date_format', 'F j, Y' );
+$ffcertificate_current_format = $ffcertificate_get_option( 'date_format', \FreeFormCertificate\Core\DateFormatter::DEFAULT_DATE_FORMAT );
 $ffcertificate_custom_format  = $ffcertificate_get_option( 'date_format_custom', '' );
-$ffcertificate_main_address   = $ffcertificate_get_option( 'main_address', '' );
+// #244 — time format + per-context PDF overrides.
+$ffcertificate_time_format     = $ffcertificate_get_option( 'time_format', \FreeFormCertificate\Core\DateFormatter::DEFAULT_TIME_FORMAT );
+$ffcertificate_date_format_pdf = $ffcertificate_get_option( 'date_format_pdf', '' );
+$ffcertificate_time_format_pdf = $ffcertificate_get_option( 'time_format_pdf', '' );
+$ffcertificate_main_address    = $ffcertificate_get_option( 'main_address', '' );
+
+// Divergence between plugin format and WordPress core format (#244).
+// Surfaces a notice in the General tab so admins notice when they have
+// the plugin configured differently from the rest of WP. The plugin's
+// `date_format` setting takes precedence inside the plugin (PDFs, emails,
+// admin lists since #244 Sprint 2), so divergence is intentional but
+// worth flagging.
+$ffcertificate_wp_date_format  = (string) \get_option( 'date_format', '' );
+$ffcertificate_wp_time_format  = (string) \get_option( 'time_format', '' );
+$ffcertificate_effective_date  = ( 'custom' === $ffcertificate_current_format && '' !== $ffcertificate_custom_format )
+	? $ffcertificate_custom_format
+	: $ffcertificate_current_format;
+$ffcertificate_date_diverges   = '' !== $ffcertificate_wp_date_format && $ffcertificate_wp_date_format !== $ffcertificate_effective_date;
+$ffcertificate_time_diverges   = '' !== $ffcertificate_wp_time_format && $ffcertificate_wp_time_format !== $ffcertificate_time_format;
+$ffcertificate_show_divergence = $ffcertificate_date_diverges || $ffcertificate_time_diverges;
 ?>
 
 <div class="ffc-settings-wrap">
+
+<?php if ( $ffcertificate_show_divergence ) : ?>
+	<div class="notice notice-info inline ffc-settings-divergence-notice" style="margin: 15px 0; padding: 12px 15px;">
+		<p style="margin: 0 0 8px;">
+			<strong><?php esc_html_e( 'Heads-up: plugin formats differ from the WordPress global formats.', 'ffcertificate' ); ?></strong>
+		</p>
+		<p style="margin: 0 0 8px;">
+			<?php esc_html_e( 'The plugin uses its own date and time formats (configured below) for everything it renders — admin lists, frontend pages, emails, REST responses and PDFs. The rest of WordPress (themes, other plugins, posts) keeps using the global formats from Settings → General. This is intentional, but worth knowing when comparing dates across the dashboard.', 'ffcertificate' ); ?>
+		</p>
+		<ul style="margin: 6px 0 0 18px; list-style: disc;">
+			<?php if ( $ffcertificate_date_diverges ) : ?>
+				<li>
+					<?php
+					printf(
+						/* translators: 1: plugin date format string, 2: WordPress global date format string */
+						esc_html__( 'Date: plugin uses %1$s, WordPress uses %2$s.', 'ffcertificate' ),
+						'<code>' . esc_html( $ffcertificate_effective_date ) . '</code>',
+						'<code>' . esc_html( $ffcertificate_wp_date_format ) . '</code>'
+					); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- pre-escaped via esc_html inside printf args.
+					?>
+				</li>
+			<?php endif; ?>
+			<?php if ( $ffcertificate_time_diverges ) : ?>
+				<li>
+					<?php
+					printf(
+						/* translators: 1: plugin time format string, 2: WordPress global time format string */
+						esc_html__( 'Time: plugin uses %1$s, WordPress uses %2$s.', 'ffcertificate' ),
+						'<code>' . esc_html( $ffcertificate_time_format ) . '</code>',
+						'<code>' . esc_html( $ffcertificate_wp_time_format ) . '</code>'
+					); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- pre-escaped via esc_html inside printf args.
+					?>
+				</li>
+			<?php endif; ?>
+		</ul>
+	</div>
+<?php endif; ?>
 
 <form method="post">
 	<?php wp_nonce_field( 'ffc_settings_action', 'ffc_settings_nonce' ); ?>
@@ -106,6 +162,64 @@ $ffcertificate_main_address   = $ffcertificate_get_option( 'main_address', '' );
 								</p>
 							</div>
 						</div>
+					</td>
+				</tr>
+
+				<tr>
+					<th scope="row">
+						<label for="ffc_time_format"><?php esc_html_e( 'Time Format', 'ffcertificate' ); ?></label>
+					</th>
+					<td>
+						<input type="text" name="ffc_settings[time_format]" id="ffc_time_format" value="<?php echo esc_attr( $ffcertificate_time_format ); ?>" placeholder="H:i" class="regular-text" data-ffc-autosave-key="time_format">
+						<p class="description">
+							<?php esc_html_e( 'Time portion (HH:MM by default, 24h). Used by DateFormatter::format_time() and combined date+time output.', 'ffcertificate' ); ?>
+							<br>
+							<strong><?php esc_html_e( 'Preview:', 'ffcertificate' ); ?></strong>
+							<span class="ffc-text-info ffc-monospace">
+								<?php
+								$ffcertificate_preview_time = '2026-01-04 15:30:45';
+								echo esc_html( date_i18n( '' !== $ffcertificate_time_format ? $ffcertificate_time_format : 'H:i', strtotime( $ffcertificate_preview_time ) ) );
+								?>
+							</span>
+						</p>
+					</td>
+				</tr>
+
+				<tr>
+					<th scope="row">
+						<label for="ffc_date_format_pdf"><?php esc_html_e( 'PDF Date Format (override)', 'ffcertificate' ); ?></label>
+					</th>
+					<td>
+						<input type="text" name="ffc_settings[date_format_pdf]" id="ffc_date_format_pdf" value="<?php echo esc_attr( $ffcertificate_date_format_pdf ); ?>" placeholder="<?php esc_attr_e( '(empty — inherits Date Format above)', 'ffcertificate' ); ?>" class="regular-text" data-ffc-autosave-key="date_format_pdf">
+						<p class="description">
+							<?php esc_html_e( 'Optional override for the PDF generator. Leave empty to inherit the Date Format above. Example: d \d\e F \d\e Y → "4 de Janeiro de 2026".', 'ffcertificate' ); ?>
+							<?php if ( '' !== $ffcertificate_date_format_pdf ) : ?>
+								<br>
+								<strong><?php esc_html_e( 'Preview:', 'ffcertificate' ); ?></strong>
+								<span class="ffc-text-info ffc-monospace">
+									<?php echo esc_html( date_i18n( $ffcertificate_date_format_pdf, strtotime( '2026-01-04' ) ) ); ?>
+								</span>
+							<?php endif; ?>
+						</p>
+					</td>
+				</tr>
+
+				<tr>
+					<th scope="row">
+						<label for="ffc_time_format_pdf"><?php esc_html_e( 'PDF Time Format (override)', 'ffcertificate' ); ?></label>
+					</th>
+					<td>
+						<input type="text" name="ffc_settings[time_format_pdf]" id="ffc_time_format_pdf" value="<?php echo esc_attr( $ffcertificate_time_format_pdf ); ?>" placeholder="<?php esc_attr_e( '(empty — inherits Time Format above)', 'ffcertificate' ); ?>" class="regular-text" data-ffc-autosave-key="time_format_pdf">
+						<p class="description">
+							<?php esc_html_e( 'Optional override for the PDF generator. Leave empty to inherit the Time Format above.', 'ffcertificate' ); ?>
+							<?php if ( '' !== $ffcertificate_time_format_pdf ) : ?>
+								<br>
+								<strong><?php esc_html_e( 'Preview:', 'ffcertificate' ); ?></strong>
+								<span class="ffc-text-info ffc-monospace">
+									<?php echo esc_html( date_i18n( $ffcertificate_time_format_pdf, strtotime( '2026-01-04 15:30:45' ) ) ); ?>
+								</span>
+							<?php endif; ?>
+						</p>
 					</td>
 				</tr>
 

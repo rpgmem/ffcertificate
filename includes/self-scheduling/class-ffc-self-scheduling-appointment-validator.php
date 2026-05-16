@@ -293,10 +293,7 @@ class AppointmentValidator {
 			$apt_timestamp = ( new \DateTimeImmutable( $appointment['appointment_date'] . ' ' . $appointment['start_time'], wp_timezone() ) )->getTimestamp();
 
 			if ( $apt_timestamp >= $now && $apt_timestamp <= $cutoff_time ) {
-				$next_available = date_i18n(
-					get_option( 'date_format' ) . ' ' . get_option( 'time_format' ),
-					$apt_timestamp + ( $interval_hours * 3600 )
-				);
+				$next_available = \FreeFormCertificate\Core\DateFormatter::format_datetime( $apt_timestamp + ( $interval_hours * 3600 ) );
 
 				return new \WP_Error(
 					'booking_too_soon',

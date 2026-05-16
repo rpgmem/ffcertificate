@@ -83,7 +83,6 @@ class UserReregistrationsRestController {
 			}
 
 			$submissions = \FreeFormCertificate\Reregistration\ReregistrationSubmissionRepository::get_all_by_user( $user_id );
-			$date_format = get_option( 'date_format', 'F j, Y' );
 
 			$status_labels = array(
 				'pending'     => __( 'Pending', 'ffcertificate' ),
@@ -101,7 +100,7 @@ class UserReregistrationsRestController {
 				$submitted_at = '';
 				if ( ! empty( $sub->submitted_at ) ) {
 					$sub_ts       = strtotime( $sub->submitted_at );
-					$submitted_at = ( false !== $sub_ts ) ? date_i18n( $date_format . ' H:i', $sub_ts ) : $sub->submitted_at;
+					$submitted_at = ( false !== $sub_ts ) ? \FreeFormCertificate\Core\DateFormatter::format_datetime( $sub_ts ) : $sub->submitted_at;
 				}
 
 				$can_download = in_array( $sub->status, array( 'submitted', 'approved' ), true );
@@ -124,8 +123,8 @@ class UserReregistrationsRestController {
 					'reregistration_status' => $sub->reregistration_status,
 					'start_date'            => $sub->start_date,
 					'end_date'              => $sub->end_date,
-					'start_date_formatted'  => ( false !== $start_ts ) ? date_i18n( $date_format, $start_ts ) : $sub->start_date,
-					'end_date_formatted'    => ( false !== $end_ts ) ? date_i18n( $date_format, $end_ts ) : $sub->end_date,
+					'start_date_formatted'  => ( false !== $start_ts ) ? \FreeFormCertificate\Core\DateFormatter::format_date( $start_ts ) : $sub->start_date,
+					'end_date_formatted'    => ( false !== $end_ts ) ? \FreeFormCertificate\Core\DateFormatter::format_date( $end_ts ) : $sub->end_date,
 					'submitted_at'          => $submitted_at,
 					'days_left'             => $is_active ? max( 0, (int) ( ( $end_ts - time() ) / 86400 ) ) : 0,
 					'can_download'          => $can_download,

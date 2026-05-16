@@ -165,14 +165,14 @@ final class CsvDownloadFormInfoBuilder {
 				// stays in 24h regardless of the site's time_format setting).
 				// Empty when no end_ts. Issue #243 Sprint 3.
 				'current_date_end_formatted'     => null !== $end_ts
-					? wp_date( get_option( 'date_format' ), $end_ts, $tz )
+					? \FreeFormCertificate\Core\DateFormatter::format_date( $end_ts, 'default', $tz )
 					: '',
 				'download_blocked_reason'        => $download_reason,
 				'start_date_formatted'           => null !== $start_ts
-					? wp_date( get_option( 'date_format' ) . ' ' . get_option( 'time_format' ), $start_ts, $tz )
+					? \FreeFormCertificate\Core\DateFormatter::format_datetime( $start_ts, 'default', ' ', $tz )
 					: null,
 				'end_date_formatted'             => null !== $end_ts
-					? wp_date( get_option( 'date_format' ) . ' ' . get_option( 'time_format' ), $end_ts, $tz )
+					? \FreeFormCertificate\Core\DateFormatter::format_datetime( $end_ts, 'default', ' ', $tz )
 					: null,
 			),
 		);
@@ -293,8 +293,6 @@ final class CsvDownloadFormInfoBuilder {
 		$has_dates = '' !== $date_start || '' !== $date_end;
 		$has_times = '' !== $time_start || '' !== $time_end;
 
-		$date_format = get_option( 'date_format' );
-
 		// Anchor each date in the site timezone before formatting. Naive
 		// strtotime() reads "Y-m-d" as PHP-process-local (typically UTC)
 		// midnight, which then drifts to the previous day after wp_date()
@@ -318,9 +316,9 @@ final class CsvDownloadFormInfoBuilder {
 
 		return array(
 			'has_dates'      => $has_dates,
-			'date_start'     => null !== $start_ts ? wp_date( $date_format, $start_ts, $tz ) : null,
+			'date_start'     => null !== $start_ts ? \FreeFormCertificate\Core\DateFormatter::format_date( $start_ts, 'default', $tz ) : null,
 			'date_start_raw' => '' !== $date_start ? $date_start : null,
-			'date_end'       => null !== $end_ts ? wp_date( $date_format, $end_ts, $tz ) : null,
+			'date_end'       => null !== $end_ts ? \FreeFormCertificate\Core\DateFormatter::format_date( $end_ts, 'default', $tz ) : null,
 			'date_end_raw'   => '' !== $date_end ? $date_end : null,
 			'has_times'      => $has_times,
 			'time_start'     => '' !== $time_start ? $time_start : null,

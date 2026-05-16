@@ -37,10 +37,7 @@ class VerificationResponseRenderer {
 		$form           = get_post( (int) $submission->form_id );
 		$form_title     = $form ? $form->post_title : __( 'N/A', 'ffcertificate' );
 		$date_ts        = strtotime( $submission->submission_date );
-		$date_generated = date_i18n(
-			get_option( 'date_format' ) . ' ' . get_option( 'time_format' ),
-			false === $date_ts ? false : $date_ts
-		);
+		$date_generated = \FreeFormCertificate\Core\DateFormatter::format_datetime( false === $date_ts ? null : $date_ts );
 		$display_code   = isset( $data['auth_code'] )
 			? \FreeFormCertificate\Core\DocumentFormatter::format_auth_code( $data['auth_code'], \FreeFormCertificate\Core\DocumentFormatter::PREFIX_CERTIFICATE )
 			: '';
@@ -81,15 +78,12 @@ class VerificationResponseRenderer {
 		$data        = $result['data'];
 		$appointment = $result['appointment'];
 
-		$date_format = get_option( 'date_format' );
-		$time_format = get_option( 'time_format' );
-
 		// Format date.
 		$formatted_date = __( 'N/A', 'ffcertificate' );
 		if ( ! empty( $appointment['appointment_date'] ) ) {
 			$ts = strtotime( $appointment['appointment_date'] );
 			if ( false !== $ts ) {
-				$formatted_date = date_i18n( $date_format, $ts );
+				$formatted_date = \FreeFormCertificate\Core\DateFormatter::format_date( $ts );
 			}
 		}
 
@@ -98,12 +92,12 @@ class VerificationResponseRenderer {
 		if ( ! empty( $appointment['start_time'] ) ) {
 			$ts = strtotime( $appointment['start_time'] );
 			if ( false !== $ts ) {
-				$formatted_time = date_i18n( $time_format, $ts );
+				$formatted_time = \FreeFormCertificate\Core\DateFormatter::format_time( $ts );
 			}
 			if ( ! empty( $appointment['end_time'] ) ) {
 				$ts2 = strtotime( $appointment['end_time'] );
 				if ( false !== $ts2 ) {
-					$formatted_time .= ' - ' . date_i18n( $time_format, $ts2 );
+					$formatted_time .= ' - ' . \FreeFormCertificate\Core\DateFormatter::format_time( $ts2 );
 				}
 			}
 		}
@@ -113,7 +107,7 @@ class VerificationResponseRenderer {
 		if ( ! empty( $appointment['created_at'] ) ) {
 			$ts = strtotime( $appointment['created_at'] );
 			if ( false !== $ts ) {
-				$formatted_created = date_i18n( $date_format . ' ' . $time_format, $ts );
+				$formatted_created = \FreeFormCertificate\Core\DateFormatter::format_datetime( $ts );
 			}
 		}
 
@@ -240,14 +234,11 @@ class VerificationResponseRenderer {
 	public function format_reregistration_verification_response( array $result ): string {
 		$rereg = $result['reregistration'];
 
-		$date_format = get_option( 'date_format' );
-		$time_format = get_option( 'time_format' );
-
 		$submitted_at = __( 'N/A', 'ffcertificate' );
 		if ( ! empty( $rereg['submitted_at'] ) ) {
 			$ts = strtotime( $rereg['submitted_at'] );
 			if ( false !== $ts ) {
-				$submitted_at = date_i18n( $date_format . ' ' . $time_format, $ts );
+				$submitted_at = \FreeFormCertificate\Core\DateFormatter::format_datetime( $ts );
 			}
 		}
 

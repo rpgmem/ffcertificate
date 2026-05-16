@@ -412,7 +412,7 @@ class DashboardShortcode {
 				continue;
 			}
 
-			$end_date  = wp_date( get_option( 'date_format' ), strtotime( $rereg['end_date'] ) );
+			$end_date  = \FreeFormCertificate\Core\DateFormatter::format_date( $rereg['end_date'] );
 			$days_left = max( 0, (int) ( ( strtotime( $rereg['end_date'] ) - time() ) / 86400 ) );
 			$urgency   = $days_left <= 3 ? 'ffc-rereg-urgent' : '';
 			?>

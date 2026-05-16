@@ -124,10 +124,7 @@ class SubmissionsList extends \WP_List_Table {
 				return $this->render_status_badge( $item );
 
 			case 'submission_date':
-				return date_i18n(
-					get_option( 'date_format' ) . ' ' . get_option( 'time_format' ),
-					strtotime( $item['submission_date'] )
-				);
+				return \FreeFormCertificate\Core\DateFormatter::format_datetime( $item['submission_date'] );
 
 			case 'actions':
 				return $this->render_actions( $item );

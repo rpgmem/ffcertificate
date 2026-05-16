@@ -91,9 +91,6 @@ class UserCertificatesRestController {
 
 			$table = \FreeFormCertificate\Core\Utils::get_submissions_table();
 
-			$settings    = get_option( 'ffc_settings', array() );
-			$date_format = $settings['date_format'] ?? 'F j, Y';
-
             // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 			$submissions = $wpdb->get_results(
 				$wpdb->prepare(
@@ -133,7 +130,7 @@ class UserCertificatesRestController {
 				$date_formatted = '';
 				if ( ! empty( $submission['submission_date'] ) ) {
 					$timestamp      = strtotime( $submission['submission_date'] );
-					$date_formatted = ( false !== $timestamp ) ? date_i18n( $date_format, $timestamp ) : $submission['submission_date'];
+					$date_formatted = ( false !== $timestamp ) ? \FreeFormCertificate\Core\DateFormatter::format_date( $timestamp ) : $submission['submission_date'];
 				}
 
 				$certificates[] = array(

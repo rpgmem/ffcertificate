@@ -134,8 +134,6 @@ class UserAudienceRestController {
 
 			global $wpdb;
 
-			$date_format = get_option( 'date_format', 'F j, Y' );
-
 			$bookings_table          = $wpdb->prefix . 'ffc_audience_bookings';
 			$users_table             = $wpdb->prefix . 'ffc_audience_booking_users';
 			$booking_audiences_table = $wpdb->prefix . 'ffc_audience_booking_audiences';
@@ -217,19 +215,19 @@ class UserAudienceRestController {
 				$date_formatted = '';
 				if ( ! empty( $booking['booking_date'] ) ) {
 					$timestamp      = strtotime( $booking['booking_date'] );
-					$date_formatted = ( false !== $timestamp ) ? date_i18n( $date_format, $timestamp ) : $booking['booking_date'];
+					$date_formatted = ( false !== $timestamp ) ? \FreeFormCertificate\Core\DateFormatter::format_date( $timestamp ) : $booking['booking_date'];
 				}
 
 				$time_formatted = '';
 				if ( ! empty( $booking['start_time'] ) ) {
 					$time_timestamp = strtotime( $booking['start_time'] );
-					$time_formatted = ( false !== $time_timestamp ) ? date_i18n( 'H:i', $time_timestamp ) : $booking['start_time'];
+					$time_formatted = ( false !== $time_timestamp ) ? \FreeFormCertificate\Core\DateFormatter::format_time( $time_timestamp ) : $booking['start_time'];
 				}
 
 				$end_time_formatted = '';
 				if ( ! empty( $booking['end_time'] ) ) {
 					$end_timestamp      = strtotime( $booking['end_time'] );
-					$end_time_formatted = ( false !== $end_timestamp ) ? date_i18n( 'H:i', $end_timestamp ) : '';
+					$end_time_formatted = ( false !== $end_timestamp ) ? \FreeFormCertificate\Core\DateFormatter::format_time( $end_timestamp ) : '';
 				}
 
 				$status_labels = array(

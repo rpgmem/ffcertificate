@@ -303,7 +303,7 @@ class AppointmentHandler {
 					if ( $count < $max_per_slot ) {
 						$slots[] = array(
 							'time'      => $slot_time,
-							'display'   => gmdate( 'H:i', $current_time ),
+							'display'   => \FreeFormCertificate\Core\DateFormatter::format_time( $current_time ),
 							'available' => $max_per_slot - $count,
 							'total'     => $max_per_slot,
 						);

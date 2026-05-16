@@ -56,6 +56,12 @@ class UserReregistrationsRestControllerTest extends TestCase {
         Functions\when( 'date_i18n' )->alias( function( $format, $timestamp = false ) {
             return date( $format, $timestamp ?: time() );
         });
+        Functions\when( 'wp_date' )->alias( function( $format, $timestamp = null, $tz = null ) {
+            return date( $format, $timestamp ?? time() );
+        });
+        Functions\when( 'wp_timezone' )->alias( function() {
+            return new \DateTimeZone( 'UTC' );
+        });
 
         // Alias mocks for static-only dependencies
         $this->rereg_repo_mock = Mockery::mock( 'alias:\FreeFormCertificate\Reregistration\ReregistrationSubmissionRepository' );

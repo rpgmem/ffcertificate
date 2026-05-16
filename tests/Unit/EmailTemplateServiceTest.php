@@ -27,10 +27,17 @@ class EmailTemplateServiceTest extends TestCase {
         Functions\when( 'get_option' )->alias( function ( $key, $default = false ) {
             if ( $key === 'date_format' ) return 'Y-m-d';
             if ( $key === 'time_format' ) return 'H:i';
+            if ( $key === 'ffc_settings' ) return array( 'date_format' => 'Y-m-d', 'time_format' => 'H:i' );
             return $default;
         } );
         Functions\when( 'date_i18n' )->alias( function ( $format, $ts = false ) {
             return gmdate( $format, $ts ?: time() );
+        } );
+        Functions\when( 'wp_date' )->alias( function ( $format, $ts = null, $tz = null ) {
+            return gmdate( $format, $ts ?? time() );
+        } );
+        Functions\when( 'wp_timezone' )->alias( function () {
+            return new \DateTimeZone( 'UTC' );
         } );
         Functions\when( 'home_url' )->justReturn( 'https://example.com' );
         Functions\when( 'wp_parse_url' )->alias( function ( $url, $component = -1 ) {

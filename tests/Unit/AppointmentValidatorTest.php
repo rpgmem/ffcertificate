@@ -43,6 +43,9 @@ class AppointmentValidatorTest extends TestCase {
         Functions\when( 'wp_timezone' )->alias( function () {
             return new \DateTimeZone( 'UTC' );
         } );
+        Functions\when( 'wp_date' )->alias( function ( $format, $ts = null, $tz = null ) {
+            return gmdate( $format, $ts ?? time() );
+        } );
         Functions\when( 'current_time' )->justReturn( gmdate( 'Y-m-d H:i:s' ) );
         Functions\when( 'is_wp_error' )->alias( function ( $thing ) {
             return $thing instanceof \WP_Error;

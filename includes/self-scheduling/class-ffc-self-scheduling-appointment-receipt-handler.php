@@ -192,43 +192,35 @@ class AppointmentReceiptHandler {
 			}
 		}
 
-		// Format dates with validation.
-		$date_format = get_option( 'date_format' );
-		$time_format = get_option( 'time_format' );
-
-		// Validate and format appointment date.
 		$appointment_date = __( 'N/A', 'ffcertificate' );
 		if ( ! empty( $appointment['appointment_date'] ) ) {
 			$timestamp = strtotime( $appointment['appointment_date'] );
 			if ( false !== $timestamp ) {
-				$appointment_date = date_i18n( $date_format, $timestamp );
+				$appointment_date = \FreeFormCertificate\Core\DateFormatter::format_date( $timestamp );
 			}
 		}
 
-		// Validate and format start time.
 		$start_time = __( 'N/A', 'ffcertificate' );
 		if ( ! empty( $appointment['start_time'] ) ) {
 			$timestamp = strtotime( $appointment['start_time'] );
 			if ( false !== $timestamp ) {
-				$start_time = date_i18n( $time_format, $timestamp );
+				$start_time = \FreeFormCertificate\Core\DateFormatter::format_time( $timestamp );
 			}
 		}
 
-		// Validate and format end time.
 		$end_time = '';
 		if ( ! empty( $appointment['end_time'] ) ) {
 			$timestamp = strtotime( $appointment['end_time'] );
 			if ( false !== $timestamp ) {
-				$end_time = date_i18n( $time_format, $timestamp );
+				$end_time = \FreeFormCertificate\Core\DateFormatter::format_time( $timestamp );
 			}
 		}
 
-		// Validate and format created at.
 		$created_at = __( 'N/A', 'ffcertificate' );
 		if ( ! empty( $appointment['created_at'] ) ) {
 			$timestamp = strtotime( $appointment['created_at'] );
 			if ( false !== $timestamp ) {
-				$created_at = date_i18n( $date_format . ' ' . $time_format, $timestamp );
+				$created_at = \FreeFormCertificate\Core\DateFormatter::format_datetime( $timestamp );
 			}
 		}
 
@@ -478,7 +470,7 @@ class AppointmentReceiptHandler {
 					<p>
 					<?php
 					/* translators: %s: date and time of generation */
-					echo esc_html( sprintf( __( 'Generated on %s', 'ffcertificate' ), date_i18n( get_option( 'date_format' ) . ' ' . get_option( 'time_format' ) ) ) );
+					echo esc_html( sprintf( __( 'Generated on %s', 'ffcertificate' ), \FreeFormCertificate\Core\DateFormatter::format_datetime( time() ) ) );
 					?>
 					</p>
 					<p><?php echo esc_html( get_bloginfo( 'name' ) ); ?> - <?php echo esc_url( home_url() ); ?></p>
