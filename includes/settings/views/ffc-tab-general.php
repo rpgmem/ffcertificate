@@ -43,10 +43,31 @@ if ( ! isset( $ffcertificate_date_formats[ $ffcertificate_current_format ] ) && 
 	}
 }
 // #244 — time format + per-context PDF overrides.
-$ffcertificate_time_format     = $ffcertificate_get_option( 'time_format', \FreeFormCertificate\Core\DateFormatter::DEFAULT_TIME_FORMAT );
-$ffcertificate_date_format_pdf = $ffcertificate_get_option( 'date_format_pdf', '' );
-$ffcertificate_time_format_pdf = $ffcertificate_get_option( 'time_format_pdf', '' );
-$ffcertificate_main_address    = $ffcertificate_get_option( 'main_address', '' );
+$ffcertificate_time_format            = $ffcertificate_get_option( 'time_format', \FreeFormCertificate\Core\DateFormatter::DEFAULT_TIME_FORMAT );
+$ffcertificate_date_format_pdf        = $ffcertificate_get_option( 'date_format_pdf', '' );
+$ffcertificate_date_format_pdf_custom = $ffcertificate_get_option( 'date_format_pdf_custom', '' );
+$ffcertificate_time_format_pdf        = $ffcertificate_get_option( 'time_format_pdf', '' );
+$ffcertificate_main_address           = $ffcertificate_get_option( 'main_address', '' );
+
+// PDF Date Format override (#248): same dropdown shape as the main Date
+// Format, with `''` for "Inherit" and `custom` for free-form entry. Smart-
+// match an unrecognised legacy value the same way the main dropdown does.
+$ffcertificate_date_format_pdf_options = array(
+	'' => __( 'Inherit — use Date Format above', 'ffcertificate' ),
+) + $ffcertificate_date_formats;
+$ffcertificate_date_format_pdf_select  = $ffcertificate_date_format_pdf;
+if ( '' !== $ffcertificate_date_format_pdf_select
+	&& ! isset( $ffcertificate_date_format_pdf_options[ $ffcertificate_date_format_pdf_select ] )
+	&& 'custom' !== $ffcertificate_date_format_pdf_select
+) {
+	$ffcertificate_pdf_stripped = \FreeFormCertificate\Core\DateFormatter::strip_time_chars( $ffcertificate_date_format_pdf_select );
+	if ( isset( $ffcertificate_date_format_pdf_options[ $ffcertificate_pdf_stripped ] ) ) {
+		$ffcertificate_date_format_pdf_select = $ffcertificate_pdf_stripped;
+	} else {
+		$ffcertificate_date_format_pdf_custom = '' !== $ffcertificate_pdf_stripped ? $ffcertificate_pdf_stripped : $ffcertificate_date_format_pdf_select;
+		$ffcertificate_date_format_pdf_select = 'custom';
+	}
+}
 
 // Divergence between plugin format and WordPress core format (#244).
 // Surfaces a notice in the General tab so admins notice when they have
@@ -203,17 +224,39 @@ $ffcertificate_show_divergence = $ffcertificate_date_diverges || $ffcertificate_
 						<label for="ffc_date_format_pdf"><?php esc_html_e( 'PDF Date Format (override)', 'ffcertificate' ); ?></label>
 					</th>
 					<td>
-						<input type="text" name="ffc_settings[date_format_pdf]" id="ffc_date_format_pdf" value="<?php echo esc_attr( $ffcertificate_date_format_pdf ); ?>" placeholder="<?php esc_attr_e( '(empty — inherits Date Format above)', 'ffcertificate' ); ?>" class="regular-text" data-ffc-autosave-key="date_format_pdf">
+						<select name="ffc_settings[date_format_pdf]" id="ffc_date_format_pdf" class="regular-text" data-ffc-autosave-key="date_format_pdf">
+							<?php foreach ( $ffcertificate_date_format_pdf_options as $ffcertificate_format => $ffcertificate_label ) : ?>
+								<option value="<?php echo esc_attr( $ffcertificate_format ); ?>" <?php selected( $ffcertificate_date_format_pdf_select, $ffcertificate_format ); ?>>
+									<?php echo esc_html( $ffcertificate_label ); ?>
+								</option>
+							<?php endforeach; ?>
+						</select>
 						<p class="description">
-							<?php esc_html_e( 'Optional override for the PDF generator. Leave empty to inherit the Date Format above. Example: d \d\e F \d\e Y → "4 de Janeiro de 2026".', 'ffcertificate' ); ?>
-							<?php if ( '' !== $ffcertificate_date_format_pdf ) : ?>
+							<?php esc_html_e( 'Optional override for the PDF generator. "Inherit" reuses the Date Format above.', 'ffcertificate' ); ?>
+							<?php
+							$ffcertificate_pdf_preview_format = ( 'custom' === $ffcertificate_date_format_pdf_select && '' !== $ffcertificate_date_format_pdf_custom )
+								? $ffcertificate_date_format_pdf_custom
+								: $ffcertificate_date_format_pdf_select;
+							if ( '' !== $ffcertificate_pdf_preview_format ) :
+								?>
 								<br>
 								<strong><?php esc_html_e( 'Preview:', 'ffcertificate' ); ?></strong>
 								<span class="ffc-text-info ffc-monospace">
-									<?php echo esc_html( date_i18n( $ffcertificate_date_format_pdf, strtotime( '2026-01-04' ) ) ); ?>
+									<?php echo esc_html( date_i18n( $ffcertificate_pdf_preview_format, strtotime( '2026-01-04' ) ) ); ?>
 								</span>
 							<?php endif; ?>
 						</p>
+
+						<div id="ffc_date_format_pdf_custom_container" class="ffc-collapsed-target <?php echo esc_attr( 'custom' !== $ffcertificate_date_format_pdf_select ? 'ffc-collapsed' : '' ); ?>" data-ffc-master="ffc_date_format_pdf" data-ffc-master-value="custom">
+							<label>
+								<strong><?php esc_html_e( 'Custom Format:', 'ffcertificate' ); ?></strong><br>
+								<input type="text" name="ffc_settings[date_format_pdf_custom]" id="ffc_date_format_pdf_custom" value="<?php echo esc_attr( $ffcertificate_date_format_pdf_custom ); ?>" placeholder="d \d\e F \d\e Y" class="regular-text" data-ffc-autosave-key="date_format_pdf_custom">
+							</label>
+							<p class="description">
+								<?php esc_html_e( 'Use PHP date format characters.', 'ffcertificate' ); ?>
+								<a href="https://www.php.net/manual/en/datetime.format.php" target="_blank"><?php esc_html_e( 'See documentation', 'ffcertificate' ); ?></a>
+							</p>
+						</div>
 					</td>
 				</tr>
 

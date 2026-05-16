@@ -263,4 +263,29 @@ class DateFormatterTest extends TestCase {
 		// `\H` is an escaped literal H — must NOT be stripped.
 		$this->assertSame( 'd \H \m Y', DateFormatter::strip_time_chars( 'd \H \m Y' ) );
 	}
+
+	// ──────────────────────────────────────────────────────────────
+	// PDF override `'custom'` sentinel (#248): when `date_format_pdf`
+	// is the literal 'custom', the resolver reads from
+	// `date_format_pdf_custom` (same idiom as date_format).
+	// ──────────────────────────────────────────────────────────────.
+
+	public function test_pdf_date_format_custom_sentinel_reads_companion_value(): void {
+		$this->ffc_settings = array(
+			'date_format'            => 'd/m/Y',
+			'date_format_pdf'        => 'custom',
+			'date_format_pdf_custom' => 'd \d\e F \d\e Y',
+		);
+		$this->assertSame( 'd \d\e F \d\e Y', DateFormatter::resolve_date_format( 'pdf' ) );
+	}
+
+	public function test_pdf_date_format_custom_sentinel_with_empty_companion_falls_back_to_base(): void {
+		$this->ffc_settings = array(
+			'date_format'            => 'F j, Y',
+			'date_format_pdf'        => 'custom',
+			'date_format_pdf_custom' => '',
+		);
+		// Empty custom companion → fall through to date_format base.
+		$this->assertSame( 'F j, Y', DateFormatter::resolve_date_format( 'pdf' ) );
+	}
 }

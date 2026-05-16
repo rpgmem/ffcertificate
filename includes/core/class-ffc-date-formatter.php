@@ -19,6 +19,10 @@
  *   - 'date_format_custom' — only consulted when date_format === 'custom'.
  *   - 'date_format_pdf'    — optional override applied when callers pass
  *                            $context = 'pdf'. Empty inherits date_format.
+ *                            When the value is the 'custom' sentinel,
+ *                            `date_format_pdf_custom` is consulted instead
+ *                            (#248, same idiom as date_format).
+ *   - 'date_format_pdf_custom' — only consulted when date_format_pdf === 'custom'.
  *   - 'time_format_pdf'    — same idea for time.
  *
  * The plugin previously had no helper — every call site reached for
@@ -148,6 +152,9 @@ final class DateFormatter {
 		}
 		if ( 'pdf' === $context ) {
 			$pdf = self::pick( $settings, 'date_format_pdf', '' );
+			if ( 'custom' === $pdf ) {
+				$pdf = self::pick( $settings, 'date_format_pdf_custom', '' );
+			}
 			if ( '' !== $pdf ) {
 				return self::date_only( $pdf );
 			}
