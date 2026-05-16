@@ -23,7 +23,9 @@
  *                            `date_format_pdf_custom` is consulted instead
  *                            (#248, same idiom as date_format).
  *   - 'date_format_pdf_custom' — only consulted when date_format_pdf === 'custom'.
- *   - 'time_format_pdf'    — same idea for time.
+ *   - 'time_format_pdf'    — same idea for time. 'custom' delegates to
+ *                            'time_format_pdf_custom'.
+ *   - 'time_format_pdf_custom' — only consulted when time_format_pdf === 'custom'.
  *
  * The plugin previously had no helper — every call site reached for
  * `get_option('date_format')` (WP-wide) or hardcoded a format string,
@@ -177,6 +179,9 @@ final class DateFormatter {
 		$base     = self::pick( $settings, 'time_format', self::DEFAULT_TIME_FORMAT );
 		if ( 'pdf' === $context ) {
 			$pdf = self::pick( $settings, 'time_format_pdf', '' );
+			if ( 'custom' === $pdf ) {
+				$pdf = self::pick( $settings, 'time_format_pdf_custom', '' );
+			}
 			if ( '' !== $pdf ) {
 				return $pdf;
 			}

@@ -163,6 +163,7 @@ class Settings {
 			'date_format_pdf'          => '',
 			'date_format_pdf_custom'   => '',
 			'time_format_pdf'          => '',
+			'time_format_pdf_custom'   => '',
 			'cache_enabled'            => 1,      // Default: ON.
 			'cache_expiration'         => 3600,   // 1 hour
 			'cache_auto_warm'          => 0,      // Default: OFF.

@@ -288,4 +288,22 @@ class DateFormatterTest extends TestCase {
 		// Empty custom companion → fall through to date_format base.
 		$this->assertSame( 'F j, Y', DateFormatter::resolve_date_format( 'pdf' ) );
 	}
+
+	public function test_pdf_time_format_custom_sentinel_reads_companion_value(): void {
+		$this->ffc_settings = array(
+			'time_format'            => 'H:i',
+			'time_format_pdf'        => 'custom',
+			'time_format_pdf_custom' => 'g:i a',
+		);
+		$this->assertSame( 'g:i a', DateFormatter::resolve_time_format( 'pdf' ) );
+	}
+
+	public function test_pdf_time_format_custom_sentinel_with_empty_companion_falls_back_to_base(): void {
+		$this->ffc_settings = array(
+			'time_format'            => 'H:i:s',
+			'time_format_pdf'        => 'custom',
+			'time_format_pdf_custom' => '',
+		);
+		$this->assertSame( 'H:i:s', DateFormatter::resolve_time_format( 'pdf' ) );
+	}
 }

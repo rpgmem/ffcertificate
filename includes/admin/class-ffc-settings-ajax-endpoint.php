@@ -186,6 +186,7 @@ class SettingsAjaxEndpoint {
 			'date_format_pdf'             => array( 'string', array() ),
 			'date_format_pdf_custom'      => array( 'string', array() ),
 			'time_format_pdf'             => array( 'string', array() ),
+			'time_format_pdf_custom'      => array( 'string', array() ),
 			'main_address'                => array( 'string', array() ),
 			'csv_download_page_url'       => array( 'string', array( 'as' => 'url' ) ),
 			'qr_default_size'             => array(
