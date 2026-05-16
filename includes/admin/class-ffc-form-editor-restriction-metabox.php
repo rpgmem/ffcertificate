@@ -144,6 +144,12 @@ class FormEditorRestrictionMetabox {
 				</td>
 			</tr>
 		</table>
+
+		<h3 class="ffc-section-subtitle"><?php esc_html_e( 'Device Fingerprint Limit', 'ffcertificate' ); ?></h3>
 		<?php
+		// Device Fingerprint metabox renders its own intro + master
+		// toggle + sub-fields. Composed in from FormEditorMetaboxRenderer
+		// since both this and Device Fingerprint answer the question
+		// "who can submit this form?".
 	}
 }

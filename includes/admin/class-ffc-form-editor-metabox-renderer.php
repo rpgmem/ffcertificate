@@ -143,6 +143,12 @@ class FormEditorMetaboxRenderer {
 	 */
 	public function render_box_restriction( WP_Post $post ): void {
 		$this->restriction->render( $post );
+		// Device Fingerprint Limit was Section 8 pre-#238 follow-up; it's
+		// now a sub-section of "Restriction & Security" since both restrict
+		// who can submit. Standalone registration removed in
+		// FormEditor::add_custom_metaboxes(); see {@see render_box_device_limit}
+		// which remains as a documented no-op for backward compatibility.
+		$this->device_limit->render( $post );
 	}
 
 	/**

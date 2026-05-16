@@ -172,14 +172,11 @@ class FormEditor {
 			'default'
 		);
 
-		add_meta_box(
-			'ffc_box_device_limit',
-			__( '8. Device Fingerprint Limit', 'ffcertificate' ),
-			array( $this->metabox_renderer, 'render_box_device_limit' ),
-			'ffc_form',
-			'normal',
-			'default'
-		);
+		// Device Fingerprint Limit (former Section 8) is now rendered as a
+		// sub-section of "Restriction & Security" (Section 3) — both
+		// answer the same question ("who can submit this form?") so they
+		// belong together. The dispatch happens inside
+		// `FormEditorMetaboxRenderer::render_box_restriction()`.
 
 		// Sidebar metabox (shortcode + instructions) - Delegated to Metabox Renderer.
 		add_meta_box(
