@@ -189,8 +189,21 @@ $inputs.each(function() {
                     var isValid = false;
                     var errorMsg = '';
 
-                    // Get localized strings
-                    var strings = (typeof ffc_ajax !== 'undefined' && ffc_ajax.strings) ? ffc_ajax.strings : {};
+                    // Get localized strings. Each shortcode-specific page
+                    // localizes its own strings object — read from whichever
+                    // is present. Order: shortcode-specific objects first
+                    // (richer context), `ffc_ajax` as a sane fallback for
+                    // pages that load `ffc-frontend-js` (the main form
+                    // submission flow), then hardcoded English at the end
+                    // (#243 Sprint 4 — pre-tech-debt cleanup; the proper
+                    // fix is a shared `ffc_common_strings` object localized
+                    // on every page that loads this file).
+                    var strings = {};
+                    if (typeof ffc_csv_download !== 'undefined' && ffc_csv_download.strings) {
+                        strings = ffc_csv_download.strings;
+                    } else if (typeof ffc_ajax !== 'undefined' && ffc_ajax.strings) {
+                        strings = ffc_ajax.strings;
+                    }
 
                     if (value.length === 7) {
                         // RF validation

@@ -74,6 +74,10 @@ class FormMetaAjaxEndpoint {
 			// it for the first time generates a hash and bumps cpf_mode
 			// from 'none' to 'audit'; those side effects stay in the
 			// full save handler so the page reload always picks them up.
+			'csv_public_preview_enabled'       => array(
+				'meta' => '_ffc_csv_public_preview_enabled',
+				'path' => array(),
+			),
 			'csv_public_download_enabled'      => array(
 				'meta' => '_ffc_csv_public_download_enabled',
 				'path' => array(),

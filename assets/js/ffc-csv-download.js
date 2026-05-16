@@ -129,10 +129,23 @@
 			html += '<button type="button" class="ffc-info-btn ffc-info-btn-secondary ffc-btn-cert-preview">';
 			html += esc(strings.previewCertificate || 'Preview Certificate');
 			html += '</button>';
+		} else if (info.status.cert_preview_disabled_by_admin) {
+			html += '<button type="button" class="ffc-info-btn ffc-info-btn-secondary ffc-btn-cert-preview" disabled '
+				+ 'title="' + esc(strings.certPreviewDisabledTip || 'Certificate Preview disabled') + '">';
+			html += esc(strings.previewCertificate || 'Preview Certificate');
+			html += '</button>';
 		}
+		// Start Form Early: enabled when can_open_early; disabled-visible
+		// when admin turned it off (so the operator sees the feature exists
+		// but is blocked); hidden otherwise. Same shape for Postpone Close.
 		if (info.status.can_open_early) {
 			html += '<button type="button" class="ffc-info-btn ffc-info-btn-warning ffc-btn-open-early" '
 				+ 'title="' + esc(strings.openEarlyTooltip || 'Overrides the scheduled start time. Form opens immediately.') + '">';
+			html += esc(strings.startFormNow || 'Start Form Now');
+			html += '</button>';
+		} else if (info.status.start_early_disabled_by_admin) {
+			html += '<button type="button" class="ffc-info-btn ffc-info-btn-warning ffc-btn-open-early" disabled '
+				+ 'title="' + esc(strings.startEarlyDisabledTip || 'Start Form Early disabled') + '">';
 			html += esc(strings.startFormNow || 'Start Form Now');
 			html += '</button>';
 		}
@@ -141,9 +154,24 @@
 				+ 'title="' + esc(strings.postponeCloseTooltip || 'Move the form\'s close time later within the same day. One-shot per form.') + '">';
 			html += esc(strings.postponeClose || 'Postpone close');
 			html += '</button>';
+		} else if (info.status.extend_end_disabled_by_admin) {
+			html += '<button type="button" class="ffc-info-btn ffc-info-btn-warning ffc-btn-extend-end" disabled '
+				+ 'title="' + esc(strings.extendEndDisabledTip || 'Postpone Close disabled') + '">';
+			html += esc(strings.postponeClose || 'Postpone close');
+			html += '</button>';
 		}
+		// Download CSV button is always rendered — toggle disabled state.
+		// Admin-disabled gets a specific tooltip so the operator knows the
+		// feature was turned off intentionally vs. just temporarily blocked
+		// (form still active, quota exhausted, etc., which the info alert
+		// below explains).
 		if (info.status.can_download) {
 			html += '<button type="button" class="ffc-info-btn ffc-info-btn-primary ffc-btn-download-csv">';
+			html += esc(strings.downloadCsv || 'Download CSV');
+			html += '</button>';
+		} else if (info.status.csv_download_disabled_by_admin) {
+			html += '<button type="button" class="ffc-info-btn ffc-info-btn-primary ffc-btn-download-csv" disabled '
+				+ 'title="' + esc(strings.csvDownloadDisabledTip || 'CSV download disabled') + '">';
 			html += esc(strings.downloadCsv || 'Download CSV');
 			html += '</button>';
 		} else {
@@ -798,8 +826,16 @@
 
 	function onExtendEndClick() {
 		var info = lastInfo();
-		var currentEnd  = info && info.status ? (info.status.end_date_formatted || '') : '';
+		// Compose the "current scheduled close" display from date-only +
+		// raw 24h time, so the modal always shows HH:MM regardless of the
+		// site's `time_format` setting (#243 Sprint 3 — fixes AM/PM display
+		// when site uses `g:i a`). Falls back to `end_date_formatted` for
+		// pre-#243 backends that don't return `current_date_end_formatted`.
+		var dateOnly    = info && info.status ? (info.status.current_date_end_formatted || '') : '';
 		var currentTime = info && info.status ? (info.status.current_time_end || '') : '';
+		var currentEnd  = (dateOnly && currentTime)
+			? (dateOnly + ' ' + currentTime)
+			: (info && info.status ? (info.status.end_date_formatted || '') : '');
 		showExtendEndModal(currentEnd, currentTime);
 	}
 
@@ -872,11 +908,56 @@
 			$modal.remove();
 		}
 
+		// Client-side validation surface: an inline error chip + red border
+		// on the time input. Server is the authority — these checks are
+		// pure UX so the operator gets feedback before submit (#243 S3).
+		var $input    = $modal.find('.ffc-extend-end-input');
+		var $errorMsg = $('<p class="ffc-extend-end-error" role="alert" style="color:#d63638;margin:6px 0 0;font-size:13px;" hidden></p>');
+		$input.closest('p').append($errorMsg);
+
+		function setError(msg) {
+			$input.addClass('ffc-extend-end-input-invalid').css('border-color', '#d63638');
+			$errorMsg.text(msg).removeAttr('hidden');
+		}
+		function clearError() {
+			$input.removeClass('ffc-extend-end-input-invalid').css('border-color', '');
+			$errorMsg.attr('hidden', 'hidden').text('');
+		}
+		// Clear the error indication on every keystroke / picker change so the
+		// user sees their correction acknowledged immediately.
+		$input.on('input change', clearError);
+
+		// Validate the user-supplied HH:MM string against the existing
+		// current_time_end and "now" — returns null when OK, or the localized
+		// error string when invalid. Mirrors the server-side validation tags
+		// in `ExtendEndAction::validate_new_time_end()` for UX parity.
+		function validateInput(value) {
+			if (!value || !/^([01]\d|2[0-3]):[0-5]\d$/.test(value)) {
+				return strings.postponeInvalidFormat
+					|| strings.postponeInvalid
+					|| 'Please enter a valid time (HH:MM).';
+			}
+			if (currentTime && value <= currentTime) {
+				return (strings.postponeBeforeCurrent || 'Time must be later than the current close (%s).').replace('%s', currentTime);
+			}
+			// "Now" comparison uses the JS clock — the server clock can drift
+			// slightly but the message is still accurate enough for UX.
+			var now    = new Date();
+			var nowStr = (now.getHours() < 10 ? '0' : '') + now.getHours()
+				+ ':' + (now.getMinutes() < 10 ? '0' : '') + now.getMinutes();
+			if (value <= nowStr) {
+				return strings.postponeBeforeNow || 'Time must be in the future.';
+			}
+			return null;
+		}
+
 		$modal.find('.ffc-extend-end-cancel, .ffc-extend-end-close, .ffc-open-early-backdrop').on('click', closeModal);
 		$modal.find('.ffc-extend-end-confirm').on('click', function () {
-			var newTime = $modal.find('.ffc-extend-end-input').val();
-			if (!newTime || !/^\d{2}:\d{2}$/.test(newTime)) {
-				window.alert(strings.postponeInvalid || 'Please pick a valid time (HH:MM).');
+			var newTime = $input.val();
+			var err     = validateInput(newTime);
+			if (err) {
+				setError(err);
+				$input.focus();
 				return;
 			}
 			closeModal();

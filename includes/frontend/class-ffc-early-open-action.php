@@ -169,9 +169,15 @@ class EarlyOpenAction {
 	 * @param array<string, mixed> $audit_meta Caller-supplied context for
 	 *                                         the audit row — typically
 	 *                                         { user_id, ip, ua }.
+	 * @param string               $cpf_digits Operator's CPF (digits only),
+	 *                                         re-validated by the caller's
+	 *                                         AJAX endpoint. Written to the
+	 *                                         per-form audit ring buffer
+	 *                                         alongside the `action_early_open`
+	 *                                         result tag (#243 Sprint 6).
 	 * @return array{ok: false, reason: string}|array{ok: true, original_start_iso: string, new_start_iso: string}
 	 */
-	public static function execute( int $form_id, string $hash, array $audit_meta = array() ): array {
+	public static function execute( int $form_id, string $hash, array $audit_meta = array(), string $cpf_digits = '' ): array {
 		$eligibility = self::is_eligible( $form_id, $hash );
 		if ( ! $eligibility['ok'] ) {
 			return $eligibility;
@@ -233,6 +239,18 @@ class EarlyOpenAction {
 				(int) ( $audit_meta['user_id'] ?? 0 )
 			);
 		}
+
+		// Per-form audit ring buffer (#243 Sprint 6). Writes a row that the
+		// admin metabox's "Download audit log (CSV)" button surfaces — the
+		// operator action is now distinguishable from CPF validation events
+		// in the same log. The validator was called with silent_audit=true
+		// at the action endpoint so this is the ONLY row written for this
+		// click. `mode` carries the real CPF gate mode (read from post
+		// meta) so the audit CSV columns stay semantically consistent with
+		// rows written by the CPF validator on access/download.
+		$cpf_mode_for_audit = (string) get_post_meta( $form_id, '_ffc_csv_public_cpf_mode', true );
+		$validator          = new CsvDownloadValidator();
+		$validator->record_download_log_entry( $form_id, $cpf_mode_for_audit, $cpf_digits, 'action_early_open' );
 
 		return array(
 			'ok'                 => true,

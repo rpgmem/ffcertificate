@@ -32,6 +32,7 @@ export default [
 				ffcAdmin: 'readonly',
 				ffc_admin: 'readonly',
 				ffc_ajax: 'readonly',
+				ffc_csv_download: 'readonly',
 				ffc_geofence_admin: 'readonly',
 				ffc_submission_edit: 'readonly',
 				ffcGeofenceConfig: 'readonly',
