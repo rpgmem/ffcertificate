@@ -107,6 +107,7 @@ class FormEditorGeofenceMetabox {
 			<!-- Tab: Date & Time -->
 			<div class="ffc-geo-tab-content active" id="ffc-tab-datetime">
 				<table class="form-table">
+					<tbody>
 					<tr>
 						<th><label><?php esc_html_e( 'Enable Date/Time Restrictions', 'ffcertificate' ); ?></label></th>
 						<td>
@@ -114,6 +115,7 @@ class FormEditorGeofenceMetabox {
 							\FreeFormCertificate\Admin\AdminUI::render_toggle(
 								array(
 									'name'    => 'ffc_geofence[datetime_enabled]',
+									'id'      => 'ffc_geofence_datetime_enabled',
 									'checked' => '1' === (string) $datetime_enabled,
 									'label'   => __( 'Restrict form access by date and time', 'ffcertificate' ),
 								)
@@ -122,6 +124,10 @@ class FormEditorGeofenceMetabox {
 							<p class="description"><?php esc_html_e( 'Control when users can access this form based on date range and daily hours.', 'ffcertificate' ); ?></p>
 						</td>
 					</tr>
+					</tbody>
+					<tbody class="ffc-collapsed-target<?php echo '1' === $datetime_enabled ? '' : ' ffc-collapsed'; ?>"
+						data-ffc-master="ffc_geofence_datetime_enabled"
+						aria-hidden="<?php echo '1' === $datetime_enabled ? 'false' : 'true'; ?>">
 					<tr>
 						<th><label><?php esc_html_e( 'Date Range', 'ffcertificate' ); ?></label></th>
 						<td>
@@ -207,12 +213,14 @@ class FormEditorGeofenceMetabox {
 							<p class="description"><?php esc_html_e( 'Message shown when form is accessed outside allowed date/time.', 'ffcertificate' ); ?></p>
 						</td>
 					</tr>
+					</tbody>
 				</table>
 			</div>
 
 			<!-- Tab: Geolocation -->
 			<div class="ffc-geo-tab-content" id="ffc-tab-geolocation">
 				<table class="form-table">
+					<tbody>
 					<tr>
 						<th><label><?php esc_html_e( 'Enable Geolocation', 'ffcertificate' ); ?></label></th>
 						<td>
@@ -220,6 +228,7 @@ class FormEditorGeofenceMetabox {
 							\FreeFormCertificate\Admin\AdminUI::render_toggle(
 								array(
 									'name'    => 'ffc_geofence[geo_enabled]',
+									'id'      => 'ffc_geofence_geo_enabled',
 									'checked' => '1' === (string) $geo_enabled,
 									'label'   => __( 'Restrict form access by geographic location', 'ffcertificate' ),
 								)
@@ -228,6 +237,10 @@ class FormEditorGeofenceMetabox {
 							<p class="description"><?php esc_html_e( 'Limit form access to users within specific geographic areas.', 'ffcertificate' ); ?></p>
 						</td>
 					</tr>
+					</tbody>
+					<tbody class="ffc-collapsed-target<?php echo '1' === $geo_enabled ? '' : ' ffc-collapsed'; ?>"
+						data-ffc-master="ffc_geofence_geo_enabled"
+						aria-hidden="<?php echo '1' === $geo_enabled ? 'false' : 'true'; ?>">
 					<tr>
 						<th><label><?php esc_html_e( 'Validation Methods', 'ffcertificate' ); ?></label></th>
 						<td>
@@ -292,6 +305,7 @@ class FormEditorGeofenceMetabox {
 							\FreeFormCertificate\Admin\AdminUI::render_toggle(
 								array(
 									'name'    => 'ffc_geofence[geo_ip_areas_permissive]',
+									'id'      => 'ffc_geofence_geo_ip_areas_permissive',
 									'checked' => '1' === (string) $geo_ip_areas_permissive,
 									'label'   => __( 'Use different areas for IP validation', 'ffcertificate' ),
 								)
@@ -299,7 +313,9 @@ class FormEditorGeofenceMetabox {
 							?>
 							<p class="description"><?php esc_html_e( 'When unchecked, IP validation uses the same areas as GPS.', 'ffcertificate' ); ?></p>
 
-							<div class="<?php echo esc_attr( 'ffc-ip-areas-container' . ( '1' !== $geo_ip_areas_permissive ? ' ffc-initially-hidden' : '' ) ); ?>">
+							<div class="ffc-ip-areas-container ffc-collapsed-target<?php echo '1' !== $geo_ip_areas_permissive ? ' ffc-collapsed' : ''; ?>"
+								data-ffc-master="ffc_geofence_geo_ip_areas_permissive"
+								aria-hidden="<?php echo '1' !== $geo_ip_areas_permissive ? 'true' : 'false'; ?>">
 								<br>
 								<fieldset>
 									<label>
@@ -366,6 +382,7 @@ class FormEditorGeofenceMetabox {
 							<p class="description"><?php esc_html_e( 'Message shown when location detection fails (GPS denied, etc).', 'ffcertificate' ); ?></p>
 						</td>
 					</tr>
+					</tbody>
 				</table>
 			</div>
 		</div>
@@ -382,9 +399,10 @@ class FormEditorGeofenceMetabox {
 			toggleGeoSource('geo_area');
 			toggleGeoSource('geo_ip_area');
 
-			$('input[name="ffc_geofence[geo_ip_areas_permissive]"]').on('change', function() {
-				$('.ffc-ip-areas-container')[$(this).is(':checked') ? 'show' : 'hide']();
-			});
+			// IP-Areas-Permissive collapse is now handled by the generic
+			// `.ffc-collapsed-target` initializer in ffc-admin.js
+			// (#238 / Sprint 3) — the container above carries
+			// data-ffc-master="ffc_geofence_geo_ip_areas_permissive".
 		});
 		</script>
 		<?php

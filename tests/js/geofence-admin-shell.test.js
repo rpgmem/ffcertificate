@@ -80,20 +80,26 @@ describe('ffc-geofence-admin — tab switching', () => {
 	});
 });
 
-describe('ffc-geofence-admin — datetime enable toggle', () => {
-	it('disables all datetime tab inputs when the checkbox is unchecked on load', async () => {
+// DateTime master-toggle visibility is no longer this file's concern
+// after #238 Sprint 3 — the production PHP wraps the sub-rows in a
+// `.ffc-collapsed-target` tbody and ffc-admin.js handles the collapse.
+// geofence-admin.js retains the time-mode-row visibility logic (driven
+// by the date_start/date_end values, not by the master toggle), so the
+// only thing we verify here is that the master toggle no longer
+// disables sibling inputs as a side effect.
+describe('ffc-geofence-admin — datetime enable toggle (post-Sprint 3)', () => {
+	it('does NOT disable sibling inputs when the checkbox is unchecked on load', async () => {
 		mountMetabox();
 		loadScript('assets/js/ffc-geofence-admin.js');
 		await new Promise((r) => setTimeout(r, 0));
 
-		// The IIFE runs toggleDateTimeFields() on load — with the checkbox
-		// unchecked, every input in the tab (except the toggle itself)
-		// should be disabled.
-		expect(window.$('input[name="ffc_geofence[date_start]"]').prop('disabled')).toBe(true);
-		expect(window.$('input[name="ffc_geofence[time_end]"]').prop('disabled')).toBe(true);
+		// The disable-on-master-off logic moved to a wrapper-collapse model.
+		// This script must not touch the `disabled` property on siblings.
+		expect(window.$('input[name="ffc_geofence[date_start]"]').prop('disabled')).toBe(false);
+		expect(window.$('input[name="ffc_geofence[time_end]"]').prop('disabled')).toBe(false);
 	});
 
-	it('re-enables the inputs when the checkbox is checked and change fires', async () => {
+	it('does NOT disable sibling inputs when the checkbox is checked either', async () => {
 		mountMetabox();
 		loadScript('assets/js/ffc-geofence-admin.js');
 		await new Promise((r) => setTimeout(r, 0));

@@ -18,21 +18,16 @@ jQuery(document).ready(function($) {
         $('#ffc-tab-' + tab).addClass('active');
     });
 
-    // DateTime restrictions - Enable/Disable fields based on checkbox
-    function toggleDateTimeFields() {
-        var enabled = $('input[name="ffc_geofence[datetime_enabled]"]').is(':checked');
-        $('#ffc-tab-datetime input[type="date"], #ffc-tab-datetime input[type="time"], #ffc-tab-datetime select, #ffc-tab-datetime textarea, #ffc-tab-datetime input[type="radio"]')
-            .not('input[name="ffc_geofence[datetime_enabled]"]')
-            .prop('disabled', !enabled)
-            .closest('tr').css('opacity', enabled ? '1' : '0.5');
-
-        // Also check if time mode row should be visible
+    // DateTime restrictions — visibility now handled by the generic
+    // `.ffc-collapsed-target` initializer in ffc-admin.js (#238 / Sprint 3).
+    // The <tbody> wrapping the sub-rows carries
+    // `data-ffc-master="ffc_geofence_datetime_enabled"`. We still need to
+    // re-evaluate the "time mode" row visibility when the master toggle
+    // changes (the row depends on different-dates being set, not on the
+    // master itself).
+    $(document).on('change', 'input[name="ffc_geofence[datetime_enabled]"]', function() {
         toggleTimeModeRow();
-    }
-
-    // Using event delegation for datetime enabled checkbox
-    $(document).on('change', 'input[name="ffc_geofence[datetime_enabled]"]', toggleDateTimeFields);
-    toggleDateTimeFields(); // Run on load
+    });
 
     // Show/hide time mode row based on date range
     function toggleTimeModeRow() {
@@ -140,30 +135,15 @@ jQuery(document).ready(function($) {
     refreshDateTimeValidity(); // Sync on load (covers first-paint state).
     toggleDuringHideModeRow(); // Sync on load.
 
-    // Geolocation restrictions - Enable/Disable fields based on checkbox
-    function toggleGeoFields() {
-        var enabled = $('input[name="ffc_geofence[geo_enabled]"]').is(':checked');
-        $('#ffc-tab-geolocation input[type="checkbox"], #ffc-tab-geolocation textarea, #ffc-tab-geolocation select')
-            .not('input[name="ffc_geofence[geo_enabled]"]')
-            .prop('disabled', !enabled)
-            .closest('tr').css('opacity', enabled ? '1' : '0.5');
-
-        // If geolocation is enabled, ensure at least one method is selected
-        if (enabled) {
-            validateGeoMethods();
-        }
-    }
-
-    // Using event delegation for geo enabled checkbox
+    // Geolocation restrictions — visibility now handled by the generic
+    // `.ffc-collapsed-target` initializer in ffc-admin.js. We still
+    // re-validate the GPS-or-IP "at least one method" rule whenever the
+    // master toggle flips on.
     $(document).on('change', 'input[name="ffc_geofence[geo_enabled]"]', function() {
-        toggleGeoFields();
-
-        // When geolocation is enabled, validate methods
         if ($(this).is(':checked')) {
             validateGeoMethods();
         }
     });
-    toggleGeoFields(); // Run on load
 
     // Validate that at least GPS or IP is enabled when geolocation is active
     function validateGeoMethods() {

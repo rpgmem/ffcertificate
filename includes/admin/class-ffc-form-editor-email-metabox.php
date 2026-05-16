@@ -35,6 +35,7 @@ class FormEditorEmailMetabox {
 		$send_email = isset( $config['send_user_email'] ) ? $config['send_user_email'] : '0';
 		$subject    = isset( $config['email_subject'] ) ? $config['email_subject'] : __( 'Your Certificate', 'ffcertificate' );
 		$body       = isset( $config['email_body'] ) ? $config['email_body'] : '';
+		$collapsed  = ( '1' !== (string) $send_email );
 		?>
 		<table class="form-table">
 			<tr>
@@ -58,6 +59,21 @@ class FormEditorEmailMetabox {
 					?>
 				</td>
 			</tr>
+		</table>
+		<?php
+		/*
+		 * Subject + body + note are wrapped in `.ffc-collapsed-target`
+		 * so the generic toggle handler (#238 / Sprint 3) hides them
+		 * when `send_user_email` is off. wp_editor() is still invoked
+		 * unconditionally — TinyMCE initialises inside the wrapper and
+		 * the wrapper's `display:none` collapses it visually without
+		 * killing the editor instance.
+		 */
+		?>
+		<div class="ffc-collapsed-target<?php echo $collapsed ? ' ffc-collapsed' : ''; ?>"
+			data-ffc-master="ffc_config_send_user_email"
+			aria-hidden="<?php echo $collapsed ? 'true' : 'false'; ?>">
+		<table class="form-table">
 			<tr>
 				<th><label><?php esc_html_e( 'Subject', 'ffcertificate' ); ?></label></th>
 				<td><input type="text" name="ffc_config[email_subject]" value="<?php echo esc_attr( $subject ); ?>" class="ffc-w100"></td>
@@ -96,6 +112,7 @@ class FormEditorEmailMetabox {
 				</td>
 			</tr>
 		</table>
+		</div><!-- /.ffc-collapsed-target -->
 		<?php
 	}
 }

@@ -620,17 +620,42 @@
     color: var(--ffc-info, #2271b1);
 }
 
-/* Public CSV Download / Device Fingerprint metaboxes — fade the
-   sub-fields when the master toggle (or the global gate) is off. */
-.ffc-csv-public-disabled .ffc-csv-public-sub,
-.ffc-device-limit-disabled .ffc-device-limit-sub,
+/* ────────────────────────────────────────────────────────────────
+   Unified collapse pattern for toggle-gated sub-options (#238 / Sprint 3).
+   Wrap dependent sub-options in `.ffc-collapsed-target` and add
+   `.ffc-collapsed` when the master toggle is off — JS in ffc-admin.js
+   keeps the class in sync on change events.
+
+   The wrapper-based pattern is uniform across every metabox now;
+   pre-#238 code applied per-input `disabled` + opacity. We kept the
+   legacy `.ffc-csv-public-disabled`, `.ffc-device-limit-disabled`,
+   and `.ffc-device-limit-globally-off` rules below as deprecated
+   aliases so custom CSS written against them still works. They will
+   be removed in 6.6.0.
+   ──────────────────────────────────────────────────────────────── */
+.ffc-collapsed {
+    display: none !important;
+}
+
+/* "Globally off" stays as a separate cosmetic state: the master
+   checkbox is still rendered so the admin can see WHY they can't
+   toggle it, but the whole subsection is faded to convey "blocked
+   from another setting". Not the same as `.ffc-collapsed`. */
 .ffc-device-limit-globally-off {
     opacity: 0.55;
 }
-
-.ffc-csv-public-disabled .ffc-csv-public-sub :is(input, select, textarea, button),
-.ffc-device-limit-disabled .ffc-device-limit-sub :is(input, select, textarea, button),
 .ffc-device-limit-globally-off :is(input, select, textarea, button) {
+    cursor: not-allowed;
+}
+
+/* @deprecated 6.5.14 — kept for custom-CSS compat; use .ffc-collapsed
+   on a wrapper instead. Will be removed in 6.6.0. */
+.ffc-csv-public-disabled .ffc-csv-public-sub,
+.ffc-device-limit-disabled .ffc-device-limit-sub {
+    opacity: 0.55;
+}
+.ffc-csv-public-disabled .ffc-csv-public-sub :is(input, select, textarea, button),
+.ffc-device-limit-disabled .ffc-device-limit-sub :is(input, select, textarea, button) {
     cursor: not-allowed;
 }
 
