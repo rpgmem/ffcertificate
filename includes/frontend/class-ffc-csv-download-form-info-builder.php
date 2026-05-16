@@ -103,16 +103,16 @@ final class CsvDownloadFormInfoBuilder {
 				'remaining' => max( 0, $limit - $count ),
 			),
 			'status'           => array(
-				'has_start_date'          => null !== $start_ts,
-				'has_end_date'            => $has_end_date,
-				'before_start'            => $before_start,
-				'form_ended'              => $form_ended,
+				'has_start_date'                 => null !== $start_ts,
+				'has_end_date'                   => $has_end_date,
+				'before_start'                   => $before_start,
+				'form_ended'                     => $form_ended,
 				// `can_download` powers the "Download CSV" button. Post-#241
 				// it ALSO gates on the new `_ffc_csv_public_download_enabled`
 				// sub-toggle (empty meta reads as '1' so pre-upgrade forms
 				// keep working). Admins can now disable the CSV download
 				// without affecting Start Early / Postpone Close.
-				'can_download'            => $form_ended
+				'can_download'                   => $form_ended
 					&& ! $quota_exhausted
 					&& '1' === self::download_enabled_meta( $form_id ),
 				// `*_disabled_by_admin` flags distinguish "admin explicitly
@@ -127,7 +127,10 @@ final class CsvDownloadFormInfoBuilder {
 					&& '1' !== self::start_early_meta( $form_id ),
 				'extend_end_disabled_by_admin'   => '1' === (string) get_post_meta( $form_id, '_ffc_csv_public_enabled', true )
 					&& '1' !== (string) get_post_meta( $form_id, \FreeFormCertificate\Frontend\ExtendEndAction::META_ENABLED, true ),
-				'can_preview_cert'        => $before_start,
+				'cert_preview_disabled_by_admin' => '1' === (string) get_post_meta( $form_id, '_ffc_csv_public_enabled', true )
+					&& '1' !== self::preview_enabled_meta( $form_id ),
+				'can_preview_cert'               => $before_start
+					&& '1' === self::preview_enabled_meta( $form_id ),
 				// `can_open_early` powers the "Start Form Now" button — it
 				// fires only when CSV public is on (the hash is the cred),
 				// the per-form opt-out is on, datetime restrictions are
@@ -136,7 +139,7 @@ final class CsvDownloadFormInfoBuilder {
 				// exactly so the JS can't see a stale "can-open" state.
 				// `_ffc_csv_public_start_early_enabled` defaults to '1' when
 				// unset so pre-6.5.8 forms don't regress.
-				'can_open_early'          => $before_start
+				'can_open_early'                 => $before_start
 					&& ! $form_ended
 					&& '1' === (string) get_post_meta( $form_id, '_ffc_csv_public_enabled', true )
 					&& '1' === self::start_early_meta( $form_id )
@@ -149,26 +152,26 @@ final class CsvDownloadFormInfoBuilder {
 				// configured date_end, and the one-shot guard hasn't
 				// fired. Mirrors ExtendEndAction::is_eligible() so JS
 				// can't see a stale "can-extend" state.
-				'can_extend_end'          => ! $before_start
+				'can_extend_end'                 => ! $before_start
 					&& ! $form_ended
 					&& '1' === (string) get_post_meta( $form_id, '_ffc_csv_public_enabled', true )
 					&& '1' === (string) get_post_meta( $form_id, \FreeFormCertificate\Frontend\ExtendEndAction::META_ENABLED, true )
 					&& '1' === (string) ( $geofence_config['datetime_enabled'] ?? '' )
 					&& self::is_today_end_date( $geofence_config )
 					&& '' === (string) get_post_meta( $form_id, \FreeFormCertificate\Frontend\ExtendEndAction::META_POSTPONED_AT, true ),
-				'current_time_end'        => isset( $geofence_config['time_end'] ) ? (string) $geofence_config['time_end'] : '',
+				'current_time_end'               => isset( $geofence_config['time_end'] ) ? (string) $geofence_config['time_end'] : '',
 				// Date-only formatted string for the postpone-close modal
 				// (which composes "<date> <current_time_end>" so the time
 				// stays in 24h regardless of the site's time_format setting).
 				// Empty when no end_ts. Issue #243 Sprint 3.
-				'current_date_end_formatted' => null !== $end_ts
+				'current_date_end_formatted'     => null !== $end_ts
 					? wp_date( get_option( 'date_format' ), $end_ts, $tz )
 					: '',
-				'download_blocked_reason' => $download_reason,
-				'start_date_formatted'    => null !== $start_ts
+				'download_blocked_reason'        => $download_reason,
+				'start_date_formatted'           => null !== $start_ts
 					? wp_date( get_option( 'date_format' ) . ' ' . get_option( 'time_format' ), $start_ts, $tz )
 					: null,
-				'end_date_formatted'      => null !== $end_ts
+				'end_date_formatted'             => null !== $end_ts
 					? wp_date( get_option( 'date_format' ) . ' ' . get_option( 'time_format' ), $end_ts, $tz )
 					: null,
 			),
@@ -198,6 +201,20 @@ final class CsvDownloadFormInfoBuilder {
 	 */
 	private static function download_enabled_meta( int $form_id ): string {
 		$raw = (string) get_post_meta( $form_id, '_ffc_csv_public_download_enabled', true );
+		return '' === $raw ? '1' : $raw;
+	}
+
+	/**
+	 * Resolve the per-form Certificate Preview sub-toggle (#243 Sprint 5).
+	 * Empty meta reads as '1' so pre-upgrade forms keep the preview button
+	 * available; explicit '0' turns just the preview off without affecting
+	 * the other operator features on the same hash.
+	 *
+	 * @param int $form_id Form post id.
+	 * @return string '1' (enabled) or '0' (disabled).
+	 */
+	private static function preview_enabled_meta( int $form_id ): string {
+		$raw = (string) get_post_meta( $form_id, '_ffc_csv_public_preview_enabled', true );
 		return '' === $raw ? '1' : $raw;
 	}
 

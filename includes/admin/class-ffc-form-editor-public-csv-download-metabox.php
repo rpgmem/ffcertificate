@@ -53,6 +53,9 @@ class FormEditorPublicCsvDownloadMetabox {
 		// rule (#241 follow-up). Existing forms that explicitly saved a
 		// value keep that value; only forms that NEVER saved any of these
 		// metas pick up the new defaults.
+		$preview_raw     = (string) get_post_meta( $post->ID, '_ffc_csv_public_preview_enabled', true );
+		$preview_enabled = '' === $preview_raw ? '1' : $preview_raw;
+
 		$download_raw     = (string) get_post_meta( $post->ID, '_ffc_csv_public_download_enabled', true );
 		$download_enabled = '' === $download_raw ? '1' : $download_raw;
 
@@ -125,6 +128,21 @@ class FormEditorPublicCsvDownloadMetabox {
 					<p class="description ffc-mb-15">
 						<?php esc_html_e( 'Pick which operator actions this form exposes (can combine multiple):', 'ffcertificate' ); ?>
 					</p>
+
+					<div class="ffc-restriction-label">
+						<?php
+						\FreeFormCertificate\Admin\AdminUI::render_toggle(
+							array(
+								'name'    => 'ffc_csv_public[preview_enabled]',
+								'id'      => 'ffc_csv_public_preview_enabled',
+								'checked' => '1' === $preview_enabled,
+								'label'   => __( 'Certificate Preview', 'ffcertificate' ),
+								'data'    => array( 'ffc-autosave-form-key' => 'csv_public_preview_enabled' ),
+							)
+						);
+						?>
+						<span class="description"> — <?php esc_html_e( 'Allow the operator to preview the certificate template before the form opens.', 'ffcertificate' ); ?></span>
+					</div>
 
 					<div class="ffc-restriction-label">
 						<?php

@@ -297,6 +297,13 @@ class FormEditorSaveHandler {
 				$download_enabled = ! empty( $public_raw['download_enabled'] ) ? '1' : '0';
 				update_post_meta( $post_id, '_ffc_csv_public_download_enabled', $download_enabled );
 
+				// Certificate Preview — new in #243 Sprint 5. Like the
+				// other operator-feature sub-toggles in this block, empty
+				// meta reads as '1' in the metabox, but on save we persist
+				// the POSTed value verbatim.
+				$preview_enabled = ! empty( $public_raw['preview_enabled'] ) ? '1' : '0';
+				update_post_meta( $post_id, '_ffc_csv_public_preview_enabled', $preview_enabled );
+
 				// Start Form Early — per-form opt-out for the early-open
 				// action introduced in 6.5.6. Defaults to '1' for installs
 				// upgrading from 6.5.6 / 6.5.7 so the feature doesn't

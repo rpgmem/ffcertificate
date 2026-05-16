@@ -129,6 +129,11 @@
 			html += '<button type="button" class="ffc-info-btn ffc-info-btn-secondary ffc-btn-cert-preview">';
 			html += esc(strings.previewCertificate || 'Preview Certificate');
 			html += '</button>';
+		} else if (info.status.cert_preview_disabled_by_admin) {
+			html += '<button type="button" class="ffc-info-btn ffc-info-btn-secondary ffc-btn-cert-preview" disabled '
+				+ 'title="' + esc(strings.certPreviewDisabledTip || 'Certificate Preview disabled') + '">';
+			html += esc(strings.previewCertificate || 'Preview Certificate');
+			html += '</button>';
 		}
 		// Start Form Early: enabled when can_open_early; disabled-visible
 		// when admin turned it off (so the operator sees the feature exists
