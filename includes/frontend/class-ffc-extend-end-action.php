@@ -174,7 +174,7 @@ final class ExtendEndAction {
 	 * @param array<string, mixed> $audit_meta   { user_id, ip, ua }.
 	 * @return array{ok: false, reason: string}|array{ok: true, original_end_iso: string, new_end_iso: string}
 	 */
-	public static function execute( int $form_id, string $hash, string $new_time_end, array $audit_meta = array() ): array {
+	public static function execute( int $form_id, string $hash, string $new_time_end, array $audit_meta = array(), string $cpf_digits = '' ): array {
 		$eligibility = self::is_eligible( $form_id, $hash );
 		if ( ! $eligibility['ok'] ) {
 			return $eligibility;
@@ -227,6 +227,13 @@ final class ExtendEndAction {
 				(int) ( $audit_meta['user_id'] ?? 0 )
 			);
 		}
+
+		// Per-form audit ring buffer (#243 Sprint 6). See parallel comment
+		// in EarlyOpenAction::execute() for the rationale; this one tags
+		// `action_postpone_close` instead.
+		$cpf_mode_for_audit = (string) get_post_meta( $form_id, '_ffc_csv_public_cpf_mode', true );
+		$validator          = new CsvDownloadValidator();
+		$validator->record_download_log_entry( $form_id, $cpf_mode_for_audit, $cpf_digits, 'action_postpone_close' );
 
 		return array(
 			'ok'               => true,

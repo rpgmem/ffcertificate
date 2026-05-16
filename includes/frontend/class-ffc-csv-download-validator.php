@@ -149,11 +149,22 @@ final class CsvDownloadValidator {
 	 * Always records a single audit log row (success or failure) when the
 	 * mode is anything other than `none`.
 	 *
-	 * @param int    $form_id   Form post ID.
-	 * @param string $cpf_input Raw CPF as posted by the user.
+	 * @param int    $form_id      Form post ID.
+	 * @param string $cpf_input    Raw CPF as posted by the user.
+	 * @param bool   $silent_audit When true, the validator runs all the same
+	 *                             logic but does NOT write its own row to the
+	 *                             audit ring buffer. Caller takes responsibility
+	 *                             for writing a single row that captures the
+	 *                             actual outcome (typically an action_* tag).
+	 *                             Added in #243 Sprint 6 so the
+	 *                             `ajax_open_early` / `ajax_extend_end`
+	 *                             endpoints can re-validate CPF for security
+	 *                             without producing a duplicate `success` /
+	 *                             `audit_pass` / `voluntary` row alongside
+	 *                             the action's own audit row.
 	 * @return string|null Error message on block, null when allowed.
 	 */
-	public function validate_cpf_requirement( int $form_id, string $cpf_input ): ?string {
+	public function validate_cpf_requirement( int $form_id, string $cpf_input, bool $silent_audit = false ): ?string {
 		$mode = (string) get_post_meta( $form_id, PublicCsvDownload::META_CPF_MODE, true );
 		if ( '' === $mode ) {
 			$mode = 'none';
@@ -168,7 +179,9 @@ final class CsvDownloadValidator {
 			$voluntary_digits = is_string( $voluntary_digits ) ? $voluntary_digits : '';
 			if ( '' !== $voluntary_digits
 				&& \FreeFormCertificate\Core\DocumentFormatter::validate_cpf( $voluntary_digits ) ) {
-				$this->record_download_log_entry( $form_id, 'none', $voluntary_digits, 'voluntary' );
+				if ( ! $silent_audit ) {
+					$this->record_download_log_entry( $form_id, 'none', $voluntary_digits, 'voluntary' );
+				}
 			}
 			return null;
 		}
@@ -179,16 +192,22 @@ final class CsvDownloadValidator {
 		// Format gate: we require a syntactically valid 11-digit CPF before
 		// touching the database.
 		if ( '' === $digits ) {
-			$this->record_download_log_entry( $form_id, $mode, '', 'fail_missing' );
+			if ( ! $silent_audit ) {
+				$this->record_download_log_entry( $form_id, $mode, '', 'fail_missing' );
+			}
 			return __( 'CPF is required to download this CSV.', 'ffcertificate' );
 		}
 		if ( ! \FreeFormCertificate\Core\DocumentFormatter::validate_cpf( $digits ) ) {
-			$this->record_download_log_entry( $form_id, $mode, $digits, 'fail_format' );
+			if ( ! $silent_audit ) {
+				$this->record_download_log_entry( $form_id, $mode, $digits, 'fail_format' );
+			}
 			return __( 'Invalid CPF.', 'ffcertificate' );
 		}
 
 		if ( 'audit' === $mode ) {
-			$this->record_download_log_entry( $form_id, $mode, $digits, 'audit_pass' );
+			if ( ! $silent_audit ) {
+				$this->record_download_log_entry( $form_id, $mode, $digits, 'audit_pass' );
+			}
 			return null;
 		}
 
@@ -205,26 +224,36 @@ final class CsvDownloadValidator {
 				}
 			}
 			if ( ! $found ) {
-				$this->record_download_log_entry( $form_id, $mode, $digits, 'fail_match' );
+				if ( ! $silent_audit ) {
+					$this->record_download_log_entry( $form_id, $mode, $digits, 'fail_match' );
+				}
 				return __( 'This CPF is not authorized to download this CSV.', 'ffcertificate' );
 			}
-			$this->record_download_log_entry( $form_id, $mode, $digits, 'success' );
+			if ( ! $silent_audit ) {
+				$this->record_download_log_entry( $form_id, $mode, $digits, 'success' );
+			}
 			return null;
 		}
 
 		if ( 'owner' === $mode ) {
 			$author_id = (int) get_post_field( 'post_author', $form_id );
 			if ( $author_id <= 0 ) {
-				$this->record_download_log_entry( $form_id, $mode, $digits, 'fail_match' );
+				if ( ! $silent_audit ) {
+					$this->record_download_log_entry( $form_id, $mode, $digits, 'fail_match' );
+				}
 				return __( 'Form has no author to validate against.', 'ffcertificate' );
 			}
 			$author_cpf = (string) get_user_meta( $author_id, 'ffc_user_cpf', true );
 			$author_dig = preg_replace( '/\D/', '', $author_cpf );
 			if ( ! is_string( $author_dig ) || $author_dig !== $digits ) {
-				$this->record_download_log_entry( $form_id, $mode, $digits, 'fail_match' );
+				if ( ! $silent_audit ) {
+					$this->record_download_log_entry( $form_id, $mode, $digits, 'fail_match' );
+				}
 				return __( 'CPF does not match the form author.', 'ffcertificate' );
 			}
-			$this->record_download_log_entry( $form_id, $mode, $digits, 'success' );
+			if ( ! $silent_audit ) {
+				$this->record_download_log_entry( $form_id, $mode, $digits, 'success' );
+			}
 			return null;
 		}
 
@@ -238,15 +267,21 @@ final class CsvDownloadValidator {
             // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 			$count = (int) $wpdb->get_var( $wpdb->prepare( 'SELECT COUNT(*) FROM %i WHERE form_id = %d AND cpf_hash = %s', $table, $form_id, $cpf_hash ) );
 			if ( $count <= 0 ) {
-				$this->record_download_log_entry( $form_id, $mode, $digits, 'fail_match' );
+				if ( ! $silent_audit ) {
+					$this->record_download_log_entry( $form_id, $mode, $digits, 'fail_match' );
+				}
 				return __( 'No submission with this CPF was found for this form.', 'ffcertificate' );
 			}
-			$this->record_download_log_entry( $form_id, $mode, $digits, 'success' );
+			if ( ! $silent_audit ) {
+				$this->record_download_log_entry( $form_id, $mode, $digits, 'success' );
+			}
 			return null;
 		}
 
 		// Unknown mode -> fail closed.
-		$this->record_download_log_entry( $form_id, $mode, $digits, 'fail_unknown_mode' );
+		if ( ! $silent_audit ) {
+			$this->record_download_log_entry( $form_id, $mode, $digits, 'fail_unknown_mode' );
+		}
 		return __( 'CPF gate misconfigured. Contact the administrator.', 'ffcertificate' );
 	}
 

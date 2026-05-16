@@ -518,6 +518,7 @@ class PublicCsvDownload {
 
 		$form_id     = isset( $_POST['form_id'] ) ? absint( wp_unslash( $_POST['form_id'] ) ) : 0; // phpcs:ignore WordPress.Security.NonceVerification.Missing
 		$posted_hash = isset( $_POST['hash'] ) ? sanitize_text_field( wp_unslash( $_POST['hash'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Missing
+		$cpf_input   = isset( $_POST['cpf'] ) ? sanitize_text_field( wp_unslash( $_POST['cpf'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Missing
 
 		$audit_meta = array(
 			'user_id' => get_current_user_id(),
@@ -525,7 +526,20 @@ class PublicCsvDownload {
 			'ua'      => isset( $_SERVER['HTTP_USER_AGENT'] ) ? sanitize_text_field( wp_unslash( $_SERVER['HTTP_USER_AGENT'] ) ) : '',
 		);
 
-		$result = EarlyOpenAction::execute( $form_id, $posted_hash, $audit_meta );
+		// #243 Sprint 6: re-validate CPF here even though it was checked
+		// at info-screen time. Closes a small pre-existing security gap
+		// where holding the hash alone was enough to invoke the action.
+		// `silent_audit = true` so the validator's success row is NOT
+		// written — EarlyOpenAction::execute() writes a single
+		// `action_early_open` row capturing the same outcome.
+		$cpf_error = $this->validator->validate_cpf_requirement( $form_id, $cpf_input, true );
+		if ( null !== $cpf_error ) {
+			wp_send_json_error( array( 'message' => $cpf_error ), 403 );
+		}
+		$cpf_digits_clean = preg_replace( '/\D/', '', (string) $cpf_input );
+		$cpf_digits_clean = is_string( $cpf_digits_clean ) ? $cpf_digits_clean : '';
+
+		$result = EarlyOpenAction::execute( $form_id, $posted_hash, $audit_meta, $cpf_digits_clean );
 
 		if ( ! $result['ok'] ) {
 			// Map the eligibility reason to a localised user-facing
@@ -581,6 +595,7 @@ class PublicCsvDownload {
 		$form_id      = isset( $_POST['form_id'] ) ? absint( wp_unslash( $_POST['form_id'] ) ) : 0; // phpcs:ignore WordPress.Security.NonceVerification.Missing
 		$posted_hash  = isset( $_POST['hash'] ) ? sanitize_text_field( wp_unslash( $_POST['hash'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Missing
 		$new_time_end = isset( $_POST['new_time_end'] ) ? sanitize_text_field( wp_unslash( $_POST['new_time_end'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Missing
+		$cpf_input    = isset( $_POST['cpf'] ) ? sanitize_text_field( wp_unslash( $_POST['cpf'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Missing
 
 		$audit_meta = array(
 			'user_id' => get_current_user_id(),
@@ -588,7 +603,17 @@ class PublicCsvDownload {
 			'ua'      => isset( $_SERVER['HTTP_USER_AGENT'] ) ? sanitize_text_field( wp_unslash( $_SERVER['HTTP_USER_AGENT'] ) ) : '',
 		);
 
-		$result = ExtendEndAction::execute( $form_id, $posted_hash, $new_time_end, $audit_meta );
+		// #243 Sprint 6: re-validate CPF (see parallel comment in
+		// ajax_open_early). `silent_audit = true` so only the action's
+		// own `action_postpone_close` row is written.
+		$cpf_error = $this->validator->validate_cpf_requirement( $form_id, $cpf_input, true );
+		if ( null !== $cpf_error ) {
+			wp_send_json_error( array( 'message' => $cpf_error ), 403 );
+		}
+		$cpf_digits_clean = preg_replace( '/\D/', '', (string) $cpf_input );
+		$cpf_digits_clean = is_string( $cpf_digits_clean ) ? $cpf_digits_clean : '';
+
+		$result = ExtendEndAction::execute( $form_id, $posted_hash, $new_time_end, $audit_meta, $cpf_digits_clean );
 
 		if ( ! $result['ok'] ) {
 			$reason   = $result['reason'];
@@ -848,9 +873,15 @@ class PublicCsvDownload {
 		// source from META_COUNT, the long-lived counter that
 		// survives ring-buffer rotation.
 		$access_success_tags = array( 'success', 'audit_pass', 'voluntary' );
-		$delivery_tags       = array( 'download_delivered' );
-		$access_success      = 0;
-		$failed_access       = 0;
+		// `download_delivered` (PR #242) records actual file deliveries;
+		// `action_early_open` / `action_postpone_close` (#243 Sprint 6)
+		// record operator action events. Both are useful in the audit
+		// CSV but shouldn't count toward access_success / failed_access
+		// in the metabox summary (would double-count flows where the
+		// CPF gate also wrote its own validator row).
+		$delivery_tags  = array( 'download_delivered', 'action_early_open', 'action_postpone_close' );
+		$access_success = 0;
+		$failed_access  = 0;
 		foreach ( $log as $entry ) {
 			$result = is_array( $entry ) && isset( $entry['result'] ) ? (string) $entry['result'] : '';
 			if ( in_array( $result, $access_success_tags, true ) ) {
