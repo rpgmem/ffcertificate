@@ -59,6 +59,7 @@ class AppointmentHandlerTest extends TestCase {
         Functions\when( 'wp_cache_set' )->justReturn( true );
         Functions\when( 'wp_cache_delete' )->justReturn( true );
         Functions\when( 'wp_timezone' )->alias( function() { return new \DateTimeZone( 'UTC' ); } );
+        Functions\when( 'wp_date' )->alias( function( $format, $ts = null, $tz = null ) { return gmdate( $format, $ts ?? time() ); } );
 
         // ------------------------------------------------------------------
         // Namespaced stubs: FreeFormCertificate\SelfScheduling\*
