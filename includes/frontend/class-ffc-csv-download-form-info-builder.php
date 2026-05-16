@@ -65,7 +65,14 @@ final class CsvDownloadFormInfoBuilder {
 		$count           = (int) get_post_meta( $form_id, PublicCsvDownload::META_COUNT, true );
 		$quota_exhausted = $count >= $limit;
 
-		// Download blocked reason.
+		// Download blocked reason. Branches checked in order from
+		// "needs admin action" to "the download is just turned off for
+		// this form". The new `download_disabled` branch (post-#241)
+		// surfaces only when the form HAS ended + quota OK — earlier
+		// states (no end date / still active / quota out) take
+		// priority because they reflect a temporary or fixable
+		// condition, while `download_disabled` is an explicit admin
+		// choice (the CSV Download sub-toggle is off).
 		$download_reason = null;
 		if ( ! $has_end_date ) {
 			$download_reason = 'no_end_date';
@@ -73,6 +80,8 @@ final class CsvDownloadFormInfoBuilder {
 			$download_reason = 'active';
 		} elseif ( $quota_exhausted ) {
 			$download_reason = 'quota_exhausted';
+		} elseif ( '1' !== self::download_enabled_meta( $form_id ) ) {
+			$download_reason = 'download_disabled';
 		}
 
 		// Submission count.

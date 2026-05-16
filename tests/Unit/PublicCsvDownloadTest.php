@@ -453,6 +453,31 @@ class PublicCsvDownloadTest extends TestCase {
         $this->assertSame( 1, $summary['failed_access'] );
     }
 
+    public function test_get_audit_log_summary_skips_download_delivered_in_buckets(): void {
+        // `download_delivered` rows are written by the post-#241 audit
+        // fix to record actual file deliveries (independent of CPF
+        // gate). They MUST be excluded from both access_success and
+        // failed_access — otherwise CPF-gated flows would double-count
+        // (one row from the validator + one delivery row per download).
+        // META_COUNT remains the canonical source for download_success.
+        $form_id = 101;
+        $this->meta_store[ $form_id . ':_ffc_csv_public_count' ]        = 5;
+        $this->meta_store[ $form_id . ':_ffc_csv_public_download_log' ] = array(
+            array( 'result' => 'success' ),
+            array( 'result' => 'download_delivered' ),
+            array( 'result' => 'download_delivered' ),
+            array( 'result' => 'fail_match' ),
+        );
+        Functions\when( 'wp_create_nonce' )->justReturn( 'n' );
+        Functions\when( 'add_query_arg' )->alias( fn( $args, $url ) => $url . '?' . http_build_query( $args ) );
+
+        $summary = PublicCsvDownload::get_audit_log_summary( $form_id );
+
+        $this->assertSame( 1, $summary['access_success'], 'success row counts; download_delivered does NOT' );
+        $this->assertSame( 1, $summary['failed_access'], 'fail_match counts; download_delivered does NOT fall through to failures' );
+        $this->assertSame( 5, $summary['download_success'], 'download_success keeps coming from META_COUNT' );
+    }
+
     public function test_register_hooks_registers_shortcode_and_admin_post_actions(): void {
         $captured = array();
         Functions\when( 'add_shortcode' )->alias( function ( $tag, $cb ) use ( &$captured ) {

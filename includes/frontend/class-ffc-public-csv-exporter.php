@@ -425,6 +425,13 @@ class PublicCsvExporter {
 		$ip_hash     = sha1( \FreeFormCertificate\Core\Utils::get_user_ip() );
 		$nonce_batch = wp_create_nonce( 'ffc_public_csv_batch_' . $job_id );
 
+		// Capture digits-only CPF for the post-streaming audit row
+		// written in `ajax_download()` (post-#241 follow-up). Stored on
+		// the job transient because ajax_download has no POST context;
+		// it only sees job_id + nonce.
+		$cpf_digits_for_audit = preg_replace( '/\D/', '', (string) $cpf_input );
+		$cpf_digits_for_audit = is_string( $cpf_digits_for_audit ) ? $cpf_digits_for_audit : '';
+
 		$job = array(
 			'form_id'              => $form_id,
 			'form_ids'             => $form_ids,
@@ -437,6 +444,7 @@ class PublicCsvExporter {
 			'file'                 => $tmp_file,
 			'filename'             => $filename,
 			'ip_hash'              => $ip_hash,
+			'cpf_digits'           => $cpf_digits_for_audit,
 		);
 		set_transient( 'ffc_public_csv_' . $job_id, $job, self::JOB_TTL );
 
@@ -593,6 +601,26 @@ class PublicCsvExporter {
 		// phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged, Generic.CodeAnalysis.EmptyStatement.DetectedWhile -- body intentionally empty; @ swallows the "no buffer" notice.
 		while ( @ob_end_clean() ) {
 			/* no-op */
+		}
+
+		// Audit row recording the actual delivery (post-#241 follow-up).
+		// Pre-existing CPF-validation rows (`success` / `audit_pass` /
+		// `voluntary`) only confirm the CPF gate passed at start time;
+		// this row confirms the bytes are about to leave the server.
+		// Captured here rather than after `readfile()` because
+		// `readfile()` writes directly to the output stream and the
+		// PHP interpreter may not return cleanly (clients can abort
+		// mid-stream) — logging just before the write keeps the audit
+		// reliable even if the connection drops.
+		$audit_form_id = isset( $job['form_id'] ) ? (int) $job['form_id'] : 0;
+		if ( $audit_form_id > 0 ) {
+			$audit_validator = new \FreeFormCertificate\Frontend\CsvDownloadValidator();
+			$audit_validator->record_download_log_entry(
+				$audit_form_id,
+				(string) get_post_meta( $audit_form_id, '_ffc_csv_public_cpf_mode', true ),
+				isset( $job['cpf_digits'] ) ? (string) $job['cpf_digits'] : '',
+				'download_delivered'
+			);
 		}
 
 		$safe_filename = str_replace( array( "\r", "\n", '"' ), '', $job['filename'] );
