@@ -54,7 +54,7 @@ final class CsvDownloadValidator {
 		// 6. Feature enabled on this form.
 		$enabled = (string) get_post_meta( $form_id, PublicCsvDownload::META_ENABLED, true );
 		if ( '1' !== $enabled ) {
-			return __( 'Public CSV download is not enabled for this form.', 'ffcertificate' );
+			return __( 'Public Operator Access is not enabled for this form.', 'ffcertificate' );
 		}
 
 		// 7. Hash match (constant-time).
@@ -125,7 +125,7 @@ final class CsvDownloadValidator {
 
 		$enabled = (string) get_post_meta( $form_id, PublicCsvDownload::META_ENABLED, true );
 		if ( '1' !== $enabled ) {
-			return __( 'Public CSV download is not enabled for this form.', 'ffcertificate' );
+			return __( 'Public Operator Access is not enabled for this form.', 'ffcertificate' );
 		}
 
 		$stored_hash = (string) get_post_meta( $form_id, PublicCsvDownload::META_HASH, true );
