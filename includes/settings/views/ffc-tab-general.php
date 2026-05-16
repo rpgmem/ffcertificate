@@ -14,11 +14,8 @@ if ( ! defined( 'ABSPATH' ) ) {
 $ffcertificate_get_option = \Closure::fromCallable( array( $settings, 'get_option' ) );
 
 $ffcertificate_date_formats = array(
-	'Y-m-d H:i:s'        => '2026-01-04 15:30:45 (YYYY-MM-DD HH:MM:SS)',
 	'Y-m-d'              => '2026-01-04 (YYYY-MM-DD)',
 	'd/m/Y'              => '04/01/2026 (DD/MM/YYYY)',
-	'd/m/Y H:i'          => '04/01/2026 15:30 (DD/MM/YYYY HH:MM)',
-	'd/m/Y H:i:s'        => '04/01/2026 15:30:45 (DD/MM/YYYY HH:MM:SS)',
 	'm/d/Y'              => '01/04/2026 (MM/DD/YYYY)',
 	'F j, Y'             => __( 'January 4, 2026 (Month Day, Year)', 'ffcertificate' ),
 	'j \d\e F \d\e Y'    => __( '4 of January, 2026', 'ffcertificate' ),
@@ -29,6 +26,22 @@ $ffcertificate_date_formats = array(
 
 $ffcertificate_current_format = $ffcertificate_get_option( 'date_format', \FreeFormCertificate\Core\DateFormatter::DEFAULT_DATE_FORMAT );
 $ffcertificate_custom_format  = $ffcertificate_get_option( 'date_format_custom', '' );
+
+// Smart-match for legacy installs (#244 era). The presets used to include
+// combined date+time options ("d/m/Y H:i" etc.); #248 removed them. If a
+// site has one of those saved we strip the time chars to find the matching
+// date-only preset, so the dropdown opens on the closest equivalent
+// instead of mis-rendering as the first option. Falling through means the
+// value is genuinely custom — we surface it in the Custom Format field.
+if ( ! isset( $ffcertificate_date_formats[ $ffcertificate_current_format ] ) && 'custom' !== $ffcertificate_current_format ) {
+	$ffcertificate_stripped = \FreeFormCertificate\Core\DateFormatter::strip_time_chars( $ffcertificate_current_format );
+	if ( isset( $ffcertificate_date_formats[ $ffcertificate_stripped ] ) ) {
+		$ffcertificate_current_format = $ffcertificate_stripped;
+	} else {
+		$ffcertificate_custom_format  = '' !== $ffcertificate_stripped ? $ffcertificate_stripped : $ffcertificate_current_format;
+		$ffcertificate_current_format = 'custom';
+	}
+}
 // #244 — time format + per-context PDF overrides.
 $ffcertificate_time_format     = $ffcertificate_get_option( 'time_format', \FreeFormCertificate\Core\DateFormatter::DEFAULT_TIME_FORMAT );
 $ffcertificate_date_format_pdf = $ffcertificate_get_option( 'date_format_pdf', '' );

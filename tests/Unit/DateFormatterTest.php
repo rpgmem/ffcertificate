@@ -242,4 +242,25 @@ class DateFormatterTest extends TestCase {
 		$this->ffc_settings = array( 'date_format' => 'H:i:s' );
 		$this->assertSame( DateFormatter::DEFAULT_DATE_FORMAT, DateFormatter::resolve_date_format() );
 	}
+
+	// ──────────────────────────────────────────────────────────────
+	// `strip_time_chars()` public surface — used by the Settings view
+	// to smart-match legacy combined formats against the new date-only
+	// dropdown (#248). The variant returns '' when stripping clears
+	// everything; the runtime resolver applies the default fallback.
+	// ──────────────────────────────────────────────────────────────.
+
+	public function test_strip_time_chars_returns_empty_for_time_only_input(): void {
+		$this->assertSame( '', DateFormatter::strip_time_chars( 'H:i:s' ) );
+	}
+
+	public function test_strip_time_chars_preserves_date_portion(): void {
+		$this->assertSame( 'd/m/Y', DateFormatter::strip_time_chars( 'd/m/Y H:i' ) );
+		$this->assertSame( 'Y-m-d', DateFormatter::strip_time_chars( 'Y-m-d H:i:s' ) );
+	}
+
+	public function test_strip_time_chars_honours_backslash_escapes(): void {
+		// `\H` is an escaped literal H — must NOT be stripped.
+		$this->assertSame( 'd \H \m Y', DateFormatter::strip_time_chars( 'd \H \m Y' ) );
+	}
 }
