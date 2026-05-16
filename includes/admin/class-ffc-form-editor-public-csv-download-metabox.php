@@ -135,17 +135,49 @@ class FormEditorPublicCsvDownloadMetabox {
 
 			<tr class="ffc-csv-public-sub">
 				<th scope="row">
-					<label for="ffc_csv_public_hash">
-						<?php esc_html_e( 'Access Hash', 'ffcertificate' ); ?>
-					</label>
+					<?php esc_html_e( 'Access Link', 'ffcertificate' ); ?>
 				</th>
 				<td>
-					<input type="text"
-							id="ffc_csv_public_hash"
-							value="<?php echo esc_attr( $hash ); ?>"
-							readonly
-							class="large-text code"
-							onclick="this.select();">
+					<?php
+					// The standalone "Access Hash" input was removed (post-#238) —
+					// the operator never needs the bare hash; the share-ready
+					// link below already embeds it, and a one-click Copy button
+					// avoids the manual concatenation step.
+					if ( '' === $hash ) :
+						?>
+						<p class="description">
+							<?php esc_html_e( 'A hash will be generated automatically when you enable Public Operator Access above and save the form.', 'ffcertificate' ); ?>
+						</p>
+						<?php
+					else :
+						$ffc_settings          = get_option( 'ffc_settings', array() );
+						$csv_download_page_url = $ffc_settings['csv_download_page_url'] ?? '';
+						$ffc_query_string      = 'form_id=' . $post->ID . '&hash=' . $hash;
+						$share_link            = '' !== $csv_download_page_url
+							? $csv_download_page_url . ( str_contains( $csv_download_page_url, '?' ) ? '&' : '?' ) . $ffc_query_string
+							: '?' . $ffc_query_string;
+						?>
+						<div class="ffc-csv-public-share">
+							<input type="text"
+								id="ffc_csv_public_link"
+								value="<?php echo esc_attr( $share_link ); ?>"
+								readonly
+								class="large-text code"
+								onclick="this.select();">
+							<button type="button"
+								class="button button-secondary ffc-copy-link"
+								data-ffc-copy-target="#ffc_csv_public_link"
+								aria-live="polite">
+								<?php esc_html_e( 'Copy link', 'ffcertificate' ); ?>
+							</button>
+						</div>
+						<?php if ( '' === $csv_download_page_url ) : ?>
+							<p class="description">
+								<?php esc_html_e( 'Append this query string to the page that contains the [ffc_csv_download] shortcode. Set "CSV Download Page URL" in Settings → General to make this a full URL instead.', 'ffcertificate' ); ?>
+							</p>
+						<?php endif; ?>
+					<?php endif; ?>
+
 					<p class="ffc-mt-10">
 						<label>
 							<input type="checkbox" name="ffc_csv_public[regenerate_hash]" value="1">
@@ -158,30 +190,6 @@ class FormEditorPublicCsvDownloadMetabox {
 							<?php esc_html_e( 'Reset the download counter to zero on save.', 'ffcertificate' ); ?>
 						</label>
 					</p>
-					<p class="description">
-						<?php esc_html_e( 'Share the Form ID and this hash with the person who should download the CSV. If no hash exists yet, one will be generated automatically when you enable the feature and save.', 'ffcertificate' ); ?>
-					</p>
-
-					<?php if ( '1' === $enabled && '' !== $hash ) : ?>
-						<?php
-						$ffc_settings          = get_option( 'ffc_settings', array() );
-						$csv_download_page_url = $ffc_settings['csv_download_page_url'] ?? '';
-						$ffc_query_string      = 'form_id=' . $post->ID . '&hash=' . $hash;
-						?>
-						<?php if ( '' !== $csv_download_page_url ) : ?>
-							<p class="description">
-								<?php esc_html_e( 'Download link:', 'ffcertificate' ); ?>
-								<br>
-								<code><?php echo esc_html( $csv_download_page_url . ( str_contains( $csv_download_page_url, '?' ) ? '&' : '?' ) . $ffc_query_string ); ?></code>
-							</p>
-						<?php else : ?>
-							<p class="description">
-								<?php esc_html_e( 'Example pre-filled link (append this as a query string to the page that contains the [ffc_csv_download] shortcode):', 'ffcertificate' ); ?>
-								<br>
-								<code>?<?php echo esc_html( $ffc_query_string ); ?></code>
-							</p>
-						<?php endif; ?>
-					<?php endif; ?>
 				</td>
 			</tr>
 
@@ -303,7 +311,6 @@ class FormEditorPublicCsvDownloadMetabox {
 				</td>
 			</tr>
 		</table>
-		</div><!-- /.ffc-collapsed-target (CSV Download subsection) -->
 
 		<?php
 		// ──────────────────────────────────────────────────────────────.
@@ -316,6 +323,9 @@ class FormEditorPublicCsvDownloadMetabox {
 		// ──────────────────────────────────────────────────────────────.
 		$this->render_extend_end_block( $post, $enabled, $hash );
 		?>
+		</div><!-- /.ffc-collapsed-target — wraps ALL operator sub-features
+			(CSV Download + Start Form Early + Postpone Close) so they
+			collapse together when Public Operator Access is off. -->
 		<?php
 	}
 

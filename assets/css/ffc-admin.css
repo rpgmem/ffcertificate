@@ -578,13 +578,15 @@
     margin: 10px 0;
 }
 
-/* Conditional field (toggled visibility) */
+/* @deprecated 6.5.x — restriction-field visibility migrated to the unified
+   `.ffc-collapsed-target` system (#238 follow-up). These two rules are
+   kept as no-op aliases until 6.6.0 so any custom CSS scoped to
+   `.ffc-conditional-field` still parses without warnings. */
 .ffc-conditional-field {
-    display: none;
+    /* nothing — visibility is owned by .ffc-collapsed-target / .ffc-collapsed */
 }
-
 .ffc-conditional-field.active {
-    display: table-row;
+    /* nothing — kept for selector compatibility */
 }
 
 /* Section subtitles inside metaboxes (Start Form Early sub-block,
@@ -635,6 +637,18 @@
    ──────────────────────────────────────────────────────────────── */
 .ffc-collapsed {
     display: none !important;
+}
+
+/* Inline share-link layout used by the Public Operator Access metabox.
+   Pairs a readonly text input with a Copy-link button on the same row. */
+.ffc-csv-public-share {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+}
+.ffc-csv-public-share input.large-text {
+    flex: 1;
+    min-width: 0;
 }
 
 /* "Globally off" stays as a separate cosmetic state: the master

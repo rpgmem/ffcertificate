@@ -377,46 +377,14 @@
             e.stopPropagation();
         });
 
-        // console.log('FFC Migration Dropdown initialized', {
-        //     button: $btn.length,
-        //     menu: $menu.length,
-        //     overlay: $overlay.length
-        // });
-
-        // Show/hide restriction fields based on checkboxes - Using event delegation
-        function toggleRestrictionField(checkbox, fieldId) {
-            if ($(checkbox).is(':checked')) {
-                $(fieldId).slideDown();
-            } else {
-                $(fieldId).slideUp();
-            }
-        }
-
-        // Password field - Using event delegation
-        $(document).on('change', '#ffc_restriction_password', function() {
-            toggleRestrictionField(this, '#ffc_password_field');
-        });
-        $('#ffc_restriction_password').trigger('change');
-
-        // Allowlist field - Using event delegation
-        $(document).on('change', '#ffc_restriction_allowlist', function() {
-            toggleRestrictionField(this, '#ffc_allowlist_field');
-        });
-        $('#ffc_restriction_allowlist').trigger('change');
-
-        // Denylist field - Using event delegation
-        $(document).on('change', '#ffc_restriction_denylist', function() {
-            toggleRestrictionField(this, '#ffc_denylist_field');
-        });
-        $('#ffc_restriction_denylist').trigger('change');
-
-        // Ticket field - Using event delegation
-        $(document).on('change', '#ffc_restriction_ticket', function() {
-            toggleRestrictionField(this, '#ffc_ticket_field');
-        });
-        $('#ffc_restriction_ticket').trigger('change');
-
-        // console.log('[FFC Admin] Restriction field toggles initialized');
+        // Restriction field visibility (password/allowlist/denylist/ticket)
+        // is now handled by the generic `.ffc-collapsed-target` initializer
+        // at the end of this file (#238 follow-up). The 4 master toggles
+        // (#ffc_restriction_password etc.) drive their dependent <tr>s via
+        // data-ffc-master, with `.ffc-collapsed` collapsing them when off.
+        // The previous per-toggle slideUp/slideDown handlers were unreliable
+        // against the `.ffc-conditional-field { display:none } + .active`
+        // CSS rule for table-row elements.
     });
 
     // =========================================================================
@@ -502,6 +470,42 @@
             $master.on('input', sync);
         }
         sync();
+    });
+
+    // =========================================================================
+    // Copy-to-clipboard buttons. Any button carrying
+    // `data-ffc-copy-target="<selector>"` reads the .val() of the matched
+    // input on click and writes it to the clipboard. Falls back to the
+    // execCommand path for environments without navigator.clipboard.
+    // =========================================================================
+    $(document).on('click', '.ffc-copy-link[data-ffc-copy-target]', function(e) {
+        e.preventDefault();
+        var $btn    = $(this);
+        var target  = $btn.data('ffc-copy-target');
+        var $source = $(target);
+        if (!$source.length) { return; }
+        var text = $source.val();
+        var done = function(ok) {
+            var original = $btn.data('ffc-copy-original') || $btn.text();
+            $btn.data('ffc-copy-original', original);
+            $btn.text(ok ? 'Copied!' : 'Copy failed');
+            setTimeout(function() { $btn.text(original); }, 1500);
+        };
+        if (window.navigator && window.navigator.clipboard && window.navigator.clipboard.writeText) {
+            window.navigator.clipboard.writeText(text).then(
+                function() { done(true); },
+                function() { done(false); }
+            );
+        } else {
+            // Legacy fallback for non-secure contexts / older browsers.
+            try {
+                $source[0].select();
+                document.execCommand('copy');
+                done(true);
+            } catch (err) {
+                done(false);
+            }
+        }
     });
 
 })(jQuery);

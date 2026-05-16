@@ -152,37 +152,44 @@ describe('Generate codes — #ffc_btn_generate_codes click', () => {
 // Restriction-toggle checkboxes (#ffc_restriction_*)
 // ----------------------------------------------------------------------
 
-describe('Restriction toggles', () => {
+// Restriction toggles migrated post-#238 from per-handler slideUp/slideDown
+// to the unified `.ffc-collapsed-target` system. The fixture now mirrors
+// the production markup: each conditional <tr> carries
+// `data-ffc-master="<id>"` and starts with `.ffc-collapsed` when off.
+describe('Restriction toggles (post-#238)', () => {
 	beforeEach(() => {
-		document.body.innerHTML += `
+		// Fresh page-level script binding context — the generic
+		// `.ffc-collapsed-target` initializer scans the DOM at IIFE run.
+		document.body.innerHTML = `
 			<input type="checkbox" id="ffc_restriction_password" />
 			<input type="checkbox" id="ffc_restriction_allowlist" />
 			<input type="checkbox" id="ffc_restriction_denylist" />
 			<input type="checkbox" id="ffc_restriction_ticket" />
-			<div id="ffc_password_field" style="display:none"></div>
-			<div id="ffc_allowlist_field" style="display:none"></div>
-			<div id="ffc_denylist_field" style="display:none"></div>
-			<div id="ffc_ticket_field" style="display:none"></div>
+			<div id="ffc_password_field" class="ffc-collapsed-target ffc-collapsed" data-ffc-master="ffc_restriction_password"></div>
+			<div id="ffc_allowlist_field" class="ffc-collapsed-target ffc-collapsed" data-ffc-master="ffc_restriction_allowlist"></div>
+			<div id="ffc_denylist_field" class="ffc-collapsed-target ffc-collapsed" data-ffc-master="ffc_restriction_denylist"></div>
+			<div id="ffc_ticket_field" class="ffc-collapsed-target ffc-collapsed" data-ffc-master="ffc_restriction_ticket"></div>
 		`;
+		loadScript('assets/js/ffc-admin.js');
 	});
 
-	it('checking #ffc_restriction_password makes #ffc_password_field visible (slideDown)', async () => {
+	it('checking #ffc_restriction_password removes .ffc-collapsed from #ffc_password_field', () => {
 		const cb = document.getElementById('ffc_restriction_password');
 		cb.checked = true;
 		window.$(cb).trigger('change');
-		// slideDown sets display:block + animates; let it settle.
-		await new Promise((r) => setTimeout(r, 500));
-		expect(document.getElementById('ffc_password_field').style.display).not.toBe('none');
+		expect(document.getElementById('ffc_password_field').classList.contains('ffc-collapsed')).toBe(false);
 	});
 
-	it('unchecking #ffc_restriction_allowlist hides #ffc_allowlist_field (slideUp)', async () => {
+	it('unchecking #ffc_restriction_allowlist re-adds .ffc-collapsed to #ffc_allowlist_field', () => {
 		const cb = document.getElementById('ffc_restriction_allowlist');
 		const field = document.getElementById('ffc_allowlist_field');
-		// Start visible.
-		field.style.display = 'block';
+		// Start visible (uncollapsed) by checking the master first.
+		cb.checked = true;
+		window.$(cb).trigger('change');
+		expect(field.classList.contains('ffc-collapsed')).toBe(false);
+
 		cb.checked = false;
 		window.$(cb).trigger('change');
-		await new Promise((r) => setTimeout(r, 500));
-		expect(field.style.display).toBe('none');
+		expect(field.classList.contains('ffc-collapsed')).toBe(true);
 	});
 });
