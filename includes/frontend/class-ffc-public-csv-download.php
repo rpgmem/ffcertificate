@@ -783,13 +783,21 @@ class PublicCsvDownload {
 			// One-line preamble so the admin knows why CPFs come out empty.
 			$writer->row( array( '# Encryption is not configured on this site; CPF column will be empty for new entries. See plugin docs.' ) );
 		}
-		$writer->row( array( 'timestamp_utc', 'ip', 'mode', 'cpf', 'result' ) );
+		$writer->row( array( 'timestamp', 'ip', 'mode', 'cpf', 'result' ) );
 
 		foreach ( $log as $entry ) {
 			if ( ! is_array( $entry ) ) {
 				continue;
 			}
-			$ts  = isset( $entry['ts'] ) ? gmdate( 'Y-m-d H:i:s', (int) $entry['ts'] ) : '';
+			// Render in the site timezone so the admin can read the audit
+			// without converting UTC in a spreadsheet. The stored value is a
+			// UTC timestamp (entry['ts'] is unix); `wp_date()` with no
+			// timezone arg uses `wp_timezone()`.
+			$ts = '';
+			if ( isset( $entry['ts'] ) ) {
+				$formatted = wp_date( 'Y-m-d H:i:s', (int) $entry['ts'] );
+				$ts        = false === $formatted ? '' : $formatted;
+			}
 			$ip  = isset( $entry['ip'] ) ? (string) $entry['ip'] : '';
 			$mod = isset( $entry['mode'] ) ? (string) $entry['mode'] : '';
 			$res = isset( $entry['result'] ) ? (string) $entry['result'] : '';
