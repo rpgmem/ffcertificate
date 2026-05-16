@@ -306,4 +306,20 @@ class DateFormatterTest extends TestCase {
 		);
 		$this->assertSame( 'H:i:s', DateFormatter::resolve_time_format( 'pdf' ) );
 	}
+
+	public function test_base_time_format_custom_sentinel_reads_companion_value(): void {
+		$this->ffc_settings = array(
+			'time_format'        => 'custom',
+			'time_format_custom' => 'g:i a',
+		);
+		$this->assertSame( 'g:i a', DateFormatter::resolve_time_format() );
+	}
+
+	public function test_base_time_format_custom_sentinel_with_empty_companion_falls_back_to_default(): void {
+		$this->ffc_settings = array(
+			'time_format'        => 'custom',
+			'time_format_custom' => '',
+		);
+		$this->assertSame( DateFormatter::DEFAULT_TIME_FORMAT, DateFormatter::resolve_time_format() );
+	}
 }

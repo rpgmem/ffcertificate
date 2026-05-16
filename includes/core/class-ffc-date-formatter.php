@@ -15,7 +15,9 @@
  *                            back to the plugin default ('d/m/Y' since
  *                            #244; was 'F j, Y' pre-#244 — installs
  *                            that explicitly saved 'F j, Y' keep it).
- *   - 'time_format'        — required, default 'H:i'.
+ *   - 'time_format'        — required, default 'H:i'. 'custom' delegates
+ *                            to 'time_format_custom' (#248).
+ *   - 'time_format_custom' — only consulted when time_format === 'custom'.
  *   - 'date_format_custom' — only consulted when date_format === 'custom'.
  *   - 'date_format_pdf'    — optional override applied when callers pass
  *                            $context = 'pdf'. Empty inherits date_format.
@@ -177,6 +179,10 @@ final class DateFormatter {
 	public static function resolve_time_format( string $context = 'default' ): string {
 		$settings = self::settings();
 		$base     = self::pick( $settings, 'time_format', self::DEFAULT_TIME_FORMAT );
+		if ( 'custom' === $base ) {
+			$custom = self::pick( $settings, 'time_format_custom', '' );
+			$base   = '' !== $custom ? $custom : self::DEFAULT_TIME_FORMAT;
+		}
 		if ( 'pdf' === $context ) {
 			$pdf = self::pick( $settings, 'time_format_pdf', '' );
 			if ( 'custom' === $pdf ) {

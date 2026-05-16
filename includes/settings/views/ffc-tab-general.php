@@ -44,21 +44,34 @@ if ( ! isset( $ffcertificate_date_formats[ $ffcertificate_current_format ] ) && 
 }
 // #244 — time format + per-context PDF overrides.
 $ffcertificate_time_format            = $ffcertificate_get_option( 'time_format', \FreeFormCertificate\Core\DateFormatter::DEFAULT_TIME_FORMAT );
+$ffcertificate_time_format_custom     = $ffcertificate_get_option( 'time_format_custom', '' );
 $ffcertificate_date_format_pdf        = $ffcertificate_get_option( 'date_format_pdf', '' );
 $ffcertificate_date_format_pdf_custom = $ffcertificate_get_option( 'date_format_pdf_custom', '' );
 $ffcertificate_time_format_pdf        = $ffcertificate_get_option( 'time_format_pdf', '' );
 $ffcertificate_time_format_pdf_custom = $ffcertificate_get_option( 'time_format_pdf_custom', '' );
 $ffcertificate_main_address           = $ffcertificate_get_option( 'main_address', '' );
 
-// PDF Time Format override (#248) — symmetric to PDF Date Format.
-// `''` = Inherit, `custom` = free-form via `time_format_pdf_custom`.
-$ffcertificate_time_formats            = array(
+// Time format presets shared by the base Time Format dropdown (#248) and
+// the PDF Time Format override below.
+$ffcertificate_time_formats = array(
 	'H:i'     => '15:30 (24h HH:MM)',
 	'H:i:s'   => '15:30:45 (24h HH:MM:SS)',
 	'g:i a'   => '3:30 pm (12h)',
 	'g:i:s a' => '3:30:45 pm (12h with seconds)',
 	'custom'  => __( 'Custom Format', 'ffcertificate' ),
 );
+
+// Base Time Format select (#248): if the saved value isn't a preset it
+// flows into Custom Format. Pre-#248 installs saved free-form time
+// strings here — they land in the Custom field transparently.
+$ffcertificate_time_format_select = $ffcertificate_time_format;
+if ( ! isset( $ffcertificate_time_formats[ $ffcertificate_time_format_select ] ) && 'custom' !== $ffcertificate_time_format_select ) {
+	$ffcertificate_time_format_custom = $ffcertificate_time_format_select;
+	$ffcertificate_time_format_select = 'custom';
+}
+
+// PDF Time Format override (#248) — symmetric to PDF Date Format.
+// `''` = Inherit, `custom` = free-form via `time_format_pdf_custom`.
 $ffcertificate_time_format_pdf_options = array(
 	'' => __( 'Inherit — use Time Format above', 'ffcertificate' ),
 ) + $ffcertificate_time_formats;
@@ -105,8 +118,11 @@ $ffcertificate_wp_time_format  = (string) \get_option( 'time_format', '' );
 $ffcertificate_effective_date  = ( 'custom' === $ffcertificate_current_format && '' !== $ffcertificate_custom_format )
 	? $ffcertificate_custom_format
 	: $ffcertificate_current_format;
+$ffcertificate_effective_time  = ( 'custom' === $ffcertificate_time_format_select && '' !== $ffcertificate_time_format_custom )
+	? $ffcertificate_time_format_custom
+	: $ffcertificate_time_format_select;
 $ffcertificate_date_diverges   = '' !== $ffcertificate_wp_date_format && $ffcertificate_wp_date_format !== $ffcertificate_effective_date;
-$ffcertificate_time_diverges   = '' !== $ffcertificate_wp_time_format && $ffcertificate_wp_time_format !== $ffcertificate_time_format;
+$ffcertificate_time_diverges   = '' !== $ffcertificate_wp_time_format && $ffcertificate_wp_time_format !== $ffcertificate_effective_time;
 $ffcertificate_show_divergence = $ffcertificate_date_diverges || $ffcertificate_time_diverges;
 ?>
 
@@ -139,7 +155,7 @@ $ffcertificate_show_divergence = $ffcertificate_date_diverges || $ffcertificate_
 					printf(
 						/* translators: 1: plugin time format string, 2: WordPress global time format string */
 						esc_html__( 'Time: plugin uses %1$s, WordPress uses %2$s.', 'ffcertificate' ),
-						'<code>' . esc_html( $ffcertificate_time_format ) . '</code>',
+						'<code>' . esc_html( $ffcertificate_effective_time ) . '</code>',
 						'<code>' . esc_html( $ffcertificate_wp_time_format ) . '</code>'
 					); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- pre-escaped via esc_html inside printf args.
 					?>
@@ -229,18 +245,38 @@ $ffcertificate_show_divergence = $ffcertificate_date_diverges || $ffcertificate_
 						<label for="ffc_time_format"><?php esc_html_e( 'Time Format', 'ffcertificate' ); ?></label>
 					</th>
 					<td>
-						<input type="text" name="ffc_settings[time_format]" id="ffc_time_format" value="<?php echo esc_attr( $ffcertificate_time_format ); ?>" placeholder="H:i" class="regular-text" data-ffc-autosave-key="time_format">
+						<select name="ffc_settings[time_format]" id="ffc_time_format" class="regular-text" data-ffc-autosave-key="time_format">
+							<?php foreach ( $ffcertificate_time_formats as $ffcertificate_format => $ffcertificate_label ) : ?>
+								<option value="<?php echo esc_attr( $ffcertificate_format ); ?>" <?php selected( $ffcertificate_time_format_select, $ffcertificate_format ); ?>>
+									<?php echo esc_html( $ffcertificate_label ); ?>
+								</option>
+							<?php endforeach; ?>
+						</select>
 						<p class="description">
-							<?php esc_html_e( 'Time portion (HH:MM by default, 24h). Used by DateFormatter::format_time() and combined date+time output.', 'ffcertificate' ); ?>
+							<?php esc_html_e( 'Time portion used by DateFormatter::format_time() and combined date+time output.', 'ffcertificate' ); ?>
 							<br>
 							<strong><?php esc_html_e( 'Preview:', 'ffcertificate' ); ?></strong>
 							<span class="ffc-text-info ffc-monospace">
 								<?php
-								$ffcertificate_preview_time = '2026-01-04 15:30:45';
-								echo esc_html( date_i18n( '' !== $ffcertificate_time_format ? $ffcertificate_time_format : 'H:i', strtotime( $ffcertificate_preview_time ) ) );
+								$ffcertificate_preview_time     = '2026-01-04 15:30:45';
+								$ffcertificate_time_preview_fmt = ( 'custom' === $ffcertificate_time_format_select && '' !== $ffcertificate_time_format_custom )
+									? $ffcertificate_time_format_custom
+									: $ffcertificate_time_format_select;
+								echo esc_html( date_i18n( '' !== $ffcertificate_time_preview_fmt ? $ffcertificate_time_preview_fmt : 'H:i', strtotime( $ffcertificate_preview_time ) ) );
 								?>
 							</span>
 						</p>
+
+						<div id="ffc_time_format_custom_container" class="ffc-collapsed-target <?php echo esc_attr( 'custom' !== $ffcertificate_time_format_select ? 'ffc-collapsed' : '' ); ?>" data-ffc-master="ffc_time_format" data-ffc-master-value="custom">
+							<label>
+								<strong><?php esc_html_e( 'Custom Format:', 'ffcertificate' ); ?></strong><br>
+								<input type="text" name="ffc_settings[time_format_custom]" id="ffc_time_format_custom" value="<?php echo esc_attr( $ffcertificate_time_format_custom ); ?>" placeholder="H:i" class="regular-text" data-ffc-autosave-key="time_format_custom">
+							</label>
+							<p class="description">
+								<?php esc_html_e( 'Use PHP date format characters.', 'ffcertificate' ); ?>
+								<a href="https://www.php.net/manual/en/datetime.format.php" target="_blank"><?php esc_html_e( 'See documentation', 'ffcertificate' ); ?></a>
+							</p>
+						</div>
 					</td>
 				</tr>
 
