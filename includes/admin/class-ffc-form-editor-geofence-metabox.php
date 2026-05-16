@@ -118,6 +118,7 @@ class FormEditorGeofenceMetabox {
 									'id'      => 'ffc_geofence_datetime_enabled',
 									'checked' => '1' === (string) $datetime_enabled,
 									'label'   => __( 'Restrict form access by date and time', 'ffcertificate' ),
+									'data'    => array( 'ffc-autosave-form-key' => 'geofence_datetime_enabled' ),
 								)
 							);
 							?>
@@ -231,6 +232,7 @@ class FormEditorGeofenceMetabox {
 									'id'      => 'ffc_geofence_geo_enabled',
 									'checked' => '1' === (string) $geo_enabled,
 									'label'   => __( 'Restrict form access by geographic location', 'ffcertificate' ),
+									'data'    => array( 'ffc-autosave-form-key' => 'geofence_geo_enabled' ),
 								)
 							);
 							?>
@@ -308,6 +310,7 @@ class FormEditorGeofenceMetabox {
 									'id'      => 'ffc_geofence_geo_ip_areas_permissive',
 									'checked' => '1' === (string) $geo_ip_areas_permissive,
 									'label'   => __( 'Use different areas for IP validation', 'ffcertificate' ),
+									'data'    => array( 'ffc-autosave-form-key' => 'geofence_geo_ip_areas_permissive' ),
 								)
 							);
 							?>

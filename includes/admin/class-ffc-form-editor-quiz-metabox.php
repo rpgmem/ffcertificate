@@ -53,6 +53,7 @@ class FormEditorQuizMetabox {
 							'id'      => 'ffc_quiz_enabled',
 							'checked' => (bool) $quiz_enabled,
 							'label'   => __( 'Turn this form into a quiz/evaluation', 'ffcertificate' ),
+							'data'    => array( 'ffc-autosave-form-key' => 'quiz_enabled' ),
 						)
 					);
 					?>

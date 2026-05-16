@@ -72,6 +72,7 @@ class FormEditorRestrictionMetabox {
 									'id'      => $ffc_id,
 									'checked' => (bool) $ffc_active,
 									'label'   => $ffc_title,
+									'data'    => array( 'ffc-autosave-form-key' => 'restriction_' . $ffc_key ),
 								)
 							);
 							?>
@@ -85,7 +86,10 @@ class FormEditorRestrictionMetabox {
 				</td>
 			</tr>
 
-			<tr id="ffc_password_field" class="ffc-conditional-field<?php echo esc_attr( $password_active ? ' active' : '' ); ?>">
+			<tr id="ffc_password_field"
+				class="ffc-collapsed-target<?php echo $password_active ? '' : ' ffc-collapsed'; ?>"
+				data-ffc-master="ffc_restriction_password"
+				aria-hidden="<?php echo $password_active ? 'false' : 'true'; ?>">
 				<th><label><?php esc_html_e( 'Password Value', 'ffcertificate' ); ?></label></th>
 				<td>
 					<input type="text"
@@ -97,7 +101,10 @@ class FormEditorRestrictionMetabox {
 				</td>
 			</tr>
 
-			<tr id="ffc_allowlist_field" class="ffc-conditional-field<?php echo esc_attr( $allowlist_active ? ' active' : '' ); ?>">
+			<tr id="ffc_allowlist_field"
+				class="ffc-collapsed-target<?php echo $allowlist_active ? '' : ' ffc-collapsed'; ?>"
+				data-ffc-master="ffc_restriction_allowlist"
+				aria-hidden="<?php echo $allowlist_active ? 'false' : 'true'; ?>">
 				<th><label><?php esc_html_e( 'Allowlist (CPFs / IDs)', 'ffcertificate' ); ?></label></th>
 				<td>
 					<textarea name="ffc_config[allowed_users_list]"
@@ -107,7 +114,10 @@ class FormEditorRestrictionMetabox {
 				</td>
 			</tr>
 
-			<tr id="ffc_denylist_field" class="ffc-conditional-field<?php echo esc_attr( $denylist_active ? ' active' : '' ); ?>">
+			<tr id="ffc_denylist_field"
+				class="ffc-collapsed-target<?php echo $denylist_active ? '' : ' ffc-collapsed'; ?>"
+				data-ffc-master="ffc_restriction_denylist"
+				aria-hidden="<?php echo $denylist_active ? 'false' : 'true'; ?>">
 				<th><label><?php esc_html_e( 'Denylist (Blocked)', 'ffcertificate' ); ?></label></th>
 				<td>
 					<textarea name="ffc_config[denied_users_list]"
@@ -117,7 +127,10 @@ class FormEditorRestrictionMetabox {
 				</td>
 			</tr>
 
-			<tr id="ffc_ticket_field" class="ffc-highlight-row ffc-conditional-field<?php echo esc_attr( $ticket_active ? ' active' : '' ); ?>">
+			<tr id="ffc_ticket_field"
+				class="ffc-highlight-row ffc-collapsed-target<?php echo $ticket_active ? '' : ' ffc-collapsed'; ?>"
+				data-ffc-master="ffc_restriction_ticket"
+				aria-hidden="<?php echo $ticket_active ? 'false' : 'true'; ?>">
 				<th><label class="ffc-label-accent"><?php esc_html_e( 'Ticket Generator', 'ffcertificate' ); ?></label></th>
 				<td>
 					<div class="ffc-admin-flex-row ffc-mb5">
@@ -132,6 +145,12 @@ class FormEditorRestrictionMetabox {
 				</td>
 			</tr>
 		</table>
+
+		<h3 class="ffc-section-subtitle"><?php esc_html_e( 'Device Fingerprint Limit', 'ffcertificate' ); ?></h3>
 		<?php
+		// Device Fingerprint metabox renders its own intro + master
+		// toggle + sub-fields. Composed in from FormEditorMetaboxRenderer
+		// since both this and Device Fingerprint answer the question
+		// "who can submit this form?".
 	}
 }

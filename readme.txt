@@ -175,72 +175,41 @@ In the certificate layout editor, use these dynamic tags:
 
 == Changelog ==
 
-= 6.3.11 (2026-05-10) =
+= 6.5.14 (2026-05-15) =
 
-**Form-editor UX polish + #50 specificity hardening + duplication fix.**
+**Master-toggle UX consolidation across the form editor.** Closes #238.
 
-* Feat: Public CSV Download metabox — master toggle now disables every sub-field (limit, hash, CPF mode, whitelist, audit log) when off. Save handler preserves persisted values instead of wiping them. CPF mode defaults to `audit` on first enable + save. Whitelist textarea only renders when persisted mode is `whitelist` (must save the form to reveal it). Audit log shows colour-coded Total / Successful / Failed cards instead of a single sentence.
-* Feat: Device Fingerprint metabox — global gate (Settings → Rate Limit → Device Fingerprint) hard-locks every input when off. Master "Enable for this form" defaults `Max submissions per device` to 2 on save when left blank (other fields keep inherit-from-global semantic).
-* Fix: Form duplication now copies all 8 Public CSV + Device Fingerprint settings that were silently lost on clone. Hash, counter, and audit log intentionally NOT copied (security + per-form history isolation).
-* Feat: All public shortcode CSS selectors now sit at specificity (0,2,0) via the new `.ffc-shortcode` anchor class. Closes #50.
-* Feat: rem-based typography scale + `.ffc-initially-hidden` utility + stylelint baseline (`@wordpress/stylelint-config`).
-* Fix: `Undefined array key "enable_restriction"` warning on form save (form editor metabox).
+* Change: Every user-facing reference to "Public CSV Download" renamed to **"Public Operator Access"** — editor metabox label, intro description, Settings tab card, docs (`13-features.php`, `01-shortcodes.php`). The master gates three sibling sub-features (CSV download + Start Form Early + Postpone Close), so the new name reflects the broadened scope. Aliases "(formerly Public CSV Download)" preserved so users coming from old screencasts still find the right place. Internal class / file / namespace + meta keys unchanged.
+* Change: **Save-semantics — skip-on-off across the board.** 11 master toggles that previously rewrote sub-meta values on every save (Restriction × 4, Email send_user_email, DateTime, Geolocation, IP-Permissive, Quiz, CPF whitelist mode) now wrap sub-meta writes in `if ('1' === $master)`. Sub-options ride through unchanged when their master is off — disabling a section preserves its values for when you turn it back on.
+* Change: **Unified visibility pattern (B / hidden).** Every master-toggle block uses the new `.ffc-collapsed-target` wrapper convention with a generic JS initializer. Three previously save-required toggles (Email send_user_email, IP-Permissive, CPF-whitelist-mode) gain live update behavior — toggle and the sub-options appear/disappear without a save+reload. wp_editor (TinyMCE) inside the Email metabox initializes normally; only the wrapper collapses, not the editor itself.
 
-= 6.2.0 (2026-05-04) =
+= 6.5.13 (2026-05-15) =
 
-**Capabilities + roles overhaul + admin UX scoping + upgrade safety + per-area debug toggles + role i18n fix.**
+**Audit summary clarity + postpone-close lifecycle.**
 
-* Feat: 14 granular admin capabilities (cross-module + per-domain recruitment) replace blanket `manage_options` gates so site owners can delegate scoped roles without giving full WP admin.
-* Feat: 9 new roles bundle the new caps — Certificate Manager, Self-Scheduling Manager, Audience Manager, Reregistration Manager, FFC Operator, plus a 4-tier recruitment ladder (Auditor → Operator → Manager → Admin).
-* Feat: `AdminMenuVisibility` defense-in-depth UX layer hides core WP menus, blocks direct-URL access (redirect to role's landing page), and prunes the top admin bar per FFC role.
-* Feat: 5 new debug areas (Frontend, Admin, Self-Scheduling, Audience, QR Code) with per-area toggles in **Settings → Advanced → Debug**. The 76 legacy `Utils::debug_log()` calls migrated to `Debug::log_*()`; `Utils::debug_log()` is now `@deprecated`. Frontend shortcode renders + other internal events no longer pollute production logs.
-* Fix: FFC role labels now translate correctly on `wp-admin/users.php`. New `wp_roles_init` hook re-applies `__()` against the plugin's textdomain on every page load (WordPress's built-in `translate_user_role()` resolves against the **default** WP textdomain, so plugin role names never localized).
-* Fix: 3 legacy non-namespaced certificate caps (`view_own_certificates`, `download_own_certificates`, `view_certificate_history`) renamed to the consistent `ffc_*` namespace with a one-time idempotent migration.
-* Fix: Pre-existing in-place-upgrade bug — recruitment tables left un-created when bypassing reactivation. `RecruitmentActivator::create_tables()` + role registrations now run on `plugins_loaded` (idempotent self-heal).
+* Change: **Public CSV audit summary — three operator-facing buckets** replace the prior "Total / Successful / Failed" counters. New labels: (1) *Successful accesses* — CPF + CAPTCHA both validated. (2) *Successful downloads* — CSV files actually delivered (sourced from the long-lived counter, survives audit-log rotation). (3) *Failed accesses* — every `fail_*` row including new `fail_captcha` and `fail_other` tags so the third bucket is complete. Form-editor metabox in Section 7 displays all three side by side.
+* Change: **Admin form save now resets the postpone-close one-shot.** When you save a form in the editor, the `_ffc_csv_public_end_postponed_at` flag is wiped — letting operators on the public download page postpone the close again within the newly-configured window. The admin save is the natural cycle boundary.
 
-= 6.1.0 (2026-05-02) =
+= 6.5.12 (2026-05-15) =
 
-**Recruitment admin UX parity + dashboard integration + Preliminary list visual axis.** Closes #90.
+**"Postpone close" public operator action.** Sibling of "Start Form Now" but for the close boundary.
 
-* Feat: Recruitment admin moves from inline `<table>` placeholders to full `WP_List_Table` listings (sort, search, paginate, bulk actions, row actions) for Notices / Adjutancies / Candidates / Reasons.
-* Feat: Dedicated edit screens for notices (5 sections incl. transitions, attach/detach, CSV import, classifications) + candidates (general, sensitive data, classification + call history, hard-delete) + reasons.
-* Feat: Notice ↔ adjutancy attach UI + REST — fixes a `recruitment_notice_has_no_adjutancies` 400 that blocked CSV imports on fresh installs.
-* Feat: Preliminary visual statuses (Empty / Denied / Granted / Appeal denied / Appeal granted) + global Reasons catalog without touching the §5.2 state machine. Schema migration v5 + v6 (adds `preview_status`, `preview_reason_id`, `time_points`, `hab_emebs`).
-* Feat: Per-adjutancy + per-status configurable badge colors via `<input type="color">`.
-* Feat: Public shortcode polish — adjutancy filter (functional now; was silently ignored), name search (`?q=`), subscription-type filter (PCD/GERAL), persistent filter UI, BR-format dates (DD-MM-YYYY) + 2-decimal scores, semicolon CSV delimiter auto-detection.
-* Feat: Out-of-order call confirm + reason prompt (single + bulk); 12h public-shortcode cache TTL with admin-write invalidation; CSV import activity indicator.
-* Change: Notice status `active` → `definitive` (schema migrations v2 + v3 cover both upgrade cohorts).
-* Perf: Public shortcode candidate-fetch — N round-trips → 1 via `RecruitmentCandidateRepository::get_by_ids()`. 30–50% cold-cache improvement.
-
-= 6.0.0 (2026-05-01) =
-
-**Recruitment module — Brazilian public-tender ("concurso público") candidate queue management.** PHPStan level 7 → 8 (no baseline).
-
-* Feat: New `[ffc_recruitment_queue]` public shortcode + candidate-self `[ffc_recruitment_my_calls]` dashboard section + wp-admin "Recrutamento" submenu.
-* Feat: 21-route admin REST surface under `ffcertificate/v1/recruitment` (notices, classifications, candidates, adjutancies, calls, /me/recruitment).
-* Feat: `ffc_manage_recruitment` capability + dedicated `ffc_recruitment_manager` role for delegation without giving `manage_options`.
-* Feat: Atomic CSV importer (single-transaction wipe + reinsert with rollback on any validation error).
-* Feat: Two state machines — Notice (draft → preliminary → active → closed) + Classification (empty → called → accepted → hired/not_shown) with §5.1 reopen-freeze rule that locks `hired`/`not_shown` once a notice has been reopened.
-* Feat: Convocation service (single + bulk + cancel with append-only call history); email dispatch on call create with masked PII placeholders.
-* Feat: Centralized §7-bis delete gating (candidate hard-delete only when zero classifications; classification individual delete only when `empty` + draft/preliminary).
-* Feat: Submissions admin "Move to form…" bulk action with identifier-based conflict detection.
-* Change: PHPStan bumped from level 7 (231-entry baseline) to **level 8 with zero errors and no baseline**. ~70 production call sites + ~80 test references migrated away from `Utils::*` deprecated shims.
+* Feat: Trusted operators can push a form's `time_end` later within the same calendar day, exactly once per form, using the same public hash as the credential. Strict constraints: form must already be open, new close must be strictly later than both now and the current close, and must stay within the configured close-date's calendar day.
+* Feat: Per-form opt-IN — `_ffc_csv_public_extend_end_enabled` defaults to `'0'` (admin must consciously enable since extending a public window is destructive-ish). UI lives next to "Start Form Now" on the public CSV download page; modal reuses the cert-preview chrome with a `<input type="time">` picker.
+* Feat: Aggressive page-cache purge fires so the form page reflects the new close immediately. New Activity Log event `end_postponed` (warning level) audits the rewrite with form_id, original_time_end, new_time_end, IP, UA, user_id.
 
 For the complete changelog history, see [CHANGELOG.md](CHANGELOG.md).
 
 == Upgrade Notice ==
 
-= 6.3.11 =
-Form-editor UX polish for the Public CSV Download and Device Fingerprint metaboxes. Form duplication now copies the eight per-form settings that were previously silently lost (CSV download config + device fingerprint override). Closes #50 (frontend CSS specificity hardening — every public shortcode rule now sits at (0,2,0) for theme-collision resilience). No data migrations; safe upgrade.
+= 6.5.14 =
+**UX consolidation** across the form editor master toggles. "Public CSV Download" renamed user-facing to "Public Operator Access" (the master now gates 3 sibling sub-features — CSV download, Start Form Early, Postpone Close); aliases preserved so old links still find the section. Sub-options now ride through unchanged when their master is off (skip-on-off save semantics) — disabling a section preserves its values for next time. Unified visibility pattern: every master-toggle block hides its sub-options live, no more save+reload to see what's gated. No data migrations; safe upgrade.
 
-= 6.2.0 =
-Capabilities + roles overhaul: 14 new granular admin caps replace blanket `manage_options` gates, 9 new roles bundle the caps for delegation. Defense-in-depth admin UX layer hides core WP menus + blocks direct-URL access per role. 5 new debug-area toggles in **Settings → Advanced → Debug**. Fixes role translation on `wp-admin/users.php`. Fixes pre-existing in-place-upgrade bug that left recruitment tables un-created. 3 legacy certificate caps renamed to `ffc_*` namespace with one-time idempotent migration. No data loss; backup recommended.
+= 6.5.13 =
+**Audit summary clarity.** The Public CSV download audit summary on the form editor now shows three operator-facing buckets — *Successful accesses* (CPF + CAPTCHA validated), *Successful downloads* (CSV actually delivered), *Failed accesses* (wrong CPF + wrong CAPTCHA + other errors) — instead of the prior "Total / Successful / Failed" counters. Two new failure tags (`fail_captcha`, `fail_other`) make the "Failed" bucket comprehensive. Admin form save now also re-enables the postpone-close one-shot so operators can postpone again after admin intervention. No data migrations; safe upgrade.
 
-= 6.1.0 =
-Recruitment admin UX parity (full WP_List_Table backing, edit screens) + dashboard integration + Preliminary list visual axis. Schema migrations v2–v6 run automatically (notice status `active` → `definitive` rename + new columns for preview status / time points / hab_emebs + `ffc_recruitment_reason` table). Backup recommended before upgrade.
-
-= 6.0.0 =
-NEW Recruitment module — Brazilian public-tender candidate queue management. 21 admin REST routes, atomic CSV importer, two state machines, convocation service, dedicated `ffc_recruitment_manager` role. PHPStan level 7 → 8 with zero baseline. 6 new InnoDB tables created on activation. Backup recommended.
+= 6.5.12 =
+**"Postpone close" public operator action.** Sibling of "Start Form Now" — trusted operators on the venue floor can push a form's close time later within the same calendar day, exactly once per form, using the same hash credential. Per-form opt-in (`_ffc_csv_public_extend_end_enabled` defaults off — admin must consciously enable). New Activity Log event `end_postponed` audits the rewrite. No data migrations; safe upgrade.
 
 For older releases, see [CHANGELOG.md](CHANGELOG.md).
 
