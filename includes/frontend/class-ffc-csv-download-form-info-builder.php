@@ -115,6 +115,18 @@ final class CsvDownloadFormInfoBuilder {
 				'can_download'            => $form_ended
 					&& ! $quota_exhausted
 					&& '1' === self::download_enabled_meta( $form_id ),
+				// `*_disabled_by_admin` flags distinguish "admin explicitly
+				// turned off this sub-feature" (button should render disabled
+				// with a tooltip so the operator knows the feature exists)
+				// from "feature inapplicable right now due to state" (button
+				// is hidden — the info alerts below explain why).
+				// Master ON + sub-toggle OFF = disabled-visible. Issue #243.
+				'csv_download_disabled_by_admin' => '1' === (string) get_post_meta( $form_id, '_ffc_csv_public_enabled', true )
+					&& '1' !== self::download_enabled_meta( $form_id ),
+				'start_early_disabled_by_admin'  => '1' === (string) get_post_meta( $form_id, '_ffc_csv_public_enabled', true )
+					&& '1' !== self::start_early_meta( $form_id ),
+				'extend_end_disabled_by_admin'   => '1' === (string) get_post_meta( $form_id, '_ffc_csv_public_enabled', true )
+					&& '1' !== (string) get_post_meta( $form_id, \FreeFormCertificate\Frontend\ExtendEndAction::META_ENABLED, true ),
 				'can_preview_cert'        => $before_start,
 				// `can_open_early` powers the "Start Form Now" button — it
 				// fires only when CSV public is on (the hash is the cred),

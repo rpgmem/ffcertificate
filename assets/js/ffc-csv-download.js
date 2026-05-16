@@ -130,9 +130,17 @@
 			html += esc(strings.previewCertificate || 'Preview Certificate');
 			html += '</button>';
 		}
+		// Start Form Early: enabled when can_open_early; disabled-visible
+		// when admin turned it off (so the operator sees the feature exists
+		// but is blocked); hidden otherwise. Same shape for Postpone Close.
 		if (info.status.can_open_early) {
 			html += '<button type="button" class="ffc-info-btn ffc-info-btn-warning ffc-btn-open-early" '
 				+ 'title="' + esc(strings.openEarlyTooltip || 'Overrides the scheduled start time. Form opens immediately.') + '">';
+			html += esc(strings.startFormNow || 'Start Form Now');
+			html += '</button>';
+		} else if (info.status.start_early_disabled_by_admin) {
+			html += '<button type="button" class="ffc-info-btn ffc-info-btn-warning ffc-btn-open-early" disabled '
+				+ 'title="' + esc(strings.startEarlyDisabledTip || 'Start Form Early disabled') + '">';
 			html += esc(strings.startFormNow || 'Start Form Now');
 			html += '</button>';
 		}
@@ -141,9 +149,24 @@
 				+ 'title="' + esc(strings.postponeCloseTooltip || 'Move the form\'s close time later within the same day. One-shot per form.') + '">';
 			html += esc(strings.postponeClose || 'Postpone close');
 			html += '</button>';
+		} else if (info.status.extend_end_disabled_by_admin) {
+			html += '<button type="button" class="ffc-info-btn ffc-info-btn-warning ffc-btn-extend-end" disabled '
+				+ 'title="' + esc(strings.extendEndDisabledTip || 'Postpone Close disabled') + '">';
+			html += esc(strings.postponeClose || 'Postpone close');
+			html += '</button>';
 		}
+		// Download CSV button is always rendered — toggle disabled state.
+		// Admin-disabled gets a specific tooltip so the operator knows the
+		// feature was turned off intentionally vs. just temporarily blocked
+		// (form still active, quota exhausted, etc., which the info alert
+		// below explains).
 		if (info.status.can_download) {
 			html += '<button type="button" class="ffc-info-btn ffc-info-btn-primary ffc-btn-download-csv">';
+			html += esc(strings.downloadCsv || 'Download CSV');
+			html += '</button>';
+		} else if (info.status.csv_download_disabled_by_admin) {
+			html += '<button type="button" class="ffc-info-btn ffc-info-btn-primary ffc-btn-download-csv" disabled '
+				+ 'title="' + esc(strings.csvDownloadDisabledTip || 'CSV download disabled') + '">';
 			html += esc(strings.downloadCsv || 'Download CSV');
 			html += '</button>';
 		} else {
