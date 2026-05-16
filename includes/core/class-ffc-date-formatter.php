@@ -149,10 +149,14 @@ final class DateFormatter {
 		if ( 'pdf' === $context ) {
 			$pdf = self::pick( $settings, 'date_format_pdf', '' );
 			if ( '' !== $pdf ) {
-				return $pdf;
+				return self::strip_time_chars( $pdf );
 			}
 		}
-		return $base;
+		// Pre-#244 installs may have stored a combined value like "d/m/Y H:i"
+		// in date_format (the setting was effectively decorative back then).
+		// `format_datetime()` would otherwise append `time_format` again and
+		// duplicate the time — strip on read.
+		return self::strip_time_chars( $base );
 	}
 
 	/**
@@ -256,5 +260,41 @@ final class DateFormatter {
 		}
 		$value = (string) $settings[ $key ];
 		return '' !== $value ? $value : $default;
+	}
+
+	/**
+	 * Drop PHP time-format characters (a A B g G h H i s u v) from a
+	 * `date()` format string so a combined value like "d/m/Y H:i" reduces
+	 * to its date portion ("d/m/Y"). Honours backslash escapes — escaped
+	 * literals like `\H` keep their `H` rather than being treated as the
+	 * hour char.
+	 *
+	 * Adjacent whitespace and trailing punctuation that becomes orphaned
+	 * after the strip is cleaned up (e.g. "d/m/Y, H:i" → "d/m/Y") so the
+	 * result is presentable on its own.
+	 *
+	 * @param string $format Format string straight from settings.
+	 * @return string Date-only format, falls back to the plugin default
+	 *                when stripping yields an empty result.
+	 */
+	private static function strip_time_chars( string $format ): string {
+		$out = '';
+		$len = strlen( $format );
+		for ( $i = 0; $i < $len; $i++ ) {
+			$c = $format[ $i ];
+			if ( '\\' === $c && $i + 1 < $len ) {
+				$out .= $c . $format[ $i + 1 ];
+				++$i;
+				continue;
+			}
+			if ( false !== strpos( 'aABgGhHisuv', $c ) ) {
+				continue;
+			}
+			$out .= $c;
+		}
+		$collapsed = preg_replace( '/\s+/u', ' ', $out );
+		$out       = null === $collapsed ? $out : $collapsed;
+		$out       = trim( $out, " \t\n\r\0\x0B,:;-" );
+		return '' === $out ? self::DEFAULT_DATE_FORMAT : $out;
 	}
 }

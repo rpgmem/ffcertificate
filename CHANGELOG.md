@@ -7,9 +7,9 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
-_No unreleased changes._
+### Fixed
 
----
+- **DateFormatter: duplicated time on certificate / appointment verification + raw dates in "Minhas Convocações"** (follow-up to #244). Two issues reported by the user after #246 shipped: (1) the `[ffc_verification]` certificate result screen rendered the issue date as e.g. `"12/05/2026 18:57 18:57"` — the appointment result rendered `Data: 20/05/2026 21:00`, the user dashboard's appointments list and "Próximo Agendamento" widget showed the same time-on-date duplication. Root cause: pre-#244 the plugin's own `ffc_settings['date_format']` was effectively decorative (only the Settings → General preview consumed it), so existing installs had values like `"d/m/Y H:i"` saved there. When #244 wired the helper through every display site, `format_datetime()` started concatenating `time_format` after the already-time-bearing `date_format`. Fix: `DateFormatter::resolve_date_format()` now strips PHP time-format chars (`a A B g G h H i s u v`, honouring `\\`-escapes) from `date_format` / `date_format_pdf` on read, falling back to the plugin default when the strip yields an empty result. Pure read-time normalization — the user's saved value is untouched, so the Settings → General preview keeps reflecting what they typed; only display code routes through the cleaned format. (2) **"Minhas Convocações" was rendering raw DB values**: `called_at` / `date_to_assume` / `time_to_assume` echoed in their stored MySQL shape (`"2026-05-02 13:43:52"` / `"2026-05-05"` / `"11:00:00"`) instead of going through `DateFormatter`. Score was rendering as `"100,0000"` instead of two decimals. Fixed: the three datetime cells go through `format_datetime` / `format_date` / `format_time`, and the score uses `number_format_i18n(…, 2)`.
 
 ## [6.5.14] (2026-05-15)
 

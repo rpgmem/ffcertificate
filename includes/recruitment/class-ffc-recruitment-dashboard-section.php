@@ -216,7 +216,7 @@ final class RecruitmentDashboardSection {
 			$html        .= '<tr>';
 			$html        .= '<td>' . esc_html( null === $adjutancy ? '—' : $adjutancy->name ) . '</td>';
 			$html        .= '<td>' . esc_html( (string) $cls->rank ) . '</td>';
-			$html        .= '<td>' . esc_html( (string) $cls->score ) . '</td>';
+			$html        .= '<td>' . esc_html( number_format_i18n( (float) $cls->score, 2 ) ) . '</td>';
 			$html        .= '<td>' . esc_html( self::status_label( (string) $cls->status ) ) . '</td>';
 			$html        .= '</tr>';
 			$rendered_any = true;
@@ -294,11 +294,15 @@ final class RecruitmentDashboardSection {
 			$adj_name  = null === $adjutancy ? '—' : (string) $adjutancy->name;
 			$situation = self::call_situation_label( $call, (string) $class->status );
 
+			$called_at      = $call->called_at ? \FreeFormCertificate\Core\DateFormatter::format_datetime( (string) $call->called_at ) : '';
+			$date_to_assume = $call->date_to_assume ? \FreeFormCertificate\Core\DateFormatter::format_date( (string) $call->date_to_assume ) : '';
+			$time_to_assume = $call->time_to_assume ? \FreeFormCertificate\Core\DateFormatter::format_time( (string) $call->time_to_assume ) : '';
+
 			$html .= '<tr>';
 			$html .= '<td>' . esc_html( $adj_name ) . '</td>';
-			$html .= '<td>' . esc_html( (string) $call->called_at ) . '</td>';
-			$html .= '<td>' . esc_html( (string) $call->date_to_assume ) . '</td>';
-			$html .= '<td>' . esc_html( (string) $call->time_to_assume ) . '</td>';
+			$html .= '<td>' . esc_html( $called_at ) . '</td>';
+			$html .= '<td>' . esc_html( $date_to_assume ) . '</td>';
+			$html .= '<td>' . esc_html( $time_to_assume ) . '</td>';
 			$html .= '<td>' . esc_html( $situation ) . '</td>';
 			$html .= '<td>' . esc_html( null === $call->notes ? '' : (string) $call->notes ) . '</td>';
 			$html .= '</tr>';

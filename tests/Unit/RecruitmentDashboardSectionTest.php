@@ -43,6 +43,16 @@ class RecruitmentDashboardSectionTest extends TestCase {
 		Functions\when( 'wp_cache_delete' )->justReturn( true );
 		Functions\when( 'is_user_logged_in' )->justReturn( true );
 		Functions\when( 'get_current_user_id' )->justReturn( 100 );
+		Functions\when( 'number_format_i18n' )->alias( function ( $number, $decimals = 0 ) {
+			return number_format( (float) $number, (int) $decimals );
+		} );
+		Functions\when( 'get_option' )->justReturn( array() );
+		Functions\when( 'wp_date' )->alias( function ( $format, $ts = null ) {
+			return gmdate( $format, $ts ?? time() );
+		} );
+		Functions\when( 'wp_timezone' )->alias( function () {
+			return new \DateTimeZone( 'UTC' );
+		} );
 
 		$this->wpdb->shouldReceive( 'prepare' )
 			->andReturnUsing( static fn ( $sql ) => $sql )
