@@ -98,7 +98,14 @@ final class CsvDownloadFormInfoBuilder {
 				'has_end_date'            => $has_end_date,
 				'before_start'            => $before_start,
 				'form_ended'              => $form_ended,
-				'can_download'            => $form_ended && ! $quota_exhausted,
+				// `can_download` powers the "Download CSV" button. Post-#241
+				// it ALSO gates on the new `_ffc_csv_public_download_enabled`
+				// sub-toggle (empty meta reads as '1' so pre-upgrade forms
+				// keep working). Admins can now disable the CSV download
+				// without affecting Start Early / Postpone Close.
+				'can_download'            => $form_ended
+					&& ! $quota_exhausted
+					&& '1' === self::download_enabled_meta( $form_id ),
 				'can_preview_cert'        => $before_start,
 				// `can_open_early` powers the "Start Form Now" button — it
 				// fires only when CSV public is on (the hash is the cred),
@@ -149,6 +156,20 @@ final class CsvDownloadFormInfoBuilder {
 	 */
 	private static function start_early_meta( int $form_id ): string {
 		$raw = (string) get_post_meta( $form_id, '_ffc_csv_public_start_early_enabled', true );
+		return '' === $raw ? '1' : $raw;
+	}
+
+	/**
+	 * Resolve the per-form CSV Download sub-toggle (post-#241). Empty
+	 * meta reads as '1' so pre-upgrade forms keep their CSV download
+	 * available; explicit '0' turns just the download off without
+	 * affecting Start Early / Postpone Close on the same hash.
+	 *
+	 * @param int $form_id Form post id.
+	 * @return string '1' (enabled) or '0' (disabled).
+	 */
+	private static function download_enabled_meta( int $form_id ): string {
+		$raw = (string) get_post_meta( $form_id, '_ffc_csv_public_download_enabled', true );
 		return '' === $raw ? '1' : $raw;
 	}
 

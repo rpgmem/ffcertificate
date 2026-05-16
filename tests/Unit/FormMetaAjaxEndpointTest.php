@@ -233,9 +233,14 @@ class FormMetaAjaxEndpointTest extends TestCase {
 		$this->assertArrayNotHasKey( 'csv_public_enabled', $allowlist );
 	}
 
-	public function test_allowlist_covers_12_toggles(): void {
+	public function test_allowlist_covers_13_toggles(): void {
 		$allowlist = FormMetaAjaxEndpoint::allowlist();
-		$this->assertSame( 12, count( $allowlist ) );
+		$this->assertSame( 13, count( $allowlist ) );
+		$this->assertArrayHasKey(
+			'csv_public_download_enabled',
+			$allowlist,
+			'CSV Download sub-toggle joined the allowlist in the post-#241 Section 7 polish.'
+		);
 
 		// Quick sanity-check that every entry has the required shape.
 		foreach ( $allowlist as $key => $entry ) {
