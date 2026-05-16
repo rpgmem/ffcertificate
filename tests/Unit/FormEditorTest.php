@@ -111,6 +111,16 @@ class FormEditorTest extends TestCase {
         Functions\when( 'wp_enqueue_script' )->alias( function () use ( &$enqueued ) {
             $enqueued[] = func_get_arg( 0 );
         } );
+        Functions\when( 'wp_localize_script' )->justReturn( true );
+        // FormEditor::enqueue_scripts() also localizes ffcFormMetaAutosave
+        // for the current form post (added in the post-#238 polish PR).
+        // Provide a stub `get_post` that returns a viable ffc_form so the
+        // localize branch fires (the assertion below is unaffected).
+        Functions\when( 'get_post' )->justReturn(
+            (object) array( 'ID' => 42, 'post_type' => 'ffc_form' )
+        );
+        Functions\when( 'admin_url' )->returnArg();
+        Functions\when( 'wp_create_nonce' )->justReturn( 'n' );
 
         $editor = new FormEditor();
         $editor->enqueue_scripts( 'post.php' );

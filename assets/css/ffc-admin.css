@@ -639,6 +639,32 @@
     display: none !important;
 }
 
+/* Per-form-meta autosave status chip — sits beside a toggle that auto-
+   saves on change. Styled lightly so it doesn't fight with the WP admin
+   typography; colors follow the convention used by `.ffc-autosave-badge`
+   in the settings tab. */
+.ffc-form-meta-autosave-status {
+    display: inline-block;
+    margin-left: 8px;
+    padding: 2px 8px;
+    border-radius: 10px;
+    font-size: 11px;
+    line-height: 1.6;
+    vertical-align: middle;
+}
+.ffc-form-meta-autosave-status.is-saving {
+    background: #f0f0f0;
+    color: #555;
+}
+.ffc-form-meta-autosave-status.is-saved {
+    background: #d4edda;
+    color: #155724;
+}
+.ffc-form-meta-autosave-status.is-error {
+    background: #f8d7da;
+    color: #721c24;
+}
+
 /* Inline share-link layout used by the Public Operator Access metabox.
    Pairs a readonly text input with a Copy-link button on the same row. */
 .ffc-csv-public-share {

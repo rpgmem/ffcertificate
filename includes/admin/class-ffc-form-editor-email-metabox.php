@@ -54,6 +54,7 @@ class FormEditorEmailMetabox {
 							'id'      => 'ffc_config_send_user_email',
 							'checked' => '1' === (string) $send_email,
 							'label'   => __( 'Send the email to the submitter after a successful submission.', 'ffcertificate' ),
+							'data'    => array( 'ffc-autosave-form-key' => 'send_user_email' ),
 						)
 					);
 					?>

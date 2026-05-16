@@ -407,6 +407,7 @@ class FormEditorPublicCsvDownloadMetabox {
 							'checked'  => '1' === $start_early_enabled,
 							'disabled' => $sub_disabled,
 							'label'    => __( 'Allow operators to start the form before the scheduled time.', 'ffcertificate' ),
+							'data'     => array( 'ffc-autosave-form-key' => 'csv_public_start_early_enabled' ),
 						)
 					);
 					?>
@@ -506,6 +507,7 @@ class FormEditorPublicCsvDownloadMetabox {
 							'checked'  => $extend_on,
 							'disabled' => $sub_disabled,
 							'label'    => __( 'Allow operators to postpone the close time once.', 'ffcertificate' ),
+							'data'     => array( 'ffc-autosave-form-key' => 'csv_public_extend_end_enabled' ),
 						)
 					);
 					?>

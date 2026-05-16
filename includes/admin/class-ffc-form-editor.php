@@ -95,6 +95,31 @@ class FormEditor {
 				'alert_message' => __( 'At least one geolocation method (GPS or IP) must be enabled when geolocation is active.', 'ffcertificate' ),
 			)
 		);
+
+		// Localize per-form-meta autosave wiring (nonce + post id) so the
+		// admin script can talk to FormMetaAjaxEndpoint on toggle change.
+		// `ffc-admin-js` is registered globally and already enqueued on
+		// this screen by AdminAssets; we attach the localized object to
+		// its handle so the inline `data-ffc-autosave-form-key` listeners
+		// read it on document-ready.
+		$post = get_post();
+		if ( $post && 'ffc_form' === $post->post_type && $post->ID > 0 ) {
+			wp_localize_script(
+				'ffc-admin-js',
+				'ffcFormMetaAutosave',
+				array(
+					'ajaxUrl' => admin_url( 'admin-ajax.php' ),
+					'action'  => \FreeFormCertificate\Admin\FormMetaAjaxEndpoint::AJAX_ACTION,
+					'nonce'   => wp_create_nonce( \FreeFormCertificate\Admin\FormMetaAjaxEndpoint::AJAX_ACTION ),
+					'postId'  => $post->ID,
+					'strings' => array(
+						'saving' => __( 'Saving…', 'ffcertificate' ),
+						'saved'  => __( 'Saved', 'ffcertificate' ),
+						'error'  => __( 'Save failed', 'ffcertificate' ),
+					),
+				)
+			);
+		}
 	}
 
 	/**

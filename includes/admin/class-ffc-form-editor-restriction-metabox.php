@@ -72,6 +72,7 @@ class FormEditorRestrictionMetabox {
 									'id'      => $ffc_id,
 									'checked' => (bool) $ffc_active,
 									'label'   => $ffc_title,
+									'data'    => array( 'ffc-autosave-form-key' => 'restriction_' . $ffc_key ),
 								)
 							);
 							?>

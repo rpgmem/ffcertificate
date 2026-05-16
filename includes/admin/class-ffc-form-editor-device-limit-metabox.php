@@ -96,6 +96,7 @@ class FormEditorDeviceLimitMetabox {
 							'checked'  => '1' === (string) $enabled,
 							'disabled' => ! $global_active,
 							'label'    => __( 'Apply the device-fingerprint limit to this form.', 'ffcertificate' ),
+							'data'     => array( 'ffc-autosave-form-key' => 'device_limit_enabled' ),
 						)
 					);
 					?>

@@ -225,6 +225,7 @@ class Loader {
 			\FreeFormCertificate\Admin\AdminMenuVisibility::init();
 			\FreeFormCertificate\Admin\DeviceThresholdUpgradeNotice::init();
 			\FreeFormCertificate\Admin\SettingsAjaxEndpoint::init();
+			\FreeFormCertificate\Admin\FormMetaAjaxEndpoint::init();
 			\FreeFormCertificate\Admin\LocationsAjaxEndpoint::init();
 			\FreeFormCertificate\Admin\CacheActionsAjaxEndpoint::init();
 			\FreeFormCertificate\Admin\FormFeaturesAjaxEndpoint::init();
