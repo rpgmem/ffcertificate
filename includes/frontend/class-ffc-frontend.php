@@ -406,6 +406,20 @@ class Frontend {
 						/* translators: %s is the current close time in HH:MM */
 						'postponeBeforeCurrent' => __( 'Time must be later than the current close (%s).', 'ffcertificate' ),
 						'postponeBeforeNow'     => __( 'Time must be in the future.', 'ffcertificate' ),
+
+						// CPF / RF input validation messages. These ALSO
+						// live in `ffc_ajax.strings` for pages that load
+						// `ffc-frontend-js`; ffc-frontend-helpers.js reads
+						// from whichever object is present. Duplication is
+						// intentional pre-tech-debt cleanup (#243 Sprint 4):
+						// the proper fix is to extract these into a shared
+						// `ffc_common_strings` object localized on every
+						// page that loads ffc-frontend-helpers.js, so each
+						// shortcode-specific localize doesn't have to copy
+						// the validation strings. Tracking issue: TBD.
+						'cpfInvalid'            => __( 'Invalid CPF', 'ffcertificate' ),
+						'enterValidCpfRf'       => __( 'Enter a valid CPF (11 digits) or RF (7 digits)', 'ffcertificate' ),
+						'idMustHaveDigits'      => __( 'The ID must have exactly 7 digits (RF) or 11 digits (CPF).', 'ffcertificate' ),
 					),
 				)
 			);
