@@ -157,6 +157,13 @@ final class CsvDownloadFormInfoBuilder {
 					&& self::is_today_end_date( $geofence_config )
 					&& '' === (string) get_post_meta( $form_id, \FreeFormCertificate\Frontend\ExtendEndAction::META_POSTPONED_AT, true ),
 				'current_time_end'        => isset( $geofence_config['time_end'] ) ? (string) $geofence_config['time_end'] : '',
+				// Date-only formatted string for the postpone-close modal
+				// (which composes "<date> <current_time_end>" so the time
+				// stays in 24h regardless of the site's time_format setting).
+				// Empty when no end_ts. Issue #243 Sprint 3.
+				'current_date_end_formatted' => null !== $end_ts
+					? wp_date( get_option( 'date_format' ), $end_ts, $tz )
+					: '',
 				'download_blocked_reason' => $download_reason,
 				'start_date_formatted'    => null !== $start_ts
 					? wp_date( get_option( 'date_format' ) . ' ' . get_option( 'time_format' ), $start_ts, $tz )

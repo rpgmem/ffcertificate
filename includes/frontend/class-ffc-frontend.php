@@ -401,6 +401,11 @@ class Frontend {
 						'postponing'            => __( 'Postponing…', 'ffcertificate' ),
 						'postponeSuccess'       => __( 'Close time postponed.', 'ffcertificate' ),
 						'postponeInvalid'       => __( 'Please pick a valid time later than the current close (HH:MM).', 'ffcertificate' ),
+						// Specific client-side validation messages (#243 Sprint 3).
+						'postponeInvalidFormat' => __( 'Please enter a valid time (HH:MM).', 'ffcertificate' ),
+						/* translators: %s is the current close time in HH:MM */
+						'postponeBeforeCurrent' => __( 'Time must be later than the current close (%s).', 'ffcertificate' ),
+						'postponeBeforeNow'     => __( 'Time must be in the future.', 'ffcertificate' ),
 					),
 				)
 			);
