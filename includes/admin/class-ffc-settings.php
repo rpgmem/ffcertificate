@@ -156,9 +156,15 @@ class Settings {
 			'date_format_custom'       => '',
 			// New in #244 — time-of-day formatting + per-context PDF
 			// overrides. Empty `_pdf` values inherit the base format.
+			// `*_custom` companions hold the user-typed format when
+			// `date_format_pdf` / `time_format_pdf` equals 'custom'
+			// (#248, same idiom as date_format / date_format_custom).
 			'time_format'              => 'H:i',
+			'time_format_custom'       => '',
 			'date_format_pdf'          => '',
+			'date_format_pdf_custom'   => '',
 			'time_format_pdf'          => '',
+			'time_format_pdf_custom'   => '',
 			'cache_enabled'            => 1,      // Default: ON.
 			'cache_expiration'         => 3600,   // 1 hour
 			'cache_auto_warm'          => 0,      // Default: OFF.

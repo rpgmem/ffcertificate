@@ -180,9 +180,14 @@ class SettingsAjaxEndpoint {
 			'date_format'                 => array( 'string', array() ),
 			'date_format_custom'          => array( 'string', array() ),
 			// #244 — time format + per-context PDF overrides.
+			// `*_pdf_custom` companions (#248) carry the user-typed
+			// format when `*_format_pdf === 'custom'`.
 			'time_format'                 => array( 'string', array() ),
+			'time_format_custom'          => array( 'string', array() ),
 			'date_format_pdf'             => array( 'string', array() ),
+			'date_format_pdf_custom'      => array( 'string', array() ),
 			'time_format_pdf'             => array( 'string', array() ),
+			'time_format_pdf_custom'      => array( 'string', array() ),
 			'main_address'                => array( 'string', array() ),
 			'csv_download_page_url'       => array( 'string', array( 'as' => 'url' ) ),
 			'qr_default_size'             => array(

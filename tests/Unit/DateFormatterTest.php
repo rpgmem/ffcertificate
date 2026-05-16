@@ -242,4 +242,84 @@ class DateFormatterTest extends TestCase {
 		$this->ffc_settings = array( 'date_format' => 'H:i:s' );
 		$this->assertSame( DateFormatter::DEFAULT_DATE_FORMAT, DateFormatter::resolve_date_format() );
 	}
+
+	// ──────────────────────────────────────────────────────────────
+	// `strip_time_chars()` public surface — used by the Settings view
+	// to smart-match legacy combined formats against the new date-only
+	// dropdown (#248). The variant returns '' when stripping clears
+	// everything; the runtime resolver applies the default fallback.
+	// ──────────────────────────────────────────────────────────────.
+
+	public function test_strip_time_chars_returns_empty_for_time_only_input(): void {
+		$this->assertSame( '', DateFormatter::strip_time_chars( 'H:i:s' ) );
+	}
+
+	public function test_strip_time_chars_preserves_date_portion(): void {
+		$this->assertSame( 'd/m/Y', DateFormatter::strip_time_chars( 'd/m/Y H:i' ) );
+		$this->assertSame( 'Y-m-d', DateFormatter::strip_time_chars( 'Y-m-d H:i:s' ) );
+	}
+
+	public function test_strip_time_chars_honours_backslash_escapes(): void {
+		// `\H` is an escaped literal H — must NOT be stripped.
+		$this->assertSame( 'd \H \m Y', DateFormatter::strip_time_chars( 'd \H \m Y' ) );
+	}
+
+	// ──────────────────────────────────────────────────────────────
+	// PDF override `'custom'` sentinel (#248): when `date_format_pdf`
+	// is the literal 'custom', the resolver reads from
+	// `date_format_pdf_custom` (same idiom as date_format).
+	// ──────────────────────────────────────────────────────────────.
+
+	public function test_pdf_date_format_custom_sentinel_reads_companion_value(): void {
+		$this->ffc_settings = array(
+			'date_format'            => 'd/m/Y',
+			'date_format_pdf'        => 'custom',
+			'date_format_pdf_custom' => 'd \d\e F \d\e Y',
+		);
+		$this->assertSame( 'd \d\e F \d\e Y', DateFormatter::resolve_date_format( 'pdf' ) );
+	}
+
+	public function test_pdf_date_format_custom_sentinel_with_empty_companion_falls_back_to_base(): void {
+		$this->ffc_settings = array(
+			'date_format'            => 'F j, Y',
+			'date_format_pdf'        => 'custom',
+			'date_format_pdf_custom' => '',
+		);
+		// Empty custom companion → fall through to date_format base.
+		$this->assertSame( 'F j, Y', DateFormatter::resolve_date_format( 'pdf' ) );
+	}
+
+	public function test_pdf_time_format_custom_sentinel_reads_companion_value(): void {
+		$this->ffc_settings = array(
+			'time_format'            => 'H:i',
+			'time_format_pdf'        => 'custom',
+			'time_format_pdf_custom' => 'g:i a',
+		);
+		$this->assertSame( 'g:i a', DateFormatter::resolve_time_format( 'pdf' ) );
+	}
+
+	public function test_pdf_time_format_custom_sentinel_with_empty_companion_falls_back_to_base(): void {
+		$this->ffc_settings = array(
+			'time_format'            => 'H:i:s',
+			'time_format_pdf'        => 'custom',
+			'time_format_pdf_custom' => '',
+		);
+		$this->assertSame( 'H:i:s', DateFormatter::resolve_time_format( 'pdf' ) );
+	}
+
+	public function test_base_time_format_custom_sentinel_reads_companion_value(): void {
+		$this->ffc_settings = array(
+			'time_format'        => 'custom',
+			'time_format_custom' => 'g:i a',
+		);
+		$this->assertSame( 'g:i a', DateFormatter::resolve_time_format() );
+	}
+
+	public function test_base_time_format_custom_sentinel_with_empty_companion_falls_back_to_default(): void {
+		$this->ffc_settings = array(
+			'time_format'        => 'custom',
+			'time_format_custom' => '',
+		);
+		$this->assertSame( DateFormatter::DEFAULT_TIME_FORMAT, DateFormatter::resolve_time_format() );
+	}
 }

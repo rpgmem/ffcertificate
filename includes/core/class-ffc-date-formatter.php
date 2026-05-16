@@ -15,11 +15,19 @@
  *                            back to the plugin default ('d/m/Y' since
  *                            #244; was 'F j, Y' pre-#244 — installs
  *                            that explicitly saved 'F j, Y' keep it).
- *   - 'time_format'        — required, default 'H:i'.
+ *   - 'time_format'        — required, default 'H:i'. 'custom' delegates
+ *                            to 'time_format_custom' (#248).
+ *   - 'time_format_custom' — only consulted when time_format === 'custom'.
  *   - 'date_format_custom' — only consulted when date_format === 'custom'.
  *   - 'date_format_pdf'    — optional override applied when callers pass
  *                            $context = 'pdf'. Empty inherits date_format.
- *   - 'time_format_pdf'    — same idea for time.
+ *                            When the value is the 'custom' sentinel,
+ *                            `date_format_pdf_custom` is consulted instead
+ *                            (#248, same idiom as date_format).
+ *   - 'date_format_pdf_custom' — only consulted when date_format_pdf === 'custom'.
+ *   - 'time_format_pdf'    — same idea for time. 'custom' delegates to
+ *                            'time_format_pdf_custom'.
+ *   - 'time_format_pdf_custom' — only consulted when time_format_pdf === 'custom'.
  *
  * The plugin previously had no helper — every call site reached for
  * `get_option('date_format')` (WP-wide) or hardcoded a format string,
@@ -148,15 +156,18 @@ final class DateFormatter {
 		}
 		if ( 'pdf' === $context ) {
 			$pdf = self::pick( $settings, 'date_format_pdf', '' );
+			if ( 'custom' === $pdf ) {
+				$pdf = self::pick( $settings, 'date_format_pdf_custom', '' );
+			}
 			if ( '' !== $pdf ) {
-				return self::strip_time_chars( $pdf );
+				return self::date_only( $pdf );
 			}
 		}
 		// Pre-#244 installs may have stored a combined value like "d/m/Y H:i"
 		// in date_format (the setting was effectively decorative back then).
 		// `format_datetime()` would otherwise append `time_format` again and
 		// duplicate the time — strip on read.
-		return self::strip_time_chars( $base );
+		return self::date_only( $base );
 	}
 
 	/**
@@ -168,8 +179,15 @@ final class DateFormatter {
 	public static function resolve_time_format( string $context = 'default' ): string {
 		$settings = self::settings();
 		$base     = self::pick( $settings, 'time_format', self::DEFAULT_TIME_FORMAT );
+		if ( 'custom' === $base ) {
+			$custom = self::pick( $settings, 'time_format_custom', '' );
+			$base   = '' !== $custom ? $custom : self::DEFAULT_TIME_FORMAT;
+		}
 		if ( 'pdf' === $context ) {
 			$pdf = self::pick( $settings, 'time_format_pdf', '' );
+			if ( 'custom' === $pdf ) {
+				$pdf = self::pick( $settings, 'time_format_pdf_custom', '' );
+			}
 			if ( '' !== $pdf ) {
 				return $pdf;
 			}
@@ -267,17 +285,18 @@ final class DateFormatter {
 	 * `date()` format string so a combined value like "d/m/Y H:i" reduces
 	 * to its date portion ("d/m/Y"). Honours backslash escapes — escaped
 	 * literals like `\H` keep their `H` rather than being treated as the
-	 * hour char.
+	 * hour char. Adjacent whitespace and trailing punctuation that
+	 * becomes orphaned after the strip is cleaned up so the result is
+	 * presentable on its own.
 	 *
-	 * Adjacent whitespace and trailing punctuation that becomes orphaned
-	 * after the strip is cleaned up (e.g. "d/m/Y, H:i" → "d/m/Y") so the
-	 * result is presentable on its own.
+	 * Returns the empty string when stripping leaves nothing — callers
+	 * decide whether to fall back to a default. See {@see date_only()}
+	 * for the variant that applies the plugin default.
 	 *
 	 * @param string $format Format string straight from settings.
-	 * @return string Date-only format, falls back to the plugin default
-	 *                when stripping yields an empty result.
+	 * @return string Stripped format, possibly empty.
 	 */
-	private static function strip_time_chars( string $format ): string {
+	public static function strip_time_chars( string $format ): string {
 		$out = '';
 		$len = strlen( $format );
 		for ( $i = 0; $i < $len; $i++ ) {
@@ -294,7 +313,21 @@ final class DateFormatter {
 		}
 		$collapsed = preg_replace( '/\s+/u', ' ', $out );
 		$out       = null === $collapsed ? $out : $collapsed;
-		$out       = trim( $out, " \t\n\r\0\x0B,:;-" );
-		return '' === $out ? self::DEFAULT_DATE_FORMAT : $out;
+		return trim( $out, " \t\n\r\0\x0B,:;-" );
+	}
+
+	/**
+	 * `strip_time_chars()` with the plugin default applied as fallback.
+	 * Used by the runtime resolver so format pipelines never see an empty
+	 * format. View code that wants to distinguish "valid stripped value"
+	 * from "fell back to default" should call {@see strip_time_chars()}
+	 * directly instead.
+	 *
+	 * @param string $format Format string straight from settings.
+	 * @return string Date-only format, never empty.
+	 */
+	private static function date_only( string $format ): string {
+		$stripped = self::strip_time_chars( $format );
+		return '' === $stripped ? self::DEFAULT_DATE_FORMAT : $stripped;
 	}
 }
