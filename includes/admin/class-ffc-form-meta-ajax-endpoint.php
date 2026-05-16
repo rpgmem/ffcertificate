@@ -69,11 +69,15 @@ class FormMetaAjaxEndpoint {
 	 */
 	public static function allowlist(): array {
 		return array(
-			// Public Operator Access — operator action sub-toggles.
+			// Public Operator Access — 3 operator-feature sub-toggles.
 			// The master `_ffc_csv_public_enabled` is excluded: enabling
 			// it for the first time generates a hash and bumps cpf_mode
 			// from 'none' to 'audit'; those side effects stay in the
 			// full save handler so the page reload always picks them up.
+			'csv_public_download_enabled'      => array(
+				'meta' => '_ffc_csv_public_download_enabled',
+				'path' => array(),
+			),
 			'csv_public_start_early_enabled'   => array(
 				'meta' => '_ffc_csv_public_start_early_enabled',
 				'path' => array(),

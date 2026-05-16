@@ -26,11 +26,18 @@ if ( ! defined( 'ABSPATH' ) ) {
 class FormEditorPublicCsvDownloadMetabox {
 
 	/**
-	 * Section 7: Public CSV Download (shortcode-powered frontend export).
+	 * Section 7: Public Operator Access (formerly Public CSV Download).
 	 *
-	 * Lets the admin enable a public download link guarded by a revocable
-	 * hash + usage quota. The actual download endpoint is handled by
-	 * {@see \FreeFormCertificate\Frontend\PublicCsvDownload}.
+	 * Lets the admin enable a public hash-gated surface that gates 3
+	 * sibling sub-features:
+	 *   - CSV Download (`_ffc_csv_public_download_enabled`, default '1')
+	 *   - Start Form Early (`_ffc_csv_public_start_early_enabled`, default '0')
+	 *   - Postpone Close (`_ffc_csv_public_extend_end_enabled`, default '0')
+	 *
+	 * Layout mirrors Section 3 (Restriction & Security): the 3 sub-toggles
+	 * appear at the top of the master's collapsed wrapper, each followed
+	 * by its own conditional sub-options block (collapsed-target keyed
+	 * to the respective sub-toggle).
 	 *
 	 * @since 5.1.0
 	 * @param WP_Post $post The post object.
@@ -40,6 +47,20 @@ class FormEditorPublicCsvDownloadMetabox {
 		$hash    = (string) get_post_meta( $post->ID, '_ffc_csv_public_hash', true );
 		$limit   = (int) get_post_meta( $post->ID, '_ffc_csv_public_limit', true );
 		$count   = (int) get_post_meta( $post->ID, '_ffc_csv_public_count', true );
+
+		// 3 operator-feature toggles. Defaults reflect the user's stated
+		// "enable master → Download ON, Start Early OFF, Postpone Close OFF"
+		// rule (#241 follow-up). Existing forms that explicitly saved a
+		// value keep that value; only forms that NEVER saved any of these
+		// metas pick up the new defaults.
+		$download_raw     = (string) get_post_meta( $post->ID, '_ffc_csv_public_download_enabled', true );
+		$download_enabled = '' === $download_raw ? '1' : $download_raw;
+
+		$start_early_raw     = (string) get_post_meta( $post->ID, '_ffc_csv_public_start_early_enabled', true );
+		$start_early_enabled = $start_early_raw;
+
+		$extend_end_raw     = (string) get_post_meta( $post->ID, '_ffc_csv_public_extend_end_enabled', true );
+		$extend_end_enabled = $extend_end_raw;
 
 		if ( $limit <= 0 ) {
 			$settings      = get_option( 'ffc_settings', array() );
@@ -55,13 +76,7 @@ class FormEditorPublicCsvDownloadMetabox {
 			? (string) $geofence_config['date_end']
 			: '';
 
-		// Sub-fields are disabled (read-only-ish) when the master toggle is off.
-		// JS mirrors this on change so the UI updates without saving. The save
-		// handler also short-circuits when enabled=0 to preserve persisted
-		// values that the disabled inputs would not have submitted.
 		$sub_disabled = ( '1' !== $enabled );
-
-		// Nonce is emitted by render_box_layout(), which always renders before this metabox.
 		?>
 		<p class="description">
 			<?php esc_html_e( 'Lets a trusted operator without a WordPress login interact with this form via the [ffc_csv_download] shortcode. Three sub-features ride on the same hash credential: downloading the submissions CSV, opening the form ahead of its scheduled start (Start Form Early), and pushing the close time later (Postpone Close). Formerly named "Public CSV Download".', 'ffcertificate' ); ?>
@@ -82,7 +97,7 @@ class FormEditorPublicCsvDownloadMetabox {
 							'name'    => 'ffc_csv_public[enabled]',
 							'id'      => 'ffc_csv_public_enabled',
 							'checked' => '1' === (string) $enabled,
-							'label'   => __( 'Allow operators with the hash to download the CSV and trigger Start Form Early / Postpone Close.', 'ffcertificate' ),
+							'label'   => __( 'Allow operators with the hash to use this form\'s public surface.', 'ffcertificate' ),
 						)
 					);
 					?>
@@ -97,13 +112,83 @@ class FormEditorPublicCsvDownloadMetabox {
 			</tr>
 		</table>
 
-		<h3 class="ffc-section-subtitle"><?php esc_html_e( 'CSV Download', 'ffcertificate' ); ?></h3>
-		<p class="description">
-			<?php esc_html_e( 'Configure the public CSV download that an operator can fetch once the form has ended.', 'ffcertificate' ); ?>
-		</p>
 		<div class="ffc-collapsed-target<?php echo $sub_disabled ? ' ffc-collapsed' : ''; ?>"
 			data-ffc-master="ffc_csv_public_enabled"
 			aria-hidden="<?php echo $sub_disabled ? 'true' : 'false'; ?>">
+
+		<table class="form-table ffc-csv-public-table">
+			<tr>
+				<th scope="row">
+					<?php esc_html_e( 'Operator features', 'ffcertificate' ); ?>
+				</th>
+				<td>
+					<p class="description ffc-mb-15">
+						<?php esc_html_e( 'Pick which operator actions this form exposes (can combine multiple):', 'ffcertificate' ); ?>
+					</p>
+
+					<div class="ffc-restriction-label">
+						<?php
+						\FreeFormCertificate\Admin\AdminUI::render_toggle(
+							array(
+								'name'    => 'ffc_csv_public[download_enabled]',
+								'id'      => 'ffc_csv_public_download_enabled',
+								'checked' => '1' === $download_enabled,
+								'label'   => __( 'CSV Download', 'ffcertificate' ),
+								'data'    => array( 'ffc-autosave-form-key' => 'csv_public_download_enabled' ),
+							)
+						);
+						?>
+						<span class="description"> — <?php esc_html_e( 'Allow the operator to download the submissions CSV after the form ends.', 'ffcertificate' ); ?></span>
+					</div>
+
+					<div class="ffc-restriction-label">
+						<?php
+						\FreeFormCertificate\Admin\AdminUI::render_toggle(
+							array(
+								'name'    => 'ffc_csv_public[start_early_enabled]',
+								'id'      => 'ffc_csv_public_start_early_enabled',
+								'checked' => '1' === $start_early_enabled,
+								'label'   => __( 'Start Form Early', 'ffcertificate' ),
+								'data'    => array( 'ffc-autosave-form-key' => 'csv_public_start_early_enabled' ),
+							)
+						);
+						?>
+						<span class="description"> — <?php esc_html_e( 'Allow the operator to open the form ahead of its scheduled start.', 'ffcertificate' ); ?></span>
+					</div>
+
+					<div class="ffc-restriction-label">
+						<?php
+						\FreeFormCertificate\Admin\AdminUI::render_toggle(
+							array(
+								'name'    => 'ffc_csv_public[extend_end_enabled]',
+								'id'      => 'ffc_csv_public_extend_end_enabled',
+								'checked' => '1' === $extend_end_enabled,
+								'label'   => __( 'Postpone Close', 'ffcertificate' ),
+								'data'    => array( 'ffc-autosave-form-key' => 'csv_public_extend_end_enabled' ),
+							)
+						);
+						?>
+						<span class="description"> — <?php esc_html_e( 'Allow the operator to push the close time later (one-shot per form).', 'ffcertificate' ); ?></span>
+					</div>
+
+					<p class="description ffc-mt-15">
+						<em><?php esc_html_e( 'Note: if none of the three is selected, the public page renders the access screen but exposes no actions.', 'ffcertificate' ); ?></em>
+					</p>
+				</td>
+			</tr>
+		</table>
+
+		<?php
+		// ───── CSV Download sub-options ─────────────────────────────.
+		// Wrapped in its own collapsed-target keyed to the new
+		// `_ffc_csv_public_download_enabled` toggle so admins can keep
+		// the master on (Start Early / Postpone Close still work) while
+		// turning the CSV download off for read-only deployments.
+		$csv_download_collapsed = ( '1' !== $download_enabled );
+		?>
+		<div class="ffc-collapsed-target<?php echo $csv_download_collapsed ? ' ffc-collapsed' : ''; ?>"
+			data-ffc-master="ffc_csv_public_download_enabled"
+			aria-hidden="<?php echo $csv_download_collapsed ? 'true' : 'false'; ?>">
 		<table class="form-table ffc-csv-public-table">
 
 			<tr class="ffc-csv-public-sub">
@@ -139,10 +224,6 @@ class FormEditorPublicCsvDownloadMetabox {
 				</th>
 				<td>
 					<?php
-					// The standalone "Access Hash" input was removed (post-#238) —
-					// the operator never needs the bare hash; the share-ready
-					// link below already embeds it, and a one-click Copy button
-					// avoids the manual concatenation step.
 					if ( '' === $hash ) :
 						?>
 						<p class="description">
@@ -219,11 +300,6 @@ class FormEditorPublicCsvDownloadMetabox {
 			</tr>
 
 			<?php
-			// Whitelist row is always rendered, then hidden via JS unless
-			// the select equals 'whitelist'. Pre-#238 we only rendered this
-			// row server-side when the persisted mode was 'whitelist',
-			// requiring the admin to save the form first to even see it
-			// (Sprint 3 / #238).
 			$cpf_whitelist_collapsed = ( 'whitelist' !== $cpf_mode );
 			?>
 			<tr class="ffc-csv-public-sub ffc-collapsed-target<?php echo $cpf_whitelist_collapsed ? ' ffc-collapsed' : ''; ?>"
@@ -311,57 +387,53 @@ class FormEditorPublicCsvDownloadMetabox {
 				</td>
 			</tr>
 		</table>
+		</div><!-- /.ffc-collapsed-target (CSV Download sub-options) -->
 
 		<?php
-		// ──────────────────────────────────────────────────────────────.
-		// Start Form Early URL — same hash, different action surface.
-		// ──────────────────────────────────────────────────────────────.
-		$this->render_start_form_early_block( $post, $enabled, $hash );
+		// ───── Start Form Early status ─────────────────────────────.
+		$this->render_start_form_early_status( $post, $enabled, $hash, $start_early_enabled );
 
-		// ──────────────────────────────────────────────────────────────.
-		// Postergar fim — sibling action, same hash, same modal pattern.
-		// ──────────────────────────────────────────────────────────────.
-		$this->render_extend_end_block( $post, $enabled, $hash );
+		// ───── Postpone Close status ───────────────────────────────.
+		$this->render_extend_end_status( $post, $enabled, $hash, $extend_end_enabled );
 		?>
-		</div><!-- /.ffc-collapsed-target — wraps ALL operator sub-features
-			(CSV Download + Start Form Early + Postpone Close) so they
-			collapse together when Public Operator Access is off. -->
+
+		</div><!-- /.ffc-collapsed-target — wraps the Operator features list +
+			all three sub-feature blocks (CSV Download / Start Form Early /
+			Postpone Close), so they collapse together when Public Operator
+			Access is off. -->
 		<?php
 	}
 
 	/**
-	 * Render the "Start Form Early" status sub-block of the Public
-	 * Operator Access metabox.
+	 * Render the "Start Form Early" status sub-block.
 	 *
-	 * Pure status: there is no separate URL for early-open — the
-	 * "Start Form Now" button appears on the existing public CSV
-	 * download page (the URL surfaced above) whenever the form is
-	 * eligible. This block mirrors EarlyOpenAction::is_eligible() so
-	 * admins can see why the button is / isn't visible to operators.
+	 * Wraps a single Status row in a `.ffc-collapsed-target` keyed to
+	 * the Start Form Early toggle (in the Operator features list above)
+	 * so the row reveals only when the feature is on.
+	 *
+	 * The toggle itself is rendered in the operator-features list at
+	 * the top of this metabox — this method only emits the status pill
+	 * that mirrors `EarlyOpenAction::is_eligible()` so admins can see
+	 * why the public button is / isn't visible to operators.
 	 *
 	 * @since 6.5.6
-	 * @param WP_Post $post    The form post.
-	 * @param string  $enabled CSV-public toggle ('1' or '').
-	 * @param string  $hash    The form's CSV-public hash, if any.
+	 * @param WP_Post $post                  The form post.
+	 * @param string  $enabled               CSV-public master toggle ('1' or '').
+	 * @param string  $hash                  The form's CSV-public hash.
+	 * @param string  $start_early_enabled   The start-early sub-toggle ('1' or '0').
 	 */
-	private function render_start_form_early_block( WP_Post $post, string $enabled, string $hash ): void {
+	private function render_start_form_early_status( WP_Post $post, string $enabled, string $hash, string $start_early_enabled ): void {
 		$start_ts   = \FreeFormCertificate\Security\Geofence::get_form_start_timestamp( $post->ID );
 		$end_ts     = \FreeFormCertificate\Security\Geofence::get_form_end_timestamp( $post->ID );
 		$now        = time();
 		$enabled_ok = '1' === $enabled && '' !== $hash;
-		// Per-form opt-out for the early-open action. Defaults to '1'
-		// (enabled) on existing forms so the feature doesn't regress for
-		// installs already using it via the CSV-public toggle.
-		$start_early_raw     = get_post_meta( $post->ID, '_ffc_csv_public_start_early_enabled', true );
-		$start_early_enabled = '' === (string) $start_early_raw ? '1' : (string) $start_early_raw;
-		$sub_disabled        = ! $enabled_ok;
 
 		// Status string mirrors the eligibility branches in EarlyOpenAction.
 		if ( ! $enabled_ok ) {
 			$status_label = __( 'Enable Public Operator Access above to expose the early-start button to operators.', 'ffcertificate' );
 			$status_kind  = 'warning';
 		} elseif ( '1' !== $start_early_enabled ) {
-			$status_label = __( 'Early-start is disabled for this form — toggle it on to expose the button.', 'ffcertificate' );
+			$status_label = __( 'Early-start is disabled for this form — toggle it on in the Operator features list above.', 'ffcertificate' );
 			$status_kind  = 'info';
 		} elseif ( null === $start_ts ) {
 			$status_label = __( 'Set a start date in the Geolocation & Date/Time metabox to enable this action.', 'ffcertificate' );
@@ -373,10 +445,6 @@ class FormEditorPublicCsvDownloadMetabox {
 			$status_label = __( 'This form has already started — early-start no longer applies.', 'ffcertificate' );
 			$status_kind  = 'info';
 		} else {
-			// Same-day guard mirrors EarlyOpenAction::is_eligible() —
-			// the early-open surface only exists when the configured
-			// start date is "today" in the site timezone (the action
-			// only rewrites time_start, never date_start).
 			$geofence_config = get_post_meta( $post->ID, '_ffc_geofence_config', true );
 			$date_start      = is_array( $geofence_config ) ? (string) ( $geofence_config['date_start'] ?? '' ) : '';
 			$today           = current_time( 'Y-m-d' );
@@ -388,36 +456,15 @@ class FormEditorPublicCsvDownloadMetabox {
 				$status_kind  = 'success';
 			}
 		}
+
+		$collapsed = ( '1' !== $start_early_enabled );
 		?>
-		<h3 class="ffc-section-subtitle"><?php esc_html_e( 'Start Form Early', 'ffcertificate' ); ?></h3>
-		<p class="description">
-			<?php esc_html_e( 'When eligible, the "Start Form Now" button appears on the public download page above and lets a trusted operator flip the form\'s start time to "now" — no separate URL is generated. Regenerating the hash above invalidates this action along with the CSV download.', 'ffcertificate' ); ?>
-		</p>
+		<div class="ffc-collapsed-target<?php echo $collapsed ? ' ffc-collapsed' : ''; ?>"
+			data-ffc-master="ffc_csv_public_start_early_enabled"
+			aria-hidden="<?php echo $collapsed ? 'true' : 'false'; ?>">
 		<table class="form-table ffc-csv-public-table">
 			<tr>
-				<th scope="row">
-					<label for="ffc_csv_public_start_early_enabled"><?php esc_html_e( 'Start Form Early', 'ffcertificate' ); ?></label>
-				</th>
-				<td>
-					<?php
-					\FreeFormCertificate\Admin\AdminUI::render_toggle(
-						array(
-							'name'     => 'ffc_csv_public[start_early_enabled]',
-							'id'       => 'ffc_csv_public_start_early_enabled',
-							'checked'  => '1' === $start_early_enabled,
-							'disabled' => $sub_disabled,
-							'label'    => __( 'Allow operators to start the form before the scheduled time.', 'ffcertificate' ),
-							'data'     => array( 'ffc-autosave-form-key' => 'csv_public_start_early_enabled' ),
-						)
-					);
-					?>
-					<p class="description">
-						<?php esc_html_e( 'Independent of the master toggle: you can keep Public Operator Access on (CSV download remains available) while disabling the early-start action — handy for forms where the public page is read-only.', 'ffcertificate' ); ?>
-					</p>
-				</td>
-			</tr>
-			<tr>
-				<th scope="row"><?php esc_html_e( 'Status', 'ffcertificate' ); ?></th>
+				<th scope="row"><?php esc_html_e( 'Start Form Early — status', 'ffcertificate' ); ?></th>
 				<td>
 					<span class="ffc-status-pill ffc-status-pill--<?php echo esc_attr( $status_kind ); ?>">
 						<?php echo esc_html( $status_label ); ?>
@@ -425,40 +472,38 @@ class FormEditorPublicCsvDownloadMetabox {
 				</td>
 			</tr>
 		</table>
+		</div>
 		<?php
 	}
 
 	/**
-	 * Render the "Postergar fim" status sub-block of the Public Operator
-	 * Access metabox.
+	 * Render the "Postpone Close" status sub-block.
 	 *
-	 * Sibling of {@see render_start_form_early_block()} for the close
-	 * boundary. The operator can postpone `time_end` once per form,
-	 * within the same day as the configured `date_end`. Defaults to
-	 * opt-IN (conservative): admin must explicitly toggle on.
+	 * Sibling of {@see render_start_form_early_status()} for the close
+	 * boundary. The toggle itself lives in the Operator features list;
+	 * this method only emits the status pill.
 	 *
 	 * @since 6.5.12
-	 * @param WP_Post $post    The form post.
-	 * @param string  $enabled CSV-public toggle ('1' or '').
-	 * @param string  $hash    The form's CSV-public hash, if any.
+	 * @param WP_Post $post                  The form post.
+	 * @param string  $enabled               CSV-public master toggle ('1' or '').
+	 * @param string  $hash                  The form's CSV-public hash.
+	 * @param string  $extend_end_enabled    The postpone-close sub-toggle ('1' or '0').
 	 */
-	private function render_extend_end_block( WP_Post $post, string $enabled, string $hash ): void {
+	private function render_extend_end_status( WP_Post $post, string $enabled, string $hash, string $extend_end_enabled ): void {
 		$start_ts      = \FreeFormCertificate\Security\Geofence::get_form_start_timestamp( $post->ID );
 		$end_ts        = \FreeFormCertificate\Security\Geofence::get_form_end_timestamp( $post->ID );
 		$now           = time();
 		$enabled_ok    = '1' === $enabled && '' !== $hash;
-		$extend_raw    = (string) get_post_meta( $post->ID, '_ffc_csv_public_extend_end_enabled', true );
-		$extend_on     = '1' === $extend_raw;
+		$extend_on     = '1' === $extend_end_enabled;
 		$postponed_at  = (string) get_post_meta( $post->ID, \FreeFormCertificate\Frontend\ExtendEndAction::META_POSTPONED_AT, true );
 		$postponed_frm = (string) get_post_meta( $post->ID, \FreeFormCertificate\Frontend\ExtendEndAction::META_POSTPONED_FROM, true );
-		$sub_disabled  = ! $enabled_ok;
 
 		// Status string mirrors ExtendEndAction::is_eligible() branches.
 		if ( ! $enabled_ok ) {
 			$status_label = __( 'Enable Public Operator Access above to expose the postpone-close button to operators.', 'ffcertificate' );
 			$status_kind  = 'warning';
 		} elseif ( ! $extend_on ) {
-			$status_label = __( 'Postponing the close is disabled for this form — toggle it on to expose the button.', 'ffcertificate' );
+			$status_label = __( 'Postponing the close is disabled for this form — toggle it on in the Operator features list above.', 'ffcertificate' );
 			$status_kind  = 'info';
 		} elseif ( null === $end_ts ) {
 			$status_label = __( 'Set an end date in the Geolocation & Date/Time metabox to enable this action.', 'ffcertificate' );
@@ -488,36 +533,15 @@ class FormEditorPublicCsvDownloadMetabox {
 				$status_kind  = 'success';
 			}
 		}
+
+		$collapsed = ! $extend_on;
 		?>
-		<h3 class="ffc-section-subtitle"><?php esc_html_e( 'Postpone Close', 'ffcertificate' ); ?></h3>
-		<p class="description">
-			<?php esc_html_e( 'When eligible, a "Postpone close" button appears on the public download page above and lets a trusted operator push the form\'s close time later within the same day. Strictly one-shot per form — admin can edit time_end manually afterwards if needed.', 'ffcertificate' ); ?>
-		</p>
+		<div class="ffc-collapsed-target<?php echo $collapsed ? ' ffc-collapsed' : ''; ?>"
+			data-ffc-master="ffc_csv_public_extend_end_enabled"
+			aria-hidden="<?php echo $collapsed ? 'true' : 'false'; ?>">
 		<table class="form-table ffc-csv-public-table">
 			<tr>
-				<th scope="row">
-					<label for="ffc_csv_public_extend_end_enabled"><?php esc_html_e( 'Postpone Close', 'ffcertificate' ); ?></label>
-				</th>
-				<td>
-					<?php
-					\FreeFormCertificate\Admin\AdminUI::render_toggle(
-						array(
-							'name'     => 'ffc_csv_public[extend_end_enabled]',
-							'id'       => 'ffc_csv_public_extend_end_enabled',
-							'checked'  => $extend_on,
-							'disabled' => $sub_disabled,
-							'label'    => __( 'Allow operators to postpone the close time once.', 'ffcertificate' ),
-							'data'     => array( 'ffc-autosave-form-key' => 'csv_public_extend_end_enabled' ),
-						)
-					);
-					?>
-					<p class="description">
-						<?php esc_html_e( 'Off by default — turn on consciously since extending a public-facing window is destructive-ish.', 'ffcertificate' ); ?>
-					</p>
-				</td>
-			</tr>
-			<tr>
-				<th scope="row"><?php esc_html_e( 'Status', 'ffcertificate' ); ?></th>
+				<th scope="row"><?php esc_html_e( 'Postpone Close — status', 'ffcertificate' ); ?></th>
 				<td>
 					<span class="ffc-status-pill ffc-status-pill--<?php echo esc_attr( $status_kind ); ?>">
 						<?php echo esc_html( $status_label ); ?>
@@ -525,6 +549,7 @@ class FormEditorPublicCsvDownloadMetabox {
 				</td>
 			</tr>
 		</table>
+		</div>
 		<?php
 	}
 }

@@ -101,12 +101,15 @@ class FormEditorMetaboxRenderer {
 		$this->shortcode           = new FormEditorShortcodeMetabox();
 		$this->layout              = new FormEditorLayoutMetabox();
 		$this->builder             = new FormEditorBuilderMetabox();
-		$this->restriction         = new FormEditorRestrictionMetabox();
 		$this->email               = new FormEditorEmailMetabox();
 		$this->geofence            = new FormEditorGeofenceMetabox();
 		$this->quiz                = new FormEditorQuizMetabox();
 		$this->public_csv_download = new FormEditorPublicCsvDownloadMetabox();
-		$this->device_limit        = new FormEditorDeviceLimitMetabox();
+		// `device_limit` is constructed before `restriction` because
+		// the restriction metabox composes the device-limit toggle as
+		// its 5th item via constructor injection.
+		$this->device_limit = new FormEditorDeviceLimitMetabox();
+		$this->restriction  = new FormEditorRestrictionMetabox( $this->device_limit );
 	}
 
 	/**
@@ -142,13 +145,14 @@ class FormEditorMetaboxRenderer {
 	 * @param WP_Post $post Post being edited.
 	 */
 	public function render_box_restriction( WP_Post $post ): void {
+		// Device Fingerprint composes inside the restriction metabox via
+		// constructor injection — its master toggle becomes the 5th item
+		// in the Form Restrictions list and its sub-options trail the
+		// other conditional rows. Pre-#240 this was a separate metabox
+		// (Section 8); see also {@see render_box_device_limit} which
+		// stays as a documented no-op for any external consumer that
+		// hooks the legacy entry point.
 		$this->restriction->render( $post );
-		// Device Fingerprint Limit was Section 8 pre-#238 follow-up; it's
-		// now a sub-section of "Restriction & Security" since both restrict
-		// who can submit. Standalone registration removed in
-		// FormEditor::add_custom_metaboxes(); see {@see render_box_device_limit}
-		// which remains as a documented no-op for backward compatibility.
-		$this->device_limit->render( $post );
 	}
 
 	/**

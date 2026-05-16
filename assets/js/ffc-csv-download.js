@@ -328,6 +328,10 @@
 			html += '<div class="ffc-info-alert ffc-info-alert-info">' + esc(msg) + '</div>';
 		} else if (reason === 'quota_exhausted') {
 			html += '<div class="ffc-info-alert ffc-info-alert-warning">' + esc(strings.quotaExhausted || 'The download quota for this form has been exhausted.') + '</div>';
+		} else if (reason === 'download_disabled') {
+			// CSV Download sub-toggle (post-#241) is off — Start Early /
+			// Postpone Close may still be available on this same page.
+			html += '<div class="ffc-info-alert ffc-info-alert-info">' + esc(strings.csvDownloadDisabled || 'The CSV download is not available for this form.') + '</div>';
 		} else if (!reason) {
 			html += '<div class="ffc-info-alert ffc-info-alert-success">' + esc(strings.downloadReady || 'The form collection period has ended. The CSV is ready for download.') + '</div>';
 		}

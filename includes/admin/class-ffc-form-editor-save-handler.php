@@ -289,6 +289,14 @@ class FormEditorSaveHandler {
 			// hash / mode / whitelist instead of overwriting them with the
 			// "no fields submitted" defaults.
 			if ( '1' === $enabled ) {
+				// CSV Download — new in #241 follow-up. The 3 operator
+				// feature toggles now sit at the top of Section 7 (same
+				// shape as the Restriction & Security list). Empty meta
+				// reads as '1' in the metabox; on save we persist the
+				// POSTed value verbatim ('1' if checked, '0' otherwise).
+				$download_enabled = ! empty( $public_raw['download_enabled'] ) ? '1' : '0';
+				update_post_meta( $post_id, '_ffc_csv_public_download_enabled', $download_enabled );
+
 				// Start Form Early — per-form opt-out for the early-open
 				// action introduced in 6.5.6. Defaults to '1' for installs
 				// upgrading from 6.5.6 / 6.5.7 so the feature doesn't

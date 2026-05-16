@@ -352,6 +352,24 @@ class PublicCsvDownload {
 		$count = (int) get_post_meta( $form_id, self::META_COUNT, true );
 		update_post_meta( $form_id, self::META_COUNT, $count + 1 );
 
+		// 10b. Record an explicit delivery row in the audit ring buffer
+		// (post-#241). The pre-existing `success` / `audit_pass` /
+		// `voluntary` rows are written by the CPF validator and only
+		// confirm the CPF gate passed — they're emitted BEFORE the
+		// counter increment, and in `none` mode without a volunteered
+		// CPF no row is written at all. This `download_delivered` row
+		// is the canonical "the operator actually received the file"
+		// audit record, and runs in every mode (CPF + anonymous).
+		// Captures the CPF digits when provided so the exported audit
+		// CSV always identifies who pulled the file.
+		$cpf_digits = preg_replace( '/\D/', '', (string) $cpf_input );
+		$this->validator->record_download_log_entry(
+			$form_id,
+			(string) get_post_meta( $form_id, '_ffc_csv_public_cpf_mode', true ),
+			is_string( $cpf_digits ) ? $cpf_digits : '',
+			'download_delivered'
+		);
+
 		// 11. Stream the CSV. This exits the request.
 		$exporter = new PublicCsvExporter();
 		$exporter->stream_form_csv( $form_id, 'publish' );
@@ -819,13 +837,26 @@ class PublicCsvDownload {
 		$log   = is_array( $log ) ? $log : array();
 		$count = count( $log );
 
+		// Validator-emitted "CPF passed" tags. Don't include
+		// `download_delivered` here — that tag was added in the
+		// post-#241 audit fix and always pairs with a pre-existing
+		// `success` / `audit_pass` / `voluntary` row from the
+		// validator (or stands alone in 'none' mode without CPF).
+		// Adding it would over-count CPF-gated flows. The exported
+		// audit CSV still shows the rows; the metabox summary just
+		// doesn't double-count them. `download_success` continues to
+		// source from META_COUNT, the long-lived counter that
+		// survives ring-buffer rotation.
 		$access_success_tags = array( 'success', 'audit_pass', 'voluntary' );
+		$delivery_tags       = array( 'download_delivered' );
 		$access_success      = 0;
 		$failed_access       = 0;
 		foreach ( $log as $entry ) {
 			$result = is_array( $entry ) && isset( $entry['result'] ) ? (string) $entry['result'] : '';
 			if ( in_array( $result, $access_success_tags, true ) ) {
 				++$access_success;
+			} elseif ( in_array( $result, $delivery_tags, true ) ) {
+				continue;
 			} else {
 				++$failed_access;
 			}

@@ -63,6 +63,16 @@ final class CsvDownloadValidator {
 			return __( 'Invalid access hash.', 'ffcertificate' );
 		}
 
+		// 7b. CSV Download sub-feature toggle (post-#241). Empty meta
+		// reads as '1' so pre-upgrade forms keep working; explicit '0'
+		// turns CSV download off without affecting Start Early /
+		// Postpone Close on the same hash.
+		$download_raw     = (string) get_post_meta( $form_id, '_ffc_csv_public_download_enabled', true );
+		$download_enabled = '' === $download_raw ? '1' : $download_raw;
+		if ( '1' !== $download_enabled ) {
+			return __( 'CSV download is disabled for this form.', 'ffcertificate' );
+		}
+
 		// 8. Form must have ended.
 		$end_ts = \FreeFormCertificate\Security\Geofence::get_form_end_timestamp( $form_id );
 		if ( null === $end_ts ) {

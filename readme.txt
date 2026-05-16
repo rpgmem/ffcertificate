@@ -175,41 +175,15 @@ In the certificate layout editor, use these dynamic tags:
 
 == Changelog ==
 
-= 6.5.14 (2026-05-15) =
-
-**Master-toggle UX consolidation across the form editor.** Closes #238.
-
-* Change: Every user-facing reference to "Public CSV Download" renamed to **"Public Operator Access"** — editor metabox label, intro description, Settings tab card, docs (`13-features.php`, `01-shortcodes.php`). The master gates three sibling sub-features (CSV download + Start Form Early + Postpone Close), so the new name reflects the broadened scope. Aliases "(formerly Public CSV Download)" preserved so users coming from old screencasts still find the right place. Internal class / file / namespace + meta keys unchanged.
-* Change: **Save-semantics — skip-on-off across the board.** 11 master toggles that previously rewrote sub-meta values on every save (Restriction × 4, Email send_user_email, DateTime, Geolocation, IP-Permissive, Quiz, CPF whitelist mode) now wrap sub-meta writes in `if ('1' === $master)`. Sub-options ride through unchanged when their master is off — disabling a section preserves its values for when you turn it back on.
-* Change: **Unified visibility pattern (B / hidden).** Every master-toggle block uses the new `.ffc-collapsed-target` wrapper convention with a generic JS initializer. Three previously save-required toggles (Email send_user_email, IP-Permissive, CPF-whitelist-mode) gain live update behavior — toggle and the sub-options appear/disappear without a save+reload. wp_editor (TinyMCE) inside the Email metabox initializes normally; only the wrapper collapses, not the editor itself.
-
-= 6.5.13 (2026-05-15) =
-
-**Audit summary clarity + postpone-close lifecycle.**
-
-* Change: **Public CSV audit summary — three operator-facing buckets** replace the prior "Total / Successful / Failed" counters. New labels: (1) *Successful accesses* — CPF + CAPTCHA both validated. (2) *Successful downloads* — CSV files actually delivered (sourced from the long-lived counter, survives audit-log rotation). (3) *Failed accesses* — every `fail_*` row including new `fail_captcha` and `fail_other` tags so the third bucket is complete. Form-editor metabox in Section 7 displays all three side by side.
-* Change: **Admin form save now resets the postpone-close one-shot.** When you save a form in the editor, the `_ffc_csv_public_end_postponed_at` flag is wiped — letting operators on the public download page postpone the close again within the newly-configured window. The admin save is the natural cycle boundary.
-
-= 6.5.12 (2026-05-15) =
-
-**"Postpone close" public operator action.** Sibling of "Start Form Now" but for the close boundary.
-
-* Feat: Trusted operators can push a form's `time_end` later within the same calendar day, exactly once per form, using the same public hash as the credential. Strict constraints: form must already be open, new close must be strictly later than both now and the current close, and must stay within the configured close-date's calendar day.
-* Feat: Per-form opt-IN — `_ffc_csv_public_extend_end_enabled` defaults to `'0'` (admin must consciously enable since extending a public window is destructive-ish). UI lives next to "Start Form Now" on the public CSV download page; modal reuses the cert-preview chrome with a `<input type="time">` picker.
-* Feat: Aggressive page-cache purge fires so the form page reflects the new close immediately. New Activity Log event `end_postponed` (warning level) audits the rewrite with form_id, original_time_end, new_time_end, IP, UA, user_id.
-
-For the complete changelog history, see [CHANGELOG.md](CHANGELOG.md).
+The full changelog with per-release notes lives in [CHANGELOG.md](CHANGELOG.md).
+This file used to mirror the last few release entries here, but keeping
+two changelogs in sync was creating drift — the canonical record is
+now CHANGELOG.md alone.
 
 == Upgrade Notice ==
 
 = 6.5.14 =
-**UX consolidation** across the form editor master toggles. "Public CSV Download" renamed user-facing to "Public Operator Access" (the master now gates 3 sibling sub-features — CSV download, Start Form Early, Postpone Close); aliases preserved so old links still find the section. Sub-options now ride through unchanged when their master is off (skip-on-off save semantics) — disabling a section preserves its values for next time. Unified visibility pattern: every master-toggle block hides its sub-options live, no more save+reload to see what's gated. No data migrations; safe upgrade.
-
-= 6.5.13 =
-**Audit summary clarity.** The Public CSV download audit summary on the form editor now shows three operator-facing buckets — *Successful accesses* (CPF + CAPTCHA validated), *Successful downloads* (CSV actually delivered), *Failed accesses* (wrong CPF + wrong CAPTCHA + other errors) — instead of the prior "Total / Successful / Failed" counters. Two new failure tags (`fail_captcha`, `fail_other`) make the "Failed" bucket comprehensive. Admin form save now also re-enables the postpone-close one-shot so operators can postpone again after admin intervention. No data migrations; safe upgrade.
-
-= 6.5.12 =
-**"Postpone close" public operator action.** Sibling of "Start Form Now" — trusted operators on the venue floor can push a form's close time later within the same calendar day, exactly once per form, using the same hash credential. Per-form opt-in (`_ffc_csv_public_extend_end_enabled` defaults off — admin must consciously enable). New Activity Log event `end_postponed` audits the rewrite. No data migrations; safe upgrade.
+**UX consolidation + Section 7 polish** across the form editor master toggles. "Public CSV Download" renamed user-facing to "Public Operator Access" — the master now gates three independent sub-toggles (CSV Download, Start Form Early, Postpone Close), each with its own sub-options block and inline live-collapse. Save handler preserves sub-option values when their master is off (skip-on-off semantics). Master toggles auto-save on change. New `download_delivered` audit row records who actually received each CSV. Aliases "(formerly Public CSV Download)" preserved so old links still find the section. No data migrations; safe upgrade.
 
 For older releases, see [CHANGELOG.md](CHANGELOG.md).
 

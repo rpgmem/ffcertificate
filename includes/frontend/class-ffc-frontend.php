@@ -357,6 +357,7 @@ class Frontend {
 						'formActiveUntil'       => __( 'This form is still active until %s. The download will be available after the end date.', 'ffcertificate' ),
 						'quotaExhausted'        => __( 'The download quota for this form has been exhausted.', 'ffcertificate' ),
 						'downloadReady'         => __( 'The form collection period has ended. The CSV is ready for download.', 'ffcertificate' ),
+						'csvDownloadDisabled'   => __( 'The CSV download is not available for this form.', 'ffcertificate' ),
 						/* translators: %s is the formatted start date */
 						'beforeStartMsg'        => __( 'The form collection has not started yet. It will begin on %s.', 'ffcertificate' ),
 
