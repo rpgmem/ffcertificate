@@ -59,20 +59,20 @@ final class DateFormatter {
 	/**
 	 * Format a date.
 	 *
-	 * @param int|string|null      $timestamp_or_string Unix timestamp,
-	 *                                                  date string, or
-	 *                                                  null. Strings are
-	 *                                                  parsed via
-	 *                                                  strtotime(). Null
-	 *                                                  / unparseable
-	 *                                                  values return ''.
-	 * @param string               $context             'default' or 'pdf'
-	 *                                                  ('pdf' reads the
-	 *                                                  per-context
-	 *                                                  override and
-	 *                                                  falls back to the
-	 *                                                  default format
-	 *                                                  if empty).
+	 * @param int|string|null           $timestamp_or_string Unix timestamp,
+	 *                                                       date string, or
+	 *                                                       null. Strings are
+	 *                                                       parsed via
+	 *                                                       strtotime(). Null
+	 *                                                       / unparseable
+	 *                                                       values return ''.
+	 * @param string                    $context             'default' or 'pdf'
+	 *                                                       ('pdf' reads the
+	 *                                                       per-context
+	 *                                                       override and
+	 *                                                       falls back to the
+	 *                                                       default format
+	 *                                                       if empty).
 	 * @param \DateTimeZone|string|null $tz             Optional timezone
 	 *                                                  override; defaults
 	 *                                                  to the site
@@ -94,8 +94,8 @@ final class DateFormatter {
 	 *
 	 * Same parameter contract as {@see format_date()}.
 	 *
-	 * @param int|string|null      $timestamp_or_string Source value.
-	 * @param string               $context             'default' or 'pdf'.
+	 * @param int|string|null           $timestamp_or_string Source value.
+	 * @param string                    $context             'default' or 'pdf'.
 	 * @param \DateTimeZone|string|null $tz             Optional timezone.
 	 * @return string Formatted time, or '' on unparseable input.
 	 */
@@ -111,11 +111,11 @@ final class DateFormatter {
 	/**
 	 * Format a combined date + time.
 	 *
-	 * @param int|string|null      $timestamp_or_string Source value.
-	 * @param string               $context             'default' or 'pdf'.
-	 * @param string               $separator           Glue between date
-	 *                                                  and time, default
-	 *                                                  one space.
+	 * @param int|string|null           $timestamp_or_string Source value.
+	 * @param string                    $context             'default' or 'pdf'.
+	 * @param string                    $separator           Glue between date
+	 *                                                       and time, default
+	 *                                                       one space.
 	 * @param \DateTimeZone|string|null $tz             Optional timezone.
 	 * @return string `<date><separator><time>`, or '' on unparseable input.
 	 */
