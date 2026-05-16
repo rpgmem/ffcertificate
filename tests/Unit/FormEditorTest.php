@@ -128,6 +128,47 @@ class FormEditorTest extends TestCase {
         $this->assertContains( 'ffc-geofence-admin', $enqueued );
     }
 
+    /**
+     * Regression for the post-#240 form-meta autosave silent failure.
+     *
+     * `FormEditor::enqueue_scripts()` calls
+     * `wp_localize_script('ffc-admin-js', 'ffcFormMetaAutosave', ...)`
+     * but `ffc-admin-js` is registered by `AdminAssetsManager` on the
+     * same hook. If FormEditor's callback runs first, WP silently drops
+     * the localize data and the JS handler in ffc-admin.js short-
+     * circuits — toggles stop auto-saving with no error surfacing.
+     *
+     * Fix: bump FormEditor's hook priority to 20 so it runs AFTER
+     * AdminAssetsManager (default 10). The assertion below pins that
+     * priority so a future refactor that drops it back to 10 fails
+     * loudly here instead of in the browser.
+     */
+    public function test_enqueue_scripts_runs_after_admin_assets_manager(): void {
+        $captured = array();
+        Functions\when( 'add_action' )->alias(
+            static function ( $hook, $callback, $priority = 10 ) use ( &$captured ) {
+                $captured[] = array( $hook, $callback, $priority );
+                return true;
+            }
+        );
+
+        new FormEditor();
+
+        $enqueue_hooks = array_filter(
+            $captured,
+            static fn( $entry ) => 'admin_enqueue_scripts' === $entry[0]
+                && is_array( $entry[1] )
+                && 'enqueue_scripts' === $entry[1][1]
+        );
+        $this->assertCount( 1, $enqueue_hooks, 'enqueue_scripts must hook into admin_enqueue_scripts exactly once' );
+        $entry = array_values( $enqueue_hooks )[0];
+        $this->assertGreaterThan(
+            10,
+            $entry[2],
+            'enqueue_scripts must run after AdminAssetsManager (priority > 10) so ffc-admin-js is registered before wp_localize_script fires for it.'
+        );
+    }
+
     // ==================================================================
     // add_custom_metaboxes()
     // ==================================================================

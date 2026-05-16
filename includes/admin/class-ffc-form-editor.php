@@ -44,7 +44,15 @@ class FormEditor {
 		add_action( 'add_meta_boxes', array( $this, 'add_custom_metaboxes' ), 20 );
 		add_action( 'save_post', array( $this->save_handler, 'save_form_data' ) );
 		add_action( 'admin_notices', array( $this->save_handler, 'display_save_errors' ) );
-		add_action( 'admin_enqueue_scripts', array( $this, 'enqueue_scripts' ) );
+		// Priority 20 so we run AFTER AdminAssetsManager (default 10) has
+		// registered `ffc-admin-js`. The `wp_localize_script` call below
+		// attaches `ffcFormMetaAutosave` to that handle; calling localize
+		// before the script is registered makes WP silently drop the
+		// data, leaving the form-meta autosave handler in ffc-admin.js
+		// with a `window.ffcFormMetaAutosave === undefined` guard and
+		// no change listeners wired (toggles stop auto-saving — closes
+		// the post-#240 regression).
+		add_action( 'admin_enqueue_scripts', array( $this, 'enqueue_scripts' ), 20 );
 
 		// AJAX handlers for the editor.
 		add_action( 'wp_ajax_ffc_generate_codes', array( $this, 'ajax_generate_random_codes' ) );
