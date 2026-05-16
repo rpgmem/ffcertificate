@@ -383,8 +383,8 @@ class AdminActivityLogPage {
 			?>
 			<tr>
 				<td>
-					<strong><?php echo esc_html( date_i18n( 'Y-m-d', strtotime( (string) ( $ffcertificate_log['created_at'] ?? '' ) ) ) ); ?></strong><br>
-					<span class="description"><?php echo esc_html( date_i18n( 'H:i:s', strtotime( (string) ( $ffcertificate_log['created_at'] ?? '' ) ) ) ); ?></span>
+					<strong><?php echo esc_html( \FreeFormCertificate\Core\DateFormatter::format_date( (string) ( $ffcertificate_log['created_at'] ?? '' ) ) ); ?></strong><br>
+					<span class="description"><?php echo esc_html( \FreeFormCertificate\Core\DateFormatter::format_time( (string) ( $ffcertificate_log['created_at'] ?? '' ) ) ); ?></span>
 				</td>
 				<td>
 					<?php echo wp_kses_post( self::get_level_badge( (string) ( $ffcertificate_log['level'] ?? '' ) ) ); ?>
