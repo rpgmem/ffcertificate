@@ -26,6 +26,32 @@ if ( ! defined( 'ABSPATH' ) ) {
 class FormEditorRestrictionMetabox {
 
 	/**
+	 * Composer for the Device Fingerprint Limit sub-section (rendered
+	 * inline as the 5th item in the Form Restrictions list, with its
+	 * sub-options trailing the standard restriction conditional rows).
+	 * Optional so the metabox stays instantiable in tests / contexts
+	 * where the device-limit metabox isn't wired in.
+	 *
+	 * @var FormEditorDeviceLimitMetabox|null
+	 */
+	private ?FormEditorDeviceLimitMetabox $device_limit;
+
+	/**
+	 * Constructor — accepts an optional Device Fingerprint Limit
+	 * metabox composer. When supplied, it's woven into the restriction
+	 * list as the 5th toggle (matching the password / allowlist /
+	 * denylist / ticket visual) so admins see all "who can submit"
+	 * controls in one place.
+	 *
+	 * @param FormEditorDeviceLimitMetabox|null $device_limit Optional
+	 *        composer; pass null to render the standard 4 restrictions
+	 *        without the device-fingerprint row (used in tests).
+	 */
+	public function __construct( ?FormEditorDeviceLimitMetabox $device_limit = null ) {
+		$this->device_limit = $device_limit;
+	}
+
+	/**
 	 * Section 3: Restrictions and Tickets
 	 *
 	 * @param WP_Post $post The post object.
@@ -79,6 +105,18 @@ class FormEditorRestrictionMetabox {
 							<span class="description"> — <?php echo esc_html( $ffc_hint ); ?></span>
 						</div>
 					<?php endforeach; ?>
+
+					<?php
+					// Device Fingerprint Limit master toggle — composed
+					// inline as the 5th item so it sits visually with the
+					// other "who can submit" controls. Sub-options are
+					// emitted further down, after the conditional rows
+					// for the 4 standard restrictions, so they share the
+					// same conditional-field layout.
+					if ( $this->device_limit instanceof FormEditorDeviceLimitMetabox ) {
+						$this->device_limit->render_master_toggle( $post );
+					}
+					?>
 
 					<p class="description ffc-mt-15">
 						<em><?php esc_html_e( 'Note: If no restriction is selected, form is Open (no restrictions).', 'ffcertificate' ); ?></em>
@@ -146,11 +184,13 @@ class FormEditorRestrictionMetabox {
 			</tr>
 		</table>
 
-		<h3 class="ffc-section-subtitle"><?php esc_html_e( 'Device Fingerprint Limit', 'ffcertificate' ); ?></h3>
 		<?php
-		// Device Fingerprint metabox renders its own intro + master
-		// toggle + sub-fields. Composed in from FormEditorMetaboxRenderer
-		// since both this and Device Fingerprint answer the question
-		// "who can submit this form?".
+		// Device Fingerprint sub-options (max submissions / threshold /
+		// message). Wrapped in `.ffc-collapsed-target` so they collapse
+		// in unison with the master toggle that lives in the Form
+		// Restrictions list above.
+		if ( $this->device_limit instanceof FormEditorDeviceLimitMetabox ) {
+			$this->device_limit->render_sub_options( $post );
+		}
 	}
 }
