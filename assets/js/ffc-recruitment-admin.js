@@ -15,6 +15,12 @@
  *     form's FormData to `<restRoot><path>`. Reload on success
  *     (response carries an `id`); alert on failure with the server's
  *     message (or the raw body as a fallback).
+ *
+ *   - `input[data-ffc-color-endpoint="<entity>"][data-ffc-entity-id="<id>"]`
+ *     — on `change`, PATCH `{ color: <new value> }` to
+ *     `<restRoot><entity>/<id>` (PATCH via `X-HTTP-Method-Override`).
+ *     Updates the input and any sibling `[data-ffc-color-hex]` label so
+ *     the admin sees the canonical color the server stored.
  */
 (function () {
     'use strict';
@@ -76,6 +82,48 @@
             var body = res && res.body;
             if (body && body.id) {
                 window.location.reload();
+                return;
+            }
+            window.alert((body && body.message) ? body.message : JSON.stringify(body));
+        });
+    });
+
+    /**
+     * Delegated change handler for color-picker inputs that auto-PATCH
+     * their value to the REST endpoint identified by
+     * `data-ffc-color-endpoint`. A sibling `[data-ffc-color-hex]`
+     * element (if present) updates in place so admins see the canonical
+     * color the server stored.
+     *
+     * Listening at `change` (not `input`) so we don't fire on every
+     * drag step across the picker — only once the user commits.
+     */
+    document.addEventListener('change', function (event) {
+        var input = event.target;
+        if (!input || typeof input.matches !== 'function') { return; }
+        if (!input.matches('input[data-ffc-color-endpoint][data-ffc-entity-id]')) { return; }
+
+        var endpoint = input.getAttribute('data-ffc-color-endpoint');
+        var entityId = parseInt(input.getAttribute('data-ffc-entity-id'), 10);
+        if (!endpoint || !entityId) { return; }
+
+        var fd = new FormData();
+        fd.append('color', input.value);
+
+        window.ffcRecruitmentAdmin.fetch(endpoint + '/' + entityId, {
+            method: 'POST',
+            headers: { 'X-HTTP-Method-Override': 'PATCH' },
+            body: fd
+        }).then(function (res) {
+            var body = res && res.body;
+            if (body && body.color) {
+                input.value = body.color;
+                var hex = input.parentNode
+                    ? input.parentNode.querySelector('[data-ffc-color-hex]')
+                    : null;
+                if (hex) {
+                    hex.textContent = body.color;
+                }
                 return;
             }
             window.alert((body && body.message) ? body.message : JSON.stringify(body));
