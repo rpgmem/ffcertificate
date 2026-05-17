@@ -153,9 +153,7 @@ class AppointmentAjaxHandler {
 			// Determine if a confirmation email was actually sent.
 			$email_sent = false;
 			if ( ! $requires_approval ) {
-				$settings        = get_option( 'ffc_settings', array() );
-				$emails_disabled = ! empty( $settings['disable_all_emails'] );
-				if ( ! $emails_disabled && $calendar ) {
+				if ( ! \FreeFormCertificate\Settings\SettingsReader::emails_disabled() && $calendar ) {
 					$email_config = json_decode( $calendar['email_config'] ?? '{}', true );
 					$email_sent   = ! empty( $email_config['send_user_confirmation'] );
 				}

@@ -247,10 +247,7 @@ try {
 	// ──────────────────────────────────────────────────────────────.
 	// Obsolete Shortcode Cleanup (v5.1.0)
 	// ──────────────────────────────────────────────────────────────.
-	$ffcertificate_settings     = get_option( 'ffc_settings', array() );
-	$ffcertificate_cleanup_days = is_array( $ffcertificate_settings ) && isset( $ffcertificate_settings['obsolete_shortcode_days'] )
-		? max( 1, (int) $ffcertificate_settings['obsolete_shortcode_days'] )
-		: 90;
+	$ffcertificate_cleanup_days = max( 1, \FreeFormCertificate\Settings\SettingsReader::get_int( 'obsolete_shortcode_days', 90 ) );
 
 	$ffcertificate_user_id        = get_current_user_id();
 	$ffcertificate_cleanup_report = get_transient( 'ffc_obsolete_cleanup_report_' . $ffcertificate_user_id );

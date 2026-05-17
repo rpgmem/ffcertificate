@@ -85,12 +85,8 @@ final class CsvDownloadValidator {
 		// 9. Quota.
 		$limit = (int) get_post_meta( $form_id, PublicCsvDownload::META_LIMIT, true );
 		if ( $limit <= 0 ) {
-			$settings_default = 0;
-			$settings         = get_option( 'ffc_settings', array() );
-			if ( is_array( $settings ) && isset( $settings['public_csv_default_limit'] ) ) {
-				$settings_default = (int) $settings['public_csv_default_limit'];
-			}
-			$limit = $settings_default > 0 ? $settings_default : 1;
+			$settings_default = \FreeFormCertificate\Settings\SettingsReader::get_int( 'public_csv_default_limit', 0 );
+			$limit            = $settings_default > 0 ? $settings_default : 1;
 		}
 
 		$count = (int) get_post_meta( $form_id, PublicCsvDownload::META_COUNT, true );

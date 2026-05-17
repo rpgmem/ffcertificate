@@ -197,7 +197,7 @@ class DashboardAssetManager {
 				'canViewReregistrations'  => $can_view_reregistrations,
 				'siteName'                => get_bloginfo( 'name' ),
 				'wpTimezone'              => wp_timezone_string(),
-				'mainAddress'             => ( get_option( 'ffc_settings', array() ) )['main_address'] ?? '',
+				'mainAddress'             => \FreeFormCertificate\Settings\SettingsReader::get( 'main_address', '' ),
 				'strings'                 => array(
 					'loading'                  => __( 'Loading...', 'ffcertificate' ),
 					'error'                    => __( 'Error loading data', 'ffcertificate' ),

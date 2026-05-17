@@ -255,10 +255,7 @@ class PublicCsvExporter {
 	 * Resolve the configured sync-export row cap, clamped to the min/max.
 	 */
 	public static function get_sync_max_rows(): int {
-		$settings = get_option( 'ffc_settings', array() );
-		$value    = isset( $settings['public_csv_sync_max_rows'] )
-			? absint( $settings['public_csv_sync_max_rows'] )
-			: self::DEFAULT_SYNC_MAX_ROWS;
+		$value = \FreeFormCertificate\Settings\SettingsReader::get_int( 'public_csv_sync_max_rows', self::DEFAULT_SYNC_MAX_ROWS );
 
 		if ( $value < self::SYNC_MAX_ROWS_MIN ) {
 			$value = self::SYNC_MAX_ROWS_MIN;

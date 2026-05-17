@@ -53,11 +53,21 @@ final class SettingsReader {
 	 * @return mixed
 	 */
 	public static function get( string $key, $default = null ) {
-		$settings = get_option( self::OPTION_KEY, array() );
-		if ( ! is_array( $settings ) ) {
-			return $default;
-		}
+		$settings = self::all();
 		return $settings[ $key ] ?? $default;
+	}
+
+	/**
+	 * Return the raw `ffc_settings` array. Prefer the typed accessors
+	 * or `get()` when reading 1-2 keys; reach for `all()` only when a
+	 * caller reads 5+ keys from the same array and array-style access
+	 * stays clearer than repeated method calls (e.g. SMTP config block).
+	 *
+	 * @return array<string, mixed>
+	 */
+	public static function all(): array {
+		$settings = get_option( self::OPTION_KEY, array() );
+		return is_array( $settings ) ? $settings : array();
 	}
 
 	/**

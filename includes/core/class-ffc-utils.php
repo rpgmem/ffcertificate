@@ -45,8 +45,7 @@ class Utils {
 	 * @since 4.6.17
 	 */
 	public static function enqueue_dark_mode(): void {
-		$settings  = get_option( 'ffc_settings', array() );
-		$dark_mode = isset( $settings['dark_mode'] ) ? $settings['dark_mode'] : 'off';
+		$dark_mode = \FreeFormCertificate\Settings\SettingsReader::get( 'dark_mode', 'off' );
 
 		if ( 'off' === $dark_mode ) {
 			return;

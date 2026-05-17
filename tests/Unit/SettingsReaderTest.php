@@ -66,6 +66,18 @@ class SettingsReaderTest extends TestCase {
 		$this->assertSame( 'fallback', SettingsReader::get( 'anything', 'fallback' ) );
 	}
 
+	public function test_all_returns_raw_array(): void {
+		$this->stub_option( array( 'a' => 1, 'b' => 'two' ) );
+
+		$this->assertSame( array( 'a' => 1, 'b' => 'two' ), SettingsReader::all() );
+	}
+
+	public function test_all_returns_empty_array_when_option_is_not_array(): void {
+		Functions\when( 'get_option' )->justReturn( false );
+
+		$this->assertSame( array(), SettingsReader::all() );
+	}
+
 	public function test_get_bool_casts_truthy_values_to_true(): void {
 		$this->stub_option( array(
 			'as_one'    => 1,

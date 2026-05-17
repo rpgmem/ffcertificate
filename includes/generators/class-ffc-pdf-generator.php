@@ -250,9 +250,9 @@ class PdfGenerator {
 		$layout = str_replace( '{{form_title}}', esc_html( (string) $form_title ), $layout );
 
 		// Inject settings-based placeholders into data (v4.6.10).
-		$settings = get_option( 'ffc_settings', array() );
-		if ( ! isset( $data['main_address'] ) && ! empty( $settings['main_address'] ) ) {
-			$data['main_address'] = $settings['main_address'];
+		$main_address = \FreeFormCertificate\Settings\SettingsReader::get( 'main_address', '' );
+		if ( ! isset( $data['main_address'] ) && ! empty( $main_address ) ) {
+			$data['main_address'] = $main_address;
 		}
 		if ( ! isset( $data['site_name'] ) ) {
 			$data['site_name'] = get_bloginfo( 'name' );

@@ -155,12 +155,7 @@ class AdminAssetsManager {
 	 * @return string 'dark' or 'light'.
 	 */
 	public static function resolve_code_editor_theme(): string {
-		$settings = get_option( 'ffc_settings', array() );
-		if ( ! is_array( $settings ) ) {
-			$settings = array();
-		}
-
-		$choice = isset( $settings['code_editor_theme'] ) ? (string) $settings['code_editor_theme'] : 'dark';
+		$choice = (string) \FreeFormCertificate\Settings\SettingsReader::get( 'code_editor_theme', 'dark' );
 
 		if ( 'light' === $choice ) {
 			return 'light';
@@ -170,7 +165,7 @@ class AdminAssetsManager {
 		}
 
 		// 'auto' — follow the admin dark-mode setting.
-		$dark_mode = isset( $settings['dark_mode'] ) ? (string) $settings['dark_mode'] : 'off';
+		$dark_mode = (string) \FreeFormCertificate\Settings\SettingsReader::get( 'dark_mode', 'off' );
 		return 'on' === $dark_mode ? 'dark' : 'light';
 	}
 

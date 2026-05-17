@@ -10,7 +10,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-$ffc_settings = get_option( 'ffc_settings', array() );
+$ffc_settings = \FreeFormCertificate\Settings\SettingsReader::all();
 
 $enabled       = isset( $ffc_settings['url_shortener_enabled'] ) ? (int) $ffc_settings['url_shortener_enabled'] : 1;
 $prefix        = $ffc_settings['url_shortener_prefix'] ?? 'go';

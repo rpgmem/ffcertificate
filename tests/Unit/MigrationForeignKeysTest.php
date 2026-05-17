@@ -32,6 +32,7 @@ class MigrationForeignKeysTest extends TestCase {
 
         // Namespaced stubs for ActivityLog
         Functions\when( 'FreeFormCertificate\Core\get_option' )->justReturn( array() );
+        Functions\when( 'FreeFormCertificate\Settings\get_option' )->justReturn( array() );
         Functions\when( 'FreeFormCertificate\Core\absint' )->alias( function ( $v ) { return abs( (int) $v ); } );
 
         global $wpdb;
