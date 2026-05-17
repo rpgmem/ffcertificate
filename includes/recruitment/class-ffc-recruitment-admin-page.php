@@ -593,11 +593,10 @@ final class RecruitmentAdminPage {
 	 * @return void
 	 */
 	private static function render_create_reason_form(): void {
-		$nonce         = wp_create_nonce( 'wp_rest' );
 		$default_color = RecruitmentReasonRepository::DEFAULT_COLOR;
 
 		echo '<h3>' . esc_html__( 'Create new reason', 'ffcertificate' ) . '</h3>';
-		echo '<form id="ffc-create-reason" method="post" onsubmit="return ffcRecruitmentCreateReason(this);">';
+		echo '<form id="ffc-create-reason" method="post" data-ffc-create-endpoint="reasons">';
 		echo '<table class="form-table"><tbody>';
 		echo '<tr><th><label for="ffc-reason-slug">' . esc_html__( 'Slug', 'ffcertificate' ) . '</label></th>';
 		echo '<td><input id="ffc-reason-slug" name="slug" type="text" class="regular-text" required></td></tr>';
@@ -630,18 +629,6 @@ final class RecruitmentAdminPage {
 		echo '</tbody></table>';
 		echo '<p><button type="submit" class="button button-primary">' . esc_html__( 'Create', 'ffcertificate' ) . '</button></p>';
 		echo '</form>';
-
-		echo '<script>'
-			. 'function ffcRecruitmentCreateReason(form){'
-			. 'var fd=new FormData(form);'
-			. 'fetch("' . esc_url_raw( rest_url( 'ffcertificate/v1/recruitment/reasons' ) ) . '",{'
-			. 'method:"POST",'
-			. 'headers:{"X-WP-Nonce":"' . esc_attr( $nonce ) . '"},'
-			. 'body:fd'
-			. '}).then(function(r){return r.json();}).then(function(d){'
-			. 'if(d&&d.id){location.reload();}else{alert((d&&d.message)?d.message:JSON.stringify(d));}'
-			. '});return false;}'
-			. '</script>';
 	}
 
 	/**
@@ -914,15 +901,14 @@ final class RecruitmentAdminPage {
 	}
 
 	/**
-	 * Render the create-notice form (POSTs to the REST endpoint via inline JS).
+	 * Render the create-notice form. Submit is handled by the delegated
+	 * `data-ffc-create-endpoint` listener in `ffc-recruitment-admin.js`.
 	 *
 	 * @return void
 	 */
 	private static function render_create_notice_form(): void {
-		$nonce = wp_create_nonce( 'wp_rest' );
-
 		echo '<h3>' . esc_html__( 'Create new notice', 'ffcertificate' ) . '</h3>';
-		echo '<form id="ffc-create-notice" method="post" onsubmit="return ffcRecruitmentCreateNotice(this);">';
+		echo '<form id="ffc-create-notice" method="post" data-ffc-create-endpoint="notices">';
 		echo '<table class="form-table"><tbody>';
 		echo '<tr><th><label for="ffc-notice-code">' . esc_html__( 'Code', 'ffcertificate' ) . '</label></th>';
 		echo '<td><input id="ffc-notice-code" name="code" type="text" class="regular-text" required></td></tr>';
@@ -931,32 +917,19 @@ final class RecruitmentAdminPage {
 		echo '</tbody></table>';
 		echo '<p><button type="submit" class="button button-primary">' . esc_html__( 'Create', 'ffcertificate' ) . '</button></p>';
 		echo '</form>';
-
-		echo '<script>'
-			. 'function ffcRecruitmentCreateNotice(form){'
-			. 'var fd=new FormData(form);'
-			. 'fetch("' . esc_url_raw( rest_url( 'ffcertificate/v1/recruitment/notices' ) ) . '",{'
-			. 'method:"POST",'
-			. 'headers:{"X-WP-Nonce":"' . esc_attr( $nonce ) . '"},'
-			. 'body:fd'
-			. '}).then(function(r){return r.json();}).then(function(d){'
-			. 'if(d&&d.id){location.reload();}else{alert((d&&d.message)?d.message:JSON.stringify(d));}'
-			. '});return false;}'
-			. '</script>';
 	}
 
 	/**
-	 * Render the create-adjutancy form (same fetch pattern).
+	 * Render the create-adjutancy form. Submit is handled by the delegated
+	 * `data-ffc-create-endpoint` listener in `ffc-recruitment-admin.js`.
 	 *
 	 * @return void
 	 */
 	private static function render_create_adjutancy_form(): void {
-		$nonce = wp_create_nonce( 'wp_rest' );
-
 		$default_color = RecruitmentAdjutancyRepository::DEFAULT_COLOR;
 
 		echo '<h3>' . esc_html__( 'Create new adjutancy', 'ffcertificate' ) . '</h3>';
-		echo '<form id="ffc-create-adjutancy" method="post" onsubmit="return ffcRecruitmentCreateAdjutancy(this);">';
+		echo '<form id="ffc-create-adjutancy" method="post" data-ffc-create-endpoint="adjutancies">';
 		echo '<table class="form-table"><tbody>';
 		echo '<tr><th><label for="ffc-adj-slug">' . esc_html__( 'Slug', 'ffcertificate' ) . '</label></th>';
 		echo '<td><input id="ffc-adj-slug" name="slug" type="text" class="regular-text" required></td></tr>';
@@ -969,18 +942,6 @@ final class RecruitmentAdminPage {
 		echo '</tbody></table>';
 		echo '<p><button type="submit" class="button button-primary">' . esc_html__( 'Create', 'ffcertificate' ) . '</button></p>';
 		echo '</form>';
-
-		echo '<script>'
-			. 'function ffcRecruitmentCreateAdjutancy(form){'
-			. 'var fd=new FormData(form);'
-			. 'fetch("' . esc_url_raw( rest_url( 'ffcertificate/v1/recruitment/adjutancies' ) ) . '",{'
-			. 'method:"POST",'
-			. 'headers:{"X-WP-Nonce":"' . esc_attr( $nonce ) . '"},'
-			. 'body:fd'
-			. '}).then(function(r){return r.json();}).then(function(d){'
-			. 'if(d&&d.id){location.reload();}else{alert((d&&d.message)?d.message:JSON.stringify(d));}'
-			. '});return false;}'
-			. '</script>';
 	}
 
 	/**
