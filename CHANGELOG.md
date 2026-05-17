@@ -7,8 +7,28 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+> ### ⚠ Breaking change for `GET /forms` REST consumers
+>
+> The `GET /forms` REST endpoint now uses real pagination via `page` and
+> `per_page` query args (WP REST convention). The legacy `limit` query
+> arg is **removed** — clients still passing `?limit=N` will have it
+> silently ignored. Default `per_page` is **10** (was implicitly up to 100).
+>
+> **Migration**:
+>
+> - `?limit=50` → `?per_page=50`
+> - To fetch all forms, iterate `?page=1&per_page=100`, `?page=2…`
+>   until `X-WP-TotalPages` is exhausted.
+> - Responses now carry `X-WP-Total`, `X-WP-TotalPages`, and a `Link`
+>   header (rels: `first`, `prev`, `next`, `last`).
+>
+> External integrators (Application Password callers) need to migrate;
+> there's no shim period.
+
 ### Removed
 
+- `?limit=N` query arg on the `GET /forms` REST endpoint. Use
+  `?per_page=N` instead.
 - Unused `FFC_DEBUG` constant from `ffcertificate.php` and the matching
   PHPStan stub. Defined but never read.
 - Deprecated CSS aliases scheduled for 6.6.0 removal: `.ffc-conditional-field`
@@ -20,6 +40,11 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 
 ### Changed
 
+- `GET /forms` REST endpoint: real pagination via `page` and `per_page`
+  query args (defaults 1 and 10), with `X-WP-Total`, `X-WP-TotalPages`,
+  and `Link` headers (rels: first/prev/next/last) per the WP REST
+  convention. Out-of-range pages return an empty array with the
+  pagination headers populated (status 200), not a 404.
 - Recruitment admin: 5 inline `<script>` blocks moved out of
   `class-ffc-recruitment-admin-page.php` into the
   `ffc-recruitment-admin.js` bundle and consolidated into 2 generic
