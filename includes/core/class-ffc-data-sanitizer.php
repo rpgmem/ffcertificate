@@ -57,6 +57,23 @@ class DataSanitizer {
 	 * @param string $name Name to normalize.
 	 * @return string Normalized name
 	 */
+	/**
+	 * Strip every non-digit character from a Brazilian CPF or RF input.
+	 *
+	 * The plugin stores CPF/RF as digits-only and accepts the value in
+	 * a variety of masked forms (`123.456.789-00`, `123 456 789-00`,
+	 * `123/456/789-00`, etc.). This helper centralises the digits-only
+	 * cast so call sites don't repeat the `preg_replace('/[^0-9]/', ...)`
+	 * pattern.
+	 *
+	 * @since 6.6.1
+	 * @param string $value Raw user-supplied CPF/RF.
+	 * @return string Digits-only string (may be empty if input had no digits).
+	 */
+	public static function normalize_cpf_rf( string $value ): string {
+		return preg_replace( '/[^0-9]/', '', $value ) ?? '';
+	}
+
 	public static function normalize_brazilian_name( string $name ): string {
 		if ( empty( $name ) ) {
 			return '';
