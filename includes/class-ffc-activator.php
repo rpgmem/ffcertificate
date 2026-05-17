@@ -415,6 +415,62 @@ class Activator {
 	}
 
 	/**
+	 * Sprint-d (#249) — migrate the sibling instant columns that share
+	 * tables with the (a)(b)(c) targets. Each one follows the same
+	 * Category A semantic (instant in time) and would otherwise leave
+	 * the tables half-converted between DATETIME-with-WP-TZ and unix
+	 * UTC int. Tables touched: `ffc_submissions`, `ffc_reregistration_submissions`,
+	 * `ffc_recruitment_call`, and the self-scheduling appointments table.
+	 *
+	 * Out of scope: `created_at` / `updated_at` columns (MySQL
+	 * auto-managed via DEFAULT CURRENT_TIMESTAMP in some tables, PHP-
+	 * managed in others) — each pattern needs individual analysis,
+	 * deferred as separate tech debt.
+	 *
+	 * Idempotent via the `ffc_sibling_instants_unix_migrated` option flag.
+	 *
+	 * @since 6.6.0
+	 */
+	public static function maybe_migrate_sibling_instants_to_unix(): void {
+		if ( '1' === get_option( 'ffc_sibling_instants_unix_migrated', '' ) ) {
+			return;
+		}
+
+		global $wpdb;
+
+		// ffc_submissions (paired with submission_date from Sprint a).
+		$submissions_table = \FreeFormCertificate\Core\Utils::get_submissions_table();
+		self::migrate_datetime_column_to_unix( $submissions_table, 'consent_date', true );
+		self::migrate_datetime_column_to_unix( $submissions_table, 'edited_at', true );
+
+		// ffc_reregistration_submissions (paired with submitted_at from Sprint b).
+		self::migrate_datetime_column_to_unix(
+			$wpdb->prefix . 'ffc_reregistration_submissions',
+			'reviewed_at',
+			true
+		);
+
+		// ffc_recruitment_call (paired with called_at from Sprint c). The
+		// composite index `idx_classification_cancelled` references the old
+		// DATETIME column, so it must drop + recreate alongside the rename.
+		self::migrate_datetime_column_to_unix(
+			$wpdb->prefix . 'ffc_recruitment_call',
+			'cancelled_at',
+			true,
+			array( 'idx_classification_cancelled' ),
+			array( 'idx_classification_cancelled' => '(classification_id, cancelled_at)' )
+		);
+
+		// Self-scheduling appointments table (#249 expansion).
+		$apt_table = $wpdb->prefix . 'ffc_appointments';
+		foreach ( array( 'approved_at', 'cancelled_at', 'consent_date', 'reminder_sent_at' ) as $col ) {
+			self::migrate_datetime_column_to_unix( $apt_table, $col, true );
+		}
+
+		update_option( 'ffc_sibling_instants_unix_migrated', '1', true );
+	}
+
+	/**
 	 * Add columns.
 	 */
 	private static function add_columns(): void {
@@ -481,8 +537,9 @@ class Activator {
 				'type'  => 'TINYINT(1) DEFAULT 0',
 				'after' => 'data_encrypted',
 			),
+			// Category A instant since 6.6.0 (#249 sub-escopo d) — unix UTC.
 			'consent_date'      => array(
-				'type'  => 'DATETIME DEFAULT NULL',
+				'type'  => 'BIGINT UNSIGNED DEFAULT NULL',
 				'after' => 'consent_given',
 			),
 			'consent_text'      => array(
@@ -493,8 +550,9 @@ class Activator {
 				'type'  => 'LONGTEXT DEFAULT NULL',
 				'after' => 'consent_text',
 			),
+			// Category A instant since 6.6.0 (#249 sub-escopo d) — unix UTC.
 			'edited_at'         => array(
-				'type'  => 'DATETIME NULL DEFAULT NULL',
+				'type'  => 'BIGINT UNSIGNED DEFAULT NULL',
 				'after' => 'qr_code_cache',
 			),
 			'edited_by'         => array(
@@ -836,7 +894,7 @@ class Activator {
             data json DEFAULT NULL,
             status varchar(20) NOT NULL DEFAULT 'pending',
             submitted_at bigint(20) unsigned DEFAULT NULL,
-            reviewed_at datetime DEFAULT NULL,
+            reviewed_at bigint(20) unsigned DEFAULT NULL,
             reviewed_by bigint(20) unsigned DEFAULT NULL,
             notes text DEFAULT NULL,
             created_at datetime DEFAULT CURRENT_TIMESTAMP,

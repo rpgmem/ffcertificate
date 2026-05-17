@@ -182,6 +182,11 @@ class Loader {
 		// BIGINT NULL (#249 sub-escopo b). Idempotent — option-flag gated.
 		\FreeFormCertificate\Activator::maybe_migrate_submitted_at_to_unix();
 
+		// 6.6.0: sibling instant columns (#249 sub-escopo d) — consent_date,
+		// edited_at, reviewed_at, cancelled_at × 2, approved_at, reminder_sent_at.
+		// Idempotent — option-flag gated.
+		\FreeFormCertificate\Activator::maybe_migrate_sibling_instants_to_unix();
+
 		// Ensure rate-limit tables (incl. ffc_device_signals added in 6.3.0) exist
 		// even after in-place plugin updates that bypass register_activation_hook.
 		if ( class_exists( '\FreeFormCertificate\Security\RateLimitActivator' ) ) {

@@ -262,7 +262,8 @@ class MigrationCustomFieldsTables {
             data json DEFAULT NULL,
             status varchar(20) NOT NULL DEFAULT 'pending',
             submitted_at bigint(20) unsigned DEFAULT NULL,
-            reviewed_at datetime DEFAULT NULL,
+            -- `reviewed_at` is Category A (instant) since 6.6.0 — see CLAUDE.md.
+            reviewed_at bigint(20) unsigned DEFAULT NULL,
             reviewed_by bigint(20) unsigned DEFAULT NULL,
             notes text DEFAULT NULL,
             auth_code varchar(20) DEFAULT NULL,

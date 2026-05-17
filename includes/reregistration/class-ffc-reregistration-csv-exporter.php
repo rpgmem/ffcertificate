@@ -95,10 +95,13 @@ class ReregistrationCsvExporter {
 			// Decrypt sensitive fields in-place.
 			$values = self::decrypt_sensitive( $fields, $values );
 
-			// `submitted_at` is unix UTC int since 6.6.0 (#249 sub-escopo b);
-			// format for human eyes in the CSV.
+			// `submitted_at`/`reviewed_at` are unix UTC int since 6.6.0
+			// (#249 sub-escopos b/d); format for human eyes in the CSV.
 			$submitted_at_display = ! empty( $sub->submitted_at )
 				? \FreeFormCertificate\Core\DateFormatter::format_datetime( (int) $sub->submitted_at )
+				: '';
+			$reviewed_at_display  = ! empty( $sub->reviewed_at )
+				? \FreeFormCertificate\Core\DateFormatter::format_datetime( (int) $sub->reviewed_at )
 				: '';
 			$row                  = array(
 				$sub->user_id,
@@ -106,7 +109,7 @@ class ReregistrationCsvExporter {
 				$sub->user_email ?? '',
 				$sub->status,
 				$submitted_at_display,
-				$sub->reviewed_at ?? '',
+				$reviewed_at_display,
 			);
 
 			foreach ( $fields as $f ) {

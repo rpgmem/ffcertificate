@@ -202,9 +202,9 @@ class SubmissionHandler {
 		$ip_encrypted      = $encrypted['user_ip_encrypted'] ?? null;
 		$data_encrypted    = $encrypted['data_encrypted'] ?? null;
 
-		// 7. LGPD Consent.
+		// 7. LGPD Consent. `consent_date` is unix UTC int since 6.6.0 (#249 sub-escopo d).
 		$consent_given = isset( $submission_data['ffc_lgpd_consent'] ) && '1' === $submission_data['ffc_lgpd_consent'] ? 1 : 0;
-		$consent_date  = $consent_given ? current_time( 'mysql' ) : null;
+		$consent_date  = $consent_given ? time() : null;
 		$consent_text  = $consent_given ? __( 'User agreed to Privacy Policy and data storage', 'ffcertificate' ) : null;
 
 		// 8. Link to WordPress user (v3.1.0)
@@ -363,9 +363,10 @@ class SubmissionHandler {
 	 * @return bool True on success
 	 */
 	public function update_user_link( int $id, ?int $user_id ): bool {
+		// `edited_at` is unix UTC int since 6.6.0 (#249 sub-escopo d).
 		$update_data = array(
 			'user_id'   => $user_id,
-			'edited_at' => current_time( 'mysql' ),
+			'edited_at' => time(),
 			'edited_by' => get_current_user_id(),
 		);
 

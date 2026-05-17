@@ -702,8 +702,10 @@ class ReregistrationSubmissionRepositoryTest extends TestCase {
             ->with(
                 'wp_ffc_reregistration_submissions',
                 Mockery::on(function ($data) {
+                    // `reviewed_at` is unix UTC int since 6.6.0 (#249 sub-escopo d).
                     return $data['status'] === 'approved'
-                        && $data['reviewed_at'] === '2026-03-01 12:00:00'
+                        && is_int($data['reviewed_at'])
+                        && $data['reviewed_at'] > time() - 10
                         && $data['reviewed_by'] === 99;
                 }),
                 array('id' => 5),
@@ -735,8 +737,10 @@ class ReregistrationSubmissionRepositoryTest extends TestCase {
             ->with(
                 'wp_ffc_reregistration_submissions',
                 Mockery::on(function ($data) {
+                    // `reviewed_at` is unix UTC int since 6.6.0 (#249 sub-escopo d).
                     return $data['status'] === 'rejected'
-                        && $data['reviewed_at'] === '2026-03-01 12:00:00'
+                        && is_int($data['reviewed_at'])
+                        && $data['reviewed_at'] > time() - 10
                         && $data['reviewed_by'] === 99
                         && $data['notes'] === 'Incomplete submission';
                 }),

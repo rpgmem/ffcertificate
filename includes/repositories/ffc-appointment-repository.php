@@ -340,7 +340,8 @@ class AppointmentRepository extends AbstractRepository {
 			$id,
 			array(
 				'status'              => 'cancelled',
-				'cancelled_at'        => current_time( 'mysql' ),
+				// `cancelled_at` is unix UTC int since 6.6.0 (#249 sub-escopo d).
+				'cancelled_at'        => time(),
 				'cancelled_by'        => $cancelled_by,
 				'cancellation_reason' => $reason,
 				'updated_at'          => current_time( 'mysql' ),
@@ -360,7 +361,8 @@ class AppointmentRepository extends AbstractRepository {
 			$id,
 			array(
 				'status'      => 'confirmed',
-				'approved_at' => current_time( 'mysql' ),
+				// `approved_at` is unix UTC int since 6.6.0 (#249 sub-escopo d).
+				'approved_at' => time(),
 				'approved_by' => $approved_by,
 				'updated_at'  => current_time( 'mysql' ),
 			)
@@ -450,7 +452,8 @@ class AppointmentRepository extends AbstractRepository {
 		return $this->update(
 			$id,
 			array(
-				'reminder_sent_at' => current_time( 'mysql' ),
+				// `reminder_sent_at` is unix UTC int since 6.6.0 (#249 sub-escopo d).
+				'reminder_sent_at' => time(),
 			)
 		);
 	}

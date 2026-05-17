@@ -954,7 +954,8 @@ class SubmissionRepository extends AbstractRepository {
 	public function updateWithEditTracking( int $id, array $data ) {
 		// Check if edited_at column exists (cached per request).
 		if ( $this->column_exists( 'edited_at' ) ) {
-			$data['edited_at'] = current_time( 'mysql' );
+			// `edited_at` is unix UTC int since 6.6.0 (#249 sub-escopo d).
+			$data['edited_at'] = time();
 
 			// Add edited_by if column exists (cached per request).
 			if ( $this->column_exists( 'edited_by' ) ) {

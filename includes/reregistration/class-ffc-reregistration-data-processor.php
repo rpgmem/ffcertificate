@@ -269,7 +269,8 @@ class ReregistrationDataProcessor {
 		);
 
 		if ( 'approved' === $new_status ) {
-			$update_data['reviewed_at'] = current_time( 'mysql' );
+			// `reviewed_at` is unix UTC int since 6.6.0 (#249 sub-escopo d).
+			$update_data['reviewed_at'] = time();
 			$update_data['reviewed_by'] = 0;
 			$update_data['notes']       = __( 'Auto-approved', 'ffcertificate' );
 		}

@@ -147,6 +147,112 @@ trait DatabaseHelperTrait {
 	}
 
 	/**
+	 * Idempotently migrate a DATETIME column to BIGINT UNSIGNED unix UTC
+	 * seconds (#249 Category A instants). Used by Sprints a/b/c/d of #249
+	 * to keep the per-column migration code DRY.
+	 *
+	 * Steps (each gated by existence checks so the routine survives a
+	 * partial-failure restart):
+	 *   1. ADD staging column `<column>_ts BIGINT UNSIGNED` (NOT NULL
+	 *      DEFAULT 0 for required columns, DEFAULT NULL otherwise).
+	 *   2. PHP backfill: parse the existing DATETIME literal in
+	 *      `wp_timezone()` and stash the resulting unix UTC int.
+	 *      MySQL's UNIX_TIMESTAMP() respects the session TZ which WP
+	 *      doesn't pin, so the PHP path is the only correct one.
+	 *   3. DROP every index named in $drop_indexes (composite indexes
+	 *      that reference the old DATETIME column must go first).
+	 *   4. DROP the old DATETIME column.
+	 *   5. RENAME the staging column over it.
+	 *   6. Recreate indexes from $recreate_indexes (now against the int
+	 *      column). Index name => SQL spec.
+	 *
+	 * Caller owns the schema-version flag that pins this to one run.
+	 *
+	 * @param string                $table_name      Full table name.
+	 * @param string                $column          Column to migrate.
+	 * @param bool                  $nullable        Whether the column allows NULL.
+	 *                                               When true the staging column is
+	 *                                               also NULL and the backfill filter
+	 *                                               uses `IS NOT NULL` instead of `= 0`.
+	 * @param array<int, string>    $drop_indexes    Index names to drop before the column rename.
+	 * @param array<string, string> $recreate_indexes Index name => `(col, col)` to recreate after rename.
+	 * @return void
+	 */
+	protected static function migrate_datetime_column_to_unix(
+		string $table_name,
+		string $column,
+		bool $nullable = true,
+		array $drop_indexes = array(),
+		array $recreate_indexes = array()
+	): void {
+		if ( ! self::table_exists( $table_name ) ) {
+			return;
+		}
+
+		$has_old      = self::column_exists( $table_name, $column );
+		$staging_name = $column . '_ts';
+		$has_new      = self::column_exists( $table_name, $staging_name );
+
+		if ( ! $has_new ) {
+			if ( ! $has_old ) {
+				return; // Fresh schema at 6.6.0+ already has the int column.
+			}
+			$staging_type = $nullable
+				? 'BIGINT UNSIGNED DEFAULT NULL'
+				: 'BIGINT UNSIGNED NOT NULL DEFAULT 0';
+			self::add_column_if_missing( $table_name, $staging_name, $staging_type, $column );
+		}
+
+		if ( $has_old ) {
+			global $wpdb;
+			$tz               = wp_timezone();
+			$where_unmigrated = $nullable
+				? "{$column} IS NOT NULL AND {$staging_name} IS NULL"
+				: "{$staging_name} = 0";
+			do {
+				// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- $where_unmigrated built from trusted internal column names.
+				$rows = $wpdb->get_results(
+					$wpdb->prepare( "SELECT id, {$column} AS legacy_value FROM %i WHERE {$where_unmigrated} LIMIT 500", $table_name )
+				);
+				if ( empty( $rows ) ) {
+					break;
+				}
+				foreach ( $rows as $row ) {
+					try {
+						$dt = new \DateTimeImmutable( (string) $row->legacy_value, $tz );
+						// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+						$wpdb->update(
+							$table_name,
+							array( $staging_name => $dt->getTimestamp() ),
+							array( 'id' => (int) $row->id ),
+							array( '%d' ),
+							array( '%d' )
+						);
+					} catch ( \Exception $e ) {
+						unset( $e );
+					}
+				}
+			} while ( count( $rows ) === 500 );
+
+			foreach ( $drop_indexes as $idx ) {
+				if ( self::index_exists( $table_name, $idx ) ) {
+					// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange
+					$wpdb->query( $wpdb->prepare( 'ALTER TABLE %i DROP INDEX %i', $table_name, $idx ) );
+				}
+			}
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange
+			$wpdb->query( $wpdb->prepare( 'ALTER TABLE %i DROP COLUMN %i', $table_name, $column ) );
+			$rename_type = $nullable ? 'BIGINT UNSIGNED DEFAULT NULL' : 'BIGINT UNSIGNED NOT NULL';
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- $rename_type is a SQL type definition from trusted internal config.
+			$wpdb->query( $wpdb->prepare( "ALTER TABLE %i CHANGE %i %i {$rename_type}", $table_name, $staging_name, $column ) );
+
+			if ( ! empty( $recreate_indexes ) ) {
+				self::add_indexes_if_missing( $table_name, $recreate_indexes );
+			}
+		}
+	}
+
+	/**
 	 * Add multiple indexes to a table from a configuration array.
 	 *
 	 * @param string                $table_name Full table name.

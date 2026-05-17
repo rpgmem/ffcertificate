@@ -20,7 +20,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 /**
  * Database repository for reregistration submission records.
  *
- * @phpstan-type ReregistrationSubmissionRow \stdClass&object{id: string, reregistration_id: string, user_id: string, status: string, submitted_at: numeric-string|int|null, reviewed_at: string|null, reviewed_by: string|null, notes: string|null, auth_code: string|null, magic_token: string|null, created_at: string, updated_at: string, data?: string|null}
+ * @phpstan-type ReregistrationSubmissionRow \stdClass&object{id: string, reregistration_id: string, user_id: string, status: string, submitted_at: numeric-string|int|null, reviewed_at: numeric-string|int|null, reviewed_by: string|null, notes: string|null, auth_code: string|null, magic_token: string|null, created_at: string, updated_at: string, data?: string|null}
  */
 class ReregistrationSubmissionRepository {
 	use \FreeFormCertificate\Core\StaticRepositoryTrait;
@@ -389,9 +389,9 @@ class ReregistrationSubmissionRepository {
 		$field_formats = array(
 			'data'         => '%s',
 			'status'       => '%s',
-			// `submitted_at` is unix UTC int since 6.6.0 (#249 sub-escopo b).
+			// `submitted_at`/`reviewed_at` are unix UTC int since 6.6.0 (#249 sub-escopos b/d).
 			'submitted_at' => '%d',
-			'reviewed_at'  => '%s',
+			'reviewed_at'  => '%d',
 			'reviewed_by'  => '%d',
 			'notes'        => '%s',
 			'auth_code'    => '%s',
@@ -444,7 +444,7 @@ class ReregistrationSubmissionRepository {
 			$id,
 			array(
 				'status'      => 'approved',
-				'reviewed_at' => current_time( 'mysql' ),
+				'reviewed_at' => time(),
 				'reviewed_by' => $reviewer_id,
 			)
 		);
@@ -467,7 +467,7 @@ class ReregistrationSubmissionRepository {
 			$id,
 			array(
 				'status'      => 'rejected',
-				'reviewed_at' => current_time( 'mysql' ),
+				'reviewed_at' => time(),
 				'reviewed_by' => $reviewer_id,
 				'notes'       => $notes,
 			)

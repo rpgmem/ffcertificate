@@ -148,7 +148,8 @@ class PublicCsvExporterTest extends TestCase {
             'auth_code'         => 'ABC123',
             'magic_token'       => 'tok_abc',
             'consent_given'     => 1,
-            'consent_date'      => '2026-01-15 10:30:00',
+            // Category A instant since 6.6.0 (#249 sub-escopo d) — unix UTC.
+            'consent_date'      => 1768473000,
             'consent_text'      => 'I agree',
             'status'            => 'publish',
             'data'              => '{"field_name":"John","field_city":"SP"}',
@@ -182,7 +183,8 @@ class PublicCsvExporterTest extends TestCase {
         $this->assertSame( 'ABC123', $result[8] );
         $this->assertSame( 'tok_abc', $result[9] );
         $this->assertSame( 'Yes', $result[10] );
-        $this->assertSame( '2026-01-15 10:30:00', $result[11] );
+        // DateFormatter default ('d/m/Y H:i') under UTC stub.
+        $this->assertSame( '15/01/2026 10:30', $result[11] );
         $this->assertSame( '203.0.113.1', $result[12] );
         $this->assertSame( 'I agree', $result[13] );
         $this->assertSame( 'publish', $result[14] );
@@ -209,14 +211,16 @@ class PublicCsvExporterTest extends TestCase {
 
     public function test_format_csv_row_with_edit_columns(): void {
         $row              = $this->sample_row();
-        $row['edited_at'] = '2026-02-01 09:00:00';
+        // `edited_at` is unix UTC int since 6.6.0 (#249 sub-escopo d).
+        // 1770368400 = 2026-02-06 09:00:00 UTC.
+        $row['edited_at'] = 1770368400;
         $row['edited_by'] = 5;
         $result           = $this->invoke( 'format_csv_row', array( $row, array(), true ) );
 
         // 15 fixed + 3 edit = 18
         $this->assertCount( 18, $result );
         $this->assertSame( 'Yes', $result[15] );
-        $this->assertSame( '2026-02-01 09:00:00', $result[16] );
+        $this->assertSame( '06/02/2026 09:00', $result[16] );
         $this->assertSame( 'Admin User', $result[17] );
     }
 

@@ -128,7 +128,8 @@ class CsvExporterTest extends TestCase {
             'auth_code'         => 'ABC123',
             'magic_token'       => 'abc123def456',
             'consent_given'     => 1,
-            'consent_date'      => '2025-01-15 10:30:00',
+            // Category A instant since 6.6.0 (#249 sub-escopo d) — unix UTC.
+            'consent_date'      => 1736937000,
             // consent_ip derived from decrypted user_ip
             'consent_text'      => 'I agree',
             'status'            => 'publish',
@@ -183,13 +184,16 @@ class CsvExporterTest extends TestCase {
 
     public function test_format_csv_row_with_edit_columns(): void {
         $row = $this->sample_row();
-        $row['edited_at'] = '2025-02-01 09:00:00';
+        // `edited_at` is unix UTC int since 6.6.0 (#249 sub-escopo d).
+        // 1738400400 = 2025-02-01 09:00:00 UTC.
+        $row['edited_at'] = 1738400400;
         $row['edited_by'] = 5;
         $result = $this->invoke( 'format_csv_row', array( $row, array(), true ) );
         // 15 fixed + 3 edit = 18
         $this->assertCount( 18, $result );
         $this->assertSame( 'Yes', $result[15] );                      // Was Edited
-        $this->assertSame( '2025-02-01 09:00:00', $result[16] );      // Edit Date
+        // DateFormatter default ('d/m/Y H:i') under UTC stub.
+        $this->assertSame( '01/02/2025 09:00', $result[16] );         // Edit Date
         $this->assertSame( 'Admin User', $result[17] );               // Edited By
     }
 

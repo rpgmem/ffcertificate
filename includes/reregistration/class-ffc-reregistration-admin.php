@@ -695,8 +695,8 @@ class ReregistrationAdmin {
 			$submitted = '—';
 		}
 		if ( $sub->reviewed_at ) {
-			$reviewed_ts  = strtotime( $sub->reviewed_at );
-			$reviewed_raw = \FreeFormCertificate\Core\DateFormatter::format_datetime( $reviewed_ts ? $reviewed_ts : time() );
+			// `reviewed_at` is unix UTC int since 6.6.0 (#249 sub-escopo d).
+			$reviewed_raw = \FreeFormCertificate\Core\DateFormatter::format_datetime( (int) $sub->reviewed_at );
 			$reviewed     = $reviewed_raw ? $reviewed_raw : '—';
 		} else {
 			$reviewed = '—';

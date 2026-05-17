@@ -26,7 +26,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 /**
  * Database repository for `ffc_recruitment_call` rows.
  *
- * @phpstan-type CallRow \stdClass&object{id: numeric-string, classification_id: numeric-string, called_at: numeric-string|int, date_to_assume: string, time_to_assume: string, out_of_order: numeric-string, out_of_order_reason: string|null, cancellation_reason: string|null, cancelled_at: string|null, cancelled_by: numeric-string|null, notes: string|null, created_by: numeric-string, created_at: string, updated_at: string}
+ * @phpstan-type CallRow \stdClass&object{id: numeric-string, classification_id: numeric-string, called_at: numeric-string|int, date_to_assume: string, time_to_assume: string, out_of_order: numeric-string, out_of_order_reason: string|null, cancellation_reason: string|null, cancelled_at: numeric-string|int|null, cancelled_by: numeric-string|null, notes: string|null, created_by: numeric-string, created_at: string, updated_at: string}
  */
 class RecruitmentCallRepository {
 
@@ -278,14 +278,16 @@ class RecruitmentCallRepository {
 		$wpdb  = self::db();
 		$table = self::get_table_name();
 
-		$now = current_time( 'mysql' );
+		// `cancelled_at` is unix UTC int since 6.6.0 (#249 sub-escopo d).
+		$now          = current_time( 'mysql' );
+		$cancelled_at = time();
 
 		$prepared = $wpdb->prepare(
-			'UPDATE %i SET cancellation_reason = %s, cancelled_at = %s, cancelled_by = %d, updated_at = %s
+			'UPDATE %i SET cancellation_reason = %s, cancelled_at = %d, cancelled_by = %d, updated_at = %s
               WHERE id = %d AND cancelled_at IS NULL',
 			$table,
 			$reason,
-			$now,
+			$cancelled_at,
 			$cancelled_by,
 			$now,
 			$id

@@ -235,7 +235,10 @@ class SubmissionHandlerTest extends TestCase {
         $this->handler->process_submission( 1, 'Form', $data, 'c@test.com', array(), array() );
 
         $this->assertSame( 1, $captured['consent_given'] );
-        $this->assertSame( '2026-02-17 12:00:00', $captured['consent_date'] );
+        // `consent_date` is unix UTC int since 6.6.0 (#249 sub-escopo d) and
+        // sourced from `time()` directly (not mockable).
+        $this->assertIsInt( $captured['consent_date'] );
+        $this->assertGreaterThan( time() - 10, $captured['consent_date'] );
     }
 
     public function test_process_submission_data_field_encrypted(): void {
