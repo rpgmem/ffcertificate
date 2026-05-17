@@ -174,6 +174,19 @@ class Loader {
 		// on FFC_VERSION so the ALTER TABLE runs once per release.
 		\FreeFormCertificate\Activator::maybe_add_perf_indexes();
 
+		// 6.6.0: `submission_date` DATETIME → unix UTC BIGINT (#249 sub-escopo a).
+		// Idempotent — gated on a one-shot option flag.
+		\FreeFormCertificate\Activator::maybe_migrate_submission_date_to_unix();
+
+		// 6.6.0: `submitted_at` (ffc_reregistration_submissions) DATETIME → unix UTC
+		// BIGINT NULL (#249 sub-escopo b). Idempotent — option-flag gated.
+		\FreeFormCertificate\Activator::maybe_migrate_submitted_at_to_unix();
+
+		// 6.6.0: sibling instant columns (#249 sub-escopo d) — consent_date,
+		// edited_at, reviewed_at, cancelled_at × 2, approved_at, reminder_sent_at.
+		// Idempotent — option-flag gated.
+		\FreeFormCertificate\Activator::maybe_migrate_sibling_instants_to_unix();
+
 		// Ensure rate-limit tables (incl. ffc_device_signals added in 6.3.0) exist
 		// even after in-place plugin updates that bypass register_activation_hook.
 		if ( class_exists( '\FreeFormCertificate\Security\RateLimitActivator' ) ) {

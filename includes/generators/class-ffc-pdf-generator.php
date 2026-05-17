@@ -101,7 +101,9 @@ class PdfGenerator {
 		$form_config  = get_post_meta( $form_id, '_ffc_form_config', true );
 		$bg_image_url = get_post_meta( $form_id, '_ffc_form_bg', true );
 
-		$html = $this->generate_html( $data, $form_title, $form_config, $sub_array['submission_date'] );
+		// `submission_date` is unix UTC int since 6.6.0 (#249 sub-escopo a).
+		$submission_ts = isset( $sub_array['submission_date'] ) ? (int) $sub_array['submission_date'] : null;
+		$html          = $this->generate_html( $data, $form_title, $form_config, $submission_ts );
 
 		/**
 		 * Filters the generated certificate HTML before it is returned.
@@ -180,9 +182,11 @@ class PdfGenerator {
 			$data['email'] = $submission['email'];
 		}
 
-		// Add formatted date if missing.
+		// Add formatted date if missing. `submission_date` is unix UTC int
+		// since 6.6.0 (#249 sub-escopo a) — DateFormatter::format_date
+		// accepts int directly.
 		if ( ! isset( $data['fill_date'] ) ) {
-			$data['fill_date'] = \FreeFormCertificate\Core\DateFormatter::format_date( $submission['submission_date'], 'pdf' );
+			$data['fill_date'] = \FreeFormCertificate\Core\DateFormatter::format_date( (int) $submission['submission_date'], 'pdf' );
 		}
 
 		// Add date alias.
@@ -224,10 +228,10 @@ class PdfGenerator {
 	 * @param array<string, mixed> $data Submission data.
 	 * @param string               $form_title Form title.
 	 * @param array<string, mixed> $form_config Form configuration.
-	 * @param string               $submission_date Submission creation date from database.
+	 * @param int|null             $submission_date Submission creation instant (unix UTC seconds since 6.6.0).
 	 * @return string Generated HTML
 	 */
-	public function generate_html( array $data, string $form_title, array $form_config, ?string $submission_date = null ): string {
+	public function generate_html( array $data, string $form_title, array $form_config, ?int $submission_date = null ): string {
 		$layout = isset( $form_config['pdf_layout'] ) && is_string( $form_config['pdf_layout'] ) ? $form_config['pdf_layout'] : '';
 
 		// Use default template if none configured.
@@ -617,10 +621,10 @@ class PdfGenerator {
 	 *
 	 * @param array<string, mixed> $submission_data Posted form data.
 	 * @param int                  $form_id Form ID.
-	 * @param string               $submission_date Submission date.
+	 * @param int|null             $submission_date Submission instant (unix UTC seconds since 6.6.0).
 	 * @return array<string, mixed>|\WP_Error PDF data array
 	 */
-	public function generate_pdf_data_from_form( array $submission_data, int $form_id, ?string $submission_date = null ) {
+	public function generate_pdf_data_from_form( array $submission_data, int $form_id, ?int $submission_date = null ) {
 		// Get form data.
 		$form_post = get_post( $form_id );
 		if ( ! $form_post ) {

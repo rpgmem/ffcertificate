@@ -160,7 +160,11 @@ class SubmissionHandlerTest extends TestCase {
         $this->assertSame( 'publish', $captured['status'] );
         $this->assertNotEmpty( $captured['auth_code'] );
         $this->assertNotEmpty( $captured['magic_token'] );
-        $this->assertSame( '2026-02-17 12:00:00', $captured['submission_date'] );
+        // `submission_date` is unix UTC int since 6.6.0 (#249 sub-escopo a) —
+        // the handler now calls `time()` directly, which can't be mocked via
+        // Brain\Monkey. Asserting on the shape (int, recent-ish) is enough.
+        $this->assertIsInt( $captured['submission_date'] );
+        $this->assertGreaterThan( time() - 10, $captured['submission_date'] );
     }
 
     public function test_process_submission_encrypts_email_when_configured(): void {
@@ -231,7 +235,10 @@ class SubmissionHandlerTest extends TestCase {
         $this->handler->process_submission( 1, 'Form', $data, 'c@test.com', array(), array() );
 
         $this->assertSame( 1, $captured['consent_given'] );
-        $this->assertSame( '2026-02-17 12:00:00', $captured['consent_date'] );
+        // `consent_date` is unix UTC int since 6.6.0 (#249 sub-escopo d) and
+        // sourced from `time()` directly (not mockable).
+        $this->assertIsInt( $captured['consent_date'] );
+        $this->assertGreaterThan( time() - 10, $captured['consent_date'] );
     }
 
     public function test_process_submission_data_field_encrypted(): void {

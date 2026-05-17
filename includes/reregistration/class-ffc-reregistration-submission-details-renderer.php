@@ -58,8 +58,8 @@ final class ReregistrationSubmissionDetailsRenderer {
 
 		$submitted_at = '';
 		if ( ! empty( $submission->submitted_at ) ) {
-			$submitted_ts = strtotime( $submission->submitted_at );
-			$submitted_at = \FreeFormCertificate\Core\DateFormatter::format_datetime( false === $submitted_ts ? null : $submitted_ts );
+			// `submitted_at` is unix UTC int since 6.6.0 (#249 sub-escopo b).
+			$submitted_at = \FreeFormCertificate\Core\DateFormatter::format_datetime( (int) $submission->submitted_at );
 		}
 
 		ob_start();

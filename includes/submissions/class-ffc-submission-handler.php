@@ -202,9 +202,9 @@ class SubmissionHandler {
 		$ip_encrypted      = $encrypted['user_ip_encrypted'] ?? null;
 		$data_encrypted    = $encrypted['data_encrypted'] ?? null;
 
-		// 7. LGPD Consent.
+		// 7. LGPD Consent. `consent_date` is unix UTC int since 6.6.0 (#249 sub-escopo d).
 		$consent_given = isset( $submission_data['ffc_lgpd_consent'] ) && '1' === $submission_data['ffc_lgpd_consent'] ? 1 : 0;
-		$consent_date  = $consent_given ? current_time( 'mysql' ) : null;
+		$consent_date  = $consent_given ? time() : null;
 		$consent_text  = $consent_given ? __( 'User agreed to Privacy Policy and data storage', 'ffcertificate' ) : null;
 
 		// 8. Link to WordPress user (v3.1.0)
@@ -239,7 +239,10 @@ class SubmissionHandler {
 		$insert_data = array(
 			'form_id'           => $form_id,
 			'user_id'           => $user_id,  // v3.1.0: Link to WordPress user.
-			'submission_date'   => current_time( 'mysql' ),
+			// `submission_date` is unix UTC int since 6.6.0 (#249 sub-escopo a).
+			// `time()` is TZ-neutral by construction so we don't go through
+			// `current_time()` here.
+			'submission_date'   => time(),
 			'auth_code'         => $clean_auth_code,
 			'status'            => 'publish',
 			'magic_token'       => $magic_token,
@@ -360,9 +363,10 @@ class SubmissionHandler {
 	 * @return bool True on success
 	 */
 	public function update_user_link( int $id, ?int $user_id ): bool {
+		// `edited_at` is unix UTC int since 6.6.0 (#249 sub-escopo d).
 		$update_data = array(
 			'user_id'   => $user_id,
-			'edited_at' => current_time( 'mysql' ),
+			'edited_at' => time(),
 			'edited_by' => get_current_user_id(),
 		);
 
@@ -804,15 +808,18 @@ class SubmissionHandler {
 			return 0;
 		}
 
-		$cutoff_ts   = strtotime( "-{$cleanup_days} days" );
-		$cutoff_date = gmdate( 'Y-m-d H:i:s', $cutoff_ts ? $cutoff_ts : time() );
+		$cutoff_ts = strtotime( "-{$cleanup_days} days" );
+		if ( false === $cutoff_ts ) {
+			$cutoff_ts = time();
+		}
 
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		$deleted = $wpdb->query(
 			$wpdb->prepare(
-				"DELETE FROM %i WHERE submission_date < %s AND status = 'publish'",
+				// `submission_date` is unix UTC int since 6.6.0 (#249 sub-escopo a).
+				"DELETE FROM %i WHERE submission_date < %d AND status = 'publish'",
 				$table,
-				$cutoff_date
+				$cutoff_ts
 			)
 		);
 
@@ -822,7 +829,7 @@ class SubmissionHandler {
 				\FreeFormCertificate\Core\ActivityLog::LEVEL_INFO,
 				array(
 					'deleted_count' => $deleted,
-					'cutoff_date'   => $cutoff_date,
+					'cutoff_ts'     => $cutoff_ts,
 				)
 			);
 		}

@@ -262,13 +262,15 @@ class ReregistrationDataProcessor {
 		$update_data = array(
 			'data'         => $persisted_data,
 			'status'       => $new_status,
-			'submitted_at' => current_time( 'mysql' ),
+			// `submitted_at` is unix UTC int since 6.6.0 (#249 sub-escopo b).
+			'submitted_at' => time(),
 			'auth_code'    => $auth_code,
 			'magic_token'  => $magic_token,
 		);
 
 		if ( 'approved' === $new_status ) {
-			$update_data['reviewed_at'] = current_time( 'mysql' );
+			// `reviewed_at` is unix UTC int since 6.6.0 (#249 sub-escopo d).
+			$update_data['reviewed_at'] = time();
 			$update_data['reviewed_by'] = 0;
 			$update_data['notes']       = __( 'Auto-approved', 'ffcertificate' );
 		}

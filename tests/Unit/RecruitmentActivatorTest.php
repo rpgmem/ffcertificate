@@ -196,7 +196,8 @@ class RecruitmentActivatorTest extends TestCase {
 		$call_sql = $this->capture_table_sql( 'ffc_recruitment_call' );
 
 		$this->assertStringContainsString( 'KEY idx_classification_cancelled (classification_id, cancelled_at)', $call_sql );
-		$this->assertStringContainsString( 'cancelled_at datetime DEFAULT NULL', $call_sql );
+		// `cancelled_at` is unix UTC int since 6.6.0 (#249 sub-escopo d).
+		$this->assertStringContainsString( 'cancelled_at bigint(20) unsigned DEFAULT NULL', $call_sql );
 		$this->assertStringContainsString( 'cancellation_reason text DEFAULT NULL', $call_sql );
 	}
 

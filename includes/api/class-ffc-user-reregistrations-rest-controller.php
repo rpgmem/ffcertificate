@@ -99,8 +99,8 @@ class UserReregistrationsRestController {
 				$end_ts       = strtotime( $sub->end_date );
 				$submitted_at = '';
 				if ( ! empty( $sub->submitted_at ) ) {
-					$sub_ts       = strtotime( $sub->submitted_at );
-					$submitted_at = ( false !== $sub_ts ) ? \FreeFormCertificate\Core\DateFormatter::format_datetime( $sub_ts ) : $sub->submitted_at;
+					// `submitted_at` is unix UTC int since 6.6.0 (#249 sub-escopo b).
+					$submitted_at = \FreeFormCertificate\Core\DateFormatter::format_datetime( (int) $sub->submitted_at );
 				}
 
 				$can_download = in_array( $sub->status, array( 'submitted', 'approved' ), true );

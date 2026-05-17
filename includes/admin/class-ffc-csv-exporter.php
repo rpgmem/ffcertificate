@@ -501,11 +501,14 @@ class CsvExporter {
 		$cpf_val = \FreeFormCertificate\Core\Encryption::decrypt_field( $row, 'cpf' );
 		$rf_val  = \FreeFormCertificate\Core\Encryption::decrypt_field( $row, 'rf' );
 
+		// `submission_date` is unix UTC int since 6.6.0 (#249 sub-escopo a).
+		// Format for human eyes in the CSV; admins reading raw would expect
+		// a string here, not an epoch number.
 		$line = array(
 			$row['id'],
 			$form_display,
 			! empty( $row['user_id'] ) ? $row['user_id'] : '',
-			$row['submission_date'],
+			\FreeFormCertificate\Core\DateFormatter::format_datetime( (int) ( $row['submission_date'] ?? 0 ) ),
 			$email,
 			$user_ip,
 			$cpf_val,
@@ -513,7 +516,8 @@ class CsvExporter {
 			! empty( $row['auth_code'] ) ? $row['auth_code'] : '',
 			! empty( $row['magic_token'] ) ? $row['magic_token'] : '',
 			isset( $row['consent_given'] ) ? ( $row['consent_given'] ? __( 'Yes', 'ffcertificate' ) : __( 'No', 'ffcertificate' ) ) : '',
-			! empty( $row['consent_date'] ) ? $row['consent_date'] : '',
+			// `consent_date` is unix UTC int since 6.6.0 (#249 sub-escopo d); format for human eyes.
+			! empty( $row['consent_date'] ) ? \FreeFormCertificate\Core\DateFormatter::format_datetime( (int) $row['consent_date'] ) : '',
 			$user_ip, // Consent IP.
 			! empty( $row['consent_text'] ) ? $row['consent_text'] : '',
 			! empty( $row['status'] ) ? $row['status'] : 'publish',
@@ -525,7 +529,8 @@ class CsvExporter {
 			$edited_by  = '';
 			if ( ! empty( $row['edited_at'] ) ) {
 				$was_edited = __( 'Yes', 'ffcertificate' );
-				$edit_date  = $row['edited_at'];
+				// `edited_at` is unix UTC int since 6.6.0 (#249 sub-escopo d).
+				$edit_date = \FreeFormCertificate\Core\DateFormatter::format_datetime( (int) $row['edited_at'] );
 				if ( ! empty( $row['edited_by'] ) ) {
 					$user      = get_userdata( (int) $row['edited_by'] );
 					$edited_by = $user ? $user->display_name : 'ID: ' . $row['edited_by'];

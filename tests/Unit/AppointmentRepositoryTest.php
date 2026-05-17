@@ -947,7 +947,10 @@ class AppointmentRepositoryTest extends TestCase {
 
         $this->repo->cancel(1, 1, 'test');
 
-        $this->assertSame('2026-03-01 10:00:00', $captured_data['cancelled_at']);
+        // `cancelled_at` is unix UTC int since 6.6.0 (#249 sub-escopo d) and
+        // sourced from `time()` directly (can't be mocked); shape-check it.
+        $this->assertIsInt( $captured_data['cancelled_at'] );
+        $this->assertGreaterThan( time() - 10, $captured_data['cancelled_at'] );
         $this->assertSame('2026-03-01 10:00:00', $captured_data['updated_at']);
     }
 
@@ -1059,7 +1062,9 @@ class AppointmentRepositoryTest extends TestCase {
 
         $this->assertSame(1, $result);
         $this->assertArrayHasKey('reminder_sent_at', $captured_data);
-        $this->assertSame('2026-03-01 10:00:00', $captured_data['reminder_sent_at']);
+        // `reminder_sent_at` is unix UTC int since 6.6.0 (#249 sub-escopo d).
+        $this->assertIsInt( $captured_data['reminder_sent_at'] );
+        $this->assertGreaterThan( time() - 10, $captured_data['reminder_sent_at'] );
     }
 
     // ==================================================================

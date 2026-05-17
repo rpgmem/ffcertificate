@@ -35,6 +35,13 @@ class AppointmentCsvExporterTest extends TestCase {
         Functions\when( 'wp_cache_get' )->justReturn( false );
         Functions\when( 'wp_cache_set' )->justReturn( true );
         Functions\when( 'wp_cache_delete' )->justReturn( true );
+        Functions\when( 'get_option' )->justReturn( array() );
+        Functions\when( 'wp_date' )->alias( function ( $format, $ts = null ) {
+            return gmdate( $format, $ts ?? time() );
+        } );
+        Functions\when( 'wp_timezone' )->alias( function () {
+            return new \DateTimeZone( 'UTC' );
+        } );
 
         // global $wpdb for repo constructors
         global $wpdb;

@@ -147,7 +147,8 @@ class AdminSubmissionEditPage {
 			return;
 		}
 
-		$edited_at      = $this->sub_array['edited_at'];
+		// `edited_at` is unix UTC int since 6.6.0 (#249 sub-escopo d).
+		$edited_at      = (int) $this->sub_array['edited_at'];
 		$edited_by_id   = ! empty( $this->sub_array['edited_by'] ) ? (int) $this->sub_array['edited_by'] : 0;
 		$edited_by_name = '';
 
@@ -336,8 +337,11 @@ class AdminSubmissionEditPage {
 	 */
 	private function render_consent_section(): void {
 		$consent_given = isset( $this->sub_array['consent_given'] ) ? (int) $this->sub_array['consent_given'] : 0;
-		$consent_date  = isset( $this->sub_array['consent_date'] ) ? $this->sub_array['consent_date'] : '';
-		$consent_ip    = \FreeFormCertificate\Core\Encryption::decrypt_field( $this->sub_array, 'user_ip' );
+		// `consent_date` is unix UTC int since 6.6.0 (#249 sub-escopo d).
+		$consent_date = ! empty( $this->sub_array['consent_date'] )
+			? \FreeFormCertificate\Core\DateFormatter::format_datetime( (int) $this->sub_array['consent_date'] )
+			: '';
+		$consent_ip   = \FreeFormCertificate\Core\Encryption::decrypt_field( $this->sub_array, 'user_ip' );
 
 		?>
 		<!-- SEÇÃO LGPD CONSENT STATUS (collapsible) -->

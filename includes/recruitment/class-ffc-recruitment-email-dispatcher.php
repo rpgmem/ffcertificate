@@ -183,7 +183,10 @@ final class RecruitmentEmailDispatcher {
 			'is_pcd'         => true === $is_pcd ? __( 'Yes', 'ffcertificate' ) : __( 'No', 'ffcertificate' ),
 			'date_to_assume' => $call->date_to_assume,
 			'time_to_assume' => $call->time_to_assume,
-			'called_at'      => $call->called_at,
+			// `called_at` is unix UTC int since 6.6.0 (#249 sub-escopo c). The
+			// {{called_at}} placeholder lands in user-facing emails, so format
+			// via DateFormatter so the site's date/time format applies.
+			'called_at'      => \FreeFormCertificate\Core\DateFormatter::format_datetime( (int) $call->called_at ),
 			'site_name'      => wp_specialchars_decode( (string) get_option( 'blogname', '' ), ENT_QUOTES ),
 			'site_url'       => (string) get_option( 'siteurl', '' ),
 			'notes'          => null === $call->notes ? '' : $call->notes,

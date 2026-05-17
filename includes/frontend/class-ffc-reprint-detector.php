@@ -113,7 +113,7 @@ class ReprintDetector {
 	 * Build reprint result from a database row
 	 *
 	 * @param object $existing_submission Database row.
-	 * @phpstan-param \stdClass&object{id: numeric-string, submission_date: string, email_encrypted?: string|null, data?: string|null} $existing_submission
+	 * @phpstan-param \stdClass&object{id: numeric-string, submission_date: numeric-string|int, email_encrypted?: string|null, data?: string|null} $existing_submission
 	 * @return array<string, mixed> Reprint result array
 	 */
 	private static function build_reprint_result( object $existing_submission ): array {
@@ -154,7 +154,8 @@ class ReprintDetector {
 			'data'       => $decoded_data,
 			'id'         => $existing_submission->id,
 			'email'      => $email,
-			'date'       => $existing_submission->submission_date,
+			// `submission_date` is unix UTC int since 6.6.0 (#249 sub-escopo a).
+			'date'       => (int) $existing_submission->submission_date,
 		);
 	}
 }

@@ -125,11 +125,12 @@ class ReprintDetectorTest extends TestCase {
             ->andReturn('hashed_ticket');
         $encMock->shouldReceive('decrypt')->andReturn(null);
 
+        // `submission_date` is unix UTC int since 6.6.0 (#249 sub-escopo a).
         $row = $this->makeSubmissionRow([
             'id' => 99,
             'data' => '{"name":"John","auth_code":"XXXX"}',
             'auth_code' => 'CODE123',
-            'submission_date' => '2025-06-15 10:00:00',
+            'submission_date' => 1750000000,
         ]);
 
         $this->wpdb->shouldReceive('get_row')->once()->andReturn($row);
@@ -138,7 +139,7 @@ class ReprintDetectorTest extends TestCase {
 
         $this->assertTrue($result['is_reprint']);
         $this->assertSame(99, $result['id']);
-        $this->assertSame('2025-06-15 10:00:00', $result['date']);
+        $this->assertSame(1750000000, $result['date']);
         $this->assertSame('John', $result['data']['name']);
     }
 

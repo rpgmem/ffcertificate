@@ -170,12 +170,12 @@ class SelfSchedulingActivator {
             -- Status workflow
             status varchar(20) DEFAULT 'pending' COMMENT 'pending, confirmed, cancelled, completed, no_show',
 
-            -- Approval (if calendar requires approval)
-            approved_at datetime DEFAULT NULL,
+            -- Approval (if calendar requires approval). Category A instant since 6.6.0 (#249).
+            approved_at bigint(20) unsigned DEFAULT NULL,
             approved_by bigint(20) unsigned DEFAULT NULL,
 
-            -- Cancellation tracking
-            cancelled_at datetime DEFAULT NULL,
+            -- Cancellation tracking. `cancelled_at` Category A instant since 6.6.0.
+            cancelled_at bigint(20) unsigned DEFAULT NULL,
             cancelled_by bigint(20) unsigned DEFAULT NULL,
             cancellation_reason text DEFAULT NULL,
 
@@ -185,9 +185,9 @@ class SelfSchedulingActivator {
             -- Validation code (user-friendly code for verification, like certificates)
             validation_code varchar(20) DEFAULT NULL,
 
-            -- LGPD Consent
+            -- LGPD Consent. `consent_date` Category A instant since 6.6.0.
             consent_given tinyint(1) DEFAULT 0,
-            consent_date datetime DEFAULT NULL,
+            consent_date bigint(20) unsigned DEFAULT NULL,
             consent_text text DEFAULT NULL,
 
             -- Metadata
@@ -197,8 +197,8 @@ class SelfSchedulingActivator {
             created_at datetime NOT NULL,
             updated_at datetime DEFAULT NULL,
 
-            -- Reminder sent tracking
-            reminder_sent_at datetime DEFAULT NULL,
+            -- Reminder sent tracking. Category A instant since 6.6.0.
+            reminder_sent_at bigint(20) unsigned DEFAULT NULL,
 
             PRIMARY KEY (id),
             KEY calendar_id (calendar_id),

@@ -122,7 +122,8 @@ class AppointmentHandler {
 			return new \WP_Error( 'consent_required', __( 'You must agree to the terms to book an appointment.', 'ffcertificate' ) );
 		}
 
-		$data['consent_date'] = current_time( 'mysql' );
+		// `consent_date` is unix UTC int since 6.6.0 (#249 sub-escopo d).
+		$data['consent_date'] = time();
 		// consent_ip is stored via user_ip_encrypted (same IP, encrypted).
 
 		// Create or link user if CPF/RF is provided and user is not logged in.
@@ -134,7 +135,8 @@ class AppointmentHandler {
 		$data['status'] = $calendar['requires_approval'] ? 'pending' : 'confirmed';
 
 		if ( 'confirmed' === $data['status'] ) {
-			$data['approved_at'] = current_time( 'mysql' );
+			// `approved_at` is unix UTC int since 6.6.0 (#249 sub-escopo d).
+			$data['approved_at'] = time();
 		}
 
 		// === BEGIN TRANSACTION: Atomic validate + insert ===.

@@ -36,6 +36,13 @@ class CsvExporterTest extends TestCase {
             $user->display_name = 'Admin User';
             return $user;
         } );
+        Functions\when( 'get_option' )->justReturn( array() );
+        Functions\when( 'wp_date' )->alias( function ( $format, $ts = null ) {
+            return gmdate( $format, $ts ?? time() );
+        } );
+        Functions\when( 'wp_timezone' )->alias( function () {
+            return new \DateTimeZone( 'UTC' );
+        } );
 
         // Create instance without constructor to avoid SubmissionRepository
         $ref = new \ReflectionClass( CsvExporter::class );
@@ -105,7 +112,9 @@ class CsvExporterTest extends TestCase {
             'id'                => 1,
             'form_id'           => 42,
             'user_id'           => 10,
-            'submission_date'   => '2025-01-15 10:30:00',
+            // `submission_date` is unix UTC int since 6.6.0 (#249 sub-escopo a).
+            // 1736937000 = 2025-01-15 10:30:00 UTC.
+            'submission_date'   => 1736937000,
             'email'             => 'test@example.com',
             'email_encrypted'   => '',
             'user_ip'           => '192.168.1.1',
@@ -119,7 +128,8 @@ class CsvExporterTest extends TestCase {
             'auth_code'         => 'ABC123',
             'magic_token'       => 'abc123def456',
             'consent_given'     => 1,
-            'consent_date'      => '2025-01-15 10:30:00',
+            // Category A instant since 6.6.0 (#249 sub-escopo d) — unix UTC.
+            'consent_date'      => 1736937000,
             // consent_ip derived from decrypted user_ip
             'consent_text'      => 'I agree',
             'status'            => 'publish',
@@ -144,7 +154,10 @@ class CsvExporterTest extends TestCase {
         $this->assertSame( 1, $result[0] );                           // ID
         $this->assertSame( 'Test Form', $result[1] );                 // Form title
         $this->assertSame( 10, $result[2] );                          // User ID
-        $this->assertSame( '2025-01-15 10:30:00', $result[3] );       // Date
+        // Formatted via DateFormatter (UTC stub in setUp) — plugin default
+        // `date_format` is 'd/m/Y' and `time_format` is 'H:i', so the unix
+        // 1736937000 (= 2025-01-15 10:30 UTC) lands as below.
+        $this->assertSame( '15/01/2025 10:30', $result[3] );          // Date
         $this->assertSame( 'test@example.com', $result[4] );          // Email
         $this->assertSame( '192.168.1.1', $result[5] );               // IP
         $this->assertSame( '123.456.789-00', $result[6] );            // CPF
@@ -171,13 +184,16 @@ class CsvExporterTest extends TestCase {
 
     public function test_format_csv_row_with_edit_columns(): void {
         $row = $this->sample_row();
-        $row['edited_at'] = '2025-02-01 09:00:00';
+        // `edited_at` is unix UTC int since 6.6.0 (#249 sub-escopo d).
+        // 1738400400 = 2025-02-01 09:00:00 UTC.
+        $row['edited_at'] = 1738400400;
         $row['edited_by'] = 5;
         $result = $this->invoke( 'format_csv_row', array( $row, array(), true ) );
         // 15 fixed + 3 edit = 18
         $this->assertCount( 18, $result );
         $this->assertSame( 'Yes', $result[15] );                      // Was Edited
-        $this->assertSame( '2025-02-01 09:00:00', $result[16] );      // Edit Date
+        // DateFormatter default ('d/m/Y H:i') under UTC stub.
+        $this->assertSame( '01/02/2025 09:00', $result[16] );         // Edit Date
         $this->assertSame( 'Admin User', $result[17] );               // Edited By
     }
 

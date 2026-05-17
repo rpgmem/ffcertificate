@@ -294,7 +294,8 @@ final class RecruitmentDashboardSection {
 			$adj_name  = null === $adjutancy ? '—' : (string) $adjutancy->name;
 			$situation = self::call_situation_label( $call, (string) $class->status );
 
-			$called_at      = $call->called_at ? \FreeFormCertificate\Core\DateFormatter::format_datetime( (string) $call->called_at ) : '';
+			// `called_at` is unix UTC int since 6.6.0 (#249 sub-escopo c).
+			$called_at      = $call->called_at ? \FreeFormCertificate\Core\DateFormatter::format_datetime( (int) $call->called_at ) : '';
 			$date_to_assume = $call->date_to_assume ? \FreeFormCertificate\Core\DateFormatter::format_date( (string) $call->date_to_assume ) : '';
 			$time_to_assume = $call->time_to_assume ? \FreeFormCertificate\Core\DateFormatter::format_time( (string) $call->time_to_assume ) : '';
 
