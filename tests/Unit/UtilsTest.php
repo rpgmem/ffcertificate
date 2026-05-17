@@ -645,4 +645,147 @@ class UtilsTest extends TestCase {
         $this->assertSame( 'John', $result['name'] );
         $this->assertSame( 'Value', $result['items']['sub'] );
     }
+
+    // ==================================================================
+    // get_export_filename
+    // ==================================================================
+
+    public function test_get_export_filename_without_title(): void {
+        Functions\when( 'sanitize_file_name' )->returnArg();
+
+        $result = Utils::get_export_filename( 'submissions' );
+
+        $this->assertMatchesRegularExpression( '/^submissions-\d{4}-\d{2}-\d{2}\.csv$/', $result );
+    }
+
+    public function test_get_export_filename_with_title(): void {
+        Functions\when( 'sanitize_file_name' )->returnArg();
+
+        $result = Utils::get_export_filename( 'submissions', 'Course X' );
+
+        $this->assertMatchesRegularExpression( '/^submissions-Course X-\d{4}-\d{2}-\d{2}\.csv$/', $result );
+    }
+
+    public function test_get_export_filename_with_empty_string_title_skips_segment(): void {
+        Functions\when( 'sanitize_file_name' )->returnArg();
+
+        $result = Utils::get_export_filename( 'audit', '' );
+
+        $this->assertMatchesRegularExpression( '/^audit-\d{4}-\d{2}-\d{2}\.csv$/', $result );
+    }
+
+    public function test_get_export_filename_passes_title_through_sanitize_file_name(): void {
+        Functions\when( 'sanitize_file_name' )->alias( static function ( string $name ): string {
+            return strtolower( preg_replace( '/[^a-z0-9_-]/i', '_', $name ) );
+        } );
+
+        $result = Utils::get_export_filename( 'forms', 'My / Bad Name!' );
+
+        $this->assertMatchesRegularExpression( '/^forms-my___bad_name_-\d{4}-\d{2}-\d{2}\.csv$/', $result );
+    }
+
+    // ==================================================================
+    // get_day_of_week_number
+    // ==================================================================
+
+    public function test_get_day_of_week_number_for_known_dates(): void {
+        // 2026-05-17 was a Sunday (`gmdate('w', ...)` returns 0).
+        $sunday_ts = strtotime( '2026-05-17 12:00:00 UTC' );
+        $this->assertSame( 0, Utils::get_day_of_week_number( $sunday_ts ) );
+
+        // 2026-05-20 was a Wednesday → 3.
+        $wednesday_ts = strtotime( '2026-05-20 12:00:00 UTC' );
+        $this->assertSame( 3, Utils::get_day_of_week_number( $wednesday_ts ) );
+
+        // 2026-05-23 was a Saturday → 6.
+        $saturday_ts = strtotime( '2026-05-23 12:00:00 UTC' );
+        $this->assertSame( 6, Utils::get_day_of_week_number( $saturday_ts ) );
+    }
+
+    public function test_get_day_of_week_number_defaults_to_current_time(): void {
+        $value = Utils::get_day_of_week_number();
+
+        $this->assertGreaterThanOrEqual( 0, $value );
+        $this->assertLessThanOrEqual( 6, $value );
+    }
+
+    // ==================================================================
+    // sanitize_username_slug
+    // ==================================================================
+
+    public function test_sanitize_username_slug_strips_accents_and_invalid_chars(): void {
+        // Mock `sanitize_user` to replace spaces with dashes (matches the
+        // class of separators the slug helper collapses to '.').
+        Functions\when( 'sanitize_user' )->alias( static function ( string $user ): string {
+            return strtolower( str_replace( ' ', '-', $user ) );
+        } );
+        Functions\when( 'remove_accents' )->alias( static function ( string $value ): string {
+            return strtr( $value, array( 'á' => 'a', 'é' => 'e', 'ç' => 'c' ) );
+        } );
+
+        $this->assertSame( 'jose.silva', Utils::sanitize_username_slug( 'José Silva' ) );
+    }
+
+    public function test_sanitize_username_slug_collapses_separators(): void {
+        Functions\when( 'sanitize_user' )->returnArg();
+        Functions\when( 'remove_accents' )->returnArg();
+
+        $this->assertSame( 'a.b.c', Utils::sanitize_username_slug( 'a---b___c' ) );
+    }
+
+    public function test_sanitize_username_slug_trims_leading_trailing_dots(): void {
+        Functions\when( 'sanitize_user' )->returnArg();
+        Functions\when( 'remove_accents' )->returnArg();
+
+        $this->assertSame( 'abc', Utils::sanitize_username_slug( '...abc...' ) );
+    }
+
+    public function test_sanitize_username_slug_returns_empty_when_no_valid_chars(): void {
+        Functions\when( 'sanitize_user' )->returnArg();
+        Functions\when( 'remove_accents' )->returnArg();
+
+        $this->assertSame( '', Utils::sanitize_username_slug( '...' ) );
+    }
+
+    // ==================================================================
+    // get_post_array
+    // ==================================================================
+
+    public function test_get_post_array_returns_default_when_key_absent(): void {
+        $_POST = array();
+
+        $this->assertSame( array(), Utils::get_post_array( 'missing' ) );
+        $this->assertSame( array( 'fallback' ), Utils::get_post_array( 'missing', array( 'fallback' ) ) );
+    }
+
+    public function test_get_post_array_returns_default_when_value_not_array(): void {
+        Functions\when( 'wp_unslash' )->returnArg();
+        $_POST = array( 'key' => 'not-an-array' );
+
+        $this->assertSame( array(), Utils::get_post_array( 'key' ) );
+    }
+
+    public function test_get_post_array_sanitizes_string_values(): void {
+        Functions\when( 'sanitize_text_field' )->alias( static function ( string $value ): string {
+            return trim( strip_tags( $value ) );
+        } );
+        Functions\when( 'wp_unslash' )->returnArg();
+
+        $_POST = array(
+            'roles' => array( '  admin  ', '<b>editor</b>' ),
+        );
+
+        $this->assertSame( array( 'admin', 'editor' ), Utils::get_post_array( 'roles' ) );
+    }
+
+    public function test_get_post_array_strips_slashes_via_wp_unslash(): void {
+        Functions\when( 'sanitize_text_field' )->returnArg();
+        Functions\when( 'wp_unslash' )->alias( static function ( $value ) {
+            return is_array( $value ) ? array_map( 'stripslashes', $value ) : stripslashes( $value );
+        } );
+
+        $_POST = array( 'list' => array( 'foo\\bar' ) );
+
+        $this->assertSame( array( 'foobar' ), Utils::get_post_array( 'list' ) );
+    }
 }

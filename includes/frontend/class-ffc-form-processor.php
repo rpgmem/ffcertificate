@@ -286,7 +286,7 @@ class FormProcessor {
 			\FreeFormCertificate\Security\RateLimiter::record_attempt( 'ip', $ip, $form_id );
 			\FreeFormCertificate\Security\RateLimiter::record_attempt( 'email', $email, $form_id );
 			if ( $cpf ) {
-				\FreeFormCertificate\Security\RateLimiter::record_attempt( 'cpf', preg_replace( '/[^0-9]/', '', $cpf ) ?? '', $form_id );
+				\FreeFormCertificate\Security\RateLimiter::record_attempt( 'cpf', \FreeFormCertificate\Core\DataSanitizer::normalize_cpf_rf( $cpf ), $form_id );
 			}
 
 			// Persist device fingerprint hashes once the submission row has
@@ -682,7 +682,7 @@ class FormProcessor {
 
 		global $wpdb;
 		$table     = \FreeFormCertificate\Core\Utils::get_submissions_table();
-		$clean_cpf = preg_replace( '/[^0-9]/', '', $cpf ) ?? '';
+		$clean_cpf = \FreeFormCertificate\Core\DataSanitizer::normalize_cpf_rf( $cpf );
 
 		if ( class_exists( '\FreeFormCertificate\Core\Encryption' ) && \FreeFormCertificate\Core\Encryption::is_configured() ) {
 			$id_hash     = \FreeFormCertificate\Core\Encryption::hash( $clean_cpf );

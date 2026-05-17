@@ -429,6 +429,84 @@ class Utils {
 	}
 
 	/**
+	 * Build a CSV export filename of shape `<prefix>[-<title>]-<YYYY-MM-DD>.csv`.
+	 *
+	 * `$title` (when provided) is passed through `sanitize_file_name()` so
+	 * it's safe to include directly in the filename. Date stamp uses UTC
+	 * (`gmdate`) — admins downloading the CSV in different timezones
+	 * still get a stable, sortable filename.
+	 *
+	 * @since 6.6.1
+	 * @param string      $prefix Required leading segment (e.g. `submissions`).
+	 * @param string|null $title  Optional middle segment (form/calendar title).
+	 * @return string Filename including `.csv` extension.
+	 */
+	public static function get_export_filename( string $prefix, ?string $title = null ): string {
+		$parts = array( $prefix );
+		if ( null !== $title && '' !== $title ) {
+			$parts[] = sanitize_file_name( $title );
+		}
+		$parts[] = gmdate( 'Y-m-d' );
+		return implode( '-', $parts ) . '.csv';
+	}
+
+	/**
+	 * Return the day-of-week (0=Sunday..6=Saturday) for a given timestamp,
+	 * defaulting to the current time. Uses UTC (`gmdate`) for consistency
+	 * with the rest of the scheduling pipeline.
+	 *
+	 * @since 6.6.1
+	 * @param int|null $timestamp Unix timestamp; `null` means current time.
+	 * @return int 0..6
+	 */
+	public static function get_day_of_week_number( ?int $timestamp = null ): int {
+		return (int) gmdate( 'w', $timestamp ?? time() );
+	}
+
+	/**
+	 * Build a stable username slug from a free-form value (typically a name
+	 * or an email local-part). Strips accents, lowercases, drops invalid
+	 * characters, collapses repeated separators to a single `.`, and trims
+	 * leading/trailing dots.
+	 *
+	 * @since 6.6.1
+	 * @param string $value Free-form input.
+	 * @return string Slug suitable for a WP `user_login`. May be empty.
+	 */
+	public static function sanitize_username_slug( string $value ): string {
+		$slug = sanitize_user( remove_accents( $value ), true );
+		$slug = preg_replace( '/[^a-z0-9._-]/', '', $slug ) ?? '';
+		$slug = preg_replace( '/[-_.]+/', '.', $slug ) ?? '';
+		return trim( $slug, '.' );
+	}
+
+	/**
+	 * Read + sanitize a `$_POST` array value.
+	 *
+	 * Returns `$default` when the key is absent or the underlying value
+	 * is not an array. Caller is responsible for nonce verification BEFORE
+	 * calling this helper. Keys (string or int) are preserved by
+	 * `array_map`'s single-callback behavior.
+	 *
+	 * @since 6.6.1
+	 * @param string                  $key     `$_POST` key.
+	 * @param array<array-key, mixed> $default Returned when the key is absent or not an array.
+	 * @return array<array-key, string|mixed> Sanitized string values; preserves keys.
+	 */
+	public static function get_post_array( string $key, array $default = array() ): array {
+		// phpcs:ignore WordPress.Security.NonceVerification.Missing -- Caller responsibility.
+		if ( ! isset( $_POST[ $key ] ) ) {
+			return $default;
+		}
+		// phpcs:ignore WordPress.Security.NonceVerification.Missing -- Caller responsibility.
+		$raw = wp_unslash( $_POST[ $key ] );
+		if ( ! is_array( $raw ) ) {
+			return $default;
+		}
+		return array_map( 'sanitize_text_field', $raw );
+	}
+
+	/**
 	 * Check if current user can manage plugin
 	 *
 	 * @return bool True if can manage, false otherwise

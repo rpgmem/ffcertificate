@@ -223,4 +223,28 @@ class DataSanitizerTest extends TestCase {
         $result = DataSanitizer::normalize_brazilian_name("ALEX\tPEREIRA\tDA\tSILVA");
         $this->assertSame('Alex Pereira da Silva', $result);
     }
+
+    // ==================================================================
+    // normalize_cpf_rf
+    // ==================================================================
+
+    public function test_normalize_cpf_rf_strips_dots_and_dashes(): void {
+        $this->assertSame( '12345678900', DataSanitizer::normalize_cpf_rf( '123.456.789-00' ) );
+    }
+
+    public function test_normalize_cpf_rf_strips_spaces_and_slashes(): void {
+        $this->assertSame( '12345678900', DataSanitizer::normalize_cpf_rf( '123 456/789-00' ) );
+    }
+
+    public function test_normalize_cpf_rf_returns_empty_for_no_digits(): void {
+        $this->assertSame( '', DataSanitizer::normalize_cpf_rf( 'abc.def' ) );
+    }
+
+    public function test_normalize_cpf_rf_returns_empty_for_empty_string(): void {
+        $this->assertSame( '', DataSanitizer::normalize_cpf_rf( '' ) );
+    }
+
+    public function test_normalize_cpf_rf_keeps_long_digit_strings(): void {
+        $this->assertSame( '1234567890123456', DataSanitizer::normalize_cpf_rf( '1234-5678-9012-3456' ) );
+    }
 }

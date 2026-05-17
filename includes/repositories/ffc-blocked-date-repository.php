@@ -289,7 +289,7 @@ class BlockedDateRepository extends AbstractRepository {
 
 		$date_ts     = strtotime( $date );
 		$timestamp   = $date_ts ? $date_ts : time();
-		$day_of_week = (int) gmdate( 'w', $timestamp );
+		$day_of_week = \FreeFormCertificate\Core\Utils::get_day_of_week_number( $timestamp );
 
 		switch ( $pattern['type'] ) {
 			case 'weekly':

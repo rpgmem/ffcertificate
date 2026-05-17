@@ -55,7 +55,7 @@ class ReregistrationCsvExporter {
 		$fields      = self::get_custom_fields_for_reregistration( $rereg );
 
 		// Build CSV.
-		$filename = 'reregistration-' . sanitize_file_name( $rereg->title ) . '-' . gmdate( 'Y-m-d' ) . '.csv';
+		$filename = \FreeFormCertificate\Core\Utils::get_export_filename( 'reregistration', (string) $rereg->title );
 
 		// Headers.
 		$safe_filename = str_replace( array( "\r", "\n", '"' ), '', $filename );

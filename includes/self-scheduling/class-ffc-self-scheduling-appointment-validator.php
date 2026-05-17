@@ -243,7 +243,7 @@ class AppointmentValidator {
 			return new \WP_Error( 'cpf_rf_required', __( 'CPF/RF is required.', 'ffcertificate' ) );
 		}
 
-		$cpf_rf_clean = preg_replace( '/[^0-9]/', '', $data['cpf_rf'] );
+		$cpf_rf_clean = \FreeFormCertificate\Core\DataSanitizer::normalize_cpf_rf( (string) $data['cpf_rf'] );
 		if ( strlen( $cpf_rf_clean ) === 7 ) {
 			if ( ! preg_match( '/^\d{7}$/', $cpf_rf_clean ) ) {
 				return new \WP_Error( 'invalid_rf', __( 'Invalid RF format.', 'ffcertificate' ) );

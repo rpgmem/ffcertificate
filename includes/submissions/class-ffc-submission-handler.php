@@ -140,7 +140,7 @@ class SubmissionHandler {
 
 		$clean_cpf_rf = null;
 		if ( isset( $submission_data['cpf_rf'] ) && ! empty( $submission_data['cpf_rf'] ) ) {
-			$clean_cpf_rf = preg_replace( '/[^0-9]/', '', (string) $submission_data['cpf_rf'] );
+			$clean_cpf_rf = \FreeFormCertificate\Core\DataSanitizer::normalize_cpf_rf( (string) $submission_data['cpf_rf'] );
 		}
 
 		// 2b. Classify identifier as CPF or RF by digit length.

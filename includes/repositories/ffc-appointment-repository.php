@@ -152,7 +152,7 @@ class AppointmentRepository extends AbstractRepository {
 	 * @return array<int, array<string, mixed>>
 	 */
 	public function findByCpfRf( string $cpf_rf, ?int $limit = null, int $offset = 0 ): array {
-		$cpf_rf_clean = preg_replace( '/[^0-9]/', '', $cpf_rf ) ?? '';
+		$cpf_rf_clean = \FreeFormCertificate\Core\DataSanitizer::normalize_cpf_rf( $cpf_rf );
 		$cpf_rf_hash  = \FreeFormCertificate\Core\Encryption::hash( $cpf_rf_clean );
 		if ( null === $cpf_rf_hash ) {
 			return array();
@@ -514,7 +514,7 @@ class AppointmentRepository extends AbstractRepository {
 		// Normalize cpf_rf → split cpf/rf before the registry sees it; the
 		// registry knows about the split columns, not the combined input.
 		if ( ! empty( $data['cpf_rf'] ) ) {
-			$clean_id = preg_replace( '/[^0-9]/', '', (string) $data['cpf_rf'] ) ?? '';
+			$clean_id = \FreeFormCertificate\Core\DataSanitizer::normalize_cpf_rf( (string) $data['cpf_rf'] );
 			if ( '' !== $clean_id ) {
 				if ( 7 === strlen( $clean_id ) ) {
 					$data['rf'] = $clean_id;

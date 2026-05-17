@@ -271,10 +271,7 @@ class UserCreator {
 		}
 
 		if ( '' !== $email_prefix ) {
-			$slug = sanitize_user( remove_accents( $email_prefix ), true );
-			$slug = preg_replace( '/[^a-z0-9._-]/', '', $slug ) ?? '';
-			$slug = preg_replace( '/[-_.]+/', '.', $slug ) ?? '';
-			$slug = trim( $slug, '.' );
+			$slug = \FreeFormCertificate\Core\Utils::sanitize_username_slug( $email_prefix );
 
 			if ( strlen( $slug ) >= 3 ) {
 				if ( ! username_exists( $slug ) ) {
@@ -302,10 +299,7 @@ class UserCreator {
 		}
 
 		if ( ! empty( $name ) ) {
-			$slug = sanitize_user( remove_accents( strtolower( $name ) ), true );
-			$slug = preg_replace( '/[^a-z0-9._-]/', '', $slug ) ?? '';
-			$slug = preg_replace( '/[-_.]+/', '.', $slug ) ?? '';
-			$slug = trim( $slug, '.' );
+			$slug = \FreeFormCertificate\Core\Utils::sanitize_username_slug( strtolower( $name ) );
 
 			if ( strlen( $slug ) >= 3 ) {
 				if ( ! username_exists( $slug ) ) {

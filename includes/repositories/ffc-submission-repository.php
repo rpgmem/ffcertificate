@@ -193,7 +193,7 @@ class SubmissionRepository extends AbstractRepository {
 	 * @return array<int, array<string, mixed>>
 	 */
 	public function findByCpfRf( string $cpf, int $limit = 10 ): array {
-		$clean_cpf   = preg_replace( '/[^0-9]/', '', $cpf ) ?? '';
+		$clean_cpf   = \FreeFormCertificate\Core\DataSanitizer::normalize_cpf_rf( $cpf );
 		$id_hash     = $this->hash( $clean_cpf );
 		$hash_column = strlen( $clean_cpf ) === 7 ? 'rf_hash' : 'cpf_hash';
 

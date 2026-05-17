@@ -62,7 +62,7 @@ final class RecruitmentClassificationFilterManager {
 		// inside apply_classification_filters().
 		$cpf_candidate_id = 0;
 		$rf_candidate_id  = 0;
-		$digits           = static fn( string $v ): string => (string) ( preg_replace( '/[^0-9]/', '', $v ) ?? '' );
+		$digits           = static fn( string $v ): string => \FreeFormCertificate\Core\DataSanitizer::normalize_cpf_rf( $v );
 		if ( '' !== $cpf ) {
 			$cpf_digits = $digits( $cpf );
 			if ( '' !== $cpf_digits ) {

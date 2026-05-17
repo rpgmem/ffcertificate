@@ -562,7 +562,7 @@ class FormRestController {
 
 			// Validate CPF if present.
 			if ( ! empty( $submission_data['cpf_rf'] ) ) {
-				$cpf = preg_replace( '/[^0-9]/', '', $submission_data['cpf_rf'] );
+				$cpf = \FreeFormCertificate\Core\DataSanitizer::normalize_cpf_rf( (string) $submission_data['cpf_rf'] );
 
 				if ( strlen( $cpf ) === 11 ) {
 					if ( ! \FreeFormCertificate\Core\DocumentFormatter::validate_cpf( $cpf ) ) {

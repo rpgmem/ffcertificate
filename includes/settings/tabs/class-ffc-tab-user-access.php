@@ -93,9 +93,7 @@ class TabUserAccess extends SettingsTab {
         // phpcs:disable WordPress.Security.NonceVerification.Missing, WordPress.Security.ValidatedSanitizedInput.MissingUnslash, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Nonce verified above via wp_verify_nonce. isset() checks used as boolean only.
 		$settings = array(
 			'block_wp_admin'    => isset( $_POST['block_wp_admin'] ),
-			'blocked_roles'     => isset( $_POST['blocked_roles'] ) && is_array( $_POST['blocked_roles'] )
-				? array_map( 'sanitize_text_field', wp_unslash( $_POST['blocked_roles'] ) )
-				: array( 'ffc_user' ),
+			'blocked_roles'     => \FreeFormCertificate\Core\Utils::get_post_array( 'blocked_roles', array( 'ffc_user' ) ),
 			'redirect_url'      => ! empty( $_POST['redirect_url'] ) ? esc_url_raw( wp_unslash( $_POST['redirect_url'] ) ) : home_url( '/dashboard' ),
 			'redirect_message'  => isset( $_POST['redirect_message'] ) ? sanitize_textarea_field( wp_unslash( $_POST['redirect_message'] ) ) : '',
 			'allow_admin_bar'   => isset( $_POST['allow_admin_bar'] ),

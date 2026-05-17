@@ -211,7 +211,7 @@ class DocumentFormatter {
 			return '';
 		}
 
-		$clean = preg_replace( '/[^0-9]/', '', $value ) ?? '';
+		$clean = DataSanitizer::normalize_cpf_rf( $value );
 
 		if ( strlen( $clean ) === 11 ) {
 			return substr( $clean, 0, 3 ) . '.***.***-' . substr( $clean, -2 );
@@ -249,7 +249,7 @@ class DocumentFormatter {
 			return '';
 		}
 
-		$clean = preg_replace( '/[^0-9]/', '', $value ) ?? '';
+		$clean = DataSanitizer::normalize_cpf_rf( $value );
 
 		if ( strlen( $clean ) < 4 ) {
 			return $value;

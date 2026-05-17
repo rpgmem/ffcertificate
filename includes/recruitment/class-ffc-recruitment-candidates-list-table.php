@@ -380,14 +380,14 @@ class RecruitmentCandidatesListTable extends \WP_List_Table {
 	 */
 	private static function lookup_by_cpf_rf( string $cpf, string $rf ): ?object {
 		if ( '' !== $cpf ) {
-			$digits = preg_replace( '/[^0-9]/', '', $cpf ) ?? '';
+			$digits = \FreeFormCertificate\Core\DataSanitizer::normalize_cpf_rf( $cpf );
 			if ( '' !== $digits ) {
 				$hash = (string) Encryption::hash( $digits );
 				return RecruitmentCandidateRepository::get_by_cpf_hash( $hash );
 			}
 		}
 		if ( '' !== $rf ) {
-			$digits = preg_replace( '/[^0-9]/', '', $rf ) ?? '';
+			$digits = \FreeFormCertificate\Core\DataSanitizer::normalize_cpf_rf( $rf );
 			if ( '' !== $digits ) {
 				$hash = (string) Encryption::hash( $digits );
 				return RecruitmentCandidateRepository::get_by_rf_hash( $hash );

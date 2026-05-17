@@ -51,6 +51,14 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 
 ### Changed
 
+- 5 new reuse helpers in `Core\DataSanitizer` and `Core\Utils` consolidate
+  scattered patterns: `DataSanitizer::normalize_cpf_rf()` (22 sites,
+  CPF/RF digits-only cast), `Utils::get_export_filename()` (4 sites,
+  CSV export filenames), `Utils::get_day_of_week_number()` (5 sites,
+  scheduling), `Utils::sanitize_username_slug()` (2 sites, user
+  creator), `Utils::get_post_array()` (4 sites, settings POST handlers).
+  ~33 call sites migrated; the `RestSupport` ajax-trait's
+  `get_post_array()` instance method now delegates to the static helper.
 - Centralize `ffc_settings` reads via new
   `FreeFormCertificate\Settings\SettingsReader` class with generic getter
   (`get`, `get_bool`, `get_int`, `all`) + 20 typed accessors for high-value

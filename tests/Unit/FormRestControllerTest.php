@@ -93,6 +93,9 @@ class FormRestControllerTest extends TestCase {
         // by the controller). validate_cpf/rf and format_auth_code are pure.
         $data_sanitizer_mock = Mockery::mock( 'alias:\FreeFormCertificate\Core\DataSanitizer' );
         $data_sanitizer_mock->shouldReceive( 'recursive_sanitize' )->andReturnUsing( function( $data ) { return $data; } )->byDefault();
+        $data_sanitizer_mock->shouldReceive( 'normalize_cpf_rf' )->andReturnUsing( function( $value ) {
+            return preg_replace( '/[^0-9]/', '', (string) $value ) ?? '';
+        } )->byDefault();
 
         $geofence_mock = Mockery::mock( 'alias:\FreeFormCertificate\Security\Geofence' );
         $geofence_mock->shouldReceive( 'get_form_config' )->andReturn( null )->byDefault();
