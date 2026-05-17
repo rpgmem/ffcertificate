@@ -422,7 +422,7 @@ describe('admin device-limit toggle', () => {
 		document.body.innerHTML = `
 			<button id="ffc-migrations-btn"></button>
 			<div id="ffc-migrations-menu"></div>
-			<table class="ffc-device-limit-table ffc-device-limit-globally-off">
+			<table class="ffc-device-limit-table">
 				<tr><td><input type="checkbox" id="ffc_device_limit_enabled" disabled></td></tr>
 			</table>
 			<div class="ffc-collapsed-target ffc-collapsed" data-ffc-master="ffc_device_limit_enabled">

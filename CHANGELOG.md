@@ -7,7 +7,16 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
-_No unreleased changes._
+### Removed
+
+- Unused `FFC_DEBUG` constant from `ffcertificate.php` and the matching
+  PHPStan stub. Defined but never read.
+- Deprecated CSS aliases scheduled for 6.6.0 removal: `.ffc-conditional-field`
+  (no-op since 6.5.x), `.ffc-csv-public-disabled` and `.ffc-device-limit-disabled`
+  (`@deprecated 6.5.14`), and `.ffc-device-limit-globally-off` (orphan rule —
+  never wired to production PHP). The `.ffc-conditional-field` class emission
+  in the geofence metabox row was also removed; visibility there continues to
+  be driven by the slideUp/slideDown handlers in `ffc-geofence-admin.js`.
 
 ---
 

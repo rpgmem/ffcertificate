@@ -31,7 +31,6 @@ define( 'FFC_THUMBMARK_VERSION', '1.9.0' );     // thumbmarkjs - https://github.
 
 define( 'FFC_MIN_WP_VERSION', '6.2' );          // Minimum WordPress (required for %i identifier placeholder).
 define( 'FFC_MIN_PHP_VERSION', '8.1' );         // Minimum PHP.
-define( 'FFC_DEBUG', false );                   // Debug mode.
 define( 'FFC_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
 define( 'FFC_PLUGIN_URL', plugin_dir_url( __FILE__ ) );
 

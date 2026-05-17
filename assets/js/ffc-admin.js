@@ -378,13 +378,10 @@
         });
 
         // Restriction field visibility (password/allowlist/denylist/ticket)
-        // is now handled by the generic `.ffc-collapsed-target` initializer
-        // at the end of this file (#238 follow-up). The 4 master toggles
-        // (#ffc_restriction_password etc.) drive their dependent <tr>s via
-        // data-ffc-master, with `.ffc-collapsed` collapsing them when off.
-        // The previous per-toggle slideUp/slideDown handlers were unreliable
-        // against the `.ffc-conditional-field { display:none } + .active`
-        // CSS rule for table-row elements.
+        // is handled by the generic `.ffc-collapsed-target` initializer
+        // at the end of this file. Master toggles drive their dependent
+        // <tr>s via data-ffc-master, with `.ffc-collapsed` collapsing
+        // them when off.
     });
 
     // =========================================================================
@@ -434,9 +431,7 @@
     // Pre-#238 code used per-metabox handlers + per-input `disabled`. That
     // collapsed into this single initializer to keep behavior uniform,
     // including the formerly-save-required spots (Email send_user_email,
-    // CPF whitelist mode, IP-Areas permissive). The legacy
-    // `.ffc-csv-public-disabled` / `.ffc-device-limit-disabled` CSS lives
-    // on as a deprecated alias until 6.6.0.
+    // CPF whitelist mode, IP-Areas permissive).
     // =========================================================================
     $('.ffc-collapsed-target').each(function() {
         var $target   = $(this);

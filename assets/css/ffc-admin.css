@@ -578,17 +578,6 @@
     margin: 10px 0;
 }
 
-/* @deprecated 6.5.x — restriction-field visibility migrated to the unified
-   `.ffc-collapsed-target` system (#238 follow-up). These two rules are
-   kept as no-op aliases until 6.6.0 so any custom CSS scoped to
-   `.ffc-conditional-field` still parses without warnings. */
-.ffc-conditional-field {
-    /* nothing — visibility is owned by .ffc-collapsed-target / .ffc-collapsed */
-}
-.ffc-conditional-field.active {
-    /* nothing — kept for selector compatibility */
-}
-
 /* Section subtitles inside metaboxes (Start Form Early sub-block,
    etc.) — sits below the main metabox h2 with a thin separator. */
 .ffc-section-subtitle {
@@ -629,11 +618,7 @@
    keeps the class in sync on change events.
 
    The wrapper-based pattern is uniform across every metabox now;
-   pre-#238 code applied per-input `disabled` + opacity. We kept the
-   legacy `.ffc-csv-public-disabled`, `.ffc-device-limit-disabled`,
-   and `.ffc-device-limit-globally-off` rules below as deprecated
-   aliases so custom CSS written against them still works. They will
-   be removed in 6.6.0.
+   pre-#238 code applied per-input `disabled` + opacity.
    ──────────────────────────────────────────────────────────────── */
 .ffc-collapsed {
     display: none !important;
@@ -675,28 +660,6 @@
 .ffc-csv-public-share input.large-text {
     flex: 1;
     min-width: 0;
-}
-
-/* "Globally off" stays as a separate cosmetic state: the master
-   checkbox is still rendered so the admin can see WHY they can't
-   toggle it, but the whole subsection is faded to convey "blocked
-   from another setting". Not the same as `.ffc-collapsed`. */
-.ffc-device-limit-globally-off {
-    opacity: 0.55;
-}
-.ffc-device-limit-globally-off :is(input, select, textarea, button) {
-    cursor: not-allowed;
-}
-
-/* @deprecated 6.5.14 — kept for custom-CSS compat; use .ffc-collapsed
-   on a wrapper instead. Will be removed in 6.6.0. */
-.ffc-csv-public-disabled .ffc-csv-public-sub,
-.ffc-device-limit-disabled .ffc-device-limit-sub {
-    opacity: 0.55;
-}
-.ffc-csv-public-disabled .ffc-csv-public-sub :is(input, select, textarea, button),
-.ffc-device-limit-disabled .ffc-device-limit-sub :is(input, select, textarea, button) {
-    cursor: not-allowed;
 }
 
 /* Audit-log outcome summary cards (Public CSV Download metabox). */

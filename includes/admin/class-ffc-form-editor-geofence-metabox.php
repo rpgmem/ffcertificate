@@ -150,7 +150,7 @@ class FormEditorGeofenceMetabox {
 							<p class="description"><?php esc_html_e( 'Leave empty for 24/7 access. Default: 00:00 to 23:59', 'ffcertificate' ); ?></p>
 						</td>
 					</tr>
-					<tr id="ffc-time-mode-row" class="ffc-conditional-field<?php echo esc_attr( ( ! empty( $date_start ) && ! empty( $date_end ) && $date_start !== $date_end ) ? ' active' : '' ); ?>">
+					<tr id="ffc-time-mode-row">
 						<th><label><?php esc_html_e( 'Time Behavior', 'ffcertificate' ); ?></label></th>
 						<td>
 							<fieldset>
