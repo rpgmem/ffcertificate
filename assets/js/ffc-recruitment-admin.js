@@ -1,15 +1,20 @@
 /**
  * Recruitment admin JS bundle.
  *
- * Sprint A1 ships the skeleton + REST helper. Inline <script> blocks
- * scattered across the admin page (create-notice, create-adjutancy,
- * CSV import, attach/detach adjutancy) get migrated here in subsequent
- * sprints; for now they continue to work in-place and this bundle just
- * exposes the helper they'll use.
+ * Exposes `window.ffcRecruitmentAdmin.fetch()` for inline scripts that
+ * still live in PHP renderers, plus delegated handlers that pick up the
+ * uniform markup contracts described below.
  *
  * Localized data lives on `window.ffcRecruitmentAdmin`:
  *   - restRoot: '…/wp-json/ffcertificate/v1/recruitment/'
  *   - nonce:    'XXXXXX' (wp_rest)
+ *
+ * Markup contracts handled here:
+ *
+ *   - `form[data-ffc-create-endpoint="<path>"]` — on submit, POST the
+ *     form's FormData to `<restRoot><path>`. Reload on success
+ *     (response carries an `id`); alert on failure with the server's
+ *     message (or the raw body as a fallback).
  */
 (function () {
     'use strict';
@@ -45,4 +50,35 @@
                 });
         });
     };
+
+    /**
+     * Delegated submit handler for `form[data-ffc-create-endpoint]`.
+     *
+     * The PHP renderer marks each "create X" form with the REST path
+     * to post against (e.g. `data-ffc-create-endpoint="notices"`).
+     * On a successful POST the page reloads so the new entity shows
+     * up in the list table above the form.
+     */
+    document.addEventListener('submit', function (event) {
+        var form = event.target;
+        if (!form || typeof form.matches !== 'function') { return; }
+        if (!form.matches('form[data-ffc-create-endpoint]')) { return; }
+
+        event.preventDefault();
+
+        var endpoint = form.getAttribute('data-ffc-create-endpoint');
+        if (!endpoint) { return; }
+
+        window.ffcRecruitmentAdmin.fetch(endpoint, {
+            method: 'POST',
+            body: new FormData(form)
+        }).then(function (res) {
+            var body = res && res.body;
+            if (body && body.id) {
+                window.location.reload();
+                return;
+            }
+            window.alert((body && body.message) ? body.message : JSON.stringify(body));
+        });
+    });
 }());
