@@ -59,14 +59,8 @@ class PublicCsvDownload {
 	const DOWNLOAD_LOG_MAX    = 100;
 	const FLASH_TRANSIENT_TTL = 60; // Seconds.
 
-	/**
-	 * 6.3.3: schema flag for the audit-log payload. Bumped when the
-	 * structure of {@see META_DOWNLOAD_LOG} entries changes incompatibly.
-	 */
-	const DOWNLOAD_LOG_FORMAT = '1.3.0';
-	const OPTION_LOG_FORMAT   = 'ffc_csv_public_download_log_format';
-	const EXPORT_LOG_ACTION   = 'ffc_export_csv_public_download_log';
-	const EXPORT_LOG_NONCE    = 'ffc_export_csv_public_download_log';
+	const EXPORT_LOG_ACTION = 'ffc_export_csv_public_download_log';
+	const EXPORT_LOG_NONCE  = 'ffc_export_csv_public_download_log';
 
 	/**
 	 * Validation collaborator (form-access / hash / CPF gates).
@@ -698,35 +692,8 @@ class PublicCsvDownload {
 	}
 
 	// ──────────────────────────────────────────────────────────────.
-	// Audit log maintenance + export.
+	// Audit log export.
 	// ──────────────────────────────────────────────────────────────.
-
-	/**
-	 * One-shot wipe of pre-6.3.3 audit-log entries.
-	 *
-	 * Pre-6.3.3 entries used a write-only `cpf_hash` field (sha256 of the
-	 * digits) which was never read by any code path — it was kept "just in
-	 * case" we ever needed CPF lookups in the log. The 6.3.3 schema replaces
-	 * that with a reversible `cpf_encrypted` field consumed by the new
-	 * audit-CSV exporter. Mixing the two formats would force the exporter
-	 * to render entire columns of "[legacy: hashed only]" placeholders for
-	 * stale 6.3.0–6.3.2 entries that no human can ever recover. Since
-	 * 6.3.0 → 6.3.2 all shipped within the same 24h window and the install
-	 * base for those releases is effectively zero, the cleanest path is to
-	 * delete the legacy log meta on first plugins_loaded after the upgrade
-	 * and let new entries accumulate fresh.
-	 *
-	 * Idempotent: gated on the {@see OPTION_LOG_FORMAT} option flag. Runs
-	 * exactly once per install no matter how many requests fire it.
-	 */
-	public static function maybe_wipe_legacy_logs(): void {
-		if ( self::DOWNLOAD_LOG_FORMAT === (string) get_option( self::OPTION_LOG_FORMAT, '' ) ) {
-			return;
-		}
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange
-		delete_metadata( 'post', 0, self::META_DOWNLOAD_LOG, '', true );
-		update_option( self::OPTION_LOG_FORMAT, self::DOWNLOAD_LOG_FORMAT, true );
-	}
 
 	/**
 	 * Admin-post handler for the audit-log CSV export. Streams

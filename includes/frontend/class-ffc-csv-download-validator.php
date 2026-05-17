@@ -296,10 +296,7 @@ final class CsvDownloadValidator {
 	 * shows a placeholder — admins can configure encryption to retroactively
 	 * make new entries auditable.
 	 *
-	 * Schema (6.3.3): { ts, ip, mode, cpf_encrypted, result }. Pre-6.3.3
-	 * entries (which used cpf_hash) are wiped on the first plugins_loaded
-	 * after upgrade by maybe_wipe_legacy_logs() — see that method for the
-	 * justification (install base reality + clean break).
+	 * Schema (6.3.3): { ts, ip, mode, cpf_encrypted, result }.
 	 *
 	 * Made `public` in 6.5.13 so `PublicCsvDownload` can record audit
 	 * rows for non-CPF outcomes too (captcha rejection, hash mismatch,

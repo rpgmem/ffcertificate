@@ -193,12 +193,6 @@ class Loader {
 			\FreeFormCertificate\Security\RateLimitActivator::maybe_create_tables();
 		}
 
-		// 6.3.3: wipe pre-encryption CSV-download audit logs once. See the
-		// method's docblock for the install-base reasoning.
-		if ( class_exists( '\FreeFormCertificate\Frontend\PublicCsvDownload' ) ) {
-			\FreeFormCertificate\Frontend\PublicCsvDownload::maybe_wipe_legacy_logs();
-		}
-
 		// In-place plugin updates (drop new files via `wp-admin/plugins.php`'s
 		// "Update" button) DO NOT fire `register_activation_hook`. Re-register
 		// the canonical FFC role + the 6.2.0 module-manager / recruitment-tier
