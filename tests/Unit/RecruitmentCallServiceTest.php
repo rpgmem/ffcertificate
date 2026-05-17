@@ -80,7 +80,8 @@ class RecruitmentCallServiceTest extends TestCase {
 		return (object) array(
 			'id'                  => (string) $id,
 			'classification_id'   => (string) $classification_id,
-			'called_at'           => '2026-05-01 10:00:00',
+			// `called_at` is unix UTC int since 6.6.0 (#249 sub-escopo c).
+			'called_at'           => 1777968000,
 			'date_to_assume'      => '2026-06-01',
 			'time_to_assume'      => '08:00:00',
 			'out_of_order'        => '0',

@@ -301,7 +301,8 @@ final class RecruitmentCandidateEditPage {
 				echo '</tr></thead><tbody>';
 				foreach ( $calls as $call ) {
 					echo '<tr>';
-					echo '<td>' . esc_html( (string) $call->called_at ) . '</td>';
+					// `called_at` is unix UTC int since 6.6.0 (#249 sub-escopo c).
+					echo '<td>' . esc_html( \FreeFormCertificate\Core\DateFormatter::format_datetime( (int) $call->called_at ) ) . '</td>';
 					echo '<td>' . esc_html( (string) $call->date_to_assume ) . '</td>';
 					echo '<td>' . esc_html( (string) $call->time_to_assume ) . '</td>';
 					echo '<td>' . ( '1' === (string) $call->out_of_order ? esc_html__( 'Yes', 'ffcertificate' ) : '—' ) . '</td>';

@@ -26,7 +26,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 /**
  * Database repository for `ffc_recruitment_call` rows.
  *
- * @phpstan-type CallRow \stdClass&object{id: numeric-string, classification_id: numeric-string, called_at: string, date_to_assume: string, time_to_assume: string, out_of_order: numeric-string, out_of_order_reason: string|null, cancellation_reason: string|null, cancelled_at: string|null, cancelled_by: numeric-string|null, notes: string|null, created_by: numeric-string, created_at: string, updated_at: string}
+ * @phpstan-type CallRow \stdClass&object{id: numeric-string, classification_id: numeric-string, called_at: numeric-string|int, date_to_assume: string, time_to_assume: string, out_of_order: numeric-string, out_of_order_reason: string|null, cancellation_reason: string|null, cancelled_at: string|null, cancelled_by: numeric-string|null, notes: string|null, created_by: numeric-string, created_at: string, updated_at: string}
  */
 class RecruitmentCallRepository {
 
@@ -203,7 +203,7 @@ class RecruitmentCallRepository {
 	 * `out_of_order = 1`, `out_of_order_reason` must be a non-empty string.
 	 * Returns `false` if the invariant is violated.
 	 *
-	 * @param array{classification_id: int, date_to_assume: string, time_to_assume: string, created_by: int, out_of_order?: int, out_of_order_reason?: string|null, notes?: string|null, called_at?: string} $data Call payload.
+	 * @param array{classification_id: int, date_to_assume: string, time_to_assume: string, created_by: int, out_of_order?: int, out_of_order_reason?: string|null, notes?: string|null, called_at?: int|string} $data Call payload.
 	 * @return int|false New call ID or false on failure.
 	 */
 	public static function create( array $data ) {
@@ -219,10 +219,23 @@ class RecruitmentCallRepository {
 		}
 
 		$now = current_time( 'mysql' );
+		// `called_at` is unix UTC int since 6.6.0 (#249 sub-escopo c). The
+		// caller may still pass a DATETIME string via legacy code paths;
+		// normalise to int here so the repository is the single conversion
+		// point.
+		$called_at_in = $data['called_at'] ?? null;
+		if ( null === $called_at_in ) {
+			$called_at_ts = time();
+		} elseif ( is_int( $called_at_in ) ) {
+			$called_at_ts = $called_at_in;
+		} else {
+			$parsed       = strtotime( (string) $called_at_in );
+			$called_at_ts = false === $parsed ? time() : $parsed;
+		}
 
 		$insert = array(
 			'classification_id'   => $data['classification_id'],
-			'called_at'           => $data['called_at'] ?? $now,
+			'called_at'           => $called_at_ts,
 			'date_to_assume'      => $data['date_to_assume'],
 			'time_to_assume'      => $data['time_to_assume'],
 			'out_of_order'        => $out_of_order,
@@ -232,7 +245,7 @@ class RecruitmentCallRepository {
 			'created_at'          => $now,
 			'updated_at'          => $now,
 		);
-		$format = array( '%d', '%s', '%s', '%s', '%d', '%s', '%s', '%d', '%s', '%s' );
+		$format = array( '%d', '%d', '%s', '%s', '%d', '%s', '%s', '%d', '%s', '%s' );
 
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Insert via wpdb helper.
 		$result = $wpdb->insert( $table, $insert, $format );

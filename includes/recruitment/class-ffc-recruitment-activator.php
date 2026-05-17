@@ -124,6 +124,83 @@ class RecruitmentActivator {
 			self::migrate_add_classification_csv_extension_columns();
 			update_option( $option_key, 6 );
 		}
+
+		if ( $current < 7 ) {
+			self::migrate_called_at_to_unix();
+			update_option( $option_key, 7 );
+		}
+	}
+
+	/**
+	 * V7 schema migration — `ffc_recruitment_call.called_at` flips from
+	 * DATETIME (site TZ via `current_time('mysql')`) to BIGINT UNSIGNED
+	 * unix UTC seconds (#249 sub-escopo c). Sibling instants
+	 * (`cancelled_at`, `created_at`, `updated_at`) stay DATETIME for now —
+	 * picked up in the follow-up "siblings" sprint or kept as-is for the
+	 * auto-managed ones.
+	 *
+	 * Idempotent: column-existence checks make each step survive a
+	 * partial-failure restart, and the schema-version bump pins the whole
+	 * routine to a single run.
+	 *
+	 * @since 6.6.0
+	 */
+	private static function migrate_called_at_to_unix(): void {
+		global $wpdb;
+		$table = $wpdb->prefix . 'ffc_recruitment_call';
+
+		if ( ! self::table_exists( $table ) ) {
+			return;
+		}
+
+		$has_old = self::column_exists( $table, 'called_at' );
+		$has_new = self::column_exists( $table, 'called_at_ts' );
+
+		if ( ! $has_new ) {
+			if ( ! $has_old ) {
+				return; // Fresh table at 6.6.0+ already has the int column.
+			}
+			self::add_column_if_missing(
+				$table,
+				'called_at_ts',
+				'BIGINT UNSIGNED NOT NULL DEFAULT 0',
+				'called_at'
+			);
+			$has_new = true;
+		}
+
+		if ( $has_old ) {
+			$tz = wp_timezone();
+			do {
+                // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+				$rows = $wpdb->get_results(
+					$wpdb->prepare( 'SELECT id, called_at FROM %i WHERE called_at_ts = 0 LIMIT 500', $table )
+				);
+				if ( empty( $rows ) ) {
+					break;
+				}
+				foreach ( $rows as $row ) {
+					try {
+						$dt = new \DateTimeImmutable( (string) $row->called_at, $tz );
+                        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+						$wpdb->update(
+							$table,
+							array( 'called_at_ts' => $dt->getTimestamp() ),
+							array( 'id' => (int) $row->id ),
+							array( '%d' ),
+							array( '%d' )
+						);
+					} catch ( \Exception $e ) {
+						unset( $e );
+					}
+				}
+			} while ( count( $rows ) === 500 );
+
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange
+			$wpdb->query( $wpdb->prepare( 'ALTER TABLE %i DROP COLUMN %i', $table, 'called_at' ) );
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange
+			$wpdb->query( $wpdb->prepare( 'ALTER TABLE %i CHANGE %i %i BIGINT UNSIGNED NOT NULL', $table, 'called_at_ts', 'called_at' ) );
+		}
 	}
 
 	/**
@@ -528,10 +605,12 @@ class RecruitmentActivator {
 			return;
 		}
 
+		// `called_at` is Category A (instant) since 6.6.0 — unix UTC seconds.
+		// See CLAUDE.md "Date / time storage convention".
 		$sql = "CREATE TABLE {$table_name} (
             id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
             classification_id bigint(20) unsigned NOT NULL,
-            called_at datetime NOT NULL,
+            called_at bigint(20) unsigned NOT NULL,
             date_to_assume date NOT NULL,
             time_to_assume time NOT NULL,
             out_of_order tinyint(1) NOT NULL DEFAULT 0,
