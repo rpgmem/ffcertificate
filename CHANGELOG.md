@@ -34,6 +34,12 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
   the shim has had zero production callers since then. External callers
   (filters/hooks) should migrate to the appropriate `Debug::log_*()`
   method — see `Debug::AREA_*` constants.
+- `PublicCsvDownload::maybe_wipe_legacy_logs()` shim + its
+  `DOWNLOAD_LOG_FORMAT` / `OPTION_LOG_FORMAT` constants. The pre-6.3.3
+  audit log format was wiped on first `plugins_loaded` after upgrade
+  to 6.3.3; the 6.3.0–6.3.2 install base was effectively zero (24h
+  window). After 4+ minor versions, virtually all production installs
+  have run the wipe.
 - Unused `FFC_DEBUG` constant from `ffcertificate.php` and the matching
   PHPStan stub. Defined but never read.
 - Deprecated CSS aliases scheduled for 6.6.0 removal: `.ffc-conditional-field`
@@ -62,6 +68,15 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 - Classify `created_at` / `updated_at` housekeeping columns as a documented
   exception to Category A storage (CLAUDE.md). Closes the #249 follow-up
   deferral inline in `class-ffc-activator.php`.
+- Add "Legacy compat shims — audit log" section to CLAUDE.md
+  documenting the 4 compat shims that remain in the codebase by design
+  (capability migration, cron cleanup, API-contract keys, encryption
+  fallback).
+- Correct misleading "backwards compat" framing on
+  `AbstractRepository::get_allowed_where_columns()` — the empty default
+  is an intentional design choice (caller controls WHERE conditions),
+  not a shim. 0 of 6 production children override; all construct
+  `$conditions` internally.
 
 ---
 
