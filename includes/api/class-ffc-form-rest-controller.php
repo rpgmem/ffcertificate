@@ -28,14 +28,20 @@ if ( ! defined( 'ABSPATH' ) ) {
 class FormRestController {
 
 	/**
-	 * Maximum number of forms returned by `GET /forms` regardless of
-	 * the `limit` query argument. Authenticated callers asking for
-	 * more get clamped silently. Pagination is a follow-up; for now
-	 * 100 is a safe upper bound — large enough that no realistic
-	 * site is artificially constrained, small enough that a misuse
-	 * cannot dump the entire form catalogue in one round trip.
+	 * Maximum value accepted for the `per_page` query arg on
+	 * `GET /forms`. Larger requests are silently clamped to this
+	 * ceiling. Tuned to be large enough that no realistic site is
+	 * artificially constrained, small enough that a misuse cannot
+	 * dump the entire form catalogue in one round trip.
 	 */
-	private const DEFAULT_FORMS_LIMIT = 100;
+	private const MAX_PER_PAGE = 100;
+
+	/**
+	 * Default value used when the `per_page` query arg is omitted on
+	 * `GET /forms`. Matches the WP REST core convention (the
+	 * `/wp/v2/posts` endpoint uses 10).
+	 */
+	private const DEFAULT_PER_PAGE = 10;
 
 	/**
 	 * API namespace
@@ -85,9 +91,13 @@ class FormRestController {
 				'callback'            => array( $this, 'get_forms' ),
 				'permission_callback' => array( $this, 'permission_read_forms_api' ),
 				'args'                => array(
-					'limit' => array(
-						'default'           => self::DEFAULT_FORMS_LIMIT,
-						'sanitize_callback' => array( $this, 'sanitize_limit' ),
+					'page'     => array(
+						'default'           => 1,
+						'sanitize_callback' => array( $this, 'sanitize_page' ),
+					),
+					'per_page' => array(
+						'default'           => self::DEFAULT_PER_PAGE,
+						'sanitize_callback' => array( $this, 'sanitize_per_page' ),
 					),
 				),
 			)
@@ -182,35 +192,61 @@ class FormRestController {
 	}
 
 	/**
-	 * Sanitize and clamp the `limit` query arg on `GET /forms`.
+	 * Sanitize the `page` query arg on `GET /forms`.
 	 *
-	 * Returns DEFAULT_FORMS_LIMIT for non-positive or non-numeric
-	 * input, including the legacy default of `-1` (which previously
-	 * meant "all forms" — kept working through this clamp so existing
-	 * integrators do not 4xx).
+	 * Returns 1 for non-positive or non-numeric input; otherwise
+	 * the absint value (no upper bound — overflowing pages return
+	 * an empty array with correct pagination headers).
 	 *
-	 * @since 6.4.1
+	 * @since 6.6.1
 	 * @param mixed $value Raw query arg.
-	 * @return int Clamped limit, 1..DEFAULT_FORMS_LIMIT.
+	 * @return int Page number, >= 1.
 	 */
-	public function sanitize_limit( $value ): int {
+	public function sanitize_page( $value ): int {
+		$n = absint( $value );
+		return $n > 0 ? $n : 1;
+	}
+
+	/**
+	 * Sanitize and clamp the `per_page` query arg on `GET /forms`.
+	 *
+	 * Returns DEFAULT_PER_PAGE for non-positive or non-numeric input;
+	 * clamps positive values to MAX_PER_PAGE.
+	 *
+	 * @since 6.6.1
+	 * @param mixed $value Raw query arg.
+	 * @return int Page size, 1..MAX_PER_PAGE.
+	 */
+	public function sanitize_per_page( $value ): int {
 		$n = absint( $value );
 		if ( $n <= 0 ) {
-			return self::DEFAULT_FORMS_LIMIT;
+			return self::DEFAULT_PER_PAGE;
 		}
-		return min( $n, self::DEFAULT_FORMS_LIMIT );
+		return min( $n, self::MAX_PER_PAGE );
 	}
 
 	/**
 	 * GET /forms
-	 * List all published forms
 	 *
+	 * List published forms with WP REST-style pagination. Accepts
+	 * `page` (1-indexed, default 1) and `per_page` (default 10,
+	 * clamped to 1..MAX_PER_PAGE). Sets `X-WP-Total`,
+	 * `X-WP-TotalPages`, and `Link` headers (rels: first/prev/next/last).
+	 *
+	 * Out-of-range pages return an empty array with the pagination
+	 * headers populated — not a 404 — so external integrators can
+	 * detect the terminal condition without parsing the body shape.
+	 *
+	 * @since 6.4.1 introduced as a single-page endpoint clamped at 100.
+	 * @since 6.6.1 real pagination via `page` + `per_page`; the legacy
+	 *              `limit` arg is removed.
 	 * @param \WP_REST_Request $request REST request.
 	 * @return \WP_REST_Response|\WP_Error
 	 */
 	public function get_forms( $request ) {
 		try {
-			$limit = (int) $request->get_param( 'limit' );
+			$page     = (int) $request->get_param( 'page' );
+			$per_page = (int) $request->get_param( 'per_page' );
 
 			if ( ! $this->form_repository ) {
 				return new \WP_Error(
@@ -220,7 +256,16 @@ class FormRestController {
 				);
 			}
 
-			$forms = $this->form_repository->findPublished( $limit );
+			$offset      = ( $page - 1 ) * $per_page;
+			$total       = $this->form_repository->countPublished();
+			$total_pages = $per_page > 0 ? (int) ceil( $total / $per_page ) : 0;
+
+			// Out-of-range pages return an empty array with the
+			// pagination headers populated so callers can detect the
+			// terminal condition without parsing the body shape.
+			$forms = ( $page > $total_pages && $total > 0 )
+				? array()
+				: $this->form_repository->findPublished( $per_page, $offset );
 
 			// Trimmed payload: id/title/status/dates/link only. The
 			// previous response embedded the full `_ffc_form_config`
@@ -240,7 +285,16 @@ class FormRestController {
 				);
 			}
 
-			return rest_ensure_response( $response );
+			$rest_response = rest_ensure_response( $response );
+			$rest_response->header( 'X-WP-Total', (string) $total );
+			$rest_response->header( 'X-WP-TotalPages', (string) $total_pages );
+
+			$link_header = $this->build_pagination_link_header( $request, $page, $total_pages );
+			if ( '' !== $link_header ) {
+				$rest_response->header( 'Link', $link_header );
+			}
+
+			return $rest_response;
 
 		} catch ( \Exception $e ) {
 			$this->log_rest_error( 'get_forms', $e );
@@ -250,6 +304,45 @@ class FormRestController {
 				array( 'status' => 500 )
 			);
 		}
+	}
+
+	/**
+	 * Build a `Link` header matching the WP REST convention for the
+	 * paginated `GET /forms` response. Emits up to four rel values
+	 * (`first`, `prev`, `next`, `last`) — only the ones that apply
+	 * to the current position.
+	 *
+	 * @param \WP_REST_Request $request     Active request (for `per_page` mirroring).
+	 * @param int              $page        1-indexed current page.
+	 * @param int              $total_pages Total page count for the result set.
+	 * @return string Comma-separated `Link` header value, or '' when not paginated.
+	 */
+	private function build_pagination_link_header( $request, int $page, int $total_pages ): string {
+		if ( $total_pages <= 0 ) {
+			return '';
+		}
+
+		$base = rest_url( $this->namespace . '/forms' );
+		$args = array(
+			'per_page' => (int) $request->get_param( 'per_page' ),
+		);
+
+		$build = function ( int $target_page ) use ( $base, $args ) {
+			$args['page'] = $target_page;
+			return add_query_arg( $args, $base );
+		};
+
+		$links = array();
+		if ( $page > 1 ) {
+			$links[] = '<' . esc_url_raw( $build( 1 ) ) . '>; rel="first"';
+			$links[] = '<' . esc_url_raw( $build( max( 1, $page - 1 ) ) ) . '>; rel="prev"';
+		}
+		if ( $page < $total_pages ) {
+			$links[] = '<' . esc_url_raw( $build( $page + 1 ) ) . '>; rel="next"';
+			$links[] = '<' . esc_url_raw( $build( $total_pages ) ) . '>; rel="last"';
+		}
+
+		return implode( ', ', $links );
 	}
 
 	/**
