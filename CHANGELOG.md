@@ -7,7 +7,36 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+_No unreleased changes._
+
+---
+
+## [6.6.0] (2026-05-17)
+
+> ### ⚠ Breaking change for external SQL consumers
+>
+> This release converts four "instant in time" columns from `DATETIME` to `BIGINT UNSIGNED` storing unix UTC seconds, plus seven sibling instant columns in the same tables:
+>
+> | Table | Columns |
+> | --- | --- |
+> | `wp_ffc_submissions` | `submission_date`, `consent_date`, `edited_at` |
+> | `wp_ffc_reregistration_submissions` | `submitted_at`, `reviewed_at` |
+> | `wp_ffc_recruitment_call` | `called_at`, `cancelled_at` |
+> | `wp_ffc_appointments` | `approved_at`, `cancelled_at`, `consent_date`, `reminder_sent_at` |
+>
+> Column **names** are unchanged. The plugin runs an idempotent backfill on first load that interprets the existing DATETIME literal in the site's timezone and stores it as unix UTC, then drops the old column and renames the new one over it. Inside the plugin everything reads/writes through `DateFormatter` so the change is invisible.
+>
+> **External SQL (Metabase, PhpMyAdmin, custom reports) needs migration**:
+>
+> - Old: `WHERE submission_date >= '2026-01-01'` → New: `WHERE submission_date >= UNIX_TIMESTAMP('2026-01-01')`
+> - Old: `ORDER BY submission_date DESC` → unchanged (int sorts the same direction)
+> - Old: `SELECT DATE(submission_date)` → New: `SELECT DATE(FROM_UNIXTIME(submission_date))`
+>
+> Caveat documented for the curious: if the admin changed the site timezone at any point between 6.5.x and 6.6.0, the rows written under the old TZ are interpreted at backfill time in the **new** TZ — that introduces a fixed offset per row. Can't be recovered without a TZ-change audit log (we don't keep one). Backup the database before the update if the historical accuracy matters for those rows.
+
 ### Changed
+
+- **Sub-escopos (a) (b) (c) (d) (e) (f) of #249 — instants as unix UTC int + auditoria de render + docs + release bump.** End-to-end implementation of the Category A storage convention from CLAUDE.md. Each sub-escopo carries its own dedicated commit on PR #253 (see commit log for the per-column refactor map of writes/reads/tests). The migrations are gated on per-routine option flags so they're safe to re-attempt after a partial-failure restart, and the staging-column → backfill → drop+rename pattern is encapsulated in `DatabaseHelperTrait::migrate_datetime_column_to_unix()` so future Category A column migrations are one helper call.
 
 - **DateFormatter: route the last user-visible display sites through the helper** (#249 sub-escopo d). After #246 / #247 a handful of admin/list screens still rendered dates via `date_i18n()` or `gmdate()` — the Activity Log row metadata, the two Audience holiday tables, the Audience bookings list, and the self-scheduling appointments list's Time column. All five now call `DateFormatter::format_date()` / `format_time()` so the plugin's `ffc_settings` date/time format owns every screen and a future WP-TZ change re-renders without per-site edits. Out of scope (and kept as-is): filenames built with `gmdate('Y-m-d')`, day-of-week int extraction with `(int) gmdate('w', $ts)`, cache/rate-limiter window keys, SQL stored-value round-tripping for Category B wall-clock columns, and the iCal `DTSTAMP` per RFC 5545 — all canonical strings, not display.
 
@@ -18,6 +47,8 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 - **Public Operator Access audit CSV: timestamp now respects the site timezone.** The "Download audit log (CSV)" export labelled its first column `timestamp_utc` and emitted UTC values via `gmdate()`. Admins outside UTC had to convert in a spreadsheet to make sense of the log. Renamed the column to `timestamp` and switched the formatter to `wp_date('Y-m-d H:i:s', $ts)` so it follows WP's configured timezone (the stored ring-buffer value is still a UTC unix timestamp).
 
 - **DateFormatter: duplicated time on certificate / appointment verification + raw dates in "Minhas Convocações"** (follow-up to #244). Two issues reported by the user after #246 shipped: (1) the `[ffc_verification]` certificate result screen rendered the issue date as e.g. `"12/05/2026 18:57 18:57"` — the appointment result rendered `Data: 20/05/2026 21:00`, the user dashboard's appointments list and "Próximo Agendamento" widget showed the same time-on-date duplication. Root cause: pre-#244 the plugin's own `ffc_settings['date_format']` was effectively decorative (only the Settings → General preview consumed it), so existing installs had values like `"d/m/Y H:i"` saved there. When #244 wired the helper through every display site, `format_datetime()` started concatenating `time_format` after the already-time-bearing `date_format`. Fix: `DateFormatter::resolve_date_format()` now strips PHP time-format chars (`a A B g G h H i s u v`, honouring `\\`-escapes) from `date_format` / `date_format_pdf` on read, falling back to the plugin default when the strip yields an empty result. Pure read-time normalization — the user's saved value is untouched, so the Settings → General preview keeps reflecting what they typed; only display code routes through the cleaned format. (2) **"Minhas Convocações" was rendering raw DB values**: `called_at` / `date_to_assume` / `time_to_assume` echoed in their stored MySQL shape (`"2026-05-02 13:43:52"` / `"2026-05-05"` / `"11:00:00"`) instead of going through `DateFormatter`. Score was rendering as `"100,0000"` instead of two decimals. Fixed: the three datetime cells go through `format_datetime` / `format_date` / `format_time`, and the score uses `number_format_i18n(…, 2)`.
+
+---
 
 ## [6.5.14] (2026-05-15)
 
