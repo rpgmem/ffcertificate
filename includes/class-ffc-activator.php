@@ -273,13 +273,15 @@ class Activator {
 		// don't trust it for this. Batches of 500 keep peak memory bounded
 		// on large historic tables.
 		if ( $has_old ) {
-			$tz = wp_timezone();
+			$tz         = wp_timezone();
+			$batch_size = 500;
 			do {
-                // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
-				$rows = $wpdb->get_results(
-					$wpdb->prepare( 'SELECT id, submission_date FROM %i WHERE submission_date_ts = 0 LIMIT 500', $table )
+                // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+				$rows      = $wpdb->get_results(
+					$wpdb->prepare( 'SELECT id, submission_date FROM %i WHERE submission_date_ts = 0 LIMIT %d', $table, $batch_size )
 				);
-				if ( empty( $rows ) ) {
+				$row_count = is_array( $rows ) ? count( $rows ) : 0;
+				if ( 0 === $row_count ) {
 					break;
 				}
 				foreach ( $rows as $row ) {
@@ -301,7 +303,7 @@ class Activator {
 						unset( $e );
 					}
 				}
-			} while ( count( $rows ) === 500 );
+			} while ( $row_count === $batch_size );
 
 			// Step 3-5: drop legacy indexes that include `submission_date`,
 			// drop the old DATETIME column, rename the staging column over it.
@@ -379,13 +381,15 @@ class Activator {
 		}
 
 		if ( $has_old ) {
-			$tz = wp_timezone();
+			$tz         = wp_timezone();
+			$batch_size = 500;
 			do {
                 // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-				$rows = $wpdb->get_results(
-					$wpdb->prepare( 'SELECT id, submitted_at FROM %i WHERE submitted_at IS NOT NULL AND submitted_at_ts IS NULL LIMIT 500', $table )
+				$rows      = $wpdb->get_results(
+					$wpdb->prepare( 'SELECT id, submitted_at FROM %i WHERE submitted_at IS NOT NULL AND submitted_at_ts IS NULL LIMIT %d', $table, $batch_size )
 				);
-				if ( empty( $rows ) ) {
+				$row_count = is_array( $rows ) ? count( $rows ) : 0;
+				if ( 0 === $row_count ) {
 					break;
 				}
 				foreach ( $rows as $row ) {
@@ -403,7 +407,7 @@ class Activator {
 						unset( $e );
 					}
 				}
-			} while ( count( $rows ) === 500 );
+			} while ( $row_count === $batch_size );
 
             // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange
 			$wpdb->query( $wpdb->prepare( 'ALTER TABLE %i DROP COLUMN %i', $table, 'submitted_at' ) );

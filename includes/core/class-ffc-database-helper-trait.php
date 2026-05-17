@@ -209,12 +209,16 @@ trait DatabaseHelperTrait {
 			$where_unmigrated = $nullable
 				? "{$column} IS NOT NULL AND {$staging_name} IS NULL"
 				: "{$staging_name} = 0";
+			$batch_size       = 500;
+			// `$column` / `$where_unmigrated` are not user input — they're
+			// internal column-name strings the caller passes in. WPCS can't
+			// see that, hence the targeted ignores on the prepare() call.
+			$select_sql = "SELECT id, {$column} AS legacy_value FROM %i WHERE {$where_unmigrated} LIMIT %d";
 			do {
-				// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- $where_unmigrated built from trusted internal column names.
-				$rows = $wpdb->get_results(
-					$wpdb->prepare( "SELECT id, {$column} AS legacy_value FROM %i WHERE {$where_unmigrated} LIMIT 500", $table_name )
-				);
-				if ( empty( $rows ) ) {
+				// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared -- $select_sql built from trusted internal column names; placeholders covered.
+				$rows      = $wpdb->get_results( $wpdb->prepare( $select_sql, $table_name, $batch_size ) );
+				$row_count = is_array( $rows ) ? count( $rows ) : 0;
+				if ( 0 === $row_count ) {
 					break;
 				}
 				foreach ( $rows as $row ) {
@@ -232,7 +236,7 @@ trait DatabaseHelperTrait {
 						unset( $e );
 					}
 				}
-			} while ( count( $rows ) === 500 );
+			} while ( $row_count === $batch_size );
 
 			foreach ( $drop_indexes as $idx ) {
 				if ( self::index_exists( $table_name, $idx ) ) {

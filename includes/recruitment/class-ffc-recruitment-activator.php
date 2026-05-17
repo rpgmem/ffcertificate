@@ -170,13 +170,15 @@ class RecruitmentActivator {
 		}
 
 		if ( $has_old ) {
-			$tz = wp_timezone();
+			$tz         = wp_timezone();
+			$batch_size = 500;
 			do {
                 // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-				$rows = $wpdb->get_results(
-					$wpdb->prepare( 'SELECT id, called_at FROM %i WHERE called_at_ts = 0 LIMIT 500', $table )
+				$rows      = $wpdb->get_results(
+					$wpdb->prepare( 'SELECT id, called_at FROM %i WHERE called_at_ts = 0 LIMIT %d', $table, $batch_size )
 				);
-				if ( empty( $rows ) ) {
+				$row_count = is_array( $rows ) ? count( $rows ) : 0;
+				if ( 0 === $row_count ) {
 					break;
 				}
 				foreach ( $rows as $row ) {
@@ -194,7 +196,7 @@ class RecruitmentActivator {
 						unset( $e );
 					}
 				}
-			} while ( count( $rows ) === 500 );
+			} while ( $row_count === $batch_size );
 
             // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange
 			$wpdb->query( $wpdb->prepare( 'ALTER TABLE %i DROP COLUMN %i', $table, 'called_at' ) );
