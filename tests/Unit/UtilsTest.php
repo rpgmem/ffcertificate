@@ -788,4 +788,129 @@ class UtilsTest extends TestCase {
 
         $this->assertSame( array( 'foobar' ), Utils::get_post_array( 'list' ) );
     }
+
+    // ==================================================================
+    // get_post_string / get_get_string
+    // ==================================================================
+
+    public function test_get_post_string_returns_default_when_key_absent(): void {
+        $_POST = array();
+
+        $this->assertSame( '', Utils::get_post_string( 'missing' ) );
+        $this->assertSame( 'fallback', Utils::get_post_string( 'missing', 'fallback' ) );
+    }
+
+    public function test_get_post_string_returns_default_when_value_not_string(): void {
+        Functions\when( 'wp_unslash' )->returnArg();
+        $_POST = array( 'key' => array( 'array', 'not', 'string' ) );
+
+        $this->assertSame( 'def', Utils::get_post_string( 'key', 'def' ) );
+    }
+
+    public function test_get_post_string_sanitizes_and_unslashes(): void {
+        Functions\when( 'sanitize_text_field' )->alias( static function ( string $v ): string {
+            return trim( strip_tags( $v ) );
+        } );
+        Functions\when( 'wp_unslash' )->alias( static function ( $v ) {
+            return is_string( $v ) ? stripslashes( $v ) : $v;
+        } );
+
+        $_POST = array( 'name' => '  <b>John\\\'s</b>  ' );
+
+        $this->assertSame( "John's", Utils::get_post_string( 'name' ) );
+    }
+
+    public function test_get_get_string_returns_default_when_key_absent(): void {
+        $_GET = array();
+
+        $this->assertSame( '', Utils::get_get_string( 'missing' ) );
+        $this->assertSame( 'def', Utils::get_get_string( 'missing', 'def' ) );
+    }
+
+    public function test_get_get_string_reads_get_not_post(): void {
+        Functions\when( 'sanitize_text_field' )->returnArg();
+        Functions\when( 'wp_unslash' )->returnArg();
+
+        $_GET  = array( 'k' => 'from-get' );
+        $_POST = array( 'k' => 'from-post' );
+
+        $this->assertSame( 'from-get', Utils::get_get_string( 'k' ) );
+    }
+
+    public function test_get_get_string_returns_default_when_value_not_string(): void {
+        Functions\when( 'wp_unslash' )->returnArg();
+        $_GET = array( 'k' => array( 'arr' ) );
+
+        $this->assertSame( '', Utils::get_get_string( 'k' ) );
+    }
+
+    // ==================================================================
+    // get_post_int
+    // ==================================================================
+
+    public function test_get_post_int_returns_default_when_absent(): void {
+        $_POST = array();
+
+        $this->assertSame( 0, Utils::get_post_int( 'missing' ) );
+        $this->assertSame( 99, Utils::get_post_int( 'missing', 99 ) );
+    }
+
+    public function test_get_post_int_casts_string_to_int(): void {
+        Functions\when( 'absint' )->alias( static function ( $v ): int {
+            return abs( (int) $v );
+        } );
+        Functions\when( 'wp_unslash' )->returnArg();
+
+        $_POST = array( 'limit' => '42' );
+
+        $this->assertSame( 42, Utils::get_post_int( 'limit' ) );
+    }
+
+    public function test_get_post_int_absint_strips_negative_sign(): void {
+        Functions\when( 'absint' )->alias( static function ( $v ): int {
+            return abs( (int) $v );
+        } );
+        Functions\when( 'wp_unslash' )->returnArg();
+
+        $_POST = array( 'n' => '-17' );
+
+        $this->assertSame( 17, Utils::get_post_int( 'n' ) );
+    }
+
+    // ==================================================================
+    // get_post_bool
+    // ==================================================================
+
+    public function test_get_post_bool_returns_default_when_absent(): void {
+        $_POST = array();
+
+        $this->assertFalse( Utils::get_post_bool( 'missing' ) );
+        $this->assertTrue( Utils::get_post_bool( 'missing', true ) );
+    }
+
+    public function test_get_post_bool_truthy_values(): void {
+        $_POST = array(
+            'a' => '1',
+            'b' => 'on',
+            'c' => 'yes',
+            'd' => 1,
+        );
+
+        $this->assertTrue( Utils::get_post_bool( 'a' ) );
+        $this->assertTrue( Utils::get_post_bool( 'b' ) );
+        $this->assertTrue( Utils::get_post_bool( 'c' ) );
+        $this->assertTrue( Utils::get_post_bool( 'd' ) );
+    }
+
+    public function test_get_post_bool_falsy_values(): void {
+        $_POST = array(
+            'a' => '',
+            'b' => '0',
+            'c' => 0,
+        );
+
+        $this->assertFalse( Utils::get_post_bool( 'a' ) );
+        $this->assertFalse( Utils::get_post_bool( 'b' ) );
+        $this->assertFalse( Utils::get_post_bool( 'c' ) );
+    }
 }
