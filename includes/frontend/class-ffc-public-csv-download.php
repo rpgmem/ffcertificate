@@ -59,8 +59,8 @@ class PublicCsvDownload {
 	const DOWNLOAD_LOG_MAX    = 100;
 	const FLASH_TRANSIENT_TTL = 60; // Seconds.
 
-	const EXPORT_LOG_ACTION   = 'ffc_export_csv_public_download_log';
-	const EXPORT_LOG_NONCE    = 'ffc_export_csv_public_download_log';
+	const EXPORT_LOG_ACTION = 'ffc_export_csv_public_download_log';
+	const EXPORT_LOG_NONCE  = 'ffc_export_csv_public_download_log';
 
 	/**
 	 * Validation collaborator (form-access / hash / CPF gates).
