@@ -84,6 +84,35 @@ Existing examples: the Public Operator Access audit ring buffer
 that ever appeared there (#247) was a rendering choice (`gmdate` →
 `wp_date`), never a storage issue.
 
+#### Category A exception — housekeeping timestamps
+
+`created_at` / `updated_at` columns that are (1) MySQL auto-managed
+via `DEFAULT CURRENT_TIMESTAMP` (and `ON UPDATE CURRENT_TIMESTAMP`),
+or (2) PHP-managed but never rendered to end users, stay as DATETIME.
+
+Rationale: these are audit / sort columns only — they never reach a
+display path that would surface TZ drift. BIGINT UNSIGNED would force
+PHP responsibility for every INSERT/UPDATE site (MySQL cannot
+`DEFAULT CURRENT_TIMESTAMP` on BIGINT) with no user-facing benefit.
+
+Current inventory (snapshot at v6.6.1):
+
+| Table | Pattern | Notes |
+| --- | --- | --- |
+| `ffc_reregistration_submissions` | P1 (MySQL auto) | `ORDER BY created_at` in repository |
+| `ffc_recruitment_*` (6 tables) | P2 (PHP-managed, `NOT NULL`) | written via `current_time('mysql')` |
+| `ffc_audience_*` (5 tables) | P1 (MySQL auto) | — |
+| `ffc_rate_limit_*` (3 tables) | P1 (MySQL auto) | — |
+| `ffc_custom_fields*` (3 tables) | P1 (MySQL auto) | — |
+| `ffc_dynamic_rereg_*` (2 tables) | P1 (MySQL auto) | — |
+| `ffc_url_shortener` | P2 (PHP-managed, `NOT NULL`) | — |
+| `ffc_self_scheduling_*` | P3 (hybrid: `created_at` auto, `updated_at` PHP) | — |
+| `ffc_activity_log` | P2 (PHP-managed, `NOT NULL`) | — |
+
+If a future feature renders one of these columns to a user, that
+column must be migrated to Category A storage at that point — not
+left as a hidden TZ-drift trap.
+
 ### Category B — **Wall-clock** (a human commitment, no TZ semantics)
 
 Things like "the appointment is on May 20", "the doctor sees the patient
