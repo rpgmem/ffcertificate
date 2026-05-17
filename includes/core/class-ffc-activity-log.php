@@ -99,10 +99,7 @@ class ActivityLog {
 	 */
 	public static function log( string $action, string $level = self::LEVEL_INFO, array $context = array(), int $user_id = 0, int $submission_id = 0 ): bool {
 		// CRITICAL: Check admin settings FIRST (before temporary flag).
-		$settings   = get_option( 'ffc_settings', array() );
-		$is_enabled = isset( $settings['enable_activity_log'] ) && absint( $settings['enable_activity_log'] ) === 1;
-
-		if ( ! $is_enabled ) {
+		if ( ! \FreeFormCertificate\Settings\SettingsReader::activity_log_enabled() ) {
 			return false;
 		}
 
@@ -637,8 +634,7 @@ class ActivityLog {
 	 *
 	 * @return bool True if enabled, false otherwise
 	 */
-	public static function is_enabled() {
-		$settings = get_option( 'ffc_settings', array() );
-		return isset( $settings['enable_activity_log'] ) && absint( $settings['enable_activity_log'] ) === 1;
+	public static function is_enabled(): bool {
+		return \FreeFormCertificate\Settings\SettingsReader::activity_log_enabled();
 	}
 }

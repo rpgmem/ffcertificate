@@ -239,7 +239,6 @@ abstract class SettingsTab {
 	 * @return string
 	 */
 	public function get_option( string $key, string $default = '' ): string {
-		$settings = get_option( 'ffc_settings', array() );
-		return (string) ( isset( $settings[ $key ] ) ? $settings[ $key ] : $default );
+		return (string) SettingsReader::get( $key, $default );
 	}
 }

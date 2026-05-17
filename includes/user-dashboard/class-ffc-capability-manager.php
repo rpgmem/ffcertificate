@@ -406,10 +406,7 @@ class CapabilityManager {
 			);
 		}
 
-		$settings       = get_option( 'ffc_settings', array() );
-		$notify_enabled = ! empty( $settings['notify_capability_grant'] );
-
-		if ( ! $notify_enabled || empty( $user->user_email ) ) {
+		if ( ! \FreeFormCertificate\Settings\SettingsReader::notify_capability_grant_enabled() || empty( $user->user_email ) ) {
 			return;
 		}
 

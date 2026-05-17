@@ -31,8 +31,7 @@ trait EmailHelperTrait {
 	 * @return bool
 	 */
 	protected static function ffc_emails_disabled(): bool {
-		$settings = get_option( 'ffc_settings', array() );
-		return ! empty( $settings['disable_all_emails'] );
+		return \FreeFormCertificate\Settings\SettingsReader::emails_disabled();
 	}
 
 	/**

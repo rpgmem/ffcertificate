@@ -156,6 +156,30 @@ nenhuma instalação em produção depende deles.
 Quando uma feature nova tornar um desses shims inseguro ou inadequado,
 abra sub-issue específica + breaking-change banner no CHANGELOG.
 
+## Settings reads
+
+Read `ffc_settings` via
+`FreeFormCertificate\Settings\SettingsReader`, not `get_option('ffc_settings')`
+directly:
+
+- Use typed accessors when one exists
+  (`SettingsReader::emails_disabled()`,
+  `SettingsReader::activity_log_retention_days()`, etc.).
+- Fall back to `SettingsReader::get($key, $default)` for keys without
+  a dedicated typed accessor.
+- Use `SettingsReader::all()` when a caller reads 5+ keys (SMTP block,
+  DateFormatter format catalog) and array-style access stays clearer
+  than repeated method calls.
+
+The 14 debug-area toggles continue to be read via
+`Debug::is_enabled($area)` — that helper has the canonical
+`function_exists('get_option')` defensive check and is the typed
+reader for that subset.
+
+Classes that already encapsulate `get_option('ffc_settings')` in
+their own private helper (e.g. `UrlShortenerService::get_settings()`)
+do NOT need to migrate — they're already centralized.
+
 ## Branch naming
 
 Use `claude/<short-kebab-description>`. Examples in main history:

@@ -69,6 +69,7 @@ class CpfRfSplitMigrationStrategyTest extends TestCase {
 
         // Namespaced stubs for Core namespace (used by ActivityLog)
         Functions\when( 'FreeFormCertificate\Core\get_option' )->justReturn( array() );
+        Functions\when( 'FreeFormCertificate\Settings\get_option' )->justReturn( array() );
         Functions\when( 'FreeFormCertificate\Core\absint' )->alias( function( $val ) { return abs( (int) $val ); } );
 
         // Construct strategy — constructor calls Utils::get_submissions_table() which uses $wpdb->prefix

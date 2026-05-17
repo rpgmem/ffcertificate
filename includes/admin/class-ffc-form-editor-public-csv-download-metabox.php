@@ -66,10 +66,7 @@ class FormEditorPublicCsvDownloadMetabox {
 		$extend_end_enabled = $extend_end_raw;
 
 		if ( $limit <= 0 ) {
-			$settings      = get_option( 'ffc_settings', array() );
-			$default_limit = ( is_array( $settings ) && isset( $settings['public_csv_default_limit'] ) )
-				? (int) $settings['public_csv_default_limit']
-				: 1;
+			$default_limit = \FreeFormCertificate\Settings\SettingsReader::get_int( 'public_csv_default_limit', 1 );
 			$limit         = $default_limit > 0 ? $default_limit : 1;
 		}
 
@@ -249,8 +246,7 @@ class FormEditorPublicCsvDownloadMetabox {
 						</p>
 						<?php
 					else :
-						$ffc_settings          = get_option( 'ffc_settings', array() );
-						$csv_download_page_url = $ffc_settings['csv_download_page_url'] ?? '';
+						$csv_download_page_url = (string) \FreeFormCertificate\Settings\SettingsReader::get( 'csv_download_page_url', '' );
 						$ffc_query_string      = 'form_id=' . $post->ID . '&hash=' . $hash;
 						$share_link            = '' !== $csv_download_page_url
 							? $csv_download_page_url . ( str_contains( $csv_download_page_url, '?' ) ? '&' : '?' ) . $ffc_query_string

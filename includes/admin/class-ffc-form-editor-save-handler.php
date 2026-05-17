@@ -324,10 +324,7 @@ class FormEditorSaveHandler {
 				// Limit: positive integer ≥ 1. Fall back to settings default (min 1).
 				$limit = isset( $public_raw['limit'] ) ? absint( $public_raw['limit'] ) : 0;
 				if ( $limit < 1 ) {
-					$settings      = get_option( 'ffc_settings', array() );
-					$default_limit = ( is_array( $settings ) && isset( $settings['public_csv_default_limit'] ) )
-						? (int) $settings['public_csv_default_limit']
-						: 1;
+					$default_limit = \FreeFormCertificate\Settings\SettingsReader::get_int( 'public_csv_default_limit', 1 );
 					$limit         = $default_limit > 0 ? $default_limit : 1;
 				}
 				update_post_meta( $post_id, '_ffc_csv_public_limit', $limit );

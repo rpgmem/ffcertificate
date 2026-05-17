@@ -30,8 +30,7 @@ class FormCache {
 	 * Get cache expiration from settings
 	 */
 	public static function get_expiration(): int {
-		$settings = get_option( 'ffc_settings', array() );
-		return isset( $settings['cache_expiration'] ) ? intval( $settings['cache_expiration'] ) : 3600;
+		return \FreeFormCertificate\Settings\SettingsReader::cache_expiration_seconds();
 	}
 
 	/**

@@ -191,10 +191,7 @@ class AdminActivityLogPage {
 	 */
 	public function render_page(): void {
 		// Check if Activity Log is enabled.
-		$settings   = get_option( 'ffc_settings', array() );
-		$is_enabled = isset( $settings['enable_activity_log'] ) && 1 === $settings['enable_activity_log'];
-
-		if ( ! $is_enabled ) {
+		if ( ! \FreeFormCertificate\Settings\SettingsReader::activity_log_enabled() ) {
 			$this->render_disabled_notice();
 			return;
 		}

@@ -54,8 +54,7 @@ class ActivityLogAjaxEndpoint {
 
 		// Activity log can be globally disabled — render a notice
 		// rather than an empty table.
-		$settings = get_option( 'ffc_settings', array() );
-		if ( empty( $settings['enable_activity_log'] ) || 1 !== (int) $settings['enable_activity_log'] ) {
+		if ( ! \FreeFormCertificate\Settings\SettingsReader::activity_log_enabled() ) {
 			wp_send_json_error(
 				array( 'message' => __( 'Activity Log is currently disabled.', 'ffcertificate' ) ),
 				400

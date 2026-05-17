@@ -250,8 +250,7 @@ final class DateFormatter {
 	 * @return array<string, mixed>
 	 */
 	private static function settings(): array {
-		$value = \get_option( 'ffc_settings', array() );
-		return is_array( $value ) ? $value : array();
+		return \FreeFormCertificate\Settings\SettingsReader::all();
 	}
 
 	/**

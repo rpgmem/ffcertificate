@@ -342,10 +342,7 @@ class ActivityLogQuery {
 	 * @return int Number of deleted rows
 	 */
 	public static function run_cleanup(): int {
-		$settings       = get_option( 'ffc_settings', array() );
-		$retention_days = isset( $settings['activity_log_retention_days'] )
-			? absint( $settings['activity_log_retention_days'] )
-			: 90;
+		$retention_days = \FreeFormCertificate\Settings\SettingsReader::activity_log_retention_days();
 
 		if ( $retention_days <= 0 ) {
 			return 0;

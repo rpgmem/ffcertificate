@@ -53,7 +53,7 @@ class EmailHandler {
 	 * @param PHPMailer $phpmailer PHPMailer instance.
 	 */
 	public function configure_custom_smtp( $phpmailer ): void {
-		$settings = get_option( 'ffc_settings', array() );
+		$settings = \FreeFormCertificate\Settings\SettingsReader::all();
 
 		if ( isset( $settings['smtp_mode'] ) && 'custom' === $settings['smtp_mode'] ) {
 			$phpmailer->isSMTP();
@@ -300,7 +300,7 @@ class EmailHandler {
 	 * @return bool True if email was sent, false otherwise
 	 */
 	public function send_wp_user_notification( int $user_id, string $context = 'submission' ): bool {
-		$settings = get_option( 'ffc_settings', array() );
+		$settings = \FreeFormCertificate\Settings\SettingsReader::all();
 
 		// Debug logging.
 		if ( class_exists( '\FreeFormCertificate\Core\Debug' ) ) {
