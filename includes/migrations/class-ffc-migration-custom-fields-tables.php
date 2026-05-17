@@ -261,7 +261,7 @@ class MigrationCustomFieldsTables {
             user_id bigint(20) unsigned NOT NULL,
             data json DEFAULT NULL,
             status varchar(20) NOT NULL DEFAULT 'pending',
-            submitted_at datetime DEFAULT NULL,
+            submitted_at bigint(20) unsigned DEFAULT NULL,
             reviewed_at datetime DEFAULT NULL,
             reviewed_by bigint(20) unsigned DEFAULT NULL,
             notes text DEFAULT NULL,

@@ -331,6 +331,90 @@ class Activator {
 	}
 
 	/**
+	 * Idempotently migrate `submitted_at` on `ffc_reregistration_submissions`
+	 * from DATETIME (site TZ via `current_time('mysql')`) to BIGINT UNSIGNED
+	 * NULL storing unix UTC seconds (#249 sub-escopo b). The column name
+	 * stays the same — see {@see maybe_migrate_submission_date_to_unix()}
+	 * for the rationale + step-by-step playbook.
+	 *
+	 * NULL is meaningful here: drafts are inserted with `submitted_at = NULL`
+	 * and only get a value once the user clicks Submit. So the staging
+	 * column uses NULL (not 0) for "not yet submitted", and the backfill
+	 * only touches rows where the old DATETIME is non-NULL.
+	 *
+	 * Sibling instant columns in the same table (`reviewed_at`,
+	 * `created_at`, `updated_at`) intentionally stay DATETIME — they're
+	 * out of scope for #249's (a)(b)(c) and would expand the blast
+	 * radius. Filed as follow-up tech debt.
+	 *
+	 * @since 6.6.0
+	 */
+	public static function maybe_migrate_submitted_at_to_unix(): void {
+		if ( '1' === get_option( 'ffc_submitted_at_unix_migrated', '' ) ) {
+			return;
+		}
+
+		global $wpdb;
+		$table = $wpdb->prefix . 'ffc_reregistration_submissions';
+
+		if ( ! self::table_exists( $table ) ) {
+			return;
+		}
+
+		$has_old = self::column_exists( $table, 'submitted_at' );
+		$has_new = self::column_exists( $table, 'submitted_at_ts' );
+
+		if ( ! $has_new ) {
+			if ( ! $has_old ) {
+				update_option( 'ffc_submitted_at_unix_migrated', '1', true );
+				return;
+			}
+			self::add_column_if_missing(
+				$table,
+				'submitted_at_ts',
+				'BIGINT UNSIGNED DEFAULT NULL',
+				'submitted_at'
+			);
+			$has_new = true;
+		}
+
+		if ( $has_old ) {
+			$tz = wp_timezone();
+			do {
+                // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+				$rows = $wpdb->get_results(
+					$wpdb->prepare( 'SELECT id, submitted_at FROM %i WHERE submitted_at IS NOT NULL AND submitted_at_ts IS NULL LIMIT 500', $table )
+				);
+				if ( empty( $rows ) ) {
+					break;
+				}
+				foreach ( $rows as $row ) {
+					try {
+						$dt = new \DateTimeImmutable( (string) $row->submitted_at, $tz );
+                        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+						$wpdb->update(
+							$table,
+							array( 'submitted_at_ts' => $dt->getTimestamp() ),
+							array( 'id' => (int) $row->id ),
+							array( '%d' ),
+							array( '%d' )
+						);
+					} catch ( \Exception $e ) {
+						unset( $e );
+					}
+				}
+			} while ( count( $rows ) === 500 );
+
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange
+			$wpdb->query( $wpdb->prepare( 'ALTER TABLE %i DROP COLUMN %i', $table, 'submitted_at' ) );
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange
+			$wpdb->query( $wpdb->prepare( 'ALTER TABLE %i CHANGE %i %i BIGINT UNSIGNED DEFAULT NULL', $table, 'submitted_at_ts', 'submitted_at' ) );
+		}
+
+		update_option( 'ffc_submitted_at_unix_migrated', '1', true );
+	}
+
+	/**
 	 * Add columns.
 	 */
 	private static function add_columns(): void {
@@ -743,13 +827,15 @@ class Activator {
 			return;
 		}
 
+		// `submitted_at` is Category A (instant) since 6.6.0 — unix UTC
+		// seconds. See CLAUDE.md "Date / time storage convention".
 		$sql = "CREATE TABLE {$table_name} (
             id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
             reregistration_id bigint(20) unsigned NOT NULL,
             user_id bigint(20) unsigned NOT NULL,
             data json DEFAULT NULL,
             status varchar(20) NOT NULL DEFAULT 'pending',
-            submitted_at datetime DEFAULT NULL,
+            submitted_at bigint(20) unsigned DEFAULT NULL,
             reviewed_at datetime DEFAULT NULL,
             reviewed_by bigint(20) unsigned DEFAULT NULL,
             notes text DEFAULT NULL,

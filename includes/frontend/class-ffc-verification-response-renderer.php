@@ -236,10 +236,8 @@ class VerificationResponseRenderer {
 
 		$submitted_at = __( 'N/A', 'ffcertificate' );
 		if ( ! empty( $rereg['submitted_at'] ) ) {
-			$ts = strtotime( $rereg['submitted_at'] );
-			if ( false !== $ts ) {
-				$submitted_at = \FreeFormCertificate\Core\DateFormatter::format_datetime( $ts );
-			}
+			// `submitted_at` is unix UTC int since 6.6.0 (#249 sub-escopo b).
+			$submitted_at = \FreeFormCertificate\Core\DateFormatter::format_datetime( (int) $rereg['submitted_at'] );
 		}
 
 		$display_code = ! empty( $rereg['auth_code'] )

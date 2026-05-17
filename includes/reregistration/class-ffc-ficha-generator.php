@@ -72,7 +72,8 @@ class FichaGenerator {
 
 		$submitted_at = '';
 		if ( ! empty( $submission->submitted_at ) ) {
-			$submitted_at = \FreeFormCertificate\Core\DateFormatter::format_datetime( $submission->submitted_at, 'pdf' );
+			// `submitted_at` is unix UTC int since 6.6.0 (#249 sub-escopo b).
+			$submitted_at = \FreeFormCertificate\Core\DateFormatter::format_datetime( (int) $submission->submitted_at, 'pdf' );
 		}
 
 		// Check if user has acúmulo de cargos.

@@ -178,6 +178,10 @@ class Loader {
 		// Idempotent — gated on a one-shot option flag.
 		\FreeFormCertificate\Activator::maybe_migrate_submission_date_to_unix();
 
+		// 6.6.0: `submitted_at` (ffc_reregistration_submissions) DATETIME → unix UTC
+		// BIGINT NULL (#249 sub-escopo b). Idempotent — option-flag gated.
+		\FreeFormCertificate\Activator::maybe_migrate_submitted_at_to_unix();
+
 		// Ensure rate-limit tables (incl. ffc_device_signals added in 6.3.0) exist
 		// even after in-place plugin updates that bypass register_activation_hook.
 		if ( class_exists( '\FreeFormCertificate\Security\RateLimitActivator' ) ) {
