@@ -359,9 +359,19 @@ abstract class AbstractRepository {
 	}
 
 	/**
-	 * Get allowed WHERE clause columns. Override in child classes.
+	 * Allow-list of column names accepted by `build_where_clause()`.
 	 *
-	 * @return array<int, string> Empty array means allow all (for backwards compat).
+	 * Returning an empty array (the default) accepts any column — child
+	 * classes trust callers to construct `$conditions` from internal /
+	 * already-sanitized values rather than user input. The `%i` placeholder
+	 * in `build_where_clause()` prevents SQL identifier injection regardless.
+	 *
+	 * Override and return a non-empty list when a child class accepts
+	 * `$conditions` derived from external input (REST query args, form
+	 * fields, etc.). Audit at v6.6.1: 0 production children override —
+	 * all callers in repos construct conditions internally.
+	 *
+	 * @return array<int, string>
 	 */
 	protected function get_allowed_where_columns(): array {
 		return array();

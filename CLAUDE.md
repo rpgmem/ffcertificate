@@ -140,6 +140,22 @@ Existing examples: `appointment_date` (DATE), `start_time` / `end_time`
   may use `gmdate('Y-m-d\TH:i:s\Z', $ts)` — but the column those
   filenames represent should still follow Category A or B.
 
+## Legacy compat shims — audit log
+
+Inventário (snapshot v6.6.1) dos shims de compatibilidade legada que
+permanecem no código por design. Removê-los requer evidência de que
+nenhuma instalação em produção depende deles.
+
+| Shim | Local | Risco se removido | Por que fica |
+|------|-------|--------|----------|
+| `ensure_legacy_caps_renamed()` v1 | `class-ffc-loader.php` | Médio | Idempotent + version-flagged via `ffc_legacy_caps_renamed_v1`; dormant após primeiro `plugins_loaded` post-6.2.0. Custo zero. |
+| Cron cleanup pré-4.6.15 | `class-ffc-activator.php:92-94` | Baixo | 3× `wp_clear_scheduled_hook`. Sites com upgrade auto pulando versões antigas mantêm crons órfãos sem isso. |
+| Keys `count` / `success` / `fail` em `get_audit_log_summary()` | `class-ffc-public-csv-download.php` | **Alto** | Contrato de API pública. Consumidores externos (filters/hooks) podem depender deles. Removível só com banner ⚠ de breaking change. |
+| `cpf_rf_encrypted` legacy column fallback (3-tier) | `class-ffc-pdf-generator.php` | **Alto** | Data loss em PDFs para installs com dados pré-split. Remover só após confirmar que TODAS instalações ativas têm dados migrados para `cpf_encrypted` / `rf_encrypted`. |
+
+Quando uma feature nova tornar um desses shims inseguro ou inadequado,
+abra sub-issue específica + breaking-change banner no CHANGELOG.
+
 ## Branch naming
 
 Use `claude/<short-kebab-description>`. Examples in main history:
