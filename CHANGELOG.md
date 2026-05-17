@@ -77,6 +77,12 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
   is an intentional design choice (caller controls WHERE conditions),
   not a shim. 0 of 6 production children override; all construct
   `$conditions` internally.
+- Correct misleading "backward-compatible delegate methods" framing on
+  `ReregistrationFrontend` and `UserDataRestController`:
+  - `ReregistrationFrontend::get_user_reregistrations()` owns join
+    logic across 3 repositories; it is not a delegate.
+  - `UserDataRestController` exposes a facade API surface intentional
+    for external integrators; the methods are not legacy shims.
 
 ---
 
