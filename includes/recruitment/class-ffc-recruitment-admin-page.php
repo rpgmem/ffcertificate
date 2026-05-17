@@ -555,7 +555,6 @@ final class RecruitmentAdminPage {
 		echo '</form>';
 
 		self::render_create_adjutancy_form();
-		self::render_adjutancy_color_picker_script();
 	}
 
 	/**
@@ -583,7 +582,6 @@ final class RecruitmentAdminPage {
 		echo '</form>';
 
 		self::render_create_reason_form();
-		self::render_reason_color_picker_script();
 	}
 
 	/**
@@ -593,11 +591,10 @@ final class RecruitmentAdminPage {
 	 * @return void
 	 */
 	private static function render_create_reason_form(): void {
-		$nonce         = wp_create_nonce( 'wp_rest' );
 		$default_color = RecruitmentReasonRepository::DEFAULT_COLOR;
 
 		echo '<h3>' . esc_html__( 'Create new reason', 'ffcertificate' ) . '</h3>';
-		echo '<form id="ffc-create-reason" method="post" onsubmit="return ffcRecruitmentCreateReason(this);">';
+		echo '<form id="ffc-create-reason" method="post" data-ffc-create-endpoint="reasons">';
 		echo '<table class="form-table"><tbody>';
 		echo '<tr><th><label for="ffc-reason-slug">' . esc_html__( 'Slug', 'ffcertificate' ) . '</label></th>';
 		echo '<td><input id="ffc-reason-slug" name="slug" type="text" class="regular-text" required></td></tr>';
@@ -630,93 +627,6 @@ final class RecruitmentAdminPage {
 		echo '</tbody></table>';
 		echo '<p><button type="submit" class="button button-primary">' . esc_html__( 'Create', 'ffcertificate' ) . '</button></p>';
 		echo '</form>';
-
-		echo '<script>'
-			. 'function ffcRecruitmentCreateReason(form){'
-			. 'var fd=new FormData(form);'
-			. 'fetch("' . esc_url_raw( rest_url( 'ffcertificate/v1/recruitment/reasons' ) ) . '",{'
-			. 'method:"POST",'
-			. 'headers:{"X-WP-Nonce":"' . esc_attr( $nonce ) . '"},'
-			. 'body:fd'
-			. '}).then(function(r){return r.json();}).then(function(d){'
-			. 'if(d&&d.id){location.reload();}else{alert((d&&d.message)?d.message:JSON.stringify(d));}'
-			. '});return false;}'
-			. '</script>';
-	}
-
-	/**
-	 * Inline JS for the reasons list-table color pickers (mirror of
-	 * {@see self::render_adjutancy_color_picker_script()}). PATCHes via
-	 * the REST endpoint on `change`.
-	 *
-	 * @return void
-	 */
-	private static function render_reason_color_picker_script(): void {
-		$nonce    = wp_create_nonce( 'wp_rest' );
-		$base_url = esc_url_raw( rest_url( 'ffcertificate/v1/recruitment/reasons/' ) );
-
-		echo '<script>'
-			. '(function(){'
-			. 'document.querySelectorAll(".ffc-reason-color-picker").forEach(function(input){'
-			. 'input.addEventListener("change",function(){'
-			. 'var id=parseInt(input.getAttribute("data-ffc-reason-id"),10);'
-			. 'if(!id){return;}'
-			. 'var fd=new FormData();fd.append("color",input.value);'
-			. 'fetch(' . wp_json_encode( $base_url ) . '+id,{'
-			. 'method:"POST",'
-			. 'headers:{"X-WP-Nonce":' . wp_json_encode( $nonce ) . ',"X-HTTP-Method-Override":"PATCH"},'
-			. 'body:fd'
-			. '}).then(function(r){return r.json();}).then(function(d){'
-			. 'if(d&&d.color){'
-			. 'input.value=d.color;'
-			. 'var hex=input.parentNode.querySelector(".ffc-reason-color-hex");'
-			. 'if(hex){hex.textContent=d.color;}'
-			. '}else{alert((d&&d.message)?d.message:JSON.stringify(d));}'
-			. '});'
-			. '});'
-			. '});'
-			. '})();'
-			. '</script>';
-	}
-
-	/**
-	 * Inline JS that turns each adjutancy color picker (rendered by
-	 * {@see RecruitmentAdjutanciesListTable::column_color()}) into an
-	 * auto-PATCHing control.
-	 *
-	 * Listening at `change` instead of `input` so the request fires once
-	 * the user commits a color rather than firing on every drag step
-	 * across the picker. The hex label next to the picker is updated in
-	 * place so admins get instant feedback without a page reload.
-	 *
-	 * @return void
-	 */
-	private static function render_adjutancy_color_picker_script(): void {
-		$nonce    = wp_create_nonce( 'wp_rest' );
-		$base_url = esc_url_raw( rest_url( 'ffcertificate/v1/recruitment/adjutancies/' ) );
-
-		echo '<script>'
-			. '(function(){'
-			. 'document.querySelectorAll(".ffc-adjutancy-color-picker").forEach(function(input){'
-			. 'input.addEventListener("change",function(){'
-			. 'var id=parseInt(input.getAttribute("data-ffc-adjutancy-id"),10);'
-			. 'if(!id){return;}'
-			. 'var fd=new FormData();fd.append("color",input.value);'
-			. 'fetch(' . wp_json_encode( $base_url ) . '+id,{'
-			. 'method:"POST",'
-			. 'headers:{"X-WP-Nonce":' . wp_json_encode( $nonce ) . ',"X-HTTP-Method-Override":"PATCH"},'
-			. 'body:fd'
-			. '}).then(function(r){return r.json();}).then(function(d){'
-			. 'if(d&&d.color){'
-			. 'input.value=d.color;'
-			. 'var hex=input.parentNode.querySelector(".ffc-adjutancy-color-hex");'
-			. 'if(hex){hex.textContent=d.color;}'
-			. '}else{alert((d&&d.message)?d.message:JSON.stringify(d));}'
-			. '});'
-			. '});'
-			. '});'
-			. '})();'
-			. '</script>';
 	}
 
 	/**
@@ -914,15 +824,14 @@ final class RecruitmentAdminPage {
 	}
 
 	/**
-	 * Render the create-notice form (POSTs to the REST endpoint via inline JS).
+	 * Render the create-notice form. Submit is handled by the delegated
+	 * `data-ffc-create-endpoint` listener in `ffc-recruitment-admin.js`.
 	 *
 	 * @return void
 	 */
 	private static function render_create_notice_form(): void {
-		$nonce = wp_create_nonce( 'wp_rest' );
-
 		echo '<h3>' . esc_html__( 'Create new notice', 'ffcertificate' ) . '</h3>';
-		echo '<form id="ffc-create-notice" method="post" onsubmit="return ffcRecruitmentCreateNotice(this);">';
+		echo '<form id="ffc-create-notice" method="post" data-ffc-create-endpoint="notices">';
 		echo '<table class="form-table"><tbody>';
 		echo '<tr><th><label for="ffc-notice-code">' . esc_html__( 'Code', 'ffcertificate' ) . '</label></th>';
 		echo '<td><input id="ffc-notice-code" name="code" type="text" class="regular-text" required></td></tr>';
@@ -931,32 +840,19 @@ final class RecruitmentAdminPage {
 		echo '</tbody></table>';
 		echo '<p><button type="submit" class="button button-primary">' . esc_html__( 'Create', 'ffcertificate' ) . '</button></p>';
 		echo '</form>';
-
-		echo '<script>'
-			. 'function ffcRecruitmentCreateNotice(form){'
-			. 'var fd=new FormData(form);'
-			. 'fetch("' . esc_url_raw( rest_url( 'ffcertificate/v1/recruitment/notices' ) ) . '",{'
-			. 'method:"POST",'
-			. 'headers:{"X-WP-Nonce":"' . esc_attr( $nonce ) . '"},'
-			. 'body:fd'
-			. '}).then(function(r){return r.json();}).then(function(d){'
-			. 'if(d&&d.id){location.reload();}else{alert((d&&d.message)?d.message:JSON.stringify(d));}'
-			. '});return false;}'
-			. '</script>';
 	}
 
 	/**
-	 * Render the create-adjutancy form (same fetch pattern).
+	 * Render the create-adjutancy form. Submit is handled by the delegated
+	 * `data-ffc-create-endpoint` listener in `ffc-recruitment-admin.js`.
 	 *
 	 * @return void
 	 */
 	private static function render_create_adjutancy_form(): void {
-		$nonce = wp_create_nonce( 'wp_rest' );
-
 		$default_color = RecruitmentAdjutancyRepository::DEFAULT_COLOR;
 
 		echo '<h3>' . esc_html__( 'Create new adjutancy', 'ffcertificate' ) . '</h3>';
-		echo '<form id="ffc-create-adjutancy" method="post" onsubmit="return ffcRecruitmentCreateAdjutancy(this);">';
+		echo '<form id="ffc-create-adjutancy" method="post" data-ffc-create-endpoint="adjutancies">';
 		echo '<table class="form-table"><tbody>';
 		echo '<tr><th><label for="ffc-adj-slug">' . esc_html__( 'Slug', 'ffcertificate' ) . '</label></th>';
 		echo '<td><input id="ffc-adj-slug" name="slug" type="text" class="regular-text" required></td></tr>';
@@ -969,18 +865,6 @@ final class RecruitmentAdminPage {
 		echo '</tbody></table>';
 		echo '<p><button type="submit" class="button button-primary">' . esc_html__( 'Create', 'ffcertificate' ) . '</button></p>';
 		echo '</form>';
-
-		echo '<script>'
-			. 'function ffcRecruitmentCreateAdjutancy(form){'
-			. 'var fd=new FormData(form);'
-			. 'fetch("' . esc_url_raw( rest_url( 'ffcertificate/v1/recruitment/adjutancies' ) ) . '",{'
-			. 'method:"POST",'
-			. 'headers:{"X-WP-Nonce":"' . esc_attr( $nonce ) . '"},'
-			. 'body:fd'
-			. '}).then(function(r){return r.json();}).then(function(d){'
-			. 'if(d&&d.id){location.reload();}else{alert((d&&d.message)?d.message:JSON.stringify(d));}'
-			. '});return false;}'
-			. '</script>';
 	}
 
 	/**

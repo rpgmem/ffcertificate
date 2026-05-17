@@ -164,7 +164,7 @@ class RecruitmentReasonsListTable extends \WP_List_Table {
 		$id    = (int) $item['id'];
 		$color = (string) ( $item['color'] ?? RecruitmentReasonRepository::DEFAULT_COLOR );
 		return sprintf(
-			'<input type="color" value="%s" data-ffc-reason-id="%d" class="ffc-reason-color-picker" aria-label="%s"> <code class="ffc-reason-color-hex">%s</code>',
+			'<input type="color" value="%s" data-ffc-color-endpoint="reasons" data-ffc-entity-id="%d" class="ffc-reason-color-picker" aria-label="%s"> <code class="ffc-reason-color-hex" data-ffc-color-hex>%s</code>',
 			esc_attr( $color ),
 			$id,
 			esc_attr__( 'Badge color', 'ffcertificate' ),

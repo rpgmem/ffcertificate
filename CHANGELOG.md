@@ -18,6 +18,15 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
   in the geofence metabox row was also removed; visibility there continues to
   be driven by the slideUp/slideDown handlers in `ffc-geofence-admin.js`.
 
+### Changed
+
+- Recruitment admin: 5 inline `<script>` blocks moved out of
+  `class-ffc-recruitment-admin-page.php` into the
+  `ffc-recruitment-admin.js` bundle and consolidated into 2 generic
+  delegated handlers (`form[data-ffc-create-endpoint]` for create-forms,
+  `input[data-ffc-color-endpoint]` for color-pickers). Behavior
+  unchanged; net source-line reduction.
+
 ### Documentation
 
 - Classify `created_at` / `updated_at` housekeeping columns as a documented
