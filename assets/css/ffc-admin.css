@@ -578,17 +578,6 @@
     margin: 10px 0;
 }
 
-/* @deprecated 6.5.x — restriction-field visibility migrated to the unified
-   `.ffc-collapsed-target` system (#238 follow-up). These two rules are
-   kept as no-op aliases until 6.6.0 so any custom CSS scoped to
-   `.ffc-conditional-field` still parses without warnings. */
-.ffc-conditional-field {
-    /* nothing — visibility is owned by .ffc-collapsed-target / .ffc-collapsed */
-}
-.ffc-conditional-field.active {
-    /* nothing — kept for selector compatibility */
-}
-
 /* Section subtitles inside metaboxes (Start Form Early sub-block,
    etc.) — sits below the main metabox h2 with a thin separator. */
 .ffc-section-subtitle {

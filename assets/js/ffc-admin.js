@@ -378,13 +378,10 @@
         });
 
         // Restriction field visibility (password/allowlist/denylist/ticket)
-        // is now handled by the generic `.ffc-collapsed-target` initializer
-        // at the end of this file (#238 follow-up). The 4 master toggles
-        // (#ffc_restriction_password etc.) drive their dependent <tr>s via
-        // data-ffc-master, with `.ffc-collapsed` collapsing them when off.
-        // The previous per-toggle slideUp/slideDown handlers were unreliable
-        // against the `.ffc-conditional-field { display:none } + .active`
-        // CSS rule for table-row elements.
+        // is handled by the generic `.ffc-collapsed-target` initializer
+        // at the end of this file. Master toggles drive their dependent
+        // <tr>s via data-ffc-master, with `.ffc-collapsed` collapsing
+        // them when off.
     });
 
     // =========================================================================
