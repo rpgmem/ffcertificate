@@ -629,7 +629,7 @@ final class RecruitmentAdminPage {
 		echo '</form>';
 	}
 
-/**
+	/**
 	 * Candidates tab — CSV import flow.
 	 *
 	 * Admin selects the target notice, picks a CSV file, and the form POSTs
