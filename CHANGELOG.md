@@ -51,6 +51,13 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 
 ### Changed
 
+- Centralize `ffc_settings` reads via new
+  `FreeFormCertificate\Settings\SettingsReader` class with generic getter
+  (`get`, `get_bool`, `get_int`, `all`) + 20 typed accessors for high-value
+  boolean/int keys. 25 call sites migrated; WordPress's built-in
+  `alloptions` cache continues to provide the underlying caching (no
+  perf change). Debug toggles continue to be accessed via
+  `Debug::is_enabled($area)`.
 - `GET /forms` REST endpoint: real pagination via `page` and `per_page`
   query args (defaults 1 and 10), with `X-WP-Total`, `X-WP-TotalPages`,
   and `Link` headers (rels: first/prev/next/last) per the WP REST
