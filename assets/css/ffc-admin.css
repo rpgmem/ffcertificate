@@ -662,17 +662,6 @@
     min-width: 0;
 }
 
-/* "Globally off" stays as a separate cosmetic state: the master
-   checkbox is still rendered so the admin can see WHY they can't
-   toggle it, but the whole subsection is faded to convey "blocked
-   from another setting". Not the same as `.ffc-collapsed`. */
-.ffc-device-limit-globally-off {
-    opacity: 0.55;
-}
-.ffc-device-limit-globally-off :is(input, select, textarea, button) {
-    cursor: not-allowed;
-}
-
 /* Audit-log outcome summary cards (Public CSV Download metabox). */
 .ffc-csv-audit-summary {
     display: flex;
