@@ -468,41 +468,6 @@ class Utils {
 	}
 
 	/**
-	 * Log debug message (only if WP_DEBUG is enabled)
-	 *
-	 * Debug log.
-	 *
-	 * Debug log.
-	 *
-	 * Debug log.
-	 *
-	 * Debug log.
-	 *
-	 * Debug log.
-	 *
-	 * Debug log.
-	 *
-	 * Debug log.
-	 *
-	 * Debug log.
-	 * Legacy debug log helper.
-	 *
-	 * @deprecated 6.2.0 Use {@see Debug::log_*()} instead. Each subsystem
-	 *             now has a dedicated helper gated by an admin toggle in
-	 *             Settings → Advanced → Debug — see `Debug::AREA_*`.
-	 *             Calls landing here delegate to the catch-all
-	 *             `AREA_FORM_PROCESSOR` for backwards compatibility, but
-	 *             new code should use the area-specific methods directly.
-	 *
-	 * @param string $message Message to log.
-	 * @param mixed  $data Optional data to log.
-	 * @return void
-	 */
-	public static function debug_log( string $message, $data = null ): void {
-		Debug::log( Debug::AREA_FORM_PROCESSOR, $message, $data );
-	}
-
-	/**
 	 * Generate success HTML response for frontend form submission
 	 *
 	 * Generate success html.

@@ -75,11 +75,6 @@ class Debug {
 	 * Available debug areas.
 	 *
 	 * @since 3.1.0
-	 * @since 6.2.0 Added `AREA_FRONTEND`, `AREA_ADMIN`, `AREA_SELF_SCHEDULING`,
-	 *              `AREA_AUDIENCE`, `AREA_QRCODE` to absorb the 76 calls
-	 *              that used to live on the legacy `Utils::debug_log()` —
-	 *              every call is now toggleable per-area in admin Settings
-	 *              instead of firing whenever `WP_DEBUG=true`.
 	 */
 	const AREA_PDF_GENERATOR   = 'debug_pdf_generator';
 	const AREA_EMAIL_HANDLER   = 'debug_email_handler';
@@ -103,12 +98,6 @@ class Debug {
 	 * @return bool True if debug is enabled for this area
 	 */
 	public static function is_enabled( string $area ): bool {
-		// Defensive: in unit-test contexts where WP isn't fully loaded
-		// (e.g. Brain Monkey tests that exercise code paths now reaching
-		// `Debug::log_*()` after the 6.2.0 legacy migration), `get_option`
-		// may not exist. Fail-closed (debug disabled) rather than fatal —
-		// matches the pre-6.2.0 behaviour of `Utils::debug_log()` which
-		// short-circuited on a missing `WP_DEBUG` constant too.
 		if ( ! function_exists( 'get_option' ) ) {
 			return false;
 		}

@@ -46,7 +46,6 @@ class IpGeolocationTest extends TestCase {
         Functions\when( 'FreeFormCertificate\Integrations\wp_remote_get' )->justReturn( new \WP_Error( 'test', 'stubbed' ) );
         Functions\when( 'FreeFormCertificate\Integrations\wp_remote_retrieve_body' )->justReturn( '' );
 
-        // Namespaced stubs: FreeFormCertificate\Core\* (for Utils::debug_log)
         if ( ! function_exists( 'FreeFormCertificate\Core\sanitize_text_field' ) ) {
             Functions\when( 'FreeFormCertificate\Core\sanitize_text_field' )->returnArg();
         }
