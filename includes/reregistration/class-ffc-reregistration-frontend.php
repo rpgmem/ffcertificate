@@ -172,11 +172,13 @@ class ReregistrationFrontend {
 	}
 
 	// ------------------------------------------------------------------.
-	// Backward-compatible delegate methods.
+	// Public static helpers used by REST controllers + shortcodes.
 	// ------------------------------------------------------------------.
 
 	/**
-	 * Divisão → Setor mapping (delegates to ReregistrationFieldOptions).
+	 * Divisão → Setor mapping. Pure delegate to ReregistrationFieldOptions
+	 * — kept here so frontend callers can resolve the map without depending
+	 * on `ReregistrationFieldOptions` directly.
 	 *
 	 * @return array<string, array<string>>
 	 */
@@ -186,6 +188,11 @@ class ReregistrationFrontend {
 
 	/**
 	 * Get active reregistrations for a user with submission status.
+	 *
+	 * Aggregates `ReregistrationRepository`, `ReregistrationSubmissionRepository`,
+	 * and `MagicLinkHelper` into a flat array consumed by the dashboard
+	 * shortcode, the REST `/user-data/reregistrations` endpoint, and the
+	 * user-summary REST endpoint. Not a delegate — owns the join logic.
 	 *
 	 * @param int $user_id User ID.
 	 * @return array<int, array<string, mixed>> Array of reregistration data with submission info.
