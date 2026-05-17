@@ -344,10 +344,11 @@ class Activator {
 	 * column uses NULL (not 0) for "not yet submitted", and the backfill
 	 * only touches rows where the old DATETIME is non-NULL.
 	 *
-	 * Sibling instant columns in the same table (`reviewed_at`,
-	 * `created_at`, `updated_at`) intentionally stay DATETIME — they're
-	 * out of scope for #249's (a)(b)(c) and would expand the blast
-	 * radius. Filed as follow-up tech debt.
+	 * `reviewed_at` on the same table was migrated alongside this column
+	 * via {@see self::maybe_migrate_sibling_instants_to_unix()}. The
+	 * housekeeping columns (`created_at`, `updated_at`) stay DATETIME by
+	 * design — see the "Category A exception — housekeeping timestamps"
+	 * subsection of CLAUDE.md.
 	 *
 	 * @since 6.6.0
 	 */
@@ -426,10 +427,10 @@ class Activator {
 	 * UTC int. Tables touched: `ffc_submissions`, `ffc_reregistration_submissions`,
 	 * `ffc_recruitment_call`, and the self-scheduling appointments table.
 	 *
-	 * Out of scope: `created_at` / `updated_at` columns (MySQL
-	 * auto-managed via DEFAULT CURRENT_TIMESTAMP in some tables, PHP-
-	 * managed in others) — each pattern needs individual analysis,
-	 * deferred as separate tech debt.
+	 * Out of scope by design: `created_at` / `updated_at` columns stay
+	 * DATETIME — they're documented as the Category A housekeeping
+	 * exception. See "Category A exception — housekeeping timestamps"
+	 * in CLAUDE.md for rationale + per-table inventory.
 	 *
 	 * Idempotent via the `ffc_sibling_instants_unix_migrated` option flag.
 	 *
