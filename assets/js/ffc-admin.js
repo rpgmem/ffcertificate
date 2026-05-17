@@ -431,9 +431,7 @@
     // Pre-#238 code used per-metabox handlers + per-input `disabled`. That
     // collapsed into this single initializer to keep behavior uniform,
     // including the formerly-save-required spots (Email send_user_email,
-    // CPF whitelist mode, IP-Areas permissive). The legacy
-    // `.ffc-csv-public-disabled` / `.ffc-device-limit-disabled` CSS lives
-    // on as a deprecated alias until 6.6.0.
+    // CPF whitelist mode, IP-Areas permissive).
     // =========================================================================
     $('.ffc-collapsed-target').each(function() {
         var $target   = $(this);

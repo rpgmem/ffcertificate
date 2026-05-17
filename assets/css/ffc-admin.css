@@ -618,11 +618,7 @@
    keeps the class in sync on change events.
 
    The wrapper-based pattern is uniform across every metabox now;
-   pre-#238 code applied per-input `disabled` + opacity. We kept the
-   legacy `.ffc-csv-public-disabled`, `.ffc-device-limit-disabled`,
-   and `.ffc-device-limit-globally-off` rules below as deprecated
-   aliases so custom CSS written against them still works. They will
-   be removed in 6.6.0.
+   pre-#238 code applied per-input `disabled` + opacity.
    ──────────────────────────────────────────────────────────────── */
 .ffc-collapsed {
     display: none !important;
@@ -674,17 +670,6 @@
     opacity: 0.55;
 }
 .ffc-device-limit-globally-off :is(input, select, textarea, button) {
-    cursor: not-allowed;
-}
-
-/* @deprecated 6.5.14 — kept for custom-CSS compat; use .ffc-collapsed
-   on a wrapper instead. Will be removed in 6.6.0. */
-.ffc-csv-public-disabled .ffc-csv-public-sub,
-.ffc-device-limit-disabled .ffc-device-limit-sub {
-    opacity: 0.55;
-}
-.ffc-csv-public-disabled .ffc-csv-public-sub :is(input, select, textarea, button),
-.ffc-device-limit-disabled .ffc-device-limit-sub :is(input, select, textarea, button) {
     cursor: not-allowed;
 }
 
