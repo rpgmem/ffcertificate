@@ -71,10 +71,21 @@ class UserDataRestController {
 	}
 
 	// ------------------------------------------------------------------.
-	// Backward-compatible delegate methods.
+	// Facade API — public method surface.
 	//
-	// External code (or tests) may call these directly. Each method.
-	// delegates to the appropriate sub-controller.
+	// Each method below is a single-line delegate to one of the
+	// sub-controllers instantiated in `register_routes()`. The methods
+	// are NOT used internally by the REST routing (sub-controllers
+	// register their own routes), so production grep shows zero callers
+	// today — but the facade is published as a stable entry point for
+	// external integrators (themes, sibling plugins, future code) that
+	// want to invoke a user-data operation programmatically without
+	// depending on the specific sub-controller class.
+	//
+	// Removing methods here would be a breaking change for those
+	// hypothetical integrators. Audit each call site in production code
+	// before deprecating; add `@deprecated` to the docblock with a
+	// release period before removing.
 	// ------------------------------------------------------------------.
 
 	/**
