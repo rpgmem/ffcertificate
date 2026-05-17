@@ -54,9 +54,28 @@ class FormRestControllerTest extends TestCase {
         Functions\when( 'sanitize_email' )->returnArg();
         Functions\when( 'home_url' )->alias( function( $path = '' ) { return 'https://example.com' . $path; } );
 
+        // rest_ensure_response now wraps the array in a fake response so
+        // get_forms() can set pagination headers. Existing tests that
+        // assert on the array shape read via $response->get_data().
+        Functions\when( 'rest_ensure_response' )->alias( function ( $data ) {
+            return new \FreeFormCertificate\Tests\Unit\FakeRestResponse( $data );
+        } );
+
+        // get_forms() builds the Link header via these helpers — stub
+        // them with predictable behaviour for the assertions below.
+        Functions\when( 'rest_url' )->alias( function ( $path = '' ) {
+            return 'https://example.com/wp-json/' . ltrim( (string) $path, '/' );
+        } );
+        Functions\when( 'add_query_arg' )->alias( function ( $args, $url ) {
+            $sep = ( false === strpos( $url, '?' ) ) ? '?' : '&';
+            return $url . $sep . http_build_query( $args );
+        } );
+        Functions\when( 'esc_url_raw' )->returnArg();
+
         // Injected FormRepository mock
         $this->form_repo_mock = Mockery::mock( FormRepository::class );
         $this->form_repo_mock->shouldReceive( 'findPublished' )->andReturn( [] )->byDefault();
+        $this->form_repo_mock->shouldReceive( 'countPublished' )->andReturn( 0 )->byDefault();
         $this->form_repo_mock->shouldReceive( 'getConfig' )->andReturn( array() )->byDefault();
         $this->form_repo_mock->shouldReceive( 'getFields' )->andReturn( array() )->byDefault();
         $this->form_repo_mock->shouldReceive( 'getBackground' )->andReturn( '' )->byDefault();
@@ -186,19 +205,21 @@ class FormRestControllerTest extends TestCase {
         $post2 = $this->make_post( 2 );
         $post2->post_title = 'Form B';
 
+        $this->form_repo_mock->shouldReceive( 'countPublished' )->andReturn( 2 );
         $this->form_repo_mock->shouldReceive( 'findPublished' )->once()->andReturn( array( $post1, $post2 ) );
         $this->form_repo_mock->shouldReceive( 'getConfig' )->with( 1 )->andReturn( array( 'theme' => 'default' ) );
         $this->form_repo_mock->shouldReceive( 'getConfig' )->with( 2 )->andReturn( array( 'theme' => 'dark' ) );
 
         $ctrl = new FormRestController( 'ffc/v1', $this->form_repo_mock );
-        $request = $this->make_request( array( 'limit' => -1 ) );
+        $request = $this->make_request( array( 'page' => 1, 'per_page' => 10 ) );
         $result = $ctrl->get_forms( $request );
 
-        $this->assertIsArray( $result );
-        $this->assertCount( 2, $result );
-        $this->assertSame( 1, $result[0]['id'] );
-        $this->assertSame( 'Form A', $result[0]['title'] );
-        $this->assertSame( 2, $result[1]['id'] );
+        $this->assertInstanceOf( FakeRestResponse::class, $result );
+        $data = $result->get_data();
+        $this->assertCount( 2, $data );
+        $this->assertSame( 1, $data[0]['id'] );
+        $this->assertSame( 'Form A', $data[0]['title'] );
+        $this->assertSame( 2, $data[1]['id'] );
     }
 
     // ------------------------------------------------------------------
@@ -249,35 +270,38 @@ class FormRestControllerTest extends TestCase {
         $request = $this->make_request( array( 'id' => 3 ) );
         $result = $ctrl->get_form( $request );
 
-        $this->assertIsArray( $result );
-        $this->assertSame( 3, $result['id'] );
-        $this->assertSame( 'My Form', $result['title'] );
-        $this->assertArrayHasKey( 'status', $result );
-        $this->assertArrayHasKey( 'date', $result );
-        $this->assertArrayHasKey( 'modified', $result );
-        $this->assertArrayHasKey( 'link', $result );
+        $data = $result->get_data();
+        $this->assertIsArray( $data );
+        $this->assertSame( 3, $data['id'] );
+        $this->assertSame( 'My Form', $data['title'] );
+        $this->assertArrayHasKey( 'status', $data );
+        $this->assertArrayHasKey( 'date', $data );
+        $this->assertArrayHasKey( 'modified', $data );
+        $this->assertArrayHasKey( 'link', $data );
 
         // 6.4.1: config / fields / background dropped from the payload
         // — they previously leaked the `_ffc_form_config` blob (allowed/
         // denied user lists, validation/generated codes, geofence). See
         // issue #139. Integrators that need form structure use the
         // public `/forms/{id}/schema` endpoint instead.
-        $this->assertArrayNotHasKey( 'config', $result );
-        $this->assertArrayNotHasKey( 'fields', $result );
-        $this->assertArrayNotHasKey( 'background', $result );
+        $this->assertArrayNotHasKey( 'config', $data );
+        $this->assertArrayNotHasKey( 'fields', $data );
+        $this->assertArrayNotHasKey( 'background', $data );
     }
 
     public function test_get_forms_list_payload_does_not_include_config_blob(): void {
         $post1 = $this->make_post( 1 );
+        $this->form_repo_mock->shouldReceive( 'countPublished' )->andReturn( 1 );
         $this->form_repo_mock->shouldReceive( 'findPublished' )->andReturn( array( $post1 ) );
 
         $ctrl = new FormRestController( 'ffc/v1', $this->form_repo_mock );
-        $request = $this->make_request();
+        $request = $this->make_request( array( 'page' => 1, 'per_page' => 10 ) );
         $result = $ctrl->get_forms( $request );
 
-        $this->assertCount( 1, $result );
+        $data = $result->get_data();
+        $this->assertCount( 1, $data );
         // Trimmed: id, title, status, date, modified, link only.
-        $this->assertArrayNotHasKey( 'config', $result[0] );
+        $this->assertArrayNotHasKey( 'config', $data[0] );
     }
 
     // ------------------------------------------------------------------
@@ -346,23 +370,24 @@ class FormRestControllerTest extends TestCase {
         $request = $this->make_request( array( 'id' => 7 ) );
         $result = $ctrl->get_form_schema( $request );
 
-        $this->assertIsArray( $result );
-        $this->assertSame( 7, $result['id'] );
-        $this->assertSame( 'Schema Form', $result['title'] );
-        $this->assertArrayHasKey( 'fields', $result );
-        $this->assertCount( 2, $result['fields'] );
+        $data = $result->get_data();
+        $this->assertIsArray( $data );
+        $this->assertSame( 7, $data['id'] );
+        $this->assertSame( 'Schema Form', $data['title'] );
+        $this->assertArrayHasKey( 'fields', $data );
+        $this->assertCount( 2, $data['fields'] );
 
         $this->assertSame(
             array( 'name', 'label', 'type', 'required', 'options' ),
-            array_keys( $result['fields'][0] )
+            array_keys( $data['fields'][0] )
         );
-        $this->assertSame( 'email', $result['fields'][0]['name'] );
-        $this->assertTrue( $result['fields'][0]['required'] );
-        $this->assertSame( array( 'SP', 'RJ' ), $result['fields'][1]['options'] );
+        $this->assertSame( 'email', $data['fields'][0]['name'] );
+        $this->assertTrue( $data['fields'][0]['required'] );
+        $this->assertSame( array( 'SP', 'RJ' ), $data['fields'][1]['options'] );
 
         // Background and config must NOT be part of the trimmed schema.
-        $this->assertArrayNotHasKey( 'background', $result );
-        $this->assertArrayNotHasKey( 'config', $result );
+        $this->assertArrayNotHasKey( 'background', $data );
+        $this->assertArrayNotHasKey( 'config', $data );
     }
 
     public function test_get_form_schema_normalises_missing_field_keys(): void {
@@ -378,12 +403,13 @@ class FormRestControllerTest extends TestCase {
         $request = $this->make_request( array( 'id' => 8 ) );
         $result = $ctrl->get_form_schema( $request );
 
-        $this->assertCount( 1, $result['fields'] );
-        $this->assertSame( 'only_name', $result['fields'][0]['name'] );
-        $this->assertSame( '', $result['fields'][0]['label'] );
-        $this->assertSame( 'text', $result['fields'][0]['type'] );
-        $this->assertFalse( $result['fields'][0]['required'] );
-        $this->assertSame( array(), $result['fields'][0]['options'] );
+        $data = $result->get_data();
+        $this->assertCount( 1, $data['fields'] );
+        $this->assertSame( 'only_name', $data['fields'][0]['name'] );
+        $this->assertSame( '', $data['fields'][0]['label'] );
+        $this->assertSame( 'text', $data['fields'][0]['type'] );
+        $this->assertFalse( $data['fields'][0]['required'] );
+        $this->assertSame( array(), $data['fields'][0]['options'] );
     }
 
     // ------------------------------------------------------------------
@@ -506,11 +532,260 @@ class FormRestControllerTest extends TestCase {
         );
         $result = $ctrl->submit_form( $request );
 
-        $this->assertIsArray( $result );
-        $this->assertTrue( $result['success'] );
-        $this->assertSame( 42, $result['submission_id'] );
-        $this->assertArrayHasKey( 'auth_code', $result );
-        $this->assertArrayHasKey( 'validation_url', $result );
-        $this->assertSame( 'https://example.com/validate-certificate/', $result['validation_url'] );
+        $data = $result->get_data();
+        $this->assertIsArray( $data );
+        $this->assertTrue( $data['success'] );
+        $this->assertSame( 42, $data['submission_id'] );
+        $this->assertArrayHasKey( 'auth_code', $data );
+        $this->assertArrayHasKey( 'validation_url', $data );
+        $this->assertSame( 'https://example.com/validate-certificate/', $data['validation_url'] );
+    }
+
+    // ------------------------------------------------------------------
+    // GET /forms pagination (#260)
+    // ------------------------------------------------------------------
+
+    /**
+     * Build $count fake posts with stable, sortable titles.
+     *
+     * @param int $count
+     * @return array<int, object>
+     */
+    private function make_posts( int $count ): array {
+        $posts = array();
+        for ( $i = 1; $i <= $count; $i++ ) {
+            $p             = $this->make_post( $i );
+            $p->post_title = sprintf( 'Form %02d', $i );
+            $posts[]       = $p;
+        }
+        return $posts;
+    }
+
+    public function test_get_forms_default_per_page_is_10(): void {
+        $this->form_repo_mock->shouldReceive( 'countPublished' )->andReturn( 25 );
+        $this->form_repo_mock
+            ->shouldReceive( 'findPublished' )
+            ->once()
+            ->with( 10, 0 )
+            ->andReturn( $this->make_posts( 10 ) );
+
+        $ctrl    = new FormRestController( 'ffc/v1', $this->form_repo_mock );
+        $request = $this->make_request(); // page + per_page both null
+        // sanitize callbacks fire only when WP REST dispatches; emulate by
+        // making `get_param` return the registered defaults.
+        $request = $this->make_request( array( 'page' => 1, 'per_page' => 10 ) );
+
+        $result = $ctrl->get_forms( $request );
+
+        $this->assertInstanceOf( FakeRestResponse::class, $result );
+        $this->assertCount( 10, $result->get_data() );
+        $this->assertSame( '25', $result->headers['X-WP-Total'] );
+        $this->assertSame( '3', $result->headers['X-WP-TotalPages'] );
+    }
+
+    public function test_get_forms_page_2_returns_offset_slice(): void {
+        $this->form_repo_mock->shouldReceive( 'countPublished' )->andReturn( 25 );
+        $this->form_repo_mock
+            ->shouldReceive( 'findPublished' )
+            ->once()
+            ->with( 10, 10 )
+            ->andReturn( $this->make_posts( 10 ) );
+
+        $ctrl    = new FormRestController( 'ffc/v1', $this->form_repo_mock );
+        $request = $this->make_request( array( 'page' => 2, 'per_page' => 10 ) );
+
+        $result = $ctrl->get_forms( $request );
+
+        $this->assertCount( 10, $result->get_data() );
+        $this->assertSame( '25', $result->headers['X-WP-Total'] );
+        $this->assertSame( '3', $result->headers['X-WP-TotalPages'] );
+    }
+
+    public function test_get_forms_overflow_page_returns_empty_array_with_headers(): void {
+        $this->form_repo_mock->shouldReceive( 'countPublished' )->andReturn( 25 );
+        // findPublished must NOT be called for an overflow page.
+        $this->form_repo_mock
+            ->shouldReceive( 'findPublished' )
+            ->never();
+
+        $ctrl    = new FormRestController( 'ffc/v1', $this->form_repo_mock );
+        $request = $this->make_request( array( 'page' => 99999, 'per_page' => 10 ) );
+
+        $result = $ctrl->get_forms( $request );
+
+        $this->assertSame( array(), $result->get_data() );
+        $this->assertSame( '25', $result->headers['X-WP-Total'] );
+        $this->assertSame( '3', $result->headers['X-WP-TotalPages'] );
+    }
+
+    public function test_get_forms_with_zero_total_returns_empty_array(): void {
+        $this->form_repo_mock->shouldReceive( 'countPublished' )->andReturn( 0 );
+        $this->form_repo_mock
+            ->shouldReceive( 'findPublished' )
+            ->once()
+            ->with( 10, 0 )
+            ->andReturn( array() );
+
+        $ctrl    = new FormRestController( 'ffc/v1', $this->form_repo_mock );
+        $request = $this->make_request( array( 'page' => 1, 'per_page' => 10 ) );
+
+        $result = $ctrl->get_forms( $request );
+
+        $this->assertSame( array(), $result->get_data() );
+        $this->assertSame( '0', $result->headers['X-WP-Total'] );
+        $this->assertSame( '0', $result->headers['X-WP-TotalPages'] );
+        $this->assertArrayNotHasKey( 'Link', $result->headers );
+    }
+
+    public function test_get_forms_link_header_first_page_has_next_and_last_only(): void {
+        $this->form_repo_mock->shouldReceive( 'countPublished' )->andReturn( 25 );
+        $this->form_repo_mock->shouldReceive( 'findPublished' )->andReturn( $this->make_posts( 10 ) );
+
+        $ctrl    = new FormRestController( 'ffc/v1', $this->form_repo_mock );
+        $request = $this->make_request( array( 'page' => 1, 'per_page' => 10 ) );
+
+        $result = $ctrl->get_forms( $request );
+
+        $this->assertArrayHasKey( 'Link', $result->headers );
+        $link = $result->headers['Link'];
+        $this->assertStringNotContainsString( 'rel="first"', $link );
+        $this->assertStringNotContainsString( 'rel="prev"', $link );
+        $this->assertStringContainsString( 'rel="next"', $link );
+        $this->assertStringContainsString( 'rel="last"', $link );
+        $this->assertStringContainsString( 'page=2', $link );
+        $this->assertStringContainsString( 'page=3', $link );
+    }
+
+    public function test_get_forms_link_header_middle_page_has_all_four_rels(): void {
+        $this->form_repo_mock->shouldReceive( 'countPublished' )->andReturn( 25 );
+        $this->form_repo_mock->shouldReceive( 'findPublished' )->andReturn( $this->make_posts( 10 ) );
+
+        $ctrl    = new FormRestController( 'ffc/v1', $this->form_repo_mock );
+        $request = $this->make_request( array( 'page' => 2, 'per_page' => 10 ) );
+
+        $result = $ctrl->get_forms( $request );
+
+        $link = $result->headers['Link'];
+        $this->assertStringContainsString( 'rel="first"', $link );
+        $this->assertStringContainsString( 'rel="prev"', $link );
+        $this->assertStringContainsString( 'rel="next"', $link );
+        $this->assertStringContainsString( 'rel="last"', $link );
+    }
+
+    public function test_get_forms_link_header_last_page_has_first_and_prev_only(): void {
+        $this->form_repo_mock->shouldReceive( 'countPublished' )->andReturn( 25 );
+        $this->form_repo_mock->shouldReceive( 'findPublished' )->andReturn( $this->make_posts( 5 ) );
+
+        $ctrl    = new FormRestController( 'ffc/v1', $this->form_repo_mock );
+        $request = $this->make_request( array( 'page' => 3, 'per_page' => 10 ) );
+
+        $result = $ctrl->get_forms( $request );
+
+        $link = $result->headers['Link'];
+        $this->assertStringContainsString( 'rel="first"', $link );
+        $this->assertStringContainsString( 'rel="prev"', $link );
+        $this->assertStringNotContainsString( 'rel="next"', $link );
+        $this->assertStringNotContainsString( 'rel="last"', $link );
+    }
+
+    public function test_get_forms_ignores_legacy_limit_query_arg(): void {
+        // Pre-#260, ?limit=N drove the result-set size. Now the controller
+        // reads `page` + `per_page` only — `limit` is silently ignored.
+        $this->form_repo_mock->shouldReceive( 'countPublished' )->andReturn( 25 );
+        $this->form_repo_mock
+            ->shouldReceive( 'findPublished' )
+            ->once()
+            ->with( 10, 0 )  // ← per_page, not 50
+            ->andReturn( $this->make_posts( 10 ) );
+
+        $ctrl    = new FormRestController( 'ffc/v1', $this->form_repo_mock );
+        $request = $this->make_request( array( 'page' => 1, 'per_page' => 10, 'limit' => 50 ) );
+
+        $result = $ctrl->get_forms( $request );
+
+        $this->assertCount( 10, $result->get_data() );
+    }
+
+    // ------------------------------------------------------------------
+    // sanitize_per_page() + sanitize_page()
+    // ------------------------------------------------------------------
+
+    public function test_sanitize_per_page_clamps_above_max(): void {
+        $ctrl = new FormRestController( 'ffc/v1', $this->form_repo_mock );
+        $this->assertSame( 100, $ctrl->sanitize_per_page( 101 ) );
+        $this->assertSame( 100, $ctrl->sanitize_per_page( 9999 ) );
+    }
+
+    public function test_sanitize_per_page_returns_default_for_zero_or_garbage(): void {
+        // absint() strips the sign, so negative numbers come through as
+        // their absolute value (which is then clamped). Only 0 / non-numeric
+        // garbage fall back to the default.
+        $ctrl = new FormRestController( 'ffc/v1', $this->form_repo_mock );
+        $this->assertSame( 10, $ctrl->sanitize_per_page( 0 ) );
+        $this->assertSame( 10, $ctrl->sanitize_per_page( 'banana' ) );
+        $this->assertSame( 10, $ctrl->sanitize_per_page( null ) );
+    }
+
+    public function test_sanitize_per_page_passes_through_valid_values(): void {
+        $ctrl = new FormRestController( 'ffc/v1', $this->form_repo_mock );
+        $this->assertSame( 1, $ctrl->sanitize_per_page( 1 ) );
+        $this->assertSame( 25, $ctrl->sanitize_per_page( 25 ) );
+        $this->assertSame( 100, $ctrl->sanitize_per_page( 100 ) );
+    }
+
+    public function test_sanitize_page_returns_1_for_zero_or_garbage(): void {
+        // absint() strips the sign on negatives — same caveat as
+        // sanitize_per_page. Only zero / non-numeric garbage fall back.
+        $ctrl = new FormRestController( 'ffc/v1', $this->form_repo_mock );
+        $this->assertSame( 1, $ctrl->sanitize_page( 0 ) );
+        $this->assertSame( 1, $ctrl->sanitize_page( 'foo' ) );
+        $this->assertSame( 1, $ctrl->sanitize_page( null ) );
+    }
+
+    public function test_register_routes_no_longer_registers_limit_arg(): void {
+        $ctrl = new FormRestController( 'ffc/v1', $this->form_repo_mock );
+        $ctrl->register_routes();
+
+        // First registered route is `/forms` per
+        // {@see self::test_register_routes_creates_four_endpoints}.
+        $forms_route = $this->registered_routes[0];
+        $this->assertSame( '/forms', $forms_route['route'] );
+
+        $args = $forms_route['args']['args'];
+        $this->assertArrayHasKey( 'page', $args );
+        $this->assertArrayHasKey( 'per_page', $args );
+        $this->assertArrayNotHasKey( 'limit', $args );
+    }
+}
+
+/**
+ * Lightweight stand-in for `WP_REST_Response`. The controller's
+ * `get_forms()` calls `->header()` to set pagination metadata; tests
+ * read `->headers` and `->get_data()` to assert behaviour.
+ */
+class FakeRestResponse {
+
+    /** @var mixed */
+    public $data;
+
+    /** @var array<string, string> */
+    public array $headers = array();
+
+    /**
+     * @param mixed $data
+     */
+    public function __construct( $data ) {
+        $this->data = $data;
+    }
+
+    public function header( string $key, string $value ): void {
+        $this->headers[ $key ] = $value;
+    }
+
+    /**
+     * @return mixed
+     */
+    public function get_data() {
+        return $this->data;
     }
 }
