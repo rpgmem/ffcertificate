@@ -38,9 +38,6 @@ if ( ! defined( 'FFC_PLUGIN_DIR' ) ) {
 if ( ! defined( 'FFC_PLUGIN_URL' ) ) {
 	define( 'FFC_PLUGIN_URL', 'https://example.com/wp-content/plugins/ffcertificate/' );
 }
-if ( ! defined( 'FFC_DEBUG' ) ) {
-	define( 'FFC_DEBUG', false );
-}
 
 // WordPress DB constant.
 if ( ! defined( 'DB_NAME' ) ) {
