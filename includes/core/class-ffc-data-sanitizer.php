@@ -74,6 +74,14 @@ class DataSanitizer {
 		return preg_replace( '/[^0-9]/', '', $value ) ?? '';
 	}
 
+	/**
+	 * Normalize Brazilian Portuguese names to title case while keeping
+	 * connectives (`de`, `da`, `do`, `das`, `dos`, `e`) lowercase.
+	 *
+	 * @since 4.3.0
+	 * @param string $name Name to normalize.
+	 * @return string Normalized name
+	 */
 	public static function normalize_brazilian_name( string $name ): string {
 		if ( empty( $name ) ) {
 			return '';

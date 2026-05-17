@@ -48,7 +48,7 @@ class WorkingHoursService {
 		}
 
 		$date_ts     = strtotime( $date );
-		$day_of_week = \FreeFormCertificate\Core\Utils::get_day_of_week_number( $date_ts ?: null );
+		$day_of_week = \FreeFormCertificate\Core\Utils::get_day_of_week_number( $date_ts ? $date_ts : null );
 		$day_name    = self::DAY_NAMES[ $day_of_week ];
 
 		// Keyed format: {mon: {start, end, closed}, ...}.
@@ -98,7 +98,7 @@ class WorkingHoursService {
 		}
 
 		$date_ts     = strtotime( $date );
-		$day_of_week = \FreeFormCertificate\Core\Utils::get_day_of_week_number( $date_ts ?: null );
+		$day_of_week = \FreeFormCertificate\Core\Utils::get_day_of_week_number( $date_ts ? $date_ts : null );
 		$day_name    = self::DAY_NAMES[ $day_of_week ];
 
 		// Keyed format.
@@ -133,7 +133,7 @@ class WorkingHoursService {
 		}
 
 		$date_ts     = strtotime( $date );
-		$day_of_week = \FreeFormCertificate\Core\Utils::get_day_of_week_number( $date_ts ?: null );
+		$day_of_week = \FreeFormCertificate\Core\Utils::get_day_of_week_number( $date_ts ? $date_ts : null );
 		$day_name    = self::DAY_NAMES[ $day_of_week ];
 		$ranges      = array();
 

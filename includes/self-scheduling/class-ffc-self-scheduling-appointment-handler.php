@@ -247,7 +247,7 @@ class AppointmentHandler {
 
 		// Get day of week.
 		$date_ts     = strtotime( $date );
-		$day_of_week = \FreeFormCertificate\Core\Utils::get_day_of_week_number( $date_ts ?: null );
+		$day_of_week = \FreeFormCertificate\Core\Utils::get_day_of_week_number( $date_ts ? $date_ts : null );
 
 		// Get working hours for this day.
 		$working_hours = $calendar['working_hours'] ?? array();
