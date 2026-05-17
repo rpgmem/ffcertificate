@@ -485,12 +485,13 @@ class Utils {
 	 *
 	 * Returns `$default` when the key is absent or the underlying value
 	 * is not an array. Caller is responsible for nonce verification BEFORE
-	 * calling this helper.
+	 * calling this helper. Keys (string or int) are preserved by
+	 * `array_map`'s single-callback behavior.
 	 *
 	 * @since 6.6.1
-	 * @param string             $key     `$_POST` key.
-	 * @param array<int, string> $default Returned when the key is absent.
-	 * @return array<int, string> Sanitized string values.
+	 * @param string                                $key     `$_POST` key.
+	 * @param array<array-key, mixed>               $default Returned when the key is absent or not an array.
+	 * @return array<array-key, string|mixed> Sanitized string values; preserves keys.
 	 */
 	public static function get_post_array( string $key, array $default = array() ): array {
 		// phpcs:ignore WordPress.Security.NonceVerification.Missing -- Caller responsibility.

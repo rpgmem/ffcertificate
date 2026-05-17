@@ -247,7 +247,7 @@ class AppointmentHandler {
 
 		// Get day of week.
 		$date_ts     = strtotime( $date );
-		$day_of_week = (int) gmdate( 'w', $date_ts ? $date_ts : time() );
+		$day_of_week = \FreeFormCertificate\Core\Utils::get_day_of_week_number( $date_ts ?: null );
 
 		// Get working hours for this day.
 		$working_hours = $calendar['working_hours'] ?? array();
@@ -481,7 +481,7 @@ class AppointmentHandler {
 			return;
 		}
 
-		$cpf_rf_clean = preg_replace( '/[^0-9]/', '', $data['cpf_rf'] );
+		$cpf_rf_clean = \FreeFormCertificate\Core\DataSanitizer::normalize_cpf_rf( (string) $data['cpf_rf'] );
 		if ( empty( $cpf_rf_clean ) ) {
 			return;
 		}

@@ -76,7 +76,7 @@ class SettingsSaveHandler {
 	private function save_general_and_specific_settings(): void {
         // phpcs:disable WordPress.Security.NonceVerification.Missing -- Nonce verified in handle_all_submissions() via wp_verify_nonce.
 		$current = get_option( 'ffc_settings', array() );
-		$new     = isset( $_POST['ffc_settings'] ) ? array_map( 'sanitize_text_field', wp_unslash( $_POST['ffc_settings'] ) ) : array();
+		$new     = \FreeFormCertificate\Core\Utils::get_post_array( 'ffc_settings' );
 
 		$clean = $current;
 
@@ -386,9 +386,7 @@ class SettingsSaveHandler {
         // phpcs:disable WordPress.Security.ValidatedSanitizedInput.InputNotSanitized, WordPress.Security.ValidatedSanitizedInput.MissingUnslash -- isset()/empty()/is_array() are existence and type checks; values are sanitized with wp_unslash + sanitize_text_field/esc_url_raw/sanitize_textarea_field.
 		$settings = array(
 			'block_wp_admin'    => isset( $_POST['block_wp_admin'] ),
-			'blocked_roles'     => isset( $_POST['blocked_roles'] ) && is_array( $_POST['blocked_roles'] )
-				? array_map( 'sanitize_text_field', wp_unslash( $_POST['blocked_roles'] ) )
-				: array( 'ffc_user' ),
+			'blocked_roles'     => \FreeFormCertificate\Core\Utils::get_post_array( 'blocked_roles', array( 'ffc_user' ) ),
 			'redirect_url'      => ! empty( $_POST['redirect_url'] )
 				? esc_url_raw( wp_unslash( $_POST['redirect_url'] ) )
 				: home_url( '/dashboard' ),

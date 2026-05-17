@@ -313,7 +313,7 @@ final class RateLimitChecker {
 	 */
 	public static function check_cpf_limit( string $cpf, ?int $form_id = null ): array {
 		$s  = self::get_settings()['cpf'];
-		$cc = preg_replace( '/[^0-9]/', '', $cpf ) ?? '';
+		$cc = \FreeFormCertificate\Core\DataSanitizer::normalize_cpf_rf( $cpf );
 
 		if ( self::is_temporarily_blocked( 'cpf', $cc, $form_id ) ) {
 			return array(
@@ -780,7 +780,7 @@ final class RateLimitChecker {
 		} elseif ( 'cpf' === $field ) {
 			if ( class_exists( '\FreeFormCertificate\Core\Encryption' ) && \FreeFormCertificate\Core\Encryption::is_configured() ) {
 				$h  = \FreeFormCertificate\Core\Encryption::hash( $value );
-				$hc = strlen( preg_replace( '/[^0-9]/', '', $value ) ?? '' ) === 7 ? 'rf_hash' : 'cpf_hash';
+				$hc = strlen( \FreeFormCertificate\Core\DataSanitizer::normalize_cpf_rf( $value ) ) === 7 ? 'rf_hash' : 'cpf_hash';
 				// Search the specific split column based on digit count.
                 // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Pre-validated clauses from trusted internal logic.
 				return intval( $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(*) FROM %i WHERE {$hc}=%s $dw $fw", $t, $h ) ) );
@@ -829,7 +829,7 @@ final class RateLimitChecker {
 			}
 		}
 
-		if ( $cpf && in_array( preg_replace( '/[^0-9]/', '', $cpf ), $bl['cpfs'], true ) ) {
+		if ( $cpf && in_array( \FreeFormCertificate\Core\DataSanitizer::normalize_cpf_rf( $cpf ), $bl['cpfs'], true ) ) {
 			return array(
 				'allowed' => false,
 				'reason'  => 'cpf_blacklisted',
@@ -867,7 +867,7 @@ final class RateLimitChecker {
 			}
 		}
 
-		if ( $cpf && in_array( preg_replace( '/[^0-9]/', '', $cpf ), $wl['cpfs'], true ) ) {
+		if ( $cpf && in_array( \FreeFormCertificate\Core\DataSanitizer::normalize_cpf_rf( $cpf ), $wl['cpfs'], true ) ) {
 			return true;
 		}
 

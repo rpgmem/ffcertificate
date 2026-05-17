@@ -70,7 +70,7 @@ class ReprintDetector {
 		} elseif ( ! empty( $val_cpf ) ) {
 			// Check by CPF/RF (if ticket not provided).
 			// Remove formatting for comparison.
-			$clean_cpf = preg_replace( '/[^0-9]/', '', $val_cpf ) ?? '';
+			$clean_cpf = \FreeFormCertificate\Core\DataSanitizer::normalize_cpf_rf( $val_cpf );
 
 			// Check if encryption is enabled.
 			if ( class_exists( '\FreeFormCertificate\Core\Encryption' ) && \FreeFormCertificate\Core\Encryption::is_configured() ) {

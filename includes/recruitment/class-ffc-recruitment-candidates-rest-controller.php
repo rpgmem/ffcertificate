@@ -130,7 +130,7 @@ final class RecruitmentCandidatesRestController {
 		// CPF/RF are passed as plaintext digits; hash here for the lookup.
 		$cpf = $request->get_param( 'cpf' );
 		if ( is_string( $cpf ) && '' !== $cpf ) {
-			$cpf_digits = preg_replace( '/[^0-9]/', '', $cpf ) ?? '';
+			$cpf_digits = \FreeFormCertificate\Core\DataSanitizer::normalize_cpf_rf( $cpf );
 			if ( '' !== $cpf_digits ) {
 				$candidate = RecruitmentCandidateRepository::get_by_cpf_hash( (string) Encryption::hash( $cpf_digits ) );
 				return new \WP_REST_Response( null === $candidate ? array() : array( $this->shape_candidate_admin( $candidate ) ), 200 );
@@ -139,7 +139,7 @@ final class RecruitmentCandidatesRestController {
 
 		$rf = $request->get_param( 'rf' );
 		if ( is_string( $rf ) && '' !== $rf ) {
-			$rf_digits = preg_replace( '/[^0-9]/', '', $rf ) ?? '';
+			$rf_digits = \FreeFormCertificate\Core\DataSanitizer::normalize_cpf_rf( $rf );
 			if ( '' !== $rf_digits ) {
 				$candidate = RecruitmentCandidateRepository::get_by_rf_hash( (string) Encryption::hash( $rf_digits ) );
 				return new \WP_REST_Response( null === $candidate ? array() : array( $this->shape_candidate_admin( $candidate ) ), 200 );
@@ -190,7 +190,7 @@ final class RecruitmentCandidatesRestController {
 				if ( 'email' === $key ) {
 					$value = strtolower( $value );
 				} else {
-					$value = preg_replace( '/[^0-9]/', '', $value ) ?? '';
+					$value = \FreeFormCertificate\Core\DataSanitizer::normalize_cpf_rf( $value );
 				}
 				$plaintexts[ $key ] = $value;
 			}
