@@ -18,6 +18,12 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
   in the geofence metabox row was also removed; visibility there continues to
   be driven by the slideUp/slideDown handlers in `ffc-geofence-admin.js`.
 
+### Documentation
+
+- Classify `created_at` / `updated_at` housekeeping columns as a documented
+  exception to Category A storage (CLAUDE.md). Closes the #249 follow-up
+  deferral inline in `class-ffc-activator.php`.
+
 ---
 
 ## [6.6.0] (2026-05-17)
