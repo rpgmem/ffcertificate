@@ -116,10 +116,12 @@ class Activator {
 			return;
 		}
 
+		// `submission_date` is Category A (instant) since 6.6.0 — unix UTC
+		// seconds. See CLAUDE.md "Date / time storage convention".
 		$sql = "CREATE TABLE {$table_name} (
             id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
             form_id bigint(20) unsigned NOT NULL,
-            submission_date datetime NOT NULL,
+            submission_date bigint(20) unsigned NOT NULL,
             data longtext NULL,
             status varchar(20) DEFAULT 'publish',
             magic_token varchar(32) DEFAULT NULL,
@@ -203,6 +205,129 @@ class Activator {
 		}
 
 		update_option( 'ffc_perf_indexes_db_version', FFC_VERSION, true );
+	}
+
+	/**
+	 * Idempotently migrate `submission_date` from a DATETIME column
+	 * (storing the value in the site's TZ via `current_time('mysql')`)
+	 * to a `BIGINT UNSIGNED` column storing unix UTC seconds (#249
+	 * sub-escopo a). The column name stays `submission_date` so external
+	 * SQL referencing it keeps working — the breaking change is the
+	 * type swap, which the 6.6.0 release notes call out.
+	 *
+	 * Steps, all gated on a one-shot option flag:
+	 *   1. Add staging column `submission_date_ts BIGINT UNSIGNED NOT NULL DEFAULT 0`
+	 *      (only if it doesn't already exist — gives us retries on a
+	 *      failure mid-backfill).
+	 *   2. PHP backfill: for every row with `submission_date_ts = 0`,
+	 *      parse the old `submission_date` DATETIME in `wp_timezone()`
+	 *      and stash the unix UTC int. Batched so a million-row table
+	 *      doesn't run out of memory.
+	 *   3. Drop indexes that reference the old DATETIME column.
+	 *   4. Drop the old `submission_date` column.
+	 *   5. Rename `submission_date_ts` to `submission_date`.
+	 *   6. Recreate the dropped indexes against the new int column.
+	 *   7. Flip the one-shot flag so subsequent boots are a no-op.
+	 *
+	 * Re-run-safe in two layers: the option flag short-circuits the
+	 * whole routine after a successful first run; before that, the
+	 * `column_exists()` / `index_exists()` guards make each sub-step
+	 * survive being re-attempted after a partial failure.
+	 *
+	 * @since 6.6.0
+	 */
+	public static function maybe_migrate_submission_date_to_unix(): void {
+		if ( '1' === get_option( 'ffc_submission_date_unix_migrated', '' ) ) {
+			return;
+		}
+
+		global $wpdb;
+		$table = \FreeFormCertificate\Core\Utils::get_submissions_table();
+
+		if ( ! self::table_exists( $table ) ) {
+			return; // Fresh install before create_submissions_table() — nothing to do.
+		}
+
+		$has_old = self::column_exists( $table, 'submission_date' );
+		$has_new = self::column_exists( $table, 'submission_date_ts' );
+
+		// Step 1: ensure staging column exists.
+		if ( ! $has_new ) {
+			if ( ! $has_old ) {
+				// Fresh table created at 6.6.0+ already has the int column — nothing to migrate.
+				update_option( 'ffc_submission_date_unix_migrated', '1', true );
+				return;
+			}
+			self::add_column_if_missing(
+				$table,
+				'submission_date_ts',
+				'BIGINT UNSIGNED NOT NULL DEFAULT 0',
+				'submission_date'
+			);
+			$has_new = true;
+		}
+
+		// Step 2: PHP backfill — interpret the stored DATETIME literal in the
+		// site's TZ, convert to unix UTC. MySQL's UNIX_TIMESTAMP() would
+		// interpret the value in the session TZ which WP doesn't pin, so we
+		// don't trust it for this. Batches of 500 keep peak memory bounded
+		// on large historic tables.
+		if ( $has_old ) {
+			$tz = wp_timezone();
+			do {
+                // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+				$rows = $wpdb->get_results(
+					$wpdb->prepare( 'SELECT id, submission_date FROM %i WHERE submission_date_ts = 0 LIMIT 500', $table )
+				);
+				if ( empty( $rows ) ) {
+					break;
+				}
+				foreach ( $rows as $row ) {
+					try {
+						$dt = new \DateTimeImmutable( (string) $row->submission_date, $tz );
+                        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+						$wpdb->update(
+							$table,
+							array( 'submission_date_ts' => $dt->getTimestamp() ),
+							array( 'id' => (int) $row->id ),
+							array( '%d' ),
+							array( '%d' )
+						);
+					} catch ( \Exception $e ) {
+						// Unparseable DATETIME (corrupted row). Leave the
+						// ts at 0 — admin will see Jan 1 1970 in the UI,
+						// which is loud enough to investigate. Don't block
+						// the rest of the migration on one bad row.
+						unset( $e );
+					}
+				}
+			} while ( count( $rows ) === 500 );
+
+			// Step 3-5: drop legacy indexes that include `submission_date`,
+			// drop the old DATETIME column, rename the staging column over it.
+			foreach ( array( 'idx_status_submission_date', 'idx_form_status_date' ) as $idx ) {
+				if ( self::index_exists( $table, $idx ) ) {
+                    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange
+					$wpdb->query( $wpdb->prepare( 'ALTER TABLE %i DROP INDEX %i', $table, $idx ) );
+				}
+			}
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange
+			$wpdb->query( $wpdb->prepare( 'ALTER TABLE %i DROP COLUMN %i', $table, 'submission_date' ) );
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange
+			$wpdb->query( $wpdb->prepare( 'ALTER TABLE %i CHANGE %i %i BIGINT UNSIGNED NOT NULL', $table, 'submission_date_ts', 'submission_date' ) );
+		}
+
+		// Step 6: recreate the composite indexes (now over the int column).
+		self::add_indexes_if_missing(
+			$table,
+			array(
+				'idx_status_submission_date' => '(status, submission_date)',
+				'idx_form_status_date'       => '(form_id, status, submission_date)',
+			)
+		);
+
+		// Step 7: mark complete.
+		update_option( 'ffc_submission_date_unix_migrated', '1', true );
 	}
 
 	/**

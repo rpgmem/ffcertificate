@@ -38,6 +38,13 @@ class PublicCsvExporterTest extends TestCase {
             $user->display_name = 'Admin User';
             return $user;
         } );
+        Functions\when( 'get_option' )->justReturn( array() );
+        Functions\when( 'wp_date' )->alias( function ( $format, $ts = null ) {
+            return gmdate( $format, $ts ?? time() );
+        } );
+        Functions\when( 'wp_timezone' )->alias( function () {
+            return new \DateTimeZone( 'UTC' );
+        } );
 
         $ref            = new \ReflectionClass( PublicCsvExporter::class );
         $this->exporter = $ref->newInstanceWithoutConstructor();
@@ -127,7 +134,9 @@ class PublicCsvExporterTest extends TestCase {
             'id'                => 7,
             'form_id'           => 42,
             'user_id'           => 10,
-            'submission_date'   => '2026-01-15 10:30:00',
+            // `submission_date` is unix UTC int since 6.6.0 (#249 sub-escopo a).
+            // 1768473000 = 2026-01-15 10:30:00 UTC.
+            'submission_date'   => 1768473000,
             'email'             => 'test@example.com',
             'email_encrypted'   => '',
             'user_ip'           => '203.0.113.1',
@@ -163,7 +172,9 @@ class PublicCsvExporterTest extends TestCase {
         $this->assertSame( 7, $result[0] );
         $this->assertSame( 'Public Test Form', $result[1] );
         $this->assertSame( 10, $result[2] );
-        $this->assertSame( '2026-01-15 10:30:00', $result[3] );
+        // Formatted via DateFormatter (UTC stub in setUp) — plugin default
+        // `date_format` is 'd/m/Y' and `time_format` is 'H:i'.
+        $this->assertSame( '15/01/2026 10:30', $result[3] );
         $this->assertSame( 'test@example.com', $result[4] );
         $this->assertSame( '203.0.113.1', $result[5] );
         $this->assertSame( '123.456.789-00', $result[6] );

@@ -501,11 +501,14 @@ class CsvExporter {
 		$cpf_val = \FreeFormCertificate\Core\Encryption::decrypt_field( $row, 'cpf' );
 		$rf_val  = \FreeFormCertificate\Core\Encryption::decrypt_field( $row, 'rf' );
 
+		// `submission_date` is unix UTC int since 6.6.0 (#249 sub-escopo a).
+		// Format for human eyes in the CSV; admins reading raw would expect
+		// a string here, not an epoch number.
 		$line = array(
 			$row['id'],
 			$form_display,
 			! empty( $row['user_id'] ) ? $row['user_id'] : '',
-			$row['submission_date'],
+			\FreeFormCertificate\Core\DateFormatter::format_datetime( (int) ( $row['submission_date'] ?? 0 ) ),
 			$email,
 			$user_ip,
 			$cpf_val,

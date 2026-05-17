@@ -36,6 +36,13 @@ class CsvExporterTest extends TestCase {
             $user->display_name = 'Admin User';
             return $user;
         } );
+        Functions\when( 'get_option' )->justReturn( array() );
+        Functions\when( 'wp_date' )->alias( function ( $format, $ts = null ) {
+            return gmdate( $format, $ts ?? time() );
+        } );
+        Functions\when( 'wp_timezone' )->alias( function () {
+            return new \DateTimeZone( 'UTC' );
+        } );
 
         // Create instance without constructor to avoid SubmissionRepository
         $ref = new \ReflectionClass( CsvExporter::class );
@@ -105,7 +112,9 @@ class CsvExporterTest extends TestCase {
             'id'                => 1,
             'form_id'           => 42,
             'user_id'           => 10,
-            'submission_date'   => '2025-01-15 10:30:00',
+            // `submission_date` is unix UTC int since 6.6.0 (#249 sub-escopo a).
+            // 1736937000 = 2025-01-15 10:30:00 UTC.
+            'submission_date'   => 1736937000,
             'email'             => 'test@example.com',
             'email_encrypted'   => '',
             'user_ip'           => '192.168.1.1',
@@ -144,7 +153,10 @@ class CsvExporterTest extends TestCase {
         $this->assertSame( 1, $result[0] );                           // ID
         $this->assertSame( 'Test Form', $result[1] );                 // Form title
         $this->assertSame( 10, $result[2] );                          // User ID
-        $this->assertSame( '2025-01-15 10:30:00', $result[3] );       // Date
+        // Formatted via DateFormatter (UTC stub in setUp) — plugin default
+        // `date_format` is 'd/m/Y' and `time_format` is 'H:i', so the unix
+        // 1736937000 (= 2025-01-15 10:30 UTC) lands as below.
+        $this->assertSame( '15/01/2025 10:30', $result[3] );          // Date
         $this->assertSame( 'test@example.com', $result[4] );          // Email
         $this->assertSame( '192.168.1.1', $result[5] );               // IP
         $this->assertSame( '123.456.789-00', $result[6] );            // CPF

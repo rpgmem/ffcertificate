@@ -127,18 +127,16 @@ class UserCertificatesRestController {
 					$auth_code_formatted = \FreeFormCertificate\Core\DocumentFormatter::format_auth_code( $submission['auth_code'], \FreeFormCertificate\Core\DocumentFormatter::PREFIX_CERTIFICATE );
 				}
 
-				$date_formatted = '';
-				if ( ! empty( $submission['submission_date'] ) ) {
-					$timestamp      = strtotime( $submission['submission_date'] );
-					$date_formatted = ( false !== $timestamp ) ? \FreeFormCertificate\Core\DateFormatter::format_date( $timestamp ) : $submission['submission_date'];
-				}
+				// `submission_date` is unix UTC int since 6.6.0 (#249 sub-escopo a).
+				$submission_ts  = (int) ( $submission['submission_date'] ?? 0 );
+				$date_formatted = $submission_ts > 0 ? \FreeFormCertificate\Core\DateFormatter::format_date( $submission_ts ) : '';
 
 				$certificates[] = array(
 					'id'                  => (int) ( $submission['id'] ?? 0 ),
 					'form_id'             => (int) ( $submission['form_id'] ?? 0 ),
 					'form_title'          => $submission['form_title'] ?? __( 'Unknown Form', 'ffcertificate' ),
-					'submission_date'     => $date_formatted ? $date_formatted : '',
-					'submission_date_raw' => $submission['submission_date'] ?? '',
+					'submission_date'     => $date_formatted,
+					'submission_date_raw' => $submission_ts,
 					'consent_given'       => ! empty( $submission['consent_given'] ),
 					'email'               => $email_display,
 					'auth_code'           => $auth_code_formatted,

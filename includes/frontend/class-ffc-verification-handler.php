@@ -286,10 +286,16 @@ class VerificationHandler {
 		}
 
 		// Build a pseudo-submission object for compatibility with format methods.
+		// `submission_date` on the real table is unix UTC int since 6.6.0
+		// (#249 sub-escopo a), so we adapt the appointment's `created_at`
+		// DATETIME — interpreted in the site TZ — to match the renderer's
+		// expectation.
+		$created_at_raw    = (string) ( $appointment['created_at'] ?? '' );
+		$created_at_ts     = '' !== $created_at_raw ? (int) strtotime( $created_at_raw ) : 0;
 		$pseudo_submission = array(
 			'id'              => $appointment['id'],
 			'form_id'         => 0,
-			'submission_date' => $appointment['created_at'] ?? '',
+			'submission_date' => $created_at_ts,
 			'auth_code'       => $appointment['validation_code'] ?? '',
 			'email'           => $email,
 			'cpf_rf'          => $cpf_rf,

@@ -30,14 +30,14 @@ class VerificationResponseRenderer {
 	 * @param object               $submission Submission object.
 	 * @param array<string, mixed> $data Submission data fields.
 	 * @param bool                 $show_download_button Whether to show PDF download button.
-	 * @phpstan-param \stdClass&object{form_id: numeric-string, submission_date: string} $submission
+	 * @phpstan-param \stdClass&object{form_id: numeric-string, submission_date: numeric-string|int} $submission
 	 * @return string HTML output
 	 */
 	public function format_verification_response( object $submission, array $data, bool $show_download_button = false ): string {
-		$form           = get_post( (int) $submission->form_id );
-		$form_title     = $form ? $form->post_title : __( 'N/A', 'ffcertificate' );
-		$date_ts        = strtotime( $submission->submission_date );
-		$date_generated = \FreeFormCertificate\Core\DateFormatter::format_datetime( false === $date_ts ? null : $date_ts );
+		$form       = get_post( (int) $submission->form_id );
+		$form_title = $form ? $form->post_title : __( 'N/A', 'ffcertificate' );
+		// `submission_date` is unix UTC int since 6.6.0 (#249 sub-escopo a).
+		$date_generated = \FreeFormCertificate\Core\DateFormatter::format_datetime( (int) $submission->submission_date );
 		$display_code   = isset( $data['auth_code'] )
 			? \FreeFormCertificate\Core\DocumentFormatter::format_auth_code( $data['auth_code'], \FreeFormCertificate\Core\DocumentFormatter::PREFIX_CERTIFICATE )
 			: '';

@@ -239,7 +239,10 @@ class SubmissionHandler {
 		$insert_data = array(
 			'form_id'           => $form_id,
 			'user_id'           => $user_id,  // v3.1.0: Link to WordPress user.
-			'submission_date'   => current_time( 'mysql' ),
+			// `submission_date` is unix UTC int since 6.6.0 (#249 sub-escopo a).
+			// `time()` is TZ-neutral by construction so we don't go through
+			// `current_time()` here.
+			'submission_date'   => time(),
 			'auth_code'         => $clean_auth_code,
 			'status'            => 'publish',
 			'magic_token'       => $magic_token,
@@ -804,15 +807,18 @@ class SubmissionHandler {
 			return 0;
 		}
 
-		$cutoff_ts   = strtotime( "-{$cleanup_days} days" );
-		$cutoff_date = gmdate( 'Y-m-d H:i:s', $cutoff_ts ? $cutoff_ts : time() );
+		$cutoff_ts = strtotime( "-{$cleanup_days} days" );
+		if ( false === $cutoff_ts ) {
+			$cutoff_ts = time();
+		}
 
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		$deleted = $wpdb->query(
 			$wpdb->prepare(
-				"DELETE FROM %i WHERE submission_date < %s AND status = 'publish'",
+				// `submission_date` is unix UTC int since 6.6.0 (#249 sub-escopo a).
+				"DELETE FROM %i WHERE submission_date < %d AND status = 'publish'",
 				$table,
-				$cutoff_date
+				$cutoff_ts
 			)
 		);
 
@@ -822,7 +828,7 @@ class SubmissionHandler {
 				\FreeFormCertificate\Core\ActivityLog::LEVEL_INFO,
 				array(
 					'deleted_count' => $deleted,
-					'cutoff_date'   => $cutoff_date,
+					'cutoff_ts'     => $cutoff_ts,
 				)
 			);
 		}
