@@ -29,6 +29,11 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 
 - `?limit=N` query arg on the `GET /forms` REST endpoint. Use
   `?per_page=N` instead.
+- `Utils::debug_log()` shim (`@deprecated 6.2.0`). All internal callers
+  were migrated to area-specific `Debug::log_*()` helpers in 6.2.0;
+  the shim has had zero production callers since then. External callers
+  (filters/hooks) should migrate to the appropriate `Debug::log_*()`
+  method — see `Debug::AREA_*` constants.
 - Unused `FFC_DEBUG` constant from `ffcertificate.php` and the matching
   PHPStan stub. Defined but never read.
 - Deprecated CSS aliases scheduled for 6.6.0 removal: `.ffc-conditional-field`

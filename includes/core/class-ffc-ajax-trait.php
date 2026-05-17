@@ -145,7 +145,7 @@ trait AjaxTrait {
 	/**
 	 * Handle uncaught exceptions in AJAX handlers.
 	 *
-	 * Logs the error via Utils::debug_log() and sends a generic JSON error
+	 * Logs the error via Debug::log_form() and sends a generic JSON error
 	 * to prevent internal details from leaking to the frontend.
 	 *
 	 * @since 5.1.1
