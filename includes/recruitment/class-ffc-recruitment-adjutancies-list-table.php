@@ -163,7 +163,7 @@ class RecruitmentAdjutanciesListTable extends \WP_List_Table {
 		$id    = (int) $item['id'];
 		$color = (string) ( $item['color'] ?? RecruitmentAdjutancyRepository::DEFAULT_COLOR );
 		return sprintf(
-			'<input type="color" value="%s" data-ffc-adjutancy-id="%d" class="ffc-adjutancy-color-picker" aria-label="%s"> <code class="ffc-adjutancy-color-hex">%s</code>',
+			'<input type="color" value="%s" data-ffc-color-endpoint="adjutancies" data-ffc-entity-id="%d" class="ffc-adjutancy-color-picker" aria-label="%s"> <code class="ffc-adjutancy-color-hex" data-ffc-color-hex>%s</code>',
 			esc_attr( $color ),
 			$id,
 			esc_attr__( 'Badge color', 'ffcertificate' ),

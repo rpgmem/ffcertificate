@@ -555,7 +555,6 @@ final class RecruitmentAdminPage {
 		echo '</form>';
 
 		self::render_create_adjutancy_form();
-		self::render_adjutancy_color_picker_script();
 	}
 
 	/**
@@ -583,7 +582,6 @@ final class RecruitmentAdminPage {
 		echo '</form>';
 
 		self::render_create_reason_form();
-		self::render_reason_color_picker_script();
 	}
 
 	/**
@@ -631,82 +629,7 @@ final class RecruitmentAdminPage {
 		echo '</form>';
 	}
 
-	/**
-	 * Inline JS for the reasons list-table color pickers (mirror of
-	 * {@see self::render_adjutancy_color_picker_script()}). PATCHes via
-	 * the REST endpoint on `change`.
-	 *
-	 * @return void
-	 */
-	private static function render_reason_color_picker_script(): void {
-		$nonce    = wp_create_nonce( 'wp_rest' );
-		$base_url = esc_url_raw( rest_url( 'ffcertificate/v1/recruitment/reasons/' ) );
-
-		echo '<script>'
-			. '(function(){'
-			. 'document.querySelectorAll(".ffc-reason-color-picker").forEach(function(input){'
-			. 'input.addEventListener("change",function(){'
-			. 'var id=parseInt(input.getAttribute("data-ffc-reason-id"),10);'
-			. 'if(!id){return;}'
-			. 'var fd=new FormData();fd.append("color",input.value);'
-			. 'fetch(' . wp_json_encode( $base_url ) . '+id,{'
-			. 'method:"POST",'
-			. 'headers:{"X-WP-Nonce":' . wp_json_encode( $nonce ) . ',"X-HTTP-Method-Override":"PATCH"},'
-			. 'body:fd'
-			. '}).then(function(r){return r.json();}).then(function(d){'
-			. 'if(d&&d.color){'
-			. 'input.value=d.color;'
-			. 'var hex=input.parentNode.querySelector(".ffc-reason-color-hex");'
-			. 'if(hex){hex.textContent=d.color;}'
-			. '}else{alert((d&&d.message)?d.message:JSON.stringify(d));}'
-			. '});'
-			. '});'
-			. '});'
-			. '})();'
-			. '</script>';
-	}
-
-	/**
-	 * Inline JS that turns each adjutancy color picker (rendered by
-	 * {@see RecruitmentAdjutanciesListTable::column_color()}) into an
-	 * auto-PATCHing control.
-	 *
-	 * Listening at `change` instead of `input` so the request fires once
-	 * the user commits a color rather than firing on every drag step
-	 * across the picker. The hex label next to the picker is updated in
-	 * place so admins get instant feedback without a page reload.
-	 *
-	 * @return void
-	 */
-	private static function render_adjutancy_color_picker_script(): void {
-		$nonce    = wp_create_nonce( 'wp_rest' );
-		$base_url = esc_url_raw( rest_url( 'ffcertificate/v1/recruitment/adjutancies/' ) );
-
-		echo '<script>'
-			. '(function(){'
-			. 'document.querySelectorAll(".ffc-adjutancy-color-picker").forEach(function(input){'
-			. 'input.addEventListener("change",function(){'
-			. 'var id=parseInt(input.getAttribute("data-ffc-adjutancy-id"),10);'
-			. 'if(!id){return;}'
-			. 'var fd=new FormData();fd.append("color",input.value);'
-			. 'fetch(' . wp_json_encode( $base_url ) . '+id,{'
-			. 'method:"POST",'
-			. 'headers:{"X-WP-Nonce":' . wp_json_encode( $nonce ) . ',"X-HTTP-Method-Override":"PATCH"},'
-			. 'body:fd'
-			. '}).then(function(r){return r.json();}).then(function(d){'
-			. 'if(d&&d.color){'
-			. 'input.value=d.color;'
-			. 'var hex=input.parentNode.querySelector(".ffc-adjutancy-color-hex");'
-			. 'if(hex){hex.textContent=d.color;}'
-			. '}else{alert((d&&d.message)?d.message:JSON.stringify(d));}'
-			. '});'
-			. '});'
-			. '});'
-			. '})();'
-			. '</script>';
-	}
-
-	/**
+/**
 	 * Candidates tab — CSV import flow.
 	 *
 	 * Admin selects the target notice, picks a CSV file, and the form POSTs
