@@ -41,21 +41,52 @@ class FormRepository extends AbstractRepository {
 	}
 
 	/**
-	 * Find published forms
+	 * Find published forms.
 	 *
-	 * @param int $limit Limit.
+	 * Stable order by title ASC so callers paginating via the
+	 * `$offset` parameter receive a deterministic slice.
+	 *
+	 * @param int $limit  Page size (-1 = unbounded).
+	 * @param int $offset Number of rows to skip from the start.
 	 * @return array<int, mixed>
 	 */
-	public function findPublished( int $limit = -1 ): array {
+	public function findPublished( int $limit = -1, int $offset = 0 ): array {
 		$args = array(
 			'post_type'      => 'ffc_form',
 			'post_status'    => 'publish',
 			'posts_per_page' => $limit,
+			'offset'         => max( 0, $offset ),
 			'orderby'        => 'title',
 			'order'          => 'ASC',
 		);
 
 		return get_posts( $args );
+	}
+
+	/**
+	 * Count published forms.
+	 *
+	 * Uses a `fields=ids` `WP_Query` so the SELECT only fetches IDs;
+	 * `found_posts` carries the total count with `posts_per_page=-1`
+	 * (computed via `SQL_CALC_FOUND_ROWS` on the same query, which
+	 * WP caches via its standard post-cache stack).
+	 *
+	 * @return int Total number of published `ffc_form` posts.
+	 */
+	public function countPublished(): int {
+		$query = new \WP_Query(
+			array(
+				'post_type'              => 'ffc_form',
+				'post_status'            => 'publish',
+				'fields'                 => 'ids',
+				'posts_per_page'         => -1,
+				'no_found_rows'          => false,
+				'update_post_meta_cache' => false,
+				'update_post_term_cache' => false,
+			)
+		);
+
+		return (int) $query->found_posts;
 	}
 
 	/**
