@@ -69,18 +69,11 @@
                 }
 
                 searchTimeout = setTimeout(function() {
-                    $.ajax({
-                        url: ajaxurl,
-                        type: 'POST',
-                        data: {
-                            action: 'ffc_search_users',
-                            query: query,
-                            nonce: nonce
-                        },
-                        success: function(response) {
-                            if (response.success && response.data.length > 0) {
+                    FFC.request('ffc_search_users', { query: query }, { nonce: nonce })
+                        .then(function(data) {
+                            if (data && data.length > 0) {
                                 var html = '';
-                                response.data.forEach(function(user) {
+                                data.forEach(function(user) {
                                     if (!selectedUsers[user.id]) {
                                         html += '<div class="ffc-user-result" data-id="' + user.id + '" data-name="' + escHtml(user.name) + '">' + escHtml(user.name) + ' (' + escHtml(user.email) + ')</div>';
                                     }
@@ -89,8 +82,10 @@
                             } else {
                                 $('#user_results').removeClass('active').empty();
                             }
-                        }
-                    });
+                        })
+                        .catch(function() {
+                            $('#user_results').removeClass('active').empty();
+                        });
                 }, 300);
             });
 
@@ -146,29 +141,19 @@
 
                 $environmentSelect.html('<option value="">' + loadingText + '</option>');
 
-                $.ajax({
-                    url: ajaxurl,
-                    type: 'POST',
-                    data: {
-                        action: 'ffc_audience_get_environments',
-                        schedule_id: scheduleId,
-                        nonce: adminNonce
-                    },
-                    success: function(response) {
-                        if (response.success && response.data) {
-                            var html = '<option value="">' + allEnvironmentsText + '</option>';
-                            $.each(response.data, function(i, env) {
+                FFC.request('ffc_audience_get_environments', { schedule_id: scheduleId }, { nonce: adminNonce })
+                    .then(function(data) {
+                        var html = '<option value="">' + allEnvironmentsText + '</option>';
+                        if (data) {
+                            $.each(data, function(i, env) {
                                 html += '<option value="' + env.id + '">' + $('<div/>').text(env.name).html() + '</option>';
                             });
-                            $environmentSelect.html(html);
-                        } else {
-                            $environmentSelect.html('<option value="">' + allEnvironmentsText + '</option>');
                         }
-                    },
-                    error: function() {
+                        $environmentSelect.html(html);
+                    })
+                    .catch(function() {
                         $environmentSelect.html('<option value="">' + allEnvironmentsText + '</option>');
-                    }
-                });
+                    });
             });
         },
 
@@ -208,20 +193,8 @@
                 $modal.show();
                 $modal.find('.ffc-admin-modal-close').focus();
 
-                $.ajax({
-                    url: ajaxurl,
-                    type: 'POST',
-                    data: {
-                        action: 'ffc_audience_get_booking',
-                        booking_id: bookingId,
-                        nonce: adminNonce
-                    },
-                    success: function(response) {
-                        if (!response.success) {
-                            $modal.find('.ffc-admin-modal-body').html('<p>' + esc(response.data.message || strings.error) + '</p>');
-                            return;
-                        }
-                        var b = response.data;
+                FFC.request('ffc_audience_get_booking', { booking_id: bookingId }, { nonce: adminNonce })
+                    .then(function(b) {
                         var timeDisplay = parseInt(b.is_all_day) ? (strings.allDay || 'All Day') : (b.start_time + ' - ' + b.end_time);
                         var typeDisplay = b.booking_type === 'audience' ? (strings.audience || 'Audience') : (strings.customUsers || 'Custom Users');
                         var statusDisplay = b.status === 'active' ? (strings.active || 'Active') : (strings.cancelled || 'Cancelled');
@@ -252,11 +225,11 @@
 
                         html += '</tbody></table>';
                         $modal.find('.ffc-admin-modal-body').html(html);
-                    },
-                    error: function() {
-                        $modal.find('.ffc-admin-modal-body').html('<p>' + esc(strings.error || 'An error occurred.') + '</p>');
-                    }
-                });
+                    })
+                    .catch(function(err) {
+                        var msg = (err && err.fromServer) ? err.message : (strings.error || 'An error occurred.');
+                        $modal.find('.ffc-admin-modal-body').html('<p>' + esc(msg) + '</p>');
+                    });
             });
 
             // Close modal
@@ -290,32 +263,19 @@
 
                 $link.css('pointer-events', 'none').css('opacity', '0.5');
 
-                $.ajax({
-                    url: ajaxurl,
-                    type: 'POST',
-                    data: {
-                        action: 'ffc_audience_cancel_booking',
-                        booking_id: bookingId,
-                        reason: reason,
-                        nonce: adminNonce
-                    },
-                    success: function(response) {
-                        if (response.success) {
-                            // Update the row status and remove cancel link
-                            var $row = $link.closest('tr');
-                            $row.find('.status-active').removeClass('status-active').addClass('status-cancelled').text(strings.cancelled || 'Cancelled');
-                            $link.prev().remove(); // remove "|" separator
-                            $link.remove();
-                        } else {
-                            alert(response.data.message || strings.error);
-                            $link.css('pointer-events', '').css('opacity', '');
-                        }
-                    },
-                    error: function() {
-                        alert(strings.error || 'An error occurred.');
+                FFC.request('ffc_audience_cancel_booking', { booking_id: bookingId, reason: reason }, { nonce: adminNonce })
+                    .then(function() {
+                        // Update the row status and remove cancel link
+                        var $row = $link.closest('tr');
+                        $row.find('.status-active').removeClass('status-active').addClass('status-cancelled').text(strings.cancelled || 'Cancelled');
+                        $link.prev().remove(); // remove "|" separator
+                        $link.remove();
+                    })
+                    .catch(function(err) {
+                        var msg = (err && err.fromServer) ? err.message : (strings.error || 'An error occurred.');
+                        alert(msg);
                         $link.css('pointer-events', '').css('opacity', '');
-                    }
-                });
+                    });
             });
         },
 
@@ -349,30 +309,30 @@
                     return;
                 }
                 searchTimer = setTimeout(function() {
-                    $.get(ajaxurl, {
-                        action: 'ffc_search_users',
-                        query: query,
-                        nonce: searchNonce
-                    }, function(response) {
-                        if (response.success && response.data.length > 0) {
-                            var html = '';
-                            var existingIds = [];
-                            $table.find('tbody tr[data-user-id]').each(function() {
-                                existingIds.push(parseInt($(this).data('user-id')));
-                            });
-                            $.each(response.data, function(i, user) {
-                                var disabled = existingIds.indexOf(user.id) !== -1;
-                                html += '<div class="ffc-user-result' + (disabled ? ' ffc-user-exists' : '') + '" data-id="' + user.id + '" data-name="' + escHtml(user.name) + '" style="padding: 8px 12px; cursor: ' + (disabled ? 'default' : 'pointer') + '; border-bottom: 1px solid #eee;' + (disabled ? ' opacity: 0.5;' : '') + '">';
-                                html += '<strong>' + escHtml(user.name) + '</strong>';
-                                html += '<br><small>' + escHtml(user.email) + '</small>';
-                                if (disabled) html += ' <em>(' + escHtml(strings.alreadyAdded || 'already added') + ')</em>';
-                                html += '</div>';
-                            });
-                            $('#ffc-user-search-results').html(html).show();
-                        } else {
-                            $('#ffc-user-search-results').html('<div style="padding: 8px 12px; color: #666;"><em>' + escHtml(strings.noUsersFound || 'No users found.') + '</em></div>').show();
-                        }
-                    });
+                    FFC.request('ffc_search_users', { query: query }, { nonce: searchNonce })
+                        .then(function(data) {
+                            if (data && data.length > 0) {
+                                var html = '';
+                                var existingIds = [];
+                                $table.find('tbody tr[data-user-id]').each(function() {
+                                    existingIds.push(parseInt($(this).data('user-id')));
+                                });
+                                $.each(data, function(i, user) {
+                                    var disabled = existingIds.indexOf(user.id) !== -1;
+                                    html += '<div class="ffc-user-result' + (disabled ? ' ffc-user-exists' : '') + '" data-id="' + user.id + '" data-name="' + escHtml(user.name) + '" style="padding: 8px 12px; cursor: ' + (disabled ? 'default' : 'pointer') + '; border-bottom: 1px solid #eee;' + (disabled ? ' opacity: 0.5;' : '') + '">';
+                                    html += '<strong>' + escHtml(user.name) + '</strong>';
+                                    html += '<br><small>' + escHtml(user.email) + '</small>';
+                                    if (disabled) html += ' <em>(' + escHtml(strings.alreadyAdded || 'already added') + ')</em>';
+                                    html += '</div>';
+                                });
+                                $('#ffc-user-search-results').html(html).show();
+                            } else {
+                                $('#ffc-user-search-results').html('<div style="padding: 8px 12px; color: #666;"><em>' + escHtml(strings.noUsersFound || 'No users found.') + '</em></div>').show();
+                            }
+                        })
+                        .catch(function() {
+                            $('#ffc-user-search-results').hide();
+                        });
                 }, 300);
             });
 
@@ -398,23 +358,27 @@
                 var btn = $(this);
                 btn.prop('disabled', true);
 
-                $.post(ajaxurl, {
-                    action: 'ffc_audience_add_user_permission',
+                // The server here verifies via `check_admin_referer` on `_wpnonce`
+                // (not `check_ajax_referer` on `nonce`), so we send the nonce
+                // under that field name. FFC.request also injects its own
+                // `nonce` payload key; the server ignores it.
+                FFC.request('ffc_audience_add_user_permission', {
                     schedule_id: scheduleId,
                     user_id: selectedUserId,
                     _wpnonce: permNonce
-                }, function(response) {
-                    if (response.success) {
+                })
+                    .then(function(data) {
                         $('#ffc-no-permissions-row').remove();
-                        $table.find('tbody').append(response.data.html);
+                        $table.find('tbody').append(data.html);
                         $('#ffc-user-search').val('');
                         selectedUserId = 0;
                         $('#ffc-selected-user-id').val('');
-                    } else {
-                        alert(response.data.message || strings.errorAddingUser || 'Error adding user.');
+                    })
+                    .catch(function(err) {
+                        var msg = (err && err.fromServer) ? err.message : (strings.errorAddingUser || 'Error adding user.');
+                        alert(msg);
                         btn.prop('disabled', false);
-                    }
-                });
+                    });
             });
 
             // Toggle permission
@@ -424,14 +388,14 @@
                 var perm = $(this).data('perm');
                 var value = $(this).is(':checked') ? 1 : 0;
 
-                $.post(ajaxurl, {
-                    action: 'ffc_audience_update_user_permission',
+                // Fire-and-forget toggle update; server verifies _wpnonce.
+                FFC.request('ffc_audience_update_user_permission', {
                     schedule_id: scheduleId,
                     user_id: userId,
                     permission: perm,
                     value: value,
                     _wpnonce: permNonce
-                });
+                }).catch(function() { /* silent — UI state already updated optimistically */ });
             });
 
             // Remove user
@@ -440,21 +404,20 @@
                 var row = $(this).closest('tr');
                 var userId = row.data('user-id');
 
-                $.post(ajaxurl, {
-                    action: 'ffc_audience_remove_user_permission',
+                FFC.request('ffc_audience_remove_user_permission', {
                     schedule_id: scheduleId,
                     user_id: userId,
                     _wpnonce: permNonce
-                }, function(response) {
-                    if (response.success) {
+                })
+                    .then(function() {
                         row.fadeOut(300, function() {
                             $(this).remove();
                             if ($table.find('tbody tr').length === 0) {
                                 $table.find('tbody').html('<tr id="ffc-no-permissions-row"><td colspan="5"><em>' + escHtml(strings.noUsersYet || 'No users have been granted access yet.') + '</em></td></tr>');
                             }
                         });
-                    }
-                });
+                    })
+                    .catch(function() { /* silent */ });
             });
         }
     };

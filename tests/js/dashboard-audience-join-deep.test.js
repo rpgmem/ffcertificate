@@ -4,7 +4,7 @@
 // by driving the document-level click delegates that mutate state via
 // REST.
 import { describe, it, expect, beforeAll, beforeEach, afterEach, vi } from 'vitest';
-import { installDashboardFixtures, loadDashboardCore, loadPanel } from './dashboard-fixtures.js';
+import { installDashboardFixtures, loadDashboardCore, loadPanel, flushPromises } from './dashboard-fixtures.js';
 
 beforeAll(() => {
 	installDashboardFixtures();
@@ -52,13 +52,14 @@ afterEach(() => {
 // ----------------------------------------------------------------------
 
 describe('audience-join — joinGroup', () => {
-	it('POSTs to /user/audience-group/join with the group_id payload', () => {
+	it('POSTs to /user/audience-group/join with the group_id payload', async () => {
 		const ajaxSpy = vi.spyOn(window.$, 'ajax').mockImplementation((opts) => {
 			opts.success({});
 			return {};
 		});
 
 		window.$('.ffc-audience-join-btn[data-id="7"]').trigger('click');
+		await flushPromises();
 
 		expect(ajaxSpy).toHaveBeenCalled();
 		const opts = ajaxSpy.mock.calls[0][0];
@@ -69,17 +70,18 @@ describe('audience-join — joinGroup', () => {
 		expect(window.FFCDashboard.panels.profile.reload).toHaveBeenCalled();
 	});
 
-	it('appends viewAsUserId query string when impersonating', () => {
+	it('appends viewAsUserId query string when impersonating', async () => {
 		window.ffcDashboard.viewAsUserId = 42;
 		const ajaxSpy = vi.spyOn(window.$, 'ajax').mockImplementation(() => ({}));
 
 		window.$('.ffc-audience-join-btn[data-id="7"]').trigger('click');
+		await flushPromises();
 
 		expect(ajaxSpy.mock.calls[0][0].url).toContain('?viewAsUserId=42');
 		delete window.ffcDashboard.viewAsUserId;
 	});
 
-	it('sets X-WP-Nonce on the request', () => {
+	it('sets X-WP-Nonce on the request', async () => {
 		const ajaxSpy = vi.spyOn(window.$, 'ajax').mockImplementation((opts) => {
 			const xhr = { setRequestHeader: vi.fn() };
 			opts.beforeSend(xhr);
@@ -88,10 +90,11 @@ describe('audience-join — joinGroup', () => {
 		});
 
 		window.$('.ffc-audience-join-btn[data-id="7"]').trigger('click');
+		await flushPromises();
 		expect(ajaxSpy).toHaveBeenCalled();
 	});
 
-	it('on error: alerts the server message and re-enables the button', () => {
+	it('on error: alerts the server message and re-enables the button', async () => {
 		vi.spyOn(window.$, 'ajax').mockImplementation((opts) => {
 			opts.error({ responseJSON: { message: 'Quota exceeded' } });
 			return {};
@@ -99,6 +102,7 @@ describe('audience-join — joinGroup', () => {
 		const alertSpy = vi.spyOn(window, 'alert').mockImplementation(() => {});
 
 		window.$('.ffc-audience-join-btn[data-id="7"]').trigger('click');
+		await flushPromises();
 
 		expect(alertSpy).toHaveBeenCalledWith('Quota exceeded');
 		const $btn = window.$('.ffc-audience-join-btn[data-id="7"]');
@@ -106,7 +110,7 @@ describe('audience-join — joinGroup', () => {
 		expect($btn.text()).toBe('Join');
 	});
 
-	it('on error without a responseJSON.message: falls back to the localised error', () => {
+	it('on error without a responseJSON.message: falls back to the localised error', async () => {
 		vi.spyOn(window.$, 'ajax').mockImplementation((opts) => {
 			opts.error({});
 			return {};
@@ -114,6 +118,7 @@ describe('audience-join — joinGroup', () => {
 		const alertSpy = vi.spyOn(window, 'alert').mockImplementation(() => {});
 
 		window.$('.ffc-audience-join-btn[data-id="7"]').trigger('click');
+		await flushPromises();
 
 		expect(alertSpy).toHaveBeenCalledWith('Generic error');
 	});
@@ -124,16 +129,17 @@ describe('audience-join — joinGroup', () => {
 // ----------------------------------------------------------------------
 
 describe('audience-join — leaveGroup', () => {
-	it('bails when the user declines the confirm', () => {
+	it('bails when the user declines the confirm', async () => {
 		vi.spyOn(window, 'confirm').mockReturnValue(false);
 		const ajaxSpy = vi.spyOn(window.$, 'ajax').mockImplementation(() => ({}));
 
 		window.$('.ffc-audience-leave-btn[data-id="9"]').trigger('click');
+		await flushPromises();
 
 		expect(ajaxSpy).not.toHaveBeenCalled();
 	});
 
-	it('POSTs to /user/audience-group/leave and reloads the profile panel', () => {
+	it('POSTs to /user/audience-group/leave and reloads the profile panel', async () => {
 		vi.spyOn(window, 'confirm').mockReturnValue(true);
 		const ajaxSpy = vi.spyOn(window.$, 'ajax').mockImplementation((opts) => {
 			opts.success({});
@@ -141,12 +147,13 @@ describe('audience-join — leaveGroup', () => {
 		});
 
 		window.$('.ffc-audience-leave-btn[data-id="9"]').trigger('click');
+		await flushPromises();
 
 		expect(JSON.parse(ajaxSpy.mock.calls[0][0].data)).toEqual({ group_id: 9 });
 		expect(window.FFCDashboard.panels.profile.reload).toHaveBeenCalled();
 	});
 
-	it('on error: alerts the server message and re-enables the button', () => {
+	it('on error: alerts the server message and re-enables the button', async () => {
 		vi.spyOn(window, 'confirm').mockReturnValue(true);
 		vi.spyOn(window.$, 'ajax').mockImplementation((opts) => {
 			opts.error({ responseJSON: { message: 'Not a member' } });
@@ -155,6 +162,7 @@ describe('audience-join — leaveGroup', () => {
 		const alertSpy = vi.spyOn(window, 'alert').mockImplementation(() => {});
 
 		window.$('.ffc-audience-leave-btn[data-id="9"]').trigger('click');
+		await flushPromises();
 
 		expect(alertSpy).toHaveBeenCalledWith('Not a member');
 		const $btn = window.$('.ffc-audience-leave-btn[data-id="9"]');
@@ -168,26 +176,28 @@ describe('audience-join — leaveGroup', () => {
 // ----------------------------------------------------------------------
 
 describe('audience-join — leaveAllGroups', () => {
-	it('bails when there are no groups to leave', () => {
+	it('bails when there are no groups to leave', async () => {
 		window.FFCDashboard.panels.profile.state.audience_groups = [];
 		const confirmSpy = vi.spyOn(window, 'confirm');
 		const ajaxSpy = vi.spyOn(window.$, 'ajax').mockImplementation(() => ({}));
 
 		window.$('.ffc-leave-all-groups-btn').trigger('click');
+		await flushPromises();
 
 		expect(confirmSpy).not.toHaveBeenCalled();
 		expect(ajaxSpy).not.toHaveBeenCalled();
 	});
 
-	it('asks for confirmation, substituting %d with the group count', () => {
+	it('asks for confirmation, substituting %d with the group count', async () => {
 		const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(false);
 
 		window.$('.ffc-leave-all-groups-btn').trigger('click');
+		await flushPromises();
 
 		expect(confirmSpy).toHaveBeenCalledWith('Confirm leave all 2?');
 	});
 
-	it('on confirm + success: POSTs leave-all and reloads the profile panel', () => {
+	it('on confirm + success: POSTs leave-all and reloads the profile panel', async () => {
 		vi.spyOn(window, 'confirm').mockReturnValue(true);
 		const ajaxSpy = vi.spyOn(window.$, 'ajax').mockImplementation((opts) => {
 			opts.success({});
@@ -195,6 +205,7 @@ describe('audience-join — leaveAllGroups', () => {
 		});
 
 		window.$('.ffc-leave-all-groups-btn').trigger('click');
+		await flushPromises();
 
 		const opts = ajaxSpy.mock.calls[0][0];
 		expect(opts.url).toContain('/user/audience-group/leave-all');
@@ -203,7 +214,7 @@ describe('audience-join — leaveAllGroups', () => {
 		expect(window.FFCDashboard.panels.profile.reload).toHaveBeenCalled();
 	});
 
-	it('on error: alerts the message and re-enables the button', () => {
+	it('on error: alerts the message and re-enables the button', async () => {
 		vi.spyOn(window, 'confirm').mockReturnValue(true);
 		vi.spyOn(window.$, 'ajax').mockImplementation((opts) => {
 			opts.error({ responseJSON: { message: 'Server down' } });
@@ -212,6 +223,7 @@ describe('audience-join — leaveAllGroups', () => {
 		const alertSpy = vi.spyOn(window, 'alert').mockImplementation(() => {});
 
 		window.$('.ffc-leave-all-groups-btn').trigger('click');
+		await flushPromises();
 
 		expect(alertSpy).toHaveBeenCalledWith('Server down');
 		const $btn = window.$('.ffc-leave-all-groups-btn');

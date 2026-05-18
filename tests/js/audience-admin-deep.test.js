@@ -4,6 +4,23 @@
 import { describe, it, expect, beforeAll, beforeEach, afterEach, vi } from 'vitest';
 import { loadScript } from './helpers.js';
 
+// FFC.request (the centralised admin-ajax helper this file's subject is
+// migrated to use) wraps jQuery.post() in a Promise. To drive that
+// Promise from a test, mock $.post and return a chain whose .done /
+// .fail callback the FFC.request internals invoke.
+function postChain(spec) {
+	const chain = { done: () => chain, fail: () => chain };
+	if (spec && 'done' in spec) chain.done = (cb) => { cb(spec.done); return chain; };
+	if (spec && spec.fail) chain.fail = (cb) => { cb(); return chain; };
+	return chain;
+}
+
+// FFC.rest still spies on $.ajax (FFC.rest uses jQuery.ajax internally
+// with opts.success / opts.error callbacks fired by the spy).
+
+// Microtask flush — see dashboard-fixtures.flushPromises.
+function flush() { return Promise.resolve().then(() => Promise.resolve()); }
+
 beforeAll(() => {
 	window.ffcAudienceAdmin = {
 		searchUsersNonce: 'search-nonce',
@@ -32,6 +49,15 @@ beforeAll(() => {
 		},
 	};
 	window.ajaxurl = '/wp-admin/admin-ajax.php';
+	// ffc-audience-admin.js was migrated to FFC.request — load
+	// ffc-core.js so window.FFC is defined when the audience-admin IIFE
+	// evaluates inside each test's reload() call.
+	window.ffc_ajax = {
+		ajax_url: window.ajaxurl,
+		nonce: window.ffcAudienceAdmin.adminNonce,
+		strings: window.ffcAudienceAdmin.strings,
+	};
+	loadScript('assets/js/ffc-core.js');
 });
 
 beforeEach(() => {
@@ -67,6 +93,7 @@ describe('audience-admin — day row time toggle', () => {
 		await reload();
 
 		window.$('.ffc-day-row input[type="checkbox"]').prop('checked', true).trigger('change');
+		await flush();
 
 		expect(window.$('input[type="time"]').first().prop('disabled')).toBe(true);
 		expect(window.$('input[type="time"]').last().prop('disabled')).toBe(true);
@@ -82,6 +109,7 @@ describe('audience-admin — day row time toggle', () => {
 		await reload();
 
 		window.$('.ffc-day-row input[type="checkbox"]').prop('checked', false).trigger('change');
+		await flush();
 
 		expect(window.$('input[type="time"]').prop('disabled')).toBe(false);
 	});
@@ -104,30 +132,29 @@ describe('audience-admin — user search autocomplete', () => {
 	it('bails when query length < 2 (no AJAX)', async () => {
 		mountSearch();
 		await reload();
-		const ajaxSpy = vi.spyOn(window.$, 'ajax').mockImplementation(() => ({}));
+		const postSpy = vi.spyOn(window.$, 'post').mockImplementation(() => postChain({}));
 
 		window.$('#user_search').val('a').trigger('input');
+		await flush();
 		// Debounce window for AJAX is 300 ms; if it fired it'd land later.
 		vi.useFakeTimers();
 		vi.advanceTimersByTime(400);
-		expect(ajaxSpy).not.toHaveBeenCalled();
+		expect(postSpy).not.toHaveBeenCalled();
 	});
 
 	it('debounces 300 ms then POSTs ffc_search_users with the query', async () => {
 		mountSearch();
 		await reload();
 		vi.useFakeTimers();
-		const ajaxSpy = vi.spyOn(window.$, 'ajax').mockImplementation((opts) => {
-			opts.success({ success: true, data: [{ id: 1, name: 'Alice', email: 'a@x' }] });
-			return {};
-		});
+		const postSpy = vi.spyOn(window.$, 'post').mockImplementation(() => postChain({ done: { success: true, data: [{ id: 1, name: 'Alice', email: 'a@x' }] } }));
 
 		window.$('#user_search').val('alice').trigger('input');
 		vi.advanceTimersByTime(299);
-		expect(ajaxSpy).not.toHaveBeenCalled();
+		expect(postSpy).not.toHaveBeenCalled();
 		vi.advanceTimersByTime(1);
-		expect(ajaxSpy).toHaveBeenCalled();
-		expect(ajaxSpy.mock.calls[0][0].data).toMatchObject({
+		await flush();
+		expect(postSpy).toHaveBeenCalled();
+		expect(postSpy.mock.calls[0][1]).toMatchObject({
 			action: 'ffc_search_users',
 			query: 'alice',
 			nonce: 'search-nonce',
@@ -146,6 +173,7 @@ describe('audience-admin — user search autocomplete', () => {
 		window.$('#user_results').html('<div class="ffc-user-result" data-id="9" data-name="Alice"></div>').addClass('active');
 
 		window.$('.ffc-user-result').trigger('click');
+		await flush();
 
 		expect(window.$('#selected_user_ids').val()).toBe('9');
 		expect(window.$('#selected_users').text()).toContain('Alice');
@@ -159,9 +187,11 @@ describe('audience-admin — user search autocomplete', () => {
 		// Pre-populate selection.
 		window.$('#user_results').html('<div class="ffc-user-result" data-id="3" data-name="Bob"></div>');
 		window.$('.ffc-user-result').trigger('click');
+		await flush();
 		expect(window.$('#selected_user_ids').val()).toBe('3');
 
 		window.$('#selected_users .ffc-selected-user .remove').trigger('click');
+		await flush();
 
 		expect(window.$('#selected_user_ids').val()).toBe('');
 	});
@@ -170,13 +200,11 @@ describe('audience-admin — user search autocomplete', () => {
 		mountSearch();
 		await reload();
 		vi.useFakeTimers();
-		vi.spyOn(window.$, 'ajax').mockImplementation((opts) => {
-			opts.success({ success: true, data: [] });
-			return {};
-		});
+		vi.spyOn(window.$, 'post').mockImplementation(() => postChain({ done: { success: true, data: [] } }));
 
 		window.$('#user_search').val('zzz').trigger('input');
 		vi.advanceTimersByTime(300);
+		await flush();
 
 		expect(window.$('#user_results').hasClass('active')).toBe(false);
 		expect(window.$('#user_results').html()).toBe('');
@@ -204,6 +232,7 @@ describe('audience-admin — schedule → environment filter cascade', () => {
 		mountCascade();
 		await reload();
 		window.$('#filter-schedule').val('').trigger('change');
+		await flush();
 		const opts = window.$('#filter-environment option').map((_, el) => el.textContent).get();
 		expect(opts).toEqual(['All Environments']);
 	});
@@ -211,12 +240,10 @@ describe('audience-admin — schedule → environment filter cascade', () => {
 	it('on schedule change: posts ffc_audience_get_environments and populates the select', async () => {
 		mountCascade();
 		await reload();
-		vi.spyOn(window.$, 'ajax').mockImplementation((opts) => {
-			opts.success({ success: true, data: [{ id: 1, name: 'Env A' }, { id: 2, name: 'Env B' }] });
-			return {};
-		});
+		vi.spyOn(window.$, 'post').mockImplementation(() => postChain({ done: { success: true, data: [{ id: 1, name: 'Env A' }, { id: 2, name: 'Env B' }] } }));
 
 		window.$('#filter-schedule').val('7').trigger('change');
+		await flush();
 
 		const opts = window.$('#filter-environment option').map((_, el) => el.textContent).get();
 		expect(opts).toEqual(['All Environments', 'Env A', 'Env B']);
@@ -225,12 +252,10 @@ describe('audience-admin — schedule → environment filter cascade', () => {
 	it('on response.success=false: leaves the select with the all-environments placeholder', async () => {
 		mountCascade();
 		await reload();
-		vi.spyOn(window.$, 'ajax').mockImplementation((opts) => {
-			opts.success({ success: false });
-			return {};
-		});
+		vi.spyOn(window.$, 'post').mockImplementation(() => postChain({ done: { success: false } }));
 
 		window.$('#filter-schedule').val('7').trigger('change');
+		await flush();
 
 		const opts = window.$('#filter-environment option').map((_, el) => el.textContent).get();
 		expect(opts).toEqual(['All Environments']);
@@ -239,12 +264,10 @@ describe('audience-admin — schedule → environment filter cascade', () => {
 	it('on network error: leaves the select with the all-environments placeholder', async () => {
 		mountCascade();
 		await reload();
-		vi.spyOn(window.$, 'ajax').mockImplementation((opts) => {
-			opts.error();
-			return {};
-		});
+		vi.spyOn(window.$, 'post').mockImplementation(() => postChain({ fail: true }));
 
 		window.$('#filter-schedule').val('7').trigger('change');
+		await flush();
 
 		const opts = window.$('#filter-environment option').map((_, el) => el.textContent).get();
 		expect(opts).toEqual(['All Environments']);
@@ -273,8 +296,7 @@ describe('audience-admin — booking actions', () => {
 	it('clicking view opens the modal and renders the booking fields', async () => {
 		mountBookings();
 		await reload();
-		vi.spyOn(window.$, 'ajax').mockImplementation((opts) => {
-			opts.success({
+		vi.spyOn(window.$, 'post').mockImplementation(() => postChain({ done: {
 				success: true,
 				data: {
 					booking_date: '2026-06-01', is_all_day: 0,
@@ -283,11 +305,10 @@ describe('audience-admin — booking actions', () => {
 					booking_type: 'audience', status: 'active',
 					created_by: 'Alice', audiences: [{ name: 'G1' }], users: [],
 				},
-			});
-			return {};
-		});
+			} }));
 
 		window.$('.ffc-view-booking').trigger('click');
+		await flush();
 
 		expect(window.$('#ffc-booking-modal').length).toBe(1);
 		const text = window.$('#ffc-booking-modal').text();
@@ -300,8 +321,7 @@ describe('audience-admin — booking actions', () => {
 	it('all-day bookings render the localised "All Day" text', async () => {
 		mountBookings();
 		await reload();
-		vi.spyOn(window.$, 'ajax').mockImplementation((opts) => {
-			opts.success({
+		vi.spyOn(window.$, 'post').mockImplementation(() => postChain({ done: {
 				success: true,
 				data: {
 					booking_date: '2026-06-01', is_all_day: 1,
@@ -310,11 +330,10 @@ describe('audience-admin — booking actions', () => {
 					booking_type: 'users', status: 'active',
 					created_by: 'Bob', audiences: [], users: [{ name: 'U1', email: 'u@x' }],
 				},
-			});
-			return {};
-		});
+			} }));
 
 		window.$('.ffc-view-booking').trigger('click');
+		await flush();
 
 		const text = window.$('#ffc-booking-modal').text();
 		expect(text).toContain('All Day');
@@ -325,8 +344,7 @@ describe('audience-admin — booking actions', () => {
 	it('cancelled bookings include the cancel reason line', async () => {
 		mountBookings();
 		await reload();
-		vi.spyOn(window.$, 'ajax').mockImplementation((opts) => {
-			opts.success({
+		vi.spyOn(window.$, 'post').mockImplementation(() => postChain({ done: {
 				success: true,
 				data: {
 					booking_date: '2026-06-01', is_all_day: 1,
@@ -336,11 +354,10 @@ describe('audience-admin — booking actions', () => {
 					created_by: 'Bob', audiences: [], users: [],
 					cancel_reason: 'Bad weather',
 				},
-			});
-			return {};
-		});
+			} }));
 
 		window.$('.ffc-view-booking').trigger('click');
+		await flush();
 
 		expect(window.$('#ffc-booking-modal').text()).toContain('Bad weather');
 		expect(window.$('#ffc-booking-modal').text()).toContain('Cancelled');
@@ -349,12 +366,10 @@ describe('audience-admin — booking actions', () => {
 	it('on view AJAX response.success=false: shows the error message in the modal body', async () => {
 		mountBookings();
 		await reload();
-		vi.spyOn(window.$, 'ajax').mockImplementation((opts) => {
-			opts.success({ success: false, data: { message: 'Booking missing' } });
-			return {};
-		});
+		vi.spyOn(window.$, 'post').mockImplementation(() => postChain({ done: { success: false, data: { message: 'Booking missing' } } }));
 
 		window.$('.ffc-view-booking').trigger('click');
+		await flush();
 
 		expect(window.$('#ffc-booking-modal .ffc-admin-modal-body').text()).toContain('Booking missing');
 	});
@@ -362,12 +377,10 @@ describe('audience-admin — booking actions', () => {
 	it('on view network error: renders the generic error message', async () => {
 		mountBookings();
 		await reload();
-		vi.spyOn(window.$, 'ajax').mockImplementation((opts) => {
-			opts.error();
-			return {};
-		});
+		vi.spyOn(window.$, 'post').mockImplementation(() => postChain({ fail: true }));
 
 		window.$('.ffc-view-booking').trigger('click');
+		await flush();
 
 		expect(window.$('#ffc-booking-modal .ffc-admin-modal-body').text()).toContain('Error');
 	});
@@ -375,8 +388,7 @@ describe('audience-admin — booking actions', () => {
 	it('clicking the close button removes the modal', async () => {
 		mountBookings();
 		await reload();
-		vi.spyOn(window.$, 'ajax').mockImplementation((opts) => {
-			opts.success({
+		vi.spyOn(window.$, 'post').mockImplementation(() => postChain({ done: {
 				success: true,
 				data: {
 					booking_date: '2026-06-01', is_all_day: 1,
@@ -385,13 +397,13 @@ describe('audience-admin — booking actions', () => {
 					booking_type: 'audience', status: 'active',
 					created_by: '', audiences: [], users: [],
 				},
-			});
-			return {};
-		});
+			} }));
 		window.$('.ffc-view-booking').trigger('click');
+		await flush();
 		expect(window.$('#ffc-booking-modal').length).toBe(1);
 
 		window.$('.ffc-admin-modal-close').trigger('click');
+		await flush();
 
 		expect(window.$('#ffc-booking-modal').length).toBe(0);
 	});
@@ -399,8 +411,7 @@ describe('audience-admin — booking actions', () => {
 	it('Escape key removes the modal', async () => {
 		mountBookings();
 		await reload();
-		vi.spyOn(window.$, 'ajax').mockImplementation((opts) => {
-			opts.success({
+		vi.spyOn(window.$, 'post').mockImplementation(() => postChain({ done: {
 				success: true,
 				data: {
 					booking_date: '2026-06-01', is_all_day: 1,
@@ -409,13 +420,13 @@ describe('audience-admin — booking actions', () => {
 					booking_type: 'audience', status: 'active',
 					created_by: '', audiences: [], users: [],
 				},
-			});
-			return {};
-		});
+			} }));
 		window.$('.ffc-view-booking').trigger('click');
+		await flush();
 
 		const ev = window.$.Event('keydown', { key: 'Escape' });
 		window.$(document).trigger(ev);
+		await flush();
 
 		expect(window.$('#ffc-booking-modal').length).toBe(0);
 	});
@@ -424,11 +435,12 @@ describe('audience-admin — booking actions', () => {
 		mountBookings();
 		await reload();
 		vi.spyOn(window, 'confirm').mockReturnValue(false);
-		const ajaxSpy = vi.spyOn(window.$, 'ajax').mockImplementation(() => ({}));
+		const postSpy = vi.spyOn(window.$, 'post').mockImplementation(() => postChain({}));
 
 		window.$('.ffc-cancel-booking').trigger('click');
+		await flush();
 
-		expect(ajaxSpy).not.toHaveBeenCalled();
+		expect(postSpy).not.toHaveBeenCalled();
 	});
 
 	it('cancel: bails when the user dismisses the reason prompt', async () => {
@@ -436,11 +448,12 @@ describe('audience-admin — booking actions', () => {
 		await reload();
 		vi.spyOn(window, 'confirm').mockReturnValue(true);
 		vi.spyOn(window, 'prompt').mockReturnValue(null);
-		const ajaxSpy = vi.spyOn(window.$, 'ajax').mockImplementation(() => ({}));
+		const postSpy = vi.spyOn(window.$, 'post').mockImplementation(() => postChain({}));
 
 		window.$('.ffc-cancel-booking').trigger('click');
+		await flush();
 
-		expect(ajaxSpy).not.toHaveBeenCalled();
+		expect(postSpy).not.toHaveBeenCalled();
 	});
 
 	it('cancel: on success, replaces status pill + removes the cancel link', async () => {
@@ -448,12 +461,10 @@ describe('audience-admin — booking actions', () => {
 		await reload();
 		vi.spyOn(window, 'confirm').mockReturnValue(true);
 		vi.spyOn(window, 'prompt').mockReturnValue('Weather');
-		vi.spyOn(window.$, 'ajax').mockImplementation((opts) => {
-			opts.success({ success: true });
-			return {};
-		});
+		vi.spyOn(window.$, 'post').mockImplementation(() => postChain({ done: { success: true } }));
 
 		window.$('.ffc-cancel-booking').trigger('click');
+		await flush();
 
 		expect(window.$('.status-active').length).toBe(0);
 		expect(window.$('.status-cancelled').text()).toBe('Cancelled');
@@ -465,13 +476,11 @@ describe('audience-admin — booking actions', () => {
 		await reload();
 		vi.spyOn(window, 'confirm').mockReturnValue(true);
 		vi.spyOn(window, 'prompt').mockReturnValue('R');
-		vi.spyOn(window.$, 'ajax').mockImplementation((opts) => {
-			opts.success({ success: false, data: { message: 'Already cancelled' } });
-			return {};
-		});
+		vi.spyOn(window.$, 'post').mockImplementation(() => postChain({ done: { success: false, data: { message: 'Already cancelled' } } }));
 		const alertSpy = vi.spyOn(window, 'alert').mockImplementation(() => {});
 
 		window.$('.ffc-cancel-booking').trigger('click');
+		await flush();
 
 		expect(alertSpy).toHaveBeenCalledWith('Already cancelled');
 		// Cancel link still present + visually restored.
@@ -483,13 +492,11 @@ describe('audience-admin — booking actions', () => {
 		await reload();
 		vi.spyOn(window, 'confirm').mockReturnValue(true);
 		vi.spyOn(window, 'prompt').mockReturnValue('R');
-		vi.spyOn(window.$, 'ajax').mockImplementation((opts) => {
-			opts.error();
-			return {};
-		});
+		vi.spyOn(window.$, 'post').mockImplementation(() => postChain({ fail: true }));
 		const alertSpy = vi.spyOn(window, 'alert').mockImplementation(() => {});
 
 		window.$('.ffc-cancel-booking').trigger('click');
+		await flush();
 
 		expect(alertSpy).toHaveBeenCalledWith('Error');
 	});
@@ -518,13 +525,11 @@ describe('audience-admin — calendar permissions', () => {
 		mountPermissions();
 		await reload();
 		vi.useFakeTimers();
-		vi.spyOn(window.$, 'get').mockImplementation((url, data, cb) => {
-			cb({ success: true, data: [{ id: 5, name: 'Alice', email: 'a@x' }] });
-			return {};
-		});
+		vi.spyOn(window.$, 'post').mockImplementation(() => postChain({ done: { success: true, data: [{ id: 5, name: 'Alice', email: 'a@x' }] } }));
 
 		window.$('#ffc-user-search').val('alice').trigger('input');
 		vi.advanceTimersByTime(300);
+		await flush();
 
 		// jsdom has no layout — :visible always false. Assert directly
 		// on the inline display style (jQuery `.show()` sets it).
@@ -536,13 +541,11 @@ describe('audience-admin — calendar permissions', () => {
 		mountPermissions();
 		await reload();
 		vi.useFakeTimers();
-		vi.spyOn(window.$, 'get').mockImplementation((url, data, cb) => {
-			cb({ success: true, data: [] });
-			return {};
-		});
+		vi.spyOn(window.$, 'post').mockImplementation(() => postChain({ done: { success: true, data: [] } }));
 
 		window.$('#ffc-user-search').val('xx').trigger('input');
 		vi.advanceTimersByTime(300);
+		await flush();
 
 		expect(window.$('#ffc-user-search-results').text()).toContain('No users');
 	});
@@ -555,6 +558,7 @@ describe('audience-admin — calendar permissions', () => {
 		);
 
 		window.$('#ffc-user-search-results .ffc-user-result').trigger('click');
+		await flush();
 
 		expect(window.$('#ffc-selected-user-id').val()).toBe('9');
 		expect(window.$('#ffc-add-user-btn').prop('disabled')).toBe(false);
@@ -570,13 +574,12 @@ describe('audience-admin — calendar permissions', () => {
 			'<div class="ffc-user-result" data-id="9" data-name="Alice"></div>',
 		);
 		window.$('.ffc-user-result').trigger('click');
+		await flush();
 
-		vi.spyOn(window.$, 'post').mockImplementation((url, data, cb) => {
-			cb({ success: true, data: { html: '<tr data-user-id="9"><td>Alice</td></tr>' } });
-			return {};
-		});
+		vi.spyOn(window.$, 'post').mockImplementation(() => postChain({ done: { success: true, data: { html: '<tr data-user-id="9"><td>Alice</td></tr>' } } }));
 
 		window.$('#ffc-add-user-btn').trigger('click');
+		await flush();
 
 		expect(window.$('#ffc-permissions-table tbody tr[data-user-id="9"]').length).toBe(1);
 		expect(window.$('#ffc-no-permissions-row').length).toBe(0);
@@ -592,6 +595,7 @@ describe('audience-admin — calendar permissions', () => {
 		const postSpy = vi.spyOn(window.$, 'post').mockImplementation(() => ({}));
 
 		window.$('.ffc-perm-toggle').trigger('change');
+		await flush();
 
 		expect(postSpy).toHaveBeenCalled();
 		const payload = postSpy.mock.calls[0][1];
@@ -614,6 +618,7 @@ describe('audience-admin — calendar permissions', () => {
 		const postSpy = vi.spyOn(window.$, 'post').mockImplementation(() => ({}));
 
 		window.$('.ffc-remove-user-btn').trigger('click');
+		await flush();
 
 		expect(postSpy).not.toHaveBeenCalled();
 	});
@@ -626,12 +631,10 @@ describe('audience-admin — calendar permissions', () => {
 			'<tr data-user-id="9"><td><button class="ffc-remove-user-btn">x</button></td></tr>',
 		);
 		vi.spyOn(window, 'confirm').mockReturnValue(true);
-		vi.spyOn(window.$, 'post').mockImplementation((url, data, cb) => {
-			cb({ success: true });
-			return {};
-		});
+		vi.spyOn(window.$, 'post').mockImplementation(() => postChain({ done: { success: true } }));
 
 		window.$('.ffc-remove-user-btn').trigger('click');
+		await flush();
 
 		expect(window.$('#ffc-permissions-table tbody tr[data-user-id="9"]').length).toBe(0);
 		expect(window.$('#ffc-no-permissions-row').length).toBe(1);
