@@ -770,8 +770,17 @@ class PdfGenerator {
 		);
 
 		// Generate HTML using the existing generate_html() method.
+		//
+		// `appointment.created_at` is a DATETIME string (housekeeping
+		// column kept as DATETIME per the Category A exception in
+		// CLAUDE.md). `generate_html()` expects a unix timestamp
+		// (`?int`) for the PDF date stamp — convert here. UTC because
+		// `created_at` is auto-set by MySQL `DEFAULT CURRENT_TIMESTAMP`
+		// which writes in the DB's timezone (UTC by convention).
 		$calendar_title = $calendar['title'] ?? __( 'Appointment Receipt', 'ffcertificate' );
-		$html           = $this->generate_html( $data, $calendar_title, $form_config, $appointment['created_at'] ?? null );
+		$created_at_str = isset( $appointment['created_at'] ) ? (string) $appointment['created_at'] : '';
+		$created_at_ts  = '' !== $created_at_str ? strtotime( $created_at_str . ' UTC' ) : false;
+		$html           = $this->generate_html( $data, $calendar_title, $form_config, false !== $created_at_ts ? $created_at_ts : null );
 
 		// Generate filename.
 		$validation_code = $appointment['validation_code'] ?? '';
