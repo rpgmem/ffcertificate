@@ -18,6 +18,8 @@ declare(strict_types=1);
 
 namespace FreeFormCertificate\Frontend;
 
+use FreeFormCertificate\Core\Utils;
+
 use FreeFormCertificate\Submissions\SubmissionHandler;
 
 if ( ! defined( 'ABSPATH' ) ) {
@@ -68,7 +70,7 @@ class FormProcessor {
 		}
 
 		// Verify nonce.
-		if ( ! isset( $_POST['nonce'] ) || ! wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST['nonce'] ) ), 'ffc_frontend_nonce' ) ) {
+		if ( ! wp_verify_nonce( Utils::get_post_string( 'nonce' ), 'ffc_frontend_nonce' ) ) {
 			wp_send_json_error( array( 'message' => __( 'Security check failed. Please refresh the page.', 'ffcertificate' ) ) );
 		}
 
@@ -76,13 +78,13 @@ class FormProcessor {
 
 		// ===== DEBUG CAPTCHA =====.
 		\FreeFormCertificate\Core\Debug::log_form( '===== CAPTCHA DEBUG =====' );
-		\FreeFormCertificate\Core\Debug::log_form( 'Answer received', isset( $_POST['ffc_captcha_ans'] ) ? sanitize_text_field( wp_unslash( $_POST['ffc_captcha_ans'] ) ) : 'NOT SET' );
-		\FreeFormCertificate\Core\Debug::log_form( 'Hash received', isset( $_POST['ffc_captcha_hash'] ) ? sanitize_text_field( wp_unslash( $_POST['ffc_captcha_hash'] ) ) : 'NOT SET' );
+		\FreeFormCertificate\Core\Debug::log_form( 'Answer received', Utils::get_post_string( 'ffc_captcha_ans', 'NOT SET' ) );
+		\FreeFormCertificate\Core\Debug::log_form( 'Hash received', Utils::get_post_string( 'ffc_captcha_hash', 'NOT SET' ) );
 
         // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.MissingUnslash, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- isset() check only; values sanitized inside block.
 		if ( isset( $_POST['ffc_captcha_ans'] ) && isset( $_POST['ffc_captcha_hash'] ) ) {
-			$test_answer    = trim( sanitize_text_field( wp_unslash( $_POST['ffc_captcha_ans'] ) ) );
-			$received_hash  = sanitize_text_field( wp_unslash( $_POST['ffc_captcha_hash'] ) );
+			$test_answer    = trim( Utils::get_post_string( 'ffc_captcha_ans' ) );
+			$received_hash  = Utils::get_post_string( 'ffc_captcha_hash' );
 			$generated_hash = wp_hash( $test_answer . 'ffc_math_salt' );
 
 			\FreeFormCertificate\Core\Debug::log_form( 'Trimmed answer', $test_answer );
@@ -186,7 +188,7 @@ class FormProcessor {
 			wp_send_json_error( array( 'message' => __( 'Email address is required.', 'ffcertificate' ) ) );
 		}
 		// Validate LGPD consent (mandatory).
-		if ( empty( $_POST['ffc_lgpd_consent'] ) || sanitize_text_field( wp_unslash( $_POST['ffc_lgpd_consent'] ) ) !== '1' ) {
+		if ( Utils::get_post_string( 'ffc_lgpd_consent' ) !== '1' ) {
 			wp_send_json_error(
 				array(
 					'message' => __( 'You must agree to the Privacy Policy to continue.', 'ffcertificate' ),
@@ -198,8 +200,8 @@ class FormProcessor {
 		$submission_data['ffc_lgpd_consent'] = '1';
 
 		// Capture restriction fields (password/ticket) from POST.
-		$val_password = isset( $_POST['ffc_password'] ) ? trim( sanitize_text_field( wp_unslash( $_POST['ffc_password'] ) ) ) : '';
-		$val_ticket   = isset( $_POST['ffc_ticket'] ) ? strtoupper( trim( sanitize_text_field( wp_unslash( $_POST['ffc_ticket'] ) ) ) ) : '';
+		$val_password = trim( Utils::get_post_string( 'ffc_password' ) );
+		$val_ticket   = strtoupper( trim( Utils::get_post_string( 'ffc_ticket' ) ) );
 
 		$val_cpf = isset( $submission_data['cpf_rf'] ) ? trim( $submission_data['cpf_rf'] ) : '';
 
