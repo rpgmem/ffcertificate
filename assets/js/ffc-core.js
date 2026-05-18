@@ -209,8 +209,14 @@
                 });
             }
             var url = options.ajaxUrl || this.config.ajaxUrl || '/wp-admin/admin-ajax.php';
+            // jQuery.post doesn't accept a timeout. When callers want one,
+            // fall through to jQuery.ajax({ url, type:'POST', data, timeout })
+            // which returns the same jqXHR-with-.done/.fail interface.
             return new Promise(function(resolve, reject) {
-                jQuery.post(url, payload)
+                var jqXHR = options.timeout
+                    ? jQuery.ajax({ url: url, type: 'POST', data: payload, timeout: options.timeout })
+                    : jQuery.post(url, payload);
+                jqXHR
                     .done(function(res) {
                         if (!res || !res.success) {
                             // Server may send `data` as either an object
