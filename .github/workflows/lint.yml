@@ -46,6 +46,14 @@ jobs:
       # coverage to 85.53%. Bumping 77 → 82 locks the gain in with a
       # ~3.5pp buffer. Bump again whenever a PR genuinely improves the
       # number.
+      #
+      # Held at 82 through the §7 ratchet (#310). #314 added smoke +
+      # targeted Vitest coverage for the 6 previously-0% files (calendar
+      # admin/frontend, admin-code-editor, admin-pdf, pdf-generator,
+      # user-dashboard-cal-export) — but smoke tier only, and overall
+      # measured 85.16% locally (below the #200 high-water-mark of
+      # 85.53%). No headroom to bump on JS; wait for §7.4b/c follow-ups
+      # or a dedicated JS-deep PR before ratcheting again.
       JS_COVERAGE_FLOOR_LINES: '82'
     steps:
       - uses: actions/checkout@v6
