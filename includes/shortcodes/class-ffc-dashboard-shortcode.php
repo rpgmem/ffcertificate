@@ -135,7 +135,7 @@ class DashboardShortcode {
 
 		// Get current tab - default to first available tab.
 		$default_tab = $can_view_certificates ? 'certificates' : ( $can_view_appointments ? 'appointments' : ( $can_view_audience_bookings ? 'audience' : ( $can_view_reregistrations ? 'reregistrations' : ( $can_view_recruitment ? 'recruitment' : 'profile' ) ) ) );
-		$current_tab = isset( $_GET['tab'] ) ? sanitize_text_field( wp_unslash( $_GET['tab'] ) ) : $default_tab; // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Tab parameter for display only.
+		$current_tab = \FreeFormCertificate\Core\Utils::get_get_string( 'tab', $default_tab );
 
 		// Start output buffering.
 		ob_start();
@@ -332,8 +332,7 @@ class DashboardShortcode {
 	 * @return string HTML output
 	 */
 	private static function render_redirect_message(): string {
-        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Display-only parameter for redirect message.
-		if ( ! isset( $_GET['ffc_redirect'] ) || sanitize_text_field( wp_unslash( $_GET['ffc_redirect'] ) ) !== 'access_denied' ) {
+		if ( \FreeFormCertificate\Core\Utils::get_get_string( 'ffc_redirect' ) !== 'access_denied' ) {
 			return '';
 		}
 

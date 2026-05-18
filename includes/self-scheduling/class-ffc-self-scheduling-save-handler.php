@@ -46,7 +46,7 @@ class SelfSchedulingSaveHandler {
 			return;
 		}
 
-		if ( ! isset( $_POST['ffc_self_scheduling_config_nonce'] ) || ! wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST['ffc_self_scheduling_config_nonce'] ) ), 'ffc_self_scheduling_config_nonce' ) ) {
+		if ( ! wp_verify_nonce( \FreeFormCertificate\Core\Utils::get_post_string( 'ffc_self_scheduling_config_nonce' ), 'ffc_self_scheduling_config_nonce' ) ) {
 			return;
 		}
 

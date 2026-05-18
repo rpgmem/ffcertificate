@@ -277,7 +277,7 @@ if ( ! class_exists( 'FFC_Appointments_List_Table' ) ) :
 			// Get filter parameters.
 			// phpcs:disable WordPress.Security.NonceVerification.Recommended -- Standard WP_List_Table filter parameters.
 			$calendar_id = isset( $_GET['calendar_id'] ) ? absint( wp_unslash( $_GET['calendar_id'] ) ) : 0;
-			$status      = isset( $_GET['status'] ) ? sanitize_text_field( wp_unslash( $_GET['status'] ) ) : '';
+			$status      = \FreeFormCertificate\Core\Utils::get_get_string( 'status' );
 			// phpcs:enable WordPress.Security.NonceVerification.Recommended
 
 			// Build conditions.
@@ -322,7 +322,7 @@ if ( ! class_exists( 'FFC_Appointments_List_Table' ) ) :
 
 			// phpcs:disable WordPress.Security.NonceVerification.Recommended -- Display filter parameters for dropdown selection.
 			$calendar_id = isset( $_GET['calendar_id'] ) ? absint( wp_unslash( $_GET['calendar_id'] ) ) : 0;
-			$status      = isset( $_GET['status'] ) ? sanitize_text_field( wp_unslash( $_GET['status'] ) ) : '';
+			$status      = \FreeFormCertificate\Core\Utils::get_get_string( 'status' );
 			// phpcs:enable WordPress.Security.NonceVerification.Recommended
 
 			// Get all calendars for filter.
@@ -365,7 +365,7 @@ $ffcertificate_appointments_url = add_query_arg( array( 'page' => 'ffc-appointme
 // - appointment=X alone → view.
 // - appointment=X + ffc_action=confirm|cancel → mutation.
 $ffc_self_scheduling_appointment_id = isset( $_GET['appointment'] ) ? absint( wp_unslash( $_GET['appointment'] ) ) : 0;
-$ffcertificate_action               = isset( $_GET['ffc_action'] ) ? sanitize_text_field( wp_unslash( $_GET['ffc_action'] ) ) : '';
+$ffcertificate_action               = \FreeFormCertificate\Core\Utils::get_get_string( 'ffc_action' );
 
 // phpcs:enable WordPress.Security.NonceVerification.Recommended
 

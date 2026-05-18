@@ -72,8 +72,7 @@ class UrlShortenerAdminPage {
 	 * @param string $hook_suffix Admin page hook suffix.
 	 */
 	public function enqueue_assets( string $hook_suffix ): void {
-        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Routing parameter for conditional asset loading.
-		$page = sanitize_text_field( wp_unslash( $_GET['page'] ?? '' ) );
+		$page = \FreeFormCertificate\Core\Utils::get_get_string( 'page' );
 		if ( 'ffc-short-urls' !== $page ) {
 			return;
 		}
@@ -124,8 +123,7 @@ class UrlShortenerAdminPage {
 	 * Handle non-AJAX admin actions (bulk delete, toggle).
 	 */
 	public function handle_actions(): void {
-        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Routing parameter; nonce verified below via wp_verify_nonce.
-		if ( ! isset( $_GET['page'] ) || sanitize_text_field( wp_unslash( $_GET['page'] ) ) !== 'ffc-short-urls' ) {
+		if ( \FreeFormCertificate\Core\Utils::get_get_string( 'page' ) !== 'ffc-short-urls' ) {
 			return;
 		}
 
@@ -135,7 +133,7 @@ class UrlShortenerAdminPage {
 		}
 
 		$action = sanitize_key( wp_unslash( $_GET['ffc_action'] ) );
-		$nonce  = isset( $_GET['_wpnonce'] ) ? sanitize_text_field( wp_unslash( $_GET['_wpnonce'] ) ) : '';
+		$nonce  = \FreeFormCertificate\Core\Utils::get_get_string( '_wpnonce' );
 
 		if ( 'trash' === $action && isset( $_GET['id'] ) ) {
 			if ( ! wp_verify_nonce( $nonce, 'ffc_short_url_trash_' . absint( $_GET['id'] ) ) ) {
@@ -200,8 +198,7 @@ class UrlShortenerAdminPage {
 
 		// phpcs:ignore WordPress.Security.NonceVerification.Missing -- Nonce verified in $this->verify_ajax_nonce() above.
 		$url = esc_url_raw( wp_unslash( $_POST['target_url'] ?? '' ) );
-		// phpcs:ignore WordPress.Security.NonceVerification.Missing -- Nonce verified in $this->verify_ajax_nonce() above.
-		$title = sanitize_text_field( wp_unslash( $_POST['title'] ?? '' ) );
+		$title = \FreeFormCertificate\Core\Utils::get_post_string( 'title' );
 
 		if ( empty( $url ) ) {
 			wp_send_json_error( array( 'message' => __( 'URL is required.', 'ffcertificate' ) ) );
@@ -312,8 +309,7 @@ class UrlShortenerAdminPage {
 	public function render_page(): void {
         // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Display-only pagination parameter.
 		$page = max( 1, (int) ( $_GET['paged'] ?? 1 ) );
-        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Display-only search parameter.
-		$search = sanitize_text_field( wp_unslash( $_GET['s'] ?? '' ) );
+		$search = \FreeFormCertificate\Core\Utils::get_get_string( 's' );
         // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Display-only sort parameter.
 		$orderby = sanitize_key( $_GET['orderby'] ?? 'created_at' );
         // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Display-only sort direction parameter.

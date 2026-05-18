@@ -84,9 +84,7 @@ class TabUserAccess extends SettingsTab {
 	 * Save settings (called by parent class)
 	 */
 	public function save_settings(): void {
-        // phpcs:disable WordPress.Security.NonceVerification.Missing -- Nonce verified immediately below via wp_verify_nonce.
-		if ( ! isset( $_POST['ffc_user_access_nonce'] ) || ! wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST['ffc_user_access_nonce'] ) ), 'ffc_user_access_settings' ) ) {
-            // phpcs:enable WordPress.Security.NonceVerification.Missing
+		if ( ! wp_verify_nonce( \FreeFormCertificate\Core\Utils::get_post_string( 'ffc_user_access_nonce' ), 'ffc_user_access_settings' ) ) {
 			return;
 		}
 

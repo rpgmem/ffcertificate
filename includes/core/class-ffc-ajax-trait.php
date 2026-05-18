@@ -43,7 +43,7 @@ trait AjaxTrait {
 			wp_send_json_error( array( 'message' => __( 'Security check failed. Please reload the page.', 'ffcertificate' ) ) );
 		}
 
-		$nonce_value = sanitize_text_field( wp_unslash( $_POST[ $field ] ) );
+		$nonce_value = Utils::get_post_string( $field );
 
 		if ( ! wp_verify_nonce( $nonce_value, $action ) ) {
 			wp_send_json_error( array( 'message' => __( 'Security check failed. Please reload the page.', 'ffcertificate' ) ) );
@@ -111,8 +111,7 @@ trait AjaxTrait {
 	 * @return string Sanitized value.
 	 */
 	protected function get_post_param( string $key, string $default = '' ): string {
-        // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Nonce verified by the calling method.
-		return isset( $_POST[ $key ] ) ? sanitize_text_field( wp_unslash( $_POST[ $key ] ) ) : $default;
+		return Utils::get_post_string( $key, $default );
 	}
 
 	/**
@@ -123,8 +122,7 @@ trait AjaxTrait {
 	 * @return int Sanitized integer value.
 	 */
 	protected function get_post_int( string $key, int $default = 0 ): int {
-        // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Nonce verified by the calling method.
-		return isset( $_POST[ $key ] ) ? absint( wp_unslash( $_POST[ $key ] ) ) : $default;
+		return Utils::get_post_int( $key, $default );
 	}
 
 	/**
