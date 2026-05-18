@@ -51,6 +51,12 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 
 ### Changed
 
+- POST/GET sanitize migration continues — audience area: 48 of 55
+  scattered `sanitize_text_field(wp_unslash($_POST[...]))` patterns
+  migrated to `Utils::get_post_string` / `get_get_string` across
+  8 files (`audience-admin-calendar`, `-audience`, `-settings`,
+  `-environment`, `-import`, `-bookings`, `-page`, `-loader`). The
+  7 remaining sites use complex `in_array` gates or `null` defaults.
 - 4 new POST/GET helpers in `Core\Utils` (`get_post_string`,
   `get_get_string`, `get_post_int`, `get_post_bool`) consolidate
   scattered `sanitize_text_field(wp_unslash($_POST[...]))` patterns.
