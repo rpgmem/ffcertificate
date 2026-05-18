@@ -87,19 +87,13 @@
         var url = ffcDashboard.restUrl + 'user/audience-group/join';
         if (ffcDashboard.viewAsUserId) url += '?viewAsUserId=' + ffcDashboard.viewAsUserId;
 
-        $.ajax({
-            url: url,
-            method: 'POST',
-            contentType: 'application/json',
-            data: JSON.stringify({ group_id: groupId }),
-            beforeSend: function (xhr) { xhr.setRequestHeader('X-WP-Nonce', ffcDashboard.nonce); },
-            success: function () { FFCDashboard.panels.profile.reload(); },
-            error: function (xhr) {
-                var msg = (xhr.responseJSON && xhr.responseJSON.message) || (ffcDashboard.strings.error || 'Error');
+        FFC.rest(url, { method: 'POST', data: { group_id: groupId }, nonce: ffcDashboard.nonce })
+            .then(function () { FFCDashboard.panels.profile.reload(); })
+            .catch(function (err) {
+                var msg = (err.xhr && err.xhr.responseJSON && err.xhr.responseJSON.message) || (ffcDashboard.strings.error || 'Error');
                 alert(msg);
                 $btn.prop('disabled', false).text(ffcDashboard.strings.joinGroup || 'Join');
-            }
-        });
+            });
     }
 
     function leaveGroup(groupId) {
@@ -111,19 +105,13 @@
         var url = ffcDashboard.restUrl + 'user/audience-group/leave';
         if (ffcDashboard.viewAsUserId) url += '?viewAsUserId=' + ffcDashboard.viewAsUserId;
 
-        $.ajax({
-            url: url,
-            method: 'POST',
-            contentType: 'application/json',
-            data: JSON.stringify({ group_id: groupId }),
-            beforeSend: function (xhr) { xhr.setRequestHeader('X-WP-Nonce', ffcDashboard.nonce); },
-            success: function () { FFCDashboard.panels.profile.reload(); },
-            error: function (xhr) {
-                var msg = (xhr.responseJSON && xhr.responseJSON.message) || (ffcDashboard.strings.error || 'Error');
+        FFC.rest(url, { method: 'POST', data: { group_id: groupId }, nonce: ffcDashboard.nonce })
+            .then(function () { FFCDashboard.panels.profile.reload(); })
+            .catch(function (err) {
+                var msg = (err.xhr && err.xhr.responseJSON && err.xhr.responseJSON.message) || (ffcDashboard.strings.error || 'Error');
                 alert(msg);
                 $btn.prop('disabled', false).text(ffcDashboard.strings.leaveGroup || 'Leave');
-            }
-        });
+            });
     }
 
     function leaveAllGroups() {
@@ -142,19 +130,13 @@
         var url = ffcDashboard.restUrl + 'user/audience-group/leave-all';
         if (ffcDashboard.viewAsUserId) url += '?viewAsUserId=' + ffcDashboard.viewAsUserId;
 
-        $.ajax({
-            url: url,
-            method: 'POST',
-            contentType: 'application/json',
-            data: JSON.stringify({}),
-            beforeSend: function (xhr) { xhr.setRequestHeader('X-WP-Nonce', ffcDashboard.nonce); },
-            success: function () { FFCDashboard.panels.profile.reload(); },
-            error: function (xhr) {
-                var m = (xhr.responseJSON && xhr.responseJSON.message) || (ffcDashboard.strings.error || 'Error');
+        FFC.rest(url, { method: 'POST', data: {}, nonce: ffcDashboard.nonce })
+            .then(function () { FFCDashboard.panels.profile.reload(); })
+            .catch(function (err) {
+                var m = (err.xhr && err.xhr.responseJSON && err.xhr.responseJSON.message) || (ffcDashboard.strings.error || 'Error');
                 alert(m);
                 $btn.prop('disabled', false).text(ffcDashboard.strings.leaveAllGroups || 'Leave all groups');
-            }
-        });
+            });
     }
 
     FFCDashboard.audienceJoin = {
@@ -165,13 +147,9 @@
             var url = ffcDashboard.restUrl + 'user/joinable-groups';
             if (ffcDashboard.viewAsUserId) url += '?viewAsUserId=' + ffcDashboard.viewAsUserId;
 
-            $.ajax({
-                url: url,
-                method: 'GET',
-                beforeSend: function (xhr) { xhr.setRequestHeader('X-WP-Nonce', ffcDashboard.nonce); },
-                success: function (data) { renderJoinableGroups(data); },
-                error: function () { $section.empty(); }
-            });
+            FFC.rest(url, { nonce: ffcDashboard.nonce })
+                .then(function (data) { renderJoinableGroups(data); })
+                .catch(function () { $section.empty(); });
         }
     };
 

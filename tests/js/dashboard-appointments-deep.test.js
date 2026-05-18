@@ -8,7 +8,7 @@
 //     pagination, calendar-export button, viewReceipt + cancel buttons
 //     within the upcoming section).
 import { describe, it, expect, beforeAll, beforeEach, afterEach, vi } from 'vitest';
-import { installDashboardFixtures, loadDashboardCore, loadPanel } from './dashboard-fixtures.js';
+import { installDashboardFixtures, loadDashboardCore, loadPanel, flushPromises } from './dashboard-fixtures.js';
 
 beforeAll(() => {
 	installDashboardFixtures();
@@ -77,11 +77,12 @@ const panel = () => window.FFCDashboard.panels.appointments;
 // ----------------------------------------------------------------------
 
 describe('appointments.load', () => {
-	it('bails when #tab-appointments is missing', () => {
+	it('bails when #tab-appointments is missing', async () => {
 		document.getElementById('tab-appointments').remove();
 		const ajaxSpy = vi.spyOn(window.$, 'ajax').mockImplementation(() => ({}));
 
 		panel().load();
+		await flushPromises();
 
 		expect(ajaxSpy).not.toHaveBeenCalled();
 		// Restore container for subsequent tests.
@@ -91,32 +92,35 @@ describe('appointments.load', () => {
 		);
 	});
 
-	it('shows the noPermission notice when canViewAppointments is false', () => {
+	it('shows the noPermission notice when canViewAppointments is false', async () => {
 		window.ffcDashboard.canViewAppointments = false;
 		const ajaxSpy = vi.spyOn(window.$, 'ajax').mockImplementation(() => ({}));
 
 		panel().load();
+		await flushPromises();
 
 		expect(ajaxSpy).not.toHaveBeenCalled();
 		expect(document.getElementById('tab-appointments').innerHTML).toContain('No permission');
 	});
 
-	it('short-circuits when state is already populated', () => {
+	it('short-circuits when state is already populated', async () => {
 		panel().state = [];
 		const ajaxSpy = vi.spyOn(window.$, 'ajax').mockImplementation(() => ({}));
 
 		panel().load();
+		await flushPromises();
 
 		expect(ajaxSpy).not.toHaveBeenCalled();
 	});
 
-	it('GETs /user/appointments and stores the response on state', () => {
+	it('GETs /user/appointments and stores the response on state', async () => {
 		const ajaxSpy = vi.spyOn(window.$, 'ajax').mockImplementation((opts) => {
 			opts.success({ appointments: [makeAppt({ calendar_title: 'A' })] });
 			return {};
 		});
 
 		panel().load();
+		await flushPromises();
 
 		const opts = ajaxSpy.mock.calls[0][0];
 		expect(opts.url).toBe('https://x.test/wp-json/ffc/v1/user/appointments');
@@ -125,7 +129,7 @@ describe('appointments.load', () => {
 		expect(document.getElementById('tab-appointments').textContent).toContain('A');
 	});
 
-	it('sets X-WP-Nonce on the request', () => {
+	it('sets X-WP-Nonce on the request', async () => {
 		vi.spyOn(window.$, 'ajax').mockImplementation((opts) => {
 			const xhr = { setRequestHeader: vi.fn() };
 			opts.beforeSend(xhr);
@@ -134,37 +138,41 @@ describe('appointments.load', () => {
 		});
 
 		panel().load();
+		await flushPromises();
 	});
 
-	it('appends viewAsUserId query string when impersonating', () => {
+	it('appends viewAsUserId query string when impersonating', async () => {
 		window.ffcDashboard.viewAsUserId = 99;
 		const ajaxSpy = vi.spyOn(window.$, 'ajax').mockImplementation(() => ({}));
 
 		panel().load();
+		await flushPromises();
 
 		expect(ajaxSpy.mock.calls[0][0].url).toBe('https://x.test/wp-json/ffc/v1/user/appointments?viewAsUserId=99');
 	});
 
-	it('defaults state to [] when response.appointments is missing', () => {
+	it('defaults state to [] when response.appointments is missing', async () => {
 		vi.spyOn(window.$, 'ajax').mockImplementation((opts) => {
 			opts.success({});
 			return {};
 		});
 
 		panel().load();
+		await flushPromises();
 
 		expect(panel().state).toEqual([]);
 		// Empty state markup renders.
 		expect(document.querySelector('#tab-appointments .ffc-empty-state')).not.toBeNull();
 	});
 
-	it('renders the error notice when the AJAX call fails', () => {
+	it('renders the error notice when the AJAX call fails', async () => {
 		vi.spyOn(window.$, 'ajax').mockImplementation((opts) => {
 			opts.error();
 			return {};
 		});
 
 		panel().load();
+		await flushPromises();
 
 		expect(document.getElementById('tab-appointments').innerHTML).toContain('Error');
 	});
@@ -180,57 +188,67 @@ describe('appointments.cancelAppointment', () => {
 			`<button class="ffc-cancel-appointment" data-id="${id}">Cancel</button>`;
 	}
 
-	it('bails when the user declines the confirm', () => {
+	// The migrated cancelAppointment goes through FFC.request which uses
+	// jQuery.post under the hood. These tests spy on $.post and drive
+	// the .done/.fail chain manually.
+	function postChain(opts) {
+		const chain = { done: () => chain, fail: () => chain };
+		if (opts.done) chain.done = (cb) => { cb(opts.done); return chain; };
+		if (opts.fail) chain.fail = (cb) => { cb(); return chain; };
+		return chain;
+	}
+
+	it('bails when the user declines the confirm', async () => {
 		mountCancelButton();
 		vi.spyOn(window, 'confirm').mockReturnValue(false);
-		const ajaxSpy = vi.spyOn(window.$, 'ajax').mockImplementation(() => ({}));
+		const postSpy = vi.spyOn(window.$, 'post').mockImplementation(() => postChain({}));
 
 		window.$('.ffc-cancel-appointment').trigger('click');
+		await flushPromises();
 
-		expect(ajaxSpy).not.toHaveBeenCalled();
+		expect(postSpy).not.toHaveBeenCalled();
 	});
 
-	it('POSTs ffc_cancel_appointment with the row id + nonce', () => {
+	it('POSTs ffc_cancel_appointment with the row id + nonce', async () => {
 		mountCancelButton(123);
 		vi.spyOn(window, 'confirm').mockReturnValue(true);
-		const ajaxSpy = vi.spyOn(window.$, 'ajax').mockImplementation(() => ({}));
+		const postSpy = vi.spyOn(window.$, 'post').mockImplementation(() => postChain({}));
 
 		window.$('.ffc-cancel-appointment').trigger('click');
+		await flushPromises();
 
-		const opts = ajaxSpy.mock.calls[0][0];
-		expect(opts.url).toBe('https://x.test/wp-admin/admin-ajax.php');
-		expect(opts.method).toBe('POST');
-		expect(opts.data).toEqual({
+		const [url, payload] = postSpy.mock.calls[0];
+		expect(url).toBe('https://x.test/wp-admin/admin-ajax.php');
+		expect(payload).toMatchObject({
 			action: 'ffc_cancel_appointment',
 			appointment_id: 123,
 			nonce: 'sched-nonce',
 		});
 	});
 
-	it('includes viewAsUserId in the POST body when impersonating', () => {
+	it('includes viewAsUserId in the POST body when impersonating', async () => {
 		mountCancelButton();
 		window.ffcDashboard.viewAsUserId = 42;
 		vi.spyOn(window, 'confirm').mockReturnValue(true);
-		const ajaxSpy = vi.spyOn(window.$, 'ajax').mockImplementation(() => ({}));
+		const postSpy = vi.spyOn(window.$, 'post').mockImplementation(() => postChain({}));
 
 		window.$('.ffc-cancel-appointment').trigger('click');
+		await flushPromises();
 
-		expect(ajaxSpy.mock.calls[0][0].data.viewAsUserId).toBe(42);
+		expect(postSpy.mock.calls[0][1].viewAsUserId).toBe(42);
 	});
 
-	it('on success: alerts, clears state, repaints loading, and reloads', () => {
+	it('on success: alerts, clears state, repaints loading, and reloads', async () => {
 		mountCancelButton();
 		vi.spyOn(window, 'confirm').mockReturnValue(true);
 		const alertSpy = vi.spyOn(window, 'alert').mockImplementation(() => {});
 		const loadSpy = vi.spyOn(panel(), 'load').mockImplementation(() => {});
-		vi.spyOn(window.$, 'ajax').mockImplementation((opts) => {
-			opts.success({ success: true });
-			return {};
-		});
+		vi.spyOn(window.$, 'post').mockImplementation(() => postChain({ done: { success: true } }));
 		// Pre-seed state so we can confirm it's nulled.
 		panel().state = [makeAppt()];
 
 		window.$('.ffc-cancel-appointment').trigger('click');
+		await flushPromises();
 
 		expect(alertSpy).toHaveBeenCalledWith('Cancelled OK');
 		expect(panel().state).toBeNull();
@@ -238,44 +256,42 @@ describe('appointments.cancelAppointment', () => {
 		expect(loadSpy).toHaveBeenCalled();
 	});
 
-	it('on response.success=false: alerts the server message', () => {
+	it('on response.success=false: alerts the server message', async () => {
 		mountCancelButton();
 		vi.spyOn(window, 'confirm').mockReturnValue(true);
 		const alertSpy = vi.spyOn(window, 'alert').mockImplementation(() => {});
-		vi.spyOn(window.$, 'ajax').mockImplementation((opts) => {
-			opts.success({ success: false, data: { message: 'Already cancelled' } });
-			return {};
-		});
+		vi.spyOn(window.$, 'post').mockImplementation(() => postChain({
+			done: { success: false, data: { message: 'Already cancelled' } },
+		}));
 
 		window.$('.ffc-cancel-appointment').trigger('click');
+		await flushPromises();
 
 		expect(alertSpy).toHaveBeenCalledWith('Already cancelled');
 	});
 
-	it('on response.success=false without data.message: falls back to localised error', () => {
+	it('on response.success=false without data.message: falls back to localised error', async () => {
 		mountCancelButton();
 		vi.spyOn(window, 'confirm').mockReturnValue(true);
 		const alertSpy = vi.spyOn(window, 'alert').mockImplementation(() => {});
-		vi.spyOn(window.$, 'ajax').mockImplementation((opts) => {
-			opts.success({ success: false, data: {} });
-			return {};
-		});
+		vi.spyOn(window.$, 'post').mockImplementation(() => postChain({
+			done: { success: false, data: {} },
+		}));
 
 		window.$('.ffc-cancel-appointment').trigger('click');
+		await flushPromises();
 
 		expect(alertSpy).toHaveBeenCalledWith('Cancel failed');
 	});
 
-	it('on network error: alerts the localised error', () => {
+	it('on network error: alerts the localised error', async () => {
 		mountCancelButton();
 		vi.spyOn(window, 'confirm').mockReturnValue(true);
 		const alertSpy = vi.spyOn(window, 'alert').mockImplementation(() => {});
-		vi.spyOn(window.$, 'ajax').mockImplementation((opts) => {
-			opts.error();
-			return {};
-		});
+		vi.spyOn(window.$, 'post').mockImplementation(() => postChain({ fail: true }));
 
 		window.$('.ffc-cancel-appointment').trigger('click');
+		await flushPromises();
 
 		expect(alertSpy).toHaveBeenCalledWith('Cancel failed');
 	});
@@ -286,7 +302,7 @@ describe('appointments.cancelAppointment', () => {
 // ----------------------------------------------------------------------
 
 describe('appointments.render — filter, pagination, extras', () => {
-	it('filters by date range (from/to) and search', () => {
+	it('filters by date range (from/to) and search', async () => {
 		// Two appointments — only one survives the filter window.
 		const items = [
 			makeAppt({ calendar_title: 'Match',  appointment_date_raw: '2030-06-15' }),
@@ -305,7 +321,7 @@ describe('appointments.render — filter, pagination, extras', () => {
 		expect(rows[0].textContent).toContain('Match');
 	});
 
-	it('paginates when there are more rows than the page size', () => {
+	it('paginates when there are more rows than the page size', async () => {
 		// getPageSize() only accepts 10/25/50 — set the lowest and build 11 rows.
 		window.localStorage.setItem('ffc_page_size', '10');
 		const items = [];
@@ -324,14 +340,14 @@ describe('appointments.render — filter, pagination, extras', () => {
 		expect(document.querySelector('#tab-appointments tbody tr').textContent).toContain('C11');
 	});
 
-	it('renders the cancel button when can_cancel is true', () => {
+	it('renders the cancel button when can_cancel is true', async () => {
 		panel().render([makeAppt({ can_cancel: true, id: 77 })], 1);
 		const btn = document.querySelector('#tab-appointments .ffc-cancel-appointment');
 		expect(btn).not.toBeNull();
 		expect(btn.getAttribute('data-id')).toBe('77');
 	});
 
-	it('renders the calendar-export button only for upcoming + confirmed rows', () => {
+	it('renders the calendar-export button only for upcoming + confirmed rows', async () => {
 		const items = [
 			makeAppt({ status: 'confirmed', id: 1 }),                                                // upcoming + confirmed → button
 			makeAppt({ status: 'pending',   id: 2 }),                                                // upcoming + non-confirmed → no button
@@ -344,7 +360,7 @@ describe('appointments.render — filter, pagination, extras', () => {
 		expect(calButtons.length).toBe(1);
 	});
 
-	it('keeps the filter input values after re-rendering with new data', () => {
+	it('keeps the filter input values after re-rendering with new data', async () => {
 		panel().render([makeAppt()], 1);
 		document.querySelector('.ffc-filter-search').value = 'remember-me';
 
@@ -353,7 +369,7 @@ describe('appointments.render — filter, pagination, extras', () => {
 		expect(document.querySelector('.ffc-filter-search').value).toBe('remember-me');
 	});
 
-	it('shows the empty state when the filter window removes every row', () => {
+	it('shows the empty state when the filter window removes every row', async () => {
 		const items = [makeAppt({ appointment_date_raw: '2030-06-15' })];
 		panel().render(items, 1);
 		document.querySelector('.ffc-filter-from').value = '2099-01-01';

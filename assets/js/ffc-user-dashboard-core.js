@@ -141,15 +141,11 @@
             var url = ffcDashboard.restUrl + 'user/summary';
             if (ffcDashboard.viewAsUserId) url += '?viewAsUserId=' + ffcDashboard.viewAsUserId;
 
-            $.ajax({
-                url: url,
-                method: 'GET',
-                beforeSend: function (xhr) { xhr.setRequestHeader('X-WP-Nonce', ffcDashboard.nonce); },
-                success: function (data) { FFCDashboard.renderSummary(data); },
-                error: function () {
+            FFC.rest(url, { nonce: ffcDashboard.nonce })
+                .then(function (data) { FFCDashboard.renderSummary(data); })
+                .catch(function () {
                     $summary.html('<div class="ffc-error">' + ffcDashboard.strings.error + '</div>');
-                }
-            });
+                });
         },
 
         renderSummary: function (data) {

@@ -15,26 +15,25 @@
     function cancelAppointment(appointmentId) {
         if (!confirm(ffcDashboard.strings.confirmCancel)) return;
 
-        var data = { action: 'ffc_cancel_appointment', appointment_id: appointmentId, nonce: ffcDashboard.schedulingNonce };
-        if (ffcDashboard.viewAsUserId) data.viewAsUserId = ffcDashboard.viewAsUserId;
+        var payload = { appointment_id: appointmentId };
+        if (ffcDashboard.viewAsUserId) payload.viewAsUserId = ffcDashboard.viewAsUserId;
 
-        $.ajax({
-            url: ffcDashboard.ajaxUrl,
-            method: 'POST',
-            data: data,
-            success: function (response) {
-                if (response.success) {
-                    alert(ffcDashboard.strings.cancelSuccess);
-                    var panel = FFCDashboard.panels.appointments;
-                    panel.state = null;
-                    $('#tab-appointments').html('<div class="ffc-loading">' + ffcDashboard.strings.loading + '</div>');
-                    panel.load();
-                } else {
-                    alert(response.data.message || ffcDashboard.strings.cancelError);
-                }
-            },
-            error: function () { alert(ffcDashboard.strings.cancelError); }
-        });
+        FFC.request('ffc_cancel_appointment', payload, { nonce: ffcDashboard.schedulingNonce })
+            .then(function () {
+                alert(ffcDashboard.strings.cancelSuccess);
+                var panel = FFCDashboard.panels.appointments;
+                panel.state = null;
+                $('#tab-appointments').html('<div class="ffc-loading">' + ffcDashboard.strings.loading + '</div>');
+                panel.load();
+            })
+            .catch(function (err) {
+                // Prefer the server-supplied message; fall back to the
+                // caller-specific cancelError string when the server didn't
+                // include one or when the request failed at the network
+                // layer (err.fromServer === false in both cases).
+                var msg = (err && err.fromServer) ? err.message : ffcDashboard.strings.cancelError;
+                alert(msg);
+            });
     }
 
     FFCDashboard.panels.appointments = {
@@ -64,18 +63,14 @@
             if (ffcDashboard.viewAsUserId) url += '?viewAsUserId=' + ffcDashboard.viewAsUserId;
 
             var self = this;
-            $.ajax({
-                url: url,
-                method: 'GET',
-                beforeSend: function (xhr) { xhr.setRequestHeader('X-WP-Nonce', ffcDashboard.nonce); },
-                success: function (response) {
+            FFC.rest(url, { nonce: ffcDashboard.nonce })
+                .then(function (response) {
                     self.state = response.appointments || [];
                     self.render(self.state, 1);
-                },
-                error: function () {
+                })
+                .catch(function () {
                     $container.html('<div class="ffc-error">' + ffcDashboard.strings.error + '</div>');
-                }
-            });
+                });
         },
 
         render: function (appointments, page) {

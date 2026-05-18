@@ -202,10 +202,18 @@
                 jQuery.post(url, payload)
                     .done(function(res) {
                         if (!res || !res.success) {
-                            var msg = (res && res.data && res.data.message)
+                            var serverMsg = res && res.data && res.data.message;
+                            var msg = serverMsg
                                 || (FFC.config.strings && FFC.config.strings.error)
                                 || 'Request failed';
-                            reject(new Error(msg));
+                            var err = new Error(msg);
+                            // Lets callers distinguish "server told us
+                            // what's wrong" from "library fell back to a
+                            // generic string" — important for sites that
+                            // want a caller-specific error label when no
+                            // server message was supplied.
+                            err.fromServer = !!serverMsg;
+                            reject(err);
                             return;
                         }
                         resolve(res.data);
@@ -213,7 +221,9 @@
                     .fail(function() {
                         var msg = (FFC.config.strings && FFC.config.strings.connectionError)
                             || 'Connection error';
-                        reject(new Error(msg));
+                        var err = new Error(msg);
+                        err.fromServer = false;
+                        reject(err);
                     });
             });
         },

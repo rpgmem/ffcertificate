@@ -2,7 +2,7 @@
 // panel-registry shell that tab-dispatches into the sibling
 // dashboard panel scripts.
 import { describe, it, expect, beforeAll, beforeEach, afterEach, vi } from 'vitest';
-import { installDashboardFixtures, loadDashboardCore } from './dashboard-fixtures.js';
+import { installDashboardFixtures, loadDashboardCore, flushPromises } from './dashboard-fixtures.js';
 
 // Core is loaded ONCE in beforeAll: its delegated handlers attach to
 // $(document), and re-loading per-test would stack handlers from prior
@@ -51,19 +51,19 @@ function installFakePanels() {
 // ----------------------------------------------------------------------
 
 describe('FFCDashboard.helpers', () => {
-	it('esc() escapes HTML entities through jQuery .text/.html', () => {
+	it('esc() escapes HTML entities through jQuery .text/.html', async () => {
 		expect(window.FFCDashboard.helpers.esc('<b>hi</b>')).toBe('&lt;b&gt;hi&lt;/b&gt;');
 		expect(window.FFCDashboard.helpers.esc('')).toBe('');
 		expect(window.FFCDashboard.helpers.esc(null)).toBe('');
 	});
 
-	it('pad2 zero-pads single digits', () => {
+	it('pad2 zero-pads single digits', async () => {
 		expect(window.FFCDashboard.helpers.pad2(0)).toBe('00');
 		expect(window.FFCDashboard.helpers.pad2(7)).toBe('07');
 		expect(window.FFCDashboard.helpers.pad2(15)).toBe('15');
 	});
 
-	it('getPageSize returns the stored value when in [10,25,50], else default 25', () => {
+	it('getPageSize returns the stored value when in [10,25,50], else default 25', async () => {
 		expect(window.FFCDashboard.helpers.getPageSize()).toBe(25);
 
 		window.localStorage.setItem('ffc_page_size', '10');
@@ -73,7 +73,7 @@ describe('FFCDashboard.helpers', () => {
 		expect(window.FFCDashboard.helpers.getPageSize()).toBe(25);
 	});
 
-	it('buildFilterBar emits a date-range + search-box + apply/clear cluster', () => {
+	it('buildFilterBar emits a date-range + search-box + apply/clear cluster', async () => {
 		const html = window.FFCDashboard.helpers.buildFilterBar('certificates');
 		expect(html).toContain('data-tab="certificates"');
 		expect(html).toContain('ffc-filter-from');
@@ -83,7 +83,7 @@ describe('FFCDashboard.helpers', () => {
 		expect(html).toContain('ffc-filter-clear');
 	});
 
-	it('buildPageSizeSelector marks the current page size as <strong>', () => {
+	it('buildPageSizeSelector marks the current page size as <strong>', async () => {
 		window.localStorage.setItem('ffc_page_size', '50');
 		const html = window.FFCDashboard.helpers.buildPageSizeSelector();
 		expect(html).toContain('<strong>50</strong>');
@@ -92,7 +92,7 @@ describe('FFCDashboard.helpers', () => {
 		expect(html).not.toContain('data-size="50"'); // current is rendered as <strong>, not <a>
 	});
 
-	it('buildPagination skips the page controls when total ≤ pageSize', () => {
+	it('buildPagination skips the page controls when total ≤ pageSize', async () => {
 		const html = window.FFCDashboard.helpers.buildPagination(5, 1, 'certs');
 		expect(html).not.toContain('Previous');
 		expect(html).not.toContain('Next');
@@ -100,14 +100,14 @@ describe('FFCDashboard.helpers', () => {
 		expect(html).toContain('ffc-page-size-select');
 	});
 
-	it('buildPagination emits Previous/Next + "Page X of Y" when paginating', () => {
+	it('buildPagination emits Previous/Next + "Page X of Y" when paginating', async () => {
 		const html = window.FFCDashboard.helpers.buildPagination(100, 2, 'certs');
 		expect(html).toContain('Prev');
 		expect(html).toContain('Next');
 		expect(html).toContain('Page 2 of 4');
 	});
 
-	it('buildPagination hides Previous on page 1 and Next on the last page', () => {
+	it('buildPagination hides Previous on page 1 and Next on the last page', async () => {
 		const first = window.FFCDashboard.helpers.buildPagination(100, 1, 'x');
 		expect(first).not.toContain('Prev');
 		expect(first).toContain('Next');
@@ -123,7 +123,7 @@ describe('FFCDashboard.helpers', () => {
 // ----------------------------------------------------------------------
 
 describe('FFCDashboard.init', () => {
-	it('does not init when the #ffc-user-dashboard root is absent', () => {
+	it('does not init when the #ffc-user-dashboard root is absent', async () => {
 		// Wipe the fixture.
 		document.body.innerHTML = '<div>no dashboard</div>';
 		const initSpy = vi.fn();
@@ -146,18 +146,20 @@ describe('FFCDashboard.loadSummary', () => {
 		document.body.innerHTML += '<div id="ffc-dashboard-summary"></div>';
 	}
 
-	it('bails when #ffc-dashboard-summary is absent (no AJAX)', () => {
+	it('bails when #ffc-dashboard-summary is absent (no AJAX)', async () => {
 		const ajaxSpy = vi.spyOn(window.$, 'ajax').mockImplementation(() => ({}));
 		// No #ffc-dashboard-summary in the DOM (default fixture).
 		window.FFCDashboard.loadSummary();
+		await flushPromises();
 		expect(ajaxSpy).not.toHaveBeenCalled();
 	});
 
-	it('issues a GET to /user/summary with the X-WP-Nonce header', () => {
+	it('issues a GET to /user/summary with the X-WP-Nonce header', async () => {
 		mountSummary();
 		const ajaxSpy = vi.spyOn(window.$, 'ajax').mockImplementation(() => ({}));
 
 		window.FFCDashboard.loadSummary();
+		await flushPromises();
 
 		const opts = ajaxSpy.mock.calls[0][0];
 		expect(opts.url).toBe('/wp-json/ffc/v1/user/summary');
@@ -167,17 +169,18 @@ describe('FFCDashboard.loadSummary', () => {
 		expect(xhr.setRequestHeader).toHaveBeenCalledWith('X-WP-Nonce', 'test-nonce');
 	});
 
-	it('appends viewAsUserId query param when impersonating', () => {
+	it('appends viewAsUserId query param when impersonating', async () => {
 		mountSummary();
 		window.ffcDashboard.viewAsUserId = 9;
 		const ajaxSpy = vi.spyOn(window.$, 'ajax').mockImplementation(() => ({}));
 
 		window.FFCDashboard.loadSummary();
+		await flushPromises();
 
 		expect(ajaxSpy.mock.calls[0][0].url).toBe('/wp-json/ffc/v1/user/summary?viewAsUserId=9');
 	});
 
-	it('on success: renders three cards with permission flags + counts', () => {
+	it('on success: renders three cards with permission flags + counts', async () => {
 		mountSummary();
 		vi.spyOn(window.$, 'ajax').mockImplementation((opts) => {
 			opts.success({
@@ -189,6 +192,7 @@ describe('FFCDashboard.loadSummary', () => {
 		});
 
 		window.FFCDashboard.loadSummary();
+		await flushPromises();
 
 		const $cards = window.$('#ffc-dashboard-summary .ffc-summary-card');
 		expect($cards.length).toBe(3);
@@ -197,7 +201,7 @@ describe('FFCDashboard.loadSummary', () => {
 		expect($cards.text()).toContain('2');
 	});
 
-	it('omits cards for permissions the user lacks', () => {
+	it('omits cards for permissions the user lacks', async () => {
 		mountSummary();
 		window.ffcDashboard.canViewAppointments = false;
 		window.ffcDashboard.canViewAudienceBookings = false;
@@ -207,11 +211,12 @@ describe('FFCDashboard.loadSummary', () => {
 		});
 
 		window.FFCDashboard.loadSummary();
+		await flushPromises();
 
 		expect(window.$('#ffc-dashboard-summary .ffc-summary-card').length).toBe(1);
 	});
 
-	it("handles missing next_appointment in the appointments card", () => {
+	it("handles missing next_appointment in the appointments card", async () => {
 		mountSummary();
 		vi.spyOn(window.$, 'ajax').mockImplementation((opts) => {
 			opts.success({ total_certificates: 0, next_appointment: null, upcoming_group_events: 0 });
@@ -219,11 +224,12 @@ describe('FFCDashboard.loadSummary', () => {
 		});
 
 		window.FFCDashboard.loadSummary();
+		await flushPromises();
 
 		expect(window.$('#ffc-dashboard-summary').text()).toContain('—');
 	});
 
-	it('on network error: renders the localised error string', () => {
+	it('on network error: renders the localised error string', async () => {
 		mountSummary();
 		vi.spyOn(window.$, 'ajax').mockImplementation((opts) => {
 			opts.error();
@@ -231,6 +237,7 @@ describe('FFCDashboard.loadSummary', () => {
 		});
 
 		window.FFCDashboard.loadSummary();
+		await flushPromises();
 
 		expect(window.$('#ffc-dashboard-summary').text()).toBe('Error');
 	});
@@ -241,13 +248,13 @@ describe('FFCDashboard.loadSummary', () => {
 // ----------------------------------------------------------------------
 
 describe('FFCDashboard.tab dispatch', () => {
-	it('loadInitialTab calls load() on the active panel', () => {
+	it('loadInitialTab calls load() on the active panel', async () => {
 		installFakePanels();
 		window.FFCDashboard.loadInitialTab();
 		expect(window.FFCDashboard.panels.certificates.load).toHaveBeenCalled();
 	});
 
-	it('switchTab moves active state, updates URL, and calls load() on the new panel', () => {
+	it('switchTab moves active state, updates URL, and calls load() on the new panel', async () => {
 		installFakePanels();
 		// Click the appointments tab.
 		window.$('.ffc-tab[data-tab="appointments"]').trigger('click');
@@ -257,7 +264,7 @@ describe('FFCDashboard.tab dispatch', () => {
 		expect(window.FFCDashboard.panels.appointments.load).toHaveBeenCalled();
 	});
 
-	it('keyboard nav: ArrowRight cycles forward, ArrowLeft cycles backward', () => {
+	it('keyboard nav: ArrowRight cycles forward, ArrowLeft cycles backward', async () => {
 		installFakePanels();
 		// Focus the first tab + ArrowRight.
 		const $first = window.$('.ffc-tab').eq(0);
@@ -274,7 +281,7 @@ describe('FFCDashboard.tab dispatch', () => {
 		expect(window.$('.ffc-tab.active').data('tab')).toBe('certificates');
 	});
 
-	it('keyboard nav: Home / End jump to first / last tab', () => {
+	it('keyboard nav: Home / End jump to first / last tab', async () => {
 		installFakePanels();
 		const $first = window.$('.ffc-tab').eq(0);
 		$first.trigger(window.$.Event('keydown', { key: 'End' }));
@@ -285,7 +292,7 @@ describe('FFCDashboard.tab dispatch', () => {
 		expect(window.$('.ffc-tab.active').data('tab')).toBe('certificates');
 	});
 
-	it('pagination button click dispatches render(state, page) to the panel', () => {
+	it('pagination button click dispatches render(state, page) to the panel', async () => {
 		installFakePanels();
 		document.body.innerHTML += '<button class="ffc-pagination-btn" data-page="3" data-target="certificates">3</button>';
 
@@ -297,7 +304,7 @@ describe('FFCDashboard.tab dispatch', () => {
 		);
 	});
 
-	it('filter-apply triggers render(state, 1) on the matching panel', () => {
+	it('filter-apply triggers render(state, 1) on the matching panel', async () => {
 		installFakePanels();
 		document.body.innerHTML += '<div class="ffc-filter-bar" data-tab="appointments"><button class="ffc-filter-apply">Apply</button></div>';
 
@@ -309,7 +316,7 @@ describe('FFCDashboard.tab dispatch', () => {
 		);
 	});
 
-	it('filter-clear empties inputs and triggers render', () => {
+	it('filter-clear empties inputs and triggers render', async () => {
 		installFakePanels();
 		document.body.innerHTML += `
 			<div class="ffc-filter-bar" data-tab="appointments">
@@ -326,7 +333,7 @@ describe('FFCDashboard.tab dispatch', () => {
 		expect(window.FFCDashboard.panels.appointments.render).toHaveBeenCalled();
 	});
 
-	it('Enter on the search input triggers the filter for the current bar', () => {
+	it('Enter on the search input triggers the filter for the current bar', async () => {
 		installFakePanels();
 		document.body.innerHTML += `
 			<div class="ffc-filter-bar" data-tab="appointments">
@@ -340,7 +347,7 @@ describe('FFCDashboard.tab dispatch', () => {
 		expect(window.FFCDashboard.panels.appointments.render).toHaveBeenCalled();
 	});
 
-	it('page-size button click updates localStorage + applies filter for the active tab', () => {
+	it('page-size button click updates localStorage + applies filter for the active tab', async () => {
 		installFakePanels();
 		document.body.innerHTML += '<a class="ffc-page-size-btn" data-size="50" href="#">50</a>';
 
@@ -350,7 +357,7 @@ describe('FFCDashboard.tab dispatch', () => {
 		expect(window.FFCDashboard.panels.certificates.render).toHaveBeenCalled();
 	});
 
-	it('bindPanelEvents calls panel.bindEvents() once per panel that exposes it', () => {
+	it('bindPanelEvents calls panel.bindEvents() once per panel that exposes it', async () => {
 		// fresh state — install only one panel with bindEvents so we can
 		// assert exactly one call.
 		const bindSpy = vi.fn();

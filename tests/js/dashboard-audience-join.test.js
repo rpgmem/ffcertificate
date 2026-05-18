@@ -8,7 +8,7 @@
 //
 // Sprint B of #168.
 import { describe, it, expect, beforeAll, beforeEach, afterEach, vi } from 'vitest';
-import { installDashboardFixtures, loadDashboardCore, loadPanel } from './dashboard-fixtures.js';
+import { installDashboardFixtures, loadDashboardCore, loadPanel, flushPromises } from './dashboard-fixtures.js';
 
 beforeAll(() => {
 	installDashboardFixtures();
@@ -49,61 +49,66 @@ function mockAjaxSuccess(data) {
 const audienceJoin = () => window.FFCDashboard.audienceJoin;
 
 describe('FFCDashboard.audienceJoin.load', () => {
-	it('empties the section when parents array is empty', () => {
+	it('empties the section when parents array is empty', async () => {
 		mockAjaxSuccess({ parents: [], max_groups: 3, joined_count: 0 });
 		audienceJoin().load();
+		await flushPromises();
 		expect(document.querySelector('#ffc-audience-join-section').innerHTML).toBe('');
 	});
 
-	it('renders a heading + description when parents have items', () => {
+	it('renders a heading + description when parents have items', async () => {
 		mockAjaxSuccess({
 			parents: [{ id: 1, name: 'Adults', color: '#aa0000', children: [], is_member: false }],
 			max_groups: 5,
 			joined_count: 0,
 		});
 		audienceJoin().load();
+		await flushPromises();
 		const section = document.querySelector('#ffc-audience-join-section');
 		expect(section.querySelector('h3').textContent).toBe('Join Groups');
 		expect(section.querySelector('.ffc-audience-limit-msg').textContent).toContain('5'); // {max} replaced
 	});
 
-	it('renders a Join button on a non-member leaf group', () => {
+	it('renders a Join button on a non-member leaf group', async () => {
 		mockAjaxSuccess({
 			parents: [{ id: 42, name: 'Beta', color: '#00aa00', children: [], is_member: false }],
 			max_groups: 3,
 			joined_count: 0,
 		});
 		audienceJoin().load();
+		await flushPromises();
 		const btn = document.querySelector('#ffc-audience-join-section .ffc-audience-join-btn');
 		expect(btn).not.toBeNull();
 		expect(btn.getAttribute('data-id')).toBe('42');
 		expect(btn.disabled).toBe(false);
 	});
 
-	it('renders a Leave button on a member leaf group', () => {
+	it('renders a Leave button on a member leaf group', async () => {
 		mockAjaxSuccess({
 			parents: [{ id: 7, name: 'In', color: '#0000aa', children: [], is_member: true }],
 			max_groups: 3,
 			joined_count: 1,
 		});
 		audienceJoin().load();
+		await flushPromises();
 		const btn = document.querySelector('#ffc-audience-join-section .ffc-audience-leave-btn');
 		expect(btn).not.toBeNull();
 		expect(btn.getAttribute('data-id')).toBe('7');
 	});
 
-	it('disables the Join button when joined_count >= max_groups', () => {
+	it('disables the Join button when joined_count >= max_groups', async () => {
 		mockAjaxSuccess({
 			parents: [{ id: 9, name: 'Group', color: null, children: [], is_member: false }],
 			max_groups: 1,
 			joined_count: 1,
 		});
 		audienceJoin().load();
+		await flushPromises();
 		const btn = document.querySelector('#ffc-audience-join-section .ffc-audience-join-btn');
 		expect(btn.disabled).toBe(true);
 	});
 
-	it('renders a parent accordion when the parent has children', () => {
+	it('renders a parent accordion when the parent has children', async () => {
 		mockAjaxSuccess({
 			parents: [{
 				id: 1, name: 'Parent', color: '#000',
@@ -116,6 +121,7 @@ describe('FFCDashboard.audienceJoin.load', () => {
 			joined_count: 1,
 		});
 		audienceJoin().load();
+		await flushPromises();
 		const section = document.querySelector('#ffc-audience-join-section');
 		expect(section.querySelector('.ffc-audience-parent-header')).not.toBeNull();
 		// One join, one leave (child A non-member, child B member).
@@ -123,7 +129,7 @@ describe('FFCDashboard.audienceJoin.load', () => {
 		expect(section.querySelectorAll('.ffc-audience-leave-btn').length).toBe(1);
 	});
 
-	it('empties the section when AJAX errors out', () => {
+	it('empties the section when AJAX errors out', async () => {
 		// Pre-populate so we can prove the error branch clears it.
 		document.querySelector('#ffc-audience-join-section').innerHTML = '<p>old</p>';
 		vi.spyOn(window.$, 'ajax').mockImplementation((opts) => {
@@ -131,14 +137,16 @@ describe('FFCDashboard.audienceJoin.load', () => {
 			return {};
 		});
 		audienceJoin().load();
+		await flushPromises();
 		expect(document.querySelector('#ffc-audience-join-section').innerHTML).toBe('');
 	});
 
-	it('is a no-op when the section element is missing from the DOM', () => {
+	it('is a no-op when the section element is missing from the DOM', async () => {
 		// Remove the section entirely.
 		document.querySelector('#ffc-audience-join-section').remove();
 		const ajaxSpy = vi.spyOn(window.$, 'ajax');
 		audienceJoin().load();
+		await flushPromises();
 		expect(ajaxSpy).not.toHaveBeenCalled();
 		// Re-add for subsequent tests in same file (none after).
 		document.getElementById('ffc-dashboard').insertAdjacentHTML(
