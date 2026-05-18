@@ -51,6 +51,21 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 
 ### Changed
 
+- AJAX migration begins — user-dashboard + audience family: 9 files
+  (~33 inline `$.ajax({...})` call sites) migrated to the centralised
+  `FFC.ajax` / `FFC.request` (admin-ajax) and the new `FFC.rest` (WP
+  REST API) helpers in `assets/js/ffc-core.js`. `FFC.rest(url, options)`
+  is added as a sibling of `FFC.request` for endpoints that live on
+  the WP REST surface — it injects the `X-WP-Nonce` header, JSON-encodes
+  write bodies, normalises errors (rejected `Error.xhr` preserves the
+  jqXHR for caller introspection), and accepts an `options.timeout`.
+  `FFC.request` rejections now also carry an `err.fromServer` flag so
+  callers can distinguish a server-supplied `data.message` from the
+  library's generic fallback. First batch covers the user-dashboard
+  panels (profile, audience-join, appointments, reregistrations, core,
+  certificates, audience) plus the audience admin + frontend
+  (`ffc-audience-admin.js`, `ffc-audience.js`). This closes #294 of the
+  #277 AJAX migration umbrella.
 - POST/GET sanitize migration continues — admin + reregistration area:
   inline `sanitize_text_field(wp_unslash($_POST/$_GET[...]))` patterns
   migrated to `Utils::get_post_string` / `get_get_string` across 14
