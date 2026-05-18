@@ -117,29 +117,24 @@
         $btn.prop('disabled', true);
         $status.text(ffcAudienceAdmin.strings.saving || 'Saving...').removeClass('ffc-status-error ffc-status-success');
 
-        $.post(ffcAudienceAdmin.ajaxUrl, {
-            action: 'ffc_save_custom_fields',
-            nonce: ffcAudienceAdmin.adminNonce,
-            audience_id: audienceId,
-            fields: JSON.stringify(fields)
-        })
-        .done(function (response) {
-            if (response.success) {
+        FFC.request(
+            'ffc_save_custom_fields',
+            { audience_id: audienceId, fields: JSON.stringify(fields) },
+            { nonce: ffcAudienceAdmin.adminNonce, ajaxUrl: ffcAudienceAdmin.ajaxUrl }
+        )
+            .then(function () {
                 $status.text(ffcAudienceAdmin.strings.saved || 'Saved!').addClass('ffc-status-success');
                 // Reload page to show updated field IDs
-                setTimeout(function () {
-                    window.location.reload();
-                }, 800);
-            } else {
-                $status.text(response.data.message || 'Error').addClass('ffc-status-error');
-            }
-        })
-        .fail(function () {
-            $status.text(ffcAudienceAdmin.strings.error || 'Error').addClass('ffc-status-error');
-        })
-        .always(function () {
-            $btn.prop('disabled', false);
-        });
+                setTimeout(function () { window.location.reload(); }, 800);
+            })
+            .catch(function (err) {
+                var msg = (err && err.fromServer && err.message) || ffcAudienceAdmin.strings.error || 'Error';
+                $status.text(msg).addClass('ffc-status-error');
+            })
+            .then(function () {
+                // .finally equivalent — always re-enable the button.
+                $btn.prop('disabled', false);
+            });
     }
 
     /**
@@ -167,21 +162,20 @@
         }
 
         // Existing field — delete via AJAX
-        $.post(ffcAudienceAdmin.ajaxUrl, {
-            action: 'ffc_delete_custom_field',
-            nonce: ffcAudienceAdmin.adminNonce,
-            field_id: fieldId
-        })
-        .done(function (response) {
-            if (response.success) {
+        FFC.request(
+            'ffc_delete_custom_field',
+            { field_id: fieldId },
+            { nonce: ffcAudienceAdmin.adminNonce, ajaxUrl: ffcAudienceAdmin.ajaxUrl }
+        )
+            .then(function () {
                 $row.fadeOut(200, function () { $(this).remove(); });
-            } else {
-                alert(response.data.message || 'Error deleting field.');
-            }
-        })
-        .fail(function () {
-            alert(ffcAudienceAdmin.strings.error || 'Error');
-        });
+            })
+            .catch(function (err) {
+                var msg = (err && err.fromServer && err.message)
+                    || ffcAudienceAdmin.strings.error
+                    || 'Error';
+                alert(msg);
+            });
     }
 
     /**

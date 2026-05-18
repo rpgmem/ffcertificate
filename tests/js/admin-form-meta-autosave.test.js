@@ -6,6 +6,19 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { loadScript } from './helpers.js';
 
+// FFC.request — the migration target — wraps jQuery.post() in a Promise.
+// Mock $.post and return a chain whose .done / .fail callback the
+// FFC.request internals invoke.
+function postChain(spec) {
+	const chain = { done: () => chain, fail: () => chain };
+	if (spec && 'done' in spec) chain.done = (cb) => { cb(spec.done); return chain; };
+	if (spec && spec.fail) chain.fail = (cb) => { cb(spec.fail === true ? undefined : spec.fail); return chain; };
+	return chain;
+}
+
+// Microtask flush so .then/.catch reactions run before assertions.
+function flush() { return Promise.resolve().then(() => Promise.resolve()); }
+
 beforeEach(() => {
 	document.body.innerHTML = '';
 	window.ffcFormMetaAutosave = {
@@ -37,113 +50,79 @@ function mountToggle(key, checked) {
 				${checked ? 'checked' : ''}>
 		</label>
 	`;
+	if (!window.FFC) { loadScript('assets/js/ffc-core.js'); }
 	loadScript('assets/js/ffc-admin.js');
 }
 
 describe('ffc-admin form-meta autosave', () => {
-	it('POSTs the toggle state to the configured endpoint on change', () => {
-		const ajaxSpy = vi.fn(function (opts) {
-			// Return a thenable-ish that supports .done().fail() chain.
-			return {
-				done: function (cb) { cb({ success: true, data: { key: opts.data.key } }); return this; },
-				fail: function () { return this; },
-			};
-		});
-		window.$.ajax = ajaxSpy;
+	it('POSTs the toggle state to the configured endpoint on change', async () => {
+		const postSpy = vi.spyOn(window.$, 'post').mockImplementation(() => postChain({ done: { success: true, data: { key: 'quiz_enabled' } } }));
 
 		mountToggle('quiz_enabled', false);
 		const $cb = window.$('#t-quiz_enabled');
 		$cb.prop('checked', true).trigger('change');
+		await flush();
 
-		expect(ajaxSpy).toHaveBeenCalledTimes(1);
-		const call = ajaxSpy.mock.calls[0][0];
-		expect(call.url).toBe('/wp-admin/admin-ajax.php');
-		expect(call.method).toBe('POST');
-		expect(call.data.action).toBe('ffc_update_form_meta');
-		expect(call.data.nonce).toBe('fm-nonce');
-		expect(call.data.post_id).toBe(42);
-		expect(call.data.key).toBe('quiz_enabled');
-		expect(call.data.value).toBe('1');
+		expect(postSpy).toHaveBeenCalledTimes(1);
+		const [url, payload] = postSpy.mock.calls[0];
+		expect(url).toBe('/wp-admin/admin-ajax.php');
+		expect(payload.action).toBe('ffc_update_form_meta');
+		expect(payload.nonce).toBe('fm-nonce');
+		expect(payload.post_id).toBe(42);
+		expect(payload.key).toBe('quiz_enabled');
+		expect(payload.value).toBe('1');
 	});
 
-	it('sends "0" when toggle is unchecked', () => {
-		const ajaxSpy = vi.fn(function () {
-			return { done: function () { return this; }, fail: function () { return this; } };
-		});
-		window.$.ajax = ajaxSpy;
+	it('sends "0" when toggle is unchecked', async () => {
+		const postSpy = vi.spyOn(window.$, 'post').mockImplementation(() => postChain({}));
 
 		mountToggle('send_user_email', true);
 		const $cb = window.$('#t-send_user_email');
 		$cb.prop('checked', false).trigger('change');
+		await flush();
 
-		expect(ajaxSpy.mock.calls[0][0].data.value).toBe('0');
+		expect(postSpy.mock.calls[0][1].value).toBe('0');
 	});
 
-	it('shows the "Saved" chip on success then hides after the timeout', () => {
+	it('shows the "Saved" chip on success then hides after the timeout', async () => {
 		vi.useFakeTimers();
-		const ajaxSpy = vi.fn(function () {
-			return {
-				done: function (cb) { cb({ success: true, data: {} }); return this; },
-				fail: function () { return this; },
-			};
-		});
-		window.$.ajax = ajaxSpy;
+		vi.spyOn(window.$, 'post').mockImplementation(() => postChain({ done: { success: true, data: {} } }));
 
 		mountToggle('quiz_enabled', false);
 		window.$('#t-quiz_enabled').prop('checked', true).trigger('change');
+		await flush();
 
 		const $chip = window.$('.ffc-form-meta-autosave-status');
 		expect($chip.length).toBe(1);
 		expect($chip.text()).toBe('Saved');
 		expect($chip.hasClass('is-saved')).toBe(true);
-
-		vi.advanceTimersByTime(1600);
+		// After 1500 ms the chip is hidden.
+		vi.advanceTimersByTime(1500);
+		await flush();
 		expect($chip.attr('hidden')).toBe('hidden');
-		vi.useRealTimers();
 	});
 
-	it('shows the "Save failed" chip on AJAX failure', () => {
-		const ajaxSpy = vi.fn(function () {
-			return {
-				done: function () { return this; },
-				fail: function (cb) { cb(); return this; },
-			};
-		});
-		window.$.ajax = ajaxSpy;
+	it('shows the "Save failed" chip on AJAX failure', async () => {
+		vi.spyOn(window.$, 'post').mockImplementation(() => postChain({ fail: true }));
 
 		mountToggle('quiz_enabled', false);
 		window.$('#t-quiz_enabled').prop('checked', true).trigger('change');
+		await flush();
 
 		const $chip = window.$('.ffc-form-meta-autosave-status');
-		expect($chip.hasClass('is-error')).toBe(true);
 		expect($chip.text()).toBe('Save failed');
+		expect($chip.hasClass('is-error')).toBe(true);
 	});
 
-	it('uses server-supplied error message when available', () => {
-		const ajaxSpy = vi.fn(function () {
-			return {
-				done: function (cb) {
-					cb({ success: false, data: { message: 'Forbidden' } });
-					return this;
-				},
-				fail: function () { return this; },
-			};
-		});
-		window.$.ajax = ajaxSpy;
+	it('uses server-supplied error message when available', async () => {
+		vi.spyOn(window.$, 'post').mockImplementation(() => postChain({ done: { success: false, data: { message: 'Nope' } } }));
 
 		mountToggle('quiz_enabled', false);
 		window.$('#t-quiz_enabled').prop('checked', true).trigger('change');
+		await flush();
 
 		const $chip = window.$('.ffc-form-meta-autosave-status');
+		expect($chip.text()).toBe('Nope');
 		expect($chip.hasClass('is-error')).toBe(true);
-		expect($chip.text()).toBe('Forbidden');
 	});
-
-	// Note: the missing-config branch (`window.ffcFormMetaAutosave` not
-	// localized — e.g. brand-new post screen) is covered by the
-	// `if (FORM_META_CFG && ...)` guard in ffc-admin.js itself. Testing
-	// it in isolation here is hard because the IIFE attaches the
-	// delegated change listener at document level on first load and we
-	// can't easily un-attach it across test runs. We rely on the
-	// structural guard + production smoke testing for that branch.
 });

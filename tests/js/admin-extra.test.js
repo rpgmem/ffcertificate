@@ -20,6 +20,20 @@
 import { describe, it, expect, beforeAll, beforeEach, afterEach, vi } from 'vitest';
 import { loadScript } from './helpers.js';
 
+// FFC.request — the migration target — wraps jQuery.post() in a Promise.
+// Mock $.post and return a chain whose .done / .fail callback the
+// FFC.request internals invoke.
+function postChain(spec) {
+	const chain = { done: () => chain, fail: () => chain };
+	if (spec && 'done' in spec) chain.done = (cb) => { cb(spec.done); return chain; };
+	if (spec && spec.fail) chain.fail = (cb) => { cb(spec.fail === true ? undefined : spec.fail); return chain; };
+	return chain;
+}
+
+// Microtask flush so .then/.catch reactions run before assertions.
+function flush() { return Promise.resolve().then(() => Promise.resolve()); }
+
+
 beforeEach(() => {
 	// fx.off makes slideUp/slideDown synchronous so CSS-state assertions
 	// can read final display values.
@@ -53,6 +67,7 @@ describe('admin generate-codes — AJAX result branches', () => {
 			<button id="ffc-migrations-btn"></button>
 			<div id="ffc-migrations-menu"></div>
 		`;
+		if (!window.FFC) { loadScript('assets/js/ffc-core.js'); }
 		loadScript('assets/js/ffc-admin.js');
 		await new Promise((r) => setTimeout(r, 0));
 	});
@@ -66,85 +81,78 @@ describe('admin generate-codes — AJAX result branches', () => {
 		`;
 	}
 
-	it('appends generated codes to #ffc_generated_list on success', () => {
+	it('appends generated codes to #ffc_generated_list on success', async () => {
 		setupForm();
-		vi.spyOn(window.$, 'ajax').mockImplementation((opts) => {
-			opts.success({ success: true, data: { codes: 'AAAA-1111\nBBBB-2222\nCCCC-3333' } });
-		});
+		vi.spyOn(window.$, 'post').mockImplementation(() => postChain({ done: { success: true, data: { codes: 'AAAA-1111\nBBBB-2222\nCCCC-3333' } } }));
 
 		window.$('#ffc_btn_generate_codes').trigger('click');
+		await flush();
 
 		expect(window.$('#ffc_generated_list').val()).toBe('AAAA-1111\nBBBB-2222\nCCCC-3333');
 		expect(window.$('#ffc_gen_status').text()).toContain('tickets generated successfully!');
 	});
 
-	it('appends rather than replaces when the textarea already has codes', () => {
+	it('appends rather than replaces when the textarea already has codes', async () => {
 		setupForm();
 		window.$('#ffc_generated_list').val('EXISTING-CODE');
-		vi.spyOn(window.$, 'ajax').mockImplementation((opts) => {
-			opts.success({ success: true, data: { codes: 'NEW-CODE' } });
-		});
+		vi.spyOn(window.$, 'post').mockImplementation(() => postChain({ done: { success: true, data: { codes: 'NEW-CODE' } } }));
 
 		window.$('#ffc_btn_generate_codes').trigger('click');
+		await flush();
 
 		expect(window.$('#ffc_generated_list').val()).toBe('EXISTING-CODE\nNEW-CODE');
 	});
 
-	it('shows the field-not-found error when #ffc_generated_list is missing', () => {
+	it('shows the field-not-found error when #ffc_generated_list is missing', async () => {
 		document.body.innerHTML = `
 			<input id="ffc_qty_codes" type="text" value="3">
 			<span id="ffc_gen_status"></span>
 			<button id="ffc_btn_generate_codes" type="button">Generate</button>
 		`;
-		vi.spyOn(window.$, 'ajax').mockImplementation((opts) => {
-			opts.success({ success: true, data: { codes: 'X' } });
-		});
+		vi.spyOn(window.$, 'post').mockImplementation(() => postChain({ done: { success: true, data: { codes: 'X' } } }));
 
 		window.$('#ffc_btn_generate_codes').trigger('click');
+		await flush();
 
 		expect(window.$('#ffc_gen_status').text()).toContain('Error: codes field not found');
 	});
 
-	it('shows the inline error when the server returns success=false', () => {
+	it('shows the inline error when the server returns success=false', async () => {
 		setupForm();
-		vi.spyOn(window.$, 'ajax').mockImplementation((opts) => {
-			opts.success({ success: false, data: 'Quota exceeded' });
-		});
+		vi.spyOn(window.$, 'post').mockImplementation(() => postChain({ done: { success: false, data: 'Quota exceeded' } }));
 
 		window.$('#ffc_btn_generate_codes').trigger('click');
+		await flush();
 
 		expect(window.$('#ffc_gen_status').text()).toContain('Error: Quota exceeded');
 	});
 
-	it('maps xhr.status=403 to the permission-denied string', () => {
+	it('maps xhr.status=403 to the permission-denied string', async () => {
 		setupForm();
-		vi.spyOn(window.$, 'ajax').mockImplementation((opts) => {
-			opts.error({ status: 403, statusText: 'Forbidden', responseText: '' });
-		});
+		vi.spyOn(window.$, 'post').mockImplementation(() => postChain({ fail: { status: 403, statusText: 'Forbidden' } }));
 
 		window.$('#ffc_btn_generate_codes').trigger('click');
+		await flush();
 
 		expect(window.$('#ffc_gen_status').text()).toContain('Permission denied.');
 	});
 
-	it('maps xhr.status=400 to the bad-request string', () => {
+	it('maps xhr.status=400 to the bad-request string', async () => {
 		setupForm();
-		vi.spyOn(window.$, 'ajax').mockImplementation((opts) => {
-			opts.error({ status: 400, statusText: 'Bad', responseText: '' });
-		});
+		vi.spyOn(window.$, 'post').mockImplementation(() => postChain({ fail: { status: 400, statusText: 'Bad Request' } }));
 
 		window.$('#ffc_btn_generate_codes').trigger('click');
+		await flush();
 
 		expect(window.$('#ffc_gen_status').text()).toContain('Bad request.');
 	});
 
-	it('maps other xhr statuses to the templated server-error string', () => {
+	it('maps other xhr statuses to the templated server-error string', async () => {
 		setupForm();
-		vi.spyOn(window.$, 'ajax').mockImplementation((opts) => {
-			opts.error({ status: 502, statusText: 'Bad Gateway', responseText: '' });
-		});
+		vi.spyOn(window.$, 'post').mockImplementation(() => postChain({ fail: { status: 502, statusText: 'Bad Gateway' } }));
 
 		window.$('#ffc_btn_generate_codes').trigger('click');
+		await flush();
 
 		expect(window.$('#ffc_gen_status').text()).toContain('Server error (Status: 502)');
 	});
@@ -179,6 +187,7 @@ describe('admin CSV export — batched flow', () => {
 		const postSpy = vi.spyOn(window.$, 'post').mockImplementation(() => ({ fail: () => ({}) }));
 
 		window.$('#ffc-csv-export-btn').trigger('click');
+		await flush();
 
 		expect(alertSpy).toHaveBeenCalledWith('Error: missing export nonce');
 		expect(postSpy).not.toHaveBeenCalled();
@@ -203,14 +212,13 @@ describe('admin CSV export — batched flow', () => {
 			{ success: true, data: { processed: 10, done: true } },          // second batch
 		];
 		const calls = [];
-		const postSpy = vi.spyOn(window.$, 'post').mockImplementation((url, data, cb) => {
-			calls.push(data);
-			const res = responses.shift();
-			cb(res);
-			return { fail: () => ({}) };
+		const postSpy = vi.spyOn(window.$, 'post').mockImplementation((url, payload) => {
+			calls.push(payload);
+			return postChain({ done: responses.shift() });
 		});
 
 		window.$('#ffc-csv-export-btn').trigger('click');
+		await flush();
 
 		// At this point three $.post calls fired synchronously (mocked).
 		expect(postSpy).toHaveBeenCalledTimes(3);
@@ -233,12 +241,10 @@ describe('admin CSV export — batched flow', () => {
 		window.ajaxurl = '/wp-admin/admin-ajax.php';
 		setupExport();
 
-		vi.spyOn(window.$, 'post').mockImplementation((url, data, cb) => {
-			cb({ success: false, data: 'No rows match' });
-			return { fail: () => ({}) };
-		});
+		vi.spyOn(window.$, 'post').mockImplementation(() => postChain({ done: { success: false, data: 'No rows match' } }));
 
 		window.$('#ffc-csv-export-btn').trigger('click');
+		await flush();
 
 		expect(window.$('#ffc-csv-export-progress').text()).toBe('No rows match');
 	});
@@ -252,12 +258,10 @@ describe('admin CSV export — batched flow', () => {
 			{ success: true, data: { job_id: 'job-1', total: 5 } },
 			{ success: false, data: 'Batch failed' },
 		];
-		vi.spyOn(window.$, 'post').mockImplementation((url, data, cb) => {
-			cb(responses.shift());
-			return { fail: () => ({}) };
-		});
+		vi.spyOn(window.$, 'post').mockImplementation(() => postChain({ done: responses.shift() }));
 
 		window.$('#ffc-csv-export-btn').trigger('click');
+		await flush();
 
 		expect(window.$('#ffc-csv-export-progress').text()).toBe('Batch failed');
 	});
@@ -277,33 +281,40 @@ describe('admin migration manager dropdown', () => {
 		`;
 		// Reload admin.js after mounting these so the dropdown ready-block
 		// finds the elements and wires its private handlers.
+		if (!window.FFC) { loadScript('assets/js/ffc-core.js'); }
 		loadScript('assets/js/ffc-admin.js');
 		await new Promise((r) => setTimeout(r, 0));
 	});
 
-	it('clicking #ffc-migrations-btn toggles the menu visible', () => {
+	it('clicking #ffc-migrations-btn toggles the menu visible', async () => {
 		window.$('#ffc-migrations-btn').trigger('click');
+		await flush();
 		expect(window.$('#ffc-migrations-menu').hasClass('ffc-visible')).toBe(true);
 
 		window.$('#ffc-migrations-btn').trigger('click');
+		await flush();
 		expect(window.$('#ffc-migrations-menu').hasClass('ffc-visible')).toBe(false);
 	});
 
-	it('ESC closes the menu when it is open', () => {
+	it('ESC closes the menu when it is open', async () => {
 		window.$('#ffc-migrations-btn').trigger('click');
+		await flush();
 		expect(window.$('#ffc-migrations-menu').hasClass('ffc-visible')).toBe(true);
 
 		const ev = window.$.Event('keydown', { key: 'Escape' });
 		window.$(document).trigger(ev);
+		await flush();
 
 		expect(window.$('#ffc-migrations-menu').hasClass('ffc-visible')).toBe(false);
 	});
 
-	it('clicking the overlay closes the menu', () => {
+	it('clicking the overlay closes the menu', async () => {
 		window.$('#ffc-migrations-btn').trigger('click');
+		await flush();
 		expect(window.$('#ffc-migrations-menu').hasClass('ffc-visible')).toBe(true);
 
 		window.$('#ffc-migrations-overlay').trigger('click');
+		await flush();
 
 		expect(window.$('#ffc-migrations-menu').hasClass('ffc-visible')).toBe(false);
 	});
@@ -325,22 +336,23 @@ describe('admin filter overlay', () => {
 				<div class="ffc-filter-content">content</div>
 			</div>
 		`;
+		if (!window.FFC) { loadScript('assets/js/ffc-core.js'); }
 		loadScript('assets/js/ffc-admin.js');
 		await new Promise((r) => setTimeout(r, 0));
 	});
 
-	it('open button shows the overlay', () => {
+	it('open button shows the overlay', async () => {
 		document.getElementById('ffc-open-filter-overlay').click();
 		expect(document.getElementById('ffc-filter-overlay').style.display).toBe('flex');
 	});
 
-	it('close button hides the overlay', () => {
+	it('close button hides the overlay', async () => {
 		document.getElementById('ffc-filter-overlay').style.display = 'flex';
 		document.querySelector('.ffc-filter-overlay-close').click();
 		expect(document.getElementById('ffc-filter-overlay').style.display).toBe('none');
 	});
 
-	it('clicking the overlay background hides it (target === overlay)', () => {
+	it('clicking the overlay background hides it (target === overlay)', async () => {
 		const overlay = document.getElementById('ffc-filter-overlay');
 		overlay.style.display = 'flex';
 		// Dispatch a click whose target is the overlay itself.
@@ -364,19 +376,22 @@ describe('admin quiz mode toggle', () => {
 				<span class="ffc-quiz-points ffc-hidden">points</span>
 			</div>
 		`;
+		if (!window.FFC) { loadScript('assets/js/ffc-core.js'); }
 		loadScript('assets/js/ffc-admin.js');
 		await new Promise((r) => setTimeout(r, 0));
 	});
 
-	it('enabling shows quiz settings and points', () => {
+	it('enabling shows quiz settings and points', async () => {
 		window.$('#ffc_quiz_enabled').prop('checked', true).trigger('change');
+		await flush();
 
 		expect(window.$('.ffc-quiz-setting').hasClass('ffc-hidden')).toBe(false);
 		expect(window.$('.ffc-quiz-points').hasClass('ffc-hidden')).toBe(false);
 	});
 
-	it('disabling hides them again', () => {
+	it('disabling hides them again', async () => {
 		window.$('#ffc_quiz_enabled').prop('checked', false).trigger('change');
+		await flush();
 
 		expect(window.$('.ffc-quiz-setting').hasClass('ffc-hidden')).toBe(true);
 		expect(window.$('.ffc-quiz-points').hasClass('ffc-hidden')).toBe(true);
@@ -400,17 +415,20 @@ describe('admin CSV public toggle', () => {
 				</table>
 			</div>
 		`;
+		if (!window.FFC) { loadScript('assets/js/ffc-core.js'); }
 		loadScript('assets/js/ffc-admin.js');
 		await new Promise((r) => setTimeout(r, 0));
 	});
 
-	it('collapses the sub-options wrapper when the toggle is off', () => {
+	it('collapses the sub-options wrapper when the toggle is off', async () => {
 		window.$('#ffc_csv_public_enabled').prop('checked', false).trigger('change');
+		await flush();
 		expect(window.$('.ffc-collapsed-target').hasClass('ffc-collapsed')).toBe(true);
 	});
 
-	it('reveals the sub-options wrapper when the toggle is on', () => {
+	it('reveals the sub-options wrapper when the toggle is on', async () => {
 		window.$('#ffc_csv_public_enabled').prop('checked', true).trigger('change');
+		await flush();
 		expect(window.$('.ffc-collapsed-target').hasClass('ffc-collapsed')).toBe(false);
 	});
 });
@@ -429,6 +447,7 @@ describe('admin device-limit toggle', () => {
 				<input type="text" name="dl-sub">
 			</div>
 		`;
+		if (!window.FFC) { loadScript('assets/js/ffc-core.js'); }
 		loadScript('assets/js/ffc-admin.js');
 		await new Promise((r) => setTimeout(r, 0));
 
@@ -445,13 +464,16 @@ describe('admin device-limit toggle', () => {
 				<input type="text" name="dl-sub">
 			</div>
 		`;
+		if (!window.FFC) { loadScript('assets/js/ffc-core.js'); }
 		loadScript('assets/js/ffc-admin.js');
 		await new Promise((r) => setTimeout(r, 0));
 
 		window.$('#ffc_device_limit_enabled').prop('checked', true).trigger('change');
+		await flush();
 		expect(window.$('.ffc-collapsed-target').hasClass('ffc-collapsed')).toBe(false);
 
 		window.$('#ffc_device_limit_enabled').prop('checked', false).trigger('change');
+		await flush();
 		expect(window.$('.ffc-collapsed-target').hasClass('ffc-collapsed')).toBe(true);
 	});
 });
