@@ -2,11 +2,24 @@
 /**
  * MigrationUserProfiles
  *
- * Populates ffc_user_profiles table with data from existing ffc_users.
- * Sources: wp_users.display_name, wp_usermeta.ffc_registration_date,
- * and names extracted from submissions.
+ * One-time backfill that populates `ffc_user_profiles` rows for WP
+ * users that already hold the `ffc_user` role but were created before
+ * 4.9.4 (when the profile table landed). Sources: `wp_users.display_name`
+ * and names extracted from submissions. New users get a profile
+ * automatically via `UserCreator` on registration, so this migration
+ * only matters on installs that upgraded from 4.9.3 or earlier without
+ * ever running it.
  *
- * Safe to run multiple times — skips users that already have a profile.
+ * The migration is idempotent: rows that already have a profile are
+ * skipped. Earlier versions of this docblock said the source was a
+ * table named `ffc_users` — that's wrong, the source is WP users
+ * filtered by the `ffc_user` role (`get_users(['role' => 'ffc_user'])`).
+ *
+ * Status (snapshot v6.6.1): the class is NOT registered in
+ * `MigrationStatusCalculator::get_strategies()` and the activator
+ * does not call `run()`, so it cannot be triggered from the admin
+ * UI today. Wiring it up (or formally retiring it) is tracked in
+ * #323.
  *
  * @package FreeFormCertificate\Migrations
  * @since 4.9.4
@@ -52,7 +65,7 @@ class MigrationUserProfiles {
 			);
 		}
 
-		// Get all ffc_users that don't have a profile yet.
+		// Get all WP users holding the ffc_user role that don't have a profile yet.
 		$users = get_users(
 			array(
 				'role'   => 'ffc_user',

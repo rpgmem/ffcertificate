@@ -2,8 +2,18 @@
 /**
  * UserService
  *
- * Centralized service for user data retrieval and operations.
- * Single point of truth used by REST controller, PrivacyHandler, and UserCleanup.
+ * Centralized aggregator for user data retrieval and operations: merges
+ * WP core user data, the FFC `ffc_user_profiles` row, and the granted
+ * capability map into a single view-model. Designed as a single point
+ * of truth for callers that today still inline that aggregation
+ * ad-hoc (`Api\UserDataRestController`, `Privacy\PrivacyHandler`,
+ * `UserDashboard\UserCleanup`).
+ *
+ * Status (snapshot v6.6.1): the class is declared, exported via the
+ * `Services` PSR-4 mapping, and fully tested in `UserServiceTest`, but
+ * no production caller invokes it yet — the wire-up is tracked in
+ * #322 so the API stays stable while the migration happens one
+ * call-site at a time.
  *
  * @package FreeFormCertificate\Services
  * @since 4.9.7
