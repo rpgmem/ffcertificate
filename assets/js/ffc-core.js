@@ -269,6 +269,10 @@
                 }
             };
 
+            if (typeof options.timeout === 'number') {
+                ajaxOpts.timeout = options.timeout;
+            }
+
             if (typeof options.data !== 'undefined' && options.data !== null) {
                 if (method === 'GET' || method === 'HEAD') {
                     ajaxOpts.data = options.data;

@@ -536,14 +536,8 @@
             params.environment_id = state.selectedEnvironment;
         }
 
-        $.ajax({
-            url: ffcAudience.restUrl + 'bookings',
-            method: 'GET',
-            data: params,
-            beforeSend: function(xhr) {
-                xhr.setRequestHeader('X-WP-Nonce', ffcAudience.nonce);
-            },
-            success: function(response) {
+        FFC.rest(ffcAudience.restUrl + 'bookings', { data: params, nonce: ffcAudience.nonce })
+            .then(function(response) {
                 // Ignore stale responses — a newer fetch was already dispatched
                 if (thisId !== state.fetchId) return;
 
@@ -567,12 +561,11 @@
                 }
 
                 if (callback) callback();
-            },
-            error: function() {
+            })
+            .catch(function() {
                 if (thisId !== state.fetchId) return;
                 if (callback) callback();
-            }
-        });
+            });
     }
 
     /**
@@ -858,18 +851,11 @@
      * Search users
      */
     function searchUsers(query) {
-        $.ajax({
-            url: ffcAudience.ajaxUrl,
-            method: 'POST',
-            data: {
-                action: 'ffc_search_users',
-                query: query,
-                nonce: ffcAudience.searchUsersNonce
-            },
-            success: function(response) {
-                if (response.success && response.data.length > 0) {
+        FFC.request('ffc_search_users', { query: query }, { nonce: ffcAudience.searchUsersNonce })
+            .then(function(data) {
+                if (data && data.length > 0) {
                     var html = '';
-                    response.data.forEach(function(user) {
+                    data.forEach(function(user) {
                         if (!state.selectedUsers[user.id]) {
                             html += '<div class="ffc-user-result" data-id="' + user.id + '" data-name="' + escapeHtml(user.name) + '">' + escapeHtml(user.name) + ' (' + escapeHtml(user.email) + ')</div>';
                         }
@@ -878,8 +864,10 @@
                 } else {
                     $('#booking-user-results').removeClass('active').empty();
                 }
-            }
-        });
+            })
+            .catch(function() {
+                $('#booking-user-results').removeClass('active').empty();
+            });
     }
 
     /**
@@ -910,25 +898,22 @@
 
         $btn.prop('disabled', true).text(ffcAudience.strings.loading);
 
-        $.ajax({
-            url: ffcAudience.restUrl + 'conflicts',
+        FFC.rest(ffcAudience.restUrl + 'conflicts', {
             method: 'POST',
-            contentType: 'application/json',
             timeout: 30000, // 30 second timeout
-            data: JSON.stringify({
+            nonce: ffcAudience.nonce,
+            data: {
                 environment_id: data.environment_id,
                 booking_date: data.booking_date,
                 start_time: data.start_time,
                 end_time: data.end_time,
                 audience_ids: data.audience_ids,
                 user_ids: data.user_ids
-            }),
-            beforeSend: function(xhr) {
-                xhr.setRequestHeader('X-WP-Nonce', ffcAudience.nonce);
-            },
-            success: function(response) {
+            }
+        })
+            .then(function(response) {
                 try {
-                    if (response.success) {
+                    if (response && response.success) {
                         var conflicts = response.conflicts || {};
                         var isHardConflict = (conflicts.type === 'environment');
 
@@ -989,28 +974,31 @@
                             }
                         }
                     } else {
-                        alert(response.message || ffcAudience.strings.error);
+                        alert((response && response.message) || ffcAudience.strings.error);
                     }
                 } catch (e) {
                     console.error('Error processing conflict response:', e);
                     alert(ffcAudience.strings.error);
                 }
-            },
-            error: function(xhr, status, error) {
-                console.error('Conflict check error:', status, error, xhr.responseText);
+            })
+            .catch(function(err) {
+                var xhr = err && err.xhr;
+                console.error('Conflict check error:', err && err.message, xhr && xhr.responseText);
                 var message = ffcAudience.strings.error;
-                if (xhr.responseJSON && xhr.responseJSON.message) {
+                if (xhr && xhr.responseJSON && xhr.responseJSON.message) {
                     message = xhr.responseJSON.message;
-                } else if (status === 'timeout') {
+                } else if (xhr && xhr.statusText === 'timeout') {
                     message = ffcAudience.strings.timeout;
                 }
                 alert(message);
-            },
-            complete: function() {
-                // Always restore button state
+            })
+            .then(function() {
+                // .finally equivalent — always restore the button state.
+                // Chaining a no-error .then after .catch lets us run this
+                // on both success + handled-error branches without needing
+                // Promise.prototype.finally polyfills on legacy browsers.
                 $btn.prop('disabled', false).text(originalText);
-            }
-        });
+            });
     }
 
     /**
@@ -1025,29 +1013,25 @@
 
         $('#ffc-create-booking-btn').prop('disabled', true).text(ffcAudience.strings.loading);
 
-        $.ajax({
-            url: ffcAudience.restUrl + 'bookings',
+        FFC.rest(ffcAudience.restUrl + 'bookings', {
             method: 'POST',
-            contentType: 'application/json',
-            data: JSON.stringify(data),
-            beforeSend: function(xhr) {
-                xhr.setRequestHeader('X-WP-Nonce', ffcAudience.nonce);
-            },
-            success: function(response) {
-                if (response.success) {
+            data: data,
+            nonce: ffcAudience.nonce
+        })
+            .then(function(response) {
+                if (response && response.success) {
                     alert(ffcAudience.strings.bookingCreated);
                     closeModals();
                     renderCalendar();
                 } else {
                     $('#ffc-create-booking-btn').prop('disabled', false).text(ffcAudience.strings.createBooking);
-                    alert(response.message || ffcAudience.strings.error);
+                    alert((response && response.message) || ffcAudience.strings.error);
                 }
-            },
-            error: function() {
+            })
+            .catch(function() {
                 $('#ffc-create-booking-btn').prop('disabled', false).text(ffcAudience.strings.createBooking);
                 alert(ffcAudience.strings.error);
-            }
-        });
+            });
     }
 
     /**
@@ -1059,27 +1043,23 @@
             return;
         }
 
-        $.ajax({
-            url: ffcAudience.restUrl + 'bookings/' + bookingId,
+        FFC.rest(ffcAudience.restUrl + 'bookings/' + bookingId, {
             method: 'DELETE',
-            contentType: 'application/json',
-            data: JSON.stringify({ reason: reason }),
-            beforeSend: function(xhr) {
-                xhr.setRequestHeader('X-WP-Nonce', ffcAudience.nonce);
-            },
-            success: function(response) {
-                if (response.success) {
+            data: { reason: reason },
+            nonce: ffcAudience.nonce
+        })
+            .then(function(response) {
+                if (response && response.success) {
                     alert(ffcAudience.strings.bookingCancelled);
                     renderCalendar();
                     loadDayBookings(date);
                 } else {
-                    alert(response.message || ffcAudience.strings.error);
+                    alert((response && response.message) || ffcAudience.strings.error);
                 }
-            },
-            error: function() {
+            })
+            .catch(function() {
                 alert(ffcAudience.strings.error);
-            }
-        });
+            });
     }
 
     /**
