@@ -93,6 +93,9 @@ class AdminUserCapabilitiesTest extends TestCase {
         $this->utils_mock->shouldReceive( 'asset_suffix' )
             ->andReturn( '.min' )
             ->byDefault();
+        $this->utils_mock->shouldReceive( 'get_post_string' )->andReturnUsing( function ( $key, $default = '' ) {
+            return isset( $_POST[ $key ] ) && is_string( $_POST[ $key ] ) ? $_POST[ $key ] : $default;
+        } )->byDefault();
 
         // Common WP stubs
         Functions\when( '__' )->returnArg();
@@ -272,7 +275,7 @@ class AdminUserCapabilitiesTest extends TestCase {
         // No $_POST nonce set
         unset( $_POST['ffc_capabilities_nonce'] );
 
-        Functions\expect( 'wp_verify_nonce' )->never();
+        Functions\when( 'wp_verify_nonce' )->justReturn( false );
 
         $user = new \WP_User( 5 );
         Functions\when( 'get_userdata' )->justReturn( $user );

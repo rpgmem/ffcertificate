@@ -41,6 +41,8 @@ class ReregistrationSubmissionActionsTest extends TestCase {
         });
         Functions\when('sanitize_text_field')->alias('trim');
         Functions\when('wp_unslash')->returnArg();
+        Functions\when('FreeFormCertificate\Core\sanitize_text_field')->alias('trim');
+        Functions\when('FreeFormCertificate\Core\wp_unslash')->returnArg();
         Functions\when('get_current_user_id')->justReturn(1);
         Functions\when('admin_url')->alias(function ($path = '') {
             return 'https://example.com/wp-admin/' . $path;

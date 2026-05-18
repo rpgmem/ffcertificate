@@ -51,9 +51,14 @@ class AdminUserCustomFieldsTest extends TestCase {
         Functions\when('absint')->justReturn(1);
         Functions\when('sanitize_text_field')->returnArg();
         Functions\when('wp_unslash')->returnArg();
+        Functions\when('FreeFormCertificate\Core\sanitize_text_field')->returnArg();
+        Functions\when('FreeFormCertificate\Core\wp_unslash')->returnArg();
 
         // Utils alias mock
         $this->utils_mock = Mockery::mock('alias:\FreeFormCertificate\Core\Utils');
+        $this->utils_mock->shouldReceive( 'get_post_string' )->andReturnUsing( function ( $key, $default = '' ) {
+            return isset( $_POST[ $key ] ) && is_string( $_POST[ $key ] ) ? $_POST[ $key ] : $default;
+        } )->byDefault();
         $this->utils_mock->shouldReceive('asset_suffix')->andReturn('.min')->byDefault();
 
         // Repository alias mocks
@@ -176,6 +181,7 @@ class AdminUserCustomFieldsTest extends TestCase {
 
     public function test_save_section_returns_early_without_nonce(): void {
         // No $_POST nonce set
+        Functions\when('wp_verify_nonce')->justReturn(false);
         $this->custom_field_repo_mock->shouldReceive('save_user_data')->never();
 
         AdminUserCustomFields::save_section(1);
