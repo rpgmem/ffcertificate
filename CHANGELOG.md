@@ -51,6 +51,16 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 
 ### Changed
 
+- 4 new POST/GET helpers in `Core\Utils` (`get_post_string`,
+  `get_get_string`, `get_post_int`, `get_post_bool`) consolidate
+  scattered `sanitize_text_field(wp_unslash($_POST[...]))` patterns.
+  First batch: ~24 call sites in `core/`, `shortcodes/`,
+  `url-shortener/`, `settings/`, `self-scheduling/`, plus
+  `class-ffc-deactivator.php`. Subsequent batches (audience,
+  frontend, admin+reregistration) follow in separate sub-issues.
+  The `RestSupport` ajax-trait's `get_post_param()` and
+  `get_post_int()` instance methods now delegate to the static
+  helpers.
 - 5 new reuse helpers in `Core\DataSanitizer` and `Core\Utils` consolidate
   scattered patterns: `DataSanitizer::normalize_cpf_rf()` (22 sites,
   CPF/RF digits-only cast), `Utils::get_export_filename()` (4 sites,
