@@ -15,7 +15,7 @@
   },
   "devDependencies": {
     "@vitest/coverage-v8": "~2.1",
-    "@wordpress/stylelint-config": "^23.37.0",
+    "@wordpress/stylelint-config": "^23.38.0",
     "clean-css-cli": "^5.6.3",
     "eslint": "^9.36.0",
     "globals": "^16.4.0",
