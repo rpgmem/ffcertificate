@@ -43,7 +43,7 @@ class DashboardViewMode {
 
         // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Nonce verified below via wp_verify_nonce.
 		$target_user_id = absint( wp_unslash( $_GET['ffc_view_as_user'] ) );
-		$nonce = \FreeFormCertificate\Core\Utils::get_get_string( 'ffc_view_nonce' );
+		$nonce          = \FreeFormCertificate\Core\Utils::get_get_string( 'ffc_view_nonce' );
 
 		// Verify nonce.
 		if ( ! wp_verify_nonce( $nonce, 'ffc_view_as_user_' . $target_user_id ) ) {

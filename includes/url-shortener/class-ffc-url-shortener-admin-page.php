@@ -197,7 +197,7 @@ class UrlShortenerAdminPage {
 		$this->check_ajax_permission();
 
 		// phpcs:ignore WordPress.Security.NonceVerification.Missing -- Nonce verified in $this->verify_ajax_nonce() above.
-		$url = esc_url_raw( wp_unslash( $_POST['target_url'] ?? '' ) );
+		$url   = esc_url_raw( wp_unslash( $_POST['target_url'] ?? '' ) );
 		$title = \FreeFormCertificate\Core\Utils::get_post_string( 'title' );
 
 		if ( empty( $url ) ) {
@@ -308,14 +308,14 @@ class UrlShortenerAdminPage {
 	 */
 	public function render_page(): void {
         // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Display-only pagination parameter.
-		$page = max( 1, (int) ( $_GET['paged'] ?? 1 ) );
-		$search = \FreeFormCertificate\Core\Utils::get_get_string( 's' );
+		$page    = max( 1, (int) ( $_GET['paged'] ?? 1 ) );
+		$search  = \FreeFormCertificate\Core\Utils::get_get_string( 's' );
         // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Display-only sort parameter.
 		$orderby = sanitize_key( $_GET['orderby'] ?? 'created_at' );
         // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Display-only sort direction parameter.
-		$order = strtoupper( sanitize_key( $_GET['order'] ?? 'DESC' ) );
+		$order   = strtoupper( sanitize_key( $_GET['order'] ?? 'DESC' ) );
         // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Display-only status filter parameter.
-		$status = sanitize_key( $_GET['status'] ?? 'all' );
+		$status  = sanitize_key( $_GET['status'] ?? 'all' );
 
 		$per_page = 20;
 		$result   = $this->service->get_repository()->findPaginated(

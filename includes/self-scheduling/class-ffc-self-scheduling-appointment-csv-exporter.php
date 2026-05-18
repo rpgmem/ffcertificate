@@ -379,8 +379,12 @@ class AppointmentCsvExporter {
 
 			$start_date = \FreeFormCertificate\Core\Utils::get_post_string( 'start_date' );
 			$end_date   = \FreeFormCertificate\Core\Utils::get_post_string( 'end_date' );
-			if ( '' === $start_date ) { $start_date = null; }
-			if ( '' === $end_date ) { $end_date = null; }
+			if ( '' === $start_date ) {
+				$start_date = null;
+			}
+			if ( '' === $end_date ) {
+				$end_date = null;
+			}
 
 			$this->export_csv( $calendar_ids, $statuses, $start_date, $end_date );
 
