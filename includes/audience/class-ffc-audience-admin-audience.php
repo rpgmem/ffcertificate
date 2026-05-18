@@ -9,6 +9,8 @@ declare(strict_types=1);
 
 namespace FreeFormCertificate\Audience;
 
+use FreeFormCertificate\Core\Utils;
+
 use FreeFormCertificate\Core\ColorValidator;
 
 /**
@@ -42,7 +44,7 @@ class AudienceAdminAudience {
 	 */
 	public function render_page(): void {
         // phpcs:ignore WordPress.Security.NonceVerification.Recommended
-		$action = isset( $_GET['action'] ) ? sanitize_text_field( wp_unslash( $_GET['action'] ) ) : 'list';
+		$action = Utils::get_get_string( 'action', 'list' );
         // phpcs:ignore WordPress.Security.NonceVerification.Recommended
 		$id = isset( $_GET['id'] ) ? absint( $_GET['id'] ) : 0;
 
@@ -657,7 +659,7 @@ class AudienceAdminAudience {
         // phpcs:ignore WordPress.Security.NonceVerification.Recommended
 		if ( isset( $_GET['message'] ) && isset( $_GET['page'] ) && $_GET['page'] === $this->menu_slug . '-audiences' ) {
             // phpcs:ignore WordPress.Security.NonceVerification.Recommended
-			$msg      = sanitize_text_field( wp_unslash( $_GET['message'] ) );
+			$msg      = Utils::get_get_string( 'message' );
 			$messages = array(
 				'created'        => __( 'Audience created successfully.', 'ffcertificate' ),
 				'deactivated'    => __( 'Audience deactivated successfully.', 'ffcertificate' ),
@@ -671,16 +673,16 @@ class AudienceAdminAudience {
 
 		// Handle save.
 		if ( isset( $_POST['ffc_action'] ) && 'save_audience' === $_POST['ffc_action'] ) {
-			if ( ! isset( $_POST['ffc_audience_nonce'] ) || ! wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST['ffc_audience_nonce'] ) ), 'save_audience' ) ) {
+			if ( ! wp_verify_nonce( Utils::get_post_string( 'ffc_audience_nonce' ), 'save_audience' ) ) {
 				return;
 			}
 
 			$id   = isset( $_POST['audience_id'] ) ? absint( $_POST['audience_id'] ) : 0;
 			$data = array(
-				'name'            => isset( $_POST['audience_name'] ) ? sanitize_text_field( wp_unslash( $_POST['audience_name'] ) ) : '',
+				'name'            => Utils::get_post_string( 'audience_name' ),
 				'color'           => ColorValidator::normalize( isset( $_POST['audience_color'] ) ? wp_unslash( $_POST['audience_color'] ) : '', '#3788d8' ),
 				'parent_id'       => isset( $_POST['audience_parent'] ) && '' !== $_POST['audience_parent'] ? absint( $_POST['audience_parent'] ) : null,
-				'status'          => isset( $_POST['audience_status'] ) ? sanitize_text_field( wp_unslash( $_POST['audience_status'] ) ) : 'active',
+				'status'          => Utils::get_post_string( 'audience_status', 'active' ),
 				'allow_self_join' => ! empty( $_POST['audience_self_join'] ) ? 1 : 0,
 			);
 
@@ -708,12 +710,12 @@ class AudienceAdminAudience {
 
 		// Handle add members.
 		if ( isset( $_POST['ffc_action'] ) && 'add_members' === $_POST['ffc_action'] ) {
-			if ( ! isset( $_POST['ffc_add_members_nonce'] ) || ! wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST['ffc_add_members_nonce'] ) ), 'add_members' ) ) {
+			if ( ! wp_verify_nonce( Utils::get_post_string( 'ffc_add_members_nonce' ), 'add_members' ) ) {
 				return;
 			}
 
 			$audience_id     = isset( $_POST['audience_id'] ) ? absint( $_POST['audience_id'] ) : 0;
-			$user_ids_string = isset( $_POST['user_ids'] ) ? sanitize_text_field( wp_unslash( $_POST['user_ids'] ) ) : '';
+			$user_ids_string = Utils::get_post_string( 'user_ids' );
 
 			if ( $audience_id > 0 && ! empty( $user_ids_string ) ) {
 				$user_ids = array_map( 'absint', explode( ',', $user_ids_string ) );
@@ -728,7 +730,7 @@ class AudienceAdminAudience {
 		if ( isset( $_GET['remove_user'] ) && isset( $_GET['id'] ) ) {
 			$user_id     = absint( $_GET['remove_user'] );
 			$audience_id = absint( $_GET['id'] );
-			if ( wp_verify_nonce( isset( $_GET['_wpnonce'] ) ? sanitize_text_field( wp_unslash( $_GET['_wpnonce'] ) ) : '', 'remove_member_' . $user_id ) ) {
+			if ( wp_verify_nonce( Utils::get_get_string( '_wpnonce' ), 'remove_member_' . $user_id ) ) {
 				AudienceRepository::remove_member( $audience_id, $user_id );
 				wp_safe_redirect( admin_url( 'admin.php?page=' . $this->menu_slug . '-audiences&action=members&id=' . $audience_id . '&message=member_removed' ) );
 				exit;
@@ -739,7 +741,7 @@ class AudienceAdminAudience {
         // phpcs:ignore WordPress.Security.NonceVerification.Recommended
 		if ( isset( $_GET['action'] ) && 'deactivate' === $_GET['action'] && isset( $_GET['id'] ) && isset( $_GET['page'] ) && $_GET['page'] === $this->menu_slug . '-audiences' ) {
 			$id = absint( $_GET['id'] );
-			if ( wp_verify_nonce( isset( $_GET['_wpnonce'] ) ? sanitize_text_field( wp_unslash( $_GET['_wpnonce'] ) ) : '', 'deactivate_audience_' . $id ) ) {
+			if ( wp_verify_nonce( Utils::get_get_string( '_wpnonce' ), 'deactivate_audience_' . $id ) ) {
 				AudienceRepository::update( $id, array( 'status' => 'inactive' ) );
 				wp_safe_redirect( admin_url( 'admin.php?page=' . $this->menu_slug . '-audiences&message=deactivated' ) );
 				exit;
@@ -750,7 +752,7 @@ class AudienceAdminAudience {
         // phpcs:ignore WordPress.Security.NonceVerification.Recommended
 		if ( isset( $_GET['action'] ) && 'delete' === $_GET['action'] && isset( $_GET['id'] ) && isset( $_GET['page'] ) && $_GET['page'] === $this->menu_slug . '-audiences' ) {
 			$id = absint( $_GET['id'] );
-			if ( wp_verify_nonce( isset( $_GET['_wpnonce'] ) ? sanitize_text_field( wp_unslash( $_GET['_wpnonce'] ) ) : '', 'delete_audience_' . $id ) ) {
+			if ( wp_verify_nonce( Utils::get_get_string( '_wpnonce' ), 'delete_audience_' . $id ) ) {
 				$aud = AudienceRepository::get_by_id( $id );
 				if ( $aud && 'active' !== $aud->status ) {
 					AudienceRepository::delete( $id );
