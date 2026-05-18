@@ -18,6 +18,8 @@ declare(strict_types=1);
 
 namespace FreeFormCertificate\Frontend;
 
+use FreeFormCertificate\Core\Utils;
+
 use FreeFormCertificate\Submissions\SubmissionHandler;
 use FreeFormCertificate\Repositories\SubmissionRepository;
 
@@ -665,7 +667,7 @@ class VerificationHandler {
 		// No captcha - token proves legitimacy.
 
         // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Magic token authentication; no nonce needed for this public endpoint.
-		$token   = isset( $_POST['token'] ) ? sanitize_text_field( wp_unslash( $_POST['token'] ) ) : '';
+		$token   = Utils::get_post_string( 'token' );
 		$user_ip = \FreeFormCertificate\Core\Utils::get_user_ip();
 
 		$rate_check = \FreeFormCertificate\Security\RateLimiter::check_verification( $user_ip );
@@ -773,7 +775,7 @@ class VerificationHandler {
 			);
 		}
 
-		$auth_code = isset( $_POST['ffc_auth_code'] ) ? sanitize_text_field( wp_unslash( $_POST['ffc_auth_code'] ) ) : '';
+		$auth_code = Utils::get_post_string( 'ffc_auth_code' );
         // phpcs:enable WordPress.Security.NonceVerification.Missing
 		$result = $this->search_certificate( $auth_code );
 
