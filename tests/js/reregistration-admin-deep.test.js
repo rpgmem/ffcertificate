@@ -5,6 +5,20 @@
 import { describe, it, expect, beforeAll, beforeEach, afterEach, vi } from 'vitest';
 import { loadScript } from './helpers.js';
 
+// FFC.request — the migration target — wraps jQuery.post() in a Promise.
+// Mock $.post and return a chain whose .done / .fail callback the
+// FFC.request internals invoke.
+function postChain(spec) {
+	const chain = { done: () => chain, fail: () => chain };
+	if (spec && 'done' in spec) chain.done = (cb) => { cb(spec.done); return chain; };
+	if (spec && spec.fail) chain.fail = (cb) => { cb(spec.fail === true ? undefined : spec.fail); return chain; };
+	return chain;
+}
+
+// Microtask flush so .then/.catch reactions run before assertions.
+function flush() { return Promise.resolve().then(() => Promise.resolve()); }
+
+
 beforeAll(() => {
 	window.ffcReregistrationAdmin = {
 		ajaxUrl: '/wp-admin/admin-ajax.php',
@@ -35,6 +49,7 @@ afterEach(() => {
 });
 
 async function reload() {
+	if (!window.FFC) { loadScript('assets/js/ffc-core.js'); }
 	loadScript('assets/js/ffc-reregistration-admin.js');
 	await new Promise((r) => setTimeout(r, 0));
 }
@@ -54,6 +69,7 @@ describe('rereg-admin — select-all checkbox', () => {
 		await reload();
 
 		window.$('#cb-select-all').prop('checked', true).trigger('change');
+		await flush();
 
 		const checked = window.$('input[name="submission_ids[]"]:checked').length;
 		expect(checked).toBe(3);
@@ -68,6 +84,7 @@ describe('rereg-admin — select-all checkbox', () => {
 		await reload();
 
 		window.$('#cb-select-all').prop('checked', false).trigger('change');
+		await flush();
 
 		expect(window.$('input[name="submission_ids[]"]:checked').length).toBe(0);
 	});
@@ -97,6 +114,7 @@ describe('rereg-admin — bulk-action submit gate', () => {
 		await reload();
 		const ev = window.$.Event('submit');
 		window.$('#ffc-submissions-form').trigger(ev);
+		await flush();
 		expect(ev.isDefaultPrevented()).toBe(true);
 	});
 
@@ -106,6 +124,7 @@ describe('rereg-admin — bulk-action submit gate', () => {
 		window.$('select[name="bulk_action"]').val('approve');
 		const ev = window.$.Event('submit');
 		window.$('#ffc-submissions-form').trigger(ev);
+		await flush();
 		expect(ev.isDefaultPrevented()).toBe(true);
 	});
 
@@ -117,6 +136,7 @@ describe('rereg-admin — bulk-action submit gate', () => {
 		vi.spyOn(window, 'confirm').mockReturnValue(false);
 		const ev = window.$.Event('submit');
 		window.$('#ffc-submissions-form').trigger(ev);
+		await flush();
 		expect(ev.isDefaultPrevented()).toBe(true);
 	});
 
@@ -130,6 +150,7 @@ describe('rereg-admin — bulk-action submit gate', () => {
 		// Block jsdom's native submit (Not Implemented).
 		window.$('#ffc-submissions-form').on('submit', (e) => e.preventDefault());
 		window.$('#ffc-submissions-form').trigger(ev);
+		await flush();
 		// Our extra preventDefault doesn't count toward the assertion —
 		// the FIRST handler is the IIFE's, which only prevents on confirm=false.
 		// Since confirm returned true, the IIFE didn't preventDefault.
@@ -145,6 +166,7 @@ describe('rereg-admin — bulk-action submit gate', () => {
 		vi.spyOn(window, 'confirm').mockReturnValue(false);
 		const ev = window.$.Event('submit');
 		window.$('#ffc-submissions-form').trigger(ev);
+		await flush();
 		expect(ev.isDefaultPrevented()).toBe(true);
 		expect(vi.mocked(window.confirm)).toHaveBeenCalledWith('Return to draft?');
 	});
@@ -157,6 +179,7 @@ describe('rereg-admin — bulk-action submit gate', () => {
 		const confirmSpy = vi.spyOn(window, 'confirm');
 		window.$('#ffc-submissions-form').on('submit', (e) => e.preventDefault());
 		window.$('#ffc-submissions-form').trigger('submit');
+		await flush();
 		expect(confirmSpy).not.toHaveBeenCalled();
 	});
 });
@@ -172,6 +195,7 @@ describe('rereg-admin — single row return-to-draft button', () => {
 		vi.spyOn(window, 'confirm').mockReturnValue(false);
 		const ev = window.$.Event('click');
 		window.$('.ffc-return-draft-btn').trigger(ev);
+		await flush();
 		expect(ev.isDefaultPrevented()).toBe(true);
 	});
 
@@ -181,6 +205,7 @@ describe('rereg-admin — single row return-to-draft button', () => {
 		vi.spyOn(window, 'confirm').mockReturnValue(true);
 		const ev = window.$.Event('click');
 		window.$('.ffc-return-draft-btn').trigger(ev);
+		await flush();
 		expect(ev.isDefaultPrevented()).toBe(false);
 	});
 });
@@ -197,8 +222,9 @@ describe('rereg-admin — ficha PDF download', () => {
 	it('bails when the button has no submission-id', async () => {
 		document.body.innerHTML = `<button class="ffc-ficha-btn">Ficha</button>`;
 		await reload();
-		const postSpy = vi.spyOn(window.$, 'post').mockImplementation(() => ({ fail: () => ({}) }));
+		const postSpy = vi.spyOn(window.$, 'post').mockImplementation(() => postChain({}));
 		window.$('.ffc-ficha-btn').trigger('click');
+		await flush();
 		expect(postSpy).not.toHaveBeenCalled();
 	});
 
@@ -206,15 +232,13 @@ describe('rereg-admin — ficha PDF download', () => {
 		mountBtn();
 		await reload();
 		window.ffcGeneratePDF = vi.fn();
-		vi.spyOn(window.$, 'post').mockImplementation((url, data, cb) => {
-			cb({
+		vi.spyOn(window.$, 'post').mockImplementation(() => postChain({ done: {
 				success: true,
 				data: { pdf_data: { template: 'x', filename: 'rec.pdf' } },
-			});
-			return { fail: () => ({}) };
-		});
+			} }));
 
 		window.$('.ffc-ficha-btn').trigger('click');
+		await flush();
 
 		expect(window.ffcGeneratePDF).toHaveBeenCalledWith(
 			{ template: 'x', filename: 'rec.pdf' },
@@ -226,13 +250,11 @@ describe('rereg-admin — ficha PDF download', () => {
 		mountBtn();
 		await reload();
 		delete window.ffcGeneratePDF;
-		vi.spyOn(window.$, 'post').mockImplementation((url, data, cb) => {
-			cb({ success: true, data: { pdf_data: { template: 'x' } } });
-			return { fail: () => ({}) };
-		});
+		vi.spyOn(window.$, 'post').mockImplementation(() => postChain({ done: { success: true, data: { pdf_data: { template: 'x' } } } }));
 		const alertSpy = vi.spyOn(window, 'alert').mockImplementation(() => {});
 
 		window.$('.ffc-ficha-btn').trigger('click');
+		await flush();
 
 		expect(alertSpy).toHaveBeenCalledWith('PDF error');
 	});
@@ -240,13 +262,11 @@ describe('rereg-admin — ficha PDF download', () => {
 	it('on response.success=false: alerts the server message', async () => {
 		mountBtn();
 		await reload();
-		vi.spyOn(window.$, 'post').mockImplementation((url, data, cb) => {
-			cb({ success: false, data: { message: 'Submission not found' } });
-			return { fail: () => ({}) };
-		});
+		vi.spyOn(window.$, 'post').mockImplementation(() => postChain({ done: { success: false, data: { message: 'Submission not found' } } }));
 		const alertSpy = vi.spyOn(window, 'alert').mockImplementation(() => {});
 
 		window.$('.ffc-ficha-btn').trigger('click');
+		await flush();
 
 		expect(alertSpy).toHaveBeenCalledWith('Submission not found');
 	});
@@ -254,17 +274,11 @@ describe('rereg-admin — ficha PDF download', () => {
 	it('on network failure: alerts the generic ficha-error string', async () => {
 		mountBtn();
 		await reload();
-		let failCb;
-		vi.spyOn(window.$, 'post').mockImplementation(() => ({
-			fail: (cb) => {
-				failCb = cb;
-				return {};
-			},
-		}));
+		vi.spyOn(window.$, 'post').mockImplementation(() => postChain({ fail: true }));
 		const alertSpy = vi.spyOn(window, 'alert').mockImplementation(() => {});
 
 		window.$('.ffc-ficha-btn').trigger('click');
-		failCb();
+		await flush();
 
 		expect(alertSpy).toHaveBeenCalledWith('PDF error');
 	});
@@ -299,6 +313,7 @@ describe('rereg-admin — submission details modal', () => {
 		}));
 
 		window.$('.ffc-view-details-btn').trigger('click');
+		await flush();
 
 		expect(window.$('#ffc-submission-details-modal').css('display')).not.toBe('none');
 		// jsdom reorders text outside <table> nodes; assert on the visible
@@ -317,6 +332,7 @@ describe('rereg-admin — submission details modal', () => {
 		}));
 
 		window.$('.ffc-view-details-btn').trigger('click');
+		await flush();
 
 		expect(window.$('.ffc-modal-body').text()).toContain('Forbidden');
 	});
@@ -336,6 +352,7 @@ describe('rereg-admin — submission details modal', () => {
 		}));
 
 		window.$('.ffc-view-details-btn').trigger('click');
+		await flush();
 
 		expect(window.$('.ffc-modal-body').text()).toContain('Failed to load');
 	});
@@ -346,6 +363,7 @@ describe('rereg-admin — submission details modal', () => {
 		// Force open
 		window.$('#ffc-submission-details-modal').show();
 		window.$('#ffc-submission-details-modal .ffc-modal-close').trigger('click');
+		await flush();
 		expect(window.$('#ffc-submission-details-modal').css('display')).toBe('none');
 	});
 
@@ -360,6 +378,7 @@ describe('rereg-admin — submission details modal', () => {
 		try {
 			const ev = window.$.Event('keydown', { key: 'Escape' });
 			window.$(document).trigger(ev);
+			await flush();
 			expect(window.$('#ffc-submission-details-modal').css('display')).toBe('none');
 		} finally {
 			window.$.expr.pseudos.visible = originalVisible;
@@ -420,6 +439,7 @@ describe('rereg-admin — audience transfer list', () => {
 		mountTransfer();
 		await reload();
 		window.$('.ffc-transfer-available .ffc-transfer-item[data-id="1"]').trigger('dblclick');
+		await flush();
 		expect(window.$('.ffc-transfer-selected .ffc-transfer-item[data-id="1"]').length).toBe(1);
 	});
 
@@ -427,6 +447,7 @@ describe('rereg-admin — audience transfer list', () => {
 		mountTransfer({ selected: [1, 2] });
 		await reload();
 		window.$('.ffc-transfer-selected .ffc-transfer-item[data-id="1"]').trigger('dblclick');
+		await flush();
 		expect(window.$('.ffc-transfer-selected .ffc-transfer-item[data-id="1"]').length).toBe(0);
 		expect(window.$('.ffc-transfer-available .ffc-transfer-item[data-id="1"]').length).toBe(1);
 	});
@@ -436,6 +457,7 @@ describe('rereg-admin — audience transfer list', () => {
 		await reload();
 		window.$('.ffc-transfer-available .ffc-transfer-item').addClass('ffc-transfer-highlight');
 		window.$('.ffc-transfer-add').trigger('click');
+		await flush();
 		expect(window.$('.ffc-transfer-selected .ffc-transfer-item').length).toBe(3);
 	});
 
@@ -443,6 +465,7 @@ describe('rereg-admin — audience transfer list', () => {
 		mountTransfer();
 		await reload();
 		window.$('.ffc-transfer-add-all').trigger('click');
+		await flush();
 		expect(window.$('.ffc-transfer-selected .ffc-transfer-item').length).toBe(3);
 	});
 
@@ -450,6 +473,7 @@ describe('rereg-admin — audience transfer list', () => {
 		mountTransfer({ selected: [1, 2, 3] });
 		await reload();
 		window.$('.ffc-transfer-remove-all').trigger('click');
+		await flush();
 		expect(window.$('.ffc-transfer-selected .ffc-transfer-item').length).toBe(0);
 	});
 
@@ -457,6 +481,7 @@ describe('rereg-admin — audience transfer list', () => {
 		mountTransfer();
 		await reload();
 		window.$('.ffc-transfer-search').val('group a').trigger('input');
+		await flush();
 		const labels = window.$('.ffc-transfer-available .ffc-transfer-label').map((_, el) => el.textContent).get();
 		expect(labels.every((l) => l.toLowerCase().includes('group a'))).toBe(true);
 	});
@@ -471,6 +496,7 @@ describe('rereg-admin — audience transfer list', () => {
 		});
 		await reload();
 		window.$('.ffc-transfer-available .ffc-transfer-item[data-id="10"]').trigger('dblclick');
+		await flush();
 		// Parent + both children land in selected.
 		expect(window.$('.ffc-transfer-selected .ffc-transfer-item').length).toBe(3);
 	});
@@ -482,13 +508,11 @@ describe('rereg-admin — audience transfer list', () => {
 		await reload();
 		vi.useFakeTimers();
 
-		const postSpy = vi.spyOn(window.$, 'post').mockImplementation((url, data, cb) => {
-			cb({ success: true, data: { count: 42 } });
-			return { fail: () => ({}) };
-		});
+		const postSpy = vi.spyOn(window.$, 'post').mockImplementation(() => postChain({ done: { success: true, data: { count: 42 } } }));
 
 		// Trigger a fresh debounce by toggling something that re-runs render.
 		window.$('.ffc-transfer-add-all').trigger('click');
+		await flush();
 
 		// Just before 300 ms — no AJAX yet.
 		vi.advanceTimersByTime(299);
@@ -496,6 +520,7 @@ describe('rereg-admin — audience transfer list', () => {
 
 		// At 300 ms — AJAX fires.
 		vi.advanceTimersByTime(1);
+		await flush();
 		expect(postSpy).toHaveBeenCalled();
 		expect(window.$('.ffc-transfer-member-count').text()).toContain('42');
 		vi.useRealTimers();
@@ -506,6 +531,7 @@ describe('rereg-admin — audience transfer list', () => {
 		await reload();
 		const ev = window.$.Event('submit');
 		window.$('form').trigger(ev);
+		await flush();
 		expect(ev.isDefaultPrevented()).toBe(true);
 		expect(window.$('.ffc-transfer-selected').hasClass('ffc-transfer-error')).toBe(true);
 	});
@@ -515,8 +541,10 @@ describe('rereg-admin — audience transfer list', () => {
 		await reload();
 		const $first = window.$('.ffc-transfer-available .ffc-transfer-item').first();
 		$first.trigger('click');
+		await flush();
 		expect($first.hasClass('ffc-transfer-highlight')).toBe(true);
 		$first.trigger('click');
+		await flush();
 		expect($first.hasClass('ffc-transfer-highlight')).toBe(false);
 	});
 });

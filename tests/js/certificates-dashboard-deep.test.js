@@ -10,6 +10,20 @@
 import { describe, it, expect, beforeAll, beforeEach, afterEach, vi } from 'vitest';
 import { loadScript } from './helpers.js';
 
+// FFC.request — the migration target — wraps jQuery.post() in a Promise.
+// Mock $.post and return a chain whose .done / .fail callback the
+// FFC.request internals invoke.
+function postChain(spec) {
+	const chain = { done: () => chain, fail: () => chain };
+	if (spec && 'done' in spec) chain.done = (cb) => { cb(spec.done); return chain; };
+	if (spec && spec.fail) chain.fail = (cb) => { cb(spec.fail === true ? undefined : spec.fail); return chain; };
+	return chain;
+}
+
+// Microtask flush so .then/.catch reactions run before assertions.
+function flush() { return Promise.resolve().then(() => Promise.resolve()); }
+
+
 function mountFixture() {
 	document.body.innerHTML = `
 		<div id="ffc-certificates-calendar"></div>
@@ -52,6 +66,7 @@ beforeEach(async () => {
 	};
 	installCalendarMock();
 	mountFixture();
+	if (!window.FFC) { loadScript('assets/js/ffc-core.js'); }
 	loadScript('assets/js/ffc-certificates-dashboard.js');
 	// jQuery 4 defers $(fn) to a microtask — wait for it so the calendar
 	// is instantiated before the test body runs.
@@ -67,7 +82,7 @@ afterEach(() => {
 // ----------------------------------------------------------------------
 
 describe('certificates-dashboard — calendar wiring', () => {
-	it('passes legend entries + showLegend/showTodayButton/showFilters', () => {
+	it('passes legend entries + showLegend/showTodayButton/showFilters', async () => {
 		expect(capturedOpts.showLegend).toBe(true);
 		expect(capturedOpts.showTodayButton).toBe(true);
 		expect(capturedOpts.showFilters).toBe(false);
@@ -83,15 +98,13 @@ describe('certificates-dashboard — calendar wiring', () => {
 // ----------------------------------------------------------------------
 
 describe('certificates-dashboard — fetchMonth', () => {
-	it('issues a GET to /certificates/calendar?year=Y&month=M with the X-WP-Nonce header', () => {
-		const ajaxSpy = vi.spyOn(window.$, 'ajax').mockImplementation(() => ({
-			done: () => ({}),
-		}));
+	it('issues a GET to /certificates/calendar?year=Y&month=M with the X-WP-Nonce header', async () => {
+		const postSpy = vi.spyOn(window.$, 'ajax').mockImplementation(() => ({}));
 
 		capturedOpts.onMonthChange(2026, 6);
 
-		expect(ajaxSpy).toHaveBeenCalled();
-		const opts = ajaxSpy.mock.calls[0][0];
+		expect(postSpy).toHaveBeenCalled();
+		const opts = postSpy.mock.calls[0][0];
 		expect(opts.url).toBe('/wp-json/ffc/v1/certificates/calendar?year=2026&month=6');
 		expect(opts.method).toBe('GET');
 
@@ -101,15 +114,10 @@ describe('certificates-dashboard — fetchMonth', () => {
 		expect(xhr.setRequestHeader).toHaveBeenCalledWith('X-WP-Nonce', 'cert-nonce');
 	});
 
-	it('on success: stores entries keyed by date and refreshes the calendar', () => {
+	it('on success: stores entries keyed by date and refreshes the calendar', async () => {
 		// Capture `done` callback.
 		let doneCb;
-		vi.spyOn(window.$, 'ajax').mockImplementation(() => ({
-			done: (cb) => {
-				doneCb = cb;
-				return {};
-			},
-		}));
+		vi.spyOn(window.$, 'ajax').mockImplementation((opts) => { doneCb = opts.success; return {}; });
 
 		capturedOpts.onMonthChange(2026, 6);
 		// First refresh fires immediately (resets stale month).
@@ -120,6 +128,7 @@ describe('certificates-dashboard — fetchMonth', () => {
 			{ date: '2026-06-05', source: 'postdate', title: 'Form B', id: 2, status: 'draft' },
 			{ date: '2026-06-12', source: 'geofence', title: 'Form C', id: 3, status: 'publish' },
 		]);
+await flush();
 
 		// Second refresh after the response writes.
 		expect(calendarRefreshSpy).toHaveBeenCalledTimes(2);
@@ -134,14 +143,9 @@ describe('certificates-dashboard — fetchMonth', () => {
 		]);
 	});
 
-	it('races: a later fetch invalidates an earlier in-flight response', () => {
+	it('races: a later fetch invalidates an earlier in-flight response', async () => {
 		const doneCbs = [];
-		vi.spyOn(window.$, 'ajax').mockImplementation(() => ({
-			done: (cb) => {
-				doneCbs.push(cb);
-				return {};
-			},
-		}));
+		vi.spyOn(window.$, 'ajax').mockImplementation((opts) => { doneCbs.push(opts.success); return {}; });
 
 		// Two fetches in flight.
 		capturedOpts.onMonthChange(2026, 6);
@@ -151,43 +155,37 @@ describe('certificates-dashboard — fetchMonth', () => {
 		doneCbs[0]([
 			{ date: '2026-06-05', source: 'geofence', title: 'Stale', id: 99 },
 		]);
+await flush();
 		expect(capturedOpts.getDayContent('2026-06-05')).toBe('');
 
 		// Then the NEW fetch resolves — its entries should land.
 		doneCbs[1]([
 			{ date: '2026-07-10', source: 'geofence', title: 'Fresh', id: 100 },
 		]);
+await flush();
 		expect(capturedOpts.getDayContent('2026-07-10')).toContain('1');
 	});
 
-	it('non-array responses are ignored without throwing', () => {
+	it('non-array responses are ignored without throwing', async () => {
 		let doneCb;
-		vi.spyOn(window.$, 'ajax').mockImplementation(() => ({
-			done: (cb) => {
-				doneCb = cb;
-				return {};
-			},
-		}));
+		vi.spyOn(window.$, 'ajax').mockImplementation((opts) => { doneCb = opts.success; return {}; });
 
 		capturedOpts.onMonthChange(2026, 6);
 		expect(() => doneCb({ unexpected: 'shape' })).not.toThrow();
+		await flush();
 		expect(capturedOpts.getDayContent('2026-06-05')).toBe('');
 	});
 
-	it('skips response entries with no `date` field', () => {
+	it('skips response entries with no `date` field', async () => {
 		let doneCb;
-		vi.spyOn(window.$, 'ajax').mockImplementation(() => ({
-			done: (cb) => {
-				doneCb = cb;
-				return {};
-			},
-		}));
+		vi.spyOn(window.$, 'ajax').mockImplementation((opts) => { doneCb = opts.success; return {}; });
 
 		capturedOpts.onMonthChange(2026, 6);
 		doneCb([
 			{ source: 'geofence', title: 'Orphan' }, // no date
 			{ date: '2026-06-01', source: 'geofence', title: 'Real' },
 		]);
+await flush();
 
 		// Only the entry with date counts.
 		expect(capturedOpts.getDayContent('2026-06-01')).toContain('1');
@@ -199,25 +197,21 @@ describe('certificates-dashboard — fetchMonth', () => {
 // ----------------------------------------------------------------------
 
 describe('certificates-dashboard — day content + classes', () => {
-	function seed(entries) {
+	async function seed(entries) {
 		let doneCb;
-		vi.spyOn(window.$, 'ajax').mockImplementation(() => ({
-			done: (cb) => {
-				doneCb = cb;
-				return {};
-			},
-		}));
+		vi.spyOn(window.$, 'ajax').mockImplementation((opts) => { doneCb = opts.success; return {}; });
 		capturedOpts.onMonthChange(2026, 6);
 		doneCb(entries);
+		await flush();
 	}
 
-	it('returns empty content + empty classes for a date with no entries', () => {
+	it('returns empty content + empty classes for a date with no entries', async () => {
 		expect(capturedOpts.getDayContent('2026-06-15')).toBe('');
 		expect(capturedOpts.getDayClasses('2026-06-15')).toEqual([]);
 	});
 
-	it('emits only the geofence class when every entry is a geofence source', () => {
-		seed([
+	it('emits only the geofence class when every entry is a geofence source', async () => {
+		await seed([
 			{ date: '2026-06-01', source: 'geofence', title: 'A' },
 			{ date: '2026-06-01', source: 'geofence', title: 'B' },
 		]);
@@ -227,8 +221,8 @@ describe('certificates-dashboard — day content + classes', () => {
 		]);
 	});
 
-	it('emits only the fallback class when every entry is post-date sourced', () => {
-		seed([
+	it('emits only the fallback class when every entry is post-date sourced', async () => {
+		await seed([
 			{ date: '2026-06-02', source: 'postdate', title: 'A' },
 			{ date: '2026-06-02', source: 'postdate', title: 'B' },
 		]);
@@ -244,27 +238,23 @@ describe('certificates-dashboard — day content + classes', () => {
 // ----------------------------------------------------------------------
 
 describe('certificates-dashboard — renderSideList', () => {
-	function seed(entries) {
+	async function seed(entries) {
 		let doneCb;
-		vi.spyOn(window.$, 'ajax').mockImplementation(() => ({
-			done: (cb) => {
-				doneCb = cb;
-				return {};
-			},
-		}));
+		vi.spyOn(window.$, 'ajax').mockImplementation((opts) => { doneCb = opts.success; return {}; });
 		capturedOpts.onMonthChange(2026, 6);
 		doneCb(entries);
+		await flush();
 	}
 
-	it('shows the empty-state message when the day has no entries', () => {
+	it('shows the empty-state message when the day has no entries', async () => {
 		capturedOpts.onDayClick('2026-06-20');
 		expect(window.$('#ffc-certificates-day-list').attr('hidden')).toBe('hidden');
 		expect(window.$('.ffc-certificates-side-empty').text()).toBe('No forms today.');
 		expect(window.$('.ffc-certificates-side-empty').css('display')).not.toBe('none');
 	});
 
-	it('renders one <li> per entry, sorted by title', () => {
-		seed([
+	it('renders one <li> per entry, sorted by title', async () => {
+		await seed([
 			{ date: '2026-06-05', source: 'geofence', title: 'Zulu', id: 99, edit_url: '/edit/99', status: 'publish' },
 			{ date: '2026-06-05', source: 'postdate', title: 'Alpha', id: 100, edit_url: '/edit/100', status: 'publish' },
 			{ date: '2026-06-05', source: 'geofence', title: 'Mike', id: 101, edit_url: '/edit/101', status: 'publish' },
@@ -277,10 +267,10 @@ describe('certificates-dashboard — renderSideList', () => {
 		expect(titles).toEqual(['Alpha', 'Mike', 'Zulu']);
 	});
 
-	it('renders a link when entry has edit_url, plain span otherwise', () => {
+	it('renders a link when entry has edit_url, plain span otherwise', async () => {
 		// renderSideList sorts entries by title; pick names that keep the
 		// "linked" entry first after sort so the index assertions are stable.
-		seed([
+		await seed([
 			{ date: '2026-06-05', source: 'geofence', title: 'A-Linked', id: 1, edit_url: '/edit/1', status: 'publish' },
 			{ date: '2026-06-05', source: 'geofence', title: 'B-Plain', id: 2, status: 'publish' },
 		]);
@@ -292,9 +282,9 @@ describe('certificates-dashboard — renderSideList', () => {
 		expect($titles.eq(1).is('a')).toBe(false);
 	});
 
-	it('appends the status label only when status !== "publish"', () => {
+	it('appends the status label only when status !== "publish"', async () => {
 		// Pick names that keep "publish" entry first after the title sort.
-		seed([
+		await seed([
 			{ date: '2026-06-05', source: 'geofence', title: 'A-Pub', id: 1, status: 'publish' },
 			{ date: '2026-06-05', source: 'geofence', title: 'B-Drft', id: 2, status: 'draft' },
 		]);
@@ -305,8 +295,8 @@ describe('certificates-dashboard — renderSideList', () => {
 		expect($items.eq(1).find('.ffc-certificates-status').text()).toBe('(draft)');
 	});
 
-	it('attaches the source badge with is-geofence / is-fallback classes', () => {
-		seed([
+	it('attaches the source badge with is-geofence / is-fallback classes', async () => {
+		await seed([
 			{ date: '2026-06-05', source: 'geofence', title: 'A', id: 1, status: 'publish' },
 			{ date: '2026-06-05', source: 'postdate', title: 'B', id: 2, status: 'publish' },
 		]);
@@ -319,7 +309,7 @@ describe('certificates-dashboard — renderSideList', () => {
 		expect($badges.eq(1).text()).toBe('Publication date');
 	});
 
-	it('updates the side title with the localised label of the selected date', () => {
+	it('updates the side title with the localised label of the selected date', async () => {
 		capturedOpts.onDayClick('2026-06-05');
 		expect(window.$('.ffc-certificates-side-title').text()).toContain('Forms');
 		// The date format depends on locale; just confirm the title was
@@ -327,8 +317,8 @@ describe('certificates-dashboard — renderSideList', () => {
 		expect(window.$('.ffc-certificates-side-title').text()).toContain(' — ');
 	});
 
-	it('falls back to "#id" as title when entry.title is missing', () => {
-		seed([
+	it('falls back to "#id" as title when entry.title is missing', async () => {
+		await seed([
 			{ date: '2026-06-05', source: 'geofence', id: 42, edit_url: '/edit/42', status: 'publish' },
 		]);
 		capturedOpts.onDayClick('2026-06-05');

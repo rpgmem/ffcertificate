@@ -86,30 +86,29 @@
 
             $btn.prop('disabled', true).text(S.generatingPdf || 'Generating PDF...');
 
-            $.post(ffcReregistrationAdmin.ajaxUrl, {
-                action: 'ffc_generate_ficha',
-                nonce: ffcReregistrationAdmin.fichaNonce,
-                submission_id: subId
-            }, function (res) {
+            function restoreBtn() {
                 $btn.prop('disabled', false).html(
                     '<span class="dashicons dashicons-media-document" style="vertical-align:middle;font-size:14px"></span> ' + (S.ficha || 'Record')
                 );
+            }
 
-                if (res.success && res.data.pdf_data) {
-                    if (typeof window.ffcGeneratePDF === 'function') {
-                        window.ffcGeneratePDF(res.data.pdf_data, res.data.pdf_data.filename || 'ficha.pdf');
+            FFC.request(
+                'ffc_generate_ficha',
+                { submission_id: subId },
+                { nonce: ffcReregistrationAdmin.fichaNonce, ajaxUrl: ffcReregistrationAdmin.ajaxUrl }
+            )
+                .then(function (data) {
+                    restoreBtn();
+                    if (data && data.pdf_data && typeof window.ffcGeneratePDF === 'function') {
+                        window.ffcGeneratePDF(data.pdf_data, data.pdf_data.filename || 'ficha.pdf');
                     } else {
                         alert(S.errorGenerating || 'PDF generator not available.');
                     }
-                } else {
-                    alert(res.data && res.data.message ? res.data.message : S.errorGenerating || 'Error generating ficha.');
-                }
-            }).fail(function () {
-                $btn.prop('disabled', false).html(
-                    '<span class="dashicons dashicons-media-document" style="vertical-align:middle;font-size:14px"></span> ' + (S.ficha || 'Record')
-                );
-                alert(S.errorGenerating || 'Error generating ficha.');
-            });
+                })
+                .catch(function (err) {
+                    restoreBtn();
+                    alert((err && err.fromServer && err.message) || S.errorGenerating || 'Error generating ficha.');
+                });
         });
     }
 
@@ -142,22 +141,22 @@
             $body.html('<p class="ffc-modal-loading">' + (S.loadingDetails || 'Loading…') + '</p>');
             openModal();
 
-            $.post(ffcReregistrationAdmin.ajaxUrl, {
-                action: 'ffc_view_submission_details',
-                nonce: ffcReregistrationAdmin.viewDetailsNonce,
-                submission_id: subId
-            }).done(function (res) {
-                if (res && res.success && res.data && res.data.html) {
-                    $body.html(res.data.html);
-                } else {
-                    var msg = (res && res.data && res.data.message)
-                        ? res.data.message
-                        : (S.errorLoadingDetails || 'Failed to load submission details.');
+            FFC.request(
+                'ffc_view_submission_details',
+                { submission_id: subId },
+                { nonce: ffcReregistrationAdmin.viewDetailsNonce, ajaxUrl: ffcReregistrationAdmin.ajaxUrl }
+            )
+                .then(function (data) {
+                    if (data && data.html) {
+                        $body.html(data.html);
+                    } else {
+                        $body.html('<p class="notice notice-error">' + (S.errorLoadingDetails || 'Failed to load submission details.') + '</p>');
+                    }
+                })
+                .catch(function (err) {
+                    var msg = (err && err.fromServer && err.message) || S.errorLoadingDetails || 'Failed to load submission details.';
                     $body.html('<p class="notice notice-error">' + msg + '</p>');
-                }
-            }).fail(function () {
-                $body.html('<p class="notice notice-error">' + (S.errorLoadingDetails || 'Failed to load submission details.') + '</p>');
-            });
+                });
         });
 
         // Close handlers: X button, backdrop, ESC key
@@ -252,16 +251,16 @@
                 return;
             }
             memberTimer = setTimeout(function () {
-                $.post(ffcReregistrationAdmin.ajaxUrl, {
-                    action: 'ffc_rereg_count_members',
-                    nonce: ffcReregistrationAdmin.adminNonce,
-                    audience_ids: selectedIds
-                }, function (res) {
-                    if (res.success) {
+                FFC.request(
+                    'ffc_rereg_count_members',
+                    { audience_ids: selectedIds },
+                    { nonce: ffcReregistrationAdmin.adminNonce, ajaxUrl: ffcReregistrationAdmin.ajaxUrl }
+                )
+                    .then(function (data) {
                         var S = ffcReregistrationAdmin.strings || {};
-                        $memberCount.html('<strong>' + (S.affectedUsers || 'Affected users:') + '</strong> ' + res.data.count);
-                    }
-                });
+                        $memberCount.html('<strong>' + (S.affectedUsers || 'Affected users:') + '</strong> ' + data.count);
+                    })
+                    .catch(function () { /* silent — UI count is best-effort */ });
             }, 300);
         }
 

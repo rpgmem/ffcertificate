@@ -96,11 +96,7 @@
             var postId = $btn.data('post-id');
             var action = format === 'svg' ? 'ffc_download_qr_svg' : 'ffc_download_qr_png';
 
-            var payload = {
-                action: action,
-                nonce: settings.nonce
-            };
-
+            var payload = {};
             if (postId) {
                 payload.post_id = postId;
             } else {
@@ -109,17 +105,17 @@
 
             $btn.prop('disabled', true);
 
-            $.post(settings.ajaxUrl, payload, function (response) {
-                $btn.prop('disabled', false);
-                if (response.success) {
-                    downloadBase64(response.data.data, response.data.filename, response.data.mime);
-                } else {
-                    showToast(response.data ? response.data.message : 'Error', 'error');
-                }
-            }).fail(function () {
-                $btn.prop('disabled', false);
-                showToast(settings.i18n ? settings.i18n.error : 'Error', 'error');
-            });
+            FFC.request(action, payload, { nonce: settings.nonce, ajaxUrl: settings.ajaxUrl })
+                .then(function (data) {
+                    $btn.prop('disabled', false);
+                    downloadBase64(data.data, data.filename, data.mime);
+                })
+                .catch(function (err) {
+                    $btn.prop('disabled', false);
+                    var msg = (err && err.fromServer && err.message)
+                        || (settings.i18n ? settings.i18n.error : 'Error');
+                    showToast(msg, 'error');
+                });
         });
 
         // --- Regenerate short URL ---
@@ -133,23 +129,22 @@
 
             $btn.prop('disabled', true);
 
-            $.post(settings.ajaxUrl, {
-                action: 'ffc_regenerate_short_url',
-                nonce: settings.nonce,
-                post_id: postId
-            }, function (response) {
-                $btn.prop('disabled', false);
-                if (response.success) {
+            FFC.request(
+                'ffc_regenerate_short_url',
+                { post_id: postId },
+                { nonce: settings.nonce, ajaxUrl: settings.ajaxUrl }
+            )
+                .then(function () {
+                    $btn.prop('disabled', false);
                     showToast(settings.i18n ? settings.i18n.regenerated : 'Regenerated!');
-                    // Reload to update meta box
                     window.location.reload();
-                } else {
-                    showToast(response.data ? response.data.message : 'Error', 'error');
-                }
-            }).fail(function () {
-                $btn.prop('disabled', false);
-                showToast(settings.i18n ? settings.i18n.error : 'Error', 'error');
-            });
+                })
+                .catch(function (err) {
+                    $btn.prop('disabled', false);
+                    var msg = (err && err.fromServer && err.message)
+                        || (settings.i18n ? settings.i18n.error : 'Error');
+                    showToast(msg, 'error');
+                });
         });
 
         // --- QR Code Modal ---
@@ -172,25 +167,27 @@
             $modal.show();
 
             // Fetch QR Code via AJAX
-            $.post(settings.ajaxUrl, {
-                action: 'ffc_download_qr_png',
-                nonce: settings.nonce,
-                code: code
-            }, function (response) {
-                $modal.find('.ffc-qr-modal__spinner').hide();
-                if (response.success) {
+            FFC.request(
+                'ffc_download_qr_png',
+                { code: code },
+                { nonce: settings.nonce, ajaxUrl: settings.ajaxUrl }
+            )
+                .then(function (data) {
+                    $modal.find('.ffc-qr-modal__spinner').hide();
                     $modal.find('.ffc-qr-modal__img')
-                        .attr('src', 'data:image/png;base64,' + response.data.data)
+                        .attr('src', 'data:image/png;base64,' + data.data)
                         .show();
-                } else {
-                    $modal.find('.ffc-qr-modal__preview')
-                        .html('<p style="color:#dc3232;">' + (response.data ? response.data.message : 'Error') + '</p>');
-                }
-            }).fail(function () {
-                $modal.find('.ffc-qr-modal__spinner').hide();
-                $modal.find('.ffc-qr-modal__preview')
-                    .html('<p style="color:#dc3232;">Failed to load QR Code</p>');
-            });
+                })
+                .catch(function (err) {
+                    $modal.find('.ffc-qr-modal__spinner').hide();
+                    if (err && err.fromServer) {
+                        $modal.find('.ffc-qr-modal__preview')
+                            .html('<p style="color:#dc3232;">' + (err.message || 'Error') + '</p>');
+                    } else {
+                        $modal.find('.ffc-qr-modal__preview')
+                            .html('<p style="color:#dc3232;">Failed to load QR Code</p>');
+                    }
+                });
         });
 
         // Close modal
@@ -215,15 +212,14 @@
 
             $btn.prop('disabled', true);
 
-            $.post(settings.ajaxUrl || (window.ajaxurl || '/wp-admin/admin-ajax.php'), {
-                action: 'ffc_create_short_url',
-                nonce: nonce,
-                target_url: targetUrl,
-                title: title
-            }, function (response) {
-                $btn.prop('disabled', false);
-                if (response.success) {
-                    var shortUrl = response.data.short_url;
+            FFC.request(
+                'ffc_create_short_url',
+                { target_url: targetUrl, title: title },
+                { nonce: nonce, ajaxUrl: settings.ajaxUrl || (window.ajaxurl || '/wp-admin/admin-ajax.php') }
+            )
+                .then(function (data) {
+                    $btn.prop('disabled', false);
+                    var shortUrl = data.short_url;
                     $result.html(
                         '<strong>' + shortUrl + '</strong> ' +
                         '<button type="button" class="button button-small ffc-copy-shorturl" data-url="' + shortUrl + '">' +
@@ -234,13 +230,15 @@
                     $('#ffc-shorturl-title').val('');
                     // Reload table after a brief delay
                     setTimeout(function () { window.location.reload(); }, 1500);
-                } else {
-                    $result.html('<span style="color:#dc3232;">' + (response.data ? response.data.message : 'Error') + '</span>').show();
-                }
-            }).fail(function () {
-                $btn.prop('disabled', false);
-                $result.html('<span style="color:#dc3232;">Request failed</span>').show();
-            });
+                })
+                .catch(function (err) {
+                    $btn.prop('disabled', false);
+                    if (err && err.fromServer) {
+                        $result.html('<span style="color:#dc3232;">' + (err.message || 'Error') + '</span>').show();
+                    } else {
+                        $result.html('<span style="color:#dc3232;">Request failed</span>').show();
+                    }
+                });
         });
     });
 
