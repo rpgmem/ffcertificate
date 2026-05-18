@@ -51,6 +51,14 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 
 ### Changed
 
+- POST/GET sanitize migration continues — admin + reregistration area:
+  inline `sanitize_text_field(wp_unslash($_POST/$_GET[...]))` patterns
+  migrated to `Utils::get_post_string` / `get_get_string` across 14
+  files in `includes/admin/` and `includes/reregistration/` (settings
+  save handlers, list pages, CSV exporters, submission actions, user
+  capability + custom-field editors, locations AJAX endpoint, form-editor
+  save handler, activity log page, assets manager). This closes the
+  #276 POST/GET sanitize umbrella.
 - POST/GET sanitize migration continues — frontend area: 36 sites
   migrated to `Utils::get_post_string` / `get_get_string` across
   `public-csv-download.php`, `public-csv-exporter.php`,
