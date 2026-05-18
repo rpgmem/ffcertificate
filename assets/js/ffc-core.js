@@ -219,6 +219,74 @@
         },
 
         /**
+         * Promise-based WP REST API helper.
+         *
+         * Sibling of `FFC.request` for endpoints that live on the WP REST
+         * surface instead of `admin-ajax.php`. Centralises the verbose
+         * jQuery.ajax pattern that user-dashboard / audience callers
+         * spell out by hand:
+         *   - `X-WP-Nonce` header injection (REST convention, not body param);
+         *   - JSON body encoding for write methods (POST/PUT/PATCH/DELETE);
+         *   - error normalisation that surfaces `response.message` from
+         *     a WP_REST_Response error body when available.
+         *
+         * @param {string} url URL completa. Callers passam
+         *                     `ffcDashboard.restUrl + 'user/profile'` etc.
+         *                     O helper não monta a URL para não acoplar
+         *                     FFC.config a vars localizadas dashboard/audience.
+         * @param {Object} [options]
+         * @param {string} [options.method='GET'] HTTP verb.
+         * @param {Object} [options.data] Payload. GET/HEAD → query string;
+         *                                outros → JSON body.
+         * @param {string} [options.nonce] X-WP-Nonce override. Default vem
+         *                                 de `FFC.config.restNonce` se setado.
+         * @returns {Promise<*>} Resolve com response body parseado;
+         *                       rejeita com `Error` (campo `.xhr` preserva
+         *                       o jqXHR para introspection).
+         */
+        rest: function(url, options) {
+            options = options || {};
+            var method = (options.method || 'GET').toUpperCase();
+            var nonce = options.nonce || (this.config && this.config.restNonce) || '';
+
+            var ajaxOpts = {
+                url: url,
+                method: method,
+                beforeSend: function(xhr) {
+                    if (nonce) {
+                        xhr.setRequestHeader('X-WP-Nonce', nonce);
+                    }
+                }
+            };
+
+            if (typeof options.data !== 'undefined' && options.data !== null) {
+                if (method === 'GET' || method === 'HEAD') {
+                    ajaxOpts.data = options.data;
+                } else {
+                    ajaxOpts.contentType = 'application/json';
+                    ajaxOpts.data = JSON.stringify(options.data);
+                }
+            }
+
+            return new Promise(function(resolve, reject) {
+                // Pass success/error inside ajaxOpts (instead of chaining
+                // .done/.fail on the return value) so test doubles that
+                // intercept $.ajax can drive resolution by invoking
+                // opts.success / opts.error directly.
+                ajaxOpts.success = function(response) { resolve(response); };
+                ajaxOpts.error = function(xhr) {
+                    var msg = (xhr && xhr.responseJSON && xhr.responseJSON.message)
+                        || (FFC.config.strings && FFC.config.strings.connectionError)
+                        || 'Request failed';
+                    var err = new Error(msg);
+                    err.xhr = xhr;
+                    reject(err);
+                };
+                jQuery.ajax(ajaxOpts);
+            });
+        },
+
+        /**
          * Centralized field toggle helper
          *
          * @param {jQuery|string} $trigger - Trigger element (checkbox, radio, select)
