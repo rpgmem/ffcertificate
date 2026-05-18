@@ -63,8 +63,17 @@ jobs:
     # below the current line-coverage baseline so the gate doesn't fire
     # on day one but does catch a regression. Ratchet the floor upward
     # whenever a PR genuinely improves coverage.
+    #
+    # 50 → 55 in the §7 ratchet (#310) — closes out the #254 §7 test-gap
+    # sprint that landed direct unit coverage for the RateLimitLogger /
+    # RateLimitStats pair (#311), the ReregistrationSubmissionDetails
+    # renderer (#312), the ActivityLogClearPlaintext + EmailHashRehash
+    # migration strategies (#313), the 9 Form Editor metaboxes (#315),
+    # and the §7.4a Recruitment slice (#316, REST × 4 + trait + Reason
+    # repository). Conservative 5pp bump leaves headroom for the
+    # in-flight §7.4b (#317) and §7.4c (#318) follow-ups.
     env:
-      COVERAGE_FLOOR_LINES: '50'
+      COVERAGE_FLOOR_LINES: '55'
     steps:
       - uses: actions/checkout@v6
       - uses: ./.github/actions/setup-composer
