@@ -105,6 +105,26 @@ describe('FFC.request — payload composition', () => {
 		expect(postSpy.mock.calls.at(-1)[1].nonce).toBe('core-nonce');
 	});
 
+	it('accepts a pre-serialised URL-encoded string payload and appends action + nonce', async () => {
+		// Mirrors the pattern used by ffc-csv-download.js where the
+		// payload is `$form.serialize()`. The helper must not try to
+		// jQuery.extend a string — that would index its characters.
+		const chain = { done: () => chain, fail: () => chain };
+		const postSpy = vi.spyOn(window.$, 'post').mockImplementation((url, payload) => {
+			chain.done = function (cb) { cb({ success: true, data: 'ok' }); return chain; };
+			return chain;
+		});
+
+		await window.FFC.request('ffc_public_csv_info', 'foo=bar&baz=qux', { nonce: 'csv-n' });
+
+		const [, payload] = postSpy.mock.calls[0];
+		expect(typeof payload).toBe('string');
+		expect(payload).toContain('foo=bar');
+		expect(payload).toContain('baz=qux');
+		expect(payload).toContain('action=ffc_public_csv_info');
+		expect(payload).toContain('nonce=csv-n');
+	});
+
 	it('rejects with a server-supplied message on response.success=false', async () => {
 		const chain = { done: () => chain, fail: () => chain };
 		vi.spyOn(window.$, 'post').mockImplementation(() => {

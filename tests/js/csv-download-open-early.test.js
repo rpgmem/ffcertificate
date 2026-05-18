@@ -10,6 +10,20 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { loadScript } from './helpers.js';
 
+// FFC.request (the migration target) wraps jQuery.post() in a Promise.
+// Mock $.post and return a chain whose .done / .fail callback the
+// FFC.request internals invoke.
+function postChain(spec) {
+	const chain = { done: () => chain, fail: () => chain };
+	if (spec && 'done' in spec) chain.done = (cb) => { cb(spec.done); return chain; };
+	if (spec && spec.fail) chain.fail = (cb) => { cb(); return chain; };
+	return chain;
+}
+
+// Microtask flush so .then/.catch reactions run before assertions.
+function flush() { return Promise.resolve().then(() => Promise.resolve()); }
+
+
 function mountContainer() {
 	document.body.innerHTML = `
 		<div class="ffc-public-csv-download">
@@ -46,6 +60,16 @@ function infoWithEarlyOpen(overrides = {}) {
 }
 
 async function loadAndReady() {
+	// ffc-csv-download.js was migrated to FFC.request — load ffc-core.js
+	// so window.FFC is defined when the subject IIFE evaluates.
+	if (! window.FFC) {
+		window.ffc_ajax = window.ffc_ajax || {
+			ajax_url: window.ffc_csv_download && window.ffc_csv_download.ajax_url,
+			nonce: '',
+			strings: (window.ffc_csv_download && window.ffc_csv_download.strings) || {},
+		};
+		loadScript('assets/js/ffc-core.js');
+	}
 	loadScript('assets/js/ffc-csv-download.js');
 	await new Promise((r) => setTimeout(r, 0));
 }
@@ -53,12 +77,11 @@ async function loadAndReady() {
 async function reachInfoScreen(infoOverride) {
 	mountContainer();
 	await loadAndReady();
-	const ajaxSpy = vi.spyOn(window.$, 'ajax');
-	ajaxSpy.mockImplementationOnce((opts) => {
-		opts.success({ success: true, data: infoOverride || infoWithEarlyOpen() });
-	});
+	const postSpy = vi.spyOn(window.$, 'post');
+	postSpy.mockImplementationOnce(() => postChain({ done: { success: true, data: infoOverride || infoWithEarlyOpen() } }));
 	window.$('.ffc-public-csv-download form').trigger('submit');
-	return ajaxSpy;
+	await flush();
+	return postSpy;
 }
 
 beforeEach(() => {
@@ -138,6 +161,7 @@ describe('csv-download — open-early modal', () => {
 		await reachInfoScreen();
 
 		window.$('.ffc-btn-open-early').trigger('click');
+		await flush();
 
 		expect(window.$('.ffc-open-early-modal').length).toBe(1);
 		expect(window.$('.ffc-open-early-modal').text()).toContain('Start form now?');
@@ -149,9 +173,11 @@ describe('csv-download — open-early modal', () => {
 	it('closes the modal when Cancel is clicked', async () => {
 		await reachInfoScreen();
 		window.$('.ffc-btn-open-early').trigger('click');
+		await flush();
 		expect(window.$('.ffc-open-early-modal').length).toBe(1);
 
 		window.$('.ffc-open-early-cancel').trigger('click');
+		await flush();
 
 		expect(window.$('.ffc-open-early-modal').length).toBe(0);
 	});
@@ -159,8 +185,10 @@ describe('csv-download — open-early modal', () => {
 	it('closes the modal when the backdrop is clicked', async () => {
 		await reachInfoScreen();
 		window.$('.ffc-btn-open-early').trigger('click');
+		await flush();
 
 		window.$('.ffc-open-early-backdrop').trigger('click');
+		await flush();
 
 		expect(window.$('.ffc-open-early-modal').length).toBe(0);
 	});
@@ -168,10 +196,12 @@ describe('csv-download — open-early modal', () => {
 	it('closes the modal when the header close (×) button is clicked', async () => {
 		await reachInfoScreen();
 		window.$('.ffc-btn-open-early').trigger('click');
+		await flush();
 		expect(window.$('.ffc-open-early-modal').length).toBe(1);
 		expect(window.$('.ffc-open-early-close').length).toBe(1);
 
 		window.$('.ffc-open-early-close').trigger('click');
+		await flush();
 
 		expect(window.$('.ffc-open-early-modal').length).toBe(0);
 	});
@@ -179,10 +209,12 @@ describe('csv-download — open-early modal', () => {
 	it('closes the modal on Escape key', async () => {
 		await reachInfoScreen();
 		window.$('.ffc-btn-open-early').trigger('click');
+		await flush();
 		expect(window.$('.ffc-open-early-modal').length).toBe(1);
 
 		const ev = window.$.Event('keydown', { key: 'Escape' });
 		window.$(document).trigger(ev);
+		await flush();
 
 		expect(window.$('.ffc-open-early-modal').length).toBe(0);
 	});
@@ -194,7 +226,7 @@ describe('csv-download — open-early modal', () => {
 
 describe('csv-download — open-early submit', () => {
 	it('POSTs ffc_public_open_early on confirm and reloads on success', async () => {
-		const ajaxSpy = await reachInfoScreen();
+		const postSpy = await reachInfoScreen();
 		const alertSpy = vi.spyOn(window, 'alert').mockImplementation(() => {});
 
 		// Replace location with a stub before triggering reload.
@@ -206,23 +238,24 @@ describe('csv-download — open-early submit', () => {
 			value: stub,
 		});
 
-		ajaxSpy.mockImplementation((opts) => {
-			opts.success({
+		postSpy.mockImplementation(() => postChain({ done: {
 				success: true,
 				data: { message: 'Form is now open.' },
-			});
-		});
+			} }));
 
 		window.$('.ffc-btn-open-early').trigger('click');
+		await flush();
 		window.$('.ffc-open-early-confirm').trigger('click');
+		await flush();
 
-		const lastCall = ajaxSpy.mock.calls[ajaxSpy.mock.calls.length - 1][0];
-		expect(lastCall.type).toBe('POST');
-		expect(lastCall.data).toContain('action=ffc_public_open_early');
-		expect(lastCall.data).toContain('form_id=42');
-		expect(lastCall.data).toContain('hash=abc');
+		// FFC.request → jQuery.post(url, payload); payload is the second
+		// positional arg.
+		const lastPayload = postSpy.mock.calls[postSpy.mock.calls.length - 1][1];
+		expect(lastPayload).toContain('action=ffc_public_open_early');
+		expect(lastPayload).toContain('form_id=42');
+		expect(lastPayload).toContain('hash=abc');
 		// Old `action=ffc_public_csv_info` should not survive the rewrite.
-		expect(lastCall.data).not.toContain('action=ffc_public_csv_info');
+		expect(lastPayload).not.toContain('action=ffc_public_csv_info');
 
 		expect(alertSpy).toHaveBeenCalledWith('Form is now open.');
 		expect(stub.reload).toHaveBeenCalled();
@@ -235,18 +268,18 @@ describe('csv-download — open-early submit', () => {
 	});
 
 	it('alerts the server message and re-enables the button on failure', async () => {
-		const ajaxSpy = await reachInfoScreen();
+		const postSpy = await reachInfoScreen();
 		const alertSpy = vi.spyOn(window, 'alert').mockImplementation(() => {});
 
-		ajaxSpy.mockImplementation((opts) => {
-			opts.success({
+		postSpy.mockImplementation(() => postChain({ done: {
 				success: false,
 				data: { message: 'Already started.' },
-			});
-		});
+			} }));
 
 		window.$('.ffc-btn-open-early').trigger('click');
+		await flush();
 		window.$('.ffc-open-early-confirm').trigger('click');
+		await flush();
 
 		expect(alertSpy).toHaveBeenCalledWith('Already started.');
 		expect(window.$('.ffc-btn-open-early').prop('disabled')).toBe(false);
@@ -254,15 +287,15 @@ describe('csv-download — open-early submit', () => {
 	});
 
 	it('alerts and re-enables the button on AJAX network error', async () => {
-		const ajaxSpy = await reachInfoScreen();
+		const postSpy = await reachInfoScreen();
 		const alertSpy = vi.spyOn(window, 'alert').mockImplementation(() => {});
 
-		ajaxSpy.mockImplementation((opts) => {
-			opts.error();
-		});
+		postSpy.mockImplementation(() => postChain({ fail: true }));
 
 		window.$('.ffc-btn-open-early').trigger('click');
+		await flush();
 		window.$('.ffc-open-early-confirm').trigger('click');
+		await flush();
 
 		expect(alertSpy).toHaveBeenCalledWith('Error');
 		expect(window.$('.ffc-btn-open-early').prop('disabled')).toBe(false);
