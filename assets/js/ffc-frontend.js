@@ -95,24 +95,17 @@
         $container.find('.ffc-verification-manual').hide();
         $container.find('.ffc-verify-loading').show();
 
-        $.ajax({
-            url: ffc_ajax.ajax_url,
-            type: 'POST',
-            data: {
-                action: 'ffc_verify_magic_token',
-                token: token
-            },
-            success: function(response) {
-                if (response.success) {
-                    displayVerificationResult(response.data, $container);
+        FFC.request('ffc_verify_magic_token', { token: token })
+            .then(function (data) {
+                displayVerificationResult(data, $container);
+            })
+            .catch(function (err) {
+                if (err && err.fromServer) {
+                    showVerificationError(err.message || 'Invalid token', $container);
                 } else {
-                    showVerificationError(response.data ? response.data.message : 'Invalid token', $container);
+                    showVerificationError('Connection error. Please try again.', $container);
                 }
-            },
-            error: function() {
-                showVerificationError('Connection error. Please try again.', $container);
-            }
-        });
+            });
     }
     
     /**
@@ -209,40 +202,33 @@
             return;
         }
         
-        $.ajax({
-            url: ffc_ajax.ajax_url,
-            type: 'POST',
-            data: {
-                action: 'ffc_verify_certificate',
-                nonce: ffc_ajax.nonce,
-                ffc_auth_code: authCode,
-                ffc_captcha_ans: captchaAns,
-                ffc_captcha_hash: captchaHash,
-                ffc_honeypot_trap: honeypot
-            },
-            success: function(response) {
-                if (response.success) {
-                    displayVerificationResult(response.data, $form.closest('.ffc-verification-container'));
-                } else {
-                    // Refresh captcha if needed
-                    if (response.data && response.data.refresh_captcha) {
-                        FFC.Frontend.UI.refreshCaptcha($form, response.data.new_label, response.data.new_hash);
-                    }
-
-                    // Show error inline without destroying the form
-                    var errorMsg = response.data ? response.data.message : (ffc_ajax.strings.error || 'Error');
-                    var $errorDiv = $form.find('.ffc-verify-error');
-                    if (!$errorDiv.length) {
-                        $form.find('.ffc-form-field').first().before('<div class="ffc-verify-error"></div>');
-                        $errorDiv = $form.find('.ffc-verify-error');
-                    }
-                    $errorDiv.html('').append($('<p class="ffc-message ffc-message-error">').text(errorMsg));
+        FFC.request('ffc_verify_certificate', {
+            ffc_auth_code: authCode,
+            ffc_captcha_ans: captchaAns,
+            ffc_captcha_hash: captchaHash,
+            ffc_honeypot_trap: honeypot
+        })
+            .then(function (data) {
+                displayVerificationResult(data, $form.closest('.ffc-verification-container'));
+            })
+            .catch(function (err) {
+                if (!(err && err.fromServer)) {
+                    showAccessibleAlert(ffc_ajax.strings.connectionError || 'Connection error', $form);
+                    return;
                 }
-            },
-            error: function() {
-                showAccessibleAlert(ffc_ajax.strings.connectionError || 'Connection error', $form);
-            }
-        });
+                // Refresh captcha if the server signalled it.
+                if (err.data && err.data.refresh_captcha) {
+                    FFC.Frontend.UI.refreshCaptcha($form, err.data.new_label, err.data.new_hash);
+                }
+                // Show error inline without destroying the form.
+                var errorMsg = err.message || (ffc_ajax.strings.error || 'Error');
+                var $errorDiv = $form.find('.ffc-verify-error');
+                if (!$errorDiv.length) {
+                    $form.find('.ffc-form-field').first().before('<div class="ffc-verify-error"></div>');
+                    $errorDiv = $form.find('.ffc-verify-error');
+                }
+                $errorDiv.html('').append($('<p class="ffc-message ffc-message-error">').text(errorMsg));
+            });
     });
 
     /**
@@ -309,67 +295,56 @@
             // Disable submit button
             $submitBtn.prop('disabled', true).text(ffc_ajax.strings.processing || 'Processing...');
             
-            // Prepare form data
+            // Prepare form data (FFC.request appends action + nonce).
             var formData = $form.serialize();
-            formData += '&action=ffc_submit_form';
-            formData += '&nonce=' + encodeURIComponent(ffc_ajax.nonce);
-            
-            $.ajax({
-                url: ffc_ajax.ajax_url,
-                type: 'POST',
-                data: formData,
-                success: function(response) {
-                    if (response.success && response.data) {
-                        // ✅ Use response.data.html for beautiful layout
-                        if (response.data.html) {
-                            $form.html(response.data.html);
-                            
-                            // Add PDF data to download button if available
-                            if (response.data.pdf_data) {
-                                var $downloadBtn = $form.find('.ffc-download-btn, .ffc-download-pdf-btn');
-                                if ($downloadBtn.length) {
-                                    $downloadBtn.attr('data-pdf-data', JSON.stringify(response.data.pdf_data));
-                                }
+
+            FFC.request('ffc_submit_form', formData)
+                .then(function (data) {
+                    if (!data) {
+                        FFC.Frontend.UI.showFormError($form, ffc_ajax.strings.error || 'Error occurred');
+                        $submitBtn.prop('disabled', false).text(originalBtnText);
+                        return;
+                    }
+                    if (data.html) {
+                        $form.html(data.html);
+                        // Add PDF data to download button if available
+                        if (data.pdf_data) {
+                            var $downloadBtn = $form.find('.ffc-download-btn, .ffc-download-pdf-btn');
+                            if ($downloadBtn.length) {
+                                $downloadBtn.attr('data-pdf-data', JSON.stringify(data.pdf_data));
                             }
-                        } else {
-                            // Fallback to simple success message
-                            FFC.Frontend.UI.showFormSuccess($form, '');
-                        }
-                        
-                        // ✅ Auto-download PDF if available
-                        if (response.data.pdf_data && typeof window.ffcGeneratePDF === 'function') {
-                            setTimeout(function() {
-                                var filename = response.data.pdf_data.filename || 'certificate.pdf';
-                                window.ffcGeneratePDF(response.data.pdf_data, filename);
-                            }, 500);
                         }
                     } else {
-                        // Show error in form
-                        var errorMsg = response.data ? response.data.message : (ffc_ajax.strings.error || 'Error occurred');
-                        FFC.Frontend.UI.showFormError($form, errorMsg);
-
-                        // Refresh captcha if needed
-                        if (response.data && response.data.refresh_captcha) {
-                            FFC.Frontend.UI.refreshCaptcha($form, response.data.new_label, response.data.new_hash);
-                        }
-
-                        $submitBtn.prop('disabled', false).text(originalBtnText);
+                        FFC.Frontend.UI.showFormSuccess($form, '');
                     }
-                },
-                error: function(xhr, _status, _error) {
-                    try {
-                        var response = xhr.responseJSON;
-                        if (response && response.data && response.data.rate_limit) {
-                            FFC.Frontend.RateLimit.show(response.data.message, response.data.wait_seconds);
-                            $submitBtn.prop('disabled', false).text(originalBtnText);
-                            return;
+                    // Auto-download PDF if available
+                    if (data.pdf_data && typeof window.ffcGeneratePDF === 'function') {
+                        setTimeout(function () {
+                            var filename = data.pdf_data.filename || 'certificate.pdf';
+                            window.ffcGeneratePDF(data.pdf_data, filename);
+                        }, 500);
+                    }
+                })
+                .catch(function (err) {
+                    // Rate-limit path (server returns 429 with rate_limit
+                    // flag); the legacy code read it via xhr.responseJSON,
+                    // which FFC.request doesn't surface for connection
+                    // errors. Server-issued protocol errors carry err.data.
+                    if (err && err.data && err.data.rate_limit) {
+                        FFC.Frontend.RateLimit.show(err.data.message, err.data.wait_seconds);
+                        $submitBtn.prop('disabled', false).text(originalBtnText);
+                        return;
+                    }
+                    if (err && err.fromServer) {
+                        FFC.Frontend.UI.showFormError($form, err.message || ffc_ajax.strings.error || 'Error occurred');
+                        if (err.data && err.data.refresh_captcha) {
+                            FFC.Frontend.UI.refreshCaptcha($form, err.data.new_label, err.data.new_hash);
                         }
-                    } catch(e) {}
-
-                    showAccessibleAlert(ffc_ajax.strings.connectionError || 'Connection error', $form);
+                    } else {
+                        showAccessibleAlert(ffc_ajax.strings.connectionError || 'Connection error', $form);
+                    }
                     $submitBtn.prop('disabled', false).text(originalBtnText);
-                }
-            });
+                });
         });
     }
 

@@ -14,6 +14,20 @@
 import { describe, it, expect, beforeAll, beforeEach, afterEach, vi } from 'vitest';
 import { loadScript } from './helpers.js';
 
+// FFC.request (the migration target) wraps jQuery.post() in a Promise.
+// Mock $.post and return a chain whose .done / .fail callback the
+// FFC.request internals invoke.
+function postChain(spec) {
+	const chain = { done: () => chain, fail: () => chain };
+	if (spec && 'done' in spec) chain.done = (cb) => { cb(spec.done); return chain; };
+	if (spec && spec.fail) chain.fail = (cb) => { cb(); return chain; };
+	return chain;
+}
+
+// Microtask flush so .then/.catch reactions run before assertions.
+function flush() { return Promise.resolve().then(() => Promise.resolve()); }
+
+
 beforeAll(async () => {
 	window.ffc_ajax = {
 		ajax_url: '/wp-admin/admin-ajax.php',
@@ -82,10 +96,10 @@ describe('frontend.handleMagicLinkVerification', () => {
 		}
 	}
 
-	it('bails when no container is present (no AJAX fired)', () => {
+	it('bails when no container is present (no AJAX fired)', async () => {
 		// No fixture mounted — the load-time handler bails. Just re-load
 		// to trigger another pass and assert nothing throws.
-		const ajaxSpy = vi.spyOn(window.$, 'ajax').mockImplementation(() => ({}));
+		const postSpy = vi.spyOn(window.$, 'post').mockImplementation(() => postChain({}));
 		loadScript('assets/js/ffc-frontend.js');
 		// The ready() callback fires next microtask; let it run.
 		return new Promise((r) => setTimeout(r, 0)).then(() => {
@@ -93,8 +107,8 @@ describe('frontend.handleMagicLinkVerification', () => {
 			// but with no container it bails immediately. Some AJAX may
 			// still fire for the form-submission path. Assert that the
 			// magic-link action specifically wasn't called.
-			const magicCalls = ajaxSpy.mock.calls.filter(
-				(c) => c[0] && c[0].data && c[0].data.action === 'ffc_verify_magic_token',
+			const magicCalls = postSpy.mock.calls.filter(
+				(c) => c[1] && c[1].action === 'ffc_verify_magic_token',
 			);
 			expect(magicCalls).toEqual([]);
 		});
@@ -102,64 +116,62 @@ describe('frontend.handleMagicLinkVerification', () => {
 
 	it('reads token from data-token attribute and POSTs ffc_verify_magic_token', async () => {
 		mountContainer({ withToken: true });
-		const ajaxSpy = vi.spyOn(window.$, 'ajax').mockImplementation(() => ({}));
+		const postSpy = vi.spyOn(window.$, 'post').mockImplementation(() => postChain({}));
 
 		loadScript('assets/js/ffc-frontend.js');
 		await new Promise((r) => setTimeout(r, 0));
 		// The handler is wrapped in setTimeout(100). Wait for it.
 		await new Promise((r) => setTimeout(r, 120));
 
-		const calls = ajaxSpy.mock.calls.filter(
-			(c) => c[0].data && c[0].data.action === 'ffc_verify_magic_token',
+		const calls = postSpy.mock.calls.filter(
+			(c) => c[1] && c[1].action === 'ffc_verify_magic_token',
 		);
 		expect(calls.length).toBeGreaterThan(0);
-		expect(calls[0][0].data.token).toBe('magic-token');
+		expect(calls[0][1].token).toBe('magic-token');
 	});
 
 	it('falls back to the hash token when no data-token is set', async () => {
 		mountContainer({ tokenInHash: true });
-		const ajaxSpy = vi.spyOn(window.$, 'ajax').mockImplementation(() => ({}));
+		const postSpy = vi.spyOn(window.$, 'post').mockImplementation(() => postChain({}));
 
 		loadScript('assets/js/ffc-frontend.js');
 		await new Promise((r) => setTimeout(r, 120));
 
-		const calls = ajaxSpy.mock.calls.filter(
-			(c) => c[0].data && c[0].data.action === 'ffc_verify_magic_token',
+		const calls = postSpy.mock.calls.filter(
+			(c) => c[1] && c[1].action === 'ffc_verify_magic_token',
 		);
-		expect(calls[0][0].data.token).toBe('hash-token');
+		expect(calls[0][1].token).toBe('hash-token');
 	});
 
 	it('falls back to the query-string token when no data-token or hash', async () => {
 		mountContainer({ tokenInQuery: true });
-		const ajaxSpy = vi.spyOn(window.$, 'ajax').mockImplementation(() => ({}));
+		const postSpy = vi.spyOn(window.$, 'post').mockImplementation(() => postChain({}));
 
 		loadScript('assets/js/ffc-frontend.js');
 		await new Promise((r) => setTimeout(r, 120));
 
-		const calls = ajaxSpy.mock.calls.filter(
-			(c) => c[0].data && c[0].data.action === 'ffc_verify_magic_token',
+		const calls = postSpy.mock.calls.filter(
+			(c) => c[1] && c[1].action === 'ffc_verify_magic_token',
 		);
-		expect(calls[0][0].data.token).toBe('query-token');
+		expect(calls[0][1].token).toBe('query-token');
 	});
 
 	it('returns without calling AJAX when there is no token anywhere', async () => {
 		mountContainer({});
-		const ajaxSpy = vi.spyOn(window.$, 'ajax').mockImplementation(() => ({}));
+		const postSpy = vi.spyOn(window.$, 'post').mockImplementation(() => postChain({}));
 
 		loadScript('assets/js/ffc-frontend.js');
 		await new Promise((r) => setTimeout(r, 120));
 
-		const calls = ajaxSpy.mock.calls.filter(
-			(c) => c[0].data && c[0].data.action === 'ffc_verify_magic_token',
+		const calls = postSpy.mock.calls.filter(
+			(c) => c[1] && c[1].action === 'ffc_verify_magic_token',
 		);
 		expect(calls).toEqual([]);
 	});
 
 	it('on AJAX error: shows the connection-error message via showVerificationError', async () => {
 		mountContainer({ withToken: true });
-		vi.spyOn(window.$, 'ajax').mockImplementation((opts) => {
-			opts.error();
-		});
+		vi.spyOn(window.$, 'post').mockImplementation(() => postChain({ fail: true }));
 
 		loadScript('assets/js/ffc-frontend.js');
 		await new Promise((r) => setTimeout(r, 120));
@@ -170,9 +182,7 @@ describe('frontend.handleMagicLinkVerification', () => {
 
 	it('on success=false: surfaces the server message', async () => {
 		mountContainer({ withToken: true });
-		vi.spyOn(window.$, 'ajax').mockImplementation((opts) => {
-			opts.success({ success: false, data: { message: 'Token expired' } });
-		});
+		vi.spyOn(window.$, 'post').mockImplementation(() => postChain({ done: { success: false, data: { message: 'Token expired' } } }));
 
 		loadScript('assets/js/ffc-frontend.js');
 		await new Promise((r) => setTimeout(r, 120));
@@ -182,12 +192,10 @@ describe('frontend.handleMagicLinkVerification', () => {
 
 	it('on success=true with html: writes server HTML directly into the container', async () => {
 		mountContainer({ withToken: true });
-		vi.spyOn(window.$, 'ajax').mockImplementation((opts) => {
-			opts.success({
+		vi.spyOn(window.$, 'post').mockImplementation(() => postChain({ done: {
 				success: true,
 				data: { html: '<div class="result">Valid!</div>' },
-			});
-		});
+			} }));
 
 		loadScript('assets/js/ffc-frontend.js');
 		await new Promise((r) => setTimeout(r, 120));
@@ -197,15 +205,13 @@ describe('frontend.handleMagicLinkVerification', () => {
 
 	it('on success=true with html + pdf_data: writes data-pdf-data on download buttons', async () => {
 		mountContainer({ withToken: true });
-		vi.spyOn(window.$, 'ajax').mockImplementation((opts) => {
-			opts.success({
+		vi.spyOn(window.$, 'post').mockImplementation(() => postChain({ done: {
 				success: true,
 				data: {
 					html: '<button class="ffc-download-pdf-btn">PDF</button>',
 					pdf_data: { template: 'A', form_title: 'T' },
 				},
-			});
-		});
+			} }));
 
 		loadScript('assets/js/ffc-frontend.js');
 		await new Promise((r) => setTimeout(r, 120));
@@ -217,8 +223,7 @@ describe('frontend.handleMagicLinkVerification', () => {
 
 	it('on success=true legacy (no html): renders the success block from fields', async () => {
 		mountContainer({ withToken: true });
-		vi.spyOn(window.$, 'ajax').mockImplementation((opts) => {
-			opts.success({
+		vi.spyOn(window.$, 'post').mockImplementation(() => postChain({ done: {
 				success: true,
 				data: {
 					form_title: 'My Form',
@@ -226,8 +231,7 @@ describe('frontend.handleMagicLinkVerification', () => {
 					submission_date: '2026-05-01',
 					template: 'tpl',
 				},
-			});
-		});
+			} }));
 
 		loadScript('assets/js/ffc-frontend.js');
 		await new Promise((r) => setTimeout(r, 120));
@@ -264,29 +268,31 @@ describe('frontend.verificationForm submit', () => {
 		`;
 	}
 
-	it('shows an accessible alert when authCode is empty', () => {
+	it('shows an accessible alert when authCode is empty', async () => {
 		mountForm();
-		const ajaxSpy = vi.spyOn(window.$, 'ajax').mockImplementation(() => ({}));
+		const postSpy = vi.spyOn(window.$, 'post').mockImplementation(() => postChain({}));
 
 		window.$('.ffc-verification-form').trigger('submit');
+		await flush();
 
-		expect(ajaxSpy).not.toHaveBeenCalled();
+		expect(postSpy).not.toHaveBeenCalled();
 		expect(window.$('.ffc-accessible-alert').length).toBe(1);
 	});
 
-	it('POSTs ffc_verify_certificate with the gathered fields when authCode is set', () => {
+	it('POSTs ffc_verify_certificate with the gathered fields when authCode is set', async () => {
 		mountForm();
 		window.$('input[name="ffc_auth_code"]').val('AAAA-1111');
-		const ajaxSpy = vi.spyOn(window.$, 'ajax').mockImplementation(() => ({}));
+		const postSpy = vi.spyOn(window.$, 'post').mockImplementation(() => postChain({}));
 
 		window.$('.ffc-verification-form').trigger('submit');
+		await flush();
 
 		// Previous tests have re-loaded ffc-frontend.js several times, each
 		// installing its own delegate on $(document). The submit fires all
 		// of them; each call carries the same payload. Assert on the first
 		// captured call rather than the call count.
-		expect(ajaxSpy).toHaveBeenCalled();
-		expect(ajaxSpy.mock.calls[0][0].data).toMatchObject({
+		expect(postSpy).toHaveBeenCalled();
+		expect(postSpy.mock.calls[0][1]).toMatchObject({
 			action: 'ffc_verify_certificate',
 			ffc_auth_code: 'AAAA-1111',
 			ffc_captcha_ans: 'abc',
@@ -294,11 +300,10 @@ describe('frontend.verificationForm submit', () => {
 		});
 	});
 
-	it('refreshes the captcha when response.data.refresh_captcha is set', () => {
+	it('refreshes the captcha when response.data.refresh_captcha is set', async () => {
 		mountForm();
 		window.$('input[name="ffc_auth_code"]').val('CODE');
-		vi.spyOn(window.$, 'ajax').mockImplementation((opts) => {
-			opts.success({
+		vi.spyOn(window.$, 'post').mockImplementation(() => postChain({ done: {
 				success: false,
 				data: {
 					refresh_captcha: true,
@@ -306,24 +311,23 @@ describe('frontend.verificationForm submit', () => {
 					new_hash: 'new-hash',
 					message: 'Wrong captcha',
 				},
-			});
-		});
+			} }));
 
 		window.$('.ffc-verification-form').trigger('submit');
+		await flush();
 
 		expect(window.$('.ffc-captcha-label-text').text()).toBe('New Question');
 		expect(window.$('input[name="ffc_captcha_hash"]').val()).toBe('new-hash');
 		expect(window.$('.ffc-verify-error').text()).toContain('Wrong captcha');
 	});
 
-	it('on network error: shows the connection-error alert', () => {
+	it('on network error: shows the connection-error alert', async () => {
 		mountForm();
 		window.$('input[name="ffc_auth_code"]').val('CODE');
-		vi.spyOn(window.$, 'ajax').mockImplementation((opts) => {
-			opts.error();
-		});
+		vi.spyOn(window.$, 'post').mockImplementation(() => postChain({ fail: true }));
 
 		window.$('.ffc-verification-form').trigger('submit');
+		await flush();
 
 		expect(window.$('.ffc-accessible-alert').text()).toContain('Connection error');
 	});
@@ -334,7 +338,7 @@ describe('frontend.verificationForm submit', () => {
 // ----------------------------------------------------------------------
 
 describe('frontend.downloadPdfBtn', () => {
-	it('calls window.ffcGeneratePDF with parsed data + filename', () => {
+	it('calls window.ffcGeneratePDF with parsed data + filename', async () => {
 		document.body.innerHTML = `
 			<div>
 				<button class="ffc-download-pdf-btn"
@@ -344,6 +348,7 @@ describe('frontend.downloadPdfBtn', () => {
 		window.ffcGeneratePDF = vi.fn();
 
 		window.$('.ffc-download-pdf-btn').trigger('click');
+		await flush();
 
 		expect(window.ffcGeneratePDF).toHaveBeenCalledWith(
 			{ filename: 'my.pdf', template: 'x' },
@@ -351,7 +356,7 @@ describe('frontend.downloadPdfBtn', () => {
 		);
 	});
 
-	it('shows an alert when window.ffcGeneratePDF is not a function', () => {
+	it('shows an alert when window.ffcGeneratePDF is not a function', async () => {
 		document.body.innerHTML = `
 			<div>
 				<button class="ffc-download-pdf-btn"
@@ -361,11 +366,12 @@ describe('frontend.downloadPdfBtn', () => {
 		delete window.ffcGeneratePDF;
 
 		window.$('.ffc-download-pdf-btn').trigger('click');
+		await flush();
 
 		expect(window.$('.ffc-accessible-alert').text()).toContain('PDF generation not available');
 	});
 
-	it('catches malformed JSON and surfaces an alert', () => {
+	it('catches malformed JSON and surfaces an alert', async () => {
 		document.body.innerHTML = `
 			<div>
 				<button class="ffc-download-pdf-btn" data-pdf-data='{invalid json}'>PDF</button>
@@ -375,6 +381,7 @@ describe('frontend.downloadPdfBtn', () => {
 		// Silence the console.error noise from the catch.
 		vi.spyOn(console, 'error').mockImplementation(() => {});
 		window.$('.ffc-download-pdf-btn').trigger('click');
+		await flush();
 
 		expect(window.$('.ffc-accessible-alert').length).toBe(1);
 	});
@@ -385,7 +392,7 @@ describe('frontend.downloadPdfBtn', () => {
 // ----------------------------------------------------------------------
 
 describe('frontend.manualVerifyBtn', () => {
-	it('reassigns window.location.href on click', () => {
+	it('reassigns window.location.href on click', async () => {
 		document.body.innerHTML = `<button class="ffc-manual-verify-btn">Manual</button>`;
 
 		// jsdom's Location is a host object; replace it wholesale with a
@@ -399,6 +406,7 @@ describe('frontend.manualVerifyBtn', () => {
 		});
 
 		window.$('.ffc-manual-verify-btn').trigger('click');
+		await flush();
 
 		expect(stub.href).toBe('/some/path');
 
@@ -415,7 +423,7 @@ describe('frontend.manualVerifyBtn', () => {
 // ----------------------------------------------------------------------
 
 describe('frontend.textareaAutoResize', () => {
-	it('updates inline height to scrollHeight on input', () => {
+	it('updates inline height to scrollHeight on input', async () => {
 		document.body.innerHTML = `<textarea class="ffc-textarea"></textarea>`;
 		// jsdom returns scrollHeight=0 by default — patch it so the
 		// assertion has something to read.
@@ -427,6 +435,7 @@ describe('frontend.textareaAutoResize', () => {
 		});
 
 		window.$('.ffc-textarea').trigger('input');
+		await flush();
 
 		expect(document.querySelector('.ffc-textarea').style.height).toBe('123px');
 	});

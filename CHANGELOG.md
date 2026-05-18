@@ -51,6 +51,25 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 
 ### Changed
 
+- AJAX migration continues — CSV / forms / admin + Calendar family:
+  7 files (~27 inline `$.ajax({...})` / `$.post()` / `$.get()` call
+  sites) migrated to `FFC.request`. Public CSV download flow
+  (`ffc-csv-download.js` — 6 sites, all using `$form.serialize()`
+  payloads); cert verification + form submission flow
+  (`ffc-frontend.js` — 3 sites, with `refresh_captcha` + `rate_limit`
+  auxiliary fields via `err.data`); admin areas (`ffc-admin.js` — 4
+  sites including the generate-codes form + batched CSV export +
+  per-form-meta autosave; `ffc-admin-submission-edit.js` — user
+  search; `ffc-custom-fields-admin.js` — 2 sites with explicit
+  `ajaxUrl` override). Calendar booking flow
+  (`ffc-calendar-frontend.js` — 3 sites including a 30 s timeout on
+  the booking submit; `ffc-calendar-editor.js` — cleanup action). The
+  helper gains: string-payload support (callers can pass
+  `$form.serialize()` directly), `err.data` to expose auxiliary
+  server fields, `err.xhr` on network failures for HTTP-status
+  inspection, `options.timeout` (forwarded to `jQuery.ajax`), and
+  both-shape `data` recognition (server may send `wp_send_json_error`
+  with either a bare string or `{message: ...}`).
 - AJAX migration begins — user-dashboard + audience family: 9 files
   (~33 inline `$.ajax({...})` call sites) migrated to the centralised
   `FFC.ajax` / `FFC.request` (admin-ajax) and the new `FFC.rest` (WP

@@ -80,28 +80,23 @@ jQuery(document).ready(function($) {
         $resultsContainer.hide();
         $selectedPreview.hide();
 
-        $.ajax({
-            url: ajaxurl,
-            type: 'POST',
-            data: {
-                action: 'ffc_search_user',
-                nonce: $searchBtn.data('nonce'),
-                search: searchTerm
-            },
-            success: function(response) {
+        FFC.request('ffc_search_user', { search: searchTerm }, { nonce: $searchBtn.data('nonce') })
+            .then(function (data) {
                 $spinner.removeClass('is-active');
-
-                if (response.success && response.data.users) {
-                    displaySearchResults(response.data.users);
+                if (data && data.users) {
+                    displaySearchResults(data.users);
                 } else {
-                    displayNoResults(response.data.message || ffc_submission_edit.no_users_found || 'No users found.');
+                    displayNoResults(ffc_submission_edit.no_users_found || 'No users found.');
                 }
-            },
-            error: function() {
+            })
+            .catch(function (err) {
                 $spinner.removeClass('is-active');
-                alert(ffc_submission_edit.search_error || 'Error searching for users. Please try again.');
-            }
-        });
+                if (err && err.fromServer) {
+                    displayNoResults(err.message || ffc_submission_edit.no_users_found || 'No users found.');
+                } else {
+                    alert(ffc_submission_edit.search_error || 'Error searching for users. Please try again.');
+                }
+            });
     }
 
     function displaySearchResults(users) {

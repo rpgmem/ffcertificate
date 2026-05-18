@@ -200,30 +200,19 @@
             // Open modal
             self.openModal();
 
-            // AJAX request
-            $.ajax({
-                url: ffcCalendar.ajaxurl,
-                type: 'POST',
-                data: {
-                    action: 'ffc_get_available_slots',
-                    nonce: ffcCalendar.nonce,
-                    calendar_id: calendarId,
-                    date: date
-                },
-                success: function(response) {
+            FFC.request('ffc_get_available_slots', { calendar_id: calendarId, date: date }, { nonce: ffcCalendar.nonce, ajaxUrl: ffcCalendar.ajaxurl })
+                .then(function (data) {
                     $loading.hide();
-
-                    if (response.success && response.data.slots) {
-                        self.renderTimeSlots(response.data.slots);
+                    if (data && data.slots) {
+                        self.renderTimeSlots(data.slots);
                     } else {
                         $container.html('').append($('<p class="ffc-no-slots">').text(ffcCalendar.strings.noSlots));
                     }
-                },
-                error: function() {
+                })
+                .catch(function () {
                     $loading.hide();
                     $container.html('').append($('<p class="ffc-message ffc-message-error">').text(ffcCalendar.strings.error));
-                }
-            });
+                });
         },
 
         /**
@@ -325,39 +314,37 @@
             $submitBtn.prop('disabled', true).text(ffcCalendar.strings.loading);
 
             var formData = $form.serialize();
+            // The form carries `action` as a hidden field. Pull it out so
+            // we can pass it explicitly to FFC.request (the helper re-
+            // appends it to the payload).
+            var actionMatch = formData.match(/(?:^|&)action=([^&]*)/);
+            var action = actionMatch ? decodeURIComponent(actionMatch[1]) : '';
+            formData = formData.replace(/(^|&)action=[^&]*/, '');
 
-            $.ajax({
-                url: ffcCalendar.ajaxurl,
-                type: 'POST',
-                data: formData,
-                timeout: 30000,
-                success: function(response) {
+            FFC.request(action, formData, { ajaxUrl: ffcCalendar.ajaxurl, timeout: 30000 })
+                .then(function (data) {
                     $submitBtn.data('submitting', false);
-                    if (response.success) {
-                        self.showConfirmation(response.data);
-                    } else {
-                        if (response.data && response.data.refresh_captcha) {
-                            self.refreshCaptcha(response.data.new_label, response.data.new_hash);
+                    self.showConfirmation(data);
+                })
+                .catch(function (err) {
+                    $submitBtn.data('submitting', false);
+                    if (err && err.fromServer) {
+                        if (err.data && err.data.refresh_captcha) {
+                            self.refreshCaptcha(err.data.new_label, err.data.new_hash);
                         }
-
-                        self.showError((response.data && response.data.message) || ffcCalendar.strings.error);
-                        $submitBtn.prop('disabled', false).text(ffcCalendar.strings.submit || 'Book Appointment');
+                        self.showError(err.message || ffcCalendar.strings.error);
+                    } else {
+                        var errorMsg = ffcCalendar.strings.error;
+                        var xhr = err && err.xhr;
+                        if (xhr && xhr.statusText === 'timeout') {
+                            errorMsg = ffcCalendar.strings.timeout || 'Connection timeout. Please try again.';
+                        } else if (xhr && xhr.status === 0) {
+                            errorMsg = ffcCalendar.strings.networkError || 'Network error. Please check your connection and try again.';
+                        }
+                        self.showError(errorMsg);
                     }
-                },
-                error: function(xhr, status) {
-                    $submitBtn.data('submitting', false);
-                    var errorMsg = ffcCalendar.strings.error;
-
-                    if (status === 'timeout') {
-                        errorMsg = ffcCalendar.strings.timeout || 'Connection timeout. Please try again.';
-                    } else if (xhr.status === 0) {
-                        errorMsg = ffcCalendar.strings.networkError || 'Network error. Please check your connection and try again.';
-                    }
-
-                    self.showError(errorMsg);
                     $submitBtn.prop('disabled', false).text(ffcCalendar.strings.submit || 'Book Appointment');
-                }
-            });
+                });
         },
 
         /**
@@ -603,38 +590,28 @@
             // Clear stale data immediately so old badges disappear
             bookingCounts = {};
 
-            $.ajax({
-                url: ffcCalendar.ajaxurl,
-                type: 'POST',
-                data: {
-                    action: 'ffc_get_month_bookings',
-                    nonce: ffcCalendar.nonce,
-                    calendar_id: calendarId,
-                    year: year,
-                    month: month
-                },
-                success: function(response) {
-                    // Ignore stale responses — a newer fetch was already dispatched
+            FFC.request(
+                'ffc_get_month_bookings',
+                { calendar_id: calendarId, year: year, month: month },
+                { nonce: ffcCalendar.nonce, ajaxUrl: ffcCalendar.ajaxurl }
+            )
+                .then(function (data) {
                     if (thisId !== fetchId) return;
-
-                    if (response.success) {
-                        if (response.data.counts) {
-                            bookingCounts = response.data.counts;
-                        }
-                        if (response.data.holidays) {
-                            calendarHolidays = response.data.holidays;
-                            if (calendar) {
-                                calendar.options.holidays = calendarHolidays;
-                            }
+                    if (data && data.counts) {
+                        bookingCounts = data.counts;
+                    }
+                    if (data && data.holidays) {
+                        calendarHolidays = data.holidays;
+                        if (calendar) {
+                            calendar.options.holidays = calendarHolidays;
                         }
                     }
                     if (callback) callback();
-                },
-                error: function() {
+                })
+                .catch(function () {
                     if (thisId !== fetchId) return;
                     if (callback) callback();
-                }
-            });
+                });
         }
 
         // Initialize shared calendar component

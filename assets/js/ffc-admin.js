@@ -105,66 +105,42 @@
         // console.log('[FFC] Using nonce for tickets:', nonce ? nonce.substring(0, 10) + '...' : 'NOT FOUND');
 
         // AJAX to generate tickets
-        $.ajax({
-            url: ajaxurl,
-            type: 'POST',
-            data: {
-                action: 'ffc_generate_codes',
-                qty: quantity,
-                nonce: nonce
-            },
-            success: function(response) {
+        FFC.request('ffc_generate_codes', { qty: quantity }, { nonce: nonce })
+            .then(function (data) {
                 var strings = (typeof ffc_ajax !== 'undefined' && ffc_ajax.strings) ? ffc_ajax.strings : {};
-
-                if (response.success) {
-                    // Use the correct field ID: #ffc_generated_list
-                    var $codesField = $('#ffc_generated_list');
-
-                    if ($codesField.length) {
-                        var currentCodes = $codesField.val();
-                        var newCodes = currentCodes ? currentCodes + '\n' + response.data.codes : response.data.codes;
-                        $codesField.val(newCodes);
-                        // console.log('[FFC] Codes added to field: ffc_generated_list');
-
-                        // Inline message instead of alert
-                        var successMsg = strings.ticketsGeneratedSuccess || 'tickets generated successfully!';
-                        $status.text('✓ ' + quantity + ' ' + successMsg).css('color', 'green');
-
-                        // Clear message after 5 seconds
-                        setTimeout(function() {
-                            $status.text('');
-                        }, 5000);
-                    } else {
-                        console.warn('[FFC] Generated codes field not found');
-                        var errorMsg = strings.codesFieldNotFound || 'Error: codes field not found';
-                        $status.text('✗ ' + errorMsg).css('color', 'red');
-                    }
+                var $codesField = $('#ffc_generated_list');
+                if ($codesField.length) {
+                    var currentCodes = $codesField.val();
+                    var newCodes = currentCodes ? currentCodes + '\n' + data.codes : data.codes;
+                    $codesField.val(newCodes);
+                    var successMsg = strings.ticketsGeneratedSuccess || 'tickets generated successfully!';
+                    $status.text('✓ ' + quantity + ' ' + successMsg).css('color', 'green');
+                    setTimeout(function () { $status.text(''); }, 5000);
                 } else {
-                    var errorText = strings.error || 'Error: ';
-                    $status.text('✗ ' + errorText + (response.data || 'Unknown error')).css('color', 'red');
+                    console.warn('[FFC] Generated codes field not found');
+                    var errorMsg = strings.codesFieldNotFound || 'Error: codes field not found';
+                    $status.text('✗ ' + errorMsg).css('color', 'red');
                 }
-
                 $btn.prop('disabled', false).text(originalText);
-            },
-            error: function(xhr) {
-                console.error('[FFC] AJAX error:', xhr.status, xhr.statusText, xhr.responseText);
-
+            })
+            .catch(function (err) {
                 var strings = (typeof ffc_ajax !== 'undefined' && ffc_ajax.strings) ? ffc_ajax.strings : {};
+                var xhr = err && err.xhr;
                 var errorMsg = '✗ ';
-
-                if (xhr.status === 403) {
+                if (err && err.fromServer) {
+                    errorMsg += (strings.error || 'Error: ') + (err.message || 'Unknown error');
+                } else if (xhr && xhr.status === 403) {
                     errorMsg += strings.permissionDenied || 'Permission denied. Please reload the page.';
-                } else if (xhr.status === 400) {
+                } else if (xhr && xhr.status === 400) {
                     errorMsg += strings.badRequest || 'Bad request. Check console.';
                 } else {
                     var serverErrorTemplate = strings.serverError || 'Server error (Status: %d)';
-                    errorMsg += serverErrorTemplate.replace('%d', xhr.status);
+                    errorMsg += serverErrorTemplate.replace('%d', xhr ? xhr.status : '?');
                 }
-
+                if (xhr) console.error('[FFC] AJAX error:', xhr.status, xhr.statusText, xhr.responseText);
                 $status.text(errorMsg).css('color', 'red');
                 $btn.prop('disabled', false).text(originalText);
-            }
-        });
+            });
     });
 
     // ==========================================================================
@@ -191,77 +167,62 @@
         $progress.show().text('');
 
         // Step 1: Start export job
-        var postData = { action: 'ffc_csv_export_start', nonce: nonce, status: status };
+        var startData = { status: status };
         if (formIds && formIds.length) {
-            postData.form_ids = formIds;
+            startData.form_ids = formIds;
         }
 
-        $.post(ajaxurl, postData, function(res) {
-            if (!res.success) {
-                $btn.prop('disabled', false).text(originalText);
-                $progress.text(res.data || strings.error || 'Error');
-                return;
-            }
+        FFC.request('ffc_csv_export_start', startData, { nonce: nonce })
+            .then(function (data) {
+                var jobId = data.job_id;
+                var total = data.total;
+                var exportingTpl = strings.exportProgress || 'Exporting %1$d/%2$d\u2026';
 
-            var jobId = res.data.job_id;
-            var total = res.data.total;
-            var exportingTpl = strings.exportProgress || 'Exporting %1$d/%2$d\u2026';
+                function processBatch() {
+                    FFC.request('ffc_csv_export_batch', { job_id: jobId }, { nonce: nonce })
+                        .then(function (batchData) {
+                            var processed = batchData.processed;
+                            $progress.text(exportingTpl.replace('%1$d', processed).replace('%2$d', total));
 
-            // Step 2: Process batches sequentially
-            function processBatch() {
-                $.post(ajaxurl, {
-                    action: 'ffc_csv_export_batch',
-                    nonce: nonce,
-                    job_id: jobId
-                }, function(batchRes) {
-                    if (!batchRes.success) {
-                        $btn.prop('disabled', false).text(originalText);
-                        $progress.text(batchRes.data || 'Error');
-                        return;
-                    }
-
-                    var processed = batchRes.data.processed;
-                    var progressText = exportingTpl
-                        .replace('%1$d', processed)
-                        .replace('%2$d', total);
-                    $progress.text(progressText);
-
-                    if (batchRes.data.done) {
-                        // Step 3: Trigger file download
-                        var downloadUrl = ajaxurl
-                            + '?action=ffc_csv_export_download'
-                            + '&job_id=' + encodeURIComponent(jobId)
-                            + '&nonce=' + encodeURIComponent(nonce);
-
-                        // Use a hidden iframe to trigger download without navigating
-                        var $iframe = $('<iframe>', { src: downloadUrl })
-                            .css({ display: 'none' })
-                            .appendTo('body');
-
-                        // Cleanup UI
-                        setTimeout(function() {
+                            if (batchData.done) {
+                                var downloadUrl = ajaxurl
+                                    + '?action=ffc_csv_export_download'
+                                    + '&job_id=' + encodeURIComponent(jobId)
+                                    + '&nonce=' + encodeURIComponent(nonce);
+                                var $iframe = $('<iframe>', { src: downloadUrl })
+                                    .css({ display: 'none' })
+                                    .appendTo('body');
+                                setTimeout(function () {
+                                    $btn.prop('disabled', false).text(originalText);
+                                    var doneText = strings.exportDone || 'Done!';
+                                    $progress.text('\u2713 ' + processed + '/' + total + ' \u2014 ' + doneText);
+                                    setTimeout(function () { $progress.fadeOut(); }, 5000);
+                                    $iframe.remove();
+                                }, 2000);
+                            } else {
+                                processBatch();
+                            }
+                        })
+                        .catch(function (err) {
                             $btn.prop('disabled', false).text(originalText);
-                            var doneText = strings.exportDone || 'Done!';
-                            $progress.text('\u2713 ' + processed + '/' + total + ' \u2014 ' + doneText);
-                            setTimeout(function() { $progress.fadeOut(); }, 5000);
-                            $iframe.remove();
-                        }, 2000);
-                    } else {
-                        // Continue to next batch
-                        processBatch();
-                    }
-                }).fail(function() {
-                    $btn.prop('disabled', false).text(originalText);
+                            if (err && err.fromServer) {
+                                $progress.text(err.message || 'Error');
+                            } else {
+                                $progress.text(strings.connectionError || 'Connection error.');
+                            }
+                        });
+                }
+
+                processBatch();
+            })
+            .catch(function (err) {
+                $btn.prop('disabled', false).text(originalText);
+                if (err && err.fromServer) {
+                    $progress.text(err.message || strings.error || 'Error');
+                } else {
                     $progress.text(strings.connectionError || 'Connection error.');
-                });
-            }
-
-            processBatch();
-
-        }).fail(function() {
-            $btn.prop('disabled', false).text(originalText);
-            $progress.text(strings.connectionError || 'Connection error.');
-        });
+                }
+            });
     });
 
     // ==========================================================================
@@ -508,28 +469,19 @@
 
             setFormMetaStatus($chip, 'saving', strings.saving || 'Saving…');
 
-            $.ajax({
-                url: FORM_META_CFG.ajaxUrl,
-                method: 'POST',
-                dataType: 'json',
-                data: {
-                    action:  FORM_META_CFG.action || 'ffc_update_form_meta',
-                    nonce:   FORM_META_CFG.nonce,
-                    post_id: FORM_META_CFG.postId,
-                    key:     key,
-                    value:   value,
-                },
-            }).done(function(res) {
-                if (res && res.success) {
+            FFC.request(
+                FORM_META_CFG.action || 'ffc_update_form_meta',
+                { post_id: FORM_META_CFG.postId, key: key, value: value },
+                { nonce: FORM_META_CFG.nonce, ajaxUrl: FORM_META_CFG.ajaxUrl }
+            )
+                .then(function () {
                     setFormMetaStatus($chip, 'saved', strings.saved || 'Saved');
-                    setTimeout(function() { $chip.attr('hidden', 'hidden').text(''); }, 1500);
-                } else {
-                    var msg = (res && res.data && res.data.message) ? res.data.message : (strings.error || 'Save failed');
+                    setTimeout(function () { $chip.attr('hidden', 'hidden').text(''); }, 1500);
+                })
+                .catch(function (err) {
+                    var msg = (err && err.fromServer && err.message) || strings.error || 'Save failed';
                     setFormMetaStatus($chip, 'error', msg);
-                }
-            }).fail(function() {
-                setFormMetaStatus($chip, 'error', strings.error || 'Save failed');
-            });
+                });
         });
     }
 

@@ -10,6 +10,20 @@
 import { describe, it, expect, beforeAll, beforeEach, afterEach, vi } from 'vitest';
 import { loadScript } from './helpers.js';
 
+// FFC.request — the migration target — wraps jQuery.post() in a Promise.
+// Mock $.post and return a chain whose .done / .fail callback the
+// FFC.request internals invoke.
+function postChain(spec) {
+	const chain = { done: () => chain, fail: () => chain };
+	if (spec && 'done' in spec) chain.done = (cb) => { cb(spec.done); return chain; };
+	if (spec && spec.fail) chain.fail = (cb) => { cb(spec.fail === true ? undefined : spec.fail); return chain; };
+	return chain;
+}
+
+// Microtask flush so .then/.catch reactions run before assertions.
+function flush() { return Promise.resolve().then(() => Promise.resolve()); }
+
+
 beforeAll(async () => {
 	window.ffc_ajax = {
 		ajax_url: '/wp-admin/admin-ajax.php',
@@ -30,6 +44,9 @@ beforeAll(async () => {
 		<button id="ffc-migrations-btn"></button>
 		<div id="ffc-migrations-menu"></div>
 	`;
+	// ffc-admin.js was migrated to FFC.request — load ffc-core.js so
+	// window.FFC is defined before the subject IIFE evaluates.
+	loadScript('assets/js/ffc-core.js');
 	loadScript('assets/js/ffc-admin.js');
 	await new Promise((r) => setTimeout(r, 0));
 });
@@ -49,7 +66,7 @@ afterEach(() => {
 // ----------------------------------------------------------------------
 
 describe('FFC.Admin.showNotification', () => {
-	it('injects a notice with the message after <h1>', () => {
+	it('injects a notice with the message after <h1>', async () => {
 		window.FFC.Admin.showNotification('All good', 'success');
 		const notice = document.querySelector('.ffc-admin-notification');
 		expect(notice).not.toBeNull();
@@ -60,7 +77,7 @@ describe('FFC.Admin.showNotification', () => {
 		expect(h1.nextElementSibling).toBe(notice);
 	});
 
-	it('replaces any previous notification rather than stacking', () => {
+	it('replaces any previous notification rather than stacking', async () => {
 		window.FFC.Admin.showNotification('first', 'info');
 		window.FFC.Admin.showNotification('second', 'info');
 		const notices = document.querySelectorAll('.ffc-admin-notification');
@@ -68,12 +85,12 @@ describe('FFC.Admin.showNotification', () => {
 		expect(notices[0].textContent).toContain('second');
 	});
 
-	it('defaults to type=info when omitted', () => {
+	it('defaults to type=info when omitted', async () => {
 		window.FFC.Admin.showNotification('plain message');
 		expect(document.querySelector('.ffc-admin-notification.notice-info')).not.toBeNull();
 	});
 
-	it('applies the correct notice class for each type', () => {
+	it('applies the correct notice class for each type', async () => {
 		const types = ['success', 'error', 'warning', 'info'];
 		for (const t of types) {
 			window.FFC.Admin.showNotification('m', t);
@@ -90,7 +107,7 @@ describe('FFC.Admin.showNotification', () => {
 		expect(document.querySelector('.ffc-admin-notification')).toBeNull();
 	});
 
-	it('falls back to #wpbody-content prepend when no .wrap > h1 exists', () => {
+	it('falls back to #wpbody-content prepend when no .wrap > h1 exists', async () => {
 		document.body.innerHTML = `<div id="wpbody-content"></div>`;
 		window.FFC.Admin.showNotification('no h1');
 		expect(document.querySelector('#wpbody-content .ffc-admin-notification')).not.toBeNull();
@@ -111,38 +128,42 @@ describe('Generate codes — #ffc_btn_generate_codes click', () => {
 		`;
 	}
 
-	it('shows an inline error when quantity is blank', () => {
+	it('shows an inline error when quantity is blank', async () => {
 		setupGenerateForm('');
-		const spy = vi.spyOn(window.$, 'ajax').mockImplementation(() => ({}));
+		const spy = vi.spyOn(window.$, 'post').mockImplementation(() => postChain({}));
 		window.$('#ffc_btn_generate_codes').trigger('click');
+		await flush();
 		expect(spy).not.toHaveBeenCalled();
 		expect(document.getElementById('ffc_gen_status').textContent).toBe('Please enter a valid number.');
 	});
 
-	it('shows an inline error when quantity is not a number', () => {
+	it('shows an inline error when quantity is not a number', async () => {
 		setupGenerateForm('abc');
-		const spy = vi.spyOn(window.$, 'ajax').mockImplementation(() => ({}));
+		const spy = vi.spyOn(window.$, 'post').mockImplementation(() => postChain({}));
 		window.$('#ffc_btn_generate_codes').trigger('click');
+		await flush();
 		expect(spy).not.toHaveBeenCalled();
 		expect(document.getElementById('ffc_gen_status').textContent).toBe('Please enter a valid number.');
 	});
 
-	it('POSTs ffc_generate_codes with the quantity + nonce', () => {
+	it('POSTs ffc_generate_codes with the quantity + nonce', async () => {
 		setupGenerateForm('10');
-		const spy = vi.spyOn(window.$, 'ajax').mockImplementation(() => ({}));
+		const spy = vi.spyOn(window.$, 'post').mockImplementation(() => postChain({}));
 		window.$('#ffc_btn_generate_codes').trigger('click');
+		await flush();
 		expect(spy).toHaveBeenCalledOnce();
-		const call = spy.mock.calls[0][0];
-		expect(call.type).toBe('POST');
-		expect(call.data.action).toBe('ffc_generate_codes');
-		expect(call.data.qty).toBe('10');
-		expect(call.data.nonce).toBe('test-nonce');
+		// FFC.request → jQuery.post(url, payload).
+		const [, payload] = spy.mock.calls[0];
+		expect(payload.action).toBe('ffc_generate_codes');
+		expect(payload.qty).toBe('10');
+		expect(payload.nonce).toBe('test-nonce');
 	});
 
-	it("disables the button and shows 'Generating tickets...' status while submitting", () => {
+	it("disables the button and shows 'Generating tickets...' status while submitting", async () => {
 		setupGenerateForm('5');
-		vi.spyOn(window.$, 'ajax').mockImplementation(() => ({}));
+		vi.spyOn(window.$, 'post').mockImplementation(() => postChain({}));
 		window.$('#ffc_btn_generate_codes').trigger('click');
+		await flush();
 		expect(document.getElementById('ffc_btn_generate_codes').disabled).toBe(true);
 		expect(document.getElementById('ffc_gen_status').textContent).toBe('Generating tickets...');
 	});
@@ -173,23 +194,26 @@ describe('Restriction toggles (post-#238)', () => {
 		loadScript('assets/js/ffc-admin.js');
 	});
 
-	it('checking #ffc_restriction_password removes .ffc-collapsed from #ffc_password_field', () => {
+	it('checking #ffc_restriction_password removes .ffc-collapsed from #ffc_password_field', async () => {
 		const cb = document.getElementById('ffc_restriction_password');
 		cb.checked = true;
 		window.$(cb).trigger('change');
+		await flush();
 		expect(document.getElementById('ffc_password_field').classList.contains('ffc-collapsed')).toBe(false);
 	});
 
-	it('unchecking #ffc_restriction_allowlist re-adds .ffc-collapsed to #ffc_allowlist_field', () => {
+	it('unchecking #ffc_restriction_allowlist re-adds .ffc-collapsed to #ffc_allowlist_field', async () => {
 		const cb = document.getElementById('ffc_restriction_allowlist');
 		const field = document.getElementById('ffc_allowlist_field');
 		// Start visible (uncollapsed) by checking the master first.
 		cb.checked = true;
 		window.$(cb).trigger('change');
+		await flush();
 		expect(field.classList.contains('ffc-collapsed')).toBe(false);
 
 		cb.checked = false;
 		window.$(cb).trigger('change');
+		await flush();
 		expect(field.classList.contains('ffc-collapsed')).toBe(true);
 	});
 });

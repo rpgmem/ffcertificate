@@ -11,6 +11,20 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { loadScript } from './helpers.js';
 
+// FFC.request (the migration target) wraps jQuery.post() in a Promise.
+// Mock $.post and return a chain whose .done / .fail callback the
+// FFC.request internals invoke.
+function postChain(spec) {
+	const chain = { done: () => chain, fail: () => chain };
+	if (spec && 'done' in spec) chain.done = (cb) => { cb(spec.done); return chain; };
+	if (spec && spec.fail) chain.fail = (cb) => { cb(); return chain; };
+	return chain;
+}
+
+// Microtask flush so .then/.catch reactions run before assertions.
+function flush() { return Promise.resolve().then(() => Promise.resolve()); }
+
+
 beforeEach(() => {
 	document.body.innerHTML = '';
 	window.ffc_csv_download = undefined;
@@ -74,14 +88,21 @@ describe('ffc-csv-download — load-side', () => {
 				</form>
 			</div>
 		`;
+		// ffc-csv-download.js was migrated to FFC.request — load
+		// ffc-core.js so window.FFC is defined.
+		if (! window.FFC) {
+			window.ffc_ajax = { ajax_url: '/wp-admin/admin-ajax.php', nonce: '', strings: {} };
+			loadScript('assets/js/ffc-core.js');
+		}
 		await loadOnReady('assets/js/ffc-csv-download.js');
 
-		const ajaxSpy = vi.spyOn(window.$, 'ajax').mockImplementation(() => ({}));
+		const postSpy = vi.spyOn(window.$, 'post').mockImplementation(() => postChain({}));
 		const ev = window.$.Event('submit');
 		window.$('.ffc-public-csv-download form').trigger(ev);
+		await flush();
 		// Event was prevented and AJAX was attempted.
 		expect(ev.isDefaultPrevented()).toBe(true);
-		expect(ajaxSpy).toHaveBeenCalled();
+		expect(postSpy).toHaveBeenCalled();
 	});
 });
 
@@ -124,6 +145,7 @@ describe('ffc-reregistration-frontend — load-side', () => {
 		const chain = { done: () => chain, fail: () => chain, always: () => chain };
 		const postSpy = vi.spyOn(window.$, 'post').mockReturnValue(chain);
 		window.$('.ffc-rereg-open-form').trigger('click');
+		await flush();
 
 		// The handler should fire $.post (loadForm ajax call).
 		expect(postSpy).toHaveBeenCalled();

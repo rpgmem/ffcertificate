@@ -8,6 +8,20 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { loadScript } from './helpers.js';
 
+// FFC.request — the migration target — wraps jQuery.post() in a Promise.
+// Mock $.post and return a chain whose .done / .fail callback the
+// FFC.request internals invoke.
+function postChain(spec) {
+	const chain = { done: () => chain, fail: () => chain };
+	if (spec && 'done' in spec) chain.done = (cb) => { cb(spec.done); return chain; };
+	if (spec && spec.fail) chain.fail = (cb) => { cb(spec.fail === true ? undefined : spec.fail); return chain; };
+	return chain;
+}
+
+// Microtask flush so .then/.catch reactions run before assertions.
+function flush() { return Promise.resolve().then(() => Promise.resolve()); }
+
+
 beforeEach(() => {
 	window.ffc_submission_edit = {
 		copied_text: 'Copied!',
@@ -20,6 +34,7 @@ beforeEach(() => {
 });
 
 async function loadOnReady() {
+	if (!window.FFC) { loadScript('assets/js/ffc-core.js'); }
 	loadScript('assets/js/ffc-admin-submission-edit.js');
 	await new Promise((r) => setTimeout(r, 0));
 }
@@ -38,12 +53,12 @@ describe('Copy magic link button', () => {
 		await loadOnReady();
 	});
 
-	it('calls execCommand("copy") on click', () => {
+	it('calls execCommand("copy") on click', async () => {
 		document.querySelector('.ffc-copy-magic-link').click();
 		expect(document.execCommand).toHaveBeenCalledWith('copy');
 	});
 
-	it("changes the button text to the localized 'copied' string", () => {
+	it("changes the button text to the localized 'copied' string", async () => {
 		const btn = document.querySelector('.ffc-copy-magic-link');
 		btn.click();
 		expect(btn.textContent).toBe('Copied!');
@@ -77,7 +92,7 @@ describe('Unlink user button', () => {
 		await loadOnReady();
 	});
 
-	it('does nothing when the user declines the confirmation', () => {
+	it('does nothing when the user declines the confirmation', async () => {
 		vi.spyOn(window, 'confirm').mockReturnValue(false);
 		const form = document.querySelector('form');
 		const submitSpy = vi.spyOn(form, 'submit').mockImplementation(() => {});
@@ -87,7 +102,7 @@ describe('Unlink user button', () => {
 		expect(document.querySelector('input[name="linked_user_id"]').value).toBe('42');
 	});
 
-	it('empties the linked_user_id and submits the form on confirm', () => {
+	it('empties the linked_user_id and submits the form on confirm', async () => {
 		vi.spyOn(window, 'confirm').mockReturnValue(true);
 		const form = document.querySelector('form');
 		const submitSpy = vi.spyOn(form, 'submit').mockImplementation(() => {});
@@ -114,27 +129,28 @@ describe('User search', () => {
 		await loadOnReady();
 	});
 
-	it("alerts when the search term is shorter than 2 characters", () => {
+	it("alerts when the search term is shorter than 2 characters", async () => {
 		globalThis.alert.mockClear?.();
 		document.getElementById('ffc-user-search-input').value = 'a';
 		document.querySelector('.ffc-search-user-btn').click();
 		expect(globalThis.alert).toHaveBeenCalledWith('Please enter at least 2 characters.');
 	});
 
-	it('fires AJAX with the search term + nonce when >= 2 chars', () => {
-		const spy = vi.spyOn(window.$, 'ajax').mockImplementation(() => ({}));
+	it('fires AJAX with the search term + nonce when >= 2 chars', async () => {
+		const spy = vi.spyOn(window.$, 'post').mockImplementation(() => postChain({}));
 		document.getElementById('ffc-user-search-input').value = 'maria';
 		document.querySelector('.ffc-search-user-btn').click();
+		await flush();
 		expect(spy).toHaveBeenCalledOnce();
-		const call = spy.mock.calls[0][0];
-		expect(call.data.action).toBe('ffc_search_user');
-		expect(call.data.search).toBe('maria');
-		expect(call.data.nonce).toBe('search-nonce');
+		// FFC.request → jQuery.post(url, payload).
+		const [, payload] = spy.mock.calls[0];
+		expect(payload.action).toBe('ffc_search_user');
+		expect(payload.search).toBe('maria');
+		expect(payload.nonce).toBe('search-nonce');
 	});
 
-	it('renders search results into #ffc-user-search-results on success', () => {
-		vi.spyOn(window.$, 'ajax').mockImplementation((opts) => {
-			opts.success({
+	it('renders search results into #ffc-user-search-results on success', async () => {
+		vi.spyOn(window.$, 'post').mockImplementation(() => postChain({ done: {
 				success: true,
 				data: {
 					users: [
@@ -142,31 +158,29 @@ describe('User search', () => {
 						{ id: 2, name: 'João',  email: 'joao@example.com'  },
 					],
 				},
-			});
-			return {};
-		});
+			} }));
 		document.getElementById('ffc-user-search-input').value = 'qu';
 		document.querySelector('.ffc-search-user-btn').click();
+		await flush();
 		expect(document.querySelectorAll('#ffc-user-search-results .ffc-search-result-item').length).toBe(2);
 	});
 
-	it("renders the no-users message when response.success is false", () => {
-		vi.spyOn(window.$, 'ajax').mockImplementation((opts) => {
-			opts.success({ success: false, data: { message: 'Custom not-found' } });
-			return {};
-		});
+	it("renders the no-users message when response.success is false", async () => {
+		vi.spyOn(window.$, 'post').mockImplementation(() => postChain({ done: { success: false, data: { message: 'Custom not-found' } } }));
 		document.getElementById('ffc-user-search-input').value = 'qu';
 		document.querySelector('.ffc-search-user-btn').click();
+		await flush();
 		expect(document.getElementById('ffc-user-search-results').textContent).toContain('Custom not-found');
 	});
 
-	it('also triggers the search on Enter keypress', () => {
-		const spy = vi.spyOn(window.$, 'ajax').mockImplementation(() => ({}));
+	it('also triggers the search on Enter keypress', async () => {
+		const spy = vi.spyOn(window.$, 'post').mockImplementation(() => postChain({}));
 		const input = document.getElementById('ffc-user-search-input');
 		input.value = 'enter-key';
 		// Build a real keypress event with `which === 13`.
 		const ev = window.$.Event('keypress', { which: 13 });
 		window.$(input).trigger(ev);
+		await flush();
 		expect(spy).toHaveBeenCalledOnce();
 	});
 });

@@ -190,19 +190,41 @@
             // ffc-form-list-features.js, ffc-admin-autosave.js); the
             // global ffc_ajax nonce is the last-resort default.
             var resolvedNonce = options.nonce
-                || (data && data.nonce)
+                || (data && typeof data === 'object' && data.nonce)
                 || this.config.nonce
                 || '';
-            var payload = jQuery.extend({}, data, {
-                action: action,
-                nonce: resolvedNonce,
-            });
+            // Callers may pass `data` as either an object (the usual
+            // case) or a pre-serialised URL-encoded string — typically
+            // the result of `$form.serialize()`. Both forms get action
+            // + nonce appended.
+            var payload;
+            if (typeof data === 'string') {
+                payload = data
+                    + '&action=' + encodeURIComponent(action)
+                    + '&nonce=' + encodeURIComponent(resolvedNonce);
+            } else {
+                payload = jQuery.extend({}, data, {
+                    action: action,
+                    nonce: resolvedNonce,
+                });
+            }
             var url = options.ajaxUrl || this.config.ajaxUrl || '/wp-admin/admin-ajax.php';
+            // jQuery.post doesn't accept a timeout. When callers want one,
+            // fall through to jQuery.ajax({ url, type:'POST', data, timeout })
+            // which returns the same jqXHR-with-.done/.fail interface.
             return new Promise(function(resolve, reject) {
-                jQuery.post(url, payload)
+                var jqXHR = options.timeout
+                    ? jQuery.ajax({ url: url, type: 'POST', data: payload, timeout: options.timeout })
+                    : jQuery.post(url, payload);
+                jqXHR
                     .done(function(res) {
                         if (!res || !res.success) {
-                            var serverMsg = res && res.data && res.data.message;
+                            // Server may send `data` as either an object
+                            // ({message: '...'}) or a bare string — both
+                            // are valid wp_send_json_error shapes.
+                            var serverMsg = (res && typeof res.data === 'string')
+                                ? res.data
+                                : (res && res.data && res.data.message);
                             var msg = serverMsg
                                 || (FFC.config.strings && FFC.config.strings.error)
                                 || 'Request failed';
@@ -213,16 +235,29 @@
                             // want a caller-specific error label when no
                             // server message was supplied.
                             err.fromServer = !!serverMsg;
+                            // Preserve the full server payload so callers
+                            // can read auxiliary fields the server sent
+                            // alongside the error (eg. refresh_captcha,
+                            // new_hash, rate_limit_retry_after).
+                            err.data = res && res.data;
                             reject(err);
                             return;
                         }
                         resolve(res.data);
                     })
-                    .fail(function() {
+                    .fail(function(xhr) {
                         var msg = (FFC.config.strings && FFC.config.strings.connectionError)
                             || 'Connection error';
                         var err = new Error(msg);
                         err.fromServer = false;
+                        // Expose the jqXHR so callers can inspect
+                        // responseJSON / status / etc. when the failure
+                        // is an HTTP error (eg. 429 with a rate_limit
+                        // payload in the body).
+                        err.xhr = xhr;
+                        if (xhr && xhr.responseJSON && xhr.responseJSON.data) {
+                            err.data = xhr.responseJSON.data;
+                        }
                         reject(err);
                     });
             });

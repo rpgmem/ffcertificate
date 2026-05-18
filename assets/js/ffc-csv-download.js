@@ -57,27 +57,21 @@
 
 		formData = $form.serialize();
 
-		$.ajax({
-			url:      cfg.ajax_url,
-			type:     'POST',
-			data:     formData + '&action=ffc_public_csv_info',
-			dataType: 'json',
-			success:  function (res) {
+		FFC.request('ffc_public_csv_info', formData)
+			.then(function (data) {
 				hideOverlay();
-				if (!res || !res.success) {
-					var msg = (res && res.data && res.data.message) || strings.error || 'Error';
-					showFlash(msg, 'error');
+				renderInfoScreen(data);
+			})
+			.catch(function (err) {
+				hideOverlay();
+				if (err && err.fromServer) {
+					showFlash(err.message || strings.error || 'Error', 'error');
 					enableBtn();
-					return;
+				} else {
+					showFlash(strings.connError || 'Connection error.', 'error');
+					enableBtn();
 				}
-				renderInfoScreen(res.data);
-			},
-			error: function () {
-				hideOverlay();
-				showFlash(strings.connError || 'Connection error.', 'error');
-				enableBtn();
-			}
-		});
+			});
 	}
 
 	// ── Render info screen ──────────────────────────────────────
@@ -388,25 +382,15 @@
 		var $btn = $(this);
 		$btn.prop('disabled', true).text(strings.loadingPreview || 'Loading preview…');
 
-		$.ajax({
-			url:      cfg.ajax_url,
-			type:     'POST',
-			data:     formData + '&action=ffc_public_cert_preview',
-			dataType: 'json',
-			success:  function (res) {
+		FFC.request('ffc_public_cert_preview', formData)
+			.then(function (data) {
 				$btn.prop('disabled', false).text(strings.previewCertificate || 'Preview Certificate');
-				if (!res || !res.success) {
-					var msg = (res && res.data && res.data.message) || strings.error || 'Error';
-					alert(msg);
-					return;
-				}
-				showCertPreviewModal(res.data);
-			},
-			error: function () {
+				showCertPreviewModal(data);
+			})
+			.catch(function (err) {
 				$btn.prop('disabled', false).text(strings.previewCertificate || 'Preview Certificate');
-				alert(strings.connError || 'Connection error.');
-			}
-		});
+				alert((err && err.fromServer && err.message) || strings.connError || 'Connection error.');
+			});
 	}
 
 	function showCertPreviewModal(data) {
@@ -528,21 +512,11 @@
 		}, SAFETY_MS);
 
 		// Step 3 — start export job (reuses saved form data).
-		$.ajax({
-			url:      cfg.ajax_url,
-			type:     'POST',
-			data:     formData + '&action=ffc_public_csv_start',
-			dataType: 'json',
-			success:  function (res) {
-				if (!res || !res.success) {
-					var msg = (res && res.data && res.data.message) || strings.error || 'Error';
-					showError(msg);
-					$dlBtn.prop('disabled', false).removeClass('ffc-btn-loading');
-					return;
-				}
-				jobId      = res.data.job_id;
-				nonceBatch = res.data.nonce_batch;
-				total      = res.data.total;
+		FFC.request('ffc_public_csv_start', formData)
+			.then(function (data) {
+				jobId      = data.job_id;
+				nonceBatch = data.nonce_batch;
+				total      = data.total;
 
 				updateStatus(
 					(strings.generating || 'Generating CSV — %d records…')
@@ -552,55 +526,42 @@
 
 				// Step 4 — process batches.
 				processBatch($dlBtn);
-			},
-			error: function () {
-				showError(strings.connError || 'Connection error.');
+			})
+			.catch(function (err) {
+				showError((err && err.fromServer && err.message) || strings.connError || 'Connection error.');
 				$dlBtn.prop('disabled', false).removeClass('ffc-btn-loading');
-			}
-		});
+			});
 	}
 
 	// ── Recursive batch processing ──────────────────────────────
 
 	function processBatch($dlBtn) {
-		$.ajax({
-			url:      cfg.ajax_url,
-			type:     'POST',
-			data: {
-				action:      'ffc_public_csv_batch',
-				job_id:      jobId,
-				nonce_batch: nonceBatch
-			},
-			dataType: 'json',
-			success:  function (res) {
-				if (!res || !res.success) {
-					var msg = (res && res.data) || strings.error || 'Error';
-					if (typeof msg === 'object' && msg.message) {
-						msg = msg.message;
-					}
-					showError(msg);
-					if ($dlBtn) $dlBtn.prop('disabled', false).removeClass('ffc-btn-loading');
-					return;
-				}
-
-				updateProgress(res.data.processed, res.data.total);
+		// The batch endpoint expects its own per-job nonce (`nonce_batch`),
+		// not the global ffc_ajax nonce. Pass it via options.nonce so
+		// FFC.request injects it as the canonical `nonce` payload field;
+		// also keep it in the data under its server-side key.
+		FFC.request('ffc_public_csv_batch', {
+			job_id: jobId,
+			nonce_batch: nonceBatch
+		})
+			.then(function (data) {
+				updateProgress(data.processed, data.total);
 				updateStatus(
 					(strings.exporting || 'Exporting %1$d / %2$d…')
-						.replace('%1$d', res.data.processed)
-						.replace('%2$d', res.data.total)
+						.replace('%1$d', data.processed)
+						.replace('%2$d', data.total)
 				);
 
-				if (res.data.done) {
+				if (data.done) {
 					onExportComplete($dlBtn);
 				} else {
 					processBatch($dlBtn);
 				}
-			},
-			error: function () {
-				showError(strings.connError || 'Connection error.');
+			})
+			.catch(function (err) {
+				showError((err && err.fromServer && err.message) || strings.connError || 'Connection error.');
 				if ($dlBtn) $dlBtn.prop('disabled', false).removeClass('ffc-btn-loading');
-			}
-		});
+			});
 	}
 
 	// ── Download via hidden iframe ──────────────────────────────
@@ -790,36 +751,23 @@
 		var $btnEarly = $container.find('.ffc-btn-open-early');
 		$btnEarly.prop('disabled', true).text(strings.starting || 'Starting…');
 
-		// Page's existing form carries form_id + hash + nonce; we strip
-		// its `action` and append our own so we land on the new endpoint.
-		var payload = $form.serialize().replace(/(^|&)action=[^&]*/, '') + '&action=ffc_public_open_early';
+		// Page's existing form carries form_id + hash + nonce; strip its
+		// `action` so FFC.request can inject ours.
+		var payload = $form.serialize().replace(/(^|&)action=[^&]*/, '');
 
-		$.ajax({
-			url:      cfg.ajax_url,
-			type:     'POST',
-			dataType: 'json',
-			data:     payload,
-			success: function (res) {
-				if (!res || !res.success) {
-					var msg = res && res.data && res.data.message
-						? res.data.message
-						: (strings.error || 'Action failed.');
-					window.alert(msg);
-					$btnEarly.prop('disabled', false).text(strings.startFormNow || 'Start Form Now');
-					return;
-				}
-				window.alert((res.data && res.data.message) || (strings.openEarlySuccess || 'Form is now open.'));
+		FFC.request('ffc_public_open_early', payload)
+			.then(function (data) {
+				window.alert((data && data.message) || (strings.openEarlySuccess || 'Form is now open.'));
 				// Full reload — the original form was replaced by the
 				// info screen, so re-running the validation flow from
 				// scratch is the cleanest way to repaint with the new
 				// state (before_start is now false, button is gone).
 				window.location.reload();
-			},
-			error: function () {
-				window.alert(strings.error || 'Action failed.');
+			})
+			.catch(function (err) {
+				window.alert((err && err.fromServer && err.message) || strings.error || 'Action failed.');
 				$btnEarly.prop('disabled', false).text(strings.startFormNow || 'Start Form Now');
-			},
-		});
+			});
 	}
 
 	// ── Postpone close (extend-end) ─────────────────────────────
@@ -972,31 +920,17 @@
 		$btn.prop('disabled', true).text(strings.postponing || 'Postponing…');
 
 		var payload = $form.serialize().replace(/(^|&)action=[^&]*/, '')
-			+ '&action=ffc_public_extend_end'
 			+ '&new_time_end=' + encodeURIComponent(newTime);
 
-		$.ajax({
-			url:      cfg.ajax_url,
-			type:     'POST',
-			dataType: 'json',
-			data:     payload,
-			success: function (res) {
-				if (!res || !res.success) {
-					var msg = res && res.data && res.data.message
-						? res.data.message
-						: (strings.error || 'Action failed.');
-					window.alert(msg);
-					$btn.prop('disabled', false).text(strings.postponeClose || 'Postpone close');
-					return;
-				}
-				window.alert((res.data && res.data.message) || (strings.postponeSuccess || 'Close time postponed.'));
+		FFC.request('ffc_public_extend_end', payload)
+			.then(function (data) {
+				window.alert((data && data.message) || (strings.postponeSuccess || 'Close time postponed.'));
 				window.location.reload();
-			},
-			error: function () {
-				window.alert(strings.error || 'Action failed.');
+			})
+			.catch(function (err) {
+				window.alert((err && err.fromServer && err.message) || strings.error || 'Action failed.');
 				$btn.prop('disabled', false).text(strings.postponeClose || 'Postpone close');
-			},
-		});
+			});
 	}
 
 	// ── Utility ─────────────────────────────────────────────────

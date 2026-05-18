@@ -21,6 +21,20 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { loadScript } from './helpers.js';
 
+// FFC.request (the migration target) wraps jQuery.post() in a Promise.
+// Mock $.post and return a chain whose .done / .fail callback the
+// FFC.request internals invoke.
+function postChain(spec) {
+	const chain = { done: () => chain, fail: () => chain };
+	if (spec && 'done' in spec) chain.done = (cb) => { cb(spec.done); return chain; };
+	if (spec && spec.fail) chain.fail = (cb) => { cb(); return chain; };
+	return chain;
+}
+
+// Microtask flush so .then/.catch reactions run before assertions.
+function flush() { return Promise.resolve().then(() => Promise.resolve()); }
+
+
 function mountContainer({ cpfField = false } = {}) {
 	document.body.innerHTML = `
 		<div class="ffc-public-csv-download">
@@ -66,6 +80,18 @@ function defaultInfo(overrides = {}) {
 }
 
 async function loadAndReady() {
+	// FFC.request — the migration target — lives on window.FFC, which is
+	// initialised from window.ffc_ajax. Seed it from ffc_csv_download
+	// so the helper's ajaxUrl matches what the test expects, then load
+	// ffc-core before the subject script.
+	if (! window.FFC) {
+		window.ffc_ajax = window.ffc_ajax || {
+			ajax_url: window.ffc_csv_download.ajax_url,
+			nonce: '',
+			strings: window.ffc_csv_download.strings || {},
+		};
+		loadScript('assets/js/ffc-core.js');
+	}
 	loadScript('assets/js/ffc-csv-download.js');
 	await new Promise((r) => setTimeout(r, 0));
 }
@@ -113,11 +139,10 @@ describe('csv-download — onSubmitInfo', () => {
 	it('renders the info screen on AJAX success', async () => {
 		mountContainer();
 		await loadAndReady();
-		vi.spyOn(window.$, 'ajax').mockImplementation((opts) => {
-			opts.success({ success: true, data: defaultInfo() });
-		});
+		vi.spyOn(window.$, 'post').mockImplementation(() => postChain({ done: { success: true, data: defaultInfo() } }));
 
 		window.$('.ffc-public-csv-download form').trigger('submit');
+		await flush();
 
 		// Info screen rendered.
 		expect(window.$('.ffc-info-screen').length).toBe(1);
@@ -133,11 +158,10 @@ describe('csv-download — onSubmitInfo', () => {
 	it('shows a flash error when response.success=false', async () => {
 		mountContainer();
 		await loadAndReady();
-		vi.spyOn(window.$, 'ajax').mockImplementation((opts) => {
-			opts.success({ success: false, data: { message: 'Bad hash' } });
-		});
+		vi.spyOn(window.$, 'post').mockImplementation(() => postChain({ done: { success: false, data: { message: 'Bad hash' } } }));
 
 		window.$('.ffc-public-csv-download form').trigger('submit');
+		await flush();
 
 		expect(window.$('.ffc-pcd-message').text()).toContain('Bad hash');
 		// Info screen not rendered.
@@ -147,11 +171,10 @@ describe('csv-download — onSubmitInfo', () => {
 	it('shows the connection error on AJAX network failure', async () => {
 		mountContainer();
 		await loadAndReady();
-		vi.spyOn(window.$, 'ajax').mockImplementation((opts) => {
-			opts.error();
-		});
+		vi.spyOn(window.$, 'post').mockImplementation(() => postChain({ fail: true }));
 
 		window.$('.ffc-public-csv-download form').trigger('submit');
+		await flush();
 
 		expect(window.$('.ffc-pcd-message').text()).toContain('Connection error');
 	});
@@ -160,9 +183,10 @@ describe('csv-download — onSubmitInfo', () => {
 		mountContainer();
 		await loadAndReady();
 		// Never call success/error so the spinner stays.
-		vi.spyOn(window.$, 'ajax').mockImplementation(() => ({}));
+		vi.spyOn(window.$, 'post').mockImplementation(() => postChain({}));
 
 		window.$('.ffc-public-csv-download form').trigger('submit');
+		await flush();
 
 		expect(window.$('.ffc-submit-btn').prop('disabled')).toBe(true);
 		expect(window.$('.ffc-submit-btn').hasClass('ffc-btn-loading')).toBe(true);
@@ -171,16 +195,15 @@ describe('csv-download — onSubmitInfo', () => {
 	it('renders the no-end-date alert when status.has_end_date is false', async () => {
 		mountContainer();
 		await loadAndReady();
-		vi.spyOn(window.$, 'ajax').mockImplementation((opts) => {
-			opts.success({
+		vi.spyOn(window.$, 'post').mockImplementation(() => postChain({ done: {
 				success: true,
 				data: defaultInfo({
 					status: { has_end_date: false, can_preview_cert: false, can_download: false },
 				}),
-			});
-		});
+			} }));
 
 		window.$('.ffc-public-csv-download form').trigger('submit');
+		await flush();
 
 		expect(window.$('.ffc-info-alert-warning').text()).toContain('No end date');
 	});
@@ -188,16 +211,15 @@ describe('csv-download — onSubmitInfo', () => {
 	it('renders the disabled download button when status.can_download is false', async () => {
 		mountContainer();
 		await loadAndReady();
-		vi.spyOn(window.$, 'ajax').mockImplementation((opts) => {
-			opts.success({
+		vi.spyOn(window.$, 'post').mockImplementation(() => postChain({ done: {
 				success: true,
 				data: defaultInfo({
 					status: { has_end_date: true, can_preview_cert: false, can_download: false },
 				}),
-			});
-		});
+			} }));
 
 		window.$('.ffc-public-csv-download form').trigger('submit');
+		await flush();
 
 		expect(window.$('.ffc-btn-download-csv').prop('disabled')).toBe(true);
 		expect(window.$('.ffc-btn-cert-preview').length).toBe(0);
@@ -212,17 +234,16 @@ describe('csv-download — download flow', () => {
 	async function reachInfoScreen() {
 		mountContainer();
 		await loadAndReady();
-		const ajaxSpy = vi.spyOn(window.$, 'ajax');
+		const postSpy = vi.spyOn(window.$, 'ajax');
 		// First call: info
-		ajaxSpy.mockImplementationOnce((opts) => {
-			opts.success({ success: true, data: defaultInfo() });
-		});
+		postSpy.mockImplementationOnce(() => postChain({ done: { success: true, data: defaultInfo() } }));
 		window.$('.ffc-public-csv-download form').trigger('submit');
-		return ajaxSpy;
+		await flush();
+		return postSpy;
 	}
 
 	it('walks start → batch (in progress) → batch (done) and shows complete', async () => {
-		const ajaxSpy = await reachInfoScreen();
+		const postSpy = await reachInfoScreen();
 
 		// Subsequent calls: start, batch1, batch2 (done).
 		const responses = [
@@ -230,14 +251,13 @@ describe('csv-download — download flow', () => {
 			{ success: true, data: { processed: 50, total: 100, done: false } },
 			{ success: true, data: { processed: 100, total: 100, done: true } },
 		];
-		ajaxSpy.mockImplementation((opts) => {
-			opts.success(responses.shift());
-		});
+		postSpy.mockImplementation(() => postChain({ done: responses.shift() }));
 
 		window.$('.ffc-btn-download-csv').trigger('click');
+		await flush();
 
 		// All 3 AJAX calls fired synchronously.
-		expect(ajaxSpy.mock.calls.length).toBeGreaterThanOrEqual(4);
+		expect(postSpy.mock.calls.length).toBeGreaterThanOrEqual(4);
 		// onExportComplete schedules the final "Download complete!" status
 		// inside a setTimeout(remaining). Flush it.
 		await new Promise((r) => setTimeout(r, 5));
@@ -247,63 +267,59 @@ describe('csv-download — download flow', () => {
 	});
 
 	it('shows the error overlay when start returns success=false', async () => {
-		const ajaxSpy = await reachInfoScreen();
-		ajaxSpy.mockImplementation((opts) => {
-			opts.success({ success: false, data: { message: 'Quota' } });
-		});
+		const postSpy = await reachInfoScreen();
+		postSpy.mockImplementation(() => postChain({ done: { success: false, data: { message: 'Quota' } } }));
 
 		window.$('.ffc-btn-download-csv').trigger('click');
+		await flush();
 
 		expect(window.$('.ffc-csv-progress-error').text()).toContain('Quota');
 	});
 
 	it('shows the error overlay on start network failure', async () => {
-		const ajaxSpy = await reachInfoScreen();
-		ajaxSpy.mockImplementation((opts) => {
-			opts.error();
-		});
+		const postSpy = await reachInfoScreen();
+		postSpy.mockImplementation(() => postChain({ fail: true }));
 
 		window.$('.ffc-btn-download-csv').trigger('click');
+		await flush();
 
 		expect(window.$('.ffc-csv-progress-error').text()).toContain('Connection error');
 	});
 
 	it('shows the error overlay when a batch returns success=false (string data)', async () => {
-		const ajaxSpy = await reachInfoScreen();
+		const postSpy = await reachInfoScreen();
 		const responses = [
 			{ success: true, data: { job_id: 'j-1', nonce_batch: 'nb', total: 10 } },
 			{ success: false, data: 'Batch failed' },
 		];
-		ajaxSpy.mockImplementation((opts) => {
-			opts.success(responses.shift());
-		});
+		postSpy.mockImplementation(() => postChain({ done: responses.shift() }));
 
 		window.$('.ffc-btn-download-csv').trigger('click');
+		await flush();
 
 		expect(window.$('.ffc-csv-progress-error').text()).toBe('Batch failed');
 	});
 
 	it('shows the error overlay when a batch returns success=false (object data)', async () => {
-		const ajaxSpy = await reachInfoScreen();
+		const postSpy = await reachInfoScreen();
 		const responses = [
 			{ success: true, data: { job_id: 'j-1', nonce_batch: 'nb', total: 10 } },
 			{ success: false, data: { message: 'Batch object failure' } },
 		];
-		ajaxSpy.mockImplementation((opts) => {
-			opts.success(responses.shift());
-		});
+		postSpy.mockImplementation(() => postChain({ done: responses.shift() }));
 
 		window.$('.ffc-btn-download-csv').trigger('click');
+		await flush();
 
 		expect(window.$('.ffc-csv-progress-error').text()).toBe('Batch object failure');
 	});
 
 	it('shows the error overlay on batch network failure', async () => {
-		const ajaxSpy = await reachInfoScreen();
+		const postSpy = await reachInfoScreen();
 		const responses = [
 			{ success: true, data: { job_id: 'j-1', nonce_batch: 'nb', total: 10 } },
 		];
-		ajaxSpy.mockImplementation((opts) => {
+		postSpy.mockImplementation((opts) => {
 			if (responses.length) {
 				opts.success(responses.shift());
 			} else {
@@ -312,6 +328,7 @@ describe('csv-download — download flow', () => {
 		});
 
 		window.$('.ffc-btn-download-csv').trigger('click');
+		await flush();
 
 		expect(window.$('.ffc-csv-progress-error').text()).toContain('Connection error');
 	});
@@ -325,28 +342,26 @@ describe('csv-download — cert preview', () => {
 	async function reachInfoScreen() {
 		mountContainer();
 		await loadAndReady();
-		const ajaxSpy = vi.spyOn(window.$, 'ajax');
-		ajaxSpy.mockImplementationOnce((opts) => {
-			opts.success({ success: true, data: defaultInfo() });
-		});
+		const postSpy = vi.spyOn(window.$, 'ajax');
+		postSpy.mockImplementationOnce(() => postChain({ done: { success: true, data: defaultInfo() } }));
 		window.$('.ffc-public-csv-download form').trigger('submit');
-		return ajaxSpy;
+		await flush();
+		return postSpy;
 	}
 
 	it('opens the modal on preview success and substitutes placeholders', async () => {
-		const ajaxSpy = await reachInfoScreen();
-		ajaxSpy.mockImplementation((opts) => {
-			opts.success({
+		const postSpy = await reachInfoScreen();
+		postSpy.mockImplementation(() => postChain({ done: {
 				success: true,
 				data: {
 					html: '<p>Hi {{name}} — your auth: {{auth_code}}.</p><div>{{qr_code}}</div>',
 					bg_image: 'https://example.com/bg.png',
 					fields: [],
 				},
-			});
-		});
+			} }));
 
 		window.$('.ffc-btn-cert-preview').trigger('click');
+		await flush();
 
 		expect(window.$('#ffc-preview-modal').length).toBe(1);
 		// The iframe content is the substituted HTML.
@@ -360,13 +375,12 @@ describe('csv-download — cert preview', () => {
 	});
 
 	it('shows alert on preview failure', async () => {
-		const ajaxSpy = await reachInfoScreen();
-		ajaxSpy.mockImplementation((opts) => {
-			opts.success({ success: false, data: { message: 'No template' } });
-		});
+		const postSpy = await reachInfoScreen();
+		postSpy.mockImplementation(() => postChain({ done: { success: false, data: { message: 'No template' } } }));
 		const alertSpy = vi.spyOn(window, 'alert').mockImplementation(() => {});
 
 		window.$('.ffc-btn-cert-preview').trigger('click');
+		await flush();
 
 		expect(alertSpy).toHaveBeenCalledWith('No template');
 		// Modal not opened.
@@ -374,27 +388,26 @@ describe('csv-download — cert preview', () => {
 	});
 
 	it('shows alert on preview network error', async () => {
-		const ajaxSpy = await reachInfoScreen();
-		ajaxSpy.mockImplementation((opts) => {
-			opts.error();
-		});
+		const postSpy = await reachInfoScreen();
+		postSpy.mockImplementation(() => postChain({ fail: true }));
 		const alertSpy = vi.spyOn(window, 'alert').mockImplementation(() => {});
 
 		window.$('.ffc-btn-cert-preview').trigger('click');
+		await flush();
 
 		expect(alertSpy).toHaveBeenCalledWith('Connection error.');
 	});
 
 	it('closes the modal on the close button click', async () => {
-		const ajaxSpy = await reachInfoScreen();
-		ajaxSpy.mockImplementation((opts) => {
-			opts.success({ success: true, data: { html: '<p>hi</p>', fields: [] } });
-		});
+		const postSpy = await reachInfoScreen();
+		postSpy.mockImplementation(() => postChain({ done: { success: true, data: { html: '<p>hi</p>', fields: [] } } }));
 
 		window.$('.ffc-btn-cert-preview').trigger('click');
+		await flush();
 		expect(window.$('#ffc-preview-modal').length).toBe(1);
 
 		window.$('.ffc-preview-close').trigger('click');
+		await flush();
 		// Animation-out finishes synchronously since fx.off=true; the
 		// setTimeout(200) still runs but the visible-class drop is enough
 		// for our assertion.
@@ -402,16 +415,16 @@ describe('csv-download — cert preview', () => {
 	});
 
 	it('closes the modal when Escape is pressed', async () => {
-		const ajaxSpy = await reachInfoScreen();
-		ajaxSpy.mockImplementation((opts) => {
-			opts.success({ success: true, data: { html: '<p>hi</p>', fields: [] } });
-		});
+		const postSpy = await reachInfoScreen();
+		postSpy.mockImplementation(() => postChain({ done: { success: true, data: { html: '<p>hi</p>', fields: [] } } }));
 
 		window.$('.ffc-btn-cert-preview').trigger('click');
+		await flush();
 		expect(window.$('#ffc-preview-modal').length).toBe(1);
 
 		const ev = window.$.Event('keydown', { key: 'Escape' });
 		window.$(document).trigger(ev);
+		await flush();
 
 		expect(window.$('#ffc-preview-modal').hasClass('ffc-preview-visible')).toBe(false);
 	});
@@ -425,10 +438,9 @@ describe('csv-download — back button', () => {
 	it('calls location.reload() when clicked', async () => {
 		mountContainer();
 		await loadAndReady();
-		vi.spyOn(window.$, 'ajax').mockImplementation((opts) => {
-			opts.success({ success: true, data: defaultInfo() });
-		});
+		vi.spyOn(window.$, 'post').mockImplementation(() => postChain({ done: { success: true, data: defaultInfo() } }));
 		window.$('.ffc-public-csv-download form').trigger('submit');
+		await flush();
 
 		// Replace location with a stub before clicking.
 		const original = window.location;
@@ -440,6 +452,7 @@ describe('csv-download — back button', () => {
 		});
 
 		window.$('.ffc-info-back').trigger('click');
+		await flush();
 
 		expect(stub.reload).toHaveBeenCalled();
 
