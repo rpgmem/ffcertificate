@@ -29,18 +29,14 @@
             if (ffcDashboard.viewAsUserId) url += '?viewAsUserId=' + ffcDashboard.viewAsUserId;
 
             var self = this;
-            $.ajax({
-                url: url,
-                method: 'GET',
-                beforeSend: function (xhr) { xhr.setRequestHeader('X-WP-Nonce', ffcDashboard.nonce); },
-                success: function (response) {
+            FFC.rest(url, { nonce: ffcDashboard.nonce })
+                .then(function (response) {
                     self.state = response.certificates || [];
                     self.render(self.state, 1);
-                },
-                error: function () {
+                })
+                .catch(function () {
                     $container.html('<div class="ffc-error">' + ffcDashboard.strings.error + '</div>');
-                }
-            });
+                });
         },
 
         render: function (certificates, page) {

@@ -51,6 +51,40 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 
 ### Changed
 
+- AJAX migration continues — CSV / forms / admin + Calendar family:
+  7 files (~27 inline `$.ajax({...})` / `$.post()` / `$.get()` call
+  sites) migrated to `FFC.request`. Public CSV download flow
+  (`ffc-csv-download.js` — 6 sites, all using `$form.serialize()`
+  payloads); cert verification + form submission flow
+  (`ffc-frontend.js` — 3 sites, with `refresh_captcha` + `rate_limit`
+  auxiliary fields via `err.data`); admin areas (`ffc-admin.js` — 4
+  sites including the generate-codes form + batched CSV export +
+  per-form-meta autosave; `ffc-admin-submission-edit.js` — user
+  search; `ffc-custom-fields-admin.js` — 2 sites with explicit
+  `ajaxUrl` override). Calendar booking flow
+  (`ffc-calendar-frontend.js` — 3 sites including a 30 s timeout on
+  the booking submit; `ffc-calendar-editor.js` — cleanup action). The
+  helper gains: string-payload support (callers can pass
+  `$form.serialize()` directly), `err.data` to expose auxiliary
+  server fields, `err.xhr` on network failures for HTTP-status
+  inspection, `options.timeout` (forwarded to `jQuery.ajax`), and
+  both-shape `data` recognition (server may send `wp_send_json_error`
+  with either a bare string or `{message: ...}`).
+- AJAX migration begins — user-dashboard + audience family: 9 files
+  (~33 inline `$.ajax({...})` call sites) migrated to the centralised
+  `FFC.ajax` / `FFC.request` (admin-ajax) and the new `FFC.rest` (WP
+  REST API) helpers in `assets/js/ffc-core.js`. `FFC.rest(url, options)`
+  is added as a sibling of `FFC.request` for endpoints that live on
+  the WP REST surface — it injects the `X-WP-Nonce` header, JSON-encodes
+  write bodies, normalises errors (rejected `Error.xhr` preserves the
+  jqXHR for caller introspection), and accepts an `options.timeout`.
+  `FFC.request` rejections now also carry an `err.fromServer` flag so
+  callers can distinguish a server-supplied `data.message` from the
+  library's generic fallback. First batch covers the user-dashboard
+  panels (profile, audience-join, appointments, reregistrations, core,
+  certificates, audience) plus the audience admin + frontend
+  (`ffc-audience-admin.js`, `ffc-audience.js`). This closes #294 of the
+  #277 AJAX migration umbrella.
 - POST/GET sanitize migration continues — admin + reregistration area:
   inline `sanitize_text_field(wp_unslash($_POST/$_GET[...]))` patterns
   migrated to `Utils::get_post_string` / `get_get_string` across 14

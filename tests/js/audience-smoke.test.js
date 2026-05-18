@@ -102,6 +102,15 @@ beforeAll(() => {
 			events: 'Events',
 		},
 	};
+	// ffc-audience.js was migrated to FFC.rest / FFC.request — load
+	// ffc-core.js so window.FFC is defined when the audience IIFE
+	// evaluates inside each test's loadScript() call.
+	window.ffc_ajax = {
+		ajax_url: window.ffcAudience.ajaxUrl,
+		nonce: window.ffcAudience.nonce,
+		strings: window.ffcAudience.strings,
+	};
+	loadScript('assets/js/ffc-core.js');
 });
 
 beforeEach(() => {

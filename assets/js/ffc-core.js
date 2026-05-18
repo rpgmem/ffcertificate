@@ -190,31 +190,148 @@
             // ffc-form-list-features.js, ffc-admin-autosave.js); the
             // global ffc_ajax nonce is the last-resort default.
             var resolvedNonce = options.nonce
-                || (data && data.nonce)
+                || (data && typeof data === 'object' && data.nonce)
                 || this.config.nonce
                 || '';
-            var payload = jQuery.extend({}, data, {
-                action: action,
-                nonce: resolvedNonce,
-            });
+            // Callers may pass `data` as either an object (the usual
+            // case) or a pre-serialised URL-encoded string — typically
+            // the result of `$form.serialize()`. Both forms get action
+            // + nonce appended.
+            var payload;
+            if (typeof data === 'string') {
+                payload = data
+                    + '&action=' + encodeURIComponent(action)
+                    + '&nonce=' + encodeURIComponent(resolvedNonce);
+            } else {
+                payload = jQuery.extend({}, data, {
+                    action: action,
+                    nonce: resolvedNonce,
+                });
+            }
             var url = options.ajaxUrl || this.config.ajaxUrl || '/wp-admin/admin-ajax.php';
+            // jQuery.post doesn't accept a timeout. When callers want one,
+            // fall through to jQuery.ajax({ url, type:'POST', data, timeout })
+            // which returns the same jqXHR-with-.done/.fail interface.
             return new Promise(function(resolve, reject) {
-                jQuery.post(url, payload)
+                var jqXHR = options.timeout
+                    ? jQuery.ajax({ url: url, type: 'POST', data: payload, timeout: options.timeout })
+                    : jQuery.post(url, payload);
+                jqXHR
                     .done(function(res) {
                         if (!res || !res.success) {
-                            var msg = (res && res.data && res.data.message)
+                            // Server may send `data` as either an object
+                            // ({message: '...'}) or a bare string — both
+                            // are valid wp_send_json_error shapes.
+                            var serverMsg = (res && typeof res.data === 'string')
+                                ? res.data
+                                : (res && res.data && res.data.message);
+                            var msg = serverMsg
                                 || (FFC.config.strings && FFC.config.strings.error)
                                 || 'Request failed';
-                            reject(new Error(msg));
+                            var err = new Error(msg);
+                            // Lets callers distinguish "server told us
+                            // what's wrong" from "library fell back to a
+                            // generic string" — important for sites that
+                            // want a caller-specific error label when no
+                            // server message was supplied.
+                            err.fromServer = !!serverMsg;
+                            // Preserve the full server payload so callers
+                            // can read auxiliary fields the server sent
+                            // alongside the error (eg. refresh_captcha,
+                            // new_hash, rate_limit_retry_after).
+                            err.data = res && res.data;
+                            reject(err);
                             return;
                         }
                         resolve(res.data);
                     })
-                    .fail(function() {
+                    .fail(function(xhr) {
                         var msg = (FFC.config.strings && FFC.config.strings.connectionError)
                             || 'Connection error';
-                        reject(new Error(msg));
+                        var err = new Error(msg);
+                        err.fromServer = false;
+                        // Expose the jqXHR so callers can inspect
+                        // responseJSON / status / etc. when the failure
+                        // is an HTTP error (eg. 429 with a rate_limit
+                        // payload in the body).
+                        err.xhr = xhr;
+                        if (xhr && xhr.responseJSON && xhr.responseJSON.data) {
+                            err.data = xhr.responseJSON.data;
+                        }
+                        reject(err);
                     });
+            });
+        },
+
+        /**
+         * Promise-based WP REST API helper.
+         *
+         * Sibling of `FFC.request` for endpoints that live on the WP REST
+         * surface instead of `admin-ajax.php`. Centralises the verbose
+         * jQuery.ajax pattern that user-dashboard / audience callers
+         * spell out by hand:
+         *   - `X-WP-Nonce` header injection (REST convention, not body param);
+         *   - JSON body encoding for write methods (POST/PUT/PATCH/DELETE);
+         *   - error normalisation that surfaces `response.message` from
+         *     a WP_REST_Response error body when available.
+         *
+         * @param {string} url URL completa. Callers passam
+         *                     `ffcDashboard.restUrl + 'user/profile'` etc.
+         *                     O helper não monta a URL para não acoplar
+         *                     FFC.config a vars localizadas dashboard/audience.
+         * @param {Object} [options]
+         * @param {string} [options.method='GET'] HTTP verb.
+         * @param {Object} [options.data] Payload. GET/HEAD → query string;
+         *                                outros → JSON body.
+         * @param {string} [options.nonce] X-WP-Nonce override. Default vem
+         *                                 de `FFC.config.restNonce` se setado.
+         * @returns {Promise<*>} Resolve com response body parseado;
+         *                       rejeita com `Error` (campo `.xhr` preserva
+         *                       o jqXHR para introspection).
+         */
+        rest: function(url, options) {
+            options = options || {};
+            var method = (options.method || 'GET').toUpperCase();
+            var nonce = options.nonce || (this.config && this.config.restNonce) || '';
+
+            var ajaxOpts = {
+                url: url,
+                method: method,
+                beforeSend: function(xhr) {
+                    if (nonce) {
+                        xhr.setRequestHeader('X-WP-Nonce', nonce);
+                    }
+                }
+            };
+
+            if (typeof options.timeout === 'number') {
+                ajaxOpts.timeout = options.timeout;
+            }
+
+            if (typeof options.data !== 'undefined' && options.data !== null) {
+                if (method === 'GET' || method === 'HEAD') {
+                    ajaxOpts.data = options.data;
+                } else {
+                    ajaxOpts.contentType = 'application/json';
+                    ajaxOpts.data = JSON.stringify(options.data);
+                }
+            }
+
+            return new Promise(function(resolve, reject) {
+                // Pass success/error inside ajaxOpts (instead of chaining
+                // .done/.fail on the return value) so test doubles that
+                // intercept $.ajax can drive resolution by invoking
+                // opts.success / opts.error directly.
+                ajaxOpts.success = function(response) { resolve(response); };
+                ajaxOpts.error = function(xhr) {
+                    var msg = (xhr && xhr.responseJSON && xhr.responseJSON.message)
+                        || (FFC.config.strings && FFC.config.strings.connectionError)
+                        || 'Request failed';
+                    var err = new Error(msg);
+                    err.xhr = xhr;
+                    reject(err);
+                };
+                jQuery.ajax(ajaxOpts);
             });
         },
 

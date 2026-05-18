@@ -66,7 +66,29 @@ export function installDashboardFixtures() {
 }
 
 export function loadDashboardCore() {
+	// FFC.rest / FFC.request live on window.FFC, which initialises
+	// itself from window.ffc_ajax at load time. Mirror the dashboard's
+	// localised admin-ajax URL + nonce + strings so the helpers pick up
+	// the test's overrides instead of jQuery's `/wp-admin/admin-ajax.php`
+	// default.
+	if (! window.ffc_ajax && window.ffcDashboard) {
+		window.ffc_ajax = {
+			ajax_url: window.ffcDashboard.ajaxUrl,
+			nonce: window.ffcDashboard.nonce,
+			strings: window.ffcDashboard.strings || {},
+		};
+	}
+	loadScript('assets/js/ffc-core.js');
 	loadScript('assets/js/ffc-user-dashboard-core.js');
+}
+
+// FFC.rest / FFC.request wrap their underlying $.ajax in a Promise.
+// Tests that mock $.ajax fire opts.success / opts.error synchronously
+// inside the spy, but the .then / .catch reactions queue on the
+// microtask queue. Await this helper after the trigger so the panel
+// handlers have a chance to mutate state / DOM before the assertion.
+export function flushPromises() {
+	return Promise.resolve().then(() => Promise.resolve());
 }
 
 export function loadPanel(name) {

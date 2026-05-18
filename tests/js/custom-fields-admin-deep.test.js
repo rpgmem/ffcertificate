@@ -3,6 +3,20 @@
 import { describe, it, expect, beforeAll, beforeEach, afterEach, vi } from 'vitest';
 import { loadScript } from './helpers.js';
 
+// FFC.request — the migration target — wraps jQuery.post() in a Promise.
+// Mock $.post and return a chain whose .done / .fail callback the
+// FFC.request internals invoke.
+function postChain(spec) {
+	const chain = { done: () => chain, fail: () => chain };
+	if (spec && 'done' in spec) chain.done = (cb) => { cb(spec.done); return chain; };
+	if (spec && spec.fail) chain.fail = (cb) => { cb(spec.fail === true ? undefined : spec.fail); return chain; };
+	return chain;
+}
+
+// Microtask flush so .then/.catch reactions run before assertions.
+function flush() { return Promise.resolve().then(() => Promise.resolve()); }
+
+
 beforeAll(() => {
 	window.ffcAudienceAdmin = {
 		ajaxUrl: '/wp-admin/admin-ajax.php',
@@ -100,6 +114,7 @@ beforeEach(async () => {
 	window.$.fx.off = true;
 	// Script binds directly on #ffc-add-custom-field + #ffc-save-custom-fields
 	// at $(document).ready, so we must reload it AFTER the fixture mount.
+	if (!window.FFC) { loadScript('assets/js/ffc-core.js'); }
 	loadScript('assets/js/ffc-custom-fields-admin.js');
 	// Wait for the $(document).ready microtask so direct binds attach.
 	await new Promise((r) => setTimeout(r, 0));
@@ -123,8 +138,9 @@ afterEach(() => {
 // ----------------------------------------------------------------------
 
 describe('custom-fields-admin — addNewField', () => {
-	it('appends a row from the wp.template renderer with details visible', () => {
+	it('appends a row from the wp.template renderer with details visible', async () => {
 		window.$('#ffc-add-custom-field').trigger('click');
+		await flush();
 
 		const rows = window.$('#ffc-custom-fields-list .ffc-custom-field-row');
 		expect(rows.length).toBe(2);
@@ -139,14 +155,15 @@ describe('custom-fields-admin — addNewField', () => {
 // ----------------------------------------------------------------------
 
 describe('custom-fields-admin — saveFields', () => {
-	it('bails when the container has no audience-id', () => {
+	it('bails when the container has no audience-id', async () => {
 		window.$('#ffc-custom-fields-container').removeAttr('data-audience-id');
 		const postSpy = vi.spyOn(window.$, 'post').mockImplementation(() => ({}));
 		window.$('#ffc-save-custom-fields').trigger('click');
+		await flush();
 		expect(postSpy).not.toHaveBeenCalled();
 	});
 
-	it('POSTs ffc_save_custom_fields with the serialised field list', () => {
+	it('POSTs ffc_save_custom_fields with the serialised field list', async () => {
 		const postSpy = vi.spyOn(window.$, 'post').mockImplementation(() => ({
 			done: () => ({
 				fail: () => ({ always: () => ({}) }),
@@ -157,6 +174,7 @@ describe('custom-fields-admin — saveFields', () => {
 		window.$('.ffc-field-choices').val('apple\nbanana\n\nkiwi');
 
 		window.$('#ffc-save-custom-fields').trigger('click');
+		await flush();
 
 		expect(postSpy).toHaveBeenCalled();
 		const payload = postSpy.mock.calls[0][1];
@@ -172,7 +190,7 @@ describe('custom-fields-admin — saveFields', () => {
 		expect(fields[0].choices).toEqual(['apple', 'banana', 'kiwi']);
 	});
 
-	it('on success: shows the saved status (page reload is fired but stubbed in test)', () => {
+	it('on success: shows the saved status (page reload is fired but stubbed in test)', async () => {
 		vi.useFakeTimers();
 		// Stub reload so the test doesn't blow up jsdom navigation.
 		const originalLocation = window.location;
@@ -191,6 +209,7 @@ describe('custom-fields-admin — saveFields', () => {
 		}));
 
 		window.$('#ffc-save-custom-fields').trigger('click');
+		await flush();
 
 		expect(window.$('#ffc-custom-fields-status').text()).toBe('Saved');
 		expect(window.$('#ffc-custom-fields-status').hasClass('ffc-status-success')).toBe(true);
@@ -207,7 +226,7 @@ describe('custom-fields-admin — saveFields', () => {
 		});
 	});
 
-	it('on response.success=false: shows the server error in the status', () => {
+	it('on response.success=false: shows the server error in the status', async () => {
 		vi.spyOn(window.$, 'post').mockImplementation(() => ({
 			done: function (cb) {
 				cb({ success: false, data: { message: 'Bad key' } });
@@ -218,12 +237,13 @@ describe('custom-fields-admin — saveFields', () => {
 		}));
 
 		window.$('#ffc-save-custom-fields').trigger('click');
+		await flush();
 
 		expect(window.$('#ffc-custom-fields-status').text()).toBe('Bad key');
 		expect(window.$('#ffc-custom-fields-status').hasClass('ffc-status-error')).toBe(true);
 	});
 
-	it('on network failure: shows the localised error status', () => {
+	it('on network failure: shows the localised error status', async () => {
 		vi.spyOn(window.$, 'post').mockImplementation(() => ({
 			done: function () {
 				return {
@@ -236,25 +256,21 @@ describe('custom-fields-admin — saveFields', () => {
 		}));
 
 		window.$('#ffc-save-custom-fields').trigger('click');
+		await flush();
 
 		expect(window.$('#ffc-custom-fields-status').text()).toBe('Error');
 		expect(window.$('#ffc-custom-fields-status').hasClass('ffc-status-error')).toBe(true);
 	});
 
-	it('always-callback re-enables the save button', () => {
-		vi.spyOn(window.$, 'post').mockImplementation(() => ({
-			done: function () {
-				return {
-					fail: function () {
-						return {
-							always: function (alwaysCb) { alwaysCb(); return {}; },
-						};
-					},
-				};
-			},
-		}));
+	it('re-enables the save button after a failed save', async () => {
+		// The migrated saveCustomFields chains a `.then` after `.catch`
+		// (Promise-style .finally equivalent) to restore the disabled
+		// state on both success + error paths. Drive the fail branch and
+		// verify the button is re-enabled.
+		vi.spyOn(window.$, 'post').mockImplementation(() => postChain({ fail: true }));
 
 		window.$('#ffc-save-custom-fields').trigger('click');
+		await flush();
 
 		expect(window.$('#ffc-save-custom-fields').prop('disabled')).toBe(false);
 	});
@@ -265,39 +281,42 @@ describe('custom-fields-admin — saveFields', () => {
 // ----------------------------------------------------------------------
 
 describe('custom-fields-admin — deleteField', () => {
-	it('alerts and bails when the row is a standard field', () => {
+	it('alerts and bails when the row is a standard field', async () => {
 		window.$('.ffc-custom-field-row').data('field-source', 'standard');
 		const alertSpy = vi.spyOn(window, 'alert').mockImplementation(() => {});
 		const postSpy = vi.spyOn(window.$, 'post').mockImplementation(() => ({}));
 
 		window.$('.ffc-field-delete').trigger('click');
+		await flush();
 
 		expect(alertSpy).toHaveBeenCalledWith('Cannot delete standard');
 		expect(postSpy).not.toHaveBeenCalled();
 	});
 
-	it('bails when the user declines the confirm', () => {
+	it('bails when the user declines the confirm', async () => {
 		vi.spyOn(window, 'confirm').mockReturnValue(false);
 		const postSpy = vi.spyOn(window.$, 'post').mockImplementation(() => ({}));
 
 		window.$('.ffc-field-delete').trigger('click');
+		await flush();
 
 		expect(postSpy).not.toHaveBeenCalled();
 		expect(window.$('.ffc-custom-field-row').length).toBe(1);
 	});
 
-	it('removes a new (unsaved) row from the DOM without AJAX', () => {
+	it('removes a new (unsaved) row from the DOM without AJAX', async () => {
 		window.$('.ffc-custom-field-row').data('field-id', 'new_99');
 		vi.spyOn(window, 'confirm').mockReturnValue(true);
 		const postSpy = vi.spyOn(window.$, 'post').mockImplementation(() => ({}));
 
 		window.$('.ffc-field-delete').trigger('click');
+		await flush();
 
 		expect(postSpy).not.toHaveBeenCalled();
 		expect(window.$('.ffc-custom-field-row').length).toBe(0);
 	});
 
-	it('deletes an existing row via AJAX on success', () => {
+	it('deletes an existing row via AJAX on success', async () => {
 		vi.spyOn(window, 'confirm').mockReturnValue(true);
 		vi.spyOn(window.$, 'post').mockImplementation(() => ({
 			done: function (cb) {
@@ -307,11 +326,12 @@ describe('custom-fields-admin — deleteField', () => {
 		}));
 
 		window.$('.ffc-field-delete').trigger('click');
+		await flush();
 
 		expect(window.$('.ffc-custom-field-row').length).toBe(0);
 	});
 
-	it('on AJAX response.success=false: alerts the server message', () => {
+	it('on AJAX response.success=false: alerts the server message', async () => {
 		vi.spyOn(window, 'confirm').mockReturnValue(true);
 		vi.spyOn(window.$, 'post').mockImplementation(() => ({
 			done: function (cb) {
@@ -322,12 +342,13 @@ describe('custom-fields-admin — deleteField', () => {
 		const alertSpy = vi.spyOn(window, 'alert').mockImplementation(() => {});
 
 		window.$('.ffc-field-delete').trigger('click');
+		await flush();
 
 		expect(alertSpy).toHaveBeenCalledWith('In use');
 		expect(window.$('.ffc-custom-field-row').length).toBe(1);
 	});
 
-	it('on AJAX network failure: alerts the localised error', () => {
+	it('on AJAX network failure: alerts the localised error', async () => {
 		vi.spyOn(window, 'confirm').mockReturnValue(true);
 		vi.spyOn(window.$, 'post').mockImplementation(() => ({
 			done: function () {
@@ -339,6 +360,7 @@ describe('custom-fields-admin — deleteField', () => {
 		const alertSpy = vi.spyOn(window, 'alert').mockImplementation(() => {});
 
 		window.$('.ffc-field-delete').trigger('click');
+		await flush();
 
 		expect(alertSpy).toHaveBeenCalledWith('Error');
 	});
@@ -349,41 +371,49 @@ describe('custom-fields-admin — deleteField', () => {
 // ----------------------------------------------------------------------
 
 describe('custom-fields-admin — row UI handlers', () => {
-	it('toggleDetails slides the details row up and down', () => {
+	it('toggleDetails slides the details row up and down', async () => {
 		// Currently hidden — toggling shows it.
 		expect(window.$('.ffc-field-details-row').css('display')).toBe('none');
 		window.$('.ffc-field-toggle-details').trigger('click');
+		await flush();
 		expect(window.$('.ffc-field-details-row').css('display')).not.toBe('none');
 	});
 
-	it('onFieldTypeChange shows options container only for select type', () => {
+	it('onFieldTypeChange shows options container only for select type', async () => {
 		window.$('.ffc-field-type').val('select').trigger('change');
+		await flush();
 		expect(window.$('.ffc-field-options-container').css('display')).not.toBe('none');
 
 		window.$('.ffc-field-type').val('text').trigger('change');
+		await flush();
 		expect(window.$('.ffc-field-options-container').css('display')).toBe('none');
 	});
 
-	it('onFieldTypeChange hides the format row for working_hours type', () => {
+	it('onFieldTypeChange hides the format row for working_hours type', async () => {
 		window.$('.ffc-field-type').val('working_hours').trigger('change');
+		await flush();
 		// The .ffc-field-detail-row containing .ffc-field-format hides.
 		expect(window.$('.ffc-field-format').closest('.ffc-field-detail-row').css('display')).toBe('none');
 	});
 
-	it('onFormatChange shows regex inputs only when format=custom_regex', () => {
+	it('onFormatChange shows regex inputs only when format=custom_regex', async () => {
 		window.$('.ffc-field-format').val('custom_regex').trigger('change');
+		await flush();
 		expect(window.$('.ffc-field-regex').css('display')).not.toBe('none');
 		expect(window.$('.ffc-field-regex-msg').css('display')).not.toBe('none');
 
 		window.$('.ffc-field-format').val('').trigger('change');
+		await flush();
 		expect(window.$('.ffc-field-regex').css('display')).toBe('none');
 	});
 
-	it('onActiveToggle adds .ffc-field-inactive when unchecked', () => {
+	it('onActiveToggle adds .ffc-field-inactive when unchecked', async () => {
 		window.$('.ffc-field-active').prop('checked', false).trigger('change');
+		await flush();
 		expect(window.$('.ffc-custom-field-row').hasClass('ffc-field-inactive')).toBe(true);
 
 		window.$('.ffc-field-active').prop('checked', true).trigger('change');
+		await flush();
 		expect(window.$('.ffc-custom-field-row').hasClass('ffc-field-inactive')).toBe(false);
 	});
 });

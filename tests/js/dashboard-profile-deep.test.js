@@ -111,6 +111,14 @@ function mockAjaxError(xhr) {
 	return mockAjax((opts) => { if (opts.error) opts.error(xhr); return {}; });
 }
 
+// FFC.rest wraps the ajax call in a Promise; success/error fires
+// synchronously inside the spy, but the .then/.catch reactions run on
+// the microtask queue. Await two ticks so the panel-level handler has
+// a chance to mutate state / DOM before the assertion runs.
+function flush() {
+	return Promise.resolve().then(() => Promise.resolve());
+}
+
 // ----------------------------------------------------------------------
 // showEditForm via .ffc-profile-edit-btn click
 // ----------------------------------------------------------------------
@@ -170,7 +178,7 @@ describe('profile.saveProfile', () => {
 		expect(payload.organization).toBe('ACME');
 	});
 
-	it('on success: replaces state and re-renders the read view', () => {
+	it('on success: replaces state and re-renders the read view', async () => {
 		panel().render(PROFILE_FIXTURE);
 		window.$('.ffc-profile-edit-btn').trigger('click');
 		document.getElementById('ffc-edit-display-name').value = 'Updated';
@@ -178,18 +186,20 @@ describe('profile.saveProfile', () => {
 		const updated = { ...PROFILE_FIXTURE, display_name: 'Updated' };
 		mockAjaxSuccess(updated);
 		window.$('.ffc-profile-save-btn').trigger('click');
+		await flush();
 
 		expect(panel().state).toEqual(updated);
 		// Read view rendered (the .ffc-profile-info container).
 		expect(document.querySelector('#tab-profile .ffc-profile-info')).not.toBeNull();
 	});
 
-	it('on error: shows the server message and re-enables the save button', () => {
+	it('on error: shows the server message and re-enables the save button', async () => {
 		panel().render(PROFILE_FIXTURE);
 		window.$('.ffc-profile-edit-btn').trigger('click');
 
 		mockAjaxError({ responseJSON: { message: 'Custom server error' } });
 		window.$('.ffc-profile-save-btn').trigger('click');
+		await flush();
 
 		const status = document.querySelector('.ffc-profile-save-status');
 		expect(status.textContent).toBe('Custom server error');
@@ -238,10 +248,11 @@ describe('profile.changePassword', () => {
 		expect(document.querySelector('.ffc-password-status').textContent).toBe('Min 8 characters');
 	});
 
-	it('on success: clears the password fields and shows the response message', () => {
+	it('on success: clears the password fields and shows the response message', async () => {
 		const spy = mockAjaxSuccess({ message: 'Done!' });
 		setPasswords('oldpass', 'newpass123', 'newpass123');
 		window.$('.ffc-password-save-btn').trigger('click');
+		await flush();
 
 		expect(spy).toHaveBeenCalledOnce();
 		const call = spy.mock.calls[0][0];
@@ -257,10 +268,11 @@ describe('profile.changePassword', () => {
 		expect(document.getElementById('ffc-confirm-password').value).toBe('');
 	});
 
-	it('on error: surfaces the server message', () => {
+	it('on error: surfaces the server message', async () => {
 		mockAjaxError({ responseJSON: { message: 'Wrong current password' } });
 		setPasswords('badpass', 'newpass123', 'newpass123');
 		window.$('.ffc-password-save-btn').trigger('click');
+		await flush();
 
 		expect(document.querySelector('.ffc-password-status').textContent).toBe('Wrong current password');
 	});
@@ -334,7 +346,7 @@ describe('profile.privacyRequest', () => {
 // ----------------------------------------------------------------------
 
 describe('profile.saveNotificationPreferences', () => {
-	it('fires AJAX on .ffc-notif-toggle change and updates state.preferences from the response', () => {
+	it('fires AJAX on .ffc-notif-toggle change and updates state.preferences from the response', async () => {
 		panel().render(PROFILE_FIXTURE);
 
 		// Inject a notification toggle if the rendered profile didn't
@@ -350,6 +362,7 @@ describe('profile.saveNotificationPreferences', () => {
 		const toggle = document.querySelector('.ffc-notif-toggle');
 		toggle.checked = false;
 		window.$(toggle).trigger('change');
+		await flush();
 
 		expect(spy).toHaveBeenCalledOnce();
 		expect(panel().state.preferences.newsletter).toBe(false);

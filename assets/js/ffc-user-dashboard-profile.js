@@ -89,23 +89,17 @@
         var url = ffcDashboard.restUrl + 'user/profile';
         if (ffcDashboard.viewAsUserId) url += '?viewAsUserId=' + ffcDashboard.viewAsUserId;
 
-        $.ajax({
-            url: url,
-            method: 'PUT',
-            contentType: 'application/json',
-            data: JSON.stringify(data),
-            beforeSend: function (xhr) { xhr.setRequestHeader('X-WP-Nonce', ffcDashboard.nonce); },
-            success: function (response) {
+        FFC.rest(url, { method: 'PUT', data: data, nonce: ffcDashboard.nonce })
+            .then(function (response) {
                 FFCDashboard.panels.profile.state = null;
                 FFCDashboard.panels.profile.render(response);
-            },
-            error: function (xhr) {
+            })
+            .catch(function (err) {
                 var msg = (ffcDashboard.strings.saveError || 'Error saving profile');
-                if (xhr.responseJSON && xhr.responseJSON.message) msg = xhr.responseJSON.message;
+                if (err.xhr && err.xhr.responseJSON && err.xhr.responseJSON.message) msg = err.xhr.responseJSON.message;
                 $status.text(msg).css('color', '#d63638');
                 $saveBtn.prop('disabled', false);
-            }
-        });
+            });
     }
 
     function changePassword() {
@@ -135,24 +129,22 @@
         var url = ffcDashboard.restUrl + 'user/change-password';
         if (ffcDashboard.viewAsUserId) url += '?viewAsUserId=' + ffcDashboard.viewAsUserId;
 
-        $.ajax({
-            url: url,
+        FFC.rest(url, {
             method: 'POST',
-            contentType: 'application/json',
-            data: JSON.stringify({ current_password: current, new_password: newPwd }),
-            beforeSend: function (xhr) { xhr.setRequestHeader('X-WP-Nonce', ffcDashboard.nonce); },
-            success: function (response) {
+            data: { current_password: current, new_password: newPwd },
+            nonce: ffcDashboard.nonce
+        })
+            .then(function (response) {
                 $status.text(response.message || s.passwordChanged || 'Password changed!').css('color', '#28a745');
                 $('#ffc-current-password, #ffc-new-password, #ffc-confirm-password').val('');
                 $btn.prop('disabled', false);
-            },
-            error: function (xhr) {
+            })
+            .catch(function (err) {
                 var msg = s.passwordError || 'Error';
-                if (xhr.responseJSON && xhr.responseJSON.message) msg = xhr.responseJSON.message;
+                if (err.xhr && err.xhr.responseJSON && err.xhr.responseJSON.message) msg = err.xhr.responseJSON.message;
                 $status.text(msg).css('color', '#d63638');
                 $btn.prop('disabled', false);
-            }
-        });
+            });
     }
 
     function privacyRequest(type) {
@@ -162,21 +154,15 @@
         var url = ffcDashboard.restUrl + 'user/privacy-request';
         if (ffcDashboard.viewAsUserId) url += '?viewAsUserId=' + ffcDashboard.viewAsUserId;
 
-        $.ajax({
-            url: url,
-            method: 'POST',
-            contentType: 'application/json',
-            data: JSON.stringify({ type: type }),
-            beforeSend: function (xhr) { xhr.setRequestHeader('X-WP-Nonce', ffcDashboard.nonce); },
-            success: function (response) {
+        FFC.rest(url, { method: 'POST', data: { type: type }, nonce: ffcDashboard.nonce })
+            .then(function (response) {
                 $status.text(response.message || ffcDashboard.strings.privacyRequestSent || 'Request sent!').css('color', '#28a745');
-            },
-            error: function (xhr) {
+            })
+            .catch(function (err) {
                 var msg = ffcDashboard.strings.privacyRequestError || 'Error';
-                if (xhr.responseJSON && xhr.responseJSON.message) msg = xhr.responseJSON.message;
+                if (err.xhr && err.xhr.responseJSON && err.xhr.responseJSON.message) msg = err.xhr.responseJSON.message;
                 $status.text(msg).css('color', '#d63638');
-            }
-        });
+            });
     }
 
     function saveNotificationPreferences() {
@@ -190,23 +176,17 @@
         var url = ffcDashboard.restUrl + 'user/profile';
         if (ffcDashboard.viewAsUserId) url += '?viewAsUserId=' + ffcDashboard.viewAsUserId;
 
-        $.ajax({
-            url: url,
-            method: 'PUT',
-            contentType: 'application/json',
-            data: JSON.stringify({ preferences: prefs }),
-            beforeSend: function (xhr) { xhr.setRequestHeader('X-WP-Nonce', ffcDashboard.nonce); },
-            success: function (response) {
+        FFC.rest(url, { method: 'PUT', data: { preferences: prefs }, nonce: ffcDashboard.nonce })
+            .then(function (response) {
                 if (response.preferences && FFCDashboard.panels.profile.state) {
                     FFCDashboard.panels.profile.state.preferences = response.preferences;
                 }
                 $status.text(ffcDashboard.strings.notifSaved || 'Saved').show();
                 setTimeout(function () { $status.fadeOut(); }, 2000);
-            },
-            error: function () {
+            })
+            .catch(function () {
                 $status.text(ffcDashboard.strings.saveError || 'Error').css('color', '#d63638').show();
-            }
-        });
+            });
     }
 
     FFCDashboard.panels.profile = {
@@ -248,15 +228,11 @@
             if (ffcDashboard.viewAsUserId) url += '?viewAsUserId=' + ffcDashboard.viewAsUserId;
 
             var self = this;
-            $.ajax({
-                url: url,
-                method: 'GET',
-                beforeSend: function (xhr) { xhr.setRequestHeader('X-WP-Nonce', ffcDashboard.nonce); },
-                success: function (response) { self.render(response); },
-                error: function () {
+            FFC.rest(url, { nonce: ffcDashboard.nonce })
+                .then(function (response) { self.render(response); })
+                .catch(function () {
                     $container.html('<div class="ffc-error">' + ffcDashboard.strings.error + '</div>');
-                }
-            });
+                });
         },
 
         render: function (profile) {
@@ -363,15 +339,11 @@
             if (ffcDashboard.viewAsUserId) url += '?viewAsUserId=' + ffcDashboard.viewAsUserId;
 
             var self = this;
-            $.ajax({
-                url: url,
-                method: 'GET',
-                beforeSend: function (xhr) { xhr.setRequestHeader('X-WP-Nonce', ffcDashboard.nonce); },
-                success: function (response) { self.render(response); },
-                error: function () {
+            FFC.rest(url, { nonce: ffcDashboard.nonce })
+                .then(function (response) { self.render(response); })
+                .catch(function () {
                     $container.html('<div class="ffc-error">' + ffcDashboard.strings.error + '</div>');
-                }
-            });
+                });
         }
     };
 

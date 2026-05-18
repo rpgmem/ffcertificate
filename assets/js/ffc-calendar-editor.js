@@ -170,29 +170,23 @@
 
                 $btn.prop('disabled', true).text(strings.deleting || 'Deleting...');
 
-                $.ajax({
-                    url: ajaxurl,
-                    method: 'POST',
-                    data: {
-                        action: 'ffc_cleanup_appointments',
-                        calendar_id: calendarId,
-                        cleanup_action: action,
-                        nonce: $('#ffc_cleanup_appointments_nonce').val()
-                    },
-                    success: function(response) {
-                        if (response.success) {
-                            alert(response.data.message);
-                            location.reload();
+                FFC.request(
+                    'ffc_cleanup_appointments',
+                    { calendar_id: calendarId, cleanup_action: action },
+                    { nonce: $('#ffc_cleanup_appointments_nonce').val() }
+                )
+                    .then(function (data) {
+                        alert(data.message);
+                        location.reload();
+                    })
+                    .catch(function (err) {
+                        if (err && err.fromServer) {
+                            alert(err.message || strings.errorDeleting || 'Error deleting appointments');
                         } else {
-                            alert(response.data.message || strings.errorDeleting || 'Error deleting appointments');
-                            $btn.prop('disabled', false);
+                            alert(strings.errorServer || 'Error communicating with server');
                         }
-                    },
-                    error: function() {
-                        alert(strings.errorServer || 'Error communicating with server');
                         $btn.prop('disabled', false);
-                    }
-                });
+                    });
             });
         }
     };
