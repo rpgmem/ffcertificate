@@ -5,6 +5,20 @@
 import { describe, it, expect, beforeAll, beforeEach, afterEach, vi } from 'vitest';
 import { loadScript } from './helpers.js';
 
+// FFC.request — the migration target — wraps jQuery.post() in a Promise.
+// Mock $.post and return a chain whose .done / .fail callback the
+// FFC.request internals invoke.
+function postChain(spec) {
+	const chain = { done: () => chain, fail: () => chain };
+	if (spec && 'done' in spec) chain.done = (cb) => { cb(spec.done); return chain; };
+	if (spec && spec.fail) chain.fail = (cb) => { cb(spec.fail === true ? undefined : spec.fail); return chain; };
+	return chain;
+}
+
+// Microtask flush so .then/.catch reactions run before assertions.
+function flush() { return Promise.resolve().then(() => Promise.resolve()); }
+
+
 beforeAll(() => {
 	window.$.fx.off = true;
 });
@@ -38,6 +52,7 @@ afterEach(() => {
 });
 
 async function loadAdmin() {
+	if (!window.FFC) { loadScript('assets/js/ffc-core.js'); }
 	loadScript('assets/js/ffc-url-shortener-admin.js');
 	await new Promise((r) => setTimeout(r, 0));
 }
@@ -53,6 +68,7 @@ describe('url-shortener — toast', () => {
 
 		vi.useFakeTimers();
 		window.$('.ffc-copy-shorturl').trigger('click');
+		await flush();
 		// Wait for the clipboard promise.
 		await Promise.resolve();
 		await Promise.resolve();
@@ -79,6 +95,7 @@ describe('url-shortener — copy fallback', () => {
 		await loadAdmin();
 
 		window.$('.ffc-copy-shorturl').trigger('click');
+		await flush();
 
 		expect(document.execCommand).toHaveBeenCalledWith('copy');
 	});
@@ -92,6 +109,7 @@ describe('url-shortener — copy fallback', () => {
 		await loadAdmin();
 
 		window.$('.ffc-copy-shorturl').trigger('click');
+		await flush();
 		await Promise.resolve();
 		await Promise.resolve();
 
@@ -107,6 +125,7 @@ describe('url-shortener — copy fallback', () => {
 		await loadAdmin();
 
 		window.$('.ffc-copy-shorturl').trigger('click');
+		await flush();
 
 		const toast = document.querySelector('.ffc-shorturl-toast');
 		expect(toast).not.toBeNull();
@@ -131,6 +150,7 @@ describe('url-shortener — table-cell copy', () => {
 		await loadAdmin();
 
 		window.$('.ffc-shorturl-code').trigger('click');
+		await flush();
 		await Promise.resolve();
 
 		expect(navigator.clipboard.writeText).toHaveBeenCalledWith('https://x/table');
@@ -154,12 +174,10 @@ describe('url-shortener — QR download', () => {
 	it('PNG: POSTs ffc_download_qr_png with the post_id and triggers a blob download', async () => {
 		mountQrButton('png', { 'post-id': '42' });
 		await loadAdmin();
-		const postSpy = vi.spyOn(window.$, 'post').mockImplementation((url, payload, cb) => {
-			cb({ success: true, data: { data: 'YWJj', filename: 'qr.png', mime: 'image/png' } });
-			return { fail: () => ({}) };
-		});
+		const postSpy = vi.spyOn(window.$, 'post').mockImplementation(() => postChain({ done: { success: true, data: { data: 'YWJj', filename: 'qr.png', mime: 'image/png' } } }));
 
 		window.$('.ffc-download-qr').trigger('click');
+		await flush();
 
 		expect(postSpy).toHaveBeenCalled();
 		const payload = postSpy.mock.calls[0][1];
@@ -172,12 +190,10 @@ describe('url-shortener — QR download', () => {
 	it('SVG: POSTs ffc_download_qr_svg with the code (no post_id)', async () => {
 		mountQrButton('svg', { code: 'abc123' });
 		await loadAdmin();
-		const postSpy = vi.spyOn(window.$, 'post').mockImplementation((url, payload, cb) => {
-			cb({ success: true, data: { data: 'PHN2Zy8+', filename: 'qr.svg', mime: 'image/svg+xml' } });
-			return { fail: () => ({}) };
-		});
+		const postSpy = vi.spyOn(window.$, 'post').mockImplementation(() => postChain({ done: { success: true, data: { data: 'PHN2Zy8+', filename: 'qr.svg', mime: 'image/svg+xml' } } }));
 
 		window.$('.ffc-download-qr').trigger('click');
+		await flush();
 
 		expect(postSpy.mock.calls[0][1]).toMatchObject({
 			action: 'ffc_download_qr_svg',
@@ -189,12 +205,10 @@ describe('url-shortener — QR download', () => {
 	it('shows an error toast when response.success=false', async () => {
 		mountQrButton('png', { code: 'abc' });
 		await loadAdmin();
-		vi.spyOn(window.$, 'post').mockImplementation((url, payload, cb) => {
-			cb({ success: false, data: { message: 'No such code' } });
-			return { fail: () => ({}) };
-		});
+		vi.spyOn(window.$, 'post').mockImplementation(() => postChain({ done: { success: false, data: { message: 'No such code' } } }));
 
 		window.$('.ffc-download-qr').trigger('click');
+		await flush();
 
 		const toast = document.querySelector('.ffc-shorturl-toast--error');
 		expect(toast).not.toBeNull();
@@ -206,16 +220,10 @@ describe('url-shortener — QR download', () => {
 	it('shows the localised error toast on network failure', async () => {
 		mountQrButton('png', { code: 'abc' });
 		await loadAdmin();
-		let failCb;
-		vi.spyOn(window.$, 'post').mockImplementation(() => ({
-			fail: (cb) => {
-				failCb = cb;
-				return {};
-			},
-		}));
+		vi.spyOn(window.$, 'post').mockImplementation(() => postChain({ fail: true }));
 
 		window.$('.ffc-download-qr').trigger('click');
-		failCb();
+		await flush();
 
 		const toast = document.querySelector('.ffc-shorturl-toast--error');
 		expect(toast.textContent).toBe('Error');
@@ -240,6 +248,7 @@ describe('url-shortener — regenerate', () => {
 		const postSpy = vi.spyOn(window.$, 'post');
 
 		window.$('.ffc-regenerate-shorturl').trigger('click');
+		await flush();
 
 		expect(confirmSpy).toHaveBeenCalledWith('Generate a new short code?');
 		expect(postSpy).not.toHaveBeenCalled();
@@ -259,12 +268,10 @@ describe('url-shortener — regenerate', () => {
 			value: stubLocation,
 		});
 
-		vi.spyOn(window.$, 'post').mockImplementation((url, payload, cb) => {
-			cb({ success: true });
-			return { fail: () => ({}) };
-		});
+		vi.spyOn(window.$, 'post').mockImplementation(() => postChain({ done: { success: true } }));
 
 		window.$('.ffc-regenerate-shorturl').trigger('click');
+		await flush();
 
 		expect(stubLocation.reload).toHaveBeenCalled();
 		expect(document.querySelector('.ffc-shorturl-toast').textContent).toBe('Regenerated!');
@@ -280,12 +287,10 @@ describe('url-shortener — regenerate', () => {
 		mountRegenBtn();
 		await loadAdmin();
 		vi.spyOn(window, 'confirm').mockReturnValue(true);
-		vi.spyOn(window.$, 'post').mockImplementation((url, payload, cb) => {
-			cb({ success: false, data: { message: 'Quota exceeded' } });
-			return { fail: () => ({}) };
-		});
+		vi.spyOn(window.$, 'post').mockImplementation(() => postChain({ done: { success: false, data: { message: 'Quota exceeded' } } }));
 
 		window.$('.ffc-regenerate-shorturl').trigger('click');
+		await flush();
 
 		const toast = document.querySelector('.ffc-shorturl-toast--error');
 		expect(toast.textContent).toBe('Quota exceeded');
@@ -295,16 +300,10 @@ describe('url-shortener — regenerate', () => {
 		mountRegenBtn();
 		await loadAdmin();
 		vi.spyOn(window, 'confirm').mockReturnValue(true);
-		let failCb;
-		vi.spyOn(window.$, 'post').mockImplementation(() => ({
-			fail: (cb) => {
-				failCb = cb;
-				return {};
-			},
-		}));
+		vi.spyOn(window.$, 'post').mockImplementation(() => postChain({ fail: true }));
 
 		window.$('.ffc-regenerate-shorturl').trigger('click');
-		failCb();
+		await flush();
 
 		const toast = document.querySelector('.ffc-shorturl-toast--error');
 		expect(toast.textContent).toBe('Error');
@@ -339,12 +338,10 @@ describe('url-shortener — QR modal', () => {
 	it('populates title + url + copy/download data attrs and fetches the QR PNG', async () => {
 		mountQrModalTrigger();
 		await loadAdmin();
-		const postSpy = vi.spyOn(window.$, 'post').mockImplementation((url, payload, cb) => {
-			cb({ success: true, data: { data: 'PG5n', filename: 'qr.png', mime: 'image/png' } });
-			return { fail: () => ({}) };
-		});
+		const postSpy = vi.spyOn(window.$, 'post').mockImplementation(() => postChain({ done: { success: true, data: { data: 'PG5n', filename: 'qr.png', mime: 'image/png' } } }));
 
 		window.$('.ffc-show-qr-modal').trigger('click');
+		await flush();
 
 		expect(window.$('#ffc-qr-modal .ffc-qr-modal__title').text()).toBe('Short C1');
 		expect(window.$('#ffc-qr-modal .ffc-qr-modal__url').text()).toBe('https://x/C1');
@@ -359,12 +356,10 @@ describe('url-shortener — QR modal', () => {
 	it('renders the server error in the preview pane when success=false', async () => {
 		mountQrModalTrigger();
 		await loadAdmin();
-		vi.spyOn(window.$, 'post').mockImplementation((url, payload, cb) => {
-			cb({ success: false, data: { message: 'Not allowed' } });
-			return { fail: () => ({}) };
-		});
+		vi.spyOn(window.$, 'post').mockImplementation(() => postChain({ done: { success: false, data: { message: 'Not allowed' } } }));
 
 		window.$('.ffc-show-qr-modal').trigger('click');
+		await flush();
 
 		expect(window.$('#ffc-qr-modal .ffc-qr-modal__preview').text()).toBe('Not allowed');
 	});
@@ -372,16 +367,10 @@ describe('url-shortener — QR modal', () => {
 	it('renders the network error in the preview pane', async () => {
 		mountQrModalTrigger();
 		await loadAdmin();
-		let failCb;
-		vi.spyOn(window.$, 'post').mockImplementation(() => ({
-			fail: (cb) => {
-				failCb = cb;
-				return {};
-			},
-		}));
+		vi.spyOn(window.$, 'post').mockImplementation(() => postChain({ fail: true }));
 
 		window.$('.ffc-show-qr-modal').trigger('click');
-		failCb();
+		await flush();
 
 		expect(window.$('#ffc-qr-modal .ffc-qr-modal__preview').text()).toBe('Failed to load QR Code');
 	});
@@ -389,22 +378,26 @@ describe('url-shortener — QR modal', () => {
 	it('close button hides the modal', async () => {
 		mountQrModalTrigger();
 		await loadAdmin();
-		vi.spyOn(window.$, 'post').mockImplementation(() => ({ fail: () => ({}) }));
+		vi.spyOn(window.$, 'post').mockImplementation(() => postChain({}));
 		window.$('.ffc-show-qr-modal').trigger('click');
+		await flush();
 		expect(window.$('#ffc-qr-modal').css('display')).not.toBe('none');
 
 		window.$('.ffc-qr-modal__close').trigger('click');
+		await flush();
 		expect(window.$('#ffc-qr-modal').css('display')).toBe('none');
 	});
 
 	it('Escape closes the modal', async () => {
 		mountQrModalTrigger();
 		await loadAdmin();
-		vi.spyOn(window.$, 'post').mockImplementation(() => ({ fail: () => ({}) }));
+		vi.spyOn(window.$, 'post').mockImplementation(() => postChain({}));
 		window.$('.ffc-show-qr-modal').trigger('click');
+		await flush();
 
 		const ev = window.$.Event('keydown', { key: 'Escape' });
 		window.$(document).trigger(ev);
+		await flush();
 
 		expect(window.$('#ffc-qr-modal').css('display')).toBe('none');
 	});
@@ -412,10 +405,12 @@ describe('url-shortener — QR modal', () => {
 	it('backdrop click closes the modal', async () => {
 		mountQrModalTrigger();
 		await loadAdmin();
-		vi.spyOn(window.$, 'post').mockImplementation(() => ({ fail: () => ({}) }));
+		vi.spyOn(window.$, 'post').mockImplementation(() => postChain({}));
 		window.$('.ffc-show-qr-modal').trigger('click');
+		await flush();
 
 		window.$('.ffc-qr-modal__backdrop').trigger('click');
+		await flush();
 		expect(window.$('#ffc-qr-modal').css('display')).toBe('none');
 	});
 });
@@ -449,12 +444,10 @@ describe('url-shortener — create form', () => {
 			value: { reload: vi.fn(), href: '/', pathname: '/' },
 		});
 
-		vi.spyOn(window.$, 'post').mockImplementation((url, payload, cb) => {
-			cb({ success: true, data: { short_url: 'https://x.test/aB3' } });
-			return { fail: () => ({}) };
-		});
+		vi.spyOn(window.$, 'post').mockImplementation(() => postChain({ done: { success: true, data: { short_url: 'https://x.test/aB3' } } }));
 
 		window.$('#ffc-create-short-url').trigger('submit');
+		await flush();
 
 		expect(window.$('#ffc-shorturl-result').html()).toContain('https://x.test/aB3');
 		expect(window.$('#ffc-shorturl-target').val()).toBe('');
@@ -470,12 +463,10 @@ describe('url-shortener — create form', () => {
 	it('shows the server error inline when response.success=false', async () => {
 		mountCreateForm();
 		await loadAdmin();
-		vi.spyOn(window.$, 'post').mockImplementation((url, payload, cb) => {
-			cb({ success: false, data: { message: 'Invalid URL' } });
-			return { fail: () => ({}) };
-		});
+		vi.spyOn(window.$, 'post').mockImplementation(() => postChain({ done: { success: false, data: { message: 'Invalid URL' } } }));
 
 		window.$('#ffc-create-short-url').trigger('submit');
+		await flush();
 
 		expect(window.$('#ffc-shorturl-result').text()).toContain('Invalid URL');
 	});
@@ -483,16 +474,10 @@ describe('url-shortener — create form', () => {
 	it('shows the request-failed message on network failure', async () => {
 		mountCreateForm();
 		await loadAdmin();
-		let failCb;
-		vi.spyOn(window.$, 'post').mockImplementation(() => ({
-			fail: (cb) => {
-				failCb = cb;
-				return {};
-			},
-		}));
+		vi.spyOn(window.$, 'post').mockImplementation(() => postChain({ fail: true }));
 
 		window.$('#ffc-create-short-url').trigger('submit');
-		failCb();
+		await flush();
 
 		expect(window.$('#ffc-shorturl-result').text()).toContain('Request failed');
 	});

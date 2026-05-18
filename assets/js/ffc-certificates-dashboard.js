@@ -64,15 +64,7 @@
                 calendarInstance.refresh();
             }
 
-            $.ajax({
-                url: url,
-                method: 'GET',
-                beforeSend: function (xhr) {
-                    if (settings.nonce) {
-                        xhr.setRequestHeader('X-WP-Nonce', settings.nonce);
-                    }
-                }
-            }).done(function (response) {
+            FFC.rest(url, { nonce: settings.nonce }).then(function (response) {
                 if (thisFetch !== fetchId) {
                     return;
                 }

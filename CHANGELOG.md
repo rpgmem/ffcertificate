@@ -51,6 +51,23 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 
 ### Changed
 
+- AJAX migration completes — Reregistration + Misc family: 4 files
+  migrated to `FFC.request` / `FFC.rest`. Closes the #277 umbrella.
+  - `ffc-reregistration-admin.js` (3 admin-ajax sites): ficha PDF
+    download, submission details modal, debounced audience transfer
+    list member count.
+  - `ffc-reregistration-frontend.js` (3 admin-ajax sites): form load,
+    save draft, submit (with server-side field errors via `err.data.errors`).
+  - `ffc-url-shortener-admin.js` (4 admin-ajax sites): QR download
+    (PNG/SVG), regenerate short URL, QR modal, create short URL form.
+  - `ffc-certificates-dashboard.js` (1 REST site, `FFC.rest`):
+    `certificates/calendar?year=...&month=...` GET with stale-fetch
+    guard.
+  - `ffc-dynamic-fragments.js` uses raw `XMLHttpRequest` (not jQuery
+    AJAX) and is intentionally left as-is — a separate refactor.
+  - Final inventory: `grep -lE '\$\.(ajax|post|get)\(' assets/js/*.js`
+    returns only `ffc-core.js` (the helper's internal `jQuery.post` /
+    `jQuery.ajax` calls).
 - AJAX migration continues — CSV / forms / admin + Calendar family:
   7 files (~27 inline `$.ajax({...})` / `$.post()` / `$.get()` call
   sites) migrated to `FFC.request`. Public CSV download flow
