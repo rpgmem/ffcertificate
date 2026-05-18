@@ -13,6 +13,8 @@ declare(strict_types=1);
 
 namespace FreeFormCertificate\Audience;
 
+use FreeFormCertificate\Core\Utils;
+
 use FreeFormCertificate\Core\ColorValidator;
 
 if ( ! defined( 'ABSPATH' ) ) {
@@ -47,7 +49,7 @@ class AudienceAdminSettings {
 	 */
 	public function render_page(): void {
         // phpcs:ignore WordPress.Security.NonceVerification.Recommended
-		$active_tab = isset( $_GET['tab'] ) ? sanitize_text_field( wp_unslash( $_GET['tab'] ) ) : 'general';
+		$active_tab = Utils::get_get_string( 'tab', 'general' );
 
 		?>
 		<div class="wrap ffc-settings-wrap">
@@ -512,7 +514,7 @@ class AudienceAdminSettings {
         // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Nonce verified inside this block.
 		if ( isset( $_POST['ffc_action'] ) && 'save_ss_visibility_settings' === $_POST['ffc_action'] ) {
 			if ( ! isset( $_POST['ffc_ss_visibility_nonce'] ) ||
-				! wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST['ffc_ss_visibility_nonce'] ) ), 'ffc_ss_visibility_settings' ) ) {
+				! wp_verify_nonce( Utils::get_post_string( 'ffc_ss_visibility_nonce' ), 'ffc_ss_visibility_settings' ) ) {
 				return;
 			}
 
@@ -536,7 +538,7 @@ class AudienceAdminSettings {
         // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Nonce verified inside this block.
 		if ( isset( $_POST['ffc_action'] ) && 'save_ss_business_hours_settings' === $_POST['ffc_action'] ) {
 			if ( ! isset( $_POST['ffc_ss_business_hours_nonce'] ) ||
-				! wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST['ffc_ss_business_hours_nonce'] ) ), 'ffc_ss_business_hours_settings' ) ) {
+				! wp_verify_nonce( Utils::get_post_string( 'ffc_ss_business_hours_nonce' ), 'ffc_ss_business_hours_settings' ) ) {
 				return;
 			}
 
@@ -552,7 +554,7 @@ class AudienceAdminSettings {
         // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Nonce verified inside this block.
 		if ( isset( $_POST['ffc_action'] ) && 'save_aud_visibility_settings' === $_POST['ffc_action'] ) {
 			if ( ! isset( $_POST['ffc_aud_visibility_nonce'] ) ||
-				! wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST['ffc_aud_visibility_nonce'] ) ), 'ffc_aud_visibility_settings' ) ) {
+				! wp_verify_nonce( Utils::get_post_string( 'ffc_aud_visibility_nonce' ), 'ffc_aud_visibility_settings' ) ) {
 				return;
 			}
 
@@ -590,7 +592,7 @@ class AudienceAdminSettings {
         // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Nonce verified inside this block.
 		if ( isset( $_POST['ffc_action'] ) && 'add_global_holiday' === $_POST['ffc_action'] ) {
 			if ( ! isset( $_POST['ffc_global_holiday_nonce'] ) ||
-				! wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST['ffc_global_holiday_nonce'] ) ), 'ffc_global_holiday_action' ) ) {
+				! wp_verify_nonce( Utils::get_post_string( 'ffc_global_holiday_nonce' ), 'ffc_global_holiday_action' ) ) {
 				return;
 			}
 
@@ -599,9 +601,9 @@ class AudienceAdminSettings {
 			}
 
             // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Nonce verified above.
-			$date = isset( $_POST['global_holiday_date'] ) ? sanitize_text_field( wp_unslash( $_POST['global_holiday_date'] ) ) : '';
+			$date = Utils::get_post_string( 'global_holiday_date' );
             // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Nonce verified above.
-			$description = isset( $_POST['global_holiday_description'] ) ? sanitize_text_field( wp_unslash( $_POST['global_holiday_description'] ) ) : '';
+			$description = Utils::get_post_string( 'global_holiday_description' );
 
 			if ( ! empty( $date ) ) {
 				$holidays = get_option( 'ffc_global_holidays', array() );
@@ -634,7 +636,7 @@ class AudienceAdminSettings {
 			$index = isset( $_GET['holiday_index'] ) ? absint( $_GET['holiday_index'] ) : -1;
 
 			if ( ! isset( $_GET['ffc_global_holiday_nonce'] ) ||
-				! wp_verify_nonce( sanitize_text_field( wp_unslash( $_GET['ffc_global_holiday_nonce'] ) ), 'delete_global_holiday_' . $index ) ) {
+				! wp_verify_nonce( Utils::get_get_string( 'ffc_global_holiday_nonce' ), 'delete_global_holiday_' . $index ) ) {
 				return;
 			}
 
