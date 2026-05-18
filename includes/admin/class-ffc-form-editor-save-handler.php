@@ -33,7 +33,7 @@ class FormEditorSaveHandler {
 		if ( defined( 'DOING_AUTOSAVE' ) && DOING_AUTOSAVE ) {
 			return;
 		}
-		if ( ! isset( $_POST['ffc_form_nonce'] ) || ! wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST['ffc_form_nonce'] ) ), 'ffc_save_form_data' ) ) {
+		if ( ! wp_verify_nonce( \FreeFormCertificate\Core\Utils::get_post_string( 'ffc_form_nonce' ), 'ffc_save_form_data' ) ) {
 			return;
 		}
 		if ( ! current_user_can( 'edit_post', $post_id ) ) {

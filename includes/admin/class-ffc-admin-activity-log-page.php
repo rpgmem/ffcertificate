@@ -90,7 +90,7 @@ class AdminActivityLogPage {
 	 */
 	public function handle_csv_export(): void {
         // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Nonce checked below
-		if ( ! isset( $_GET['page'] ) || sanitize_text_field( wp_unslash( $_GET['page'] ) ) !== 'ffc-activity-log' ) {
+		if ( \FreeFormCertificate\Core\Utils::get_get_string( 'page' ) !== 'ffc-activity-log' ) {
 			return;
 		}
         // phpcs:ignore WordPress.Security.NonceVerification.Recommended
@@ -118,12 +118,12 @@ class AdminActivityLogPage {
 			$args['level'] = $level;
 		}
 
-		$action = isset( $_GET['log_action'] ) ? sanitize_text_field( wp_unslash( $_GET['log_action'] ) ) : '';
+		$action = \FreeFormCertificate\Core\Utils::get_get_string( 'log_action' );
 		if ( $action ) {
 			$args['action'] = $action;
 		}
 
-		$search = isset( $_GET['s'] ) ? sanitize_text_field( wp_unslash( $_GET['s'] ) ) : '';
+		$search = \FreeFormCertificate\Core\Utils::get_get_string( 's' );
 		if ( $search ) {
 			$args['search'] = $search;
 		}
@@ -201,8 +201,8 @@ class AdminActivityLogPage {
 		$current_page = isset( $_GET['paged'] ) ? max( 1, absint( wp_unslash( $_GET['paged'] ) ) ) : 1;
 		$per_page     = 50;
 		$level        = isset( $_GET['level'] ) ? sanitize_key( wp_unslash( $_GET['level'] ) ) : '';
-		$action       = isset( $_GET['log_action'] ) ? sanitize_text_field( wp_unslash( $_GET['log_action'] ) ) : '';
-		$search       = isset( $_GET['s'] ) ? sanitize_text_field( wp_unslash( $_GET['s'] ) ) : '';
+		$action       = \FreeFormCertificate\Core\Utils::get_get_string( 'log_action' );
+		$search       = \FreeFormCertificate\Core\Utils::get_get_string( 's' );
         // phpcs:enable WordPress.Security.NonceVerification.Recommended
 
 		// Get logs.

@@ -330,8 +330,7 @@ class AdminUserCustomFields {
 	 */
 	public static function save_section( int $user_id ): void {
 		// Verify nonce.
-		if ( ! isset( $_POST['ffc_user_custom_fields_nonce'] ) ||
-			! wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST['ffc_user_custom_fields_nonce'] ) ), 'ffc_save_user_custom_fields' ) ) {
+		if ( ! wp_verify_nonce( \FreeFormCertificate\Core\Utils::get_post_string( 'ffc_user_custom_fields_nonce' ), 'ffc_save_user_custom_fields' ) ) {
 			return;
 		}
 

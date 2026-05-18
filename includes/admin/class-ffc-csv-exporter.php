@@ -223,7 +223,7 @@ class CsvExporter {
 			wp_send_json_error( __( 'Permission denied.', 'ffcertificate' ), 403 );
 		}
 
-		$job_id = isset( $_POST['job_id'] ) ? sanitize_text_field( wp_unslash( $_POST['job_id'] ) ) : '';
+		$job_id = \FreeFormCertificate\Core\Utils::get_post_string( 'job_id' );
 		$job    = get_transient( 'ffc_csv_export_' . $job_id );
 
 		if ( ! $job || get_current_user_id() !== (int) $job['user_id'] ) {
@@ -314,7 +314,7 @@ class CsvExporter {
 	 */
 	public function ajax_download(): void {
 		// phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized, WordPress.Security.ValidatedSanitizedInput.MissingUnslash
-		if ( ! isset( $_GET['nonce'] ) || ! wp_verify_nonce( sanitize_text_field( wp_unslash( $_GET['nonce'] ) ), 'ffc_csv_export' ) ) {
+		if ( ! wp_verify_nonce( \FreeFormCertificate\Core\Utils::get_get_string( 'nonce' ), 'ffc_csv_export' ) ) {
 			wp_die( esc_html__( 'Security check failed.', 'ffcertificate' ) );
 		}
 
@@ -322,7 +322,7 @@ class CsvExporter {
 			wp_die( esc_html__( 'Permission denied.', 'ffcertificate' ) );
 		}
 
-		$job_id = isset( $_GET['job_id'] ) ? sanitize_text_field( wp_unslash( $_GET['job_id'] ) ) : '';
+		$job_id = \FreeFormCertificate\Core\Utils::get_get_string( 'job_id' );
 		$job    = get_transient( 'ffc_csv_export_' . $job_id );
 
 		if ( ! $job || get_current_user_id() !== (int) $job['user_id'] ) {
