@@ -220,8 +220,7 @@ class AudienceLoader {
 		);
 
 		// Custom fields CSS + JS (on audiences page).
-        // phpcs:ignore WordPress.Security.NonceVerification.Recommended
-		$page = isset( $_GET['page'] ) ? sanitize_text_field( wp_unslash( $_GET['page'] ) ) : '';
+		$page = \FreeFormCertificate\Core\Utils::get_get_string( 'page' );
 		if ( 'ffc-scheduling-audiences' === $page ) {
 			wp_enqueue_script( 'jquery-ui-sortable' );
 

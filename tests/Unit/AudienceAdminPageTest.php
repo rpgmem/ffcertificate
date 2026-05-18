@@ -193,6 +193,8 @@ class AudienceAdminPageTest extends TestCase {
 
         Functions\when( 'sanitize_text_field' )->returnArg();
         Functions\when( 'wp_unslash' )->returnArg();
+        Functions\when( 'FreeFormCertificate\Core\sanitize_text_field' )->returnArg();
+        Functions\when( 'FreeFormCertificate\Core\wp_unslash' )->returnArg();
 
         $page = new AudienceAdminPage();
 

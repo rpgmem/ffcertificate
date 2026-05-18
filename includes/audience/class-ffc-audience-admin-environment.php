@@ -38,8 +38,7 @@ class AudienceAdminEnvironment {
 	 * @return void
 	 */
 	public function render_page(): void {
-        // phpcs:ignore WordPress.Security.NonceVerification.Recommended
-		$action = isset( $_GET['action'] ) ? sanitize_text_field( wp_unslash( $_GET['action'] ) ) : 'list';
+		$action = \FreeFormCertificate\Core\Utils::get_get_string( 'action', 'list' );
         // phpcs:ignore WordPress.Security.NonceVerification.Recommended
 		$id = isset( $_GET['id'] ) ? absint( $_GET['id'] ) : 0;
 
@@ -408,8 +407,7 @@ class AudienceAdminEnvironment {
 		// Show feedback for redirect-based actions.
         // phpcs:ignore WordPress.Security.NonceVerification.Recommended
 		if ( isset( $_GET['message'] ) && isset( $_GET['page'] ) && $_GET['page'] === $this->menu_slug . '-environments' ) {
-            // phpcs:ignore WordPress.Security.NonceVerification.Recommended
-			$msg      = sanitize_text_field( wp_unslash( $_GET['message'] ) );
+			$msg      = \FreeFormCertificate\Core\Utils::get_get_string( 'message' );
 			$label    = AudienceScheduleRepository::get_environment_label( 0, true );
 			$messages = array(
 				/* translators: %s: environment label (singular) */
@@ -426,7 +424,7 @@ class AudienceAdminEnvironment {
 
 		// Handle save.
 		if ( isset( $_POST['ffc_action'] ) && 'save_environment' === $_POST['ffc_action'] ) {
-			if ( ! isset( $_POST['ffc_environment_nonce'] ) || ! wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST['ffc_environment_nonce'] ) ), 'save_environment' ) ) {
+			if ( ! wp_verify_nonce( \FreeFormCertificate\Core\Utils::get_post_string( 'ffc_environment_nonce' ), 'save_environment' ) ) {
 				return;
 			}
 
@@ -450,11 +448,11 @@ class AudienceAdminEnvironment {
 
 			$data = array(
 				'schedule_id'   => isset( $_POST['environment_schedule'] ) ? absint( $_POST['environment_schedule'] ) : 0,
-				'name'          => isset( $_POST['environment_name'] ) ? sanitize_text_field( wp_unslash( $_POST['environment_name'] ) ) : '',
+				'name'          => \FreeFormCertificate\Core\Utils::get_post_string( 'environment_name' ),
 				'color'         => $color ? $color : '#3788d8',
 				'description'   => isset( $_POST['environment_description'] ) ? sanitize_textarea_field( wp_unslash( $_POST['environment_description'] ) ) : '',
 				'working_hours' => $working_hours,
-				'status'        => isset( $_POST['environment_status'] ) ? sanitize_text_field( wp_unslash( $_POST['environment_status'] ) ) : 'active',
+				'status'        => \FreeFormCertificate\Core\Utils::get_post_string( 'environment_status', 'active' ),
 			);
 
 			if ( $id > 0 ) {
@@ -475,7 +473,7 @@ class AudienceAdminEnvironment {
         // phpcs:ignore WordPress.Security.NonceVerification.Recommended
 		if ( isset( $_GET['action'] ) && 'deactivate' === $_GET['action'] && isset( $_GET['id'] ) && isset( $_GET['page'] ) && $_GET['page'] === $this->menu_slug . '-environments' ) {
 			$id = absint( $_GET['id'] );
-			if ( wp_verify_nonce( isset( $_GET['_wpnonce'] ) ? sanitize_text_field( wp_unslash( $_GET['_wpnonce'] ) ) : '', 'deactivate_environment_' . $id ) ) {
+			if ( wp_verify_nonce( \FreeFormCertificate\Core\Utils::get_get_string( '_wpnonce' ), 'deactivate_environment_' . $id ) ) {
 				AudienceEnvironmentRepository::update( $id, array( 'status' => 'inactive' ) );
 				wp_safe_redirect( admin_url( 'admin.php?page=' . $this->menu_slug . '-environments&message=deactivated' ) );
 				exit;
@@ -486,7 +484,7 @@ class AudienceAdminEnvironment {
         // phpcs:ignore WordPress.Security.NonceVerification.Recommended
 		if ( isset( $_GET['action'] ) && 'delete' === $_GET['action'] && isset( $_GET['id'] ) && isset( $_GET['page'] ) && $_GET['page'] === $this->menu_slug . '-environments' ) {
 			$id = absint( $_GET['id'] );
-			if ( wp_verify_nonce( isset( $_GET['_wpnonce'] ) ? sanitize_text_field( wp_unslash( $_GET['_wpnonce'] ) ) : '', 'delete_environment_' . $id ) ) {
+			if ( wp_verify_nonce( \FreeFormCertificate\Core\Utils::get_get_string( '_wpnonce' ), 'delete_environment_' . $id ) ) {
 				$env = AudienceEnvironmentRepository::get_by_id( $id );
 				if ( $env && 'active' !== $env->status ) {
 					AudienceEnvironmentRepository::delete( $id );
