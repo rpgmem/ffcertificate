@@ -320,7 +320,7 @@ class TabGeolocation extends SettingsTab {
 				? $ffc_ip_api_service
 				: 'ip-api',
 			'ip_api_cascade'        => isset( $_POST['ip_api_cascade'] ),
-			'ipinfo_api_key'        => sanitize_text_field( wp_unslash( $_POST['ipinfo_api_key'] ?? '' ) ),
+			'ipinfo_api_key'        => \FreeFormCertificate\Core\Utils::get_post_string( 'ipinfo_api_key' ),
 			'ip_cache_enabled'      => isset( $_POST['ip_cache_enabled'] ),
 			'ip_cache_ttl'          => max( 300, min( 3600, absint( wp_unslash( $_POST['ip_cache_ttl'] ?? 600 ) ) ) ),
 

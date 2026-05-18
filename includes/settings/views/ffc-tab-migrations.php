@@ -253,10 +253,8 @@ try {
 	$ffcertificate_cleanup_report = get_transient( 'ffc_obsolete_cleanup_report_' . $ffcertificate_user_id );
 	$ffcertificate_preview_ok     = (bool) get_transient( 'ffc_obsolete_cleanup_preview_ok_' . $ffcertificate_user_id );
 
-    // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only query-arg display.
-	$ffcertificate_cleanup_msg = isset( $_GET['obsolete_cleanup_msg'] ) ? sanitize_text_field( wp_unslash( $_GET['obsolete_cleanup_msg'] ) ) : '';
-    // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only query-arg display.
-	$ffcertificate_cleanup_err = isset( $_GET['obsolete_cleanup_error'] ) ? sanitize_text_field( wp_unslash( $_GET['obsolete_cleanup_error'] ) ) : '';
+	$ffcertificate_cleanup_msg = \FreeFormCertificate\Core\Utils::get_get_string( 'obsolete_cleanup_msg' );
+	$ffcertificate_cleanup_err = \FreeFormCertificate\Core\Utils::get_get_string( 'obsolete_cleanup_error' );
 
 	$ffcertificate_base_url = add_query_arg(
 		array(

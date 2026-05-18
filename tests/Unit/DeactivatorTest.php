@@ -60,6 +60,9 @@ class DeactivatorTest extends TestCase {
         $this->utils_mock->shouldReceive( 'get_submissions_table' )
             ->andReturn( 'wp_ffc_submissions' )
             ->byDefault();
+        $this->utils_mock->shouldReceive( 'get_post_string' )->andReturnUsing( function ( $key, $default = '' ) {
+            return isset( $_POST[ $key ] ) && is_string( $_POST[ $key ] ) ? $_POST[ $key ] : $default;
+        } )->byDefault();
 
         // Default wpdb stubs for uninstall_cleanup
         $this->wpdb->shouldReceive( 'prepare' )->andReturn( 'QUERY' )->byDefault();

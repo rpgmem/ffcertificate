@@ -101,6 +101,9 @@ class DashboardShortcodeTest extends TestCase {
         $utilsMock = Mockery::mock( 'alias:\FreeFormCertificate\Core\Utils' );
         $utilsMock->shouldReceive( 'asset_suffix' )->andReturn( '' );
         $utilsMock->shouldReceive( 'enqueue_dark_mode' )->once();
+        $utilsMock->shouldReceive( 'get_get_string' )->andReturnUsing( function ( $key, $default = '' ) {
+            return isset( $_GET[ $key ] ) && is_string( $_GET[ $key ] ) ? $_GET[ $key ] : $default;
+        } )->byDefault();
 
         Functions\when( 'wp_enqueue_style' )->justReturn();
         Functions\when( 'wp_enqueue_script' )->justReturn();
@@ -169,6 +172,9 @@ class DashboardShortcodeTest extends TestCase {
         $utilsMock = Mockery::mock( 'alias:\FreeFormCertificate\Core\Utils' );
         $utilsMock->shouldReceive( 'asset_suffix' )->andReturn( '' );
         $utilsMock->shouldReceive( 'enqueue_dark_mode' )->once();
+        $utilsMock->shouldReceive( 'get_get_string' )->andReturnUsing( function ( $key, $default = '' ) {
+            return isset( $_GET[ $key ] ) && is_string( $_GET[ $key ] ) ? $_GET[ $key ] : $default;
+        } )->byDefault();
 
         Functions\when( 'wp_enqueue_style' )->justReturn();
         Functions\when( 'wp_enqueue_script' )->justReturn();
