@@ -52,12 +52,12 @@ class SettingsSaveHandler {
 		}
 
 		// Handle General/SMTP/QR Settings.
-		if ( isset( $_POST['ffc_settings_nonce'] ) && wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST['ffc_settings_nonce'] ) ), 'ffc_settings_action' ) ) {
+		if ( wp_verify_nonce( \FreeFormCertificate\Core\Utils::get_post_string( 'ffc_settings_nonce' ), 'ffc_settings_action' ) ) {
 			$this->save_general_and_specific_settings();
 		}
 
 		// Handle User Access Settings (v3.1.0).
-		if ( isset( $_POST['ffc_user_access_nonce'] ) && wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST['ffc_user_access_nonce'] ) ), 'ffc_user_access_settings' ) ) {
+		if ( wp_verify_nonce( \FreeFormCertificate\Core\Utils::get_post_string( 'ffc_user_access_nonce' ), 'ffc_user_access_settings' ) ) {
 			$this->save_user_access_settings();
 		}
 
@@ -415,8 +415,8 @@ class SettingsSaveHandler {
 	 */
 	private function handle_danger_zone(): void {
         // phpcs:disable WordPress.Security.NonceVerification.Missing -- Nonce verified in handle_all_submissions() via check_admin_referer.
-		$target        = isset( $_POST['delete_target'] ) ? sanitize_text_field( wp_unslash( $_POST['delete_target'] ) ) : 'all';
-		$reset_counter = isset( $_POST['reset_counter'] ) && sanitize_text_field( wp_unslash( $_POST['reset_counter'] ) ) === '1';
+		$target        = \FreeFormCertificate\Core\Utils::get_post_string( 'delete_target', 'all' );
+		$reset_counter = \FreeFormCertificate\Core\Utils::get_post_string( 'reset_counter' ) === '1';
         // phpcs:enable WordPress.Security.NonceVerification.Missing
 
 		/**

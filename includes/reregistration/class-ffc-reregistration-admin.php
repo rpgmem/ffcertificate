@@ -179,7 +179,7 @@ class ReregistrationAdmin {
 
 		// Enqueue PDF libraries on submissions view.
         // phpcs:ignore WordPress.Security.NonceVerification.Recommended
-		$view = isset( $_GET['view'] ) ? sanitize_text_field( wp_unslash( $_GET['view'] ) ) : '';
+		$view = \FreeFormCertificate\Core\Utils::get_get_string( 'view' );
 		if ( 'submissions' === $view ) {
 			wp_enqueue_script( 'html2canvas', FFC_PLUGIN_URL . 'libs/js/html2canvas.min.js', array(), FFC_HTML2CANVAS_VERSION, true );
 			wp_enqueue_script( 'jspdf', FFC_PLUGIN_URL . 'libs/js/jspdf.umd.min.js', array(), FFC_JSPDF_VERSION, true );
@@ -198,7 +198,7 @@ class ReregistrationAdmin {
 		}
 
         // phpcs:ignore WordPress.Security.NonceVerification.Recommended
-		$view = isset( $_GET['view'] ) ? sanitize_text_field( wp_unslash( $_GET['view'] ) ) : 'list';
+		$view = \FreeFormCertificate\Core\Utils::get_get_string( 'view', 'list' );
         // phpcs:ignore WordPress.Security.NonceVerification.Recommended
 		$id = isset( $_GET['id'] ) ? absint( $_GET['id'] ) : 0;
 
@@ -230,7 +230,10 @@ class ReregistrationAdmin {
 	 */
 	private function render_list(): void {
         // phpcs:ignore WordPress.Security.NonceVerification.Recommended
-		$status_filter = isset( $_GET['status'] ) ? sanitize_text_field( wp_unslash( $_GET['status'] ) ) : null;
+		$status_filter = \FreeFormCertificate\Core\Utils::get_get_string( 'status' );
+		if ( '' === $status_filter ) {
+			$status_filter = null;
+		}
         // phpcs:ignore WordPress.Security.NonceVerification.Recommended
 		$audience_filter = isset( $_GET['audience_id'] ) ? absint( $_GET['audience_id'] ) : 0;
 
@@ -543,9 +546,15 @@ class ReregistrationAdmin {
 		}
 
         // phpcs:ignore WordPress.Security.NonceVerification.Recommended
-		$status_filter = isset( $_GET['sub_status'] ) ? sanitize_text_field( wp_unslash( $_GET['sub_status'] ) ) : null;
+		$status_filter = \FreeFormCertificate\Core\Utils::get_get_string( 'sub_status' );
+		if ( '' === $status_filter ) {
+			$status_filter = null;
+		}
         // phpcs:ignore WordPress.Security.NonceVerification.Recommended
-		$search = isset( $_GET['s'] ) ? sanitize_text_field( wp_unslash( $_GET['s'] ) ) : null;
+		$search = \FreeFormCertificate\Core\Utils::get_get_string( 's' );
+		if ( '' === $search ) {
+			$search = null;
+		}
 
 		$filters = array();
 		if ( $status_filter ) {
@@ -769,7 +778,7 @@ class ReregistrationAdmin {
 		}
 
         // phpcs:ignore WordPress.Security.NonceVerification.Recommended
-		$page = isset( $_GET['page'] ) ? sanitize_text_field( wp_unslash( $_GET['page'] ) ) : '';
+		$page = \FreeFormCertificate\Core\Utils::get_get_string( 'page' );
 		if ( self::MENU_SLUG !== $page ) {
 			return;
 		}
@@ -778,7 +787,7 @@ class ReregistrationAdmin {
         // phpcs:ignore WordPress.Security.NonceVerification.Recommended
 		if ( isset( $_GET['message'] ) ) {
             // phpcs:ignore WordPress.Security.NonceVerification.Recommended
-			$msg      = sanitize_text_field( wp_unslash( $_GET['message'] ) );
+			$msg      = \FreeFormCertificate\Core\Utils::get_get_string( 'message' );
 			$messages = array(
 				'created'                => __( 'Reregistration created successfully.', 'ffcertificate' ),
 				'updated'                => __( 'Reregistration updated successfully.', 'ffcertificate' ),
@@ -819,7 +828,7 @@ class ReregistrationAdmin {
 		if ( ! isset( $_POST['ffc_action'] ) || 'save_reregistration' !== $_POST['ffc_action'] ) {
 			return;
 		}
-		if ( ! isset( $_POST['ffc_reregistration_nonce'] ) || ! wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST['ffc_reregistration_nonce'] ) ), 'save_reregistration' ) ) {
+		if ( ! wp_verify_nonce( \FreeFormCertificate\Core\Utils::get_post_string( 'ffc_reregistration_nonce' ), 'save_reregistration' ) ) {
 			return;
 		}
 
@@ -834,15 +843,15 @@ class ReregistrationAdmin {
 
         // phpcs:disable WordPress.Security.NonceVerification.Missing -- Nonce verified above (line 707).
 		$data = array(
-			'title'                      => isset( $_POST['rereg_title'] ) ? sanitize_text_field( wp_unslash( $_POST['rereg_title'] ) ) : '',
-			'start_date'                 => isset( $_POST['rereg_start_date'] ) ? sanitize_text_field( wp_unslash( $_POST['rereg_start_date'] ) ) : '',
-			'end_date'                   => isset( $_POST['rereg_end_date'] ) ? sanitize_text_field( wp_unslash( $_POST['rereg_end_date'] ) ) : '',
+			'title'                      => \FreeFormCertificate\Core\Utils::get_post_string( 'rereg_title' ),
+			'start_date'                 => \FreeFormCertificate\Core\Utils::get_post_string( 'rereg_start_date' ),
+			'end_date'                   => \FreeFormCertificate\Core\Utils::get_post_string( 'rereg_end_date' ),
 			'auto_approve'               => ! empty( $_POST['rereg_auto_approve'] ) ? 1 : 0,
 			'email_invitation_enabled'   => ! empty( $_POST['rereg_email_invitation'] ) ? 1 : 0,
 			'email_reminder_enabled'     => ! empty( $_POST['rereg_email_reminder'] ) ? 1 : 0,
 			'email_confirmation_enabled' => ! empty( $_POST['rereg_email_confirmation'] ) ? 1 : 0,
 			'reminder_days'              => isset( $_POST['rereg_reminder_days'] ) ? absint( $_POST['rereg_reminder_days'] ) : 7,
-			'status'                     => isset( $_POST['rereg_status'] ) ? sanitize_text_field( wp_unslash( $_POST['rereg_status'] ) ) : 'draft',
+			'status'                     => \FreeFormCertificate\Core\Utils::get_post_string( 'rereg_status', 'draft' ),
 		);
 
 		// Collect audience IDs from transfer list hidden inputs.
@@ -893,7 +902,7 @@ class ReregistrationAdmin {
 		}
 
 		$id = absint( $_GET['id'] );
-		if ( ! wp_verify_nonce( isset( $_GET['_wpnonce'] ) ? sanitize_text_field( wp_unslash( $_GET['_wpnonce'] ) ) : '', 'delete_reregistration_' . $id ) ) {
+		if ( ! wp_verify_nonce( \FreeFormCertificate\Core\Utils::get_get_string( '_wpnonce' ), 'delete_reregistration_' . $id ) ) {
 			return;
 		}
 

@@ -46,6 +46,9 @@ class AdminAssetsManagerTest extends TestCase {
         $this->utils_mock = Mockery::mock('alias:\FreeFormCertificate\Core\Utils');
         $this->utils_mock->shouldReceive('asset_suffix')->andReturn('.min')->byDefault();
         $this->utils_mock->shouldReceive('enqueue_dark_mode')->byDefault();
+        $this->utils_mock->shouldReceive('get_get_string')->andReturnUsing( function ( $key, $default = '' ) {
+            return isset( $_GET[ $key ] ) && is_string( $_GET[ $key ] ) ? $_GET[ $key ] : $default;
+        } )->byDefault();
     }
 
     protected function tearDown(): void {

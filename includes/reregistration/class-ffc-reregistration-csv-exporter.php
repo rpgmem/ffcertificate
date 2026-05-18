@@ -39,7 +39,7 @@ class ReregistrationCsvExporter {
 		}
 
 		$id = absint( $_GET['id'] );
-		if ( ! wp_verify_nonce( isset( $_GET['_wpnonce'] ) ? sanitize_text_field( wp_unslash( $_GET['_wpnonce'] ) ) : '', 'export_reregistration_' . $id ) ) {
+		if ( ! wp_verify_nonce( \FreeFormCertificate\Core\Utils::get_get_string( '_wpnonce' ), 'export_reregistration_' . $id ) ) {
 			return;
 		}
 

@@ -60,7 +60,7 @@ class LocationsAjaxEndpoint {
 			wp_send_json_error( array( 'message' => __( 'You do not have permission to manage locations.', 'ffcertificate' ) ), 403 );
 		}
 
-		$name = isset( $_POST['name'] ) ? trim( sanitize_text_field( wp_unslash( $_POST['name'] ) ) ) : '';
+		$name = trim( \FreeFormCertificate\Core\Utils::get_post_string( 'name' ) );
 		if ( '' === $name ) {
 			wp_send_json_error( array( 'message' => __( 'Location name is required.', 'ffcertificate' ) ), 400 );
 		}
