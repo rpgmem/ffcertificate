@@ -61,12 +61,6 @@ class ActivityLogBufferTest extends TestCase {
         Functions\when( 'current_time' )->justReturn( '2026-02-08 12:00:00' );
         Functions\when( 'add_action' )->justReturn( true );
 
-        // Mock Utils::get_user_ip()
-        if ( ! class_exists( '\FreeFormCertificate\Core\Utils' ) ) {
-            // Skip if Utils not autoloaded – isolated test.
-            $this->markTestSkipped( 'Utils class not available in isolated test.' );
-        }
-
         $result = ActivityLog::log( 'test_action', 'info', array(), 0, 0 );
 
         $this->assertTrue( $result );

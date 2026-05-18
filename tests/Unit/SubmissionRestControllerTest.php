@@ -136,11 +136,6 @@ class SubmissionRestControllerTest extends TestCase {
         // Mock WP_REST_Request
         $request = Mockery::mock( 'WP_REST_Request' );
 
-        // Need to define WP_Error class for this test
-        if ( ! class_exists( 'WP_Error' ) ) {
-            $this->markTestSkipped( 'WP_Error class not available in isolated test.' );
-        }
-
         $result = $ctrl->get_submissions( $request );
         $this->assertInstanceOf( \WP_Error::class, $result );
     }
