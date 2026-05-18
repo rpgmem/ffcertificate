@@ -51,6 +51,11 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 
 ### Changed
 
+- POST/GET sanitize migration continues — frontend area: 36 sites
+  migrated to `Utils::get_post_string` / `get_get_string` across
+  `public-csv-download.php`, `public-csv-exporter.php`,
+  `form-processor.php`, `shortcodes.php`, `verification-handler.php`,
+  and `access-restriction-checker.php`.
 - POST/GET sanitize migration continues — audience area: 48 of 55
   scattered `sanitize_text_field(wp_unslash($_POST[...]))` patterns
   migrated to `Utils::get_post_string` / `get_get_string` across
