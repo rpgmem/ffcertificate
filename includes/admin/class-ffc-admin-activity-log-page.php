@@ -266,20 +266,13 @@ class AdminActivityLogPage {
 	}
 
 	/**
-	 * Get unique actions from database
+	 * Get unique actions from database (delegates to ActivityLogQuery
+	 * so the read path stays centralized — see #331 follow-up).
 	 *
 	 * @return array<int, string>
 	 */
 	private function get_unique_actions(): array {
-		global $wpdb;
-		$table_name = $wpdb->prefix . 'ffc_activity_log';
-
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-		$actions = $wpdb->get_col(
-			$wpdb->prepare( 'SELECT DISTINCT action FROM %i ORDER BY action ASC', $table_name )
-		);
-
-		return $actions;
+		return \FreeFormCertificate\Core\ActivityLogQuery::distinct_actions();
 	}
 
 	/**

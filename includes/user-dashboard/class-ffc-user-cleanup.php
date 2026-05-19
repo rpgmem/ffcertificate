@@ -79,18 +79,9 @@ class UserCleanup {
 		}
 
 		// 3. Activity log: SET user_id = NULL (preserve audit trail)
-		$activity_table = $wpdb->prefix . 'ffc_activity_log';
-		if ( self::table_exists( $activity_table ) ) {
-			$rows = $wpdb->query(
-				$wpdb->prepare(
-					'UPDATE %i SET user_id = NULL WHERE user_id = %d',
-					$activity_table,
-					$user_id
-				)
-			);
-			if ( $rows > 0 ) {
-				$anonymized['activity_log'] = $rows;
-			}
+		$rows = \FreeFormCertificate\Core\ActivityLogQuery::redact_user_id( $user_id );
+		if ( $rows > 0 ) {
+			$anonymized['activity_log'] = $rows;
 		}
 
 		// 4. Audience members: DELETE.

@@ -351,4 +351,93 @@ class ActivityLogQueryTest extends TestCase {
         $deleted = ActivityLogQuery::run_cleanup();
         $this->assertSame( 5, $deleted );
     }
+
+    // ------------------------------------------------------------------
+    // action_in filter — issue #331 history service consumer
+    // ------------------------------------------------------------------
+
+    public function test_get_activities_accepts_action_in_array(): void {
+        $captured = null;
+        $this->wpdb->shouldReceive( 'prepare' )
+            ->andReturnUsing(
+                function ( $sql ) use ( &$captured ) {
+                    if ( null === $captured && str_contains( $sql, 'action IN' ) ) {
+                        $captured = $sql;
+                    }
+                    return $sql;
+                }
+            );
+        $this->wpdb->shouldReceive( 'get_results' )->andReturn( array() );
+
+        ActivityLogQuery::get_activities(
+            array( 'action_in' => array( 'recruitment_call_created', 'recruitment_call_cancelled' ) )
+        );
+
+        $this->assertNotNull( $captured );
+        $this->assertStringContainsString( 'action IN', (string) $captured );
+    }
+
+    public function test_get_activities_ignores_empty_action_in(): void {
+        $captured_sqls = array();
+        $this->wpdb->shouldReceive( 'prepare' )
+            ->andReturnUsing(
+                function ( $sql ) use ( &$captured_sqls ) {
+                    $captured_sqls[] = $sql;
+                    return $sql;
+                }
+            );
+        $this->wpdb->shouldReceive( 'get_results' )->andReturn( array() );
+
+        ActivityLogQuery::get_activities( array( 'action_in' => array() ) );
+
+        $combined = implode( ' ', $captured_sqls );
+        $this->assertStringNotContainsString( 'action IN', $combined );
+    }
+
+    // ------------------------------------------------------------------
+    // distinct_actions() — admin filter dropdown delegate
+    // ------------------------------------------------------------------
+
+    public function test_distinct_actions_returns_string_list(): void {
+        $this->wpdb->shouldReceive( 'prepare' )->andReturnUsing( fn ( $sql ) => $sql );
+        $this->wpdb->shouldReceive( 'get_col' )->once()->andReturn( array( 'recruitment_call_created', 'submission_received' ) );
+
+        $actions = ActivityLogQuery::distinct_actions();
+
+        $this->assertSame( array( 'recruitment_call_created', 'submission_received' ), $actions );
+    }
+
+    public function test_distinct_actions_returns_empty_array_when_no_rows(): void {
+        $this->wpdb->shouldReceive( 'prepare' )->andReturnUsing( fn ( $sql ) => $sql );
+        $this->wpdb->shouldReceive( 'get_col' )->once()->andReturn( array() );
+
+        $this->assertSame( array(), ActivityLogQuery::distinct_actions() );
+    }
+
+    // ------------------------------------------------------------------
+    // redact_user_id() — privacy / user-cleanup delegate
+    // ------------------------------------------------------------------
+
+    public function test_redact_user_id_short_circuits_on_non_positive(): void {
+        $this->wpdb->shouldNotReceive( 'query' );
+
+        $this->assertSame( 0, ActivityLogQuery::redact_user_id( 0 ) );
+        $this->assertSame( 0, ActivityLogQuery::redact_user_id( -5 ) );
+    }
+
+    public function test_redact_user_id_returns_zero_when_table_missing(): void {
+        $this->wpdb->shouldReceive( 'prepare' )->andReturnUsing( fn ( $sql ) => $sql );
+        $this->wpdb->shouldReceive( 'get_var' )->once()->andReturn( null );
+        $this->wpdb->shouldNotReceive( 'query' );
+
+        $this->assertSame( 0, ActivityLogQuery::redact_user_id( 42 ) );
+    }
+
+    public function test_redact_user_id_runs_update_when_table_present(): void {
+        $this->wpdb->shouldReceive( 'prepare' )->andReturnUsing( fn ( $sql ) => $sql );
+        $this->wpdb->shouldReceive( 'get_var' )->once()->andReturn( 'wp_ffc_activity_log' );
+        $this->wpdb->shouldReceive( 'query' )->once()->andReturn( 3 );
+
+        $this->assertSame( 3, ActivityLogQuery::redact_user_id( 42 ) );
+    }
 }

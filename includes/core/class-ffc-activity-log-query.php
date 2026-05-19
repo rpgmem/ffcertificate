@@ -38,6 +38,7 @@ class ActivityLogQuery {
 			'offset'    => 0,
 			'level'     => null,
 			'action'    => null,
+			'action_in' => null,
 			'user_id'   => null,
 			'user_ip'   => null,
 			'date_from' => null,
@@ -56,6 +57,15 @@ class ActivityLogQuery {
 		}
 		if ( $args['action'] ) {
 			$where[] = $wpdb->prepare( 'action = %s', sanitize_text_field( $args['action'] ) );
+		}
+		if ( is_array( $args['action_in'] ) && ! empty( $args['action_in'] ) ) {
+			// Sanitized + bounded — each value passes through
+			// sanitize_text_field and the SET is built from a fixed-count
+			// `%s` placeholder run that matches $sanitized one-for-one.
+			$sanitized    = array_values( array_unique( array_map( 'sanitize_text_field', $args['action_in'] ) ) );
+			$placeholders = implode( ',', array_fill( 0, count( $sanitized ), '%s' ) );
+			// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare -- $placeholders is a compile-time `%s,%s,...` string whose count matches $sanitized one-for-one; values are bound by wpdb->prepare.
+			$where[] = $wpdb->prepare( "action IN ({$placeholders})", $sanitized );
 		}
 		if ( $args['user_id'] ) {
 			$where[] = $wpdb->prepare( 'user_id = %d', absint( $args['user_id'] ) );
@@ -98,6 +108,77 @@ class ActivityLogQuery {
 		}
 
 		return $results;
+	}
+
+	/**
+	 * List every distinct `action` ever written to the activity log,
+	 * ordered alphabetically. Used by the admin-side filter dropdown
+	 * — and by any caller that needs to enumerate the action vocabulary
+	 * present in this installation. Replaces a raw `SELECT DISTINCT
+	 * action` query that previously sat in the admin page (issue #331
+	 * "candidate history service" cleanup).
+	 *
+	 * @since 6.6.2
+	 * @return list<string>
+	 */
+	public static function distinct_actions(): array {
+		global $wpdb;
+		$table_name = $wpdb->prefix . 'ffc_activity_log';
+
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Catalog lookup; %i used for the table identifier.
+		$actions = $wpdb->get_col(
+			$wpdb->prepare( 'SELECT DISTINCT action FROM %i ORDER BY action ASC', $table_name )
+		);
+		if ( ! is_array( $actions ) ) {
+			return array();
+		}
+		return array_values( array_map( 'strval', $actions ) );
+	}
+
+	/**
+	 * Privacy / user-cleanup helper — `SET user_id = NULL` on every log
+	 * row that referenced the supplied wp_user, so the audit trail
+	 * survives a user deletion without leaking the orphaned numeric ID
+	 * via foreign-key joins. Returns the row count that was rewritten,
+	 * or `0` when the table doesn't exist (legacy installs that never
+	 * ran the activator).
+	 *
+	 * Centralizes a query that was duplicated in
+	 * {@see \FreeFormCertificate\Privacy\PrivacyHandler} and
+	 * {@see \FreeFormCertificate\UserDashboard\UserCleanup} — both
+	 * callsites now route through here.
+	 *
+	 * @since 6.6.2
+	 * @param int $user_id WP user ID to redact.
+	 * @return int Number of log rows whose `user_id` was nulled.
+	 */
+	public static function redact_user_id( int $user_id ): int {
+		global $wpdb;
+		if ( $user_id <= 0 ) {
+			return 0;
+		}
+		$table_name = $wpdb->prefix . 'ffc_activity_log';
+
+		// Mirror the existing callers' table-existence guard so legacy
+		// pre-activator installs degrade quietly. Follows the same
+		// shape as DatabaseHelperTrait::table_exists() (SHOW TABLES
+		// LIKE %s; %s already handles LIKE-escape — the table name is
+		// internal, never operator-supplied).
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+		$exists = $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $table_name ) );
+		if ( $exists !== $table_name ) {
+			return 0;
+		}
+
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Privacy redaction; surface area kept narrow (single WHERE on user_id).
+		$rows = $wpdb->query(
+			$wpdb->prepare(
+				'UPDATE %i SET user_id = NULL WHERE user_id = %d',
+				$table_name,
+				$user_id
+			)
+		);
+		return is_int( $rows ) ? $rows : 0;
 	}
 
 	/**
