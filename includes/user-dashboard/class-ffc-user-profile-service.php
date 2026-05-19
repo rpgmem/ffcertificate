@@ -40,13 +40,6 @@ if ( ! defined( 'ABSPATH' ) ) {
 final class UserProfileService {
 
 	/**
-	 * Table name cache so the class plays nice with wpdb mocks.
-	 *
-	 * @var string|null
-	 */
-	private static ?string $profile_table = null;
-
-	/**
 	 * Per-call overrides for fields that are not registered in the
 	 * static UserProfileFieldMap. Populated by write() and consumed by
 	 * resolve_spec() / resolve_hash_meta_key() inside the helpers.
@@ -267,15 +260,8 @@ final class UserProfileService {
 	 * @return array<string, mixed>
 	 */
 	private static function read_profile_table( int $user_id, array $fields ): array {
-		global $wpdb;
-		$table = self::profile_table_name();
-
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-		$row = $wpdb->get_row(
-			$wpdb->prepare( 'SELECT * FROM %i WHERE user_id = %d LIMIT 1', $table, $user_id ),
-			ARRAY_A
-		);
-		if ( ! is_array( $row ) ) {
+		$row = ( new \FreeFormCertificate\Repositories\UserProfileRepository() )->findByUserId( $user_id );
+		if ( null === $row ) {
 			$out = array();
 			foreach ( $fields as $f ) {
 				$out[ $f ] = null;
@@ -378,9 +364,6 @@ final class UserProfileService {
 	 * @return bool
 	 */
 	private static function write_profile_table( int $user_id, array $slice ): bool {
-		global $wpdb;
-		$table = self::profile_table_name();
-
 		$data = array();
 		foreach ( $slice as $field => $value ) {
 			$spec = self::resolve_spec( $field );
@@ -393,21 +376,7 @@ final class UserProfileService {
 			return false;
 		}
 
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-		$exists = (int) $wpdb->get_var(
-			$wpdb->prepare( 'SELECT user_id FROM %i WHERE user_id = %d', $table, $user_id )
-		);
-
-		if ( $exists > 0 ) {
-			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-			$affected = $wpdb->update( $table, $data, array( 'user_id' => $user_id ) );
-			return false !== $affected;
-		}
-
-		$data['user_id'] = $user_id;
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-		$inserted = $wpdb->insert( $table, $data );
-		return false !== $inserted;
+		return ( new \FreeFormCertificate\Repositories\UserProfileRepository() )->upsertForUserId( $user_id, $data );
 	}
 
 	/**
@@ -584,16 +553,4 @@ final class UserProfileService {
 		);
 	}
 
-	/**
-	 * Resolve the ffc_user_profiles table name once per request.
-	 *
-	 * @return string
-	 */
-	private static function profile_table_name(): string {
-		if ( null === self::$profile_table ) {
-			global $wpdb;
-			self::$profile_table = $wpdb->prefix . 'ffc_user_profiles';
-		}
-		return self::$profile_table;
-	}
 }

@@ -85,7 +85,10 @@ class UserProfileRepository extends AbstractRepository {
 		$id = $this->wpdb->get_var(
 			$this->wpdb->prepare( 'SELECT id FROM %i WHERE user_id = %d', $this->table, $user_id )
 		);
-		return null !== $id && '' !== $id;
+		// `$id` is a string ("42") in real wpdb when the row exists,
+		// or null when missing. Mocks sometimes return 0 / "0" — treat
+		// any non-positive integer interpretation as "missing".
+		return null !== $id && '' !== $id && (int) $id > 0;
 	}
 
 	/**
@@ -125,5 +128,46 @@ class UserProfileRepository extends AbstractRepository {
 		}
 		$this->clear_cache();
 		return (int) $this->wpdb->insert_id;
+	}
+
+	/**
+	 * Upsert a column slice for the supplied `user_id`. Inserts when
+	 * no row exists for the user, otherwise UPDATEs in place. Used by
+	 * `UserProfileService::update_profile_table()` to persist dynamic
+	 * column sets (which fields land here depends on the field map,
+	 * not on a fixed schema view).
+	 *
+	 * No-op when `$data` is empty.
+	 *
+	 * Issue #340 centralization.
+	 *
+	 * @since 6.6.2
+	 * @param int                  $user_id WP user id.
+	 * @param array<string, mixed> $data    Column => value slice to persist.
+	 * @return bool True on a successful write, false on failure / invalid input.
+	 */
+	public function upsertForUserId( int $user_id, array $data ): bool {
+		if ( $user_id <= 0 || empty( $data ) ) {
+			return false;
+		}
+
+		if ( $this->existsForUserId( $user_id ) ) {
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Single-row update keyed by user_id.
+			$affected = $this->wpdb->update( $this->table, $data, array( 'user_id' => $user_id ) );
+			if ( false === $affected ) {
+				return false;
+			}
+			$this->clear_cache( "user_{$user_id}" );
+			return true;
+		}
+
+		$data['user_id'] = $user_id;
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Insert via wpdb helper; cache invalidated below.
+		$inserted = $this->wpdb->insert( $this->table, $data );
+		if ( false === $inserted ) {
+			return false;
+		}
+		$this->clear_cache();
+		return true;
 	}
 }

@@ -66,6 +66,11 @@ class UserProfileServiceTest extends TestCase {
         Functions\when( 'current_time' )->justReturn( '2026-04-23 12:00:00' );
         Functions\when( 'get_current_user_id' )->justReturn( 7 );
         Functions\when( 'get_option' )->justReturn( array() );
+        Functions\when( 'wp_cache_get' )->justReturn( false );
+        Functions\when( 'wp_cache_set' )->justReturn( true );
+        Functions\when( 'wp_cache_delete' )->justReturn( true );
+        Functions\when( 'wp_cache_flush' )->justReturn( true );
+        Functions\when( 'wp_cache_flush_group' )->justReturn( true );
 
         // Stateful get/update/delete_user_meta backed by $usermeta_store.
         $store =& $this->usermeta_store;
