@@ -385,32 +385,9 @@ class UserCreator {
 			return;
 		}
 
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-		$exists = $wpdb->get_var(
-			$wpdb->prepare(
-				'SELECT id FROM %i WHERE user_id = %d',
-				$table,
-				$user_id
-			)
-		);
-
-		if ( $exists ) {
-			return;
-		}
-
 		$user         = get_userdata( $user_id );
 		$display_name = $user ? $user->display_name : '';
 
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery
-		$wpdb->insert(
-			$table,
-			array(
-				'user_id'      => $user_id,
-				'display_name' => $display_name,
-				'created_at'   => current_time( 'mysql' ),
-				'updated_at'   => current_time( 'mysql' ),
-			),
-			array( '%d', '%s', '%s', '%s' )
-		);
+		( new \FreeFormCertificate\Repositories\UserProfileRepository() )->createForUser( $user_id, $display_name );
 	}
 }

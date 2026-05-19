@@ -275,15 +275,7 @@ class UserManager {
 		$table = $wpdb->prefix . 'ffc_user_profiles';
 
 		if ( self::table_exists( $table ) ) {
-            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-			$profile = $wpdb->get_row(
-				$wpdb->prepare(
-					'SELECT * FROM %i WHERE user_id = %d',
-					$table,
-					$user_id
-				),
-				ARRAY_A
-			);
+			$profile = ( new \FreeFormCertificate\Repositories\UserProfileRepository() )->findByUserId( $user_id );
 
 			if ( $profile ) {
 				return $profile;
