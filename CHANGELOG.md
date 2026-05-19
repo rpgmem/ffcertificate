@@ -7,6 +7,15 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+---
+
+## [6.6.1] (2026-05-18)
+
+Code-quality sweep bundle from the umbrella audit (#254): test-gap closeout
+(§7), nonce-verification audit (§4 follow-up), dead-code reauditing (§5
+follow-up), and the residual cleanup that landed between the §1-§6 PRs
+and the §7 batch. See the issue body for the full inventory.
+
 > ### ⚠ Breaking change for `GET /forms` REST consumers
 >
 > The `GET /forms` REST endpoint now uses real pagination via `page` and
