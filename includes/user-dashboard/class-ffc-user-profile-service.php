@@ -552,5 +552,4 @@ final class UserProfileService {
 			0
 		);
 	}
-
 }
