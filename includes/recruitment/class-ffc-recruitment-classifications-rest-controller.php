@@ -177,6 +177,23 @@ final class RecruitmentClassificationsRestController {
 
 		register_rest_route(
 			$ns,
+			$base . '/classifications/(?P<id>\d+)/adjutancy',
+			array(
+				'methods'             => \WP_REST_Server::EDITABLE,
+				'callback'            => array( $this, 'change_classification_adjutancy' ),
+				'permission_callback' => array( $this, 'check_admin_cap' ),
+				'args'                => array(
+					'adjutancy_id' => array(
+						'type'              => 'integer',
+						'required'          => true,
+						'sanitize_callback' => 'absint',
+					),
+				),
+			)
+		);
+
+		register_rest_route(
+			$ns,
 			$base . '/classifications/(?P<id>\d+)',
 			array(
 				'methods'             => \WP_REST_Server::DELETABLE,
@@ -471,6 +488,69 @@ final class RecruitmentClassificationsRestController {
 		}
 
 		return new \WP_REST_Response( RecruitmentClassificationRepository::get_by_id( $id ), 200 );
+	}
+
+	/**
+	 * PATCH /classifications/{id}/adjutancy — swap a classification's
+	 * adjutancy_id. Issue #331 "Edit estendido".
+	 *
+	 * Validates:
+	 *   - the classification exists
+	 *   - the new adjutancy exists AND is attached to the classification's
+	 *     notice via the `notice_adjutancy` junction (otherwise we'd
+	 *     orphan the classification from the notice's effective set)
+	 *   - the new adjutancy differs from the current one (no-op detected
+	 *     upfront so we don't emit a misleading audit row)
+	 *
+	 * Surfaces failures as WP_Error with 4xx + a stable code so the
+	 * frontend can branch on the reason.
+	 *
+	 * @since 6.6.2
+	 * @param \WP_REST_Request $request Request.
+	 * @return \WP_REST_Response|\WP_Error
+	 */
+	public function change_classification_adjutancy( \WP_REST_Request $request ) {
+		$id               = (int) $request->get_param( 'id' );
+		$new_adjutancy_id = (int) $request->get_param( 'adjutancy_id' );
+
+		if ( $new_adjutancy_id <= 0 ) {
+			return new \WP_Error( 'ffc_invalid_adjutancy', __( 'A valid adjutancy_id is required.', 'ffcertificate' ), array( 'status' => 400 ) );
+		}
+
+		$cls = RecruitmentClassificationRepository::get_by_id( $id );
+		if ( null === $cls ) {
+			return new \WP_Error( 'ffc_classification_not_found', __( 'Classification not found.', 'ffcertificate' ), array( 'status' => 404 ) );
+		}
+
+		$current_adjutancy = (int) $cls->adjutancy_id;
+		if ( $current_adjutancy === $new_adjutancy_id ) {
+			return new \WP_Error( 'ffc_classification_adjutancy_unchanged', __( 'New adjutancy is the same as the current one.', 'ffcertificate' ), array( 'status' => 409 ) );
+		}
+
+		$notice_id = (int) $cls->notice_id;
+		if ( ! RecruitmentNoticeAdjutancyRepository::is_attached( $notice_id, $new_adjutancy_id ) ) {
+			return new \WP_Error(
+				'ffc_classification_adjutancy_not_attached_to_notice',
+				__( 'The selected adjutancy is not attached to this notice.', 'ffcertificate' ),
+				array( 'status' => 409 )
+			);
+		}
+
+		if ( ! RecruitmentClassificationRepository::set_adjutancy( $id, $new_adjutancy_id ) ) {
+			return new \WP_Error( 'ffc_classification_adjutancy_update_failed', __( 'Could not update the classification.', 'ffcertificate' ), array( 'status' => 500 ) );
+		}
+
+		RecruitmentActivityLogger::classification_adjutancy_changed( $id, $current_adjutancy, $new_adjutancy_id );
+
+		return new \WP_REST_Response(
+			array(
+				'success'           => true,
+				'classification_id' => $id,
+				'from'              => $current_adjutancy,
+				'to'                => $new_adjutancy_id,
+			),
+			200
+		);
 	}
 
 	/**

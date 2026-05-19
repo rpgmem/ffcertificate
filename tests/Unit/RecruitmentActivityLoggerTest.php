@@ -315,4 +315,60 @@ class RecruitmentActivityLoggerTest extends TestCase {
 		$this->assertTrue( $b, 'different candidate must not be deduped' );
 		$this->assertCount( 2, $this->buffer() );
 	}
+
+	// ------------------------------------------------------------------
+	// candidate_fields_edited() + classification_adjutancy_changed() — #331
+	// ------------------------------------------------------------------
+
+	public function test_candidate_fields_edited_logs_diff(): void {
+		$wrote = RecruitmentActivityLogger::candidate_fields_edited(
+			42,
+			array(
+				'name'  => array( 'old' => 'Alice', 'new' => 'Alicia' ),
+				'notes' => array( 'old' => '', 'new' => 'some note' ),
+			)
+		);
+
+		$this->assertTrue( $wrote );
+		$entry = $this->last_buffered_entry();
+		$this->assertSame( 'recruitment_candidate_fields_edited', $entry['action'] );
+		$context = json_decode( (string) $entry['context'], true );
+		$this->assertSame( 42, $context['candidate_id'] );
+		$this->assertArrayHasKey( 'changes', $context );
+		$this->assertSame( 'Alicia', $context['changes']['name']['new'] );
+	}
+
+	public function test_candidate_fields_edited_auto_encrypts_when_diff_carries_sensitive_keys(): void {
+		// `phone` is a registered sensitive field — when it appears in the
+		// audit payload (even nested under `changes`), the ActivityLog
+		// auto-encrypt path drops the plaintext `context` column and only
+		// writes `context_encrypted`. Verify the protection actually fires.
+		RecruitmentActivityLogger::candidate_fields_edited(
+			42,
+			array( 'phone' => array( 'old' => '', 'new' => '11999999999' ) )
+		);
+
+		$entry = $this->last_buffered_entry();
+		$this->assertSame( 'recruitment_candidate_fields_edited', $entry['action'] );
+		$this->assertNull( $entry['context'], 'plaintext context must be dropped' );
+		$this->assertNotNull( $entry['context_encrypted'], 'context_encrypted must be populated' );
+	}
+
+	public function test_candidate_fields_edited_short_circuits_on_empty_diff(): void {
+		$wrote = RecruitmentActivityLogger::candidate_fields_edited( 42, array() );
+
+		$this->assertFalse( $wrote );
+		$this->assertSame( array(), $this->buffer() );
+	}
+
+	public function test_classification_adjutancy_changed_logs_from_to(): void {
+		RecruitmentActivityLogger::classification_adjutancy_changed( 7, 3, 5 );
+
+		$entry = $this->last_buffered_entry();
+		$this->assertSame( 'recruitment_classification_adjutancy_changed', $entry['action'] );
+		$context = json_decode( (string) $entry['context'], true );
+		$this->assertSame( 7, $context['classification_id'] );
+		$this->assertSame( 3, $context['from'] );
+		$this->assertSame( 5, $context['to'] );
+	}
 }

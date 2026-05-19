@@ -425,6 +425,48 @@ class RecruitmentClassificationRepository {
 	}
 
 	/**
+	 * Swap a classification's `adjutancy_id` (issue #331 "Edit estendido").
+	 *
+	 * Pure CRUD — caller (the REST controller) is responsible for
+	 * validating that the new adjutancy is attached to the classification's
+	 * notice via the `notice_adjutancy` junction. Without that gate the
+	 * classification would silently become orphaned from the notice's
+	 * effective adjutancy set, which breaks the read-side queries that
+	 * filter classifications by `(notice_id, adjutancy_id)` against the
+	 * junction.
+	 *
+	 * Returns false when the row doesn't exist or the UPDATE fails;
+	 * returns true even when the new value matches the current one
+	 * (no-op write — wpdb returns 0 affected rows but no error).
+	 *
+	 * @since 6.6.2
+	 * @param int $id               Classification ID.
+	 * @param int $new_adjutancy_id Adjutancy ID to swap in.
+	 * @return bool
+	 */
+	public static function set_adjutancy( int $id, int $new_adjutancy_id ): bool {
+		$wpdb  = self::db();
+		$table = self::get_table_name();
+
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Single-row update keyed by PK.
+		$result = $wpdb->update(
+			$table,
+			array( 'adjutancy_id' => $new_adjutancy_id ),
+			array( 'id' => $id ),
+			array( '%d' ),
+			array( '%d' )
+		);
+
+		static::cache_delete( "id_{$id}" );
+
+		if ( false !== $result ) {
+			do_action( 'ffc_recruitment_public_cache_dirty' );
+			return true;
+		}
+		return false;
+	}
+
+	/**
 	 * Hard-delete a single classification row.
 	 *
 	 * Deletion gating (`status='empty'` + notice in `draft`/`preliminary`)
