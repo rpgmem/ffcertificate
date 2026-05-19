@@ -334,7 +334,7 @@ final class RecruitmentNoticeEditPageRenderer {
 	 * used to sit alongside the buttons is gone.
 	 *
 	 * @param string $current Current notice status.
-	 * @return array<string, array{title:string,body:string,consequences:array<int,string>,cta:string,style:string,reason_label?:string}>
+	 * @return array<string, array{title:string,body:string,consequences:array<int,string>,cta:string,style:string,reason_label?:string,countdown?:int}>
 	 */
 	private static function transition_modal_config( string $current ): array {
 		if ( 'closed' === $current ) {
