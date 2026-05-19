@@ -564,8 +564,8 @@
 
                 this.debug('Distance check', {
                     area: i + 1,
-                    distance: distance.toFixed(2) + ' km',
-                    radius: area.radius + ' km',
+                    distance: distance.toFixed(2) + ' m',
+                    radius: area.radius + ' m',
                     within: distance <= area.radius
                 });
 

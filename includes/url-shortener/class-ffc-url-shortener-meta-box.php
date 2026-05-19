@@ -143,7 +143,7 @@ class UrlShortenerMetaBox {
 			<?php if ( ! empty( $qr_base64 ) ) : ?>
 				<div class="ffc-shorturl-qr-preview">
 					<img src="data:image/png;base64,<?php echo esc_attr( $qr_base64 ); ?>"
-						alt="QR Code" />
+						alt="<?php esc_attr_e( 'QR Code', 'ffcertificate' ); ?>" />
 				</div>
 
 				<!-- Download Buttons -->
@@ -241,11 +241,14 @@ class UrlShortenerMetaBox {
 				'ajaxUrl' => admin_url( 'admin-ajax.php' ),
 				'nonce'   => wp_create_nonce( 'ffc_short_url_nonce' ),
 				'i18n'    => array(
-					'copied'      => __( 'Copied!', 'ffcertificate' ),
-					'copyFailed'  => __( 'Copy failed', 'ffcertificate' ),
-					'regenerated' => __( 'Short URL regenerated!', 'ffcertificate' ),
-					'error'       => __( 'An error occurred.', 'ffcertificate' ),
-					'confirm'     => __( 'Generate a new short code? The old one will stop working.', 'ffcertificate' ),
+					'copied'        => __( 'Copied!', 'ffcertificate' ),
+					'copyFailed'    => __( 'Copy failed', 'ffcertificate' ),
+					'regenerated'   => __( 'Short URL regenerated!', 'ffcertificate' ),
+					'error'         => __( 'An error occurred.', 'ffcertificate' ),
+					'confirm'       => __( 'Generate a new short code? The old one will stop working.', 'ffcertificate' ),
+					'qrLoadFailed'  => __( 'Failed to load QR Code', 'ffcertificate' ),
+					'copy'          => __( 'Copy', 'ffcertificate' ),
+					'requestFailed' => __( 'Request failed', 'ffcertificate' ),
 				),
 			)
 		);

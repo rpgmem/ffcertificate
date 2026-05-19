@@ -41,6 +41,7 @@ class QRCodeGeneratorTest extends TestCase {
 
         // Global WP stubs
         Functions\when( '__' )->returnArg();
+        Functions\when( 'esc_attr__' )->returnArg();
         Functions\when( 'get_option' )->justReturn( array() );
         Functions\when( 'absint' )->alias( function( $val ) { return abs( intval( $val ) ); } );
         Functions\when( 'sanitize_text_field' )->returnArg();
@@ -48,6 +49,7 @@ class QRCodeGeneratorTest extends TestCase {
         Functions\when( 'wp_delete_file' )->alias( function( $f ) { if ( file_exists( $f ) ) { @unlink( $f ); } } );
 
         // Namespaced stubs: FreeFormCertificate\Generators\*
+        Functions\when( 'FreeFormCertificate\Generators\esc_attr__' )->returnArg();
         Functions\when( 'FreeFormCertificate\Generators\get_option' )->justReturn( array() );
         Functions\when( 'FreeFormCertificate\Generators\absint' )->alias( function( $val ) { return abs( intval( $val ) ); } );
         Functions\when( 'FreeFormCertificate\Generators\sanitize_text_field' )->returnArg();

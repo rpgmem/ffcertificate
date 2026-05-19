@@ -77,10 +77,10 @@ final class RecruitmentPublicShortcodeRenderer {
 			$html .= '<th>' . esc_html__( 'Adjutancy', 'ffcertificate' ) . '</th>';
 		}
 		if ( $columns['cpf_masked'] ) {
-			$html .= '<th>CPF</th>';
+			$html .= '<th>' . esc_html__( 'CPF', 'ffcertificate' ) . '</th>';
 		}
 		if ( $columns['rf_masked'] ) {
-			$html .= '<th>RF</th>';
+			$html .= '<th>' . esc_html__( 'RF', 'ffcertificate' ) . '</th>';
 		}
 		if ( $columns['email_masked'] ) {
 			$html .= '<th>' . esc_html__( 'E-mail', 'ffcertificate' ) . '</th>';

@@ -773,6 +773,7 @@ class AudienceShortcode {
 					'confirmCancel'          => __( 'Are you sure you want to cancel this booking?', 'ffcertificate' ),
 					'cancelReason'           => __( 'Please provide a reason for cancellation:', 'ffcertificate' ),
 					'invalidTime'            => __( 'End time must be after start time.', 'ffcertificate' ),
+					'fillTimeFields'         => __( 'Please fill in the time fields.', 'ffcertificate' ),
 					'selectAudience'         => __( 'Please select at least one audience.', 'ffcertificate' ),
 					'selectUser'             => __( 'Please select at least one user.', 'ffcertificate' ),
 					'descriptionRequired'    => __( 'Description is required (15-300 characters).', 'ffcertificate' ),

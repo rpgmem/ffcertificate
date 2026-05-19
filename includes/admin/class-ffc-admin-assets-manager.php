@@ -699,6 +699,24 @@ class AdminAssetsManager {
 			'ajax_url'     => admin_url( 'admin-ajax.php' ),
 			'nonce'        => wp_create_nonce( 'ffc_admin_pdf_nonce' ),
 			'export_nonce' => wp_create_nonce( 'ffc_csv_export' ),
+			'templates'    => array(
+				array(
+					'value' => 'atestado_estagios.html',
+					'label' => __( 'Internship Certificate', 'ffcertificate' ),
+				),
+				array(
+					'value' => 'certificado_1.html',
+					'label' => __( 'Certificate Template 1', 'ffcertificate' ),
+				),
+				array(
+					'value' => 'certificado_2.html',
+					'label' => __( 'Certificate Template 2', 'ffcertificate' ),
+				),
+				array(
+					'value' => 'declaracao.html',
+					'label' => __( 'Declaration', 'ffcertificate' ),
+				),
+			),
 			'strings'      => array(
 				// General.
 				'generating'              => __( 'Generating...', 'ffcertificate' ),
@@ -728,6 +746,10 @@ class AdminAssetsManager {
 				/* translators: %s: value */
 				'confirmLoadTemplate'     => __( 'Load "%s"? This will replace your current certificate HTML.', 'ffcertificate' ),
 				'dismiss'                 => __( 'Dismiss', 'ffcertificate' ),
+
+				// Copy-to-clipboard.
+				'copied'                  => __( 'Copied!', 'ffcertificate' ),
+				'copyFailed'              => __( 'Copy failed', 'ffcertificate' ),
 
 				// CSV Export.
 				'exportPreparing'         => __( 'Preparing…', 'ffcertificate' ),

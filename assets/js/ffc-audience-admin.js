@@ -184,9 +184,10 @@
                 $('#ffc-booking-modal').remove();
 
                 // Show loading modal
+                var closeLabel = esc(strings.close || 'Close');
                 var $modal = $('<div id="ffc-booking-modal" class="ffc-admin-modal-overlay" role="dialog" aria-modal="true" aria-labelledby="ffc-admin-modal-title">' +
                     '<div class="ffc-admin-modal">' +
-                    '<div class="ffc-admin-modal-header"><h3 id="ffc-admin-modal-title">' + esc(strings.bookingDetails || 'Booking Details') + '</h3><button type="button" class="ffc-admin-modal-close" aria-label="Close">&times;</button></div>' +
+                    '<div class="ffc-admin-modal-header"><h3 id="ffc-admin-modal-title">' + esc(strings.bookingDetails || 'Booking Details') + '</h3><button type="button" class="ffc-admin-modal-close" aria-label="' + closeLabel + '">&times;</button></div>' +
                     '<div class="ffc-admin-modal-body"><p>' + esc(strings.loading || 'Loading...') + '</p></div>' +
                     '</div></div>');
                 $('body').append($modal);
