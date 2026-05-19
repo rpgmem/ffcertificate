@@ -1088,4 +1088,49 @@ class CustomFieldRepositoryTest extends TestCase {
 
         $this->assertSame([], $groups);
     }
+
+    // ------------------------------------------------------------------
+    // list_sensitive_field_keys() / existing_field_keys_for_audience() /
+    // insert_row() — issue #340 centralization
+    // ------------------------------------------------------------------
+
+    public function test_list_sensitive_field_keys_returns_empty_when_table_missing(): void {
+        $this->wpdb->shouldReceive( 'get_var' )->once()->andReturn( null );
+
+        $this->assertSame( array(), CustomFieldRepository::list_sensitive_field_keys() );
+    }
+
+    public function test_list_sensitive_field_keys_returns_keys_when_table_present(): void {
+        $this->wpdb->shouldReceive( 'get_var' )->once()->andReturn( 'wp_ffc_custom_fields' );
+        $this->wpdb->shouldReceive( 'get_col' )->once()->andReturn( array( 'cpf', 'rg', '' ) );
+
+        $keys = CustomFieldRepository::list_sensitive_field_keys();
+
+        $this->assertSame( array( 'cpf', 'rg' ), $keys );
+    }
+
+    public function test_existing_field_keys_for_audience_returns_lookup_map(): void {
+        $this->wpdb->shouldReceive( 'get_col' )->once()->andReturn( array( 'name', 'email' ) );
+
+        $this->assertSame( array( 'name' => true, 'email' => true ), CustomFieldRepository::existing_field_keys_for_audience( 5 ) );
+    }
+
+    public function test_existing_field_keys_for_audience_short_circuits_on_zero_id(): void {
+        $this->wpdb->shouldNotReceive( 'get_col' );
+
+        $this->assertSame( array(), CustomFieldRepository::existing_field_keys_for_audience( 0 ) );
+    }
+
+    public function test_insert_row_returns_insert_id_on_success(): void {
+        $this->wpdb->shouldReceive( 'insert' )->once()->andReturn( 1 );
+        $this->wpdb->insert_id = 42;
+
+        $this->assertSame( 42, CustomFieldRepository::insert_row( array( 'audience_id' => 5 ) ) );
+    }
+
+    public function test_insert_row_returns_false_on_failure(): void {
+        $this->wpdb->shouldReceive( 'insert' )->once()->andReturn( false );
+
+        $this->assertFalse( CustomFieldRepository::insert_row( array( 'audience_id' => 5 ) ) );
+    }
 }
