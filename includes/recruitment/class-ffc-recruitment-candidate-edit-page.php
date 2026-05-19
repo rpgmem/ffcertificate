@@ -95,6 +95,7 @@ final class RecruitmentCandidateEditPage {
 		self::render_general_section( $candidate );
 		self::render_sensitive_section( $candidate );
 		self::render_classifications_section( $candidate );
+		self::render_history_section( $candidate );
 		self::render_delete_section( $candidate );
 	}
 
@@ -517,7 +518,88 @@ final class RecruitmentCandidateEditPage {
 	}
 
 	/**
-	 * Section 4: Hard-delete with reason (gated per §7-bis).
+	 * Section 4: per-candidate activity log feed (issue #331 "History").
+	 *
+	 * Surfaces every recruitment event that references this candidate
+	 * — direct (`candidate_id` in context) or indirect (`classification_id`
+	 * in context, matched against the candidate's current classifications).
+	 * Delegates the cross-table lookup + decryption to
+	 * {@see RecruitmentCandidateHistoryService::get_for_candidate()}.
+	 *
+	 * Rendered ABOVE the hard-delete postbox so the operator can scan
+	 * the audit trail before committing a destructive action.
+	 *
+	 * @since 6.6.2
+	 * @param object $candidate Candidate row.
+	 * @phpstan-param CandidateRow $candidate
+	 * @return void
+	 */
+	private static function render_history_section( object $candidate ): void {
+		$entries = RecruitmentCandidateHistoryService::get_for_candidate( (int) $candidate->id );
+
+		echo '<div class="postbox" style="margin-top:20px;">';
+		echo '<h2 class="hndle"><span>' . esc_html__( 'History', 'ffcertificate' ) . '</span></h2>';
+		echo '<div class="inside">';
+
+		if ( empty( $entries ) ) {
+			echo '<p><em>' . esc_html__( '(no activity recorded for this candidate)', 'ffcertificate' ) . '</em></p>';
+			echo '</div></div>';
+			return;
+		}
+
+		echo '<p class="description">' . esc_html__( 'Most recent first. Pulled from the activity log for events referencing this candidate or any of its classifications.', 'ffcertificate' ) . '</p>';
+		echo '<table class="widefat striped"><thead><tr>';
+		echo '<th>' . esc_html__( 'When', 'ffcertificate' ) . '</th>';
+		echo '<th>' . esc_html__( 'Who', 'ffcertificate' ) . '</th>';
+		echo '<th>' . esc_html__( 'Event', 'ffcertificate' ) . '</th>';
+		echo '</tr></thead><tbody>';
+		foreach ( $entries as $entry ) {
+			$action  = (string) ( $entry['action'] ?? '' );
+			$context = is_array( $entry['context'] ?? null ) ? $entry['context'] : array();
+			$when    = (string) ( $entry['created_at'] ?? '' );
+			$uid     = (int) ( $entry['user_id'] ?? 0 );
+
+			echo '<tr>';
+			echo '<td>' . esc_html( '' === $when ? '—' : DateFormatter::format_datetime( $when ) ) . '</td>';
+			echo '<td>' . esc_html( self::render_history_actor( $uid ) ) . '</td>';
+			// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- summarize_event() returns pre-escaped HTML.
+			echo '<td>' . RecruitmentCandidateHistoryService::summarize_event( $action, $context ) . '</td>';
+			echo '</tr>';
+		}
+		echo '</tbody></table>';
+
+		echo '</div></div>';
+	}
+
+	/**
+	 * Resolve a user_id to a display string for the History table.
+	 *
+	 * Mirrors the convention used by the global activity-log admin
+	 * page: real users → "Display Name (login)"; deleted users → the
+	 * row keeps its trace via "User #N (deleted)"; system events
+	 * (user_id 0, e.g. cron-driven cleanups) → "System".
+	 *
+	 * @since 6.6.2
+	 * @param int $uid `wp_users.ID`, or 0 for system events.
+	 * @return string Plain text, NOT yet escaped (caller wraps in esc_html).
+	 */
+	private static function render_history_actor( int $uid ): string {
+		if ( $uid <= 0 ) {
+			return __( 'System', 'ffcertificate' );
+		}
+		$user = get_userdata( $uid );
+		if ( false === $user ) {
+			return sprintf(
+				/* translators: %d — orphaned WP user id */
+				__( 'User #%d (deleted)', 'ffcertificate' ),
+				$uid
+			);
+		}
+		return sprintf( '%s (%s)', (string) $user->display_name, (string) $user->user_login );
+	}
+
+	/**
+	 * Section 5: Hard-delete with reason (gated per §7-bis).
 	 *
 	 * @param object $candidate Candidate row.
 	 * @phpstan-param CandidateRow $candidate

@@ -683,16 +683,7 @@ class PrivacyHandler {
 		}
 
 		// 7. Activity log: SET user_id = NULL.
-		$activity_table = $wpdb->prefix . 'ffc_activity_log';
-		if ( self::table_exists( $activity_table ) ) {
-			$wpdb->query(
-				$wpdb->prepare(
-					'UPDATE %i SET user_id = NULL WHERE user_id = %d',
-					$activity_table,
-					$user_id
-				)
-			);
-		}
+		\FreeFormCertificate\Core\ActivityLogQuery::redact_user_id( $user_id );
 
 		// 8. ffc_* user meta: DELETE.
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
