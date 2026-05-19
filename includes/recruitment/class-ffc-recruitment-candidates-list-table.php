@@ -40,6 +40,16 @@ class RecruitmentCandidatesListTable extends \WP_List_Table {
 	private const MAX_PER_PAGE     = 100;
 
 	/**
+	 * Classification statuses the operator can filter by from the
+	 * Candidates tab toolbar. Mirrors the §5.2 state machine vocabulary.
+	 * Any other value typed into `?status=` is rejected and treated as
+	 * "no filter".
+	 *
+	 * @var list<string>
+	 */
+	private const ALLOWED_STATUSES = array( 'empty', 'called', 'accepted', 'not_shown', 'hired' );
+
+	/**
 	 * Constructor.
 	 */
 	public function __construct() {
@@ -242,41 +252,46 @@ class RecruitmentCandidatesListTable extends \WP_List_Table {
 
 		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- read-only filter.
 		$cpf = isset( $_REQUEST['cpf'] ) ? sanitize_text_field( wp_unslash( (string) $_REQUEST['cpf'] ) ) : '';
-		// phpcs:ignore WordPress.Security.NonceVerification.Recommended
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- read-only filter.
 		$rf = isset( $_REQUEST['rf'] ) ? sanitize_text_field( wp_unslash( (string) $_REQUEST['rf'] ) ) : '';
-
-		// CPF / RF lookup short-circuits everything else.
-		if ( '' !== $cpf || '' !== $rf ) {
-			$candidate   = self::lookup_by_cpf_rf( $cpf, $rf );
-			$rows        = null === $candidate ? array() : array( self::convert_row( $candidate ) );
-			$this->items = $rows;
-			$this->set_pagination_args(
-				array(
-					'total_items' => count( $rows ),
-					'per_page'    => 1,
-					'total_pages' => 1,
-				)
-			);
-			return;
-		}
-
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- read-only filter.
+		$email = isset( $_REQUEST['email'] ) ? sanitize_email( wp_unslash( (string) $_REQUEST['email'] ) ) : '';
 		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- read-only filter.
 		$search = isset( $_REQUEST['s'] ) ? sanitize_text_field( wp_unslash( (string) $_REQUEST['s'] ) ) : '';
 		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- read-only filter.
 		$adjutancy_id = isset( $_REQUEST['adjutancy_id'] ) ? absint( wp_unslash( (string) $_REQUEST['adjutancy_id'] ) ) : 0;
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- read-only filter.
+		$status_raw = isset( $_REQUEST['status'] ) ? sanitize_key( wp_unslash( (string) $_REQUEST['status'] ) ) : '';
+		$status     = in_array( $status_raw, self::ALLOWED_STATUSES, true ) ? $status_raw : '';
+
+		// Resolve CPF / RF / email to a candidate-id constraint set.
+		// Each is independently optional; when all three are absent the
+		// constraint is `null` (no narrowing). Otherwise we intersect
+		// the matches — typing CPF + email means "the candidate with
+		// this CPF AND this email", not the union. If any of the three
+		// resolves to zero matches we short-circuit to an empty result
+		// without hitting the main paginated query.
+		$id_constraint = self::resolve_id_constraint( $cpf, $rf, $email );
 
 		$per_page     = $this->get_items_per_page( 'ffc_recruitment_candidates_per_page', self::DEFAULT_PER_PAGE );
 		$per_page     = min( max( 1, $per_page ), self::MAX_PER_PAGE );
 		$current_page = max( 1, $this->get_pagenum() );
 		$offset       = ( $current_page - 1 ) * $per_page;
 
-		if ( $adjutancy_id > 0 ) {
-			$total_items = RecruitmentCandidateRepository::count_paginated_for_adjutancy( $search, $adjutancy_id );
-			$raw_rows    = RecruitmentCandidateRepository::get_paginated_for_adjutancy( $search, $adjutancy_id, $per_page, $offset );
-		} else {
-			$total_items = RecruitmentCandidateRepository::count_paginated( $search );
-			$raw_rows    = RecruitmentCandidateRepository::get_paginated( $search, $per_page, $offset );
-		}
+		$total_items = RecruitmentCandidateRepository::count_paginated_filtered(
+			$search,
+			$id_constraint,
+			$adjutancy_id,
+			$status
+		);
+		$raw_rows    = RecruitmentCandidateRepository::get_paginated_filtered(
+			$search,
+			$id_constraint,
+			$adjutancy_id,
+			$status,
+			$per_page,
+			$offset
+		);
 
 		$this->items = array_map( array( self::class, 'convert_row' ), $raw_rows );
 
@@ -352,18 +367,24 @@ class RecruitmentCandidatesListTable extends \WP_List_Table {
 
 		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- read-only filter.
 		$cpf = isset( $_REQUEST['cpf'] ) ? sanitize_text_field( wp_unslash( (string) $_REQUEST['cpf'] ) ) : '';
-		// phpcs:ignore WordPress.Security.NonceVerification.Recommended
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- read-only filter.
 		$rf = isset( $_REQUEST['rf'] ) ? sanitize_text_field( wp_unslash( (string) $_REQUEST['rf'] ) ) : '';
 		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- read-only filter.
+		$email = isset( $_REQUEST['email'] ) ? sanitize_email( wp_unslash( (string) $_REQUEST['email'] ) ) : '';
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- read-only filter.
 		$adjutancy_id = isset( $_REQUEST['adjutancy_id'] ) ? absint( wp_unslash( (string) $_REQUEST['adjutancy_id'] ) ) : 0;
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- read-only filter.
+		$status_raw = isset( $_REQUEST['status'] ) ? sanitize_key( wp_unslash( (string) $_REQUEST['status'] ) ) : '';
+		$status     = in_array( $status_raw, self::ALLOWED_STATUSES, true ) ? $status_raw : '';
 
 		echo '<div class="alignleft actions">';
 		echo '<input type="text" name="cpf" value="' . esc_attr( $cpf ) . '" placeholder="' . esc_attr__( 'CPF (digits only)', 'ffcertificate' ) . '" size="15">';
 		echo ' <input type="text" name="rf" value="' . esc_attr( $rf ) . '" placeholder="' . esc_attr__( 'RF (digits only)', 'ffcertificate' ) . '" size="10">';
+		echo ' <input type="email" name="email" value="' . esc_attr( $email ) . '" placeholder="' . esc_attr__( 'Email (exact)', 'ffcertificate' ) . '" size="22">';
 
 		// Adjutancy dropdown — limits the result set to candidates with at
-		// least one classification in the selected adjutancy. Independent
-		// of the CPF/RF lookup, which short-circuits everything else.
+		// least one classification in the selected adjutancy. Combinable
+		// with every other filter via the unified paginated query.
 		$adjutancies = RecruitmentAdjutancyRepository::get_all();
 		if ( ! empty( $adjutancies ) ) {
 			echo ' <select name="adjutancy_id">';
@@ -376,34 +397,92 @@ class RecruitmentCandidatesListTable extends \WP_List_Table {
 			echo '</select>';
 		}
 
+		// Status dropdown — limits to candidates with at least one
+		// definitive classification in the selected status (§5.2 enum).
+		echo ' <select name="status">';
+		echo '<option value="">' . esc_html__( 'All statuses', 'ffcertificate' ) . '</option>';
+		$status_labels = array(
+			'empty'     => __( 'Waiting', 'ffcertificate' ),
+			'called'    => __( 'Called', 'ffcertificate' ),
+			'accepted'  => __( 'Accepted', 'ffcertificate' ),
+			'not_shown' => __( 'Did not show up', 'ffcertificate' ),
+			'hired'     => __( 'Hired', 'ffcertificate' ),
+		);
+		foreach ( $status_labels as $value => $label ) {
+			$is_selected = $value === $status ? ' selected' : '';
+			echo '<option value="' . esc_attr( $value ) . '"' . esc_attr( $is_selected ) . '>' . esc_html( $label ) . '</option>';
+		}
+		echo '</select>';
+
 		echo ' <input type="submit" class="button" value="' . esc_attr__( 'Filter', 'ffcertificate' ) . '">';
 		echo '</div>';
 	}
 
 	/**
-	 * Resolve a single candidate by CPF or RF (digits-only input).
+	 * Resolve CPF / RF / email search inputs into a candidate-id
+	 * constraint set the paginated query can use as a `c.id IN (...)`
+	 * narrowing. The three filters are AND-ed (intersection).
 	 *
-	 * @param string $cpf Operator-typed CPF.
-	 * @param string $rf  Operator-typed RF.
-	 * @return object|null
-	 * @phpstan-return CandidateRow|null
+	 * Returns:
+	 *   - `null` when none of the three is set (no narrowing applied).
+	 *   - empty `array()` when at least one is set but no candidate
+	 *     matches that input (caller should short-circuit to 0 rows).
+	 *   - non-empty `list<int>` otherwise.
+	 *
+	 * @since 6.6.2
+	 * @param string $cpf   Operator-typed CPF (digits or formatted).
+	 * @param string $rf    Operator-typed RF (digits or formatted).
+	 * @param string $email Operator-typed email (post-sanitize_email).
+	 * @return list<int>|null
 	 */
-	private static function lookup_by_cpf_rf( string $cpf, string $rf ): ?object {
+	private static function resolve_id_constraint( string $cpf, string $rf, string $email ): ?array {
+		$sets = array();
+
 		if ( '' !== $cpf ) {
-			$digits = \FreeFormCertificate\Core\DataSanitizer::normalize_cpf_rf( $cpf );
-			if ( '' !== $digits ) {
-				$hash = (string) Encryption::hash( $digits );
-				return RecruitmentCandidateRepository::get_by_cpf_hash( $hash );
-			}
+			$sets[] = self::resolve_cpf_or_rf_to_ids( $cpf, 'cpf' );
 		}
 		if ( '' !== $rf ) {
-			$digits = \FreeFormCertificate\Core\DataSanitizer::normalize_cpf_rf( $rf );
-			if ( '' !== $digits ) {
-				$hash = (string) Encryption::hash( $digits );
-				return RecruitmentCandidateRepository::get_by_rf_hash( $hash );
+			$sets[] = self::resolve_cpf_or_rf_to_ids( $rf, 'rf' );
+		}
+		if ( '' !== $email ) {
+			$hash   = (string) Encryption::hash( $email );
+			$sets[] = '' === $hash ? array() : RecruitmentCandidateRepository::get_ids_by_email_hash( $hash );
+		}
+
+		if ( empty( $sets ) ) {
+			return null;
+		}
+
+		// Intersect every non-null set. Any empty set propagates → no
+		// candidate matches all the filters typed by the operator.
+		$intersection = array_shift( $sets );
+		foreach ( $sets as $next ) {
+			$intersection = array_values( array_intersect( $intersection, $next ) );
+			if ( empty( $intersection ) ) {
+				return array();
 			}
 		}
-		return null;
+		return $intersection;
+	}
+
+	/**
+	 * Resolve a single CPF or RF input to the matching candidate-id
+	 * list (size 0 or 1 — the columns are UNIQUE).
+	 *
+	 * @param string $value Operator-typed value (digits or formatted).
+	 * @param string $kind  Either `'cpf'` or `'rf'`.
+	 * @return list<int>
+	 */
+	private static function resolve_cpf_or_rf_to_ids( string $value, string $kind ): array {
+		$digits = \FreeFormCertificate\Core\DataSanitizer::normalize_cpf_rf( $value );
+		if ( '' === $digits ) {
+			return array();
+		}
+		$hash = (string) Encryption::hash( $digits );
+		$row  = 'cpf' === $kind
+			? RecruitmentCandidateRepository::get_by_cpf_hash( $hash )
+			: RecruitmentCandidateRepository::get_by_rf_hash( $hash );
+		return null === $row ? array() : array( (int) $row->id );
 	}
 
 	/**

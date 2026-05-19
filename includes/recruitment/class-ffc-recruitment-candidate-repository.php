@@ -423,6 +423,189 @@ class RecruitmentCandidateRepository {
 	}
 
 	/**
+	 * Return every candidate row whose `email_hash` matches the given
+	 * digest. Used by the list-table when the operator types an email
+	 * into the search box — the column is non-unique so multiple
+	 * candidates can legitimately share it (family members, etc.).
+	 *
+	 * @since 6.6.2
+	 * @param string $email_hash Hash produced by `Encryption::hash()`.
+	 * @return list<int> Candidate IDs matching the hash (empty array on no match).
+	 */
+	public static function get_ids_by_email_hash( string $email_hash ): array {
+		$wpdb  = self::db();
+		$table = self::get_table_name();
+
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Indexed (non-unique) lookup.
+		$rows = $wpdb->get_col(
+			$wpdb->prepare( 'SELECT id FROM %i WHERE email_hash = %s', $table, $email_hash )
+		);
+
+		return array_values( array_map( 'intval', $rows ) );
+	}
+
+	/**
+	 * Paginated candidates with combinable filters (issue #331 search frontend).
+	 *
+	 * All filters are AND-ed:
+	 *   - `$name_search`     — LIKE on the `name` column when non-empty.
+	 *   - `$id_constraint`   — array of candidate IDs the result is
+	 *     limited to (used by CPF / RF / email matches resolved upfront).
+	 *     `null` means "no constraint"; an empty array means "no
+	 *     candidates match" and the method short-circuits to `[]`.
+	 *   - `$adjutancy_id`    — `>0` joins on the classifications table
+	 *     and limits to candidates with at least one classification in
+	 *     that adjutancy.
+	 *   - `$status`          — one of `empty|called|accepted|not_shown|hired`
+	 *     joins on the classifications table (list_type='definitive')
+	 *     and limits to candidates whose at-least-one definitive
+	 *     classification is in that status.
+	 *
+	 * When both `$adjutancy_id` and `$status` are set, the JOIN is
+	 * combined (same row must match both) — matches the operator's
+	 * mental model of "candidates currently called in adjutancy X".
+	 *
+	 * @since 6.6.2
+	 * @param string         $name_search   Optional substring filter on name.
+	 * @param list<int>|null $id_constraint Optional candidate-id constraint set.
+	 * @param int            $adjutancy_id  Optional adjutancy id; 0 = no filter.
+	 * @param string         $status        Optional classification status; '' = no filter.
+	 * @param int            $limit         Page size (capped at 200).
+	 * @param int            $offset        Page offset.
+	 * @return list<CandidateRow>
+	 */
+	public static function get_paginated_filtered(
+		string $name_search,
+		?array $id_constraint,
+		int $adjutancy_id,
+		string $status,
+		int $limit,
+		int $offset
+	): array {
+		if ( is_array( $id_constraint ) && empty( $id_constraint ) ) {
+			return array();
+		}
+
+		$wpdb      = self::db();
+		$table     = self::get_table_name();
+		$cls_table = $wpdb->prefix . 'ffc_recruitment_classification';
+
+		$limit  = max( 1, min( 200, $limit ) );
+		$offset = max( 0, $offset );
+
+		$where          = array();
+		$where_a        = array();
+		$needs_cls_join = $adjutancy_id > 0 || '' !== $status;
+
+		if ( '' !== $name_search ) {
+			$where[]   = 'c.name LIKE %s';
+			$where_a[] = '%' . $wpdb->esc_like( $name_search ) . '%';
+		}
+		if ( is_array( $id_constraint ) ) {
+			$ids     = array_values( array_unique( array_map( 'intval', $id_constraint ) ) );
+			$where[] = 'c.id IN (' . implode( ',', array_fill( 0, count( $ids ), '%d' ) ) . ')';
+			$where_a = array_merge( $where_a, $ids );
+		}
+		if ( $adjutancy_id > 0 ) {
+			$where[]   = 'cls.adjutancy_id = %d';
+			$where_a[] = $adjutancy_id;
+		}
+		if ( '' !== $status ) {
+			$where[]   = 'cls.status = %s';
+			$where_a[] = $status;
+			$where[]   = "cls.list_type = 'definitive'";
+		}
+
+		$sql_args = array( $table );
+		$select   = 'SELECT DISTINCT c.* FROM %i c';
+		if ( $needs_cls_join ) {
+			$select    .= ' INNER JOIN %i cls ON cls.candidate_id = c.id';
+			$sql_args[] = $cls_table;
+		}
+		if ( ! empty( $where ) ) {
+			$select  .= ' WHERE ' . implode( ' AND ', $where );
+			$sql_args = array_merge( $sql_args, $where_a );
+		}
+		$select    .= ' ORDER BY c.created_at DESC LIMIT %d OFFSET %d';
+		$sql_args[] = $limit;
+		$sql_args[] = $offset;
+
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared -- $select is assembled from compile-time fragments with %s/%d placeholders matching $sql_args one-to-one.
+		$results = $wpdb->get_results( $wpdb->prepare( $select, $sql_args ) );
+
+		/**
+		 * Typed shape cast.
+		 *
+		 * @var list<CandidateRow>|null $results
+		 */
+		return is_array( $results ) ? $results : array();
+	}
+
+	/**
+	 * Companion count for {@see self::get_paginated_filtered()}.
+	 *
+	 * @since 6.6.2
+	 * @param string         $name_search   Optional substring filter on name.
+	 * @param list<int>|null $id_constraint Optional candidate-id constraint set.
+	 * @param int            $adjutancy_id  Optional adjutancy id; 0 = no filter.
+	 * @param string         $status        Optional classification status; '' = no filter.
+	 * @return int
+	 */
+	public static function count_paginated_filtered(
+		string $name_search,
+		?array $id_constraint,
+		int $adjutancy_id,
+		string $status
+	): int {
+		if ( is_array( $id_constraint ) && empty( $id_constraint ) ) {
+			return 0;
+		}
+
+		$wpdb      = self::db();
+		$table     = self::get_table_name();
+		$cls_table = $wpdb->prefix . 'ffc_recruitment_classification';
+
+		$where          = array();
+		$where_a        = array();
+		$needs_cls_join = $adjutancy_id > 0 || '' !== $status;
+
+		if ( '' !== $name_search ) {
+			$where[]   = 'c.name LIKE %s';
+			$where_a[] = '%' . $wpdb->esc_like( $name_search ) . '%';
+		}
+		if ( is_array( $id_constraint ) ) {
+			$ids     = array_values( array_unique( array_map( 'intval', $id_constraint ) ) );
+			$where[] = 'c.id IN (' . implode( ',', array_fill( 0, count( $ids ), '%d' ) ) . ')';
+			$where_a = array_merge( $where_a, $ids );
+		}
+		if ( $adjutancy_id > 0 ) {
+			$where[]   = 'cls.adjutancy_id = %d';
+			$where_a[] = $adjutancy_id;
+		}
+		if ( '' !== $status ) {
+			$where[]   = 'cls.status = %s';
+			$where_a[] = $status;
+			$where[]   = "cls.list_type = 'definitive'";
+		}
+
+		$sql_args = array( $table );
+		$select   = 'SELECT COUNT(DISTINCT c.id) FROM %i c';
+		if ( $needs_cls_join ) {
+			$select    .= ' INNER JOIN %i cls ON cls.candidate_id = c.id';
+			$sql_args[] = $cls_table;
+		}
+		if ( ! empty( $where ) ) {
+			$select  .= ' WHERE ' . implode( ' AND ', $where );
+			$sql_args = array_merge( $sql_args, $where_a );
+		}
+
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared -- $select assembled from compile-time fragments; placeholders match $sql_args.
+		$total = $wpdb->get_var( $wpdb->prepare( $select, $sql_args ) );
+
+		return null === $total ? 0 : (int) $total;
+	}
+
+	/**
 	 * Insert a new candidate row.
 	 *
 	 * Required keys: `name`, `pcd_hash`. At least one of `cpf_hash` or
