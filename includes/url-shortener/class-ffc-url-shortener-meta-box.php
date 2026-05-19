@@ -241,11 +241,14 @@ class UrlShortenerMetaBox {
 				'ajaxUrl' => admin_url( 'admin-ajax.php' ),
 				'nonce'   => wp_create_nonce( 'ffc_short_url_nonce' ),
 				'i18n'    => array(
-					'copied'      => __( 'Copied!', 'ffcertificate' ),
-					'copyFailed'  => __( 'Copy failed', 'ffcertificate' ),
-					'regenerated' => __( 'Short URL regenerated!', 'ffcertificate' ),
-					'error'       => __( 'An error occurred.', 'ffcertificate' ),
-					'confirm'     => __( 'Generate a new short code? The old one will stop working.', 'ffcertificate' ),
+					'copied'        => __( 'Copied!', 'ffcertificate' ),
+					'copyFailed'    => __( 'Copy failed', 'ffcertificate' ),
+					'regenerated'   => __( 'Short URL regenerated!', 'ffcertificate' ),
+					'error'         => __( 'An error occurred.', 'ffcertificate' ),
+					'confirm'       => __( 'Generate a new short code? The old one will stop working.', 'ffcertificate' ),
+					'qrLoadFailed'  => __( 'Failed to load QR Code', 'ffcertificate' ),
+					'copy'          => __( 'Copy', 'ffcertificate' ),
+					'requestFailed' => __( 'Request failed', 'ffcertificate' ),
 				),
 			)
 		);

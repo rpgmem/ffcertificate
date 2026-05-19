@@ -337,6 +337,7 @@ class AudienceLoader {
 			'errorAddingUser'   => __( 'Error adding user.', 'ffcertificate' ),
 			'confirmRemoveUser' => __( "Remove this user's access?", 'ffcertificate' ),
 			'noUsersYet'        => __( 'No users have been granted access yet.', 'ffcertificate' ),
+			'cannotDeleteStandard' => __( 'Standard fields cannot be deleted. Deactivate instead.', 'ffcertificate' ),
 		);
 	}
 

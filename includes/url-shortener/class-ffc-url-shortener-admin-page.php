@@ -97,9 +97,12 @@ class UrlShortenerAdminPage {
 				'ajaxUrl' => admin_url( 'admin-ajax.php' ),
 				'nonce'   => wp_create_nonce( 'ffc_short_url_nonce' ),
 				'i18n'    => array(
-					'copied'     => __( 'Copied!', 'ffcertificate' ),
-					'copyFailed' => __( 'Copy failed', 'ffcertificate' ),
-					'error'      => __( 'An error occurred.', 'ffcertificate' ),
+					'copied'        => __( 'Copied!', 'ffcertificate' ),
+					'copyFailed'    => __( 'Copy failed', 'ffcertificate' ),
+					'error'         => __( 'An error occurred.', 'ffcertificate' ),
+					'qrLoadFailed'  => __( 'Failed to load QR Code', 'ffcertificate' ),
+					'copy'          => __( 'Copy', 'ffcertificate' ),
+					'requestFailed' => __( 'Request failed', 'ffcertificate' ),
 				),
 			)
 		);

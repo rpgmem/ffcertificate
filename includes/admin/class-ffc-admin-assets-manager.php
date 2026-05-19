@@ -729,6 +729,10 @@ class AdminAssetsManager {
 				'confirmLoadTemplate'     => __( 'Load "%s"? This will replace your current certificate HTML.', 'ffcertificate' ),
 				'dismiss'                 => __( 'Dismiss', 'ffcertificate' ),
 
+				// Copy-to-clipboard.
+				'copied'                  => __( 'Copied!', 'ffcertificate' ),
+				'copyFailed'              => __( 'Copy failed', 'ffcertificate' ),
+
 				// CSV Export.
 				'exportPreparing'         => __( 'Preparing…', 'ffcertificate' ),
 				/* translators: %1$d: processed count, %2$d: total count */

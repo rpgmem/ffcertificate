@@ -88,6 +88,7 @@ class SelfSchedulingEditor {
 				'strings' => array(
 					'confirmDelete'     => __( 'Are you sure you want to delete this?', 'ffcertificate' ),
 					'addWorkingHour'    => __( 'Add Working Hours', 'ffcertificate' ),
+					'lastWorkingHour'   => __( 'You must have at least one working hour configured.', 'ffcertificate' ),
 					'confirmCleanup'    => __( 'Are you sure you want to delete these appointments? This action cannot be undone.', 'ffcertificate' ),
 					'confirmCleanupAll' => __( 'Are you sure you want to delete ALL appointments? This will permanently remove all appointment data and cannot be undone!', 'ffcertificate' ),
 					'deleting'          => __( 'Deleting...', 'ffcertificate' ),

@@ -108,7 +108,8 @@
 
             // Prevent removing the last row
             if ($('#ffc-working-hours-list tr').length <= 1) {
-                alert('You must have at least one working hour configured.');
+                var editorStrings = (typeof ffcSelfSchedulingEditor !== 'undefined' && ffcSelfSchedulingEditor.strings) ? ffcSelfSchedulingEditor.strings : {};
+                alert(editorStrings.lastWorkingHour || 'You must have at least one working hour configured.');
                 return;
             }
 

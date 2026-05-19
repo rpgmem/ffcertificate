@@ -180,12 +180,15 @@
                 })
                 .catch(function (err) {
                     $modal.find('.ffc-qr-modal__spinner').hide();
+                    var i18n = settings.i18n || {};
                     if (err && err.fromServer) {
                         $modal.find('.ffc-qr-modal__preview')
-                            .html('<p style="color:#dc3232;">' + (err.message || 'Error') + '</p>');
+                            .html('<p style="color:#dc3232;"></p>')
+                            .find('p').text(err.message || i18n.error || 'Error');
                     } else {
                         $modal.find('.ffc-qr-modal__preview')
-                            .html('<p style="color:#dc3232;">Failed to load QR Code</p>');
+                            .html('<p style="color:#dc3232;"></p>')
+                            .find('p').text(i18n.qrLoadFailed || 'Failed to load QR Code');
                     }
                 });
         });
@@ -220,11 +223,13 @@
                 .then(function (data) {
                     $btn.prop('disabled', false);
                     var shortUrl = data.short_url;
-                    $result.html(
-                        '<strong>' + shortUrl + '</strong> ' +
-                        '<button type="button" class="button button-small ffc-copy-shorturl" data-url="' + shortUrl + '">' +
-                        'Copy</button>'
-                    ).show();
+                    var i18n = settings.i18n || {};
+                    var copyLabel = i18n.copy || 'Copy';
+                    var $strong = $('<strong>').text(shortUrl);
+                    var $copyBtn = $('<button type="button" class="button button-small ffc-copy-shorturl">')
+                        .attr('data-url', shortUrl)
+                        .text(copyLabel);
+                    $result.empty().append($strong).append(' ').append($copyBtn).show();
                     // Clear form
                     $('#ffc-shorturl-target').val('');
                     $('#ffc-shorturl-title').val('');
@@ -233,11 +238,14 @@
                 })
                 .catch(function (err) {
                     $btn.prop('disabled', false);
+                    var i18n = settings.i18n || {};
+                    var $span = $('<span style="color:#dc3232;">');
                     if (err && err.fromServer) {
-                        $result.html('<span style="color:#dc3232;">' + (err.message || 'Error') + '</span>').show();
+                        $span.text(err.message || i18n.error || 'Error');
                     } else {
-                        $result.html('<span style="color:#dc3232;">Request failed</span>').show();
+                        $span.text(i18n.requestFailed || 'Request failed');
                     }
+                    $result.empty().append($span).show();
                 });
         });
     });

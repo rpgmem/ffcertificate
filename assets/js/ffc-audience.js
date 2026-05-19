@@ -1074,7 +1074,7 @@
 
         if (!isAllDay) {
             if (!startTime || !endTime) {
-                alert('Please fill in the time fields.');
+                alert(ffcAudience.strings.fillTimeFields || 'Please fill in the time fields.');
                 return false;
             }
 

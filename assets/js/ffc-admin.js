@@ -498,10 +498,13 @@
         var $source = $(target);
         if (!$source.length) { return; }
         var text = $source.val();
+        var strings = (typeof ffc_ajax !== 'undefined' && ffc_ajax.strings) ? ffc_ajax.strings : {};
+        var copiedText = strings.copied || 'Copied!';
+        var copyFailedText = strings.copyFailed || 'Copy failed';
         var done = function(ok) {
             var original = $btn.data('ffc-copy-original') || $btn.text();
             $btn.data('ffc-copy-original', original);
-            $btn.text(ok ? 'Copied!' : 'Copy failed');
+            $btn.text(ok ? copiedText : copyFailedText);
             setTimeout(function() { $btn.text(original); }, 1500);
         };
         if (window.navigator && window.navigator.clipboard && window.navigator.clipboard.writeText) {
