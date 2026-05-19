@@ -334,7 +334,7 @@ final class RecruitmentNoticeEditPageRenderer {
 	 * used to sit alongside the buttons is gone.
 	 *
 	 * @param string $current Current notice status.
-	 * @return array<string, array{title:string,body:string,consequences:array<int,string>,cta:string,style:string,reason_label?:string}>
+	 * @return array<string, array{title:string,body:string,consequences:array<int,string>,cta:string,style:string,reason_label?:string,countdown?:int}>
 	 */
 	private static function transition_modal_config( string $current ): array {
 		if ( 'closed' === $current ) {
@@ -375,6 +375,10 @@ final class RecruitmentNoticeEditPageRenderer {
 				),
 				'cta'          => __( 'Promote to definitive', 'ffcertificate' ),
 				'style'        => 'primary',
+				// 15s countdown — issue #262 item 2. The promote step
+				// locks the classification list as final, so the modal
+				// adds a forced read pause before the CTA enables.
+				'countdown'    => 15,
 			),
 			'closed'      => array(
 				'title'        => __( 'Close this notice?', 'ffcertificate' ),
@@ -474,6 +478,9 @@ final class RecruitmentNoticeEditPageRenderer {
 						echo ' data-ffc-confirm-reason-label="' . esc_attr( $cfg['reason_label'] ) . '"';
 						echo ' data-ffc-confirm-reason-name="reason"';
 					}
+					if ( ! empty( $cfg['countdown'] ) ) {
+						echo ' data-ffc-confirm-countdown="' . esc_attr( (string) (int) $cfg['countdown'] ) . '"';
+					}
 				}
 				echo '>';
 				echo '<input type="hidden" name="action" value="ffc_recruitment_transition_notice">';
@@ -519,7 +526,21 @@ final class RecruitmentNoticeEditPageRenderer {
 			// Definitive list already exists — single-button path.
 			echo '<p>' . esc_html__( 'A definitive list already exists for this notice. Promoting just flips the status to `definitive` (the existing definitive list is preserved).', 'ffcertificate' ) . '</p>';
 
-			echo '<form method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '">';
+			$promote_consequences = wp_json_encode(
+				array(
+					__( 'The notice transitions from `preliminary` to `definitive`.', 'ffcertificate' ),
+					__( 'The existing definitive list is preserved as-is.', 'ffcertificate' ),
+					__( 'Calls can be issued from this point on; going back is only possible if no call has been issued.', 'ffcertificate' ),
+				)
+			);
+			echo '<form method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '"'
+				. ' data-ffc-confirm'
+				. ' data-ffc-confirm-title="' . esc_attr__( 'Promote to definitive?', 'ffcertificate' ) . '"'
+				. ' data-ffc-confirm-body="' . esc_attr__( 'You are about to flip the notice status to `definitive`.', 'ffcertificate' ) . '"'
+				. ' data-ffc-confirm-consequences="' . esc_attr( (string) $promote_consequences ) . '"'
+				. ' data-ffc-confirm-cta="' . esc_attr__( 'Promote to definitive', 'ffcertificate' ) . '"'
+				. ' data-ffc-confirm-style="primary"'
+				. ' data-ffc-confirm-countdown="15">';
 			echo '<input type="hidden" name="action" value="ffc_recruitment_transition_notice">';
 			echo '<input type="hidden" name="notice_id" value="' . esc_attr( (string) $id ) . '">';
 			echo '<input type="hidden" name="target_status" value="definitive">';
@@ -556,6 +577,7 @@ final class RecruitmentNoticeEditPageRenderer {
 			. ' data-ffc-confirm-consequences="' . esc_attr( (string) $snapshot_consequences ) . '"'
 			. ' data-ffc-confirm-cta="' . esc_attr__( 'Promote to definitive', 'ffcertificate' ) . '"'
 			. ' data-ffc-confirm-style="primary"'
+			. ' data-ffc-confirm-countdown="15"'
 			. ' onclick="ffcRecruitmentSnapshotPromote(' . (int) $id . ', this);">'
 			. esc_html__( 'A — Publish preliminary as definitive (snapshot, no changes)', 'ffcertificate' ) . '</button> ';
 		echo '<button type="button" class="button button-secondary" onclick="document.getElementById(\'ffc-recruitment-edit-import\').scrollIntoView({behavior:\'smooth\'});">' . esc_html__( 'B — Import a new list as definitive', 'ffcertificate' ) . '</button>';
