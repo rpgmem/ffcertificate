@@ -226,10 +226,10 @@ if ( ! defined( 'ABSPATH' ) ) {
 					<td>
 						<select name="ip_api_service" id="ffc_ip_api_service">
 							<option value="ip-api" <?php selected( $settings['ip_api_service'], 'ip-api' ); ?>>
-								ip-api.com (Free, 45 req/min, no key)
+								<?php esc_html_e( 'ip-api.com (Free, 45 req/min, no key)', 'ffcertificate' ); ?>
 							</option>
 							<option value="ipinfo" <?php selected( $settings['ip_api_service'], 'ipinfo' ); ?>>
-								ipinfo.io (50k/month free, requires key)
+								<?php esc_html_e( 'ipinfo.io (50k/month free, requires key)', 'ffcertificate' ); ?>
 							</option>
 						</select>
 						<p class="description">

@@ -210,7 +210,7 @@ class SubmissionsList extends \WP_List_Table {
 		}
 
 		if ( empty( $magic_link ) ) {
-			return '<em class="ffc-no-token">No token</em>';
+			return '<em class="ffc-no-token">' . esc_html__( 'No token', 'ffcertificate' ) . '</em>';
 		}
 
 		return sprintf(

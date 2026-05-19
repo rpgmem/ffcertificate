@@ -169,9 +169,9 @@ $ffcertificate_get_option = \Closure::fromCallable( array( $settings, 'get_optio
 							<th scope="row"><label for="smtp_secure"><?php esc_html_e( 'Encryption', 'ffcertificate' ); ?></label></th>
 							<td>
 								<select name="ffc_settings[smtp_secure]" id="smtp_secure">
-									<option value="tls" <?php selected( 'tls', $ffcertificate_get_option( 'smtp_secure' ) ); ?>>TLS (recommended)</option>
+									<option value="tls" <?php selected( 'tls', $ffcertificate_get_option( 'smtp_secure' ) ); ?>><?php esc_html_e( 'TLS (recommended)', 'ffcertificate' ); ?></option>
 									<option value="ssl" <?php selected( 'ssl', $ffcertificate_get_option( 'smtp_secure' ) ); ?>>SSL</option>
-									<option value="none" <?php selected( 'none', $ffcertificate_get_option( 'smtp_secure' ) ); ?>>None (not recommended)</option>
+									<option value="none" <?php selected( 'none', $ffcertificate_get_option( 'smtp_secure' ) ); ?>><?php esc_html_e( 'None (not recommended)', 'ffcertificate' ); ?></option>
 								</select>
 								<p class="description"><?php esc_html_e( 'TLS is recommended for port 587, SSL for port 465', 'ffcertificate' ); ?></p>
 							</td>

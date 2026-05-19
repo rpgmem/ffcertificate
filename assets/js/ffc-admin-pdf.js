@@ -23,13 +23,18 @@
     // Load Template button - Opens modal to select template
     $(document).on('click', '#ffc_load_template_btn', function(e) {
         e.preventDefault();
-        // Lista de templates disponíveis (hardcoded por enquanto, pode vir de PHP depois)
-        var templates = [
-            { value: 'atestado_estagios.html', label: 'Atestado de Estágios' },
-            { value: 'certificado_1.html', label: 'Certificado Modelo 1' },
-            { value: 'certificado_2.html', label: 'Certificado Modelo 2' },
-            { value: 'declaracao.html', label: 'Declaração' }
-        ];
+        // Templates labels come from PHP (wp_localize_script) so they're
+        // translatable via Loco. The fallback list mirrors the PHP default
+        // for the rare case where ffc_ajax hasn't loaded yet.
+        var ajaxData = (typeof ffc_ajax !== 'undefined') ? ffc_ajax : {};
+        var templates = Array.isArray(ajaxData.templates) && ajaxData.templates.length
+            ? ajaxData.templates
+            : [
+                { value: 'atestado_estagios.html', label: 'Internship Certificate' },
+                { value: 'certificado_1.html', label: 'Certificate Template 1' },
+                { value: 'certificado_2.html', label: 'Certificate Template 2' },
+                { value: 'declaracao.html', label: 'Declaration' }
+            ];
 
         // Get localized strings with fallbacks
         var strings = (typeof ffc_ajax !== 'undefined' && ffc_ajax.strings) ? ffc_ajax.strings : {};
