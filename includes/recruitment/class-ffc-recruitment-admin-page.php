@@ -644,7 +644,17 @@ final class RecruitmentAdminPage {
 	 */
 	private static function render_candidates_tab(): void {
 		echo '<h2>' . esc_html__( 'Candidates', 'ffcertificate' ) . '</h2>';
-		echo '<p>' . esc_html__( 'Candidates are imported per-notice via CSV — open the target notice (Notices tab → Edit) and use the "Import candidates (CSV)" section.', 'ffcertificate' ) . '</p>';
+
+		// Standalone CSV import — same backend as the per-notice
+		// importer on the Notice Edit screen, exposed here so the
+		// operator can pick the target notice without navigating
+		// through the Notices tab first. Gated by the same capability
+		// the REST endpoint enforces.
+		if ( current_user_can( 'ffc_import_recruitment_csv' ) || current_user_can( 'ffc_manage_recruitment' ) ) {
+			self::render_candidates_csv_import_section();
+		} else {
+			echo '<p>' . esc_html__( 'Candidates are imported per-notice via CSV — open the target notice (Notices tab → Edit) and use the "Import candidates (CSV)" section.', 'ffcertificate' ) . '</p>';
+		}
 
 		$table = new RecruitmentCandidatesListTable();
 		$table->prepare_items();
@@ -655,6 +665,154 @@ final class RecruitmentAdminPage {
 		$table->search_box( __( 'Search by name', 'ffcertificate' ), 'ffc-recruitment-candidates' );
 		$table->display();
 		echo '</form>';
+	}
+
+	/**
+	 * Standalone CSV import section on the Candidates tab.
+	 *
+	 * Mirrors the per-notice importer rendered on the Notice Edit
+	 * screen (see {@see RecruitmentNoticeEditPageRenderer::render_csv_import_section})
+	 * but lets the operator pick the target notice up front. Routes
+	 * to the exact same REST endpoints — no new backend surface
+	 * required, no duplication of the importer service or activity
+	 * logging.
+	 *
+	 * Notice eligibility:
+	 *   - `draft`       → only the preliminary list can be imported.
+	 *   - `preliminary` → both preliminary and definitive lists are
+	 *                     possible (definitive_import also transitions
+	 *                     the notice to `definitive`).
+	 *   - `definitive` / `closed` → import is blocked; not shown in
+	 *     the picker.
+	 *
+	 * @since 6.6.2
+	 * @return void
+	 */
+	private static function render_candidates_csv_import_section(): void {
+		$all_notices = RecruitmentNoticeRepository::get_all();
+		$eligible    = array();
+		foreach ( $all_notices as $row ) {
+			$status = isset( $row->status ) ? (string) $row->status : '';
+			if ( 'draft' === $status || 'preliminary' === $status ) {
+				$eligible[] = $row;
+			}
+		}
+
+		echo '<div class="postbox" style="margin-top:20px;">';
+		echo '<h2 class="hndle"><span>' . esc_html__( 'Import candidates (CSV)', 'ffcertificate' ) . '</span></h2>';
+		echo '<div class="inside">';
+
+		if ( empty( $eligible ) ) {
+			echo '<p>' . esc_html__( 'No notices in `draft` or `preliminary` status are available for CSV import. Create a notice (Notices tab) or move an existing one back to `preliminary` (allowed only when zero calls have been issued).', 'ffcertificate' ) . '</p>';
+			echo '</div></div>';
+			return;
+		}
+
+		$nonce       = wp_create_nonce( 'wp_rest' );
+		$example_url = wp_nonce_url(
+			add_query_arg(
+				array( 'action' => 'ffc_recruitment_download_csv_example' ),
+				admin_url( 'admin-post.php' )
+			),
+			'ffc_recruitment_download_csv_example'
+		);
+
+		echo '<p>' . esc_html__( 'Pick a notice, select the target list, and upload your CSV. The notice picker only lists notices where import is allowed.', 'ffcertificate' ) . '</p>';
+		echo '<p><a class="button" href="' . esc_url( $example_url ) . '">&darr; ' . esc_html__( 'Download example CSV', 'ffcertificate' ) . '</a> ';
+		echo '<span class="description" style="margin-left:.5em;">' . esc_html__( 'UTF-8 CSV (BOM optional). Required headers (English): name, cpf, rf, email, adjutancy, rank, score, pcd. Optional: phone, time_points, hab_emebs.', 'ffcertificate' ) . '</span></p>';
+
+		echo '<form id="ffc-recruitment-candidates-import" method="post" enctype="multipart/form-data" onsubmit="return ffcRecruitmentImportFromCandidates(this);">';
+		echo '<table class="form-table"><tbody>';
+
+		echo '<tr><th><label for="ffc-cand-import-notice">' . esc_html__( 'Target notice', 'ffcertificate' ) . '</label></th><td>';
+		echo '<select id="ffc-cand-import-notice" name="notice_id" required onchange="ffcRecruitmentImportNoticeChanged(this);">';
+		echo '<option value="" data-status="">' . esc_html__( '— Select a notice —', 'ffcertificate' ) . '</option>';
+		foreach ( $eligible as $n ) {
+			$nid    = (int) $n->id;
+			$code   = isset( $n->code ) ? (string) $n->code : '';
+			$name   = isset( $n->name ) ? (string) $n->name : '';
+			$status = isset( $n->status ) ? (string) $n->status : '';
+			/* translators: 1: notice code, 2: notice name, 3: notice status */
+			$label = sprintf( _x( '%1$s — %2$s (%3$s)', 'recruitment notice picker', 'ffcertificate' ), $code, $name, $status );
+			echo '<option value="' . esc_attr( (string) $nid ) . '" data-status="' . esc_attr( $status ) . '">' . esc_html( $label ) . '</option>';
+		}
+		echo '</select>';
+		echo '</td></tr>';
+
+		// Target list radios. The "definitive" option is rendered but
+		// disabled by default — the onchange handler enables it only
+		// when the selected notice's status is `preliminary`.
+		echo '<tr><th><label>' . esc_html__( 'Target list', 'ffcertificate' ) . '</label></th><td>';
+		echo '<label style="margin-right:1em;"><input type="radio" name="list_target" value="preliminary" checked> ' . esc_html__( 'Preliminary list', 'ffcertificate' ) . '</label>';
+		echo '<label><input type="radio" name="list_target" value="definitive" disabled> ' . esc_html__( 'Definitive list (also transitions notice to `definitive`)', 'ffcertificate' ) . '</label>';
+		echo '<p class="description" id="ffc-cand-import-target-help">' . esc_html__( 'Pick a notice above to see which lists can receive the import.', 'ffcertificate' ) . '</p>';
+		echo '</td></tr>';
+
+		echo '<tr><th><label for="ffc-cand-csv-file">' . esc_html__( 'CSV file', 'ffcertificate' ) . '</label></th><td>';
+		echo '<input id="ffc-cand-csv-file" name="csv_file" type="file" accept=".csv,text/csv" required>';
+		echo '</td></tr>';
+
+		echo '</tbody></table>';
+		echo '<p>';
+		echo '<button id="ffc-cand-csv-submit" type="submit" class="button button-primary">' . esc_html__( 'Import', 'ffcertificate' ) . '</button> ';
+		echo '<span id="ffc-cand-csv-progress" style="display:none;align-items:center;gap:.5em;">';
+		echo '<span class="spinner is-active" style="float:none;margin:0;"></span>';
+		echo '<span id="ffc-cand-csv-progress-text"></span>';
+		echo '</span>';
+		echo '<span id="ffc-cand-csv-status" style="margin-left:1em;font-family:monospace;font-size:12px;"></span>';
+		echo '</p>';
+		echo '</form>';
+
+		$processing_label = esc_js( __( 'Processing CSV…', 'ffcertificate' ) );
+		$elapsed_label    = esc_js( __( 'elapsed', 'ffcertificate' ) );
+		$rest_root        = esc_url_raw( rest_url( 'ffcertificate/v1/recruitment/notices/' ) );
+
+		// Inline JS — mirrors ffcRecruitmentImportFromEdit on the
+		// Notice Edit page. Reuses the same REST endpoints (no new
+		// backend) so the importer service and activity logger fire
+		// unchanged. If this duplication grows, factor both into a
+		// delegated handler in ffc-recruitment-admin.js.
+		// phpcs:disable WordPress.Security.EscapeOutput.OutputNotEscaped -- $processing_label / $elapsed_label / $rest_root are esc_js / esc_url_raw encoded above; $nonce is esc_attr-encoded.
+		echo '<script>'
+			. 'function ffcRecruitmentImportNoticeChanged(sel){'
+			. 'var opt=sel.options[sel.selectedIndex];'
+			. 'var st=opt?opt.getAttribute("data-status"):"";'
+			. 'var defRadio=document.querySelector(\'#ffc-recruitment-candidates-import input[name="list_target"][value="definitive"]\');'
+			. 'var prelimRadio=document.querySelector(\'#ffc-recruitment-candidates-import input[name="list_target"][value="preliminary"]\');'
+			. 'var help=document.getElementById("ffc-cand-import-target-help");'
+			. 'if(st==="preliminary"){defRadio.disabled=false;help.textContent="' . esc_js( __( 'Both lists are available for this notice.', 'ffcertificate' ) ) . '";}'
+			. 'else if(st==="draft"){defRadio.disabled=true;defRadio.checked=false;prelimRadio.checked=true;help.textContent="' . esc_js( __( 'Draft notices can only receive the preliminary list.', 'ffcertificate' ) ) . '";}'
+			. 'else{defRadio.disabled=true;defRadio.checked=false;prelimRadio.checked=true;help.textContent="' . esc_js( __( 'Pick a notice above to see which lists can receive the import.', 'ffcertificate' ) ) . '";}'
+			. '}'
+			. 'function ffcRecruitmentImportFromCandidates(form){'
+			. 'var nid=parseInt(form.notice_id.value,10);'
+			. 'if(!(nid>0)){alert("' . esc_js( __( 'Please select a target notice.', 'ffcertificate' ) ) . '");return false;}'
+			. 'var target=form.list_target.value;'
+			. 'var fd=new FormData();'
+			. 'fd.append("csv_file",form.csv_file.files[0]);'
+			. 'var url;'
+			. 'if(target==="definitive"){url="' . $rest_root . '"+nid+"/promote-preview";fd.append("mode","definitive_import");}'
+			. 'else{url="' . $rest_root . '"+nid+"/import";}'
+			. 'var btn=document.getElementById("ffc-cand-csv-submit");'
+			. 'var status=document.getElementById("ffc-cand-csv-status");'
+			. 'var progress=document.getElementById("ffc-cand-csv-progress");'
+			. 'var progressText=document.getElementById("ffc-cand-csv-progress-text");'
+			. 'btn.disabled=true;progress.style.display="inline-flex";status.textContent="";'
+			. 'var startedAt=Date.now();'
+			. 'function tick(){var sec=Math.floor((Date.now()-startedAt)/1000);progressText.textContent="' . $processing_label . ' "+sec+"s ' . $elapsed_label . '";}'
+			. 'tick();var timer=setInterval(tick,1000);'
+			. 'function cleanup(){clearInterval(timer);progress.style.display="none";btn.disabled=false;}'
+			. 'fetch(url,{method:"POST",headers:{"X-WP-Nonce":"' . esc_attr( $nonce ) . '"},body:fd,credentials:"same-origin"})'
+			. '.then(function(r){return r.json().then(function(d){return{status:r.status,body:d};});}).then(function(o){'
+			. 'cleanup();'
+			. 'if(o.status>=200&&o.status<300){status.textContent="OK ("+((o.body&&o.body.message)?o.body.message:JSON.stringify(o.body))+")";location.reload();}'
+			. 'else{status.textContent="Error: "+((o.body&&o.body.message)?o.body.message:JSON.stringify(o.body));}'
+			. '}).catch(function(e){cleanup();status.textContent="Network error: "+e.message;});'
+			. 'return false;}'
+			. '</script>';
+		// phpcs:enable WordPress.Security.EscapeOutput.OutputNotEscaped
+
+		echo '</div></div>';
 	}
 
 	/**
