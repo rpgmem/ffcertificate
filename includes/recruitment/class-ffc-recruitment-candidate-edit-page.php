@@ -34,6 +34,7 @@ declare(strict_types=1);
 
 namespace FreeFormCertificate\Recruitment;
 
+use FreeFormCertificate\Core\DateFormatter;
 use FreeFormCertificate\Core\DocumentFormatter;
 use FreeFormCertificate\Core\Encryption;
 
@@ -543,13 +544,18 @@ final class RecruitmentCandidateEditPage {
 
 		echo '<p>' . esc_html__( 'Removes the candidate row permanently. The linked WordPress user (if any) is preserved untouched. ActivityLog entries are kept (with sensitive payloads already redacted).', 'ffcertificate' ) . '</p>';
 
+		// Issue #331 asked for `last_classification_at` / `last_call_at`
+		// in the dialog. With the current §7-bis gate (`classification_count
+		// === 0`) those are always null by construction — the candidate
+		// can't be deleted while any classification still references it,
+		// and calls hang off classifications. So we surface the timestamps
+		// that ARE always meaningful (and that the operator actually wants
+		// before a destructive action): when the row was created and when
+		// it was last touched. Plus the WP user link, if any — the modal
+		// already says "preserved untouched" but seeing the actual login
+		// helps the operator confirm they're looking at the right row.
 		$hard_delete_consequences = wp_json_encode(
-			array(
-				__( 'The candidate row is removed permanently.', 'ffcertificate' ),
-				__( 'The linked WordPress user (if any) is preserved untouched.', 'ffcertificate' ),
-				__( 'ActivityLog entries are kept (with sensitive payloads already redacted).', 'ffcertificate' ),
-				__( 'This cannot be undone.', 'ffcertificate' ),
-			)
+			self::build_delete_consequences( $candidate )
 		);
 		echo '<form method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '"'
 			. ' data-ffc-confirm'
@@ -557,16 +563,85 @@ final class RecruitmentCandidateEditPage {
 			. ' data-ffc-confirm-body="' . esc_attr__( 'You are about to permanently delete this candidate record.', 'ffcertificate' ) . '"'
 			. ' data-ffc-confirm-consequences="' . esc_attr( (string) $hard_delete_consequences ) . '"'
 			. ' data-ffc-confirm-cta="' . esc_attr__( 'Delete permanently', 'ffcertificate' ) . '"'
-			. ' data-ffc-confirm-style="destructive">';
+			. ' data-ffc-confirm-style="destructive"'
+			. ' data-ffc-confirm-reason-label="' . esc_attr__( 'Reason (logged):', 'ffcertificate' ) . '">';
 		echo '<input type="hidden" name="action" value="ffc_recruitment_delete_candidate">';
 		echo '<input type="hidden" name="candidate_id" value="' . esc_attr( (string) $id ) . '">';
 		wp_nonce_field( $nonce_action );
-		echo '<p><label for="ffc-cand-delete-reason">' . esc_html__( 'Reason (logged):', 'ffcertificate' ) . '</label><br>';
-		echo '<input id="ffc-cand-delete-reason" type="text" class="large-text" name="reason" required></p>';
+		// No-JS fallback: a plain reason input that submits with the form
+		// when the modal interceptor (assets/js/ffc-recruitment-admin.js)
+		// hasn't loaded. When JS is on, the modal injects its own hidden
+		// `reason` input after this one — the appended value wins in PHP's
+		// `$_POST` parsing, so the operator's modal-typed reason takes
+		// precedence and the inline field becomes a no-JS safety net.
+		echo '<noscript><p>'
+			. '<label for="ffc-cand-delete-reason">' . esc_html__( 'Reason (logged):', 'ffcertificate' ) . '</label><br>'
+			. '<input id="ffc-cand-delete-reason" type="text" class="large-text" name="reason" required>'
+			. '</p></noscript>';
 		submit_button( __( 'Delete permanently', 'ffcertificate' ), 'delete' );
 		echo '</form>';
 
 		echo '</div></div>';
+	}
+
+	/**
+	 * Build the consequences-bullet list for the hard-delete confirm
+	 * modal. Issue #331: front-loads the candidate-row context (created /
+	 * last-updated timestamps + linked WP user) so the operator sees
+	 * actionable details BEFORE the standard "what will happen" lines.
+	 *
+	 * Returned as a `list<string>` ready to feed into wp_json_encode for
+	 * the `data-ffc-confirm-consequences` attribute.
+	 *
+	 * @since 6.6.2
+	 * @param object $candidate Candidate row.
+	 * @phpstan-param CandidateRow $candidate
+	 * @return list<string>
+	 */
+	private static function build_delete_consequences( object $candidate ): array {
+		$context = array();
+
+		$created_at = (string) $candidate->created_at;
+		if ( '' !== $created_at ) {
+			$context[] = sprintf(
+				/* translators: %s — formatted datetime when the candidate row was created */
+				__( 'Created on %s.', 'ffcertificate' ),
+				DateFormatter::format_datetime( $created_at )
+			);
+		}
+
+		$updated_at = (string) $candidate->updated_at;
+		if ( '' !== $updated_at && $updated_at !== $created_at ) {
+			$context[] = sprintf(
+				/* translators: %s — formatted datetime when the candidate row was last touched */
+				__( 'Last updated on %s.', 'ffcertificate' ),
+				DateFormatter::format_datetime( $updated_at )
+			);
+		}
+
+		$user_id = (int) ( $candidate->user_id ?? 0 );
+		if ( $user_id > 0 ) {
+			$user = get_userdata( $user_id );
+			if ( false !== $user ) {
+				$context[] = sprintf(
+					/* translators: %s — linked WordPress user login */
+					__( 'Linked WP user: @%s (preserved untouched on delete).', 'ffcertificate' ),
+					(string) $user->user_login
+				);
+			}
+		}
+
+		// Standard "what will happen" lines — same vocabulary as before
+		// #331, appended after the context block so the operator reads
+		// "row state → action consequences" top-down.
+		return array_merge(
+			$context,
+			array(
+				__( 'The candidate row is removed permanently.', 'ffcertificate' ),
+				__( 'ActivityLog entries are kept (with sensitive payloads already redacted).', 'ffcertificate' ),
+				__( 'This cannot be undone.', 'ffcertificate' ),
+			)
+		);
 	}
 
 	/**
