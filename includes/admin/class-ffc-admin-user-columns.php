@@ -369,7 +369,6 @@ class AdminUserColumns {
 	 */
 	private static function load_recruitment_notice_counts(): void {
 		global $wpdb;
-		$candidates_table      = $wpdb->prefix . 'ffc_recruitment_candidate';
 		$classifications_table = $wpdb->prefix . 'ffc_recruitment_classification';
 
 		if ( null === self::$recruitment_table_exists ) {
@@ -381,25 +380,7 @@ class AdminUserColumns {
 			return;
 		}
 
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-		$results = $wpdb->get_results(
-			$wpdb->prepare(
-				'SELECT c.user_id AS user_id, COUNT(DISTINCT cl.notice_id) AS cnt
-				FROM %i AS cl
-				INNER JOIN %i AS c ON c.id = cl.candidate_id
-				WHERE c.user_id IS NOT NULL
-				GROUP BY c.user_id',
-				$classifications_table,
-				$candidates_table
-			),
-			ARRAY_A
-		);
-
-		if ( $results ) {
-			foreach ( $results as $row ) {
-				self::$recruitment_counts_cache[ (int) $row['user_id'] ] = (int) $row['cnt'];
-			}
-		}
+		self::$recruitment_counts_cache = \FreeFormCertificate\Recruitment\RecruitmentClassificationRepository::count_notices_grouped_by_user();
 	}
 
 	/**
@@ -464,12 +445,11 @@ class AdminUserColumns {
 
 			case 'ffc_notices':
 			default:
-				$candidates      = $wpdb->prefix . 'ffc_recruitment_candidate';
 				$classifications = $wpdb->prefix . 'ffc_recruitment_classification';
 				if ( ! self::table_exists( $classifications ) ) {
 					return;
 				}
-				$select = "(SELECT c.user_id AS user_id, COUNT(DISTINCT cl.notice_id) AS cnt FROM {$classifications} AS cl INNER JOIN {$candidates} AS c ON c.id = cl.candidate_id WHERE c.user_id IS NOT NULL GROUP BY c.user_id)";
+				$select = \FreeFormCertificate\Recruitment\RecruitmentClassificationRepository::sql_user_notice_count_subquery();
 				break;
 		}
 

@@ -297,9 +297,10 @@ class AdminUserColumnsTest extends TestCase {
             ->andReturn( 'wp_ffc_recruitment_classification' )
             ->byDefault();
 
+        // COUNT() alias is `c` in the new repository method (issue #340).
         $this->wpdb->shouldReceive( 'get_results' )
             ->andReturn( array(
-                array( 'user_id' => '42', 'cnt' => '4' ),
+                array( 'user_id' => '42', 'c' => '4' ),
             ) );
 
         $output = AdminUserColumns::render_custom_column( '', 'ffc_notices', 42 );

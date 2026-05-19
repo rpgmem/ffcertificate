@@ -187,4 +187,36 @@ class RecruitmentClassificationRepositoryTest extends TestCase {
 
 		$this->assertFalse( RecruitmentClassificationRepository::set_adjutancy( 42, 7 ) );
 	}
+
+	// ------------------------------------------------------------------
+	// count_notices_grouped_by_user() / sql_user_notice_count_subquery() — #340
+	// ------------------------------------------------------------------
+
+	public function test_count_notices_grouped_by_user_returns_user_count_map(): void {
+		$this->wpdb->shouldReceive( 'get_results' )->once()->andReturn(
+			array(
+				array( 'user_id' => '42', 'c' => '4' ),
+				array( 'user_id' => '7',  'c' => '1' ),
+			)
+		);
+
+		$out = RecruitmentClassificationRepository::count_notices_grouped_by_user();
+
+		$this->assertSame( array( 42 => 4, 7 => 1 ), $out );
+	}
+
+	public function test_count_notices_grouped_by_user_returns_empty_when_no_promoted_candidates(): void {
+		$this->wpdb->shouldReceive( 'get_results' )->once()->andReturn( array() );
+
+		$this->assertSame( array(), RecruitmentClassificationRepository::count_notices_grouped_by_user() );
+	}
+
+	public function test_sql_user_notice_count_subquery_returns_self_contained_select(): void {
+		$sql = RecruitmentClassificationRepository::sql_user_notice_count_subquery();
+
+		$this->assertStringStartsWith( '(SELECT ', $sql );
+		$this->assertStringContainsString( 'wp_ffc_recruitment_classification', $sql );
+		$this->assertStringContainsString( 'wp_ffc_recruitment_candidate', $sql );
+		$this->assertStringContainsString( 'GROUP BY c.user_id', $sql );
+	}
 }
