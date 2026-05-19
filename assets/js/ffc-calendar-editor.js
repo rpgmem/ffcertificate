@@ -57,20 +57,16 @@
             const $list = $('#ffc-working-hours-list');
             const index = this.rowCounter++;
 
-            const daysOfWeek = [
-                { value: 0, label: 'Sunday' },
-                { value: 1, label: 'Monday' },
-                { value: 2, label: 'Tuesday' },
-                { value: 3, label: 'Wednesday' },
-                { value: 4, label: 'Thursday' },
-                { value: 5, label: 'Friday' },
-                { value: 6, label: 'Saturday' }
-            ];
+            const editorStrings = (typeof ffcSelfSchedulingEditor !== 'undefined' && ffcSelfSchedulingEditor.strings) ? ffcSelfSchedulingEditor.strings : {};
+            const defaultDayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+            const localizedDays = Array.isArray(editorStrings.daysOfWeek) ? editorStrings.daysOfWeek : defaultDayNames;
+            const removeLabel = editorStrings.remove || 'Remove';
 
             let optionsHtml = '';
-            daysOfWeek.forEach(function(day) {
-                optionsHtml += '<option value="' + day.value + '">' + day.label + '</option>';
-            });
+            for (let dayIdx = 0; dayIdx < 7; dayIdx++) {
+                const label = localizedDays[dayIdx] || defaultDayNames[dayIdx];
+                optionsHtml += '<option value="' + dayIdx + '">' + $('<div>').text(label).html() + '</option>';
+            }
 
             const rowHtml = `
                 <tr>
@@ -86,7 +82,7 @@
                         <input type="time" name="ffc_calendar_working_hours[${index}][end]" value="17:00" required />
                     </td>
                     <td>
-                        <button type="button" class="button ffc-remove-hour">Remove</button>
+                        <button type="button" class="button ffc-remove-hour">${$('<div>').text(removeLabel).html()}</button>
                     </td>
                 </tr>
             `;

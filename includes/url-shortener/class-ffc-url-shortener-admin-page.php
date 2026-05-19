@@ -581,7 +581,7 @@ class UrlShortenerAdminPage {
 					<p class="ffc-qr-modal__url"></p>
 					<div class="ffc-qr-modal__preview">
 						<div class="ffc-qr-modal__spinner"><span class="spinner is-active"></span></div>
-						<img class="ffc-qr-modal__img" src="" alt="QR Code" style="display:none;" />
+						<img class="ffc-qr-modal__img" src="" alt="<?php esc_attr_e( 'QR Code', 'ffcertificate' ); ?>" style="display:none;" />
 					</div>
 					<div class="ffc-qr-modal__actions">
 						<button type="button" class="button ffc-copy-shorturl" data-url="">

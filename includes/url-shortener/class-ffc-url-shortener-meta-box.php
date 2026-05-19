@@ -143,7 +143,7 @@ class UrlShortenerMetaBox {
 			<?php if ( ! empty( $qr_base64 ) ) : ?>
 				<div class="ffc-shorturl-qr-preview">
 					<img src="data:image/png;base64,<?php echo esc_attr( $qr_base64 ); ?>"
-						alt="QR Code" />
+						alt="<?php esc_attr_e( 'QR Code', 'ffcertificate' ); ?>" />
 				</div>
 
 				<!-- Download Buttons -->
