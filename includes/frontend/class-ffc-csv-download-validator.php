@@ -254,14 +254,11 @@ final class CsvDownloadValidator {
 		}
 
 		if ( 'participants' === $mode ) {
-			global $wpdb;
 			$encryption_class = '\FreeFormCertificate\Core\Encryption';
 			$cpf_hash         = ( class_exists( $encryption_class ) && $encryption_class::is_configured() )
 				? $encryption_class::hash( $digits )
 				: hash( 'sha256', $digits );
-			$table            = $wpdb->prefix . 'ffc_submissions';
-            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-			$count = (int) $wpdb->get_var( $wpdb->prepare( 'SELECT COUNT(*) FROM %i WHERE form_id = %d AND cpf_hash = %s', $table, $form_id, $cpf_hash ) );
+			$count            = ( new \FreeFormCertificate\Repositories\SubmissionRepository() )->countByFormAndCpfHash( $form_id, (string) $cpf_hash );
 			if ( $count <= 0 ) {
 				if ( ! $silent_audit ) {
 					$this->record_download_log_entry( $form_id, $mode, $digits, 'fail_match' );

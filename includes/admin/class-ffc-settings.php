@@ -217,11 +217,7 @@ class Settings {
 			return;
 		}
 
-		global $wpdb;
-		$table_name = $wpdb->prefix . 'ffc_submissions';
-
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-		$cleared = $wpdb->query( $wpdb->prepare( 'UPDATE %i SET qr_code_cache = NULL WHERE qr_code_cache IS NOT NULL', $table_name ) );
+		$cleared = ( new \FreeFormCertificate\Repositories\SubmissionRepository() )->clearQrCodeCache();
 
 		wp_safe_redirect(
 			add_query_arg(
