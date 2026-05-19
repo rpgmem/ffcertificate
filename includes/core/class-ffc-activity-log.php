@@ -221,11 +221,21 @@ class ActivityLog {
 		self::$write_buffer = array();
 
 		foreach ( $entries as $entry ) {
+			// MigrationForeignKeys (4.9.7) adds an ON DELETE SET NULL FK on
+			// `user_id` referencing `wp_users(ID)`. The column is nullable,
+			// but the existing code path passes `0` for system events
+			// (migrations, cron, shutdown handlers) — and `0` is not a valid
+			// wp_users.ID, so the FK rejects the INSERT. Coerce `0` to NULL
+			// here so the "no user / anonymous" semantics map to a NULL
+			// foreign key value, which the FK accepts. wpdb::insert() drops
+			// the format when the value is NULL and writes a literal NULL.
+			$user_id_for_db = $entry['user_id'] > 0 ? $entry['user_id'] : null;
+
 			$row_data   = array(
 				'action'     => $entry['action'],
 				'level'      => $entry['level'],
 				'context'    => $entry['context'],
-				'user_id'    => $entry['user_id'],
+				'user_id'    => $user_id_for_db,
 				'user_ip'    => $entry['user_ip'],
 				'created_at' => $entry['created_at'],
 			);
@@ -269,7 +279,7 @@ class ActivityLog {
             action varchar(100) NOT NULL,
             level varchar(20) NOT NULL DEFAULT 'info',
             context longtext,
-            user_id bigint(20) unsigned DEFAULT 0,
+            user_id bigint(20) unsigned DEFAULT NULL,
             user_ip varchar(100),
             created_at datetime NOT NULL,
             PRIMARY KEY (id),
