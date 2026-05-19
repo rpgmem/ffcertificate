@@ -724,7 +724,7 @@ class AudienceShortcode {
 		wp_enqueue_script(
 			'ffc-audience',
 			FFC_PLUGIN_URL . "assets/js/ffc-audience{$s}.js",
-			array( 'jquery' ),
+			array( 'jquery', 'ffc-core' ),
 			FFC_VERSION,
 			true
 		);

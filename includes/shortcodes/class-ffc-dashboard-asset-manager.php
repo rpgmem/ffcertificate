@@ -89,7 +89,7 @@ class DashboardAssetManager {
 		// `ffc-dashboard` is the core (handle preserved for backwards-compat with
 		// external dependents like ffc-reregistration-frontend); the 7 sibling
 		// files self-register panels into FFCDashboard.panels.
-		wp_enqueue_script( 'ffc-dashboard', FFC_PLUGIN_URL . "assets/js/ffc-user-dashboard-core{$s}.js", array( 'jquery' ), FFC_VERSION, true );
+		wp_enqueue_script( 'ffc-dashboard', FFC_PLUGIN_URL . "assets/js/ffc-user-dashboard-core{$s}.js", array( 'jquery', 'ffc-core' ), FFC_VERSION, true );
 		wp_enqueue_script( 'ffc-dashboard-cal-export', FFC_PLUGIN_URL . "assets/js/ffc-user-dashboard-cal-export{$s}.js", array( 'ffc-dashboard' ), FFC_VERSION, true );
 		wp_enqueue_script( 'ffc-dashboard-certificates', FFC_PLUGIN_URL . "assets/js/ffc-user-dashboard-certificates{$s}.js", array( 'ffc-dashboard' ), FFC_VERSION, true );
 		wp_enqueue_script( 'ffc-dashboard-appointments', FFC_PLUGIN_URL . "assets/js/ffc-user-dashboard-appointments{$s}.js", array( 'ffc-dashboard', 'ffc-dashboard-cal-export' ), FFC_VERSION, true );

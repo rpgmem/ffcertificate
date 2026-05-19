@@ -142,7 +142,7 @@ class SelfSchedulingShortcode {
 		wp_enqueue_script(
 			'ffc-calendar-frontend',
 			FFC_PLUGIN_URL . "assets/js/ffc-calendar-frontend{$s}.js",
-			array( 'jquery', 'ffc-calendar-core', 'ffc-frontend-helpers', 'ffc-pdf-generator' ),
+			array( 'jquery', 'ffc-core', 'ffc-calendar-core', 'ffc-frontend-helpers', 'ffc-pdf-generator' ),
 			FFC_VERSION,
 			true
 		);
