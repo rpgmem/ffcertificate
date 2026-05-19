@@ -183,7 +183,19 @@ final class RecruitmentCandidateEditPage {
 				echo '<code>#' . esc_html( (string) $user_id ) . '</code> <em>(' . esc_html__( 'orphaned reference', 'ffcertificate' ) . ')</em>';
 			}
 			// Unlink form — clears the user_id without touching the wp_user.
-			echo ' <form method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '" style="display:inline;margin-left:.5em;" onsubmit="return confirm(\'' . esc_js( __( 'Unlink the candidate from this WP user? The wp_user account is preserved.', 'ffcertificate' ) ) . '\');">';
+			$unlink_consequences = wp_json_encode(
+				array(
+					__( 'The candidate\'s user_id column is cleared.', 'ffcertificate' ),
+					__( 'The WordPress user account itself is preserved untouched.', 'ffcertificate' ),
+				)
+			);
+			echo ' <form method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '" style="display:inline;margin-left:.5em;"'
+				. ' data-ffc-confirm'
+				. ' data-ffc-confirm-title="' . esc_attr__( 'Unlink WordPress user?', 'ffcertificate' ) . '"'
+				. ' data-ffc-confirm-body="' . esc_attr__( 'Unlink this candidate from the WordPress user account.', 'ffcertificate' ) . '"'
+				. ' data-ffc-confirm-consequences="' . esc_attr( (string) $unlink_consequences ) . '"'
+				. ' data-ffc-confirm-cta="' . esc_attr__( 'Unlink', 'ffcertificate' ) . '"'
+				. ' data-ffc-confirm-style="destructive">';
 			echo '<input type="hidden" name="action" value="ffc_recruitment_unlink_candidate_user">';
 			echo '<input type="hidden" name="candidate_id" value="' . esc_attr( (string) $candidate->id ) . '">';
 			wp_nonce_field( $nonce_action );
@@ -365,7 +377,21 @@ final class RecruitmentCandidateEditPage {
 
 		echo '<p>' . esc_html__( 'Removes the candidate row permanently. The linked WordPress user (if any) is preserved untouched. ActivityLog entries are kept (with sensitive payloads already redacted).', 'ffcertificate' ) . '</p>';
 
-		echo '<form method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '" onsubmit="return confirm(\'' . esc_js( __( 'Hard-delete this candidate? This cannot be undone.', 'ffcertificate' ) ) . '\');">';
+		$hard_delete_consequences = wp_json_encode(
+			array(
+				__( 'The candidate row is removed permanently.', 'ffcertificate' ),
+				__( 'The linked WordPress user (if any) is preserved untouched.', 'ffcertificate' ),
+				__( 'ActivityLog entries are kept (with sensitive payloads already redacted).', 'ffcertificate' ),
+				__( 'This cannot be undone.', 'ffcertificate' ),
+			)
+		);
+		echo '<form method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '"'
+			. ' data-ffc-confirm'
+			. ' data-ffc-confirm-title="' . esc_attr__( 'Hard-delete this candidate?', 'ffcertificate' ) . '"'
+			. ' data-ffc-confirm-body="' . esc_attr__( 'You are about to permanently delete this candidate record.', 'ffcertificate' ) . '"'
+			. ' data-ffc-confirm-consequences="' . esc_attr( (string) $hard_delete_consequences ) . '"'
+			. ' data-ffc-confirm-cta="' . esc_attr__( 'Delete permanently', 'ffcertificate' ) . '"'
+			. ' data-ffc-confirm-style="destructive">';
 		echo '<input type="hidden" name="action" value="ffc_recruitment_delete_candidate">';
 		echo '<input type="hidden" name="candidate_id" value="' . esc_attr( (string) $id ) . '">';
 		wp_nonce_field( $nonce_action );

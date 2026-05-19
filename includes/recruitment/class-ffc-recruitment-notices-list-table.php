@@ -142,12 +142,22 @@ class RecruitmentNoticesListTable extends \WP_List_Table {
 			'ffc_recruitment_delete_notice_' . $id
 		);
 
-		$actions = array(
+		$delete_consequences = wp_json_encode(
+			array(
+				__( 'The notice and its candidate rows will be permanently removed.', 'ffcertificate' ),
+				__( 'Any classifications, calls and adjutancy links referencing it are detached.', 'ffcertificate' ),
+				__( 'This cannot be undone.', 'ffcertificate' ),
+			)
+		);
+		$actions             = array(
 			'edit'   => sprintf( '<a href="%s">%s</a>', esc_url( $edit_url ), esc_html__( 'Edit', 'ffcertificate' ) ),
 			'delete' => sprintf(
-				'<a href="%s" onclick="return confirm(\'%s\');" class="submitdelete">%s</a>',
+				'<a href="%s" class="submitdelete" data-ffc-confirm data-ffc-confirm-title="%s" data-ffc-confirm-body="%s" data-ffc-confirm-consequences="%s" data-ffc-confirm-cta="%s" data-ffc-confirm-style="destructive">%s</a>',
 				esc_url( $delete_url ),
-				esc_js( __( 'Delete this notice? This cannot be undone.', 'ffcertificate' ) ),
+				esc_attr__( 'Delete this notice?', 'ffcertificate' ),
+				esc_attr__( 'You are about to permanently delete this notice.', 'ffcertificate' ),
+				esc_attr( (string) $delete_consequences ),
+				esc_attr__( 'Delete', 'ffcertificate' ),
 				esc_html__( 'Delete', 'ffcertificate' )
 			),
 		);

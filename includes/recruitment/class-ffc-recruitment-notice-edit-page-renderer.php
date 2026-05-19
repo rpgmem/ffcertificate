@@ -322,6 +322,85 @@ final class RecruitmentNoticeEditPageRenderer {
 	}
 
 	/**
+	 * Modal copy per (current → target) status transition.
+	 *
+	 * Returns the title / body / consequence bullets / CTA / style /
+	 * optional reason_label that the confirm-modal (ffc-recruitment-admin.js)
+	 * renders for each transition. Keys are target statuses; if a target
+	 * is missing the form falls back to a plain submit (no modal).
+	 *
+	 * The `closed` current-state branch wires the reopen reason input
+	 * into the modal itself — the inline `<input name="reason">` that
+	 * used to sit alongside the buttons is gone.
+	 *
+	 * @param string $current Current notice status.
+	 * @return array<string, array{title:string,body:string,consequences:array<int,string>,cta:string,style:string,reason_label?:string}>
+	 */
+	private static function transition_modal_config( string $current ): array {
+		if ( 'closed' === $current ) {
+			return array(
+				'definitive' => array(
+					'title'        => __( 'Reopen the closed notice?', 'ffcertificate' ),
+					'body'         => __( 'Reopening flips the notice back to `definitive` so calls can resume.', 'ffcertificate' ),
+					'consequences' => array(
+						__( 'A reopen reason is recorded with this transition.', 'ffcertificate' ),
+						__( 'Hired and not_shown classifications stay permanently frozen — they cannot be reopened later.', 'ffcertificate' ),
+						__( 'The public shortcode no longer shows the "Notice closed." banner.', 'ffcertificate' ),
+					),
+					'cta'          => __( 'Reopen notice', 'ffcertificate' ),
+					'style'        => 'primary',
+					'reason_label' => __( 'Reopen reason (required)', 'ffcertificate' ),
+				),
+			);
+		}
+
+		return array(
+			'preliminary' => array(
+				'title'        => __( 'Publish preliminary list?', 'ffcertificate' ),
+				'body'         => __( 'The notice moves to `preliminary`.', 'ffcertificate' ),
+				'consequences' => array(
+					__( 'The imported candidate list becomes visible on the public shortcode.', 'ffcertificate' ),
+					__( 'Candidates can see their position and any preliminary classification reasons exposed by the column toggles.', 'ffcertificate' ),
+				),
+				'cta'          => __( 'Publish as preliminary', 'ffcertificate' ),
+				'style'        => 'primary',
+			),
+			'definitive'  => array(
+				'title'        => __( 'Promote to definitive?', 'ffcertificate' ),
+				'body'         => __( 'The notice moves to `definitive`. The classification list is locked as final.', 'ffcertificate' ),
+				'consequences' => array(
+					__( 'Calls can be issued from this point on.', 'ffcertificate' ),
+					__( 'The public shortcode flips to the "Final classification." banner.', 'ffcertificate' ),
+					__( 'Going back to `preliminary` is only possible if no call has been issued yet.', 'ffcertificate' ),
+				),
+				'cta'          => __( 'Promote to definitive', 'ffcertificate' ),
+				'style'        => 'primary',
+			),
+			'closed'      => array(
+				'title'        => __( 'Close this notice?', 'ffcertificate' ),
+				'body'         => __( 'Closing freezes the notice and its calls history.', 'ffcertificate' ),
+				'consequences' => array(
+					__( 'No new calls, status changes or cancellations can happen while closed.', 'ffcertificate' ),
+					__( 'The public shortcode shows the "Notice closed." banner above the list.', 'ffcertificate' ),
+					__( 'Reopening later requires a reason and permanently freezes hired/not_shown classifications.', 'ffcertificate' ),
+				),
+				'cta'          => __( 'Close notice', 'ffcertificate' ),
+				'style'        => 'destructive',
+			),
+			'draft'       => array(
+				'title'        => __( 'Move notice back to draft?', 'ffcertificate' ),
+				'body'         => __( 'The notice returns to `draft`.', 'ffcertificate' ),
+				'consequences' => array(
+					__( 'The candidate list is hidden from the public shortcode.', 'ffcertificate' ),
+					__( 'No data is lost — you can publish again later.', 'ffcertificate' ),
+				),
+				'cta'          => __( 'Move to draft', 'ffcertificate' ),
+				'style'        => 'primary',
+			),
+		);
+	}
+
+	/**
 	 * Section 2: Status — badge + transition buttons.
 	 *
 	 * Each button posts to `admin-post.php?action=ffc_recruitment_transition_notice`
@@ -374,63 +453,39 @@ final class RecruitmentNoticeEditPageRenderer {
 				echo '<p>' . esc_html__( 'No transitions available from this state.', 'ffcertificate' ) . '</p>';
 			}
 		} else {
-			// `data-ffc-skip-transition-confirm` suppresses the generic
-			// `definitive` confirm on the closed → definitive (reopen)
-			// path, which already gathers a reason explicitly via the
-			// reason input rendered below.
-			$skip_attr = 'closed' === $current ? ' data-ffc-skip-transition-confirm="1"' : '';
-			// $skip_attr is an internal literal (one of two compile-time strings); no user input flows through it.
-			echo '<form method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '" style="display:inline;"' . $skip_attr . ' onsubmit="return ffcRecruitmentConfirmTransition(this);">'; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- $skip_attr is a literal HTML attribute string with no user-controlled content.
-			echo '<input type="hidden" name="action" value="ffc_recruitment_transition_notice">';
-			echo '<input type="hidden" name="notice_id" value="' . esc_attr( (string) $notice->id ) . '">';
-			wp_nonce_field( $nonce_action );
+			// Per-target modal copy. Each transition has a side effect we
+			// want the operator to acknowledge before committing.
+			$modal_config = self::transition_modal_config( $current );
 
 			echo '<p>';
 			foreach ( $transitions as $target => $label ) {
-				echo '<button type="submit" name="target_status" value="' . esc_attr( $target ) . '" class="button button-secondary" style="margin-right:.5em;">';
+				$cfg          = isset( $modal_config[ $target ] ) ? $modal_config[ $target ] : null;
+				$consequences = wp_json_encode( $cfg ? $cfg['consequences'] : array() );
+
+				echo '<form method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '" style="display:inline;margin-right:.5em;"';
+				if ( $cfg ) {
+					echo ' data-ffc-confirm'
+						. ' data-ffc-confirm-title="' . esc_attr( $cfg['title'] ) . '"'
+						. ' data-ffc-confirm-body="' . esc_attr( $cfg['body'] ) . '"'
+						. ' data-ffc-confirm-consequences="' . esc_attr( (string) $consequences ) . '"'
+						. ' data-ffc-confirm-cta="' . esc_attr( $cfg['cta'] ) . '"'
+						. ' data-ffc-confirm-style="' . esc_attr( $cfg['style'] ) . '"';
+					if ( ! empty( $cfg['reason_label'] ) ) {
+						echo ' data-ffc-confirm-reason-label="' . esc_attr( $cfg['reason_label'] ) . '"';
+						echo ' data-ffc-confirm-reason-name="reason"';
+					}
+				}
+				echo '>';
+				echo '<input type="hidden" name="action" value="ffc_recruitment_transition_notice">';
+				echo '<input type="hidden" name="notice_id" value="' . esc_attr( (string) $notice->id ) . '">';
+				echo '<input type="hidden" name="target_status" value="' . esc_attr( $target ) . '">';
+				wp_nonce_field( $nonce_action );
+				echo '<button type="submit" class="button button-secondary">';
 				echo esc_html( $label );
 				echo '</button>';
+				echo '</form>';
 			}
 			echo '</p>';
-
-			// Closed → definitive needs a reason; reuse the same form with
-			// a single reason input that's only meaningful for that move.
-			if ( 'closed' === $current ) {
-				echo '<p><label for="ffc-reopen-reason">' . esc_html__( 'Reopen reason (required for closed → definitive):', 'ffcertificate' ) . '</label><br>';
-				echo '<input id="ffc-reopen-reason" type="text" class="large-text" name="reason"></p>';
-			}
-
-			echo '</form>';
-
-			// Per-target confirm prompts. Each transition has a side
-			// effect we want the operator to acknowledge before
-			// committing:
-			//
-			// - draft → preliminary: publishes the candidate list to the
-			// public shortcode (visible to candidates).
-			// - preliminary → definitive: locks the list as final; the
-			// public shortcode flips to "Final classification."
-			// - definitive → closed: freezes calls history; reopen
-			// later requires a reason and locks hired/not_shown.
-			//
-			// The closed → definitive (reopen) path goes through its
-			// own form with a Reopen reason input, so this generic
-			// confirm there would be redundant — gated by the absence
-			// of `data-ffc-skip-transition-confirm`.
-			echo '<script>'
-				. 'function ffcRecruitmentConfirmTransition(form){'
-				. 'var t=form.target_status?form.target_status.value:(document.activeElement&&document.activeElement.name==="target_status"?document.activeElement.value:"");'
-				. 'if(t==="preliminary"){'
-				. 'return confirm("' . esc_js( __( 'Moving the notice to `preliminary` publishes the imported candidate list on the public shortcode. Continue?', 'ffcertificate' ) ) . '");'
-				. '}'
-				. 'if(t==="definitive"&&!form.hasAttribute("data-ffc-skip-transition-confirm")){'
-				. 'return confirm("' . esc_js( __( 'Promoting the notice to `definitive` locks the classification list as final. Calls can be issued from this point on; the public shortcode will display the "Final classification" banner. Continue?', 'ffcertificate' ) ) . '");'
-				. '}'
-				. 'if(t==="closed"){'
-				. 'return confirm("' . esc_js( __( 'Closing the notice freezes its calls history (no new calls, no status changes, no cancellations). The public shortcode will display the "Notice closed." banner above the list. To reopen later, you will need to provide a reason and the hired/not_shown classifications will become permanently locked. Continue?', 'ffcertificate' ) ) . '");'
-				. '}'
-				. 'return true;}'
-				. '</script>';
 		}
 
 		echo '</div></div>';
@@ -480,16 +535,39 @@ final class RecruitmentNoticeEditPageRenderer {
 
 		// Path A — snapshot. Hits POST /notices/{id}/promote-preview
 		// mode=snapshot via fetch (the endpoint does the copy +
-		// status flip atomically).
-		$rest_nonce = wp_create_nonce( 'wp_rest' );
+		// status flip atomically). Confirmation goes through the shared
+		// confirm-modal in ffc-recruitment-admin.js — we put the data
+		// attributes on the button itself; the modal intercepts the
+		// click and on confirm sets data-ffc-confirm-ok=1 so the
+		// existing handler proceeds.
+		$rest_nonce            = wp_create_nonce( 'wp_rest' );
+		$snapshot_consequences = wp_json_encode(
+			array(
+				__( 'The current preliminary list is copied verbatim into the definitive list.', 'ffcertificate' ),
+				__( 'The notice transitions from `preliminary` to `definitive`.', 'ffcertificate' ),
+				__( 'Calls can be issued from this point on; going back is only possible if no call has been issued.', 'ffcertificate' ),
+			)
+		);
 		echo '<p>';
-		echo '<button type="button" class="button button-primary" onclick="ffcRecruitmentSnapshotPromote(' . (int) $id . ');">' . esc_html__( 'A — Publish preliminary as definitive (snapshot, no changes)', 'ffcertificate' ) . '</button> ';
+		echo '<button type="button" class="button button-primary"'
+			. ' data-ffc-confirm'
+			. ' data-ffc-confirm-title="' . esc_attr__( 'Promote (snapshot) to definitive?', 'ffcertificate' ) . '"'
+			. ' data-ffc-confirm-body="' . esc_attr__( 'You are about to snapshot the preliminary list as the definitive list.', 'ffcertificate' ) . '"'
+			. ' data-ffc-confirm-consequences="' . esc_attr( (string) $snapshot_consequences ) . '"'
+			. ' data-ffc-confirm-cta="' . esc_attr__( 'Promote to definitive', 'ffcertificate' ) . '"'
+			. ' data-ffc-confirm-style="primary"'
+			. ' onclick="ffcRecruitmentSnapshotPromote(' . (int) $id . ', this);">'
+			. esc_html__( 'A — Publish preliminary as definitive (snapshot, no changes)', 'ffcertificate' ) . '</button> ';
 		echo '<button type="button" class="button button-secondary" onclick="document.getElementById(\'ffc-recruitment-edit-import\').scrollIntoView({behavior:\'smooth\'});">' . esc_html__( 'B — Import a new list as definitive', 'ffcertificate' ) . '</button>';
 		echo '</p>';
 
+		// The confirm flow intercepts the click and re-fires it after
+		// the user confirms (with data-ffc-confirm-ok=1 set). The
+		// handler skips the fetch unless that flag is present so the
+		// first click only opens the modal.
 		echo '<script>'
-			. 'function ffcRecruitmentSnapshotPromote(nid){'
-			. 'if(!confirm("' . esc_js( __( 'Snapshot the preliminary list as the definitive list and transition the notice to `definitive`. Continue?', 'ffcertificate' ) ) . '")){return false;}'
+			. 'function ffcRecruitmentSnapshotPromote(nid, btn){'
+			. 'if(btn&&btn.getAttribute("data-ffc-confirm-ok")!=="1"){return false;}'
 			. 'var fd=new FormData();fd.append("mode","snapshot");'
 			. 'fetch("' . esc_url_raw( rest_url( 'ffcertificate/v1/recruitment/notices/' ) ) . '"+nid+"/promote-preview",{'
 			. 'method:"POST",headers:{"X-WP-Nonce":"' . esc_attr( $rest_nonce ) . '"},body:fd,credentials:"same-origin"'

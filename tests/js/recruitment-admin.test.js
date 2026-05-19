@@ -30,6 +30,12 @@ beforeAll(() => {
 	window.ffcRecruitmentAdmin = {
 		restRoot: REST_ROOT,
 		nonce: NONCE,
+		confirmModalStrings: {
+			closeLabel: 'Close',
+			cancelLabel: 'Cancel',
+			defaultTitle: 'Confirm action',
+			defaultCta: 'Confirm',
+		},
 	};
 	loadScript('assets/js/ffc-recruitment-admin.js');
 });
@@ -287,5 +293,185 @@ describe('ffc-recruitment-admin: color-picker change handler', () => {
 
 		await new Promise((r) => setTimeout(r, 0));
 		expect(input.value).toBe('#999999');
+	});
+});
+
+// -----------------------------------------------------------------------------
+// Confirm modal (data-ffc-confirm) — covers the intercept → open → confirm flow
+// for forms and anchors. Forms re-fire via form.submit() (sentinel attribute
+// prevents re-interception); anchors navigate to .href.
+// -----------------------------------------------------------------------------
+
+describe('ffc-recruitment-admin: confirm modal', () => {
+	function getModalOverlay() {
+		return document.getElementById('ffc-confirm-modal');
+	}
+
+	function clearModal() {
+		const m = getModalOverlay();
+		if (m) { m.parentNode.removeChild(m); }
+	}
+
+	beforeEach(() => {
+		clearModal();
+	});
+
+	it('intercepts a [data-ffc-confirm] form submit and opens the modal', () => {
+		document.body.innerHTML = `
+			<form id="t1" method="post" action="/whatever"
+			      data-ffc-confirm
+			      data-ffc-confirm-title="Delete?"
+			      data-ffc-confirm-body="This is permanent."
+			      data-ffc-confirm-consequences='["Row gone","Cannot undo"]'
+			      data-ffc-confirm-cta="Delete"
+			      data-ffc-confirm-style="destructive">
+				<button type="submit">Submit</button>
+			</form>
+		`;
+
+		const form = document.getElementById('t1');
+		const event = new Event('submit', { bubbles: true, cancelable: true });
+		form.dispatchEvent(event);
+
+		expect(event.defaultPrevented).toBe(true);
+		const modal = getModalOverlay();
+		expect(modal).toBeTruthy();
+		expect(modal.hidden).toBe(false);
+		expect(modal.querySelector('#ffc-confirm-modal-title').textContent).toBe('Delete?');
+		expect(modal.querySelector('.ffc-confirm-modal-body p').textContent).toBe('This is permanent.');
+		const bullets = modal.querySelectorAll('.ffc-confirm-modal-consequences li');
+		expect(bullets.length).toBe(2);
+		expect(bullets[0].textContent).toBe('Row gone');
+		expect(bullets[1].textContent).toBe('Cannot undo');
+		expect(modal.querySelector('.ffc-confirm-modal').getAttribute('data-style')).toBe('destructive');
+		expect(modal.querySelector('.ffc-confirm-modal-confirm').textContent).toBe('Delete');
+	});
+
+	it('on confirm: marks the form ok-flag and re-fires .submit()', () => {
+		document.body.innerHTML = `
+			<form id="t2" method="post"
+			      data-ffc-confirm
+			      data-ffc-confirm-title="Go?"
+			      data-ffc-confirm-cta="Go">
+			</form>
+		`;
+
+		const form = document.getElementById('t2');
+		const submitSpy = vi.fn();
+		form.submit = submitSpy;
+
+		form.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
+		getModalOverlay().querySelector('.ffc-confirm-modal-confirm').click();
+
+		expect(form.getAttribute('data-ffc-confirm-ok')).toBe('1');
+		expect(submitSpy).toHaveBeenCalledTimes(1);
+		expect(getModalOverlay().hidden).toBe(true);
+	});
+
+	it('on cancel: leaves the form alone and hides the modal', () => {
+		document.body.innerHTML = `
+			<form id="t3" data-ffc-confirm data-ffc-confirm-cta="Go"></form>
+		`;
+		const form = document.getElementById('t3');
+		const submitSpy = vi.fn();
+		form.submit = submitSpy;
+
+		form.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
+		getModalOverlay().querySelector('.ffc-confirm-modal-cancel').click();
+
+		expect(submitSpy).not.toHaveBeenCalled();
+		expect(form.getAttribute('data-ffc-confirm-ok')).toBe(null);
+		expect(getModalOverlay().hidden).toBe(true);
+	});
+
+	it('intercepts a [data-ffc-confirm] anchor click and navigates on confirm', () => {
+		document.body.innerHTML = `
+			<a id="t4" href="/expected-target"
+			   data-ffc-confirm
+			   data-ffc-confirm-title="Delete?"
+			   data-ffc-confirm-cta="Delete">Delete</a>
+		`;
+
+		// Reuse the navigation stub from the outer beforeEach.
+		window.location.href = '/start';
+
+		const anchor = document.getElementById('t4');
+		const event = new MouseEvent('click', { bubbles: true, cancelable: true });
+		anchor.dispatchEvent(event);
+
+		expect(event.defaultPrevented).toBe(true);
+		expect(getModalOverlay().hidden).toBe(false);
+
+		getModalOverlay().querySelector('.ffc-confirm-modal-confirm').click();
+
+		expect(anchor.getAttribute('data-ffc-confirm-ok')).toBe('1');
+		expect(window.location.href).toBe('/expected-target');
+	});
+
+	it('does not re-open the modal on the second pass (ok-flag bypasses intercept)', () => {
+		document.body.innerHTML = `
+			<form id="t5" data-ffc-confirm data-ffc-confirm-cta="Go"></form>
+		`;
+		const form = document.getElementById('t5');
+		form.submit = vi.fn();
+
+		form.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
+		getModalOverlay().querySelector('.ffc-confirm-modal-confirm').click();
+
+		// Simulate a fresh submit-event firing after the form's been
+		// flagged — should NOT re-intercept.
+		const second = new Event('submit', { bubbles: true, cancelable: true });
+		form.dispatchEvent(second);
+		expect(second.defaultPrevented).toBe(false);
+	});
+
+	it('reason-mode: disables CTA until a non-empty reason is typed and injects hidden input', () => {
+		document.body.innerHTML = `
+			<form id="t6" data-ffc-confirm
+			      data-ffc-confirm-title="Reopen?"
+			      data-ffc-confirm-cta="Reopen"
+			      data-ffc-confirm-reason-label="Reopen reason"
+			      data-ffc-confirm-reason-name="reason"></form>
+		`;
+		const form = document.getElementById('t6');
+		const submitSpy = vi.fn();
+		form.submit = submitSpy;
+
+		form.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
+
+		const modal = getModalOverlay();
+		const confirm = modal.querySelector('.ffc-confirm-modal-confirm');
+		const input = modal.querySelector('#ffc-confirm-modal-reason-input');
+		expect(input).toBeTruthy();
+		expect(confirm.disabled).toBe(true);
+
+		input.value = '   ';
+		input.dispatchEvent(new Event('input', { bubbles: true }));
+		expect(confirm.disabled).toBe(true);
+
+		input.value = 'Need to reopen';
+		input.dispatchEvent(new Event('input', { bubbles: true }));
+		expect(confirm.disabled).toBe(false);
+
+		confirm.click();
+		expect(submitSpy).toHaveBeenCalledTimes(1);
+		const hidden = form.querySelector('input[name="reason"]');
+		expect(hidden).toBeTruthy();
+		expect(hidden.value).toBe('Need to reopen');
+	});
+
+	it('Escape key closes the modal without firing the trigger', () => {
+		document.body.innerHTML = `
+			<form id="t7" data-ffc-confirm data-ffc-confirm-cta="Go"></form>
+		`;
+		const form = document.getElementById('t7');
+		form.submit = vi.fn();
+
+		form.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
+		expect(getModalOverlay().hidden).toBe(false);
+
+		document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+		expect(getModalOverlay().hidden).toBe(true);
+		expect(form.submit).not.toHaveBeenCalled();
 	});
 });
