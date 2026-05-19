@@ -246,7 +246,51 @@
         }
     }
 
-    function openModal(trigger) {
+    // Normalize a config object — used by both the DOM-trigger path
+    // (openModal) and the programmatic path (openConfirmModal). Centralises
+    // defaults so both surfaces stay in sync.
+    function normalizeConfig(raw) {
+        raw = raw || {};
+        var consequences = raw.consequences;
+        if (typeof consequences === 'string') {
+            consequences = parseConsequences(consequences);
+        } else if (!Array.isArray(consequences)) {
+            consequences = [];
+        }
+        var countdown = parseInt(raw.countdown || 0, 10);
+        if (!isFinite(countdown) || countdown < 0) { countdown = 0; }
+        return {
+            title: raw.title || (i18n.defaultTitle || 'Confirm action'),
+            body: raw.body || '',
+            consequences: consequences,
+            cta: raw.cta || (i18n.defaultCta || 'Confirm'),
+            style: raw.style === 'destructive' ? 'destructive' : 'primary',
+            reasonLabel: raw.reasonLabel || '',
+            reasonName: raw.reasonName || 'reason',
+            countdown: countdown,
+        };
+    }
+
+    // Extract config from the DOM-trigger attributes. Returns the same
+    // shape normalizeConfig() produces.
+    function buildConfigFromTrigger(trigger) {
+        return normalizeConfig({
+            title: trigger.getAttribute('data-ffc-confirm-title'),
+            body: trigger.getAttribute('data-ffc-confirm-body'),
+            consequences: trigger.getAttribute('data-ffc-confirm-consequences'),
+            cta: trigger.getAttribute('data-ffc-confirm-cta'),
+            style: trigger.getAttribute('data-ffc-confirm-style'),
+            reasonLabel: trigger.getAttribute('data-ffc-confirm-reason-label'),
+            reasonName: trigger.getAttribute('data-ffc-confirm-reason-name'),
+            countdown: trigger.getAttribute('data-ffc-confirm-countdown'),
+        });
+    }
+
+    // Render the modal and wire confirm / cancel handlers. Both the
+    // DOM-trigger path and the programmatic API funnel through here so
+    // there's only one source of truth for the markup contract, CTA
+    // gating (reason + countdown) and focus management.
+    function showModal(cfg, onConfirm, onCancel) {
         var modal = getModal();
         var dialog = modal.querySelector('.ffc-confirm-modal');
         var title = modal.querySelector('#ffc-confirm-modal-title');
@@ -255,62 +299,44 @@
         var cancelBtn = modal.querySelector('.ffc-confirm-modal-cancel');
         var closeBtn = modal.querySelector('.ffc-confirm-modal-close');
 
-        var titleText = trigger.getAttribute('data-ffc-confirm-title') || (i18n.defaultTitle || 'Confirm action');
-        var bodyText = trigger.getAttribute('data-ffc-confirm-body') || '';
-        var consequences = parseConsequences(trigger.getAttribute('data-ffc-confirm-consequences'));
-        var ctaText = trigger.getAttribute('data-ffc-confirm-cta') || (i18n.defaultCta || 'Confirm');
-        var style = trigger.getAttribute('data-ffc-confirm-style') === 'destructive' ? 'destructive' : 'primary';
-        var reasonLabel = trigger.getAttribute('data-ffc-confirm-reason-label') || '';
-        var reasonName = trigger.getAttribute('data-ffc-confirm-reason-name') || 'reason';
-        // Countdown: when present, the CTA stays disabled for N seconds
-        // after the modal opens, with the remaining time appended to
-        // the label. Used on the preliminary → definitive promote
-        // paths so the operator can't accidentally double-click their
-        // way into a locked classification list.
-        var countdownSec = parseInt(trigger.getAttribute('data-ffc-confirm-countdown') || '0', 10);
-        if (!isFinite(countdownSec) || countdownSec < 0) { countdownSec = 0; }
-
-        title.textContent = titleText;
-        dialog.setAttribute('data-style', style);
-        confirmBtn.className = 'button ' + (style === 'destructive' ? 'ffc-confirm-modal-confirm' : 'button-primary ffc-confirm-modal-confirm');
-        confirmBtn.textContent = ctaText;
+        title.textContent = cfg.title;
+        dialog.setAttribute('data-style', cfg.style);
+        confirmBtn.className = 'button ' + (cfg.style === 'destructive' ? 'ffc-confirm-modal-confirm' : 'button-primary ffc-confirm-modal-confirm');
+        confirmBtn.textContent = cfg.cta;
 
         // Body content
         var html = '';
-        if (bodyText) {
-            html += '<p>' + escText(bodyText) + '</p>';
+        if (cfg.body) {
+            html += '<p>' + escText(cfg.body) + '</p>';
         }
-        if (consequences.length > 0) {
+        if (cfg.consequences.length > 0) {
             html += '<ul class="ffc-confirm-modal-consequences">';
-            consequences.forEach(function (line) {
+            cfg.consequences.forEach(function (line) {
                 html += '<li>' + escText(line) + '</li>';
             });
             html += '</ul>';
         }
         var reasonInput = null;
-        if (reasonLabel) {
+        if (cfg.reasonLabel) {
             var inputId = 'ffc-confirm-modal-reason-input';
             html += '<div class="ffc-confirm-modal-reason">'
-                + '<label for="' + inputId + '">' + escText(reasonLabel) + '</label>'
+                + '<label for="' + inputId + '">' + escText(cfg.reasonLabel) + '</label>'
                 + '<input id="' + inputId + '" type="text" class="regular-text" autocomplete="off" />'
                 + '</div>';
         }
         body.innerHTML = html;
-        if (reasonLabel) {
+        if (cfg.reasonLabel) {
             reasonInput = body.querySelector('#ffc-confirm-modal-reason-input');
         }
 
         // CTA gating: countdown (if any) AND reason input (if any) must
-        // both be satisfied before the CTA enables. The countdown ticks
-        // down with setInterval and updates the label in place; on tick
-        // 0 we re-render the original label and let `syncCta` decide
-        // the final enabled state.
-        var remaining = countdownSec;
+        // both be satisfied before the CTA enables.
+        var remaining = cfg.countdown;
         function renderCtaLabel() {
             if (remaining > 0) {
-                confirmBtn.textContent = ctaText + ' (' + remaining + 's)';
+                confirmBtn.textContent = cfg.cta + ' (' + remaining + 's)';
             } else {
-                confirmBtn.textContent = ctaText;
+                confirmBtn.textContent = cfg.cta;
             }
         }
         function syncCta() {
@@ -323,7 +349,7 @@
         if (reasonInput) {
             reasonInput.oninput = syncCta;
         }
-        if (countdownSec > 0) {
+        if (cfg.countdown > 0) {
             state.countdownTimer = setInterval(function () {
                 remaining -= 1;
                 if (remaining <= 0) {
@@ -338,24 +364,24 @@
             }, 1000);
         }
 
-        // Wire handlers (replaceWith pattern keeps things clean across
-        // repeated opens without piling up listeners).
+        function handleCancel() {
+            closeModal();
+            if (typeof onCancel === 'function') { onCancel(); }
+        }
+
         confirmBtn.onclick = function () {
             if (confirmBtn.disabled) { return; }
             var reasonValue = reasonInput ? reasonInput.value.trim() : null;
-            var trig = state.trigger;
-            closeModal();
-            fireTrigger(trig, reasonValue, reasonName);
+            onConfirm(reasonValue);
         };
-        cancelBtn.onclick = closeModal;
-        closeBtn.onclick = closeModal;
+        cancelBtn.onclick = handleCancel;
+        closeBtn.onclick = handleCancel;
         modal.onclick = function (e) {
-            if (e.target === modal) { closeModal(); }
+            if (e.target === modal) { handleCancel(); }
         };
 
-        state.trigger = trigger;
         state.onKeydown = function (e) {
-            if (e.key === 'Escape') { closeModal(); }
+            if (e.key === 'Escape') { handleCancel(); }
         };
         document.addEventListener('keydown', state.onKeydown);
 
@@ -369,6 +395,39 @@
             cancelBtn.focus();
         }
     }
+
+    function openModal(trigger) {
+        var cfg = buildConfigFromTrigger(trigger);
+        state.trigger = trigger;
+        showModal(
+            cfg,
+            function (reasonValue) {
+                closeModal();
+                fireTrigger(trigger, reasonValue, cfg.reasonName);
+            },
+            null // closeModal() already fires via handleCancel; trigger stays unset.
+        );
+    }
+
+    // Public programmatic API — invoked from inline scripts that need
+    // the modal without a DOM trigger (e.g. the bulk-call submit that
+    // detects out-of-order rows at click time and only then knows what
+    // copy / reason gate to render).
+    //
+    //   ffcRecruitmentAdmin.openConfirmModal({
+    //     title, body, consequences[], cta, style, reasonLabel, countdown
+    //   }, function onConfirm(reasonValue) { ... }, function onCancel(){ ... });
+    window.ffcRecruitmentAdmin.openConfirmModal = function (rawConfig, onConfirm, onCancel) {
+        state.trigger = null;
+        showModal(
+            normalizeConfig(rawConfig),
+            function (reasonValue) {
+                closeModal();
+                if (typeof onConfirm === 'function') { onConfirm(reasonValue); }
+            },
+            onCancel || null
+        );
+    };
 
     function shouldIntercept(el) {
         if (!el || el.getAttribute('data-ffc-confirm-ok') === '1') { return false; }

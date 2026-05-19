@@ -540,6 +540,97 @@ describe('ffc-recruitment-admin: confirm modal', () => {
 		vi.useRealTimers();
 	});
 
+	// ---- Programmatic API (ffcRecruitmentAdmin.openConfirmModal) ---
+	// Issue #262 item 4: bulk-call submits invoke the modal at click
+	// time (after OOO detection), so they can't rely on data-attrs.
+
+	it('openConfirmModal: renders config-driven markup and invokes onConfirm with the reason', () => {
+		const onConfirm = vi.fn();
+		const onCancel = vi.fn();
+		window.ffcRecruitmentAdmin.openConfirmModal(
+			{
+				title: 'Issue calls?',
+				body: 'About to issue 3 call(s) for 2026-05-20 at 09:00.',
+				consequences: ['Atomic — any single conflict rolls back.', 'Audit entry is recorded.'],
+				cta: 'Issue calls',
+				style: 'destructive',
+				reasonLabel: 'Justification (required)',
+			},
+			onConfirm,
+			onCancel
+		);
+
+		const modal = getModalOverlay();
+		expect(modal.hidden).toBe(false);
+		expect(modal.querySelector('#ffc-confirm-modal-title').textContent).toBe('Issue calls?');
+		expect(modal.querySelector('.ffc-confirm-modal-body p').textContent).toBe('About to issue 3 call(s) for 2026-05-20 at 09:00.');
+		expect(modal.querySelectorAll('.ffc-confirm-modal-consequences li').length).toBe(2);
+		expect(modal.querySelector('.ffc-confirm-modal').getAttribute('data-style')).toBe('destructive');
+
+		const cta = modal.querySelector('.ffc-confirm-modal-confirm');
+		const input = modal.querySelector('#ffc-confirm-modal-reason-input');
+		expect(cta.disabled).toBe(true); // reason still empty
+		expect(input).toBeTruthy();
+
+		input.value = 'shared OOO reason';
+		input.dispatchEvent(new Event('input', { bubbles: true }));
+		expect(cta.disabled).toBe(false);
+
+		cta.click();
+		expect(onConfirm).toHaveBeenCalledTimes(1);
+		expect(onConfirm.mock.calls[0][0]).toBe('shared OOO reason');
+		expect(onCancel).not.toHaveBeenCalled();
+		expect(modal.hidden).toBe(true);
+	});
+
+	it('openConfirmModal: cancel invokes onCancel and not onConfirm', () => {
+		const onConfirm = vi.fn();
+		const onCancel = vi.fn();
+		window.ffcRecruitmentAdmin.openConfirmModal(
+			{ title: 'Hi', cta: 'Go' },
+			onConfirm,
+			onCancel
+		);
+		getModalOverlay().querySelector('.ffc-confirm-modal-cancel').click();
+
+		expect(onConfirm).not.toHaveBeenCalled();
+		expect(onCancel).toHaveBeenCalledTimes(1);
+	});
+
+	it('openConfirmModal: works without a reason — onConfirm fires with null', () => {
+		const onConfirm = vi.fn();
+		window.ffcRecruitmentAdmin.openConfirmModal(
+			{ title: 'Plain', cta: 'OK', body: 'Just confirm.' },
+			onConfirm
+		);
+		const cta = getModalOverlay().querySelector('.ffc-confirm-modal-confirm');
+		expect(cta.disabled).toBe(false);
+		cta.click();
+		expect(onConfirm).toHaveBeenCalledTimes(1);
+		expect(onConfirm.mock.calls[0][0]).toBeNull();
+	});
+
+	it('openConfirmModal: countdown gates the CTA the same way trigger-driven modals do', () => {
+		vi.useFakeTimers();
+		const onConfirm = vi.fn();
+		window.ffcRecruitmentAdmin.openConfirmModal(
+			{ title: 'Wait', cta: 'Proceed', countdown: 2 },
+			onConfirm
+		);
+		const cta = getModalOverlay().querySelector('.ffc-confirm-modal-confirm');
+		expect(cta.disabled).toBe(true);
+		expect(cta.textContent).toBe('Proceed (2s)');
+
+		vi.advanceTimersByTime(2000);
+		expect(cta.disabled).toBe(false);
+		expect(cta.textContent).toBe('Proceed');
+
+		cta.click();
+		expect(onConfirm).toHaveBeenCalledTimes(1);
+
+		vi.useRealTimers();
+	});
+
 	it('countdown + reason: CTA enables only when BOTH the countdown reaches 0 AND a reason is typed', () => {
 		vi.useFakeTimers();
 		document.body.innerHTML = `

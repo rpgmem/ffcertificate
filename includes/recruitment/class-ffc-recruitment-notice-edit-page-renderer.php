@@ -1135,8 +1135,20 @@ final class RecruitmentNoticeEditPageRenderer {
 		$bulk_no_date       = esc_js( __( 'Date and time are required for bulk call.', 'ffcertificate' ) );
 		$confirm_ooo_single = esc_js( __( 'This call would skip a higher-ranked candidate (out of order). Continue?', 'ffcertificate' ) );
 		$prompt_ooo_reason  = esc_js( __( 'Justification for calling out of order (required):', 'ffcertificate' ) );
-		$confirm_ooo_bulk   = esc_js( __( 'One or more selected rows would skip a higher-ranked candidate (out of order). Continue?', 'ffcertificate' ) );
 		$reason_required    = esc_js( __( 'A justification is required to proceed.', 'ffcertificate' ) );
+		// Bulk-call modal copy (issue #262 item 4 — confirms now go
+		// through ffcRecruitmentAdmin.openConfirmModal instead of native
+		// confirm()/prompt()). Body template uses sprintf-style {count},
+		// {date}, {time} placeholders that the JS resolves at click time
+		// since the modal config is built dynamically.
+		$bulk_modal_title = esc_js( __( 'Issue calls for the selected candidates?', 'ffcertificate' ) );
+		/* translators: 1: number of selected rows, 2: date, 3: time */
+		$bulk_modal_body_tpl     = esc_js( __( 'About to issue {count} call(s) for {date} at {time}.', 'ffcertificate' ) );
+		$bulk_modal_cta          = esc_js( __( 'Issue calls', 'ffcertificate' ) );
+		$bulk_consequence_atomic = esc_js( __( 'Atomic — any single conflict rolls back the entire batch.', 'ffcertificate' ) );
+		$bulk_consequence_log    = esc_js( __( 'A "bulk call" audit entry is recorded with the selected candidates.', 'ffcertificate' ) );
+		$bulk_consequence_ooo    = esc_js( __( 'One or more selected rows would skip a higher-ranked candidate (out of order).', 'ffcertificate' ) );
+		$bulk_reason_label       = esc_js( __( 'Justification for calling out of order (required)', 'ffcertificate' ) );
 
 		echo '<script>'
 			// Compute the lowest-rank `empty` row per adjutancy from the
@@ -1214,13 +1226,25 @@ final class RecruitmentNoticeEditPageRenderer {
 			. '}'
 			. 'if(anyOoO)break;'
 			. '}'
+			// Build modal config dynamically — copy/style/reason-gate depend
+			// on whether OOO was detected. Confirmation always goes through
+			// the shared confirm-modal (issue #262 item 4) so the operator
+			// gets the same look-and-feel as the destructive transitions.
+			. 'var consequences=["' . esc_attr( $bulk_consequence_atomic ) . '","' . esc_attr( $bulk_consequence_log ) . '"];'
+			. 'if(anyOoO){consequences.push("' . esc_attr( $bulk_consequence_ooo ) . '");}'
+			. 'var bodyTpl="' . esc_attr( $bulk_modal_body_tpl ) . '";'
+			. 'var bodyText=bodyTpl.replace("{count}",String(ids.length)).replace("{date}",date).replace("{time}",time);'
+			. 'var modalCfg={'
+			. 'title:"' . esc_attr( $bulk_modal_title ) . '",'
+			. 'body:bodyText,'
+			. 'consequences:consequences,'
+			. 'cta:"' . esc_attr( $bulk_modal_cta ) . '",'
+			. 'style:anyOoO?"destructive":"primary",'
+			. 'reasonLabel:anyOoO?"' . esc_attr( $bulk_reason_label ) . '":""'
+			. '};'
+			. 'window.ffcRecruitmentAdmin.openConfirmModal(modalCfg,function(sharedReason){'
 			. 'var reasons={};'
-			. 'if(anyOoO){'
-			. 'if(!confirm("' . esc_attr( $confirm_ooo_bulk ) . '"))return;'
-			. 'var sharedReason=prompt("' . esc_attr( $prompt_ooo_reason ) . '");'
-			. 'if(!sharedReason||!sharedReason.trim()){alert("' . esc_attr( $reason_required ) . '");return;}'
-			. 'for(var k=0;k<ids.length;k++){reasons[String(ids[k])]=sharedReason;}'
-			. '}'
+			. 'if(anyOoO){for(var k=0;k<ids.length;k++){reasons[String(ids[k])]=sharedReason;}}'
 			. 'status.textContent="…";'
 			. 'var bulkPayload={classification_ids:ids,date_to_assume:date,time_to_assume:time};'
 			. 'if(anyOoO){bulkPayload.out_of_order_reasons=reasons;}'
@@ -1240,6 +1264,7 @@ final class RecruitmentNoticeEditPageRenderer {
 			. '}'
 			. 'else{status.textContent="Error: "+((o.body&&o.body.message)?o.body.message:JSON.stringify(o.body));}'
 			. '}).catch(function(e){status.textContent="Network error: "+e.message;});'
+			. '});' // close openConfirmModal callback.
 			. '}'
 			// Per-row action handler (Call / Mark accepted / etc.).
 			. 'function ffcRecruitmentClsAct(btn){'
