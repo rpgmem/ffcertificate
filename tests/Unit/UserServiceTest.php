@@ -160,6 +160,67 @@ class UserServiceTest extends TestCase {
         $this->assertSame('', $result['notes']);
     }
 
+    public function test_get_full_profile_overrides_display_name_when_ffc_profile_sets_one(): void {
+        $user = $this->makeWpUser(['display_name' => 'John from WP']);
+        Functions\when('get_userdata')->justReturn($user);
+
+        $userManagerMock = $this->userManagerMock;
+        $userManagerMock->shouldReceive('get_profile')
+            ->andReturn([
+                'display_name' => 'John from FFC',
+            ]);
+        $userManagerMock->shouldReceive('get_all_capabilities')->andReturn([]);
+
+        $result = UserService::get_full_profile(42);
+
+        $this->assertSame('John from FFC', $result['display_name']);
+    }
+
+    public function test_get_full_profile_keeps_wp_display_name_when_ffc_value_empty(): void {
+        $user = $this->makeWpUser(['display_name' => 'John from WP']);
+        Functions\when('get_userdata')->justReturn($user);
+
+        $userManagerMock = $this->userManagerMock;
+        $userManagerMock->shouldReceive('get_profile')
+            ->andReturn([
+                'display_name' => '',
+            ]);
+        $userManagerMock->shouldReceive('get_all_capabilities')->andReturn([]);
+
+        $result = UserService::get_full_profile(42);
+
+        $this->assertSame('John from WP', $result['display_name']);
+    }
+
+    public function test_get_full_profile_surfaces_preferences_blob_when_present(): void {
+        $user = $this->makeWpUser();
+        Functions\when('get_userdata')->justReturn($user);
+
+        $userManagerMock = $this->userManagerMock;
+        $userManagerMock->shouldReceive('get_profile')
+            ->andReturn([
+                'preferences' => '{"theme":"dark"}',
+            ]);
+        $userManagerMock->shouldReceive('get_all_capabilities')->andReturn([]);
+
+        $result = UserService::get_full_profile(42);
+
+        $this->assertSame('{"theme":"dark"}', $result['preferences']);
+    }
+
+    public function test_get_full_profile_omits_preferences_key_when_absent(): void {
+        $user = $this->makeWpUser();
+        Functions\when('get_userdata')->justReturn($user);
+
+        $userManagerMock = $this->userManagerMock;
+        $userManagerMock->shouldReceive('get_profile')->andReturn([]);
+        $userManagerMock->shouldReceive('get_all_capabilities')->andReturn([]);
+
+        $result = UserService::get_full_profile(42);
+
+        $this->assertArrayNotHasKey('preferences', $result);
+    }
+
     // ==================================================================
     // get_user_capabilities
     // ==================================================================
