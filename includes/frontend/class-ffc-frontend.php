@@ -177,7 +177,7 @@ class Frontend {
 			// PDF Generator (shared module).
 			wp_enqueue_script( 'ffc-pdf-generator', FFC_PLUGIN_URL . "assets/js/ffc-pdf-generator{$s}.js", array( 'jquery', 'html2canvas', 'jspdf' ), FFC_VERSION, true );
 
-			wp_enqueue_script( 'ffc-frontend-js', FFC_PLUGIN_URL . "assets/js/ffc-frontend{$s}.js", array( 'jquery', 'ffc-pdf-generator', 'ffc-rate-limit' ), FFC_VERSION, true );
+			wp_enqueue_script( 'ffc-frontend-js', FFC_PLUGIN_URL . "assets/js/ffc-frontend{$s}.js", array( 'jquery', 'ffc-core', 'ffc-pdf-generator', 'ffc-rate-limit' ), FFC_VERSION, true );
 
 			wp_enqueue_script( 'ffc-geofence-frontend', FFC_PLUGIN_URL . "assets/js/ffc-geofence-frontend{$s}.js", array( 'jquery' ), FFC_VERSION, true );
 
@@ -284,10 +284,13 @@ class Frontend {
 			wp_enqueue_script(
 				'ffc-csv-download',
 				FFC_PLUGIN_URL . "assets/js/ffc-csv-download{$s}.js",
-				// 'ffc-rate-limit' is the registered handle for ffc-frontend-helpers.js,
-				// which exposes window.FFC.Frontend.Masks.applyCpfRf() — used to mask the
-				// optional CPF input rendered when _ffc_csv_public_cpf_mode is set.
-				array( 'jquery', 'ffc-rate-limit' ),
+				// 'ffc-core' provides window.FFC.request() (the AJAX helper
+				// the file uses after the #277 migration). 'ffc-rate-limit'
+				// is the registered handle for ffc-frontend-helpers.js, which
+				// exposes window.FFC.Frontend.Masks.applyCpfRf() — used to
+				// mask the optional CPF input rendered when
+				// _ffc_csv_public_cpf_mode is set.
+				array( 'jquery', 'ffc-core', 'ffc-rate-limit' ),
 				FFC_VERSION,
 				true
 			);

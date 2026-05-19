@@ -474,6 +474,20 @@ class Loader {
 		$s = \FreeFormCertificate\Core\Utils::asset_suffix();
 		wp_register_script( 'ffc-rate-limit', FFC_PLUGIN_URL . "assets/js/ffc-frontend-helpers{$s}.js", array( 'jquery' ), FFC_VERSION, true );
 
+		// ffc-core ships `window.FFC.request()` (the AJAX helper used by the
+		// JS files migrated in #277). The admin enqueues ffc-core directly;
+		// public shortcodes (CSV download, etc.) need it registered here so
+		// their own enqueue can list it as a dependency without re-declaring
+		// the source path.
+		wp_register_script( 'ffc-core', FFC_PLUGIN_URL . "assets/js/ffc-core{$s}.js", array( 'jquery' ), FFC_VERSION, true );
+		wp_localize_script(
+			'ffc-core',
+			'ffcCoreConfig',
+			array(
+				'version' => FFC_VERSION,
+			)
+		);
+
 		// Dynamic fragments: refresh captcha + nonces on cached pages (v4.12.0).
 		wp_register_script( 'ffc-dynamic-fragments', FFC_PLUGIN_URL . "assets/js/ffc-dynamic-fragments{$s}.js", array(), FFC_VERSION, true );
 		wp_localize_script(
