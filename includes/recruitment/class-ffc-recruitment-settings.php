@@ -72,6 +72,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  *   notice_status_color_preliminary: string,
  *   notice_status_color_definitive:  string,
  *   notice_status_color_closed:      string,
+ *   audit_pii_reveals:               bool,
  * }
  */
 final class RecruitmentSettings {
@@ -168,6 +169,15 @@ final class RecruitmentSettings {
 			'notice_status_color_preliminary'        => '#fff3cd',
 			'notice_status_color_definitive'         => '#d4edda',
 			'notice_status_color_closed'             => '#f8d7da',
+			// Audit log toggle for the PII reveal flow (issue #330).
+			// When true, every reveal of CPF / RF / email on the candidate
+			// detail screen by a non-admin user writes a row to
+			// `ffc_activity_log` (subject to a 60s dedup window per
+			// user+candidate+field). When false, the reveal still works
+			// but no audit row is written — useful for low-trust dev
+			// environments or compliance configs that prefer external
+			// auditing tools.
+			'audit_pii_reveals'                      => true,
 		);
 	}
 
@@ -269,6 +279,14 @@ final class RecruitmentSettings {
 		$out['preview_reason_required_appeal_denied']  = ! empty( $value['preview_reason_required_appeal_denied'] );
 		$out['preview_reason_required_appeal_granted'] = ! empty( $value['preview_reason_required_appeal_granted'] );
 
+		// Audit toggle for the PII reveal flow (issue #330). Default-on
+		// when the key is absent from POST (typical for first-time saves
+		// before the new checkbox lands in the Settings UI). Once the
+		// checkbox renders, `!empty()` honors the operator's choice.
+		$out['audit_pii_reveals'] = array_key_exists( 'audit_pii_reveals', $value )
+			? ! empty( $value['audit_pii_reveals'] )
+			: (bool) $defaults['audit_pii_reveals'];
+
 		return $out;
 	}
 
@@ -346,6 +364,7 @@ final class RecruitmentSettings {
 			'notice_status_color_preliminary'        => is_string( $value['notice_status_color_preliminary'] ?? null ) ? $value['notice_status_color_preliminary'] : $defaults['notice_status_color_preliminary'],
 			'notice_status_color_definitive'         => is_string( $value['notice_status_color_definitive'] ?? null ) ? $value['notice_status_color_definitive'] : $defaults['notice_status_color_definitive'],
 			'notice_status_color_closed'             => is_string( $value['notice_status_color_closed'] ?? null ) ? $value['notice_status_color_closed'] : $defaults['notice_status_color_closed'],
+			'audit_pii_reveals'                      => is_bool( $value['audit_pii_reveals'] ?? null ) ? $value['audit_pii_reveals'] : $defaults['audit_pii_reveals'],
 		);
 	}
 

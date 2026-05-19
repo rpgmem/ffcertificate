@@ -85,6 +85,28 @@ class RecruitmentCandidatesRestControllerTest extends TestCase {
         $this->assertContains( '/recruitment/candidates/(?P<id>\d+)', $routes );
     }
 
+    public function test_register_routes_includes_reveal_pii_endpoint(): void {
+        $this->controller->register_routes();
+
+        $routes = array_column( $this->registered_routes, 'route' );
+        $this->assertContains( '/recruitment/candidates/(?P<id>\d+)/reveal-pii', $routes );
+
+        // Permission gate must be `check_logged_in` (the policy decides
+        // per-request whether the owner-clause applies; the route can't
+        // reject upfront on caps alone).
+        $reveal_entry = null;
+        foreach ( $this->registered_routes as $entry ) {
+            if ( '/recruitment/candidates/(?P<id>\d+)/reveal-pii' === $entry['route'] ) {
+                $reveal_entry = $entry;
+                break;
+            }
+        }
+        $this->assertNotNull( $reveal_entry );
+        $perm = $reveal_entry['args']['permission_callback'] ?? null;
+        $this->assertIsArray( $perm );
+        $this->assertSame( 'check_logged_in', $perm[1] );
+    }
+
     public function test_register_routes_includes_the_me_self_endpoint(): void {
         $this->controller->register_routes();
 

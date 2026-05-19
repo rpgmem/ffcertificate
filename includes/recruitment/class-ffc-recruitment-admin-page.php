@@ -977,6 +977,24 @@ final class RecruitmentAdminPage {
 
 		echo '</tbody></table>';
 
+		// PII / audit toggle (#330). Lives at the bottom of the Settings
+		// tab because it's a security knob, not a visual one — operators
+		// who land here are usually adjusting palettes. The default is
+		// `true` so the first save after the upgrade keeps auditing on.
+		echo '<h3>' . esc_html__( 'PII access audit', 'ffcertificate' ) . '</h3>';
+		echo '<p class="description">' . esc_html__( 'When enabled, every reveal of CPF / RF on the candidate detail screen by a non-admin user writes a row to the activity log (with a 60-second dedup per user + candidate + field). Recommended ON for compliance.', 'ffcertificate' ) . '</p>';
+		echo '<table class="form-table"><tbody>';
+		echo '<tr><th>' . esc_html__( 'Audit PII reveals', 'ffcertificate' ) . '</th><td>';
+		\FreeFormCertificate\Admin\AdminUI::render_toggle(
+			array(
+				'name'    => $opt . '[audit_pii_reveals]',
+				'id'      => 'ffc-rs-audit-pii-reveals',
+				'checked' => ! empty( $settings['audit_pii_reveals'] ),
+			)
+		);
+		echo '</td></tr>';
+		echo '</tbody></table>';
+
 		submit_button();
 		echo '</form>';
 	}

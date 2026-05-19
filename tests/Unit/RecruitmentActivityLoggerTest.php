@@ -217,4 +217,102 @@ class RecruitmentActivityLoggerTest extends TestCase {
 		$context = json_decode( (string) $entry['context'], true );
 		$this->assertSame( 2, $context['adjutancy_id'] );
 	}
+
+	// ------------------------------------------------------------------
+	// pii_revealed() — issue #330
+	// ------------------------------------------------------------------
+
+	/**
+	 * Override get_option to return a RecruitmentSettings array with the
+	 * `audit_pii_reveals` toggle in the requested state, and stub the
+	 * transient API with an in-memory map so dedup behavior is testable.
+	 *
+	 * @param bool                  $audit_enabled Whether audit_pii_reveals is on.
+	 * @param array<string, mixed>  $transient_state Initial transient values keyed by name.
+	 */
+	private function configure_pii_audit( bool $audit_enabled, array &$transient_state ): void {
+		// The logger reads the recruitment settings array via get_option
+		// directly (avoids the defaults() chain in tests). When audit is
+		// "enabled", we omit the key so the logger's default-on branch
+		// fires; when "disabled", we set the key to false explicitly.
+		Functions\when( 'get_option' )->alias( static function ( $key ) use ( $audit_enabled ) {
+			if ( 'ffc_recruitment_settings' === $key ) {
+				return $audit_enabled ? array() : array( 'audit_pii_reveals' => false );
+			}
+			// Activity log itself needs `enable_activity_log` on.
+			return array( 'enable_activity_log' => 1 );
+		} );
+
+		Functions\when( 'get_transient' )->alias( static function ( $name ) use ( &$transient_state ) {
+			return $transient_state[ $name ] ?? false;
+		} );
+		Functions\when( 'set_transient' )->alias( static function ( $name, $value, $ttl = 0 ) use ( &$transient_state ) {
+			$transient_state[ $name ] = $value;
+			return true;
+		} );
+	}
+
+	public function test_pii_revealed_logs_when_audit_enabled(): void {
+		$transients = array();
+		$this->configure_pii_audit( true, $transients );
+
+		$wrote = RecruitmentActivityLogger::pii_revealed( 12, 'cpf' );
+
+		$this->assertTrue( $wrote );
+		$entry = $this->last_buffered_entry();
+		$this->assertNotNull( $entry );
+		$this->assertSame( 'recruitment_pii_revealed', $entry['action'] );
+		// Context contains a sensitive key ('cpf' via field_key value), but
+		// the encrypted path is exercised in a different test — here we
+		// just check the action code lands and the payload is non-empty.
+		$this->assertNotEmpty( $entry['context'] ?? $entry['context_encrypted'] ?? '' );
+	}
+
+	public function test_pii_revealed_skips_log_when_audit_disabled(): void {
+		$transients = array();
+		$this->configure_pii_audit( false, $transients );
+
+		$wrote = RecruitmentActivityLogger::pii_revealed( 12, 'cpf' );
+
+		$this->assertFalse( $wrote );
+		$this->assertNull( $this->last_buffered_entry() );
+	}
+
+	public function test_pii_revealed_dedups_same_user_candidate_field_within_window(): void {
+		$transients = array();
+		$this->configure_pii_audit( true, $transients );
+
+		$first  = RecruitmentActivityLogger::pii_revealed( 12, 'cpf' );
+		$second = RecruitmentActivityLogger::pii_revealed( 12, 'cpf' );
+
+		$this->assertTrue( $first );
+		$this->assertFalse( $second, 'second call within window should dedup' );
+
+		// Only the first call produced a log entry.
+		$this->assertCount( 1, $this->buffer() );
+	}
+
+	public function test_pii_revealed_does_not_dedup_across_different_fields(): void {
+		$transients = array();
+		$this->configure_pii_audit( true, $transients );
+
+		$cpf = RecruitmentActivityLogger::pii_revealed( 12, 'cpf' );
+		$rf  = RecruitmentActivityLogger::pii_revealed( 12, 'rf' );
+
+		$this->assertTrue( $cpf );
+		$this->assertTrue( $rf, 'different field key must not be deduped' );
+		$this->assertCount( 2, $this->buffer() );
+	}
+
+	public function test_pii_revealed_does_not_dedup_across_different_candidates(): void {
+		$transients = array();
+		$this->configure_pii_audit( true, $transients );
+
+		$a = RecruitmentActivityLogger::pii_revealed( 12, 'cpf' );
+		$b = RecruitmentActivityLogger::pii_revealed( 13, 'cpf' );
+
+		$this->assertTrue( $a );
+		$this->assertTrue( $b, 'different candidate must not be deduped' );
+		$this->assertCount( 2, $this->buffer() );
+	}
 }

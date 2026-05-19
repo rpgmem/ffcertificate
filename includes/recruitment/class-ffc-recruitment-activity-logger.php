@@ -314,4 +314,70 @@ final class RecruitmentActivityLogger {
 			get_current_user_id()
 		);
 	}
+
+	/**
+	 * Sensitive PII revealed on the candidate detail screen (#330).
+	 *
+	 * Dedup: a transient keyed on (user_id, candidate_id, field_key) suppresses
+	 * repeated logs within {@see self::PII_REVEAL_DEDUP_SECONDS}. The intent is
+	 * audit-grade trail for investigations — collapsing accidental double-clicks
+	 * and rapid re-reveals of the same field by the same operator keeps the log
+	 * readable without losing signal.
+	 *
+	 * Honors the `audit_pii_reveals` recruitment setting: when the operator
+	 * disables the toggle, the reveal still works but no log row is written.
+	 * Defaults to true (audit on) so production behavior is conservative.
+	 *
+	 * @param int    $candidate_id Candidate row ID.
+	 * @param string $field_key    Logical field key (`cpf`, `rf`, `email`).
+	 * @return bool True if a log entry was written; false on dedup hit or setting off.
+	 */
+	public static function pii_revealed( int $candidate_id, string $field_key ): bool {
+		// Read the option directly so we don't pull in the
+		// RecruitmentSettings::defaults() path (which calls translation
+		// helpers) for what is just a boolean check. Defaults to true
+		// when the key is missing — first save after upgrade keeps audit
+		// on by default.
+		$opts = get_option( 'ffc_recruitment_settings', array() );
+		if ( is_array( $opts ) && array_key_exists( 'audit_pii_reveals', $opts ) && ! $opts['audit_pii_reveals'] ) {
+			return false;
+		}
+
+		$user_id = get_current_user_id();
+
+		// Transient key — short enough to keep readable, distinct per
+		// (user, candidate, field) tuple. wp_using_ext_object_cache() handles
+		// the multi-frontend case automatically (transient API falls back to
+		// the options table when no object cache is wired up).
+		$dedup_key = sprintf(
+			'ffc_pii_reveal_%d_%d_%s',
+			$user_id,
+			$candidate_id,
+			preg_replace( '/[^a-z0-9_]+/', '', $field_key )
+		);
+
+		if ( false !== get_transient( $dedup_key ) ) {
+			return false;
+		}
+		set_transient( $dedup_key, 1, self::PII_REVEAL_DEDUP_SECONDS );
+
+		ActivityLog::log(
+			'recruitment_pii_revealed',
+			ActivityLog::LEVEL_INFO,
+			array(
+				'candidate_id' => $candidate_id,
+				'field_key'    => $field_key,
+			),
+			$user_id
+		);
+
+		return true;
+	}
+
+	/**
+	 * Dedup window for pii_revealed() in seconds. 60s collapses the obvious
+	 * UX cases (operator clicks "Reveal", masks it, clicks again) while still
+	 * splitting genuinely separate review sessions across rows.
+	 */
+	private const PII_REVEAL_DEDUP_SECONDS = 60;
 }
