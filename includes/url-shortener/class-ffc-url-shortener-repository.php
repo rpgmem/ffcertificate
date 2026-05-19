@@ -249,4 +249,55 @@ class UrlShortenerRepository extends AbstractRepository {
 			'trashed_links' => (int) ( $row['trashed_links'] ?? 0 ),
 		);
 	}
+
+	/**
+	 * Read the cached QR PNG payload for a short code. Issue #340
+	 * centralization (replaces a raw SELECT in
+	 * `UrlShortenerQrHandler::get_qr_cache`).
+	 *
+	 * @since 6.6.2
+	 * @param string $short_code Short URL code.
+	 * @return string Base64-encoded PNG, or empty string when no
+	 *                cache row exists / column is NULL.
+	 */
+	public function findQrCacheByShortCode( string $short_code ): string {
+		if ( '' === $short_code ) {
+			return '';
+		}
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Narrow single-column lookup.
+		$value = $this->wpdb->get_var(
+			$this->wpdb->prepare( 'SELECT qr_cache FROM %i WHERE short_code = %s', $this->table, $short_code )
+		);
+		return is_string( $value ) && '' !== $value ? $value : '';
+	}
+
+	/**
+	 * Persist the cached QR PNG payload for a short code. Issue #340
+	 * centralization (replaces a raw UPDATE in
+	 * `UrlShortenerQrHandler::set_qr_cache`).
+	 *
+	 * @since 6.6.2
+	 * @param string $short_code Short URL code.
+	 * @param string $base64     Base64-encoded PNG payload to cache.
+	 * @return bool True when the UPDATE landed (or matched 0 rows
+	 *              cleanly), false on wpdb error.
+	 */
+	public function setQrCacheForShortCode( string $short_code, string $base64 ): bool {
+		if ( '' === $short_code ) {
+			return false;
+		}
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Single-row update keyed by short_code (UNIQUE).
+		$result = $this->wpdb->update(
+			$this->table,
+			array( 'qr_cache' => $base64 ),
+			array( 'short_code' => $short_code ),
+			array( '%s' ),
+			array( '%s' )
+		);
+		if ( false === $result ) {
+			return false;
+		}
+		$this->clear_cache();
+		return true;
+	}
 }

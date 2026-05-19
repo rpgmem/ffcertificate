@@ -309,4 +309,46 @@ class UrlShortenerRepositoryTest extends TestCase {
         $this->assertSame( 0, $stats['total_links'] );
         $this->assertSame( 0, $stats['total_clicks'] );
     }
+
+    // ------------------------------------------------------------------
+    // findQrCacheByShortCode() / setQrCacheForShortCode() — issue #340
+    // ------------------------------------------------------------------
+
+    public function test_find_qr_cache_returns_payload_when_present(): void {
+        $this->wpdb->shouldReceive( 'prepare' )->andReturn( 'QUERY' );
+        $this->wpdb->shouldReceive( 'get_var' )->once()->andReturn( 'data:image/png;base64,abc' );
+
+        $this->assertSame( 'data:image/png;base64,abc', $this->repo->findQrCacheByShortCode( 'ABC123' ) );
+    }
+
+    public function test_find_qr_cache_returns_empty_on_null(): void {
+        $this->wpdb->shouldReceive( 'prepare' )->andReturn( 'QUERY' );
+        $this->wpdb->shouldReceive( 'get_var' )->once()->andReturn( null );
+
+        $this->assertSame( '', $this->repo->findQrCacheByShortCode( 'ABC123' ) );
+    }
+
+    public function test_find_qr_cache_short_circuits_on_empty_code(): void {
+        $this->wpdb->shouldNotReceive( 'get_var' );
+
+        $this->assertSame( '', $this->repo->findQrCacheByShortCode( '' ) );
+    }
+
+    public function test_set_qr_cache_returns_true_on_success(): void {
+        $this->wpdb->shouldReceive( 'update' )->once()->andReturn( 1 );
+
+        $this->assertTrue( $this->repo->setQrCacheForShortCode( 'ABC123', 'payload' ) );
+    }
+
+    public function test_set_qr_cache_returns_false_on_wpdb_error(): void {
+        $this->wpdb->shouldReceive( 'update' )->once()->andReturn( false );
+
+        $this->assertFalse( $this->repo->setQrCacheForShortCode( 'ABC123', 'payload' ) );
+    }
+
+    public function test_set_qr_cache_short_circuits_on_empty_code(): void {
+        $this->wpdb->shouldNotReceive( 'update' );
+
+        $this->assertFalse( $this->repo->setQrCacheForShortCode( '', 'payload' ) );
+    }
 }

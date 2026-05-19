@@ -108,15 +108,7 @@ class UrlShortenerQrHandler {
 	 * @return string Base64 data or empty string.
 	 */
 	private function get_qr_cache( string $short_code ): string {
-		global $wpdb;
-		$table = $wpdb->prefix . 'ffc_short_urls';
-
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-		$value = $wpdb->get_var(
-			$wpdb->prepare( 'SELECT qr_cache FROM %i WHERE short_code = %s', $table, $short_code )
-		);
-
-		return is_string( $value ) && '' !== $value ? $value : '';
+		return ( new UrlShortenerRepository() )->findQrCacheByShortCode( $short_code );
 	}
 
 	/**
@@ -126,17 +118,7 @@ class UrlShortenerQrHandler {
 	 * @param string $base64     Base64-encoded PNG.
 	 */
 	private function set_qr_cache( string $short_code, string $base64 ): void {
-		global $wpdb;
-		$table = $wpdb->prefix . 'ffc_short_urls';
-
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-		$wpdb->update(
-			$table,
-			array( 'qr_cache' => $base64 ),
-			array( 'short_code' => $short_code ),
-			array( '%s' ),
-			array( '%s' )
-		);
+		( new UrlShortenerRepository() )->setQrCacheForShortCode( $short_code, $base64 );
 	}
 
 	/**
