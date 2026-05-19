@@ -91,8 +91,14 @@ final class RecruitmentAdminAssetsManager {
 			self::HANDLE_JS,
 			'ffcRecruitmentAdmin',
 			array(
-				'restRoot' => esc_url_raw( rest_url( 'ffcertificate/v1/recruitment/' ) ),
-				'nonce'    => wp_create_nonce( 'wp_rest' ),
+				'restRoot'            => esc_url_raw( rest_url( 'ffcertificate/v1/recruitment/' ) ),
+				'nonce'               => wp_create_nonce( 'wp_rest' ),
+				'confirmModalStrings' => array(
+					'closeLabel'   => __( 'Close', 'ffcertificate' ),
+					'cancelLabel'  => __( 'Cancel', 'ffcertificate' ),
+					'defaultTitle' => __( 'Confirm action', 'ffcertificate' ),
+					'defaultCta'   => __( 'Confirm', 'ffcertificate' ),
+				),
 			)
 		);
 	}
