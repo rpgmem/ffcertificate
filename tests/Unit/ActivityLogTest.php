@@ -488,6 +488,82 @@ class ActivityLogTest extends TestCase {
         $this->assertEmpty($this->getWriteBuffer());
     }
 
+    public function test_flush_buffer_coerces_zero_user_id_to_null_to_satisfy_fk(): void {
+        // System events (migrations, cron, shutdown handlers) pass user_id=0
+        // for "anonymous/system". The FK fk_ffc_activity_log_user (added in
+        // 4.9.7) references wp_users(ID) — and 0 is not a valid wp_users.ID,
+        // so the INSERT trips the FK. flush_buffer() must coerce 0 → null
+        // before INSERTing so the no-user semantics map to a NULL FK value.
+        $this->enableActivityLog();
+
+        $this->setWriteBuffer([
+            [
+                'action'            => 'migration_foreign_keys',
+                'level'             => 'info',
+                'context'           => '{"added":[],"skipped":[]}',
+                'context_encrypted' => null,
+                'user_id'           => 0,
+                'user_ip'           => '0.0.0.0',
+                'submission_id'     => 0,
+                'created_at'        => '2026-03-01 10:00:00',
+            ],
+        ]);
+
+        $this->wpdb->shouldReceive('prepare')->andReturn('DESCRIBE wp_ffc_activity_log');
+        $this->wpdb->shouldReceive('get_col')->andReturn([
+            'id', 'action', 'level', 'context', 'user_id', 'user_ip',
+            'created_at', 'submission_id', 'context_encrypted',
+        ]);
+
+        $captured_data = null;
+        $this->wpdb->shouldReceive('insert')->andReturnUsing(
+            function ($table, $data) use (&$captured_data) {
+                $captured_data = $data;
+                return 1;
+            }
+        );
+
+        ActivityLog::flush_buffer();
+
+        $this->assertNotNull($captured_data);
+        $this->assertNull($captured_data['user_id'], 'user_id=0 must be coerced to NULL before INSERT');
+    }
+
+    public function test_flush_buffer_preserves_nonzero_user_id(): void {
+        $this->enableActivityLog();
+
+        $this->setWriteBuffer([
+            [
+                'action'            => 'submission_created',
+                'level'             => 'info',
+                'context'           => '{}',
+                'context_encrypted' => null,
+                'user_id'           => 42,
+                'user_ip'           => '127.0.0.1',
+                'submission_id'     => 0,
+                'created_at'        => '2026-03-01 10:00:00',
+            ],
+        ]);
+
+        $this->wpdb->shouldReceive('prepare')->andReturn('DESCRIBE wp_ffc_activity_log');
+        $this->wpdb->shouldReceive('get_col')->andReturn([
+            'id', 'action', 'level', 'context', 'user_id', 'user_ip',
+            'created_at', 'submission_id', 'context_encrypted',
+        ]);
+
+        $captured_data = null;
+        $this->wpdb->shouldReceive('insert')->andReturnUsing(
+            function ($table, $data) use (&$captured_data) {
+                $captured_data = $data;
+                return 1;
+            }
+        );
+
+        ActivityLog::flush_buffer();
+
+        $this->assertSame(42, $captured_data['user_id']);
+    }
+
     public function test_flush_buffer_omits_submission_id_when_column_missing(): void {
         $this->enableActivityLog();
 

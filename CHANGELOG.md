@@ -7,6 +7,10 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Fixed
+
+- **Activity log INSERT failing under FK after 4.9.7** — `ActivityLog::flush_buffer()` was passing `user_id = 0` for system-event rows (migrations, cron, shutdown handlers). The `fk_ffc_activity_log_user` constraint (added in 4.9.7 with `ON DELETE SET NULL`) references `wp_users(ID)`, and `0` is not a valid WP user ID, so the FK rejected every system-event INSERT. The "no user / anonymous" semantics now map to `NULL` at INSERT time, which the FK accepts. The activator's `create_table()` was also realigned with the post-FK-migration state (`DEFAULT NULL` instead of `DEFAULT 0`) so fresh installs land on the right schema even before `MigrationForeignKeys::run()` executes. Production symptom was a stream of `Cannot add or update a child row: a foreign key constraint fails` warnings on every flushed buffer, with the failing INSERT visibly tied to `'migration_foreign_keys'` / `'shutdown_action_hook'` activity.
+
 ---
 
 ## [6.6.1] (2026-05-18)
