@@ -155,21 +155,42 @@ final class RecruitmentCandidateEditPage {
 	 * @return void
 	 */
 	private static function render_sensitive_section( object $candidate ): void {
+		// Resolve the access tier once for the whole postbox so all three
+		// fields (CPF, RF, email) get a consistent treatment per user
+		// (issue #330).
+		$tier = RecruitmentPiiAccessPolicy::resolve( $candidate, get_current_user_id() );
+
 		echo '<div class="postbox" style="margin-top:20px;">';
 		echo '<h2 class="hndle"><span>' . esc_html__( 'Sensitive data (admin only)', 'ffcertificate' ) . '</span></h2>';
 		echo '<div class="inside">';
 
+		if ( RecruitmentPiiAccessPolicy::TIER_REVEAL === $tier ) {
+			echo '<p class="description">' . esc_html__( 'Sensitive fields are masked by default. Click "Reveal" to view; each reveal is recorded in the activity log.', 'ffcertificate' ) . '</p>';
+		}
+
 		echo '<table class="form-table"><tbody>';
 
+		// phpcs:disable WordPress.Security.EscapeOutput.OutputNotEscaped -- render_sensitive_row returns escaped HTML built from esc_html() and known-safe markup.
 		echo '<tr><th>' . esc_html__( 'CPF', 'ffcertificate' ) . '</th>';
-		// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- render_decrypted returns escaped HTML.
-		echo '<td>' . self::render_decrypted( (string) ( $candidate->cpf_encrypted ?? '' ), array( DocumentFormatter::class, 'format_cpf' ) ) . ' ';
+		echo '<td>' . self::render_sensitive_row(
+			$tier,
+			(int) $candidate->id,
+			'cpf',
+			(string) ( $candidate->cpf_encrypted ?? '' ),
+			array( DocumentFormatter::class, 'format_cpf' )
+		) . ' ';
 		echo '<span class="description">' . esc_html__( 'CSV import only — not editable here.', 'ffcertificate' ) . '</span></td></tr>';
 
 		echo '<tr><th>' . esc_html__( 'RF', 'ffcertificate' ) . '</th>';
-		// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- render_decrypted returns escaped HTML.
-		echo '<td>' . self::render_decrypted( (string) ( $candidate->rf_encrypted ?? '' ), array( DocumentFormatter::class, 'format_rf' ) ) . ' ';
+		echo '<td>' . self::render_sensitive_row(
+			$tier,
+			(int) $candidate->id,
+			'rf',
+			(string) ( $candidate->rf_encrypted ?? '' ),
+			array( DocumentFormatter::class, 'format_rf' )
+		) . ' ';
 		echo '<span class="description">' . esc_html__( 'CSV import only — not editable here.', 'ffcertificate' ) . '</span></td></tr>';
+		// phpcs:enable WordPress.Security.EscapeOutput.OutputNotEscaped
 
 		echo '<tr><th>' . esc_html__( 'Linked WP user', 'ffcertificate' ) . '</th>';
 		echo '<td>';
@@ -223,6 +244,14 @@ final class RecruitmentCandidateEditPage {
 		echo '</td></tr>';
 
 		echo '</tbody></table>';
+
+		// Inline JS for the reveal buttons. Only emitted when the user is
+		// on the `reveal` tier — the `unmasked` and `masked` tiers don't
+		// render the button so the script would be a no-op anyway.
+		if ( RecruitmentPiiAccessPolicy::TIER_REVEAL === $tier ) {
+			self::render_sensitive_reveal_script();
+		}
+
 		echo '</div></div>';
 	}
 
@@ -243,6 +272,136 @@ final class RecruitmentCandidateEditPage {
 			return '<em>—</em>';
 		}
 		return '<code>' . esc_html( $formatter( $plain ) ) . '</code>';
+	}
+
+	/**
+	 * Render one row of the Sensitive data postbox under the access tier.
+	 *
+	 * - `unmasked`: decrypt and show the value immediately, same as
+	 *   render_decrypted().
+	 * - `reveal`: render a `<code>` placeholder with a "Reveal" button
+	 *   alongside; the JS handler (see render_sensitive_reveal_script())
+	 *   POSTs to /candidates/{id}/reveal-pii on click and swaps the
+	 *   placeholder text in place.
+	 * - `masked`: render the placeholder without the button — the user
+	 *   has no path to see this value at all.
+	 *
+	 * @param string   $tier         One of RecruitmentPiiAccessPolicy::TIER_*.
+	 * @param int      $candidate_id Candidate row ID (used by the reveal handler).
+	 * @param string   $field_key    Logical key (`cpf`, `rf`, `email`).
+	 * @param string   $cipher       Encrypted column value.
+	 * @param callable $formatter    Formatter for the plaintext (used in unmasked tier).
+	 * @return string Already-escaped HTML.
+	 */
+	private static function render_sensitive_row( string $tier, int $candidate_id, string $field_key, string $cipher, callable $formatter ): string {
+		if ( '' === $cipher ) {
+			return '<em>—</em>';
+		}
+
+		if ( RecruitmentPiiAccessPolicy::TIER_UNMASKED === $tier ) {
+			return self::render_decrypted( $cipher, $formatter );
+		}
+
+		// reveal + masked both start with the placeholder. reveal adds a
+		// button next to it (the JS swaps the placeholder text on
+		// success); masked stops at the placeholder.
+		$placeholder = '<code class="ffc-pii-placeholder" data-ffc-pii-field="' . esc_attr( $field_key ) . '">' . esc_html( self::mask_placeholder_for( $field_key ) ) . '</code>';
+
+		if ( RecruitmentPiiAccessPolicy::TIER_REVEAL !== $tier ) {
+			return $placeholder;
+		}
+
+		$button = ' <button type="button"'
+			. ' class="button button-secondary ffc-pii-reveal-btn"'
+			. ' data-ffc-pii-candidate="' . esc_attr( (string) $candidate_id ) . '"'
+			. ' data-ffc-pii-field="' . esc_attr( $field_key ) . '">'
+			. esc_html__( 'Reveal', 'ffcertificate' )
+			. '</button>';
+
+		return $placeholder . $button;
+	}
+
+	/**
+	 * Per-field masked placeholder. Mirrors the shape of the real value
+	 * (e.g. `***.***.***-**` for CPF) so the operator can tell which
+	 * field is which before clicking.
+	 *
+	 * @param string $field_key One of `cpf`, `rf`, `email`.
+	 * @return string
+	 */
+	private static function mask_placeholder_for( string $field_key ): string {
+		switch ( $field_key ) {
+			case 'cpf':
+				return '***.***.***-**';
+			case 'rf':
+				return '****-*';
+			case 'email':
+				return '****@****';
+			default:
+				return '****';
+		}
+	}
+
+	/**
+	 * Inline JS for the "Reveal" buttons in the Sensitive data postbox
+	 * (issue #330). Rendered once per page load by render_sensitive_section
+	 * when the user is on the `reveal` tier.
+	 *
+	 * The handler POSTs to /candidates/{id}/reveal-pii with the field key,
+	 * swaps the placeholder text on success, replaces the button with a
+	 * "Hide" toggle that restores the placeholder, and surfaces any error
+	 * inline so the operator knows whether the request failed (and why)
+	 * without a page reload.
+	 *
+	 * @return void
+	 */
+	private static function render_sensitive_reveal_script(): void {
+		$rest_root  = esc_url_raw( rest_url( 'ffcertificate/v1/recruitment/candidates/' ) );
+		$nonce      = wp_create_nonce( 'wp_rest' );
+		$hide_lbl   = esc_js( __( 'Hide', 'ffcertificate' ) );
+		$reveal_lbl = esc_js( __( 'Reveal', 'ffcertificate' ) );
+		$err_lbl    = esc_js( __( 'Error', 'ffcertificate' ) );
+
+		// phpcs:disable WordPress.Security.EscapeOutput.OutputNotEscaped -- All interpolated values are escaped via esc_url_raw / esc_js / esc_attr above; no user-controlled content.
+		echo '<script>'
+			. '(function(){'
+			. 'document.addEventListener("click",function(ev){'
+			. 'var btn=ev.target;'
+			. 'if(!btn||!btn.classList||!btn.classList.contains("ffc-pii-reveal-btn"))return;'
+			. 'ev.preventDefault();'
+			. 'var cid=btn.getAttribute("data-ffc-pii-candidate");'
+			. 'var field=btn.getAttribute("data-ffc-pii-field");'
+			. 'var ph=btn.parentNode.querySelector(\'.ffc-pii-placeholder[data-ffc-pii-field="\'+field+\'"]\');'
+			. 'if(!cid||!field||!ph)return;'
+			. 'if(btn.getAttribute("data-ffc-pii-revealed")==="1"){'
+			// Hide path — restore the saved placeholder text and reset the button label.
+			. 'ph.textContent=btn.getAttribute("data-ffc-pii-mask")||"";'
+			. 'btn.textContent="' . $reveal_lbl . '";'
+			. 'btn.removeAttribute("data-ffc-pii-revealed");'
+			. 'return;'
+			. '}'
+			. 'btn.disabled=true;'
+			. 'var fd=new FormData();fd.append("field",field);'
+			. 'fetch("' . $rest_root . '"+cid+"/reveal-pii",{'
+			. 'method:"POST",'
+			. 'headers:{"X-WP-Nonce":"' . esc_attr( $nonce ) . '"},'
+			. 'body:fd,credentials:"same-origin"'
+			. '}).then(function(r){return r.json().then(function(d){return{status:r.status,body:d};});}).then(function(o){'
+			. 'btn.disabled=false;'
+			. 'if(o.status>=200&&o.status<300&&o.body&&typeof o.body.value==="string"){'
+			. 'btn.setAttribute("data-ffc-pii-mask",ph.textContent);'
+			. 'ph.textContent=o.body.value;'
+			. 'btn.textContent="' . $hide_lbl . '";'
+			. 'btn.setAttribute("data-ffc-pii-revealed","1");'
+			. '}else{'
+			. 'var msg=(o.body&&o.body.message)?o.body.message:"' . $err_lbl . '";'
+			. 'ph.textContent="["+msg+"]";'
+			. '}'
+			. '}).catch(function(){btn.disabled=false;ph.textContent="[' . $err_lbl . ']";});'
+			. '});'
+			. '})();'
+			. '</script>';
+		// phpcs:enable WordPress.Security.EscapeOutput.OutputNotEscaped
 	}
 
 	/**

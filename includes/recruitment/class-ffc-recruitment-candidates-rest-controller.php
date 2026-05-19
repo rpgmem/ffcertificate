@@ -104,6 +104,29 @@ final class RecruitmentCandidatesRestController {
 			)
 		);
 
+		// Reveal a single sensitive field on demand (issue #330). The route
+		// itself only checks "logged in" so the owner-clause inside the
+		// policy can authorise the candidate themselves; the handler then
+		// runs RecruitmentPiiAccessPolicy::resolve() to enforce the tier
+		// and writes an audit row (subject to dedup + the audit_pii_reveals
+		// setting) when the requester is on the `reveal` tier.
+		register_rest_route(
+			$ns,
+			$base . '/candidates/(?P<id>\d+)/reveal-pii',
+			array(
+				'methods'             => \WP_REST_Server::CREATABLE,
+				'callback'            => array( $this, 'reveal_pii' ),
+				'permission_callback' => array( $this, 'check_logged_in' ),
+				'args'                => array(
+					'field' => array(
+						'type'              => 'string',
+						'required'          => true,
+						'sanitize_callback' => 'sanitize_key',
+					),
+				),
+			)
+		);
+
 		// ── Candidate-self dashboard ────────────────────────────────────
 		register_rest_route(
 			$ns,
@@ -240,6 +263,83 @@ final class RecruitmentCandidatesRestController {
 			return $this->wp_error_from_envelope_with_blocked( $result, 409 );
 		}
 		return new \WP_REST_Response( $result, 200 );
+	}
+
+	/**
+	 * POST /candidates/{id}/reveal-pii — return one decrypted sensitive
+	 * field after enforcing the access tier (issue #330).
+	 *
+	 * Body / param:
+	 *   field — one of `cpf`, `rf`, `email`.
+	 *
+	 * Response shape (200): `{ field: string, value: string }`.
+	 * Errors: 400 unsupported field; 403 access denied (tier=masked);
+	 *         404 candidate or encrypted column missing.
+	 *
+	 * @param \WP_REST_Request $request Request.
+	 * @return \WP_REST_Response|\WP_Error
+	 */
+	public function reveal_pii( \WP_REST_Request $request ) {
+		$id        = (int) $request->get_param( 'id' );
+		$field_key = (string) $request->get_param( 'field' );
+
+		$allowed = array( 'cpf', 'rf', 'email' );
+		if ( ! in_array( $field_key, $allowed, true ) ) {
+			return new \WP_Error(
+				'recruitment_pii_field_unsupported',
+				__( 'Unsupported sensitive field.', 'ffcertificate' ),
+				array( 'status' => 400 )
+			);
+		}
+
+		$candidate = RecruitmentCandidateRepository::get_by_id( $id );
+		if ( null === $candidate ) {
+			return new \WP_Error( 'recruitment_candidate_not_found', '', array( 'status' => 404 ) );
+		}
+
+		$tier = RecruitmentPiiAccessPolicy::resolve( $candidate, get_current_user_id() );
+		if ( RecruitmentPiiAccessPolicy::TIER_MASKED === $tier ) {
+			return new \WP_Error(
+				'recruitment_pii_access_denied',
+				__( 'You do not have permission to reveal this field.', 'ffcertificate' ),
+				array( 'status' => 403 )
+			);
+		}
+
+		$column = $field_key . '_encrypted';
+		if ( empty( $candidate->{$column} ) ) {
+			return new \WP_Error( 'recruitment_pii_value_missing', '', array( 'status' => 404 ) );
+		}
+
+		$plain = Encryption::decrypt( (string) $candidate->{$column} );
+		if ( ! is_string( $plain ) || '' === $plain ) {
+			return new \WP_Error( 'recruitment_pii_decrypt_failed', '', array( 'status' => 500 ) );
+		}
+
+		// Render via DocumentFormatter so the value matches what the
+		// detail screen shows when the unmasked tier is in effect.
+		switch ( $field_key ) {
+			case 'cpf':
+				$display = DocumentFormatter::format_cpf( $plain );
+				break;
+			case 'rf':
+				$display = DocumentFormatter::format_rf( $plain );
+				break;
+			default:
+				$display = $plain;
+		}
+
+		if ( RecruitmentPiiAccessPolicy::should_audit( $candidate, get_current_user_id() ) ) {
+			RecruitmentActivityLogger::pii_revealed( $id, $field_key );
+		}
+
+		return new \WP_REST_Response(
+			array(
+				'field' => $field_key,
+				'value' => (string) $display,
+			),
+			200
+		);
 	}
 
 	// ─────────────────────────────────────────────────────────────────────
