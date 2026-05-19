@@ -474,4 +474,105 @@ describe('ffc-recruitment-admin: confirm modal', () => {
 		expect(getModalOverlay().hidden).toBe(true);
 		expect(form.submit).not.toHaveBeenCalled();
 	});
+
+	// ---- Countdown (issue #262 item 2) -----------------------------
+
+	it('countdown: CTA stays disabled and label ticks down while remaining > 0', () => {
+		vi.useFakeTimers();
+		document.body.innerHTML = `
+			<form id="t8" data-ffc-confirm
+			      data-ffc-confirm-cta="Promote to definitive"
+			      data-ffc-confirm-countdown="3"></form>
+		`;
+		const form = document.getElementById('t8');
+		form.submit = vi.fn();
+
+		form.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
+		const cta = getModalOverlay().querySelector('.ffc-confirm-modal-confirm');
+
+		expect(cta.disabled).toBe(true);
+		expect(cta.textContent).toBe('Promote to definitive (3s)');
+
+		vi.advanceTimersByTime(1000);
+		expect(cta.disabled).toBe(true);
+		expect(cta.textContent).toBe('Promote to definitive (2s)');
+
+		vi.advanceTimersByTime(1000);
+		expect(cta.disabled).toBe(true);
+		expect(cta.textContent).toBe('Promote to definitive (1s)');
+
+		vi.advanceTimersByTime(1000);
+		expect(cta.disabled).toBe(false);
+		expect(cta.textContent).toBe('Promote to definitive');
+
+		// Clicking before 0 would do nothing — already covered by the
+		// confirmBtn.disabled guard. Here we verify post-countdown click
+		// fires the trigger.
+		cta.click();
+		expect(form.submit).toHaveBeenCalledTimes(1);
+
+		vi.useRealTimers();
+	});
+
+	it('countdown: cancelling clears the interval (no leaks, label does not keep updating)', () => {
+		vi.useFakeTimers();
+		document.body.innerHTML = `
+			<form id="t9" data-ffc-confirm
+			      data-ffc-confirm-cta="Go"
+			      data-ffc-confirm-countdown="5"></form>
+		`;
+		const form = document.getElementById('t9');
+		form.submit = vi.fn();
+
+		form.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
+		const modal = getModalOverlay();
+		const cta = modal.querySelector('.ffc-confirm-modal-confirm');
+		expect(cta.textContent).toBe('Go (5s)');
+
+		modal.querySelector('.ffc-confirm-modal-cancel').click();
+		expect(modal.hidden).toBe(true);
+
+		// Even if the page sits for 30s, no error should fire and the
+		// (now-removed) CTA reference should still read its captured text.
+		vi.advanceTimersByTime(30000);
+		expect(form.submit).not.toHaveBeenCalled();
+
+		vi.useRealTimers();
+	});
+
+	it('countdown + reason: CTA enables only when BOTH the countdown reaches 0 AND a reason is typed', () => {
+		vi.useFakeTimers();
+		document.body.innerHTML = `
+			<form id="t10" data-ffc-confirm
+			      data-ffc-confirm-cta="Reopen"
+			      data-ffc-confirm-countdown="2"
+			      data-ffc-confirm-reason-label="Reason"></form>
+		`;
+		const form = document.getElementById('t10');
+		form.submit = vi.fn();
+
+		form.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
+		const modal = getModalOverlay();
+		const cta = modal.querySelector('.ffc-confirm-modal-confirm');
+		const input = modal.querySelector('#ffc-confirm-modal-reason-input');
+
+		// Both gates active: countdown + empty reason.
+		expect(cta.disabled).toBe(true);
+
+		// Fill reason — still gated by countdown.
+		input.value = 'reopen reason';
+		input.dispatchEvent(new Event('input', { bubbles: true }));
+		expect(cta.disabled).toBe(true);
+
+		// Tick past countdown — now enabled.
+		vi.advanceTimersByTime(2000);
+		expect(cta.disabled).toBe(false);
+
+		// Clear reason — gated again.
+		input.value = '';
+		input.dispatchEvent(new Event('input', { bubbles: true }));
+		expect(cta.disabled).toBe(true);
+
+		vi.useRealTimers();
+	});
 });

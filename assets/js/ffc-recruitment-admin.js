@@ -197,7 +197,7 @@
         return overlay;
     }
 
-    var state = { trigger: null, onKeydown: null };
+    var state = { trigger: null, onKeydown: null, countdownTimer: null };
 
     function closeModal() {
         var modal = document.getElementById('ffc-confirm-modal');
@@ -205,6 +205,10 @@
         if (state.onKeydown) {
             document.removeEventListener('keydown', state.onKeydown);
             state.onKeydown = null;
+        }
+        if (state.countdownTimer) {
+            clearInterval(state.countdownTimer);
+            state.countdownTimer = null;
         }
         var focusTarget = state.trigger;
         state.trigger = null;
@@ -258,6 +262,13 @@
         var style = trigger.getAttribute('data-ffc-confirm-style') === 'destructive' ? 'destructive' : 'primary';
         var reasonLabel = trigger.getAttribute('data-ffc-confirm-reason-label') || '';
         var reasonName = trigger.getAttribute('data-ffc-confirm-reason-name') || 'reason';
+        // Countdown: when present, the CTA stays disabled for N seconds
+        // after the modal opens, with the remaining time appended to
+        // the label. Used on the preliminary → definitive promote
+        // paths so the operator can't accidentally double-click their
+        // way into a locked classification list.
+        var countdownSec = parseInt(trigger.getAttribute('data-ffc-confirm-countdown') || '0', 10);
+        if (!isFinite(countdownSec) || countdownSec < 0) { countdownSec = 0; }
 
         title.textContent = titleText;
         dialog.setAttribute('data-style', style);
@@ -289,17 +300,42 @@
             reasonInput = body.querySelector('#ffc-confirm-modal-reason-input');
         }
 
-        // Reason-gated CTA: disable until non-empty.
-        function syncCta() {
-            if (reasonInput) {
-                confirmBtn.disabled = reasonInput.value.trim().length === 0;
+        // CTA gating: countdown (if any) AND reason input (if any) must
+        // both be satisfied before the CTA enables. The countdown ticks
+        // down with setInterval and updates the label in place; on tick
+        // 0 we re-render the original label and let `syncCta` decide
+        // the final enabled state.
+        var remaining = countdownSec;
+        function renderCtaLabel() {
+            if (remaining > 0) {
+                confirmBtn.textContent = ctaText + ' (' + remaining + 's)';
             } else {
-                confirmBtn.disabled = false;
+                confirmBtn.textContent = ctaText;
             }
         }
+        function syncCta() {
+            var blockedByReason = reasonInput && reasonInput.value.trim().length === 0;
+            var blockedByCountdown = remaining > 0;
+            confirmBtn.disabled = !!(blockedByReason || blockedByCountdown);
+        }
+        renderCtaLabel();
         syncCta();
         if (reasonInput) {
             reasonInput.oninput = syncCta;
+        }
+        if (countdownSec > 0) {
+            state.countdownTimer = setInterval(function () {
+                remaining -= 1;
+                if (remaining <= 0) {
+                    remaining = 0;
+                    if (state.countdownTimer) {
+                        clearInterval(state.countdownTimer);
+                        state.countdownTimer = null;
+                    }
+                }
+                renderCtaLabel();
+                syncCta();
+            }, 1000);
         }
 
         // Wire handlers (replaceWith pattern keeps things clean across
