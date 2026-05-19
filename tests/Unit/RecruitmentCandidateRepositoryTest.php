@@ -195,4 +195,94 @@ class RecruitmentCandidateRepositoryTest extends TestCase {
 
 		$this->assertTrue( RecruitmentCandidateRepository::delete( 5 ) );
 	}
+
+	// ------------------------------------------------------------------
+	// get_ids_by_email_hash() — issue #331 search frontend
+	// ------------------------------------------------------------------
+
+	public function test_get_ids_by_email_hash_returns_all_matches(): void {
+		$this->wpdb->shouldReceive( 'esc_like' )->andReturnUsing( static fn( $v ) => $v )->byDefault();
+		$this->wpdb->shouldReceive( 'get_col' )->once()->andReturn( array( '1', '7', '12' ) );
+
+		$ids = RecruitmentCandidateRepository::get_ids_by_email_hash( 'fakehash' );
+
+		$this->assertSame( array( 1, 7, 12 ), $ids );
+	}
+
+	public function test_get_ids_by_email_hash_returns_empty_when_no_match(): void {
+		$this->wpdb->shouldReceive( 'esc_like' )->andReturnUsing( static fn( $v ) => $v )->byDefault();
+		$this->wpdb->shouldReceive( 'get_col' )->once()->andReturn( array() );
+
+		$ids = RecruitmentCandidateRepository::get_ids_by_email_hash( 'fakehash' );
+
+		$this->assertSame( array(), $ids );
+	}
+
+	// ------------------------------------------------------------------
+	// get_paginated_filtered() / count_paginated_filtered() — #331
+	// ------------------------------------------------------------------
+
+	public function test_get_paginated_filtered_short_circuits_on_empty_id_constraint(): void {
+		// id_constraint=[] means "at least one filter matched zero rows".
+		// The query should never run.
+		$this->wpdb->shouldNotReceive( 'get_results' );
+
+		$rows = RecruitmentCandidateRepository::get_paginated_filtered( '', array(), 0, '', 20, 0 );
+
+		$this->assertSame( array(), $rows );
+	}
+
+	public function test_count_paginated_filtered_short_circuits_on_empty_id_constraint(): void {
+		$this->wpdb->shouldNotReceive( 'get_var' );
+
+		$total = RecruitmentCandidateRepository::count_paginated_filtered( '', array(), 0, '' );
+
+		$this->assertSame( 0, $total );
+	}
+
+	public function test_get_paginated_filtered_executes_query_when_unconstrained(): void {
+		$this->wpdb->shouldReceive( 'esc_like' )->andReturnUsing( static fn( $v ) => $v )->byDefault();
+		$this->wpdb->shouldReceive( 'get_results' )
+			->once()
+			->andReturn( array( (object) array( 'id' => '5', 'name' => 'Alice' ) ) );
+
+		$rows = RecruitmentCandidateRepository::get_paginated_filtered( '', null, 0, '', 20, 0 );
+
+		$this->assertCount( 1, $rows );
+		$this->assertSame( '5', $rows[0]->id );
+	}
+
+	public function test_get_paginated_filtered_joins_when_status_filter_present(): void {
+		$this->wpdb->shouldReceive( 'esc_like' )->andReturnUsing( static fn( $v ) => $v )->byDefault();
+
+		// Capture the SQL passed to prepare() so we can assert the JOIN
+		// + WHERE clauses fire as expected.
+		$captured_sql = null;
+		$this->wpdb->shouldReceive( 'prepare' )
+			->andReturnUsing(
+				function ( $sql ) use ( &$captured_sql ) {
+					if ( null === $captured_sql ) {
+						$captured_sql = $sql;
+					}
+					return $sql;
+				}
+			);
+		$this->wpdb->shouldReceive( 'get_results' )->once()->andReturn( array() );
+
+		RecruitmentCandidateRepository::get_paginated_filtered( '', null, 0, 'called', 20, 0 );
+
+		$this->assertNotNull( $captured_sql );
+		$this->assertStringContainsString( 'INNER JOIN', (string) $captured_sql );
+		$this->assertStringContainsString( "cls.list_type = 'definitive'", (string) $captured_sql );
+		$this->assertStringContainsString( 'cls.status = %s', (string) $captured_sql );
+	}
+
+	public function test_count_paginated_filtered_returns_int_total(): void {
+		$this->wpdb->shouldReceive( 'esc_like' )->andReturnUsing( static fn( $v ) => $v )->byDefault();
+		$this->wpdb->shouldReceive( 'get_var' )->once()->andReturn( '42' );
+
+		$total = RecruitmentCandidateRepository::count_paginated_filtered( 'Alice', null, 0, '' );
+
+		$this->assertSame( 42, $total );
+	}
 }
