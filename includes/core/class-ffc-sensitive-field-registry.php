@@ -263,25 +263,11 @@ final class SensitiveFieldRegistry {
 			return $cached;
 		}
 
-		global $wpdb;
-		$table = $wpdb->prefix . 'ffc_custom_fields';
-		$keys  = array();
+		$keys = array();
 
-		// The table may not exist (fresh install, tests), so guard the query.
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-		$exists = $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $table ) );
-		if ( $exists === $table ) {
-            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-			$rows = $wpdb->get_col(
-				$wpdb->prepare(
-					'SELECT DISTINCT field_key FROM %i WHERE is_sensitive = 1 AND is_active = 1',
-					$table
-				)
-			);
-			foreach ( (array) $rows as $field_key ) {
-				if ( is_string( $field_key ) && '' !== $field_key ) {
-					$keys[ $field_key ] = true;
-				}
+		if ( class_exists( '\\FreeFormCertificate\\Reregistration\\CustomFieldRepository' ) ) {
+			foreach ( \FreeFormCertificate\Reregistration\CustomFieldRepository::list_sensitive_field_keys() as $field_key ) {
+				$keys[ $field_key ] = true;
 			}
 		}
 

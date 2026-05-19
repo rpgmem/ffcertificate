@@ -675,6 +675,84 @@ class SubmissionRepository extends AbstractRepository {
 	}
 
 	/**
+	 * Fetch a single submission's `magic_token` column. Narrow read used
+	 * by the QR-code generator (`PdfGenerator::generate_magic_link_qr`)
+	 * so the caller never holds the full row in memory just to get one
+	 * field. Issue #340 centralization.
+	 *
+	 * @since 6.6.2
+	 * @param int $submission_id Submission row ID.
+	 * @return string|null `null` when the row doesn't exist or the
+	 *                     token is empty / NULL.
+	 */
+	public function findMagicTokenById( int $submission_id ): ?string {
+		if ( $submission_id <= 0 ) {
+			return null;
+		}
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Narrow single-column read; caching skipped because magic_token is already cached at the full-row level when callers go through findById.
+		$token = $this->wpdb->get_var(
+			$this->wpdb->prepare( 'SELECT magic_token FROM %i WHERE id = %d', $this->table, $submission_id )
+		);
+		if ( null === $token || '' === $token ) {
+			return null;
+		}
+		return (string) $token;
+	}
+
+	/**
+	 * Count submissions matching `(form_id, cpf_hash)`. Used by the
+	 * CSV-download "participants" mode validator to decide whether the
+	 * caller (identified by CPF) actually owns a row in the form. Issue
+	 * #340 centralization.
+	 *
+	 * @since 6.6.2
+	 * @param int    $form_id  Form ID.
+	 * @param string $cpf_hash SHA-256 hash of the CPF digits.
+	 * @return int Always >= 0.
+	 */
+	public function countByFormAndCpfHash( int $form_id, string $cpf_hash ): int {
+		if ( $form_id <= 0 || '' === $cpf_hash ) {
+			return 0;
+		}
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Existence-style count for download gating; instantaneous decision, no cache.
+		$count = $this->wpdb->get_var(
+			$this->wpdb->prepare(
+				'SELECT COUNT(*) FROM %i WHERE form_id = %d AND cpf_hash = %s',
+				$this->table,
+				$form_id,
+				$cpf_hash
+			)
+		);
+		return null === $count ? 0 : (int) $count;
+	}
+
+	/**
+	 * Bulk-clear the `qr_code_cache` column across every submission row
+	 * — backs the "Clear QR cache" admin button. Returns the count of
+	 * rows that actually held a cached blob (NULL rows are skipped so
+	 * the result reflects real invalidations, not the table size).
+	 * Issue #340 centralization.
+	 *
+	 * Flushes the repository's cache group at the end because the bulk
+	 * UPDATE bypasses parent::update()'s per-row cache_delete and any
+	 * full-row cache entry would otherwise keep returning the stale
+	 * `qr_code_cache` blob.
+	 *
+	 * @since 6.6.2
+	 * @return int Number of rows whose cache was dropped.
+	 */
+	public function clearQrCodeCache(): int {
+		$sql = $this->wpdb->prepare( 'UPDATE %i SET qr_code_cache = NULL WHERE qr_code_cache IS NOT NULL', $this->table );
+		if ( ! is_string( $sql ) ) {
+			return 0;
+		}
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Bulk maintenance write; per-row caches are flushed wholesale via clear_cache() below.
+		$rows = $this->wpdb->query( $sql );
+		$this->clear_cache();
+		return is_int( $rows ) ? $rows : 0;
+	}
+
+	/**
 	 * Insert a submission row and drop the status-count cache.
 	 *
 	 * @param array<string, mixed> $data Data.

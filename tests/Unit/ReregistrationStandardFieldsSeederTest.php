@@ -30,6 +30,7 @@ class ReregistrationStandardFieldsSeederTest extends TestCase {
         $wpdb = Mockery::mock( 'wpdb' );
         $wpdb->prefix     = 'wp_';
         $wpdb->last_error  = '';
+        $wpdb->insert_id   = 0;
         $wpdb->shouldReceive( 'prepare' )->andReturnUsing( function () { return func_get_args()[0]; } )->byDefault();
         $wpdb->shouldReceive( 'get_col' )->andReturn( array() )->byDefault();
         $wpdb->shouldReceive( 'insert' )->andReturn( 1 )->byDefault();

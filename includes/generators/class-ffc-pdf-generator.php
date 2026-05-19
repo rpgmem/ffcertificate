@@ -381,22 +381,14 @@ class PdfGenerator {
 	 * @return string QR code image URL or data URI
 	 */
 	public static function generate_magic_link_qr( int $submission_id, int $size = 200 ): string {
-		global $wpdb;
+		$magic_token = ( new \FreeFormCertificate\Repositories\SubmissionRepository() )->findMagicTokenById( $submission_id );
 
-		// Get submission.
-		$table = $wpdb->prefix . 'ffc_submissions';
-    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-		$submission = $wpdb->get_row(
-			$wpdb->prepare( 'SELECT magic_token FROM %i WHERE id = %d', $table, $submission_id ),
-			ARRAY_A
-		);
-
-		if ( ! $submission || empty( $submission['magic_token'] ) ) {
+		if ( null === $magic_token ) {
 			return '';
 		}
 
 		// Use helper to generate magic link.
-		$magic_link = \FreeFormCertificate\Generators\MagicLinkHelper::generate_magic_link( $submission['magic_token'] );
+		$magic_link = \FreeFormCertificate\Generators\MagicLinkHelper::generate_magic_link( $magic_token );
 
 		if ( empty( $magic_link ) ) {
 			return '';

@@ -849,4 +849,107 @@ class CustomFieldRepository {
 		}
 		return is_array( $rules ) ? $rules : array();
 	}
+
+	/**
+	 * List every `field_key` that currently has `is_sensitive = 1`
+	 * AND `is_active = 1`. Used by
+	 * {@see \FreeFormCertificate\Core\SensitiveFieldRegistry::dynamic_sensitive_keys()}
+	 * to grow its sensitivity allow-list with admin-flagged fields.
+	 *
+	 * Centralizes a query that lived inline in the registry (issue #340).
+	 * Guards the table-existence via SHOW TABLES so a fresh install or
+	 * a test environment without the table degrades to an empty list
+	 * instead of throwing.
+	 *
+	 * @since 6.6.2
+	 * @return list<string> Field keys (unique, alphabetical not enforced).
+	 */
+	public static function list_sensitive_field_keys(): array {
+		global $wpdb;
+		$table = self::get_table_name();
+
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Table-existence guard.
+		$exists = $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $table ) );
+		if ( $exists !== $table ) {
+			return array();
+		}
+
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Catalog read; caching handled at the caller (SensitiveFieldRegistry).
+		$rows = $wpdb->get_col(
+			$wpdb->prepare(
+				'SELECT DISTINCT field_key FROM %i WHERE is_sensitive = 1 AND is_active = 1',
+				$table
+			)
+		);
+		if ( ! is_array( $rows ) ) {
+			return array();
+		}
+
+		$out = array();
+		foreach ( $rows as $field_key ) {
+			if ( is_string( $field_key ) && '' !== $field_key ) {
+				$out[] = $field_key;
+			}
+		}
+		return $out;
+	}
+
+	/**
+	 * Return the set of `field_key` values already present for an
+	 * audience — used by the standard-fields seeder to skip rows that
+	 * were inserted in a previous run (the seeder is idempotent).
+	 *
+	 * Issue #340 centralization.
+	 *
+	 * @since 6.6.2
+	 * @param int $audience_id Audience ID.
+	 * @return array<string, bool> Map of `field_key => true` for O(1) lookup.
+	 */
+	public static function existing_field_keys_for_audience( int $audience_id ): array {
+		if ( $audience_id <= 0 ) {
+			return array();
+		}
+		global $wpdb;
+		$table = self::get_table_name();
+
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Indexed scan by audience_id.
+		$rows = $wpdb->get_col(
+			$wpdb->prepare( 'SELECT field_key FROM %i WHERE audience_id = %d', $table, $audience_id )
+		);
+		if ( ! is_array( $rows ) ) {
+			return array();
+		}
+		$keys = array();
+		foreach ( $rows as $field_key ) {
+			$key = (string) $field_key;
+			if ( '' !== $key ) {
+				$keys[ $key ] = true;
+			}
+		}
+		return $keys;
+	}
+
+	/**
+	 * INSERT a standard / dynamic field row. Wraps `$wpdb->insert()` so
+	 * the seeder doesn't have to spell out the column→format mapping.
+	 * Returns the new row id, or `false` on failure.
+	 *
+	 * Issue #340 centralization.
+	 *
+	 * @since 6.6.2
+	 * @param array<string, mixed> $data Column => value map.
+	 * @return int|false
+	 */
+	public static function insert_row( array $data ) {
+		global $wpdb;
+		$table = self::get_table_name();
+
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Single-row insert; format hints below kept in sync with the schema.
+		$result = $wpdb->insert(
+			$table,
+			$data,
+			array( '%d', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%d', '%s', '%s', '%d', '%d', '%d' )
+		);
+		return false === $result ? false : (int) $wpdb->insert_id;
+	}
 }

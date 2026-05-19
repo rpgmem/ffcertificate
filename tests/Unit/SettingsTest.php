@@ -77,6 +77,11 @@ class SettingsTest extends TestCase {
         } );
         Functions\when( 'get_option' )->justReturn( array() );
         Functions\when( 'current_user_can' )->justReturn( true );
+        Functions\when( 'wp_cache_get' )->justReturn( false );
+        Functions\when( 'wp_cache_set' )->justReturn( true );
+        Functions\when( 'wp_cache_delete' )->justReturn( true );
+        Functions\when( 'wp_cache_flush' )->justReturn( true );
+        Functions\when( 'wp_cache_flush_group' )->justReturn( true );
 
         // Stub add_action to capture registrations (constructor calls it)
         Functions\when( 'add_action' )->justReturn( true );

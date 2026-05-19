@@ -395,32 +395,16 @@ class SelfSchedulingCPT {
 	 * @return int Number of appointments cancelled
 	 */
 	private function cancel_future_appointments( int $calendar_id, string $calendar_title ): int {
-		global $wpdb;
-		$table = $wpdb->prefix . 'ffc_self_scheduling_appointments';
-		$today = current_time( 'Y-m-d' );
+		$today            = current_time( 'Y-m-d' );
+		$appointment_repo = new \FreeFormCertificate\Repositories\AppointmentRepository();
 
-		// Get all future appointments (pending or confirmed).
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-		$future_appointments = $wpdb->get_results(
-			$wpdb->prepare(
-				"SELECT * FROM %i
-             WHERE calendar_id = %d
-             AND appointment_date >= %s
-             AND status IN ('pending', 'confirmed')
-             ORDER BY appointment_date ASC",
-				$table,
-				$calendar_id,
-				$today
-			),
-			ARRAY_A
-		);
+		$future_appointments = $appointment_repo->findByCalendarAfterWithStatus( $calendar_id, $today );
 
 		if ( empty( $future_appointments ) ) {
 			return 0;
 		}
 
-		$cancelled_count  = 0;
-		$appointment_repo = new \FreeFormCertificate\Repositories\AppointmentRepository();
+		$cancelled_count = 0;
 
 		foreach ( $future_appointments as $appointment ) {
 			// Cancel the appointment.

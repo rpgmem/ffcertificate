@@ -511,20 +511,7 @@ class ReregistrationStandardFieldsSeeder {
 			return 0;
 		}
 
-		global $wpdb;
-		$table = $wpdb->prefix . 'ffc_custom_fields';
-
-		// Get existing field_keys for this audience to avoid duplicates.
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
-		$existing_keys = $wpdb->get_col(
-			$wpdb->prepare(
-				'SELECT field_key FROM %i WHERE audience_id = %d',
-				$table,
-				$audience_id
-			)
-		);
-
-		$existing_keys = is_array( $existing_keys ) ? array_flip( $existing_keys ) : array();
+		$existing_keys = CustomFieldRepository::existing_field_keys_for_audience( $audience_id );
 
 		$definitions = self::get_standard_fields_definition();
 		$inserted    = 0;
@@ -551,14 +538,9 @@ class ReregistrationStandardFieldsSeeder {
 				'is_active'         => 1,
 			);
 
-            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-			$result = $wpdb->insert(
-				$table,
-				$insert_data,
-				array( '%d', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%d', '%s', '%s', '%d', '%d', '%d' )
-			);
+			$result = CustomFieldRepository::insert_row( $insert_data );
 
-			if ( $result ) {
+			if ( false !== $result ) {
 				++$inserted;
 			}
 		}
@@ -576,22 +558,14 @@ class ReregistrationStandardFieldsSeeder {
 			return 0;
 		}
 
-		global $wpdb;
-		$audience_table = $wpdb->prefix . 'ffc_audiences';
-
-		// Get all audience IDs directly to avoid status filters.
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
-		$ids = $wpdb->get_col(
-			$wpdb->prepare( 'SELECT id FROM %i', $audience_table )
-		);
-
+		$ids = \FreeFormCertificate\Audience\AudienceRepository::get_all_ids();
 		if ( empty( $ids ) ) {
 			return 0;
 		}
 
 		$total = 0;
 		foreach ( $ids as $aud_id ) {
-			$total += self::seed_for_audience( (int) $aud_id );
+			$total += self::seed_for_audience( $aud_id );
 		}
 
 		return $total;

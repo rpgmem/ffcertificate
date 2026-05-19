@@ -425,6 +425,68 @@ class RecruitmentClassificationRepository {
 	}
 
 	/**
+	 * Count distinct notices each promoted candidate participates in,
+	 * grouped by their linked `wp_users.ID`. Used by the admin Users
+	 * list "Notices" column to render the per-user count in one batch
+	 * pass (issue #340 centralization).
+	 *
+	 * Skips candidates with `user_id IS NULL` (never promoted) —
+	 * they have no WP-user surface to display the count on.
+	 *
+	 * @since 6.6.2
+	 * @return array<int, int> Map of `user_id => distinct-notice-count`.
+	 */
+	public static function count_notices_grouped_by_user(): array {
+		$wpdb            = self::db();
+		$candidates      = $wpdb->prefix . 'ffc_recruitment_candidate';
+		$classifications = self::get_table_name();
+
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Batch aggregate for one admin-screen render; per-row caching wouldn't help.
+		$rows = $wpdb->get_results(
+			$wpdb->prepare(
+				'SELECT c.user_id AS user_id, COUNT(DISTINCT cl.notice_id) AS c
+				FROM %i AS cl
+				INNER JOIN %i AS c ON c.id = cl.candidate_id
+				WHERE c.user_id IS NOT NULL
+				GROUP BY c.user_id',
+				$classifications,
+				$candidates
+			),
+			ARRAY_A
+		);
+
+		$out = array();
+		if ( is_array( $rows ) ) {
+			foreach ( $rows as $row ) {
+				$out[ (int) $row['user_id'] ] = (int) $row['c'];
+			}
+		}
+		return $out;
+	}
+
+	/**
+	 * SQL fragment for the WP_User_Query orderby rewrite that sorts
+	 * users by "distinct recruitment notices they appear in". Returns
+	 * a self-contained SELECT subquery — the caller wraps it as
+	 * `LEFT JOIN (subquery) AS {alias} ON {alias}.user_id = {wp_users}.ID`.
+	 *
+	 * Table names are baked in here so the admin layer doesn't have to
+	 * `$wpdb->prefix . 'ffc_…'` (issue #340 centralization). The output
+	 * is intentionally a raw SQL string because WP_User_Query's
+	 * `query_from` extension hook only accepts that.
+	 *
+	 * @since 6.6.2
+	 * @return string SQL subquery fragment (already including the
+	 *                surrounding parentheses).
+	 */
+	public static function sql_user_notice_count_subquery(): string {
+		$wpdb            = self::db();
+		$candidates      = $wpdb->prefix . 'ffc_recruitment_candidate';
+		$classifications = self::get_table_name();
+		return "(SELECT c.user_id AS user_id, COUNT(DISTINCT cl.notice_id) AS cnt FROM {$classifications} AS cl INNER JOIN {$candidates} AS c ON c.id = cl.candidate_id WHERE c.user_id IS NOT NULL GROUP BY c.user_id)";
+	}
+
+	/**
 	 * Swap a classification's `adjutancy_id` (issue #331 "Edit estendido").
 	 *
 	 * Pure CRUD — caller (the REST controller) is responsible for

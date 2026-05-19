@@ -615,4 +615,283 @@ class AppointmentRepository extends AbstractRepository {
 
 		return $counts;
 	}
+
+	/**
+	 * Aggregate appointment counts grouped by `user_id`, optionally
+	 * excluding rows matching one status. Backs the admin Users list
+	 * "appointments" column where every row needs its own count.
+	 *
+	 * Issue #340 centralization.
+	 *
+	 * @since 6.6.2
+	 * @param string|null $exclude_status When non-null, rows with this
+	 *                                    status are filtered out (e.g.
+	 *                                    `'cancelled'`).
+	 * @return array<int, int> Map of `user_id => count`. user_id 0 / NULL
+	 *                         rows are skipped.
+	 */
+	public function countAllByUserGrouped( ?string $exclude_status = null ): array {
+		$where = 'user_id IS NOT NULL AND user_id > 0';
+		$args  = array( $this->table );
+		if ( null !== $exclude_status && '' !== $exclude_status ) {
+			$where .= ' AND status != %s';
+			$args[] = $exclude_status;
+		}
+
+		$sql = "SELECT user_id, COUNT(*) AS c FROM %i WHERE {$where} GROUP BY user_id";
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- $where is a compile-time fragment with only known placeholders; values are bound through wpdb->prepare.
+		$rows = $this->wpdb->get_results( $this->wpdb->prepare( $sql, $args ), ARRAY_A );
+
+		$out = array();
+		if ( is_array( $rows ) ) {
+			foreach ( $rows as $row ) {
+				$out[ (int) $row['user_id'] ] = (int) $row['c'];
+			}
+		}
+		return $out;
+	}
+
+	/**
+	 * Delete every appointment row for a calendar. Issue #340.
+	 *
+	 * @since 6.6.2
+	 * @param int $calendar_id Calendar ID.
+	 * @return int Rows deleted (0 when prepare/query fails).
+	 */
+	public function deleteByCalendar( int $calendar_id ): int {
+		if ( $calendar_id <= 0 ) {
+			return 0;
+		}
+		$sql = $this->wpdb->prepare( 'DELETE FROM %i WHERE calendar_id = %d', $this->table, $calendar_id );
+		if ( ! is_string( $sql ) ) {
+			return 0;
+		}
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+		$rows = $this->wpdb->query( $sql );
+		$this->clear_cache();
+		return is_int( $rows ) ? $rows : 0;
+	}
+
+	/**
+	 * Delete every appointment for a calendar dated strictly before
+	 * `$date` (Y-m-d). Issue #340.
+	 *
+	 * @since 6.6.2
+	 * @param int    $calendar_id Calendar ID.
+	 * @param string $date        Cutoff date (`Y-m-d`).
+	 * @return int Rows deleted.
+	 */
+	public function deleteByCalendarBefore( int $calendar_id, string $date ): int {
+		if ( $calendar_id <= 0 || '' === $date ) {
+			return 0;
+		}
+		$sql = $this->wpdb->prepare(
+			'DELETE FROM %i WHERE calendar_id = %d AND appointment_date < %s',
+			$this->table,
+			$calendar_id,
+			$date
+		);
+		if ( ! is_string( $sql ) ) {
+			return 0;
+		}
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+		$rows = $this->wpdb->query( $sql );
+		$this->clear_cache();
+		return is_int( $rows ) ? $rows : 0;
+	}
+
+	/**
+	 * Delete every appointment for a calendar dated on or after `$date`
+	 * (Y-m-d). Issue #340.
+	 *
+	 * @since 6.6.2
+	 * @param int    $calendar_id Calendar ID.
+	 * @param string $date        Cutoff date (`Y-m-d`).
+	 * @return int Rows deleted.
+	 */
+	public function deleteByCalendarAfter( int $calendar_id, string $date ): int {
+		if ( $calendar_id <= 0 || '' === $date ) {
+			return 0;
+		}
+		$sql = $this->wpdb->prepare(
+			'DELETE FROM %i WHERE calendar_id = %d AND appointment_date >= %s',
+			$this->table,
+			$calendar_id,
+			$date
+		);
+		if ( ! is_string( $sql ) ) {
+			return 0;
+		}
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+		$rows = $this->wpdb->query( $sql );
+		$this->clear_cache();
+		return is_int( $rows ) ? $rows : 0;
+	}
+
+	/**
+	 * Delete every appointment for a calendar matching a specific
+	 * status (e.g. `'cancelled'`). Issue #340.
+	 *
+	 * @since 6.6.2
+	 * @param int    $calendar_id Calendar ID.
+	 * @param string $status      Status to delete (matches column verbatim).
+	 * @return int Rows deleted.
+	 */
+	public function deleteByCalendarAndStatus( int $calendar_id, string $status ): int {
+		if ( $calendar_id <= 0 || '' === $status ) {
+			return 0;
+		}
+		$sql = $this->wpdb->prepare(
+			'DELETE FROM %i WHERE calendar_id = %d AND status = %s',
+			$this->table,
+			$calendar_id,
+			$status
+		);
+		if ( ! is_string( $sql ) ) {
+			return 0;
+		}
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+		$rows = $this->wpdb->query( $sql );
+		$this->clear_cache();
+		return is_int( $rows ) ? $rows : 0;
+	}
+
+	/**
+	 * Count appointments for a calendar dated before `$date`. Issue #340.
+	 *
+	 * @since 6.6.2
+	 * @param int    $calendar_id Calendar ID.
+	 * @param string $date        Cutoff date (`Y-m-d`).
+	 * @return int
+	 */
+	public function countByCalendarBefore( int $calendar_id, string $date ): int {
+		if ( $calendar_id <= 0 || '' === $date ) {
+			return 0;
+		}
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+		$count = $this->wpdb->get_var(
+			$this->wpdb->prepare(
+				'SELECT COUNT(*) FROM %i WHERE calendar_id = %d AND appointment_date < %s',
+				$this->table,
+				$calendar_id,
+				$date
+			)
+		);
+		return null === $count ? 0 : (int) $count;
+	}
+
+	/**
+	 * Count appointments for a calendar dated on or after `$date`. Issue #340.
+	 *
+	 * @since 6.6.2
+	 * @param int    $calendar_id Calendar ID.
+	 * @param string $date        Cutoff date (`Y-m-d`).
+	 * @return int
+	 */
+	public function countByCalendarAfter( int $calendar_id, string $date ): int {
+		if ( $calendar_id <= 0 || '' === $date ) {
+			return 0;
+		}
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+		$count = $this->wpdb->get_var(
+			$this->wpdb->prepare(
+				'SELECT COUNT(*) FROM %i WHERE calendar_id = %d AND appointment_date >= %s',
+				$this->table,
+				$calendar_id,
+				$date
+			)
+		);
+		return null === $count ? 0 : (int) $count;
+	}
+
+	/**
+	 * Find appointments for a calendar dated on or after `$date` whose
+	 * status is in the allow-list (defaults to active states). Used by
+	 * the calendar-delete flow to know whom to notify. Issue #340.
+	 *
+	 * @since 6.6.2
+	 * @param int           $calendar_id Calendar ID.
+	 * @param string        $date        Cutoff date (`Y-m-d`).
+	 * @param array<string> $statuses    Status allow-list.
+	 * @return array<int, array<string, mixed>>
+	 */
+	public function findByCalendarAfterWithStatus( int $calendar_id, string $date, array $statuses = array( 'pending', 'confirmed' ) ): array {
+		if ( $calendar_id <= 0 || '' === $date || empty( $statuses ) ) {
+			return array();
+		}
+		$placeholders = implode( ',', array_fill( 0, count( $statuses ), '%s' ) );
+		$args         = array_merge( array( $this->table, $calendar_id, $date ), array_values( $statuses ) );
+		$sql          = "SELECT * FROM %i WHERE calendar_id = %d AND appointment_date >= %s AND status IN ({$placeholders}) ORDER BY appointment_date ASC, start_time ASC";
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- $placeholders is a compile-time string of %s tokens whose count matches the args supplied to wpdb->prepare.
+		$rows = $this->wpdb->get_results( $this->wpdb->prepare( $sql, $args ), ARRAY_A );
+		return is_array( $rows ) ? $rows : array();
+	}
+
+	/**
+	 * Bulk-link anonymous appointment rows (`user_id IS NULL`) to a
+	 * just-created WP user by matching a hash column (e.g. `email_hash`,
+	 * `cpf_hash`). Used by `UserCreator` after promotion. Issue #340.
+	 *
+	 * The `$hash_column` value is validated against an allow-list so it
+	 * never reaches SQL as raw operator input — only the four
+	 * `*_hash` columns the schema actually carries are accepted.
+	 *
+	 * @since 6.6.2
+	 * @param int    $user_id     Newly-created WP user id.
+	 * @param string $hash_column Hash column to match against (one of
+	 *                            `email_hash`, `cpf_hash`, `rf_hash`,
+	 *                            `ticket_hash`).
+	 * @param string $hash_value  Hash digest.
+	 * @return int Rows linked (0 when inputs invalid or no match).
+	 */
+	public function linkByIdentifierHash( int $user_id, string $hash_column, string $hash_value ): int {
+		if ( $user_id <= 0 || '' === $hash_value ) {
+			return 0;
+		}
+		$allowed = array( 'email_hash', 'cpf_hash', 'rf_hash', 'ticket_hash' );
+		if ( ! in_array( $hash_column, $allowed, true ) ) {
+			return 0;
+		}
+		$sql = $this->wpdb->prepare(
+			"UPDATE %i SET user_id = %d WHERE {$hash_column} = %s AND user_id IS NULL",
+			$this->table,
+			$user_id,
+			$hash_value
+		);
+		if ( ! is_string( $sql ) ) {
+			return 0;
+		}
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- $hash_column is verified against a fixed allow-list above; values are bound through wpdb->prepare.
+		$rows = $this->wpdb->query( $sql );
+		$this->clear_cache();
+		return is_int( $rows ) ? $rows : 0;
+	}
+
+	/**
+	 * Find the next upcoming appointment for a user — date >= today
+	 * AND status ∈ allow-list, ordered by date+time ASC, single row.
+	 * Used by the user-summary REST endpoint to surface "your next
+	 * appointment" on the dashboard. Issue #340.
+	 *
+	 * Returns just the appointment row (no calendar JOIN) — the
+	 * caller can fetch the calendar title via `CalendarRepository`
+	 * if it needs to display it, keeping this repository's queries
+	 * single-table.
+	 *
+	 * @since 6.6.2
+	 * @param int           $user_id  WP user id.
+	 * @param array<string> $statuses Status allow-list.
+	 * @return array<string, mixed>|null
+	 */
+	public function findNextUpcomingForUser( int $user_id, array $statuses = array( 'pending', 'confirmed' ) ): ?array {
+		if ( $user_id <= 0 || empty( $statuses ) ) {
+			return null;
+		}
+		$placeholders = implode( ',', array_fill( 0, count( $statuses ), '%s' ) );
+		$args         = array_merge( array( $this->table, $user_id ), array_values( $statuses ) );
+		$sql          = "SELECT * FROM %i WHERE user_id = %d AND status IN ({$placeholders}) AND appointment_date >= CURDATE() ORDER BY appointment_date ASC, start_time ASC LIMIT 1";
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- $placeholders is a compile-time string of %s tokens whose count matches the args supplied to wpdb->prepare.
+		$row = $this->wpdb->get_row( $this->wpdb->prepare( $sql, $args ), ARRAY_A );
+		return is_array( $row ) ? $row : null;
+	}
 }

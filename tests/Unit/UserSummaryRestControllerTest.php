@@ -211,17 +211,29 @@ class UserSummaryRestControllerTest extends TestCase {
         Functions\when( 'current_user_can' )->alias( function( $cap ) {
             return $cap === 'manage_options';
         });
+        Functions\when( 'wp_cache_get' )->justReturn( false );
+        Functions\when( 'wp_cache_set' )->justReturn( true );
 
         // Certificates count
         $this->wpdb->shouldReceive( 'get_var' )->andReturn( '0' );
 
-        // Next appointment query returns a row
-        $appointment_row = array(
-            'appointment_date' => '2026-06-15',
-            'start_time'       => '10:30:00',
-            'calendar_title'   => 'Main Calendar',
+        // The next-appointment lookup now goes through
+        // AppointmentRepository::findNextUpcomingForUser() and the
+        // calendar title is fetched separately via CalendarRepository
+        // (issue #340 centralization). Two get_row() returns: first the
+        // appointment row, then the calendar row.
+        $this->wpdb->shouldReceive( 'get_row' )->andReturn(
+            array(
+                'id'               => 1,
+                'appointment_date' => '2026-06-15',
+                'start_time'       => '10:30:00',
+                'calendar_id'      => 42,
+            ),
+            array(
+                'id'    => 42,
+                'title' => 'Main Calendar',
+            )
         );
-        $this->wpdb->shouldReceive( 'get_row' )->andReturn( $appointment_row );
 
         Functions\when( 'get_option' )->alias( function( $key, $default = false ) {
             if ( $key === 'ffc_settings' ) {

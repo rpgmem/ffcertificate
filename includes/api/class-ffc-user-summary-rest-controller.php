@@ -94,39 +94,24 @@ class UserSummaryRestController {
 
 			// Next appointment.
 			if ( $this->user_has_capability( 'ffc_view_self_scheduling', $user_id, $ctx['is_view_as'] ) ) {
-				$apt_table       = $wpdb->prefix . 'ffc_self_scheduling_appointments';
-				$calendars_table = $wpdb->prefix . 'ffc_self_scheduling_calendars';
-
-                // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-				$next = $wpdb->get_row(
-					$wpdb->prepare(
-						"SELECT a.appointment_date, a.start_time, c.title as calendar_title
-                     FROM %i a
-                     LEFT JOIN %i c ON a.calendar_id = c.id
-                     WHERE a.user_id = %d
-                       AND a.status IN ('pending', 'confirmed')
-                       AND a.appointment_date >= CURDATE()
-                     ORDER BY a.appointment_date ASC, a.start_time ASC
-                     LIMIT 1",
-						$apt_table,
-						$calendars_table,
-						$user_id
-					),
-					ARRAY_A
-				);
+				$apt_repo = new \FreeFormCertificate\Repositories\AppointmentRepository();
+				$next     = $apt_repo->findNextUpcomingForUser( $user_id );
 
 				if ( $next ) {
-					$timestamp      = strtotime( $next['appointment_date'] );
+					$timestamp      = strtotime( (string) $next['appointment_date'] );
 					$time_formatted = '';
 					if ( ! empty( $next['start_time'] ) ) {
-						$time_ts        = strtotime( $next['start_time'] );
+						$time_ts        = strtotime( (string) $next['start_time'] );
 						$time_formatted = ( false !== $time_ts ) ? \FreeFormCertificate\Core\DateFormatter::format_time( $time_ts ) : '';
 					}
 
+					$calendar      = ( new \FreeFormCertificate\Repositories\CalendarRepository() )->findById( (int) ( $next['calendar_id'] ?? 0 ) );
+					$calendar_name = is_array( $calendar ) ? (string) ( $calendar['title'] ?? '' ) : '';
+
 					$summary['next_appointment'] = array(
-						'date'  => ( false !== $timestamp ) ? \FreeFormCertificate\Core\DateFormatter::format_date( $timestamp ) : $next['appointment_date'],
+						'date'  => ( false !== $timestamp ) ? \FreeFormCertificate\Core\DateFormatter::format_date( $timestamp ) : (string) $next['appointment_date'],
 						'time'  => $time_formatted,
-						'title' => $next['calendar_title'] ?? '',
+						'title' => $calendar_name,
 					);
 				}
 			}
