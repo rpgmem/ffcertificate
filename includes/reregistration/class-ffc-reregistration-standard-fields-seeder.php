@@ -558,22 +558,14 @@ class ReregistrationStandardFieldsSeeder {
 			return 0;
 		}
 
-		global $wpdb;
-		$audience_table = $wpdb->prefix . 'ffc_audiences';
-
-		// Get all audience IDs directly to avoid status filters.
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
-		$ids = $wpdb->get_col(
-			$wpdb->prepare( 'SELECT id FROM %i', $audience_table )
-		);
-
+		$ids = \FreeFormCertificate\Audience\AudienceRepository::get_all_ids();
 		if ( empty( $ids ) ) {
 			return 0;
 		}
 
 		$total = 0;
 		foreach ( $ids as $aud_id ) {
-			$total += self::seed_for_audience( (int) $aud_id );
+			$total += self::seed_for_audience( $aud_id );
 		}
 
 		return $total;

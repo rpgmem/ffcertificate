@@ -1250,4 +1250,42 @@ class AudienceRepositoryTest extends TestCase {
 
         $this->assertStringContainsString('LIMIT %d', $captured_sql);
     }
+
+    // ------------------------------------------------------------------
+    // get_all_ids() / get_user_audience_badges() — issue #340
+    // ------------------------------------------------------------------
+
+    public function test_get_all_ids_returns_int_list(): void {
+        $this->wpdb->shouldReceive('prepare')->once()->andReturnUsing(fn($s) => $s);
+        $this->wpdb->shouldReceive('get_col')->once()->andReturn(['1', '2', '7']);
+
+        $this->assertSame([1, 2, 7], AudienceRepository::get_all_ids());
+    }
+
+    public function test_get_all_ids_returns_empty_when_no_rows(): void {
+        $this->wpdb->shouldReceive('prepare')->once()->andReturnUsing(fn($s) => $s);
+        $this->wpdb->shouldReceive('get_col')->once()->andReturn([]);
+
+        $this->assertSame([], AudienceRepository::get_all_ids());
+    }
+
+    public function test_get_user_audience_badges_returns_name_color_pairs(): void {
+        $this->wpdb->shouldReceive('prepare')->once()->andReturnUsing(fn($s) => $s);
+        $this->wpdb->shouldReceive('get_results')->once()->andReturn([
+            ['name' => 'VIP', 'color' => '#ff0'],
+            ['name' => 'New', 'color' => '#0f0'],
+        ]);
+
+        $badges = AudienceRepository::get_user_audience_badges(7);
+
+        $this->assertCount(2, $badges);
+        $this->assertSame('VIP', $badges[0]['name']);
+        $this->assertSame('#0f0', $badges[1]['color']);
+    }
+
+    public function test_get_user_audience_badges_short_circuits_on_invalid_user(): void {
+        $this->wpdb->shouldNotReceive('get_results');
+
+        $this->assertSame([], AudienceRepository::get_user_audience_badges(0));
+    }
 }

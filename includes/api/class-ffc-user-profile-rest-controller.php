@@ -156,26 +156,12 @@ class UserProfileRestController {
 			}
 
 			$audience_groups = array();
-			$audiences_table = $wpdb->prefix . 'ffc_audiences';
 			$members_table   = $wpdb->prefix . 'ffc_audience_members';
 
 			if ( self::table_exists( $members_table ) ) {
-                // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-				$audience_groups = $wpdb->get_results(
-					$wpdb->prepare(
-						"SELECT a.name, a.color
-                     FROM %i m
-                     INNER JOIN %i a ON a.id = m.audience_id
-                     WHERE m.user_id = %d AND a.status = 'active'
-                     ORDER BY a.name ASC",
-						$members_table,
-						$audiences_table,
-						$user_id
-					),
-					ARRAY_A
-				);
+				$audience_groups = \FreeFormCertificate\Audience\AudienceRepository::get_user_audience_badges( $user_id );
 
-				if ( ! is_array( $audience_groups ) ) {
+				if ( empty( $audience_groups ) ) {
 					$audience_groups = array();
 				}
 			}

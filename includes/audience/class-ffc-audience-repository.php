@@ -45,6 +45,78 @@ class AudienceRepository {
 	}
 
 	/**
+	 * List every audience id regardless of status — used by callers
+	 * that need to iterate the full set without applying the public
+	 * `status='active'` filter that `get_all()` defaults to.
+	 *
+	 * Issue #340 centralization (extracted from the standard-fields
+	 * seeder's `seed_all_existing_audiences()` flow).
+	 *
+	 * @since 6.6.2
+	 * @return list<int>
+	 */
+	public static function get_all_ids(): array {
+		$wpdb  = self::db();
+		$table = self::get_table_name();
+
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Catalog scan; bounded by audience count.
+		$ids = $wpdb->get_col(
+			$wpdb->prepare( 'SELECT id FROM %i', $table )
+		);
+
+		return array_values( array_map( 'intval', $ids ) );
+	}
+
+	/**
+	 * Audiences (active only) the user is a member of, including only
+	 * the columns the public profile chips need: `name`, `color`. Used
+	 * by the REST `/me/profile` endpoint — keeping the column list
+	 * narrow avoids paying the SELECT * cost when only the badge
+	 * surface is rendered.
+	 *
+	 * Issue #340 centralization.
+	 *
+	 * @since 6.6.2
+	 * @param int $user_id WP user id.
+	 * @return list<array{name: string, color: string}>
+	 */
+	public static function get_user_audience_badges( int $user_id ): array {
+		if ( $user_id <= 0 ) {
+			return array();
+		}
+		$wpdb          = self::db();
+		$table         = self::get_table_name();
+		$members_table = self::get_members_table_name();
+
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+		$rows = $wpdb->get_results(
+			$wpdb->prepare(
+				"SELECT a.name, a.color
+				FROM %i m
+				INNER JOIN %i a ON a.id = m.audience_id
+				WHERE m.user_id = %d AND a.status = 'active'
+				ORDER BY a.name ASC",
+				$members_table,
+				$table,
+				$user_id
+			),
+			ARRAY_A
+		);
+		if ( ! is_array( $rows ) ) {
+			return array();
+		}
+
+		$out = array();
+		foreach ( $rows as $row ) {
+			$out[] = array(
+				'name'  => (string) ( $row['name'] ?? '' ),
+				'color' => (string) ( $row['color'] ?? '' ),
+			);
+		}
+		return $out;
+	}
+
+	/**
 	 * Get members table name
 	 *
 	 * @return string
