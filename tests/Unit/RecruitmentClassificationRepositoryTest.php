@@ -161,4 +161,30 @@ class RecruitmentClassificationRepositoryTest extends TestCase {
 		$result = RecruitmentClassificationRepository::get_for_notice( 1, 'definitive', 2 );
 		$this->assertCount( 2, $result );
 	}
+
+	// ------------------------------------------------------------------
+	// set_adjutancy() — issue #331 "Edit estendido"
+	// ------------------------------------------------------------------
+
+	public function test_set_adjutancy_returns_true_on_successful_update(): void {
+		Functions\when( 'do_action' )->justReturn( null );
+		$this->wpdb->shouldReceive( 'update' )
+			->once()
+			->with(
+				'wp_ffc_recruitment_classification',
+				array( 'adjutancy_id' => 7 ),
+				array( 'id' => 42 ),
+				array( '%d' ),
+				array( '%d' )
+			)
+			->andReturn( 1 );
+
+		$this->assertTrue( RecruitmentClassificationRepository::set_adjutancy( 42, 7 ) );
+	}
+
+	public function test_set_adjutancy_returns_false_when_wpdb_update_fails(): void {
+		$this->wpdb->shouldReceive( 'update' )->once()->andReturn( false );
+
+		$this->assertFalse( RecruitmentClassificationRepository::set_adjutancy( 42, 7 ) );
+	}
 }

@@ -424,6 +424,13 @@ final class RecruitmentCandidateEditPage {
 			$classification_ids = array_map( static fn( $c ) => (int) $c->id, $classifications );
 			$calls_by_class     = self::group_calls_by_classification( $classification_ids );
 
+			// Pre-compute the set of adjutancies attached to each
+			// distinct notice referenced by this candidate's rows, so
+			// the per-row <select> renders only the junction-attached
+			// options (anything else would be rejected by the REST
+			// endpoint and lead to a confusing UX).
+			$adjutancies_by_notice = self::adjutancies_per_notice_for_rows( $classifications );
+
 			echo '<table class="widefat striped"><thead><tr>';
 			echo '<th>' . esc_html__( 'Notice', 'ffcertificate' ) . '</th>';
 			echo '<th>' . esc_html__( 'Adjutancy', 'ffcertificate' ) . '</th>';
@@ -435,13 +442,12 @@ final class RecruitmentCandidateEditPage {
 			echo '</tr></thead><tbody>';
 
 			foreach ( $classifications as $c ) {
-				$notice_obj    = RecruitmentNoticeRepository::get_by_id( (int) $c->notice_id );
-				$adjutancy_obj = RecruitmentAdjutancyRepository::get_by_id( (int) $c->adjutancy_id );
-				$call_count    = isset( $calls_by_class[ (int) $c->id ] ) ? count( $calls_by_class[ (int) $c->id ] ) : 0;
+				$notice_obj = RecruitmentNoticeRepository::get_by_id( (int) $c->notice_id );
+				$call_count = isset( $calls_by_class[ (int) $c->id ] ) ? count( $calls_by_class[ (int) $c->id ] ) : 0;
 
 				echo '<tr>';
 				echo '<td>' . esc_html( null !== $notice_obj ? (string) $notice_obj->code : '#' . (int) $c->notice_id ) . '</td>';
-				echo '<td><code>' . esc_html( null !== $adjutancy_obj ? (string) $adjutancy_obj->slug : '#' . (int) $c->adjutancy_id ) . '</code></td>';
+				echo '<td>' . self::render_adjutancy_cell( $c, $adjutancies_by_notice ) . '</td>'; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- render_adjutancy_cell returns pre-escaped HTML.
 				echo '<td>' . esc_html( (string) $c->list_type ) . '</td>';
 				echo '<td>' . esc_html( (string) $c->rank ) . '</td>';
 				echo '<td>' . esc_html( (string) $c->score ) . '</td>';
@@ -450,6 +456,7 @@ final class RecruitmentCandidateEditPage {
 				echo '</tr>';
 			}
 			echo '</tbody></table>';
+			self::render_adjutancy_swap_script();
 
 			// Render an inline calls table per classification that has any calls.
 			foreach ( $classifications as $c ) {
@@ -584,6 +591,12 @@ final class RecruitmentCandidateEditPage {
 		$phone = isset( $_POST['phone'] ) ? sanitize_text_field( wp_unslash( (string) $_POST['phone'] ) ) : '';
 		$notes = isset( $_POST['notes'] ) ? sanitize_textarea_field( wp_unslash( (string) $_POST['notes'] ) ) : '';
 
+		// Read the pre-update row so we can audit-log the diff after the
+		// repository write lands. Done BEFORE the update because the
+		// repository's update method invalidates the cache key but
+		// returns the wpdb int affected-rows, not the updated row.
+		$before = RecruitmentCandidateRepository::get_by_id( $id );
+
 		$update = array(
 			'name'  => $name,
 			'phone' => '' === $phone ? null : $phone,
@@ -603,7 +616,67 @@ final class RecruitmentCandidateEditPage {
 
 		RecruitmentCandidateRepository::update( $id, $update );
 
+		if ( null !== $before ) {
+			$changes = self::diff_general_fields( $before, $name, $phone, $notes, $email );
+			RecruitmentActivityLogger::candidate_fields_edited( $id, $changes );
+		}
+
 		self::redirect_with_notice( $id, 'saved' );
+	}
+
+	/**
+	 * Diff the four General-section fields against the pre-update row,
+	 * returning the entries that actually changed. Used by handle_save()
+	 * to feed the audit logger — empty diff means "operator pressed
+	 * Save without changing anything" and the logger short-circuits.
+	 *
+	 * The `email` field is reported as the SHA-256 hash digests of the
+	 * old / new addresses (never plaintext); the other three live
+	 * unencrypted in the candidate table by design (§12) and are
+	 * logged as-is.
+	 *
+	 * @since 6.6.2
+	 * @param object $before  Pre-update candidate row.
+	 * @phpstan-param CandidateRow $before
+	 * @param string $name    New name.
+	 * @param string $phone   New phone (empty string means "clear").
+	 * @param string $notes   New notes (empty string means "clear").
+	 * @param string $email   New email (empty string means "clear").
+	 * @return array<string, array{old: scalar|null, new: scalar|null}>
+	 */
+	private static function diff_general_fields( object $before, string $name, string $phone, string $notes, string $email ): array {
+		$old_name       = (string) ( $before->name ?? '' );
+		$old_phone      = null === $before->phone ? '' : (string) $before->phone;
+		$old_notes      = null === $before->notes ? '' : (string) $before->notes;
+		$old_email_hash = null === $before->email_hash ? '' : (string) $before->email_hash;
+		$new_email_hash = '' === $email ? '' : (string) Encryption::hash( $email );
+
+		$changes = array();
+		if ( $old_name !== $name ) {
+			$changes['name'] = array(
+				'old' => $old_name,
+				'new' => $name,
+			);
+		}
+		if ( $old_phone !== $phone ) {
+			$changes['phone'] = array(
+				'old' => $old_phone,
+				'new' => $phone,
+			);
+		}
+		if ( $old_notes !== $notes ) {
+			$changes['notes'] = array(
+				'old' => $old_notes,
+				'new' => $notes,
+			);
+		}
+		if ( $old_email_hash !== $new_email_hash ) {
+			$changes['email_hash'] = array(
+				'old' => $old_email_hash,
+				'new' => $new_email_hash,
+			);
+		}
+		return $changes;
 	}
 
 	/**
@@ -754,5 +827,121 @@ final class RecruitmentCandidateEditPage {
 			)
 		);
 		exit;
+	}
+
+	/**
+	 * Build a `notice_id => list<adjutancy_id>` map for the unique
+	 * notices referenced by the candidate's classifications. Used by
+	 * the per-row Adjutancy <select> so the operator only sees options
+	 * the notice_adjutancy junction would actually accept.
+	 *
+	 * @since 6.6.2
+	 * @param array<int, object> $classifications Candidate's classification rows.
+	 * @phpstan-param array<int, ClassificationRow> $classifications
+	 * @return array<int, list<int>>
+	 */
+	private static function adjutancies_per_notice_for_rows( array $classifications ): array {
+		$out  = array();
+		$seen = array();
+		foreach ( $classifications as $c ) {
+			$notice_id = (int) $c->notice_id;
+			if ( isset( $seen[ $notice_id ] ) ) {
+				continue;
+			}
+			$seen[ $notice_id ] = true;
+			$out[ $notice_id ]  = array_values( array_map( 'intval', RecruitmentNoticeAdjutancyRepository::get_adjutancy_ids_for_notice( $notice_id ) ) );
+		}
+		return $out;
+	}
+
+	/**
+	 * Render the Adjutancy table cell for a single classification row
+	 * — either an inline <select> + Save button (when the notice has
+	 * >1 adjutancy attached) or the read-only `<code>` slug rendered
+	 * before #331 (when 0 or 1 alternatives exist, swap would be a
+	 * no-op or rejected). Issue #331 "Edit estendido".
+	 *
+	 * The returned HTML is already escaped and safe to echo directly.
+	 *
+	 * @since 6.6.2
+	 * @param object                $c                     Classification row.
+	 * @phpstan-param ClassificationRow $c
+	 * @param array<int, list<int>> $adjutancies_by_notice  Pre-fetched map.
+	 * @return string
+	 */
+	private static function render_adjutancy_cell( object $c, array $adjutancies_by_notice ): string {
+		$current_adj_id = (int) $c->adjutancy_id;
+		$notice_id      = (int) $c->notice_id;
+		$candidates     = $adjutancies_by_notice[ $notice_id ] ?? array();
+		$current_obj    = RecruitmentAdjutancyRepository::get_by_id( $current_adj_id );
+		$current_label  = null !== $current_obj ? (string) $current_obj->slug : '#' . $current_adj_id;
+
+		if ( count( $candidates ) < 2 ) {
+			return '<code>' . esc_html( $current_label ) . '</code>';
+		}
+
+		$html  = '<span class="ffc-adjutancy-swap" data-ffc-cls-id="' . esc_attr( (string) (int) $c->id ) . '">';
+		$html .= '<select class="ffc-adjutancy-swap-select">';
+		foreach ( $candidates as $aid ) {
+			$obj   = RecruitmentAdjutancyRepository::get_by_id( (int) $aid );
+			$label = null !== $obj ? (string) $obj->slug : '#' . (int) $aid;
+			$sel   = (int) $aid === $current_adj_id ? ' selected' : '';
+			$html .= '<option value="' . esc_attr( (string) (int) $aid ) . '"' . esc_attr( $sel ) . '>' . esc_html( $label ) . '</option>';
+		}
+		$html .= '</select> ';
+		$html .= '<button type="button" class="button button-small ffc-adjutancy-swap-btn">' . esc_html__( 'Save', 'ffcertificate' ) . '</button>';
+		$html .= ' <span class="ffc-adjutancy-swap-msg" aria-live="polite"></span>';
+		$html .= '</span>';
+		return $html;
+	}
+
+	/**
+	 * Inline JS for the per-row Adjutancy swap button. Issue #331.
+	 *
+	 * On click: PATCH /classifications/{id}/adjutancy with the selected
+	 * option, surface success or the WP_Error message inline (the REST
+	 * controller emits a stable `code` field per failure mode so we
+	 * could branch on it for richer messaging later — for now we just
+	 * show whatever the server returned).
+	 *
+	 * @since 6.6.2
+	 * @return void
+	 */
+	private static function render_adjutancy_swap_script(): void {
+		$rest_root = esc_url_raw( rest_url( 'ffcertificate/v1/recruitment/classifications/' ) );
+		$nonce     = wp_create_nonce( 'wp_rest' );
+		$ok_lbl    = esc_js( __( 'Saved', 'ffcertificate' ) );
+		$err_lbl   = esc_js( __( 'Error', 'ffcertificate' ) );
+
+		// phpcs:disable WordPress.Security.EscapeOutput.OutputNotEscaped -- All interpolated values escaped via esc_url_raw / esc_js above.
+		echo '<script>'
+			. '(function(){'
+			. 'document.addEventListener("click",function(ev){'
+			. 'var btn=ev.target;'
+			. 'if(!btn||!btn.classList||!btn.classList.contains("ffc-adjutancy-swap-btn"))return;'
+			. 'ev.preventDefault();'
+			. 'var wrap=btn.closest(".ffc-adjutancy-swap");'
+			. 'if(!wrap)return;'
+			. 'var cid=wrap.getAttribute("data-ffc-cls-id");'
+			. 'var sel=wrap.querySelector(".ffc-adjutancy-swap-select");'
+			. 'var msg=wrap.querySelector(".ffc-adjutancy-swap-msg");'
+			. 'if(!cid||!sel||!msg)return;'
+			. 'msg.textContent="";'
+			. 'btn.disabled=true;'
+			. 'fetch("' . $rest_root . '"+encodeURIComponent(cid)+"/adjutancy",{'
+			. 'method:"PATCH",'
+			. 'credentials:"same-origin",'
+			. 'headers:{"Content-Type":"application/json","X-WP-Nonce":"' . esc_js( $nonce ) . '"},'
+			. 'body:JSON.stringify({adjutancy_id:parseInt(sel.value,10)})'
+			. '}).then(function(r){return r.json().then(function(b){return{ok:r.ok,body:b};});})'
+			. '.then(function(res){'
+			. 'btn.disabled=false;'
+			. 'if(res.ok&&res.body&&res.body.success){msg.textContent="' . $ok_lbl . '";msg.style.color="#1a7f37";}'
+			. 'else{msg.textContent="' . $err_lbl . ': "+((res.body&&res.body.message)||"");msg.style.color="#b91c1c";}'
+			. '}).catch(function(){btn.disabled=false;msg.textContent="' . $err_lbl . '";msg.style.color="#b91c1c";});'
+			. '});'
+			. '})();'
+			. '</script>';
+		// phpcs:enable WordPress.Security.EscapeOutput.OutputNotEscaped
 	}
 }

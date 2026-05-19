@@ -81,9 +81,9 @@ class RecruitmentClassificationsRestControllerTest extends TestCase {
     public function test_register_routes_registers_classification_route_groups(): void {
         $this->controller->register_routes();
 
-        // 9 register_rest_route calls: list/item/import/promote/call/bulk-call/
-        // status/preview-status/cancel-call.
-        $this->assertCount( 9, $this->registered_routes );
+        // 10 register_rest_route calls: list/item/import/promote/call/bulk-call/
+        // status/preview-status/cancel-call/adjutancy.
+        $this->assertCount( 10, $this->registered_routes );
     }
 
     public function test_register_routes_includes_classifications_and_import_routes(): void {
@@ -142,5 +142,82 @@ class RecruitmentClassificationsRestControllerTest extends TestCase {
         $this->assertInstanceOf( \WP_Error::class, $result );
         $this->assertSame( 'recruitment_csv_file_missing', $result->get_error_code() );
         $this->assertSame( 400, $result->get_error_data()['status'] );
+    }
+
+    // ------------------------------------------------------------------
+    // change_classification_adjutancy() — issue #331 "Edit estendido"
+    // ------------------------------------------------------------------
+
+    public function test_change_classification_adjutancy_returns_400_when_id_zero(): void {
+        $result = $this->controller->change_classification_adjutancy(
+            $this->make_request( array( 'id' => 7, 'adjutancy_id' => 0 ) )
+        );
+
+        $this->assertInstanceOf( \WP_Error::class, $result );
+        $this->assertSame( 'ffc_invalid_adjutancy', $result->get_error_code() );
+        $this->assertSame( 400, $result->get_error_data()['status'] );
+    }
+
+    public function test_change_classification_adjutancy_returns_404_when_row_missing(): void {
+        $this->clsRepoMock->shouldReceive( 'get_by_id' )->with( 7 )->andReturn( null );
+
+        $result = $this->controller->change_classification_adjutancy(
+            $this->make_request( array( 'id' => 7, 'adjutancy_id' => 5 ) )
+        );
+
+        $this->assertInstanceOf( \WP_Error::class, $result );
+        $this->assertSame( 'ffc_classification_not_found', $result->get_error_code() );
+    }
+
+    public function test_change_classification_adjutancy_returns_409_when_unchanged(): void {
+        $this->clsRepoMock->shouldReceive( 'get_by_id' )->with( 7 )
+            ->andReturn( (object) array( 'id' => '7', 'notice_id' => '1', 'adjutancy_id' => '5' ) );
+
+        $result = $this->controller->change_classification_adjutancy(
+            $this->make_request( array( 'id' => 7, 'adjutancy_id' => 5 ) )
+        );
+
+        $this->assertInstanceOf( \WP_Error::class, $result );
+        $this->assertSame( 'ffc_classification_adjutancy_unchanged', $result->get_error_code() );
+    }
+
+    public function test_change_classification_adjutancy_rejects_when_not_attached_to_notice(): void {
+        $this->clsRepoMock->shouldReceive( 'get_by_id' )->with( 7 )
+            ->andReturn( (object) array( 'id' => '7', 'notice_id' => '1', 'adjutancy_id' => '3' ) );
+
+        $naMock = Mockery::mock( 'alias:FreeFormCertificate\Recruitment\RecruitmentNoticeAdjutancyRepository' );
+        $naMock->shouldReceive( 'is_attached' )->with( 1, 9 )->andReturn( false );
+
+        $result = $this->controller->change_classification_adjutancy(
+            $this->make_request( array( 'id' => 7, 'adjutancy_id' => 9 ) )
+        );
+
+        $this->assertInstanceOf( \WP_Error::class, $result );
+        $this->assertSame( 'ffc_classification_adjutancy_not_attached_to_notice', $result->get_error_code() );
+        $this->assertSame( 409, $result->get_error_data()['status'] );
+    }
+
+    public function test_change_classification_adjutancy_success_path_returns_envelope(): void {
+        $this->clsRepoMock->shouldReceive( 'get_by_id' )->with( 7 )
+            ->andReturn( (object) array( 'id' => '7', 'notice_id' => '1', 'adjutancy_id' => '3' ) );
+        $this->clsRepoMock->shouldReceive( 'set_adjutancy' )->with( 7, 9 )->andReturn( true );
+
+        $naMock = Mockery::mock( 'alias:FreeFormCertificate\Recruitment\RecruitmentNoticeAdjutancyRepository' );
+        $naMock->shouldReceive( 'is_attached' )->with( 1, 9 )->andReturn( true );
+
+        $loggerMock = Mockery::mock( 'alias:FreeFormCertificate\Recruitment\RecruitmentActivityLogger' );
+        $loggerMock->shouldReceive( 'classification_adjutancy_changed' )->once()->with( 7, 3, 9 );
+
+        $response = $this->controller->change_classification_adjutancy(
+            $this->make_request( array( 'id' => 7, 'adjutancy_id' => 9 ) )
+        );
+
+        $this->assertNotInstanceOf( \WP_Error::class, $response );
+        $this->assertSame( 200, $response->get_status() );
+        $data = $response->get_data();
+        $this->assertTrue( $data['success'] );
+        $this->assertSame( 7, $data['classification_id'] );
+        $this->assertSame( 3, $data['from'] );
+        $this->assertSame( 9, $data['to'] );
     }
 }

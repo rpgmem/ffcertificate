@@ -261,6 +261,70 @@ final class RecruitmentActivityLogger {
 	}
 
 	/**
+	 * Candidate "General" fields edited (name / phone / notes / email)
+	 * via the admin edit page — issue #331 "Edit estendido" frontend.
+	 *
+	 * `$changes` carries only the keys whose value actually changed;
+	 * the caller computes the diff against the pre-update row. Each
+	 * entry is `['old' => mixed, 'new' => mixed]`. For the `email`
+	 * field the values are the SHA-256 hash digests of the addresses
+	 * (not the plaintext), so the audit row is safe to display even
+	 * if the operator viewing it doesn't hold the PII-reveal tier;
+	 * the other three (name / phone / notes) live unencrypted in the
+	 * candidate table by design (§12) and are logged as-is.
+	 *
+	 * Returns false (no-op) when `$changes` is empty — the save
+	 * handler still calls this method, the no-diff branch just short-
+	 * circuits so we don't write `{}` rows when the operator hits
+	 * "Save" without touching anything.
+	 *
+	 * @since 6.6.2
+	 * @param int                                                      $candidate_id Candidate row ID.
+	 * @param array<string, array{old: scalar|null, new: scalar|null}> $changes      Per-field old/new pairs.
+	 * @return bool True if a log entry was written.
+	 */
+	public static function candidate_fields_edited( int $candidate_id, array $changes ): bool {
+		if ( empty( $changes ) ) {
+			return false;
+		}
+		ActivityLog::log(
+			'recruitment_candidate_fields_edited',
+			ActivityLog::LEVEL_INFO,
+			array(
+				'candidate_id' => $candidate_id,
+				'changes'      => $changes,
+			),
+			get_current_user_id()
+		);
+		return true;
+	}
+
+	/**
+	 * Classification's `adjutancy_id` swapped via the candidate edit
+	 * page (issue #331). Validation that the new adjutancy is attached
+	 * to the classification's notice happens in the REST controller —
+	 * by the time this fires the swap has already committed.
+	 *
+	 * @since 6.6.2
+	 * @param int $classification_id Classification ID.
+	 * @param int $from              Previous adjutancy_id.
+	 * @param int $to                New adjutancy_id.
+	 * @return void
+	 */
+	public static function classification_adjutancy_changed( int $classification_id, int $from, int $to ): void {
+		ActivityLog::log(
+			'recruitment_classification_adjutancy_changed',
+			ActivityLog::LEVEL_INFO,
+			array(
+				'classification_id' => $classification_id,
+				'from'              => $from,
+				'to'                => $to,
+			),
+			get_current_user_id()
+		);
+	}
+
+	/**
 	 * Candidate hard-deleted (gate already checked by RecruitmentDeleteService).
 	 *
 	 * @param int         $candidate_id Candidate ID (the row no longer exists at log time).
