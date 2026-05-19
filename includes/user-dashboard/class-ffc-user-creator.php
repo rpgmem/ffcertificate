@@ -190,6 +190,25 @@ class UserCreator {
 	}
 
 	/**
+	 * Hash columns to try when linking orphaned appointment rows by a
+	 * single identifier hash. Mirrors `build_hash_where_clause()` for
+	 * the per-column repository call path. Issue #340 centralization.
+	 *
+	 * @param string $identifier_type One of TYPE_CPF / TYPE_RF / TYPE_AUTO.
+	 * @return list<string>
+	 */
+	private static function hash_columns_for_type( string $identifier_type ): array {
+		switch ( $identifier_type ) {
+			case self::TYPE_CPF:
+				return array( 'cpf_hash' );
+			case self::TYPE_RF:
+				return array( 'rf_hash' );
+			default:
+				return array( 'cpf_hash', 'rf_hash' );
+		}
+	}
+
+	/**
 	 * Link orphaned records (submissions and appointments) to a user
 	 *
 	 * @since 4.9.6
@@ -220,17 +239,10 @@ class UserCreator {
 		$appointments_table  = $wpdb->prefix . 'ffc_self_scheduling_appointments';
 		$linked_appointments = 0;
 		if ( self::table_exists( $appointments_table ) ) {
-            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-			// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber -- $hash_where and $hash_params built together in build_hash_* helpers with matching placeholder count.
-			$linked_appointments = $wpdb->query(
-				$wpdb->prepare(
-					"UPDATE %i SET user_id = %d WHERE ({$hash_where}) AND user_id IS NULL",
-					$appointments_table,
-					$user_id,
-					...$hash_params
-				)
-			);
-			// phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber
+			$apt_repo = new \FreeFormCertificate\Repositories\AppointmentRepository();
+			foreach ( self::hash_columns_for_type( $identifier_type ) as $column ) {
+				$linked_appointments += $apt_repo->linkByIdentifierHash( $user_id, $column, $identifier_hash );
+			}
 
 			if ( $linked_appointments > 0 ) {
 				CapabilityManager::grant_appointment_capabilities( $user_id );

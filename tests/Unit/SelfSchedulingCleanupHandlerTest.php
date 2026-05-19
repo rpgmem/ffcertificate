@@ -74,6 +74,11 @@ class SelfSchedulingCleanupHandlerTest extends TestCase {
         Functions\when( 'FreeFormCertificate\Repositories\wp_cache_delete' )->justReturn( true );
         Functions\when( 'FreeFormCertificate\Repositories\current_user_can' )->justReturn( false );
         Functions\when( 'FreeFormCertificate\Repositories\user_can' )->justReturn( false );
+        Functions\when( 'wp_cache_get' )->justReturn( false );
+        Functions\when( 'wp_cache_set' )->justReturn( true );
+        Functions\when( 'wp_cache_delete' )->justReturn( true );
+        Functions\when( 'wp_cache_flush' )->justReturn( true );
+        Functions\when( 'wp_cache_flush_group' )->justReturn( true );
 
         // wp_verify_nonce — use a reference so individual tests can toggle it
         $this->nonce_valid = true;
@@ -243,14 +248,10 @@ class SelfSchedulingCleanupHandlerTest extends TestCase {
         $this->setPostData( array( 'cleanup_action' => 'all' ) );
         $this->stubCalendarFound( array( 'id' => 5, 'title' => 'Test Calendar' ) );
 
-        $this->wpdb->shouldReceive( 'delete' )
-            ->once()
-            ->with(
-                'wp_ffc_self_scheduling_appointments',
-                array( 'calendar_id' => 5 ),
-                array( '%d' )
-            )
-            ->andReturn( 10 );
+        // Repository routes the DELETE through wpdb->query (with a
+        // %i-prepared DELETE statement) rather than wpdb->delete after
+        // the issue #340 centralization.
+        $this->wpdb->shouldReceive( 'query' )->once()->andReturn( 10 );
 
         try {
             $this->handler->handle_cleanup_appointments();
@@ -316,14 +317,10 @@ class SelfSchedulingCleanupHandlerTest extends TestCase {
         $this->setPostData( array( 'cleanup_action' => 'cancelled' ) );
         $this->stubCalendarFound( array( 'id' => 5, 'title' => 'Test Calendar' ) );
 
-        $this->wpdb->shouldReceive( 'delete' )
-            ->once()
-            ->with(
-                'wp_ffc_self_scheduling_appointments',
-                array( 'calendar_id' => 5, 'status' => 'cancelled' ),
-                array( '%d', '%s' )
-            )
-            ->andReturn( 2 );
+        // Repository routes the DELETE through wpdb->query (with a
+        // %i-prepared DELETE … WHERE status = %s statement) rather
+        // than wpdb->delete after the issue #340 centralization.
+        $this->wpdb->shouldReceive( 'query' )->once()->andReturn( 2 );
 
         try {
             $this->handler->handle_cleanup_appointments();

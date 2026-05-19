@@ -78,18 +78,15 @@ class SelfSchedulingCleanupHandler {
 			);
 		}
 
-		global $wpdb;
-		$table = $wpdb->prefix . 'ffc_self_scheduling_appointments';
 		$today = current_time( 'Y-m-d' );
+		$repo  = new \FreeFormCertificate\Repositories\AppointmentRepository();
 
 		$deleted = 0;
 
 		// Build query based on action.
 		switch ( $cleanup_action ) {
 			case 'all':
-				// Delete all appointments for this calendar.
-                // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-				$deleted = $wpdb->delete( $table, array( 'calendar_id' => $calendar_id ), array( '%d' ) );
+				$deleted = $repo->deleteByCalendar( $calendar_id );
 				$message = sprintf(
 					/* translators: %d: number of deleted appointments */
 					__( 'Successfully deleted %d appointment(s).', 'ffcertificate' ),
@@ -98,16 +95,7 @@ class SelfSchedulingCleanupHandler {
 				break;
 
 			case 'old':
-				// Delete appointments before today.
-                // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-				$deleted = $wpdb->query(
-					$wpdb->prepare(
-						'DELETE FROM %i WHERE calendar_id = %d AND appointment_date < %s',
-						$table,
-						$calendar_id,
-						$today
-					)
-				);
+				$deleted = $repo->deleteByCalendarBefore( $calendar_id, $today );
 				$message = sprintf(
 					/* translators: %d: number of deleted past appointments */
 					__( 'Successfully deleted %d past appointment(s).', 'ffcertificate' ),
@@ -116,16 +104,7 @@ class SelfSchedulingCleanupHandler {
 				break;
 
 			case 'future':
-				// Delete appointments today and after.
-                // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-				$deleted = $wpdb->query(
-					$wpdb->prepare(
-						'DELETE FROM %i WHERE calendar_id = %d AND appointment_date >= %s',
-						$table,
-						$calendar_id,
-						$today
-					)
-				);
+				$deleted = $repo->deleteByCalendarAfter( $calendar_id, $today );
 				$message = sprintf(
 					/* translators: %d: number of deleted future appointments */
 					__( 'Successfully deleted %d future appointment(s).', 'ffcertificate' ),
@@ -134,16 +113,7 @@ class SelfSchedulingCleanupHandler {
 				break;
 
 			case 'cancelled':
-				// Delete only cancelled appointments.
-                // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-				$deleted = $wpdb->delete(
-					$table,
-					array(
-						'calendar_id' => $calendar_id,
-						'status'      => 'cancelled',
-					),
-					array( '%d', '%s' )
-				);
+				$deleted = $repo->deleteByCalendarAndStatus( $calendar_id, 'cancelled' );
 				$message = sprintf(
 					/* translators: %d: number of deleted cancelled appointments */
 					__( 'Successfully deleted %d cancelled appointment(s).', 'ffcertificate' ),
@@ -208,31 +178,9 @@ class SelfSchedulingCleanupHandler {
 		// Count appointments by category.
 		$today = current_time( 'Y-m-d' );
 
-		$count_all = $appointment_repo->count( array( 'calendar_id' => $calendar_id ) );
-
-		// Count old appointments (before today).
-		global $wpdb;
-		$table = $wpdb->prefix . 'ffc_self_scheduling_appointments';
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-		$count_old = (int) $wpdb->get_var(
-			$wpdb->prepare(
-				'SELECT COUNT(*) FROM %i WHERE calendar_id = %d AND appointment_date < %s',
-				$table,
-				$calendar_id,
-				$today
-			)
-		);
-
-		// Count future appointments (today and after).
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-		$count_future = (int) $wpdb->get_var(
-			$wpdb->prepare(
-				'SELECT COUNT(*) FROM %i WHERE calendar_id = %d AND appointment_date >= %s',
-				$table,
-				$calendar_id,
-				$today
-			)
-		);
+		$count_all    = $appointment_repo->count( array( 'calendar_id' => $calendar_id ) );
+		$count_old    = $appointment_repo->countByCalendarBefore( $calendar_id, $today );
+		$count_future = $appointment_repo->countByCalendarAfter( $calendar_id, $today );
 
 		// Count cancelled appointments.
 		$count_cancelled = $appointment_repo->count(

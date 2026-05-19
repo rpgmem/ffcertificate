@@ -240,10 +240,11 @@ class AdminUserColumnsTest extends TestCase {
             ->andReturn( $table )
             ->byDefault();
 
-        // Batch appointment counts
+        // Batch appointment counts — AppointmentRepository::countAllByUserGrouped
+        // aliases the COUNT() column as `c` after the issue #340 centralization.
         $this->wpdb->shouldReceive( 'get_results' )
             ->andReturn( array(
-                array( 'user_id' => '42', 'cnt' => '3' ),
+                array( 'user_id' => '42', 'c' => '3' ),
             ) );
 
         $output = AdminUserColumns::render_custom_column( '', 'ffc_appointments', 42 );

@@ -355,20 +355,7 @@ class AdminUserColumns {
 			return;
 		}
 
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-		$results = $wpdb->get_results(
-			$wpdb->prepare(
-				"SELECT user_id, COUNT(*) AS cnt FROM %i WHERE user_id IS NOT NULL AND status != 'cancelled' GROUP BY user_id",
-				$table
-			),
-			ARRAY_A
-		);
-
-		if ( $results ) {
-			foreach ( $results as $row ) {
-				self::$appointment_counts_cache[ (int) $row['user_id'] ] = (int) $row['cnt'];
-			}
-		}
+		self::$appointment_counts_cache = ( new \FreeFormCertificate\Repositories\AppointmentRepository() )->countAllByUserGrouped( 'cancelled' );
 	}
 
 	/**
