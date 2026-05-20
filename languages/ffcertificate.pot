@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Free Form Certificate\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-05-20 00:43+0000\n"
+"POT-Creation-Date: 2026-05-20 17:22+0000\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -51,7 +51,7 @@ msgid "%1$d of %2$d FK constraints exist"
 msgstr ""
 
 #. %1$d is current download count, %2$d is download limit
-#: includes/frontend/class-ffc-frontend.php:356
+#: includes/frontend/class-ffc-frontend.php:378
 #, php-format
 msgid "%1$d of %2$d used"
 msgstr ""
@@ -79,25 +79,25 @@ msgstr[0] ""
 msgstr[1] ""
 
 #. 1: Area type (GPS/IP), 2: Line number
-#: includes/admin/class-ffc-form-editor-save-handler.php:526
+#: includes/admin/class-ffc-form-editor-save-handler.php:524
 #, php-format
 msgid "%1$s Area line %2$d: Invalid format. Use: latitude, longitude, radius"
 msgstr ""
 
 #. 1: Area type (GPS/IP), 2: Line number, 3: Latitude value
-#: includes/admin/class-ffc-form-editor-save-handler.php:543
+#: includes/admin/class-ffc-form-editor-save-handler.php:541
 #, php-format
 msgid "%1$s Area line %2$d: Invalid latitude %3$s (must be between -90 and 90)"
 msgstr ""
 
 #. 1: Area type (GPS/IP), 2: Line number, 3: Longitude value
-#: includes/admin/class-ffc-form-editor-save-handler.php:554
+#: includes/admin/class-ffc-form-editor-save-handler.php:552
 #, php-format
 msgid "%1$s Area line %2$d: Invalid longitude %3$s (must be between -180 and 180)"
 msgstr ""
 
 #. 1: Area type (GPS/IP), 2: Line number
-#: includes/admin/class-ffc-form-editor-save-handler.php:565
+#: includes/admin/class-ffc-form-editor-save-handler.php:563
 #, php-format
 msgid "%1$s Area line %2$d: Radius must be greater than 0"
 msgstr ""
@@ -460,12 +460,16 @@ msgstr ""
 msgid "04 of January, 2026"
 msgstr ""
 
-#: includes/security/class-ffc-rate-limit-checker.php:210
+#: includes/security/class-ffc-rate-limit-checker.php:210 includes/security/class-ffc-rate-limit-checker.php:1126
 msgid "1 hour"
 msgstr ""
 
 #: includes/settings/views/ffc-tab-cache.php:68
 msgid "1 hour (default)"
+msgstr ""
+
+#: includes/security/class-ffc-rate-limit-checker.php:1112
+msgid "1 minute"
 msgstr ""
 
 #: includes/security/class-ffc-rate-limit-checker.php:297
@@ -668,6 +672,10 @@ msgstr ""
 msgid "A \"bulk call\" audit entry is recorded with the selected candidates."
 msgstr ""
 
+#: includes/frontend/class-ffc-frontend.php:291
+msgid "A certificate image failed to load (cross-origin restriction). This is a configuration problem on the server, not on your device. Please contact the organizer with your authentication code."
+msgstr ""
+
 #: includes/self-scheduling/class-ffc-self-scheduling-shortcode.php:682
 msgid "A confirmation email has been sent to your email address."
 msgstr ""
@@ -708,6 +716,10 @@ msgstr ""
 msgid "A reopen reason is recorded with this transition."
 msgstr ""
 
+#: includes/frontend/class-ffc-frontend.php:293
+msgid "A required script blocked or timed out. Reload the page (Ctrl+R / Cmd+R) and try again. If the issue persists, try a different browser."
+msgstr ""
+
 #: includes/audience/class-ffc-audience-notification-handler.php:353
 msgid "A scheduled activity you were included in has been cancelled:"
 msgstr ""
@@ -733,7 +745,7 @@ msgstr ""
 msgid "Accepts formats: 12345678900 or 123.456.789-00"
 msgstr ""
 
-#: includes/frontend/class-ffc-frontend.php:329
+#: includes/frontend/class-ffc-frontend.php:351
 msgid "Access code (ticket) required"
 msgstr ""
 
@@ -757,7 +769,7 @@ msgstr ""
 msgid "Access Link"
 msgstr ""
 
-#: includes/frontend/class-ffc-frontend.php:325
+#: includes/frontend/class-ffc-frontend.php:347
 msgid "Access Restrictions"
 msgstr ""
 
@@ -1057,19 +1069,19 @@ msgstr ""
 msgid "Admin Bypass"
 msgstr ""
 
-#: includes/frontend/class-ffc-frontend.php:473
+#: includes/frontend/class-ffc-frontend.php:495
 msgid "Admin Bypass Mode Active"
 msgstr ""
 
-#: includes/frontend/class-ffc-frontend.php:470
+#: includes/frontend/class-ffc-frontend.php:492
 msgid "Admin Bypass Mode Active - Geofence restrictions are disabled for administrators"
 msgstr ""
 
-#: includes/frontend/class-ffc-frontend.php:471
+#: includes/frontend/class-ffc-frontend.php:493
 msgid "Admin Bypass: Date/Time restrictions are disabled for administrators"
 msgstr ""
 
-#: includes/frontend/class-ffc-frontend.php:472
+#: includes/frontend/class-ffc-frontend.php:494
 msgid "Admin Bypass: Geolocation restrictions are disabled for administrators"
 msgstr ""
 
@@ -1383,9 +1395,15 @@ msgid "already added"
 msgstr ""
 
 #. %s: original time_end value (HH:MM).
-#: includes/admin/class-ffc-form-editor-public-csv-download-metabox.php:528
+#: includes/admin/class-ffc-form-editor-public-csv-download-metabox.php:537
 #, php-format
 msgid "Already postponed once for this form (was %s). Edit time_end manually below if you need to extend further."
+msgstr ""
+
+#. %s: original time_start value (HH:MM).
+#: includes/admin/class-ffc-form-editor-public-csv-download-metabox.php:460
+#, php-format
+msgid "Already started early once for this form (was %s). Edit time_start manually below if you need to advance further."
 msgstr ""
 
 #: includes/settings/views/documentation/18-troubleshooting.php:61
@@ -1404,7 +1422,7 @@ msgstr ""
 msgid "An error occurred. Please try again."
 msgstr ""
 
-#: includes/api/class-ffc-user-certificates-rest-controller.php:182 includes/api/class-ffc-form-rest-controller.php:303 includes/api/class-ffc-form-rest-controller.php:398 includes/api/class-ffc-form-rest-controller.php:494 includes/api/class-ffc-form-rest-controller.php:704 includes/api/class-ffc-calendar-rest-controller.php:211 includes/api/class-ffc-calendar-rest-controller.php:296 includes/api/class-ffc-calendar-rest-controller.php:347 includes/api/class-ffc-user-profile-rest-controller.php:209 includes/api/class-ffc-user-profile-rest-controller.php:301 includes/api/class-ffc-user-appointments-rest-controller.php:243 includes/api/class-ffc-submission-rest-controller.php:212 includes/api/class-ffc-submission-rest-controller.php:284 includes/api/class-ffc-submission-rest-controller.php:387 includes/api/class-ffc-appointment-rest-controller.php:240 includes/api/class-ffc-appointment-rest-controller.php:304 includes/api/class-ffc-appointment-rest-controller.php:350 includes/core/class-ffc-ajax-trait.php:163 includes/self-scheduling/class-ffc-self-scheduling-appointment-ajax-handler.php:284 includes/self-scheduling/class-ffc-self-scheduling-appointment-ajax-handler.php:359
+#: includes/api/class-ffc-user-certificates-rest-controller.php:182 includes/api/class-ffc-form-rest-controller.php:303 includes/api/class-ffc-form-rest-controller.php:398 includes/api/class-ffc-form-rest-controller.php:494 includes/api/class-ffc-form-rest-controller.php:704 includes/api/class-ffc-calendar-rest-controller.php:202 includes/api/class-ffc-calendar-rest-controller.php:287 includes/api/class-ffc-calendar-rest-controller.php:338 includes/api/class-ffc-user-profile-rest-controller.php:209 includes/api/class-ffc-user-profile-rest-controller.php:301 includes/api/class-ffc-user-appointments-rest-controller.php:243 includes/api/class-ffc-submission-rest-controller.php:212 includes/api/class-ffc-submission-rest-controller.php:284 includes/api/class-ffc-submission-rest-controller.php:387 includes/api/class-ffc-appointment-rest-controller.php:240 includes/api/class-ffc-appointment-rest-controller.php:304 includes/api/class-ffc-appointment-rest-controller.php:350 includes/core/class-ffc-ajax-trait.php:163 includes/self-scheduling/class-ffc-self-scheduling-appointment-ajax-handler.php:284 includes/self-scheduling/class-ffc-self-scheduling-appointment-ajax-handler.php:359
 msgid "An unexpected error occurred."
 msgstr ""
 
@@ -1414,6 +1432,10 @@ msgstr ""
 
 #: includes/admin/class-ffc-form-editor-geofence-metabox.php:358
 msgid "AND - Require both GPS AND IP to be valid (stricter)"
+msgstr ""
+
+#: templates/submission-success.php:81
+msgid "Android: open the Downloads folder, or use the Files app and look for \"certificate.pdf\"."
 msgstr ""
 
 #: includes/reregistration/class-ffc-reregistration-form-renderer.php:583
@@ -1450,6 +1472,10 @@ msgstr ""
 
 #: includes/settings/views/documentation/08-custom-fields.php:19
 msgid "Any custom field you create in Form Builder automatically becomes a template variable:"
+msgstr ""
+
+#: includes/settings/views/ffc-tab-rate-limit.php:209
+msgid "Any logged-in WordPress user bypasses the read limit (staff / kiosks signed in to WP)"
 msgstr ""
 
 #: includes/recruitment/class-ffc-recruitment-reasons-list-table.php:198 includes/recruitment/class-ffc-recruitment-admin-page.php:611 includes/recruitment/class-ffc-recruitment-admin-page.php:908 includes/recruitment/class-ffc-recruitment-public-shortcode-renderer.php:605 includes/recruitment/class-ffc-recruitment-notice-edit-page-renderer.php:952 includes/recruitment/class-ffc-recruitment-reason-edit-page.php:102
@@ -1581,7 +1607,7 @@ msgstr ""
 msgid "Appointment Duration"
 msgstr ""
 
-#: includes/api/class-ffc-calendar-rest-controller.php:323 includes/api/class-ffc-appointment-rest-controller.php:215 includes/api/class-ffc-appointment-rest-controller.php:327
+#: includes/api/class-ffc-calendar-rest-controller.php:314 includes/api/class-ffc-appointment-rest-controller.php:215 includes/api/class-ffc-appointment-rest-controller.php:327
 msgid "Appointment handler not available"
 msgstr ""
 
@@ -1892,7 +1918,7 @@ msgstr ""
 msgid "Audiences:"
 msgstr ""
 
-#: includes/settings/views/ffc-tab-rate-limit.php:224
+#: includes/settings/views/ffc-tab-rate-limit.php:296
 msgid "AudioContext hash"
 msgstr ""
 
@@ -1924,7 +1950,7 @@ msgstr ""
 msgid "Authentication Code"
 msgstr ""
 
-#: templates/certificate-preview.php:38 templates/submission-success.php:35 includes/integrations/class-ffc-email-handler.php:187
+#: templates/certificate-preview.php:38 templates/submission-success.php:39 includes/integrations/class-ffc-email-handler.php:187
 msgid "Authentication Code:"
 msgstr ""
 
@@ -1996,7 +2022,7 @@ msgstr ""
 msgid "Automatically generate a short URL when a post/page is published"
 msgstr ""
 
-#: includes/frontend/class-ffc-frontend.php:332
+#: includes/frontend/class-ffc-frontend.php:354
 msgid "Availability Period"
 msgstr ""
 
@@ -2004,15 +2030,15 @@ msgstr ""
 msgid "Available"
 msgstr ""
 
-#: includes/admin/class-ffc-form-editor-public-csv-download-metabox.php:536
+#: includes/admin/class-ffc-form-editor-public-csv-download-metabox.php:545
 msgid "Available once the form is open — the button surfaces between the start and the scheduled close."
 msgstr ""
 
-#: includes/admin/class-ffc-form-editor-public-csv-download-metabox.php:543
+#: includes/admin/class-ffc-form-editor-public-csv-download-metabox.php:552
 msgid "Available only on the scheduled close day — the button surfaces to operators on the day the form is configured to end."
 msgstr ""
 
-#: includes/admin/class-ffc-form-editor-public-csv-download-metabox.php:466
+#: includes/admin/class-ffc-form-editor-public-csv-download-metabox.php:475
 msgid "Available only on the scheduled start day — the early-start button surfaces to operators on the day the form is configured to begin."
 msgstr ""
 
@@ -2032,11 +2058,11 @@ msgstr ""
 msgid "Available variables:"
 msgstr ""
 
-#: includes/admin/class-ffc-form-editor-public-csv-download-metabox.php:469
+#: includes/admin/class-ffc-form-editor-public-csv-download-metabox.php:478
 msgid "Available — operators visiting the public download page (URL above) will see a \"Start Form Now\" button. A confirmation modal protects against accidental clicks."
 msgstr ""
 
-#: includes/admin/class-ffc-form-editor-public-csv-download-metabox.php:546
+#: includes/admin/class-ffc-form-editor-public-csv-download-metabox.php:555
 msgid "Available — operators visiting the public download page will see a \"Postpone close\" button. One-shot per form."
 msgstr ""
 
@@ -2048,7 +2074,7 @@ msgstr ""
 msgid "B — Import a new list as definitive"
 msgstr ""
 
-#: includes/frontend/class-ffc-frontend.php:320
+#: includes/frontend/class-ffc-frontend.php:342
 msgid "Back"
 msgstr ""
 
@@ -2194,7 +2220,7 @@ msgstr ""
 msgid "Birth date"
 msgstr ""
 
-#: includes/settings/views/ffc-tab-rate-limit.php:315
+#: includes/settings/views/ffc-tab-rate-limit.php:387
 msgid "Blacklist"
 msgstr ""
 
@@ -2224,7 +2250,7 @@ msgstr ""
 msgid "Block duration"
 msgstr ""
 
-#: includes/admin/class-ffc-form-editor-device-limit-metabox.php:154 includes/settings/views/ffc-tab-rate-limit.php:276
+#: includes/admin/class-ffc-form-editor-device-limit-metabox.php:154 includes/settings/views/ffc-tab-rate-limit.php:215 includes/settings/views/ffc-tab-rate-limit.php:348
 msgid "Block message"
 msgstr ""
 
@@ -2232,7 +2258,7 @@ msgstr ""
 msgid "Block WP-Admin Access"
 msgstr ""
 
-#: includes/settings/views/ffc-tab-rate-limit.php:405
+#: includes/settings/views/ffc-tab-rate-limit.php:477
 msgid "Blocked (30 days):"
 msgstr ""
 
@@ -2248,11 +2274,11 @@ msgstr ""
 msgid "Blocked Roles"
 msgstr ""
 
-#: includes/settings/views/ffc-tab-rate-limit.php:404
+#: includes/settings/views/ffc-tab-rate-limit.php:476
 msgid "Blocked today:"
 msgstr ""
 
-#: includes/frontend/class-ffc-frontend.php:328
+#: includes/frontend/class-ffc-frontend.php:350
 msgid "Blocked users list active"
 msgstr ""
 
@@ -2374,7 +2400,7 @@ msgstr ""
 msgid "Browser does not support geolocation"
 msgstr ""
 
-#: includes/settings/views/ffc-tab-rate-limit.php:227
+#: includes/settings/views/ffc-tab-rate-limit.php:299
 msgid "Browser plugins list"
 msgstr ""
 
@@ -2423,11 +2449,11 @@ msgstr ""
 msgid "By Level:"
 msgstr ""
 
-#: includes/settings/views/ffc-tab-rate-limit.php:407
+#: includes/settings/views/ffc-tab-rate-limit.php:479
 msgid "By type:"
 msgstr ""
 
-#: includes/settings/views/ffc-tab-rate-limit.php:270
+#: includes/settings/views/ffc-tab-rate-limit.php:342
 msgid "Bypass cookie hashes"
 msgstr ""
 
@@ -2439,7 +2465,11 @@ msgstr ""
 msgid "Bypass for Administrators"
 msgstr ""
 
-#: includes/settings/views/ffc-tab-rate-limit.php:253
+#: includes/settings/views/ffc-tab-rate-limit.php:202
+msgid "Bypass for logged-in users"
+msgstr ""
+
+#: includes/settings/views/ffc-tab-rate-limit.php:325
 msgid "Bypass for managers"
 msgstr ""
 
@@ -2524,7 +2554,7 @@ msgstr ""
 msgid "Calendar ID is required."
 msgstr ""
 
-#: includes/api/class-ffc-calendar-rest-controller.php:256
+#: includes/api/class-ffc-calendar-rest-controller.php:247
 msgid "Calendar is not active"
 msgstr ""
 
@@ -2532,7 +2562,7 @@ msgstr ""
 msgid "Calendar is not active."
 msgstr ""
 
-#: includes/api/class-ffc-calendar-rest-controller.php:248 includes/api/class-ffc-appointment-rest-controller.php:163 includes/self-scheduling/class-ffc-self-scheduling-cleanup-handler.php:76
+#: includes/api/class-ffc-calendar-rest-controller.php:239 includes/api/class-ffc-appointment-rest-controller.php:163 includes/self-scheduling/class-ffc-self-scheduling-cleanup-handler.php:76
 msgid "Calendar not found"
 msgstr ""
 
@@ -2544,7 +2574,7 @@ msgstr ""
 msgid "Calendar not found."
 msgstr ""
 
-#: includes/api/class-ffc-calendar-rest-controller.php:165 includes/api/class-ffc-calendar-rest-controller.php:237 includes/api/class-ffc-user-appointments-rest-controller.php:97
+#: includes/api/class-ffc-calendar-rest-controller.php:156 includes/api/class-ffc-calendar-rest-controller.php:228 includes/api/class-ffc-user-appointments-rest-controller.php:97
 msgid "Calendar repository not available"
 msgstr ""
 
@@ -2554,6 +2584,18 @@ msgstr ""
 
 #: includes/audience/class-ffc-audience-admin-calendar.php:610
 msgid "Calendar updated successfully."
+msgstr ""
+
+#: includes/settings/views/ffc-tab-rate-limit.php:225
+msgid "Calendar — Detail (GET /calendars/{id})"
+msgstr ""
+
+#: includes/settings/views/ffc-tab-rate-limit.php:224
+msgid "Calendar — List (GET /calendars)"
+msgstr ""
+
+#: includes/settings/views/ffc-tab-rate-limit.php:223
+msgid "Calendar — Slots (GET /calendars/{id}/slots)"
 msgstr ""
 
 #: includes/self-scheduling/class-ffc-self-scheduling-appointment-email-handler.php:101 includes/self-scheduling/class-ffc-self-scheduling-appointment-email-handler.php:245 includes/self-scheduling/class-ffc-self-scheduling-appointment-email-handler.php:308 includes/self-scheduling/class-ffc-self-scheduling-appointment-email-handler.php:366 includes/audience/class-ffc-audience-notification-handler.php:328 includes/audience/class-ffc-audience-notification-handler.php:356
@@ -2665,7 +2707,7 @@ msgstr ""
 msgid "Can I undo a migration?"
 msgstr ""
 
-#: includes/shortcodes/class-ffc-dashboard-asset-manager.php:227 includes/shortcodes/class-ffc-dashboard-asset-manager.php:253 includes/admin/class-ffc-submissions-list.php:592 includes/admin/class-ffc-admin-assets-manager.php:574 includes/admin/class-ffc-admin-assets-manager.php:810 includes/admin/class-ffc-admin-submission-edit-page.php:131 includes/reregistration/class-ffc-reregistration-form-renderer.php:128 includes/recruitment/class-ffc-recruitment-admin-assets-manager.php:98 includes/audience/class-ffc-audience-admin-bookings.php:221 includes/audience/class-ffc-audience-shortcode.php:415 includes/audience/class-ffc-audience-shortcode.php:803 includes/frontend/class-ffc-frontend.php:392 includes/self-scheduling/views/appointments-list.php:162
+#: includes/shortcodes/class-ffc-dashboard-asset-manager.php:227 includes/shortcodes/class-ffc-dashboard-asset-manager.php:253 includes/admin/class-ffc-submissions-list.php:592 includes/admin/class-ffc-admin-assets-manager.php:574 includes/admin/class-ffc-admin-assets-manager.php:810 includes/admin/class-ffc-admin-submission-edit-page.php:131 includes/reregistration/class-ffc-reregistration-form-renderer.php:128 includes/recruitment/class-ffc-recruitment-admin-assets-manager.php:98 includes/audience/class-ffc-audience-admin-bookings.php:221 includes/audience/class-ffc-audience-shortcode.php:415 includes/audience/class-ffc-audience-shortcode.php:803 includes/frontend/class-ffc-frontend.php:414 includes/self-scheduling/views/appointments-list.php:162
 msgid "Cancel"
 msgstr ""
 
@@ -2722,7 +2764,7 @@ msgstr ""
 msgid "CANCELLED"
 msgstr ""
 
-#: includes/shortcodes/class-ffc-dashboard-asset-manager.php:243 includes/api/class-ffc-user-appointments-rest-controller.php:160 includes/api/class-ffc-user-audience-rest-controller.php:235 includes/generators/class-ffc-pdf-generator.php:725 includes/self-scheduling/class-ffc-self-scheduling-appointment-email-handler.php:431 includes/self-scheduling/class-ffc-self-scheduling-appointment-csv-exporter.php:169 includes/self-scheduling/class-ffc-self-scheduling-appointment-receipt-handler.php:231 includes/recruitment/class-ffc-recruitment-dashboard-section.php:343 includes/audience/class-ffc-audience-admin-bookings.php:131 includes/audience/class-ffc-audience-admin-bookings.php:210 includes/audience/class-ffc-audience-loader.php:334 includes/audience/class-ffc-audience-shortcode.php:804 includes/frontend/class-ffc-verification-response-renderer.php:118 includes/self-scheduling/views/appointments-list.php:261 includes/self-scheduling/views/appointments-list.php:346 includes/self-scheduling/views/appointments-list.php:509
+#: includes/shortcodes/class-ffc-dashboard-asset-manager.php:243 includes/api/class-ffc-user-appointments-rest-controller.php:160 includes/api/class-ffc-user-audience-rest-controller.php:160 includes/generators/class-ffc-pdf-generator.php:725 includes/self-scheduling/class-ffc-self-scheduling-appointment-email-handler.php:431 includes/self-scheduling/class-ffc-self-scheduling-appointment-csv-exporter.php:169 includes/self-scheduling/class-ffc-self-scheduling-appointment-receipt-handler.php:231 includes/recruitment/class-ffc-recruitment-dashboard-section.php:343 includes/audience/class-ffc-audience-admin-bookings.php:131 includes/audience/class-ffc-audience-admin-bookings.php:210 includes/audience/class-ffc-audience-loader.php:334 includes/audience/class-ffc-audience-shortcode.php:804 includes/frontend/class-ffc-verification-response-renderer.php:118 includes/self-scheduling/views/appointments-list.php:261 includes/self-scheduling/views/appointments-list.php:346 includes/self-scheduling/views/appointments-list.php:509
 msgid "Cancelled"
 msgstr ""
 
@@ -2832,7 +2874,7 @@ msgstr ""
 msgid "Cannot write to temp file."
 msgstr ""
 
-#: includes/settings/views/ffc-tab-rate-limit.php:223
+#: includes/settings/views/ffc-tab-rate-limit.php:295
 msgid "Canvas hash (GPU/font rendering)"
 msgstr ""
 
@@ -2865,7 +2907,7 @@ msgstr ""
 msgid "Cell Phone"
 msgstr ""
 
-#: includes/core/class-ffc-utils.php:662 includes/admin/class-ffc-cpt.php:43
+#: includes/core/class-ffc-utils.php:664 includes/admin/class-ffc-cpt.php:43
 msgid "Certificate"
 msgstr ""
 
@@ -2895,11 +2937,11 @@ msgstr ""
 msgid "Certificate Permissions"
 msgstr ""
 
-#: includes/admin/class-ffc-admin-assets-manager.php:829 includes/admin/class-ffc-form-editor-public-csv-download-metabox.php:136 includes/frontend/class-ffc-frontend.php:377
+#: includes/admin/class-ffc-admin-assets-manager.php:829 includes/admin/class-ffc-form-editor-public-csv-download-metabox.php:136 includes/frontend/class-ffc-frontend.php:399
 msgid "Certificate Preview"
 msgstr ""
 
-#: includes/frontend/class-ffc-frontend.php:371
+#: includes/frontend/class-ffc-frontend.php:393
 msgid "Certificate Preview disabled"
 msgstr ""
 
@@ -3117,7 +3159,7 @@ msgstr ""
 msgid "clicks"
 msgstr ""
 
-#: includes/admin/class-ffc-submissions-list.php:576 includes/admin/class-ffc-admin-assets-manager.php:832 includes/self-scheduling/class-ffc-self-scheduling-shortcode.php:531 includes/reregistration/class-ffc-reregistration-admin.php:667 includes/url-shortener/class-ffc-url-shortener-admin-page.php:579 includes/recruitment/class-ffc-recruitment-admin-assets-manager.php:97 includes/recruitment/class-ffc-recruitment-notice-edit-page-renderer.php:1449 includes/audience/class-ffc-audience-loader.php:329 includes/audience/class-ffc-audience-shortcode.php:328 includes/audience/class-ffc-audience-shortcode.php:434 includes/audience/class-ffc-audience-shortcode.php:449 includes/frontend/class-ffc-frontend.php:379
+#: includes/admin/class-ffc-submissions-list.php:576 includes/admin/class-ffc-admin-assets-manager.php:832 includes/self-scheduling/class-ffc-self-scheduling-shortcode.php:531 includes/reregistration/class-ffc-reregistration-admin.php:667 includes/url-shortener/class-ffc-url-shortener-admin-page.php:579 includes/recruitment/class-ffc-recruitment-admin-assets-manager.php:97 includes/recruitment/class-ffc-recruitment-notice-edit-page-renderer.php:1449 includes/audience/class-ffc-audience-loader.php:329 includes/audience/class-ffc-audience-shortcode.php:328 includes/audience/class-ffc-audience-shortcode.php:434 includes/audience/class-ffc-audience-shortcode.php:449 includes/frontend/class-ffc-frontend.php:288 includes/frontend/class-ffc-frontend.php:401
 msgid "Close"
 msgstr ""
 
@@ -3129,7 +3171,7 @@ msgstr ""
 msgid "Close this notice?"
 msgstr ""
 
-#: includes/frontend/class-ffc-frontend.php:406 includes/frontend/class-ffc-public-csv-download.php:644
+#: includes/frontend/class-ffc-frontend.php:428 includes/frontend/class-ffc-public-csv-download.php:644
 msgid "Close time postponed."
 msgstr ""
 
@@ -3265,7 +3307,7 @@ msgstr ""
 msgid "Confirm action"
 msgstr ""
 
-#: includes/frontend/class-ffc-frontend.php:393
+#: includes/frontend/class-ffc-frontend.php:415
 msgid "Confirm and start form"
 msgstr ""
 
@@ -3273,7 +3315,7 @@ msgstr ""
 msgid "Confirm New Password"
 msgstr ""
 
-#: includes/frontend/class-ffc-frontend.php:404
+#: includes/frontend/class-ffc-frontend.php:426
 msgid "Confirm postponement"
 msgstr ""
 
@@ -3297,7 +3339,7 @@ msgstr ""
 msgid "Confirmation Token"
 msgstr ""
 
-#: includes/api/class-ffc-user-appointments-rest-controller.php:159 includes/api/class-ffc-user-audience-rest-controller.php:234 includes/generators/class-ffc-pdf-generator.php:724 includes/self-scheduling/class-ffc-self-scheduling-appointment-email-handler.php:430 includes/self-scheduling/class-ffc-self-scheduling-appointment-csv-exporter.php:168 includes/self-scheduling/class-ffc-self-scheduling-shortcode.php:208 includes/self-scheduling/class-ffc-self-scheduling-appointment-receipt-handler.php:230 includes/frontend/class-ffc-verification-response-renderer.php:117 includes/self-scheduling/views/appointments-list.php:260 includes/self-scheduling/views/appointments-list.php:345 includes/self-scheduling/views/appointments-list.php:508
+#: includes/api/class-ffc-user-appointments-rest-controller.php:159 includes/api/class-ffc-user-audience-rest-controller.php:159 includes/generators/class-ffc-pdf-generator.php:724 includes/self-scheduling/class-ffc-self-scheduling-appointment-email-handler.php:430 includes/self-scheduling/class-ffc-self-scheduling-appointment-csv-exporter.php:168 includes/self-scheduling/class-ffc-self-scheduling-shortcode.php:208 includes/self-scheduling/class-ffc-self-scheduling-appointment-receipt-handler.php:230 includes/frontend/class-ffc-verification-response-renderer.php:117 includes/self-scheduling/views/appointments-list.php:260 includes/self-scheduling/views/appointments-list.php:345 includes/self-scheduling/views/appointments-list.php:508
 msgid "Confirmed"
 msgstr ""
 
@@ -3323,7 +3365,7 @@ msgstr ""
 msgid "Connection error."
 msgstr ""
 
-#: includes/frontend/class-ffc-frontend.php:316
+#: includes/frontend/class-ffc-frontend.php:338
 msgid "Connection error. Please try again."
 msgstr ""
 
@@ -3403,19 +3445,23 @@ msgstr ""
 msgid "Cooldown (sec)"
 msgstr ""
 
-#: includes/admin/class-ffc-admin-assets-manager.php:654 includes/admin/class-ffc-admin-assets-manager.php:751 includes/url-shortener/class-ffc-url-shortener-admin-page.php:100 includes/url-shortener/class-ffc-url-shortener-meta-box.php:244
+#: includes/admin/class-ffc-admin-assets-manager.php:654 includes/admin/class-ffc-admin-assets-manager.php:751 includes/url-shortener/class-ffc-url-shortener-admin-page.php:100 includes/url-shortener/class-ffc-url-shortener-meta-box.php:244 includes/frontend/class-ffc-frontend.php:279
 msgid "Copied!"
 msgstr ""
 
-#: includes/generators/class-ffc-magic-link-helper.php:203 includes/url-shortener/class-ffc-url-shortener-admin-page.php:104 includes/url-shortener/class-ffc-url-shortener-meta-box.php:130 includes/url-shortener/class-ffc-url-shortener-meta-box.php:250
+#: templates/submission-success.php:45 templates/submission-success.php:62 includes/generators/class-ffc-magic-link-helper.php:203 includes/url-shortener/class-ffc-url-shortener-admin-page.php:104 includes/url-shortener/class-ffc-url-shortener-meta-box.php:130 includes/url-shortener/class-ffc-url-shortener-meta-box.php:250 includes/frontend/class-ffc-frontend.php:278
 msgid "Copy"
+msgstr ""
+
+#: templates/submission-success.php:44
+msgid "Copy authentication code"
 msgstr ""
 
 #: includes/admin/class-ffc-admin-assets-manager.php:752 includes/url-shortener/class-ffc-url-shortener-admin-page.php:101 includes/url-shortener/class-ffc-url-shortener-meta-box.php:245
 msgid "Copy failed"
 msgstr ""
 
-#: includes/admin/class-ffc-form-editor-public-csv-download-metabox.php:266
+#: templates/submission-success.php:61 includes/admin/class-ffc-form-editor-public-csv-download-metabox.php:266
 msgid "Copy link"
 msgstr ""
 
@@ -3437,6 +3483,10 @@ msgstr ""
 
 #: includes/recruitment/class-ffc-recruitment-error-messages.php:177
 msgid "Could not copy preliminary rows into the definitive list. Please try again."
+msgstr ""
+
+#: includes/frontend/class-ffc-frontend.php:280
+msgid "Could not copy. Long-press the text to copy it manually."
 msgstr ""
 
 #: includes/recruitment/class-ffc-recruitment-error-messages.php:128
@@ -3531,7 +3581,11 @@ msgstr ""
 msgid "Could not update the reason. Please try again."
 msgstr ""
 
-#: includes/settings/views/ffc-tab-rate-limit.php:395
+#: includes/frontend/class-ffc-frontend.php:286
+msgid "Couldn't generate the certificate"
+msgstr ""
+
+#: includes/settings/views/ffc-tab-rate-limit.php:467
 msgid "Countdown timer"
 msgstr ""
 
@@ -3635,7 +3689,7 @@ msgstr ""
 msgid "CPFs are stored encrypted at-rest and decrypted on the fly when you download the CSV. Each entry includes timestamp, IP, gate mode, CPF, and outcome."
 msgstr ""
 
-#: includes/settings/views/ffc-tab-rate-limit.php:221
+#: includes/settings/views/ffc-tab-rate-limit.php:293
 msgid "CPU concurrency"
 msgstr ""
 
@@ -3735,11 +3789,11 @@ msgstr ""
 msgid "CSV"
 msgstr ""
 
-#: includes/admin/class-ffc-form-editor-public-csv-download-metabox.php:151 includes/frontend/class-ffc-frontend.php:353
+#: includes/admin/class-ffc-form-editor-public-csv-download-metabox.php:151 includes/frontend/class-ffc-frontend.php:375
 msgid "CSV Download"
 msgstr ""
 
-#: includes/frontend/class-ffc-frontend.php:368
+#: includes/frontend/class-ffc-frontend.php:390
 msgid "CSV download disabled"
 msgstr ""
 
@@ -3815,7 +3869,7 @@ msgstr ""
 msgid "Current Position/Role"
 msgstr ""
 
-#: includes/frontend/class-ffc-frontend.php:401
+#: includes/frontend/class-ffc-frontend.php:423
 msgid "Current scheduled close:"
 msgstr ""
 
@@ -4071,7 +4125,7 @@ msgstr ""
 msgid "Date/Time"
 msgstr ""
 
-#: templates/submission-success.php:30 includes/generators/class-ffc-pdf-generator.php:841 includes/self-scheduling/class-ffc-self-scheduling-appointment-email-handler.php:102 includes/self-scheduling/class-ffc-self-scheduling-appointment-email-handler.php:246 includes/self-scheduling/class-ffc-self-scheduling-appointment-email-handler.php:309 includes/self-scheduling/class-ffc-self-scheduling-appointment-email-handler.php:367 includes/self-scheduling/class-ffc-self-scheduling-appointment-receipt-handler.php:429 includes/recruitment/class-ffc-recruitment-notice-edit-page-renderer.php:1032 includes/audience/class-ffc-audience-notification-handler.php:330 includes/audience/class-ffc-audience-notification-handler.php:358 includes/frontend/class-ffc-verification-response-renderer.php:163
+#: templates/submission-success.php:34 includes/generators/class-ffc-pdf-generator.php:841 includes/self-scheduling/class-ffc-self-scheduling-appointment-email-handler.php:102 includes/self-scheduling/class-ffc-self-scheduling-appointment-email-handler.php:246 includes/self-scheduling/class-ffc-self-scheduling-appointment-email-handler.php:309 includes/self-scheduling/class-ffc-self-scheduling-appointment-email-handler.php:367 includes/self-scheduling/class-ffc-self-scheduling-appointment-receipt-handler.php:429 includes/recruitment/class-ffc-recruitment-notice-edit-page-renderer.php:1032 includes/audience/class-ffc-audience-notification-handler.php:330 includes/audience/class-ffc-audience-notification-handler.php:358 includes/frontend/class-ffc-verification-response-renderer.php:163
 msgid "Date:"
 msgstr ""
 
@@ -4091,7 +4145,7 @@ msgstr ""
 msgid "Day"
 msgstr ""
 
-#: includes/self-scheduling/class-ffc-self-scheduling-editor.php:400 includes/settings/views/ffc-tab-rate-limit.php:281 includes/settings/views/ffc-tab-rate-limit.php:360
+#: includes/self-scheduling/class-ffc-self-scheduling-editor.php:400 includes/settings/views/ffc-tab-rate-limit.php:353 includes/settings/views/ffc-tab-rate-limit.php:432
 msgid "days"
 msgstr ""
 
@@ -4376,6 +4430,10 @@ msgstr ""
 msgid "Descriptive name (e.g. \"Main Office\", \"Campus North\")"
 msgstr ""
 
+#: templates/submission-success.php:97
+msgid "Desktop: check the Downloads folder or the download bar at the bottom of your browser."
+msgstr ""
+
 #: includes/url-shortener/class-ffc-url-shortener-admin-page.php:441
 msgid "Destination"
 msgstr ""
@@ -4392,7 +4450,7 @@ msgstr ""
 msgid "Detected:"
 msgstr ""
 
-#: includes/frontend/class-ffc-frontend.php:476
+#: includes/frontend/class-ffc-frontend.php:498
 msgid "Detecting your location..."
 msgstr ""
 
@@ -4400,7 +4458,7 @@ msgstr ""
 msgid "Detects location by IP address on server. No user permission needed. Accuracy: 1-50 km."
 msgstr ""
 
-#: includes/settings/views/ffc-tab-rate-limit.php:184
+#: includes/settings/views/ffc-tab-rate-limit.php:256
 msgid "Device Fingerprint"
 msgstr ""
 
@@ -4412,7 +4470,7 @@ msgstr ""
 msgid "Device limit"
 msgstr ""
 
-#: includes/settings/views/ffc-tab-rate-limit.php:222
+#: includes/settings/views/ffc-tab-rate-limit.php:294
 msgid "Device memory"
 msgstr ""
 
@@ -4422,6 +4480,10 @@ msgstr ""
 
 #: includes/recruitment/class-ffc-recruitment-admin-page.php:87 includes/recruitment/class-ffc-recruitment-admin-page.php:889 includes/recruitment/class-ffc-recruitment-candidates-list-table.php:408 includes/recruitment/class-ffc-recruitment-public-shortcode-renderer.php:502 includes/recruitment/class-ffc-recruitment-dashboard-section.php:327 includes/recruitment/class-ffc-recruitment-dashboard-section.php:349
 msgid "Did not show up"
+msgstr ""
+
+#: includes/frontend/class-ffc-frontend.php:283
+msgid "Didn't download? Click here to open the PDF in a new tab."
 msgstr ""
 
 #: includes/url-shortener/class-ffc-url-shortener-admin-page.php:540
@@ -4436,7 +4498,7 @@ msgstr ""
 msgid "Disable ALL emails from this plugin globally"
 msgstr ""
 
-#: includes/settings/views/ffc-tab-rate-limit.php:249
+#: includes/settings/views/ffc-tab-rate-limit.php:321
 msgid "Disable canvas/audio/fonts for a privacy-minimal profile (lower entropy, easier to bypass)."
 msgstr ""
 
@@ -4546,7 +4608,7 @@ msgstr ""
 msgid "Domain blocked."
 msgstr ""
 
-#: includes/settings/views/ffc-tab-rate-limit.php:309 includes/settings/views/ffc-tab-rate-limit.php:319
+#: includes/settings/views/ffc-tab-rate-limit.php:381 includes/settings/views/ffc-tab-rate-limit.php:391
 msgid "Domains"
 msgstr ""
 
@@ -4578,11 +4640,11 @@ msgstr ""
 msgid "Download Certificate (PDF)"
 msgstr ""
 
-#: includes/frontend/class-ffc-frontend.php:311
+#: includes/frontend/class-ffc-frontend.php:333
 msgid "Download complete!"
 msgstr ""
 
-#: includes/frontend/class-ffc-frontend.php:313
+#: includes/frontend/class-ffc-frontend.php:335
 msgid "Download CSV"
 msgstr ""
 
@@ -4618,11 +4680,15 @@ msgstr ""
 msgid "Download PDF"
 msgstr ""
 
+#: templates/submission-success.php:70
+msgid "Download PDF again"
+msgstr ""
+
 #: includes/settings/views/documentation/16-url-shortener.php:38
 msgid "Download QR codes in PNG or SVG format"
 msgstr ""
 
-#: includes/frontend/class-ffc-frontend.php:354
+#: includes/frontend/class-ffc-frontend.php:376
 msgid "Download quota"
 msgstr ""
 
@@ -4710,7 +4776,7 @@ msgstr ""
 msgid "Each form can be configured individually with allowed areas, dates, and display options."
 msgstr ""
 
-#: includes/admin/class-ffc-form-editor-public-csv-download-metabox.php:450
+#: includes/admin/class-ffc-form-editor-public-csv-download-metabox.php:452
 msgid "Early-start is disabled for this form — toggle it on in the Operator features list above."
 msgstr ""
 
@@ -4886,7 +4952,7 @@ msgstr ""
 msgid "Email:"
 msgstr ""
 
-#: includes/settings/views/ffc-tab-rate-limit.php:308 includes/settings/views/ffc-tab-rate-limit.php:318
+#: includes/settings/views/ffc-tab-rate-limit.php:380 includes/settings/views/ffc-tab-rate-limit.php:390
 msgid "Emails"
 msgstr ""
 
@@ -4938,7 +5004,7 @@ msgstr ""
 msgid "Empty Trash"
 msgstr ""
 
-#: includes/url-shortener/class-ffc-url-shortener-admin-page.php:540 includes/settings/views/ffc-tab-rate-limit.php:28 includes/settings/views/ffc-tab-rate-limit.php:52 includes/settings/views/ffc-tab-rate-limit.php:88 includes/settings/views/ffc-tab-rate-limit.php:170
+#: includes/url-shortener/class-ffc-url-shortener-admin-page.php:540 includes/settings/views/ffc-tab-rate-limit.php:28 includes/settings/views/ffc-tab-rate-limit.php:52 includes/settings/views/ffc-tab-rate-limit.php:88 includes/settings/views/ffc-tab-rate-limit.php:170 includes/settings/views/ffc-tab-rate-limit.php:236
 msgid "Enable"
 msgstr ""
 
@@ -5022,7 +5088,7 @@ msgstr ""
 msgid "Enable debug logging for user management"
 msgstr ""
 
-#: includes/settings/views/ffc-tab-rate-limit.php:193
+#: includes/settings/views/ffc-tab-rate-limit.php:265
 msgid "Enable device fingerprint limit"
 msgstr ""
 
@@ -5038,7 +5104,7 @@ msgstr ""
 msgid "Enable IP geolocation API for backend validation"
 msgstr ""
 
-#: includes/settings/views/ffc-tab-rate-limit.php:332
+#: includes/settings/views/ffc-tab-rate-limit.php:404
 msgid "Enable logs"
 msgstr ""
 
@@ -5046,11 +5112,11 @@ msgstr ""
 msgid "Enable Public Operator Access"
 msgstr ""
 
-#: includes/admin/class-ffc-form-editor-public-csv-download-metabox.php:447
+#: includes/admin/class-ffc-form-editor-public-csv-download-metabox.php:449
 msgid "Enable Public Operator Access above to expose the early-start button to operators."
 msgstr ""
 
-#: includes/admin/class-ffc-form-editor-public-csv-download-metabox.php:517
+#: includes/admin/class-ffc-form-editor-public-csv-download-metabox.php:526
 msgid "Enable Public Operator Access above to expose the postpone-close button to operators."
 msgstr ""
 
@@ -5114,7 +5180,7 @@ msgstr ""
 msgid "End Date"
 msgstr ""
 
-#: includes/frontend/class-ffc-frontend.php:334
+#: includes/frontend/class-ffc-frontend.php:356
 msgid "End date"
 msgstr ""
 
@@ -5126,7 +5192,7 @@ msgstr ""
 msgid "End Time"
 msgstr ""
 
-#: includes/frontend/class-ffc-frontend.php:336
+#: includes/frontend/class-ffc-frontend.php:358
 msgid "End time"
 msgstr ""
 
@@ -5150,6 +5216,10 @@ msgstr ""
 msgid "Endpoints fall into two categories:"
 msgstr ""
 
+#: includes/settings/views/ffc-tab-rate-limit.php:243
+msgid "Enforce limit on this endpoint"
+msgstr ""
+
 #: includes/settings/views/documentation/18-troubleshooting.php:31
 msgid "Ensure field exists in form"
 msgstr ""
@@ -5162,7 +5232,7 @@ msgstr ""
 msgid "Ensure that the listed IDs are allowed or blocked from retrieving certificates."
 msgstr ""
 
-#: includes/frontend/class-ffc-frontend.php:243 includes/frontend/class-ffc-frontend.php:425
+#: includes/frontend/class-ffc-frontend.php:243 includes/frontend/class-ffc-frontend.php:447
 msgid "Enter a valid CPF (11 digits) or RF (7 digits)"
 msgstr ""
 
@@ -5230,7 +5300,7 @@ msgstr ""
 msgid "Erase Personal Data"
 msgstr ""
 
-#: includes/recruitment/class-ffc-recruitment-candidate-edit-page.php:365 includes/recruitment/class-ffc-recruitment-candidate-edit-page.php:1071 includes/frontend/class-ffc-frontend.php:312 includes/settings/tabs/class-ffc-tab-geolocation.php:121 includes/admin/views/ffc-admin-activity-log.php:38
+#: includes/recruitment/class-ffc-recruitment-candidate-edit-page.php:365 includes/recruitment/class-ffc-recruitment-candidate-edit-page.php:1071 includes/frontend/class-ffc-frontend.php:334 includes/settings/tabs/class-ffc-tab-geolocation.php:121 includes/admin/views/ffc-admin-activity-log.php:38
 msgid "Error"
 msgstr ""
 
@@ -5294,15 +5364,15 @@ msgstr ""
 msgid "Error generating unique codes. Please try a smaller quantity."
 msgstr ""
 
-#: includes/api/class-ffc-user-audience-rest-controller.php:537
+#: includes/api/class-ffc-user-audience-rest-controller.php:410
 msgid "Error joining group"
 msgstr ""
 
-#: includes/api/class-ffc-user-audience-rest-controller.php:605
+#: includes/api/class-ffc-user-audience-rest-controller.php:478
 msgid "Error leaving group"
 msgstr ""
 
-#: includes/api/class-ffc-user-audience-rest-controller.php:651
+#: includes/api/class-ffc-user-audience-rest-controller.php:524
 msgid "Error leaving groups"
 msgstr ""
 
@@ -5311,7 +5381,7 @@ msgid "Error loading appointment:"
 msgstr ""
 
 #. %s: error message
-#: includes/api/class-ffc-user-audience-rest-controller.php:281
+#: includes/api/class-ffc-user-audience-rest-controller.php:206
 #, php-format
 msgid "Error loading audience bookings: %s"
 msgstr ""
@@ -5324,7 +5394,7 @@ msgstr ""
 msgid "Error loading form."
 msgstr ""
 
-#: includes/api/class-ffc-user-audience-rest-controller.php:387
+#: includes/api/class-ffc-user-audience-rest-controller.php:298
 msgid "Error loading joinable groups"
 msgstr ""
 
@@ -5610,7 +5680,7 @@ msgstr ""
 msgid "Export Personal Data"
 msgstr ""
 
-#: includes/frontend/class-ffc-frontend.php:314
+#: includes/frontend/class-ffc-frontend.php:336
 msgid "Export timed out. Please try again."
 msgstr ""
 
@@ -5623,7 +5693,7 @@ msgid "Export too large"
 msgstr ""
 
 #. %1$d is processed count, %2$d is total count
-#: includes/frontend/class-ffc-frontend.php:309
+#: includes/frontend/class-ffc-frontend.php:331
 #, php-format
 msgid "Exporting %1$d / %2$d…"
 msgstr ""
@@ -6028,7 +6098,7 @@ msgstr ""
 msgid "Foreign keys: %1$d added, %2$d skipped, %3$d errors"
 msgstr ""
 
-#: includes/admin/class-ffc-submissions-list.php:78 includes/admin/class-ffc-csv-exporter.php:453 includes/privacy/class-ffc-privacy-handler.php:244 includes/frontend/class-ffc-frontend.php:233 includes/frontend/class-ffc-frontend.php:321 includes/frontend/class-ffc-public-csv-exporter.php:658
+#: includes/admin/class-ffc-submissions-list.php:78 includes/admin/class-ffc-csv-exporter.php:453 includes/privacy/class-ffc-privacy-handler.php:244 includes/frontend/class-ffc-frontend.php:233 includes/frontend/class-ffc-frontend.php:343 includes/frontend/class-ffc-public-csv-exporter.php:658
 msgid "Form"
 msgstr ""
 
@@ -6052,7 +6122,7 @@ msgstr ""
 msgid "Form Configuration:"
 msgstr ""
 
-#: includes/frontend/class-ffc-frontend.php:319
+#: includes/frontend/class-ffc-frontend.php:341
 msgid "Form Details"
 msgstr ""
 
@@ -6072,7 +6142,7 @@ msgstr ""
 msgid "Form is not published"
 msgstr ""
 
-#: includes/frontend/class-ffc-frontend.php:395 includes/frontend/class-ffc-public-csv-download.php:568
+#: includes/frontend/class-ffc-frontend.php:417 includes/frontend/class-ffc-public-csv-download.php:568
 msgid "Form is now open."
 msgstr ""
 
@@ -6104,7 +6174,7 @@ msgstr ""
 msgid "Form submitted successfully"
 msgstr ""
 
-#: templates/submission-success.php:26
+#: templates/submission-success.php:30
 msgid "Form:"
 msgstr ""
 
@@ -6116,7 +6186,7 @@ msgstr ""
 msgid "Format used for {{submission_date}} placeholder in PDFs and emails."
 msgstr ""
 
-#: includes/settings/views/ffc-tab-rate-limit.php:309 includes/settings/views/ffc-tab-rate-limit.php:319
+#: includes/settings/views/ffc-tab-rate-limit.php:381 includes/settings/views/ffc-tab-rate-limit.php:391
 msgid "Format: *@domain.com"
 msgstr ""
 
@@ -6271,7 +6341,7 @@ msgid "Generating certificate in the background, please wait 10 seconds and chec
 msgstr ""
 
 #. %d is the total number of records
-#: includes/frontend/class-ffc-frontend.php:307
+#: includes/frontend/class-ffc-frontend.php:329
 msgid "Generating CSV — %d records…"
 msgstr ""
 
@@ -6315,15 +6385,15 @@ msgstr ""
 msgid "Geofencing (GPS + IP):"
 msgstr ""
 
-#: includes/admin/class-ffc-form-editor-geofence-metabox.php:103 includes/frontend/class-ffc-frontend.php:341 includes/settings/tabs/class-ffc-tab-geolocation.php:35
+#: includes/admin/class-ffc-form-editor-geofence-metabox.php:103 includes/frontend/class-ffc-frontend.php:363 includes/settings/tabs/class-ffc-tab-geolocation.php:35
 msgid "Geolocation"
 msgstr ""
 
-#: includes/admin/class-ffc-form-editor-save-handler.php:596
+#: includes/admin/class-ffc-form-editor-save-handler.php:594
 msgid "Geolocation Configuration Error:"
 msgstr ""
 
-#: includes/frontend/class-ffc-frontend.php:344
+#: includes/frontend/class-ffc-frontend.php:366
 msgid "Geolocation enabled"
 msgstr ""
 
@@ -6399,15 +6469,15 @@ msgstr ""
 msgid "GPS coordinates of the center point"
 msgstr ""
 
-#: includes/admin/class-ffc-form-editor-save-handler.php:465
+#: includes/admin/class-ffc-form-editor-save-handler.php:463
 msgid "GPS Geolocation is enabled but no allowed areas are defined."
 msgstr ""
 
-#: includes/admin/class-ffc-form-editor-save-handler.php:462
+#: includes/admin/class-ffc-form-editor-save-handler.php:460
 msgid "GPS Geolocation is enabled but no locations are selected."
 msgstr ""
 
-#: includes/frontend/class-ffc-frontend.php:342
+#: includes/frontend/class-ffc-frontend.php:364
 msgid "GPS Locations"
 msgstr ""
 
@@ -6457,15 +6527,15 @@ msgstr ""
 msgid "Group Events"
 msgstr ""
 
-#: includes/api/class-ffc-user-audience-rest-controller.php:455 includes/api/class-ffc-user-audience-rest-controller.php:562
+#: includes/api/class-ffc-user-audience-rest-controller.php:365 includes/api/class-ffc-user-audience-rest-controller.php:435
 msgid "Group ID is required"
 msgstr ""
 
-#: includes/api/class-ffc-user-audience-rest-controller.php:579
+#: includes/api/class-ffc-user-audience-rest-controller.php:452
 msgid "Group not found or cannot be left by user"
 msgstr ""
 
-#: includes/api/class-ffc-user-audience-rest-controller.php:472
+#: includes/api/class-ffc-user-audience-rest-controller.php:375
 msgid "Group not found or does not allow self-join"
 msgstr ""
 
@@ -6658,7 +6728,7 @@ msgstr ""
 msgid "How long to cache IP location data. Range: 300-3600 seconds (5 min - 1 hour)."
 msgstr ""
 
-#: includes/settings/views/ffc-tab-rate-limit.php:209
+#: includes/settings/views/ffc-tab-rate-limit.php:281
 msgid "How many non-cookie signals must match to consider it the same device. Lower = more aggressive (more false positives). Higher = harder to bypass but easier to evade. The default is 7 of 13."
 msgstr ""
 
@@ -6762,7 +6832,7 @@ msgstr ""
 msgid "If you create these custom fields:"
 msgstr ""
 
-#: includes/frontend/class-ffc-frontend.php:391
+#: includes/frontend/class-ffc-frontend.php:413
 msgid "If your site uses page caching (Cloudflare, W3 Total Cache, etc.), some visitors may see the old \"not yet started\" state until the cache refreshes. Ask them to reload if needed."
 msgstr ""
 
@@ -6910,7 +6980,7 @@ msgstr ""
 msgid "Inherited from parent audience. Users can join this group from their dashboard."
 msgstr ""
 
-#: includes/settings/views/ffc-tab-rate-limit.php:226
+#: includes/settings/views/ffc-tab-rate-limit.php:298
 msgid "Installed fonts probe"
 msgstr ""
 
@@ -6930,7 +7000,7 @@ msgstr ""
 msgid "Insufficient permissions"
 msgstr ""
 
-#: includes/settings/views/ffc-tab-rate-limit.php:366
+#: includes/settings/views/ffc-tab-rate-limit.php:438
 msgid "Interface"
 msgstr ""
 
@@ -6970,7 +7040,7 @@ msgstr ""
 msgid "Invalid code."
 msgstr ""
 
-#: includes/frontend/class-ffc-frontend.php:242 includes/frontend/class-ffc-frontend.php:424
+#: includes/frontend/class-ffc-frontend.php:242 includes/frontend/class-ffc-frontend.php:446
 msgid "Invalid CPF"
 msgstr ""
 
@@ -7170,11 +7240,11 @@ msgstr ""
 msgid "IP Geolocation Areas"
 msgstr ""
 
-#: includes/admin/class-ffc-form-editor-save-handler.php:476
+#: includes/admin/class-ffc-form-editor-save-handler.php:474
 msgid "IP Geolocation is enabled with independent areas but no IP areas are defined."
 msgstr ""
 
-#: includes/admin/class-ffc-form-editor-save-handler.php:473
+#: includes/admin/class-ffc-form-editor-save-handler.php:471
 msgid "IP Geolocation is enabled with independent areas but no locations are selected."
 msgstr ""
 
@@ -7186,7 +7256,7 @@ msgstr ""
 msgid "IP Geolocation:"
 msgstr ""
 
-#: includes/frontend/class-ffc-frontend.php:343
+#: includes/frontend/class-ffc-frontend.php:365
 msgid "IP Locations"
 msgstr ""
 
@@ -7204,6 +7274,10 @@ msgstr ""
 msgid "IP: %s"
 msgstr ""
 
+#: templates/submission-success.php:89
+msgid "iPhone / iPad: after the PDF opens, tap Share → \"Save to Files\" to keep it on your device."
+msgstr ""
+
 #: includes/settings/views/ffc-tab-geolocation.php:232
 msgid "ipinfo.io (50k/month free, requires key)"
 msgstr ""
@@ -7212,8 +7286,12 @@ msgstr ""
 msgid "IPInfo.io API Key"
 msgstr ""
 
-#: includes/settings/views/ffc-tab-rate-limit.php:307 includes/settings/views/ffc-tab-rate-limit.php:317
+#: includes/settings/views/ffc-tab-rate-limit.php:379 includes/settings/views/ffc-tab-rate-limit.php:389
 msgid "IPs"
+msgstr ""
+
+#: includes/settings/views/ffc-tab-rate-limit.php:196
+msgid "IPs listed in the global Whitelist below bypass the read limit"
 msgstr ""
 
 #: includes/settings/views/ffc-tab-migrations.php:481
@@ -7399,7 +7477,7 @@ msgstr ""
 msgid "Limit reached. Please wait {time}."
 msgstr ""
 
-#: includes/settings/views/ffc-tab-rate-limit.php:185
+#: includes/settings/views/ffc-tab-rate-limit.php:257
 msgid "Limit submissions from the same physical device by combining a persistent cookie with multiple browser signals. The \"N of M\" rule treats two visits as the same device when at least the configured number of non-cookie signals match."
 msgstr ""
 
@@ -7525,7 +7603,7 @@ msgstr ""
 msgid "Loading form..."
 msgstr ""
 
-#: includes/frontend/class-ffc-frontend.php:380
+#: includes/frontend/class-ffc-frontend.php:402
 msgid "Loading preview…"
 msgstr ""
 
@@ -7553,11 +7631,11 @@ msgstr ""
 msgid "Loading…"
 msgstr ""
 
-#: includes/frontend/class-ffc-frontend.php:489
+#: includes/frontend/class-ffc-frontend.php:511
 msgid "Location access was denied. On Safari/iOS, go to Settings > Privacy & Security > Location Services and ensure it is enabled for your browser."
 msgstr ""
 
-#: includes/frontend/class-ffc-frontend.php:481
+#: includes/frontend/class-ffc-frontend.php:503
 msgid "Location information is unavailable."
 msgstr ""
 
@@ -7573,15 +7651,15 @@ msgstr ""
 msgid "Location not found."
 msgstr ""
 
-#: includes/frontend/class-ffc-frontend.php:480
+#: includes/frontend/class-ffc-frontend.php:502
 msgid "Location permission denied. Please enable location services."
 msgstr ""
 
-#: includes/frontend/class-ffc-frontend.php:482
+#: includes/frontend/class-ffc-frontend.php:504
 msgid "Location request timed out."
 msgstr ""
 
-#: includes/frontend/class-ffc-frontend.php:491
+#: includes/frontend/class-ffc-frontend.php:513
 msgid "Location request timed out. On Safari/iOS, ensure Location Services is enabled in Settings > Privacy & Security > Location Services."
 msgstr ""
 
@@ -7593,15 +7671,15 @@ msgstr ""
 msgid "Location verification failed."
 msgstr ""
 
-#: includes/settings/views/ffc-tab-rate-limit.php:343
+#: includes/settings/views/ffc-tab-rate-limit.php:415
 msgid "Log allowed requests"
 msgstr ""
 
-#: includes/settings/views/ffc-tab-rate-limit.php:354
+#: includes/settings/views/ffc-tab-rate-limit.php:426
 msgid "Log blocked requests"
 msgstr ""
 
-#: includes/settings/views/ffc-tab-rate-limit.php:286
+#: includes/settings/views/ffc-tab-rate-limit.php:358
 msgid "Log blocks"
 msgstr ""
 
@@ -7641,7 +7719,7 @@ msgstr ""
 msgid "Logo with fixed width"
 msgstr ""
 
-#: includes/settings/views/ffc-tab-rate-limit.php:325
+#: includes/settings/views/ffc-tab-rate-limit.php:397
 msgid "Logs"
 msgstr ""
 
@@ -7833,7 +7911,7 @@ msgstr ""
 msgid "Match threshold (3-12)"
 msgstr ""
 
-#: includes/settings/views/ffc-tab-rate-limit.php:207
+#: includes/settings/views/ffc-tab-rate-limit.php:279
 msgid "Match threshold (N of 13)"
 msgstr ""
 
@@ -7841,7 +7919,7 @@ msgstr ""
 msgid "Math CAPTCHA:"
 msgstr ""
 
-#: includes/settings/views/ffc-tab-rate-limit.php:230
+#: includes/settings/views/ffc-tab-rate-limit.php:302
 msgid "Math precision probes (CPU/SO-specific IEEE-754 quirks)"
 msgstr ""
 
@@ -7853,7 +7931,7 @@ msgstr ""
 msgid "Max Bookings Per Slot"
 msgstr ""
 
-#: includes/settings/views/ffc-tab-rate-limit.php:361
+#: includes/settings/views/ffc-tab-rate-limit.php:433
 msgid "Max logs"
 msgstr ""
 
@@ -7861,11 +7939,11 @@ msgstr ""
 msgid "Max per day"
 msgstr ""
 
-#: includes/settings/views/ffc-tab-rate-limit.php:35 includes/settings/views/ffc-tab-rate-limit.php:178
+#: includes/settings/views/ffc-tab-rate-limit.php:35 includes/settings/views/ffc-tab-rate-limit.php:178 includes/settings/views/ffc-tab-rate-limit.php:250
 msgid "Max per hour"
 msgstr ""
 
-#: includes/settings/views/ffc-tab-rate-limit.php:177
+#: includes/settings/views/ffc-tab-rate-limit.php:177 includes/settings/views/ffc-tab-rate-limit.php:249
 msgid "Max per minute"
 msgstr ""
 
@@ -7889,7 +7967,7 @@ msgstr ""
 msgid "Max submissions per device"
 msgstr ""
 
-#: includes/settings/views/ffc-tab-rate-limit.php:201
+#: includes/settings/views/ffc-tab-rate-limit.php:273
 msgid "Max submissions per device/form"
 msgstr ""
 
@@ -7901,7 +7979,7 @@ msgstr ""
 msgid "Maximum appointments per day (0 = unlimited)"
 msgstr ""
 
-#: includes/frontend/class-ffc-frontend.php:349
+#: includes/frontend/class-ffc-frontend.php:371
 msgid "Maximum attempts"
 msgstr ""
 
@@ -7931,7 +8009,7 @@ msgstr ""
 msgid "May"
 msgstr ""
 
-#: includes/settings/views/ffc-tab-rate-limit.php:229
+#: includes/settings/views/ffc-tab-rate-limit.php:301
 msgid "Media queries (color scheme, reduced motion, …)"
 msgstr ""
 
@@ -8082,7 +8160,7 @@ msgstr ""
 msgid "Minimum notice required to cancel (e.g., 24 hours)"
 msgstr ""
 
-#: includes/frontend/class-ffc-frontend.php:348
+#: includes/frontend/class-ffc-frontend.php:370
 msgid "Minimum passing score"
 msgstr ""
 
@@ -8192,7 +8270,7 @@ msgstr ""
 msgid "Move submissions to another form"
 msgstr ""
 
-#: includes/frontend/class-ffc-frontend.php:398
+#: includes/frontend/class-ffc-frontend.php:420
 msgid "Move the form's close time later within the same day. One-shot per form."
 msgstr ""
 
@@ -8334,7 +8412,7 @@ msgstr ""
 msgid "New certificate issued"
 msgstr ""
 
-#: includes/frontend/class-ffc-frontend.php:402
+#: includes/frontend/class-ffc-frontend.php:424
 msgid "New close time:"
 msgstr ""
 
@@ -8368,7 +8446,7 @@ msgstr ""
 msgid "New Scheduled Activity"
 msgstr ""
 
-#: includes/frontend/class-ffc-frontend.php:388
+#: includes/frontend/class-ffc-frontend.php:410
 msgid "New start will be:"
 msgstr ""
 
@@ -8574,7 +8652,7 @@ msgstr ""
 msgid "No records available for export."
 msgstr ""
 
-#: includes/frontend/class-ffc-frontend.php:315 includes/frontend/class-ffc-public-csv-exporter.php:383
+#: includes/frontend/class-ffc-frontend.php:337 includes/frontend/class-ffc-public-csv-exporter.php:383
 msgid "No records found to export."
 msgstr ""
 
@@ -8791,7 +8869,7 @@ msgstr ""
 msgid "November"
 msgstr ""
 
-#: includes/frontend/class-ffc-frontend.php:389
+#: includes/frontend/class-ffc-frontend.php:411
 msgid "now"
 msgstr ""
 
@@ -8835,7 +8913,7 @@ msgstr ""
 msgid "Off"
 msgstr ""
 
-#: includes/settings/views/ffc-tab-rate-limit.php:282
+#: includes/settings/views/ffc-tab-rate-limit.php:354
 msgid "Older signal rows are purged by the daily cleanup cron."
 msgstr ""
 
@@ -8859,7 +8937,7 @@ msgstr ""
 msgid "One or more selected rows would skip a higher-ranked candidate (out of order)."
 msgstr ""
 
-#: includes/settings/views/ffc-tab-rate-limit.php:307
+#: includes/settings/views/ffc-tab-rate-limit.php:379
 msgid "One per line"
 msgstr ""
 
@@ -8867,7 +8945,7 @@ msgstr ""
 msgid "One per line..."
 msgstr ""
 
-#: includes/settings/views/ffc-tab-rate-limit.php:272
+#: includes/settings/views/ffc-tab-rate-limit.php:344
 msgid "One SHA-256 hex digest per line. Submissions whose ffc_device_id cookie hash matches one of these are exempt from the device limit."
 msgstr ""
 
@@ -8991,7 +9069,7 @@ msgstr ""
 msgid "Override the ficha template file path"
 msgstr ""
 
-#: includes/frontend/class-ffc-frontend.php:384
+#: includes/frontend/class-ffc-frontend.php:406
 msgid "Overrides the scheduled start time. Form opens immediately."
 msgstr ""
 
@@ -9071,7 +9149,7 @@ msgstr ""
 msgid "Password must be at least 8 characters"
 msgstr ""
 
-#: includes/frontend/class-ffc-frontend.php:326
+#: includes/frontend/class-ffc-frontend.php:348
 msgid "Password required"
 msgstr ""
 
@@ -9164,7 +9242,11 @@ msgstr ""
 msgid "Per page:"
 msgstr ""
 
-#: includes/settings/views/ffc-tab-rate-limit.php:203
+#: includes/settings/views/ffc-tab-rate-limit.php:186
+msgid "Per-endpoint rate limit for public GET endpoints (e.g. the Calendar shortcode's /slots lookup). Prevents scraping while leaving submission limits independent."
+msgstr ""
+
+#: includes/settings/views/ffc-tab-rate-limit.php:275
 msgid "Per-form override available in the form metabox."
 msgstr ""
 
@@ -9212,11 +9294,11 @@ msgstr ""
 msgid "Permission denied. Please reload the page."
 msgstr ""
 
-#: includes/settings/views/ffc-tab-rate-limit.php:228
+#: includes/settings/views/ffc-tab-rate-limit.php:300
 msgid "Permissions API state (notifications, camera, etc.)"
 msgstr ""
 
-#: includes/settings/views/ffc-tab-rate-limit.php:217
+#: includes/settings/views/ffc-tab-rate-limit.php:289
 msgid "Persistent cookie (UUID in localStorage)"
 msgstr ""
 
@@ -9276,7 +9358,7 @@ msgstr ""
 msgid "Pick a day in the calendar to see the forms scheduled for it."
 msgstr ""
 
-#: includes/frontend/class-ffc-frontend.php:400
+#: includes/frontend/class-ffc-frontend.php:422
 msgid "Pick a new close time within the same day. This action is one-shot — once confirmed it cannot be repeated from this page."
 msgstr ""
 
@@ -9302,7 +9384,7 @@ msgstr ""
 msgid "PII revealed: %s."
 msgstr ""
 
-#: includes/admin/class-ffc-admin-assets-manager.php:831 includes/frontend/class-ffc-frontend.php:378
+#: includes/admin/class-ffc-admin-assets-manager.php:831 includes/frontend/class-ffc-frontend.php:400
 msgid "Placeholders replaced with sample data. QR code shown as placeholder."
 msgstr ""
 
@@ -9330,6 +9412,10 @@ msgstr ""
 msgid "Please confirm the uninstallation to proceed."
 msgstr ""
 
+#: includes/frontend/class-ffc-frontend.php:296
+msgid "Please do not close this tab until the PDF appears."
+msgstr ""
+
 #: includes/frontend/class-ffc-frontend.php:266
 msgid "Please do not close this tab. The PDF will appear automatically in a few seconds."
 msgstr ""
@@ -9338,7 +9424,7 @@ msgstr ""
 msgid "Please enter a valid number."
 msgstr ""
 
-#: includes/frontend/class-ffc-frontend.php:409
+#: includes/frontend/class-ffc-frontend.php:431
 msgid "Please enter a valid time (HH:MM)."
 msgstr ""
 
@@ -9370,7 +9456,7 @@ msgstr ""
 msgid "Please pick a valid time (HH:MM)."
 msgstr ""
 
-#: includes/frontend/class-ffc-frontend.php:407
+#: includes/frontend/class-ffc-frontend.php:429
 msgid "Please pick a valid time later than the current close (HH:MM)."
 msgstr ""
 
@@ -9507,23 +9593,23 @@ msgstr ""
 msgid "Postpone Close"
 msgstr ""
 
-#: includes/frontend/class-ffc-frontend.php:397
+#: includes/frontend/class-ffc-frontend.php:419
 msgid "Postpone close"
 msgstr ""
 
-#: includes/frontend/class-ffc-frontend.php:370
+#: includes/frontend/class-ffc-frontend.php:392
 msgid "Postpone Close disabled"
 msgstr ""
 
-#: includes/admin/class-ffc-form-editor-public-csv-download-metabox.php:558
+#: includes/admin/class-ffc-form-editor-public-csv-download-metabox.php:567
 msgid "Postpone Close — status"
 msgstr ""
 
-#: includes/frontend/class-ffc-frontend.php:399
+#: includes/frontend/class-ffc-frontend.php:421
 msgid "Postpone form close?"
 msgstr ""
 
-#: includes/admin/class-ffc-form-editor-public-csv-download-metabox.php:520
+#: includes/admin/class-ffc-form-editor-public-csv-download-metabox.php:529
 msgid "Postponing the close is disabled for this form — toggle it on in the Operator features list above."
 msgstr ""
 
@@ -9531,7 +9617,7 @@ msgstr ""
 msgid "Postponing the close is disabled for this form."
 msgstr ""
 
-#: includes/frontend/class-ffc-frontend.php:405
+#: includes/frontend/class-ffc-frontend.php:427
 msgid "Postponing…"
 msgstr ""
 
@@ -9631,7 +9717,7 @@ msgstr ""
 msgid "Preview Calendar"
 msgstr ""
 
-#: includes/frontend/class-ffc-frontend.php:376
+#: includes/frontend/class-ffc-frontend.php:398
 msgid "Preview Certificate"
 msgstr ""
 
@@ -9936,7 +10022,7 @@ msgstr ""
 msgid "Quiz"
 msgstr ""
 
-#: includes/frontend/class-ffc-frontend.php:347
+#: includes/frontend/class-ffc-frontend.php:369
 msgid "Quiz / Evaluation"
 msgstr ""
 
@@ -10010,6 +10096,10 @@ msgstr ""
 msgid "Rate Limiting:"
 msgstr ""
 
+#: includes/settings/views/ffc-tab-rate-limit.php:184
+msgid "Read Endpoints (Public GET)"
+msgstr ""
+
 #: includes/settings/views/documentation/10-reregistration.php:89
 msgid "Read-only form metadata (id, title, fields) for integrations"
 msgstr ""
@@ -10062,7 +10152,7 @@ msgstr ""
 msgid "Record"
 msgstr ""
 
-#: includes/settings/views/ffc-tab-rate-limit.php:294
+#: includes/settings/views/ffc-tab-rate-limit.php:366
 msgid "Record blocked device-fingerprint attempts in the rate-limit log"
 msgstr ""
 
@@ -10328,7 +10418,7 @@ msgstr ""
 msgid "Request timed out. Please try again."
 msgstr ""
 
-#: includes/frontend/class-ffc-frontend.php:485
+#: includes/frontend/class-ffc-frontend.php:507
 msgid "Requesting your location… If prompted, tap \"Allow\"."
 msgstr ""
 
@@ -10468,6 +10558,10 @@ msgstr ""
 msgid "Resolved via WP_User lookup (numeric → ID, contains @ → email, otherwise login). Does NOT create users; only links existing ones."
 msgstr ""
 
+#: includes/settings/views/ffc-tab-rate-limit.php:189
+msgid "Respect IP whitelist"
+msgstr ""
+
 #: includes/settings/views/ffc-tab-advanced.php:270
 msgid "REST API"
 msgstr ""
@@ -10500,7 +10594,7 @@ msgstr ""
 msgid "Restrict Viewing to Business Hours"
 msgstr ""
 
-#: includes/frontend/class-ffc-frontend.php:327
+#: includes/frontend/class-ffc-frontend.php:349
 msgid "Restricted to approved users"
 msgstr ""
 
@@ -10512,7 +10606,7 @@ msgstr ""
 msgid "Result"
 msgstr ""
 
-#: includes/settings/views/ffc-tab-rate-limit.php:280 includes/settings/views/ffc-tab-rate-limit.php:360
+#: includes/settings/views/ffc-tab-rate-limit.php:352 includes/settings/views/ffc-tab-rate-limit.php:432
 msgid "Retention"
 msgstr ""
 
@@ -10694,7 +10788,7 @@ msgstr ""
 msgid "Save adjutancy"
 msgstr ""
 
-#: includes/admin/class-ffc-admin-submission-edit-page.php:130 includes/settings/views/ffc-tab-geolocation.php:549 includes/settings/views/ffc-tab-user-access.php:235 includes/settings/views/ffc-tab-rate-limit.php:420
+#: includes/admin/class-ffc-admin-submission-edit-page.php:130 includes/settings/views/ffc-tab-geolocation.php:549 includes/settings/views/ffc-tab-user-access.php:235 includes/settings/views/ffc-tab-rate-limit.php:492
 msgid "Save Changes"
 msgstr ""
 
@@ -10734,6 +10828,14 @@ msgstr ""
 msgid "Save this code to manage your appointment."
 msgstr ""
 
+#: templates/submission-success.php:49
+msgid "Save this code — it lets you re-issue your certificate anytime."
+msgstr ""
+
+#: templates/submission-success.php:54
+msgid "Save this link to download again later:"
+msgstr ""
+
 #: includes/admin/class-ffc-form-list-columns.php:85 includes/admin/class-ffc-form-editor.php:125 includes/recruitment/class-ffc-recruitment-candidate-edit-page.php:1070 includes/settings/tabs/class-ffc-tab-geolocation.php:102
 msgid "Saved"
 msgstr ""
@@ -10770,7 +10872,7 @@ msgstr ""
 msgid "Scheduled date of the appointment"
 msgstr ""
 
-#: includes/frontend/class-ffc-frontend.php:387
+#: includes/frontend/class-ffc-frontend.php:409
 msgid "Scheduled start:"
 msgstr ""
 
@@ -10830,7 +10932,7 @@ msgstr ""
 msgid "Score: %d%%. You can try again."
 msgstr ""
 
-#: includes/settings/views/ffc-tab-rate-limit.php:219
+#: includes/settings/views/ffc-tab-rate-limit.php:291
 msgid "Screen size + DPR"
 msgstr ""
 
@@ -11242,11 +11344,11 @@ msgstr ""
 msgid "Session mismatch."
 msgstr ""
 
-#: includes/admin/class-ffc-form-editor-public-csv-download-metabox.php:453
+#: includes/admin/class-ffc-form-editor-public-csv-download-metabox.php:455
 msgid "Set a start date in the Geolocation & Date/Time metabox to enable this action."
 msgstr ""
 
-#: includes/admin/class-ffc-form-editor-public-csv-download-metabox.php:523
+#: includes/admin/class-ffc-form-editor-public-csv-download-metabox.php:532
 msgid "Set an end date in the Geolocation & Date/Time metabox to enable this action."
 msgstr ""
 
@@ -11278,7 +11380,7 @@ msgstr ""
 msgid "Settings not saving between tabs"
 msgstr ""
 
-#: includes/settings/tabs/class-ffc-tab-rate-limit.php:143
+#: includes/settings/tabs/class-ffc-tab-rate-limit.php:170
 msgid "Settings saved!"
 msgstr ""
 
@@ -11402,7 +11504,7 @@ msgstr ""
 msgid "Show preliminary reasons publicly on this notice"
 msgstr ""
 
-#: includes/settings/views/ffc-tab-rate-limit.php:373
+#: includes/settings/views/ffc-tab-rate-limit.php:445
 msgid "Show remaining attempts"
 msgstr ""
 
@@ -11414,7 +11516,7 @@ msgstr ""
 msgid "Show title + description + message"
 msgstr ""
 
-#: includes/settings/views/ffc-tab-rate-limit.php:384
+#: includes/settings/views/ffc-tab-rate-limit.php:456
 msgid "Show wait time"
 msgstr ""
 
@@ -11426,6 +11528,10 @@ msgstr ""
 #: includes/settings/views/ffc-tab-migrations.php:458
 #, php-format
 msgid "Showing first %1$d of %2$d affected posts. The rest will still be processed on Apply."
+msgstr ""
+
+#: includes/settings/views/ffc-tab-rate-limit.php:217
+msgid "Shown to blocked callers in the 429 response. {time} is replaced with the wait window."
 msgstr ""
 
 #. %hours% is a placeholder token the admin can use in the message
@@ -11458,7 +11564,7 @@ msgstr ""
 msgid "Side: appears next to the calendar on desktop, moves below on mobile. Below: always below the calendar."
 msgstr ""
 
-#: includes/settings/views/ffc-tab-rate-limit.php:213
+#: includes/settings/views/ffc-tab-rate-limit.php:285
 msgid "Signals collected"
 msgstr ""
 
@@ -11490,7 +11596,7 @@ msgstr ""
 msgid "six"
 msgstr ""
 
-#: includes/settings/views/ffc-tab-rate-limit.php:261
+#: includes/settings/views/ffc-tab-rate-limit.php:333
 msgid "Skip device limit when the submitter is logged in as administrator or has the ffc_manage_settings capability"
 msgstr ""
 
@@ -11538,6 +11644,10 @@ msgstr ""
 msgid "Some tables could not be rolled back. Check details."
 msgstr ""
 
+#: includes/frontend/class-ffc-frontend.php:289
+msgid "Something went wrong while building the PDF. Try again — if it keeps failing, use a different browser or contact the organizer."
+msgstr ""
+
 #: includes/migrations/class-ffc-migration-registry.php:55
 msgid "Split CPF/RF"
 msgstr ""
@@ -11559,7 +11669,7 @@ msgstr ""
 msgid "Start Date"
 msgstr ""
 
-#: includes/frontend/class-ffc-frontend.php:333
+#: includes/frontend/class-ffc-frontend.php:355
 msgid "Start date"
 msgstr ""
 
@@ -11567,19 +11677,19 @@ msgstr ""
 msgid "Start Form Early"
 msgstr ""
 
-#: includes/frontend/class-ffc-frontend.php:369
+#: includes/frontend/class-ffc-frontend.php:391
 msgid "Start Form Early disabled"
 msgstr ""
 
-#: includes/admin/class-ffc-form-editor-public-csv-download-metabox.php:481
+#: includes/admin/class-ffc-form-editor-public-csv-download-metabox.php:490
 msgid "Start Form Early — status"
 msgstr ""
 
-#: includes/frontend/class-ffc-frontend.php:383
+#: includes/frontend/class-ffc-frontend.php:405
 msgid "Start Form Now"
 msgstr ""
 
-#: includes/frontend/class-ffc-frontend.php:385
+#: includes/frontend/class-ffc-frontend.php:407
 msgid "Start form now?"
 msgstr ""
 
@@ -11587,7 +11697,7 @@ msgstr ""
 msgid "Start Time"
 msgstr ""
 
-#: includes/frontend/class-ffc-frontend.php:335
+#: includes/frontend/class-ffc-frontend.php:357
 msgid "Start time"
 msgstr ""
 
@@ -11599,11 +11709,11 @@ msgstr ""
 msgid "Start:"
 msgstr ""
 
-#: includes/frontend/class-ffc-frontend.php:310
+#: includes/frontend/class-ffc-frontend.php:332
 msgid "Starting download…"
 msgstr ""
 
-#: includes/frontend/class-ffc-frontend.php:394
+#: includes/frontend/class-ffc-frontend.php:416
 msgid "Starting…"
 msgstr ""
 
@@ -11611,7 +11721,7 @@ msgstr ""
 msgid "State"
 msgstr ""
 
-#: includes/settings/views/ffc-tab-rate-limit.php:403 includes/settings/views/ffc-tab-cache.php:97
+#: includes/settings/views/ffc-tab-rate-limit.php:475 includes/settings/views/ffc-tab-cache.php:97
 msgid "Statistics"
 msgstr ""
 
@@ -11679,7 +11789,7 @@ msgstr ""
 msgid "Step 4:"
 msgstr ""
 
-#: includes/frontend/class-ffc-frontend.php:487
+#: includes/frontend/class-ffc-frontend.php:509
 msgid "Still trying to get your location… If it is not working, check that Location Services is enabled in Settings > Privacy & Security > Location Services."
 msgstr ""
 
@@ -11849,7 +11959,7 @@ msgstr ""
 msgid "Success!"
 msgstr ""
 
-#: includes/core/class-ffc-utils.php:668
+#: includes/core/class-ffc-utils.php:670
 msgid "Success! Your certificate has been generated."
 msgstr ""
 
@@ -12005,7 +12115,7 @@ msgstr ""
 msgid "Tax ID (CPF) Rate Limit"
 msgstr ""
 
-#: includes/settings/views/ffc-tab-rate-limit.php:310 includes/settings/views/ffc-tab-rate-limit.php:320
+#: includes/settings/views/ffc-tab-rate-limit.php:382 includes/settings/views/ffc-tab-rate-limit.php:392
 msgid "Tax IDs (CPFs)"
 msgstr ""
 
@@ -12099,7 +12209,11 @@ msgstr ""
 msgid "The candidate's user_id column is cleared."
 msgstr ""
 
-#: includes/frontend/class-ffc-frontend.php:363
+#: includes/frontend/class-ffc-frontend.php:290
+msgid "The certificate came out blank — usually a slow-loading image. Try again. If it persists, try a different browser or contact the organizer."
+msgstr ""
+
+#: includes/frontend/class-ffc-frontend.php:385
 msgid "The CSV download is not available for this form."
 msgstr ""
 
@@ -12119,7 +12233,7 @@ msgstr ""
 msgid "The current preliminary list is copied verbatim into the definitive list."
 msgstr ""
 
-#: includes/frontend/class-ffc-frontend.php:361
+#: includes/frontend/class-ffc-frontend.php:383
 msgid "The download quota for this form has been exhausted."
 msgstr ""
 
@@ -12144,12 +12258,12 @@ msgid "The ficha template can be customized using the filter:"
 msgstr ""
 
 #. %s is the formatted start date
-#: includes/frontend/class-ffc-frontend.php:373
+#: includes/frontend/class-ffc-frontend.php:395
 #, php-format
 msgid "The form collection has not started yet. It will begin on %s."
 msgstr ""
 
-#: includes/frontend/class-ffc-frontend.php:362
+#: includes/frontend/class-ffc-frontend.php:384
 msgid "The form collection period has ended. The CSV is ready for download."
 msgstr ""
 
@@ -12165,7 +12279,7 @@ msgstr ""
 msgid "The HTML editor is empty. Add a template first."
 msgstr ""
 
-#: includes/frontend/class-ffc-frontend.php:225 includes/frontend/class-ffc-frontend.php:426
+#: includes/frontend/class-ffc-frontend.php:225 includes/frontend/class-ffc-frontend.php:448
 msgid "The ID must have exactly 7 digits (RF) or 11 digits (CPF)."
 msgstr ""
 
@@ -12290,7 +12404,7 @@ msgstr ""
 msgid "These variables are available in the appointment receipt PDF template (html/default_appointment_receipt_1.html):"
 msgstr ""
 
-#: includes/frontend/class-ffc-frontend.php:403
+#: includes/frontend/class-ffc-frontend.php:425
 msgid "This action can only be performed once per form."
 msgstr ""
 
@@ -12323,7 +12437,7 @@ msgstr ""
 msgid "This calendar requires authentication to book."
 msgstr ""
 
-#: includes/api/class-ffc-calendar-rest-controller.php:268
+#: includes/api/class-ffc-calendar-rest-controller.php:259
 msgid "This calendar requires authentication."
 msgstr ""
 
@@ -12343,7 +12457,7 @@ msgstr ""
 msgid "This candidate has classifications attached and cannot be deleted directly. Remove the classifications first."
 msgstr ""
 
-#: includes/frontend/class-ffc-frontend.php:390
+#: includes/frontend/class-ffc-frontend.php:412
 msgid "This cannot be undone from this page."
 msgstr ""
 
@@ -12389,11 +12503,11 @@ msgstr ""
 msgid "This form has %1$d submissions, which exceeds the synchronous download limit of %2$d rows. Please enable JavaScript in your browser so the export can run as a batched download, or ask an administrator to raise the limit."
 msgstr ""
 
-#: includes/admin/class-ffc-form-editor-public-csv-download-metabox.php:456
+#: includes/admin/class-ffc-form-editor-public-csv-download-metabox.php:465
 msgid "This form has already ended — early-start no longer applies."
 msgstr ""
 
-#: includes/admin/class-ffc-form-editor-public-csv-download-metabox.php:533
+#: includes/admin/class-ffc-form-editor-public-csv-download-metabox.php:542
 msgid "This form has already ended — postponing no longer applies."
 msgstr ""
 
@@ -12401,7 +12515,7 @@ msgstr ""
 msgid "This form has already ended."
 msgstr ""
 
-#: includes/admin/class-ffc-form-editor-public-csv-download-metabox.php:459
+#: includes/admin/class-ffc-form-editor-public-csv-download-metabox.php:468
 msgid "This form has already started — early-start no longer applies."
 msgstr ""
 
@@ -12417,11 +12531,11 @@ msgstr ""
 msgid "This form has no end date configured. The administrator must set a Geolocation \"End Date\" to enable public downloads."
 msgstr ""
 
-#: includes/frontend/class-ffc-frontend.php:338
+#: includes/frontend/class-ffc-frontend.php:360
 msgid "This form has no end date configured. The CSV download will only be available after the administrator sets an end date."
 msgstr ""
 
-#: includes/security/class-ffc-geofence.php:227 includes/security/class-ffc-geofence.php:262 includes/frontend/class-ffc-frontend.php:495
+#: includes/security/class-ffc-geofence.php:227 includes/security/class-ffc-geofence.php:262 includes/frontend/class-ffc-frontend.php:517
 msgid "This form is no longer available."
 msgstr ""
 
@@ -12433,16 +12547,16 @@ msgstr ""
 msgid "This form is not available in your location."
 msgstr ""
 
-#: includes/security/class-ffc-geofence.php:214 includes/security/class-ffc-geofence.php:250 includes/frontend/class-ffc-frontend.php:494
+#: includes/security/class-ffc-geofence.php:214 includes/security/class-ffc-geofence.php:250 includes/frontend/class-ffc-frontend.php:516
 msgid "This form is not yet available."
 msgstr ""
 
-#: includes/security/class-ffc-geofence.php:280 includes/frontend/class-ffc-frontend.php:496
+#: includes/security/class-ffc-geofence.php:280 includes/frontend/class-ffc-frontend.php:518
 msgid "This form is only available during specific hours."
 msgstr ""
 
 #. %s is the formatted end date
-#: includes/frontend/class-ffc-frontend.php:360
+#: includes/frontend/class-ffc-frontend.php:382
 #, php-format
 msgid "This form is still active until %s. The download will be available after the end date."
 msgstr ""
@@ -12451,7 +12565,7 @@ msgstr ""
 msgid "This form is still active. Downloads are only allowed after the form end date has passed."
 msgstr ""
 
-#: includes/frontend/class-ffc-frontend.php:478
+#: includes/frontend/class-ffc-frontend.php:500
 msgid "This form requires a secure connection (HTTPS) to access your location. Please contact the site administrator."
 msgstr ""
 
@@ -12557,7 +12671,7 @@ msgstr ""
 msgid "This will modify the post_content of every affected post. Revisions will be created automatically. Continue?"
 msgstr ""
 
-#: includes/frontend/class-ffc-frontend.php:386
+#: includes/frontend/class-ffc-frontend.php:408
 msgid "This will override the scheduled start time. The form will open immediately for all users."
 msgstr ""
 
@@ -12621,12 +12735,12 @@ msgstr ""
 msgid "Time Format"
 msgstr ""
 
-#: includes/frontend/class-ffc-frontend.php:412
+#: includes/frontend/class-ffc-frontend.php:434
 msgid "Time must be in the future."
 msgstr ""
 
 #. %s is the current close time in HH:MM
-#: includes/frontend/class-ffc-frontend.php:411
+#: includes/frontend/class-ffc-frontend.php:433
 #, php-format
 msgid "Time must be later than the current close (%s)."
 msgstr ""
@@ -12689,7 +12803,7 @@ msgstr ""
 msgid "times"
 msgstr ""
 
-#: includes/settings/views/ffc-tab-rate-limit.php:220
+#: includes/settings/views/ffc-tab-rate-limit.php:292
 msgid "Timezone"
 msgstr ""
 
@@ -12785,12 +12899,20 @@ msgstr ""
 msgid "Too many attempts. Please wait %s."
 msgstr ""
 
+#: includes/api/class-ffc-read-rate-limit-guard-trait.php:89
+msgid "Too many requests. Please slow down."
+msgstr ""
+
 #: includes/recruitment/class-ffc-recruitment-public-shortcode.php:141
 msgid "Too many requests. Please try again in a few seconds."
 msgstr ""
 
-#: includes/api/class-ffc-calendar-rest-controller.php:139 includes/api/class-ffc-appointment-rest-controller.php:187
+#: includes/api/class-ffc-appointment-rest-controller.php:187
 msgid "Too many requests. Please try again later."
+msgstr ""
+
+#: includes/security/class-ffc-rate-limit-checker.php:1102 includes/settings/tabs/class-ffc-tab-rate-limit.php:134
+msgid "Too many requests. Please wait {time}."
 msgstr ""
 
 #: includes/api/class-ffc-submission-rest-controller.php:306 includes/frontend/class-ffc-form-processor.php:64 includes/frontend/class-ffc-public-csv-exporter.php:317 includes/frontend/class-ffc-public-csv-download.php:295 includes/frontend/class-ffc-public-csv-download.php:395
@@ -12815,7 +12937,7 @@ msgstr ""
 msgid "Top Actions:"
 msgstr ""
 
-#: includes/settings/views/ffc-tab-rate-limit.php:413
+#: includes/settings/views/ffc-tab-rate-limit.php:485
 msgid "Top blocked IPs:"
 msgstr ""
 
@@ -12839,7 +12961,7 @@ msgstr ""
 msgid "Total Records"
 msgstr ""
 
-#: includes/frontend/class-ffc-frontend.php:322
+#: includes/frontend/class-ffc-frontend.php:344
 msgid "Total submissions"
 msgstr ""
 
@@ -12885,6 +13007,10 @@ msgstr ""
 msgid "Trash, restore, or permanently delete short URLs"
 msgstr ""
 
+#: includes/frontend/class-ffc-frontend.php:287
+msgid "Try again"
+msgstr ""
+
 #: includes/settings/views/ffc-tab-migrations.php:67
 msgid "Try deactivating and reactivating the plugin, or clearing any server-side cache (OPcache)."
 msgstr ""
@@ -12925,11 +13051,11 @@ msgstr ""
 msgid "Typical shared hosting has a 30–60s execution timeout. Estimates:"
 msgstr ""
 
-#: includes/security/class-ffc-geofence.php:331 includes/frontend/class-ffc-frontend.php:479
+#: includes/security/class-ffc-geofence.php:331 includes/frontend/class-ffc-frontend.php:501
 msgid "Unable to determine your location."
 msgstr ""
 
-#: includes/frontend/class-ffc-frontend.php:490
+#: includes/frontend/class-ffc-frontend.php:512
 msgid "Unable to determine your location. On Safari/iOS, ensure Location Services is enabled in Settings > Privacy & Security > Location Services."
 msgstr ""
 
@@ -12985,7 +13111,7 @@ msgstr ""
 msgid "Unique validation code for the appointment"
 msgstr ""
 
-#: includes/api/class-ffc-user-audience-rest-controller.php:244 includes/admin/class-ffc-admin-submission-edit-page.php:193 includes/privacy/class-ffc-privacy-handler.php:245 includes/privacy/class-ffc-privacy-handler.php:345 includes/audience/class-ffc-audience-admin-bookings.php:190 includes/audience/class-ffc-audience-loader.php:455 includes/audience/class-ffc-audience-notification-handler.php:70 includes/audience/class-ffc-audience-notification-handler.php:156
+#: includes/api/class-ffc-user-audience-rest-controller.php:169 includes/admin/class-ffc-admin-submission-edit-page.php:193 includes/privacy/class-ffc-privacy-handler.php:245 includes/privacy/class-ffc-privacy-handler.php:345 includes/audience/class-ffc-audience-admin-bookings.php:190 includes/audience/class-ffc-audience-loader.php:455 includes/audience/class-ffc-audience-notification-handler.php:70 includes/audience/class-ffc-audience-notification-handler.php:156
 msgid "Unknown"
 msgstr ""
 
@@ -13029,7 +13155,7 @@ msgstr ""
 msgid "Unknown page cache (WPCACHEHOME defined)"
 msgstr ""
 
-#: includes/frontend/class-ffc-frontend.php:350
+#: includes/frontend/class-ffc-frontend.php:372
 msgid "Unlimited"
 msgstr ""
 
@@ -13195,7 +13321,7 @@ msgstr ""
 msgid "Use:"
 msgstr ""
 
-#: includes/settings/views/ffc-tab-rate-limit.php:266
+#: includes/settings/views/ffc-tab-rate-limit.php:338
 msgid "Useful for staff registering certificates for legitimate participants from a single device. Bypassed submissions are tagged in the rate-limit log with reason \"manager_bypass\"."
 msgstr ""
 
@@ -13233,7 +13359,7 @@ msgstr ""
 msgid "User Agent"
 msgstr ""
 
-#: includes/settings/views/ffc-tab-rate-limit.php:218
+#: includes/settings/views/ffc-tab-rate-limit.php:290
 msgid "User Agent (browser+OS)"
 msgstr ""
 
@@ -13413,7 +13539,7 @@ msgstr ""
 msgid "Validates phone number format"
 msgstr ""
 
-#: includes/frontend/class-ffc-frontend.php:305
+#: includes/frontend/class-ffc-frontend.php:327
 msgid "Validating access…"
 msgstr ""
 
@@ -13605,7 +13731,7 @@ msgstr ""
 msgid "Waiting called"
 msgstr ""
 
-#: includes/frontend/class-ffc-frontend.php:486
+#: includes/frontend/class-ffc-frontend.php:508
 msgid "Waiting for location permission… Check if a browser prompt appeared."
 msgstr ""
 
@@ -13617,7 +13743,7 @@ msgstr ""
 msgid "Warning"
 msgstr ""
 
-#: includes/admin/class-ffc-form-editor-save-handler.php:585
+#: includes/admin/class-ffc-form-editor-save-handler.php:583
 msgid "Warning! Missing required tags in PDF Layout:"
 msgstr ""
 
@@ -13657,6 +13783,10 @@ msgstr ""
 msgid "We certify that the holder of the data below has completed the event."
 msgstr ""
 
+#: includes/frontend/class-ffc-frontend.php:292
+msgid "We couldn't render the certificate. This usually clears up on a retry; if not, try a different browser."
+msgstr ""
+
 #: includes/frontend/class-ffc-frontend.php:162
 msgid "We detected a previous submission from this device. If you lost your certificate, just fill in your CPF and submit — the system recognises it and returns the existing certificate."
 msgstr ""
@@ -13665,7 +13795,7 @@ msgstr ""
 msgid "We reiterate that any leave request for health treatment (personal or family member) must be immediately reported to the supervisor, with presentation of the medical/dental certificate. Then, the documentation must be delivered to the Personnel Records Department IN PERSON or digitized to the email:"
 msgstr ""
 
-#: includes/settings/views/ffc-tab-rate-limit.php:225
+#: includes/settings/views/ffc-tab-rate-limit.php:297
 msgid "WebGL renderer/vendor"
 msgstr ""
 
@@ -13829,6 +13959,10 @@ msgstr ""
 msgid "Where to Download:"
 msgstr ""
 
+#: templates/submission-success.php:76
+msgid "Where to find your certificate:"
+msgstr ""
+
 #. %s: Dashboard page URL
 #: includes/settings/views/ffc-tab-user-access.php:143
 #, php-format
@@ -13843,7 +13977,7 @@ msgstr ""
 msgid "White space around QR Code in modules. 0 = no margin, higher values = more white space."
 msgstr ""
 
-#: includes/settings/views/ffc-tab-rate-limit.php:305
+#: includes/settings/views/ffc-tab-rate-limit.php:377
 msgid "Whitelist"
 msgstr ""
 
@@ -13971,6 +14105,10 @@ msgstr ""
 msgid "You already have {count} certificates."
 msgstr ""
 
+#: includes/frontend/class-ffc-frontend.php:297
+msgid "You appear to be offline. Reconnect to the internet and try again."
+msgstr ""
+
 #: includes/recruitment/class-ffc-recruitment-notice-edit-page-renderer.php:539
 msgid "You are about to flip the notice status to `definitive`."
 msgstr ""
@@ -13999,15 +14137,15 @@ msgstr ""
 msgid "You are about to snapshot the preliminary list as the definitive list."
 msgstr ""
 
-#: includes/api/class-ffc-user-audience-rest-controller.php:487
+#: includes/api/class-ffc-user-audience-rest-controller.php:379
 msgid "You are already a member of this group"
 msgstr ""
 
-#: includes/api/class-ffc-user-audience-rest-controller.php:593
+#: includes/api/class-ffc-user-audience-rest-controller.php:466
 msgid "You are not a member of this group"
 msgstr ""
 
-#: includes/frontend/class-ffc-frontend.php:483
+#: includes/frontend/class-ffc-frontend.php:505
 msgid "You are outside the allowed area for this form."
 msgstr ""
 
@@ -14032,7 +14170,7 @@ msgid "You can also verify this certificate manually at"
 msgstr ""
 
 #. %d: maximum number of groups
-#: includes/api/class-ffc-user-audience-rest-controller.php:507
+#: includes/api/class-ffc-user-audience-rest-controller.php:388
 msgid "You can join a maximum of %d groups. Leave one first."
 msgstr ""
 
@@ -14161,18 +14299,18 @@ msgid "You have not been called for this notice yet."
 msgstr ""
 
 #. %s: group name
-#: includes/api/class-ffc-user-audience-rest-controller.php:532
+#: includes/api/class-ffc-user-audience-rest-controller.php:405
 #, php-format
 msgid "You joined \"%s\"!"
 msgstr ""
 
 #. %s: group name
-#: includes/api/class-ffc-user-audience-rest-controller.php:600
+#: includes/api/class-ffc-user-audience-rest-controller.php:473
 #, php-format
 msgid "You left \"%s\"."
 msgstr ""
 
-#: includes/api/class-ffc-user-audience-rest-controller.php:646
+#: includes/api/class-ffc-user-audience-rest-controller.php:519
 msgid "You left all groups."
 msgstr ""
 
@@ -14192,7 +14330,7 @@ msgstr ""
 msgid "You must agree to the terms to book an appointment."
 msgstr ""
 
-#: includes/api/class-ffc-user-profile-rest-controller.php:320 includes/api/class-ffc-user-profile-rest-controller.php:398 includes/api/class-ffc-user-reregistrations-rest-controller.php:73 includes/api/class-ffc-user-audience-rest-controller.php:303 includes/api/class-ffc-user-audience-rest-controller.php:451 includes/api/class-ffc-user-audience-rest-controller.php:558 includes/api/class-ffc-user-audience-rest-controller.php:625
+#: includes/api/class-ffc-user-profile-rest-controller.php:320 includes/api/class-ffc-user-profile-rest-controller.php:398 includes/api/class-ffc-user-reregistrations-rest-controller.php:73 includes/api/class-ffc-user-audience-rest-controller.php:227 includes/api/class-ffc-user-audience-rest-controller.php:361 includes/api/class-ffc-user-audience-rest-controller.php:431 includes/api/class-ffc-user-audience-rest-controller.php:498
 msgid "You must be logged in"
 msgstr ""
 
@@ -14258,7 +14396,7 @@ msgstr ""
 msgid "Your appointment is pending approval. You will receive an email confirmation once it is approved."
 msgstr ""
 
-#: includes/frontend/class-ffc-frontend.php:477
+#: includes/frontend/class-ffc-frontend.php:499
 msgid "Your browser does not support geolocation."
 msgstr ""
 
