@@ -132,82 +132,7 @@ class UserAudienceRestController {
 				);
 			}
 
-			global $wpdb;
-
-			$bookings_table          = $wpdb->prefix . 'ffc_audience_bookings';
-			$users_table             = $wpdb->prefix . 'ffc_audience_booking_users';
-			$booking_audiences_table = $wpdb->prefix . 'ffc_audience_booking_audiences';
-			$members_table           = $wpdb->prefix . 'ffc_audience_members';
-			$audience_names_table    = $wpdb->prefix . 'ffc_audiences';
-			$environments_table      = $wpdb->prefix . 'ffc_audience_environments';
-			$schedules_table         = $wpdb->prefix . 'ffc_audience_schedules';
-
-            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-			$bookings = $wpdb->get_results(
-				$wpdb->prepare(
-					'SELECT DISTINCT b.*, e.name as environment_name, s.name as schedule_name
-                 FROM %i b
-                 LEFT JOIN %i bu ON b.id = bu.booking_id
-                 LEFT JOIN %i ba ON b.id = ba.booking_id
-                 LEFT JOIN %i am ON ba.audience_id = am.audience_id
-                 LEFT JOIN %i e ON b.environment_id = e.id
-                 LEFT JOIN %i s ON e.schedule_id = s.id
-                 WHERE (bu.user_id = %d OR am.user_id = %d)
-                 ORDER BY b.booking_date DESC, b.start_time DESC',
-					$bookings_table,
-					$users_table,
-					$booking_audiences_table,
-					$members_table,
-					$environments_table,
-					$schedules_table,
-					$user_id,
-					$user_id
-				),
-				ARRAY_A
-			);
-
-			if ( ! is_array( $bookings ) ) {
-				$bookings = array();
-			}
-
-			// Batch load audiences for all bookings to avoid N+1 queries.
-			$audiences_map = array();
-			$booking_ids   = array_filter(
-				array_map(
-					function ( $b ) {
-						return (int) ( $b['id'] ?? 0 );
-					},
-					$bookings
-				)
-			);
-
-			if ( ! empty( $booking_ids ) ) {
-				$safe_ids = array_map( 'absint', $booking_ids );
-				$id_list  = implode( ',', $safe_ids );
-                // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-				// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- ID list built from absint() values.
-				$all_audiences = $wpdb->get_results(
-					$wpdb->prepare(
-						"SELECT ba.booking_id, a.name, a.color
-                     FROM %i ba
-                     INNER JOIN %i a ON ba.audience_id = a.id
-                     WHERE ba.booking_id IN ({$id_list})",
-						$booking_audiences_table,
-						$audience_names_table
-					),
-					ARRAY_A
-				);
-				// phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared
-
-				if ( is_array( $all_audiences ) ) {
-					foreach ( $all_audiences as $aud ) {
-						$audiences_map[ (int) $aud['booking_id'] ][] = array(
-							'name'  => $aud['name'],
-							'color' => $aud['color'] ?? '#2271b1',
-						);
-					}
-				}
-			}
+			$bookings = \FreeFormCertificate\Audience\AudienceQueryService::find_user_bookings( $user_id );
 
 			$bookings_formatted = array();
 
@@ -251,7 +176,7 @@ class UserAudienceRestController {
 					'status'           => $status,
 					'status_label'     => $status_labels[ $status ] ?? $status,
 					'is_past'          => $is_past,
-					'audiences'        => $audiences_map[ (int) $booking['id'] ] ?? array(),
+					'audiences'        => $booking['audiences'] ?? array(),
 				);
 			}
 
