@@ -471,67 +471,7 @@ class UserManager {
 	 * @return array<int, string> Array of masked CPF/RF values
 	 */
 	public static function get_user_cpfs_masked( int $user_id ): array {
-		global $wpdb;
-		$submissions_table  = \FreeFormCertificate\Core\Utils::get_submissions_table();
-		$appointments_table = $wpdb->prefix . 'ffc_self_scheduling_appointments';
-
-		// Query both submissions and appointments tables so users who only.
-		// have self-scheduling appointments still get their CPF/RF displayed.
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-		$rows = $wpdb->get_results(
-			$wpdb->prepare(
-				'SELECT cpf_encrypted, rf_encrypted FROM %i
-             WHERE user_id = %d
-             AND (cpf_encrypted IS NOT NULL OR rf_encrypted IS NOT NULL)
-             UNION ALL
-             SELECT cpf_encrypted, rf_encrypted FROM %i
-             WHERE user_id = %d
-             AND (cpf_encrypted IS NOT NULL OR rf_encrypted IS NOT NULL)',
-				$submissions_table,
-				$user_id,
-				$appointments_table,
-				$user_id
-			),
-			ARRAY_A
-		);
-
-		if ( empty( $rows ) ) {
-			return array();
-		}
-
-		$cpfs_masked = array();
-
-		foreach ( $rows as $row ) {
-			try {
-				// Prefer split columns.
-				$plain = null;
-				if ( ! empty( $row['cpf_encrypted'] ) ) {
-					$plain = \FreeFormCertificate\Core\Encryption::decrypt( $row['cpf_encrypted'] );
-				} elseif ( ! empty( $row['rf_encrypted'] ) ) {
-					$plain = \FreeFormCertificate\Core\Encryption::decrypt( $row['rf_encrypted'] );
-				}
-
-				if ( ! empty( $plain ) ) {
-					$masked = \FreeFormCertificate\Core\DocumentFormatter::mask_cpf( $plain );
-					if ( ! empty( $masked ) && ! in_array( $masked, $cpfs_masked, true ) ) {
-						$cpfs_masked[] = $masked;
-					}
-				}
-			} catch ( \Exception $e ) {
-				if ( class_exists( '\FreeFormCertificate\Core\Debug' ) ) {
-					\FreeFormCertificate\Core\Debug::log_user_manager(
-						'Failed to decrypt CPF/RF',
-						array(
-							'user_id' => $user_id,
-							'error'   => $e->getMessage(),
-						)
-					);
-				}
-				continue;
-			}
-		}
-
-		return $cpfs_masked;
+		return \FreeFormCertificate\Services\UserIdentifiersQueryService::get_cpfs_masked_for_user( $user_id );
 	}
 
 	/**
@@ -542,67 +482,7 @@ class UserManager {
 	 * @return array{cpfs: array<int, string>, rfs: array<int, string>}
 	 */
 	public static function get_user_identifiers_masked( int $user_id ): array {
-		global $wpdb;
-		$submissions_table  = \FreeFormCertificate\Core\Utils::get_submissions_table();
-		$appointments_table = $wpdb->prefix . 'ffc_self_scheduling_appointments';
-
-		// Query both submissions and appointments tables.
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-		$rows = $wpdb->get_results(
-			$wpdb->prepare(
-				'SELECT cpf_encrypted, rf_encrypted FROM %i
-             WHERE user_id = %d
-             AND (cpf_encrypted IS NOT NULL OR rf_encrypted IS NOT NULL)
-             UNION ALL
-             SELECT cpf_encrypted, rf_encrypted FROM %i
-             WHERE user_id = %d
-             AND (cpf_encrypted IS NOT NULL OR rf_encrypted IS NOT NULL)',
-				$submissions_table,
-				$user_id,
-				$appointments_table,
-				$user_id
-			),
-			ARRAY_A
-		);
-
-		$cpfs = array();
-		$rfs  = array();
-
-		if ( empty( $rows ) ) {
-			return array(
-				'cpfs' => $cpfs,
-				'rfs'  => $rfs,
-			);
-		}
-
-		foreach ( $rows as $row ) {
-			try {
-				if ( ! empty( $row['cpf_encrypted'] ) ) {
-					$plain = \FreeFormCertificate\Core\Encryption::decrypt( $row['cpf_encrypted'] );
-					if ( ! empty( $plain ) ) {
-						$masked = \FreeFormCertificate\Core\DocumentFormatter::mask_cpf( $plain );
-						if ( ! empty( $masked ) && ! in_array( $masked, $cpfs, true ) ) {
-							$cpfs[] = $masked;
-						}
-					}
-				} elseif ( ! empty( $row['rf_encrypted'] ) ) {
-					$plain = \FreeFormCertificate\Core\Encryption::decrypt( $row['rf_encrypted'] );
-					if ( ! empty( $plain ) ) {
-						$masked = \FreeFormCertificate\Core\DocumentFormatter::mask_cpf( $plain );
-						if ( ! empty( $masked ) && ! in_array( $masked, $rfs, true ) ) {
-							$rfs[] = $masked;
-						}
-					}
-				}
-			} catch ( \Exception $e ) {
-				continue;
-			}
-		}
-
-		return array(
-			'cpfs' => $cpfs,
-			'rfs'  => $rfs,
-		);
+		return \FreeFormCertificate\Services\UserIdentifiersQueryService::get_typed_identifiers_for_user( $user_id );
 	}
 
 	/**
@@ -612,54 +492,7 @@ class UserManager {
 	 * @return array<int, string> Array of emails
 	 */
 	public static function get_user_emails( int $user_id ): array {
-		global $wpdb;
-		$submissions_table  = \FreeFormCertificate\Core\Utils::get_submissions_table();
-		$appointments_table = $wpdb->prefix . 'ffc_self_scheduling_appointments';
-
-		// Query both submissions and appointments tables.
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-		$encrypted_emails = $wpdb->get_col(
-			$wpdb->prepare(
-				"SELECT email_encrypted FROM %i
-             WHERE user_id = %d
-             AND email_encrypted IS NOT NULL
-             AND email_encrypted != ''
-             UNION ALL
-             SELECT email_encrypted FROM %i
-             WHERE user_id = %d
-             AND email_encrypted IS NOT NULL
-             AND email_encrypted != ''",
-				$submissions_table,
-				$user_id,
-				$appointments_table,
-				$user_id
-			)
-		);
-
-		if ( empty( $encrypted_emails ) ) {
-			$user = get_user_by( 'id', $user_id );
-			return $user ? array( $user->user_email ) : array();
-		}
-
-		$emails = array();
-
-		foreach ( $encrypted_emails as $encrypted ) {
-			try {
-				$email = \FreeFormCertificate\Core\Encryption::decrypt( $encrypted );
-				if ( is_string( $email ) && is_email( $email ) ) {
-					$emails[] = $email;
-				}
-			} catch ( \Exception $e ) {
-				continue;
-			}
-		}
-
-		$user = get_user_by( 'id', $user_id );
-		if ( $user && is_email( $user->user_email ) ) {
-			$emails[] = $user->user_email;
-		}
-
-		return array_unique( $emails );
+		return \FreeFormCertificate\Services\UserIdentifiersQueryService::get_emails_for_user( $user_id );
 	}
 
 	/**
