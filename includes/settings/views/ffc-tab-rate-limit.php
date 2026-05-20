@@ -181,6 +181,78 @@ $ffcertificate_stats = \FreeFormCertificate\Security\RateLimiter::get_stats();
 </div>
 
 <div class="card">
+	<h2 class="ffc-icon-shield"><?php esc_html_e( 'Read Endpoints (Public GET)', 'ffcertificate' ); ?></h2>
+	<p class="description">
+		<?php esc_html_e( 'Per-endpoint rate limit for public GET endpoints (e.g. the Calendar shortcode\'s /slots lookup). Prevents scraping while leaving submission limits independent.', 'ffcertificate' ); ?>
+	</p>
+	<table class="form-table" role="presentation"><tbody>
+		<tr><th><?php esc_html_e( 'Respect IP whitelist', 'ffcertificate' ); ?></th><td>
+			<?php
+			\FreeFormCertificate\Admin\AdminUI::render_toggle(
+				array(
+					'name'    => 'read_respect_whitelist',
+					'id'      => 'read_respect_whitelist',
+					'checked' => (bool) ( $ffcertificate_s['read']['respect_whitelist'] ?? true ),
+					'label'   => __( 'IPs listed in the global Whitelist below bypass the read limit', 'ffcertificate' ),
+					'data'    => array( 'ffc-autosave-key' => 'read_respect_whitelist' ),
+				)
+			);
+			?>
+		</td></tr>
+		<tr><th><?php esc_html_e( 'Bypass for logged-in users', 'ffcertificate' ); ?></th><td>
+			<?php
+			\FreeFormCertificate\Admin\AdminUI::render_toggle(
+				array(
+					'name'    => 'read_bypass_logged_in',
+					'id'      => 'read_bypass_logged_in',
+					'checked' => (bool) ( $ffcertificate_s['read']['bypass_logged_in'] ?? true ),
+					'label'   => __( 'Any logged-in WordPress user bypasses the read limit (staff / kiosks signed in to WP)', 'ffcertificate' ),
+					'data'    => array( 'ffc-autosave-key' => 'read_bypass_logged_in' ),
+				)
+			);
+			?>
+		</td></tr>
+		<tr><th><?php esc_html_e( 'Block message', 'ffcertificate' ); ?></th><td>
+			<textarea name="read_message" rows="2" class="large-text" data-ffc-autosave-key="read_message" data-ffc-autosave-debounce="800"><?php echo esc_textarea( (string) ( $ffcertificate_s['read']['message'] ?? '' ) ); ?></textarea>
+			<p class="description"><?php esc_html_e( 'Shown to blocked callers in the 429 response. {time} is replaced with the wait window.', 'ffcertificate' ); ?></p>
+		</td></tr>
+	</tbody></table>
+
+	<?php
+	$ffc_read_endpoints = array(
+		'calendar_slots'  => __( 'Calendar — Slots (GET /calendars/{id}/slots)', 'ffcertificate' ),
+		'calendar_list'   => __( 'Calendar — List (GET /calendars)', 'ffcertificate' ),
+		'calendar_detail' => __( 'Calendar — Detail (GET /calendars/{id})', 'ffcertificate' ),
+	);
+	foreach ( $ffc_read_endpoints as $ffc_ep_key => $ffc_ep_label ) :
+		$ffc_ep = $ffcertificate_s['read']['endpoints'][ $ffc_ep_key ] ?? array(
+			'enabled'        => false,
+			'max_per_minute' => 0,
+			'max_per_hour'   => 0,
+		);
+		?>
+		<h3 style="margin-top:1.5em;"><?php echo esc_html( $ffc_ep_label ); ?></h3>
+		<table class="form-table" role="presentation"><tbody>
+			<tr><th><?php esc_html_e( 'Enable', 'ffcertificate' ); ?></th><td>
+				<?php
+				\FreeFormCertificate\Admin\AdminUI::render_toggle(
+					array(
+						'name'    => 'read_endpoint_' . $ffc_ep_key . '_enabled',
+						'id'      => 'read_endpoint_' . $ffc_ep_key . '_enabled',
+						'checked' => (bool) $ffc_ep['enabled'],
+						'label'   => __( 'Enforce limit on this endpoint', 'ffcertificate' ),
+						'data'    => array( 'ffc-autosave-key' => 'read_endpoint_' . $ffc_ep_key . '_enabled' ),
+					)
+				);
+				?>
+			</td></tr>
+			<tr><th><?php esc_html_e( 'Max per minute', 'ffcertificate' ); ?></th><td><input type="number" name="read_endpoint_<?php echo esc_attr( $ffc_ep_key ); ?>_max_per_minute" value="<?php echo esc_attr( (string) (int) $ffc_ep['max_per_minute'] ); ?>" min="0" data-ffc-autosave-key="read_endpoint_<?php echo esc_attr( $ffc_ep_key ); ?>_max_per_minute"></td></tr>
+			<tr><th><?php esc_html_e( 'Max per hour', 'ffcertificate' ); ?></th><td><input type="number" name="read_endpoint_<?php echo esc_attr( $ffc_ep_key ); ?>_max_per_hour" value="<?php echo esc_attr( (string) (int) $ffc_ep['max_per_hour'] ); ?>" min="0" data-ffc-autosave-key="read_endpoint_<?php echo esc_attr( $ffc_ep_key ); ?>_max_per_hour"></td></tr>
+		</tbody></table>
+	<?php endforeach; ?>
+</div>
+
+<div class="card">
 	<h2 class="ffc-icon-shield"><?php esc_html_e( 'Device Fingerprint', 'ffcertificate' ); ?></h2>
 	<p class="description"><?php esc_html_e( 'Limit submissions from the same physical device by combining a persistent cookie with multiple browser signals. The "N of M" rule treats two visits as the same device when at least the configured number of non-cookie signals match.', 'ffcertificate' ); ?></p>
 	<p>

@@ -1070,4 +1070,133 @@ final class RateLimitChecker {
 
 		return array( 'allowed' => true );
 	}
+
+	/**
+	 * Check the per-read rate limit for a given (IP, endpoint_key) pair.
+	 * Issue #259 — public read endpoints (Calendar REST) need their own
+	 * pool so a scraper that never submits forms doesn't bypass the
+	 * IP-pool circuit breaker.
+	 *
+	 * Thresholds are looked up from `settings['read']['endpoints'][$endpoint_key]`.
+	 * When the endpoint is disabled (or absent from settings) the call
+	 * short-circuits to `allowed=true` so feature stays opt-in per endpoint.
+	 *
+	 * Algorithm matches the existing IP path: minute window via object
+	 * cache + hour window via DB. Cache TTLs mirror the window length
+	 * (60 / 3600 seconds).
+	 *
+	 * @since 6.6.2
+	 * @param string $ip            Client IP.
+	 * @param string $endpoint_key  Endpoint identifier (e.g. `calendar_slots`).
+	 * @return array{allowed: bool, message?: string, reason?: string, wait_seconds?: int}
+	 */
+	public static function check_read_limit( string $ip, string $endpoint_key ): array {
+		$s        = self::get_settings();
+		$endpoint = self::read_endpoint_settings( $s, $endpoint_key );
+		if ( null === $endpoint || empty( $endpoint['enabled'] ) ) {
+			return array( 'allowed' => true );
+		}
+
+		$max_min  = (int) ( $endpoint['max_per_minute'] ?? 0 );
+		$max_hour = (int) ( $endpoint['max_per_hour'] ?? 0 );
+		$message  = (string) ( $s['read']['message'] ?? __( 'Too many requests. Please wait {time}.', 'ffcertificate' ) );
+
+		if ( $max_min > 0 ) {
+			$mk     = 'ffc_rate_read_' . md5( $ip . '|' . $endpoint_key ) . '_minute';
+			$cached = wp_cache_get( $mk, RateLimiter::CACHE_GROUP );
+			$mc     = false !== $cached ? (int) $cached : 0;
+			if ( $mc >= $max_min ) {
+				return array(
+					'allowed'      => false,
+					'reason'       => 'read_minute_limit',
+					'message'      => self::format_message( $message, array( 'time' => __( '1 minute', 'ffcertificate' ) ) ),
+					'wait_seconds' => 60,
+				);
+			}
+		}
+
+		if ( $max_hour > 0 ) {
+			$hk     = 'ffc_rate_read_' . md5( $ip . '|' . $endpoint_key ) . '_hour';
+			$cached = wp_cache_get( $hk, RateLimiter::CACHE_GROUP );
+			$hc     = false !== $cached ? (int) $cached : 0;
+			if ( $hc >= $max_hour ) {
+				return array(
+					'allowed'      => false,
+					'reason'       => 'read_hour_limit',
+					'message'      => self::format_message( $message, array( 'time' => __( '1 hour', 'ffcertificate' ) ) ),
+					'wait_seconds' => 3600,
+				);
+			}
+		}
+
+		return array( 'allowed' => true );
+	}
+
+	/**
+	 * Record a successful read against the per-endpoint counters.
+	 * Increments both the minute and hour cache buckets keyed by
+	 * `(ip, endpoint_key)` plus the underlying `ffc_rate_limits` row
+	 * (via `record_attempt`) so historical scans and the admin log
+	 * tab pick up the same audit trail other rate-limit types use.
+	 *
+	 * @since 6.6.2
+	 * @param string $ip           Client IP.
+	 * @param string $endpoint_key Endpoint identifier.
+	 * @return void
+	 */
+	public static function record_read_attempt( string $ip, string $endpoint_key ): void {
+		$identifier = $ip . '|' . $endpoint_key;
+
+		$mk     = 'ffc_rate_read_' . md5( $identifier ) . '_minute';
+		$cached = wp_cache_get( $mk, RateLimiter::CACHE_GROUP );
+		wp_cache_set( $mk, ( false !== $cached ? (int) $cached : 0 ) + 1, RateLimiter::CACHE_GROUP, 60 );
+
+		$hk     = 'ffc_rate_read_' . md5( $identifier ) . '_hour';
+		$cached = wp_cache_get( $hk, RateLimiter::CACHE_GROUP );
+		wp_cache_set( $hk, ( false !== $cached ? (int) $cached : 0 ) + 1, RateLimiter::CACHE_GROUP, 3600 );
+
+		// Persist the day counter too so the admin "rate-limit log" tab
+		// surfaces read activity alongside the other types. `record_attempt`
+		// already knows the global / ip / email / cpf branches — passing
+		// `'read'` short-circuits all of them and reuses just the day
+		// counter persistence at the end.
+		self::record_attempt( 'read', $identifier );
+	}
+
+	/**
+	 * Public IP-only whitelist check. The internal `is_whitelisted()`
+	 * accepts email + CPF too; this thin wrapper exposes just the IP
+	 * branch for consumers that only have an IP to test (the read
+	 * trait, future webhook handlers, etc.). Issue #259.
+	 *
+	 * @since 6.6.2
+	 * @param string $ip Client IP.
+	 * @return bool
+	 */
+	public static function is_ip_whitelisted( string $ip ): bool {
+		$wl  = self::get_settings()['whitelist'] ?? array();
+		$ips = is_array( $wl ) && isset( $wl['ips'] ) && is_array( $wl['ips'] ) ? $wl['ips'] : array();
+		return in_array( $ip, $ips, true );
+	}
+
+	/**
+	 * Read the `settings['read']['endpoints'][$key]` slot, or `null`
+	 * when the endpoint isn't configured. Centralizes the lookup so
+	 * `check_read_limit` + future read methods share the schema shape.
+	 *
+	 * @param array<string, mixed> $settings     Full rate-limit settings array.
+	 * @param string               $endpoint_key Endpoint identifier.
+	 * @return array<string, mixed>|null
+	 */
+	private static function read_endpoint_settings( array $settings, string $endpoint_key ): ?array {
+		$read = $settings['read'] ?? array();
+		if ( ! is_array( $read ) ) {
+			return null;
+		}
+		$endpoints = $read['endpoints'] ?? array();
+		if ( ! is_array( $endpoints ) || ! isset( $endpoints[ $endpoint_key ] ) || ! is_array( $endpoints[ $endpoint_key ] ) ) {
+			return null;
+		}
+		return $endpoints[ $endpoint_key ];
+	}
 }

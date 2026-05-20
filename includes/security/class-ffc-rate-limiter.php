@@ -168,6 +168,30 @@ class RateLimiter {
 	}
 
 	/**
+	 * Forwards to {@see RateLimitChecker::check_read_limit()}.
+	 *
+	 * @since 6.6.2
+	 * @param string $ip           Client IP.
+	 * @param string $endpoint_key Endpoint identifier (e.g. `calendar_slots`).
+	 * @return array{allowed: bool, message?: string, reason?: string, wait_seconds?: int}
+	 */
+	public static function check_read_limit( string $ip, string $endpoint_key ): array {
+		return RateLimitChecker::check_read_limit( $ip, $endpoint_key );
+	}
+
+	/**
+	 * Forwards to {@see RateLimitChecker::record_read_attempt()}.
+	 *
+	 * @since 6.6.2
+	 * @param string $ip           Client IP.
+	 * @param string $endpoint_key Endpoint identifier.
+	 * @return void
+	 */
+	public static function record_read_attempt( string $ip, string $endpoint_key ): void {
+		RateLimitChecker::record_read_attempt( $ip, $endpoint_key );
+	}
+
+	/**
 	 * Forwards to {@see RateLimitChecker::check_user_limit()}.
 	 *
 	 * @param int    $user_id WordPress user ID.
