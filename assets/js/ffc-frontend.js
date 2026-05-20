@@ -247,7 +247,7 @@
         try {
             var pdfData = JSON.parse($(this).attr('data-pdf-data') || '{}');
             var filename = pdfData.filename || 'certificate.pdf';
-            
+
             // ✅ Uses shared PDF generator module
             if (typeof window.ffcGeneratePDF === 'function') {
                 window.ffcGeneratePDF(pdfData, filename);
@@ -260,6 +260,89 @@
             showAccessibleAlert(ffc_ajax.strings.error || 'Error occurred', $(this).parent());
         }
     });
+
+    /**
+     * Detect the device family for the "where is my file" hint in the
+     * success card. Mirrors the UA logic in ffc-pdf-generator.js (iPadOS
+     * reports "Macintosh" but exposes maxTouchPoints > 1).
+     *
+     * @returns {'ios'|'android'|'desktop'}
+     */
+    function detectPlatform() {
+        var ua = navigator.userAgent || '';
+        if (/iPad|iPhone|iPod/.test(ua) || (/Macintosh/.test(ua) && navigator.maxTouchPoints > 1)) {
+            return 'ios';
+        }
+        if (/Android/i.test(ua)) {
+            return 'android';
+        }
+        return 'desktop';
+    }
+
+    /**
+     * Hide the platform-guidance lines that don't apply to the visitor's
+     * device. The matching line stays visible.
+     *
+     * @param {jQuery} $form Form (or success card) container.
+     */
+    function filterPlatformGuidance($form) {
+        var platform = detectPlatform();
+        $form.find('.ffc-success-where-is-file li[data-platform]').each(function () {
+            var $li = $(this);
+            if ($li.attr('data-platform') !== platform) {
+                $li.hide();
+            }
+        });
+    }
+
+    /**
+     * Copy-to-clipboard handler for the success card (auth code + magic
+     * link). Falls back to the legacy document.execCommand path on
+     * browsers without async clipboard (older mobile Safari).
+     */
+    $(document).on('click', '.ffc-copy-btn', function () {
+        var $btn = $(this);
+        var text = $btn.attr('data-ffc-copy') || '';
+        if (!text) {
+            return;
+        }
+        var originalLabel = $btn.data('ffc-original-label');
+        if (typeof originalLabel === 'undefined') {
+            originalLabel = $btn.text();
+            $btn.data('ffc-original-label', originalLabel);
+        }
+        var copiedLabel = (ffc_ajax.strings && ffc_ajax.strings.copied) || 'Copied!';
+        var failedLabel = (ffc_ajax.strings && ffc_ajax.strings.copyFailed) || 'Could not copy';
+
+        var showFeedback = function (ok) {
+            $btn.text(ok ? copiedLabel : failedLabel);
+            setTimeout(function () {
+                $btn.text(originalLabel);
+            }, 2000);
+        };
+
+        if (navigator.clipboard && typeof navigator.clipboard.writeText === 'function') {
+            navigator.clipboard.writeText(text).then(function () {
+                showFeedback(true);
+            }, function () {
+                showFeedback(legacyClipboardCopy(text));
+            });
+            return;
+        }
+        showFeedback(legacyClipboardCopy(text));
+    });
+
+    function legacyClipboardCopy(text) {
+        try {
+            var $ta = $('<textarea>').css({ position: 'fixed', top: '-1000px', opacity: 0 }).val(text).appendTo('body');
+            $ta[0].select();
+            var ok = document.execCommand && document.execCommand('copy');
+            $ta.remove();
+            return !!ok;
+        } catch (e) {
+            return false;
+        }
+    }
 
     /**
      * Handle form submission
@@ -314,6 +397,11 @@
                                 $downloadBtn.attr('data-pdf-data', JSON.stringify(data.pdf_data));
                             }
                         }
+                        // Show only the platform-specific "where is my file"
+                        // hint relevant to this device. The other lines stay
+                        // in the DOM (so a forwarded link still renders them
+                        // if JS is disabled), just hidden visually here.
+                        filterPlatformGuidance($form);
                     } else {
                         FFC.Frontend.UI.showFormSuccess($form, '');
                     }

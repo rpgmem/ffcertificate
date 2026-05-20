@@ -1030,6 +1030,99 @@ details.ffc-consent-description > p {
     font-size: 18px;
 }
 
+/* Success card — auth code, magic link, "where is my file" hints, copy buttons. */
+.ffc-shortcode .ffc-success-auth-code code {
+    background: var(--ffc-bg-alt);
+    padding: 4px 8px;
+    border-radius: 3px;
+    font-size: 16px;
+    margin: 0 6px;
+    word-break: break-all;
+}
+
+.ffc-shortcode .ffc-success-auth-hint {
+    font-size: 13px;
+    color: var(--ffc-text-muted, #666);
+    margin-top: -4px;
+}
+
+.ffc-shortcode .ffc-success-magic-link {
+    word-break: break-all;
+}
+
+.ffc-shortcode .ffc-magic-link-url {
+    display: inline-block;
+    margin: 0 6px;
+    color: var(--ffc-primary, #0073aa);
+    text-decoration: underline;
+    font-family: monospace;
+    font-size: 13px;
+    word-break: break-all;
+    max-width: 100%;
+}
+
+.ffc-shortcode .ffc-copy-btn {
+    display: inline-block;
+    padding: 3px 10px;
+    margin-left: 6px;
+    border: 1px solid var(--ffc-primary, #0073aa);
+    background: transparent;
+    color: var(--ffc-primary, #0073aa);
+    border-radius: 4px;
+    font-size: 12px;
+    cursor: pointer;
+    transition: background 0.15s ease, color 0.15s ease;
+}
+
+.ffc-shortcode .ffc-copy-btn:hover,
+.ffc-shortcode .ffc-copy-btn:focus {
+    background: var(--ffc-primary, #0073aa);
+    color: #fff;
+}
+
+.ffc-shortcode .ffc-success-actions {
+    margin: 18px 0;
+    text-align: center;
+}
+
+.ffc-shortcode .ffc-success-download-btn {
+    background: var(--ffc-primary, #0073aa);
+    color: #fff;
+    border: 0;
+    padding: 12px 24px;
+    border-radius: 6px;
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.ffc-shortcode .ffc-success-download-btn:hover,
+.ffc-shortcode .ffc-success-download-btn:focus {
+    filter: brightness(0.95);
+}
+
+.ffc-shortcode .ffc-success-where-is-file {
+    margin-top: 18px;
+    padding: 12px 16px;
+    background: var(--ffc-bg-alt, #f6f7f7);
+    border-left: 3px solid var(--ffc-primary, #0073aa);
+    border-radius: 4px;
+}
+
+.ffc-shortcode .ffc-success-where-title {
+    margin: 0 0 8px;
+}
+
+.ffc-shortcode .ffc-success-where-is-file ul {
+    margin: 0;
+    padding-left: 18px;
+}
+
+.ffc-shortcode .ffc-success-where-is-file li {
+    font-size: 14px;
+    margin: 4px 0;
+}
+
 /* ============================================
    CSV DOWNLOAD PROGRESS OVERLAY
    ============================================ */

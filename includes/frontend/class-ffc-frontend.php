@@ -273,6 +273,11 @@ class Frontend {
 						'pdfSavedAndroid'       => __( 'PDF saved! Check your Downloads folder.', 'ffcertificate' ),
 						'pdfDownloaded'         => __( 'PDF downloaded successfully.', 'ffcertificate' ),
 						'pdfBlankWarning'       => __( 'Warning: the generated PDF appears to be blank. Please try again.', 'ffcertificate' ),
+
+						// 6.6.2 — success-card copy / clipboard feedback.
+						'copy'                  => __( 'Copy', 'ffcertificate' ),
+						'copied'                => __( 'Copied!', 'ffcertificate' ),
+						'copyFailed'            => __( 'Could not copy. Long-press the text to copy it manually.', 'ffcertificate' ),
 					),
 				)
 			);
