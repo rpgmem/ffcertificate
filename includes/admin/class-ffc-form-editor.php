@@ -220,6 +220,21 @@ class FormEditor {
 			'side',
 			'high'
 		);
+
+		// 6.6.4 follow-up (#361 Sprint 3) — per-form pre-flight stats
+		// badges (cookie wall / GPS wall / rate-limit hits over the
+		// last 30 days). Sidebar position, low priority so it sits
+		// below the more-frequently-used metaboxes.
+		add_meta_box(
+			'ffc_form_preflight_stats',
+			__( 'User-friction stats — last 30 days', 'ffcertificate' ),
+			static function ( $post ) {
+				\FreeFormCertificate\Admin\PreflightStatsService::render_metabox( (int) $post->ID );
+			},
+			'ffc_form',
+			'side',
+			'low'
+		);
 	}
 
 	/**
