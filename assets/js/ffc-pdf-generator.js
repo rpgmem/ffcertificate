@@ -105,10 +105,17 @@
 
     function generateAndDownloadPDF(pdfData, filename) {
         if (!checkPDFLibraries()) {
-            var errorMsg = (typeof ffc_ajax !== 'undefined' && ffc_ajax.strings && ffc_ajax.strings.pdfLibrariesFailed)
-                ? ffc_ajax.strings.pdfLibrariesFailed
-                : 'PDF libraries failed to load. Please refresh the page.';
-            alert(errorMsg);
+            // This path runs BEFORE the overlay opens — the libraries
+            // are needed to build it. Open a minimal overlay so we can
+            // surface the actionable error UI, then point the user at
+            // a hard refresh (the only fix on the client side).
+            showOverlay();
+            var lfStrings = (typeof ffc_ajax !== 'undefined' && ffc_ajax.strings) ? ffc_ajax.strings : {};
+            var lfHeadline = lfStrings.pdfLibrariesFailed
+                || 'PDF libraries failed to load. Please refresh the page.';
+            var lfBody = lfStrings.pdfErrorLibrariesBody
+                || 'A required script blocked or timed out. Reload the page (Ctrl+R / Cmd+R) and try again. If the issue persists, try a different browser.';
+            renderOverlayError(lfHeadline, lfBody, null);
             return;
         }
 
@@ -296,12 +303,14 @@
 
                 if (!element) {
                     console.error('[FFC PDF] Wrapper not found');
-                    var errorMsg = (typeof ffc_ajax !== 'undefined' && ffc_ajax.strings && ffc_ajax.strings.pdfContainerNotFound)
-                        ? ffc_ajax.strings.pdfContainerNotFound
-                        : 'Error: PDF container not found';
-                    alert(errorMsg);
+                    var ngStrings = (typeof ffc_ajax !== 'undefined' && ffc_ajax.strings) ? ffc_ajax.strings : {};
+                    var ngHeadline = ngStrings.pdfErrorTitle || "Couldn't generate the certificate";
+                    var ngBody = ngStrings.pdfErrorGeneric
+                        || 'Something went wrong while building the PDF. Try again — if it keeps failing, use a different browser or contact the organizer.';
                     $tempContainer.remove();
-                    hideOverlay();
+                    renderOverlayError(ngHeadline, ngBody, function () {
+                        generateAndDownloadPDF(pdfData, filename);
+                    });
                     return;
                 }
 
@@ -376,12 +385,14 @@
 
                             if (!hasContent) {
                                 console.warn('[FFC PDF] Canvas is blank — check HTML/CSS.');
-                                var blankMsg = (typeof ffc_ajax !== 'undefined' && ffc_ajax.strings && ffc_ajax.strings.pdfBlankWarning)
-                                    ? ffc_ajax.strings.pdfBlankWarning
-                                    : 'Warning: the generated PDF appears to be blank. Please try again.';
-                                alert(blankMsg);
+                                var blStrings = (typeof ffc_ajax !== 'undefined' && ffc_ajax.strings) ? ffc_ajax.strings : {};
+                                var blHeadline = blStrings.pdfErrorTitle || "Couldn't generate the certificate";
+                                var blBody = blStrings.pdfErrorBlank
+                                    || 'The certificate came out blank — usually a slow-loading image. Try again. If it persists, try a different browser or contact the organizer.';
                                 $tempContainer.remove();
-                                hideOverlay();
+                                renderOverlayError(blHeadline, blBody, function () {
+                                    generateAndDownloadPDF(pdfData, filename);
+                                });
                                 return;
                             }
 
@@ -493,22 +504,35 @@
                         } catch (error) {
                             console.error('[FFC PDF] Error:', error);
                             closePlaceholderTabIfAny();
-                            var errorMsg = (typeof ffc_ajax !== 'undefined' && ffc_ajax.strings && ffc_ajax.strings.errorGeneratingPdf)
-                                ? ffc_ajax.strings.errorGeneratingPdf
-                                : 'Error generating PDF';
-                            alert(errorMsg);
+                            // 6.6.2 (Sprint 3) — CORS-tainted canvas
+                            // surfaces here as a SecurityError on
+                            // getImageData. The pixel scanner can't run, the
+                            // try block aborts, and we land in this catch.
+                            // Give the user a specific message — the cause
+                            // is server-side (image without CORS headers),
+                            // not anything they can fix by retrying.
+                            var isCors = error && (error.name === 'SecurityError' || /tainted|cross-origin/i.test(String(error.message || '')));
+                            var strings = (typeof ffc_ajax !== 'undefined' && ffc_ajax.strings) ? ffc_ajax.strings : {};
+                            var headline = strings.pdfErrorTitle || "Couldn't generate the certificate";
+                            var body = isCors
+                                ? (strings.pdfErrorCors || 'A certificate image failed to load (cross-origin restriction). This is a configuration problem on the server, not on your device. Please contact the organizer with your authentication code.')
+                                : (strings.pdfErrorGeneric || 'Something went wrong while building the PDF. Try again — if it keeps failing, use a different browser or contact the organizer.');
                             $tempContainer.remove();
-                            hideOverlay();
+                            renderOverlayError(headline, body, isCors ? null : function () {
+                                generateAndDownloadPDF(pdfData, filename);
+                            });
                         }
                     }).catch(function(error) {
                         console.error('[FFC PDF] html2canvas error:', error);
                         closePlaceholderTabIfAny();
-                        var errorMsg = (typeof ffc_ajax !== 'undefined' && ffc_ajax.strings && ffc_ajax.strings.html2canvasFailed)
-                            ? ffc_ajax.strings.html2canvasFailed
-                            : 'Error: html2canvas failed';
-                        alert(errorMsg);
+                        var strings = (typeof ffc_ajax !== 'undefined' && ffc_ajax.strings) ? ffc_ajax.strings : {};
+                        var headline = strings.pdfErrorTitle || "Couldn't generate the certificate";
+                        var body = strings.pdfErrorHtml2canvas
+                            || "We couldn't render the certificate. This usually clears up on a retry; if not, try a different browser.";
                         $tempContainer.remove();
-                        hideOverlay();
+                        renderOverlayError(headline, body, function () {
+                            generateAndDownloadPDF(pdfData, filename);
+                        });
                     });
                 }, 300);
             }, remainingTime);
@@ -524,6 +548,107 @@
             if (pdfWindow && ! pdfWindow.closed) {
                 try { pdfWindow.close(); } catch (e) { /* swallow */ }
             }
+        }
+
+        /**
+         * 6.6.2 (Sprint 3) — render an actionable error panel inside the
+         * overlay instead of firing a blocking alert(). Replaces the
+         * spinner with an error icon, paints a headline + actionable
+         * body copy, and wires a "Try again" button (when a retry
+         * callback is supplied) plus a "Close" button. Does NOT
+         * auto-dismiss — the user has to read it and choose.
+         *
+         * @param {string}   headline     Short, plain-language failure title.
+         * @param {string}   body         Actionable next-steps copy.
+         * @param {Function} [onRetry]    Optional retry callback. Omit for
+         *                                non-recoverable errors (lib load fail).
+         */
+        function renderOverlayError(headline, body, onRetry) {
+            var $overlay = $('#ffc-pdf-overlay');
+            if (!$overlay.length) {
+                // No overlay open — fall back to alert() so the message
+                // still reaches the user (early-init failures take this
+                // path).
+                alert(headline + '\n\n' + body);
+                return;
+            }
+            var $content = $overlay.children().first();
+            $content.empty();
+
+            $('<div></div>').css({
+                'width': '60px',
+                'height': '60px',
+                'margin': '0 auto 16px',
+                'border-radius': '50%',
+                'background': '#d63638',
+                'color': '#fff',
+                'font-size': '36px',
+                'line-height': '60px',
+                'font-weight': '700'
+            }).attr('aria-hidden', 'true').text('!').appendTo($content);
+
+            $('<h3></h3>').css({
+                'margin': '0 0 10px 0',
+                'color': '#333',
+                'font-size': '18px',
+                'font-weight': '600'
+            }).text(headline).appendTo($content);
+
+            $('<p></p>').css({
+                'margin': '0 0 18px 0',
+                'color': '#555',
+                'font-size': '14px',
+                'line-height': '1.5'
+            }).text(body).appendTo($content);
+
+            var $actions = $('<div class="ffc-pdf-error-actions"></div>').css({
+                'display': 'flex',
+                'gap': '8px',
+                'justify-content': 'center',
+                'flex-wrap': 'wrap'
+            }).appendTo($content);
+
+            var retryLabel = (typeof ffc_ajax !== 'undefined' && ffc_ajax.strings && ffc_ajax.strings.pdfErrorRetry)
+                ? ffc_ajax.strings.pdfErrorRetry
+                : 'Try again';
+            var closeLabel = (typeof ffc_ajax !== 'undefined' && ffc_ajax.strings && ffc_ajax.strings.pdfErrorClose)
+                ? ffc_ajax.strings.pdfErrorClose
+                : 'Close';
+
+            if (typeof onRetry === 'function') {
+                $('<button type="button" class="ffc-pdf-error-retry"></button>')
+                    .css({
+                        'padding': '10px 18px',
+                        'background': '#0073aa',
+                        'color': '#fff',
+                        'border': '0',
+                        'border-radius': '4px',
+                        'font-weight': '600',
+                        'cursor': 'pointer'
+                    })
+                    .text(retryLabel)
+                    .on('click', function () {
+                        hideOverlay();
+                        // Defer so hideOverlay's fade-out finishes; otherwise
+                        // the retry's showOverlay() can race against it.
+                        setTimeout(onRetry, 350);
+                    })
+                    .appendTo($actions);
+            }
+
+            $('<button type="button" class="ffc-pdf-error-close"></button>')
+                .css({
+                    'padding': '10px 18px',
+                    'background': 'transparent',
+                    'color': '#0073aa',
+                    'border': '1px solid #0073aa',
+                    'border-radius': '4px',
+                    'font-weight': '600',
+                    'cursor': 'pointer'
+                })
+                .text(closeLabel)
+                .on('click', hideOverlay)
+                .appendTo($actions);
         }
 
         /**
