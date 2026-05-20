@@ -202,23 +202,30 @@
             // wp_localize_script that don't go through ffc_ajax — eg.
             // ffc-form-list-features.js, ffc-admin-autosave.js); the
             // global ffc_ajax nonce is the last-resort default.
-            var resolvedNonce = options.nonce
-                || (data && typeof data === 'object' && data.nonce)
-                || this.config.nonce
-                || '';
-            // Callers may pass `data` as either an object (the usual
-            // case) or a pre-serialised URL-encoded string — typically
-            // the result of `$form.serialize()`. Both forms get action
-            // + nonce appended.
-            var payload;
-            if (typeof data === 'string') {
-                payload = data
-                    + '&action=' + encodeURIComponent(action)
-                    + '&nonce=' + encodeURIComponent(resolvedNonce);
-            } else {
-                payload = jQuery.extend({}, data, {
+            //
+            // Live-read pattern: `this.config.nonce` is a getter that
+            // resolves `window.ffc_ajax.nonce` every read (6.6.2 fix),
+            // so the inner send() below picks up a mid-flight refresh.
+            var self = this;
+            function resolveNonce() {
+                return options.nonce
+                    || (data && typeof data === 'object' && data.nonce)
+                    || self.config.nonce
+                    || '';
+            }
+            function buildPayload(nonce) {
+                // Callers may pass `data` as either an object (the usual
+                // case) or a pre-serialised URL-encoded string — typically
+                // the result of `$form.serialize()`. Both forms get action
+                // + nonce appended.
+                if (typeof data === 'string') {
+                    return data
+                        + '&action=' + encodeURIComponent(action)
+                        + '&nonce=' + encodeURIComponent(nonce);
+                }
+                return jQuery.extend({}, data, {
                     action: action,
-                    nonce: resolvedNonce,
+                    nonce: nonce,
                 });
             }
             var url = options.ajaxUrl || this.config.ajaxUrl || '/wp-admin/admin-ajax.php';
@@ -226,53 +233,82 @@
             // fall through to jQuery.ajax({ url, type:'POST', data, timeout })
             // which returns the same jqXHR-with-.done/.fail interface.
             return new Promise(function(resolve, reject) {
-                var jqXHR = options.timeout
-                    ? jQuery.ajax({ url: url, type: 'POST', data: payload, timeout: options.timeout })
-                    : jQuery.post(url, payload);
-                jqXHR
-                    .done(function(res) {
-                        if (!res || !res.success) {
-                            // Server may send `data` as either an object
-                            // ({message: '...'}) or a bare string — both
-                            // are valid wp_send_json_error shapes.
-                            var serverMsg = (res && typeof res.data === 'string')
-                                ? res.data
-                                : (res && res.data && res.data.message);
-                            var msg = serverMsg
-                                || (FFC.config.strings && FFC.config.strings.error)
-                                || 'Request failed';
+                function send() {
+                    var payload = buildPayload(resolveNonce());
+                    var jqXHR = options.timeout
+                        ? jQuery.ajax({ url: url, type: 'POST', data: payload, timeout: options.timeout })
+                        : jQuery.post(url, payload);
+                    jqXHR
+                        .done(function(res) {
+                            if (!res || !res.success) {
+                                // Server may send `data` as either an object
+                                // ({message: '...'}) or a bare string — both
+                                // are valid wp_send_json_error shapes.
+                                var serverMsg = (res && typeof res.data === 'string')
+                                    ? res.data
+                                    : (res && res.data && res.data.message);
+                                var msg = serverMsg
+                                    || (FFC.config.strings && FFC.config.strings.error)
+                                    || 'Request failed';
+                                var err = new Error(msg);
+                                err.fromServer = !!serverMsg;
+                                err.data = res && res.data;
+
+                                // 6.6.3 — stale-nonce auto-recovery.
+                                // When wp_verify_nonce() rejects on the
+                                // server it now returns refresh_nonce + a
+                                // fresh new_nonce bound to the visitor's
+                                // current session cookie. Push the new
+                                // value into window.ffc_ajax.nonce (the
+                                // FFC.config.nonce getter reads it live)
+                                // and re-issue from inside the same outer
+                                // Promise so callers see exactly one
+                                // resolution / rejection — no extra
+                                // microtask depth.
+                                //
+                                // Covers iOS Safari ITP/Private Relay
+                                // rotating cookies mid-session, cached
+                                // HTML carrying another visitor's nonce,
+                                // and ffc-dynamic-fragments silently
+                                // failing on restrictive networks.
+                                if (
+                                    !options._ffcNonceRetried
+                                    && err.data
+                                    && err.data.refresh_nonce
+                                    && err.data.new_nonce
+                                ) {
+                                    if (typeof window.ffc_ajax !== 'undefined' && window.ffc_ajax) {
+                                        window.ffc_ajax.nonce = err.data.new_nonce;
+                                    }
+                                    if (typeof console !== 'undefined' && console.warn) {
+                                        console.warn('[FFC] Stale nonce auto-recovered; retrying ' + action);
+                                    }
+                                    options._ffcNonceRetried = true;
+                                    send();
+                                    return;
+                                }
+                                reject(err);
+                                return;
+                            }
+                            resolve(res.data);
+                        })
+                        .fail(function(xhr) {
+                            var msg = (FFC.config.strings && FFC.config.strings.connectionError)
+                                || 'Connection error';
                             var err = new Error(msg);
-                            // Lets callers distinguish "server told us
-                            // what's wrong" from "library fell back to a
-                            // generic string" — important for sites that
-                            // want a caller-specific error label when no
-                            // server message was supplied.
-                            err.fromServer = !!serverMsg;
-                            // Preserve the full server payload so callers
-                            // can read auxiliary fields the server sent
-                            // alongside the error (eg. refresh_captcha,
-                            // new_hash, rate_limit_retry_after).
-                            err.data = res && res.data;
+                            err.fromServer = false;
+                            // Expose the jqXHR so callers can inspect
+                            // responseJSON / status / etc. when the failure
+                            // is an HTTP error (eg. 429 with a rate_limit
+                            // payload in the body).
+                            err.xhr = xhr;
+                            if (xhr && xhr.responseJSON && xhr.responseJSON.data) {
+                                err.data = xhr.responseJSON.data;
+                            }
                             reject(err);
-                            return;
-                        }
-                        resolve(res.data);
-                    })
-                    .fail(function(xhr) {
-                        var msg = (FFC.config.strings && FFC.config.strings.connectionError)
-                            || 'Connection error';
-                        var err = new Error(msg);
-                        err.fromServer = false;
-                        // Expose the jqXHR so callers can inspect
-                        // responseJSON / status / etc. when the failure
-                        // is an HTTP error (eg. 429 with a rate_limit
-                        // payload in the body).
-                        err.xhr = xhr;
-                        if (xhr && xhr.responseJSON && xhr.responseJSON.data) {
-                            err.data = xhr.responseJSON.data;
-                        }
-                        reject(err);
-                    });
+                        });
+                }
+                send();
             });
         },
 

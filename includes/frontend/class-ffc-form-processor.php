@@ -70,8 +70,32 @@ class FormProcessor {
 		}
 
 		// Verify nonce.
+		//
+		// 6.6.3 — when the nonce check fails, hand back a fresh nonce
+		// keyed to the visitor's current session cookie so the client
+		// (FFC.request) can transparently retry once. This works around:
+		//
+		// - cached HTML carrying another visitor's nonce on shared
+		// hosts (cache-bust on assets doesn't help because the page
+		// HTML itself is what's cached);
+		// - iOS Safari ITP / iCloud Private Relay rotating the session
+		// cookie between page render and submit;
+		// - ffc-dynamic-fragments silently failing on some networks
+		// (the catch in that script swallows XHR errors).
+		//
+		// Safety: a stale-nonce auto-refresh is not a CSRF weakening.
+		// The fresh nonce is bound to the cookie of the request that
+		// asks for it; an attacker who can't present a valid cookie
+		// can't use the returned nonce. Callers are also guarded
+		// against retry loops (options._ffcNonceRetried in ffc-core.js).
 		if ( ! wp_verify_nonce( Utils::get_post_string( 'nonce' ), 'ffc_frontend_nonce' ) ) {
-			wp_send_json_error( array( 'message' => __( 'Security check failed. Please refresh the page.', 'ffcertificate' ) ) );
+			wp_send_json_error(
+				array(
+					'message'       => __( 'Security check failed. Please refresh the page.', 'ffcertificate' ),
+					'refresh_nonce' => true,
+					'new_nonce'     => wp_create_nonce( 'ffc_frontend_nonce' ),
+				)
+			);
 		}
 
         // phpcs:disable WordPress.Security.NonceVerification.Missing -- Nonce verified above via wp_verify_nonce.
