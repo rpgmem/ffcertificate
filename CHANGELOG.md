@@ -19,19 +19,29 @@ just stale code in the client.
 
 ### Fixed
 
-- **Server-side stale-nonce auto-recovery on form submission.** When
-  `wp_verify_nonce()` rejects the submitted nonce, the response now
-  includes `refresh_nonce: true` + `new_nonce: '<fresh>'` alongside
-  the existing error message. The fresh nonce is bound to the
-  visitor's current session cookie via `wp_create_nonce()`, so an
-  attacker who can't present a valid cookie can't use it.
+- **Server-side stale-nonce auto-recovery on form submission AND
+  certificate verification.** When `wp_verify_nonce()` rejects, both
+  `FormProcessor::handle_submission_ajax()` and
+  `VerificationHandler::handle_verification_ajax()` now respond with
+  `refresh_nonce: true` + `new_nonce: '<fresh>'` alongside the
+  existing error message. Both endpoints share the same
+  `ffc_frontend_nonce` action and the same iOS / cache failure modes,
+  so they get the same treatment. (Verification also switches from
+  `check_ajax_referer()` — which `wp_die()`s with 403 on failure —
+  to explicit `wp_verify_nonce()` so the client can read the
+  structured error.) The fresh nonce is bound to the visitor's
+  current session cookie via `wp_create_nonce()`, so an attacker
+  who can't present a valid cookie can't use it.
 - **Client-side single-retry on FFC.request.** When a request comes
   back with `refresh_nonce` flagged, `FFC.request` updates
   `window.ffc_ajax.nonce` (the live-getter from 6.6.2 picks it up
   automatically) and re-issues the same call exactly once. An
   `options._ffcNonceRetried` guard prevents ping-pong. The user
   never sees the "Security check failed" message in the common
-  recoverable cases.
+  recoverable cases. Generic: every endpoint that responds with
+  `refresh_nonce` benefits — adding the treatment to other nonce
+  checks (self-scheduling AJAX, public CSV download) is now a
+  server-side-only change.
 
 ### Why this safety net is needed even after the 6.6.2.1 cache-bust
 
@@ -62,9 +72,11 @@ one applies.
   pinning the retry contract (updates `ffc_ajax.nonce`, retries
   once, no retry without `refresh_nonce`, no retry without
   `new_nonce`, preserves the final error payload).
-- PHPUnit: `FormProcessorNonceRecoveryTest` asserts the server
-  payload includes `refresh_nonce: true` + a non-empty `new_nonce`
-  when `wp_verify_nonce()` returns false.
+- PHPUnit: `FormProcessorNonceRecoveryTest` +
+  `VerificationHandlerNonceRecoveryTest` each assert that the
+  server payload includes `refresh_nonce: true` + a non-empty
+  `new_nonce` when `wp_verify_nonce()` returns false on the
+  respective endpoint.
 
 ---
 
