@@ -1174,7 +1174,7 @@ final class RateLimitChecker {
 	 * @return bool
 	 */
 	public static function is_ip_whitelisted( string $ip ): bool {
-		$wl = self::get_settings()['whitelist'] ?? array();
+		$wl  = self::get_settings()['whitelist'] ?? array();
 		$ips = is_array( $wl ) && isset( $wl['ips'] ) && is_array( $wl['ips'] ) ? $wl['ips'] : array();
 		return in_array( $ip, $ips, true );
 	}
