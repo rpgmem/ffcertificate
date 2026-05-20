@@ -186,4 +186,18 @@ class AppointmentRepositoryCentralizationTest extends TestCase {
 		$this->assertSame( 0, $this->repo()->linkByIdentifierHash( 0, 'cpf_hash', 'abc' ) );
 		$this->assertSame( 0, $this->repo()->linkByIdentifierHash( 5, 'cpf_hash', '' ) );
 	}
+
+	// ------------------------------------------------------------------
+	// sql_user_appointment_count_subquery() — issue #343 group C
+	// ------------------------------------------------------------------
+
+	public function test_sql_user_appointment_count_subquery_returns_self_contained_select(): void {
+		$sql = $this->repo()->sql_user_appointment_count_subquery();
+
+		$this->assertStringStartsWith( '(SELECT ', $sql );
+		$this->assertStringEndsWith( ')', $sql );
+		$this->assertStringContainsString( 'wp_ffc_self_scheduling_appointments', $sql );
+		$this->assertStringContainsString( 'GROUP BY user_id', $sql );
+		$this->assertStringContainsString( "status != 'cancelled'", $sql );
+	}
 }

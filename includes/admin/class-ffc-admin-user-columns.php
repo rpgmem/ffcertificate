@@ -431,8 +431,7 @@ class AdminUserColumns {
 
 		switch ( $orderby ) {
 			case 'ffc_certificates':
-				$table  = \FreeFormCertificate\Core\Utils::get_submissions_table();
-				$select = "(SELECT user_id, COUNT(*) AS cnt FROM {$table} WHERE user_id IS NOT NULL AND status != 'trash' GROUP BY user_id)";
+				$select = ( new \FreeFormCertificate\Repositories\SubmissionRepository() )->sql_user_certificate_count_subquery();
 				break;
 
 			case 'ffc_appointments':
@@ -440,7 +439,7 @@ class AdminUserColumns {
 				if ( ! self::table_exists( $appts_table ) ) {
 					return;
 				}
-				$select = "(SELECT user_id, COUNT(*) AS cnt FROM {$appts_table} WHERE user_id IS NOT NULL AND status != 'cancelled' GROUP BY user_id)";
+				$select = ( new \FreeFormCertificate\Repositories\AppointmentRepository() )->sql_user_appointment_count_subquery();
 				break;
 
 			case 'ffc_notices':

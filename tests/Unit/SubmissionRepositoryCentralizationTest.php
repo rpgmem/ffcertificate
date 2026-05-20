@@ -129,4 +129,18 @@ class SubmissionRepositoryCentralizationTest extends TestCase {
 
 		$this->assertSame( 0, $this->repo()->clearQrCodeCache() );
 	}
+
+	// ------------------------------------------------------------------
+	// sql_user_certificate_count_subquery() — issue #343 group C
+	// ------------------------------------------------------------------
+
+	public function test_sql_user_certificate_count_subquery_returns_self_contained_select(): void {
+		$sql = $this->repo()->sql_user_certificate_count_subquery();
+
+		$this->assertStringStartsWith( '(SELECT ', $sql );
+		$this->assertStringEndsWith( ')', $sql );
+		$this->assertStringContainsString( 'wp_ffc_submissions', $sql );
+		$this->assertStringContainsString( 'GROUP BY user_id', $sql );
+		$this->assertStringContainsString( "status != 'trash'", $sql );
+	}
 }
