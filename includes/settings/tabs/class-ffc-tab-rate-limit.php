@@ -128,6 +128,33 @@ class TabRateLimit extends SettingsTab {
 				'show_wait_time'  => true,
 				'countdown_timer' => true,
 			),
+			'read'      => array(
+				'respect_whitelist' => true,
+				'bypass_logged_in'  => true,
+				'message'           => __( 'Too many requests. Please wait {time}.', 'ffcertificate' ),
+				// Per-endpoint thresholds (#259). Keys match the
+				// `endpoint_key` strings the ReadRateLimitGuardTrait
+				// passes through; defaults below are calibrated for the
+				// 3 calendar GETs but new endpoints can append their
+				// own sub-array following the same shape.
+				'endpoints'         => array(
+					'calendar_slots'  => array(
+						'enabled'        => true,
+						'max_per_minute' => 60,
+						'max_per_hour'   => 1000,
+					),
+					'calendar_list'   => array(
+						'enabled'        => true,
+						'max_per_minute' => 30,
+						'max_per_hour'   => 500,
+					),
+					'calendar_detail' => array(
+						'enabled'        => true,
+						'max_per_minute' => 60,
+						'max_per_hour'   => 1000,
+					),
+				),
+			),
 		);
 		return wp_parse_args( get_option( 'ffc_rate_limit_settings', array() ), $defaults );
 	}
