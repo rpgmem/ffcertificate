@@ -320,6 +320,56 @@ class FormProcessor {
 			}
 		}
 
+		// Geofence validation (date/time + geolocation).
+		//
+		// 6.6.4 Sprint 5 — moved BEFORE the consolidated rate-limit
+		// check. Geofence::can_access_form is read-only (single
+		// get_post_meta + optional IP geolocation lookup); the
+		// rate-limit block, in contrast, calls record_attempt() which
+		// writes to the counters. A visitor outside the geofence
+		// (e.g. legitimate user on the edge of the allowed radius
+		// whose GPS imprecision puts them slightly outside) used to
+		// burn rate-limit budget on every fail. Doing the cheaper
+		// read-only check first preserves their budget for the next
+		// legitimate retry.
+		//
+		// Cheap → expensive ordering. Rate-limit IP at the very top
+		// of the handler (step 1) still catches the DoS case before
+		// geofence — geofence isn't a DoS gate, it's an authorization
+		// gate.
+		if ( class_exists( '\FreeFormCertificate\Security\Geofence' ) ) {
+			// Get form geofence config to check if IP validation is enabled.
+			$geofence_config    = \FreeFormCertificate\Security\Geofence::get_form_config( $form_id );
+			$should_validate_ip = false;
+
+			// Backend validation logic:
+			// - Always validate datetime (server-side is authoritative)
+			// - Only validate IP geolocation if explicitly enabled.
+			// - GPS validation happens on frontend (browser geolocation API)
+			// Note: GPS-only mode relies on frontend validation; backend cannot verify GPS.
+			if ( $geofence_config && ! empty( $geofence_config['geo_enabled'] ) && ! empty( $geofence_config['geo_ip_enabled'] ) ) {
+				$should_validate_ip = true;
+			}
+
+			$geofence_check = \FreeFormCertificate\Security\Geofence::can_access_form(
+				$form_id,
+				array(
+					'check_datetime' => true,        // Always validate date/time server-side.
+					'check_geo'      => $should_validate_ip, // Only validate IP if explicitly enabled.
+				)
+			);
+
+			if ( ! $geofence_check['allowed'] ) {
+				wp_send_json_error(
+					array(
+						'message'          => $geofence_check['message'] ?? '',
+						'geofence_blocked' => true,
+						'reason'           => $geofence_check['reason'] ?? '',
+					)
+				);
+			}
+		}
+
 		// Rate Limit Check.
 		if ( class_exists( '\FreeFormCertificate\Security\RateLimiter' ) ) {
 			$ip    = \FreeFormCertificate\Core\Utils::get_user_ip();
@@ -385,40 +435,6 @@ class FormProcessor {
 					},
 					10,
 					2
-				);
-			}
-		}
-
-		// Geofence validation (date/time + geolocation).
-		if ( class_exists( '\FreeFormCertificate\Security\Geofence' ) ) {
-			// Get form geofence config to check if IP validation is enabled.
-			$geofence_config    = \FreeFormCertificate\Security\Geofence::get_form_config( $form_id );
-			$should_validate_ip = false;
-
-			// Backend validation logic:
-			// - Always validate datetime (server-side is authoritative)
-			// - Only validate IP geolocation if explicitly enabled.
-			// - GPS validation happens on frontend (browser geolocation API)
-			// Note: GPS-only mode relies on frontend validation; backend cannot verify GPS.
-			if ( $geofence_config && ! empty( $geofence_config['geo_enabled'] ) && ! empty( $geofence_config['geo_ip_enabled'] ) ) {
-				$should_validate_ip = true;
-			}
-
-			$geofence_check = \FreeFormCertificate\Security\Geofence::can_access_form(
-				$form_id,
-				array(
-					'check_datetime' => true,        // Always validate date/time server-side.
-					'check_geo'      => $should_validate_ip, // Only validate IP if explicitly enabled.
-				)
-			);
-
-			if ( ! $geofence_check['allowed'] ) {
-				wp_send_json_error(
-					array(
-						'message'          => $geofence_check['message'] ?? '',
-						'geofence_blocked' => true,
-						'reason'           => $geofence_check['reason'] ?? '',
-					)
 				);
 			}
 		}
