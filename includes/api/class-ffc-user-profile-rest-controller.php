@@ -114,20 +114,16 @@ class UserProfileRestController {
 				}
 			}
 
-			$user = get_user_by( 'id', $user_id );
-
-			if ( ! $user ) {
+			// User existence + wp_users ↔ ffc_user_profiles merge are now
+			// owned by UserService (#322). Returns null when the user
+			// doesn't resolve so the 404 path stays one-shot.
+			$full_profile = \FreeFormCertificate\Services\UserService::get_full_profile( $user_id );
+			if ( null === $full_profile ) {
 				return new \WP_Error(
 					'user_not_found',
 					__( 'User not found', 'ffcertificate' ),
 					array( 'status' => 404 )
 				);
-			}
-
-			// Load profile from ffc_user_profiles (primary) with wp_users fallback.
-			$profile = array();
-			if ( class_exists( '\FreeFormCertificate\UserDashboard\UserManager' ) ) {
-				$profile = \FreeFormCertificate\UserDashboard\UserManager::get_profile( $user_id );
 			}
 
 			$cpfs_masked = array();
@@ -151,8 +147,8 @@ class UserProfileRestController {
 			}
 
 			$member_since = '';
-			if ( ! empty( $user->user_registered ) ) {
-				$member_since = \FreeFormCertificate\Core\DateFormatter::format_date( $user->user_registered );
+			if ( ! empty( $full_profile['member_since'] ) ) {
+				$member_since = \FreeFormCertificate\Core\DateFormatter::format_date( (string) $full_profile['member_since'] );
 			}
 
 			$audience_groups = array();
@@ -166,10 +162,11 @@ class UserProfileRestController {
 				}
 			}
 
-			// Decode preferences JSON.
+			// Decode preferences JSON. UserService surfaces the raw blob
+			// in `$full_profile['preferences']` when the row carries one.
 			$preferences = array();
-			if ( ! empty( $profile['preferences'] ) ) {
-				$decoded = json_decode( $profile['preferences'], true );
+			if ( ! empty( $full_profile['preferences'] ) ) {
+				$decoded = json_decode( (string) $full_profile['preferences'], true );
 				if ( is_array( $decoded ) ) {
 					$preferences = $decoded;
 				}
@@ -178,20 +175,20 @@ class UserProfileRestController {
 			return rest_ensure_response(
 				array(
 					'user_id'         => $user_id,
-					'display_name'    => ! empty( $profile['display_name'] ) ? $profile['display_name'] : $user->display_name,
+					'display_name'    => (string) ( $full_profile['display_name'] ?? '' ),
 					'names'           => $names,
-					'email'           => $user->user_email,
+					'email'           => (string) ( $full_profile['email'] ?? '' ),
 					'emails'          => $emails,
 					'cpf_masked'      => ! empty( $cpfs_masked ) ? $cpfs_masked[0] : __( 'Not found', 'ffcertificate' ),
 					'cpfs_masked'     => $cpfs_masked,
 					'identifiers'     => $identifiers,
-					'phone'           => $profile['phone'] ?? '',
-					'department'      => $profile['department'] ?? '',
-					'organization'    => $profile['organization'] ?? '',
-					'notes'           => $profile['notes'] ?? '',
+					'phone'           => (string) ( $full_profile['phone'] ?? '' ),
+					'department'      => (string) ( $full_profile['department'] ?? '' ),
+					'organization'    => (string) ( $full_profile['organization'] ?? '' ),
+					'notes'           => (string) ( $full_profile['notes'] ?? '' ),
 					'preferences'     => $preferences,
 					'member_since'    => $member_since,
-					'roles'           => $user->roles,
+					'roles'           => $full_profile['roles'] ?? array(),
 					'audience_groups' => $audience_groups,
 				)
 			);

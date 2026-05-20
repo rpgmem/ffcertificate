@@ -80,6 +80,9 @@ class UserProfileRestControllerTest extends TestCase {
         $user_manager_mock->shouldReceive( 'get_user_names' )->andReturn( array( 'John Doe' ) )->byDefault();
         $user_manager_mock->shouldReceive( 'update_profile' )->andReturn( true )->byDefault();
         $user_manager_mock->shouldReceive( 'grant_audience_capabilities' )->byDefault();
+        // UserService::get_user_capabilities() (triggered indirectly via
+        // get_full_profile after the #322 wire-up) calls this static.
+        $user_manager_mock->shouldReceive( 'get_all_capabilities' )->andReturn( array() )->byDefault();
 
         $activity_log_mock = Mockery::mock( 'alias:\FreeFormCertificate\Core\ActivityLog' );
         $activity_log_mock->shouldReceive( 'log_profile_updated' )->byDefault();
@@ -227,6 +230,9 @@ class UserProfileRestControllerTest extends TestCase {
         Functions\when( 'get_current_user_id' )->justReturn( 5 );
         Functions\when( 'current_user_can' )->justReturn( false );
         Functions\when( 'get_user_by' )->justReturn( false );
+        // UserService::get_full_profile uses get_userdata internally —
+        // returning null short-circuits to the same "user not found" path.
+        Functions\when( 'get_userdata' )->justReturn( false );
 
         $ctrl    = new UserProfileRestController( 'ffc/v1' );
         $request = $this->make_request();
@@ -242,6 +248,7 @@ class UserProfileRestControllerTest extends TestCase {
 
         $user = $this->make_user( 5 );
         Functions\when( 'get_user_by' )->justReturn( $user );
+        Functions\when( 'get_userdata' )->justReturn( $user );
 
         // table_exists returns false so audience groups skipped
         $this->wpdb->shouldReceive( 'get_var' )->andReturn( null );
@@ -314,6 +321,10 @@ class UserProfileRestControllerTest extends TestCase {
 
         $user = $this->make_user( 5 );
         Functions\when( 'get_user_by' )->justReturn( $user );
+        // update_user_profile() re-invokes get_user_profile() to return
+        // the freshly-saved row; the inner call hits UserService which
+        // uses get_userdata.
+        Functions\when( 'get_userdata' )->justReturn( $user );
 
         // table_exists returns false
         $this->wpdb->shouldReceive( 'get_var' )->andReturn( null );

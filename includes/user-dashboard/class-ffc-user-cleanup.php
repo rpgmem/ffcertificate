@@ -46,6 +46,16 @@ class UserCleanup {
 	 * @return void
 	 */
 	public static function anonymize_user_data( int $user_id ): void {
+		// Issue #322 short-circuit: when the user has no FFC footprint
+		// at all (no submissions, no appointments, no audience memberships)
+		// every UPDATE / DELETE below would be a no-op. Skip the table
+		// scans entirely. UserService::user_has_ffc_data() does one
+		// COUNT per relevant table — far cheaper than scanning N tables
+		// with WHERE user_id = %d when there's nothing to update.
+		if ( ! \FreeFormCertificate\Services\UserService::user_has_ffc_data( $user_id ) ) {
+			return;
+		}
+
 		global $wpdb;
 
 		$anonymized = array();

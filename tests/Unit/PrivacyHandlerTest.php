@@ -86,6 +86,11 @@ class PrivacyHandlerTest extends TestCase {
             ->byDefault();
 
         Functions\when('get_userdata')->justReturn($user);
+        // UserService::get_user_capabilities() reaches user_can() once
+        // per capability key. Tests don't assert capability content —
+        // returning false keeps the resulting map structurally valid
+        // without exercising the capability iteration.
+        Functions\when('user_can')->justReturn(false);
     }
 
     /**

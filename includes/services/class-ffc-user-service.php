@@ -4,16 +4,16 @@
  *
  * Centralized aggregator for user data retrieval and operations: merges
  * WP core user data, the FFC `ffc_user_profiles` row, and the granted
- * capability map into a single view-model. Designed as a single point
- * of truth for callers that today still inline that aggregation
- * ad-hoc (`Api\UserDataRestController`, `Privacy\PrivacyHandler`,
- * `UserDashboard\UserCleanup`).
+ * capability map into a single view-model.
  *
- * Status (snapshot v6.6.1): the class is declared, exported via the
- * `Services` PSR-4 mapping, and fully tested in `UserServiceTest`, but
- * no production caller invokes it yet — the wire-up is tracked in
- * #322 so the API stays stable while the migration happens one
- * call-site at a time.
+ * Production consumers (post-#322 wire-up):
+ *   - `Api\UserProfileRestController::get_user_profile()` — sources the
+ *     `/me/profile` GET response via `get_full_profile()`.
+ *   - `Privacy\PrivacyHandler::export_profile()` — sources the LGPD
+ *     personal-data export via `export_personal_data()`.
+ *   - `UserDashboard\UserCleanup::anonymize_user_data()` — short-
+ *     circuits when `user_has_ffc_data()` returns false so users with
+ *     no FFC footprint skip the per-table UPDATE / DELETE scans.
  *
  * @package FreeFormCertificate\Services
  * @since 4.9.7
@@ -62,6 +62,19 @@ class UserService {
 			$profile['department']   = $ffc_profile['department'] ?? '';
 			$profile['organization'] = $ffc_profile['organization'] ?? '';
 			$profile['notes']        = $ffc_profile['notes'] ?? '';
+
+			// Display-name override from `ffc_user_profiles` takes
+			// precedence when non-empty (#322 — matches the merge
+			// previously inlined in `UserProfileRestController`).
+			if ( ! empty( $ffc_profile['display_name'] ) ) {
+				$profile['display_name'] = (string) $ffc_profile['display_name'];
+			}
+
+			// Preferences blob (raw — callers decode if they need JSON).
+			// Surfaced so consumers don't re-fetch the row just for this.
+			if ( array_key_exists( 'preferences', $ffc_profile ) ) {
+				$profile['preferences'] = $ffc_profile['preferences'];
+			}
 		}
 
 		// Capabilities.

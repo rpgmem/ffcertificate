@@ -40,6 +40,10 @@ class UserCleanupTest extends TestCase {
         // Utils alias mock: prevent real autoloading; we only need static stubs.
         $utilsMock = Mockery::mock('alias:\FreeFormCertificate\Core\Utils');
         $utilsMock->shouldReceive('debug_log')->byDefault();
+        // UserService::get_user_statistics() (reached via the #322
+        // short-circuit `user_has_ffc_data` guard at the top of
+        // anonymize_user_data) calls this for the certificate count.
+        $utilsMock->shouldReceive('get_submissions_table')->andReturn('wp_ffc_submissions')->byDefault();
 
         // DocumentFormatter::mask_email() (called by UserCleanup) calls is_email()
         // internally — provide a permissive stub.
@@ -87,7 +91,11 @@ class UserCleanupTest extends TestCase {
 
     public function test_anonymize_nullifies_submissions_user_id(): void {
         $this->wpdb->shouldReceive('query')->once()->andReturn(3);
-        $this->wpdb->shouldReceive('get_var')->andReturn(null); // no optional tables
+        // First get_var serves UserService::user_has_ffc_data's
+        // certificate-count check (#322 short-circuit guard) — return
+        // 1 so the cleanup proceeds. All subsequent get_var calls
+        // (SHOW TABLES LIKE for optional tables) return null.
+        $this->wpdb->shouldReceive('get_var')->andReturn('1', null);
 
         UserCleanup::anonymize_user_data(42);
 
@@ -111,9 +119,12 @@ class UserCleanupTest extends TestCase {
         // query: submissions=0, appointments=2, activity_log=0
         $this->wpdb->shouldReceive('query')->andReturn(0, 2, 0);
 
-        // table_exists: appointments yes, activity_log yes, rest no
+        // The first get_var slot now serves UserService::user_has_ffc_data
+        // (#322 short-circuit). Return '1' so the cleanup proceeds; the
+        // remaining slots cover the pre-existing SHOW TABLES checks.
         $this->wpdb->shouldReceive('get_var')
             ->andReturn(
+                '1',
                 'wp_ffc_self_scheduling_appointments',
                 'wp_ffc_activity_log',
                 null, null, null, null
@@ -127,15 +138,25 @@ class UserCleanupTest extends TestCase {
     public function test_anonymize_deletes_from_deletion_tables_when_they_exist(): void {
         $this->wpdb->shouldReceive('query')->andReturn(0);
 
-        // All tables exist
+        // get_var sequence (post-#322): UserService short-circuit guard
+        // first burns 5 slots inside get_user_statistics (1 cert COUNT,
+        // 2 × SHOW TABLES + 2 × COUNT for appointments / audience_members);
+        // then the anonymize_user_data cleanup itself does 6 more SHOW
+        // TABLES checks. 11 slots total, all stubbed to make every
+        // optional table look present so each DELETE fires.
         $this->wpdb->shouldReceive('get_var')
             ->andReturn(
-                'wp_ffc_self_scheduling_appointments',
-                'wp_ffc_activity_log',
-                'wp_ffc_audience_members',
-                'wp_ffc_audience_booking_users',
-                'wp_ffc_audience_schedule_permissions',
-                'wp_ffc_user_profiles'
+                '1',                                            // cert COUNT (>0 → has data → proceed)
+                'wp_ffc_self_scheduling_appointments',          // get_stats: SHOW TABLES appointments
+                '0',                                            // get_stats: appointment COUNT
+                'wp_ffc_audience_members',                      // get_stats: SHOW TABLES audience_members
+                '0',                                            // get_stats: audience_members COUNT
+                'wp_ffc_self_scheduling_appointments',          // cleanup: SHOW TABLES appointments
+                'wp_ffc_activity_log',                          // cleanup: SHOW TABLES activity_log
+                'wp_ffc_audience_members',                      // cleanup: SHOW TABLES audience_members
+                'wp_ffc_audience_booking_users',                // cleanup: SHOW TABLES audience_booking_users
+                'wp_ffc_audience_schedule_permissions',         // cleanup: SHOW TABLES audience_schedule_permissions
+                'wp_ffc_user_profiles'                          // cleanup: SHOW TABLES user_profiles
             );
 
         $this->wpdb->shouldReceive('delete')
@@ -160,9 +181,24 @@ class UserCleanupTest extends TestCase {
     // anonymize_user_data — logging
     // ==================================================================
 
+    public function test_anonymize_short_circuits_when_user_has_no_ffc_data(): void {
+        // All counts return 0 / null → UserService::user_has_ffc_data
+        // is false → anonymize_user_data exits before any UPDATE /
+        // DELETE / wpdb->query fires. Issue #322 short-circuit.
+        $this->wpdb->shouldReceive('get_var')->andReturn(null);
+        $this->wpdb->shouldNotReceive('query');
+        $this->wpdb->shouldNotReceive('delete');
+
+        UserCleanup::anonymize_user_data(42);
+
+        $this->addToAssertionCount(1);
+    }
+
     public function test_anonymize_logs_affected_tables(): void {
         $this->wpdb->shouldReceive('query')->andReturn(1); // submissions affected
-        $this->wpdb->shouldReceive('get_var')->andReturn(null); // no optional tables
+        // First slot: UserService short-circuit guard returns 1 so the
+        // cleanup actually runs; subsequent SHOW TABLES return null.
+        $this->wpdb->shouldReceive('get_var')->andReturn('1', null);
 
         // ActivityLog::log() is short-circuited in setUp via get_option returning
         // [], so we can't assert the call directly here. The method still runs

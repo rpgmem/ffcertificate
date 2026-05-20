@@ -120,41 +120,50 @@ class PrivacyHandler {
 			);
 		}
 
-		$export_items = array();
-		$data         = array();
+		// Source the merged WP + FFC profile snapshot through UserService
+		// (#322) so the LGPD export shares its data shape with the REST
+		// `/me/profile` endpoint instead of re-doing the merge inline.
+		// The WP privacy-export array shape (key/value pairs grouped
+		// under group_id/item_id) is built on top — it's a presentation
+		// concern that stays local to the handler.
+		$bundle  = \FreeFormCertificate\Services\UserService::export_personal_data( (int) $user->ID );
+		$profile = is_array( $bundle['profile'] ?? null ) ? $bundle['profile'] : array();
 
-		$data[] = array(
-			'name'  => __( 'Display Name', 'ffcertificate' ),
-			'value' => $user->display_name,
-		);
-		$data[] = array(
-			'name'  => __( 'Email', 'ffcertificate' ),
-			'value' => $user->user_email,
+		$data = array(
+			array(
+				'name'  => __( 'Display Name', 'ffcertificate' ),
+				'value' => (string) ( $profile['display_name'] ?? $user->display_name ),
+			),
+			array(
+				'name'  => __( 'Email', 'ffcertificate' ),
+				'value' => (string) ( $profile['email'] ?? $user->user_email ),
+			),
 		);
 
-		// Profile table data.
-		if ( class_exists( '\FreeFormCertificate\UserDashboard\UserManager' ) ) {
-			$profile = \FreeFormCertificate\UserDashboard\UserManager::get_profile( $user->ID );
-			if ( ! empty( $profile['phone'] ) ) {
-				$data[] = array(
-					'name'  => __( 'Phone', 'ffcertificate' ),
-					'value' => $profile['phone'],
-				);
-			}
-			if ( ! empty( $profile['department'] ) ) {
-				$data[] = array(
-					'name'  => __( 'Department', 'ffcertificate' ),
-					'value' => $profile['department'],
-				);
-			}
-			if ( ! empty( $profile['organization'] ) ) {
-				$data[] = array(
-					'name'  => __( 'Organization', 'ffcertificate' ),
-					'value' => $profile['organization'],
-				);
-			}
+		if ( ! empty( $profile['phone'] ) ) {
+			$data[] = array(
+				'name'  => __( 'Phone', 'ffcertificate' ),
+				'value' => (string) $profile['phone'],
+			);
+		}
+		if ( ! empty( $profile['department'] ) ) {
+			$data[] = array(
+				'name'  => __( 'Department', 'ffcertificate' ),
+				'value' => (string) $profile['department'],
+			);
+		}
+		if ( ! empty( $profile['organization'] ) ) {
+			$data[] = array(
+				'name'  => __( 'Organization', 'ffcertificate' ),
+				'value' => (string) $profile['organization'],
+			);
 		}
 
+		// `ffc_registration_date` post-meta is the canonical "first
+		// touch" timestamp written by `UserCreator`. Preferred over
+		// `wp_users.user_registered` because the latter is the WP
+		// account creation date — which can be earlier than the FFC
+		// onboarding when a pre-existing WP user gets promoted.
 		$reg_date = get_user_meta( $user->ID, 'ffc_registration_date', true );
 		if ( ! empty( $reg_date ) ) {
 			$data[] = array(
@@ -163,11 +172,13 @@ class PrivacyHandler {
 			);
 		}
 
-		$export_items[] = array(
-			'group_id'    => 'ffc-profile',
-			'group_label' => __( 'FFC Profile', 'ffcertificate' ),
-			'item_id'     => 'ffc-profile-' . $user->ID,
-			'data'        => $data,
+		$export_items = array(
+			array(
+				'group_id'    => 'ffc-profile',
+				'group_label' => __( 'FFC Profile', 'ffcertificate' ),
+				'item_id'     => 'ffc-profile-' . $user->ID,
+				'data'        => $data,
+			),
 		);
 
 		return array(
