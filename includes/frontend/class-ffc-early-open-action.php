@@ -41,6 +41,29 @@ if ( ! defined( 'ABSPATH' ) ) {
 class EarlyOpenAction {
 
 	/**
+	 * One-shot persistence. Stores the Unix timestamp of when the
+	 * early-open was applied. Presence = "already opened early once".
+	 *
+	 * Mirrors {@see ExtendEndAction::META_POSTPONED_AT} so the two
+	 * one-shot actions (advance start ↔ delay close) have symmetric
+	 * audit trails surfaced in the admin metabox (#350).
+	 *
+	 * @since 6.6.2
+	 */
+	public const META_OPENED_AT = '_ffc_csv_public_start_opened_at';
+
+	/**
+	 * Snapshot of the `time_start` value before the early-open rewrite
+	 * — kept for the audit trail surfaced in the admin metabox
+	 * ("Already started early once for this form (was %s)").
+	 *
+	 * Mirrors {@see ExtendEndAction::META_POSTPONED_FROM} (#350).
+	 *
+	 * @since 6.6.2
+	 */
+	public const META_OPENED_FROM = '_ffc_csv_public_start_opened_from';
+
+	/**
 	 * Inspect the form's current state + supplied hash and return
 	 * whether the early-open action can run.
 	 *
@@ -59,6 +82,7 @@ class EarlyOpenAction {
 	 *                                          tag for telemetry / UX
 	 *                                          (`unknown_form`, `csv_disabled`,
 	 *                                          `bad_hash`, `early_open_disabled`,
+	 *                                          `already_opened`,
 	 *                                          `datetime_disabled`, `no_start_date`,
 	 *                                          `not_today`, `already_started`,
 	 *                                          `already_ended`).
@@ -95,6 +119,18 @@ class EarlyOpenAction {
 			return array(
 				'ok'     => false,
 				'reason' => 'early_open_disabled',
+			);
+		}
+
+		// One-shot guard — matches the `already_postponed` branch in
+		// ExtendEndAction. Once the form has been opened early, the
+		// action refuses to fire again (#350); the admin can still
+		// edit `time_start` manually below if a further advance is
+		// truly needed.
+		if ( '' !== (string) get_post_meta( $form_id, self::META_OPENED_AT, true ) ) {
+			return array(
+				'ok'     => false,
+				'reason' => 'already_opened',
 			);
 		}
 
@@ -209,6 +245,14 @@ class EarlyOpenAction {
 		$new_time_start         = $now_time;
 
 		update_post_meta( $form_id, '_ffc_geofence_config', $geofence );
+
+		// Persist the snapshot so the admin metabox can render the
+		// "Already started early once (was %s)" status, and the
+		// `already_opened` eligibility guard above can short-circuit
+		// repeat triggers. Mirrors ExtendEndAction's META_POSTPONED_*
+		// pair (#350).
+		update_post_meta( $form_id, self::META_OPENED_AT, time() );
+		update_post_meta( $form_id, self::META_OPENED_FROM, $original_time_start );
 
 		// Invalidate the plugin's own object cache + page-cache plugins.
 		// The `ffc_form` CPT is registered with `'public' => false`, so
