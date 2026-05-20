@@ -26,6 +26,16 @@
             return;
         }
 
+        // 6.6.2 (Sprint 5) — capture the element that triggered the
+        // overlay so we can return focus when it closes (WCAG 2.4.3).
+        // Window scope is fine: only one overlay can exist at a time
+        // (the guard above enforces that), so it doubles as the slot.
+        try {
+            window.__ffcPdfOverlayReturnFocus = document.activeElement;
+        } catch (e) {
+            window.__ffcPdfOverlayReturnFocus = null;
+        }
+
         var overlay = $('<div id="ffc-pdf-overlay"></div>').css({
             'position': 'fixed',
             'top': '0',
@@ -38,6 +48,18 @@
             'align-items': 'center',
             'justify-content': 'center'
         });
+        // 6.6.2 (Sprint 5) — modal-dialog ARIA contract. role + modal
+        // + label/description so screen readers announce the dialog
+        // and stay scoped to it. aria-busy=true on the wrapper so
+        // assistive tech doesn't keep polling the rest of the page.
+        overlay.attr({
+            'role': 'dialog',
+            'aria-modal': 'true',
+            'aria-labelledby': 'ffc-pdf-overlay-title',
+            'aria-describedby': 'ffc-pdf-overlay-message',
+            'aria-busy': 'true',
+            'tabindex': '-1'
+        });
 
         var content = $('<div></div>').css({
             'background': 'white',
@@ -48,7 +70,7 @@
             'box-shadow': '0 4px 20px rgba(0,0,0,0.3)'
         });
 
-        var spinner = $('<div class="ffc-spinner"></div>').css({
+        var spinner = $('<div class="ffc-spinner"></div>').attr('aria-hidden', 'true').css({
             'border': '4px solid #f3f3f3',
             'border-top': '4px solid #2271b1',
             'border-radius': '50%',
@@ -66,7 +88,7 @@
             ? ffcReceiptData.strings.generatingPdf
             : 'Generating PDF...';
 
-        var title = $('<h3></h3>').css({
+        var title = $('<h3 id="ffc-pdf-overlay-title"></h3>').css({
             'margin': '0 0 10px 0',
             'color': '#333',
             'font-size': '18px',
@@ -81,7 +103,7 @@
             ? ffcReceiptData.strings.pleaseWait
             : 'Please wait, this may take a few seconds...';
 
-        var message = $('<p></p>').css({
+        var message = $('<p id="ffc-pdf-overlay-message" aria-live="polite"></p>').css({
             'margin': '0',
             'color': '#666',
             'font-size': '14px',
@@ -112,11 +134,76 @@
         if (!$('#ffc-spinner-animation').length) {
             $('<style id="ffc-spinner-animation">@keyframes ffc-spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }</style>').appendTo('head');
         }
+
+        // 6.6.2 (Sprint 5) — focus + keyboard trap.
+        //
+        // 1. Move focus into the dialog so screen readers announce it
+        //    and keyboard users land inside the modal. During the
+        //    generation phase there are no focusable controls, so we
+        //    focus the wrapper itself (tabindex=-1 makes that legal).
+        //    When renderOverlayError() repaints the content with
+        //    buttons, focus is moved to the first button there.
+        //
+        // 2. Trap Tab + Shift+Tab so keyboard users can't leave the
+        //    modal while it's open (WCAG 2.1.2). Includes Escape to
+        //    close, as long as the dialog has an interactive state
+        //    (error panel) — during the generation phase Escape is a
+        //    no-op because the work is still in flight.
+        try {
+            overlay[0].focus({ preventScroll: true });
+        } catch (e) {
+            // older browsers without the options object
+            overlay[0].focus();
+        }
+        overlay.on('keydown.ffcA11y', function (ev) {
+            if (ev.key === 'Tab') {
+                var focusables = overlay.find('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])').filter(':visible');
+                if (focusables.length === 0) {
+                    ev.preventDefault();
+                    return;
+                }
+                var first = focusables[0];
+                var last = focusables[focusables.length - 1];
+                if (ev.shiftKey && document.activeElement === first) {
+                    ev.preventDefault();
+                    last.focus();
+                } else if (!ev.shiftKey && document.activeElement === last) {
+                    ev.preventDefault();
+                    first.focus();
+                }
+            } else if (ev.key === 'Escape') {
+                // Escape only closes when interactive (error panel /
+                // success state); during in-flight generation we
+                // ignore it so the user can't accidentally kill a
+                // pending render.
+                if (overlay.find('.ffc-pdf-error-close, .ffc-pdf-fallback-btn, .ffc-pdf-desktop-fallback').length > 0) {
+                    hideOverlay();
+                }
+            }
+        });
     }
 
     function hideOverlay() {
-        $('#ffc-pdf-overlay').fadeOut(300, function() {
+        var $overlay = $('#ffc-pdf-overlay');
+        if (!$overlay.length) {
+            return;
+        }
+        $overlay.off('keydown.ffcA11y');
+        $overlay.fadeOut(300, function() {
             $(this).remove();
+            // 6.6.2 (Sprint 5) — restore focus to the element that
+            // opened the overlay (download button, success card, etc.).
+            // Falls back silently if the element is no longer in the
+            // DOM or if it can't take focus.
+            var prev = window.__ffcPdfOverlayReturnFocus;
+            window.__ffcPdfOverlayReturnFocus = null;
+            if (prev && typeof prev.focus === 'function' && document.contains(prev)) {
+                try {
+                    prev.focus();
+                } catch (e) {
+                    // swallow — focus restoration is best-effort
+                }
+            }
         });
     }
 
@@ -591,6 +678,10 @@
             }
             var $content = $overlay.children().first();
             $content.empty();
+            // 6.6.2 (Sprint 5) — switch the dialog out of "busy" state
+            // now that the failure is final and interactive controls
+            // are about to appear.
+            $overlay.attr('aria-busy', 'false');
 
             $('<div></div>').css({
                 'width': '60px',
@@ -666,6 +757,19 @@
                 .text(closeLabel)
                 .on('click', hideOverlay)
                 .appendTo($actions);
+
+            // 6.6.2 (Sprint 5) — move keyboard focus into the action
+            // row so screen readers + keyboard users land on Try-again
+            // (or Close, when Try-again is absent) instead of staying
+            // on the dialog wrapper.
+            var $firstAction = $actions.find('button').first();
+            if ($firstAction.length) {
+                try {
+                    $firstAction[0].focus({ preventScroll: true });
+                } catch (e) {
+                    $firstAction[0].focus();
+                }
+            }
         }
 
         /**
