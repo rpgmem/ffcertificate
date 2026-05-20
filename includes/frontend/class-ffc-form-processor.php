@@ -602,7 +602,9 @@ class FormProcessor {
 				$submission_data,
 				$form_id,
 				$real_submission_date,
-				$msg
+				$msg,
+				(int) $submission_id,
+				$this->submission_handler
 			),
 		);
 

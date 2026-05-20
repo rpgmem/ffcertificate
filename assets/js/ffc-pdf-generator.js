@@ -26,6 +26,16 @@
             return;
         }
 
+        // 6.6.2 (Sprint 5) — capture the element that triggered the
+        // overlay so we can return focus when it closes (WCAG 2.4.3).
+        // Window scope is fine: only one overlay can exist at a time
+        // (the guard above enforces that), so it doubles as the slot.
+        try {
+            window.__ffcPdfOverlayReturnFocus = document.activeElement;
+        } catch (e) {
+            window.__ffcPdfOverlayReturnFocus = null;
+        }
+
         var overlay = $('<div id="ffc-pdf-overlay"></div>').css({
             'position': 'fixed',
             'top': '0',
@@ -38,6 +48,18 @@
             'align-items': 'center',
             'justify-content': 'center'
         });
+        // 6.6.2 (Sprint 5) — modal-dialog ARIA contract. role + modal
+        // + label/description so screen readers announce the dialog
+        // and stay scoped to it. aria-busy=true on the wrapper so
+        // assistive tech doesn't keep polling the rest of the page.
+        overlay.attr({
+            'role': 'dialog',
+            'aria-modal': 'true',
+            'aria-labelledby': 'ffc-pdf-overlay-title',
+            'aria-describedby': 'ffc-pdf-overlay-message',
+            'aria-busy': 'true',
+            'tabindex': '-1'
+        });
 
         var content = $('<div></div>').css({
             'background': 'white',
@@ -48,7 +70,7 @@
             'box-shadow': '0 4px 20px rgba(0,0,0,0.3)'
         });
 
-        var spinner = $('<div class="ffc-spinner"></div>').css({
+        var spinner = $('<div class="ffc-spinner"></div>').attr('aria-hidden', 'true').css({
             'border': '4px solid #f3f3f3',
             'border-top': '4px solid #2271b1',
             'border-radius': '50%',
@@ -66,7 +88,7 @@
             ? ffcReceiptData.strings.generatingPdf
             : 'Generating PDF...';
 
-        var title = $('<h3></h3>').css({
+        var title = $('<h3 id="ffc-pdf-overlay-title"></h3>').css({
             'margin': '0 0 10px 0',
             'color': '#333',
             'font-size': '18px',
@@ -81,34 +103,123 @@
             ? ffcReceiptData.strings.pleaseWait
             : 'Please wait, this may take a few seconds...';
 
-        var message = $('<p></p>').css({
+        var message = $('<p id="ffc-pdf-overlay-message" aria-live="polite"></p>').css({
             'margin': '0',
             'color': '#666',
             'font-size': '14px',
             'line-height': '1.5'
         }).text(messageText);
 
-        content.append(spinner).append(title).append(message);
+        // 6.6.2 (Sprint 4) — "don't close this tab" hint during generation.
+        // The placeholder-tab branches (iOS / Samsung / WebView) already
+        // paint a similar warning *in the new tab*, but the desktop overlay
+        // never said it. Users on slow renders sometimes closed the tab or
+        // hit back, killing the in-flight generation; this paints a clear
+        // secondary line so the warning is universal.
+        var dontCloseText = (typeof ffc_ajax !== 'undefined' && ffc_ajax.strings && ffc_ajax.strings.pdfDontCloseTab)
+            ? ffc_ajax.strings.pdfDontCloseTab
+            : 'Please do not close this tab until the PDF appears.';
+        var dontClose = $('<p class="ffc-pdf-dont-close"></p>').css({
+            'margin': '12px 0 0',
+            'color': '#d63638',
+            'font-size': '13px',
+            'font-weight': '600',
+            'line-height': '1.4'
+        }).text(dontCloseText);
+
+        content.append(spinner).append(title).append(message).append(dontClose);
         overlay.append(content);
         $('body').append(overlay);
 
         if (!$('#ffc-spinner-animation').length) {
             $('<style id="ffc-spinner-animation">@keyframes ffc-spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }</style>').appendTo('head');
         }
+
+        // 6.6.2 (Sprint 5) — focus + keyboard trap.
+        //
+        // 1. Move focus into the dialog so screen readers announce it
+        //    and keyboard users land inside the modal. During the
+        //    generation phase there are no focusable controls, so we
+        //    focus the wrapper itself (tabindex=-1 makes that legal).
+        //    When renderOverlayError() repaints the content with
+        //    buttons, focus is moved to the first button there.
+        //
+        // 2. Trap Tab + Shift+Tab so keyboard users can't leave the
+        //    modal while it's open (WCAG 2.1.2). Includes Escape to
+        //    close, as long as the dialog has an interactive state
+        //    (error panel) — during the generation phase Escape is a
+        //    no-op because the work is still in flight.
+        try {
+            overlay[0].focus({ preventScroll: true });
+        } catch (e) {
+            // older browsers without the options object
+            overlay[0].focus();
+        }
+        overlay.on('keydown.ffcA11y', function (ev) {
+            if (ev.key === 'Tab') {
+                var focusables = overlay.find('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])').filter(':visible');
+                if (focusables.length === 0) {
+                    ev.preventDefault();
+                    return;
+                }
+                var first = focusables[0];
+                var last = focusables[focusables.length - 1];
+                if (ev.shiftKey && document.activeElement === first) {
+                    ev.preventDefault();
+                    last.focus();
+                } else if (!ev.shiftKey && document.activeElement === last) {
+                    ev.preventDefault();
+                    first.focus();
+                }
+            } else if (ev.key === 'Escape') {
+                // Escape only closes when interactive (error panel /
+                // success state); during in-flight generation we
+                // ignore it so the user can't accidentally kill a
+                // pending render.
+                if (overlay.find('.ffc-pdf-error-close, .ffc-pdf-fallback-btn, .ffc-pdf-desktop-fallback').length > 0) {
+                    hideOverlay();
+                }
+            }
+        });
     }
 
     function hideOverlay() {
-        $('#ffc-pdf-overlay').fadeOut(300, function() {
+        var $overlay = $('#ffc-pdf-overlay');
+        if (!$overlay.length) {
+            return;
+        }
+        $overlay.off('keydown.ffcA11y');
+        $overlay.fadeOut(300, function() {
             $(this).remove();
+            // 6.6.2 (Sprint 5) — restore focus to the element that
+            // opened the overlay (download button, success card, etc.).
+            // Falls back silently if the element is no longer in the
+            // DOM or if it can't take focus.
+            var prev = window.__ffcPdfOverlayReturnFocus;
+            window.__ffcPdfOverlayReturnFocus = null;
+            if (prev && typeof prev.focus === 'function' && document.contains(prev)) {
+                try {
+                    prev.focus();
+                } catch (e) {
+                    // swallow — focus restoration is best-effort
+                }
+            }
         });
     }
 
     function generateAndDownloadPDF(pdfData, filename) {
         if (!checkPDFLibraries()) {
-            var errorMsg = (typeof ffc_ajax !== 'undefined' && ffc_ajax.strings && ffc_ajax.strings.pdfLibrariesFailed)
-                ? ffc_ajax.strings.pdfLibrariesFailed
-                : 'PDF libraries failed to load. Please refresh the page.';
-            alert(errorMsg);
+            // This path runs BEFORE the overlay opens — the libraries
+            // are needed to build it. Open a minimal overlay so we can
+            // surface the actionable error UI, then point the user at
+            // a hard refresh (the only fix on the client side).
+            showOverlay();
+            var lfStrings = (typeof ffc_ajax !== 'undefined' && ffc_ajax.strings) ? ffc_ajax.strings : {};
+            var lfHeadline = lfStrings.pdfLibrariesFailed
+                || 'PDF libraries failed to load. Please refresh the page.';
+            var lfBody = lfStrings.pdfErrorLibrariesBody
+                || 'A required script blocked or timed out. Reload the page (Ctrl+R / Cmd+R) and try again. If the issue persists, try a different browser.';
+            renderOverlayError(lfHeadline, lfBody, null);
             return;
         }
 
@@ -296,12 +407,14 @@
 
                 if (!element) {
                     console.error('[FFC PDF] Wrapper not found');
-                    var errorMsg = (typeof ffc_ajax !== 'undefined' && ffc_ajax.strings && ffc_ajax.strings.pdfContainerNotFound)
-                        ? ffc_ajax.strings.pdfContainerNotFound
-                        : 'Error: PDF container not found';
-                    alert(errorMsg);
+                    var ngStrings = (typeof ffc_ajax !== 'undefined' && ffc_ajax.strings) ? ffc_ajax.strings : {};
+                    var ngHeadline = ngStrings.pdfErrorTitle || "Couldn't generate the certificate";
+                    var ngBody = ngStrings.pdfErrorGeneric
+                        || 'Something went wrong while building the PDF. Try again — if it keeps failing, use a different browser or contact the organizer.';
                     $tempContainer.remove();
-                    hideOverlay();
+                    renderOverlayError(ngHeadline, ngBody, function () {
+                        generateAndDownloadPDF(pdfData, filename);
+                    });
                     return;
                 }
 
@@ -376,12 +489,14 @@
 
                             if (!hasContent) {
                                 console.warn('[FFC PDF] Canvas is blank — check HTML/CSS.');
-                                var blankMsg = (typeof ffc_ajax !== 'undefined' && ffc_ajax.strings && ffc_ajax.strings.pdfBlankWarning)
-                                    ? ffc_ajax.strings.pdfBlankWarning
-                                    : 'Warning: the generated PDF appears to be blank. Please try again.';
-                                alert(blankMsg);
+                                var blStrings = (typeof ffc_ajax !== 'undefined' && ffc_ajax.strings) ? ffc_ajax.strings : {};
+                                var blHeadline = blStrings.pdfErrorTitle || "Couldn't generate the certificate";
+                                var blBody = blStrings.pdfErrorBlank
+                                    || 'The certificate came out blank — usually a slow-loading image. Try again. If it persists, try a different browser or contact the organizer.';
                                 $tempContainer.remove();
-                                hideOverlay();
+                                renderOverlayError(blHeadline, blBody, function () {
+                                    generateAndDownloadPDF(pdfData, filename);
+                                });
                                 return;
                             }
 
@@ -407,6 +522,18 @@
                             // pdf.save() correctly, so the legacy "open in
                             // new tab on any Safari" detection (popup-prone
                             // on macOS) is gone.
+                            //
+                            // 6.6.2 (Sprint 2) — we still call pdf.save()
+                            // on the desktop branch (it's what triggers the
+                            // browser's native download UI), but we also
+                            // hand the blob URL to the overlay so the user
+                            // gets a manual "didn't download?" link as
+                            // backup. Cases this catches:
+                            //   • Firefox strict-tracking or sandbox config
+                            //     swallowing the download silently;
+                            //   • download-blocking extensions;
+                            //   • per-site permission set to "don't ask,
+                            //     don't download" with no notification UI.
                             var blobUrlForFallback = null;
                             if (needsPreOpen) {
                                 var blobUrl = pdf.output('bloburl');
@@ -421,6 +548,7 @@
                                     }
                                 }
                             } else {
+                                blobUrlForFallback = pdf.output('bloburl');
                                 pdf.save(filename || 'certificate.pdf');
                             }
 
@@ -461,26 +589,54 @@
                             $('#ffc-pdf-overlay').find('h3').text(successMsg);
                             $('#ffc-pdf-overlay').find('p').hide();
                             $('#ffc-pdf-overlay').find('.ffc-spinner').hide();
-                            setTimeout(hideOverlay, 2000);
+
+                            // 6.6.2 (Sprint 2) — manual "didn't download?"
+                            // link for the desktop / Android Chrome branch.
+                            // The needsPreOpen branches already handle their
+                            // own fallback via the placeholder tab; only the
+                            // pdf.save() callers need this safety net.
+                            if (!needsPreOpen && blobUrlForFallback) {
+                                showDesktopFallbackLink(blobUrlForFallback, filename);
+                            }
+
+                            // Keep the overlay visible long enough for the
+                            // user to notice + click the fallback link if
+                            // the browser ate the download (2s was too short
+                            // on slow renders; 6s is the sweet spot per
+                            // Sprint 2 manual testing).
+                            setTimeout(hideOverlay, 6000);
                         } catch (error) {
                             console.error('[FFC PDF] Error:', error);
                             closePlaceholderTabIfAny();
-                            var errorMsg = (typeof ffc_ajax !== 'undefined' && ffc_ajax.strings && ffc_ajax.strings.errorGeneratingPdf)
-                                ? ffc_ajax.strings.errorGeneratingPdf
-                                : 'Error generating PDF';
-                            alert(errorMsg);
+                            // 6.6.2 (Sprint 3) — CORS-tainted canvas
+                            // surfaces here as a SecurityError on
+                            // getImageData. The pixel scanner can't run, the
+                            // try block aborts, and we land in this catch.
+                            // Give the user a specific message — the cause
+                            // is server-side (image without CORS headers),
+                            // not anything they can fix by retrying.
+                            var isCors = error && (error.name === 'SecurityError' || /tainted|cross-origin/i.test(String(error.message || '')));
+                            var strings = (typeof ffc_ajax !== 'undefined' && ffc_ajax.strings) ? ffc_ajax.strings : {};
+                            var headline = strings.pdfErrorTitle || "Couldn't generate the certificate";
+                            var body = isCors
+                                ? (strings.pdfErrorCors || 'A certificate image failed to load (cross-origin restriction). This is a configuration problem on the server, not on your device. Please contact the organizer with your authentication code.')
+                                : (strings.pdfErrorGeneric || 'Something went wrong while building the PDF. Try again — if it keeps failing, use a different browser or contact the organizer.');
                             $tempContainer.remove();
-                            hideOverlay();
+                            renderOverlayError(headline, body, isCors ? null : function () {
+                                generateAndDownloadPDF(pdfData, filename);
+                            });
                         }
                     }).catch(function(error) {
                         console.error('[FFC PDF] html2canvas error:', error);
                         closePlaceholderTabIfAny();
-                        var errorMsg = (typeof ffc_ajax !== 'undefined' && ffc_ajax.strings && ffc_ajax.strings.html2canvasFailed)
-                            ? ffc_ajax.strings.html2canvasFailed
-                            : 'Error: html2canvas failed';
-                        alert(errorMsg);
+                        var strings = (typeof ffc_ajax !== 'undefined' && ffc_ajax.strings) ? ffc_ajax.strings : {};
+                        var headline = strings.pdfErrorTitle || "Couldn't generate the certificate";
+                        var body = strings.pdfErrorHtml2canvas
+                            || "We couldn't render the certificate. This usually clears up on a retry; if not, try a different browser.";
                         $tempContainer.remove();
-                        hideOverlay();
+                        renderOverlayError(headline, body, function () {
+                            generateAndDownloadPDF(pdfData, filename);
+                        });
                     });
                 }, 300);
             }, remainingTime);
@@ -495,6 +651,124 @@
         function closePlaceholderTabIfAny() {
             if (pdfWindow && ! pdfWindow.closed) {
                 try { pdfWindow.close(); } catch (e) { /* swallow */ }
+            }
+        }
+
+        /**
+         * 6.6.2 (Sprint 3) — render an actionable error panel inside the
+         * overlay instead of firing a blocking alert(). Replaces the
+         * spinner with an error icon, paints a headline + actionable
+         * body copy, and wires a "Try again" button (when a retry
+         * callback is supplied) plus a "Close" button. Does NOT
+         * auto-dismiss — the user has to read it and choose.
+         *
+         * @param {string}   headline     Short, plain-language failure title.
+         * @param {string}   body         Actionable next-steps copy.
+         * @param {Function} [onRetry]    Optional retry callback. Omit for
+         *                                non-recoverable errors (lib load fail).
+         */
+        function renderOverlayError(headline, body, onRetry) {
+            var $overlay = $('#ffc-pdf-overlay');
+            if (!$overlay.length) {
+                // No overlay open — fall back to alert() so the message
+                // still reaches the user (early-init failures take this
+                // path).
+                alert(headline + '\n\n' + body);
+                return;
+            }
+            var $content = $overlay.children().first();
+            $content.empty();
+            // 6.6.2 (Sprint 5) — switch the dialog out of "busy" state
+            // now that the failure is final and interactive controls
+            // are about to appear.
+            $overlay.attr('aria-busy', 'false');
+
+            $('<div></div>').css({
+                'width': '60px',
+                'height': '60px',
+                'margin': '0 auto 16px',
+                'border-radius': '50%',
+                'background': '#d63638',
+                'color': '#fff',
+                'font-size': '36px',
+                'line-height': '60px',
+                'font-weight': '700'
+            }).attr('aria-hidden', 'true').text('!').appendTo($content);
+
+            $('<h3></h3>').css({
+                'margin': '0 0 10px 0',
+                'color': '#333',
+                'font-size': '18px',
+                'font-weight': '600'
+            }).text(headline).appendTo($content);
+
+            $('<p></p>').css({
+                'margin': '0 0 18px 0',
+                'color': '#555',
+                'font-size': '14px',
+                'line-height': '1.5'
+            }).text(body).appendTo($content);
+
+            var $actions = $('<div class="ffc-pdf-error-actions"></div>').css({
+                'display': 'flex',
+                'gap': '8px',
+                'justify-content': 'center',
+                'flex-wrap': 'wrap'
+            }).appendTo($content);
+
+            var retryLabel = (typeof ffc_ajax !== 'undefined' && ffc_ajax.strings && ffc_ajax.strings.pdfErrorRetry)
+                ? ffc_ajax.strings.pdfErrorRetry
+                : 'Try again';
+            var closeLabel = (typeof ffc_ajax !== 'undefined' && ffc_ajax.strings && ffc_ajax.strings.pdfErrorClose)
+                ? ffc_ajax.strings.pdfErrorClose
+                : 'Close';
+
+            if (typeof onRetry === 'function') {
+                $('<button type="button" class="ffc-pdf-error-retry"></button>')
+                    .css({
+                        'padding': '10px 18px',
+                        'background': '#0073aa',
+                        'color': '#fff',
+                        'border': '0',
+                        'border-radius': '4px',
+                        'font-weight': '600',
+                        'cursor': 'pointer'
+                    })
+                    .text(retryLabel)
+                    .on('click', function () {
+                        hideOverlay();
+                        // Defer so hideOverlay's fade-out finishes; otherwise
+                        // the retry's showOverlay() can race against it.
+                        setTimeout(onRetry, 350);
+                    })
+                    .appendTo($actions);
+            }
+
+            $('<button type="button" class="ffc-pdf-error-close"></button>')
+                .css({
+                    'padding': '10px 18px',
+                    'background': 'transparent',
+                    'color': '#0073aa',
+                    'border': '1px solid #0073aa',
+                    'border-radius': '4px',
+                    'font-weight': '600',
+                    'cursor': 'pointer'
+                })
+                .text(closeLabel)
+                .on('click', hideOverlay)
+                .appendTo($actions);
+
+            // 6.6.2 (Sprint 5) — move keyboard focus into the action
+            // row so screen readers + keyboard users land on Try-again
+            // (or Close, when Try-again is absent) instead of staying
+            // on the dialog wrapper.
+            var $firstAction = $actions.find('button').first();
+            if ($firstAction.length) {
+                try {
+                    $firstAction[0].focus({ preventScroll: true });
+                } catch (e) {
+                    $firstAction[0].focus();
+                }
             }
         }
 
@@ -546,6 +820,45 @@
             });
             $overlay.find('p').empty().text(hint);
             $overlay.find('p').after($cta);
+        }
+
+        /**
+         * 6.6.2 (Sprint 2) — secondary "didn't download?" link for the
+         * desktop / Android Chrome branch. Unlike showManualDownloadFallback,
+         * the primary download already fired via pdf.save(); this is a
+         * safety net for the silent-fail case (extensions, strict
+         * download policies). Renders a small inline link under the
+         * success message rather than replacing the headline, so happy-path
+         * users barely notice it.
+         *
+         * @param {string} blobUrl  Blob URL produced by jsPDF.
+         * @param {string} fname    Suggested filename.
+         */
+        function showDesktopFallbackLink(blobUrl, fname) {
+            var $overlay = $('#ffc-pdf-overlay');
+            if (!$overlay.length || !blobUrl) {
+                return;
+            }
+            var hintText = (typeof ffc_ajax !== 'undefined' && ffc_ajax.strings && ffc_ajax.strings.pdfDesktopFallbackHint)
+                ? ffc_ajax.strings.pdfDesktopFallbackHint
+                : "Didn't download? Click here to open the PDF in a new tab.";
+            var $link = $('<a>')
+                .attr('href', blobUrl)
+                .attr('target', '_blank')
+                .attr('rel', 'noopener')
+                .attr('download', fname || 'certificate.pdf')
+                .addClass('ffc-pdf-desktop-fallback')
+                .text(hintText)
+                .css({
+                    'display': 'inline-block',
+                    'margin-top': '16px',
+                    'font-size': '14px',
+                    'color': '#0073aa',
+                    'text-decoration': 'underline'
+                });
+            // Don't overwrite headline / spinner state — append below.
+            $overlay.find('.ffc-pdf-desktop-fallback').remove();
+            $overlay.find('h3').after($link);
         }
     }
 
