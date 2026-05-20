@@ -68,6 +68,11 @@ class Frontend {
 		// DynamicFragments registers AJAX hooks in its constructor; WP holds the reference.
 		new DynamicFragments();
 
+		// 6.6.4 follow-up (#361 Sprint 2) — PreflightTelemetry also
+		// registers its own AJAX hooks. WP holds the reference via
+		// the action callback array.
+		new PreflightTelemetry();
+
 		$this->register_hooks();
 		$this->public_csv_download->register_hooks();
 	}

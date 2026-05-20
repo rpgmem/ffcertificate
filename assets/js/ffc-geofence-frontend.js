@@ -207,6 +207,11 @@
         handleCookieBlocked: function(formWrapper) {
             this.debug('Cookies appear to be blocked');
 
+            // 6.6.4 follow-up (#361 Sprint 2) — telemetry ping so the
+            // admin can see the volume of cookie-walls in Activity Log
+            // + per-form metabox badges.
+            this.logPreflightBail(formWrapper, 'cookies');
+
             const platform = this.detectPlatformFamily();
             const title = this.getString('cookieBlockedTitle', 'Cookies blocked');
             const body = this.getString(
@@ -301,6 +306,46 @@
         },
 
         /**
+         * 6.6.4 follow-up (#361 Sprint 2) — fire-and-forget telemetry
+         * ping to the `ffc_log_preflight_bail` endpoint. Records an
+         * ActivityLog row server-side so admins see the volume of
+         * cookie / GPS walls in Activity Log + per-form metabox
+         * badges (Sprint 3).
+         *
+         * Best-effort: any failure (network, nonce stale, endpoint
+         * disabled) is swallowed. The user-facing banner is the
+         * primary feedback; telemetry is a secondary signal for
+         * admin visibility.
+         *
+         * Uses FFC.request (so a stale nonce auto-recovers via the
+         * #356 path); falls back to fetch() if FFC.request isn't
+         * loaded for some reason on the page.
+         *
+         * @param {jQuery} formWrapper Form wrapper element.
+         * @param {string} reason `cookies` | `gps_denied` | `gps_prompt`
+         */
+        logPreflightBail: function(formWrapper, reason) {
+            try {
+                const formIdAttr = formWrapper.attr('id') || '';
+                const formId = parseInt(formIdAttr.replace('ffc-form-', ''), 10);
+                if (! formId || isNaN(formId)) {
+                    return;
+                }
+                if (typeof window.FFC === 'object'
+                    && typeof window.FFC.request === 'function') {
+                    window.FFC.request('ffc_log_preflight_bail', {
+                        form_id: formId,
+                        reason: reason,
+                    }).catch(function () {
+                        // swallow
+                    });
+                }
+            } catch (e) {
+                // swallow — telemetry must never break the form flow
+            }
+        },
+
+        /**
          * 6.6.4 Sprint 3 — dispatch on the PermissionStatus returned by
          * navigator.permissions.query({name: 'geolocation'}). Wires an
          * onchange listener so the user can grant in Settings without
@@ -353,6 +398,10 @@
          */
         handleGpsDeniedBanner: function(formWrapper, config) {
             const self = this;
+
+            // 6.6.4 follow-up (#361 Sprint 2) — telemetry ping.
+            this.logPreflightBail(formWrapper, 'gps_denied');
+
             const platform = this.detectPlatformFamily();
             const title = this.getString('gpsDeniedTitle', 'Location blocked');
             const body = this.getString(
@@ -388,6 +437,13 @@
          */
         handleGpsPromptBanner: function(formWrapper, config) {
             const self = this;
+
+            // 6.6.4 follow-up (#361 Sprint 2) — telemetry ping. We log
+            // this even though it isn't a "block" per se; admins want
+            // to know how many users see the prompt explainer (signal
+            // of friction even if they proceed).
+            this.logPreflightBail(formWrapper, 'gps_prompt');
+
             const title = this.getString('gpsPromptTitle', 'We need your location');
             const body = this.getString(
                 'gpsPromptBody',
