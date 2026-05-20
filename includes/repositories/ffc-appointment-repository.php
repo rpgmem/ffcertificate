@@ -894,4 +894,23 @@ class AppointmentRepository extends AbstractRepository {
 		$row = $this->wpdb->get_row( $this->wpdb->prepare( $sql, $args ), ARRAY_A );
 		return is_array( $row ) ? $row : null;
 	}
+
+	/**
+	 * SQL fragment for the WP_User_Query orderby rewrite that sorts
+	 * users by "non-cancelled appointments they own". Returns a
+	 * self-contained SELECT subquery — the caller wraps it as
+	 * `LEFT JOIN (subquery) AS {alias} ON {alias}.user_id = {wp_users}.ID`.
+	 *
+	 * Table name is baked in here so the admin layer doesn't have to
+	 * `$wpdb->prefix . 'ffc_…'`. The output is intentionally a raw SQL
+	 * string because WP_User_Query's `query_from` extension hook only
+	 * accepts that — issue #343 group C.
+	 *
+	 * @since 6.6.2
+	 * @return string SQL subquery fragment (already including the
+	 *                surrounding parentheses).
+	 */
+	public function sql_user_appointment_count_subquery(): string {
+		return "(SELECT user_id, COUNT(*) AS cnt FROM {$this->table} WHERE user_id IS NOT NULL AND status != 'cancelled' GROUP BY user_id)";
+	}
 }

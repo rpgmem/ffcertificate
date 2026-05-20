@@ -753,6 +753,25 @@ class SubmissionRepository extends AbstractRepository {
 	}
 
 	/**
+	 * SQL fragment for the WP_User_Query orderby rewrite that sorts
+	 * users by "non-trash certificates issued to them". Returns a
+	 * self-contained SELECT subquery — the caller wraps it as
+	 * `LEFT JOIN (subquery) AS {alias} ON {alias}.user_id = {wp_users}.ID`.
+	 *
+	 * The table name is baked in here so the admin layer doesn't have to
+	 * reach for `Utils::get_submissions_table()`. The output is
+	 * intentionally a raw SQL string because WP_User_Query's
+	 * `query_from` extension hook only accepts that — issue #343 group C.
+	 *
+	 * @since 6.6.2
+	 * @return string SQL subquery fragment (already including the
+	 *                surrounding parentheses).
+	 */
+	public function sql_user_certificate_count_subquery(): string {
+		return "(SELECT user_id, COUNT(*) AS cnt FROM {$this->table} WHERE user_id IS NOT NULL AND status != 'trash' GROUP BY user_id)";
+	}
+
+	/**
 	 * Insert a submission row and drop the status-count cache.
 	 *
 	 * @param array<string, mixed> $data Data.
