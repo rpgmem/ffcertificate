@@ -14414,3 +14414,79 @@ msgstr "✅ Cache limpo com sucesso!"
 #: includes/admin/class-ffc-settings.php:281
 msgid "✅ Cache warmed! %d form(s) pre-loaded."
 msgstr "✅ Cache aquecido! %d formulário(s) pré-carregados."
+
+#: templates/submission-success.php
+msgid "Save this code — it lets you re-issue your certificate anytime."
+msgstr "Guarde este código — ele permite reemitir o certificado a qualquer momento."
+
+#: templates/submission-success.php
+msgid "Save this link to download again later:"
+msgstr "Guarde este link para baixar novamente depois:"
+
+#: templates/submission-success.php
+msgid "Copy authentication code"
+msgstr "Copiar código de autenticação"
+
+#: templates/submission-success.php
+msgid "Download PDF again"
+msgstr "Baixar PDF novamente"
+
+#: templates/submission-success.php
+msgid "Where to find your certificate:"
+msgstr "Onde encontrar seu certificado:"
+
+#: templates/submission-success.php
+msgid "Android: open the Downloads folder, or use the Files app and look for \"certificate.pdf\"."
+msgstr "Android: abra a pasta Downloads ou use o app Arquivos e procure por \"certificate.pdf\"."
+
+#: templates/submission-success.php
+msgid "iPhone / iPad: after the PDF opens, tap Share → \"Save to Files\" to keep it on your device."
+msgstr "iPhone / iPad: ao abrir o PDF, toque em Compartilhar → \"Salvar em Arquivos\" para guardar no seu dispositivo."
+
+#: templates/submission-success.php
+msgid "Desktop: check the Downloads folder or the download bar at the bottom of your browser."
+msgstr "Computador: verifique a pasta Downloads ou a barra de download no rodapé do navegador."
+
+#: includes/frontend/class-ffc-frontend.php
+msgid "Could not copy. Long-press the text to copy it manually."
+msgstr "Não foi possível copiar. Pressione e segure o texto para copiar manualmente."
+
+#: includes/frontend/class-ffc-frontend.php
+msgid "Didn't download? Click here to open the PDF in a new tab."
+msgstr "Não baixou? Clique aqui para abrir o PDF em uma nova aba."
+
+#: includes/frontend/class-ffc-frontend.php
+msgid "Couldn't generate the certificate"
+msgstr "Não foi possível gerar o certificado"
+
+#: includes/frontend/class-ffc-frontend.php
+msgid "Try again"
+msgstr "Tentar novamente"
+
+#: includes/frontend/class-ffc-frontend.php
+msgid "Something went wrong while building the PDF. Try again — if it keeps failing, use a different browser or contact the organizer."
+msgstr "Algo deu errado ao gerar o PDF. Tente novamente — se persistir, use outro navegador ou entre em contato com o organizador."
+
+#: includes/frontend/class-ffc-frontend.php
+msgid "The certificate came out blank — usually a slow-loading image. Try again. If it persists, try a different browser or contact the organizer."
+msgstr "O certificado saiu em branco — geralmente uma imagem que demora para carregar. Tente novamente. Se persistir, tente outro navegador ou entre em contato com o organizador."
+
+#: includes/frontend/class-ffc-frontend.php
+msgid "A certificate image failed to load (cross-origin restriction). This is a configuration problem on the server, not on your device. Please contact the organizer with your authentication code."
+msgstr "Uma imagem do certificado não pôde ser carregada (restrição cross-origin). Esse é um problema de configuração no servidor, não no seu dispositivo. Entre em contato com o organizador informando seu código de autenticação."
+
+#: includes/frontend/class-ffc-frontend.php
+msgid "We couldn't render the certificate. This usually clears up on a retry; if not, try a different browser."
+msgstr "Não conseguimos renderizar o certificado. Geralmente uma nova tentativa resolve; se não, tente outro navegador."
+
+#: includes/frontend/class-ffc-frontend.php
+msgid "A required script blocked or timed out. Reload the page (Ctrl+R / Cmd+R) and try again. If the issue persists, try a different browser."
+msgstr "Um script necessário foi bloqueado ou esgotou o tempo. Recarregue a página (Ctrl+R / Cmd+R) e tente novamente. Se o problema persistir, tente outro navegador."
+
+#: includes/frontend/class-ffc-frontend.php
+msgid "Please do not close this tab until the PDF appears."
+msgstr "Não feche esta aba até o PDF aparecer."
+
+#: includes/frontend/class-ffc-frontend.php
+msgid "You appear to be offline. Reconnect to the internet and try again."
+msgstr "Você parece estar offline. Conecte-se à internet e tente novamente."

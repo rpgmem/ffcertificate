@@ -97,6 +97,11 @@ class SuccessHtmlTest extends TestCase {
         $this->assertStringContainsString( 'ffc-success-auth-code', $html );
         $this->assertStringContainsString( 'data-ffc-copy=', $html );
         $this->assertStringContainsString( 'Save this code', $html );
+        // The auth-code value renders inside a <code class="ffc-success-code">.
+        // CSS pins `white-space: nowrap` on that selector so the code cannot
+        // split mid-string ("C-YK2K-RKFA-6EQC" wrapping into "...EQ" + "C"
+        // was the original bug). Test that the wrapper class is present.
+        $this->assertStringContainsString( 'ffc-success-code', $html );
     }
 
     public function test_success_html_omits_auth_code_block_when_missing(): void {
