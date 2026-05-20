@@ -516,6 +516,14 @@ class Frontend {
 				'formNotYetAvailable'       => __( 'This form is not yet available.', 'ffcertificate' ),
 				'formNoLongerAvailable'     => __( 'This form is no longer available.', 'ffcertificate' ),
 				'formOnlyDuringHours'       => __( 'This form is only available during specific hours.', 'ffcertificate' ),
+
+				// 6.6.4 Sprint 2 — cookie pre-flight banner.
+				'cookieBlockedTitle'        => __( 'Cookies blocked', 'ffcertificate' ),
+				'cookieBlockedBody'         => __( 'Cookies are blocked in this browser. Without cookies, the form submission may fail. Enable cookies for this site, or try a different browser.', 'ffcertificate' ),
+				'cookieBlockedHowIos'       => __( 'On iOS: Settings → Safari → turn OFF "Block All Cookies".', 'ffcertificate' ),
+				'cookieBlockedHowAndroid'   => __( 'On Android Chrome: Settings → Site Settings → Cookies → Allow.', 'ffcertificate' ),
+				'cookieBlockedHowDesktop'   => __( 'On desktop: open Settings → Privacy → Cookies and allow first-party cookies for this site.', 'ffcertificate' ),
+				'cookieTryAnyway'           => __( 'Try anyway', 'ffcertificate' ),
 			),
 		);
 

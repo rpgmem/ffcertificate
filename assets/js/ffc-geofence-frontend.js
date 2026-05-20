@@ -145,27 +145,31 @@
                 // DateTime validation passed, continue...
             }
 
-            // PRIORITY 2: Validate Geolocation (if enabled)
-            // Only validate if geo is enabled (not bypassed)
-            if (config.geo && config.geo.enabled) {
-                // Check if GPS validation is required
-                if (config.geo.gpsEnabled) {
-                    this.validateGeolocation(formWrapper, config.geo);
-                } else if (config.geo.ipEnabled) {
-                    // IP-only validation happens on backend, show form
-                    // (Backend already validated before sending this config)
-                    this.showForm(formWrapper);
-                    this.debug('IP-only validation (backend), showing form');
-                } else {
-                    // Geo enabled but neither GPS nor IP enabled - show form
-                    this.showForm(formWrapper);
-                    this.debug('No GPS/IP method enabled, showing form');
-                }
-            } else {
-                // No geolocation check needed, show form now
-                this.showForm(formWrapper);
-                this.debug('No geolocation validation, showing form');
+            // PRIORITY 2: Cookie sanity check (6.6.4 Sprint 2).
+            // Probes `document.cookie` write+read roundtrip to surface
+            // visitors with cookies fully blocked at the browser level.
+            // Cookies are required by:
+            //   - the WP session token that wp_verify_nonce reads on
+            //     submit (otherwise the auto-recover in #356 will also
+            //     fail since the cookie is what binds the fresh nonce),
+            //   - the per-visitor identity that gates ITP-affected
+            //     downloads in 6.6.2.
+            // Skipped on adminBypass (operators don't get the banner).
+            // Does NOT catch ITP partitioning that strips cookies later
+            // mid-session — that case is covered by the server-side
+            // refresh_nonce auto-recover (6.6.3 #356).
+            if (config.adminBypass !== true && ! this.checkCookieSupport()) {
+                this.handleCookieBlocked(formWrapper);
+                return; // Stop here, don't check geo
             }
+
+            // PRIORITY 3: Validate Geolocation (if enabled)
+            // Only validate if geo is enabled (not bypassed). The
+            // implementation is extracted into processGeoOrShow so the
+            // cookie-blocked "try anyway" path (Sprint 2) and the
+            // permission-denied "try anyway" path (Sprint 3) can re-enter
+            // it without duplicating the branch table.
+            this.processGeoOrShow(formWrapper, config);
         },
 
         /**
@@ -194,6 +198,157 @@
             if (phase === 'after')  return datetimeConfig.hideModeAfter  || 'message';
             if (phase === 'during') return datetimeConfig.hideModeDuring || 'message';
             return datetimeConfig.hideModeBefore || 'message';
+        },
+
+        /**
+         * 6.6.4 Sprint 2 — probe document.cookie to confirm the browser
+         * accepts first-party cookies on this origin. Returns true if
+         * the visitor can hold cookies, false if the probe didn't round-
+         * trip.
+         *
+         * Caveats:
+         *   - `navigator.cookieEnabled` is checked but doesn't catch
+         *     site-specific blocking; the actual write+read is what
+         *     proves it works for THIS request flow.
+         *   - Does NOT detect Safari ITP partitioning of cookies on
+         *     cross-context navigations (that case is handled
+         *     server-side via the 6.6.3 refresh_nonce auto-recover).
+         *   - Probe cookie is short-lived (10s max-age) so even if the
+         *     cleanup line below somehow fails, the cookie expires
+         *     itself.
+         *
+         * @returns {boolean} true if cookies appear to work
+         */
+        checkCookieSupport: function() {
+            try {
+                if (typeof navigator !== 'undefined' && navigator.cookieEnabled === false) {
+                    return false;
+                }
+                if (typeof document === 'undefined') {
+                    return false;
+                }
+                const probeName = 'ffc_cookie_probe';
+                const probeValue = '1';
+                document.cookie = probeName + '=' + probeValue
+                    + '; path=/; SameSite=Lax; max-age=10';
+                const present = document.cookie.split('; ').some(function (c) {
+                    return c.indexOf(probeName + '=' + probeValue) === 0;
+                });
+                // Clean up immediately on success path — don't litter the
+                // visitor's cookie jar with our probe.
+                document.cookie = probeName + '=; path=/; SameSite=Lax; max-age=0';
+                return present;
+            } catch (e) {
+                // Some sandboxed contexts throw on `document.cookie`
+                // assignment; treat as blocked.
+                return false;
+            }
+        },
+
+        /**
+         * 6.6.4 Sprint 2 — render the "cookies blocked" yellow warning
+         * banner with platform-aware instructions and a permissive
+         * "try anyway" CTA. Form stays in the DOM but is hidden
+         * behind the banner until the visitor either fixes the
+         * underlying setting (and reloads) or chooses to proceed
+         * anyway.
+         *
+         * @param {jQuery} formWrapper Form wrapper element.
+         */
+        handleCookieBlocked: function(formWrapper) {
+            this.debug('Cookies appear to be blocked');
+
+            const platform = this.detectPlatformFamily();
+            const title = this.getString('cookieBlockedTitle', 'Cookies blocked');
+            const body = this.getString(
+                'cookieBlockedBody',
+                'Cookies are blocked in this browser. Without cookies, the form submission may fail. Enable cookies for this site, or try a different browser.'
+            );
+            const instructions = this.getString(
+                platform === 'ios' ? 'cookieBlockedHowIos'
+                    : platform === 'android' ? 'cookieBlockedHowAndroid'
+                    : 'cookieBlockedHowDesktop',
+                ''
+            );
+            const tryAnyway = this.getString('cookieTryAnyway', 'Try anyway');
+
+            const $banner = $(
+                '<div class="ffc-preflight-banner ffc-preflight-cookies" role="alert" aria-live="assertive">'
+                + '<strong class="ffc-preflight-banner-title"></strong>'
+                + '<p class="ffc-preflight-banner-body"></p>'
+                + (instructions ? '<p class="ffc-preflight-banner-how"></p>' : '')
+                + '<button type="button" class="ffc-preflight-try-anyway"></button>'
+                + '</div>'
+            );
+            $banner.find('.ffc-preflight-banner-title').text(title);
+            $banner.find('.ffc-preflight-banner-body').text(body);
+            if (instructions) {
+                $banner.find('.ffc-preflight-banner-how').text(instructions);
+            }
+            $banner.find('.ffc-preflight-try-anyway').text(tryAnyway);
+
+            $banner.find('.ffc-preflight-try-anyway').on('click', () => {
+                $banner.remove();
+                // Continue pipeline as if the gate passed — equivalent
+                // to skipping to STEP 3 (geo). We re-enter processForm
+                // with a flag so we don't re-run the cookie probe.
+                const formId = formWrapper.attr('id').replace('ffc-form-', '');
+                const config = window.ffcGeofenceConfig && window.ffcGeofenceConfig[formId];
+                if (! config) {
+                    this.showForm(formWrapper);
+                    return;
+                }
+                this.processGeoOrShow(formWrapper, config);
+            });
+
+            formWrapper.find('.ffc-submission-form, .ffc-form').hide();
+            formWrapper.prepend($banner);
+        },
+
+        /**
+         * 6.6.4 Sprint 2 — extracted from processForm so the
+         * "try anyway" path on the cookie banner can re-enter just
+         * the geo step without re-running datetime + cookies.
+         *
+         * @param {jQuery} formWrapper Form wrapper element.
+         * @param {object} config Form geofence configuration.
+         */
+        processGeoOrShow: function(formWrapper, config) {
+            if (config.geo && config.geo.enabled) {
+                if (config.geo.gpsEnabled) {
+                    this.validateGeolocation(formWrapper, config.geo);
+                } else if (config.geo.ipEnabled) {
+                    this.showForm(formWrapper);
+                    this.debug('IP-only validation (backend), showing form');
+                } else {
+                    this.showForm(formWrapper);
+                    this.debug('No GPS/IP method enabled, showing form');
+                }
+            } else {
+                this.showForm(formWrapper);
+                this.debug('No geolocation validation, showing form');
+            }
+        },
+
+        /**
+         * 6.6.4 Sprint 2 — detect device family for platform-specific
+         * instructions in the cookies / GPS banners. Returns
+         * 'ios' | 'android' | 'desktop'. iPadOS reports "Macintosh" in
+         * the UA but exposes maxTouchPoints > 1; the same heuristic
+         * the PDF generator uses.
+         *
+         * @returns {'ios'|'android'|'desktop'}
+         */
+        detectPlatformFamily: function() {
+            const ua = (typeof navigator !== 'undefined' && navigator.userAgent) || '';
+            if (/iPad|iPhone|iPod/.test(ua)
+                || (/Macintosh/.test(ua) && navigator.maxTouchPoints > 1)) {
+                return 'ios';
+            }
+            if (/Android/i.test(ua)) {
+                return 'android';
+            }
+            return 'desktop';
         },
 
         /**
