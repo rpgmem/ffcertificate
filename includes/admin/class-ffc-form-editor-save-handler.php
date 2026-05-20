@@ -42,23 +42,21 @@ class FormEditorSaveHandler {
 
 		// Reset the public-operator one-shot guards.
 		//
-		// `ExtendEndAction` persists `_ffc_csv_public_end_postponed_at`
-		// (Unix timestamp) the first time an operator postpones the
-		// close, after which `is_eligible()` returns `already_postponed`
-		// and the frontend button disappears. An admin edit of the form
-		// is the natural cycle boundary — whatever the admin is now
-		// configuring supersedes the prior operator state, so we wipe
-		// the one-shot pair and let the operator postpone again within
-		// the new window.
+		// Both `ExtendEndAction` and `EarlyOpenAction` persist a pair
+		// of metas the first time their respective action fires:
+		// - `META_POSTPONED_AT` / `META_POSTPONED_FROM` (extend end)
+		// - `META_OPENED_AT`    / `META_OPENED_FROM`    (early open)
+		// — after which `is_eligible()` returns `already_postponed` /
+		// `already_opened` and the frontend button disappears.
 		//
-		// `EarlyOpenAction` does NOT have a persistent flag — its
-		// "one-shot" is structural (once `date_start` moves into the
-		// past, `is_eligible()` returns `already_started`). Pushing
-		// `date_start` back into the future via the metabox naturally
-		// re-enables the early-open button without needing a reset
-		// hook here.
+		// An admin edit of the form is the natural cycle boundary —
+		// whatever the admin is now configuring supersedes the prior
+		// operator state, so we wipe both pairs and let the operator
+		// postpone / advance again within the new window.
 		delete_post_meta( $post_id, \FreeFormCertificate\Frontend\ExtendEndAction::META_POSTPONED_AT );
 		delete_post_meta( $post_id, \FreeFormCertificate\Frontend\ExtendEndAction::META_POSTPONED_FROM );
+		delete_post_meta( $post_id, \FreeFormCertificate\Frontend\EarlyOpenAction::META_OPENED_AT );
+		delete_post_meta( $post_id, \FreeFormCertificate\Frontend\EarlyOpenAction::META_OPENED_FROM );
 
 		// 1. Save Form Fields.
         // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized, WordPress.Security.ValidatedSanitizedInput.MissingUnslash -- isset()/is_array() existence and type checks only.

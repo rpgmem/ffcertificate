@@ -441,6 +441,8 @@ class FormEditorPublicCsvDownloadMetabox {
 		$end_ts     = \FreeFormCertificate\Security\Geofence::get_form_end_timestamp( $post->ID );
 		$now        = time();
 		$enabled_ok = '1' === $enabled && '' !== $hash;
+		$opened_at  = (string) get_post_meta( $post->ID, \FreeFormCertificate\Frontend\EarlyOpenAction::META_OPENED_AT, true );
+		$opened_frm = (string) get_post_meta( $post->ID, \FreeFormCertificate\Frontend\EarlyOpenAction::META_OPENED_FROM, true );
 
 		// Status string mirrors the eligibility branches in EarlyOpenAction.
 		if ( ! $enabled_ok ) {
@@ -452,6 +454,13 @@ class FormEditorPublicCsvDownloadMetabox {
 		} elseif ( null === $start_ts ) {
 			$status_label = __( 'Set a start date in the Geolocation & Date/Time metabox to enable this action.', 'ffcertificate' );
 			$status_kind  = 'warning';
+		} elseif ( '' !== $opened_at ) {
+			$status_label = sprintf(
+				/* translators: %s: original time_start value (HH:MM). */
+				__( 'Already started early once for this form (was %s). Edit time_start manually below if you need to advance further.', 'ffcertificate' ),
+				'' !== $opened_frm ? $opened_frm : '—'
+			);
+			$status_kind = 'info';
 		} elseif ( null !== $end_ts && $end_ts <= $now ) {
 			$status_label = __( 'This form has already ended — early-start no longer applies.', 'ffcertificate' );
 			$status_kind  = 'info';

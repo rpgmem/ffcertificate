@@ -303,4 +303,53 @@ class EarlyOpenActionTest extends TestCase {
         // Original geofence is untouched.
         $this->assertArrayNotHasKey( 'date_start', $this->meta_store[1]['_ffc_geofence_config'] );
     }
+
+    // ------------------------------------------------------------------
+    // META_OPENED_AT / META_OPENED_FROM snapshot — issue #350
+    // ------------------------------------------------------------------
+
+    public function test_execute_persists_opened_at_and_opened_from_metas(): void {
+        $this->configure_eligible_form( 1, 'h' );
+        $this->stub_formcache();
+
+        $r = EarlyOpenAction::execute( 1, 'h' );
+
+        $this->assertTrue( $r['ok'] );
+        // Both metas should now be set on the form row.
+        $this->assertArrayHasKey( EarlyOpenAction::META_OPENED_AT, $this->meta_store[1] );
+        $this->assertArrayHasKey( EarlyOpenAction::META_OPENED_FROM, $this->meta_store[1] );
+        $this->assertGreaterThan( 0, (int) $this->meta_store[1][ EarlyOpenAction::META_OPENED_AT ] );
+        // META_OPENED_FROM is the original `time_start` before the flip.
+        $this->assertSame( '23:00', $this->meta_store[1][ EarlyOpenAction::META_OPENED_FROM ] );
+    }
+
+    public function test_is_eligible_returns_already_opened_when_meta_set(): void {
+        $this->configure_eligible_form( 1, 'h' );
+        // Simulate a prior run by setting the META_OPENED_AT meta.
+        $this->meta_store[1][ EarlyOpenAction::META_OPENED_AT ] = time();
+
+        $r = EarlyOpenAction::is_eligible( 1, 'h' );
+
+        $this->assertFalse( $r['ok'] );
+        $this->assertSame( 'already_opened', $r['reason'] );
+    }
+
+    public function test_execute_short_circuits_when_already_opened(): void {
+        // Both opens-in-a-row should be rejected by the new guard —
+        // first one fires normally, second one returns `already_opened`
+        // without touching `time_start` again.
+        $this->configure_eligible_form( 1, 'h' );
+        $this->stub_formcache();
+
+        $first  = EarlyOpenAction::execute( 1, 'h' );
+        $this->assertTrue( $first['ok'] );
+
+        $second_time_start_before = $this->meta_store[1]['_ffc_geofence_config']['time_start'];
+        $second                   = EarlyOpenAction::execute( 1, 'h' );
+
+        $this->assertFalse( $second['ok'] );
+        $this->assertSame( 'already_opened', $second['reason'] );
+        // time_start untouched on the second call.
+        $this->assertSame( $second_time_start_before, $this->meta_store[1]['_ffc_geofence_config']['time_start'] );
+    }
 }
