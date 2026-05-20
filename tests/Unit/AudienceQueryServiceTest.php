@@ -62,4 +62,50 @@ class AudienceQueryServiceTest extends TestCase {
 		$this->assertSame( 0, AudienceQueryService::count_user_self_join_memberships( 0 ) );
 		$this->assertSame( 0, AudienceQueryService::count_user_self_join_memberships( -1 ) );
 	}
+
+	// ------------------------------------------------------------------
+	// find_user_joinable_audiences()
+	// ------------------------------------------------------------------
+
+	public function test_find_user_joinable_audiences_returns_normalized_rows(): void {
+		$this->wpdb->shouldReceive( 'get_results' )->once()->andReturn(
+			array(
+				array(
+					'id'        => '5',
+					'name'      => 'Pais',
+					'color'     => '#fff',
+					'parent_id' => null,
+					'is_member' => '0',
+				),
+				array(
+					'id'        => '7',
+					'name'      => 'Filho A',
+					'color'     => '#aaa',
+					'parent_id' => '5',
+					'is_member' => '1',
+				),
+			)
+		);
+
+		$out = AudienceQueryService::find_user_joinable_audiences( 42 );
+
+		$this->assertCount( 2, $out );
+		$this->assertSame( 5, $out[0]['id'] );
+		$this->assertNull( $out[0]['parent_id'] );
+		$this->assertFalse( $out[0]['is_member'] );
+		$this->assertSame( 5, $out[1]['parent_id'] );
+		$this->assertTrue( $out[1]['is_member'] );
+	}
+
+	public function test_find_user_joinable_audiences_returns_empty_when_no_rows(): void {
+		$this->wpdb->shouldReceive( 'get_results' )->once()->andReturn( array() );
+
+		$this->assertSame( array(), AudienceQueryService::find_user_joinable_audiences( 42 ) );
+	}
+
+	public function test_find_user_joinable_audiences_short_circuits_on_invalid_user(): void {
+		$this->wpdb->shouldNotReceive( 'get_results' );
+
+		$this->assertSame( array(), AudienceQueryService::find_user_joinable_audiences( 0 ) );
+	}
 }

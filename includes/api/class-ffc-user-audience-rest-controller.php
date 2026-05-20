@@ -295,7 +295,6 @@ class UserAudienceRestController {
 	 */
 	public function get_joinable_groups( $request ) {
 		try {
-			global $wpdb;
 			$ctx     = $this->resolve_user_context( $request );
 			$user_id = $ctx['user_id'];
 
@@ -303,10 +302,13 @@ class UserAudienceRestController {
 				return new \WP_Error( 'not_logged_in', __( 'You must be logged in', 'ffcertificate' ), array( 'status' => 401 ) );
 			}
 
+			global $wpdb;
 			$audiences_table = $wpdb->prefix . 'ffc_audiences';
-			$members_table   = $wpdb->prefix . 'ffc_audience_members';
-
-			// Check tables and columns exist.
+			// Schema guard for fresh / partially-upgraded installs — kept
+			// in the controller (service trusts the schema). Service
+			// degrades to `[]` gracefully if the column is missing anyway,
+			// but the early-return here also short-circuits the response
+			// assembly below.
 			if ( ! self::table_exists( $audiences_table ) || ! self::column_exists( $audiences_table, 'allow_self_join' ) ) {
 				return rest_ensure_response(
 					array(
@@ -317,22 +319,7 @@ class UserAudienceRestController {
 				);
 			}
 
-			// Fetch all joinable audiences at once (with membership status).
-            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-			$all = $wpdb->get_results(
-				$wpdb->prepare(
-					"SELECT a.id, a.name, a.color, a.parent_id,
-                            CASE WHEN m.id IS NOT NULL THEN 1 ELSE 0 END AS is_member
-                     FROM %i a
-                     LEFT JOIN %i m ON m.audience_id = a.id AND m.user_id = %d
-                     WHERE a.allow_self_join = 1 AND a.status = 'active'
-                     ORDER BY a.name ASC",
-					$audiences_table,
-					$members_table,
-					$user_id
-				),
-				ARRAY_A
-			);
+			$all = \FreeFormCertificate\Audience\AudienceQueryService::find_user_joinable_audiences( $user_id );
 
 			if ( empty( $all ) ) {
 				return rest_ensure_response(
@@ -344,30 +331,29 @@ class UserAudienceRestController {
 				);
 			}
 
-			// Build tree in PHP.
-			$by_id        = array();
-			$joined_count = 0;
-			foreach ( $all as &$row ) {
-				$row['id']           = (int) $row['id'];
-				$row['parent_id']    = $row['parent_id'] ? (int) $row['parent_id'] : null;
-				$row['is_member']    = (bool) (int) $row['is_member'];
+			// Build tree in PHP (presentation concern — stays in the
+			// controller). The service hands us a flat list with parent_id
+			// + is_member already resolved.
+			$by_id = array();
+			foreach ( $all as $row ) {
 				$row['children']     = array();
-				$by_id[ $row['id'] ] = &$row;
+				$by_id[ $row['id'] ] = $row;
 			}
-			unset( $row );
 
 			$roots = array();
-			foreach ( $by_id as &$item ) {
-				if ( $item['parent_id'] && isset( $by_id[ $item['parent_id'] ] ) ) {
-					$by_id[ $item['parent_id'] ]['children'][] = &$item;
-				} else {
-					$roots[] = &$item;
+			foreach ( $by_id as $id => $item ) {
+				if ( null !== $item['parent_id'] && isset( $by_id[ $item['parent_id'] ] ) ) {
+					$by_id[ $item['parent_id'] ]['children'][] = &$by_id[ $id ];
 				}
 			}
-			unset( $item );
+			foreach ( $by_id as $id => $item ) {
+				if ( null === $item['parent_id'] || ! isset( $by_id[ $item['parent_id'] ] ) ) {
+					$roots[] = &$by_id[ $id ];
+				}
+			}
 
-			// Count joined leaf audiences and strip parent_id from output.
-			$result = array();
+			$joined_count = 0;
+			$result       = array();
 			foreach ( $roots as $root ) {
 				$node = $this->build_joinable_node( $root, $joined_count );
 				if ( $node ) {

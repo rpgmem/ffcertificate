@@ -76,4 +76,62 @@ final class AudienceQueryService {
 		);
 		return null === $count ? 0 : (int) $count;
 	}
+
+	/**
+	 * List every self-joinable, active audience with a per-row
+	 * `is_member` boolean flag indicating whether the supplied user
+	 * already belongs. Returned flat (no parent-child nesting) — the
+	 * REST controller assembles the tree because that's a presentation
+	 * concern.
+	 *
+	 * Each row carries: `id` (int), `name` (string), `color` (string),
+	 * `parent_id` (?int — null for root audiences), `is_member` (bool).
+	 *
+	 * Issue #343 group B.
+	 *
+	 * @since 6.6.2
+	 * @param int $user_id WordPress user ID.
+	 * @return list<array{id: int, name: string, color: string, parent_id: ?int, is_member: bool}>
+	 */
+	public static function find_user_joinable_audiences( int $user_id ): array {
+		if ( $user_id <= 0 ) {
+			return array();
+		}
+
+		global $wpdb;
+		$audiences_table = $wpdb->prefix . 'ffc_audiences';
+		$members_table   = $wpdb->prefix . 'ffc_audience_members';
+
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- LEFT JOIN per-user; bounded by active+joinable audiences (small set).
+		$rows = $wpdb->get_results(
+			$wpdb->prepare(
+				"SELECT a.id, a.name, a.color, a.parent_id,
+					CASE WHEN m.id IS NOT NULL THEN 1 ELSE 0 END AS is_member
+				FROM %i a
+				LEFT JOIN %i m ON m.audience_id = a.id AND m.user_id = %d
+				WHERE a.allow_self_join = 1 AND a.status = 'active'
+				ORDER BY a.name ASC",
+				$audiences_table,
+				$members_table,
+				$user_id
+			),
+			ARRAY_A
+		);
+
+		if ( ! is_array( $rows ) ) {
+			return array();
+		}
+
+		$out = array();
+		foreach ( $rows as $row ) {
+			$out[] = array(
+				'id'        => (int) ( $row['id'] ?? 0 ),
+				'name'      => (string) ( $row['name'] ?? '' ),
+				'color'     => (string) ( $row['color'] ?? '' ),
+				'parent_id' => empty( $row['parent_id'] ) ? null : (int) $row['parent_id'],
+				'is_member' => 1 === (int) ( $row['is_member'] ?? 0 ),
+			);
+		}
+		return $out;
+	}
 }
