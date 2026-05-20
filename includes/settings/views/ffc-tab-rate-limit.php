@@ -225,7 +225,11 @@ $ffcertificate_stats = \FreeFormCertificate\Security\RateLimiter::get_stats();
 		'calendar_detail' => __( 'Calendar — Detail (GET /calendars/{id})', 'ffcertificate' ),
 	);
 	foreach ( $ffc_read_endpoints as $ffc_ep_key => $ffc_ep_label ) :
-		$ffc_ep = $ffcertificate_s['read']['endpoints'][ $ffc_ep_key ] ?? array( 'enabled' => false, 'max_per_minute' => 0, 'max_per_hour' => 0 );
+		$ffc_ep = $ffcertificate_s['read']['endpoints'][ $ffc_ep_key ] ?? array(
+			'enabled'        => false,
+			'max_per_minute' => 0,
+			'max_per_hour'   => 0,
+		);
 		?>
 		<h3 style="margin-top:1.5em;"><?php echo esc_html( $ffc_ep_label ); ?></h3>
 		<table class="form-table" role="presentation"><tbody>
