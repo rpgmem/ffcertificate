@@ -30,6 +30,20 @@
 
             this.debug('FFC Geofence initialized', window.ffcGeofenceConfig);
 
+            // 6.6.4 — runtime diagnostic log for support triage.
+            // Fires once at module load, BEFORE any per-form gate runs,
+            // so we always have the breadcrumb even when datetime/geo
+            // gates block the form. No UI; pure observability.
+            //
+            // Captures:
+            //   - Service worker registrations (rare in production but
+            //     can intercept admin-ajax and break the nonce flow);
+            //   - Clipboard permission state on Chromium (Copy buttons
+            //     on the success card depend on it; iOS Safari doesn't
+            //     surface the state but the Permissions.query just
+            //     rejects silently there).
+            this.logDiagnostics();
+
             // Process each form (skip non-numeric keys like '_global')
             Object.keys(window.ffcGeofenceConfig).forEach(formId => {
                 // Only process numeric form IDs (skip keys starting with '_')
@@ -37,6 +51,51 @@
                     this.processForm(formId, window.ffcGeofenceConfig[formId]);
                 }
             });
+        },
+
+        /**
+         * 6.6.4 — emit one console.info line per detected runtime
+         * signal. Wraps every API touch in try/catch + Promise.catch
+         * so an old browser missing navigator.serviceWorker or
+         * navigator.permissions never throws.
+         *
+         * Intentionally console.info (not .log) so support staff can
+         * filter the console by level when triaging.
+         */
+        logDiagnostics: function() {
+            // Service workers — typically empty array; only populated
+            // on sites where the host installed a PWA shell.
+            try {
+                if (navigator.serviceWorker && typeof navigator.serviceWorker.getRegistrations === 'function') {
+                    navigator.serviceWorker.getRegistrations().then(function (regs) {
+                        var scopes = regs.map(function (r) { return r.scope; });
+                        console.info('[FFC Diagnostics] Service workers:', scopes.length, scopes);
+                    }).catch(function () {
+                        // Some browsers (legacy iOS Safari) reject the
+                        // promise outright; we just don't log.
+                    });
+                } else {
+                    console.info('[FFC Diagnostics] Service workers: API not available');
+                }
+            } catch (e) {
+                // Swallow — diagnostics must never break the form flow.
+            }
+
+            // Clipboard write permission — Chromium surfaces it,
+            // iOS Safari throws TypeError, Firefox returns 'prompt'.
+            try {
+                if (navigator.permissions && typeof navigator.permissions.query === 'function') {
+                    navigator.permissions.query({ name: 'clipboard-write' }).then(function (status) {
+                        console.info('[FFC Diagnostics] Clipboard write permission:', status.state);
+                    }).catch(function () {
+                        console.info('[FFC Diagnostics] Clipboard write permission: not queryable');
+                    });
+                } else {
+                    console.info('[FFC Diagnostics] Permissions API: not available');
+                }
+            } catch (e) {
+                // Swallow.
+            }
         },
 
         /**
