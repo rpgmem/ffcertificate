@@ -25,43 +25,50 @@ $ffc_auth_code  = isset( $auth_code ) ? (string) $auth_code : '';
 <div class="ffc-success-response" role="status" aria-live="polite">
 	<div class="ffc-success-icon" aria-hidden="true">✓</div>
 	<h3><?php echo esc_html( $success_message ); ?></h3>
+
 	<div class="ffc-success-details">
-		<p>
-			<strong><?php esc_html_e( 'Form:', 'ffcertificate' ); ?></strong>
-			<?php echo esc_html( $form_title ); ?>
-		</p>
-		<p>
-			<strong><?php esc_html_e( 'Date:', 'ffcertificate' ); ?></strong>
-			<?php echo esc_html( $date_formatted ); ?>
-		</p>
+		<div class="ffc-success-row">
+			<span class="ffc-success-row-label"><?php esc_html_e( 'Form:', 'ffcertificate' ); ?></span>
+			<span class="ffc-success-row-value"><?php echo esc_html( $form_title ); ?></span>
+		</div>
+		<div class="ffc-success-row">
+			<span class="ffc-success-row-label"><?php esc_html_e( 'Date:', 'ffcertificate' ); ?></span>
+			<span class="ffc-success-row-value"><?php echo esc_html( $date_formatted ); ?></span>
+		</div>
+
 		<?php if ( ! empty( $ffc_auth_code ) ) : ?>
-			<p class="ffc-success-auth-code">
-				<strong><?php esc_html_e( 'Authentication Code:', 'ffcertificate' ); ?></strong>
-				<code><?php echo esc_html( $ffc_auth_code ); ?></code>
-				<button type="button"
-					class="ffc-copy-btn"
-					data-ffc-copy="<?php echo esc_attr( $ffc_auth_code ); ?>"
-					aria-label="<?php esc_attr_e( 'Copy authentication code', 'ffcertificate' ); ?>">
-					<?php esc_html_e( 'Copy', 'ffcertificate' ); ?>
-				</button>
-			</p>
-			<p class="ffc-success-auth-hint">
-				<?php esc_html_e( 'Save this code — it lets you re-issue your certificate anytime.', 'ffcertificate' ); ?>
-			</p>
+			<div class="ffc-success-row ffc-success-row-block ffc-success-auth-code">
+				<span class="ffc-success-row-label"><?php esc_html_e( 'Authentication Code:', 'ffcertificate' ); ?></span>
+				<div class="ffc-success-row-value">
+					<code class="ffc-success-code"><?php echo esc_html( $ffc_auth_code ); ?></code>
+					<button type="button"
+						class="ffc-copy-btn"
+						data-ffc-copy="<?php echo esc_attr( $ffc_auth_code ); ?>"
+						aria-label="<?php esc_attr_e( 'Copy authentication code', 'ffcertificate' ); ?>">
+						<?php esc_html_e( 'Copy', 'ffcertificate' ); ?>
+					</button>
+				</div>
+				<p class="ffc-success-row-hint">
+					<?php esc_html_e( 'Save this code — it lets you re-issue your certificate anytime.', 'ffcertificate' ); ?>
+				</p>
+			</div>
 		<?php endif; ?>
+
 		<?php if ( ! empty( $ffc_magic_link ) ) : ?>
-			<p class="ffc-success-magic-link">
-				<strong><?php esc_html_e( 'Save this link to download again later:', 'ffcertificate' ); ?></strong>
-				<a href="<?php echo esc_url( $ffc_magic_link ); ?>" target="_blank" rel="noopener" class="ffc-magic-link-url">
-					<?php echo esc_html( $ffc_magic_link ); ?>
-				</a>
-				<button type="button"
-					class="ffc-copy-btn"
-					data-ffc-copy="<?php echo esc_attr( $ffc_magic_link ); ?>"
-					aria-label="<?php esc_attr_e( 'Copy link', 'ffcertificate' ); ?>">
-					<?php esc_html_e( 'Copy', 'ffcertificate' ); ?>
-				</button>
-			</p>
+			<div class="ffc-success-row ffc-success-row-block ffc-success-magic-link">
+				<span class="ffc-success-row-label"><?php esc_html_e( 'Save this link to download again later:', 'ffcertificate' ); ?></span>
+				<div class="ffc-success-row-value">
+					<a href="<?php echo esc_url( $ffc_magic_link ); ?>" target="_blank" rel="noopener" class="ffc-magic-link-url">
+						<?php echo esc_html( $ffc_magic_link ); ?>
+					</a>
+					<button type="button"
+						class="ffc-copy-btn"
+						data-ffc-copy="<?php echo esc_attr( $ffc_magic_link ); ?>"
+						aria-label="<?php esc_attr_e( 'Copy link', 'ffcertificate' ); ?>">
+						<?php esc_html_e( 'Copy', 'ffcertificate' ); ?>
+					</button>
+				</div>
+			</div>
 		<?php endif; ?>
 	</div>
 
