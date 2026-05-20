@@ -278,6 +278,9 @@ class Frontend {
 						'copy'                  => __( 'Copy', 'ffcertificate' ),
 						'copied'                => __( 'Copied!', 'ffcertificate' ),
 						'copyFailed'            => __( 'Could not copy. Long-press the text to copy it manually.', 'ffcertificate' ),
+
+						// 6.6.2 (Sprint 2) — desktop fallback when pdf.save() is silently blocked.
+						'pdfDesktopFallbackHint' => __( "Didn't download? Click here to open the PDF in a new tab.", 'ffcertificate' ),
 					),
 				)
 			);

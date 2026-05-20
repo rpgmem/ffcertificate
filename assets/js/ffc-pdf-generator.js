@@ -407,6 +407,18 @@
                             // pdf.save() correctly, so the legacy "open in
                             // new tab on any Safari" detection (popup-prone
                             // on macOS) is gone.
+                            //
+                            // 6.6.2 (Sprint 2) — we still call pdf.save()
+                            // on the desktop branch (it's what triggers the
+                            // browser's native download UI), but we also
+                            // hand the blob URL to the overlay so the user
+                            // gets a manual "didn't download?" link as
+                            // backup. Cases this catches:
+                            //   • Firefox strict-tracking or sandbox config
+                            //     swallowing the download silently;
+                            //   • download-blocking extensions;
+                            //   • per-site permission set to "don't ask,
+                            //     don't download" with no notification UI.
                             var blobUrlForFallback = null;
                             if (needsPreOpen) {
                                 var blobUrl = pdf.output('bloburl');
@@ -421,6 +433,7 @@
                                     }
                                 }
                             } else {
+                                blobUrlForFallback = pdf.output('bloburl');
                                 pdf.save(filename || 'certificate.pdf');
                             }
 
@@ -461,7 +474,22 @@
                             $('#ffc-pdf-overlay').find('h3').text(successMsg);
                             $('#ffc-pdf-overlay').find('p').hide();
                             $('#ffc-pdf-overlay').find('.ffc-spinner').hide();
-                            setTimeout(hideOverlay, 2000);
+
+                            // 6.6.2 (Sprint 2) — manual "didn't download?"
+                            // link for the desktop / Android Chrome branch.
+                            // The needsPreOpen branches already handle their
+                            // own fallback via the placeholder tab; only the
+                            // pdf.save() callers need this safety net.
+                            if (!needsPreOpen && blobUrlForFallback) {
+                                showDesktopFallbackLink(blobUrlForFallback, filename);
+                            }
+
+                            // Keep the overlay visible long enough for the
+                            // user to notice + click the fallback link if
+                            // the browser ate the download (2s was too short
+                            // on slow renders; 6s is the sweet spot per
+                            // Sprint 2 manual testing).
+                            setTimeout(hideOverlay, 6000);
                         } catch (error) {
                             console.error('[FFC PDF] Error:', error);
                             closePlaceholderTabIfAny();
@@ -546,6 +574,45 @@
             });
             $overlay.find('p').empty().text(hint);
             $overlay.find('p').after($cta);
+        }
+
+        /**
+         * 6.6.2 (Sprint 2) — secondary "didn't download?" link for the
+         * desktop / Android Chrome branch. Unlike showManualDownloadFallback,
+         * the primary download already fired via pdf.save(); this is a
+         * safety net for the silent-fail case (extensions, strict
+         * download policies). Renders a small inline link under the
+         * success message rather than replacing the headline, so happy-path
+         * users barely notice it.
+         *
+         * @param {string} blobUrl  Blob URL produced by jsPDF.
+         * @param {string} fname    Suggested filename.
+         */
+        function showDesktopFallbackLink(blobUrl, fname) {
+            var $overlay = $('#ffc-pdf-overlay');
+            if (!$overlay.length || !blobUrl) {
+                return;
+            }
+            var hintText = (typeof ffc_ajax !== 'undefined' && ffc_ajax.strings && ffc_ajax.strings.pdfDesktopFallbackHint)
+                ? ffc_ajax.strings.pdfDesktopFallbackHint
+                : "Didn't download? Click here to open the PDF in a new tab.";
+            var $link = $('<a>')
+                .attr('href', blobUrl)
+                .attr('target', '_blank')
+                .attr('rel', 'noopener')
+                .attr('download', fname || 'certificate.pdf')
+                .addClass('ffc-pdf-desktop-fallback')
+                .text(hintText)
+                .css({
+                    'display': 'inline-block',
+                    'margin-top': '16px',
+                    'font-size': '14px',
+                    'color': '#0073aa',
+                    'text-decoration': 'underline'
+                });
+            // Don't overwrite headline / spinner state — append below.
+            $overlay.find('.ffc-pdf-desktop-fallback').remove();
+            $overlay.find('h3').after($link);
         }
     }
 

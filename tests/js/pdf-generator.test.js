@@ -107,3 +107,120 @@ describe('ffc-pdf-generator.js — generateAndDownloadPDF guard', () => {
 		alertSpy.mockRestore();
 	});
 });
+
+// 6.6.2 Sprint 2 — desktop fallback link injection.
+//
+// We don't drive the whole html2canvas + jsPDF pipeline (that needs a
+// real canvas implementation jsdom doesn't ship); we exercise the
+// generatePDF entry guards and then assert the contract that the
+// desktop branch only emits the fallback when needsPreOpen is false.
+// The detailed branch is asserted by post-mortem of the rendered
+// elements after `vi.runAllTimersAsync()`.
+describe('ffc-pdf-generator.js — desktop fallback link (Sprint 2)', () => {
+	beforeEach(reset);
+
+	function installLibraries() {
+		// Minimal jsPDF stub: addImage no-ops; output('bloburl') returns
+		// a string; save records the call. ffc-pdf-generator clones the
+		// jsPDF constructor via `const { jsPDF } = window.jspdf`, so we
+		// install the constructor on window.jspdf.
+		const saveSpy = vi.fn();
+		const outputSpy = vi.fn(() => 'blob:fake-url');
+		window.jspdf = {
+			jsPDF: function () {
+				return {
+					addImage: function () {},
+					save: saveSpy,
+					output: outputSpy,
+				};
+			},
+		};
+		// Minimal html2canvas stub: synchronously resolves a fake canvas
+		// with a non-white pixel (so the "blank canvas" guard doesn't
+		// trip) and `toDataURL` / `getContext` / `width` / `height`.
+		window.html2canvas = function () {
+			return Promise.resolve({
+				width: 10,
+				height: 10,
+				getContext: function () {
+					return {
+						getImageData: function () {
+							// 10x10 RGBA — one non-white pixel triggers
+							// hasContent=true on the first iteration.
+							const data = new Uint8ClampedArray(10 * 10 * 4);
+							data[0] = 0;
+							data[1] = 0;
+							data[2] = 0;
+							data[3] = 255;
+							return { data };
+						},
+					};
+				},
+				toDataURL: function () { return 'data:image/png;base64,xxx'; },
+			});
+		};
+		return { saveSpy, outputSpy };
+	}
+
+	it('appends .ffc-pdf-desktop-fallback link after pdf.save() on desktop UA', async () => {
+		Object.defineProperty(navigator, 'userAgent', {
+			configurable: true,
+			value: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+		});
+		Object.defineProperty(navigator, 'maxTouchPoints', { configurable: true, value: 0 });
+		window.ffc_ajax = {
+			strings: {
+				pdfDesktopFallbackHint: 'Não baixou? Clique aqui.',
+				pdfDownloaded: 'PDF baixado.',
+			},
+		};
+		const { saveSpy, outputSpy } = installLibraries();
+		loadScript('assets/js/ffc-pdf-generator.js');
+
+		vi.useFakeTimers();
+		window.ffcGeneratePDF({ html: '<p>cert</p>', orientation: 'landscape' }, 'cert.pdf');
+		// Advance past minDisplayTime (800ms) + the inner 300ms gate +
+		// html2canvas microtask flush, but stop short of the 6000ms
+		// hideOverlay() auto-dismiss that would tear down the link.
+		await vi.advanceTimersByTimeAsync(2000);
+		vi.useRealTimers();
+
+		// pdf.save() did fire on desktop branch.
+		expect(saveSpy).toHaveBeenCalledWith('cert.pdf');
+		// blob URL also computed, so the manual fallback link is in DOM.
+		expect(outputSpy).toHaveBeenCalledWith('bloburl');
+		const link = document.querySelector('a.ffc-pdf-desktop-fallback');
+		expect(link).not.toBeNull();
+		expect(link.getAttribute('href')).toBe('blob:fake-url');
+		expect(link.getAttribute('download')).toBe('cert.pdf');
+		expect(link.textContent).toContain('Não baixou');
+	});
+
+	it('does NOT inject the desktop fallback link on iOS UA (uses placeholder-tab path)', async () => {
+		Object.defineProperty(navigator, 'userAgent', {
+			configurable: true,
+			value: 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X)',
+		});
+		Object.defineProperty(navigator, 'maxTouchPoints', { configurable: true, value: 5 });
+		window.ffc_ajax = { strings: { pdfDesktopFallbackHint: 'X' } };
+		const { saveSpy } = installLibraries();
+		// window.open is the placeholder tab. Return a stub that's not closed.
+		const openSpy = vi.spyOn(window, 'open').mockReturnValue({
+			closed: false,
+			document: { title: '', body: { innerHTML: '', style: { cssText: '' } } },
+			location: {},
+		});
+		loadScript('assets/js/ffc-pdf-generator.js');
+
+		vi.useFakeTimers();
+		window.ffcGeneratePDF({ html: '<p>cert</p>' }, 'cert.pdf');
+		await vi.runAllTimersAsync();
+		vi.useRealTimers();
+
+		// pdf.save() does NOT fire on the iOS branch (location swap is used instead).
+		expect(saveSpy).not.toHaveBeenCalled();
+		expect(openSpy).toHaveBeenCalled();
+		expect(document.querySelector('a.ffc-pdf-desktop-fallback')).toBeNull();
+		openSpy.mockRestore();
+	});
+});
