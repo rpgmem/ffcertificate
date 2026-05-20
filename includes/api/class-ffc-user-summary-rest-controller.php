@@ -118,29 +118,18 @@ class UserSummaryRestController {
 
 			// Upcoming group events.
 			if ( $this->user_has_capability( 'ffc_view_audience_bookings', $user_id, $ctx['is_view_as'] ) ) {
-				$bookings_table          = $wpdb->prefix . 'ffc_audience_bookings';
-				$users_table             = $wpdb->prefix . 'ffc_audience_booking_users';
-				$booking_audiences_table = $wpdb->prefix . 'ffc_audience_booking_audiences';
-				$members_table           = $wpdb->prefix . 'ffc_audience_members';
+				$bookings_table = $wpdb->prefix . 'ffc_audience_bookings';
 
+				// Schema guard stays in the controller; the service trusts
+				// the schema. The CURDATE() filter the inline query used
+				// is expressed here as a `start_date` of today (Y-m-d) so
+				// the service stays portable.
 				if ( self::table_exists( $bookings_table ) ) {
-                    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-					$summary['upcoming_group_events'] = (int) $wpdb->get_var(
-						$wpdb->prepare(
-							"SELECT COUNT(DISTINCT b.id)
-                         FROM %i b
-                         LEFT JOIN %i bu ON b.id = bu.booking_id
-                         LEFT JOIN %i ba ON b.id = ba.booking_id
-                         LEFT JOIN %i am ON ba.audience_id = am.audience_id
-                         WHERE (bu.user_id = %d OR am.user_id = %d)
-                           AND b.booking_date >= CURDATE()
-                           AND b.status != 'cancelled'",
-							$bookings_table,
-							$users_table,
-							$booking_audiences_table,
-							$members_table,
-							$user_id,
-							$user_id
+					$summary['upcoming_group_events'] = \FreeFormCertificate\Audience\AudienceQueryService::count_user_bookings(
+						$user_id,
+						array(
+							'start_date'     => current_time( 'Y-m-d' ),
+							'exclude_status' => 'cancelled',
 						)
 					);
 				}

@@ -132,82 +132,7 @@ class UserAudienceRestController {
 				);
 			}
 
-			global $wpdb;
-
-			$bookings_table          = $wpdb->prefix . 'ffc_audience_bookings';
-			$users_table             = $wpdb->prefix . 'ffc_audience_booking_users';
-			$booking_audiences_table = $wpdb->prefix . 'ffc_audience_booking_audiences';
-			$members_table           = $wpdb->prefix . 'ffc_audience_members';
-			$audience_names_table    = $wpdb->prefix . 'ffc_audiences';
-			$environments_table      = $wpdb->prefix . 'ffc_audience_environments';
-			$schedules_table         = $wpdb->prefix . 'ffc_audience_schedules';
-
-            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-			$bookings = $wpdb->get_results(
-				$wpdb->prepare(
-					'SELECT DISTINCT b.*, e.name as environment_name, s.name as schedule_name
-                 FROM %i b
-                 LEFT JOIN %i bu ON b.id = bu.booking_id
-                 LEFT JOIN %i ba ON b.id = ba.booking_id
-                 LEFT JOIN %i am ON ba.audience_id = am.audience_id
-                 LEFT JOIN %i e ON b.environment_id = e.id
-                 LEFT JOIN %i s ON e.schedule_id = s.id
-                 WHERE (bu.user_id = %d OR am.user_id = %d)
-                 ORDER BY b.booking_date DESC, b.start_time DESC',
-					$bookings_table,
-					$users_table,
-					$booking_audiences_table,
-					$members_table,
-					$environments_table,
-					$schedules_table,
-					$user_id,
-					$user_id
-				),
-				ARRAY_A
-			);
-
-			if ( ! is_array( $bookings ) ) {
-				$bookings = array();
-			}
-
-			// Batch load audiences for all bookings to avoid N+1 queries.
-			$audiences_map = array();
-			$booking_ids   = array_filter(
-				array_map(
-					function ( $b ) {
-						return (int) ( $b['id'] ?? 0 );
-					},
-					$bookings
-				)
-			);
-
-			if ( ! empty( $booking_ids ) ) {
-				$safe_ids = array_map( 'absint', $booking_ids );
-				$id_list  = implode( ',', $safe_ids );
-                // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-				// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- ID list built from absint() values.
-				$all_audiences = $wpdb->get_results(
-					$wpdb->prepare(
-						"SELECT ba.booking_id, a.name, a.color
-                     FROM %i ba
-                     INNER JOIN %i a ON ba.audience_id = a.id
-                     WHERE ba.booking_id IN ({$id_list})",
-						$booking_audiences_table,
-						$audience_names_table
-					),
-					ARRAY_A
-				);
-				// phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared
-
-				if ( is_array( $all_audiences ) ) {
-					foreach ( $all_audiences as $aud ) {
-						$audiences_map[ (int) $aud['booking_id'] ][] = array(
-							'name'  => $aud['name'],
-							'color' => $aud['color'] ?? '#2271b1',
-						);
-					}
-				}
-			}
+			$bookings = \FreeFormCertificate\Audience\AudienceQueryService::find_user_bookings( $user_id );
 
 			$bookings_formatted = array();
 
@@ -251,7 +176,7 @@ class UserAudienceRestController {
 					'status'           => $status,
 					'status_label'     => $status_labels[ $status ] ?? $status,
 					'is_past'          => $is_past,
-					'audiences'        => $audiences_map[ (int) $booking['id'] ] ?? array(),
+					'audiences'        => $booking['audiences'] ?? array(),
 				);
 			}
 
@@ -295,7 +220,6 @@ class UserAudienceRestController {
 	 */
 	public function get_joinable_groups( $request ) {
 		try {
-			global $wpdb;
 			$ctx     = $this->resolve_user_context( $request );
 			$user_id = $ctx['user_id'];
 
@@ -303,10 +227,13 @@ class UserAudienceRestController {
 				return new \WP_Error( 'not_logged_in', __( 'You must be logged in', 'ffcertificate' ), array( 'status' => 401 ) );
 			}
 
+			global $wpdb;
 			$audiences_table = $wpdb->prefix . 'ffc_audiences';
-			$members_table   = $wpdb->prefix . 'ffc_audience_members';
-
-			// Check tables and columns exist.
+			// Schema guard for fresh / partially-upgraded installs — kept
+			// in the controller (service trusts the schema). Service
+			// degrades to `[]` gracefully if the column is missing anyway,
+			// but the early-return here also short-circuits the response
+			// assembly below.
 			if ( ! self::table_exists( $audiences_table ) || ! self::column_exists( $audiences_table, 'allow_self_join' ) ) {
 				return rest_ensure_response(
 					array(
@@ -317,22 +244,7 @@ class UserAudienceRestController {
 				);
 			}
 
-			// Fetch all joinable audiences at once (with membership status).
-            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-			$all = $wpdb->get_results(
-				$wpdb->prepare(
-					"SELECT a.id, a.name, a.color, a.parent_id,
-                            CASE WHEN m.id IS NOT NULL THEN 1 ELSE 0 END AS is_member
-                     FROM %i a
-                     LEFT JOIN %i m ON m.audience_id = a.id AND m.user_id = %d
-                     WHERE a.allow_self_join = 1 AND a.status = 'active'
-                     ORDER BY a.name ASC",
-					$audiences_table,
-					$members_table,
-					$user_id
-				),
-				ARRAY_A
-			);
+			$all = \FreeFormCertificate\Audience\AudienceQueryService::find_user_joinable_audiences( $user_id );
 
 			if ( empty( $all ) ) {
 				return rest_ensure_response(
@@ -344,30 +256,29 @@ class UserAudienceRestController {
 				);
 			}
 
-			// Build tree in PHP.
-			$by_id        = array();
-			$joined_count = 0;
-			foreach ( $all as &$row ) {
-				$row['id']           = (int) $row['id'];
-				$row['parent_id']    = $row['parent_id'] ? (int) $row['parent_id'] : null;
-				$row['is_member']    = (bool) (int) $row['is_member'];
+			// Build tree in PHP (presentation concern — stays in the
+			// controller). The service hands us a flat list with parent_id
+			// + is_member already resolved.
+			$by_id = array();
+			foreach ( $all as $row ) {
 				$row['children']     = array();
-				$by_id[ $row['id'] ] = &$row;
+				$by_id[ $row['id'] ] = $row;
 			}
-			unset( $row );
 
 			$roots = array();
-			foreach ( $by_id as &$item ) {
-				if ( $item['parent_id'] && isset( $by_id[ $item['parent_id'] ] ) ) {
-					$by_id[ $item['parent_id'] ]['children'][] = &$item;
-				} else {
-					$roots[] = &$item;
+			foreach ( $by_id as $id => $item ) {
+				if ( null !== $item['parent_id'] && isset( $by_id[ $item['parent_id'] ] ) ) {
+					$by_id[ $item['parent_id'] ]['children'][] = &$by_id[ $id ];
 				}
 			}
-			unset( $item );
+			foreach ( $by_id as $id => $item ) {
+				if ( null === $item['parent_id'] || ! isset( $by_id[ $item['parent_id'] ] ) ) {
+					$roots[] = &$by_id[ $id ];
+				}
+			}
 
-			// Count joined leaf audiences and strip parent_id from output.
-			$result = array();
+			$joined_count = 0;
+			$result       = array();
 			foreach ( $roots as $root ) {
 				$node = $this->build_joinable_node( $root, $joined_count );
 				if ( $node ) {
@@ -442,7 +353,6 @@ class UserAudienceRestController {
 	 */
 	public function join_audience_group( $request ) {
 		try {
-			global $wpdb;
 			$ctx      = $this->resolve_user_context( $request );
 			$user_id  = $ctx['user_id'];
 			$group_id = absint( $request->get_param( 'group_id' ) );
@@ -455,50 +365,21 @@ class UserAudienceRestController {
 				return new \WP_Error( 'missing_group', __( 'Group ID is required', 'ffcertificate' ), array( 'status' => 400 ) );
 			}
 
-			$audiences_table = $wpdb->prefix . 'ffc_audiences';
-			$members_table   = $wpdb->prefix . 'ffc_audience_members';
-
-			// Verify group is a child, active, and allows self-join (only children can be joined).
-            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-			$group = $wpdb->get_row(
-				$wpdb->prepare(
-					"SELECT id, name FROM %i WHERE id = %d AND status = 'active' AND allow_self_join = 1 AND parent_id IS NOT NULL",
-					$audiences_table,
-					$group_id
-				)
-			);
-
-			if ( ! $group ) {
+			// Verify group is a child, active, and self-joinable.
+			$group = \FreeFormCertificate\Audience\AudienceRepository::get_by_id( $group_id );
+			if ( ! $group
+				|| 'active' !== (string) ( $group->status ?? '' )
+				|| 1 !== (int) ( $group->allow_self_join ?? 0 )
+				|| null === ( $group->parent_id ?? null )
+			) {
 				return new \WP_Error( 'invalid_group', __( 'Group not found or does not allow self-join', 'ffcertificate' ), array( 'status' => 404 ) );
 			}
 
-			// Check already member.
-            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-			$already = $wpdb->get_var(
-				$wpdb->prepare(
-					'SELECT COUNT(*) FROM %i WHERE audience_id = %d AND user_id = %d',
-					$members_table,
-					$group_id,
-					$user_id
-				)
-			);
-
-			if ( $already ) {
+			if ( \FreeFormCertificate\Audience\AudienceRepository::is_member( $group_id, $user_id ) ) {
 				return new \WP_Error( 'already_member', __( 'You are already a member of this group', 'ffcertificate' ), array( 'status' => 409 ) );
 			}
 
-			// Count current self-join memberships (only children count).
-            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-			$current_count = (int) $wpdb->get_var(
-				$wpdb->prepare(
-					'SELECT COUNT(*) FROM %i m
-                 INNER JOIN %i a ON a.id = m.audience_id
-                 WHERE m.user_id = %d AND a.allow_self_join = 1 AND a.parent_id IS NOT NULL',
-					$members_table,
-					$audiences_table,
-					$user_id
-				)
-			);
+			$current_count = \FreeFormCertificate\Audience\AudienceQueryService::count_user_self_join_memberships( $user_id );
 
 			if ( $current_count >= self::MAX_SELF_JOIN_GROUPS ) {
 				return new \WP_Error(
@@ -510,15 +391,7 @@ class UserAudienceRestController {
 			}
 
 			// Join the group.
-            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-			$wpdb->insert(
-				$members_table,
-				array(
-					'audience_id' => $group_id,
-					'user_id'     => $user_id,
-				),
-				array( '%d', '%d' )
-			);
+			\FreeFormCertificate\Audience\AudienceRepository::add_member( $group_id, $user_id );
 
 			// Grant audience capabilities if needed.
 			if ( class_exists( '\FreeFormCertificate\UserDashboard\UserManager' ) ) {
