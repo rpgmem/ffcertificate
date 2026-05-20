@@ -14576,3 +14576,35 @@ msgstr "No desktop: abra Configurações → Privacidade → Cookies e permita c
 #: includes/frontend/class-ffc-frontend.php
 msgid "Try anyway"
 msgstr "Tentar mesmo assim"
+
+#: includes/frontend/class-ffc-frontend.php
+msgid "Location blocked"
+msgstr "Localização bloqueada"
+
+#: includes/frontend/class-ffc-frontend.php
+msgid "This site needs your location, but the browser has it set to \"block\" for this site."
+msgstr "Este site precisa da sua localização, mas o navegador está com ela bloqueada para este site."
+
+#: includes/frontend/class-ffc-frontend.php
+msgid "On iOS: tap the \"AA\" button in the address bar → Website Settings → Location → Allow."
+msgstr "No iOS: toque no botão \"AA\" na barra de endereço → Configurações do Site → Localização → Permitir."
+
+#: includes/frontend/class-ffc-frontend.php
+msgid "On Android Chrome: tap the padlock in the address bar → Permissions → Location → Allow."
+msgstr "No Android Chrome: toque no cadeado na barra de endereço → Permissões → Localização → Permitir."
+
+#: includes/frontend/class-ffc-frontend.php
+msgid "On desktop: click the padlock in the address bar → Site Settings → Location → Allow."
+msgstr "No desktop: clique no cadeado da barra de endereço → Configurações do site → Localização → Permitir."
+
+#: includes/frontend/class-ffc-frontend.php
+msgid "We need your location"
+msgstr "Precisamos da sua localização"
+
+#: includes/frontend/class-ffc-frontend.php
+msgid "This site needs to confirm you are at the venue. After you tap \"Continue\", your browser will ask for permission."
+msgstr "Este site precisa confirmar que você está no local. Após tocar em \"Continuar\", o navegador pedirá permissão."
+
+#: includes/frontend/class-ffc-frontend.php
+msgid "Continue"
+msgstr "Continuar"
