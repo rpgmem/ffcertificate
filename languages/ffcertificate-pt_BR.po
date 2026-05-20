@@ -14608,3 +14608,11 @@ msgstr "Este site precisa confirmar que você está no local. Após tocar em \"C
 #: includes/frontend/class-ffc-frontend.php
 msgid "Continue"
 msgstr "Continuar"
+
+#: includes/frontend/class-ffc-form-processor.php
+msgid "This form is not available right now. Please contact the organizer."
+msgstr "Este formulário não está disponível no momento. Entre em contato com o organizador."
+
+#: includes/frontend/class-ffc-form-processor.php
+msgid "We couldn't save your submission. Try again — if the problem persists, contact the organizer."
+msgstr "Não foi possível salvar sua submissão. Tente novamente — se o problema persistir, entre em contato com o organizador."

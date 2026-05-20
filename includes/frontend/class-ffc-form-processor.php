@@ -149,7 +149,12 @@ class FormProcessor {
 
 		$fields_config = get_post_meta( $form_id, '_ffc_form_fields', true );
 		if ( ! $fields_config ) {
-			wp_send_json_error( array( 'message' => __( 'Form configuration not found.', 'ffcertificate' ) ) );
+			// 6.6.4 Sprint 7 — empathetic rewording. The original
+			// "Form configuration not found." reads like a 404 from
+			// the database to a non-technical user. This is always an
+			// admin-side state (deleted form / unsaved config), never
+			// the user's fault — point them at the organizer.
+			wp_send_json_error( array( 'message' => __( 'This form is not available right now. Please contact the organizer.', 'ffcertificate' ) ) );
 		}
 
 		// 6.6.4 Sprint 4 — cheap presence checks BEFORE the field
@@ -545,10 +550,17 @@ class FormProcessor {
 					);
 
 					if ( is_wp_error( $submission_id ) ) {
+						// 6.6.4 Sprint 7 — wrap the raw repository error
+						// with empathetic guidance. The raw message is
+						// often a SQL/wpdb string ("Duplicate entry"…)
+						// that's actionable only for admins. Surface
+						// the original as `code` for support triage and
+						// give the user a recovery path.
 						wp_send_json_error(
 							array(
 								'code'    => $submission_id->get_error_code(),
-								'message' => $submission_id->get_error_message(),
+								'message' => __( "We couldn't save your submission. Try again — if the problem persists, contact the organizer.", 'ffcertificate' ),
+								'detail'  => $submission_id->get_error_message(),
 							)
 						);
 					}
@@ -630,10 +642,14 @@ class FormProcessor {
 				);
 
 				if ( is_wp_error( $submission_id ) ) {
+					// 6.6.4 Sprint 7 — see the quiz branch above for the
+					// rationale. Empathetic top-level message; raw repo
+					// error preserved under `detail` for admin triage.
 					wp_send_json_error(
 						array(
 							'code'    => $submission_id->get_error_code(),
-							'message' => $submission_id->get_error_message(),
+							'message' => __( "We couldn't save your submission. Try again — if the problem persists, contact the organizer.", 'ffcertificate' ),
+							'detail'  => $submission_id->get_error_message(),
 						)
 					);
 				}
