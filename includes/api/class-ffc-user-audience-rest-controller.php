@@ -442,7 +442,6 @@ class UserAudienceRestController {
 	 */
 	public function join_audience_group( $request ) {
 		try {
-			global $wpdb;
 			$ctx      = $this->resolve_user_context( $request );
 			$user_id  = $ctx['user_id'];
 			$group_id = absint( $request->get_param( 'group_id' ) );
@@ -455,50 +454,21 @@ class UserAudienceRestController {
 				return new \WP_Error( 'missing_group', __( 'Group ID is required', 'ffcertificate' ), array( 'status' => 400 ) );
 			}
 
-			$audiences_table = $wpdb->prefix . 'ffc_audiences';
-			$members_table   = $wpdb->prefix . 'ffc_audience_members';
-
-			// Verify group is a child, active, and allows self-join (only children can be joined).
-            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-			$group = $wpdb->get_row(
-				$wpdb->prepare(
-					"SELECT id, name FROM %i WHERE id = %d AND status = 'active' AND allow_self_join = 1 AND parent_id IS NOT NULL",
-					$audiences_table,
-					$group_id
-				)
-			);
-
-			if ( ! $group ) {
+			// Verify group is a child, active, and self-joinable.
+			$group = \FreeFormCertificate\Audience\AudienceRepository::get_by_id( $group_id );
+			if ( ! $group
+				|| 'active' !== (string) ( $group->status ?? '' )
+				|| 1 !== (int) ( $group->allow_self_join ?? 0 )
+				|| null === ( $group->parent_id ?? null )
+			) {
 				return new \WP_Error( 'invalid_group', __( 'Group not found or does not allow self-join', 'ffcertificate' ), array( 'status' => 404 ) );
 			}
 
-			// Check already member.
-            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-			$already = $wpdb->get_var(
-				$wpdb->prepare(
-					'SELECT COUNT(*) FROM %i WHERE audience_id = %d AND user_id = %d',
-					$members_table,
-					$group_id,
-					$user_id
-				)
-			);
-
-			if ( $already ) {
+			if ( \FreeFormCertificate\Audience\AudienceRepository::is_member( $group_id, $user_id ) ) {
 				return new \WP_Error( 'already_member', __( 'You are already a member of this group', 'ffcertificate' ), array( 'status' => 409 ) );
 			}
 
-			// Count current self-join memberships (only children count).
-            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-			$current_count = (int) $wpdb->get_var(
-				$wpdb->prepare(
-					'SELECT COUNT(*) FROM %i m
-                 INNER JOIN %i a ON a.id = m.audience_id
-                 WHERE m.user_id = %d AND a.allow_self_join = 1 AND a.parent_id IS NOT NULL',
-					$members_table,
-					$audiences_table,
-					$user_id
-				)
-			);
+			$current_count = \FreeFormCertificate\Audience\AudienceQueryService::count_user_self_join_memberships( $user_id );
 
 			if ( $current_count >= self::MAX_SELF_JOIN_GROUPS ) {
 				return new \WP_Error(
@@ -510,15 +480,7 @@ class UserAudienceRestController {
 			}
 
 			// Join the group.
-            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-			$wpdb->insert(
-				$members_table,
-				array(
-					'audience_id' => $group_id,
-					'user_id'     => $user_id,
-				),
-				array( '%d', '%d' )
-			);
+			\FreeFormCertificate\Audience\AudienceRepository::add_member( $group_id, $user_id );
 
 			// Grant audience capabilities if needed.
 			if ( class_exists( '\FreeFormCertificate\UserDashboard\UserManager' ) ) {
