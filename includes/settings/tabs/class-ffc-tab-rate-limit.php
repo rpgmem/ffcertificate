@@ -215,6 +215,12 @@ class TabRateLimit extends SettingsTab {
 				'max_per_hour'   => absint( wp_unslash( $_POST['global_max_per_hour'] ?? 1000 ) ),
 				'message'        => sanitize_textarea_field( wp_unslash( $_POST['global_message'] ?? '' ) ),
 			),
+			'read'      => array(
+				'respect_whitelist' => isset( $_POST['read_respect_whitelist'] ),
+				'bypass_logged_in'  => isset( $_POST['read_bypass_logged_in'] ),
+				'message'           => sanitize_textarea_field( wp_unslash( $_POST['read_message'] ?? '' ) ),
+				'endpoints'         => $this->parse_read_endpoints_post(),
+			),
 			'device'    => array(
 				'enabled'                   => isset( $_POST['device_enabled'] ),
 				'max_per_form'              => max( 1, absint( wp_unslash( $_POST['device_max_per_form'] ?? 1 ) ) ),
@@ -269,5 +275,33 @@ class TabRateLimit extends SettingsTab {
         // phpcs:enable WordPress.Security.NonceVerification.Missing
 
 		update_option( 'ffc_rate_limit_settings', $settings );
+	}
+
+	/**
+	 * Parse the per-endpoint read-rate-limit POST fields into the
+	 * `endpoints` sub-array shape `get_settings()` documents. Keys
+	 * are the known endpoint identifiers — anything else POST'd is
+	 * silently ignored (defence in depth against a tampered form).
+	 *
+	 * Each endpoint stores `{enabled, max_per_minute, max_per_hour}`.
+	 * `max_per_minute` / `max_per_hour` accept `0` (= "no per-window
+	 * cap on this axis"); the checker treats `<=0` as "skip this gate".
+	 *
+	 * @since 6.6.2
+	 * @return array<string, array{enabled: bool, max_per_minute: int, max_per_hour: int}>
+	 */
+	private function parse_read_endpoints_post(): array {
+		// phpcs:disable WordPress.Security.NonceVerification.Missing -- Nonce verified by save_settings() caller.
+		$known = array( 'calendar_slots', 'calendar_list', 'calendar_detail' );
+		$out   = array();
+		foreach ( $known as $key ) {
+			$out[ $key ] = array(
+				'enabled'        => isset( $_POST[ 'read_endpoint_' . $key . '_enabled' ] ),
+				'max_per_minute' => absint( wp_unslash( $_POST[ 'read_endpoint_' . $key . '_max_per_minute' ] ?? 0 ) ),
+				'max_per_hour'   => absint( wp_unslash( $_POST[ 'read_endpoint_' . $key . '_max_per_hour' ] ?? 0 ) ),
+			);
+		}
+		// phpcs:enable WordPress.Security.NonceVerification.Missing
+		return $out;
 	}
 }
