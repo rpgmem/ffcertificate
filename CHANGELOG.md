@@ -9,12 +9,21 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 
 ---
 
-## [6.6.3] (2026-05-20)
+## [6.6.2.1] (2026-05-20)
 
-Patch release. Bumps `FFC_VERSION` so the asset cache key `?ver=…`
-changes and browsers / CDNs re-download the `.min.js` and `.min.css`
-that were modified by PRs #353 (stale-nonce fix) and #354 (success
-card auth-code wrap + PT-BR translations).
+Cache-bust-only release — no source code changes. Bumps `FFC_VERSION`
+so the asset cache key `?ver=…` rotates and browsers / CDNs re-download
+the `.min.js` and `.min.css` that were modified by PRs #353
+(stale-nonce fix) and #354 (success-card auth-code wrap + PT-BR
+translations) without their own version bumps.
+
+**Versioning convention introduced here**: when a release exists only
+to invalidate asset caches (no functional change beyond what the
+previous version already shipped on disk), append a 4th segment to
+the prior version instead of consuming a fresh patch number. So a
+"real" patch goes `6.6.2 → 6.6.3`, but a cache-bust-only sibling of
+6.6.2 goes `6.6.2 → 6.6.2.1`. Future cache-bust-only siblings of
+6.6.3 would be `6.6.3.1`, `6.6.3.2`, etc.
 
 ### Fixed
 
@@ -25,9 +34,9 @@ card auth-code wrap + PT-BR translations).
   the query string is invisible to those caches, so visitors kept
   hitting the original snapshot-nonce code path and seeing
   "A verificação de segurança falhou." even though the source on
-  disk had the getter fix. Bumping `FFC_VERSION` to `6.6.3` flips
-  every enqueued script and stylesheet to `?ver=6.6.3` and forces a
-  re-fetch.
+  disk had the getter fix. Bumping `FFC_VERSION` to `6.6.2.1` flips
+  every enqueued script and stylesheet to `?ver=6.6.2.1` and forces
+  a re-fetch.
 - **Same applies to PR #354's CSS / template / translation changes**
   — `ffc-frontend.min.css` and the success-card layout would
   otherwise stay broken on cached clients.

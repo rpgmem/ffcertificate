@@ -187,6 +187,44 @@ Use `claude/<short-kebab-description>`. Examples in main history:
 `claude/csv-import-normalize-cpf-rf`. The remote refuses pushes to
 `main` directly; always go through a PR.
 
+## Versioning
+
+Three places carry the plugin version and must stay in sync:
+
+1. `ffcertificate.php` plugin header — `* Version: X.Y.Z`. Parsed by
+   WordPress core BEFORE PHP runs, so it must be a literal string.
+2. `ffcertificate.php` PHP constant — `define( 'FFC_VERSION', 'X.Y.Z' )`.
+   Source of `?ver=…` on every `wp_enqueue_*` call.
+3. `readme.txt` `Stable tag: X.Y.Z`. Parsed by WordPress.org before
+   PHP runs; also a literal string.
+
+When changing the version, update all three in the same commit.
+
+### Patch vs. cache-bust-only releases
+
+- A "real" patch release (any source-code change) consumes the next
+  patch number: `6.6.2 → 6.6.3`.
+- A **cache-bust-only release** (no functional change — exists purely
+  to rotate the `?ver=…` asset cache key after a prior PR shipped an
+  updated `.min.js` / `.min.css` without bumping the version) uses a
+  4th segment appended to the prior version: `6.6.2 → 6.6.2.1`. The
+  next cache-bust sibling of the same minor would be `6.6.2.2`, and
+  so on. WordPress's `version_compare()` and the plugin update flow
+  both handle 4-segment versions without special-casing.
+- Reason for the convention: a cache-bust release carries no new
+  user-visible behavior, only a key rotation. Burning a real patch
+  number on it would imply meaningful changes that aren't there.
+
+### When to bump
+
+Any PR that touches a bundled asset file (`assets/**/*.min.js`,
+`assets/**/*.min.css`, `templates/**.php`, or
+`languages/*.l10n.php` / `.mo`) MUST bump `FFC_VERSION` in the same
+PR — otherwise iOS Safari, LiteSpeed / Varnish / WP Rocket, and CDN
+edges keep serving the pre-PR bundle from cache. The
+"Verify minified assets are up to date" CI job catches build
+freshness but does NOT enforce the version bump.
+
 ## What not to do
 
 - Do not amend or rewrite published commits (force-push reserved for
