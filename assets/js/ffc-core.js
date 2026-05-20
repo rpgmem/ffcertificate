@@ -26,13 +26,26 @@
         version: (window.ffcCoreConfig && window.ffcCoreConfig.version) || '0.0.0',
         
         /**
-         * Shared configuration
+         * Shared configuration.
+         *
+         * 6.6.3 — `nonce` and `strings` were captured once at IIFE load
+         * time, which broke on full-page-cached sites: `ffc-dynamic-fragments.js`
+         * refreshes `window.ffc_ajax.nonce` to the per-visitor session
+         * value AFTER the cached HTML lands, but `FFC.config.nonce` kept
+         * the stale snapshot from the cached HTML. `FFC.request` then
+         * sent the stale nonce and the server rejected with "Security
+         * check failed. Please refresh the page." even on a fresh
+         * reload (the cache served the same stale HTML again).
+         *
+         * Getters here resolve `window.ffc_ajax` on every read, so the
+         * dynamic-fragments refresh propagates without callers needing
+         * to know about it.
          */
         config: {
             debug: false,
             ajaxUrl: window.ffc_ajax?.ajax_url || '/wp-admin/admin-ajax.php',
-            nonce: window.ffc_ajax?.nonce || '',
-            strings: window.ffc_ajax?.strings || {}
+            get nonce() { return (window.ffc_ajax && window.ffc_ajax.nonce) || ''; },
+            get strings() { return (window.ffc_ajax && window.ffc_ajax.strings) || {}; }
         },
         
         /**
