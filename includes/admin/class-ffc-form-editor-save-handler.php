@@ -44,8 +44,8 @@ class FormEditorSaveHandler {
 		//
 		// Both `ExtendEndAction` and `EarlyOpenAction` persist a pair
 		// of metas the first time their respective action fires:
-		//   - `META_POSTPONED_AT` / `META_POSTPONED_FROM` (extend end)
-		//   - `META_OPENED_AT`    / `META_OPENED_FROM`    (early open)
+		// - `META_POSTPONED_AT` / `META_POSTPONED_FROM` (extend end)
+		// - `META_OPENED_AT`    / `META_OPENED_FROM`    (early open)
 		// — after which `is_eligible()` returns `already_postponed` /
 		// `already_opened` and the frontend button disappears.
 		//
