@@ -207,13 +207,21 @@ class Frontend {
 				}
 			}
 
+			// 6.6.4 follow-up (#361 Sprint 1) — gate the browser-env
+			// diagnostic log on the dedicated `debug_browser_env`
+			// toggle. JS reads the boolean and short-circuits when
+			// false (zero console noise in production).
+			$debug_browser_env = class_exists( '\FreeFormCertificate\Core\Debug' )
+				&& \FreeFormCertificate\Core\Debug::is_enabled( \FreeFormCertificate\Core\Debug::AREA_BROWSER_ENV );
+
 			wp_localize_script(
 				'ffc-frontend-js',
 				'ffc_ajax',
 				array(
-					'ajax_url' => admin_url( 'admin-ajax.php' ),
-					'nonce'    => wp_create_nonce( 'ffc_frontend_nonce' ),
-					'strings'  => array(
+					'ajax_url'          => admin_url( 'admin-ajax.php' ),
+					'nonce'             => wp_create_nonce( 'ffc_frontend_nonce' ),
+					'debug_browser_env' => $debug_browser_env,
+					'strings'           => array(
 						// Verification.
 						'verifying'              => __( 'Verifying...', 'ffcertificate' ),
 						'verify'                 => __( 'Verify', 'ffcertificate' ),

@@ -177,6 +177,8 @@ class SettingsSaveHandler {
 				'debug_self_scheduling',
 				'debug_audience',
 				'debug_qrcode',
+				// 6.6.4 follow-up (#361 Sprint 1).
+				'debug_browser_env',
 			);
 
 			foreach ( $debug_flags as $flag ) {

@@ -90,6 +90,11 @@ class Debug {
 	const AREA_SELF_SCHEDULING = 'debug_self_scheduling';
 	const AREA_AUDIENCE        = 'debug_audience';
 	const AREA_QRCODE          = 'debug_qrcode';
+	// 6.6.4 follow-up (#361 Sprint 1) — browser environment diagnostics
+	// (service workers + clipboard permission). Gated separately from
+	// the geofence/frontend toggles because the captured signals are
+	// browser-wide, not specific to either module.
+	const AREA_BROWSER_ENV = 'debug_browser_env';
 
 	/**
 	 * Check if debug is enabled for a specific area

@@ -440,6 +440,28 @@ $ffcertificate_get_option = \Closure::fromCallable( array( $settings, 'get_optio
 						</p>
 					</td>
 				</tr>
+
+				<tr>
+					<th scope="row">
+						<label for="debug_browser_env"><?php esc_html_e( 'Browser environment', 'ffcertificate' ); ?></label>
+					</th>
+					<td>
+						<?php
+						\FreeFormCertificate\Admin\AdminUI::render_toggle(
+							array(
+								'name'    => 'ffc_settings[debug_browser_env]',
+								'id'      => 'debug_browser_env',
+								'checked' => (int) $ffcertificate_get_option( 'debug_browser_env' ) === 1,
+								'label'   => __( 'Enable browser-environment diagnostic log', 'ffcertificate' ),
+								'data'    => array( 'ffc-autosave-key' => 'debug_browser_env' ),
+							)
+						);
+						?>
+						<p class="description">
+							<?php esc_html_e( 'Logs service worker registrations + clipboard write permission to the visitor browser console. Useful for triaging cookie / nonce / Copy-button issues from a console screenshot. Off by default.', 'ffcertificate' ); ?>
+						</p>
+					</td>
+				</tr>
 			</tbody>
 		</table>
 </div>

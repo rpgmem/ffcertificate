@@ -19,6 +19,65 @@
     window.ffcUtils = window.FFC.Frontend.Masks;
 
     /**
+     * 6.6.4 follow-up (#361 Sprint 1) — browser-environment diagnostic
+     * log. Was inside ffc-geofence-frontend.js (ran always-on, polluted
+     * console for every visitor). Moved here so it covers ALL form
+     * pages (not just geofenced ones) and gated on the new
+     * `debug_browser_env` toggle.
+     *
+     * Captures:
+     *   - Service worker registrations — typically empty; populated on
+     *     hosts that bundle a PWA shell SW that can intercept admin-
+     *     ajax and break the nonce flow.
+     *   - Clipboard write permission — relevant for the Copy buttons
+     *     on the 6.6.2 success card. Chromium reports
+     *     granted/prompt/denied; iOS Safari rejects the query, which
+     *     itself is a signal worth logging.
+     *
+     * Default OFF. Toggle in Settings → Debug → Browser environment.
+     */
+    function ffcLogBrowserEnvDiagnostics() {
+        if (typeof window.ffc_ajax === 'undefined'
+            || !window.ffc_ajax.debug_browser_env) {
+            return;
+        }
+
+        try {
+            if (navigator.serviceWorker && typeof navigator.serviceWorker.getRegistrations === 'function') {
+                navigator.serviceWorker.getRegistrations().then(function (regs) {
+                    var scopes = regs.map(function (r) { return r.scope; });
+                    console.info('[FFC Diagnostics] Service workers:', scopes.length, scopes);
+                }).catch(function () {
+                    // Some legacy browsers reject the promise outright.
+                });
+            } else {
+                console.info('[FFC Diagnostics] Service workers: API not available');
+            }
+        } catch (e) {
+            // Diagnostics must never break the form flow.
+        }
+
+        try {
+            if (navigator.permissions && typeof navigator.permissions.query === 'function') {
+                navigator.permissions.query({ name: 'clipboard-write' }).then(function (status) {
+                    console.info('[FFC Diagnostics] Clipboard write permission:', status.state);
+                }).catch(function () {
+                    console.info('[FFC Diagnostics] Clipboard write permission: not queryable');
+                });
+            } else {
+                console.info('[FFC Diagnostics] Permissions API: not available');
+            }
+        } catch (e) {
+            // Swallow.
+        }
+    }
+
+    // Fire diagnostic log once on script load, before any form
+    // interaction. The gate is inside the function so the cost is
+    // a single property read when the toggle is off.
+    ffcLogBrowserEnvDiagnostics();
+
+    /**
      * Show an accessible inline alert message instead of window.alert()
      *
      * @param {string} message - Message text
