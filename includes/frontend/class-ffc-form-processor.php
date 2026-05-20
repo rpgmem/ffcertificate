@@ -152,6 +152,59 @@ class FormProcessor {
 			wp_send_json_error( array( 'message' => __( 'Form configuration not found.', 'ffcertificate' ) ) );
 		}
 
+		// 6.6.4 Sprint 4 — cheap presence checks BEFORE the field
+		// validation loop. LGPD consent + email presence are O(1)
+		// checks (no CPF checksum, no regex per field); running them
+		// up front lets the user get both errors in a single response
+		// instead of fixing CPF first, then resubmitting, then seeing
+		// the LGPD error. The combined errors array on the wp_send_json
+		// payload mirrors the existing refresh_captcha shape so the
+		// client doesn't need a new code path.
+		$preflight_errors = array();
+
+		// LGPD: trivial string compare, no field loop dependency.
+		if ( Utils::get_post_string( 'ffc_lgpd_consent' ) !== '1' ) {
+			$preflight_errors[] = __( 'You must agree to the Privacy Policy to continue.', 'ffcertificate' );
+		}
+
+		// Email presence: peek at $_POST for any field whose admin-
+		// configured type is 'email'. Catches the empty-email case
+		// without running the full field loop (which does CPF
+		// checksum etc.). Multiple email fields are rare but
+		// supported: if ANY of them is empty the form was incomplete.
+		$email_field_names = array();
+		foreach ( $fields_config as $field ) {
+			if ( isset( $field['type'], $field['name'] ) && 'email' === $field['type'] ) {
+				$email_field_names[] = $field['name'];
+			}
+		}
+		if ( ! empty( $email_field_names ) ) {
+			$email_missing = false;
+			foreach ( $email_field_names as $email_field ) {
+				$raw_email = Utils::get_post_string( $email_field );
+				if ( '' === trim( $raw_email ) ) {
+					$email_missing = true;
+					break;
+				}
+			}
+			if ( $email_missing ) {
+				$preflight_errors[] = __( 'Email address is required.', 'ffcertificate' );
+			}
+		}
+
+		if ( ! empty( $preflight_errors ) ) {
+			wp_send_json_error(
+				array(
+					// Backward-compatible: legacy single-error consumers
+					// read `message` (first error). New consumers can
+					// read the full `errors` array to surface every
+					// missing field at once.
+					'message' => $preflight_errors[0],
+					'errors'  => $preflight_errors,
+				)
+			);
+		}
+
 		// Process and sanitize form fields using FFC_Utils.
 		$submission_data = array();
 		$user_email      = '';
@@ -208,19 +261,16 @@ class FormProcessor {
 			}
 		}
 
+		// Defensive: after the field loop ran, the email field may
+		// have failed sanitize_email() despite passing the preflight
+		// presence check (e.g. user typed "not an email"). Keep this
+		// gate as a fallback so $user_email is never empty downstream.
 		if ( empty( $user_email ) ) {
 			wp_send_json_error( array( 'message' => __( 'Email address is required.', 'ffcertificate' ) ) );
 		}
-		// Validate LGPD consent (mandatory).
-		if ( Utils::get_post_string( 'ffc_lgpd_consent' ) !== '1' ) {
-			wp_send_json_error(
-				array(
-					'message' => __( 'You must agree to the Privacy Policy to continue.', 'ffcertificate' ),
-				)
-			);
-		}
 
-		// Add consent to submission data.
+		// LGPD already validated up-front (Sprint 4 pre-flight); just
+		// stamp the consent on the submission data.
 		$submission_data['ffc_lgpd_consent'] = '1';
 
 		// Capture restriction fields (password/ticket) from POST.
