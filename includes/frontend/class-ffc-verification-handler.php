@@ -747,9 +747,27 @@ class VerificationHandler {
 	 * Handle certificate verification via AJAX (manual - with captcha)
 	 */
 	public function handle_verification_ajax(): void {
-		check_ajax_referer( 'ffc_frontend_nonce', 'nonce' );
+		// 6.6.3 — explicit wp_verify_nonce with stale-nonce auto-recovery.
+		// Was check_ajax_referer( 'ffc_frontend_nonce', 'nonce' ), which
+		// wp_die()s with a 403 on stale-nonce — leaving cached-HTML / iOS
+		// Safari visitors stuck. Same root causes as the form-submission
+		// path covered in form-processor.php: cached page nonces from
+		// another visitor, Safari ITP / Private Relay rotating cookies,
+		// ffc-dynamic-fragments silently failing to refresh. The fresh
+		// nonce is keyed to the current session cookie, so FFC.request
+		// can transparently retry once via its existing refresh_nonce
+		// branch.
+		if ( ! wp_verify_nonce( Utils::get_post_string( 'nonce' ), 'ffc_frontend_nonce' ) ) {
+			wp_send_json_error(
+				array(
+					'message'       => __( 'Security check failed. Please refresh the page.', 'ffcertificate' ),
+					'refresh_nonce' => true,
+					'new_nonce'     => wp_create_nonce( 'ffc_frontend_nonce' ),
+				)
+			);
+		}
 
-        // phpcs:disable WordPress.Security.NonceVerification.Missing -- Nonce verified above via check_ajax_referer.
+        // phpcs:disable WordPress.Security.NonceVerification.Missing -- Nonce verified above via wp_verify_nonce.
 
 		// Validate honeypot + captcha via centralised service.
 		$security_check = \FreeFormCertificate\Core\SecurityService::validate_security_fields( $_POST );
