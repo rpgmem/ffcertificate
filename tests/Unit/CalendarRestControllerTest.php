@@ -68,9 +68,29 @@ class CalendarRestControllerTest extends TestCase {
         $utils_mock->shouldReceive( 'get_user_ip' )->andReturn( '127.0.0.1' )->byDefault();
 
         // RateLimiter alias: every test gets a green light by default.
-        // Individual cases can re-stub `check_ip_limit` via the property.
+        // Individual cases can re-stub `check_read_limit` via the property.
+        // Post-#259 the calendar controller delegates to the per-endpoint
+        // read pool via ReadRateLimitGuardTrait — that path calls
+        // `get_settings()` (for the whitelist/bypass toggles) and
+        // `check_read_limit` (for the actual gate); both stubbed here.
         $this->rate_limiter_mock = Mockery::mock( 'alias:\FreeFormCertificate\Security\RateLimiter' );
         $this->rate_limiter_mock->shouldReceive( 'check_ip_limit' )->andReturn( array( 'allowed' => true ) )->byDefault();
+        $this->rate_limiter_mock->shouldReceive( 'check_read_limit' )->andReturn( array( 'allowed' => true ) )->byDefault();
+        $this->rate_limiter_mock->shouldReceive( 'record_read_attempt' )->byDefault();
+        $this->rate_limiter_mock->shouldReceive( 'get_settings' )->andReturn(
+            array(
+                'whitelist' => array( 'ips' => array() ),
+                'read'      => array( 'respect_whitelist' => true, 'bypass_logged_in' => true ),
+            )
+        )->byDefault();
+        Functions\when( 'is_user_logged_in' )->justReturn( false );
+
+        // The trait also reaches RateLimitChecker::is_ip_whitelisted and
+        // RateLimitLogger::log_attempt — alias-stub both to no-op.
+        $checker_mock = Mockery::mock( 'alias:\FreeFormCertificate\Security\RateLimitChecker' );
+        $checker_mock->shouldReceive( 'is_ip_whitelisted' )->andReturn( false )->byDefault();
+        $logger_mock = Mockery::mock( 'alias:\FreeFormCertificate\Security\RateLimitLogger' );
+        $logger_mock->shouldReceive( 'log_attempt' )->byDefault();
     }
 
     protected function tearDown(): void {
@@ -133,12 +153,15 @@ class CalendarRestControllerTest extends TestCase {
     // ------------------------------------------------------------------
 
     public function test_get_calendars_returns_429_when_rate_limit_blocks(): void {
-        $this->rate_limiter_mock->shouldReceive( 'check_ip_limit' )->once()->andReturn( array(
-            'allowed'      => false,
-            'reason'       => 'ip_hour_limit',
-            'message'      => 'Slow down.',
-            'wait_seconds' => 3600,
-        ) );
+        $this->rate_limiter_mock->shouldReceive( 'check_read_limit' )
+            ->with( Mockery::any(), 'calendar_list' )
+            ->once()
+            ->andReturn( array(
+                'allowed'      => false,
+                'reason'       => 'read_hour_limit',
+                'message'      => 'Slow down.',
+                'wait_seconds' => 3600,
+            ) );
 
         $ctrl    = new CalendarRestController( 'ffc/v1' );
         $request = $this->make_request();
@@ -151,11 +174,14 @@ class CalendarRestControllerTest extends TestCase {
     }
 
     public function test_get_calendar_slots_returns_429_when_rate_limit_blocks(): void {
-        $this->rate_limiter_mock->shouldReceive( 'check_ip_limit' )->once()->andReturn( array(
-            'allowed' => false,
-            'reason'  => 'ip_day_limit',
-            'message' => 'Daily limit reached.',
-        ) );
+        $this->rate_limiter_mock->shouldReceive( 'check_read_limit' )
+            ->with( Mockery::any(), 'calendar_slots' )
+            ->once()
+            ->andReturn( array(
+                'allowed' => false,
+                'reason'  => 'read_minute_limit',
+                'message' => 'Daily limit reached.',
+            ) );
 
         $ctrl    = new CalendarRestController( 'ffc/v1' );
         $request = $this->make_request( array( 'id' => 1, 'date' => '2026-05-20' ) );

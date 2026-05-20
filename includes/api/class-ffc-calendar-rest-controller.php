@@ -24,6 +24,9 @@ if ( ! defined( 'ABSPATH' ) ) {
  */
 class CalendarRestController {
 
+	use ReadRateLimitGuardTrait;
+
+
 	/**
 	 * API namespace
 	 *
@@ -109,39 +112,27 @@ class CalendarRestController {
 	}
 
 	/**
-	 * Reject the request when the caller's IP has already tripped the
-	 * rate-limit pool (typically populated by failed/abusive form
-	 * submissions from the same IP). Returns null on green light.
+	 * Per-endpoint rate-limit guard.
 	 *
-	 * Rationale: the calendar GET routes are public-by-design — the
+	 * The Calendar GET routes are public-by-design — the
 	 * `[ffc_self_scheduling]` shortcode hits them anonymously to build
-	 * the booking UI. Behind `__return_true` they had no defence at
-	 * all against a scraper polling `/slots` to enumerate the working
-	 * hours of every calendar on a site. This guard is a circuit
-	 * breaker, not a per-read limiter: it shares the IP pool with
-	 * submit/verify, so an actor caught flooding submissions also
-	 * gets blocked from these reads. A per-read pool is a follow-up.
+	 * the booking UI. Issue #259 replaced the previous shared-IP-pool
+	 * circuit breaker with a dedicated per-read pool (per-endpoint
+	 * thresholds in `settings['read']['endpoints']`) so a scraper that
+	 * never submits forms doesn't bypass the protection.
+	 *
+	 * Logic lives in {@see ReadRateLimitGuardTrait::guard_read()} —
+	 * the three calendar endpoints just pass their endpoint key.
 	 *
 	 * @since 6.4.1
+	 * @param string $endpoint_key Endpoint identifier.
 	 * @return \WP_Error|null `WP_Error` (status 429) when blocked, null when allowed.
 	 */
-	private function rate_limit_guard() {
+	private function rate_limit_guard( string $endpoint_key ) {
 		if ( ! class_exists( '\FreeFormCertificate\Security\RateLimiter' ) ) {
 			return null;
 		}
-		$ip       = \FreeFormCertificate\Core\Utils::get_user_ip();
-		$ip_check = \FreeFormCertificate\Security\RateLimiter::check_ip_limit( $ip );
-		if ( ! empty( $ip_check['allowed'] ) ) {
-			return null;
-		}
-		return new \WP_Error(
-			'rate_limit_exceeded',
-			isset( $ip_check['message'] ) ? (string) $ip_check['message'] : __( 'Too many requests. Please try again later.', 'ffcertificate' ),
-			array(
-				'status'       => 429,
-				'wait_seconds' => isset( $ip_check['wait_seconds'] ) ? (int) $ip_check['wait_seconds'] : 60,
-			)
-		);
+		return $this->guard_read( $endpoint_key );
 	}
 
 	/**
@@ -153,7 +144,7 @@ class CalendarRestController {
 	 * @return \WP_REST_Response|\WP_Error
 	 */
 	public function get_calendars( $request ) {
-		$blocked = $this->rate_limit_guard();
+		$blocked = $this->rate_limit_guard( 'calendar_list' );
 		if ( $blocked instanceof \WP_Error ) {
 			return $blocked;
 		}
@@ -223,7 +214,7 @@ class CalendarRestController {
 	 * @return \WP_REST_Response|\WP_Error
 	 */
 	public function get_calendar( $request ) {
-		$blocked = $this->rate_limit_guard();
+		$blocked = $this->rate_limit_guard( 'calendar_detail' );
 		if ( $blocked instanceof \WP_Error ) {
 			return $blocked;
 		}
@@ -308,7 +299,7 @@ class CalendarRestController {
 	 * @return \WP_REST_Response|\WP_Error
 	 */
 	public function get_calendar_slots( $request ) {
-		$blocked = $this->rate_limit_guard();
+		$blocked = $this->rate_limit_guard( 'calendar_slots' );
 		if ( $blocked instanceof \WP_Error ) {
 			return $blocked;
 		}

@@ -79,14 +79,14 @@ trait ReadRateLimitGuardTrait {
 
 		$result = RateLimiter::check_read_limit( $ip, $endpoint_key );
 
-		if ( false === ( $result['allowed'] ?? false ) ) {
+		if ( ! $result['allowed'] ) {
 			$identifier = $ip . '|' . $endpoint_key;
-			$reason     = (string) ( $result['reason'] ?? 'read_limit' );
+			$reason     = isset( $result['reason'] ) ? (string) $result['reason'] : 'read_limit';
 
 			RateLimitLogger::log_attempt( 'read', $identifier, 'blocked', $reason, null );
 
-			$wait    = (int) ( $result['wait_seconds'] ?? 60 );
-			$message = (string) ( $result['message'] ?? __( 'Too many requests. Please slow down.', 'ffcertificate' ) );
+			$wait    = isset( $result['wait_seconds'] ) ? (int) $result['wait_seconds'] : 60;
+			$message = isset( $result['message'] ) ? (string) $result['message'] : __( 'Too many requests. Please slow down.', 'ffcertificate' );
 
 			return new \WP_Error(
 				'rate_limit_exceeded',
