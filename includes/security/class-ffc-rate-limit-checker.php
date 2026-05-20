@@ -1164,6 +1164,22 @@ final class RateLimitChecker {
 	}
 
 	/**
+	 * Public IP-only whitelist check. The internal `is_whitelisted()`
+	 * accepts email + CPF too; this thin wrapper exposes just the IP
+	 * branch for consumers that only have an IP to test (the read
+	 * trait, future webhook handlers, etc.). Issue #259.
+	 *
+	 * @since 6.6.2
+	 * @param string $ip Client IP.
+	 * @return bool
+	 */
+	public static function is_ip_whitelisted( string $ip ): bool {
+		$wl = self::get_settings()['whitelist'] ?? array();
+		$ips = is_array( $wl ) && isset( $wl['ips'] ) && is_array( $wl['ips'] ) ? $wl['ips'] : array();
+		return in_array( $ip, $ips, true );
+	}
+
+	/**
 	 * Read the `settings['read']['endpoints'][$key]` slot, or `null`
 	 * when the endpoint isn't configured. Centralizes the lookup so
 	 * `check_read_limit` + future read methods share the schema shape.
