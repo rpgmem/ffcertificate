@@ -218,9 +218,9 @@ final class AudienceQueryService {
 
 		$out = array();
 		foreach ( $bookings as $booking ) {
-			$booking_id            = (int) ( $booking['id'] ?? 0 );
-			$booking['audiences']  = $audiences_map[ $booking_id ] ?? array();
-			$out[]                 = $booking;
+			$booking_id           = (int) ( $booking['id'] ?? 0 );
+			$booking['audiences'] = $audiences_map[ $booking_id ] ?? array();
+			$out[]                = $booking;
 		}
 		return $out;
 	}
@@ -307,10 +307,10 @@ final class AudienceQueryService {
 	 * Avoids the N+1 pattern of looping the bookings and fetching
 	 * badges per-row.
 	 *
-	 * @param array     $booking_ids             Booking IDs to look up.
+	 * @param array  $booking_ids             Booking IDs to look up.
 	 * @phpstan-param list<int> $booking_ids
-	 * @param string    $booking_audiences_table Junction table name.
-	 * @param string    $audiences_table         Audiences table name.
+	 * @param string $booking_audiences_table Junction table name.
+	 * @param string $audiences_table         Audiences table name.
 	 * @return array<int, list<array{name: string, color: string}>>
 	 */
 	private static function batch_load_audiences_for_bookings( array $booking_ids, string $booking_audiences_table, string $audiences_table ): array {
