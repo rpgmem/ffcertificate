@@ -9,6 +9,65 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 
 ---
 
+## [6.6.3] (2026-05-20)
+
+iOS Safari + cached-HTML stale-nonce safety net. The cache-bust release
+6.6.2.1 didn't resolve "Security check failed." for an iOS visitor:
+the symptom persisted even with `?ver=6.6.2.1` on every asset, which
+means the actual stale-nonce code path was reached on the server, not
+just stale code in the client.
+
+### Fixed
+
+- **Server-side stale-nonce auto-recovery on form submission.** When
+  `wp_verify_nonce()` rejects the submitted nonce, the response now
+  includes `refresh_nonce: true` + `new_nonce: '<fresh>'` alongside
+  the existing error message. The fresh nonce is bound to the
+  visitor's current session cookie via `wp_create_nonce()`, so an
+  attacker who can't present a valid cookie can't use it.
+- **Client-side single-retry on FFC.request.** When a request comes
+  back with `refresh_nonce` flagged, `FFC.request` updates
+  `window.ffc_ajax.nonce` (the live-getter from 6.6.2 picks it up
+  automatically) and re-issues the same call exactly once. An
+  `options._ffcNonceRetried` guard prevents ping-pong. The user
+  never sees the "Security check failed" message in the common
+  recoverable cases.
+
+### Why this safety net is needed even after the 6.6.2.1 cache-bust
+
+Three iOS-specific scenarios slip past asset cache invalidation:
+
+1. **Cached HTML carrying another visitor's nonce on shared hosts**
+   — `?ver=…` bumps the `.min.js` cache key but the `[ffc_form]`
+   page HTML itself is still served from the page cache, and that
+   HTML carries the nonce that was generated for whoever first
+   warmed the cache entry. `ffc-dynamic-fragments.js` is supposed
+   to refresh the nonce in place, but its `XMLHttpRequest` swallows
+   any failure silently (CSP, service workers, hosting CDN policies
+   blocking POST to admin-ajax.php from specific UAs).
+2. **Safari ITP / iCloud Private Relay rotating the session cookie
+   between page render and submit** — iOS Safari is the only browser
+   that can produce a session-token mismatch on the same domain
+   without the user doing anything.
+3. **`ffc-dynamic-fragments` not running at all** — DOMContentLoaded
+   doesn't fire on some page transitions (bfcache restore), so the
+   nonce refresh path is skipped entirely.
+
+The retry covers all three without the client needing to know which
+one applies.
+
+### Tests
+
+- Vitest: 5 new cases in `tests/js/ffc-core-nonce-retry.test.js`
+  pinning the retry contract (updates `ffc_ajax.nonce`, retries
+  once, no retry without `refresh_nonce`, no retry without
+  `new_nonce`, preserves the final error payload).
+- PHPUnit: `FormProcessorNonceRecoveryTest` asserts the server
+  payload includes `refresh_nonce: true` + a non-empty `new_nonce`
+  when `wp_verify_nonce()` returns false.
+
+---
+
 ## [6.6.2.1] (2026-05-20)
 
 Cache-bust-only release — no source code changes. Bumps `FFC_VERSION`
