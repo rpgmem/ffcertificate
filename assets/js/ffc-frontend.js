@@ -244,6 +244,14 @@
      * ✅ PDF Download (uses shared ffc-pdf-generator.js)
      */
     $(document).on('click', '.ffc-download-pdf-btn, .ffc-download-btn', function() {
+        // 6.6.2 (Sprint 4) — offline check. The PDF generation itself is
+        // client-side and would technically work offline, but the certificate
+        // background image is fetched from the server. Failing fast with a
+        // clear message beats html2canvas rendering a half-broken canvas.
+        if (typeof navigator !== 'undefined' && navigator.onLine === false) {
+            showAccessibleAlert(ffc_ajax.strings.offlineMessage || 'You appear to be offline. Reconnect to the internet and try again.', $(this).parent());
+            return;
+        }
         try {
             var pdfData = JSON.parse($(this).attr('data-pdf-data') || '{}');
             var filename = pdfData.filename || 'certificate.pdf';
@@ -368,6 +376,15 @@
                 }
             });
             
+            // 6.6.2 (Sprint 4) — offline detection. The AJAX would fail
+            // with a generic connectionError anyway, but the user has no
+            // way to act on that. Telling them "you appear to be offline"
+            // points at the actual fix.
+            if (typeof navigator !== 'undefined' && navigator.onLine === false) {
+                showAccessibleAlert(ffc_ajax.strings.offlineMessage || 'You appear to be offline. Reconnect to the internet and try again.', $form);
+                return;
+            }
+
             if (!isValid) {
                 showAccessibleAlert(ffc_ajax.strings.fillRequired || 'Please fill all required fields', $form);
                 // Focus the first invalid field

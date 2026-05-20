@@ -88,7 +88,24 @@
             'line-height': '1.5'
         }).text(messageText);
 
-        content.append(spinner).append(title).append(message);
+        // 6.6.2 (Sprint 4) — "don't close this tab" hint during generation.
+        // The placeholder-tab branches (iOS / Samsung / WebView) already
+        // paint a similar warning *in the new tab*, but the desktop overlay
+        // never said it. Users on slow renders sometimes closed the tab or
+        // hit back, killing the in-flight generation; this paints a clear
+        // secondary line so the warning is universal.
+        var dontCloseText = (typeof ffc_ajax !== 'undefined' && ffc_ajax.strings && ffc_ajax.strings.pdfDontCloseTab)
+            ? ffc_ajax.strings.pdfDontCloseTab
+            : 'Please do not close this tab until the PDF appears.';
+        var dontClose = $('<p class="ffc-pdf-dont-close"></p>').css({
+            'margin': '12px 0 0',
+            'color': '#d63638',
+            'font-size': '13px',
+            'font-weight': '600',
+            'line-height': '1.4'
+        }).text(dontCloseText);
+
+        content.append(spinner).append(title).append(message).append(dontClose);
         overlay.append(content);
         $('body').append(overlay);
 

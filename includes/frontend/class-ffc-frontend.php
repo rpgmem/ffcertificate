@@ -291,6 +291,10 @@ class Frontend {
 						'pdfErrorCors'           => __( 'A certificate image failed to load (cross-origin restriction). This is a configuration problem on the server, not on your device. Please contact the organizer with your authentication code.', 'ffcertificate' ),
 						'pdfErrorHtml2canvas'    => __( "We couldn't render the certificate. This usually clears up on a retry; if not, try a different browser.", 'ffcertificate' ),
 						'pdfErrorLibrariesBody'  => __( 'A required script blocked or timed out. Reload the page (Ctrl+R / Cmd+R) and try again. If the issue persists, try a different browser.', 'ffcertificate' ),
+
+						// 6.6.2 (Sprint 4) — pre-submission warnings: don't-close + offline.
+						'pdfDontCloseTab'        => __( 'Please do not close this tab until the PDF appears.', 'ffcertificate' ),
+						'offlineMessage'         => __( 'You appear to be offline. Reconnect to the internet and try again.', 'ffcertificate' ),
 					),
 				)
 			);
