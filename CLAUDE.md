@@ -24,7 +24,7 @@ green completion is silent by design.
 
 ## CI gates (all gating, enforced on `main`)
 
-- PHP: PHPStan (level 8) · WPCS · PHPUnit (8.1/8.2/8.3/8.4) · Coverage
+- PHP: PHPStan (level 8) · WPCS · PHPUnit (8.3/8.4) · Coverage
   ≥ floor (clover, env `COVERAGE_FLOOR_LINES` in `.github/workflows/ci.yml`).
 - JS / CSS: ESLint (zero-error) · Stylelint (zero-error) · Vitest +
   coverage ≥ floor (env `JS_COVERAGE_FLOOR_LINES` in

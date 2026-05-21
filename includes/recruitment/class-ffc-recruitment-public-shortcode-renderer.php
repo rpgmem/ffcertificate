@@ -226,14 +226,12 @@ final class RecruitmentPublicShortcodeRenderer {
 				$time  = null === $call ? '' : self::format_time_hm( (string) $call->time_to_assume );
 				$html .= '<td>' . esc_html( $time ) . '</td>';
 			}
-		} else {
-			if ( $show_date && $columns['date_to_assume'] ) {
-				$html .= '<td></td>';
-			}
-			if ( $show_date && $columns['time_to_assume'] ) {
-				$html .= '<td></td>';
-			}
 		}
+		// 6.6.5 — removed the `else { if ( $show_date && $cols['…'] ) … }`
+		// fallback: those inner checks are dead code by construction
+		// (the outer condition negates as "$show_date false OR both
+		// columns false", which forces both inner $show_date && col
+		// checks to be false). PHPStan 2.1.55 surfaced this.
 		$html .= '</tr>';
 		return $html;
 	}
