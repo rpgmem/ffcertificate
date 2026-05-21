@@ -7,11 +7,24 @@
 //   - Toggle ON → both [FFC Diagnostics] lines emit
 //   - Module no longer fires from FFCGeofence.init (regression guard
 //     against re-introducing the always-on behavior in geofence module)
+//
+// Notes on test isolation:
+//   The IIFE inside ffc-frontend.js registers a jQuery ready handler
+//   that touches `FFC.Frontend.Masks` (line ~614). Once the script is
+//   loaded into the jsdom window, that handler is queued and fires on
+//   the next microtask. If a subsequent test `delete window.FFC` before
+//   the handler runs, the deferred handler throws `FFC is not defined`,
+//   which Vitest's CI runner (with coverage instrumentation) elevates
+//   to a test failure even though the assertion itself would pass.
+//
+//   So we DO NOT delete `window.FFC`. Each test sets up its own
+//   `window.ffc_ajax` BEFORE loadScript so the IIFE's reads pick the
+//   right state, and the FFC namespace from a prior test stays in
+//   place (its handlers are idempotent).
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { loadScript } from './helpers.js';
 
 beforeEach(() => {
-	delete window.FFC;
 	delete window.ffc_ajax;
 	delete window.ffcGeofenceConfig;
 	delete window.FFCGeofence;
@@ -46,7 +59,14 @@ describe('Sprint 1 (#361) — browser-env diagnostic log gating', () => {
 		await Promise.resolve();
 		await Promise.resolve();
 
-		expect(infoSpy).not.toHaveBeenCalled();
+		// Filter for our specific lines — the IIFE can also emit other
+		// console.info calls unrelated to this test (e.g. FFC namespace
+		// init noise from other modules previously loaded in the same
+		// jsdom window).
+		const diagnosticCalls = infoSpy.mock.calls.filter(c =>
+			typeof c[0] === 'string' && c[0].startsWith('[FFC Diagnostics]')
+		);
+		expect(diagnosticCalls).toHaveLength(0);
 	});
 
 	it('emits both [FFC Diagnostics] lines when debug_browser_env is true', async () => {
