@@ -9,6 +9,62 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 
 ---
 
+## [6.6.5] (2026-05-21)
+
+> ### ⚠ Breaking change: minimum PHP bumped 8.1 → 8.3
+>
+> Visitors / sites running on PHP 8.1 or 8.2 will not auto-upgrade
+> to this release. WordPress enforces the `Requires PHP` plugin
+> header — installs on 8.1 / 8.2 stay pinned at 6.6.4 until the
+> host upgrades PHP. Both versions are EOL'd / approaching EOL
+> upstream (8.1 security-only support ends late 2026; 8.2 active
+> support ended late 2025), and the project's own production
+> deploys run 8.3, so the maintenance gain outweighs the loss of
+> coverage for two unsupported versions.
+>
+> **What to expect**:
+>
+> - Existing 8.1/8.2 sites continue to work on 6.6.4 (no
+>   regressions; their plugin update notification just no longer
+>   surfaces 6.6.5).
+> - 8.3+ sites get the full release on their next auto-update or
+>   manual refresh.
+> - No source code changes in this release beyond the version
+>   declarations + a small dead-code cleanup PHPStan 2.1.55
+>   surfaced after the composer upgrade (recruitment public
+>   shortcode renderer; behaviour unchanged because the branch was
+>   unreachable).
+
+### Changed
+
+- **Minimum PHP version bumped 8.1 → 8.3** across all four
+  declarations: `ffcertificate.php` plugin header
+  (`Requires PHP: 8.3`), `FFC_MIN_PHP_VERSION` constant,
+  `readme.txt` `Requires PHP:`, and `composer.json` (`>=8.3`
+  + platform pin `8.3`). PHPStan target pinned via new
+  `phpVersion: 80300` in `phpstan.neon.dist` so analysis stays
+  target-aware regardless of CI runner version.
+- **CI matrix slimmed 4 → 2 PHP versions**. PHPUnit matrix now
+  runs `['8.3', '8.4']` (was `['8.1', '8.2', '8.3', '8.4']`).
+  PHPStan, Coverage, Composer audit, and PHPCS jobs all switched
+  runtime from PHP 8.1 → 8.3 to match the new minimum + benefit
+  from the faster runtime. Coverage step's wall-clock drops
+  ~1.5-3 minutes (PHP 8.3 is ~5-15% faster than 8.1 on
+  PHPUnit-heavy workloads); total runner-minutes per PR drops
+  ~30% (12 jobs instead of 14).
+
+### Fixed
+
+- **Dead-code branch in `RecruitmentPublicShortcodeRenderer::render_row()`**
+  surfaced by PHPStan 2.1.55 (the patch composer pulled during the
+  bump). The `else` branch's inner `if ( $show_date && $cols['…'] )`
+  checks were unreachable by construction — the outer condition
+  negates as "either `$show_date` is false OR both columns are
+  false", which forces both inner conditions to false. Removed
+  the dead lines; no behaviour change.
+
+---
+
 ## [6.6.4] (2026-05-20)
 
 Pre-flight permission checks + server-side reorderings + user-facing

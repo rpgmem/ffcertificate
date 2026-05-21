@@ -4,6 +4,13 @@ includes:
 parameters:
     level: 8
 
+    # 6.6.5 — pin the analysis target to PHP 8.3 (the new minimum).
+    # Without this, PHPStan infers the target from the runtime PHP
+    # version, which means moving the CI runner to 8.3 (also 6.6.5)
+    # would silently relax checks for 8.2- syntax. Pinning makes the
+    # gate target-version-aware regardless of runtime.
+    phpVersion: 80300
+
     paths:
         - includes/
 
