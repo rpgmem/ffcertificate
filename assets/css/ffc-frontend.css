@@ -1163,6 +1163,57 @@ details.ffc-consent-description > p {
     margin: 4px 0;
 }
 
+/* 6.6.4 — pre-flight permission banners (cookies / GPS).
+   Yellow warning, non-blocking visually but the form is hidden behind.
+   Includes a "try anyway" CTA so permissive users can proceed. */
+.ffc-preflight-banner {
+    border: 1px solid #dba617;
+    background: #fcf9e8;
+    color: #674008;
+    padding: 16px 18px;
+    border-radius: 6px;
+    margin: 12px 0;
+    text-align: left;
+}
+
+.ffc-preflight-banner-title {
+    display: block;
+    font-size: 16px;
+    margin-bottom: 6px;
+    color: #674008;
+}
+
+.ffc-preflight-banner-body,
+.ffc-preflight-banner-how {
+    margin: 6px 0;
+    font-size: 14px;
+    line-height: 1.5;
+}
+
+.ffc-preflight-banner-how {
+    color: #7a5005;
+    font-style: italic;
+}
+
+.ffc-preflight-try-anyway {
+    display: inline-block;
+    margin-top: 10px;
+    padding: 8px 16px;
+    background: transparent;
+    color: #674008;
+    border: 1px solid #dba617;
+    border-radius: 4px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.15s ease;
+}
+
+.ffc-preflight-try-anyway:hover,
+.ffc-preflight-try-anyway:focus {
+    background: #dba617;
+    color: #fff;
+}
+
 /* ============================================
    CSV DOWNLOAD PROGRESS OVERLAY
    ============================================ */

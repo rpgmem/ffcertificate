@@ -149,7 +149,65 @@ class FormProcessor {
 
 		$fields_config = get_post_meta( $form_id, '_ffc_form_fields', true );
 		if ( ! $fields_config ) {
-			wp_send_json_error( array( 'message' => __( 'Form configuration not found.', 'ffcertificate' ) ) );
+			// 6.6.4 Sprint 7 — empathetic rewording. The original
+			// "Form configuration not found." reads like a 404 from
+			// the database to a non-technical user. This is always an
+			// admin-side state (deleted form / unsaved config), never
+			// the user's fault — point them at the organizer.
+			wp_send_json_error( array( 'message' => __( 'This form is not available right now. Please contact the organizer.', 'ffcertificate' ) ) );
+		}
+
+		// 6.6.4 Sprint 4 — cheap presence checks BEFORE the field
+		// validation loop. LGPD consent + email presence are O(1)
+		// checks (no CPF checksum, no regex per field); running them
+		// up front lets the user get both errors in a single response
+		// instead of fixing CPF first, then resubmitting, then seeing
+		// the LGPD error. The combined errors array on the wp_send_json
+		// payload mirrors the existing refresh_captcha shape so the
+		// client doesn't need a new code path.
+		$preflight_errors = array();
+
+		// LGPD: trivial string compare, no field loop dependency.
+		if ( Utils::get_post_string( 'ffc_lgpd_consent' ) !== '1' ) {
+			$preflight_errors[] = __( 'You must agree to the Privacy Policy to continue.', 'ffcertificate' );
+		}
+
+		// Email presence: peek at $_POST for any field whose admin-
+		// configured type is 'email'. Catches the empty-email case
+		// without running the full field loop (which does CPF
+		// checksum etc.). Multiple email fields are rare but
+		// supported: if ANY of them is empty the form was incomplete.
+		$email_field_names = array();
+		foreach ( $fields_config as $field ) {
+			if ( isset( $field['type'], $field['name'] ) && 'email' === $field['type'] ) {
+				$email_field_names[] = $field['name'];
+			}
+		}
+		if ( ! empty( $email_field_names ) ) {
+			$email_missing = false;
+			foreach ( $email_field_names as $email_field ) {
+				$raw_email = Utils::get_post_string( $email_field );
+				if ( '' === trim( $raw_email ) ) {
+					$email_missing = true;
+					break;
+				}
+			}
+			if ( $email_missing ) {
+				$preflight_errors[] = __( 'Email address is required.', 'ffcertificate' );
+			}
+		}
+
+		if ( ! empty( $preflight_errors ) ) {
+			wp_send_json_error(
+				array(
+					// Backward-compatible: legacy single-error consumers
+					// read `message` (first error). New consumers can
+					// read the full `errors` array to surface every
+					// missing field at once.
+					'message' => $preflight_errors[0],
+					'errors'  => $preflight_errors,
+				)
+			);
 		}
 
 		// Process and sanitize form fields using FFC_Utils.
@@ -208,19 +266,16 @@ class FormProcessor {
 			}
 		}
 
+		// Defensive: after the field loop ran, the email field may
+		// have failed sanitize_email() despite passing the preflight
+		// presence check (e.g. user typed "not an email"). Keep this
+		// gate as a fallback so $user_email is never empty downstream.
 		if ( empty( $user_email ) ) {
 			wp_send_json_error( array( 'message' => __( 'Email address is required.', 'ffcertificate' ) ) );
 		}
-		// Validate LGPD consent (mandatory).
-		if ( Utils::get_post_string( 'ffc_lgpd_consent' ) !== '1' ) {
-			wp_send_json_error(
-				array(
-					'message' => __( 'You must agree to the Privacy Policy to continue.', 'ffcertificate' ),
-				)
-			);
-		}
 
-		// Add consent to submission data.
+		// LGPD already validated up-front (Sprint 4 pre-flight); just
+		// stamp the consent on the submission data.
 		$submission_data['ffc_lgpd_consent'] = '1';
 
 		// Capture restriction fields (password/ticket) from POST.
@@ -267,6 +322,56 @@ class FormProcessor {
 						}
 					}
 				}
+			}
+		}
+
+		// Geofence validation (date/time + geolocation).
+		//
+		// 6.6.4 Sprint 5 — moved BEFORE the consolidated rate-limit
+		// check. Geofence::can_access_form is read-only (single
+		// get_post_meta + optional IP geolocation lookup); the
+		// rate-limit block, in contrast, calls record_attempt() which
+		// writes to the counters. A visitor outside the geofence
+		// (e.g. legitimate user on the edge of the allowed radius
+		// whose GPS imprecision puts them slightly outside) used to
+		// burn rate-limit budget on every fail. Doing the cheaper
+		// read-only check first preserves their budget for the next
+		// legitimate retry.
+		//
+		// Cheap → expensive ordering. Rate-limit IP at the very top
+		// of the handler (step 1) still catches the DoS case before
+		// geofence — geofence isn't a DoS gate, it's an authorization
+		// gate.
+		if ( class_exists( '\FreeFormCertificate\Security\Geofence' ) ) {
+			// Get form geofence config to check if IP validation is enabled.
+			$geofence_config    = \FreeFormCertificate\Security\Geofence::get_form_config( $form_id );
+			$should_validate_ip = false;
+
+			// Backend validation logic:
+			// - Always validate datetime (server-side is authoritative)
+			// - Only validate IP geolocation if explicitly enabled.
+			// - GPS validation happens on frontend (browser geolocation API)
+			// Note: GPS-only mode relies on frontend validation; backend cannot verify GPS.
+			if ( $geofence_config && ! empty( $geofence_config['geo_enabled'] ) && ! empty( $geofence_config['geo_ip_enabled'] ) ) {
+				$should_validate_ip = true;
+			}
+
+			$geofence_check = \FreeFormCertificate\Security\Geofence::can_access_form(
+				$form_id,
+				array(
+					'check_datetime' => true,        // Always validate date/time server-side.
+					'check_geo'      => $should_validate_ip, // Only validate IP if explicitly enabled.
+				)
+			);
+
+			if ( ! $geofence_check['allowed'] ) {
+				wp_send_json_error(
+					array(
+						'message'          => $geofence_check['message'] ?? '',
+						'geofence_blocked' => true,
+						'reason'           => $geofence_check['reason'] ?? '',
+					)
+				);
 			}
 		}
 
@@ -335,40 +440,6 @@ class FormProcessor {
 					},
 					10,
 					2
-				);
-			}
-		}
-
-		// Geofence validation (date/time + geolocation).
-		if ( class_exists( '\FreeFormCertificate\Security\Geofence' ) ) {
-			// Get form geofence config to check if IP validation is enabled.
-			$geofence_config    = \FreeFormCertificate\Security\Geofence::get_form_config( $form_id );
-			$should_validate_ip = false;
-
-			// Backend validation logic:
-			// - Always validate datetime (server-side is authoritative)
-			// - Only validate IP geolocation if explicitly enabled.
-			// - GPS validation happens on frontend (browser geolocation API)
-			// Note: GPS-only mode relies on frontend validation; backend cannot verify GPS.
-			if ( $geofence_config && ! empty( $geofence_config['geo_enabled'] ) && ! empty( $geofence_config['geo_ip_enabled'] ) ) {
-				$should_validate_ip = true;
-			}
-
-			$geofence_check = \FreeFormCertificate\Security\Geofence::can_access_form(
-				$form_id,
-				array(
-					'check_datetime' => true,        // Always validate date/time server-side.
-					'check_geo'      => $should_validate_ip, // Only validate IP if explicitly enabled.
-				)
-			);
-
-			if ( ! $geofence_check['allowed'] ) {
-				wp_send_json_error(
-					array(
-						'message'          => $geofence_check['message'] ?? '',
-						'geofence_blocked' => true,
-						'reason'           => $geofence_check['reason'] ?? '',
-					)
 				);
 			}
 		}
@@ -479,10 +550,17 @@ class FormProcessor {
 					);
 
 					if ( is_wp_error( $submission_id ) ) {
+						// 6.6.4 Sprint 7 — wrap the raw repository error
+						// with empathetic guidance. The raw message is
+						// often a SQL/wpdb string ("Duplicate entry"…)
+						// that's actionable only for admins. Surface
+						// the original as `code` for support triage and
+						// give the user a recovery path.
 						wp_send_json_error(
 							array(
 								'code'    => $submission_id->get_error_code(),
-								'message' => $submission_id->get_error_message(),
+								'message' => __( "We couldn't save your submission. Try again — if the problem persists, contact the organizer.", 'ffcertificate' ),
+								'detail'  => $submission_id->get_error_message(),
 							)
 						);
 					}
@@ -564,10 +642,14 @@ class FormProcessor {
 				);
 
 				if ( is_wp_error( $submission_id ) ) {
+					// 6.6.4 Sprint 7 — see the quiz branch above for the
+					// rationale. Empathetic top-level message; raw repo
+					// error preserved under `detail` for admin triage.
 					wp_send_json_error(
 						array(
 							'code'    => $submission_id->get_error_code(),
-							'message' => $submission_id->get_error_message(),
+							'message' => __( "We couldn't save your submission. Try again — if the problem persists, contact the organizer.", 'ffcertificate' ),
+							'detail'  => $submission_id->get_error_message(),
 						)
 					);
 				}

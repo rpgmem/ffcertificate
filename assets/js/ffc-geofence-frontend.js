@@ -30,6 +30,20 @@
 
             this.debug('FFC Geofence initialized', window.ffcGeofenceConfig);
 
+            // 6.6.4 — runtime diagnostic log for support triage.
+            // Fires once at module load, BEFORE any per-form gate runs,
+            // so we always have the breadcrumb even when datetime/geo
+            // gates block the form. No UI; pure observability.
+            //
+            // Captures:
+            //   - Service worker registrations (rare in production but
+            //     can intercept admin-ajax and break the nonce flow);
+            //   - Clipboard permission state on Chromium (Copy buttons
+            //     on the success card depend on it; iOS Safari doesn't
+            //     surface the state but the Permissions.query just
+            //     rejects silently there).
+            this.logDiagnostics();
+
             // Process each form (skip non-numeric keys like '_global')
             Object.keys(window.ffcGeofenceConfig).forEach(formId => {
                 // Only process numeric form IDs (skip keys starting with '_')
@@ -37,6 +51,51 @@
                     this.processForm(formId, window.ffcGeofenceConfig[formId]);
                 }
             });
+        },
+
+        /**
+         * 6.6.4 — emit one console.info line per detected runtime
+         * signal. Wraps every API touch in try/catch + Promise.catch
+         * so an old browser missing navigator.serviceWorker or
+         * navigator.permissions never throws.
+         *
+         * Intentionally console.info (not .log) so support staff can
+         * filter the console by level when triaging.
+         */
+        logDiagnostics: function() {
+            // Service workers — typically empty array; only populated
+            // on sites where the host installed a PWA shell.
+            try {
+                if (navigator.serviceWorker && typeof navigator.serviceWorker.getRegistrations === 'function') {
+                    navigator.serviceWorker.getRegistrations().then(function (regs) {
+                        var scopes = regs.map(function (r) { return r.scope; });
+                        console.info('[FFC Diagnostics] Service workers:', scopes.length, scopes);
+                    }).catch(function () {
+                        // Some browsers (legacy iOS Safari) reject the
+                        // promise outright; we just don't log.
+                    });
+                } else {
+                    console.info('[FFC Diagnostics] Service workers: API not available');
+                }
+            } catch (e) {
+                // Swallow — diagnostics must never break the form flow.
+            }
+
+            // Clipboard write permission — Chromium surfaces it,
+            // iOS Safari throws TypeError, Firefox returns 'prompt'.
+            try {
+                if (navigator.permissions && typeof navigator.permissions.query === 'function') {
+                    navigator.permissions.query({ name: 'clipboard-write' }).then(function (status) {
+                        console.info('[FFC Diagnostics] Clipboard write permission:', status.state);
+                    }).catch(function () {
+                        console.info('[FFC Diagnostics] Clipboard write permission: not queryable');
+                    });
+                } else {
+                    console.info('[FFC Diagnostics] Permissions API: not available');
+                }
+            } catch (e) {
+                // Swallow.
+            }
         },
 
         /**
@@ -86,27 +145,31 @@
                 // DateTime validation passed, continue...
             }
 
-            // PRIORITY 2: Validate Geolocation (if enabled)
-            // Only validate if geo is enabled (not bypassed)
-            if (config.geo && config.geo.enabled) {
-                // Check if GPS validation is required
-                if (config.geo.gpsEnabled) {
-                    this.validateGeolocation(formWrapper, config.geo);
-                } else if (config.geo.ipEnabled) {
-                    // IP-only validation happens on backend, show form
-                    // (Backend already validated before sending this config)
-                    this.showForm(formWrapper);
-                    this.debug('IP-only validation (backend), showing form');
-                } else {
-                    // Geo enabled but neither GPS nor IP enabled - show form
-                    this.showForm(formWrapper);
-                    this.debug('No GPS/IP method enabled, showing form');
-                }
-            } else {
-                // No geolocation check needed, show form now
-                this.showForm(formWrapper);
-                this.debug('No geolocation validation, showing form');
+            // PRIORITY 2: Cookie sanity check (6.6.4 Sprint 2).
+            // Probes `document.cookie` write+read roundtrip to surface
+            // visitors with cookies fully blocked at the browser level.
+            // Cookies are required by:
+            //   - the WP session token that wp_verify_nonce reads on
+            //     submit (otherwise the auto-recover in #356 will also
+            //     fail since the cookie is what binds the fresh nonce),
+            //   - the per-visitor identity that gates ITP-affected
+            //     downloads in 6.6.2.
+            // Skipped on adminBypass (operators don't get the banner).
+            // Does NOT catch ITP partitioning that strips cookies later
+            // mid-session — that case is covered by the server-side
+            // refresh_nonce auto-recover (6.6.3 #356).
+            if (config.adminBypass !== true && ! this.checkCookieSupport()) {
+                this.handleCookieBlocked(formWrapper);
+                return; // Stop here, don't check geo
             }
+
+            // PRIORITY 3: Validate Geolocation (if enabled)
+            // Only validate if geo is enabled (not bypassed). The
+            // implementation is extracted into processGeoOrShow so the
+            // cookie-blocked "try anyway" path (Sprint 2) and the
+            // permission-denied "try anyway" path (Sprint 3) can re-enter
+            // it without duplicating the branch table.
+            this.processGeoOrShow(formWrapper, config);
         },
 
         /**
@@ -135,6 +198,294 @@
             if (phase === 'after')  return datetimeConfig.hideModeAfter  || 'message';
             if (phase === 'during') return datetimeConfig.hideModeDuring || 'message';
             return datetimeConfig.hideModeBefore || 'message';
+        },
+
+        /**
+         * 6.6.4 Sprint 2 — probe document.cookie to confirm the browser
+         * accepts first-party cookies on this origin. Returns true if
+         * the visitor can hold cookies, false if the probe didn't round-
+         * trip.
+         *
+         * Caveats:
+         *   - `navigator.cookieEnabled` is checked but doesn't catch
+         *     site-specific blocking; the actual write+read is what
+         *     proves it works for THIS request flow.
+         *   - Does NOT detect Safari ITP partitioning of cookies on
+         *     cross-context navigations (that case is handled
+         *     server-side via the 6.6.3 refresh_nonce auto-recover).
+         *   - Probe cookie is short-lived (10s max-age) so even if the
+         *     cleanup line below somehow fails, the cookie expires
+         *     itself.
+         *
+         * @returns {boolean} true if cookies appear to work
+         */
+        checkCookieSupport: function() {
+            try {
+                if (typeof navigator !== 'undefined' && navigator.cookieEnabled === false) {
+                    return false;
+                }
+                if (typeof document === 'undefined') {
+                    return false;
+                }
+                const probeName = 'ffc_cookie_probe';
+                const probeValue = '1';
+                document.cookie = probeName + '=' + probeValue
+                    + '; path=/; SameSite=Lax; max-age=10';
+                const present = document.cookie.split('; ').some(function (c) {
+                    return c.indexOf(probeName + '=' + probeValue) === 0;
+                });
+                // Clean up immediately on success path — don't litter the
+                // visitor's cookie jar with our probe.
+                document.cookie = probeName + '=; path=/; SameSite=Lax; max-age=0';
+                return present;
+            } catch (e) {
+                // Some sandboxed contexts throw on `document.cookie`
+                // assignment; treat as blocked.
+                return false;
+            }
+        },
+
+        /**
+         * 6.6.4 Sprint 2 — render the "cookies blocked" yellow warning
+         * banner with platform-aware instructions and a permissive
+         * "try anyway" CTA. Form stays in the DOM but is hidden
+         * behind the banner until the visitor either fixes the
+         * underlying setting (and reloads) or chooses to proceed
+         * anyway.
+         *
+         * @param {jQuery} formWrapper Form wrapper element.
+         */
+        handleCookieBlocked: function(formWrapper) {
+            this.debug('Cookies appear to be blocked');
+
+            const platform = this.detectPlatformFamily();
+            const title = this.getString('cookieBlockedTitle', 'Cookies blocked');
+            const body = this.getString(
+                'cookieBlockedBody',
+                'Cookies are blocked in this browser. Without cookies, the form submission may fail. Enable cookies for this site, or try a different browser.'
+            );
+            const instructions = this.getString(
+                platform === 'ios' ? 'cookieBlockedHowIos'
+                    : platform === 'android' ? 'cookieBlockedHowAndroid'
+                    : 'cookieBlockedHowDesktop',
+                ''
+            );
+            const tryAnyway = this.getString('cookieTryAnyway', 'Try anyway');
+
+            const $banner = $(
+                '<div class="ffc-preflight-banner ffc-preflight-cookies" role="alert" aria-live="assertive">'
+                + '<strong class="ffc-preflight-banner-title"></strong>'
+                + '<p class="ffc-preflight-banner-body"></p>'
+                + (instructions ? '<p class="ffc-preflight-banner-how"></p>' : '')
+                + '<button type="button" class="ffc-preflight-try-anyway"></button>'
+                + '</div>'
+            );
+            $banner.find('.ffc-preflight-banner-title').text(title);
+            $banner.find('.ffc-preflight-banner-body').text(body);
+            if (instructions) {
+                $banner.find('.ffc-preflight-banner-how').text(instructions);
+            }
+            $banner.find('.ffc-preflight-try-anyway').text(tryAnyway);
+
+            $banner.find('.ffc-preflight-try-anyway').on('click', () => {
+                $banner.remove();
+                // Continue pipeline as if the gate passed — equivalent
+                // to skipping to STEP 3 (geo). We re-enter processForm
+                // with a flag so we don't re-run the cookie probe.
+                const formId = formWrapper.attr('id').replace('ffc-form-', '');
+                const config = window.ffcGeofenceConfig && window.ffcGeofenceConfig[formId];
+                if (! config) {
+                    this.showForm(formWrapper);
+                    return;
+                }
+                this.processGeoOrShow(formWrapper, config);
+            });
+
+            formWrapper.find('.ffc-submission-form, .ffc-form').hide();
+            formWrapper.prepend($banner);
+        },
+
+        /**
+         * 6.6.4 Sprint 2 — extracted from processForm so the
+         * "try anyway" path on the cookie banner can re-enter just
+         * the geo step without re-running datetime + cookies.
+         *
+         * @param {jQuery} formWrapper Form wrapper element.
+         * @param {object} config Form geofence configuration.
+         */
+        processGeoOrShow: function(formWrapper, config) {
+            if (config.geo && config.geo.enabled) {
+                if (config.geo.gpsEnabled) {
+                    this.validateGeolocation(formWrapper, config.geo);
+                } else if (config.geo.ipEnabled) {
+                    this.showForm(formWrapper);
+                    this.debug('IP-only validation (backend), showing form');
+                } else {
+                    this.showForm(formWrapper);
+                    this.debug('No GPS/IP method enabled, showing form');
+                }
+            } else {
+                this.showForm(formWrapper);
+                this.debug('No geolocation validation, showing form');
+            }
+        },
+
+        /**
+         * 6.6.4 Sprint 2 — detect device family for platform-specific
+         * instructions in the cookies / GPS banners. Returns
+         * 'ios' | 'android' | 'desktop'. iPadOS reports "Macintosh" in
+         * the UA but exposes maxTouchPoints > 1; the same heuristic
+         * the PDF generator uses.
+         *
+         * @returns {'ios'|'android'|'desktop'}
+         */
+        detectPlatformFamily: function() {
+            const ua = (typeof navigator !== 'undefined' && navigator.userAgent) || '';
+            if (/iPad|iPhone|iPod/.test(ua)
+                || (/Macintosh/.test(ua) && navigator.maxTouchPoints > 1)) {
+                return 'ios';
+            }
+            if (/Android/i.test(ua)) {
+                return 'android';
+            }
+            return 'desktop';
+        },
+
+        /**
+         * 6.6.4 Sprint 3 — dispatch on the PermissionStatus returned by
+         * navigator.permissions.query({name: 'geolocation'}). Wires an
+         * onchange listener so the user can grant in Settings without
+         * reloading the page and we pick up the transition.
+         *
+         * @param {jQuery}           formWrapper Form wrapper element.
+         * @param {object}           config Geofence config.
+         * @param {PermissionStatus} status Result of permissions.query.
+         */
+        handleGpsPermissionStatus: function(formWrapper, config, status) {
+            const self = this;
+            try {
+                status.onchange = function () {
+                    // Only act on a positive transition. denied↔prompt
+                    // transitions are noise here (the banner already
+                    // describes the situation).
+                    if (status.state === 'granted') {
+                        const banner = formWrapper[0].querySelector('.ffc-preflight-gps');
+                        if (banner) banner.remove();
+                        self.validateGeolocation(formWrapper, config, true);
+                    }
+                };
+            } catch (e) {
+                // Some legacy PermissionStatus impls don't allow onchange
+                // assignment. Swallow.
+            }
+
+            this.debug('GPS permission status', status.state);
+
+            if (status.state === 'granted') {
+                this.validateGeolocation(formWrapper, config, true);
+                return;
+            }
+            if (status.state === 'denied') {
+                this.handleGpsDeniedBanner(formWrapper, config);
+                return;
+            }
+            // 'prompt' or anything unexpected.
+            this.handleGpsPromptBanner(formWrapper, config);
+        },
+
+        /**
+         * 6.6.4 Sprint 3 — render the "GPS denied" yellow banner with
+         * platform-specific instructions on how to revoke the block.
+         * "Try anyway" lets the user fall through to the existing
+         * native flow (the browser may still re-prompt some devices).
+         *
+         * @param {jQuery} formWrapper Form wrapper element.
+         * @param {object} config Geofence config.
+         */
+        handleGpsDeniedBanner: function(formWrapper, config) {
+            const self = this;
+            const platform = this.detectPlatformFamily();
+            const title = this.getString('gpsDeniedTitle', 'Location blocked');
+            const body = this.getString(
+                'gpsDeniedBody',
+                'This site needs your location, but the browser has it set to "block" for this site.'
+            );
+            const instructions = this.getString(
+                platform === 'ios' ? 'gpsDeniedHowIos'
+                    : platform === 'android' ? 'gpsDeniedHowAndroid'
+                    : 'gpsDeniedHowDesktop',
+                ''
+            );
+            const tryAnyway = this.getString('gpsTryAnyway', 'Try anyway');
+
+            this.renderPreflightBanner(formWrapper, 'ffc-preflight-gps', title, body, instructions, tryAnyway, function () {
+                // Fall through to the existing native flow. Skip the
+                // pre-check so we don't loop back into this banner.
+                self.validateGeolocation(formWrapper, config, true);
+            });
+        },
+
+        /**
+         * 6.6.4 Sprint 3 — render the "we'll ask for location" explainer
+         * banner BEFORE the native prompt fires. State === 'prompt'
+         * means the browser would ask anyway — pre-explaining the
+         * reason and gating the prompt on a user click gives the user
+         * context AND ensures the prompt fires inside a fresh user-
+         * gesture window (matters on iOS Safari, where async-deferred
+         * prompts sometimes get refused silently).
+         *
+         * @param {jQuery} formWrapper Form wrapper element.
+         * @param {object} config Geofence config.
+         */
+        handleGpsPromptBanner: function(formWrapper, config) {
+            const self = this;
+            const title = this.getString('gpsPromptTitle', 'We need your location');
+            const body = this.getString(
+                'gpsPromptBody',
+                'This site needs to confirm you are at the venue. After you tap "Continue", your browser will ask for permission.'
+            );
+            const cta = this.getString('gpsPromptContinue', 'Continue');
+
+            this.renderPreflightBanner(formWrapper, 'ffc-preflight-gps', title, body, '', cta, function () {
+                self.validateGeolocation(formWrapper, config, true);
+            });
+        },
+
+        /**
+         * 6.6.4 Sprint 3 — shared renderer for pre-flight banners
+         * (denied + prompt). DOM shape mirrors the cookie banner
+         * (Sprint 2) so the CSS class .ffc-preflight-banner styles
+         * both, but the modifier class lets callers identify which
+         * one is showing (for the onchange listener cleanup path).
+         *
+         * @param {jQuery}   formWrapper
+         * @param {string}   modifierClass eg. 'ffc-preflight-gps'
+         * @param {string}   title
+         * @param {string}   body
+         * @param {string}   instructions (may be empty)
+         * @param {string}   ctaLabel
+         * @param {Function} onCta Callback fired on CTA click after banner removal.
+         */
+        renderPreflightBanner: function(formWrapper, modifierClass, title, body, instructions, ctaLabel, onCta) {
+            const $banner = $(
+                '<div class="ffc-preflight-banner ' + modifierClass + '" role="alert" aria-live="assertive">'
+                + '<strong class="ffc-preflight-banner-title"></strong>'
+                + '<p class="ffc-preflight-banner-body"></p>'
+                + (instructions ? '<p class="ffc-preflight-banner-how"></p>' : '')
+                + '<button type="button" class="ffc-preflight-try-anyway"></button>'
+                + '</div>'
+            );
+            $banner.find('.ffc-preflight-banner-title').text(title);
+            $banner.find('.ffc-preflight-banner-body').text(body);
+            if (instructions) {
+                $banner.find('.ffc-preflight-banner-how').text(instructions);
+            }
+            $banner.find('.ffc-preflight-try-anyway').text(ctaLabel).on('click', function () {
+                $banner.remove();
+                onCta();
+            });
+            formWrapper.find('.ffc-submission-form, .ffc-form').hide();
+            formWrapper.prepend($banner);
         },
 
         /**
@@ -248,7 +599,7 @@
             return /^((?!chrome|android).)*safari/i.test(ua);
         },
 
-        validateGeolocation: function(formWrapper, config) {
+        validateGeolocation: function(formWrapper, config, preflightDone) {
             const self = this;
 
             // Check HTTPS requirement (required by Safari and recommended by all browsers)
@@ -278,6 +629,46 @@
                     this.getString('browserNoSupport', 'Your browser does not support location services required by this form. Please use a modern browser to access it.'),
                     false
                 );
+                return;
+            }
+
+            // 6.6.4 Sprint 3 — Permissions API pre-check.
+            //
+            // Avoids the native getCurrentPosition prompt entirely when
+            // we can already tell the state. Three outcomes:
+            //   - 'granted' → continue to the existing flow below
+            //   - 'denied' → render the "denied" banner (instructions
+            //     + Try anyway). Don't call getCurrentPosition.
+            //   - 'prompt' → render the explainer banner with explicit
+            //     CTA so the prompt fires only after a fresh user
+            //     gesture (better mobile UX than browser-decided timing).
+            //
+            // Compatibility:
+            //   - iOS Safari <16 throws TypeError on the query; the
+            //     catch falls through to the existing flow (preserves
+            //     today's behaviour: native prompt with our existing
+            //     progressive loading messages).
+            //   - PermissionStatus.onchange lets the user grant in
+            //     Settings without reloading and we re-enter the flow
+            //     automatically.
+            //
+            // `preflightDone` parameter — set on recursive re-entry from
+            // any "granted" or fallback path so we don't loop.
+            if (!preflightDone
+                && navigator.permissions
+                && typeof navigator.permissions.query === 'function') {
+                try {
+                    navigator.permissions.query({ name: 'geolocation' })
+                        .then(function (status) {
+                            self.handleGpsPermissionStatus(formWrapper, config, status);
+                        })
+                        .catch(function () {
+                            self.debug('Permissions.query rejected — falling through to native flow');
+                            self.validateGeolocation(formWrapper, config, true);
+                        });
+                } catch (e) {
+                    self.validateGeolocation(formWrapper, config, true);
+                }
                 return;
             }
 

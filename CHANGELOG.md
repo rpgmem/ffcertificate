@@ -9,6 +9,99 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 
 ---
 
+## [6.6.4] (2026-05-20)
+
+Pre-flight permission checks + server-side reorderings + user-facing
+copy polish. Single PR, 8 sprints, ~280 LoC production + 22 new
+tests. Covers the iOS Safari / cached-HTML failure modes that
+6.6.2.1 / 6.6.3 began addressing, but proactively — surfacing the
+underlying browser-permission state before the user submits instead
+of recovering after failure.
+
+### Added
+
+- **Cookie sanity check** (Sprint 2). New STEP 2 between datetime
+  and GPS in the geofence pre-flight pipeline. Probes
+  `document.cookie` write+read roundtrip on the visitor's origin.
+  Visitors with cookies fully blocked at the browser level see a
+  yellow warning banner with platform-specific instructions
+  (iOS/Android/desktop) and a permissive "Try anyway" CTA. Does NOT
+  catch Safari ITP mid-session partitioning — that case is still
+  handled by the 6.6.3 server-side `refresh_nonce` auto-recovery.
+- **GPS permission pre-check** (Sprint 3). Wraps the existing
+  `getCurrentPosition` call with `navigator.permissions.query
+  ({name: 'geolocation'})`. Three branches:
+    - `granted` — silent fall-through to the existing native flow
+      (zero user-visible change).
+    - `denied` — yellow "Location blocked" banner with iOS/Android/
+      desktop instructions to unblock + "Try anyway" CTA. Native
+      `getCurrentPosition` is NOT called.
+    - `prompt` — explainer banner with explicit "Continue" CTA so
+      the native prompt fires inside a fresh user-gesture window
+      (matters on iOS Safari, which silently refuses async-deferred
+      geolocation prompts).
+  `PermissionStatus.onchange` listener picks up settings changes
+  without a page reload. iOS Safari <16 (no Permissions API) falls
+  through to today's behaviour — no regression.
+- **Diagnostic log** (Sprint 1). `console.info` of service worker
+  registrations + clipboard write permission state at FFCGeofence
+  init. Pure observability, no UI. Helps support triage screenshot-
+  based reports of "Security check failed" / "form didn't appear".
+
+### Changed
+
+- **Server: LGPD + email presence before field validation** (Sprint
+  4). The two cheapest presence checks now run BEFORE the per-field
+  validation loop (CPF/RF regex + checksum). Combined errors land
+  in a single `errors` array on the response so the client can
+  surface "Email required AND LGPD missing" in one round-trip
+  instead of fixing CPF first, then resubmitting, then seeing the
+  LGPD error. Legacy `message` field still carries the first error
+  for backward compatibility.
+- **Server: Geofence before consolidated rate limit** (Sprint 5).
+  `Geofence::can_access_form` (read-only, single get_post_meta +
+  optional IP lookup) moved above `RateLimiter::check_all`
+  (writes via `record_attempt`). A visitor outside the geofence
+  no longer ticks the rate-limit counter on every retry — the
+  budget stays intact for the next legitimate attempt. Rate-limit
+  IP at the top of the handler (step 1) still catches DoS before
+  geofence.
+- **Rate-limit countdown polish** (Sprint 6). The live mm:ss
+  countdown for the rate-limit gate gains: synchronous initial
+  paint (no more "0:00" flicker before the first tick), `role=
+  "status"` + `aria-live="polite"` for screen readers, and an
+  XSS regression guard that HTML-escapes the server `message`
+  argument before injecting it into the notice.
+- **Empathetic rewording of 2 admin-error messages** (Sprint 7).
+  "Form configuration not found." → "This form is not available
+  right now. Please contact the organizer." Raw submission save
+  errors → "We couldn't save your submission. Try again — if the
+  problem persists, contact the organizer." Original repo
+  messages preserved under a new `detail` field for admin / support
+  triage.
+- **i18n housekeeping**. PT-BR translations added for every new
+  string in this release (Sprints 2 + 3 + 7) across `.po`,
+  `.l10n.php`, and `.mo`. Pre-existing duplicate translations from
+  PR #354 that were silently breaking `msgfmt` since that merge
+  (no visible regression because WP 6.5+ reads `.l10n.php`
+  directly, not `.mo`) are also stripped — 76 lines of duplicate
+  entries removed.
+
+### Tests
+
+- Vitest: 944 pass (was 920). 24 new cases across 4 files:
+  `sprint1-diagnostic-log` (2), `sprint2-cookie-preflight` (8),
+  `sprint3-gps-preflight` (8), `sprint6-rate-limit-countdown` (6).
+- PHPUnit: 2 new test classes —
+  `FormProcessorPreflightOrderTest` (4 cases pinning the LGPD +
+  email reorder contract including the combined `errors` array)
+  and `FormProcessorGeofenceBeforeRateLimitTest` (2 cases pinning
+  the geofence-before-ratelimit reorder; Mockery's
+  `shouldNotReceive` catches accidental re-introduction of the
+  old order).
+
+---
+
 ## [6.6.3] (2026-05-20)
 
 iOS Safari + cached-HTML stale-nonce safety net. The cache-bust release

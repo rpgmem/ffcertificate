@@ -572,24 +572,54 @@ $inputs.each(function() {
         show: function(message, waitSeconds) {
             this.blocked = true;
             this.waitSeconds = waitSeconds;
-            
+
             var $form = $('.ffc-form');
             var $btn = $form.find('button[type="submit"]');
-            
-            // Add notice to form
+
+            // 6.6.4 Sprint 6 — compute the initial mm:ss synchronously
+            // so the user sees the actual remaining time on first paint
+            // instead of a "0:00" flicker that updates ~1s later.
+            var initialDisplay = this._formatRemaining(waitSeconds);
+
+            // role="status" + aria-live="polite" so the countdown
+            // changes are announced by screen readers without
+            // interrupting their current speech (assertive would be
+            // wrong for ticking values).
             $form.prepend(
-                '<div class="ffc-rate-limit-notice">' +
-                    '<div class="ffc-rate-limit-icon">⏱️</div>' +
-                    '<div class="ffc-rate-limit-message">' + message + ' <strong id="ffc-countdown">0:00</strong></div>' +
+                '<div class="ffc-rate-limit-notice" role="status" aria-live="polite">' +
+                    '<div class="ffc-rate-limit-icon" aria-hidden="true">⏱️</div>' +
+                    '<div class="ffc-rate-limit-message">' +
+                        $('<span>').text(message)[0].outerHTML +
+                        ' <strong id="ffc-countdown">' + initialDisplay + '</strong>' +
+                    '</div>' +
                 '</div>'
             );
-            
-            // Disable button with countdown
+
+            // Disable button with countdown — initial display already correct.
             var waitText = (typeof ffc_ajax !== 'undefined' && ffc_ajax.strings) ? ffc_ajax.strings.wait || 'Wait...' : 'Wait...';
-            $btn.prop('disabled', true).html(waitText + ' (<span id="ffc-countdown-btn">0:00</span>)');
-            
+            $btn.prop('disabled', true).html(
+                $('<span>').text(waitText)[0].outerHTML
+                + ' (<span id="ffc-countdown-btn">' + initialDisplay + '</span>)'
+            );
+
             // Start countdown
             this.startCountdown();
+        },
+
+        /**
+         * 6.6.4 Sprint 6 — format seconds into mm:ss for the
+         * countdown display. Extracted so the initial render
+         * (synchronous, in show()) and the tick loop (async, in
+         * startCountdown()) share the formatting and never drift.
+         *
+         * @param {number} remaining Seconds remaining.
+         * @returns {string} mm:ss formatted.
+         */
+        _formatRemaining: function(remaining) {
+            if (remaining <= 0) return '0:00';
+            var mins = Math.floor(remaining / 60);
+            var secs = remaining % 60;
+            return mins + ':' + (secs < 10 ? '0' : '') + secs;
         },
         
         /**
@@ -597,26 +627,28 @@ $inputs.each(function() {
          */
         startCountdown: function() {
             var self = this;
-            var remaining = this.waitSeconds;
-            
+            // 6.6.4 Sprint 6 — start from waitSeconds - 1 because show()
+            // already painted waitSeconds as the initial value. First
+            // tick happens 1 second after show().
+            var remaining = this.waitSeconds - 1;
+
             var updateDisplay = function() {
                 if (remaining <= 0) {
                     self.enable();
                     return;
                 }
-                
-                var mins = Math.floor(remaining / 60);
-                var secs = remaining % 60;
-                var display = mins + ':' + (secs < 10 ? '0' : '') + secs;
-                
+
+                var display = self._formatRemaining(remaining);
                 $('#ffc-countdown').text(display);
                 $('#ffc-countdown-btn').text(display);
-                
+
                 remaining--;
                 setTimeout(updateDisplay, 1000);
             };
-            
-            updateDisplay();
+
+            // Schedule first tick 1s after the initial render. show()
+            // already painted the correct initial mm:ss synchronously.
+            setTimeout(updateDisplay, 1000);
         },
         
         /**
