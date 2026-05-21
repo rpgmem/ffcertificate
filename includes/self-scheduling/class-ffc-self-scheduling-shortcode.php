@@ -96,19 +96,21 @@ class SelfSchedulingShortcode {
 		);
 
 		// Enqueue FFC frontend helpers (for CPF/RF mask).
+		// ffc-core dep: ffc-frontend-helpers.js calls FFC.request() internally.
 		wp_enqueue_script(
 			'ffc-frontend-helpers',
 			FFC_PLUGIN_URL . "assets/js/ffc-frontend-helpers{$s}.js",
-			array( 'jquery' ),
+			array( 'jquery', 'ffc-core' ),
 			FFC_VERSION,
 			true
 		);
 
 		// Enqueue shared calendar core component.
+		// ffc-core dep: ffc-calendar-core.js calls FFC.request() internally.
 		wp_enqueue_script(
 			'ffc-calendar-core',
 			FFC_PLUGIN_URL . "assets/js/ffc-calendar-core{$s}.js",
-			array( 'jquery' ),
+			array( 'jquery', 'ffc-core' ),
 			FFC_VERSION,
 			true
 		);

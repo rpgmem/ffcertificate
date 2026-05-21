@@ -9,6 +9,22 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 
 ---
 
+## [6.6.7] (2026-05-21)
+
+Follow-up to the PR #352 (6.6.2) dependency cleanup. Four public-facing JS enqueues never had `ffc-core` listed as a dependency, so any page combining their script via a JS-combining cache plugin (LiteSpeed JS Combine, WP Rocket Combine, etc.) ended up with `FFC is not defined` and a non-functional widget. Reported on `dresaomiguel.com.br/avaliacoes-e-provas/` where `[ffc_audience schedule_id="1"]` failed to render the calendar.
+
+### Fixed
+
+- **`[ffc_audience]` shortcode: calendar fails to load events when JS is combined.** `ffc-audience.js` calls `FFC.request()` once (search-users path) but its enqueue declared only `['jquery']` as dependency. Added `ffc-core` so WordPress (and downstream cache plugins) preserve load order.
+- **`[ffc_self_scheduling]` shortcode: same root cause on two siblings.** `ffc-frontend-helpers.js` (3 FFC call sites) and `ffc-calendar-core.js` (1 FFC call site) were enqueued with only `['jquery']`. Both now list `ffc-core`.
+- **Public form pre-flight pipeline: `ffc-geofence-frontend.js` enqueue missing `ffc-core` dependency.** This file gained 6 `FFC.request` call sites across 6.6.4 / follow-up (geofence telemetry, cookie sanity, GPS pre-check) but the original 6.6.4 enqueue still declared only `['jquery']`. Without a JS combiner this worked because `ffc-frontend-js` (enqueued one line above) already pulls `ffc-core`, but combiners that flatten dependencies dropped `ffc-core` from the bundle.
+
+### Why these escaped 6.6.2
+
+PR #352 walked the 5 public shortcodes that existed at the time and added `ffc-core` to each. `ffc-audience` (Audience module), `ffc-frontend-helpers` / `ffc-calendar-core` (Self-Scheduling module), and `ffc-geofence-frontend` (Frontend) all gained `FFC.request` call sites in *later* releases (6.6.4 for geofence; 6.5.x for the calendar siblings) without their enqueues being updated. The fix is mechanical (4 × `array('jquery')` → `array('jquery', 'ffc-core')`) and has no behavioural effect on installs that don't combine JS.
+
+---
+
 ## [6.6.6] (2026-05-21)
 
 Two production-reported fixes surfaced by enabling WP_DEBUG_LOG on a 6.6.5 install.
