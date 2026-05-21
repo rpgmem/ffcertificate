@@ -54,6 +54,17 @@ class ActivityLog {
 	const LEVEL_DEBUG   = 'debug';
 
 	/**
+	 * Action types for the schedule-override-per-submission feature (#366).
+	 * The submission handler emits both rows whenever an operator-driven
+	 * exception is consumed: SCHEDULE_OVERRIDE_CREATED carries the full
+	 * before/after range + operator + participant context, and
+	 * OPERATOR_IP_BYPASS records that the IP rate-limit gate was bypassed
+	 * for that submission.
+	 */
+	const ACTION_SCHEDULE_OVERRIDE_CREATED = 'schedule_override_created';
+	const ACTION_OPERATOR_IP_BYPASS        = 'operator_ip_bypass';
+
+	/**
 	 * Cache for table columns (performance optimization)
 	 * Prevents repeated DESCRIBE queries on each log
 	 *

@@ -483,86 +483,99 @@ class Activator {
 		$table_name = \FreeFormCertificate\Core\Utils::get_submissions_table();
 
 		$columns = array(
-			'user_id'           => array(
+			'user_id'                 => array(
 				'type'  => 'BIGINT(20) UNSIGNED DEFAULT NULL',
 				'after' => 'form_id',
 				'index' => 'user_id',
 			),
-			'magic_token'       => array(
+			'magic_token'             => array(
 				'type'  => 'VARCHAR(32) DEFAULT NULL',
 				'after' => 'status',
 				'index' => 'magic_token',
 			),
-			'auth_code'         => array(
+			'auth_code'               => array(
 				'type'  => 'VARCHAR(20) DEFAULT NULL',
 				'after' => 'magic_token',
 				'index' => 'auth_code',
 			),
-			'email_encrypted'   => array(
+			'email_encrypted'         => array(
 				'type'  => 'TEXT NULL DEFAULT NULL',
 				'after' => 'auth_code',
 			),
-			'email_hash'        => array(
+			'email_hash'              => array(
 				'type'  => 'VARCHAR(64) NULL DEFAULT NULL',
 				'after' => 'email_encrypted',
 				'index' => 'email_hash',
 			),
-			'cpf_encrypted'     => array(
+			'cpf_encrypted'           => array(
 				'type'  => 'TEXT NULL DEFAULT NULL',
 				'after' => 'email_hash',
 			),
-			'cpf_hash'          => array(
+			'cpf_hash'                => array(
 				'type'  => 'VARCHAR(64) NULL DEFAULT NULL',
 				'after' => 'cpf_encrypted',
 				'index' => 'cpf_hash',
 			),
-			'rf_encrypted'      => array(
+			'rf_encrypted'            => array(
 				'type'  => 'TEXT NULL DEFAULT NULL',
 				'after' => 'cpf_hash',
 			),
-			'rf_hash'           => array(
+			'rf_hash'                 => array(
 				'type'  => 'VARCHAR(64) NULL DEFAULT NULL',
 				'after' => 'rf_encrypted',
 				'index' => 'rf_hash',
 			),
-			'ticket_hash'       => array(
+			'ticket_hash'             => array(
 				'type'  => 'VARCHAR(64) NULL DEFAULT NULL',
 				'after' => 'rf_hash',
 				'index' => 'ticket_hash',
 			),
-			'user_ip_encrypted' => array(
+			'user_ip_encrypted'       => array(
 				'type'  => 'TEXT NULL DEFAULT NULL',
 				'after' => 'ticket_hash',
 			),
-			'data_encrypted'    => array(
+			'data_encrypted'          => array(
 				'type'  => 'LONGTEXT NULL DEFAULT NULL',
 				'after' => 'user_ip_encrypted',
 			),
-			'consent_given'     => array(
+			'consent_given'           => array(
 				'type'  => 'TINYINT(1) DEFAULT 0',
 				'after' => 'data_encrypted',
 			),
 			// Category A instant since 6.6.0 (#249 sub-escopo d) — unix UTC.
-			'consent_date'      => array(
+			'consent_date'            => array(
 				'type'  => 'BIGINT UNSIGNED DEFAULT NULL',
 				'after' => 'consent_given',
 			),
-			'consent_text'      => array(
+			'consent_text'            => array(
 				'type'  => 'TEXT DEFAULT NULL',
 				'after' => 'consent_date',
 			),
-			'qr_code_cache'     => array(
+			'qr_code_cache'           => array(
 				'type'  => 'LONGTEXT DEFAULT NULL',
 				'after' => 'consent_text',
 			),
 			// Category A instant since 6.6.0 (#249 sub-escopo d) — unix UTC.
-			'edited_at'         => array(
+			'edited_at'               => array(
 				'type'  => 'BIGINT UNSIGNED DEFAULT NULL',
 				'after' => 'qr_code_cache',
 			),
-			'edited_by'         => array(
+			'edited_by'               => array(
 				'type'  => 'BIGINT(20) UNSIGNED NULL DEFAULT NULL',
 				'after' => 'edited_at',
+			),
+			// Category B wall-clock TIMEs for the operator-driven schedule
+			// exception (#366). NULL means "no override — use the form/geofence
+			// baseline at render time". Stored as literal HH:MM:SS, never
+			// converted across TZs. See CLAUDE.md "Date / time storage
+			// convention".
+			'schedule_start_override' => array(
+				'type'  => 'TIME NULL DEFAULT NULL',
+				'after' => 'edited_by',
+			),
+			'schedule_end_override'   => array(
+				'type'  => 'TIME NULL DEFAULT NULL',
+				'after' => 'schedule_start_override',
 			),
 		);
 

@@ -164,6 +164,11 @@ class ActivityLogTest extends TestCase {
         $this->assertSame('debug', ActivityLog::LEVEL_DEBUG);
     }
 
+    public function test_schedule_override_action_constants_are_defined(): void {
+        $this->assertSame('schedule_override_created', ActivityLog::ACTION_SCHEDULE_OVERRIDE_CREATED);
+        $this->assertSame('operator_ip_bypass', ActivityLog::ACTION_OPERATOR_IP_BYPASS);
+    }
+
     public function test_buffer_threshold_constant(): void {
         $ref = new \ReflectionClass(ActivityLog::class);
         $constants = $ref->getConstants();
