@@ -55,10 +55,14 @@ jobs:
     runs-on: ubuntu-latest
     # Bumped 15 → 20 after the pcov+3881-test suite started routinely
     # finishing at 14m–15m and tripping the previous ceiling on busy
-    # CI runners (#176/#177 cancelled at 15m09s/15m14s/15m12s). Real
-    # baseline is ~13–14m; 20m leaves comfortable headroom without
-    # masking a true regression.
-    timeout-minutes: 20
+    # CI runners (#176/#177 cancelled at 15m09s/15m14s/15m12s).
+    #
+    # Bumped 20 → 30 after the suite grew to ~4598 tests (PR #360 added
+    # ~30 tests in the pre-flight pipeline; #361 follow-up added ~11
+    # more). PR #360's Coverage step took 18m51s — within the 20m
+    # ceiling but with no headroom. 30m leaves room for new test
+    # batches without re-bumping on every coverage-heavy PR.
+    timeout-minutes: 30
     # Promoted from advisory to gating in S3 of #161. The floor is set
     # below the current line-coverage baseline so the gate doesn't fire
     # on day one but does catch a regression. Ratchet the floor upward
