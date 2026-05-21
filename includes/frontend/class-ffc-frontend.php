@@ -184,7 +184,8 @@ class Frontend {
 
 			wp_enqueue_script( 'ffc-frontend-js', FFC_PLUGIN_URL . "assets/js/ffc-frontend{$s}.js", array( 'jquery', 'ffc-core', 'ffc-pdf-generator', 'ffc-rate-limit' ), FFC_VERSION, true );
 
-			wp_enqueue_script( 'ffc-geofence-frontend', FFC_PLUGIN_URL . "assets/js/ffc-geofence-frontend{$s}.js", array( 'jquery' ), FFC_VERSION, true );
+			// ffc-core dep: ffc-geofence-frontend.js calls FFC.request() (6 sites incl. the pre-flight telemetry endpoint added in 6.6.4 follow-up).
+			wp_enqueue_script( 'ffc-geofence-frontend', FFC_PLUGIN_URL . "assets/js/ffc-geofence-frontend{$s}.js", array( 'jquery', 'ffc-core' ), FFC_VERSION, true );
 
 			// Pass geofence configurations to frontend.
 			$this->localize_geofence_config();

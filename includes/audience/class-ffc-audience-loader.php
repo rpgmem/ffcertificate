@@ -284,11 +284,13 @@ class AudienceLoader {
 			FFC_VERSION
 		);
 
-		// Frontend JS.
+		// Frontend JS. `ffc-core` provides window.FFC.request() used by
+		// ffc-audience.js — without it, the AJAX call near the bottom of
+		// the file throws `FFC is not defined` and breaks the calendar.
 		wp_enqueue_script(
 			'ffc-audience',
 			FFC_PLUGIN_URL . "assets/js/ffc-audience{$s}.js",
-			array( 'jquery' ),
+			array( 'jquery', 'ffc-core' ),
 			FFC_VERSION,
 			true
 		);
