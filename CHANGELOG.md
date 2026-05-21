@@ -100,6 +100,79 @@ of recovering after failure.
   `shouldNotReceive` catches accidental re-introduction of the
   old order).
 
+### Follow-up — debug toggle UX, telemetry, and admin visibility (#361)
+
+Lands under 6.6.4 (no version bump). Five extra sprints / commits
+extending the pre-flight work above with admin visibility and
+debug-toggle hygiene.
+
+#### Fixed
+
+- **Diagnostic log was always-on** (regression introduced in the
+  initial 6.6.4 Sprint 1). `logDiagnostics()` ran unconditionally on
+  every visitor, polluting the production browser console.
+  Moved out of `ffc-geofence-frontend.js` (where it lived for
+  scope-mismatch reasons — service workers + clipboard are
+  browser-wide signals, not geofence-specific) into
+  `ffc-frontend.js`, gated on a NEW dedicated `debug_browser_env`
+  toggle. Default OFF.
+
+#### Added
+
+- **15th Debug toggle: `debug_browser_env`**. New
+  `Debug::AREA_BROWSER_ENV` constant + UI in Settings → Debug →
+  Client (browser) section. Admins enable it explicitly for
+  triage; production stays quiet.
+- **Pre-flight bail telemetry**. New
+  `wp_ajax_ffc_log_preflight_bail` endpoint writes an ActivityLog
+  row whenever the cookie / GPS-denied / GPS-prompt banner
+  renders. Payload: `{form_id, reason, ip_hash}`. IP is hashed
+  (sha256 + wp_salt('auth'), 12-char prefix) — no raw PII in
+  the audit trail. Nonce-protected via `ffc_frontend_nonce` (so
+  the #356 refresh_nonce auto-recovery applies if the cached
+  nonce is stale).
+- **Per-form stats badges** in the form editor sidebar. New
+  metabox "User-friction stats — last 30 days" with three
+  badges:
+    - 🍪 N cookie wall
+    - 📍 N GPS denied
+    - 📋 N GPS prompt
+  Each badge links to the Activity Log filtered by
+  `preflight_blocked`. High counts on a specific reason signal a
+  setup issue (e.g. GPS denied dominating → geofence too tight;
+  cookie wall dominating → cached HTML serving wrong nonces).
+
+#### Changed
+
+- **Settings → Debug tab visual grouping**. The 15 toggles
+  (previously a flat alphabetical list) are now organized into
+  three named sub-sections: Client (browser), Server / Processing,
+  Admin / Operational. Each section gets a short italic blurb
+  explaining the volume / safety tradeoff. Existing per-toggle
+  descriptions + the autosave behaviour (FormMetaAjaxEndpoint)
+  are unchanged.
+
+#### Tests added in this follow-up
+
+- Vitest: `sprint1-followup-debug-toggle` (3 cases) — gate
+  on/off + regression guard that FFCGeofence.init no longer fires
+  the diagnostic log. `sprint2-followup-preflight-telemetry`
+  (5 cases) — each banner fires the right reason, happy path
+  silent, rejection swallowed.
+- PHPUnit: `PreflightTelemetryTest` (4 cases) — nonce/refresh,
+  invalid form_id, invalid reason, happy-path log shape with
+  hashed IP. `PreflightStatsServiceTest` (5 cases) — empty,
+  invalid form_id, multi-reason aggregation, cross-form
+  isolation, robustness to malformed context. `DebugToggleGroupingTest`
+  (2 cases) — section ordering + each toggle in its expected
+  section.
+
+Also removed the now-obsolete `sprint1-diagnostic-log.test.js` from
+6.6.4 Sprint 1 — it asserted the always-on behaviour the follow-up
+explicitly fixes.
+
+Tracks #361.
+
 ---
 
 ## [6.6.3] (2026-05-20)
