@@ -33,7 +33,21 @@ jobs:
       - name: Validate composer.json / composer.lock are in sync
         run: composer validate --strict --no-check-publish
       - name: Run composer audit
-        run: composer audit --locked --no-interaction
+        # `composer audit` hits packagist.org/api/security-advisories/.
+        # That endpoint has occasional 10-second DNS timeouts from
+        # GitHub Actions runners (curl error 28). Retry up to 3 times
+        # before failing the job — the audit is read-only, retrying
+        # is safe.
+        run: |
+          for attempt in 1 2 3; do
+            if composer audit --locked --no-interaction; then
+              exit 0
+            fi
+            echo "::warning::composer audit attempt $attempt failed; retrying in 15s"
+            sleep 15
+          done
+          echo "::error::composer audit failed after 3 attempts"
+          exit 1
 
   test:
     # 6.6.5 — minimum PHP bumped 8.1 → 8.3. Matrix went 4 versions

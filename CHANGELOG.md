@@ -9,6 +9,17 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 
 ---
 
+## [6.6.6] (2026-05-21)
+
+Two production-reported fixes surfaced by enabling WP_DEBUG_LOG on a 6.6.5 install.
+
+### Fixed
+
+- **`Uncaught TypeError` on every certificate reprint** (`Utils::generate_success_html()`). The 6.6.0 schema migration switched `submissions.submission_date` from MySQL DATETIME string to BIGINT UNSIGNED unix int. The reprint branch in `FormProcessor::handle_submission_ajax` passes that int through, but `generate_success_html()` still declared `string $submission_date` — every reprint threw a fatal that the AJAX layer surfaced as a generic 500. Fresh submissions kept working because they pass a `current_time('mysql')` string. Fix: signature now accepts `int|string`; `DateFormatter::format_datetime()` already accepted both internally.
+- **`Unknown column 'action'` on the form-editor pre-flight stats metabox** for installs whose `ffc_activity_log` table was created in a pre-`action`-column plugin version. The legacy `create_table()` early-returned on `table_exists()`, so dbDelta never ran to add columns added in later releases. New `ActivityLog::maybe_create_table()` (mirrors `RateLimitActivator::maybe_create_tables()` pattern) compares a stored `ffc_activity_log_db_version` option against the code's expected version and re-runs dbDelta once on legacy installs. Wired into `Loader::on_plugins_loaded` alongside the rate-limit equivalent.
+
+---
+
 ## [6.6.5] (2026-05-21)
 
 > ### ⚠ Breaking change: minimum PHP bumped 8.1 → 8.3

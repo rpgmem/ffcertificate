@@ -646,13 +646,15 @@ class Utils {
 	 * @since 2.9.16
 	 * @param array<string, mixed> $submission_data Submission data.
 	 * @param int                  $form_id Form ID.
-	 * @param string               $submission_date Submission date.
+	 * @param int|string           $submission_date Submission date — unix UTC int (since 6.6.0, reprint flow)
+	 *                                              or MySQL `Y-m-d H:i:s` string (fresh submission via `current_time('mysql')`).
+	 *                                              DateFormatter::format_datetime accepts both.
 	 * @param string               $success_message Success message.
 	 * @param int                  $submission_id Submission ID (used to surface the magic link in the success card; 0 to skip).
 	 * @param object|null          $submission_handler Handler that knows how to ensure/load the submission's magic token.
 	 * @return string HTML content
 	 */
-	public static function generate_success_html( array $submission_data, int $form_id, string $submission_date, string $success_message = '', int $submission_id = 0, ?object $submission_handler = null ): string {
+	public static function generate_success_html( array $submission_data, int $form_id, int|string $submission_date, string $success_message = '', int $submission_id = 0, ?object $submission_handler = null ): string {
 		// Get form configuration.
 		$form_config = get_post_meta( $form_id, '_ffc_form_config', true );
 		if ( ! is_array( $form_config ) ) {
