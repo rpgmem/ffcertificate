@@ -177,7 +177,13 @@ class DebugTest extends TestCase {
         $areas = array_filter( $constants, function ( $k ) {
             return str_starts_with( $k, 'AREA_' );
         }, ARRAY_FILTER_USE_KEY );
-        $this->assertCount( 14, $areas );
+        // 6.6.4 follow-up (#361 Sprint 1) — added AREA_BROWSER_ENV
+        // as the 15th area. If this assertion fires, double-check
+        // whether a new area was added intentionally (update the
+        // count + the Settings → Debug tab grouping in
+        // includes/settings/views/ffc-tab-advanced.php) or
+        // accidentally (remove the const).
+        $this->assertCount( 15, $areas );
     }
 
     // ==================================================================

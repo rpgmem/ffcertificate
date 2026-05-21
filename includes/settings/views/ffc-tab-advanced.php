@@ -130,52 +130,105 @@ $ffcertificate_get_option = \Closure::fromCallable( array( $settings, 'get_optio
 		<span class="ffc-text-warning ffc-icon-warning"><?php esc_html_e( 'Only enable in development or when troubleshooting issues.', 'ffcertificate' ); ?></span>
 	</p>
 
+		<h3 class="ffc-debug-group-title"><?php esc_html_e( 'Client (browser)', 'ffcertificate' ); ?></h3>
+		<p class="description ffc-debug-group-blurb">
+			<?php esc_html_e( 'These toggles affect logging that fires in the visitor’s browser console — useful when triaging UX or asset-loading reports from a screenshot of the F12 console.', 'ffcertificate' ); ?>
+		</p>
 		<table class="form-table" role="presentation">
 			<tbody>
 				<tr>
 					<th scope="row">
-						<label for="debug_pdf_generator"><?php esc_html_e( 'PDF Generator', 'ffcertificate' ); ?></label>
+						<label for="debug_frontend"><?php esc_html_e( 'Frontend', 'ffcertificate' ); ?></label>
 					</th>
 					<td>
 						<?php
 						\FreeFormCertificate\Admin\AdminUI::render_toggle(
 							array(
-								'name'    => 'ffc_settings[debug_pdf_generator]',
-								'id'      => 'debug_pdf_generator',
-								'checked' => (int) $ffcertificate_get_option( 'debug_pdf_generator' ) === 1,
-								'label'   => __( 'Enable debug logging for PDF generation', 'ffcertificate' ),
-								'data'    => array( 'ffc-autosave-key' => 'debug_pdf_generator' ),
+								'name'    => 'ffc_settings[debug_frontend]',
+								'id'      => 'debug_frontend',
+								'checked' => (int) $ffcertificate_get_option( 'debug_frontend' ) === 1,
+								'label'   => __( 'Enable debug logging for frontend shortcodes + verification', 'ffcertificate' ),
+								'data'    => array( 'ffc-autosave-key' => 'debug_frontend' ),
 							)
 						);
 						?>
 						<p class="description">
-							<?php esc_html_e( 'Logs JSON data parsing, placeholder replacements, and PDF data preparation.', 'ffcertificate' ); ?>
+							<?php esc_html_e( 'Logs `[ffc_form]`, `[ffc_verification]`, and `[ffc_magic_link]` shortcode renders + the public verification flow.', 'ffcertificate' ); ?>
 						</p>
 					</td>
 				</tr>
-
 				<tr>
 					<th scope="row">
-						<label for="debug_email_handler"><?php esc_html_e( 'Email Handler', 'ffcertificate' ); ?></label>
+						<label for="debug_geofence"><?php esc_html_e( 'Geofence', 'ffcertificate' ); ?></label>
 					</th>
 					<td>
 						<?php
 						\FreeFormCertificate\Admin\AdminUI::render_toggle(
 							array(
-								'name'    => 'ffc_settings[debug_email_handler]',
-								'id'      => 'debug_email_handler',
-								'checked' => (int) $ffcertificate_get_option( 'debug_email_handler' ) === 1,
-								'label'   => __( 'Enable debug logging for email sending', 'ffcertificate' ),
-								'data'    => array( 'ffc-autosave-key' => 'debug_email_handler' ),
+								'name'    => 'ffc_settings[debug_geofence]',
+								'id'      => 'debug_geofence',
+								'checked' => (int) $ffcertificate_get_option( 'debug_geofence' ) === 1,
+								'label'   => __( 'Enable debug logging for geofence validation', 'ffcertificate' ),
+								'data'    => array( 'ffc-autosave-key' => 'debug_geofence' ),
 							)
 						);
 						?>
 						<p class="description">
-							<?php esc_html_e( 'Logs email preparation, SMTP connection, and sending status.', 'ffcertificate' ); ?>
+							<?php esc_html_e( 'Logs date/time restrictions, GPS validation, IP geolocation, and access denied events to the PHP error log, and emits geofence diagnostics to the browser console (F12) on the frontend.', 'ffcertificate' ); ?>
 						</p>
 					</td>
 				</tr>
+				<tr>
+					<th scope="row">
+						<label for="debug_qrcode"><?php esc_html_e( 'QR Code', 'ffcertificate' ); ?></label>
+					</th>
+					<td>
+						<?php
+						\FreeFormCertificate\Admin\AdminUI::render_toggle(
+							array(
+								'name'    => 'ffc_settings[debug_qrcode]',
+								'id'      => 'debug_qrcode',
+								'checked' => (int) $ffcertificate_get_option( 'debug_qrcode' ) === 1,
+								'label'   => __( 'Enable debug logging for QR code generation', 'ffcertificate' ),
+								'data'    => array( 'ffc-autosave-key' => 'debug_qrcode' ),
+							)
+						);
+						?>
+						<p class="description">
+							<?php esc_html_e( 'Logs QR-code asset resolution, cache hits, and URL composition.', 'ffcertificate' ); ?>
+						</p>
+					</td>
+				</tr>
+				<tr>
+					<th scope="row">
+						<label for="debug_browser_env"><?php esc_html_e( 'Browser environment', 'ffcertificate' ); ?></label>
+					</th>
+					<td>
+						<?php
+						\FreeFormCertificate\Admin\AdminUI::render_toggle(
+							array(
+								'name'    => 'ffc_settings[debug_browser_env]',
+								'id'      => 'debug_browser_env',
+								'checked' => (int) $ffcertificate_get_option( 'debug_browser_env' ) === 1,
+								'label'   => __( 'Enable browser-environment diagnostic log', 'ffcertificate' ),
+								'data'    => array( 'ffc-autosave-key' => 'debug_browser_env' ),
+							)
+						);
+						?>
+						<p class="description">
+							<?php esc_html_e( 'Logs service worker registrations + clipboard write permission to the visitor browser console. Useful for triaging cookie / nonce / Copy-button issues from a console screenshot. Off by default.', 'ffcertificate' ); ?>
+						</p>
+					</td>
+				</tr>
+			</tbody>
+		</table>
 
+		<h3 class="ffc-debug-group-title"><?php esc_html_e( 'Server / Processing', 'ffcertificate' ); ?></h3>
+		<p class="description ffc-debug-group-blurb">
+			<?php esc_html_e( 'Server-side logging written to the PHP error log. Heavy logging here can slow down submission processing in production — enable on staging or during incident triage only.', 'ffcertificate' ); ?>
+		</p>
+		<table class="form-table" role="presentation">
+			<tbody>
 				<tr>
 					<th scope="row">
 						<label for="debug_form_processor"><?php esc_html_e( 'Form Processor', 'ffcertificate' ); ?></label>
@@ -197,7 +250,48 @@ $ffcertificate_get_option = \Closure::fromCallable( array( $settings, 'get_optio
 						</p>
 					</td>
 				</tr>
-
+				<tr>
+					<th scope="row">
+						<label for="debug_pdf_generator"><?php esc_html_e( 'PDF Generator', 'ffcertificate' ); ?></label>
+					</th>
+					<td>
+						<?php
+						\FreeFormCertificate\Admin\AdminUI::render_toggle(
+							array(
+								'name'    => 'ffc_settings[debug_pdf_generator]',
+								'id'      => 'debug_pdf_generator',
+								'checked' => (int) $ffcertificate_get_option( 'debug_pdf_generator' ) === 1,
+								'label'   => __( 'Enable debug logging for PDF generation', 'ffcertificate' ),
+								'data'    => array( 'ffc-autosave-key' => 'debug_pdf_generator' ),
+							)
+						);
+						?>
+						<p class="description">
+							<?php esc_html_e( 'Logs JSON data parsing, placeholder replacements, and PDF data preparation.', 'ffcertificate' ); ?>
+						</p>
+					</td>
+				</tr>
+				<tr>
+					<th scope="row">
+						<label for="debug_email_handler"><?php esc_html_e( 'Email Handler', 'ffcertificate' ); ?></label>
+					</th>
+					<td>
+						<?php
+						\FreeFormCertificate\Admin\AdminUI::render_toggle(
+							array(
+								'name'    => 'ffc_settings[debug_email_handler]',
+								'id'      => 'debug_email_handler',
+								'checked' => (int) $ffcertificate_get_option( 'debug_email_handler' ) === 1,
+								'label'   => __( 'Enable debug logging for email sending', 'ffcertificate' ),
+								'data'    => array( 'ffc-autosave-key' => 'debug_email_handler' ),
+							)
+						);
+						?>
+						<p class="description">
+							<?php esc_html_e( 'Logs email preparation, SMTP connection, and sending status.', 'ffcertificate' ); ?>
+						</p>
+					</td>
+				</tr>
 				<tr>
 					<th scope="row">
 						<label for="debug_encryption"><?php esc_html_e( 'Encryption', 'ffcertificate' ); ?></label>
@@ -220,51 +314,6 @@ $ffcertificate_get_option = \Closure::fromCallable( array( $settings, 'get_optio
 						</p>
 					</td>
 				</tr>
-
-				<tr>
-					<th scope="row">
-						<label for="debug_geofence"><?php esc_html_e( 'Geofence', 'ffcertificate' ); ?></label>
-					</th>
-					<td>
-						<?php
-						\FreeFormCertificate\Admin\AdminUI::render_toggle(
-							array(
-								'name'    => 'ffc_settings[debug_geofence]',
-								'id'      => 'debug_geofence',
-								'checked' => (int) $ffcertificate_get_option( 'debug_geofence' ) === 1,
-								'label'   => __( 'Enable debug logging for geofence validation', 'ffcertificate' ),
-								'data'    => array( 'ffc-autosave-key' => 'debug_geofence' ),
-							)
-						);
-						?>
-						<p class="description">
-							<?php esc_html_e( 'Logs date/time restrictions, GPS validation, IP geolocation, and access denied events to the PHP error log, and emits geofence diagnostics to the browser console (F12) on the frontend.', 'ffcertificate' ); ?>
-						</p>
-					</td>
-				</tr>
-
-				<tr>
-					<th scope="row">
-						<label for="debug_user_manager"><?php esc_html_e( 'User Manager', 'ffcertificate' ); ?></label>
-					</th>
-					<td>
-						<?php
-						\FreeFormCertificate\Admin\AdminUI::render_toggle(
-							array(
-								'name'    => 'ffc_settings[debug_user_manager]',
-								'id'      => 'debug_user_manager',
-								'checked' => (int) $ffcertificate_get_option( 'debug_user_manager' ) === 1,
-								'label'   => __( 'Enable debug logging for user management', 'ffcertificate' ),
-								'data'    => array( 'ffc-autosave-key' => 'debug_user_manager' ),
-							)
-						);
-						?>
-						<p class="description">
-							<?php esc_html_e( 'Logs user creation failures, decryption errors, and critical user management operations.', 'ffcertificate' ); ?>
-						</p>
-					</td>
-				</tr>
-
 				<tr>
 					<th scope="row">
 						<label for="debug_rest_api"><?php esc_html_e( 'REST API', 'ffcertificate' ); ?></label>
@@ -286,73 +335,36 @@ $ffcertificate_get_option = \Closure::fromCallable( array( $settings, 'get_optio
 						</p>
 					</td>
 				</tr>
-
 				<tr>
 					<th scope="row">
-						<label for="debug_migrations"><?php esc_html_e( 'Migrations', 'ffcertificate' ); ?></label>
+						<label for="debug_user_manager"><?php esc_html_e( 'User Manager', 'ffcertificate' ); ?></label>
 					</th>
 					<td>
 						<?php
 						\FreeFormCertificate\Admin\AdminUI::render_toggle(
 							array(
-								'name'    => 'ffc_settings[debug_migrations]',
-								'id'      => 'debug_migrations',
-								'checked' => (int) $ffcertificate_get_option( 'debug_migrations' ) === 1,
-								'label'   => __( 'Enable debug logging for database migrations', 'ffcertificate' ),
-								'data'    => array( 'ffc-autosave-key' => 'debug_migrations' ),
+								'name'    => 'ffc_settings[debug_user_manager]',
+								'id'      => 'debug_user_manager',
+								'checked' => (int) $ffcertificate_get_option( 'debug_user_manager' ) === 1,
+								'label'   => __( 'Enable debug logging for user management', 'ffcertificate' ),
+								'data'    => array( 'ffc-autosave-key' => 'debug_user_manager' ),
 							)
 						);
 						?>
 						<p class="description">
-							<?php esc_html_e( 'Logs migration execution, user linking, and data transformation operations.', 'ffcertificate' ); ?>
+							<?php esc_html_e( 'Logs user creation failures, decryption errors, and critical user management operations.', 'ffcertificate' ); ?>
 						</p>
 					</td>
 				</tr>
+			</tbody>
+		</table>
 
-				<tr>
-					<th scope="row">
-						<label for="debug_activity_log"><?php esc_html_e( 'Activity Log', 'ffcertificate' ); ?></label>
-					</th>
-					<td>
-						<?php
-						\FreeFormCertificate\Admin\AdminUI::render_toggle(
-							array(
-								'name'    => 'ffc_settings[debug_activity_log]',
-								'id'      => 'debug_activity_log',
-								'checked' => (int) $ffcertificate_get_option( 'debug_activity_log' ) === 1,
-								'label'   => __( 'Enable debug logging for activity log system', 'ffcertificate' ),
-								'data'    => array( 'ffc-autosave-key' => 'debug_activity_log' ),
-							)
-						);
-						?>
-						<p class="description">
-							<?php esc_html_e( 'Logs activity log operations and database queries.', 'ffcertificate' ); ?>
-						</p>
-					</td>
-				</tr>
-
-				<tr>
-					<th scope="row">
-						<label for="debug_frontend"><?php esc_html_e( 'Frontend', 'ffcertificate' ); ?></label>
-					</th>
-					<td>
-						<?php
-						\FreeFormCertificate\Admin\AdminUI::render_toggle(
-							array(
-								'name'    => 'ffc_settings[debug_frontend]',
-								'id'      => 'debug_frontend',
-								'checked' => (int) $ffcertificate_get_option( 'debug_frontend' ) === 1,
-								'label'   => __( 'Enable debug logging for frontend shortcodes + verification', 'ffcertificate' ),
-								'data'    => array( 'ffc-autosave-key' => 'debug_frontend' ),
-							)
-						);
-						?>
-						<p class="description">
-							<?php esc_html_e( 'Logs `[ffc_form]`, `[ffc_verification]`, and `[ffc_magic_link]` shortcode renders + the public verification flow.', 'ffcertificate' ); ?>
-						</p>
-					</td>
-				</tr>
-
+		<h3 class="ffc-debug-group-title"><?php esc_html_e( 'Admin / Operational', 'ffcertificate' ); ?></h3>
+		<p class="description ffc-debug-group-blurb">
+			<?php esc_html_e( 'Operational / admin-side logging. Lower volume than the server group; safer to leave on for short periods to diagnose admin issues.', 'ffcertificate' ); ?>
+		</p>
+		<table class="form-table" role="presentation">
+			<tbody>
 				<tr>
 					<th scope="row">
 						<label for="debug_admin"><?php esc_html_e( 'Admin', 'ffcertificate' ); ?></label>
@@ -374,7 +386,6 @@ $ffcertificate_get_option = \Closure::fromCallable( array( $settings, 'get_optio
 						</p>
 					</td>
 				</tr>
-
 				<tr>
 					<th scope="row">
 						<label for="debug_self_scheduling"><?php esc_html_e( 'Self-Scheduling', 'ffcertificate' ); ?></label>
@@ -396,7 +407,6 @@ $ffcertificate_get_option = \Closure::fromCallable( array( $settings, 'get_optio
 						</p>
 					</td>
 				</tr>
-
 				<tr>
 					<th scope="row">
 						<label for="debug_audience"><?php esc_html_e( 'Audience', 'ffcertificate' ); ?></label>
@@ -418,30 +428,51 @@ $ffcertificate_get_option = \Closure::fromCallable( array( $settings, 'get_optio
 						</p>
 					</td>
 				</tr>
-
 				<tr>
 					<th scope="row">
-						<label for="debug_qrcode"><?php esc_html_e( 'QR Code', 'ffcertificate' ); ?></label>
+						<label for="debug_migrations"><?php esc_html_e( 'Migrations', 'ffcertificate' ); ?></label>
 					</th>
 					<td>
 						<?php
 						\FreeFormCertificate\Admin\AdminUI::render_toggle(
 							array(
-								'name'    => 'ffc_settings[debug_qrcode]',
-								'id'      => 'debug_qrcode',
-								'checked' => (int) $ffcertificate_get_option( 'debug_qrcode' ) === 1,
-								'label'   => __( 'Enable debug logging for QR code generation', 'ffcertificate' ),
-								'data'    => array( 'ffc-autosave-key' => 'debug_qrcode' ),
+								'name'    => 'ffc_settings[debug_migrations]',
+								'id'      => 'debug_migrations',
+								'checked' => (int) $ffcertificate_get_option( 'debug_migrations' ) === 1,
+								'label'   => __( 'Enable debug logging for database migrations', 'ffcertificate' ),
+								'data'    => array( 'ffc-autosave-key' => 'debug_migrations' ),
 							)
 						);
 						?>
 						<p class="description">
-							<?php esc_html_e( 'Logs QR-code asset resolution, cache hits, and URL composition.', 'ffcertificate' ); ?>
+							<?php esc_html_e( 'Logs migration execution, user linking, and data transformation operations.', 'ffcertificate' ); ?>
+						</p>
+					</td>
+				</tr>
+				<tr>
+					<th scope="row">
+						<label for="debug_activity_log"><?php esc_html_e( 'Activity Log', 'ffcertificate' ); ?></label>
+					</th>
+					<td>
+						<?php
+						\FreeFormCertificate\Admin\AdminUI::render_toggle(
+							array(
+								'name'    => 'ffc_settings[debug_activity_log]',
+								'id'      => 'debug_activity_log',
+								'checked' => (int) $ffcertificate_get_option( 'debug_activity_log' ) === 1,
+								'label'   => __( 'Enable debug logging for activity log system', 'ffcertificate' ),
+								'data'    => array( 'ffc-autosave-key' => 'debug_activity_log' ),
+							)
+						);
+						?>
+						<p class="description">
+							<?php esc_html_e( 'Logs activity log operations and database queries.', 'ffcertificate' ); ?>
 						</p>
 					</td>
 				</tr>
 			</tbody>
 		</table>
+
 </div>
 
 <!-- Public Operator Access Card (formerly Public CSV Download) -->
