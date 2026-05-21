@@ -13,27 +13,13 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 
 > ### ⚠ Breaking change: minimum PHP bumped 8.1 → 8.3
 >
-> Visitors / sites running on PHP 8.1 or 8.2 will not auto-upgrade
-> to this release. WordPress enforces the `Requires PHP` plugin
-> header — installs on 8.1 / 8.2 stay pinned at 6.6.4 until the
-> host upgrades PHP. Both versions are EOL'd / approaching EOL
-> upstream (8.1 security-only support ends late 2026; 8.2 active
-> support ended late 2025), and the project's own production
-> deploys run 8.3, so the maintenance gain outweighs the loss of
-> coverage for two unsupported versions.
+> Visitors / sites running on PHP 8.1 or 8.2 will not auto-upgrade to this release. WordPress enforces the `Requires PHP` plugin header — installs on 8.1 / 8.2 stay pinned at 6.6.4 until the host upgrades PHP. Both versions are EOL'd / approaching EOL upstream (8.1 security-only support ends late 2026; 8.2 active support ended late 2025), and the project's own production deploys run 8.3, so the maintenance gain outweighs the loss of coverage for two unsupported versions.
 >
 > **What to expect**:
 >
-> - Existing 8.1/8.2 sites continue to work on 6.6.4 (no
-> regressions; their plugin update notification just no longer
-> surfaces 6.6.5).
-> - 8.3+ sites get the full release on their next auto-update or
-> manual refresh.
-> - No source code changes in this release beyond the version
-> declarations + a small dead-code cleanup PHPStan 2.1.55
-> surfaced after the composer upgrade (recruitment public
-> shortcode renderer; behaviour unchanged because the branch was
-> unreachable).
+> - Existing 8.1/8.2 sites continue to work on 6.6.4 (no regressions; their plugin update notification just no longer surfaces 6.6.5).
+> - 8.3+ sites get the full release on their next auto-update or manual refresh.
+> - No source code changes in this release beyond the version declarations + a small dead-code cleanup PHPStan 2.1.55 surfaced after the composer upgrade (recruitment public shortcode renderer; behaviour unchanged because the branch was unreachable).
 
 ### Changed
 
@@ -48,12 +34,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 
 ## [6.6.4] (2026-05-20)
 
-Pre-flight permission checks + server-side reorderings + user-facing
-copy polish. Single PR, 8 sprints, ~280 LoC production + 22 new
-tests. Covers the iOS Safari / cached-HTML failure modes that
-6.6.2.1 / 6.6.3 began addressing, but proactively — surfacing the
-underlying browser-permission state before the user submits instead
-of recovering after failure.
+Pre-flight permission checks + server-side reorderings + user-facing copy polish. Single PR, 8 sprints, ~280 LoC production + 22 new tests. Covers the iOS Safari / cached-HTML failure modes that 6.6.2.1 / 6.6.3 began addressing, but proactively — surfacing the underlying browser-permission state before the user submits instead of recovering after failure.
 
 ### Added
 
@@ -80,9 +61,7 @@ of recovering after failure.
 
 ### Follow-up — debug toggle UX, telemetry, and admin visibility
 
-Lands under 6.6.4 (no version bump). Five extra sprints / commits
-extending the pre-flight work above with admin visibility and
-debug-toggle hygiene.
+Lands under 6.6.4 (no version bump). Five extra sprints / commits extending the pre-flight work above with admin visibility and debug-toggle hygiene.
 
 #### Fixed
 
@@ -107,19 +86,13 @@ debug-toggle hygiene.
 - Vitest: `sprint1-followup-debug-toggle` (3 cases) — gate on/off + regression guard that FFCGeofence.init no longer fires the diagnostic log. `sprint2-followup-preflight-telemetry` (5 cases) — each banner fires the right reason, happy path silent, rejection swallowed.
 - PHPUnit: `PreflightTelemetryTest` (4 cases) — nonce/refresh, invalid form_id, invalid reason, happy-path log shape with hashed IP. `PreflightStatsServiceTest` (5 cases) — empty, invalid form_id, multi-reason aggregation, cross-form isolation, robustness to malformed context. `DebugToggleGroupingTest` (2 cases) — section ordering + each toggle in its expected section.
 
-Also removed the now-obsolete `sprint1-diagnostic-log.test.js` from
-6.6.4 — it asserted the always-on behaviour the follow-up
-explicitly fixes.
+Also removed the now-obsolete `sprint1-diagnostic-log.test.js` from 6.6.4 — it asserted the always-on behaviour the follow-up explicitly fixes.
 
 ---
 
 ## [6.6.3] (2026-05-20)
 
-iOS Safari + cached-HTML stale-nonce safety net. The cache-bust release
-6.6.2.1 didn't resolve "Security check failed." for an iOS visitor:
-the symptom persisted even with `?ver=6.6.2.1` on every asset, which
-means the actual stale-nonce code path was reached on the server, not
-just stale code in the client.
+iOS Safari + cached-HTML stale-nonce safety net. The cache-bust release 6.6.2.1 didn't resolve "Security check failed." for an iOS visitor: the symptom persisted even with `?ver=6.6.2.1` on every asset, which means the actual stale-nonce code path was reached on the server, not just stale code in the client.
 
 ### Fixed
 
@@ -131,23 +104,11 @@ just stale code in the client.
 Three iOS-specific scenarios slip past asset cache invalidation:
 
 1. **Cached HTML carrying another visitor's nonce on shared hosts**
-   — `?ver=…` bumps the `.min.js` cache key but the `[ffc_form]`
-   page HTML itself is still served from the page cache, and that
-   HTML carries the nonce that was generated for whoever first
-   warmed the cache entry. `ffc-dynamic-fragments.js` is supposed
-   to refresh the nonce in place, but its `XMLHttpRequest` swallows
-   any failure silently (CSP, service workers, hosting CDN policies
-   blocking POST to admin-ajax.php from specific UAs).
-2. **Safari ITP / iCloud Private Relay rotating the session cookie
-   between page render and submit** — iOS Safari is the only browser
-   that can produce a session-token mismatch on the same domain
-   without the user doing anything.
-3. **`ffc-dynamic-fragments` not running at all** — DOMContentLoaded
-   doesn't fire on some page transitions (bfcache restore), so the
-   nonce refresh path is skipped entirely.
+   — `?ver=…` bumps the `.min.js` cache key but the `[ffc_form]` page HTML itself is still served from the page cache, and that HTML carries the nonce that was generated for whoever first warmed the cache entry. `ffc-dynamic-fragments.js` is supposed to refresh the nonce in place, but its `XMLHttpRequest` swallows any failure silently (CSP, service workers, hosting CDN policies blocking POST to admin-ajax.php from specific UAs).
+2. **Safari ITP / iCloud Private Relay rotating the session cookie between page render and submit** — iOS Safari is the only browser that can produce a session-token mismatch on the same domain without the user doing anything.
+3. **`ffc-dynamic-fragments` not running at all** — DOMContentLoaded doesn't fire on some page transitions (bfcache restore), so the nonce refresh path is skipped entirely.
 
-The retry covers all three without the client needing to know which
-one applies.
+The retry covers all three without the client needing to know which one applies.
 
 ### Tests
 
@@ -158,19 +119,9 @@ one applies.
 
 ## [6.6.2.1] (2026-05-20)
 
-Cache-bust-only release — no source code changes. Bumps `FFC_VERSION`
-so the asset cache key `?ver=…` rotates and browsers / CDNs re-download
-the `.min.js` and `.min.css` that were modified by PRs
-(stale-nonce fix) and (success-card auth-code wrap + PT-BR
-translations) without their own version bumps.
+Cache-bust-only release — no source code changes. Bumps `FFC_VERSION` so the asset cache key `?ver=…` rotates and browsers / CDNs re-download the `.min.js` and `.min.css` that were modified by PRs (stale-nonce fix) and (success-card auth-code wrap + PT-BR translations) without their own version bumps.
 
-**Versioning convention introduced here**: when a release exists only
-to invalidate asset caches (no functional change beyond what the
-previous version already shipped on disk), append a 4th segment to
-the prior version instead of consuming a fresh patch number. So a
-"real" patch goes `6.6.2 → 6.6.3`, but a cache-bust-only sibling of
-6.6.2 goes `6.6.2 → 6.6.2.1`. Future cache-bust-only siblings of
-6.6.3 would be `6.6.3.1`, `6.6.3.2`, etc.
+**Versioning convention introduced here**: when a release exists only to invalidate asset caches (no functional change beyond what the previous version already shipped on disk), append a 4th segment to the prior version instead of consuming a fresh patch number. So a "real" patch goes `6.6.2 → 6.6.3`, but a cache-bust-only sibling of 6.6.2 goes `6.6.2 → 6.6.2.1`. Future cache-bust-only siblings of 6.6.3 would be `6.6.3.1`, `6.6.3.2`, etc.
 
 ### Fixed
 
@@ -181,10 +132,7 @@ the prior version instead of consuming a fresh patch number. So a
 
 ## [6.6.2] (2026-05-20)
 
-Public certificate form — user-messaging sweep. Six-sprint
-PR that overhauls every customer-facing message in the submission +
-download flow, plus carries forward the two regression fixes that
-were sitting in Unreleased after 6.6.1.
+Public certificate form — user-messaging sweep. Six-sprint PR that overhauls every customer-facing message in the submission + download flow, plus carries forward the two regression fixes that were sitting in Unreleased after 6.6.1.
 
 ### Added
 
@@ -206,22 +154,11 @@ were sitting in Unreleased after 6.6.1.
 
 ## [6.6.1] (2026-05-18)
 
-Code-quality sweep bundle from the umbrella audit: test-gap
-closeout, nonce-verification audit ( follow-up), dead-code
-reauditing ( follow-up), and residual cleanup between the - PRs
-and the batch.
+Code-quality sweep bundle from the umbrella audit: test-gap closeout, nonce-verification audit ( follow-up), dead-code reauditing ( follow-up), and residual cleanup between the - PRs and the batch.
 
-> ### ⚠ Breaking change for `GET /forms` REST consumers
->
-> The `GET /forms` REST endpoint now uses real pagination via `page`
-> and `per_page` query args (WP REST convention). The legacy `limit`
-> arg is **removed** — clients still passing `?limit=N` will have it
-> silently ignored. Default `per_page` is **10** (was implicitly up
-> to 100). Responses now carry `X-WP-Total`, `X-WP-TotalPages`, and
-> a `Link` header (`first`, `prev`, `next`, `last`).
->
-> Migration: `?limit=50` → `?per_page=50`; iterate `?page=N` until
-> `X-WP-TotalPages` is exhausted. No shim period.
+### ⚠ Breaking change for `GET /forms` REST consumers
+> The `GET /forms` REST endpoint now uses real pagination via `page` and `per_page` query args (WP REST convention). The legacy `limit` arg is **removed** — clients still passing `?limit=N` will have it silently ignored. Default `per_page` is **10** (was implicitly up to 100). Responses now carry `X-WP-Total`, `X-WP-TotalPages`, and a `Link` header (`first`, `prev`, `next`, `last`).
+> Migration: `?limit=50` → `?per_page=50`; iterate `?page=N` until `X-WP-TotalPages` is exhausted. No shim period.
 
 ### Removed
 
@@ -500,7 +437,7 @@ Maintenance release — bumps two vendored libraries, fixes two form-editor save
 
 ## [6.5.2] (2026-05-10)
 
-**Refactor the user-dashboard god-object into self-registering panels.** `assets/js/ffc-user-dashboard.js` was 1548 LOC of one IIFE owning seven panel renderers, AJAX state, and a tab dispatch built from chained `if/else if`. Adding a panel touched five places. Split into 8 files with a panel registry: core dispatches via `FFCDashboard.panels[tab].render(state, page)`, and adding a panel now needs zero edits to the core file.
+> **Refactor the user-dashboard god-object into self-registering panels.** `assets/js/ffc-user-dashboard.js` was 1548 LOC of one IIFE owning seven panel renderers, AJAX state, and a tab dispatch built from chained `if/else if`. Adding a panel touched five places. Split into 8 files with a panel registry: core dispatches via `FFCDashboard.panels[tab].render(state, page)`, and adding a panel now needs zero edits to the core file.
 
 ### Changed
 
@@ -589,7 +526,7 @@ Maintenance release — bumps two vendored libraries, fixes two form-editor save
 
 ## [6.4.0] (2026-05-10)
 
-**Unified CSV IO abstraction.** Internal refactor: every CSV the plugin reads or writes now flows through a single pair of primitives — `\FreeFormCertificate\Core\Csv::writer` / `Csv::reader` — instead of the eight exporters and two importers each implementing fputcsv/fgetcsv/delimiter detection/BOM handling on their own. No user-facing change for files that already used `;` (the post-6.3.9 default); audience export templates now correctly emit a UTF-8 BOM (previously they were the only files in the plugin that didn't, causing Excel to render accented characters as mojibake until manually fixing encoding). Minor bump because the surface area touched is broad even though behaviour is preserved on every public format.
+> **Unified CSV IO abstraction.** Internal refactor: every CSV the plugin reads or writes now flows through a single pair of primitives — `\FreeFormCertificate\Core\Csv::writer` / `Csv::reader` — instead of the eight exporters and two importers each implementing fputcsv/fgetcsv/delimiter detection/BOM handling on their own. No user-facing change for files that already used `;` (the post-6.3.9 default); audience export templates now correctly emit a UTF-8 BOM (previously they were the only files in the plugin that didn't, causing Excel to render accented characters as mojibake until manually fixing encoding). Minor bump because the surface area touched is broad even though behaviour is preserved on every public format.
 
 ### Added
 
@@ -1258,7 +1195,7 @@ Raise minimum PHP requirement from 7.4 to 8.1. PHP 7.4 reached end-of-life on 20
 
 - **TabGeolocationTest** — replaced `test_save_settings_saves_main_geo_areas_to_ffc_settings` with `test_save_settings_calls_save_locations` for new registry-based save behavior
 - **3154 → 3234 tests** (+80) with all 7646 assertions green
-- **BREAKING:** Minimum PHP bumped from **7.4 → 8.1**. Update your server before upgrading. `Plugin Name` header, `FFC_MIN_PHP_VERSION`, `composer.json#require.php` and `readme.txt#Requires PHP` all updated.
+> **BREAKING:** Minimum PHP bumped from **7.4 → 8.1**. Update your server before upgrading. `Plugin Name` header, `FFC_MIN_PHP_VERSION`, `composer.json#require.php` and `readme.txt#Requires PHP` all updated.
 - `composer.json#config.platform.php` pinned to `"8.1"` so the lockfile resolves to versions compatible with the declared minimum regardless of the developer's local PHP version.
 - `composer.lock` regenerated under PHP 8.1 platform; `doctrine/instantiator` now resolves to `2.0.0` (compatible with PHP ^8.1) instead of `2.1.0` (which required PHP ^8.4).
 - CI matrix now covers PHP **8.1, 8.2, 8.3, 8.4** (added 8.2, removed 7.4).
@@ -1370,7 +1307,7 @@ Public CSV download feature: form organizers without WordPress admin access can 
 - AJAX batch jobs scoped by `sha1(IP)` — subsequent batch/download requests verify the caller's IP matches the IP that started the job. Combined with UUID v4 job IDs (122 bits of entropy) this prevents cross-visitor job hijacking
 - `wp_update_post` automatically creates WordPress revisions for modified `post` / `page` entries, giving admins a manual rollback path. Only `[ffc_form]` shortcodes pointing at expired IDs are removed — the rest of the content is left untouched
 - CPF, RF and RG are now encrypted at rest (AES-256-CBC via the existing `Encryption` class) in both the submission JSON and in `usermeta`. Decryption is transparent in form renderer, PDF generator, CSV exporter, and verification handler
-- Refactor `AppointmentRepository::findByUserId` and `getStatistics` to use single `wpdb->prepare` calls instead of nesting prepared fragments (avoids placeholder re-processing)
+>- Refactor `AppointmentRepository::findByUserId` and `getStatistics` to use single `wpdb->prepare` calls instead of nesting prepared fragments (avoids placeholder re-processing)
 - Replace direct ID interpolation in `AbstractRepository::findByIds` with proper `%d` placeholders via `array_fill` + spread operator
 - Add `is_uploaded_file` validation in `AudienceAdminImport` for both member and audience CSV uploads (prevents path traversal via crafted `tmp_name`)
 - Sanitize `Content-Disposition` filenames across all 6 CSV exporters — strip CR/LF/quote characters and wrap in double quotes (CRLF injection prevention per RFC 6266)
@@ -1737,7 +1674,7 @@ Unit tests for Admin module: comprehensive coverage of settings validation, CSV 
 
 ## 4.12.19 (2026-02-17)
 
-Refactoring: extract focused classes from DashboardShortcode (720 → 395 lines, 45% reduction).
+> Refactoring: extract focused classes from DashboardShortcode (720 → 395 lines, 45% reduction).
 
 ### Changed
 
@@ -1771,7 +1708,7 @@ Unit tests for SubmissionHandler: comprehensive coverage of update, decrypt, fai
 
 ## 4.12.17 (2026-02-17)
 
-Refactoring: extract focused classes from FormProcessor.
+> Refactoring: extract focused classes from FormProcessor.
 
 ### Changed
 
@@ -1784,7 +1721,7 @@ Refactoring: extract focused classes from FormProcessor.
 
 ## 4.12.16 (2026-02-17)
 
-Refactoring: extract focused classes from SelfSchedulingEditor (924 → 559 lines, 39% reduction).
+> Refactoring: extract focused classes from SelfSchedulingEditor (924 → 559 lines, 39% reduction).
 
 ### Changed
 
@@ -1827,7 +1764,7 @@ Unit tests for FormProcessor and PdfGenerator: quiz scoring, restriction checks,
 
 ## 4.12.13 (2026-02-17)
 
-Refactoring: extract focused classes from ReregistrationAdmin (1,125 → 830 lines).
+> Refactoring: extract focused classes from ReregistrationAdmin (1,125 → 830 lines).
 
 ### Changed
 
@@ -1911,7 +1848,7 @@ Fix: math captcha showing raw HTML as visible text on cached pages.
 
 ## 4.12.8 (2026-02-17)
 
-Refactor Utils (dead code removal) and ReregistrationFrontend (1,330 lines → coordinator + 3 sub-classes).
+> Refactor Utils (dead code removal) and ReregistrationFrontend (1,330 lines → coordinator + 3 sub-classes).
 
 ### Changed
 
@@ -1926,7 +1863,7 @@ Refactor Utils (dead code removal) and ReregistrationFrontend (1,330 lines → c
 
 ## 4.12.7 (2026-02-17)
 
-Refactor UserDataRestController (1,415 lines → coordinator + 6 sub-controllers).
+> Refactor UserDataRestController (1,415 lines → coordinator + 6 sub-controllers).
 
 ### Added
 
@@ -2030,7 +1967,7 @@ Security hardening: SQL injection prevention, XSS mitigation, and modal accessib
 
 ## 4.12.2 (2026-02-17)
 
-God class refactoring: UserManager and ActivityLog split into single-responsibility classes with full backward compatibility.
+> God class refactoring: UserManager and ActivityLog split into single-responsibility classes with full backward compatibility.
 
 ### Changed
 
@@ -2252,7 +2189,7 @@ User profiles table, user deletion handling, and email change tracking.
 
 ## 4.9.3 (2026-02-14)
 
-Capability system refactoring: centralized constants, enforced checks, simplified role model.
+> Capability system refactoring: centralized constants, enforced checks, simplified role model.
 
 ### Added
 
@@ -2584,7 +2521,7 @@ Performance: Activity Log optimization with batch writes, auto-cleanup, and stat
 
 ## 4.6.8 (2026-02-08)
 
-Refactor: Break down God classes into focused single-responsibility classes.
+> Refactor: Break down God classes into focused single-responsibility classes.
 
 ### Changed
 
@@ -2930,7 +2867,7 @@ New appointment calendar and booking system.
 
 ## 4.0.0 (2026-01-26)
 
-Breaking release: removal of backward-compatibility aliases and namespace finalization. **First stable tag bump from 2.8.0** since the 2.9.x development cycle began.
+> Breaking release: removal of backward-compatibility aliases and namespace finalization. **First stable tag bump from 2.8.0** since the 2.9.x development cycle began.
 
 _The Data Encryption framework, first introduced during the 2.9.x development cycle, is considered stable and integrated across the codebase from this release forward._
 
@@ -2954,7 +2891,7 @@ _The Data Encryption framework, first introduced during the 2.9.x development cy
 
 ### Removed
 
-- **BREAKING:** Removed all backward-compatibility aliases for old `FFC_*` class names
+> **BREAKING:** Removed all backward-compatibility aliases for old `FFC_*` class names
 - Removed all obsolete `require_once` statements (autoloader handles loading)
 
 ---
@@ -3170,7 +3107,7 @@ Magic links for one-click certificate access.
 
 ## 2.7.0 (2025-12-28)
 
-Modular architecture refactoring.
+> Modular architecture refactoring.
 
 ### Added
 
@@ -3225,7 +3162,7 @@ Development snapshot leading up to the 2.6.0 release; **never published as stabl
 
 ### Added
 
-- Foundation work for the modular OOP refactor that was finalized in 2.6.0 — first split of `includes/` into `admin/`, `core/`, `data/`, and `frontend/` subdirectories with dedicated classes (`class-ffc-pdf-generator.php`, `class-ffc-submission-controller.php`, `class-ffc-mailer.php`, `class-ffc-template-engine.php`, `class-ffc-repository.php`).
+>- Foundation work for the modular OOP refactor that was finalized in 2.6.0 — first split of `includes/` into `admin/`, `core/`, `data/`, and `frontend/` subdirectories with dedicated classes (`class-ffc-pdf-generator.php`, `class-ffc-submission-controller.php`, `class-ffc-mailer.php`, `class-ffc-template-engine.php`, `class-ffc-repository.php`).
 - Initial QR Code experimentation (3 references in `includes/` source). The work was rolled back in the next snapshot (16/12 → 23/12) and resumed/finalized in 2.9.0.
 - `FFC_VERSION` constant for CSS/JS cache busting (developer comment in source: _"Adicionamos FFC_VERSION para controle de cache dos arquivos CSS/JS"_).
 - Multiple certificate template HTML files and background images bundled in `html/`.
