@@ -193,6 +193,15 @@ class Loader {
 			\FreeFormCertificate\Security\RateLimitActivator::maybe_create_tables();
 		}
 
+		// Ensure activity_log schema is healed. Installs created in a
+		// pre-`action`-column plugin version skipped dbDelta on every
+		// upgrade because create_table() used to early-return on
+		// `table_exists`. Without this, PreflightStatsService queries
+		// fail with `Unknown column 'action'`.
+		if ( class_exists( '\FreeFormCertificate\Core\ActivityLog' ) ) {
+			\FreeFormCertificate\Core\ActivityLog::maybe_create_table();
+		}
+
 		// In-place plugin updates (drop new files via `wp-admin/plugins.php`'s
 		// "Update" button) DO NOT fire `register_activation_hook`. Re-register
 		// the canonical FFC role + the 6.2.0 module-manager / recruitment-tier

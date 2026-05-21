@@ -259,8 +259,24 @@ class ActivityLog {
 	}
 
 	/**
+	 * Expected schema version. Bumped whenever this class's CREATE TABLE
+	 * statement changes shape (new columns, new indexes, etc.).
+	 * Read by maybe_create_table() to decide if dbDelta needs to run on an
+	 * existing install.
+	 */
+	private const DB_VERSION = '2.0.0';
+
+	/**
 	 * Create activity log table
-	 * Called during plugin activation
+	 * Called during plugin activation and from maybe_create_table() on
+	 * in-place upgrades.
+	 *
+	 * 6.6.6: removed the early-return on `table_exists()`. The old guard
+	 * meant installs whose table was created in a pre-`action` schema
+	 * (pre-4.6.x) never got dbDelta'd to add the `action` column, and
+	 * every PreflightStatsService query hit `Unknown column 'action'`.
+	 * dbDelta is idempotent — letting it run on every call lets it heal
+	 * legacy schemas without breaking fresh installs.
 	 *
 	 * @return bool Success
 	 */
@@ -268,11 +284,6 @@ class ActivityLog {
 		global $wpdb;
 		$table_name      = $wpdb->prefix . 'ffc_activity_log';
 		$charset_collate = $wpdb->get_charset_collate();
-
-		// Check if table already exists.
-		if ( self::table_exists( $table_name ) ) {
-			return true;
-		}
 
 		$sql = "CREATE TABLE {$table_name} (
             id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
@@ -295,6 +306,20 @@ class ActivityLog {
 		dbDelta( $sql );
 
 		return true;
+	}
+
+	/**
+	 * Run create_table() once when the stored db version is older than the
+	 * code's expected version. Mirrors RateLimitActivator::maybe_create_tables()
+	 * — covers in-place plugin upgrades that don't fire register_activation_hook.
+	 */
+	public static function maybe_create_table(): void {
+		$stored = get_option( 'ffc_activity_log_db_version', '' );
+		if ( self::DB_VERSION === $stored ) {
+			return;
+		}
+		self::create_table();
+		update_option( 'ffc_activity_log_db_version', self::DB_VERSION );
 	}
 
 	// =====================================================================.
