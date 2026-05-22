@@ -88,29 +88,37 @@ class ScheduleExceptionSession {
 	/**
 	 * Create a signed payload, set the cookie, return the token.
 	 *
-	 * @param int         $form_id            Form post ID.
-	 * @param string|null $start_override     TIME string (HH:MM[:SS]) or null
-	 *                                        to leave start at baseline.
-	 * @param string|null $end_override       TIME string (HH:MM[:SS]) or null
-	 *                                        to leave end at baseline.
-	 * @param string      $operator_cpf_hash  SHA-256 hex of the operator
-	 *                                        CPF (already hashed by caller).
+	 * @param int         $form_id              Form post ID.
+	 * @param string|null $start_override       TIME string (HH:MM[:SS]) or null
+	 *                                          to leave start at baseline.
+	 * @param string|null $end_override         TIME string (HH:MM[:SS]) or null
+	 *                                          to leave end at baseline.
+	 * @param string      $operator_cpf_hash    SHA-256 hex of the operator
+	 *                                          CPF (already hashed by caller).
+	 * @param string      $operator_cpf_masked  Pre-masked operator CPF in
+	 *                                          `***.***.123-45` shape, for
+	 *                                          human-readable audit rows
+	 *                                          (Sprint 6). Empty when the
+	 *                                          caller did not collect a CPF
+	 *                                          (e.g. forms with CPF mode off).
 	 * @return string The signed token (also the cookie value).
 	 */
 	public static function create(
 		int $form_id,
 		?string $start_override,
 		?string $end_override,
-		string $operator_cpf_hash
+		string $operator_cpf_hash,
+		string $operator_cpf_masked = ''
 	): string {
 		$payload = array(
-			'v'                 => self::TOKEN_VERSION,
-			'form_id'           => $form_id,
-			'start'             => $start_override,
-			'end'               => $end_override,
-			'operator_cpf_hash' => $operator_cpf_hash,
-			'exp'               => time() + self::TTL_SECONDS,
-			'jti'               => self::random_jti(),
+			'v'                   => self::TOKEN_VERSION,
+			'form_id'             => $form_id,
+			'start'               => $start_override,
+			'end'                 => $end_override,
+			'operator_cpf_hash'   => $operator_cpf_hash,
+			'operator_cpf_masked' => $operator_cpf_masked,
+			'exp'                 => time() + self::TTL_SECONDS,
+			'jti'                 => self::random_jti(),
 		);
 
 		$token = self::sign_token( $payload );
