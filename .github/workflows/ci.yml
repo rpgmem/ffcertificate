@@ -2,7 +2,11 @@ name: CI
 
 on:
   pull_request:
-    branches: [main]
+    # `release/**` so 6.6.x hotfix PRs (and any future minor-line
+    # maintenance branch) get the same PHPStan + PHPUnit + WPCS +
+    # coverage-floor gates as PRs targeting `main`. Without this,
+    # hotfix PRs were merging with zero CI signal.
+    branches: [main, "release/**"]
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
