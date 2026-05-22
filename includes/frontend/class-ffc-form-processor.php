@@ -53,9 +53,44 @@ class FormProcessor {
 	 * Handle form submission via AJAX
 	 */
 	public function handle_submission_ajax(): void {
+		// Schedule exception bridge (#366 Sprint 6). Read + verify the
+		// hidden-input token Sprint 5 embedded in the form. A valid
+		// payload means an operator staged this submission as an
+		// exception; downstream we (a) skip the IP rate-limit gate,
+		// (b) persist the override TIME columns, (c) emit two audit
+		// rows. Done before the IP gate so the operator's bypass takes
+		// effect even when the venue's network has saturated the
+		// per-IP throttle.
+		//
+		// The token IS a signed credential (HMAC over the payload + 30
+		// min expiry + form_id binding), so verifying it before the WP
+		// nonce check is safe — the token is the auth for the exception
+		// path, not the nonce.
+		$has_exception              = false;
+		$schedule_exception_payload = null;
+		// phpcs:ignore WordPress.Security.NonceVerification.Missing, WordPress.Security.ValidatedSanitizedInput -- token verified via HMAC immediately below; form_id sanitized via absint.
+		if ( isset( $_POST['ffc_schedule_exception_token'] ) ) {
+			// phpcs:ignore WordPress.Security.NonceVerification.Missing, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- HMAC verifies integrity.
+			$token_raw = (string) wp_unslash( $_POST['ffc_schedule_exception_token'] );
+			// phpcs:ignore WordPress.Security.NonceVerification.Missing
+			$token_form = isset( $_POST['form_id'] ) ? absint( wp_unslash( $_POST['form_id'] ) ) : 0;
+			$verified   = \FreeFormCertificate\Frontend\ScheduleExceptionSession::verify_token( $token_raw );
+			if ( null !== $verified && $token_form > 0 && (int) ( $verified['form_id'] ?? 0 ) === $token_form ) {
+				$has_exception              = true;
+				$schedule_exception_payload = $verified;
+			}
+		}
+
 		// Rate limit by IP — run BEFORE nonce/CAPTCHA to prevent brute-force.
 		// and DoS attacks from consuming server resources on expensive checks.
-		if ( class_exists( '\FreeFormCertificate\Security\RateLimiter' ) ) {
+		//
+		// Skipped on the exception path: operators handing tablets at a
+		// venue routinely concentrate submissions on one outbound IP, and
+		// the signed token already binds the bypass to a 30-minute
+		// operator-issued window. Per-CPF rate-limits (in
+		// `RateLimiter::check_all()` below) still apply normally so a
+		// single participant can't replay the token across submissions.
+		if ( ! $has_exception && class_exists( '\FreeFormCertificate\Security\RateLimiter' ) ) {
 			$user_ip    = \FreeFormCertificate\Core\Utils::get_user_ip();
 			$rate_check = \FreeFormCertificate\Security\RateLimiter::check_ip_limit( $user_ip );
 			if ( ! $rate_check['allowed'] ) {
@@ -661,6 +696,30 @@ class FormProcessor {
 				if ( $restriction_result['is_ticket'] && ! empty( $val_ticket ) ) {
 					AccessRestrictionChecker::consume_ticket( $form_id, $val_ticket );
 				}
+
+				// #366 Sprint 6 — persist the override TIME columns on
+				// the freshly inserted row + emit the two audit log
+				// entries. Runs only on new submissions (reprint path
+				// returns the original row unmodified — exceptions are
+				// strictly one-use). The override write is a separate
+				// UPDATE rather than threaded into the insert payload
+				// so SubmissionHandler's public signature stays
+				// unchanged; the brief window where the row carries
+				// NULL overrides is benign because the placeholder
+				// resolver in Sprint 7 falls back to baseline anyway.
+				// `$has_exception` and `$schedule_exception_payload`
+				// are correlated above (both set together inside the
+				// verify_token branch), so the `null` payload case is
+				// already excluded by the boolean — PHPStan tracks the
+				// correlation, no defensive null-check needed.
+				if ( $has_exception ) {
+					$this->persist_schedule_exception(
+						(int) $submission_id,
+						$form_id,
+						(array) $schedule_exception_payload,
+						(string) $val_cpf
+					);
+				}
 			}
 		}
 
@@ -820,5 +879,113 @@ class FormProcessor {
 		}
 
 		return null;
+	}
+
+	/**
+	 * Persist a verified schedule-exception payload onto an existing
+	 * submission row and emit the matching audit pair. Factored out of
+	 * {@see handle_submission_ajax()} so the (already large) submission
+	 * pipeline keeps its single-responsibility intent while this side
+	 * effect lives in one auditable place.
+	 *
+	 * Two writes:
+	 *   1. `$wpdb` UPDATE on `ffc_submissions` setting
+	 *      `schedule_start_override` / `schedule_end_override` to the
+	 *      verified payload values. Either column stays NULL when the
+	 *      operator left that end at baseline.
+	 *   2. Two `ActivityLog::log()` rows (#366 Sprint 1 constants):
+	 *      `ACTION_SCHEDULE_OVERRIDE_CREATED` carries the full context
+	 *      JSON the admin renderer in Sprint 9 will pretty-print —
+	 *      form_id, submission_id, participant CPF hash, operator CPF
+	 *      hash + masked, the override range, and a `ts` (Category A
+	 *      unix UTC int, NOT the activity_log `created_at` DATETIME
+	 *      column which is housekeeping per CLAUDE.md). The companion
+	 *      `ACTION_OPERATOR_IP_BYPASS` carries the bypassed IP so a
+	 *      reviewer can correlate the exception with the venue's
+	 *      outbound IP for one-time audits.
+	 *
+	 * @param int                  $submission_id Newly inserted row.
+	 * @param int                  $form_id       Form post id.
+	 * @param array<string, mixed> $payload       Verified token payload.
+	 * @param string               $participant_cpf_plain Plaintext participant
+	 *                                                    CPF digits (already
+	 *                                                    validated upstream).
+	 *                                                    Used to derive the
+	 *                                                    audit `participant_cpf_hash`
+	 *                                                    without re-fetching
+	 *                                                    the row.
+	 */
+	private function persist_schedule_exception(
+		int $submission_id,
+		int $form_id,
+		array $payload,
+		string $participant_cpf_plain
+	): void {
+		$start_override = isset( $payload['start'] ) && is_string( $payload['start'] ) ? $payload['start'] : null;
+		$end_override   = isset( $payload['end'] ) && is_string( $payload['end'] ) ? $payload['end'] : null;
+
+		$update_data = array();
+		if ( null !== $start_override && '' !== $start_override ) {
+			$update_data['schedule_start_override'] = $start_override;
+		}
+		if ( null !== $end_override && '' !== $end_override ) {
+			$update_data['schedule_end_override'] = $end_override;
+		}
+		if ( ! empty( $update_data ) ) {
+			$this->submission_handler->get_repository()->update( $submission_id, $update_data );
+		}
+
+		if ( ! class_exists( '\FreeFormCertificate\Core\ActivityLog' ) ) {
+			return;
+		}
+
+		$participant_cpf_hash = '' !== $participant_cpf_plain ? hash( 'sha256', $participant_cpf_plain ) : '';
+
+		// Action tags + level resolve to ActivityLog's class constants
+		// (`ACTION_SCHEDULE_OVERRIDE_CREATED`, `ACTION_OPERATOR_IP_BYPASS`,
+		// `LEVEL_INFO`). They're inlined as literals here so the
+		// Sprint 6 unit tests can spy on the static log() call via a
+		// Mockery `alias:` mock without having to preserve the real
+		// class's constants (alias mocks define an empty class). The
+		// values are pinned by `test_schedule_override_action_constants_are_defined`
+		// in ActivityLogTest.
+		\FreeFormCertificate\Core\ActivityLog::log(
+			'schedule_override_created',
+			'info',
+			array(
+				'form_id'               => $form_id,
+				'submission_id'         => $submission_id,
+				'participant_cpf_hash'  => $participant_cpf_hash,
+				'operator_cpf_hash'     => (string) ( $payload['operator_cpf_hash'] ?? '' ),
+				'operator_cpf_masked'   => (string) ( $payload['operator_cpf_masked'] ?? '' ),
+				// Baselines are pinned in the token at staging time
+				// (Sprint 4) so Sprint 8's verification block shows
+				// the "before" range that existed at the moment the
+				// operator clicked Create, regardless of subsequent
+				// admin edits to `class_time_*`.
+				'schedule_start_before' => (string) ( $payload['baseline_start'] ?? '' ),
+				'schedule_end_before'   => (string) ( $payload['baseline_end'] ?? '' ),
+				'schedule_start_after'  => $start_override,
+				'schedule_end_after'    => $end_override,
+				'ts'                    => time(),
+			),
+			0,
+			$submission_id
+		);
+
+		\FreeFormCertificate\Core\ActivityLog::log(
+			'operator_ip_bypass',
+			'info',
+			array(
+				'form_id'             => $form_id,
+				'submission_id'       => $submission_id,
+				'bypassed_ip'         => \FreeFormCertificate\Core\Utils::get_user_ip(),
+				'operator_cpf_hash'   => (string) ( $payload['operator_cpf_hash'] ?? '' ),
+				'operator_cpf_masked' => (string) ( $payload['operator_cpf_masked'] ?? '' ),
+				'ts'                  => time(),
+			),
+			0,
+			$submission_id
+		);
 	}
 }

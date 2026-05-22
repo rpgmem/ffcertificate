@@ -9,6 +9,44 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 
 ---
 
+## [6.7.0] (2026-05-22)
+
+Per-submission **schedule exception** flow (#366). When a participant misses a chunk of a class — leaves early, joins late, or has carga horária reduzida — an authenticated operator on the public CSV-download panel can now issue a one-use exception that overrides the certificate's `{schedule}` placeholder for that single submission. The remaining 99% of submissions render with the form's baseline schedule unchanged.
+
+### Added
+
+- **`[ffc_csv_download]` panel: "Entry/exit exception" button.** Surfaces only when the per-form toggle is on (off by default) and the operator passed the hash + CPF gate. Opens a modal with `Now` (one-tap end-time) or `Manual` (both ends editable) modes, validates the override against the form's effective open window client-side, and on confirm calls a new AJAX endpoint (`wp_ajax_nopriv_ffc_public_schedule_exception`) that stages the exception via a 30-minute HttpOnly + SameSite=Lax cookie. The modal then swaps to a CTA that opens the form URL in a new tab — the click preserves the user gesture so popup blockers don't engage.
+- **`[ffc_form]` shortcode: schedule-exception banner + hidden token.** When the participant lands on the form URL with the operator-issued cookie set, the form render reads + verifies the signed token, embeds it as a hidden input (`ffc_schedule_exception_token`), shows a discreet banner (`Schedule exception active: 08:00 to 17:30. This submission will be recorded with the adjusted schedule.`), and **clears the cookie in the same request** so the operator's bridge is strictly one-use.
+- **Submission handler: verify, persist, audit.** `FormProcessor::handle_submission_ajax()` reads the hidden-input token at the top of the pipeline, verifies it via HMAC, bypasses the per-IP rate-limit gate (per-CPF rate-limit stays on so a single participant cannot replay), and after the submission row is inserted (a) writes the override values into two new `TIME NULL` columns on `ffc_submissions` (`schedule_start_override`, `schedule_end_override`) and (b) emits two new ActivityLog rows: `schedule_override_created` (full before / after range + operator masked CPF + participant CPF hash + Category A unix UTC `ts`) and `operator_ip_bypass` (bypassed IP).
+- **`{{schedule}}` and `{{schedule_total}}` placeholders.** New helpers `DateFormatter::format_schedule()` and `DateFormatter::format_schedule_total()` render wall-clock ranges in the compact PT/EN-friendly `8h às 19h30` / `11 horas` / `11h 30min` shape the spec calls out. `PdfGenerator::generate_html()` resolves each side independently through the 3-tier hybrid: per-submission override → form-level `class_time_*` → geofence `time_*` → empty. Email pipeline picks up the same placeholders automatically because it funnels through the same `generate_html()` path.
+- **`/valid` certificate verification: "Adjusted entry / exit schedule" block.** When the submission carries either override column, the verification page surfaces the full before → after range, the masked operator CPF, and the moment of adjustment. The `before` range is pinned at exception-staging time inside the audit row's `context` JSON, so a later admin edit to `class_time_*` for an unrelated reason does NOT retroactively rewrite history on existing certificates. The `ts` is rendered via `DateFormatter::format_datetime()` from the Category A unix UTC int, not from the activity_log `created_at` DATETIME column (which stays housekeeping per CLAUDE.md).
+- **Activity Log admin renderer.** The two new action types (`schedule_override_created`, `operator_ip_bypass`) get friendly fact summaries above the raw JSON dump: before / after range, operator masked CPF, participant CPF hash (truncated to 12 chars + ellipsis — full hash stays in the raw block below for forensic correlation), submission ID. The filter dropdown lists both actions under "Schedule Override Created" / "Operator IP Bypass". Existing actions render identically.
+- **`ScheduleExceptionSession` + `ScheduleExceptionAction` classes.** The crypto + cookie + business-logic boundary. Token is `base64url(payload).base64url(hmac-sha256)`, signed with `wp_salt('nonce')` + module scope, 30 min expiry, `v=1` version field for future format migrations, payload bound to `form_id` against cross-form replay.
+- **Per-form admin toggles in the Geofence metabox.** New subsection "Per-participant entry/exit exception" carries the master toggle, two optional `class_time_*` baseline inputs, and a default-mode select. All four values land inside the existing `_ffc_geofence_config` array meta — `handle_form_duplication()` copies them with no code change because the meta key is already in its propagation list.
+
+### Changed
+
+- **`ffc_submissions` schema.** Two new nullable `TIME` columns added through the existing `Activator::maybe_add_columns()` migration. NULL means "no override — use the baseline at render time". Category B wall-clock per CLAUDE.md.
+- **`ActivityLog` action vocabulary.** Two new constants (`ACTION_SCHEDULE_OVERRIDE_CREATED`, `ACTION_OPERATOR_IP_BYPASS`). The constant values are also inlined as literals in `FormProcessor::persist_schedule_exception()` so the test harness can spy on `ActivityLog::log()` via a Mockery alias without booting the real wpdb-backed class.
+
+### Tests
+
+- 65+ new PHPUnit cases across 8 files covering: schema migration idempotency, the action gate cascade and override-validation matrix, the session crypto round-trip (tamper / expiry / version / form-id-mismatch rejection), cookie attribute correctness, form-render embed + clear, submission handler persistence + audit emit, placeholder formatter / resolver, `/valid` block assembly, and the admin renderer.
+- 7 new Vitest cases for the operator modal (render gating, modal open with baseline pre-fill, client-side validation, AJAX success → CTA swap, AJAX failure → button re-enabled + error visible, Escape closes).
+
+### i18n
+
+- 50+ new strings (operator modal, banner, action error messages, audit labels, /valid block). PT-BR translations added to `ffcertificate-pt_BR.po` and `.mo` recompiled; `.l10n.php` regenerated.
+
+### Out of scope (carried over from the issue spec)
+
+- GPS / geofence bypass for the operator path (operator "confirms in-person" overrides GPS imprecision) — separate feature.
+- Re-edit of an existing exception — current contract is one-use, admin must delete the submission and operator recreates.
+- Restriction of an exception to a specific participant CPF — current contract trusts the operator to hand the tablet to the right person within the 30-minute window.
+- Admin list filter for "exceptional submissions only" — explicitly out per the issue spec ("sem badge na lista de submissões").
+
+---
+
 ## [6.6.7] (2026-05-21)
 
 Follow-up to the PR #352 (6.6.2) dependency cleanup. Four public-facing JS enqueues never had `ffc-core` listed as a dependency, so any page combining their script via a JS-combining cache plugin (LiteSpeed JS Combine, WP Rocket Combine, etc.) ended up with `FFC is not defined` and a non-functional widget. Reported on `dresaomiguel.com.br/avaliacoes-e-provas/` where `[ffc_audience schedule_id="1"]` failed to render the calendar.

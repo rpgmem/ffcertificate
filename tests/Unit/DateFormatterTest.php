@@ -322,4 +322,88 @@ class DateFormatterTest extends TestCase {
 		);
 		$this->assertSame( DateFormatter::DEFAULT_TIME_FORMAT, DateFormatter::resolve_time_format() );
 	}
+
+	// ==================================================================
+	// format_schedule() / format_schedule_total() — #366 Sprint 7
+	// ==================================================================
+
+	public function test_format_schedule_compact_range_omits_zero_minutes(): void {
+		Functions\when( '__' )->alias( static fn( $text ) => $text );
+
+		$this->assertSame( '8h to 19h30', DateFormatter::format_schedule( '08:00', '19:30' ) );
+	}
+
+	public function test_format_schedule_preserves_minutes_on_both_sides(): void {
+		Functions\when( '__' )->alias( static fn( $text ) => $text );
+
+		$this->assertSame( '8h15 to 19h30', DateFormatter::format_schedule( '08:15', '19:30' ) );
+	}
+
+	public function test_format_schedule_accepts_seconds_suffix(): void {
+		// TIME columns store HH:MM:SS; the helper must accept that
+		// shape (and ignore the seconds half) since the seconds
+		// component is meaningless for schedule rendering.
+		Functions\when( '__' )->alias( static fn( $text ) => $text );
+
+		$this->assertSame( '8h to 19h30', DateFormatter::format_schedule( '08:00:00', '19:30:45' ) );
+	}
+
+	public function test_format_schedule_returns_empty_when_both_sides_blank(): void {
+		$this->assertSame( '', DateFormatter::format_schedule( '', '' ) );
+		$this->assertSame( '', DateFormatter::format_schedule( null, null ) );
+	}
+
+	public function test_format_schedule_collapses_to_single_side_when_only_one_set(): void {
+		$this->assertSame( '8h', DateFormatter::format_schedule( '08:00', '' ) );
+		$this->assertSame( '19h30', DateFormatter::format_schedule( null, '19:30' ) );
+	}
+
+	public function test_format_schedule_rejects_malformed_input(): void {
+		// Malformed values are dropped silently — the placeholder
+		// should fail safe to an empty string rather than rendering
+		// garbage like 'not-a-timeh' on a real certificate.
+		$this->assertSame( '', DateFormatter::format_schedule( 'not-a-time', 'whatever' ) );
+		$this->assertSame( '', DateFormatter::format_schedule( '25:99', '99:99' ) );
+	}
+
+	public function test_format_schedule_total_whole_hours_uses_plural_form(): void {
+		Functions\when( '_n' )->alias( static function ( $singular, $plural, $count ) {
+			return 1 === (int) $count ? $singular : $plural;
+		} );
+
+		$this->assertSame( '11 hours', DateFormatter::format_schedule_total( '08:00', '19:00' ) );
+	}
+
+	public function test_format_schedule_total_one_hour_uses_singular_form(): void {
+		Functions\when( '_n' )->alias( static function ( $singular, $plural, $count ) {
+			return 1 === (int) $count ? $singular : $plural;
+		} );
+
+		$this->assertSame( '1 hour', DateFormatter::format_schedule_total( '08:00', '09:00' ) );
+	}
+
+	public function test_format_schedule_total_fractional_uses_compact_hm_form(): void {
+		Functions\when( '_n' )->alias( static fn( $s, $p, $c ) => 1 === (int) $c ? $s : $p );
+		Functions\when( '__' )->alias( static fn( $text ) => $text );
+
+		$this->assertSame( '11h 30min', DateFormatter::format_schedule_total( '08:00', '19:30' ) );
+	}
+
+	public function test_format_schedule_total_fractional_pads_minutes(): void {
+		// Minute count below 10 must still render as `'%02d'`, not `'5min'`.
+		Functions\when( '_n' )->alias( static fn( $s, $p, $c ) => 1 === (int) $c ? $s : $p );
+		Functions\when( '__' )->alias( static fn( $text ) => $text );
+
+		$this->assertSame( '1h 05min', DateFormatter::format_schedule_total( '08:00', '09:05' ) );
+	}
+
+	public function test_format_schedule_total_returns_empty_when_range_inverted(): void {
+		$this->assertSame( '', DateFormatter::format_schedule_total( '19:00', '08:00' ) );
+	}
+
+	public function test_format_schedule_total_returns_empty_on_blank_or_malformed_input(): void {
+		$this->assertSame( '', DateFormatter::format_schedule_total( '', '' ) );
+		$this->assertSame( '', DateFormatter::format_schedule_total( null, '19:00' ) );
+		$this->assertSame( '', DateFormatter::format_schedule_total( 'oops', '19:00' ) );
+	}
 }

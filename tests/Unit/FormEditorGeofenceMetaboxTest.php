@@ -91,4 +91,49 @@ class FormEditorGeofenceMetaboxTest extends TestCase {
         $html = $this->render( '' );
         $this->assertNotSame( '', $html );
     }
+
+    // ==================================================================
+    // Schedule exception subsection (#366 Sprint 2)
+    // ==================================================================
+
+    public function test_render_emits_schedule_exception_subsection(): void {
+        $html = $this->render();
+
+        $this->assertStringContainsString( 'ffc_geofence[schedule_exception_enabled]', $html );
+        $this->assertStringContainsString( 'ffc_geofence[class_time_start]', $html );
+        $this->assertStringContainsString( 'ffc_geofence[class_time_end]', $html );
+        $this->assertStringContainsString( 'ffc_geofence[schedule_default_mode]', $html );
+        $this->assertStringContainsString( 'Per-participant entry/exit exception', $html );
+    }
+
+    public function test_render_schedule_exception_collapses_when_toggle_off(): void {
+        $html = $this->render( array() );
+
+        $this->assertMatchesRegularExpression(
+            '/ffc-collapsed-target ffc-collapsed[^"]*"\s+data-ffc-master="ffc_geofence_schedule_exception_enabled"/s',
+            $html,
+            'Schedule exception sub-options tbody should carry the ffc-collapsed modifier when the toggle is off'
+        );
+    }
+
+    public function test_render_schedule_exception_expands_when_toggle_on(): void {
+        $html = $this->render(
+            array(
+                'schedule_exception_enabled' => '1',
+                'class_time_start'           => '08:00',
+                'class_time_end'             => '17:30',
+                'schedule_default_mode'      => 'manual',
+            )
+        );
+
+        // The sub-options tbody must NOT carry the `ffc-collapsed` modifier
+        // when the master toggle is on, and the persisted TIME values must
+        // reach the rendered inputs.
+        $this->assertDoesNotMatchRegularExpression(
+            '/ffc-collapsed-target ffc-collapsed[^"]*"\s+data-ffc-master="ffc_geofence_schedule_exception_enabled"/s',
+            $html
+        );
+        $this->assertStringContainsString( 'value="08:00"', $html );
+        $this->assertStringContainsString( 'value="17:30"', $html );
+    }
 }

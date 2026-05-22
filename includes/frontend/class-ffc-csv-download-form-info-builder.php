@@ -164,6 +164,37 @@ final class CsvDownloadFormInfoBuilder {
 				'current_date_end_formatted'     => null !== $end_ts
 					? \FreeFormCertificate\Core\DateFormatter::format_date( $end_ts, 'default', $tz )
 					: '',
+				// `can_schedule_exception` powers the Sprint-4 "Entrada/saída
+				// diferenciada" button. Mirrors ScheduleExceptionAction::is_eligible()
+				// so the JS can't render a button the server will reject:
+				// per-form opt-IN ON, datetime restrictions ON, form open
+				// right now (`!before_start && !form_ended`). #366 Sprint 4.
+				'can_schedule_exception'         => ! $before_start
+					&& ! $form_ended
+					&& '1' === (string) get_post_meta( $form_id, '_ffc_csv_public_enabled', true )
+					&& '1' === (string) ( $geofence_config['schedule_exception_enabled'] ?? '' )
+					&& '1' === (string) ( $geofence_config['datetime_enabled'] ?? '' ),
+				// Baseline values for the exception modal — class_time_*
+				// wins, geofence time_* falls back. The modal pre-fills
+				// both inputs so the operator only edits the side they
+				// need. Sprint 6 will read these on the server too via
+				// ScheduleExceptionAction::resolve_baseline().
+				'schedule_baseline_start'        => '' !== (string) ( $geofence_config['class_time_start'] ?? '' )
+					? (string) $geofence_config['class_time_start']
+					: (string) ( $geofence_config['time_start'] ?? '' ),
+				'schedule_baseline_end'          => '' !== (string) ( $geofence_config['class_time_end'] ?? '' )
+					? (string) $geofence_config['class_time_end']
+					: (string) ( $geofence_config['time_end'] ?? '' ),
+				// Effective form window — used by the JS for client-side
+				// "stay within window" feedback. Server is the source of
+				// truth (`out_of_window` reason), this is just UX polish.
+				'schedule_window_start'          => (string) ( $geofence_config['time_start'] ?? '' ),
+				'schedule_window_end'            => (string) ( $geofence_config['time_end'] ?? '' ),
+				'schedule_default_mode'          => in_array(
+					(string) ( $geofence_config['schedule_default_mode'] ?? 'now' ),
+					array( 'now', 'manual' ),
+					true
+				) ? (string) ( $geofence_config['schedule_default_mode'] ?? 'now' ) : 'now',
 				'download_blocked_reason'        => $download_reason,
 				'start_date_formatted'           => null !== $start_ts
 					? \FreeFormCertificate\Core\DateFormatter::format_datetime( $start_ts, 'default', ' ', $tz )

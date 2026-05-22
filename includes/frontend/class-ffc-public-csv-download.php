@@ -112,6 +112,10 @@ class PublicCsvDownload {
 		add_action( 'wp_ajax_ffc_public_extend_end', array( $this, 'ajax_extend_end' ) );
 		add_action( 'wp_ajax_nopriv_ffc_public_extend_end', array( $this, 'ajax_extend_end' ) );
 
+		// AJAX: stage a per-submission schedule exception (#366).
+		add_action( 'wp_ajax_ffc_public_schedule_exception', array( $this, 'ajax_schedule_exception' ) );
+		add_action( 'wp_ajax_nopriv_ffc_public_schedule_exception', array( $this, 'ajax_schedule_exception' ) );
+
 		// AJAX batched export (JS path).
 		$exporter = new PublicCsvExporter();
 		add_action( 'wp_ajax_ffc_public_csv_start', array( $exporter, 'ajax_start' ) );
@@ -644,6 +648,77 @@ class PublicCsvDownload {
 				'message'          => __( 'Close time postponed.', 'ffcertificate' ),
 				'new_end_iso'      => $result['new_end_iso'],
 				'original_end_iso' => $result['original_end_iso'],
+			)
+		);
+	}
+
+	/**
+	 * AJAX: stage a per-submission schedule exception (#366 Sprint 4).
+	 *
+	 * Hand-off shape: posts `form_id`, `hash`, `cpf`, `start_override`,
+	 * `end_override` (last two may be empty to mean "leave at baseline").
+	 * On success returns `{ token, form_url }` — the JS layer then opens
+	 * the form URL in a new tab (user-gesture preserved) where Sprint 5
+	 * reads the cookie + embeds the token in the form body.
+	 */
+	public function ajax_schedule_exception(): void {
+		// phpcs:ignore WordPress.Security.ValidatedSanitizedInput
+		if ( ! wp_verify_nonce( Utils::get_post_string( '_ffc_pcd_nonce' ), self::NONCE_ACTION ) ) {
+			wp_send_json_error( array( 'message' => __( 'Security check failed.', 'ffcertificate' ) ), 403 );
+		}
+
+		$form_id        = isset( $_POST['form_id'] ) ? absint( wp_unslash( $_POST['form_id'] ) ) : 0; // phpcs:ignore WordPress.Security.NonceVerification.Missing
+		$posted_hash    = Utils::get_post_string( 'hash' );
+		$start_override = Utils::get_post_string( 'start_override' );
+		$end_override   = Utils::get_post_string( 'end_override' );
+		$cpf_input      = Utils::get_post_string( 'cpf' );
+
+		// Mirror ajax_extend_end's CPF re-validation. `silent_audit = true`
+		// keeps the per-form audit ring buffer untouched here — the row
+		// for this action lands in Sprint 6's submission handler, tagged
+		// with the FULL exception context (override values + participant
+		// CPF). Recording it now would emit a half-formed entry that the
+		// admin Activity Log renderer (Sprint 9) cannot pretty-print.
+		$cpf_error = $this->validator->validate_cpf_requirement( $form_id, $cpf_input, true );
+		if ( null !== $cpf_error ) {
+			wp_send_json_error( array( 'message' => $cpf_error ), 403 );
+		}
+		$cpf_digits_clean = preg_replace( '/\D/', '', (string) $cpf_input );
+		$cpf_digits_clean = is_string( $cpf_digits_clean ) ? $cpf_digits_clean : '';
+
+		$result = ScheduleExceptionAction::execute( $form_id, $posted_hash, $start_override, $end_override, $cpf_digits_clean );
+
+		if ( ! $result['ok'] ) {
+			$reason   = $result['reason'];
+			$messages = array(
+				'unknown_form'                => __( 'Form not found.', 'ffcertificate' ),
+				'csv_disabled'                => __( 'Public access is disabled for this form.', 'ffcertificate' ),
+				'bad_hash'                    => __( 'Invalid access hash.', 'ffcertificate' ),
+				'schedule_exception_disabled' => __( 'Schedule exceptions are disabled for this form.', 'ffcertificate' ),
+				'datetime_disabled'           => __( 'This form does not have a scheduled window.', 'ffcertificate' ),
+				'no_window'                   => __( 'This form does not have a scheduled start or end.', 'ffcertificate' ),
+				'not_started_yet'             => __( 'The form has not started yet.', 'ffcertificate' ),
+				'already_ended'               => __( 'This form has already ended.', 'ffcertificate' ),
+				'bad_time_format'             => __( 'Please pick valid times (HH:MM).', 'ffcertificate' ),
+				'range_inverted'              => __( 'The start time must be earlier than the end time.', 'ffcertificate' ),
+				'out_of_window'               => __( 'The override range must stay within the form\'s open window.', 'ffcertificate' ),
+				'no_change'                   => __( 'The override is identical to the baseline — nothing to do.', 'ffcertificate' ),
+			);
+			$message  = $messages[ $reason ] ?? __( 'Unable to create the schedule exception right now.', 'ffcertificate' );
+			wp_send_json_error(
+				array(
+					'reason'  => $reason,
+					'message' => $message,
+				),
+				409
+			);
+		}
+
+		wp_send_json_success(
+			array(
+				'message'  => __( 'Schedule exception staged. Open the participant form in the next tab.', 'ffcertificate' ),
+				'token'    => $result['token'],
+				'form_url' => $result['form_url'],
 			)
 		);
 	}

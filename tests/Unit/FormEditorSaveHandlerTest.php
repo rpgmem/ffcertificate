@@ -27,6 +27,9 @@ class FormEditorSaveHandlerTest extends TestCase {
 
         Functions\when( '__' )->returnArg();
         Functions\when( 'sanitize_text_field' )->returnArg();
+        Functions\when( 'sanitize_key' )->alias( function ( $key ) {
+            return strtolower( preg_replace( '/[^a-z0-9_\-]/i', '', (string) $key ) );
+        } );
 
         $this->handler = new FormEditorSaveHandler();
     }
@@ -43,6 +46,15 @@ class FormEditorSaveHandlerTest extends TestCase {
         $ref = new \ReflectionMethod( FormEditorSaveHandler::class, $method );
         $ref->setAccessible( true );
         return $ref->invokeArgs( $this->handler, $args );
+    }
+
+    /**
+     * Invoke a private static method on FormEditorSaveHandler.
+     */
+    private function invoke_static( string $method, array $args = [] ) {
+        $ref = new \ReflectionMethod( FormEditorSaveHandler::class, $method );
+        $ref->setAccessible( true );
+        return $ref->invokeArgs( null, $args );
     }
 
     // ==================================================================
@@ -602,5 +614,79 @@ class FormEditorSaveHandlerTest extends TestCase {
         $merged = $written['_ffc_geofence_config'];
         $this->assertSame( '0', $merged['geo_ip_areas_permissive'] );
         $this->assertSame( 'old-ip-areas', $merged['geo_ip_areas'], 'IP areas preserved when permissive off' );
+    }
+
+    // ==================================================================
+    // sanitize_schedule_exception_config() (#366 Sprint 2)
+    // ==================================================================
+
+    public function test_schedule_exception_toggle_absent_defaults_to_off(): void {
+        $result = $this->invoke_static( 'sanitize_schedule_exception_config', array( array() ) );
+
+        $this->assertSame( '0', $result['schedule_exception_enabled'] );
+        $this->assertSame( '', $result['class_time_start'] );
+        $this->assertSame( '', $result['class_time_end'] );
+        $this->assertSame( 'now', $result['schedule_default_mode'], 'default mode defaults to "now" when unset' );
+    }
+
+    public function test_schedule_exception_toggle_present_records_on(): void {
+        $result = $this->invoke_static( 'sanitize_schedule_exception_config', array( array(
+            'schedule_exception_enabled' => '1',
+            'class_time_start'           => '08:00',
+            'class_time_end'             => '19:30',
+            'schedule_default_mode'      => 'manual',
+        ) ) );
+
+        $this->assertSame( '1', $result['schedule_exception_enabled'] );
+        $this->assertSame( '08:00', $result['class_time_start'] );
+        $this->assertSame( '19:30', $result['class_time_end'] );
+        $this->assertSame( 'manual', $result['schedule_default_mode'] );
+    }
+
+    public function test_schedule_exception_default_mode_whitelists(): void {
+        $result = $this->invoke_static( 'sanitize_schedule_exception_config', array( array(
+            'schedule_default_mode' => 'whatever-the-attacker-sent',
+        ) ) );
+
+        $this->assertSame( 'now', $result['schedule_default_mode'], 'unknown mode folds back to "now"' );
+    }
+
+    public function test_schedule_exception_empty_class_times_stay_empty(): void {
+        // Empty strings preserve the "fall back to geofence baseline"
+        // semantic. The helper must NOT replace them with a default time.
+        $result = $this->invoke_static( 'sanitize_schedule_exception_config', array( array(
+            'schedule_exception_enabled' => '1',
+            'class_time_start'           => '',
+            'class_time_end'             => '',
+        ) ) );
+
+        $this->assertSame( '', $result['class_time_start'] );
+        $this->assertSame( '', $result['class_time_end'] );
+    }
+
+    public function test_save_form_data_persists_schedule_exception_keys(): void {
+        $bag     = $this->stub_for_save();
+        $written = &$bag[0];
+
+        Functions\when( 'get_post_meta' )->justReturn( array() );
+
+        $_POST = array(
+            'ffc_form_nonce' => 'ok',
+            'ffc_geofence'   => array(
+                'schedule_exception_enabled' => '1',
+                'class_time_start'           => '08:00',
+                'class_time_end'             => '17:30',
+                'schedule_default_mode'      => 'manual',
+            ),
+        );
+
+        $this->handler->save_form_data( 10 );
+
+        $this->assertArrayHasKey( '_ffc_geofence_config', $written );
+        $merged = $written['_ffc_geofence_config'];
+        $this->assertSame( '1', $merged['schedule_exception_enabled'] );
+        $this->assertSame( '08:00', $merged['class_time_start'] );
+        $this->assertSame( '17:30', $merged['class_time_end'] );
+        $this->assertSame( 'manual', $merged['schedule_default_mode'] );
     }
 }

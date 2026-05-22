@@ -44,6 +44,14 @@ class FrontendShortcodesTest extends TestCase {
         Functions\when( 'wp_rand' )->alias( function ( int $min = 0, int $max = 0 ) { return random_int( $min, $max ); } );
         Functions\when( 'wp_hash' )->alias( function ( $data ) { return hash( 'sha256', $data ); } );
         Functions\when( 'get_option' )->justReturn( array() );
+        // Sprint 5 #366: render_form() now reaches into
+        // ScheduleExceptionSession which needs wp_salt + is_ssl +
+        // setcookie stubs even on the no-exception path (the cookie
+        // read is unconditional — only the embed is gated).
+        Functions\when( 'wp_salt' )->justReturn( 'test-nonce-salt' );
+        Functions\when( 'is_ssl' )->justReturn( false );
+        Functions\when( 'setcookie' )->justReturn( true );
+        Functions\when( 'wp_json_encode' )->alias( static fn( $v ) => json_encode( $v ) );
 
         if ( ! defined( 'ABSPATH' ) ) {
             define( 'ABSPATH', '/tmp/' );
@@ -54,6 +62,7 @@ class FrontendShortcodesTest extends TestCase {
 
     protected function tearDown(): void {
         unset( $_GET['token'] );
+        $_COOKIE = array();
         Monkey\tearDown();
         parent::tearDown();
     }
@@ -410,5 +419,132 @@ class FrontendShortcodesTest extends TestCase {
         $html = $this->shortcodes->render_form( array( 'id' => 1 ) );
 
         $this->assertStringContainsString( 'type="tel"', $html );
+    }
+
+    // ==================================================================
+    // Schedule exception consumption (#366 Sprint 5)
+    // ==================================================================
+
+    /**
+     * Stub a minimal `render_form()` happy path with a per-test override
+     * of geofence config + form fields. Returns the rendered HTML.
+     *
+     * @param array<string, mixed> $geofence_overrides Geofence config to merge.
+     */
+    private function render_form_with( array $geofence_overrides = array() ): string {
+        Functions\when( 'shortcode_atts' )->alias( fn( $d, $a ) => array_merge( $d, $a ) );
+        Functions\when( 'get_post_type' )->justReturn( 'ffc_form' );
+        Functions\when( 'get_post' )->justReturn( (object) array( 'post_title' => 'Test Form' ) );
+        Functions\when( 'wp_rand' )->justReturn( 5 );
+        Functions\when( 'wp_hash' )->justReturn( 'hash' );
+
+        Functions\when( 'get_post_meta' )->alias( static function ( $id, $key ) use ( $geofence_overrides ) {
+            if ( '_ffc_form_fields' === $key ) {
+                return array(
+                    array( 'type' => 'text', 'name' => 'name', 'label' => 'Name' ),
+                );
+            }
+            if ( '_ffc_geofence_config' === $key ) {
+                return $geofence_overrides ?: '';
+            }
+            if ( '_ffc_form_config' === $key ) {
+                return array( 'restrictions' => array() );
+            }
+            return '';
+        } );
+
+        return $this->shortcodes->render_form( array( 'id' => 42 ) );
+    }
+
+    public function test_render_form_omits_schedule_exception_banner_when_no_cookie(): void {
+        $html = $this->render_form_with();
+
+        $this->assertStringNotContainsString( 'ffc-schedule-exception-banner', $html );
+        $this->assertStringNotContainsString( 'ffc_schedule_exception_token', $html );
+    }
+
+    public function test_render_form_omits_banner_when_cookie_is_tampered(): void {
+        $_COOKIE['ffc_exception_42'] = 'not-a-valid.token';
+
+        $html = $this->render_form_with();
+
+        $this->assertStringNotContainsString( 'ffc-schedule-exception-banner', $html );
+        $this->assertStringNotContainsString( 'ffc_schedule_exception_token', $html );
+    }
+
+    public function test_render_form_embeds_banner_and_hidden_input_when_cookie_is_valid(): void {
+        $token = \FreeFormCertificate\Frontend\ScheduleExceptionSession::create(
+            42,
+            '08:00',
+            '17:30',
+            str_repeat( 'a', 64 )
+        );
+        $_COOKIE['ffc_exception_42'] = $token;
+
+        $html = $this->render_form_with();
+
+        // Banner present + carries both override values.
+        $this->assertStringContainsString( 'ffc-schedule-exception-banner', $html );
+        $this->assertStringContainsString( '08:00', $html );
+        $this->assertStringContainsString( '17:30', $html );
+        // Hidden input carries the exact cookie value (no re-sign).
+        $this->assertStringContainsString( 'name="ffc_schedule_exception_token"', $html );
+        $this->assertStringContainsString( 'value="' . $token . '"', $html );
+    }
+
+    public function test_render_form_uses_baseline_label_when_only_one_end_is_overridden(): void {
+        // Token has start=null (operator left start at baseline) but
+        // overrides end. The banner text falls back to "baseline" for
+        // the missing side instead of an empty gap.
+        $token = \FreeFormCertificate\Frontend\ScheduleExceptionSession::create(
+            42,
+            null,
+            '17:30',
+            str_repeat( 'a', 64 )
+        );
+        $_COOKIE['ffc_exception_42'] = $token;
+
+        $html = $this->render_form_with();
+
+        $this->assertStringContainsString( 'ffc-schedule-exception-banner', $html );
+        $this->assertStringContainsString( 'baseline', $html );
+        $this->assertStringContainsString( '17:30', $html );
+    }
+
+    public function test_render_form_rejects_cookie_scoped_to_other_form(): void {
+        // Cookie was issued for form 99 but the rendered form is 42 —
+        // ScheduleExceptionSession::read_from_cookie rejects on the
+        // form_id mismatch, so no banner and no embed.
+        $token = \FreeFormCertificate\Frontend\ScheduleExceptionSession::create(
+            99,
+            '08:00',
+            '17:30',
+            str_repeat( 'a', 64 )
+        );
+        $_COOKIE['ffc_exception_42'] = $token;
+
+        $html = $this->render_form_with();
+
+        $this->assertStringNotContainsString( 'ffc-schedule-exception-banner', $html );
+        $this->assertStringNotContainsString( 'ffc_schedule_exception_token', $html );
+    }
+
+    public function test_render_form_clears_the_cookie_after_successful_read(): void {
+        // ScheduleExceptionSession::clear() unsets `$_COOKIE[$name]` so
+        // a follow-up render-in-the-same-request reflects the
+        // consumed state. (The browser-side delete happens via the
+        // mocked setcookie expiry, which the cookie-attr assertions
+        // live with in ScheduleExceptionSessionTest, not here.)
+        $token                       = \FreeFormCertificate\Frontend\ScheduleExceptionSession::create(
+            42,
+            '08:00',
+            '17:30',
+            str_repeat( 'a', 64 )
+        );
+        $_COOKIE['ffc_exception_42'] = $token;
+
+        $this->render_form_with();
+
+        $this->assertArrayNotHasKey( 'ffc_exception_42', $_COOKIE );
     }
 }

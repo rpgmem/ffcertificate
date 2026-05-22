@@ -485,3 +485,138 @@ describe('csv-download — CPF mask helper integration', () => {
 		expect(arg.attr('name')).toBe('cpf');
 	});
 });
+
+// ----------------------------------------------------------------------
+// Schedule exception modal (#366 Sprint 4)
+// ----------------------------------------------------------------------
+
+describe('csv-download — schedule exception modal', () => {
+	function infoWithException(overrides = {}) {
+		return defaultInfo({
+			status: {
+				has_end_date: true,
+				can_preview_cert: true,
+				can_download: true,
+				can_schedule_exception: true,
+				schedule_baseline_start: '08:00',
+				schedule_baseline_end:   '18:00',
+				schedule_window_start:   '08:00',
+				schedule_window_end:     '18:00',
+				schedule_default_mode:   'manual',
+				...overrides,
+			},
+		});
+	}
+
+	async function renderInfoWith(info) {
+		mountContainer();
+		await loadAndReady();
+		vi.spyOn(window.$, 'post').mockImplementation(() => postChain({ done: { success: true, data: info } }));
+		window.$('.ffc-public-csv-download form').trigger('submit');
+		await flush();
+	}
+
+	it('renders the schedule-exception button only when can_schedule_exception=true', async () => {
+		await renderInfoWith(defaultInfo());
+		expect(window.$('.ffc-btn-schedule-exception').length).toBe(0);
+
+		document.body.innerHTML = '';
+		await renderInfoWith(infoWithException());
+		expect(window.$('.ffc-btn-schedule-exception').length).toBe(1);
+	});
+
+	it('opens the modal on button click with baseline values pre-filled', async () => {
+		await renderInfoWith(infoWithException());
+
+		window.$('.ffc-btn-schedule-exception').trigger('click');
+
+		expect(window.$('.ffc-schedule-exception-modal').length).toBe(1);
+		expect(window.$('.ffc-sched-exc-start').val()).toBe('08:00');
+		expect(window.$('.ffc-sched-exc-end').val()).toBe('18:00');
+	});
+
+	it('blocks submit and shows error when override matches the baseline', async () => {
+		await renderInfoWith(infoWithException());
+		window.$('.ffc-btn-schedule-exception').trigger('click');
+		// Leave the inputs at their baseline values, click confirm.
+		const postSpy = vi.spyOn(window.$, 'post');
+		postSpy.mockClear();
+		window.$('.ffc-sched-exc-confirm').trigger('click');
+
+		// No AJAX call fired.
+		expect(postSpy).not.toHaveBeenCalled();
+		// Error visible.
+		const $err = window.$('.ffc-sched-exc-error');
+		expect($err.attr('hidden')).toBeFalsy();
+		expect($err.text().length).toBeGreaterThan(0);
+	});
+
+	it('blocks submit when the range is inverted', async () => {
+		await renderInfoWith(infoWithException());
+		window.$('.ffc-btn-schedule-exception').trigger('click');
+		window.$('.ffc-sched-exc-start').val('17:00');
+		window.$('.ffc-sched-exc-end').val('09:00');
+
+		const postSpy = vi.spyOn(window.$, 'post');
+		postSpy.mockClear();
+		window.$('.ffc-sched-exc-confirm').trigger('click');
+
+		expect(postSpy).not.toHaveBeenCalled();
+		const $err = window.$('.ffc-sched-exc-error');
+		expect($err.attr('hidden')).toBeFalsy();
+	});
+
+	it('on AJAX success, swaps modal body to the "Open participant form" CTA pointing at form_url', async () => {
+		await renderInfoWith(infoWithException());
+		window.$('.ffc-btn-schedule-exception').trigger('click');
+
+		// Type a valid override different from baseline.
+		window.$('.ffc-sched-exc-start').val('09:00');
+		window.$('.ffc-sched-exc-end').val('17:00');
+
+		// Mock the AJAX call to succeed with a form_url.
+		vi.spyOn(window.$, 'post').mockImplementation(() => postChain({
+			done: { success: true, data: { token: 'abc.def', form_url: 'https://example.test/landing' } },
+		}));
+
+		window.$('.ffc-sched-exc-confirm').trigger('click');
+		await flush();
+
+		const $cta = window.$('.ffc-sched-exc-open');
+		expect($cta.length).toBe(1);
+		expect($cta.attr('href')).toBe('https://example.test/landing');
+		expect($cta.attr('target')).toBe('_blank');
+		expect($cta.attr('rel')).toBe('noopener');
+	});
+
+	it('on AJAX failure, restores the confirm button and surfaces the error', async () => {
+		await renderInfoWith(infoWithException());
+		window.$('.ffc-btn-schedule-exception').trigger('click');
+		window.$('.ffc-sched-exc-start').val('09:00');
+		window.$('.ffc-sched-exc-end').val('17:00');
+
+		vi.spyOn(window.$, 'post').mockImplementation(() => postChain({
+			fail: true,
+		}));
+
+		window.$('.ffc-sched-exc-confirm').trigger('click');
+		await flush();
+
+		// Modal still present, confirm button re-enabled.
+		expect(window.$('.ffc-schedule-exception-modal').length).toBe(1);
+		expect(window.$('.ffc-sched-exc-confirm').prop('disabled')).toBe(false);
+		const $err = window.$('.ffc-sched-exc-error');
+		expect($err.attr('hidden')).toBeFalsy();
+	});
+
+	it('closes the modal when Escape is pressed', async () => {
+		await renderInfoWith(infoWithException());
+		window.$('.ffc-btn-schedule-exception').trigger('click');
+		expect(window.$('.ffc-schedule-exception-modal').length).toBe(1);
+
+		const ev = new window.$.Event('keydown', { key: 'Escape' });
+		window.$(document).trigger(ev);
+
+		expect(window.$('.ffc-schedule-exception-modal').length).toBe(0);
+	});
+});

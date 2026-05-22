@@ -194,6 +194,14 @@ class FormEditorSaveHandler {
 				'geo_ip_areas_permissive' => $ip_permissive,
 			);
 
+			// Schedule exception per submission (#366). Independent of
+			// `datetime_enabled` — admin can offer the operator-driven
+			// exception flow without imposing a hard date/time window.
+			$clean_geofence = array_merge(
+				$clean_geofence,
+				self::sanitize_schedule_exception_config( $geofence )
+			);
+
 			// DateTime — 1 master toggle gating 9 sub-options.
 			if ( '1' === $datetime_enabled ) {
 				// Per-phase datetime hide modes (#159 S1). Each new key
@@ -430,6 +438,42 @@ class FormEditorSaveHandler {
 				}
 			}
 		}
+	}
+
+	/**
+	 * Sanitize the four schedule-exception keys (#366) out of the raw
+	 * POSTed `ffc_geofence` array. Extracted from `save_form_data()` so
+	 * the rules are exercisable from PHPUnit via Reflection without
+	 * having to wire up the full `save_form_data()` POST pipeline.
+	 *
+	 * Behaviour:
+	 * - `schedule_exception_enabled` is treated as a checkbox: present in
+	 *   the POST → '1', absent → '0'. Master toggle for the feature.
+	 * - `class_time_start` / `class_time_end` are TIME inputs. Empty
+	 *   strings stay empty (meaning "fall back to geofence baseline"); a
+	 *   value is preserved verbatim after `sanitize_text_field()` strips
+	 *   any incidental whitespace / control characters. We deliberately
+	 *   do NOT enforce `HH:MM` shape here — the browser type=time control
+	 *   already does it; locking the format would also reject the empty
+	 *   string we want to allow.
+	 * - `schedule_default_mode` is a whitelist of `now` / `manual`,
+	 *   anything else folds to the default `now`.
+	 *
+	 * @param array<string, mixed> $geofence Raw, unslashed POST payload.
+	 * @return array<string, string> The four sanitized schedule-exception keys.
+	 */
+	private static function sanitize_schedule_exception_config( array $geofence ): array {
+		$mode = isset( $geofence['schedule_default_mode'] ) ? sanitize_key( (string) $geofence['schedule_default_mode'] ) : 'now';
+		if ( ! in_array( $mode, array( 'now', 'manual' ), true ) ) {
+			$mode = 'now';
+		}
+
+		return array(
+			'schedule_exception_enabled' => isset( $geofence['schedule_exception_enabled'] ) ? '1' : '0',
+			'class_time_start'           => ! empty( $geofence['class_time_start'] ) ? sanitize_text_field( (string) $geofence['class_time_start'] ) : '',
+			'class_time_end'             => ! empty( $geofence['class_time_end'] ) ? sanitize_text_field( (string) $geofence['class_time_end'] ) : '',
+			'schedule_default_mode'      => $mode,
+		);
 	}
 
 	/**

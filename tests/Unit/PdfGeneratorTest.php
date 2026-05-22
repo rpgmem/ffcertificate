@@ -399,4 +399,101 @@ class PdfGeneratorTest extends TestCase {
 
         $this->assertArrayNotHasKey( 'magic_token', $result );
     }
+
+    // ==================================================================
+    // resolve_effective_schedule() — #366 Sprint 7
+    // ==================================================================
+
+    /**
+     * Drive `resolve_effective_schedule()` with a stubbed geofence
+     * config + submission row; return its `[start, end]` tuple.
+     *
+     * @param array<string, mixed> $geofence  `_ffc_geofence_config` to return.
+     * @param array<string, mixed> $sub_array Submission row fragments.
+     * @return array{0: string, 1: string}
+     */
+    private function resolve_with( array $geofence, array $sub_array ): array {
+        Functions\when( 'get_post_meta' )->alias( static function ( $id, $key ) use ( $geofence ) {
+            if ( '_ffc_geofence_config' === $key ) {
+                return $geofence;
+            }
+            return '';
+        } );
+
+        return $this->invoke( 'resolve_effective_schedule', array( 42, $sub_array ) );
+    }
+
+    public function test_resolve_uses_override_when_present(): void {
+        // Override beats both class_time and geofence.
+        list( $s, $e ) = $this->resolve_with(
+            array(
+                'class_time_start' => '08:30',
+                'class_time_end'   => '17:30',
+                'time_start'       => '08:00',
+                'time_end'         => '18:00',
+            ),
+            array(
+                'schedule_start_override' => '09:00',
+                'schedule_end_override'   => '17:00',
+            )
+        );
+
+        $this->assertSame( '09:00', $s );
+        $this->assertSame( '17:00', $e );
+    }
+
+    public function test_resolve_falls_back_to_class_time_when_no_override(): void {
+        list( $s, $e ) = $this->resolve_with(
+            array(
+                'class_time_start' => '08:30',
+                'class_time_end'   => '17:30',
+                'time_start'       => '08:00',
+                'time_end'         => '18:00',
+            ),
+            array()
+        );
+
+        $this->assertSame( '08:30', $s );
+        $this->assertSame( '17:30', $e );
+    }
+
+    public function test_resolve_falls_back_to_geofence_when_no_class_time(): void {
+        list( $s, $e ) = $this->resolve_with(
+            array(
+                'time_start' => '08:00',
+                'time_end'   => '18:00',
+            ),
+            array()
+        );
+
+        $this->assertSame( '08:00', $s );
+        $this->assertSame( '18:00', $e );
+    }
+
+    public function test_resolve_returns_empty_when_nothing_configured(): void {
+        list( $s, $e ) = $this->resolve_with( array(), array() );
+
+        $this->assertSame( '', $s );
+        $this->assertSame( '', $e );
+    }
+
+    public function test_resolve_picks_each_side_independently(): void {
+        // Half the override, half the class_time — common when
+        // operator only fixed the end via the "Now" mode.
+        list( $s, $e ) = $this->resolve_with(
+            array(
+                'class_time_start' => '08:30',
+                'class_time_end'   => '17:30',
+                'time_start'       => '08:00',
+                'time_end'         => '18:00',
+            ),
+            array(
+                'schedule_start_override' => null,
+                'schedule_end_override'   => '17:00',
+            )
+        );
+
+        $this->assertSame( '08:30', $s, 'start falls through to class_time when override is null' );
+        $this->assertSame( '17:00', $e, 'end takes the override' );
+    }
 }
