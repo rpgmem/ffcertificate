@@ -29,10 +29,20 @@ Per-submission **schedule exception** flow (#366). When a participant misses a c
 - **`ffc_submissions` schema.** Two new nullable `TIME` columns added through the existing `Activator::maybe_add_columns()` migration. NULL means "no override — use the baseline at render time". Category B wall-clock per CLAUDE.md.
 - **`ActivityLog` action vocabulary.** Two new constants (`ACTION_SCHEDULE_OVERRIDE_CREATED`, `ACTION_OPERATOR_IP_BYPASS`). The constant values are also inlined as literals in `FormProcessor::persist_schedule_exception()` so the test harness can spy on `ActivityLog::log()` via a Mockery alias without booting the real wpdb-backed class.
 
+### Fixed (forward-ported from 6.6.8 / 6.6.9 / 6.6.10)
+
+- **`[ffc_form]` shortcode: geofence config not localized when the shortcode uses unquoted or extra-attribute syntax** (6.6.8). `Frontend::localize_geofence_config()` matched form IDs with a hand-rolled regex (`/\[ffc_form\s+id=['"](\d+)['"]\]/`) that **required** the `id` attribute to be wrapped in quotes AND to be the LAST attribute before the closing bracket. WordPress's shortcode parser accepts `[ffc_form id=42]` (unquoted shorthand) and `[ffc_form id="42" class="ffc-custom"]` (extra attributes) as valid — admins who used either format saw the form render with no geofence at all because the localization step silently dropped them. Symptom on the user side: setting *"Display before opening" → "Hide form completely"* in the admin had no effect — the form remained visible before its start date. Fix: replace the hand-rolled regex with `get_shortcode_regex(['ffc_form'])` and parse attributes via `shortcode_parse_atts()`, the WP-canonical helpers that handle every quoting variant the platform parser accepts.
+- **URL Shortener admin: QR download / regenerate / copy buttons fail silently on sites that combine JS** (6.6.8). `ffc-url-shortener-admin.js` declared only `['jquery']` as a script dependency but the click handlers call `FFC.request()`, which lives on `ffc-core`. WordPress loads both scripts on the page, but JS combiners (LiteSpeed JS Combine, WP Rocket Combine, etc.) flatten the dependency tree — without `ffc-core` in the declared chain, the combined bundle can execute the URL Shortener script before `window.FFC` is defined, throwing `TypeError: FFC.request is undefined` and aborting the click handler silently. Same fix shape as 6.6.7 (#367) applied to the four public-facing sites; this admin site was missed in that pass. Both enqueues (post-edit metabox + admin list page) now list `ffc-core`.
+- **URL Shortener admin: same buttons still inert on regular post/page edit screens (Gutenberg)** (6.6.9). 6.6.8 declared `'ffc-core'` as a dep but assumed the handle was already registered. That holds on FFC-owned pages (`post_type === 'ffc_form'` or `page=ffc-*`), but the URL Shortener metabox also renders on regular post / page edit screens when the post type is enabled — and on those screens `AdminAssetsManager::is_ffc_page()` returns false, so `ffc-core` was never registered for the request. WordPress's enqueue path silently dropped the unknown dep, `window.FFC` stayed undefined, and the QR PNG / SVG / Regenerate / Copy buttons still failed silently. Reported on the production site (Gutenberg post edit, standard `post` post type, URL Shortener metabox visible in the sidebar). Fix: register `ffc-core` early on every `admin_enqueue_scripts` request via a new `Loader::register_admin_core_assets()` hook (priority 1, before any module enqueues run). Idempotent — guarded by `wp_script_is('ffc-core', 'registered')` so it's a no-op on FFC pages where `AdminAssetsManager` already registered the handle. Mirrors the frontend `register_frontend_assets()` pattern.
+- **Form duplication: four CSV-public-download sub-feature toggles missed by `CPT::handle_form_duplication()`** (6.6.10). `_ffc_csv_public_download_enabled`, `_ffc_csv_public_preview_enabled`, `_ffc_csv_public_start_early_enabled`, and `_ffc_csv_public_extend_end_enabled` are persisted by `FormEditorSaveHandler::save_form_data()` whenever the admin saves the form's "CSV Download público" section. The 6.5.6 → 6.5.12 sprints that introduced each toggle never added it to the duplicator's hard-coded `$config_metas` list, so a duplicate had empty meta on all four — and empty meta reads as the FormEditorSaveHandler default at metabox render time ('1' for download / preview / start_early, '0' for extend_end). Net effect: any admin who had disabled the download / preview / start_early sub-toggle on the original saw it silently re-enabled on the duplicate; any admin who had enabled extend_end saw it silently disabled. Fix: add the four keys to `$config_metas`. The hash + counter exclusions stay — those are still intentionally not copied.
+
 ### Tests
 
 - 65+ new PHPUnit cases across 8 files covering: schema migration idempotency, the action gate cascade and override-validation matrix, the session crypto round-trip (tamper / expiry / version / form-id-mismatch rejection), cookie attribute correctness, form-render embed + clear, submission handler persistence + audit emit, placeholder formatter / resolver, `/valid` block assembly, and the admin renderer.
 - 7 new Vitest cases for the operator modal (render gating, modal open with baseline pre-fill, client-side validation, AJAX success → CTA swap, AJAX failure → button re-enabled + error visible, Escape closes).
+- 3 additional PHPUnit cases in `FrontendTest` covering the regex switch from the forward-ported 6.6.8 fix: quoted, unquoted, and extra-attributes shortcode shapes all land in `ffcGeofenceConfig`.
+- 3 additional PHPUnit cases in `LoaderTest` for the 6.6.9 admin-side `ffc-core` registration: constructor wires the `admin_enqueue_scripts` hook at priority 1; method registers `ffc-core` when not yet registered; method is a no-op when `AdminAssetsManager` already registered it.
+- 1 additional PHPUnit case in `CptTest` (`test_handle_form_duplication_copies_all_per_form_metas`) for the 6.6.10 duplicator fix: every persisted per-form meta key copied verbatim; hash + counter exclusions preserved. Acts as the regression lock for future sub-feature toggles.
 
 ### i18n
 
@@ -44,6 +54,41 @@ Per-submission **schedule exception** flow (#366). When a participant misses a c
 - Re-edit of an existing exception — current contract is one-use, admin must delete the submission and operator recreates.
 - Restriction of an exception to a specific participant CPF — current contract trusts the operator to hand the tablet to the right person within the 30-minute window.
 - Admin list filter for "exceptional submissions only" — explicitly out per the issue spec ("sem badge na lista de submissões").
+
+---
+
+## [6.6.10] (2026-05-22)
+
+Hotfix on the 6.6.x maintenance branch (#373 → release/6.6.x). See `release/6.6.x` for the shipped tag; the fix is forward-ported into 6.7.0 above.
+
+### Fixed
+
+- **Form duplication: four CSV-public-download sub-feature toggles missed by `CPT::handle_form_duplication()`.** See the fourth bullet of the "Fixed (forward-ported from 6.6.8 / 6.6.9 / 6.6.10)" entry under 6.7.0 for the full diagnosis.
+
+---
+
+## [6.6.9] (2026-05-22)
+
+Follow-up to the URL Shortener half of 6.6.8 (#370 → release/6.6.x). See `release/6.6.x` for the shipped tag; the fix is forward-ported into 6.7.0 above.
+
+### Fixed
+
+- **URL Shortener admin: QR PNG / SVG / Regenerate / Copy buttons still inert on non-FFC admin screens.** See the third bullet of the "Fixed (forward-ported from 6.6.8 / 6.6.9)" entry under 6.7.0 for the full diagnosis.
+
+---
+
+## [6.6.8] (2026-05-22)
+
+Hotfix on the 6.6.x maintenance branch. See `release/6.6.x` for the shipped tag; the same two fixes are forward-ported into 6.7.0 above so installs on `main` carry them too.
+
+### Fixed
+
+- **`[ffc_form]` shortcode: geofence config not localized when the shortcode uses unquoted or extra-attribute syntax.** See the "Fixed (forward-ported from 6.6.8)" entry under 6.7.0 for the full diagnosis.
+- **URL Shortener admin: QR download / regenerate / copy buttons fail silently on sites that combine JS.** Same scope as the forward-port note in 6.7.0.
+
+### Notes
+
+- This release branches off `release/6.6.x` rather than `main` so it could ship while the 6.7.0 feature (Schedule exception per submission, #366) was still in testing.
 
 ---
 

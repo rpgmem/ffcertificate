@@ -168,8 +168,19 @@ class CPT {
 			'_ffc_form_config',
 			'_ffc_form_bg',
 			'_ffc_geofence_config',
-			// Public CSV Download (enabled + sub-settings only).
+			// Public CSV Download (enabled flag + sub-feature toggles + sub-settings).
+			// 6.6.10 — the four `*_enabled` sub-feature toggles below were
+			// missing from the pre-6.6.10 list, so a duplicated form lost
+			// the admin's choice on download / preview / start-early /
+			// extend-end. Empty meta reads as the FormEditorSaveHandler
+			// default ('1' for the first three, '0' for extend-end), so
+			// the silent loss flipped the duplicate's behaviour either
+			// direction depending on which toggle the admin had touched.
 			'_ffc_csv_public_enabled',
+			'_ffc_csv_public_download_enabled',
+			'_ffc_csv_public_preview_enabled',
+			'_ffc_csv_public_start_early_enabled',
+			'_ffc_csv_public_extend_end_enabled',
 			'_ffc_csv_public_limit',
 			'_ffc_csv_public_cpf_mode',
 			'_ffc_csv_public_cpf_whitelist',
