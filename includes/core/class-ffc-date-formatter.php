@@ -264,6 +264,131 @@ final class DateFormatter {
 	}
 
 	/**
+	 * Render a `start–end` schedule range as a compact human-readable
+	 * string — Category B wall-clock per CLAUDE.md.
+	 *
+	 * Both inputs are bare HH:MM (or HH:MM:SS) strings WITHOUT timezone
+	 * semantics; this helper never reaches for `wp_date()` or
+	 * `wp_timezone()` because the value has no instant to translate.
+	 * If a future locale needs 12-hour rendering (`8 AM to 7:30 PM`)
+	 * the format choice goes through `time_format` in
+	 * SettingsReader; for now the output is the PT/EN-friendly
+	 * `'8h às 19h30'` / `'8h to 7:30 PM'` shape the issue spec calls
+	 * out (#366), which strips the `:00` minute marker.
+	 *
+	 * Empty / null inputs collapse to empty strings on that side —
+	 * a one-sided range renders as just the populated side (e.g.
+	 * `'8h'` if only start is set), and both sides empty produce `''`.
+	 *
+	 * @param string|null $start HH:MM or HH:MM:SS, may be empty/null.
+	 * @param string|null $end   HH:MM or HH:MM:SS, may be empty/null.
+	 * @return string
+	 */
+	public static function format_schedule( ?string $start, ?string $end ): string {
+		$start_str = self::format_compact_time( $start );
+		$end_str   = self::format_compact_time( $end );
+
+		if ( '' === $start_str && '' === $end_str ) {
+			return '';
+		}
+		if ( '' === $end_str ) {
+			return $start_str;
+		}
+		if ( '' === $start_str ) {
+			return $end_str;
+		}
+
+		return sprintf(
+			/* translators: 1: start time HH or HHhMM, 2: end time HH or HHhMM */
+			__( '%1$s to %2$s', 'ffcertificate' ),
+			$start_str,
+			$end_str
+		);
+	}
+
+	/**
+	 * Render the duration of a wall-clock range as an i18n string
+	 * (#366). Whole hours collapse to the singular/plural pair
+	 * (`'1 hour'` / `'11 hours'`); a fractional range emits the
+	 * compact `'%dh %02dmin'` shape (`'11h 30min'`).
+	 *
+	 * Like {@see format_schedule()} this is pure wall-clock arithmetic
+	 * — no `wp_timezone()`, no instant — so a TZ change at the site
+	 * level leaves the rendered total untouched. Returns empty when
+	 * either side is missing or malformed, when the range is
+	 * inverted, or when the delta rounds to zero.
+	 *
+	 * @param string|null $start HH:MM or HH:MM:SS, may be empty/null.
+	 * @param string|null $end   HH:MM or HH:MM:SS, may be empty/null.
+	 * @return string
+	 */
+	public static function format_schedule_total( ?string $start, ?string $end ): string {
+		$start_min = self::parse_minutes( $start );
+		$end_min   = self::parse_minutes( $end );
+
+		if ( null === $start_min || null === $end_min || $end_min <= $start_min ) {
+			return '';
+		}
+
+		$total_min = $end_min - $start_min;
+		$hours     = intdiv( $total_min, 60 );
+		$minutes   = $total_min % 60;
+
+		if ( 0 === $minutes ) {
+			return sprintf(
+				/* translators: %d: total number of whole hours */
+				_n( '%d hour', '%d hours', $hours, 'ffcertificate' ),
+				$hours
+			);
+		}
+
+		return sprintf(
+			/* translators: 1: whole hours, 2: zero-padded minutes — e.g. "11h 30min" */
+			__( '%1$dh %2$02dmin', 'ffcertificate' ),
+			$hours,
+			$minutes
+		);
+	}
+
+	/**
+	 * Compact HH:MM(:SS) → string. `'08:00'` → `'8h'`, `'19:30'` →
+	 * `'19h30'`. Returns '' on empty / null / malformed input.
+	 *
+	 * @param string|null $time HH:MM or HH:MM:SS, may be empty/null.
+	 */
+	private static function format_compact_time( ?string $time ): string {
+		if ( null === $time || '' === $time ) {
+			return '';
+		}
+		// Match HH:MM with an optional ':SS' tail; reject anything else.
+		if ( 1 !== preg_match( '/^([01]\d|2[0-3]):([0-5]\d)(?::[0-5]\d)?$/', $time, $m ) ) {
+			return '';
+		}
+		$h  = (int) $m[1];
+		$mn = (int) $m[2];
+		if ( 0 === $mn ) {
+			return $h . 'h';
+		}
+		return $h . 'h' . sprintf( '%02d', $mn );
+	}
+
+	/**
+	 * HH:MM(:SS) → total minutes since 00:00, or null when malformed.
+	 *
+	 * @param string|null $time Wall-clock time string.
+	 * @return int|null
+	 */
+	private static function parse_minutes( ?string $time ): ?int {
+		if ( null === $time || '' === $time ) {
+			return null;
+		}
+		if ( 1 !== preg_match( '/^([01]\d|2[0-3]):([0-5]\d)(?::[0-5]\d)?$/', $time, $m ) ) {
+			return null;
+		}
+		return ( (int) $m[1] ) * 60 + (int) $m[2];
+	}
+
+	/**
 	 * Pull a key out of $settings with a fallback when missing or empty.
 	 *
 	 * @param array<string,mixed> $settings Settings array.

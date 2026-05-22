@@ -101,6 +101,17 @@ class PdfGenerator {
 		$form_config  = get_post_meta( $form_id, '_ffc_form_config', true );
 		$bg_image_url = get_post_meta( $form_id, '_ffc_form_bg', true );
 
+		// `{{schedule}}` / `{{schedule_total}}` (#366 Sprint 7). Resolve
+		// the effective wall-clock range — per-submission override wins,
+		// then form-level `class_time_*`, then the geofence `time_*`
+		// baseline, then empty string. Injecting into `$data` makes
+		// the existing template loop substitute them like any other
+		// field, so the email pipeline (which also funnels through
+		// `generate_html()`) gets the placeholder for free.
+		list( $sched_start, $sched_end ) = $this->resolve_effective_schedule( $form_id, $sub_array );
+		$data['schedule']                = \FreeFormCertificate\Core\DateFormatter::format_schedule( $sched_start, $sched_end );
+		$data['schedule_total']          = \FreeFormCertificate\Core\DateFormatter::format_schedule_total( $sched_start, $sched_end );
+
 		// `submission_date` is unix UTC int since 6.6.0 (#249 sub-escopo a).
 		$submission_ts = isset( $sub_array['submission_date'] ) ? (int) $sub_array['submission_date'] : null;
 		$html          = $this->generate_html( $data, $form_title, $form_config, $submission_ts );
@@ -842,5 +853,52 @@ class PdfGenerator {
 			. '<p><strong>' . esc_html__( 'Time:', 'ffcertificate' ) . '</strong> {{appointment_time}}</p>'
 			. '<p><strong>' . esc_html__( 'Validation Code:', 'ffcertificate' ) . '</strong> {{validation_code}}</p>'
 			. '</div>';
+	}
+
+	/**
+	 * Resolve the effective wall-clock schedule range for a submission
+	 * — the 3-tier hybrid from #366:
+	 *
+	 *   1. Per-submission override (`schedule_start_override` /
+	 *      `schedule_end_override` columns) — if either is set,
+	 *      it wins for that side and the other side falls back.
+	 *   2. Form-level baseline (`_ffc_geofence_config['class_time_start' / 'class_time_end']`).
+	 *   3. Geofence open window (`_ffc_geofence_config['time_start' / 'time_end']`).
+	 *
+	 * Each side is resolved INDEPENDENTLY. A form with only
+	 * `class_time_end` set + a submission with only
+	 * `schedule_start_override` set yields effective range
+	 * `(override_start, class_time_end)` — picking from whichever
+	 * tier has a value on each side.
+	 *
+	 * @param int                  $form_id   Form post id.
+	 * @param array<string, mixed> $sub_array Raw `ffc_submissions` row.
+	 * @return array{0: string, 1: string} `[start, end]` HH:MM strings, '' when no value resolves.
+	 */
+	private function resolve_effective_schedule( int $form_id, array $sub_array ): array {
+		$geofence = get_post_meta( $form_id, '_ffc_geofence_config', true );
+		if ( ! is_array( $geofence ) ) {
+			$geofence = array();
+		}
+
+		$start = '';
+		if ( ! empty( $sub_array['schedule_start_override'] ) ) {
+			$start = (string) $sub_array['schedule_start_override'];
+		} elseif ( ! empty( $geofence['class_time_start'] ) ) {
+			$start = (string) $geofence['class_time_start'];
+		} elseif ( ! empty( $geofence['time_start'] ) ) {
+			$start = (string) $geofence['time_start'];
+		}
+
+		$end = '';
+		if ( ! empty( $sub_array['schedule_end_override'] ) ) {
+			$end = (string) $sub_array['schedule_end_override'];
+		} elseif ( ! empty( $geofence['class_time_end'] ) ) {
+			$end = (string) $geofence['class_time_end'];
+		} elseif ( ! empty( $geofence['time_end'] ) ) {
+			$end = (string) $geofence['time_end'];
+		}
+
+		return array( $start, $end );
 	}
 }
