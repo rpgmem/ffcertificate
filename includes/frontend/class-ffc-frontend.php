@@ -484,8 +484,8 @@ class Frontend {
 		// `[ffc_form id="42"]` (double-quoted) and `[ffc_form id='42']`
 		// (single-quoted). It silently missed two WP-valid formats that
 		// are common in the wild:
-		//   - `[ffc_form id=42]` — quotes are optional in shortcode atts
-		//   - `[ffc_form id="42" class="extra"]` — additional attributes
+		// `[ffc_form id=42]` (quotes are optional in shortcode atts) and
+		// `[ffc_form id="42" class="extra"]` (additional attributes).
 		// When the regex missed, `wp_localize_script` was never called
 		// for that form, so the JS geofence layer never received its
 		// config, never validated the datetime window, and the form
