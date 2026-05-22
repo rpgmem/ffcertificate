@@ -227,4 +227,61 @@ class LoaderTest extends TestCase {
         $this->assertArrayHasKey( 'ajaxUrl', $match['l10n'] );
         $this->assertStringContainsString( 'admin-ajax.php', $match['l10n']['ajaxUrl'] );
     }
+
+    // ==================================================================
+    // register_admin_core_assets() — 6.6.9
+    // ==================================================================
+
+    public function test_constructor_registers_admin_enqueue_scripts_hook(): void {
+        $actions_added = [];
+        Functions\when( 'add_action' )->alias( function ( $hook, $callback, $priority = 10 ) use ( &$actions_added ) {
+            $actions_added[] = [ 'hook' => $hook, 'callback' => $callback, 'priority' => $priority ];
+        } );
+        Functions\when( 'register_activation_hook' )->justReturn( true );
+        Functions\when( 'register_deactivation_hook' )->justReturn( true );
+
+        new Loader();
+
+        $admin_hooks = array_filter( $actions_added, function ( $entry ) {
+            return $entry['hook'] === 'admin_enqueue_scripts'
+                && is_array( $entry['callback'] )
+                && $entry['callback'][1] === 'register_admin_core_assets';
+        } );
+
+        $this->assertNotEmpty( $admin_hooks, '6.6.9 fix: ffc-core must register on every admin request.' );
+        $match = reset( $admin_hooks );
+        $this->assertSame( 1, $match['priority'], 'Priority 1 so dep is resolvable before module enqueues run at default priority 10.' );
+    }
+
+    public function test_register_admin_core_assets_registers_ffc_core(): void {
+        $spies = $this->build_loader_and_asset_spies();
+        // First call: handle not yet registered.
+        Functions\when( 'wp_script_is' )->justReturn( false );
+
+        $spies['loader']->register_admin_core_assets();
+
+        $core = array_filter( $spies['registered_scripts'], function ( $entry ) {
+            return $entry['handle'] === 'ffc-core';
+        } );
+
+        $this->assertNotEmpty( $core, 'Should register ffc-core on admin pages.' );
+        $match = reset( $core );
+        $this->assertStringContainsString( 'ffc-core.min.js', $match['src'] );
+        $this->assertContains( 'jquery', $match['deps'] );
+        $this->assertTrue( $match['in_footer'] );
+    }
+
+    public function test_register_admin_core_assets_is_noop_when_already_registered(): void {
+        $spies = $this->build_loader_and_asset_spies();
+        // AdminAssetsManager already enqueued ffc-core earlier in the request.
+        Functions\when( 'wp_script_is' )->justReturn( true );
+
+        $spies['loader']->register_admin_core_assets();
+
+        $core = array_filter( $spies['registered_scripts'], function ( $entry ) {
+            return $entry['handle'] === 'ffc-core';
+        } );
+
+        $this->assertEmpty( $core, 'Must not re-register when AdminAssetsManager already did it.' );
+    }
 }
