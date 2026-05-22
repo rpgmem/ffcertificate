@@ -181,4 +181,95 @@ class AdminActivityLogPageTest extends TestCase {
 
         $this->assertStringContainsString('Activity Log is currently disabled.', $output);
     }
+
+    // ==================================================================
+    // Schedule exception labels + summary renderer (#366 Sprint 9)
+    // ==================================================================
+
+    public function test_get_action_label_for_schedule_override_created(): void {
+        $this->assertSame(
+            'Schedule Override Created',
+            AdminActivityLogPage::get_action_label( 'schedule_override_created' )
+        );
+    }
+
+    public function test_get_action_label_for_operator_ip_bypass(): void {
+        $this->assertSame(
+            'Operator IP Bypass',
+            AdminActivityLogPage::get_action_label( 'operator_ip_bypass' )
+        );
+    }
+
+    public function test_render_schedule_exception_summary_returns_null_for_unrelated_action(): void {
+        $this->assertNull(
+            AdminActivityLogPage::render_schedule_exception_summary(
+                'submission_created',
+                array( 'form_id' => 42 )
+            )
+        );
+    }
+
+    public function test_render_schedule_exception_summary_for_override_action_lists_facts(): void {
+        Functions\when( '_n' )->alias( static fn( $s, $p, $c ) => 1 === (int) $c ? $s : $p );
+
+        $html = AdminActivityLogPage::render_schedule_exception_summary(
+            'schedule_override_created',
+            array(
+                'form_id'               => 42,
+                'submission_id'         => 555,
+                'schedule_start_before' => '08:00',
+                'schedule_end_before'   => '18:00',
+                'schedule_start_after'  => '08:00',
+                'schedule_end_after'    => '17:30',
+                'operator_cpf_masked'   => '123.***.***-45',
+                'participant_cpf_hash'  => str_repeat( 'a', 64 ),
+            )
+        );
+
+        $this->assertNotNull( $html );
+        $this->assertStringContainsString( 'Before', $html );
+        $this->assertStringContainsString( 'After', $html );
+        $this->assertStringContainsString( 'Operator (masked)', $html );
+        $this->assertStringContainsString( '123.***.***-45', $html );
+        // Hash is truncated to first 12 chars + ellipsis.
+        $this->assertStringContainsString( 'aaaaaaaaaaaa…', $html );
+        $this->assertStringContainsString( '555', $html );
+        // The wall-clock formatter ran — assert at least the before/after strings landed.
+        $this->assertStringContainsString( '8h to 18h', $html );
+        $this->assertStringContainsString( '8h to 17h30', $html );
+    }
+
+    public function test_render_schedule_exception_summary_for_ip_bypass_action(): void {
+        $html = AdminActivityLogPage::render_schedule_exception_summary(
+            'operator_ip_bypass',
+            array(
+                'bypassed_ip'         => '203.0.113.5',
+                'operator_cpf_masked' => '123.***.***-45',
+                'submission_id'       => 555,
+            )
+        );
+
+        $this->assertNotNull( $html );
+        $this->assertStringContainsString( '203.0.113.5', $html );
+        $this->assertStringContainsString( '123.***.***-45', $html );
+        $this->assertStringContainsString( '555', $html );
+    }
+
+    public function test_render_schedule_exception_summary_skips_empty_fields(): void {
+        // When operator_cpf_masked is empty (forms with CPF mode off),
+        // the row is silently omitted from the summary instead of
+        // showing an empty <dd>.
+        $html = AdminActivityLogPage::render_schedule_exception_summary(
+            'operator_ip_bypass',
+            array(
+                'bypassed_ip'         => '203.0.113.5',
+                'operator_cpf_masked' => '',
+                'submission_id'       => 555,
+            )
+        );
+
+        $this->assertNotNull( $html );
+        $this->assertStringNotContainsString( 'Operator (masked)', $html );
+        $this->assertStringContainsString( '203.0.113.5', $html );
+    }
 }

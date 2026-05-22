@@ -282,20 +282,103 @@ class AdminActivityLogPage {
 	 */
 	public static function get_action_label( string $action ): string {
 		$labels = array(
-			'submission_created'     => __( 'Submission Created', 'ffcertificate' ),
-			'submission_updated'     => __( 'Submission Updated', 'ffcertificate' ),
-			'submission_deleted'     => __( 'Submission Deleted', 'ffcertificate' ),
-			'data_accessed'          => __( 'Data Accessed', 'ffcertificate' ),
-			'access_denied'          => __( 'Access Denied', 'ffcertificate' ),
-			'settings_changed'       => __( 'Settings Changed', 'ffcertificate' ),
+			'submission_created'        => __( 'Submission Created', 'ffcertificate' ),
+			'submission_updated'        => __( 'Submission Updated', 'ffcertificate' ),
+			'submission_deleted'        => __( 'Submission Deleted', 'ffcertificate' ),
+			'data_accessed'             => __( 'Data Accessed', 'ffcertificate' ),
+			'access_denied'             => __( 'Access Denied', 'ffcertificate' ),
+			'settings_changed'          => __( 'Settings Changed', 'ffcertificate' ),
 			// Public Operator Access (#224) — early-open + ticket cleanup.
-			'early_open_executed'    => __( 'Form Started Early', 'ffcertificate' ),
-			'tickets_purged_expired' => __( 'Expired Form Tickets Cleared', 'ffcertificate' ),
+			'early_open_executed'       => __( 'Form Started Early', 'ffcertificate' ),
+			'tickets_purged_expired'    => __( 'Expired Form Tickets Cleared', 'ffcertificate' ),
 			// Postpone close (6.5.12).
-			'end_postponed'          => __( 'Form Close Postponed', 'ffcertificate' ),
+			'end_postponed'             => __( 'Form Close Postponed', 'ffcertificate' ),
+			// Schedule exception per submission (#366 Sprint 9).
+			'schedule_override_created' => __( 'Schedule Override Created', 'ffcertificate' ),
+			'operator_ip_bypass'        => __( 'Operator IP Bypass', 'ffcertificate' ),
 		);
 
 		return isset( $labels[ $action ] ) ? $labels[ $action ] : ucwords( str_replace( '_', ' ', $action ) );
+	}
+
+	/**
+	 * Pretty-print the context JSON for the two schedule-exception
+	 * action types (#366). The base renderer dumps the raw JSON in a
+	 * `<pre>` block which is correct but hostile to scan — for the
+	 * exception flow we surface the four facts an admin actually
+	 * triages on (before/after range, operator masked CPF,
+	 * participant CPF hash prefix) above the raw dump.
+	 *
+	 * Returns null for any action that isn't one of ours so the
+	 * caller falls back to the raw `<pre>` rendering.
+	 *
+	 * @param string               $action  Action tag.
+	 * @param array<string, mixed> $context Decoded context array.
+	 * @return string|null
+	 */
+	public static function render_schedule_exception_summary( string $action, array $context ): ?string {
+		if ( 'schedule_override_created' === $action ) {
+			$before = \FreeFormCertificate\Core\DateFormatter::format_schedule(
+				(string) ( $context['schedule_start_before'] ?? '' ),
+				(string) ( $context['schedule_end_before'] ?? '' )
+			);
+			$after  = \FreeFormCertificate\Core\DateFormatter::format_schedule(
+				(string) ( $context['schedule_start_after'] ?? '' ),
+				(string) ( $context['schedule_end_after'] ?? '' )
+			);
+
+			$rows = array(
+				array( __( 'Before', 'ffcertificate' ), $before ),
+				array( __( 'After', 'ffcertificate' ), $after ),
+				array( __( 'Operator (masked)', 'ffcertificate' ), (string) ( $context['operator_cpf_masked'] ?? '' ) ),
+				array( __( 'Participant CPF hash', 'ffcertificate' ), self::shorten_hash( (string) ( $context['participant_cpf_hash'] ?? '' ) ) ),
+				array( __( 'Submission ID', 'ffcertificate' ), (string) ( $context['submission_id'] ?? '' ) ),
+			);
+
+			return self::render_summary_rows( $rows );
+		}
+
+		if ( 'operator_ip_bypass' === $action ) {
+			$rows = array(
+				array( __( 'Bypassed IP', 'ffcertificate' ), (string) ( $context['bypassed_ip'] ?? '' ) ),
+				array( __( 'Operator (masked)', 'ffcertificate' ), (string) ( $context['operator_cpf_masked'] ?? '' ) ),
+				array( __( 'Submission ID', 'ffcertificate' ), (string) ( $context['submission_id'] ?? '' ) ),
+			);
+
+			return self::render_summary_rows( $rows );
+		}
+
+		return null;
+	}
+
+	/**
+	 * Truncate a sha256 hex digest to the first 12 chars so it stays
+	 * visible without crowding the row. Full hash remains in the
+	 * raw JSON dump below for forensic correlation.
+	 */
+	private static function shorten_hash( string $hash ): string {
+		if ( strlen( $hash ) <= 12 ) {
+			return $hash;
+		}
+		return substr( $hash, 0, 12 ) . '…';
+	}
+
+	/**
+	 * Render a list of (label, value) rows as a compact dl block.
+	 *
+	 * @param array<int, array{0: string, 1: string}> $rows Label / value pairs.
+	 */
+	private static function render_summary_rows( array $rows ): string {
+		$out = '<dl class="ffc-log-summary-dl">';
+		foreach ( $rows as $row ) {
+			if ( '' === $row[1] ) {
+				continue;
+			}
+			$out .= '<dt>' . esc_html( $row[0] ) . '</dt>';
+			$out .= '<dd>' . esc_html( $row[1] ) . '</dd>';
+		}
+		$out .= '</dl>';
+		return $out;
 	}
 
 	/**
@@ -413,7 +496,18 @@ class AdminActivityLogPage {
 						if ( false === $ffcertificate_context_json ) {
 							$ffcertificate_context_json = '';
 						}
+						// Schedule exception flow (#366 Sprint 9) gets a
+						// friendly summary above the raw JSON dump. Other
+						// action types render the raw block as before.
+						$ffcertificate_context_arr = is_array( $ffcertificate_log['context'] ) ? $ffcertificate_log['context'] : array();
+						$ffcertificate_summary     = self::render_schedule_exception_summary(
+							(string) ( $ffcertificate_log['action'] ?? '' ),
+							$ffcertificate_context_arr
+						);
 						?>
+						<?php if ( null !== $ffcertificate_summary ) : ?>
+							<?php echo wp_kses_post( $ffcertificate_summary ); ?>
+						<?php endif; ?>
 						<details>
 							<summary class="ffc-log-summary">
 								<?php esc_html_e( 'View Details', 'ffcertificate' ); ?> ▼
