@@ -5,13 +5,20 @@ namespace FreeFormCertificate\Tests\Unit;
 
 use Brain\Monkey;
 use Brain\Monkey\Functions;
-use Mockery;
 use Mockery\Adapter\Phpunit\MockeryPHPUnitIntegration;
 use PHPUnit\Framework\TestCase;
 use FreeFormCertificate\Frontend\ScheduleExceptionAction;
 
 /**
  * Tests for ScheduleExceptionAction — Sprint 4 of #366.
+ *
+ * We deliberately avoid `Mockery::mock('alias:\FreeFormCertificate\
+ * Security\Geofence')`: alias mocks are single-shot per PHP process
+ * and would force `@runTestsInSeparateProcesses`. Instead we stub
+ * `get_post_meta` + `wp_timezone` so the REAL `Geofence::get_form_*_
+ * timestamp()` helpers compute meaningful values from the seeded
+ * geofence config — closer to production behaviour and free of
+ * cross-test pollution.
  *
  * @covers \FreeFormCertificate\Frontend\ScheduleExceptionAction
  */
@@ -26,13 +33,16 @@ class ScheduleExceptionActionTest extends TestCase {
         parent::setUp();
         Monkey\setUp();
 
-        // WP helpers used by the action (or its callees).
+        // WP helpers used by the action (or its callees, incl. the
+        // real Geofence::get_form_*_timestamp() helpers we exercise
+        // through the action).
         Functions\when( 'wp_salt' )->justReturn( 'test-nonce-salt' );
         Functions\when( 'is_ssl' )->justReturn( false );
         Functions\when( 'wp_unslash' )->returnArg();
         Functions\when( 'wp_json_encode' )->alias( static fn( $v ) => json_encode( $v ) );
         Functions\when( 'home_url' )->alias( static fn( $p = '' ) => 'https://example.test' . $p );
         Functions\when( 'apply_filters' )->returnArg( 2 );
+        Functions\when( 'wp_timezone' )->alias( static fn() => new \DateTimeZone( 'UTC' ) );
 
         // Cookie path lives in ScheduleExceptionSession; capture but don't
         // assert on it — those assertions live in ScheduleExceptionSessionTest.
@@ -56,40 +66,36 @@ class ScheduleExceptionActionTest extends TestCase {
     }
 
     /**
-     * Build a minimum-viable form: existing CPT, CSV public on, valid hash,
-     * datetime ON, schedule exception ON, window large enough that "now"
-     * sits inside it.
+     * Build a minimum-viable form: existing CPT, CSV public on, valid
+     * hash, datetime ON, schedule exception ON, geofence window spans
+     * yesterday → tomorrow so the real Geofence::get_form_*_timestamp()
+     * helpers report the form as "open right now" regardless of when
+     * the test runs.
      */
     private function seed_form(
         int $form_id = 42,
         array $overrides = array()
     ): void {
+        // Yesterday / tomorrow in UTC (matches the wp_timezone stub).
+        $yesterday = gmdate( 'Y-m-d', time() - DAY_IN_SECONDS );
+        $tomorrow  = gmdate( 'Y-m-d', time() + DAY_IN_SECONDS );
+
         $defaults = array(
             '__post_type'                 => 'ffc_form',
             '_ffc_csv_public_enabled'     => '1',
             '_ffc_csv_public_hash'        => 'good-hash',
             '_ffc_geofence_config'        => array(
-                'datetime_enabled'             => '1',
-                'schedule_exception_enabled'   => '1',
-                'time_start'                   => '08:00',
-                'time_end'                     => '18:00',
-                'class_time_start'             => '',
-                'class_time_end'               => '',
-                'date_start'                   => '2026-05-22',
-                'date_end'                     => '2026-05-22',
+                'datetime_enabled'           => '1',
+                'schedule_exception_enabled' => '1',
+                'time_start'                 => '08:00',
+                'time_end'                   => '18:00',
+                'class_time_start'           => '',
+                'class_time_end'             => '',
+                'date_start'                 => $yesterday,
+                'date_end'                   => $tomorrow,
             ),
         );
         $this->meta_store[ $form_id ] = array_merge( $defaults, $overrides );
-
-        // Stub the geofence timestamp resolver to mean "form open now".
-        $now = time();
-        $geofence_class = Mockery::mock( 'alias:\FreeFormCertificate\Security\Geofence' );
-        $geofence_class->shouldReceive( 'get_form_start_timestamp' )
-            ->andReturn( $now - 3600 ) // started 1h ago
-            ->byDefault();
-        $geofence_class->shouldReceive( 'get_form_end_timestamp' )
-            ->andReturn( $now + 3600 ) // ends in 1h
-            ->byDefault();
     }
 
     // ==================================================================
