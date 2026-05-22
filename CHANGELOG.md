@@ -9,6 +9,24 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 
 ---
 
+## [6.6.10] (2026-05-22)
+
+Hotfix on the 6.6.x maintenance branch. Reported by an admin who noticed that duplicating a certificate form via the "Duplicar" row action silently lost four CSV-public-download sub-feature toggles. The master toggle `_ffc_csv_public_enabled` was copied (so the duplicate's public download was on/off as expected), but the four operator-feature toggles inside the block were not — so the duplicate either re-enabled features the admin had explicitly turned off, or silently lost the "extend end" opt-in.
+
+### Fixed
+
+- **Form duplication: four CSV-public-download sub-feature toggles missed by `CPT::handle_form_duplication()`.** `_ffc_csv_public_download_enabled`, `_ffc_csv_public_preview_enabled`, `_ffc_csv_public_start_early_enabled`, and `_ffc_csv_public_extend_end_enabled` are persisted by `FormEditorSaveHandler::save_form_data()` (lines 295-320 of that file) whenever the admin saves the form's "CSV Download público" section. The 6.5.6 → 6.5.12 sprints that introduced each toggle never added it to the duplicator's hard-coded `$config_metas` list, so the duplicate had empty meta on all four — and empty meta reads as the FormEditorSaveHandler default at metabox render time ('1' for download / preview / start_early, '0' for extend_end). The net effect: any admin who had **disabled** the download / preview / start_early sub-toggle on the original saw it **silently re-enabled** on the duplicate; any admin who had **enabled** extend_end saw it **silently disabled**. Fix: add the four keys to `$config_metas`. The hash + counter exclusions documented in the source comment stay — those are still intentionally not copied.
+
+### Tests
+
+- 1 new PHPUnit case in `CptTest`: `test_handle_form_duplication_copies_all_per_form_metas` walks the full happy path with every persisted per-form meta key set on the source, captures all `update_post_meta` writes on the duplicate, and asserts every expected key landed AND the security-sensitive `_ffc_csv_public_hash` / `_ffc_csv_public_count` did NOT. This is the regression lock — if a future sub-feature toggle gets added to `FormEditorSaveHandler` without a corresponding entry in `$config_metas`, this test fails before the bug ships.
+
+### Notes
+
+- Same release line as 6.6.9 (release/6.6.x). Will be forward-ported to main in the same PR that carries 6.6.8 + 6.6.9 (PR #371).
+
+---
+
 ## [6.6.9] (2026-05-22)
 
 Follow-up to the URL Shortener half of 6.6.8 (#370). The 6.6.8 fix declared `'ffc-core'` as a dependency on the URL Shortener admin enqueues, expecting AdminAssetsManager to have already registered the handle. That holds on FFC-owned pages (`post_type === 'ffc_form'` or `page=ffc-*`), but the URL Shortener metabox also renders on **regular post / page edit screens** when the post type is enabled — and on those screens `AdminAssetsManager::is_ffc_page()` returns false, so `ffc-core` was never registered for the request. WordPress's enqueue path silently dropped the unknown dep, `window.FFC` stayed undefined, and the QR PNG / SVG / Regenerate / Copy buttons still failed silently. Reported on the production site (Gutenberg post edit screen, standard `post` post type, URL Shortener metabox visible in the sidebar).
