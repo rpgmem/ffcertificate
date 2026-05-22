@@ -14684,3 +14684,220 @@ msgstr "✅ Cache limpo com sucesso!"
 #: includes/admin/class-ffc-settings.php:281
 msgid "✅ Cache warmed! %d form(s) pre-loaded."
 msgstr "✅ Cache aquecido! %d formulário(s) pré-carregados."
+
+# ──────────────────────────────────────────────────────────────────────
+# 6.7.0 — Schedule exception per submission (#366)
+# ──────────────────────────────────────────────────────────────────────
+
+#: includes/admin/class-ffc-form-editor-geofence-metabox.php
+msgid "Per-participant entry/exit exception"
+msgstr "Entrada/saída diferenciada por participante"
+
+#: includes/admin/class-ffc-form-editor-geofence-metabox.php
+msgid "Optional. Lets an authenticated operator on the public CSV-download panel create a single submission with a different schedule (e.g. for a participant who left early). Independent of the date/time restrictions toggle above."
+msgstr "Opcional. Permite que um operador autenticado no painel público de download de CSV crie uma submissão única com horário diferente (ex.: participante que saiu mais cedo). Independente do toggle de restrições de data/hora acima."
+
+#: includes/admin/class-ffc-form-editor-geofence-metabox.php
+msgid "Enable Schedule Exception"
+msgstr "Habilitar exceção de horário"
+
+#: includes/admin/class-ffc-form-editor-geofence-metabox.php
+msgid "Allow operators to create per-submission schedule exceptions"
+msgstr "Permitir que operadores criem exceções de horário por submissão"
+
+#: includes/admin/class-ffc-form-editor-geofence-metabox.php
+msgid "Off by default. When on, the public CSV-download panel shows an \"Entry/exit exception\" button to authenticated operators."
+msgstr "Desligado por padrão. Quando ligado, o painel público de download de CSV mostra um botão \"Entrada/saída diferenciada\" para operadores autenticados."
+
+#: includes/admin/class-ffc-form-editor-geofence-metabox.php
+msgid "Class Schedule (baseline)"
+msgstr "Horário da aula (referência)"
+
+#: includes/admin/class-ffc-form-editor-geofence-metabox.php
+msgid "Used as the source for the {schedule} placeholder on certificates. Leave empty to fall back to the Time Range above."
+msgstr "Usado como fonte para o placeholder {schedule} nos certificados. Deixe vazio para usar o intervalo de tempo acima."
+
+#: includes/admin/class-ffc-form-editor-geofence-metabox.php
+msgid "Default Modal Mode"
+msgstr "Modo padrão do modal"
+
+#: includes/admin/class-ffc-form-editor-geofence-metabox.php
+msgid "Now — pre-fill end time with the current moment"
+msgstr "Agora — preencher o horário de saída com o momento atual"
+
+#: includes/admin/class-ffc-form-editor-geofence-metabox.php
+msgid "Manual — let the operator type both ends"
+msgstr "Manual — operador digita ambos os horários"
+
+#: includes/admin/class-ffc-form-editor-geofence-metabox.php
+msgid "Which mode the operator exception modal opens in by default. Operators can flip the toggle on a per-exception basis."
+msgstr "Qual modo o modal de exceção do operador abre por padrão. Operadores podem alternar o modo a cada exceção."
+
+#: assets/js/ffc-csv-download.js
+msgid "Entry/exit exception"
+msgstr "Entrada/saída diferenciada"
+
+#: assets/js/ffc-csv-download.js
+msgid "Create a one-use schedule exception for a single participant submission."
+msgstr "Criar uma exceção de horário de uso único para uma submissão de participante."
+
+#: assets/js/ffc-csv-download.js
+msgid "Schedule exception"
+msgstr "Exceção de horário"
+
+#: assets/js/ffc-csv-download.js
+msgid "Set a different schedule for one participant. The next form submission opened from this modal will record this exception."
+msgstr "Defina um horário diferente para um participante. A próxima submissão do formulário aberta a partir deste modal registrará esta exceção."
+
+#: assets/js/ffc-csv-download.js
+msgid "End now (start stays at baseline)"
+msgstr "Encerrar agora (entrada permanece padrão)"
+
+#: assets/js/ffc-csv-download.js
+msgid "Edit both ends manually"
+msgstr "Editar entrada e saída manualmente"
+
+#: assets/js/ffc-csv-download.js
+msgid "New start:"
+msgstr "Nova entrada:"
+
+#: assets/js/ffc-csv-download.js
+msgid "New end:"
+msgstr "Nova saída:"
+
+#: assets/js/ffc-csv-download.js
+msgid "Create exception"
+msgstr "Criar exceção"
+
+#: assets/js/ffc-csv-download.js
+msgid "Creating…"
+msgstr "Criando…"
+
+#: assets/js/ffc-csv-download.js
+msgid "Exception staged. Open the participant's form in the next tab to consume it."
+msgstr "Exceção preparada. Abra o formulário do participante na próxima aba para consumi-la."
+
+#: assets/js/ffc-csv-download.js
+msgid "Open participant form"
+msgstr "Abrir formulário do participante"
+
+#: assets/js/ffc-csv-download.js
+msgid "Please pick valid times (HH:MM)."
+msgstr "Por favor escolha horários válidos (HH:MM)."
+
+#: assets/js/ffc-csv-download.js
+msgid "Start must be earlier than end."
+msgstr "A entrada deve ser anterior à saída."
+
+#: assets/js/ffc-csv-download.js
+msgid "Range must stay within %1$s–%2$s."
+msgstr "O intervalo deve estar dentro de %1$s–%2$s."
+
+#: assets/js/ffc-csv-download.js
+msgid "Override matches the baseline — nothing to do."
+msgstr "A exceção é idêntica ao horário padrão — nada a registrar."
+
+#: includes/frontend/class-ffc-shortcodes.php
+msgid "Schedule exception active:"
+msgstr "Horário diferenciado configurado:"
+
+#: includes/frontend/class-ffc-shortcodes.php
+msgid "%1$s to %2$s. This submission will be recorded with the adjusted schedule."
+msgstr "%1$s às %2$s. Esta submissão será registrada com o horário ajustado."
+
+#: includes/frontend/class-ffc-shortcodes.php
+msgid "baseline"
+msgstr "horário padrão"
+
+#: includes/frontend/class-ffc-public-csv-download.php
+msgid "Schedule exceptions are disabled for this form."
+msgstr "Exceções de horário estão desabilitadas para este formulário."
+
+#: includes/frontend/class-ffc-public-csv-download.php
+msgid "This form does not have a scheduled start or end."
+msgstr "Este formulário não tem horário de início ou fim definido."
+
+#: includes/frontend/class-ffc-public-csv-download.php
+msgid "The form has not started yet."
+msgstr "O formulário ainda não foi iniciado."
+
+#: includes/frontend/class-ffc-public-csv-download.php
+msgid "The start time must be earlier than the end time."
+msgstr "O horário de entrada deve ser anterior ao de saída."
+
+#: includes/frontend/class-ffc-public-csv-download.php
+msgid "The override range must stay within the form's open window."
+msgstr "O intervalo da exceção deve estar dentro da janela de abertura do formulário."
+
+#: includes/frontend/class-ffc-public-csv-download.php
+msgid "The override is identical to the baseline — nothing to do."
+msgstr "A exceção é idêntica ao horário padrão — nada a registrar."
+
+#: includes/frontend/class-ffc-public-csv-download.php
+msgid "Unable to create the schedule exception right now."
+msgstr "Não foi possível criar a exceção de horário agora."
+
+#: includes/frontend/class-ffc-public-csv-download.php
+msgid "Schedule exception staged. Open the participant form in the next tab."
+msgstr "Exceção preparada. Abra o formulário do participante na próxima aba."
+
+#: includes/core/class-ffc-date-formatter.php
+msgid "%1$s to %2$s"
+msgstr "%1$s às %2$s"
+
+
+#: includes/core/class-ffc-date-formatter.php
+msgid "%1$dh %2$02dmin"
+msgstr "%1$dh %2$02dmin"
+
+#: templates/certificate-preview.php
+msgid "Adjusted entry / exit schedule"
+msgstr "Horário de entrada / saída ajustado"
+
+#: templates/certificate-preview.php
+msgid "This certificate was issued with a schedule different from the form's default. The adjustment was recorded by the on-site operator at the time of submission."
+msgstr "Este certificado foi emitido com horário diferente do padrão do formulário. O ajuste foi registrado pelo operador presencial no momento da submissão."
+
+#: templates/certificate-preview.php
+msgid "Original schedule:"
+msgstr "Horário original:"
+
+#: templates/certificate-preview.php
+msgid "Recorded schedule:"
+msgstr "Horário registrado:"
+
+#: templates/certificate-preview.php
+msgid "Adjusted by operator:"
+msgstr "Ajustado pelo operador:"
+
+#: templates/certificate-preview.php
+msgid "Adjusted on:"
+msgstr "Ajustado em:"
+
+#: includes/admin/class-ffc-admin-activity-log-page.php
+msgid "Schedule Override Created"
+msgstr "Exceção de horário criada"
+
+#: includes/admin/class-ffc-admin-activity-log-page.php
+msgid "Operator IP Bypass"
+msgstr "Bypass de IP pelo operador"
+
+#: includes/admin/class-ffc-admin-activity-log-page.php
+msgid "Before"
+msgstr "Antes"
+
+#: includes/admin/class-ffc-admin-activity-log-page.php
+msgid "After"
+msgstr "Depois"
+
+#: includes/admin/class-ffc-admin-activity-log-page.php
+msgid "Operator (masked)"
+msgstr "Operador (mascarado)"
+
+#: includes/admin/class-ffc-admin-activity-log-page.php
+msgid "Participant CPF hash"
+msgstr "Hash do CPF do participante"
+
+#: includes/admin/class-ffc-admin-activity-log-page.php
+msgid "Bypassed IP"
+msgstr "IP bypassado"

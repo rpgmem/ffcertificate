@@ -355,6 +355,8 @@ class AdminActivityLogPage {
 	 * Truncate a sha256 hex digest to the first 12 chars so it stays
 	 * visible without crowding the row. Full hash remains in the
 	 * raw JSON dump below for forensic correlation.
+	 *
+	 * @param string $hash Full hash to shorten.
 	 */
 	private static function shorten_hash( string $hash ): string {
 		if ( strlen( $hash ) <= 12 ) {
