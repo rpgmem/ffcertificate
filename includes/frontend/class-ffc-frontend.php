@@ -338,114 +338,132 @@ class Frontend {
 					'min_display_ms' => 1500,
 					'strings'        => array(
 						// Progress overlay.
-						'validating'             => __( 'Validating access…', 'ffcertificate' ),
+						'validating'                     => __( 'Validating access…', 'ffcertificate' ),
 						/* translators: %d is the total number of records */
-						'generating'             => __( 'Generating CSV — %d records…', 'ffcertificate' ),
+						'generating'                     => __( 'Generating CSV — %d records…', 'ffcertificate' ),
 						/* translators: %1$d is processed count, %2$d is total count */
-						'exporting'              => __( 'Exporting %1$d / %2$d…', 'ffcertificate' ),
-						'downloading'            => __( 'Starting download…', 'ffcertificate' ),
-						'complete'               => __( 'Download complete!', 'ffcertificate' ),
-						'error'                  => __( 'Error', 'ffcertificate' ),
-						'downloadCsv'            => __( 'Download CSV', 'ffcertificate' ),
-						'timeout'                => __( 'Export timed out. Please try again.', 'ffcertificate' ),
-						'noRecords'              => __( 'No records found to export.', 'ffcertificate' ),
-						'connError'              => __( 'Connection error. Please try again.', 'ffcertificate' ),
+						'exporting'                      => __( 'Exporting %1$d / %2$d…', 'ffcertificate' ),
+						'downloading'                    => __( 'Starting download…', 'ffcertificate' ),
+						'complete'                       => __( 'Download complete!', 'ffcertificate' ),
+						'error'                          => __( 'Error', 'ffcertificate' ),
+						'downloadCsv'                    => __( 'Download CSV', 'ffcertificate' ),
+						'timeout'                        => __( 'Export timed out. Please try again.', 'ffcertificate' ),
+						'noRecords'                      => __( 'No records found to export.', 'ffcertificate' ),
+						'connError'                      => __( 'Connection error. Please try again.', 'ffcertificate' ),
 
 						// Info screen: headers.
-						'formDetails'            => __( 'Form Details', 'ffcertificate' ),
-						'backToForm'             => __( 'Back', 'ffcertificate' ),
-						'formTitle'              => __( 'Form', 'ffcertificate' ),
-						'totalSubmissions'       => __( 'Total submissions', 'ffcertificate' ),
+						'formDetails'                    => __( 'Form Details', 'ffcertificate' ),
+						'backToForm'                     => __( 'Back', 'ffcertificate' ),
+						'formTitle'                      => __( 'Form', 'ffcertificate' ),
+						'totalSubmissions'               => __( 'Total submissions', 'ffcertificate' ),
 
 						// Info screen: restrictions.
-						'accessRestrictions'     => __( 'Access Restrictions', 'ffcertificate' ),
-						'passwordRequired'       => __( 'Password required', 'ffcertificate' ),
-						'approvedUsersOnly'      => __( 'Restricted to approved users', 'ffcertificate' ),
-						'blockedUsers'           => __( 'Blocked users list active', 'ffcertificate' ),
-						'accessCodeRequired'     => __( 'Access code (ticket) required', 'ffcertificate' ),
+						'accessRestrictions'             => __( 'Access Restrictions', 'ffcertificate' ),
+						'passwordRequired'               => __( 'Password required', 'ffcertificate' ),
+						'approvedUsersOnly'              => __( 'Restricted to approved users', 'ffcertificate' ),
+						'blockedUsers'                   => __( 'Blocked users list active', 'ffcertificate' ),
+						'accessCodeRequired'             => __( 'Access code (ticket) required', 'ffcertificate' ),
 
 						// Info screen: availability.
-						'availability'           => __( 'Availability Period', 'ffcertificate' ),
-						'dateStart'              => __( 'Start date', 'ffcertificate' ),
-						'dateEnd'                => __( 'End date', 'ffcertificate' ),
-						'timeStart'              => __( 'Start time', 'ffcertificate' ),
-						'timeEnd'                => __( 'End time', 'ffcertificate' ),
-						'infinity'               => '∞',
-						'noEndDateAlert'         => __( 'This form has no end date configured. The CSV download will only be available after the administrator sets an end date.', 'ffcertificate' ),
+						'availability'                   => __( 'Availability Period', 'ffcertificate' ),
+						'dateStart'                      => __( 'Start date', 'ffcertificate' ),
+						'dateEnd'                        => __( 'End date', 'ffcertificate' ),
+						'timeStart'                      => __( 'Start time', 'ffcertificate' ),
+						'timeEnd'                        => __( 'End time', 'ffcertificate' ),
+						'infinity'                       => '∞',
+						'noEndDateAlert'                 => __( 'This form has no end date configured. The CSV download will only be available after the administrator sets an end date.', 'ffcertificate' ),
 
 						// Info screen: geolocation.
-						'geolocation'            => __( 'Geolocation', 'ffcertificate' ),
-						'gpsLocations'           => __( 'GPS Locations', 'ffcertificate' ),
-						'ipLocations'            => __( 'IP Locations', 'ffcertificate' ),
-						'geolocationEnabled'     => __( 'Geolocation enabled', 'ffcertificate' ),
+						'geolocation'                    => __( 'Geolocation', 'ffcertificate' ),
+						'gpsLocations'                   => __( 'GPS Locations', 'ffcertificate' ),
+						'ipLocations'                    => __( 'IP Locations', 'ffcertificate' ),
+						'geolocationEnabled'             => __( 'Geolocation enabled', 'ffcertificate' ),
 
 						// Info screen: quiz.
-						'quizEvaluation'         => __( 'Quiz / Evaluation', 'ffcertificate' ),
-						'passingScore'           => __( 'Minimum passing score', 'ffcertificate' ),
-						'maxAttempts'            => __( 'Maximum attempts', 'ffcertificate' ),
-						'unlimited'              => __( 'Unlimited', 'ffcertificate' ),
+						'quizEvaluation'                 => __( 'Quiz / Evaluation', 'ffcertificate' ),
+						'passingScore'                   => __( 'Minimum passing score', 'ffcertificate' ),
+						'maxAttempts'                    => __( 'Maximum attempts', 'ffcertificate' ),
+						'unlimited'                      => __( 'Unlimited', 'ffcertificate' ),
 
 						// Info screen: download.
-						'csvDownload'            => __( 'CSV Download', 'ffcertificate' ),
-						'downloadQuota'          => __( 'Download quota', 'ffcertificate' ),
+						'csvDownload'                    => __( 'CSV Download', 'ffcertificate' ),
+						'downloadQuota'                  => __( 'Download quota', 'ffcertificate' ),
 						/* translators: %1$d is current download count, %2$d is download limit */
-						'quotaUsed'              => __( '%1$d of %2$d used', 'ffcertificate' ),
+						'quotaUsed'                      => __( '%1$d of %2$d used', 'ffcertificate' ),
 
 						// Info screen: status messages.
 						/* translators: %s is the formatted end date */
-						'formActiveUntil'        => __( 'This form is still active until %s. The download will be available after the end date.', 'ffcertificate' ),
-						'quotaExhausted'         => __( 'The download quota for this form has been exhausted.', 'ffcertificate' ),
-						'downloadReady'          => __( 'The form collection period has ended. The CSV is ready for download.', 'ffcertificate' ),
-						'csvDownloadDisabled'    => __( 'The CSV download is not available for this form.', 'ffcertificate' ),
+						'formActiveUntil'                => __( 'This form is still active until %s. The download will be available after the end date.', 'ffcertificate' ),
+						'quotaExhausted'                 => __( 'The download quota for this form has been exhausted.', 'ffcertificate' ),
+						'downloadReady'                  => __( 'The form collection period has ended. The CSV is ready for download.', 'ffcertificate' ),
+						'csvDownloadDisabled'            => __( 'The CSV download is not available for this form.', 'ffcertificate' ),
 						// Tooltips on action buttons rendered disabled because
 						// the admin explicitly turned the sub-feature off
 						// (master is on but the per-feature toggle is off).
 						// See `*_disabled_by_admin` flags in the info builder.
-						'csvDownloadDisabledTip' => __( 'CSV download disabled', 'ffcertificate' ),
-						'startEarlyDisabledTip'  => __( 'Start Form Early disabled', 'ffcertificate' ),
-						'extendEndDisabledTip'   => __( 'Postpone Close disabled', 'ffcertificate' ),
-						'certPreviewDisabledTip' => __( 'Certificate Preview disabled', 'ffcertificate' ),
+						'csvDownloadDisabledTip'         => __( 'CSV download disabled', 'ffcertificate' ),
+						'startEarlyDisabledTip'          => __( 'Start Form Early disabled', 'ffcertificate' ),
+						'extendEndDisabledTip'           => __( 'Postpone Close disabled', 'ffcertificate' ),
+						'certPreviewDisabledTip'         => __( 'Certificate Preview disabled', 'ffcertificate' ),
 						/* translators: %s is the formatted start date */
-						'beforeStartMsg'         => __( 'The form collection has not started yet. It will begin on %s.', 'ffcertificate' ),
+						'beforeStartMsg'                 => __( 'The form collection has not started yet. It will begin on %s.', 'ffcertificate' ),
 
 						// Info screen: cert preview.
-						'previewCertificate'     => __( 'Preview Certificate', 'ffcertificate' ),
-						'certPreviewTitle'       => __( 'Certificate Preview', 'ffcertificate' ),
-						'certPreviewNote'        => __( 'Placeholders replaced with sample data. QR code shown as placeholder.', 'ffcertificate' ),
-						'close'                  => __( 'Close', 'ffcertificate' ),
-						'loadingPreview'         => __( 'Loading preview…', 'ffcertificate' ),
+						'previewCertificate'             => __( 'Preview Certificate', 'ffcertificate' ),
+						'certPreviewTitle'               => __( 'Certificate Preview', 'ffcertificate' ),
+						'certPreviewNote'                => __( 'Placeholders replaced with sample data. QR code shown as placeholder.', 'ffcertificate' ),
+						'close'                          => __( 'Close', 'ffcertificate' ),
+						'loadingPreview'                 => __( 'Loading preview…', 'ffcertificate' ),
 
 						// Info screen: Start Form Now (early-open).
-						'startFormNow'           => __( 'Start Form Now', 'ffcertificate' ),
-						'openEarlyTooltip'       => __( 'Overrides the scheduled start time. Form opens immediately.', 'ffcertificate' ),
-						'openEarlyTitle'         => __( 'Start form now?', 'ffcertificate' ),
-						'openEarlyBody1'         => __( 'This will override the scheduled start time. The form will open immediately for all users.', 'ffcertificate' ),
-						'openEarlyOrigLabel'     => __( 'Scheduled start:', 'ffcertificate' ),
-						'openEarlyNewLabel'      => __( 'New start will be:', 'ffcertificate' ),
-						'openEarlyNewNow'        => __( 'now', 'ffcertificate' ),
-						'openEarlyIrreversible'  => __( 'This cannot be undone from this page.', 'ffcertificate' ),
-						'openEarlyCacheWarn'     => __( 'If your site uses page caching (Cloudflare, W3 Total Cache, etc.), some visitors may see the old "not yet started" state until the cache refreshes. Ask them to reload if needed.', 'ffcertificate' ),
-						'cancel'                 => __( 'Cancel', 'ffcertificate' ),
-						'openEarlyConfirm'       => __( 'Confirm and start form', 'ffcertificate' ),
-						'starting'               => __( 'Starting…', 'ffcertificate' ),
-						'openEarlySuccess'       => __( 'Form is now open.', 'ffcertificate' ),
+						'startFormNow'                   => __( 'Start Form Now', 'ffcertificate' ),
+						'openEarlyTooltip'               => __( 'Overrides the scheduled start time. Form opens immediately.', 'ffcertificate' ),
+						'openEarlyTitle'                 => __( 'Start form now?', 'ffcertificate' ),
+						'openEarlyBody1'                 => __( 'This will override the scheduled start time. The form will open immediately for all users.', 'ffcertificate' ),
+						'openEarlyOrigLabel'             => __( 'Scheduled start:', 'ffcertificate' ),
+						'openEarlyNewLabel'              => __( 'New start will be:', 'ffcertificate' ),
+						'openEarlyNewNow'                => __( 'now', 'ffcertificate' ),
+						'openEarlyIrreversible'          => __( 'This cannot be undone from this page.', 'ffcertificate' ),
+						'openEarlyCacheWarn'             => __( 'If your site uses page caching (Cloudflare, W3 Total Cache, etc.), some visitors may see the old "not yet started" state until the cache refreshes. Ask them to reload if needed.', 'ffcertificate' ),
+						'cancel'                         => __( 'Cancel', 'ffcertificate' ),
+						'openEarlyConfirm'               => __( 'Confirm and start form', 'ffcertificate' ),
+						'starting'                       => __( 'Starting…', 'ffcertificate' ),
+						'openEarlySuccess'               => __( 'Form is now open.', 'ffcertificate' ),
 						// Postpone close (6.5.12).
-						'postponeClose'          => __( 'Postpone close', 'ffcertificate' ),
-						'postponeCloseTooltip'   => __( 'Move the form\'s close time later within the same day. One-shot per form.', 'ffcertificate' ),
-						'postponeCloseTitle'     => __( 'Postpone form close?', 'ffcertificate' ),
-						'postponeCloseBody'      => __( 'Pick a new close time within the same day. This action is one-shot — once confirmed it cannot be repeated from this page.', 'ffcertificate' ),
-						'postponeCurrentLabel'   => __( 'Current scheduled close:', 'ffcertificate' ),
-						'postponeNewLabel'       => __( 'New close time:', 'ffcertificate' ),
-						'postponeIrreversible'   => __( 'This action can only be performed once per form.', 'ffcertificate' ),
-						'postponeConfirm'        => __( 'Confirm postponement', 'ffcertificate' ),
-						'postponing'             => __( 'Postponing…', 'ffcertificate' ),
-						'postponeSuccess'        => __( 'Close time postponed.', 'ffcertificate' ),
-						'postponeInvalid'        => __( 'Please pick a valid time later than the current close (HH:MM).', 'ffcertificate' ),
+						'postponeClose'                  => __( 'Postpone close', 'ffcertificate' ),
+						'postponeCloseTooltip'           => __( 'Move the form\'s close time later within the same day. One-shot per form.', 'ffcertificate' ),
+						'postponeCloseTitle'             => __( 'Postpone form close?', 'ffcertificate' ),
+						'postponeCloseBody'              => __( 'Pick a new close time within the same day. This action is one-shot — once confirmed it cannot be repeated from this page.', 'ffcertificate' ),
+						'postponeCurrentLabel'           => __( 'Current scheduled close:', 'ffcertificate' ),
+						'postponeNewLabel'               => __( 'New close time:', 'ffcertificate' ),
+						'postponeIrreversible'           => __( 'This action can only be performed once per form.', 'ffcertificate' ),
+						'postponeConfirm'                => __( 'Confirm postponement', 'ffcertificate' ),
+						'postponing'                     => __( 'Postponing…', 'ffcertificate' ),
+						'postponeSuccess'                => __( 'Close time postponed.', 'ffcertificate' ),
+						'postponeInvalid'                => __( 'Please pick a valid time later than the current close (HH:MM).', 'ffcertificate' ),
 						// Specific client-side validation messages (#243 Sprint 3).
-						'postponeInvalidFormat'  => __( 'Please enter a valid time (HH:MM).', 'ffcertificate' ),
+						'postponeInvalidFormat'          => __( 'Please enter a valid time (HH:MM).', 'ffcertificate' ),
 						/* translators: %s is the current close time in HH:MM */
-						'postponeBeforeCurrent'  => __( 'Time must be later than the current close (%s).', 'ffcertificate' ),
-						'postponeBeforeNow'      => __( 'Time must be in the future.', 'ffcertificate' ),
+						'postponeBeforeCurrent'          => __( 'Time must be later than the current close (%s).', 'ffcertificate' ),
+						'postponeBeforeNow'              => __( 'Time must be in the future.', 'ffcertificate' ),
+						// Schedule exception (#366 Sprint 4).
+						'scheduleException'              => __( 'Entry/exit exception', 'ffcertificate' ),
+						'scheduleExceptionTooltip'       => __( 'Create a one-use schedule exception for a single participant submission.', 'ffcertificate' ),
+						'scheduleExceptionTitle'         => __( 'Schedule exception', 'ffcertificate' ),
+						'scheduleExceptionBody'          => __( 'Set a different schedule for one participant. The next form submission opened from this modal will record this exception.', 'ffcertificate' ),
+						'scheduleExceptionModeNow'       => __( 'End now (start stays at baseline)', 'ffcertificate' ),
+						'scheduleExceptionModeManual'    => __( 'Edit both ends manually', 'ffcertificate' ),
+						'scheduleExceptionStartLabel'    => __( 'New start:', 'ffcertificate' ),
+						'scheduleExceptionEndLabel'      => __( 'New end:', 'ffcertificate' ),
+						'scheduleExceptionConfirm'       => __( 'Create exception', 'ffcertificate' ),
+						'scheduleExceptionSubmitting'    => __( 'Creating…', 'ffcertificate' ),
+						'scheduleExceptionStaged'        => __( 'Exception staged. Open the participant\'s form in the next tab to consume it.', 'ffcertificate' ),
+						'scheduleExceptionOpenForm'      => __( 'Open participant form', 'ffcertificate' ),
+						'scheduleExceptionBadFormat'     => __( 'Please pick valid times (HH:MM).', 'ffcertificate' ),
+						'scheduleExceptionRangeInverted' => __( 'Start must be earlier than end.', 'ffcertificate' ),
+						/* translators: %1$s and %2$s are HH:MM bounds of the form's open window */
+						'scheduleExceptionOutOfWindow'   => __( 'Range must stay within %1$s–%2$s.', 'ffcertificate' ),
+						'scheduleExceptionNoChange'      => __( 'Override matches the baseline — nothing to do.', 'ffcertificate' ),
 
 						// CPF / RF input validation messages. These ALSO
 						// live in `ffc_ajax.strings` for pages that load
@@ -457,9 +475,9 @@ class Frontend {
 						// page that loads ffc-frontend-helpers.js, so each
 						// shortcode-specific localize doesn't have to copy
 						// the validation strings. Tracking issue: TBD.
-						'cpfInvalid'             => __( 'Invalid CPF', 'ffcertificate' ),
-						'enterValidCpfRf'        => __( 'Enter a valid CPF (11 digits) or RF (7 digits)', 'ffcertificate' ),
-						'idMustHaveDigits'       => __( 'The ID must have exactly 7 digits (RF) or 11 digits (CPF).', 'ffcertificate' ),
+						'cpfInvalid'                     => __( 'Invalid CPF', 'ffcertificate' ),
+						'enterValidCpfRf'                => __( 'Enter a valid CPF (11 digits) or RF (7 digits)', 'ffcertificate' ),
+						'idMustHaveDigits'               => __( 'The ID must have exactly 7 digits (RF) or 11 digits (CPF).', 'ffcertificate' ),
 					),
 				)
 			);
