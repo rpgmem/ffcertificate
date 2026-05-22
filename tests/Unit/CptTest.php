@@ -270,6 +270,33 @@ class CptTest extends TestCase {
     }
 
     // ==================================================================
+    // handle_form_duplication() — meta-copy list (#366 Sprint 2 regression)
+    // ==================================================================
+
+    public function test_handle_form_duplication_copies_geofence_config_meta(): void {
+        // The schedule-exception sub-keys added in #366 Sprint 2 live
+        // INSIDE `_ffc_geofence_config`. If a future refactor were to
+        // drop that meta from the duplication list, the new sub-keys
+        // would silently fail to propagate — this test locks the
+        // contract by reading the source of `handle_form_duplication`
+        // and asserting the meta name is present.
+        $source = file_get_contents(
+            __DIR__ . '/../../includes/admin/class-ffc-cpt.php'
+        );
+        $this->assertNotFalse( $source, 'class-ffc-cpt.php must be readable' );
+
+        // Pull the `$config_metas = array( ... );` block out of the
+        // duplication handler and assert it includes our key. Using a
+        // regex on the whole file keeps the assertion robust against
+        // line-number drift while still being a real structural check.
+        $this->assertMatchesRegularExpression(
+            '/\$config_metas\s*=\s*array\(.*?_ffc_geofence_config.*?\);/s',
+            $source,
+            'handle_form_duplication must keep "_ffc_geofence_config" in the duplicated-metas list'
+        );
+    }
+
+    // ==================================================================
     // translate_views()
     // ==================================================================
 

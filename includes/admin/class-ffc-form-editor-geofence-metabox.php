@@ -51,6 +51,20 @@ class FormEditorGeofenceMetabox {
 		$datetime_hide_mode_after  = Geofence::resolve_hide_mode( $config, 'after' );
 		$msg_datetime              = $config['msg_datetime'] ?? __( 'This form is not available at this time.', 'ffcertificate' );
 
+		// Schedule exception per submission (#366). Four optional keys that
+		// live alongside the datetime config: a toggle that enables the
+		// operator-driven exception flow, two TIME inputs that override the
+		// `{schedule}` placeholder when set (falling back to geofence
+		// `time_start`/`time_end` when empty), and a select that controls
+		// which mode the operator modal opens in by default.
+		$schedule_exception_enabled = ( $config['schedule_exception_enabled'] ?? '0' ) === '1' ? '1' : '0';
+		$class_time_start           = $config['class_time_start'] ?? '';
+		$class_time_end             = $config['class_time_end'] ?? '';
+		$schedule_default_mode      = $config['schedule_default_mode'] ?? 'now';
+		if ( ! in_array( $schedule_default_mode, array( 'now', 'manual' ), true ) ) {
+			$schedule_default_mode = 'now';
+		}
+
 		// Per-input invalid flags for first-paint feedback when the persisted
 		// config has an order error (e.g. an import wrote `date_end <
 		// date_start`). S5 will mirror this on live edits via JS.
@@ -212,6 +226,56 @@ class FormEditorGeofenceMetabox {
 						<td>
 							<textarea name="ffc_geofence[msg_datetime]" rows="3" class="ffc-w100"><?php echo esc_textarea( $msg_datetime ); ?></textarea>
 							<p class="description"><?php esc_html_e( 'Message shown when form is accessed outside allowed date/time.', 'ffcertificate' ); ?></p>
+						</td>
+					</tr>
+					</tbody>
+					<tbody class="ffc-schedule-exception-section">
+					<tr>
+						<th colspan="2">
+							<h3 class="ffc-subsection-title"><?php esc_html_e( 'Per-participant entry/exit exception', 'ffcertificate' ); ?></h3>
+							<p class="description ffc-subsection-description">
+								<?php esc_html_e( 'Optional. Lets an authenticated operator on the public CSV-download panel create a single submission with a different schedule (e.g. for a participant who left early). Independent of the date/time restrictions toggle above.', 'ffcertificate' ); ?>
+							</p>
+						</th>
+					</tr>
+					<tr>
+						<th><label><?php esc_html_e( 'Enable Schedule Exception', 'ffcertificate' ); ?></label></th>
+						<td>
+							<?php
+							\FreeFormCertificate\Admin\AdminUI::render_toggle(
+								array(
+									'name'    => 'ffc_geofence[schedule_exception_enabled]',
+									'id'      => 'ffc_geofence_schedule_exception_enabled',
+									'checked' => '1' === (string) $schedule_exception_enabled,
+									'label'   => __( 'Allow operators to create per-submission schedule exceptions', 'ffcertificate' ),
+									'data'    => array( 'ffc-autosave-form-key' => 'geofence_schedule_exception_enabled' ),
+								)
+							);
+							?>
+							<p class="description"><?php esc_html_e( 'Off by default. When on, the public CSV-download panel shows an "Entry/exit exception" button to authenticated operators.', 'ffcertificate' ); ?></p>
+						</td>
+					</tr>
+					</tbody>
+					<tbody class="ffc-collapsed-target<?php echo '1' === $schedule_exception_enabled ? '' : ' ffc-collapsed'; ?>"
+						data-ffc-master="ffc_geofence_schedule_exception_enabled"
+						aria-hidden="<?php echo '1' === $schedule_exception_enabled ? 'false' : 'true'; ?>">
+					<tr>
+						<th><label><?php esc_html_e( 'Class Schedule (baseline)', 'ffcertificate' ); ?></label></th>
+						<td>
+							<label><?php esc_html_e( 'From:', 'ffcertificate' ); ?> <input type="time" name="ffc_geofence[class_time_start]" value="<?php echo esc_attr( $class_time_start ); ?>"></label>
+							&nbsp;&nbsp;
+							<label><?php esc_html_e( 'To:', 'ffcertificate' ); ?> <input type="time" name="ffc_geofence[class_time_end]" value="<?php echo esc_attr( $class_time_end ); ?>"></label>
+							<p class="description"><?php esc_html_e( 'Used as the source for the {schedule} placeholder on certificates. Leave empty to fall back to the Time Range above.', 'ffcertificate' ); ?></p>
+						</td>
+					</tr>
+					<tr>
+						<th><label for="ffc_geofence_schedule_default_mode"><?php esc_html_e( 'Default Modal Mode', 'ffcertificate' ); ?></label></th>
+						<td>
+							<select id="ffc_geofence_schedule_default_mode" name="ffc_geofence[schedule_default_mode]">
+								<option value="now" <?php selected( $schedule_default_mode, 'now' ); ?>><?php esc_html_e( 'Now — pre-fill end time with the current moment', 'ffcertificate' ); ?></option>
+								<option value="manual" <?php selected( $schedule_default_mode, 'manual' ); ?>><?php esc_html_e( 'Manual — let the operator type both ends', 'ffcertificate' ); ?></option>
+							</select>
+							<p class="description"><?php esc_html_e( 'Which mode the operator exception modal opens in by default. Operators can flip the toggle on a per-exception basis.', 'ffcertificate' ); ?></p>
 						</td>
 					</tr>
 					</tbody>
