@@ -497,17 +497,46 @@ class Frontend {
 		}
 
 		// Find all form IDs in post content.
-		preg_match_all( '/\[ffc_form\s+id=[\'"](\d+)[\'"]\]/', $post->post_content, $matches );
+		//
+		// Pre-6.6.8 used a hand-rolled regex that ONLY matched
+		// `[ffc_form id="42"]` (double-quoted) and `[ffc_form id='42']`
+		// (single-quoted). It silently missed two WP-valid formats that
+		// are common in the wild:
+		// `[ffc_form id=42]` (quotes are optional in shortcode atts) and
+		// `[ffc_form id="42" class="extra"]` (additional attributes).
+		// When the regex missed, `wp_localize_script` was never called
+		// for that form, so the JS geofence layer never received its
+		// config, never validated the datetime window, and the form
+		// rendered as if no geofence existed. Users would set
+		// "hide before start" in admin and still see the form on the
+		// public page.
+		//
+		// Fix: use `get_shortcode_regex(['ffc_form'])`, the canonical
+		// WP helper, then parse atts via `shortcode_parse_atts()` which
+		// handles all the quoting variants WP's own parser accepts.
+		$form_ids = array();
+		$pattern  = get_shortcode_regex( array( 'ffc_form' ) );
+		if ( preg_match_all( '/' . $pattern . '/', $post->post_content, $matches, PREG_SET_ORDER ) ) {
+			foreach ( $matches as $match ) {
+				// $match[3] holds the raw attribute string in WP's
+				// get_shortcode_regex layout (group 3).
+				$atts_raw = isset( $match[3] ) ? (string) $match[3] : '';
+				$atts     = shortcode_parse_atts( $atts_raw );
+				$id       = isset( $atts['id'] ) ? (int) $atts['id'] : 0;
+				if ( $id > 0 ) {
+					$form_ids[] = $id;
+				}
+			}
+		}
 
-		if ( empty( $matches[1] ) ) {
+		if ( empty( $form_ids ) ) {
 			return;
 		}
 
 		$geofence_configs = array();
 
-		foreach ( $matches[1] as $form_id ) {
-			$form_id_int = (int) $form_id;
-			$config      = \FreeFormCertificate\Security\Geofence::get_frontend_config( $form_id_int );
+		foreach ( array_unique( $form_ids ) as $form_id_int ) {
+			$config = \FreeFormCertificate\Security\Geofence::get_frontend_config( $form_id_int );
 
 			if ( null !== $config ) {
 				$geofence_configs[ $form_id_int ] = $config;
