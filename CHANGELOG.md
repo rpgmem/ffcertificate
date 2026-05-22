@@ -9,6 +9,25 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 
 ---
 
+## [6.6.9] (2026-05-22)
+
+Follow-up to the URL Shortener half of 6.6.8 (#370). The 6.6.8 fix declared `'ffc-core'` as a dependency on the URL Shortener admin enqueues, expecting AdminAssetsManager to have already registered the handle. That holds on FFC-owned pages (`post_type === 'ffc_form'` or `page=ffc-*`), but the URL Shortener metabox also renders on **regular post / page edit screens** when the post type is enabled — and on those screens `AdminAssetsManager::is_ffc_page()` returns false, so `ffc-core` was never registered for the request. WordPress's enqueue path silently dropped the unknown dep, `window.FFC` stayed undefined, and the QR PNG / SVG / Regenerate / Copy buttons still failed silently. Reported on the production site (Gutenberg post edit screen, standard `post` post type, URL Shortener metabox visible in the sidebar).
+
+### Fixed
+
+- **URL Shortener admin: QR PNG / SVG / Regenerate / Copy buttons still inert on non-FFC admin screens (regression-aware follow-up to 6.6.8).** Register `ffc-core` early on every `admin_enqueue_scripts` request via a new `Loader::register_admin_core_assets()` hook (priority 1, before any module enqueues run). The new method is idempotent — guarded by `wp_script_is('ffc-core', 'registered')` so it's a no-op on FFC pages where `AdminAssetsManager` already registered the handle. Mirrors the frontend `register_frontend_assets()` pattern. After this fix, the `'ffc-core'` dep declared by `UrlShortenerMetaBox::enqueue_assets()` (and any future admin module that depends on `window.FFC.request()`) resolves correctly regardless of the post type being edited.
+
+### Tests
+
+- 3 new PHPUnit cases in `LoaderTest` covering: (1) the constructor wires `admin_enqueue_scripts` to the new method at priority 1; (2) the method registers `ffc-core` when not yet registered; (3) the method is a no-op when AdminAssetsManager already registered it.
+
+### Notes
+
+- Same release line as 6.6.8 (release/6.6.x). Will be forward-ported to main alongside the 6.6.8 forward-port (PR #371).
+- No JS/CSS asset rebuild needed — fix is PHP-only (script registration). The `?ver=6.6.9` rotation flowing from the FFC_VERSION bump invalidates cached `ffc-url-shortener-admin.js` on visitors who hit pre-6.6.9 cached HTML.
+
+---
+
 ## [6.6.8] (2026-05-22)
 
 Hotfix on the 6.6.x maintenance branch. Two production-reported bugs surfaced by an admin who configured "Hide form completely" on a form's date/time restrictions and saw the form still rendering, and by the QR Code download buttons silently doing nothing on a site that combines JS through a cache plugin.
