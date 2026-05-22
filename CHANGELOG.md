@@ -9,6 +9,26 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 
 ---
 
+## [6.6.8] (2026-05-22)
+
+Hotfix on the 6.6.x maintenance branch. Two production-reported bugs surfaced by an admin who configured "Hide form completely" on a form's date/time restrictions and saw the form still rendering, and by the QR Code download buttons silently doing nothing on a site that combines JS through a cache plugin.
+
+### Fixed
+
+- **`[ffc_form]` shortcode: geofence config not localized when the shortcode uses unquoted or extra-attribute syntax.** `Frontend::localize_geofence_config()` matched form IDs with a hand-rolled regex (`/\[ffc_form\s+id=['"](\d+)['"]\]/`) that **required** the `id` attribute to be wrapped in quotes AND to be the LAST attribute before the closing bracket. WordPress's shortcode parser accepts `[ffc_form id=42]` (unquoted shorthand) and `[ffc_form id="42" class="ffc-custom"]` (extra attributes) as valid — admins who used either format saw the form render with no geofence at all because the localization step silently dropped them. Symptom on the user side: setting *"Display before opening" → "Hide form completely"* in the admin had no effect — the form remained visible before its start date. Fix: replace the hand-rolled regex with `get_shortcode_regex(['ffc_form'])` and parse attributes via `shortcode_parse_atts()`, the WP-canonical helpers that handle every quoting variant the platform parser accepts.
+- **URL Shortener admin: QR download / regenerate / copy buttons fail silently on sites that combine JS.** `ffc-url-shortener-admin.js` declared only `['jquery']` as a script dependency but the click handlers call `FFC.request()`, which lives on `ffc-core`. WordPress loads both scripts on the page, but JS combiners (LiteSpeed JS Combine, WP Rocket Combine, etc.) flatten the dependency tree — without `ffc-core` in the declared chain, the combined bundle can execute the URL Shortener script before `window.FFC` is defined, throwing `TypeError: FFC.request is undefined` and aborting the click handler silently. Same fix shape as 6.6.7 (#367) applied to the four public-facing sites; this admin site was missed in that pass. Both enqueues (post-edit metabox + admin list page) now list `ffc-core`.
+
+### Tests
+
+- 3 new PHPUnit cases in `FrontendTest` covering the regex switch: quoted, unquoted, and extra-attributes shortcode shapes all land in `ffcGeofenceConfig` with the correct form ID.
+
+### Notes
+
+- This release branches off `release/6.6.x` rather than `main` so it can ship while the 6.7.0 feature (Schedule exception per submission, #366) is still in testing.
+- The fixes will be forward-ported to `main` so 6.7.0 also carries them.
+
+---
+
 ## [6.6.7] (2026-05-21)
 
 Follow-up to the PR #352 (6.6.2) dependency cleanup. Four public-facing JS enqueues never had `ffc-core` listed as a dependency, so any page combining their script via a JS-combining cache plugin (LiteSpeed JS Combine, WP Rocket Combine, etc.) ended up with `FFC is not defined` and a non-functional widget. Reported on `dresaomiguel.com.br/avaliacoes-e-provas/` where `[ffc_audience schedule_id="1"]` failed to render the calendar.

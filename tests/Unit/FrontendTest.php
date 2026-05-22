@@ -43,6 +43,25 @@ class FrontendTest extends TestCase {
             }
             return $defaults;
         } );
+        // Stubs for the WP shortcode helpers used by
+        // localize_geofence_config() since the 6.6.8 fix. Default
+        // regex pattern matches `[ffc_form ...]` and captures the
+        // attribute string in group 3 (WP's actual layout).
+        Functions\when( 'get_shortcode_regex' )->justReturn(
+            '\[(\[?)(ffc_form)(?![\w-])([^\]\/]*(?:\/(?!\])[^\]\/]*)*?)(?:(\/)\]|\](?:([^\[]*+(?:\[(?!\/\2\])[^\[]*+)*+)\[\/\2\])?)(\]?)'
+        );
+        Functions\when( 'shortcode_parse_atts' )->alias( function ( $text ) {
+            $atts    = array();
+            $pattern = '/(\w+)\s*=\s*"([^"]*)"|(\w+)\s*=\s*\'([^\']*)\'|(\w+)\s*=\s*([^\s\]]+)/';
+            if ( preg_match_all( $pattern, (string) $text, $m, PREG_SET_ORDER ) ) {
+                foreach ( $m as $row ) {
+                    $key            = $row[1] !== '' ? $row[1] : ( $row[3] !== '' ? $row[3] : $row[5] );
+                    $val            = $row[1] !== '' ? $row[2] : ( $row[3] !== '' ? $row[4] : $row[6] );
+                    $atts[ $key ] = $val;
+                }
+            }
+            return $atts;
+        } );
 
         // PublicCsvDownload::register_hooks() instantiates PublicCsvExporter,
         // whose SubmissionRepository constructor reads $wpdb->prefix.
@@ -229,5 +248,81 @@ class FrontendTest extends TestCase {
         // Geofence config should be localized
         $this->assertArrayHasKey( 'ffcGeofenceConfig', $localized );
         $this->assertArrayHasKey( '_global', $localized['ffcGeofenceConfig'] );
+    }
+
+    /**
+     * Stub `get_shortcode_regex` + `shortcode_parse_atts` with simplified
+     * WP-shape implementations so the production regex switch (#XXX 6.6.8)
+     * can be driven through both quoted and unquoted attribute formats.
+     * Returns the captured `wp_localize_script` payload bag.
+     *
+     * @param string $post_content Raw `$post->post_content` to drive.
+     * @return array<string, mixed>
+     */
+    private function capture_geofence_for_content( string $post_content ): array {
+        global $post;
+        $post = Mockery::mock( 'WP_Post' );
+        $post->post_content = $post_content;
+
+        Functions\when( 'has_shortcode' )->justReturn( true );
+
+        // Alias Geofence so we don't have to wire up get_post_meta /
+        // settings / option reads — we're testing the regex+atts path,
+        // not the config builder.
+        $geofence_mock = Mockery::mock( 'alias:\FreeFormCertificate\Security\Geofence' );
+        $geofence_mock->shouldReceive( 'get_frontend_config' )
+            ->andReturnUsing( static fn( $id ) => array( 'formId' => (int) $id, 'datetime' => array( 'enabled' => true ) ) );
+
+        $localized = array();
+        Functions\when( 'wp_localize_script' )->alias( function ( $handle, $name, $data ) use ( &$localized ) {
+            $localized[ $name ] = $data;
+        } );
+
+        $handler  = $this->makeSubmissionHandlerMock();
+        $frontend = new Frontend( $handler );
+        $frontend->frontend_assets();
+
+        return $localized;
+    }
+
+    public function test_localize_geofence_accepts_quoted_id(): void {
+        $localized = $this->capture_geofence_for_content( '[ffc_form id="42"]' );
+
+        $this->assertArrayHasKey( 'ffcGeofenceConfig', $localized );
+        // Form id was extracted — `_global` PLUS the per-form key share the array.
+        $form_keys = array_filter(
+            array_keys( $localized['ffcGeofenceConfig'] ),
+            static fn( $k ) => is_int( $k ) || ( is_string( $k ) && ctype_digit( $k ) )
+        );
+        $this->assertContains( 42, array_map( 'intval', $form_keys ) );
+    }
+
+    public function test_localize_geofence_accepts_unquoted_id(): void {
+        // The bug fixed in 6.6.8: pre-fix regex required quotes around
+        // the id attribute, so `[ffc_form id=42]` (WP-valid unquoted
+        // shorthand) silently failed to localize and the JS geofence
+        // never received its config. The form rendered as if no
+        // datetime restriction existed.
+        $localized = $this->capture_geofence_for_content( '[ffc_form id=42]' );
+
+        $this->assertArrayHasKey( 'ffcGeofenceConfig', $localized );
+        $form_keys = array_filter(
+            array_keys( $localized['ffcGeofenceConfig'] ),
+            static fn( $k ) => is_int( $k ) || ( is_string( $k ) && ctype_digit( $k ) )
+        );
+        $this->assertContains( 42, array_map( 'intval', $form_keys ), 'unquoted id MUST localize too' );
+    }
+
+    public function test_localize_geofence_accepts_extra_attributes(): void {
+        // Same root cause, second failing shape: pre-fix regex required
+        // `id=...` to be the LAST attribute before the closing bracket.
+        $localized = $this->capture_geofence_for_content( '[ffc_form id="42" class="ffc-custom"]' );
+
+        $this->assertArrayHasKey( 'ffcGeofenceConfig', $localized );
+        $form_keys = array_filter(
+            array_keys( $localized['ffcGeofenceConfig'] ),
+            static fn( $k ) => is_int( $k ) || ( is_string( $k ) && ctype_digit( $k ) )
+        );
+        $this->assertContains( 42, array_map( 'intval', $form_keys ), 'extra attributes MUST NOT block localize' );
     }
 }
