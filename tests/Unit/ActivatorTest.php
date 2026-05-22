@@ -318,4 +318,77 @@ class ActivatorTest extends TestCase {
         $this->assertArrayHasKey( 'ffc_submissions_db_version', $updated_options );
         $this->assertSame( FFC_VERSION, $updated_options['ffc_submissions_db_version'] );
     }
+
+    // ==================================================================
+    // add_columns() — schedule override columns (#366)
+    // ==================================================================
+
+    public function test_maybe_add_columns_emits_schedule_override_columns(): void {
+        // Force the version gate to "out of date" so add_columns() actually runs.
+        Functions\when( 'get_option' )->justReturn( '1.0.0' );
+
+        // Default get_results stub returns [], so column_exists() reports
+        // every column as missing — every column gets an ALTER TABLE.
+        $queries = [];
+        $this->wpdb->shouldReceive( 'query' )
+            ->andReturnUsing( function ( $sql ) use ( &$queries ) {
+                $queries[] = $sql;
+                return 1;
+            } );
+
+        Activator::maybe_add_columns();
+
+        $start_added = array_filter( $queries, function ( $sql ) {
+            return stripos( $sql, 'schedule_start_override' ) !== false
+                && stripos( $sql, 'TIME' ) !== false
+                && stripos( $sql, 'ADD COLUMN' ) !== false;
+        } );
+        $end_added = array_filter( $queries, function ( $sql ) {
+            return stripos( $sql, 'schedule_end_override' ) !== false
+                && stripos( $sql, 'TIME' ) !== false
+                && stripos( $sql, 'ADD COLUMN' ) !== false;
+        } );
+
+        $this->assertNotEmpty( $start_added, 'schedule_start_override TIME column should be added by the migration' );
+        $this->assertNotEmpty( $end_added, 'schedule_end_override TIME column should be added by the migration' );
+    }
+
+    public function test_maybe_add_columns_skips_schedule_override_columns_when_already_present(): void {
+        Functions\when( 'get_option' )->justReturn( '1.0.0' );
+
+        // Make column_exists() return true for the two override columns so
+        // add_column_if_missing() short-circuits without issuing ALTER TABLE.
+        $this->wpdb->shouldReceive( 'get_results' )
+            ->andReturnUsing( function ( $query ) {
+                if ( stripos( $query, 'SHOW COLUMNS' ) !== false
+                    && (
+                        stripos( $query, 'schedule_start_override' ) !== false
+                        || stripos( $query, 'schedule_end_override' ) !== false
+                    )
+                ) {
+                    return [ (object) [ 'Field' => 'present' ] ];
+                }
+                return [];
+            } );
+
+        $queries = [];
+        $this->wpdb->shouldReceive( 'query' )
+            ->andReturnUsing( function ( $sql ) use ( &$queries ) {
+                $queries[] = $sql;
+                return 1;
+            } );
+
+        Activator::maybe_add_columns();
+
+        foreach ( $queries as $sql ) {
+            $this->assertFalse(
+                stripos( $sql, 'ADD COLUMN' ) !== false
+                    && (
+                        stripos( $sql, 'schedule_start_override' ) !== false
+                        || stripos( $sql, 'schedule_end_override' ) !== false
+                    ),
+                'ALTER TABLE ADD COLUMN should not be issued for already-present override columns'
+            );
+        }
+    }
 }
