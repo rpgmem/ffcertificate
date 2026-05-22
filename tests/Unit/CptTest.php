@@ -241,6 +241,122 @@ class CptTest extends TestCase {
         $cpt->handle_form_duplication();
     }
 
+    public function test_handle_form_duplication_copies_all_per_form_metas(): void {
+        // 6.6.10 regression lock — the duplicator's copy list must include
+        // EVERY per-form meta key that FormEditorSaveHandler persists,
+        // minus the explicitly-excluded counters / hashes / audit logs
+        // documented in the source comment.
+        //
+        // Pre-6.6.10 the four CSV-download sub-feature toggles below were
+        // missing, so a duplicate forgot whether the admin had turned
+        // off the download / preview / start-early features or turned ON
+        // the extend-end feature.
+        $_GET['post'] = '10';
+
+        Functions\when( 'absint' )->alias( function ( $v ) {
+            return abs( (int) $v );
+        } );
+        Functions\when( 'wp_unslash' )->returnArg();
+        Functions\when( 'check_admin_referer' )->justReturn( true );
+        Functions\when( 'get_current_user_id' )->justReturn( 1 );
+        // Real production flow calls `exit;` after wp_safe_redirect. Throw
+        // a sentinel exception from the stub to abort the call and let us
+        // assert on the side effects captured in $written_meta below.
+        Functions\when( 'wp_safe_redirect' )->alias( function ( $url ) {
+            throw new \RuntimeException( 'redirect:' . $url );
+        } );
+        Functions\when( 'admin_url' )->alias( function ( $path = '' ) {
+            return 'https://example.com/wp-admin/' . ltrim( $path, '/' );
+        } );
+
+        $source_post = (object) array(
+            'ID'         => 10,
+            'post_type'  => 'ffc_form',
+            'post_title' => 'Original',
+        );
+        Functions\when( 'get_post' )->justReturn( $source_post );
+
+        // Source has every per-form meta set to a recognisable value.
+        // The duplicator iterates a hard-coded $config_metas list; empty
+        // values are skipped per the source code's
+        //   if ( '' === $value || array() === $value || null === $value ) continue;
+        // guard, so we give every key a non-empty value below.
+        $source_meta = array(
+            '_ffc_form_fields'                     => array( 'field-a' ),
+            '_ffc_form_config'                     => array( 'k' => 'v' ),
+            '_ffc_form_bg'                         => 'https://example.com/bg.png',
+            '_ffc_geofence_config'                 => array( 'enabled' => '1' ),
+            '_ffc_csv_public_enabled'              => '1',
+            '_ffc_csv_public_download_enabled'     => '0',
+            '_ffc_csv_public_preview_enabled'      => '0',
+            '_ffc_csv_public_start_early_enabled'  => '0',
+            '_ffc_csv_public_extend_end_enabled'   => '1',
+            '_ffc_csv_public_limit'                => 99,
+            '_ffc_csv_public_cpf_mode'             => 'audit',
+            '_ffc_csv_public_cpf_whitelist'        => "12345678901\n98765432100",
+            '_ffc_device_limit_enabled'            => '1',
+            '_ffc_device_limit_max'                => '3',
+            '_ffc_device_match_threshold'          => '0.7',
+            '_ffc_device_limit_message'            => 'Bloqueado',
+            // Excluded by design — must NOT appear on the duplicate.
+            '_ffc_csv_public_hash'                 => 'OLD-HASH',
+            '_ffc_csv_public_count'                => 42,
+        );
+
+        Functions\when( 'get_post_meta' )->alias( function ( $post_id, $key, $single = false ) use ( $source_meta ) {
+            return $source_meta[ $key ] ?? '';
+        } );
+
+        Functions\when( 'wp_insert_post' )->justReturn( 999 );
+
+        $written_meta = array();
+        Functions\when( 'update_post_meta' )->alias( function ( $post_id, $key, $value ) use ( &$written_meta ) {
+            $written_meta[ $key ] = $value;
+            return true;
+        } );
+
+        $cpt = new CPT();
+
+        try {
+            $cpt->handle_form_duplication();
+        } catch ( \Throwable $e ) {
+            // The real flow calls exit; in tests admin_url + wp_safe_redirect
+            // are stubbed to no-op so control returns normally. Re-raise
+            // anything we did not anticipate.
+            if ( false === strpos( $e->getMessage(), 'redirect' ) ) {
+                throw $e;
+            }
+        }
+
+        // All expected metas copied verbatim.
+        $expected_copied = array(
+            '_ffc_form_fields',
+            '_ffc_form_config',
+            '_ffc_form_bg',
+            '_ffc_geofence_config',
+            '_ffc_csv_public_enabled',
+            '_ffc_csv_public_download_enabled',
+            '_ffc_csv_public_preview_enabled',
+            '_ffc_csv_public_start_early_enabled',
+            '_ffc_csv_public_extend_end_enabled',
+            '_ffc_csv_public_limit',
+            '_ffc_csv_public_cpf_mode',
+            '_ffc_csv_public_cpf_whitelist',
+            '_ffc_device_limit_enabled',
+            '_ffc_device_limit_max',
+            '_ffc_device_match_threshold',
+            '_ffc_device_limit_message',
+        );
+        foreach ( $expected_copied as $key ) {
+            $this->assertArrayHasKey( $key, $written_meta, "Duplicator should copy {$key}" );
+            $this->assertSame( $source_meta[ $key ], $written_meta[ $key ], "Duplicate should carry original {$key} value" );
+        }
+
+        // Explicit security exclusions — hash and counter NEVER leak.
+        $this->assertArrayNotHasKey( '_ffc_csv_public_hash', $written_meta, 'Hash must NOT be copied (security)' );
+        $this->assertArrayNotHasKey( '_ffc_csv_public_count', $written_meta, 'Counter must NOT be copied (fresh start)' );
+    }
+
     public function test_handle_form_duplication_dies_for_wrong_post_type(): void {
         $_GET['post'] = '10';
 
