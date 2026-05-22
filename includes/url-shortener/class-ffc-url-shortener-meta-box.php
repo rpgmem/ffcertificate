@@ -230,7 +230,14 @@ class UrlShortenerMetaBox {
 		wp_enqueue_script(
 			'ffc-url-shortener-admin',
 			FFC_PLUGIN_URL . 'assets/js/ffc-url-shortener-admin.js',
-			array( 'jquery' ),
+			// `ffc-core` carries `window.FFC.request()` which the QR-download
+			// click handler calls. Declaring it as a dep makes the load
+			// order survive JS-combining cache plugins (LiteSpeed Combine,
+			// WP Rocket Combine, etc.) that flatten the bundle and would
+			// otherwise drop `ffc-core` for not being in the chain. Same
+			// fix shape as 6.6.7 (#367) applied to the 4 public-facing
+			// sites; admin sites missed that pass.
+			array( 'jquery', 'ffc-core' ),
 			FFC_VERSION,
 			true
 		);
