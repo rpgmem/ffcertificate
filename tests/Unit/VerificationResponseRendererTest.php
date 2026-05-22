@@ -328,6 +328,122 @@ class VerificationResponseRendererTest extends TestCase {
     // generate_appointment_verification_pdf() — with calendar_id
     // ==================================================================
 
+    // ==================================================================
+    // build_schedule_exception_block() — #366 Sprint 8
+    // ==================================================================
+
+    /**
+     * Invoke the private helper via Reflection so we can drive it
+     * directly without hauling in the full template.
+     */
+    private function invoke_block_builder( object $submission ): ?array {
+        $ref = new \ReflectionMethod( VerificationResponseRenderer::class, 'build_schedule_exception_block' );
+        $ref->setAccessible( true );
+        return $ref->invoke( $this->renderer, $submission );
+    }
+
+    public function test_block_returns_null_when_no_override_columns_set(): void {
+        $submission = (object) array(
+            'id'                      => 555,
+            'schedule_start_override' => '',
+            'schedule_end_override'   => '',
+        );
+
+        $this->assertNull(
+            $this->invoke_block_builder( $submission ),
+            'submissions without override columns must short-circuit before the audit query'
+        );
+    }
+
+    public function test_block_returns_null_when_audit_row_missing(): void {
+        // Submission has overrides but no matching audit row (e.g. an
+        // old install with cleanup that ran past the retention window).
+        // We still want a graceful nullish render.
+        $submission = (object) array(
+            'id'                      => 555,
+            'schedule_start_override' => '08:00',
+            'schedule_end_override'   => '17:30',
+        );
+
+        $query_class = Mockery::mock( 'alias:\FreeFormCertificate\Core\ActivityLogQuery' );
+        $query_class->shouldReceive( 'get_submission_logs' )
+            ->with( 555, Mockery::any() )
+            ->andReturn( array() );
+
+        $this->assertNull( $this->invoke_block_builder( $submission ) );
+    }
+
+    public function test_block_assembles_full_payload_from_audit_context(): void {
+        $submission = (object) array(
+            'id'                      => 555,
+            'schedule_start_override' => '08:00',
+            'schedule_end_override'   => '17:30',
+        );
+
+        $context_row = array(
+            'action'  => 'schedule_override_created',
+            'context' => array(
+                'form_id'               => 42,
+                'submission_id'         => 555,
+                'schedule_start_before' => '08:00',
+                'schedule_end_before'   => '18:00',
+                'schedule_start_after'  => '08:00',
+                'schedule_end_after'    => '17:30',
+                'operator_cpf_masked'   => '123.***.***-45',
+                'ts'                    => 1779413591,
+            ),
+        );
+
+        $query_class = Mockery::mock( 'alias:\FreeFormCertificate\Core\ActivityLogQuery' );
+        $query_class->shouldReceive( 'get_submission_logs' )->andReturn( array( $context_row ) );
+
+        Functions\when( '_n' )->alias( static fn( $s, $p, $c ) => 1 === (int) $c ? $s : $p );
+
+        $block = $this->invoke_block_builder( $submission );
+
+        $this->assertNotNull( $block );
+        $this->assertSame( '8h to 18h', $block['before_range'] );
+        $this->assertSame( '8h to 17h30', $block['after_range'] );
+        $this->assertSame( '123.***.***-45', $block['operator'] );
+        // ts_label depends on wp_date/timezone stubs from setUp; just
+        // assert it was rendered (non-empty).
+        $this->assertNotSame( '', $block['ts_label'] );
+    }
+
+    public function test_block_decodes_context_when_stored_as_json_string(): void {
+        // ActivityLogQuery may return the context field as a JSON
+        // string (when encryption is disabled and the row is read raw).
+        // The helper must decode it.
+        $submission = (object) array(
+            'id'                      => 555,
+            'schedule_start_override' => '',
+            'schedule_end_override'   => '17:30',
+        );
+
+        $context_row = array(
+            'action'  => 'schedule_override_created',
+            'context' => json_encode(
+                array(
+                    'schedule_start_before' => '08:00',
+                    'schedule_end_before'   => '18:00',
+                    'schedule_start_after'  => '',
+                    'schedule_end_after'    => '17:30',
+                    'operator_cpf_masked'   => '',
+                    'ts'                    => 1779413591,
+                )
+            ),
+        );
+
+        $query_class = Mockery::mock( 'alias:\FreeFormCertificate\Core\ActivityLogQuery' );
+        $query_class->shouldReceive( 'get_submission_logs' )->andReturn( array( $context_row ) );
+
+        $block = $this->invoke_block_builder( $submission );
+
+        $this->assertNotNull( $block );
+        $this->assertSame( '8h to 18h', $block['before_range'] );
+        $this->assertSame( '17h30', $block['after_range'], 'after_range collapses to single side when start override is empty' );
+    }
+
     public function test_generate_appointment_pdf_fetches_calendar_when_id_present(): void {
         $result = array(
             'data' => array( 'calendar_title' => 'Fallback' ),

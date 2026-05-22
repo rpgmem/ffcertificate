@@ -61,11 +61,96 @@ class VerificationResponseRenderer {
 		$get_field_label_callback    = array( $this, 'get_field_label' );
 		$format_field_value_callback = array( $this, 'format_field_value' );
 
+		// Schedule exception block (#366 Sprint 8). When the submission
+		// row carries either override column, look up the matching
+		// audit entry to surface the full "before → after" + operator
+		// + ts so the public verification page reads the exception as
+		// a legitimate adjustment rather than as tampering.
+		$schedule_exception_block = $this->build_schedule_exception_block( $submission );
+
 		// Render template.
 		ob_start();
 		include FFC_PLUGIN_DIR . 'templates/certificate-preview.php';
 		$preview_html = ob_get_clean();
 		return $preview_html ? $preview_html : '';
+	}
+
+	/**
+	 * Build the schedule-exception block payload for the verification
+	 * template, or return null when this submission carries no override.
+	 *
+	 * Source contract:
+	 *   - Trigger: either `schedule_start_override` or `schedule_end_override`
+	 *     column is non-empty on the submission row. (Both empty → no
+	 *     exception ever happened → null fast-path.)
+	 *   - Context: the matching `schedule_override_created` row from
+	 *     `ffc_activity_log` for this submission. The `ts` field is
+	 *     Category A unix UTC int (per CLAUDE.md) and renders via
+	 *     `DateFormatter::format_datetime()` — NOT from the activity
+	 *     log's `created_at` DATETIME column (housekeeping per the
+	 *     "Category A exception" subsection).
+	 *
+	 * Returns the array consumed by the template, with already-formatted
+	 * "before" / "after" range strings + the i18n-friendly operator
+	 * label + ts label. Returns null when no override is present so
+	 * the template can `if ( ! empty( $schedule_exception_block ) )`
+	 * around the new block.
+	 *
+	 * @param object $submission Submission row as returned by SubmissionHandler.
+	 * @phpstan-param \stdClass&object{id?: int|numeric-string, schedule_start_override?: string|null, schedule_end_override?: string|null} $submission
+	 * @return array<string, string>|null
+	 */
+	private function build_schedule_exception_block( object $submission ): ?array {
+		$start_override = isset( $submission->schedule_start_override ) ? (string) $submission->schedule_start_override : '';
+		$end_override   = isset( $submission->schedule_end_override ) ? (string) $submission->schedule_end_override : '';
+		if ( '' === $start_override && '' === $end_override ) {
+			return null;
+		}
+
+		// Look up the audit row. Activity Log is the source of truth
+		// for "before" — admin may have edited class_time_* after the
+		// exception, so we don't try to re-resolve baseline from the
+		// current form config.
+		$submission_id = isset( $submission->id ) ? (int) $submission->id : 0;
+		$logs          = \FreeFormCertificate\Core\ActivityLogQuery::get_submission_logs( $submission_id, 50 );
+		$row           = null;
+		foreach ( $logs as $log ) {
+			if ( 'schedule_override_created' === ( $log['action'] ?? '' ) ) {
+				$row = $log;
+				break;
+			}
+		}
+		if ( null === $row ) {
+			return null;
+		}
+
+		$context = $row['context'] ?? array();
+		if ( is_string( $context ) ) {
+			$decoded = json_decode( $context, true );
+			$context = is_array( $decoded ) ? $decoded : array();
+		}
+
+		$before = \FreeFormCertificate\Core\DateFormatter::format_schedule(
+			(string) ( $context['schedule_start_before'] ?? '' ),
+			(string) ( $context['schedule_end_before'] ?? '' )
+		);
+		$after  = \FreeFormCertificate\Core\DateFormatter::format_schedule(
+			'' !== $start_override ? $start_override : (string) ( $context['schedule_start_after'] ?? '' ),
+			'' !== $end_override ? $end_override : (string) ( $context['schedule_end_after'] ?? '' )
+		);
+
+		$ts       = isset( $context['ts'] ) ? (int) $context['ts'] : 0;
+		$ts_label = $ts > 0
+			? \FreeFormCertificate\Core\DateFormatter::format_datetime( $ts )
+			: '';
+		$operator = (string) ( $context['operator_cpf_masked'] ?? '' );
+
+		return array(
+			'before_range' => $before,
+			'after_range'  => $after,
+			'operator'     => $operator,
+			'ts_label'     => $ts_label,
+		);
 	}
 
 	/**

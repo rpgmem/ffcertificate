@@ -14,6 +14,10 @@
  * @var array  $skip_fields Fields to skip in display
  * @var callable $get_field_label_callback Callback to get field label
  * @var callable $format_field_value_callback Callback to format field value
+ * @var array|null $schedule_exception_block Schedule exception detail (Sprint 8, #366),
+ *                                         null when this submission has no override.
+ *                                         Keys: before_range, after_range, operator,
+ *                                         ts_label (already formatted).
  *
  * @package FreeFormCertificate
  * @since 3.1.0
@@ -88,6 +92,36 @@ if ( ! defined( 'ABSPATH' ) ) {
 				<?php
 			}
 			?>
+		<?php endif; ?>
+
+		<?php if ( ! empty( $schedule_exception_block ) ) : ?>
+			<hr>
+			<div class="ffc-schedule-exception-block">
+				<h4><?php esc_html_e( 'Adjusted entry / exit schedule', 'ffcertificate' ); ?></h4>
+				<p class="description">
+					<?php esc_html_e( 'This certificate was issued with a schedule different from the form\'s default. The adjustment was recorded by the on-site operator at the time of submission.', 'ffcertificate' ); ?>
+				</p>
+				<div class="ffc-detail-row">
+					<span class="label"><?php esc_html_e( 'Original schedule:', 'ffcertificate' ); ?></span>
+					<span class="value"><?php echo esc_html( $schedule_exception_block['before_range'] ); ?></span>
+				</div>
+				<div class="ffc-detail-row">
+					<span class="label"><?php esc_html_e( 'Recorded schedule:', 'ffcertificate' ); ?></span>
+					<span class="value"><?php echo esc_html( $schedule_exception_block['after_range'] ); ?></span>
+				</div>
+				<?php if ( '' !== $schedule_exception_block['operator'] ) : ?>
+					<div class="ffc-detail-row">
+						<span class="label"><?php esc_html_e( 'Adjusted by operator:', 'ffcertificate' ); ?></span>
+						<span class="value"><?php echo esc_html( $schedule_exception_block['operator'] ); ?></span>
+					</div>
+				<?php endif; ?>
+				<?php if ( '' !== $schedule_exception_block['ts_label'] ) : ?>
+					<div class="ffc-detail-row">
+						<span class="label"><?php esc_html_e( 'Adjusted on:', 'ffcertificate' ); ?></span>
+						<span class="value"><?php echo esc_html( $schedule_exception_block['ts_label'] ); ?></span>
+					</div>
+				<?php endif; ?>
+			</div>
 		<?php endif; ?>
 	</div>
 

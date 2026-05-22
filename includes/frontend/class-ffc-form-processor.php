@@ -953,14 +953,21 @@ class FormProcessor {
 			'schedule_override_created',
 			'info',
 			array(
-				'form_id'              => $form_id,
-				'submission_id'        => $submission_id,
-				'participant_cpf_hash' => $participant_cpf_hash,
-				'operator_cpf_hash'    => (string) ( $payload['operator_cpf_hash'] ?? '' ),
-				'operator_cpf_masked'  => (string) ( $payload['operator_cpf_masked'] ?? '' ),
-				'schedule_start_after' => $start_override,
-				'schedule_end_after'   => $end_override,
-				'ts'                   => time(),
+				'form_id'               => $form_id,
+				'submission_id'         => $submission_id,
+				'participant_cpf_hash'  => $participant_cpf_hash,
+				'operator_cpf_hash'     => (string) ( $payload['operator_cpf_hash'] ?? '' ),
+				'operator_cpf_masked'   => (string) ( $payload['operator_cpf_masked'] ?? '' ),
+				// Baselines are pinned in the token at staging time
+				// (Sprint 4) so Sprint 8's verification block shows
+				// the "before" range that existed at the moment the
+				// operator clicked Create, regardless of subsequent
+				// admin edits to `class_time_*`.
+				'schedule_start_before' => (string) ( $payload['baseline_start'] ?? '' ),
+				'schedule_end_before'   => (string) ( $payload['baseline_end'] ?? '' ),
+				'schedule_start_after'  => $start_override,
+				'schedule_end_after'    => $end_override,
+				'ts'                    => time(),
 			),
 			0,
 			$submission_id

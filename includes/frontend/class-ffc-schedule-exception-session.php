@@ -101,6 +101,16 @@ class ScheduleExceptionSession {
 	 *                                          (Sprint 6). Empty when the
 	 *                                          caller did not collect a CPF
 	 *                                          (e.g. forms with CPF mode off).
+	 * @param string      $baseline_start       Effective baseline start at the
+	 *                                          moment of staging — pinned in
+	 *                                          the payload so Sprint 8's
+	 *                                          `/valid` block can show the
+	 *                                          "before" range regardless of
+	 *                                          subsequent admin edits to the
+	 *                                          form-level `class_time_*`
+	 *                                          metas. Empty when the baseline
+	 *                                          could not be resolved.
+	 * @param string      $baseline_end         Same idiom for the end side.
 	 * @return string The signed token (also the cookie value).
 	 */
 	public static function create(
@@ -108,7 +118,9 @@ class ScheduleExceptionSession {
 		?string $start_override,
 		?string $end_override,
 		string $operator_cpf_hash,
-		string $operator_cpf_masked = ''
+		string $operator_cpf_masked = '',
+		string $baseline_start = '',
+		string $baseline_end = ''
 	): string {
 		$payload = array(
 			'v'                   => self::TOKEN_VERSION,
@@ -117,6 +129,8 @@ class ScheduleExceptionSession {
 			'end'                 => $end_override,
 			'operator_cpf_hash'   => $operator_cpf_hash,
 			'operator_cpf_masked' => $operator_cpf_masked,
+			'baseline_start'      => $baseline_start,
+			'baseline_end'        => $baseline_end,
 			'exp'                 => time() + self::TTL_SECONDS,
 			'jti'                 => self::random_jti(),
 		);

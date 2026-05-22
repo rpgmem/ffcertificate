@@ -190,7 +190,9 @@ final class ScheduleExceptionAction {
 			$start_value,
 			$end_value,
 			$operator_cpf_hash,
-			$operator_cpf_masked
+			$operator_cpf_masked,
+			$baseline_start,
+			$baseline_end
 		);
 
 		$form_url = self::resolve_form_url( $form_id );
