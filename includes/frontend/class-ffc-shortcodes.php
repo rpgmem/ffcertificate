@@ -191,13 +191,62 @@ class Shortcodes {
 		}
 		$wrapper_class = $has_geofence ? 'ffc-shortcode ffc-form-wrapper ffc-has-geofence' : 'ffc-shortcode ffc-form-wrapper';
 
+		// Schedule exception consumption (#366 Sprint 5). If the operator
+		// just staged an exception in another tab, the per-form cookie is
+		// present here. Read + verify + clear in one shot (the cookie is
+		// strictly one-use; the submission handler in Sprint 6 verifies
+		// the in-form hidden-input copy of the same token, not the
+		// cookie, so the cookie has done its job once we've embedded the
+		// token below). When the cookie is missing / tampered / expired,
+		// the read returns null and the form renders untouched — zero
+		// behaviour change for the 99% who never trigger this flow.
+		//
+		// We capture the raw cookie value BEFORE clearing so the hidden
+		// input below carries the exact bytes the operator's token
+		// produced — Sprint 6 can hash_equals against the cookie token
+		// for forensic match if needed, and a re-sign here would emit a
+		// new signature for the same payload, breaking that property.
+		$schedule_exception_cookie = '';
+		$cookie_name               = \FreeFormCertificate\Frontend\ScheduleExceptionSession::cookie_name( $form_id );
+		if ( ! empty( $_COOKIE[ $cookie_name ] ) ) {
+			$schedule_exception_cookie = (string) wp_unslash( $_COOKIE[ $cookie_name ] );
+		}
+		$schedule_exception = \FreeFormCertificate\Frontend\ScheduleExceptionSession::read_from_cookie( $form_id );
+		if ( null !== $schedule_exception ) {
+			\FreeFormCertificate\Frontend\ScheduleExceptionSession::clear( $form_id );
+		} else {
+			// Clear the captured raw value too so a tampered cookie can't
+			// reach the hidden input via the back door.
+			$schedule_exception_cookie = '';
+		}
+
 		ob_start();
 		?>
 		<div class="<?php echo esc_attr( $wrapper_class ); ?>" id="ffc-form-<?php echo esc_attr( (string) $form_id ); ?>">
 			<h2 class="ffc-form-title"><?php echo esc_html( $form_title ); ?></h2>
+			<?php if ( null !== $schedule_exception ) : ?>
+				<div class="ffc-form-info-block ffc-schedule-exception-banner" role="status" aria-live="polite">
+					<p>
+						<strong><?php esc_html_e( 'Schedule exception active:', 'ffcertificate' ); ?></strong>
+						<?php
+						echo esc_html(
+							sprintf(
+								/* translators: 1: override start time HH:MM, 2: override end time HH:MM. "baseline" displayed when the operator did not override that end. */
+								__( '%1$s to %2$s. This submission will be recorded with the adjusted schedule.', 'ffcertificate' ),
+								'' !== (string) ( $schedule_exception['start'] ?? '' ) ? (string) $schedule_exception['start'] : __( 'baseline', 'ffcertificate' ),
+								'' !== (string) ( $schedule_exception['end'] ?? '' ) ? (string) $schedule_exception['end'] : __( 'baseline', 'ffcertificate' )
+							)
+						);
+						?>
+					</p>
+				</div>
+			<?php endif; ?>
 			<form class="ffc-submission-form" id="ffc-form-element-<?php echo esc_attr( (string) $form_id ); ?>" autocomplete="off" aria-label="<?php echo esc_attr( $form_title ); ?>">
 				<input type="hidden" name="form_id" value="<?php echo esc_attr( (string) $form_id ); ?>">
-				
+				<?php if ( null !== $schedule_exception && '' !== $schedule_exception_cookie ) : ?>
+					<input type="hidden" name="ffc_schedule_exception_token" value="<?php echo esc_attr( $schedule_exception_cookie ); ?>">
+				<?php endif; ?>
+
 				<?php
 				foreach ( $fields as $field ) :
                     // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- render_field() escapes all output internally
