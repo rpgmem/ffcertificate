@@ -5,11 +5,17 @@
 //
 // Added as part of #161 S2 to cover the phase-aware datetime logic shipped
 // in #160. Loaded once via beforeAll — the IIFE registers the global.
-import { describe, it, expect, beforeAll } from 'vitest';
+import { describe, it, expect, beforeAll, afterEach, vi } from 'vitest';
 import { loadScript } from './helpers.js';
 
 beforeAll(() => {
 	loadScript('assets/js/ffc-geofence-frontend.js');
+});
+
+// 6.7.3 — Always restore the real clock after any test that opts into
+// fake timers, so a subsequent test doesn't inherit a frozen `Date.now()`.
+afterEach(() => {
+	vi.useRealTimers();
 });
 
 // ----------------------------------------------------------------------
@@ -87,9 +93,15 @@ describe('FFCGeofence.validateDateTime', () => {
 	});
 
 	it('flags phase=during when inside dates but outside the daily slot', () => {
-		// Build a one-second daily window in the distant past (timeEnd lower
-		// than current time). Combined with permissive dates, this forces the
-		// "outside daily slot" branch.
+		// 6.7.3 — Lock the clock at midday UTC. Pre-6.7.3 the test depended
+		// on the real wall-clock landing OUTSIDE the 00:00–00:01 window;
+		// the <0.07%/run window where a CI runner started inside the first
+		// minute of the day caused a real flake (#382 hit it on 2026-05-23
+		// at 00:00:44 UTC). Fake timers eliminate the window entirely with
+		// no production-code change.
+		vi.useFakeTimers();
+		vi.setSystemTime(new Date('2026-05-23T12:00:00Z'));
+
 		const result = window.FFCGeofence.validateDateTime({
 			dateStart: '2000-01-01',
 			dateEnd: '2999-12-31',
@@ -97,10 +109,6 @@ describe('FFCGeofence.validateDateTime', () => {
 			timeEnd: '00:01',
 			timeMode: 'daily',
 		});
-		// Test runs after 00:01 UTC nearly always — phase should be 'during'
-		// (unless the CI clock genuinely lands in the first minute of the day,
-		// in which case the form is "valid" and the test would fail; the
-		// chance is < 0.07% per run and the assertion will surface it).
 		expect(result.valid).toBe(false);
 		expect(result.phase).toBe('during');
 	});

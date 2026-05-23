@@ -9,6 +9,38 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 
 ---
 
+## [6.7.2] (2026-05-23)
+
+Seven small-to-medium fixes across three surfaces (post-submission card, `/valid` verification page, user dashboard reregistrations list) reported in a single review pass after the 6.7.1 polish landed in production.
+
+### Fixed — post-submission card
+
+- **Removed the duplicate "Success!" preamble line.** The badge "CERTIFICATE ISSUED" + the H3 "Certificate Details" already communicate success; an extra `<p>` with the form's `success_message` on top was redundant noise. Dropped the `<p class="ffc-success-message">` block from `templates/submission-success.php`. The `$success_message` variable still flows through `Utils::generate_success_html()` (no API change) — it's just not rendered anymore. Sites that customised the message in the form editor lose surfacing on this screen, but the `/valid` verification page still shows the same data.
+- **Gray actions strip now extends to include the "Can't find the PDF?" block.** Pre-6.7.2 `<details class="ffc-success-where-is-file">` sat OUTSIDE `.ffc-preview-actions`, breaking the gray background mid-card with a white band below the download button. Moved the `<details>` INTO `.ffc-preview-actions`; the strip's existing `background: var(--ffc-bg-alt)` + `border-top` now wraps both the CTA and the hint.
+- **Hint summary type-size lifted to H4-level (16px).** The "Can't find the PDF?" summary was 13px in the previous round, reading as a tiny tertiary line — out of scale with the "Save this link to download again later:" H4 it should sit alongside as a peer. Now `font-size: 16px / font-weight: 600 / var(--ffc-text)` — matches the H4 size, drops the internal background-alt + border-left (now redundant inside the gray strip).
+
+### Fixed — `/valid` verification page
+
+- **Doubled gray separator between the "Certificate Details" rows and the "Participant Data" header.** Same root cause we fixed for the success card in 6.7.1 — `<hr>` + the H4 blue underline (from the 6.6.12 rule) + the last detail row's own bottom border = three stacked horizontal lines reading as a doubled separator. Dropped the `<hr>` from `templates/certificate-preview.php` above `<h4>Participant Data:</h4>`; the H4's blue underline already provides the section break. Applies retroactively to every existing `/valid` page render.
+- **CPF / RF / E-mail now masked in the public verification response.** `/valid` is a PUBLIC page — anyone with the auth code (or magic-link token) can pull it up. Surfacing the full `123.456.789-09` CPF and `participant@example.com` email was a privacy leak; the page's purpose is to prove "this certificate exists and belongs to $name", not to dump PII. `format_field_value()` in `VerificationResponseRenderer` now applies `DocumentFormatter::mask_cpf()` (renders `123.***.***-09`) for `cpf` / `cpf_rf` / `rg` fields and `DocumentFormatter::mask_email()` for `email`. Name / program / phone / other arbitrary fields stay verbatim — no over-masking. Both masks already existed in `DocumentFormatter`; only the renderer integration changed.
+- **"Recorded schedule" line now always carries both ends.** Pre-6.7.2 `build_schedule_exception_block()` used `$start_override ?: context['schedule_start_after']` for the after-range, which left the start blank when only the end was overridden (e.g. participant left early — `end` shifted from 12h to 11h21, `start` untouched). The result rendered as "Recorded schedule: 11h21" with no start, visually implying the participant's window was a single point in time. Now: the side that was NOT overridden falls back to the corresponding `schedule_*_before` value from the audit context. A partial-end override now reads "Recorded schedule: 9h to 11h21" — start preserved from baseline, end from override. Locks the new behaviour with an updated PHPUnit case in `VerificationResponseRendererTest::test_block_decodes_context_when_stored_as_json_string`.
+
+### Fixed — user dashboard reregistrations
+
+- **Download button now appears for `expired` submissions that already carry an `auth_code`.** `UserReregistrationsRestController` gated `can_download` on `status IN ('submitted', 'approved')`, which excluded `expired` rows even when the submission had been approved and an auth code generated. When the parent campaign hits its end date the submission row's status flips to `expired` for housekeeping, but the participant must keep the ability to download the ficha they earned. Changed to `! empty( $sub->auth_code )` — the presence of the code is the canonical proof the submission was processed. `rejected` rows never get an auth_code generated so they stay non-downloadable automatically; pending / in-progress drafts likewise. Two new PHPUnit cases lock both branches (expired-with-auth_code can download; rejected cannot).
+
+### Tests
+
+- 4 new PHPUnit cases in `VerificationResponseRendererTest`: cpf-mask integration, email-mask integration, no-over-masking for arbitrary fields, plus the schedule-after-range fallback assertion.
+- 2 new PHPUnit cases in `UserReregistrationsRestControllerTest`: expired-with-auth_code → can_download true; rejected → can_download false.
+- 1 stub addition to the renderer test's setUp (`is_email` Brain Monkey alias) so `DocumentFormatter::mask_email()` resolves outside WordPress.
+
+### Bundle cache
+
+- **`FFC_VERSION` bumped 6.7.1 → 6.7.2** across the three sync sites (plugin header, `FFC_VERSION` constant, `readme.txt` Stable tag). `assets/css/ffc-frontend.min.css` rebuilt via `npm run build:css`.
+
+---
+
 ## [6.7.1] (2026-05-23)
 
 Layout fixes for two visual regressions reported on the post-submission flow and the schedule-exception banner that the 6.6.12 / #380 polish PRs left behind, plus the cache-key bump that #376 / #380 should have carried but didn't.
