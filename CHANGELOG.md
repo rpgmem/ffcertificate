@@ -57,6 +57,38 @@ Per-submission **schedule exception** flow (#366). When a participant misses a c
 
 ---
 
+## [6.6.11] (2026-05-22)
+
+⚠ **Breaking change for downstream automations matching PDF filenames** — forward-ported to `main` after release/6.6.x shipped (#374).
+
+Hotfix to unify the three divergent PDF filename patterns across the plugin. Pre-6.6.11 the certificate, appointment receipt, and ficha PDFs each used a different shape (`{kebab-title}_{authCODE}.pdf`, `{lower-translated}_{code}.pdf`, `Ficha_{Title}_{Display Name}.pdf`), and the receipt prefix even drifted by locale because it came from `__('Appointment_Receipt')`. The new shape is the same across all three generators: `{translated-prefix}_{entity_id}_{LETTER}-{code}.pdf` — e.g. `certificado_666_C-MLQQZ9UX9MWF.pdf`, `recibo_42_A-7K3M9P2XQRST.pdf`, `ficha_99_R-ABCDEF123456.pdf` (PT-BR). Sites that depend on the old filename shapes for DMS regex matching / email attachment routing / external download automations MUST adjust their patterns OR pin a stable shape via the new central filter (see "How to pin a stable shape" below).
+
+### Changed (breaking)
+
+- **All plugin-generated PDF filenames now follow `{prefix}_{entity_id}_{LETTER}-{code}.pdf`**, produced by the new shared helper `\FreeFormCertificate\Core\Utils::build_pdf_filename( string $type, int $entity_id, string $code )`. The three generators (`PdfGenerator::generate_pdf_data()`, `PdfGenerator::generate_pdf_data_from_form()`, `PdfGenerator::generate_appointment_pdf_data()`, `FichaGenerator::generate_ficha_data()`) all delegate to this helper instead of constructing filenames inline. The private `PdfGenerator::generate_filename()` method that previously held the legacy kebab-lowercase logic has been removed.
+- **Auth-code "virtual prefix" letter from `DocumentFormatter` is now embedded in the filename**: certificates get `C-`, appointment receipts get `A-`, fichas get `R-` — mirroring the same letters used at `/valid` and in emails. The helper detects already-prefixed and pre-formatted codes (e.g. caller passing `C-MLQQ-Z9UX-9MWF` from a display rendering) and **does not double-prefix**, also stripping inner dashes from the body for filesystem compactness. Synthetic `S{id}` fallbacks for draft fichas stay un-prefixed since they are not verifiable auth codes.
+- **Prefix is translatable** via `_x()` with the `pdf filename prefix - …` context. Default labels: `certificado` (certificate), `recibo` (appointment receipt), `ficha` (reregistration record). PT-BR sites get those literal slugs; sites in other locales get whatever the translator provides (e.g. `certificate` / `receipt` / `record` for EN).
+- **Appointment receipt now has its own filter** `ffcertificate_appointment_receipt_filename( $filename, $calendar_id, $validation_code, $appointment )`. Pre-6.6.11 this PDF was the only one without a per-type filter.
+- **Ficha filename now uses `auth_code` (when populated) or `S{submission_id}` fallback** instead of `{Title}_{Display Name}`.
+
+### Added
+
+- **New central hook `ffcertificate_pdf_filename( $filename, $type, $entity_id, $code )`** fires for every PDF the plugin generates, BEFORE the per-type hooks. Documented escape-hatch for automation-driven sites.
+
+### How to pin a stable shape (for DMS / automation sites)
+
+```php
+add_filter( 'ffcertificate_pdf_filename', function ( $filename, $type, $entity_id, $code ) {
+    $stable = array( 'certificate' => 'certificate', 'appointment_receipt' => 'receipt', 'ficha' => 'record' );
+    $prefix = $stable[ $type ] ?? $type;
+    return '' !== $code
+        ? sprintf( '%s_%d_%s.pdf', $prefix, $entity_id, $code )
+        : sprintf( '%s_%d.pdf', $prefix, $entity_id );
+}, 10, 4 );
+```
+
+---
+
 ## [6.6.10] (2026-05-22)
 
 Hotfix on the 6.6.x maintenance branch (#373 → release/6.6.x). See `release/6.6.x` for the shipped tag; the fix is forward-ported into 6.7.0 above.
