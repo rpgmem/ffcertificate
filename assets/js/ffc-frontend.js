@@ -247,7 +247,7 @@
         html += '<p class="ffc-error-message">' + message + '</p>';
         html += '<div class="ffc-manual-verification-form">';
         html += '<h4>' + (s.tryManually || 'Or try manual verification') + ':</h4>';
-        html += '<input type="text" class="ffc-manual-auth-code" placeholder="' + (s.enterAuthCode || 'Enter auth code') + '">';
+        html += '<input type="text" class="ffc-manual-auth-code" placeholder="' + (s.enterAuthCode || 'Enter validation code') + '">';
         html += '<button class="ffc-manual-verify-btn ffc-download-btn">' + (s.verify || 'Verify') + '</button>';
         html += '</div>';
         html += '</div>';

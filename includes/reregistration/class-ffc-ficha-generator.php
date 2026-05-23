@@ -80,6 +80,18 @@ class FichaGenerator {
 		$acumulo_value = $decrypted_values['acumulo_cargos'] ?? __( 'I do not hold', 'ffcertificate' );
 		$has_acumulo   = __( 'I hold', 'ffcertificate' ) === $acumulo_value;
 
+		// 6.7.5 — Reference year for the ficha header. Pulled from the
+		// CAMPAIGN's start_date so the year matches the cycle of record
+		// (e.g. a campaign that opened 2026-02-15 yields "2026"), not
+		// the moment the participant happened to download / regenerate.
+		$reference_year = '';
+		if ( ! empty( $rereg->start_date ) ) {
+			$start_ts = strtotime( (string) $rereg->start_date );
+			if ( false !== $start_ts ) {
+				$reference_year = (string) gmdate( 'Y', $start_ts );
+			}
+		}
+
 		// Build template variables: framework keys + every standard field by field_key.
 		$variables = array(
 			'reregistration_title' => $rereg->title,
@@ -88,6 +100,10 @@ class FichaGenerator {
 			'submitted_at'         => $submitted_at,
 			'email'                => $user->user_email,
 			'site_name'            => get_bloginfo( 'name' ),
+			'reference_year'       => $reference_year,
+			// 6.7.5 — `generation_date` retained for back-compat with
+			// custom templates that may still reference it. The default
+			// template now uses `submitted_at` in the footer instead.
 			'generation_date'      => \FreeFormCertificate\Core\DateFormatter::format_datetime( time(), 'pdf' ),
 		);
 

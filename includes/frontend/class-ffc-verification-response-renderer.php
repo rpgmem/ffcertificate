@@ -267,7 +267,11 @@ class VerificationResponseRenderer {
 		$html .= '<span class="value">' . esc_html( $formatted_time ) . '</span>';
 		$html .= '</div>';
 
-		$html .= '<hr>';
+		// 6.7.5 — H4 already underlined (rule from 6.6.12). Pre-6.7.5
+		// the preceding <hr> stacked under the last detail row's
+		// bottom-border, doubling the gray separator. Same fix
+		// applied to /valid certificate path in 6.7.2 (#382) — this
+		// closes parity for the appointment path.
 		$html .= '<h4>' . esc_html__( 'Participant Data:', 'ffcertificate' ) . '</h4>';
 
 		if ( ! empty( $data['name'] ) ) {
@@ -364,7 +368,11 @@ class VerificationResponseRenderer {
 
 		$html .= '<div class="ffc-preview-header">';
 		$html .= '<span class="ffc-status-badge ' . esc_attr( $status_class ) . ' ffc-icon-success">' . esc_html__( 'Reregistration Record Valid', 'ffcertificate' ) . '</span>';
-		$html .= '<br><span class="ffc-appointment-status ffc-status-' . esc_attr( $rereg['status'] ) . '">' . esc_html( $rereg['status_label'] ) . '</span>';
+		// 6.7.5 — Submission status (Approved / Expired / Rejected / …)
+		// moved OUT of the header into a detail row in the body. The
+		// header now carries only the universal "Valid" badge; the
+		// per-submission state lives next to the rest of the data with
+		// its colored pill, easier to scan and visually aligned.
 		$html .= '</div>';
 
 		$html .= '<div class="ffc-preview-body">';
@@ -375,6 +383,32 @@ class VerificationResponseRenderer {
 			$html .= '<span class="label">' . esc_html__( 'Validation Code:', 'ffcertificate' ) . '</span>';
 			$html .= '<span class="value code">' . esc_html( $display_code ) . '</span>';
 			$html .= '</div>';
+		}
+
+		$html .= '<div class="ffc-detail-row">';
+		$html .= '<span class="label">' . esc_html__( 'Status:', 'ffcertificate' ) . '</span>';
+		$html .= '<span class="value"><span class="ffc-appointment-status ffc-status-' . esc_attr( $rereg['status'] ) . '">' . esc_html( $rereg['status_label'] ) . '</span></span>';
+		$html .= '</div>';
+
+		// 6.7.5 — Campaign window. Surfaces the open period of the
+		// underlying reregistration so the verifier can place the
+		// submission in its calendar context (especially useful for
+		// expired campaigns where "when was this open?" is no longer
+		// obvious). DATE strings from the wall-clock columns (Category
+		// B); rendered through DateFormatter::format_date.
+		if ( ! empty( $rereg['start_date'] ) && ! empty( $rereg['end_date'] ) ) {
+			$start_ts = strtotime( (string) $rereg['start_date'] );
+			$end_ts   = strtotime( (string) $rereg['end_date'] );
+			if ( false !== $start_ts && false !== $end_ts ) {
+				$html .= '<div class="ffc-detail-row">';
+				$html .= '<span class="label">' . esc_html__( 'Campaign Period:', 'ffcertificate' ) . '</span>';
+				$html .= '<span class="value">'
+					. esc_html( \FreeFormCertificate\Core\DateFormatter::format_date( $start_ts ) )
+					. ' — '
+					. esc_html( \FreeFormCertificate\Core\DateFormatter::format_date( $end_ts ) )
+					. '</span>';
+				$html .= '</div>';
+			}
 		}
 
 		if ( ! empty( $rereg['display_name'] ) ) {
