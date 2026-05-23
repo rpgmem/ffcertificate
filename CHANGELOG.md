@@ -9,6 +9,25 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 
 ---
 
+## [6.7.7] (2026-05-23)
+
+### Fixed (i18n)
+
+- **5 geofence/spinner messages were unreachable for translators.** `assets/js/ffc-geofence-frontend.js` reads its UI strings from `ffcGeofenceConfig._global.strings` (the `wp_localize_script` payload). When a key is absent from the payload, `getString()` falls back to the English literal baked into the JS source — and Loco / Poedit have no way to surface the string for translation because no `__()` call ever ran for it. The PHP-side localize map in `class-ffc-frontend.php::ffcGeofenceConfig._global.strings` was missing 5 keys that the JS actively requests. Effect: PT-BR (and any other locale) saw those messages render in English. Fixed:
+  - `awaitingPermission` — non-Safari progressive-loading phase 2.
+  - `stillTrying` — non-Safari progressive-loading phase 3.
+  - `safariSafetyTimeout` — Safari fallback after the geolocation callback never resolves.
+  - `safetyTimeout` — non-Safari sibling.
+  - `reloadPageBtn` — the button label rendered next to both timeout messages above.
+
+  All 5 now flow through `__('…', 'ffcertificate')` in the PHP map and reach the JS via `wp_localize_script`. The English fallback in `getString()` is preserved as a defensive default for the rare cases where the localize payload doesn't make it.
+
+### Bundle cache
+
+- **`FFC_VERSION` bumped 6.7.6 → 6.7.7** across the three sync sites. No `assets/` bundle change (only PHP-side strings) but the JS-side cache key still rotates because of the version bump.
+
+---
+
 ## [6.7.6] (2026-05-23)
 
 ### Fixed
