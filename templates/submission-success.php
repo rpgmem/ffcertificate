@@ -38,10 +38,6 @@ $ffc_auth_code  = isset( $auth_code ) ? (string) $auth_code : '';
 	</div>
 
 	<div class="ffc-preview-body">
-		<?php if ( ! empty( $success_message ) ) : ?>
-			<p class="ffc-success-message"><?php echo esc_html( $success_message ); ?></p>
-		<?php endif; ?>
-
 		<h3><?php esc_html_e( 'Certificate Details', 'ffcertificate' ); ?></h3>
 
 		<?php if ( ! empty( $ffc_auth_code ) ) : ?>
@@ -95,37 +91,37 @@ $ffc_auth_code  = isset( $auth_code ) ? (string) $auth_code : '';
 		<button type="button" class="ffc-download-btn ffc-download-pdf-btn ffc-success-download-btn ffc-icon-download">
 			<?php esc_html_e( 'Download PDF again', 'ffcertificate' ); ?>
 		</button>
-	</div>
 
-	<details class="ffc-success-where-is-file" aria-live="polite">
-		<summary class="ffc-success-where-title">
-			<?php esc_html_e( "Can't find the downloaded PDF?", 'ffcertificate' ); ?>
-		</summary>
-		<ul>
-			<li data-platform="android">
-				<?php
-				echo esc_html__(
-					'Android: open the Downloads folder, or use the Files app and look for "certificate.pdf".',
-					'ffcertificate'
-				);
-				?>
-			</li>
-			<li data-platform="ios">
-				<?php
-				echo esc_html__(
-					'iPhone / iPad: after the PDF opens, tap Share → "Save to Files" to keep it on your device.',
-					'ffcertificate'
-				);
-				?>
-			</li>
-			<li data-platform="desktop">
-				<?php
-				echo esc_html__(
-					'Desktop: check the Downloads folder or the download bar at the bottom of your browser.',
-					'ffcertificate'
-				);
-				?>
-			</li>
-		</ul>
-	</details>
+		<details class="ffc-success-where-is-file" aria-live="polite">
+			<summary class="ffc-success-where-title">
+				<?php esc_html_e( "Can't find the downloaded PDF?", 'ffcertificate' ); ?>
+			</summary>
+			<ul>
+				<li data-platform="android">
+					<?php
+					echo esc_html__(
+						'Android: open the Downloads folder, or use the Files app and look for "certificate.pdf".',
+						'ffcertificate'
+					);
+					?>
+				</li>
+				<li data-platform="ios">
+					<?php
+					echo esc_html__(
+						'iPhone / iPad: after the PDF opens, tap Share → "Save to Files" to keep it on your device.',
+						'ffcertificate'
+					);
+					?>
+				</li>
+				<li data-platform="desktop">
+					<?php
+					echo esc_html__(
+						'Desktop: check the Downloads folder or the download bar at the bottom of your browser.',
+						'ffcertificate'
+					);
+					?>
+				</li>
+			</ul>
+		</details>
+	</div>
 </div>

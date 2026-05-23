@@ -1204,28 +1204,30 @@ details.ffc-consent-description > p {
    `.ffc-success-where-is-file li[data-platform]` (filterPlatformGuidance
    in ffc-frontend.js) hides the lines that don't apply to the visitor's
    device — works whether the user expands the section or not. */
+/* 6.7.2 — Block lives inside `.ffc-preview-actions` now (the gray strip
+   already provides background + visual grouping), so no separate
+   background / border-left needed here. Summary type-size lifted to
+   match the H4 ("Save this link…") above it so the two hints read as
+   peers, not parent/child. */
 .ffc-shortcode .ffc-success-where-is-file {
     max-width: 450px;
-    margin: 12px auto 20px;
-    padding: 8px 14px;
-    background: var(--ffc-bg-alt, #f6f7f7);
-    border-left: 3px solid var(--ffc-primary, #0073aa);
-    border-radius: 4px;
+    margin: 18px auto 0;
+    padding: 0;
     text-align: left;
     box-sizing: border-box;
 }
 
 .ffc-shortcode .ffc-success-where-title {
     cursor: pointer;
-    font-size: 13px;
+    font-size: 16px;
     font-weight: 600;
-    color: var(--ffc-text-secondary, #555);
+    color: var(--ffc-text, #333);
     list-style: revert;
     padding: 0;
 }
 
 .ffc-shortcode .ffc-success-where-is-file[open] .ffc-success-where-title {
-    margin-bottom: 6px;
+    margin-bottom: 8px;
 }
 
 .ffc-shortcode .ffc-success-where-is-file ul {
@@ -1234,9 +1236,9 @@ details.ffc-consent-description > p {
 }
 
 .ffc-shortcode .ffc-success-where-is-file li {
-    font-size: 13px;
+    font-size: 14px;
     line-height: 1.5;
-    margin: 3px 0;
+    margin: 4px 0;
 }
 
 /* 6.6.4 — pre-flight permission banners (cookies / GPS).

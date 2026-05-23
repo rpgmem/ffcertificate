@@ -103,7 +103,18 @@ class UserReregistrationsRestController {
 					$submitted_at = \FreeFormCertificate\Core\DateFormatter::format_datetime( (int) $sub->submitted_at );
 				}
 
-				$can_download = in_array( $sub->status, array( 'submitted', 'approved' ), true );
+				// 6.7.2 — Download right is gated by the presence of an
+				// `auth_code`, not by the submission's CURRENT status.
+				// AuthCodeService writes the code at the transition into
+				// `submitted` / `approved`; the code is canonical proof
+				// the ficha was generated. When the parent campaign
+				// expires later, the submission row's status flips to
+				// `expired` but the participant should still be able to
+				// download the ficha they earned. Rejected submissions
+				// (which never get an auth_code) and still-pending /
+				// in-progress drafts (likewise) stay non-downloadable
+				// automatically — no extra status check needed.
+				$can_download = ! empty( $sub->auth_code );
 				$is_active    = 'active' === $sub->reregistration_status;
 				$can_submit   = $is_active && in_array( $sub->status, array( 'pending', 'in_progress', 'rejected' ), true );
 
