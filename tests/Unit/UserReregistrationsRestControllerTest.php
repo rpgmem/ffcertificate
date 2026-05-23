@@ -258,6 +258,74 @@ class UserReregistrationsRestControllerTest extends TestCase {
         $this->assertSame( '', $formatted['auth_code'] );
     }
 
+    public function test_get_user_reregistrations_expired_submission_with_auth_code_can_download(): void {
+        // 6.7.2 — When a submission carries an `auth_code` it MUST be
+        // downloadable, even if the parent campaign expired and the
+        // submission status flipped to 'expired'. Pre-6.7.2 the
+        // controller hard-coded `status IN ('submitted', 'approved')`
+        // which excluded this perfectly valid post-approval state.
+        Functions\when( 'get_current_user_id' )->justReturn( 5 );
+        Functions\when( 'current_user_can' )->justReturn( false );
+
+        $sub = $this->make_submission( array(
+            'id'                    => 77,
+            'reregistration_id'     => 12,
+            'reregistration_title'  => 'Atualização Anual',
+            'status'                => 'expired',
+            'reregistration_status' => 'expired',
+            'start_date'            => '2026-02-15',
+            'end_date'              => '2026-03-27',
+            'submitted_at'          => null,
+            'auth_code'             => 'ZSKDNN5895DU',
+        ));
+
+        $this->rereg_repo_mock->shouldReceive( 'get_all_by_user' )
+            ->with( 5 )
+            ->andReturn( array( $sub ) );
+
+        $this->rereg_repo_mock->shouldReceive( 'ensure_magic_token' )
+            ->with( $sub )
+            ->andReturn( 'magic-77' );
+
+        $this->magic_link_mock->shouldReceive( 'generate_magic_link' )
+            ->with( 'magic-77' )
+            ->andReturn( 'https://example.com/verify?token=magic-77' );
+
+        $ctrl    = new UserReregistrationsRestController( 'ffc/v1' );
+        $request = $this->make_request();
+        $result  = $ctrl->get_user_reregistrations( $request );
+
+        $formatted = $result['reregistrations'][0];
+        $this->assertTrue( $formatted['can_download'], 'auth_code present → download MUST be available regardless of expired status' );
+        $this->assertSame( 'https://example.com/verify?token=magic-77', $formatted['magic_link'] );
+        $this->assertFalse( $formatted['can_submit'], 'expired submissions cannot be re-submitted' );
+    }
+
+    public function test_get_user_reregistrations_rejected_submission_no_download(): void {
+        // Rejected submissions never had an auth_code generated, so the
+        // auth_code-based gate naturally returns can_download=false.
+        Functions\when( 'get_current_user_id' )->justReturn( 5 );
+        Functions\when( 'current_user_can' )->justReturn( false );
+
+        $sub = $this->make_submission( array(
+            'status'                => 'rejected',
+            'reregistration_status' => 'active',
+            'auth_code'             => '',
+        ));
+
+        $this->rereg_repo_mock->shouldReceive( 'get_all_by_user' )
+            ->with( 5 )
+            ->andReturn( array( $sub ) );
+
+        $ctrl    = new UserReregistrationsRestController( 'ffc/v1' );
+        $request = $this->make_request();
+        $result  = $ctrl->get_user_reregistrations( $request );
+
+        $formatted = $result['reregistrations'][0];
+        $this->assertFalse( $formatted['can_download'] );
+        $this->assertSame( '', $formatted['magic_link'] );
+    }
+
     public function test_get_user_reregistrations_exception_returns_wp_error(): void {
         Functions\when( 'get_current_user_id' )->justReturn( 5 );
         Functions\when( 'current_user_can' )->justReturn( false );

@@ -53,7 +53,6 @@ if ( ! defined( 'ABSPATH' ) ) {
 			<span class="value"><?php echo esc_html( $date_generated ); ?></span>
 		</div>
 
-		<hr>
 		<h4><?php esc_html_e( 'Participant Data:', 'ffcertificate' ); ?></h4>
 
 		<?php if ( is_array( $data ) ) : ?>

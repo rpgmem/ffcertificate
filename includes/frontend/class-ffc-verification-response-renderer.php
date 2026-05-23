@@ -130,14 +130,23 @@ class VerificationResponseRenderer {
 			$context = is_array( $decoded ) ? $decoded : array();
 		}
 
-		$before = \FreeFormCertificate\Core\DateFormatter::format_schedule(
-			(string) ( $context['schedule_start_before'] ?? '' ),
-			(string) ( $context['schedule_end_before'] ?? '' )
-		);
-		$after  = \FreeFormCertificate\Core\DateFormatter::format_schedule(
-			'' !== $start_override ? $start_override : (string) ( $context['schedule_start_after'] ?? '' ),
-			'' !== $end_override ? $end_override : (string) ( $context['schedule_end_after'] ?? '' )
-		);
+		$before_start = (string) ( $context['schedule_start_before'] ?? '' );
+		$before_end   = (string) ( $context['schedule_end_before'] ?? '' );
+
+		$before = \FreeFormCertificate\Core\DateFormatter::format_schedule( $before_start, $before_end );
+
+		// 6.7.2 — When the operator overrode only ONE end of the
+		// schedule (e.g. user left early — only `end` shifted), the
+		// "Recorded schedule" line used to render only the changed
+		// end ("11h21"), making it look like the participant's
+		// entire window was that single moment. Fall back to the
+		// matching baseline value for the side that was NOT
+		// overridden, so the recorded range always carries both
+		// ends — "9h às 11h21" instead of "11h21".
+		$after_start = '' !== $start_override ? $start_override : $before_start;
+		$after_end   = '' !== $end_override ? $end_override : $before_end;
+
+		$after = \FreeFormCertificate\Core\DateFormatter::format_schedule( $after_start, $after_end );
 
 		$ts       = isset( $context['ts'] ) ? (int) $context['ts'] : 0;
 		$ts_label = $ts > 0
@@ -443,8 +452,18 @@ class VerificationResponseRenderer {
 			return esc_html( implode( ', ', $value ) );
 		}
 
+		// 6.7.2 — `/valid` is a PUBLIC verification page: anyone with the
+		// auth code (or magic-link token) sees this. Surfacing the full
+		// CPF/RF/email of the participant is a privacy leak — the page's
+		// purpose is to prove "this certificate exists and belongs to
+		// $name", not to dump PII. Mask both before rendering. The masks
+		// already exist in DocumentFormatter (`mask_cpf`, `mask_email`).
 		if ( in_array( $field_key, array( 'cpf', 'cpf_rf', 'rg' ), true ) && ! empty( $value ) ) {
-			return esc_html( \FreeFormCertificate\Core\DocumentFormatter::format_document( $value, 'auto' ) );
+			return esc_html( \FreeFormCertificate\Core\DocumentFormatter::mask_cpf( (string) $value ) );
+		}
+
+		if ( 'email' === $field_key && ! empty( $value ) ) {
+			return esc_html( \FreeFormCertificate\Core\DocumentFormatter::mask_email( (string) $value ) );
 		}
 
 		return esc_html( (string) $value );
