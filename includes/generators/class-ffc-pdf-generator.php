@@ -119,8 +119,11 @@ class PdfGenerator {
 		// Get verification code from submission data.
 		$auth_code = isset( $data['auth_code'] ) ? $data['auth_code'] : '';
 
-		// Generate safe filename with verification code.
-		$filename = $this->generate_filename( $form_title, $auth_code );
+		// 6.6.11 — standardized filename pattern shared across all FFC PDFs:
+		// `{translated-prefix}_{entity_id}_{auth_code}.pdf`. The per-type
+		// filter below still fires AFTER the central `ffcertificate_pdf_filename`
+		// (applied inside the helper) so existing customizations keep working.
+		$filename = \FreeFormCertificate\Core\Utils::build_pdf_filename( 'certificate', (int) $form_id, (string) $auth_code );
 
 		/**
 		 * Filters the certificate PDF filename.
@@ -582,33 +585,6 @@ class PdfGenerator {
 	}
 
 	/**
-	 * Generate safe filename for PDF
-	 *
-	 * @param string $form_title Form title.
-	 * @param string $auth_code Verification code (optional).
-	 * @return string Safe filename with .pdf extension
-	 */
-	private function generate_filename( string $form_title, string $auth_code = '' ): string {
-		// Sanitize form title.
-		$safe_name = \FreeFormCertificate\Core\Utils::sanitize_filename( $form_title );
-
-		if ( empty( $safe_name ) ) {
-			$safe_name = 'certificate';
-		}
-
-		// Add verification code if available.
-		if ( ! empty( $auth_code ) ) {
-			// Sanitize code (usually already alphanumeric, but just in case).
-			$safe_code = preg_replace( '/[^A-Za-z0-9]/', '', $auth_code );
-			if ( ! empty( $safe_code ) ) {
-				$safe_name .= '_' . strtoupper( $safe_code );
-			}
-		}
-
-		return $safe_name . '.pdf';
-	}
-
-	/**
 	 * Generate PDF data from form submission (for frontend)
 	 *
 	 * @param array<string, mixed> $submission_data Posted form data.
@@ -639,8 +615,9 @@ class PdfGenerator {
 		// Get verification code.
 		$auth_code = isset( $submission_data['auth_code'] ) ? $submission_data['auth_code'] : '';
 
-		// Generate filename with verification code.
-		$filename = $this->generate_filename( $form_title, $auth_code );
+		// 6.6.11 — standardized filename pattern (shared helper). See the
+		// sibling site in generate_pdf_data() for the full rationale.
+		$filename = \FreeFormCertificate\Core\Utils::build_pdf_filename( 'certificate', (int) $form_id, (string) $auth_code );
 
 		// Log generation.
 		\FreeFormCertificate\Core\Debug::log_pdf(
@@ -774,10 +751,30 @@ class PdfGenerator {
 		$created_at_ts  = '' !== $created_at_str ? strtotime( $created_at_str . ' UTC' ) : false;
 		$html           = $this->generate_html( $data, $calendar_title, $form_config, false !== $created_at_ts ? $created_at_ts : null );
 
-		// Generate filename.
-		$validation_code = $appointment['validation_code'] ?? '';
-		$safe_title      = __( 'Appointment_Receipt', 'ffcertificate' );
-		$filename        = $this->generate_filename( $safe_title, $validation_code );
+		// 6.6.11 — standardized filename pattern via the shared helper
+		// (`recibo_{calendar_id}_{validation_code}.pdf` in PT-BR sites).
+		// Old code used `generate_filename(__('Appointment_Receipt'), …)`
+		// which produced locale-dependent prefixes; the helper now resolves
+		// the translated prefix internally and supports the central
+		// `ffcertificate_pdf_filename` override hook.
+		$validation_code = (string) ( $appointment['validation_code'] ?? '' );
+		$calendar_id     = (int) ( $calendar['id'] ?? 0 );
+		$filename        = \FreeFormCertificate\Core\Utils::build_pdf_filename( 'appointment_receipt', $calendar_id, $validation_code );
+
+		/**
+		 * Filters the appointment receipt PDF filename.
+		 *
+		 * Paired with `ffcertificate_certificate_filename` and
+		 * `ffcertificate_ficha_filename`. New in 6.6.11 — this hook
+		 * did not exist in pre-6.6.11 releases.
+		 *
+		 * @since 6.6.11
+		 * @param string               $filename        Generated filename.
+		 * @param int                  $calendar_id     Calendar post ID.
+		 * @param string               $validation_code Validation code (raw, pre-format).
+		 * @param array<string, mixed> $appointment     Appointment row data.
+		 */
+		$filename = (string) apply_filters( 'ffcertificate_appointment_receipt_filename', $filename, $calendar_id, $validation_code, $appointment );
 
 		// Allow background image customization via filter.
         // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- ffc_ is the plugin prefix
