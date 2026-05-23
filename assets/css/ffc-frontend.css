@@ -742,6 +742,64 @@ details.ffc-consent-description > p {
     background: rgba(212, 237, 218, 0.3);
 }
 
+/* 6.7.4 — Error variant. Used by `/valid` failure screen
+   (`showVerificationError()` in ffc-frontend.js) so the failure
+   state stays in the same visual family as the success card —
+   same outer .ffc-certificate-preview structure, just a red
+   gradient header + red border + red badge pill instead of the
+   primary-color treatment. */
+.ffc-shortcode .ffc-certificate-preview.ffc-error {
+    border-color: var(--ffc-danger);
+    box-shadow: 0 4px 12px var(--ffc-danger-bg);
+}
+
+.ffc-shortcode .ffc-certificate-preview.ffc-error .ffc-preview-header {
+    background: linear-gradient(135deg, var(--ffc-danger) 0%, #b32a2c 100%);
+}
+
+.ffc-shortcode .ffc-status-badge.error {
+    background: rgba(252, 240, 241, 0.25);
+}
+
+.ffc-shortcode .ffc-error-message {
+    margin: 0 0 20px;
+    font-size: 16px;
+    line-height: 1.5;
+    color: var(--ffc-text);
+}
+
+.ffc-shortcode .ffc-manual-verification-form {
+    padding-top: 16px;
+    border-top: 1px solid var(--ffc-border-light);
+}
+
+.ffc-shortcode .ffc-manual-verification-form h4 {
+    margin: 0 0 12px;
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--ffc-text-secondary);
+    border-bottom: none;
+    padding-bottom: 0;
+}
+
+.ffc-shortcode .ffc-manual-verification-form .ffc-manual-auth-code {
+    width: 100%;
+    max-width: 320px;
+    padding: 10px 14px;
+    border: 1px solid var(--ffc-border);
+    border-radius: var(--ffc-radius-sm);
+    font-size: 14px;
+    font-family: 'Courier New', monospace;
+    margin: 0 0 12px;
+    box-sizing: border-box;
+}
+
+.ffc-shortcode .ffc-manual-verification-form .ffc-manual-verify-btn {
+    display: inline-block;
+    padding: 10px 24px;
+    font-size: 14px;
+}
+
 /* ============================================
    PREVIEW BODY (Certificate Details)
    ============================================ */

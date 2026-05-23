@@ -228,19 +228,28 @@
     }
     
     /**
-     * Show verification error
+     * Show verification error — uses the same .ffc-certificate-preview
+     * card structure as the success path so the visual identity stays
+     * consistent across success / error states (6.7.4). The red-gradient
+     * header + the .ffc-status-badge.error pill live in CSS so the
+     * markup here is just structural.
      */
     function showVerificationError(message, $container) {
-        var html = '<div class="ffc-verification-error">';
-        html += '<h3>' + (ffc_ajax.strings.certificateInvalid || 'Document Invalid') + '</h3>';
-        html += '<p>' + message + '</p>';
+        var s = (ffc_ajax && ffc_ajax.strings) || {};
+        var html = '<div class="ffc-certificate-preview ffc-error">';
+        html += '<div class="ffc-preview-header">';
+        html += '<span class="ffc-status-badge error ffc-icon-error">' + (s.certificateInvalid || 'Document Invalid') + '</span>';
+        html += '</div>';
+        html += '<div class="ffc-preview-body">';
+        html += '<p class="ffc-error-message">' + message + '</p>';
         html += '<div class="ffc-manual-verification-form">';
-        html += '<p>' + (ffc_ajax.strings.tryManually || 'Or try manual verification') + ':</p>';
-        html += '<input type="text" class="ffc-manual-auth-code" placeholder="' + (ffc_ajax.strings.enterAuthCode || 'Enter auth code') + '">';
-        html += '<button class="ffc-manual-verify-btn">' + (ffc_ajax.strings.verify || 'Verify') + '</button>';
+        html += '<h4>' + (s.tryManually || 'Or try manual verification') + ':</h4>';
+        html += '<input type="text" class="ffc-manual-auth-code" placeholder="' + (s.enterAuthCode || 'Enter auth code') + '">';
+        html += '<button class="ffc-manual-verify-btn ffc-download-btn">' + (s.verify || 'Verify') + '</button>';
         html += '</div>';
         html += '</div>';
-        
+        html += '</div>';
+
         $container.html(html);
     }
 

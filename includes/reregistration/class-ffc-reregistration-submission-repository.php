@@ -127,7 +127,14 @@ class ReregistrationSubmissionRepository {
 		 * @var ReregistrationSubmissionRow|null $row
 		 */
 		$row = $wpdb->get_row(
-			$wpdb->prepare( "SELECT * FROM %i WHERE auth_code = %s AND status IN ('submitted', 'approved')", $table, $auth_code )
+			// 6.7.4 — Include `expired` so a submission that was approved
+			// before the campaign closed still surfaces from its auth code.
+			// The status flip approved → expired happens for housekeeping
+			// when the campaign window ends; the auth code stays valid and
+			// the participant must keep the ability to reach the ficha
+			// they earned. `rejected` / `pending` / `in_progress` still
+			// excluded — those never had a code generated anyway.
+			$wpdb->prepare( "SELECT * FROM %i WHERE auth_code = %s AND status IN ('submitted', 'approved', 'expired')", $table, $auth_code )
 		);
 		return $row;
 	}
@@ -153,7 +160,10 @@ class ReregistrationSubmissionRepository {
 		 * @var ReregistrationSubmissionRow|null $row
 		 */
 		$row = $wpdb->get_row(
-			$wpdb->prepare( "SELECT * FROM %i WHERE magic_token = %s AND status IN ('submitted', 'approved')", $table, $token )
+			// 6.7.4 — Same `expired` inclusion as get_by_auth_code() above.
+			// Magic links printed on (or emailed about) an approved ficha
+			// must keep working after the parent campaign ends.
+			$wpdb->prepare( "SELECT * FROM %i WHERE magic_token = %s AND status IN ('submitted', 'approved', 'expired')", $table, $token )
 		);
 		return $row;
 	}

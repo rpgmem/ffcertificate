@@ -9,6 +9,34 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 
 ---
 
+## [6.7.4] (2026-05-23)
+
+Three fixes around the `/valid` verification page reported after 6.7.2/6.7.3.
+
+### Fixed
+
+- **`/valid` appointment + reregistration verification now masks participant CPF / email.** 6.7.2 had applied `mask_cpf()` + `mask_email()` to the CERTIFICATE verification path but left the appointment and reregistration paths still calling `format_document()` (full CPF) and rendering `$rereg['email']` verbatim. Same privacy concern: `/valid` is a PUBLIC page; anyone with the auth code / magic-link token can reach it, and surfacing the full CPF + email of the participant is a leak. Now: appointment renderer masks `$data['cpf_rf']` (no email row on this surface so no email mask needed); reregistration renderer masks both `cpf` and `email`. Updated `VerificationResponseRendererTest` to assert the new masked shape (`carlos@example.com` no longer appears in the rendered HTML — `c***@example.com` does).
+- **"Document Invalid" failure screen now uses the `.ffc-certificate-preview` card structure.** Pre-6.7.4 `showVerificationError()` (in `assets/js/ffc-frontend.js`) built a plain `<div class="ffc-verification-error">` block with no relation to the success card's visual language — so when the user landed on a bad token / unknown code, they got a generic error block that bore no family resemblance to the success state on `/valid`. Now the same `.ffc-certificate-preview` outer + `.ffc-preview-header` + `.ffc-preview-body` structure renders, just with a red-gradient header (`.ffc-error` modifier on the card) + `.ffc-status-badge.error` pill + `.ffc-icon-error` (❌) marker. The "Or try manual verification" form moves inside `.ffc-preview-body` and gets a soft top-border separator. Both visual states (success ↔ error) now read as members of the same family — the participant immediately recognises the layout regardless of outcome.
+- **Reregistration magic links now resolve after the parent campaign expires.** `ReregistrationSubmissionRepository::get_by_magic_token()` and the sibling `get_by_auth_code()` both filtered `WHERE status IN ('submitted', 'approved')` in their SQL — when the parent campaign hit its end date and the submission's status flipped to `expired` for housekeeping, the queries stopped finding the row. Net effect: clicking the magic link of a once-approved ficha after the campaign ended returned "Document Invalid". Same shape of bug we fixed in the dashboard REST controller in 6.7.2 (`UserReregistrationsRestController::can_download`), but here in the storage layer. Added `'expired'` to both whitelists. Locked with two new PHPUnit cases in `ReregistrationSubmissionRepositoryTest` that capture the prepared SQL and assert `'expired'` is in the IN clause. `'rejected'` / `'pending'` / `'in_progress'` stay excluded — those never had an auth_code generated anyway, so they couldn't reach a magic-link verification path even if surfaced.
+
+### Added (CSS)
+
+- `.ffc-shortcode .ffc-certificate-preview.ffc-error` modifier — red border, red box-shadow, red gradient header.
+- `.ffc-shortcode .ffc-status-badge.error` pill — translucent error background on the red gradient.
+- `.ffc-icon-error::before` content `\274C` (❌) — sibling to the existing `.ffc-icon-success`.
+- `.ffc-shortcode .ffc-manual-verification-form` + descendant rules — h4 styling, input box, submit button.
+
+### Bundle cache
+
+- **`FFC_VERSION` bumped 6.7.3 → 6.7.4** across the three sync sites. `assets/css/ffc-frontend.min.css`, `assets/css/ffc-common.min.css`, and `assets/js/ffc-frontend.min.js` rebuilt.
+
+### Tests
+
+- PHP suite 4694+/4694+ green (3 new cases — 1 reregistration email-masking assertion + 2 SQL-whitelist captures).
+- JS suite 957/957 green.
+
+---
+
 ## [6.7.3] (2026-05-23)
 
 ### Fixed (i18n)
