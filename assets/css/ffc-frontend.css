@@ -801,6 +801,64 @@ details.ffc-consent-description > p {
 .ffc-shortcode .ffc-status-no_show { background: var(--ffc-warning-bg); color: var(--ffc-warning-text); }
 
 /* ============================================
+   SCHEDULE EXCEPTION BLOCK (on /valid/ page)
+   Per-submission override audit block (#369 / 6.7.0). Wrapped in a
+   soft-amber notice with a left border so it carries its own
+   salience without needing the oversized explanatory paragraph
+   that pre-polish drafts shipped. Palette mirrors the existing
+   `.ffc-preflight-banner` (#dba617 / #fcf9e8 / #674008) for
+   plugin-wide consistency. The `<hr>` separator that used to
+   precede the block is intentionally removed — the colored card
+   provides enough visual break from the rows above.
+   ============================================ */
+.ffc-shortcode .ffc-schedule-exception-block {
+    margin: 25px 0 5px;
+    padding: 16px 20px;
+    background: #fcf9e8;
+    border-left: 4px solid #dba617;
+    border-radius: var(--ffc-radius-sm);
+}
+
+/* H4 inside the block overrides the global blue-underline H4 style —
+   warning amber, slimmer underline, icon-aligned. */
+.ffc-shortcode .ffc-preview-body .ffc-schedule-exception-block h4 {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 0 0 8px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid rgba(219, 166, 23, 0.4);
+    color: #674008;
+    font-size: 16px;
+}
+
+.ffc-shortcode .ffc-schedule-exception-icon {
+    width: 18px;
+    height: 18px;
+    flex-shrink: 0;
+}
+
+.ffc-shortcode .ffc-schedule-exception-block .description {
+    margin: 0 0 12px;
+    font-size: 14px;
+    line-height: 1.5;
+    color: #7a5005;
+}
+
+/* `.ffc-detail-row` rows inside the block keep their structure but
+   the bottom border softens to fit the amber card (otherwise the
+   thicker `var(--ffc-border-light)` line cuts the cohesion). */
+.ffc-shortcode .ffc-schedule-exception-block .ffc-detail-row {
+    border-bottom-color: rgba(219, 166, 23, 0.25);
+    padding: 8px 0;
+}
+
+.ffc-shortcode .ffc-schedule-exception-block .ffc-detail-row:last-child {
+    border-bottom: none;
+    padding-bottom: 0;
+}
+
+/* ============================================
    PREVIEW ACTIONS (Download Button)
    ============================================ */
 .ffc-shortcode .ffc-preview-actions {
