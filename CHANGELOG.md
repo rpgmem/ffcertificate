@@ -57,6 +57,41 @@ Per-submission **schedule exception** flow (#366). When a participant misses a c
 
 ---
 
+## [6.6.12] (2026-05-22)
+
+UX hotfix on the 6.6.x maintenance branch. The post-submission success card (rendered after a participant submits a certificate form) had drifted into a layout that no longer matched the `/valid` verification page: a centered big green check icon followed by left-aligned `Form: / Date: / Authentication Code:` rows with the labels in bold and the values inline, a copy button squeezed into a flex row, an "always-visible" device-hints block at the bottom, and the schedule-exception preamble banner at the top pushing "Sucesso!" below the fold on mobile. Reported as visually inconsistent — the verification card the same participant sees minutes later at `/valid` uses a clean blue-gradient header badge, a centered card with `.ffc-detail-row` label/value rows, and a single primary CTA at the bottom. Two different visual identities for the same artefact.
+
+This release unifies both screens under the `/valid` visual language.
+
+### Changed (UX)
+
+- **`templates/submission-success.php` rewritten** to share structure with `templates/certificate-preview.php`: `.ffc-certificate-preview` outer card, `.ffc-preview-header` with the blue gradient + "Certificate Issued" badge (mirroring the `/valid` "Valid Certificate" badge), `.ffc-preview-body` with an `<h3>Certificate Details</h3>` header (now visually identical to the `/valid` H3, blue underline included), `.ffc-detail-row` rows for Authentication Code / Form / Date, and a `.ffc-preview-actions` strip at the bottom holding the persistent "Download PDF again" button. The pre-6.6.12 big green check + bold-label rows + flat-blue download button are gone.
+- **CPF is no longer surfaced on the success card**. The post-submission step is the only spot in the flow where the user just *typed* their own CPF — re-rendering it here added zero value and contradicted the "minimum-disclosure" pattern the rest of the plugin follows. The verification page (`/valid`) still shows CPF because that is the authenticity-proof context.
+- **"Where to find your certificate" guidance is now a collapsible `<details>` block** at the bottom of the card, closed by default. Pre-6.6.12 the three platform-specific lines all rendered open; JS hid the irrelevant two (`filterPlatformGuidance` in `assets/js/ffc-frontend.js`), but the wrapper, title, and one visible line still took ~80px of vertical space that competed with the primary CTA. Collapsing it gives experienced users an uncluttered screen and one-click access for the rest. The `.ffc-success-where-is-file` class + `data-platform` markers are preserved so the existing JS filter and the four `success-card.test.js` cases keep working unchanged.
+
+### Changed (consistency)
+
+- **`/valid` H4 section headers now share the blue underline treatment with the H3.** Pre-6.6.12 `<h3>Certificate Details</h3>` had `border-bottom: 2px solid var(--ffc-primary); padding-bottom: 10px` and the H4 headers below (`Participant Data:`, plus the 6.7.0 `Adjusted entry / exit schedule` block on `main`) had neither — making the page look like one anchored section followed by two floating ones. Single CSS rule, no template edits, applies retroactively to every existing H4 inside `.ffc-preview-body`.
+
+### Removed
+
+- **9 obsolete CSS rules** in `assets/css/ffc-frontend.css`: `.ffc-success-icon`, `.ffc-auth-code` (unused — distinct from `.ffc-success-code` which stays), `.ffc-success-details`, `.ffc-success-row`, `.ffc-success-row-label`, `.ffc-success-row-value`, `.ffc-success-row-block` (+ its 2 descendant selectors), `.ffc-success-actions`, `.ffc-success-download-btn`. The classes themselves remain as secondary class names on the new markup so the seven `SuccessHtmlTest` cases (`ffc-success-auth-code`, `ffc-success-code`, `ffc-success-magic-link`, `ffc-success-download-btn`, etc.) keep matching — they only carry no styling weight anymore.
+
+### Bundles
+
+- `assets/css/ffc-frontend.min.css` rebuilt (`npm run build:css`). No JS changes — `ffc-frontend.js` already had every selector the new template needs (`.ffc-download-pdf-btn`, `.ffc-copy-btn`, `.ffc-success-where-is-file li[data-platform]`).
+
+### Tests
+
+- 7/7 `SuccessHtmlTest` (PHP) green — all class-presence assertions still match because the legacy classes are preserved as secondaries.
+- 8/8 `success-card.test.js` (Vitest) green — copy-button + platform-filter cases use their own fixture HTML and exercise the JS surface, not the template structure.
+
+### Out of scope (deferred to a follow-up on `main`)
+
+- The `Adjusted entry / exit schedule` block introduced in 6.7.0 (`#369`) still uses an oversized explanatory paragraph and a default-styled wrapper. The same kind of inconsistency this PR fixes for the rest of the card — reducing that paragraph to body size, wrapping the block in a soft-yellow notice with a left border, and prefixing the H4 with an `ℹ` icon — needs to land on `main` in a follow-up PR.
+
+---
+
 ## [6.6.11] (2026-05-22)
 
 ⚠ **Breaking change for downstream automations matching PDF filenames** — forward-ported to `main` after release/6.6.x shipped (#374).
