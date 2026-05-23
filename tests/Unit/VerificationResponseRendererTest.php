@@ -46,6 +46,9 @@ class VerificationResponseRendererTest extends TestCase {
         Functions\when( 'wp_timezone' )->alias( function () {
             return new \DateTimeZone( 'UTC' );
         } );
+        Functions\when( 'is_email' )->alias( function ( $email ) {
+            return false !== filter_var( (string) $email, FILTER_VALIDATE_EMAIL );
+        } );
 
         if ( ! defined( 'ABSPATH' ) ) {
             define( 'ABSPATH', '/tmp/' );
@@ -104,11 +107,32 @@ class VerificationResponseRendererTest extends TestCase {
     // ==================================================================
 
     public function test_format_field_value_formats_document_fields(): void {
-        // Utils::format_document is a static method on autoloaded class
-        // It should format the document
+        // 6.7.2 — cpf_rf is now MASKED for the public /valid page
+        // (not formatted in full). Asserts the result is non-empty
+        // and carries the masked-CPF marker (asterisks).
         $result = $this->renderer->format_field_value( 'cpf_rf', '12345678901' );
-        // The real Utils::format_document will be called since it's autoloaded
         $this->assertNotEmpty( $result );
+        $this->assertStringContainsString( '*', $result );
+    }
+
+    public function test_format_field_value_masks_cpf(): void {
+        // /valid is public — full CPF surfaced is a privacy leak.
+        $result = $this->renderer->format_field_value( 'cpf_rf', '12345678909' );
+        $this->assertSame( '123.***.***-09', $result );
+    }
+
+    public function test_format_field_value_masks_email(): void {
+        // Same privacy concern for email.
+        $result = $this->renderer->format_field_value( 'email', 'maria.silva@example.com' );
+        $this->assertStringContainsString( '*', $result );
+        $this->assertStringContainsString( '@example.com', $result );
+        $this->assertStringNotContainsString( 'maria.silva@example.com', $result );
+    }
+
+    public function test_format_field_value_does_not_mask_other_fields(): void {
+        // Name / program / arbitrary fields stay verbatim — no over-masking.
+        $this->assertSame( 'Maria Silva', $this->renderer->format_field_value( 'name', 'Maria Silva' ) );
+        $this->assertSame( 'Programa 123', $this->renderer->format_field_value( 'program', 'Programa 123' ) );
     }
 
     // ==================================================================
@@ -441,7 +465,11 @@ class VerificationResponseRendererTest extends TestCase {
 
         $this->assertNotNull( $block );
         $this->assertSame( '8h to 18h', $block['before_range'] );
-        $this->assertSame( '17h30', $block['after_range'], 'after_range collapses to single side when start override is empty' );
+        // 6.7.2 — When only one end of the schedule was overridden (here
+        // end shifted 18:00 → 17:30, start untouched), the recorded
+        // range now falls back to the BEFORE start so the user sees a
+        // complete two-end range. Pre-6.7.2 collapsed to "17h30" only.
+        $this->assertSame( '8h to 17h30', $block['after_range'] );
     }
 
     public function test_generate_appointment_pdf_fetches_calendar_when_id_present(): void {
