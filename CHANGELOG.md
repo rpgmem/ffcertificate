@@ -9,6 +9,35 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 
 ---
 
+## [6.7.3] (2026-05-23)
+
+### Fixed (i18n)
+
+- **10 hardcoded Portuguese fallback strings in `assets/js/ffc-reregistration-frontend.js` translated to English.** The script reads its UI strings from `S.*` (the `wp_localize_script` payload). When that payload is missing — script loading before the localize call, plugin embedded in a non-localized context, etc. — the `|| 'fallback'` defaults take over. Pre-6.7.3 those fallbacks were Portuguese (`'Carregando formulário...'`, `'Selecione'`, `'CPF inválido.'`, …), so non-PT-BR sites would see Portuguese strings leak through. Fallbacks now read in English so the same code path serves PT-BR via the localize payload AND any other locale via the English fallback. The PHP-side `wp_localize_script` map was already correctly translatable — only the JS-side defaults needed the swap. Strings affected:
+  - `'Carregando formulário...'` → `'Loading form...'`
+  - `'Erro ao carregar formulário.'` → `'Error loading form.'`
+  - `'Selecione Divisão / Local'` → `'Select Division / Location'`
+  - `'Selecione'` (×2 occurrences) → `'Select'`
+  - `'Este campo é obrigatório.'` → `'This field is required.'`
+  - `'CPF inválido.'` → `'Invalid CPF.'`
+  - `'E-mail inválido.'` → `'Invalid email.'`
+  - `'Telefone inválido.'` → `'Invalid phone number.'`
+  - `'Formato inválido.'` → `'Invalid format.'`
+
+### Bundle cache
+
+- **`FFC_VERSION` bumped 6.7.2 → 6.7.3** across the three sync sites. `assets/js/ffc-reregistration-frontend.min.js` rebuilt via `npm run build:js`.
+
+### Tests
+
+- JS suite 957/957 green (unchanged surface; the fallbacks aren't exercised by tests directly — they're defensive defaults).
+
+### Out of scope (next i18n pass)
+
+- A broader codebase-wide sweep for hardcoded PT-BR strings is pending. This PR fixes one file with the most user-visible drift; a follow-up sweep PR will cover the rest if found.
+
+---
+
 ## [6.7.2] (2026-05-23)
 
 Seven small-to-medium fixes across three surfaces (post-submission card, `/valid` verification page, user dashboard reregistrations list) reported in a single review pass after the 6.7.1 polish landed in production.
