@@ -7,6 +7,33 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+---
+
+## [6.7.1] (2026-05-23)
+
+Layout fixes for two visual regressions reported on the post-submission flow and the schedule-exception banner that the 6.6.12 / #380 polish PRs left behind, plus the cache-key bump that #376 / #380 should have carried but didn't.
+
+### Fixed
+
+- **Post-submission success card was constrained to 450px and looked visually narrower than `/valid`.** The success card markup (`.ffc-certificate-preview` with `max-width: 700px`) is injected via `$form.html(data.html)` INTO `.ffc-submission-form`, which carries a `max-width: 450px` cap from the form-render rules. The cap is correct for input fields but wrong for a replacement success card. Added `:has()` rule that lifts the cap to `100%` when the form's content is a `.ffc-success-response` — so the post-submit and `/valid` cards now render at matching widths.
+- **Schedule-exception banner on the form was wider than the form fields below it AND used the default `<p>` font size.** The banner inherited `.ffc-form-info-block` styling: full width of the form-wrapper (`~540px after padding`) and no `font-size` override (the WordPress theme's default `<p>` size took over, ~16-18px depending on theme). Now: `max-width: 450px` aligned with the fields, centered, full 2px blue border (replacing the 4px-left-only treatment) to match the `/valid` notice family, and explicit `font-size: 14px / line-height: 1.5` on the inner `<p>`. The banner now reads as a deliberate notice card instead of a fat sidebar strip.
+- **Doubled gray separator between the "Date" row and the "Save this link" section on the success card.** `templates/submission-success.php` carried both an `<hr>` AND the `<h4>` blue-underline (the rule added in 6.6.12) between the two sections, plus the bottom border of the preceding `.ffc-detail-row`. Net effect on screen: a thin gray bottom-border, then a gray `<hr>` line directly below it — visually reading as a doubled rule before the blue H4 underline. Dropped the `<hr>` from the template; the H4's blue underline already provides the section break.
+- **"Can't find the downloaded PDF?" `<details>` block at the bottom of the success card rendered too large.** Pre-6.7.1 the block used a generous `margin: 18px 30px 25px` + `12px 16px` padding and inherited the WordPress theme's default `<summary>` / `<li>` font size — the result was a chunky panel that competed visually with the primary "Download PDF again" CTA above it. Reduced the block to `max-width: 450px` (matches the auth-code / magic-link rows above it), `padding: 8px 14px`, summary at `font-size: 13px` in `var(--ffc-text-secondary)`, list items at `font-size: 13px / line-height: 1.5`. Now reads as a secondary hint instead of a competing CTA.
+
+### Bundle cache
+
+- **`FFC_VERSION` bumped 6.7.0 → 6.7.1** across the three sync sites (plugin header, `FFC_VERSION` constant, `readme.txt` Stable tag). This bump is overdue — both #376 (forward-port of 6.6.11 + 6.6.12 to main) and #380 (`.ffc-schedule-exception-block` polish on `/valid`) modified `assets/css/ffc-frontend.min.css` without bumping `FFC_VERSION`, leaving production CDN / LiteSpeed / WP Rocket caches serving stale bundles under the `?ver=6.7.0` key. The 6.7.1 bump rotates the cache key so the polished `/valid` block, the new post-submit card, and these layout fixes all reach the browser together.
+
+### Tests
+
+- 4689 / 4689 PHP cases green (unchanged surface).
+- 957 / 957 JS cases green (unchanged surface).
+- The fixes are CSS-only; no markup pinned by tests was touched.
+
+### Bundles
+
+- `assets/css/ffc-frontend.min.css` rebuilt via `npm run build:css`.
+
 ### Maintenance
 
 - **`release/6.6.x` channel closed.** All 6.6.x hotfixes (6.6.8 → 6.6.12) were forward-ported to `main` via #371 and #376. The branch was formally merged into `main` via #377 and then retired. The final tip is preserved at tag `v6.6.12-final` for any emergency 6.6.x backport need; from that tag a `hotfix/6.6.13` branch could be cut if required. Going forward, all maintenance happens on `main` and ships under the 6.7.x line — please upgrade to 6.7.x for continued support. Tracked in #378.

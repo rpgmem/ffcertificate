@@ -73,7 +73,6 @@ $ffc_auth_code  = isset( $auth_code ) ? (string) $auth_code : '';
 		</div>
 
 		<?php if ( ! empty( $ffc_magic_link ) ) : ?>
-			<hr>
 			<h4><?php esc_html_e( 'Save this link to download again later:', 'ffcertificate' ); ?></h4>
 			<div class="ffc-detail-row ffc-success-magic-link ffc-success-magic-link-row">
 				<a href="<?php echo esc_url( $ffc_magic_link ); ?>"
