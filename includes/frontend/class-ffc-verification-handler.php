@@ -362,6 +362,11 @@ class VerificationHandler {
 				'auth_code'     => $submission->auth_code,
 				'submitted_at'  => $submission->submitted_at ?? '',
 				'submission_id' => (int) $submission->id,
+				// 6.7.5 — Campaign window dates surfaced so the /valid
+				// renderer can show "Period: X — Y" alongside the
+				// status. Wall-clock dates (Category B per CLAUDE.md).
+				'start_date'    => $rereg ? (string) ( $rereg->start_date ?? '' ) : '',
+				'end_date'      => $rereg ? (string) ( $rereg->end_date ?? '' ) : '',
 			),
 		);
 	}
@@ -415,6 +420,11 @@ class VerificationHandler {
 				'auth_code'     => $submission->auth_code,
 				'submitted_at'  => $submission->submitted_at ?? '',
 				'submission_id' => (int) $submission->id,
+				// 6.7.5 — Campaign window dates surfaced so the /valid
+				// renderer can show "Period: X — Y" alongside the
+				// status. Wall-clock dates (Category B per CLAUDE.md).
+				'start_date'    => $rereg ? (string) ( $rereg->start_date ?? '' ) : '',
+				'end_date'      => $rereg ? (string) ( $rereg->end_date ?? '' ) : '',
 			),
 		);
 	}

@@ -892,6 +892,15 @@ details.ffc-consent-description > p {
 .ffc-shortcode .ffc-status-completed { background: var(--ffc-info-bg); color: var(--ffc-info-text); }
 .ffc-shortcode .ffc-status-no_show { background: var(--ffc-warning-bg); color: var(--ffc-warning-text); }
 
+/* 6.7.5 — Reregistration submission statuses (#366 vocabulary). Used
+   by the `/valid` body's Status row to give the submission state a
+   colored pill matching the appointment-status visual family. */
+.ffc-shortcode .ffc-status-in_progress { background: var(--ffc-info-bg); color: var(--ffc-info-text); }
+.ffc-shortcode .ffc-status-submitted { background: var(--ffc-info-bg); color: var(--ffc-info-text); }
+.ffc-shortcode .ffc-status-approved { background: var(--ffc-success-bg); color: var(--ffc-success-text); }
+.ffc-shortcode .ffc-status-rejected { background: var(--ffc-danger-bg); color: var(--ffc-danger-text); }
+.ffc-shortcode .ffc-status-expired { background: var(--ffc-warning-bg); color: var(--ffc-warning-text); }
+
 /* ============================================
    SCHEDULE EXCEPTION BLOCK (on /valid/ page)
    Per-submission override audit block (#369 / 6.7.0). Wrapped in a

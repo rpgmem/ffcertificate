@@ -9,6 +9,39 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 
 ---
 
+## [6.7.5] (2026-05-23)
+
+Six fixes around the `/valid` reregistration card, the ficha PDF, the appointment card, and the "Document Invalid" error screen — reported in a single review pass after 6.7.4.
+
+### Fixed — `/valid` reregistration verification
+
+- **Submission status moved from the header into a body detail row, rendered as a colored pill.** Pre-6.7.5 the header carried both the universal "Reregistration Record Valid" badge AND a centered text line below it with the submission status ("EXPIRADO", "APROVADO"…) — that second line floated alone with no visual weight. The status now lives in `.ffc-preview-body` as a `.ffc-detail-row` with a `Status:` label on the left and a colored pill on the right, matching the appointment-status pill family. New CSS rules `.ffc-status-in_progress` / `.ffc-status-submitted` / `.ffc-status-approved` / `.ffc-status-rejected` / `.ffc-status-expired` give each state its semantic color (info / info / success / danger / warning) using the existing palette variables.
+- **Campaign period now surfaced.** Without it, a verifier looking at an expired ficha had no way to know when the campaign was actually open — only that the submission existed. New "Campaign Period: DD/MM/YYYY — DD/MM/YYYY" row, populated from the underlying reregistration row's `start_date` / `end_date` columns. Verification handler now surfaces both fields in the `reregistration` array of the response shape; the renderer adds the row when both dates are present and parseable.
+
+### Fixed — `/valid` appointment verification
+
+- **Doubled gray separator between "Time" row and "Participant Data" header.** Same root cause as the certificate-path fix in 6.7.2 (#382) — `<hr>` + the H4's blue underline + the last detail row's bottom border stacked into a visible doubled line. Dropped the `<hr>`; the H4 underline already provides the section break.
+
+### Fixed — "Document Invalid" error card
+
+- **Manual-verification input placeholder copy now uses the same "validation code" terminology as the rest of the UI.** Pre-6.7.5 the JS localized key `enterAuthCode` produced "Enter auth code" / "Digite o código de autorização" — but the surrounding /valid card consistently labels the field "Validation Code" / "Código de Validação". Switched the source string to "Enter validation code" so the Loco PT-BR translation will collapse to "Digite o código de validação" on the next translation pass. JS-side English fallback also updated for parity.
+
+### Fixed — Ficha PDF template
+
+- **Reference year now shown below the "FICHA DE RECADASTRAMENTO" title.** Dynamic — pulled from the campaign's `start_date` column (the year of the cycle of record), not from "now". Means re-downloading an expired-campaign ficha years later still shows the right cycle year, not the download moment.
+- **Footer changed from "Gerado em: {generation_date}" to "Preenchido em: {submitted_at}".** Pre-6.7.5 the footer rendered the moment the PDF was REGENERATED — confusing because the participant filed the form earlier. Now the footer carries the canonical submission date. `{{generation_date}}` template var kept available for back-compat with custom templates that still reference it.
+
+### Tests
+
+- 3 new assertions added to `VerificationResponseRendererTest::test_format_reregistration_renders_approved_status` covering the status pill class, the localized status label in the body, and the Campaign Period row.
+- PHP suite 4696/4696 green. JS suite 957/957 green. PHPCS + PHPStan + Stylelint + ESLint all clean.
+
+### Bundle cache
+
+- **`FFC_VERSION` bumped 6.7.4 → 6.7.5** across the three sync sites. `ffc-frontend.min.css` + `ffc-common.min.css` + `ffc-frontend.min.js` rebuilt.
+
+---
+
 ## [6.7.4] (2026-05-23)
 
 Three fixes around the `/valid` verification page reported after 6.7.2/6.7.3.

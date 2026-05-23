@@ -223,6 +223,8 @@ class VerificationResponseRendererTest extends TestCase {
                 'status'       => 'approved',
                 'status_label' => 'Approved',
                 'title'        => 'Rematrícula 2025',
+                'start_date'   => '2026-02-15',
+                'end_date'     => '2026-03-27',
             ),
         );
 
@@ -241,6 +243,11 @@ class VerificationResponseRendererTest extends TestCase {
         $this->assertStringContainsString( '*', $html );
         $this->assertStringContainsString( 'Rematrícula 2025', $html );
         $this->assertStringContainsString( 'Download Ficha (PDF)', $html );
+        // 6.7.5 — Status row in body (not header anymore) with colored pill.
+        $this->assertStringContainsString( 'ffc-status-approved', $html );
+        $this->assertStringContainsString( 'Approved', $html );
+        // 6.7.5 — Campaign period surfaced.
+        $this->assertStringContainsString( 'Campaign Period:', $html );
     }
 
     // ==================================================================

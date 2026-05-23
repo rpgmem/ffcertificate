@@ -249,7 +249,7 @@ class Frontend {
 						'issueDate'              => __( 'Issue Date', 'ffcertificate' ),
 						'downloadPDF'            => __( 'Download PDF', 'ffcertificate' ),
 						'tryManually'            => __( 'Or try manual verification', 'ffcertificate' ),
-						'enterAuthCode'          => __( 'Enter auth code', 'ffcertificate' ),
+						'enterAuthCode'          => __( 'Enter validation code', 'ffcertificate' ),
 
 						// Validation (CPF/RF).
 						'rfInvalid'              => __( 'Invalid RF', 'ffcertificate' ),
