@@ -45,7 +45,7 @@
             }
         }
 
-        $panel.html('<div class="ffc-loading">' + (S.loading || 'Carregando formulário...') + '</div>').show();
+        $panel.html('<div class="ffc-loading">' + (S.loading || 'Loading form...') + '</div>').show();
 
         // Scroll to panel
         $('html, body').animate({ scrollTop: $panel.offset().top - 40 }, 300);
@@ -60,7 +60,7 @@
                 initForm($panel);
             })
             .catch(function (err) {
-                var msg = (err && err.fromServer && err.message) || S.errorLoading || 'Erro ao carregar formulário.';
+                var msg = (err && err.fromServer && err.message) || S.errorLoading || 'Error loading form.';
                 $panel.html('').append($('<div class="ffc-error">').text(msg));
             });
     }
@@ -164,11 +164,11 @@
             $setor.empty();
 
             if (!div || !map[div]) {
-                $setor.append('<option value="">' + (S.selectDivisao || 'Selecione Divisão / Local') + '</option>');
+                $setor.append('<option value="">' + (S.selectDivisao || 'Select Division / Location') + '</option>');
                 return;
             }
 
-            $setor.append('<option value="">' + (S.selectSetor || 'Selecione') + '</option>');
+            $setor.append('<option value="">' + (S.selectSetor || 'Select') + '</option>');
             $.each(map[div], function (_, setor) {
                 var $opt = $('<option>').val(setor).text(setor);
                 if (setor === currentSetor) $opt.prop('selected', true);
@@ -275,7 +275,7 @@
 
             $parent.on('change', function () {
                 var parentVal = $(this).val();
-                $child.empty().append('<option value="">' + (S.select || 'Selecione') + '</option>');
+                $child.empty().append('<option value="">' + (S.select || 'Select') + '</option>');
 
                 if (parentVal && groups[parentVal]) {
                     $.each(groups[parentVal], function (_, item) {
@@ -307,7 +307,7 @@
 
         // Required check
         if ($field.prop('required') && !val) {
-            msg = S.required || 'Este campo é obrigatório.';
+            msg = S.required || 'This field is required.';
         }
 
         // Format validation
@@ -315,22 +315,22 @@
             var format = $wrap.data('format') || $field.data('format');
             if (format === 'cpf') {
                 if (!validateCpf(val)) {
-                    msg = S.invalidCpf || 'CPF inválido.';
+                    msg = S.invalidCpf || 'Invalid CPF.';
                 }
             } else if (format === 'email') {
                 if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(val)) {
-                    msg = S.invalidEmail || 'E-mail inválido.';
+                    msg = S.invalidEmail || 'Invalid email.';
                 }
             } else if (format === 'phone') {
                 if (!/^\(?\d{2}\)?\s?\d{4,5}-?\d{4}$/.test(val.replace(/\s+/g, ''))) {
-                    msg = S.invalidPhone || 'Telefone inválido.';
+                    msg = S.invalidPhone || 'Invalid phone number.';
                 }
             } else if (format === 'custom_regex') {
                 var regex = $wrap.data('regex');
                 if (regex) {
                     try {
                         if (!new RegExp(regex).test(val)) {
-                            msg = $wrap.data('regex-msg') || S.invalidFormat || 'Formato inválido.';
+                            msg = $wrap.data('regex-msg') || S.invalidFormat || 'Invalid format.';
                         }
                     } catch (e) { /* skip invalid regex */ }
                 }
