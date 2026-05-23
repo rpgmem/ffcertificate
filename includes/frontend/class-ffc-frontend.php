@@ -568,6 +568,21 @@ class Frontend {
 				'safariPhase1'              => __( 'Requesting your location… If prompted, tap "Allow".', 'ffcertificate' ),
 				'safariPhase2'              => __( 'Waiting for location permission… Check if a browser prompt appeared.', 'ffcertificate' ),
 				'safariPhase3'              => __( 'Still trying to get your location… If it is not working, check that Location Services is enabled in Settings > Privacy & Security > Location Services.', 'ffcertificate' ),
+				// Non-Safari progressive loading phases (used by Chrome /
+				// Firefox / Edge). 6.7.7 — added to the map so Loco
+				// translates them; before this fix the JS fell back to
+				// the English literals because the keys were absent.
+				'awaitingPermission'        => __( 'Waiting for location permission. Confirm the browser prompt if it appeared.', 'ffcertificate' ),
+				'stillTrying'               => __( 'Still trying to get your location… Check that location is enabled in your device settings.', 'ffcertificate' ),
+				// Safety-timeout fallback messages (fired when the
+				// `navigator.geolocation` callback never resolves).
+				// 6.7.7 — same backfill as the progressive-phase keys.
+				'safariSafetyTimeout'       => __( "Your device didn't respond to the location request. On Safari/iOS, ensure Location Services is enabled in Settings > Privacy & Security > Location Services, then reload the page.", 'ffcertificate' ),
+				'safetyTimeout'             => __( "Your device didn't respond to the location request. Make sure location is enabled and reload the page.", 'ffcertificate' ),
+				// "Reload page" button label rendered alongside the
+				// safety-timeout messages above. 6.7.7 — also was
+				// missing from the map.
+				'reloadPageBtn'             => __( 'Reload page', 'ffcertificate' ),
 				// Safari/iOS specific error messages.
 				'safariPermissionDenied'    => __( 'Location access was denied. On Safari/iOS, go to Settings > Privacy & Security > Location Services and ensure it is enabled for your browser.', 'ffcertificate' ),
 				'safariPositionUnavailable' => __( 'Unable to determine your location. On Safari/iOS, ensure Location Services is enabled in Settings > Privacy & Security > Location Services.', 'ffcertificate' ),

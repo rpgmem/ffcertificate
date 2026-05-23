@@ -317,6 +317,24 @@ describe('FFCGeofence.show/update/hideLoadingMessage', () => {
 		G().hideLoadingMessage(wrapper());
 		expect(document.querySelector('#ffc-form-1 .ffc-geofence-loading-msg')).toBeNull();
 	});
+
+	// 6.7.6 — Pre-6.7.6 each `showLoadingMessage()` call prepended a new
+	// `.ffc-geofence-loading-msg` element. Two calls (cached pre-flight
+	// followed by the real GPS check before the cached path's hide
+	// timeout fired) stacked 2+ spinners on the same form. Now: if one
+	// already exists, the function delegates to updateLoadingMessage so
+	// the text changes but the running animation is preserved and only
+	// ONE element is ever in the DOM.
+	it('show is idempotent — calling twice never stacks two spinners', () => {
+		G().showLoadingMessage(wrapper(), 'Phase 1');
+		G().showLoadingMessage(wrapper(), 'Phase 2');
+		const all = document.querySelectorAll('#ffc-form-1 .ffc-geofence-loading-msg');
+		expect(all.length).toBe(1);
+		expect(all[0].textContent).toContain('Phase 2');
+		expect(all[0].textContent).not.toContain('Phase 1');
+		// Spinner element preserved (we delegate to updateLoadingMessage).
+		expect(all[0].querySelector('.ffc-spinner')).not.toBeNull();
+	});
 });
 
 // ----------------------------------------------------------------------
