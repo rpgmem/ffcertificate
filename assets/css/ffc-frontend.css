@@ -729,6 +729,8 @@ details.ffc-consent-description > p {
     font-size: 16px;
     color: var(--ffc-text-secondary);
     font-weight: 600;
+    border-bottom: 2px solid var(--ffc-primary);
+    padding-bottom: 10px;
 }
 
 .ffc-shortcode .ffc-detail-row {
@@ -1007,91 +1009,70 @@ details.ffc-consent-description > p {
     }
 }
 /* ==========================================================================
-   SUCCESS PAGE STYLES - v2.9.13
-   Only truly new classes (no duplicates)
+   SUBMISSION SUCCESS CARD
+   6.6.12 — unified with /valid certificate-preview visual language.
+   Shares `.ffc-certificate-preview` / `.ffc-preview-header` /
+   `.ffc-preview-body` / `.ffc-detail-row` / `.ffc-preview-actions` /
+   `.ffc-download-btn` with the verification card. The rules below
+   only carry the bits that are unique to the post-submission flow
+   (preamble message, auth-code copy button, magic-link row, the
+   collapsible device-hints `<details>` at the bottom).
+   Pre-6.6.12 obsolete classes deleted: `.ffc-success-icon`,
+   `.ffc-success-details`, `.ffc-success-row*`, `.ffc-success-actions`,
+   `.ffc-success-download-btn`, `.ffc-auth-code`.
    ========================================================================== */
-.ffc-shortcode .ffc-success-icon {
-    width: 80px;
-    height: 80px;
-    background: var(--ffc-success);
-    color: var(--ffc-text-on-primary);
-    font-size: 50px;
-    line-height: 80px;
-    border-radius: 50%;
-    margin: 0 auto 20px;
-    text-align: center;
+
+/* Optional preamble text above "Certificate Details" — only renders when
+   the form supplies a custom success_message. Kept neutral so it does
+   not compete with the H3. */
+.ffc-shortcode .ffc-success-message {
+    margin: 0 0 20px;
+    font-size: 15px;
+    color: var(--ffc-text-secondary);
+    line-height: 1.5;
 }
 
-.ffc-shortcode .ffc-auth-code {
-    background: var(--ffc-bg-alt);
-    padding: 5px 10px;
-    border-radius: 3px;
-    font-family: monospace;
-    font-size: 18px;
-}
-
-/* Success card — auth code, magic link, "where is my file" hints, copy buttons. */
-.ffc-shortcode .ffc-success-details {
-    margin: 16px 0;
-    text-align: left;
-}
-
-.ffc-shortcode .ffc-success-row {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: baseline;
-    gap: 6px;
-    margin: 8px 0;
-}
-
-.ffc-shortcode .ffc-success-row-label {
-    font-weight: 600;
-    color: var(--ffc-text, #333);
-}
-
-.ffc-shortcode .ffc-success-row-value {
-    color: var(--ffc-text, #333);
-}
-
-/* Auth code + magic link rows: label on its own line, value+copy on the next. */
-.ffc-shortcode .ffc-success-row-block {
-    display: block;
-}
-
-.ffc-shortcode .ffc-success-row-block .ffc-success-row-label {
-    display: block;
-    margin-bottom: 6px;
-}
-
-.ffc-shortcode .ffc-success-row-block .ffc-success-row-value {
-    display: flex;
-    flex-wrap: wrap;
+/* Auth-code row: the `.value.code` cell holds the <code> + copy button
+   together. Right-aligned, wraps below on narrow widths. */
+.ffc-shortcode .ffc-success-auth-code .value.code {
+    display: inline-flex;
     align-items: center;
     gap: 8px;
+    flex-wrap: wrap;
+    justify-content: flex-end;
 }
 
+/* The <code> wrapper itself — pinned by `SuccessHtmlTest`. Inherits
+   monospace + blue + bold from `.value.code` already; the dedicated
+   class is what guarantees `white-space: nowrap` so an auth code like
+   `C-YK2K-RKFA-6EQC` never splits mid-string (regression from #354). */
 .ffc-shortcode .ffc-success-code {
-    background: var(--ffc-bg-alt, #f6f7f7);
-    padding: 4px 10px;
-    border-radius: 3px;
-    font-family: monospace;
-    font-size: 16px;
-    /* No word-break here — codes should NOT split mid-string. The flex
-       container above wraps to a new line when there isn't room, but the
-       <code> stays atomic. */
     white-space: nowrap;
 }
 
+/* Helper text below the auth-code row — full-width, muted. The hint
+   sits OUTSIDE the row so it does not push the label/value baseline. */
 .ffc-shortcode .ffc-success-row-hint {
-    margin: 6px 0 0;
+    margin: 6px 0 16px;
     font-size: 13px;
     color: var(--ffc-text-muted, #666);
+    line-height: 1.5;
+}
+
+/* Magic-link row: the URL is long enough that a side-by-side label+value
+   does not fit. Override `.ffc-detail-row` flex defaults so the URL +
+   copy button share a single row that wraps on mobile. The preceding
+   `<h4>` already labels the section, so no `.label` element here. */
+.ffc-shortcode .ffc-detail-row.ffc-success-magic-link-row {
+    justify-content: flex-start;
+    gap: 10px;
+    flex-wrap: wrap;
 }
 
 .ffc-shortcode .ffc-magic-link-url {
     color: var(--ffc-primary, #0073aa);
     text-decoration: underline;
-    font-family: monospace;
+    font-family: 'Courier New', monospace;
     font-size: 13px;
     /* URLs CAN be very long — allow mid-string break here so they fit. */
     word-break: break-all;
@@ -1099,6 +1080,9 @@ details.ffc-consent-description > p {
     min-width: 0;
 }
 
+/* Shared copy button — used by both the auth-code row and the magic-link
+   row. Reset font-family back to the document default because the
+   button is nested inside `.value.code` which sets monospace. */
 .ffc-shortcode .ffc-copy-btn {
     display: inline-block;
     padding: 4px 12px;
@@ -1106,7 +1090,10 @@ details.ffc-consent-description > p {
     background: transparent;
     color: var(--ffc-primary, #0073aa);
     border-radius: 4px;
+    font-family: inherit;
     font-size: 12px;
+    font-weight: 600;
+    letter-spacing: normal;
     line-height: 1.4;
     cursor: pointer;
     transition: background 0.15s ease, color 0.15s ease;
@@ -1119,29 +1106,14 @@ details.ffc-consent-description > p {
     color: #fff;
 }
 
-.ffc-shortcode .ffc-success-actions {
-    margin: 18px 0;
-    text-align: center;
-}
-
-.ffc-shortcode .ffc-success-download-btn {
-    background: var(--ffc-primary, #0073aa);
-    color: #fff;
-    border: 0;
-    padding: 12px 24px;
-    border-radius: 6px;
-    font-size: 16px;
-    font-weight: 600;
-    cursor: pointer;
-}
-
-.ffc-shortcode .ffc-success-download-btn:hover,
-.ffc-shortcode .ffc-success-download-btn:focus {
-    filter: brightness(0.95);
-}
-
+/* "Can't find the PDF?" collapsible at the bottom of the success card.
+   `<details>` element. Closed by default so it does not compete with
+   the primary CTA visually. JS selector
+   `.ffc-success-where-is-file li[data-platform]` (filterPlatformGuidance
+   in ffc-frontend.js) hides the lines that don't apply to the visitor's
+   device — works whether the user expands the section or not. */
 .ffc-shortcode .ffc-success-where-is-file {
-    margin-top: 18px;
+    margin: 18px 30px 25px;
     padding: 12px 16px;
     background: var(--ffc-bg-alt, #f6f7f7);
     border-left: 3px solid var(--ffc-primary, #0073aa);
@@ -1150,7 +1122,15 @@ details.ffc-consent-description > p {
 }
 
 .ffc-shortcode .ffc-success-where-title {
-    margin: 0 0 8px;
+    cursor: pointer;
+    font-weight: 600;
+    color: var(--ffc-text, #333);
+    list-style: revert;
+    padding: 2px 0;
+}
+
+.ffc-shortcode .ffc-success-where-is-file[open] .ffc-success-where-title {
+    margin-bottom: 6px;
 }
 
 .ffc-shortcode .ffc-success-where-is-file ul {
