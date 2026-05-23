@@ -236,7 +236,10 @@
      */
     function showVerificationError(message, $container) {
         var s = (ffc_ajax && ffc_ajax.strings) || {};
-        var html = '<div class="ffc-certificate-preview ffc-error">';
+        // `.ffc-verification-error` kept as secondary class so the
+        // 4 pre-6.7.4 `frontend-extra.test.js` cases that query it
+        // (and any 3rd-party CSS hooking it) keep working.
+        var html = '<div class="ffc-certificate-preview ffc-error ffc-verification-error">';
         html += '<div class="ffc-preview-header">';
         html += '<span class="ffc-status-badge error ffc-icon-error">' + (s.certificateInvalid || 'Document Invalid') + '</span>';
         html += '</div>';
