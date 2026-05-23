@@ -232,7 +232,13 @@ class VerificationResponseRendererTest extends TestCase {
         $this->assertStringContainsString( 'Reregistration Record Valid', $html );
         $this->assertStringContainsString( 'success', $html ); // status class
         $this->assertStringContainsString( 'Carlos Santos', $html );
-        $this->assertStringContainsString( 'carlos@example.com', $html );
+        // 6.7.4 — Email is now masked on the public /valid page for privacy
+        // parity with the cpf_rf masking applied in 6.7.2. The local part
+        // collapses to first-char + asterisks; the domain stays in the
+        // clear so the verifier can still tell which provider it came from.
+        $this->assertStringNotContainsString( 'carlos@example.com', $html );
+        $this->assertStringContainsString( '@example.com', $html );
+        $this->assertStringContainsString( '*', $html );
         $this->assertStringContainsString( 'Rematrícula 2025', $html );
         $this->assertStringContainsString( 'Download Ficha (PDF)', $html );
     }

@@ -340,6 +340,7 @@
 .ffc-icon-info::before { content: "\2139\FE0F "; }
 .ffc-icon-warning::before { content: "\26A0\FE0F "; }
 .ffc-icon-success::before { content: "\2705 "; }
+.ffc-icon-error::before { content: "\274C "; }
 .ffc-icon-clipboard::before { content: "\1F4CB "; }
 .ffc-icon-chart::before { content: "\1F4CA "; }
 .ffc-icon-debug::before { content: "\1F41B "; }

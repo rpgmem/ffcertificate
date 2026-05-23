@@ -222,10 +222,14 @@ class VerificationResponseRenderer {
 			$display_code = \FreeFormCertificate\Core\DocumentFormatter::format_auth_code( $appointment['validation_code'], \FreeFormCertificate\Core\DocumentFormatter::PREFIX_APPOINTMENT );
 		}
 
-		// Format CPF/RF.
+		// 6.7.4 — `/valid` is a PUBLIC verification page; full CPF surfaced
+		// is a privacy leak. Same masking applied for certificates in 6.7.2
+		// — extending parity to appointments here. (Appointment render
+		// does not surface email — only name/CPF/booked-on — so no email
+		// mask needed in this branch.)
 		$cpf_rf_display = '';
 		if ( ! empty( $data['cpf_rf'] ) ) {
-			$cpf_rf_display = \FreeFormCertificate\Core\DocumentFormatter::format_document( $data['cpf_rf'] );
+			$cpf_rf_display = \FreeFormCertificate\Core\DocumentFormatter::mask_cpf( (string) $data['cpf_rf'] );
 		}
 
 		// Build HTML.
@@ -338,10 +342,14 @@ class VerificationResponseRenderer {
 			? \FreeFormCertificate\Core\DocumentFormatter::format_auth_code( $rereg['auth_code'], \FreeFormCertificate\Core\DocumentFormatter::PREFIX_REREGISTRATION )
 			: '';
 
-		// Format CPF.
+		// 6.7.4 — Mask CPF on the public verification page (privacy).
 		$cpf_display = '';
-		if ( ! empty( $rereg['cpf'] ) && class_exists( '\\FreeFormCertificate\\Core\\Utils' ) ) {
-			$cpf_display = \FreeFormCertificate\Core\DocumentFormatter::format_document( $rereg['cpf'] );
+		if ( ! empty( $rereg['cpf'] ) ) {
+			$cpf_display = \FreeFormCertificate\Core\DocumentFormatter::mask_cpf( (string) $rereg['cpf'] );
+		}
+		$email_display = '';
+		if ( ! empty( $rereg['email'] ) ) {
+			$email_display = \FreeFormCertificate\Core\DocumentFormatter::mask_email( (string) $rereg['email'] );
 		}
 
 		// Status badge class.
@@ -383,10 +391,10 @@ class VerificationResponseRenderer {
 			$html .= '</div>';
 		}
 
-		if ( ! empty( $rereg['email'] ) ) {
+		if ( ! empty( $email_display ) ) {
 			$html .= '<div class="ffc-detail-row">';
 			$html .= '<span class="label">' . esc_html__( 'Email:', 'ffcertificate' ) . '</span>';
-			$html .= '<span class="value">' . esc_html( $rereg['email'] ) . '</span>';
+			$html .= '<span class="value">' . esc_html( $email_display ) . '</span>';
 			$html .= '</div>';
 		}
 
