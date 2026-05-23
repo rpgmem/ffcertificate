@@ -166,51 +166,10 @@ class PdfGeneratorTest extends TestCase {
         $this->assertSame( 'v', $result['text'] );
     }
 
-    // ==================================================================
-    // generate_filename()
-    // ==================================================================
-
-    public function test_filename_simple_title(): void {
-        $result = $this->invoke( 'generate_filename', array( 'My Certificate' ) );
-
-        // Utils::sanitize_filename converts to lowercase, replaces spaces with dashes
-        $this->assertSame( 'my-certificate.pdf', $result );
-    }
-
-    public function test_filename_with_auth_code(): void {
-        $result = $this->invoke( 'generate_filename', array( 'Certificate', 'ABC123' ) );
-
-        $this->assertSame( 'certificate_ABC123.pdf', $result );
-    }
-
-    public function test_filename_empty_title_defaults(): void {
-        $result = $this->invoke( 'generate_filename', array( '' ) );
-
-        $this->assertSame( 'certificate.pdf', $result );
-    }
-
-    public function test_filename_special_chars_stripped(): void {
-        $result = $this->invoke( 'generate_filename', array( 'Cert & Event @2025!' ) );
-
-        // Utils::sanitize_filename strips special chars, collapses dashes
-        $this->assertStringEndsWith( '.pdf', $result );
-        $this->assertStringNotContainsString( '&', $result );
-        $this->assertStringNotContainsString( '@', $result );
-        $this->assertStringNotContainsString( '!', $result );
-    }
-
-    public function test_filename_auth_code_strips_non_alphanumeric(): void {
-        $result = $this->invoke( 'generate_filename', array( 'Test', 'ABC-123-DEF' ) );
-
-        // auth code has non-alphanumeric stripped, uppercased
-        $this->assertSame( 'test_ABC123DEF.pdf', $result );
-    }
-
-    public function test_filename_empty_auth_code_ignored(): void {
-        $result = $this->invoke( 'generate_filename', array( 'Test', '' ) );
-
-        $this->assertSame( 'test.pdf', $result );
-    }
+    // 6.6.11 — removed `generate_filename()` private method tests. The
+    // helper logic moved to `\FreeFormCertificate\Core\Utils::build_pdf_filename()`
+    // (covered by `UtilsTest::test_build_pdf_filename_*`). The pattern of
+    // calling reflection on a removed private method is no longer valid.
 
     // ==================================================================
     // generate_default_html()

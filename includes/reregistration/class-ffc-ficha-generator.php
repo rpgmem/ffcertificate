@@ -154,13 +154,18 @@ class FichaGenerator {
 		 */
 		$html = apply_filters( 'ffcertificate_ficha_html', $template, $variables, $submission_id );
 
-		// Generate filename.
-		$safe_title = sanitize_file_name( $rereg->title );
-		if ( empty( $safe_title ) ) {
-			$safe_title = __( 'Record', 'ffcertificate' );
-		}
-		$safe_name = sanitize_file_name( $user->display_name );
-		$filename  = 'Ficha_' . $safe_title . '_' . $safe_name . '.pdf';
+		// 6.6.11 — standardized filename pattern via the shared helper.
+		// Approved submissions get a real auth_code populated by
+		// AuthCodeService::generate_globally_unique_auth_code() at status
+		// transition; submissions still in `submitted` / `draft` state
+		// fall back to `S{submission_id}` so the slot stays unique and
+		// stable. When auth_code becomes mandatory for all states (future
+		// schema migration), the same code path keeps working — only the
+		// fallback path stops being exercised.
+		$code     = ! empty( $submission->auth_code )
+			? (string) $submission->auth_code
+			: sprintf( 'S%d', $submission_id );
+		$filename = \FreeFormCertificate\Core\Utils::build_pdf_filename( 'ficha', (int) $rereg->id, $code );
 
 		/**
 		 * Filters the ficha PDF filename.
