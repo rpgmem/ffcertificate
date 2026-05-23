@@ -95,9 +95,13 @@ if ( ! defined( 'ABSPATH' ) ) {
 		<?php endif; ?>
 
 		<?php if ( ! empty( $schedule_exception_block ) ) : ?>
-			<hr>
 			<div class="ffc-schedule-exception-block">
-				<h4><?php esc_html_e( 'Adjusted entry / exit schedule', 'ffcertificate' ); ?></h4>
+				<h4>
+					<svg class="ffc-schedule-exception-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true" focusable="false">
+						<path d="M10 0C4.477 0 0 4.477 0 10s4.477 10 10 10 10-4.477 10-10S15.523 0 10 0Zm0 4.5a1.25 1.25 0 1 1 0 2.5 1.25 1.25 0 0 1 0-2.5Zm1.5 10.5h-3a1 1 0 0 1 0-2H9V10h-.5a1 1 0 0 1 0-2h2a.5.5 0 0 1 .5.5V13h.5a1 1 0 0 1 0 2Z" />
+					</svg>
+					<?php esc_html_e( 'Adjusted entry / exit schedule', 'ffcertificate' ); ?>
+				</h4>
 				<p class="description">
 					<?php esc_html_e( 'This certificate was issued with a schedule different from the form\'s default. The adjustment was recorded by the on-site operator at the time of submission.', 'ffcertificate' ); ?>
 				</p>
