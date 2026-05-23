@@ -1169,9 +1169,23 @@
         },
 
         /**
-         * Show loading message
+         * Show loading message.
+         *
+         * 6.7.6 — Made idempotent. Pre-6.7.6 this `prepend()` ran
+         * unconditionally; if the function fired twice (e.g. a cached
+         * pre-flight followed by the real GPS check before the cached
+         * path's hideLoadingMessage timeout completed, OR a re-init
+         * race on page load), the page ended up with 2+ stacked
+         * `.ffc-geofence-loading-msg` elements — each with its own
+         * spinner and message. Now: if one already exists, re-use it
+         * via updateLoadingMessage (preserves the running spinner
+         * animation); otherwise create a fresh one.
          */
         showLoadingMessage: function(formWrapper, message) {
+            if (formWrapper.find('.ffc-geofence-loading-msg').length) {
+                this.updateLoadingMessage(formWrapper, message);
+                return;
+            }
             const html = '<div class="ffc-geofence-loading-msg"><div class="ffc-spinner"></div><p>' + this.escapeHtml(message) + '</p></div>';
             formWrapper.prepend(html);
         },

@@ -9,6 +9,22 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 
 ---
 
+## [6.7.6] (2026-05-23)
+
+### Fixed
+
+- **Multiple GPS / location spinners stacking on the same form.** `FFCGeofence.showLoadingMessage()` (in `assets/js/ffc-geofence-frontend.js`) called `formWrapper.prepend(html)` unconditionally — if the function fired twice (e.g. a cached pre-flight followed by the real GPS check before the cached path's `hideLoadingMessage` timeout fired, or a re-init race during page load), the page ended up with 2+ stacked `.ffc-geofence-loading-msg` elements, each rendering its own spinner. Reported by an admin: "às vezes vejo dois ou mais spinners de localização ao abrir o formulário". Fix: made `showLoadingMessage()` idempotent — if a `.ffc-geofence-loading-msg` already exists in the wrapper, the function now delegates to `updateLoadingMessage()` instead of prepending a fresh one. Net effect: at most one spinner ever in the DOM regardless of how many times the function is called; the running animation is preserved across phase-message updates.
+
+### Tests
+
+- 1 new Vitest case in `geofence-frontend-helpers.test.js` (`show is idempotent — calling twice never stacks two spinners`) — calls `showLoadingMessage` twice with different messages, asserts only one `.ffc-geofence-loading-msg` element exists, the visible text is the latest one, and the spinner element is preserved.
+
+### Bundle cache
+
+- **`FFC_VERSION` bumped 6.7.5 → 6.7.6** across the three sync sites. `assets/js/ffc-geofence-frontend.min.js` rebuilt via `npm run build:js`.
+
+---
+
 ## [6.7.5] (2026-05-23)
 
 Six fixes around the `/valid` reregistration card, the ficha PDF, the appointment card, and the "Document Invalid" error screen — reported in a single review pass after 6.7.4.
