@@ -7,6 +7,10 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Maintenance
+
+- **`release/6.6.x` channel closed.** All 6.6.x hotfixes (6.6.8 → 6.6.12) were forward-ported to `main` via #371 and #376. The branch was formally merged into `main` via #377 and then retired. The final tip is preserved at tag `v6.6.12-final` for any emergency 6.6.x backport need; from that tag a `hotfix/6.6.13` branch could be cut if required. Going forward, all maintenance happens on `main` and ships under the 6.7.x line — please upgrade to 6.7.x for continued support. Tracked in #378.
+
 ---
 
 ## [6.7.0] (2026-05-22)
