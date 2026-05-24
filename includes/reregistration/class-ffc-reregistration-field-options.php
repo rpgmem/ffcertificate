@@ -16,6 +16,8 @@ declare(strict_types=1);
 
 namespace FreeFormCertificate\Reregistration;
 
+use FreeFormCertificate\Settings\SettingsReader;
+
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
@@ -26,11 +28,31 @@ if ( ! defined( 'ABSPATH' ) ) {
 class ReregistrationFieldOptions {
 
 	/**
-	 * Divisão → Setor mapping for DRE São Miguel MP.
+	 * Divisão → Setor mapping.
+	 *
+	 * Reads the admin-editable map from `ffc_settings['divisao_setor_map']`
+	 * (managed via Settings → Reregistration). Falls back to the hardcoded
+	 * DRE São Miguel MP default when the option is absent or malformed —
+	 * which is the state on a fresh install before the activator seed runs,
+	 * and the safety net if the stored value is ever cleared.
 	 *
 	 * @return array<string, array<string>>
 	 */
 	public static function get_divisao_setor_map(): array {
+		$map = SettingsReader::divisao_setor_map();
+		return ( null !== $map && array() !== $map ) ? $map : self::get_default_divisao_setor_map();
+	}
+
+	/**
+	 * Hardcoded Divisão → Setor default (DRE São Miguel MP org structure).
+	 *
+	 * Source of truth for the activator seed and the runtime fallback. Edit
+	 * here only to change the shipped default; live installs override it via
+	 * the admin-editable option.
+	 *
+	 * @return array<string, array<string>>
+	 */
+	public static function get_default_divisao_setor_map(): array {
 		return array(
 			'DRE - Gabinete'           => array( 'Assessoria', 'Diretor Regional' ),
 			'DRE - DIAF'               => array(

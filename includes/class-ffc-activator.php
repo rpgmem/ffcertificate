@@ -101,7 +101,37 @@ class Activator {
 		// Schedule the per-form ticket-pool sweep for ended forms.
 		\FreeFormCertificate\Admin\ExpiredTicketsCleanup::schedule();
 
+		self::seed_reregistration_field_options();
+
 		flush_rewrite_rules();
+	}
+
+	/**
+	 * Seed the admin-editable Divisão → Setor map into `ffc_settings`.
+	 *
+	 * Idempotent: only writes when the key is absent, so an admin's edits
+	 * survive re-activation / upgrade. Seeds the hardcoded DRE São Miguel MP
+	 * default — matching the per-audience field snapshots the seeder writes
+	 * from the same source, so no display resync is needed here.
+	 *
+	 * @return void
+	 */
+	private static function seed_reregistration_field_options(): void {
+		if ( ! class_exists( '\FreeFormCertificate\Reregistration\ReregistrationFieldOptions' ) ) {
+			return;
+		}
+
+		$settings = get_option( 'ffc_settings', array() );
+		if ( ! is_array( $settings ) ) {
+			$settings = array();
+		}
+
+		if ( isset( $settings['divisao_setor_map'] ) ) {
+			return;
+		}
+
+		$settings['divisao_setor_map'] = \FreeFormCertificate\Reregistration\ReregistrationFieldOptions::get_default_divisao_setor_map();
+		update_option( 'ffc_settings', $settings );
 	}
 
 	/**

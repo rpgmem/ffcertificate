@@ -81,16 +81,17 @@ class Settings {
 		// Tab classes with proper namespaces.
 		// v4.6.16: Reorganized tabs for better UX.
 		$tab_classes = array(
-			'general'       => '\\FreeFormCertificate\\Settings\\Tabs\\TabGeneral',
-			'smtp'          => '\\FreeFormCertificate\\Settings\\Tabs\\TabSMTP',
-			'cache'         => '\\FreeFormCertificate\\Settings\\Tabs\\TabCache',
-			'url_shortener' => '\\FreeFormCertificate\\Settings\\Tabs\\TabUrlShortener',
-			'rate_limit'    => '\\FreeFormCertificate\\Settings\\Tabs\\TabRateLimit',
-			'geolocation'   => '\\FreeFormCertificate\\Settings\\Tabs\\TabGeolocation',
-			'user_access'   => '\\FreeFormCertificate\\Settings\\Tabs\\TabUserAccess',
-			'advanced'      => '\\FreeFormCertificate\\Settings\\Tabs\\TabAdvanced',
-			'migrations'    => '\\FreeFormCertificate\\Settings\\Tabs\\TabMigrations',
-			'documentation' => '\\FreeFormCertificate\\Settings\\Tabs\\TabDocumentation',
+			'general'        => '\\FreeFormCertificate\\Settings\\Tabs\\TabGeneral',
+			'smtp'           => '\\FreeFormCertificate\\Settings\\Tabs\\TabSMTP',
+			'cache'          => '\\FreeFormCertificate\\Settings\\Tabs\\TabCache',
+			'url_shortener'  => '\\FreeFormCertificate\\Settings\\Tabs\\TabUrlShortener',
+			'rate_limit'     => '\\FreeFormCertificate\\Settings\\Tabs\\TabRateLimit',
+			'geolocation'    => '\\FreeFormCertificate\\Settings\\Tabs\\TabGeolocation',
+			'reregistration' => '\\FreeFormCertificate\\Settings\\Tabs\\TabReregistration',
+			'user_access'    => '\\FreeFormCertificate\\Settings\\Tabs\\TabUserAccess',
+			'advanced'       => '\\FreeFormCertificate\\Settings\\Tabs\\TabAdvanced',
+			'migrations'     => '\\FreeFormCertificate\\Settings\\Tabs\\TabMigrations',
+			'documentation'  => '\\FreeFormCertificate\\Settings\\Tabs\\TabDocumentation',
 		);
 
 		// Instantiate each tab.

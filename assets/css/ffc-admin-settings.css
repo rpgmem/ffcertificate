@@ -764,3 +764,45 @@ pre code {
         animation: none;
     }
 }
+
+/* Divisão → Setor nested editor (Reregistration tab). */
+.ffc-ds-editor .ffc-ds-division {
+    border: 1px solid #dcdcde;
+    border-radius: 4px;
+    padding: 12px;
+    margin-bottom: 12px;
+    background: #fff;
+}
+
+.ffc-ds-editor .ffc-ds-division-head {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 8px;
+}
+
+.ffc-ds-editor .ffc-ds-division-name {
+    font-weight: 600;
+    flex: 1 1 auto;
+}
+
+.ffc-ds-editor .ffc-ds-sectors {
+    margin: 0 0 8px 20px;
+    padding-left: 12px;
+    border-left: 2px solid #f0f0f1;
+}
+
+.ffc-ds-editor .ffc-ds-sector {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-bottom: 6px;
+}
+
+.ffc-ds-editor .ffc-ds-sector-remove {
+    color: #b32d2e;
+    text-decoration: none;
+    font-size: 18px;
+    line-height: 1;
+    cursor: pointer;
+}

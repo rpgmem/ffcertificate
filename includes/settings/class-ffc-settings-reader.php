@@ -215,4 +215,25 @@ final class SettingsReader {
 	public static function url_shortener_code_length(): int {
 		return self::get_int( 'url_shortener_code_length', 6 );
 	}
+
+	// ──────────────────────────────────────────────────────────────.
+	// Typed array accessors.
+	// ──────────────────────────────────────────────────────────────.
+
+	/**
+	 * Admin-editable Divisão → Setor map for the reregistration
+	 * `divisao_setor` dependent-select field. Shape:
+	 * `array<string, array<string>>` (division name => list of sectors).
+	 *
+	 * Returns null when the option is absent or not an array, so the
+	 * domain layer (`ReregistrationFieldOptions::get_divisao_setor_map()`)
+	 * applies its hardcoded fallback. Kept fallback-free here to avoid a
+	 * Settings → Reregistration dependency cycle.
+	 *
+	 * @return array<string, array<string>>|null
+	 */
+	public static function divisao_setor_map(): ?array {
+		$value = self::get( 'divisao_setor_map', null );
+		return is_array( $value ) ? $value : null;
+	}
 }
