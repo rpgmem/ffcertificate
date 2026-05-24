@@ -2,7 +2,7 @@ name: Asset Build Verification
 
 on:
   pull_request:
-    branches: [main, "release/**"]
+    branches: [main, develop, "release/**"]
 # Path filters were removed because branch protection requires this
 # check on every PR. Skipped runs (path-filtered) never report status
 # and leave PRs in mergeable_state: blocked. With npm cache + npm ci

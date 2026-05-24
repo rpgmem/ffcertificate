@@ -2,9 +2,9 @@ name: CodeQL
 
 on:
   pull_request:
-    branches: [main, "release/**"]
+    branches: [main, develop, "release/**"]
   push:
-    branches: [main, "release/**"]
+    branches: [main, develop, "release/**"]
   schedule:
     # Weekly catch-all run so newly-disclosed query packs surface on
     # unchanged code too. Monday 03:00 UTC keeps it off business hours.
