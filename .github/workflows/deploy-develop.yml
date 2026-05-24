@@ -44,6 +44,18 @@ jobs:
           mkdir -p ~/.ssh
           echo "$SSH_KEY" > ~/.ssh/deploy_key
           chmod 600 ~/.ssh/deploy_key
+          # TEMP DEBUG (remover após resolver auth — issue de paste do secret).
+          # Tudo abaixo é seguro: fingerprint não vaza bytes da chave; head/tail
+          # do .pub derivado não vaza bytes da privada; `file` só reporta tipo.
+          echo "--- DEBUG: chave recebida do secret ---"
+          echo "Bytes:    $(wc -c < ~/.ssh/deploy_key)"
+          echo "Linhas:   $(wc -l < ~/.ssh/deploy_key)"
+          echo "Encoding: $(file ~/.ssh/deploy_key)"
+          echo "Header:   $(head -1 ~/.ssh/deploy_key)"
+          echo "Footer:   $(tail -1 ~/.ssh/deploy_key)"
+          echo "Fingerprint:"
+          ssh-keygen -lf ~/.ssh/deploy_key 2>&1 || echo "  (chave inválida — ssh-keygen rejeitou)"
+          echo "--- FIM DEBUG ---"
           # `TESTES_SSH_PORT` é opcional — VPS padrão usa 22; hospedagem
           # gerenciada (Hostinger, KingHost) costuma usar porta alta.
           PORT="${SSH_PORT:-22}"
