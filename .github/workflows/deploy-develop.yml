@@ -39,19 +39,27 @@ jobs:
         env:
           SSH_KEY: ${{ secrets.TESTES_SSH_KEY }}
           SSH_HOST: ${{ secrets.TESTES_SSH_HOST }}
+          SSH_PORT: ${{ secrets.TESTES_SSH_PORT }}
         run: |
           mkdir -p ~/.ssh
           echo "$SSH_KEY" > ~/.ssh/deploy_key
           chmod 600 ~/.ssh/deploy_key
-          # Adiciona o host conhecido para evitar prompt interativo.
-          ssh-keyscan -H "$SSH_HOST" >> ~/.ssh/known_hosts 2>/dev/null
+          # `TESTES_SSH_PORT` é opcional — VPS padrão usa 22; hospedagem
+          # gerenciada (Hostinger, KingHost) costuma usar porta alta.
+          PORT="${SSH_PORT:-22}"
+          # Best-effort: keyscan pode falhar (firewall, host atrás de
+          # CDN, etc.) sem derrubar o deploy. O step de rsync abaixo usa
+          # `StrictHostKeyChecking=accept-new` como fallback TOFU.
+          ssh-keyscan -p "$PORT" -H "$SSH_HOST" >> ~/.ssh/known_hosts 2>/dev/null || true
 
       - name: Rsync to testes
         env:
           SSH_HOST: ${{ secrets.TESTES_SSH_HOST }}
           SSH_USER: ${{ secrets.TESTES_SSH_USER }}
+          SSH_PORT: ${{ secrets.TESTES_SSH_PORT }}
           REMOTE_PATH: ${{ secrets.TESTES_REMOTE_PATH }}
         run: |
+          PORT="${SSH_PORT:-22}"
           # `--delete` remove arquivos no destino que não existem na
           # origem (idempotência total). Exclusões abaixo cobrem:
           # - VCS / CI metadata que não pertence ao runtime do plugin.
@@ -62,6 +70,10 @@ jobs:
           # `composer.json` e `package.json` são intencionalmente
           # *enviados* — admins de hospedagem gerenciada às vezes os
           # inspecionam pra entender o que está rodando.
+          # `StrictHostKeyChecking=accept-new`: TOFU — aceita a chave do
+          # host na primeira conexão e exige match em conexões futuras.
+          # Mais seguro que `no` (vulnerável a MITM); funciona quando o
+          # `ssh-keyscan` acima falhou silenciosamente.
           rsync -avz --delete \
             --exclude='.git/' \
             --exclude='.github/' \
@@ -86,7 +98,7 @@ jobs:
             --exclude='vitest.config.*' \
             --exclude='CLAUDE.md' \
             --exclude='html/' \
-            -e "ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=yes" \
+            -e "ssh -i ~/.ssh/deploy_key -p $PORT -o StrictHostKeyChecking=accept-new" \
             ./ "${SSH_USER}@${SSH_HOST}:${REMOTE_PATH}/"
 
       - name: Cleanup SSH key
