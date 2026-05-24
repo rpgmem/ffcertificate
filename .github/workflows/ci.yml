@@ -6,7 +6,9 @@ on:
     # maintenance branch) get the same PHPStan + PHPUnit + WPCS +
     # coverage-floor gates as PRs targeting `main`. Without this,
     # hotfix PRs were merging with zero CI signal.
-    branches: [main, "release/**"]
+    # `develop` so the batched-release integration branch enforces the
+    # same gates per PR — develop must stay deployable to the testes site.
+    branches: [main, develop, "release/**"]
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}

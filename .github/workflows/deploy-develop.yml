@@ -1,0 +1,94 @@
+name: Deploy develop → testes
+
+# Sync da branch `develop` pro servidor de testes via SSH + rsync.
+# Dispara em cada push em `develop` (após merge de PR ou push direto).
+# Pré-requisitos operacionais documentados em CLAUDE.md (seção
+# "Develop branch workflow"): SSH habilitado na hospedagem, par de
+# chaves gerado, 4 secrets cadastrados no GitHub.
+
+on:
+  push:
+    branches: [develop]
+  workflow_dispatch:
+    # Manual re-deploy útil quando o servidor de testes foi resetado
+    # ou o último push falhou e o estado da develop não mudou.
+
+concurrency:
+  # Cancelar pushes consecutivos: só o último vence. Evita corrida
+  # de dois rsync paralelos sobre o mesmo destino.
+  group: deploy-develop-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    name: rsync to testes
+    runs-on: ubuntu-latest
+    # Sem environment gating — develop é território livre por design.
+    # Se um dia esse workflow virar `deploy-prod`, aí sim entra
+    # `environment: production` com required reviewers.
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          # Shallow clone OK — rsync envia working tree, não histórico.
+          fetch-depth: 1
+
+      - name: Configure SSH
+        env:
+          SSH_KEY: ${{ secrets.TESTES_SSH_KEY }}
+          SSH_HOST: ${{ secrets.TESTES_SSH_HOST }}
+        run: |
+          mkdir -p ~/.ssh
+          echo "$SSH_KEY" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          # Adiciona o host conhecido para evitar prompt interativo.
+          ssh-keyscan -H "$SSH_HOST" >> ~/.ssh/known_hosts 2>/dev/null
+
+      - name: Rsync to testes
+        env:
+          SSH_HOST: ${{ secrets.TESTES_SSH_HOST }}
+          SSH_USER: ${{ secrets.TESTES_SSH_USER }}
+          REMOTE_PATH: ${{ secrets.TESTES_REMOTE_PATH }}
+        run: |
+          # `--delete` remove arquivos no destino que não existem na
+          # origem (idempotência total). Exclusões abaixo cobrem:
+          # - VCS / CI metadata que não pertence ao runtime do plugin.
+          # - Dependências de dev (composer require-dev only, node_modules).
+          # - Testes e ferramentas de análise estática.
+          # - Configurações locais (wp-config-local.php).
+          # - Saídas de coverage / build intermediário.
+          # `composer.json` e `package.json` são intencionalmente
+          # *enviados* — admins de hospedagem gerenciada às vezes os
+          # inspecionam pra entender o que está rodando.
+          rsync -avz --delete \
+            --exclude='.git/' \
+            --exclude='.github/' \
+            --exclude='.gitignore' \
+            --exclude='.gitattributes' \
+            --exclude='vendor/' \
+            --exclude='node_modules/' \
+            --exclude='tests/' \
+            --exclude='coverage-js/' \
+            --exclude='coverage/' \
+            --exclude='build/' \
+            --exclude='dist/' \
+            --exclude='.phpunit.result.cache' \
+            --exclude='phpunit.xml' \
+            --exclude='phpunit.xml.dist' \
+            --exclude='phpstan.neon' \
+            --exclude='phpstan.neon.dist' \
+            --exclude='phpcs.xml' \
+            --exclude='phpcs.xml.dist' \
+            --exclude='.eslintrc*' \
+            --exclude='.stylelintrc*' \
+            --exclude='vitest.config.*' \
+            --exclude='CLAUDE.md' \
+            --exclude='html/' \
+            -e "ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=yes" \
+            ./ "${SSH_USER}@${SSH_HOST}:${REMOTE_PATH}/"
+
+      - name: Cleanup SSH key
+        if: always()
+        run: rm -f ~/.ssh/deploy_key
