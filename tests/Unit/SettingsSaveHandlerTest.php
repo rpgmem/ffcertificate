@@ -284,4 +284,58 @@ class SettingsSaveHandlerTest extends TestCase {
         $this->assertSame( 'd/m/Y', $result['date_format'] );
         $this->assertSame( 'custom', $result['date_format_custom'] );
     }
+
+    // ==================================================================
+    // save_reregistration_settings() + sanitize_divisao_setor_map()
+    // ==================================================================
+
+    public function test_save_reregistration_ignores_other_tabs(): void {
+        $_POST['_ffc_tab'] = 'general';
+        $new    = array( 'divisao_setor_map_json' => '{"Div A":["S1"]}' );
+        $result = $this->invoke( 'save_reregistration_settings', array( array(), $new ) );
+
+        $this->assertArrayNotHasKey( 'divisao_setor_map', $result );
+    }
+
+    public function test_save_reregistration_parses_json_when_tab_active(): void {
+        $_POST['_ffc_tab'] = 'reregistration';
+        $new    = array( 'divisao_setor_map_json' => '{"Div A":["S1","S2"]}' );
+        $result = $this->invoke( 'save_reregistration_settings', array( array(), $new ) );
+
+        $this->assertSame( array( 'Div A' => array( 'S1', 'S2' ) ), $result['divisao_setor_map'] );
+    }
+
+    public function test_save_reregistration_handles_invalid_json(): void {
+        $_POST['_ffc_tab'] = 'reregistration';
+        $new    = array( 'divisao_setor_map_json' => 'not-json' );
+        $result = $this->invoke( 'save_reregistration_settings', array( array(), $new ) );
+
+        $this->assertSame( array(), $result['divisao_setor_map'] );
+    }
+
+    public function test_sanitize_divisao_setor_map_drops_empty_and_dedups(): void {
+        $raw = array(
+            'Div A' => array( 'S1', 'S1', 'S2' ), // dedup.
+            ''      => array( 'Orphan' ),          // empty division name dropped.
+            'Div B' => 'not-an-array',             // non-array sectors dropped.
+            'Div C' => array( 'X', '', 'Y' ),      // empty sector dropped.
+        );
+        $result = $this->invoke( 'sanitize_divisao_setor_map', array( $raw ) );
+
+        $this->assertSame(
+            array(
+                'Div A' => array( 'S1', 'S2' ),
+                'Div C' => array( 'X', 'Y' ),
+            ),
+            $result
+        );
+    }
+
+    public function test_maybe_resync_is_noop_when_map_unchanged(): void {
+        $map     = array( 'divisao_setor_map' => array( 'Div A' => array( 'S1' ) ) );
+        // Equal before/after → early return, no seeder call, no wpdb access.
+        $this->invoke( 'maybe_resync_divisao_setor', array( $map, $map ) );
+
+        $this->assertTrue( true ); // Reached here without error → no-op path covered.
+    }
 }

@@ -570,4 +570,52 @@ class ReregistrationStandardFieldsSeeder {
 
 		return $total;
 	}
+
+	/**
+	 * Re-sync the `divisao_setor` dependent-select groups across every
+	 * audience to the current admin-editable map.
+	 *
+	 * The dropdown the user sees is driven by a per-audience snapshot in
+	 * `wp_ffc_custom_fields.field_options['groups']`, frozen at seed time
+	 * (the seeder is insert-only). When the admin edits the global map in
+	 * Settings → Reregistration, this rewrites each audience's snapshot so
+	 * the rendered form matches the new map — while preserving the field's
+	 * other options (parent_label / child_label).
+	 *
+	 * Validation reads the map live, so it needs no re-sync; this keeps
+	 * the DISPLAY path consistent with it.
+	 *
+	 * @return int Number of audience field rows updated.
+	 */
+	public static function resync_divisao_setor_groups(): int {
+		$ids = AudienceRepository::get_all_ids();
+		if ( empty( $ids ) ) {
+			return 0;
+		}
+
+		$map     = ReregistrationFieldOptions::get_divisao_setor_map();
+		$updated = 0;
+
+		foreach ( $ids as $aud_id ) {
+			$field = CustomFieldRepository::get_by_key( (int) $aud_id, 'divisao_setor' );
+			if ( null === $field ) {
+				continue;
+			}
+
+			$options = $field->field_options;
+			if ( is_string( $options ) ) {
+				$options = json_decode( $options, true );
+			}
+			if ( ! is_array( $options ) ) {
+				$options = array();
+			}
+			$options['groups'] = $map;
+
+			if ( CustomFieldRepository::update( (int) $field->id, array( 'field_options' => $options ) ) ) {
+				++$updated;
+			}
+		}
+
+		return $updated;
+	}
 }

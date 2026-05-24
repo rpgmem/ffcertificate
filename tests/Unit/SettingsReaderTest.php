@@ -243,6 +243,32 @@ class SettingsReaderTest extends TestCase {
 	}
 
 	// ------------------------------------------------------------------
+	// Typed array accessor: divisao_setor_map()
+	// ------------------------------------------------------------------
+
+	public function test_divisao_setor_map_returns_array_when_set(): void {
+		$map = array(
+			'Division A' => array( 'Sector 1', 'Sector 2' ),
+			'Division B' => array( 'Sector 3' ),
+		);
+		$this->stub_option( array( 'divisao_setor_map' => $map ) );
+
+		$this->assertSame( $map, SettingsReader::divisao_setor_map() );
+	}
+
+	public function test_divisao_setor_map_returns_null_when_absent(): void {
+		$this->stub_option( array( 'foo' => 'bar' ) );
+
+		$this->assertNull( SettingsReader::divisao_setor_map() );
+	}
+
+	public function test_divisao_setor_map_returns_null_when_not_array(): void {
+		$this->stub_option( array( 'divisao_setor_map' => 'not-an-array' ) );
+
+		$this->assertNull( SettingsReader::divisao_setor_map() );
+	}
+
+	// ------------------------------------------------------------------
 	// OPTION_KEY constant
 	// ------------------------------------------------------------------
 

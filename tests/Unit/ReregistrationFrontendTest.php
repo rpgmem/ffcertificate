@@ -102,6 +102,12 @@ class ReregistrationFrontendTest extends TestCase {
         Functions\when('wp_cache_set')->justReturn(true);
         Functions\when('wp_cache_delete')->justReturn(true);
 
+        // get_divisao_setor_map() resolves via SettingsReader → get_option.
+        // Empty option → hardcoded default.
+        Functions\when('get_option')->alias(function ($key, $default = null) {
+            return 'ffc_settings' === $key ? array() : $default;
+        });
+
         $this->registered_actions = array();
     }
 

@@ -57,6 +57,11 @@ class ReregistrationDataProcessorTest extends TestCase {
         Functions\when( 'FreeFormCertificate\Reregistration\is_email' )->alias( function ( $email ) {
             return (bool) filter_var( $email, FILTER_VALIDATE_EMAIL );
         });
+        // validate_submission() resolves the divisao_setor map via
+        // SettingsReader → get_option. Empty option → hardcoded default.
+        Functions\when( 'get_option' )->alias( function ( $key, $default = null ) {
+            return 'ffc_settings' === $key ? array() : $default;
+        } );
 
         // Default $wpdb mock — no fields returned.
         $this->setup_wpdb_with_fields( array() );
