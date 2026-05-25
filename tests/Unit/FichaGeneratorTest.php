@@ -265,6 +265,85 @@ class FichaGeneratorTest extends TestCase {
     }
 
     // ==================================================================
+    // build_standard_field_variables()
+    // ==================================================================
+
+    public function test_build_standard_field_variables_splits_dependent_select_into_parent_child(): void {
+        $field = (object) [
+            'id'         => 1,
+            'field_key'  => 'divisao_setor',
+            'field_type' => 'dependent_select',
+        ];
+
+        $values = ['divisao_setor' => json_encode(['parent' => 'DRE - DIAF', 'child' => 'Contabilidade'])];
+
+        $vars = $this->invokePrivateStatic('build_standard_field_variables', [[$field], $values, false]);
+
+        // Combined value stays available for back-compat templates.
+        $this->assertSame('DRE - DIAF - Contabilidade', $vars['divisao_setor']);
+        // Split halves drive the two separate cells in the default ficha.
+        $this->assertSame('DRE - DIAF', $vars['divisao_setor_parent']);
+        $this->assertSame('Contabilidade', $vars['divisao_setor_child']);
+    }
+
+    public function test_build_standard_field_variables_dependent_select_empty_when_value_missing(): void {
+        $field = (object) [
+            'id'         => 1,
+            'field_key'  => 'divisao_setor',
+            'field_type' => 'dependent_select',
+        ];
+
+        $vars = $this->invokePrivateStatic('build_standard_field_variables', [[$field], [], false]);
+
+        $this->assertSame('', $vars['divisao_setor']);
+        $this->assertSame('', $vars['divisao_setor_parent']);
+        $this->assertSame('', $vars['divisao_setor_child']);
+    }
+
+    public function test_build_standard_field_variables_hides_accumulation_fields_without_acumulo(): void {
+        $field = (object) [
+            'id'         => 2,
+            'field_key'  => 'jornada_acumulo',
+            'field_type' => 'text',
+        ];
+
+        $values = ['jornada_acumulo' => '40h'];
+
+        $vars = $this->invokePrivateStatic('build_standard_field_variables', [[$field], $values, false]);
+
+        $this->assertSame('', $vars['jornada_acumulo']);
+    }
+
+    public function test_build_standard_field_variables_keeps_accumulation_fields_with_acumulo(): void {
+        $field = (object) [
+            'id'         => 2,
+            'field_key'  => 'jornada_acumulo',
+            'field_type' => 'text',
+        ];
+
+        $values = ['jornada_acumulo' => '40h'];
+
+        $vars = $this->invokePrivateStatic('build_standard_field_variables', [[$field], $values, true]);
+
+        $this->assertSame('40h', $vars['jornada_acumulo']);
+    }
+
+    public function test_build_standard_field_variables_passes_through_plain_field(): void {
+        $field = (object) [
+            'id'         => 3,
+            'field_key'  => 'sindicato',
+            'field_type' => 'text',
+        ];
+
+        $values = ['sindicato' => 'SINPEEM'];
+
+        $vars = $this->invokePrivateStatic('build_standard_field_variables', [[$field], $values, false]);
+
+        $this->assertSame('SINPEEM', $vars['sindicato']);
+        $this->assertArrayNotHasKey('sindicato_parent', $vars);
+    }
+
+    // ==================================================================
     // load_template()
     // ==================================================================
 
@@ -298,5 +377,12 @@ class FichaGeneratorTest extends TestCase {
         $this->assertStringContainsString('{{display_name}}', $result);
         $this->assertStringContainsString('{{custom_fields_section}}', $result);
         $this->assertNotEmpty($result);
+
+        // Divisão/Setor must use the split dependent_select placeholders,
+        // never the stale {{divisao}} / {{setor}} names the generator never emits.
+        $this->assertStringContainsString('{{divisao_setor_parent}}', $result);
+        $this->assertStringContainsString('{{divisao_setor_child}}', $result);
+        $this->assertStringNotContainsString('{{divisao}}', $result);
+        $this->assertStringNotContainsString('{{setor}}', $result);
     }
 }
