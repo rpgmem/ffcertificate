@@ -7,6 +7,10 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Fixed
+
+- **Ficha PDF: Divisão and Setor cells printed the literal placeholder instead of the values.** `default_ficha_template.html` referenced `{{divisao}}` / `{{setor}}`, but `FichaGenerator` only ever emits the combined `divisao_setor` value (`"<parent> - <child>"`), so neither placeholder was substituted. The generator now also exposes each `dependent_select` field's two halves as `{{<key>_parent}}` / `{{<key>_child}}` (the combined `{{<key>}}` form stays for back-compat), and the template's Divisão/Setor cells point at `{{divisao_setor_parent}}` / `{{divisao_setor_child}}`. The standard-field variable building moved into the unit-tested `FichaGenerator::build_standard_field_variables()`.
+
 ---
 
 ## [6.7.7] (2026-05-23)

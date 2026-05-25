@@ -107,18 +107,10 @@ class FichaGenerator {
 			'generation_date'      => \FreeFormCertificate\Core\DateFormatter::format_datetime( time(), 'pdf' ),
 		);
 
-		foreach ( $standard_fields as $field ) {
-			$key   = (string) $field->field_key;
-			$value = $decrypted_values[ $key ] ?? '';
-
-			// Hide accumulation-related fields unless the user declared they hold another job.
-			if ( ! $has_acumulo && in_array( $key, array( 'jornada_acumulo', 'cargo_funcao_acumulo', 'horario_trabalho_acumulo' ), true ) ) {
-				$variables[ $key ] = '';
-				continue;
-			}
-
-			$variables[ $key ] = self::format_field_value( $field, $value );
-		}
+		$variables = array_merge(
+			$variables,
+			self::build_standard_field_variables( $standard_fields, $decrypted_values, $has_acumulo )
+		);
 
 		// Sensible defaults for framework-level keys.
 		if ( empty( $variables['display_name'] ) ) {
@@ -332,6 +324,47 @@ class FichaGenerator {
 		}
 
 		return $decrypted;
+	}
+
+	/**
+	 * Build template variables for the standard reregistration fields.
+	 *
+	 * Each field exposes its formatted value under its `field_key`. A
+	 * dependent_select additionally exposes `<key>_parent` / `<key>_child`
+	 * so a template can place the two halves in separate cells (the default
+	 * ficha prints Divisão and Setor side by side from `divisao_setor`).
+	 * Accumulation-only fields collapse to empty unless the participant
+	 * declared a second post.
+	 *
+	 * @param array<int, object>   $standard_fields  Standard field definitions.
+	 * @param array<string, mixed> $decrypted_values field_key => plaintext value.
+	 * @param bool                 $has_acumulo      Whether the user holds a second post.
+	 * @phpstan-param list<CustomFieldRow> $standard_fields
+	 * @return array<string, string>
+	 */
+	public static function build_standard_field_variables( array $standard_fields, array $decrypted_values, bool $has_acumulo ): array {
+		$vars = array();
+
+		foreach ( $standard_fields as $field ) {
+			$key   = (string) $field->field_key;
+			$value = $decrypted_values[ $key ] ?? '';
+
+			// Hide accumulation-related fields unless the user declared they hold another job.
+			if ( ! $has_acumulo && in_array( $key, array( 'jornada_acumulo', 'cargo_funcao_acumulo', 'horario_trabalho_acumulo' ), true ) ) {
+				$vars[ $key ] = '';
+				continue;
+			}
+
+			$vars[ $key ] = self::format_field_value( $field, $value );
+
+			if ( 'dependent_select' === (string) $field->field_type ) {
+				$dep                      = is_string( $value ) ? json_decode( $value, true ) : $value;
+				$vars[ $key . '_parent' ] = is_array( $dep ) ? (string) ( $dep['parent'] ?? '' ) : '';
+				$vars[ $key . '_child' ]  = is_array( $dep ) ? (string) ( $dep['child'] ?? '' ) : '';
+			}
+		}
+
+		return $vars;
 	}
 
 	/**
