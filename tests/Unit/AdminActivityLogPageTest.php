@@ -272,4 +272,64 @@ class AdminActivityLogPageTest extends TestCase {
         $this->assertStringNotContainsString( 'Operator (masked)', $html );
         $this->assertStringContainsString( '203.0.113.5', $html );
     }
+
+    // ==================================================================
+    // Pre-flight blocked: action label, reason label, summary renderer
+    // ==================================================================
+
+    public function test_get_action_label_for_preflight_blocked(): void {
+        $this->assertSame(
+            'Pre-flight Banner Shown',
+            AdminActivityLogPage::get_action_label( 'preflight_blocked' )
+        );
+    }
+
+    public function test_get_preflight_reason_label_maps_known_codes(): void {
+        $this->assertStringContainsString(
+            'pre-explainer',
+            AdminActivityLogPage::get_preflight_reason_label( 'gps_prompt' )
+        );
+        $this->assertStringContainsString(
+            'denied',
+            AdminActivityLogPage::get_preflight_reason_label( 'gps_denied' )
+        );
+        $this->assertStringContainsString(
+            'Cookie wall',
+            AdminActivityLogPage::get_preflight_reason_label( 'cookies' )
+        );
+    }
+
+    public function test_get_preflight_reason_label_falls_back_to_raw_code(): void {
+        $this->assertSame(
+            'unknown_reason',
+            AdminActivityLogPage::get_preflight_reason_label( 'unknown_reason' )
+        );
+    }
+
+    public function test_render_preflight_blocked_summary_returns_null_for_unrelated_action(): void {
+        $this->assertNull(
+            AdminActivityLogPage::render_preflight_blocked_summary(
+                'submission_created',
+                array( 'reason' => 'gps_prompt' )
+            )
+        );
+    }
+
+    public function test_render_preflight_blocked_summary_surfaces_labelled_reason(): void {
+        $html = AdminActivityLogPage::render_preflight_blocked_summary(
+            'preflight_blocked',
+            array(
+                'form_id' => 42,
+                'reason'  => 'gps_prompt',
+                'ip_hash' => str_repeat( 'b', 12 ),
+            )
+        );
+
+        $this->assertNotNull( $html );
+        // The opaque code is replaced by a human-readable label.
+        $this->assertStringContainsString( 'pre-explainer', $html );
+        $this->assertStringNotContainsString( 'gps_prompt', $html );
+        $this->assertStringContainsString( '42', $html );
+        $this->assertStringContainsString( 'bbbbbbbbbbbb', $html );
+    }
 }

@@ -407,7 +407,7 @@
 	}
 
 	function showCertPreviewModal(data) {
-		var sampleData = buildSampleData(data.fields);
+		var sampleData = buildSampleData(data.fields, data.previewSamples);
 		var processedHtml = replacePlaceholders(data.html, sampleData);
 
 		var iframeHtml = '<!DOCTYPE html><html><head><meta charset="UTF-8">';
@@ -469,21 +469,12 @@
 		});
 	}
 
-	function buildSampleData(fields) {
-		var data = {
-			'name':            'John Doe',
-			'email':           'john_doe@example.com',
-			'cpf_rf':          '123.456.789-00',
-			'cpf':             '123.456.789-00',
-			'auth_code':       'A1B2-C3D4-E5F6',
-			'submission_date': new Date().toLocaleDateString('pt-BR', { year: 'numeric', month: 'long', day: 'numeric' }),
-			'print_date':      new Date().toLocaleDateString('pt-BR', { year: 'numeric', month: 'long', day: 'numeric' }),
-			'fill_date':       new Date().toLocaleDateString('pt-BR', { year: 'numeric', month: 'long', day: 'numeric' }),
-			'date':            new Date().toLocaleDateString('pt-BR', { year: 'numeric', month: 'long', day: 'numeric' }),
-			'submission_id':   '1234',
-			'magic_token':     'abc123def456ghi789jkl012',
-			'ticket':          'TK01-AB2C-3D4E'
-		};
+	// Seed the preview from the canonical PHP sample map
+	// (CertificatePreviewSamples::get_map(), delivered in the AJAX payload
+	// as previewSamples) so system placeholders fill the same as the real
+	// generators. The form's own fields are overlaid on top.
+	function buildSampleData(fields, previewSamples) {
+		var data = $.extend({}, previewSamples || {});
 
 		if (fields && fields.length) {
 			for (var i = 0; i < fields.length; i++) {

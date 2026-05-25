@@ -491,9 +491,13 @@ class PublicCsvDownload {
 
 		wp_send_json_success(
 			array(
-				'html'     => wp_kses_post( $config['pdf_layout'] ?? '' ),
-				'bg_image' => esc_url( $config['bg_image'] ?? '' ),
-				'fields'   => $field_names,
+				'html'           => wp_kses_post( $config['pdf_layout'] ?? '' ),
+				'bg_image'       => esc_url( $config['bg_image'] ?? '' ),
+				'fields'         => $field_names,
+				// Canonical placeholder → sample-value map (single source of
+				// truth) so the preview fills system placeholders, not just
+				// the form's own fields.
+				'previewSamples' => \FreeFormCertificate\Core\CertificatePreviewSamples::get_map(),
 			)
 		);
 	}

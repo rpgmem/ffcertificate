@@ -42,6 +42,14 @@ class AdminAssetsManagerTest extends TestCase {
         Functions\when('wp_unslash')->returnArg();
         Functions\when('sanitize_key')->returnArg();
 
+        // The localization payload now eagerly builds the certificate
+        // preview sample map (CertificatePreviewSamples::get_map()), which
+        // routes dates through DateFormatter and reads the blog name.
+        Functions\when('get_option')->justReturn(array());
+        Functions\when('get_bloginfo')->justReturn('Test Site');
+        Functions\when('wp_date')->justReturn('01/01/2026');
+        Functions\when('wp_timezone')->alias(static fn() => new \DateTimeZone('UTC'));
+
         // Utils alias mock
         $this->utils_mock = Mockery::mock('alias:\FreeFormCertificate\Core\Utils');
         $this->utils_mock->shouldReceive('asset_suffix')->andReturn('.min')->byDefault();
