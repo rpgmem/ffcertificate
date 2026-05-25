@@ -103,7 +103,7 @@ class ReregistrationStandardFieldsSeeder {
 	 * @return array<int, array<string, mixed>>
 	 */
 	public static function get_standard_fields_definition(): array {
-		$divisao_map = ReregistrationFieldOptions::get_divisao_setor_map();
+		$divisao_map = ReregistrationFieldOptions::get_default_divisao_setor_map();
 
 		return array(
 			// ───── Personal Data ─────.
@@ -572,47 +572,52 @@ class ReregistrationStandardFieldsSeeder {
 	}
 
 	/**
-	 * Re-sync the `divisao_setor` dependent-select groups across every
-	 * audience to the current admin-editable map.
+	 * Replicate a parent audience's standard-field option lists down to all
+	 * its descendants (children + grandchildren — the 3-level hierarchy).
 	 *
-	 * The dropdown the user sees is driven by a per-audience snapshot in
-	 * `wp_ffc_custom_fields.field_options['groups']`, frozen at seed time
-	 * (the seeder is insert-only). When the admin edits the global map in
-	 * Settings → Reregistration, this rewrites each audience's snapshot so
-	 * the rendered form matches the new map — while preserving the field's
-	 * other options (parent_label / child_label).
+	 * Copies `field_options` for every STANDARD field on the parent that has
+	 * options set (e.g. `divisao_setor` groups, `sindicato` / `jornada`
+	 * choices) onto each descendant's matching field (by `field_key`). This
+	 * is the "Replicate to children" action — an explicit, deliberate push
+	 * that overwrites the descendants' current option lists. Manual
+	 * per-descendant fine-tuning survives until the next replicate.
 	 *
-	 * Validation reads the map live, so it needs no re-sync; this keeps
-	 * the DISPLAY path consistent with it.
+	 * Custom (non-standard) fields are not touched — they're audience-local
+	 * by definition.
 	 *
-	 * @return int Number of audience field rows updated.
+	 * @param int $parent_audience_id Audience whose options are the source.
+	 * @return int Number of descendant field rows updated.
 	 */
-	public static function resync_divisao_setor_groups(): int {
-		$ids = AudienceRepository::get_all_ids();
-		if ( empty( $ids ) ) {
+	public static function replicate_field_options_to_descendants( int $parent_audience_id ): int {
+		if ( $parent_audience_id <= 0 ) {
 			return 0;
 		}
 
-		$map     = ReregistrationFieldOptions::get_divisao_setor_map();
+		// Snapshot the parent's standard-field options, keyed by field_key.
+		$parent_options = array();
+		foreach ( CustomFieldRepository::get_by_audience( $parent_audience_id, false ) as $pf ) {
+			if ( 'standard' === ( $pf->field_source ?? '' ) && null !== $pf->field_options ) {
+				$decoded = json_decode( (string) $pf->field_options, true );
+				if ( is_array( $decoded ) ) {
+					$parent_options[ (string) $pf->field_key ] = $decoded;
+				}
+			}
+		}
+
+		if ( empty( $parent_options ) ) {
+			return 0;
+		}
+
 		$updated = 0;
-
-		foreach ( $ids as $aud_id ) {
-			$field = CustomFieldRepository::get_by_key( (int) $aud_id, 'divisao_setor' );
-			if ( null === $field ) {
-				continue;
-			}
-
-			$options = $field->field_options;
-			if ( is_string( $options ) ) {
-				$options = json_decode( $options, true );
-			}
-			if ( ! is_array( $options ) ) {
-				$options = array();
-			}
-			$options['groups'] = $map;
-
-			if ( CustomFieldRepository::update( (int) $field->id, array( 'field_options' => $options ) ) ) {
-				++$updated;
+		foreach ( AudienceRepository::get_descendant_ids( $parent_audience_id ) as $aud_id ) {
+			foreach ( $parent_options as $field_key => $options ) {
+				$field = CustomFieldRepository::get_by_key( (int) $aud_id, $field_key );
+				if ( null === $field ) {
+					continue;
+				}
+				if ( CustomFieldRepository::update( (int) $field->id, array( 'field_options' => $options ) ) ) {
+					++$updated;
+				}
 			}
 		}
 

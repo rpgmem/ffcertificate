@@ -220,4 +220,69 @@ class AudienceLoaderTest extends TestCase {
         // If we reached here without exception, the test passes
         $this->assertTrue(true);
     }
+
+    // ==================================================================
+    // sanitize_dependent_groups() + preserve_dependent_labels()
+    // ==================================================================
+
+    /**
+     * Invoke a private method on the AudienceLoader instance.
+     *
+     * @param string            $method Method name.
+     * @param array<int, mixed> $args   Positional args.
+     * @return mixed
+     */
+    private function invoke_loader(string $method, array $args) {
+        $loader = AudienceLoader::get_instance();
+        $ref = new \ReflectionMethod(AudienceLoader::class, $method);
+        $ref->setAccessible(true);
+        return $ref->invokeArgs($loader, $args);
+    }
+
+    public function test_sanitize_dependent_groups_dedups_and_drops_empty(): void {
+        Functions\when('sanitize_text_field')->alias('trim');
+
+        $raw = array(
+            'Div A' => array('S1', 'S1', 'S2'), // dedup.
+            ''      => array('Orphan'),           // empty division dropped.
+            'Div B' => 'not-an-array',            // non-array sectors dropped.
+            'Div C' => array('X', '', 'Y'),       // empty sector dropped.
+        );
+
+        $result = $this->invoke_loader('sanitize_dependent_groups', array($raw));
+
+        $this->assertSame(
+            array(
+                'Div A' => array('S1', 'S2'),
+                'Div C' => array('X', 'Y'),
+            ),
+            $result
+        );
+    }
+
+    public function test_preserve_dependent_labels_keeps_existing_labels(): void {
+        $existing = (object) array(
+            'field_options' => json_encode(array(
+                'groups'       => array('Old' => array('x')),
+                'parent_label' => 'Division',
+                'child_label'  => 'Department',
+            )),
+        );
+        $options = array('groups' => array('New' => array('y')));
+
+        $result = $this->invoke_loader('preserve_dependent_labels', array($existing, $options));
+
+        $this->assertSame('Division', $result['parent_label']);
+        $this->assertSame('Department', $result['child_label']);
+        $this->assertSame(array('New' => array('y')), $result['groups']);
+    }
+
+    public function test_preserve_dependent_labels_noop_without_groups(): void {
+        $existing = (object) array('field_options' => json_encode(array('choices' => array('a'))));
+        $options  = array('choices' => array('b'));
+
+        $result = $this->invoke_loader('preserve_dependent_labels', array($existing, $options));
+
+        $this->assertSame($options, $result);
+    }
 }

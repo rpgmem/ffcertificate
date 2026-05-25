@@ -176,17 +176,6 @@ class ReregistrationFrontend {
 	// ------------------------------------------------------------------.
 
 	/**
-	 * Divisão → Setor mapping. Pure delegate to ReregistrationFieldOptions
-	 * — kept here so frontend callers can resolve the map without depending
-	 * on `ReregistrationFieldOptions` directly.
-	 *
-	 * @return array<string, array<string>>
-	 */
-	public static function get_divisao_setor_map(): array {
-		return ReregistrationFieldOptions::get_divisao_setor_map();
-	}
-
-	/**
 	 * Get active reregistrations for a user with submission status.
 	 *
 	 * Aggregates `ReregistrationRepository`, `ReregistrationSubmissionRepository`,

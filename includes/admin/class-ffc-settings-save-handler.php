@@ -86,7 +86,6 @@ class SettingsSaveHandler {
 		$clean = $this->save_qrcode_settings( $clean, $new );
 		$clean = $this->save_date_format_settings( $clean, $new );
 		$clean = $this->save_url_shortener_settings( $clean, $new );
-		$clean = $this->save_reregistration_settings( $clean, $new );
 
 		/**
 		 * Filters plugin settings before they are saved.
@@ -107,98 +106,8 @@ class SettingsSaveHandler {
 		 */
 		do_action( 'ffcertificate_settings_saved', $clean );
 
-		// Re-sync the per-audience divisao_setor dropdown snapshots when the
-		// global map changed. Runs AFTER update_option so the resync reads
-		// the freshly-persisted map via SettingsReader.
-		$this->maybe_resync_divisao_setor( $current, $clean );
-
         // phpcs:enable WordPress.Security.NonceVerification.Missing
 		add_settings_error( 'ffc_settings', 'ffc_settings_updated', __( 'Settings saved.', 'ffcertificate' ), 'updated' );
-	}
-
-	/**
-	 * Save the Reregistration tab settings (Divisão → Setor map).
-	 *
-	 * The map is submitted as a single JSON string from the nested editor
-	 * (mirrors the working_hours hidden-input idiom). Only processed when
-	 * the Reregistration tab posted, so other tabs never touch the key.
-	 *
-	 * @param array<string, mixed> $clean Current settings.
-	 * @param array<string, mixed> $new   New settings from POST.
-	 * @return array<string, mixed> Updated settings.
-	 */
-	private function save_reregistration_settings( array $clean, array $new ): array {
-        // phpcs:disable WordPress.Security.NonceVerification.Missing -- Nonce verified in handle_all_submissions() via wp_verify_nonce.
-		$ffc_tab = isset( $_POST['_ffc_tab'] ) ? sanitize_key( wp_unslash( $_POST['_ffc_tab'] ) ) : '';
-		if ( 'reregistration' !== $ffc_tab ) {
-			return $clean;
-		}
-
-		if ( ! isset( $new['divisao_setor_map_json'] ) || ! is_string( $new['divisao_setor_map_json'] ) ) {
-			return $clean;
-		}
-
-		$decoded                    = json_decode( wp_unslash( $new['divisao_setor_map_json'] ), true );
-		$clean['divisao_setor_map'] = $this->sanitize_divisao_setor_map( is_array( $decoded ) ? $decoded : array() );
-
-		return $clean;
-        // phpcs:enable WordPress.Security.NonceVerification.Missing
-	}
-
-	/**
-	 * Sanitize the nested Divisão → Setor map.
-	 *
-	 * Shape: `array<string, array<string>>` (division => list of sectors).
-	 * Every key and leaf is run through `sanitize_text_field`; empty
-	 * division names are dropped, sectors are de-duplicated, and a division
-	 * with no sectors is preserved (admin may be mid-edit — it just yields
-	 * an empty child dropdown).
-	 *
-	 * @param array<int|string, mixed> $raw Decoded JSON payload.
-	 * @return array<string, array<string>>
-	 */
-	private function sanitize_divisao_setor_map( array $raw ): array {
-		$clean = array();
-
-		foreach ( $raw as $division => $sectors ) {
-			$division_name = sanitize_text_field( (string) $division );
-			if ( '' === $division_name || ! is_array( $sectors ) ) {
-				continue;
-			}
-
-			$clean_sectors = array();
-			foreach ( $sectors as $sector ) {
-				$sector_name = sanitize_text_field( (string) $sector );
-				if ( '' !== $sector_name && ! in_array( $sector_name, $clean_sectors, true ) ) {
-					$clean_sectors[] = $sector_name;
-				}
-			}
-
-			$clean[ $division_name ] = $clean_sectors;
-		}
-
-		return $clean;
-	}
-
-	/**
-	 * Resync per-audience divisao_setor snapshots when the global map
-	 * changed between the previous and the just-saved settings.
-	 *
-	 * @param array<string, mixed> $current Settings before save.
-	 * @param array<string, mixed> $clean   Settings after save.
-	 * @return void
-	 */
-	private function maybe_resync_divisao_setor( array $current, array $clean ): void {
-		$before = $current['divisao_setor_map'] ?? null;
-		$after  = $clean['divisao_setor_map'] ?? null;
-
-		if ( $before === $after ) {
-			return;
-		}
-
-		if ( class_exists( '\FreeFormCertificate\Reregistration\ReregistrationStandardFieldsSeeder' ) ) {
-			\FreeFormCertificate\Reregistration\ReregistrationStandardFieldsSeeder::resync_divisao_setor_groups();
-		}
 	}
 
 	/**
