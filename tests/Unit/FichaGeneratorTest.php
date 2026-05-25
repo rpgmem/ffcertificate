@@ -344,6 +344,46 @@ class FichaGeneratorTest extends TestCase {
     }
 
     // ==================================================================
+    // resolve_acknowledgment_html()
+    // ==================================================================
+
+    public function test_resolve_acknowledgment_html_uses_field_options(): void {
+        Functions\when('wp_kses_post')->returnArg();
+
+        $field = (object) [
+            'field_type'    => 'acknowledgment',
+            'field_options' => json_encode(['html' => '<p>Custom notice</p>']),
+        ];
+
+        $result = $this->invokePrivateStatic('resolve_acknowledgment_html', [[$field]]);
+
+        $this->assertStringContainsString('Custom notice', $result);
+    }
+
+    public function test_resolve_acknowledgment_html_falls_back_to_default_when_no_field(): void {
+        Functions\when('wp_kses_post')->returnArg();
+
+        $result = $this->invokePrivateStatic('resolve_acknowledgment_html', [[]]);
+
+        // The shipped default notice mentions these programmes.
+        $this->assertStringContainsString('SISPATRI', $result);
+        $this->assertStringContainsString('<ol>', $result);
+    }
+
+    public function test_resolve_acknowledgment_html_falls_back_when_field_html_empty(): void {
+        Functions\when('wp_kses_post')->returnArg();
+
+        $field = (object) [
+            'field_type'    => 'acknowledgment',
+            'field_options' => json_encode(['html' => '']),
+        ];
+
+        $result = $this->invokePrivateStatic('resolve_acknowledgment_html', [[$field]]);
+
+        $this->assertStringContainsString('SISPATRI', $result);
+    }
+
+    // ==================================================================
     // load_template()
     // ==================================================================
 
@@ -384,5 +424,10 @@ class FichaGeneratorTest extends TestCase {
         $this->assertStringContainsString('{{divisao_setor_child}}', $result);
         $this->assertStringNotContainsString('{{divisao}}', $result);
         $this->assertStringNotContainsString('{{setor}}', $result);
+
+        // The acknowledgment block is injected via the placeholder now, not
+        // hardcoded in the template.
+        $this->assertStringContainsString('{{termo_ciencia}}', $result);
+        $this->assertStringNotContainsString('Declaração de Família WEB', $result);
     }
 }

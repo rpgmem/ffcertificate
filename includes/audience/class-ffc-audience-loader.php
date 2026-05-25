@@ -813,6 +813,12 @@ class AudienceLoader {
 						$options['groups'] = $groups;
 					}
 				}
+				// acknowledgment rich-text block (display-only field). Only
+				// stored when non-empty so a bulk save never wipes an existing
+				// notice (mirrors the standard-field wipe guard below).
+				if ( isset( $field_data['html'] ) && '' !== trim( (string) $field_data['html'] ) ) {
+					$options['html'] = wp_kses_post( (string) $field_data['html'] );
+				}
 
 				// Build validation_rules JSON.
 				$rules = array();

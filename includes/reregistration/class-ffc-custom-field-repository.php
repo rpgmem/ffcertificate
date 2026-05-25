@@ -52,6 +52,16 @@ class CustomFieldRepository {
 		'checkbox',
 		'textarea',
 		'working_hours',
+		'acknowledgment',
+	);
+
+	/**
+	 * Display-only field types — they render static content (no user input),
+	 * so they're skipped during value collection, validation and persistence.
+	 * Their content lives in `field_options` (e.g. `acknowledgment` → `html`).
+	 */
+	public const DISPLAY_ONLY_TYPES = array(
+		'acknowledgment',
 	);
 
 	/**

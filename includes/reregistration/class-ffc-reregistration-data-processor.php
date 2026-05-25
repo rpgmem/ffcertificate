@@ -92,6 +92,11 @@ class ReregistrationDataProcessor {
 		$collected = array();
 
 		foreach ( $fields as $field ) {
+			// Display-only blocks (e.g. acknowledgment) carry no user value.
+			if ( in_array( (string) $field->field_type, CustomFieldRepository::DISPLAY_ONLY_TYPES, true ) ) {
+				continue;
+			}
+
 			$key   = (string) $field->field_key;
 			$value = $raw[ $key ] ?? '';
 
@@ -172,6 +177,11 @@ class ReregistrationDataProcessor {
 		$fields = self::get_fields_for_reregistration( $rereg );
 
 		foreach ( $fields as $field ) {
+			// Display-only blocks (e.g. acknowledgment) have nothing to validate.
+			if ( in_array( (string) $field->field_type, CustomFieldRepository::DISPLAY_ONLY_TYPES, true ) ) {
+				continue;
+			}
+
 			$key   = (string) $field->field_key;
 			$value = $values[ $key ] ?? '';
 			$name  = self::POST_ROOT . '[' . $key . ']';
@@ -239,6 +249,11 @@ class ReregistrationDataProcessor {
 		// Build the persistence payload with sensitive fields encrypted.
 		$persisted_fields = array();
 		foreach ( $fields as $field ) {
+			// Display-only blocks (e.g. acknowledgment) are never persisted.
+			if ( in_array( (string) $field->field_type, CustomFieldRepository::DISPLAY_ONLY_TYPES, true ) ) {
+				continue;
+			}
+
 			$key = (string) $field->field_key;
 			$val = $values[ $key ] ?? '';
 
