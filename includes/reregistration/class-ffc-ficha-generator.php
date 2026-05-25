@@ -134,6 +134,9 @@ class FichaGenerator {
 		// Build custom fields section HTML (only non-standard fields).
 		$custom_section = self::build_custom_fields_section( $custom_fields, $decrypted_values );
 
+		// Resolve the acknowledgment (termo de ciência) HTML for this audience.
+		$termo_html = self::resolve_acknowledgment_html( $standard_fields );
+
 		// Load template.
 		$template = self::load_template();
 
@@ -147,6 +150,11 @@ class FichaGenerator {
 
 		// Replace custom fields section.
 		$template = str_replace( '{{custom_fields_section}}', $custom_section, $template );
+
+		// Replace the acknowledgment block. Injected separately (not through the
+		// per-variable wp_kses above, whose allowlist omits <a>) so the notice's
+		// links survive; the stored HTML is already wp_kses_post-sanitized.
+		$template = str_replace( '{{termo_ciencia}}', $termo_html, $template );
 
 		// Fix relative URLs.
 		$site_url = untrailingslashit( get_home_url() );
@@ -365,6 +373,39 @@ class FichaGenerator {
 		}
 
 		return $vars;
+	}
+
+	/**
+	 * Resolve the acknowledgment (termo de ciência) HTML for the ficha.
+	 *
+	 * Uses the first standard `acknowledgment` field's `field_options['html']`
+	 * (audiences sharing a tree carry the same notice via replication). Falls
+	 * back to the shipped default for submissions whose audience predates the
+	 * field. Returned HTML is wp_kses_post-sanitized for safe PDF embedding.
+	 *
+	 * @param array<int, object> $standard_fields Standard field definitions.
+	 * @phpstan-param list<CustomFieldRow> $standard_fields
+	 * @return string
+	 */
+	public static function resolve_acknowledgment_html( array $standard_fields ): string {
+		$html = '';
+		foreach ( $standard_fields as $field ) {
+			if ( 'acknowledgment' !== (string) $field->field_type ) {
+				continue;
+			}
+			$opts = $field->field_options ?? null;
+			$opts = is_string( $opts ) ? json_decode( $opts, true ) : $opts;
+			if ( is_array( $opts ) && isset( $opts['html'] ) && '' !== $opts['html'] ) {
+				$html = (string) $opts['html'];
+			}
+			break;
+		}
+
+		if ( '' === $html ) {
+			$html = ReregistrationFieldOptions::get_default_termo_ciencia_html();
+		}
+
+		return wp_kses_post( $html );
 	}
 
 	/**

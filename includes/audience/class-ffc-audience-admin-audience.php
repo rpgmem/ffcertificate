@@ -432,6 +432,9 @@ class AudienceAdminAudience {
 						<div class="ffc-field-options-container" style="display:none;">
 							<textarea class="ffc-field-choices" placeholder="<?php esc_attr_e( 'Options (one per line)', 'ffcertificate' ); ?>" rows="3"></textarea>
 						</div>
+						<div class="ffc-field-html-container" style="display:none;">
+							<textarea class="ffc-field-html" placeholder="<?php esc_attr_e( 'Notice HTML (supports basic formatting and links)', 'ffcertificate' ); ?>" rows="6"></textarea>
+						</div>
 						<div class="ffc-field-validation-container">
 							<select class="ffc-field-format">
 								<option value=""><?php esc_html_e( 'No format validation', 'ffcertificate' ); ?></option>
@@ -539,6 +542,28 @@ class AudienceAdminAudience {
 						<input type="checkbox" class="ffc-field-sensitive" <?php checked( $is_sensitive ); ?><?php echo esc_attr( $locked_attr ); ?>> <?php esc_html_e( 'Sensitive', 'ffcertificate' ); ?>
 					</label>
 				</div>
+				<?php if ( 'acknowledgment' === $field->field_type ) : ?>
+					<div class="ffc-field-html-container">
+						<p class="description"><?php esc_html_e( 'Notice shown at the end of the reregistration form and printed on the ficha PDF. Use "Replicate lists to children" to push it to descendant audiences.', 'ffcertificate' ); ?></p>
+						<?php
+						wp_editor(
+							isset( $options['html'] ) ? (string) $options['html'] : '',
+							'ffc_termo_' . (int) $field->id,
+							array(
+								'textarea_name' => 'ffc_termo_' . (int) $field->id,
+								'textarea_rows' => 12,
+								'media_buttons' => false,
+								'teeny'         => true,
+								'tinymce'       => array(
+									'toolbar1' => 'bold,italic,underline,bullist,numlist,link,unlink,undo,redo',
+									'toolbar2' => '',
+								),
+								'quicktags'     => array( 'buttons' => 'strong,em,link,ul,ol,li,close' ),
+							)
+						);
+						?>
+					</div>
+				<?php endif; ?>
 				<div class="ffc-field-details-row" style="display:none;">
 					<input type="text" class="ffc-field-key" placeholder="<?php esc_attr_e( 'field_key', 'ffcertificate' ); ?>" value="<?php echo esc_attr( $field->field_key ); ?>"<?php echo esc_attr( $locked_attr ); ?>>
 					<input type="text" class="ffc-field-profile-key" placeholder="<?php esc_attr_e( 'profile_key (optional)', 'ffcertificate' ); ?>" value="<?php echo esc_attr( $profile_key ); ?>"<?php echo esc_attr( $locked_attr ); ?>>

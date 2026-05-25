@@ -86,6 +86,12 @@
             return;
         }
 
+        // Flush any TinyMCE (wp_editor) instances back to their textareas so
+        // the acknowledgment HTML we read below reflects unsaved edits.
+        if (window.tinymce && typeof window.tinymce.triggerSave === 'function') {
+            window.tinymce.triggerSave();
+        }
+
         var fields = [];
         $('#ffc-custom-fields-list .ffc-custom-field-row').each(function (idx) {
             var $row = $(this);
@@ -120,6 +126,7 @@
                 mask: $row.find('.ffc-field-mask').val() || '',
                 choices: choices,
                 groups: groups,
+                html: $row.find('.ffc-field-html-container textarea').val() || '',
                 help_text: $row.find('.ffc-field-help').val(),
                 format: $row.find('.ffc-field-format').val(),
                 custom_regex: $row.find('.ffc-field-regex').val(),
@@ -248,8 +255,10 @@
         var isSelect = (type === 'select');
         var isDependent = (type === 'dependent_select');
         var isWorkingHours = (type === 'working_hours');
+        var isAcknowledgment = (type === 'acknowledgment');
         $row.find('.ffc-field-options-container').toggle(isSelect);
         $row.find('.ffc-field-groups-container').toggle(isDependent);
+        $row.find('.ffc-field-html-container').toggle(isAcknowledgment);
         // Hide format validation for types that don't support it
         $row.find('.ffc-field-format').closest('.ffc-field-detail-row').toggle(!isWorkingHours);
     }

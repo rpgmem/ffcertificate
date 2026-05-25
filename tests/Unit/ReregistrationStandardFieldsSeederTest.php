@@ -108,12 +108,39 @@ class ReregistrationStandardFieldsSeederTest extends TestCase {
     }
 
     public function test_standard_fields_use_valid_types(): void {
-        $valid_types = array( 'text', 'select', 'date', 'working_hours', 'dependent_select' );
+        $valid_types = array( 'text', 'select', 'date', 'working_hours', 'dependent_select', 'acknowledgment' );
         $defs = ReregistrationStandardFieldsSeeder::get_standard_fields_definition();
 
         foreach ( $defs as $def ) {
             $this->assertContains( $def['field_type'], $valid_types, "Invalid type '{$def['field_type']}' for key '{$def['field_key']}'" );
         }
+    }
+
+    public function test_acknowledgment_field_is_display_only_with_default_html(): void {
+        $defs  = ReregistrationStandardFieldsSeeder::get_standard_fields_definition();
+        $found = false;
+        foreach ( $defs as $def ) {
+            if ( 'acknowledgment' === $def['field_key'] ) {
+                $this->assertSame( 'acknowledgment', $def['field_type'] );
+                $this->assertSame( ReregistrationStandardFieldsSeeder::GROUP_ACKNOWLEDGMENT, $def['field_group'] );
+                $this->assertSame( 0, $def['required'] );
+                $this->assertSame( 0, $def['is_sensitive'] );
+                $this->assertNull( $def['profile_key'] );
+                $this->assertArrayHasKey( 'html', $def['options'] );
+                $this->assertNotEmpty( $def['options']['html'] );
+                $found = true;
+                break;
+            }
+        }
+        $this->assertTrue( $found, 'acknowledgment field not found' );
+    }
+
+    public function test_acknowledgment_field_is_seeded_last(): void {
+        // Sort order = array index, so the acknowledgment block must render
+        // after every other group's fields.
+        $defs = ReregistrationStandardFieldsSeeder::get_standard_fields_definition();
+        $last = end( $defs );
+        $this->assertSame( 'acknowledgment', $last['field_key'] );
     }
 
     public function test_cpf_field_has_validation_format(): void {

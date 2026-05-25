@@ -62,11 +62,12 @@ class ReregistrationStandardFieldsSeeder {
 	/**
 	 * Field groups used for the standard fields.
 	 */
-	public const GROUP_PERSONAL     = 'personal';
-	public const GROUP_CONTACT      = 'contact';
-	public const GROUP_SCHEDULE     = 'schedule';
-	public const GROUP_ACCUMULATION = 'accumulation';
-	public const GROUP_UNION        = 'union';
+	public const GROUP_PERSONAL       = 'personal';
+	public const GROUP_CONTACT        = 'contact';
+	public const GROUP_SCHEDULE       = 'schedule';
+	public const GROUP_ACCUMULATION   = 'accumulation';
+	public const GROUP_UNION          = 'union';
+	public const GROUP_ACKNOWLEDGMENT = 'acknowledgment';
 
 	/**
 	 * Get the ordered list of groups with translated labels.
@@ -75,11 +76,12 @@ class ReregistrationStandardFieldsSeeder {
 	 */
 	public static function get_group_labels(): array {
 		return array(
-			self::GROUP_PERSONAL     => __( 'Personal Data', 'ffcertificate' ),
-			self::GROUP_CONTACT      => __( 'Contact Information', 'ffcertificate' ),
-			self::GROUP_SCHEDULE     => __( 'Work Schedule', 'ffcertificate' ),
-			self::GROUP_ACCUMULATION => __( 'Position Accumulation', 'ffcertificate' ),
-			self::GROUP_UNION        => __( 'Union', 'ffcertificate' ),
+			self::GROUP_PERSONAL       => __( 'Personal Data', 'ffcertificate' ),
+			self::GROUP_CONTACT        => __( 'Contact Information', 'ffcertificate' ),
+			self::GROUP_SCHEDULE       => __( 'Work Schedule', 'ffcertificate' ),
+			self::GROUP_ACCUMULATION   => __( 'Position Accumulation', 'ffcertificate' ),
+			self::GROUP_UNION          => __( 'Union', 'ffcertificate' ),
+			self::GROUP_ACKNOWLEDGMENT => __( 'Acknowledgment', 'ffcertificate' ),
 		);
 	}
 
@@ -492,6 +494,24 @@ class ReregistrationStandardFieldsSeeder {
 				'mask'         => null,
 				'required'     => 0,
 				'options'      => null,
+				'validation'   => null,
+			),
+
+			// ───── Acknowledgment ─────.
+			// Display-only rich-text block (no user input). The notice HTML
+			// lives in field_options['html']; admins edit it per-audience in
+			// the Custom Fields editor and "Replicate to children" propagates
+			// it like any other standard field's options.
+			array(
+				'field_key'    => 'acknowledgment',
+				'field_label'  => __( 'Acknowledgment', 'ffcertificate' ),
+				'field_type'   => 'acknowledgment',
+				'field_group'  => self::GROUP_ACKNOWLEDGMENT,
+				'profile_key'  => null,
+				'is_sensitive' => 0,
+				'mask'         => null,
+				'required'     => 0,
+				'options'      => array( 'html' => ReregistrationFieldOptions::get_default_termo_ciencia_html() ),
 				'validation'   => null,
 			),
 		);

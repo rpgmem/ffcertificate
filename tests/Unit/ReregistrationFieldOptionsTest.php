@@ -175,4 +175,26 @@ class ReregistrationFieldOptionsTest extends TestCase {
             $this->assertSame( '', $entry['exit2'] );
         }
     }
+
+    // ==================================================================
+    // get_default_termo_ciencia_html() — shipped acknowledgment default
+    // ==================================================================
+
+    public function test_default_termo_ciencia_html_is_non_empty_html(): void {
+        $html = ReregistrationFieldOptions::get_default_termo_ciencia_html();
+
+        $this->assertIsString( $html );
+        $this->assertNotEmpty( $html );
+        $this->assertStringContainsString( '<ol>', $html );
+        $this->assertStringContainsString( '<li>', $html );
+    }
+
+    public function test_default_termo_ciencia_html_preserves_links(): void {
+        $html = ReregistrationFieldOptions::get_default_termo_ciencia_html();
+
+        // The notice references external systems; the anchors must survive so
+        // the ficha PDF (which bypasses the link-stripping allowlist) keeps them.
+        $this->assertStringContainsString( '<a href="https://www.declaracaofamilia', $html );
+        $this->assertStringContainsString( 'SISPATRI', $html );
+    }
 }

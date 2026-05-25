@@ -107,13 +107,25 @@ class ReregistrationFormRenderer {
 
 				<?php
 				$group_index = 0;
+				$has_ack     = false;
 				foreach ( $grouped as $group_key => $group_fields ) {
 					++$group_index;
+					foreach ( $group_fields as $gf ) {
+						if ( 'acknowledgment' === (string) $gf->field_type ) {
+							$has_ack = true;
+							break;
+						}
+					}
 					$label = $group_labels[ $group_key ] ?? ( '' !== $group_key ? $group_key : __( 'Additional Information', 'ffcertificate' ) );
 					self::render_group_fieldset( $group_index, (string) $label, $group_fields, $values );
 				}
 
-				self::render_acknowledgment_fieldset( $group_index + 1 );
+				// Fallback for audiences seeded before the acknowledgment field
+				// existed: render the default notice so the form is never missing
+				// its legal block. Seeded audiences render it via the loop above.
+				if ( ! $has_ack ) {
+					self::render_acknowledgment_fieldset( $group_index + 1 );
+				}
 
 				// Honeypot field (defense-in-depth — form already requires login).
 				?>
@@ -289,6 +301,16 @@ class ReregistrationFormRenderer {
 		$field_name = self::FIELD_NAME_ROOT . '[' . (string) $field->field_key . ']';
 		$required   = ! empty( $field->is_required );
 		$rules      = self::decode_rules( $field );
+
+		// Display-only acknowledgment block: render its HTML, no label/input.
+		if ( 'acknowledgment' === (string) $field->field_type ) {
+			$options = self::decode_options( $field );
+			$html    = isset( $options['html'] ) && '' !== $options['html']
+				? (string) $options['html']
+				: ReregistrationFieldOptions::get_default_termo_ciencia_html();
+			echo '<div class="ffc-rereg-termo-text">' . wp_kses_post( $html ) . '</div>';
+			return;
+		}
 
 		// Checkbox renders its own label inline.
 		if ( 'checkbox' === $field->field_type ) {
@@ -565,26 +587,20 @@ class ReregistrationFormRenderer {
 	}
 
 	/**
-	 * Render the acknowledgment fieldset (fixed legal notice).
+	 * Render the acknowledgment fieldset using the shipped default notice.
+	 *
+	 * Fallback only — used when the audience predates the per-audience
+	 * `acknowledgment` field. Seeded audiences render the (editable) field via
+	 * the normal group loop instead.
 	 *
 	 * @param int $index Fieldset index shown in the legend.
 	 */
 	private static function render_acknowledgment_fieldset( int $index ): void {
 		?>
-		<!-- TERMO DE CIÊNCIA -->
 		<fieldset class="ffc-rereg-fieldset">
 			<legend><?php echo esc_html( sprintf( '%d. %s', $index, __( 'Acknowledgment', 'ffcertificate' ) ) ); ?></legend>
-
 			<div class="ffc-rereg-termo-text">
-				<p><?php echo esc_html__( 'I, working at the Regional Education Board of São Miguel – DRE-MP, declare that I am aware of the guidelines for the current year:', 'ffcertificate' ); ?></p>
-				<ol>
-					<li><strong><?php echo esc_html__( 'Family Declaration (WEB):', 'ffcertificate' ); ?></strong> <?php echo esc_html__( 'The Family Declaration must be completed during the employee\'s birthday month, through the website:', 'ffcertificate' ); ?> <a href="https://www.declaracaofamilia.iprem.prefeitura.sp.gov.br/Login" target="_blank" rel="noopener noreferrer">https://www.declaracaofamilia.iprem.prefeitura.sp.gov.br/Login</a>. <?php echo esc_html__( 'Afterward, it must be printed and delivered to the Personnel Records Department for filing;', 'ffcertificate' ); ?></li>
-					<li><strong><?php echo esc_html__( 'Transportation Benefit Re-registration:', 'ffcertificate' ); ?></strong> <?php echo esc_html__( 'The same guidelines apply to those entitled to the benefit. The re-registration must be completed during the birthday month, and the employee must complete the Transportation Benefit re-registration BEFORE the annual re-registration (proof of life);', 'ffcertificate' ); ?></li>
-					<li><strong><?php echo esc_html__( 'Annual Re-registration (Proof of Life):', 'ffcertificate' ); ?></strong> <?php echo esc_html__( 'The same guidelines apply. Note that an ID card issued more than 10 years ago will not be accepted, and the employee must obtain a new document before completing the re-registration;', 'ffcertificate' ); ?></li>
-					<li><strong><?php echo esc_html__( 'Asset Declaration (SISPATRI):', 'ffcertificate' ); ?></strong> <?php echo esc_html__( 'The same guidelines apply. It must be completed after the Federal Revenue deadline, from the 1st to the 30th of June, through the website:', 'ffcertificate' ); ?> <a href="https://controladoriageralbens.prefeitura.sp.gov.br/PaginasPublicas/login.aspx" target="_blank" rel="noopener noreferrer">https://controladoriageralbens.prefeitura.sp.gov.br/PaginasPublicas/login.aspx</a>;</li>
-					<li><strong><?php echo esc_html__( '13th Salary Advance:', 'ffcertificate' ); ?></strong> <?php echo esc_html__( 'The request may be filled out and delivered to the HR Unit from the 1st business day of the year to which the advance refers, regardless of the employee\'s birthday month.', 'ffcertificate' ); ?></li>
-					<li><strong><?php echo esc_html__( 'Submission of Medical/Dental Certificates with Leave Request from 1 (one) day:', 'ffcertificate' ); ?></strong> <?php echo esc_html__( 'We reiterate that any leave request for health treatment (personal or family member) must be immediately reported to the supervisor, with presentation of the medical/dental certificate. Then, the documentation must be delivered to the Personnel Records Department IN PERSON or digitized to the email:', 'ffcertificate' ); ?> <a href="mailto:rhvidafuncionaldremp@sme.prefeitura.sp.gov.br">rhvidafuncionaldremp@sme.prefeitura.sp.gov.br</a>. <?php echo esc_html__( 'Important: The Personnel Records Department and the Supervisor are not responsible for certificates left in the attendance book or in the folder designated exclusively for Schedule Declarations, as well as those delivered outside the legal deadline for scheduling a medical examination, if applicable.', 'ffcertificate' ); ?></li>
-				</ol>
+				<?php echo wp_kses_post( ReregistrationFieldOptions::get_default_termo_ciencia_html() ); ?>
 			</div>
 		</fieldset>
 		<?php
