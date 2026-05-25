@@ -696,10 +696,14 @@ class AdminAssetsManager {
 	 */
 	private function get_localization_data(): array {
 		return array(
-			'ajax_url'     => admin_url( 'admin-ajax.php' ),
-			'nonce'        => wp_create_nonce( 'ffc_admin_pdf_nonce' ),
-			'export_nonce' => wp_create_nonce( 'ffc_csv_export' ),
-			'templates'    => array(
+			'ajax_url'       => admin_url( 'admin-ajax.php' ),
+			'nonce'          => wp_create_nonce( 'ffc_admin_pdf_nonce' ),
+			'export_nonce'   => wp_create_nonce( 'ffc_csv_export' ),
+			// Canonical placeholder → sample-value map for the in-editor
+			// certificate preview. Single source of truth lives in PHP so
+			// the JS can't drift from the generators' real placeholders.
+			'previewSamples' => \FreeFormCertificate\Core\CertificatePreviewSamples::get_map(),
+			'templates'      => array(
 				array(
 					'value' => 'atestado_estagios.html',
 					'label' => __( 'Internship Certificate', 'ffcertificate' ),
@@ -717,7 +721,7 @@ class AdminAssetsManager {
 					'label' => __( 'Declaration', 'ffcertificate' ),
 				),
 			),
-			'strings'      => array(
+			'strings'        => array(
 				// General.
 				'generating'              => __( 'Generating...', 'ffcertificate' ),
 				'error'                   => __( 'Error: ', 'ffcertificate' ),

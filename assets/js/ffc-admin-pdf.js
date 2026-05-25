@@ -248,28 +248,21 @@
     // CERTIFICATE PREVIEW
     // ==========================================================================
 
-    // Sample data for placeholder replacement
-    var sampleData = {
-        'name': 'John Doe',
-        'email': 'john_doe@example.com',
-        'cpf_rf': '123.456.789-00',
-        'cpf': '123.456.789-00',
-        'auth_code': 'A1B2-C3D4-E5F6',
-        'form_title': $('#title').val() || 'Certificate Title',
-        'submission_date': new Date().toLocaleDateString('pt-BR', { year: 'numeric', month: 'long', day: 'numeric' }),
-        'print_date': new Date().toLocaleDateString('pt-BR', { year: 'numeric', month: 'long', day: 'numeric' }),
-        'fill_date': new Date().toLocaleDateString('pt-BR', { year: 'numeric', month: 'long', day: 'numeric' }),
-        'date': new Date().toLocaleDateString('pt-BR', { year: 'numeric', month: 'long', day: 'numeric' }),
-        'submission_id': '1234',
-        'magic_token': 'abc123def456ghi789jkl012',
-        'ticket': 'TK01-AB2C-3D4E'
-    };
-
-    // Collect field names from builder as additional sample data
+    // Sample data for placeholder replacement.
+    //
+    // Source of truth is PHP: AdminAssetsManager localizes
+    // CertificatePreviewSamples::get_map() as ffc_ajax.previewSamples, so
+    // this preview stays in sync with the placeholders the real generators
+    // fill. The JS only overlays values PHP can't know at enqueue time —
+    // the live form title and custom builder field names.
     function getSampleFieldData() {
-        var fieldData = $.extend({}, sampleData);
-        // Use actual form title
-        fieldData['form_title'] = $('#title').val() || fieldData['form_title'];
+        var ajax = (typeof ffc_ajax !== 'undefined') ? ffc_ajax : {};
+        var fieldData = $.extend({}, ajax.previewSamples || {});
+        // Live form title overrides the PHP placeholder default.
+        var liveTitle = $('#title').val();
+        if (liveTitle) {
+            fieldData['form_title'] = liveTitle;
+        }
         // Scan form builder fields for custom variables
         $('#ffc-fields-container .ffc-field-row').each(function() {
             var fieldName = $(this).find('input[name*="[name]"]').val();
