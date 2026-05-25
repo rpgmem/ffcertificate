@@ -14,7 +14,7 @@
     "setup-hooks": "git config core.hooksPath .githooks && echo 'Git hooks configured.'"
   },
   "devDependencies": {
-    "@vitest/coverage-v8": "~2.1",
+    "@vitest/coverage-v8": "~4.1",
     "@wordpress/stylelint-config": "^23.38.0",
     "clean-css-cli": "^5.6.3",
     "eslint": "^10.4.0",
