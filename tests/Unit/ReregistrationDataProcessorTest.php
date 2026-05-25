@@ -57,12 +57,6 @@ class ReregistrationDataProcessorTest extends TestCase {
         Functions\when( 'FreeFormCertificate\Reregistration\is_email' )->alias( function ( $email ) {
             return (bool) filter_var( $email, FILTER_VALIDATE_EMAIL );
         });
-        // validate_submission() resolves the divisao_setor map via
-        // SettingsReader → get_option. Empty option → hardcoded default.
-        Functions\when( 'get_option' )->alias( function ( $key, $default = null ) {
-            return 'ffc_settings' === $key ? array() : $default;
-        } );
-
         // Default $wpdb mock — no fields returned.
         $this->setup_wpdb_with_fields( array() );
     }
@@ -133,7 +127,7 @@ class ReregistrationDataProcessorTest extends TestCase {
      * @return array<object>
      */
     private function standard_field_mocks(): array {
-        $divisao_map = \FreeFormCertificate\Reregistration\ReregistrationFieldOptions::get_divisao_setor_map();
+        $divisao_map = \FreeFormCertificate\Reregistration\ReregistrationFieldOptions::get_default_divisao_setor_map();
         $sexo        = \FreeFormCertificate\Reregistration\ReregistrationFieldOptions::get_sexo_options();
         $estado      = \FreeFormCertificate\Reregistration\ReregistrationFieldOptions::get_estado_civil_options();
         $jornada     = \FreeFormCertificate\Reregistration\ReregistrationFieldOptions::get_jornada_options();

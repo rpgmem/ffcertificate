@@ -21,9 +21,6 @@ class ReregistrationFieldOptionsTest extends TestCase {
         Monkey\setUp();
 
         Functions\when( '__' )->returnArg();
-        // Default: no stored map → get_divisao_setor_map() falls back to the
-        // hardcoded default. Individual tests override via stub_option().
-        $this->stub_option( array() );
     }
 
     protected function tearDown(): void {
@@ -31,57 +28,19 @@ class ReregistrationFieldOptionsTest extends TestCase {
         parent::tearDown();
     }
 
-    /**
-     * Stub get_option('ffc_settings', []) to return $settings.
-     *
-     * @param array<string, mixed> $settings
-     */
-    private function stub_option( array $settings ): void {
-        Functions\when( 'get_option' )->alias( function ( $key, $default = null ) use ( $settings ) {
-            if ( 'ffc_settings' === $key ) {
-                return $settings;
-            }
-            return $default;
-        } );
-    }
-
     // ==================================================================
-    // get_divisao_setor_map() — configurable + fallback
+    // get_default_divisao_setor_map() — shipped seed default
     // ==================================================================
 
     public function test_divisao_setor_map_returns_non_empty_array(): void {
-        $map = ReregistrationFieldOptions::get_divisao_setor_map();
+        $map = ReregistrationFieldOptions::get_default_divisao_setor_map();
 
         $this->assertIsArray( $map );
         $this->assertNotEmpty( $map );
     }
 
-    public function test_divisao_setor_map_returns_configured_override(): void {
-        $custom = array( 'Custom Division' => array( 'Custom Sector' ) );
-        $this->stub_option( array( 'divisao_setor_map' => $custom ) );
-
-        $this->assertSame( $custom, ReregistrationFieldOptions::get_divisao_setor_map() );
-    }
-
-    public function test_divisao_setor_map_falls_back_to_default_when_option_empty(): void {
-        // Stored as empty array → treated as "unset", default kicks in.
-        $this->stub_option( array( 'divisao_setor_map' => array() ) );
-
-        $this->assertSame(
-            ReregistrationFieldOptions::get_default_divisao_setor_map(),
-            ReregistrationFieldOptions::get_divisao_setor_map()
-        );
-    }
-
-    public function test_default_divisao_setor_map_matches_runtime_when_unconfigured(): void {
-        $this->assertSame(
-            ReregistrationFieldOptions::get_default_divisao_setor_map(),
-            ReregistrationFieldOptions::get_divisao_setor_map()
-        );
-    }
-
     public function test_divisao_setor_map_contains_expected_divisions(): void {
-        $map = ReregistrationFieldOptions::get_divisao_setor_map();
+        $map = ReregistrationFieldOptions::get_default_divisao_setor_map();
 
         $this->assertArrayHasKey( 'DRE - Gabinete', $map );
         $this->assertArrayHasKey( 'DRE - DIAF', $map );
@@ -95,7 +54,7 @@ class ReregistrationFieldOptionsTest extends TestCase {
     }
 
     public function test_divisao_setor_map_values_are_string_arrays(): void {
-        $map = ReregistrationFieldOptions::get_divisao_setor_map();
+        $map = ReregistrationFieldOptions::get_default_divisao_setor_map();
 
         foreach ( $map as $division => $sectors ) {
             $this->assertIsArray( $sectors, "Sectors for '$division' should be an array" );
@@ -107,7 +66,7 @@ class ReregistrationFieldOptionsTest extends TestCase {
     }
 
     public function test_divisao_setor_map_diaf_has_many_sectors(): void {
-        $map = ReregistrationFieldOptions::get_divisao_setor_map();
+        $map = ReregistrationFieldOptions::get_default_divisao_setor_map();
         $diaf = $map['DRE - DIAF'];
 
         $this->assertGreaterThan( 10, count( $diaf ), 'DIAF should have many sectors' );

@@ -167,10 +167,9 @@ class ReregistrationDataProcessor {
 	 * @return array<string, string> Errors keyed by input name.
 	 */
 	public static function validate_submission( array $data, object $rereg, int $user_id ): array {
-		$errors      = array();
-		$values      = is_array( $data['fields'] ?? null ) ? $data['fields'] : array();
-		$fields      = self::get_fields_for_reregistration( $rereg );
-		$divisao_map = ReregistrationFieldOptions::get_divisao_setor_map();
+		$errors = array();
+		$values = is_array( $data['fields'] ?? null ) ? $data['fields'] : array();
+		$fields = self::get_fields_for_reregistration( $rereg );
 
 		foreach ( $fields as $field ) {
 			$key   = (string) $field->field_key;
@@ -196,15 +195,16 @@ class ReregistrationDataProcessor {
 				continue;
 			}
 
-			// Additional cross-field consistency for divisao_setor against.
-			// the authoritative DRE MP map (covers the case where the.
-			// admin has changed the field but wants the canonical map).
-			if ( 'dependent_select' === $field->field_type && 'divisao_setor' === $key ) {
+			// Cross-field consistency for any dependent_select: the chosen
+			// child must belong to the chosen parent. Reads the field's OWN
+			// per-audience groups (field_options['groups']) — no global map.
+			if ( 'dependent_select' === $field->field_type ) {
 				$decoded = is_string( $value ) ? json_decode( $value, true ) : $value;
 				if ( is_array( $decoded ) && ! empty( $decoded['parent'] ) && ! empty( $decoded['child'] ) ) {
+					$groups = CustomFieldRepository::get_dependent_choices( $field );
 					$parent = (string) $decoded['parent'];
 					$child  = (string) $decoded['child'];
-					if ( isset( $divisao_map[ $parent ] ) && ! in_array( $child, $divisao_map[ $parent ], true ) ) {
+					if ( isset( $groups[ $parent ] ) && ! in_array( $child, $groups[ $parent ], true ) ) {
 						$errors[ $name ] = __( 'Invalid department for the selected division.', 'ffcertificate' );
 					}
 				}

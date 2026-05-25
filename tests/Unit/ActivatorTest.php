@@ -148,45 +148,6 @@ class ActivatorTest extends TestCase {
         $this->assertContains( 'ffc_warm_cache_hook', $cleared );
     }
 
-    // ==================================================================
-    // seed_reregistration_field_options()
-    // ==================================================================
-
-    public function test_seed_writes_default_divisao_setor_map_when_absent(): void {
-        $captured = null;
-        Functions\when( 'get_option' )->justReturn( array() ); // ffc_settings has no map.
-        Functions\when( 'update_option' )->alias( function ( $key, $value ) use ( &$captured ) {
-            if ( 'ffc_settings' === $key ) {
-                $captured = $value;
-            }
-            return true;
-        } );
-
-        $ref = new \ReflectionMethod( Activator::class, 'seed_reregistration_field_options' );
-        $ref->setAccessible( true );
-        $ref->invoke( null );
-
-        $this->assertIsArray( $captured );
-        $this->assertArrayHasKey( 'divisao_setor_map', $captured );
-        $this->assertArrayHasKey( 'DRE - DIAF', $captured['divisao_setor_map'] );
-    }
-
-    public function test_seed_does_not_overwrite_existing_divisao_setor_map(): void {
-        $existing = array( 'divisao_setor_map' => array( 'Custom' => array( 'X' ) ) );
-        Functions\when( 'get_option' )->justReturn( $existing );
-
-        $called = false;
-        Functions\when( 'update_option' )->alias( function () use ( &$called ) {
-            $called = true;
-            return true;
-        } );
-
-        $ref = new \ReflectionMethod( Activator::class, 'seed_reregistration_field_options' );
-        $ref->setAccessible( true );
-        $ref->invoke( null );
-
-        $this->assertFalse( $called, 'update_option must not be called when the map is already set' );
-    }
 
     // ==================================================================
     // activate() — daily cleanup scheduling

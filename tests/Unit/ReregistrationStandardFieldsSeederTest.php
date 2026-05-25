@@ -40,11 +40,6 @@ class ReregistrationStandardFieldsSeederTest extends TestCase {
         Functions\when( '__' )->returnArg();
         Functions\when( 'wp_json_encode' )->alias( function ( $v ) { return json_encode( $v ); } );
         Functions\when( 'add_action' )->justReturn( true );
-        // get_standard_fields_definition() resolves the divisao_setor map via
-        // SettingsReader → get_option. Empty option → hardcoded default.
-        Functions\when( 'get_option' )->alias( function ( $key, $default = null ) {
-            return 'ffc_settings' === $key ? array() : $default;
-        } );
     }
 
     protected function tearDown(): void {
@@ -223,35 +218,49 @@ class ReregistrationStandardFieldsSeederTest extends TestCase {
     }
 
     // ==================================================================
-    // resync_divisao_setor_groups()
+    // replicate_field_options_to_descendants()
     // ==================================================================
 
-    public function test_resync_returns_zero_when_no_audiences(): void {
-        // get_col default returns array() → AudienceRepository::get_all_ids() empty.
-        $this->assertSame( 0, ReregistrationStandardFieldsSeeder::resync_divisao_setor_groups() );
+    public function test_replicate_returns_zero_for_invalid_audience(): void {
+        $this->assertSame( 0, ReregistrationStandardFieldsSeeder::replicate_field_options_to_descendants( 0 ) );
     }
 
-    public function test_resync_updates_each_audience_divisao_setor_field(): void {
+    public function test_replicate_returns_zero_when_parent_has_no_standard_options(): void {
+        // get_by_audience(parent) → get_results returns no fields → no
+        // parent options to replicate → early return 0.
+        $this->wpdb->shouldReceive( 'get_results' )->andReturn( array() );
+
+        $this->assertSame( 0, ReregistrationStandardFieldsSeeder::replicate_field_options_to_descendants( 5 ) );
+    }
+
+    public function test_replicate_copies_parent_options_to_descendant_fields(): void {
         Functions\when( 'wp_cache_delete' )->justReturn( true );
+        Functions\when( 'wp_cache_get' )->justReturn( false );
+        Functions\when( 'wp_cache_set' )->justReturn( true );
+        Functions\when( 'wp_parse_args' )->alias( function ( $args, $defaults = array() ) {
+            return is_array( $args ) ? array_merge( $defaults, $args ) : $defaults;
+        } );
+        Functions\when( 'sanitize_sql_orderby' )->returnArg();
+        Functions\when( 'absint' )->alias( function ( $v ) { return abs( (int) $v ); } );
 
-        // One audience id from get_all_ids().
-        $this->wpdb->shouldReceive( 'get_col' )->andReturn( array( '7' ) );
-
-        // get_by_key(7, 'divisao_setor') → an existing field row.
-        $field = (object) array(
-            'id'            => 42,
-            'field_options' => json_encode(
-                array(
-                    'groups'       => array( 'Old Division' => array( 'Old Sector' ) ),
-                    'parent_label' => 'Division',
-                    'child_label'  => 'Department',
-                )
-            ),
+        $parent_field = (object) array(
+            'id'            => 10,
+            'field_key'     => 'divisao_setor',
+            'field_source'  => 'standard',
+            'field_options' => json_encode( array( 'groups' => array( 'D' => array( 'S' ) ), 'parent_label' => 'Division' ) ),
         );
-        $this->wpdb->shouldReceive( 'get_row' )->andReturn( $field );
+        $child_audience = (object) array( 'id' => 99, 'parent_id' => '5' );
+        $child_field    = (object) array( 'id' => 77, 'field_key' => 'divisao_setor', 'field_source' => 'standard', 'field_options' => null );
 
-        // The update() call must target field id 42 with the new groups while
-        // preserving parent_label / child_label.
+        // get_results: 1) parent fields, 2) children of parent, 3) children of child (none).
+        $this->wpdb->shouldReceive( 'get_results' )->andReturn(
+            array( $parent_field ),
+            array( $child_audience ),
+            array()
+        );
+        // get_by_key(99, 'divisao_setor') → child's field.
+        $this->wpdb->shouldReceive( 'get_row' )->andReturn( $child_field );
+
         $captured = null;
         $this->wpdb->shouldReceive( 'update' )->andReturnUsing(
             function ( $table, $data, $where ) use ( &$captured ) {
@@ -260,16 +269,13 @@ class ReregistrationStandardFieldsSeederTest extends TestCase {
             }
         );
 
-        $updated = ReregistrationStandardFieldsSeeder::resync_divisao_setor_groups();
+        $updated = ReregistrationStandardFieldsSeeder::replicate_field_options_to_descendants( 5 );
 
         $this->assertSame( 1, $updated );
         $this->assertNotNull( $captured );
-        $this->assertSame( 42, $captured['where']['id'] );
-
+        $this->assertSame( 77, $captured['where']['id'] );
         $decoded = json_decode( $captured['data']['field_options'], true );
         $this->assertArrayHasKey( 'groups', $decoded );
-        $this->assertArrayHasKey( 'DRE - DIAF', $decoded['groups'], 'groups should be rewritten to the current map' );
-        $this->assertSame( 'Division', $decoded['parent_label'], 'parent_label must be preserved' );
-        $this->assertSame( 'Department', $decoded['child_label'], 'child_label must be preserved' );
+        $this->assertSame( array( 'D' => array( 'S' ) ), $decoded['groups'] );
     }
 }

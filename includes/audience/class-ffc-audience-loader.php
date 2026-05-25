@@ -104,6 +104,7 @@ class AudienceLoader {
 		// Custom fields AJAX.
 		add_action( 'wp_ajax_ffc_save_custom_fields', array( $this, 'ajax_save_custom_fields' ) );
 		add_action( 'wp_ajax_ffc_delete_custom_field', array( $this, 'ajax_delete_custom_field' ) );
+		add_action( 'wp_ajax_ffc_replicate_field_options', array( $this, 'ajax_replicate_field_options' ) );
 	}
 
 	/**
@@ -232,9 +233,30 @@ class AudienceLoader {
 			);
 
 			wp_enqueue_script(
+				'ffc-divisao-setor-editor',
+				FFC_PLUGIN_URL . "assets/js/ffc-divisao-setor-editor{$s}.js",
+				array( 'jquery' ),
+				FFC_VERSION,
+				true
+			);
+			wp_localize_script(
+				'ffc-divisao-setor-editor',
+				'ffcDivisaoSetorEditor',
+				array(
+					'strings' => array(
+						'divisionName'   => __( 'Division name', 'ffcertificate' ),
+						'departmentName' => __( 'Department name', 'ffcertificate' ),
+						'removeDivision' => __( 'Remove division', 'ffcertificate' ),
+						'removeSector'   => __( 'Remove department', 'ffcertificate' ),
+						'addSector'      => __( '+ Add Department', 'ffcertificate' ),
+					),
+				)
+			);
+
+			wp_enqueue_script(
 				'ffc-custom-fields-admin',
 				FFC_PLUGIN_URL . "assets/js/ffc-custom-fields-admin{$s}.js",
-				array( 'jquery', 'jquery-ui-sortable', 'wp-util', 'ffc-audience-admin' ),
+				array( 'jquery', 'jquery-ui-sortable', 'wp-util', 'ffc-audience-admin', 'ffc-divisao-setor-editor' ),
 				FFC_VERSION,
 				true
 			);
@@ -340,6 +362,7 @@ class AudienceLoader {
 			'confirmRemoveUser'    => __( "Remove this user's access?", 'ffcertificate' ),
 			'noUsersYet'           => __( 'No users have been granted access yet.', 'ffcertificate' ),
 			'cannotDeleteStandard' => __( 'Standard fields cannot be deleted. Deactivate instead.', 'ffcertificate' ),
+			'confirmReplicate'     => __( "Copy this audience's option lists to all child and grandchild audiences? This overwrites their current lists.", 'ffcertificate' ),
 		);
 	}
 
@@ -783,6 +806,13 @@ class AudienceLoader {
 				if ( ! empty( $field_data['help_text'] ) ) {
 					$options['help_text'] = sanitize_text_field( $field_data['help_text'] );
 				}
+				// dependent_select groups (e.g. divisao_setor division→sector map).
+				if ( isset( $field_data['groups'] ) && is_array( $field_data['groups'] ) ) {
+					$groups = $this->sanitize_dependent_groups( $field_data['groups'] );
+					if ( ! empty( $groups ) ) {
+						$options['groups'] = $groups;
+					}
+				}
 
 				// Build validation_rules JSON.
 				$rules = array();
@@ -817,23 +847,29 @@ class AudienceLoader {
 					'is_active'         => isset( $field_data['is_active'] ) ? (int) $field_data['is_active'] : 1,
 				);
 
-				// Standard fields are locked: admin can only toggle active/label/group/sort/required.
-				// Anything else is stripped before update.
+				// Standard fields are locked: admin can only toggle
+				// active/label/group/sort/required, PLUS the field's option
+				// lists (select choices / dependent_select groups). Type, key,
+				// mask, profile_key, etc. stay immutable for standard fields.
 				if ( ! $is_new ) {
 					$existing = \FreeFormCertificate\Reregistration\CustomFieldRepository::get_by_id( (int) $field_id );
 					if ( $existing && isset( $existing->field_source ) && 'standard' === $existing->field_source ) {
-						$data = array_intersect_key(
-							$data,
-							array_flip(
-								array(
-									'field_label',
-									'field_group',
-									'sort_order',
-									'is_required',
-									'is_active',
-								)
-							)
+						$allowed = array(
+							'field_label',
+							'field_group',
+							'sort_order',
+							'is_required',
+							'is_active',
 						);
+						// Unlock option-list editing — but only when the payload
+						// actually carries options. Empty options never overwrite,
+						// so a bulk save whose row had no (or an unpopulated)
+						// options editor can't null an existing list.
+						if ( null !== $data['field_options'] ) {
+							$data['field_options'] = $this->preserve_dependent_labels( $existing, $data['field_options'] );
+							$allowed[]             = 'field_options';
+						}
+						$data = array_intersect_key( $data, array_flip( $allowed ) );
 					}
 				}
 
@@ -883,6 +919,99 @@ class AudienceLoader {
 		} catch ( \Throwable $e ) {
 			$this->handle_ajax_exception( $e );
 		}
+	}
+
+	/**
+	 * AJAX: Replicate a parent audience's standard-field option lists
+	 * (departments / unions / work schedules…) to all its descendants.
+	 *
+	 * @return void
+	 */
+	public function ajax_replicate_field_options(): void {
+		try {
+			$this->verify_ajax_nonce( 'ffc_admin_nonce' );
+			$this->check_ajax_permission();
+
+			$audience_id = $this->get_post_int( 'audience_id' );
+			if ( ! $audience_id ) {
+				wp_send_json_error( array( 'message' => __( 'Invalid data.', 'ffcertificate' ) ) );
+			}
+
+			$audience = AudienceRepository::get_by_id( $audience_id );
+			if ( ! $audience ) {
+				wp_send_json_error( array( 'message' => __( 'Audience not found.', 'ffcertificate' ) ) );
+			}
+
+			if ( ! class_exists( '\FreeFormCertificate\Reregistration\ReregistrationStandardFieldsSeeder' ) ) {
+				wp_send_json_error( array( 'message' => __( 'Reregistration module unavailable.', 'ffcertificate' ) ) );
+			}
+
+			$updated = \FreeFormCertificate\Reregistration\ReregistrationStandardFieldsSeeder::replicate_field_options_to_descendants( $audience_id );
+
+			wp_send_json_success(
+				array(
+					/* translators: %d: number of descendant fields updated */
+					'message' => sprintf( _n( 'Replicated to %d field across descendants.', 'Replicated to %d fields across descendants.', $updated, 'ffcertificate' ), $updated ),
+					'updated' => $updated,
+				)
+			);
+		} catch ( \Throwable $e ) {
+			$this->handle_ajax_exception( $e );
+		}
+	}
+
+	/**
+	 * Sanitize a dependent_select groups map (division => list of sectors).
+	 *
+	 * Every key and leaf runs through `sanitize_text_field`; empty division
+	 * names are dropped and sectors are de-duplicated.
+	 *
+	 * @param array<int|string, mixed> $raw Decoded groups payload.
+	 * @return array<string, array<string>>
+	 */
+	private function sanitize_dependent_groups( array $raw ): array {
+		$clean = array();
+		foreach ( $raw as $division => $sectors ) {
+			$name = sanitize_text_field( (string) $division );
+			if ( '' === $name || ! is_array( $sectors ) ) {
+				continue;
+			}
+			$list = array();
+			foreach ( $sectors as $sector ) {
+				$sector_name = sanitize_text_field( (string) $sector );
+				if ( '' !== $sector_name && ! in_array( $sector_name, $list, true ) ) {
+					$list[] = $sector_name;
+				}
+			}
+			$clean[ $name ] = $list;
+		}
+		return $clean;
+	}
+
+	/**
+	 * Carry over a dependent_select field's display labels
+	 * (`parent_label` / `child_label`) from its existing field_options when
+	 * the incoming payload only updates `groups`. The editor edits the map,
+	 * not the labels, so they'd otherwise be lost on save.
+	 *
+	 * @param object               $existing Existing field row.
+	 * @param array<string, mixed> $options  New options being written.
+	 * @return array<string, mixed>
+	 */
+	private function preserve_dependent_labels( object $existing, array $options ): array {
+		if ( ! isset( $options['groups'] ) ) {
+			return $options;
+		}
+		$existing_raw  = $existing->field_options ?? null;
+		$existing_opts = is_string( $existing_raw ) ? json_decode( $existing_raw, true ) : $existing_raw;
+		if ( is_array( $existing_opts ) ) {
+			foreach ( array( 'parent_label', 'child_label' ) as $label_key ) {
+				if ( isset( $existing_opts[ $label_key ] ) && ! isset( $options[ $label_key ] ) ) {
+					$options[ $label_key ] = $existing_opts[ $label_key ];
+				}
+			}
+		}
+		return $options;
 	}
 
 	/**

@@ -40,6 +40,9 @@
         // Save all fields
         $('#ffc-save-custom-fields').on('click', saveFields);
 
+        // Replicate option lists to descendant audiences
+        $('#ffc-replicate-field-options').on('click', replicateFieldOptions);
+
         // Delete field
         $(document).on('click', '.ffc-field-delete', deleteField);
 
@@ -93,6 +96,15 @@
             var choicesText = $row.find('.ffc-field-choices').val() || '';
             var choices = choicesText.split('\n').filter(function (c) { return c.trim() !== ''; });
 
+            // Collect dependent_select groups from the synced hidden input
+            // (kept in sync by ffc-divisao-setor-editor.js). null for rows
+            // without a groups editor — the server ignores non-arrays.
+            var groups = null;
+            var $dsMap = $row.find('.ffc-ds-map-json');
+            if ($dsMap.length) {
+                try { groups = JSON.parse($dsMap.val() || '{}'); } catch (e) { groups = {}; }
+            }
+
             fields.push({
                 id: fieldId,
                 source: source,
@@ -107,6 +119,7 @@
                 profile_key: $row.find('.ffc-field-profile-key').val() || '',
                 mask: $row.find('.ffc-field-mask').val() || '',
                 choices: choices,
+                groups: groups,
                 help_text: $row.find('.ffc-field-help').val(),
                 format: $row.find('.ffc-field-format').val(),
                 custom_regex: $row.find('.ffc-field-regex').val(),
@@ -133,6 +146,46 @@
             })
             .then(function () {
                 // .finally equivalent — always re-enable the button.
+                $btn.prop('disabled', false);
+            });
+    }
+
+    /**
+     * Replicate this audience's standard-field option lists to all
+     * descendant audiences (children + grandchildren), with confirmation.
+     */
+    function replicateFieldOptions() {
+        var $btn = $('#ffc-replicate-field-options');
+        var $status = $('#ffc-custom-fields-status');
+        var audienceId = $('#ffc-custom-fields-container').data('audience-id');
+
+        if (!audienceId) {
+            return;
+        }
+
+        var confirmMsg = (ffcAudienceAdmin.strings && ffcAudienceAdmin.strings.confirmReplicate)
+            || 'Copy this audience\'s option lists to all child and grandchild audiences? This overwrites their current lists.';
+        if (!window.confirm(confirmMsg)) {
+            return;
+        }
+
+        $btn.prop('disabled', true);
+        $status.text(ffcAudienceAdmin.strings.saving || 'Saving...').removeClass('ffc-status-error ffc-status-success');
+
+        FFC.request(
+            'ffc_replicate_field_options',
+            { audience_id: audienceId },
+            { nonce: ffcAudienceAdmin.adminNonce, ajaxUrl: ffcAudienceAdmin.ajaxUrl }
+        )
+            .then(function (data) {
+                var msg = (data && data.message) || ffcAudienceAdmin.strings.saved || 'Saved!';
+                $status.text(msg).addClass('ffc-status-success');
+            })
+            .catch(function (err) {
+                var msg = (err && err.fromServer && err.message) || ffcAudienceAdmin.strings.error || 'Error';
+                $status.text(msg).addClass('ffc-status-error');
+            })
+            .then(function () {
                 $btn.prop('disabled', false);
             });
     }
@@ -193,8 +246,10 @@
         var $row = $(this).closest('.ffc-custom-field-row');
         var type = $(this).val();
         var isSelect = (type === 'select');
+        var isDependent = (type === 'dependent_select');
         var isWorkingHours = (type === 'working_hours');
         $row.find('.ffc-field-options-container').toggle(isSelect);
+        $row.find('.ffc-field-groups-container').toggle(isDependent);
         // Hide format validation for types that don't support it
         $row.find('.ffc-field-format').closest('.ffc-field-detail-row').toggle(!isWorkingHours);
     }

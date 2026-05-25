@@ -102,12 +102,6 @@ class ReregistrationFrontendTest extends TestCase {
         Functions\when('wp_cache_set')->justReturn(true);
         Functions\when('wp_cache_delete')->justReturn(true);
 
-        // get_divisao_setor_map() resolves via SettingsReader → get_option.
-        // Empty option → hardcoded default.
-        Functions\when('get_option')->alias(function ($key, $default = null) {
-            return 'ffc_settings' === $key ? array() : $default;
-        });
-
         $this->registered_actions = array();
     }
 
@@ -418,16 +412,5 @@ class ReregistrationFrontendTest extends TestCase {
         $this->assertSame('pending', $result[0]['submission_status']);
         $this->assertTrue($result[0]['can_submit']);
         $this->assertSame('', $result[0]['magic_link']);
-    }
-
-    // ==================================================================
-    // get_divisao_setor_map() — delegates to ReregistrationFieldOptions
-    // ==================================================================
-
-    public function test_get_divisao_setor_map_returns_non_empty_array(): void {
-        $map = ReregistrationFrontend::get_divisao_setor_map();
-
-        $this->assertIsArray($map);
-        $this->assertNotEmpty($map);
     }
 }

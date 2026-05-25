@@ -357,31 +357,6 @@ class AdminAssetsManager {
 					),
 				)
 			);
-
-			// Divisão → Setor nested editor — only on the Reregistration tab.
-			if ( $this->is_reregistration_settings_tab() ) {
-				wp_enqueue_script(
-					'ffc-divisao-setor-editor',
-					FFC_PLUGIN_URL . "assets/js/ffc-divisao-setor-editor{$s}.js",
-					array( 'jquery' ),
-					FFC_VERSION,
-					true
-				);
-
-				wp_localize_script(
-					'ffc-divisao-setor-editor',
-					'ffcDivisaoSetorEditor',
-					array(
-						'strings' => array(
-							'divisionName'   => __( 'Division name', 'ffcertificate' ),
-							'departmentName' => __( 'Department name', 'ffcertificate' ),
-							'removeDivision' => __( 'Remove division', 'ffcertificate' ),
-							'removeSector'   => __( 'Remove department', 'ffcertificate' ),
-							'addSector'      => __( '+ Add Department', 'ffcertificate' ),
-						),
-					)
-				);
-			}
 		}
 
 		// Submission edit page assets.
@@ -698,18 +673,6 @@ class AdminAssetsManager {
 		$page = sanitize_key( wp_unslash( $_GET['page'] ) );
         // phpcs:enable WordPress.Security.NonceVerification.Recommended
 		return 'ffc-settings' === $page || 'ffc-scheduling-settings' === $page;
-	}
-
-	/**
-	 * Check if the active settings tab is the Reregistration tab.
-	 *
-	 * @return bool
-	 */
-	private function is_reregistration_settings_tab(): bool {
-        // phpcs:disable WordPress.Security.NonceVerification.Recommended -- Tab routing check for asset loading, no data processing.
-		$tab = isset( $_GET['tab'] ) ? sanitize_key( wp_unslash( $_GET['tab'] ) ) : '';
-        // phpcs:enable WordPress.Security.NonceVerification.Recommended
-		return 'reregistration' === $tab;
 	}
 
 	/**
