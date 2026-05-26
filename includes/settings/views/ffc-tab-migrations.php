@@ -471,6 +471,179 @@ try {
 		</div>
 	</div>
 
+	<?php
+	// ──────────────────────────────────────────────────────────────.
+	// Short URL Cleanup (v6.7.x)
+	// ──────────────────────────────────────────────────────────────.
+	$ffcertificate_url_days     = max( 1, \FreeFormCertificate\Settings\SettingsReader::get_int( 'url_cleanup_days', 90 ) );
+	$ffcertificate_url_orphaned = (bool) \FreeFormCertificate\Settings\SettingsReader::get_int( 'url_cleanup_orphaned', 1 );
+	$ffcertificate_url_never    = (bool) \FreeFormCertificate\Settings\SettingsReader::get_int( 'url_cleanup_never_clicked', 0 );
+	$ffcertificate_url_trashed  = (bool) \FreeFormCertificate\Settings\SettingsReader::get_int( 'url_cleanup_trashed', 1 );
+
+	$ffcertificate_url_report     = get_transient( 'ffc_url_cleanup_report_' . $ffcertificate_user_id );
+	$ffcertificate_url_preview_ok = (bool) get_transient( 'ffc_url_cleanup_preview_ok_' . $ffcertificate_user_id );
+	$ffcertificate_url_msg        = \FreeFormCertificate\Core\Utils::get_get_string( 'url_cleanup_msg' );
+	$ffcertificate_url_err        = \FreeFormCertificate\Core\Utils::get_get_string( 'url_cleanup_error' );
+
+	$ffcertificate_url_preview_url = wp_nonce_url(
+		add_query_arg( 'ffc_url_cleanup', 'preview', $ffcertificate_base_url ),
+		'ffc_url_cleanup_preview'
+	);
+	$ffcertificate_url_apply_url   = wp_nonce_url(
+		add_query_arg( 'ffc_url_cleanup', 'apply', $ffcertificate_base_url ),
+		'ffc_url_cleanup_apply'
+	);
+	?>
+	<div class="postbox ffc-migration-card ffc-url-cleanup-card">
+		<div class="postbox-header">
+			<h3 class="hndle">
+				<span class="ffc-icon-delete"><?php esc_html_e( 'Short URL Cleanup', 'ffcertificate' ); ?></span>
+			</h3>
+		</div>
+		<div class="inside">
+			<p class="description">
+				<?php esc_html_e( 'Delete obsolete short URLs from the URL shortener: those whose target post no longer exists, those created long ago and never clicked, and those already in the trash. Choose the criteria, preview, then delete.', 'ffcertificate' ); ?>
+			</p>
+
+			<div class="ffc-migration-warning">
+				<p>
+					<strong class="ffc-icon-info"><?php esc_html_e( 'Heads up:', 'ffcertificate' ); ?></strong>
+					<?php esc_html_e( 'Deletion is permanent — short URLs are hard-deleted and any printed/shared links pointing at them will stop resolving. Always run a preview first.', 'ffcertificate' ); ?>
+				</p>
+			</div>
+
+			<?php if ( $ffcertificate_url_msg ) : ?>
+				<div class="notice notice-success inline" style="margin: 10px 0;"><p><?php echo esc_html( $ffcertificate_url_msg ); ?></p></div>
+			<?php endif; ?>
+			<?php if ( $ffcertificate_url_err ) : ?>
+				<div class="notice notice-error inline" style="margin: 10px 0;"><p><?php echo esc_html( $ffcertificate_url_err ); ?></p></div>
+			<?php endif; ?>
+
+			<form method="post" action="<?php echo esc_url( $ffcertificate_url_preview_url ); ?>" style="margin: 12px 0;">
+				<fieldset style="margin-bottom: 10px;">
+					<label style="display:block; margin-bottom:4px;">
+						<input type="checkbox" name="url_cleanup_orphaned" value="1" <?php checked( $ffcertificate_url_orphaned ); ?>>
+						<?php esc_html_e( 'Orphaned — the target post no longer exists', 'ffcertificate' ); ?>
+					</label>
+					<label style="display:block; margin-bottom:4px;">
+						<input type="checkbox" name="url_cleanup_never_clicked" value="1" <?php checked( $ffcertificate_url_never ); ?>>
+						<?php esc_html_e( 'Never clicked and created more than', 'ffcertificate' ); ?>
+						<input type="number" name="url_cleanup_days" min="1" max="3650" step="1" value="<?php echo esc_attr( (string) $ffcertificate_url_days ); ?>" style="width:80px;">
+						<?php esc_html_e( 'days ago', 'ffcertificate' ); ?>
+					</label>
+					<label style="display:block;">
+						<input type="checkbox" name="url_cleanup_trashed" value="1" <?php checked( $ffcertificate_url_trashed ); ?>>
+						<?php esc_html_e( 'In the trash (status = trashed)', 'ffcertificate' ); ?>
+					</label>
+				</fieldset>
+				<button type="submit" class="button button-secondary">
+					<span class="dashicons dashicons-visibility"></span>
+					<?php esc_html_e( 'Save criteria & preview', 'ffcertificate' ); ?>
+				</button>
+			</form>
+
+			<div class="ffc-migration-actions">
+				<?php if ( $ffcertificate_url_preview_ok ) : ?>
+					<a href="<?php echo esc_url( $ffcertificate_url_apply_url ); ?>" class="button button-primary"
+						data-confirm="<?php esc_attr_e( 'This permanently deletes the matched short URLs and cannot be undone. Continue?', 'ffcertificate' ); ?>">
+						<span class="dashicons dashicons-trash"></span>
+						<?php esc_html_e( 'Delete matched short URLs', 'ffcertificate' ); ?>
+					</a>
+				<?php else : ?>
+					<span class="button button-primary" disabled aria-disabled="true" title="<?php esc_attr_e( 'Run a preview first', 'ffcertificate' ); ?>">
+						<span class="dashicons dashicons-trash"></span>
+						<?php esc_html_e( 'Delete matched short URLs', 'ffcertificate' ); ?>
+					</span>
+				<?php endif; ?>
+				<p class="description">
+					<?php esc_html_e( 'The delete button unlocks for 5 minutes after a successful preview.', 'ffcertificate' ); ?>
+				</p>
+			</div>
+
+			<?php
+			if ( is_array( $ffcertificate_url_report ) ) :
+				$ffcertificate_url_is_dry     = ! empty( $ffcertificate_url_report['dry_run'] );
+				$ffcertificate_url_candidates = isset( $ffcertificate_url_report['candidates'] ) ? (int) $ffcertificate_url_report['candidates'] : 0;
+				$ffcertificate_url_deleted    = isset( $ffcertificate_url_report['deleted'] ) ? (int) $ffcertificate_url_report['deleted'] : 0;
+				$ffcertificate_url_by_reason  = isset( $ffcertificate_url_report['by_reason'] ) && is_array( $ffcertificate_url_report['by_reason'] ) ? $ffcertificate_url_report['by_reason'] : array();
+				$ffcertificate_url_items      = isset( $ffcertificate_url_report['affected'] ) && is_array( $ffcertificate_url_report['affected'] ) ? $ffcertificate_url_report['affected'] : array();
+				$ffcertificate_url_truncated  = ! empty( $ffcertificate_url_report['truncated'] );
+				?>
+				<h4 style="margin-top: 18px;">
+					<?php echo $ffcertificate_url_is_dry ? esc_html__( 'Preview report', 'ffcertificate' ) : esc_html__( 'Cleanup report', 'ffcertificate' ); ?>
+				</h4>
+
+				<div class="ffc-migration-stats">
+					<div>
+						<div class="ffc-migration-stat-label"><?php esc_html_e( 'Candidates', 'ffcertificate' ); ?></div>
+						<div class="ffc-migration-stat-value info"><?php echo esc_html( number_format_i18n( $ffcertificate_url_candidates ) ); ?></div>
+					</div>
+					<div>
+						<div class="ffc-migration-stat-label"><?php esc_html_e( 'Orphaned', 'ffcertificate' ); ?></div>
+						<div class="ffc-migration-stat-value"><?php echo esc_html( number_format_i18n( (int) ( $ffcertificate_url_by_reason['orphaned'] ?? 0 ) ) ); ?></div>
+					</div>
+					<div>
+						<div class="ffc-migration-stat-label"><?php esc_html_e( 'Never clicked', 'ffcertificate' ); ?></div>
+						<div class="ffc-migration-stat-value"><?php echo esc_html( number_format_i18n( (int) ( $ffcertificate_url_by_reason['never_clicked'] ?? 0 ) ) ); ?></div>
+					</div>
+					<div>
+						<div class="ffc-migration-stat-label"><?php esc_html_e( 'Trashed', 'ffcertificate' ); ?></div>
+						<div class="ffc-migration-stat-value"><?php echo esc_html( number_format_i18n( (int) ( $ffcertificate_url_by_reason['trashed'] ?? 0 ) ) ); ?></div>
+					</div>
+					<div>
+						<div class="ffc-migration-stat-label"><?php echo $ffcertificate_url_is_dry ? esc_html__( 'Would delete', 'ffcertificate' ) : esc_html__( 'Deleted', 'ffcertificate' ); ?></div>
+						<div class="ffc-migration-stat-value success"><?php echo esc_html( number_format_i18n( $ffcertificate_url_is_dry ? $ffcertificate_url_candidates : $ffcertificate_url_deleted ) ); ?></div>
+					</div>
+				</div>
+
+				<?php if ( ! empty( $ffcertificate_url_items ) ) : ?>
+					<table class="widefat striped" style="margin-top: 10px;">
+						<thead>
+							<tr>
+								<th><?php esc_html_e( 'Short code', 'ffcertificate' ); ?></th>
+								<th><?php esc_html_e( 'Title / target', 'ffcertificate' ); ?></th>
+								<th><?php esc_html_e( 'Reasons', 'ffcertificate' ); ?></th>
+							</tr>
+						</thead>
+						<tbody>
+							<?php foreach ( $ffcertificate_url_items as $ffcertificate_u ) : ?>
+								<tr>
+									<td><code><?php echo esc_html( (string) ( $ffcertificate_u['short_code'] ?? '' ) ); ?></code></td>
+									<td>
+										<?php
+										$ffcertificate_u_title = (string) ( $ffcertificate_u['title'] ?? '' );
+										echo esc_html( '' !== $ffcertificate_u_title ? $ffcertificate_u_title : (string) ( $ffcertificate_u['target_url'] ?? '' ) );
+										?>
+									</td>
+									<td>
+										<?php
+										$ffcertificate_u_reasons = isset( $ffcertificate_u['reasons'] ) && is_array( $ffcertificate_u['reasons'] ) ? $ffcertificate_u['reasons'] : array();
+										echo esc_html( implode( ', ', array_map( 'strval', $ffcertificate_u_reasons ) ) );
+										?>
+									</td>
+								</tr>
+							<?php endforeach; ?>
+						</tbody>
+					</table>
+					<?php if ( $ffcertificate_url_truncated ) : ?>
+						<p class="description">
+							<?php
+							printf(
+								/* translators: 1: rows shown, 2: total candidates */
+								esc_html__( 'Showing first %1$d of %2$d matches. All matches are processed on delete.', 'ffcertificate' ),
+								(int) \FreeFormCertificate\Maintenance\UrlShortenerCleaner::REPORT_LIMIT,
+								(int) $ffcertificate_url_candidates
+							);
+							?>
+						</p>
+					<?php endif; ?>
+				<?php elseif ( 0 === $ffcertificate_url_candidates ) : ?>
+					<p class="description"><?php esc_html_e( 'No matching short URLs found. Nothing to clean up.', 'ffcertificate' ); ?></p>
+				<?php endif; ?>
+			<?php endif; ?>
+		</div>
+	</div>
+
 	<!-- Help Section -->
 	<div class="card ffc-migration-help">
 		<h2 class="ffc-icon-help"><?php esc_html_e( 'Need Help?', 'ffcertificate' ); ?></h2>
