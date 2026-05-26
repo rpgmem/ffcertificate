@@ -323,7 +323,7 @@ class ObsoleteShortcodeCleanerTest extends TestCase {
         $this->queue_wp_query_result( array( 200 ) );
 
         $cleaner = new ObsoleteShortcodeCleaner();
-        $report  = $cleaner->run( 90, array( 'dry_run' => true ) );
+        $report  = $cleaner->run( array( 'days' => 90, 'dry_run' => true ) );
 
         $this->assertTrue( $report['dry_run'] );
         $this->assertSame( 1, $report['expired_forms'] );
@@ -341,7 +341,7 @@ class ObsoleteShortcodeCleanerTest extends TestCase {
         $this->queue_wp_query_result( array( 300 ) );
 
         $cleaner = new ObsoleteShortcodeCleaner();
-        $report  = $cleaner->run( 90, array( 'dry_run' => false ) );
+        $report  = $cleaner->run( array( 'days' => 90, 'dry_run' => false ) );
 
         $this->assertFalse( $report['dry_run'] );
         $this->assertSame( 1, $report['shortcodes_removed'] );
@@ -363,7 +363,7 @@ class ObsoleteShortcodeCleanerTest extends TestCase {
         $this->queue_wp_query_result( array( 400 ) );
 
         $cleaner = new ObsoleteShortcodeCleaner();
-        $report  = $cleaner->run( 90, array( 'dry_run' => false ) );
+        $report  = $cleaner->run( array( 'days' => 90, 'dry_run' => false ) );
 
         $this->assertSame( 0, $report['posts_affected'] );
         $this->assertSame( 0, $report['shortcodes_removed'] );
@@ -384,7 +384,7 @@ class ObsoleteShortcodeCleanerTest extends TestCase {
         $this->queue_wp_query_result( $post_ids );
 
         $cleaner = new ObsoleteShortcodeCleaner();
-        $report  = $cleaner->run( 90, array( 'dry_run' => true ) );
+        $report  = $cleaner->run( array( 'days' => 90, 'dry_run' => true ) );
 
         $this->assertSame( ObsoleteShortcodeCleaner::REPORT_LIMIT + 5, $report['posts_affected'] );
         $this->assertTrue( $report['truncated'] );
@@ -396,7 +396,7 @@ class ObsoleteShortcodeCleanerTest extends TestCase {
         $this->queue_wp_query_result( array( 1 ) );
 
         $cleaner = new ObsoleteShortcodeCleaner();
-        $report  = $cleaner->run( 90 );
+        $report  = $cleaner->run( array( 'days' => 90 ) );
 
         $this->assertSame( 0, $report['expired_forms'] );
         $this->assertSame( 0, $report['posts_scanned'] );

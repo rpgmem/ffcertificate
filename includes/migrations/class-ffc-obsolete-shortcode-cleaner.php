@@ -26,6 +26,7 @@ declare(strict_types=1);
 
 namespace FreeFormCertificate\Migrations;
 
+use FreeFormCertificate\Maintenance\MaintenanceToolInterface;
 use FreeFormCertificate\Security\Geofence;
 use WP_Query;
 
@@ -36,7 +37,52 @@ if ( ! defined( 'ABSPATH' ) ) {
 /**
  * Cleanup utility for obsolete shortcode.
  */
-class ObsoleteShortcodeCleaner {
+class ObsoleteShortcodeCleaner implements MaintenanceToolInterface {
+
+	/**
+	 * Default grace window (days) when none is configured.
+	 */
+	const DEFAULT_DAYS = 90;
+
+	/**
+	 * {@inheritDoc}
+	 */
+	public function get_id(): string {
+		return 'obsolete_shortcode';
+	}
+
+	/**
+	 * {@inheritDoc}
+	 */
+	public function get_title(): string {
+		return __( 'Obsolete Shortcode Cleanup', 'ffcertificate' );
+	}
+
+	/**
+	 * {@inheritDoc}
+	 */
+	public function get_description(): string {
+		return __( 'Remove [ffc_form] shortcodes from posts, pages and reusable blocks when they point to a form whose collection period ended more than the grace window ago.', 'ffcertificate' );
+	}
+
+	/**
+	 * {@inheritDoc}
+	 */
+	public function is_actionable(): bool {
+		return true;
+	}
+
+	/**
+	 * {@inheritDoc}
+	 *
+	 * @return array{days:int, dry_run:bool}
+	 */
+	public function get_default_options(): array {
+		return array(
+			'days'    => self::DEFAULT_DAYS,
+			'dry_run' => true,
+		);
+	}
 
 	/**
 	 * Post types scanned for obsolete shortcodes.
@@ -364,9 +410,10 @@ class ObsoleteShortcodeCleaner {
 	 * Full pipeline: discover expired forms, scan posts, optionally rewrite
 	 * each affected post, return an aggregated report.
 	 *
-	 * @param int                  $days    Grace window in days.
-	 * @param array{dry_run?:bool} $options Options. `dry_run=true` skips the
-	 *                                      `wp_update_post()` step.
+	 * @param array{days?:int, dry_run?:bool} $options Options. `days` is the
+	 *                                      grace window (defaults to
+	 *                                      {@see self::DEFAULT_DAYS}); `dry_run=true`
+	 *                                      skips the `wp_update_post()` step.
 	 * @return array{
 	 *     dry_run: bool,
 	 *     days: int,
@@ -378,8 +425,9 @@ class ObsoleteShortcodeCleaner {
 	 *     affected: array<int, array{post_id:int, post_type:string, post_title:string, removed_count:int}>
 	 * }
 	 */
-	public function run( int $days, array $options = array() ): array {
+	public function run( array $options = array() ): array {
 		$dry_run = ! empty( $options['dry_run'] );
+		$days    = isset( $options['days'] ) ? (int) $options['days'] : self::DEFAULT_DAYS;
 		if ( $days < 0 ) {
 			$days = 0;
 		}
