@@ -68,6 +68,7 @@ class Settings {
 		add_action( 'admin_init', array( $this, 'handle_obsolete_shortcode_cleanup' ) );
 		add_action( 'admin_init', array( $this, 'handle_url_shortener_cleanup' ) );
 		add_action( 'admin_init', array( $this, 'handle_public_access_disabler' ) );
+		add_action( 'admin_init', array( $this, 'handle_submission_link_audit' ) );
 		add_action( 'wp_ajax_ffc_preview_date_format', array( $this, 'ajax_preview_date_format' ) );
 		add_action( 'admin_init', array( $this, 'handle_cache_actions' ) );
 	}
@@ -795,6 +796,66 @@ class Settings {
 			} catch ( \Throwable $e ) {
 				$redirect_url = add_query_arg( 'pubaccess_error', rawurlencode( $e->getMessage() ), $redirect_url );
 			}
+		}
+
+		wp_safe_redirect( $redirect_url );
+		exit;
+	}
+
+	/**
+	 * Handle the Submission ↔ user link audit (Settings → Data Migrations).
+	 *
+	 * Report-only: a single `scan` mode (nonce `ffc_submission_audit_scan`,
+	 * `ffc_manage_settings`) runs the read-only {@see SubmissionLinkAuditor}
+	 * and stores the report in a transient. Nothing is mutated.
+	 *
+	 * @since 6.7.x
+	 */
+	public function handle_submission_link_audit(): void {
+        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Nonce verified below.
+		if ( ! isset( $_REQUEST['ffc_submission_audit'] ) ) {
+			return;
+		}
+
+		if ( ! \FreeFormCertificate\Core\Utils::current_user_can_admin_or( 'ffc_manage_settings' ) ) {
+			wp_die( esc_html__( 'You do not have permission to run this action.', 'ffcertificate' ) );
+		}
+
+        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Nonce verified immediately below.
+		$mode = sanitize_key( wp_unslash( $_REQUEST['ffc_submission_audit'] ) );
+		if ( 'scan' !== $mode ) {
+			wp_die( esc_html__( 'Invalid action.', 'ffcertificate' ) );
+		}
+
+        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Nonce verified here.
+		$nonce = isset( $_REQUEST['_wpnonce'] ) ? sanitize_text_field( wp_unslash( $_REQUEST['_wpnonce'] ) ) : '';
+		if ( ! wp_verify_nonce( $nonce, 'ffc_submission_audit_scan' ) ) {
+			wp_die( esc_html__( 'Security check failed.', 'ffcertificate' ) );
+		}
+
+		$report_key   = 'ffc_submission_audit_report_' . get_current_user_id();
+		$redirect_url = add_query_arg(
+			array(
+				'post_type' => 'ffc_form',
+				'page'      => 'ffc-settings',
+				'tab'       => 'migrations',
+			),
+			admin_url( 'edit.php' )
+		);
+
+		$tool = \FreeFormCertificate\Maintenance\MaintenanceToolRegistry::create_default()->get( 'submission_link_audit' );
+		if ( ! $tool instanceof \FreeFormCertificate\Maintenance\MaintenanceToolInterface ) {
+			$redirect_url = add_query_arg( 'submission_audit_error', rawurlencode( __( 'Maintenance tool not available.', 'ffcertificate' ) ), $redirect_url );
+			wp_safe_redirect( $redirect_url );
+			exit;
+		}
+
+		try {
+			$report = $tool->run( array() );
+			set_transient( $report_key, $report, 5 * MINUTE_IN_SECONDS );
+			$redirect_url = add_query_arg( 'submission_audit_msg', rawurlencode( __( 'Audit complete.', 'ffcertificate' ) ), $redirect_url );
+		} catch ( \Throwable $e ) {
+			$redirect_url = add_query_arg( 'submission_audit_error', rawurlencode( $e->getMessage() ), $redirect_url );
 		}
 
 		wp_safe_redirect( $redirect_url );
