@@ -197,4 +197,56 @@ describe('ffc-dynamic-fragments — applyFragments via XHR onload', () => {
 		// Should not throw.
 		expect(() => { if (typeof xhr.onload === 'function') xhr.onload(); }).not.toThrow();
 	});
+
+	it('refreshes the ffc_ajax / ffcCalendar / ffcAudience nonces and hidden nonce fields', () => {
+		window.ffc_ajax = { ajax_url: '/x', nonce: 'frontend-stale' };
+		window.ffcCalendar = { ajaxurl: '/x', nonce: 'ss-stale' };
+		window.ffcAudience = { nonce: 'rest-stale', searchUsersNonce: 'su-stale' };
+
+		setupAndDeliver(
+			`<div class="ffc-form-container"><div class="ffc-captcha-row"></div></div>
+			 <form id="ffc-self-scheduling-form"><input name="nonce" value="ss-field-stale" /></form>
+			 <div class="ffc-public-csv-download"><input name="_ffc_pcd_nonce" value="pcd-stale" /></div>`,
+			{
+				success: true,
+				data: {
+					nonces: {
+						ffc_frontend_nonce: 'frontend-fresh',
+						ffc_self_scheduling_nonce: 'ss-fresh',
+						ffc_public_csv_download: 'pcd-fresh',
+						wp_rest: 'rest-fresh',
+						ffc_search_users: 'su-fresh',
+					},
+				},
+			}
+		);
+
+		expect(window.ffc_ajax.nonce).toBe('frontend-fresh');
+		expect(window.ffcCalendar.nonce).toBe('ss-fresh');
+		expect(window.ffcAudience.nonce).toBe('rest-fresh');
+		expect(window.ffcAudience.searchUsersNonce).toBe('su-fresh');
+		expect(document.querySelector('#ffc-self-scheduling-form input[name="nonce"]').value).toBe('ss-fresh');
+		expect(document.querySelector('.ffc-public-csv-download input[name="_ffc_pcd_nonce"]').value).toBe('pcd-fresh');
+
+		delete window.ffcAudience;
+	});
+
+	it('pre-fills and locks the booking name/email fields', () => {
+		setupAndDeliver(
+			`<div class="ffc-booking-form"><div class="ffc-captcha-row"></div></div>
+			 <input id="ffc-booking-name" />
+			 <input id="ffc-booking-email" />`,
+			{
+				success: true,
+				data: { user: { name: 'Maria', email: 'maria@example.com' } },
+			}
+		);
+
+		const name = document.getElementById('ffc-booking-name');
+		const email = document.getElementById('ffc-booking-email');
+		expect(name.value).toBe('Maria');
+		expect(name.getAttribute('readonly')).toBe('readonly');
+		expect(email.value).toBe('maria@example.com');
+		expect(email.getAttribute('readonly')).toBe('readonly');
+	});
 });

@@ -21,7 +21,7 @@
 //   `window.ffc_ajax` BEFORE loadScript so the IIFE's reads pick the
 //   right state, and the FFC namespace from a prior test stays in
 //   place (its handlers are idempotent).
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { loadScript } from './helpers.js';
 
 beforeEach(() => {
@@ -29,6 +29,17 @@ beforeEach(() => {
 	delete window.ffcGeofenceConfig;
 	delete window.FFCGeofence;
 	document.body.innerHTML = '';
+});
+
+afterEach(async () => {
+	// The diagnostic log path awaits navigator.serviceWorker / permissions
+	// promises, so a debug-ON test (test 2) emits its [FFC Diagnostics]
+	// console.info calls on later microtasks. Drain them here — while the
+	// emitting test's own spy is still installed — so they don't bleed into
+	// the next test's spy. Vitest 4's tightened inter-test flushing exposed
+	// this; v2 happened to settle the calls within each test.
+	await new Promise((r) => setTimeout(r, 0));
+	vi.restoreAllMocks();
 });
 
 function setupModernAPIs() {
