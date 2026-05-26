@@ -190,6 +190,25 @@ describe('custom-fields-admin — saveFields', () => {
 		expect(fields[0].choices).toEqual(['apple', 'banana', 'kiwi']);
 	});
 
+	it('collects acknowledgment HTML from the html container into the payload', async () => {
+		// The acknowledgment block stores its notice HTML in a textarea inside
+		// .ffc-field-html-container (a wp_editor in production).
+		window.$('.ffc-field-details-row td').append(
+			'<div class="ffc-field-html-container"><textarea class="ffc-field-html"></textarea></div>'
+		);
+		window.$('.ffc-field-html').val('<p>My notice</p>');
+
+		const postSpy = vi.spyOn(window.$, 'post').mockImplementation(() => ({
+			done: () => ({ fail: () => ({ always: () => ({}) }) }),
+		}));
+
+		window.$('#ffc-save-custom-fields').trigger('click');
+		await flush();
+
+		const fields = JSON.parse(postSpy.mock.calls[0][1].fields);
+		expect(fields[0].html).toBe('<p>My notice</p>');
+	});
+
 	it('on success: shows the saved status (page reload is fired but stubbed in test)', async () => {
 		vi.useFakeTimers();
 		// Stub reload so the test doesn't blow up jsdom navigation.
@@ -387,6 +406,21 @@ describe('custom-fields-admin — row UI handlers', () => {
 		window.$('.ffc-field-type').val('text').trigger('change');
 		await flush();
 		expect(window.$('.ffc-field-options-container').css('display')).toBe('none');
+	});
+
+	it('onFieldTypeChange shows the html container only for acknowledgment type', async () => {
+		window.$('.ffc-field-type').append('<option value="acknowledgment">ack</option>');
+		window.$('.ffc-field-details-row td').append(
+			'<div class="ffc-field-html-container" style="display:none"><textarea class="ffc-field-html"></textarea></div>'
+		);
+
+		window.$('.ffc-field-type').val('acknowledgment').trigger('change');
+		await flush();
+		expect(window.$('.ffc-field-html-container').css('display')).not.toBe('none');
+
+		window.$('.ffc-field-type').val('text').trigger('change');
+		await flush();
+		expect(window.$('.ffc-field-html-container').css('display')).toBe('none');
 	});
 
 	it('onFieldTypeChange hides the format row for working_hours type', async () => {

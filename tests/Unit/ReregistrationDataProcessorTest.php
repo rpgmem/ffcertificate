@@ -57,7 +57,6 @@ class ReregistrationDataProcessorTest extends TestCase {
         Functions\when( 'FreeFormCertificate\Reregistration\is_email' )->alias( function ( $email ) {
             return (bool) filter_var( $email, FILTER_VALIDATE_EMAIL );
         });
-
         // Default $wpdb mock — no fields returned.
         $this->setup_wpdb_with_fields( array() );
     }
@@ -128,7 +127,7 @@ class ReregistrationDataProcessorTest extends TestCase {
      * @return array<object>
      */
     private function standard_field_mocks(): array {
-        $divisao_map = \FreeFormCertificate\Reregistration\ReregistrationFieldOptions::get_divisao_setor_map();
+        $divisao_map = \FreeFormCertificate\Reregistration\ReregistrationFieldOptions::get_default_divisao_setor_map();
         $sexo        = \FreeFormCertificate\Reregistration\ReregistrationFieldOptions::get_sexo_options();
         $estado      = \FreeFormCertificate\Reregistration\ReregistrationFieldOptions::get_estado_civil_options();
         $jornada     = \FreeFormCertificate\Reregistration\ReregistrationFieldOptions::get_jornada_options();
@@ -571,5 +570,45 @@ class ReregistrationDataProcessorTest extends TestCase {
         $errors = ReregistrationDataProcessor::validate_submission( $data, $this->make_rereg(), 1 );
 
         $this->assertArrayNotHasKey( 'fields[notes]', $errors );
+    }
+
+    // ==================================================================
+    // Display-only fields (acknowledgment)
+    // ==================================================================
+
+    public function test_validate_submission_skips_display_only_acknowledgment(): void {
+        // Even flagged required, an acknowledgment block has no value to
+        // submit, so it must never produce a "required" error.
+        $this->setup_wpdb_with_fields( array(
+            $this->make_field( array(
+                'id'            => 1,
+                'field_key'     => 'acknowledgment',
+                'field_label'   => 'Acknowledgment',
+                'field_type'    => 'acknowledgment',
+                'is_required'   => 1,
+                'field_options' => json_encode( array( 'html' => '<p>Notice</p>' ) ),
+            ) ),
+        ) );
+
+        $errors = ReregistrationDataProcessor::validate_submission( array( 'fields' => array() ), $this->make_rereg(), 1 );
+
+        $this->assertSame( array(), $errors );
+    }
+
+    public function test_collect_form_data_skips_display_only_acknowledgment(): void {
+        $this->setup_wpdb_with_fields( array(
+            $this->make_field( array( 'id' => 1, 'field_key' => 'display_name', 'field_type' => 'text' ) ),
+            $this->make_field( array( 'id' => 2, 'field_key' => 'acknowledgment', 'field_type' => 'acknowledgment' ) ),
+        ) );
+
+        $_POST['fields'] = array(
+            'display_name'   => 'João',
+            'acknowledgment' => 'tampered value',
+        );
+        $data = ReregistrationDataProcessor::collect_form_data( $this->make_rereg(), 1 );
+        unset( $_POST['fields'] );
+
+        $this->assertArrayHasKey( 'display_name', $data['fields'] );
+        $this->assertArrayNotHasKey( 'acknowledgment', $data['fields'] );
     }
 }

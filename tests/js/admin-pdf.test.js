@@ -144,6 +144,16 @@ describe('ffc-admin-pdf.js — preview button', () => {
 			<input id="title" value="Test Form" />
 			<div id="ffc-fields-container"></div>
 		`;
+		// previewSamples mirrors the PHP CertificatePreviewSamples::get_map()
+		// contract — the preview reads its sample catalog from there.
+		window.ffc_ajax = {
+			previewSamples: {
+				name: 'John Doe',
+				form_title: 'Título do Certificado',
+				bairro: 'Centro',
+				site_name: 'Sample Site',
+			},
+		};
 		loadScript('assets/js/ffc-admin-pdf.js');
 	});
 
@@ -178,6 +188,36 @@ describe('ffc-admin-pdf.js — preview button', () => {
 		// {{name}} → "John Doe" from the hardcoded sample catalog.
 		expect(body.innerHTML).toContain('John Doe');
 		expect(body.innerHTML).not.toContain('{{name}}');
+	});
+
+	it('replaces a system placeholder from the PHP sample map', () => {
+		document.querySelector('#ffc_pdf_layout').value =
+			'Bairro: {{bairro}} — {{site_name}}';
+
+		window.$('#ffc_btn_preview').trigger('click');
+
+		const iframe = document.querySelector('#ffc-preview-modal iframe');
+		const body = iframe.contentDocument.body;
+		expect(body.innerHTML).toContain('Centro');
+		expect(body.innerHTML).toContain('Sample Site');
+		expect(body.innerHTML).not.toContain('{{bairro}}');
+	});
+
+	it('overlays builder custom fields onto the PHP sample map', () => {
+		window.$('#ffc-fields-container').html(
+			'<div class="ffc-field-row">' +
+				'<input name="ffc_fields[0][name]" value="course_name" />' +
+				'<input name="ffc_fields[0][label]" value="Curso de Exemplo" />' +
+				'</div>'
+		);
+		document.querySelector('#ffc_pdf_layout').value = '{{name}} — {{course_name}}';
+
+		window.$('#ffc_btn_preview').trigger('click');
+
+		const iframe = document.querySelector('#ffc-preview-modal iframe');
+		const body = iframe.contentDocument.body;
+		expect(body.innerHTML).toContain('John Doe');
+		expect(body.innerHTML).toContain('Curso de Exemplo');
 	});
 
 	it('expands {{qr_code}} into the placeholder SVG', () => {

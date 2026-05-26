@@ -148,6 +148,7 @@ class ActivatorTest extends TestCase {
         $this->assertContains( 'ffc_warm_cache_hook', $cleared );
     }
 
+
     // ==================================================================
     // activate() — daily cleanup scheduling
     // ==================================================================
