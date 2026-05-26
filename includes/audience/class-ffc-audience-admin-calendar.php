@@ -462,13 +462,40 @@ class AudienceAdminCalendar {
 									<br><span class="description"><?php echo esc_html( $user->user_email ); ?></span>
 								</td>
 								<td>
-									<input type="checkbox" class="ffc-perm-toggle" data-perm="can_book" <?php checked( $perm->can_book, 1 ); ?>>
+									<?php
+									\FreeFormCertificate\Admin\AdminUI::render_toggle(
+										array(
+											'name'        => 'ffc_perm_' . (string) $perm->user_id . '_can_book',
+											'input_class' => 'ffc-perm-toggle',
+											'data'        => array( 'perm' => 'can_book' ),
+											'checked'     => ! empty( $perm->can_book ),
+										)
+									);
+									?>
 								</td>
 								<td>
-									<input type="checkbox" class="ffc-perm-toggle" data-perm="can_cancel_others" <?php checked( $perm->can_cancel_others, 1 ); ?>>
+									<?php
+									\FreeFormCertificate\Admin\AdminUI::render_toggle(
+										array(
+											'name'        => 'ffc_perm_' . (string) $perm->user_id . '_can_cancel_others',
+											'input_class' => 'ffc-perm-toggle',
+											'data'        => array( 'perm' => 'can_cancel_others' ),
+											'checked'     => ! empty( $perm->can_cancel_others ),
+										)
+									);
+									?>
 								</td>
 								<td>
-									<input type="checkbox" class="ffc-perm-toggle" data-perm="can_override_conflicts" <?php checked( $perm->can_override_conflicts, 1 ); ?>>
+									<?php
+									\FreeFormCertificate\Admin\AdminUI::render_toggle(
+										array(
+											'name'        => 'ffc_perm_' . (string) $perm->user_id . '_can_override_conflicts',
+											'input_class' => 'ffc-perm-toggle',
+											'data'        => array( 'perm' => 'can_override_conflicts' ),
+											'checked'     => ! empty( $perm->can_override_conflicts ),
+										)
+									);
+									?>
 								</td>
 								<td>
 									<button type="button" class="button button-small button-link-delete ffc-remove-user-btn"><?php esc_html_e( 'Remove', 'ffcertificate' ); ?></button>
