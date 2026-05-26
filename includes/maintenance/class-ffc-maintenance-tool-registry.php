@@ -85,6 +85,7 @@ class MaintenanceToolRegistry {
 		$registry = new self();
 		$registry->register( new ObsoleteShortcodeCleaner() );
 		$registry->register( new UrlShortenerCleaner() );
+		$registry->register( new PublicOperatorAccessDisabler() );
 		return $registry;
 	}
 }

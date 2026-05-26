@@ -513,4 +513,92 @@ class SettingsTest extends TestCase {
 
         $this->settings->handle_url_shortener_cleanup();
     }
+
+    // ==================================================================
+    // handle_public_access_disabler()
+    // ==================================================================
+
+    /**
+     * Shared stubs for the public-access-disabler handler. The tool runs a
+     * WP_Query (the bootstrap double returns an empty result set here) so no
+     * forms match and no meta is written.
+     *
+     * @return void
+     */
+    private function arrange_pubaccess_stubs(): void {
+        if ( ! defined( 'MINUTE_IN_SECONDS' ) ) {
+            define( 'MINUTE_IN_SECONDS', 60 );
+        }
+        Functions\when( 'wp_verify_nonce' )->justReturn( 1 );
+        Functions\when( 'get_current_user_id' )->justReturn( 7 );
+        Functions\when( 'update_option' )->justReturn( true );
+        Functions\when( 'set_transient' )->justReturn( true );
+        Functions\when( 'delete_transient' )->justReturn( true );
+        Functions\when( 'wp_safe_redirect' )->alias(
+            function () {
+                throw new \RuntimeException( 'redirect_called' );
+            }
+        );
+    }
+
+    public function test_handle_pubaccess_does_nothing_without_request(): void {
+        unset( $_REQUEST['ffc_pubaccess'] );
+        Functions\expect( 'wp_verify_nonce' )->never();
+        $this->settings->handle_public_access_disabler();
+        $this->assertTrue( true );
+    }
+
+    public function test_handle_pubaccess_dies_on_bad_nonce(): void {
+        $_REQUEST['ffc_pubaccess'] = 'preview';
+        $_REQUEST['_wpnonce']      = 'bad';
+        Functions\when( 'current_user_can' )->justReturn( true );
+        Functions\when( 'wp_verify_nonce' )->justReturn( false );
+        Functions\when( 'wp_die' )->alias(
+            function ( $msg ) {
+                throw new \RuntimeException( 'wp_die: ' . $msg );
+            }
+        );
+
+        $this->expectException( \RuntimeException::class );
+        $this->expectExceptionMessage( 'wp_die' );
+
+        $this->settings->handle_public_access_disabler();
+    }
+
+    public function test_handle_pubaccess_preview_runs_and_redirects(): void {
+        $_REQUEST['ffc_pubaccess']                = 'preview';
+        $_REQUEST['_wpnonce']                     = 'ok';
+        $_POST['public_access_disable_days']      = '120';
+        $this->arrange_pubaccess_stubs();
+
+        $this->expectException( \RuntimeException::class );
+        $this->expectExceptionMessage( 'redirect_called' );
+
+        $this->settings->handle_public_access_disabler();
+    }
+
+    public function test_handle_pubaccess_apply_requires_preview_first(): void {
+        $_REQUEST['ffc_pubaccess'] = 'apply';
+        $_REQUEST['_wpnonce']      = 'ok';
+        $this->arrange_pubaccess_stubs();
+        Functions\when( 'get_transient' )->justReturn( false );
+
+        $this->expectException( \RuntimeException::class );
+        $this->expectExceptionMessage( 'redirect_called' );
+
+        $this->settings->handle_public_access_disabler();
+    }
+
+    public function test_handle_pubaccess_apply_runs_when_previewed(): void {
+        $_REQUEST['ffc_pubaccess'] = 'apply';
+        $_REQUEST['_wpnonce']      = 'ok';
+        $this->arrange_pubaccess_stubs();
+        Functions\when( 'get_transient' )->justReturn( 1 );
+        Functions\when( 'get_option' )->justReturn( array( 'public_access_disable_days' => 30 ) );
+
+        $this->expectException( \RuntimeException::class );
+        $this->expectExceptionMessage( 'redirect_called' );
+
+        $this->settings->handle_public_access_disabler();
+    }
 }
