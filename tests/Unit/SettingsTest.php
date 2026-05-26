@@ -601,4 +601,57 @@ class SettingsTest extends TestCase {
 
         $this->settings->handle_public_access_disabler();
     }
+
+    // ==================================================================
+    // handle_submission_link_audit() (report-only)
+    // ==================================================================
+
+    public function test_handle_submission_audit_does_nothing_without_request(): void {
+        unset( $_REQUEST['ffc_submission_audit'] );
+        Functions\expect( 'wp_verify_nonce' )->never();
+        $this->settings->handle_submission_link_audit();
+        $this->assertTrue( true );
+    }
+
+    public function test_handle_submission_audit_dies_on_bad_nonce(): void {
+        $_REQUEST['ffc_submission_audit'] = 'scan';
+        $_REQUEST['_wpnonce']             = 'bad';
+        Functions\when( 'current_user_can' )->justReturn( true );
+        Functions\when( 'wp_verify_nonce' )->justReturn( false );
+        Functions\when( 'wp_die' )->alias(
+            function ( $msg ) {
+                throw new \RuntimeException( 'wp_die: ' . $msg );
+            }
+        );
+
+        $this->expectException( \RuntimeException::class );
+        $this->expectExceptionMessage( 'wp_die' );
+
+        $this->settings->handle_submission_link_audit();
+    }
+
+    public function test_handle_submission_audit_scans_and_redirects(): void {
+        if ( ! defined( 'MINUTE_IN_SECONDS' ) ) {
+            define( 'MINUTE_IN_SECONDS', 60 );
+        }
+        $_REQUEST['ffc_submission_audit'] = 'scan';
+        $_REQUEST['_wpnonce']             = 'ok';
+        Functions\when( 'wp_verify_nonce' )->justReturn( 1 );
+        Functions\when( 'get_current_user_id' )->justReturn( 7 );
+        Functions\when( 'set_transient' )->justReturn( true );
+        // The auditor lazily builds a SubmissionRepository and runs read-only
+        // queries against the mocked $wpdb.
+        $this->wpdb->users = 'wp_users';
+        $this->wpdb->shouldReceive( 'get_results' )->andReturn( array() )->byDefault();
+        Functions\when( 'wp_safe_redirect' )->alias(
+            function () {
+                throw new \RuntimeException( 'redirect_called' );
+            }
+        );
+
+        $this->expectException( \RuntimeException::class );
+        $this->expectExceptionMessage( 'redirect_called' );
+
+        $this->settings->handle_submission_link_audit();
+    }
 }

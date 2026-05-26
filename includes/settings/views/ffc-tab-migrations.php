@@ -786,6 +786,81 @@ try {
 		</div>
 	</div>
 
+	<?php
+	// ──────────────────────────────────────────────────────────────.
+	// Submission ↔ user link audit (report-only) (v6.7.x)
+	// ──────────────────────────────────────────────────────────────.
+	$ffcertificate_sa_report = get_transient( 'ffc_submission_audit_report_' . $ffcertificate_user_id );
+	$ffcertificate_sa_msg    = \FreeFormCertificate\Core\Utils::get_get_string( 'submission_audit_msg' );
+	$ffcertificate_sa_err    = \FreeFormCertificate\Core\Utils::get_get_string( 'submission_audit_error' );
+
+	$ffcertificate_sa_scan_url = wp_nonce_url(
+		add_query_arg( 'ffc_submission_audit', 'scan', $ffcertificate_base_url ),
+		'ffc_submission_audit_scan'
+	);
+
+	$ffcertificate_sa_labels = array(
+		'orphan_links'        => __( 'Linked to a deleted user', 'ffcertificate' ),
+		'multiple_identities' => __( 'User bound to multiple CPF/RF', 'ffcertificate' ),
+		'should_be_linked'    => __( 'Unlinked but CPF matches a linked record', 'ffcertificate' ),
+		'shared_identities'   => __( 'Same CPF shared across users', 'ffcertificate' ),
+	);
+	?>
+	<div class="postbox ffc-migration-card ffc-submission-audit-card">
+		<div class="postbox-header">
+			<h3 class="hndle">
+				<span class="ffc-icon-search"><?php esc_html_e( 'Submission ↔ user link audit', 'ffcertificate' ); ?></span>
+			</h3>
+		</div>
+		<div class="inside">
+			<p class="description">
+				<?php esc_html_e( 'Report-only scan for submissions wrongly linked to WordPress users. Nothing is changed — review each finding and fix it manually. Detection uses the stored CPF/RF hashes, so no decryption is involved.', 'ffcertificate' ); ?>
+			</p>
+
+			<?php if ( $ffcertificate_sa_msg ) : ?>
+				<div class="notice notice-success inline" style="margin: 10px 0;"><p><?php echo esc_html( $ffcertificate_sa_msg ); ?></p></div>
+			<?php endif; ?>
+			<?php if ( $ffcertificate_sa_err ) : ?>
+				<div class="notice notice-error inline" style="margin: 10px 0;"><p><?php echo esc_html( $ffcertificate_sa_err ); ?></p></div>
+			<?php endif; ?>
+
+			<div class="ffc-migration-actions" style="margin: 12px 0;">
+				<a href="<?php echo esc_url( $ffcertificate_sa_scan_url ); ?>" class="button button-secondary">
+					<span class="dashicons dashicons-search"></span>
+					<?php esc_html_e( 'Run audit', 'ffcertificate' ); ?>
+				</a>
+			</div>
+
+			<?php
+			if ( is_array( $ffcertificate_sa_report ) ) :
+				$ffcertificate_sa_total  = isset( $ffcertificate_sa_report['total'] ) ? (int) $ffcertificate_sa_report['total'] : 0;
+				$ffcertificate_sa_checks = isset( $ffcertificate_sa_report['checks'] ) && is_array( $ffcertificate_sa_report['checks'] ) ? $ffcertificate_sa_report['checks'] : array();
+				?>
+				<?php if ( 0 === $ffcertificate_sa_total ) : ?>
+					<p class="description"><?php esc_html_e( 'No link problems found. Submissions and users look consistent.', 'ffcertificate' ); ?></p>
+				<?php else : ?>
+					<div class="ffc-migration-stats">
+						<?php foreach ( $ffcertificate_sa_labels as $ffcertificate_sa_key => $ffcertificate_sa_label ) : ?>
+							<?php $ffcertificate_sa_c = isset( $ffcertificate_sa_checks[ $ffcertificate_sa_key ]['count'] ) ? (int) $ffcertificate_sa_checks[ $ffcertificate_sa_key ]['count'] : 0; ?>
+							<div>
+								<div class="ffc-migration-stat-label"><?php echo esc_html( $ffcertificate_sa_label ); ?></div>
+								<div class="ffc-migration-stat-value <?php echo $ffcertificate_sa_c > 0 ? 'info' : ''; ?>">
+									<?php
+									echo esc_html( number_format_i18n( $ffcertificate_sa_c ) );
+									echo ( ! empty( $ffcertificate_sa_checks[ $ffcertificate_sa_key ]['truncated'] ) ) ? '+' : '';
+									?>
+								</div>
+							</div>
+						<?php endforeach; ?>
+					</div>
+					<p class="description" style="margin-top: 10px;">
+						<?php esc_html_e( 'Counts are capped at 50 per check (a “+” means there may be more). These are leads to investigate, not automatic fixes.', 'ffcertificate' ); ?>
+					</p>
+				<?php endif; ?>
+			<?php endif; ?>
+		</div>
+	</div>
+
 	<!-- Help Section -->
 	<div class="card ffc-migration-help">
 		<h2 class="ffc-icon-help"><?php esc_html_e( 'Need Help?', 'ffcertificate' ); ?></h2>
