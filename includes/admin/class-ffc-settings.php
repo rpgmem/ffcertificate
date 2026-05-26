@@ -66,6 +66,7 @@ class Settings {
 		add_action( 'admin_init', array( $this, 'handle_clear_qr_cache' ) );
 		add_action( 'admin_init', array( $this, 'handle_migration_execution' ) );
 		add_action( 'admin_init', array( $this, 'handle_obsolete_shortcode_cleanup' ) );
+		add_action( 'admin_init', array( $this, 'handle_url_shortener_cleanup' ) );
 		add_action( 'wp_ajax_ffc_preview_date_format', array( $this, 'ajax_preview_date_format' ) );
 		add_action( 'admin_init', array( $this, 'handle_cache_actions' ) );
 	}
@@ -134,43 +135,47 @@ class Settings {
 	 */
 	public function get_default_settings(): array {
 		return array(
-			'cleanup_days'             => 365,
-			'smtp_mode'                => 'wp',
-			'smtp_host'                => '',
-			'smtp_port'                => 587,
-			'smtp_user'                => '',
-			'smtp_pass'                => '',
-			'smtp_secure'              => 'tls',
-			'smtp_from_email'          => '',
-			'smtp_from_name'           => '',
-			'qr_cache_enabled'         => 0,
-			'qr_default_size'          => 200,
-			'qr_default_margin'        => 2,
-			'qr_default_error_level'   => 'M',
+			'cleanup_days'              => 365,
+			'smtp_mode'                 => 'wp',
+			'smtp_host'                 => '',
+			'smtp_port'                 => 587,
+			'smtp_user'                 => '',
+			'smtp_pass'                 => '',
+			'smtp_secure'               => 'tls',
+			'smtp_from_email'           => '',
+			'smtp_from_name'            => '',
+			'qr_cache_enabled'          => 0,
+			'qr_default_size'           => 200,
+			'qr_default_margin'         => 2,
+			'qr_default_error_level'    => 'M',
 			// `d/m/Y` default since #244 — Brazilian-locale friendly. Pre-
 			// #244 default was 'F j, Y'; installs that explicitly saved
 			// 'F j, Y' keep it because get_option() returns the persisted
 			// value, not the default. Fresh installs and any user who
 			// never visited Settings → General pick up `d/m/Y` now.
-			'date_format'              => 'd/m/Y',
-			'date_format_custom'       => '',
+			'date_format'               => 'd/m/Y',
+			'date_format_custom'        => '',
 			// New in #244 — time-of-day formatting + per-context PDF
 			// overrides. Empty `_pdf` values inherit the base format.
 			// `*_custom` companions hold the user-typed format when
 			// `date_format_pdf` / `time_format_pdf` equals 'custom'
 			// (#248, same idiom as date_format / date_format_custom).
-			'time_format'              => 'H:i',
-			'time_format_custom'       => '',
-			'date_format_pdf'          => '',
-			'date_format_pdf_custom'   => '',
-			'time_format_pdf'          => '',
-			'time_format_pdf_custom'   => '',
-			'cache_enabled'            => 1,      // Default: ON.
-			'cache_expiration'         => 3600,   // 1 hour
-			'cache_auto_warm'          => 0,      // Default: OFF.
-			'public_csv_default_limit' => 1,    // Default limit for public CSV downloads.
-			'obsolete_shortcode_days'  => 90,   // Grace window (days) for obsolete shortcode cleanup.
-			'code_editor_theme'        => 'dark', // 'dark' | 'light' | 'auto' (auto follows dark_mode).
+			'time_format'               => 'H:i',
+			'time_format_custom'        => '',
+			'date_format_pdf'           => '',
+			'date_format_pdf_custom'    => '',
+			'time_format_pdf'           => '',
+			'time_format_pdf_custom'    => '',
+			'cache_enabled'             => 1,      // Default: ON.
+			'cache_expiration'          => 3600,   // 1 hour
+			'cache_auto_warm'           => 0,      // Default: OFF.
+			'public_csv_default_limit'  => 1,    // Default limit for public CSV downloads.
+			'obsolete_shortcode_days'   => 90,   // Grace window (days) for obsolete shortcode cleanup.
+			'url_cleanup_days'          => 90,   // Grace window (days) for the short-URL never-clicked criterion.
+			'url_cleanup_orphaned'      => 1,    // Short-URL cleanup: target post deleted.
+			'url_cleanup_never_clicked' => 0,   // Short-URL cleanup: never clicked + older than the grace window.
+			'url_cleanup_trashed'       => 1,    // Short-URL cleanup: status = 'trashed'.
+			'code_editor_theme'         => 'dark', // 'dark' | 'light' | 'auto' (auto follows dark_mode).
 		);
 	}
 
@@ -540,6 +545,140 @@ class Settings {
 					$redirect_url = add_query_arg( 'obsolete_cleanup_error', rawurlencode( $e->getMessage() ), $redirect_url );
 				}
 				break;
+		}
+
+		wp_safe_redirect( $redirect_url );
+		exit;
+	}
+
+	/**
+	 * Handle the Short URL Cleanup maintenance action (Settings → Data Migrations).
+	 *
+	 * Two modes, each with its own nonce key (`ffc_url_cleanup_<mode>`), all
+	 * requiring `ffc_manage_settings`:
+	 *  - `preview` (POST): persist the chosen criteria + grace window into
+	 *    `ffc_settings`, then run the {@see UrlShortenerCleaner} in dry-run and
+	 *    store the report + a "preview OK" flag so the apply button unlocks.
+	 *  - `apply`   (GET) : refuse unless a recent preview exists, then run the
+	 *    destructive pass using the persisted options.
+	 *
+	 * @since 6.7.x
+	 */
+	public function handle_url_shortener_cleanup(): void {
+        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Nonce verified below.
+		if ( ! isset( $_REQUEST['ffc_url_cleanup'] ) ) {
+			return;
+		}
+
+		if ( ! \FreeFormCertificate\Core\Utils::current_user_can_admin_or( 'ffc_manage_settings' ) ) {
+			wp_die( esc_html__( 'You do not have permission to run this action.', 'ffcertificate' ) );
+		}
+
+        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Nonce verified immediately below.
+		$mode = sanitize_key( wp_unslash( $_REQUEST['ffc_url_cleanup'] ) );
+		if ( ! in_array( $mode, array( 'preview', 'apply' ), true ) ) {
+			wp_die( esc_html__( 'Invalid action.', 'ffcertificate' ) );
+		}
+
+        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Nonce verified here.
+		$nonce = isset( $_REQUEST['_wpnonce'] ) ? sanitize_text_field( wp_unslash( $_REQUEST['_wpnonce'] ) ) : '';
+		if ( ! wp_verify_nonce( $nonce, 'ffc_url_cleanup_' . $mode ) ) {
+			wp_die( esc_html__( 'Security check failed.', 'ffcertificate' ) );
+		}
+
+		$user_id        = get_current_user_id();
+		$report_key     = 'ffc_url_cleanup_report_' . $user_id;
+		$preview_ok_key = 'ffc_url_cleanup_preview_ok_' . $user_id;
+
+		$redirect_url = add_query_arg(
+			array(
+				'post_type' => 'ffc_form',
+				'page'      => 'ffc-settings',
+				'tab'       => 'migrations',
+			),
+			admin_url( 'edit.php' )
+		);
+
+		$settings = get_option( 'ffc_settings', array() );
+		if ( ! is_array( $settings ) ) {
+			$settings = array();
+		}
+
+		$tool = \FreeFormCertificate\Maintenance\MaintenanceToolRegistry::create_default()->get( 'url_shortener_cleanup' );
+		if ( ! $tool instanceof \FreeFormCertificate\Maintenance\MaintenanceToolInterface ) {
+			$redirect_url = add_query_arg( 'url_cleanup_error', rawurlencode( __( 'Maintenance tool not available.', 'ffcertificate' ) ), $redirect_url );
+			wp_safe_redirect( $redirect_url );
+			exit;
+		}
+
+		if ( 'preview' === $mode ) {
+            // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Nonce verified above.
+			$posted_days = isset( $_POST['url_cleanup_days'] ) ? absint( wp_unslash( $_POST['url_cleanup_days'] ) ) : 90;
+			$days        = min( 3650, max( 1, $posted_days ) );
+            // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Nonce verified above.
+			$orphaned = empty( $_POST['url_cleanup_orphaned'] ) ? 0 : 1;
+            // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Nonce verified above.
+			$never = empty( $_POST['url_cleanup_never_clicked'] ) ? 0 : 1;
+            // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Nonce verified above.
+			$trashed = empty( $_POST['url_cleanup_trashed'] ) ? 0 : 1;
+
+			$settings['url_cleanup_days']          = $days;
+			$settings['url_cleanup_orphaned']      = $orphaned;
+			$settings['url_cleanup_never_clicked'] = $never;
+			$settings['url_cleanup_trashed']       = $trashed;
+			update_option( 'ffc_settings', $settings );
+
+			try {
+				$report = $tool->run(
+					array(
+						'criteria' => array(
+							'orphaned'      => (bool) $orphaned,
+							'never_clicked' => (bool) $never,
+							'trashed'       => (bool) $trashed,
+						),
+						'days'     => $days,
+						'dry_run'  => true,
+					)
+				);
+				set_transient( $report_key, $report, 5 * MINUTE_IN_SECONDS );
+				set_transient( $preview_ok_key, 1, 5 * MINUTE_IN_SECONDS );
+				$redirect_url = add_query_arg( 'url_cleanup_msg', rawurlencode( __( 'Preview generated.', 'ffcertificate' ) ), $redirect_url );
+			} catch ( \Throwable $e ) {
+				$redirect_url = add_query_arg( 'url_cleanup_error', rawurlencode( $e->getMessage() ), $redirect_url );
+			}
+		} elseif ( ! get_transient( $preview_ok_key ) ) {
+			$redirect_url = add_query_arg( 'url_cleanup_error', rawurlencode( __( 'Please run a preview first before deleting short URLs.', 'ffcertificate' ) ), $redirect_url );
+		} else {
+			$days     = isset( $settings['url_cleanup_days'] ) ? (int) $settings['url_cleanup_days'] : 90;
+			$criteria = array(
+				'orphaned'      => ! empty( $settings['url_cleanup_orphaned'] ),
+				'never_clicked' => ! empty( $settings['url_cleanup_never_clicked'] ),
+				'trashed'       => ! empty( $settings['url_cleanup_trashed'] ),
+			);
+			try {
+				$report = $tool->run(
+					array(
+						'criteria' => $criteria,
+						'days'     => $days,
+						'dry_run'  => false,
+					)
+				);
+				set_transient( $report_key, $report, 5 * MINUTE_IN_SECONDS );
+				delete_transient( $preview_ok_key );
+				$redirect_url = add_query_arg(
+					'url_cleanup_msg',
+					rawurlencode(
+						sprintf(
+						/* translators: %d: short URLs deleted */
+							__( 'Cleanup complete. Deleted %d short URL(s).', 'ffcertificate' ),
+							(int) $report['deleted']
+						)
+					),
+					$redirect_url
+				);
+			} catch ( \Throwable $e ) {
+				$redirect_url = add_query_arg( 'url_cleanup_error', rawurlencode( $e->getMessage() ), $redirect_url );
+			}
 		}
 
 		wp_safe_redirect( $redirect_url );

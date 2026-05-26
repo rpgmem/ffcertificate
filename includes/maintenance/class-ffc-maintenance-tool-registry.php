@@ -84,6 +84,7 @@ class MaintenanceToolRegistry {
 	public static function create_default(): self {
 		$registry = new self();
 		$registry->register( new ObsoleteShortcodeCleaner() );
+		$registry->register( new UrlShortenerCleaner() );
 		return $registry;
 	}
 }
