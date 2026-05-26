@@ -644,6 +644,148 @@ try {
 		</div>
 	</div>
 
+	<?php
+	// ──────────────────────────────────────────────────────────────.
+	// Disable Public Operator Access on old forms (v6.7.x)
+	// ──────────────────────────────────────────────────────────────.
+	$ffcertificate_pa_days       = max( 1, \FreeFormCertificate\Settings\SettingsReader::get_int( 'public_access_disable_days', 90 ) );
+	$ffcertificate_pa_report     = get_transient( 'ffc_pubaccess_report_' . $ffcertificate_user_id );
+	$ffcertificate_pa_preview_ok = (bool) get_transient( 'ffc_pubaccess_preview_ok_' . $ffcertificate_user_id );
+	$ffcertificate_pa_msg        = \FreeFormCertificate\Core\Utils::get_get_string( 'pubaccess_msg' );
+	$ffcertificate_pa_err        = \FreeFormCertificate\Core\Utils::get_get_string( 'pubaccess_error' );
+
+	$ffcertificate_pa_preview_url = wp_nonce_url(
+		add_query_arg( 'ffc_pubaccess', 'preview', $ffcertificate_base_url ),
+		'ffc_pubaccess_preview'
+	);
+	$ffcertificate_pa_apply_url   = wp_nonce_url(
+		add_query_arg( 'ffc_pubaccess', 'apply', $ffcertificate_base_url ),
+		'ffc_pubaccess_apply'
+	);
+	?>
+	<div class="postbox ffc-migration-card ffc-pubaccess-card">
+		<div class="postbox-header">
+			<h3 class="hndle">
+				<span class="ffc-icon-lock"><?php esc_html_e( 'Disable Public Operator Access on old forms', 'ffcertificate' ); ?></span>
+			</h3>
+		</div>
+		<div class="inside">
+			<p class="description">
+				<?php esc_html_e( 'Switch off Public Operator Access (and its sub-features) on published forms whose collection period ended more than the grace window ago. The access token and other settings are preserved, so access can be re-enabled later if needed.', 'ffcertificate' ); ?>
+			</p>
+
+			<?php if ( $ffcertificate_pa_msg ) : ?>
+				<div class="notice notice-success inline" style="margin: 10px 0;"><p><?php echo esc_html( $ffcertificate_pa_msg ); ?></p></div>
+			<?php endif; ?>
+			<?php if ( $ffcertificate_pa_err ) : ?>
+				<div class="notice notice-error inline" style="margin: 10px 0;"><p><?php echo esc_html( $ffcertificate_pa_err ); ?></p></div>
+			<?php endif; ?>
+
+			<form method="post" action="<?php echo esc_url( $ffcertificate_pa_preview_url ); ?>" style="margin: 12px 0;">
+				<label for="ffc-pubaccess-days" style="margin-right: 8px;">
+					<?php esc_html_e( 'Disable access on forms ended more than', 'ffcertificate' ); ?>
+				</label>
+				<input type="number" id="ffc-pubaccess-days" name="public_access_disable_days" min="1" max="3650" step="1" value="<?php echo esc_attr( (string) $ffcertificate_pa_days ); ?>" style="width: 90px;">
+				<span><?php esc_html_e( 'days ago', 'ffcertificate' ); ?></span>
+				<button type="submit" class="button button-secondary">
+					<span class="dashicons dashicons-visibility"></span>
+					<?php esc_html_e( 'Save & preview', 'ffcertificate' ); ?>
+				</button>
+			</form>
+
+			<div class="ffc-migration-actions">
+				<?php if ( $ffcertificate_pa_preview_ok ) : ?>
+					<a href="<?php echo esc_url( $ffcertificate_pa_apply_url ); ?>" class="button button-primary"
+						data-confirm="<?php esc_attr_e( 'This switches off Public Operator Access on the matched forms. Their access tokens are preserved so they can be re-enabled later. Continue?', 'ffcertificate' ); ?>">
+						<span class="dashicons dashicons-lock"></span>
+						<?php esc_html_e( 'Disable access now', 'ffcertificate' ); ?>
+					</a>
+				<?php else : ?>
+					<span class="button button-primary" disabled aria-disabled="true" title="<?php esc_attr_e( 'Run a preview first', 'ffcertificate' ); ?>">
+						<span class="dashicons dashicons-lock"></span>
+						<?php esc_html_e( 'Disable access now', 'ffcertificate' ); ?>
+					</span>
+				<?php endif; ?>
+				<p class="description">
+					<?php esc_html_e( 'The disable button unlocks for 5 minutes after a successful preview.', 'ffcertificate' ); ?>
+				</p>
+			</div>
+
+			<?php
+			if ( is_array( $ffcertificate_pa_report ) ) :
+				$ffcertificate_pa_is_dry     = ! empty( $ffcertificate_pa_report['dry_run'] );
+				$ffcertificate_pa_candidates = isset( $ffcertificate_pa_report['candidates'] ) ? (int) $ffcertificate_pa_report['candidates'] : 0;
+				$ffcertificate_pa_disabled   = isset( $ffcertificate_pa_report['disabled'] ) ? (int) $ffcertificate_pa_report['disabled'] : 0;
+				$ffcertificate_pa_items      = isset( $ffcertificate_pa_report['affected'] ) && is_array( $ffcertificate_pa_report['affected'] ) ? $ffcertificate_pa_report['affected'] : array();
+				$ffcertificate_pa_truncated  = ! empty( $ffcertificate_pa_report['truncated'] );
+				?>
+				<h4 style="margin-top: 18px;">
+					<?php echo $ffcertificate_pa_is_dry ? esc_html__( 'Preview report', 'ffcertificate' ) : esc_html__( 'Result', 'ffcertificate' ); ?>
+				</h4>
+
+				<div class="ffc-migration-stats">
+					<div>
+						<div class="ffc-migration-stat-label"><?php esc_html_e( 'Forms with access enabled & expired', 'ffcertificate' ); ?></div>
+						<div class="ffc-migration-stat-value info"><?php echo esc_html( number_format_i18n( $ffcertificate_pa_candidates ) ); ?></div>
+					</div>
+					<div>
+						<div class="ffc-migration-stat-label"><?php echo $ffcertificate_pa_is_dry ? esc_html__( 'Would disable', 'ffcertificate' ) : esc_html__( 'Disabled', 'ffcertificate' ); ?></div>
+						<div class="ffc-migration-stat-value success"><?php echo esc_html( number_format_i18n( $ffcertificate_pa_is_dry ? $ffcertificate_pa_candidates : $ffcertificate_pa_disabled ) ); ?></div>
+					</div>
+				</div>
+
+				<?php if ( ! empty( $ffcertificate_pa_items ) ) : ?>
+					<table class="widefat striped" style="margin-top: 10px;">
+						<thead>
+							<tr>
+								<th><?php esc_html_e( 'Form', 'ffcertificate' ); ?></th>
+							</tr>
+						</thead>
+						<tbody>
+							<?php
+							foreach ( $ffcertificate_pa_items as $ffcertificate_pa_item ) :
+								$ffcertificate_pa_fid   = isset( $ffcertificate_pa_item['form_id'] ) ? (int) $ffcertificate_pa_item['form_id'] : 0;
+								$ffcertificate_pa_title = isset( $ffcertificate_pa_item['title'] ) ? (string) $ffcertificate_pa_item['title'] : '';
+								$ffcertificate_pa_link  = $ffcertificate_pa_fid > 0 ? (string) get_edit_post_link( $ffcertificate_pa_fid ) : '';
+								if ( '' === $ffcertificate_pa_title ) {
+									$ffcertificate_pa_title = sprintf(
+										/* translators: %d: form id */
+										__( '(no title, ID %d)', 'ffcertificate' ),
+										$ffcertificate_pa_fid
+									);
+								}
+								?>
+								<tr>
+									<td>
+										<?php if ( $ffcertificate_pa_link ) : ?>
+											<a href="<?php echo esc_url( $ffcertificate_pa_link ); ?>"><?php echo esc_html( $ffcertificate_pa_title ); ?></a>
+										<?php else : ?>
+											<?php echo esc_html( $ffcertificate_pa_title ); ?>
+										<?php endif; ?>
+									</td>
+								</tr>
+							<?php endforeach; ?>
+						</tbody>
+					</table>
+					<?php if ( $ffcertificate_pa_truncated ) : ?>
+						<p class="description">
+							<?php
+							printf(
+								/* translators: 1: forms shown, 2: total candidates */
+								esc_html__( 'Showing first %1$d of %2$d forms. All are processed on apply.', 'ffcertificate' ),
+								(int) \FreeFormCertificate\Maintenance\PublicOperatorAccessDisabler::REPORT_LIMIT,
+								(int) $ffcertificate_pa_candidates
+							);
+							?>
+						</p>
+					<?php endif; ?>
+				<?php elseif ( 0 === $ffcertificate_pa_candidates ) : ?>
+					<p class="description"><?php esc_html_e( 'No expired forms still have Public Operator Access enabled. Nothing to do.', 'ffcertificate' ); ?></p>
+				<?php endif; ?>
+			<?php endif; ?>
+		</div>
+	</div>
+
 	<!-- Help Section -->
 	<div class="card ffc-migration-help">
 		<h2 class="ffc-icon-help"><?php esc_html_e( 'Need Help?', 'ffcertificate' ); ?></h2>
