@@ -268,6 +268,9 @@ class FFC_Autoloader {
 
 			// Recruitment namespace (v6.0.0) - Brazilian public-tender candidate queue.
 			'Recruitment'            => 'recruitment',
+
+			// Maintenance namespace (v6.7.x) - Pluggable admin maintenance/cleanup tools.
+			'Maintenance'            => 'maintenance',
 		);
 	}
 

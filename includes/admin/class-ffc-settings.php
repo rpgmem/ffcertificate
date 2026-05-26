@@ -481,9 +481,18 @@ class Settings {
 				break;
 
 			case 'preview':
+				$tool = \FreeFormCertificate\Maintenance\MaintenanceToolRegistry::create_default()->get( 'obsolete_shortcode' );
+				if ( ! $tool instanceof \FreeFormCertificate\Maintenance\MaintenanceToolInterface ) {
+					$redirect_url = add_query_arg( 'obsolete_cleanup_error', rawurlencode( __( 'Maintenance tool not available.', 'ffcertificate' ) ), $redirect_url );
+					break;
+				}
 				try {
-					$cleaner = new \FreeFormCertificate\Migrations\ObsoleteShortcodeCleaner();
-					$report  = $cleaner->run( $current_days, array( 'dry_run' => true ) );
+					$report = $tool->run(
+						array(
+							'days'    => $current_days,
+							'dry_run' => true,
+						)
+					);
 					set_transient( $report_key, $report, 5 * MINUTE_IN_SECONDS );
 					set_transient( $preview_ok_key, 1, 5 * MINUTE_IN_SECONDS );
 					$redirect_url = add_query_arg( 'obsolete_cleanup_msg', rawurlencode( __( 'Preview generated.', 'ffcertificate' ) ), $redirect_url );
@@ -501,9 +510,18 @@ class Settings {
 					);
 					break;
 				}
+				$tool = \FreeFormCertificate\Maintenance\MaintenanceToolRegistry::create_default()->get( 'obsolete_shortcode' );
+				if ( ! $tool instanceof \FreeFormCertificate\Maintenance\MaintenanceToolInterface ) {
+					$redirect_url = add_query_arg( 'obsolete_cleanup_error', rawurlencode( __( 'Maintenance tool not available.', 'ffcertificate' ) ), $redirect_url );
+					break;
+				}
 				try {
-					$cleaner = new \FreeFormCertificate\Migrations\ObsoleteShortcodeCleaner();
-					$report  = $cleaner->run( $current_days, array( 'dry_run' => false ) );
+					$report = $tool->run(
+						array(
+							'days'    => $current_days,
+							'dry_run' => false,
+						)
+					);
 					set_transient( $report_key, $report, 5 * MINUTE_IN_SECONDS );
 					delete_transient( $preview_ok_key );
 					$redirect_url = add_query_arg(
