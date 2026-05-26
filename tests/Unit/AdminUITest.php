@@ -104,4 +104,14 @@ class AdminUITest extends TestCase {
         $html = $this->capture( array( 'name' => 'k', 'value' => 'yes' ) );
         $this->assertStringContainsString( 'value="yes"', $html );
     }
+
+    public function test_emits_title_on_wrapper_when_provided(): void {
+        $html = $this->capture( array( 'name' => 'k', 'title' => 'Encrypt at rest' ) );
+        $this->assertStringContainsString( 'title="Encrypt at rest"', $html );
+    }
+
+    public function test_no_title_attribute_by_default(): void {
+        $html = $this->capture( array( 'name' => 'k' ) );
+        $this->assertStringNotContainsString( 'title=', $html );
+    }
 }

@@ -51,9 +51,10 @@ class AdminUI {
 	 *                                    classes on the inner checkbox — needed
 	 *                                    when the rendered field is read by a JS
 	 *                                    serializer via class selector, e.g.
-	 *                                    `.ffc-field-required`), `data` (optional
-	 *                                    array<string,string> of data-* attributes
-	 *                                    on the input).
+	 *                                    `.ffc-field-required`), `title` (optional
+	 *                                    string, tooltip on the wrapper label),
+	 *                                    `data` (optional array<string,string> of
+	 *                                    data-* attributes on the input).
 	 */
 	public static function render_toggle( array $args ): void {
 		$name = $args['name'] ?? '';
@@ -65,11 +66,13 @@ class AdminUI {
 		$checked     = ! empty( $args['checked'] );
 		$disabled    = ! empty( $args['disabled'] );
 		$label       = $args['label'] ?? '';
+		$title       = trim( (string) ( $args['title'] ?? '' ) );
 		$extra       = trim( (string) ( $args['class'] ?? '' ) );
 		$input_class = trim( (string) ( $args['input_class'] ?? '' ) );
 		$data        = $args['data'] ?? array();
 
 		$wrapper_class = 'ffc-toggle' . ( '' !== $extra ? ' ' . $extra : '' );
+		$title_attr    = '' !== $title ? ' title="' . esc_attr( $title ) . '"' : '';
 
 		$data_attrs = '';
 		if ( is_array( $data ) ) {
@@ -81,9 +84,10 @@ class AdminUI {
 		$input_class_attr = '' !== $input_class ? ' class="' . esc_attr( $input_class ) . '"' : '';
 
 		printf(
-			'<label class="%1$s" for="%2$s">',
+			'<label class="%1$s" for="%2$s"%3$s>',
 			esc_attr( $wrapper_class ),
-			esc_attr( $id )
+			esc_attr( $id ),
+			$title_attr // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- pre-escaped above.
 		);
 		printf(
 			'<input type="checkbox" id="%1$s" name="%2$s" value="%3$s"%4$s%5$s%6$s%7$s>',

@@ -541,13 +541,16 @@ $ffcertificate_get_option = \Closure::fromCallable( array( $settings, 'get_optio
 						</select>
 
 						<div class="ffc-checkbox-group">
-							<label>
-								<input type="checkbox" name="reset_counter" value="1" id="ffc_reset_counter">
-								<span>
-									<span class="checkbox-label-text"><?php esc_html_e( 'Reset ID counter to 1', 'ffcertificate' ); ?></span>
-									<span class="checkbox-sublabel"><?php esc_html_e( '(recommended)', 'ffcertificate' ); ?></span>
-								</span>
-							</label>
+							<?php
+							\FreeFormCertificate\Admin\AdminUI::render_toggle(
+								array(
+									'name'  => 'reset_counter',
+									'id'    => 'ffc_reset_counter',
+									'label' => __( 'Reset ID counter to 1', 'ffcertificate' ),
+								)
+							);
+							?>
+							<span class="checkbox-sublabel"><?php esc_html_e( '(recommended)', 'ffcertificate' ); ?></span>
 							<p class="description">
 								<?php esc_html_e( 'When checked, next submission will start from ID #1. Only works if table becomes empty.', 'ffcertificate' ); ?>
 							</p>

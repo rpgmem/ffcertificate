@@ -415,15 +415,38 @@ class AudienceAdminAudience {
 								<option value="<?php echo esc_attr( $gkey ); ?>"><?php echo esc_html( $glabel ); ?></option>
 							<?php endforeach; ?>
 						</select>
-						<label class="ffc-field-required-label">
-							<input type="checkbox" class="ffc-field-required"> <?php esc_html_e( 'Required', 'ffcertificate' ); ?>
-						</label>
-						<label class="ffc-field-active-label">
-							<input type="checkbox" class="ffc-field-active" checked> <?php esc_html_e( 'Active', 'ffcertificate' ); ?>
-						</label>
-						<label class="ffc-field-sensitive-label" title="<?php esc_attr_e( 'Encrypt this value at rest (AES-256).', 'ffcertificate' ); ?>">
-							<input type="checkbox" class="ffc-field-sensitive"> <?php esc_html_e( 'Sensitive', 'ffcertificate' ); ?>
-						</label>
+						<?php
+						// Toggle switches (.ffc-toggle). The .ffc-field-{required,active,sensitive}
+						// classes stay on the inner <input> (input_class) because
+						// ffc-custom-fields-admin.js serialises each row via those selectors.
+						// Unique ids via the {{data.index}} mustache so cloned rows don't collide.
+						\FreeFormCertificate\Admin\AdminUI::render_toggle(
+							array(
+								'name'        => 'ffc_aud_field_required_{{data.index}}',
+								'input_class' => 'ffc-field-required',
+								'class'       => 'ffc-field-required-label',
+								'label'       => __( 'Required', 'ffcertificate' ),
+							)
+						);
+						\FreeFormCertificate\Admin\AdminUI::render_toggle(
+							array(
+								'name'        => 'ffc_aud_field_active_{{data.index}}',
+								'input_class' => 'ffc-field-active',
+								'class'       => 'ffc-field-active-label',
+								'label'       => __( 'Active', 'ffcertificate' ),
+								'checked'     => true,
+							)
+						);
+						\FreeFormCertificate\Admin\AdminUI::render_toggle(
+							array(
+								'name'        => 'ffc_aud_field_sensitive_{{data.index}}',
+								'input_class' => 'ffc-field-sensitive',
+								'class'       => 'ffc-field-sensitive-label',
+								'label'       => __( 'Sensitive', 'ffcertificate' ),
+								'title'       => __( 'Encrypt this value at rest (AES-256).', 'ffcertificate' ),
+							)
+						);
+						?>
 					</div>
 					<div class="ffc-field-details-row">
 						<input type="text" class="ffc-field-key" placeholder="<?php esc_attr_e( 'field_key (auto)', 'ffcertificate' ); ?>" value="">
@@ -532,15 +555,37 @@ class AudienceAdminAudience {
 							<option value="<?php echo esc_attr( $gkey ); ?>" <?php selected( $field_group, $gkey ); ?>><?php echo esc_html( $glabel ); ?></option>
 						<?php endforeach; ?>
 					</select>
-					<label class="ffc-field-required-label">
-						<input type="checkbox" class="ffc-field-required" <?php checked( ! empty( $field->is_required ) ); ?>> <?php esc_html_e( 'Required', 'ffcertificate' ); ?>
-					</label>
-					<label class="ffc-field-active-label">
-						<input type="checkbox" class="ffc-field-active" <?php checked( ! empty( $field->is_active ) ); ?>> <?php esc_html_e( 'Active', 'ffcertificate' ); ?>
-					</label>
-					<label class="ffc-field-sensitive-label" title="<?php esc_attr_e( 'Encrypt this value at rest (AES-256).', 'ffcertificate' ); ?>">
-						<input type="checkbox" class="ffc-field-sensitive" <?php checked( $is_sensitive ); ?><?php echo esc_attr( $locked_attr ); ?>> <?php esc_html_e( 'Sensitive', 'ffcertificate' ); ?>
-					</label>
+					<?php
+					\FreeFormCertificate\Admin\AdminUI::render_toggle(
+						array(
+							'name'        => 'ffc_aud_field_required_' . (string) $field->id,
+							'input_class' => 'ffc-field-required',
+							'class'       => 'ffc-field-required-label',
+							'label'       => __( 'Required', 'ffcertificate' ),
+							'checked'     => ! empty( $field->is_required ),
+						)
+					);
+					\FreeFormCertificate\Admin\AdminUI::render_toggle(
+						array(
+							'name'        => 'ffc_aud_field_active_' . (string) $field->id,
+							'input_class' => 'ffc-field-active',
+							'class'       => 'ffc-field-active-label',
+							'label'       => __( 'Active', 'ffcertificate' ),
+							'checked'     => ! empty( $field->is_active ),
+						)
+					);
+					\FreeFormCertificate\Admin\AdminUI::render_toggle(
+						array(
+							'name'        => 'ffc_aud_field_sensitive_' . (string) $field->id,
+							'input_class' => 'ffc-field-sensitive',
+							'class'       => 'ffc-field-sensitive-label',
+							'label'       => __( 'Sensitive', 'ffcertificate' ),
+							'checked'     => $is_sensitive,
+							'disabled'    => $is_standard,
+							'title'       => __( 'Encrypt this value at rest (AES-256).', 'ffcertificate' ),
+						)
+					);
+					?>
 				</div>
 				<?php if ( 'acknowledgment' === $field->field_type ) : ?>
 					<div class="ffc-field-html-container">
