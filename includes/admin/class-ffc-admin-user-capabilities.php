@@ -48,6 +48,14 @@ class AdminUserCapabilities {
 			return;
 		}
 		$s = \FreeFormCertificate\Core\Utils::asset_suffix();
+		// ffc-common.css carries the .ffc-toggle switch styles used by the
+		// capability fields (render_toggle); it isn't otherwise loaded here.
+		wp_enqueue_style(
+			'ffc-common',
+			FFC_PLUGIN_URL . "assets/css/ffc-common{$s}.css",
+			array(),
+			FFC_VERSION
+		);
 		wp_enqueue_script(
 			'ffc-user-capabilities',
 			FFC_PLUGIN_URL . "assets/js/ffc-user-capabilities{$s}.js",
@@ -104,25 +112,40 @@ class AdminUserCapabilities {
 								<span><?php esc_html_e( 'Certificate Permissions', 'ffcertificate' ); ?></span>
 							</legend>
 
-							<label>
-								<input type="checkbox" name="ffc_cap_ffc_view_own_certificates" value="1"
-									<?php checked( $capabilities['ffc_view_own_certificates'] ?? false ); ?>>
-								<?php esc_html_e( 'View own certificates', 'ffcertificate' ); ?>
-							</label>
+							<?php
+							\FreeFormCertificate\Admin\AdminUI::render_toggle(
+								array(
+									'name'    => 'ffc_cap_ffc_view_own_certificates',
+									'id'      => 'ffc_cap_ffc_view_own_certificates',
+									'checked' => ! empty( $capabilities['ffc_view_own_certificates'] ),
+									'label'   => __( 'View own certificates', 'ffcertificate' ),
+								)
+							);
+							?>
 							<br>
 
-							<label>
-								<input type="checkbox" name="ffc_cap_ffc_download_own_certificates" value="1"
-									<?php checked( $capabilities['ffc_download_own_certificates'] ?? false ); ?>>
-								<?php esc_html_e( 'Download own certificates', 'ffcertificate' ); ?>
-							</label>
+							<?php
+							\FreeFormCertificate\Admin\AdminUI::render_toggle(
+								array(
+									'name'    => 'ffc_cap_ffc_download_own_certificates',
+									'id'      => 'ffc_cap_ffc_download_own_certificates',
+									'checked' => ! empty( $capabilities['ffc_download_own_certificates'] ),
+									'label'   => __( 'Download own certificates', 'ffcertificate' ),
+								)
+							);
+							?>
 							<br>
 
-							<label>
-								<input type="checkbox" name="ffc_cap_ffc_view_certificate_history" value="1"
-									<?php checked( $capabilities['ffc_view_certificate_history'] ?? false ); ?>>
-								<?php esc_html_e( 'View certificate history', 'ffcertificate' ); ?>
-							</label>
+							<?php
+							\FreeFormCertificate\Admin\AdminUI::render_toggle(
+								array(
+									'name'    => 'ffc_cap_ffc_view_certificate_history',
+									'id'      => 'ffc_cap_ffc_view_certificate_history',
+									'checked' => ! empty( $capabilities['ffc_view_certificate_history'] ),
+									'label'   => __( 'View certificate history', 'ffcertificate' ),
+								)
+							);
+							?>
 
 							<p class="description">
 								<?php esc_html_e( 'Allow access to certificate-related features in the user dashboard.', 'ffcertificate' ); ?>
@@ -140,32 +163,52 @@ class AdminUserCapabilities {
 								<span><?php esc_html_e( 'Appointment Permissions', 'ffcertificate' ); ?></span>
 							</legend>
 
-							<label>
-								<input type="checkbox" name="ffc_cap_ffc_book_appointments" value="1"
-									<?php checked( $capabilities['ffc_book_appointments'] ?? false ); ?>>
-								<?php esc_html_e( 'Book appointments', 'ffcertificate' ); ?>
-							</label>
+							<?php
+							\FreeFormCertificate\Admin\AdminUI::render_toggle(
+								array(
+									'name'    => 'ffc_cap_ffc_book_appointments',
+									'id'      => 'ffc_cap_ffc_book_appointments',
+									'checked' => ! empty( $capabilities['ffc_book_appointments'] ),
+									'label'   => __( 'Book appointments', 'ffcertificate' ),
+								)
+							);
+							?>
 							<br>
 
-							<label>
-								<input type="checkbox" name="ffc_cap_ffc_view_self_scheduling" value="1"
-									<?php checked( $capabilities['ffc_view_self_scheduling'] ?? false ); ?>>
-								<?php esc_html_e( 'View own appointments', 'ffcertificate' ); ?>
-							</label>
+							<?php
+							\FreeFormCertificate\Admin\AdminUI::render_toggle(
+								array(
+									'name'    => 'ffc_cap_ffc_view_self_scheduling',
+									'id'      => 'ffc_cap_ffc_view_self_scheduling',
+									'checked' => ! empty( $capabilities['ffc_view_self_scheduling'] ),
+									'label'   => __( 'View own appointments', 'ffcertificate' ),
+								)
+							);
+							?>
 							<br>
 
-							<label>
-								<input type="checkbox" name="ffc_cap_ffc_cancel_own_appointments" value="1"
-									<?php checked( $capabilities['ffc_cancel_own_appointments'] ?? false ); ?>>
-								<?php esc_html_e( 'Cancel own appointments', 'ffcertificate' ); ?>
-							</label>
+							<?php
+							\FreeFormCertificate\Admin\AdminUI::render_toggle(
+								array(
+									'name'    => 'ffc_cap_ffc_cancel_own_appointments',
+									'id'      => 'ffc_cap_ffc_cancel_own_appointments',
+									'checked' => ! empty( $capabilities['ffc_cancel_own_appointments'] ),
+									'label'   => __( 'Cancel own appointments', 'ffcertificate' ),
+								)
+							);
+							?>
 							<br>
 
-							<label>
-								<input type="checkbox" name="ffc_cap_ffc_scheduling_bypass" value="1"
-									<?php checked( $capabilities['ffc_scheduling_bypass'] ?? false ); ?>>
-								<?php esc_html_e( 'Scheduling bypass (admin-level access)', 'ffcertificate' ); ?>
-							</label>
+							<?php
+							\FreeFormCertificate\Admin\AdminUI::render_toggle(
+								array(
+									'name'    => 'ffc_cap_ffc_scheduling_bypass',
+									'id'      => 'ffc_cap_ffc_scheduling_bypass',
+									'checked' => ! empty( $capabilities['ffc_scheduling_bypass'] ),
+									'label'   => __( 'Scheduling bypass (admin-level access)', 'ffcertificate' ),
+								)
+							);
+							?>
 							<span class="description"><?php esc_html_e( 'Allows viewing private calendars, booking past dates, out-of-hours, and blocked dates.', 'ffcertificate' ); ?></span>
 
 							<p class="description">
@@ -184,11 +227,16 @@ class AdminUserCapabilities {
 								<span><?php esc_html_e( 'Audience Permissions', 'ffcertificate' ); ?></span>
 							</legend>
 
-							<label>
-								<input type="checkbox" name="ffc_cap_ffc_view_audience_bookings" value="1"
-									<?php checked( $capabilities['ffc_view_audience_bookings'] ?? false ); ?>>
-								<?php esc_html_e( 'View audience bookings', 'ffcertificate' ); ?>
-							</label>
+							<?php
+							\FreeFormCertificate\Admin\AdminUI::render_toggle(
+								array(
+									'name'    => 'ffc_cap_ffc_view_audience_bookings',
+									'id'      => 'ffc_cap_ffc_view_audience_bookings',
+									'checked' => ! empty( $capabilities['ffc_view_audience_bookings'] ),
+									'label'   => __( 'View audience bookings', 'ffcertificate' ),
+								)
+							);
+							?>
 							<span class="description"><?php esc_html_e( 'Allows viewing group/audience bookings in the dashboard.', 'ffcertificate' ); ?></span>
 
 							<p class="description">
@@ -207,11 +255,16 @@ class AdminUserCapabilities {
 								<span><?php esc_html_e( 'Admin Permissions', 'ffcertificate' ); ?></span>
 							</legend>
 
-							<label>
-								<input type="checkbox" name="ffc_cap_ffc_manage_reregistration" value="1"
-									<?php checked( $capabilities['ffc_manage_reregistration'] ?? false ); ?>>
-								<?php esc_html_e( 'Manage reregistration campaigns', 'ffcertificate' ); ?>
-							</label>
+							<?php
+							\FreeFormCertificate\Admin\AdminUI::render_toggle(
+								array(
+									'name'    => 'ffc_cap_ffc_manage_reregistration',
+									'id'      => 'ffc_cap_ffc_manage_reregistration',
+									'checked' => ! empty( $capabilities['ffc_manage_reregistration'] ),
+									'label'   => __( 'Manage reregistration campaigns', 'ffcertificate' ),
+								)
+							);
+							?>
 							<span class="description"><?php esc_html_e( 'Access the Reregistration admin page.', 'ffcertificate' ); ?></span>
 						</fieldset>
 					</td>
@@ -226,11 +279,16 @@ class AdminUserCapabilities {
 								<span><?php esc_html_e( 'Submission editing', 'ffcertificate' ); ?></span>
 							</legend>
 
-							<label>
-								<input type="checkbox" name="ffc_cap_ffc_certificate_update" value="1"
-									<?php checked( $capabilities['ffc_certificate_update'] ?? false ); ?>>
-								<?php esc_html_e( 'Edit submission data on issued certificates', 'ffcertificate' ); ?>
-							</label>
+							<?php
+							\FreeFormCertificate\Admin\AdminUI::render_toggle(
+								array(
+									'name'    => 'ffc_cap_ffc_certificate_update',
+									'id'      => 'ffc_cap_ffc_certificate_update',
+									'checked' => ! empty( $capabilities['ffc_certificate_update'] ),
+									'label'   => __( 'Edit submission data on issued certificates', 'ffcertificate' ),
+								)
+							);
+							?>
 							<span class="description"><?php esc_html_e( '(Lets the user fix typos / corrections on already-emitted certificates without holding manage_options.)', 'ffcertificate' ); ?></span>
 						</fieldset>
 					</td>
