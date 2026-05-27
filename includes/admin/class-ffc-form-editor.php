@@ -107,6 +107,16 @@ class FormEditor {
 			true
 		);
 
+		// If the previous save left validation errors, tell the tab script
+		// which tabs to flag (and which one to auto-open). The matching
+		// transients are still consumed by
+		// FormEditorSaveHandler::display_save_errors() to render the notice
+		// itself — admin_enqueue_scripts runs first (head) and only reads.
+		$error_tabs = $this->get_error_tab_keys();
+		if ( ! empty( $error_tabs ) ) {
+			wp_localize_script( 'ffc-form-editor-tabs', 'ffcFormTabsErrors', $error_tabs );
+		}
+
 		wp_localize_script(
 			'ffc-geofence-admin',
 			'ffc_geofence_admin',
@@ -139,6 +149,31 @@ class FormEditor {
 				)
 			);
 		}
+	}
+
+	/**
+	 * Tab keys with a pending validation error from the last save attempt,
+	 * read from the per-user transients set by FormEditorSaveHandler.
+	 *
+	 * Non-destructive: the transients are consumed (deleted) by
+	 * {@see FormEditorSaveHandler::display_save_errors()} when it renders the
+	 * admin notice; this method only peeks so the tab script can flag the
+	 * offending tabs and open the first one.
+	 *
+	 * @return array<int, string> Ordered list of tab keys, e.g. ['layout'].
+	 */
+	public function get_error_tab_keys(): array {
+		$uid  = get_current_user_id();
+		$keys = array();
+		// Missing required {{tags}} in the PDF layout → Layout tab.
+		if ( get_transient( 'ffc_save_error_' . $uid ) ) {
+			$keys[] = 'layout';
+		}
+		// Geolocation / date-time validation failures → Geo & Time tab.
+		if ( get_transient( 'ffc_geofence_error_' . $uid ) ) {
+			$keys[] = 'geofence';
+		}
+		return $keys;
 	}
 
 	/**

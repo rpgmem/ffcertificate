@@ -59,6 +59,7 @@ function panel(key) {
 beforeEach(() => {
 	document.body.innerHTML = '';
 	window.history.replaceState(null, '', window.location.pathname);
+	delete window.ffcFormTabsErrors;
 });
 
 afterEach(() => {
@@ -177,5 +178,41 @@ describe('FFC.FormEditorTabs.init', () => {
 	it('is a no-op when no tab container is present', () => {
 		document.body.innerHTML = '<div>no tabs here</div>';
 		expect(() => window.FFC.FormEditorTabs.init()).not.toThrow();
+	});
+
+	it('flags error tabs from window.ffcFormTabsErrors and opens the first', () => {
+		buildTabs();
+		window.ffcFormTabsErrors = ['geofence'];
+		window.FFC.FormEditorTabs.init();
+
+		expect(tab('geofence').hasClass('has-error')).toBe(true);
+		expect(tab('geofence').find('.ffc-form-tabs__error-dot').length).toBe(1);
+		// First errored tab is auto-opened over the default first tab.
+		expect(tab('geofence').attr('aria-selected')).toBe('true');
+		expect(panel('geofence').hasClass('is-active')).toBe(true);
+		expect(tab('layout').attr('aria-selected')).toBe('false');
+	});
+
+	it('does not add a duplicate error dot when one is already present', () => {
+		buildTabs();
+		window.ffcFormTabsErrors = ['layout', 'geofence'];
+		window.FFC.FormEditorTabs.init();
+		// Re-running init must not stack a second dot on each flagged tab.
+		window.FFC.FormEditorTabs.init();
+
+		expect(tab('layout').find('.ffc-form-tabs__error-dot').length).toBe(1);
+		expect(tab('geofence').find('.ffc-form-tabs__error-dot').length).toBe(1);
+		// The first key in the list is the one opened.
+		expect(tab('layout').attr('aria-selected')).toBe('true');
+	});
+
+	it('ignores error keys that do not match any tab', () => {
+		buildTabs();
+		window.ffcFormTabsErrors = ['nonexistent'];
+		window.FFC.FormEditorTabs.init();
+
+		// No tab flagged, default first tab stays active.
+		expect(window.$('.has-error').length).toBe(0);
+		expect(tab('layout').attr('aria-selected')).toBe('true');
 	});
 });

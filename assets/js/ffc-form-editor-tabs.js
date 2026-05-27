@@ -156,10 +156,44 @@
 			}
 		} );
 
+		/**
+		 * Flag tabs whose panels hold a validation error from the last save
+		 * (keys localised into `window.ffcFormTabsErrors`) with a `has-error`
+		 * class + indicator dot, and open the first offending tab.
+		 *
+		 * @returns {boolean} Whether at least one error tab was flagged.
+		 */
+		function markErrorTabs() {
+			var keys = window.ffcFormTabsErrors;
+			if ( ! Array.isArray( keys ) || ! keys.length ) {
+				return false;
+			}
+			var flagged = false;
+			keys.forEach( function ( key ) {
+				var $tab = $container.find( '[aria-controls="' + PANEL_PREFIX + key + '"]' );
+				if ( ! $tab.length ) {
+					return;
+				}
+				flagged = true;
+				$tab.addClass( 'has-error' );
+				if ( ! $tab.find( '.ffc-form-tabs__error-dot' ).length ) {
+					$tab.append( '<span class="ffc-form-tabs__error-dot" aria-hidden="true"></span>' );
+				}
+			} );
+			if ( flagged ) {
+				activate( keys[0], { focus: false, updateHash: false } );
+			}
+			return flagged;
+		}
+
 		// Initial paint: honour a deep-link hash, else keep the first tab
 		// (already marked active server-side). Don't rewrite the hash on load.
 		var initialKey = keyFromHash() || tabKey( $tabs.first() );
 		activate( initialKey, { focus: false, updateHash: false } );
+
+		// A failed save overrides the initial tab so the operator lands on
+		// the section they need to fix.
+		markErrorTabs();
 	}
 
 	function initTabs( root ) {
