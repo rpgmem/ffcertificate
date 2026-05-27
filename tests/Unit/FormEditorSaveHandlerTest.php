@@ -156,6 +156,51 @@ class FormEditorSaveHandlerTest extends TestCase {
     }
 
     // ==================================================================
+    // geofence_error_tab_keys()
+    // ==================================================================
+
+    public function test_geofence_error_tab_keys_area_error_maps_to_geolocation(): void {
+        $config = array(
+            'geo_gps_enabled' => '1',
+            'geo_ip_enabled' => '0',
+            'geo_ip_areas_permissive' => '0',
+            'geo_areas' => '',
+            'geo_ip_areas' => '',
+        );
+        $errors = $this->invoke( 'validate_geofence_config', array( $config ) );
+        $keys   = $this->invoke( 'geofence_error_tab_keys', array( $config, $errors ) );
+        $this->assertSame( array( 'geolocation' ), $keys );
+    }
+
+    public function test_geofence_error_tab_keys_datetime_error_maps_to_time(): void {
+        $config = array(
+            'datetime_enabled' => '1',
+            'date_start' => '2026-12-31',
+            'date_end'   => '2026-01-01',
+        );
+        $errors = $this->invoke( 'validate_geofence_config', array( $config ) );
+        $this->assertNotEmpty( $errors );
+        $keys = $this->invoke( 'geofence_error_tab_keys', array( $config, $errors ) );
+        $this->assertSame( array( 'time' ), $keys );
+    }
+
+    public function test_geofence_error_tab_keys_combined_maps_to_both(): void {
+        $config = array(
+            'datetime_enabled' => '1',
+            'date_start' => '2026-12-31',
+            'date_end'   => '2026-01-01',
+            'geo_gps_enabled' => '1',
+            'geo_ip_enabled' => '0',
+            'geo_ip_areas_permissive' => '0',
+            'geo_areas' => '',
+            'geo_ip_areas' => '',
+        );
+        $errors = $this->invoke( 'validate_geofence_config', array( $config ) );
+        $keys   = $this->invoke( 'geofence_error_tab_keys', array( $config, $errors ) );
+        $this->assertSame( array( 'time', 'geolocation' ), $keys );
+    }
+
+    // ==================================================================
     // validate_areas_format()
     // ==================================================================
 

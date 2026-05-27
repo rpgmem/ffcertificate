@@ -169,9 +169,16 @@ class FormEditor {
 		if ( get_transient( 'ffc_save_error_' . $uid ) ) {
 			$keys[] = 'layout';
 		}
-		// Geolocation / date-time validation failures → Geo & Time tab.
-		if ( get_transient( 'ffc_geofence_error_' . $uid ) ) {
-			$keys[] = 'geofence';
+		// Geofence validation failures route to the specific sub-tab(s) —
+		// datetime → Time, area → Geolocation — via the companion transient
+		// the save handler sets. Fall back to flagging both when only the
+		// legacy error transient is present.
+		$geofence_tabs = get_transient( 'ffc_geofence_error_tabs_' . $uid );
+		if ( is_array( $geofence_tabs ) && $geofence_tabs ) {
+			$keys = array_merge( $keys, $geofence_tabs );
+		} elseif ( get_transient( 'ffc_geofence_error_' . $uid ) ) {
+			$keys[] = 'time';
+			$keys[] = 'geolocation';
 		}
 		return $keys;
 	}

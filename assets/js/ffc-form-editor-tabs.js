@@ -21,7 +21,7 @@
 	var PANEL_PREFIX = 'ffc-tabpanel-';
 
 	/**
-	 * Tab key (e.g. "geofence") from a tab anchor, derived from its
+	 * Tab key (e.g. "geolocation") from a tab anchor, derived from its
 	 * `aria-controls` panel id.
 	 *
 	 * @param {jQuery} $tab

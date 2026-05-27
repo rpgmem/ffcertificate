@@ -182,7 +182,7 @@ class FormEditorMetaboxRendererTest extends TestCase {
         // Vertical tab nav with all seven tabs.
         $this->assertStringContainsString( 'role="tablist"', $output );
         $this->assertStringContainsString( 'aria-orientation="vertical"', $output );
-        foreach ( array( 'layout', 'builder', 'restriction', 'email', 'geofence', 'quiz', 'operator' ) as $key ) {
+        foreach ( array( 'layout', 'builder', 'restriction', 'email', 'time', 'geolocation', 'quiz', 'operator' ) as $key ) {
             $this->assertStringContainsString( 'id="ffc-tabnav-' . $key . '"', $output );
             $this->assertStringContainsString( 'id="ffc-tabpanel-' . $key . '"', $output );
         }

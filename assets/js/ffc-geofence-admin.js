@@ -9,14 +9,9 @@
  */
 
 jQuery(document).ready(function($) {
-    // Tab switching - Using event delegation
-    $(document).on('click', '.ffc-geo-tab-btn', function() {
-        var tab = $(this).data('tab');
-        $('.ffc-geo-tab-btn').removeClass('active');
-        $(this).addClass('active');
-        $('.ffc-geo-tab-content').removeClass('active');
-        $('#ffc-tab-' + tab).addClass('active');
-    });
+    // The former inner "Date & Time / Geolocation" button bar was removed
+    // when those sections became two top-level form-editor tabs (Time /
+    // Geolocation), so the .ffc-geo-tab-btn handler is gone.
 
     // DateTime restrictions — visibility now handled by the generic
     // `.ffc-collapsed-target` initializer in ffc-admin.js (#238 / Sprint 3).

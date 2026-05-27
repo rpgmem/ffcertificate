@@ -10,7 +10,7 @@ beforeAll(() => {
 const TABS = [
 	{ key: 'layout', icon: 'media-document', label: 'Layout' },
 	{ key: 'email', icon: 'email', label: 'Email' },
-	{ key: 'geofence', icon: 'location', label: 'Geo & Time' },
+	{ key: 'geolocation', icon: 'location-alt', label: 'Geolocation' },
 ];
 
 // Build the markup FormEditorMetaboxRenderer::render_tabbed_container() emits.
@@ -89,12 +89,12 @@ describe('FFC.FormEditorTabs.init', () => {
 	});
 
 	it('activates the tab named in a deep-link hash on load', () => {
-		window.history.replaceState(null, '', '#ffc-tab-geofence');
+		window.history.replaceState(null, '', '#ffc-tab-geolocation');
 		buildTabs();
 		window.FFC.FormEditorTabs.init();
 
-		expect(tab('geofence').attr('aria-selected')).toBe('true');
-		expect(panel('geofence').hasClass('is-active')).toBe(true);
+		expect(tab('geolocation').attr('aria-selected')).toBe('true');
+		expect(panel('geolocation').hasClass('is-active')).toBe(true);
 		expect(panel('layout').hasClass('is-active')).toBe(false);
 	});
 
@@ -138,13 +138,13 @@ describe('FFC.FormEditorTabs.init', () => {
 		window.FFC.FormEditorTabs.init();
 
 		tab('layout').trigger(window.$.Event('keydown', { key: 'ArrowUp' }));
-		expect(tab('geofence').attr('aria-selected')).toBe('true');
+		expect(tab('geolocation').attr('aria-selected')).toBe('true');
 
-		tab('geofence').trigger(window.$.Event('keydown', { key: 'Home' }));
+		tab('geolocation').trigger(window.$.Event('keydown', { key: 'Home' }));
 		expect(tab('layout').attr('aria-selected')).toBe('true');
 
 		tab('layout').trigger(window.$.Event('keydown', { key: 'End' }));
-		expect(tab('geofence').attr('aria-selected')).toBe('true');
+		expect(tab('geolocation').attr('aria-selected')).toBe('true');
 	});
 
 	it('reacts to an external hashchange without re-writing the hash', () => {
@@ -182,26 +182,26 @@ describe('FFC.FormEditorTabs.init', () => {
 
 	it('flags error tabs from window.ffcFormTabsErrors and opens the first', () => {
 		buildTabs();
-		window.ffcFormTabsErrors = ['geofence'];
+		window.ffcFormTabsErrors = ['geolocation'];
 		window.FFC.FormEditorTabs.init();
 
-		expect(tab('geofence').hasClass('has-error')).toBe(true);
-		expect(tab('geofence').find('.ffc-form-tabs__error-dot').length).toBe(1);
+		expect(tab('geolocation').hasClass('has-error')).toBe(true);
+		expect(tab('geolocation').find('.ffc-form-tabs__error-dot').length).toBe(1);
 		// First errored tab is auto-opened over the default first tab.
-		expect(tab('geofence').attr('aria-selected')).toBe('true');
-		expect(panel('geofence').hasClass('is-active')).toBe(true);
+		expect(tab('geolocation').attr('aria-selected')).toBe('true');
+		expect(panel('geolocation').hasClass('is-active')).toBe(true);
 		expect(tab('layout').attr('aria-selected')).toBe('false');
 	});
 
 	it('does not add a duplicate error dot when one is already present', () => {
 		buildTabs();
-		window.ffcFormTabsErrors = ['layout', 'geofence'];
+		window.ffcFormTabsErrors = ['layout', 'geolocation'];
 		window.FFC.FormEditorTabs.init();
 		// Re-running init must not stack a second dot on each flagged tab.
 		window.FFC.FormEditorTabs.init();
 
 		expect(tab('layout').find('.ffc-form-tabs__error-dot').length).toBe(1);
-		expect(tab('geofence').find('.ffc-form-tabs__error-dot').length).toBe(1);
+		expect(tab('geolocation').find('.ffc-form-tabs__error-dot').length).toBe(1);
 		// The first key in the list is the one opened.
 		expect(tab('layout').attr('aria-selected')).toBe('true');
 	});

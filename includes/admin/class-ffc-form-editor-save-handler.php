@@ -261,6 +261,9 @@ class FormEditorSaveHandler {
 			$validation_errors = $this->validate_geofence_config( $merged_geofence );
 			if ( ! empty( $validation_errors ) ) {
 				set_transient( 'ffc_geofence_error_' . get_current_user_id(), $validation_errors, 45 );
+				// Route each error category to its tab so the tab script can
+				// open the offending one (datetime → Time, area → Geolocation).
+				set_transient( 'ffc_geofence_error_tabs_' . get_current_user_id(), $this->geofence_error_tab_keys( $merged_geofence, $validation_errors ), 45 );
 			} else {
 				update_post_meta( $post_id, '_ffc_geofence_config', $merged_geofence );
 				// Public visibility of date_start/date_end (the form's
@@ -547,6 +550,38 @@ class FormEditorSaveHandler {
 	}
 
 	/**
+	 * Map a geofence validation failure to the tab(s) that own the offending
+	 * fields, so the editor's tab script can flag and open the right one.
+	 *
+	 * Reuses the flat error list from {@see validate_geofence_config()} and the
+	 * datetime-order helper instead of re-running the area checks: the
+	 * date/time-order messages belong to the "Time" tab; everything else
+	 * (GPS/IP area + format errors) belongs to "Geolocation".
+	 *
+	 * @param array<string, mixed> $config     Merged geofence config.
+	 * @param array<int, string>   $all_errors Flat error list for this config.
+	 * @return array<int, string> Ordered tab keys, e.g. ['time', 'geolocation'].
+	 */
+	private function geofence_error_tab_keys( array $config, array $all_errors ): array {
+		$keys            = array();
+		$datetime_errors = array_values(
+			array_unique(
+				array_values(
+					\FreeFormCertificate\Security\Geofence::analyze_datetime_order( $config )
+				)
+			)
+		);
+		if ( ! empty( $datetime_errors ) ) {
+			$keys[] = 'time';
+		}
+		// Any error that isn't a datetime-order message is an area/format one.
+		if ( ! empty( array_diff( $all_errors, $datetime_errors ) ) ) {
+			$keys[] = 'geolocation';
+		}
+		return $keys;
+	}
+
+	/**
 	 * Validates area format (latitude, longitude, radius)
 	 *
 	 * @param string $areas_text Areas text (one per line).
@@ -633,6 +668,8 @@ class FormEditorSaveHandler {
 		$geofence_errors = get_transient( 'ffc_geofence_error_' . get_current_user_id() );
 		if ( $geofence_errors ) {
 			delete_transient( 'ffc_geofence_error_' . get_current_user_id() );
+			// Companion tab-routing transient set alongside the error list.
+			delete_transient( 'ffc_geofence_error_tabs_' . get_current_user_id() );
 			?>
 			<div class="notice notice-error is-dismissible">
 				<p><strong><?php esc_html_e( 'Geolocation Configuration Error:', 'ffcertificate' ); ?></strong></p>
