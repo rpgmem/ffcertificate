@@ -152,7 +152,7 @@ class SettingsSaveHandler {
 
 			// Activity-log granular filter: minimum level + per-category enables.
 			if ( isset( $new['activity_log_min_level'] ) ) {
-				$lvl = sanitize_key( (string) $new['activity_log_min_level'] );
+				$lvl                             = sanitize_key( (string) $new['activity_log_min_level'] );
 				$clean['activity_log_min_level'] = in_array( $lvl, array( 'debug', 'info', 'warning', 'error' ), true ) ? $lvl : 'debug';
 			}
 			foreach ( \FreeFormCertificate\Core\ActivityLog::CATEGORIES as $ffc_cat ) {
