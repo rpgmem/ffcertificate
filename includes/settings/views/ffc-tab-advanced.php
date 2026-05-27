@@ -183,6 +183,18 @@ $ffcertificate_get_option = \Closure::fromCallable( array( $settings, 'get_optio
 						</p>
 					</td>
 				</tr>
+				<tr>
+					<th scope="row">
+						<label for="required_certificate_tags"><?php esc_html_e( 'Required Certificate Tags', 'ffcertificate' ); ?></label>
+					</th>
+					<td>
+						<?php $ffcertificate_req_tags = \FreeFormCertificate\Settings\SettingsReader::required_certificate_tags(); ?>
+						<textarea name="ffc_settings[required_certificate_tags]" id="required_certificate_tags" rows="4" class="large-text code" data-ffc-autosave-key="required_certificate_tags" data-ffc-autosave-debounce="800"><?php echo esc_textarea( implode( "\n", $ffcertificate_req_tags ) ); ?></textarea>
+						<p class="description">
+							<?php esc_html_e( 'One tag per line (with braces). The form editor blocks saving a certificate layout that is missing any of these. {{auth_code}} is always required — certificate verification depends on it.', 'ffcertificate' ); ?>
+						</p>
+					</td>
+				</tr>
 			</tbody>
 		</table>
 </div>

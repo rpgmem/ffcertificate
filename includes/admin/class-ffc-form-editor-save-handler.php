@@ -149,18 +149,11 @@ class FormEditorSaveHandler {
 				$clean_config['quiz_show_correct']  = isset( $config['quiz_show_correct'] ) ? '1' : '0';
 			}
 
-			// Tag Validation: Ensure the user didn't remove critical tags.
-			$missing_tags = array();
-			if ( strpos( $clean_config['pdf_layout'], '{{auth_code}}' ) === false ) {
-				$missing_tags[] = '{{auth_code}}';
-			}
-			if ( strpos( $clean_config['pdf_layout'], '{{name}}' ) === false && strpos( $clean_config['pdf_layout'], '{{nome}}' ) === false ) {
-				$missing_tags[] = '{{name}}';
-			}
-			if ( strpos( $clean_config['pdf_layout'], '{{cpf_rf}}' ) === false ) {
-				$missing_tags[] = '{{cpf_rf}}';
-			}
-
+			// Tag Validation (server-side backstop): warn if the layout is
+			// missing any tag from the configurable required list. The
+			// editor also blocks the submit client-side; this catches the
+			// JS-disabled case. Non-blocking — the post still saves.
+			$missing_tags = $this->missing_required_tags( $clean_config['pdf_layout'] );
 			if ( ! empty( $missing_tags ) ) {
 				set_transient( 'ffc_save_error_' . get_current_user_id(), $missing_tags, 45 );
 			}
@@ -480,10 +473,42 @@ class FormEditorSaveHandler {
 	}
 
 	/**
-	 * Validates geofence configuration
+	 * Required certificate tags absent from a PDF layout.
 	 *
-	 * @param array<string, mixed> $config Geofence configuration.
-	 * @return array<int, string> Array of validation errors (empty if valid)
+	 * Reads the configurable required-tag list (Settings → Advanced) via
+	 * {@see SettingsReader::required_certificate_tags()} and honours the
+	 * historical `{{name}}`/`{{nome}}` alias — a layout using either token
+	 * satisfies a `{{name}}` requirement.
+	 *
+	 * @param string $layout PDF layout HTML.
+	 * @return array<int, string> Missing `{{tag}}` tokens, in required order.
+	 */
+	private function missing_required_tags( string $layout ): array {
+		$missing = array();
+		foreach ( \FreeFormCertificate\Settings\SettingsReader::required_certificate_tags() as $tag ) {
+			$accepted = array( $tag );
+			if ( '{{name}}' === $tag ) {
+				$accepted[] = '{{nome}}';
+			}
+			$found = false;
+			foreach ( $accepted as $candidate ) {
+				if ( false !== strpos( $layout, $candidate ) ) {
+					$found = true;
+					break;
+				}
+			}
+			if ( ! $found ) {
+				$missing[] = $tag;
+			}
+		}
+		return $missing;
+	}
+
+	/**
+	 * Validate geofence configuration.
+	 *
+	 * @param array<string, mixed> $config Geofence config.
+	 * @return array<int, string> Validation error messages.
 	 */
 	private function validate_geofence_config( array $config ): array {
 		$errors = array();

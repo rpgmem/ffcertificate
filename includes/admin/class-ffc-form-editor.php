@@ -117,6 +117,20 @@ class FormEditor {
 			wp_localize_script( 'ffc-form-editor-tabs', 'ffcFormTabsErrors', $error_tabs );
 		}
 
+		// Required-tag list for the client-side save guard: block the submit
+		// and open the Layout tab with a banner when the certificate layout
+		// is missing any required {{tag}}. The server-side check in
+		// FormEditorSaveHandler is the backstop for JS-disabled clients.
+		wp_localize_script(
+			'ffc-form-editor-tabs',
+			'ffcFormRequiredTags',
+			array(
+				'tags'    => \FreeFormCertificate\Settings\SettingsReader::required_certificate_tags(),
+				'aliases' => array( '{{name}}' => array( '{{nome}}' ) ),
+				'message' => __( 'This certificate layout is missing required tags:', 'ffcertificate' ),
+			)
+		);
+
 		wp_localize_script(
 			'ffc-geofence-admin',
 			'ffc_geofence_admin',

@@ -1031,6 +1031,15 @@ p.ffc-datetime-order-error {
 	height: 20px;
 }
 
+/* Client-side required-tag save-guard banner (prepended to the Layout panel). */
+.ffc-form-tabs__required-warning {
+	margin: 0 0 16px;
+}
+
+.ffc-form-tabs__required-warning code {
+	background: var(--ffc-bg-alt);
+}
+
 /* Panel hiding only kicks in once JS marks the container ready. */
 .ffc-form-tabs.is-ready .ffc-form-tabs__panel {
 	display: none;

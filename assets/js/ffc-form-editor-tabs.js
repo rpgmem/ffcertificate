@@ -186,6 +186,85 @@
 			return flagged;
 		}
 
+		/** Remove the required-tag warning banner, if present. */
+		function removeRequiredWarning() {
+			$container.find( '.ffc-form-tabs__required-warning' ).remove();
+		}
+
+		/**
+		 * Render the required-tag warning banner at the top of the Layout
+		 * panel, listing the missing tags.
+		 *
+		 * @param {string[]} missing
+		 * @param {Object}   cfg
+		 */
+		function showRequiredWarning( missing, cfg ) {
+			removeRequiredWarning();
+			var $panel = $( '#' + PANEL_PREFIX + 'layout' );
+			if ( ! $panel.length ) {
+				return;
+			}
+			var $warn = $( '<div class="ffc-form-tabs__required-warning notice notice-error" role="alert"></div>' );
+			$warn.append( $( '<p></p>' ).append(
+				$( '<strong></strong>' ).text( cfg.message || 'Missing required tags:' )
+			) );
+			var $list = $( '<p></p>' );
+			missing.forEach( function ( tag, i ) {
+				if ( i ) {
+					$list.append( document.createTextNode( ', ' ) );
+				}
+				$list.append( $( '<code></code>' ).text( tag ) );
+			} );
+			$warn.append( $list );
+			$panel.prepend( $warn );
+		}
+
+		/**
+		 * Block the form submit when the certificate layout is missing any
+		 * required {{tag}} (localised into window.ffcFormRequiredTags), then
+		 * surface a banner on — and open — the Layout tab. The server-side
+		 * check in FormEditorSaveHandler stays as the JS-disabled backstop.
+		 */
+		function setupRequiredTagGuard() {
+			var cfg = window.ffcFormRequiredTags;
+			if ( ! cfg || ! Array.isArray( cfg.tags ) || ! cfg.tags.length ) {
+				return;
+			}
+			var $form = $container.closest( 'form' );
+			if ( ! $form.length ) {
+				return;
+			}
+			$form.on( 'submit.ffcRequiredTags', function ( e ) {
+				var $layout = $( '#ffc_pdf_layout' );
+				if ( ! $layout.length ) {
+					return;
+				}
+				// Flush CodeMirror into the textarea first — its own submit
+				// sync may not have run yet depending on handler order.
+				var $cm = $layout.nextAll( '.CodeMirror' ).first();
+				if ( $cm.length && $cm[0].CodeMirror && typeof $cm[0].CodeMirror.save === 'function' ) {
+					$cm[0].CodeMirror.save();
+				}
+				var content = String( $layout.val() || '' );
+				var missing = cfg.tags.filter( function ( tag ) {
+					var accepted = [ tag ];
+					if ( cfg.aliases && cfg.aliases[ tag ] ) {
+						accepted = accepted.concat( cfg.aliases[ tag ] );
+					}
+					return ! accepted.some( function ( token ) {
+						return content.indexOf( token ) !== -1;
+					} );
+				} );
+				if ( ! missing.length ) {
+					removeRequiredWarning();
+					return;
+				}
+				e.preventDefault();
+				showRequiredWarning( missing, cfg );
+				activate( 'layout', { focus: false, updateHash: false } );
+			} );
+		}
+
 		// Initial paint: honour a deep-link hash, else keep the first tab
 		// (already marked active server-side). Don't rewrite the hash on load.
 		var initialKey = keyFromHash() || tabKey( $tabs.first() );
@@ -194,6 +273,9 @@
 		// A failed save overrides the initial tab so the operator lands on
 		// the section they need to fix.
 		markErrorTabs();
+
+		// Client-side required-tag save guard.
+		setupRequiredTagGuard();
 	}
 
 	function initTabs( root ) {

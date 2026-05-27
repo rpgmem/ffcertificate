@@ -271,4 +271,51 @@ class SettingsReaderTest extends TestCase {
 	public function test_option_key_constant_is_ffc_settings(): void {
 		$this->assertSame( 'ffc_settings', SettingsReader::OPTION_KEY );
 	}
+
+	// ------------------------------------------------------------------
+	// required_certificate_tags()
+	// ------------------------------------------------------------------
+
+	public function test_required_certificate_tags_defaults_to_historical_trio(): void {
+		$this->stub_option( array() );
+
+		$this->assertSame(
+			array( '{{auth_code}}', '{{name}}', '{{cpf_rf}}' ),
+			SettingsReader::required_certificate_tags()
+		);
+	}
+
+	public function test_required_certificate_tags_parses_newline_list(): void {
+		$this->stub_option(
+			array( 'required_certificate_tags' => "{{auth_code}}\n{{name}}\n{{course}}" )
+		);
+
+		$this->assertSame(
+			array( '{{auth_code}}', '{{name}}', '{{course}}' ),
+			SettingsReader::required_certificate_tags()
+		);
+	}
+
+	public function test_required_certificate_tags_force_injects_auth_code(): void {
+		// Admin removed auth_code — it must come back, first.
+		$this->stub_option(
+			array( 'required_certificate_tags' => "{{name}}\n{{cpf_rf}}" )
+		);
+
+		$this->assertSame(
+			array( '{{auth_code}}', '{{name}}', '{{cpf_rf}}' ),
+			SettingsReader::required_certificate_tags()
+		);
+	}
+
+	public function test_required_certificate_tags_dedupes_and_accepts_array(): void {
+		$this->stub_option(
+			array( 'required_certificate_tags' => array( '{{auth_code}}', '{{name}}', '{{name}}' ) )
+		);
+
+		$this->assertSame(
+			array( '{{auth_code}}', '{{name}}' ),
+			SettingsReader::required_certificate_tags()
+		);
+	}
 }

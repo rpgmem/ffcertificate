@@ -156,6 +156,47 @@ class FormEditorSaveHandlerTest extends TestCase {
     }
 
     // ==================================================================
+    // missing_required_tags()
+    // ==================================================================
+
+    public function test_missing_required_tags_flags_all_when_layout_empty(): void {
+        // No saved list → SettingsReader returns the default trio.
+        Functions\when( 'get_option' )->justReturn( array() );
+
+        $missing = $this->invoke( 'missing_required_tags', array( '<p>nothing here</p>' ) );
+        $this->assertSame( array( '{{auth_code}}', '{{name}}', '{{cpf_rf}}' ), $missing );
+    }
+
+    public function test_missing_required_tags_empty_when_all_present(): void {
+        Functions\when( 'get_option' )->justReturn( array() );
+
+        $layout  = '{{auth_code}} {{name}} {{cpf_rf}}';
+        $missing = $this->invoke( 'missing_required_tags', array( $layout ) );
+        $this->assertSame( array(), $missing );
+    }
+
+    public function test_missing_required_tags_accepts_nome_alias_for_name(): void {
+        Functions\when( 'get_option' )->justReturn( array() );
+
+        // {{nome}} satisfies the {{name}} requirement.
+        $layout  = '{{auth_code}} {{nome}} {{cpf_rf}}';
+        $missing = $this->invoke( 'missing_required_tags', array( $layout ) );
+        $this->assertSame( array(), $missing );
+    }
+
+    public function test_missing_required_tags_honours_configured_list(): void {
+        Functions\when( 'get_option' )->alias( function ( $key ) {
+            return ( 'ffc_settings' === $key )
+                ? array( 'required_certificate_tags' => "{{auth_code}}\n{{course}}" )
+                : array();
+        } );
+
+        $layout  = '{{auth_code}} only';
+        $missing = $this->invoke( 'missing_required_tags', array( $layout ) );
+        $this->assertSame( array( '{{course}}' ), $missing );
+    }
+
+    // ==================================================================
     // geofence_error_tab_keys()
     // ==================================================================
 

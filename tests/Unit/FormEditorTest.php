@@ -125,6 +125,9 @@ class FormEditorTest extends TestCase {
         );
         Functions\when( 'admin_url' )->returnArg();
         Functions\when( 'wp_create_nonce' )->justReturn( 'n' );
+        // enqueue_scripts() localizes the required-tag list, which reads
+        // ffc_settings via SettingsReader::required_certificate_tags().
+        Functions\when( 'get_option' )->justReturn( array() );
 
         $editor = new FormEditor();
         $editor->enqueue_scripts( 'post.php' );
@@ -145,6 +148,7 @@ class FormEditorTest extends TestCase {
         Functions\when( 'get_transient' )->alias( function ( $key ) {
             return ( 'ffc_geofence_error_tabs_7' === $key ) ? array( 'geolocation' ) : false;
         } );
+        Functions\when( 'get_option' )->justReturn( array() );
 
         $localized = array();
         Functions\when( 'wp_localize_script' )->alias( function ( $handle, $name, $data ) use ( &$localized ) {

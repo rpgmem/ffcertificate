@@ -169,6 +169,12 @@ class SettingsAjaxEndpoint {
 				'string',
 				array(),
 			),
+			// Newline/comma list of required {{tags}} for PDF layouts —
+			// read by SettingsReader::required_certificate_tags().
+			'required_certificate_tags'   => array(
+				'string',
+				array( 'as' => 'multiline_text' ),
+			),
 			'public_csv_sync_max_rows'    => array(
 				'int',
 				array(
