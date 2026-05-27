@@ -36,7 +36,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 				<td><code>{{qr_code:size=150}}</code></td>
 				<td>
 					<?php esc_html_e( 'Custom size (150x150 pixels)', 'ffcertificate' ); ?><br>
-					<strong><?php esc_html_e( 'Range:', 'ffcertificate' ); ?></strong> <?php esc_html_e( '100px at 500px', 'ffcertificate' ); ?>
+					<strong><?php esc_html_e( 'Range:', 'ffcertificate' ); ?></strong> <?php esc_html_e( '100px–500px', 'ffcertificate' ); ?>
 				</td>
 			</tr>
 			<tr>
