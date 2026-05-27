@@ -298,6 +298,10 @@ class AdminActivityLogPage {
 			'operator_ip_bypass'        => __( 'Operator IP Bypass', 'ffcertificate' ),
 			// Pre-flight telemetry (#356 follow-up).
 			'preflight_blocked'         => __( 'Pre-flight Banner Shown', 'ffcertificate' ),
+			// Delivery audit.
+			'pdf_generated'             => __( 'PDF Generated', 'ffcertificate' ),
+			'certificate_emailed'       => __( 'Certificate Emailed', 'ffcertificate' ),
+			'csv_downloaded'            => __( 'CSV Downloaded', 'ffcertificate' ),
 		);
 
 		return isset( $labels[ $action ] ) ? $labels[ $action ] : ucwords( str_replace( '_', ' ', $action ) );

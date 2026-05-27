@@ -370,6 +370,14 @@ class PublicCsvDownload {
 			'download_delivered'
 		);
 
+		// 10c. Mirror the delivery into the global Activity Log (the
+		// ring-buffer above is per-form; this gives a site-wide audit trail).
+		\FreeFormCertificate\Core\ActivityLog::log(
+			'csv_downloaded',
+			\FreeFormCertificate\Core\ActivityLog::LEVEL_INFO,
+			array( 'form_id' => $form_id )
+		);
+
 		// 11. Stream the CSV. This exits the request.
 		$exporter = new PublicCsvExporter();
 		$exporter->stream_form_csv( $form_id, 'publish' );
