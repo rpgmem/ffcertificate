@@ -826,7 +826,7 @@ class SubmissionHandler {
 		if ( $deleted && class_exists( '\FreeFormCertificate\Core\ActivityLog' ) ) {
 			\FreeFormCertificate\Core\ActivityLog::log(
 				'data_cleanup',
-				\FreeFormCertificate\Core\ActivityLog::LEVEL_INFO,
+				\FreeFormCertificate\Core\ActivityLog::LEVEL_WARNING,
 				array(
 					'deleted_count' => $deleted,
 					'cutoff_ts'     => $cutoff_ts,
