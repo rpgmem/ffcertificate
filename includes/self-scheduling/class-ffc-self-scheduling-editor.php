@@ -74,9 +74,16 @@ class SelfSchedulingEditor {
 		);
 
 		wp_enqueue_style(
+			'ffc-common',
+			FFC_PLUGIN_URL . "assets/css/ffc-common{$s}.css",
+			array(),
+			FFC_VERSION
+		);
+
+		wp_enqueue_style(
 			'ffc-calendar-editor',
 			FFC_PLUGIN_URL . "assets/css/ffc-calendar-editor{$s}.css",
-			array(),
+			array( 'ffc-common' ),
 			FFC_VERSION
 		);
 

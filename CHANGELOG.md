@@ -27,6 +27,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 
 ### Fixed
 
+- **Self-scheduling calendar editor: the config toggles rendered as plain checkboxes.** The editor already used `render_toggle`, but the full `.ffc-toggle` switch component lives in `ffc-common.css`, which this screen didn't enqueue — only `ffc-calendar-editor.css` (which carries a scoped layout tweak for the email toggles). So the Allow-cancellation / Requires-approval / Restrict-* / Admin-bypass toggles showed as raw checkboxes. `ffc-common.css` is now enqueued (as a dependency of `ffc-calendar-editor.css`) on the `ffc_self_scheduling` edit screen, so all the switches render correctly.
 - **Ficha PDF: Divisão and Setor cells printed the literal placeholder instead of the values.** `default_ficha_template.html` referenced `{{divisao}}` / `{{setor}}`, but `FichaGenerator` only ever emits the combined `divisao_setor` value (`"<parent> - <child>"`), so neither placeholder was substituted. The generator now also exposes each `dependent_select` field's two halves as `{{<key>_parent}}` / `{{<key>_child}}` (the combined `{{<key>}}` form stays for back-compat), and the template's Divisão/Setor cells point at `{{divisao_setor_parent}}` / `{{divisao_setor_child}}`. The standard-field variable building moved into the unit-tested `FichaGenerator::build_standard_field_variables()`.
 
 ---
