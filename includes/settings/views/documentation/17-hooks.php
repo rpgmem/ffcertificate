@@ -30,6 +30,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 				<tr><td><code>ffcertificate_certificate_data</code></td><td><?php esc_html_e( 'Modify certificate template data before PDF generation', 'ffcertificate' ); ?></td></tr>
 				<tr><td><code>ffcertificate_certificate_html</code></td><td><?php esc_html_e( 'Modify the final certificate HTML before rendering', 'ffcertificate' ); ?></td></tr>
 				<tr><td><code>ffcertificate_certificate_filename</code></td><td><?php esc_html_e( 'Customize the PDF filename', 'ffcertificate' ); ?></td></tr>
+				<tr><td><code>ffcertificate_pdf_filename</code></td><td><?php esc_html_e( 'Generic PDF filename filter (fires for all PDF types before the type-specific filename filter)', 'ffcertificate' ); ?></td></tr>
 				<tr><td><code>ffcertificate_after_pdf_generation</code></td><td><?php esc_html_e( 'Action fired after a PDF is generated', 'ffcertificate' ); ?></td></tr>
 				<tr><td><code>ffcertificate_allowed_html_tags</code></td><td><?php esc_html_e( 'Extend the list of allowed HTML tags in templates', 'ffcertificate' ); ?></td></tr>
 			</tbody>
@@ -70,6 +71,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 				<tr><td><code>ffcertificate_after_submission_delete</code></td><td><?php esc_html_e( 'After a submission is permanently deleted', 'ffcertificate' ); ?></td></tr>
 				<tr><td><code>ffcertificate_submission_trashed</code></td><td><?php esc_html_e( 'When a submission is moved to trash', 'ffcertificate' ); ?></td></tr>
 				<tr><td><code>ffcertificate_submission_restored</code></td><td><?php esc_html_e( 'When a submission is restored from trash', 'ffcertificate' ); ?></td></tr>
+				<tr><td><code>ffcertificate_before_data_deletion</code></td><td><?php esc_html_e( 'Before the bulk "delete data" / reset action runs from the Advanced settings', 'ffcertificate' ); ?></td></tr>
 			</tbody>
 		</table>
 	</div>
@@ -109,6 +111,14 @@ if ( ! defined( 'ABSPATH' ) ) {
 				<tr><td><code>ffcertificate_available_slots</code></td><td><?php esc_html_e( 'Filter available appointment time slots', 'ffcertificate' ); ?></td></tr>
 				<tr><td><code>ffcertificate_appointment_receipt_bg_image</code></td><td><?php esc_html_e( 'Customize the appointment receipt background image', 'ffcertificate' ); ?></td></tr>
 				<tr><td><code>ffcertificate_appointment_receipt_template_file</code></td><td><?php esc_html_e( 'Customize the appointment receipt template file path', 'ffcertificate' ); ?></td></tr>
+				<tr><td><code>ffcertificate_appointment_receipt_filename</code></td><td><?php esc_html_e( 'Customize the appointment receipt PDF filename', 'ffcertificate' ); ?></td></tr>
+				<tr><td><code>ffcertificate_self_scheduling_appointment_created_email</code></td><td><?php esc_html_e( 'Filter the "appointment created" email to the user', 'ffcertificate' ); ?></td></tr>
+				<tr><td><code>ffcertificate_self_scheduling_appointment_confirmed_email</code></td><td><?php esc_html_e( 'Filter the "appointment confirmed" email', 'ffcertificate' ); ?></td></tr>
+				<tr><td><code>ffcertificate_self_scheduling_appointment_cancelled_email</code></td><td><?php esc_html_e( 'Filter the "appointment cancelled" email', 'ffcertificate' ); ?></td></tr>
+				<tr><td><code>ffcertificate_self_scheduling_appointment_reminder_email</code></td><td><?php esc_html_e( 'Filter the appointment reminder email', 'ffcertificate' ); ?></td></tr>
+				<tr><td><code>ffcertificate_self_scheduling_appointment_admin_notification</code></td><td><?php esc_html_e( 'Filter the admin notification for self-scheduling appointments', 'ffcertificate' ); ?></td></tr>
+				<tr><td><code>ffcertificate_self_scheduling_cancel_appointments_on_delete</code></td><td><?php esc_html_e( 'Whether to cancel appointments when a calendar/user is deleted', 'ffcertificate' ); ?></td></tr>
+				<tr><td><code>ffcertificate_self_scheduling_send_deletion_notification</code></td><td><?php esc_html_e( 'Whether to send a notification when appointments are removed on deletion', 'ffcertificate' ); ?></td></tr>
 			</tbody>
 		</table>
 	</div>
