@@ -204,6 +204,53 @@ class ActivityLogTest extends TestCase {
     // log() — basic behaviour
     // ==================================================================
 
+    public function test_category_for_action_mapping(): void {
+        $this->assertSame('recruitment', ActivityLog::category_for_action('recruitment_candidate_deleted'));
+        $this->assertSame('scheduling', ActivityLog::category_for_action('appointment_created'));
+        $this->assertSame('migrations', ActivityLog::category_for_action('cpf_rf_split_migration_batch'));
+        $this->assertSame('public_access', ActivityLog::category_for_action('csv_downloaded'));
+        $this->assertSame('users', ActivityLog::category_for_action('privacy_data_erased'));
+        $this->assertSame('system', ActivityLog::category_for_action('settings_changed'));
+        $this->assertSame('submissions', ActivityLog::category_for_action('submission_created'));
+        $this->assertSame('submissions', ActivityLog::category_for_action('pdf_generated'));
+        // Unknown actions fall back to submissions.
+        $this->assertSame('submissions', ActivityLog::category_for_action('totally_unknown_action'));
+    }
+
+    public function test_log_filtered_by_minimum_level(): void {
+        Functions\when('get_option')->alias(function ($key, $default = false) {
+            if ('ffc_settings' === $key) {
+                return array(
+                    'enable_activity_log'    => 1,
+                    'activity_log_min_level' => 'warning',
+                );
+            }
+            return $default;
+        });
+
+        // Below the configured minimum → dropped.
+        $this->assertFalse(ActivityLog::log('submission_created', ActivityLog::LEVEL_INFO));
+        // At/above the minimum → recorded.
+        $this->assertTrue(ActivityLog::log('submission_deleted', ActivityLog::LEVEL_WARNING));
+    }
+
+    public function test_log_filtered_by_disabled_category(): void {
+        Functions\when('get_option')->alias(function ($key, $default = false) {
+            if ('ffc_settings' === $key) {
+                return array(
+                    'enable_activity_log'         => 1,
+                    'activity_log_cat_submissions' => 0,
+                );
+            }
+            return $default;
+        });
+
+        // submissions category off → dropped.
+        $this->assertFalse(ActivityLog::log('submission_created', ActivityLog::LEVEL_INFO));
+        // scheduling category still on → recorded.
+        $this->assertTrue(ActivityLog::log('appointment_created', ActivityLog::LEVEL_INFO));
+    }
+
     public function test_log_returns_false_when_disabled(): void {
         $this->disableActivityLog();
 

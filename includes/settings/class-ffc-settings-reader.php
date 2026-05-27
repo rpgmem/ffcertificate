@@ -108,6 +108,27 @@ final class SettingsReader {
 		return self::get_bool( 'enable_activity_log' );
 	}
 
+	/**
+	 * Minimum level the activity log records (debug < info < warning < error).
+	 * Defaults to `debug` (log everything).
+	 *
+	 * @return string One of 'debug' | 'info' | 'warning' | 'error'.
+	 */
+	public static function activity_log_min_level(): string {
+		$level = (string) self::get( 'activity_log_min_level', 'debug' );
+		return in_array( $level, array( 'debug', 'info', 'warning', 'error' ), true ) ? $level : 'debug';
+	}
+
+	/**
+	 * Whether a given activity-log category is enabled. Defaults to true.
+	 *
+	 * @param string $category Category key (see ActivityLog::CATEGORIES).
+	 * @return bool
+	 */
+	public static function activity_log_category_enabled( string $category ): bool {
+		return self::get_bool( 'activity_log_cat_' . $category, true );
+	}
+
 	/** Whether the WP admin bar is allowed for the FFC user role. */
 	public static function admin_bar_allowed(): bool {
 		return self::get_bool( 'allow_admin_bar' );

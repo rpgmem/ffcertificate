@@ -76,6 +76,53 @@ $ffcertificate_get_option = \Closure::fromCallable( array( $settings, 'get_optio
 					</td>
 				</tr>
 				<tr>
+					<th scope="row"><label for="activity_log_min_level"><?php esc_html_e( 'Minimum log level', 'ffcertificate' ); ?></label></th>
+					<td>
+						<?php $ffcertificate_log_min = \FreeFormCertificate\Settings\SettingsReader::activity_log_min_level(); ?>
+						<select name="ffc_settings[activity_log_min_level]" id="activity_log_min_level" data-ffc-autosave-key="activity_log_min_level">
+							<option value="debug" <?php selected( $ffcertificate_log_min, 'debug' ); ?>><?php esc_html_e( 'Debug (everything)', 'ffcertificate' ); ?></option>
+							<option value="info" <?php selected( $ffcertificate_log_min, 'info' ); ?>><?php esc_html_e( 'Info and above', 'ffcertificate' ); ?></option>
+							<option value="warning" <?php selected( $ffcertificate_log_min, 'warning' ); ?>><?php esc_html_e( 'Warning and above', 'ffcertificate' ); ?></option>
+							<option value="error" <?php selected( $ffcertificate_log_min, 'error' ); ?>><?php esc_html_e( 'Error only', 'ffcertificate' ); ?></option>
+						</select>
+						<p class="description"><?php esc_html_e( 'Only record events at or above this severity. Default: Debug (log everything).', 'ffcertificate' ); ?></p>
+					</td>
+				</tr>
+				<tr>
+					<th scope="row"><?php esc_html_e( 'Log categories', 'ffcertificate' ); ?></th>
+					<td>
+						<?php
+						$ffcertificate_log_cats = array(
+							'submissions'   => __( 'Submissions', 'ffcertificate' ),
+							'scheduling'    => __( 'Scheduling', 'ffcertificate' ),
+							'public_access' => __( 'Public Operator Access', 'ffcertificate' ),
+							'users'         => __( 'Users & Privacy', 'ffcertificate' ),
+							'recruitment'   => __( 'Recruitment', 'ffcertificate' ),
+							'migrations'    => __( 'Migrations', 'ffcertificate' ),
+							'system'        => __( 'System & Security', 'ffcertificate' ),
+						);
+						foreach ( $ffcertificate_log_cats as $ffcertificate_cat_key => $ffcertificate_cat_label ) :
+							?>
+							<div style="margin-bottom:4px;">
+								<?php
+								\FreeFormCertificate\Admin\AdminUI::render_toggle(
+									array(
+										'name'    => 'ffc_settings[activity_log_cat_' . $ffcertificate_cat_key . ']',
+										'id'      => 'activity_log_cat_' . $ffcertificate_cat_key,
+										'checked' => \FreeFormCertificate\Settings\SettingsReader::activity_log_category_enabled( $ffcertificate_cat_key ),
+										'label'   => $ffcertificate_cat_label,
+										'data'    => array( 'ffc-autosave-key' => 'activity_log_cat_' . $ffcertificate_cat_key ),
+									)
+								);
+								?>
+							</div>
+							<?php
+						endforeach;
+						?>
+						<p class="description"><?php esc_html_e( 'Uncheck a category to stop logging its events. All on by default.', 'ffcertificate' ); ?></p>
+					</td>
+				</tr>
+				<tr>
 					<th scope="row">
 						<label for="public_csv_sync_max_rows"><?php esc_html_e( 'Public CSV Sync Export Limit', 'ffcertificate' ); ?></label>
 					</th>
