@@ -255,6 +255,48 @@
 /* ==========================================================================
    MIGRATION CARDS
    ========================================================================== */
+/* ==========================================================================
+   ACTIVITY LOG — minimum-level picker (radio "threshold" table)
+   The selected row + every row below it (more severe) are "recorded" and
+   tint a soft green via :has(:checked); rows above stay neutral (ignored).
+   ========================================================================== */
+.ffc-loglevel-table {
+    border-collapse: collapse;
+    margin: 4px 0 8px;
+}
+
+.ffc-loglevel-table td {
+    padding: 0;
+    border: 1px solid var(--ffc-border-light, #dcdcde);
+    border-bottom: none;
+}
+
+.ffc-loglevel-table tr:last-child td {
+    border-bottom: 1px solid var(--ffc-border-light, #dcdcde);
+}
+
+.ffc-loglevel-label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 16px;
+    margin: 0;
+    cursor: pointer;
+    min-width: 320px;
+}
+
+/* Recorded rows: the row whose radio is checked + all following (lower) rows. */
+.ffc-loglevel-table tr:has( input[type="radio"]:checked ),
+.ffc-loglevel-table tr:has( input[type="radio"]:checked ) ~ tr {
+    background: var(--ffc-success-light, #e7f5ec);
+}
+
+.ffc-loglevel-table tr:has( input[type="radio"]:checked ) .ffc-loglevel-name,
+.ffc-loglevel-table tr:has( input[type="radio"]:checked ) ~ tr .ffc-loglevel-name {
+    color: var(--ffc-success, #00a32a);
+    font-weight: 600;
+}
+
 .ffc-migration-card {
     margin-bottom: 20px;
 }

@@ -36,9 +36,18 @@
         if (typeof transform === 'function') {
             return transform($field);
         }
-        // Default: checkbox-like — boolean as '1' / '0'.
-        if ($field.is(':checkbox') || $field.is(':radio')) {
+        // Checkbox — boolean as '1' / '0'.
+        if ($field.is(':checkbox')) {
             return $field.is(':checked') ? '1' : '0';
+        }
+        // Radio group — send the checked member's value (e.g. a log-level
+        // picker), not a boolean. Falls back to the field's own value.
+        if ($field.is(':radio')) {
+            var radioName = $field.attr('name');
+            if (radioName) {
+                return $('input[name="' + radioName + '"]:checked').val();
+            }
+            return $field.val();
         }
         return $field.val();
     }
