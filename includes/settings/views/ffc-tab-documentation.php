@@ -39,6 +39,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 			<li><a href="#url-shortener" class="ffc-icon-link"><?php esc_html_e( '16. URL Shortener & QR Codes', 'ffcertificate' ); ?></a></li>
 			<li><a href="#hooks" class="ffc-icon-wrench"><?php esc_html_e( '17. Developer Hooks', 'ffcertificate' ); ?></a></li>
 			<li><a href="#troubleshooting" class="ffc-icon-wrench"><?php esc_html_e( '18. Troubleshooting', 'ffcertificate' ); ?></a></li>
+			<li><a href="#rest-api-auth" class="ffc-icon-lock"><?php esc_html_e( '19. REST API Authentication', 'ffcertificate' ); ?></a></li>
 		</ul>
 	</div>
 </div>
