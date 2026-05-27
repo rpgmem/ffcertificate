@@ -358,7 +358,7 @@ final class RecruitmentActivityLogger {
 		}
 		ActivityLog::log(
 			'recruitment_classification_deleted',
-			ActivityLog::LEVEL_INFO,
+			ActivityLog::LEVEL_WARNING,
 			$context,
 			get_current_user_id()
 		);
@@ -373,7 +373,7 @@ final class RecruitmentActivityLogger {
 	public static function adjutancy_deleted( int $adjutancy_id ): void {
 		ActivityLog::log(
 			'recruitment_adjutancy_deleted',
-			ActivityLog::LEVEL_INFO,
+			ActivityLog::LEVEL_WARNING,
 			array( 'adjutancy_id' => $adjutancy_id ),
 			get_current_user_id()
 		);

@@ -154,7 +154,7 @@ class ExpiredTicketsCleanup {
 		if ( class_exists( '\FreeFormCertificate\Core\ActivityLog' ) ) {
 			\FreeFormCertificate\Core\ActivityLog::log(
 				'tickets_purged_expired',
-				'info',
+				'warning',
 				array(
 					'form_id'         => $form_id,
 					'tickets_removed' => $count,
