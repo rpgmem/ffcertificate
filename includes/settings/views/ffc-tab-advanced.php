@@ -76,16 +76,34 @@ $ffcertificate_get_option = \Closure::fromCallable( array( $settings, 'get_optio
 					</td>
 				</tr>
 				<tr>
-					<th scope="row"><label for="activity_log_min_level"><?php esc_html_e( 'Minimum log level', 'ffcertificate' ); ?></label></th>
+					<th scope="row"><?php esc_html_e( 'Minimum log level', 'ffcertificate' ); ?></th>
 					<td>
 						<?php $ffcertificate_log_min = \FreeFormCertificate\Settings\SettingsReader::activity_log_min_level(); ?>
-						<select name="ffc_settings[activity_log_min_level]" id="activity_log_min_level" data-ffc-autosave-key="activity_log_min_level">
-							<option value="debug" <?php selected( $ffcertificate_log_min, 'debug' ); ?>><?php esc_html_e( 'Debug (everything)', 'ffcertificate' ); ?></option>
-							<option value="info" <?php selected( $ffcertificate_log_min, 'info' ); ?>><?php esc_html_e( 'Info and above', 'ffcertificate' ); ?></option>
-							<option value="warning" <?php selected( $ffcertificate_log_min, 'warning' ); ?>><?php esc_html_e( 'Warning and above', 'ffcertificate' ); ?></option>
-							<option value="error" <?php selected( $ffcertificate_log_min, 'error' ); ?>><?php esc_html_e( 'Error only', 'ffcertificate' ); ?></option>
-						</select>
-						<p class="description"><?php esc_html_e( 'Only record events at or above this severity. Default: Debug (log everything).', 'ffcertificate' ); ?></p>
+						<table class="ffc-loglevel-table" role="radiogroup" aria-label="<?php esc_attr_e( 'Minimum log level', 'ffcertificate' ); ?>">
+							<tbody>
+								<?php
+								$ffcertificate_levels = array(
+									'debug'   => __( 'Debug — records everything (most data)', 'ffcertificate' ),
+									'info'    => __( 'Info', 'ffcertificate' ),
+									'warning' => __( 'Warning', 'ffcertificate' ),
+									'error'   => __( 'Error — only critical (least data)', 'ffcertificate' ),
+								);
+								foreach ( $ffcertificate_levels as $ffcertificate_lvl => $ffcertificate_lvl_label ) :
+									?>
+									<tr class="ffc-loglevel-row">
+										<td>
+											<label class="ffc-loglevel-label">
+												<input type="radio" name="ffc_settings[activity_log_min_level]" value="<?php echo esc_attr( $ffcertificate_lvl ); ?>" <?php checked( $ffcertificate_log_min, $ffcertificate_lvl ); ?> data-ffc-autosave-key="activity_log_min_level">
+												<span class="ffc-loglevel-name"><?php echo esc_html( $ffcertificate_lvl_label ); ?></span>
+											</label>
+										</td>
+									</tr>
+									<?php
+								endforeach;
+								?>
+							</tbody>
+						</table>
+						<p class="description"><?php esc_html_e( 'Records the selected level and every more-severe one below it (highlighted green); rows above are ignored. Default: Debug — log everything.', 'ffcertificate' ); ?></p>
 					</td>
 				</tr>
 				<tr>
