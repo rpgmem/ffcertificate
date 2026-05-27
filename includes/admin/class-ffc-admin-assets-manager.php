@@ -426,14 +426,16 @@ class AdminAssetsManager {
 			'ffc-certificates-dashboard',
 			'ffcCertificatesDashboard',
 			array(
-				'restUrl' => esc_url_raw( rest_url( 'ffc/v1/' ) ),
-				'nonce'   => wp_create_nonce( 'wp_rest' ),
-				'i18n'    => array(
+				'restUrl'            => esc_url_raw( rest_url( 'ffc/v1/' ) ),
+				'nonce'              => wp_create_nonce( 'wp_rest' ),
+				'submissionsUrlBase' => esc_url_raw( admin_url( 'edit.php?post_type=ffc_form&page=ffc-submissions' ) ),
+				'i18n'               => array(
 					'legendGeofence'  => __( 'GeoFence start', 'ffcertificate' ),
 					'legendFallback'  => __( 'Publication date (fallback)', 'ffcertificate' ),
 					'sourceGeofence'  => __( 'GeoFence', 'ffcertificate' ),
 					'sourcePostDate'  => __( 'Publication date', 'ffcertificate' ),
 					'noFormsForDay'   => __( 'No forms scheduled for this day.', 'ffcertificate' ),
+					'viewSubmissions' => __( 'View submissions for this form', 'ffcertificate' ),
 					'calendarStrings' => array(
 						'months'   => array(
 							__( 'January', 'ffcertificate' ),

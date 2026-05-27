@@ -171,6 +171,22 @@
                             .text(entry.title || ('#' + entry.id))
                     );
                 }
+                if (settings.submissionsUrlBase && entry.id) {
+                    $item.append(
+                        $('<a class="ffc-certificates-submissions-link"></a>')
+                            .attr(
+                                'href',
+                                settings.submissionsUrlBase +
+                                    '&filter_form_id[0]=' +
+                                    encodeURIComponent(entry.id)
+                            )
+                            .attr('title', i18n.viewSubmissions || 'View submissions for this form')
+                            .attr('aria-label', i18n.viewSubmissions || 'View submissions for this form')
+                            .append(
+                                $('<span class="dashicons dashicons-list-view" aria-hidden="true"></span>')
+                            )
+                    );
+                }
                 if (statusLabel && statusLabel !== 'publish') {
                     $item.append(
                         $('<span class="ffc-certificates-status"></span>')

@@ -103,6 +103,29 @@
     color: var(--ffc-text-secondary, #50575e);
 }
 
+/* Discreet "view submissions" link at the end of each day-list row. */
+.ffc-certificates-submissions-link {
+    flex: 0 0 auto;
+    display: inline-flex;
+    align-items: center;
+    color: var(--ffc-text-secondary, #787c82);
+    text-decoration: none;
+    opacity: 0.55;
+    transition: opacity 0.15s ease, color 0.15s ease;
+}
+
+.ffc-certificates-submissions-link:hover,
+.ffc-certificates-submissions-link:focus {
+    opacity: 1;
+    color: var(--ffc-link, #2271b1);
+}
+
+.ffc-certificates-submissions-link .dashicons {
+    font-size: 18px;
+    width: 18px;
+    height: 18px;
+}
+
 /* ------------------------------------------------------------------------
  * FFCCalendarCore grid (self-contained, mirrors ffc-audience.css)
  * ------------------------------------------------------------------------ */
