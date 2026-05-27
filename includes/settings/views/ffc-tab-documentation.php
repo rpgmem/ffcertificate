@@ -40,6 +40,8 @@ if ( ! defined( 'ABSPATH' ) ) {
 			<li><a href="#hooks" class="ffc-icon-wrench"><?php esc_html_e( '17. Developer Hooks', 'ffcertificate' ); ?></a></li>
 			<li><a href="#troubleshooting" class="ffc-icon-wrench"><?php esc_html_e( '18. Troubleshooting', 'ffcertificate' ); ?></a></li>
 			<li><a href="#rest-api-auth" class="ffc-icon-lock"><?php esc_html_e( '19. REST API Authentication', 'ffcertificate' ); ?></a></li>
+			<li><a href="#recruitment" class="ffc-icon-user"><?php esc_html_e( '20. Recruitment', 'ffcertificate' ); ?></a></li>
+			<li><a href="#maintenance-tools" class="ffc-icon-wrench"><?php esc_html_e( '21. Maintenance Tools', 'ffcertificate' ); ?></a></li>
 		</ul>
 	</div>
 </div>
@@ -81,5 +83,9 @@ if ( ! defined( 'ABSPATH' ) ) {
 <?php require __DIR__ . '/documentation/18-troubleshooting.php'; ?>
 
 <?php require __DIR__ . '/documentation/19-rest-api-auth.php'; ?>
+
+<?php require __DIR__ . '/documentation/20-recruitment.php'; ?>
+
+<?php require __DIR__ . '/documentation/21-maintenance-tools.php'; ?>
 
 </div><!-- .ffc-settings-wrap -->
