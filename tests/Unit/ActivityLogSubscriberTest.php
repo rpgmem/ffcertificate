@@ -71,11 +71,24 @@ class ActivityLogSubscriberTest extends TestCase {
 
         // Allow remaining hooks
         Functions\expect( 'add_action' )
-            ->with( \Mockery::pattern( '/^ffcertificate_after_appointment|ffcertificate_appointment|ffcertificate_settings|ffcertificate_daily|admin_init/' ), \Mockery::any(), \Mockery::any(), \Mockery::any() )
+            ->with( \Mockery::pattern( '/^ffcertificate_after_appointment|ffcertificate_appointment|ffcertificate_after_pdf_generation|ffcertificate_before_email_send|ffcertificate_settings|ffcertificate_daily|admin_init/' ), \Mockery::any(), \Mockery::any(), \Mockery::any() )
             ->zeroOrMoreTimes();
         Functions\expect( 'add_action' )
             ->with( 'ffcertificate_daily_cleanup_hook', \Mockery::any() )
             ->zeroOrMoreTimes();
+
+        new ActivityLogSubscriber();
+    }
+
+    public function test_registers_delivery_hooks(): void {
+        Functions\expect( 'add_action' )
+            ->with( 'ffcertificate_after_pdf_generation', \Mockery::type( 'array' ), 10, 2 )
+            ->once();
+        Functions\expect( 'add_action' )
+            ->with( 'ffcertificate_before_email_send', \Mockery::type( 'array' ), 10, 4 )
+            ->once();
+
+        Functions\expect( 'add_action' )->withAnyArgs()->zeroOrMoreTimes();
 
         new ActivityLogSubscriber();
     }
@@ -246,6 +259,33 @@ class ActivityLogSubscriberTest extends TestCase {
 
         $appointment = array( 'calendar_id' => 1 );
         $subscriber->on_appointment_cancelled( 100, $appointment, 'User request', 42 );
+    }
+
+    public function test_on_pdf_generated_runs_without_error(): void {
+        Functions\when( 'add_action' )->justReturn( true );
+
+        global $wpdb;
+        $wpdb = \Mockery::mock( 'wpdb' );
+        $wpdb->prefix = 'wp_';
+        $wpdb->shouldNotReceive( 'insert' );
+
+        $subscriber = new ActivityLogSubscriber();
+        $subscriber->on_pdf_generated( 'pdf-bytes', 100 );
+        $subscriber->on_pdf_generated( 'pdf-bytes', 0 );
+        $this->assertTrue( true );
+    }
+
+    public function test_on_certificate_emailed_runs_without_error(): void {
+        Functions\when( 'add_action' )->justReturn( true );
+
+        global $wpdb;
+        $wpdb = \Mockery::mock( 'wpdb' );
+        $wpdb->prefix = 'wp_';
+        $wpdb->shouldNotReceive( 'insert' );
+
+        $subscriber = new ActivityLogSubscriber();
+        $subscriber->on_certificate_emailed( 100, 'user@example.com', 5, array() );
+        $this->assertTrue( true );
     }
 
     public function test_on_daily_cleanup_runs_without_error(): void {
