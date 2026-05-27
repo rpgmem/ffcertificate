@@ -96,6 +96,27 @@ class FormEditor {
 			true
 		);
 
+		// Vertical-tab behaviour for the configuration metabox. Pure
+		// progressive enhancement (jQuery only) — the panels stay usable
+		// stacked if this fails to load.
+		wp_enqueue_script(
+			'ffc-form-editor-tabs',
+			FFC_PLUGIN_URL . "assets/js/ffc-form-editor-tabs{$s}.js",
+			array( 'jquery' ),
+			FFC_VERSION,
+			true
+		);
+
+		// If the previous save left validation errors, tell the tab script
+		// which tabs to flag (and which one to auto-open). The matching
+		// transients are still consumed by
+		// FormEditorSaveHandler::display_save_errors() to render the notice
+		// itself — admin_enqueue_scripts runs first (head) and only reads.
+		$error_tabs = $this->get_error_tab_keys();
+		if ( ! empty( $error_tabs ) ) {
+			wp_localize_script( 'ffc-form-editor-tabs', 'ffcFormTabsErrors', $error_tabs );
+		}
+
 		wp_localize_script(
 			'ffc-geofence-admin',
 			'ffc_geofence_admin',
@@ -131,6 +152,31 @@ class FormEditor {
 	}
 
 	/**
+	 * Tab keys with a pending validation error from the last save attempt,
+	 * read from the per-user transients set by FormEditorSaveHandler.
+	 *
+	 * Non-destructive: the transients are consumed (deleted) by
+	 * {@see FormEditorSaveHandler::display_save_errors()} when it renders the
+	 * admin notice; this method only peeks so the tab script can flag the
+	 * offending tabs and open the first one.
+	 *
+	 * @return array<int, string> Ordered list of tab keys, e.g. ['layout'].
+	 */
+	public function get_error_tab_keys(): array {
+		$uid  = get_current_user_id();
+		$keys = array();
+		// Missing required {{tags}} in the PDF layout → Layout tab.
+		if ( get_transient( 'ffc_save_error_' . $uid ) ) {
+			$keys[] = 'layout';
+		}
+		// Geolocation / date-time validation failures → Geo & Time tab.
+		if ( get_transient( 'ffc_geofence_error_' . $uid ) ) {
+			$keys[] = 'geofence';
+		}
+		return $keys;
+	}
+
+	/**
 	 * Registers all metaboxes for the Form CPT
 	 *
 	 * ✅ v3.1.1: Delegates rendering to FFC_Form_Editor_Metabox_Renderer
@@ -141,72 +187,23 @@ class FormEditor {
 		remove_meta_box( 'ffc_form_config', 'ffc_form', 'normal' );
 		remove_meta_box( 'ffc_builder_box', 'ffc_form', 'normal' );
 
-		// Main metaboxes (content area) - Delegated to Metabox Renderer.
+		// The seven content sections are now rendered inside one wrapper
+		// metabox as a vertical-tabbed container (WooCommerce "Product
+		// data" style) instead of seven stacked metaboxes. Each tab panel
+		// reuses the matching `render_box_*` method, so the save path and
+		// the form-meta autosave are unchanged; see
+		// `FormEditorMetaboxRenderer::render_tabbed_container()`.
 		add_meta_box(
-			'ffc_box_layout',
-			__( '1. Certificate Layout', 'ffcertificate' ),
-			array( $this->metabox_renderer, 'render_box_layout' ),
+			'ffc_box_tabs',
+			__( 'Certificate Form Configuration', 'ffcertificate' ),
+			array( $this->metabox_renderer, 'render_tabbed_container' ),
 			'ffc_form',
 			'normal',
 			'high'
 		);
 
-		add_meta_box(
-			'ffc_box_builder',
-			__( '2. Form Builder (Fields)', 'ffcertificate' ),
-			array( $this->metabox_renderer, 'render_box_builder' ),
-			'ffc_form',
-			'normal',
-			'high'
-		);
-
-		add_meta_box(
-			'ffc_box_restriction',
-			__( '3. Restriction & Security', 'ffcertificate' ),
-			array( $this->metabox_renderer, 'render_box_restriction' ),
-			'ffc_form',
-			'normal',
-			'high'
-		);
-
-		add_meta_box(
-			'ffc_box_email',
-			__( '4. Email Configuration', 'ffcertificate' ),
-			array( $this->metabox_renderer, 'render_box_email' ),
-			'ffc_form',
-			'normal',
-			'high'
-		);
-
-		add_meta_box(
-			'ffc_box_geofence',
-			__( '5. Geolocation & Date/Time Restrictions', 'ffcertificate' ),
-			array( $this->metabox_renderer, 'render_box_geofence' ),
-			'ffc_form',
-			'normal',
-			'high'
-		);
-
-		add_meta_box(
-			'ffc_box_quiz',
-			__( '6. Quiz / Evaluation Mode', 'ffcertificate' ),
-			array( $this->metabox_renderer, 'render_box_quiz' ),
-			'ffc_form',
-			'normal',
-			'high'
-		);
-
-		add_meta_box(
-			'ffc_box_public_csv_download',
-			__( '7. Public Operator Access', 'ffcertificate' ),
-			array( $this->metabox_renderer, 'render_box_public_csv_download' ),
-			'ffc_form',
-			'normal',
-			'default'
-		);
-
-		// Device Fingerprint Limit (former Section 8) is now rendered as a
-		// sub-section of "Restriction & Security" (Section 3) — both
+		// Device Fingerprint Limit (former Section 8) is rendered as a
+		// sub-section of "Restriction & Security" (the Security tab) — both
 		// answer the same question ("who can submit this form?") so they
 		// belong together. The dispatch happens inside
 		// `FormEditorMetaboxRenderer::render_box_restriction()`.

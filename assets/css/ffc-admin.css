@@ -945,3 +945,147 @@ p.ffc-datetime-order-error {
 	font-weight: 500;
 	margin-top: 4px;
 }
+
+/* =========================================================================
+ * Form-editor vertical tabs (WooCommerce "Product data" style).
+ *
+ * The seven content sections render inside one wrapper metabox: a vertical
+ * nav on the left and stacked panels on the right. Panel hiding is gated on
+ * `.is-ready`, which ffc-form-editor-tabs.js adds once it wires the tab
+ * behaviour — so without JS the screen degrades to fully-visible stacked
+ * panels (the pre-tabs layout).
+ * ========================================================================= */
+.ffc-form-tabs {
+	display: flex;
+	align-items: flex-start;
+	margin: 0 -12px -12px;
+}
+
+.ffc-form-tabs__nav {
+	flex: 0 0 200px;
+	margin: 0;
+	padding: 0;
+	list-style: none;
+	background: var(--ffc-bg-alt);
+	border-right: 1px solid var(--ffc-border-light);
+}
+
+.ffc-form-tabs__nav-item {
+	margin: 0;
+}
+
+.ffc-form-tabs__tab {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	padding: 12px 14px;
+	color: var(--ffc-text-secondary);
+	text-decoration: none;
+	font-weight: 500;
+	line-height: 1.3;
+	border-left: 3px solid transparent;
+	border-bottom: 1px solid var(--ffc-border-light);
+}
+
+.ffc-form-tabs__tab:hover {
+	background: var(--ffc-bg-card);
+	color: var(--ffc-link-hover);
+}
+
+.ffc-form-tabs__tab:focus {
+	color: var(--ffc-link-hover);
+	box-shadow: none;
+}
+
+.ffc-form-tabs__tab:focus-visible {
+	outline: 2px solid var(--ffc-primary);
+	outline-offset: -2px;
+}
+
+.ffc-form-tabs__tab .dashicons {
+	flex: 0 0 auto;
+	width: 18px;
+	height: 18px;
+	font-size: 18px;
+	color: var(--ffc-text-muted);
+}
+
+.ffc-form-tabs__tab.is-active {
+	background: var(--ffc-bg-card);
+	color: var(--ffc-primary);
+	border-left-color: var(--ffc-primary);
+}
+
+.ffc-form-tabs__tab.is-active .dashicons {
+	color: var(--ffc-primary);
+}
+
+/* Validation-error signalling — wired on in a later sprint. */
+.ffc-form-tabs__tab.has-error {
+	color: var(--ffc-danger, #d63638);
+}
+
+.ffc-form-tabs__tab.has-error .dashicons {
+	color: var(--ffc-danger, #d63638);
+}
+
+.ffc-form-tabs__error-dot {
+	width: 8px;
+	height: 8px;
+	margin-left: auto;
+	border-radius: 50%;
+	background: var(--ffc-danger, #d63638);
+}
+
+.ffc-form-tabs__panels {
+	flex: 1 1 auto;
+	min-width: 0;
+	padding: 4px 16px 16px;
+}
+
+.ffc-form-tabs__panel-title {
+	margin: 8px 0 16px;
+	padding-bottom: 8px;
+	font-size: 15px;
+	border-bottom: 1px solid var(--ffc-border-light);
+}
+
+/* Panel hiding only kicks in once JS marks the container ready. */
+.ffc-form-tabs.is-ready .ffc-form-tabs__panel {
+	display: none;
+}
+
+.ffc-form-tabs.is-ready .ffc-form-tabs__panel.is-active {
+	display: block;
+}
+
+/* No-JS fallback: divide the stacked panels so they read as sections. */
+.ffc-form-tabs:not(.is-ready) .ffc-form-tabs__panel + .ffc-form-tabs__panel {
+	margin-top: 16px;
+	border-top: 1px solid var(--ffc-border-light);
+}
+
+/* Narrow screens: nav wraps above the panels as a horizontal strip. */
+@media screen and (max-width: 782px) {
+	.ffc-form-tabs {
+		flex-direction: column;
+	}
+
+	.ffc-form-tabs__nav {
+		display: flex;
+		flex: 1 1 auto;
+		flex-wrap: wrap;
+		border-right: none;
+		border-bottom: 1px solid var(--ffc-border-light);
+	}
+
+	.ffc-form-tabs__tab {
+		border-left: none;
+		border-bottom: 3px solid transparent;
+	}
+
+	.ffc-form-tabs__tab.is-active {
+		border-left: none;
+		border-bottom-color: var(--ffc-primary);
+	}
+}

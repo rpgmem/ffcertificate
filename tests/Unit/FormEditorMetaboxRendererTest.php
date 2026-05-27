@@ -37,6 +37,26 @@ class FormEditorMetaboxRendererTest extends TestCase {
         Functions\when( 'checked' )->justReturn( '' );
         Functions\when( 'selected' )->justReturn( '' );
         Functions\when( 'get_option' )->justReturn( array() );
+        Functions\when( 'wp_parse_args' )->alias(
+            function ( $args, $defaults = array() ) {
+                return is_array( $args ) ? array_merge( $defaults, $args ) : $defaults;
+            }
+        );
+        Functions\when( 'wp_kses' )->returnArg();
+        Functions\when( 'wp_kses_post' )->returnArg();
+        Functions\when( 'absint' )->alias( fn( $v ) => abs( (int) $v ) );
+        Functions\when( 'sanitize_text_field' )->returnArg();
+        Functions\when( 'sanitize_key' )->returnArg();
+        Functions\when( 'esc_attr__' )->returnArg();
+        Functions\when( 'esc_url_raw' )->returnArg();
+        Functions\when( 'number_format_i18n' )->alias( fn( $n ) => (string) $n );
+        Functions\when( 'wp_json_encode' )->alias( fn( $d ) => json_encode( $d ) );
+        Functions\when( 'admin_url' )->alias( fn( $p = '' ) => 'https://example.com/wp-admin/' . $p );
+        Functions\when( 'wp_editor' )->alias(
+            function ( $content, $id ) {
+                echo '<textarea id="' . $id . '">' . $content . '</textarea>';
+            }
+        );
 
         if ( ! defined( 'ABSPATH' ) ) {
             define( 'ABSPATH', '/tmp/' );
@@ -139,5 +159,39 @@ class FormEditorMetaboxRendererTest extends TestCase {
 
         $this->assertStringContainsString( 'test_field', $output );
         $this->assertStringContainsString( 'Test Field', $output );
+    }
+
+    // ==================================================================
+    // render_tabbed_container()
+    // ==================================================================
+
+    public function test_render_tabbed_container_outputs_nav_and_panels(): void {
+        $post = Mockery::mock( 'WP_Post' );
+        $post->ID = 10;
+        $post->post_status = 'publish';
+
+        Functions\when( 'get_post_meta' )->alias( function ( $id, $key, $single ) {
+            if ( $key === '_ffc_form_fields' ) return array();
+            return '';
+        } );
+
+        ob_start();
+        $this->renderer->render_tabbed_container( $post );
+        $output = ob_get_clean();
+
+        // Vertical tab nav with all seven tabs.
+        $this->assertStringContainsString( 'role="tablist"', $output );
+        $this->assertStringContainsString( 'aria-orientation="vertical"', $output );
+        foreach ( array( 'layout', 'builder', 'restriction', 'email', 'geofence', 'quiz', 'operator' ) as $key ) {
+            $this->assertStringContainsString( 'id="ffc-tabnav-' . $key . '"', $output );
+            $this->assertStringContainsString( 'id="ffc-tabpanel-' . $key . '"', $output );
+        }
+
+        // First tab is the active/selected one; the rest are not.
+        $this->assertStringContainsString( 'aria-selected="true"', $output );
+        $this->assertStringContainsString( 'aria-selected="false"', $output );
+
+        // Dashicon glyphs are present in the nav.
+        $this->assertStringContainsString( 'dashicons dashicons-media-document', $output );
     }
 }
