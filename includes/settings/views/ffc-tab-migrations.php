@@ -520,22 +520,46 @@ try {
 			<?php endif; ?>
 
 			<form method="post" action="<?php echo esc_url( $ffcertificate_url_preview_url ); ?>" style="margin: 12px 0;">
-				<fieldset style="margin-bottom: 10px;">
-					<label style="display:block; margin-bottom:4px;">
-						<input type="checkbox" name="url_cleanup_orphaned" value="1" <?php checked( $ffcertificate_url_orphaned ); ?>>
-						<?php esc_html_e( 'Orphaned — the target post no longer exists', 'ffcertificate' ); ?>
-					</label>
-					<label style="display:block; margin-bottom:4px;">
-						<input type="checkbox" name="url_cleanup_never_clicked" value="1" <?php checked( $ffcertificate_url_never ); ?>>
-						<?php esc_html_e( 'Never clicked and created more than', 'ffcertificate' ); ?>
-						<input type="number" name="url_cleanup_days" min="1" max="3650" step="1" value="<?php echo esc_attr( (string) $ffcertificate_url_days ); ?>" style="width:80px;">
-						<?php esc_html_e( 'days ago', 'ffcertificate' ); ?>
-					</label>
-					<label style="display:block;">
-						<input type="checkbox" name="url_cleanup_trashed" value="1" <?php checked( $ffcertificate_url_trashed ); ?>>
-						<?php esc_html_e( 'In the trash (status = trashed)', 'ffcertificate' ); ?>
-					</label>
-				</fieldset>
+									<fieldset style="margin-bottom: 10px;">
+						<div style="margin-bottom:6px;">
+							<?php
+							\FreeFormCertificate\Admin\AdminUI::render_toggle(
+								array(
+									'name'    => 'url_cleanup_orphaned',
+									'id'      => 'url_cleanup_orphaned',
+									'checked' => $ffcertificate_url_orphaned,
+									'label'   => __( 'Orphaned — the target post no longer exists', 'ffcertificate' ),
+								)
+							);
+							?>
+						</div>
+						<div style="margin-bottom:6px; display:flex; align-items:center; gap:6px; flex-wrap:wrap;">
+							<?php
+							\FreeFormCertificate\Admin\AdminUI::render_toggle(
+								array(
+									'name'    => 'url_cleanup_never_clicked',
+									'id'      => 'url_cleanup_never_clicked',
+									'checked' => $ffcertificate_url_never,
+									'label'   => __( 'Never clicked and created more than', 'ffcertificate' ),
+								)
+							);
+							?>
+							<input type="number" name="url_cleanup_days" min="1" max="3650" step="1" value="<?php echo esc_attr( (string) $ffcertificate_url_days ); ?>" style="width:80px;">
+							<span><?php esc_html_e( 'days ago', 'ffcertificate' ); ?></span>
+						</div>
+						<div>
+							<?php
+							\FreeFormCertificate\Admin\AdminUI::render_toggle(
+								array(
+									'name'    => 'url_cleanup_trashed',
+									'id'      => 'url_cleanup_trashed',
+									'checked' => $ffcertificate_url_trashed,
+									'label'   => __( 'In the trash (status = trashed)', 'ffcertificate' ),
+								)
+							);
+							?>
+						</div>
+					</fieldset>
 				<button type="submit" class="button button-secondary">
 					<span class="dashicons dashicons-visibility"></span>
 					<?php esc_html_e( 'Save criteria & preview', 'ffcertificate' ); ?>

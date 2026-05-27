@@ -259,6 +259,22 @@
     margin-bottom: 20px;
 }
 
+/*
+ * The migration cards are core `.postbox` elements, but the padding for
+ * `.postbox .inside` / the header lives in wp-admin's edit.css, which is not
+ * loaded on this custom settings page — so the content rendered flush against
+ * the border. Restore comfortable padding to match the intro `.card` (20px).
+ */
+.ffc-migration-card .postbox-header .hndle,
+.ffc-migration-card .postbox-header {
+    padding: 12px 20px;
+}
+
+.ffc-migration-card .inside {
+    padding: 4px 20px 20px;
+    margin-top: 0;
+}
+
 .ffc-migration-stats {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
