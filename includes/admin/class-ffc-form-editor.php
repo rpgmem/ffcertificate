@@ -96,6 +96,17 @@ class FormEditor {
 			true
 		);
 
+		// Vertical-tab behaviour for the configuration metabox. Pure
+		// progressive enhancement (jQuery only) — the panels stay usable
+		// stacked if this fails to load.
+		wp_enqueue_script(
+			'ffc-form-editor-tabs',
+			FFC_PLUGIN_URL . "assets/js/ffc-form-editor-tabs{$s}.js",
+			array( 'jquery' ),
+			FFC_VERSION,
+			true
+		);
+
 		wp_localize_script(
 			'ffc-geofence-admin',
 			'ffc_geofence_admin',
