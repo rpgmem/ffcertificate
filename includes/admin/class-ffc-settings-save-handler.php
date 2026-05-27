@@ -150,6 +150,15 @@ class SettingsSaveHandler {
 				$clean['activity_log_retention_days'] = min( 365, absint( $new['activity_log_retention_days'] ) );
 			}
 
+			// Activity-log granular filter: minimum level + per-category enables.
+			if ( isset( $new['activity_log_min_level'] ) ) {
+				$lvl                             = sanitize_key( (string) $new['activity_log_min_level'] );
+				$clean['activity_log_min_level'] = in_array( $lvl, array( 'debug', 'info', 'warning', 'error' ), true ) ? $lvl : 'debug';
+			}
+			foreach ( \FreeFormCertificate\Core\ActivityLog::CATEGORIES as $ffc_cat ) {
+				$clean[ 'activity_log_cat_' . $ffc_cat ] = empty( $new[ 'activity_log_cat_' . $ffc_cat ] ) ? 0 : 1;
+			}
+
 			if ( isset( $new['public_csv_sync_max_rows'] ) ) {
 				$value = absint( $new['public_csv_sync_max_rows'] );
 				if ( $value < \FreeFormCertificate\Frontend\PublicCsvExporter::SYNC_MAX_ROWS_MIN ) {

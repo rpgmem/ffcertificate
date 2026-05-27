@@ -88,6 +88,14 @@ class SettingsAjaxEndpoint {
 			'debug_qrcode',
 			// 6.6.4 follow-up (#361 Sprint 1).
 			'debug_browser_env',
+			// Activity-log granular filter — per-category enables.
+			'activity_log_cat_submissions',
+			'activity_log_cat_scheduling',
+			'activity_log_cat_public_access',
+			'activity_log_cat_users',
+			'activity_log_cat_recruitment',
+			'activity_log_cat_migrations',
+			'activity_log_cat_system',
 		);
 
 		$allowlist = array(
@@ -154,6 +162,12 @@ class SettingsAjaxEndpoint {
 					'min' => 0,
 					'max' => 3650,
 				),
+			),
+			// Activity-log granular filter — minimum level. Validated again on
+			// read by SettingsReader::activity_log_min_level().
+			'activity_log_min_level'      => array(
+				'string',
+				array(),
 			),
 			'public_csv_sync_max_rows'    => array(
 				'int',

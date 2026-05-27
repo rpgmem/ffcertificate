@@ -152,6 +152,28 @@ class SettingsReaderTest extends TestCase {
 		$this->assertFalse( SettingsReader::activity_log_enabled() );
 	}
 
+	public function test_activity_log_min_level_defaults_to_debug(): void {
+		$this->stub_option( array() );
+		$this->assertSame( 'debug', SettingsReader::activity_log_min_level() );
+	}
+
+	public function test_activity_log_min_level_reads_and_validates(): void {
+		$this->stub_option( array( 'activity_log_min_level' => 'warning' ) );
+		$this->assertSame( 'warning', SettingsReader::activity_log_min_level() );
+
+		// Invalid value falls back to debug.
+		$this->stub_option( array( 'activity_log_min_level' => 'bogus' ) );
+		$this->assertSame( 'debug', SettingsReader::activity_log_min_level() );
+	}
+
+	public function test_activity_log_category_enabled_defaults_true(): void {
+		$this->stub_option( array() );
+		$this->assertTrue( SettingsReader::activity_log_category_enabled( 'submissions' ) );
+
+		$this->stub_option( array( 'activity_log_cat_submissions' => 0 ) );
+		$this->assertFalse( SettingsReader::activity_log_category_enabled( 'submissions' ) );
+	}
+
 	public function test_url_shortener_enabled_defaults_to_true(): void {
 		// Key absent → default true (feature is on out-of-the-box).
 		$this->stub_option( array() );
