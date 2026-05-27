@@ -130,10 +130,15 @@ final class RecruitmentReasonEditPage {
 		foreach ( $applies_options as $key => $label ) {
 			$id_attr = 'ffc-reason-edit-applies-' . $key;
 			$checked = ! $is_applies_all && in_array( $key, $applies_to, true );
-			echo '<label for="' . esc_attr( $id_attr ) . '" style="display:flex;align-items:center;gap:6px;">';
-			echo '<input id="' . esc_attr( $id_attr ) . '" type="checkbox" name="applies_to[]" value="' . esc_attr( $key ) . '"' . ( $checked ? ' checked' : '' ) . '>';
-			echo esc_html( $label );
-			echo '</label>';
+			\FreeFormCertificate\Admin\AdminUI::render_toggle(
+				array(
+					'name'    => 'applies_to[]',
+					'id'      => $id_attr,
+					'value'   => $key,
+					'checked' => $checked,
+					'label'   => $label,
+				)
+			);
 		}
 		echo '</div>';
 		echo '<p class="description">' . esc_html__( 'Leave all unchecked to make this reason applicable to every preliminary status.', 'ffcertificate' ) . '</p>';

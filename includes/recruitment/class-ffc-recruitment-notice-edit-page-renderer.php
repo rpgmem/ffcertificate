@@ -268,21 +268,33 @@ final class RecruitmentNoticeEditPageRenderer {
 			$is_mandatory = in_array( $key, $mandatory, true );
 			$checked      = $is_mandatory || ! empty( $state[ $key ] );
 			$id_attr      = 'ffc-notice-pcc-' . $key;
-			$html        .= '<label for="' . esc_attr( $id_attr ) . '" style="display:flex;align-items:center;gap:6px;">';
+			$html        .= '<div style="display:flex;align-items:center;gap:6px;">';
 			if ( $is_mandatory ) {
-				// Disabled checkboxes don't post; a hidden sibling pins
-				// the value=1 so the save handler always sees the
-				// mandatory column as on.
+				// A disabled toggle doesn't post; a hidden sibling pins the
+				// value=1 so the save handler always sees the mandatory
+				// column as on.
 				$html .= '<input type="hidden" name="public_columns[' . esc_attr( $key ) . ']" value="1">';
-				$html .= '<input id="' . esc_attr( $id_attr ) . '" type="checkbox" checked disabled aria-disabled="true">';
-			} else {
-				$html .= '<input id="' . esc_attr( $id_attr ) . '" type="checkbox" name="public_columns[' . esc_attr( $key ) . ']" value="1"' . ( $checked ? ' checked' : '' ) . '>';
-			}
-			$html .= esc_html( $label );
-			if ( $is_mandatory ) {
+				$html .= \FreeFormCertificate\Admin\AdminUI::get_toggle(
+					array(
+						'name'     => 'public_columns[' . $key . ']',
+						'id'       => $id_attr,
+						'checked'  => true,
+						'disabled' => true,
+						'label'    => $label,
+					)
+				);
 				$html .= ' <em style="color:#646970;font-size:11px;">(' . esc_html__( 'mandatory', 'ffcertificate' ) . ')</em>';
+			} else {
+				$html .= \FreeFormCertificate\Admin\AdminUI::get_toggle(
+					array(
+						'name'    => 'public_columns[' . $key . ']',
+						'id'      => $id_attr,
+						'checked' => $checked,
+						'label'   => $label,
+					)
+				);
 			}
-			$html .= '</label>';
+			$html .= '</div>';
 		}
 		$html .= '</div>';
 

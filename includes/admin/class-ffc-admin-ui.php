@@ -105,4 +105,17 @@ class AdminUI {
 		}
 		echo '</label>';
 	}
+
+	/**
+	 * Same as {@see self::render_toggle()} but returns the markup as a string
+	 * instead of echoing — for callers that build an HTML string.
+	 *
+	 * @param array<string, mixed> $args See {@see self::render_toggle()}.
+	 * @return string
+	 */
+	public static function get_toggle( array $args ): string {
+		ob_start();
+		self::render_toggle( $args );
+		return (string) ob_get_clean();
+	}
 }
