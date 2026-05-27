@@ -141,72 +141,23 @@ class FormEditor {
 		remove_meta_box( 'ffc_form_config', 'ffc_form', 'normal' );
 		remove_meta_box( 'ffc_builder_box', 'ffc_form', 'normal' );
 
-		// Main metaboxes (content area) - Delegated to Metabox Renderer.
+		// The seven content sections are now rendered inside one wrapper
+		// metabox as a vertical-tabbed container (WooCommerce "Product
+		// data" style) instead of seven stacked metaboxes. Each tab panel
+		// reuses the matching `render_box_*` method, so the save path and
+		// the form-meta autosave are unchanged; see
+		// `FormEditorMetaboxRenderer::render_tabbed_container()`.
 		add_meta_box(
-			'ffc_box_layout',
-			__( '1. Certificate Layout', 'ffcertificate' ),
-			array( $this->metabox_renderer, 'render_box_layout' ),
+			'ffc_box_tabs',
+			__( 'Certificate Form Configuration', 'ffcertificate' ),
+			array( $this->metabox_renderer, 'render_tabbed_container' ),
 			'ffc_form',
 			'normal',
 			'high'
 		);
 
-		add_meta_box(
-			'ffc_box_builder',
-			__( '2. Form Builder (Fields)', 'ffcertificate' ),
-			array( $this->metabox_renderer, 'render_box_builder' ),
-			'ffc_form',
-			'normal',
-			'high'
-		);
-
-		add_meta_box(
-			'ffc_box_restriction',
-			__( '3. Restriction & Security', 'ffcertificate' ),
-			array( $this->metabox_renderer, 'render_box_restriction' ),
-			'ffc_form',
-			'normal',
-			'high'
-		);
-
-		add_meta_box(
-			'ffc_box_email',
-			__( '4. Email Configuration', 'ffcertificate' ),
-			array( $this->metabox_renderer, 'render_box_email' ),
-			'ffc_form',
-			'normal',
-			'high'
-		);
-
-		add_meta_box(
-			'ffc_box_geofence',
-			__( '5. Geolocation & Date/Time Restrictions', 'ffcertificate' ),
-			array( $this->metabox_renderer, 'render_box_geofence' ),
-			'ffc_form',
-			'normal',
-			'high'
-		);
-
-		add_meta_box(
-			'ffc_box_quiz',
-			__( '6. Quiz / Evaluation Mode', 'ffcertificate' ),
-			array( $this->metabox_renderer, 'render_box_quiz' ),
-			'ffc_form',
-			'normal',
-			'high'
-		);
-
-		add_meta_box(
-			'ffc_box_public_csv_download',
-			__( '7. Public Operator Access', 'ffcertificate' ),
-			array( $this->metabox_renderer, 'render_box_public_csv_download' ),
-			'ffc_form',
-			'normal',
-			'default'
-		);
-
-		// Device Fingerprint Limit (former Section 8) is now rendered as a
-		// sub-section of "Restriction & Security" (Section 3) — both
+		// Device Fingerprint Limit (former Section 8) is rendered as a
+		// sub-section of "Restriction & Security" (the Security tab) — both
 		// answer the same question ("who can submit this form?") so they
 		// belong together. The dispatch happens inside
 		// `FormEditorMetaboxRenderer::render_box_restriction()`.
