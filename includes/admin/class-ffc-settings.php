@@ -120,7 +120,7 @@ class Settings {
 	 * Add settings page.
 	 */
 	public function add_settings_page(): void {
-		add_submenu_page(
+		$hook = add_submenu_page(
 			'edit.php?post_type=ffc_form',
 			__( 'Settings', 'ffcertificate' ),
 			__( 'Settings', 'ffcertificate' ),
@@ -128,6 +128,29 @@ class Settings {
 			'ffc-settings',
 			array( $this, 'display_settings_page' )
 		);
+
+		if ( $hook ) {
+			// Render the floating "Back to top" button in the admin footer so it
+			// lives at <body> level — outside `.wrap`, outside `.ffc-tab-content`
+			// and outside any per-tab <form> or animated container — guaranteeing
+			// `position: fixed` resolves against the viewport on every settings
+			// tab. The page hook scopes the action to ffc-settings only.
+			add_action( "admin_footer-{$hook}", array( $this, 'render_back_to_top_link' ) );
+		}
+	}
+
+	/**
+	 * Echo the floating "Back to top" link. Hooked to `admin_footer-{hook}`
+	 * for the settings page so the markup ends up at the bottom of <body>,
+	 * with no ancestor that could create a containing block for the
+	 * `position: fixed` styling.
+	 */
+	public function render_back_to_top_link(): void {
+		?>
+		<a href="#ffc-settings-top" class="ffc-settings-back-to-top" aria-label="<?php esc_attr_e( 'Back to top', 'ffcertificate' ); ?>" title="<?php esc_attr_e( 'Back to top', 'ffcertificate' ); ?>">
+			<span class="dashicons dashicons-arrow-up-alt2" aria-hidden="true"></span>
+		</a>
+		<?php
 	}
 
 	/**
@@ -339,9 +362,6 @@ class Settings {
 				}
 				?>
 			</div>
-			<a href="#ffc-settings-top" class="ffc-settings-back-to-top" aria-label="<?php esc_attr_e( 'Back to top', 'ffcertificate' ); ?>" title="<?php esc_attr_e( 'Back to top', 'ffcertificate' ); ?>">
-				<span class="dashicons dashicons-arrow-up-alt2" aria-hidden="true"></span>
-			</a>
 		</div>
 		<?php
         // phpcs:enable WordPress.Security.NonceVerification.Recommended
