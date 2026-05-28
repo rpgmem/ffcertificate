@@ -832,11 +832,11 @@ pre code {
 }
 
 /* ==========================================================================
-   Documentation tab — back-to-top button (zero JS).
+   Settings page — floating "Back to top" button (zero JS, all tabs).
    ========================================================================== */
 
-/* Floating "Back to top" anchor — appears on the long Documentation tab. */
-.ffc-doc-back-to-top {
+/* Floating "Back to top" anchor — appears on every Settings tab. */
+.ffc-settings-back-to-top {
     position: fixed;
     right: 24px;
     bottom: 24px;
@@ -855,19 +855,19 @@ pre code {
     transition: opacity 0.2s ease, transform 0.2s ease;
 }
 
-.ffc-doc-back-to-top:hover,
-.ffc-doc-back-to-top:focus {
+.ffc-settings-back-to-top:hover,
+.ffc-settings-back-to-top:focus {
     opacity: 1;
     color: var(--ffc-text-on-primary, #fff);
     transform: translateY(-2px);
 }
 
-.ffc-doc-back-to-top:focus-visible {
+.ffc-settings-back-to-top:focus-visible {
     outline: 2px solid var(--ffc-focus, #2271b1);
     outline-offset: 2px;
 }
 
-.ffc-doc-back-to-top .dashicons {
+.ffc-settings-back-to-top .dashicons {
     width: 24px;
     height: 24px;
     font-size: 24px;
@@ -875,19 +875,18 @@ pre code {
 }
 
 /* Smooth-scroll only on pages that render the back-to-top link — `:has()`
-   scopes the rule to the Documentation tab without touching other admin
-   screens. Browsers without `:has()` simply jump instantly, which is the
+   scopes the rule to the Settings page without touching other admin screens. Browsers without `:has()` simply jump instantly, which is the
    pre-feature behaviour. */
-html:has(.ffc-doc-back-to-top) {
+html:has(.ffc-settings-back-to-top) {
     scroll-behavior: smooth;
 }
 
 @media (prefers-reduced-motion: reduce) {
-    html:has(.ffc-doc-back-to-top) {
+    html:has(.ffc-settings-back-to-top) {
         scroll-behavior: auto;
     }
 
-    .ffc-doc-back-to-top {
+    .ffc-settings-back-to-top {
         transition: none;
     }
 }
