@@ -12,6 +12,8 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 <div class="ffc-settings-wrap">
 
+<span id="ffc-doc-top" aria-hidden="true"></span>
+
 <!-- Main Documentation Card with TOC -->
 <div class="card">
 	<h2 class="ffc-icon-doc"><?php esc_html_e( 'Complete Plugin Documentation', 'ffcertificate' ); ?></h2>
@@ -87,5 +89,9 @@ if ( ! defined( 'ABSPATH' ) ) {
 <?php require __DIR__ . '/documentation/20-recruitment.php'; ?>
 
 <?php require __DIR__ . '/documentation/21-maintenance-tools.php'; ?>
+
+<a href="#ffc-doc-top" class="ffc-doc-back-to-top" aria-label="<?php esc_attr_e( 'Back to top', 'ffcertificate' ); ?>" title="<?php esc_attr_e( 'Back to top', 'ffcertificate' ); ?>">
+	<span class="dashicons dashicons-arrow-up-alt2" aria-hidden="true"></span>
+</a>
 
 </div><!-- .ffc-settings-wrap -->
