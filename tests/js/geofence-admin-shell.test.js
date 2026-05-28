@@ -4,7 +4,6 @@
 // ffc-geofence-validation.js and is covered by geofence-admin.test.js.
 // This file covers the surrounding admin shell that was sitting at 0%:
 //
-//   - Tab switching   (.ffc-geo-tab-btn click delegates)
 //   - DateTime enable toggle (disables / re-enables tab inputs)
 //   - Time-mode row visibility (shown only when date_start !== date_end)
 //   - "Display during" hide-mode row toggle (visible only in daily mode)
@@ -21,12 +20,7 @@ import { loadScript } from './helpers.js';
 function mountMetabox() {
 	document.body.innerHTML = `
 		<div id="ffc-geofence">
-			<div>
-				<button class="ffc-geo-tab-btn active" data-tab="datetime">DateTime</button>
-				<button class="ffc-geo-tab-btn" data-tab="geolocation">Geo</button>
-			</div>
-
-			<div id="ffc-tab-datetime" class="ffc-geo-tab-content active">
+			<div id="ffc-tab-datetime">
 				<label><input type="checkbox" name="ffc_geofence[datetime_enabled]"> Enable</label>
 				<tr><td><input type="date" name="ffc_geofence[date_start]" value=""></td></tr>
 				<tr><td><input type="date" name="ffc_geofence[date_end]" value=""></td></tr>
@@ -44,7 +38,7 @@ function mountMetabox() {
 				<p class="ffc-datetime-order-error" style="display:none"></p>
 			</div>
 
-			<div id="ffc-tab-geolocation" class="ffc-geo-tab-content">
+			<div id="ffc-tab-geolocation">
 				<label><input type="checkbox" name="ffc_geofence[geo_enabled]"></label>
 				<label><input type="checkbox" name="ffc_geofence[geo_gps_enabled]"></label>
 				<label><input type="checkbox" name="ffc_geofence[geo_ip_enabled]"></label>
@@ -63,21 +57,6 @@ beforeEach(() => {
 	window.$.fx.off = true;
 	// The shell depends on the extracted validator.
 	loadScript('assets/js/ffc-geofence-validation.js');
-});
-
-describe('ffc-geofence-admin — tab switching', () => {
-	it('moves the active class onto the clicked tab and its content', async () => {
-		mountMetabox();
-		loadScript('assets/js/ffc-geofence-admin.js');
-		await new Promise((r) => setTimeout(r, 0));
-
-		window.$('.ffc-geo-tab-btn[data-tab="geolocation"]').trigger('click');
-
-		expect(window.$('.ffc-geo-tab-btn[data-tab="datetime"]').hasClass('active')).toBe(false);
-		expect(window.$('.ffc-geo-tab-btn[data-tab="geolocation"]').hasClass('active')).toBe(true);
-		expect(window.$('#ffc-tab-datetime').hasClass('active')).toBe(false);
-		expect(window.$('#ffc-tab-geolocation').hasClass('active')).toBe(true);
-	});
 });
 
 // DateTime master-toggle visibility is no longer this file's concern

@@ -129,6 +129,42 @@ final class SettingsReader {
 		return self::get_bool( 'activity_log_cat_' . $category, true );
 	}
 
+	/**
+	 * Certificate-layout tags that every form's PDF layout must contain.
+	 *
+	 * Configured in Settings → Advanced as a newline/comma list of `{{tag}}`
+	 * tokens; defaults to the historical trio when nothing is saved.
+	 * `{{auth_code}}` is always required (certificate verification breaks
+	 * without it) and is force-injected even if removed from the saved list.
+	 *
+	 * @return array<int, string> Unique `{{tag}}` tokens, `{{auth_code}}` first.
+	 */
+	public static function required_certificate_tags(): array {
+		$raw = self::get( 'required_certificate_tags', '' );
+		if ( is_array( $raw ) ) {
+			$lines = $raw;
+		} else {
+			$lines = preg_split( '/[\r\n,]+/', (string) $raw );
+			if ( false === $lines ) {
+				$lines = array();
+			}
+		}
+		$tags = array();
+		foreach ( $lines as $line ) {
+			$tag = trim( (string) $line );
+			if ( '' !== $tag ) {
+				$tags[] = $tag;
+			}
+		}
+		if ( empty( $tags ) ) {
+			$tags = array( '{{auth_code}}', '{{name}}', '{{cpf_rf}}' );
+		}
+		if ( ! in_array( '{{auth_code}}', $tags, true ) ) {
+			array_unshift( $tags, '{{auth_code}}' );
+		}
+		return array_values( array_unique( $tags ) );
+	}
+
 	/** Whether the WP admin bar is allowed for the FFC user role. */
 	public static function admin_bar_allowed(): bool {
 		return self::get_bool( 'allow_admin_bar' );

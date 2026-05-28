@@ -165,12 +165,34 @@ class FormEditorMetaboxRenderer {
 	}
 
 	/**
-	 * Render the "Geofence & Date/Time" metabox.
+	 * Render the "Geofence & Date/Time" metabox (both sections stacked).
+	 *
+	 * Back-compat entry point. The tabbed container splits this into the
+	 * "Time" and "Geolocation" tabs via {@see render_box_time()} and
+	 * {@see render_box_geolocation()}.
 	 *
 	 * @param WP_Post $post Post being edited.
 	 */
 	public function render_box_geofence( WP_Post $post ): void {
 		$this->geofence->render( $post );
+	}
+
+	/**
+	 * Render the date/time-restriction section ("Time" tab).
+	 *
+	 * @param WP_Post $post Post being edited.
+	 */
+	public function render_box_time( WP_Post $post ): void {
+		$this->geofence->render_time( $post );
+	}
+
+	/**
+	 * Render the geolocation-restriction section ("Geolocation" tab).
+	 *
+	 * @param WP_Post $post Post being edited.
+	 */
+	public function render_box_geolocation( WP_Post $post ): void {
+		$this->geofence->render_geolocation( $post );
 	}
 
 	/**
@@ -211,7 +233,7 @@ class FormEditorMetaboxRenderer {
 	}
 
 	/**
-	 * Render the seven content metaboxes as one vertical-tabbed container.
+	 * Render the content metaboxes as one vertical-tabbed container.
 	 *
 	 * A WooCommerce "Product data"-style vertical nav on the left and one
 	 * `<section role="tabpanel">` per tab on the right, each reusing the
@@ -253,7 +275,11 @@ class FormEditorMetaboxRenderer {
 				esc_attr( $tab['key'] ),
 				$first ? ' is-active' : ''
 			);
-			echo '<h2 class="ffc-form-tabs__panel-title">' . esc_html( $tab['title'] ) . '</h2>';
+			printf(
+				'<h2 class="ffc-form-tabs__panel-title"><span class="dashicons dashicons-%1$s" aria-hidden="true"></span>%2$s</h2>',
+				esc_attr( $tab['icon'] ),
+				esc_html( $tab['title'] )
+			);
 			$this->render_panel_body( $tab['key'], $post );
 			echo '</section>';
 			$first = false;
@@ -264,7 +290,7 @@ class FormEditorMetaboxRenderer {
 	}
 
 	/**
-	 * Definitions for the seven content tabs, in display order. Labels are
+	 * Definitions for the content tabs, in display order. Labels are
 	 * intentionally terse (paired with a dashicon in the nav); the longer
 	 * descriptive heading is rendered inside each panel as its title.
 	 *
@@ -276,43 +302,49 @@ class FormEditorMetaboxRenderer {
 				'key'   => 'layout',
 				'icon'  => 'media-document',
 				'label' => __( 'Layout', 'ffcertificate' ),
-				'title' => __( '1. Certificate Layout', 'ffcertificate' ),
+				'title' => __( 'Certificate Layout', 'ffcertificate' ),
 			),
 			array(
 				'key'   => 'builder',
 				'icon'  => 'forms',
 				'label' => __( 'Fields', 'ffcertificate' ),
-				'title' => __( '2. Form Builder (Fields)', 'ffcertificate' ),
+				'title' => __( 'Form Builder (Fields)', 'ffcertificate' ),
 			),
 			array(
 				'key'   => 'restriction',
 				'icon'  => 'shield',
 				'label' => __( 'Security', 'ffcertificate' ),
-				'title' => __( '3. Restriction & Security', 'ffcertificate' ),
+				'title' => __( 'Restriction & Security', 'ffcertificate' ),
 			),
 			array(
 				'key'   => 'email',
 				'icon'  => 'email',
 				'label' => __( 'Email', 'ffcertificate' ),
-				'title' => __( '4. Email Configuration', 'ffcertificate' ),
+				'title' => __( 'Email Configuration', 'ffcertificate' ),
 			),
 			array(
-				'key'   => 'geofence',
-				'icon'  => 'location',
-				'label' => __( 'Geo & Time', 'ffcertificate' ),
-				'title' => __( '5. Geolocation & Date/Time Restrictions', 'ffcertificate' ),
+				'key'   => 'time',
+				'icon'  => 'clock',
+				'label' => __( 'Time', 'ffcertificate' ),
+				'title' => __( 'Date & Time Restrictions', 'ffcertificate' ),
+			),
+			array(
+				'key'   => 'geolocation',
+				'icon'  => 'location-alt',
+				'label' => __( 'Geolocation', 'ffcertificate' ),
+				'title' => __( 'Geolocation Restrictions', 'ffcertificate' ),
 			),
 			array(
 				'key'   => 'quiz',
 				'icon'  => 'welcome-learn-more',
 				'label' => __( 'Quiz', 'ffcertificate' ),
-				'title' => __( '6. Quiz / Evaluation Mode', 'ffcertificate' ),
+				'title' => __( 'Quiz / Evaluation Mode', 'ffcertificate' ),
 			),
 			array(
 				'key'   => 'operator',
 				'icon'  => 'groups',
 				'label' => __( 'Operator', 'ffcertificate' ),
-				'title' => __( '7. Public Operator Access', 'ffcertificate' ),
+				'title' => __( 'Public Operator Access', 'ffcertificate' ),
 			),
 		);
 	}
@@ -337,8 +369,11 @@ class FormEditorMetaboxRenderer {
 			case 'email':
 				$this->render_box_email( $post );
 				break;
-			case 'geofence':
-				$this->render_box_geofence( $post );
+			case 'time':
+				$this->render_box_time( $post );
+				break;
+			case 'geolocation':
+				$this->render_box_geolocation( $post );
 				break;
 			case 'quiz':
 				$this->render_box_quiz( $post );

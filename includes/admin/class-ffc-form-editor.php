@@ -117,6 +117,20 @@ class FormEditor {
 			wp_localize_script( 'ffc-form-editor-tabs', 'ffcFormTabsErrors', $error_tabs );
 		}
 
+		// Required-tag list for the client-side save guard: block the submit
+		// and open the Layout tab with a banner when the certificate layout
+		// is missing any required {{tag}}. The server-side check in
+		// FormEditorSaveHandler is the backstop for JS-disabled clients.
+		wp_localize_script(
+			'ffc-form-editor-tabs',
+			'ffcFormRequiredTags',
+			array(
+				'tags'    => \FreeFormCertificate\Settings\SettingsReader::required_certificate_tags(),
+				'aliases' => array( '{{name}}' => array( '{{nome}}' ) ),
+				'message' => __( 'This certificate layout is missing required tags:', 'ffcertificate' ),
+			)
+		);
+
 		wp_localize_script(
 			'ffc-geofence-admin',
 			'ffc_geofence_admin',
@@ -169,9 +183,16 @@ class FormEditor {
 		if ( get_transient( 'ffc_save_error_' . $uid ) ) {
 			$keys[] = 'layout';
 		}
-		// Geolocation / date-time validation failures → Geo & Time tab.
-		if ( get_transient( 'ffc_geofence_error_' . $uid ) ) {
-			$keys[] = 'geofence';
+		// Geofence validation failures route to the specific sub-tab(s) —
+		// datetime → Time, area → Geolocation — via the companion transient
+		// the save handler sets. Fall back to flagging both when only the
+		// legacy error transient is present.
+		$geofence_tabs = get_transient( 'ffc_geofence_error_tabs_' . $uid );
+		if ( is_array( $geofence_tabs ) && $geofence_tabs ) {
+			$keys = array_merge( $keys, $geofence_tabs );
+		} elseif ( get_transient( 'ffc_geofence_error_' . $uid ) ) {
+			$keys[] = 'time';
+			$keys[] = 'geolocation';
 		}
 		return $keys;
 	}

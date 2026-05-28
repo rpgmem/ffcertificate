@@ -149,18 +149,11 @@ class FormEditorSaveHandler {
 				$clean_config['quiz_show_correct']  = isset( $config['quiz_show_correct'] ) ? '1' : '0';
 			}
 
-			// Tag Validation: Ensure the user didn't remove critical tags.
-			$missing_tags = array();
-			if ( strpos( $clean_config['pdf_layout'], '{{auth_code}}' ) === false ) {
-				$missing_tags[] = '{{auth_code}}';
-			}
-			if ( strpos( $clean_config['pdf_layout'], '{{name}}' ) === false && strpos( $clean_config['pdf_layout'], '{{nome}}' ) === false ) {
-				$missing_tags[] = '{{name}}';
-			}
-			if ( strpos( $clean_config['pdf_layout'], '{{cpf_rf}}' ) === false ) {
-				$missing_tags[] = '{{cpf_rf}}';
-			}
-
+			// Tag Validation (server-side backstop): warn if the layout is
+			// missing any tag from the configurable required list. The
+			// editor also blocks the submit client-side; this catches the
+			// JS-disabled case. Non-blocking — the post still saves.
+			$missing_tags = $this->missing_required_tags( $clean_config['pdf_layout'] );
 			if ( ! empty( $missing_tags ) ) {
 				set_transient( 'ffc_save_error_' . get_current_user_id(), $missing_tags, 45 );
 			}
@@ -261,6 +254,9 @@ class FormEditorSaveHandler {
 			$validation_errors = $this->validate_geofence_config( $merged_geofence );
 			if ( ! empty( $validation_errors ) ) {
 				set_transient( 'ffc_geofence_error_' . get_current_user_id(), $validation_errors, 45 );
+				// Route each error category to its tab so the tab script can
+				// open the offending one (datetime → Time, area → Geolocation).
+				set_transient( 'ffc_geofence_error_tabs_' . get_current_user_id(), $this->geofence_error_tab_keys( $merged_geofence, $validation_errors ), 45 );
 			} else {
 				update_post_meta( $post_id, '_ffc_geofence_config', $merged_geofence );
 				// Public visibility of date_start/date_end (the form's
@@ -477,10 +473,42 @@ class FormEditorSaveHandler {
 	}
 
 	/**
-	 * Validates geofence configuration
+	 * Required certificate tags absent from a PDF layout.
 	 *
-	 * @param array<string, mixed> $config Geofence configuration.
-	 * @return array<int, string> Array of validation errors (empty if valid)
+	 * Reads the configurable required-tag list (Settings → Advanced) via
+	 * {@see SettingsReader::required_certificate_tags()} and honours the
+	 * historical `{{name}}`/`{{nome}}` alias — a layout using either token
+	 * satisfies a `{{name}}` requirement.
+	 *
+	 * @param string $layout PDF layout HTML.
+	 * @return array<int, string> Missing `{{tag}}` tokens, in required order.
+	 */
+	private function missing_required_tags( string $layout ): array {
+		$missing = array();
+		foreach ( \FreeFormCertificate\Settings\SettingsReader::required_certificate_tags() as $tag ) {
+			$accepted = array( $tag );
+			if ( '{{name}}' === $tag ) {
+				$accepted[] = '{{nome}}';
+			}
+			$found = false;
+			foreach ( $accepted as $candidate ) {
+				if ( false !== strpos( $layout, $candidate ) ) {
+					$found = true;
+					break;
+				}
+			}
+			if ( ! $found ) {
+				$missing[] = $tag;
+			}
+		}
+		return $missing;
+	}
+
+	/**
+	 * Validate geofence configuration.
+	 *
+	 * @param array<string, mixed> $config Geofence config.
+	 * @return array<int, string> Validation error messages.
 	 */
 	private function validate_geofence_config( array $config ): array {
 		$errors = array();
@@ -544,6 +572,38 @@ class FormEditorSaveHandler {
 		}
 
 		return $errors;
+	}
+
+	/**
+	 * Map a geofence validation failure to the tab(s) that own the offending
+	 * fields, so the editor's tab script can flag and open the right one.
+	 *
+	 * Reuses the flat error list from {@see validate_geofence_config()} and the
+	 * datetime-order helper instead of re-running the area checks: the
+	 * date/time-order messages belong to the "Time" tab; everything else
+	 * (GPS/IP area + format errors) belongs to "Geolocation".
+	 *
+	 * @param array<string, mixed> $config     Merged geofence config.
+	 * @param array<int, string>   $all_errors Flat error list for this config.
+	 * @return array<int, string> Ordered tab keys, e.g. ['time', 'geolocation'].
+	 */
+	private function geofence_error_tab_keys( array $config, array $all_errors ): array {
+		$keys            = array();
+		$datetime_errors = array_values(
+			array_unique(
+				array_values(
+					\FreeFormCertificate\Security\Geofence::analyze_datetime_order( $config )
+				)
+			)
+		);
+		if ( ! empty( $datetime_errors ) ) {
+			$keys[] = 'time';
+		}
+		// Any error that isn't a datetime-order message is an area/format one.
+		if ( ! empty( array_diff( $all_errors, $datetime_errors ) ) ) {
+			$keys[] = 'geolocation';
+		}
+		return $keys;
 	}
 
 	/**
@@ -633,6 +693,8 @@ class FormEditorSaveHandler {
 		$geofence_errors = get_transient( 'ffc_geofence_error_' . get_current_user_id() );
 		if ( $geofence_errors ) {
 			delete_transient( 'ffc_geofence_error_' . get_current_user_id() );
+			// Companion tab-routing transient set alongside the error list.
+			delete_transient( 'ffc_geofence_error_tabs_' . get_current_user_id() );
 			?>
 			<div class="notice notice-error is-dismissible">
 				<p><strong><?php esc_html_e( 'Geolocation Configuration Error:', 'ffcertificate' ); ?></strong></p>
