@@ -302,6 +302,7 @@ class Settings {
 
 		?>
 		<div class="wrap ffc-settings-wrap">
+			<span id="ffc-settings-top" aria-hidden="true"></span>
 			<h1><?php esc_html_e( 'Certificate Settings', 'ffcertificate' ); ?></h1>
 			<?php settings_errors( 'ffc_settings' ); ?>
 			
@@ -338,6 +339,9 @@ class Settings {
 				}
 				?>
 			</div>
+			<a href="#ffc-settings-top" class="ffc-settings-back-to-top" aria-label="<?php esc_attr_e( 'Back to top', 'ffcertificate' ); ?>" title="<?php esc_attr_e( 'Back to top', 'ffcertificate' ); ?>">
+				<span class="dashicons dashicons-arrow-up-alt2" aria-hidden="true"></span>
+			</a>
 		</div>
 		<?php
         // phpcs:enable WordPress.Security.NonceVerification.Recommended
