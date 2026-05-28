@@ -30,6 +30,7 @@ class CPT {
 		add_action( 'init', array( $this, 'register_form_cpt' ) );
 		add_filter( 'post_row_actions', array( $this, 'add_duplicate_link' ), 10, 2 );
 		add_action( 'admin_action_ffc_duplicate_form', array( $this, 'handle_form_duplication' ) );
+		add_action( 'post_submitbox_misc_actions', array( $this, 'render_duplicate_submitbox_link' ) );
 		add_filter( 'views_edit-ffc_form', array( $this, 'translate_views' ) );
 	}
 
@@ -95,6 +96,46 @@ class CPT {
 		$actions['duplicate'] = '<a href="' . esc_url( $url ) . '" title="' . esc_attr__( 'Duplicate this form', 'ffcertificate' ) . '">' . esc_html__( 'Duplicate', 'ffcertificate' ) . '</a>';
 
 		return $actions;
+	}
+
+	/**
+	 * Render a "Duplicate" link inside the Publish metabox (Submit box) on
+	 * the form-edit screen.
+	 *
+	 * Mirrors the list-screen row action {@see add_duplicate_link()} so the
+	 * operator can trigger the same nonce-protected `ffc_duplicate_form`
+	 * admin action while editing — no separate sidebar metabox is added.
+	 *
+	 * @param \WP_Post|null $post Current post (supplied by WP on the hook).
+	 */
+	public function render_duplicate_submitbox_link( $post = null ): void {
+		if ( ! $post instanceof \WP_Post ) {
+			$post = get_post();
+		}
+		if ( ! $post || 'ffc_form' !== $post->post_type ) {
+			return;
+		}
+		if ( ! \FreeFormCertificate\Core\Utils::current_user_can_manage() ) {
+			return;
+		}
+		// New (auto-draft) posts have nothing meaningful to copy yet — the
+		// row action only appears on saved posts; mirror that here.
+		if ( 'auto-draft' === $post->post_status ) {
+			return;
+		}
+
+		$url = wp_nonce_url(
+			admin_url( 'admin.php?action=ffc_duplicate_form&post=' . $post->ID ),
+			'ffc_duplicate_form_nonce'
+		);
+		?>
+		<div class="misc-pub-section ffc-duplicate-action">
+			<span class="dashicons dashicons-admin-page" aria-hidden="true"></span>
+			<a href="<?php echo esc_url( $url ); ?>" title="<?php esc_attr_e( 'Duplicate this form as a new draft. Copies fields, layout, geofence and CSV/device settings; the access hash, counters and audit log start fresh.', 'ffcertificate' ); ?>">
+				<?php esc_html_e( 'Duplicate this form', 'ffcertificate' ); ?>
+			</a>
+		</div>
+		<?php
 	}
 
 	/**

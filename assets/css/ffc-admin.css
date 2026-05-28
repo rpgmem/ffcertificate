@@ -1040,6 +1040,13 @@ p.ffc-datetime-order-error {
 	background: var(--ffc-bg-alt);
 }
 
+/* "Duplicate this form" link inside the Publish (Submit) box. */
+.misc-pub-section.ffc-duplicate-action .dashicons {
+	color: var(--ffc-text-muted, #646970);
+	margin-right: 4px;
+	vertical-align: text-bottom;
+}
+
 /* Panel hiding only kicks in once JS marks the container ready. */
 .ffc-form-tabs.is-ready .ffc-form-tabs__panel {
 	display: none;
