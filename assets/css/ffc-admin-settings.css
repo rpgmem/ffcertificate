@@ -830,3 +830,64 @@ pre code {
         animation: none;
     }
 }
+
+/* ==========================================================================
+   Documentation tab — back-to-top button (zero JS).
+   ========================================================================== */
+
+/* Floating "Back to top" anchor — appears on the long Documentation tab. */
+.ffc-doc-back-to-top {
+    position: fixed;
+    right: 24px;
+    bottom: 24px;
+    z-index: 9999;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 42px;
+    height: 42px;
+    border-radius: 50%;
+    background: var(--ffc-primary, #2271b1);
+    color: var(--ffc-text-on-primary, #fff);
+    text-decoration: none;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+    opacity: 0.85;
+    transition: opacity 0.2s ease, transform 0.2s ease;
+}
+
+.ffc-doc-back-to-top:hover,
+.ffc-doc-back-to-top:focus {
+    opacity: 1;
+    color: var(--ffc-text-on-primary, #fff);
+    transform: translateY(-2px);
+}
+
+.ffc-doc-back-to-top:focus-visible {
+    outline: 2px solid var(--ffc-focus, #2271b1);
+    outline-offset: 2px;
+}
+
+.ffc-doc-back-to-top .dashicons {
+    width: 24px;
+    height: 24px;
+    font-size: 24px;
+    line-height: 1;
+}
+
+/* Smooth-scroll only on pages that render the back-to-top link — `:has()`
+   scopes the rule to the Documentation tab without touching other admin
+   screens. Browsers without `:has()` simply jump instantly, which is the
+   pre-feature behaviour. */
+html:has(.ffc-doc-back-to-top) {
+    scroll-behavior: smooth;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    html:has(.ffc-doc-back-to-top) {
+        scroll-behavior: auto;
+    }
+
+    .ffc-doc-back-to-top {
+        transition: none;
+    }
+}
