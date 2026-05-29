@@ -129,6 +129,11 @@ class RecruitmentActivator {
 			self::migrate_called_at_to_unix();
 			update_option( $option_key, 7 );
 		}
+
+		if ( $current < 8 ) {
+			self::migrate_add_withdrew_status();
+			update_option( $option_key, 8 );
+		}
 	}
 
 	/**
@@ -370,6 +375,26 @@ class RecruitmentActivator {
 	}
 
 	/**
+	 * V8 schema migration — widen the classification status enum to include
+	 * the new terminal `withdrew` value alongside `hired`. No rows need to
+	 * change; the `withdrew` state can only be reached by future transitions
+	 * (from `called` or `accepted`).
+	 *
+	 * @return void
+	 */
+	private static function migrate_add_withdrew_status(): void {
+		global $wpdb;
+		$table = $wpdb->prefix . 'ffc_recruitment_classification';
+
+		if ( ! self::table_exists( $table ) ) {
+			return;
+		}
+
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Schema migration.
+		$wpdb->query( "ALTER TABLE `{$table}` MODIFY status enum('empty','called','accepted','not_shown','hired','withdrew') NOT NULL DEFAULT 'empty'" );
+	}
+
+	/**
 	 * Create `ffc_recruitment_adjutancy` table.
 	 *
 	 * Reusable subject/role definitions ("subjects"). One row per adjutancy,
@@ -564,7 +589,7 @@ class RecruitmentActivator {
             score decimal(10,4) NOT NULL,
             time_points decimal(10,4) NOT NULL DEFAULT 0,
             hab_emebs tinyint(1) NOT NULL DEFAULT 0,
-            status enum('empty','called','accepted','not_shown','hired') NOT NULL DEFAULT 'empty',
+            status enum('empty','called','accepted','not_shown','hired','withdrew') NOT NULL DEFAULT 'empty',
             preview_status enum('empty','denied','granted','appeal_denied','appeal_granted') NOT NULL DEFAULT 'empty',
             preview_reason_id bigint(20) unsigned DEFAULT NULL,
             created_at datetime NOT NULL,

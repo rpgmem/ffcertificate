@@ -86,6 +86,7 @@ final class RecruitmentAdminPage {
 			'accepted'  => __( 'Accepted', 'ffcertificate' ),
 			'not_shown' => __( 'Did not show up', 'ffcertificate' ),
 			'hired'     => __( 'Hired', 'ffcertificate' ),
+			'withdrew'  => __( 'Withdrew', 'ffcertificate' ),
 		);
 		return $map[ $status ] ?? $status;
 	}
@@ -110,6 +111,7 @@ final class RecruitmentAdminPage {
 			'accepted'  => (string) $settings['status_color_called'],
 			'hired'     => (string) $settings['status_color_hired'],
 			'not_shown' => (string) $settings['status_color_not_shown'],
+			'withdrew'  => (string) $settings['status_color_withdrew'],
 		);
 		return BadgeHtml::render(
 			'ffc-status-badge',
@@ -924,6 +926,7 @@ final class RecruitmentAdminPage {
 			'status_color_called'    => __( 'Called / Accepted', 'ffcertificate' ),
 			'status_color_hired'     => __( 'Hired', 'ffcertificate' ),
 			'status_color_not_shown' => __( 'Did not show up', 'ffcertificate' ),
+			'status_color_withdrew'  => __( 'Withdrew', 'ffcertificate' ),
 		);
 		foreach ( $status_color_rows as $field => $label ) {
 			echo '<tr><th><label for="ffc-rs-' . esc_attr( $field ) . '">' . esc_html( $label ) . '</label></th><td>';

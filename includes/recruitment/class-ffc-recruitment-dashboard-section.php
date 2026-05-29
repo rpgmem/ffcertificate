@@ -326,6 +326,7 @@ final class RecruitmentDashboardSection {
 			'accepted'  => __( 'Called', 'ffcertificate' ),
 			'not_shown' => __( 'Did not show up', 'ffcertificate' ),
 			'hired'     => __( 'Hired', 'ffcertificate' ),
+			'withdrew'  => __( 'Withdrew', 'ffcertificate' ),
 		);
 		return $map[ $status ] ?? $status;
 	}
