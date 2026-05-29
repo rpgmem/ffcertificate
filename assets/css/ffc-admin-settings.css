@@ -735,73 +735,90 @@ pre code {
 }
 
 /* ==========================================================================
-   NAV TABS - v5.4.0 Visual Refresh
-   Modern underline-style tabs, active indicator, smooth transitions.
+   VERTICAL TABS — WooCommerce "Product data" style.
+   Mirrors the certificate form-editor tabs pattern (.ffc-form-tabs__*),
+   keeping the page-reload save model: only the active tab renders in the
+   DOM; clicking a tab follows the `?tab=<id>` link.
    ========================================================================== */
-.ffc-settings-wrap .nav-tab-wrapper {
+.ffc-settings-tabs {
     display: flex;
-    flex-wrap: wrap;
-    gap: 2px;
-    margin: 20px 0 0 0;
-    padding: 0;
-    border-bottom: 1px solid var(--ffc-border);
-    background: transparent;
+    align-items: stretch;
+    margin-top: 20px;
+    background: var(--ffc-bg-card);
+    border: 1px solid var(--ffc-border);
+    border-radius: 4px;
+    box-shadow: var(--ffc-shadow-sm);
+    overflow: hidden;
 }
 
-.ffc-settings-wrap .nav-tab {
-    position: relative;
-    top: 0;
+.ffc-settings-tabs__nav {
+    flex: 0 0 220px;
     margin: 0;
-    padding: 10px 14px;
-    border: none;
-    background: transparent;
-    color: var(--ffc-text-muted);
-    font-size: 13px;
-    font-weight: 500;
-    line-height: 1.4;
-    border-radius: 4px 4px 0 0;
-    box-shadow: none;
-    transition: color 0.15s ease, background-color 0.15s ease;
+    padding: 0;
+    list-style: none;
+    background: var(--ffc-bg-alt);
+    border-right: 1px solid var(--ffc-border);
 }
 
-.ffc-settings-wrap .nav-tab:hover,
-.ffc-settings-wrap .nav-tab:focus {
-    background: var(--ffc-bg-alt);
+.ffc-settings-tabs__nav-item {
+    margin: 0;
+}
+
+.ffc-settings-tabs__tab {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 16px;
+    color: var(--ffc-text);
+    text-decoration: none;
+    border-left: 4px solid transparent;
+    line-height: 1.3;
+    transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+}
+
+.ffc-settings-tabs__tab:hover,
+.ffc-settings-tabs__tab:focus {
+    background: var(--ffc-bg-card);
     color: var(--ffc-primary);
     box-shadow: none;
 }
 
-.ffc-settings-wrap .nav-tab:focus-visible {
+.ffc-settings-tabs__tab:focus-visible {
     outline: 2px solid var(--ffc-primary);
     outline-offset: -2px;
 }
 
-.ffc-settings-wrap .nav-tab-active,
-.ffc-settings-wrap .nav-tab-active:hover,
-.ffc-settings-wrap .nav-tab-active:focus {
+.ffc-settings-tabs__tab.is-active {
     background: var(--ffc-bg-card);
     color: var(--ffc-primary);
+    border-left-color: var(--ffc-primary);
     font-weight: 600;
-    box-shadow: none;
 }
 
-.ffc-settings-wrap .nav-tab-active::after {
-    content: "";
-    position: absolute;
-    left: 10px;
-    right: 10px;
-    bottom: -1px;
-    height: 2px;
-    background: var(--ffc-primary);
-    border-radius: 2px 2px 0 0;
+.ffc-settings-tabs__icon {
+    flex: 0 0 auto;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 20px;
+    height: 20px;
 }
 
-.ffc-settings-wrap .nav-tab[class*="ffc-icon-"]::before {
-    margin-right: 4px;
+/* Cancel the right-margin the global .ffc-icon-* helpers apply via
+   ::before — inside the nav, the gap on .ffc-settings-tabs__tab is the
+   single spacing source. */
+.ffc-settings-tabs__nav .ffc-settings-tabs__icon::before {
+    margin-right: 0;
 }
 
-.ffc-settings-wrap .ffc-tab-content {
-    padding: 20px 0;
+.ffc-settings-tabs__label {
+    flex: 1 1 auto;
+}
+
+.ffc-settings-tabs__panel {
+    flex: 1 1 auto;
+    min-width: 0;
+    padding: 4px 20px 20px;
     animation: ffc-tab-fade-in 0.2s ease-out;
 }
 
@@ -810,22 +827,36 @@ pre code {
     to   { opacity: 1; transform: translateY(0); }
 }
 
+/* Narrow screens: nav wraps above the panel as a horizontal strip. */
 @media screen and (max-width: 782px) {
-    .ffc-settings-wrap .nav-tab-wrapper {
-        overflow-x: auto;
-        flex-wrap: nowrap;
+    .ffc-settings-tabs {
+        flex-direction: column;
     }
-    .ffc-settings-wrap .nav-tab {
+
+    .ffc-settings-tabs__nav {
+        flex: 0 0 auto;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0;
+        border-right: none;
+        border-bottom: 1px solid var(--ffc-border);
+    }
+
+    .ffc-settings-tabs__tab {
+        border-left: none;
+        border-bottom: 3px solid transparent;
         padding: 8px 12px;
-        font-size: 12px;
-        white-space: nowrap;
-        flex-shrink: 0;
+    }
+
+    .ffc-settings-tabs__tab.is-active {
+        border-left: none;
+        border-bottom-color: var(--ffc-primary);
     }
 }
 
 @media (prefers-reduced-motion: reduce) {
-    .ffc-settings-wrap .nav-tab,
-    .ffc-settings-wrap .ffc-tab-content {
+    .ffc-settings-tabs__tab,
+    .ffc-settings-tabs__panel {
         transition: none;
         animation: none;
     }

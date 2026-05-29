@@ -341,26 +341,37 @@ class Settings {
             // phpcs:enable WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
 			?>
 			
-			<h2 class="nav-tab-wrapper">
-				<?php foreach ( $this->tabs as $tab_id => $tab_obj ) : ?>
-					<a href="?post_type=ffc_form&page=ffc-settings&tab=<?php echo esc_attr( $tab_id ); ?>"
-						class="nav-tab <?php echo esc_attr( $active_tab === $tab_id ? 'nav-tab-active' : '' ); ?> <?php echo esc_attr( $tab_obj->get_icon() ); ?>">
-						<?php echo esc_html( $tab_obj->get_title() ); ?>
-					</a>
-				<?php endforeach; ?>
-			</h2>
-			
-			<div class="ffc-tab-content">
-				<?php
-				if ( isset( $this->tabs[ $active_tab ] ) ) {
-					$this->tabs[ $active_tab ]->render();
-				} elseif ( ! empty( $this->tabs ) ) {
-					// Fallback: render first tab.
-					reset( $this->tabs );
-					$first_tab = current( $this->tabs );
-					$first_tab->render();
-				}
-				?>
+			<div class="ffc-settings-tabs" data-ffc-settings-tabs>
+				<ul class="ffc-settings-tabs__nav" role="tablist" aria-orientation="vertical">
+					<?php foreach ( $this->tabs as $tab_id => $tab_obj ) : ?>
+						<?php $is_active = ( $active_tab === $tab_id ); ?>
+						<li class="ffc-settings-tabs__nav-item" role="presentation">
+							<a href="?post_type=ffc_form&page=ffc-settings&tab=<?php echo esc_attr( $tab_id ); ?>"
+								id="ffc-settings-tabnav-<?php echo esc_attr( $tab_id ); ?>"
+								class="ffc-settings-tabs__tab<?php echo $is_active ? ' is-active' : ''; ?>"
+								role="tab"
+								aria-selected="<?php echo $is_active ? 'true' : 'false'; ?>"
+								aria-controls="ffc-settings-tabpanel-<?php echo esc_attr( $tab_id ); ?>"
+								tabindex="<?php echo $is_active ? '0' : '-1'; ?>">
+								<span class="ffc-settings-tabs__icon <?php echo esc_attr( $tab_obj->get_icon() ); ?>" aria-hidden="true"></span>
+								<span class="ffc-settings-tabs__label"><?php echo esc_html( $tab_obj->get_title() ); ?></span>
+							</a>
+						</li>
+					<?php endforeach; ?>
+				</ul>
+
+				<div id="ffc-settings-tabpanel-<?php echo esc_attr( $active_tab ); ?>" class="ffc-settings-tabs__panel" role="tabpanel" aria-labelledby="ffc-settings-tabnav-<?php echo esc_attr( $active_tab ); ?>" tabindex="0">
+					<?php
+					if ( isset( $this->tabs[ $active_tab ] ) ) {
+						$this->tabs[ $active_tab ]->render();
+					} elseif ( ! empty( $this->tabs ) ) {
+						// Fallback: render first tab.
+						reset( $this->tabs );
+						$first_tab = current( $this->tabs );
+						$first_tab->render();
+					}
+					?>
+				</div>
 			</div>
 		</div>
 		<?php
