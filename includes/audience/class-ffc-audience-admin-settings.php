@@ -51,39 +51,61 @@ class AudienceAdminSettings {
         // phpcs:ignore WordPress.Security.NonceVerification.Recommended
 		$active_tab = Utils::get_get_string( 'tab', 'general' );
 
+		$tabs = array(
+			'general'         => array(
+				'label' => __( 'General', 'ffcertificate' ),
+				'icon'  => 'admin-generic',
+			),
+			'self-scheduling' => array(
+				'label' => __( 'Self-Scheduling', 'ffcertificate' ),
+				'icon'  => 'calendar-alt',
+			),
+			'audience'        => array(
+				'label' => __( 'Audience', 'ffcertificate' ),
+				'icon'  => 'groups',
+			),
+		);
+		if ( ! isset( $tabs[ $active_tab ] ) ) {
+			$active_tab = 'general';
+		}
 		?>
 		<div class="wrap ffc-settings-wrap">
 			<h1><?php esc_html_e( 'Scheduling Settings', 'ffcertificate' ); ?></h1>
 
-			<h2 class="nav-tab-wrapper">
-				<a href="<?php echo esc_url( admin_url( 'admin.php?page=' . $this->menu_slug . '-settings&tab=general' ) ); ?>"
-					class="nav-tab <?php echo 'general' === $active_tab ? 'nav-tab-active' : ''; ?>">
-					<?php esc_html_e( 'General', 'ffcertificate' ); ?>
-				</a>
-				<a href="<?php echo esc_url( admin_url( 'admin.php?page=' . $this->menu_slug . '-settings&tab=self-scheduling' ) ); ?>"
-					class="nav-tab <?php echo 'self-scheduling' === $active_tab ? 'nav-tab-active' : ''; ?>">
-					<?php esc_html_e( 'Self-Scheduling', 'ffcertificate' ); ?>
-				</a>
-				<a href="<?php echo esc_url( admin_url( 'admin.php?page=' . $this->menu_slug . '-settings&tab=audience' ) ); ?>"
-					class="nav-tab <?php echo 'audience' === $active_tab ? 'nav-tab-active' : ''; ?>">
-					<?php esc_html_e( 'Audience', 'ffcertificate' ); ?>
-				</a>
-			</h2>
+			<div class="ffc-settings-tabs" data-ffc-settings-tabs>
+				<ul class="ffc-settings-tabs__nav" role="tablist" aria-orientation="vertical">
+					<?php foreach ( $tabs as $tab_id => $tab ) : ?>
+						<?php $is_active = ( $active_tab === $tab_id ); ?>
+						<li class="ffc-settings-tabs__nav-item" role="presentation">
+							<a href="<?php echo esc_url( admin_url( 'admin.php?page=' . $this->menu_slug . '-settings&tab=' . $tab_id ) ); ?>"
+								id="ffc-scheduling-tabnav-<?php echo esc_attr( $tab_id ); ?>"
+								class="ffc-settings-tabs__tab<?php echo $is_active ? ' is-active' : ''; ?>"
+								role="tab"
+								aria-selected="<?php echo $is_active ? 'true' : 'false'; ?>"
+								aria-controls="ffc-scheduling-tabpanel-<?php echo esc_attr( $tab_id ); ?>"
+								tabindex="<?php echo $is_active ? '0' : '-1'; ?>">
+								<span class="ffc-settings-tabs__icon dashicons dashicons-<?php echo esc_attr( $tab['icon'] ); ?>" aria-hidden="true"></span>
+								<span class="ffc-settings-tabs__label"><?php echo esc_html( $tab['label'] ); ?></span>
+							</a>
+						</li>
+					<?php endforeach; ?>
+				</ul>
 
-			<div class="ffc-tab-content">
-				<?php
-				switch ( $active_tab ) {
-					case 'self-scheduling':
-						$this->render_self_scheduling_tab();
-						break;
-					case 'audience':
-						$this->render_audience_tab();
-						break;
-					default:
-						$this->render_general_tab();
-						break;
-				}
-				?>
+				<div id="ffc-scheduling-tabpanel-<?php echo esc_attr( $active_tab ); ?>" class="ffc-settings-tabs__panel" role="tabpanel" aria-labelledby="ffc-scheduling-tabnav-<?php echo esc_attr( $active_tab ); ?>" tabindex="0">
+					<?php
+					switch ( $active_tab ) {
+						case 'self-scheduling':
+							$this->render_self_scheduling_tab();
+							break;
+						case 'audience':
+							$this->render_audience_tab();
+							break;
+						default:
+							$this->render_general_tab();
+							break;
+					}
+					?>
+				</div>
 			</div>
 		</div>
 		<?php
