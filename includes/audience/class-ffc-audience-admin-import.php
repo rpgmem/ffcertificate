@@ -38,17 +38,34 @@ class AudienceAdminImport {
 	}
 
 	/**
-	 * Render import page
+	 * Render import page (standalone wrap + h1).
+	 *
+	 * Kept for back-compat with any caller that still expects the page-level
+	 * chrome. The live entry point is `render_content()` — called by
+	 * {@see AudienceAdminSettings} as the "Import & Export" tab body so the
+	 * forms render inside the settings vertical-tab panel.
 	 *
 	 * @return void
 	 */
 	public function render_page(): void {
-		$audiences = AudienceRepository::get_hierarchical();
 		?>
 		<div class="wrap">
 			<h1><?php esc_html_e( 'Import & Export', 'ffcertificate' ); ?></h1>
+			<?php $this->render_content(); ?>
+		</div>
+		<?php
+	}
 
-			<?php settings_errors( 'ffc_audience' ); ?>
+	/**
+	 * Render the Import & Export body without the page-level wrap/h1, so it
+	 * can be embedded inside the Scheduling Settings vertical-tab panel.
+	 *
+	 * @return void
+	 */
+	public function render_content(): void {
+		$audiences = AudienceRepository::get_hierarchical();
+		?>
+		<?php settings_errors( 'ffc_audience' ); ?>
 
 			<h2 class="nav-tab-wrapper">
 				<a href="#ffc-import-tab" class="nav-tab nav-tab-active" data-tab="ffc-import-tab"><?php esc_html_e( 'Import', 'ffcertificate' ); ?></a>
@@ -234,7 +251,6 @@ class AudienceAdminImport {
 				</div>
 			</div><!-- .ffc-import-sections -->
 			</div><!-- #ffc-export-tab -->
-		</div><!-- .wrap -->
 
 		<script>
 		jQuery(function($) {

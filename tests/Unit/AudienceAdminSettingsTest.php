@@ -82,7 +82,7 @@ class AudienceAdminSettingsTest extends TestCase {
     // ==================================================================
 
     public function test_constructor_creates_instance(): void {
-        $page = new AudienceAdminSettings( 'ffc-scheduling' );
+        $page = new AudienceAdminSettings( 'ffc-scheduling', \Mockery::mock( \FreeFormCertificate\Audience\AudienceAdminImport::class )->shouldIgnoreMissing() );
         $this->assertInstanceOf( AudienceAdminSettings::class, $page );
     }
 
@@ -92,7 +92,7 @@ class AudienceAdminSettingsTest extends TestCase {
 
     public function test_handle_visibility_settings_does_nothing_without_post(): void {
         unset( $_POST['ffc_visibility_action'] );
-        $page = new AudienceAdminSettings( 'ffc-scheduling' );
+        $page = new AudienceAdminSettings( 'ffc-scheduling', \Mockery::mock( \FreeFormCertificate\Audience\AudienceAdminImport::class )->shouldIgnoreMissing() );
         $page->handle_visibility_settings();
         $this->assertTrue( true );
     }
@@ -104,7 +104,7 @@ class AudienceAdminSettingsTest extends TestCase {
     public function test_handle_global_holiday_actions_returns_early_without_permission(): void {
         Functions\when( 'current_user_can' )->justReturn( false );
 
-        $page = new AudienceAdminSettings( 'ffc-scheduling' );
+        $page = new AudienceAdminSettings( 'ffc-scheduling', \Mockery::mock( \FreeFormCertificate\Audience\AudienceAdminImport::class )->shouldIgnoreMissing() );
         $page->handle_global_holiday_actions();
         $this->assertTrue( true );
     }
@@ -117,7 +117,7 @@ class AudienceAdminSettingsTest extends TestCase {
         Functions\when( 'date_i18n' )->alias( function ( $f, $t = null ) { return date( $f, $t ?? time() ); } );
         Functions\when( 'wp_nonce_url' )->justReturn( '/' );
 
-        $page = new AudienceAdminSettings( 'ffc-scheduling' );
+        $page = new AudienceAdminSettings( 'ffc-scheduling', \Mockery::mock( \FreeFormCertificate\Audience\AudienceAdminImport::class )->shouldIgnoreMissing() );
         ob_start();
         $page->render_page();
         $output = ob_get_clean();

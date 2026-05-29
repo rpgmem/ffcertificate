@@ -34,12 +34,22 @@ class AudienceAdminSettings {
 	private string $menu_slug;
 
 	/**
+	 * Renderer for the embedded Import & Export tab.
+	 *
+	 * @var AudienceAdminImport
+	 */
+	private AudienceAdminImport $import;
+
+	/**
 	 * Constructor
 	 *
-	 * @param string $menu_slug Menu slug prefix.
+	 * @param string              $menu_slug Menu slug prefix.
+	 * @param AudienceAdminImport $import    Import & Export renderer, embedded
+	 *                                       as the 4th tab.
 	 */
-	public function __construct( string $menu_slug ) {
+	public function __construct( string $menu_slug, AudienceAdminImport $import ) {
 		$this->menu_slug = $menu_slug;
+		$this->import    = $import;
 	}
 
 	/**
@@ -63,6 +73,10 @@ class AudienceAdminSettings {
 			'audience'        => array(
 				'label' => __( 'Audience', 'ffcertificate' ),
 				'icon'  => 'groups',
+			),
+			'import'          => array(
+				'label' => __( 'Import & Export', 'ffcertificate' ),
+				'icon'  => 'database-import',
 			),
 		);
 		if ( ! isset( $tabs[ $active_tab ] ) ) {
@@ -99,6 +113,9 @@ class AudienceAdminSettings {
 							break;
 						case 'audience':
 							$this->render_audience_tab();
+							break;
+						case 'import':
+							$this->import->render_content();
 							break;
 						default:
 							$this->render_general_tab();
