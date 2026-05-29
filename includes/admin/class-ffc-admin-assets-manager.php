@@ -374,6 +374,33 @@ class AdminAssetsManager {
 		if ( $this->is_certificates_dashboard_page() ) {
 			$this->enqueue_certificates_dashboard_assets();
 		}
+
+		// Documentation tab — sticky/collapsible Quick Navigation TOC.
+		if ( $this->is_documentation_tab() ) {
+			wp_enqueue_script(
+				'ffc-doc-toc',
+				FFC_PLUGIN_URL . "assets/js/ffc-doc-toc{$s}.js",
+				array(),
+				FFC_VERSION,
+				true
+			);
+		}
+	}
+
+	/**
+	 * Check if current screen is the Documentation tab of the main
+	 * Certificate Settings page (`page=ffc-settings&tab=documentation`).
+	 *
+	 * @return bool
+	 */
+	private function is_documentation_tab(): bool {
+        // phpcs:disable WordPress.Security.NonceVerification.Recommended -- Page routing check for asset loading.
+		if ( ! isset( $_GET['page'], $_GET['tab'] ) ) {
+			return false;
+		}
+		return sanitize_key( wp_unslash( $_GET['page'] ) ) === 'ffc-settings'
+			&& sanitize_key( wp_unslash( $_GET['tab'] ) ) === 'documentation';
+        // phpcs:enable WordPress.Security.NonceVerification.Recommended
 	}
 
 	/**
