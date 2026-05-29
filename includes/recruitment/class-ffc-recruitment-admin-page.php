@@ -274,7 +274,14 @@ final class RecruitmentAdminPage {
 
 		echo '<div class="wrap ffc-recruitment-admin">';
 		echo '<h1>' . esc_html__( 'Recruitment', 'ffcertificate' ) . '</h1>';
+
+		echo '<div class="ffc-settings-tabs" data-ffc-settings-tabs>';
 		self::render_tabs( $tab );
+
+		printf(
+			'<div id="ffc-recruitment-tabpanel-%1$s" class="ffc-settings-tabs__panel" role="tabpanel" aria-labelledby="ffc-recruitment-tabnav-%1$s" tabindex="0">',
+			esc_attr( $tab )
+		);
 
 		switch ( $tab ) {
 			case 'adjutancies':
@@ -294,37 +301,67 @@ final class RecruitmentAdminPage {
 				break;
 		}
 
-		echo '</div>';
+		echo '</div>'; // .ffc-settings-tabs__panel
+		echo '</div>'; // .ffc-settings-tabs
+		echo '</div>'; // .wrap
 	}
 
 	/**
-	 * Render the wp-admin "h2 nav-tabs" navigation bar.
+	 * Render the vertical tab navigation (WooCommerce "Product data" style),
+	 * matching the look of `page=ffc-settings` and the certificate form
+	 * editor. Emits only the `<ul>` — the surrounding `.ffc-settings-tabs`
+	 * container and `.ffc-settings-tabs__panel` are opened/closed by the
+	 * caller in {@see render_page()}.
 	 *
 	 * @param string $active Current tab.
 	 * @return void
 	 */
 	private static function render_tabs( string $active ): void {
 		$tabs = array(
-			'notices'     => __( 'Notices', 'ffcertificate' ),
-			'adjutancies' => __( 'Adjutancies', 'ffcertificate' ),
-			'reasons'     => __( 'Reasons', 'ffcertificate' ),
-			'candidates'  => __( 'Candidates', 'ffcertificate' ),
-			'settings'    => __( 'Settings', 'ffcertificate' ),
+			'notices'     => array(
+				'label' => __( 'Notices', 'ffcertificate' ),
+				'icon'  => 'megaphone',
+			),
+			'adjutancies' => array(
+				'label' => __( 'Adjutancies', 'ffcertificate' ),
+				'icon'  => 'building',
+			),
+			'reasons'     => array(
+				'label' => __( 'Reasons', 'ffcertificate' ),
+				'icon'  => 'format-status',
+			),
+			'candidates'  => array(
+				'label' => __( 'Candidates', 'ffcertificate' ),
+				'icon'  => 'id',
+			),
+			'settings'    => array(
+				'label' => __( 'Settings', 'ffcertificate' ),
+				'icon'  => 'admin-generic',
+			),
 		);
 
-		echo '<nav class="nav-tab-wrapper">';
-		foreach ( $tabs as $slug => $label ) {
-			$url   = add_query_arg(
+		echo '<ul class="ffc-settings-tabs__nav" role="tablist" aria-orientation="vertical">';
+		foreach ( $tabs as $slug => $tab ) {
+			$is_active = ( $slug === $active );
+			$url       = add_query_arg(
 				array(
 					'page' => self::PAGE_SLUG,
 					'tab'  => $slug,
 				),
 				admin_url( 'admin.php' )
 			);
-			$class = 'nav-tab' . ( $slug === $active ? ' nav-tab-active' : '' );
-			echo '<a class="' . esc_attr( $class ) . '" href="' . esc_url( $url ) . '">' . esc_html( $label ) . '</a>';
+			printf(
+				'<li class="ffc-settings-tabs__nav-item" role="presentation"><a href="%1$s" id="ffc-recruitment-tabnav-%2$s" class="ffc-settings-tabs__tab%3$s" role="tab" aria-selected="%4$s" aria-controls="ffc-recruitment-tabpanel-%2$s" tabindex="%5$s"><span class="ffc-settings-tabs__icon dashicons dashicons-%6$s" aria-hidden="true"></span><span class="ffc-settings-tabs__label">%7$s</span></a></li>',
+				esc_url( $url ),
+				esc_attr( $slug ),
+				$is_active ? ' is-active' : '',
+				$is_active ? 'true' : 'false',
+				$is_active ? '0' : '-1',
+				esc_attr( $tab['icon'] ),
+				esc_html( $tab['label'] )
+			);
 		}
-		echo '</nav>';
+		echo '</ul>';
 	}
 
 	/**
