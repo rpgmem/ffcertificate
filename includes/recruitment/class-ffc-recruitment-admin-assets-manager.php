@@ -80,10 +80,22 @@ final class RecruitmentAdminAssetsManager {
 			FFC_VERSION
 		);
 
+		// The vertical-tab layout for the recruitment admin nav lives in
+		// ffc-admin-settings.css (the .ffc-settings-tabs__* rules introduced
+		// in #429 and reused here). Enqueue it so this page picks up the
+		// same look as page=ffc-settings; the other rules in that file are
+		// scoped under .ffc-settings-wrap and stay dormant here.
+		wp_enqueue_style(
+			'ffc-admin-settings',
+			FFC_PLUGIN_URL . "assets/css/ffc-admin-settings{$s}.css",
+			array( 'ffc-common' ),
+			FFC_VERSION
+		);
+
 		wp_enqueue_style(
 			self::HANDLE_CSS,
 			FFC_PLUGIN_URL . 'assets/css/ffc-recruitment-admin.css',
-			array( 'ffc-common' ),
+			array( 'ffc-common', 'ffc-admin-settings' ),
 			$css_ver
 		);
 
