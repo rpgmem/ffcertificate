@@ -863,6 +863,53 @@ pre code {
 }
 
 /* ==========================================================================
+   Normalize tab icons to Dashicons inside the settings vertical nav.
+
+   The global .ffc-icon-* helpers render emojis via ::before content (see
+   ffc-common.css) for use anywhere in the plugin. Inside the settings
+   nav we want the form-editor look (which uses native Dashicons), so we
+   swap the ::before font + glyph here without touching the global rules
+   — emojis stay intact for every other surface that uses .ffc-icon-*.
+
+   The dashicons font is loaded by wp-admin on every screen, so no
+   enqueue change is required.
+
+   Mapping table (tab class → dashicon):
+     ffc-icon-settings → admin-generic (\f111)   — General + Advanced
+     ffc-icon-email    → email         (\f465)   — SMTP
+     ffc-icon-package  → archive       (\f480)   — Cache
+     ffc-icon-link     → admin-links   (\f103)   — URL Shortener
+     ffc-icon-shield   → shield        (\f332)   — Rate Limit
+     ffc-icon-globe    → admin-site    (\f319)   — Geolocation
+     ffc-icon-users    → groups        (\f307)   — User Access
+     ffc-icon-sync     → update        (\f463)   — Migrations
+     ffc-icon-doc      → book-alt      (\f331)   — Documentation
+   ========================================================================== */
+
+.ffc-settings-tabs__nav .ffc-settings-tabs__icon {
+    font-family: dashicons;
+    font-size: 20px;
+    line-height: 1;
+    font-style: normal;
+    font-weight: 400;
+    font-variant: normal;
+    text-decoration: inherit;
+    text-rendering: auto;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+}
+
+.ffc-settings-tabs__nav .ffc-icon-settings::before { content: "\f111"; }
+.ffc-settings-tabs__nav .ffc-icon-email::before    { content: "\f465"; }
+.ffc-settings-tabs__nav .ffc-icon-package::before  { content: "\f480"; }
+.ffc-settings-tabs__nav .ffc-icon-link::before     { content: "\f103"; }
+.ffc-settings-tabs__nav .ffc-icon-shield::before   { content: "\f332"; }
+.ffc-settings-tabs__nav .ffc-icon-globe::before    { content: "\f319"; }
+.ffc-settings-tabs__nav .ffc-icon-users::before    { content: "\f307"; }
+.ffc-settings-tabs__nav .ffc-icon-sync::before     { content: "\f463"; }
+.ffc-settings-tabs__nav .ffc-icon-doc::before      { content: "\f331"; }
+
+/* ==========================================================================
    Settings page — floating "Back to top" button (zero JS, all tabs).
    ========================================================================== */
 
