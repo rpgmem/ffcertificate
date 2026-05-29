@@ -119,6 +119,7 @@ final class RecruitmentErrorMessages {
 			'recruitment_definitive_to_preliminary_blocked_by_calls' => __( 'Cannot move back to preliminary: at least one call has already been issued. Cancel pending calls before reverting.', 'ffcertificate' ),
 			'recruitment_state_locked'                     => __( 'This action is not allowed in the notice\'s current state.', 'ffcertificate' ),
 			'recruitment_state_terminal_hired'             => __( 'This candidate has already been hired and cannot be modified.', 'ffcertificate' ),
+			'recruitment_state_terminal_withdrew'          => __( 'This candidate has withdrawn and cannot be modified.', 'ffcertificate' ),
 			'recruitment_transition_race_lost'             => __( 'Another operator changed this notice\'s status moments ago. Reload to see the current state.', 'ffcertificate' ),
 			'recruitment_transition_reason_required'       => __( 'A reason is required for this status transition.', 'ffcertificate' ),
 			'recruitment_reopen_freeze_active'             => __( 'This notice is in a post-reopen freeze and the affected fields are temporarily locked.', 'ffcertificate' ),

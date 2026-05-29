@@ -57,6 +57,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  *   status_color_called:         string,
  *   status_color_hired:          string,
  *   status_color_not_shown:      string,
+ *   status_color_withdrew:       string,
  *   preview_color_empty:           string,
  *   preview_color_denied:          string,
  *   preview_color_granted:         string,
@@ -139,6 +140,7 @@ final class RecruitmentSettings {
 			'status_color_called'                    => '#e9d8fd',
 			'status_color_hired'                     => '#d4edda',
 			'status_color_not_shown'                 => '#f8d7da',
+			'status_color_withdrew'                  => '#f5c6cb',
 			// Preview-list (`list_type='preview'`) badge colors. These
 			// are visual-only: they never feed into the §5.2 state machine
 			// on the definitive list. The default palette is intentionally
@@ -257,6 +259,7 @@ final class RecruitmentSettings {
 		$out['status_color_called']    = self::sanitize_color( $value['status_color_called'] ?? null, $defaults['status_color_called'] );
 		$out['status_color_hired']     = self::sanitize_color( $value['status_color_hired'] ?? null, $defaults['status_color_hired'] );
 		$out['status_color_not_shown'] = self::sanitize_color( $value['status_color_not_shown'] ?? null, $defaults['status_color_not_shown'] );
+		$out['status_color_withdrew']  = self::sanitize_color( $value['status_color_withdrew'] ?? null, $defaults['status_color_withdrew'] );
 
 		$out['preview_color_empty']          = self::sanitize_color( $value['preview_color_empty'] ?? null, $defaults['preview_color_empty'] );
 		$out['preview_color_denied']         = self::sanitize_color( $value['preview_color_denied'] ?? null, $defaults['preview_color_denied'] );
@@ -349,6 +352,7 @@ final class RecruitmentSettings {
 			'status_color_called'                    => is_string( $value['status_color_called'] ?? null ) ? $value['status_color_called'] : $defaults['status_color_called'],
 			'status_color_hired'                     => is_string( $value['status_color_hired'] ?? null ) ? $value['status_color_hired'] : $defaults['status_color_hired'],
 			'status_color_not_shown'                 => is_string( $value['status_color_not_shown'] ?? null ) ? $value['status_color_not_shown'] : $defaults['status_color_not_shown'],
+			'status_color_withdrew'                  => is_string( $value['status_color_withdrew'] ?? null ) ? $value['status_color_withdrew'] : $defaults['status_color_withdrew'],
 			'preview_color_empty'                    => is_string( $value['preview_color_empty'] ?? null ) ? $value['preview_color_empty'] : $defaults['preview_color_empty'],
 			'preview_color_denied'                   => is_string( $value['preview_color_denied'] ?? null ) ? $value['preview_color_denied'] : $defaults['preview_color_denied'],
 			'preview_color_granted'                  => is_string( $value['preview_color_granted'] ?? null ) ? $value['preview_color_granted'] : $defaults['preview_color_granted'],

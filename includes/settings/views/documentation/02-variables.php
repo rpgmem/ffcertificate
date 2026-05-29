@@ -116,6 +116,16 @@ if ( ! defined( 'ABSPATH' ) ) {
 				<td><?php esc_html_e( 'Submission status label', 'ffcertificate' ); ?></td>
 				<td><em>Confirmado</em></td>
 			</tr>
+			<tr>
+				<td><code>{{schedule}}</code></td>
+				<td><?php esc_html_e( 'Effective wall-clock schedule range — the per-submission "Entry/exit exception" override wins (Geofence: Schedule Exception), then the form-level Class Schedule baseline (Geofence → Time → Class Schedule), then the form\'s Time Range, then empty.', 'ffcertificate' ); ?></td>
+				<td><em>08:00 – 17:30</em></td>
+			</tr>
+			<tr>
+				<td><code>{{schedule_total}}</code></td>
+				<td><?php esc_html_e( 'Total duration of {{schedule}} formatted as a human-readable span (e.g. "9h 30min"). Resolves to empty when {{schedule}} resolves to empty.', 'ffcertificate' ); ?></td>
+				<td><em>9h 30min</em></td>
+			</tr>
 		</tbody>
 	</table>
 	<p class="description">

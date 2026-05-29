@@ -398,7 +398,7 @@ final class RecruitmentNoticeEditPageRenderer {
 				'consequences' => array(
 					__( 'No new calls, status changes or cancellations can happen while closed.', 'ffcertificate' ),
 					__( 'The public shortcode shows the "Notice closed." banner above the list.', 'ffcertificate' ),
-					__( 'Reopening later requires a reason and permanently freezes hired/not_shown classifications.', 'ffcertificate' ),
+					__( 'Reopening later requires a reason and permanently freezes hired/withdrew/not_shown classifications.', 'ffcertificate' ),
 				),
 				'cta'          => __( 'Close notice', 'ffcertificate' ),
 				'style'        => 'destructive',
@@ -442,7 +442,7 @@ final class RecruitmentNoticeEditPageRenderer {
 		// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- helper returns escaped HTML.
 		echo RecruitmentAdminPage::notice_status_badge( $current );
 		if ( '1' === (string) $notice->was_reopened ) {
-			echo ' <em>(' . esc_html__( 'previously reopened — hired/not_shown classifications are frozen', 'ffcertificate' ) . ')</em>';
+			echo ' <em>(' . esc_html__( 'previously reopened — hired/withdrew/not_shown classifications are frozen', 'ffcertificate' ) . ')</em>';
 		}
 		echo '</p>';
 
@@ -708,7 +708,7 @@ final class RecruitmentNoticeEditPageRenderer {
 	 *
 	 * The two list_type stores get separate sub-tabs (one per list).
 	 * The Definitive tab additionally exposes per-row action buttons
-	 * (call / mark accepted / mark not_shown / mark hired / cancel /
+	 * (call / mark accepted / mark not_shown / mark hired / mark withdrew / cancel /
 	 * reopen) so the operator can drive the §5.2 classification
 	 * transitions without leaving the edit screen. Preliminary stays
 	 * read-only since per the §5.2 invariant preview rows are always
@@ -1087,17 +1087,20 @@ final class RecruitmentNoticeEditPageRenderer {
 				$out .= self::cls_button( $id, 'accepted', __( 'Mark accepted', 'ffcertificate' ), 'secondary' );
 				$out .= self::cls_button( $id, 'hired', __( 'Mark hired', 'ffcertificate' ), 'secondary' );
 				$out .= self::cls_button( $id, 'not_shown', __( 'Mark not_shown', 'ffcertificate' ), 'secondary' );
+				$out .= self::cls_button( $id, 'withdrew', __( 'Mark withdrew', 'ffcertificate' ), 'secondary' );
 				$out .= self::cls_button( $id, 'cancel', __( 'Cancel call', 'ffcertificate' ), 'link-delete' );
 				break;
 			case 'accepted':
 				$out .= self::cls_button( $id, 'hired', __( 'Mark hired', 'ffcertificate' ), 'secondary' );
 				$out .= self::cls_button( $id, 'not_shown', __( 'Mark not_shown', 'ffcertificate' ), 'secondary' );
+				$out .= self::cls_button( $id, 'withdrew', __( 'Mark withdrew', 'ffcertificate' ), 'secondary' );
 				$out .= self::cls_button( $id, 'cancel', __( 'Cancel call', 'ffcertificate' ), 'link-delete' );
 				break;
 			case 'not_shown':
 				$out .= self::cls_button( $id, 'reopen', __( 'Reopen (if not frozen)', 'ffcertificate' ), 'secondary' );
 				break;
 			case 'hired':
+			case 'withdrew':
 				// Terminal — no actions.
 				$out .= '<em>' . esc_html__( '(terminal)', 'ffcertificate' ) . '</em>';
 				break;

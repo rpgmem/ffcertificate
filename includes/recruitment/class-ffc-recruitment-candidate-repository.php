@@ -456,7 +456,7 @@ class RecruitmentCandidateRepository {
 	 *   - `$adjutancy_id`    — `>0` joins on the classifications table
 	 *     and limits to candidates with at least one classification in
 	 *     that adjutancy.
-	 *   - `$status`          — one of `empty|called|accepted|not_shown|hired`
+	 *   - `$status`          — one of `empty|called|accepted|not_shown|hired|withdrew`
 	 *     joins on the classifications table (list_type='definitive')
 	 *     and limits to candidates whose at-least-one definitive
 	 *     classification is in that status.

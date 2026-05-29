@@ -68,10 +68,11 @@ final class RecruitmentClassificationStateMachine {
 	 */
 	private const TRANSITIONS = array(
 		'empty'     => array( 'called' ),
-		'called'    => array( 'accepted', 'not_shown', 'hired', 'empty' ),
-		'accepted'  => array( 'hired', 'not_shown', 'empty' ),
+		'called'    => array( 'accepted', 'not_shown', 'hired', 'withdrew', 'empty' ),
+		'accepted'  => array( 'hired', 'not_shown', 'withdrew', 'empty' ),
 		'not_shown' => array( 'empty' ),
 		'hired'     => array(), // Terminal — no transitions out.
+		'withdrew'  => array(), // Terminal — no transitions out.
 	);
 
 	/**
@@ -95,7 +96,7 @@ final class RecruitmentClassificationStateMachine {
 	 * for the post-call lifecycle (called/accepted/hired/not_shown/cancel/reopen).
 	 *
 	 * @param int         $classification_id Target classification.
-	 * @param string      $new_status `empty|called|accepted|not_shown|hired`.
+	 * @param string      $new_status `empty|called|accepted|not_shown|hired|withdrew`.
 	 * @param string|null $reason     Required when cancelling (`* → empty`).
 	 * @return TransitionResult
 	 */
@@ -118,6 +119,9 @@ final class RecruitmentClassificationStateMachine {
 			if ( 'hired' === $current ) {
 				return self::failure( 'recruitment_state_terminal_hired' );
 			}
+			if ( 'withdrew' === $current ) {
+				return self::failure( 'recruitment_state_terminal_withdrew' );
+			}
 			return self::failure( 'recruitment_invalid_transition: ' . $current . '->' . $new_status );
 		}
 
@@ -129,9 +133,9 @@ final class RecruitmentClassificationStateMachine {
 		}
 
 		// Reopen-freeze rule: once `notice.was_reopened = 1`, transitions
-		// out of `hired` and `not_shown` are blocked. `hired` is already
-		// caught by the terminal check above; `not_shown → empty` would
-		// otherwise be allowed — gate it here.
+		// out of `hired`, `withdrew` and `not_shown` are blocked. `hired`
+		// and `withdrew` are already caught by the terminal check above;
+		// `not_shown → empty` would otherwise be allowed — gate it here.
 		if ( 'not_shown' === $current && 'empty' === $new_status ) {
 			$notice_id = (int) $classification->notice_id;
 			$notice    = RecruitmentNoticeRepository::get_by_id( $notice_id );
