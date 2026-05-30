@@ -157,6 +157,17 @@ class SettingsAjaxEndpoint {
 				'type'   => 'bool',
 				'cap'    => 'manage_options',
 			),
+			// SMTP semantic rework — the on-disk slot is `disable_all_emails`
+			// (kept for compatibility) but the UI now exposes the inverted
+			// "Ativar envios de e-mails" toggle. `invert: true` flips the
+			// bool at write time so on=true → disable_all_emails=false.
+			'emails_enabled'                => array(
+				'option' => 'ffc_settings',
+				'path'   => array( 'disable_all_emails' ),
+				'type'   => 'bool',
+				'invert' => true,
+				'cap'    => 'manage_options',
+			),
 		);
 
 		foreach ( $bool_settings as $key ) {
@@ -436,6 +447,13 @@ class SettingsAjaxEndpoint {
 
 		$raw_value = wp_unslash( $_POST['value'] ?? '' );
 		$value     = self::sanitize_value( $raw_value, $entry['type'] ?? 'bool', $entry );
+
+		// Optional bool inversion — the SMTP tab's "Ativar envios" toggle is
+		// stored on disk as `disable_all_emails` for historical reasons, so the
+		// UI flips the semantics. Only meaningful for bool entries.
+		if ( ! empty( $entry['invert'] ) && is_bool( $value ) ) {
+			$value = ! $value;
+		}
 
 		$option_name = $entry['option'];
 		$option      = get_option( $option_name, array() );
