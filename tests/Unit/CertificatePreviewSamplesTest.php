@@ -46,6 +46,9 @@ class CertificatePreviewSamplesTest extends TestCase {
         // Appointment receipt.
         $this->assertArrayHasKey( 'appointment_date', $map );
         $this->assertArrayHasKey( 'calendar_title', $map );
+        // Effective wall-clock schedule (#366 Sprint 7).
+        $this->assertArrayHasKey( 'schedule', $map );
+        $this->assertArrayHasKey( 'schedule_total', $map );
     }
 
     public function test_site_name_is_the_real_blog_name(): void {
