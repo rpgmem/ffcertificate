@@ -31,6 +31,7 @@ $ffcertificate_tables = array(
 	$wpdb->prefix . 'ffc_recruitment_reason',
 	// Reregistration (children first).
 	$wpdb->prefix . 'ffc_reregistration_submissions',
+	$wpdb->prefix . 'ffc_reregistration_audiences',
 	$wpdb->prefix . 'ffc_reregistrations',
 	// Custom fields (depends on audiences).
 	$wpdb->prefix . 'ffc_custom_fields',
@@ -48,9 +49,12 @@ $ffcertificate_tables = array(
 	$wpdb->prefix . 'ffc_self_scheduling_blocked_dates',
 	$wpdb->prefix . 'ffc_self_scheduling_appointments',
 	$wpdb->prefix . 'ffc_self_scheduling_calendars',
-	// Rate limiting.
+	// Rate limiting + device fingerprinting.
 	$wpdb->prefix . 'ffc_rate_limit_logs',
 	$wpdb->prefix . 'ffc_rate_limits',
+	$wpdb->prefix . 'ffc_device_signals',
+	// URL Shortener.
+	$wpdb->prefix . 'ffc_short_urls',
 	// User profiles.
 	$wpdb->prefix . 'ffc_user_profiles',
 	// Core.
@@ -89,6 +93,25 @@ $ffcertificate_options = array(
 	'ffc_columns_dropped_date',
 	'ffc_migration_user_profiles_errors',
 	'ffc_migration_user_profiles_last_run',
+	// Schema-version markers (audited gap — were never on the list).
+	'ffc_activity_log_db_version',
+	'ffc_perf_indexes_db_version',
+	'ffc_submissions_db_version',
+	// Per-feature migration completion markers (audited gap).
+	'ffc_sibling_instants_unix_migrated',
+	'ffc_submission_date_unix_migrated',
+	'ffc_submitted_at_unix_migrated',
+	// Audience module options (audited gap — were never on the list).
+	'ffc_aud_multiple_audiences_color',
+	'ffc_aud_private_display_mode',
+	'ffc_aud_scheduling_message',
+	'ffc_aud_visibility_message',
+	// Self-scheduling module options (audited gap).
+	'ffc_ss_business_hours_booking_message',
+	'ffc_ss_business_hours_viewing_message',
+	'ffc_ss_private_display_mode',
+	'ffc_ss_scheduling_message',
+	'ffc_ss_visibility_message',
 	// Recruitment module (v6.0.0).
 	'ffc_recruitment_settings',
 	'ffc_recruitment_schema_version',
@@ -102,9 +125,16 @@ foreach ( $ffcertificate_options as $ffcertificate_option ) {
 // ──────────────────────────────────────
 // 3. Delete transients
 // ──────────────────────────────────────
+// The activity-log stats triple is explicitly named to keep the obvious
+// case in code; the wildcard sweep below catches every other ffc_* /
+// _ffc_* transient (per-user error transients, per-form caches, etc.)
+// without having to enumerate them.
 delete_transient( 'ffc_activity_stats_7' );
 delete_transient( 'ffc_activity_stats_30' );
 delete_transient( 'ffc_activity_stats_90' );
+
+// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Uninstall-time wildcard delete; bounded by table scope, no user input.
+$wpdb->query( "DELETE FROM {$wpdb->options} WHERE option_name LIKE '\\_transient\\_ffc\\_%' OR option_name LIKE '\\_transient\\_timeout\\_ffc\\_%' OR option_name LIKE '\\_transient\\_\\_ffc\\_%' OR option_name LIKE '\\_transient\\_timeout\\_\\_ffc\\_%'" );
 
 // ──────────────────────────────────────
 // 4. Clear scheduled cron hooks
@@ -120,20 +150,25 @@ wp_clear_scheduled_hook( 'ffc_process_submission_hook' );
 wp_clear_scheduled_hook( 'ffc_warm_cache_hook' );
 
 // ──────────────────────────────────────
-// 5. Delete all ffc_form custom posts
+// 5. Delete all FFC custom posts (CPTs)
 // ──────────────────────────────────────
-$ffcertificate_forms = get_posts(
-	array(
-		'post_type'      => 'ffc_form',
-		'posts_per_page' => -1,
-		'post_status'    => 'any',
-		'fields'         => 'ids',
-	)
-);
+// Both CPTs registered by the plugin — `ffc_form` (certificate forms)
+// and `ffc_self_scheduling` (self-scheduling calendars). wp_delete_post
+// with force=true also clears each post's post_meta + revisions.
+foreach ( array( 'ffc_form', 'ffc_self_scheduling' ) as $ffcertificate_cpt ) {
+	$ffcertificate_post_ids = get_posts(
+		array(
+			'post_type'      => $ffcertificate_cpt,
+			'posts_per_page' => -1,
+			'post_status'    => 'any',
+			'fields'         => 'ids',
+		)
+	);
 
-if ( ! empty( $ffcertificate_forms ) ) {
-	foreach ( $ffcertificate_forms as $ffcertificate_form_id ) {
-		wp_delete_post( $ffcertificate_form_id, true );
+	if ( ! empty( $ffcertificate_post_ids ) ) {
+		foreach ( $ffcertificate_post_ids as $ffcertificate_post_id ) {
+			wp_delete_post( $ffcertificate_post_id, true );
+		}
 	}
 }
 
