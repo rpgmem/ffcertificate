@@ -32,7 +32,7 @@ class BlockedDateRepositoryTest extends TestCase {
 
         // Provide a mock $wpdb global for AbstractRepository
         global $wpdb;
-        $wpdb = Mockery::mock( 'wpdb' );
+        $wpdb = Mockery::mock( 'wpdb' )->makePartial();
         $wpdb->prefix = 'wp_';
 
         $this->repository = new BlockedDateRepository();

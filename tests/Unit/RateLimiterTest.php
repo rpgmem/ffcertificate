@@ -32,7 +32,7 @@ class RateLimiterTest extends TestCase {
 
         // Provide global $wpdb mock for DB-hitting methods.
         global $wpdb;
-        $wpdb = Mockery::mock( 'wpdb' );
+        $wpdb = Mockery::mock( 'wpdb' )->makePartial();
         $wpdb->prefix = 'wp_';
         $wpdb->shouldReceive( 'prepare' )->andReturn( 'SQL' )->byDefault();
         $wpdb->shouldReceive( 'get_var' )->andReturn( '0' )->byDefault();

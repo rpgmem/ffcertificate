@@ -269,7 +269,7 @@ class IpGeolocationTest extends TestCase {
 
     public function test_clear_cache_specific_ip(): void {
         global $wpdb;
-        $wpdb = Mockery::mock( 'wpdb' );
+        $wpdb = Mockery::mock( 'wpdb' )->makePartial();
         $wpdb->prefix = 'wp_';
         $wpdb->options = 'wp_options';
 
@@ -281,7 +281,7 @@ class IpGeolocationTest extends TestCase {
 
     public function test_clear_cache_all(): void {
         global $wpdb;
-        $wpdb = Mockery::mock( 'wpdb' );
+        $wpdb = Mockery::mock( 'wpdb' )->makePartial();
         $wpdb->prefix = 'wp_';
         $wpdb->options = 'wp_options';
         $wpdb->shouldReceive( 'prepare' )->andReturn( 'DELETE QUERY' );

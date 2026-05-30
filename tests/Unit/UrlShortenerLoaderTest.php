@@ -35,7 +35,7 @@ class UrlShortenerLoaderTest extends TestCase {
 
         // Mock global $wpdb (needed by UrlShortenerRepository created inside Service)
         global $wpdb;
-        $wpdb = Mockery::mock( 'wpdb' );
+        $wpdb = Mockery::mock( 'wpdb' )->makePartial();
         $wpdb->prefix = 'wp_';
         $wpdb->last_error = '';
 

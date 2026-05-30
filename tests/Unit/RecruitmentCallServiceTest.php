@@ -30,7 +30,7 @@ class RecruitmentCallServiceTest extends TestCase {
 		Monkey\setUp();
 
 		global $wpdb;
-		$wpdb            = Mockery::mock( 'wpdb' );
+		$wpdb            = Mockery::mock( 'wpdb' )->makePartial();
 		$wpdb->prefix    = 'wp_';
 		$wpdb->insert_id = 0;
 		$this->wpdb      = $wpdb;

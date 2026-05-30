@@ -45,7 +45,7 @@ class AppointmentCsvExporterTest extends TestCase {
 
         // global $wpdb for repo constructors
         global $wpdb;
-        $wpdb = Mockery::mock( 'wpdb' );
+        $wpdb = Mockery::mock( 'wpdb' )->makePartial();
         $wpdb->prefix = 'wp_';
 
         $this->exporter = new AppointmentCsvExporter();

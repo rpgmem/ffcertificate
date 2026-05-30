@@ -76,7 +76,7 @@ class ReregistrationDataProcessorTest extends TestCase {
      */
     private function setup_wpdb_with_fields( array $fields ): void {
         global $wpdb;
-        $wpdb = Mockery::mock( 'wpdb' );
+        $wpdb = Mockery::mock( 'wpdb' )->makePartial();
         $wpdb->prefix = 'wp_';
 
         $audience = (object) array(

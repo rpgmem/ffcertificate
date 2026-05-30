@@ -65,7 +65,7 @@ class UserSummaryRestControllerTest extends TestCase {
         $rereg_mock->shouldReceive( 'get_user_reregistrations' )->andReturn( array() )->byDefault();
 
         // Global $wpdb mock
-        $this->wpdb = Mockery::mock( 'wpdb' );
+        $this->wpdb = Mockery::mock( 'wpdb' )->makePartial();
         $this->wpdb->prefix = 'wp_';
         $this->wpdb->shouldReceive( 'prepare' )->andReturn( '' )->byDefault();
         $this->wpdb->shouldReceive( 'get_results' )->andReturn( array() )->byDefault();

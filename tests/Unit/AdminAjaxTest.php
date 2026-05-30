@@ -91,7 +91,7 @@ class AdminAjaxTest extends TestCase {
 
         // Global wpdb for search_user_by_cpf
         global $wpdb;
-        $wpdb = Mockery::mock( 'wpdb' );
+        $wpdb = Mockery::mock( 'wpdb' )->makePartial();
         $wpdb->prefix = 'wp_';
         $wpdb->last_error = '';
         $this->wpdb = $wpdb;

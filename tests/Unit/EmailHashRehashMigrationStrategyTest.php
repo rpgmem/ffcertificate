@@ -35,7 +35,7 @@ class EmailHashRehashMigrationStrategyTest extends TestCase {
         Monkey\setUp();
 
         global $wpdb;
-        $wpdb             = Mockery::mock( 'wpdb' );
+        $wpdb             = Mockery::mock( 'wpdb' )->makePartial();
         $wpdb->prefix     = 'wp_';
         $wpdb->last_error = '';
         $wpdb->shouldReceive( 'prepare' )->andReturn( 'SQL' )->byDefault();

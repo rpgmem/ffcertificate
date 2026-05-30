@@ -30,7 +30,7 @@ class RecruitmentActivatorTest extends TestCase {
 		Monkey\setUp();
 
 		global $wpdb;
-		$wpdb             = Mockery::mock( 'wpdb' );
+		$wpdb             = Mockery::mock( 'wpdb' )->makePartial();
 		$wpdb->prefix     = 'wp_';
 		$wpdb->last_error = '';
 		$this->wpdb       = $wpdb;
@@ -51,10 +51,6 @@ class RecruitmentActivatorTest extends TestCase {
 					return $sql;
 				}
 			)
-			->byDefault();
-
-		$this->wpdb->shouldReceive( 'esc_like' )
-			->andReturnUsing( function ( $text ) { return addcslashes( (string) $text, '_%\\' ); } )
 			->byDefault();
 
 		Functions\when( 'dbDelta' )->justReturn( array() );

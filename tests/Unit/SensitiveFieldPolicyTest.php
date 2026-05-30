@@ -50,7 +50,7 @@ class SensitiveFieldPolicyTest extends TestCase {
         Monkey\setUp();
 
         global $wpdb;
-        $wpdb = Mockery::mock( 'wpdb' );
+        $wpdb = Mockery::mock( 'wpdb' )->makePartial();
         $wpdb->prefix = 'wp_';
         $wpdb->last_error = '';
         $wpdb->insert_id = 0;

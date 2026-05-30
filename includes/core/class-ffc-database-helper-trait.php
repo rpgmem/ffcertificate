@@ -52,7 +52,7 @@ trait DatabaseHelperTrait {
 	 */
 	protected static function column_exists( string $table_name, string $column_name ): bool {
 		global $wpdb;
-		$like = method_exists( $wpdb, 'esc_like' ) ? $wpdb->esc_like( $column_name ) : $column_name;
+		$like = $wpdb->esc_like( $column_name );
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		$result = $wpdb->get_results( $wpdb->prepare( 'SHOW COLUMNS FROM %i LIKE %s', $table_name, $like ) );
 		return ! empty( $result );
@@ -72,7 +72,7 @@ trait DatabaseHelperTrait {
 	 */
 	protected static function column_type( string $table_name, string $column_name ): ?string {
 		global $wpdb;
-		$like = method_exists( $wpdb, 'esc_like' ) ? $wpdb->esc_like( $column_name ) : $column_name;
+		$like = $wpdb->esc_like( $column_name );
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		$rows = $wpdb->get_results( $wpdb->prepare( 'SHOW COLUMNS FROM %i LIKE %s', $table_name, $like ) );
 		if ( empty( $rows ) ) {
@@ -116,22 +116,18 @@ trait DatabaseHelperTrait {
 
 		global $wpdb;
 		$after_sql     = $after ? $wpdb->prepare( 'AFTER %i', $after ) : '';
-		$prev_suppress = method_exists( $wpdb, 'suppress_errors' ) ? $wpdb->suppress_errors( true ) : false;
+		$prev_suppress = $wpdb->suppress_errors( true );
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.SchemaChange, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- $type is a SQL type definition from trusted internal config.
 		$result = $wpdb->query( $wpdb->prepare( "ALTER TABLE %i ADD COLUMN %i {$type} {$after_sql}", $table_name, $column_name ) );
 		$error  = isset( $wpdb->last_error ) ? (string) $wpdb->last_error : '';
-		if ( method_exists( $wpdb, 'suppress_errors' ) ) {
-			$wpdb->suppress_errors( $prev_suppress );
-		}
+		$wpdb->suppress_errors( $prev_suppress );
 
 		if ( false === $result && '' !== $error ) {
 			if ( false !== stripos( $error, 'Duplicate column' ) ) {
 				return false;
 			}
 			// Real, unexpected failure — re-surface so it reaches debug.log.
-			if ( method_exists( $wpdb, 'print_error' ) ) {
-				$wpdb->print_error( $error );
-			}
+			$wpdb->print_error( $error );
 			return false;
 		}
 

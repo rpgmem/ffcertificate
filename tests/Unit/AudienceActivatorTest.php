@@ -28,7 +28,7 @@ class AudienceActivatorTest extends TestCase {
         Monkey\setUp();
 
         global $wpdb;
-        $wpdb = Mockery::mock( 'wpdb' );
+        $wpdb = Mockery::mock( 'wpdb' )->makePartial();
         $wpdb->prefix = 'wp_';
         $wpdb->last_error = '';
         $this->wpdb = $wpdb;
@@ -62,9 +62,6 @@ class AudienceActivatorTest extends TestCase {
             ->byDefault();
         $this->wpdb->shouldReceive( 'query' )
             ->andReturn( 1 )
-            ->byDefault();
-        $this->wpdb->shouldReceive( 'esc_like' )
-            ->andReturnUsing( function ( $text ) { return addcslashes( (string) $text, '_%\\' ); } )
             ->byDefault();
 
         // Default WP function stubs

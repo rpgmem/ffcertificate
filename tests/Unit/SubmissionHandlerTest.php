@@ -34,7 +34,7 @@ class SubmissionHandlerTest extends TestCase {
 
         // Mock global $wpdb
         global $wpdb;
-        $wpdb = Mockery::mock( 'wpdb' );
+        $wpdb = Mockery::mock( 'wpdb' )->makePartial();
         $wpdb->prefix = 'wp_';
         $wpdb->last_error = '';
         // Allow auth-code uniqueness check & orphan-linking calls

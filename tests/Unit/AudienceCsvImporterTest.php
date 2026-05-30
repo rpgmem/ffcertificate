@@ -414,7 +414,7 @@ class AudienceCsvImporterTest extends TestCase {
 
     private function mock_wpdb(): \Mockery\MockInterface {
         global $wpdb;
-        $wpdb = Mockery::mock( 'wpdb' );
+        $wpdb = Mockery::mock( 'wpdb' )->makePartial();
         $wpdb->prefix = 'wp_';
         $wpdb->shouldReceive( 'prepare' )->andReturnUsing( function () {
             return func_get_args()[0]; // Return the query string

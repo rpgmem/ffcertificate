@@ -55,7 +55,7 @@ class ReregistrationFormRendererTest extends TestCase {
         }
 
         global $wpdb;
-        $wpdb = Mockery::mock( 'wpdb' );
+        $wpdb = Mockery::mock( 'wpdb' )->makePartial();
         $wpdb->prefix = 'wp_';
         $wpdb->shouldReceive( 'prepare' )->andReturnUsing( function () { return func_get_arg(0); } )->byDefault();
         $wpdb->shouldReceive( 'get_row' )->andReturn( null )->byDefault();

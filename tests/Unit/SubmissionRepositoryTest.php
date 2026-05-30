@@ -27,7 +27,7 @@ class SubmissionRepositoryTest extends TestCase {
 
         // Mock global $wpdb
         global $wpdb;
-        $wpdb = Mockery::mock( 'wpdb' );
+        $wpdb = Mockery::mock( 'wpdb' )->makePartial();
         $wpdb->prefix = 'wp_';
         $wpdb->last_error = '';
 
