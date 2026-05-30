@@ -29,6 +29,25 @@ class TabUrlShortener extends SettingsTab {
 		$this->tab_title = __( 'URL Shortener', 'ffcertificate' );
 		$this->tab_icon  = 'ffc-icon-link';
 		$this->tab_order = 35;
+
+		add_action( 'admin_enqueue_scripts', array( $this, 'enqueue_scripts' ) );
+	}
+
+	/**
+	 * Enqueue autosave infra so the two `.ffc-toggle` switches on this tab
+	 * (url_shortener_enabled / url_shortener_auto_create) bind to the
+	 * incremental settings AJAX endpoint.
+	 *
+	 * @param string $hook Hook name.
+	 */
+	public function enqueue_scripts( string $hook ): void {
+		if ( 'ffc_form_page_ffc-settings' !== $hook ) {
+			return;
+		}
+		$active_tab = isset( $_GET['tab'] ) ? sanitize_key( $_GET['tab'] ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Tab parameter for conditional script loading.
+		if ( 'url_shortener' === $active_tab ) {
+			$this->enqueue_autosave_infra();
+		}
 	}
 
 	/**

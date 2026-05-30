@@ -70,6 +70,13 @@ class SettingsAjaxEndpoint {
 			'qr_cache_enabled',
 			// SMTP tab.
 			'disable_all_emails',
+			'send_wp_user_email_submission',
+			'send_wp_user_email_appointment',
+			'send_wp_user_email_csv_import',
+			'send_wp_user_email_migration',
+			// URL Shortener tab.
+			'url_shortener_enabled',
+			'url_shortener_auto_create',
 			// Advanced tab — activity log master switch + per-module debug.
 			'enable_activity_log',
 			'debug_pdf_generator',
@@ -104,13 +111,49 @@ class SettingsAjaxEndpoint {
 		);
 
 		$allowlist = array(
-			'admin_bypass_datetime' => array(
+			'admin_bypass_datetime'         => array(
 				'option' => 'ffc_geolocation_settings',
 				'type'   => 'bool',
 				'cap'    => 'manage_options',
 			),
-			'admin_bypass_geo'      => array(
+			'admin_bypass_geo'              => array(
 				'option' => 'ffc_geolocation_settings',
+				'type'   => 'bool',
+				'cap'    => 'manage_options',
+			),
+			'ip_api_enabled'                => array(
+				'option' => 'ffc_geolocation_settings',
+				'type'   => 'bool',
+				'cap'    => 'manage_options',
+			),
+			'ip_api_cascade'                => array(
+				'option' => 'ffc_geolocation_settings',
+				'type'   => 'bool',
+				'cap'    => 'manage_options',
+			),
+			'ip_cache_enabled'              => array(
+				'option' => 'ffc_geolocation_settings',
+				'type'   => 'bool',
+				'cap'    => 'manage_options',
+			),
+			// User Access tab — stored in its own option (ffc_user_access_settings)
+			// with flat keys. The JS-side key is prefixed `user_access_*` so it
+			// doesn't collide with same-named keys in ffc_settings.
+			'user_access_block_wp_admin'    => array(
+				'option' => 'ffc_user_access_settings',
+				'path'   => array( 'block_wp_admin' ),
+				'type'   => 'bool',
+				'cap'    => 'manage_options',
+			),
+			'user_access_bypass_for_admins' => array(
+				'option' => 'ffc_user_access_settings',
+				'path'   => array( 'bypass_for_admins' ),
+				'type'   => 'bool',
+				'cap'    => 'manage_options',
+			),
+			'user_access_allow_admin_bar'   => array(
+				'option' => 'ffc_user_access_settings',
+				'path'   => array( 'allow_admin_bar' ),
 				'type'   => 'bool',
 				'cap'    => 'manage_options',
 			),
@@ -137,7 +180,24 @@ class SettingsAjaxEndpoint {
 			'device_enabled'                   => array( 'device', 'enabled' ),
 			'device_bypass_logged_in_managers' => array( 'device', 'bypass_logged_in_managers' ),
 			'device_log_blocks'                => array( 'device', 'log_blocks' ),
+			// Read-endpoint group (#259).
+			'read_respect_whitelist'           => array( 'read', 'respect_whitelist' ),
+			'read_bypass_logged_in'            => array( 'read', 'bypass_logged_in' ),
+			// Logging group.
+			'logging_enabled'                  => array( 'logging', 'enabled' ),
+			'logging_log_allowed'              => array( 'logging', 'log_allowed' ),
+			'logging_log_blocked'              => array( 'logging', 'log_blocked' ),
+			// UI / display group.
+			'ui_show_remaining'                => array( 'ui', 'show_remaining' ),
+			'ui_show_wait_time'                => array( 'ui', 'show_wait_time' ),
+			'ui_countdown_timer'               => array( 'ui', 'countdown_timer' ),
 		);
+
+		// Per-endpoint enable toggles under `read.endpoints.<ep>.enabled`.
+		// Keep the endpoint list aligned with TabRateLimit::$defaults['read']['endpoints'].
+		foreach ( array( 'calendar_slots', 'calendar_list', 'calendar_detail' ) as $ffc_ep ) {
+			$rate_limit_paths[ 'read_endpoint_' . $ffc_ep . '_enabled' ] = array( 'read', 'endpoints', $ffc_ep, 'enabled' );
+		}
 
 		foreach ( $rate_limit_paths as $key => $path ) {
 			$allowlist[ $key ] = array(
@@ -313,7 +373,22 @@ class SettingsAjaxEndpoint {
 			'device_message'         => array( array( 'device', 'message' ), 'string', array( 'as' => 'multiline_text' ) ),
 			'logging_retention_days' => array( array( 'logging', 'retention_days' ), 'int', array( 'min' => 1 ) ),
 			'logging_max_logs'       => array( array( 'logging', 'max_logs' ), 'int', array( 'min' => 100 ) ),
+			'read_message'           => array( array( 'read', 'message' ), 'string', array( 'as' => 'multiline_text' ) ),
 		);
+
+		// Per-endpoint numeric thresholds under read.endpoints.<ep>.{max_per_minute,max_per_hour}.
+		foreach ( array( 'calendar_slots', 'calendar_list', 'calendar_detail' ) as $ffc_ep ) {
+			$rate_limit_typed[ 'read_endpoint_' . $ffc_ep . '_max_per_minute' ] = array(
+				array( 'read', 'endpoints', $ffc_ep, 'max_per_minute' ),
+				'int',
+				array( 'min' => 0 ),
+			);
+			$rate_limit_typed[ 'read_endpoint_' . $ffc_ep . '_max_per_hour' ]   = array(
+				array( 'read', 'endpoints', $ffc_ep, 'max_per_hour' ),
+				'int',
+				array( 'min' => 0 ),
+			);
+		}
 
 		foreach ( $rate_limit_typed as $key => list( $path, $type, $extra ) ) {
 			$allowlist[ $key ] = array_merge(
