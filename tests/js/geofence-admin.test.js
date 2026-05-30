@@ -134,4 +134,37 @@ describe('FFCGeofenceAdmin.analyzeDateTimeOrder', () => {
 		expect(analyze({ class_time_start: '09:00' })).toEqual({});
 		expect(analyze({ class_time_end: '17:30' })).toEqual({});
 	});
+
+	it('flags Event Schedule alongside a span-mode inversion (regression)', () => {
+		// User-reported bug: in span mode the function early-returned
+		// before the class_time check at the tail ran, so the Event
+		// Schedule inputs never went red even with an inverted range.
+		const errors = analyze({
+			date_start: '2026-05-24',
+			date_end: '2026-05-24',
+			time_start: '21:00',
+			time_end: '20:00',
+			time_mode: 'span',
+			class_time_start: '21:00',
+			class_time_end: '20:00',
+		});
+		// Both pairs must be flagged.
+		expect(errors.time_start).toBeTruthy();
+		expect(errors.time_end).toBeTruthy();
+		expect(errors.class_time_start).toBeTruthy();
+		expect(errors.class_time_end).toBeTruthy();
+	});
+
+	it('flags Event Schedule alongside a date-order inversion (regression)', () => {
+		const errors = analyze({
+			date_start: '2026-06-30',
+			date_end: '2026-06-01',
+			class_time_start: '14:00',
+			class_time_end: '12:00',
+		});
+		expect(errors.date_start).toBeTruthy();
+		expect(errors.date_end).toBeTruthy();
+		expect(errors.class_time_start).toBeTruthy();
+		expect(errors.class_time_end).toBeTruthy();
+	});
 });
