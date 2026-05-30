@@ -118,6 +118,18 @@ class SettingsTest extends TestCase {
             ->once()
             ->with( 'admin_menu', Mockery::type( 'array' ), 20 );
 
+        // Tabs MUST be loaded on admin_init (before admin_enqueue_scripts)
+        // so each tab's enqueue hook is registered in time. The lazy
+        // display_settings_page fallback runs too late and silently
+        // dropped every tab's enqueue (the autosave bug we just fixed).
+        // priority 5 keeps it ahead of the other admin_init handlers
+        // registered below.
+        Functions\expect( 'add_action' )
+            ->once()
+            ->with( 'admin_init', Mockery::on( function ( $cb ) {
+                return is_array( $cb ) && $cb[1] === 'load_tabs';
+            } ), 5 );
+
         Functions\expect( 'add_action' )
             ->once()
             ->with( 'admin_init', Mockery::on( function ( $cb ) {
