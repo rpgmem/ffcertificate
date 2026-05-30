@@ -74,6 +74,23 @@ class Geofence {
 		$time_end   = isset( $config['time_end'] ) ? (string) $config['time_end'] : '';
 		$time_mode  = isset( $config['time_mode'] ) ? (string) $config['time_mode'] : 'daily';
 
+		// Event Schedule (Reference) — `class_time_*` drives the
+		// `{{schedule}}` placeholder and behaves like a single-day daily
+		// range, so end must come after start when both are filled.
+		// Evaluated FIRST so it always runs: the early returns below for
+		// the date-order / span-mode short-circuits operate on different
+		// inputs and would otherwise prevent the class_time check from
+		// firing in span mode (the scenario the live editor exposed —
+		// the operator inverts Event Schedule alongside a valid Date/Time
+		// Restrictions span and only the latter gets red borders).
+		$class_time_start = isset( $config['class_time_start'] ) ? (string) $config['class_time_start'] : '';
+		$class_time_end   = isset( $config['class_time_end'] ) ? (string) $config['class_time_end'] : '';
+		if ( '' !== $class_time_start && '' !== $class_time_end && $class_time_end <= $class_time_start ) {
+			$msg                        = __( 'Event Schedule end time must be later than the start time.', 'ffcertificate' );
+			$errors['class_time_start'] = $msg;
+			$errors['class_time_end']   = $msg;
+		}
+
 		// Date order — applies in any time_mode.
 		if ( '' !== $date_start && '' !== $date_end && $date_end < $date_start ) {
 			$msg                  = __( 'End date is earlier than the start date.', 'ffcertificate' );
@@ -110,17 +127,6 @@ class Geofence {
 			$msg                  = __( 'End time must be later than start time. For an overnight single event, switch the Time Mode to "Span" and set the end date to the next day.', 'ffcertificate' );
 			$errors['time_start'] = $msg;
 			$errors['time_end']   = $msg;
-		}
-
-		// Event Schedule (Reference) — `class_time_*` drives the
-		// `{{schedule}}` placeholder and behaves like a single-day daily
-		// range, so end must come after start when both are filled.
-		$class_time_start = isset( $config['class_time_start'] ) ? (string) $config['class_time_start'] : '';
-		$class_time_end   = isset( $config['class_time_end'] ) ? (string) $config['class_time_end'] : '';
-		if ( '' !== $class_time_start && '' !== $class_time_end && $class_time_end <= $class_time_start ) {
-			$msg                        = __( 'Event Schedule end time must be later than the start time.', 'ffcertificate' );
-			$errors['class_time_start'] = $msg;
-			$errors['class_time_end']   = $msg;
 		}
 
 		return $errors;

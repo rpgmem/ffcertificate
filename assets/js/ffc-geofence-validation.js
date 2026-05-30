@@ -49,6 +49,19 @@
         // direct caller benefit from the same default the server uses.
         var timeMode = v.time_mode || 'daily';
 
+        // Event Schedule (Reference) — `class_time_*` is independent of
+        // the date/time-restriction inputs, so evaluate it FIRST. The
+        // early returns inside the date-order / span-mode short-circuits
+        // below would otherwise prevent it from ever firing in span mode
+        // (the bug the live editor exposed — inverted Event Schedule
+        // alongside a valid Date/Time Restrictions span only flagged the
+        // latter).
+        if (v.class_time_start && v.class_time_end && v.class_time_end <= v.class_time_start) {
+            var classMsg = msg('class_time_order');
+            errors.class_time_start = classMsg;
+            errors.class_time_end   = classMsg;
+        }
+
         if (v.date_start && v.date_end && v.date_end < v.date_start) {
             var dateMsg = msg('date_order');
             errors.date_start = dateMsg;
@@ -73,15 +86,6 @@
             var dailyMsg = msg('daily_order');
             errors.time_start = dailyMsg;
             errors.time_end   = dailyMsg;
-        }
-
-        // Event Schedule (Reference) — mirrors the PHP rule for
-        // `class_time_*` so the live red-border feedback fires on those
-        // inputs too.
-        if (v.class_time_start && v.class_time_end && v.class_time_end <= v.class_time_start) {
-            var classMsg = msg('class_time_order');
-            errors.class_time_start = classMsg;
-            errors.class_time_end   = classMsg;
         }
 
         return errors;
