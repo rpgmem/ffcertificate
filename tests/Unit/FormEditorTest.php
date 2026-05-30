@@ -123,6 +123,7 @@ class FormEditorTest extends TestCase {
         Functions\when( 'get_post' )->justReturn(
             (object) array( 'ID' => 42, 'post_type' => 'ffc_form' )
         );
+        Functions\when( 'get_post_meta' )->justReturn( false );
         Functions\when( 'admin_url' )->returnArg();
         Functions\when( 'wp_create_nonce' )->justReturn( 'n' );
         // enqueue_scripts() localizes the required-tag list, which reads
@@ -142,6 +143,7 @@ class FormEditorTest extends TestCase {
         Functions\when( 'get_post' )->justReturn(
             (object) array( 'ID' => 42, 'post_type' => 'ffc_form' )
         );
+        Functions\when( 'get_post_meta' )->justReturn( false );
         Functions\when( 'admin_url' )->returnArg();
         Functions\when( 'wp_create_nonce' )->justReturn( 'n' );
         Functions\when( 'get_current_user_id' )->justReturn( 7 );
