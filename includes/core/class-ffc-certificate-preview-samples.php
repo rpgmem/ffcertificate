@@ -118,6 +118,13 @@ class CertificatePreviewSamples {
 			'calendar_title'           => 'Atendimento de Exemplo',
 			'appointment_date'         => $today,
 			'appointment_time'         => '09:00',
+
+			// Effective wall-clock schedule (resolved by PdfGenerator via
+			// per-submission "Schedule Exception" → form-level Class
+			// Schedule → form Time Range — see #366 Sprint 7). Sample
+			// matches the value shown in the §2 docs row.
+			'schedule'                 => '08:00 – 17:30',
+			'schedule_total'           => '9h 30min',
 		);
 	}
 }
