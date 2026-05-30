@@ -170,7 +170,7 @@ class ActivityLogSubscriberTest extends TestCase {
         Functions\when( 'add_action' )->justReturn( true );
 
         global $wpdb;
-        $wpdb = \Mockery::mock( 'wpdb' );
+        $wpdb = \Mockery::mock( 'wpdb' )->makePartial();
         $wpdb->prefix = 'wp_';
         $wpdb->shouldNotReceive( 'insert' );
 
@@ -182,7 +182,7 @@ class ActivityLogSubscriberTest extends TestCase {
         Functions\when( 'add_action' )->justReturn( true );
 
         global $wpdb;
-        $wpdb = \Mockery::mock( 'wpdb' );
+        $wpdb = \Mockery::mock( 'wpdb' )->makePartial();
         $wpdb->prefix = 'wp_';
         $wpdb->shouldNotReceive( 'insert' );
 
@@ -194,7 +194,7 @@ class ActivityLogSubscriberTest extends TestCase {
         Functions\when( 'add_action' )->justReturn( true );
 
         global $wpdb;
-        $wpdb = \Mockery::mock( 'wpdb' );
+        $wpdb = \Mockery::mock( 'wpdb' )->makePartial();
         $wpdb->prefix = 'wp_';
         $wpdb->shouldNotReceive( 'insert' );
 
@@ -206,7 +206,7 @@ class ActivityLogSubscriberTest extends TestCase {
         Functions\when( 'add_action' )->justReturn( true );
 
         global $wpdb;
-        $wpdb = \Mockery::mock( 'wpdb' );
+        $wpdb = \Mockery::mock( 'wpdb' )->makePartial();
         $wpdb->prefix = 'wp_';
         $wpdb->shouldNotReceive( 'insert' );
 
@@ -218,7 +218,7 @@ class ActivityLogSubscriberTest extends TestCase {
         Functions\when( 'add_action' )->justReturn( true );
 
         global $wpdb;
-        $wpdb = \Mockery::mock( 'wpdb' );
+        $wpdb = \Mockery::mock( 'wpdb' )->makePartial();
         $wpdb->prefix = 'wp_';
         $wpdb->shouldNotReceive( 'insert' );
 
@@ -230,7 +230,7 @@ class ActivityLogSubscriberTest extends TestCase {
         Functions\when( 'add_action' )->justReturn( true );
 
         global $wpdb;
-        $wpdb = \Mockery::mock( 'wpdb' );
+        $wpdb = \Mockery::mock( 'wpdb' )->makePartial();
         $wpdb->prefix = 'wp_';
         $wpdb->shouldNotReceive( 'insert' );
 
@@ -251,7 +251,7 @@ class ActivityLogSubscriberTest extends TestCase {
         Functions\when( 'add_action' )->justReturn( true );
 
         global $wpdb;
-        $wpdb = \Mockery::mock( 'wpdb' );
+        $wpdb = \Mockery::mock( 'wpdb' )->makePartial();
         $wpdb->prefix = 'wp_';
         $wpdb->shouldNotReceive( 'insert' );
 
@@ -265,7 +265,7 @@ class ActivityLogSubscriberTest extends TestCase {
         Functions\when( 'add_action' )->justReturn( true );
 
         global $wpdb;
-        $wpdb = \Mockery::mock( 'wpdb' );
+        $wpdb = \Mockery::mock( 'wpdb' )->makePartial();
         $wpdb->prefix = 'wp_';
         $wpdb->shouldNotReceive( 'insert' );
 
@@ -279,7 +279,7 @@ class ActivityLogSubscriberTest extends TestCase {
         Functions\when( 'add_action' )->justReturn( true );
 
         global $wpdb;
-        $wpdb = \Mockery::mock( 'wpdb' );
+        $wpdb = \Mockery::mock( 'wpdb' )->makePartial();
         $wpdb->prefix = 'wp_';
         $wpdb->shouldNotReceive( 'insert' );
 
@@ -290,7 +290,7 @@ class ActivityLogSubscriberTest extends TestCase {
 
     public function test_on_daily_cleanup_runs_without_error(): void {
         global $wpdb;
-        $wpdb = \Mockery::mock( 'wpdb' );
+        $wpdb = \Mockery::mock( 'wpdb' )->makePartial();
         $wpdb->prefix = 'wp_';
         $wpdb->shouldReceive( 'prepare' )->atLeast()->once()->andReturn( '' );
         $wpdb->shouldReceive( 'query' )->atLeast()->once()->andReturn( 0 );
@@ -303,7 +303,7 @@ class ActivityLogSubscriberTest extends TestCase {
 
     public function test_cleanup_fallback_skips_when_transient_exists(): void {
         global $wpdb;
-        $wpdb = \Mockery::mock( 'wpdb' );
+        $wpdb = \Mockery::mock( 'wpdb' )->makePartial();
         $wpdb->prefix = 'wp_';
         $wpdb->shouldNotReceive( 'query' );
 
@@ -321,7 +321,7 @@ class ActivityLogSubscriberTest extends TestCase {
 
     public function test_cleanup_fallback_runs_when_transient_missing(): void {
         global $wpdb;
-        $wpdb = \Mockery::mock( 'wpdb' );
+        $wpdb = \Mockery::mock( 'wpdb' )->makePartial();
         $wpdb->prefix = 'wp_';
         $wpdb->shouldReceive( 'prepare' )->atLeast()->once()->andReturn( '' );
         $wpdb->shouldReceive( 'query' )->atLeast()->once()->andReturn( 5 );

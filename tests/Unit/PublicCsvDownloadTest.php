@@ -115,7 +115,7 @@ class PublicCsvDownloadTest extends TestCase {
 
         // Stub $wpdb for RateLimiter's get_count_from_db().
         global $wpdb;
-        $wpdb         = Mockery::mock( 'wpdb' );
+        $wpdb         = Mockery::mock( 'wpdb' )->makePartial();
         $wpdb->prefix = 'wp_';
         $wpdb->shouldReceive( 'prepare' )->andReturn( 'SQL' )->byDefault();
         $wpdb->shouldReceive( 'get_var' )->andReturn( '0' )->byDefault();

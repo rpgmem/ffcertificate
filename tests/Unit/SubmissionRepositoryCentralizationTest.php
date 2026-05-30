@@ -30,7 +30,7 @@ class SubmissionRepositoryCentralizationTest extends TestCase {
 		Monkey\setUp();
 
 		global $wpdb;
-		$wpdb         = Mockery::mock( 'wpdb' );
+		$wpdb         = Mockery::mock( 'wpdb' )->makePartial();
 		$wpdb->prefix = 'wp_';
 		$this->wpdb   = $wpdb;
 

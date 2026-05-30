@@ -37,7 +37,7 @@ class RestControllerTest extends TestCase {
 
         // Mock $wpdb
         global $wpdb;
-        $wpdb = Mockery::mock( 'wpdb' );
+        $wpdb = Mockery::mock( 'wpdb' )->makePartial();
         $wpdb->prefix = 'wp_';
         $wpdb->posts = 'wp_posts';
         $wpdb->shouldReceive( 'prepare' )->andReturn( 'Q' )->byDefault();

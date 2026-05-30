@@ -42,7 +42,7 @@ class DecryptFailureLoggingTest extends TestCase {
         $this->resetActivityLogState();
 
         global $wpdb;
-        $wpdb             = Mockery::mock( 'wpdb' );
+        $wpdb             = Mockery::mock( 'wpdb' )->makePartial();
         $wpdb->prefix     = 'wp_';
         $wpdb->last_error = '';
         $this->wpdb       = $wpdb;

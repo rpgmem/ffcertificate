@@ -48,7 +48,7 @@ class UserProfileServiceTest extends TestCase {
         $this->usermeta_store = array();
 
         global $wpdb;
-        $wpdb             = Mockery::mock( 'wpdb' );
+        $wpdb             = Mockery::mock( 'wpdb' )->makePartial();
         $wpdb->prefix     = 'wp_';
         $wpdb->last_error = '';
         $this->wpdb       = $wpdb;

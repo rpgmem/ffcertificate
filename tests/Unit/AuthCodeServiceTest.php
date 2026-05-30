@@ -166,7 +166,7 @@ class AuthCodeServiceTest extends TestCase {
 
     public function test_globally_unique_auth_code_returns_clean_code_on_first_attempt(): void {
         global $wpdb;
-        $wpdb = Mockery::mock( 'wpdb' );
+        $wpdb = Mockery::mock( 'wpdb' )->makePartial();
         $wpdb->prefix = 'wp_';
 
         // All three tables return null (no collision)
@@ -188,7 +188,7 @@ class AuthCodeServiceTest extends TestCase {
 
     public function test_globally_unique_auth_code_retries_on_first_table_collision(): void {
         global $wpdb;
-        $wpdb = Mockery::mock( 'wpdb' );
+        $wpdb = Mockery::mock( 'wpdb' )->makePartial();
         $wpdb->prefix = 'wp_';
 
         $wpdb->shouldReceive( 'prepare' )->andReturn( 'SQL' );
@@ -216,7 +216,7 @@ class AuthCodeServiceTest extends TestCase {
 
     public function test_globally_unique_auth_code_retries_on_second_table_collision(): void {
         global $wpdb;
-        $wpdb = Mockery::mock( 'wpdb' );
+        $wpdb = Mockery::mock( 'wpdb' )->makePartial();
         $wpdb->prefix = 'wp_';
 
         $wpdb->shouldReceive( 'prepare' )->andReturn( 'SQL' );
@@ -245,7 +245,7 @@ class AuthCodeServiceTest extends TestCase {
 
     public function test_globally_unique_auth_code_retries_on_third_table_collision(): void {
         global $wpdb;
-        $wpdb = Mockery::mock( 'wpdb' );
+        $wpdb = Mockery::mock( 'wpdb' )->makePartial();
         $wpdb->prefix = 'wp_';
 
         $wpdb->shouldReceive( 'prepare' )->andReturn( 'SQL' );
@@ -275,7 +275,7 @@ class AuthCodeServiceTest extends TestCase {
 
     public function test_globally_unique_auth_code_falls_back_after_max_attempts(): void {
         global $wpdb;
-        $wpdb = Mockery::mock( 'wpdb' );
+        $wpdb = Mockery::mock( 'wpdb' )->makePartial();
         $wpdb->prefix = 'wp_';
 
         $wpdb->shouldReceive( 'prepare' )->andReturn( 'SQL' );
@@ -298,7 +298,7 @@ class AuthCodeServiceTest extends TestCase {
 
     public function test_globally_unique_auth_code_checks_all_three_tables(): void {
         global $wpdb;
-        $wpdb = Mockery::mock( 'wpdb' );
+        $wpdb = Mockery::mock( 'wpdb' )->makePartial();
         $wpdb->prefix = 'wp_';
 
         $prepared_queries = [];
@@ -327,7 +327,7 @@ class AuthCodeServiceTest extends TestCase {
 
     public function test_globally_unique_auth_code_returns_code_without_dashes(): void {
         global $wpdb;
-        $wpdb = Mockery::mock( 'wpdb' );
+        $wpdb = Mockery::mock( 'wpdb' )->makePartial();
         $wpdb->prefix = 'wp_';
 
         $wpdb->shouldReceive( 'prepare' )->andReturn( 'SQL' );
