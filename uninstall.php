@@ -17,6 +17,39 @@ if ( ! defined( 'WP_UNINSTALL_PLUGIN' ) ) {
 global $wpdb;
 
 // ──────────────────────────────────────
+// 0. Danger Zone opt-in gate
+// ──────────────────────────────────────
+// The heavy cleanup below (tables, options, CPT posts, roles, caps,
+// user meta) only runs when the admin opted in via Settings →
+// Advanced → Danger Zone → "Delete all plugin data on uninstall".
+// Default OFF, matching the WooCommerce / EDD / Yoast convention so
+// deleting the plugin never wipes data unintentionally.
+//
+// Cron hooks are cleared regardless — their callbacks reference plugin
+// code that's about to be gone, so leaving them registered would
+// produce "no callback" warnings until WP self-heals on the next visit.
+//
+// SettingsReader isn't available here — uninstall.php runs in a
+// stripped-down context that doesn't load the plugin's autoloader —
+// so read the option directly from ffc_settings.
+$ffcertificate_settings = get_option( 'ffc_settings', array() );
+$ffcertificate_purge    = is_array( $ffcertificate_settings )
+	&& '1' === (string) ( $ffcertificate_settings['delete_data_on_uninstall'] ?? '0' );
+
+if ( ! $ffcertificate_purge ) {
+	// Cron-only cleanup: leave data + structure untouched but clear
+	// scheduled events that point at code about to be removed.
+	wp_clear_scheduled_hook( 'ffcertificate_daily_cleanup_hook' );
+	wp_clear_scheduled_hook( 'ffcertificate_process_submission_hook' );
+	wp_clear_scheduled_hook( 'ffcertificate_warm_cache_hook' );
+	wp_clear_scheduled_hook( 'ffcertificate_reregistration_expire_hook' );
+	wp_clear_scheduled_hook( 'ffc_daily_cleanup_hook' );
+	wp_clear_scheduled_hook( 'ffc_process_submission_hook' );
+	wp_clear_scheduled_hook( 'ffc_warm_cache_hook' );
+	return;
+}
+
+// ──────────────────────────────────────
 // 1. Drop all plugin database tables
 // (order: child tables first to avoid FK issues)
 // ──────────────────────────────────────
