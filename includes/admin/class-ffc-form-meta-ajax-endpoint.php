@@ -74,51 +74,51 @@ class FormMetaAjaxEndpoint {
 			// it for the first time generates a hash and bumps cpf_mode
 			// from 'none' to 'audit'; those side effects stay in the
 			// full save handler so the page reload always picks them up.
-			'csv_public_preview_enabled'       => array(
+			'csv_public_preview_enabled'          => array(
 				'meta' => '_ffc_csv_public_preview_enabled',
 				'path' => array(),
 			),
-			'csv_public_download_enabled'      => array(
+			'csv_public_download_enabled'         => array(
 				'meta' => '_ffc_csv_public_download_enabled',
 				'path' => array(),
 			),
-			'csv_public_start_early_enabled'   => array(
+			'csv_public_start_early_enabled'      => array(
 				'meta' => '_ffc_csv_public_start_early_enabled',
 				'path' => array(),
 			),
-			'csv_public_extend_end_enabled'    => array(
+			'csv_public_extend_end_enabled'       => array(
 				'meta' => '_ffc_csv_public_extend_end_enabled',
 				'path' => array(),
 			),
 
 			// Device Fingerprint Limit.
-			'device_limit_enabled'             => array(
+			'device_limit_enabled'                => array(
 				'meta' => '_ffc_device_limit_enabled',
 				'path' => array(),
 			),
 
 			// Form config — Email + Quiz + 4 Restriction toggles.
-			'send_user_email'                  => array(
+			'send_user_email'                     => array(
 				'meta' => '_ffc_form_config',
 				'path' => array( 'send_user_email' ),
 			),
-			'quiz_enabled'                     => array(
+			'quiz_enabled'                        => array(
 				'meta' => '_ffc_form_config',
 				'path' => array( 'quiz_enabled' ),
 			),
-			'restriction_password'             => array(
+			'restriction_password'                => array(
 				'meta' => '_ffc_form_config',
 				'path' => array( 'restrictions', 'password' ),
 			),
-			'restriction_allowlist'            => array(
+			'restriction_allowlist'               => array(
 				'meta' => '_ffc_form_config',
 				'path' => array( 'restrictions', 'allowlist' ),
 			),
-			'restriction_denylist'             => array(
+			'restriction_denylist'                => array(
 				'meta' => '_ffc_form_config',
 				'path' => array( 'restrictions', 'denylist' ),
 			),
-			'restriction_ticket'               => array(
+			'restriction_ticket'                  => array(
 				'meta' => '_ffc_form_config',
 				'path' => array( 'restrictions', 'ticket' ),
 			),
