@@ -97,8 +97,12 @@ class TabUserAccessTest extends TestCase {
     public function test_enqueue_styles_runs_for_correct_hook(): void {
         $_GET['tab'] = 'user_access';
         Functions\when( 'wp_unslash' )->returnArg();
+        Functions\when( 'wp_enqueue_script' )->justReturn( null );
+        Functions\when( 'wp_localize_script' )->justReturn( null );
+        Functions\when( 'wp_create_nonce' )->justReturn( 'nonce' );
+        Functions\when( 'admin_url' )->justReturn( '' );
 
-        // Method runs without error; it currently reads the tab param but doesn't enqueue anything
+        // Method runs without error; enqueues the autosave infra (jQuery + ffc-core + ffc-admin-autosave).
         $this->tab->enqueue_styles( 'ffc_form_page_ffc-settings' );
         $this->assertTrue( true );
     }

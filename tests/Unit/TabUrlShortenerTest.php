@@ -26,6 +26,7 @@ class TabUrlShortenerTest extends TestCase {
         Functions\when( 'esc_html__' )->returnArg();
         Functions\when( 'esc_html' )->returnArg();
         Functions\when( 'esc_attr' )->returnArg();
+        Functions\when( 'add_action' )->justReturn( true );
 
         $this->tab = new TabUrlShortener();
     }
