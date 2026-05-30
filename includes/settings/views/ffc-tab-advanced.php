@@ -646,11 +646,15 @@ $ffcertificate_get_option = \Closure::fromCallable( array( $settings, 'get_optio
 
 						<div class="ffc-checkbox-group">
 							<?php
+							$ffcertificate_reset_counter_default = (bool) (int) (string) $ffcertificate_get_option( 'dangerzone_reset_counter_default', '1' );
 							\FreeFormCertificate\Admin\AdminUI::render_toggle(
 								array(
-									'name'  => 'reset_counter',
-									'id'    => 'ffc_reset_counter',
-									'label' => __( 'Reset ID counter to 1', 'ffcertificate' ),
+									'name'    => 'reset_counter',
+									'id'      => 'ffc_reset_counter',
+									'value'   => '1',
+									'checked' => $ffcertificate_reset_counter_default,
+									'label'   => __( 'Reset ID counter to 1', 'ffcertificate' ),
+									'data'    => array( 'ffc-autosave-key' => 'dangerzone_reset_counter_default' ),
 								)
 							);
 							?>

@@ -276,6 +276,38 @@ class AudienceLoader {
 				'strings'                  => $this->get_admin_strings(),
 			)
 		);
+
+		// Autosave infra so the "Create users…" toggle on the CSV import tab
+		// (and any future autosave-keyed input on scheduling pages) binds
+		// to SettingsAjaxEndpoint. Mirrors SettingsTab::enqueue_autosave_infra().
+		wp_enqueue_script(
+			'ffc-core',
+			FFC_PLUGIN_URL . "assets/js/ffc-core{$s}.js",
+			array( 'jquery' ),
+			FFC_VERSION,
+			true
+		);
+		wp_enqueue_script(
+			'ffc-admin-js',
+			FFC_PLUGIN_URL . "assets/js/ffc-admin{$s}.js",
+			array( 'jquery', 'ffc-core' ),
+			FFC_VERSION,
+			true
+		);
+		wp_enqueue_script(
+			'ffc-admin-autosave',
+			FFC_PLUGIN_URL . "assets/js/ffc-admin-autosave{$s}.js",
+			array( 'jquery', 'ffc-core', 'ffc-admin-js' ),
+			FFC_VERSION,
+			true
+		);
+		wp_localize_script(
+			'ffc-admin-autosave',
+			'ffcAdminAutosave',
+			array(
+				'nonce' => wp_create_nonce( \FreeFormCertificate\Admin\SettingsAjaxEndpoint::AJAX_ACTION ),
+			)
+		);
 	}
 
 	/**

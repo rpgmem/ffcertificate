@@ -529,6 +529,7 @@ try {
 									'id'      => 'url_cleanup_orphaned',
 									'checked' => $ffcertificate_url_orphaned,
 									'label'   => __( 'Orphaned — the target post no longer exists', 'ffcertificate' ),
+									'data'    => array( 'ffc-autosave-key' => 'url_cleanup_orphaned' ),
 								)
 							);
 							?>
@@ -541,10 +542,11 @@ try {
 									'id'      => 'url_cleanup_never_clicked',
 									'checked' => $ffcertificate_url_never,
 									'label'   => __( 'Never clicked and created more than', 'ffcertificate' ),
+									'data'    => array( 'ffc-autosave-key' => 'url_cleanup_never_clicked' ),
 								)
 							);
 							?>
-							<input type="number" name="url_cleanup_days" min="1" max="3650" step="1" value="<?php echo esc_attr( (string) $ffcertificate_url_days ); ?>" style="width:80px;">
+							<input type="number" name="url_cleanup_days" min="1" max="3650" step="1" value="<?php echo esc_attr( (string) $ffcertificate_url_days ); ?>" style="width:80px;" data-ffc-autosave-key="url_cleanup_days">
 							<span><?php esc_html_e( 'days ago', 'ffcertificate' ); ?></span>
 						</div>
 						<div>
@@ -555,6 +557,7 @@ try {
 									'id'      => 'url_cleanup_trashed',
 									'checked' => $ffcertificate_url_trashed,
 									'label'   => __( 'In the trash (status = trashed)', 'ffcertificate' ),
+									'data'    => array( 'ffc-autosave-key' => 'url_cleanup_trashed' ),
 								)
 							);
 							?>

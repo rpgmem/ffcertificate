@@ -77,6 +77,15 @@ class SettingsAjaxEndpoint {
 			// URL Shortener tab.
 			'url_shortener_enabled',
 			'url_shortener_auto_create',
+			// Data Migrations tab — URL cleanup criteria (persisted so the
+			// last-used selection survives the preview/delete round-trip).
+			'url_cleanup_orphaned',
+			'url_cleanup_never_clicked',
+			'url_cleanup_trashed',
+			// Advanced tab — Danger Zone "reset ID counter" default state.
+			'dangerzone_reset_counter_default',
+			// Audience CSV import — "create users if they don't exist" default.
+			'audience_csv_create_users_default',
 			// Advanced tab — activity log master switch + per-module debug.
 			'enable_activity_log',
 			'debug_pdf_generator',
@@ -256,6 +265,14 @@ class SettingsAjaxEndpoint {
 				'int',
 				array(
 					'min' => 0,
+					'max' => 3650,
+				),
+			),
+			// Data Migrations tab — "never clicked … days ago" grace window.
+			'url_cleanup_days'            => array(
+				'int',
+				array(
+					'min' => 1,
 					'max' => 3650,
 				),
 			),
