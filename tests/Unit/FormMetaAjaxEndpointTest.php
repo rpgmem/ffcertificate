@@ -233,9 +233,9 @@ class FormMetaAjaxEndpointTest extends TestCase {
 		$this->assertArrayNotHasKey( 'csv_public_enabled', $allowlist );
 	}
 
-	public function test_allowlist_covers_14_toggles(): void {
+	public function test_allowlist_covers_15_toggles(): void {
 		$allowlist = FormMetaAjaxEndpoint::allowlist();
-		$this->assertSame( 14, count( $allowlist ) );
+		$this->assertSame( 15, count( $allowlist ) );
 		$this->assertArrayHasKey(
 			'csv_public_download_enabled',
 			$allowlist,
@@ -245,6 +245,11 @@ class FormMetaAjaxEndpointTest extends TestCase {
 			'csv_public_preview_enabled',
 			$allowlist,
 			'Certificate Preview sub-toggle joined the allowlist in #243 Sprint 5.'
+		);
+		$this->assertArrayHasKey(
+			'geofence_schedule_exception_enabled',
+			$allowlist,
+			'Schedule Exception master toggle was wired with data-ffc-autosave-form-key in #366 but never allowlisted until the Sprint 3 fix.'
 		);
 
 		// Quick sanity-check that every entry has the required shape.
