@@ -62,6 +62,14 @@ class Settings {
 
 		// Hooks.
 		add_action( 'admin_menu', array( $this, 'add_settings_page' ), 20 );
+		// Tabs MUST be instantiated before `admin_enqueue_scripts` fires so
+		// each tab's own enqueue hook (registered in its constructor via
+		// SettingsTab::init()) actually catches the event. The previous
+		// lazy-load inside display_settings_page ran during the render
+		// callback — long after admin_enqueue_scripts — and silently
+		// dropped every tab's script enqueue. admin_init fires after init
+		// (so __() in tab metadata is safe) and before admin_enqueue_scripts.
+		add_action( 'admin_init', array( $this, 'load_tabs' ), 5 );
 		add_action( 'admin_init', array( $this, 'handle_settings_submission' ) );
 		add_action( 'admin_init', array( $this, 'handle_clear_qr_cache' ) );
 		add_action( 'admin_init', array( $this, 'handle_migration_execution' ) );
@@ -78,7 +86,14 @@ class Settings {
 	 *
 	 * @since 4.0.0 Uses autoloader and namespaces (Hotfix 9)
 	 */
-	private function load_tabs(): void {
+	public function load_tabs(): void {
+		// Idempotent — admin_init may call this and display_settings_page
+		// keeps a defensive fallback below for any code path that bypasses
+		// the hook chain.
+		if ( ! empty( $this->tabs ) ) {
+			return;
+		}
+
 		// Autoloader handles class loading - no require_once needed.
 
 		// Tab classes with proper namespaces.
