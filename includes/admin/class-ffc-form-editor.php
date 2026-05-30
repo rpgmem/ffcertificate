@@ -88,6 +88,20 @@ class FormEditor {
 			true
 		);
 
+		// Localized error copy for the live date/time-order validator above.
+		// Mirrors the strings in `Geofence::analyze_datetime_order()` so Loco
+		// translations applied to the PHP `__()` calls also reach the JS
+		// red-border feedback (was previously hardcoded English in the JS).
+		wp_localize_script(
+			'ffc-geofence-validation',
+			'ffcGeofenceMessages',
+			array(
+				'date_order'  => __( 'End date is earlier than the start date.', 'ffcertificate' ),
+				'span_order'  => __( 'In span mode, the end datetime must be after the start datetime.', 'ffcertificate' ),
+				'daily_order' => __( 'End time must be later than start time. For an overnight single event, switch the Time Mode to "Span" and set the end date to the next day.', 'ffcertificate' ),
+			)
+		);
+
 		wp_enqueue_script(
 			'ffc-geofence-admin',
 			FFC_PLUGIN_URL . "assets/js/ffc-geofence-admin{$s}.js",
