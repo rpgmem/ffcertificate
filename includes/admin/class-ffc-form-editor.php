@@ -121,11 +121,29 @@ class FormEditor {
 		// and open the Layout tab with a banner when the certificate layout
 		// is missing any required {{tag}}. The server-side check in
 		// FormEditorSaveHandler is the backstop for JS-disabled clients.
+		$required_tags = \FreeFormCertificate\Settings\SettingsReader::required_certificate_tags();
+
+		// Per-form gate: when this form has an Event Schedule configured
+		// (geofence `class_time_*`), the layout must contain {{schedule}}
+		// — same rule the save handler enforces server-side. Surfacing it
+		// in the client-side guard means the operator sees the banner on
+		// the very next save attempt, not after a server round-trip.
+		$current_post = get_post();
+		if ( $current_post && 'ffc_form' === $current_post->post_type ) {
+			$geofence = get_post_meta( $current_post->ID, '_ffc_geofence_config', true );
+			if ( is_array( $geofence )
+				&& ( ! empty( $geofence['class_time_start'] ) || ! empty( $geofence['class_time_end'] ) )
+				&& ! in_array( '{{schedule}}', $required_tags, true )
+			) {
+				$required_tags[] = '{{schedule}}';
+			}
+		}
+
 		wp_localize_script(
 			'ffc-form-editor-tabs',
 			'ffcFormRequiredTags',
 			array(
-				'tags'    => \FreeFormCertificate\Settings\SettingsReader::required_certificate_tags(),
+				'tags'    => $required_tags,
 				'aliases' => array( '{{name}}' => array( '{{nome}}' ) ),
 				'message' => __( 'This certificate layout is missing required tags:', 'ffcertificate' ),
 			)

@@ -31,6 +31,10 @@ class FormEditorSaveHandlerTest extends TestCase {
             return strtolower( preg_replace( '/[^a-z0-9_\-]/i', '', (string) $key ) );
         } );
 
+        // Default: no per-form geofence config. Tests that exercise the
+        // Event Schedule → {{schedule}} required-tag gate override this.
+        Functions\when( 'get_post_meta' )->justReturn( false );
+
         $this->handler = new FormEditorSaveHandler();
     }
 
@@ -163,7 +167,7 @@ class FormEditorSaveHandlerTest extends TestCase {
         // No saved list → SettingsReader returns the default trio.
         Functions\when( 'get_option' )->justReturn( array() );
 
-        $missing = $this->invoke( 'missing_required_tags', array( '<p>nothing here</p>' ) );
+        $missing = $this->invoke( 'missing_required_tags', array( '<p>nothing here</p>', 0 ) );
         $this->assertSame( array( '{{auth_code}}', '{{name}}', '{{cpf_rf}}' ), $missing );
     }
 
@@ -171,7 +175,7 @@ class FormEditorSaveHandlerTest extends TestCase {
         Functions\when( 'get_option' )->justReturn( array() );
 
         $layout  = '{{auth_code}} {{name}} {{cpf_rf}}';
-        $missing = $this->invoke( 'missing_required_tags', array( $layout ) );
+        $missing = $this->invoke( 'missing_required_tags', array( $layout, 0 ) );
         $this->assertSame( array(), $missing );
     }
 
@@ -180,7 +184,7 @@ class FormEditorSaveHandlerTest extends TestCase {
 
         // {{nome}} satisfies the {{name}} requirement.
         $layout  = '{{auth_code}} {{nome}} {{cpf_rf}}';
-        $missing = $this->invoke( 'missing_required_tags', array( $layout ) );
+        $missing = $this->invoke( 'missing_required_tags', array( $layout, 0 ) );
         $this->assertSame( array(), $missing );
     }
 
@@ -192,8 +196,38 @@ class FormEditorSaveHandlerTest extends TestCase {
         } );
 
         $layout  = '{{auth_code}} only';
-        $missing = $this->invoke( 'missing_required_tags', array( $layout ) );
+        $missing = $this->invoke( 'missing_required_tags', array( $layout, 0 ) );
         $this->assertSame( array( '{{course}}' ), $missing );
+    }
+
+    public function test_missing_required_tags_requires_schedule_when_event_schedule_is_set(): void {
+        // Form has class_time_start configured → {{schedule}} becomes
+        // required on top of the default trio.
+        Functions\when( 'get_option' )->justReturn( array() );
+        Functions\when( 'get_post_meta' )->alias( function ( $post_id, $key ) {
+            return ( 42 === $post_id && '_ffc_geofence_config' === $key )
+                ? array( 'class_time_start' => '09:00' )
+                : false;
+        } );
+
+        $layout  = '{{auth_code}} {{name}} {{cpf_rf}}';
+        $missing = $this->invoke( 'missing_required_tags', array( $layout, 42 ) );
+        $this->assertSame( array( '{{schedule}}' ), $missing );
+    }
+
+    public function test_missing_required_tags_does_not_require_schedule_when_event_schedule_empty(): void {
+        // Geofence config exists but class_time_* are empty → the
+        // {{schedule}} gate stays OFF.
+        Functions\when( 'get_option' )->justReturn( array() );
+        Functions\when( 'get_post_meta' )->alias( function ( $post_id, $key ) {
+            return ( 42 === $post_id && '_ffc_geofence_config' === $key )
+                ? array( 'class_time_start' => '', 'class_time_end' => '' )
+                : false;
+        } );
+
+        $layout  = '{{auth_code}} {{name}} {{cpf_rf}}';
+        $missing = $this->invoke( 'missing_required_tags', array( $layout, 42 ) );
+        $this->assertSame( array(), $missing );
     }
 
     // ==================================================================

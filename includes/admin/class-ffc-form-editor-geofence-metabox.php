@@ -110,6 +110,24 @@ class FormEditorGeofenceMetabox {
 			<!-- Sentinel: ensures ffc_geofence is always in POST even when all fields are disabled -->
 			<input type="hidden" name="ffc_geofence[_save]" value="1">
 			<table class="form-table">
+				<tbody class="ffc-event-schedule-section">
+				<tr>
+					<th colspan="2">
+						<h3 class="ffc-subsection-title"><?php esc_html_e( 'Event Schedule (Reference)', 'ffcertificate' ); ?></h3>
+						<p class="description ffc-subsection-description">
+							<?php esc_html_e( "When does this event take place? Renders as {{schedule}} on the certificate template (e.g. '9h às 12h'). When filled, the template must contain {{schedule}} — the form save will be blocked until the placeholder is present.", 'ffcertificate' ); ?>
+						</p>
+					</th>
+				</tr>
+				<tr>
+					<th><label><?php esc_html_e( 'From — To', 'ffcertificate' ); ?></label></th>
+					<td>
+						<label><?php esc_html_e( 'From:', 'ffcertificate' ); ?> <input type="time" name="ffc_geofence[class_time_start]" value="<?php echo esc_attr( $class_time_start ); ?>"></label>
+						&nbsp;&nbsp;
+						<label><?php esc_html_e( 'To:', 'ffcertificate' ); ?> <input type="time" name="ffc_geofence[class_time_end]" value="<?php echo esc_attr( $class_time_end ); ?>"></label>
+					</td>
+				</tr>
+				</tbody>
 				<tbody>
 				<tr>
 					<th><label><?php esc_html_e( 'Enable Date/Time Restrictions', 'ffcertificate' ); ?></label></th>
@@ -223,7 +241,7 @@ class FormEditorGeofenceMetabox {
 					<th colspan="2">
 						<h3 class="ffc-subsection-title"><?php esc_html_e( 'Per-participant entry/exit exception', 'ffcertificate' ); ?></h3>
 						<p class="description ffc-subsection-description">
-							<?php esc_html_e( 'Optional. Lets an authenticated operator on the public CSV-download panel create a single submission with a different schedule (e.g. for a participant who left early). Independent of the date/time restrictions toggle above.', 'ffcertificate' ); ?>
+							<?php esc_html_e( 'Optional. Lets an authenticated operator on the public CSV-download panel create a single submission with a different schedule (e.g. for a participant who left early), overriding the Event Schedule above for that one submission. Independent of the date/time restrictions toggle above.', 'ffcertificate' ); ?>
 						</p>
 					</th>
 				</tr>
@@ -248,15 +266,6 @@ class FormEditorGeofenceMetabox {
 				<tbody class="ffc-collapsed-target<?php echo '1' === $schedule_exception_enabled ? '' : ' ffc-collapsed'; ?>"
 					data-ffc-master="ffc_geofence_schedule_exception_enabled"
 					aria-hidden="<?php echo '1' === $schedule_exception_enabled ? 'false' : 'true'; ?>">
-				<tr>
-					<th><label><?php esc_html_e( 'Class Schedule (baseline)', 'ffcertificate' ); ?></label></th>
-					<td>
-						<label><?php esc_html_e( 'From:', 'ffcertificate' ); ?> <input type="time" name="ffc_geofence[class_time_start]" value="<?php echo esc_attr( $class_time_start ); ?>"></label>
-						&nbsp;&nbsp;
-						<label><?php esc_html_e( 'To:', 'ffcertificate' ); ?> <input type="time" name="ffc_geofence[class_time_end]" value="<?php echo esc_attr( $class_time_end ); ?>"></label>
-						<p class="description"><?php esc_html_e( 'Used as the source for the {schedule} placeholder on certificates. Leave empty to fall back to the Time Range above.', 'ffcertificate' ); ?></p>
-					</td>
-				</tr>
 				<tr>
 					<th><label for="ffc_geofence_schedule_default_mode"><?php esc_html_e( 'Default Modal Mode', 'ffcertificate' ); ?></label></th>
 					<td>

@@ -153,7 +153,7 @@ class FormEditorSaveHandler {
 			// missing any tag from the configurable required list. The
 			// editor also blocks the submit client-side; this catches the
 			// JS-disabled case. Non-blocking — the post still saves.
-			$missing_tags = $this->missing_required_tags( $clean_config['pdf_layout'] );
+			$missing_tags = $this->missing_required_tags( $clean_config['pdf_layout'], $post_id );
 			if ( ! empty( $missing_tags ) ) {
 				set_transient( 'ffc_save_error_' . get_current_user_id(), $missing_tags, 45 );
 			}
@@ -480,12 +480,35 @@ class FormEditorSaveHandler {
 	 * historical `{{name}}`/`{{nome}}` alias — a layout using either token
 	 * satisfies a `{{name}}` requirement.
 	 *
-	 * @param string $layout PDF layout HTML.
+	 * `{{schedule}}` is dynamically added to the required list for this
+	 * save when the form has an Event Schedule configured (geofence
+	 * `class_time_start` or `class_time_end` non-empty). PdfGenerator
+	 * resolves `{{schedule}}` from that field, so a layout that omits
+	 * the placeholder would silently drop the operator-configured event
+	 * schedule.
+	 *
+	 * @param int    $post_id Form post ID — used to read the per-form
+	 *                        geofence config and decide whether
+	 *                        `{{schedule}}` is mandatory for this save.
+	 * @param string $layout  PDF layout HTML.
 	 * @return array<int, string> Missing `{{tag}}` tokens, in required order.
 	 */
-	private function missing_required_tags( string $layout ): array {
+	private function missing_required_tags( string $layout, int $post_id ): array {
+		$required = \FreeFormCertificate\Settings\SettingsReader::required_certificate_tags();
+
+		// Per-form gate: when Event Schedule is configured, the layout
+		// MUST consume {{schedule}} or the operator's configured time
+		// silently disappears from the rendered certificate.
+		$geofence = get_post_meta( $post_id, '_ffc_geofence_config', true );
+		if ( is_array( $geofence )
+			&& ( ! empty( $geofence['class_time_start'] ) || ! empty( $geofence['class_time_end'] ) )
+			&& ! in_array( '{{schedule}}', $required, true )
+		) {
+			$required[] = '{{schedule}}';
+		}
+
 		$missing = array();
-		foreach ( \FreeFormCertificate\Settings\SettingsReader::required_certificate_tags() as $tag ) {
+		foreach ( $required as $tag ) {
 			$accepted = array( $tag );
 			if ( '{{name}}' === $tag ) {
 				$accepted[] = '{{nome}}';
