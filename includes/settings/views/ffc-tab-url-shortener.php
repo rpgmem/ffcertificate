@@ -51,6 +51,7 @@ $all_post_types = get_post_types( array( 'public' => true ), 'objects' );
 					'id'      => 'url_shortener_enabled',
 					'checked' => 1 === (int) $enabled,
 					'label'   => __( 'Enable the URL Shortener module', 'ffcertificate' ),
+					'data'    => array( 'ffc-autosave-key' => 'url_shortener_enabled' ),
 				)
 			);
 			?>
@@ -115,6 +116,7 @@ $all_post_types = get_post_types( array( 'public' => true ), 'objects' );
 					'id'      => 'url_shortener_auto_create',
 					'checked' => 1 === (int) $auto_create,
 					'label'   => __( 'Automatically generate a short URL when a post/page is published', 'ffcertificate' ),
+					'data'    => array( 'ffc-autosave-key' => 'url_shortener_auto_create' ),
 				)
 			);
 			?>
