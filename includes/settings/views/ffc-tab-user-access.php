@@ -58,6 +58,7 @@ $ffcertificate_dashboard_url     = $ffcertificate_dashboard_page_id ? get_permal
 								'id'      => 'block_wp_admin',
 								'checked' => (bool) $ffcertificate_settings['block_wp_admin'],
 								'label'   => __( 'Prevent selected roles from accessing /wp-admin', 'ffcertificate' ),
+								'data'    => array( 'ffc-autosave-key' => 'user_access_block_wp_admin' ),
 							)
 						);
 						?>
@@ -108,6 +109,7 @@ $ffcertificate_dashboard_url     = $ffcertificate_dashboard_page_id ? get_permal
 								'id'      => 'bypass_for_admins',
 								'checked' => (bool) $ffcertificate_settings['bypass_for_admins'],
 								'label'   => __( 'Allow administrators to bypass the block (recommended)', 'ffcertificate' ),
+								'data'    => array( 'ffc-autosave-key' => 'user_access_bypass_for_admins' ),
 							)
 						);
 						?>
@@ -185,6 +187,7 @@ $ffcertificate_dashboard_url     = $ffcertificate_dashboard_page_id ? get_permal
 								'id'      => 'allow_admin_bar',
 								'checked' => (bool) $ffcertificate_settings['allow_admin_bar'],
 								'label'   => __( 'Show admin bar on frontend for blocked roles', 'ffcertificate' ),
+								'data'    => array( 'ffc-autosave-key' => 'user_access_allow_admin_bar' ),
 							)
 						);
 						?>

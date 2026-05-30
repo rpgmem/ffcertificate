@@ -402,6 +402,7 @@ $ffcertificate_stats = \FreeFormCertificate\Security\RateLimiter::get_stats();
 				'name'    => 'logging_enabled',
 				'checked' => (bool) $ffcertificate_s['logging']['enabled'],
 				'label'   => __( 'Enable logs', 'ffcertificate' ),
+				'data'    => array( 'ffc-autosave-key' => 'logging_enabled' ),
 			)
 		);
 		?>
@@ -413,6 +414,7 @@ $ffcertificate_stats = \FreeFormCertificate\Security\RateLimiter::get_stats();
 				'name'    => 'logging_log_allowed',
 				'checked' => (bool) $ffcertificate_s['logging']['log_allowed'],
 				'label'   => __( 'Log allowed requests', 'ffcertificate' ),
+				'data'    => array( 'ffc-autosave-key' => 'logging_log_allowed' ),
 			)
 		);
 		?>
@@ -424,6 +426,7 @@ $ffcertificate_stats = \FreeFormCertificate\Security\RateLimiter::get_stats();
 				'name'    => 'logging_log_blocked',
 				'checked' => (bool) $ffcertificate_s['logging']['log_blocked'],
 				'label'   => __( 'Log blocked requests', 'ffcertificate' ),
+				'data'    => array( 'ffc-autosave-key' => 'logging_log_blocked' ),
 			)
 		);
 		?>
@@ -443,6 +446,7 @@ $ffcertificate_stats = \FreeFormCertificate\Security\RateLimiter::get_stats();
 				'name'    => 'ui_show_remaining',
 				'checked' => (bool) $ffcertificate_s['ui']['show_remaining'],
 				'label'   => __( 'Show remaining attempts', 'ffcertificate' ),
+				'data'    => array( 'ffc-autosave-key' => 'ui_show_remaining' ),
 			)
 		);
 		?>
@@ -454,6 +458,7 @@ $ffcertificate_stats = \FreeFormCertificate\Security\RateLimiter::get_stats();
 				'name'    => 'ui_show_wait_time',
 				'checked' => (bool) $ffcertificate_s['ui']['show_wait_time'],
 				'label'   => __( 'Show wait time', 'ffcertificate' ),
+				'data'    => array( 'ffc-autosave-key' => 'ui_show_wait_time' ),
 			)
 		);
 		?>
@@ -465,6 +470,7 @@ $ffcertificate_stats = \FreeFormCertificate\Security\RateLimiter::get_stats();
 				'name'    => 'ui_countdown_timer',
 				'checked' => (bool) $ffcertificate_s['ui']['countdown_timer'],
 				'label'   => __( 'Countdown timer', 'ffcertificate' ),
+				'data'    => array( 'ffc-autosave-key' => 'ui_countdown_timer' ),
 			)
 		);
 		?>

@@ -94,6 +94,7 @@ $ffcertificate_get_option = \Closure::fromCallable( array( $settings, 'get_optio
 									'id'      => $ffcertificate_key,
 									'checked' => '1' === $ffcertificate_current,
 									'label'   => __( 'Enabled', 'ffcertificate' ),
+									'data'    => array( 'ffc-autosave-key' => $ffcertificate_key ),
 								)
 							);
 							?>

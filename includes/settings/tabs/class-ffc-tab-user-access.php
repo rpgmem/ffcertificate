@@ -32,22 +32,24 @@ class TabUserAccess extends SettingsTab {
 		$this->tab_icon  = 'ffc-icon-users';
 		$this->tab_order = 60;
 
-		// Enqueue styles for this tab.
 		add_action( 'admin_enqueue_scripts', array( $this, 'enqueue_styles' ) );
 	}
 
 	/**
-	 * Enqueue styles for User Access settings page
+	 * Enqueue autosave infra so the three `.ffc-toggle` switches on this tab
+	 * (block_wp_admin / bypass_for_admins / allow_admin_bar) bind to the
+	 * incremental settings AJAX endpoint via their `user_access_*` allowlist keys.
 	 *
 	 * @param string $hook Hook name.
 	 */
 	public function enqueue_styles( string $hook ): void {
-		// Only load on settings page with this tab active.
 		if ( 'ffc_form_page_ffc-settings' !== $hook ) {
 			return;
 		}
-
 		$active_tab = isset( $_GET['tab'] ) ? sanitize_key( $_GET['tab'] ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Tab parameter for conditional script loading.
+		if ( 'user_access' === $active_tab ) {
+			$this->enqueue_autosave_infra();
+		}
 	}
 
 	/**

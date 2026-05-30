@@ -209,6 +209,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 								'name'    => 'ip_api_enabled',
 								'checked' => (bool) $settings['ip_api_enabled'],
 								'label'   => __( 'Enable IP geolocation API for backend validation', 'ffcertificate' ),
+								'data'    => array( 'ffc-autosave-key' => 'ip_api_enabled' ),
 							)
 						);
 						?>
@@ -250,6 +251,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 								'name'    => 'ip_api_cascade',
 								'checked' => (bool) $settings['ip_api_cascade'],
 								'label'   => __( 'Enable cascade: if primary fails, try the other service', 'ffcertificate' ),
+								'data'    => array( 'ffc-autosave-key' => 'ip_api_cascade' ),
 							)
 						);
 						?>
@@ -290,6 +292,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 								'name'    => 'ip_cache_enabled',
 								'checked' => (bool) $settings['ip_cache_enabled'],
 								'label'   => __( 'Cache IP geolocation results to reduce API calls', 'ffcertificate' ),
+								'data'    => array( 'ffc-autosave-key' => 'ip_cache_enabled' ),
 							)
 						);
 						?>
