@@ -63,6 +63,9 @@ class AudienceActivatorTest extends TestCase {
         $this->wpdb->shouldReceive( 'query' )
             ->andReturn( 1 )
             ->byDefault();
+        $this->wpdb->shouldReceive( 'esc_like' )
+            ->andReturnUsing( function ( $text ) { return addcslashes( (string) $text, '_%\\' ); } )
+            ->byDefault();
 
         // Default WP function stubs
         Functions\when( 'dbDelta' )->justReturn( [] );

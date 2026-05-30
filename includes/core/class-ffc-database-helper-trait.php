@@ -41,7 +41,10 @@ trait DatabaseHelperTrait {
 	/**
 	 * Check if a column exists in a table.
 	 *
-	 * Uses SHOW COLUMNS consistently (avoids INFORMATION_SCHEMA inconsistencies).
+	 * Uses `SHOW COLUMNS … LIKE` with `esc_like()` applied to the column
+	 * name so `_` and `%` are treated as literal characters — without the
+	 * escape, `environment_label` would match `environmentXlabel` too,
+	 * producing false positives on tables with similarly-named columns.
 	 *
 	 * @param string $table_name  Full table name.
 	 * @param string $column_name Column name.
@@ -49,13 +52,49 @@ trait DatabaseHelperTrait {
 	 */
 	protected static function column_exists( string $table_name, string $column_name ): bool {
 		global $wpdb;
+		$like = method_exists( $wpdb, 'esc_like' ) ? $wpdb->esc_like( $column_name ) : $column_name;
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-		$result = $wpdb->get_results( $wpdb->prepare( 'SHOW COLUMNS FROM %i LIKE %s', $table_name, $column_name ) );
+		$result = $wpdb->get_results( $wpdb->prepare( 'SHOW COLUMNS FROM %i LIKE %s', $table_name, $like ) );
 		return ! empty( $result );
 	}
 
 	/**
+	 * Return the raw SQL type of a column (e.g. `bigint(20) unsigned`,
+	 * `datetime`, `varchar(100)`), or null when the column is missing.
+	 *
+	 * Used by migrations that need to detect an already-migrated state —
+	 * matching by name alone can't distinguish `called_at DATETIME` from
+	 * `called_at BIGINT UNSIGNED`, but the type string can.
+	 *
+	 * @param string $table_name  Full table name.
+	 * @param string $column_name Column name.
+	 * @return string|null
+	 */
+	protected static function column_type( string $table_name, string $column_name ): ?string {
+		global $wpdb;
+		$like = method_exists( $wpdb, 'esc_like' ) ? $wpdb->esc_like( $column_name ) : $column_name;
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+		$rows = $wpdb->get_results( $wpdb->prepare( 'SHOW COLUMNS FROM %i LIKE %s', $table_name, $like ) );
+		if ( empty( $rows ) ) {
+			return null;
+		}
+		foreach ( $rows as $row ) {
+			if ( isset( $row->Field ) && (string) $row->Field === $column_name ) {
+				return isset( $row->Type ) ? (string) $row->Type : null;
+			}
+		}
+		return null;
+	}
+
+	/**
 	 * Add a column to a table if it doesn't already exist.
+	 *
+	 * Defense in depth: even with the `column_exists()` pre-check, the
+	 * ALTER is wrapped in `suppress_errors()` and a `Duplicate column
+	 * name` response is treated as a benign no-op. This keeps debug.log
+	 * clean in the rare cases where the existence check disagrees with
+	 * the actual schema (concurrent activations, stale wpdb connection,
+	 * sites running WP < 6.2 where `%i` isn't substituted, etc.).
 	 *
 	 * @param string      $table_name  Full table name.
 	 * @param string      $column_name Column name.
@@ -76,9 +115,25 @@ trait DatabaseHelperTrait {
 		}
 
 		global $wpdb;
-		$after_sql = $after ? $wpdb->prepare( 'AFTER %i', $after ) : '';
+		$after_sql     = $after ? $wpdb->prepare( 'AFTER %i', $after ) : '';
+		$prev_suppress = method_exists( $wpdb, 'suppress_errors' ) ? $wpdb->suppress_errors( true ) : false;
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.SchemaChange, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- $type is a SQL type definition from trusted internal config.
-		$wpdb->query( $wpdb->prepare( "ALTER TABLE %i ADD COLUMN %i {$type} {$after_sql}", $table_name, $column_name ) );
+		$result = $wpdb->query( $wpdb->prepare( "ALTER TABLE %i ADD COLUMN %i {$type} {$after_sql}", $table_name, $column_name ) );
+		$error  = isset( $wpdb->last_error ) ? (string) $wpdb->last_error : '';
+		if ( method_exists( $wpdb, 'suppress_errors' ) ) {
+			$wpdb->suppress_errors( $prev_suppress );
+		}
+
+		if ( false === $result && '' !== $error ) {
+			if ( false !== stripos( $error, 'Duplicate column' ) ) {
+				return false;
+			}
+			// Real, unexpected failure — re-surface so it reaches debug.log.
+			if ( method_exists( $wpdb, 'print_error' ) ) {
+				$wpdb->print_error( $error );
+			}
+			return false;
+		}
 
 		if ( $index_name ) {
 			self::add_index_if_missing( $table_name, $index_name, "({$column_name})" );

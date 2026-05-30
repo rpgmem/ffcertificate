@@ -53,6 +53,10 @@ class RecruitmentActivatorTest extends TestCase {
 			)
 			->byDefault();
 
+		$this->wpdb->shouldReceive( 'esc_like' )
+			->andReturnUsing( function ( $text ) { return addcslashes( (string) $text, '_%\\' ); } )
+			->byDefault();
+
 		Functions\when( 'dbDelta' )->justReturn( array() );
 	}
 
@@ -208,6 +212,88 @@ class RecruitmentActivatorTest extends TestCase {
 
 		$this->assertStringContainsString( 'PRIMARY KEY (notice_id, adjutancy_id)', $junction_sql );
 		$this->assertStringContainsString( 'KEY idx_adjutancy_id (adjutancy_id)', $junction_sql );
+	}
+
+	/**
+	 * Regression for #444 — uninstall+reinstall with `delete_data_on_uninstall`
+	 * ON wipes `ffc_recruitment_schema_version` and recreates the table
+	 * with the 6.6.0+ schema (`called_at` already BIGINT). The legacy v7
+	 * code path treated "old column present" as "needs migration",
+	 * dropped the BIGINT column and renamed an empty staging column over
+	 * it — silently corrupting fresh installs. The hardened path detects
+	 * the integer type via `column_type()` and short-circuits before any
+	 * ALTER runs.
+	 */
+	public function test_migrate_called_at_to_unix_skips_when_column_is_already_bigint(): void {
+		// Table exists.
+		$this->wpdb->shouldReceive( 'get_var' )
+			->andReturnUsing(
+				function ( $query ) {
+					if ( false !== stripos( $query, 'SHOW TABLES LIKE' ) ) {
+						return 'wp_ffc_recruitment_call';
+					}
+					return null;
+				}
+			);
+
+		// SHOW COLUMNS responses: called_at present as BIGINT,
+		// called_at_ts absent. The production code wraps the column
+		// name with esc_like(), so the rendered query carries
+		// `called\_at` / `called\_at\_ts` — normalize before matching.
+		$this->wpdb->shouldReceive( 'get_results' )
+			->andReturnUsing(
+				function ( $query ) {
+					$normalized = str_replace( '\\', '', $query );
+					if ( false !== stripos( $normalized, "LIKE 'called_at_ts'" ) ) {
+						return array();
+					}
+					if ( false !== stripos( $normalized, "LIKE 'called_at'" ) ) {
+						return array(
+							(object) array(
+								'Field' => 'called_at',
+								'Type'  => 'bigint(20) unsigned',
+							),
+						);
+					}
+					return array();
+				}
+			);
+
+		$queries = array();
+		$this->wpdb->shouldReceive( 'query' )
+			->andReturnUsing(
+				function ( $query ) use ( &$queries ) {
+					$queries[] = $query;
+					return 1;
+				}
+			);
+
+		// Drive the v7 step by forcing the schema-version gate at 6
+		// (one below v7).
+		Functions\when( 'get_option' )->justReturn( 6 );
+		$version_writes = array();
+		Functions\when( 'update_option' )->alias(
+			function ( $key, $value ) use ( &$version_writes ) {
+				if ( 'ffc_recruitment_schema_version' === $key ) {
+					$version_writes[] = $value;
+				}
+				return true;
+			}
+		);
+		Functions\when( 'wp_timezone' )->justReturn( new \DateTimeZone( 'UTC' ) );
+
+		\FreeFormCertificate\Recruitment\RecruitmentActivator::maybe_migrate();
+
+		$called_at_alters = array_filter(
+			$queries,
+			function ( $q ) {
+				return false !== stripos( $q, 'ALTER TABLE' )
+					&& false !== stripos( $q, 'called_at' );
+			}
+		);
+
+		$this->assertSame( array(), $called_at_alters, 'No ALTER TABLE statements should touch called_at when it is already BIGINT.' );
+		$this->assertContains( 7, $version_writes, 'Schema-version marker should still advance past v7.' );
 	}
 
 	/**
