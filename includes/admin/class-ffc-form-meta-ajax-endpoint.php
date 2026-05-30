@@ -74,67 +74,78 @@ class FormMetaAjaxEndpoint {
 			// it for the first time generates a hash and bumps cpf_mode
 			// from 'none' to 'audit'; those side effects stay in the
 			// full save handler so the page reload always picks them up.
-			'csv_public_preview_enabled'       => array(
+			'csv_public_preview_enabled'          => array(
 				'meta' => '_ffc_csv_public_preview_enabled',
 				'path' => array(),
 			),
-			'csv_public_download_enabled'      => array(
+			'csv_public_download_enabled'         => array(
 				'meta' => '_ffc_csv_public_download_enabled',
 				'path' => array(),
 			),
-			'csv_public_start_early_enabled'   => array(
+			'csv_public_start_early_enabled'      => array(
 				'meta' => '_ffc_csv_public_start_early_enabled',
 				'path' => array(),
 			),
-			'csv_public_extend_end_enabled'    => array(
+			'csv_public_extend_end_enabled'       => array(
 				'meta' => '_ffc_csv_public_extend_end_enabled',
 				'path' => array(),
 			),
 
 			// Device Fingerprint Limit.
-			'device_limit_enabled'             => array(
+			'device_limit_enabled'                => array(
 				'meta' => '_ffc_device_limit_enabled',
 				'path' => array(),
 			),
 
 			// Form config — Email + Quiz + 4 Restriction toggles.
-			'send_user_email'                  => array(
+			'send_user_email'                     => array(
 				'meta' => '_ffc_form_config',
 				'path' => array( 'send_user_email' ),
 			),
-			'quiz_enabled'                     => array(
+			'quiz_enabled'                        => array(
 				'meta' => '_ffc_form_config',
 				'path' => array( 'quiz_enabled' ),
 			),
-			'restriction_password'             => array(
+			'restriction_password'                => array(
 				'meta' => '_ffc_form_config',
 				'path' => array( 'restrictions', 'password' ),
 			),
-			'restriction_allowlist'            => array(
+			'restriction_allowlist'               => array(
 				'meta' => '_ffc_form_config',
 				'path' => array( 'restrictions', 'allowlist' ),
 			),
-			'restriction_denylist'             => array(
+			'restriction_denylist'                => array(
 				'meta' => '_ffc_form_config',
 				'path' => array( 'restrictions', 'denylist' ),
 			),
-			'restriction_ticket'               => array(
+			'restriction_ticket'                  => array(
 				'meta' => '_ffc_form_config',
 				'path' => array( 'restrictions', 'ticket' ),
 			),
 
-			// Geofence — 2 master + 1 nested.
-			'geofence_datetime_enabled'        => array(
+			// Geofence — 3 master + 1 nested.
+			'geofence_datetime_enabled'           => array(
 				'meta' => '_ffc_geofence_config',
 				'path' => array( 'datetime_enabled' ),
 			),
-			'geofence_geo_enabled'             => array(
+			'geofence_geo_enabled'                => array(
 				'meta' => '_ffc_geofence_config',
 				'path' => array( 'geo_enabled' ),
 			),
-			'geofence_geo_ip_areas_permissive' => array(
+			'geofence_geo_ip_areas_permissive'    => array(
 				'meta' => '_ffc_geofence_config',
 				'path' => array( 'geo_ip_areas_permissive' ),
+			),
+			// The Schedule Exception master toggle was wired in #366 with a
+			// `data-ffc-autosave-form-key` attribute but never added to this
+			// allowlist, so flipping it returned 403 "key not allowlisted"
+			// from the AJAX endpoint and never persisted on autosave. The
+			// state did survive a full form save (the geofence save handler
+			// picks it up from the POST namespace), so the bug only showed
+			// up if the operator changed the toggle and walked away.
+			'geofence_schedule_exception_enabled' => array(
+				'meta' => '_ffc_geofence_config',
+				'path' => array( 'schedule_exception_enabled' ),
 			),
 		);
 	}
