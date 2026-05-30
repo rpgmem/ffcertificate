@@ -126,11 +126,14 @@ class AudienceAdminImport {
 								<th scope="row"><?php esc_html_e( 'Options', 'ffcertificate' ); ?></th>
 								<td>
 									<?php
+									$ffc_create_users_default = (bool) (int) (string) \FreeFormCertificate\Settings\SettingsReader::get( 'audience_csv_create_users_default', '1' );
 									\FreeFormCertificate\Admin\AdminUI::render_toggle(
 										array(
 											'name'    => 'create_users',
-											'checked' => true,
+											'value'   => '1',
+											'checked' => $ffc_create_users_default,
 											'label'   => __( 'Create users if they do not exist (with ffc_user role)', 'ffcertificate' ),
+											'data'    => array( 'ffc-autosave-key' => 'audience_csv_create_users_default' ),
 										)
 									);
 									?>

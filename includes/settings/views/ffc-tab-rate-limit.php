@@ -313,6 +313,10 @@ $ffcertificate_stats = \FreeFormCertificate\Security\RateLimiter::get_stats();
 								'value'   => $ffcertificate_sig_key,
 								'checked' => $ffcertificate_sig_checked,
 								'label'   => $ffcertificate_sig_label,
+								'data'    => array(
+									'ffc-autosave-key'   => 'device_signals_enabled',
+									'ffc-autosave-multi' => '1',
+								),
 							)
 						);
 						?>

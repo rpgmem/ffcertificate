@@ -31,6 +31,7 @@ class AudienceAdminImportTest extends TestCase {
         Functions\when( 'absint' )->alias( function ( $v ) { return abs( (int) $v ); } );
         Functions\when( 'sanitize_text_field' )->returnArg();
         Functions\when( 'wp_unslash' )->returnArg();
+        Functions\when( 'get_option' )->justReturn( array() );
         Functions\when( 'admin_url' )->justReturn( 'https://example.com/wp-admin/' );
         Functions\when( 'current_user_can' )->justReturn( true );
         Functions\when( 'settings_errors' )->justReturn( '' );

@@ -147,7 +147,10 @@ class AudienceLoaderTest extends TestCase {
             ->atLeast()->once();
         Functions\expect('wp_enqueue_script')
             ->atLeast()->once();
-        Functions\expect('wp_localize_script')->once();
+        // Two wp_localize_script calls now: ffcAudienceAdmin (original)
+        // + ffcAdminAutosave (added when autosave infra was wired into the
+        // audience admin enqueue path).
+        Functions\expect('wp_localize_script')->twice();
         Functions\when('admin_url')->justReturn('https://example.com/wp-admin/admin-ajax.php');
         Functions\when('rest_url')->justReturn('https://example.com/wp-json/ffc/v1/audience/');
         Functions\when('wp_create_nonce')->justReturn('test-nonce');

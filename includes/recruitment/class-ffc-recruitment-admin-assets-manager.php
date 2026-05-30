@@ -107,6 +107,41 @@ final class RecruitmentAdminAssetsManager {
 			true
 		);
 
+		// Autosave infra for the Settings tab — `data-ffc-autosave-key`
+		// toggles in `render_settings_tab()` bind via the shared
+		// ffc-admin-autosave widget against SettingsAjaxEndpoint. Mirrors
+		// SettingsTab::enqueue_autosave_infra() so this off-page screen
+		// (it's `toplevel_page_ffc-recruitment`, not `ffc_form_page_ffc-settings`)
+		// can opt-in without depending on the settings-page asset loader.
+		wp_enqueue_script(
+			'ffc-core',
+			FFC_PLUGIN_URL . "assets/js/ffc-core{$s}.js",
+			array( 'jquery' ),
+			FFC_VERSION,
+			true
+		);
+		wp_enqueue_script(
+			'ffc-admin-js',
+			FFC_PLUGIN_URL . "assets/js/ffc-admin{$s}.js",
+			array( 'jquery', 'ffc-core' ),
+			FFC_VERSION,
+			true
+		);
+		wp_enqueue_script(
+			'ffc-admin-autosave',
+			FFC_PLUGIN_URL . "assets/js/ffc-admin-autosave{$s}.js",
+			array( 'jquery', 'ffc-core', 'ffc-admin-js' ),
+			FFC_VERSION,
+			true
+		);
+		wp_localize_script(
+			'ffc-admin-autosave',
+			'ffcAdminAutosave',
+			array(
+				'nonce' => wp_create_nonce( \FreeFormCertificate\Admin\SettingsAjaxEndpoint::AJAX_ACTION ),
+			)
+		);
+
 		// Localize the REST root + nonce so the JS can post against the
 		// recruitment endpoints without an inline `<script>` block.
 		wp_localize_script(

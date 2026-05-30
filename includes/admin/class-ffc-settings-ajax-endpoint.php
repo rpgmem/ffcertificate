@@ -77,6 +77,15 @@ class SettingsAjaxEndpoint {
 			// URL Shortener tab.
 			'url_shortener_enabled',
 			'url_shortener_auto_create',
+			// Data Migrations tab — URL cleanup criteria (persisted so the
+			// last-used selection survives the preview/delete round-trip).
+			'url_cleanup_orphaned',
+			'url_cleanup_never_clicked',
+			'url_cleanup_trashed',
+			// Advanced tab — Danger Zone "reset ID counter" default state.
+			'dangerzone_reset_counter_default',
+			// Audience CSV import — "create users if they don't exist" default.
+			'audience_csv_create_users_default',
 			// Advanced tab — activity log master switch + per-module debug.
 			'enable_activity_log',
 			'debug_pdf_generator',
@@ -157,7 +166,38 @@ class SettingsAjaxEndpoint {
 				'type'   => 'bool',
 				'cap'    => 'manage_options',
 			),
+			// SMTP semantic rework — the on-disk slot is `disable_all_emails`
+			// (kept for compatibility) but the UI now exposes the inverted
+			// "Ativar envios de e-mails" toggle. `invert: true` flips the
+			// bool at write time so on=true → disable_all_emails=false.
+			'emails_enabled'                => array(
+				'option' => 'ffc_settings',
+				'path'   => array( 'disable_all_emails' ),
+				'type'   => 'bool',
+				'invert' => true,
+				'cap'    => 'manage_options',
+			),
 		);
+
+		// Recruitment Settings tab (`page=ffc-recruitment&tab=settings`) —
+		// stored in its own option (`ffc_recruitment_settings`) and gated
+		// by the recruitment-specific cap. Keys are prefixed `recruitment_*`
+		// to avoid colliding with same-named slots in other options.
+		$recruitment_bools = array(
+			'preview_reason_required_denied',
+			'preview_reason_required_granted',
+			'preview_reason_required_appeal_denied',
+			'preview_reason_required_appeal_granted',
+			'audit_pii_reveals',
+		);
+		foreach ( $recruitment_bools as $field ) {
+			$allowlist[ 'recruitment_' . $field ] = array(
+				'option' => 'ffc_recruitment_settings',
+				'path'   => array( $field ),
+				'type'   => 'bool',
+				'cap'    => 'ffc_manage_recruitment',
+			);
+		}
 
 		foreach ( $bool_settings as $key ) {
 			$allowlist[ $key ] = array(
@@ -225,6 +265,14 @@ class SettingsAjaxEndpoint {
 				'int',
 				array(
 					'min' => 0,
+					'max' => 3650,
+				),
+			),
+			// Data Migrations tab — "never clicked … days ago" grace window.
+			'url_cleanup_days'            => array(
+				'int',
+				array(
+					'min' => 1,
 					'max' => 3650,
 				),
 			),
@@ -402,6 +450,17 @@ class SettingsAjaxEndpoint {
 			);
 		}
 
+		// `device.signals_enabled` — multi-select stored as `string[]`. The
+		// `options` whitelist mirrors the registry in TabRateLimit::save_settings()
+		// so a tampered POST can't store unsupported signal names.
+		$allowlist['device_signals_enabled'] = array(
+			'option'  => 'ffc_rate_limit_settings',
+			'path'    => array( 'device', 'signals_enabled' ),
+			'type'    => 'string[]',
+			'options' => array( 'cookie', 'ua', 'screen', 'tz', 'concurrency', 'memory', 'canvas', 'audio', 'webgl', 'fonts', 'plugins', 'permissions', 'mediaqueries', 'math' ),
+			'cap'     => 'manage_options',
+		);
+
 		return $allowlist;
 	}
 
@@ -436,6 +495,13 @@ class SettingsAjaxEndpoint {
 
 		$raw_value = wp_unslash( $_POST['value'] ?? '' );
 		$value     = self::sanitize_value( $raw_value, $entry['type'] ?? 'bool', $entry );
+
+		// Optional bool inversion — the SMTP tab's "Ativar envios" toggle is
+		// stored on disk as `disable_all_emails` for historical reasons, so the
+		// UI flips the semantics. Only meaningful for bool entries.
+		if ( ! empty( $entry['invert'] ) && is_bool( $value ) ) {
+			$value = ! $value;
+		}
 
 		$option_name = $entry['option'];
 		$option      = get_option( $option_name, array() );
@@ -531,6 +597,31 @@ class SettingsAjaxEndpoint {
 					return sanitize_textarea_field( (string) $raw );
 				}
 				return sanitize_text_field( (string) $raw );
+
+			case 'string[]':
+				// Empty selection arrives as '' (jQuery omits empty arrays
+				// from $.param). Treat missing as empty list, not invalid.
+				if ( '' === $raw ) {
+					$raw = array();
+				}
+				if ( ! is_array( $raw ) ) {
+					return array();
+				}
+				$values = array_map( 'sanitize_key', array_map( 'strval', $raw ) );
+				$values = array_values(
+					array_unique(
+						array_filter(
+							$values,
+							static fn( string $v ): bool => '' !== $v
+						)
+					)
+				);
+				if ( ! empty( $entry['options'] ) && is_array( $entry['options'] ) ) {
+					// Intersect with the registered allowlist so a client can't
+					// inject signal names the server doesn't understand.
+					$values = array_values( array_intersect( $entry['options'], $values ) );
+				}
+				return $values;
 
 			default:
 				return null;
