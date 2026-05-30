@@ -170,6 +170,26 @@ class SettingsAjaxEndpoint {
 			),
 		);
 
+		// Recruitment Settings tab (`page=ffc-recruitment&tab=settings`) —
+		// stored in its own option (`ffc_recruitment_settings`) and gated
+		// by the recruitment-specific cap. Keys are prefixed `recruitment_*`
+		// to avoid colliding with same-named slots in other options.
+		$recruitment_bools = array(
+			'preview_reason_required_denied',
+			'preview_reason_required_granted',
+			'preview_reason_required_appeal_denied',
+			'preview_reason_required_appeal_granted',
+			'audit_pii_reveals',
+		);
+		foreach ( $recruitment_bools as $field ) {
+			$allowlist[ 'recruitment_' . $field ] = array(
+				'option' => 'ffc_recruitment_settings',
+				'path'   => array( $field ),
+				'type'   => 'bool',
+				'cap'    => 'ffc_manage_recruitment',
+			);
+		}
+
 		foreach ( $bool_settings as $key ) {
 			$allowlist[ $key ] = array(
 				'option' => 'ffc_settings',

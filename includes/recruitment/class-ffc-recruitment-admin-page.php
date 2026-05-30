@@ -875,7 +875,8 @@ final class RecruitmentAdminPage {
 
 		$opt = RecruitmentSettings::OPTION_NAME;
 
-		echo '<h3>' . esc_html__( 'Email template', 'ffcertificate' ) . '</h3>';
+		echo '<div class="card">';
+		echo '<h2 class="ffc-icon-email">' . esc_html__( 'Email template', 'ffcertificate' ) . '</h2>';
 		echo '<table class="form-table"><tbody>';
 
 		echo '<tr><th><label for="ffc-rs-subject">' . esc_html__( 'Subject', 'ffcertificate' ) . '</label></th><td>';
@@ -895,10 +896,11 @@ final class RecruitmentAdminPage {
 		echo '<textarea id="ffc-rs-body" name="' . esc_attr( $opt ) . '[email_body_html]" rows="12" class="large-text code">' . esc_textarea( (string) $settings['email_body_html'] ) . '</textarea>';
 		echo '<p class="description">' . esc_html__( 'Same placeholder set as the subject. The text/plain alternative is auto-derived via wp_strip_all_tags.', 'ffcertificate' ) . '</p>';
 		echo '</td></tr>';
-
 		echo '</tbody></table>';
+		echo '</div>';
 
-		echo '<h3>' . esc_html__( 'Public shortcode', 'ffcertificate' ) . '</h3>';
+		echo '<div class="card">';
+		echo '<h2 class="ffc-icon-link">' . esc_html__( 'Public shortcode', 'ffcertificate' ) . '</h2>';
 		echo '<table class="form-table"><tbody>';
 
 		echo '<tr><th><label for="ffc-rs-cache">' . esc_html__( 'Cache TTL (seconds)', 'ffcertificate' ) . '</label></th><td>';
@@ -914,10 +916,11 @@ final class RecruitmentAdminPage {
 		echo '<tr><th><label for="ffc-rs-pagesize">' . esc_html__( 'Default page size', 'ffcertificate' ) . '</label></th><td>';
 		echo '<input id="ffc-rs-pagesize" type="number" min="1" max="500" name="' . esc_attr( $opt ) . '[public_default_page_size]" value="' . esc_attr( (string) $settings['public_default_page_size'] ) . '">';
 		echo '</td></tr>';
-
 		echo '</tbody></table>';
+		echo '</div>';
 
-		echo '<h3>' . esc_html__( 'Status badge colors', 'ffcertificate' ) . '</h3>';
+		echo '<div class="card">';
+		echo '<h2 class="ffc-icon-palette">' . esc_html__( 'Status badge colors', 'ffcertificate' ) . '</h2>';
 		echo '<p class="description">' . esc_html__( 'Background color used for each classification status pill on the public shortcode. Accepts #RGB / #RRGGBB / #RRGGBBAA. Bad values silently fall back to defaults.', 'ffcertificate' ) . '</p>';
 		echo '<table class="form-table"><tbody>';
 
@@ -934,10 +937,11 @@ final class RecruitmentAdminPage {
 			echo ' <code style="margin-left:.5em;">' . esc_html( (string) $settings[ $field ] ) . '</code>';
 			echo '</td></tr>';
 		}
-
 		echo '</tbody></table>';
+		echo '</div>';
 
-		echo '<h3>' . esc_html__( 'Preliminary list — badge colors', 'ffcertificate' ) . '</h3>';
+		echo '<div class="card">';
+		echo '<h2 class="ffc-icon-palette">' . esc_html__( 'Preliminary list — badge colors', 'ffcertificate' ) . '</h2>';
 		echo '<p class="description">' . esc_html__( 'Background color used for each preliminary-list visual status on the public shortcode. These statuses do not change the candidate flow; they only affect the badge color.', 'ffcertificate' ) . '</p>';
 		echo '<table class="form-table"><tbody>';
 
@@ -954,10 +958,11 @@ final class RecruitmentAdminPage {
 			echo ' <code style="margin-left:.5em;">' . esc_html( (string) $settings[ $field ] ) . '</code>';
 			echo '</td></tr>';
 		}
-
 		echo '</tbody></table>';
+		echo '</div>';
 
-		echo '<h3>' . esc_html__( 'Preliminary list — reason required?', 'ffcertificate' ) . '</h3>';
+		echo '<div class="card">';
+		echo '<h2 class="ffc-icon-clipboard">' . esc_html__( 'Preliminary list — reason required?', 'ffcertificate' ) . '</h2>';
 		echo '<p class="description">' . esc_html__( 'Per-status flag controlling whether a reason from the Reasons catalog must be supplied when an admin sets that preliminary status on a row.', 'ffcertificate' ) . '</p>';
 		echo '<table class="form-table"><tbody>';
 
@@ -974,14 +979,16 @@ final class RecruitmentAdminPage {
 					'name'    => $opt . '[' . $field . ']',
 					'id'      => 'ffc-rs-' . $field,
 					'checked' => ! empty( $settings[ $field ] ),
+					'data'    => array( 'ffc-autosave-key' => 'recruitment_' . $field ),
 				)
 			);
 			echo '</td></tr>';
 		}
-
 		echo '</tbody></table>';
+		echo '</div>';
 
-		echo '<h3>' . esc_html__( 'Subscription type — badge colors', 'ffcertificate' ) . '</h3>';
+		echo '<div class="card">';
+		echo '<h2 class="ffc-icon-palette">' . esc_html__( 'Subscription type — badge colors', 'ffcertificate' ) . '</h2>';
 		echo '<p class="description">' . esc_html__( 'Background color used on the public + admin subscription-type badges. Each candidate is either PCD (pessoa com deficiência) or GERAL — these two knobs paint the corresponding pill.', 'ffcertificate' ) . '</p>';
 		echo '<table class="form-table"><tbody>';
 
@@ -995,10 +1002,11 @@ final class RecruitmentAdminPage {
 			echo ' <code style="margin-left:.5em;">' . esc_html( (string) $settings[ $field ] ) . '</code>';
 			echo '</td></tr>';
 		}
-
 		echo '</tbody></table>';
+		echo '</div>';
 
-		echo '<h3>' . esc_html__( 'Notice status — badge colors', 'ffcertificate' ) . '</h3>';
+		echo '<div class="card">';
+		echo '<h2 class="ffc-icon-palette">' . esc_html__( 'Notice status — badge colors', 'ffcertificate' ) . '</h2>';
 		echo '<p class="description">' . esc_html__( 'Background color used for each notice lifecycle status (Draft / Preliminary / Definitive / Closed). Drives both the admin Notices list table and the public shortcode banner so both surfaces share one palette.', 'ffcertificate' ) . '</p>';
 		echo '<table class="form-table"><tbody>';
 
@@ -1014,14 +1022,15 @@ final class RecruitmentAdminPage {
 			echo ' <code style="margin-left:.5em;">' . esc_html( (string) $settings[ $field ] ) . '</code>';
 			echo '</td></tr>';
 		}
-
 		echo '</tbody></table>';
+		echo '</div>';
 
 		// PII / audit toggle (#330). Lives at the bottom of the Settings
 		// tab because it's a security knob, not a visual one — operators
 		// who land here are usually adjusting palettes. The default is
 		// `true` so the first save after the upgrade keeps auditing on.
-		echo '<h3>' . esc_html__( 'PII access audit', 'ffcertificate' ) . '</h3>';
+		echo '<div class="card">';
+		echo '<h2 class="ffc-icon-shield">' . esc_html__( 'PII access audit', 'ffcertificate' ) . '</h2>';
 		echo '<p class="description">' . esc_html__( 'When enabled, every reveal of CPF / RF on the candidate detail screen by a non-admin user writes a row to the activity log (with a 60-second dedup per user + candidate + field). Recommended ON for compliance.', 'ffcertificate' ) . '</p>';
 		echo '<table class="form-table"><tbody>';
 		echo '<tr><th>' . esc_html__( 'Audit PII reveals', 'ffcertificate' ) . '</th><td>';
@@ -1030,10 +1039,12 @@ final class RecruitmentAdminPage {
 				'name'    => $opt . '[audit_pii_reveals]',
 				'id'      => 'ffc-rs-audit-pii-reveals',
 				'checked' => ! empty( $settings['audit_pii_reveals'] ),
+				'data'    => array( 'ffc-autosave-key' => 'recruitment_audit_pii_reveals' ),
 			)
 		);
 		echo '</td></tr>';
 		echo '</tbody></table>';
+		echo '</div>';
 
 		submit_button();
 		echo '</form>';
