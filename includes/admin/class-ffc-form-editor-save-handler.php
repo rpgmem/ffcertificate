@@ -487,10 +487,10 @@ class FormEditorSaveHandler {
 	 * the placeholder would silently drop the operator-configured event
 	 * schedule.
 	 *
+	 * @param string $layout  PDF layout HTML.
 	 * @param int    $post_id Form post ID — used to read the per-form
 	 *                        geofence config and decide whether
 	 *                        `{{schedule}}` is mandatory for this save.
-	 * @param string $layout  PDF layout HTML.
 	 * @return array<int, string> Missing `{{tag}}` tokens, in required order.
 	 */
 	private function missing_required_tags( string $layout, int $post_id ): array {
