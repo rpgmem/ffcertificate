@@ -433,6 +433,17 @@ class SettingsAjaxEndpoint {
 			);
 		}
 
+		// `device.signals_enabled` — multi-select stored as `string[]`. The
+		// `options` whitelist mirrors the registry in TabRateLimit::save_settings()
+		// so a tampered POST can't store unsupported signal names.
+		$allowlist['device_signals_enabled'] = array(
+			'option'  => 'ffc_rate_limit_settings',
+			'path'    => array( 'device', 'signals_enabled' ),
+			'type'    => 'string[]',
+			'options' => array( 'cookie', 'ua', 'screen', 'tz', 'concurrency', 'memory', 'canvas', 'audio', 'webgl', 'fonts', 'plugins', 'permissions', 'mediaqueries', 'math' ),
+			'cap'     => 'manage_options',
+		);
+
 		return $allowlist;
 	}
 
@@ -569,6 +580,31 @@ class SettingsAjaxEndpoint {
 					return sanitize_textarea_field( (string) $raw );
 				}
 				return sanitize_text_field( (string) $raw );
+
+			case 'string[]':
+				// Empty selection arrives as '' (jQuery omits empty arrays
+				// from $.param). Treat missing as empty list, not invalid.
+				if ( '' === $raw ) {
+					$raw = array();
+				}
+				if ( ! is_array( $raw ) ) {
+					return array();
+				}
+				$values = array_map( 'sanitize_key', array_map( 'strval', $raw ) );
+				$values = array_values(
+					array_unique(
+						array_filter(
+							$values,
+							static fn( string $v ): bool => '' !== $v
+						)
+					)
+				);
+				if ( ! empty( $entry['options'] ) && is_array( $entry['options'] ) ) {
+					// Intersect with the registered allowlist so a client can't
+					// inject signal names the server doesn't understand.
+					$values = array_values( array_intersect( $entry['options'], $values ) );
+				}
+				return $values;
 
 			default:
 				return null;
