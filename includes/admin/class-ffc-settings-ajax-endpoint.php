@@ -96,6 +96,11 @@ class SettingsAjaxEndpoint {
 			'activity_log_cat_recruitment',
 			'activity_log_cat_migrations',
 			'activity_log_cat_system',
+			// Danger Zone opt-in: when on, uninstall.php removes ALL plugin
+			// data (tables, options, CPT posts, roles, caps). Default OFF
+			// matches the WooCommerce / EDD / Yoast convention so plugin
+			// deletion never wipes data unintentionally.
+			'delete_data_on_uninstall',
 		);
 
 		$allowlist = array(

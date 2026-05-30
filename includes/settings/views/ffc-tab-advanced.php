@@ -584,6 +584,33 @@ $ffcertificate_get_option = \Closure::fromCallable( array( $settings, 'get_optio
 	<h2 class="ffc-icon-warning"><?php esc_html_e( 'Danger Zone', 'ffcertificate' ); ?></h2>
 	<p class="description"><?php esc_html_e( 'Warning: These actions cannot be undone.', 'ffcertificate' ); ?></p>
 
+	<table class="form-table" role="presentation">
+		<tbody>
+			<tr>
+				<th scope="row">
+					<label for="ffc_delete_data_on_uninstall"><?php esc_html_e( 'Delete all plugin data on uninstall', 'ffcertificate' ); ?></label>
+				</th>
+				<td>
+					<?php
+					$ffcertificate_delete_on_uninstall = '1' === (string) ( $ffcertificate_get_option( 'delete_data_on_uninstall', '0' ) );
+					\FreeFormCertificate\Admin\AdminUI::render_toggle(
+						array(
+							'name'    => 'ffc_settings[delete_data_on_uninstall]',
+							'id'      => 'ffc_delete_data_on_uninstall',
+							'checked' => $ffcertificate_delete_on_uninstall,
+							'label'   => __( 'Drop all tables, options, custom posts, roles, capabilities and transients when the plugin is deleted via the WordPress admin', 'ffcertificate' ),
+							'data'    => array( 'ffc-autosave-key' => 'delete_data_on_uninstall' ),
+						)
+					);
+					?>
+					<p class="description">
+						<?php esc_html_e( 'OFF by default (same as WooCommerce, EDD, Yoast). With the toggle OFF, deleting the plugin from the Plugins page preserves every form, calendar, submission, audit log and configuration — so re-installing keeps the site exactly as it was. Turn ON only when you really want a clean removal.', 'ffcertificate' ); ?>
+					</p>
+				</td>
+			</tr>
+		</tbody>
+	</table>
+
 	<form method="post" id="ffc-danger-zone-form">
 		<?php wp_nonce_field( 'ffc_delete_all_data', 'ffc_critical_nonce' ); ?>
 		<input type="hidden" name="ffc_delete_all_data" value="1">

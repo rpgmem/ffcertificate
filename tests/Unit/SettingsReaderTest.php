@@ -213,6 +213,7 @@ class SettingsReaderTest extends TestCase {
 			'emails_disabled'                 => array( 'emails_disabled', 'disable_all_emails' ),
 			'activity_log_enabled'            => array( 'activity_log_enabled', 'enable_activity_log' ),
 			'admin_bar_allowed'               => array( 'admin_bar_allowed', 'allow_admin_bar' ),
+			'delete_data_on_uninstall'        => array( 'delete_data_on_uninstall', 'delete_data_on_uninstall' ),
 			'wp_admin_blocked'                => array( 'wp_admin_blocked', 'block_wp_admin' ),
 			'admins_bypassed'                 => array( 'admins_bypassed', 'bypass_for_admins' ),
 			'qr_cache_enabled'                => array( 'qr_cache_enabled', 'qr_cache_enabled' ),

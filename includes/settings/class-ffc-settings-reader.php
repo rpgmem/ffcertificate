@@ -170,6 +170,20 @@ final class SettingsReader {
 		return self::get_bool( 'allow_admin_bar' );
 	}
 
+	/**
+	 * Whether deleting the plugin (uninstall.php) should drop tables /
+	 * options / CPT posts / roles / caps / user meta.
+	 *
+	 * Defaults to FALSE to match the WooCommerce / EDD / Yoast convention
+	 * — a plain "Delete plugin" click preserves data unless the admin
+	 * opted in via Settings → Advanced → Danger Zone. uninstall.php reads
+	 * the raw option directly (no autoloader available there); this
+	 * accessor exists for code paths that run inside a normal request.
+	 */
+	public static function delete_data_on_uninstall(): bool {
+		return self::get_bool( 'delete_data_on_uninstall' );
+	}
+
 	/** Whether the FFC user role is blocked from wp-admin. */
 	public static function wp_admin_blocked(): bool {
 		return self::get_bool( 'block_wp_admin' );
