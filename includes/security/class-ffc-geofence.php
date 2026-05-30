@@ -112,6 +112,17 @@ class Geofence {
 			$errors['time_end']   = $msg;
 		}
 
+		// Event Schedule (Reference) — `class_time_*` drives the
+		// `{{schedule}}` placeholder and behaves like a single-day daily
+		// range, so end must come after start when both are filled.
+		$class_time_start = isset( $config['class_time_start'] ) ? (string) $config['class_time_start'] : '';
+		$class_time_end   = isset( $config['class_time_end'] ) ? (string) $config['class_time_end'] : '';
+		if ( '' !== $class_time_start && '' !== $class_time_end && $class_time_end <= $class_time_start ) {
+			$msg                        = __( 'Event Schedule end time must be later than the start time.', 'ffcertificate' );
+			$errors['class_time_start'] = $msg;
+			$errors['class_time_end']   = $msg;
+		}
+
 		return $errors;
 	}
 

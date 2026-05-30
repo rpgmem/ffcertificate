@@ -33,7 +33,8 @@
     var DEFAULT_MESSAGES = {
         date_order: 'End date is earlier than the start date.',
         span_order: 'In span mode, the end datetime must be after the start datetime.',
-        daily_order: 'End time must be later than start time. For an overnight single event, switch the Time Mode to "Span" and set the end date to the next day.'
+        daily_order: 'End time must be later than start time. For an overnight single event, switch the Time Mode to "Span" and set the end date to the next day.',
+        class_time_order: 'Event Schedule end time must be later than the start time.'
     };
 
     function msg(key) {
@@ -72,6 +73,15 @@
             var dailyMsg = msg('daily_order');
             errors.time_start = dailyMsg;
             errors.time_end   = dailyMsg;
+        }
+
+        // Event Schedule (Reference) — mirrors the PHP rule for
+        // `class_time_*` so the live red-border feedback fires on those
+        // inputs too.
+        if (v.class_time_start && v.class_time_end && v.class_time_end <= v.class_time_start) {
+            var classMsg = msg('class_time_order');
+            errors.class_time_start = classMsg;
+            errors.class_time_end   = classMsg;
         }
 
         return errors;

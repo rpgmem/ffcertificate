@@ -96,9 +96,10 @@ class FormEditor {
 			'ffc-geofence-validation',
 			'ffcGeofenceMessages',
 			array(
-				'date_order'  => __( 'End date is earlier than the start date.', 'ffcertificate' ),
-				'span_order'  => __( 'In span mode, the end datetime must be after the start datetime.', 'ffcertificate' ),
-				'daily_order' => __( 'End time must be later than start time. For an overnight single event, switch the Time Mode to "Span" and set the end date to the next day.', 'ffcertificate' ),
+				'date_order'       => __( 'End date is earlier than the start date.', 'ffcertificate' ),
+				'span_order'       => __( 'In span mode, the end datetime must be after the start datetime.', 'ffcertificate' ),
+				'daily_order'      => __( 'End time must be later than start time. For an overnight single event, switch the Time Mode to "Span" and set the end date to the next day.', 'ffcertificate' ),
+				'class_time_order' => __( 'Event Schedule end time must be later than the start time.', 'ffcertificate' ),
 			)
 		);
 

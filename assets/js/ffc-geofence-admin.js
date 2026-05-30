@@ -57,16 +57,20 @@ jQuery(document).ready(function($) {
         'ffc_geofence[date_start]',
         'ffc_geofence[date_end]',
         'ffc_geofence[time_start]',
-        'ffc_geofence[time_end]'
+        'ffc_geofence[time_end]',
+        'ffc_geofence[class_time_start]',
+        'ffc_geofence[class_time_end]'
     ];
 
     function getDateTimeValues() {
         return {
-            date_start: $('input[name="ffc_geofence[date_start]"]').val() || '',
-            date_end:   $('input[name="ffc_geofence[date_end]"]').val()   || '',
-            time_start: $('input[name="ffc_geofence[time_start]"]').val() || '',
-            time_end:   $('input[name="ffc_geofence[time_end]"]').val()   || '',
-            time_mode:  $('input[name="ffc_geofence[time_mode]"]:checked').val() || 'daily'
+            date_start:       $('input[name="ffc_geofence[date_start]"]').val()       || '',
+            date_end:         $('input[name="ffc_geofence[date_end]"]').val()         || '',
+            time_start:       $('input[name="ffc_geofence[time_start]"]').val()       || '',
+            time_end:         $('input[name="ffc_geofence[time_end]"]').val()         || '',
+            class_time_start: $('input[name="ffc_geofence[class_time_start]"]').val() || '',
+            class_time_end:   $('input[name="ffc_geofence[class_time_end]"]').val()   || '',
+            time_mode:        $('input[name="ffc_geofence[time_mode]"]:checked').val() || 'daily'
         };
     }
 
@@ -120,7 +124,7 @@ jQuery(document).ready(function($) {
 
     $(document).on(
         'change input',
-        'input[name="ffc_geofence[date_start]"], input[name="ffc_geofence[date_end]"], input[name="ffc_geofence[time_start]"], input[name="ffc_geofence[time_end]"], input[name="ffc_geofence[time_mode]"]',
+        'input[name="ffc_geofence[date_start]"], input[name="ffc_geofence[date_end]"], input[name="ffc_geofence[time_start]"], input[name="ffc_geofence[time_end]"], input[name="ffc_geofence[class_time_start]"], input[name="ffc_geofence[class_time_end]"], input[name="ffc_geofence[time_mode]"]',
         function() {
             refreshDateTimeValidity();
             toggleDuringHideModeRow();

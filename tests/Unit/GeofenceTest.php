@@ -391,4 +391,36 @@ class GeofenceTest extends TestCase {
         $this->assertArrayHasKey( 'date_end', $errors );
         $this->assertArrayNotHasKey( 'time_start', $errors );
     }
+
+    public function test_analyze_datetime_order_flags_class_time_when_end_not_after_start(): void {
+        // Event Schedule (Reference) — `class_time_*` must move forward
+        // within a single day to keep `{{schedule}}` semantically valid.
+        $config = array(
+            'class_time_start' => '14:00',
+            'class_time_end'   => '12:00',
+        );
+        $errors = Geofence::analyze_datetime_order( $config );
+        $this->assertArrayHasKey( 'class_time_start', $errors );
+        $this->assertArrayHasKey( 'class_time_end', $errors );
+        $this->assertSame( $errors['class_time_start'], $errors['class_time_end'] );
+    }
+
+    public function test_analyze_datetime_order_class_time_passes_when_in_order(): void {
+        $config = array(
+            'class_time_start' => '09:00',
+            'class_time_end'   => '17:30',
+        );
+        $errors = Geofence::analyze_datetime_order( $config );
+        $this->assertArrayNotHasKey( 'class_time_start', $errors );
+        $this->assertArrayNotHasKey( 'class_time_end', $errors );
+    }
+
+    public function test_analyze_datetime_order_class_time_skips_when_only_one_filled(): void {
+        // Half-filled (just start, or just end) — silently skip, mirroring
+        // the daily/span half-fill behaviour above.
+        $errors_only_start = Geofence::analyze_datetime_order( array( 'class_time_start' => '09:00' ) );
+        $this->assertSame( array(), $errors_only_start );
+        $errors_only_end = Geofence::analyze_datetime_order( array( 'class_time_end' => '17:30' ) );
+        $this->assertSame( array(), $errors_only_end );
+    }
 }

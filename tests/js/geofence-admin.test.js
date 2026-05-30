@@ -119,4 +119,19 @@ describe('FFCGeofenceAdmin.analyzeDateTimeOrder', () => {
 		});
 		expect(errors.time_start).toBeTruthy();
 	});
+
+	it('flags Event Schedule (class_time_*) when end <= start', () => {
+		const errors = analyze({
+			class_time_start: '14:00',
+			class_time_end: '12:00',
+		});
+		expect(errors.class_time_start).toBeTruthy();
+		expect(errors.class_time_end).toBeTruthy();
+		expect(errors.class_time_start).toBe(errors.class_time_end);
+	});
+
+	it('does not flag Event Schedule when only one input is filled', () => {
+		expect(analyze({ class_time_start: '09:00' })).toEqual({});
+		expect(analyze({ class_time_end: '17:30' })).toEqual({});
+	});
 });
