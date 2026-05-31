@@ -110,9 +110,10 @@ class TabSmtpTest extends TestCase {
         $_GET['tab'] = 'smtp';
         Functions\when( 'wp_unslash' )->returnArg();
 
-        // Mock Utils::asset_suffix() — called twice: once for the SMTP
-        // page script and once inside enqueue_autosave_infra() (which
-        // caches the suffix and reuses it for ffc-core + ffc-admin-autosave).
+        // Utils::asset_suffix() is now called twice (once on this tab + once
+        // inside enqueue_autosave_infra), and the autosave helper enqueues
+        // four scripts: ffc-core, ffc-admin-autosave, ffc-section-collapse,
+        // plus this tab's own ffc-smtp-settings.
         $utils_mock = Mockery::mock( 'alias:FreeFormCertificate\Core\Utils' );
         $utils_mock->shouldReceive( 'asset_suffix' )
             ->twice()
@@ -126,6 +127,9 @@ class TabSmtpTest extends TestCase {
             ->once();
         Functions\expect( 'wp_enqueue_script' )
             ->with( 'ffc-admin-autosave', Mockery::type( 'string' ), array( 'jquery', 'ffc-core', 'ffc-admin-js' ), Mockery::type( 'string' ), true )
+            ->once();
+        Functions\expect( 'wp_enqueue_script' )
+            ->with( 'ffc-section-collapse', Mockery::type( 'string' ), array( 'jquery' ), Mockery::type( 'string' ), true )
             ->once();
         Functions\expect( 'wp_localize_script' )
             ->with( 'ffc-admin-autosave', 'ffcAdminAutosave', Mockery::on( function ( $arg ) {

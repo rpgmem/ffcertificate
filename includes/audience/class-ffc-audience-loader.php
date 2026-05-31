@@ -301,6 +301,13 @@ class AudienceLoader {
 			FFC_VERSION,
 			true
 		);
+		wp_enqueue_script(
+			'ffc-section-collapse',
+			FFC_PLUGIN_URL . "assets/js/ffc-section-collapse{$s}.js",
+			array( 'jquery' ),
+			FFC_VERSION,
+			true
+		);
 		wp_localize_script(
 			'ffc-admin-autosave',
 			'ffcAdminAutosave',
