@@ -137,3 +137,15 @@
     opacity: .55;
     cursor: not-allowed;
 }
+
+/* Settings-tab cards on the recruitment page. The shared `<div class="card">`
+   pattern inherits WP core's 520px max-width, which makes the recruitment
+   settings cards look narrower than every other plugin surface. Mirror the
+   .ffc-settings-wrap override so cards span the full content area. */
+.wrap.ffc-recruitment-admin .card {
+    max-width: 1500px;
+    min-width: 255px;
+    margin-bottom: 20px;
+    padding: 20px;
+    box-sizing: border-box;
+}

@@ -27,14 +27,12 @@
         // translatable via Loco. The fallback list mirrors the PHP default
         // for the rare case where ffc_ajax hasn't loaded yet.
         var ajaxData = (typeof ffc_ajax !== 'undefined') ? ffc_ajax : {};
-        var templates = Array.isArray(ajaxData.templates) && ajaxData.templates.length
-            ? ajaxData.templates
-            : [
-                { value: 'atestado_estagios.html', label: 'Internship Certificate' },
-                { value: 'certificado_1.html', label: 'Certificate Template 1' },
-                { value: 'certificado_2.html', label: 'Certificate Template 2' },
-                { value: 'declaracao.html', label: 'Declaration' }
-            ];
+        // The PHP side (AdminAssetsManager::discover_layout_templates) globs
+        // html/ and keeps any *.html whose basename contains "certificate".
+        // An empty fallback is correct: if ffc_ajax never localized, the
+        // modal simply shows no options instead of pretending hardcoded
+        // legacy filenames exist on disk.
+        var templates = Array.isArray(ajaxData.templates) ? ajaxData.templates : [];
 
         // Get localized strings with fallbacks
         var strings = (typeof ffc_ajax !== 'undefined' && ffc_ajax.strings) ? ffc_ajax.strings : {};

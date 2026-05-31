@@ -732,24 +732,7 @@ class AdminAssetsManager {
 			// certificate preview. Single source of truth lives in PHP so
 			// the JS can't drift from the generators' real placeholders.
 			'previewSamples' => \FreeFormCertificate\Core\CertificatePreviewSamples::get_map(),
-			'templates'      => array(
-				array(
-					'value' => 'atestado_estagios.html',
-					'label' => __( 'Internship Certificate', 'ffcertificate' ),
-				),
-				array(
-					'value' => 'certificado_1.html',
-					'label' => __( 'Certificate Template 1', 'ffcertificate' ),
-				),
-				array(
-					'value' => 'certificado_2.html',
-					'label' => __( 'Certificate Template 2', 'ffcertificate' ),
-				),
-				array(
-					'value' => 'declaracao.html',
-					'label' => __( 'Declaration', 'ffcertificate' ),
-				),
-			),
+			'templates'      => self::discover_layout_templates(),
 			'strings'        => array(
 				// General.
 				'generating'              => __( 'Generating...', 'ffcertificate' ),
@@ -865,5 +848,44 @@ class AdminAssetsManager {
 				'close'                   => __( 'Close', 'ffcertificate' ),
 			),
 		);
+	}
+
+	/**
+	 * Build the certificate-layout template list shown in the form-editor
+	 * "Load template" modal.
+	 *
+	 * Scans `html/*.html` and keeps filenames whose basename contains
+	 * "certificate" anywhere (case-insensitive) — that's the convention
+	 * agreed in #443 for which bundled HTML files are valid layouts for
+	 * the Certificate HTML Editor (excludes receipt / ficha / atestado
+	 * templates that live in the same directory).
+	 *
+	 * Labels are derived from the filename: strip `.html`, replace `_`
+	 * with space, title-case the words. So `default_certificate_1.html`
+	 * → "Default Certificate 1".
+	 *
+	 * @return array<int,array{value: string, label: string}>
+	 */
+	private static function discover_layout_templates(): array {
+		$dir   = FFC_PLUGIN_DIR . 'html/';
+		$paths = glob( $dir . '*.html' );
+		if ( ! $paths ) {
+			return array();
+		}
+
+		$out = array();
+		foreach ( $paths as $path ) {
+			$name = basename( $path );
+			if ( false === stripos( $name, 'certificate' ) ) {
+				continue;
+			}
+			$stem  = (string) preg_replace( '/\.html$/i', '', $name );
+			$label = ucwords( str_replace( '_', ' ', $stem ) );
+			$out[] = array(
+				'value' => $name,
+				'label' => $label,
+			);
+		}
+		return $out;
 	}
 }

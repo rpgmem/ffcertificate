@@ -58,6 +58,15 @@ describe('ffc-admin-pdf.js — load-template button', () => {
 				selectTemplate: 'Choose a template',
 				cancel: 'Cancel',
 			},
+			// PHP localizes the actual catalog now (the script no longer
+			// ships a hardcoded fallback). Provide a realistic stub for the
+			// tests so we can assert on the rendered options.
+			templates: [
+				{ value: 'default_certificate_1.html', label: 'Default Certificate 1' },
+				{ value: 'default_certificate_2.html', label: 'Default Certificate 2' },
+				{ value: 'default_certificate_3.html', label: 'Default Certificate 3' },
+				{ value: 'my_certificate_template.html', label: 'My Certificate Template' },
+			],
 		};
 		loadScript('assets/js/ffc-admin-pdf.js');
 	});
@@ -75,14 +84,17 @@ describe('ffc-admin-pdf.js — load-template button', () => {
 		);
 	});
 
-	it('lists the hardcoded template catalog', () => {
+	it('lists the localized template catalog from ffc_ajax.templates', () => {
 		window.$('#ffc_load_template_btn').trigger('click');
 
+		// loadScript is re-evaluated in each beforeEach, so additional click
+		// handlers stack — assert "at least one set" rather than the exact
+		// count and verify the actual filenames make it through.
 		const options = document.querySelectorAll('.ffc-template-option');
 		expect(options.length).toBeGreaterThanOrEqual(4);
 		const files = Array.from(options).map((o) => o.getAttribute('data-file'));
-		expect(files).toContain('certificado_1.html');
-		expect(files).toContain('declaracao.html');
+		expect(files).toContain('default_certificate_1.html');
+		expect(files).toContain('my_certificate_template.html');
 	});
 });
 

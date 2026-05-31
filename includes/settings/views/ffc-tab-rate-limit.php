@@ -26,12 +26,15 @@ $ffcertificate_stats = \FreeFormCertificate\Security\RateLimiter::get_stats();
 				'id'      => 'ip_enabled',
 				'checked' => (bool) $ffcertificate_s['ip']['enabled'],
 				'label'   => __( 'Enable', 'ffcertificate' ),
-				'data'    => array( 'ffc-autosave-key' => 'ip_enabled' ),
+				'data'    => array(
+					'ffc-autosave-key'   => 'ip_enabled',
+					'ffc-section-master' => 'rl-ip',
+				),
 			)
 		);
 		?>
 	</p>
-	<table class="form-table" role="presentation"><tbody>
+	<table class="form-table" role="presentation" data-ffc-section="rl-ip"><tbody>
 		<tr><th><?php esc_html_e( 'Max per hour', 'ffcertificate' ); ?></th><td><input type="number" name="ip_max_per_hour" value="<?php echo esc_attr( $ffcertificate_s['ip']['max_per_hour'] ); ?>" min="1" max="1000" data-ffc-autosave-key="ip_max_per_hour"></td></tr>
 		<tr><th><?php esc_html_e( 'Max per day', 'ffcertificate' ); ?></th><td><input type="number" name="ip_max_per_day" value="<?php echo esc_attr( $ffcertificate_s['ip']['max_per_day'] ); ?>" min="1" max="10000" data-ffc-autosave-key="ip_max_per_day"></td></tr>
 		<tr><th><?php esc_html_e( 'Cooldown (sec)', 'ffcertificate' ); ?></th><td><input type="number" name="ip_cooldown_seconds" value="<?php echo esc_attr( $ffcertificate_s['ip']['cooldown_seconds'] ); ?>" min="1" max="3600" data-ffc-autosave-key="ip_cooldown_seconds"></td></tr>
@@ -50,12 +53,15 @@ $ffcertificate_stats = \FreeFormCertificate\Security\RateLimiter::get_stats();
 				'id'      => 'email_enabled',
 				'checked' => (bool) $ffcertificate_s['email']['enabled'],
 				'label'   => __( 'Enable', 'ffcertificate' ),
-				'data'    => array( 'ffc-autosave-key' => 'email_enabled' ),
+				'data'    => array(
+					'ffc-autosave-key'   => 'email_enabled',
+					'ffc-section-master' => 'rl-email',
+				),
 			)
 		);
 		?>
 	</p>
-	<p>
+	<p data-ffc-section="rl-email">
 		<?php
 		\FreeFormCertificate\Admin\AdminUI::render_toggle(
 			array(
@@ -68,7 +74,7 @@ $ffcertificate_stats = \FreeFormCertificate\Security\RateLimiter::get_stats();
 		);
 		?>
 	</p>
-	<table class="form-table" role="presentation"><tbody>
+	<table class="form-table" role="presentation" data-ffc-section="rl-email"><tbody>
 		<tr><th><?php esc_html_e( 'Max per day', 'ffcertificate' ); ?></th><td><input type="number" name="email_max_per_day" value="<?php echo esc_attr( $ffcertificate_s['email']['max_per_day'] ); ?>" min="1" data-ffc-autosave-key="email_max_per_day"></td></tr>
 		<tr><th><?php esc_html_e( 'Max per week', 'ffcertificate' ); ?></th><td><input type="number" name="email_max_per_week" value="<?php echo esc_attr( $ffcertificate_s['email']['max_per_week'] ); ?>" min="1" data-ffc-autosave-key="email_max_per_week"></td></tr>
 		<tr><th><?php esc_html_e( 'Max per month', 'ffcertificate' ); ?></th><td><input type="number" name="email_max_per_month" value="<?php echo esc_attr( $ffcertificate_s['email']['max_per_month'] ); ?>" min="1" data-ffc-autosave-key="email_max_per_month"></td></tr>
@@ -86,12 +92,15 @@ $ffcertificate_stats = \FreeFormCertificate\Security\RateLimiter::get_stats();
 				'id'      => 'cpf_enabled',
 				'checked' => (bool) $ffcertificate_s['cpf']['enabled'],
 				'label'   => __( 'Enable', 'ffcertificate' ),
-				'data'    => array( 'ffc-autosave-key' => 'cpf_enabled' ),
+				'data'    => array(
+					'ffc-autosave-key'   => 'cpf_enabled',
+					'ffc-section-master' => 'rl-cpf',
+				),
 			)
 		);
 		?>
 	</p>
-	<p>
+	<p data-ffc-section="rl-cpf">
 		<?php
 		\FreeFormCertificate\Admin\AdminUI::render_toggle(
 			array(
@@ -104,7 +113,7 @@ $ffcertificate_stats = \FreeFormCertificate\Security\RateLimiter::get_stats();
 		);
 		?>
 	</p>
-	<table class="form-table" role="presentation"><tbody>
+	<table class="form-table" role="presentation" data-ffc-section="rl-cpf"><tbody>
 		<tr><th><?php esc_html_e( 'Max per month', 'ffcertificate' ); ?></th><td><input type="number" name="cpf_max_per_month" value="<?php echo esc_attr( $ffcertificate_s['cpf']['max_per_month'] ); ?>" min="1" data-ffc-autosave-key="cpf_max_per_month"></td></tr>
 		<tr><th><?php esc_html_e( 'Max per year', 'ffcertificate' ); ?></th><td><input type="number" name="cpf_max_per_year" value="<?php echo esc_attr( $ffcertificate_s['cpf']['max_per_year'] ); ?>" min="1" data-ffc-autosave-key="cpf_max_per_year"></td></tr>
 		<tr>
@@ -168,12 +177,15 @@ $ffcertificate_stats = \FreeFormCertificate\Security\RateLimiter::get_stats();
 				'id'      => 'global_enabled',
 				'checked' => (bool) $ffcertificate_s['global']['enabled'],
 				'label'   => __( 'Enable', 'ffcertificate' ),
-				'data'    => array( 'ffc-autosave-key' => 'global_enabled' ),
+				'data'    => array(
+					'ffc-autosave-key'   => 'global_enabled',
+					'ffc-section-master' => 'rl-global',
+				),
 			)
 		);
 		?>
 	</p>
-	<table class="form-table" role="presentation"><tbody>
+	<table class="form-table" role="presentation" data-ffc-section="rl-global"><tbody>
 		<tr><th><?php esc_html_e( 'Max per minute', 'ffcertificate' ); ?></th><td><input type="number" name="global_max_per_minute" value="<?php echo esc_attr( $ffcertificate_s['global']['max_per_minute'] ); ?>" min="1" data-ffc-autosave-key="global_max_per_minute"></td></tr>
 		<tr><th><?php esc_html_e( 'Max per hour', 'ffcertificate' ); ?></th><td><input type="number" name="global_max_per_hour" value="<?php echo esc_attr( $ffcertificate_s['global']['max_per_hour'] ); ?>" min="1" data-ffc-autosave-key="global_max_per_hour"></td></tr>
 		<tr><th><?php esc_html_e( 'Message', 'ffcertificate' ); ?></th><td><textarea name="global_message" rows="3" class="large-text" data-ffc-autosave-key="global_message" data-ffc-autosave-debounce="800"><?php echo esc_textarea( $ffcertificate_s['global']['message'] ); ?></textarea></td></tr>
@@ -254,7 +266,7 @@ $ffcertificate_stats = \FreeFormCertificate\Security\RateLimiter::get_stats();
 
 <div class="card">
 	<h2 class="ffc-icon-shield"><?php esc_html_e( 'Device Fingerprint', 'ffcertificate' ); ?></h2>
-	<p class="description"><?php esc_html_e( 'Limit submissions from the same physical device by combining a persistent cookie with multiple browser signals. The "N of M" rule treats two visits as the same device when at least the configured number of non-cookie signals match.', 'ffcertificate' ); ?></p>
+	<p class="description" data-ffc-section="rl-device"><?php esc_html_e( 'Limit submissions from the same physical device by combining a persistent cookie with multiple browser signals. The "N of M" rule treats two visits as the same device when at least the configured number of non-cookie signals match.', 'ffcertificate' ); ?></p>
 	<p>
 		<?php
 		\FreeFormCertificate\Admin\AdminUI::render_toggle(
@@ -263,12 +275,15 @@ $ffcertificate_stats = \FreeFormCertificate\Security\RateLimiter::get_stats();
 				'id'      => 'device_enabled',
 				'checked' => (bool) $ffcertificate_s['device']['enabled'],
 				'label'   => __( 'Enable device fingerprint limit', 'ffcertificate' ),
-				'data'    => array( 'ffc-autosave-key' => 'device_enabled' ),
+				'data'    => array(
+					'ffc-autosave-key'   => 'device_enabled',
+					'ffc-section-master' => 'rl-device',
+				),
 			)
 		);
 		?>
 	</p>
-	<table class="form-table" role="presentation"><tbody>
+	<table class="form-table" role="presentation" data-ffc-section="rl-device"><tbody>
 		<tr>
 			<th><?php esc_html_e( 'Max submissions per device/form', 'ffcertificate' ); ?></th>
 			<td><input type="number" name="device_max_per_form" value="<?php echo esc_attr( $ffcertificate_s['device']['max_per_form'] ); ?>" min="1" max="100" data-ffc-autosave-key="device_max_per_form">

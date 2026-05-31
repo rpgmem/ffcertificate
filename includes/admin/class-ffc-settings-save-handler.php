@@ -234,7 +234,11 @@ class SettingsSaveHandler {
 		// Email Status checkbox (only when on SMTP tab to prevent unchecking from other tabs).
         // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Nonce verified in handle_all_submissions() via wp_verify_nonce.
 		if ( isset( $_POST['_ffc_tab'] ) && sanitize_key( wp_unslash( $_POST['_ffc_tab'] ) ) === 'smtp' ) {
-			$clean['disable_all_emails'] = isset( $new['disable_all_emails'] ) ? 1 : 0;
+			// The SMTP view emits a hidden `ffc_settings[disable_all_emails]`
+			// mirror alongside the inverted "Enable email sending" toggle,
+			// so the field is ALWAYS present in $new — we check the value,
+			// not its existence: '0' means emails enabled, '1' means disabled.
+			$clean['disable_all_emails'] = ! empty( $new['disable_all_emails'] ) ? 1 : 0;
 		}
 
 		// User creation email settings (radio buttons - always have a value).
