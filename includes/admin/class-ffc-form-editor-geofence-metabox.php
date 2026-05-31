@@ -78,6 +78,19 @@ class FormEditorGeofenceMetabox {
 		$time_start                = $config['time_start'] ?? '';
 		$time_end                  = $config['time_end'] ?? '';
 		$time_mode                 = $config['time_mode'] ?? 'daily'; // 'daily' or 'span'
+
+		// Multi-day toggle. Forms saved before this flag existed don't have
+		// the key — infer ON when both dates are populated and differ,
+		// otherwise OFF. Once the operator saves once, the explicit value
+		// is persisted and this branch stops mattering.
+		if ( array_key_exists( 'multi_day', $config ) ) {
+			$multi_day = '1' === (string) $config['multi_day'] ? '1' : '0';
+		} else {
+			$multi_day = ( '' !== $date_start && '' !== $date_end && $date_start !== $date_end ) ? '1' : '0';
+		}
+		$multi_day_collapsed_class = '1' === $multi_day ? '' : ' ffc-collapsed';
+		$multi_day_aria            = '1' === $multi_day ? 'false' : 'true';
+		$show_during_row           = ( '1' === $multi_day && 'daily' === $time_mode );
 		$datetime_hide_mode_before = Geofence::resolve_hide_mode( $config, 'before' );
 		$datetime_hide_mode_during = Geofence::resolve_hide_mode( $config, 'during' );
 		$datetime_hide_mode_after  = Geofence::resolve_hide_mode( $config, 'after' );
@@ -153,11 +166,31 @@ class FormEditorGeofenceMetabox {
 						data-ffc-master="ffc_geofence_datetime_enabled"
 						aria-hidden="<?php echo '1' === $datetime_enabled ? 'false' : 'true'; ?>">
 					<tr>
+						<th><label><?php esc_html_e( 'Multiple days', 'ffcertificate' ); ?></label></th>
+						<td>
+							<?php
+							\FreeFormCertificate\Admin\AdminUI::render_toggle(
+								array(
+									'name'    => 'ffc_geofence[multi_day]',
+									'id'      => 'ffc_geofence_multi_day',
+									'checked' => '1' === $multi_day,
+									'label'   => __( 'Event spans more than one day', 'ffcertificate' ),
+								)
+							);
+							?>
+							<p class="description"><?php esc_html_e( 'Off: form is open on the start date only, between the start and end times. On: enables the end date and the per-day "Time Behavior" controls below.', 'ffcertificate' ); ?></p>
+						</td>
+					</tr>
+					<tr>
 						<th><label><?php esc_html_e( 'Date Range', 'ffcertificate' ); ?></label></th>
 						<td>
 							<label><?php esc_html_e( 'Start:', 'ffcertificate' ); ?> <input type="date" name="ffc_geofence[date_start]" value="<?php echo esc_attr( $date_start ); ?>"<?php echo $invalid_attr( 'date_start' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- closure returns pre-built class attribute. ?>></label>
-							&nbsp;&nbsp;
-							<label><?php esc_html_e( 'End:', 'ffcertificate' ); ?> <input type="date" name="ffc_geofence[date_end]" value="<?php echo esc_attr( $date_end ); ?>"<?php echo $invalid_attr( 'date_end' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>></label>
+							<span class="ffc-collapsed-target<?php echo esc_attr( $multi_day_collapsed_class ); ?>"
+								data-ffc-master="ffc_geofence_multi_day"
+								aria-hidden="<?php echo esc_attr( $multi_day_aria ); ?>">
+								&nbsp;&nbsp;
+								<label><?php esc_html_e( 'End:', 'ffcertificate' ); ?> <input type="date" name="ffc_geofence[date_end]" value="<?php echo esc_attr( $date_end ); ?>"<?php echo $invalid_attr( 'date_end' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>></label>
+							</span>
 							<p class="description"><?php esc_html_e( 'Leave empty for no date restriction. Format: YYYY-MM-DD', 'ffcertificate' ); ?></p>
 							<p class="description ffc-datetime-order-error"<?php echo $datetime_order_msg ? '' : ' style="display:none;"'; ?>>
 								<?php echo esc_html( $datetime_order_msg ); ?>
@@ -173,7 +206,9 @@ class FormEditorGeofenceMetabox {
 							<p class="description"><?php esc_html_e( 'Leave empty for 24/7 access. Default: 00:00 to 23:59', 'ffcertificate' ); ?></p>
 						</td>
 					</tr>
-					<tr id="ffc-time-mode-row">
+					<tr id="ffc-time-mode-row" class="ffc-collapsed-target<?php echo esc_attr( $multi_day_collapsed_class ); ?>"
+						data-ffc-master="ffc_geofence_multi_day"
+						aria-hidden="<?php echo esc_attr( $multi_day_aria ); ?>">
 						<th><label><?php esc_html_e( 'Time Behavior', 'ffcertificate' ); ?></label></th>
 						<td>
 							<fieldset>
@@ -208,7 +243,7 @@ class FormEditorGeofenceMetabox {
 							<p class="description"><?php esc_html_e( 'How to display the form before the start date / start time. "Hide form completely" makes the page render as if the form did not exist yet.', 'ffcertificate' ); ?></p>
 						</td>
 					</tr>
-					<tr id="ffc-datetime-hide-mode-during-row" class="ffc-datetime-hide-during"<?php echo 'daily' === $time_mode ? '' : ' style="display:none;"'; ?>>
+					<tr id="ffc-datetime-hide-mode-during-row" class="ffc-datetime-hide-during"<?php echo $show_during_row ? '' : ' style="display:none;"'; ?>>
 						<th><label for="ffc_datetime_hide_mode_during"><?php esc_html_e( 'Display during, outside daily slot', 'ffcertificate' ); ?></label></th>
 						<td>
 							<select id="ffc_datetime_hide_mode_during" name="ffc_geofence[datetime_hide_mode_during]">
@@ -283,6 +318,26 @@ class FormEditorGeofenceMetabox {
 				</table>
 			</div>
 		</div>
+		<script>
+		jQuery(function($) {
+			// "Display during, outside daily slot" row has a dual gate:
+			// it's only meaningful when the event spans multiple days AND
+			// the operator picked per-day time semantics. The outer
+			// .ffc-collapsed-target initializer handles the multi-day side
+			// for the End Date / Time Behavior rows; the during-row needs
+			// the AND of both, so we wire it manually here. Without this,
+			// flipping time_mode between span and daily wouldn't toggle the
+			// row at runtime (we currently only honour the initial SSR
+			// state).
+			function syncDuringRow() {
+				var multi   = $('#ffc_geofence_multi_day').is(':checked');
+				var isDaily = $('input[name="ffc_geofence[time_mode]"]:checked').val() === 'daily';
+				$('#ffc-datetime-hide-mode-during-row').toggle( multi && isDaily );
+			}
+			$('#ffc_geofence_multi_day, input[name="ffc_geofence[time_mode]"]').on('change', syncDuringRow);
+			syncDuringRow();
+		});
+		</script>
 		<?php
 	}
 
