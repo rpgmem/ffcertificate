@@ -223,6 +223,11 @@ class SettingsAjaxEndpoint {
 			// Read-endpoint group (#259).
 			'read_respect_whitelist'           => array( 'read', 'respect_whitelist' ),
 			'read_bypass_logged_in'            => array( 'read', 'bypass_logged_in' ),
+			// Whitelist / Blacklist card UI-visibility toggles. The flag
+			// only collapses the card on the settings page — the lists
+			// continue to apply at runtime when populated.
+			'whitelist_enabled'                => array( 'whitelist', 'enabled' ),
+			'blacklist_enabled'                => array( 'blacklist', 'enabled' ),
 			// Logging group.
 			'logging_enabled'                  => array( 'logging', 'enabled' ),
 			'logging_log_allowed'              => array( 'logging', 'log_allowed' ),
