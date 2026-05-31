@@ -25,6 +25,22 @@ if ( ! defined( 'ABSPATH' ) ) {
 class FormEditorSaveHandler {
 
 	/**
+	 * Minimum length (characters) required for each geofence block /
+	 * error message when its parent restriction is enabled.
+	 *
+	 * Empty or too-short messages produced silent frontend failures: a
+	 * legitimate date/time or geolocation block returned an empty
+	 * `message`, which ffc-core.js (`err.fromServer = !!serverMsg`)
+	 * treated as "no server message" and surfaced as a generic
+	 * "Connection error" — the user saw nothing actionable. The runtime
+	 * fallback in {@see \FreeFormCertificate\Security\Geofence::message_or_default()}
+	 * guarantees a non-empty string at render time; this save-side gate
+	 * pushes the requirement upstream so operators author a meaningful
+	 * message instead of relying on the generic fallback. Tune here.
+	 */
+	public const GEOFENCE_MESSAGE_MIN_LENGTH = 25;
+
+	/**
 	 * Saves all form data and configurations
 	 *
 	 * @param int $post_id The post ID.
@@ -219,15 +235,21 @@ class FormEditorSaveHandler {
 
 				// Multi-day toggle (UX scope: hides the End Date / Time
 				// Behavior / Display-during-slot controls when off). When
-				// the operator unchecks it, normalise the dependent fields
-				// so the runtime treats the form as a single-day event:
-				// date_end mirrors date_start and time_mode becomes 'span'
-				// (single calendar day → span and daily are equivalent, but
-				// span keeps Display-during-slot inert per its own rule).
+				// the operator unchecks it, mirror date_end onto date_start
+				// so the runtime bounds the form to a single calendar day
+				// (the hidden End Date input can't be edited, so a stale
+				// range from a prior multi-day config must not linger).
+				//
+				// time_mode is left untouched: a single-day event with a
+				// time window is exactly "daily mode, one day", which
+				// validate_datetime handles directly. Forcing 'span' here
+				// (an earlier approach) was both unnecessary — the
+				// `date_start !== date_end` guard in validate_datetime
+				// neutralises span the moment the dates are equal — and
+				// surprising, so it's been dropped.
 				$clean_geofence['multi_day'] = isset( $geofence['multi_day'] ) ? '1' : '0';
 				if ( '0' === $clean_geofence['multi_day'] ) {
-					$clean_geofence['date_end']  = $clean_geofence['date_start'];
-					$clean_geofence['time_mode'] = 'span';
+					$clean_geofence['date_end'] = $clean_geofence['date_start'];
 				}
 			}
 
@@ -607,7 +629,67 @@ class FormEditorSaveHandler {
 			$errors    = array_merge( $errors, $ip_errors );
 		}
 
+		// Block / error message minimum length (Time + Geolocation). Only
+		// enforced when the owning restriction is enabled — a form that
+		// doesn't gate by date/time or location isn't forced to author
+		// messages it will never show.
+		$message_errors = $this->geofence_message_errors( $config );
+		$errors         = array_merge( $errors, $message_errors['time'], $message_errors['geolocation'] );
+
 		return $errors;
+	}
+
+	/**
+	 * Validate the geofence block / error messages, split by owning tab.
+	 *
+	 * Returns a two-bucket map so {@see geofence_error_tab_keys()} can route
+	 * each failure to the tab that owns the field without re-matching on
+	 * message text. Each message is only checked when its parent toggle is
+	 * on:
+	 *  - `time`        → `msg_datetime` (when `datetime_enabled`)
+	 *  - `geolocation` → `msg_geo_blocked` + `msg_geo_error` (when `geo_enabled`)
+	 *
+	 * Length is measured with `mb_strlen` so accented Portuguese copy isn't
+	 * penalised byte-for-byte.
+	 *
+	 * @param array<string, mixed> $config Merged geofence config.
+	 * @return array{time: list<string>, geolocation: list<string>}
+	 */
+	private function geofence_message_errors( array $config ): array {
+		$min = self::GEOFENCE_MESSAGE_MIN_LENGTH;
+		$out = array(
+			'time'        => array(),
+			'geolocation' => array(),
+		);
+
+		if ( '1' === ( $config['datetime_enabled'] ?? '0' ) ) {
+			if ( mb_strlen( trim( (string) ( $config['msg_datetime'] ?? '' ) ) ) < $min ) {
+				$out['time'][] = sprintf(
+					/* translators: %d: minimum character count */
+					__( 'The date/time "Blocked Message" must be at least %d characters so visitors understand why the form is unavailable.', 'ffcertificate' ),
+					$min
+				);
+			}
+		}
+
+		if ( '1' === ( $config['geo_enabled'] ?? '0' ) ) {
+			if ( mb_strlen( trim( (string) ( $config['msg_geo_blocked'] ?? '' ) ) ) < $min ) {
+				$out['geolocation'][] = sprintf(
+					/* translators: %d: minimum character count */
+					__( 'The geolocation "Blocked Message" must be at least %d characters.', 'ffcertificate' ),
+					$min
+				);
+			}
+			if ( mb_strlen( trim( (string) ( $config['msg_geo_error'] ?? '' ) ) ) < $min ) {
+				$out['geolocation'][] = sprintf(
+					/* translators: %d: minimum character count */
+					__( 'The geolocation "Error Message" must be at least %d characters.', 'ffcertificate' ),
+					$min
+				);
+			}
+		}
+
+		return $out;
 	}
 
 	/**
@@ -632,11 +714,21 @@ class FormEditorSaveHandler {
 				)
 			)
 		);
-		if ( ! empty( $datetime_errors ) ) {
+		$message_errors  = $this->geofence_message_errors( $config );
+
+		// Time tab owns the datetime-order messages plus the date/time
+		// "Blocked Message" length error.
+		$time_errors = array_merge( $datetime_errors, $message_errors['time'] );
+		if ( ! empty( $time_errors ) ) {
 			$keys[] = 'time';
 		}
-		// Any error that isn't a datetime-order message is an area/format one.
-		if ( ! empty( array_diff( $all_errors, $datetime_errors ) ) ) {
+
+		// Geolocation tab owns everything else: GPS/IP area + format errors
+		// (whatever remains in $all_errors after removing the time-tab
+		// messages and the geo message-length errors) plus those geo
+		// message-length errors themselves.
+		$area_errors = array_diff( $all_errors, $time_errors, $message_errors['geolocation'] );
+		if ( ! empty( $area_errors ) || ! empty( $message_errors['geolocation'] ) ) {
 			$keys[] = 'geolocation';
 		}
 		return $keys;

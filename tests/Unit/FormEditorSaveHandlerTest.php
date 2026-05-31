@@ -276,6 +276,99 @@ class FormEditorSaveHandlerTest extends TestCase {
     }
 
     // ==================================================================
+    // Geofence block-message minimum length (Time + Geolocation)
+    // ==================================================================
+
+    private const VALID_MSG = 'This form is closed outside its scheduled window.'; // 49 chars.
+
+    public function test_empty_datetime_message_blocks_save_when_enabled(): void {
+        $config = array(
+            'datetime_enabled' => '1',
+            'date_start'       => '2026-01-01',
+            'date_end'         => '2026-01-01',
+            'msg_datetime'     => '', // cleared by operator → too short.
+        );
+        $errors = $this->invoke( 'validate_geofence_config', array( $config ) );
+        $this->assertNotEmpty( $errors );
+        $joined = implode( ' | ', $errors );
+        $this->assertStringContainsString( 'Blocked Message', $joined );
+    }
+
+    public function test_short_datetime_message_blocks_save(): void {
+        $config = array(
+            'datetime_enabled' => '1',
+            'date_start'       => '2026-01-01',
+            'date_end'         => '2026-01-01',
+            'msg_datetime'     => 'Closed.', // 7 chars < 25.
+        );
+        $errors = $this->invoke( 'validate_geofence_config', array( $config ) );
+        $this->assertNotEmpty( $errors );
+    }
+
+    public function test_valid_datetime_message_passes(): void {
+        $config = array(
+            'datetime_enabled' => '1',
+            'date_start'       => '2026-01-01',
+            'date_end'         => '2026-01-01',
+            'msg_datetime'     => self::VALID_MSG,
+        );
+        $errors = $this->invoke( 'validate_geofence_config', array( $config ) );
+        $this->assertSame( array(), $errors );
+    }
+
+    public function test_datetime_message_not_checked_when_restriction_disabled(): void {
+        // datetime_enabled off → the message is never shown, so an empty
+        // one must NOT block the save.
+        $config = array(
+            'datetime_enabled' => '0',
+            'msg_datetime'     => '',
+        );
+        $errors = $this->invoke( 'validate_geofence_config', array( $config ) );
+        $this->assertSame( array(), $errors );
+    }
+
+    public function test_short_datetime_message_routes_to_time_tab_not_geolocation(): void {
+        // Dates are in valid order (no datetime-order error); the ONLY
+        // failure is the short message. It must route to 'time', proving
+        // the new length error isn't mis-bucketed as a geolocation error.
+        $config = array(
+            'datetime_enabled' => '1',
+            'date_start'       => '2026-01-01',
+            'date_end'         => '2026-01-02',
+            'time_start'       => '08:00',
+            'time_end'         => '17:00',
+            'time_mode'        => 'span',
+            'msg_datetime'     => 'too short',
+        );
+        $errors = $this->invoke( 'validate_geofence_config', array( $config ) );
+        $keys   = $this->invoke( 'geofence_error_tab_keys', array( $config, $errors ) );
+        $this->assertSame( array( 'time' ), $keys );
+    }
+
+    public function test_short_geo_messages_block_save_and_route_to_geolocation(): void {
+        $config = array(
+            'geo_enabled'     => '1',
+            'msg_geo_blocked' => 'no',  // too short.
+            'msg_geo_error'   => 'err', // too short.
+        );
+        $errors = $this->invoke( 'validate_geofence_config', array( $config ) );
+        // Two geo message errors (blocked + error).
+        $this->assertCount( 2, $errors );
+        $keys = $this->invoke( 'geofence_error_tab_keys', array( $config, $errors ) );
+        $this->assertSame( array( 'geolocation' ), $keys );
+    }
+
+    public function test_geo_messages_not_checked_when_geo_disabled(): void {
+        $config = array(
+            'geo_enabled'     => '0',
+            'msg_geo_blocked' => '',
+            'msg_geo_error'   => '',
+        );
+        $errors = $this->invoke( 'validate_geofence_config', array( $config ) );
+        $this->assertSame( array(), $errors );
+    }
+
+    // ==================================================================
     // validate_areas_format()
     // ==================================================================
 
@@ -624,12 +717,13 @@ class FormEditorSaveHandlerTest extends TestCase {
 
     /**
      * Multi-day toggle OFF + datetime_enabled ON → date_end mirrors
-     * date_start and time_mode is normalised to 'span'. The UI gates the
-     * end-date and time-behavior controls behind the multi_day toggle;
-     * the save handler must back that up server-side so a tampered POST
-     * can't sneak through a divergent end date or 'daily' time mode.
+     * date_start so the runtime bounds the form to a single calendar day.
+     * time_mode is left exactly as posted (no longer forced to 'span') —
+     * a single-day event with a time window is "daily mode, one day", and
+     * validate_datetime's `date_start !== date_end` guard neutralises span
+     * for equal dates anyway, so forcing it was unnecessary.
      */
-    public function test_multi_day_off_normalises_end_date_and_time_mode(): void {
+    public function test_multi_day_off_mirrors_end_date_and_preserves_time_mode(): void {
         $bag = $this->stub_for_save();
         $written = &$bag[0];
 
@@ -644,7 +738,9 @@ class FormEditorSaveHandlerTest extends TestCase {
                 'date_end'         => '2026-05-25', // would-be multi-day end
                 'time_start'       => '08:00',
                 'time_end'         => '17:00',
-                'time_mode'        => 'daily',      // would-be per-day mode
+                'time_mode'        => 'daily',
+                // ≥25 chars so the block-message length gate passes.
+                'msg_datetime'     => 'This form is closed outside its scheduled window.',
             ),
         );
 
@@ -653,7 +749,7 @@ class FormEditorSaveHandlerTest extends TestCase {
         $merged = $written['_ffc_geofence_config'];
         $this->assertSame( '0', $merged['multi_day'], 'multi_day persisted as off' );
         $this->assertSame( '2026-05-20', $merged['date_end'], 'date_end forced to mirror date_start' );
-        $this->assertSame( 'span', $merged['time_mode'], 'time_mode forced to span (single-day equivalence)' );
+        $this->assertSame( 'daily', $merged['time_mode'], 'time_mode preserved as-posted (not forced to span)' );
         $this->assertSame( '08:00', $merged['time_start'], 'time_start preserved verbatim' );
         $this->assertSame( '17:00', $merged['time_end'], 'time_end preserved verbatim' );
     }
@@ -679,6 +775,8 @@ class FormEditorSaveHandlerTest extends TestCase {
                 'time_start'       => '08:00',
                 'time_end'         => '17:00',
                 'time_mode'        => 'daily',
+                // ≥25 chars so the block-message length gate passes.
+                'msg_datetime'     => 'This form is closed outside its scheduled window.',
             ),
         );
 
@@ -791,9 +889,12 @@ class FormEditorSaveHandlerTest extends TestCase {
         $_POST = array(
             'ffc_form_nonce' => 'ok',
             'ffc_geofence'   => array(
-                'geo_enabled'   => '1',                 // outer master on
+                'geo_enabled'     => '1',                 // outer master on
                 // geo_ip_areas_permissive absent → '0'
-                'geo_ip_areas'  => 'should-not-overwrite',
+                'geo_ip_areas'    => 'should-not-overwrite',
+                // ≥25 chars each so the geo message-length gate passes.
+                'msg_geo_blocked' => 'This form is not available in your region.',
+                'msg_geo_error'   => 'We could not verify your location. Try again.',
             ),
         );
 
