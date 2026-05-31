@@ -393,7 +393,14 @@
                     '</div>' +
                     '<div class="ffc-preview-note"></div>' +
                     '<div class="ffc-preview-body">' +
-                        '<iframe id="ffc-preview-iframe" frameborder="0"></iframe>' +
+                        // sandbox="" — most-restrictive sandbox; rendered HTML
+                        // can't execute scripts, navigate the parent, run
+                        // plugins, etc. The preview only needs to paint the
+                        // layout's static markup, so the empty sandbox is the
+                        // right ceiling. Operators previewing their own
+                        // template stay safe even if a teammate sneaked a
+                        // <script> tag into the layout.
+                        '<iframe id="ffc-preview-iframe" frameborder="0" sandbox=""></iframe>' +
                     '</div>' +
                 '</div>' +
             '</div>'
@@ -404,22 +411,25 @@
 
         $('body').append($modal);
 
-        // Write content to iframe
+        // Hand the iframe its HTML via the `srcdoc` attribute rather than
+        // document.write so CodeQL's "DOM text reinterpreted as HTML" sink
+        // (and the equivalent runtime risk) goes through a single declarative
+        // entry point. The sandbox="" attribute set above stops any script
+        // tag in the template from executing inside the preview frame.
         var iframe = document.getElementById('ffc-preview-iframe');
-        var iframeDoc = iframe.contentWindow || iframe.contentDocument;
-        if (iframeDoc.document) {
-            iframeDoc = iframeDoc.document;
-        }
-        iframeDoc.open();
-        iframeDoc.write(iframeHtml);
-        iframeDoc.close();
+        iframe.setAttribute('srcdoc', iframeHtml);
 
-        // Apply background-image via the DOM property setter rather than
-        // injecting the URL into the iframe HTML. The setter only accepts
-        // values that parse as a CSS <image>, so a tampered URL can't
-        // escape the property to inject markup or JS.
-        if (bgImage && iframeDoc.body && iframeDoc.body.style) {
-            iframeDoc.body.style.backgroundImage = 'url(' + JSON.stringify(String(bgImage)) + ')';
+        // Apply background-image via the DOM property setter — runs after
+        // the sandboxed frame finishes loading so the body element exists.
+        // The setter only accepts values that parse as a CSS <image>, so a
+        // tampered URL can't escape the property to inject markup or JS.
+        if (bgImage) {
+            iframe.addEventListener('load', function () {
+                var iframeDoc = iframe.contentDocument;
+                if (iframeDoc && iframeDoc.body && iframeDoc.body.style) {
+                    iframeDoc.body.style.backgroundImage = 'url(' + JSON.stringify(String(bgImage)) + ')';
+                }
+            });
         }
 
         // Show with fade
