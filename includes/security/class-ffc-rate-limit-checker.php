@@ -198,7 +198,19 @@ final class RateLimitChecker {
 	 * @return array{allowed: bool, message?: string, reason?: string, wait_seconds?: int}
 	 */
 	public static function check_ip_limit( string $ip, ?int $form_id = null ): array {
-		$s  = self::get_settings()['ip'];
+		$s = self::get_settings()['ip'];
+
+		// Respect the operator's master toggle. The form-submission DoS
+		// gate (FormProcessor::handle_submission_ajax) calls this method
+		// DIRECTLY at the top of the handler — before, and independently
+		// of, check_all()'s own `$s['ip']['enabled']` gating. Without this
+		// guard a form would keep blocking off a stale hour/day counter
+		// even after the operator turned IP rate limiting OFF in the panel
+		// (the reported "submit does nothing" with every limit disabled).
+		if ( empty( $s['enabled'] ) ) {
+			return array( 'allowed' => true );
+		}
+
 		$hk = 'ffc_rate_ip_' . md5( $ip . $form_id ) . '_hour';
 		// v3.2.0: Use Object Cache API (auto Redis/Memcached if available).
 		$hc = wp_cache_get( $hk, RateLimiter::CACHE_GROUP );
@@ -925,10 +937,22 @@ final class RateLimitChecker {
 	/**
 	 * Format message.
 	 *
+	 * Falls back to a sensible default when the configured template is empty
+	 * or whitespace-only. An operator can clear the rate-limit "Message"
+	 * field in settings (or an autosave can land an empty value), which used
+	 * to propagate an empty string all the way to the AJAX response —
+	 * surfacing as a silent block on the frontend (`rate_limit:true` with
+	 * `message:''`, which the client's RateLimit display renders as nothing).
+	 * Guaranteeing a non-empty string here keeps every rate-limit gate
+	 * (IP / email / CPF / device) visible regardless of the stored copy.
+	 *
 	 * @param string               $template Template.
 	 * @param array<string, mixed> $data Data.
 	 */
 	private static function format_message( string $template, array $data ): string {
+		if ( '' === trim( $template ) ) {
+			$template = __( 'Submission limit reached. Please wait {time} and try again.', 'ffcertificate' );
+		}
 		return str_replace( array( '{time}', '{count}', '{max}', '{remaining}' ), array( (string) ( $data['time'] ?? '' ), (string) ( $data['count'] ?? 0 ), (string) ( $data['max'] ?? 0 ), (string) ( ( $data['max'] ?? 0 ) - ( $data['count'] ?? 0 ) ) ), $template );
 	}
 
