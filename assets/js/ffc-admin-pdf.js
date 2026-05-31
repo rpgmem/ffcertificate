@@ -356,15 +356,19 @@
         var data = getSampleFieldData();
         var processedHtml = replacePlaceholders(htmlContent, data);
 
-        // Build the iframe content
+        // Build the iframe content. Background-image is applied AFTER the
+        // iframe loads (via DOM properties on document.body, not via string
+        // concatenation into CSS) so the user-controlled URL never flows
+        // through a "DOM text reinterpreted as HTML" sink. CodeQL flagged
+        // the old `iframeHtml += 'url(' + bgImage + ')'` pattern even though
+        // bgImage already filters through esc_url on save; routing through
+        // the .style setter side-steps the rule and adds a real layer of
+        // CSS-context escaping for free.
         var iframeHtml = '<!DOCTYPE html><html><head><meta charset="UTF-8">';
         iframeHtml += '<style>';
         iframeHtml += 'html, body { margin: 0; padding: 0; }';
-        iframeHtml += 'body { font-family: Arial, Helvetica, sans-serif; ';
-        if (bgImage) {
-            iframeHtml += 'background-image: url(' + bgImage + '); ';
-            iframeHtml += 'background-size: cover; background-position: center; background-repeat: no-repeat; ';
-        }
+        iframeHtml += 'body { font-family: Arial, Helvetica, sans-serif;';
+        iframeHtml += bgImage ? ' background-size: cover; background-position: center; background-repeat: no-repeat;' : '';
         iframeHtml += '}';
         iframeHtml += '</style></head><body>';
         iframeHtml += processedHtml;
@@ -409,6 +413,14 @@
         iframeDoc.open();
         iframeDoc.write(iframeHtml);
         iframeDoc.close();
+
+        // Apply background-image via the DOM property setter rather than
+        // injecting the URL into the iframe HTML. The setter only accepts
+        // values that parse as a CSS <image>, so a tampered URL can't
+        // escape the property to inject markup or JS.
+        if (bgImage && iframeDoc.body && iframeDoc.body.style) {
+            iframeDoc.body.style.backgroundImage = 'url(' + JSON.stringify(String(bgImage)) + ')';
+        }
 
         // Show with fade
         requestAnimationFrame(function() {
