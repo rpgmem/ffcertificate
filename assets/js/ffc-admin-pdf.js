@@ -355,24 +355,33 @@
         iframeHtml += processedHtml;
         iframeHtml += '</body></html>';
 
-        // Build modal
+        // Build modal. Localized strings (previewTitle/closeText/sampleDataNote)
+        // come from wp_localize_script — admin-controlled, but CodeQL's taint
+        // tracker flags string-concatenated insertion as "DOM text reinterpreted
+        // as HTML". Use jQuery's text() / attr() so the strings can never be
+        // reparsed as markup regardless of how they were filtered upstream.
         var previewTitle = strings.previewTitle || 'Certificate Preview';
         var closeText = strings.close || 'Close';
         var sampleDataNote = strings.previewSampleNote || 'Placeholders replaced with sample data. QR code shown as placeholder.';
 
-        var $modal = $('<div id="ffc-preview-modal">' +
-            '<div class="ffc-preview-backdrop"></div>' +
-            '<div class="ffc-preview-container">' +
-                '<div class="ffc-preview-header">' +
-                    '<h2>' + previewTitle + '</h2>' +
-                    '<button type="button" class="ffc-preview-close" title="' + closeText + '">&times;</button>' +
+        var $modal = $(
+            '<div id="ffc-preview-modal">' +
+                '<div class="ffc-preview-backdrop"></div>' +
+                '<div class="ffc-preview-container">' +
+                    '<div class="ffc-preview-header">' +
+                        '<h2></h2>' +
+                        '<button type="button" class="ffc-preview-close">&times;</button>' +
+                    '</div>' +
+                    '<div class="ffc-preview-note"></div>' +
+                    '<div class="ffc-preview-body">' +
+                        '<iframe id="ffc-preview-iframe" frameborder="0"></iframe>' +
+                    '</div>' +
                 '</div>' +
-                '<div class="ffc-preview-note">' + sampleDataNote + '</div>' +
-                '<div class="ffc-preview-body">' +
-                    '<iframe id="ffc-preview-iframe" frameborder="0"></iframe>' +
-                '</div>' +
-            '</div>' +
-        '</div>');
+            '</div>'
+        );
+        $modal.find('.ffc-preview-header h2').text(previewTitle);
+        $modal.find('.ffc-preview-close').attr('title', closeText);
+        $modal.find('.ffc-preview-note').text(sampleDataNote);
 
         $('body').append($modal);
 
