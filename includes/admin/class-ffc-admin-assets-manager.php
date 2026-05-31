@@ -724,6 +724,14 @@ class AdminAssetsManager {
 	 * @return array<string, mixed> Localization data
 	 */
 	private function get_localization_data(): array {
+		// Capture the post the editor is currently on so the schedule sample
+		// reflects this form's actual Class/Time configuration instead of
+		// the docs-row fallback. `global $post` is reliable during
+		// admin_enqueue_scripts on the post-edit screen; defaults to 0
+		// (and therefore the fallback) for new-post and list screens.
+		global $post;
+		$form_id = ( $post && isset( $post->ID ) ) ? (int) $post->ID : 0;
+
 		return array(
 			'ajax_url'       => admin_url( 'admin-ajax.php' ),
 			'nonce'          => wp_create_nonce( 'ffc_admin_pdf_nonce' ),
@@ -731,7 +739,7 @@ class AdminAssetsManager {
 			// Canonical placeholder → sample-value map for the in-editor
 			// certificate preview. Single source of truth lives in PHP so
 			// the JS can't drift from the generators' real placeholders.
-			'previewSamples' => \FreeFormCertificate\Core\CertificatePreviewSamples::get_map(),
+			'previewSamples' => \FreeFormCertificate\Core\CertificatePreviewSamples::get_map( $form_id ),
 			'templates'      => self::discover_layout_templates(),
 			'strings'        => array(
 				// General.
