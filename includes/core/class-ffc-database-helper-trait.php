@@ -244,6 +244,20 @@ trait DatabaseHelperTrait {
 		$staging_name = $column . '_ts';
 		$has_new      = self::column_exists( $table_name, $staging_name );
 
+		// Fast path — the destination column already carries the migrated
+		// type and the staging column is gone. This is the post-migration
+		// steady state; bail before any DROP/CHANGE fires. Without this an
+		// install whose flag option was lost (manual drop, partial restore)
+		// re-runs the destructive steps every plugin load and spams
+		// debug.log with the well-known "Can't DROP …" / "Duplicate key"
+		// chain even though the schema is correct.
+		if ( $has_old && ! $has_new ) {
+			$type = (string) self::column_type( $table_name, $column );
+			if ( '' !== $type && 0 === stripos( $type, 'bigint' ) ) {
+				return;
+			}
+		}
+
 		if ( ! $has_new ) {
 			if ( ! $has_old ) {
 				return; // Fresh schema at 6.6.0+ already has the int column.

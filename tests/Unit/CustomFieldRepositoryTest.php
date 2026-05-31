@@ -1102,11 +1102,25 @@ class CustomFieldRepositoryTest extends TestCase {
 
     public function test_list_sensitive_field_keys_returns_keys_when_table_present(): void {
         $this->wpdb->shouldReceive( 'get_var' )->once()->andReturn( 'wp_ffc_custom_fields' );
-        $this->wpdb->shouldReceive( 'get_col' )->once()->andReturn( array( 'cpf', 'rg', '' ) );
+        // Two get_col calls: SHOW COLUMNS guard (column exists) + the actual
+        // SELECT DISTINCT field_key. Mock both in the order they fire.
+        $this->wpdb->shouldReceive( 'get_col' )
+            ->twice()
+            ->andReturn( array( 'is_sensitive' ), array( 'cpf', 'rg', '' ) );
 
         $keys = CustomFieldRepository::list_sensitive_field_keys();
 
         $this->assertSame( array( 'cpf', 'rg' ), $keys );
+    }
+
+    public function test_list_sensitive_field_keys_returns_empty_when_column_missing(): void {
+        $this->wpdb->shouldReceive( 'get_var' )->once()->andReturn( 'wp_ffc_custom_fields' );
+        // Pre-migration shape: SHOW COLUMNS LIKE 'is_sensitive' returns nothing.
+        $this->wpdb->shouldReceive( 'get_col' )->once()->andReturn( array() );
+        // The SELECT must not fire on the legacy schema.
+        $this->wpdb->shouldNotReceive( 'get_results' );
+
+        $this->assertSame( array(), CustomFieldRepository::list_sensitive_field_keys() );
     }
 
     public function test_existing_field_keys_for_audience_returns_lookup_map(): void {
