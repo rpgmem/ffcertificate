@@ -420,6 +420,7 @@ class FormEditorGeofenceMetabox {
 						\FreeFormCertificate\Admin\AdminUI::render_toggle(
 							array(
 								'name'    => 'ffc_geofence[geo_ip_enabled]',
+								'id'      => 'ffc_geofence_geo_ip_enabled',
 								'checked' => '1' === (string) $geo_ip_enabled,
 								'label'   => __( 'IP Address (backend validation)', 'ffcertificate' ),
 							)
@@ -460,7 +461,9 @@ class FormEditorGeofenceMetabox {
 						</div>
 					</td>
 				</tr>
-				<tr>
+				<tr class="ffc-collapsed-target<?php echo '1' === $geo_ip_enabled ? '' : ' ffc-collapsed'; ?>"
+					data-ffc-master="ffc_geofence_geo_ip_enabled"
+					aria-hidden="<?php echo '1' === $geo_ip_enabled ? 'false' : 'true'; ?>">
 					<th><label><?php esc_html_e( 'IP Geolocation Areas', 'ffcertificate' ); ?></label></th>
 					<td>
 						<?php
@@ -510,7 +513,9 @@ class FormEditorGeofenceMetabox {
 						</div>
 					</td>
 				</tr>
-				<tr>
+				<tr class="ffc-collapsed-target<?php echo '1' === $geo_ip_enabled ? '' : ' ffc-collapsed'; ?>"
+					data-ffc-master="ffc_geofence_geo_ip_enabled"
+					aria-hidden="<?php echo '1' === $geo_ip_enabled ? 'false' : 'true'; ?>">
 					<th><label><?php esc_html_e( 'GPS + IP Logic', 'ffcertificate' ); ?></label></th>
 					<td>
 						<select name="ffc_geofence[geo_gps_ip_logic]">
