@@ -216,6 +216,19 @@ class FormEditorSaveHandler {
 				$clean_geofence['datetime_hide_mode_during'] = sanitize_key( $geofence['datetime_hide_mode_during'] ?? $legacy_hide_mode );
 				$clean_geofence['datetime_hide_mode_after']  = sanitize_key( $geofence['datetime_hide_mode_after'] ?? $legacy_hide_mode );
 				$clean_geofence['msg_datetime']              = sanitize_textarea_field( $geofence['msg_datetime'] ?? '' );
+
+				// Multi-day toggle (UX scope: hides the End Date / Time
+				// Behavior / Display-during-slot controls when off). When
+				// the operator unchecks it, normalise the dependent fields
+				// so the runtime treats the form as a single-day event:
+				// date_end mirrors date_start and time_mode becomes 'span'
+				// (single calendar day → span and daily are equivalent, but
+				// span keeps Display-during-slot inert per its own rule).
+				$clean_geofence['multi_day'] = isset( $geofence['multi_day'] ) ? '1' : '0';
+				if ( '0' === $clean_geofence['multi_day'] ) {
+					$clean_geofence['date_end']  = $clean_geofence['date_start'];
+					$clean_geofence['time_mode'] = 'span';
+				}
 			}
 
 			// Geolocation — 1 master toggle gating 8 sub-options +

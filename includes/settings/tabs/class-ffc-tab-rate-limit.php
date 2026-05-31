@@ -105,12 +105,19 @@ class TabRateLimit extends SettingsTab {
 				'log_blocks'                => true,
 			),
 			'whitelist' => array(
+				// UI visibility flag — when false the rate-limit settings
+				// page collapses the Whitelist card to declutter; the
+				// lists themselves still apply at runtime if populated.
+				// Defaults true so existing installs see no UI change.
+				'enabled'       => true,
 				'ips'           => array(),
 				'emails'        => array(),
 				'email_domains' => array(),
 				'cpfs'          => array(),
 			),
 			'blacklist' => array(
+				// UI visibility flag — see whitelist['enabled'] above.
+				'enabled'       => true,
 				'ips'           => array(),
 				'emails'        => array(),
 				'email_domains' => array(),
@@ -257,12 +264,14 @@ class TabRateLimit extends SettingsTab {
 				'log_blocks'                => isset( $_POST['device_log_blocks'] ),
 			),
 			'whitelist' => array(
+				'enabled'       => isset( $_POST['whitelist_enabled'] ),
 				'ips'           => array_filter( array_map( 'trim', explode( "\n", sanitize_textarea_field( wp_unslash( $_POST['whitelist_ips'] ?? '' ) ) ) ) ),
 				'emails'        => array_filter( array_map( 'trim', explode( "\n", sanitize_textarea_field( wp_unslash( $_POST['whitelist_emails'] ?? '' ) ) ) ) ),
 				'email_domains' => array_filter( array_map( 'trim', explode( "\n", sanitize_textarea_field( wp_unslash( $_POST['whitelist_email_domains'] ?? '' ) ) ) ) ),
 				'cpfs'          => array_filter( array_map( 'trim', explode( "\n", sanitize_textarea_field( wp_unslash( $_POST['whitelist_cpfs'] ?? '' ) ) ) ) ),
 			),
 			'blacklist' => array(
+				'enabled'       => isset( $_POST['blacklist_enabled'] ),
 				'ips'           => array_filter( array_map( 'trim', explode( "\n", sanitize_textarea_field( wp_unslash( $_POST['blacklist_ips'] ?? '' ) ) ) ) ),
 				'emails'        => array_filter( array_map( 'trim', explode( "\n", sanitize_textarea_field( wp_unslash( $_POST['blacklist_emails'] ?? '' ) ) ) ) ),
 				'email_domains' => array_filter( array_map( 'trim', explode( "\n", sanitize_textarea_field( wp_unslash( $_POST['blacklist_email_domains'] ?? '' ) ) ) ) ),
