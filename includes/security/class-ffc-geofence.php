@@ -203,6 +203,30 @@ class Geofence {
 	}
 
 	/**
+	 * Return the operator-configured block message, or a phase-specific
+	 * default when it's missing OR empty.
+	 *
+	 * The `??` null-coalescing operator only substitutes for `null`, not
+	 * for an empty string — so `$config['msg_datetime'] ?? $default`
+	 * returned `''` whenever the operator cleared the "Blocked Message"
+	 * field (a saved empty string, not an absent key). An empty message
+	 * propagated to the AJAX response, where the frontend's
+	 * `err.fromServer = !!serverMsg` check (ffc-core.js) treated the
+	 * blank as "no server message" and fell back to a generic
+	 * "Connection error" — making a legitimate date/time block look like
+	 * a silent failure to the visitor. `empty()` catches both the null
+	 * and the '' cases so the phase-specific default always wins.
+	 *
+	 * @param array<string, mixed> $config  Geofence config.
+	 * @param string               $key     Message key (msg_datetime / msg_geo_*).
+	 * @param string               $default Phase-specific fallback copy.
+	 * @return string Non-empty message.
+	 */
+	private static function message_or_default( array $config, string $key, string $default ): string {
+		return empty( $config[ $key ] ) ? $default : (string) $config[ $key ];
+	}
+
+	/**
 	 * Validate date/time restrictions
 	 *
 	 * @param array<string, mixed> $config Form geofence configuration.
@@ -228,7 +252,7 @@ class Geofence {
 			if ( $now < $start_datetime ) {
 				return array(
 					'valid'   => false,
-					'message' => $config['msg_datetime'] ?? __( 'This form is not yet available.', 'ffcertificate' ),
+					'message' => self::message_or_default( $config, 'msg_datetime', __( 'This form is not yet available.', 'ffcertificate' ) ),
 					'details' => array(
 						'reason' => 'before_start_datetime',
 						'mode'   => 'span',
@@ -241,7 +265,7 @@ class Geofence {
 			if ( $now > $end_datetime ) {
 				return array(
 					'valid'   => false,
-					'message' => $config['msg_datetime'] ?? __( 'This form is no longer available.', 'ffcertificate' ),
+					'message' => self::message_or_default( $config, 'msg_datetime', __( 'This form is no longer available.', 'ffcertificate' ) ),
 					'details' => array(
 						'reason' => 'after_end_datetime',
 						'mode'   => 'span',
@@ -264,7 +288,7 @@ class Geofence {
 		if ( ! empty( $config['date_start'] ) && $current_date < $config['date_start'] ) {
 			return array(
 				'valid'   => false,
-				'message' => $config['msg_datetime'] ?? __( 'This form is not yet available.', 'ffcertificate' ),
+				'message' => self::message_or_default( $config, 'msg_datetime', __( 'This form is not yet available.', 'ffcertificate' ) ),
 				'details' => array(
 					'reason'       => 'before_start_date',
 					'current_date' => $current_date,
@@ -276,7 +300,7 @@ class Geofence {
 		if ( ! empty( $config['date_end'] ) && $current_date > $config['date_end'] ) {
 			return array(
 				'valid'   => false,
-				'message' => $config['msg_datetime'] ?? __( 'This form is no longer available.', 'ffcertificate' ),
+				'message' => self::message_or_default( $config, 'msg_datetime', __( 'This form is no longer available.', 'ffcertificate' ) ),
 				'details' => array(
 					'reason'       => 'after_end_date',
 					'current_date' => $current_date,
@@ -294,7 +318,7 @@ class Geofence {
 			if ( $current_time < $time_start || $current_time > $time_end ) {
 				return array(
 					'valid'   => false,
-					'message' => $config['msg_datetime'] ?? __( 'This form is only available during specific hours.', 'ffcertificate' ),
+					'message' => self::message_or_default( $config, 'msg_datetime', __( 'This form is only available during specific hours.', 'ffcertificate' ) ),
 					'details' => array(
 						'reason'       => 'outside_time_range',
 						'mode'         => 'daily',
@@ -345,7 +369,7 @@ class Geofence {
 		if ( empty( $user_location ) || empty( $user_location['latitude'] ) || empty( $user_location['longitude'] ) ) {
 			return array(
 				'valid'   => false,
-				'message' => $config['msg_geo_error'] ?? __( 'Unable to determine your location.', 'ffcertificate' ),
+				'message' => self::message_or_default( $config, 'msg_geo_error', __( 'Unable to determine your location.', 'ffcertificate' ) ),
 				'details' => array( 'reason' => 'location_unavailable' ),
 			);
 		}
@@ -367,7 +391,7 @@ class Geofence {
 		if ( ! $within ) {
 			return array(
 				'valid'   => false,
-				'message' => $config['msg_geo_blocked'] ?? __( 'This form is not available in your location.', 'ffcertificate' ),
+				'message' => self::message_or_default( $config, 'msg_geo_blocked', __( 'This form is not available in your location.', 'ffcertificate' ) ),
 				'details' => array(
 					'reason'        => 'outside_allowed_areas',
 					'user_location' => $user_location,
@@ -419,7 +443,7 @@ class Geofence {
 			case 'block':
 				return array(
 					'valid'   => false,
-					'message' => $config['msg_geo_error'] ?? __( 'Location verification failed.', 'ffcertificate' ),
+					'message' => self::message_or_default( $config, 'msg_geo_error', __( 'Location verification failed.', 'ffcertificate' ) ),
 					'details' => array(
 						'reason' => 'ip_fallback_block',
 						'error'  => $error->get_error_message(),
