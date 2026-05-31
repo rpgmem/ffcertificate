@@ -16,6 +16,30 @@
 (function($, FFC) {
     'use strict';
 
+    /**
+     * Write content into the certificate-layout textarea.
+     *
+     * The textarea (#ffc_pdf_layout) is wrapped by WordPress CodeMirror via
+     * ffc-admin-code-editor.js. CodeMirror mirrors its own buffer onto the
+     * textarea on save / submit, but it does NOT pick up direct
+     * `$textarea.val()` writes — the visible editor stays empty even though
+     * a sneaky later read of `.val()` would return the new content. Always
+     * route writes through the CodeMirror API when an instance is mounted.
+     *
+     * @param {jQuery} $textarea The #ffc_pdf_layout jQuery node.
+     * @param {string} content   New textarea content.
+     */
+    function setLayoutContent($textarea, content) {
+        var $cm = $textarea.nextAll('.CodeMirror').first();
+        if ($cm.length && $cm[0].CodeMirror && typeof $cm[0].CodeMirror.setValue === 'function') {
+            $cm[0].CodeMirror.setValue(content);
+            $cm[0].CodeMirror.save();
+        } else {
+            $textarea.val(content);
+        }
+        $textarea.trigger('change');
+    }
+
     // ==========================================================================
     // TEMPLATE MANAGEMENT
     // ==========================================================================
@@ -128,8 +152,7 @@
                 var $htmlField = $('#ffc_pdf_layout');
 
                 if ($htmlField.length) {
-                    $htmlField.val(htmlContent);
-                    $htmlField.trigger('change');
+                    setLayoutContent($htmlField, htmlContent);
                     var successTemplate = strings.templateLoadedSuccess || 'Template "%s" loaded successfully!';
                     var successMsg = successTemplate.replace('%s', displayName || filename);
                     showNotification('✓ ' + successMsg, 'success', 3000);
@@ -193,7 +216,7 @@
                     var $htmlField = $('#ffc_pdf_layout');
 
                     if ($htmlField.length) {
-                        $htmlField.val(e.target.result);
+                        setLayoutContent($htmlField, e.target.result);
                         var successMsg = strings.htmlImportedSuccess || 'HTML imported successfully!';
                         showNotification(successMsg, 'success');
                     } else {
@@ -224,7 +247,7 @@
             var $htmlField = $('#ffc_pdf_layout');
 
             if ($htmlField.length) {
-                $htmlField.val(evt.target.result);
+                setLayoutContent($htmlField, evt.target.result);
                 var successMsg = strings.htmlImportedSuccess || 'HTML imported successfully!';
                 showNotification(successMsg, 'success');
             } else {
@@ -297,7 +320,15 @@
     $(document).on('click', '#ffc_btn_preview', function(e) {
         e.preventDefault();
 
-        var htmlContent = $('#ffc_pdf_layout').val();
+        // Flush the CodeMirror buffer into the textarea before reading so
+        // the preview reflects the latest edits (otherwise the textarea
+        // still carries the page-load value).
+        var $layout = $('#ffc_pdf_layout');
+        var $cm     = $layout.nextAll('.CodeMirror').first();
+        if ($cm.length && $cm[0].CodeMirror && typeof $cm[0].CodeMirror.save === 'function') {
+            $cm[0].CodeMirror.save();
+        }
+        var htmlContent = $layout.val();
         var strings = (typeof ffc_ajax !== 'undefined' && ffc_ajax.strings) ? ffc_ajax.strings : {};
 
         if (!htmlContent || !htmlContent.trim()) {
