@@ -209,7 +209,15 @@ if ( ! defined( 'ABSPATH' ) ) {
 								'name'    => 'ip_api_enabled',
 								'checked' => (bool) $settings['ip_api_enabled'],
 								'label'   => __( 'Enable IP geolocation API for backend validation', 'ffcertificate' ),
-								'data'    => array( 'ffc-autosave-key' => 'ip_api_enabled' ),
+								'data'    => array(
+									'ffc-autosave-key'   => 'ip_api_enabled',
+									// Drives the collapse of the dependent IP-API rows
+									// below (Primary Service, Service Cascade, IPInfo
+									// Key, IP Cache, Cache TTL) and the two
+									// IP-dependent fallback rows further down. See
+									// ffc-section-collapse.js for the markup contract.
+									'ffc-section-master' => 'ip_api_full',
+								),
 							)
 						);
 						?>
@@ -220,7 +228,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 				</tr>
 
 				<!-- API Service Selection -->
-				<tr>
+				<tr data-ffc-section="ip_api_full">
 					<th scope="row">
 						<label for="ffc_ip_api_service"><?php esc_html_e( 'Primary Service', 'ffcertificate' ); ?></label>
 					</th>
@@ -240,7 +248,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 				</tr>
 
 				<!-- Cascade/Fallback Between Services -->
-				<tr>
+				<tr data-ffc-section="ip_api_full">
 					<th scope="row">
 						<label><?php esc_html_e( 'Service Cascade', 'ffcertificate' ); ?></label>
 					</th>
@@ -262,7 +270,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 				</tr>
 
 				<!-- IPInfo API Key -->
-				<tr>
+				<tr data-ffc-section="ip_api_full">
 					<th scope="row">
 						<label for="ffc_ipinfo_api_key"><?php esc_html_e( 'IPInfo.io API Key', 'ffcertificate' ); ?></label>
 					</th>
@@ -281,7 +289,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 				</tr>
 
 				<!-- IP Cache Settings -->
-				<tr>
+				<tr data-ffc-section="ip_api_full">
 					<th scope="row">
 						<label><?php esc_html_e( 'IP Cache', 'ffcertificate' ); ?></label>
 					</th>
@@ -303,7 +311,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 				</tr>
 
 				<!-- Cache TTL -->
-				<tr>
+				<tr data-ffc-section="ip_api_full">
 					<th scope="row">
 						<label for="ffc_ip_cache_ttl"><?php esc_html_e( 'IP Cache Duration (TTL)', 'ffcertificate' ); ?></label>
 					</th>
@@ -364,29 +372,6 @@ if ( ! defined( 'ABSPATH' ) ) {
 			</p>
 
 			<table class="form-table" role="presentation"><tbody>
-				<!-- API Failure Fallback -->
-				<tr>
-					<th scope="row">
-						<label for="ffc_api_fallback"><?php esc_html_e( 'When IP API Fails', 'ffcertificate' ); ?></label>
-					</th>
-					<td>
-						<select name="api_fallback" id="ffc_api_fallback">
-							<option value="allow" <?php selected( $settings['api_fallback'], 'allow' ); ?>>
-								<?php esc_html_e( 'Allow access (assume valid)', 'ffcertificate' ); ?>
-							</option>
-							<option value="block" <?php selected( $settings['api_fallback'], 'block' ); ?>>
-								<?php esc_html_e( 'Block access (assume invalid)', 'ffcertificate' ); ?>
-							</option>
-							<option value="gps_only" <?php selected( $settings['api_fallback'], 'gps_only' ); ?>>
-								<?php esc_html_e( 'Use GPS only (ignore IP validation)', 'ffcertificate' ); ?>
-							</option>
-						</select>
-						<p class="description">
-							<?php esc_html_e( 'What to do when IP geolocation API is unavailable or returns error.', 'ffcertificate' ); ?>
-						</p>
-					</td>
-				</tr>
-
 				<!-- GPS Failure Fallback -->
 				<tr>
 					<th scope="row">
@@ -467,8 +452,31 @@ if ( ! defined( 'ABSPATH' ) ) {
 					</td>
 				</tr>
 
-				<!-- Both Fail Fallback -->
-				<tr>
+				<!-- API Failure Fallback (IP-dependent — collapsed when IP API off). -->
+				<tr data-ffc-section="ip_api_full">
+					<th scope="row">
+						<label for="ffc_api_fallback"><?php esc_html_e( 'When IP API Fails', 'ffcertificate' ); ?></label>
+					</th>
+					<td>
+						<select name="api_fallback" id="ffc_api_fallback">
+							<option value="allow" <?php selected( $settings['api_fallback'], 'allow' ); ?>>
+								<?php esc_html_e( 'Allow access (assume valid)', 'ffcertificate' ); ?>
+							</option>
+							<option value="block" <?php selected( $settings['api_fallback'], 'block' ); ?>>
+								<?php esc_html_e( 'Block access (assume invalid)', 'ffcertificate' ); ?>
+							</option>
+							<option value="gps_only" <?php selected( $settings['api_fallback'], 'gps_only' ); ?>>
+								<?php esc_html_e( 'Use GPS only (ignore IP validation)', 'ffcertificate' ); ?>
+							</option>
+						</select>
+						<p class="description">
+							<?php esc_html_e( 'What to do when IP geolocation API is unavailable or returns error.', 'ffcertificate' ); ?>
+						</p>
+					</td>
+				</tr>
+
+				<!-- Both Fail Fallback (IP-dependent — only meaningful when IP API is on). -->
+				<tr data-ffc-section="ip_api_full">
 					<th scope="row">
 						<label for="ffc_both_fail_fallback"><?php esc_html_e( 'When Both GPS & IP Fail', 'ffcertificate' ); ?></label>
 					</th>
