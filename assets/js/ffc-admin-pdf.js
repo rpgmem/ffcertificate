@@ -63,26 +63,41 @@
         var selectTemplateText = strings.selectTemplate || 'Select a Template';
         var cancelText = strings.cancel || 'Cancel';
 
-        // Criar modal de seleção
-        var modalHtml = '<div id="ffc-template-modal" role="dialog" aria-modal="true" aria-labelledby="ffc-template-modal-title" style="position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.7);z-index:999999;display:flex;align-items:center;justify-content:center;">';
-        modalHtml += '<div style="background:#fff;padding:30px;border-radius:8px;max-width:500px;width:90%;box-shadow:0 4px 20px rgba(0,0,0,0.3);">';
-        modalHtml += '<h2 id="ffc-template-modal-title" style="margin:0 0 20px 0;font-size:20px;">' + selectTemplateText + '</h2>';
-        modalHtml += '<div style="max-height:400px;overflow-y:auto;">';
+        // Build the modal skeleton with static HTML only; every dynamic
+        // value (localized strings, per-template label/value) flows through
+        // jQuery's text() / attr() so meta-characters stay literal. The
+        // earlier `'<div …>' + selectTemplateText + '…'` concatenation
+        // tripped CodeQL's "DOM text reinterpreted as HTML" sink even
+        // though the strings come from wp_localize_script.
+        var $modal = $(
+            '<div id="ffc-template-modal" role="dialog" aria-modal="true" aria-labelledby="ffc-template-modal-title" style="position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.7);z-index:999999;display:flex;align-items:center;justify-content:center;">' +
+                '<div style="background:#fff;padding:30px;border-radius:8px;max-width:500px;width:90%;box-shadow:0 4px 20px rgba(0,0,0,0.3);">' +
+                    '<h2 id="ffc-template-modal-title" style="margin:0 0 20px 0;font-size:20px;"></h2>' +
+                    '<div class="ffc-template-list" style="max-height:400px;overflow-y:auto;"></div>' +
+                    '<div style="margin-top:20px;text-align:right;">' +
+                        '<button id="ffc-modal-cancel" class="button" style="margin-right:10px;"></button>' +
+                    '</div>' +
+                '</div>' +
+            '</div>'
+        );
+        $modal.find('#ffc-template-modal-title').text(selectTemplateText);
+        $modal.find('#ffc-modal-cancel').text(cancelText);
 
+        var $list = $modal.find('.ffc-template-list');
         templates.forEach(function(template) {
-            modalHtml += '<div class="ffc-template-option" data-file="' + template.value + '" style="padding:15px;margin:10px 0;border:2px solid #ddd;border-radius:4px;cursor:pointer;transition:all 0.2s;">';
-            modalHtml += '<strong style="font-size:16px;">' + template.label + '</strong>';
-            modalHtml += '<div style="color:#666;font-size:13px;margin-top:5px;">' + template.value + '</div>';
-            modalHtml += '</div>';
+            var $opt = $(
+                '<div class="ffc-template-option" style="padding:15px;margin:10px 0;border:2px solid #ddd;border-radius:4px;cursor:pointer;transition:all 0.2s;">' +
+                    '<strong style="font-size:16px;"></strong>' +
+                    '<div style="color:#666;font-size:13px;margin-top:5px;"></div>' +
+                '</div>'
+            );
+            $opt.attr('data-file', template.value);
+            $opt.find('strong').text(template.label);
+            $opt.find('div').text(template.value);
+            $list.append($opt);
         });
 
-        modalHtml += '</div>';
-        modalHtml += '<div style="margin-top:20px;text-align:right;">';
-        modalHtml += '<button id="ffc-modal-cancel" class="button" style="margin-right:10px;">' + cancelText + '</button>';
-        modalHtml += '</div>';
-        modalHtml += '</div></div>';
-
-        $('body').append(modalHtml);
+        $('body').append($modal);
 
         // Hover effect
         $('.ffc-template-option').hover(
