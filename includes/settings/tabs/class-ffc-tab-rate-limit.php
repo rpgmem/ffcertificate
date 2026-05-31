@@ -156,7 +156,16 @@ class TabRateLimit extends SettingsTab {
 				),
 			),
 		);
-		return wp_parse_args( get_option( 'ffc_rate_limit_settings', array() ), $defaults );
+		// wp_parse_args only merges TOP-LEVEL keys; with the nested
+		// {ip,email,cpf,global,read,device,whitelist,blacklist,logging,ui}
+		// groups the stored array shadows entire sub-arrays when a
+		// pre-existing install was saved before a new field was added
+		// (e.g. legacy `ip => ['enabled' => true]` would wipe out
+		// max_per_hour / max_per_day / cooldown_seconds / message). Use
+		// array_replace_recursive so missing leaves fall through to the
+		// defaults without losing operator-customised values.
+		$stored = get_option( 'ffc_rate_limit_settings', array() );
+		return is_array( $stored ) ? array_replace_recursive( $defaults, $stored ) : $defaults;
 	}
 
 	/**

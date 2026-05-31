@@ -193,9 +193,10 @@ describe('ffc-admin-pdf.js — preview button', () => {
 		expect(modal).not.toBeNull();
 		const iframe = modal.querySelector('iframe');
 		expect(iframe).not.toBeNull();
-		// The iframe content is written via document.write(), so query the
-		// iframe's own document tree.
-		const body = iframe.contentDocument.body;
+		// jsdom doesn't synchronously paint the srcdoc into contentDocument,
+		// so assert on the attribute directly — it carries the same iframeHtml
+		// the implementation wrote.
+		const body = { innerHTML: iframe.getAttribute('srcdoc') || '' };
 		expect(body.innerHTML).toContain('Test Form');
 		// {{name}} → "John Doe" from the hardcoded sample catalog.
 		expect(body.innerHTML).toContain('John Doe');
@@ -209,7 +210,10 @@ describe('ffc-admin-pdf.js — preview button', () => {
 		window.$('#ffc_btn_preview').trigger('click');
 
 		const iframe = document.querySelector('#ffc-preview-modal iframe');
-		const body = iframe.contentDocument.body;
+		// jsdom doesn't synchronously paint the srcdoc into contentDocument,
+		// so assert on the attribute directly — it carries the same iframeHtml
+		// the implementation wrote.
+		const body = { innerHTML: iframe.getAttribute('srcdoc') || '' };
 		expect(body.innerHTML).toContain('Centro');
 		expect(body.innerHTML).toContain('Sample Site');
 		expect(body.innerHTML).not.toContain('{{bairro}}');
@@ -227,7 +231,10 @@ describe('ffc-admin-pdf.js — preview button', () => {
 		window.$('#ffc_btn_preview').trigger('click');
 
 		const iframe = document.querySelector('#ffc-preview-modal iframe');
-		const body = iframe.contentDocument.body;
+		// jsdom doesn't synchronously paint the srcdoc into contentDocument,
+		// so assert on the attribute directly — it carries the same iframeHtml
+		// the implementation wrote.
+		const body = { innerHTML: iframe.getAttribute('srcdoc') || '' };
 		expect(body.innerHTML).toContain('John Doe');
 		expect(body.innerHTML).toContain('Curso de Exemplo');
 	});
@@ -238,7 +245,10 @@ describe('ffc-admin-pdf.js — preview button', () => {
 		window.$('#ffc_btn_preview').trigger('click');
 
 		const iframe = document.querySelector('#ffc-preview-modal iframe');
-		const body = iframe.contentDocument.body;
+		// jsdom doesn't synchronously paint the srcdoc into contentDocument,
+		// so assert on the attribute directly — it carries the same iframeHtml
+		// the implementation wrote.
+		const body = { innerHTML: iframe.getAttribute('srcdoc') || '' };
 		expect(body.innerHTML).toContain('<svg');
 		expect(body.innerHTML).toContain('QR Code');
 	});
