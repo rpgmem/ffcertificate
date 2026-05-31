@@ -349,6 +349,18 @@ class FormEditorGeofenceMetabox {
 	public function render_geolocation( WP_Post $post ): void {
 		$config = $this->get_config( $post );
 
+		// Global IP-geolocation kill-switch (Settings → Geolocation). When
+		// off, the form-level IP toggle below is rendered disabled — the
+		// runtime IP integration short-circuits anyway (see
+		// FFC_IP_Geolocation::lookup, which bails when this flag is
+		// falsy), so allowing the form-level toggle to be flipped on
+		// would silently produce an inert configuration. Read the
+		// `ffc_geolocation_settings` option directly because that's where
+		// the global flag lives — SettingsReader is scoped to
+		// `ffc_settings` and would always return false here.
+		$ffc_geo_settings      = get_option( 'ffc_geolocation_settings', array() );
+		$global_ip_api_enabled = is_array( $ffc_geo_settings ) && ! empty( $ffc_geo_settings['ip_api_enabled'] );
+
 		$geo_enabled              = ( $config['geo_enabled'] ?? '0' ) === '1' ? '1' : '0';
 		$geo_gps_enabled          = ( $config['geo_gps_enabled'] ?? '0' ) === '1' ? '1' : '0';
 		$geo_ip_enabled           = ( $config['geo_ip_enabled'] ?? '0' ) === '1' ? '1' : '0';
@@ -419,13 +431,26 @@ class FormEditorGeofenceMetabox {
 						<?php
 						\FreeFormCertificate\Admin\AdminUI::render_toggle(
 							array(
-								'name'    => 'ffc_geofence[geo_ip_enabled]',
-								'id'      => 'ffc_geofence_geo_ip_enabled',
-								'checked' => '1' === (string) $geo_ip_enabled,
-								'label'   => __( 'IP Address (backend validation)', 'ffcertificate' ),
+								'name'     => 'ffc_geofence[geo_ip_enabled]',
+								'id'       => 'ffc_geofence_geo_ip_enabled',
+								'checked'  => '1' === (string) $geo_ip_enabled,
+								'disabled' => ! $global_ip_api_enabled,
+								'label'    => __( 'IP Address (backend validation)', 'ffcertificate' ),
 							)
 						);
 						?>
+						<?php if ( ! $global_ip_api_enabled ) : ?>
+							<p class="description ffc-text-warning ffc-icon-warning">
+								<?php
+								$ffc_geo_settings_url = admin_url( 'admin.php?page=ffc-settings&tab=geolocation' );
+								printf(
+									/* translators: %s: link to the global geolocation settings page */
+									esc_html__( 'IP geolocation is disabled globally. Enable it in %s to allow IP-based validation here.', 'ffcertificate' ),
+									'<a href="' . esc_url( $ffc_geo_settings_url ) . '">' . esc_html__( 'Settings → Geolocation', 'ffcertificate' ) . '</a>'
+								);
+								?>
+							</p>
+						<?php endif; ?>
 						<p class="description"><?php esc_html_e( 'Choose one or both methods. GPS is more accurate but requires user permission.', 'ffcertificate' ); ?></p>
 					</td>
 				</tr>
