@@ -915,6 +915,20 @@ p.ffc-datetime-order-error {
 }
 
 /* =========================================================================
+ * Geofence (Time / Geolocation) cards span the panel.
+ *
+ * The Time and Geolocation tabs group their sections into WP-core `.card`
+ * blocks. Core ships `.card { max-width: 520px }`, which leaves a wide
+ * empty gutter inside the form-editor panel. Scope an override to the
+ * geofence container so the cards fill the available width without
+ * touching the settings-page cards (which keep the core width on purpose).
+ * ========================================================================= */
+.ffc-geofence-container .card {
+	max-width: 100%;
+	box-sizing: border-box;
+}
+
+/* =========================================================================
  * Form-editor vertical tabs (WooCommerce "Product data" style).
  *
  * The seven content sections render inside one wrapper metabox: a vertical
