@@ -42,12 +42,23 @@ class CertificatePreviewSamples {
 	 * them specially: `{{qr_code…}}` (rendered as a placeholder SVG) and
 	 * `{{validation_url…}}` (rendered as a sample link).
 	 *
+	 * When `$form_id` is provided the `schedule` / `schedule_total` slots
+	 * are resolved from that form's geofence config (Class Schedule first,
+	 * then Time Range) instead of the hardcoded fallback — mirrors
+	 * {@see PdfGenerator::resolve_effective_schedule()} so the preview
+	 * reflects what the real PDF would render for a submission on this
+	 * form. Forms without either time range fall back to the sample
+	 * `08:00 – 17:30` shown in the variables docs.
+	 *
+	 * @param int|null $form_id Optional form post ID for per-form schedule lookup.
 	 * @return array<string, string> Placeholder name (no braces) → sample value.
 	 */
-	public static function get_map(): array {
+	public static function get_map( ?int $form_id = null ): array {
 		$now      = time();
 		$today    = DateFormatter::format_date( $now, 'pdf' );
 		$now_full = DateFormatter::format_datetime( $now, 'pdf' );
+
+		list( $schedule, $schedule_total ) = self::resolve_schedule_sample( $form_id );
 
 		return array(
 			// Identity.
@@ -121,10 +132,58 @@ class CertificatePreviewSamples {
 
 			// Effective wall-clock schedule (resolved by PdfGenerator via
 			// per-submission "Schedule Exception" → form-level Class
-			// Schedule → form Time Range — see #366 Sprint 7). Sample
-			// matches the value shown in the §2 docs row.
-			'schedule'                 => '08:00 – 17:30',
-			'schedule_total'           => '9h 30min',
+			// Schedule → form Time Range — see #366 Sprint 7). When a
+			// form ID is passed to get_map(), self::resolve_schedule_sample()
+			// reads the same Class/Time configuration the generator does,
+			// so the preview reflects the operator's actual setting instead
+			// of a static value (#bug-schedule). Sample fallback matches
+			// the §2 docs row.
+			'schedule'                 => $schedule,
+			'schedule_total'           => $schedule_total,
+		);
+	}
+
+	/**
+	 * Look up `{{schedule}}` / `{{schedule_total}}` sample values from the
+	 * given form's geofence config — the same chain
+	 * {@see PdfGenerator::resolve_effective_schedule()} uses on real PDF
+	 * renders. Falls back to the docs-row sample when no form ID is
+	 * passed or the form has no time range configured at all.
+	 *
+	 * @param int|null $form_id Form post ID, or null to skip the lookup.
+	 * @return array{0: string, 1: string} [schedule, schedule_total].
+	 */
+	private static function resolve_schedule_sample( ?int $form_id ): array {
+		if ( null === $form_id || $form_id <= 0 ) {
+			return array( '08:00 – 17:30', '9h 30min' );
+		}
+
+		$geofence = get_post_meta( $form_id, '_ffc_geofence_config', true );
+		if ( ! is_array( $geofence ) ) {
+			return array( '08:00 – 17:30', '9h 30min' );
+		}
+
+		$start = '';
+		if ( ! empty( $geofence['class_time_start'] ) ) {
+			$start = (string) $geofence['class_time_start'];
+		} elseif ( ! empty( $geofence['time_start'] ) ) {
+			$start = (string) $geofence['time_start'];
+		}
+
+		$end = '';
+		if ( ! empty( $geofence['class_time_end'] ) ) {
+			$end = (string) $geofence['class_time_end'];
+		} elseif ( ! empty( $geofence['time_end'] ) ) {
+			$end = (string) $geofence['time_end'];
+		}
+
+		if ( '' === $start || '' === $end ) {
+			return array( '08:00 – 17:30', '9h 30min' );
+		}
+
+		return array(
+			DateFormatter::format_schedule( $start, $end ),
+			DateFormatter::format_schedule_total( $start, $end ),
 		);
 	}
 }

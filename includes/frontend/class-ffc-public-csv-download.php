@@ -504,8 +504,10 @@ class PublicCsvDownload {
 				'fields'         => $field_names,
 				// Canonical placeholder → sample-value map (single source of
 				// truth) so the preview fills system placeholders, not just
-				// the form's own fields.
-				'previewSamples' => \FreeFormCertificate\Core\CertificatePreviewSamples::get_map(),
+				// the form's own fields. Pass $form_id so the {{schedule}}
+				// sample matches what the operator configured on the form's
+				// Time tab — same lookup the real PDF generator uses.
+				'previewSamples' => \FreeFormCertificate\Core\CertificatePreviewSamples::get_map( $form_id ),
 			)
 		);
 	}
