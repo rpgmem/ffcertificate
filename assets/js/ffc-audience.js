@@ -108,13 +108,18 @@
      * Bind event handlers
      */
     function bindEvents() {
-        // Navigation
+        // Navigation. We anchor to day-1 before adjusting the month so JS's
+        // Date overflow (e.g. May 31 → setMonth(3) rolls forward to May 1
+        // because April has only 30 days) doesn't strand the calendar on
+        // the same month it started on.
         $('.ffc-prev-month').on('click', function() {
+            state.currentDate.setDate(1);
             state.currentDate.setMonth(state.currentDate.getMonth() - 1);
             renderCalendar();
         });
 
         $('.ffc-next-month').on('click', function() {
+            state.currentDate.setDate(1);
             state.currentDate.setMonth(state.currentDate.getMonth() + 1);
             renderCalendar();
         });
