@@ -109,175 +109,179 @@ class FormEditorGeofenceMetabox {
 		<div class="ffc-geofence-container">
 			<!-- Sentinel: ensures ffc_geofence is always in POST even when all fields are disabled -->
 			<input type="hidden" name="ffc_geofence[_save]" value="1">
-			<table class="form-table">
-				<tbody class="ffc-event-schedule-section">
-				<tr>
-					<th colspan="2">
-						<h3 class="ffc-subsection-title"><?php esc_html_e( 'Event Schedule (Reference)', 'ffcertificate' ); ?></h3>
-						<p class="description ffc-subsection-description">
-							<?php esc_html_e( "When does this event take place? Renders as {{schedule}} on the certificate template (e.g. '9h às 12h'). When filled, the template must contain {{schedule}} — the form save will be blocked until the placeholder is present.", 'ffcertificate' ); ?>
-						</p>
-					</th>
-				</tr>
-				<tr>
-					<th><label><?php esc_html_e( 'From — To', 'ffcertificate' ); ?></label></th>
-					<td>
-						<label><?php esc_html_e( 'From:', 'ffcertificate' ); ?> <input type="time" name="ffc_geofence[class_time_start]" value="<?php echo esc_attr( $class_time_start ); ?>"<?php echo $invalid_attr( 'class_time_start' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- closure returns pre-built class attribute. ?>></label>
-						&nbsp;&nbsp;
-						<label><?php esc_html_e( 'To:', 'ffcertificate' ); ?> <input type="time" name="ffc_geofence[class_time_end]" value="<?php echo esc_attr( $class_time_end ); ?>"<?php echo $invalid_attr( 'class_time_end' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>></label>
-					</td>
-				</tr>
-				</tbody>
-				<tbody>
-				<tr>
-					<th><label><?php esc_html_e( 'Enable Date/Time Restrictions', 'ffcertificate' ); ?></label></th>
-					<td>
-						<?php
-						\FreeFormCertificate\Admin\AdminUI::render_toggle(
-							array(
-								'name'    => 'ffc_geofence[datetime_enabled]',
-								'id'      => 'ffc_geofence_datetime_enabled',
-								'checked' => '1' === (string) $datetime_enabled,
-								'label'   => __( 'Restrict form access by date and time', 'ffcertificate' ),
-								'data'    => array( 'ffc-autosave-form-key' => 'geofence_datetime_enabled' ),
-							)
-						);
-						?>
-						<p class="description"><?php esc_html_e( 'Control when users can access this form based on date range and daily hours.', 'ffcertificate' ); ?></p>
-					</td>
-				</tr>
-				</tbody>
-				<tbody class="ffc-collapsed-target<?php echo '1' === $datetime_enabled ? '' : ' ffc-collapsed'; ?>"
-					data-ffc-master="ffc_geofence_datetime_enabled"
-					aria-hidden="<?php echo '1' === $datetime_enabled ? 'false' : 'true'; ?>">
-				<tr>
-					<th><label><?php esc_html_e( 'Date Range', 'ffcertificate' ); ?></label></th>
-					<td>
-						<label><?php esc_html_e( 'Start:', 'ffcertificate' ); ?> <input type="date" name="ffc_geofence[date_start]" value="<?php echo esc_attr( $date_start ); ?>"<?php echo $invalid_attr( 'date_start' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- closure returns pre-built class attribute. ?>></label>
-						&nbsp;&nbsp;
-						<label><?php esc_html_e( 'End:', 'ffcertificate' ); ?> <input type="date" name="ffc_geofence[date_end]" value="<?php echo esc_attr( $date_end ); ?>"<?php echo $invalid_attr( 'date_end' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>></label>
-						<p class="description"><?php esc_html_e( 'Leave empty for no date restriction. Format: YYYY-MM-DD', 'ffcertificate' ); ?></p>
-						<p class="description ffc-datetime-order-error"<?php echo $datetime_order_msg ? '' : ' style="display:none;"'; ?>>
-							<?php echo esc_html( $datetime_order_msg ); ?>
-						</p>
-					</td>
-				</tr>
-				<tr>
-					<th><label><?php esc_html_e( 'Time Range', 'ffcertificate' ); ?></label></th>
-					<td>
-						<label><?php esc_html_e( 'From:', 'ffcertificate' ); ?> <input type="time" name="ffc_geofence[time_start]" value="<?php echo esc_attr( $time_start ); ?>"<?php echo $invalid_attr( 'time_start' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>></label>
-						&nbsp;&nbsp;
-						<label><?php esc_html_e( 'To:', 'ffcertificate' ); ?> <input type="time" name="ffc_geofence[time_end]" value="<?php echo esc_attr( $time_end ); ?>"<?php echo $invalid_attr( 'time_end' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>></label>
-						<p class="description"><?php esc_html_e( 'Leave empty for 24/7 access. Default: 00:00 to 23:59', 'ffcertificate' ); ?></p>
-					</td>
-				</tr>
-				<tr id="ffc-time-mode-row">
-					<th><label><?php esc_html_e( 'Time Behavior', 'ffcertificate' ); ?></label></th>
-					<td>
-						<fieldset>
-							<label>
-								<input type="radio" name="ffc_geofence[time_mode]" value="span" <?php checked( $time_mode, 'span' ); ?>>
-								<strong><?php esc_html_e( 'Time spans across dates', 'ffcertificate' ); ?></strong>
-							</label>
-							<p class="description ffc-time-description">
-								<?php esc_html_e( 'Start time applies to start date, end time applies to end date. Form is open continuously between those timestamps.', 'ffcertificate' ); ?><br>
-								<?php esc_html_e( 'Example: Start 01/01 12:00 + End 10/01 23:00 = Open from 12:00 on Jan 1st until 23:00 on Jan 10th', 'ffcertificate' ); ?>
-							</p>
 
-							<label>
-								<input type="radio" name="ffc_geofence[time_mode]" value="daily" <?php checked( $time_mode, 'daily' ); ?>>
-								<strong><?php esc_html_e( 'Time applies to each day individually', 'ffcertificate' ); ?></strong>
-							</label>
-							<p class="description ffc-time-description">
-								<?php esc_html_e( 'Time range applies to every day in the date range. Form respects daily hours.', 'ffcertificate' ); ?><br>
-								<?php esc_html_e( 'Example: Start 01/01 + End 10/01 + Time 12:00-23:00 = Open 12:00-23:00 every day from Jan 1-10', 'ffcertificate' ); ?>
+			<div class="card ffc-event-schedule-section">
+				<h2 class="ffc-icon-calendar"><?php esc_html_e( 'Event Schedule (Reference)', 'ffcertificate' ); ?></h2>
+				<p class="description">
+					<?php esc_html_e( "When does this event take place? Renders as {{schedule}} on the certificate template (e.g. '9h às 12h'). When filled, the template must contain {{schedule}} — the form save will be blocked until the placeholder is present.", 'ffcertificate' ); ?>
+				</p>
+				<table class="form-table" role="presentation"><tbody>
+					<tr>
+						<th><label><?php esc_html_e( 'From — To', 'ffcertificate' ); ?></label></th>
+						<td>
+							<label><?php esc_html_e( 'From:', 'ffcertificate' ); ?> <input type="time" name="ffc_geofence[class_time_start]" value="<?php echo esc_attr( $class_time_start ); ?>"<?php echo $invalid_attr( 'class_time_start' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- closure returns pre-built class attribute. ?>></label>
+							&nbsp;&nbsp;
+							<label><?php esc_html_e( 'To:', 'ffcertificate' ); ?> <input type="time" name="ffc_geofence[class_time_end]" value="<?php echo esc_attr( $class_time_end ); ?>"<?php echo $invalid_attr( 'class_time_end' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>></label>
+						</td>
+					</tr>
+				</tbody></table>
+			</div>
+
+			<div class="card">
+				<h2 class="ffc-icon-lock"><?php esc_html_e( 'Date/Time Restrictions', 'ffcertificate' ); ?></h2>
+				<table class="form-table" role="presentation">
+					<tbody>
+					<tr>
+						<th><label><?php esc_html_e( 'Enable Date/Time Restrictions', 'ffcertificate' ); ?></label></th>
+						<td>
+							<?php
+							\FreeFormCertificate\Admin\AdminUI::render_toggle(
+								array(
+									'name'    => 'ffc_geofence[datetime_enabled]',
+									'id'      => 'ffc_geofence_datetime_enabled',
+									'checked' => '1' === (string) $datetime_enabled,
+									'label'   => __( 'Restrict form access by date and time', 'ffcertificate' ),
+									'data'    => array( 'ffc-autosave-form-key' => 'geofence_datetime_enabled' ),
+								)
+							);
+							?>
+							<p class="description"><?php esc_html_e( 'Control when users can access this form based on date range and daily hours.', 'ffcertificate' ); ?></p>
+						</td>
+					</tr>
+					</tbody>
+					<tbody class="ffc-collapsed-target<?php echo '1' === $datetime_enabled ? '' : ' ffc-collapsed'; ?>"
+						data-ffc-master="ffc_geofence_datetime_enabled"
+						aria-hidden="<?php echo '1' === $datetime_enabled ? 'false' : 'true'; ?>">
+					<tr>
+						<th><label><?php esc_html_e( 'Date Range', 'ffcertificate' ); ?></label></th>
+						<td>
+							<label><?php esc_html_e( 'Start:', 'ffcertificate' ); ?> <input type="date" name="ffc_geofence[date_start]" value="<?php echo esc_attr( $date_start ); ?>"<?php echo $invalid_attr( 'date_start' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- closure returns pre-built class attribute. ?>></label>
+							&nbsp;&nbsp;
+							<label><?php esc_html_e( 'End:', 'ffcertificate' ); ?> <input type="date" name="ffc_geofence[date_end]" value="<?php echo esc_attr( $date_end ); ?>"<?php echo $invalid_attr( 'date_end' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>></label>
+							<p class="description"><?php esc_html_e( 'Leave empty for no date restriction. Format: YYYY-MM-DD', 'ffcertificate' ); ?></p>
+							<p class="description ffc-datetime-order-error"<?php echo $datetime_order_msg ? '' : ' style="display:none;"'; ?>>
+								<?php echo esc_html( $datetime_order_msg ); ?>
 							</p>
-						</fieldset>
-					</td>
-				</tr>
-				<tr>
-					<th><label for="ffc_datetime_hide_mode_before"><?php esc_html_e( 'Display before opening', 'ffcertificate' ); ?></label></th>
-					<td>
-						<select id="ffc_datetime_hide_mode_before" name="ffc_geofence[datetime_hide_mode_before]">
-							<option value="message" <?php selected( $datetime_hide_mode_before, 'message' ); ?>><?php esc_html_e( 'Show blocked message (Recommended)', 'ffcertificate' ); ?></option>
-							<option value="title_message" <?php selected( $datetime_hide_mode_before, 'title_message' ); ?>><?php esc_html_e( 'Show title + description + message', 'ffcertificate' ); ?></option>
-							<option value="hide" <?php selected( $datetime_hide_mode_before, 'hide' ); ?>><?php esc_html_e( 'Hide form completely', 'ffcertificate' ); ?></option>
-						</select>
-						<p class="description"><?php esc_html_e( 'How to display the form before the start date / start time. "Hide form completely" makes the page render as if the form did not exist yet.', 'ffcertificate' ); ?></p>
-					</td>
-				</tr>
-				<tr id="ffc-datetime-hide-mode-during-row" class="ffc-datetime-hide-during"<?php echo 'daily' === $time_mode ? '' : ' style="display:none;"'; ?>>
-					<th><label for="ffc_datetime_hide_mode_during"><?php esc_html_e( 'Display during, outside daily slot', 'ffcertificate' ); ?></label></th>
-					<td>
-						<select id="ffc_datetime_hide_mode_during" name="ffc_geofence[datetime_hide_mode_during]">
-							<option value="message" <?php selected( $datetime_hide_mode_during, 'message' ); ?>><?php esc_html_e( 'Show blocked message (Recommended)', 'ffcertificate' ); ?></option>
-							<option value="title_message" <?php selected( $datetime_hide_mode_during, 'title_message' ); ?>><?php esc_html_e( 'Show title + description + message', 'ffcertificate' ); ?></option>
-							<option value="hide" <?php selected( $datetime_hide_mode_during, 'hide' ); ?>><?php esc_html_e( 'Hide form completely', 'ffcertificate' ); ?></option>
-						</select>
-						<p class="description"><?php esc_html_e( 'How to display the form when the campaign is in its date range but the current time is outside today\'s daily slot (only used in Time Behavior = "applies to each day individually").', 'ffcertificate' ); ?></p>
-					</td>
-				</tr>
-				<tr>
-					<th><label for="ffc_datetime_hide_mode_after"><?php esc_html_e( 'Display after closing', 'ffcertificate' ); ?></label></th>
-					<td>
-						<select id="ffc_datetime_hide_mode_after" name="ffc_geofence[datetime_hide_mode_after]">
-							<option value="message" <?php selected( $datetime_hide_mode_after, 'message' ); ?>><?php esc_html_e( 'Show blocked message (Recommended)', 'ffcertificate' ); ?></option>
-							<option value="title_message" <?php selected( $datetime_hide_mode_after, 'title_message' ); ?>><?php esc_html_e( 'Show title + description + message', 'ffcertificate' ); ?></option>
-							<option value="hide" <?php selected( $datetime_hide_mode_after, 'hide' ); ?>><?php esc_html_e( 'Hide form completely', 'ffcertificate' ); ?></option>
-						</select>
-						<p class="description"><?php esc_html_e( 'How to display the form after the end date / end time.', 'ffcertificate' ); ?></p>
-					</td>
-				</tr>
-				<tr>
-					<th><label><?php esc_html_e( 'Blocked Message', 'ffcertificate' ); ?></label></th>
-					<td>
-						<textarea name="ffc_geofence[msg_datetime]" rows="3" class="ffc-w100"><?php echo esc_textarea( $msg_datetime ); ?></textarea>
-						<p class="description"><?php esc_html_e( 'Message shown when form is accessed outside allowed date/time.', 'ffcertificate' ); ?></p>
-					</td>
-				</tr>
-				</tbody>
-				<tbody class="ffc-schedule-exception-section">
-				<tr>
-					<th colspan="2">
-						<h3 class="ffc-subsection-title"><?php esc_html_e( 'Per-participant entry/exit exception', 'ffcertificate' ); ?></h3>
-						<p class="description ffc-subsection-description">
-							<?php esc_html_e( 'Optional. Lets an authenticated operator on the public CSV-download panel create a single submission with a different schedule (e.g. for a participant who left early), overriding the Event Schedule above for that one submission. Independent of the date/time restrictions toggle above.', 'ffcertificate' ); ?>
-						</p>
-					</th>
-				</tr>
-				<tr>
-					<th><label><?php esc_html_e( 'Enable Schedule Exception', 'ffcertificate' ); ?></label></th>
-					<td>
-						<?php
-						\FreeFormCertificate\Admin\AdminUI::render_toggle(
-							array(
-								'name'    => 'ffc_geofence[schedule_exception_enabled]',
-								'id'      => 'ffc_geofence_schedule_exception_enabled',
-								'checked' => '1' === (string) $schedule_exception_enabled,
-								'label'   => __( 'Allow operators to create per-submission schedule exceptions', 'ffcertificate' ),
-								'data'    => array( 'ffc-autosave-form-key' => 'geofence_schedule_exception_enabled' ),
-							)
-						);
-						?>
-						<p class="description"><?php esc_html_e( 'Off by default. When on, the public CSV-download panel shows an "Entry/exit exception" button to authenticated operators.', 'ffcertificate' ); ?></p>
-					</td>
-				</tr>
-				</tbody>
-				<tbody class="ffc-collapsed-target<?php echo '1' === $schedule_exception_enabled ? '' : ' ffc-collapsed'; ?>"
-					data-ffc-master="ffc_geofence_schedule_exception_enabled"
-					aria-hidden="<?php echo '1' === $schedule_exception_enabled ? 'false' : 'true'; ?>">
-				<tr>
-					<th><label for="ffc_geofence_schedule_default_mode"><?php esc_html_e( 'Default Modal Mode', 'ffcertificate' ); ?></label></th>
-					<td>
-						<select id="ffc_geofence_schedule_default_mode" name="ffc_geofence[schedule_default_mode]">
-							<option value="now" <?php selected( $schedule_default_mode, 'now' ); ?>><?php esc_html_e( 'Now — pre-fill end time with the current moment', 'ffcertificate' ); ?></option>
-							<option value="manual" <?php selected( $schedule_default_mode, 'manual' ); ?>><?php esc_html_e( 'Manual — let the operator type both ends', 'ffcertificate' ); ?></option>
-						</select>
-						<p class="description"><?php esc_html_e( 'Which mode the operator exception modal opens in by default. Operators can flip the toggle on a per-exception basis.', 'ffcertificate' ); ?></p>
-					</td>
-				</tr>
-				</tbody>
-			</table>
+						</td>
+					</tr>
+					<tr>
+						<th><label><?php esc_html_e( 'Time Range', 'ffcertificate' ); ?></label></th>
+						<td>
+							<label><?php esc_html_e( 'From:', 'ffcertificate' ); ?> <input type="time" name="ffc_geofence[time_start]" value="<?php echo esc_attr( $time_start ); ?>"<?php echo $invalid_attr( 'time_start' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>></label>
+							&nbsp;&nbsp;
+							<label><?php esc_html_e( 'To:', 'ffcertificate' ); ?> <input type="time" name="ffc_geofence[time_end]" value="<?php echo esc_attr( $time_end ); ?>"<?php echo $invalid_attr( 'time_end' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>></label>
+							<p class="description"><?php esc_html_e( 'Leave empty for 24/7 access. Default: 00:00 to 23:59', 'ffcertificate' ); ?></p>
+						</td>
+					</tr>
+					<tr id="ffc-time-mode-row">
+						<th><label><?php esc_html_e( 'Time Behavior', 'ffcertificate' ); ?></label></th>
+						<td>
+							<fieldset>
+								<label>
+									<input type="radio" name="ffc_geofence[time_mode]" value="span" <?php checked( $time_mode, 'span' ); ?>>
+									<strong><?php esc_html_e( 'Time spans across dates', 'ffcertificate' ); ?></strong>
+								</label>
+								<p class="description ffc-time-description">
+									<?php esc_html_e( 'Start time applies to start date, end time applies to end date. Form is open continuously between those timestamps.', 'ffcertificate' ); ?><br>
+									<?php esc_html_e( 'Example: Start 01/01 12:00 + End 10/01 23:00 = Open from 12:00 on Jan 1st until 23:00 on Jan 10th', 'ffcertificate' ); ?>
+								</p>
+
+								<label>
+									<input type="radio" name="ffc_geofence[time_mode]" value="daily" <?php checked( $time_mode, 'daily' ); ?>>
+									<strong><?php esc_html_e( 'Time applies to each day individually', 'ffcertificate' ); ?></strong>
+								</label>
+								<p class="description ffc-time-description">
+									<?php esc_html_e( 'Time range applies to every day in the date range. Form respects daily hours.', 'ffcertificate' ); ?><br>
+									<?php esc_html_e( 'Example: Start 01/01 + End 10/01 + Time 12:00-23:00 = Open 12:00-23:00 every day from Jan 1-10', 'ffcertificate' ); ?>
+								</p>
+							</fieldset>
+						</td>
+					</tr>
+					<tr>
+						<th><label for="ffc_datetime_hide_mode_before"><?php esc_html_e( 'Display before opening', 'ffcertificate' ); ?></label></th>
+						<td>
+							<select id="ffc_datetime_hide_mode_before" name="ffc_geofence[datetime_hide_mode_before]">
+								<option value="message" <?php selected( $datetime_hide_mode_before, 'message' ); ?>><?php esc_html_e( 'Show blocked message (Recommended)', 'ffcertificate' ); ?></option>
+								<option value="title_message" <?php selected( $datetime_hide_mode_before, 'title_message' ); ?>><?php esc_html_e( 'Show title + description + message', 'ffcertificate' ); ?></option>
+								<option value="hide" <?php selected( $datetime_hide_mode_before, 'hide' ); ?>><?php esc_html_e( 'Hide form completely', 'ffcertificate' ); ?></option>
+							</select>
+							<p class="description"><?php esc_html_e( 'How to display the form before the start date / start time. "Hide form completely" makes the page render as if the form did not exist yet.', 'ffcertificate' ); ?></p>
+						</td>
+					</tr>
+					<tr id="ffc-datetime-hide-mode-during-row" class="ffc-datetime-hide-during"<?php echo 'daily' === $time_mode ? '' : ' style="display:none;"'; ?>>
+						<th><label for="ffc_datetime_hide_mode_during"><?php esc_html_e( 'Display during, outside daily slot', 'ffcertificate' ); ?></label></th>
+						<td>
+							<select id="ffc_datetime_hide_mode_during" name="ffc_geofence[datetime_hide_mode_during]">
+								<option value="message" <?php selected( $datetime_hide_mode_during, 'message' ); ?>><?php esc_html_e( 'Show blocked message (Recommended)', 'ffcertificate' ); ?></option>
+								<option value="title_message" <?php selected( $datetime_hide_mode_during, 'title_message' ); ?>><?php esc_html_e( 'Show title + description + message', 'ffcertificate' ); ?></option>
+								<option value="hide" <?php selected( $datetime_hide_mode_during, 'hide' ); ?>><?php esc_html_e( 'Hide form completely', 'ffcertificate' ); ?></option>
+							</select>
+							<p class="description"><?php esc_html_e( 'How to display the form when the campaign is in its date range but the current time is outside today\'s daily slot (only used in Time Behavior = "applies to each day individually").', 'ffcertificate' ); ?></p>
+						</td>
+					</tr>
+					<tr>
+						<th><label for="ffc_datetime_hide_mode_after"><?php esc_html_e( 'Display after closing', 'ffcertificate' ); ?></label></th>
+						<td>
+							<select id="ffc_datetime_hide_mode_after" name="ffc_geofence[datetime_hide_mode_after]">
+								<option value="message" <?php selected( $datetime_hide_mode_after, 'message' ); ?>><?php esc_html_e( 'Show blocked message (Recommended)', 'ffcertificate' ); ?></option>
+								<option value="title_message" <?php selected( $datetime_hide_mode_after, 'title_message' ); ?>><?php esc_html_e( 'Show title + description + message', 'ffcertificate' ); ?></option>
+								<option value="hide" <?php selected( $datetime_hide_mode_after, 'hide' ); ?>><?php esc_html_e( 'Hide form completely', 'ffcertificate' ); ?></option>
+							</select>
+							<p class="description"><?php esc_html_e( 'How to display the form after the end date / end time.', 'ffcertificate' ); ?></p>
+						</td>
+					</tr>
+					<tr>
+						<th><label><?php esc_html_e( 'Blocked Message', 'ffcertificate' ); ?></label></th>
+						<td>
+							<textarea name="ffc_geofence[msg_datetime]" rows="3" class="ffc-w100"><?php echo esc_textarea( $msg_datetime ); ?></textarea>
+							<p class="description"><?php esc_html_e( 'Message shown when form is accessed outside allowed date/time.', 'ffcertificate' ); ?></p>
+						</td>
+					</tr>
+					</tbody>
+				</table>
+			</div>
+
+			<div class="card ffc-schedule-exception-section">
+				<h2 class="ffc-icon-user"><?php esc_html_e( 'Per-participant entry/exit exception', 'ffcertificate' ); ?></h2>
+				<p class="description">
+					<?php esc_html_e( 'Lets an authenticated operator override the Event Schedule for a single submission via the public CSV-download panel.', 'ffcertificate' ); ?>
+				</p>
+				<table class="form-table" role="presentation">
+					<tbody>
+					<tr>
+						<th><label><?php esc_html_e( 'Enable Schedule Exception', 'ffcertificate' ); ?></label></th>
+						<td>
+							<?php
+							\FreeFormCertificate\Admin\AdminUI::render_toggle(
+								array(
+									'name'    => 'ffc_geofence[schedule_exception_enabled]',
+									'id'      => 'ffc_geofence_schedule_exception_enabled',
+									'checked' => '1' === (string) $schedule_exception_enabled,
+									'label'   => __( 'Allow operators to create per-submission schedule exceptions', 'ffcertificate' ),
+									'data'    => array( 'ffc-autosave-form-key' => 'geofence_schedule_exception_enabled' ),
+								)
+							);
+							?>
+							<p class="description"><?php esc_html_e( 'Off by default. When on, the public CSV-download panel shows an "Entry/exit exception" button to authenticated operators.', 'ffcertificate' ); ?></p>
+						</td>
+					</tr>
+					</tbody>
+					<tbody class="ffc-collapsed-target<?php echo '1' === $schedule_exception_enabled ? '' : ' ffc-collapsed'; ?>"
+						data-ffc-master="ffc_geofence_schedule_exception_enabled"
+						aria-hidden="<?php echo '1' === $schedule_exception_enabled ? 'false' : 'true'; ?>">
+					<tr>
+						<th><label for="ffc_geofence_schedule_default_mode"><?php esc_html_e( 'Default Modal Mode', 'ffcertificate' ); ?></label></th>
+						<td>
+							<select id="ffc_geofence_schedule_default_mode" name="ffc_geofence[schedule_default_mode]">
+								<option value="now" <?php selected( $schedule_default_mode, 'now' ); ?>><?php esc_html_e( 'Now — pre-fill end time with the current moment', 'ffcertificate' ); ?></option>
+								<option value="manual" <?php selected( $schedule_default_mode, 'manual' ); ?>><?php esc_html_e( 'Manual — let the operator type both ends', 'ffcertificate' ); ?></option>
+							</select>
+							<p class="description"><?php esc_html_e( 'Which mode the operator exception modal opens in by default. Operators can flip the toggle on a per-exception basis.', 'ffcertificate' ); ?></p>
+						</td>
+					</tr>
+					</tbody>
+				</table>
+			</div>
 		</div>
 		<?php
 	}
