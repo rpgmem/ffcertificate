@@ -72,12 +72,12 @@ class FormEditorGeofenceMetabox {
 	public function render_time( WP_Post $post ): void {
 		$config = $this->get_config( $post );
 
-		$datetime_enabled          = ( $config['datetime_enabled'] ?? '0' ) === '1' ? '1' : '0';
-		$date_start                = $config['date_start'] ?? '';
-		$date_end                  = $config['date_end'] ?? '';
-		$time_start                = $config['time_start'] ?? '';
-		$time_end                  = $config['time_end'] ?? '';
-		$time_mode                 = $config['time_mode'] ?? 'daily'; // 'daily' or 'span'
+		$datetime_enabled = ( $config['datetime_enabled'] ?? '0' ) === '1' ? '1' : '0';
+		$date_start       = $config['date_start'] ?? '';
+		$date_end         = $config['date_end'] ?? '';
+		$time_start       = $config['time_start'] ?? '';
+		$time_end         = $config['time_end'] ?? '';
+		$time_mode        = $config['time_mode'] ?? 'daily'; // 'daily' or 'span'
 
 		// Multi-day toggle. Forms saved before this flag existed don't have
 		// the key — infer ON when both dates are populated and differ,

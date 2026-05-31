@@ -33,6 +33,7 @@ $ffcertificate_get_option = \Closure::fromCallable( array( $settings, 'get_optio
 		<span class="ffc-text-info ffc-icon-info"><?php esc_html_e( 'When enabled, actions like submission creation, data access, and settings changes are logged.', 'ffcertificate' ); ?></span>
 	</p>
 
+		<?php $ffcertificate_log_on = (int) $ffcertificate_get_option( 'enable_activity_log' ) === 1; ?>
 		<table class="form-table" role="presentation">
 			<tbody>
 				<tr>
@@ -45,7 +46,7 @@ $ffcertificate_get_option = \Closure::fromCallable( array( $settings, 'get_optio
 							array(
 								'name'    => 'ffc_settings[enable_activity_log]',
 								'id'      => 'enable_activity_log',
-								'checked' => (int) $ffcertificate_get_option( 'enable_activity_log' ) === 1,
+								'checked' => $ffcertificate_log_on,
 								'label'   => __( 'Track activities for audit trail', 'ffcertificate' ),
 								'data'    => array( 'ffc-autosave-key' => 'enable_activity_log' ),
 							)
@@ -54,7 +55,7 @@ $ffcertificate_get_option = \Closure::fromCallable( array( $settings, 'get_optio
 						<p class="description">
 							<?php esc_html_e( 'Logs submission creation, data access, settings changes, and security events.', 'ffcertificate' ); ?><br>
 							<span class="ffc-text-success ffc-icon-success"><?php esc_html_e( 'Includes user ID, IP address, and timestamp for LGPD compliance.', 'ffcertificate' ); ?></span>
-							<?php if ( $ffcertificate_get_option( 'enable_activity_log' ) === 1 ) : ?>
+							<?php if ( $ffcertificate_log_on ) : ?>
 								<br>
 								<a href="<?php echo esc_url( admin_url( 'edit.php?post_type=ffc_form&page=ffc-activity-log' ) ); ?>" class="button button-secondary ffc-mt-10">
 									<span class="ffc-icon-chart"></span><?php esc_html_e( 'View Activity Logs', 'ffcertificate' ); ?>
@@ -63,6 +64,10 @@ $ffcertificate_get_option = \Closure::fromCallable( array( $settings, 'get_optio
 						</p>
 					</td>
 				</tr>
+			</tbody>
+			<tbody class="ffc-collapsed-target<?php echo $ffcertificate_log_on ? '' : ' ffc-collapsed'; ?>"
+				data-ffc-master="enable_activity_log"
+				aria-hidden="<?php echo $ffcertificate_log_on ? 'false' : 'true'; ?>">
 				<tr>
 					<th scope="row">
 						<label for="activity_log_retention_days"><?php esc_html_e( 'Log Retention (days)', 'ffcertificate' ); ?></label>
@@ -140,6 +145,8 @@ $ffcertificate_get_option = \Closure::fromCallable( array( $settings, 'get_optio
 						<p class="description"><?php esc_html_e( 'Uncheck a category to stop logging its events. All on by default.', 'ffcertificate' ); ?></p>
 					</td>
 				</tr>
+			</tbody>
+			<tbody>
 				<tr>
 					<th scope="row">
 						<label for="public_csv_sync_max_rows"><?php esc_html_e( 'Public CSV Sync Export Limit', 'ffcertificate' ); ?></label>
