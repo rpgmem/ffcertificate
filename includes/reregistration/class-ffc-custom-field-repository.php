@@ -884,6 +884,18 @@ class CustomFieldRepository {
 			return array();
 		}
 
+		// Column-existence guard: installs that pre-date the dynamic-fields
+		// migration (#249) carry the table without the `is_sensitive` column.
+		// SettingsTab callers can trigger this read during activity-log
+		// writes long before that migration runs, so detect the older shape
+		// and degrade to an empty list rather than emit a "Unknown column"
+		// query into debug.log on every settings save.
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+		$columns = $wpdb->get_col( $wpdb->prepare( 'SHOW COLUMNS FROM %i LIKE %s', $table, 'is_sensitive' ) );
+		if ( empty( $columns ) ) {
+			return array();
+		}
+
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Catalog read; caching handled at the caller (SensitiveFieldRegistry).
 		$rows = $wpdb->get_col(
 			$wpdb->prepare(

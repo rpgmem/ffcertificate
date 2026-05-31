@@ -251,6 +251,17 @@ class Activator {
 		$has_old = self::column_exists( $table, 'submission_date' );
 		$has_new = self::column_exists( $table, 'submission_date_ts' );
 
+		// Fast path — column was already converted to BIGINT and the
+		// staging column was renamed over it. Skip every destructive step
+		// before they spam "Can't DROP …" / "Duplicate key" into debug.log.
+		if ( $has_old && ! $has_new ) {
+			$type = (string) self::column_type( $table, 'submission_date' );
+			if ( '' !== $type && 0 === stripos( $type, 'bigint' ) ) {
+				update_option( 'ffc_submission_date_unix_migrated', '1', true );
+				return;
+			}
+		}
+
 		// Step 1: ensure staging column exists.
 		if ( ! $has_new ) {
 			if ( ! $has_old ) {
@@ -366,6 +377,14 @@ class Activator {
 
 		$has_old = self::column_exists( $table, 'submitted_at' );
 		$has_new = self::column_exists( $table, 'submitted_at_ts' );
+
+		if ( $has_old && ! $has_new ) {
+			$type = (string) self::column_type( $table, 'submitted_at' );
+			if ( '' !== $type && 0 === stripos( $type, 'bigint' ) ) {
+				update_option( 'ffc_submitted_at_unix_migrated', '1', true );
+				return;
+			}
+		}
 
 		if ( ! $has_new ) {
 			if ( ! $has_old ) {
