@@ -65,6 +65,92 @@ class ActivityLog {
 	const ACTION_OPERATOR_IP_BYPASS        = 'operator_ip_bypass';
 
 	/**
+	 * Category keys used by the granular log filter (settings:
+	 * `activity_log_cat_<key>`). Each event maps to exactly one via
+	 * {@see self::category_for_action()}.
+	 *
+	 * @var array<int, string>
+	 */
+	const CATEGORIES = array(
+		'submissions',
+		'scheduling',
+		'public_access',
+		'users',
+		'recruitment',
+		'migrations',
+		'system',
+	);
+
+	/**
+	 * Numeric severity rank for a level (higher = more severe). Used by the
+	 * configurable minimum-level filter.
+	 *
+	 * @param string $level Level string.
+	 * @return int
+	 */
+	private static function level_rank( string $level ): int {
+		switch ( $level ) {
+			case self::LEVEL_DEBUG:
+				return 0;
+			case self::LEVEL_WARNING:
+				return 2;
+			case self::LEVEL_ERROR:
+				return 3;
+			case self::LEVEL_INFO:
+			default:
+				return 1;
+		}
+	}
+
+	/**
+	 * Map an action key to its filter category (one of {@see self::CATEGORIES}).
+	 * Unknown / submission-adjacent actions fall back to `submissions`.
+	 *
+	 * @param string $action Action key.
+	 * @return string Category key.
+	 */
+	public static function category_for_action( string $action ): string {
+		if ( 0 === strpos( $action, 'recruitment_' ) ) {
+			return 'recruitment';
+		}
+		if ( 0 === strpos( $action, 'appointment_' ) ) {
+			return 'scheduling';
+		}
+
+		$by_action = array(
+			'migration_foreign_keys'             => 'migrations',
+			'activity_log_clear_plaintext_batch' => 'migrations',
+			'cpf_rf_split_unknown_length'        => 'migrations',
+			'cpf_rf_split_migration_batch'       => 'migrations',
+			'legacy_columns_dropped'             => 'migrations',
+			'email_hash_rehash_migration_batch'  => 'migrations',
+
+			'schedule_override_created'          => 'public_access',
+			'operator_ip_bypass'                 => 'public_access',
+			'preflight_blocked'                  => 'public_access',
+			'early_open_executed'                => 'public_access',
+			'end_postponed'                      => 'public_access',
+			'csv_downloaded'                     => 'public_access',
+
+			'capabilities_granted'               => 'users',
+			'password_changed'                   => 'users',
+			'profile_updated'                    => 'users',
+			'user_profile_read_full'             => 'users',
+			'user_data_anonymized'               => 'users',
+			'user_email_changed'                 => 'users',
+			'privacy_data_erased'                => 'users',
+			'privacy_request_created'            => 'users',
+
+			'settings_changed'                   => 'system',
+			'access_denied'                      => 'system',
+			'ip_geolocation_debug'               => 'system',
+			'tickets_purged_expired'             => 'system',
+		);
+
+		return $by_action[ $action ] ?? 'submissions';
+	}
+
+	/**
 	 * Cache for table columns (performance optimization)
 	 * Prevents repeated DESCRIBE queries on each log
 	 *
@@ -123,6 +209,15 @@ class ActivityLog {
 		$valid_levels = array( self::LEVEL_INFO, self::LEVEL_WARNING, self::LEVEL_ERROR, self::LEVEL_DEBUG );
 		if ( ! in_array( $level, $valid_levels, true ) ) {
 			$level = self::LEVEL_INFO;
+		}
+
+		// Granular filters: minimum level + per-category enable. Both default
+		// to "log everything", so existing installs are unaffected until tuned.
+		if ( self::level_rank( $level ) < self::level_rank( \FreeFormCertificate\Settings\SettingsReader::activity_log_min_level() ) ) {
+			return false;
+		}
+		if ( ! \FreeFormCertificate\Settings\SettingsReader::activity_log_category_enabled( self::category_for_action( $action ) ) ) {
+			return false;
 		}
 
 		// Encrypt context if the payload carries a field we classify as

@@ -296,6 +296,12 @@ class AdminActivityLogPage {
 			// Schedule exception per submission (#366 Sprint 9).
 			'schedule_override_created' => __( 'Schedule Override Created', 'ffcertificate' ),
 			'operator_ip_bypass'        => __( 'Operator IP Bypass', 'ffcertificate' ),
+			// Pre-flight telemetry (#356 follow-up).
+			'preflight_blocked'         => __( 'Pre-flight Banner Shown', 'ffcertificate' ),
+			// Delivery audit.
+			'pdf_generated'             => __( 'PDF Generated', 'ffcertificate' ),
+			'certificate_emailed'       => __( 'Certificate Emailed', 'ffcertificate' ),
+			'csv_downloaded'            => __( 'CSV Downloaded', 'ffcertificate' ),
 		);
 
 		return isset( $labels[ $action ] ) ? $labels[ $action ] : ucwords( str_replace( '_', ' ', $action ) );
@@ -349,6 +355,56 @@ class AdminActivityLogPage {
 		}
 
 		return null;
+	}
+
+	/**
+	 * Human-readable label for a pre-flight `reason` code.
+	 *
+	 * The stored value (`cookies` / `gps_denied` / `gps_prompt`, see
+	 * PreflightTelemetry::ALLOWED_REASONS) is a stable machine key the
+	 * stats aggregator counts on — we never rewrite it. This maps it to a
+	 * label for display only. `gps_prompt` in particular is the
+	 * *pre-explainer* banner shown before the browser's GPS permission
+	 * dialog, which the raw code does not convey.
+	 *
+	 * @param string $reason Stored reason code.
+	 * @return string Translated label, or the raw code if unrecognized.
+	 */
+	public static function get_preflight_reason_label( string $reason ): string {
+		$labels = array(
+			'cookies'    => __( 'Cookie wall shown (browser blocked our probe cookie)', 'ffcertificate' ),
+			'gps_denied' => __( 'GPS permission denied by the visitor', 'ffcertificate' ),
+			'gps_prompt' => __( 'GPS permission pre-explainer shown (before the browser prompt)', 'ffcertificate' ),
+		);
+		return $labels[ $reason ] ?? $reason;
+	}
+
+	/**
+	 * Pretty-print the `preflight_blocked` context. Surfaces the human
+	 * reason label, form, and hashed visitor above the raw JSON dump so
+	 * admins don't have to decode `"reason":"gps_prompt"` by hand.
+	 *
+	 * Returns null for any other action so the caller falls back to the
+	 * raw `<pre>` rendering.
+	 *
+	 * @param string               $action  Action tag.
+	 * @param array<string, mixed> $context Decoded context array.
+	 * @return string|null
+	 */
+	public static function render_preflight_blocked_summary( string $action, array $context ): ?string {
+		if ( 'preflight_blocked' !== $action ) {
+			return null;
+		}
+
+		$reason = isset( $context['reason'] ) ? (string) $context['reason'] : '';
+
+		$rows = array(
+			array( __( 'Reason', 'ffcertificate' ), self::get_preflight_reason_label( $reason ) ),
+			array( __( 'Form ID', 'ffcertificate' ), isset( $context['form_id'] ) ? (string) (int) $context['form_id'] : '' ),
+			array( __( 'Visitor (IP hash)', 'ffcertificate' ), self::shorten_hash( (string) ( $context['ip_hash'] ?? '' ) ) ),
+		);
+
+		return self::render_summary_rows( $rows );
 	}
 
 	/**
@@ -502,10 +558,17 @@ class AdminActivityLogPage {
 						// friendly summary above the raw JSON dump. Other
 						// action types render the raw block as before.
 						$ffcertificate_context_arr = is_array( $ffcertificate_log['context'] ) ? $ffcertificate_log['context'] : array();
+						$ffcertificate_action_tag  = (string) ( $ffcertificate_log['action'] ?? '' );
 						$ffcertificate_summary     = self::render_schedule_exception_summary(
-							(string) ( $ffcertificate_log['action'] ?? '' ),
+							$ffcertificate_action_tag,
 							$ffcertificate_context_arr
 						);
+						if ( null === $ffcertificate_summary ) {
+							$ffcertificate_summary = self::render_preflight_blocked_summary(
+								$ffcertificate_action_tag,
+								$ffcertificate_context_arr
+							);
+						}
 						?>
 						<?php if ( null !== $ffcertificate_summary ) : ?>
 							<?php echo wp_kses_post( $ffcertificate_summary ); ?>

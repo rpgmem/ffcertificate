@@ -41,7 +41,7 @@ class VerificationHandlerTest extends TestCase {
 
         // Mock global $wpdb (used by repositories created internally)
         global $wpdb;
-        $wpdb = Mockery::mock( 'wpdb' );
+        $wpdb = Mockery::mock( 'wpdb' )->makePartial();
         $wpdb->prefix = 'wp_';
         $wpdb->last_error = '';
         $wpdb->shouldReceive( 'prepare' )->andReturn( 'PREPARED_QUERY' )->byDefault();

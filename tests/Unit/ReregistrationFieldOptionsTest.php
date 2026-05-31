@@ -29,18 +29,18 @@ class ReregistrationFieldOptionsTest extends TestCase {
     }
 
     // ==================================================================
-    // get_divisao_setor_map()
+    // get_default_divisao_setor_map() — shipped seed default
     // ==================================================================
 
     public function test_divisao_setor_map_returns_non_empty_array(): void {
-        $map = ReregistrationFieldOptions::get_divisao_setor_map();
+        $map = ReregistrationFieldOptions::get_default_divisao_setor_map();
 
         $this->assertIsArray( $map );
         $this->assertNotEmpty( $map );
     }
 
     public function test_divisao_setor_map_contains_expected_divisions(): void {
-        $map = ReregistrationFieldOptions::get_divisao_setor_map();
+        $map = ReregistrationFieldOptions::get_default_divisao_setor_map();
 
         $this->assertArrayHasKey( 'DRE - Gabinete', $map );
         $this->assertArrayHasKey( 'DRE - DIAF', $map );
@@ -54,7 +54,7 @@ class ReregistrationFieldOptionsTest extends TestCase {
     }
 
     public function test_divisao_setor_map_values_are_string_arrays(): void {
-        $map = ReregistrationFieldOptions::get_divisao_setor_map();
+        $map = ReregistrationFieldOptions::get_default_divisao_setor_map();
 
         foreach ( $map as $division => $sectors ) {
             $this->assertIsArray( $sectors, "Sectors for '$division' should be an array" );
@@ -66,7 +66,7 @@ class ReregistrationFieldOptionsTest extends TestCase {
     }
 
     public function test_divisao_setor_map_diaf_has_many_sectors(): void {
-        $map = ReregistrationFieldOptions::get_divisao_setor_map();
+        $map = ReregistrationFieldOptions::get_default_divisao_setor_map();
         $diaf = $map['DRE - DIAF'];
 
         $this->assertGreaterThan( 10, count( $diaf ), 'DIAF should have many sectors' );
@@ -174,5 +174,27 @@ class ReregistrationFieldOptionsTest extends TestCase {
             $this->assertSame( '', $entry['entry2'] );
             $this->assertSame( '', $entry['exit2'] );
         }
+    }
+
+    // ==================================================================
+    // get_default_termo_ciencia_html() — shipped acknowledgment default
+    // ==================================================================
+
+    public function test_default_termo_ciencia_html_is_non_empty_html(): void {
+        $html = ReregistrationFieldOptions::get_default_termo_ciencia_html();
+
+        $this->assertIsString( $html );
+        $this->assertNotEmpty( $html );
+        $this->assertStringContainsString( '<ol>', $html );
+        $this->assertStringContainsString( '<li>', $html );
+    }
+
+    public function test_default_termo_ciencia_html_preserves_links(): void {
+        $html = ReregistrationFieldOptions::get_default_termo_ciencia_html();
+
+        // The notice references external systems; the anchors must survive so
+        // the ficha PDF (which bypasses the link-stripping allowlist) keeps them.
+        $this->assertStringContainsString( '<a href="https://www.declaracaofamilia', $html );
+        $this->assertStringContainsString( 'SISPATRI', $html );
     }
 }

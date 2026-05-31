@@ -152,6 +152,28 @@ class SettingsReaderTest extends TestCase {
 		$this->assertFalse( SettingsReader::activity_log_enabled() );
 	}
 
+	public function test_activity_log_min_level_defaults_to_debug(): void {
+		$this->stub_option( array() );
+		$this->assertSame( 'debug', SettingsReader::activity_log_min_level() );
+	}
+
+	public function test_activity_log_min_level_reads_and_validates(): void {
+		$this->stub_option( array( 'activity_log_min_level' => 'warning' ) );
+		$this->assertSame( 'warning', SettingsReader::activity_log_min_level() );
+
+		// Invalid value falls back to debug.
+		$this->stub_option( array( 'activity_log_min_level' => 'bogus' ) );
+		$this->assertSame( 'debug', SettingsReader::activity_log_min_level() );
+	}
+
+	public function test_activity_log_category_enabled_defaults_true(): void {
+		$this->stub_option( array() );
+		$this->assertTrue( SettingsReader::activity_log_category_enabled( 'submissions' ) );
+
+		$this->stub_option( array( 'activity_log_cat_submissions' => 0 ) );
+		$this->assertFalse( SettingsReader::activity_log_category_enabled( 'submissions' ) );
+	}
+
 	public function test_url_shortener_enabled_defaults_to_true(): void {
 		// Key absent → default true (feature is on out-of-the-box).
 		$this->stub_option( array() );
@@ -191,6 +213,7 @@ class SettingsReaderTest extends TestCase {
 			'emails_disabled'                 => array( 'emails_disabled', 'disable_all_emails' ),
 			'activity_log_enabled'            => array( 'activity_log_enabled', 'enable_activity_log' ),
 			'admin_bar_allowed'               => array( 'admin_bar_allowed', 'allow_admin_bar' ),
+			'delete_data_on_uninstall'        => array( 'delete_data_on_uninstall', 'delete_data_on_uninstall' ),
 			'wp_admin_blocked'                => array( 'wp_admin_blocked', 'block_wp_admin' ),
 			'admins_bypassed'                 => array( 'admins_bypassed', 'bypass_for_admins' ),
 			'qr_cache_enabled'                => array( 'qr_cache_enabled', 'qr_cache_enabled' ),
@@ -248,5 +271,52 @@ class SettingsReaderTest extends TestCase {
 
 	public function test_option_key_constant_is_ffc_settings(): void {
 		$this->assertSame( 'ffc_settings', SettingsReader::OPTION_KEY );
+	}
+
+	// ------------------------------------------------------------------
+	// required_certificate_tags()
+	// ------------------------------------------------------------------
+
+	public function test_required_certificate_tags_defaults_to_historical_trio(): void {
+		$this->stub_option( array() );
+
+		$this->assertSame(
+			array( '{{auth_code}}', '{{name}}', '{{cpf_rf}}' ),
+			SettingsReader::required_certificate_tags()
+		);
+	}
+
+	public function test_required_certificate_tags_parses_newline_list(): void {
+		$this->stub_option(
+			array( 'required_certificate_tags' => "{{auth_code}}\n{{name}}\n{{course}}" )
+		);
+
+		$this->assertSame(
+			array( '{{auth_code}}', '{{name}}', '{{course}}' ),
+			SettingsReader::required_certificate_tags()
+		);
+	}
+
+	public function test_required_certificate_tags_force_injects_auth_code(): void {
+		// Admin removed auth_code — it must come back, first.
+		$this->stub_option(
+			array( 'required_certificate_tags' => "{{name}}\n{{cpf_rf}}" )
+		);
+
+		$this->assertSame(
+			array( '{{auth_code}}', '{{name}}', '{{cpf_rf}}' ),
+			SettingsReader::required_certificate_tags()
+		);
+	}
+
+	public function test_required_certificate_tags_dedupes_and_accepts_array(): void {
+		$this->stub_option(
+			array( 'required_certificate_tags' => array( '{{auth_code}}', '{{name}}', '{{name}}' ) )
+		);
+
+		$this->assertSame(
+			array( '{{auth_code}}', '{{name}}' ),
+			SettingsReader::required_certificate_tags()
+		);
 	}
 }

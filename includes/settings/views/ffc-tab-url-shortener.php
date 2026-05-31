@@ -51,13 +51,17 @@ $all_post_types = get_post_types( array( 'public' => true ), 'objects' );
 					'id'      => 'url_shortener_enabled',
 					'checked' => 1 === (int) $enabled,
 					'label'   => __( 'Enable the URL Shortener module', 'ffcertificate' ),
+					'data'    => array(
+						'ffc-autosave-key'   => 'url_shortener_enabled',
+						'ffc-section-master' => 'url-shortener-enabled',
+					),
 				)
 			);
 			?>
 		</td>
 	</tr>
 
-	<tr>
+	<tr data-ffc-section="url-shortener-enabled">
 		<th scope="row">
 			<label for="url_shortener_prefix"><?php esc_html_e( 'URL Prefix', 'ffcertificate' ); ?></label>
 		</th>
@@ -73,7 +77,7 @@ $all_post_types = get_post_types( array( 'public' => true ), 'objects' );
 		</td>
 	</tr>
 
-	<tr>
+	<tr data-ffc-section="url-shortener-enabled">
 		<th scope="row">
 			<label for="url_shortener_code_length"><?php esc_html_e( 'Code Length', 'ffcertificate' ); ?></label>
 		</th>
@@ -87,7 +91,7 @@ $all_post_types = get_post_types( array( 'public' => true ), 'objects' );
 		</td>
 	</tr>
 
-	<tr>
+	<tr data-ffc-section="url-shortener-enabled">
 		<th scope="row">
 			<label for="url_shortener_redirect_type"><?php esc_html_e( 'Redirect Type', 'ffcertificate' ); ?></label>
 		</th>
@@ -103,7 +107,7 @@ $all_post_types = get_post_types( array( 'public' => true ), 'objects' );
 		</td>
 	</tr>
 
-	<tr>
+	<tr data-ffc-section="url-shortener-enabled">
 		<th scope="row">
 			<label for="url_shortener_auto_create"><?php esc_html_e( 'Auto-create Short URLs', 'ffcertificate' ); ?></label>
 		</th>
@@ -115,13 +119,14 @@ $all_post_types = get_post_types( array( 'public' => true ), 'objects' );
 					'id'      => 'url_shortener_auto_create',
 					'checked' => 1 === (int) $auto_create,
 					'label'   => __( 'Automatically generate a short URL when a post/page is published', 'ffcertificate' ),
+					'data'    => array( 'ffc-autosave-key' => 'url_shortener_auto_create' ),
 				)
 			);
 			?>
 		</td>
 	</tr>
 
-	<tr>
+	<tr data-ffc-section="url-shortener-enabled">
 		<th scope="row"><?php esc_html_e( 'Post Types', 'ffcertificate' ); ?></th>
 		<td>
 			<div class="ffc-checkbox-group">

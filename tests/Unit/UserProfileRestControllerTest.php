@@ -93,7 +93,7 @@ class UserProfileRestControllerTest extends TestCase {
         $rate_limiter_mock->shouldReceive( 'check_user_limit' )->andReturn( array( 'allowed' => true ) )->byDefault();
 
         // Global $wpdb mock
-        $this->wpdb = Mockery::mock( 'wpdb' );
+        $this->wpdb = Mockery::mock( 'wpdb' )->makePartial();
         $this->wpdb->prefix = 'wp_';
         $this->wpdb->shouldReceive( 'prepare' )->andReturn( '' )->byDefault();
         $this->wpdb->shouldReceive( 'get_results' )->andReturn( array() )->byDefault();

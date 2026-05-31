@@ -82,7 +82,7 @@ class AppointmentAjaxHandlerTest extends TestCase {
 
         // Mock $wpdb for repo constructors
         global $wpdb;
-        $wpdb = Mockery::mock( 'wpdb' );
+        $wpdb = Mockery::mock( 'wpdb' )->makePartial();
         $wpdb->prefix = 'wp_';
 
         // Create a mock AppointmentHandler

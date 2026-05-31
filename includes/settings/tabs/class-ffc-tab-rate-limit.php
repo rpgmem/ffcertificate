@@ -105,12 +105,19 @@ class TabRateLimit extends SettingsTab {
 				'log_blocks'                => true,
 			),
 			'whitelist' => array(
+				// UI visibility flag — when false the rate-limit settings
+				// page collapses the Whitelist card to declutter; the
+				// lists themselves still apply at runtime if populated.
+				// Defaults true so existing installs see no UI change.
+				'enabled'       => true,
 				'ips'           => array(),
 				'emails'        => array(),
 				'email_domains' => array(),
 				'cpfs'          => array(),
 			),
 			'blacklist' => array(
+				// UI visibility flag — see whitelist['enabled'] above.
+				'enabled'       => true,
 				'ips'           => array(),
 				'emails'        => array(),
 				'email_domains' => array(),
@@ -156,7 +163,16 @@ class TabRateLimit extends SettingsTab {
 				),
 			),
 		);
-		return wp_parse_args( get_option( 'ffc_rate_limit_settings', array() ), $defaults );
+		// wp_parse_args only merges TOP-LEVEL keys; with the nested
+		// {ip,email,cpf,global,read,device,whitelist,blacklist,logging,ui}
+		// groups the stored array shadows entire sub-arrays when a
+		// pre-existing install was saved before a new field was added
+		// (e.g. legacy `ip => ['enabled' => true]` would wipe out
+		// max_per_hour / max_per_day / cooldown_seconds / message). Use
+		// array_replace_recursive so missing leaves fall through to the
+		// defaults without losing operator-customised values.
+		$stored = get_option( 'ffc_rate_limit_settings', array() );
+		return is_array( $stored ) ? array_replace_recursive( $defaults, $stored ) : $defaults;
 	}
 
 	/**
@@ -248,12 +264,14 @@ class TabRateLimit extends SettingsTab {
 				'log_blocks'                => isset( $_POST['device_log_blocks'] ),
 			),
 			'whitelist' => array(
+				'enabled'       => isset( $_POST['whitelist_enabled'] ),
 				'ips'           => array_filter( array_map( 'trim', explode( "\n", sanitize_textarea_field( wp_unslash( $_POST['whitelist_ips'] ?? '' ) ) ) ) ),
 				'emails'        => array_filter( array_map( 'trim', explode( "\n", sanitize_textarea_field( wp_unslash( $_POST['whitelist_emails'] ?? '' ) ) ) ) ),
 				'email_domains' => array_filter( array_map( 'trim', explode( "\n", sanitize_textarea_field( wp_unslash( $_POST['whitelist_email_domains'] ?? '' ) ) ) ) ),
 				'cpfs'          => array_filter( array_map( 'trim', explode( "\n", sanitize_textarea_field( wp_unslash( $_POST['whitelist_cpfs'] ?? '' ) ) ) ) ),
 			),
 			'blacklist' => array(
+				'enabled'       => isset( $_POST['blacklist_enabled'] ),
 				'ips'           => array_filter( array_map( 'trim', explode( "\n", sanitize_textarea_field( wp_unslash( $_POST['blacklist_ips'] ?? '' ) ) ) ) ),
 				'emails'        => array_filter( array_map( 'trim', explode( "\n", sanitize_textarea_field( wp_unslash( $_POST['blacklist_emails'] ?? '' ) ) ) ) ),
 				'email_domains' => array_filter( array_map( 'trim', explode( "\n", sanitize_textarea_field( wp_unslash( $_POST['blacklist_email_domains'] ?? '' ) ) ) ) ),

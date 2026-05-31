@@ -413,15 +413,4 @@ class ReregistrationFrontendTest extends TestCase {
         $this->assertTrue($result[0]['can_submit']);
         $this->assertSame('', $result[0]['magic_link']);
     }
-
-    // ==================================================================
-    // get_divisao_setor_map() — delegates to ReregistrationFieldOptions
-    // ==================================================================
-
-    public function test_get_divisao_setor_map_returns_non_empty_array(): void {
-        $map = ReregistrationFrontend::get_divisao_setor_map();
-
-        $this->assertIsArray($map);
-        $this->assertNotEmpty($map);
-    }
 }

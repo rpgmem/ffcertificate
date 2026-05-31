@@ -70,10 +70,32 @@ final class RecruitmentAdminAssetsManager {
 		$css_ver = file_exists( $css_path ) ? (string) filemtime( $css_path ) : FFC_VERSION;
 		$js_ver  = file_exists( $js_path ) ? (string) filemtime( $js_path ) : FFC_VERSION;
 
+		// ffc-common.css carries the .ffc-toggle switch styles used by the
+		// notice/reason editors (render_toggle); load it as a dependency.
+		$s = \FreeFormCertificate\Core\Utils::asset_suffix();
+		wp_enqueue_style(
+			'ffc-common',
+			FFC_PLUGIN_URL . "assets/css/ffc-common{$s}.css",
+			array(),
+			FFC_VERSION
+		);
+
+		// The vertical-tab layout for the recruitment admin nav lives in
+		// ffc-admin-settings.css (the .ffc-settings-tabs__* rules introduced
+		// in #429 and reused here). Enqueue it so this page picks up the
+		// same look as page=ffc-settings; the other rules in that file are
+		// scoped under .ffc-settings-wrap and stay dormant here.
+		wp_enqueue_style(
+			'ffc-admin-settings',
+			FFC_PLUGIN_URL . "assets/css/ffc-admin-settings{$s}.css",
+			array( 'ffc-common' ),
+			FFC_VERSION
+		);
+
 		wp_enqueue_style(
 			self::HANDLE_CSS,
 			FFC_PLUGIN_URL . 'assets/css/ffc-recruitment-admin.css',
-			array(),
+			array( 'ffc-common', 'ffc-admin-settings' ),
 			$css_ver
 		);
 
@@ -83,6 +105,48 @@ final class RecruitmentAdminAssetsManager {
 			array(),
 			$js_ver,
 			true
+		);
+
+		// Autosave infra for the Settings tab — `data-ffc-autosave-key`
+		// toggles in `render_settings_tab()` bind via the shared
+		// ffc-admin-autosave widget against SettingsAjaxEndpoint. Mirrors
+		// SettingsTab::enqueue_autosave_infra() so this off-page screen
+		// (it's `toplevel_page_ffc-recruitment`, not `ffc_form_page_ffc-settings`)
+		// can opt-in without depending on the settings-page asset loader.
+		wp_enqueue_script(
+			'ffc-core',
+			FFC_PLUGIN_URL . "assets/js/ffc-core{$s}.js",
+			array( 'jquery' ),
+			FFC_VERSION,
+			true
+		);
+		wp_enqueue_script(
+			'ffc-admin-js',
+			FFC_PLUGIN_URL . "assets/js/ffc-admin{$s}.js",
+			array( 'jquery', 'ffc-core' ),
+			FFC_VERSION,
+			true
+		);
+		wp_enqueue_script(
+			'ffc-admin-autosave',
+			FFC_PLUGIN_URL . "assets/js/ffc-admin-autosave{$s}.js",
+			array( 'jquery', 'ffc-core', 'ffc-admin-js' ),
+			FFC_VERSION,
+			true
+		);
+		wp_enqueue_script(
+			'ffc-section-collapse',
+			FFC_PLUGIN_URL . "assets/js/ffc-section-collapse{$s}.js",
+			array( 'jquery' ),
+			FFC_VERSION,
+			true
+		);
+		wp_localize_script(
+			'ffc-admin-autosave',
+			'ffcAdminAutosave',
+			array(
+				'nonce' => wp_create_nonce( \FreeFormCertificate\Admin\SettingsAjaxEndpoint::AJAX_ACTION ),
+			)
 		);
 
 		// Localize the REST root + nonce so the JS can post against the

@@ -40,6 +40,10 @@ class ActivityLogSubscriber {
 		add_action( 'ffcertificate_after_appointment_create', array( $this, 'on_appointment_created' ), 10, 3 );
 		add_action( 'ffcertificate_appointment_cancelled', array( $this, 'on_appointment_cancelled' ), 10, 4 );
 
+		// PDF generation + certificate email (delivery audit).
+		add_action( 'ffcertificate_after_pdf_generation', array( $this, 'on_pdf_generated' ), 10, 2 );
+		add_action( 'ffcertificate_before_email_send', array( $this, 'on_certificate_emailed' ), 10, 4 );
+
 		// Settings hooks.
 		add_action( 'ffcertificate_settings_saved', array( $this, 'on_settings_saved' ), 10, 1 );
 
@@ -176,6 +180,48 @@ class ActivityLogSubscriber {
 				'reason'         => $reason,
 			),
 			$appointment_id
+		);
+	}
+
+	/**
+	 * Log a PDF generation (certificate, ficha or appointment receipt).
+	 *
+	 * @param mixed $pdf_data      The generated PDF payload (unused).
+	 * @param int   $submission_id Source submission ID.
+	 */
+	public function on_pdf_generated( $pdf_data, int $submission_id ): void {
+		if ( ! class_exists( '\FreeFormCertificate\Core\ActivityLog' ) || $submission_id <= 0 ) {
+			return;
+		}
+
+		ActivityLog::log(
+			'pdf_generated',
+			ActivityLog::LEVEL_INFO,
+			array(),
+			0,
+			$submission_id
+		);
+	}
+
+	/**
+	 * Log that a certificate email is being sent.
+	 *
+	 * @param int                  $submission_id Submission ID.
+	 * @param string               $user_email    Recipient email (not stored — privacy).
+	 * @param int                  $form_id       Form ID.
+	 * @param array<string, mixed> $form_config   Form configuration (unused).
+	 */
+	public function on_certificate_emailed( int $submission_id, string $user_email, int $form_id, array $form_config ): void {
+		if ( ! class_exists( '\FreeFormCertificate\Core\ActivityLog' ) ) {
+			return;
+		}
+
+		ActivityLog::log(
+			'certificate_emailed',
+			ActivityLog::LEVEL_INFO,
+			array( 'form_id' => $form_id ),
+			0,
+			$submission_id
 		);
 	}
 

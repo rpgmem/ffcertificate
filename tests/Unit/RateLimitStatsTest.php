@@ -21,7 +21,7 @@ class RateLimitStatsTest extends TestCase {
         Monkey\setUp();
 
         global $wpdb;
-        $wpdb         = Mockery::mock( 'wpdb' );
+        $wpdb         = Mockery::mock( 'wpdb' )->makePartial();
         $wpdb->prefix = 'wp_';
     }
 

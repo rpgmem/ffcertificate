@@ -96,6 +96,40 @@ if ( ! defined( 'ABSPATH' ) ) {
 				<td><?php esc_html_e( 'Any custom field name you created', 'ffcertificate' ); ?></td>
 				<td><em>[Your Data]</em></td>
 			</tr>
+			<tr>
+				<td><code>{{display_name}}</code></td>
+				<td><?php esc_html_e( 'Participant full name (alias of {{name}})', 'ffcertificate' ); ?></td>
+				<td><em>João da Silva</em></td>
+			</tr>
+			<tr>
+				<td><code>{{reference_year}}</code></td>
+				<td><?php esc_html_e( 'Current year (4 digits)', 'ffcertificate' ); ?></td>
+				<td><em>2026</em></td>
+			</tr>
+			<tr>
+				<td><code>{{fill_date}}</code><br><code>{{date}}</code></td>
+				<td><?php esc_html_e( 'Date the certificate is generated (alias of {{print_date}})', 'ffcertificate' ); ?></td>
+				<td><em>20/01/2026</em></td>
+			</tr>
+			<tr>
+				<td><code>{{status}}</code></td>
+				<td><?php esc_html_e( 'Submission status label', 'ffcertificate' ); ?></td>
+				<td><em>Confirmado</em></td>
+			</tr>
+			<tr>
+				<td><code>{{schedule}}</code></td>
+				<td><?php esc_html_e( 'Effective wall-clock schedule range — the per-submission "Entry/exit exception" override wins (Geofence: Schedule Exception), then the form-level Class Schedule baseline (Geofence → Time → Class Schedule), then the form\'s Time Range, then empty.', 'ffcertificate' ); ?></td>
+				<td><em>08:00 – 17:30</em></td>
+			</tr>
+			<tr>
+				<td><code>{{schedule_total}}</code></td>
+				<td><?php esc_html_e( 'Total duration of {{schedule}} formatted as a human-readable span (e.g. "9h 30min"). Resolves to empty when {{schedule}} resolves to empty.', 'ffcertificate' ); ?></td>
+				<td><em>9h 30min</em></td>
+			</tr>
 		</tbody>
 	</table>
+	<p class="description">
+		<strong><?php esc_html_e( 'Participant profile fields:', 'ffcertificate' ); ?></strong>
+		<?php esc_html_e( 'Any identity, contact, address or employment field your form collects can also be used as a placeholder by its field key — e.g. {{rg}}, {{celular}}, {{endereco}}, {{bairro}}, {{cargo_funcao_acumulo}}. The full catalog of these standard keys is listed in section 11 (Ficha PDF); they resolve in any PDF template when the form captures them.', 'ffcertificate' ); ?>
+	</p>
 </div>

@@ -141,6 +141,24 @@ describe('FFC.Admin.autoSaveField', () => {
 
 		expect(postSpy).not.toHaveBeenCalled();
 	});
+
+	it('sends the checked value of a radio group, not a boolean', () => {
+		document.body.innerHTML =
+			'<input type="radio" name="lvl" id="r-debug" value="debug">' +
+			'<input type="radio" name="lvl" id="r-info" value="info">' +
+			'<input type="radio" name="lvl" id="r-warn" value="warning">';
+		const postSpy = vi.spyOn(window.$, 'post').mockImplementation(() => makeChain(() => ({
+			success: true, data: {},
+		})));
+		window.FFC.Admin.autoSaveField(window.$('#r-info'), { key: 'activity_log_min_level' });
+
+		window.$('#r-info').prop('checked', true).trigger('change');
+		vi.advanceTimersByTime(400);
+
+		expect(postSpy).toHaveBeenCalled();
+		// The value is the selected level — not '1'/'0' like a checkbox.
+		expect(postSpy.mock.calls[0][1].value).toBe('info');
+	});
 });
 
 // ----------------------------------------------------------------------

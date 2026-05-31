@@ -127,8 +127,10 @@ class AudienceAdminPageTest extends TestCase {
 
         $page->add_admin_menus();
 
-        // Should register: dashboard, calendars, environments, audiences, bookings, import, settings = 7
-        $this->assertCount( 7, $submenu_pages, 'Should register 7 submenu pages' );
+        // Should register: dashboard, calendars, environments, audiences,
+        // bookings, settings = 6. Import & Export is now the 4th tab of
+        // Settings, not a separate submenu entry.
+        $this->assertCount( 6, $submenu_pages, 'Should register 6 submenu pages' );
 
         // add_submenu_page args: parent_slug, page_title, menu_title, capability, menu_slug, callback
         $submenu_slugs = array_column( $submenu_pages, 4 );
@@ -137,8 +139,8 @@ class AudienceAdminPageTest extends TestCase {
         $this->assertContains( 'ffc-scheduling-environments', $submenu_slugs );
         $this->assertContains( 'ffc-scheduling-audiences', $submenu_slugs );
         $this->assertContains( 'ffc-scheduling-bookings', $submenu_slugs );
-        $this->assertContains( 'ffc-scheduling-import', $submenu_slugs );
         $this->assertContains( 'ffc-scheduling-settings', $submenu_slugs );
+        $this->assertNotContains( 'ffc-scheduling-import', $submenu_slugs );
     }
 
     // ==================================================================
@@ -170,7 +172,6 @@ class AudienceAdminPageTest extends TestCase {
             array( 'Environments', 'manage_options', 'ffc-scheduling-environments' ),
             array( 'Audiences', 'manage_options', 'ffc-scheduling-audiences' ),
             array( 'Bookings', 'manage_options', 'ffc-scheduling-bookings' ),
-            array( 'Import', 'manage_options', 'ffc-scheduling-import' ),
             array( 'Settings', 'manage_options', 'ffc-scheduling-settings' ),
         );
 
@@ -181,7 +182,39 @@ class AudienceAdminPageTest extends TestCase {
         $slugs = array_column( $submenu['ffc-scheduling'], 2 );
 
         $this->assertContains( '#ffc-separator-audience', $slugs, 'Should insert audience separator' );
-        $this->assertContains( '#ffc-separator-tools', $slugs, 'Should insert tools separator' );
+        // The Tools separator was removed when Import & Export moved into Settings as a tab.
+        $this->assertNotContains( '#ffc-separator-tools', $slugs );
+    }
+
+    // ==================================================================
+    // redirect_legacy_import_url()
+    // ==================================================================
+
+    public function test_redirect_legacy_import_url_skips_unrelated_pages(): void {
+        Functions\when( 'sanitize_key' )->returnArg();
+        Functions\when( 'wp_unslash' )->returnArg();
+        $_GET['page'] = 'some-other-page';
+        $redirected   = false;
+        Functions\when( 'wp_safe_redirect' )->alias( function () use ( &$redirected ) {
+            $redirected = true;
+            return true;
+        } );
+
+        ( new AudienceAdminPage() )->redirect_legacy_import_url();
+        $this->assertFalse( $redirected );
+        unset( $_GET['page'] );
+    }
+
+    public function test_redirect_legacy_import_url_skips_when_page_param_absent(): void {
+        unset( $_GET['page'] );
+        $redirected = false;
+        Functions\when( 'wp_safe_redirect' )->alias( function () use ( &$redirected ) {
+            $redirected = true;
+            return true;
+        } );
+
+        ( new AudienceAdminPage() )->redirect_legacy_import_url();
+        $this->assertFalse( $redirected );
     }
 
     // ==================================================================

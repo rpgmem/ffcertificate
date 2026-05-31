@@ -34,6 +34,10 @@ class FormEditorTest extends TestCase {
         Functions\when( 'absint' )->alias( function ( $v ) { return abs( (int) $v ); } );
         Functions\when( 'wp_unslash' )->returnArg();
         Functions\when( 'sanitize_file_name' )->returnArg();
+        // enqueue_scripts() peeks at the save-error transients to flag tabs;
+        // default to "no pending errors" (the dedicated tests override these).
+        Functions\when( 'get_current_user_id' )->justReturn( 1 );
+        Functions\when( 'get_transient' )->justReturn( false );
 
         if ( ! defined( 'ABSPATH' ) ) {
             define( 'ABSPATH', '/tmp/' );
@@ -119,13 +123,47 @@ class FormEditorTest extends TestCase {
         Functions\when( 'get_post' )->justReturn(
             (object) array( 'ID' => 42, 'post_type' => 'ffc_form' )
         );
+        Functions\when( 'get_post_meta' )->justReturn( false );
         Functions\when( 'admin_url' )->returnArg();
         Functions\when( 'wp_create_nonce' )->justReturn( 'n' );
+        // enqueue_scripts() localizes the required-tag list, which reads
+        // ffc_settings via SettingsReader::required_certificate_tags().
+        Functions\when( 'get_option' )->justReturn( array() );
 
         $editor = new FormEditor();
         $editor->enqueue_scripts( 'post.php' );
 
         $this->assertContains( 'ffc-geofence-admin', $enqueued );
+        $this->assertContains( 'ffc-form-editor-tabs', $enqueued );
+    }
+
+    public function test_enqueue_scripts_localizes_error_tabs_when_save_failed(): void {
+        $screen = (object) array( 'post_type' => 'ffc_form' );
+        Functions\when( 'get_current_screen' )->justReturn( $screen );
+        Functions\when( 'get_post' )->justReturn(
+            (object) array( 'ID' => 42, 'post_type' => 'ffc_form' )
+        );
+        Functions\when( 'get_post_meta' )->justReturn( false );
+        Functions\when( 'admin_url' )->returnArg();
+        Functions\when( 'wp_create_nonce' )->justReturn( 'n' );
+        Functions\when( 'get_current_user_id' )->justReturn( 7 );
+        Functions\when( 'get_transient' )->alias( function ( $key ) {
+            return ( 'ffc_geofence_error_tabs_7' === $key ) ? array( 'geolocation' ) : false;
+        } );
+        Functions\when( 'get_option' )->justReturn( array() );
+
+        $localized = array();
+        Functions\when( 'wp_localize_script' )->alias( function ( $handle, $name, $data ) use ( &$localized ) {
+            $localized[ $name ] = array( 'handle' => $handle, 'data' => $data );
+            return true;
+        } );
+
+        $editor = new FormEditor();
+        $editor->enqueue_scripts( 'post.php' );
+
+        $this->assertArrayHasKey( 'ffcFormTabsErrors', $localized );
+        $this->assertSame( 'ffc-form-editor-tabs', $localized['ffcFormTabsErrors']['handle'] );
+        $this->assertSame( array( 'geolocation' ), $localized['ffcFormTabsErrors']['data'] );
     }
 
     /**
@@ -177,6 +215,52 @@ class FormEditorTest extends TestCase {
         $editor = new FormEditor();
         $editor->add_custom_metaboxes();
         $this->assertTrue( true ); // No error means metaboxes registered
+    }
+
+    // ==================================================================
+    // get_error_tab_keys()
+    // ==================================================================
+
+    public function test_get_error_tab_keys_maps_layout_and_routed_geofence_tabs(): void {
+        Functions\when( 'get_current_user_id' )->justReturn( 7 );
+        Functions\when( 'get_transient' )->alias( function ( $key ) {
+            if ( 'ffc_save_error_7' === $key ) { return array( '{{name}}' ); }
+            if ( 'ffc_geofence_error_tabs_7' === $key ) { return array( 'time', 'geolocation' ); }
+            return false;
+        } );
+
+        $editor = new FormEditor();
+        $this->assertSame( array( 'layout', 'time', 'geolocation' ), $editor->get_error_tab_keys() );
+    }
+
+    public function test_get_error_tab_keys_routes_to_single_geofence_subtab(): void {
+        Functions\when( 'get_current_user_id' )->justReturn( 7 );
+        Functions\when( 'get_transient' )->alias( function ( $key ) {
+            return ( 'ffc_geofence_error_tabs_7' === $key ) ? array( 'geolocation' ) : false;
+        } );
+
+        $editor = new FormEditor();
+        $this->assertSame( array( 'geolocation' ), $editor->get_error_tab_keys() );
+    }
+
+    public function test_get_error_tab_keys_falls_back_to_both_subtabs_for_legacy_transient(): void {
+        // Only the legacy flat-error transient is present (no routing companion)
+        // → flag both sub-tabs so the error is never hidden.
+        Functions\when( 'get_current_user_id' )->justReturn( 7 );
+        Functions\when( 'get_transient' )->alias( function ( $key ) {
+            return ( 'ffc_geofence_error_7' === $key ) ? array( 'bad geo' ) : false;
+        } );
+
+        $editor = new FormEditor();
+        $this->assertSame( array( 'time', 'geolocation' ), $editor->get_error_tab_keys() );
+    }
+
+    public function test_get_error_tab_keys_empty_when_no_transients(): void {
+        Functions\when( 'get_current_user_id' )->justReturn( 7 );
+        Functions\when( 'get_transient' )->justReturn( false );
+
+        $editor = new FormEditor();
+        $this->assertSame( array(), $editor->get_error_tab_keys() );
     }
 
     // ==================================================================

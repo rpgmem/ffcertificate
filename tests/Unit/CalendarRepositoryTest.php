@@ -35,7 +35,7 @@ class CalendarRepositoryTest extends TestCase {
 
         // Mock global $wpdb BEFORE constructing the repository
         global $wpdb;
-        $wpdb = Mockery::mock( 'wpdb' );
+        $wpdb = Mockery::mock( 'wpdb' )->makePartial();
         $wpdb->prefix = 'wp_';
         $wpdb->last_error = '';
         $wpdb->insert_id = 0;
@@ -162,7 +162,7 @@ class CalendarRepositoryTest extends TestCase {
         Functions\when( 'get_the_title' )->justReturn( 'Test Calendar' );
 
         global $wpdb;
-        $wpdb = Mockery::mock( 'wpdb' );
+        $wpdb = Mockery::mock( 'wpdb' )->makePartial();
         $wpdb->prefix = 'wp_';
         $wpdb->last_error = '';
         $wpdb->insert_id = 0;
@@ -742,7 +742,7 @@ class CalendarRepositoryTest extends TestCase {
         } );
 
         global $wpdb;
-        $wpdb = Mockery::mock( 'wpdb' );
+        $wpdb = Mockery::mock( 'wpdb' )->makePartial();
         $wpdb->prefix = 'wp_';
         $wpdb->last_error = '';
         $wpdb->insert_id = 12;

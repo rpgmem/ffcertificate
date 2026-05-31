@@ -177,18 +177,24 @@ class AudienceAdminPage {
 	 * @return void
 	 */
 	public function init(): void {
-		// Instantiate sub-page handlers.
+		// Instantiate sub-page handlers. Settings is constructed last and
+		// receives the AudienceAdminImport instance so its 4th tab can
+		// render the Import & Export body without a separate submenu.
 		$this->dashboard   = new AudienceAdminDashboard( self::MENU_SLUG );
 		$this->calendar    = new AudienceAdminCalendar( self::MENU_SLUG );
 		$this->environment = new AudienceAdminEnvironment( self::MENU_SLUG );
 		$this->audience    = new AudienceAdminAudience( self::MENU_SLUG );
 		$this->bookings    = new AudienceAdminBookings( self::MENU_SLUG );
-		$this->settings    = new AudienceAdminSettings( self::MENU_SLUG );
 		$this->import      = new AudienceAdminImport( self::MENU_SLUG );
+		$this->settings    = new AudienceAdminSettings( self::MENU_SLUG, $this->import );
 
 		add_action( 'admin_menu', array( $this, 'add_admin_menus' ), 20 );
 		add_action( 'admin_menu', array( $this, 'add_menu_separators' ), 99 );
 		add_action( 'admin_head', array( $this, 'print_menu_separator_css' ) );
+		// Permanent redirect for the previous standalone Import URL — the
+		// page is now the `import` tab of ffc-scheduling-settings, but old
+		// bookmarks / docs / dashboard links should not 404.
+		add_action( 'admin_init', array( $this, 'redirect_legacy_import_url' ) );
 		add_action( 'admin_init', array( $this, 'handle_form_submissions' ) );
 	}
 
@@ -267,17 +273,11 @@ class AudienceAdminPage {
 			array( $this->bookings, 'render_page' )
 		);
 
-		// --- Tools section ---.
-
-		// Submenu: Import & Export.
-		add_submenu_page(
-			self::MENU_SLUG,
-			__( 'Import & Export', 'ffcertificate' ),
-			__( 'Import & Export', 'ffcertificate' ),
-			'ffc_manage_audiences',
-			self::MENU_SLUG . '-import',
-			array( $this->import, 'render_page' )
-		);
+		// Import & Export used to be its own submenu here; it is now the
+		// 4th tab of the Settings page (page=ffc-scheduling-settings&tab=import).
+		// The submenu registration was removed so the sidebar is not
+		// duplicated, and admin_init handles the 301 redirect for the
+		// previous URL — see redirect_legacy_import_url().
 
 		// Submenu: Settings.
 		add_submenu_page(
@@ -291,10 +291,38 @@ class AudienceAdminPage {
 	}
 
 	/**
-	 * Insert visual separators between menu sections
+	 * 301-redirect the previous standalone Import & Export URL
+	 * (`page=ffc-scheduling-import`) onto the new tab inside Settings
+	 * (`page=ffc-scheduling-settings&tab=import`), so old bookmarks /
+	 * docs / dashboard links keep working after the submenu was removed.
+	 *
+	 * @return void
+	 */
+	public function redirect_legacy_import_url(): void {
+		// phpcs:disable WordPress.Security.NonceVerification.Recommended -- Routing check; no data processing.
+		if ( ! isset( $_GET['page'] ) || self::MENU_SLUG . '-import' !== sanitize_key( wp_unslash( $_GET['page'] ) ) ) {
+			return;
+		}
+		// phpcs:enable WordPress.Security.NonceVerification.Recommended
+
+		wp_safe_redirect(
+			add_query_arg(
+				array(
+					'page' => self::MENU_SLUG . '-settings',
+					'tab'  => 'import',
+				),
+				admin_url( 'admin.php' )
+			),
+			301
+		);
+		exit;
+	}
+
+	/**
+	 * Insert visual separators between menu sections.
 	 *
 	 * Runs at priority 99 so all submenu items are already registered.
-	 * Inserts non-clickable separator labels before "Audience Calendars" and "Import".
+	 * Inserts non-clickable separator labels before "Audience Calendars".
 	 *
 	 * @return void
 	 */
@@ -325,18 +353,14 @@ class AudienceAdminPage {
 			self::MENU_SLUG . '-calendars',                          // Audience Calendars.
 			self::MENU_SLUG . '-environments',                       // Environments.
 			self::MENU_SLUG . '-audiences',                          // Audiences.
-			self::MENU_SLUG . '-bookings',                           // Audience Bookings
-			// Tools section.
-			'#ffc-separator-tools',
-			self::MENU_SLUG . '-import',                             // Import & Export.
-			self::MENU_SLUG . '-settings',                           // Settings.
+			self::MENU_SLUG . '-bookings',                           // Audience Bookings.
+			self::MENU_SLUG . '-settings',                           // Settings (hosts Import & Export as a tab).
 		);
 
 		// Build separators.
 		$separators = array(
 			'#ffc-separator-self'     => array( __( 'Self', 'ffcertificate' ), 'manage_options', '#ffc-separator-self' ),
 			'#ffc-separator-audience' => array( __( 'Audience', 'ffcertificate' ), 'manage_options', '#ffc-separator-audience' ),
-			'#ffc-separator-tools'    => array( __( 'Tools', 'ffcertificate' ), 'manage_options', '#ffc-separator-tools' ),
 		);
 
 		// Rebuild submenu in the desired order.

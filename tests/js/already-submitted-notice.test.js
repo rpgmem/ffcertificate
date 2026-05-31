@@ -19,6 +19,10 @@ const DISMISS_PREFIX = 'ffc_already_submitted_dismissed_';
 beforeEach(() => {
 	window.localStorage.clear();
 	window.sessionStorage.clear();
+	// Each loadScript binds a document-level `ajaxComplete` tracker; clear
+	// accumulated bindings so a prior test's tracker (closed over a prior
+	// $form) can't remember the wrong form ID in the tracker tests below.
+	if (window.$) { window.$(document).off('ajaxComplete'); }
 });
 
 async function loadOnReady() {
@@ -89,5 +93,84 @@ describe('ffc-already-submitted-notice', () => {
 		// Should not throw; just renders nothing (since the parsed list
 		// is treated as empty).
 		expect(document.querySelector('.ffc-already-submitted-notice')).toBeNull();
+	});
+
+	it('treats a non-array localStorage value as empty', async () => {
+		installForm(1);
+		window.localStorage.setItem(STORAGE_KEY, JSON.stringify({ not: 'an array' }));
+		await loadOnReady();
+		expect(document.querySelector('.ffc-already-submitted-notice')).toBeNull();
+	});
+
+	it('uses custom strings from window.ffc_already_submitted', async () => {
+		installForm(88);
+		window.localStorage.setItem(STORAGE_KEY, JSON.stringify([88]));
+		window.ffc_already_submitted = {
+			strings: { title: 'Custom T', body: 'Custom B', dismiss: 'OK!' },
+		};
+		await loadOnReady();
+		const notice = document.querySelector('.ffc-already-submitted-notice');
+		expect(notice.querySelector('h3').textContent).toBe('Custom T');
+		expect(notice.querySelector('p').textContent).toBe('Custom B');
+		expect(notice.querySelector('.ffc-already-submitted-dismiss').textContent).toBe('OK!');
+		delete window.ffc_already_submitted;
+	});
+
+	it('inserts the notice directly above the form when there is no wrapper', async () => {
+		document.body.innerHTML = `
+			<form class="ffc-submission-form">
+				<input type="hidden" name="form_id" value="77" />
+			</form>
+		`;
+		window.localStorage.setItem(STORAGE_KEY, JSON.stringify([77]));
+		await loadOnReady();
+		const notice = document.querySelector('.ffc-already-submitted-notice');
+		expect(notice).not.toBeNull();
+		// Inserted as the form's previous sibling.
+		expect(notice.nextElementSibling.classList.contains('ffc-submission-form')).toBe(true);
+	});
+
+	it('remembers the form ID when a successful ffc_submit_form AJAX completes', async () => {
+		installForm(55);
+		await loadOnReady();
+		const jqXHR = { responseJSON: { success: true } };
+		const settings = { data: 'foo=bar&action=ffc_submit_form&x=1' };
+		window.$(document).trigger('ajaxComplete', [jqXHR, settings]);
+		expect(JSON.parse(window.localStorage.getItem(STORAGE_KEY))).toContain(55);
+	});
+
+	it('ignores ajaxComplete for unrelated action, failure, or non-string data', async () => {
+		installForm(56);
+		await loadOnReady();
+		// Unrelated action.
+		window.$(document).trigger('ajaxComplete', [{ responseJSON: { success: true } }, { data: 'action=other' }]);
+		// Matching action but unsuccessful response.
+		window.$(document).trigger('ajaxComplete', [{ responseJSON: { success: false } }, { data: 'action=ffc_submit_form' }]);
+		// Matching action but non-string settings.data.
+		window.$(document).trigger('ajaxComplete', [{ responseJSON: { success: true } }, { data: { action: 'ffc_submit_form' } }]);
+		expect(window.localStorage.getItem(STORAGE_KEY)).toBeNull();
+	});
+
+	it('LRU-caps the remembered list at 50 and de-dupes on repeat', async () => {
+		installForm(60);
+		// Pre-seed 50 distinct IDs (none is 60).
+		const seed = Array.from({ length: 50 }, (_, i) => i + 100);
+		window.localStorage.setItem(STORAGE_KEY, JSON.stringify(seed));
+		await loadOnReady();
+
+		const ok = { responseJSON: { success: true } };
+		const settings = { data: 'action=ffc_submit_form' };
+
+		window.$(document).trigger('ajaxComplete', [ok, settings]);
+		let list = JSON.parse(window.localStorage.getItem(STORAGE_KEY));
+		expect(list.length).toBe(50);              // capped (was 51 after push)
+		expect(list[list.length - 1]).toBe(60);    // newest at the tail
+		expect(list).not.toContain(100);           // oldest evicted
+
+		// Fire again → de-dupe bump, length unchanged, 60 stays newest.
+		window.$(document).trigger('ajaxComplete', [ok, settings]);
+		list = JSON.parse(window.localStorage.getItem(STORAGE_KEY));
+		expect(list.length).toBe(50);
+		expect(list[list.length - 1]).toBe(60);
 	});
 });

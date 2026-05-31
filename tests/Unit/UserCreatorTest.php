@@ -22,7 +22,7 @@ class UserCreatorTest extends TestCase {
         Monkey\setUp();
 
         global $wpdb;
-        $wpdb = Mockery::mock( 'wpdb' );
+        $wpdb = Mockery::mock( 'wpdb' )->makePartial();
         $wpdb->prefix = 'wp_';
         $wpdb->posts  = 'wp_posts';
         $wpdb->last_error = '';

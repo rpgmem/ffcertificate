@@ -27,7 +27,7 @@ class MigrationDynamicReregFieldsTest extends TestCase {
         Monkey\setUp();
 
         global $wpdb;
-        $wpdb = Mockery::mock( 'wpdb' );
+        $wpdb = Mockery::mock( 'wpdb' )->makePartial();
         $wpdb->prefix     = 'wp_';
         $wpdb->last_error  = '';
         $wpdb->shouldReceive( 'prepare' )->andReturnUsing( function () { return func_get_args()[0]; } )->byDefault();

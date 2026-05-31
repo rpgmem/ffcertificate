@@ -33,7 +33,7 @@ class ActivatorTest extends TestCase {
         Monkey\setUp();
 
         global $wpdb;
-        $wpdb = Mockery::mock( 'wpdb' );
+        $wpdb = Mockery::mock( 'wpdb' )->makePartial();
         $wpdb->prefix = 'wp_';
         $wpdb->last_error = '';
         $wpdb->users = 'wp_users';
@@ -147,6 +147,7 @@ class ActivatorTest extends TestCase {
         $this->assertContains( 'ffc_process_submission_hook', $cleared );
         $this->assertContains( 'ffc_warm_cache_hook', $cleared );
     }
+
 
     // ==================================================================
     // activate() — daily cleanup scheduling
@@ -358,12 +359,16 @@ class ActivatorTest extends TestCase {
 
         // Make column_exists() return true for the two override columns so
         // add_column_if_missing() short-circuits without issuing ALTER TABLE.
+        // column_exists() runs the column name through esc_like(), which
+        // renders the underscores as `\_` in the prepared query — strip
+        // the backslashes before matching so the stub stays readable.
         $this->wpdb->shouldReceive( 'get_results' )
             ->andReturnUsing( function ( $query ) {
-                if ( stripos( $query, 'SHOW COLUMNS' ) !== false
+                $normalized = str_replace( '\\', '', $query );
+                if ( stripos( $normalized, 'SHOW COLUMNS' ) !== false
                     && (
-                        stripos( $query, 'schedule_start_override' ) !== false
-                        || stripos( $query, 'schedule_end_override' ) !== false
+                        stripos( $normalized, 'schedule_start_override' ) !== false
+                        || stripos( $normalized, 'schedule_end_override' ) !== false
                     )
                 ) {
                     return [ (object) [ 'Field' => 'present' ] ];

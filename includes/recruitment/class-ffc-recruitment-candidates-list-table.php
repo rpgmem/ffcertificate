@@ -47,7 +47,7 @@ class RecruitmentCandidatesListTable extends \WP_List_Table {
 	 *
 	 * @var list<string>
 	 */
-	private const ALLOWED_STATUSES = array( 'empty', 'called', 'accepted', 'not_shown', 'hired' );
+	private const ALLOWED_STATUSES = array( 'empty', 'called', 'accepted', 'not_shown', 'hired', 'withdrew' );
 
 	/**
 	 * Constructor.
@@ -407,6 +407,7 @@ class RecruitmentCandidatesListTable extends \WP_List_Table {
 			'accepted'  => __( 'Accepted', 'ffcertificate' ),
 			'not_shown' => __( 'Did not show up', 'ffcertificate' ),
 			'hired'     => __( 'Hired', 'ffcertificate' ),
+			'withdrew'  => __( 'Withdrew', 'ffcertificate' ),
 		);
 		foreach ( $status_labels as $value => $label ) {
 			$is_selected = $value === $status ? ' selected' : '';

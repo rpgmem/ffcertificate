@@ -104,6 +104,7 @@ class AdminUserCapabilitiesTest extends TestCase {
             echo $text;
         } );
         Functions\when( 'esc_attr' )->returnArg();
+        Functions\when( 'esc_html' )->returnArg();
         Functions\when( 'checked' )->alias( function ( $checked, $current = true, $echo = true ) {
             $result = $checked == $current ? ' checked=\'checked\'' : '';
             if ( $echo ) {
@@ -162,6 +163,14 @@ class AdminUserCapabilitiesTest extends TestCase {
     // ==================================================================
 
     public function test_enqueue_scripts_on_user_edit_page(): void {
+        Functions\expect( 'wp_enqueue_style' )
+            ->once()
+            ->with(
+                'ffc-common',
+                Mockery::pattern( '/ffc-common\.min\.css/' ),
+                array(),
+                FFC_VERSION
+            );
         Functions\expect( 'wp_enqueue_script' )
             ->once()
             ->with(

@@ -33,7 +33,10 @@ if ( ! defined( 'ABSPATH' ) ) {
 				<tr><td><code>number</code></td><td><?php esc_html_e( 'Numeric input', 'ffcertificate' ); ?></td></tr>
 				<tr><td><code>date</code></td><td><?php esc_html_e( 'Date picker (YYYY-MM-DD)', 'ffcertificate' ); ?></td></tr>
 				<tr><td><code>select</code></td><td><?php esc_html_e( 'Dropdown with predefined options', 'ffcertificate' ); ?></td></tr>
+				<tr><td><code>dependent_select</code></td><td><?php esc_html_e( 'Two linked dropdowns (e.g. Division → Sector); the second list depends on the first choice.', 'ffcertificate' ); ?></td></tr>
 				<tr><td><code>checkbox</code></td><td><?php esc_html_e( 'Boolean yes/no toggle', 'ffcertificate' ); ?></td></tr>
+				<tr><td><code>working_hours</code></td><td><?php esc_html_e( 'Day/time availability grid for scheduling.', 'ffcertificate' ); ?></td></tr>
+				<tr><td><code>acknowledgment</code></td><td><?php esc_html_e( 'Display-only notice (e.g. a "Termo de Ciência"); renders static HTML, collects no input.', 'ffcertificate' ); ?></td></tr>
 			</tbody>
 		</table>
 	</div>

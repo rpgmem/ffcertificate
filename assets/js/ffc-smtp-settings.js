@@ -1,36 +1,52 @@
 /**
  * SMTP Settings - Admin JavaScript
- * v3.1.0: Standardized to use event delegation pattern
- * @since 3.1.0
+ * v4.0.0: "Enable email sending" is the master switch — when off, hide
+ *         every email-related row and the SMTP configuration block
+ *         instead of merely disabling them. Mode-radio handler stays
+ *         but is suppressed while the master switch is off.
  */
 
-jQuery(document).ready(function($) {
-    // Handle SMTP mode toggle - Using event delegation
-    $(document).on('change', 'input[name="ffc_settings[smtp_mode]"]', function() {
-        if ($(this).val() === 'custom') {
-            $('#smtp-options').removeClass('ffc-hidden').slideDown(200);
-        } else {
-            $('#smtp-options').slideUp(200, function() {
-                $(this).addClass('ffc-hidden');
-            });
-        }
-    });
+jQuery(document).ready(function ($) {
+	function emailsEnabled() {
+		return $('#emails_enabled').is(':checked');
+	}
 
-    // Handle disable all emails toggle
-    function toggleEmailOptions() {
-        var disabled = $('#disable_all_emails').is(':checked');
-        $('#smtp-mode-options input, #smtp-options input, #smtp-options select').prop('disabled', disabled);
+	function modeIsCustom() {
+		return $('input[name="ffc_settings[smtp_mode]"]:checked').val() === 'custom';
+	}
 
-        if (disabled) {
-            $('#smtp-mode-options, #smtp-options').css('opacity', '0.5');
-        } else {
-            $('#smtp-mode-options, #smtp-options').css('opacity', '1');
-        }
-    }
+	function applyVisibility() {
+		var on = emailsEnabled();
 
-    // Using event delegation for disable all emails
-    $(document).on('change', '#disable_all_emails', toggleEmailOptions);
+		// Every per-context email toggle row + the Mode row.
+		$('.ffc-email-option-row').toggle(on);
 
-    // Run on page load
-    toggleEmailOptions();
+		// The SMTP server block shows only when emails are on AND mode=custom.
+		var $opts = $('#smtp-options');
+		if (on && modeIsCustom()) {
+			$opts.removeClass('ffc-hidden').show();
+		} else {
+			$opts.addClass('ffc-hidden').hide();
+		}
+	}
+
+	// Mode-radio toggle drives the smtp-options block too.
+	$(document).on('change', 'input[name="ffc_settings[smtp_mode]"]', function () {
+		if (!emailsEnabled()) {
+			return; // master switch is off — nothing to reveal
+		}
+		if ($(this).val() === 'custom') {
+			$('#smtp-options').removeClass('ffc-hidden').slideDown(200);
+		} else {
+			$('#smtp-options').slideUp(200, function () {
+				$(this).addClass('ffc-hidden');
+			});
+		}
+	});
+
+	// Master switch.
+	$(document).on('change', '#emails_enabled', applyVisibility);
+
+	// Initial state on page load.
+	applyVisibility();
 });

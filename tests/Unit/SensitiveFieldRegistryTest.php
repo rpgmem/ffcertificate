@@ -40,7 +40,7 @@ class SensitiveFieldRegistryTest extends TestCase {
         Monkey\setUp();
 
         global $wpdb;
-        $wpdb = Mockery::mock( 'wpdb' );
+        $wpdb = Mockery::mock( 'wpdb' )->makePartial();
         $wpdb->prefix = 'wp_';
         $wpdb->last_error = '';
         $this->wpdb = $wpdb;
@@ -117,9 +117,11 @@ class SensitiveFieldRegistryTest extends TestCase {
         $this->wpdb->shouldReceive( 'get_var' )
             ->once()
             ->andReturn( 'wp_ffc_custom_fields' );
+        // get_col fires twice: SHOW COLUMNS guard (column exists) + the
+        // actual SELECT DISTINCT field_key.
         $this->wpdb->shouldReceive( 'get_col' )
-            ->once()
-            ->andReturn( array( 'rg', 'cpf_aluno', '' ) );
+            ->twice()
+            ->andReturn( array( 'is_sensitive' ), array( 'rg', 'cpf_aluno', '' ) );
 
         $keys = SensitiveFieldRegistry::dynamic_sensitive_keys();
 

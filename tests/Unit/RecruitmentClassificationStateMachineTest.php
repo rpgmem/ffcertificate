@@ -30,7 +30,7 @@ class RecruitmentClassificationStateMachineTest extends TestCase {
 		Monkey\setUp();
 
 		global $wpdb;
-		$wpdb         = Mockery::mock( 'wpdb' );
+		$wpdb         = Mockery::mock( 'wpdb' )->makePartial();
 		$wpdb->prefix = 'wp_';
 		$this->wpdb   = $wpdb;
 
@@ -136,6 +136,33 @@ class RecruitmentClassificationStateMachineTest extends TestCase {
 
 		$this->assertFalse( $result['success'] );
 		$this->assertSame( array( 'recruitment_state_terminal_hired' ), $result['errors'] );
+	}
+
+	public function test_called_to_withdrew_is_allowed(): void {
+		$this->wpdb->shouldReceive( 'get_row' )->once()->andReturn( $this->classification_stub( 'called' ) );
+		$this->wpdb->shouldReceive( 'query' )->once()->andReturn( 1 );
+
+		$result = RecruitmentClassificationStateMachine::transition_to( 10, 'withdrew' );
+
+		$this->assertTrue( $result['success'] );
+	}
+
+	public function test_accepted_to_withdrew_is_allowed(): void {
+		$this->wpdb->shouldReceive( 'get_row' )->once()->andReturn( $this->classification_stub( 'accepted' ) );
+		$this->wpdb->shouldReceive( 'query' )->once()->andReturn( 1 );
+
+		$result = RecruitmentClassificationStateMachine::transition_to( 10, 'withdrew' );
+
+		$this->assertTrue( $result['success'] );
+	}
+
+	public function test_withdrew_is_terminal(): void {
+		$this->wpdb->shouldReceive( 'get_row' )->once()->andReturn( $this->classification_stub( 'withdrew' ) );
+
+		$result = RecruitmentClassificationStateMachine::transition_to( 10, 'empty', 'attempt to undo' );
+
+		$this->assertFalse( $result['success'] );
+		$this->assertSame( array( 'recruitment_state_terminal_withdrew' ), $result['errors'] );
 	}
 
 	public function test_called_to_empty_requires_reason(): void {

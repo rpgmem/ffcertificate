@@ -67,7 +67,7 @@ class FrontendTest extends TestCase {
         // whose SubmissionRepository constructor reads $wpdb->prefix.
         global $wpdb;
         if ( ! $wpdb ) {
-            $wpdb         = Mockery::mock( 'wpdb' );
+            $wpdb         = Mockery::mock( 'wpdb' )->makePartial();
             $wpdb->prefix = 'wp_';
         }
 

@@ -52,6 +52,16 @@ class CustomFieldRepository {
 		'checkbox',
 		'textarea',
 		'working_hours',
+		'acknowledgment',
+	);
+
+	/**
+	 * Display-only field types — they render static content (no user input),
+	 * so they're skipped during value collection, validation and persistence.
+	 * Their content lives in `field_options` (e.g. `acknowledgment` → `html`).
+	 */
+	public const DISPLAY_ONLY_TYPES = array(
+		'acknowledgment',
 	);
 
 	/**
@@ -871,6 +881,18 @@ class CustomFieldRepository {
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Table-existence guard.
 		$exists = $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $table ) );
 		if ( $exists !== $table ) {
+			return array();
+		}
+
+		// Column-existence guard: installs that pre-date the dynamic-fields
+		// migration (#249) carry the table without the `is_sensitive` column.
+		// SettingsTab callers can trigger this read during activity-log
+		// writes long before that migration runs, so detect the older shape
+		// and degrade to an empty list rather than emit a "Unknown column"
+		// query into debug.log on every settings save.
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+		$columns = $wpdb->get_col( $wpdb->prepare( 'SHOW COLUMNS FROM %i LIKE %s', $table, 'is_sensitive' ) );
+		if ( empty( $columns ) ) {
 			return array();
 		}
 

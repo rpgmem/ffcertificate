@@ -82,7 +82,7 @@ class ReadRateLimitTest extends TestCase {
 		// Minimal wpdb stub — record_read_attempt → record_attempt
 		// → increment_counter writes one row per (type, identifier, day).
 		global $wpdb;
-		$wpdb         = Mockery::mock( 'wpdb' );
+		$wpdb         = Mockery::mock( 'wpdb' )->makePartial();
 		$wpdb->prefix = 'wp_';
 		$wpdb->shouldReceive( 'prepare' )->andReturnUsing( fn ( $sql ) => $sql )->byDefault();
 		$wpdb->shouldReceive( 'get_row' )->andReturn( null )->byDefault();

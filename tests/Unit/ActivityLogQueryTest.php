@@ -45,7 +45,7 @@ class ActivityLogQueryTest extends TestCase {
         } );
 
         global $wpdb;
-        $this->wpdb = Mockery::mock( 'wpdb' );
+        $this->wpdb = Mockery::mock( 'wpdb' )->makePartial();
         $this->wpdb->prefix = 'wp_';
         $wpdb = $this->wpdb;
     }

@@ -282,6 +282,34 @@ describe('certificates-dashboard — renderSideList', () => {
 		expect($titles.eq(1).is('a')).toBe(false);
 	});
 
+	it('appends a discreet submissions link filtered by form id when submissionsUrlBase is set', async () => {
+		window.ffcCertificatesDashboard.submissionsUrlBase =
+			'/wp-admin/edit.php?post_type=ffc_form&page=ffc-submissions';
+		window.ffcCertificatesDashboard.i18n.viewSubmissions = 'View submissions';
+
+		await seed([
+			{ date: '2026-06-05', source: 'geofence', title: 'Form', id: 6195, edit_url: '/edit/6195', status: 'publish' },
+		]);
+		capturedOpts.onDayClick('2026-06-05');
+
+		const $link = window.$('#ffc-certificates-day-list .ffc-certificates-submissions-link');
+		expect($link.length).toBe(1);
+		expect($link.attr('href')).toBe(
+			'/wp-admin/edit.php?post_type=ffc_form&page=ffc-submissions&filter_form_id[0]=6195'
+		);
+		expect($link.attr('aria-label')).toBe('View submissions');
+		expect($link.find('.dashicons').length).toBe(1);
+	});
+
+	it('omits the submissions link when submissionsUrlBase is not provided', async () => {
+		await seed([
+			{ date: '2026-06-05', source: 'geofence', title: 'Form', id: 7, edit_url: '/edit/7', status: 'publish' },
+		]);
+		capturedOpts.onDayClick('2026-06-05');
+
+		expect(window.$('.ffc-certificates-submissions-link').length).toBe(0);
+	});
+
 	it('appends the status label only when status !== "publish"', async () => {
 		// Pick names that keep "publish" entry first after the title sort.
 		await seed([

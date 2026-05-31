@@ -71,6 +71,43 @@ if ( ! defined( 'DAY_IN_SECONDS' ) ) {
     define( 'DAY_IN_SECONDS', 86400 );
 }
 
+// Stub wpdb class for unit tests. Mockery::mock('wpdb') subclasses this
+// stub, so methods we never explicitly mock (esc_like / suppress_errors /
+// print_error) fall through to safe no-ops instead of throwing
+// BadMethodCallException. Tests that exercise these methods set up
+// `shouldReceive` expectations themselves; tests that don't care now
+// rely on the partial behaviour configured below.
+if ( ! defined( 'OBJECT' ) ) {
+    define( 'OBJECT', 'OBJECT' );
+}
+if ( ! class_exists( 'wpdb' ) ) {
+    class wpdb {
+        public $prefix = '';
+        public $last_error = '';
+        public $suppress_errors = false;
+        public function prepare( $query, ...$args ) { return $query; }
+        public function query( $query ) { return 0; }
+        public function get_var( $query = null, $x = 0, $y = 0 ) { return null; }
+        public function get_row( $query = null, $output = OBJECT, $y = 0 ) { return null; }
+        public function get_col( $query = null, $x = 0 ) { return array(); }
+        public function get_results( $query = null, $output = OBJECT ) { return array(); }
+        public function insert( $table, $data, $format = null ) { return 0; }
+        public function update( $table, $data, $where, $format = null, $where_format = null ) { return 0; }
+        public function delete( $table, $where, $where_format = null ) { return 0; }
+        public function replace( $table, $data, $format = null ) { return 0; }
+        public function esc_like( $text ) { return addcslashes( (string) $text, '_%\\' ); }
+        public function suppress_errors( $suppress = true ) {
+            $previous              = $this->suppress_errors;
+            $this->suppress_errors = (bool) $suppress;
+            return $previous;
+        }
+        public function hide_errors() { return $this->suppress_errors( true ); }
+        public function show_errors( $show = true ) { return $this->suppress_errors( ! $show ); }
+        public function print_error( $str = '' ) { /* no-op in tests */ }
+        public function get_charset_collate() { return ''; }
+    }
+}
+
 // Stub WP_Query for the obsolete shortcode cleaner (and any other test
 // instantiating a WP_Query directly). Consumers seed a FIFO queue in
 // `$GLOBALS['ffc_test_wp_query_queue']` — each constructor invocation pops

@@ -62,11 +62,12 @@ class ReregistrationStandardFieldsSeeder {
 	/**
 	 * Field groups used for the standard fields.
 	 */
-	public const GROUP_PERSONAL     = 'personal';
-	public const GROUP_CONTACT      = 'contact';
-	public const GROUP_SCHEDULE     = 'schedule';
-	public const GROUP_ACCUMULATION = 'accumulation';
-	public const GROUP_UNION        = 'union';
+	public const GROUP_PERSONAL       = 'personal';
+	public const GROUP_CONTACT        = 'contact';
+	public const GROUP_SCHEDULE       = 'schedule';
+	public const GROUP_ACCUMULATION   = 'accumulation';
+	public const GROUP_UNION          = 'union';
+	public const GROUP_ACKNOWLEDGMENT = 'acknowledgment';
 
 	/**
 	 * Get the ordered list of groups with translated labels.
@@ -75,11 +76,12 @@ class ReregistrationStandardFieldsSeeder {
 	 */
 	public static function get_group_labels(): array {
 		return array(
-			self::GROUP_PERSONAL     => __( 'Personal Data', 'ffcertificate' ),
-			self::GROUP_CONTACT      => __( 'Contact Information', 'ffcertificate' ),
-			self::GROUP_SCHEDULE     => __( 'Work Schedule', 'ffcertificate' ),
-			self::GROUP_ACCUMULATION => __( 'Position Accumulation', 'ffcertificate' ),
-			self::GROUP_UNION        => __( 'Union', 'ffcertificate' ),
+			self::GROUP_PERSONAL       => __( 'Personal Data', 'ffcertificate' ),
+			self::GROUP_CONTACT        => __( 'Contact Information', 'ffcertificate' ),
+			self::GROUP_SCHEDULE       => __( 'Work Schedule', 'ffcertificate' ),
+			self::GROUP_ACCUMULATION   => __( 'Position Accumulation', 'ffcertificate' ),
+			self::GROUP_UNION          => __( 'Union', 'ffcertificate' ),
+			self::GROUP_ACKNOWLEDGMENT => __( 'Acknowledgment', 'ffcertificate' ),
 		);
 	}
 
@@ -103,7 +105,7 @@ class ReregistrationStandardFieldsSeeder {
 	 * @return array<int, array<string, mixed>>
 	 */
 	public static function get_standard_fields_definition(): array {
-		$divisao_map = ReregistrationFieldOptions::get_divisao_setor_map();
+		$divisao_map = ReregistrationFieldOptions::get_default_divisao_setor_map();
 
 		return array(
 			// ───── Personal Data ─────.
@@ -494,6 +496,24 @@ class ReregistrationStandardFieldsSeeder {
 				'options'      => null,
 				'validation'   => null,
 			),
+
+			// ───── Acknowledgment ─────.
+			// Display-only rich-text block (no user input). The notice HTML
+			// lives in field_options['html']; admins edit it per-audience in
+			// the Custom Fields editor and "Replicate to children" propagates
+			// it like any other standard field's options.
+			array(
+				'field_key'    => 'acknowledgment',
+				'field_label'  => __( 'Acknowledgment', 'ffcertificate' ),
+				'field_type'   => 'acknowledgment',
+				'field_group'  => self::GROUP_ACKNOWLEDGMENT,
+				'profile_key'  => null,
+				'is_sensitive' => 0,
+				'mask'         => null,
+				'required'     => 0,
+				'options'      => array( 'html' => ReregistrationFieldOptions::get_default_termo_ciencia_html() ),
+				'validation'   => null,
+			),
 		);
 	}
 
@@ -569,5 +589,58 @@ class ReregistrationStandardFieldsSeeder {
 		}
 
 		return $total;
+	}
+
+	/**
+	 * Replicate a parent audience's standard-field option lists down to all
+	 * its descendants (children + grandchildren — the 3-level hierarchy).
+	 *
+	 * Copies `field_options` for every STANDARD field on the parent that has
+	 * options set (e.g. `divisao_setor` groups, `sindicato` / `jornada`
+	 * choices) onto each descendant's matching field (by `field_key`). This
+	 * is the "Replicate to children" action — an explicit, deliberate push
+	 * that overwrites the descendants' current option lists. Manual
+	 * per-descendant fine-tuning survives until the next replicate.
+	 *
+	 * Custom (non-standard) fields are not touched — they're audience-local
+	 * by definition.
+	 *
+	 * @param int $parent_audience_id Audience whose options are the source.
+	 * @return int Number of descendant field rows updated.
+	 */
+	public static function replicate_field_options_to_descendants( int $parent_audience_id ): int {
+		if ( $parent_audience_id <= 0 ) {
+			return 0;
+		}
+
+		// Snapshot the parent's standard-field options, keyed by field_key.
+		$parent_options = array();
+		foreach ( CustomFieldRepository::get_by_audience( $parent_audience_id, false ) as $pf ) {
+			if ( 'standard' === ( $pf->field_source ?? '' ) && null !== $pf->field_options ) {
+				$decoded = json_decode( (string) $pf->field_options, true );
+				if ( is_array( $decoded ) ) {
+					$parent_options[ (string) $pf->field_key ] = $decoded;
+				}
+			}
+		}
+
+		if ( empty( $parent_options ) ) {
+			return 0;
+		}
+
+		$updated = 0;
+		foreach ( AudienceRepository::get_descendant_ids( $parent_audience_id ) as $aud_id ) {
+			foreach ( $parent_options as $field_key => $options ) {
+				$field = CustomFieldRepository::get_by_key( (int) $aud_id, $field_key );
+				if ( null === $field ) {
+					continue;
+				}
+				if ( CustomFieldRepository::update( (int) $field->id, array( 'field_options' => $options ) ) ) {
+					++$updated;
+				}
+			}
+		}
+
+		return $updated;
 	}
 }

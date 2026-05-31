@@ -35,8 +35,21 @@ class FormEditorLayoutMetabox {
 		$layout   = isset( $config['pdf_layout'] ) ? $config['pdf_layout'] : '';
 		$bg_image = isset( $config['bg_image'] ) ? $config['bg_image'] : '';
 
+		// Surface only certificate-shaped templates in the layout-editor
+		// dropdown — the same `html/` folder holds receipts (appointment),
+		// ficha PDFs, and one-off atestados that aren't valid layouts for
+		// this metabox. Case-insensitive substring match keeps a third-party
+		// `My_Certificate_Template.html` discoverable.
 		$templates_dir = FFC_PLUGIN_DIR . 'html/';
-		$templates     = glob( $templates_dir . '*.html' );
+		$all_html      = glob( $templates_dir . '*.html' );
+		$templates     = $all_html
+			? array_values(
+				array_filter(
+					$all_html,
+					static fn( string $path ): bool => false !== stripos( basename( $path ), 'certificate' )
+				)
+			)
+			: array();
 
 		wp_nonce_field( 'ffc_save_form_data', 'ffc_form_nonce' );
 		?>

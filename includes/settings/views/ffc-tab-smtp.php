@@ -13,6 +13,20 @@ if ( ! defined( 'ABSPATH' ) ) {
 // phpcs:disable WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedVariableFound -- Template variables scoped to this file
 
 $ffcertificate_get_option = \Closure::fromCallable( array( $settings, 'get_option' ) );
+
+// Fresh-install default for smtp_mode — pick WP Default so the radio
+// renders pre-selected on a first visit (user expectation from #442
+// follow-up).
+$ffcertificate_smtp_mode = (string) $ffcertificate_get_option( 'smtp_mode' );
+if ( '' === $ffcertificate_smtp_mode ) {
+	$ffcertificate_smtp_mode = 'wp';
+}
+
+// The toggle UI now reads "Enable email sending" (positive framing),
+// but the historical storage slot is `disable_all_emails`. Compute the
+// inverted view value once so the rest of the template stays simple.
+$ffcertificate_emails_disabled = '1' === (string) $ffcertificate_get_option( 'disable_all_emails' );
+$ffcertificate_emails_enabled  = ! $ffcertificate_emails_disabled;
 ?>
 
 <div class="ffc-settings-wrap">
@@ -28,23 +42,24 @@ $ffcertificate_get_option = \Closure::fromCallable( array( $settings, 'get_optio
 			<tbody>
 				<tr>
 					<th scope="row">
-						<label for="disable_all_emails"><?php esc_html_e( 'Disable All Emails', 'ffcertificate' ); ?></label>
+						<label for="emails_enabled"><?php esc_html_e( 'Enable Email Sending', 'ffcertificate' ); ?></label>
 					</th>
 					<td>
+						<?php // Mirror the inverted UI value to the legacy form field so a fallback non-autosave POST still writes the right slot. ?>
+						<input type="hidden" name="ffc_settings[disable_all_emails]" value="<?php echo $ffcertificate_emails_disabled ? '1' : '0'; ?>">
 						<?php
 						\FreeFormCertificate\Admin\AdminUI::render_toggle(
 							array(
-								'name'    => 'ffc_settings[disable_all_emails]',
-								'id'      => 'disable_all_emails',
-								'checked' => '1' === (string) $ffcertificate_get_option( 'disable_all_emails' ),
-								'label'   => __( 'Disable ALL emails from this plugin globally', 'ffcertificate' ),
-								'class'   => 'ffc-text-error',
-								'data'    => array( 'ffc-autosave-key' => 'disable_all_emails' ),
+								'name'    => 'emails_enabled',
+								'id'      => 'emails_enabled',
+								'checked' => $ffcertificate_emails_enabled,
+								'label'   => __( 'Send plugin emails (certificates, notifications, password resets, etc.)', 'ffcertificate' ),
+								'data'    => array( 'ffc-autosave-key' => 'emails_enabled' ),
 							)
 						);
 						?>
 						<p class="description">
-							<?php esc_html_e( 'When enabled, the plugin will NOT send any emails (certificates, notifications, password resets, etc.). Use this for testing or if you want to completely disable email functionality.', 'ffcertificate' ); ?>
+							<?php esc_html_e( 'When OFF, the plugin will NOT send any emails and the configuration below is hidden. Use it for testing or to fully silence outbound mail.', 'ffcertificate' ); ?>
 						</p>
 					</td>
 				</tr>
@@ -81,7 +96,7 @@ $ffcertificate_get_option = \Closure::fromCallable( array( $settings, 'get_optio
 				foreach ( $ffcertificate_email_toggles as $ffcertificate_key => $ffcertificate_row ) :
 					$ffcertificate_current = (string) $ffcertificate_get_option( $ffcertificate_key, $ffcertificate_row['default'] );
 					?>
-					<tr>
+					<tr class="ffc-email-option-row">
 						<th scope="row">
 							<label for="<?php echo esc_attr( $ffcertificate_key ); ?>"><?php echo esc_html( $ffcertificate_row['th_label'] ); ?></label>
 						</th>
@@ -94,6 +109,7 @@ $ffcertificate_get_option = \Closure::fromCallable( array( $settings, 'get_optio
 									'id'      => $ffcertificate_key,
 									'checked' => '1' === $ffcertificate_current,
 									'label'   => __( 'Enabled', 'ffcertificate' ),
+									'data'    => array( 'ffc-autosave-key' => $ffcertificate_key ),
 								)
 							);
 							?>
@@ -104,14 +120,14 @@ $ffcertificate_get_option = \Closure::fromCallable( array( $settings, 'get_optio
 					</tr>
 				<?php endforeach; ?>
 
-				<tr>
+				<tr class="ffc-email-option-row">
 					<th scope="row">
 						<label><?php esc_html_e( 'Mode', 'ffcertificate' ); ?></label>
 					</th>
 					<td>
 						<fieldset id="smtp-mode-options">
 							<label>
-								<input type="radio" name="ffc_settings[smtp_mode]" value="wp" <?php checked( 'wp', $ffcertificate_get_option( 'smtp_mode' ) ); ?>>
+								<input type="radio" name="ffc_settings[smtp_mode]" value="wp" <?php checked( 'wp', $ffcertificate_smtp_mode ); ?>>
 								<strong><?php esc_html_e( 'WP Default (PHPMail)', 'ffcertificate' ); ?></strong>
 							</label>
 							<p class="description">
@@ -119,7 +135,7 @@ $ffcertificate_get_option = \Closure::fromCallable( array( $settings, 'get_optio
 							</p>
 
 							<label>
-								<input type="radio" name="ffc_settings[smtp_mode]" value="custom" <?php checked( 'custom', $ffcertificate_get_option( 'smtp_mode' ) ); ?>>
+								<input type="radio" name="ffc_settings[smtp_mode]" value="custom" <?php checked( 'custom', $ffcertificate_smtp_mode ); ?>>
 								<strong><?php esc_html_e( 'Custom SMTP', 'ffcertificate' ); ?></strong>
 							</label>
 							<p class="description">
@@ -131,7 +147,7 @@ $ffcertificate_get_option = \Closure::fromCallable( array( $settings, 'get_optio
 			</tbody>
 		</table>
 		
-		<div id="smtp-options" class="ffc-collapsible-section <?php echo esc_attr( ( $ffcertificate_get_option( 'smtp_mode' ) === 'custom' ) ? '' : 'ffc-hidden' ); ?>">
+		<div id="smtp-options" class="ffc-collapsible-section <?php echo esc_attr( ( ! $ffcertificate_emails_disabled && 'custom' === $ffcertificate_smtp_mode ) ? '' : 'ffc-hidden' ); ?>">
 			<div class="ffc-collapsible-content active">
 				<h3><?php esc_html_e( 'SMTP Server Configuration', 'ffcertificate' ); ?></h3>
 				

@@ -104,4 +104,25 @@ class AdminUITest extends TestCase {
         $html = $this->capture( array( 'name' => 'k', 'value' => 'yes' ) );
         $this->assertStringContainsString( 'value="yes"', $html );
     }
+
+    public function test_emits_title_on_wrapper_when_provided(): void {
+        $html = $this->capture( array( 'name' => 'k', 'title' => 'Encrypt at rest' ) );
+        $this->assertStringContainsString( 'title="Encrypt at rest"', $html );
+    }
+
+    public function test_no_title_attribute_by_default(): void {
+        $html = $this->capture( array( 'name' => 'k' ) );
+        $this->assertStringNotContainsString( 'title=', $html );
+    }
+
+    public function test_get_toggle_returns_markup_instead_of_echoing(): void {
+        ob_start();
+        $returned = AdminUI::get_toggle( array( 'name' => 'k', 'label' => 'My toggle' ) );
+        $echoed = (string) ob_get_clean();
+
+        $this->assertSame( '', $echoed, 'get_toggle must not echo' );
+        $this->assertStringContainsString( 'class="ffc-toggle"', $returned );
+        $this->assertStringContainsString( 'name="k"', $returned );
+        $this->assertStringContainsString( '<span class="ffc-toggle-label">My toggle</span>', $returned );
+    }
 }

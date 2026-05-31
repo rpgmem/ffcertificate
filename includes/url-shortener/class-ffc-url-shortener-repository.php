@@ -223,6 +223,69 @@ class UrlShortenerRepository extends AbstractRepository {
 	}
 
 	/**
+	 * Find short URLs that are candidates for cleanup under the enabled criteria.
+	 *
+	 * Three independent criteria, OR-combined:
+	 *   - `orphaned`:      `post_id` is set but the referenced post no longer exists.
+	 *   - `never_clicked`: `click_count = 0` and the row was created more than
+	 *                      `$never_clicked_days` ago.
+	 *   - `trashed`:       `status = 'trashed'`.
+	 *
+	 * Each returned row carries `is_orphaned`, `is_never_clicked` and `is_trashed`
+	 * flags (computed for every row regardless of which criteria were enabled) so
+	 * the caller can label exactly why a row matched. Read-only — never mutates.
+	 *
+	 * @param array{orphaned?:bool, never_clicked?:bool, trashed?:bool} $criteria Enabled criteria.
+	 * @param int                                                       $never_clicked_days Grace window (days) for the never_clicked criterion.
+	 * @return array<int, array<string, mixed>> Matching rows (empty when no criteria enabled).
+	 */
+	public function find_cleanup_candidates( array $criteria, int $never_clicked_days ): array {
+		$days = max( 0, $never_clicked_days );
+
+		$orphan_expr  = '( s.post_id IS NOT NULL AND p.ID IS NULL )';
+		$nevclk_expr  = '( s.click_count = 0 AND s.created_at < ( NOW() - INTERVAL %d DAY ) )';
+		$trashed_expr = "( s.status = 'trashed' )";
+
+		$where = array();
+		if ( ! empty( $criteria['orphaned'] ) ) {
+			$where[] = $orphan_expr;
+		}
+		if ( ! empty( $criteria['never_clicked'] ) ) {
+			$where[] = $nevclk_expr;
+		}
+		if ( ! empty( $criteria['trashed'] ) ) {
+			$where[] = $trashed_expr;
+		}
+		if ( empty( $where ) ) {
+			return array();
+		}
+
+		// Placeholders appear in this order in the string: SELECT %d (is_never_clicked),
+		// FROM %i (short_urls), JOIN %i (posts), then WHERE %d only if never_clicked enabled.
+		$sql = "SELECT s.id, s.short_code, s.target_url, s.post_id, s.title, s.click_count, s.status, s.created_at,
+				{$orphan_expr} AS is_orphaned,
+				{$nevclk_expr} AS is_never_clicked,
+				{$trashed_expr} AS is_trashed
+			FROM %i s
+			LEFT JOIN %i p ON p.ID = s.post_id
+			WHERE " . implode( ' OR ', $where ) . '
+			ORDER BY s.id ASC';
+
+		$args = array( $days, $this->table, $this->wpdb->posts );
+		if ( ! empty( $criteria['never_clicked'] ) ) {
+			$args[] = $days;
+		}
+
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+		$rows = $this->wpdb->get_results(
+			$this->wpdb->prepare( $sql, ...$args ), // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
+			ARRAY_A
+		);
+
+		return is_array( $rows ) ? $rows : array();
+	}
+
+	/**
 	 * Get aggregate statistics.
 	 *
 	 * @return array{total_links: int, active_links: int, total_clicks: int, trashed_links: int}

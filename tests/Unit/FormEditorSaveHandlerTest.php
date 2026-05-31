@@ -31,6 +31,10 @@ class FormEditorSaveHandlerTest extends TestCase {
             return strtolower( preg_replace( '/[^a-z0-9_\-]/i', '', (string) $key ) );
         } );
 
+        // Default: no per-form geofence config. Tests that exercise the
+        // Event Schedule → {{schedule}} required-tag gate override this.
+        Functions\when( 'get_post_meta' )->justReturn( false );
+
         $this->handler = new FormEditorSaveHandler();
     }
 
@@ -153,6 +157,215 @@ class FormEditorSaveHandlerTest extends TestCase {
 
         $errors = $this->invoke( 'validate_geofence_config', array( $config ) );
         $this->assertGreaterThanOrEqual( 2, count( $errors ) );
+    }
+
+    // ==================================================================
+    // missing_required_tags()
+    // ==================================================================
+
+    public function test_missing_required_tags_flags_all_when_layout_empty(): void {
+        // No saved list → SettingsReader returns the default trio.
+        Functions\when( 'get_option' )->justReturn( array() );
+
+        $missing = $this->invoke( 'missing_required_tags', array( '<p>nothing here</p>', 0 ) );
+        $this->assertSame( array( '{{auth_code}}', '{{name}}', '{{cpf_rf}}' ), $missing );
+    }
+
+    public function test_missing_required_tags_empty_when_all_present(): void {
+        Functions\when( 'get_option' )->justReturn( array() );
+
+        $layout  = '{{auth_code}} {{name}} {{cpf_rf}}';
+        $missing = $this->invoke( 'missing_required_tags', array( $layout, 0 ) );
+        $this->assertSame( array(), $missing );
+    }
+
+    public function test_missing_required_tags_accepts_nome_alias_for_name(): void {
+        Functions\when( 'get_option' )->justReturn( array() );
+
+        // {{nome}} satisfies the {{name}} requirement.
+        $layout  = '{{auth_code}} {{nome}} {{cpf_rf}}';
+        $missing = $this->invoke( 'missing_required_tags', array( $layout, 0 ) );
+        $this->assertSame( array(), $missing );
+    }
+
+    public function test_missing_required_tags_honours_configured_list(): void {
+        Functions\when( 'get_option' )->alias( function ( $key ) {
+            return ( 'ffc_settings' === $key )
+                ? array( 'required_certificate_tags' => "{{auth_code}}\n{{course}}" )
+                : array();
+        } );
+
+        $layout  = '{{auth_code}} only';
+        $missing = $this->invoke( 'missing_required_tags', array( $layout, 0 ) );
+        $this->assertSame( array( '{{course}}' ), $missing );
+    }
+
+    public function test_missing_required_tags_requires_schedule_when_event_schedule_is_set(): void {
+        // Form has class_time_start configured → {{schedule}} becomes
+        // required on top of the default trio.
+        Functions\when( 'get_option' )->justReturn( array() );
+        Functions\when( 'get_post_meta' )->alias( function ( $post_id, $key ) {
+            return ( 42 === $post_id && '_ffc_geofence_config' === $key )
+                ? array( 'class_time_start' => '09:00' )
+                : false;
+        } );
+
+        $layout  = '{{auth_code}} {{name}} {{cpf_rf}}';
+        $missing = $this->invoke( 'missing_required_tags', array( $layout, 42 ) );
+        $this->assertSame( array( '{{schedule}}' ), $missing );
+    }
+
+    public function test_missing_required_tags_does_not_require_schedule_when_event_schedule_empty(): void {
+        // Geofence config exists but class_time_* are empty → the
+        // {{schedule}} gate stays OFF.
+        Functions\when( 'get_option' )->justReturn( array() );
+        Functions\when( 'get_post_meta' )->alias( function ( $post_id, $key ) {
+            return ( 42 === $post_id && '_ffc_geofence_config' === $key )
+                ? array( 'class_time_start' => '', 'class_time_end' => '' )
+                : false;
+        } );
+
+        $layout  = '{{auth_code}} {{name}} {{cpf_rf}}';
+        $missing = $this->invoke( 'missing_required_tags', array( $layout, 42 ) );
+        $this->assertSame( array(), $missing );
+    }
+
+    // ==================================================================
+    // geofence_error_tab_keys()
+    // ==================================================================
+
+    public function test_geofence_error_tab_keys_area_error_maps_to_geolocation(): void {
+        $config = array(
+            'geo_gps_enabled' => '1',
+            'geo_ip_enabled' => '0',
+            'geo_ip_areas_permissive' => '0',
+            'geo_areas' => '',
+            'geo_ip_areas' => '',
+        );
+        $errors = $this->invoke( 'validate_geofence_config', array( $config ) );
+        $keys   = $this->invoke( 'geofence_error_tab_keys', array( $config, $errors ) );
+        $this->assertSame( array( 'geolocation' ), $keys );
+    }
+
+    public function test_geofence_error_tab_keys_datetime_error_maps_to_time(): void {
+        $config = array(
+            'datetime_enabled' => '1',
+            'date_start' => '2026-12-31',
+            'date_end'   => '2026-01-01',
+        );
+        $errors = $this->invoke( 'validate_geofence_config', array( $config ) );
+        $this->assertNotEmpty( $errors );
+        $keys = $this->invoke( 'geofence_error_tab_keys', array( $config, $errors ) );
+        $this->assertSame( array( 'time' ), $keys );
+    }
+
+    public function test_geofence_error_tab_keys_combined_maps_to_both(): void {
+        $config = array(
+            'datetime_enabled' => '1',
+            'date_start' => '2026-12-31',
+            'date_end'   => '2026-01-01',
+            'geo_gps_enabled' => '1',
+            'geo_ip_enabled' => '0',
+            'geo_ip_areas_permissive' => '0',
+            'geo_areas' => '',
+            'geo_ip_areas' => '',
+        );
+        $errors = $this->invoke( 'validate_geofence_config', array( $config ) );
+        $keys   = $this->invoke( 'geofence_error_tab_keys', array( $config, $errors ) );
+        $this->assertSame( array( 'time', 'geolocation' ), $keys );
+    }
+
+    // ==================================================================
+    // Geofence block-message minimum length (Time + Geolocation)
+    // ==================================================================
+
+    private const VALID_MSG = 'This form is closed outside its scheduled window.'; // 49 chars.
+
+    public function test_empty_datetime_message_blocks_save_when_enabled(): void {
+        $config = array(
+            'datetime_enabled' => '1',
+            'date_start'       => '2026-01-01',
+            'date_end'         => '2026-01-01',
+            'msg_datetime'     => '', // cleared by operator → too short.
+        );
+        $errors = $this->invoke( 'validate_geofence_config', array( $config ) );
+        $this->assertNotEmpty( $errors );
+        $joined = implode( ' | ', $errors );
+        $this->assertStringContainsString( 'Blocked Message', $joined );
+    }
+
+    public function test_short_datetime_message_blocks_save(): void {
+        $config = array(
+            'datetime_enabled' => '1',
+            'date_start'       => '2026-01-01',
+            'date_end'         => '2026-01-01',
+            'msg_datetime'     => 'Closed.', // 7 chars < 25.
+        );
+        $errors = $this->invoke( 'validate_geofence_config', array( $config ) );
+        $this->assertNotEmpty( $errors );
+    }
+
+    public function test_valid_datetime_message_passes(): void {
+        $config = array(
+            'datetime_enabled' => '1',
+            'date_start'       => '2026-01-01',
+            'date_end'         => '2026-01-01',
+            'msg_datetime'     => self::VALID_MSG,
+        );
+        $errors = $this->invoke( 'validate_geofence_config', array( $config ) );
+        $this->assertSame( array(), $errors );
+    }
+
+    public function test_datetime_message_not_checked_when_restriction_disabled(): void {
+        // datetime_enabled off → the message is never shown, so an empty
+        // one must NOT block the save.
+        $config = array(
+            'datetime_enabled' => '0',
+            'msg_datetime'     => '',
+        );
+        $errors = $this->invoke( 'validate_geofence_config', array( $config ) );
+        $this->assertSame( array(), $errors );
+    }
+
+    public function test_short_datetime_message_routes_to_time_tab_not_geolocation(): void {
+        // Dates are in valid order (no datetime-order error); the ONLY
+        // failure is the short message. It must route to 'time', proving
+        // the new length error isn't mis-bucketed as a geolocation error.
+        $config = array(
+            'datetime_enabled' => '1',
+            'date_start'       => '2026-01-01',
+            'date_end'         => '2026-01-02',
+            'time_start'       => '08:00',
+            'time_end'         => '17:00',
+            'time_mode'        => 'span',
+            'msg_datetime'     => 'too short',
+        );
+        $errors = $this->invoke( 'validate_geofence_config', array( $config ) );
+        $keys   = $this->invoke( 'geofence_error_tab_keys', array( $config, $errors ) );
+        $this->assertSame( array( 'time' ), $keys );
+    }
+
+    public function test_short_geo_messages_block_save_and_route_to_geolocation(): void {
+        $config = array(
+            'geo_enabled'     => '1',
+            'msg_geo_blocked' => 'no',  // too short.
+            'msg_geo_error'   => 'err', // too short.
+        );
+        $errors = $this->invoke( 'validate_geofence_config', array( $config ) );
+        // Two geo message errors (blocked + error).
+        $this->assertCount( 2, $errors );
+        $keys = $this->invoke( 'geofence_error_tab_keys', array( $config, $errors ) );
+        $this->assertSame( array( 'geolocation' ), $keys );
+    }
+
+    public function test_geo_messages_not_checked_when_geo_disabled(): void {
+        $config = array(
+            'geo_enabled'     => '0',
+            'msg_geo_blocked' => '',
+            'msg_geo_error'   => '',
+        );
+        $errors = $this->invoke( 'validate_geofence_config', array( $config ) );
+        $this->assertSame( array(), $errors );
     }
 
     // ==================================================================
@@ -503,6 +716,79 @@ class FormEditorSaveHandlerTest extends TestCase {
     }
 
     /**
+     * Multi-day toggle OFF + datetime_enabled ON → date_end mirrors
+     * date_start so the runtime bounds the form to a single calendar day.
+     * time_mode is left exactly as posted (no longer forced to 'span') —
+     * a single-day event with a time window is "daily mode, one day", and
+     * validate_datetime's `date_start !== date_end` guard neutralises span
+     * for equal dates anyway, so forcing it was unnecessary.
+     */
+    public function test_multi_day_off_mirrors_end_date_and_preserves_time_mode(): void {
+        $bag = $this->stub_for_save();
+        $written = &$bag[0];
+
+        Functions\when( 'get_post_meta' )->alias( static fn( $id, $key ) => array() );
+
+        $_POST = array(
+            'ffc_form_nonce' => 'ok',
+            'ffc_geofence'   => array(
+                'datetime_enabled' => '1',
+                // multi_day absent → '0' (single-day event)
+                'date_start'       => '2026-05-20',
+                'date_end'         => '2026-05-25', // would-be multi-day end
+                'time_start'       => '08:00',
+                'time_end'         => '17:00',
+                'time_mode'        => 'daily',
+                // ≥25 chars so the block-message length gate passes.
+                'msg_datetime'     => 'This form is closed outside its scheduled window.',
+            ),
+        );
+
+        $this->handler->save_form_data( 10 );
+
+        $merged = $written['_ffc_geofence_config'];
+        $this->assertSame( '0', $merged['multi_day'], 'multi_day persisted as off' );
+        $this->assertSame( '2026-05-20', $merged['date_end'], 'date_end forced to mirror date_start' );
+        $this->assertSame( 'daily', $merged['time_mode'], 'time_mode preserved as-posted (not forced to span)' );
+        $this->assertSame( '08:00', $merged['time_start'], 'time_start preserved verbatim' );
+        $this->assertSame( '17:00', $merged['time_end'], 'time_end preserved verbatim' );
+    }
+
+    /**
+     * Multi-day toggle ON → end_date and time_mode are persisted as-posted
+     * (no normalisation), confirming the off-path override is gated on the
+     * toggle and doesn't accidentally fire when multi_day is on.
+     */
+    public function test_multi_day_on_preserves_end_date_and_time_mode(): void {
+        $bag = $this->stub_for_save();
+        $written = &$bag[0];
+
+        Functions\when( 'get_post_meta' )->alias( static fn( $id, $key ) => array() );
+
+        $_POST = array(
+            'ffc_form_nonce' => 'ok',
+            'ffc_geofence'   => array(
+                'datetime_enabled' => '1',
+                'multi_day'        => '1',
+                'date_start'       => '2026-05-20',
+                'date_end'         => '2026-05-25',
+                'time_start'       => '08:00',
+                'time_end'         => '17:00',
+                'time_mode'        => 'daily',
+                // ≥25 chars so the block-message length gate passes.
+                'msg_datetime'     => 'This form is closed outside its scheduled window.',
+            ),
+        );
+
+        $this->handler->save_form_data( 10 );
+
+        $merged = $written['_ffc_geofence_config'];
+        $this->assertSame( '1', $merged['multi_day'] );
+        $this->assertSame( '2026-05-25', $merged['date_end'] );
+        $this->assertSame( 'daily', $merged['time_mode'] );
+    }
+
+    /**
      * DateTime datetime_enabled OFF → 9 sub-options skipped; merge picks up
      * preserved values from the prior _ffc_geofence_config meta.
      */
@@ -603,9 +889,12 @@ class FormEditorSaveHandlerTest extends TestCase {
         $_POST = array(
             'ffc_form_nonce' => 'ok',
             'ffc_geofence'   => array(
-                'geo_enabled'   => '1',                 // outer master on
+                'geo_enabled'     => '1',                 // outer master on
                 // geo_ip_areas_permissive absent → '0'
-                'geo_ip_areas'  => 'should-not-overwrite',
+                'geo_ip_areas'    => 'should-not-overwrite',
+                // ≥25 chars each so the geo message-length gate passes.
+                'msg_geo_blocked' => 'This form is not available in your region.',
+                'msg_geo_error'   => 'We could not verify your location. Try again.',
             ),
         );
 

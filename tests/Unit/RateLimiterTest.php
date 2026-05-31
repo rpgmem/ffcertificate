@@ -32,7 +32,7 @@ class RateLimiterTest extends TestCase {
 
         // Provide global $wpdb mock for DB-hitting methods.
         global $wpdb;
-        $wpdb = Mockery::mock( 'wpdb' );
+        $wpdb = Mockery::mock( 'wpdb' )->makePartial();
         $wpdb->prefix = 'wp_';
         $wpdb->shouldReceive( 'prepare' )->andReturn( 'SQL' )->byDefault();
         $wpdb->shouldReceive( 'get_var' )->andReturn( '0' )->byDefault();
@@ -98,6 +98,51 @@ class RateLimiterTest extends TestCase {
         $this->assertFalse( $result['allowed'] );
         $this->assertSame( 'ip_hour_limit', $result['reason'] );
         $this->assertSame( 3600, $result['wait_seconds'] );
+    }
+
+    public function test_ip_limit_allows_when_disabled_even_if_counter_exceeded(): void {
+        // Operator turned IP rate limiting OFF in the panel. The form
+        // processor's early DoS gate calls check_ip_limit() directly, so
+        // the method itself must honour the toggle — otherwise a stale
+        // counter keeps blocking submissions after the operator disabled
+        // the feature (the reported "submit does nothing").
+        $this->stub_default_settings( array( 'ip' => array( 'enabled' => false ) ) );
+
+        // Counter is WAY over the hour limit, but it must not matter.
+        Functions\when( 'wp_cache_get' )->justReturn( 9999 );
+
+        $result = RateLimiter::check_ip_limit( '192.168.1.1' );
+
+        $this->assertTrue( $result['allowed'], 'disabled IP rate limit must never block' );
+    }
+
+    public function test_ip_limit_block_message_falls_back_when_template_empty(): void {
+        // Operator cleared the IP rate-limit "Message" field (or an autosave
+        // landed an empty value). The block must still carry a non-empty,
+        // visible message instead of propagating '' to the frontend (which
+        // rendered as a silent failure).
+        $this->stub_default_settings( array( 'ip' => array( 'message' => '' ) ) );
+
+        Functions\when( 'wp_cache_get' )->justReturn( 5 ); // hour exceeded.
+
+        $result = RateLimiter::check_ip_limit( '192.168.1.1' );
+
+        $this->assertFalse( $result['allowed'] );
+        $this->assertNotSame( '', trim( $result['message'] ), 'block message must not be empty' );
+        // The {time} token is still interpolated against the default copy.
+        $this->assertStringContainsString( '1 hour', $result['message'] );
+    }
+
+    public function test_ip_limit_keeps_configured_message_when_present(): void {
+        // Sanity: a non-empty configured template is used verbatim (token-
+        // expanded), the fallback only kicks in for empty templates.
+        $this->stub_default_settings();
+
+        Functions\when( 'wp_cache_get' )->justReturn( 5 );
+
+        $result = RateLimiter::check_ip_limit( '192.168.1.1' );
+
+        $this->assertStringContainsString( 'Limit reached', $result['message'] );
     }
 
     public function test_ip_limit_blocks_on_cooldown(): void {

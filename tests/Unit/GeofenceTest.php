@@ -391,4 +391,77 @@ class GeofenceTest extends TestCase {
         $this->assertArrayHasKey( 'date_end', $errors );
         $this->assertArrayNotHasKey( 'time_start', $errors );
     }
+
+    public function test_analyze_datetime_order_flags_class_time_when_end_not_after_start(): void {
+        // Event Schedule (Reference) — `class_time_*` must move forward
+        // within a single day to keep `{{schedule}}` semantically valid.
+        $config = array(
+            'class_time_start' => '14:00',
+            'class_time_end'   => '12:00',
+        );
+        $errors = Geofence::analyze_datetime_order( $config );
+        $this->assertArrayHasKey( 'class_time_start', $errors );
+        $this->assertArrayHasKey( 'class_time_end', $errors );
+        $this->assertSame( $errors['class_time_start'], $errors['class_time_end'] );
+    }
+
+    public function test_analyze_datetime_order_class_time_passes_when_in_order(): void {
+        $config = array(
+            'class_time_start' => '09:00',
+            'class_time_end'   => '17:30',
+        );
+        $errors = Geofence::analyze_datetime_order( $config );
+        $this->assertArrayNotHasKey( 'class_time_start', $errors );
+        $this->assertArrayNotHasKey( 'class_time_end', $errors );
+    }
+
+    public function test_analyze_datetime_order_class_time_skips_when_only_one_filled(): void {
+        // Half-filled (just start, or just end) — silently skip, mirroring
+        // the daily/span half-fill behaviour above.
+        $errors_only_start = Geofence::analyze_datetime_order( array( 'class_time_start' => '09:00' ) );
+        $this->assertSame( array(), $errors_only_start );
+        $errors_only_end = Geofence::analyze_datetime_order( array( 'class_time_end' => '17:30' ) );
+        $this->assertSame( array(), $errors_only_end );
+    }
+
+    public function test_analyze_datetime_order_flags_class_time_alongside_span_mode_inversion(): void {
+        // Regression for the user-reported bug: inverted Event Schedule
+        // alongside an inverted span-mode Date/Time Restrictions only
+        // flagged the latter, because the span branch early-returned
+        // before the class_time check at the tail of the function ran.
+        // Both pairs of errors must surface so both sets of inputs go red.
+        $config = array(
+            'date_start'       => '2026-05-24',
+            'date_end'         => '2026-05-24',
+            'time_start'       => '21:00',
+            'time_end'         => '20:00',
+            'time_mode'        => 'span',
+            'class_time_start' => '21:00',
+            'class_time_end'   => '20:00',
+        );
+        $errors = Geofence::analyze_datetime_order( $config );
+        // span check picks up time_*.
+        $this->assertArrayHasKey( 'time_start', $errors );
+        $this->assertArrayHasKey( 'time_end', $errors );
+        // class_time check picks up class_time_* (this was the missing
+        // half before the fix that moved it ahead of the early returns).
+        $this->assertArrayHasKey( 'class_time_start', $errors );
+        $this->assertArrayHasKey( 'class_time_end', $errors );
+    }
+
+    public function test_analyze_datetime_order_flags_class_time_alongside_date_inversion(): void {
+        // Same regression as above for the date-order short-circuit
+        // (which returns earlier than the span branch).
+        $config = array(
+            'date_start'       => '2026-06-30',
+            'date_end'         => '2026-06-01',
+            'class_time_start' => '14:00',
+            'class_time_end'   => '12:00',
+        );
+        $errors = Geofence::analyze_datetime_order( $config );
+        $this->assertArrayHasKey( 'date_start', $errors );
+        $this->assertArrayHasKey( 'date_end', $errors );
+        $this->assertArrayHasKey( 'class_time_start', $errors );
+        $this->assertArrayHasKey( 'class_time_end', $errors );
+    }
 }

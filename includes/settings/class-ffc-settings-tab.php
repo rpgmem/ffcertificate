@@ -216,6 +216,16 @@ abstract class SettingsTab {
 			FFC_VERSION,
 			true
 		);
+		// Section-collapse helper — wires `data-ffc-section-master` /
+		// `data-ffc-section` so the standard "hide subsections when the
+		// master toggle is off" UX works on every tab without bespoke JS.
+		wp_enqueue_script(
+			'ffc-section-collapse',
+			FFC_PLUGIN_URL . "assets/js/ffc-section-collapse{$s}.js",
+			array( 'jquery' ),
+			FFC_VERSION,
+			true
+		);
 		// Endpoint-specific nonce — the global ffc_ajax.nonce is created
 		// for `ffc_admin_pdf_nonce` and won't verify against
 		// `SettingsAjaxEndpoint::AJAX_ACTION` (`ffc_update_setting`).

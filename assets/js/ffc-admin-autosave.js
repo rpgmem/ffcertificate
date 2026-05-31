@@ -30,17 +30,43 @@
      *
      * @param {jQuery}   $field
      * @param {Function} [transform]
-     * @returns {string}
+     * @returns {string|string[]}
      */
     function extractValue($field, transform) {
         if (typeof transform === 'function') {
             return transform($field);
         }
-        // Default: checkbox-like — boolean as '1' / '0'.
-        if ($field.is(':checkbox') || $field.is(':radio')) {
+        // Checkbox — boolean as '1' / '0'.
+        if ($field.is(':checkbox')) {
             return $field.is(':checked') ? '1' : '0';
         }
+        // Radio group — send the checked member's value (e.g. a log-level
+        // picker), not a boolean. Falls back to the field's own value.
+        if ($field.is(':radio')) {
+            var radioName = $field.attr('name');
+            if (radioName) {
+                return $('input[name="' + radioName + '"]:checked').val();
+            }
+            return $field.val();
+        }
         return $field.val();
+    }
+
+    /**
+     * Collect checked values from every checkbox in a sibling group
+     * (shares `data-ffc-autosave-key` + has `data-ffc-autosave-multi`).
+     * Used by the rate-limit "Signals collected" toggles where the
+     * server stores `string[]` and the UI is N independent checkboxes.
+     *
+     * @param {jQuery} $group
+     * @returns {string[]}
+     */
+    function collectMultiValues($group) {
+        var vals = [];
+        $group.filter(':checked').each(function () {
+            vals.push($(this).val());
+        });
+        return vals;
     }
 
     /**
@@ -156,11 +182,14 @@
                 });
         }
 
-        $field.on('change.ffcAutoSave input.ffcAutoSave', scheduleSave);
+        // For multi-checkbox groups the change event must fire from any
+        // sibling in the group, so attach the listener to the whole group.
+        var $changeSource = config.$group && config.$group.length ? config.$group : $field;
+        $changeSource.on('change.ffcAutoSave input.ffcAutoSave', scheduleSave);
 
         return {
             destroy: function () {
-                $field.off('change.ffcAutoSave input.ffcAutoSave');
+                $changeSource.off('change.ffcAutoSave input.ffcAutoSave');
                 if (pendingTimer) { clearTimeout(pendingTimer); }
                 if (lingerTimer)  { clearTimeout(lingerTimer); }
                 $badge.remove();
@@ -177,22 +206,42 @@
      * are skipped on subsequent calls.
      */
     function bootAutoSaveFields() {
+        var multiBound = {};
         $('[data-ffc-autosave-key]').each(function () {
             var $input = $(this);
             if ($input.data('ffcAutoSaveBound')) {
                 return;
             }
+            var key      = $input.data('ffc-autosave-key');
+            var isMulti  = $input.attr('data-ffc-autosave-multi') !== undefined;
+
+            // Multi-checkbox group — only the first occurrence per key
+            // becomes the "anchor" (carries the badge, drives the AJAX
+            // call). Siblings still get marked bound so this loop skips
+            // them on the next pass, but their changes are funneled
+            // through the anchor's change handler via config.$group.
+            if (isMulti) {
+                if (multiBound[key]) {
+                    $input.data('ffcAutoSaveBound', true);
+                    return;
+                }
+                multiBound[key] = true;
+            }
             $input.data('ffcAutoSaveBound', true);
-            var config = { key: $input.data('ffc-autosave-key') };
-            // Optional per-field debounce override — useful for message
-            // textareas where the default 400 ms fires too eagerly while
-            // the admin is mid-sentence.
+
+            var config = { key: key };
             var debounceAttr = $input.attr('data-ffc-autosave-debounce');
             if (debounceAttr && !isNaN(parseInt(debounceAttr, 10))) {
                 config.debounce = parseInt(debounceAttr, 10);
             }
-            // Call through the public API so a page or test can swap
-            // the implementation between script load and boot.
+            if (isMulti) {
+                var $group = $('[data-ffc-autosave-key="' + key + '"][data-ffc-autosave-multi]');
+                $group.not($input).data('ffcAutoSaveBound', true);
+                config.$group    = $group;
+                config.transform = function () {
+                    return collectMultiValues($group);
+                };
+            }
             window.FFC.Admin.autoSaveField($input, config);
         });
     }

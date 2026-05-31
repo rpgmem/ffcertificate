@@ -62,10 +62,21 @@ class Settings {
 
 		// Hooks.
 		add_action( 'admin_menu', array( $this, 'add_settings_page' ), 20 );
+		// Tabs MUST be instantiated before `admin_enqueue_scripts` fires so
+		// each tab's own enqueue hook (registered in its constructor via
+		// SettingsTab::init()) actually catches the event. The previous
+		// lazy-load inside display_settings_page ran during the render
+		// callback — long after admin_enqueue_scripts — and silently
+		// dropped every tab's script enqueue. admin_init fires after init
+		// (so __() in tab metadata is safe) and before admin_enqueue_scripts.
+		add_action( 'admin_init', array( $this, 'load_tabs' ), 5 );
 		add_action( 'admin_init', array( $this, 'handle_settings_submission' ) );
 		add_action( 'admin_init', array( $this, 'handle_clear_qr_cache' ) );
 		add_action( 'admin_init', array( $this, 'handle_migration_execution' ) );
 		add_action( 'admin_init', array( $this, 'handle_obsolete_shortcode_cleanup' ) );
+		add_action( 'admin_init', array( $this, 'handle_url_shortener_cleanup' ) );
+		add_action( 'admin_init', array( $this, 'handle_public_access_disabler' ) );
+		add_action( 'admin_init', array( $this, 'handle_submission_link_audit' ) );
 		add_action( 'wp_ajax_ffc_preview_date_format', array( $this, 'ajax_preview_date_format' ) );
 		add_action( 'admin_init', array( $this, 'handle_cache_actions' ) );
 	}
@@ -75,7 +86,14 @@ class Settings {
 	 *
 	 * @since 4.0.0 Uses autoloader and namespaces (Hotfix 9)
 	 */
-	private function load_tabs(): void {
+	public function load_tabs(): void {
+		// Idempotent — admin_init may call this and display_settings_page
+		// keeps a defensive fallback below for any code path that bypasses
+		// the hook chain.
+		if ( ! empty( $this->tabs ) ) {
+			return;
+		}
+
 		// Autoloader handles class loading - no require_once needed.
 
 		// Tab classes with proper namespaces.
@@ -117,7 +135,7 @@ class Settings {
 	 * Add settings page.
 	 */
 	public function add_settings_page(): void {
-		add_submenu_page(
+		$hook = add_submenu_page(
 			'edit.php?post_type=ffc_form',
 			__( 'Settings', 'ffcertificate' ),
 			__( 'Settings', 'ffcertificate' ),
@@ -125,6 +143,29 @@ class Settings {
 			'ffc-settings',
 			array( $this, 'display_settings_page' )
 		);
+
+		if ( $hook ) {
+			// Render the floating "Back to top" button in the admin footer so it
+			// lives at <body> level — outside `.wrap`, outside `.ffc-tab-content`
+			// and outside any per-tab <form> or animated container — guaranteeing
+			// `position: fixed` resolves against the viewport on every settings
+			// tab. The page hook scopes the action to ffc-settings only.
+			add_action( "admin_footer-{$hook}", array( $this, 'render_back_to_top_link' ) );
+		}
+	}
+
+	/**
+	 * Echo the floating "Back to top" link. Hooked to `admin_footer-{hook}`
+	 * for the settings page so the markup ends up at the bottom of <body>,
+	 * with no ancestor that could create a containing block for the
+	 * `position: fixed` styling.
+	 */
+	public function render_back_to_top_link(): void {
+		?>
+		<a href="#ffc-settings-top" class="ffc-settings-back-to-top" aria-label="<?php esc_attr_e( 'Back to top', 'ffcertificate' ); ?>" title="<?php esc_attr_e( 'Back to top', 'ffcertificate' ); ?>">
+			<span class="dashicons dashicons-arrow-up-alt2" aria-hidden="true"></span>
+		</a>
+		<?php
 	}
 
 	/**
@@ -134,43 +175,48 @@ class Settings {
 	 */
 	public function get_default_settings(): array {
 		return array(
-			'cleanup_days'             => 365,
-			'smtp_mode'                => 'wp',
-			'smtp_host'                => '',
-			'smtp_port'                => 587,
-			'smtp_user'                => '',
-			'smtp_pass'                => '',
-			'smtp_secure'              => 'tls',
-			'smtp_from_email'          => '',
-			'smtp_from_name'           => '',
-			'qr_cache_enabled'         => 0,
-			'qr_default_size'          => 200,
-			'qr_default_margin'        => 2,
-			'qr_default_error_level'   => 'M',
+			'cleanup_days'               => 365,
+			'smtp_mode'                  => 'wp',
+			'smtp_host'                  => '',
+			'smtp_port'                  => 587,
+			'smtp_user'                  => '',
+			'smtp_pass'                  => '',
+			'smtp_secure'                => 'tls',
+			'smtp_from_email'            => '',
+			'smtp_from_name'             => '',
+			'qr_cache_enabled'           => 0,
+			'qr_default_size'            => 200,
+			'qr_default_margin'          => 2,
+			'qr_default_error_level'     => 'M',
 			// `d/m/Y` default since #244 — Brazilian-locale friendly. Pre-
 			// #244 default was 'F j, Y'; installs that explicitly saved
 			// 'F j, Y' keep it because get_option() returns the persisted
 			// value, not the default. Fresh installs and any user who
 			// never visited Settings → General pick up `d/m/Y` now.
-			'date_format'              => 'd/m/Y',
-			'date_format_custom'       => '',
+			'date_format'                => 'd/m/Y',
+			'date_format_custom'         => '',
 			// New in #244 — time-of-day formatting + per-context PDF
 			// overrides. Empty `_pdf` values inherit the base format.
 			// `*_custom` companions hold the user-typed format when
 			// `date_format_pdf` / `time_format_pdf` equals 'custom'
 			// (#248, same idiom as date_format / date_format_custom).
-			'time_format'              => 'H:i',
-			'time_format_custom'       => '',
-			'date_format_pdf'          => '',
-			'date_format_pdf_custom'   => '',
-			'time_format_pdf'          => '',
-			'time_format_pdf_custom'   => '',
-			'cache_enabled'            => 1,      // Default: ON.
-			'cache_expiration'         => 3600,   // 1 hour
-			'cache_auto_warm'          => 0,      // Default: OFF.
-			'public_csv_default_limit' => 1,    // Default limit for public CSV downloads.
-			'obsolete_shortcode_days'  => 90,   // Grace window (days) for obsolete shortcode cleanup.
-			'code_editor_theme'        => 'dark', // 'dark' | 'light' | 'auto' (auto follows dark_mode).
+			'time_format'                => 'H:i',
+			'time_format_custom'         => '',
+			'date_format_pdf'            => '',
+			'date_format_pdf_custom'     => '',
+			'time_format_pdf'            => '',
+			'time_format_pdf_custom'     => '',
+			'cache_enabled'              => 1,      // Default: ON.
+			'cache_expiration'           => 3600,   // 1 hour
+			'cache_auto_warm'            => 0,      // Default: OFF.
+			'public_csv_default_limit'   => 1,    // Default limit for public CSV downloads.
+			'obsolete_shortcode_days'    => 90,   // Grace window (days) for obsolete shortcode cleanup.
+			'url_cleanup_days'           => 90,   // Grace window (days) for the short-URL never-clicked criterion.
+			'url_cleanup_orphaned'       => 1,    // Short-URL cleanup: target post deleted.
+			'url_cleanup_never_clicked'  => 0,   // Short-URL cleanup: never clicked + older than the grace window.
+			'url_cleanup_trashed'        => 1,    // Short-URL cleanup: status = 'trashed'.
+			'public_access_disable_days' => 90, // Grace window (days) for disabling Public Operator Access on old forms.
+			'code_editor_theme'          => 'dark', // 'dark' | 'light' | 'auto' (auto follows dark_mode).
 		);
 	}
 
@@ -294,6 +340,7 @@ class Settings {
 
 		?>
 		<div class="wrap ffc-settings-wrap">
+			<span id="ffc-settings-top" aria-hidden="true"></span>
 			<h1><?php esc_html_e( 'Certificate Settings', 'ffcertificate' ); ?></h1>
 			<?php settings_errors( 'ffc_settings' ); ?>
 			
@@ -309,26 +356,37 @@ class Settings {
             // phpcs:enable WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
 			?>
 			
-			<h2 class="nav-tab-wrapper">
-				<?php foreach ( $this->tabs as $tab_id => $tab_obj ) : ?>
-					<a href="?post_type=ffc_form&page=ffc-settings&tab=<?php echo esc_attr( $tab_id ); ?>"
-						class="nav-tab <?php echo esc_attr( $active_tab === $tab_id ? 'nav-tab-active' : '' ); ?> <?php echo esc_attr( $tab_obj->get_icon() ); ?>">
-						<?php echo esc_html( $tab_obj->get_title() ); ?>
-					</a>
-				<?php endforeach; ?>
-			</h2>
-			
-			<div class="ffc-tab-content">
-				<?php
-				if ( isset( $this->tabs[ $active_tab ] ) ) {
-					$this->tabs[ $active_tab ]->render();
-				} elseif ( ! empty( $this->tabs ) ) {
-					// Fallback: render first tab.
-					reset( $this->tabs );
-					$first_tab = current( $this->tabs );
-					$first_tab->render();
-				}
-				?>
+			<div class="ffc-settings-tabs" data-ffc-settings-tabs>
+				<ul class="ffc-settings-tabs__nav" role="tablist" aria-orientation="vertical">
+					<?php foreach ( $this->tabs as $tab_id => $tab_obj ) : ?>
+						<?php $is_active = ( $active_tab === $tab_id ); ?>
+						<li class="ffc-settings-tabs__nav-item" role="presentation">
+							<a href="?post_type=ffc_form&page=ffc-settings&tab=<?php echo esc_attr( $tab_id ); ?>"
+								id="ffc-settings-tabnav-<?php echo esc_attr( $tab_id ); ?>"
+								class="ffc-settings-tabs__tab<?php echo $is_active ? ' is-active' : ''; ?>"
+								role="tab"
+								aria-selected="<?php echo $is_active ? 'true' : 'false'; ?>"
+								aria-controls="ffc-settings-tabpanel-<?php echo esc_attr( $tab_id ); ?>"
+								tabindex="<?php echo $is_active ? '0' : '-1'; ?>">
+								<span class="ffc-settings-tabs__icon <?php echo esc_attr( $tab_obj->get_icon() ); ?>" aria-hidden="true"></span>
+								<span class="ffc-settings-tabs__label"><?php echo esc_html( $tab_obj->get_title() ); ?></span>
+							</a>
+						</li>
+					<?php endforeach; ?>
+				</ul>
+
+				<div id="ffc-settings-tabpanel-<?php echo esc_attr( $active_tab ); ?>" class="ffc-settings-tabs__panel" role="tabpanel" aria-labelledby="ffc-settings-tabnav-<?php echo esc_attr( $active_tab ); ?>" tabindex="0">
+					<?php
+					if ( isset( $this->tabs[ $active_tab ] ) ) {
+						$this->tabs[ $active_tab ]->render();
+					} elseif ( ! empty( $this->tabs ) ) {
+						// Fallback: render first tab.
+						reset( $this->tabs );
+						$first_tab = current( $this->tabs );
+						$first_tab->render();
+					}
+					?>
+				</div>
 			</div>
 		</div>
 		<?php
@@ -481,9 +539,18 @@ class Settings {
 				break;
 
 			case 'preview':
+				$tool = \FreeFormCertificate\Maintenance\MaintenanceToolRegistry::create_default()->get( 'obsolete_shortcode' );
+				if ( ! $tool instanceof \FreeFormCertificate\Maintenance\MaintenanceToolInterface ) {
+					$redirect_url = add_query_arg( 'obsolete_cleanup_error', rawurlencode( __( 'Maintenance tool not available.', 'ffcertificate' ) ), $redirect_url );
+					break;
+				}
 				try {
-					$cleaner = new \FreeFormCertificate\Migrations\ObsoleteShortcodeCleaner();
-					$report  = $cleaner->run( $current_days, array( 'dry_run' => true ) );
+					$report = $tool->run(
+						array(
+							'days'    => $current_days,
+							'dry_run' => true,
+						)
+					);
 					set_transient( $report_key, $report, 5 * MINUTE_IN_SECONDS );
 					set_transient( $preview_ok_key, 1, 5 * MINUTE_IN_SECONDS );
 					$redirect_url = add_query_arg( 'obsolete_cleanup_msg', rawurlencode( __( 'Preview generated.', 'ffcertificate' ) ), $redirect_url );
@@ -501,9 +568,18 @@ class Settings {
 					);
 					break;
 				}
+				$tool = \FreeFormCertificate\Maintenance\MaintenanceToolRegistry::create_default()->get( 'obsolete_shortcode' );
+				if ( ! $tool instanceof \FreeFormCertificate\Maintenance\MaintenanceToolInterface ) {
+					$redirect_url = add_query_arg( 'obsolete_cleanup_error', rawurlencode( __( 'Maintenance tool not available.', 'ffcertificate' ) ), $redirect_url );
+					break;
+				}
 				try {
-					$cleaner = new \FreeFormCertificate\Migrations\ObsoleteShortcodeCleaner();
-					$report  = $cleaner->run( $current_days, array( 'dry_run' => false ) );
+					$report = $tool->run(
+						array(
+							'days'    => $current_days,
+							'dry_run' => false,
+						)
+					);
 					set_transient( $report_key, $report, 5 * MINUTE_IN_SECONDS );
 					delete_transient( $preview_ok_key );
 					$redirect_url = add_query_arg(
@@ -522,6 +598,314 @@ class Settings {
 					$redirect_url = add_query_arg( 'obsolete_cleanup_error', rawurlencode( $e->getMessage() ), $redirect_url );
 				}
 				break;
+		}
+
+		wp_safe_redirect( $redirect_url );
+		exit;
+	}
+
+	/**
+	 * Handle the Short URL Cleanup maintenance action (Settings → Data Migrations).
+	 *
+	 * Two modes, each with its own nonce key (`ffc_url_cleanup_<mode>`), all
+	 * requiring `ffc_manage_settings`:
+	 *  - `preview` (POST): persist the chosen criteria + grace window into
+	 *    `ffc_settings`, then run the {@see UrlShortenerCleaner} in dry-run and
+	 *    store the report + a "preview OK" flag so the apply button unlocks.
+	 *  - `apply`   (GET) : refuse unless a recent preview exists, then run the
+	 *    destructive pass using the persisted options.
+	 *
+	 * @since 6.7.x
+	 */
+	public function handle_url_shortener_cleanup(): void {
+        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Nonce verified below.
+		if ( ! isset( $_REQUEST['ffc_url_cleanup'] ) ) {
+			return;
+		}
+
+		if ( ! \FreeFormCertificate\Core\Utils::current_user_can_admin_or( 'ffc_manage_settings' ) ) {
+			wp_die( esc_html__( 'You do not have permission to run this action.', 'ffcertificate' ) );
+		}
+
+        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Nonce verified immediately below.
+		$mode = sanitize_key( wp_unslash( $_REQUEST['ffc_url_cleanup'] ) );
+		if ( ! in_array( $mode, array( 'preview', 'apply' ), true ) ) {
+			wp_die( esc_html__( 'Invalid action.', 'ffcertificate' ) );
+		}
+
+        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Nonce verified here.
+		$nonce = isset( $_REQUEST['_wpnonce'] ) ? sanitize_text_field( wp_unslash( $_REQUEST['_wpnonce'] ) ) : '';
+		if ( ! wp_verify_nonce( $nonce, 'ffc_url_cleanup_' . $mode ) ) {
+			wp_die( esc_html__( 'Security check failed.', 'ffcertificate' ) );
+		}
+
+		$user_id        = get_current_user_id();
+		$report_key     = 'ffc_url_cleanup_report_' . $user_id;
+		$preview_ok_key = 'ffc_url_cleanup_preview_ok_' . $user_id;
+
+		$redirect_url = add_query_arg(
+			array(
+				'post_type' => 'ffc_form',
+				'page'      => 'ffc-settings',
+				'tab'       => 'migrations',
+			),
+			admin_url( 'edit.php' )
+		);
+
+		$settings = get_option( 'ffc_settings', array() );
+		if ( ! is_array( $settings ) ) {
+			$settings = array();
+		}
+
+		$tool = \FreeFormCertificate\Maintenance\MaintenanceToolRegistry::create_default()->get( 'url_shortener_cleanup' );
+		if ( ! $tool instanceof \FreeFormCertificate\Maintenance\MaintenanceToolInterface ) {
+			$redirect_url = add_query_arg( 'url_cleanup_error', rawurlencode( __( 'Maintenance tool not available.', 'ffcertificate' ) ), $redirect_url );
+			wp_safe_redirect( $redirect_url );
+			exit;
+		}
+
+		if ( 'preview' === $mode ) {
+            // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Nonce verified above.
+			$posted_days = isset( $_POST['url_cleanup_days'] ) ? absint( wp_unslash( $_POST['url_cleanup_days'] ) ) : 90;
+			$days        = min( 3650, max( 1, $posted_days ) );
+            // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Nonce verified above.
+			$orphaned = empty( $_POST['url_cleanup_orphaned'] ) ? 0 : 1;
+            // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Nonce verified above.
+			$never = empty( $_POST['url_cleanup_never_clicked'] ) ? 0 : 1;
+            // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Nonce verified above.
+			$trashed = empty( $_POST['url_cleanup_trashed'] ) ? 0 : 1;
+
+			$settings['url_cleanup_days']          = $days;
+			$settings['url_cleanup_orphaned']      = $orphaned;
+			$settings['url_cleanup_never_clicked'] = $never;
+			$settings['url_cleanup_trashed']       = $trashed;
+			update_option( 'ffc_settings', $settings );
+
+			try {
+				$report = $tool->run(
+					array(
+						'criteria' => array(
+							'orphaned'      => (bool) $orphaned,
+							'never_clicked' => (bool) $never,
+							'trashed'       => (bool) $trashed,
+						),
+						'days'     => $days,
+						'dry_run'  => true,
+					)
+				);
+				set_transient( $report_key, $report, 5 * MINUTE_IN_SECONDS );
+				set_transient( $preview_ok_key, 1, 5 * MINUTE_IN_SECONDS );
+				$redirect_url = add_query_arg( 'url_cleanup_msg', rawurlencode( __( 'Preview generated.', 'ffcertificate' ) ), $redirect_url );
+			} catch ( \Throwable $e ) {
+				$redirect_url = add_query_arg( 'url_cleanup_error', rawurlencode( $e->getMessage() ), $redirect_url );
+			}
+		} elseif ( ! get_transient( $preview_ok_key ) ) {
+			$redirect_url = add_query_arg( 'url_cleanup_error', rawurlencode( __( 'Please run a preview first before deleting short URLs.', 'ffcertificate' ) ), $redirect_url );
+		} else {
+			$days     = isset( $settings['url_cleanup_days'] ) ? (int) $settings['url_cleanup_days'] : 90;
+			$criteria = array(
+				'orphaned'      => ! empty( $settings['url_cleanup_orphaned'] ),
+				'never_clicked' => ! empty( $settings['url_cleanup_never_clicked'] ),
+				'trashed'       => ! empty( $settings['url_cleanup_trashed'] ),
+			);
+			try {
+				$report = $tool->run(
+					array(
+						'criteria' => $criteria,
+						'days'     => $days,
+						'dry_run'  => false,
+					)
+				);
+				set_transient( $report_key, $report, 5 * MINUTE_IN_SECONDS );
+				delete_transient( $preview_ok_key );
+				$redirect_url = add_query_arg(
+					'url_cleanup_msg',
+					rawurlencode(
+						sprintf(
+						/* translators: %d: short URLs deleted */
+							__( 'Cleanup complete. Deleted %d short URL(s).', 'ffcertificate' ),
+							(int) $report['deleted']
+						)
+					),
+					$redirect_url
+				);
+			} catch ( \Throwable $e ) {
+				$redirect_url = add_query_arg( 'url_cleanup_error', rawurlencode( $e->getMessage() ), $redirect_url );
+			}
+		}
+
+		wp_safe_redirect( $redirect_url );
+		exit;
+	}
+
+	/**
+	 * Handle the "Disable Public Operator Access on old forms" maintenance
+	 * action (Settings → Data Migrations).
+	 *
+	 * Two modes, each with its own nonce key (`ffc_pubaccess_<mode>`), all
+	 * requiring `ffc_manage_settings`:
+	 *  - `preview` (POST): persist the grace window into `ffc_settings`, then
+	 *    run the {@see PublicOperatorAccessDisabler} in dry-run and store the
+	 *    report + a "preview OK" flag so the apply button unlocks.
+	 *  - `apply`   (GET) : refuse unless a recent preview exists, then run the
+	 *    destructive pass using the persisted grace window.
+	 *
+	 * @since 6.7.x
+	 */
+	public function handle_public_access_disabler(): void {
+        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Nonce verified below.
+		if ( ! isset( $_REQUEST['ffc_pubaccess'] ) ) {
+			return;
+		}
+
+		if ( ! \FreeFormCertificate\Core\Utils::current_user_can_admin_or( 'ffc_manage_settings' ) ) {
+			wp_die( esc_html__( 'You do not have permission to run this action.', 'ffcertificate' ) );
+		}
+
+        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Nonce verified immediately below.
+		$mode = sanitize_key( wp_unslash( $_REQUEST['ffc_pubaccess'] ) );
+		if ( ! in_array( $mode, array( 'preview', 'apply' ), true ) ) {
+			wp_die( esc_html__( 'Invalid action.', 'ffcertificate' ) );
+		}
+
+        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Nonce verified here.
+		$nonce = isset( $_REQUEST['_wpnonce'] ) ? sanitize_text_field( wp_unslash( $_REQUEST['_wpnonce'] ) ) : '';
+		if ( ! wp_verify_nonce( $nonce, 'ffc_pubaccess_' . $mode ) ) {
+			wp_die( esc_html__( 'Security check failed.', 'ffcertificate' ) );
+		}
+
+		$user_id        = get_current_user_id();
+		$report_key     = 'ffc_pubaccess_report_' . $user_id;
+		$preview_ok_key = 'ffc_pubaccess_preview_ok_' . $user_id;
+
+		$redirect_url = add_query_arg(
+			array(
+				'post_type' => 'ffc_form',
+				'page'      => 'ffc-settings',
+				'tab'       => 'migrations',
+			),
+			admin_url( 'edit.php' )
+		);
+
+		$settings = get_option( 'ffc_settings', array() );
+		if ( ! is_array( $settings ) ) {
+			$settings = array();
+		}
+
+		$tool = \FreeFormCertificate\Maintenance\MaintenanceToolRegistry::create_default()->get( 'public_access_disabler' );
+		if ( ! $tool instanceof \FreeFormCertificate\Maintenance\MaintenanceToolInterface ) {
+			$redirect_url = add_query_arg( 'pubaccess_error', rawurlencode( __( 'Maintenance tool not available.', 'ffcertificate' ) ), $redirect_url );
+			wp_safe_redirect( $redirect_url );
+			exit;
+		}
+
+		if ( 'preview' === $mode ) {
+            // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Nonce verified above.
+			$posted_days                            = isset( $_POST['public_access_disable_days'] ) ? absint( wp_unslash( $_POST['public_access_disable_days'] ) ) : 90;
+			$days                                   = min( 3650, max( 1, $posted_days ) );
+			$settings['public_access_disable_days'] = $days;
+			update_option( 'ffc_settings', $settings );
+
+			try {
+				$report = $tool->run(
+					array(
+						'days'    => $days,
+						'dry_run' => true,
+					)
+				);
+				set_transient( $report_key, $report, 5 * MINUTE_IN_SECONDS );
+				set_transient( $preview_ok_key, 1, 5 * MINUTE_IN_SECONDS );
+				$redirect_url = add_query_arg( 'pubaccess_msg', rawurlencode( __( 'Preview generated.', 'ffcertificate' ) ), $redirect_url );
+			} catch ( \Throwable $e ) {
+				$redirect_url = add_query_arg( 'pubaccess_error', rawurlencode( $e->getMessage() ), $redirect_url );
+			}
+		} elseif ( ! get_transient( $preview_ok_key ) ) {
+			$redirect_url = add_query_arg( 'pubaccess_error', rawurlencode( __( 'Please run a preview first before disabling access.', 'ffcertificate' ) ), $redirect_url );
+		} else {
+			$days = isset( $settings['public_access_disable_days'] ) ? (int) $settings['public_access_disable_days'] : 90;
+			try {
+				$report = $tool->run(
+					array(
+						'days'    => $days,
+						'dry_run' => false,
+					)
+				);
+				set_transient( $report_key, $report, 5 * MINUTE_IN_SECONDS );
+				delete_transient( $preview_ok_key );
+				$redirect_url = add_query_arg(
+					'pubaccess_msg',
+					rawurlencode(
+						sprintf(
+						/* translators: %d: forms disabled */
+							__( 'Done. Disabled Public Operator Access on %d form(s).', 'ffcertificate' ),
+							(int) $report['disabled']
+						)
+					),
+					$redirect_url
+				);
+			} catch ( \Throwable $e ) {
+				$redirect_url = add_query_arg( 'pubaccess_error', rawurlencode( $e->getMessage() ), $redirect_url );
+			}
+		}
+
+		wp_safe_redirect( $redirect_url );
+		exit;
+	}
+
+	/**
+	 * Handle the Submission ↔ user link audit (Settings → Data Migrations).
+	 *
+	 * Report-only: a single `scan` mode (nonce `ffc_submission_audit_scan`,
+	 * `ffc_manage_settings`) runs the read-only {@see SubmissionLinkAuditor}
+	 * and stores the report in a transient. Nothing is mutated.
+	 *
+	 * @since 6.7.x
+	 */
+	public function handle_submission_link_audit(): void {
+        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Nonce verified below.
+		if ( ! isset( $_REQUEST['ffc_submission_audit'] ) ) {
+			return;
+		}
+
+		if ( ! \FreeFormCertificate\Core\Utils::current_user_can_admin_or( 'ffc_manage_settings' ) ) {
+			wp_die( esc_html__( 'You do not have permission to run this action.', 'ffcertificate' ) );
+		}
+
+        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Nonce verified immediately below.
+		$mode = sanitize_key( wp_unslash( $_REQUEST['ffc_submission_audit'] ) );
+		if ( 'scan' !== $mode ) {
+			wp_die( esc_html__( 'Invalid action.', 'ffcertificate' ) );
+		}
+
+        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Nonce verified here.
+		$nonce = isset( $_REQUEST['_wpnonce'] ) ? sanitize_text_field( wp_unslash( $_REQUEST['_wpnonce'] ) ) : '';
+		if ( ! wp_verify_nonce( $nonce, 'ffc_submission_audit_scan' ) ) {
+			wp_die( esc_html__( 'Security check failed.', 'ffcertificate' ) );
+		}
+
+		$report_key   = 'ffc_submission_audit_report_' . get_current_user_id();
+		$redirect_url = add_query_arg(
+			array(
+				'post_type' => 'ffc_form',
+				'page'      => 'ffc-settings',
+				'tab'       => 'migrations',
+			),
+			admin_url( 'edit.php' )
+		);
+
+		$tool = \FreeFormCertificate\Maintenance\MaintenanceToolRegistry::create_default()->get( 'submission_link_audit' );
+		if ( ! $tool instanceof \FreeFormCertificate\Maintenance\MaintenanceToolInterface ) {
+			$redirect_url = add_query_arg( 'submission_audit_error', rawurlencode( __( 'Maintenance tool not available.', 'ffcertificate' ) ), $redirect_url );
+			wp_safe_redirect( $redirect_url );
+			exit;
+		}
+
+		try {
+			$report = $tool->run( array() );
+			set_transient( $report_key, $report, 5 * MINUTE_IN_SECONDS );
+			$redirect_url = add_query_arg( 'submission_audit_msg', rawurlencode( __( 'Audit complete.', 'ffcertificate' ) ), $redirect_url );
+		} catch ( \Throwable $e ) {
+			$redirect_url = add_query_arg( 'submission_audit_error', rawurlencode( $e->getMessage() ), $redirect_url );
 		}
 
 		wp_safe_redirect( $redirect_url );

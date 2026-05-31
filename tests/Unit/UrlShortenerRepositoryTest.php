@@ -30,7 +30,7 @@ class UrlShortenerRepositoryTest extends TestCase {
         Monkey\setUp();
 
         global $wpdb;
-        $wpdb = Mockery::mock( 'wpdb' );
+        $wpdb = Mockery::mock( 'wpdb' )->makePartial();
         $wpdb->prefix = 'wp_';
         $wpdb->last_error = '';
 
@@ -350,5 +350,57 @@ class UrlShortenerRepositoryTest extends TestCase {
         $this->wpdb->shouldNotReceive( 'update' );
 
         $this->assertFalse( $this->repo->setQrCacheForShortCode( '', 'payload' ) );
+    }
+
+    // ==================================================================
+    // find_cleanup_candidates
+    // ==================================================================
+
+    public function test_find_cleanup_candidates_returns_empty_without_criteria(): void {
+        $this->wpdb->shouldNotReceive( 'prepare' );
+        $this->wpdb->shouldNotReceive( 'get_results' );
+
+        $this->assertSame(
+            array(),
+            $this->repo->find_cleanup_candidates(
+                array(
+                    'orphaned'      => false,
+                    'never_clicked' => false,
+                    'trashed'       => false,
+                ),
+                90
+            )
+        );
+    }
+
+    public function test_find_cleanup_candidates_queries_and_returns_rows(): void {
+        $this->wpdb->posts = 'wp_posts';
+        $rows              = array(
+            array(
+                'id'               => 5,
+                'short_code'       => 'xyz',
+                'is_orphaned'      => 1,
+                'is_never_clicked' => 0,
+                'is_trashed'       => 0,
+            ),
+        );
+
+        $this->wpdb->shouldReceive( 'prepare' )->once()->andReturnUsing(
+            function () {
+                return func_get_args()[0];
+            }
+        );
+        $this->wpdb->shouldReceive( 'get_results' )->once()->andReturn( $rows );
+
+        $result = $this->repo->find_cleanup_candidates(
+            array(
+                'orphaned'      => true,
+                'never_clicked' => true,
+                'trashed'       => false,
+            ),
+            45
+        );
+
+        $this->assertSame( $rows, $result );
     }
 }

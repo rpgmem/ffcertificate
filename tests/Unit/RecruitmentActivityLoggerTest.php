@@ -32,7 +32,7 @@ class RecruitmentActivityLoggerTest extends TestCase {
 		Monkey\setUp();
 
 		global $wpdb;
-		$wpdb         = Mockery::mock( 'wpdb' );
+		$wpdb         = Mockery::mock( 'wpdb' )->makePartial();
 		$wpdb->prefix = 'wp_';
 		$this->wpdb   = $wpdb;
 
@@ -204,6 +204,7 @@ class RecruitmentActivityLoggerTest extends TestCase {
 
 		$entry = $this->last_buffered_entry();
 		$this->assertSame( 'recruitment_classification_deleted', $entry['action'] );
+		$this->assertSame( ActivityLog::LEVEL_WARNING, $entry['level'] );
 		$context = json_decode( (string) $entry['context'], true );
 		$this->assertSame( 10, $context['classification_id'] );
 		$this->assertArrayNotHasKey( 'reason', $context );
@@ -214,6 +215,7 @@ class RecruitmentActivityLoggerTest extends TestCase {
 
 		$entry = $this->last_buffered_entry();
 		$this->assertSame( 'recruitment_adjutancy_deleted', $entry['action'] );
+		$this->assertSame( ActivityLog::LEVEL_WARNING, $entry['level'] );
 		$context = json_decode( (string) $entry['context'], true );
 		$this->assertSame( 2, $context['adjutancy_id'] );
 	}

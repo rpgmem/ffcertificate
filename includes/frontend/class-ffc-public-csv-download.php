@@ -370,6 +370,14 @@ class PublicCsvDownload {
 			'download_delivered'
 		);
 
+		// 10c. Mirror the delivery into the global Activity Log (the
+		// ring-buffer above is per-form; this gives a site-wide audit trail).
+		\FreeFormCertificate\Core\ActivityLog::log(
+			'csv_downloaded',
+			\FreeFormCertificate\Core\ActivityLog::LEVEL_INFO,
+			array( 'form_id' => $form_id )
+		);
+
 		// 11. Stream the CSV. This exits the request.
 		$exporter = new PublicCsvExporter();
 		$exporter->stream_form_csv( $form_id, 'publish' );
@@ -491,9 +499,15 @@ class PublicCsvDownload {
 
 		wp_send_json_success(
 			array(
-				'html'     => wp_kses_post( $config['pdf_layout'] ?? '' ),
-				'bg_image' => esc_url( $config['bg_image'] ?? '' ),
-				'fields'   => $field_names,
+				'html'           => wp_kses_post( $config['pdf_layout'] ?? '' ),
+				'bg_image'       => esc_url( $config['bg_image'] ?? '' ),
+				'fields'         => $field_names,
+				// Canonical placeholder → sample-value map (single source of
+				// truth) so the preview fills system placeholders, not just
+				// the form's own fields. Pass $form_id so the {{schedule}}
+				// sample matches what the operator configured on the form's
+				// Time tab — same lookup the real PDF generator uses.
+				'previewSamples' => \FreeFormCertificate\Core\CertificatePreviewSamples::get_map( $form_id ),
 			)
 		);
 	}

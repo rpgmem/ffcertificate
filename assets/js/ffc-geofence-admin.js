@@ -9,14 +9,9 @@
  */
 
 jQuery(document).ready(function($) {
-    // Tab switching - Using event delegation
-    $(document).on('click', '.ffc-geo-tab-btn', function() {
-        var tab = $(this).data('tab');
-        $('.ffc-geo-tab-btn').removeClass('active');
-        $(this).addClass('active');
-        $('.ffc-geo-tab-content').removeClass('active');
-        $('#ffc-tab-' + tab).addClass('active');
-    });
+    // The former inner "Date & Time / Geolocation" button bar was removed
+    // when those sections became two top-level form-editor tabs (Time /
+    // Geolocation), so the .ffc-geo-tab-btn handler is gone.
 
     // DateTime restrictions — visibility now handled by the generic
     // `.ffc-collapsed-target` initializer in ffc-admin.js (#238 / Sprint 3).
@@ -62,16 +57,20 @@ jQuery(document).ready(function($) {
         'ffc_geofence[date_start]',
         'ffc_geofence[date_end]',
         'ffc_geofence[time_start]',
-        'ffc_geofence[time_end]'
+        'ffc_geofence[time_end]',
+        'ffc_geofence[class_time_start]',
+        'ffc_geofence[class_time_end]'
     ];
 
     function getDateTimeValues() {
         return {
-            date_start: $('input[name="ffc_geofence[date_start]"]').val() || '',
-            date_end:   $('input[name="ffc_geofence[date_end]"]').val()   || '',
-            time_start: $('input[name="ffc_geofence[time_start]"]').val() || '',
-            time_end:   $('input[name="ffc_geofence[time_end]"]').val()   || '',
-            time_mode:  $('input[name="ffc_geofence[time_mode]"]:checked').val() || 'daily'
+            date_start:       $('input[name="ffc_geofence[date_start]"]').val()       || '',
+            date_end:         $('input[name="ffc_geofence[date_end]"]').val()         || '',
+            time_start:       $('input[name="ffc_geofence[time_start]"]').val()       || '',
+            time_end:         $('input[name="ffc_geofence[time_end]"]').val()         || '',
+            class_time_start: $('input[name="ffc_geofence[class_time_start]"]').val() || '',
+            class_time_end:   $('input[name="ffc_geofence[class_time_end]"]').val()   || '',
+            time_mode:        $('input[name="ffc_geofence[time_mode]"]:checked').val() || 'daily'
         };
     }
 
@@ -125,7 +124,7 @@ jQuery(document).ready(function($) {
 
     $(document).on(
         'change input',
-        'input[name="ffc_geofence[date_start]"], input[name="ffc_geofence[date_end]"], input[name="ffc_geofence[time_start]"], input[name="ffc_geofence[time_end]"], input[name="ffc_geofence[time_mode]"]',
+        'input[name="ffc_geofence[date_start]"], input[name="ffc_geofence[date_end]"], input[name="ffc_geofence[time_start]"], input[name="ffc_geofence[time_end]"], input[name="ffc_geofence[class_time_start]"], input[name="ffc_geofence[class_time_end]"], input[name="ffc_geofence[time_mode]"]',
         function() {
             refreshDateTimeValidity();
             toggleDuringHideModeRow();

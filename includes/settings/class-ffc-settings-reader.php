@@ -108,9 +108,80 @@ final class SettingsReader {
 		return self::get_bool( 'enable_activity_log' );
 	}
 
+	/**
+	 * Minimum level the activity log records (debug < info < warning < error).
+	 * Defaults to `debug` (log everything).
+	 *
+	 * @return string One of 'debug' | 'info' | 'warning' | 'error'.
+	 */
+	public static function activity_log_min_level(): string {
+		$level = (string) self::get( 'activity_log_min_level', 'debug' );
+		return in_array( $level, array( 'debug', 'info', 'warning', 'error' ), true ) ? $level : 'debug';
+	}
+
+	/**
+	 * Whether a given activity-log category is enabled. Defaults to true.
+	 *
+	 * @param string $category Category key (see ActivityLog::CATEGORIES).
+	 * @return bool
+	 */
+	public static function activity_log_category_enabled( string $category ): bool {
+		return self::get_bool( 'activity_log_cat_' . $category, true );
+	}
+
+	/**
+	 * Certificate-layout tags that every form's PDF layout must contain.
+	 *
+	 * Configured in Settings → Advanced as a newline/comma list of `{{tag}}`
+	 * tokens; defaults to the historical trio when nothing is saved.
+	 * `{{auth_code}}` is always required (certificate verification breaks
+	 * without it) and is force-injected even if removed from the saved list.
+	 *
+	 * @return array<int, string> Unique `{{tag}}` tokens, `{{auth_code}}` first.
+	 */
+	public static function required_certificate_tags(): array {
+		$raw = self::get( 'required_certificate_tags', '' );
+		if ( is_array( $raw ) ) {
+			$lines = $raw;
+		} else {
+			$lines = preg_split( '/[\r\n,]+/', (string) $raw );
+			if ( false === $lines ) {
+				$lines = array();
+			}
+		}
+		$tags = array();
+		foreach ( $lines as $line ) {
+			$tag = trim( (string) $line );
+			if ( '' !== $tag ) {
+				$tags[] = $tag;
+			}
+		}
+		if ( empty( $tags ) ) {
+			$tags = array( '{{auth_code}}', '{{name}}', '{{cpf_rf}}' );
+		}
+		if ( ! in_array( '{{auth_code}}', $tags, true ) ) {
+			array_unshift( $tags, '{{auth_code}}' );
+		}
+		return array_values( array_unique( $tags ) );
+	}
+
 	/** Whether the WP admin bar is allowed for the FFC user role. */
 	public static function admin_bar_allowed(): bool {
 		return self::get_bool( 'allow_admin_bar' );
+	}
+
+	/**
+	 * Whether deleting the plugin (uninstall.php) should drop tables /
+	 * options / CPT posts / roles / caps / user meta.
+	 *
+	 * Defaults to FALSE to match the WooCommerce / EDD / Yoast convention
+	 * — a plain "Delete plugin" click preserves data unless the admin
+	 * opted in via Settings → Advanced → Danger Zone. uninstall.php reads
+	 * the raw option directly (no autoloader available there); this
+	 * accessor exists for code paths that run inside a normal request.
+	 */
+	public static function delete_data_on_uninstall(): bool {
+		return self::get_bool( 'delete_data_on_uninstall' );
 	}
 
 	/** Whether the FFC user role is blocked from wp-admin. */

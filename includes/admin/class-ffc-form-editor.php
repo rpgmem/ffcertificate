@@ -88,12 +88,80 @@ class FormEditor {
 			true
 		);
 
+		// Localized error copy for the live date/time-order validator above.
+		// Mirrors the strings in `Geofence::analyze_datetime_order()` so Loco
+		// translations applied to the PHP `__()` calls also reach the JS
+		// red-border feedback (was previously hardcoded English in the JS).
+		wp_localize_script(
+			'ffc-geofence-validation',
+			'ffcGeofenceMessages',
+			array(
+				'date_order'       => __( 'End date is earlier than the start date.', 'ffcertificate' ),
+				'span_order'       => __( 'In span mode, the end datetime must be after the start datetime.', 'ffcertificate' ),
+				'daily_order'      => __( 'End time must be later than start time. For an overnight single event, switch the Time Mode to "Span" and set the end date to the next day.', 'ffcertificate' ),
+				'class_time_order' => __( 'Event Schedule end time must be later than the start time.', 'ffcertificate' ),
+			)
+		);
+
 		wp_enqueue_script(
 			'ffc-geofence-admin',
 			FFC_PLUGIN_URL . "assets/js/ffc-geofence-admin{$s}.js",
 			array( 'jquery', 'ffc-geofence-validation' ),
 			FFC_VERSION,
 			true
+		);
+
+		// Vertical-tab behaviour for the configuration metabox. Pure
+		// progressive enhancement (jQuery only) — the panels stay usable
+		// stacked if this fails to load.
+		wp_enqueue_script(
+			'ffc-form-editor-tabs',
+			FFC_PLUGIN_URL . "assets/js/ffc-form-editor-tabs{$s}.js",
+			array( 'jquery' ),
+			FFC_VERSION,
+			true
+		);
+
+		// If the previous save left validation errors, tell the tab script
+		// which tabs to flag (and which one to auto-open). The matching
+		// transients are still consumed by
+		// FormEditorSaveHandler::display_save_errors() to render the notice
+		// itself — admin_enqueue_scripts runs first (head) and only reads.
+		$error_tabs = $this->get_error_tab_keys();
+		if ( ! empty( $error_tabs ) ) {
+			wp_localize_script( 'ffc-form-editor-tabs', 'ffcFormTabsErrors', $error_tabs );
+		}
+
+		// Required-tag list for the client-side save guard: block the submit
+		// and open the Layout tab with a banner when the certificate layout
+		// is missing any required {{tag}}. The server-side check in
+		// FormEditorSaveHandler is the backstop for JS-disabled clients.
+		$required_tags = \FreeFormCertificate\Settings\SettingsReader::required_certificate_tags();
+
+		// Per-form gate: when this form has an Event Schedule configured
+		// (geofence `class_time_*`), the layout must contain {{schedule}}
+		// — same rule the save handler enforces server-side. Surfacing it
+		// in the client-side guard means the operator sees the banner on
+		// the very next save attempt, not after a server round-trip.
+		$current_post = get_post();
+		if ( $current_post && 'ffc_form' === $current_post->post_type ) {
+			$geofence = get_post_meta( $current_post->ID, '_ffc_geofence_config', true );
+			if ( is_array( $geofence )
+				&& ( ! empty( $geofence['class_time_start'] ) || ! empty( $geofence['class_time_end'] ) )
+				&& ! in_array( '{{schedule}}', $required_tags, true )
+			) {
+				$required_tags[] = '{{schedule}}';
+			}
+		}
+
+		wp_localize_script(
+			'ffc-form-editor-tabs',
+			'ffcFormRequiredTags',
+			array(
+				'tags'    => $required_tags,
+				'aliases' => array( '{{name}}' => array( '{{nome}}' ) ),
+				'message' => __( 'This certificate layout is missing required tags:', 'ffcertificate' ),
+			)
 		);
 
 		wp_localize_script(
@@ -131,6 +199,38 @@ class FormEditor {
 	}
 
 	/**
+	 * Tab keys with a pending validation error from the last save attempt,
+	 * read from the per-user transients set by FormEditorSaveHandler.
+	 *
+	 * Non-destructive: the transients are consumed (deleted) by
+	 * {@see FormEditorSaveHandler::display_save_errors()} when it renders the
+	 * admin notice; this method only peeks so the tab script can flag the
+	 * offending tabs and open the first one.
+	 *
+	 * @return array<int, string> Ordered list of tab keys, e.g. ['layout'].
+	 */
+	public function get_error_tab_keys(): array {
+		$uid  = get_current_user_id();
+		$keys = array();
+		// Missing required {{tags}} in the PDF layout → Layout tab.
+		if ( get_transient( 'ffc_save_error_' . $uid ) ) {
+			$keys[] = 'layout';
+		}
+		// Geofence validation failures route to the specific sub-tab(s) —
+		// datetime → Time, area → Geolocation — via the companion transient
+		// the save handler sets. Fall back to flagging both when only the
+		// legacy error transient is present.
+		$geofence_tabs = get_transient( 'ffc_geofence_error_tabs_' . $uid );
+		if ( is_array( $geofence_tabs ) && $geofence_tabs ) {
+			$keys = array_merge( $keys, $geofence_tabs );
+		} elseif ( get_transient( 'ffc_geofence_error_' . $uid ) ) {
+			$keys[] = 'time';
+			$keys[] = 'geolocation';
+		}
+		return $keys;
+	}
+
+	/**
 	 * Registers all metaboxes for the Form CPT
 	 *
 	 * ✅ v3.1.1: Delegates rendering to FFC_Form_Editor_Metabox_Renderer
@@ -141,72 +241,23 @@ class FormEditor {
 		remove_meta_box( 'ffc_form_config', 'ffc_form', 'normal' );
 		remove_meta_box( 'ffc_builder_box', 'ffc_form', 'normal' );
 
-		// Main metaboxes (content area) - Delegated to Metabox Renderer.
+		// The seven content sections are now rendered inside one wrapper
+		// metabox as a vertical-tabbed container (WooCommerce "Product
+		// data" style) instead of seven stacked metaboxes. Each tab panel
+		// reuses the matching `render_box_*` method, so the save path and
+		// the form-meta autosave are unchanged; see
+		// `FormEditorMetaboxRenderer::render_tabbed_container()`.
 		add_meta_box(
-			'ffc_box_layout',
-			__( '1. Certificate Layout', 'ffcertificate' ),
-			array( $this->metabox_renderer, 'render_box_layout' ),
+			'ffc_box_tabs',
+			__( 'Certificate Form Configuration', 'ffcertificate' ),
+			array( $this->metabox_renderer, 'render_tabbed_container' ),
 			'ffc_form',
 			'normal',
 			'high'
 		);
 
-		add_meta_box(
-			'ffc_box_builder',
-			__( '2. Form Builder (Fields)', 'ffcertificate' ),
-			array( $this->metabox_renderer, 'render_box_builder' ),
-			'ffc_form',
-			'normal',
-			'high'
-		);
-
-		add_meta_box(
-			'ffc_box_restriction',
-			__( '3. Restriction & Security', 'ffcertificate' ),
-			array( $this->metabox_renderer, 'render_box_restriction' ),
-			'ffc_form',
-			'normal',
-			'high'
-		);
-
-		add_meta_box(
-			'ffc_box_email',
-			__( '4. Email Configuration', 'ffcertificate' ),
-			array( $this->metabox_renderer, 'render_box_email' ),
-			'ffc_form',
-			'normal',
-			'high'
-		);
-
-		add_meta_box(
-			'ffc_box_geofence',
-			__( '5. Geolocation & Date/Time Restrictions', 'ffcertificate' ),
-			array( $this->metabox_renderer, 'render_box_geofence' ),
-			'ffc_form',
-			'normal',
-			'high'
-		);
-
-		add_meta_box(
-			'ffc_box_quiz',
-			__( '6. Quiz / Evaluation Mode', 'ffcertificate' ),
-			array( $this->metabox_renderer, 'render_box_quiz' ),
-			'ffc_form',
-			'normal',
-			'high'
-		);
-
-		add_meta_box(
-			'ffc_box_public_csv_download',
-			__( '7. Public Operator Access', 'ffcertificate' ),
-			array( $this->metabox_renderer, 'render_box_public_csv_download' ),
-			'ffc_form',
-			'normal',
-			'default'
-		);
-
-		// Device Fingerprint Limit (former Section 8) is now rendered as a
-		// sub-section of "Restriction & Security" (Section 3) — both
+		// Device Fingerprint Limit (former Section 8) is rendered as a
+		// sub-section of "Restriction & Security" (the Security tab) — both
 		// answer the same question ("who can submit this form?") so they
 		// belong together. The dispatch happens inside
 		// `FormEditorMetaboxRenderer::render_box_restriction()`.

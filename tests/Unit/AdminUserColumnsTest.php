@@ -51,7 +51,7 @@ class AdminUserColumnsTest extends TestCase {
 
         // Mock $wpdb
         global $wpdb;
-        $wpdb         = Mockery::mock( 'wpdb' );
+        $wpdb         = Mockery::mock( 'wpdb' )->makePartial();
         $wpdb->prefix = 'wp_';
         $this->wpdb   = $wpdb;
 

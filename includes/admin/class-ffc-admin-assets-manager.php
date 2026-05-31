@@ -374,6 +374,33 @@ class AdminAssetsManager {
 		if ( $this->is_certificates_dashboard_page() ) {
 			$this->enqueue_certificates_dashboard_assets();
 		}
+
+		// Documentation tab — sticky/collapsible Quick Navigation TOC.
+		if ( $this->is_documentation_tab() ) {
+			wp_enqueue_script(
+				'ffc-doc-toc',
+				FFC_PLUGIN_URL . "assets/js/ffc-doc-toc{$s}.js",
+				array(),
+				FFC_VERSION,
+				true
+			);
+		}
+	}
+
+	/**
+	 * Check if current screen is the Documentation tab of the main
+	 * Certificate Settings page (`page=ffc-settings&tab=documentation`).
+	 *
+	 * @return bool
+	 */
+	private function is_documentation_tab(): bool {
+        // phpcs:disable WordPress.Security.NonceVerification.Recommended -- Page routing check for asset loading.
+		if ( ! isset( $_GET['page'], $_GET['tab'] ) ) {
+			return false;
+		}
+		return sanitize_key( wp_unslash( $_GET['page'] ) ) === 'ffc-settings'
+			&& sanitize_key( wp_unslash( $_GET['tab'] ) ) === 'documentation';
+        // phpcs:enable WordPress.Security.NonceVerification.Recommended
 	}
 
 	/**
@@ -426,14 +453,16 @@ class AdminAssetsManager {
 			'ffc-certificates-dashboard',
 			'ffcCertificatesDashboard',
 			array(
-				'restUrl' => esc_url_raw( rest_url( 'ffc/v1/' ) ),
-				'nonce'   => wp_create_nonce( 'wp_rest' ),
-				'i18n'    => array(
+				'restUrl'            => esc_url_raw( rest_url( 'ffc/v1/' ) ),
+				'nonce'              => wp_create_nonce( 'wp_rest' ),
+				'submissionsUrlBase' => esc_url_raw( admin_url( 'edit.php?post_type=ffc_form&page=ffc-submissions' ) ),
+				'i18n'               => array(
 					'legendGeofence'  => __( 'GeoFence start', 'ffcertificate' ),
 					'legendFallback'  => __( 'Publication date (fallback)', 'ffcertificate' ),
 					'sourceGeofence'  => __( 'GeoFence', 'ffcertificate' ),
 					'sourcePostDate'  => __( 'Publication date', 'ffcertificate' ),
 					'noFormsForDay'   => __( 'No forms scheduled for this day.', 'ffcertificate' ),
+					'viewSubmissions' => __( 'View submissions for this form', 'ffcertificate' ),
 					'calendarStrings' => array(
 						'months'   => array(
 							__( 'January', 'ffcertificate' ),
@@ -695,29 +724,24 @@ class AdminAssetsManager {
 	 * @return array<string, mixed> Localization data
 	 */
 	private function get_localization_data(): array {
+		// Capture the post the editor is currently on so the schedule sample
+		// reflects this form's actual Class/Time configuration instead of
+		// the docs-row fallback. `global $post` is reliable during
+		// admin_enqueue_scripts on the post-edit screen; defaults to 0
+		// (and therefore the fallback) for new-post and list screens.
+		global $post;
+		$form_id = ( $post && isset( $post->ID ) ) ? (int) $post->ID : 0;
+
 		return array(
-			'ajax_url'     => admin_url( 'admin-ajax.php' ),
-			'nonce'        => wp_create_nonce( 'ffc_admin_pdf_nonce' ),
-			'export_nonce' => wp_create_nonce( 'ffc_csv_export' ),
-			'templates'    => array(
-				array(
-					'value' => 'atestado_estagios.html',
-					'label' => __( 'Internship Certificate', 'ffcertificate' ),
-				),
-				array(
-					'value' => 'certificado_1.html',
-					'label' => __( 'Certificate Template 1', 'ffcertificate' ),
-				),
-				array(
-					'value' => 'certificado_2.html',
-					'label' => __( 'Certificate Template 2', 'ffcertificate' ),
-				),
-				array(
-					'value' => 'declaracao.html',
-					'label' => __( 'Declaration', 'ffcertificate' ),
-				),
-			),
-			'strings'      => array(
+			'ajax_url'       => admin_url( 'admin-ajax.php' ),
+			'nonce'          => wp_create_nonce( 'ffc_admin_pdf_nonce' ),
+			'export_nonce'   => wp_create_nonce( 'ffc_csv_export' ),
+			// Canonical placeholder → sample-value map for the in-editor
+			// certificate preview. Single source of truth lives in PHP so
+			// the JS can't drift from the generators' real placeholders.
+			'previewSamples' => \FreeFormCertificate\Core\CertificatePreviewSamples::get_map( $form_id ),
+			'templates'      => self::discover_layout_templates(),
+			'strings'        => array(
 				// General.
 				'generating'              => __( 'Generating...', 'ffcertificate' ),
 				'error'                   => __( 'Error: ', 'ffcertificate' ),
@@ -832,5 +856,44 @@ class AdminAssetsManager {
 				'close'                   => __( 'Close', 'ffcertificate' ),
 			),
 		);
+	}
+
+	/**
+	 * Build the certificate-layout template list shown in the form-editor
+	 * "Load template" modal.
+	 *
+	 * Scans `html/*.html` and keeps filenames whose basename contains
+	 * "certificate" anywhere (case-insensitive) — that's the convention
+	 * agreed in #443 for which bundled HTML files are valid layouts for
+	 * the Certificate HTML Editor (excludes receipt / ficha / atestado
+	 * templates that live in the same directory).
+	 *
+	 * Labels are derived from the filename: strip `.html`, replace `_`
+	 * with space, title-case the words. So `default_certificate_1.html`
+	 * → "Default Certificate 1".
+	 *
+	 * @return array<int,array{value: string, label: string}>
+	 */
+	private static function discover_layout_templates(): array {
+		$dir   = FFC_PLUGIN_DIR . 'html/';
+		$paths = glob( $dir . '*.html' );
+		if ( ! $paths ) {
+			return array();
+		}
+
+		$out = array();
+		foreach ( $paths as $path ) {
+			$name = basename( $path );
+			if ( false === stripos( $name, 'certificate' ) ) {
+				continue;
+			}
+			$stem  = (string) preg_replace( '/\.html$/i', '', $name );
+			$label = ucwords( str_replace( '_', ' ', $stem ) );
+			$out[] = array(
+				'value' => $name,
+				'label' => $label,
+			);
+		}
+		return $out;
 	}
 }

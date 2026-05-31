@@ -45,6 +45,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 				<tr><td><code>{{submission_status}}</code></td><td><?php esc_html_e( 'Current status (Submitted, Approved, etc.)', 'ffcertificate' ); ?></td></tr>
 				<tr><td><code>{{submitted_at}}</code></td><td><?php esc_html_e( 'Submission date', 'ffcertificate' ); ?></td></tr>
 				<tr><td><code>{{custom_fields_section}}</code></td><td><?php esc_html_e( 'Auto-generated section with all custom field values', 'ffcertificate' ); ?></td></tr>
+					<tr><td><code>{{termo_ciencia}}</code></td><td><?php esc_html_e( 'Acknowledgment notice ("Termo de Ciência") HTML — editable per-audience in the Reregistration Fields section, with a shipped default fallback.', 'ffcertificate' ); ?></td></tr>
 				<tr><td><code>{{site_name}}</code></td><td><?php esc_html_e( 'WordPress site name', 'ffcertificate' ); ?></td></tr>
 				<tr><td><code>{{generation_date}}</code></td><td><?php esc_html_e( 'Date when the PDF was generated', 'ffcertificate' ); ?></td></tr>
 			</tbody>
@@ -128,6 +129,21 @@ if ( ! defined( 'ABSPATH' ) ) {
 				<tr><td><code>{{sindicato}}</code></td><td><?php esc_html_e( 'Union', 'ffcertificate' ); ?></td></tr>
 			</tbody>
 		</table>
+	</div>
+
+	<div class="ffc-doc-note">
+		<h4><?php esc_html_e( 'Dependent-select fields (Division / Sector):', 'ffcertificate' ); ?></h4>
+		<p>
+			<?php esc_html_e( 'A dependent_select custom field (e.g. divisao_setor) exposes three placeholders: the combined value plus its two halves. Use whichever the layout needs.', 'ffcertificate' ); ?>
+		</p>
+		<ul>
+			<li><code>{{divisao_setor}}</code> — <?php esc_html_e( 'combined "Parent - Child" value.', 'ffcertificate' ); ?></li>
+			<li><code>{{divisao_setor_parent}}</code> — <?php esc_html_e( 'the parent half only (e.g. the Division).', 'ffcertificate' ); ?></li>
+			<li><code>{{divisao_setor_child}}</code> — <?php esc_html_e( 'the child half only (e.g. the Sector).', 'ffcertificate' ); ?></li>
+		</ul>
+		<p>
+			<?php esc_html_e( 'The same _parent / _child split is available for any dependent_select field by appending those suffixes to its field key.', 'ffcertificate' ); ?>
+		</p>
 	</div>
 
 	<div class="ffc-doc-example">

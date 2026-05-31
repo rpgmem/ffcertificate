@@ -70,6 +70,22 @@ class SettingsAjaxEndpoint {
 			'qr_cache_enabled',
 			// SMTP tab.
 			'disable_all_emails',
+			'send_wp_user_email_submission',
+			'send_wp_user_email_appointment',
+			'send_wp_user_email_csv_import',
+			'send_wp_user_email_migration',
+			// URL Shortener tab.
+			'url_shortener_enabled',
+			'url_shortener_auto_create',
+			// Data Migrations tab — URL cleanup criteria (persisted so the
+			// last-used selection survives the preview/delete round-trip).
+			'url_cleanup_orphaned',
+			'url_cleanup_never_clicked',
+			'url_cleanup_trashed',
+			// Advanced tab — Danger Zone "reset ID counter" default state.
+			'dangerzone_reset_counter_default',
+			// Audience CSV import — "create users if they don't exist" default.
+			'audience_csv_create_users_default',
 			// Advanced tab — activity log master switch + per-module debug.
 			'enable_activity_log',
 			'debug_pdf_generator',
@@ -88,20 +104,100 @@ class SettingsAjaxEndpoint {
 			'debug_qrcode',
 			// 6.6.4 follow-up (#361 Sprint 1).
 			'debug_browser_env',
+			// Activity-log granular filter — per-category enables.
+			'activity_log_cat_submissions',
+			'activity_log_cat_scheduling',
+			'activity_log_cat_public_access',
+			'activity_log_cat_users',
+			'activity_log_cat_recruitment',
+			'activity_log_cat_migrations',
+			'activity_log_cat_system',
+			// Danger Zone opt-in: when on, uninstall.php removes ALL plugin
+			// data (tables, options, CPT posts, roles, caps). Default OFF
+			// matches the WooCommerce / EDD / Yoast convention so plugin
+			// deletion never wipes data unintentionally.
+			'delete_data_on_uninstall',
 		);
 
 		$allowlist = array(
-			'admin_bypass_datetime' => array(
+			'admin_bypass_datetime'         => array(
 				'option' => 'ffc_geolocation_settings',
 				'type'   => 'bool',
 				'cap'    => 'manage_options',
 			),
-			'admin_bypass_geo'      => array(
+			'admin_bypass_geo'              => array(
 				'option' => 'ffc_geolocation_settings',
 				'type'   => 'bool',
+				'cap'    => 'manage_options',
+			),
+			'ip_api_enabled'                => array(
+				'option' => 'ffc_geolocation_settings',
+				'type'   => 'bool',
+				'cap'    => 'manage_options',
+			),
+			'ip_api_cascade'                => array(
+				'option' => 'ffc_geolocation_settings',
+				'type'   => 'bool',
+				'cap'    => 'manage_options',
+			),
+			'ip_cache_enabled'              => array(
+				'option' => 'ffc_geolocation_settings',
+				'type'   => 'bool',
+				'cap'    => 'manage_options',
+			),
+			// User Access tab — stored in its own option (ffc_user_access_settings)
+			// with flat keys. The JS-side key is prefixed `user_access_*` so it
+			// doesn't collide with same-named keys in ffc_settings.
+			'user_access_block_wp_admin'    => array(
+				'option' => 'ffc_user_access_settings',
+				'path'   => array( 'block_wp_admin' ),
+				'type'   => 'bool',
+				'cap'    => 'manage_options',
+			),
+			'user_access_bypass_for_admins' => array(
+				'option' => 'ffc_user_access_settings',
+				'path'   => array( 'bypass_for_admins' ),
+				'type'   => 'bool',
+				'cap'    => 'manage_options',
+			),
+			'user_access_allow_admin_bar'   => array(
+				'option' => 'ffc_user_access_settings',
+				'path'   => array( 'allow_admin_bar' ),
+				'type'   => 'bool',
+				'cap'    => 'manage_options',
+			),
+			// SMTP semantic rework — the on-disk slot is `disable_all_emails`
+			// (kept for compatibility) but the UI now exposes the inverted
+			// "Ativar envios de e-mails" toggle. `invert: true` flips the
+			// bool at write time so on=true → disable_all_emails=false.
+			'emails_enabled'                => array(
+				'option' => 'ffc_settings',
+				'path'   => array( 'disable_all_emails' ),
+				'type'   => 'bool',
+				'invert' => true,
 				'cap'    => 'manage_options',
 			),
 		);
+
+		// Recruitment Settings tab (`page=ffc-recruitment&tab=settings`) —
+		// stored in its own option (`ffc_recruitment_settings`) and gated
+		// by the recruitment-specific cap. Keys are prefixed `recruitment_*`
+		// to avoid colliding with same-named slots in other options.
+		$recruitment_bools = array(
+			'preview_reason_required_denied',
+			'preview_reason_required_granted',
+			'preview_reason_required_appeal_denied',
+			'preview_reason_required_appeal_granted',
+			'audit_pii_reveals',
+		);
+		foreach ( $recruitment_bools as $field ) {
+			$allowlist[ 'recruitment_' . $field ] = array(
+				'option' => 'ffc_recruitment_settings',
+				'path'   => array( $field ),
+				'type'   => 'bool',
+				'cap'    => 'ffc_manage_recruitment',
+			);
+		}
 
 		foreach ( $bool_settings as $key ) {
 			$allowlist[ $key ] = array(
@@ -124,7 +220,29 @@ class SettingsAjaxEndpoint {
 			'device_enabled'                   => array( 'device', 'enabled' ),
 			'device_bypass_logged_in_managers' => array( 'device', 'bypass_logged_in_managers' ),
 			'device_log_blocks'                => array( 'device', 'log_blocks' ),
+			// Read-endpoint group (#259).
+			'read_respect_whitelist'           => array( 'read', 'respect_whitelist' ),
+			'read_bypass_logged_in'            => array( 'read', 'bypass_logged_in' ),
+			// Whitelist / Blacklist card UI-visibility toggles. The flag
+			// only collapses the card on the settings page — the lists
+			// continue to apply at runtime when populated.
+			'whitelist_enabled'                => array( 'whitelist', 'enabled' ),
+			'blacklist_enabled'                => array( 'blacklist', 'enabled' ),
+			// Logging group.
+			'logging_enabled'                  => array( 'logging', 'enabled' ),
+			'logging_log_allowed'              => array( 'logging', 'log_allowed' ),
+			'logging_log_blocked'              => array( 'logging', 'log_blocked' ),
+			// UI / display group.
+			'ui_show_remaining'                => array( 'ui', 'show_remaining' ),
+			'ui_show_wait_time'                => array( 'ui', 'show_wait_time' ),
+			'ui_countdown_timer'               => array( 'ui', 'countdown_timer' ),
 		);
+
+		// Per-endpoint enable toggles under `read.endpoints.<ep>.enabled`.
+		// Keep the endpoint list aligned with TabRateLimit::$defaults['read']['endpoints'].
+		foreach ( array( 'calendar_slots', 'calendar_list', 'calendar_detail' ) as $ffc_ep ) {
+			$rate_limit_paths[ 'read_endpoint_' . $ffc_ep . '_enabled' ] = array( 'read', 'endpoints', $ffc_ep, 'enabled' );
+		}
 
 		foreach ( $rate_limit_paths as $key => $path ) {
 			$allowlist[ $key ] = array(
@@ -154,6 +272,26 @@ class SettingsAjaxEndpoint {
 					'min' => 0,
 					'max' => 3650,
 				),
+			),
+			// Data Migrations tab — "never clicked … days ago" grace window.
+			'url_cleanup_days'            => array(
+				'int',
+				array(
+					'min' => 1,
+					'max' => 3650,
+				),
+			),
+			// Activity-log granular filter — minimum level. Validated again on
+			// read by SettingsReader::activity_log_min_level().
+			'activity_log_min_level'      => array(
+				'string',
+				array(),
+			),
+			// Newline/comma list of required {{tags}} for PDF layouts —
+			// read by SettingsReader::required_certificate_tags().
+			'required_certificate_tags'   => array(
+				'string',
+				array( 'as' => 'multiline_text' ),
 			),
 			'public_csv_sync_max_rows'    => array(
 				'int',
@@ -288,7 +426,22 @@ class SettingsAjaxEndpoint {
 			'device_message'         => array( array( 'device', 'message' ), 'string', array( 'as' => 'multiline_text' ) ),
 			'logging_retention_days' => array( array( 'logging', 'retention_days' ), 'int', array( 'min' => 1 ) ),
 			'logging_max_logs'       => array( array( 'logging', 'max_logs' ), 'int', array( 'min' => 100 ) ),
+			'read_message'           => array( array( 'read', 'message' ), 'string', array( 'as' => 'multiline_text' ) ),
 		);
+
+		// Per-endpoint numeric thresholds under read.endpoints.<ep>.{max_per_minute,max_per_hour}.
+		foreach ( array( 'calendar_slots', 'calendar_list', 'calendar_detail' ) as $ffc_ep ) {
+			$rate_limit_typed[ 'read_endpoint_' . $ffc_ep . '_max_per_minute' ] = array(
+				array( 'read', 'endpoints', $ffc_ep, 'max_per_minute' ),
+				'int',
+				array( 'min' => 0 ),
+			);
+			$rate_limit_typed[ 'read_endpoint_' . $ffc_ep . '_max_per_hour' ]   = array(
+				array( 'read', 'endpoints', $ffc_ep, 'max_per_hour' ),
+				'int',
+				array( 'min' => 0 ),
+			);
+		}
 
 		foreach ( $rate_limit_typed as $key => list( $path, $type, $extra ) ) {
 			$allowlist[ $key ] = array_merge(
@@ -301,6 +454,17 @@ class SettingsAjaxEndpoint {
 				$extra
 			);
 		}
+
+		// `device.signals_enabled` — multi-select stored as `string[]`. The
+		// `options` whitelist mirrors the registry in TabRateLimit::save_settings()
+		// so a tampered POST can't store unsupported signal names.
+		$allowlist['device_signals_enabled'] = array(
+			'option'  => 'ffc_rate_limit_settings',
+			'path'    => array( 'device', 'signals_enabled' ),
+			'type'    => 'string[]',
+			'options' => array( 'cookie', 'ua', 'screen', 'tz', 'concurrency', 'memory', 'canvas', 'audio', 'webgl', 'fonts', 'plugins', 'permissions', 'mediaqueries', 'math' ),
+			'cap'     => 'manage_options',
+		);
 
 		return $allowlist;
 	}
@@ -336,6 +500,13 @@ class SettingsAjaxEndpoint {
 
 		$raw_value = wp_unslash( $_POST['value'] ?? '' );
 		$value     = self::sanitize_value( $raw_value, $entry['type'] ?? 'bool', $entry );
+
+		// Optional bool inversion — the SMTP tab's "Ativar envios" toggle is
+		// stored on disk as `disable_all_emails` for historical reasons, so the
+		// UI flips the semantics. Only meaningful for bool entries.
+		if ( ! empty( $entry['invert'] ) && is_bool( $value ) ) {
+			$value = ! $value;
+		}
 
 		$option_name = $entry['option'];
 		$option      = get_option( $option_name, array() );
@@ -431,6 +602,31 @@ class SettingsAjaxEndpoint {
 					return sanitize_textarea_field( (string) $raw );
 				}
 				return sanitize_text_field( (string) $raw );
+
+			case 'string[]':
+				// Empty selection arrives as '' (jQuery omits empty arrays
+				// from $.param). Treat missing as empty list, not invalid.
+				if ( '' === $raw ) {
+					$raw = array();
+				}
+				if ( ! is_array( $raw ) ) {
+					return array();
+				}
+				$values = array_map( 'sanitize_key', array_map( 'strval', $raw ) );
+				$values = array_values(
+					array_unique(
+						array_filter(
+							$values,
+							static fn( string $v ): bool => '' !== $v
+						)
+					)
+				);
+				if ( ! empty( $entry['options'] ) && is_array( $entry['options'] ) ) {
+					// Intersect with the registered allowlist so a client can't
+					// inject signal names the server doesn't understand.
+					$values = array_values( array_intersect( $entry['options'], $values ) );
+				}
+				return $values;
 
 			default:
 				return null;

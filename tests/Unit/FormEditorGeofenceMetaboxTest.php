@@ -59,20 +59,51 @@ class FormEditorGeofenceMetaboxTest extends TestCase {
         return (string) ob_get_clean();
     }
 
-    public function test_render_outputs_geofence_container_with_tabbed_layout(): void {
+    public function test_render_outputs_both_sections_without_inner_tab_bar(): void {
         $html = $this->render();
 
         $this->assertStringContainsString( 'ffc-geofence-container', $html );
-        $this->assertStringContainsString( 'ffc-geofence-tabs', $html );
+        // The former inner "Date & Time / Geolocation" button bar is gone —
+        // those sections are now two top-level form-editor tabs.
+        $this->assertStringNotContainsString( 'ffc-geofence-tabs', $html );
+        $this->assertStringNotContainsString( 'data-tab=', $html );
     }
 
-    public function test_render_emits_datetime_and_geolocation_tab_buttons(): void {
+    public function test_render_emits_both_section_master_toggles(): void {
         $html = $this->render();
 
-        $this->assertStringContainsString( 'data-tab="datetime"', $html );
-        $this->assertStringContainsString( 'data-tab="geolocation"', $html );
-        $this->assertStringContainsString( 'Date & Time', $html );
-        $this->assertStringContainsString( 'Geolocation', $html );
+        $this->assertStringContainsString( 'ffc_geofence[datetime_enabled]', $html );
+        $this->assertStringContainsString( 'ffc_geofence[geo_enabled]', $html );
+    }
+
+    public function test_render_time_outputs_datetime_section_only(): void {
+        Functions\when( 'get_post_meta' )->justReturn( array() );
+        $post     = Mockery::mock( 'WP_Post' );
+        $post->ID = 77;
+        ob_start();
+        $this->metabox->render_time( $post );
+        $html = (string) ob_get_clean();
+
+        // Carries the POST sentinel + the datetime + schedule-exception fields.
+        $this->assertStringContainsString( 'ffc_geofence[_save]', $html );
+        $this->assertStringContainsString( 'ffc_geofence[datetime_enabled]', $html );
+        $this->assertStringContainsString( 'ffc_geofence[schedule_exception_enabled]', $html );
+        // …and none of the geolocation controls.
+        $this->assertStringNotContainsString( 'ffc_geofence[geo_enabled]', $html );
+    }
+
+    public function test_render_geolocation_outputs_geo_section_only(): void {
+        Functions\when( 'get_post_meta' )->justReturn( array() );
+        $post     = Mockery::mock( 'WP_Post' );
+        $post->ID = 77;
+        ob_start();
+        $this->metabox->render_geolocation( $post );
+        $html = (string) ob_get_clean();
+
+        $this->assertStringContainsString( 'ffc_geofence[geo_enabled]', $html );
+        $this->assertStringContainsString( 'toggleGeoSource', $html );
+        // …and none of the datetime controls.
+        $this->assertStringNotContainsString( 'ffc_geofence[datetime_enabled]', $html );
     }
 
     public function test_render_does_not_throw_with_partial_geofence_config(): void {
@@ -114,6 +145,60 @@ class FormEditorGeofenceMetaboxTest extends TestCase {
             $html,
             'Schedule exception sub-options tbody should carry the ffc-collapsed modifier when the toggle is off'
         );
+    }
+
+    // ==================================================================
+    // Global IP-API kill-switch gate (Sprint 5 — form-editor UX batch)
+    // ==================================================================
+
+    public function test_render_geolocation_disables_ip_toggle_when_global_off(): void {
+        // get_option( 'ffc_geolocation_settings' ) → empty array
+        // ⇒ $global_ip_api_enabled === false ⇒ toggle must be disabled +
+        // a warning notice with a link to Settings → Geolocation appears.
+        Functions\when( 'get_option' )->justReturn( array() );
+        Functions\when( 'get_post_meta' )->justReturn( array() );
+        $post     = Mockery::mock( 'WP_Post' );
+        $post->ID = 77;
+
+        ob_start();
+        $this->metabox->render_geolocation( $post );
+        $html = (string) ob_get_clean();
+
+        // The toggle's visible checkbox must carry the disabled attr.
+        $this->assertMatchesRegularExpression(
+            '/<input[^>]*name="ffc_geofence\[geo_ip_enabled\]"[^>]*disabled/s',
+            $html,
+            'IP toggle must be rendered disabled when the global ip_api_enabled is off'
+        );
+        // And the warning notice links to the global setting tab.
+        $this->assertStringContainsString( 'page=ffc-settings&tab=geolocation', $html );
+        $this->assertStringContainsString( 'IP geolocation is disabled globally', $html );
+    }
+
+    public function test_render_geolocation_enables_ip_toggle_when_global_on(): void {
+        // Stub the global option to return ip_api_enabled = true.
+        Functions\when( 'get_option' )->alias(
+            static function ( $key, $default = array() ) {
+                return 'ffc_geolocation_settings' === $key
+                    ? array( 'ip_api_enabled' => true )
+                    : $default;
+            }
+        );
+        Functions\when( 'get_post_meta' )->justReturn( array() );
+        $post     = Mockery::mock( 'WP_Post' );
+        $post->ID = 77;
+
+        ob_start();
+        $this->metabox->render_geolocation( $post );
+        $html = (string) ob_get_clean();
+
+        // The toggle should NOT carry the disabled attr, and the warning
+        // notice should NOT appear.
+        $this->assertDoesNotMatchRegularExpression(
+            '/<input[^>]*name="ffc_geofence\[geo_ip_enabled\]"[^>]*disabled/s',
+            $html
+        );
+        $this->assertStringNotContainsString( 'IP geolocation is disabled globally', $html );
     }
 
     public function test_render_schedule_exception_expands_when_toggle_on(): void {

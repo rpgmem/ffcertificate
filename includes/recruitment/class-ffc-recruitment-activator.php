@@ -129,6 +129,11 @@ class RecruitmentActivator {
 			self::migrate_called_at_to_unix();
 			update_option( $option_key, 7 );
 		}
+
+		if ( $current < 8 ) {
+			self::migrate_add_withdrew_status();
+			update_option( $option_key, 8 );
+		}
 	}
 
 	/**
@@ -155,6 +160,18 @@ class RecruitmentActivator {
 
 		$has_old = self::column_exists( $table, 'called_at' );
 		$has_new = self::column_exists( $table, 'called_at_ts' );
+
+		// Already at the target shape: `called_at` is the BIGINT (no
+		// staging column hanging around). This happens on fresh 6.6.0+
+		// installs and on uninstall+reinstall cycles where the schema
+		// version option was cleared but the table itself was already
+		// migrated by a prior activation.
+		if ( $has_old && ! $has_new ) {
+			$type = self::column_type( $table, 'called_at' );
+			if ( null !== $type && false !== stripos( $type, 'int' ) ) {
+				return;
+			}
+		}
 
 		if ( ! $has_new ) {
 			if ( ! $has_old ) {
@@ -198,10 +215,18 @@ class RecruitmentActivator {
 				}
 			} while ( $row_count === $batch_size );
 
-            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange
-			$wpdb->query( $wpdb->prepare( 'ALTER TABLE %i DROP COLUMN %i', $table, 'called_at' ) );
-            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange
-			$wpdb->query( $wpdb->prepare( 'ALTER TABLE %i CHANGE %i %i BIGINT UNSIGNED NOT NULL', $table, 'called_at_ts', 'called_at' ) );
+			// Re-check both columns before the destructive ALTERs so a
+			// partially-completed prior run (or a stale `column_exists`
+			// reading) can't trigger "Can't DROP / Unknown column" noise
+			// in debug.log.
+			if ( self::column_exists( $table, 'called_at' ) ) {
+                // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange
+				$wpdb->query( $wpdb->prepare( 'ALTER TABLE %i DROP COLUMN %i', $table, 'called_at' ) );
+			}
+			if ( self::column_exists( $table, 'called_at_ts' ) && ! self::column_exists( $table, 'called_at' ) ) {
+                // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange
+				$wpdb->query( $wpdb->prepare( 'ALTER TABLE %i CHANGE %i %i BIGINT UNSIGNED NOT NULL', $table, 'called_at_ts', 'called_at' ) );
+			}
 		}
 	}
 
@@ -367,6 +392,26 @@ class RecruitmentActivator {
 		// Step 3: narrow the enum back to the canonical state.
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Schema migration.
 		$wpdb->query( "ALTER TABLE `{$table}` MODIFY status ENUM('draft','preliminary','definitive','closed') NOT NULL DEFAULT 'draft'" );
+	}
+
+	/**
+	 * V8 schema migration — widen the classification status enum to include
+	 * the new terminal `withdrew` value alongside `hired`. No rows need to
+	 * change; the `withdrew` state can only be reached by future transitions
+	 * (from `called` or `accepted`).
+	 *
+	 * @return void
+	 */
+	private static function migrate_add_withdrew_status(): void {
+		global $wpdb;
+		$table = $wpdb->prefix . 'ffc_recruitment_classification';
+
+		if ( ! self::table_exists( $table ) ) {
+			return;
+		}
+
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Schema migration.
+		$wpdb->query( "ALTER TABLE `{$table}` MODIFY status enum('empty','called','accepted','not_shown','hired','withdrew') NOT NULL DEFAULT 'empty'" );
 	}
 
 	/**
@@ -564,7 +609,7 @@ class RecruitmentActivator {
             score decimal(10,4) NOT NULL,
             time_points decimal(10,4) NOT NULL DEFAULT 0,
             hab_emebs tinyint(1) NOT NULL DEFAULT 0,
-            status enum('empty','called','accepted','not_shown','hired') NOT NULL DEFAULT 'empty',
+            status enum('empty','called','accepted','not_shown','hired','withdrew') NOT NULL DEFAULT 'empty',
             preview_status enum('empty','denied','granted','appeal_denied','appeal_granted') NOT NULL DEFAULT 'empty',
             preview_reason_id bigint(20) unsigned DEFAULT NULL,
             created_at datetime NOT NULL,

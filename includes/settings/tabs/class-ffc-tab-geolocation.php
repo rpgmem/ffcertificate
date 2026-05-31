@@ -60,21 +60,12 @@ class TabGeolocation extends SettingsTab {
 		}
 
 		$s = \FreeFormCertificate\Core\Utils::asset_suffix();
-		// Core is needed for FFC.request; autosave depends on FFC.Admin.
-		wp_enqueue_script(
-			'ffc-core',
-			FFC_PLUGIN_URL . "assets/js/ffc-core{$s}.js",
-			array( 'jquery' ),
-			FFC_VERSION,
-			true
-		);
-		wp_enqueue_script(
-			'ffc-admin-autosave',
-			FFC_PLUGIN_URL . "assets/js/ffc-admin-autosave{$s}.js",
-			array( 'jquery', 'ffc-core', 'ffc-admin-js' ),
-			FFC_VERSION,
-			true
-		);
+		// Shared helper enqueues ffc-core + ffc-admin-autosave AND localizes
+		// `ffcAdminAutosave.nonce` for the `ffc_update_setting` endpoint.
+		// Inlining the enqueues here (the pre-#440 shape) skipped the nonce
+		// localization, so autosave fell back to the global ffc_ajax.nonce
+		// (created for ffc_admin_pdf_nonce) and every toggle save 403'd.
+		$this->enqueue_autosave_infra();
 		wp_enqueue_script(
 			'ffc-geolocation-settings',
 			FFC_PLUGIN_URL . "assets/js/ffc-geolocation-settings{$s}.js",

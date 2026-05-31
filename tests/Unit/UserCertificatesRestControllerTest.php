@@ -75,7 +75,7 @@ class UserCertificatesRestControllerTest extends TestCase {
         $magic_link_mock->shouldReceive( 'generate_magic_link' )->andReturn( 'https://example.com/magic/abc123' )->byDefault();
 
         // Global $wpdb mock
-        $this->wpdb = Mockery::mock( 'wpdb' );
+        $this->wpdb = Mockery::mock( 'wpdb' )->makePartial();
         $this->wpdb->prefix = 'wp_';
         $this->wpdb->posts = 'wp_posts';
         $this->wpdb->shouldReceive( 'prepare' )->andReturn( '' )->byDefault();

@@ -106,6 +106,98 @@ class SubmissionRepository extends AbstractRepository {
 	}
 
 	/**
+	 * Audit: submissions whose `user_id` points to a WP user that no longer
+	 * exists (orphaned link after the user was deleted). Read-only.
+	 *
+	 * @param int $limit Max rows.
+	 * @return array<int, array<string, mixed>>
+	 */
+	public function find_orphan_user_links( int $limit = 50 ): array {
+		$limit = max( 1, $limit );
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+		$rows = $this->wpdb->get_results(
+			$this->wpdb->prepare(
+				'SELECT s.id, s.user_id, s.form_id FROM %i s LEFT JOIN %i u ON u.ID = s.user_id WHERE s.user_id IS NOT NULL AND s.user_id <> 0 AND u.ID IS NULL ORDER BY s.id DESC LIMIT %d',
+				$this->table,
+				$this->wpdb->users,
+				$limit
+			),
+			ARRAY_A
+		);
+		return is_array( $rows ) ? $rows : array();
+	}
+
+	/**
+	 * Audit: WP users linked to submissions carrying more than one distinct
+	 * `cpf_hash` (or `rf_hash`) — i.e. a single user bound to multiple
+	 * identities, the detectable form of "the submission CPF doesn't match the
+	 * linked user" (CPF/RF are not stored on the user side to compare against).
+	 * Read-only.
+	 *
+	 * @param int $limit Max rows.
+	 * @return array<int, array<string, mixed>>
+	 */
+	public function find_users_with_multiple_identities( int $limit = 50 ): array {
+		$limit = max( 1, $limit );
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+		$rows = $this->wpdb->get_results(
+			$this->wpdb->prepare(
+				'SELECT user_id, COUNT(DISTINCT cpf_hash) AS cpf_count, COUNT(DISTINCT rf_hash) AS rf_count FROM %i WHERE user_id IS NOT NULL AND user_id <> 0 GROUP BY user_id HAVING COUNT(DISTINCT cpf_hash) > 1 OR COUNT(DISTINCT rf_hash) > 1 ORDER BY user_id ASC LIMIT %d',
+				$this->table,
+				$limit
+			),
+			ARRAY_A
+		);
+		return is_array( $rows ) ? $rows : array();
+	}
+
+	/**
+	 * Audit: submissions with no `user_id` whose `cpf_hash` matches another
+	 * submission that IS linked — they probably should be linked too. Read-only.
+	 *
+	 * Matching is by `cpf_hash` (the primary identity in this system); RF-only
+	 * matches are not considered here.
+	 *
+	 * @param int $limit Max rows.
+	 * @return array<int, array<string, mixed>>
+	 */
+	public function find_unlinked_with_matching_identity( int $limit = 50 ): array {
+		$limit = max( 1, $limit );
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+		$rows = $this->wpdb->get_results(
+			$this->wpdb->prepare(
+				"SELECT s.id, s.form_id, s.cpf_hash FROM %i s WHERE ( s.user_id IS NULL OR s.user_id = 0 ) AND s.cpf_hash IS NOT NULL AND s.cpf_hash <> '' AND EXISTS ( SELECT 1 FROM %i s2 WHERE s2.cpf_hash = s.cpf_hash AND s2.user_id IS NOT NULL AND s2.user_id <> 0 ) ORDER BY s.id DESC LIMIT %d",
+				$this->table,
+				$this->table,
+				$limit
+			),
+			ARRAY_A
+		);
+		return is_array( $rows ) ? $rows : array();
+	}
+
+	/**
+	 * Audit: a single `cpf_hash` shared across more than one linked `user_id`
+	 * — an identity collision (same CPF on multiple WP accounts). Read-only.
+	 *
+	 * @param int $limit Max rows.
+	 * @return array<int, array<string, mixed>>
+	 */
+	public function find_shared_identities( int $limit = 50 ): array {
+		$limit = max( 1, $limit );
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+		$rows = $this->wpdb->get_results(
+			$this->wpdb->prepare(
+				"SELECT cpf_hash, COUNT(DISTINCT user_id) AS user_count FROM %i WHERE cpf_hash IS NOT NULL AND cpf_hash <> '' AND user_id IS NOT NULL AND user_id <> 0 GROUP BY cpf_hash HAVING COUNT(DISTINCT user_id) > 1 ORDER BY user_count DESC LIMIT %d",
+				$this->table,
+				$limit
+			),
+			ARRAY_A
+		);
+		return is_array( $rows ) ? $rows : array();
+	}
+
+	/**
 	 * Find by auth code
 	 *
 	 * @param string $auth_code Auth code.

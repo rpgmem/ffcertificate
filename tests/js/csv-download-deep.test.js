@@ -357,6 +357,9 @@ describe('csv-download — cert preview', () => {
 					html: '<p>Hi {{name}} — your auth: {{auth_code}}.</p><div>{{qr_code}}</div>',
 					bg_image: 'https://example.com/bg.png',
 					fields: [],
+					// Mirrors the PHP CertificatePreviewSamples::get_map()
+					// payload the endpoint now returns.
+					previewSamples: { name: 'John Doe', auth_code: 'A1B2-C3D4-E5F6' },
 				},
 			} }));
 
@@ -372,6 +375,27 @@ describe('csv-download — cert preview', () => {
 		expect(body).toContain('A1B2-C3D4-E5F6');
 		// QR placeholder swapped for an SVG.
 		expect(body).toContain('<svg');
+	});
+
+	it('overlays form fields onto the PHP sample map', async () => {
+		const postSpy = await reachInfoScreen();
+		postSpy.mockImplementation(() => postChain({ done: {
+				success: true,
+				data: {
+					html: '<p>{{site_name}} — {{course_name}}</p>',
+					fields: [{ name: 'course_name', label: 'Curso de Exemplo' }],
+					previewSamples: { site_name: 'Sample Site' },
+				},
+			} }));
+
+		window.$('.ffc-btn-cert-preview').trigger('click');
+		await flush();
+
+		const iframe = document.querySelector('#ffc-preview-iframe');
+		const body = iframe.contentDocument.body.innerHTML;
+		expect(body).toContain('Sample Site');
+		expect(body).toContain('Curso de Exemplo');
+		expect(body).not.toContain('{{course_name}}');
 	});
 
 	it('shows alert on preview failure', async () => {

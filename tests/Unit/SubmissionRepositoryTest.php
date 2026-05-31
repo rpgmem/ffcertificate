@@ -27,7 +27,7 @@ class SubmissionRepositoryTest extends TestCase {
 
         // Mock global $wpdb
         global $wpdb;
-        $wpdb = Mockery::mock( 'wpdb' );
+        $wpdb = Mockery::mock( 'wpdb' )->makePartial();
         $wpdb->prefix = 'wp_';
         $wpdb->last_error = '';
 
@@ -295,5 +295,65 @@ class SubmissionRepositoryTest extends TestCase {
         $result = $this->repo->delete( 10 );
 
         $this->assertSame( 1, $result );
+    }
+
+    // ------------------------------------------------------------------
+    // Link-audit queries (read-only)
+    // ------------------------------------------------------------------
+
+    public function test_find_orphan_user_links_returns_rows(): void {
+        global $wpdb;
+        $wpdb->users = 'wp_users';
+        $rows        = array( array( 'id' => 1, 'user_id' => 99, 'form_id' => 3 ) );
+
+        $wpdb->shouldReceive( 'prepare' )->once()->andReturnUsing(
+            function () {
+                return func_get_args()[0];
+            }
+        );
+        $wpdb->shouldReceive( 'get_results' )->once()->andReturn( $rows );
+
+        $this->assertSame( $rows, $this->repo->find_orphan_user_links( 50 ) );
+    }
+
+    public function test_find_users_with_multiple_identities_returns_rows(): void {
+        global $wpdb;
+        $rows = array( array( 'user_id' => 5, 'cpf_count' => 2, 'rf_count' => 1 ) );
+
+        $wpdb->shouldReceive( 'prepare' )->once()->andReturnUsing(
+            function () {
+                return func_get_args()[0];
+            }
+        );
+        $wpdb->shouldReceive( 'get_results' )->once()->andReturn( $rows );
+
+        $this->assertSame( $rows, $this->repo->find_users_with_multiple_identities( 50 ) );
+    }
+
+    public function test_find_unlinked_with_matching_identity_returns_rows(): void {
+        global $wpdb;
+        $rows = array( array( 'id' => 7, 'form_id' => 2, 'cpf_hash' => 'abc' ) );
+
+        $wpdb->shouldReceive( 'prepare' )->once()->andReturnUsing(
+            function () {
+                return func_get_args()[0];
+            }
+        );
+        $wpdb->shouldReceive( 'get_results' )->once()->andReturn( $rows );
+
+        $this->assertSame( $rows, $this->repo->find_unlinked_with_matching_identity( 50 ) );
+    }
+
+    public function test_find_shared_identities_returns_empty_when_none(): void {
+        global $wpdb;
+
+        $wpdb->shouldReceive( 'prepare' )->once()->andReturnUsing(
+            function () {
+                return func_get_args()[0];
+            }
+        );
+        $wpdb->shouldReceive( 'get_results' )->once()->andReturn( null );
+
+        $this->assertSame( array(), $this->repo->find_shared_identities( 50 ) );
     }
 }

@@ -118,11 +118,19 @@ class SelfSchedulingEditorTest extends TestCase {
         Functions\when( 'wp_enqueue_script' )->alias( function () use ( &$enqueued ) {
             $enqueued[] = func_get_arg( 0 );
         } );
+        $styles = array();
+        Functions\when( 'wp_enqueue_style' )->alias( function () use ( &$styles ) {
+            $styles[] = func_get_arg( 0 );
+        } );
 
         $editor = new SelfSchedulingEditor();
         $editor->enqueue_scripts( 'post.php' );
 
         $this->assertContains( 'ffc-calendar-editor', $enqueued );
+        // ffc-common carries the .ffc-toggle switch styles the editor's
+        // render_toggle controls depend on.
+        $this->assertContains( 'ffc-common', $styles );
+        $this->assertContains( 'ffc-calendar-editor', $styles );
     }
 
     // ==================================================================

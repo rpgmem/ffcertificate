@@ -16,6 +16,30 @@
 (function($, FFC) {
     'use strict';
 
+    /**
+     * Write content into the certificate-layout textarea.
+     *
+     * The textarea (#ffc_pdf_layout) is wrapped by WordPress CodeMirror via
+     * ffc-admin-code-editor.js. CodeMirror mirrors its own buffer onto the
+     * textarea on save / submit, but it does NOT pick up direct
+     * `$textarea.val()` writes — the visible editor stays empty even though
+     * a sneaky later read of `.val()` would return the new content. Always
+     * route writes through the CodeMirror API when an instance is mounted.
+     *
+     * @param {jQuery} $textarea The #ffc_pdf_layout jQuery node.
+     * @param {string} content   New textarea content.
+     */
+    function setLayoutContent($textarea, content) {
+        var $cm = $textarea.nextAll('.CodeMirror').first();
+        if ($cm.length && $cm[0].CodeMirror && typeof $cm[0].CodeMirror.setValue === 'function') {
+            $cm[0].CodeMirror.setValue(content);
+            $cm[0].CodeMirror.save();
+        } else {
+            $textarea.val(content);
+        }
+        $textarea.trigger('change');
+    }
+
     // ==========================================================================
     // TEMPLATE MANAGEMENT
     // ==========================================================================
@@ -27,40 +51,53 @@
         // translatable via Loco. The fallback list mirrors the PHP default
         // for the rare case where ffc_ajax hasn't loaded yet.
         var ajaxData = (typeof ffc_ajax !== 'undefined') ? ffc_ajax : {};
-        var templates = Array.isArray(ajaxData.templates) && ajaxData.templates.length
-            ? ajaxData.templates
-            : [
-                { value: 'atestado_estagios.html', label: 'Internship Certificate' },
-                { value: 'certificado_1.html', label: 'Certificate Template 1' },
-                { value: 'certificado_2.html', label: 'Certificate Template 2' },
-                { value: 'declaracao.html', label: 'Declaration' }
-            ];
+        // The PHP side (AdminAssetsManager::discover_layout_templates) globs
+        // html/ and keeps any *.html whose basename contains "certificate".
+        // An empty fallback is correct: if ffc_ajax never localized, the
+        // modal simply shows no options instead of pretending hardcoded
+        // legacy filenames exist on disk.
+        var templates = Array.isArray(ajaxData.templates) ? ajaxData.templates : [];
 
         // Get localized strings with fallbacks
         var strings = (typeof ffc_ajax !== 'undefined' && ffc_ajax.strings) ? ffc_ajax.strings : {};
         var selectTemplateText = strings.selectTemplate || 'Select a Template';
         var cancelText = strings.cancel || 'Cancel';
 
-        // Criar modal de seleção
-        var modalHtml = '<div id="ffc-template-modal" role="dialog" aria-modal="true" aria-labelledby="ffc-template-modal-title" style="position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.7);z-index:999999;display:flex;align-items:center;justify-content:center;">';
-        modalHtml += '<div style="background:#fff;padding:30px;border-radius:8px;max-width:500px;width:90%;box-shadow:0 4px 20px rgba(0,0,0,0.3);">';
-        modalHtml += '<h2 id="ffc-template-modal-title" style="margin:0 0 20px 0;font-size:20px;">' + selectTemplateText + '</h2>';
-        modalHtml += '<div style="max-height:400px;overflow-y:auto;">';
+        // Build the modal skeleton with static HTML only; every dynamic
+        // value (localized strings, per-template label/value) flows through
+        // jQuery's text() / attr() so meta-characters stay literal. The
+        // earlier `'<div …>' + selectTemplateText + '…'` concatenation
+        // tripped CodeQL's "DOM text reinterpreted as HTML" sink even
+        // though the strings come from wp_localize_script.
+        var $modal = $(
+            '<div id="ffc-template-modal" role="dialog" aria-modal="true" aria-labelledby="ffc-template-modal-title" style="position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.7);z-index:999999;display:flex;align-items:center;justify-content:center;">' +
+                '<div style="background:#fff;padding:30px;border-radius:8px;max-width:500px;width:90%;box-shadow:0 4px 20px rgba(0,0,0,0.3);">' +
+                    '<h2 id="ffc-template-modal-title" style="margin:0 0 20px 0;font-size:20px;"></h2>' +
+                    '<div class="ffc-template-list" style="max-height:400px;overflow-y:auto;"></div>' +
+                    '<div style="margin-top:20px;text-align:right;">' +
+                        '<button id="ffc-modal-cancel" class="button" style="margin-right:10px;"></button>' +
+                    '</div>' +
+                '</div>' +
+            '</div>'
+        );
+        $modal.find('#ffc-template-modal-title').text(selectTemplateText);
+        $modal.find('#ffc-modal-cancel').text(cancelText);
 
+        var $list = $modal.find('.ffc-template-list');
         templates.forEach(function(template) {
-            modalHtml += '<div class="ffc-template-option" data-file="' + template.value + '" style="padding:15px;margin:10px 0;border:2px solid #ddd;border-radius:4px;cursor:pointer;transition:all 0.2s;">';
-            modalHtml += '<strong style="font-size:16px;">' + template.label + '</strong>';
-            modalHtml += '<div style="color:#666;font-size:13px;margin-top:5px;">' + template.value + '</div>';
-            modalHtml += '</div>';
+            var $opt = $(
+                '<div class="ffc-template-option" style="padding:15px;margin:10px 0;border:2px solid #ddd;border-radius:4px;cursor:pointer;transition:all 0.2s;">' +
+                    '<strong style="font-size:16px;"></strong>' +
+                    '<div style="color:#666;font-size:13px;margin-top:5px;"></div>' +
+                '</div>'
+            );
+            $opt.attr('data-file', template.value);
+            $opt.find('strong').text(template.label);
+            $opt.find('div').text(template.value);
+            $list.append($opt);
         });
 
-        modalHtml += '</div>';
-        modalHtml += '<div style="margin-top:20px;text-align:right;">';
-        modalHtml += '<button id="ffc-modal-cancel" class="button" style="margin-right:10px;">' + cancelText + '</button>';
-        modalHtml += '</div>';
-        modalHtml += '</div></div>';
-
-        $('body').append(modalHtml);
+        $('body').append($modal);
 
         // Hover effect
         $('.ffc-template-option').hover(
@@ -130,8 +167,7 @@
                 var $htmlField = $('#ffc_pdf_layout');
 
                 if ($htmlField.length) {
-                    $htmlField.val(htmlContent);
-                    $htmlField.trigger('change');
+                    setLayoutContent($htmlField, htmlContent);
                     var successTemplate = strings.templateLoadedSuccess || 'Template "%s" loaded successfully!';
                     var successMsg = successTemplate.replace('%s', displayName || filename);
                     showNotification('✓ ' + successMsg, 'success', 3000);
@@ -195,7 +231,7 @@
                     var $htmlField = $('#ffc_pdf_layout');
 
                     if ($htmlField.length) {
-                        $htmlField.val(e.target.result);
+                        setLayoutContent($htmlField, e.target.result);
                         var successMsg = strings.htmlImportedSuccess || 'HTML imported successfully!';
                         showNotification(successMsg, 'success');
                     } else {
@@ -226,7 +262,7 @@
             var $htmlField = $('#ffc_pdf_layout');
 
             if ($htmlField.length) {
-                $htmlField.val(evt.target.result);
+                setLayoutContent($htmlField, evt.target.result);
                 var successMsg = strings.htmlImportedSuccess || 'HTML imported successfully!';
                 showNotification(successMsg, 'success');
             } else {
@@ -248,28 +284,21 @@
     // CERTIFICATE PREVIEW
     // ==========================================================================
 
-    // Sample data for placeholder replacement
-    var sampleData = {
-        'name': 'John Doe',
-        'email': 'john_doe@example.com',
-        'cpf_rf': '123.456.789-00',
-        'cpf': '123.456.789-00',
-        'auth_code': 'A1B2-C3D4-E5F6',
-        'form_title': $('#title').val() || 'Certificate Title',
-        'submission_date': new Date().toLocaleDateString('pt-BR', { year: 'numeric', month: 'long', day: 'numeric' }),
-        'print_date': new Date().toLocaleDateString('pt-BR', { year: 'numeric', month: 'long', day: 'numeric' }),
-        'fill_date': new Date().toLocaleDateString('pt-BR', { year: 'numeric', month: 'long', day: 'numeric' }),
-        'date': new Date().toLocaleDateString('pt-BR', { year: 'numeric', month: 'long', day: 'numeric' }),
-        'submission_id': '1234',
-        'magic_token': 'abc123def456ghi789jkl012',
-        'ticket': 'TK01-AB2C-3D4E'
-    };
-
-    // Collect field names from builder as additional sample data
+    // Sample data for placeholder replacement.
+    //
+    // Source of truth is PHP: AdminAssetsManager localizes
+    // CertificatePreviewSamples::get_map() as ffc_ajax.previewSamples, so
+    // this preview stays in sync with the placeholders the real generators
+    // fill. The JS only overlays values PHP can't know at enqueue time —
+    // the live form title and custom builder field names.
     function getSampleFieldData() {
-        var fieldData = $.extend({}, sampleData);
-        // Use actual form title
-        fieldData['form_title'] = $('#title').val() || fieldData['form_title'];
+        var ajax = (typeof ffc_ajax !== 'undefined') ? ffc_ajax : {};
+        var fieldData = $.extend({}, ajax.previewSamples || {});
+        // Live form title overrides the PHP placeholder default.
+        var liveTitle = $('#title').val();
+        if (liveTitle) {
+            fieldData['form_title'] = liveTitle;
+        }
         // Scan form builder fields for custom variables
         $('#ffc-fields-container .ffc-field-row').each(function() {
             var fieldName = $(this).find('input[name*="[name]"]').val();
@@ -306,7 +335,15 @@
     $(document).on('click', '#ffc_btn_preview', function(e) {
         e.preventDefault();
 
-        var htmlContent = $('#ffc_pdf_layout').val();
+        // Flush the CodeMirror buffer into the textarea before reading so
+        // the preview reflects the latest edits (otherwise the textarea
+        // still carries the page-load value).
+        var $layout = $('#ffc_pdf_layout');
+        var $cm     = $layout.nextAll('.CodeMirror').first();
+        if ($cm.length && $cm[0].CodeMirror && typeof $cm[0].CodeMirror.save === 'function') {
+            $cm[0].CodeMirror.save();
+        }
+        var htmlContent = $layout.val();
         var strings = (typeof ffc_ajax !== 'undefined' && ffc_ajax.strings) ? ffc_ajax.strings : {};
 
         if (!htmlContent || !htmlContent.trim()) {
@@ -319,50 +356,81 @@
         var data = getSampleFieldData();
         var processedHtml = replacePlaceholders(htmlContent, data);
 
-        // Build the iframe content
+        // Build the iframe content. Background-image is applied AFTER the
+        // iframe loads (via DOM properties on document.body, not via string
+        // concatenation into CSS) so the user-controlled URL never flows
+        // through a "DOM text reinterpreted as HTML" sink. CodeQL flagged
+        // the old `iframeHtml += 'url(' + bgImage + ')'` pattern even though
+        // bgImage already filters through esc_url on save; routing through
+        // the .style setter side-steps the rule and adds a real layer of
+        // CSS-context escaping for free.
         var iframeHtml = '<!DOCTYPE html><html><head><meta charset="UTF-8">';
         iframeHtml += '<style>';
         iframeHtml += 'html, body { margin: 0; padding: 0; }';
-        iframeHtml += 'body { font-family: Arial, Helvetica, sans-serif; ';
-        if (bgImage) {
-            iframeHtml += 'background-image: url(' + bgImage + '); ';
-            iframeHtml += 'background-size: cover; background-position: center; background-repeat: no-repeat; ';
-        }
+        iframeHtml += 'body { font-family: Arial, Helvetica, sans-serif;';
+        iframeHtml += bgImage ? ' background-size: cover; background-position: center; background-repeat: no-repeat;' : '';
         iframeHtml += '}';
         iframeHtml += '</style></head><body>';
         iframeHtml += processedHtml;
         iframeHtml += '</body></html>';
 
-        // Build modal
+        // Build modal. Localized strings (previewTitle/closeText/sampleDataNote)
+        // come from wp_localize_script — admin-controlled, but CodeQL's taint
+        // tracker flags string-concatenated insertion as "DOM text reinterpreted
+        // as HTML". Use jQuery's text() / attr() so the strings can never be
+        // reparsed as markup regardless of how they were filtered upstream.
         var previewTitle = strings.previewTitle || 'Certificate Preview';
         var closeText = strings.close || 'Close';
         var sampleDataNote = strings.previewSampleNote || 'Placeholders replaced with sample data. QR code shown as placeholder.';
 
-        var $modal = $('<div id="ffc-preview-modal">' +
-            '<div class="ffc-preview-backdrop"></div>' +
-            '<div class="ffc-preview-container">' +
-                '<div class="ffc-preview-header">' +
-                    '<h2>' + previewTitle + '</h2>' +
-                    '<button type="button" class="ffc-preview-close" title="' + closeText + '">&times;</button>' +
+        var $modal = $(
+            '<div id="ffc-preview-modal">' +
+                '<div class="ffc-preview-backdrop"></div>' +
+                '<div class="ffc-preview-container">' +
+                    '<div class="ffc-preview-header">' +
+                        '<h2></h2>' +
+                        '<button type="button" class="ffc-preview-close">&times;</button>' +
+                    '</div>' +
+                    '<div class="ffc-preview-note"></div>' +
+                    '<div class="ffc-preview-body">' +
+                        // sandbox="" — most-restrictive sandbox; rendered HTML
+                        // can't execute scripts, navigate the parent, run
+                        // plugins, etc. The preview only needs to paint the
+                        // layout's static markup, so the empty sandbox is the
+                        // right ceiling. Operators previewing their own
+                        // template stay safe even if a teammate sneaked a
+                        // <script> tag into the layout.
+                        '<iframe id="ffc-preview-iframe" frameborder="0" sandbox=""></iframe>' +
+                    '</div>' +
                 '</div>' +
-                '<div class="ffc-preview-note">' + sampleDataNote + '</div>' +
-                '<div class="ffc-preview-body">' +
-                    '<iframe id="ffc-preview-iframe" frameborder="0"></iframe>' +
-                '</div>' +
-            '</div>' +
-        '</div>');
+            '</div>'
+        );
+        $modal.find('.ffc-preview-header h2').text(previewTitle);
+        $modal.find('.ffc-preview-close').attr('title', closeText);
+        $modal.find('.ffc-preview-note').text(sampleDataNote);
 
         $('body').append($modal);
 
-        // Write content to iframe
+        // Hand the iframe its HTML via the `srcdoc` attribute rather than
+        // document.write so CodeQL's "DOM text reinterpreted as HTML" sink
+        // (and the equivalent runtime risk) goes through a single declarative
+        // entry point. The sandbox="" attribute set above stops any script
+        // tag in the template from executing inside the preview frame.
         var iframe = document.getElementById('ffc-preview-iframe');
-        var iframeDoc = iframe.contentWindow || iframe.contentDocument;
-        if (iframeDoc.document) {
-            iframeDoc = iframeDoc.document;
+        iframe.setAttribute('srcdoc', iframeHtml);
+
+        // Apply background-image via the DOM property setter — runs after
+        // the sandboxed frame finishes loading so the body element exists.
+        // The setter only accepts values that parse as a CSS <image>, so a
+        // tampered URL can't escape the property to inject markup or JS.
+        if (bgImage) {
+            iframe.addEventListener('load', function () {
+                var iframeDoc = iframe.contentDocument;
+                if (iframeDoc && iframeDoc.body && iframeDoc.body.style) {
+                    iframeDoc.body.style.backgroundImage = 'url(' + JSON.stringify(String(bgImage)) + ')';
+                }
+            });
         }
-        iframeDoc.open();
-        iframeDoc.write(iframeHtml);
-        iframeDoc.close();
 
         // Show with fade
         requestAnimationFrame(function() {

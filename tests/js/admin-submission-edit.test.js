@@ -5,7 +5,7 @@
 // sets up its own DOM and re-loads the script in beforeEach.
 //
 // Sprint O of #175.
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { loadScript } from './helpers.js';
 
 // FFC.request — the migration target — wraps jQuery.post() in a Promise.
@@ -31,6 +31,15 @@ beforeEach(() => {
 	};
 	window.ajaxurl = '/wp-admin/admin-ajax.php';
 	document.body.innerHTML = '';
+});
+
+afterEach(() => {
+	// Restore spies between tests. Several tests do vi.spyOn(window.$, 'post')
+	// without restoring; under Vitest 4 a repeat spyOn on an already-spied
+	// method returns the SAME accumulating mock, so a later test's spy would
+	// carry the earlier tests' call counts (e.g. the Enter-keypress test saw
+	// 4 calls instead of 1). Restoring here gives each test a fresh spy.
+	vi.restoreAllMocks();
 });
 
 async function loadOnReady() {

@@ -274,16 +274,26 @@ class FormEditorPublicCsvDownloadMetabox {
 					<?php endif; ?>
 
 					<p class="ffc-mt-10">
-						<label>
-							<input type="checkbox" name="ffc_csv_public[regenerate_hash]" value="1">
-							<?php esc_html_e( 'Regenerate hash on save (invalidates the current link).', 'ffcertificate' ); ?>
-						</label>
+						<?php
+						\FreeFormCertificate\Admin\AdminUI::render_toggle(
+							array(
+								'name'  => 'ffc_csv_public[regenerate_hash]',
+								'id'    => 'ffc_csv_public_regenerate_hash',
+								'label' => __( 'Regenerate hash on save (invalidates the current link).', 'ffcertificate' ),
+							)
+						);
+						?>
 					</p>
 					<p>
-						<label>
-							<input type="checkbox" name="ffc_csv_public[reset_counter]" value="1">
-							<?php esc_html_e( 'Reset the download counter to zero on save.', 'ffcertificate' ); ?>
-						</label>
+						<?php
+						\FreeFormCertificate\Admin\AdminUI::render_toggle(
+							array(
+								'name'  => 'ffc_csv_public[reset_counter]',
+								'id'    => 'ffc_csv_public_reset_counter',
+								'label' => __( 'Reset the download counter to zero on save.', 'ffcertificate' ),
+							)
+						);
+						?>
 					</p>
 				</td>
 			</tr>

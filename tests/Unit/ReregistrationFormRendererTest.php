@@ -55,7 +55,7 @@ class ReregistrationFormRendererTest extends TestCase {
         }
 
         global $wpdb;
-        $wpdb = Mockery::mock( 'wpdb' );
+        $wpdb = Mockery::mock( 'wpdb' )->makePartial();
         $wpdb->prefix = 'wp_';
         $wpdb->shouldReceive( 'prepare' )->andReturnUsing( function () { return func_get_arg(0); } )->byDefault();
         $wpdb->shouldReceive( 'get_row' )->andReturn( null )->byDefault();
@@ -115,6 +115,7 @@ class ReregistrationFormRendererTest extends TestCase {
         $customFieldRepoMock->shouldReceive( 'get_user_data' )->andReturn( array() );
 
         $fieldOptionsMock = Mockery::mock( 'alias:FreeFormCertificate\Reregistration\ReregistrationFieldOptions' );
+        $fieldOptionsMock->shouldReceive( 'get_default_termo_ciencia_html' )->andReturn( '<p>Default termo de ciência</p>' );
         $fieldOptionsMock->shouldIgnoreMissing( array() );
 
         $seederMock = Mockery::mock( 'alias:FreeFormCertificate\Reregistration\ReregistrationStandardFieldsSeeder' );
@@ -143,6 +144,35 @@ class ReregistrationFormRendererTest extends TestCase {
         $this->assertStringContainsString( 'ffc-rereg-form-container', $html );
         $this->assertStringContainsString( 'Recadastramento 2025', $html );
         $this->assertStringContainsString( 'ffc-rereg-form', $html );
+        // No acknowledgment field present → the default notice fallback fires.
+        $this->assertStringContainsString( 'Default termo de ciência', $html );
+    }
+
+    public function test_render_acknowledgment_field_outputs_its_html(): void {
+        $this->mockRepositories( array(
+            $this->makeField( array(
+                'id'            => 1,
+                'field_key'     => 'acknowledgment',
+                'field_label'   => 'Acknowledgment',
+                'field_type'    => 'acknowledgment',
+                'field_group'   => 'acknowledgment',
+                'field_options' => json_encode( array( 'html' => '<p>Per-audience notice text</p>' ) ),
+            ) ),
+        ) );
+
+        $rereg = (object) array(
+            'id'       => 1,
+            'title'    => 'Recadastramento 2025',
+            'end_date' => '2025-12-31 23:59:59',
+        );
+
+        $html = ReregistrationFormRenderer::render( $rereg, (object) array( 'data' => null ), 10 );
+
+        // The per-audience HTML renders inside the termo wrapper…
+        $this->assertStringContainsString( 'ffc-rereg-termo-text', $html );
+        $this->assertStringContainsString( 'Per-audience notice text', $html );
+        // …and the default-notice fallback does NOT also fire.
+        $this->assertStringNotContainsString( 'Default termo de ciência', $html );
     }
 
     // ==================================================================

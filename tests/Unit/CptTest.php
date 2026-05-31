@@ -35,6 +35,8 @@ class CptTest extends TestCase {
         Functions\when( 'esc_html' )->returnArg();
         Functions\when( 'esc_attr' )->returnArg();
         Functions\when( 'esc_attr__' )->returnArg();
+        Functions\when( 'esc_html_e' )->alias( function ( $t ) { echo $t; } );
+        Functions\when( 'esc_attr_e' )->alias( function ( $t ) { echo $t; } );
         Functions\when( '_x' )->returnArg();
         Functions\when( 'add_action' )->justReturn( true );
         Functions\when( 'add_filter' )->justReturn( true );
@@ -100,6 +102,8 @@ class CptTest extends TestCase {
         new CPT();
 
         $this->assertContains( 'admin_action_ffc_duplicate_form', $registered );
+        // Submit-box "Duplicate" link mirrors the row action.
+        $this->assertContains( 'post_submitbox_misc_actions', $registered );
     }
 
     public function test_constructor_registers_views_filter(): void {
@@ -197,6 +201,54 @@ class CptTest extends TestCase {
         $this->assertArrayHasKey( 'duplicate', $result );
         $this->assertStringContainsString( 'Duplicate', $result['duplicate'] );
         $this->assertStringContainsString( '<a href=', $result['duplicate'] );
+    }
+
+    // ==================================================================
+    // render_duplicate_submitbox_link()
+    // ==================================================================
+
+    /** Build a WP_Post stub with the given attributes for the submitbox tests. */
+    private function make_post( string $post_type, string $post_status = 'publish', int $id = 42 ): \WP_Post {
+        $post              = new \WP_Post();
+        $post->ID          = $id;
+        $post->post_type   = $post_type;
+        $post->post_status = $post_status;
+        return $post;
+    }
+
+    public function test_render_duplicate_submitbox_link_outputs_nothing_for_non_ffc_post(): void {
+        ob_start();
+        ( new CPT() )->render_duplicate_submitbox_link( $this->make_post( 'post' ) );
+        $this->assertSame( '', ob_get_clean() );
+    }
+
+    public function test_render_duplicate_submitbox_link_outputs_nothing_when_user_cannot_manage(): void {
+        $this->utils_mock->shouldReceive( 'current_user_can_manage' )->andReturn( false );
+
+        ob_start();
+        ( new CPT() )->render_duplicate_submitbox_link( $this->make_post( 'ffc_form' ) );
+        $this->assertSame( '', ob_get_clean() );
+    }
+
+    public function test_render_duplicate_submitbox_link_outputs_nothing_for_auto_draft(): void {
+        // Nothing meaningful to copy yet — mirror the row-action contract.
+        ob_start();
+        ( new CPT() )->render_duplicate_submitbox_link( $this->make_post( 'ffc_form', 'auto-draft' ) );
+        $this->assertSame( '', ob_get_clean() );
+    }
+
+    public function test_render_duplicate_submitbox_link_renders_nonce_link_for_saved_ffc_form(): void {
+        Functions\when( 'wp_nonce_url' )->returnArg();
+        Functions\when( 'admin_url' )->returnArg();
+
+        ob_start();
+        ( new CPT() )->render_duplicate_submitbox_link( $this->make_post( 'ffc_form', 'publish' ) );
+        $html = (string) ob_get_clean();
+
+        $this->assertStringContainsString( 'misc-pub-section', $html );
+        $this->assertStringContainsString( 'ffc-duplicate-action', $html );
+        $this->assertStringContainsString( 'action=ffc_duplicate_form&post=42', $html );
+        $this->assertStringContainsString( 'Duplicate this form', $html );
     }
 
     // ==================================================================

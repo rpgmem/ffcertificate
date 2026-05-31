@@ -47,6 +47,7 @@ class RecruitmentAdminPageTest extends TestCase {
                 'status_color_called'             => '#aaa',
                 'status_color_hired'              => '#0f0',
                 'status_color_not_shown'          => '#f00',
+                'status_color_withdrew'           => '#f0a',
                 'notice_status_color_draft'       => '#ccc',
                 'notice_status_color_preliminary' => '#ff0',
                 'notice_status_color_definitive'  => '#0f0',

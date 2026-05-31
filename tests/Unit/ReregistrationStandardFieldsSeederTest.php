@@ -27,7 +27,7 @@ class ReregistrationStandardFieldsSeederTest extends TestCase {
         Monkey\setUp();
 
         global $wpdb;
-        $wpdb = Mockery::mock( 'wpdb' );
+        $wpdb = Mockery::mock( 'wpdb' )->makePartial();
         $wpdb->prefix     = 'wp_';
         $wpdb->last_error  = '';
         $wpdb->insert_id   = 0;
@@ -108,12 +108,39 @@ class ReregistrationStandardFieldsSeederTest extends TestCase {
     }
 
     public function test_standard_fields_use_valid_types(): void {
-        $valid_types = array( 'text', 'select', 'date', 'working_hours', 'dependent_select' );
+        $valid_types = array( 'text', 'select', 'date', 'working_hours', 'dependent_select', 'acknowledgment' );
         $defs = ReregistrationStandardFieldsSeeder::get_standard_fields_definition();
 
         foreach ( $defs as $def ) {
             $this->assertContains( $def['field_type'], $valid_types, "Invalid type '{$def['field_type']}' for key '{$def['field_key']}'" );
         }
+    }
+
+    public function test_acknowledgment_field_is_display_only_with_default_html(): void {
+        $defs  = ReregistrationStandardFieldsSeeder::get_standard_fields_definition();
+        $found = false;
+        foreach ( $defs as $def ) {
+            if ( 'acknowledgment' === $def['field_key'] ) {
+                $this->assertSame( 'acknowledgment', $def['field_type'] );
+                $this->assertSame( ReregistrationStandardFieldsSeeder::GROUP_ACKNOWLEDGMENT, $def['field_group'] );
+                $this->assertSame( 0, $def['required'] );
+                $this->assertSame( 0, $def['is_sensitive'] );
+                $this->assertNull( $def['profile_key'] );
+                $this->assertArrayHasKey( 'html', $def['options'] );
+                $this->assertNotEmpty( $def['options']['html'] );
+                $found = true;
+                break;
+            }
+        }
+        $this->assertTrue( $found, 'acknowledgment field not found' );
+    }
+
+    public function test_acknowledgment_field_is_seeded_last(): void {
+        // Sort order = array index, so the acknowledgment block must render
+        // after every other group's fields.
+        $defs = ReregistrationStandardFieldsSeeder::get_standard_fields_definition();
+        $last = end( $defs );
+        $this->assertSame( 'acknowledgment', $last['field_key'] );
     }
 
     public function test_cpf_field_has_validation_format(): void {
@@ -215,5 +242,67 @@ class ReregistrationStandardFieldsSeederTest extends TestCase {
             return 'ffc_audience_created' === $h['hook'];
         });
         $this->assertNotEmpty( $match, 'Expected add_action for ffc_audience_created' );
+    }
+
+    // ==================================================================
+    // replicate_field_options_to_descendants()
+    // ==================================================================
+
+    public function test_replicate_returns_zero_for_invalid_audience(): void {
+        $this->assertSame( 0, ReregistrationStandardFieldsSeeder::replicate_field_options_to_descendants( 0 ) );
+    }
+
+    public function test_replicate_returns_zero_when_parent_has_no_standard_options(): void {
+        // get_by_audience(parent) → get_results returns no fields → no
+        // parent options to replicate → early return 0.
+        $this->wpdb->shouldReceive( 'get_results' )->andReturn( array() );
+
+        $this->assertSame( 0, ReregistrationStandardFieldsSeeder::replicate_field_options_to_descendants( 5 ) );
+    }
+
+    public function test_replicate_copies_parent_options_to_descendant_fields(): void {
+        Functions\when( 'wp_cache_delete' )->justReturn( true );
+        Functions\when( 'wp_cache_get' )->justReturn( false );
+        Functions\when( 'wp_cache_set' )->justReturn( true );
+        Functions\when( 'wp_parse_args' )->alias( function ( $args, $defaults = array() ) {
+            return is_array( $args ) ? array_merge( $defaults, $args ) : $defaults;
+        } );
+        Functions\when( 'sanitize_sql_orderby' )->returnArg();
+        Functions\when( 'absint' )->alias( function ( $v ) { return abs( (int) $v ); } );
+
+        $parent_field = (object) array(
+            'id'            => 10,
+            'field_key'     => 'divisao_setor',
+            'field_source'  => 'standard',
+            'field_options' => json_encode( array( 'groups' => array( 'D' => array( 'S' ) ), 'parent_label' => 'Division' ) ),
+        );
+        $child_audience = (object) array( 'id' => 99, 'parent_id' => '5' );
+        $child_field    = (object) array( 'id' => 77, 'field_key' => 'divisao_setor', 'field_source' => 'standard', 'field_options' => null );
+
+        // get_results: 1) parent fields, 2) children of parent, 3) children of child (none).
+        $this->wpdb->shouldReceive( 'get_results' )->andReturn(
+            array( $parent_field ),
+            array( $child_audience ),
+            array()
+        );
+        // get_by_key(99, 'divisao_setor') → child's field.
+        $this->wpdb->shouldReceive( 'get_row' )->andReturn( $child_field );
+
+        $captured = null;
+        $this->wpdb->shouldReceive( 'update' )->andReturnUsing(
+            function ( $table, $data, $where ) use ( &$captured ) {
+                $captured = array( 'data' => $data, 'where' => $where );
+                return 1;
+            }
+        );
+
+        $updated = ReregistrationStandardFieldsSeeder::replicate_field_options_to_descendants( 5 );
+
+        $this->assertSame( 1, $updated );
+        $this->assertNotNull( $captured );
+        $this->assertSame( 77, $captured['where']['id'] );
+        $decoded = json_decode( $captured['data']['field_options'], true );
+        $this->assertArrayHasKey( 'groups', $decoded );
+        $this->assertSame( array( 'D' => array( 'S' ) ), $decoded['groups'] );
     }
 }

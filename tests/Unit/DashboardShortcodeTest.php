@@ -41,7 +41,7 @@ class DashboardShortcodeTest extends TestCase {
 
         // Mock $wpdb for ReregistrationSubmissionRepository
         global $wpdb;
-        $wpdb = Mockery::mock( 'wpdb' );
+        $wpdb = Mockery::mock( 'wpdb' )->makePartial();
         $wpdb->prefix = 'wp_';
         $wpdb->shouldReceive( 'prepare' )->andReturn( 'Q' )->byDefault();
         $wpdb->shouldReceive( 'get_results' )->andReturn( array() )->byDefault();

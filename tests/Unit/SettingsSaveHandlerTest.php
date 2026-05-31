@@ -284,4 +284,5 @@ class SettingsSaveHandlerTest extends TestCase {
         $this->assertSame( 'd/m/Y', $result['date_format'] );
         $this->assertSame( 'custom', $result['date_format_custom'] );
     }
+
 }
