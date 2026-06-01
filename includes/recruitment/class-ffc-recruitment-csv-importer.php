@@ -1102,6 +1102,185 @@ final class RecruitmentCsvImporter {
 	}
 
 	/**
+	 * Phase 2 of the staging-based batched import (V10) — validate every
+	 * staged row via SQL `GROUP BY ... HAVING` queries against the
+	 * `ffc_recruitment_import_staging` indexes built for this purpose.
+	 *
+	 * No row hits the canonical schema yet. If anything fails the job is
+	 * marked `invalid` and the staging rows are preserved for the
+	 * operator to inspect (purged by the next `ingest_job` TTL sweep);
+	 * the operator fixes the CSV and re-imports under a new job_id.
+	 *
+	 * Rules enforced (each one SQL-bounded, no row-by-row PHP):
+	 *
+	 *   1. `missing_cpf_or_rf`: cpf_hash IS NULL AND rf_hash IS NULL.
+	 *   2. `missing_adjutancy`: adjutancy_slug is empty.
+	 *   3. `adjutancy_not_in_notice`: adjutancy_slug present but
+	 *      adjutancy_id is the 0 sentinel (the ingest map missed it).
+	 *   4. `duplicate_candidate_adjutancy`: same (cpf|rf|email)_hash +
+	 *      adjutancy_id appears in more than one row. Three queries
+	 *      (one per hash field) cover the physical-identity collapse
+	 *      that `upsert_candidate` would otherwise perform downstream.
+	 *   5. `candidate_field_divergence`: rows sharing the same
+	 *      cpf_hash must agree on name / email_hash / rf_hash / phone /
+	 *      pcd. Detected via `COUNT(DISTINCT ...) > 1` in a single
+	 *      GROUP BY pass.
+	 *
+	 * Job status transitions:
+	 *   ingested → validated  (no errors)
+	 *   ingested → invalid    (errors collected; staging preserved)
+	 *
+	 * @param string $job_id Job identifier.
+	 * @return array{ok: true, errors: list<string>}|array{ok: false, errors: list<string>}
+	 */
+	public static function validate_job( string $job_id ) {
+		global $wpdb;
+		$jobs_table    = $wpdb->prefix . 'ffc_recruitment_import_jobs';
+		$staging_table = $wpdb->prefix . 'ffc_recruitment_import_staging';
+
+		$job = $wpdb->get_row( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- validate path; row is authoritative.
+			$wpdb->prepare( "SELECT job_id, status FROM {$jobs_table} WHERE job_id = %s", $job_id ) // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- table from $wpdb->prefix.
+		);
+		if ( null === $job ) {
+			return array(
+				'ok'     => false,
+				'errors' => array( 'recruitment_import_job_not_found' ),
+			);
+		}
+		if ( ! in_array( $job->status, array( 'ingested', 'invalid' ), true ) ) {
+			return array(
+				'ok'     => false,
+				'errors' => array( 'recruitment_import_job_invalid_state_for_validate' ),
+			);
+		}
+
+		$errors = array();
+
+		// Rule 1 — missing identifier (CPF and RF both empty).
+		$rows = $wpdb->get_col( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+			$wpdb->prepare(
+				"SELECT line_no FROM {$staging_table} WHERE job_id = %s AND cpf_hash IS NULL AND rf_hash IS NULL ORDER BY row_no", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+				$job_id
+			)
+		);
+		foreach ( $rows as $line ) {
+			$errors[] = self::line_error( (int) $line, 'recruitment_csv_missing_cpf_or_rf' );
+		}
+
+		// Rule 2 — missing adjutancy slug.
+		$rows = $wpdb->get_col( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+			$wpdb->prepare(
+				"SELECT line_no FROM {$staging_table} WHERE job_id = %s AND adjutancy_slug = '' ORDER BY row_no", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+				$job_id
+			)
+		);
+		foreach ( $rows as $line ) {
+			$errors[] = self::line_error( (int) $line, 'recruitment_csv_missing_adjutancy' );
+		}
+
+		// Rule 3 — adjutancy slug present but not attached to the notice
+		// (adjutancy_id=0 is the sentinel ingest writes when the map
+		// lookup misses).
+		$rows = $wpdb->get_results( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+			$wpdb->prepare(
+				"SELECT line_no, adjutancy_slug FROM {$staging_table} WHERE job_id = %s AND adjutancy_slug <> '' AND adjutancy_id = 0 ORDER BY row_no", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+				$job_id
+			)
+		);
+		foreach ( $rows as $r ) {
+			$errors[] = self::line_error( (int) $r->line_no, 'recruitment_csv_adjutancy_not_in_notice: ' . $r->adjutancy_slug );
+		}
+
+		// Rule 4 — duplicate (logical candidate + adjutancy). Three
+		// passes, one per hash column. Each `GROUP BY hash, adjutancy_id
+		// HAVING COUNT(*) > 1` returns the offending hash + the CSV
+		// lines that share it; we surface every line past the first as
+		// a duplicate of that first line.
+		foreach ( array( 'cpf_hash', 'rf_hash', 'email_hash' ) as $hash_col ) {
+			$dup_groups = $wpdb->get_results( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+				$wpdb->prepare(
+					"SELECT GROUP_CONCAT(line_no ORDER BY row_no) AS lines FROM {$staging_table} WHERE job_id = %s AND {$hash_col} IS NOT NULL GROUP BY {$hash_col}, adjutancy_id HAVING COUNT(*) > 1", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- hash_col is hard-coded above; not user input.
+					$job_id
+				)
+			);
+			foreach ( $dup_groups as $group ) {
+				$lines = array_map( 'intval', explode( ',', (string) $group->lines ) );
+				$first = (int) array_shift( $lines );
+				foreach ( $lines as $line ) {
+					$errors[] = self::line_error(
+						$line,
+						sprintf( 'recruitment_csv_duplicate_candidate_adjutancy: matches line %d', $first )
+					);
+				}
+			}
+		}
+
+		// Rule 5 — same cpf_hash rows must agree on candidate-level
+		// fields. `COUNT(DISTINCT …)` against each field in one pass.
+		$diverge_groups = $wpdb->get_results( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+			$wpdb->prepare(
+				"SELECT GROUP_CONCAT(line_no ORDER BY row_no) AS lines,
+					COUNT(DISTINCT name)       AS d_name,
+					COUNT(DISTINCT email_hash) AS d_email,
+					COUNT(DISTINCT rf_hash)    AS d_rf,
+					COUNT(DISTINCT phone)      AS d_phone,
+					COUNT(DISTINCT pcd)        AS d_pcd
+				FROM {$staging_table}
+				WHERE job_id = %s AND cpf_hash IS NOT NULL
+				GROUP BY cpf_hash
+				HAVING d_name > 1 OR d_email > 1 OR d_rf > 1 OR d_phone > 1 OR d_pcd > 1", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+				$job_id
+			)
+		);
+		foreach ( $diverge_groups as $group ) {
+			$lines = array_map( 'intval', explode( ',', (string) $group->lines ) );
+			$first = (int) array_shift( $lines );
+			$which = array();
+			if ( $group->d_name > 1 ) {
+				$which[] = 'name';
+			}
+			if ( $group->d_email > 1 ) {
+				$which[] = 'email';
+			}
+			if ( $group->d_rf > 1 ) {
+				$which[] = 'rf';
+			}
+			if ( $group->d_phone > 1 ) {
+				$which[] = 'phone';
+			}
+			if ( $group->d_pcd > 1 ) {
+				$which[] = 'pcd';
+			}
+			$field_list = implode( '+', $which );
+			foreach ( $lines as $line ) {
+				$errors[] = self::line_error(
+					$line,
+					sprintf( 'recruitment_csv_candidate_field_divergence: field=%s, ref_line=%d', $field_list, $first )
+				);
+			}
+		}
+
+		// Transition the job. Status determines what /promote and
+		// /commit accept; staging rows stay put either way.
+		$next_status = empty( $errors ) ? 'validated' : 'invalid';
+		$wpdb->update( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+			$jobs_table,
+			array(
+				'status'     => $next_status,
+				'updated_at' => current_time( 'mysql' ),
+			),
+			array( 'job_id' => $job_id ),
+			array( '%s', '%s' ),
+			array( '%s' )
+		);
+
+		return array(
+			'ok'     => true,
+			'errors' => $errors,
+		);
+	}
+
+	/**
 	 * Start a batched import: validate the CSV in full and persist a job
 	 * state the AJAX caller can step through.
 	 *
