@@ -120,7 +120,7 @@ final class RecruitmentNoticeEditPageRenderer {
 		// request shape against /promote-preview because that endpoint
 		// also performs the snapshot + state transition under a 15-second
 		// countdown — batching there would need a different design.
-		$strings = array(
+		$strings   = array(
 			'starting'     => __( 'Starting…', 'ffcertificate' ),
 			'processing'   => __( 'Processing…', 'ffcertificate' ),
 			'committing'   => __( 'Finalising…', 'ffcertificate' ),

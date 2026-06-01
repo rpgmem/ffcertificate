@@ -743,18 +743,18 @@ final class RecruitmentCsvImporter {
 	// imports a small definitive list under a 15s countdown) and for tests;
 	// new admin imports flow through the three methods below.
 	//
-	//   1. start_job()         → parse + validate the whole CSV (cheap),
-	//                            persist normalized rows as JSON in a tmp file,
-	//                            create a transient with the job state, return
-	//                            { job_id, total }. NO DB writes yet.
-	//   2. process_job_batch() → load slice [cursor, cursor+size) from the tmp
-	//                            JSON, insert candidates + classifications into
-	//                            a staging row (`list_type='__staging_<job_id>'`),
-	//                            update cursor + inserted in the transient,
-	//                            flush ActivityLog buffer at batch end.
-	//   3. commit_job()        → inside ONE short transaction: DELETE the
-	//                            previous live list + UPDATE staging rows to
-	//                            the target list_type. Drop tmp file + transient.
+	// 1. start_job()         → parse + validate the whole CSV (cheap),
+	// persist normalized rows as JSON in a tmp file,
+	// create a transient with the job state, return
+	// { job_id, total }. NO DB writes yet.
+	// 2. process_job_batch() → load slice [cursor, cursor+size) from the tmp
+	// JSON, insert candidates + classifications into
+	// a staging row (`list_type='__staging_<job_id>'`),
+	// update cursor + inserted in the transient,
+	// flush ActivityLog buffer at batch end.
+	// 3. commit_job()        → inside ONE short transaction: DELETE the
+	// previous live list + UPDATE staging rows to
+	// the target list_type. Drop tmp file + transient.
 	//
 	// Atomicity is preserved: if the operator interrupts mid-batch the live
 	// list stays untouched (the swap only happens in commit_job's
@@ -808,53 +808,79 @@ final class RecruitmentCsvImporter {
 	public static function start_job( int $notice_id, string $csv_content, string $list_type ) {
 		$notice = RecruitmentNoticeRepository::get_by_id( $notice_id );
 		if ( null === $notice ) {
-			return array( 'ok' => false, 'errors' => array( 'recruitment_notice_not_found' ) );
+			return array(
+				'ok'     => false,
+				'errors' => array( 'recruitment_notice_not_found' ),
+			);
 		}
 
 		// State gates mirror `import_preview` / `import_definitive_preview`.
 		$status = $notice->status;
 		if ( 'preview' === $list_type && 'draft' !== $status && 'preliminary' !== $status ) {
-			return array( 'ok' => false, 'errors' => array( 'recruitment_invalid_state_for_preview_import' ) );
+			return array(
+				'ok'     => false,
+				'errors' => array( 'recruitment_invalid_state_for_preview_import' ),
+			);
 		}
 
 		$parse = self::parse( $csv_content );
 		if ( ! $parse['ok'] ) {
-			return array( 'ok' => false, 'errors' => $parse['errors'] );
+			return array(
+				'ok'     => false,
+				'errors' => $parse['errors'],
+			);
 		}
 		$rows = $parse['rows'];
 
 		if ( empty( $rows ) ) {
-			return array( 'ok' => false, 'errors' => array( 'recruitment_csv_empty' ) );
+			return array(
+				'ok'     => false,
+				'errors' => array( 'recruitment_csv_empty' ),
+			);
 		}
 
 		$adjutancy_map = self::build_adjutancy_map( $notice_id );
 		if ( empty( $adjutancy_map ) ) {
-			return array( 'ok' => false, 'errors' => array( 'recruitment_notice_has_no_adjutancies' ) );
+			return array(
+				'ok'     => false,
+				'errors' => array( 'recruitment_notice_has_no_adjutancies' ),
+			);
 		}
 
 		$validation = self::validate( $rows, $notice_id, $list_type, $adjutancy_map );
 		if ( ! empty( $validation ) ) {
-			return array( 'ok' => false, 'errors' => $validation );
+			return array(
+				'ok'     => false,
+				'errors' => $validation,
+			);
 		}
 
 		// Persist the normalized rows as JSON so per-batch handlers can
 		// `array_slice` from offset without re-parsing the CSV.
 		$tmp_dir = self::ensure_tmp_dir();
 		if ( null === $tmp_dir ) {
-			return array( 'ok' => false, 'errors' => array( 'recruitment_tmp_dir_unwritable' ) );
+			return array(
+				'ok'     => false,
+				'errors' => array( 'recruitment_tmp_dir_unwritable' ),
+			);
 		}
 
 		$job_id   = wp_generate_uuid4();
 		$tmp_file = $tmp_dir . '/ffc-rec-import-' . $job_id . '.json';
 		$bytes    = file_put_contents( // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents -- private tmp, dir-protected by .htaccess.
 			$tmp_file,
-			wp_json_encode( array(
-				'adjutancy_map' => $adjutancy_map,
-				'rows'          => $rows,
-			) )
+			wp_json_encode(
+				array(
+					'adjutancy_map' => $adjutancy_map,
+					'rows'          => $rows,
+				)
+			)
 		);
 		if ( false === $bytes ) {
-			return array( 'ok' => false, 'errors' => array( 'recruitment_tmp_file_unwritable' ) );
+			return array(
+				'ok'     => false,
+				'errors' => array( 'recruitment_tmp_file_unwritable' ),
+			);
 		}
 
 		$job = array(
@@ -890,7 +916,10 @@ final class RecruitmentCsvImporter {
 	public static function process_job_batch( string $job_id, int $size ) {
 		$job = get_transient( self::JOB_TRANSIENT_PREFIX . $job_id );
 		if ( ! is_array( $job ) ) {
-			return array( 'ok' => false, 'errors' => array( 'recruitment_import_job_not_found' ) );
+			return array(
+				'ok'     => false,
+				'errors' => array( 'recruitment_import_job_not_found' ),
+			);
 		}
 
 		$size = max( 10, min( 100, $size ) );
@@ -900,11 +929,17 @@ final class RecruitmentCsvImporter {
 		// blob is the cheap source of truth.
 		$raw = file_get_contents( $job['file'] ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- private tmp file.
 		if ( false === $raw ) {
-			return array( 'ok' => false, 'errors' => array( 'recruitment_import_job_tmp_lost' ) );
+			return array(
+				'ok'     => false,
+				'errors' => array( 'recruitment_import_job_tmp_lost' ),
+			);
 		}
 		$payload = json_decode( $raw, true );
 		if ( ! is_array( $payload ) || ! isset( $payload['rows'], $payload['adjutancy_map'] ) ) {
-			return array( 'ok' => false, 'errors' => array( 'recruitment_import_job_corrupt' ) );
+			return array(
+				'ok'     => false,
+				'errors' => array( 'recruitment_import_job_corrupt' ),
+			);
 		}
 
 		$rows          = (array) $payload['rows'];
@@ -932,7 +967,10 @@ final class RecruitmentCsvImporter {
 				$candidate_id = self::upsert_candidate( $row );
 				if ( false === $candidate_id ) {
 					$wpdb->query( 'ROLLBACK' );
-					return array( 'ok' => false, 'errors' => array( 'recruitment_candidate_upsert_failed' ) );
+					return array(
+						'ok'     => false,
+						'errors' => array( 'recruitment_candidate_upsert_failed' ),
+					);
 				}
 
 				$classification_id = RecruitmentClassificationRepository::create(
@@ -949,16 +987,22 @@ final class RecruitmentCsvImporter {
 				);
 				if ( false === $classification_id ) {
 					$wpdb->query( 'ROLLBACK' );
-					return array( 'ok' => false, 'errors' => array( 'recruitment_classification_insert_failed' ) );
+					return array(
+						'ok'     => false,
+						'errors' => array( 'recruitment_classification_insert_failed' ),
+					);
 				}
 			}
 			$wpdb->query( 'COMMIT' );
 		} catch ( \Throwable $e ) {
 			$wpdb->query( 'ROLLBACK' );
-			return array( 'ok' => false, 'errors' => array( 'recruitment_import_unexpected_error: ' . $e->getMessage() ) );
+			return array(
+				'ok'     => false,
+				'errors' => array( 'recruitment_import_unexpected_error: ' . $e->getMessage() ),
+			);
 		}
 
-		$job['cursor']  += count( $slice );
+		$job['cursor']   += count( $slice );
 		$job['inserted'] += count( $slice );
 		set_transient( self::JOB_TRANSIENT_PREFIX . $job_id, $job, self::JOB_TTL );
 
@@ -993,11 +1037,17 @@ final class RecruitmentCsvImporter {
 	public static function commit_job( string $job_id ) {
 		$job = get_transient( self::JOB_TRANSIENT_PREFIX . $job_id );
 		if ( ! is_array( $job ) ) {
-			return array( 'ok' => false, 'errors' => array( 'recruitment_import_job_not_found' ) );
+			return array(
+				'ok'     => false,
+				'errors' => array( 'recruitment_import_job_not_found' ),
+			);
 		}
 
 		if ( $job['cursor'] < $job['total'] ) {
-			return array( 'ok' => false, 'errors' => array( 'recruitment_import_job_not_finished' ) );
+			return array(
+				'ok'     => false,
+				'errors' => array( 'recruitment_import_job_not_finished' ),
+			);
 		}
 
 		global $wpdb;
@@ -1019,13 +1069,19 @@ final class RecruitmentCsvImporter {
 
 			if ( false === $updated ) {
 				$wpdb->query( 'ROLLBACK' );
-				return array( 'ok' => false, 'errors' => array( 'recruitment_import_swap_failed' ) );
+				return array(
+					'ok'     => false,
+					'errors' => array( 'recruitment_import_swap_failed' ),
+				);
 			}
 
 			$wpdb->query( 'COMMIT' );
 		} catch ( \Throwable $e ) {
 			$wpdb->query( 'ROLLBACK' );
-			return array( 'ok' => false, 'errors' => array( 'recruitment_import_unexpected_error: ' . $e->getMessage() ) );
+			return array(
+				'ok'     => false,
+				'errors' => array( 'recruitment_import_unexpected_error: ' . $e->getMessage() ),
+			);
 		}
 
 		RecruitmentActivityLogger::csv_imported( $job['notice_id'], $job['list_type'], $job['inserted'] );
