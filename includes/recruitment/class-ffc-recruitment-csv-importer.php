@@ -299,9 +299,89 @@ final class RecruitmentCsvImporter {
 	private static function validate( array $rows, int $notice_id, string $list_type, array $adjutancy_map ): array {
 		$errors    = array();
 		$by_cpf    = array(); // cpf → first-seen row reference (for cross-row consistency).
-		$seen_pair = array(); // "cpf|adjutancy" → line number, for duplicate detection.
+		$seen_pair = array(); // "candidate_identity|adjutancy" → line number, for duplicate detection.
 
-		foreach ( $rows as $row ) {
+		// Build a logical-identity map BEFORE the per-row loop so duplicate
+		// detection can group rows by the same physical candidate even when
+		// only RF or email (not CPF) is shared. Without this, the prior
+		// validate rule "cpf + adjutancy" missed the cases the upsert path
+		// later collapsed via rf_hash / email lookup — and those silent
+		// candidate-reuses violated the UNIQUE (candidate_id, adjutancy_id,
+		// notice_id, list_type) constraint at INSERT time, surfacing as
+		// "Duplicate entry" debug.log noise + a 400 to the operator.
+		//
+		// The map mirrors upsert_candidate's matching order: cpf > rf >
+		// email. Two rows sharing ANY of those (after digit-normalisation
+		// for cpf/rf and case-fold for email) are pinned to the same
+		// identity_id. The algorithm is naive — for each row, locate any
+		// pre-existing identity_id that matches one of its tags, merge
+		// other matched ids into it, then claim the row's remaining tags
+		// for that id. O(n²) worst-case but the import is gated at
+		// human-CSV scale (~thousands of rows) so this stays cheap.
+		$row_identity = array(); // row_index → identity_id (int).
+		$tag_to_id    = array(); // 'cpf:DIGITS' / 'rf:DIGITS' / 'em:STR' → identity_id.
+		$next_id      = 0;
+		foreach ( $rows as $idx => $row ) {
+			$row_cpf   = is_string( $row['cpf'] ?? null ) ? self::normalise_id( trim( $row['cpf'] ), 11 )['value'] : '';
+			$row_rf    = is_string( $row['rf'] ?? null ) ? self::normalise_id( trim( $row['rf'] ), 7 )['value'] : '';
+			$row_email = is_string( $row['email'] ?? null ) ? strtolower( trim( $row['email'] ) ) : '';
+
+			$tags = array();
+			if ( '' !== $row_cpf ) {
+				$tags[] = 'cpf:' . $row_cpf;
+			}
+			if ( '' !== $row_rf ) {
+				$tags[] = 'rf:' . $row_rf;
+			}
+			if ( '' !== $row_email ) {
+				$tags[] = 'em:' . $row_email;
+			}
+			if ( empty( $tags ) ) {
+				// Row has no identifying field at all — the per-row loop
+				// below will reject it via recruitment_csv_missing_cpf_or_rf.
+				// Skip the identity step for now so it doesn't claim a
+				// spurious id.
+				continue;
+			}
+
+			$matched = array();
+			foreach ( $tags as $tag ) {
+				if ( isset( $tag_to_id[ $tag ] ) ) {
+					$matched[ $tag_to_id[ $tag ] ] = true;
+				}
+			}
+			if ( empty( $matched ) ) {
+				$id = $next_id++;
+			} else {
+				$matched_ids = array_keys( $matched );
+				sort( $matched_ids );
+				$id = $matched_ids[0];
+				// Multiple existing ids matched (e.g. this row carries both
+				// the CPF that previously pinned id=2 and the RF that
+				// previously pinned id=5) — coalesce them all into the
+				// lowest id so future lookups stay consistent.
+				if ( count( $matched_ids ) > 1 ) {
+					$drop = array_slice( $matched_ids, 1 );
+					foreach ( $tag_to_id as $t => $tid ) {
+						if ( in_array( $tid, $drop, true ) ) {
+							$tag_to_id[ $t ] = $id;
+						}
+					}
+					foreach ( $row_identity as $ri => $rid ) {
+						if ( in_array( $rid, $drop, true ) ) {
+							$row_identity[ $ri ] = $id;
+						}
+					}
+				}
+			}
+
+			foreach ( $tags as $tag ) {
+				$tag_to_id[ $tag ] = $id;
+			}
+			$row_identity[ $idx ] = $id;
+		}
+
+		foreach ( $rows as $row_index => $row ) {
 			$line = (int) $row['_line'];
 
 			// CPF / RF normalisation (#172). Strip non-digit characters
@@ -387,13 +467,24 @@ final class RecruitmentCsvImporter {
 				continue;
 			}
 
-			// Duplicate (cpf + adjutancy) within CSV.
-			if ( '' !== $cpf ) {
-				$key = $cpf . '|' . $slug;
+			// Duplicate (logical candidate + adjutancy) within CSV.
+			//
+			// The pre-pass above grouped rows by physical identity (any
+			// shared cpf / rf / email pins the same candidate), so the
+			// pair key is (identity_id, adjutancy). This catches the
+			// classes of duplicates that the prior cpf-only rule missed:
+			// - same RF in two rows with different CPFs
+			// - same email across rows where one CPF was blank
+			// - a row with only RF re-listing a candidate already
+			// classified under another row that carried CPF + RF
+			// All of those used to slip past validate and trip the
+			// UNIQUE constraint at INSERT time.
+			if ( isset( $row_identity[ $row_index ] ) ) {
+				$key = $row_identity[ $row_index ] . '|' . $slug;
 				if ( isset( $seen_pair[ $key ] ) ) {
 					$errors[] = self::line_error(
 						$line,
-						sprintf( 'recruitment_csv_duplicate_cpf_adjutancy: matches line %d', $seen_pair[ $key ] )
+						sprintf( 'recruitment_csv_duplicate_candidate_adjutancy: matches line %d', $seen_pair[ $key ] )
 					);
 					continue;
 				}
@@ -806,6 +897,16 @@ final class RecruitmentCsvImporter {
 	 * @return array{ok: true, job_id: string, total: int}|array{ok: false, errors: list<string>}
 	 */
 	public static function start_job( int $notice_id, string $csv_content, string $list_type ) {
+		// Reap any staging rows left behind by an interrupted prior job
+		// before the new one allocates fresh ones. Without this, a job
+		// killed mid-batch (browser closed, gateway error, the silently-
+		// fixed duplicate-INSERT chain) leaves __staging_<job_id> rows
+		// in the classification table that no transient still references.
+		// They're invisible to the live list (different list_type) but
+		// they accumulate forever, eventually showing up in long-running
+		// COUNT(*) queries and consuming index space.
+		self::cleanup_orphan_staging_rows();
+
 		$notice = RecruitmentNoticeRepository::get_by_id( $notice_id );
 		if ( null === $notice ) {
 			return array(
@@ -1120,5 +1221,62 @@ final class RecruitmentCsvImporter {
 			file_put_contents( $htaccess, "Deny from all\n" ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents -- private tmp dir.
 		}
 		return $tmp_dir;
+	}
+
+	/**
+	 * Drop staging-marker classification rows whose owning job is dead.
+	 *
+	 * A staging marker is `list_type='__staging_<job_id>'`. The job's
+	 * transient (with the matching JOB_TTL) is the source of truth for
+	 * whether the job is still in flight; once the transient is gone
+	 * (TTL expired, browser closed mid-commit, server crashed) the
+	 * staging rows are unreferenced and may safely be dropped.
+	 *
+	 * Defensive twist for transient-less reaping: a staging marker older
+	 * than 2× JOB_TTL is treated as orphan regardless of whether the
+	 * transient lookup still hits — handles installs whose object cache
+	 * lies about transient existence (Memcached LRU evicting our key
+	 * before the row was reaped).
+	 *
+	 * @return int Number of staging rows deleted.
+	 */
+	public static function cleanup_orphan_staging_rows(): int {
+		global $wpdb;
+		$table = $wpdb->prefix . 'ffc_recruitment_classification';
+
+		$markers = $wpdb->get_col( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- maintenance sweep, runs at most per start_job call.
+			$wpdb->prepare(
+				'SELECT DISTINCT list_type FROM %i WHERE list_type LIKE %s',
+				$table,
+				$wpdb->esc_like( self::STAGING_LIST_TYPE_PREFIX ) . '%'
+			)
+		);
+
+		if ( empty( $markers ) ) {
+			return 0;
+		}
+
+		$deleted = 0;
+		foreach ( $markers as $marker ) {
+			$job_id = substr( (string) $marker, strlen( self::STAGING_LIST_TYPE_PREFIX ) );
+			if ( '' === $job_id ) {
+				continue;
+			}
+
+			// If the job transient still exists, leave the staging rows
+			// alone — the owning job may still be batching through them.
+			if ( false !== get_transient( self::JOB_TRANSIENT_PREFIX . $job_id ) ) {
+				continue;
+			}
+
+			$wpdb->delete( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- maintenance sweep.
+				$table,
+				array( 'list_type' => $marker ),
+				array( '%s' )
+			);
+			$deleted += (int) $wpdb->rows_affected;
+		}
+
+		return $deleted;
 	}
 }
