@@ -1434,6 +1434,140 @@ final class RecruitmentCsvImporter {
 	}
 
 	/**
+	 * Phase 4 of the staging-based batched import (V10) — atomic swap
+	 * of the staging classification list into the canonical
+	 * `ffc_recruitment_classification` table.
+	 *
+	 * All the work — INSERT INTO classification … SELECT FROM staging
+	 * — happens inside one short transaction. The wipe of the previous
+	 * live list is part of the same transaction, so the operator never
+	 * sees a half-replaced list to readers. If anything fails, the
+	 * rollback leaves the previous live list intact AND the staging
+	 * rows preserved for a retry.
+	 *
+	 * Preconditions:
+	 *   - job.status must be 'promoting' or 'committed' (the latter
+	 *     covers a retry after a partial commit_job that succeeded the
+	 *     swap but failed the cleanup step).
+	 *   - All staging rows for the job must be processed (candidate_id
+	 *     resolved). Otherwise the operator runs another
+	 *     /promote-batch first.
+	 *
+	 * Steps inside the transaction:
+	 *   1. DELETE FROM classification WHERE notice_id=X AND list_type=Y.
+	 *   2. INSERT INTO classification (…) SELECT …, candidate_id, …
+	 *      FROM staging WHERE job_id=X AND processed=1.
+	 *   3. UPDATE jobs SET status='committed'.
+	 *
+	 * After the transaction commits:
+	 *   4. DELETE staging + DELETE jobs row for the job. These are
+	 *      idempotent — a crash between the commit and the cleanup
+	 *      just leaves an orphaned 'committed' job + its staging,
+	 *      reaped on the next ingest_job TTL sweep.
+	 *
+	 * @param string $job_id Job identifier.
+	 * @return array{ok: true, inserted: int}|array{ok: false, errors: list<string>}
+	 */
+	public static function commit_job_v2( string $job_id ) {
+		global $wpdb;
+		$jobs_table           = $wpdb->prefix . 'ffc_recruitment_import_jobs';
+		$staging_table        = $wpdb->prefix . 'ffc_recruitment_import_staging';
+		$classification_table = $wpdb->prefix . 'ffc_recruitment_classification';
+
+		$job = $wpdb->get_row( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+			$wpdb->prepare( "SELECT * FROM {$jobs_table} WHERE job_id = %s", $job_id ) // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+		);
+		if ( null === $job ) {
+			return array(
+				'ok'     => false,
+				'errors' => array( 'recruitment_import_job_not_found' ),
+			);
+		}
+		if ( ! in_array( $job->status, array( 'promoting', 'committed' ), true ) ) {
+			return array(
+				'ok'     => false,
+				'errors' => array( 'recruitment_import_job_invalid_state_for_commit' ),
+			);
+		}
+
+		// Defensive: confirm promotion really finished. The JS loop
+		// should already guarantee this, but a manual /commit POST
+		// without the preceding batches must not be able to swap a
+		// half-populated staging set.
+		$unpromoted = (int) $wpdb->get_var( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+			$wpdb->prepare(
+				"SELECT COUNT(*) FROM {$staging_table} WHERE job_id = %s AND processed = 0", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+				$job_id
+			)
+		);
+		if ( $unpromoted > 0 ) {
+			return array(
+				'ok'     => false,
+				'errors' => array( 'recruitment_import_job_not_finished' ),
+			);
+		}
+
+		$wpdb->query( 'START TRANSACTION' );
+		try {
+			RecruitmentClassificationRepository::delete_all_for_notice_list( (int) $job->notice_id, (string) $job->list_type );
+
+			$inserted = $wpdb->query( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+				$wpdb->prepare(
+					"INSERT INTO {$classification_table}
+						(candidate_id, adjutancy_id, notice_id, list_type, `rank`, score, time_points, hab_emebs, status, created_at, updated_at)
+					 SELECT candidate_id, adjutancy_id, notice_id, %s, rank_value, score, time_points, hab_emebs, 'empty', %s, %s
+					 FROM {$staging_table}
+					 WHERE job_id = %s AND processed = 1
+					 ORDER BY row_no", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+					(string) $job->list_type,
+					current_time( 'mysql' ),
+					current_time( 'mysql' ),
+					$job_id
+				)
+			);
+			if ( false === $inserted ) {
+				$wpdb->query( 'ROLLBACK' );
+				return array(
+					'ok'     => false,
+					'errors' => array( 'recruitment_import_swap_failed' ),
+				);
+			}
+
+			$wpdb->update( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+				$jobs_table,
+				array(
+					'status'     => 'committed',
+					'updated_at' => current_time( 'mysql' ),
+				),
+				array( 'job_id' => $job_id ),
+				array( '%s', '%s' ),
+				array( '%s' )
+			);
+
+			$wpdb->query( 'COMMIT' );
+		} catch ( \Throwable $e ) {
+			$wpdb->query( 'ROLLBACK' );
+			return array(
+				'ok'     => false,
+				'errors' => array( 'recruitment_import_unexpected_error: ' . $e->getMessage() ),
+			);
+		}
+
+		RecruitmentActivityLogger::csv_imported( (int) $job->notice_id, (string) $job->list_type, (int) $inserted );
+
+		// Post-commit cleanup. Outside the transaction so the swap is
+		// already durable; if these fail, the orphan reaper at the top
+		// of ingest_job handles it eventually.
+		$wpdb->delete( $staging_table, array( 'job_id' => $job_id ), array( '%s' ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+		$wpdb->delete( $jobs_table, array( 'job_id' => $job_id ), array( '%s' ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+
+		return array(
+			'ok'       => true,
+			'inserted' => (int) $inserted,
+		);
+	}
+
+	/**
 	 * Start a batched import: validate the CSV in full and persist a job
 	 * state the AJAX caller can step through.
 	 *
