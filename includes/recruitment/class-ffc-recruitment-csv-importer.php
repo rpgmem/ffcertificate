@@ -1281,6 +1281,159 @@ final class RecruitmentCsvImporter {
 	}
 
 	/**
+	 * Phase 3 of the staging-based batched import (V10) — promote one
+	 * chunk of staged rows.
+	 *
+	 * Each batch:
+	 *   1. SELECTs the next `$size` unprocessed rows for the job.
+	 *   2. For each row, decrypts CPF / RF / email, builds a synthetic
+	 *      input row, and calls the existing `upsert_candidate()` —
+	 *      ALL the heavy lifting (Encryption::hash + encrypt, candidate
+	 *      table lookups, wp_user creation via UserCreator) stays in
+	 *      that one canonical helper. We DON'T duplicate it.
+	 *   3. Stores the resolved candidate_id back on the staging row
+	 *      and flips `processed=1`.
+	 *   4. Increments `processed_count` on the job in a single UPDATE.
+	 *
+	 * No classification row is created here — that's phase 4's swap.
+	 * If the gateway times out mid-batch, the next call picks up the
+	 * next unprocessed row (idempotent: a row that DID get upserted
+	 * just gets reused on retry because `upsert_candidate` is
+	 * lookup-then-create).
+	 *
+	 * @param string $job_id Job identifier.
+	 * @param int    $size   Rows to process in this batch (clamped to 10–100).
+	 * @return array{ok: true, processed: int, total: int, done: bool}|array{ok: false, errors: list<string>}
+	 */
+	public static function promote_batch( string $job_id, int $size ) {
+		global $wpdb;
+		$jobs_table    = $wpdb->prefix . 'ffc_recruitment_import_jobs';
+		$staging_table = $wpdb->prefix . 'ffc_recruitment_import_staging';
+
+		$job = $wpdb->get_row( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+			$wpdb->prepare( "SELECT * FROM {$jobs_table} WHERE job_id = %s", $job_id ) // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+		);
+		if ( null === $job ) {
+			return array(
+				'ok'     => false,
+				'errors' => array( 'recruitment_import_job_not_found' ),
+			);
+		}
+		if ( ! in_array( $job->status, array( 'validated', 'promoting' ), true ) ) {
+			return array(
+				'ok'     => false,
+				'errors' => array( 'recruitment_import_job_invalid_state_for_promote' ),
+			);
+		}
+
+		$size = max( 10, min( 100, $size ) );
+
+		$batch = $wpdb->get_results( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+			$wpdb->prepare(
+				"SELECT id, name, cpf_encrypted, rf_encrypted, email_encrypted, phone, pcd FROM {$staging_table} WHERE job_id = %s AND processed = 0 ORDER BY row_no LIMIT %d", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+				$job_id,
+				$size
+			)
+		);
+
+		if ( empty( $batch ) ) {
+			// Nothing left to process — caller may have over-iterated.
+			// Mirror the job's processed_count back so the response
+			// reflects ground truth.
+			return array(
+				'ok'        => true,
+				'processed' => (int) $job->processed_count,
+				'total'     => (int) $job->total,
+				'done'      => true,
+			);
+		}
+
+		// Flip the job to 'promoting' on the first non-empty batch so
+		// subsequent /validate or /commit calls see the correct state.
+		if ( 'validated' === $job->status ) {
+			$wpdb->update( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+				$jobs_table,
+				array(
+					'status'     => 'promoting',
+					'updated_at' => current_time( 'mysql' ),
+				),
+				array( 'job_id' => $job_id ),
+				array( '%s', '%s' ),
+				array( '%s' )
+			);
+		}
+
+		$processed_now = 0;
+		foreach ( $batch as $row ) {
+			// Decrypt the three sensitive fields back to plaintext so
+			// upsert_candidate's existing signature accepts them as-is.
+			// upsert will re-derive hash + encrypt internally — slight
+			// crypto work in exchange for not duplicating its lookup
+			// logic. Empty / null encrypted columns produce empty
+			// strings, mirroring the legacy CSV-row contract.
+			$cpf   = is_string( $row->cpf_encrypted ) && '' !== $row->cpf_encrypted ? (string) Encryption::decrypt( $row->cpf_encrypted ) : '';
+			$rf    = is_string( $row->rf_encrypted ) && '' !== $row->rf_encrypted ? (string) Encryption::decrypt( $row->rf_encrypted ) : '';
+			$email = is_string( $row->email_encrypted ) && '' !== $row->email_encrypted ? (string) Encryption::decrypt( $row->email_encrypted ) : '';
+
+			$candidate_id = self::upsert_candidate(
+				array(
+					'name'  => $row->name,
+					'cpf'   => $cpf,
+					'rf'    => $rf,
+					'email' => $email,
+					'phone' => is_string( $row->phone ) ? $row->phone : '',
+					'pcd'   => (int) $row->pcd ? '1' : '0',
+				)
+			);
+			if ( false === $candidate_id ) {
+				return array(
+					'ok'     => false,
+					'errors' => array( 'recruitment_candidate_upsert_failed' ),
+				);
+			}
+
+			$wpdb->update( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+				$staging_table,
+				array(
+					'candidate_id' => (int) $candidate_id,
+					'processed'    => 1,
+				),
+				array( 'id' => (int) $row->id ),
+				array( '%d', '%d' ),
+				array( '%d' )
+			);
+			++$processed_now;
+		}
+
+		// Bump the per-job counter in a single statement. UPDATE … +N
+		// is atomic per row, but a SELECT-then-UPDATE pair would race
+		// with a concurrent retry from a frantic JS retry loop.
+		$wpdb->query( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+			$wpdb->prepare(
+				"UPDATE {$jobs_table} SET processed_count = processed_count + %d, updated_at = %s WHERE job_id = %s", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+				$processed_now,
+				current_time( 'mysql' ),
+				$job_id
+			)
+		);
+
+		// Flush the per-batch activity log entries that the
+		// `candidate_promoted` writes accumulated. Same rationale as
+		// the legacy flow: keep the shutdown handler off the hot path.
+		if ( class_exists( '\\FreeFormCertificate\\Core\\ActivityLog' ) ) {
+			\FreeFormCertificate\Core\ActivityLog::flush_buffer();
+		}
+
+		$new_processed = (int) $job->processed_count + $processed_now;
+		return array(
+			'ok'        => true,
+			'processed' => $new_processed,
+			'total'     => (int) $job->total,
+			'done'      => $new_processed >= (int) $job->total,
+		);
+	}
+
+	/**
 	 * Start a batched import: validate the CSV in full and persist a job
 	 * state the AJAX caller can step through.
 	 *
