@@ -147,6 +147,27 @@ class RecruitmentActivator {
 			self::create_import_staging_table();
 			update_option( $option_key, 10 );
 		}
+
+		if ( $current < 11 ) {
+			self::migrate_recreate_staging_table_plaintext();
+			update_option( $option_key, 11 );
+		}
+	}
+
+	/**
+	 * V11 — recreate the staging table with plaintext CPF/RF/email columns
+	 * instead of the V10 encrypted+hash pairs. Safe to DROP unconditionally
+	 * because the table is ephemeral (24h TTL, reaped by
+	 * `cleanup_stale_staging_jobs`) and only ever holds in-flight CSV-import
+	 * scratch state. Sites mid-import lose their job; the admin reuploads.
+	 *
+	 * @since 6.8.x
+	 */
+	private static function migrate_recreate_staging_table_plaintext(): void {
+		global $wpdb;
+		$table = $wpdb->prefix . 'ffc_recruitment_import_staging';
+		$wpdb->query( "DROP TABLE IF EXISTS `{$table}`" ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching,WordPress.DB.DirectDatabaseQuery.SchemaChange
+		self::create_import_staging_table();
 	}
 
 	/**
@@ -849,13 +870,18 @@ class RecruitmentActivator {
 	 * swap transaction. Mid-flow crashes never leave partial state in
 	 * the live list.
 	 *
-	 *   - `cpf_encrypted` / `rf_encrypted` / `email_encrypted` mirror
-	 *     the canonical `ffc_recruitment_candidate` shape: the value
-	 *     itself is AES-encrypted at rest (LGPD), and the hash column
-	 *     carries the deterministic SHA-256 used for lookup and the
-	 *     phase-2 duplicate-detection `GROUP BY`. Encrypting on
-	 *     ingestion keeps a DB dump of the staging table no more
-	 *     sensitive than a dump of the candidate table.
+	 *   - `cpf_normalized` / `rf_normalized` / `email` store the
+	 *     normalised CSV values in plaintext. The staging table is
+	 *     ephemeral (24h TTL, behind admin auth, never exposed via
+	 *     public REST) and the per-row encrypted+hashed columns the
+	 *     canonical `ffc_recruitment_candidate` carries are derived
+	 *     during the promote phase, where `upsert_candidate` runs the
+	 *     plaintext through `Encryption::encrypt` + `Encryption::hash`
+	 *     before writing to the permanent table. Keeping the staging
+	 *     plaintext is what unblocks SQL-native validation (`GROUP BY
+	 *     cpf_normalized`) and shaves the per-row crypto cost off the
+	 *     synchronous ingest request that was tripping gateway
+	 *     timeouts on CSVs with hundreds of candidates.
 	 *   - `name` and `phone` stay plaintext to match the canonical
 	 *     candidate schema (which also stores them in clear).
 	 *   - `adjutancy_id` is the slug already resolved to its FK at
@@ -882,12 +908,9 @@ class RecruitmentActivator {
             line_no int unsigned NOT NULL,
             notice_id bigint(20) unsigned NOT NULL,
             name varchar(255) NOT NULL,
-            cpf_encrypted text DEFAULT NULL,
-            cpf_hash varchar(64) DEFAULT NULL,
-            rf_encrypted text DEFAULT NULL,
-            rf_hash varchar(64) DEFAULT NULL,
-            email_encrypted text DEFAULT NULL,
-            email_hash varchar(64) DEFAULT NULL,
+            cpf_normalized varchar(11) NOT NULL DEFAULT '',
+            rf_normalized varchar(7) NOT NULL DEFAULT '',
+            email varchar(255) NOT NULL DEFAULT '',
             phone varchar(50) NOT NULL DEFAULT '',
             adjutancy_slug varchar(100) NOT NULL,
             adjutancy_id bigint(20) unsigned NOT NULL,
@@ -901,9 +924,9 @@ class RecruitmentActivator {
             PRIMARY KEY (id),
             UNIQUE KEY uq_job_row (job_id, row_no),
             KEY idx_job_processed (job_id, processed),
-            KEY idx_job_adjutancy_cpf (job_id, adjutancy_id, cpf_hash),
-            KEY idx_job_adjutancy_rf (job_id, adjutancy_id, rf_hash),
-            KEY idx_job_adjutancy_email (job_id, adjutancy_id, email_hash)
+            KEY idx_job_adjutancy_cpf (job_id, adjutancy_id, cpf_normalized),
+            KEY idx_job_adjutancy_rf (job_id, adjutancy_id, rf_normalized),
+            KEY idx_job_adjutancy_email (job_id, adjutancy_id, email)
         ) ENGINE=InnoDB {$charset_collate};";
 
 		require_once ABSPATH . 'wp-admin/includes/upgrade.php';

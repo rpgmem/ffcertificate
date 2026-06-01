@@ -979,9 +979,14 @@ final class RecruitmentCsvImporter {
 			);
 		}
 
-		// Mass INSERT — single statement per chunk. CPF / RF / email
-		// are encrypted + hashed before they ever touch the row builder
-		// so the staging table never holds personal data in plaintext.
+		// Mass INSERT — single statement per chunk. Staging keeps CPF /
+		// RF / email as normalised plaintext: the table is ephemeral
+		// (24h TTL, behind admin auth, reaped by
+		// `cleanup_stale_staging_jobs`, never reachable from public REST)
+		// so the synchronous ingest skips the per-row crypto that was
+		// pushing this phase past the gateway timeout. The canonical
+		// `ffc_recruitment_candidate` table still encrypts + hashes via
+		// `upsert_candidate()` during the promote phase.
 		$staged = 0;
 		foreach ( array_chunk( $rows, 200 ) as $chunk ) {
 			$values       = array();
@@ -998,7 +1003,7 @@ final class RecruitmentCsvImporter {
 				// NOT NULL constraint stays satisfied.
 				$adj_id = isset( $adjutancy_map[ $slug ] ) ? (int) $adjutancy_map[ $slug ] : 0;
 
-				$placeholders[] = '(%s, %d, %d, %d, %s, %s, %s, %s, %s, %s, %s, %s, %s, %d, %s, %s, %d, %d, %d)';
+				$placeholders[] = '(%s, %d, %d, %d, %s, %s, %s, %s, %s, %s, %d, %d, %s, %s, %d, %d)';
 				array_push(
 					$values,
 					$job_id,
@@ -1006,15 +1011,9 @@ final class RecruitmentCsvImporter {
 					(int) $row['_line'],
 					$notice_id,
 					is_string( $row['name'] ?? null ) ? trim( $row['name'] ) : '',
-					// CPF / RF / email columns — encrypted + hash if
-					// present, NULL otherwise (matches the canonical
-					// candidate schema's nullability).
-					'' !== $cpf_raw ? Encryption::encrypt( $cpf_raw ) : null,
-					'' !== $cpf_raw ? Encryption::hash( $cpf_raw ) : null,
-					'' !== $rf_raw ? Encryption::encrypt( $rf_raw ) : null,
-					'' !== $rf_raw ? Encryption::hash( $rf_raw ) : null,
-					'' !== $email ? Encryption::encrypt( $email ) : null,
-					'' !== $email ? Encryption::hash( $email ) : null,
+					$cpf_raw,
+					$rf_raw,
+					$email,
 					$phone,
 					$slug,
 					$adj_id,
@@ -1026,7 +1025,7 @@ final class RecruitmentCsvImporter {
 				);
 			}
 
-			$sql = "INSERT INTO {$staging_table} (job_id, row_no, line_no, notice_id, name, cpf_encrypted, cpf_hash, rf_encrypted, rf_hash, email_encrypted, email_hash, phone, adjutancy_slug, adjutancy_id, rank_value, score, time_points, hab_emebs, pcd) VALUES "
+			$sql = "INSERT INTO {$staging_table} (job_id, row_no, line_no, notice_id, name, cpf_normalized, rf_normalized, email, phone, adjutancy_slug, adjutancy_id, rank_value, score, time_points, hab_emebs, pcd) VALUES "
 				. implode( ', ', $placeholders );
 			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared -- chunked multi-VALUES INSERT; table from $wpdb->prefix; every user-derived value passes through %s/%d placeholders.
 			$result = $wpdb->query( $wpdb->prepare( $sql, $values ) );
@@ -1091,18 +1090,18 @@ final class RecruitmentCsvImporter {
 	 *
 	 * Rules enforced (each one SQL-bounded, no row-by-row PHP):
 	 *
-	 *   1. `missing_cpf_or_rf`: cpf_hash IS NULL AND rf_hash IS NULL.
+	 *   1. `missing_cpf_or_rf`: cpf_normalized = '' AND rf_normalized = ''.
 	 *   2. `missing_adjutancy`: adjutancy_slug is empty.
 	 *   3. `adjutancy_not_in_notice`: adjutancy_slug present but
 	 *      adjutancy_id is the 0 sentinel (the ingest map missed it).
-	 *   4. `duplicate_candidate_adjutancy`: same (cpf|rf|email)_hash +
+	 *   4. `duplicate_candidate_adjutancy`: same (cpf|rf|email) +
 	 *      adjutancy_id appears in more than one row. Three queries
-	 *      (one per hash field) cover the physical-identity collapse
+	 *      (one per identifier) cover the physical-identity collapse
 	 *      that `upsert_candidate` would otherwise perform downstream.
 	 *   5. `candidate_field_divergence`: rows sharing the same
-	 *      cpf_hash must agree on name / email_hash / rf_hash / phone /
-	 *      pcd. Detected via `COUNT(DISTINCT ...) > 1` in a single
-	 *      GROUP BY pass.
+	 *      cpf_normalized must agree on name / email / rf_normalized /
+	 *      phone / pcd. Detected via `COUNT(DISTINCT ...) > 1` in a
+	 *      single GROUP BY pass.
 	 *
 	 * Job status transitions:
 	 *   ingested → validated  (no errors)
@@ -1137,7 +1136,7 @@ final class RecruitmentCsvImporter {
 		// Rule 1 — missing identifier (CPF and RF both empty).
 		$rows = $wpdb->get_col( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 			$wpdb->prepare(
-				"SELECT line_no FROM {$staging_table} WHERE job_id = %s AND cpf_hash IS NULL AND rf_hash IS NULL ORDER BY row_no", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+				"SELECT line_no FROM {$staging_table} WHERE job_id = %s AND cpf_normalized = '' AND rf_normalized = '' ORDER BY row_no", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 				$job_id
 			)
 		);
@@ -1170,14 +1169,14 @@ final class RecruitmentCsvImporter {
 		}
 
 		// Rule 4 — duplicate (logical candidate + adjutancy). Three
-		// passes, one per hash column. Each `GROUP BY hash, adjutancy_id
-		// HAVING COUNT(*) > 1` returns the offending hash + the CSV
-		// lines that share it; we surface every line past the first as
-		// a duplicate of that first line.
-		foreach ( array( 'cpf_hash', 'rf_hash', 'email_hash' ) as $hash_col ) {
+		// passes, one per identifier column. Each `GROUP BY col,
+		// adjutancy_id HAVING COUNT(*) > 1` returns the offending value +
+		// the CSV lines that share it; we surface every line past the
+		// first as a duplicate of that first line.
+		foreach ( array( 'cpf_normalized', 'rf_normalized', 'email' ) as $id_col ) {
 			$dup_groups = $wpdb->get_results( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 				$wpdb->prepare(
-					"SELECT GROUP_CONCAT(line_no ORDER BY row_no) AS lines FROM {$staging_table} WHERE job_id = %s AND {$hash_col} IS NOT NULL GROUP BY {$hash_col}, adjutancy_id HAVING COUNT(*) > 1", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- hash_col is hard-coded above; not user input.
+					"SELECT GROUP_CONCAT(line_no ORDER BY row_no) AS lines FROM {$staging_table} WHERE job_id = %s AND {$id_col} <> '' GROUP BY {$id_col}, adjutancy_id HAVING COUNT(*) > 1", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- id_col is hard-coded above; not user input.
 					$job_id
 				)
 			);
@@ -1193,21 +1192,21 @@ final class RecruitmentCsvImporter {
 			}
 		}
 
-		// Rule 5 — same cpf_hash rows must agree on candidate-level
+		// Rule 5 — same cpf_normalized rows must agree on candidate-level
 		// fields. `COUNT(DISTINCT …)` against each field in one pass.
 		// `%i` placeholder for the table name keeps WPCS happy without a
 		// sniff suppression.
 		$diverge_groups = $wpdb->get_results( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 			$wpdb->prepare(
 				'SELECT GROUP_CONCAT(line_no ORDER BY row_no) AS lines,
-					COUNT(DISTINCT name)       AS d_name,
-					COUNT(DISTINCT email_hash) AS d_email,
-					COUNT(DISTINCT rf_hash)    AS d_rf,
-					COUNT(DISTINCT phone)      AS d_phone,
-					COUNT(DISTINCT pcd)        AS d_pcd
+					COUNT(DISTINCT name)          AS d_name,
+					COUNT(DISTINCT email)         AS d_email,
+					COUNT(DISTINCT rf_normalized) AS d_rf,
+					COUNT(DISTINCT phone)         AS d_phone,
+					COUNT(DISTINCT pcd)           AS d_pcd
 				FROM %i
-				WHERE job_id = %s AND cpf_hash IS NOT NULL
-				GROUP BY cpf_hash
+				WHERE job_id = %s AND cpf_normalized <> \'\'
+				GROUP BY cpf_normalized
 				HAVING d_name > 1 OR d_email > 1 OR d_rf > 1 OR d_phone > 1 OR d_pcd > 1',
 				$staging_table,
 				$job_id
@@ -1267,11 +1266,13 @@ final class RecruitmentCsvImporter {
 	 *
 	 * Each batch:
 	 *   1. SELECTs the next `$size` unprocessed rows for the job.
-	 *   2. For each row, decrypts CPF / RF / email, builds a synthetic
-	 *      input row, and calls the existing `upsert_candidate()` —
-	 *      ALL the heavy lifting (Encryption::hash + encrypt, candidate
-	 *      table lookups, wp_user creation via UserCreator) stays in
-	 *      that one canonical helper. We DON'T duplicate it.
+	 *   2. For each row, reads the plaintext CPF / RF / email straight
+	 *      out of staging and calls the existing `upsert_candidate()` —
+	 *      ALL the heavy lifting (Encryption::hash + encrypt against the
+	 *      canonical candidate table, candidate lookups, wp_user creation
+	 *      via UserCreator) stays in that one helper. We DON'T duplicate
+	 *      it. Crypto only happens here, on this side of the gateway
+	 *      timeout boundary, in batches the operator can monitor.
 	 *   3. Stores the resolved candidate_id back on the staging row
 	 *      and flips `processed=1`.
 	 *   4. Increments `processed_count` on the job in a single UPDATE.
@@ -1311,7 +1312,7 @@ final class RecruitmentCsvImporter {
 
 		$batch = $wpdb->get_results( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 			$wpdb->prepare(
-				"SELECT id, name, cpf_encrypted, rf_encrypted, email_encrypted, phone, pcd FROM {$staging_table} WHERE job_id = %s AND processed = 0 ORDER BY row_no LIMIT %d", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+				"SELECT id, name, cpf_normalized, rf_normalized, email, phone, pcd FROM {$staging_table} WHERE job_id = %s AND processed = 0 ORDER BY row_no LIMIT %d", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 				$job_id,
 				$size
 			)
@@ -1346,22 +1347,15 @@ final class RecruitmentCsvImporter {
 
 		$processed_now = 0;
 		foreach ( $batch as $row ) {
-			// Decrypt the three sensitive fields back to plaintext so
-			// upsert_candidate's existing signature accepts them as-is.
-			// upsert will re-derive hash + encrypt internally — slight
-			// crypto work in exchange for not duplicating its lookup
-			// logic. Empty / null encrypted columns produce empty
-			// strings, mirroring the legacy CSV-row contract.
-			$cpf   = is_string( $row->cpf_encrypted ) && '' !== $row->cpf_encrypted ? (string) Encryption::decrypt( $row->cpf_encrypted ) : '';
-			$rf    = is_string( $row->rf_encrypted ) && '' !== $row->rf_encrypted ? (string) Encryption::decrypt( $row->rf_encrypted ) : '';
-			$email = is_string( $row->email_encrypted ) && '' !== $row->email_encrypted ? (string) Encryption::decrypt( $row->email_encrypted ) : '';
-
+			// Plaintext straight out of staging — upsert_candidate
+			// applies Encryption::encrypt + Encryption::hash before the
+			// values reach the permanent ffc_recruitment_candidate table.
 			$candidate_id = self::upsert_candidate(
 				array(
 					'name'  => $row->name,
-					'cpf'   => $cpf,
-					'rf'    => $rf,
-					'email' => $email,
+					'cpf'   => is_string( $row->cpf_normalized ) ? $row->cpf_normalized : '',
+					'rf'    => is_string( $row->rf_normalized ) ? $row->rf_normalized : '',
+					'email' => is_string( $row->email ) ? $row->email : '',
 					'phone' => is_string( $row->phone ) ? $row->phone : '',
 					'pcd'   => (int) $row->pcd ? '1' : '0',
 				)
