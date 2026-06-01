@@ -190,6 +190,22 @@ class RecruitmentActivatorTest extends TestCase {
 		$this->assertStringContainsString( 'KEY idx_candidate_id (candidate_id)', $classification_sql );
 	}
 
+	public function test_classification_list_type_is_varchar_not_enum(): void {
+		// V9 widened list_type from ENUM('preview','definitive') to
+		// VARCHAR(50) so the batched-import flow can stash per-job
+		// staging markers (`__staging_<uuid>`) alongside the live
+		// values. The original ENUM silently coerced every staging
+		// marker to '' and every concurrent job collided on the
+		// UNIQUE (candidate_id, adjutancy_id, notice_id, list_type)
+		// constraint with a misleading "Duplicate entry '1668-1-1-'".
+		$this->stub_no_tables_exist();
+
+		$classification_sql = $this->capture_table_sql( 'ffc_recruitment_classification' );
+
+		$this->assertStringContainsString( 'list_type varchar(50) NOT NULL', $classification_sql );
+		$this->assertStringNotContainsString( "list_type enum('preview','definitive')", $classification_sql );
+	}
+
 	public function test_call_table_has_classification_cancelled_index(): void {
 		$this->stub_no_tables_exist();
 

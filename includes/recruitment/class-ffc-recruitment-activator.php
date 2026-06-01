@@ -134,6 +134,11 @@ class RecruitmentActivator {
 			self::migrate_add_withdrew_status();
 			update_option( $option_key, 8 );
 		}
+
+		if ( $current < 9 ) {
+			self::migrate_list_type_enum_to_varchar();
+			update_option( $option_key, 9 );
+		}
 	}
 
 	/**
@@ -415,6 +420,57 @@ class RecruitmentActivator {
 	}
 
 	/**
+	 * V9 schema migration — widens `ffc_recruitment_classification.list_type`
+	 * from `ENUM('preview','definitive')` to `VARCHAR(50)`.
+	 *
+	 * The batched CSV importer (#462) needs to store per-job staging
+	 * markers like `__staging_<uuid>` while a job streams batches in.
+	 * The pre-existing ENUM rejected those values silently — under
+	 * MySQL's default non-strict mode the column gets written as the
+	 * empty string `''` instead, and every staging row from every
+	 * concurrent job collapsed onto the same `list_type=''` value,
+	 * tripping the UNIQUE `(candidate_id, adjutancy_id, notice_id,
+	 * list_type)` constraint with a misleading `Duplicate entry
+	 * '1668-1-1-'` (the empty fourth component being the giveaway).
+	 *
+	 * Widening to VARCHAR preserves every existing value verbatim
+	 * (the two enum strings `preview` / `definitive` round-trip
+	 * cleanly) and lets the batched flow's staging markers persist
+	 * alongside the live `preview` / `definitive` rows.
+	 *
+	 * Also purges any leftover legacy `list_type=''` rows from the
+	 * pre-fix attempts so the now-honest UNIQUE constraint doesn't
+	 * keep firing on them after the column type change.
+	 *
+	 * @return void
+	 */
+	private static function migrate_list_type_enum_to_varchar(): void {
+		global $wpdb;
+		$table = $wpdb->prefix . 'ffc_recruitment_classification';
+
+		if ( ! self::table_exists( $table ) ) {
+			return;
+		}
+
+		$type = self::column_type( $table, 'list_type' );
+		// Idempotent: skip when the column is already a varchar (a
+		// partial-restore or re-activation must not blow up).
+		if ( null !== $type && 0 === stripos( $type, 'varchar' ) ) {
+			// Still clean up legacy invalid-enum residue even on re-run.
+			$wpdb->query( $wpdb->prepare( "DELETE FROM %i WHERE list_type NOT IN ('preview','definitive') AND list_type NOT LIKE %s", $table, '__staging\\_%' ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+			return;
+		}
+
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Schema migration.
+		$wpdb->query( "ALTER TABLE `{$table}` MODIFY list_type VARCHAR(50) NOT NULL" );
+
+		// Purge the legacy `''` rows the broken staging strategy left
+		// behind (every staging marker pre-fix landed as empty string).
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+		$wpdb->query( $wpdb->prepare( "DELETE FROM %i WHERE list_type NOT IN ('preview','definitive') AND list_type NOT LIKE %s", $table, '__staging\\_%' ) );
+	}
+
+	/**
 	 * Create `ffc_recruitment_adjutancy` table.
 	 *
 	 * Reusable subject/role definitions ("subjects"). One row per adjutancy,
@@ -604,7 +660,7 @@ class RecruitmentActivator {
             candidate_id bigint(20) unsigned NOT NULL,
             adjutancy_id bigint(20) unsigned NOT NULL,
             notice_id bigint(20) unsigned NOT NULL,
-            list_type enum('preview','definitive') NOT NULL,
+            list_type varchar(50) NOT NULL,
             `rank` int unsigned NOT NULL,
             score decimal(10,4) NOT NULL,
             time_points decimal(10,4) NOT NULL DEFAULT 0,
