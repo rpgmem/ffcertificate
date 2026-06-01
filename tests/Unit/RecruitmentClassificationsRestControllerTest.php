@@ -81,9 +81,10 @@ class RecruitmentClassificationsRestControllerTest extends TestCase {
     public function test_register_routes_registers_classification_route_groups(): void {
         $this->controller->register_routes();
 
-        // 10 register_rest_route calls: list/item/import/promote/call/bulk-call/
-        // status/preview-status/cancel-call/adjutancy.
-        $this->assertCount( 10, $this->registered_routes );
+        // 13 register_rest_route calls: list/item/import/promote/call/bulk-call/
+        // status/preview-status/cancel-call/adjutancy + 3 batched-import endpoints
+        // (import-job/start, import-job/batch, import-job/commit).
+        $this->assertCount( 13, $this->registered_routes );
     }
 
     public function test_register_routes_includes_classifications_and_import_routes(): void {
