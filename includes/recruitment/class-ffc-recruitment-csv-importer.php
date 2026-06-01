@@ -879,8 +879,227 @@ final class RecruitmentCsvImporter {
 
 	/**
 	 * Transient key prefix for batched-import job state.
+	 *
+	 * @deprecated 6.8.x — staging-table flow (V10) supersedes this.
+	 *             Constant kept until the legacy `start_job` / friends
+	 *             are removed in a follow-up sprint.
 	 */
 	private const JOB_TRANSIENT_PREFIX = 'ffc_rec_import_job_';
+
+	/**
+	 * Job TTL (seconds) used by the cleanup sweep that drops stale
+	 * `ffc_recruitment_import_jobs` + `ffc_recruitment_import_staging`
+	 * rows. Generous because staging rows are small and the cleanup
+	 * is opportunistic (runs at the top of every `ingest_job` call).
+	 */
+	private const STAGING_JOB_TTL_SECONDS = 86400;
+
+	/**
+	 * Phase 1 of the staging-based batched import (V10) — ingest the
+	 * raw CSV into the dedicated staging tables. NO promotion happens
+	 * here; the next phase (`validate_job`) inspects the staged rows
+	 * via SQL before any wp_user / candidate row is touched.
+	 *
+	 * Confidentiality: CPF, RF and email are encrypted + hashed on the
+	 * way in, mirroring the canonical `ffc_recruitment_candidate`
+	 * shape. A DB dump of the staging table is no more revealing than
+	 * a dump of the candidate table.
+	 *
+	 * The row set is mass-inserted in chunks of 200 to stay clear of
+	 * `max_allowed_packet` on default MySQL configs.
+	 *
+	 * Steps:
+	 *   1. State-machine gate (preview imports only from draft / preliminary).
+	 *   2. `parse()` the CSV bytes into normalized rows.
+	 *   3. `build_adjutancy_map()` to resolve slug → adjutancy_id.
+	 *   4. Opportunistic sweep of stale jobs (TTL).
+	 *   5. INSERT INTO ffc_recruitment_import_jobs (status='ingested').
+	 *   6. Mass INSERT INTO ffc_recruitment_import_staging.
+	 *
+	 * Returns `{ ok: true, job_id, total }` so the next phase
+	 * (`validate_job`) can target the same job.
+	 *
+	 * @param int    $notice_id   Target notice.
+	 * @param string $csv_content Raw CSV bytes (UTF-8, with or without BOM).
+	 * @param string $list_type   `preview` or `definitive`.
+	 * @return array{ok: true, job_id: string, total: int}|array{ok: false, errors: list<string>}
+	 */
+	public static function ingest_job( int $notice_id, string $csv_content, string $list_type ) {
+		$notice = RecruitmentNoticeRepository::get_by_id( $notice_id );
+		if ( null === $notice ) {
+			return array(
+				'ok'     => false,
+				'errors' => array( 'recruitment_notice_not_found' ),
+			);
+		}
+
+		if ( 'preview' === $list_type && 'draft' !== $notice->status && 'preliminary' !== $notice->status ) {
+			return array(
+				'ok'     => false,
+				'errors' => array( 'recruitment_invalid_state_for_preview_import' ),
+			);
+		}
+
+		$parse = self::parse( $csv_content );
+		if ( ! $parse['ok'] ) {
+			return array(
+				'ok'     => false,
+				'errors' => $parse['errors'],
+			);
+		}
+		$rows = $parse['rows'];
+		if ( empty( $rows ) ) {
+			return array(
+				'ok'     => false,
+				'errors' => array( 'recruitment_csv_empty' ),
+			);
+		}
+
+		$adjutancy_map = self::build_adjutancy_map( $notice_id );
+		if ( empty( $adjutancy_map ) ) {
+			return array(
+				'ok'     => false,
+				'errors' => array( 'recruitment_notice_has_no_adjutancies' ),
+			);
+		}
+
+		// Reap stale jobs + their staging rows before allocating a new
+		// one. Idempotent and bounded — only deletes rows older than the
+		// generous JOB TTL.
+		self::cleanup_stale_staging_jobs();
+
+		global $wpdb;
+		$jobs_table    = $wpdb->prefix . 'ffc_recruitment_import_jobs';
+		$staging_table = $wpdb->prefix . 'ffc_recruitment_import_staging';
+
+		$job_id = wp_generate_uuid4();
+		$now    = current_time( 'mysql' );
+		$user   = (int) get_current_user_id();
+
+		// Job row first so a partially-ingested staging set without an
+		// owning job is impossible (FK-like invariant enforced in code,
+		// since the staging table has no real FK to jobs).
+		$inserted = $wpdb->insert( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- ingest path; row is the source of truth from here on.
+			$jobs_table,
+			array(
+				'job_id'          => $job_id,
+				'notice_id'       => $notice_id,
+				'list_type'       => $list_type,
+				'status'          => 'ingested',
+				'total'           => count( $rows ),
+				'processed_count' => 0,
+				'user_id'         => $user,
+				'created_at'      => $now,
+				'updated_at'      => $now,
+			),
+			array( '%s', '%d', '%s', '%s', '%d', '%d', '%d', '%s', '%s' )
+		);
+		if ( false === $inserted ) {
+			return array(
+				'ok'     => false,
+				'errors' => array( 'recruitment_import_job_insert_failed' ),
+			);
+		}
+
+		// Mass INSERT — single statement per chunk. CPF / RF / email
+		// are encrypted + hashed before they ever touch the row builder
+		// so the staging table never holds personal data in plaintext.
+		$staged = 0;
+		foreach ( array_chunk( $rows, 200 ) as $chunk ) {
+			$values       = array();
+			$placeholders = array();
+			foreach ( $chunk as $row ) {
+				$cpf_raw = is_string( $row['cpf'] ?? null ) ? self::normalise_id( trim( $row['cpf'] ), 11 )['value'] : '';
+				$rf_raw  = is_string( $row['rf'] ?? null ) ? self::normalise_id( trim( $row['rf'] ), 7 )['value'] : '';
+				$email   = is_string( $row['email'] ?? null ) ? strtolower( trim( $row['email'] ) ) : '';
+				$phone   = is_string( $row['phone'] ?? null ) ? trim( $row['phone'] ) : '';
+				$slug    = is_string( $row['adjutancy'] ?? null ) ? trim( $row['adjutancy'] ) : '';
+				// adjutancy_id may not exist in the map (the validation
+				// phase reports `adjutancy_not_in_notice` against the
+				// staging row); store 0 as a sentinel so the schema's
+				// NOT NULL constraint stays satisfied.
+				$adj_id = isset( $adjutancy_map[ $slug ] ) ? (int) $adjutancy_map[ $slug ] : 0;
+
+				$placeholders[] = '(%s, %d, %d, %d, %s, %s, %s, %s, %s, %s, %s, %s, %s, %d, %s, %s, %d, %d, %d)';
+				array_push(
+					$values,
+					$job_id,
+					++$staged,
+					(int) $row['_line'],
+					$notice_id,
+					is_string( $row['name'] ?? null ) ? trim( $row['name'] ) : '',
+					// CPF / RF / email columns — encrypted + hash if
+					// present, NULL otherwise (matches the canonical
+					// candidate schema's nullability).
+					'' !== $cpf_raw ? Encryption::encrypt( $cpf_raw ) : null,
+					'' !== $cpf_raw ? Encryption::hash( $cpf_raw ) : null,
+					'' !== $rf_raw ? Encryption::encrypt( $rf_raw ) : null,
+					'' !== $rf_raw ? Encryption::hash( $rf_raw ) : null,
+					'' !== $email ? Encryption::encrypt( $email ) : null,
+					'' !== $email ? Encryption::hash( $email ) : null,
+					$phone,
+					$slug,
+					$adj_id,
+					ctype_digit( (string) ( $row['rank'] ?? '' ) ) ? (int) $row['rank'] : 0,
+					is_string( $row['score'] ?? null ) ? trim( $row['score'] ) : (string) ( $row['score'] ?? '0' ),
+					isset( $row['time_points'] ) && '' !== (string) $row['time_points'] ? (string) $row['time_points'] : '0',
+					self::parse_pcd_flag( $row['hab_emebs'] ?? '' ) ? 1 : 0,
+					self::parse_pcd_flag( $row['pcd'] ?? '' ) ? 1 : 0
+				);
+			}
+
+			$sql = "INSERT INTO {$staging_table} (job_id, row_no, line_no, notice_id, name, cpf_encrypted, cpf_hash, rf_encrypted, rf_hash, email_encrypted, email_hash, phone, adjutancy_slug, adjutancy_id, rank_value, score, time_points, hab_emebs, pcd) VALUES "
+				. implode( ', ', $placeholders );
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- chunked multi-VALUES INSERT; every user-derived value passes through %s/%d placeholders.
+			$result = $wpdb->query( $wpdb->prepare( $sql, $values ) );
+			if ( false === $result ) {
+				// Roll back the entire job — leaves no partial staging.
+				$wpdb->delete( $jobs_table, array( 'job_id' => $job_id ), array( '%s' ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+				$wpdb->delete( $staging_table, array( 'job_id' => $job_id ), array( '%s' ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+				return array(
+					'ok'     => false,
+					'errors' => array( 'recruitment_import_staging_insert_failed' ),
+				);
+			}
+		}
+
+		return array(
+			'ok'     => true,
+			'job_id' => $job_id,
+			'total'  => count( $rows ),
+		);
+	}
+
+	/**
+	 * Sweep stale jobs (and their staging rows) older than the TTL.
+	 *
+	 * Called at the top of `ingest_job` so each new import starts from
+	 * a clean tail of forgotten jobs. The DELETE pair is guarded by
+	 * `created_at < NOW() - INTERVAL` so it's bounded and safe to call
+	 * on every import.
+	 *
+	 * @return int Number of staging rows deleted (best-effort count).
+	 */
+	private static function cleanup_stale_staging_jobs(): int {
+		global $wpdb;
+		$jobs_table    = $wpdb->prefix . 'ffc_recruitment_import_jobs';
+		$staging_table = $wpdb->prefix . 'ffc_recruitment_import_staging';
+
+		$deleted = $wpdb->query( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- maintenance sweep.
+			$wpdb->prepare(
+				"DELETE s FROM {$staging_table} s INNER JOIN {$jobs_table} j ON s.job_id = j.job_id WHERE j.created_at < (NOW() - INTERVAL %d SECOND)", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- table names from $wpdb->prefix.
+				self::STAGING_JOB_TTL_SECONDS
+			)
+		);
+		$wpdb->query( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- maintenance sweep.
+			$wpdb->prepare(
+				"DELETE FROM {$jobs_table} WHERE created_at < (NOW() - INTERVAL %d SECOND)", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- table name from $wpdb->prefix.
+				self::STAGING_JOB_TTL_SECONDS
+			)
+		);
+
+		return (int) $deleted;
+	}
 
 	/**
 	 * Start a batched import: validate the CSV in full and persist a job
