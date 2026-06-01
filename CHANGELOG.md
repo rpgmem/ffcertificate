@@ -7,7 +7,11 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
-## [6.8.0] (2026-05-31)
+### Fixed
+
+- **Recruitment CSV import: large notices stop hitting the gateway timeout.** A single `POST /notices/{id}/import` was processing the full CSV (parse + validate + transactional wipe-and-reinsert + per-candidate user creation) inside one request, racing the gateway timeout on notices with a few hundred rows. When PHP-FPM was killed mid-transaction the shutdown handler (LiteSpeed cache + `ActivityLog::flush_buffer`) reused the orphaned MySQL connection, producing the "Commands out of sync" cascade in `debug.log`; Chrome auto-retried the multipart upload (visible as `ERR_UPLOAD_FILE_CHANGED`), and the operator saw a gateway error HTML page instead of JSON ("Unexpected token '<'"). The admin's preview-list import now follows the same three-phase pattern as `CsvExporter`: `POST /notices/{id}/import-job/start` validates the entire CSV upfront and stages it, `POST /import-job/batch` processes 50 rows per call into a staging `list_type='__staging_<job_id>'`, and `POST /import-job/commit` swaps the staging rows in for the live list inside one short transaction. Atomicity is preserved — interrupted jobs leave the previous live list intact. The definitive-list flow (`/promote-preview`) keeps its single-request shape because it runs under a 15-second countdown.
+
+
 
 ### Added
 

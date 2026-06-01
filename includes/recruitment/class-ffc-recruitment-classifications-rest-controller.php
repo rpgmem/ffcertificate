@@ -74,6 +74,58 @@ final class RecruitmentClassificationsRestController {
 			)
 		);
 
+		// Batched import flow (large notices). The admin edit page's CSV
+		// import section now POSTs to /import-job/start (multipart, the
+		// CSV travels once), then loops POSTs to /import-job/batch
+		// (JSON, lightweight) until done, then POSTs /import-job/commit
+		// to swap the staging rows in for the live list. See
+		// `RecruitmentCsvImporter::start_job()` for the rationale.
+		register_rest_route(
+			$ns,
+			$base . '/notices/(?P<id>\d+)/import-job/start',
+			array(
+				'methods'             => \WP_REST_Server::CREATABLE,
+				'callback'            => array( $this, 'import_job_start' ),
+				'permission_callback' => array( $this, 'check_can_import_csv' ),
+			)
+		);
+		register_rest_route(
+			$ns,
+			$base . '/notices/(?P<id>\d+)/import-job/batch',
+			array(
+				'methods'             => \WP_REST_Server::CREATABLE,
+				'callback'            => array( $this, 'import_job_batch' ),
+				'permission_callback' => array( $this, 'check_can_import_csv' ),
+				'args'                => array(
+					'job_id' => array(
+						'type'              => 'string',
+						'required'          => true,
+						'sanitize_callback' => 'sanitize_text_field',
+					),
+					'size'   => array(
+						'type'    => 'integer',
+						'default' => RecruitmentCsvImporter::BATCH_SIZE_DEFAULT,
+					),
+				),
+			)
+		);
+		register_rest_route(
+			$ns,
+			$base . '/notices/(?P<id>\d+)/import-job/commit',
+			array(
+				'methods'             => \WP_REST_Server::CREATABLE,
+				'callback'            => array( $this, 'import_job_commit' ),
+				'permission_callback' => array( $this, 'check_can_import_csv' ),
+				'args'                => array(
+					'job_id' => array(
+						'type'              => 'string',
+						'required'          => true,
+						'sanitize_callback' => 'sanitize_text_field',
+					),
+				),
+			)
+		);
+
 		register_rest_route(
 			$ns,
 			$base . '/notices/(?P<id>\d+)/promote-preview',
@@ -271,6 +323,94 @@ final class RecruitmentClassificationsRestController {
 		$result = RecruitmentCsvImporter::import_preview( $id, $content );
 
 		if ( ! $result['success'] ) {
+			return $this->wp_error_from_envelope( $result['errors'], 400 );
+		}
+
+		return new \WP_REST_Response( $result, 200 );
+	}
+
+	/**
+	 * POST /notices/{id}/import-job/start
+	 *
+	 * Multipart upload — same envelope as /import. Reads the CSV file
+	 * once, parses + validates it, stages a job, returns { job_id, total }.
+	 * The batched flow (start → loop batch → commit) replaces the single
+	 * /import call when the operator's CSV is large enough to risk a
+	 * gateway timeout.
+	 *
+	 * @param \WP_REST_Request $request Request.
+	 * @return \WP_REST_Response|\WP_Error
+	 */
+	public function import_job_start( \WP_REST_Request $request ) {
+		$id    = (int) $request->get_param( 'id' );
+		$files = $request->get_file_params();
+
+		if ( ! isset( $files['csv_file']['tmp_name'] ) || ! is_string( $files['csv_file']['tmp_name'] ) ) {
+			return new \WP_Error(
+				'recruitment_csv_file_missing',
+				__( 'CSV file is required.', 'ffcertificate' ),
+				array( 'status' => 400 )
+			);
+		}
+
+		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- local upload tmp file.
+		$content = file_get_contents( $files['csv_file']['tmp_name'] );
+		if ( false === $content ) {
+			return new \WP_Error(
+				'recruitment_csv_file_unreadable',
+				__( 'Could not read CSV file.', 'ffcertificate' ),
+				array( 'status' => 400 )
+			);
+		}
+
+		$result = RecruitmentCsvImporter::start_job( $id, $content, 'preview' );
+		if ( ! $result['ok'] ) {
+			return $this->wp_error_from_envelope( $result['errors'], 400 );
+		}
+
+		return new \WP_REST_Response( $result, 200 );
+	}
+
+	/**
+	 * POST /notices/{id}/import-job/batch
+	 *
+	 * JSON body — small. The heavy lifting (parse + validate) was done
+	 * once during /start; this handler just slices `size` rows out of the
+	 * already-staged job and inserts them.
+	 *
+	 * @param \WP_REST_Request $request Request.
+	 * @return \WP_REST_Response|\WP_Error
+	 */
+	public function import_job_batch( \WP_REST_Request $request ) {
+		$job_id = (string) $request->get_param( 'job_id' );
+		$size   = (int) $request->get_param( 'size' );
+		if ( $size <= 0 ) {
+			$size = RecruitmentCsvImporter::BATCH_SIZE_DEFAULT;
+		}
+
+		$result = RecruitmentCsvImporter::process_job_batch( $job_id, $size );
+		if ( ! $result['ok'] ) {
+			return $this->wp_error_from_envelope( $result['errors'], 400 );
+		}
+
+		return new \WP_REST_Response( $result, 200 );
+	}
+
+	/**
+	 * POST /notices/{id}/import-job/commit
+	 *
+	 * Swap the staging rows in for the live list. Runs the
+	 * delete + rename in a single short transaction, then tears the job
+	 * state down (tmp file + transient).
+	 *
+	 * @param \WP_REST_Request $request Request.
+	 * @return \WP_REST_Response|\WP_Error
+	 */
+	public function import_job_commit( \WP_REST_Request $request ) {
+		$job_id = (string) $request->get_param( 'job_id' );
+
+		$result = RecruitmentCsvImporter::commit_job( $job_id );
+		if ( ! $result['ok'] ) {
 			return $this->wp_error_from_envelope( $result['errors'], 400 );
 		}
 
