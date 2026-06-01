@@ -101,53 +101,66 @@ final class RecruitmentNoticeEditPageRenderer {
 		// an "activity indicator with elapsed seconds", not a real
 		// progress bar — the goal is to make it clear the request is in
 		// flight on large CSVs that may take 5–30s to commit.
+		// Progress widget — `<progress>` + counter for the batched preview
+		// flow; falls back to the spinner-only look for the definitive
+		// flow (which still posts in one shot to /promote-preview).
 		echo '<span id="ffc-edit-csv-progress" style="display:none;align-items:center;gap:.5em;">';
 		echo '<span class="spinner is-active" style="float:none;margin:0;"></span>';
+		echo '<progress id="ffc-edit-csv-progress-bar" max="1" value="0" style="width:200px;height:14px;"></progress>';
 		echo '<span id="ffc-edit-csv-progress-text"></span>';
 		echo '</span>';
 		echo '<span id="ffc-edit-csv-status" style="margin-left:1em;font-family:monospace;font-size:12px;"></span>';
 		echo '</p>';
 		echo '</form>';
 
-		$processing_label = esc_js( __( 'Processing CSV…', 'ffcertificate' ) );
-		$elapsed_label    = esc_js( __( 'elapsed', 'ffcertificate' ) );
-
-		// Inline fetch handler — selects between /import (preview) and
-		// /promote-preview (definitive_import + transitions to definitive)
-		// based on the radio choice.
+		// Inline submit handler. The `preview` flow hands off to
+		// `window.ffcRecruitmentImportBatched.run()` (start → loop batch →
+		// commit) so notices with hundreds of candidates stop racing the
+		// gateway timeout. The `definitive` flow keeps the old single-
+		// request shape against /promote-preview because that endpoint
+		// also performs the snapshot + state transition under a 15-second
+		// countdown — batching there would need a different design.
+		$strings   = array(
+			'starting'     => __( 'Starting…', 'ffcertificate' ),
+			'processing'   => __( 'Processing…', 'ffcertificate' ),
+			'committing'   => __( 'Finalising…', 'ffcertificate' ),
+			'done'         => __( 'OK', 'ffcertificate' ),
+			'errorPrefix'  => __( 'Error:', 'ffcertificate' ),
+			'networkError' => __( 'Network error', 'ffcertificate' ),
+		);
+		$rest_root = rest_url( 'ffcertificate/v1/recruitment/' );
 		echo '<script>'
 			. 'function ffcRecruitmentImportFromEdit(form){'
 			. 'var nid=' . (int) $notice_id . ';'
 			. 'var target=form.list_target.value;'
-			. 'var fd=new FormData();'
-			. 'fd.append("csv_file",form.csv_file.files[0]);'
-			. 'var url;'
-			. 'if(target==="definitive"){'
-			. 'url="' . esc_url_raw( rest_url( 'ffcertificate/v1/recruitment/notices/' ) ) . '"+nid+"/promote-preview";'
-			. 'fd.append("mode","definitive_import");'
-			. '}else{'
-			. 'url="' . esc_url_raw( rest_url( 'ffcertificate/v1/recruitment/notices/' ) ) . '"+nid+"/import";'
-			. '}'
+			. 'var file=form.csv_file.files[0];'
 			. 'var btn=document.getElementById("ffc-edit-csv-submit");'
 			. 'var status=document.getElementById("ffc-edit-csv-status");'
 			. 'var progress=document.getElementById("ffc-edit-csv-progress");'
+			. 'var progressBar=document.getElementById("ffc-edit-csv-progress-bar");'
 			. 'var progressText=document.getElementById("ffc-edit-csv-progress-text");'
-			. 'btn.disabled=true;'
-			// Disabling submit doesn\'t prevent file-picker change post-submit;
-			// the visible progress widget makes it obvious the request is in
-			// flight even on slower connections / larger CSVs.
-			. 'progress.style.display="inline-flex";'
-			. 'status.textContent="";'
-			. 'var startedAt=Date.now();'
-			. 'function tick(){'
-			. 'var sec=Math.floor((Date.now()-startedAt)/1000);'
-			// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- $processing_label / $elapsed_label are esc_js()-encoded above before interpolation.
-			. 'progressText.textContent="' . $processing_label . ' "+sec+"s ' . $elapsed_label . '";'
+			. 'btn.disabled=true;status.textContent="";'
+			. 'if(target!=="definitive"&&window.ffcRecruitmentImportBatched){'
+			// Preview list → batched orchestrator.
+			. 'window.ffcRecruitmentImportBatched.run({'
+			. 'noticeId:nid,file:file,'
+			. 'restRoot:' . wp_json_encode( esc_url_raw( $rest_root ) ) . ','
+			. 'nonce:' . wp_json_encode( $nonce ) . ','
+			. 'btn:btn,status:status,'
+			. 'progressWrap:progress,progressBar:progressBar,progressText:progressText,'
+			. 'strings:' . wp_json_encode( $strings )
+			. '});'
+			. 'return false;'
 			. '}'
-			. 'tick();'
-			. 'var timer=setInterval(tick,1000);'
-			. 'function cleanup(){clearInterval(timer);progress.style.display="none";btn.disabled=false;}'
-			. 'fetch(url,{method:"POST",headers:{"X-WP-Nonce":"' . esc_attr( $nonce ) . '"},body:fd,credentials:"same-origin"})'
+			// Definitive list → single-shot /promote-preview (unchanged).
+			. 'var fd=new FormData();fd.append("csv_file",file);'
+			. 'fd.append("mode","definitive_import");'
+			. 'var url=' . wp_json_encode( esc_url_raw( $rest_root ) ) . '+"notices/"+nid+"/promote-preview";'
+			. 'progress.style.display="inline-flex";'
+			. 'progressBar.style.display="none";'
+			. 'progressText.textContent=' . wp_json_encode( __( 'Processing CSV…', 'ffcertificate' ) ) . ';'
+			. 'function cleanup(){progress.style.display="none";progressBar.style.display="";btn.disabled=false;}'
+			. 'fetch(url,{method:"POST",headers:{"X-WP-Nonce":' . wp_json_encode( $nonce ) . '},body:fd,credentials:"same-origin"})'
 			. '.then(function(r){return r.json().then(function(d){return{status:r.status,body:d};});}).then(function(o){'
 			. 'cleanup();'
 			. 'if(o.status>=200&&o.status<300){status.textContent="OK ("+((o.body&&o.body.message)?o.body.message:JSON.stringify(o.body))+")";location.reload();}'

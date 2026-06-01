@@ -734,4 +734,391 @@ final class RecruitmentCsvImporter {
 			'errors'   => $messages,
 		);
 	}
+
+	// ──────────────────────────────────────────────────────────────────────.
+	// Batched-import flow (issue: large notices timing out on a single request).
+	//
+	// Mirrors `CsvExporter`'s start → batch → commit pattern. The original
+	// single-request `run()` above is kept for `promote-preview` (which
+	// imports a small definitive list under a 15s countdown) and for tests;
+	// new admin imports flow through the three methods below.
+	//
+	// 1. start_job()         → parse + validate the whole CSV (cheap),
+	// persist normalized rows as JSON in a tmp file,
+	// create a transient with the job state, return
+	// { job_id, total }. NO DB writes yet.
+	// 2. process_job_batch() → load slice [cursor, cursor+size) from the tmp
+	// JSON, insert candidates + classifications into
+	// a staging row (`list_type='__staging_<job_id>'`),
+	// update cursor + inserted in the transient,
+	// flush ActivityLog buffer at batch end.
+	// 3. commit_job()        → inside ONE short transaction: DELETE the
+	// previous live list + UPDATE staging rows to
+	// the target list_type. Drop tmp file + transient.
+	//
+	// Atomicity is preserved: if the operator interrupts mid-batch the live
+	// list stays untouched (the swap only happens in commit_job's
+	// transaction). The staging rows the aborted job left behind are reaped
+	// at the next start_job() invocation and by `cleanup_stale_jobs()`.
+	// ──────────────────────────────────────────────────────────────────────.
+
+	/**
+	 * Batch size used by AJAX callers when they don't override it.
+	 *
+	 * Aligned with `CsvExporter::EXPORT_BATCH_SIZE`. Candidate INSERTs are
+	 * heavier than the exporter's reads (each candidate runs through
+	 * `wp_create_user` when promotion fires, plus encryption + activity
+	 * log), so smaller batches are safer on cheap hosts; the JS clamps any
+	 * caller-provided value to `[10, 100]`.
+	 */
+	public const BATCH_SIZE_DEFAULT = 50;
+
+	/**
+	 * How long (seconds) the job transient + staging rows live before the
+	 * cron / next start_job() reaps them. Matches CsvExporter::JOB_TTL.
+	 */
+	public const JOB_TTL = 3600;
+
+	/**
+	 * Prefix used for the staging `list_type` value while a batched import
+	 * is in flight. Picked to be impossible to collide with a real
+	 * list_type ('preview' / 'definitive').
+	 */
+	private const STAGING_LIST_TYPE_PREFIX = '__staging_';
+
+	/**
+	 * Transient key prefix for batched-import job state.
+	 */
+	private const JOB_TRANSIENT_PREFIX = 'ffc_rec_import_job_';
+
+	/**
+	 * Start a batched import: validate the CSV in full and persist a job
+	 * state the AJAX caller can step through.
+	 *
+	 * Parse + validate are cheap (pure PHP, no DB writes), so doing them
+	 * up-front lets the operator see all CSV-level errors before a single
+	 * staging row is created. The transient + tmp file hold the parsed
+	 * rows (as JSON) so the per-batch handler doesn't re-parse the CSV.
+	 *
+	 * @param int    $notice_id   Target notice.
+	 * @param string $csv_content Raw CSV bytes (UTF-8, with or without BOM).
+	 * @param string $list_type   `preview` or `definitive`.
+	 * @return array{ok: true, job_id: string, total: int}|array{ok: false, errors: list<string>}
+	 */
+	public static function start_job( int $notice_id, string $csv_content, string $list_type ) {
+		$notice = RecruitmentNoticeRepository::get_by_id( $notice_id );
+		if ( null === $notice ) {
+			return array(
+				'ok'     => false,
+				'errors' => array( 'recruitment_notice_not_found' ),
+			);
+		}
+
+		// State gates mirror `import_preview` / `import_definitive_preview`.
+		$status = $notice->status;
+		if ( 'preview' === $list_type && 'draft' !== $status && 'preliminary' !== $status ) {
+			return array(
+				'ok'     => false,
+				'errors' => array( 'recruitment_invalid_state_for_preview_import' ),
+			);
+		}
+
+		$parse = self::parse( $csv_content );
+		if ( ! $parse['ok'] ) {
+			return array(
+				'ok'     => false,
+				'errors' => $parse['errors'],
+			);
+		}
+		$rows = $parse['rows'];
+
+		if ( empty( $rows ) ) {
+			return array(
+				'ok'     => false,
+				'errors' => array( 'recruitment_csv_empty' ),
+			);
+		}
+
+		$adjutancy_map = self::build_adjutancy_map( $notice_id );
+		if ( empty( $adjutancy_map ) ) {
+			return array(
+				'ok'     => false,
+				'errors' => array( 'recruitment_notice_has_no_adjutancies' ),
+			);
+		}
+
+		$validation = self::validate( $rows, $notice_id, $list_type, $adjutancy_map );
+		if ( ! empty( $validation ) ) {
+			return array(
+				'ok'     => false,
+				'errors' => $validation,
+			);
+		}
+
+		// Persist the normalized rows as JSON so per-batch handlers can
+		// `array_slice` from offset without re-parsing the CSV.
+		$tmp_dir = self::ensure_tmp_dir();
+		if ( null === $tmp_dir ) {
+			return array(
+				'ok'     => false,
+				'errors' => array( 'recruitment_tmp_dir_unwritable' ),
+			);
+		}
+
+		$job_id   = wp_generate_uuid4();
+		$tmp_file = $tmp_dir . '/ffc-rec-import-' . $job_id . '.json';
+		$bytes    = file_put_contents( // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents -- private tmp, dir-protected by .htaccess.
+			$tmp_file,
+			wp_json_encode(
+				array(
+					'adjutancy_map' => $adjutancy_map,
+					'rows'          => $rows,
+				)
+			)
+		);
+		if ( false === $bytes ) {
+			return array(
+				'ok'     => false,
+				'errors' => array( 'recruitment_tmp_file_unwritable' ),
+			);
+		}
+
+		$job = array(
+			'notice_id' => $notice_id,
+			'list_type' => $list_type,
+			'file'      => $tmp_file,
+			'total'     => count( $rows ),
+			'cursor'    => 0,
+			'inserted'  => 0,
+			'user_id'   => get_current_user_id(),
+			'created'   => time(),
+		);
+		set_transient( self::JOB_TRANSIENT_PREFIX . $job_id, $job, self::JOB_TTL );
+
+		return array(
+			'ok'     => true,
+			'job_id' => $job_id,
+			'total'  => count( $rows ),
+		);
+	}
+
+	/**
+	 * Process the next N rows of a started job. Each batch is a self-
+	 * contained request — own DB connection, own short-lived transaction —
+	 * so a single failure can't poison subsequent batches the way the
+	 * pre-batched single-request flow did when the gateway killed PHP-FPM
+	 * mid-transaction.
+	 *
+	 * @param string $job_id Job identifier returned by start_job().
+	 * @param int    $size   Rows to process in this batch (clamped to 10–100).
+	 * @return array{ok: true, processed: int, total: int, done: bool, inserted: int}|array{ok: false, errors: list<string>}
+	 */
+	public static function process_job_batch( string $job_id, int $size ) {
+		$job = get_transient( self::JOB_TRANSIENT_PREFIX . $job_id );
+		if ( ! is_array( $job ) ) {
+			return array(
+				'ok'     => false,
+				'errors' => array( 'recruitment_import_job_not_found' ),
+			);
+		}
+
+		$size = max( 10, min( 100, $size ) );
+
+		// Load the parsed rows + adjutancy map from the tmp file. Done per
+		// batch because PHP doesn't share memory across requests; the JSON
+		// blob is the cheap source of truth.
+		$raw = file_get_contents( $job['file'] ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- private tmp file.
+		if ( false === $raw ) {
+			return array(
+				'ok'     => false,
+				'errors' => array( 'recruitment_import_job_tmp_lost' ),
+			);
+		}
+		$payload = json_decode( $raw, true );
+		if ( ! is_array( $payload ) || ! isset( $payload['rows'], $payload['adjutancy_map'] ) ) {
+			return array(
+				'ok'     => false,
+				'errors' => array( 'recruitment_import_job_corrupt' ),
+			);
+		}
+
+		$rows          = (array) $payload['rows'];
+		$adjutancy_map = (array) $payload['adjutancy_map'];
+		$slice         = array_slice( $rows, $job['cursor'], $size );
+
+		if ( empty( $slice ) ) {
+			// Caller may have over-iterated; treat as a no-op success so
+			// the JS-side loop terminates cleanly via the `done` flag.
+			return array(
+				'ok'        => true,
+				'processed' => $job['cursor'],
+				'total'     => $job['total'],
+				'inserted'  => $job['inserted'],
+				'done'      => true,
+			);
+		}
+
+		global $wpdb;
+		$staging_list_type = self::STAGING_LIST_TYPE_PREFIX . $job_id;
+
+		$wpdb->query( 'START TRANSACTION' );
+		try {
+			foreach ( $slice as $row ) {
+				$candidate_id = self::upsert_candidate( $row );
+				if ( false === $candidate_id ) {
+					$wpdb->query( 'ROLLBACK' );
+					return array(
+						'ok'     => false,
+						'errors' => array( 'recruitment_candidate_upsert_failed' ),
+					);
+				}
+
+				$classification_id = RecruitmentClassificationRepository::create(
+					array(
+						'candidate_id' => $candidate_id,
+						'adjutancy_id' => $adjutancy_map[ $row['adjutancy'] ],
+						'notice_id'    => $job['notice_id'],
+						'list_type'    => $staging_list_type,
+						'rank'         => $row['rank'],
+						'score'        => $row['score'],
+						'time_points'  => isset( $row['time_points'] ) && '' !== (string) $row['time_points'] ? (string) $row['time_points'] : '0',
+						'hab_emebs'    => self::parse_pcd_flag( $row['hab_emebs'] ?? '' ) ? 1 : 0,
+					)
+				);
+				if ( false === $classification_id ) {
+					$wpdb->query( 'ROLLBACK' );
+					return array(
+						'ok'     => false,
+						'errors' => array( 'recruitment_classification_insert_failed' ),
+					);
+				}
+			}
+			$wpdb->query( 'COMMIT' );
+		} catch ( \Throwable $e ) {
+			$wpdb->query( 'ROLLBACK' );
+			return array(
+				'ok'     => false,
+				'errors' => array( 'recruitment_import_unexpected_error: ' . $e->getMessage() ),
+			);
+		}
+
+		$job['cursor']   += count( $slice );
+		$job['inserted'] += count( $slice );
+		set_transient( self::JOB_TRANSIENT_PREFIX . $job_id, $job, self::JOB_TTL );
+
+		// Flush the per-batch activity log entries that the
+		// `candidate_promoted` writes accumulated, so they hit the DB
+		// inside this batch's connection rather than piling up for the
+		// shutdown handler (which is what triggered "Commands out of sync"
+		// when the single-request flow was killed mid-write).
+		if ( class_exists( '\\FreeFormCertificate\\Core\\ActivityLog' ) ) {
+			\FreeFormCertificate\Core\ActivityLog::flush_buffer();
+		}
+
+		return array(
+			'ok'        => true,
+			'processed' => $job['cursor'],
+			'total'     => $job['total'],
+			'inserted'  => $job['inserted'],
+			'done'      => $job['cursor'] >= $job['total'],
+		);
+	}
+
+	/**
+	 * Swap the staging rows in for the live list and tear the job down.
+	 * Idempotent against partial commits: if the swap transaction is
+	 * interrupted between the DELETE and the UPDATE, the staging marker
+	 * column makes it safe to re-issue (the DELETE just runs against the
+	 * now-empty live list, then the UPDATE renames staging to live).
+	 *
+	 * @param string $job_id Job identifier.
+	 * @return array{ok: true, inserted: int}|array{ok: false, errors: list<string>}
+	 */
+	public static function commit_job( string $job_id ) {
+		$job = get_transient( self::JOB_TRANSIENT_PREFIX . $job_id );
+		if ( ! is_array( $job ) ) {
+			return array(
+				'ok'     => false,
+				'errors' => array( 'recruitment_import_job_not_found' ),
+			);
+		}
+
+		if ( $job['cursor'] < $job['total'] ) {
+			return array(
+				'ok'     => false,
+				'errors' => array( 'recruitment_import_job_not_finished' ),
+			);
+		}
+
+		global $wpdb;
+		$staging_list_type = self::STAGING_LIST_TYPE_PREFIX . $job_id;
+		$table             = $wpdb->prefix . 'ffc_recruitment_classification';
+
+		$wpdb->query( 'START TRANSACTION' );
+		try {
+			RecruitmentClassificationRepository::delete_all_for_notice_list( $job['notice_id'], $job['list_type'] );
+
+			$updated = $wpdb->query(
+				$wpdb->prepare(
+					"UPDATE {$table} SET list_type = %s WHERE notice_id = %d AND list_type = %s", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- table name from $wpdb->prefix, not user input.
+					$job['list_type'],
+					$job['notice_id'],
+					$staging_list_type
+				)
+			);
+
+			if ( false === $updated ) {
+				$wpdb->query( 'ROLLBACK' );
+				return array(
+					'ok'     => false,
+					'errors' => array( 'recruitment_import_swap_failed' ),
+				);
+			}
+
+			$wpdb->query( 'COMMIT' );
+		} catch ( \Throwable $e ) {
+			$wpdb->query( 'ROLLBACK' );
+			return array(
+				'ok'     => false,
+				'errors' => array( 'recruitment_import_unexpected_error: ' . $e->getMessage() ),
+			);
+		}
+
+		RecruitmentActivityLogger::csv_imported( $job['notice_id'], $job['list_type'], $job['inserted'] );
+
+		// Teardown.
+		if ( isset( $job['file'] ) && is_string( $job['file'] ) && file_exists( $job['file'] ) ) {
+			wp_delete_file( $job['file'] );
+		}
+		delete_transient( self::JOB_TRANSIENT_PREFIX . $job_id );
+
+		return array(
+			'ok'       => true,
+			'inserted' => $job['inserted'],
+		);
+	}
+
+	/**
+	 * Ensure the shared `wp-content/uploads/ffc-tmp/` directory exists and
+	 * carries the `Deny from all` .htaccess that the CSV exporters also
+	 * rely on. Returns the absolute path, or null when the dir cannot be
+	 * created (e.g. read-only uploads).
+	 *
+	 * @return string|null Absolute path to the tmp dir, or null on failure.
+	 */
+	private static function ensure_tmp_dir(): ?string {
+		$upload_dir = wp_upload_dir();
+		if ( ! empty( $upload_dir['error'] ) || empty( $upload_dir['basedir'] ) ) {
+			return null;
+		}
+		$tmp_dir = trailingslashit( $upload_dir['basedir'] ) . 'ffc-tmp';
+		if ( ! wp_mkdir_p( $tmp_dir ) ) {
+			return null;
+		}
+		$htaccess = $tmp_dir . '/.htaccess';
+		if ( ! file_exists( $htaccess ) ) {
+			file_put_contents( $htaccess, "Deny from all\n" ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents -- private tmp dir.
+		}
+		return $tmp_dir;
+	}
 }
