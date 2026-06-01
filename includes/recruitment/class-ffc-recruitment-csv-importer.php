@@ -1028,7 +1028,7 @@ final class RecruitmentCsvImporter {
 
 			$sql = "INSERT INTO {$staging_table} (job_id, row_no, line_no, notice_id, name, cpf_encrypted, cpf_hash, rf_encrypted, rf_hash, email_encrypted, email_hash, phone, adjutancy_slug, adjutancy_id, rank_value, score, time_points, hab_emebs, pcd) VALUES "
 				. implode( ', ', $placeholders );
-			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- chunked multi-VALUES INSERT; every user-derived value passes through %s/%d placeholders.
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared -- chunked multi-VALUES INSERT; table from $wpdb->prefix; every user-derived value passes through %s/%d placeholders.
 			$result = $wpdb->query( $wpdb->prepare( $sql, $values ) );
 			if ( false === $result ) {
 				// Roll back the entire job — leaves no partial staging.
@@ -1206,7 +1206,7 @@ final class RecruitmentCsvImporter {
 				FROM {$staging_table}
 				WHERE job_id = %s AND cpf_hash IS NOT NULL
 				GROUP BY cpf_hash
-				HAVING d_name > 1 OR d_email > 1 OR d_rf > 1 OR d_phone > 1 OR d_pcd > 1", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+				HAVING d_name > 1 OR d_email > 1 OR d_rf > 1 OR d_phone > 1 OR d_pcd > 1", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared -- table name from $wpdb->prefix.
 				$job_id
 			)
 		);
@@ -1496,7 +1496,7 @@ final class RecruitmentCsvImporter {
 					 SELECT candidate_id, adjutancy_id, notice_id, %s, rank_value, score, time_points, hab_emebs, 'empty', %s, %s
 					 FROM {$staging_table}
 					 WHERE job_id = %s AND processed = 1
-					 ORDER BY row_no", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+					 ORDER BY row_no", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared -- table names from $wpdb->prefix.
 					(string) $job->list_type,
 					current_time( 'mysql' ),
 					current_time( 'mysql' ),
