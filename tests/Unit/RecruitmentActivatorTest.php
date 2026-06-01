@@ -109,7 +109,7 @@ class RecruitmentActivatorTest extends TestCase {
 
 		RecruitmentActivator::create_tables();
 
-		$this->assertCount( 7, $delta_sqls, 'dbDelta should be called 7 times — one per recruitment table' );
+		$this->assertCount( 9, $delta_sqls, 'dbDelta should be called 9 times — one per recruitment table (7 canonical + import_jobs + import_staging)' );
 	}
 
 	public function test_create_tables_is_idempotent_when_all_tables_exist(): void {
@@ -139,7 +139,7 @@ class RecruitmentActivatorTest extends TestCase {
 
 		RecruitmentActivator::create_tables();
 
-		$this->assertCount( 7, $delta_sqls );
+		$this->assertCount( 9, $delta_sqls );
 		foreach ( $delta_sqls as $sql ) {
 			$this->assertStringContainsString( 'ENGINE=InnoDB', $sql, 'Every recruitment table must declare ENGINE=InnoDB so the atomic CSV import works' );
 		}
