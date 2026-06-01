@@ -318,9 +318,9 @@ final class RecruitmentCsvImporter {
 		// other matched ids into it, then claim the row's remaining tags
 		// for that id. O(n²) worst-case but the import is gated at
 		// human-CSV scale (~thousands of rows) so this stays cheap.
-		$row_identity   = array(); // row_index → identity_id (int).
-		$tag_to_id      = array(); // 'cpf:DIGITS' / 'rf:DIGITS' / 'em:STR' → identity_id.
-		$next_id        = 0;
+		$row_identity = array(); // row_index → identity_id (int).
+		$tag_to_id    = array(); // 'cpf:DIGITS' / 'rf:DIGITS' / 'em:STR' → identity_id.
+		$next_id      = 0;
 		foreach ( $rows as $idx => $row ) {
 			$row_cpf   = is_string( $row['cpf'] ?? null ) ? self::normalise_id( trim( $row['cpf'] ), 11 )['value'] : '';
 			$row_rf    = is_string( $row['rf'] ?? null ) ? self::normalise_id( trim( $row['rf'] ), 7 )['value'] : '';
@@ -473,10 +473,10 @@ final class RecruitmentCsvImporter {
 			// shared cpf / rf / email pins the same candidate), so the
 			// pair key is (identity_id, adjutancy). This catches the
 			// classes of duplicates that the prior cpf-only rule missed:
-			//   - same RF in two rows with different CPFs
-			//   - same email across rows where one CPF was blank
-			//   - a row with only RF re-listing a candidate already
-			//     classified under another row that carried CPF + RF
+			// - same RF in two rows with different CPFs
+			// - same email across rows where one CPF was blank
+			// - a row with only RF re-listing a candidate already
+			// classified under another row that carried CPF + RF
 			// All of those used to slip past validate and trip the
 			// UNIQUE constraint at INSERT time.
 			if ( isset( $row_identity[ $row_index ] ) ) {
