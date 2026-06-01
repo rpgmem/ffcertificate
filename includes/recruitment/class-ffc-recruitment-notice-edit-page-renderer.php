@@ -111,6 +111,10 @@ final class RecruitmentNoticeEditPageRenderer {
 		echo '</span>';
 		echo '<span id="ffc-edit-csv-status" style="margin-left:1em;font-family:monospace;font-size:12px;"></span>';
 		echo '</p>';
+		// Per-line validation errors land here when /import-job/validate
+		// returns a non-empty list. Hidden by default; the orchestrator
+		// fills it in and the operator scrolls through what to fix.
+		echo '<ul id="ffc-edit-csv-errors" style="margin:.5em 0 0;padding-left:1.5em;font-family:monospace;font-size:12px;color:#b32d2e;"></ul>';
 		echo '</form>';
 
 		// Inline submit handler. The `preview` flow hands off to
@@ -121,12 +125,14 @@ final class RecruitmentNoticeEditPageRenderer {
 		// also performs the snapshot + state transition under a 15-second
 		// countdown — batching there would need a different design.
 		$strings   = array(
-			'starting'     => __( 'Starting…', 'ffcertificate' ),
-			'processing'   => __( 'Processing…', 'ffcertificate' ),
-			'committing'   => __( 'Finalising…', 'ffcertificate' ),
-			'done'         => __( 'OK', 'ffcertificate' ),
-			'errorPrefix'  => __( 'Error:', 'ffcertificate' ),
-			'networkError' => __( 'Network error', 'ffcertificate' ),
+			'ingesting'        => __( 'Ingesting…', 'ffcertificate' ),
+			'validating'       => __( 'Validating…', 'ffcertificate' ),
+			'processing'       => __( 'Processing…', 'ffcertificate' ),
+			'committing'       => __( 'Finalising…', 'ffcertificate' ),
+			'done'             => __( 'OK', 'ffcertificate' ),
+			'errorPrefix'      => __( 'Error:', 'ffcertificate' ),
+			'networkError'     => __( 'Network error', 'ffcertificate' ),
+			'validationFailed' => __( 'Validation failed — review the per-line errors below and re-import.', 'ffcertificate' ),
 		);
 		$rest_root = rest_url( 'ffcertificate/v1/recruitment/' );
 		echo '<script>'
@@ -139,17 +145,19 @@ final class RecruitmentNoticeEditPageRenderer {
 			. 'var progress=document.getElementById("ffc-edit-csv-progress");'
 			. 'var progressBar=document.getElementById("ffc-edit-csv-progress-bar");'
 			. 'var progressText=document.getElementById("ffc-edit-csv-progress-text");'
-			. 'btn.disabled=true;status.textContent="";'
+			. 'var errorList=document.getElementById("ffc-edit-csv-errors");'
+			. 'btn.disabled=true;status.textContent="";if(errorList){errorList.innerHTML="";}'
 			. 'if(target!=="definitive"&&window.ffcRecruitmentImportBatched){'
-			// Preview list → batched orchestrator.
+			// Preview list → staging-based orchestrator (4 phases).
 			. 'window.ffcRecruitmentImportBatched.run({'
 			. 'noticeId:nid,file:file,'
 			. 'restRoot:' . wp_json_encode( esc_url_raw( $rest_root ) ) . ','
 			. 'nonce:' . wp_json_encode( $nonce ) . ','
 			. 'btn:btn,status:status,'
 			. 'progressWrap:progress,progressBar:progressBar,progressText:progressText,'
+			. 'errorList:errorList,'
 			. 'strings:' . wp_json_encode( $strings )
-			. '});'
+			. '}).catch(function(){});'
 			. 'return false;'
 			. '}'
 			// Definitive list → single-shot /promote-preview (unchanged).

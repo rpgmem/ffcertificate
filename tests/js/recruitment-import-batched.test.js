@@ -81,12 +81,14 @@ function callRun({ btn, wrap, bar, text, status }, file = new File(['x'], 'a.csv
 		progressBar: bar,
 		progressText: text,
 		strings: {
-			starting: 'starting',
+			ingesting: 'ingesting',
+			validating: 'validating',
 			processing: 'processing',
 			committing: 'committing',
 			done: 'OK',
 			errorPrefix: 'Error:',
 			networkError: 'Network error',
+			validationFailed: 'Validation failed',
 		},
 	});
 }
@@ -99,23 +101,25 @@ describe('ffcRecruitmentImportBatched.run — global registration', () => {
 });
 
 describe('ffcRecruitmentImportBatched.run — happy path', () => {
-	it('orchestrates start → batch → commit and reloads on success', async () => {
+	it('orchestrates start → validate → batch → commit and reloads on success', async () => {
 		vi.useFakeTimers();
 		const els = mountDom();
 
 		fetchMock
+			// 1. /start
 			.mockReturnValueOnce(jsonResponse({ ok: true, job_id: 'JOB-1', total: 75 }))
-			.mockReturnValueOnce(jsonResponse({ ok: true, processed: 50, total: 75, done: false, inserted: 50 }))
-			.mockReturnValueOnce(jsonResponse({ ok: true, processed: 75, total: 75, done: true, inserted: 75 }))
+			// 2. /validate (no errors → safe to promote)
+			.mockReturnValueOnce(jsonResponse({ ok: true, errors: [] }))
+			// 3. /batch #1
+			.mockReturnValueOnce(jsonResponse({ ok: true, processed: 50, total: 75, done: false }))
+			// 4. /batch #2 (done)
+			.mockReturnValueOnce(jsonResponse({ ok: true, processed: 75, total: 75, done: true }))
+			// 5. /commit
 			.mockReturnValueOnce(jsonResponse({ ok: true, inserted: 75 }));
 
-		const runPromise = callRun(els);
+		await callRun(els);
 
-		// Drain the microtask queue without advancing wall time. The orchestrator
-		// chains four `.then()` callbacks; the `await` lets them all settle.
-		await runPromise;
-
-		expect(fetchMock).toHaveBeenCalledTimes(4);
+		expect(fetchMock).toHaveBeenCalledTimes(5);
 
 		// 1. start — multipart, no Content-Type override (fetch sets it).
 		const startCall = fetchMock.mock.calls[0];
@@ -124,17 +128,22 @@ describe('ffcRecruitmentImportBatched.run — happy path', () => {
 		expect(startCall[1].body).toBeInstanceOf(FormData);
 		expect(startCall[1].headers['X-WP-Nonce']).toBe(NONCE);
 
-		// 2. first batch — json with job_id + size.
-		const batch1 = fetchMock.mock.calls[1];
+		// 2. validate — JSON body { job_id }.
+		const validateCall = fetchMock.mock.calls[1];
+		expect(validateCall[0]).toBe(`${REST_ROOT.replace(/\/$/, '')}/notices/${NOTICE_ID}/import-job/validate`);
+		expect(JSON.parse(validateCall[1].body)).toEqual({ job_id: 'JOB-1' });
+
+		// 3. first promote batch — JSON with job_id + size.
+		const batch1 = fetchMock.mock.calls[2];
 		expect(batch1[0]).toBe(`${REST_ROOT.replace(/\/$/, '')}/notices/${NOTICE_ID}/import-job/batch`);
 		expect(JSON.parse(batch1[1].body)).toEqual({ job_id: 'JOB-1', size: 50 });
 		expect(batch1[1].headers['Content-Type']).toBe('application/json');
 
-		// 3. second batch — same shape.
-		expect(JSON.parse(fetchMock.mock.calls[2][1].body)).toEqual({ job_id: 'JOB-1', size: 50 });
+		// 4. second promote batch — same shape.
+		expect(JSON.parse(fetchMock.mock.calls[3][1].body)).toEqual({ job_id: 'JOB-1', size: 50 });
 
-		// 4. commit.
-		const commitCall = fetchMock.mock.calls[3];
+		// 5. commit.
+		const commitCall = fetchMock.mock.calls[4];
 		expect(commitCall[0]).toBe(`${REST_ROOT.replace(/\/$/, '')}/notices/${NOTICE_ID}/import-job/commit`);
 		expect(JSON.parse(commitCall[1].body)).toEqual({ job_id: 'JOB-1' });
 
@@ -148,6 +157,64 @@ describe('ffcRecruitmentImportBatched.run — happy path', () => {
 		expect(reloadMock).not.toHaveBeenCalled();
 		vi.advanceTimersByTime(700);
 		expect(reloadMock).toHaveBeenCalledTimes(1);
+	});
+
+	it('aborts on validation errors without touching /batch or /commit', async () => {
+		const els = mountDom();
+
+		fetchMock
+			.mockReturnValueOnce(jsonResponse({ ok: true, job_id: 'JOB-2', total: 5 }))
+			// /validate returns 3 per-line errors.
+			.mockReturnValueOnce(jsonResponse({
+				ok: true,
+				errors: [
+					'line=2: recruitment_csv_missing_cpf_or_rf',
+					'line=4: recruitment_csv_duplicate_candidate_adjutancy: matches line 3',
+					'line=5: recruitment_csv_adjutancy_not_in_notice: bogus',
+				],
+			}));
+
+		// errorList container so we can assert it gets populated.
+		const errorList = document.createElement('ul');
+		errorList.id = 'errors';
+		document.body.append(errorList);
+
+		await expect(
+			window.ffcRecruitmentImportBatched.run({
+				noticeId: NOTICE_ID,
+				file: new File(['x'], 'a.csv'),
+				restRoot: REST_ROOT,
+				nonce: NONCE,
+				btn: els.btn,
+				status: els.status,
+				progressWrap: els.wrap,
+				progressBar: els.bar,
+				progressText: els.text,
+				errorList,
+				strings: {
+					ingesting: 'ingesting',
+					validating: 'validating',
+					done: 'OK',
+					errorPrefix: 'Error:',
+					networkError: 'Network error',
+					validationFailed: 'Validation failed',
+				},
+			})
+		).rejects.toThrow(/Validation failed/);
+
+		// Only /start + /validate fired — NO batch, NO commit.
+		expect(fetchMock).toHaveBeenCalledTimes(2);
+		expect(reloadMock).not.toHaveBeenCalled();
+
+		// Each error landed in the list as its own <li>.
+		expect(errorList.querySelectorAll('li').length).toBe(3);
+		expect(errorList.textContent).toContain('missing_cpf_or_rf');
+		expect(errorList.textContent).toContain('duplicate_candidate_adjutancy');
+		expect(errorList.textContent).toContain('adjutancy_not_in_notice');
+
+		// Submit button re-enabled, widget hidden.
+		expect(els.btn.disabled).toBe(false);
+		expect(els.wrap.style.display).toBe('none');
 	});
 });
 
@@ -194,14 +261,15 @@ describe('ffcRecruitmentImportBatched.run — failure handling', () => {
 
 		fetchMock
 			.mockReturnValueOnce(jsonResponse({ ok: true, job_id: 'JOB-X', total: 100 }))
+			.mockReturnValueOnce(jsonResponse({ ok: true, errors: [] }))
 			.mockReturnValueOnce(
 				jsonResponse({ code: 'recruitment_candidate_upsert_failed', message: 'upsert blew up' }, 400)
 			);
 
 		await expect(callRun(els)).rejects.toThrow(/upsert blew up/);
 
-		// Start + one batch attempt = 2 calls. NO commit was issued.
-		expect(fetchMock).toHaveBeenCalledTimes(2);
+		// start + validate + 1 batch attempt = 3 calls. NO commit was issued.
+		expect(fetchMock).toHaveBeenCalledTimes(3);
 		expect(els.status.textContent).toMatch(/Error:.*upsert blew up/);
 	});
 });
@@ -216,6 +284,7 @@ describe('ffcRecruitmentImportBatched.run — DOM side effects', () => {
 		// Resolve start fast, then a single completing batch + commit.
 		fetchMock
 			.mockReturnValueOnce(jsonResponse({ ok: true, job_id: 'JOB-2', total: 10 }))
+			.mockReturnValueOnce(jsonResponse({ ok: true, errors: [] }))
 			.mockReturnValueOnce(jsonResponse({ ok: true, processed: 10, total: 10, done: true, inserted: 10 }))
 			.mockReturnValueOnce(jsonResponse({ ok: true, inserted: 10 }));
 
@@ -223,10 +292,10 @@ describe('ffcRecruitmentImportBatched.run — DOM side effects', () => {
 		const p = callRun(els);
 
 		// Synchronously (before any await): the widget is visible. The
-		// initial progress text/bar values reflect the "starting…" phase
+		// initial progress text/bar values reflect the "ingesting…" phase
 		// where total is still 0.
 		expect(els.wrap.style.display).toBe('inline-flex');
-		expect(els.status.textContent).toBe('starting');
+		expect(els.status.textContent).toBe('ingesting');
 
 		await p;
 		vi.advanceTimersByTime(700);
