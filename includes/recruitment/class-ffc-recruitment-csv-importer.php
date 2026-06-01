@@ -1195,18 +1195,21 @@ final class RecruitmentCsvImporter {
 
 		// Rule 5 — same cpf_hash rows must agree on candidate-level
 		// fields. `COUNT(DISTINCT …)` against each field in one pass.
+		// `%i` placeholder for the table name keeps WPCS happy without a
+		// sniff suppression.
 		$diverge_groups = $wpdb->get_results( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 			$wpdb->prepare(
-				"SELECT GROUP_CONCAT(line_no ORDER BY row_no) AS lines,
+				'SELECT GROUP_CONCAT(line_no ORDER BY row_no) AS lines,
 					COUNT(DISTINCT name)       AS d_name,
 					COUNT(DISTINCT email_hash) AS d_email,
 					COUNT(DISTINCT rf_hash)    AS d_rf,
 					COUNT(DISTINCT phone)      AS d_phone,
 					COUNT(DISTINCT pcd)        AS d_pcd
-				FROM {$staging_table}
+				FROM %i
 				WHERE job_id = %s AND cpf_hash IS NOT NULL
 				GROUP BY cpf_hash
-				HAVING d_name > 1 OR d_email > 1 OR d_rf > 1 OR d_phone > 1 OR d_pcd > 1", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared -- table name from $wpdb->prefix.
+				HAVING d_name > 1 OR d_email > 1 OR d_rf > 1 OR d_phone > 1 OR d_pcd > 1',
+				$staging_table,
 				$job_id
 			)
 		);
@@ -1491,15 +1494,18 @@ final class RecruitmentCsvImporter {
 
 			$inserted = $wpdb->query( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 				$wpdb->prepare(
-					"INSERT INTO {$classification_table}
+					'INSERT INTO %i
 						(candidate_id, adjutancy_id, notice_id, list_type, `rank`, score, time_points, hab_emebs, status, created_at, updated_at)
-					 SELECT candidate_id, adjutancy_id, notice_id, %s, rank_value, score, time_points, hab_emebs, 'empty', %s, %s
-					 FROM {$staging_table}
+					 SELECT candidate_id, adjutancy_id, notice_id, %s, rank_value, score, time_points, hab_emebs, %s, %s, %s
+					 FROM %i
 					 WHERE job_id = %s AND processed = 1
-					 ORDER BY row_no", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared -- table names from $wpdb->prefix.
+					 ORDER BY row_no',
+					$classification_table,
 					(string) $job->list_type,
+					'empty',
 					current_time( 'mysql' ),
 					current_time( 'mysql' ),
+					$staging_table,
 					$job_id
 				)
 			);
