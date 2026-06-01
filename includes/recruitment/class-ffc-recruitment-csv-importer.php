@@ -1176,12 +1176,12 @@ final class RecruitmentCsvImporter {
 		foreach ( array( 'cpf_normalized', 'rf_normalized', 'email' ) as $id_col ) {
 			$dup_groups = $wpdb->get_results( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 				$wpdb->prepare(
-					"SELECT GROUP_CONCAT(line_no ORDER BY row_no) AS lines FROM {$staging_table} WHERE job_id = %s AND {$id_col} <> '' GROUP BY {$id_col}, adjutancy_id HAVING COUNT(*) > 1", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- id_col is hard-coded above; not user input.
+					"SELECT GROUP_CONCAT(line_no ORDER BY row_no) AS csv_lines FROM {$staging_table} WHERE job_id = %s AND {$id_col} <> '' GROUP BY {$id_col}, adjutancy_id HAVING COUNT(*) > 1", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- id_col is hard-coded above; not user input.
 					$job_id
 				)
 			);
 			foreach ( $dup_groups as $group ) {
-				$lines = array_map( 'intval', explode( ',', (string) $group->lines ) );
+				$lines = array_map( 'intval', explode( ',', (string) $group->csv_lines ) );
 				$first = (int) array_shift( $lines );
 				foreach ( $lines as $line ) {
 					$errors[] = self::line_error(
@@ -1198,7 +1198,7 @@ final class RecruitmentCsvImporter {
 		// sniff suppression.
 		$diverge_groups = $wpdb->get_results( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 			$wpdb->prepare(
-				'SELECT GROUP_CONCAT(line_no ORDER BY row_no) AS lines,
+				'SELECT GROUP_CONCAT(line_no ORDER BY row_no) AS csv_lines,
 					COUNT(DISTINCT name)          AS d_name,
 					COUNT(DISTINCT email)         AS d_email,
 					COUNT(DISTINCT rf_normalized) AS d_rf,
@@ -1213,7 +1213,7 @@ final class RecruitmentCsvImporter {
 			)
 		);
 		foreach ( $diverge_groups as $group ) {
-			$lines = array_map( 'intval', explode( ',', (string) $group->lines ) );
+			$lines = array_map( 'intval', explode( ',', (string) $group->csv_lines ) );
 			$first = (int) array_shift( $lines );
 			$which = array();
 			if ( $group->d_name > 1 ) {
