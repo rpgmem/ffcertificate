@@ -74,12 +74,16 @@ final class RecruitmentClassificationsRestController {
 			)
 		);
 
-		// Batched import flow (large notices). The admin edit page's CSV
-		// import section now POSTs to /import-job/start (multipart, the
-		// CSV travels once), then loops POSTs to /import-job/batch
-		// (JSON, lightweight) until done, then POSTs /import-job/commit
-		// to swap the staging rows in for the live list. See
-		// `RecruitmentCsvImporter::start_job()` for the rationale.
+		// Batched import flow — staging-tables flow (V10).
+		//
+		// The admin edit page POSTs to /import-job/start (multipart,
+		// the CSV travels once) → /import-job/validate (no body) →
+		// /import-job/batch (JSON, loops until done) → /import-job/commit.
+		//
+		// Staging lives in ffc_recruitment_import_jobs +
+		// ffc_recruitment_import_staging; the canonical schema is only
+		// touched by the swap inside commit. See
+		// `RecruitmentCsvImporter::ingest_job()` for the design notes.
 		register_rest_route(
 			$ns,
 			$base . '/notices/(?P<id>\d+)/import-job/start',
@@ -87,6 +91,22 @@ final class RecruitmentClassificationsRestController {
 				'methods'             => \WP_REST_Server::CREATABLE,
 				'callback'            => array( $this, 'import_job_start' ),
 				'permission_callback' => array( $this, 'check_can_import_csv' ),
+			)
+		);
+		register_rest_route(
+			$ns,
+			$base . '/notices/(?P<id>\d+)/import-job/validate',
+			array(
+				'methods'             => \WP_REST_Server::CREATABLE,
+				'callback'            => array( $this, 'import_job_validate' ),
+				'permission_callback' => array( $this, 'check_can_import_csv' ),
+				'args'                => array(
+					'job_id' => array(
+						'type'              => 'string',
+						'required'          => true,
+						'sanitize_callback' => 'sanitize_text_field',
+					),
+				),
 			)
 		);
 		register_rest_route(
@@ -363,7 +383,7 @@ final class RecruitmentClassificationsRestController {
 			);
 		}
 
-		$result = RecruitmentCsvImporter::start_job( $id, $content, 'preview' );
+		$result = RecruitmentCsvImporter::ingest_job( $id, $content, 'preview' );
 		if ( ! $result['ok'] ) {
 			return $this->wp_error_from_envelope( $result['errors'], 400 );
 		}
@@ -372,11 +392,35 @@ final class RecruitmentClassificationsRestController {
 	}
 
 	/**
+	 * POST /notices/{id}/import-job/validate
+	 *
+	 * Phase 2 — runs the SQL `GROUP BY` validation passes against the
+	 * staged rows. Returns the per-line error list (possibly empty).
+	 * The job's status moves to `validated` on a clean pass or
+	 * `invalid` when errors come back; staging is preserved either way.
+	 *
+	 * @param \WP_REST_Request $request Request.
+	 * @return \WP_REST_Response|\WP_Error
+	 */
+	public function import_job_validate( \WP_REST_Request $request ) {
+		$job_id = (string) $request->get_param( 'job_id' );
+
+		$result = RecruitmentCsvImporter::validate_job( $job_id );
+		if ( ! $result['ok'] ) {
+			return $this->wp_error_from_envelope( $result['errors'], 400 );
+		}
+
+		// Even on a clean validate we return 200 with `errors: []` so
+		// the JS-side can branch on length without an extra HTTP code.
+		return new \WP_REST_Response( $result, 200 );
+	}
+
+	/**
 	 * POST /notices/{id}/import-job/batch
 	 *
-	 * JSON body — small. The heavy lifting (parse + validate) was done
-	 * once during /start; this handler just slices `size` rows out of the
-	 * already-staged job and inserts them.
+	 * Phase 3 — promotes the next `size` staged rows through
+	 * upsert_candidate(), persisting the resolved candidate_id back on
+	 * the staging row. Loops until `done: true`.
 	 *
 	 * @param \WP_REST_Request $request Request.
 	 * @return \WP_REST_Response|\WP_Error
@@ -388,7 +432,7 @@ final class RecruitmentClassificationsRestController {
 			$size = RecruitmentCsvImporter::BATCH_SIZE_DEFAULT;
 		}
 
-		$result = RecruitmentCsvImporter::process_job_batch( $job_id, $size );
+		$result = RecruitmentCsvImporter::promote_batch( $job_id, $size );
 		if ( ! $result['ok'] ) {
 			return $this->wp_error_from_envelope( $result['errors'], 400 );
 		}
@@ -399,9 +443,10 @@ final class RecruitmentClassificationsRestController {
 	/**
 	 * POST /notices/{id}/import-job/commit
 	 *
-	 * Swap the staging rows in for the live list. Runs the
-	 * delete + rename in a single short transaction, then tears the job
-	 * state down (tmp file + transient).
+	 * Phase 4 — atomic swap of the staged classifications into the
+	 * canonical `ffc_recruitment_classification` table. One short
+	 * transaction; rollback on failure preserves both the prior live
+	 * list and the staging rows for a retry.
 	 *
 	 * @param \WP_REST_Request $request Request.
 	 * @return \WP_REST_Response|\WP_Error
@@ -409,7 +454,7 @@ final class RecruitmentClassificationsRestController {
 	public function import_job_commit( \WP_REST_Request $request ) {
 		$job_id = (string) $request->get_param( 'job_id' );
 
-		$result = RecruitmentCsvImporter::commit_job( $job_id );
+		$result = RecruitmentCsvImporter::commit_job_v2( $job_id );
 		if ( ! $result['ok'] ) {
 			return $this->wp_error_from_envelope( $result['errors'], 400 );
 		}
