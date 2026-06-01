@@ -1,24 +1,28 @@
 /**
- * Batched CSV import for recruitment notices.
+ * Staging-based CSV import for recruitment notices (4-phase flow, V10).
  *
- * Companion to the three REST endpoints under
- *   /ffcertificate/v1/recruitment/notices/{id}/import-job/{start,batch,commit}
+ * Companion to the REST endpoints under
+ *   /ffcertificate/v1/recruitment/notices/{id}/import-job/{start,validate,batch,commit}
  *
- * The pre-batched flow POSTed the full CSV to `/import` and waited for
- * the server to parse + validate + write the entire list inside one
- * request. On notices with ~hundreds of rows that crossed the gateway
- * timeout (504), Chrome auto-retried the multipart upload (ERR_UPLOAD_FILE_CHANGED
- * because the tmp file moved between retries), and PHP-FPM kept getting
- * killed mid-transaction — producing "Commands out of sync" cascades on
- * the shutdown handler (LiteSpeed cache + ActivityLog::flush_buffer).
+ * The flow:
  *
- * This orchestrator:
- *
- *   1. POSTs the multipart CSV to `/import-job/start` exactly ONCE.
- *   2. Loops `/import-job/batch` (small JSON requests) until the server
- *      returns `done: true`, updating the progress UI between batches.
- *   3. POSTs `/import-job/commit` to swap the staging rows in for the
- *      live list inside a short transaction.
+ *   1. /import-job/start    — multipart CSV upload. The server parses
+ *                             and mass-INSERTs the entire row set into
+ *                             ffc_recruitment_import_staging (encrypted
+ *                             at rest), returns { job_id, total }. NO
+ *                             classification touched yet.
+ *   2. /import-job/validate — SQL GROUP BY validation against staging.
+ *                             Returns 200 with `errors: [...]`. Non-empty
+ *                             list = operator must fix the CSV; we abort
+ *                             and surface every line-numbered error.
+ *   3. /import-job/batch    — loop: promote N rows (upsert_candidate
+ *                             writes the candidate + wp_user) until
+ *                             `done: true`. This is the only phase that
+ *                             touches the canonical candidate table.
+ *   4. /import-job/commit   — atomic transaction: DELETE prior live
+ *                             list + INSERT INTO classification SELECT
+ *                             FROM staging. The classification table
+ *                             only sees the change here.
  *
  * The window-scoped entry point keeps the existing inline submit handler
  * (which already chooses between preview and definitive flows) minimal.
@@ -31,7 +35,7 @@
 	var BATCH_SIZE_DEFAULT = 50;
 
 	/**
-	 * Run the batched import flow.
+	 * Run the staging-based import flow.
 	 *
 	 * @param {Object}      opts
 	 * @param {number}      opts.noticeId       Notice ID.
@@ -45,6 +49,13 @@
 	 * @param {HTMLElement} opts.progressWrap   Wrapper revealed during the run.
 	 * @param {HTMLElement} opts.progressBar    `<progress>` element.
 	 * @param {HTMLElement} opts.progressText   Span node for "X / Y" text.
+	 * @param {HTMLElement} [opts.errorList]    Optional `<ul>` / `<div>`
+	 *                                          that will hold per-line
+	 *                                          validation errors when
+	 *                                          /validate returns a non-
+	 *                                          empty list. Falls back to
+	 *                                          stuffing them into status
+	 *                                          when absent.
 	 * @param {Object}      opts.strings        Localised label dictionary.
 	 * @returns {Promise<void>}
 	 */
@@ -58,6 +69,7 @@
 		var progressWrap  = opts.progressWrap;
 		var progressBar   = opts.progressBar;
 		var progressText  = opts.progressText;
+		var errorListEl   = opts.errorList || null;
 		var strings       = opts.strings || {};
 
 		var baseUrl = restRoot.replace(/\/$/, '') + '/notices/' + noticeId + '/import-job';
@@ -70,6 +82,27 @@
 			progressBar.max   = total;
 			progressBar.value = processed;
 			progressText.textContent = processed + ' / ' + total;
+		}
+
+		function clearErrorList() {
+			if (errorListEl) { errorListEl.innerHTML = ''; }
+		}
+
+		function renderErrorList(errors) {
+			if (errorListEl) {
+				errorListEl.innerHTML = '';
+				errors.forEach(function (line) {
+					var li = document.createElement('li');
+					li.textContent = line;
+					errorListEl.appendChild(li);
+				});
+				return;
+			}
+			// No dedicated container — fall back to the status node so
+			// the operator still sees the first few errors.
+			var preview = errors.slice(0, 3).join(' | ');
+			setStatus((strings.errorPrefix || 'Error:') + ' ' + preview
+				+ (errors.length > 3 ? ' (+' + (errors.length - 3) + ' more)' : ''));
 		}
 
 		function cleanup() {
@@ -124,9 +157,10 @@
 		}
 
 		// Phase 1 — start.
+		clearErrorList();
 		progressWrap.style.display = 'inline-flex';
 		setProgress(0, 0);
-		setStatus(strings.starting || 'Starting…');
+		setStatus(strings.ingesting || strings.starting || 'Ingesting…');
 
 		var fd = new FormData();
 		fd.append('csv_file', file);
@@ -135,32 +169,53 @@
 			var jobId = start.job_id;
 			var total = start.total;
 			setProgress(0, total);
-			setStatus(strings.processing || 'Processing…');
 
-			// Phase 2 — sequential batches.
-			function nextBatch() {
-				return postJson(baseUrl + '/batch', { job_id: jobId, size: BATCH_SIZE_DEFAULT })
-					.then(function (batch) {
-						setProgress(batch.processed, batch.total);
-						if (!batch.done) {
-							return nextBatch();
-						}
-						return batch;
-					});
-			}
-
-			return nextBatch().then(function () {
-				// Phase 3 — commit (swap).
-				setStatus(strings.committing || 'Finalising…');
-				return postJson(baseUrl + '/commit', { job_id: jobId }).then(function (commit) {
-					setStatus((strings.done || 'Done') + ' (' + commit.inserted + ')');
+			// Phase 2 — validate.
+			setStatus(strings.validating || 'Validating…');
+			return postJson(baseUrl + '/validate', { job_id: jobId }).then(function (validation) {
+				if (validation.errors && validation.errors.length > 0) {
+					// Don't try to promote a job with validation errors —
+					// surface them, leave staging for the next attempt's
+					// TTL sweep, and bail out without touching the
+					// canonical schema.
+					renderErrorList(validation.errors);
 					cleanup();
-					setTimeout(function () { window.location.reload(); }, 600);
+					var validationErr = new Error(strings.validationFailed || 'Validation failed');
+					validationErr.fromServer = true;
+					validationErr.data = { errors: validation.errors };
+					throw validationErr;
+				}
+
+				// Phase 3 — sequential promote batches.
+				setStatus(strings.processing || 'Processing…');
+				function nextBatch() {
+					return postJson(baseUrl + '/batch', { job_id: jobId, size: BATCH_SIZE_DEFAULT })
+						.then(function (batch) {
+							setProgress(batch.processed, batch.total);
+							if (!batch.done) {
+								return nextBatch();
+							}
+							return batch;
+						});
+				}
+
+				return nextBatch().then(function () {
+					// Phase 4 — commit (swap).
+					setStatus(strings.committing || 'Finalising…');
+					return postJson(baseUrl + '/commit', { job_id: jobId }).then(function (commit) {
+						setStatus((strings.done || 'Done') + ' (' + commit.inserted + ')');
+						cleanup();
+						setTimeout(function () { window.location.reload(); }, 600);
+					});
 				});
 			});
 		}).catch(function (err) {
 			cleanup();
-			setStatus((strings.errorPrefix || 'Error:') + ' ' + (err.message || err));
+			// Validation-error path already populated the list/status,
+			// so only overwrite for other failures.
+			if (!(err && err.data && Array.isArray(err.data.errors))) {
+				setStatus((strings.errorPrefix || 'Error:') + ' ' + (err.message || err));
+			}
 			// Re-throw so any caller-side .catch() chain still fires.
 			throw err;
 		});
