@@ -454,7 +454,7 @@ final class RecruitmentClassificationsRestController {
 	public function import_job_commit( \WP_REST_Request $request ) {
 		$job_id = (string) $request->get_param( 'job_id' );
 
-		$result = RecruitmentCsvImporter::commit_job_v2( $job_id );
+		$result = RecruitmentCsvImporter::commit_job( $job_id );
 		if ( ! $result['ok'] ) {
 			return $this->wp_error_from_envelope( $result['errors'], 400 );
 		}

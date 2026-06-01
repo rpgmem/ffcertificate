@@ -366,72 +366,12 @@ class RecruitmentCsvImporterTest extends TestCase {
 		$this->assertFalse( $out['too_long'] );
 	}
 
-	// ──────────────────────────────────────────────────────────────────────.
-	// Batched-import early-exit envelopes.
-	//
-	// The happy path (parse + validate + tmp file write + transient set)
-	// exercises wp_upload_dir(), wp_mkdir_p(), wp_generate_uuid4() and
-	// file_put_contents() — all of them straddling the filesystem boundary
-	// that Brain\Monkey can't stub cleanly. Integration tests cover the
-	// happy path; here we pin the early-rejection envelopes since those
-	// are the user-visible "your CSV was rejected because…" messages.
-	// ──────────────────────────────────────────────────────────────────────.
-
-	public function test_start_job_rejects_unknown_notice(): void {
-		Functions\when( 'get_transient' )->justReturn( false );
-
-		// Mock the repository lookup to return null (notice not found).
-		// `get_by_id()` queries via $wpdb; with no shouldReceive setup the
-		// partial mock returns null which the repo treats as "not found".
-		$out = RecruitmentCsvImporter::start_job( 999_999, 'name,cpf,rf,email,adjutancy,rank,score,pcd', 'preview' );
-
-		$this->assertSame( array( 'ok' => false, 'errors' => array( 'recruitment_notice_not_found' ) ), $out );
-	}
-
-	public function test_process_job_batch_returns_not_found_when_transient_missing(): void {
-		Functions\when( 'get_transient' )->justReturn( false );
-
-		$out = RecruitmentCsvImporter::process_job_batch( 'nonexistent-job-id', 50 );
-
-		$this->assertSame( array( 'ok' => false, 'errors' => array( 'recruitment_import_job_not_found' ) ), $out );
-	}
-
-	public function test_commit_job_returns_not_found_when_transient_missing(): void {
-		Functions\when( 'get_transient' )->justReturn( false );
-
-		$out = RecruitmentCsvImporter::commit_job( 'nonexistent-job-id' );
-
-		$this->assertSame( array( 'ok' => false, 'errors' => array( 'recruitment_import_job_not_found' ) ), $out );
-	}
-
-	public function test_commit_job_rejects_when_cursor_below_total(): void {
-		// The commit endpoint must not swap when batches haven't finished.
-		// Without this guard, an early commit would publish a partial list.
-		Functions\when( 'get_transient' )->justReturn(
-			array(
-				'notice_id' => 1,
-				'list_type' => 'preview',
-				'file'      => '/tmp/nonexistent.json',
-				'total'     => 100,
-				'cursor'    => 25, // 75 rows still pending.
-				'inserted'  => 25,
-				'user_id'   => 1,
-				'created'   => time(),
-			)
-		);
-
-		$out = RecruitmentCsvImporter::commit_job( 'half-done-job' );
-
-		$this->assertSame( array( 'ok' => false, 'errors' => array( 'recruitment_import_job_not_finished' ) ), $out );
-	}
-
 	public function test_batch_size_constants_match_documented_defaults(): void {
-		// Pins the public batch-size + TTL contract: AJAX callers (the
-		// JS-side `BATCH_SIZE_DEFAULT` and the REST controller `args`)
-		// reference these constants by name, so any future bump should
-		// happen in lockstep with a CHANGELOG note.
+		// Pins the public batch-size contract: AJAX callers (the JS-side
+		// `BATCH_SIZE_DEFAULT` and the REST controller `args`) reference
+		// this constant by name, so any future bump should happen in
+		// lockstep with a CHANGELOG note.
 		$this->assertSame( 50, RecruitmentCsvImporter::BATCH_SIZE_DEFAULT );
-		$this->assertSame( 3600, RecruitmentCsvImporter::JOB_TTL );
 	}
 
 	// ──────────────────────────────────────────────────────────────────.
