@@ -94,6 +94,34 @@
     gap: 6px;
 }
 
+.ffc-recruitment-queue .ffc-recruitment-search-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 14px;
+    border: 1px solid var(--ffc-primary, #2271b1);
+    background: var(--ffc-primary, #2271b1);
+    color: #fff;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 13px;
+    font-weight: 500;
+    line-height: 1.4;
+    transition: background-color 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.ffc-recruitment-queue .ffc-recruitment-search-btn:hover,
+.ffc-recruitment-queue .ffc-recruitment-search-btn:focus {
+    background: var(--ffc-primary-darker, #135e96);
+    border-color: var(--ffc-primary-darker, #135e96);
+    box-shadow: 0 0 0 2px rgba(34, 113, 177, 0.18);
+    outline: none;
+}
+
+.ffc-recruitment-queue .ffc-recruitment-search-btn-icon {
+    flex: 0 0 auto;
+}
+
 .ffc-recruitment-queue .ffc-recruitment-section {
     margin-top: 24px;
 }
