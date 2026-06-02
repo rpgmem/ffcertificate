@@ -64,8 +64,20 @@ final class RecruitmentPublicShortcodeRenderer {
 		$offset       = ( $current_page - 1 ) * $page_size;
 		$page_rows    = array_slice( $rows, $offset, $page_size );
 
+		// Heading + total-count badge on the same line. `$total` is the
+		// post-filter count, so when the operator types into the search
+		// box the badge reflects the narrowed list instead of the global
+		// total — which is what they actually need to see.
+		$count_label = sprintf(
+			/* translators: %s: number of candidates in the section (post-filter) */
+			_n( '%s candidate', '%s candidates', $total, 'ffcertificate' ),
+			number_format_i18n( $total )
+		);
 		$html  = '<section class="ffc-recruitment-section">';
-		$html .= '<h3>' . esc_html( $heading ) . '</h3>';
+		$html .= '<h3 class="ffc-recruitment-section-heading">'
+			. '<span class="ffc-recruitment-section-title">' . esc_html( $heading ) . '</span>'
+			. '<span class="ffc-recruitment-section-count">' . esc_html( $count_label ) . '</span>'
+			. '</h3>';
 		$html .= '<table class="ffc-recruitment-table"><thead><tr>';
 		if ( $columns['rank'] ) {
 			$html .= '<th>' . esc_html__( 'Rank', 'ffcertificate' ) . '</th>';
@@ -310,10 +322,18 @@ final class RecruitmentPublicShortcodeRenderer {
 	 * @return string
 	 */
 	private static function render_name_search_input( string $name_query ): string {
+		// Inline magnifying-glass glyph — keeps the asset count flat and
+		// avoids a font dependency. `aria-hidden` so screen readers fall
+		// through to the button label.
+		$icon = '<svg class="ffc-recruitment-search-btn-icon" viewBox="0 0 16 16" width="14" height="14" aria-hidden="true" focusable="false">'
+			. '<path fill="currentColor" d="M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001q.044.06.098.115l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85a1 1 0 0 0-.115-.1zM12 6.5a5.5 5.5 0 1 1-11 0 5.5 5.5 0 0 1 11 0z"/>'
+			. '</svg>';
+
 		$html  = '<label class="ffc-recruitment-name-search">';
 		$html .= esc_html__( 'Search by name:', 'ffcertificate' ) . ' ';
 		$html .= '<input type="search" name="q" value="' . esc_attr( $name_query ) . '" placeholder="' . esc_attr__( 'name…', 'ffcertificate' ) . '">';
-		$html .= ' <button type="submit">' . esc_html__( 'Search', 'ffcertificate' ) . '</button>';
+		// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- icon is a constant SVG string with no dynamic content.
+		$html .= ' <button type="submit" class="ffc-recruitment-search-btn">' . $icon . '<span>' . esc_html__( 'Search', 'ffcertificate' ) . '</span></button>';
 		$html .= '</label>';
 		return $html;
 	}
