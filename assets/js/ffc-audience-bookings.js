@@ -84,7 +84,7 @@
             }
 
             var envColor = getEnvironmentColor(booking.environment_id);
-            html += '<div class="' + classes.join(' ') + '" style="border-left: 4px solid ' + envColor + ';">';
+            html += '<div class="' + classes.join(' ') + '" style="border-left: 4px solid ' + escapeHtml(envColor) + ';">';
             if (parseInt(booking.is_all_day)) {
                 html += '<div class="ffc-booking-time ffc-all-day">' + ((ffcAudience.strings || {}).allDay || 'All Day') + '</div>';
             } else {
@@ -104,7 +104,7 @@
                 var pMap = buildParentNameMap();
                 html += '<div class="ffc-booking-audiences">';
                 displayAudiences.forEach(function(audience) {
-                    html += '<span class="ffc-audience-tag" style="background-color: ' + audience.color + '">' + escapeHtml(formatAudienceName(audience, pMap)) + '</span>';
+                    html += '<span class="ffc-audience-tag" style="background-color: ' + escapeHtml(audience.color) + '">' + escapeHtml(formatAudienceName(audience, pMap)) + '</span>';
                 });
                 html += '</div>';
             }

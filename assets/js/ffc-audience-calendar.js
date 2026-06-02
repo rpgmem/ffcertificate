@@ -64,7 +64,7 @@
         $select.find('option:first').text(envLabelPlural);
 
         environments.forEach(function(env) {
-            $select.append('<option value="' + env.id + '" data-color="' + (env.color || '#3788d8') + '">' + env.name + '</option>');
+            $select.append('<option value="' + env.id + '" data-color="' + escapeHtml(env.color || '#3788d8') + '">' + escapeHtml(env.name) + '</option>');
         });
 
         // Set dropdown value (0 = "All Environments" stays as default)
@@ -86,7 +86,7 @@
             nodes.forEach(function(node) {
                 var indent = new Array(depth + 1).join('   ');
                 var prefix = depth > 0 ? indent + '└ ' : '';
-                $select.append('<option value="' + node.id + '">' + prefix + node.name + '</option>');
+                $select.append('<option value="' + node.id + '">' + prefix + escapeHtml(node.name) + '</option>');
                 if (node.children && node.children.length > 0) {
                     appendNodes(node.children, depth + 1);
                 }
@@ -199,7 +199,7 @@
                         html += '<span class="ffc-day-badge ffc-badge-closed">' + ffcAudience.strings.closed + '</span>';
                     } else if (bookingCount > 0) {
                         var bLabel = bookingCount === 1 ? getBookingLabel('singular') : getBookingLabel('plural');
-                        html += '<span class="ffc-day-badge ffc-badge-bookings">' + bookingCount + ' ' + bLabel + '</span>';
+                        html += '<span class="ffc-day-badge ffc-badge-bookings">' + bookingCount + ' ' + escapeHtml(bLabel) + '</span>';
                     }
 
                     html += '</div></div>';
@@ -399,7 +399,7 @@
                 // Booking item
                 var booking = evt.data;
                 var evtColor = getEnvironmentColor(booking.environment_id);
-                html += '<div class="ffc-event-list-item" data-date="' + booking.booking_date + '" style="border-left: 3px solid ' + evtColor + ';">';
+                html += '<div class="ffc-event-list-item" data-date="' + booking.booking_date + '" style="border-left: 3px solid ' + escapeHtml(evtColor) + ';">';
 
                 // Time
                 if (parseInt(booking.is_all_day)) {
@@ -425,10 +425,10 @@
                     html += '<span class="ffc-event-list-audiences">';
                     if (displayAudiencesEL.length > 2) {
                         var maColor = ffcAudience.multipleAudiencesColor || 'var(--ffc-gray-600)';
-                        html += '<span class="ffc-audience-tag-sm" style="background-color: ' + maColor + '">' + escapeHtml(ffcAudience.strings.multipleAudiences) + ' (' + displayAudiencesEL.length + ')</span>';
+                        html += '<span class="ffc-audience-tag-sm" style="background-color: ' + escapeHtml(maColor) + '">' + escapeHtml(ffcAudience.strings.multipleAudiences) + ' (' + displayAudiencesEL.length + ')</span>';
                     } else {
                         displayAudiencesEL.forEach(function(audience) {
-                            html += '<span class="ffc-audience-tag-sm" style="background-color: ' + audience.color + '">' + escapeHtml(formatAudienceName(audience, pMapEL)) + '</span>';
+                            html += '<span class="ffc-audience-tag-sm" style="background-color: ' + escapeHtml(audience.color) + '">' + escapeHtml(formatAudienceName(audience, pMapEL)) + '</span>';
                         });
                     }
                     html += '</span>';
