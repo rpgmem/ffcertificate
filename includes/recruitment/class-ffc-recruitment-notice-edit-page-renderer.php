@@ -905,10 +905,10 @@ final class RecruitmentNoticeEditPageRenderer {
 
 		// Pagination. Per-page matches the activity log helper so the
 		// admin viewport feels consistent across the plugin.
-		$per_page     = 50;
-		$page_param   = 'ffc_cls_paged_' . $tab_key;
-		$total        = count( $rows );
-		$total_pages  = (int) max( 1, ceil( $total / $per_page ) );
+		$per_page    = 50;
+		$page_param  = 'ffc_cls_paged_' . $tab_key;
+		$total       = count( $rows );
+		$total_pages = (int) max( 1, ceil( $total / $per_page ) );
 		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- read-only page preference.
 		$current_page = isset( $_GET[ $page_param ] ) ? max( 1, (int) $_GET[ $page_param ] ) : 1;
 		$current_page = min( $current_page, $total_pages );
@@ -1044,8 +1044,8 @@ final class RecruitmentNoticeEditPageRenderer {
 			// `paginate_links` uses the current request URL as base by
 			// default; we add `ffc_cls_tab` so the operator lands back on
 			// the same tab after the navigation reload.
-			$base = add_query_arg( 'ffc_cls_tab', $tab_key );
-			$base = remove_query_arg( $page_param, $base );
+			$base  = add_query_arg( 'ffc_cls_tab', $tab_key );
+			$base  = remove_query_arg( $page_param, $base );
 			$links = paginate_links(
 				array(
 					'base'      => add_query_arg( $page_param, '%#%', $base ),
