@@ -56,7 +56,7 @@ final class RecruitmentNoticeEditPageRenderer {
 		$status    = (string) $notice->status;
 		$nonce     = wp_create_nonce( 'wp_rest' );
 
-		echo '<div class="postbox" style="margin-top:20px;">';
+		echo '<div class="postbox ffc-rec-mt-20">';
 		echo '<h2 class="hndle"><span>' . esc_html__( 'Import candidates (CSV)', 'ffcertificate' ) . '</span></h2>';
 		echo '<div class="inside">';
 
@@ -76,13 +76,13 @@ final class RecruitmentNoticeEditPageRenderer {
 			'ffc_recruitment_download_csv_example'
 		);
 		echo '<p><a class="button" href="' . esc_url( $example_url ) . '">&darr; ' . esc_html__( 'Download example CSV', 'ffcertificate' ) . '</a> ';
-		echo '<span class="description" style="margin-left:.5em;">' . esc_html__( 'Two-row sample with every column populated. Use it as a starting point for your own file.', 'ffcertificate' ) . '</span></p>';
+		echo '<span class="description ffc-rec-ml-half">' . esc_html__( 'Two-row sample with every column populated. Use it as a starting point for your own file.', 'ffcertificate' ) . '</span></p>';
 
 		echo '<form id="ffc-recruitment-edit-import" method="post" enctype="multipart/form-data" onsubmit="return ffcRecruitmentImportFromEdit(this);">';
 		echo '<table class="form-table"><tbody>';
 
 		echo '<tr><th><label>' . esc_html__( 'Target list', 'ffcertificate' ) . '</label></th><td>';
-		echo '<label style="margin-right:1em;"><input type="radio" name="list_target" value="preliminary" checked> ' . esc_html__( 'Preliminary list', 'ffcertificate' ) . '</label>';
+		echo '<label class="ffc-rec-mr-1"><input type="radio" name="list_target" value="preliminary" checked> ' . esc_html__( 'Preliminary list', 'ffcertificate' ) . '</label>';
 		if ( 'preliminary' === $status ) {
 			echo '<label><input type="radio" name="list_target" value="definitive"> ' . esc_html__( 'Definitive list (also transitions notice to `definitive`)', 'ffcertificate' ) . '</label>';
 		}
@@ -104,17 +104,17 @@ final class RecruitmentNoticeEditPageRenderer {
 		// Progress widget — `<progress>` + counter for the batched preview
 		// flow; falls back to the spinner-only look for the definitive
 		// flow (which still posts in one shot to /promote-preview).
-		echo '<span id="ffc-edit-csv-progress" style="display:none;align-items:center;gap:.5em;">';
-		echo '<span class="spinner is-active" style="float:none;margin:0;"></span>';
-		echo '<progress id="ffc-edit-csv-progress-bar" max="1" value="0" style="width:200px;height:14px;"></progress>';
+		echo '<span id="ffc-edit-csv-progress" class="ffc-rec-progress-inline">';
+		echo '<span class="spinner is-active ffc-rec-spinner-flush"></span>';
+		echo '<progress id="ffc-edit-csv-progress-bar" max="1" value="0" class="ffc-rec-progress-bar"></progress>';
 		echo '<span id="ffc-edit-csv-progress-text"></span>';
 		echo '</span>';
-		echo '<span id="ffc-edit-csv-status" style="margin-left:1em;font-family:monospace;font-size:12px;"></span>';
+		echo '<span id="ffc-edit-csv-status" class="ffc-rec-mono-status"></span>';
 		echo '</p>';
 		// Per-line validation errors land here when /import-job/validate
 		// returns a non-empty list. Hidden by default; the orchestrator
 		// fills it in and the operator scrolls through what to fix.
-		echo '<ul id="ffc-edit-csv-errors" style="margin:.5em 0 0;padding-left:1.5em;font-family:monospace;font-size:12px;color:#b32d2e;"></ul>';
+		echo '<ul id="ffc-edit-csv-errors" class="ffc-rec-csv-errors"></ul>';
 		echo '</form>';
 
 		// Inline submit handler. The `preview` flow hands off to
@@ -190,7 +190,7 @@ final class RecruitmentNoticeEditPageRenderer {
 	public static function render_general_section( object $notice ): void {
 		$nonce_action = 'ffc_recruitment_save_notice_' . (int) $notice->id;
 
-		echo '<div class="postbox" style="margin-top:20px;">';
+		echo '<div class="postbox ffc-rec-mt-20">';
 		echo '<h2 class="hndle"><span>' . esc_html__( 'General', 'ffcertificate' ) . '</span></h2>';
 		echo '<div class="inside">';
 
@@ -281,7 +281,7 @@ final class RecruitmentNoticeEditPageRenderer {
 		// whether the preliminary-list reason text is exposed publicly.
 		$rendered_in_grid = static fn( string $key ): bool => 'preview_reason' !== $key;
 
-		$html = '<div class="ffc-recruitment-columns-toggles" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:6px 16px;">';
+		$html = '<div class="ffc-recruitment-columns-toggles ffc-rec-columns-grid">';
 		foreach ( $labels as $key => $label ) {
 			if ( ! $rendered_in_grid( $key ) ) {
 				continue;
@@ -289,7 +289,7 @@ final class RecruitmentNoticeEditPageRenderer {
 			$is_mandatory = in_array( $key, $mandatory, true );
 			$checked      = $is_mandatory || ! empty( $state[ $key ] );
 			$id_attr      = 'ffc-notice-pcc-' . $key;
-			$html        .= '<div style="display:flex;align-items:center;gap:6px;">';
+			$html        .= '<div class="ffc-rec-flex-center-6">';
 			if ( $is_mandatory ) {
 				// A disabled toggle doesn't post; a hidden sibling pins the
 				// value=1 so the save handler always sees the mandatory
@@ -304,7 +304,7 @@ final class RecruitmentNoticeEditPageRenderer {
 						'label'    => $label,
 					)
 				);
-				$html .= ' <em style="color:#646970;font-size:11px;">(' . esc_html__( 'mandatory', 'ffcertificate' ) . ')</em>';
+				$html .= ' <em class="ffc-rec-mandatory-note">(' . esc_html__( 'mandatory', 'ffcertificate' ) . ')</em>';
 			} else {
 				$html .= \FreeFormCertificate\Admin\AdminUI::get_toggle(
 					array(
@@ -455,7 +455,7 @@ final class RecruitmentNoticeEditPageRenderer {
 		$current      = (string) $notice->status;
 		$nonce_action = 'ffc_recruitment_transition_notice_' . (int) $notice->id;
 
-		echo '<div class="postbox" style="margin-top:20px;">';
+		echo '<div class="postbox ffc-rec-mt-20">';
 		echo '<h2 class="hndle"><span>' . esc_html__( 'Status', 'ffcertificate' ) . '</span></h2>';
 		echo '<div class="inside">';
 
@@ -499,7 +499,7 @@ final class RecruitmentNoticeEditPageRenderer {
 				$cfg          = isset( $modal_config[ $target ] ) ? $modal_config[ $target ] : null;
 				$consequences = wp_json_encode( $cfg ? $cfg['consequences'] : array() );
 
-				echo '<form method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '" style="display:inline;margin-right:.5em;"';
+				echo '<form method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '" class="ffc-rec-inline-form"';
 				if ( $cfg ) {
 					echo ' data-ffc-confirm'
 						. ' data-ffc-confirm-title="' . esc_attr( $cfg['title'] ) . '"'
@@ -581,7 +581,7 @@ final class RecruitmentNoticeEditPageRenderer {
 			submit_button( __( 'Promote to definitive', 'ffcertificate' ), 'primary', '', false );
 			echo '</form>';
 
-			echo '<hr style="margin:1.5em 0;">';
+			echo '<hr class="ffc-rec-my-15">';
 			return;
 		}
 
@@ -632,7 +632,7 @@ final class RecruitmentNoticeEditPageRenderer {
 			. '}'
 			. '</script>';
 
-		echo '<hr style="margin:1.5em 0;">';
+		echo '<hr class="ffc-rec-my-15">';
 	}
 
 	/**
@@ -654,7 +654,7 @@ final class RecruitmentNoticeEditPageRenderer {
 		$attached_set = array_flip( $attached_ids );
 		$nonce        = wp_create_nonce( 'wp_rest' );
 
-		echo '<div class="postbox" style="margin-top:20px;">';
+		echo '<div class="postbox ffc-rec-mt-20">';
 		echo '<h2 class="hndle"><span>' . esc_html__( 'Adjutancies', 'ffcertificate' ) . '</span></h2>';
 		echo '<div class="inside">';
 		echo '<p>' . esc_html__( 'Adjutancies referenced by CSV imports must be attached to the notice via this section.', 'ffcertificate' ) . '</p>';
@@ -772,7 +772,7 @@ final class RecruitmentNoticeEditPageRenderer {
 		$preview         = RecruitmentClassificationFilterManager::apply_filters( $preview, $filters );
 		$definitive_rows = RecruitmentClassificationFilterManager::apply_filters( $definitive_rows, $filters );
 
-		echo '<div class="postbox" style="margin-top:20px;">';
+		echo '<div class="postbox ffc-rec-mt-20">';
 		echo '<h2 class="hndle"><span>' . esc_html__( 'Classifications', 'ffcertificate' ) . '</span></h2>';
 		echo '<div class="inside">';
 
@@ -785,7 +785,7 @@ final class RecruitmentNoticeEditPageRenderer {
 		$prev_display   = $prev_is_active ? 'block' : 'none';
 		$def_display    = $prev_is_active ? 'none' : 'block';
 
-		echo '<h2 class="nav-tab-wrapper" style="margin:0 0 1em;">';
+		echo '<h2 class="nav-tab-wrapper ffc-rec-mb-1">';
 		echo '<a href="#" class="' . esc_attr( $prev_tab_class ) . '" data-ffc-clstab="preliminary" onclick="return ffcRecruitmentClsTabSwitch(this);">' . esc_html__( 'Preliminary', 'ffcertificate' ) . '</a>';
 		echo '<a href="#" class="' . esc_attr( $def_tab_class ) . '" data-ffc-clstab="definitive" onclick="return ffcRecruitmentClsTabSwitch(this);">' . esc_html__( 'Definitive', 'ffcertificate' ) . '</a>';
 		echo '</h2>';
@@ -845,7 +845,7 @@ final class RecruitmentNoticeEditPageRenderer {
 			admin_url( 'admin.php' )
 		);
 
-		echo '<form method="get" class="ffc-cls-filters" style="margin-bottom:1em;display:flex;flex-wrap:wrap;gap:6px;align-items:center;">';
+		echo '<form method="get" class="ffc-cls-filters ffc-rec-cls-filters">';
 		echo '<input type="hidden" name="page" value="' . esc_attr( RecruitmentAdminPage::PAGE_SLUG ) . '">';
 		echo '<input type="hidden" name="action" value="edit-notice">';
 		echo '<input type="hidden" name="notice_id" value="' . esc_attr( (string) $notice_id ) . '">';
@@ -952,7 +952,7 @@ final class RecruitmentNoticeEditPageRenderer {
 
 		echo '<table class="widefat striped"><thead><tr>';
 		if ( $with_actions ) {
-			echo '<th style="width:1%;"><input type="checkbox" id="ffc-cls-bulk-all" onclick="ffcRecruitmentClsToggleAll(this);" title="' . esc_attr__( 'Select all waiting rows on this page', 'ffcertificate' ) . '"></th>';
+			echo '<th class="ffc-rec-col-checkbox"><input type="checkbox" id="ffc-cls-bulk-all" onclick="ffcRecruitmentClsToggleAll(this);" title="' . esc_attr__( 'Select all waiting rows on this page', 'ffcertificate' ) . '"></th>';
 		}
 		echo '<th>' . esc_html__( 'Rank', 'ffcertificate' ) . '</th>';
 		echo '<th>' . esc_html__( 'Candidate', 'ffcertificate' ) . '</th>';
@@ -1166,16 +1166,16 @@ final class RecruitmentNoticeEditPageRenderer {
 	 * @return void
 	 */
 	private static function render_bulk_call_toolbar(): void {
-		echo '<div class="ffc-cls-bulk-toolbar" style="background:#f6f7f7;border:1px solid #dcdcde;border-radius:4px;padding:10px 12px;margin-bottom:8px;">';
+		echo '<div class="ffc-cls-bulk-toolbar ffc-rec-bulk-toolbar">';
 		echo '<strong>' . esc_html__( 'Bulk call', 'ffcertificate' ) . '</strong> ';
-		echo '<span style="margin-left:.5em;">' . esc_html__( 'Date:', 'ffcertificate' ) . ' </span>';
-		echo '<input type="date" id="ffc-bulk-date" style="margin-right:.5em;">';
+		echo '<span class="ffc-rec-ml-half">' . esc_html__( 'Date:', 'ffcertificate' ) . ' </span>';
+		echo '<input type="date" id="ffc-bulk-date" class="ffc-rec-mr-half">';
 		echo '<span>' . esc_html__( 'Time:', 'ffcertificate' ) . ' </span>';
-		echo '<input type="time" id="ffc-bulk-time" style="margin-right:.5em;">';
+		echo '<input type="time" id="ffc-bulk-time" class="ffc-rec-mr-half">';
 		echo '<button type="button" class="button button-primary" onclick="ffcRecruitmentBulkCall();">' . esc_html__( 'Call selected', 'ffcertificate' ) . '</button>';
-		echo '<span id="ffc-bulk-status" style="margin-left:1em;font-family:monospace;font-size:12px;"></span>';
+		echo '<span id="ffc-bulk-status" class="ffc-rec-mono-status"></span>';
 		// §6 — bulk call is atomic; any single race-loss rolls back the entire batch.
-		echo '<p class="description" style="margin:6px 0 0;">' . esc_html__( 'Select rows in waiting status to bulk-call them with the same date and time. The operation is atomic — any single conflict rolls back the entire batch. Date and time are remembered from the previous successful call.', 'ffcertificate' ) . '</p>';
+		echo '<p class="description ffc-rec-mt-6px">' . esc_html__( 'Select rows in waiting status to bulk-call them with the same date and time. The operation is atomic — any single conflict rolls back the entire batch. Date and time are remembered from the previous successful call.', 'ffcertificate' ) . '</p>';
 		echo '</div>';
 
 		// Pre-fill the date / time inputs from localStorage so a follow-
@@ -1255,7 +1255,7 @@ final class RecruitmentNoticeEditPageRenderer {
 			$class .= ' button-link-delete';
 		}
 		return sprintf(
-			'<button type="button" class="%s" style="margin-right:.25em;" data-cls-id="%d" data-cls-action="%s" onclick="ffcRecruitmentClsAct(this);">%s</button>',
+			'<button type="button" class="%s ffc-rec-mr-quarter" data-cls-id="%d" data-cls-action="%s" onclick="ffcRecruitmentClsAct(this);">%s</button>',
 			esc_attr( $class ),
 			$id,
 			esc_attr( $action ),

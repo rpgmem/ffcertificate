@@ -116,7 +116,7 @@ final class RecruitmentCandidateEditPage {
 			$email     = is_string( $decrypted ) ? $decrypted : '';
 		}
 
-		echo '<div class="postbox" style="margin-top:20px;">';
+		echo '<div class="postbox ffc-rec-mt-20">';
 		echo '<h2 class="hndle"><span>' . esc_html__( 'General', 'ffcertificate' ) . '</span></h2>';
 		echo '<div class="inside">';
 
@@ -162,7 +162,7 @@ final class RecruitmentCandidateEditPage {
 		// (issue #330).
 		$tier = RecruitmentPiiAccessPolicy::resolve( $candidate, get_current_user_id() );
 
-		echo '<div class="postbox" style="margin-top:20px;">';
+		echo '<div class="postbox ffc-rec-mt-20">';
 		echo '<h2 class="hndle"><span>' . esc_html__( 'Sensitive data (admin only)', 'ffcertificate' ) . '</span></h2>';
 		echo '<div class="inside">';
 
@@ -212,7 +212,7 @@ final class RecruitmentCandidateEditPage {
 					__( 'The WordPress user account itself is preserved untouched.', 'ffcertificate' ),
 				)
 			);
-			echo ' <form method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '" style="display:inline;margin-left:.5em;"'
+			echo ' <form method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '" class="ffc-rec-inline-ml"'
 				. ' data-ffc-confirm'
 				. ' data-ffc-confirm-title="' . esc_attr__( 'Unlink WordPress user?', 'ffcertificate' ) . '"'
 				. ' data-ffc-confirm-body="' . esc_attr__( 'Unlink this candidate from the WordPress user account.', 'ffcertificate' ) . '"'
@@ -235,7 +235,7 @@ final class RecruitmentCandidateEditPage {
 		// already saw the current state in the row above).
 		echo '<tr><th>' . esc_html__( 'Link manually to WP user', 'ffcertificate' ) . '</th>';
 		echo '<td>';
-		echo '<form method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '" style="display:inline;">';
+		echo '<form method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '" class="ffc-rec-inline">';
 		echo '<input type="hidden" name="action" value="ffc_recruitment_link_candidate_user">';
 		echo '<input type="hidden" name="candidate_id" value="' . esc_attr( (string) $candidate->id ) . '">';
 		wp_nonce_field( $nonce_action );
@@ -416,7 +416,7 @@ final class RecruitmentCandidateEditPage {
 	private static function render_classifications_section( object $candidate ): void {
 		$classifications = RecruitmentClassificationRepository::get_for_candidate( (int) $candidate->id );
 
-		echo '<div class="postbox" style="margin-top:20px;">';
+		echo '<div class="postbox ffc-rec-mt-20">';
 		echo '<h2 class="hndle"><span>' . esc_html__( 'Classifications + call history', 'ffcertificate' ) . '</span></h2>';
 		echo '<div class="inside">';
 
@@ -466,7 +466,7 @@ final class RecruitmentCandidateEditPage {
 				if ( empty( $calls ) ) {
 					continue;
 				}
-				echo '<h4 style="margin-top:1.5em;">' . sprintf(
+				echo '<h4 class="ffc-rec-mt-1-5em">' . sprintf(
 					/* translators: %d — classification id */
 					esc_html__( 'Calls for classification #%d', 'ffcertificate' ),
 					(int) $c->id
@@ -537,7 +537,7 @@ final class RecruitmentCandidateEditPage {
 	private static function render_history_section( object $candidate ): void {
 		$entries = RecruitmentCandidateHistoryService::get_for_candidate( (int) $candidate->id );
 
-		echo '<div class="postbox" style="margin-top:20px;">';
+		echo '<div class="postbox ffc-rec-mt-20">';
 		echo '<h2 class="hndle"><span>' . esc_html__( 'History', 'ffcertificate' ) . '</span></h2>';
 		echo '<div class="inside">';
 
@@ -610,7 +610,7 @@ final class RecruitmentCandidateEditPage {
 		$nonce_action         = 'ffc_recruitment_delete_candidate_' . $id;
 		$classification_count = RecruitmentClassificationRepository::count_for_candidate( $id );
 
-		echo '<div class="postbox" style="margin-top:20px;">';
+		echo '<div class="postbox ffc-rec-mt-20">';
 		echo '<h2 class="hndle"><span>' . esc_html__( 'Hard-delete candidate', 'ffcertificate' ) . '</span></h2>';
 		echo '<div class="inside">';
 

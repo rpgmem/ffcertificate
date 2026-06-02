@@ -414,10 +414,10 @@ final class RecruitmentAdminPage {
 			),
 			admin_url( 'admin.php' )
 		);
-		echo '<div class="notice notice-info inline" style="padding:16px 20px;margin:1em 0;">';
-		echo '<h3 style="margin-top:0;">' . esc_html__( 'Welcome to Recruitment', 'ffcertificate' ) . '</h3>';
+		echo '<div class="notice notice-info inline ffc-rec-welcome-notice">';
+		echo '<h3 class="ffc-rec-mt-0">' . esc_html__( 'Welcome to Recruitment', 'ffcertificate' ) . '</h3>';
 		echo '<p>' . esc_html__( 'No notices yet. The typical path to your first call is:', 'ffcertificate' ) . '</p>';
-		echo '<ol style="margin-left:20px;">';
+		echo '<ol class="ffc-rec-ml-20">';
 		echo '<li>' . sprintf(
 			/* translators: %s: link to the Adjutancies tab */
 			wp_kses_post( __( 'Define at least one <a href="%s">adjutancy</a> (subject / role) — these are reusable across notices.', 'ffcertificate' ) ),
@@ -651,10 +651,10 @@ final class RecruitmentAdminPage {
 			'appeal_granted' => __( 'Appeal granted', 'ffcertificate' ),
 		);
 		echo '<tr><th>' . esc_html__( 'Applies to', 'ffcertificate' ) . '</th><td>';
-		echo '<div style="display:flex;flex-wrap:wrap;gap:6px 16px;">';
+		echo '<div class="ffc-rec-flex-wrap">';
 		foreach ( $applies_options as $key => $label ) {
 			$id_attr = 'ffc-reason-applies-' . $key;
-			echo '<label for="' . esc_attr( $id_attr ) . '" style="display:flex;align-items:center;gap:6px;">';
+			echo '<label for="' . esc_attr( $id_attr ) . '" class="ffc-rec-flex-center-6">';
 			echo '<input id="' . esc_attr( $id_attr ) . '" type="checkbox" name="applies_to[]" value="' . esc_attr( $key ) . '">';
 			echo esc_html( $label );
 			echo '</label>';
@@ -737,7 +737,7 @@ final class RecruitmentAdminPage {
 			}
 		}
 
-		echo '<div class="postbox" style="margin-top:20px;">';
+		echo '<div class="postbox ffc-rec-mt-20">';
 		echo '<h2 class="hndle"><span>' . esc_html__( 'Import candidates (CSV)', 'ffcertificate' ) . '</span></h2>';
 		echo '<div class="inside">';
 
@@ -758,7 +758,7 @@ final class RecruitmentAdminPage {
 
 		echo '<p>' . esc_html__( 'Pick a notice, select the target list, and upload your CSV. The notice picker only lists notices where import is allowed.', 'ffcertificate' ) . '</p>';
 		echo '<p><a class="button" href="' . esc_url( $example_url ) . '">&darr; ' . esc_html__( 'Download example CSV', 'ffcertificate' ) . '</a> ';
-		echo '<span class="description" style="margin-left:.5em;">' . esc_html__( 'UTF-8 CSV (BOM optional). Required headers (English): name, cpf, rf, email, adjutancy, rank, score, pcd. Optional: phone, time_points, hab_emebs.', 'ffcertificate' ) . '</span></p>';
+		echo '<span class="description ffc-rec-ml-half">' . esc_html__( 'UTF-8 CSV (BOM optional). Required headers (English): name, cpf, rf, email, adjutancy, rank, score, pcd. Optional: phone, time_points, hab_emebs.', 'ffcertificate' ) . '</span></p>';
 
 		echo '<form id="ffc-recruitment-candidates-import" method="post" enctype="multipart/form-data" onsubmit="return ffcRecruitmentImportFromCandidates(this);">';
 		echo '<table class="form-table"><tbody>';
@@ -782,7 +782,7 @@ final class RecruitmentAdminPage {
 		// disabled by default — the onchange handler enables it only
 		// when the selected notice's status is `preliminary`.
 		echo '<tr><th><label>' . esc_html__( 'Target list', 'ffcertificate' ) . '</label></th><td>';
-		echo '<label style="margin-right:1em;"><input type="radio" name="list_target" value="preliminary" checked> ' . esc_html__( 'Preliminary list', 'ffcertificate' ) . '</label>';
+		echo '<label class="ffc-rec-mr-1"><input type="radio" name="list_target" value="preliminary" checked> ' . esc_html__( 'Preliminary list', 'ffcertificate' ) . '</label>';
 		echo '<label><input type="radio" name="list_target" value="definitive" disabled> ' . esc_html__( 'Definitive list (also transitions notice to `definitive`)', 'ffcertificate' ) . '</label>';
 		echo '<p class="description" id="ffc-cand-import-target-help">' . esc_html__( 'Pick a notice above to see which lists can receive the import.', 'ffcertificate' ) . '</p>';
 		echo '</td></tr>';
@@ -794,11 +794,11 @@ final class RecruitmentAdminPage {
 		echo '</tbody></table>';
 		echo '<p>';
 		echo '<button id="ffc-cand-csv-submit" type="submit" class="button button-primary">' . esc_html__( 'Import', 'ffcertificate' ) . '</button> ';
-		echo '<span id="ffc-cand-csv-progress" style="display:none;align-items:center;gap:.5em;">';
-		echo '<span class="spinner is-active" style="float:none;margin:0;"></span>';
+		echo '<span id="ffc-cand-csv-progress" class="ffc-rec-progress-inline">';
+		echo '<span class="spinner is-active ffc-rec-spinner-flush"></span>';
 		echo '<span id="ffc-cand-csv-progress-text"></span>';
 		echo '</span>';
-		echo '<span id="ffc-cand-csv-status" style="margin-left:1em;font-family:monospace;font-size:12px;"></span>';
+		echo '<span id="ffc-cand-csv-status" class="ffc-rec-mono-status"></span>';
 		echo '</p>';
 		echo '</form>';
 
@@ -934,7 +934,7 @@ final class RecruitmentAdminPage {
 		foreach ( $status_color_rows as $field => $label ) {
 			echo '<tr><th><label for="ffc-rs-' . esc_attr( $field ) . '">' . esc_html( $label ) . '</label></th><td>';
 			echo '<input id="ffc-rs-' . esc_attr( $field ) . '" type="color" name="' . esc_attr( $opt ) . '[' . esc_attr( $field ) . ']" value="' . esc_attr( (string) $settings[ $field ] ) . '">';
-			echo ' <code style="margin-left:.5em;">' . esc_html( (string) $settings[ $field ] ) . '</code>';
+			echo ' <code class="ffc-rec-ml-half">' . esc_html( (string) $settings[ $field ] ) . '</code>';
 			echo '</td></tr>';
 		}
 		echo '</tbody></table>';
@@ -955,7 +955,7 @@ final class RecruitmentAdminPage {
 		foreach ( $preview_color_rows as $field => $label ) {
 			echo '<tr><th><label for="ffc-rs-' . esc_attr( $field ) . '">' . esc_html( $label ) . '</label></th><td>';
 			echo '<input id="ffc-rs-' . esc_attr( $field ) . '" type="color" name="' . esc_attr( $opt ) . '[' . esc_attr( $field ) . ']" value="' . esc_attr( (string) $settings[ $field ] ) . '">';
-			echo ' <code style="margin-left:.5em;">' . esc_html( (string) $settings[ $field ] ) . '</code>';
+			echo ' <code class="ffc-rec-ml-half">' . esc_html( (string) $settings[ $field ] ) . '</code>';
 			echo '</td></tr>';
 		}
 		echo '</tbody></table>';
@@ -999,7 +999,7 @@ final class RecruitmentAdminPage {
 		foreach ( $subscription_color_rows as $field => $label ) {
 			echo '<tr><th><label for="ffc-rs-' . esc_attr( $field ) . '">' . esc_html( $label ) . '</label></th><td>';
 			echo '<input id="ffc-rs-' . esc_attr( $field ) . '" type="color" name="' . esc_attr( $opt ) . '[' . esc_attr( $field ) . ']" value="' . esc_attr( (string) $settings[ $field ] ) . '">';
-			echo ' <code style="margin-left:.5em;">' . esc_html( (string) $settings[ $field ] ) . '</code>';
+			echo ' <code class="ffc-rec-ml-half">' . esc_html( (string) $settings[ $field ] ) . '</code>';
 			echo '</td></tr>';
 		}
 		echo '</tbody></table>';
@@ -1019,7 +1019,7 @@ final class RecruitmentAdminPage {
 		foreach ( $notice_status_color_rows as $field => $label ) {
 			echo '<tr><th><label for="ffc-rs-' . esc_attr( $field ) . '">' . esc_html( $label ) . '</label></th><td>';
 			echo '<input id="ffc-rs-' . esc_attr( $field ) . '" type="color" name="' . esc_attr( $opt ) . '[' . esc_attr( $field ) . ']" value="' . esc_attr( (string) $settings[ $field ] ) . '">';
-			echo ' <code style="margin-left:.5em;">' . esc_html( (string) $settings[ $field ] ) . '</code>';
+			echo ' <code class="ffc-rec-ml-half">' . esc_html( (string) $settings[ $field ] ) . '</code>';
 			echo '</td></tr>';
 		}
 		echo '</tbody></table>';
@@ -1100,8 +1100,8 @@ final class RecruitmentAdminPage {
 	 * @return void
 	 */
 	private static function render_rest_pointer(): void {
-		echo '<details style="margin-top:1em;"><summary>' . esc_html__( 'Available REST endpoints', 'ffcertificate' ) . '</summary>';
-		echo '<pre style="background:#f5f5f5;padding:1em;">'
+		echo '<details class="ffc-rec-mt-1"><summary>' . esc_html__( 'Available REST endpoints', 'ffcertificate' ) . '</summary>';
+		echo '<pre class="ffc-rec-pre-block">'
 			. esc_html(
 				"GET    /wp-json/ffcertificate/v1/recruitment/notices\n"
 				. "POST   /wp-json/ffcertificate/v1/recruitment/notices\n"
