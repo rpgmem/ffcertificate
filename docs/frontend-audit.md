@@ -48,7 +48,7 @@ impacto em `npm run build:js`/minificação e enqueue condicional)._
 
 ---
 
-## Item 2 — Arquivos JS grandes que deveriam ser quebrados  ⬜
+## Item 2 — Arquivos JS grandes que deveriam ser quebrados  🟦 (csv-download ✅ sprint 2; audience + geofence pendentes)
 
 Piores ofensores (responsabilidades separáveis):
 
@@ -63,9 +63,63 @@ Piores ofensores (responsabilidades separáveis):
 **Modelo a replicar (já no projeto):** `assets/js/ffc-user-dashboard-*.js` e `assets/js/ffc-frontend-helpers.js`
 (submódulos internos com namespace `window.FFC.*`).
 
-### Plano
-_A preencher. Considerar: compatibilidade de carga (handles/enqueue), coverage Vitest (floor não pode cair),
-risco de regressão por feature, ordem de fragmentação._
+### Plano (APROVADO — Arquitetura 1; escopo: csv-download + audience + geofence)
+
+**Restrição arquitetural que molda tudo:** os dois ofensores são **IIFE única** onde as funções
+compartilham estado de closure e helpers privados:
+- `ffc-csv-download.js`: `var $container, $form, $btn, $overlay; var cfg/strings;` + funções soltas que
+  chamam `showOverlay/hideOverlay/updateProgress/updateStatus/showFlash/lastInfo/disableBtn/enableBtn`.
+  O `renderInfoScreen()` faz `.on('click', ...)` direto nos botões de cada fluxo (open-early, extend-end,
+  schedule-exception, cert-preview, download) — ou seja, os fluxos hoje estão amarrados ao render.
+- `ffc-audience.js`: normaliza `window.ffcAudience` (config+strings+locale) e tem um objeto de estado
+  (`config/bookings/holidays/selectedUsers`) + funções soltas que leem `ffcAudience.*`.
+
+#### Arquiteturas avaliadas
+| # | Abordagem | Prós | Contras | Veredito |
+|---|---|---|---|---|
+| 1 | **Núcleo + arquivos-irmãos com namespace** (padrão dashboard core+panels, já no repo e coberto por CI) | Entrega arquivos menores de verdade; carregamento condicional/por-handle; cada arquivo testável isolado; segue a casa | Exige expor superfície pública dos helpers/estado; mais "plumbing" de enqueue (1 handle por arquivo); diff maior; risco na externalização do estado | **RECOMENDADA** |
+| 2 | Split físico + concat no build para 1 bundle | Sem mexer no enqueue; preserva closure | Introduz passo de concat inexistente (build:js é 1:1 source→min); quebra o invariante "1 source = 1 min" e o gate "Verify minified assets" | Rejeitada |
+| 3 | Modularização **interna** (objetos no mesmo arquivo, `ctx` compartilhado) | Risco mínimo; sem mexer em enqueue/build; melhora legibilidade/testabilidade | Arquivo continua grande (não "quebra em menores", só fragmenta responsabilidades) | Alternativa de baixo risco |
+
+#### Decomposição proposta (Arquitetura 1)
+**`ffc-csv-download.js` (1127) → núcleo + 6 irmãos:**
+- `ffc-csv-core.js` — `ctx` (cfg/strings/$container/$form/$btn/$overlay), `init()`, dispatch, helpers de UI
+  (overlay/flash/progress/status), `lastInfo()`, form-state. Expõe `window.FFCCsv = { ctx, ui, register }`.
+- `ffc-csv-info-screen.js` — `onSubmitInfo`, `renderInfoScreen`, builders (restrictions/datetime/geo/quiz/csv/status).
+- `ffc-csv-cert-preview.js` — preview modal + sample data + placeholders.
+- `ffc-csv-download-flow.js` — `onDownloadClick`, `processBatch`, `onExportComplete`.
+- `ffc-csv-open-early.js` · `ffc-csv-extend-end.js` · `ffc-csv-schedule-exception.js` — um modal/fluxo cada.
+- **Mudança habilitadora (preserva comportamento):** trocar os `.on('click')` pós-render por **eventos
+  delegados** em `$container` no init de cada irmão → desacopla binding da ordem de render.
+
+**`ffc-audience.js` (1439) → núcleo + 4 irmãos:**
+- `ffc-audience-core.js` — normalização de config/strings/locale, objeto de estado, `init`, `t()`, namespace.
+- `ffc-audience-calendar.js` — render/navegação de mês, badges, feriados.
+- `ffc-audience-bookings.js` — fetch + render de bookings do dia.
+- `ffc-audience-booking-form.js` — modal, busca/seleção de usuários, check de conflitos, criar/cancelar (AJAX).
+- `ffc-audience-utils.js` — datas/horas, escape, label de environment (pode dobrar no core).
+
+#### Enqueue / dependências (a fazer junto)
+- `class-ffc-frontend.php:319+` (csv) e o loader de audience: registrar os novos handles com `deps` apontando
+  para o núcleo; manter o gate condicional (`$has_csv_download`). `wp_localize_script` continua **só no núcleo**
+  (config é global; irmãos leem via namespace).
+- **Auditar dependentes do handle `ffc-audience`** antes de renomear: `self-scheduling-shortcode.php:94` usa
+  `array('ffc-audience')` — confirmar se é dep de **CSS** (handle homônimo) e não do JS; manter o handle JS
+  `ffc-audience` como o núcleo para não quebrar dependentes.
+
+#### Testes / gates
+- Suítes existentes a adaptar (carregar núcleo + irmão relevante via `loadScript`): `csv-download-deep`,
+  `csv-download-open-early`, `csv-and-rereg-frontend`, `audience-smoke`, `dashboard-audience*`.
+  Comportamento idêntico → os testes são a rede de segurança. Coverage floor **não pode cair**.
+- `npm run build:js` passa a gerar N `.min.js` + `.map` novos (commitar todos). ESLint zero-erro.
+
+#### Sequenciamento (sprints = commits nesta PR)
+- **Sprint 2:** split `ffc-csv-download.js` (estrutura mais limpa, funções privadas bem seccionadas → começar por aqui).
+- **Sprint 3:** split `ffc-audience.js`.
+- **Sprint 4 (opcional):** `ffc-geofence-frontend.js` — separar datetime ↔ GPS ↔ preflight.
+
+**Decisões pendentes para você:** (a) Arquitetura 1 (recomendada) vs 3 (baixo risco); (b) escopo agora:
+só csv-download e reavaliar, ou os dois gigantes; (c) incluir geofence no escopo do Item 2.
 
 ---
 
@@ -170,3 +224,4 @@ _A preencher (ou marcar ⏸️ se decidirmos não atuar agora)._
 |---|---|---|---|
 | 0 | — | tracker da auditoria criado | inicial |
 | 1 | 5 | XSS escape (dashboard) + `rel=noopener` + escAttr helper + testes | sprint 1 |
+| 2 | 2 | split `ffc-csv-download.js` 1127→núcleo `FFCCsv` + 6 irmãos (info-screen, cert-preview, download-flow, open-early, extend-end, schedule-exception); enqueue + eslint global + testes adaptados | sprint 2 |

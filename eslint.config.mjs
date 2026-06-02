@@ -77,6 +77,7 @@ export default [
 				FFCAudience: 'writable',
 				FFCCalendar: 'writable',
 				FFCCalendarCore: 'writable',
+				FFCCsv: 'writable',
 				FFC: 'writable',
 
 				// Third-party.

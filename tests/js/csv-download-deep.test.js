@@ -92,7 +92,14 @@ async function loadAndReady() {
 		};
 		loadScript('assets/js/ffc-core.js');
 	}
+	// Core (window.FFCCsv) first, then the flow modules that extend it.
 	loadScript('assets/js/ffc-csv-download.js');
+	loadScript('assets/js/ffc-csv-info-screen.js');
+	loadScript('assets/js/ffc-csv-cert-preview.js');
+	loadScript('assets/js/ffc-csv-download-flow.js');
+	loadScript('assets/js/ffc-csv-open-early.js');
+	loadScript('assets/js/ffc-csv-extend-end.js');
+	loadScript('assets/js/ffc-csv-schedule-exception.js');
 	await new Promise((r) => setTimeout(r, 0));
 }
 
