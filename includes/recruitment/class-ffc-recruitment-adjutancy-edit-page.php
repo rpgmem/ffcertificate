@@ -102,8 +102,8 @@ final class RecruitmentAdjutancyEditPage {
 		echo '<table class="form-table"><tbody>';
 
 		echo '<tr><th><label for="ffc-adjutancy-edit-slug">' . esc_html__( 'Slug', 'ffcertificate' ) . '</label></th>';
-		echo '<td><input id="ffc-adjutancy-edit-slug" type="text" class="regular-text" name="slug" value="' . esc_attr( (string) $adjutancy->slug ) . '" required>';
-		echo '<p class="description">' . esc_html__( 'Unique identifier (slug-shaped). Must be unique across the catalog. Existing notices and classifications keep their reference because they link by id, not by slug.', 'ffcertificate' ) . '</p></td></tr>';
+		echo '<td><input id="ffc-adjutancy-edit-slug" type="text" class="regular-text" value="' . esc_attr( (string) $adjutancy->slug ) . '" readonly disabled>';
+		echo '<p class="description">' . esc_html__( 'The slug is locked after creation. URLs (?adjutancy=…) and the CSV import column reference the slug by value, so renaming would break shared links and the next CSV upload. Edit the Name field instead to change the user-facing label.', 'ffcertificate' ) . '</p></td></tr>';
 
 		echo '<tr><th><label for="ffc-adjutancy-edit-name">' . esc_html__( 'Name', 'ffcertificate' ) . '</label></th>';
 		echo '<td><input id="ffc-adjutancy-edit-name" type="text" class="regular-text" name="name" value="' . esc_attr( (string) $adjutancy->name ) . '" required></td></tr>';
@@ -137,26 +137,18 @@ final class RecruitmentAdjutancyEditPage {
 			exit;
 		}
 
-		$slug  = isset( $_POST['slug'] ) ? sanitize_title( wp_unslash( (string) $_POST['slug'] ) ) : '';
+		// Slug is locked after creation — see the rendered description.
+		// We ignore any tampered $_POST['slug'] and only update the
+		// mutable fields. The disabled input in the form doesn't even
+		// reach $_POST, but a hostile or out-of-date client could still
+		// send one; dropping it from the payload makes the contract
+		// explicit at the boundary.
 		$name  = isset( $_POST['name'] ) ? sanitize_text_field( wp_unslash( (string) $_POST['name'] ) ) : '';
 		$color = isset( $_POST['color'] ) ? sanitize_text_field( wp_unslash( (string) $_POST['color'] ) ) : '';
-
-		// Guard against silent UNIQUE-constraint failure: if the new slug
-		// is already used by a different adjutancy row, surface a flash
-		// error instead of letting wpdb->update return false and pretend
-		// nothing happened.
-		if ( '' !== $slug ) {
-			$existing = RecruitmentAdjutancyRepository::get_by_slug( $slug );
-			if ( null !== $existing && (int) $existing->id !== $adjutancy_id ) {
-				wp_safe_redirect( self::edit_url( $adjutancy_id, 'slug-taken' ) );
-				exit;
-			}
-		}
 
 		$ok = RecruitmentAdjutancyRepository::update(
 			$adjutancy_id,
 			array(
-				'slug'  => $slug,
 				'name'  => $name,
 				'color' => $color,
 			)
