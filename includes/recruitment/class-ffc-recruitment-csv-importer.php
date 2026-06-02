@@ -662,9 +662,7 @@ final class RecruitmentCsvImporter {
 	 * @return void
 	 */
 	private static function maybe_promote_candidate( int $candidate_id, ?string $cpf_hash, ?string $rf_hash, string $email ): void {
-		// Choose the most specific hash to send to UserCreator (cpf > rf > email).
-		$hash = $cpf_hash ?? $rf_hash ?? '';
-		if ( '' === $hash && '' === $email ) {
+		if ( null === $cpf_hash && null === $rf_hash && '' === $email ) {
 			return;
 		}
 
@@ -672,8 +670,14 @@ final class RecruitmentCsvImporter {
 			return;
 		}
 
-		$user_id = UserCreator::get_or_create_user(
-			$hash,
+		// Recruitment is the only flow where a single row can carry BOTH
+		// a CPF and an RF. The legacy single-hash entry point would miss
+		// a previously-registered submission keyed on whichever hash we
+		// didn't pass — `get_or_create_user_dual` checks both columns in
+		// a single SQL pass and falls back to email matching identically.
+		$user_id = UserCreator::get_or_create_user_dual(
+			$cpf_hash,
+			$rf_hash,
 			$email,
 			array(),
 			CapabilityManager::CONTEXT_RECRUITMENT
