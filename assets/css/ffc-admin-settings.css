@@ -1023,3 +1023,76 @@ html:has(.ffc-settings-back-to-top) {
         transition: none;
     }
 }
+
+/* ── Extracted inline styles (frontend-audit Item 1) ──────────────────────
+   Static inline style="" attributes moved out of the settings tab views
+   (ffc-tab-migrations.php, ffc-tab-geolocation.php). Dynamic styles
+   (computed progress-bar width, $table_style) stay inline by design.
+   This stylesheet is enqueued on the settings page; ffc-admin-utilities
+   also loads there but these classes are kept feature-local to avoid
+   coupling the views to the shared utility names. */
+
+.ffc-set-my-10 {
+    margin: 10px 0;
+}
+
+.ffc-set-my-12 {
+    margin: 12px 0;
+}
+
+.ffc-set-mt-10 {
+    margin-top: 10px;
+}
+
+.ffc-set-mt-18 {
+    margin-top: 18px;
+}
+
+.ffc-set-mr-8 {
+    margin-right: 8px;
+}
+
+.ffc-set-mb-10 {
+    margin-bottom: 10px;
+}
+
+.ffc-set-mb-6 {
+    margin-bottom: 6px;
+}
+
+.ffc-set-w-80 {
+    width: 80px;
+}
+
+.ffc-set-w-90 {
+    width: 90px;
+}
+
+.ffc-set-w-100 {
+    width: 100px;
+}
+
+.ffc-set-w-120 {
+    width: 120px;
+}
+
+.ffc-set-w-110-right {
+    width: 110px;
+    text-align: right;
+}
+
+.ffc-set-text-right {
+    text-align: right;
+}
+
+.ffc-set-text-center {
+    text-align: center;
+}
+
+.ffc-set-filter-row {
+    margin-bottom: 6px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-wrap: wrap;
+}

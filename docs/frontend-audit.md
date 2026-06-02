@@ -16,7 +16,7 @@
 
 ---
 
-## Item 1 — CSS inline que deveria estar em arquivos dedicados  🟦 (recruitment ✅ s8; settings/audience/rereg pendentes)
+## Item 1 — CSS inline que deveria estar em arquivos dedicados  🟦 (recruitment ✅ s8; settings ✅ s9; audience/rereg pendentes)
 
 **Dívida real (CSS inline em telas admin navegáveis)** — ~10 arquivos, ~150 ocorrências de `style="..."`:
 
@@ -61,7 +61,7 @@ semânticas no CSS da feature (ou utilitário existente/novo) **não exige tocar
 **Ordem incremental (1 commit por feature):**
 1. ✅ **recruitment** (sprint 8) — `notice-edit-page-renderer` + `admin-page` + `candidate-edit` → 29 classes `.ffc-rec-*` em `ffc-recruitment-admin.css`. Dinâmicos (`$prev_display`, `$cfg['style']`, `$style`) e `data-ffc-confirm-style="..."` (falso-positivo do grep, **não é CSS**) ficaram inline.
    - **Dívida extra descoberta** (não inventariada antes, varrer num passe futuro do recruitment): `class-ffc-recruitment-adjutancy-edit-page.php` (~2), `class-ffc-recruitment-reason-edit-page.php` (~3), `class-ffc-recruitment-reasons-list-table.php` (~1 badge).
-2. **settings** — `ffc-tab-migrations` (31) + `ffc-tab-geolocation` (11) → `ffc-admin-settings.css`.
+2. **settings** — `ffc-tab-migrations` (31) + `ffc-tab-geolocation` (11) → `ffc-admin-settings.css`. ✅ (sprint 9) — 15 classes `.ffc-set-*`; dinâmicos (barra `number_format`, `$table_style`) inline; merges entre-linhas nos inputs de localização tratados.
 3. **audience** — `admin-calendar` (19) + `admin-audience` (13) → `ffc-audience-admin.css`; `audience-shortcode` (6 frontend) → `ffc-audience.css`.
 4. **reregistration** — `reregistration-admin` (8) → `ffc-reregistration-admin.css`.
 
@@ -282,3 +282,4 @@ completa (não a lista filtrada). Cobrir com teste (filtrado vs. não-filtrado).
 | 6 | 5 | fix CodeQL (#479): cache de geofence guarda passe `{validated,expires}` em vez de lat/lng cru no localStorage (sem dado sensível em repouso); cache só após validação in-area; testes adaptados | sprint 6 |
 | 7 | 7 | roadmap: registrar bug da caixa de justificativa que some ao "chamar" fora de ordem com a listagem de convocados filtrada (doc-only; tratar por último) | sprint 7 |
 | 8 | 1 | extração de CSS inline da feature **recruitment** (notice-edit + admin-page + candidate-edit) → 29 classes `.ffc-rec-*` em `ffc-recruitment-admin.css`; dinâmicos/`data-*` preservados inline; Stylelint + `php -l` + build ok | sprint 8 |
+| 9 | 1 | extração de CSS inline da feature **settings** (`ffc-tab-migrations` 30 + `ffc-tab-geolocation` 10) → 15 classes `.ffc-set-*` em `ffc-admin-settings.css`; merges entre-linhas nos inputs de localização; dinâmicos inline; Stylelint + `php -l` + build ok | sprint 9 |
