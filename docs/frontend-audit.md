@@ -60,7 +60,7 @@ semânticas no CSS da feature (ou utilitário existente/novo) **não exige tocar
 
 **Ordem incremental (1 commit por feature):**
 1. ✅ **recruitment** (sprint 8) — `notice-edit-page-renderer` + `admin-page` + `candidate-edit` → 29 classes `.ffc-rec-*` em `ffc-recruitment-admin.css`. Dinâmicos (`$prev_display`, `$cfg['style']`, `$style`) e `data-ffc-confirm-style="..."` (falso-positivo do grep, **não é CSS**) ficaram inline.
-   - **Dívida extra descoberta** (não inventariada antes, varrer num passe futuro do recruitment): `class-ffc-recruitment-adjutancy-edit-page.php` (~2), `class-ffc-recruitment-reason-edit-page.php` (~3), `class-ffc-recruitment-reasons-list-table.php` (~1 badge).
+   - ✅ **Dívida extra varrida** (sprint 10): `adjutancy-edit-page` (2) + `reason-edit-page` (3) reusam `.ffc-rec-mt-20/.ffc-rec-ml-half/.ffc-rec-flex-wrap`; `reasons-list-table` badge → nova `.ffc-rec-pill`. Doc-comments (notice:740, settings:300) e `data-ffc-confirm-style` não são CSS.
 2. **settings** — `ffc-tab-migrations` (31) + `ffc-tab-geolocation` (11) → `ffc-admin-settings.css`. ✅ (sprint 9) — 15 classes `.ffc-set-*`; dinâmicos (barra `number_format`, `$table_style`) inline; merges entre-linhas nos inputs de localização tratados.
 3. **audience** — `admin-calendar` (19) + `admin-audience` (13) → `ffc-audience-admin.css`; `audience-shortcode` (6 frontend) → `ffc-audience.css`.
 4. **reregistration** — `reregistration-admin` (8) → `ffc-reregistration-admin.css`.
@@ -283,3 +283,4 @@ completa (não a lista filtrada). Cobrir com teste (filtrado vs. não-filtrado).
 | 7 | 7 | roadmap: registrar bug da caixa de justificativa que some ao "chamar" fora de ordem com a listagem de convocados filtrada (doc-only; tratar por último) | sprint 7 |
 | 8 | 1 | extração de CSS inline da feature **recruitment** (notice-edit + admin-page + candidate-edit) → 29 classes `.ffc-rec-*` em `ffc-recruitment-admin.css`; dinâmicos/`data-*` preservados inline; Stylelint + `php -l` + build ok | sprint 8 |
 | 9 | 1 | extração de CSS inline da feature **settings** (`ffc-tab-migrations` 30 + `ffc-tab-geolocation` 10) → 15 classes `.ffc-set-*` em `ffc-admin-settings.css`; merges entre-linhas nos inputs de localização; dinâmicos inline; Stylelint + `php -l` + build ok | sprint 9 |
+| 10 | 1 | varredura extra recruitment (descoberta na s8): `adjutancy-edit` + `reason-edit` reusam classes `.ffc-rec-*`; `reasons-list-table` badge → `.ffc-rec-pill`; Stylelint + `php -l` + build ok | sprint 10 |

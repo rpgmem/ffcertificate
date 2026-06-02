@@ -103,7 +103,7 @@ final class RecruitmentReasonEditPage {
 			'appeal_granted' => __( 'Appeal granted', 'ffcertificate' ),
 		);
 
-		echo '<div class="postbox" style="margin-top:20px;">';
+		echo '<div class="postbox ffc-rec-mt-20">';
 		echo '<h2 class="hndle"><span>' . esc_html__( 'General', 'ffcertificate' ) . '</span></h2>';
 		echo '<div class="inside">';
 
@@ -123,10 +123,10 @@ final class RecruitmentReasonEditPage {
 
 		echo '<tr><th><label for="ffc-reason-edit-color">' . esc_html__( 'Badge color', 'ffcertificate' ) . '</label></th>';
 		echo '<td><input id="ffc-reason-edit-color" type="color" name="color" value="' . esc_attr( $color ) . '">';
-		echo ' <code style="margin-left:.5em;">' . esc_html( $color ) . '</code></td></tr>';
+		echo ' <code class="ffc-rec-ml-half">' . esc_html( $color ) . '</code></td></tr>';
 
 		echo '<tr><th>' . esc_html__( 'Applies to', 'ffcertificate' ) . '</th><td>';
-		echo '<div style="display:flex;flex-wrap:wrap;gap:6px 16px;">';
+		echo '<div class="ffc-rec-flex-wrap">';
 		foreach ( $applies_options as $key => $label ) {
 			$id_attr = 'ffc-reason-edit-applies-' . $key;
 			$checked = ! $is_applies_all && in_array( $key, $applies_to, true );
