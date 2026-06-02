@@ -357,4 +357,102 @@ class UserCreatorTest extends TestCase {
         $this->assertCount( 2, $params );
         $this->assertSame( array( 'myhash', 'myhash' ), $params );
     }
+
+    // ------------------------------------------------------------------
+    // get_or_create_user_dual() — recruitment-style two-hash entry point
+    // ------------------------------------------------------------------
+
+    public function test_dual_returns_wp_error_when_everything_empty(): void {
+        $result = UserCreator::get_or_create_user_dual( null, null, '' );
+        $this->assertInstanceOf( \WP_Error::class, $result );
+        $this->assertSame( 'ffc_user_no_identifier', $result->get_error_code() );
+    }
+
+    public function test_dual_sends_both_hashes_to_prepare_when_both_supplied(): void {
+        global $wpdb;
+        $captured = array();
+        $wpdb->shouldReceive( 'prepare' )->andReturnUsing(
+            function ( $sql, ...$args ) use ( &$captured ) {
+                $captured[] = array( 'sql' => $sql, 'args' => $args );
+                return 'QUERY';
+            }
+        );
+        $wpdb->shouldReceive( 'get_var' )->andReturn( '321' );
+        $wpdb->shouldReceive( 'query' )->andReturn( 0 );
+        Functions\when( 'get_userdata' )->justReturn( null );
+
+        $result = UserCreator::get_or_create_user_dual( 'CPF-HASH', 'RF-HASH', 'who@cares.com' );
+        $this->assertSame( 321, $result );
+
+        // SELECT step must reference both columns AND both placeholder values.
+        $lookup = $captured[0];
+        $this->assertStringContainsString( 'cpf_hash = %s', (string) $lookup['sql'] );
+        $this->assertStringContainsString( 'rf_hash = %s', (string) $lookup['sql'] );
+        // Args after the %i table name are the two hash values, in order.
+        $this->assertSame( array( 'wp_ffc_submissions', 'CPF-HASH', 'RF-HASH' ), $lookup['args'] );
+    }
+
+    public function test_dual_omits_missing_hash_from_lookup(): void {
+        global $wpdb;
+        $captured = array();
+        $wpdb->shouldReceive( 'prepare' )->andReturnUsing(
+            function ( $sql, ...$args ) use ( &$captured ) {
+                $captured[] = array( 'sql' => $sql, 'args' => $args );
+                return 'QUERY';
+            }
+        );
+        $wpdb->shouldReceive( 'get_var' )->andReturn( '7' );
+        $wpdb->shouldReceive( 'query' )->andReturn( 0 );
+        Functions\when( 'get_userdata' )->justReturn( null );
+
+        UserCreator::get_or_create_user_dual( null, 'ONLY-RF', 'x@y.com' );
+
+        $lookup = $captured[0];
+        $this->assertStringContainsString( 'rf_hash = %s', (string) $lookup['sql'] );
+        $this->assertStringNotContainsString( 'cpf_hash', (string) $lookup['sql'] );
+        $this->assertSame( array( 'wp_ffc_submissions', 'ONLY-RF' ), $lookup['args'] );
+    }
+
+    public function test_dual_falls_back_to_email_when_no_submission_hash_match(): void {
+        global $wpdb;
+        $wpdb->shouldReceive( 'prepare' )->andReturn( 'QUERY' );
+        $wpdb->shouldReceive( 'get_var' )->andReturn( null );
+        $wpdb->shouldReceive( 'query' )->andReturn( 0 );
+
+        $mock_user               = Mockery::mock( 'WP_User' );
+        $mock_user->ID           = 91;
+        $mock_user->display_name = 'Already Has Email';
+        $mock_user->user_login   = 'alreadyhasemail';
+        $mock_user->shouldReceive( 'add_role' )->with( 'ffc_user' )->once();
+
+        Functions\when( 'get_user_by' )->justReturn( $mock_user );
+        Functions\when( 'get_userdata' )->justReturn( null );
+        Functions\when( 'wp_update_user' )->justReturn( 91 );
+        Functions\when( 'update_user_meta' )->justReturn( true );
+
+        $result = UserCreator::get_or_create_user_dual( 'UNSEEN-CPF', 'UNSEEN-RF', 'known@user.com' );
+        $this->assertSame( 91, $result );
+    }
+
+    public function test_dual_creates_new_user_when_nothing_matches(): void {
+        global $wpdb;
+        $wpdb->shouldReceive( 'prepare' )->andReturn( 'QUERY' );
+        $wpdb->shouldReceive( 'get_var' )->andReturn( null );
+        $wpdb->shouldReceive( 'query' )->andReturn( 0 );
+        $wpdb->shouldReceive( 'get_results' )->andReturn( array() );
+
+        Functions\when( 'get_user_by' )->justReturn( false );
+        Functions\when( 'wp_generate_password' )->justReturn( 'pw' );
+        Functions\when( 'sanitize_user' )->returnArg();
+        Functions\when( 'remove_accents' )->returnArg();
+        Functions\when( 'username_exists' )->justReturn( false );
+        Functions\when( 'wp_create_user' )->justReturn( 555 );
+        Functions\when( 'get_userdata' )->justReturn( null );
+        Functions\when( 'wp_update_user' )->justReturn( 555 );
+        Functions\when( 'update_user_meta' )->justReturn( true );
+        Functions\when( 'wp_new_user_notification' )->justReturn( null );
+
+        $result = UserCreator::get_or_create_user_dual( 'NEW-CPF', 'NEW-RF', 'brand@new.com', array( 'name' => 'Brand New' ) );
+        $this->assertSame( 555, $result );
+    }
 }

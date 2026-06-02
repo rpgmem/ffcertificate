@@ -64,8 +64,20 @@ final class RecruitmentPublicShortcodeRenderer {
 		$offset       = ( $current_page - 1 ) * $page_size;
 		$page_rows    = array_slice( $rows, $offset, $page_size );
 
+		// Heading + total-count badge on the same line. `$total` is the
+		// post-filter count, so when the operator types into the search
+		// box the badge reflects the narrowed list instead of the global
+		// total — which is what they actually need to see.
+		$count_label = sprintf(
+			/* translators: %s: number of candidates in the section (post-filter) */
+			_n( '%s candidate', '%s candidates', $total, 'ffcertificate' ),
+			number_format_i18n( $total )
+		);
 		$html  = '<section class="ffc-recruitment-section">';
-		$html .= '<h3>' . esc_html( $heading ) . '</h3>';
+		$html .= '<h3 class="ffc-recruitment-section-heading">'
+			. '<span class="ffc-recruitment-section-title">' . esc_html( $heading ) . '</span>'
+			. '<span class="ffc-recruitment-section-count">' . esc_html( $count_label ) . '</span>'
+			. '</h3>';
 		$html .= '<table class="ffc-recruitment-table"><thead><tr>';
 		if ( $columns['rank'] ) {
 			$html .= '<th>' . esc_html__( 'Rank', 'ffcertificate' ) . '</th>';
@@ -310,10 +322,18 @@ final class RecruitmentPublicShortcodeRenderer {
 	 * @return string
 	 */
 	private static function render_name_search_input( string $name_query ): string {
+		// Inline magnifying-glass glyph — keeps the asset count flat and
+		// avoids a font dependency. `aria-hidden` so screen readers fall
+		// through to the button label.
+		$icon = '<svg class="ffc-recruitment-search-btn-icon" viewBox="0 0 16 16" width="14" height="14" aria-hidden="true" focusable="false">'
+			. '<path fill="currentColor" d="M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001q.044.06.098.115l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85a1 1 0 0 0-.115-.1zM12 6.5a5.5 5.5 0 1 1-11 0 5.5 5.5 0 0 1 11 0z"/>'
+			. '</svg>';
+
 		$html  = '<label class="ffc-recruitment-name-search">';
 		$html .= esc_html__( 'Search by name:', 'ffcertificate' ) . ' ';
 		$html .= '<input type="search" name="q" value="' . esc_attr( $name_query ) . '" placeholder="' . esc_attr__( 'name…', 'ffcertificate' ) . '">';
-		$html .= ' <button type="submit">' . esc_html__( 'Search', 'ffcertificate' ) . '</button>';
+		// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- icon is a constant SVG string with no dynamic content.
+		$html .= ' <button type="submit" class="ffc-recruitment-search-btn">' . $icon . '<span>' . esc_html__( 'Search', 'ffcertificate' ) . '</span></button>';
 		$html .= '</label>';
 		return $html;
 	}
@@ -364,6 +384,11 @@ final class RecruitmentPublicShortcodeRenderer {
 	/**
 	 * Render pagination links for one section.
 	 *
+	 * Renders a 7-page window centered on the current page (±3) plus
+	 * first / prev / next / last arrows so notices with 30+ pages don't
+	 * dump every number on one line. The window slides at the edges so
+	 * it always shows up to 7 entries when there's enough room.
+	 *
 	 * @param int    $current_page 1-indexed current page.
 	 * @param int    $total_pages  Total page count.
 	 * @param string $page_param   Query-string parameter name.
@@ -374,16 +399,42 @@ final class RecruitmentPublicShortcodeRenderer {
 			return '';
 		}
 
-		$base = remove_query_arg( $page_param );
+		$base   = remove_query_arg( $page_param );
+		$url_to = static function ( int $p ) use ( $page_param, $base ): string {
+			return add_query_arg( $page_param, $p, $base );
+		};
+
+		// Window math — 7 entries centered on $current_page, slid to fit
+		// the [1, total_pages] range so we always emit the full window
+		// when there's room.
+		$window = 7;
+		$half   = (int) floor( $window / 2 );
+		$start  = max( 1, $current_page - $half );
+		$end    = min( $total_pages, $start + $window - 1 );
+		$start  = max( 1, $end - $window + 1 );
+
 		$html = '<nav class="ffc-recruitment-pagination">';
-		for ( $p = 1; $p <= $total_pages; $p++ ) {
-			$url = add_query_arg( $page_param, $p, $base );
+
+		// First / prev arrows. Hidden when already at the start so the
+		// markup doesn't carry inert affordances.
+		if ( $current_page > 1 ) {
+			$html .= '<a class="ffc-recruitment-pagination-arrow" href="' . esc_url( $url_to( 1 ) ) . '" aria-label="' . esc_attr__( 'First page', 'ffcertificate' ) . '" title="' . esc_attr__( 'First page', 'ffcertificate' ) . '">&laquo;</a>';
+			$html .= '<a class="ffc-recruitment-pagination-arrow" href="' . esc_url( $url_to( $current_page - 1 ) ) . '" aria-label="' . esc_attr__( 'Previous page', 'ffcertificate' ) . '" title="' . esc_attr__( 'Previous page', 'ffcertificate' ) . '">&lsaquo;</a>';
+		}
+
+		for ( $p = $start; $p <= $end; $p++ ) {
 			if ( $p === $current_page ) {
-				$html .= '<span class="current">' . esc_html( (string) $p ) . '</span>';
+				$html .= '<span class="current" aria-current="page">' . esc_html( (string) $p ) . '</span>';
 			} else {
-				$html .= '<a href="' . esc_url( $url ) . '">' . esc_html( (string) $p ) . '</a>';
+				$html .= '<a href="' . esc_url( $url_to( $p ) ) . '">' . esc_html( (string) $p ) . '</a>';
 			}
 		}
+
+		if ( $current_page < $total_pages ) {
+			$html .= '<a class="ffc-recruitment-pagination-arrow" href="' . esc_url( $url_to( $current_page + 1 ) ) . '" aria-label="' . esc_attr__( 'Next page', 'ffcertificate' ) . '" title="' . esc_attr__( 'Next page', 'ffcertificate' ) . '">&rsaquo;</a>';
+			$html .= '<a class="ffc-recruitment-pagination-arrow" href="' . esc_url( $url_to( $total_pages ) ) . '" aria-label="' . esc_attr__( 'Last page', 'ffcertificate' ) . '" title="' . esc_attr__( 'Last page', 'ffcertificate' ) . '">&raquo;</a>';
+		}
+
 		$html .= '</nav>';
 		return $html;
 	}
@@ -499,6 +550,7 @@ final class RecruitmentPublicShortcodeRenderer {
 			'accepted'  => __( 'Called', 'ffcertificate' ),
 			'not_shown' => __( 'Did not show up', 'ffcertificate' ),
 			'hired'     => __( 'Hired', 'ffcertificate' ),
+			'withdrew'  => __( 'Withdrew', 'ffcertificate' ),
 		);
 		return $map[ $status ] ?? $status;
 	}
@@ -541,7 +593,7 @@ final class RecruitmentPublicShortcodeRenderer {
 	 * @param bool $is_pcd Whether the candidate is PCD.
 	 * @return string Already-escaped HTML.
 	 */
-	private static function render_subscription_badge( bool $is_pcd ): string {
+	public static function render_subscription_badge( bool $is_pcd ): string {
 		$settings = RecruitmentSettings::all();
 		$bg       = $is_pcd
 			? (string) $settings['subscription_color_pcd']
@@ -632,6 +684,7 @@ final class RecruitmentPublicShortcodeRenderer {
 			'accepted'  => (string) $settings['status_color_called'],
 			'hired'     => (string) $settings['status_color_hired'],
 			'not_shown' => (string) $settings['status_color_not_shown'],
+			'withdrew'  => (string) $settings['status_color_withdrew'],
 		);
 		return BadgeHtml::render(
 			'ffc-recruitment-status-badge',

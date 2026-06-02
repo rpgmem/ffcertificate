@@ -107,6 +107,18 @@ final class RecruitmentAdminAssetsManager {
 			true
 		);
 
+		// Batched CSV-import orchestrator, used by the notice edit page's
+		// preview-list flow. The inline submit handler hands off to
+		// `window.ffcRecruitmentImportBatched.run()` so the dependency
+		// here is a script enqueue, not a localized object.
+		wp_enqueue_script(
+			'ffc-recruitment-import-batched',
+			FFC_PLUGIN_URL . "assets/js/ffc-recruitment-import-batched{$s}.js",
+			array(),
+			$js_ver,
+			true
+		);
+
 		// Autosave infra for the Settings tab — `data-ffc-autosave-key`
 		// toggles in `render_settings_tab()` bind via the shared
 		// ffc-admin-autosave widget against SettingsAjaxEndpoint. Mirrors

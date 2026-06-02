@@ -365,4 +365,149 @@ class RecruitmentCsvImporterTest extends TestCase {
 		$this->assertSame( '12345678909', $out['value'] );
 		$this->assertFalse( $out['too_long'] );
 	}
+
+	public function test_batch_size_constants_match_documented_defaults(): void {
+		// Pins the public batch-size contract: AJAX callers (the JS-side
+		// `BATCH_SIZE_DEFAULT` and the REST controller `args`) reference
+		// this constant by name, so any future bump should happen in
+		// lockstep with a CHANGELOG note.
+		$this->assertSame( 50, RecruitmentCsvImporter::BATCH_SIZE_DEFAULT );
+	}
+
+	// ──────────────────────────────────────────────────────────────────.
+	// validate() — physical-candidate duplicate detection.
+	//
+	// The prior rule "(cpf + adjutancy) duplicate" missed the cases the
+	// upsert path later collapsed via rf_hash / email lookup. Those
+	// silent reuses then violated the UNIQUE (candidate_id, adjutancy,
+	// notice, list_type) constraint at INSERT time. The expanded rule
+	// groups rows by ANY shared identifier (cpf / rf / email) before
+	// the pair check fires.
+	//
+	// Note: validate() is private. The tests invoke it via Reflection,
+	// matching the pattern the trailing normalise_id tests above use.
+	// ──────────────────────────────────────────────────────────────────.
+
+	/**
+	 * @param list<array<string, mixed>> $rows
+	 * @return list<string>
+	 */
+	private function validate_rows( array $rows ): array {
+		$ref = new \ReflectionClass( RecruitmentCsvImporter::class );
+		$m   = $ref->getMethod( 'validate' );
+		$m->setAccessible( true );
+		return $m->invoke( null, $rows, 1, 'preview', array( 'mat' => 1 ) );
+	}
+
+	private function csv_row( array $overrides = array() ): array {
+		return array_merge(
+			array(
+				'_line'     => 2,
+				'name'      => 'Alice',
+				'cpf'       => '12345678901',
+				'rf'        => '',
+				'email'     => 'alice@example.test',
+				'phone'     => '',
+				'adjutancy' => 'mat',
+				'rank'      => '1',
+				'score'     => '90',
+				'pcd'       => 'Não',
+			),
+			$overrides
+		);
+	}
+
+	public function test_validate_detects_same_rf_different_cpf_in_same_adjutancy(): void {
+		// Both rows have unique CPFs (legal under the old rule), but
+		// share the same RF — upsert_candidate would collapse them onto
+		// one candidate row and the second classification INSERT would
+		// hit the UNIQUE constraint. validate() must now reject it.
+		$rows = array(
+			$this->csv_row( array( '_line' => 2, 'cpf' => '11111111111', 'rf' => '1234567', 'email' => 'a@b.test' ) ),
+			$this->csv_row( array( '_line' => 3, 'cpf' => '22222222222', 'rf' => '1234567', 'email' => 'c@d.test' ) ),
+		);
+
+		$errors = $this->validate_rows( $rows );
+
+		$this->assertNotEmpty( $errors );
+		$dup_errors = array_filter( $errors, static fn( $e ) => false !== strpos( $e, 'duplicate_candidate_adjutancy' ) );
+		$this->assertCount( 1, $dup_errors, 'second row must be flagged as duplicate' );
+	}
+
+	public function test_validate_detects_same_email_different_cpf_in_same_adjutancy(): void {
+		$rows = array(
+			$this->csv_row( array( '_line' => 2, 'cpf' => '11111111111', 'rf' => '', 'email' => 'shared@example.test' ) ),
+			$this->csv_row( array( '_line' => 3, 'cpf' => '22222222222', 'rf' => '', 'email' => 'shared@example.test' ) ),
+		);
+
+		$errors = $this->validate_rows( $rows );
+
+		$dup_errors = array_filter( $errors, static fn( $e ) => false !== strpos( $e, 'duplicate_candidate_adjutancy' ) );
+		$this->assertCount( 1, $dup_errors );
+	}
+
+	public function test_validate_detects_rf_only_row_matching_prior_cpf_plus_rf_row(): void {
+		// Linha 1 carries both CPF + RF; linha 2 is RF-only (CPF blank).
+		// The upsert would find the existing candidate via rf_hash and
+		// reuse the id. Must be caught by the pre-pass.
+		$rows = array(
+			$this->csv_row( array( '_line' => 2, 'cpf' => '11111111111', 'rf' => '1234567' ) ),
+			$this->csv_row( array( '_line' => 3, 'cpf' => '', 'rf' => '1234567', 'email' => '' ) ),
+		);
+
+		$errors = $this->validate_rows( $rows );
+
+		$dup_errors = array_filter( $errors, static fn( $e ) => false !== strpos( $e, 'duplicate_candidate_adjutancy' ) );
+		$this->assertCount( 1, $dup_errors );
+	}
+
+	public function test_validate_allows_same_candidate_across_different_adjutancies(): void {
+		// Same person classified for two different adjutancies is the
+		// legitimate use-case the duplicate rule must NOT break.
+		$rows = array(
+			$this->csv_row( array( '_line' => 2, 'adjutancy' => 'mat' ) ),
+			$this->csv_row( array( '_line' => 3, 'adjutancy' => 'por' ) ),
+		);
+
+		$errors = $this->validate_rows( $rows );
+
+		// 'por' isn't in the adjutancy_map our harness provides, so we
+		// expect adjutancy_not_in_notice errors — but NOT duplicate.
+		$dup_errors = array_filter( $errors, static fn( $e ) => false !== strpos( $e, 'duplicate_candidate_adjutancy' ) );
+		$this->assertEmpty( $dup_errors, 'same person in different adjutancies must not flag duplicate' );
+	}
+
+	public function test_validate_transitively_coalesces_identities_via_shared_tags(): void {
+		// Row 1 carries CPF=A + RF=R1
+		// Row 2 carries CPF=B + email=E1   (different person on the
+		//   surface — no overlap with row 1)
+		// Row 3 carries RF=R1 + email=E1   (bridges 1 and 2 onto the
+		//   same physical candidate)
+		// All three sit in the same adjutancy → must surface as one
+		// duplicate-pair error against row 3 (the bridge row).
+		$rows = array(
+			$this->csv_row( array( '_line' => 2, 'cpf' => '11111111111', 'rf' => '1111111', 'email' => 'a@b.test' ) ),
+			$this->csv_row( array( '_line' => 3, 'cpf' => '22222222222', 'rf' => '', 'email' => 'bridge@b.test' ) ),
+			$this->csv_row( array( '_line' => 4, 'cpf' => '', 'rf' => '1111111', 'email' => 'bridge@b.test' ) ),
+		);
+
+		$errors = $this->validate_rows( $rows );
+
+		$dup_errors = array_values(
+			array_filter( $errors, static fn( $e ) => false !== strpos( $e, 'duplicate_candidate_adjutancy' ) )
+		);
+		// Once row 3 bridges the two prior identities, both row 2 and
+		// row 3 collapse onto the same logical candidate as row 1 —
+		// so the per-row loop surfaces TWO duplicate errors (one for
+		// row 2 vs the established row 1 pair, one for row 3 vs the
+		// same pair). Two errors is the right answer: each subsequent
+		// row that hits the same (candidate, adjutancy) deserves its
+		// own per-line message so the operator can clean any of them.
+		$this->assertCount( 2, $dup_errors );
+		$lines = implode( ' | ', $dup_errors );
+		// Format is `line=N: …` (see line_error()). Pin the prefixes
+		// of both offending rows so we know both made it through.
+		$this->assertStringContainsString( 'line=3', $lines );
+		$this->assertStringContainsString( 'line=4', $lines );
+	}
 }

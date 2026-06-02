@@ -617,4 +617,240 @@ class RateLimiterTest extends TestCase {
         $this->assertSame( str_repeat( 'b', 64 ), $captured['sig_ua'] );
         $this->assertNull( $captured['sig_canvas'] );
     }
+
+    // ------------------------------------------------------------------
+    // check_cpf_limit() — three rejection branches + happy path.
+    //
+    // The gate order is: temporarily_blocked → monthly db count →
+    // yearly db count → hourly attempt count vs block_threshold.
+    // ------------------------------------------------------------------
+
+    /**
+     * Helper: stub the static DataSanitizer used by check_cpf_limit so
+     * the test doesn't depend on the real CPF normalization logic.
+     */
+    private function stub_cpf_normalizer(): void {
+        // The CPF passes through DataSanitizer::normalize_cpf_rf, which
+        // strips punctuation. We pre-strip in our stubs so the test
+        // input "123.456.789-01" reaches the gate machinery as "12345678901".
+        // No mock needed — the real function is pure and safe to invoke.
+    }
+
+    public function test_cpf_limit_blocks_when_temporarily_blocked(): void {
+        $this->stub_default_settings( array( 'cpf' => array( 'check_database' => true ) ) );
+
+        global $wpdb;
+        // is_temporarily_blocked() runs a SELECT blocked_until query.
+        // A non-empty return trips the gate.
+        $wpdb->shouldReceive( 'get_var' )->andReturn( '2099-12-31 23:59:59' );
+
+        $r = RateLimiter::check_cpf_limit( '12345678901', 7 );
+
+        $this->assertFalse( $r['allowed'] );
+        $this->assertSame( 'cpf_blocked', $r['reason'] );
+        $this->assertSame( 86400, $r['wait_seconds'] );
+    }
+
+    public function test_cpf_limit_blocks_when_monthly_db_count_exceeded(): void {
+        $this->stub_default_settings(
+            array( 'cpf' => array( 'check_database' => true, 'max_per_month' => 2 ) )
+        );
+
+        // Sequence the wpdb->get_var calls. Order: is_temporarily_blocked
+        // (returns null = not blocked) → get_submission_count('month').
+        global $wpdb;
+        $seq = 0;
+        $wpdb->shouldReceive( 'get_var' )->andReturnUsing(
+            function () use ( &$seq ) {
+                return ( ++$seq === 1 ) ? null : '5';
+            }
+        );
+
+        $r = RateLimiter::check_cpf_limit( '12345678901', 7 );
+
+        $this->assertFalse( $r['allowed'] );
+        $this->assertSame( 'cpf_month_limit', $r['reason'] );
+        $this->assertSame( 2592000, $r['wait_seconds'] );
+    }
+
+    public function test_cpf_limit_allows_when_all_counters_below_threshold(): void {
+        $this->stub_default_settings(
+            array(
+                'cpf' => array(
+                    'check_database'  => true,
+                    'max_per_month'   => 100,
+                    'max_per_year'    => 100,
+                    'block_threshold' => 100,
+                ),
+            )
+        );
+
+        // is_temporarily_blocked returns null (not blocked), then every
+        // counter query returns "1" — well under each threshold.
+        global $wpdb;
+        $wpdb->shouldReceive( 'get_var' )->andReturn( '1' )->byDefault();
+        // Override first call to ensure not-blocked.
+        $seq = 0;
+        $wpdb->shouldReceive( 'get_var' )->andReturnUsing(
+            function () use ( &$seq ) {
+                return ( ++$seq === 1 ) ? null : '1';
+            }
+        );
+
+        $r = RateLimiter::check_cpf_limit( '12345678901', 7 );
+
+        $this->assertTrue( $r['allowed'] );
+    }
+
+    // ------------------------------------------------------------------
+    // check_global_limit() — two-tier gate (per-minute object cache then
+    // per-hour DB count).
+    // ------------------------------------------------------------------
+
+    public function test_global_limit_blocks_on_minute_overflow(): void {
+        $this->stub_default_settings(
+            array( 'global' => array( 'enabled' => true, 'max_per_minute' => 5 ) )
+        );
+
+        // wp_cache_get returns the per-minute counter — already at limit.
+        Functions\when( 'wp_cache_get' )->justReturn( 5 );
+
+        $r = RateLimiter::check_global_limit();
+
+        $this->assertFalse( $r['allowed'] );
+        $this->assertSame( 'global_minute_limit', $r['reason'] );
+        $this->assertSame( 60, $r['wait_seconds'] );
+    }
+
+    public function test_global_limit_blocks_on_hour_overflow(): void {
+        $this->stub_default_settings(
+            array( 'global' => array( 'enabled' => true, 'max_per_minute' => 100, 'max_per_hour' => 10 ) )
+        );
+
+        // Minute counter is fine; the hour count from the DB overflows.
+        Functions\when( 'wp_cache_get' )->justReturn( 0 );
+
+        global $wpdb;
+        $wpdb->shouldReceive( 'get_var' )->andReturn( '15' );
+
+        $r = RateLimiter::check_global_limit();
+
+        $this->assertFalse( $r['allowed'] );
+        $this->assertSame( 'global_hour_limit', $r['reason'] );
+        $this->assertSame( 3600, $r['wait_seconds'] );
+    }
+
+    public function test_global_limit_allows_when_under_both_thresholds(): void {
+        $this->stub_default_settings(
+            array( 'global' => array( 'enabled' => true, 'max_per_minute' => 100, 'max_per_hour' => 1000 ) )
+        );
+        Functions\when( 'wp_cache_get' )->justReturn( 0 );
+        global $wpdb;
+        $wpdb->shouldReceive( 'get_var' )->andReturn( '0' );
+
+        $r = RateLimiter::check_global_limit();
+        $this->assertTrue( $r['allowed'] );
+    }
+
+    // ------------------------------------------------------------------
+    // record_attempt() — increments object-cache counters for IP and
+    // global types, persists DB counters for all types. We assert via
+    // the wp_cache_set call shape since the actual DB write goes through
+    // the private increment_counter helper.
+    // ------------------------------------------------------------------
+
+    public function test_record_attempt_ip_writes_hour_and_last_cache_keys(): void {
+        $this->stub_default_settings();
+        Functions\when( 'wp_cache_get' )->justReturn( 2 );
+        Functions\when( 'current_time' )->justReturn( '2026-06-01 12:00:00' );
+
+        $captured = array();
+        Functions\when( 'wp_cache_set' )->alias(
+            function ( $key, $value ) use ( &$captured ) {
+                $captured[ $key ] = $value;
+                return true;
+            }
+        );
+
+        RateLimiter::record_attempt( 'ip', '203.0.113.5', 42 );
+
+        // The two IP keys: per-form hour counter (+1 on top of cached 2)
+        // and the "last attempt" timestamp.
+        $matched_hour = array_filter( array_keys( $captured ), static fn( $k ) => str_ends_with( $k, '_hour' ) );
+        $matched_last = array_filter( array_keys( $captured ), static fn( $k ) => str_ends_with( $k, '_last' ) );
+        $this->assertNotEmpty( $matched_hour, 'IP hour counter cache key must be written' );
+        $this->assertNotEmpty( $matched_last, 'IP last-attempt cache key must be written' );
+        $this->assertSame( 3, $captured[ reset( $matched_hour ) ], 'hour counter is current+1' );
+    }
+
+    public function test_record_attempt_global_writes_minute_cache_key(): void {
+        $this->stub_default_settings();
+        Functions\when( 'wp_cache_get' )->justReturn( 4 );
+        Functions\when( 'current_time' )->justReturn( '2026-06-01 12:00:00' );
+
+        $captured = array();
+        Functions\when( 'wp_cache_set' )->alias(
+            function ( $key, $value ) use ( &$captured ) {
+                $captured[ $key ] = $value;
+                return true;
+            }
+        );
+
+        RateLimiter::record_attempt( 'global', 'system' );
+
+        $matched = array_filter( array_keys( $captured ), static fn( $k ) => str_contains( $k, 'ffc_rate_global_minute_' ) );
+        $this->assertNotEmpty( $matched, 'global minute counter cache key must be written' );
+        $this->assertSame( 5, $captured[ reset( $matched ) ], 'minute counter is current+1' );
+    }
+
+    // ------------------------------------------------------------------
+    // get_user_ip() — REMOTE_ADDR by default; HTTP_X_FORWARDED_FOR
+    // consulted only when ffc_trust_forwarded_headers is true.
+    // ------------------------------------------------------------------
+
+    public function test_get_user_ip_returns_remote_addr_by_default(): void {
+        $_SERVER['REMOTE_ADDR'] = '198.51.100.7';
+        Functions\when( 'apply_filters' )->returnArg( 2 ); // ffc_trust_forwarded_headers default = false
+        Functions\when( 'sanitize_text_field' )->returnArg();
+        Functions\when( 'wp_unslash' )->returnArg();
+
+        $this->assertSame( '198.51.100.7', RateLimitChecker::get_user_ip() );
+    }
+
+    public function test_get_user_ip_falls_back_to_zero_when_remote_addr_missing(): void {
+        unset( $_SERVER['REMOTE_ADDR'] );
+        Functions\when( 'apply_filters' )->returnArg( 2 );
+        Functions\when( 'sanitize_text_field' )->returnArg();
+        Functions\when( 'wp_unslash' )->returnArg();
+
+        $this->assertSame( '0.0.0.0', RateLimitChecker::get_user_ip() );
+    }
+
+    public function test_get_user_ip_rejects_invalid_remote_addr_format(): void {
+        $_SERVER['REMOTE_ADDR'] = 'not-an-ip';
+        Functions\when( 'apply_filters' )->returnArg( 2 );
+        Functions\when( 'sanitize_text_field' )->returnArg();
+        Functions\when( 'wp_unslash' )->returnArg();
+
+        $this->assertSame( '0.0.0.0', RateLimitChecker::get_user_ip() );
+    }
+
+    public function test_get_user_ip_honours_trusted_forwarded_header_filter(): void {
+        unset( $_SERVER['REMOTE_ADDR'] );
+        // Comma-separated list: the function takes the first valid IP.
+        $_SERVER['HTTP_X_FORWARDED_FOR'] = '203.0.113.5, 10.0.0.1';
+
+        // apply_filters('ffc_trust_forwarded_headers', false) → true now.
+        Functions\when( 'apply_filters' )->alias(
+            static function ( $hook, $default ) {
+                return 'ffc_trust_forwarded_headers' === $hook ? true : $default;
+            }
+        );
+        Functions\when( 'sanitize_text_field' )->returnArg();
+        Functions\when( 'wp_unslash' )->returnArg();
+
+        $this->assertSame( '203.0.113.5', RateLimitChecker::get_user_ip() );
+
+        unset( $_SERVER['HTTP_X_FORWARDED_FOR'] );
+    }
 }

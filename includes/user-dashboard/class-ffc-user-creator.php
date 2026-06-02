@@ -105,6 +105,168 @@ class UserCreator {
 	}
 
 	/**
+	 * Get or create a WordPress user when BOTH a CPF and an RF are
+	 * available for the same person.
+	 *
+	 * The legacy {@see self::get_or_create_user()} entry point only takes
+	 * one identifier hash. When recruitment imports a CSV row that
+	 * carries both a CPF and an RF (the only flow in the plugin where
+	 * the operator-provided identity can be dual), passing only one of
+	 * them misses a previously-registered submission keyed on the OTHER
+	 * — and falls through to email matching or, worse, a duplicate
+	 * user. This entry point fixes that by checking both columns against
+	 * both hashes in a single SQL pass.
+	 *
+	 * Flow is identical to the single-hash path otherwise:
+	 *   1. Lookup against `ffc_submissions` where any of the supplied
+	 *      hashes matches its respective column.
+	 *   2. Email lookup in wp_users.
+	 *   3. Create.
+	 *
+	 * @param string|null          $cpf_hash        SHA-256 hash of the candidate CPF (or null).
+	 * @param string|null          $rf_hash         SHA-256 hash of the candidate RF (or null).
+	 * @param string               $email           Plain email.
+	 * @param array<string, mixed> $submission_data Optional metadata for user creation.
+	 * @param string               $context         Capability context.
+	 * @return int|\WP_Error User ID or error. Returns a WP_Error('ffc_user_no_identifier') when both hashes AND email are empty.
+	 */
+	public static function get_or_create_user_dual( ?string $cpf_hash, ?string $rf_hash, string $email, array $submission_data = array(), string $context = CapabilityManager::CONTEXT_CERTIFICATE ) {
+		// Normalize empty strings to null so downstream branches can rely
+		// on `null !== $cpf_hash` semantics.
+		$cpf_hash = ( is_string( $cpf_hash ) && '' !== $cpf_hash ) ? $cpf_hash : null;
+		$rf_hash  = ( is_string( $rf_hash ) && '' !== $rf_hash ) ? $rf_hash : null;
+
+		if ( null === $cpf_hash && null === $rf_hash && '' === $email ) {
+			return new \WP_Error( 'ffc_user_no_identifier', 'No identifier provided.' );
+		}
+
+		global $wpdb;
+		$table = \FreeFormCertificate\Core\Utils::get_submissions_table();
+
+		// STEP 1: Submissions lookup against the supplied hashes.
+		// Build a `cpf_hash = %s OR rf_hash = %s` clause that includes
+		// only the columns we actually have a value for.
+		$existing_user_id = null;
+		if ( null !== $cpf_hash || null !== $rf_hash ) {
+			$where_parts = array();
+			$params      = array();
+			if ( null !== $cpf_hash ) {
+				$where_parts[] = 'cpf_hash = %s';
+				$params[]      = $cpf_hash;
+			}
+			if ( null !== $rf_hash ) {
+				$where_parts[] = 'rf_hash = %s';
+				$params[]      = $rf_hash;
+			}
+			$where = implode( ' OR ', $where_parts );
+
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+			// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber -- $where built from hard-coded fragments above with matching placeholder count.
+			$existing_user_id = $wpdb->get_var(
+				$wpdb->prepare(
+					"SELECT user_id FROM %i WHERE ({$where}) AND user_id IS NOT NULL LIMIT 1",
+					$table,
+					...$params
+				)
+			);
+			// phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber
+		}
+
+		if ( $existing_user_id ) {
+			$uid = (int) $existing_user_id;
+			CapabilityManager::grant_context_capabilities( $uid, $context );
+			self::link_orphaned_records_dual( $cpf_hash, $rf_hash, $uid );
+			return $uid;
+		}
+
+		// STEP 2: Email lookup.
+		$existing_user = '' !== $email ? get_user_by( 'email', $email ) : false;
+		if ( $existing_user ) {
+			$uid = (int) $existing_user->ID;
+			$existing_user->add_role( 'ffc_user' );
+			CapabilityManager::grant_context_capabilities( $uid, $context );
+
+			if ( empty( $existing_user->display_name ) || $existing_user->display_name === $existing_user->user_login ) {
+				self::sync_user_metadata( $uid, $submission_data );
+			}
+
+			self::link_orphaned_records_dual( $cpf_hash, $rf_hash, $uid );
+			return $uid;
+		}
+
+		// STEP 3: Create. Empty email here means we have at least one
+		// hash but no email — `wp_create_user` will reject the empty
+		// address with a WP_Error, which we propagate.
+		$user_id = self::create_ffc_user( $email, $submission_data, $context );
+		if ( is_wp_error( $user_id ) ) {
+			return $user_id;
+		}
+
+		self::link_orphaned_records_dual( $cpf_hash, $rf_hash, (int) $user_id );
+		return (int) $user_id;
+	}
+
+	/**
+	 * Dual-hash variant of {@see self::link_orphaned_records()}. Updates
+	 * any orphaned `ffc_submissions` / `ffc_self_scheduling_appointments`
+	 * row that matches EITHER of the supplied hashes against its
+	 * respective column.
+	 *
+	 * @param string|null $cpf_hash CPF hash (or null to skip).
+	 * @param string|null $rf_hash  RF hash (or null to skip).
+	 * @param int         $user_id  WordPress user ID to link.
+	 * @return void
+	 */
+	private static function link_orphaned_records_dual( ?string $cpf_hash, ?string $rf_hash, int $user_id ): void {
+		if ( null === $cpf_hash && null === $rf_hash ) {
+			return;
+		}
+
+		global $wpdb;
+
+		$where_parts = array();
+		$params      = array( $user_id );
+		if ( null !== $cpf_hash ) {
+			$where_parts[] = 'cpf_hash = %s';
+			$params[]      = $cpf_hash;
+		}
+		if ( null !== $rf_hash ) {
+			$where_parts[] = 'rf_hash = %s';
+			$params[]      = $rf_hash;
+		}
+		$where             = implode( ' OR ', $where_parts );
+		$submissions_table = \FreeFormCertificate\Core\Utils::get_submissions_table();
+
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+		// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber -- $where built from hard-coded fragments above with matching placeholder count.
+		$wpdb->query(
+			$wpdb->prepare(
+				"UPDATE %i SET user_id = %d WHERE ({$where}) AND user_id IS NULL",
+				$submissions_table,
+				...$params
+			)
+		);
+		// phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber
+
+		// Appointments link via the existing per-column repository call
+		// so the surrounding capability-grant logic stays in one place.
+		$appointments_table = $wpdb->prefix . 'ffc_self_scheduling_appointments';
+		if ( self::table_exists( $appointments_table ) ) {
+			$apt_repo            = new \FreeFormCertificate\Repositories\AppointmentRepository();
+			$linked_appointments = 0;
+			if ( null !== $cpf_hash ) {
+				$linked_appointments += $apt_repo->linkByIdentifierHash( $user_id, 'cpf_hash', $cpf_hash );
+			}
+			if ( null !== $rf_hash ) {
+				$linked_appointments += $apt_repo->linkByIdentifierHash( $user_id, 'rf_hash', $rf_hash );
+			}
+			if ( $linked_appointments > 0 ) {
+				CapabilityManager::grant_appointment_capabilities( $user_id );
+			}
+		}
+	}
+
+	/**
 	 * Create new WordPress user for FFC
 	 *
 	 * @param string               $email           Email address.

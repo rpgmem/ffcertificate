@@ -69,6 +69,8 @@ class RecruitmentActivator {
 		self::create_classification_table();
 		self::create_call_table();
 		self::create_reason_table();
+		self::create_import_jobs_table();
+		self::create_import_staging_table();
 	}
 
 	/**
@@ -134,6 +136,38 @@ class RecruitmentActivator {
 			self::migrate_add_withdrew_status();
 			update_option( $option_key, 8 );
 		}
+
+		if ( $current < 9 ) {
+			self::migrate_list_type_enum_to_varchar();
+			update_option( $option_key, 9 );
+		}
+
+		if ( $current < 10 ) {
+			self::create_import_jobs_table();
+			self::create_import_staging_table();
+			update_option( $option_key, 10 );
+		}
+
+		if ( $current < 11 ) {
+			self::migrate_recreate_staging_table_plaintext();
+			update_option( $option_key, 11 );
+		}
+	}
+
+	/**
+	 * V11 — recreate the staging table with plaintext CPF/RF/email columns
+	 * instead of the V10 encrypted+hash pairs. Safe to DROP unconditionally
+	 * because the table is ephemeral (24h TTL, reaped by
+	 * `cleanup_stale_staging_jobs`) and only ever holds in-flight CSV-import
+	 * scratch state. Sites mid-import lose their job; the admin reuploads.
+	 *
+	 * @since 6.8.x
+	 */
+	private static function migrate_recreate_staging_table_plaintext(): void {
+		global $wpdb;
+		$table = $wpdb->prefix . 'ffc_recruitment_import_staging';
+		$wpdb->query( "DROP TABLE IF EXISTS `{$table}`" ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching,WordPress.DB.DirectDatabaseQuery.SchemaChange
+		self::create_import_staging_table();
 	}
 
 	/**
@@ -415,6 +449,57 @@ class RecruitmentActivator {
 	}
 
 	/**
+	 * V9 schema migration — widens `ffc_recruitment_classification.list_type`
+	 * from `ENUM('preview','definitive')` to `VARCHAR(50)`.
+	 *
+	 * The batched CSV importer (#462) needs to store per-job staging
+	 * markers like `__staging_<uuid>` while a job streams batches in.
+	 * The pre-existing ENUM rejected those values silently — under
+	 * MySQL's default non-strict mode the column gets written as the
+	 * empty string `''` instead, and every staging row from every
+	 * concurrent job collapsed onto the same `list_type=''` value,
+	 * tripping the UNIQUE `(candidate_id, adjutancy_id, notice_id,
+	 * list_type)` constraint with a misleading `Duplicate entry
+	 * '1668-1-1-'` (the empty fourth component being the giveaway).
+	 *
+	 * Widening to VARCHAR preserves every existing value verbatim
+	 * (the two enum strings `preview` / `definitive` round-trip
+	 * cleanly) and lets the batched flow's staging markers persist
+	 * alongside the live `preview` / `definitive` rows.
+	 *
+	 * Also purges any leftover legacy `list_type=''` rows from the
+	 * pre-fix attempts so the now-honest UNIQUE constraint doesn't
+	 * keep firing on them after the column type change.
+	 *
+	 * @return void
+	 */
+	private static function migrate_list_type_enum_to_varchar(): void {
+		global $wpdb;
+		$table = $wpdb->prefix . 'ffc_recruitment_classification';
+
+		if ( ! self::table_exists( $table ) ) {
+			return;
+		}
+
+		$type = self::column_type( $table, 'list_type' );
+		// Idempotent: skip when the column is already a varchar (a
+		// partial-restore or re-activation must not blow up).
+		if ( null !== $type && 0 === stripos( $type, 'varchar' ) ) {
+			// Still clean up legacy invalid-enum residue even on re-run.
+			$wpdb->query( $wpdb->prepare( "DELETE FROM %i WHERE list_type NOT IN ('preview','definitive') AND list_type NOT LIKE %s", $table, '__staging\\_%' ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+			return;
+		}
+
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Schema migration.
+		$wpdb->query( "ALTER TABLE `{$table}` MODIFY list_type VARCHAR(50) NOT NULL" );
+
+		// Purge the legacy `''` rows the broken staging strategy left
+		// behind (every staging marker pre-fix landed as empty string).
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+		$wpdb->query( $wpdb->prepare( "DELETE FROM %i WHERE list_type NOT IN ('preview','definitive') AND list_type NOT LIKE %s", $table, '__staging\\_%' ) );
+	}
+
+	/**
 	 * Create `ffc_recruitment_adjutancy` table.
 	 *
 	 * Reusable subject/role definitions ("subjects"). One row per adjutancy,
@@ -604,7 +689,7 @@ class RecruitmentActivator {
             candidate_id bigint(20) unsigned NOT NULL,
             adjutancy_id bigint(20) unsigned NOT NULL,
             notice_id bigint(20) unsigned NOT NULL,
-            list_type enum('preview','definitive') NOT NULL,
+            list_type varchar(50) NOT NULL,
             `rank` int unsigned NOT NULL,
             score decimal(10,4) NOT NULL,
             time_points decimal(10,4) NOT NULL DEFAULT 0,
@@ -719,6 +804,129 @@ class RecruitmentActivator {
             updated_at datetime NOT NULL,
             PRIMARY KEY (id),
             UNIQUE KEY uq_slug (slug)
+        ) ENGINE=InnoDB {$charset_collate};";
+
+		require_once ABSPATH . 'wp-admin/includes/upgrade.php';
+		dbDelta( $sql );
+	}
+
+	/**
+	 * Create `ffc_recruitment_import_jobs` table (V10).
+	 *
+	 * Tracks the state of a batched CSV import. Replaces the previous
+	 * transient + tmp file approach that ran into object-cache eviction
+	 * mid-batch on hosts fronting MySQL with LiteSpeed Cache /
+	 * Memcached LRU. The status column captures the four-phase flow
+	 * the importer drives the operator through:
+	 *
+	 *   ingested → validated → promoting → committed
+	 *           ↓
+	 *           invalid (validate() found errors; staging is preserved
+	 *                    for the operator's inspection until the TTL
+	 *                    sweep reaps it)
+	 *
+	 * `notice_id` is logged for the cleanup sweep + crash-recovery UI,
+	 * not used as a foreign key (the table lives in the runtime
+	 * staging layer, not the canonical schema).
+	 *
+	 * @return void
+	 */
+	private static function create_import_jobs_table(): void {
+		global $wpdb;
+		$table_name      = $wpdb->prefix . 'ffc_recruitment_import_jobs';
+		$charset_collate = $wpdb->get_charset_collate();
+
+		if ( self::table_exists( $table_name ) ) {
+			return;
+		}
+
+		$sql = "CREATE TABLE {$table_name} (
+            job_id varchar(40) NOT NULL,
+            notice_id bigint(20) unsigned NOT NULL,
+            list_type varchar(20) NOT NULL,
+            status varchar(20) NOT NULL DEFAULT 'ingested',
+            total int unsigned NOT NULL DEFAULT 0,
+            processed_count int unsigned NOT NULL DEFAULT 0,
+            user_id bigint(20) unsigned NOT NULL DEFAULT 0,
+            created_at datetime NOT NULL,
+            updated_at datetime NOT NULL,
+            PRIMARY KEY (job_id),
+            KEY idx_notice_status (notice_id, status),
+            KEY idx_cleanup (created_at)
+        ) ENGINE=InnoDB {$charset_collate};";
+
+		require_once ABSPATH . 'wp-admin/includes/upgrade.php';
+		dbDelta( $sql );
+	}
+
+	/**
+	 * Create `ffc_recruitment_import_staging` table (V10).
+	 *
+	 * Holds the normalized CSV rows for the duration of an import job.
+	 * The four phases of the new batched flow each act against this
+	 * table only — the canonical `ffc_recruitment_classification`
+	 * table is touched ONCE, in `commit_job()`, via a single
+	 * `INSERT INTO classification … SELECT FROM staging` inside the
+	 * swap transaction. Mid-flow crashes never leave partial state in
+	 * the live list.
+	 *
+	 *   - `cpf_normalized` / `rf_normalized` / `email` store the
+	 *     normalised CSV values in plaintext. The staging table is
+	 *     ephemeral (24h TTL, behind admin auth, never exposed via
+	 *     public REST) and the per-row encrypted+hashed columns the
+	 *     canonical `ffc_recruitment_candidate` carries are derived
+	 *     during the promote phase, where `upsert_candidate` runs the
+	 *     plaintext through `Encryption::encrypt` + `Encryption::hash`
+	 *     before writing to the permanent table. Keeping the staging
+	 *     plaintext is what unblocks SQL-native validation (`GROUP BY
+	 *     cpf_normalized`) and shaves the per-row crypto cost off the
+	 *     synchronous ingest request that was tripping gateway
+	 *     timeouts on CSVs with hundreds of candidates.
+	 *   - `name` and `phone` stay plaintext to match the canonical
+	 *     candidate schema (which also stores them in clear).
+	 *   - `adjutancy_id` is the slug already resolved to its FK at
+	 *     ingestion time so the per-batch promotion loop doesn't have
+	 *     to re-query the junction.
+	 *   - `candidate_id` / `processed` are filled during phase 3
+	 *     (promotion); empty during phases 1 & 2.
+	 *
+	 * @return void
+	 */
+	private static function create_import_staging_table(): void {
+		global $wpdb;
+		$table_name      = $wpdb->prefix . 'ffc_recruitment_import_staging';
+		$charset_collate = $wpdb->get_charset_collate();
+
+		if ( self::table_exists( $table_name ) ) {
+			return;
+		}
+
+		$sql = "CREATE TABLE {$table_name} (
+            id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+            job_id varchar(40) NOT NULL,
+            row_no int unsigned NOT NULL,
+            line_no int unsigned NOT NULL,
+            notice_id bigint(20) unsigned NOT NULL,
+            name varchar(255) NOT NULL,
+            cpf_normalized varchar(11) NOT NULL DEFAULT '',
+            rf_normalized varchar(7) NOT NULL DEFAULT '',
+            email varchar(255) NOT NULL DEFAULT '',
+            phone varchar(50) NOT NULL DEFAULT '',
+            adjutancy_slug varchar(100) NOT NULL,
+            adjutancy_id bigint(20) unsigned NOT NULL,
+            rank_value int unsigned NOT NULL,
+            score decimal(10,4) NOT NULL,
+            time_points decimal(10,4) NOT NULL DEFAULT 0,
+            hab_emebs tinyint(1) NOT NULL DEFAULT 0,
+            pcd tinyint(1) NOT NULL DEFAULT 0,
+            candidate_id bigint(20) unsigned DEFAULT NULL,
+            processed tinyint(1) NOT NULL DEFAULT 0,
+            PRIMARY KEY (id),
+            UNIQUE KEY uq_job_row (job_id, row_no),
+            KEY idx_job_processed (job_id, processed),
+            KEY idx_job_adjutancy_cpf (job_id, adjutancy_id, cpf_normalized),
+            KEY idx_job_adjutancy_rf (job_id, adjutancy_id, rf_normalized),
+            KEY idx_job_adjutancy_email (job_id, adjutancy_id, email)
         ) ENGINE=InnoDB {$charset_collate};";
 
 		require_once ABSPATH . 'wp-admin/includes/upgrade.php';

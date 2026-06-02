@@ -336,4 +336,148 @@ class QRCodeGeneratorTest extends TestCase {
         $this->assertSame( 2, $defaults['margin'] );
         $this->assertSame( 'M', $defaults['error_level'] );
     }
+
+    // ──────────────────────────────────────────────────────────────────.
+    // clear_cache() — the wp_ffc_submissions.qr_code_cache column write
+    // path. Two branches: per-submission (UPDATE WHERE id) and full wipe
+    // (UPDATE … WHERE qr_code_cache IS NOT NULL). Both bail when the
+    // cache column doesn't exist on the table.
+    // ──────────────────────────────────────────────────────────────────.
+
+    public function test_clear_cache_returns_false_when_cache_column_missing(): void {
+        // DatabaseHelperTrait::column_exists() runs a SHOW COLUMNS query.
+        // Default get_results stub returns [], so the column is treated
+        // as missing and clear_cache() short-circuits to false without
+        // attempting any UPDATE.
+        global $wpdb;
+        $wpdb->shouldNotReceive( 'update' );
+        $wpdb->shouldNotReceive( 'query' );
+
+        $this->assertFalse( $this->generator->clear_cache( 42 ) );
+        $this->assertFalse( $this->generator->clear_cache( 0 ) );
+    }
+
+    public function test_clear_cache_single_submission_uses_update_by_id(): void {
+        global $wpdb;
+        // Override the default get_results so the column-existence check
+        // returns a row (column present).
+        $wpdb->shouldReceive( 'get_results' )
+            ->andReturn( array( (object) array( 'Field' => 'qr_code_cache' ) ) );
+
+        $captured = array();
+        $wpdb->shouldReceive( 'update' )
+            ->once()
+            ->andReturnUsing(
+                function ( $table, $data, $where ) use ( &$captured ) {
+                    $captured = compact( 'table', 'data', 'where' );
+                    return 1;
+                }
+            );
+
+        $this->assertTrue( $this->generator->clear_cache( 42 ) );
+        $this->assertSame( 'wp_ffc_submissions', $captured['table'] );
+        $this->assertNull( $captured['data']['qr_code_cache'], 'qr_code_cache must be NULLed' );
+        $this->assertSame( 42, $captured['where']['id'] );
+    }
+
+    public function test_clear_cache_all_submissions_runs_bulk_update_query(): void {
+        global $wpdb;
+        $wpdb->shouldReceive( 'get_results' )
+            ->andReturn( array( (object) array( 'Field' => 'qr_code_cache' ) ) );
+
+        // The bulk wipe path composes its UPDATE via wpdb->prepare;
+        // capture the template at that boundary to verify the shape.
+        $sql_captured = null;
+        $wpdb->shouldReceive( 'prepare' )
+            ->andReturnUsing(
+                function ( $sql ) use ( &$sql_captured ) {
+                    $sql_captured = $sql;
+                    return $sql;
+                }
+            );
+        $wpdb->shouldReceive( 'query' )->once()->andReturn( 7 );
+
+        $this->assertTrue( $this->generator->clear_cache( 0 ) );
+        $this->assertStringContainsString( 'SET qr_code_cache = NULL', (string) $sql_captured );
+        $this->assertStringContainsString( 'IS NOT NULL', (string) $sql_captured );
+    }
+
+    public function test_clear_cache_returns_false_when_no_rows_affected(): void {
+        // Even with the column present, if nothing was cached the bulk
+        // query reports 0 affected rows — surface that as false so the
+        // admin maintenance tool can say "nothing to clear".
+        global $wpdb;
+        $wpdb->shouldReceive( 'get_results' )
+            ->andReturn( array( (object) array( 'Field' => 'qr_code_cache' ) ) );
+        $wpdb->shouldReceive( 'query' )->once()->andReturn( 0 );
+
+        $this->assertFalse( $this->generator->clear_cache( 0 ) );
+    }
+
+    // ──────────────────────────────────────────────────────────────────.
+    // get_cache_stats() — read-only summary used by Settings → Cache.
+    // ──────────────────────────────────────────────────────────────────.
+
+    public function test_get_cache_stats_returns_disabled_shape_when_column_missing(): void {
+        // Default get_results → empty → column missing.
+        $stats = $this->generator->get_cache_stats();
+
+        $this->assertFalse( $stats['enabled'] );
+        $this->assertSame( 0, $stats['total_submissions'] );
+        $this->assertSame( 0, $stats['cached_qr_codes'] );
+        $this->assertSame( '0 KB', $stats['cache_size'] );
+        $this->assertSame( 'N/A', $stats['cache_dir'] );
+    }
+
+    public function test_get_cache_stats_counts_total_and_cached_when_column_present(): void {
+        // Mirror test_cache_enabled_when_setting_is_1: the class-internal
+        // get_option() resolves through the namespaced stub, not the
+        // global one.
+        Functions\when( 'FreeFormCertificate\Generators\get_option' )->justReturn(
+            array( 'qr_cache_enabled' => 1 )
+        );
+
+        global $wpdb;
+        $wpdb->shouldReceive( 'get_results' )
+            ->andReturn( array( (object) array( 'Field' => 'qr_code_cache' ) ) );
+
+        // Two consecutive get_var() calls: total then cached.
+        $count = 0;
+        $wpdb->shouldReceive( 'get_var' )
+            ->andReturnUsing(
+                function () use ( &$count ) {
+                    return ( ++$count === 1 ) ? '120' : '50';
+                }
+            );
+
+        $stats = $this->generator->get_cache_stats();
+
+        $this->assertTrue( $stats['enabled'] );
+        $this->assertSame( 120, $stats['total_submissions'] );
+        $this->assertSame( 50, $stats['cached_qr_codes'] );
+        $this->assertIsString( $stats['cache_size'] );
+        $this->assertStringContainsString( 'qr_code_cache', $stats['cache_dir'] );
+    }
+
+    // ──────────────────────────────────────────────────────────────────.
+    // generate_magic_link_qr() — the helper PdfGenerator delegates to
+    // when the certificate template carries the magic-link QR variant.
+    // Only the two early-return branches are unit-testable here; the
+    // happy path drives \QRcode::png and is exercised by integration
+    // tests.
+    // ──────────────────────────────────────────────────────────────────.
+
+    public function test_generate_magic_link_qr_returns_empty_when_submission_not_found(): void {
+        // wpdb->get_row default is null → "no such submission".
+        $this->assertSame( '', $this->generator->generate_magic_link_qr( 999 ) );
+    }
+
+    public function test_generate_magic_link_qr_returns_empty_when_magic_token_blank(): void {
+        global $wpdb;
+        // Submission exists but its magic_token column is empty — same
+        // contract: no token, no link, no QR.
+        $wpdb->shouldReceive( 'get_row' )->andReturn( array( 'magic_token' => '' ) );
+
+        $this->assertSame( '', $this->generator->generate_magic_link_qr( 7 ) );
+    }
 }

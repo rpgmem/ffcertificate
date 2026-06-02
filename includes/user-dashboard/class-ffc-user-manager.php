@@ -64,6 +64,20 @@ class UserManager {
 	}
 
 	/**
+	 * Dual-identifier variant — see {@see UserCreator::get_or_create_user_dual()}.
+	 *
+	 * @param string|null          $cpf_hash        CPF hash (or null).
+	 * @param string|null          $rf_hash         RF hash (or null).
+	 * @param string               $email           Email address.
+	 * @param array<string, mixed> $submission_data Submission data.
+	 * @param string               $context         Context.
+	 * @return int|\WP_Error User ID on success, WP_Error on failure.
+	 */
+	public static function get_or_create_user_dual( ?string $cpf_hash, ?string $rf_hash, string $email, array $submission_data = array(), string $context = self::CONTEXT_CERTIFICATE ) {
+		return UserCreator::get_or_create_user_dual( $cpf_hash, $rf_hash, $email, $submission_data, $context );
+	}
+
+	/**
 	 * Generate a username from email and submission data.
 	 *
 	 * @see UserCreator::generate_username()

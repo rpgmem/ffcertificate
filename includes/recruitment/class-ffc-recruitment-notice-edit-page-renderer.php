@@ -101,53 +101,74 @@ final class RecruitmentNoticeEditPageRenderer {
 		// an "activity indicator with elapsed seconds", not a real
 		// progress bar — the goal is to make it clear the request is in
 		// flight on large CSVs that may take 5–30s to commit.
+		// Progress widget — `<progress>` + counter for the batched preview
+		// flow; falls back to the spinner-only look for the definitive
+		// flow (which still posts in one shot to /promote-preview).
 		echo '<span id="ffc-edit-csv-progress" style="display:none;align-items:center;gap:.5em;">';
 		echo '<span class="spinner is-active" style="float:none;margin:0;"></span>';
+		echo '<progress id="ffc-edit-csv-progress-bar" max="1" value="0" style="width:200px;height:14px;"></progress>';
 		echo '<span id="ffc-edit-csv-progress-text"></span>';
 		echo '</span>';
 		echo '<span id="ffc-edit-csv-status" style="margin-left:1em;font-family:monospace;font-size:12px;"></span>';
 		echo '</p>';
+		// Per-line validation errors land here when /import-job/validate
+		// returns a non-empty list. Hidden by default; the orchestrator
+		// fills it in and the operator scrolls through what to fix.
+		echo '<ul id="ffc-edit-csv-errors" style="margin:.5em 0 0;padding-left:1.5em;font-family:monospace;font-size:12px;color:#b32d2e;"></ul>';
 		echo '</form>';
 
-		$processing_label = esc_js( __( 'Processing CSV…', 'ffcertificate' ) );
-		$elapsed_label    = esc_js( __( 'elapsed', 'ffcertificate' ) );
-
-		// Inline fetch handler — selects between /import (preview) and
-		// /promote-preview (definitive_import + transitions to definitive)
-		// based on the radio choice.
+		// Inline submit handler. The `preview` flow hands off to
+		// `window.ffcRecruitmentImportBatched.run()` (start → loop batch →
+		// commit) so notices with hundreds of candidates stop racing the
+		// gateway timeout. The `definitive` flow keeps the old single-
+		// request shape against /promote-preview because that endpoint
+		// also performs the snapshot + state transition under a 15-second
+		// countdown — batching there would need a different design.
+		$strings   = array(
+			'ingesting'        => __( 'Ingesting…', 'ffcertificate' ),
+			'validating'       => __( 'Validating…', 'ffcertificate' ),
+			'processing'       => __( 'Processing…', 'ffcertificate' ),
+			'committing'       => __( 'Finalising…', 'ffcertificate' ),
+			'done'             => __( 'OK', 'ffcertificate' ),
+			'errorPrefix'      => __( 'Error:', 'ffcertificate' ),
+			'networkError'     => __( 'Network error', 'ffcertificate' ),
+			'validationFailed' => __( 'Validation failed — review the per-line errors below and re-import.', 'ffcertificate' ),
+		);
+		$rest_root = rest_url( 'ffcertificate/v1/recruitment/' );
 		echo '<script>'
 			. 'function ffcRecruitmentImportFromEdit(form){'
 			. 'var nid=' . (int) $notice_id . ';'
 			. 'var target=form.list_target.value;'
-			. 'var fd=new FormData();'
-			. 'fd.append("csv_file",form.csv_file.files[0]);'
-			. 'var url;'
-			. 'if(target==="definitive"){'
-			. 'url="' . esc_url_raw( rest_url( 'ffcertificate/v1/recruitment/notices/' ) ) . '"+nid+"/promote-preview";'
-			. 'fd.append("mode","definitive_import");'
-			. '}else{'
-			. 'url="' . esc_url_raw( rest_url( 'ffcertificate/v1/recruitment/notices/' ) ) . '"+nid+"/import";'
-			. '}'
+			. 'var file=form.csv_file.files[0];'
 			. 'var btn=document.getElementById("ffc-edit-csv-submit");'
 			. 'var status=document.getElementById("ffc-edit-csv-status");'
 			. 'var progress=document.getElementById("ffc-edit-csv-progress");'
+			. 'var progressBar=document.getElementById("ffc-edit-csv-progress-bar");'
 			. 'var progressText=document.getElementById("ffc-edit-csv-progress-text");'
-			. 'btn.disabled=true;'
-			// Disabling submit doesn\'t prevent file-picker change post-submit;
-			// the visible progress widget makes it obvious the request is in
-			// flight even on slower connections / larger CSVs.
-			. 'progress.style.display="inline-flex";'
-			. 'status.textContent="";'
-			. 'var startedAt=Date.now();'
-			. 'function tick(){'
-			. 'var sec=Math.floor((Date.now()-startedAt)/1000);'
-			// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- $processing_label / $elapsed_label are esc_js()-encoded above before interpolation.
-			. 'progressText.textContent="' . $processing_label . ' "+sec+"s ' . $elapsed_label . '";'
+			. 'var errorList=document.getElementById("ffc-edit-csv-errors");'
+			. 'btn.disabled=true;status.textContent="";if(errorList){errorList.innerHTML="";}'
+			. 'if(target!=="definitive"&&window.ffcRecruitmentImportBatched){'
+			// Preview list → staging-based orchestrator (4 phases).
+			. 'window.ffcRecruitmentImportBatched.run({'
+			. 'noticeId:nid,file:file,'
+			. 'restRoot:' . wp_json_encode( esc_url_raw( $rest_root ) ) . ','
+			. 'nonce:' . wp_json_encode( $nonce ) . ','
+			. 'btn:btn,status:status,'
+			. 'progressWrap:progress,progressBar:progressBar,progressText:progressText,'
+			. 'errorList:errorList,'
+			. 'strings:' . wp_json_encode( $strings )
+			. '}).catch(function(){});'
+			. 'return false;'
 			. '}'
-			. 'tick();'
-			. 'var timer=setInterval(tick,1000);'
-			. 'function cleanup(){clearInterval(timer);progress.style.display="none";btn.disabled=false;}'
-			. 'fetch(url,{method:"POST",headers:{"X-WP-Nonce":"' . esc_attr( $nonce ) . '"},body:fd,credentials:"same-origin"})'
+			// Definitive list → single-shot /promote-preview (unchanged).
+			. 'var fd=new FormData();fd.append("csv_file",file);'
+			. 'fd.append("mode","definitive_import");'
+			. 'var url=' . wp_json_encode( esc_url_raw( $rest_root ) ) . '+"notices/"+nid+"/promote-preview";'
+			. 'progress.style.display="inline-flex";'
+			. 'progressBar.style.display="none";'
+			. 'progressText.textContent=' . wp_json_encode( __( 'Processing CSV…', 'ffcertificate' ) ) . ';'
+			. 'function cleanup(){progress.style.display="none";progressBar.style.display="";btn.disabled=false;}'
+			. 'fetch(url,{method:"POST",headers:{"X-WP-Nonce":' . wp_json_encode( $nonce ) . '},body:fd,credentials:"same-origin"})'
 			. '.then(function(r){return r.json().then(function(d){return{status:r.status,body:d};});}).then(function(o){'
 			. 'cleanup();'
 			. 'if(o.status>=200&&o.status<300){status.textContent="OK ("+((o.body&&o.body.message)?o.body.message:JSON.stringify(o.body))+")";location.reload();}'
@@ -727,6 +748,20 @@ final class RecruitmentNoticeEditPageRenderer {
 		$preview         = RecruitmentClassificationRepository::get_for_notice( $notice_id, 'preview' );
 		$definitive_rows = RecruitmentClassificationRepository::get_for_notice( $notice_id, 'definitive' );
 
+		// Once a definitive list exists for the notice the preview tab
+		// becomes mostly archival — operators are working off the
+		// definitive ranking. Captured from the unfiltered query so an
+		// in-flight filter that happens to zero-out the definitive view
+		// doesn't bounce the default back to Preliminary mid-session.
+		$has_definitive = ! empty( $definitive_rows );
+		// `ffc_cls_tab` is set by pagination links (so reload stays on
+		// the same tab) and by the JS tab-switch handler via
+		// `history.replaceState`. Falls back to the default-tab rule.
+		$tab_override = isset( $_GET['ffc_cls_tab'] ) ? sanitize_key( wp_unslash( (string) $_GET['ffc_cls_tab'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- read-only display preference.
+		$active_tab   = in_array( $tab_override, array( 'preliminary', 'definitive' ), true )
+			? $tab_override
+			: ( $has_definitive ? 'definitive' : 'preliminary' );
+
 		// Mirror the filters available on the Candidates list table —
 		// adjutancy / name substring / CPF / RF — so operators can narrow
 		// a long classifications list (notices with hundreds of rows) the
@@ -744,21 +779,29 @@ final class RecruitmentNoticeEditPageRenderer {
 		self::render_classification_filters_form( $notice_id, $filters );
 
 		// Tabs.
+		$prev_is_active = 'preliminary' === $active_tab;
+		$prev_tab_class = $prev_is_active ? 'nav-tab nav-tab-active' : 'nav-tab';
+		$def_tab_class  = $prev_is_active ? 'nav-tab' : 'nav-tab nav-tab-active';
+		$prev_display   = $prev_is_active ? 'block' : 'none';
+		$def_display    = $prev_is_active ? 'none' : 'block';
+
 		echo '<h2 class="nav-tab-wrapper" style="margin:0 0 1em;">';
-		echo '<a href="#" class="nav-tab nav-tab-active" data-ffc-clstab="preliminary" onclick="return ffcRecruitmentClsTabSwitch(this);">' . esc_html__( 'Preliminary', 'ffcertificate' ) . '</a>';
-		echo '<a href="#" class="nav-tab" data-ffc-clstab="definitive" onclick="return ffcRecruitmentClsTabSwitch(this);">' . esc_html__( 'Definitive', 'ffcertificate' ) . '</a>';
+		echo '<a href="#" class="' . esc_attr( $prev_tab_class ) . '" data-ffc-clstab="preliminary" onclick="return ffcRecruitmentClsTabSwitch(this);">' . esc_html__( 'Preliminary', 'ffcertificate' ) . '</a>';
+		echo '<a href="#" class="' . esc_attr( $def_tab_class ) . '" data-ffc-clstab="definitive" onclick="return ffcRecruitmentClsTabSwitch(this);">' . esc_html__( 'Definitive', 'ffcertificate' ) . '</a>';
 		echo '</h2>';
 
-		echo '<div data-ffc-clspanel="preliminary" style="display:block;">';
-		self::render_classifications_table( $preview, false );
+		echo '<div data-ffc-clspanel="preliminary" style="display:' . esc_attr( $prev_display ) . ';">';
+		self::render_classifications_table( $preview, false, 'preliminary' );
 		echo '</div>';
 
-		echo '<div data-ffc-clspanel="definitive" style="display:none;">';
-		self::render_classifications_table( $definitive_rows, true );
+		echo '<div data-ffc-clspanel="definitive" style="display:' . esc_attr( $def_display ) . ';">';
+		self::render_classifications_table( $definitive_rows, true, 'definitive' );
 		echo '</div>';
 
-		// Tab toggle handler. Switches the .nav-tab-active class and
-		// shows the matching panel.
+		// Tab toggle handler. Switches the .nav-tab-active class, shows
+		// the matching panel, and writes `ffc_cls_tab` into the URL via
+		// history.replaceState so a subsequent pagination link click
+		// preserves whichever tab the operator chose manually.
 		echo '<script>'
 			. 'function ffcRecruitmentClsTabSwitch(a){'
 			. 'var key=a.getAttribute("data-ffc-clstab");'
@@ -768,6 +811,7 @@ final class RecruitmentNoticeEditPageRenderer {
 			. 'a.classList.add("nav-tab-active");'
 			. 'var panels=nav.parentNode.querySelectorAll("[data-ffc-clspanel]");'
 			. 'for(var j=0;j<panels.length;j++){panels[j].style.display=panels[j].getAttribute("data-ffc-clspanel")===key?"block":"none";}'
+			. 'try{var u=new URL(window.location.href);u.searchParams.set("ffc_cls_tab",key);history.replaceState(null,"",u.toString());}catch(e){}'
 			. 'return false;}'
 			. '</script>';
 
@@ -844,23 +888,51 @@ final class RecruitmentNoticeEditPageRenderer {
 	 * `POST /classifications/{id}/call` and
 	 * `PATCH /classifications/{id}/status`.
 	 *
-	 * @param array<int, object> $rows         Classification rows.
+	 * @param array<int, object> $rows         Classification rows (post-filter).
 	 * @phpstan-param list<ClassificationRow> $rows
 	 * @param bool               $with_actions Whether to render the action column.
+	 * @param string             $tab_key      `preliminary` or `definitive` — used
+	 *                                          to scope the `ffc_cls_paged_<key>`
+	 *                                          URL param so each tab paginates
+	 *                                          independently.
 	 * @return void
 	 */
-	private static function render_classifications_table( array $rows, bool $with_actions ): void {
+	private static function render_classifications_table( array $rows, bool $with_actions, string $tab_key = 'preliminary' ): void {
 		if ( empty( $rows ) ) {
 			echo '<p><em>' . esc_html__( '(no rows)', 'ffcertificate' ) . '</em></p>';
 			return;
 		}
+
+		// Pagination. Per-page matches the activity log helper so the
+		// admin viewport feels consistent across the plugin.
+		$per_page    = 50;
+		$page_param  = 'ffc_cls_paged_' . $tab_key;
+		$total       = count( $rows );
+		$total_pages = (int) max( 1, ceil( $total / $per_page ) );
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- read-only page preference.
+		$current_page = isset( $_GET[ $page_param ] ) ? max( 1, (int) $_GET[ $page_param ] ) : 1;
+		$current_page = min( $current_page, $total_pages );
+		$offset       = ( $current_page - 1 ) * $per_page;
+		$rows         = array_slice( $rows, $offset, $per_page );
 
 		// Pre-fetch candidate + adjutancy lookups in a single pass to
 		// avoid N+1 inside the render loop.
 		$candidate_ids = array_map( static fn( $r ) => (int) $r->candidate_id, $rows );
 		$adjutancy_ids = array_map( static fn( $r ) => (int) $r->adjutancy_id, $rows );
 
-		$candidates  = self::lookup_map( array_unique( $candidate_ids ), array( RecruitmentCandidateRepository::class, 'get_by_id' ), 'name' );
+		// Bulk-load the full candidate rows once (we need `pcd_hash` for
+		// the Subscription column; the `name` map below is fed from the
+		// same payload to keep this a single SQL round-trip).
+		$candidate_rows = RecruitmentCandidateRepository::get_by_ids( array_unique( $candidate_ids ) );
+		$candidates     = array();
+		$pcd_map        = array();
+		foreach ( $candidate_rows as $cand ) {
+			$cid                = (int) $cand->id;
+			$candidates[ $cid ] = (string) ( $cand->name ?? '' );
+			// `verify` returns null on hash decode failure — fall back to
+			// GERAL, mirroring the public shortcode's defensive default.
+			$pcd_map[ $cid ] = true === RecruitmentPcdHasher::verify( (string) ( $cand->pcd_hash ?? '' ), $cid );
+		}
 		$adjutancies = self::lookup_map( array_unique( $adjutancy_ids ), array( RecruitmentAdjutancyRepository::class, 'get_by_id' ), 'slug' );
 
 		// Bulk-call toolbar (Definitive tab only): selected `empty` rows
@@ -885,6 +957,7 @@ final class RecruitmentNoticeEditPageRenderer {
 		echo '<th>' . esc_html__( 'Rank', 'ffcertificate' ) . '</th>';
 		echo '<th>' . esc_html__( 'Candidate', 'ffcertificate' ) . '</th>';
 		echo '<th>' . esc_html__( 'Adjutancy', 'ffcertificate' ) . '</th>';
+		echo '<th>' . esc_html__( 'Subscription', 'ffcertificate' ) . '</th>';
 		echo '<th>' . esc_html__( 'Score', 'ffcertificate' ) . '</th>';
 		if ( $is_preview_tab ) {
 			echo '<th>' . esc_html__( 'Preliminary status', 'ffcertificate' ) . '</th>';
@@ -923,6 +996,9 @@ final class RecruitmentNoticeEditPageRenderer {
 			echo '<td>' . esc_html( $candidate_name ) . '</td>';
 			// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- helper returns escaped HTML.
 			echo '<td>' . RecruitmentAdminPage::adjutancy_badge( RecruitmentAdjutancyRepository::get_by_id( (int) $row->adjutancy_id ) ) . '</td>';
+			$is_pcd = $pcd_map[ (int) $row->candidate_id ] ?? false;
+			// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- helper returns escaped HTML.
+			echo '<td>' . RecruitmentPublicShortcodeRenderer::render_subscription_badge( $is_pcd ) . '</td>';
 			echo '<td>' . esc_html( (string) $row->score ) . '</td>';
 			if ( $is_preview_tab ) {
 				$current_preview = isset( $row->preview_status ) ? (string) $row->preview_status : 'empty';
@@ -943,12 +1019,63 @@ final class RecruitmentNoticeEditPageRenderer {
 		}
 		echo '</tbody></table>';
 
+		self::render_classifications_pagination( $tab_key, $total, $current_page, $per_page );
+
 		if ( $with_actions ) {
 			self::render_classification_actions_script();
 		}
 		if ( $is_preview_tab ) {
 			self::render_preview_status_script();
 		}
+	}
+
+	/**
+	 * Pagination strip below a classifications table.
+	 *
+	 * Outputs WordPress' `paginate_links()` scoped to the tab-specific
+	 * `ffc_cls_paged_<tab>` URL parameter, plus a localized
+	 * "X candidates" count. Links carry `ffc_cls_tab=<tab>` so reload
+	 * lands the operator back on the same tab.
+	 *
+	 * @param string $tab_key      `preliminary` or `definitive`.
+	 * @param int    $total        Total post-filter row count.
+	 * @param int    $current_page Currently displayed page (1-indexed).
+	 * @param int    $per_page     Page size.
+	 * @return void
+	 */
+	private static function render_classifications_pagination( string $tab_key, int $total, int $current_page, int $per_page ): void {
+		$total_pages = (int) ceil( $total / max( 1, $per_page ) );
+		$page_param  = 'ffc_cls_paged_' . $tab_key;
+
+		echo '<div class="tablenav bottom"><div class="tablenav-pages">';
+		echo '<span class="displaying-num">';
+		printf(
+			/* translators: %s: number of candidate rows */
+			esc_html( _n( '%s candidate', '%s candidates', $total, 'ffcertificate' ) ),
+			esc_html( number_format_i18n( $total ) )
+		);
+		echo '</span>';
+
+		if ( $total_pages > 1 ) {
+			// `paginate_links` uses the current request URL as base by
+			// default; we add `ffc_cls_tab` so the operator lands back on
+			// the same tab after the navigation reload.
+			$base  = add_query_arg( 'ffc_cls_tab', $tab_key );
+			$base  = remove_query_arg( $page_param, $base );
+			$links = paginate_links(
+				array(
+					'base'      => add_query_arg( $page_param, '%#%', $base ),
+					'format'    => '',
+					'prev_text' => '&laquo;',
+					'next_text' => '&raquo;',
+					'total'     => $total_pages,
+					'current'   => $current_page,
+				)
+			);
+			echo wp_kses_post( (string) $links );
+		}
+
+		echo '</div></div>';
 	}
 
 	/**
