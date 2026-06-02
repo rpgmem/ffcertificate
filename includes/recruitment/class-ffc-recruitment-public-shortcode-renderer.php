@@ -64,8 +64,20 @@ final class RecruitmentPublicShortcodeRenderer {
 		$offset       = ( $current_page - 1 ) * $page_size;
 		$page_rows    = array_slice( $rows, $offset, $page_size );
 
+		// Heading + total-count badge on the same line. `$total` is the
+		// post-filter count, so when the operator types into the search
+		// box the badge reflects the narrowed list instead of the global
+		// total — which is what they actually need to see.
+		$count_label = sprintf(
+			/* translators: %s: number of candidates in the section (post-filter) */
+			_n( '%s candidate', '%s candidates', $total, 'ffcertificate' ),
+			number_format_i18n( $total )
+		);
 		$html  = '<section class="ffc-recruitment-section">';
-		$html .= '<h3>' . esc_html( $heading ) . '</h3>';
+		$html .= '<h3 class="ffc-recruitment-section-heading">'
+			. '<span class="ffc-recruitment-section-title">' . esc_html( $heading ) . '</span>'
+			. '<span class="ffc-recruitment-section-count">' . esc_html( $count_label ) . '</span>'
+			. '</h3>';
 		$html .= '<table class="ffc-recruitment-table"><thead><tr>';
 		if ( $columns['rank'] ) {
 			$html .= '<th>' . esc_html__( 'Rank', 'ffcertificate' ) . '</th>';
