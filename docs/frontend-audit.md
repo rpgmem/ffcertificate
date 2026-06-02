@@ -210,6 +210,33 @@ _A preencher (ou marcar ⏸️ se decidirmos não atuar agora)._
 
 ---
 
+## Item 7 — Bug: caixa de justificativa some ao "chamar" fora de ordem com a listagem filtrada  ⬜ (último a tratar)
+
+**Sintoma.** No admin de convocação de um edital, ao **filtrar** os candidatos e então clicar
+em **"chamar"** um usuário que está **fora de ordem**, a **caixa de justificativa não aparece** —
+o fluxo pula direto para a etapa de **data da convocação**. Fazendo a mesma ação **sem filtrar**
+(listagem com todos os candidatos), o comportamento é correto: a caixa de justificativa é exibida.
+
+**Impacto.** Permite convocar fora de ordem sem registrar justificativa quando a lista está filtrada —
+fura o controle de auditoria/ordem da fila exatamente no caminho em que o operador mais usa filtros.
+
+**Hipótese de causa (a confirmar).** A detecção de "fora de ordem" provavelmente calcula a posição do
+candidato contra o **subconjunto visível/filtrado** em vez da **lista completa ordenada** da fila. Com a
+lista filtrada, o candidato chamado aparenta estar "na ordem" (ou a posição esperada não é computável),
+então o gate que dispara o modal de justificativa não ativa e o fluxo segue para a data.
+
+**Onde investigar.** JS/admin do recruitment/convocação (handler do botão "chamar" + cálculo de
+posição/next-in-queue) e o endpoint AJAX correspondente. Conferir se a ordem é derivada do DOM filtrado
+ou de uma fonte canônica (ranking completo do edital) no servidor.
+
+**Status.** Não corrigido. Tratar por **último** no roadmap, após os itens de refactor/segurança acima.
+
+### Plano
+_A preencher — reproduzir, localizar o gate de justificativa, e fazer a checagem de ordem usar a fila
+completa (não a lista filtrada). Cobrir com teste (filtrado vs. não-filtrado)._
+
+---
+
 ## Ordem de execução sugerida
 
 1. **Item 5 — Segurança** (rápido, alto valor, baixo risco): escapar outputs do dashboard + `rel=noopener`.
@@ -218,6 +245,7 @@ _A preencher (ou marcar ⏸️ se decidirmos não atuar agora)._
 4. **Item 1 — Extração de CSS inline** dos 2 maiores (recruitment-notice-edit, tab-migrations).
 5. **Item 3 — Fragmentação PHP** (`rate-limit-checker`) e **Item 4 — consolidações** pequenas (oportunístico).
 6. **Item 6 — Dívida técnica** (avaliar atuar no único item acionável ou adiar).
+7. **Item 7 — Bug da justificativa fora de ordem com lista filtrada** (último; bug funcional, fora do escopo de refactor).
 
 ## Log de sprints (commits desta PR)
 | # | Item | Descrição | Commit |
@@ -229,3 +257,4 @@ _A preencher (ou marcar ⏸️ se decidirmos não atuar agora)._
 | 4 | 5 | fix CodeQL (#479): escapar cores/labels derivados do `data-config` (DOM) nos sinks `.html()/.append()` de `ffc-audience-calendar/bookings.js` | sprint 4 |
 | 5 | 2 | split `ffc-geofence-frontend.js` 1307→núcleo `FFCGeofence` + 3 irmãos via `Object.assign` (datetime, gps, preflight); enqueue + 11 testes adaptados | sprint 5 |
 | 6 | 5 | fix CodeQL (#479): cache de geofence guarda passe `{validated,expires}` em vez de lat/lng cru no localStorage (sem dado sensível em repouso); cache só após validação in-area; testes adaptados | sprint 6 |
+| 7 | 7 | roadmap: registrar bug da caixa de justificativa que some ao "chamar" fora de ordem com a listagem de convocados filtrada (doc-only; tratar por último) | sprint 7 |
