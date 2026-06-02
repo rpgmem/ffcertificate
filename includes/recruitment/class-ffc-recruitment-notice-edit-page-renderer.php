@@ -754,6 +754,13 @@ final class RecruitmentNoticeEditPageRenderer {
 		// in-flight filter that happens to zero-out the definitive view
 		// doesn't bounce the default back to Preliminary mid-session.
 		$has_definitive = ! empty( $definitive_rows );
+		// `ffc_cls_tab` is set by pagination links (so reload stays on
+		// the same tab) and by the JS tab-switch handler via
+		// `history.replaceState`. Falls back to the default-tab rule.
+		$tab_override = isset( $_GET['ffc_cls_tab'] ) ? sanitize_key( wp_unslash( (string) $_GET['ffc_cls_tab'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- read-only display preference.
+		$active_tab   = in_array( $tab_override, array( 'preliminary', 'definitive' ), true )
+			? $tab_override
+			: ( $has_definitive ? 'definitive' : 'preliminary' );
 
 		// Mirror the filters available on the Candidates list table —
 		// adjutancy / name substring / CPF / RF — so operators can narrow
@@ -772,10 +779,11 @@ final class RecruitmentNoticeEditPageRenderer {
 		self::render_classification_filters_form( $notice_id, $filters );
 
 		// Tabs.
-		$prev_tab_class = $has_definitive ? 'nav-tab' : 'nav-tab nav-tab-active';
-		$def_tab_class  = $has_definitive ? 'nav-tab nav-tab-active' : 'nav-tab';
-		$prev_display   = $has_definitive ? 'none' : 'block';
-		$def_display    = $has_definitive ? 'block' : 'none';
+		$prev_is_active = 'preliminary' === $active_tab;
+		$prev_tab_class = $prev_is_active ? 'nav-tab nav-tab-active' : 'nav-tab';
+		$def_tab_class  = $prev_is_active ? 'nav-tab' : 'nav-tab nav-tab-active';
+		$prev_display   = $prev_is_active ? 'block' : 'none';
+		$def_display    = $prev_is_active ? 'none' : 'block';
 
 		echo '<h2 class="nav-tab-wrapper" style="margin:0 0 1em;">';
 		echo '<a href="#" class="' . esc_attr( $prev_tab_class ) . '" data-ffc-clstab="preliminary" onclick="return ffcRecruitmentClsTabSwitch(this);">' . esc_html__( 'Preliminary', 'ffcertificate' ) . '</a>';
@@ -783,15 +791,17 @@ final class RecruitmentNoticeEditPageRenderer {
 		echo '</h2>';
 
 		echo '<div data-ffc-clspanel="preliminary" style="display:' . esc_attr( $prev_display ) . ';">';
-		self::render_classifications_table( $preview, false );
+		self::render_classifications_table( $preview, false, 'preliminary' );
 		echo '</div>';
 
 		echo '<div data-ffc-clspanel="definitive" style="display:' . esc_attr( $def_display ) . ';">';
-		self::render_classifications_table( $definitive_rows, true );
+		self::render_classifications_table( $definitive_rows, true, 'definitive' );
 		echo '</div>';
 
-		// Tab toggle handler. Switches the .nav-tab-active class and
-		// shows the matching panel.
+		// Tab toggle handler. Switches the .nav-tab-active class, shows
+		// the matching panel, and writes `ffc_cls_tab` into the URL via
+		// history.replaceState so a subsequent pagination link click
+		// preserves whichever tab the operator chose manually.
 		echo '<script>'
 			. 'function ffcRecruitmentClsTabSwitch(a){'
 			. 'var key=a.getAttribute("data-ffc-clstab");'
@@ -801,6 +811,7 @@ final class RecruitmentNoticeEditPageRenderer {
 			. 'a.classList.add("nav-tab-active");'
 			. 'var panels=nav.parentNode.querySelectorAll("[data-ffc-clspanel]");'
 			. 'for(var j=0;j<panels.length;j++){panels[j].style.display=panels[j].getAttribute("data-ffc-clspanel")===key?"block":"none";}'
+			. 'try{var u=new URL(window.location.href);u.searchParams.set("ffc_cls_tab",key);history.replaceState(null,"",u.toString());}catch(e){}'
 			. 'return false;}'
 			. '</script>';
 
@@ -877,16 +888,32 @@ final class RecruitmentNoticeEditPageRenderer {
 	 * `POST /classifications/{id}/call` and
 	 * `PATCH /classifications/{id}/status`.
 	 *
-	 * @param array<int, object> $rows         Classification rows.
+	 * @param array<int, object> $rows         Classification rows (post-filter).
 	 * @phpstan-param list<ClassificationRow> $rows
 	 * @param bool               $with_actions Whether to render the action column.
+	 * @param string             $tab_key      `preliminary` or `definitive` — used
+	 *                                          to scope the `ffc_cls_paged_<key>`
+	 *                                          URL param so each tab paginates
+	 *                                          independently.
 	 * @return void
 	 */
-	private static function render_classifications_table( array $rows, bool $with_actions ): void {
+	private static function render_classifications_table( array $rows, bool $with_actions, string $tab_key = 'preliminary' ): void {
 		if ( empty( $rows ) ) {
 			echo '<p><em>' . esc_html__( '(no rows)', 'ffcertificate' ) . '</em></p>';
 			return;
 		}
+
+		// Pagination. Per-page matches the activity log helper so the
+		// admin viewport feels consistent across the plugin.
+		$per_page     = 50;
+		$page_param   = 'ffc_cls_paged_' . $tab_key;
+		$total        = count( $rows );
+		$total_pages  = (int) max( 1, ceil( $total / $per_page ) );
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- read-only page preference.
+		$current_page = isset( $_GET[ $page_param ] ) ? max( 1, (int) $_GET[ $page_param ] ) : 1;
+		$current_page = min( $current_page, $total_pages );
+		$offset       = ( $current_page - 1 ) * $per_page;
+		$rows         = array_slice( $rows, $offset, $per_page );
 
 		// Pre-fetch candidate + adjutancy lookups in a single pass to
 		// avoid N+1 inside the render loop.
@@ -976,12 +1003,63 @@ final class RecruitmentNoticeEditPageRenderer {
 		}
 		echo '</tbody></table>';
 
+		self::render_classifications_pagination( $tab_key, $total, $current_page, $per_page );
+
 		if ( $with_actions ) {
 			self::render_classification_actions_script();
 		}
 		if ( $is_preview_tab ) {
 			self::render_preview_status_script();
 		}
+	}
+
+	/**
+	 * Pagination strip below a classifications table.
+	 *
+	 * Outputs WordPress' `paginate_links()` scoped to the tab-specific
+	 * `ffc_cls_paged_<tab>` URL parameter, plus a localized
+	 * "X candidates" count. Links carry `ffc_cls_tab=<tab>` so reload
+	 * lands the operator back on the same tab.
+	 *
+	 * @param string $tab_key      `preliminary` or `definitive`.
+	 * @param int    $total        Total post-filter row count.
+	 * @param int    $current_page Currently displayed page (1-indexed).
+	 * @param int    $per_page     Page size.
+	 * @return void
+	 */
+	private static function render_classifications_pagination( string $tab_key, int $total, int $current_page, int $per_page ): void {
+		$total_pages = (int) ceil( $total / max( 1, $per_page ) );
+		$page_param  = 'ffc_cls_paged_' . $tab_key;
+
+		echo '<div class="tablenav bottom"><div class="tablenav-pages">';
+		echo '<span class="displaying-num">';
+		printf(
+			/* translators: %s: number of candidate rows */
+			esc_html( _n( '%s candidate', '%s candidates', $total, 'ffcertificate' ) ),
+			esc_html( number_format_i18n( $total ) )
+		);
+		echo '</span>';
+
+		if ( $total_pages > 1 ) {
+			// `paginate_links` uses the current request URL as base by
+			// default; we add `ffc_cls_tab` so the operator lands back on
+			// the same tab after the navigation reload.
+			$base = add_query_arg( 'ffc_cls_tab', $tab_key );
+			$base = remove_query_arg( $page_param, $base );
+			$links = paginate_links(
+				array(
+					'base'      => add_query_arg( $page_param, '%#%', $base ),
+					'format'    => '',
+					'prev_text' => '&laquo;',
+					'next_text' => '&raquo;',
+					'total'     => $total_pages,
+					'current'   => $current_page,
+				)
+			);
+			echo wp_kses_post( (string) $links );
+		}
+
+		echo '</div></div>';
 	}
 
 	/**
