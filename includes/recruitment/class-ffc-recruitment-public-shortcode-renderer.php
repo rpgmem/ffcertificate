@@ -519,6 +519,7 @@ final class RecruitmentPublicShortcodeRenderer {
 			'accepted'  => __( 'Called', 'ffcertificate' ),
 			'not_shown' => __( 'Did not show up', 'ffcertificate' ),
 			'hired'     => __( 'Hired', 'ffcertificate' ),
+			'withdrew'  => __( 'Withdrew', 'ffcertificate' ),
 		);
 		return $map[ $status ] ?? $status;
 	}
@@ -652,6 +653,7 @@ final class RecruitmentPublicShortcodeRenderer {
 			'accepted'  => (string) $settings['status_color_called'],
 			'hired'     => (string) $settings['status_color_hired'],
 			'not_shown' => (string) $settings['status_color_not_shown'],
+			'withdrew'  => (string) $settings['status_color_withdrew'],
 		);
 		return BadgeHtml::render(
 			'ffc-recruitment-status-badge',
