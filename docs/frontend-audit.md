@@ -48,7 +48,7 @@ impacto em `npm run build:js`/minificação e enqueue condicional)._
 
 ---
 
-## Item 2 — Arquivos JS grandes que deveriam ser quebrados  🟦 (csv-download ✅ sprint 2; audience + geofence pendentes)
+## Item 2 — Arquivos JS grandes que deveriam ser quebrados  🟦 (csv-download ✅ s2; audience ✅ s3; geofence pendente)
 
 Piores ofensores (responsabilidades separáveis):
 
@@ -225,3 +225,4 @@ _A preencher (ou marcar ⏸️ se decidirmos não atuar agora)._
 | 0 | — | tracker da auditoria criado | inicial |
 | 1 | 5 | XSS escape (dashboard) + `rel=noopener` + escAttr helper + testes | sprint 1 |
 | 2 | 2 | split `ffc-csv-download.js` 1127→núcleo `FFCCsv` + 6 irmãos (info-screen, cert-preview, download-flow, open-early, extend-end, schedule-exception); enqueue + eslint global + testes adaptados | sprint 2 |
+| 3 | 2 | split `ffc-audience.js` 1439→núcleo `FFCAudience` (state+utils) + 3 irmãos (calendar, bookings, booking-form); enqueue (shortcode) + testes adaptados | sprint 3 |

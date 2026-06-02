@@ -1,5 +1,14 @@
 /**
- * FFC Audience Calendar
+ * FFC Audience Calendar — shared core (config + state + init + helpers).
+ *
+ * Owns the `window.FFCAudience` singleton: the normalized `ffcAudience`
+ * config, the shared calendar `state`, the init/bindEvents boot, modal
+ * focus management, and the leaf formatting/lookup helpers. The calendar
+ * grid, day-bookings, and booking-form flows live in sibling files that
+ * depend on this handle and extend the namespace:
+ *  - ffc-audience-calendar.js     → month grid, environment/audience selects, event list
+ *  - ffc-audience-bookings.js     → day modal, day bookings list, cancel
+ *  - ffc-audience-booking-form.js → booking modal, user search, conflicts, create
  *
  * @since 4.5.0
  * @package FreeFormCertificate\Audience
@@ -61,7 +70,7 @@
         }
     }
 
-    // Calendar state
+    // Calendar state — shared across all flow modules via api.state.
     var state = {
         currentDate: new Date(),
         selectedSchedule: 0,
@@ -73,1367 +82,458 @@
         fetchId: 0
     };
 
-    /**
-     * Initialize the calendar
-     */
-    function init() {
-        var $calendar = $('#ffc-audience-calendar');
-        if (!$calendar.length) {
-            return;
-        }
+    var api = window.FFCAudience = {
+        state: state,
 
-        // Portal the modals to <body> so their position: fixed always
-        // resolves against the viewport. Any ancestor with transform,
-        // filter, perspective, will-change or contain creates a new
-        // containing block for fixed-position descendants — block themes
-        // routinely add such properties to entry-content / wp-block-*
-        // wrappers, which traps the modal inside the post layout column
-        // and shows it as a horizontal stripe instead of a full-screen
-        // overlay.
-        $('#ffc-booking-modal, #ffc-day-modal').appendTo('body');
-
-        // Parse config from data attribute
-        state.config = JSON.parse($calendar.attr('data-config') || '{}');
-        state.selectedSchedule = state.config.scheduleId || 0;
-        state.selectedEnvironment = state.config.environmentId || 0;
-
-        // Initialize UI
-        updateEnvironmentSelect();
-        populateAudienceSelect();
-        renderCalendar();
-        bindEvents();
-    }
-
-    /**
-     * Bind event handlers
-     */
-    function bindEvents() {
-        // Navigation. We anchor to day-1 before adjusting the month so JS's
-        // Date overflow (e.g. May 31 → setMonth(3) rolls forward to May 1
-        // because April has only 30 days) doesn't strand the calendar on
-        // the same month it started on.
-        $('.ffc-prev-month').on('click', function() {
-            state.currentDate.setDate(1);
-            state.currentDate.setMonth(state.currentDate.getMonth() - 1);
-            renderCalendar();
-        });
-
-        $('.ffc-next-month').on('click', function() {
-            state.currentDate.setDate(1);
-            state.currentDate.setMonth(state.currentDate.getMonth() + 1);
-            renderCalendar();
-        });
-
-        $('.ffc-today-btn').on('click', function() {
-            state.currentDate = new Date();
-            renderCalendar();
-        });
-
-        // Filters
-        $('#ffc-schedule-select').on('change', function() {
-            state.selectedSchedule = parseInt($(this).val()) || 0;
-            updateEnvironmentSelect();
-            renderCalendar();
-        });
-
-        $('#ffc-environment-select').on('change', function() {
-            state.selectedEnvironment = parseInt($(this).val()) || 0;
-            renderCalendar();
-        });
-
-        // Day click - scoped to audience calendar only
-        $('#ffc-audience-calendar').on('click', '.ffc-day:not(.ffc-past):not(.ffc-disabled):not(.ffc-other-month)', function() {
-            var date = $(this).data('date');
-            if (date) {
-                openDayModal(date);
-            }
-        });
-
-        // Modal controls - scoped to audience modals only (direct binding, not delegation,
-        // because .ffc-modal-content has stopPropagation which blocks delegated handlers)
-        $('#ffc-booking-modal .ffc-modal-close, #ffc-booking-modal .ffc-modal-cancel, #ffc-day-modal .ffc-modal-close, #ffc-day-modal .ffc-modal-cancel').on('click', function() {
-            closeModals();
-        });
-        $('#ffc-booking-modal > .ffc-modal-backdrop, #ffc-day-modal > .ffc-modal-backdrop').on('click', function() {
-            closeModals();
-        });
-
-        // Close modals on Escape key
-        $(document).on('keydown', function(e) {
-            if (e.key === 'Escape' && ($('#ffc-booking-modal').is(':visible') || $('#ffc-day-modal').is(':visible'))) {
-                closeModals();
-            }
-        });
-
-        // Show cancelled checkbox
-        $('#ffc-show-cancelled').on('change', function() {
-            var date = $('#ffc-day-modal').data('date');
-            if (date) {
-                loadDayBookings(date);
-            }
-        });
-
-        // All-day toggle
-        $('#booking-all-day').on('change', function() {
-            if ($(this).is(':checked')) {
-                $('#booking-time-row').hide();
-                $('#booking-start-time').removeAttr('required').val('00:00');
-                $('#booking-end-time').removeAttr('required').val('23:59');
-            } else {
-                $('#booking-time-row').show();
-                $('#booking-start-time').attr('required', 'required').val('');
-                $('#booking-end-time').attr('required', 'required').val('');
-            }
-        });
-
-        // Booking type toggle
-        $('#booking-type').on('change', function() {
-            if ($(this).val() === 'audience') {
-                $('#audience-select-group').show();
-                $('#user-select-group').hide();
-            } else {
-                $('#audience-select-group').hide();
-                $('#user-select-group').show();
-            }
-        });
-
-        // Audience select: selecting a parent auto-selects all descendants
-        (function() {
-            // Collect all descendant IDs of an audience node recursively
-            function getAllDescendantIds(node) {
-                var ids = [];
-                if (!node.children || node.children.length === 0) return ids;
-                node.children.forEach(function(c) {
-                    ids.push(parseInt(c.id));
-                    ids = ids.concat(getAllDescendantIds(c));
-                });
-                return ids;
+        /**
+         * Initialize the calendar
+         */
+        init: function() {
+            var $calendar = $('#ffc-audience-calendar');
+            if (!$calendar.length) {
+                return;
             }
 
-            // Walk the audience tree and collect every node that has children
-            function collectParentNodes(nodes) {
-                var result = [];
-                (nodes || []).forEach(function(node) {
-                    if (node.children && node.children.length > 0) {
-                        result.push(node);
-                        result = result.concat(collectParentNodes(node.children));
+            // Portal the modals to <body> so their position: fixed always
+            // resolves against the viewport. Any ancestor with transform,
+            // filter, perspective, will-change or contain creates a new
+            // containing block for fixed-position descendants — block themes
+            // routinely add such properties to entry-content / wp-block-*
+            // wrappers, which traps the modal inside the post layout column
+            // and shows it as a horizontal stripe instead of a full-screen
+            // overlay.
+            $('#ffc-booking-modal, #ffc-day-modal').appendTo('body');
+
+            // Parse config from data attribute
+            state.config = JSON.parse($calendar.attr('data-config') || '{}');
+            state.selectedSchedule = state.config.scheduleId || 0;
+            state.selectedEnvironment = state.config.environmentId || 0;
+
+            // Initialize UI
+            api.updateEnvironmentSelect();
+            api.populateAudienceSelect();
+            api.renderCalendar();
+            api.bindEvents();
+        },
+
+        /**
+         * Bind event handlers
+         */
+        bindEvents: function() {
+            // Navigation. We anchor to day-1 before adjusting the month so JS's
+            // Date overflow (e.g. May 31 → setMonth(3) rolls forward to May 1
+            // because April has only 30 days) doesn't strand the calendar on
+            // the same month it started on.
+            $('.ffc-prev-month').on('click', function() {
+                state.currentDate.setDate(1);
+                state.currentDate.setMonth(state.currentDate.getMonth() - 1);
+                api.renderCalendar();
+            });
+
+            $('.ffc-next-month').on('click', function() {
+                state.currentDate.setDate(1);
+                state.currentDate.setMonth(state.currentDate.getMonth() + 1);
+                api.renderCalendar();
+            });
+
+            $('.ffc-today-btn').on('click', function() {
+                state.currentDate = new Date();
+                api.renderCalendar();
+            });
+
+            // Filters
+            $('#ffc-schedule-select').on('change', function() {
+                state.selectedSchedule = parseInt($(this).val()) || 0;
+                api.updateEnvironmentSelect();
+                api.renderCalendar();
+            });
+
+            $('#ffc-environment-select').on('change', function() {
+                state.selectedEnvironment = parseInt($(this).val()) || 0;
+                api.renderCalendar();
+            });
+
+            // Day click - scoped to audience calendar only
+            $('#ffc-audience-calendar').on('click', '.ffc-day:not(.ffc-past):not(.ffc-disabled):not(.ffc-other-month)', function() {
+                var date = $(this).data('date');
+                if (date) {
+                    api.openDayModal(date);
+                }
+            });
+
+            // Modal controls - scoped to audience modals only (direct binding, not delegation,
+            // because .ffc-modal-content has stopPropagation which blocks delegated handlers)
+            $('#ffc-booking-modal .ffc-modal-close, #ffc-booking-modal .ffc-modal-cancel, #ffc-day-modal .ffc-modal-close, #ffc-day-modal .ffc-modal-cancel').on('click', function() {
+                api.closeModals();
+            });
+            $('#ffc-booking-modal > .ffc-modal-backdrop, #ffc-day-modal > .ffc-modal-backdrop').on('click', function() {
+                api.closeModals();
+            });
+
+            // Close modals on Escape key
+            $(document).on('keydown', function(e) {
+                if (e.key === 'Escape' && ($('#ffc-booking-modal').is(':visible') || $('#ffc-day-modal').is(':visible'))) {
+                    api.closeModals();
+                }
+            });
+
+            // Show cancelled checkbox
+            $('#ffc-show-cancelled').on('change', function() {
+                var date = $('#ffc-day-modal').data('date');
+                if (date) {
+                    api.loadDayBookings(date);
+                }
+            });
+
+            // All-day toggle
+            $('#booking-all-day').on('change', function() {
+                if ($(this).is(':checked')) {
+                    $('#booking-time-row').hide();
+                    $('#booking-start-time').removeAttr('required').val('00:00');
+                    $('#booking-end-time').removeAttr('required').val('23:59');
+                } else {
+                    $('#booking-time-row').show();
+                    $('#booking-start-time').attr('required', 'required').val('');
+                    $('#booking-end-time').attr('required', 'required').val('');
+                }
+            });
+
+            // Booking type toggle
+            $('#booking-type').on('change', function() {
+                if ($(this).val() === 'audience') {
+                    $('#audience-select-group').show();
+                    $('#user-select-group').hide();
+                } else {
+                    $('#audience-select-group').hide();
+                    $('#user-select-group').show();
+                }
+            });
+
+            // Audience select: selecting a parent auto-selects all descendants
+            (function() {
+                // Collect all descendant IDs of an audience node recursively
+                function getAllDescendantIds(node) {
+                    var ids = [];
+                    if (!node.children || node.children.length === 0) return ids;
+                    node.children.forEach(function(c) {
+                        ids.push(parseInt(c.id));
+                        ids = ids.concat(getAllDescendantIds(c));
+                    });
+                    return ids;
+                }
+
+                // Walk the audience tree and collect every node that has children
+                function collectParentNodes(nodes) {
+                    var result = [];
+                    (nodes || []).forEach(function(node) {
+                        if (node.children && node.children.length > 0) {
+                            result.push(node);
+                            result = result.concat(collectParentNodes(node.children));
+                        }
+                    });
+                    return result;
+                }
+
+                var prevSelected = [];
+                $('#booking-audiences').on('change', function() {
+                    var $sel = $(this);
+                    var selected = ($sel.val() || []).map(function(v) { return parseInt(v); });
+                    var audiences = state.config.audiences || [];
+                    var newSelected = selected.slice();
+
+                    var parentNodes = collectParentNodes(audiences);
+                    parentNodes.forEach(function(node) {
+                        var parentId = parseInt(node.id);
+                        var descIds = getAllDescendantIds(node);
+                        var parentNowSelected = selected.indexOf(parentId) !== -1;
+                        var parentWasSelected = prevSelected.indexOf(parentId) !== -1;
+
+                        if (parentNowSelected && !parentWasSelected) {
+                            // Parent just selected — add all descendants
+                            descIds.forEach(function(did) {
+                                if (newSelected.indexOf(did) === -1) {
+                                    newSelected.push(did);
+                                }
+                            });
+                        } else if (!parentNowSelected && parentWasSelected) {
+                            // Parent just deselected — remove all descendants
+                            newSelected = newSelected.filter(function(id) {
+                                return descIds.indexOf(id) === -1;
+                            });
+                        }
+                    });
+
+                    // Only update if selection changed to avoid infinite loop
+                    if (newSelected.length !== selected.length || !newSelected.every(function(v) { return selected.indexOf(v) !== -1; })) {
+                        $sel.val(newSelected.map(String));
                     }
+                    prevSelected = ($sel.val() || []).map(function(v) { return parseInt(v); });
+                });
+            })();
+
+            // Description character count
+            $('#booking-description').on('input', function() {
+                $('#desc-char-count').text($(this).val().length);
+            });
+
+            // User search
+            var searchTimeout;
+            $('#booking-user-search').on('input', function() {
+                clearTimeout(searchTimeout);
+                var query = $(this).val();
+                if (query.length < 2) {
+                    $('#booking-user-results').removeClass('active').empty();
+                    return;
+                }
+
+                searchTimeout = setTimeout(function() {
+                    api.searchUsers(query);
+                }, 300);
+            });
+
+            // Select user from results
+            $(document).on('click', '#booking-user-results .ffc-user-result', function() {
+                var id = $(this).data('id');
+                var name = $(this).data('name');
+                state.selectedUsers[id] = name;
+                api.updateSelectedUsers();
+                $('#booking-user-results').removeClass('active').empty();
+                $('#booking-user-search').val('');
+            });
+
+            // Remove selected user
+            $(document).on('click', '#booking-selected-users .remove', function() {
+                var id = $(this).data('id');
+                delete state.selectedUsers[id];
+                api.updateSelectedUsers();
+            });
+
+            // Check conflicts button
+            $('#ffc-check-conflicts-btn').on('click', function() {
+                api.checkConflicts();
+            });
+
+            // Create booking button
+            $('#ffc-create-booking-btn').on('click', function() {
+                api.createBooking();
+            });
+
+            // Soft conflict acknowledgment checkbox
+            $('#ffc-conflict-acknowledge').on('change', function() {
+                $('#ffc-create-booking-btn').prop('disabled', !$(this).is(':checked'));
+            });
+
+            // New booking from day modal
+            $('#ffc-new-booking-btn').on('click', function() {
+                var date = $('#ffc-day-modal').data('date');
+                api.closeModals();
+                api.openBookingModal(date);
+            });
+
+            // Prevent modal close on content click - scoped to audience modals only
+            $('#ffc-booking-modal .ffc-modal-content, #ffc-day-modal .ffc-modal-content').on('click', function(e) {
+                e.stopPropagation();
+            });
+        },
+
+        /**
+         * Trap focus within a modal for accessibility
+         */
+        trapFocus: function($modal) {
+            $modal.off('keydown.focustrap').on('keydown.focustrap', function(e) {
+                if (e.key !== 'Tab') return;
+                var focusable = $modal.find('a[href], button:not([disabled]), input:not([disabled]):not([type="hidden"]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])').filter(':visible');
+                var first = focusable.first()[0];
+                var last = focusable.last()[0];
+                if (e.shiftKey && document.activeElement === first) {
+                    e.preventDefault();
+                    last.focus();
+                } else if (!e.shiftKey && document.activeElement === last) {
+                    e.preventDefault();
+                    first.focus();
+                }
+            });
+        },
+
+        /**
+         * Close all modals
+         */
+        closeModals: function() {
+            $('#ffc-booking-modal, #ffc-day-modal').off('keydown.focustrap').hide();
+            if (state._triggerElement) {
+                state._triggerElement.focus();
+                state._triggerElement = null;
+            }
+        },
+
+        /**
+         * Format date as YYYY-MM-DD
+         */
+        formatDate: function(date) {
+            return date.getFullYear() + '-' + api.pad(date.getMonth() + 1) + '-' + api.pad(date.getDate());
+        },
+
+        /**
+         * Parse date string (YYYY-MM-DD) to Date object in local timezone
+         * This avoids timezone issues when using new Date(string) which interprets as UTC
+         */
+        parseDate: function(dateStr) {
+            var parts = dateStr.split('-');
+            return new Date(parseInt(parts[0], 10), parseInt(parts[1], 10) - 1, parseInt(parts[2], 10));
+        },
+
+        /**
+         * Format time (HH:MM:SS to HH:MM)
+         */
+        formatTime: function(time) {
+            if (!time) return '';
+            return time.substring(0, 5);
+        },
+
+        /**
+         * Pad number with leading zero
+         */
+        pad: function(num) {
+            return (num < 10 ? '0' : '') + num;
+        },
+
+        /**
+         * Get custom booking label from schedule config, with global fallback.
+         * @param {string} form - 'singular' or 'plural'
+         */
+        getBookingLabel: function(form) {
+            var schedules = state.config.schedules || [];
+            for (var i = 0; i < schedules.length; i++) {
+                var s = schedules[i];
+                if (form === 'singular' && s.bookingLabelSingular) return s.bookingLabelSingular;
+                if (form === 'plural' && s.bookingLabelPlural) return s.bookingLabelPlural;
+            }
+            return form === 'singular' ? ffcAudience.strings.booking : ffcAudience.strings.bookings;
+        },
+
+        /**
+         * Build a map of audienceId -> parentName from hierarchical config.
+         */
+        buildParentNameMap: function() {
+            var map = {};
+            function walk(nodes) {
+                (nodes || []).forEach(function(node) {
+                    if (!node.children || node.children.length === 0) return;
+                    node.children.forEach(function(child) {
+                        map[parseInt(child.id)] = node.name;
+                    });
+                    walk(node.children);
+                });
+            }
+            walk(state.config.audiences || []);
+            return map;
+        },
+
+        /**
+         * Format audience name based on badge format setting.
+         * 'parent_name' mode: "Parent: Child" for children, plain name for root.
+         */
+        formatAudienceName: function(audience, parentNameMap) {
+            if (state.config.audienceBadgeFormat !== 'parent_name') {
+                return audience.name;
+            }
+            var parentName = parentNameMap[parseInt(audience.id)];
+            return parentName ? parentName + ': ' + audience.name : audience.name;
+        },
+
+        /**
+         * Collapse audiences for display: when a parent + ALL its children
+         * are present, show only the parent (visual only).
+         */
+        collapseParentAudiences: function(bookingAudiences) {
+            if (!bookingAudiences || bookingAudiences.length === 0) return bookingAudiences;
+
+            var ids = bookingAudiences.map(function(a) { return parseInt(a.id); });
+            var removeIds = [];
+
+            // Recursively collect all descendant IDs of a node
+            function allDescIds(node) {
+                var result = [];
+                if (!node.children || node.children.length === 0) return result;
+                node.children.forEach(function(c) {
+                    result.push(parseInt(c.id));
+                    result = result.concat(allDescIds(c));
                 });
                 return result;
             }
 
-            var prevSelected = [];
-            $('#booking-audiences').on('change', function() {
-                var $sel = $(this);
-                var selected = ($sel.val() || []).map(function(v) { return parseInt(v); });
-                var audiences = state.config.audiences || [];
-                var newSelected = selected.slice();
-
-                var parentNodes = collectParentNodes(audiences);
-                parentNodes.forEach(function(node) {
+            function walk(nodes) {
+                (nodes || []).forEach(function(node) {
+                    if (!node.children || node.children.length === 0) return;
                     var parentId = parseInt(node.id);
-                    var descIds = getAllDescendantIds(node);
-                    var parentNowSelected = selected.indexOf(parentId) !== -1;
-                    var parentWasSelected = prevSelected.indexOf(parentId) !== -1;
+                    if (ids.indexOf(parentId) === -1) { walk(node.children); return; }
 
-                    if (parentNowSelected && !parentWasSelected) {
-                        // Parent just selected — add all descendants
-                        descIds.forEach(function(did) {
-                            if (newSelected.indexOf(did) === -1) {
-                                newSelected.push(did);
-                            }
-                        });
-                    } else if (!parentNowSelected && parentWasSelected) {
-                        // Parent just deselected — remove all descendants
-                        newSelected = newSelected.filter(function(id) {
-                            return descIds.indexOf(id) === -1;
-                        });
+                    var descIds = allDescIds(node);
+                    var allPresent = descIds.every(function(did) { return ids.indexOf(did) !== -1; });
+                    if (allPresent) {
+                        removeIds = removeIds.concat(descIds);
+                    } else {
+                        walk(node.children);
                     }
                 });
-
-                // Only update if selection changed to avoid infinite loop
-                if (newSelected.length !== selected.length || !newSelected.every(function(v) { return selected.indexOf(v) !== -1; })) {
-                    $sel.val(newSelected.map(String));
-                }
-                prevSelected = ($sel.val() || []).map(function(v) { return parseInt(v); });
-            });
-        })();
-
-        // Description character count
-        $('#booking-description').on('input', function() {
-            $('#desc-char-count').text($(this).val().length);
-        });
-
-        // User search
-        var searchTimeout;
-        $('#booking-user-search').on('input', function() {
-            clearTimeout(searchTimeout);
-            var query = $(this).val();
-            if (query.length < 2) {
-                $('#booking-user-results').removeClass('active').empty();
-                return;
             }
+            walk(state.config.audiences || []);
 
-            searchTimeout = setTimeout(function() {
-                searchUsers(query);
-            }, 300);
-        });
+            if (removeIds.length === 0) return bookingAudiences;
 
-        // Select user from results
-        $(document).on('click', '#booking-user-results .ffc-user-result', function() {
-            var id = $(this).data('id');
-            var name = $(this).data('name');
-            state.selectedUsers[id] = name;
-            updateSelectedUsers();
-            $('#booking-user-results').removeClass('active').empty();
-            $('#booking-user-search').val('');
-        });
+            return bookingAudiences.filter(function(a) {
+                return removeIds.indexOf(parseInt(a.id)) === -1;
+            });
+        },
 
-        // Remove selected user
-        $(document).on('click', '#booking-selected-users .remove', function() {
-            var id = $(this).data('id');
-            delete state.selectedUsers[id];
-            updateSelectedUsers();
-        });
-
-        // Check conflicts button
-        $('#ffc-check-conflicts-btn').on('click', function() {
-            checkConflicts();
-        });
-
-        // Create booking button
-        $('#ffc-create-booking-btn').on('click', function() {
-            createBooking();
-        });
-
-        // Soft conflict acknowledgment checkbox
-        $('#ffc-conflict-acknowledge').on('change', function() {
-            $('#ffc-create-booking-btn').prop('disabled', !$(this).is(':checked'));
-        });
-
-        // New booking from day modal
-        $('#ffc-new-booking-btn').on('click', function() {
-            var date = $('#ffc-day-modal').data('date');
-            closeModals();
-            openBookingModal(date);
-        });
-
-        // Prevent modal close on content click - scoped to audience modals only
-        $('#ffc-booking-modal .ffc-modal-content, #ffc-day-modal .ffc-modal-content').on('click', function(e) {
-            e.stopPropagation();
-        });
-    }
-
-    /**
-     * Update environment select based on selected schedule
-     */
-    function updateEnvironmentSelect() {
-        var $select = $('#ffc-environment-select');
-        $select.find('option:not(:first)').remove();
-
-        var schedules = state.config.schedules || [];
-        var environments = [];
-        var envLabelPlural = (ffcAudience.strings || {}).allEnvironments || 'All Environments';
-
-        if (state.selectedSchedule > 0) {
-            // Get environments for selected schedule
+        /**
+         * Get environment color by ID
+         */
+        getEnvironmentColor: function(envId) {
+            envId = parseInt(envId);
+            var schedules = state.config.schedules || [];
             for (var i = 0; i < schedules.length; i++) {
-                // Use == for loose comparison (int vs string)
-                if (parseInt(schedules[i].id) === parseInt(state.selectedSchedule)) {
-                    environments = schedules[i].environments || [];
-                    // Update dropdown label to match schedule's custom label
-                    if (schedules[i].environmentLabelPlural) {
-                        envLabelPlural = (ffcAudience.strings || {}).all
-                            ? (ffcAudience.strings.all + ' ' + schedules[i].environmentLabelPlural)
-                            : schedules[i].environmentLabelPlural;
+                var envs = schedules[i].environments || [];
+                for (var j = 0; j < envs.length; j++) {
+                    if (parseInt(envs[j].id) === envId) {
+                        return envs[j].color || '#3788d8';
                     }
-                    break;
                 }
             }
-        } else {
-            // Get all environments
-            for (var j = 0; j < schedules.length; j++) {
-                var schEnvs = schedules[j].environments || [];
-                for (var k = 0; k < schEnvs.length; k++) {
-                    environments.push(schEnvs[k]);
-                }
-            }
-        }
+            return '#3788d8';
+        },
 
-        // Update first option text with dynamic label
-        $select.find('option:first').text(envLabelPlural);
-
-        environments.forEach(function(env) {
-            $select.append('<option value="' + env.id + '" data-color="' + (env.color || '#3788d8') + '">' + env.name + '</option>');
-        });
-
-        // Set dropdown value (0 = "All Environments" stays as default)
-        if (state.selectedEnvironment > 0) {
-            $select.val(state.selectedEnvironment);
-        }
-    }
-
-    /**
-     * Populate audience select
-     */
-    function populateAudienceSelect() {
-        var $select = $('#booking-audiences');
-        $select.empty();
-
-        var audiences = state.config.audiences || [];
-
-        function appendNodes(nodes, depth) {
-            nodes.forEach(function(node) {
-                var indent = new Array(depth + 1).join('\u00A0\u00A0\u00A0');
-                var prefix = depth > 0 ? indent + '\u2514 ' : '';
-                $select.append('<option value="' + node.id + '">' + prefix + node.name + '</option>');
-                if (node.children && node.children.length > 0) {
-                    appendNodes(node.children, depth + 1);
-                }
-            });
-        }
-
-        appendNodes(audiences, 0);
-    }
-
-    /**
-     * Render the calendar grid
-     */
-    function renderCalendar() {
-        var year = state.currentDate.getFullYear();
-        var month = state.currentDate.getMonth();
-
-        // Update header
-        $('.ffc-current-month').text(ffcAudience.strings.months[month] + ' ' + year);
-
-        // Update event list header
-        var $eventListHeader = $('#ffc-event-list-panel .ffc-event-list-header h3');
-        if ($eventListHeader.length) {
-            $eventListHeader.text(((ffcAudience.strings || {}).events || 'Events') + ' - ' + ffcAudience.strings.months[month] + ' ' + year);
-        }
-
-        // Get first and last day of month
-        var firstDay = new Date(year, month, 1);
-        var lastDay = new Date(year, month + 1, 0);
-        var startDay = firstDay.getDay();
-        var daysInMonth = lastDay.getDate();
-
-        // Get previous month days to show
-        var prevMonthLastDay = new Date(year, month, 0).getDate();
-
-        // Build calendar HTML
-        var html = '';
-        var day = 1;
-        var nextMonthDay = 1;
-        var today = new Date();
-        today.setHours(0, 0, 0, 0);
-
-        // Fetch bookings for this month
-        fetchMonthData(year, month + 1, function() {
-            for (var i = 0; i < 6; i++) {
-                for (var j = 0; j < 7; j++) {
-                    var cellDate, cellDay, classes = ['ffc-day'];
-                    var dateStr = '';
-
-                    if (i === 0 && j < startDay) {
-                        // Previous month
-                        cellDay = prevMonthLastDay - startDay + j + 1;
-                        cellDate = new Date(year, month - 1, cellDay);
-                        classes.push('ffc-other-month');
-                    } else if (day > daysInMonth) {
-                        // Next month
-                        cellDay = nextMonthDay++;
-                        cellDate = new Date(year, month + 1, cellDay);
-                        classes.push('ffc-other-month');
-                    } else {
-                        // Current month
-                        cellDay = day++;
-                        cellDate = new Date(year, month, cellDay);
-                    }
-
-                    dateStr = formatDate(cellDate);
-
-                    // Check if past
-                    if (cellDate < today) {
-                        classes.push('ffc-past');
-                    }
-
-                    // Check if today
-                    if (cellDate.getTime() === today.getTime()) {
-                        classes.push('ffc-today');
-                    }
-
-                    // Check for holidays
-                    var isHoliday = state.holidays[dateStr];
-                    if (isHoliday) {
-                        classes.push('ffc-holiday');
-                        classes.push('ffc-disabled');
-                    }
-
-                    // Check for closed weekdays
-                    var weekday = cellDate.getDay();
-                    var isClosed = state.closedWeekdays && state.closedWeekdays.indexOf(weekday) !== -1;
-                    if (isClosed && !isHoliday) {
-                        classes.push('ffc-closed');
-                        classes.push('ffc-disabled');
-                    }
-
-                    // Mark available days (not past, not closed, not holiday, not other month, within booking window)
-                    var isOtherMonth = classes.indexOf('ffc-other-month') !== -1;
-                    var isPast = classes.indexOf('ffc-past') !== -1;
-                    var isWithinBookingWindow = checkWithinBookingWindow(cellDate);
-                    if (!isOtherMonth && !isPast && !isClosed && !isHoliday && isWithinBookingWindow) {
-                        classes.push('ffc-available');
-                    }
-
-                    // Get booking count
-                    var bookingCount = getBookingCount(dateStr);
-
-                    html += '<div class="' + classes.join(' ') + '" data-date="' + dateStr + '">';
-                    html += '<span class="ffc-day-number">' + cellDay + '</span>';
-                    html += '<div class="ffc-day-content">';
-
-                    if (isHoliday) {
-                        html += '<span class="ffc-day-badge ffc-badge-holiday">' + ffcAudience.strings.holiday + '</span>';
-                    } else if (isClosed) {
-                        html += '<span class="ffc-day-badge ffc-badge-closed">' + ffcAudience.strings.closed + '</span>';
-                    } else if (bookingCount > 0) {
-                        var bLabel = bookingCount === 1 ? getBookingLabel('singular') : getBookingLabel('plural');
-                        html += '<span class="ffc-day-badge ffc-badge-bookings">' + bookingCount + ' ' + bLabel + '</span>';
-                    }
-
-                    html += '</div></div>';
-                }
-            }
-
-            $('#ffc-calendar-days').html(html);
-
-            // Update event list panel if present
-            renderEventList();
-        });
-    }
-
-    /**
-     * Fetch bookings and holidays for a month
-     */
-    function fetchMonthData(year, month, callback) {
-        var thisId = ++state.fetchId;
-
-        // Clear stale data immediately so old badges/events disappear
-        state.bookings = {};
-        state.holidays = {};
-        state.closedWeekdays = [];
-
-        var startDate = year + '-' + pad(month) + '-01';
-        var lastDay = new Date(year, month, 0).getDate();
-        var endDate = year + '-' + pad(month) + '-' + pad(lastDay);
-
-        var params = {
-            start_date: startDate,
-            end_date: endDate
-        };
-
-        if (state.selectedSchedule > 0) {
-            params.schedule_id = state.selectedSchedule;
-        }
-
-        if (state.selectedEnvironment > 0) {
-            params.environment_id = state.selectedEnvironment;
-        }
-
-        FFC.rest(ffcAudience.restUrl + 'bookings', { data: params, nonce: ffcAudience.nonce })
-            .then(function(response) {
-                // Ignore stale responses — a newer fetch was already dispatched
-                if (thisId !== state.fetchId) return;
-
-                if (response.bookings) {
-                    response.bookings.forEach(function(booking) {
-                        if (!state.bookings[booking.booking_date]) {
-                            state.bookings[booking.booking_date] = [];
-                        }
-                        state.bookings[booking.booking_date].push(booking);
-                    });
-                }
-
-                if (response.holidays) {
-                    response.holidays.forEach(function(holiday) {
-                        state.holidays[holiday.holiday_date] = holiday.description || true;
-                    });
-                }
-
-                if (response.closed_weekdays) {
-                    state.closedWeekdays = response.closed_weekdays;
-                }
-
-                if (callback) callback();
-            })
-            .catch(function() {
-                if (thisId !== state.fetchId) return;
-                if (callback) callback();
-            });
-    }
-
-    /**
-     * Get booking count for a date
-     */
-    function getBookingCount(dateStr) {
-        var bookings = state.bookings[dateStr] || [];
-        return bookings.filter(function(b) { return b.status === 'active'; }).length;
-    }
-
-    /**
-     * Check if a date is within the booking window (based on futureDaysLimit)
-     */
-    function checkWithinBookingWindow(date) {
-        // Get the selected schedule's future days limit
-        var schedules = state.config.schedules || [];
-        var futureDaysLimit = null;
-
-        if (state.selectedSchedule > 0) {
-            // Find the selected schedule
+        /**
+         * Get the environment label for a booking (finds the schedule that owns this environment)
+         */
+        getEnvironmentLabelForBooking: function(booking) {
+            var envId = parseInt(booking.environment_id);
+            var schedules = state.config.schedules || [];
             for (var i = 0; i < schedules.length; i++) {
-                if (schedules[i].id === state.selectedSchedule) {
-                    futureDaysLimit = schedules[i].futureDaysLimit;
-                    break;
-                }
-            }
-        } else {
-            // No schedule selected - use the minimum limit from all schedules (if any have limits)
-            for (var j = 0; j < schedules.length; j++) {
-                var limit = schedules[j].futureDaysLimit;
-                if (limit !== null && limit > 0) {
-                    if (futureDaysLimit === null || limit < futureDaysLimit) {
-                        futureDaysLimit = limit;
+                var envs = schedules[i].environments || [];
+                for (var j = 0; j < envs.length; j++) {
+                    if (parseInt(envs[j].id) === envId) {
+                        return schedules[i].environmentLabel || (ffcAudience.strings || {}).environmentLabel || 'Environment';
                     }
                 }
             }
+            return (ffcAudience.strings || {}).environmentLabel || 'Environment';
+        },
+
+        /**
+         * Escape HTML
+         */
+        escapeHtml: function(str) {
+            if (!str) return '';
+            return str.replace(/&/g, '&amp;')
+                      .replace(/</g, '&lt;')
+                      .replace(/>/g, '&gt;')
+                      .replace(/"/g, '&quot;')
+                      .replace(/'/g, '&#39;');
         }
-
-        // If no limit, all future dates are within window
-        if (futureDaysLimit === null || futureDaysLimit <= 0) {
-            return true;
-        }
-
-        // Calculate max date
-        var maxDate = new Date();
-        maxDate.setDate(maxDate.getDate() + futureDaysLimit);
-        maxDate.setHours(23, 59, 59, 999);
-
-        return date <= maxDate;
-    }
-
-    /**
-     * Open day detail modal
-     */
-    function openDayModal(date) {
-        var $modal = $('#ffc-day-modal');
-        var dateObj = parseDate(date);
-        var dateDisplay = dateObj.toLocaleDateString(ffcAudience.locale, {
-            weekday: 'long',
-            year: 'numeric',
-            month: 'long',
-            day: 'numeric'
-        });
-
-        state._triggerElement = document.activeElement;
-        $modal.find('.ffc-day-modal-title').text(dateDisplay);
-        $modal.data('date', date);
-        $modal.show();
-        $modal.find('.ffc-modal-close').focus();
-        trapFocus($modal);
-
-        // Load bookings
-        loadDayBookings(date);
-    }
-
-    /**
-     * Load bookings for a specific day
-     */
-    function loadDayBookings(date) {
-        var $container = $('#ffc-day-bookings');
-        var allBookings = state.bookings[date] || [];
-        var showCancelled = $('#ffc-show-cancelled').is(':checked');
-
-        // Filter bookings based on show cancelled option
-        var bookings = allBookings.filter(function(b) {
-            if (showCancelled) {
-                return true;
-            }
-            return b.status === 'active';
-        });
-
-        if (bookings.length === 0) {
-            var message = ffcAudience.strings.noBookings;
-            if (!showCancelled && allBookings.length > 0) {
-                message = ffcAudience.strings.noActiveBookings || 'No active bookings for this day.';
-            }
-            $container.html('<p class="ffc-no-bookings">' + message + '</p>');
-            return;
-        }
-
-        var html = '';
-        bookings.sort(function(a, b) {
-            return a.start_time.localeCompare(b.start_time);
-        });
-
-        bookings.forEach(function(booking) {
-            var classes = ['ffc-booking-item'];
-            if (booking.status === 'cancelled') {
-                classes.push('ffc-booking-cancelled');
-            }
-
-            var envColor = getEnvironmentColor(booking.environment_id);
-            html += '<div class="' + classes.join(' ') + '" style="border-left: 4px solid ' + envColor + ';">';
-            if (parseInt(booking.is_all_day)) {
-                html += '<div class="ffc-booking-time ffc-all-day">' + ((ffcAudience.strings || {}).allDay || 'All Day') + '</div>';
-            } else {
-                html += '<div class="ffc-booking-time">' + formatTime(booking.start_time) + ' - ' + formatTime(booking.end_time) + '</div>';
-            }
-            html += '<div class="ffc-booking-description">' + escapeHtml(booking.description) + '</div>';
-
-            html += '<div class="ffc-booking-meta">';
-            html += '<span><strong>' + escapeHtml(getEnvironmentLabelForBooking(booking) + ':') + '</strong> ' + escapeHtml(booking.environment_name) + '</span>';
-            if (booking.status === 'cancelled') {
-                html += ' <span class="ffc-status-cancelled">(' + (ffcAudience.strings.cancelled || 'Cancelled') + ')</span>';
-            }
-            html += '</div>';
-
-            if (booking.audiences && booking.audiences.length > 0) {
-                var displayAudiences = collapseParentAudiences(booking.audiences);
-                var pMap = buildParentNameMap();
-                html += '<div class="ffc-booking-audiences">';
-                displayAudiences.forEach(function(audience) {
-                    html += '<span class="ffc-audience-tag" style="background-color: ' + audience.color + '">' + escapeHtml(formatAudienceName(audience, pMap)) + '</span>';
-                });
-                html += '</div>';
-            }
-
-            if (booking.status === 'active' && state.config.canBook) {
-                html += '<div class="ffc-booking-actions">';
-                html += '<button type="button" class="ffc-btn ffc-btn-danger ffc-cancel-booking" data-id="' + booking.id + '">' + ffcAudience.strings.cancel + '</button>';
-                html += '</div>';
-            }
-
-            html += '</div>';
-        });
-
-        $container.html(html);
-
-        // Bind cancel handlers
-        $container.find('.ffc-cancel-booking').on('click', function() {
-            var bookingId = $(this).data('id');
-            cancelBooking(bookingId, date);
-        });
-    }
-
-    /**
-     * Open booking modal
-     */
-    function openBookingModal(date, environmentId) {
-        var $modal = $('#ffc-booking-modal');
-        var dateObj = parseDate(date);
-        var dateDisplay = dateObj.toLocaleDateString(ffcAudience.locale, {
-            weekday: 'long',
-            year: 'numeric',
-            month: 'long',
-            day: 'numeric'
-        });
-
-        // Reset form
-        $('#ffc-booking-form')[0].reset();
-        $('#booking-all-day').prop('checked', false);
-        $('#booking-time-row').show();
-        $('#booking-start-time').attr('required', 'required');
-        $('#booking-end-time').attr('required', 'required');
-        state.selectedUsers = {};
-        updateSelectedUsers();
-        $('#ffc-conflict-warning').hide();
-        $('#ffc-conflict-error').hide();
-        $('#ffc-conflict-acknowledge').prop('checked', false);
-        $('#ffc-check-conflicts-btn').show();
-        $('#ffc-create-booking-btn').hide().prop('disabled', false).text(ffcAudience.strings.createBooking);
-        $('#desc-char-count').text('0');
-
-        // Set values
-        $('#booking-date').val(date);
-        $('.ffc-booking-date-display').text(dateDisplay);
-
-        // Populate environment select
-        var $envSelect = $('#booking-environment-id');
-        $envSelect.empty();
-
-        var schedules = state.config.schedules || [];
-        var allEnvironments = [];
-
-        // Get all environments from all schedules
-        for (var i = 0; i < schedules.length; i++) {
-            var envs = schedules[i].environments || [];
-            for (var j = 0; j < envs.length; j++) {
-                allEnvironments.push({
-                    id: envs[j].id,
-                    name: envs[j].name,
-                    scheduleName: schedules[i].name
-                });
-            }
-        }
-
-        // Add options to select
-        if (allEnvironments.length > 1) {
-            // Group by schedule if there are multiple schedules
-            var hasMultipleSchedules = schedules.length > 1;
-            allEnvironments.forEach(function(env) {
-                var label = hasMultipleSchedules ? env.scheduleName + ' - ' + env.name : env.name;
-                $envSelect.append('<option value="' + env.id + '">' + label + '</option>');
-            });
-        } else if (allEnvironments.length === 1) {
-            $envSelect.append('<option value="' + allEnvironments[0].id + '">' + allEnvironments[0].name + '</option>');
-        }
-
-        // Update environment label in the booking form
-        var currentSchedule = null;
-        if (state.selectedSchedule > 0) {
-            for (var s = 0; s < schedules.length; s++) {
-                if (parseInt(schedules[s].id) === parseInt(state.selectedSchedule)) {
-                    currentSchedule = schedules[s];
-                    break;
-                }
-            }
-        } else if (schedules.length === 1) {
-            currentSchedule = schedules[0];
-        }
-        if (currentSchedule && currentSchedule.environmentLabel) {
-            $('label[for="booking-environment-id"]').html(escapeHtml(currentSchedule.environmentLabel) + ' *');
-        }
-
-        // Set selected environment
-        var selectedEnv = environmentId || state.selectedEnvironment || '';
-        $envSelect.val(selectedEnv);
-
-        // Show audience select by default
-        $('#booking-type').val('audience').trigger('change');
-
-        state._triggerElement = document.activeElement;
-        $modal.show();
-        $modal.find('.ffc-modal-close').focus();
-        trapFocus($modal);
-    }
-
-    /**
-     * Get environment color by ID
-     */
-    function getEnvironmentColor(envId) {
-        envId = parseInt(envId);
-        var schedules = state.config.schedules || [];
-        for (var i = 0; i < schedules.length; i++) {
-            var envs = schedules[i].environments || [];
-            for (var j = 0; j < envs.length; j++) {
-                if (parseInt(envs[j].id) === envId) {
-                    return envs[j].color || '#3788d8';
-                }
-            }
-        }
-        return '#3788d8';
-    }
-
-    /**
-     * Get the environment label for a booking (finds the schedule that owns this environment)
-     */
-    function getEnvironmentLabelForBooking(booking) {
-        var envId = parseInt(booking.environment_id);
-        var schedules = state.config.schedules || [];
-        for (var i = 0; i < schedules.length; i++) {
-            var envs = schedules[i].environments || [];
-            for (var j = 0; j < envs.length; j++) {
-                if (parseInt(envs[j].id) === envId) {
-                    return schedules[i].environmentLabel || (ffcAudience.strings || {}).environmentLabel || 'Environment';
-                }
-            }
-        }
-        return (ffcAudience.strings || {}).environmentLabel || 'Environment';
-    }
-
-    /**
-     * Search users
-     */
-    function searchUsers(query) {
-        FFC.request('ffc_search_users', { query: query }, { nonce: ffcAudience.searchUsersNonce })
-            .then(function(data) {
-                if (data && data.length > 0) {
-                    var html = '';
-                    data.forEach(function(user) {
-                        if (!state.selectedUsers[user.id]) {
-                            html += '<div class="ffc-user-result" data-id="' + user.id + '" data-name="' + escapeHtml(user.name) + '">' + escapeHtml(user.name) + ' (' + escapeHtml(user.email) + ')</div>';
-                        }
-                    });
-                    $('#booking-user-results').html(html).addClass('active');
-                } else {
-                    $('#booking-user-results').removeClass('active').empty();
-                }
-            })
-            .catch(function() {
-                $('#booking-user-results').removeClass('active').empty();
-            });
-    }
-
-    /**
-     * Update selected users display
-     */
-    function updateSelectedUsers() {
-        var html = '';
-        var ids = [];
-        for (var id in state.selectedUsers) {
-            html += '<span class="ffc-selected-user">' + escapeHtml(state.selectedUsers[id]) + '<span class="remove" data-id="' + id + '">&times;</span></span>';
-            ids.push(id);
-        }
-        $('#booking-selected-users').html(html);
-        $('#booking-user-ids').val(ids.join(','));
-    }
-
-    /**
-     * Check for conflicts
-     */
-    function checkConflicts() {
-        if (!validateBookingForm()) {
-            return;
-        }
-
-        var data = getBookingFormData();
-        var $btn = $('#ffc-check-conflicts-btn');
-        var originalText = $btn.text();
-
-        $btn.prop('disabled', true).text(ffcAudience.strings.loading);
-
-        FFC.rest(ffcAudience.restUrl + 'conflicts', {
-            method: 'POST',
-            timeout: 30000, // 30 second timeout
-            nonce: ffcAudience.nonce,
-            data: {
-                environment_id: data.environment_id,
-                booking_date: data.booking_date,
-                start_time: data.start_time,
-                end_time: data.end_time,
-                audience_ids: data.audience_ids,
-                user_ids: data.user_ids
-            }
-        })
-            .then(function(response) {
-                try {
-                    if (response && response.success) {
-                        var conflicts = response.conflicts || {};
-                        var isHardConflict = (conflicts.type === 'environment');
-
-                        // Reset conflict UI
-                        $('#ffc-conflict-warning').hide();
-                        $('#ffc-conflict-error').hide();
-                        $('#ffc-conflict-acknowledge').prop('checked', false);
-
-                        if (isHardConflict) {
-                            // HARD CONFLICT — block booking
-                            var errorMsg = ffcAudience.strings.hardConflict || 'This time slot is already booked for this environment.';
-                            var times = conflicts.bookings.map(function(b) { return escapeHtml(b.start_time) + '–' + escapeHtml(b.end_time); }).join(', ');
-                            var errorHtml = '<p><strong>' + escapeHtml(errorMsg) + '</strong></p><p>' + times + '</p>';
-
-                            $('#ffc-conflict-error-details').html(errorHtml);
-                            $('#ffc-conflict-error').show();
-
-                            // Hide check button, do NOT show create button
-                            $btn.hide();
-                            $('#ffc-create-booking-btn').hide();
-                        } else {
-                            // Check for soft conflicts
-                            var softWarnings = [];
-
-                            // Same audience group already booked on this day
-                            if (conflicts.audience_same_day && conflicts.audience_same_day.length > 0) {
-                                var grouped = {};
-                                conflicts.audience_same_day.forEach(function(b) {
-                                    if (!grouped[b.audience_name]) {
-                                        grouped[b.audience_name] = [];
-                                    }
-                                    grouped[b.audience_name].push(b.start_time + '–' + b.end_time);
-                                });
-                                var lines = [];
-                                for (var name in grouped) {
-                                    lines.push('<strong>' + escapeHtml(name) + '</strong>: ' + grouped[name].join(', '));
-                                }
-                                var sameDayMsg = ffcAudience.strings.audienceSameDayWarning || 'This audience group already has a booking on this day:';
-                                softWarnings.push(sameDayMsg + '<br>' + lines.join('<br>'));
-                            }
-
-                            // User member overlap
-                            if (conflicts.bookings && conflicts.bookings.length > 0 && conflicts.type === 'user') {
-                                var count = conflicts.affected_users ? conflicts.affected_users.length : 0;
-                                softWarnings.push(count + ' ' + (ffcAudience.strings.membersOverlapping || 'member(s) have overlapping bookings.'));
-                            }
-
-                            $btn.hide();
-
-                            if (softWarnings.length > 0) {
-                                // SOFT CONFLICT: show warning + require acknowledgment
-                                $('#ffc-conflict-details').html(softWarnings.join('<br><br>'));
-                                $('#ffc-conflict-warning').show();
-                                $('#ffc-create-booking-btn').show().prop('disabled', true);
-                            } else {
-                                // NO CONFLICT: proceed directly
-                                $('#ffc-create-booking-btn').show().prop('disabled', false);
-                            }
-                        }
-                    } else {
-                        alert((response && response.message) || ffcAudience.strings.error);
-                    }
-                } catch (e) {
-                    console.error('Error processing conflict response:', e);
-                    alert(ffcAudience.strings.error);
-                }
-            })
-            .catch(function(err) {
-                var xhr = err && err.xhr;
-                console.error('Conflict check error:', err && err.message, xhr && xhr.responseText);
-                var message = ffcAudience.strings.error;
-                if (xhr && xhr.responseJSON && xhr.responseJSON.message) {
-                    message = xhr.responseJSON.message;
-                } else if (xhr && xhr.statusText === 'timeout') {
-                    message = ffcAudience.strings.timeout;
-                }
-                alert(message);
-            })
-            .then(function() {
-                // .finally equivalent — always restore the button state.
-                // Chaining a no-error .then after .catch lets us run this
-                // on both success + handled-error branches without needing
-                // Promise.prototype.finally polyfills on legacy browsers.
-                $btn.prop('disabled', false).text(originalText);
-            });
-    }
-
-    /**
-     * Create booking
-     */
-    function createBooking() {
-        if (!validateBookingForm()) {
-            return;
-        }
-
-        var data = getBookingFormData();
-
-        $('#ffc-create-booking-btn').prop('disabled', true).text(ffcAudience.strings.loading);
-
-        FFC.rest(ffcAudience.restUrl + 'bookings', {
-            method: 'POST',
-            data: data,
-            nonce: ffcAudience.nonce
-        })
-            .then(function(response) {
-                if (response && response.success) {
-                    alert(ffcAudience.strings.bookingCreated);
-                    closeModals();
-                    renderCalendar();
-                } else {
-                    $('#ffc-create-booking-btn').prop('disabled', false).text(ffcAudience.strings.createBooking);
-                    alert((response && response.message) || ffcAudience.strings.error);
-                }
-            })
-            .catch(function() {
-                $('#ffc-create-booking-btn').prop('disabled', false).text(ffcAudience.strings.createBooking);
-                alert(ffcAudience.strings.error);
-            });
-    }
-
-    /**
-     * Cancel booking
-     */
-    function cancelBooking(bookingId, date) {
-        var reason = prompt(ffcAudience.strings.cancelReason);
-        if (!reason || reason.trim() === '') {
-            return;
-        }
-
-        FFC.rest(ffcAudience.restUrl + 'bookings/' + bookingId, {
-            method: 'DELETE',
-            data: { reason: reason },
-            nonce: ffcAudience.nonce
-        })
-            .then(function(response) {
-                if (response && response.success) {
-                    alert(ffcAudience.strings.bookingCancelled);
-                    renderCalendar();
-                    loadDayBookings(date);
-                } else {
-                    alert((response && response.message) || ffcAudience.strings.error);
-                }
-            })
-            .catch(function() {
-                alert(ffcAudience.strings.error);
-            });
-    }
-
-    /**
-     * Validate booking form
-     */
-    function validateBookingForm() {
-        var isAllDay = $('#booking-all-day').is(':checked');
-        var startTime = $('#booking-start-time').val();
-        var endTime = $('#booking-end-time').val();
-        var description = $('#booking-description').val().trim();
-        var bookingType = $('#booking-type').val();
-
-        if (!isAllDay) {
-            if (!startTime || !endTime) {
-                alert(ffcAudience.strings.fillTimeFields || 'Please fill in the time fields.');
-                return false;
-            }
-
-            if (startTime >= endTime) {
-                alert(ffcAudience.strings.invalidTime);
-                return false;
-            }
-        }
-
-        if (description.length < 15 || description.length > 300) {
-            alert(ffcAudience.strings.descriptionRequired);
-            return false;
-        }
-
-        if (bookingType === 'audience') {
-            var audiences = $('#booking-audiences').val();
-            if (!audiences || audiences.length === 0) {
-                alert(ffcAudience.strings.selectAudience);
-                return false;
-            }
-        } else {
-            var userIds = $('#booking-user-ids').val();
-            if (!userIds || userIds.trim() === '') {
-                alert(ffcAudience.strings.selectUser);
-                return false;
-            }
-        }
-
-        return true;
-    }
-
-    /**
-     * Get booking form data
-     */
-    function getBookingFormData() {
-        var bookingType = $('#booking-type').val();
-        var isAllDay = $('#booking-all-day').is(':checked');
-        var data = {
-            environment_id: parseInt($('#booking-environment-id').val()),
-            booking_date: $('#booking-date').val(),
-            start_time: isAllDay ? '00:00' : $('#booking-start-time').val(),
-            end_time: isAllDay ? '23:59' : $('#booking-end-time').val(),
-            is_all_day: isAllDay ? 1 : 0,
-            booking_type: bookingType,
-            description: $('#booking-description').val().trim(),
-            audience_ids: [],
-            user_ids: []
-        };
-
-        if (bookingType === 'audience') {
-            data.audience_ids = ($('#booking-audiences').val() || []).map(function(id) {
-                return parseInt(id);
-            });
-        } else {
-            data.user_ids = ($('#booking-user-ids').val() || '').split(',').filter(function(id) {
-                return id.trim() !== '';
-            }).map(function(id) {
-                return parseInt(id);
-            });
-        }
-
-        return data;
-    }
-
-    /**
-     * Render the event list panel with bookings for the visible month
-     */
-    function renderEventList() {
-        var $panel = $('#ffc-event-list-content');
-        if (!$panel.length) {
-            return;
-        }
-
-        // Collect all events: active bookings + holidays
-        var allEvents = [];
-        for (var dateStr in state.bookings) {
-            var dayBookings = state.bookings[dateStr];
-            for (var i = 0; i < dayBookings.length; i++) {
-                if (dayBookings[i].status === 'active') {
-                    allEvents.push({ type: 'booking', date: dayBookings[i].booking_date, data: dayBookings[i] });
-                }
-            }
-        }
-
-        // Add holidays
-        for (var holidayDate in state.holidays) {
-            var holidayName = state.holidays[holidayDate];
-            allEvents.push({
-                type: 'holiday',
-                date: holidayDate,
-                data: { description: typeof holidayName === 'string' ? holidayName : '' }
-            });
-        }
-
-        if (allEvents.length === 0) {
-            $panel.html('<p class="ffc-no-events">' + ((ffcAudience.strings || {}).noEvents || 'No events this month.') + '</p>');
-            return;
-        }
-
-        // Sort by date, then holidays first, then start_time
-        allEvents.sort(function(a, b) {
-            if (a.date < b.date) return -1;
-            if (a.date > b.date) return 1;
-            if (a.type === 'holiday' && b.type !== 'holiday') return -1;
-            if (a.type !== 'holiday' && b.type === 'holiday') return 1;
-            if (a.type === 'booking' && b.type === 'booking') {
-                return a.data.start_time.localeCompare(b.data.start_time);
-            }
-            return 0;
-        });
-
-        var html = '';
-        var lastDate = '';
-
-        allEvents.forEach(function(evt) {
-            // Group header for each date
-            if (evt.date !== lastDate) {
-                lastDate = evt.date;
-                var dateObj = parseDate(evt.date);
-                var dateDisplay = dateObj.toLocaleDateString(ffcAudience.locale, {
-                    weekday: 'short',
-                    day: 'numeric',
-                    month: 'short'
-                });
-                html += '<div class="ffc-event-list-date">' + dateDisplay + '</div>';
-            }
-
-            if (evt.type === 'holiday') {
-                // Holiday item
-                var holidayLabel = ffcAudience.strings.holiday || 'Holiday';
-                var holidayDesc = evt.data.description || '';
-                html += '<div class="ffc-event-list-item" data-date="' + evt.date + '" style="border-left: 3px solid var(--ffc-warning);">';
-                html += '<span class="ffc-event-list-time ffc-all-day">' + escapeHtml(holidayLabel) + '</span>';
-                if (holidayDesc) {
-                    html += '<span class="ffc-event-list-desc">' + escapeHtml(holidayDesc) + '</span>';
-                }
-                html += '</div>';
-            } else {
-                // Booking item
-                var booking = evt.data;
-                var evtColor = getEnvironmentColor(booking.environment_id);
-                html += '<div class="ffc-event-list-item" data-date="' + booking.booking_date + '" style="border-left: 3px solid ' + evtColor + ';">';
-
-                // Time
-                if (parseInt(booking.is_all_day)) {
-                    html += '<span class="ffc-event-list-time ffc-all-day">' + ((ffcAudience.strings || {}).allDay || 'All Day') + '</span>';
-                } else {
-                    html += '<span class="ffc-event-list-time">' + formatTime(booking.start_time) + ' - ' + formatTime(booking.end_time) + '</span>';
-                }
-
-                // Environment name
-                html += '<span class="ffc-event-list-env">' + escapeHtml(booking.environment_name) + '</span>';
-
-                // Description (truncated)
-                var desc = booking.description || '';
-                if (desc.length > 60) {
-                    desc = desc.substring(0, 57) + '...';
-                }
-                html += '<span class="ffc-event-list-desc">' + escapeHtml(desc) + '</span>';
-
-                // Audiences (collapse parent groups, then show summary badge when more than 2)
-                if (booking.audiences && booking.audiences.length > 0) {
-                    var displayAudiencesEL = collapseParentAudiences(booking.audiences);
-                    var pMapEL = buildParentNameMap();
-                    html += '<span class="ffc-event-list-audiences">';
-                    if (displayAudiencesEL.length > 2) {
-                        var maColor = ffcAudience.multipleAudiencesColor || 'var(--ffc-gray-600)';
-                        html += '<span class="ffc-audience-tag-sm" style="background-color: ' + maColor + '">' + escapeHtml(ffcAudience.strings.multipleAudiences) + ' (' + displayAudiencesEL.length + ')</span>';
-                    } else {
-                        displayAudiencesEL.forEach(function(audience) {
-                            html += '<span class="ffc-audience-tag-sm" style="background-color: ' + audience.color + '">' + escapeHtml(formatAudienceName(audience, pMapEL)) + '</span>';
-                        });
-                    }
-                    html += '</span>';
-                }
-
-                html += '</div>';
-            }
-        });
-
-        $panel.html(html);
-
-        // Click on event item opens day modal
-        $panel.find('.ffc-event-list-item').on('click', function() {
-            var date = $(this).data('date');
-            if (date) {
-                openDayModal(date);
-            }
-        });
-    }
-
-    /**
-     * Trap focus within a modal for accessibility
-     */
-    function trapFocus($modal) {
-        $modal.off('keydown.focustrap').on('keydown.focustrap', function(e) {
-            if (e.key !== 'Tab') return;
-            var focusable = $modal.find('a[href], button:not([disabled]), input:not([disabled]):not([type="hidden"]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])').filter(':visible');
-            var first = focusable.first()[0];
-            var last = focusable.last()[0];
-            if (e.shiftKey && document.activeElement === first) {
-                e.preventDefault();
-                last.focus();
-            } else if (!e.shiftKey && document.activeElement === last) {
-                e.preventDefault();
-                first.focus();
-            }
-        });
-    }
-
-    /**
-     * Close all modals
-     */
-    function closeModals() {
-        $('#ffc-booking-modal, #ffc-day-modal').off('keydown.focustrap').hide();
-        if (state._triggerElement) {
-            state._triggerElement.focus();
-            state._triggerElement = null;
-        }
-    }
-
-    /**
-     * Format date as YYYY-MM-DD
-     */
-    function formatDate(date) {
-        return date.getFullYear() + '-' + pad(date.getMonth() + 1) + '-' + pad(date.getDate());
-    }
-
-    /**
-     * Parse date string (YYYY-MM-DD) to Date object in local timezone
-     * This avoids timezone issues when using new Date(string) which interprets as UTC
-     */
-    function parseDate(dateStr) {
-        var parts = dateStr.split('-');
-        return new Date(parseInt(parts[0], 10), parseInt(parts[1], 10) - 1, parseInt(parts[2], 10));
-    }
-
-    /**
-     * Format time (HH:MM:SS to HH:MM)
-     */
-    function formatTime(time) {
-        if (!time) return '';
-        return time.substring(0, 5);
-    }
-
-    /**
-     * Pad number with leading zero
-     */
-    function pad(num) {
-        return (num < 10 ? '0' : '') + num;
-    }
-
-    /**
-     * Escape HTML
-     */
-    /**
-     * Get custom booking label from schedule config, with global fallback.
-     * @param {string} form - 'singular' or 'plural'
-     */
-    function getBookingLabel(form) {
-        var schedules = state.config.schedules || [];
-        for (var i = 0; i < schedules.length; i++) {
-            var s = schedules[i];
-            if (form === 'singular' && s.bookingLabelSingular) return s.bookingLabelSingular;
-            if (form === 'plural' && s.bookingLabelPlural) return s.bookingLabelPlural;
-        }
-        return form === 'singular' ? ffcAudience.strings.booking : ffcAudience.strings.bookings;
-    }
-
-    /**
-     * Build a map of audienceId -> parentName from hierarchical config.
-     */
-    function buildParentNameMap() {
-        var map = {};
-        function walk(nodes) {
-            (nodes || []).forEach(function(node) {
-                if (!node.children || node.children.length === 0) return;
-                node.children.forEach(function(child) {
-                    map[parseInt(child.id)] = node.name;
-                });
-                walk(node.children);
-            });
-        }
-        walk(state.config.audiences || []);
-        return map;
-    }
-
-    /**
-     * Format audience name based on badge format setting.
-     * 'parent_name' mode: "Parent: Child" for children, plain name for root.
-     */
-    function formatAudienceName(audience, parentNameMap) {
-        if (state.config.audienceBadgeFormat !== 'parent_name') {
-            return audience.name;
-        }
-        var parentName = parentNameMap[parseInt(audience.id)];
-        return parentName ? parentName + ': ' + audience.name : audience.name;
-    }
-
-    /**
-     * Collapse audiences for display: when a parent + ALL its children
-     * are present, show only the parent (visual only).
-     */
-    function collapseParentAudiences(bookingAudiences) {
-        if (!bookingAudiences || bookingAudiences.length === 0) return bookingAudiences;
-
-        var ids = bookingAudiences.map(function(a) { return parseInt(a.id); });
-        var removeIds = [];
-
-        // Recursively collect all descendant IDs of a node
-        function allDescIds(node) {
-            var result = [];
-            if (!node.children || node.children.length === 0) return result;
-            node.children.forEach(function(c) {
-                result.push(parseInt(c.id));
-                result = result.concat(allDescIds(c));
-            });
-            return result;
-        }
-
-        function walk(nodes) {
-            (nodes || []).forEach(function(node) {
-                if (!node.children || node.children.length === 0) return;
-                var parentId = parseInt(node.id);
-                if (ids.indexOf(parentId) === -1) { walk(node.children); return; }
-
-                var descIds = allDescIds(node);
-                var allPresent = descIds.every(function(did) { return ids.indexOf(did) !== -1; });
-                if (allPresent) {
-                    removeIds = removeIds.concat(descIds);
-                } else {
-                    walk(node.children);
-                }
-            });
-        }
-        walk(state.config.audiences || []);
-
-        if (removeIds.length === 0) return bookingAudiences;
-
-        return bookingAudiences.filter(function(a) {
-            return removeIds.indexOf(parseInt(a.id)) === -1;
-        });
-    }
-
-    function escapeHtml(str) {
-        if (!str) return '';
-        return str.replace(/&/g, '&amp;')
-                  .replace(/</g, '&lt;')
-                  .replace(/>/g, '&gt;')
-                  .replace(/"/g, '&quot;')
-                  .replace(/'/g, '&#39;');
-    }
+    };
 
     // Initialize on document ready
-    $(document).ready(init);
+    $(document).ready(api.init);
 
 })(jQuery);
