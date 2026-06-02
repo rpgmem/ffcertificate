@@ -146,7 +146,7 @@ só csv-download e reavaliar, ou os dois gigantes; (c) incluir geofence no escop
 
 ---
 
-## Item 3 — Arquivos PHP com múltiplas responsabilidades a fragmentar  ⬜
+## Item 3 — Arquivos PHP com múltiplas responsabilidades a fragmentar  🟦 (candidate-edit JS ✅ s13; rate-limit + revisar pendentes)
 
 | Arquivo | Linhas | Veredito |
 |---|---|---|
@@ -158,8 +158,28 @@ só csv-download e reavaliar, ou os dois gigantes; (c) incluir geofence no escop
 **OK (grandes mas coesos — referência de bom design):** `...notice-edit-page-renderer.php` (1601, view-only,
 métodos estáticos, já extraído de god-object), `...csv-importer.php` (1551, import atômico), repositories.
 
-### Plano
-_A preencher. PHPStan nível 8 + WPCS + coverage floor; risco de regressão maior que no JS._
+### Plano (proposto — aguardando escolha de escopo)
+
+Gates: PHPStan 8 + WPCS + PHPUnit (8.3/8.4) + coverage floor. **Risco de regressão > JS/CSS.**
+Regra geral: preservar contrato público + comportamento; testes existentes = rede de segurança.
+
+**A) `rate-limit-checker` (1226) → facade + Repository (+ Config).** Classe `final` 100% estática,
+chamada como `RateLimitChecker::...` em 3 arquivos + **7 suítes de teste**. Abordagem **facade
+(baixo risco)**: manter TODOS os métodos públicos em `RateLimitChecker` (zero mudança de call-site/teste);
+extrair os helpers **privados de persistência** (`get_count_from_db`, `increment_counter`,
+`get_submission_count`, `is_temporarily_blocked`, `block_temporarily`, `get_window_start/end`) para
+`RateLimitRepository` nova; o facade delega. Config (`get_settings` é público → fica no facade; só
+helpers privados de leitura migram). Cobertura preservada (exercitada via API pública).
+
+**B) `candidate-edit-page` (1104) → extrair JS inline.** ✅ (sprint 13) — 2 blocos `<script>` →
+`assets/js/ffc-recruitment-candidate-edit.js` (2 handlers delegados: PII reveal/hide + adjutancy swap),
+enqueue+localize (`ffcRecruitmentCandidateEdit`) no assets-manager; página 1104→989 linhas. **Teste novo**
+(`recruitment-candidate-edit.test.js`, 9 casos cobrindo ambos handlers) — coverage de linhas 83.15% > floor 82.
+
+**C) `audience-loader` (1131) / `recruitment-admin-page` (1128) — "Revisar".** Separar REST/validação do
+loader; controller vs renderização. Maior esforço de design; avaliar caso a caso.
+
+Entrega incremental: 1 arquivo/sprint, cada um com sua bateria de gates verde antes do próximo.
 
 ---
 
@@ -286,3 +306,4 @@ completa (não a lista filtrada). Cobrir com teste (filtrado vs. não-filtrado).
 | 10 | 1 | varredura extra recruitment (descoberta na s8): `adjutancy-edit` + `reason-edit` reusam classes `.ffc-rec-*`; `reasons-list-table` badge → `.ffc-rec-pill`; Stylelint + `php -l` + build ok | sprint 10 |
 | 11 | 1 | extração de CSS inline da feature **audience** (`admin-calendar` 19 + `admin-audience` 1) → 15 classes `.ffc-aud-*` em `ffc-audience-admin.css`; `display:none` puros + cores data-driven mantidos inline (estado JS/por-registro); Stylelint + `php -l` + build ok | sprint 11 |
 | 12 | 1 | extração de CSS inline da feature **reregistration** (`reregistration-admin` 7) → 5 classes `.ffc-rereg-*` em `ffc-reregistration-admin.css`; modal `display:none` + `background` dinâmico inline. **Item 1 concluído.** | sprint 12 |
+| 13 | 3 | fragmentar `candidate-edit-page` (1104→989): 2 blocos `<script>` inline → `ffc-recruitment-candidate-edit.js` (enqueue+localize); +9 testes; ESLint + `php -l` + build + floor 82 ok | sprint 13 |

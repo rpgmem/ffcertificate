@@ -42,6 +42,7 @@ export default [
 				ffcDashboardConfig: 'readonly',
 				ffcRecruitment: 'readonly',
 				ffcRecruitmentConfig: 'readonly',
+				ffcRecruitmentCandidateEdit: 'readonly',
 				ffcAudience: 'readonly',
 				ffcAudienceAdmin: 'readonly',
 				ffcAudienceConfig: 'readonly',
