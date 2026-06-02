@@ -384,6 +384,11 @@ final class RecruitmentPublicShortcodeRenderer {
 	/**
 	 * Render pagination links for one section.
 	 *
+	 * Renders a 7-page window centered on the current page (±3) plus
+	 * first / prev / next / last arrows so notices with 30+ pages don't
+	 * dump every number on one line. The window slides at the edges so
+	 * it always shows up to 7 entries when there's enough room.
+	 *
 	 * @param int    $current_page 1-indexed current page.
 	 * @param int    $total_pages  Total page count.
 	 * @param string $page_param   Query-string parameter name.
@@ -394,16 +399,42 @@ final class RecruitmentPublicShortcodeRenderer {
 			return '';
 		}
 
-		$base = remove_query_arg( $page_param );
+		$base   = remove_query_arg( $page_param );
+		$url_to = static function ( int $p ) use ( $page_param, $base ): string {
+			return add_query_arg( $page_param, $p, $base );
+		};
+
+		// Window math — 7 entries centered on $current_page, slid to fit
+		// the [1, total_pages] range so we always emit the full window
+		// when there's room.
+		$window = 7;
+		$half   = (int) floor( $window / 2 );
+		$start  = max( 1, $current_page - $half );
+		$end    = min( $total_pages, $start + $window - 1 );
+		$start  = max( 1, $end - $window + 1 );
+
 		$html = '<nav class="ffc-recruitment-pagination">';
-		for ( $p = 1; $p <= $total_pages; $p++ ) {
-			$url = add_query_arg( $page_param, $p, $base );
+
+		// First / prev arrows. Hidden when already at the start so the
+		// markup doesn't carry inert affordances.
+		if ( $current_page > 1 ) {
+			$html .= '<a class="ffc-recruitment-pagination-arrow" href="' . esc_url( $url_to( 1 ) ) . '" aria-label="' . esc_attr__( 'First page', 'ffcertificate' ) . '" title="' . esc_attr__( 'First page', 'ffcertificate' ) . '">&laquo;</a>';
+			$html .= '<a class="ffc-recruitment-pagination-arrow" href="' . esc_url( $url_to( $current_page - 1 ) ) . '" aria-label="' . esc_attr__( 'Previous page', 'ffcertificate' ) . '" title="' . esc_attr__( 'Previous page', 'ffcertificate' ) . '">&lsaquo;</a>';
+		}
+
+		for ( $p = $start; $p <= $end; $p++ ) {
 			if ( $p === $current_page ) {
-				$html .= '<span class="current">' . esc_html( (string) $p ) . '</span>';
+				$html .= '<span class="current" aria-current="page">' . esc_html( (string) $p ) . '</span>';
 			} else {
-				$html .= '<a href="' . esc_url( $url ) . '">' . esc_html( (string) $p ) . '</a>';
+				$html .= '<a href="' . esc_url( $url_to( $p ) ) . '">' . esc_html( (string) $p ) . '</a>';
 			}
 		}
+
+		if ( $current_page < $total_pages ) {
+			$html .= '<a class="ffc-recruitment-pagination-arrow" href="' . esc_url( $url_to( $current_page + 1 ) ) . '" aria-label="' . esc_attr__( 'Next page', 'ffcertificate' ) . '" title="' . esc_attr__( 'Next page', 'ffcertificate' ) . '">&rsaquo;</a>';
+			$html .= '<a class="ffc-recruitment-pagination-arrow" href="' . esc_url( $url_to( $total_pages ) ) . '" aria-label="' . esc_attr__( 'Last page', 'ffcertificate' ) . '" title="' . esc_attr__( 'Last page', 'ffcertificate' ) . '">&raquo;</a>';
+		}
+
 		$html .= '</nav>';
 		return $html;
 	}
