@@ -748,6 +748,13 @@ final class RecruitmentNoticeEditPageRenderer {
 		$preview         = RecruitmentClassificationRepository::get_for_notice( $notice_id, 'preview' );
 		$definitive_rows = RecruitmentClassificationRepository::get_for_notice( $notice_id, 'definitive' );
 
+		// Once a definitive list exists for the notice the preview tab
+		// becomes mostly archival — operators are working off the
+		// definitive ranking. Captured from the unfiltered query so an
+		// in-flight filter that happens to zero-out the definitive view
+		// doesn't bounce the default back to Preliminary mid-session.
+		$has_definitive = ! empty( $definitive_rows );
+
 		// Mirror the filters available on the Candidates list table —
 		// adjutancy / name substring / CPF / RF — so operators can narrow
 		// a long classifications list (notices with hundreds of rows) the
@@ -765,16 +772,21 @@ final class RecruitmentNoticeEditPageRenderer {
 		self::render_classification_filters_form( $notice_id, $filters );
 
 		// Tabs.
+		$prev_tab_class = $has_definitive ? 'nav-tab' : 'nav-tab nav-tab-active';
+		$def_tab_class  = $has_definitive ? 'nav-tab nav-tab-active' : 'nav-tab';
+		$prev_display   = $has_definitive ? 'none' : 'block';
+		$def_display    = $has_definitive ? 'block' : 'none';
+
 		echo '<h2 class="nav-tab-wrapper" style="margin:0 0 1em;">';
-		echo '<a href="#" class="nav-tab nav-tab-active" data-ffc-clstab="preliminary" onclick="return ffcRecruitmentClsTabSwitch(this);">' . esc_html__( 'Preliminary', 'ffcertificate' ) . '</a>';
-		echo '<a href="#" class="nav-tab" data-ffc-clstab="definitive" onclick="return ffcRecruitmentClsTabSwitch(this);">' . esc_html__( 'Definitive', 'ffcertificate' ) . '</a>';
+		echo '<a href="#" class="' . esc_attr( $prev_tab_class ) . '" data-ffc-clstab="preliminary" onclick="return ffcRecruitmentClsTabSwitch(this);">' . esc_html__( 'Preliminary', 'ffcertificate' ) . '</a>';
+		echo '<a href="#" class="' . esc_attr( $def_tab_class ) . '" data-ffc-clstab="definitive" onclick="return ffcRecruitmentClsTabSwitch(this);">' . esc_html__( 'Definitive', 'ffcertificate' ) . '</a>';
 		echo '</h2>';
 
-		echo '<div data-ffc-clspanel="preliminary" style="display:block;">';
+		echo '<div data-ffc-clspanel="preliminary" style="display:' . esc_attr( $prev_display ) . ';">';
 		self::render_classifications_table( $preview, false );
 		echo '</div>';
 
-		echo '<div data-ffc-clspanel="definitive" style="display:none;">';
+		echo '<div data-ffc-clspanel="definitive" style="display:' . esc_attr( $def_display ) . ';">';
 		self::render_classifications_table( $definitive_rows, true );
 		echo '</div>';
 
