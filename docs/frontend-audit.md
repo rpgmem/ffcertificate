@@ -228,3 +228,4 @@ _A preencher (ou marcar ⏸️ se decidirmos não atuar agora)._
 | 3 | 2 | split `ffc-audience.js` 1439→núcleo `FFCAudience` (state+utils) + 3 irmãos (calendar, bookings, booking-form); enqueue (shortcode) + testes adaptados | sprint 3 |
 | 4 | 5 | fix CodeQL (#479): escapar cores/labels derivados do `data-config` (DOM) nos sinks `.html()/.append()` de `ffc-audience-calendar/bookings.js` | sprint 4 |
 | 5 | 2 | split `ffc-geofence-frontend.js` 1307→núcleo `FFCGeofence` + 3 irmãos via `Object.assign` (datetime, gps, preflight); enqueue + 11 testes adaptados | sprint 5 |
+| 6 | 5 | fix CodeQL (#479): cache de geofence guarda passe `{validated,expires}` em vez de lat/lng cru no localStorage (sem dado sensível em repouso); cache só após validação in-area; testes adaptados | sprint 6 |

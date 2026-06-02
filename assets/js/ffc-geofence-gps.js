@@ -113,10 +113,15 @@
                 return;
             }
 
-            // Check cache first
+            // Check cache first. The cache holds a non-sensitive "pass"
+            // token (set after a successful in-area validation), not the
+            // raw coordinates — so a recent pass short-circuits straight to
+            // showForm without re-running GPS. Trade-off: an area-config
+            // change within the TTL window isn't re-evaluated until the
+            // token expires.
             const cached = this.getLocationCache(formWrapper.attr('id'));
             if (cached) {
-                this.debug('Using cached location', cached);
+                this.debug('Using cached geofence pass');
                 // Show the same loading state real fetches see, then resolve
                 // after a short minimum hold so the user gets a visual
                 // confirmation the form just validated location instead of
@@ -130,7 +135,7 @@
                 setTimeout(function() {
                     self.hideLoadingMessage(formWrapper);
                     formWrapper.removeClass('ffc-geofence-loading');
-                    self.checkLocation(formWrapper, cached, config);
+                    self.showForm(formWrapper);
                 }, FFCGeofence.MIN_LOADING_MS);
                 return;
             }
@@ -230,11 +235,9 @@
 
                 self.debug('GPS location obtained', loc);
 
-                // Cache location
-                if (config.cacheEnabled) {
-                    self.setLocationCache(formWrapper.attr('id'), loc, config.cacheTtl || 600);
-                }
-
+                // Caching happens inside checkLocation once the position is
+                // confirmed within an allowed area — we persist a pass token,
+                // never the coordinates themselves.
                 var activeConfig = self.getFreshGeoConfig(formWrapper, config);
                 self.checkLocation(formWrapper, loc, activeConfig);
             }
@@ -379,6 +382,7 @@
 
             if (areas.length === 0) {
                 this.debug('No areas defined, allowing access');
+                this.cacheGeofencePass(formWrapper, config);
                 this.showForm(formWrapper);
                 return; // No restrictions
             }
@@ -415,7 +419,23 @@
                 );
             } else {
                 this.debug('User within allowed area, showing form');
+                this.cacheGeofencePass(formWrapper, config);
                 this.showForm(formWrapper);
+            }
+        },
+
+        /**
+         * Persist a non-sensitive "pass" token after a successful in-area
+         * validation, when the form opted into caching. We deliberately
+         * store only {validated:true, expires} — never the coordinates —
+         * so no location data sits at rest in localStorage.
+         *
+         * @param {jQuery} formWrapper Form wrapper element
+         * @param {object} config      Geo configuration (cacheEnabled/cacheTtl)
+         */
+        cacheGeofencePass: function(formWrapper, config) {
+            if (config && config.cacheEnabled) {
+                this.setLocationCache(formWrapper.attr('id'), config.cacheTtl || 600);
             }
         },
 
@@ -451,7 +471,15 @@
         },
 
         /**
-         * Get cached location
+         * Read the cached geofence pass token.
+         *
+         * Returns `true` when a non-expired pass token exists for this form,
+         * otherwise `null`. Entries written by pre-6.x builds (which stored a
+         * `location` object) are treated as a miss so the visitor re-validates
+         * via GPS — no stale coordinates are ever read back.
+         *
+         * @param {string} formId Form wrapper id.
+         * @returns {boolean|null} true on a valid pass, null on miss/expired/legacy.
          */
         getLocationCache: function(formId) {
             try {
@@ -470,7 +498,7 @@
                     return null;
                 }
 
-                return data.location;
+                return data.validated === true ? true : null;
             } catch (e) {
                 // Safari private mode or quota exceeded
                 return null;
@@ -478,9 +506,17 @@
         },
 
         /**
-         * Set location cache
+         * Write the geofence pass token.
+         *
+         * Stores only {validated:true, expires} — never the coordinates — so
+         * the localStorage entry carries no sensitive location data at rest
+         * (CodeQL js/clear-text-storage-of-sensitive-data). The token means
+         * "this visitor passed the geofence within the TTL window".
+         *
+         * @param {string} formId Form wrapper id.
+         * @param {number} ttl    Time-to-live in seconds.
          */
-        setLocationCache: function(formId, location, ttl) {
+        setLocationCache: function(formId, ttl) {
             try {
                 if (!localStorage) return;
 
@@ -488,7 +524,7 @@
                 const now = Math.floor(Date.now() / 1000);
 
                 const data = {
-                    location: location,
+                    validated: true,
                     expires: now + ttl
                 };
 

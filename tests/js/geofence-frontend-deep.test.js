@@ -227,7 +227,7 @@ describe('FFCGeofence.validateGeolocation', () => {
 		restore();
 	});
 
-	it('uses the cached location when present (no getCurrentPosition call)', () => {
+	it('uses the cached pass when present (no getCurrentPosition call)', () => {
 		vi.useFakeTimers();
 		const restore = installLocation('https:', 'example.com');
 		const cb = vi.fn();
@@ -235,11 +235,11 @@ describe('FFCGeofence.validateGeolocation', () => {
 			configurable: true,
 			value: { getCurrentPosition: cb },
 		});
-		// Seed a cache entry (current location within 1 area).
+		// Seed a pass token (recent successful validation).
 		window.localStorage.setItem(
 			'ffc_geo_ffc-form-103',
 			JSON.stringify({
-				location: { latitude: 0, longitude: 0, accuracy: 5 },
+				validated: true,
 				expires: Math.floor(Date.now() / 1000) + 600,
 			}),
 		);
@@ -251,7 +251,7 @@ describe('FFCGeofence.validateGeolocation', () => {
 			messageBlocked: 'no',
 		});
 
-		// Cache-hit now defers checkLocation by FFCGeofence.MIN_LOADING_MS
+		// Cache-hit now defers showForm by FFCGeofence.MIN_LOADING_MS
 		// to give the user a visual "verifying location" confirmation.
 		vi.advanceTimersByTime(window.FFCGeofence.MIN_LOADING_MS + 50);
 
@@ -550,10 +550,9 @@ describe('FFCGeofence.recheck', () => {
 // ----------------------------------------------------------------------
 
 describe('FFCGeofence.locationCache', () => {
-	it('round-trips a location', () => {
-		window.FFCGeofence.setLocationCache('cache-1', { latitude: 1, longitude: 2 }, 600);
-		const got = window.FFCGeofence.getLocationCache('cache-1');
-		expect(got).toEqual({ latitude: 1, longitude: 2 });
+	it('round-trips a pass token', () => {
+		window.FFCGeofence.setLocationCache('cache-1', 600);
+		expect(window.FFCGeofence.getLocationCache('cache-1')).toBe(true);
 	});
 
 	it('returns null when nothing is cached', () => {
@@ -564,7 +563,7 @@ describe('FFCGeofence.locationCache', () => {
 		window.localStorage.setItem(
 			'ffc_geo_cache-2',
 			JSON.stringify({
-				location: { latitude: 1, longitude: 2 },
+				validated: true,
 				expires: Math.floor(Date.now() / 1000) - 100,
 			}),
 		);
@@ -580,7 +579,7 @@ describe('FFCGeofence.locationCache', () => {
 		});
 
 		expect(() =>
-			window.FFCGeofence.setLocationCache('cache-3', { latitude: 1, longitude: 2 }, 60),
+			window.FFCGeofence.setLocationCache('cache-3', 60),
 		).not.toThrow();
 
 		window.localStorage.setItem = original;
