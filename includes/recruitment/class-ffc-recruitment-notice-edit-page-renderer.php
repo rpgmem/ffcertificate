@@ -920,7 +920,19 @@ final class RecruitmentNoticeEditPageRenderer {
 		$candidate_ids = array_map( static fn( $r ) => (int) $r->candidate_id, $rows );
 		$adjutancy_ids = array_map( static fn( $r ) => (int) $r->adjutancy_id, $rows );
 
-		$candidates  = self::lookup_map( array_unique( $candidate_ids ), array( RecruitmentCandidateRepository::class, 'get_by_id' ), 'name' );
+		// Bulk-load the full candidate rows once (we need `pcd_hash` for
+		// the Subscription column; the `name` map below is fed from the
+		// same payload to keep this a single SQL round-trip).
+		$candidate_rows = RecruitmentCandidateRepository::get_by_ids( array_unique( $candidate_ids ) );
+		$candidates     = array();
+		$pcd_map        = array();
+		foreach ( $candidate_rows as $cand ) {
+			$cid                = (int) $cand->id;
+			$candidates[ $cid ] = (string) ( $cand->name ?? '' );
+			// `verify` returns null on hash decode failure — fall back to
+			// GERAL, mirroring the public shortcode's defensive default.
+			$pcd_map[ $cid ] = true === RecruitmentPcdHasher::verify( (string) ( $cand->pcd_hash ?? '' ), $cid );
+		}
 		$adjutancies = self::lookup_map( array_unique( $adjutancy_ids ), array( RecruitmentAdjutancyRepository::class, 'get_by_id' ), 'slug' );
 
 		// Bulk-call toolbar (Definitive tab only): selected `empty` rows
@@ -945,6 +957,7 @@ final class RecruitmentNoticeEditPageRenderer {
 		echo '<th>' . esc_html__( 'Rank', 'ffcertificate' ) . '</th>';
 		echo '<th>' . esc_html__( 'Candidate', 'ffcertificate' ) . '</th>';
 		echo '<th>' . esc_html__( 'Adjutancy', 'ffcertificate' ) . '</th>';
+		echo '<th>' . esc_html__( 'Subscription', 'ffcertificate' ) . '</th>';
 		echo '<th>' . esc_html__( 'Score', 'ffcertificate' ) . '</th>';
 		if ( $is_preview_tab ) {
 			echo '<th>' . esc_html__( 'Preliminary status', 'ffcertificate' ) . '</th>';
@@ -983,6 +996,9 @@ final class RecruitmentNoticeEditPageRenderer {
 			echo '<td>' . esc_html( $candidate_name ) . '</td>';
 			// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- helper returns escaped HTML.
 			echo '<td>' . RecruitmentAdminPage::adjutancy_badge( RecruitmentAdjutancyRepository::get_by_id( (int) $row->adjutancy_id ) ) . '</td>';
+			$is_pcd = $pcd_map[ (int) $row->candidate_id ] ?? false;
+			// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- helper returns escaped HTML.
+			echo '<td>' . RecruitmentPublicShortcodeRenderer::render_subscription_badge( $is_pcd ) . '</td>';
 			echo '<td>' . esc_html( (string) $row->score ) . '</td>';
 			if ( $is_preview_tab ) {
 				$current_preview = isset( $row->preview_status ) ? (string) $row->preview_status : 'empty';
