@@ -561,7 +561,7 @@ final class RecruitmentPublicShortcodeRenderer {
 	 * @param bool $is_pcd Whether the candidate is PCD.
 	 * @return string Already-escaped HTML.
 	 */
-	private static function render_subscription_badge( bool $is_pcd ): string {
+	public static function render_subscription_badge( bool $is_pcd ): string {
 		$settings = RecruitmentSettings::all();
 		$bg       = $is_pcd
 			? (string) $settings['subscription_color_pcd']
