@@ -27,6 +27,19 @@ function postChain(spec) {
 // Microtask flush so .then/.catch reactions run before assertions.
 function flush() { return Promise.resolve().then(() => Promise.resolve()); }
 
+// Poll until `fn()` is truthy or the timeout elapses. The magic-link handler
+// is wrapped in setTimeout(100) and then runs an async AJAX chain, so a fixed
+// sleep races under CI load (it lost the race intermittently). Polling resolves
+// as soon as the expected DOM/call appears and only waits the full window when
+// it genuinely never happens.
+async function waitFor(fn, { timeout = 1500, interval = 10 } = {}) {
+	const start = Date.now();
+	while (Date.now() - start < timeout) {
+		if (fn()) return;
+		await new Promise((r) => setTimeout(r, interval));
+	}
+}
+
 
 beforeAll(async () => {
 	window.ffc_ajax = {
@@ -119,9 +132,10 @@ describe('frontend.handleMagicLinkVerification', () => {
 		const postSpy = vi.spyOn(window.$, 'post').mockImplementation(() => postChain({}));
 
 		loadScript('assets/js/ffc-frontend.js');
-		await new Promise((r) => setTimeout(r, 0));
-		// The handler is wrapped in setTimeout(100). Wait for it.
-		await new Promise((r) => setTimeout(r, 120));
+		// The handler is wrapped in setTimeout(100); poll until it fires.
+		await waitFor(() => postSpy.mock.calls.some(
+			(c) => c[1] && c[1].action === 'ffc_verify_magic_token',
+		));
 
 		const calls = postSpy.mock.calls.filter(
 			(c) => c[1] && c[1].action === 'ffc_verify_magic_token',
@@ -135,7 +149,9 @@ describe('frontend.handleMagicLinkVerification', () => {
 		const postSpy = vi.spyOn(window.$, 'post').mockImplementation(() => postChain({}));
 
 		loadScript('assets/js/ffc-frontend.js');
-		await new Promise((r) => setTimeout(r, 120));
+		await waitFor(() => postSpy.mock.calls.some(
+			(c) => c[1] && c[1].action === 'ffc_verify_magic_token',
+		));
 
 		const calls = postSpy.mock.calls.filter(
 			(c) => c[1] && c[1].action === 'ffc_verify_magic_token',
@@ -148,7 +164,9 @@ describe('frontend.handleMagicLinkVerification', () => {
 		const postSpy = vi.spyOn(window.$, 'post').mockImplementation(() => postChain({}));
 
 		loadScript('assets/js/ffc-frontend.js');
-		await new Promise((r) => setTimeout(r, 120));
+		await waitFor(() => postSpy.mock.calls.some(
+			(c) => c[1] && c[1].action === 'ffc_verify_magic_token',
+		));
 
 		const calls = postSpy.mock.calls.filter(
 			(c) => c[1] && c[1].action === 'ffc_verify_magic_token',
@@ -174,7 +192,7 @@ describe('frontend.handleMagicLinkVerification', () => {
 		vi.spyOn(window.$, 'post').mockImplementation(() => postChain({ fail: true }));
 
 		loadScript('assets/js/ffc-frontend.js');
-		await new Promise((r) => setTimeout(r, 120));
+		await waitFor(() => window.$('.ffc-verification-error').length === 1);
 
 		// showVerificationError replaces container HTML with .ffc-verification-error.
 		expect(window.$('.ffc-verification-error').length).toBe(1);
@@ -185,7 +203,7 @@ describe('frontend.handleMagicLinkVerification', () => {
 		vi.spyOn(window.$, 'post').mockImplementation(() => postChain({ done: { success: false, data: { message: 'Token expired' } } }));
 
 		loadScript('assets/js/ffc-frontend.js');
-		await new Promise((r) => setTimeout(r, 120));
+		await waitFor(() => window.$('.ffc-verification-error').length === 1);
 
 		expect(window.$('.ffc-verification-error').text()).toContain('Token expired');
 	});
@@ -198,7 +216,7 @@ describe('frontend.handleMagicLinkVerification', () => {
 			} }));
 
 		loadScript('assets/js/ffc-frontend.js');
-		await new Promise((r) => setTimeout(r, 120));
+		await waitFor(() => window.$('.ffc-magic-link-container .result').length === 1);
 
 		expect(window.$('.ffc-magic-link-container .result').text()).toBe('Valid!');
 	});
@@ -214,7 +232,7 @@ describe('frontend.handleMagicLinkVerification', () => {
 			} }));
 
 		loadScript('assets/js/ffc-frontend.js');
-		await new Promise((r) => setTimeout(r, 120));
+		await waitFor(() => window.$('.ffc-download-pdf-btn').length === 1);
 
 		const $btn = window.$('.ffc-download-pdf-btn');
 		expect($btn.length).toBe(1);
@@ -234,7 +252,7 @@ describe('frontend.handleMagicLinkVerification', () => {
 			} }));
 
 		loadScript('assets/js/ffc-frontend.js');
-		await new Promise((r) => setTimeout(r, 120));
+		await waitFor(() => window.$('.ffc-magic-link-container .ffc-verification-success').length === 1);
 
 		const $container = window.$('.ffc-magic-link-container');
 		expect($container.find('.ffc-verification-success').length).toBe(1);
