@@ -115,8 +115,8 @@ final class RecruitmentReasonEditPage {
 		echo '<table class="form-table"><tbody>';
 
 		echo '<tr><th><label for="ffc-reason-edit-slug">' . esc_html__( 'Slug', 'ffcertificate' ) . '</label></th>';
-		echo '<td><input id="ffc-reason-edit-slug" type="text" class="regular-text" name="slug" value="' . esc_attr( (string) $reason->slug ) . '" required>';
-		echo '<p class="description">' . esc_html__( 'Unique identifier (slug-shaped). Must be unique across the catalog. Existing classifications keep their reference because they link by id, not by slug.', 'ffcertificate' ) . '</p></td></tr>';
+		echo '<td><input id="ffc-reason-edit-slug" type="text" class="regular-text" value="' . esc_attr( (string) $reason->slug ) . '" readonly disabled>';
+		echo '<p class="description">' . esc_html__( 'The slug is locked after creation. It is referenced by activity-log entries and possibly by external automations. Edit the Label field instead to change the user-facing text.', 'ffcertificate' ) . '</p></td></tr>';
 
 		echo '<tr><th><label for="ffc-reason-edit-label">' . esc_html__( 'Label', 'ffcertificate' ) . '</label></th>';
 		echo '<td><input id="ffc-reason-edit-label" type="text" class="regular-text" name="label" value="' . esc_attr( (string) $reason->label ) . '" required></td></tr>';
@@ -168,7 +168,10 @@ final class RecruitmentReasonEditPage {
 			exit;
 		}
 
-		$slug  = isset( $_POST['slug'] ) ? sanitize_title( wp_unslash( (string) $_POST['slug'] ) ) : '';
+		// Slug is locked after creation — see the rendered description.
+		// Tampered $_POST['slug'] from a hostile or out-of-date client is
+		// dropped at the boundary so the immutability holds even if the
+		// disabled input somehow makes it back into the payload.
 		$label = isset( $_POST['label'] ) ? sanitize_text_field( wp_unslash( (string) $_POST['label'] ) ) : '';
 		$color = isset( $_POST['color'] ) ? sanitize_text_field( wp_unslash( (string) $_POST['color'] ) ) : '';
 
@@ -185,7 +188,6 @@ final class RecruitmentReasonEditPage {
 		RecruitmentReasonRepository::update(
 			$reason_id,
 			array(
-				'slug'       => $slug,
 				'label'      => $label,
 				'color'      => $color,
 				'applies_to' => $applies,
