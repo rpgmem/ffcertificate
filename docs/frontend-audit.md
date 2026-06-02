@@ -102,7 +102,7 @@ _A preencher. Verificar enqueue/handles antes de fundir; cache-bust/versão na r
 
 ---
 
-## Item 5 — Falhas de segurança no frontend  ⬜  ⟵ recomendado começar por aqui
+## Item 5 — Falhas de segurança no frontend  🟦 (XSS + tabnabbing ✅ no sprint 1; CSRF descartado)
 
 **🔴 Alta — XSS por output sem escape (confirmado no código):**
 - `assets/js/ffc-user-dashboard-appointments.js:152,159` — `apt.calendar_title` e `apt.receipt_url` (href) crus.
@@ -115,17 +115,28 @@ _A preencher. Verificar enqueue/handles antes de fundir; cache-bust/versão na r
 - `assets/js/ffc-user-dashboard-appointments.js:159`
 - `assets/js/ffc-user-dashboard-certificates.js:96`
 
-**🟠 Média — CSRF em forms HTML:** `templates/verification-page.php:35` e form de submissão em
-`includes/frontend/class-ffc-shortcodes.php:244` sem `wp_nonce_field()`.
-**Confirmar** se o handling é REST/AJAX (já protegido por `check_ajax_referer`/`X-WP-Nonce`) — se for, risco cai muito.
+**🟢 CSRF — FALSO POSITIVO, confirmado em sessão (sem ação):**
+`templates/verification-page.php:35` e o form de submissão em `includes/frontend/class-ffc-shortcodes.php`
+não usam `wp_nonce_field()`, mas:
+- ambos chamam `generate_security_fields()` (honeypot + captcha com hash) — `class-ffc-shortcodes.php:51`;
+- o envio é via **AJAX** com nonce validado por `wp_verify_nonce()` no handler
+  (`class-ffc-verification-handler.php:770`); o nonce viaja pelo script localizado, não pelo `<form>`.
+- **Pendência fechada:** não existe handler `template_redirect`/`admin_post` para POST puro — o único leitor
+  de `ffc_auth_code` (`class-ffc-verification-handler.php:806`) está depois da verificação de nonce. O form
+  exige JS; não há endpoint POST sem-JS desprotegido. Nenhuma ação.
 
 **Falsos positivos (já seguros):** `innerHTML` estático em `ffc-pdf-generator.js:266` e `recruitment-import-batched.js`
 (usa `textContent`); `localStorage` só guarda UUID/IDs (sem PII); validação de CPF com dígito verificador; AJAX com
 nonce; URLs com `encodeURIComponent`.
 
-### Plano
-_A preencher. PR pequeno: escapar os 5 outputs + `rel=noopener`; testes Vitest; `npm run build:js` p/ min.js;
-investigar caminho do POST antes de decidir nonce. Coverage floor JS não pode cair._
+### Plano — APROVADO (Abordagem B) e ENTREGUE no sprint 1
+- Novo helper `helpers.escAttr()` em `ffc-user-dashboard-core.js` (esc() + encode de `"`) para hrefs.
+- `helpers.esc()` nas células: `apt.calendar_title`; `cert.form_title`, `cert.email`, `cert.auth_code`.
+- `helpers.escAttr()` + `rel="noopener noreferrer"` nos hrefs de `receipt_url` e `magic_link`.
+- `rel="noopener noreferrer"` em `ffc-calendar-frontend.js:427` (href já era quote-safe via `esc()` local).
+- Testes Vitest novos (payload `<img onerror>`, quote-breakout, `rel`) em
+  `dashboard-appointments.test.js` e `dashboard-certificates.test.js` — suíte: 1037 passes.
+- `npm run build:js` regenerou os 4 `.min.js` correspondentes.
 
 ---
 
@@ -157,4 +168,5 @@ _A preencher (ou marcar ⏸️ se decidirmos não atuar agora)._
 ## Log de sprints (commits desta PR)
 | # | Item | Descrição | Commit |
 |---|---|---|---|
-| — | — | tracker da auditoria criado | _este commit_ |
+| 0 | — | tracker da auditoria criado | inicial |
+| 1 | 5 | XSS escape (dashboard) + `rel=noopener` + escAttr helper + testes | sprint 1 |

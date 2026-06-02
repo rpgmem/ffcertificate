@@ -149,14 +149,14 @@
                 else if (section === 'past') rowClass = 'past-row';
 
                 html += '<tr' + (rowClass ? ' class="' + rowClass + '"' : '') + '>';
-                html += '<td>' + apt.calendar_title + '</td>';
+                html += '<td>' + helpers.esc(apt.calendar_title) + '</td>';
                 html += '<td>' + apt.appointment_date + '</td>';
                 html += '<td>' + apt.start_time + '</td>';
                 html += '<td><span class="appointment-status status-' + apt.status + '">' + apt.status_label + '</span></td>';
                 html += '<td>';
 
                 if (apt.receipt_url) {
-                    html += '<a href="' + apt.receipt_url + '" class="button ffc-btn-receipt" target="_blank">' + (ffcDashboard.strings.viewReceipt || 'View Receipt') + '</a>';
+                    html += '<a href="' + helpers.escAttr(apt.receipt_url) + '" class="button ffc-btn-receipt" target="_blank" rel="noopener noreferrer">' + (ffcDashboard.strings.viewReceipt || 'View Receipt') + '</a>';
                 }
 
                 if (apt.can_cancel) {

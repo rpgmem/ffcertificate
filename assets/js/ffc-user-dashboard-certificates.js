@@ -84,16 +84,16 @@
 
             pageItems.forEach(function (cert) {
                 html += '<tr>';
-                html += '<td>' + cert.form_title + '</td>';
+                html += '<td>' + helpers.esc(cert.form_title) + '</td>';
                 html += '<td>' + cert.submission_date + '</td>';
                 html += '<td><span class="' + (cert.consent_given ? 'consent-yes' : 'consent-no') + '">';
                 html += (cert.consent_given ? ffcDashboard.strings.yes : ffcDashboard.strings.no);
                 html += '</span></td>';
-                html += '<td>' + cert.email + '</td>';
-                html += '<td>' + cert.auth_code + '</td>';
+                html += '<td>' + helpers.esc(cert.email) + '</td>';
+                html += '<td>' + helpers.esc(cert.auth_code) + '</td>';
                 html += '<td>';
                 if (cert.magic_link) {
-                    html += '<a href="' + cert.magic_link + '" class="button ffc-btn-pdf" target="_blank">' + ffcDashboard.strings.downloadPdf + '</a>';
+                    html += '<a href="' + helpers.escAttr(cert.magic_link) + '" class="button ffc-btn-pdf" target="_blank" rel="noopener noreferrer">' + ffcDashboard.strings.downloadPdf + '</a>';
                 }
                 html += '</td>';
                 html += '</tr>';
