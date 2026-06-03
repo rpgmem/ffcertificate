@@ -209,7 +209,7 @@ final class RoleCapabilityEditor {
 	 * for the caps the (initially selected) role grants. The JS swaps the
 	 * checked state when the role picker changes and persists each toggle.
 	 *
-	 * @param list<string> $granted Caps granted by the initially-selected role.
+	 * @param array<int, string> $granted Caps granted by the initially-selected role.
 	 * @return void
 	 */
 	private static function render_catalog_grid( array $granted ): void {
