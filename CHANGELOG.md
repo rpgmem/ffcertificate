@@ -7,6 +7,16 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Fixed
+
+- **Recruitment notice editor: "call out of order" now prompts for a justification even when the classification list is filtered or paginated.** The client-side out-of-order detection in `RecruitmentNoticeEditPageRenderer` scanned the rendered DOM to find the lowest-rank `empty` row per adjutancy, but that table is filtered (server-side) and paged — so a narrowed view dropped the true lower-rank empties, the called candidate looked like next-in-queue, and the justification step was skipped (the operator then filled in the date and hit a confusing server error). It was never a data/audit bypass — the server already rejects reasonless out-of-order calls via `RecruitmentCallService` / `find_lowest_rank_empty`. Fix: a new authoritative `{adjutancySlug:[{id,rank}…]}` map is built from the full, unfiltered/unpaginated definitive list and handed to the JS via the panel's `data-ffc-empties` attribute; both the single-row Call and the bulk-call handlers read that map instead of the DOM. This also fixes the previously-broken paginated case.
+- **User dashboard: untrusted values are escaped before injection and external links carry `rel="noopener noreferrer"`.** Hardens the dashboard render path against stored XSS and reverse-tabnabbing (frontend security sweep).
+- **Geofence: the location cache stores a non-sensitive "validated" pass token instead of the raw GPS coordinates.** The browser-side cache that skips re-prompting on reload no longer persists latitude/longitude at rest (flagged by CodeQL); it keeps only a short-lived `{validated, expires}` token set after a successful in-area check.
+
+### Changed
+
+- **Internal frontend audit — large maintainability refactor (no behavior change).** Split the three monolithic frontend scripts into focused, separately-enqueued modules: `ffc-csv-download.js` (1127 LoC) → core `FFCCsv` + 6 flow modules; `ffc-audience.js` (1439) → core `FFCAudience` + calendar/bookings/booking-form; `ffc-geofence-frontend.js` (1307) → core `FFCGeofence` + datetime/gps/preflight. Extracted static inline admin CSS into the per-feature stylesheets (recruitment, settings, audience, reregistration) and the candidate-edit page's inline JS into `ffc-recruitment-candidate-edit.js`. Fragmented oversized PHP classes behind their existing public API: `RateLimitChecker` → `RateLimitRepository` (persistence), `AudienceLoader` → `AudienceAjaxController` (~13 ajax endpoints), and the recruitment admin page's row-action dispatcher → `RecruitmentAdminActions`. Removed a dead empty `ffc-calendar-admin.js` stub (+ its dead localize/nonce). Every step is covered by the existing or new JS/PHP test suites; ESLint/Stylelint/PHPStan-8/WPCS stay green and the coverage floors hold.
+
 ## [6.9.0] (2026-06-02)
 
 ### Added
