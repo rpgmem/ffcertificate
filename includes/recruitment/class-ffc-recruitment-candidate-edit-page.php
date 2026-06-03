@@ -985,5 +985,4 @@ final class RecruitmentCandidateEditPage {
 		$html .= '</span>';
 		return $html;
 	}
-
 }
