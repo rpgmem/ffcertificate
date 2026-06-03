@@ -442,6 +442,28 @@ aponta para o dashboard com params mortos (`action=cancel&appointment_id`) e exi
 
 ---
 
+## Item 10 — Dívida: JS inline em PHP (recruitment) deveria ir para arquivos `.js` dedicados  ⬜ (registrado s18; extrair depois)
+
+**Origem.** Notado ao corrigir o Item 7: a detecção OOO vive num `echo '<script>'` inline. Levantamento:
+`includes/recruitment/class-ffc-recruitment-notice-edit-page-renderer.php` tem **~311 linhas de JS inline** em
+**~7 blocos `<script>`** (tab-switch, import CSV, transições de status, ações de classificação + OOO, preview-status,
+bulk-call) com **~69 interpolações** PHP (strings i18n via `esc_js`, REST URLs, `wp_create_nonce`). Há **mais JS
+inline** em `class-ffc-recruitment-admin-page.php` e outros.
+
+**Por que é dívida.** JS inline não passa por ESLint (gate zero-erro), não tem teste Vitest, não usa o pipeline de
+minificação/cache-bust (`?ver=`), e é mais difícil de ler/manter. É a **mesma classe** já tratada no candidate-edit
+(Item 3 / sprint 13) e no CSS (Item 1).
+
+**Abordagem proposta (quando for feito).** Extrair para `assets/js/ffc-recruitment-classifications.js` (e talvez um
+por tela), movendo as interpolações para um objeto via `wp_enqueue_script` + `wp_localize_script` (REST roots, nonce,
+strings, **e o mapa `data-ffc-empties` / config**); remover os `echo '<script>'`. **Test-first** (Vitest, como no
+candidate-edit) — o JS extraído entra na cobertura, então cobrir os handlers (single-call OOO, bulk-call, transições)
+mantendo o floor. Incremental, 1 bloco/feature por commit (mini-projeto à parte, como o Item 2).
+
+**Status.** Registrado, **adiado** (decisão do mantenedor) — não inflar a PR de auditoria; tratar depois.
+
+---
+
 ## Ordem de execução sugerida
 
 1. **Item 5 — Segurança** (rápido, alto valor, baixo risco): escapar outputs do dashboard + `rel=noopener`.
@@ -453,6 +475,7 @@ aponta para o dashboard com params mortos (`action=cancel&appointment_id`) e exi
 7. **Item 7 — Bug da justificativa fora de ordem com lista filtrada** (bug funcional, fora do escopo de refactor).
 8. **Item 8 — Feature: retroceder status final de candidato** (avaliar em conjunto antes de implementar).
 9. **Item 9 — Feature: cancelamento de agendamento por token** (decidido no Item 6; implementar depois).
+10. **Item 10 — Extrair JS inline do recruitment para arquivos .js** (dívida registrada; extrair depois, test-first).
 
 ## Log de sprints (commits desta PR)
 | # | Item | Descrição | Commit |
