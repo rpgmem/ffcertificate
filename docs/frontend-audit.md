@@ -146,7 +146,7 @@ só csv-download e reavaliar, ou os dois gigantes; (c) incluir geofence no escop
 
 ---
 
-## Item 3 — Arquivos PHP com múltiplas responsabilidades a fragmentar  🟦 (candidate-edit JS ✅ s13; rate-limit ✅ s14; revisar pendente)
+## Item 3 — Arquivos PHP com múltiplas responsabilidades a fragmentar  ✅ (candidate-edit s13; rate-limit s14; recruitment-admin-page s15; audience-loader s16)
 
 | Arquivo | Linhas | Veredito |
 |---|---|---|
@@ -203,8 +203,15 @@ enqueue+localize (`ffcRecruitmentCandidateEdit`) no assets-manager; página 1104
   responsabilidade distinta — `dispatch_action` (state-transitions, sem list-table) — foi extraído para
   `RecruitmentAdminActions::dispatch()` **test-first** (`RecruitmentAdminActionsTest`, 7 casos cobrindo os 4 branches
   delete-* + gates de id-zero / referenced-reason / unknown-action). Página 1128→1029. PHPUnit/PHPStan 8/WPCS ✓.
-- ⬜ **`audience-loader`** — pendente: extrair `AudienceAjaxController` (~13 `ajax_*`, testáveis: mock $_POST/nonce/
-  permission/repos + captura `wp_send_json`) **test-first**.
+- ✅ **`audience-loader` (sprint 16)** — extraídos os ~13 handlers `ajax_*` + 2 helpers privados para
+  `AudienceAjaxController` (usa `AjaxTrait`; `register()` registra os 13 `wp_ajax_*`); loader 1131→408, perde o
+  `use AjaxTrait` (não mais usado) e delega via `$this->ajax_controller->register()`. Movimento verbatim
+  (PHPStan 8 confirma resolução de todos os símbolos). **Test-first:** os 3 testes de helper (antes em
+  `AudienceLoaderTest` por reflexão) movidos para `AudienceAjaxControllerTest` + registro dos 13 hooks +
+  caracterização de 2 handlers (create-booking, check-conflicts). `AudienceLoaderTest` segue 11/11 (teste de
+  hooks passa pois o controller registra os mesmos nomes). PHPStan 8 + WPCS + PHPUnit ✓.
+
+**Item 3 concluído** (4/4 arquivos): candidate-edit (s13), rate-limit (s14), recruitment-admin-page (s15), audience-loader (s16).
 
 Entrega incremental: 1 arquivo/sprint, cada um com sua bateria de gates verde antes do próximo.
 
@@ -336,3 +343,4 @@ completa (não a lista filtrada). Cobrir com teste (filtrado vs. não-filtrado).
 | 13 | 3 | fragmentar `candidate-edit-page` (1104→989): 2 blocos `<script>` inline → `ffc-recruitment-candidate-edit.js` (enqueue+localize); +9 testes; ESLint + `php -l` + build + floor 82 ok | sprint 13 |
 | 14 | 3 | fragmentar `rate-limit-checker` (1226→1026): 7 helpers de persistência → `RateLimitRepository` (facade, API pública intacta, 13 call-sites repontados); PHPUnit 4885 ✓ + PHPStan 8 ✓ + WPCS ✓ | sprint 14 |
 | 15 | 3 | fragmentar `recruitment-admin-page` (1128→1029): `dispatch_action` (state-transitions) → `RecruitmentAdminActions` **test-first** (+7 testes); render_* ficam (WP_List_Table-coupled, justificado); PHPStan 8 + WPCS + PHPUnit ✓ | sprint 15 |
+| 16 | 3 | fragmentar `audience-loader` (1131→408): ~13 handlers `ajax_*` + 2 helpers → `AudienceAjaxController` (facade via `register()`) **test-first** (3 helper tests movidos + registro + 2 caracterizações); PHPStan 8 + WPCS + PHPUnit ✓. **Item 3 concluído.** | sprint 16 |
