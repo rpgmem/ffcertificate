@@ -213,7 +213,20 @@ class Shortcodes {
 		}
 		$schedule_exception = \FreeFormCertificate\Frontend\ScheduleExceptionSession::read_from_cookie( $form_id );
 		if ( null !== $schedule_exception ) {
-			\FreeFormCertificate\Frontend\ScheduleExceptionSession::clear( $form_id );
+			// #Item11 — a spent exception (its jti already claimed by a
+			// prior submission) is dead: don't re-render the banner or
+			// re-embed the token, even though the cookie survived. The
+			// cookie can't be cleared from here (this runs in the_content,
+			// after headers are sent), so the consumed-jti ledger — not the
+			// cookie — is the source of truth for one-use.
+			$exc_jti = (string) ( $schedule_exception['jti'] ?? '' );
+			if ( '' === $exc_jti || \FreeFormCertificate\Frontend\ScheduleExceptionSession::is_jti_consumed( $exc_jti ) ) {
+				$schedule_exception        = null;
+				$schedule_exception_cookie = '';
+			} else {
+				// Best-effort clear (no-op once headers are sent — see above).
+				\FreeFormCertificate\Frontend\ScheduleExceptionSession::clear( $form_id );
+			}
 		} else {
 			// Clear the captured raw value too so a tampered cookie can't
 			// reach the hidden input via the back door.

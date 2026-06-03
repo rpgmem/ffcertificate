@@ -74,11 +74,8 @@ class FormProcessor {
 			$token_raw = (string) wp_unslash( $_POST['ffc_schedule_exception_token'] );
 			// phpcs:ignore WordPress.Security.NonceVerification.Missing
 			$token_form = isset( $_POST['form_id'] ) ? absint( wp_unslash( $_POST['form_id'] ) ) : 0;
-			$verified   = \FreeFormCertificate\Frontend\ScheduleExceptionSession::verify_token( $token_raw );
-			if ( null !== $verified && $token_form > 0 && (int) ( $verified['form_id'] ?? 0 ) === $token_form ) {
-				$has_exception              = true;
-				$schedule_exception_payload = $verified;
-			}
+			$schedule_exception_payload = self::live_exception_payload( $token_raw, $token_form );
+			$has_exception              = null !== $schedule_exception_payload;
 		}
 
 		// Rate limit by IP — run BEFORE nonce/CAPTCHA to prevent brute-force.
@@ -713,7 +710,7 @@ class FormProcessor {
 				// already excluded by the boolean — PHPStan tracks the
 				// correlation, no defensive null-check needed.
 				if ( $has_exception ) {
-					$this->persist_schedule_exception(
+					$this->maybe_persist_schedule_exception(
 						(int) $submission_id,
 						$form_id,
 						(array) $schedule_exception_payload,
@@ -879,6 +876,65 @@ class FormProcessor {
 		}
 
 		return null;
+	}
+
+	/**
+	 * Resolve a posted schedule-exception token to its payload IFF it is
+	 * still "live" — signature + expiry valid, scoped to the posted form,
+	 * and its `jti` not already in the consumed ledger (#Item11). Returns
+	 * null otherwise, which the caller treats as "no exception" (no IP-limit
+	 * bypass, no override). The authoritative atomic claim still happens at
+	 * persist time, so a double-click race resolves to one adjusted cert;
+	 * this early check only spares a known-spent token the bypass.
+	 *
+	 * @param string $token_raw  Raw token from the form body.
+	 * @param int    $token_form Posted form id the token must be scoped to.
+	 * @return array<string, mixed>|null Verified payload, or null when not live.
+	 */
+	private static function live_exception_payload( string $token_raw, int $token_form ): ?array {
+		$verified = \FreeFormCertificate\Frontend\ScheduleExceptionSession::verify_token( $token_raw );
+		if ( null === $verified || $token_form <= 0 || (int) ( $verified['form_id'] ?? 0 ) !== $token_form ) {
+			return null;
+		}
+		$jti = (string) ( $verified['jti'] ?? '' );
+		if ( '' === $jti || \FreeFormCertificate\Frontend\ScheduleExceptionSession::is_jti_consumed( $jti ) ) {
+			return null;
+		}
+		return $verified;
+	}
+
+	/**
+	 * Atomically claim a schedule-exception token's one-time use, then
+	 * persist the override only if the claim won (#Item11).
+	 *
+	 * The first submission to claim the payload's `jti` wins; a racing
+	 * double-click (or a refreshed tab re-POSTing the still-valid token)
+	 * loses the {@see ScheduleExceptionSession::try_consume_jti()} INSERT
+	 * and is recorded at baseline, so the operator-issued exception mints
+	 * exactly one adjusted certificate. The claim runs here, at the success
+	 * point, rather than at token-verify time — otherwise a downstream
+	 * validation failure would burn the one-use token before any
+	 * certificate existed.
+	 *
+	 * @param int                  $submission_id         Newly inserted row.
+	 * @param int                  $form_id               Form post id.
+	 * @param array<string, mixed> $payload               Verified token payload.
+	 * @param string               $participant_cpf_plain Plaintext participant CPF.
+	 * @return bool True when the claim won and the override was persisted.
+	 */
+	private function maybe_persist_schedule_exception(
+		int $submission_id,
+		int $form_id,
+		array $payload,
+		string $participant_cpf_plain
+	): bool {
+		$jti = (string) ( $payload['jti'] ?? '' );
+		$exp = (int) ( $payload['exp'] ?? 0 );
+		if ( ! \FreeFormCertificate\Frontend\ScheduleExceptionSession::try_consume_jti( $jti, $exp ) ) {
+			return false;
+		}
+		$this->persist_schedule_exception( $submission_id, $form_id, $payload, $participant_cpf_plain );
+		return true;
 	}
 
 	/**

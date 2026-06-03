@@ -483,6 +483,15 @@ class Loader {
 				\FreeFormCertificate\Admin\CsvExporter::cleanup_stale_export_jobs();
 			}
 		);
+		// #Item11: reap spent schedule-exception jti markers whose 30-min
+		// expiry has lapsed. Returns the reaped count; wrapped void per
+		// PHPStan's return.void rule on action callbacks.
+		add_action(
+			'ffcertificate_daily_cleanup_hook',
+			static function (): void {
+				\FreeFormCertificate\Frontend\ScheduleExceptionSession::cleanup_expired_consumed();
+			}
+		);
 		add_action( 'ffcertificate_reregistration_expire_hook', array( ReregistrationRepository::class, 'expire_overdue' ) );
 		add_action( 'ffcertificate_reregistration_expire_hook', array( ReregistrationEmailHandler::class, 'run_automated_reminders' ) );
 	}

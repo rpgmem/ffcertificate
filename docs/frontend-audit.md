@@ -494,7 +494,15 @@ aponta para o dashboard com params mortos (`action=cancel&appointment_id`) e exi
 
 **Convenção de storage (CLAUDE.md).** Se o ledger virar tabela, o carimbo de consumo é Categoria A (instante) → `BIGINT UNSIGNED` com `time()`; cleanup dos `jti` expirados em 30 min.
 
-**Status.** Diagnóstico fechado; **aguardando decisão conjunta** sobre escopo (só B, ou A+B) e veículo (hotfix vs. feature nesta PR / próxima). Não tocar até alinhar.
+**Status.** ✅ **Corrigido (A+B) nesta PR — sprint 24.** Decisão conjunta: escopo A+B, veículo = esta PR (#480).
+
+**O que foi feito (s24):**
+- **Ledger de `jti` consumido** (`ScheduleExceptionSession::try_consume_jti()` / `is_jti_consumed()` / `cleanup_expired_consumed()`): uso-único atômico via `INSERT IGNORE` na tabela `options` (a UNIQUE em `option_name` é o lock — o primeiro a reivindicar o `jti` vence; replays/double-click perdem o INSERT). Marcadores `ffc_sched_exc_used_<jti>` com `autoload='no'`, guardando o `exp` do token; sweep diário no `ffcertificate_daily_cleanup_hook`.
+- **Defeito B (FormProcessor):** a reivindicação atômica roda no **ponto de sucesso** (`maybe_persist_schedule_exception()`), não no verify do token — assim uma falha de validação a jusante não queima o token. Quem perde a corrida grava no baseline (sem override). Pré-check barato `live_exception_payload()` (verify + escopo + jti não-consumido) decide o `$has_exception` cedo (mantém o bypass de IP-rate-limit só p/ a exceção viva).
+- **Defeito A (Shortcodes::render):** o banner some quando o `jti` já foi consumido (`is_jti_consumed`), mesmo com o cookie ainda válido — o ledger, não o cookie, é a fonte da verdade (o `setcookie` de `clear()` não roda em `the_content`, headers já enviados; fica como best-effort).
+- **Testes:** +6 em `ScheduleExceptionSessionTest` (consume vence/perde/empty, is_consumed presente/ausente/empty, cleanup deleta/no-op), +6 em `FormProcessorScheduleExceptionTest` (`maybe_persist` vence/perde, `live_exception_payload` válido/consumido/form-mismatch/garbage), +1 em `FrontendShortcodesTest` (banner suprimido quando jti consumido). Suíte completa 4913 ✓, PHPStan 8 ✓, WPCS ✓.
+
+**Storage (CLAUDE.md).** O ledger usa a tabela `options` (não uma tabela nova) com TTL de 30 min reapado pelo cron — evita migração/activator. O `exp` guardado é Categoria A (instante, unix UTC).
 
 ---
 
@@ -510,7 +518,7 @@ aponta para o dashboard com params mortos (`action=cancel&appointment_id`) e exi
 8. **Item 8 — Feature: retroceder status final de candidato** (avaliar em conjunto antes de implementar).
 9. **Item 9 — Feature: cancelamento de agendamento por token** (decidido no Item 6; implementar depois).
 10. **Item 10 — Extrair JS inline do recruitment para arquivos .js** (dívida registrada; extrair depois, test-first).
-11. **Item 11 — Bug: schedule exception não é single-use** (diagnóstico fechado; avaliar juntos escopo/veículo antes de corrigir).
+11. **Item 11 — Bug: schedule exception não é single-use** ✅ corrigido (A+B) na s24 — ledger de jti atômico + banner ciente do consumo.
 
 ## Log de sprints (commits desta PR)
 | # | Item | Descrição | Commit |
@@ -540,3 +548,4 @@ aponta para o dashboard com params mortos (`action=cancel&appointment_id`) e exi
 | 22 | 10 | extrair JS inline de `form-editor-geofence-metabox.php` (2 blocos, ~39 linhas: during-row dual-gate + toggle de fonte de área geo) → `ffc-form-editor-geofence-metabox.js` (um arquivo, 2 IIFEs selector-guarded, dep `jquery`); helper `enqueue_metabox_script()` idempotente chamado de `render_time` + `render_geolocation`; assert PHPUnit trocado de `toggleGeoSource` p/ marcador DOM `geo_area_source`; +5 testes Vitest; ESLint + Vitest + `php -l` + PHPStan 8 + WPCS + PHPUnit ✓ | sprint 22 |
 | 22b | 10 | hotfix CI: o `FormEditorMetaboxRendererTest` renderiza o metabox indiretamente e não tinha stub de `wp_enqueue_script` (o teste por-arquivo da s22 passava e mascarava) → `MissingFunctionExpectations` na suíte completa (PHPUnit 8.3/8.4). Stub adicionado | sprint 22b |
 | 23 | 10 | extrair JS inline de `recruitment-admin-page.php` (~37 linhas, 1 bloco: 2 handlers de import CSV chamados via `onchange`/`onsubmit`) → `ffc-recruitment-candidates-import.js` (funções globais, config via `wp_localize_script` `ffcRecruitmentCandidatesImport` no assets-manager: REST notices root + nonce + i18n); controles lidos via `form.elements.namedItem()` (API canônica, testável em jsdom); locais PHP mortos removidos (`$nonce`/labels); +10 testes Vitest (gating de status, endpoints prelim/definitive, ticker, 2xx/erro/network); ESLint + Vitest + `php -l` + PHPStan 8 + WPCS + PHPUnit ✓ | sprint 23 |
+| 24 | 11 | corrigir single-use da exceção de horário (A+B): ledger de `jti` consumido (`INSERT IGNORE` atômico em `options`, sweep diário) em `ScheduleExceptionSession`; `FormProcessor` reivindica no ponto de sucesso (`maybe_persist_schedule_exception`) + pré-check `live_exception_payload`; `Shortcodes::render` suprime banner quando jti consumido; +13 testes PHPUnit; suíte 4913 + PHPStan 8 + WPCS ✓ | sprint 24 |
