@@ -195,11 +195,16 @@ enqueue+localize (`ffcRecruitmentCandidateEdit`) no assets-manager; página 1104
   (6 testes) cobre **só os badges**; render/dispatch **não testados**. Predominantemente view coesa — **próximo do
   "OK" `notice-edit-page-renderer`** (1601, classificado bom design), exceto pelo `dispatch_action` embutido.
 
-**Recomendação:** diferente dos dois primeiros do Item 3 (rate-limit teve 4885 testes exercitando o código movido via
-facade; candidate-edit recebeu 9 testes novos), **aqui o miolo a mover é não-testado** → fragmentar com segurança exige
-**testes de caracterização primeiro**, ou aceitar verificação só-CI (risco de regressão admin silenciosa). Sugestão:
-(1) `recruitment-admin-page` → **deixar com justificativa** (view coesa, borderline-OK); (2) `audience-loader` →
-extrair `AudienceAjaxController` **test-first**, ou diferir. Decisão do mantenedor.
+**Decisão (mantenedor): test-first para ambos.** Execução:
+
+- ✅ **`recruitment-admin-page` (sprint 15)** — descoberta na execução: os `render_*_tab` dependem de `WP_List_Table`
+  (runtime wp-admin) → **estruturalmente difíceis de unit-testar** (como os JS excluídos de coverage por FullCalendar);
+  ficam como view coesa (justificado, perto do "OK" `notice-edit-page-renderer`). O que **é** testável e tem
+  responsabilidade distinta — `dispatch_action` (state-transitions, sem list-table) — foi extraído para
+  `RecruitmentAdminActions::dispatch()` **test-first** (`RecruitmentAdminActionsTest`, 7 casos cobrindo os 4 branches
+  delete-* + gates de id-zero / referenced-reason / unknown-action). Página 1128→1029. PHPUnit/PHPStan 8/WPCS ✓.
+- ⬜ **`audience-loader`** — pendente: extrair `AudienceAjaxController` (~13 `ajax_*`, testáveis: mock $_POST/nonce/
+  permission/repos + captura `wp_send_json`) **test-first**.
 
 Entrega incremental: 1 arquivo/sprint, cada um com sua bateria de gates verde antes do próximo.
 
@@ -330,3 +335,4 @@ completa (não a lista filtrada). Cobrir com teste (filtrado vs. não-filtrado).
 | 12 | 1 | extração de CSS inline da feature **reregistration** (`reregistration-admin` 7) → 5 classes `.ffc-rereg-*` em `ffc-reregistration-admin.css`; modal `display:none` + `background` dinâmico inline. **Item 1 concluído.** | sprint 12 |
 | 13 | 3 | fragmentar `candidate-edit-page` (1104→989): 2 blocos `<script>` inline → `ffc-recruitment-candidate-edit.js` (enqueue+localize); +9 testes; ESLint + `php -l` + build + floor 82 ok | sprint 13 |
 | 14 | 3 | fragmentar `rate-limit-checker` (1226→1026): 7 helpers de persistência → `RateLimitRepository` (facade, API pública intacta, 13 call-sites repontados); PHPUnit 4885 ✓ + PHPStan 8 ✓ + WPCS ✓ | sprint 14 |
+| 15 | 3 | fragmentar `recruitment-admin-page` (1128→1029): `dispatch_action` (state-transitions) → `RecruitmentAdminActions` **test-first** (+7 testes); render_* ficam (WP_List_Table-coupled, justificado); PHPStan 8 + WPCS + PHPUnit ✓ | sprint 15 |
