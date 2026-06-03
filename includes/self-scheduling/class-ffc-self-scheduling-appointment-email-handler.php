@@ -443,15 +443,26 @@ class AppointmentEmailHandler {
 	 * @return string
 	 */
 	private function get_cancellation_url( array $appointment ): string {
-		// For now, return a placeholder. You can implement a dedicated cancellation page later.
+		// #Item9 — login-free cancellation via the appointment's confirmation
+		// token. AppointmentCancellationHandler renders the public confirm
+		// page and re-validates the token before cancelling. Falls back to the
+		// dashboard appointments tab when no token is present (e.g. legacy
+		// rows created before tokens were issued).
+		$appointment_id = (int) ( $appointment['id'] ?? 0 );
+		$token          = isset( $appointment['confirmation_token'] ) && is_string( $appointment['confirmation_token'] )
+			? $appointment['confirmation_token']
+			: '';
+
+		if ( '' !== $token && class_exists( '\FreeFormCertificate\SelfScheduling\AppointmentCancellationHandler' ) ) {
+			return AppointmentCancellationHandler::get_cancellation_url( $appointment_id, $token );
+		}
+
 		$dashboard_page_id = get_option( 'ffc_dashboard_page_id' );
 		$base_url          = $dashboard_page_id ? get_permalink( $dashboard_page_id ) : home_url( '/dashboard' );
 
 		return add_query_arg(
 			array(
-				'tab'            => 'appointments',
-				'action'         => 'cancel',
-				'appointment_id' => $appointment['id'],
+				'tab' => 'appointments',
 			),
 			$base_url
 		);

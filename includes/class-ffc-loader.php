@@ -34,6 +34,7 @@ use FreeFormCertificate\SelfScheduling\AppointmentHandler;
 use FreeFormCertificate\SelfScheduling\AppointmentAjaxHandler;
 use FreeFormCertificate\SelfScheduling\AppointmentEmailHandler;
 use FreeFormCertificate\SelfScheduling\AppointmentReceiptHandler;
+use FreeFormCertificate\SelfScheduling\AppointmentCancellationHandler;
 use FreeFormCertificate\SelfScheduling\AppointmentCsvExporter;
 use FreeFormCertificate\SelfScheduling\SelfSchedulingShortcode;
 use FreeFormCertificate\Audience\AudienceLoader;
@@ -287,7 +288,10 @@ class Loader {
 		new AppointmentAjaxHandler( $this->self_scheduling_appointment_handler );
 		$this->self_scheduling_email_handler   = new AppointmentEmailHandler();
 		$this->self_scheduling_receipt_handler = new AppointmentReceiptHandler();
-		$this->self_scheduling_shortcode       = new SelfSchedulingShortcode();
+		// #Item9 — public token-based cancellation page reached from the
+		// appointment e-mails; delegates the actual cancel to the handler.
+		new AppointmentCancellationHandler( $this->self_scheduling_appointment_handler );
+		$this->self_scheduling_shortcode = new SelfSchedulingShortcode();
 
 		$this->audience_loader = AudienceLoader::get_instance();
 		$this->audience_loader->init();
@@ -481,6 +485,15 @@ class Loader {
 			'ffcertificate_daily_cleanup_hook',
 			static function (): void {
 				\FreeFormCertificate\Admin\CsvExporter::cleanup_stale_export_jobs();
+			}
+		);
+		// #Item11: reap spent schedule-exception jti markers whose 30-min
+		// expiry has lapsed. Returns the reaped count; wrapped void per
+		// PHPStan's return.void rule on action callbacks.
+		add_action(
+			'ffcertificate_daily_cleanup_hook',
+			static function (): void {
+				\FreeFormCertificate\Frontend\ScheduleExceptionSession::cleanup_expired_consumed();
 			}
 		);
 		add_action( 'ffcertificate_reregistration_expire_hook', array( ReregistrationRepository::class, 'expire_overdue' ) );

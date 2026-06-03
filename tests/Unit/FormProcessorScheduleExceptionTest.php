@@ -46,6 +46,11 @@ class FormProcessorScheduleExceptionTest extends TestCase {
         Functions\when( '__' )->returnArg();
         Functions\when( 'sanitize_text_field' )->returnArg();
         Functions\when( 'wp_unslash' )->returnArg();
+        // #Item11: live_exception_payload() round-trips a real signed token
+        // through ScheduleExceptionSession, which needs the HMAC salt + JSON
+        // encoder. Deterministic salt keeps sign/verify consistent.
+        Functions\when( 'wp_salt' )->justReturn( 'test-nonce-salt' );
+        Functions\when( 'wp_json_encode' )->alias( static fn( $v ) => json_encode( $v ) );
 
         // Spy repository.
         $this->repo = Mockery::mock( '\FreeFormCertificate\Repositories\SubmissionRepository' );
@@ -216,5 +221,112 @@ class FormProcessorScheduleExceptionTest extends TestCase {
         $this->invoke_persist( 555, 42, $this->full_payload(), '' );
 
         $this->assertSame( '', $this->audit_calls[0]['context']['participant_cpf_hash'] );
+    }
+
+    // ==================================================================
+    // maybe_persist_schedule_exception() — atomic single-use gate (#Item11)
+    // ==================================================================
+
+    /**
+     * Point ScheduleExceptionSession::try_consume_jti() at a wpdb whose
+     * INSERT IGNORE reports `$rows_affected` rows, so the claim resolves
+     * deterministically (1 = won, 0 = replay lost).
+     *
+     * @param int $rows_affected Rows the mocked query reports.
+     */
+    private function mock_consume_wpdb( int $rows_affected ): void {
+        global $wpdb;
+        $wpdb                = Mockery::mock( 'wpdb' );
+        $wpdb->options       = 'wp_options';
+        $wpdb->rows_affected = 0;
+        $wpdb->shouldReceive( 'prepare' )->andReturn( 'SQL' );
+        $wpdb->shouldReceive( 'query' )->andReturnUsing(
+            function () use ( $wpdb, $rows_affected ) {
+                $wpdb->rows_affected = $rows_affected;
+                return $rows_affected;
+            }
+        );
+    }
+
+    private function invoke_maybe_persist( int $submission_id, int $form_id, array $payload, string $cpf ): bool {
+        $ref = new \ReflectionMethod( FormProcessor::class, 'maybe_persist_schedule_exception' );
+        $ref->setAccessible( true );
+        return (bool) $ref->invokeArgs( $this->processor, array( $submission_id, $form_id, $payload, $cpf ) );
+    }
+
+    public function test_maybe_persist_applies_override_when_claim_wins(): void {
+        $this->mock_consume_wpdb( 1 );
+        $this->repo->shouldReceive( 'update' )->once()
+            ->with(
+                555,
+                array(
+                    'schedule_start_override' => '08:00',
+                    'schedule_end_override'   => '17:30',
+                )
+            );
+
+        $applied = $this->invoke_maybe_persist( 555, 42, $this->full_payload(), '12345678900' );
+
+        $this->assertTrue( $applied );
+    }
+
+    public function test_maybe_persist_skips_override_when_claim_lost_to_replay(): void {
+        // INSERT IGNORE affected 0 rows → the jti was already claimed by an
+        // earlier submission, so this replay must NOT write the override or
+        // emit audit rows.
+        $this->mock_consume_wpdb( 0 );
+        $this->repo->shouldReceive( 'update' )->never();
+
+        $applied = $this->invoke_maybe_persist( 555, 42, $this->full_payload(), '12345678900' );
+
+        $this->assertFalse( $applied );
+        $this->assertCount( 0, $this->audit_calls );
+    }
+
+    // ==================================================================
+    // live_exception_payload() — early eligibility gate (#Item11)
+    // ==================================================================
+
+    /**
+     * @param array<string, mixed> $payload
+     * @return array<string, mixed>|null
+     */
+    private function invoke_live( string $token, int $form ) {
+        $ref = new \ReflectionMethod( FormProcessor::class, 'live_exception_payload' );
+        $ref->setAccessible( true );
+        /** @var array<string, mixed>|null $out */
+        $out = $ref->invoke( null, $token, $form );
+        return $out;
+    }
+
+    public function test_live_payload_returns_payload_for_a_fresh_valid_token(): void {
+        Functions\when( 'get_option' )->alias( static fn( $key, $default = false ) => $default );
+        $token = \FreeFormCertificate\Frontend\ScheduleExceptionSession::sign_token( $this->full_payload() );
+
+        $live = $this->invoke_live( $token, 42 );
+
+        $this->assertIsArray( $live );
+        $this->assertSame( 42, (int) $live['form_id'] );
+    }
+
+    public function test_live_payload_null_when_jti_already_consumed(): void {
+        Functions\when( 'get_option' )->alias(
+            static fn( $key, $default = false ) => is_string( $key ) && 0 === strpos( $key, 'ffc_sched_exc_used_' ) ? '1' : $default
+        );
+        $token = \FreeFormCertificate\Frontend\ScheduleExceptionSession::sign_token( $this->full_payload() );
+
+        $this->assertNull( $this->invoke_live( $token, 42 ) );
+    }
+
+    public function test_live_payload_null_when_form_id_mismatches(): void {
+        Functions\when( 'get_option' )->alias( static fn( $key, $default = false ) => $default );
+        $token = \FreeFormCertificate\Frontend\ScheduleExceptionSession::sign_token( $this->full_payload() );
+
+        // Token is scoped to form 42; posting it under form 99 is rejected.
+        $this->assertNull( $this->invoke_live( $token, 99 ) );
+    }
+
+    public function test_live_payload_null_for_a_garbage_token(): void {
+        $this->assertNull( $this->invoke_live( 'not.a.valid.token', 42 ) );
     }
 }

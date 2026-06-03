@@ -255,27 +255,15 @@ class AudienceAdminImport {
 			</div><!-- .ffc-import-sections -->
 			</div><!-- #ffc-export-tab -->
 
-		<script>
-		jQuery(function($) {
-			$('.nav-tab-wrapper .nav-tab').on('click', function(e) {
-				e.preventDefault();
-				var tab = $(this).data('tab');
-				$('.nav-tab-wrapper .nav-tab').removeClass('nav-tab-active');
-				$(this).addClass('nav-tab-active');
-				$('.ffc-tab-content').hide();
-				$('#' + tab).show();
-			});
-			// Restore tab from URL hash.
-			if (window.location.hash) {
-				var hash = window.location.hash.substring(1);
-				var $tab = $('.nav-tab[data-tab="' + hash + '"]');
-				if ($tab.length) {
-					$tab.trigger('click');
-				}
-			}
-		});
-		</script>
 		<?php
+		$s = \FreeFormCertificate\Core\Utils::asset_suffix();
+		wp_enqueue_script(
+			'ffc-audience-admin-import',
+			FFC_PLUGIN_URL . "assets/js/ffc-audience-admin-import{$s}.js",
+			array( 'jquery' ),
+			FFC_VERSION,
+			true
+		);
 	}
 
 	/**

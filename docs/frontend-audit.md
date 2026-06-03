@@ -438,29 +438,79 @@ aponta para o dashboard com params mortos (`action=cancel&appointment_id`) e exi
 - Segurança: token de uso único? rate-limit? expiração? (o `confirmation_token` já existe por agendamento).
 - Atualizar `get_cancellation_url` (remover params mortos, adicionar token) + teste do fluxo nopriv.
 
-**Status.** Não iniciado — feature à parte, fora desta PR de auditoria.
+**Status.** ✅ **Implementado — sprint 26.**
+
+**O que foi feito (s26):**
+- **`AppointmentCancellationHandler`** (novo, espelha `AppointmentReceiptHandler`): query var público `ffc_cancel_appointment` + `token`, interceptado em `template_redirect`; página autossuficiente (sem tema, com `assets/css/ffc-appointment-cancellation.css`). GET → confirma (resumo do agendamento + textarea de motivo + nonce); POST (nonce ok) → chama `AppointmentHandler::cancel_appointment($id,$token,$reason)` que **re-valida o token** e todas as regras de calendário.
+- **Segurança:** comparação de token via `hash_equals` (`token_matches`), mensagem genérica p/ link inválido OU appointment inexistente (não vaza ids), nonce no POST (CSRF), `noindex,nofollow`. Token é a credencial primária (re-checada no backend).
+- **`get_cancellation_url`** (email handler) agora gera a URL por token via o novo handler (fallback p/ aba do dashboard em linhas legadas sem token). Removidos os params mortos `action=cancel&appointment_id`.
+- **Decisão de branch isolada** em `classify_request()` (pura, testável: invalid_link / invalid_token / already_cancelled / process / confirm) já que os métodos de render terminam em `exit()`.
+- Registrado no loader. **Bug pego em teste:** `add_query_arg` já url-encoda valores → removido `rawurlencode` que duplicava a codificação (igual ao receipt handler).
+- **Testes:** +16 PHPUnit (URL c/ e sem token, query vars, `token_matches` ×4, `classify_request` ×6, `confirm_submitted` nonce ×3, no-op sem query var). Self-scheduling/email/loader/receipt suites (191) ✓; PHPStan 8 + WPCS + Stylelint ✓.
 
 ---
 
-## Item 10 — Dívida: JS inline em PHP (recruitment) deveria ir para arquivos `.js` dedicados  ⬜ (registrado s18; extrair depois)
+## Item 10 — Dívida: JS inline em PHP deveria ir para arquivos `.js` dedicados  🟦 (inventário completo s19; extração incremental)
 
-**Origem.** Notado ao corrigir o Item 7: a detecção OOO vive num `echo '<script>'` inline. Levantamento:
-`includes/recruitment/class-ffc-recruitment-notice-edit-page-renderer.php` tem **~311 linhas de JS inline** em
-**~7 blocos `<script>`** (tab-switch, import CSV, transições de status, ações de classificação + OOO, preview-status,
-bulk-call) com **~69 interpolações** PHP (strings i18n via `esc_js`, REST URLs, `wp_create_nonce`). Há **mais JS
-inline** em `class-ffc-recruitment-admin-page.php` e outros.
+**Origem.** Notado ao corrigir o Item 7. Pedido do mantenedor: varrer **todo** o plugin, não só recruitment.
 
-**Por que é dívida.** JS inline não passa por ESLint (gate zero-erro), não tem teste Vitest, não usa o pipeline de
-minificação/cache-bust (`?ver=`), e é mais difícil de ler/manter. É a **mesma classe** já tratada no candidate-edit
-(Item 3 / sprint 13) e no CSS (Item 1).
+**Inventário completo (varredura `echo '<script>'` / `<script>` em `includes/` + `templates/`):**
 
-**Abordagem proposta (quando for feito).** Extrair para `assets/js/ffc-recruitment-classifications.js` (e talvez um
-por tela), movendo as interpolações para um objeto via `wp_enqueue_script` + `wp_localize_script` (REST roots, nonce,
-strings, **e o mapa `data-ffc-empties` / config**); remover os `echo '<script>'`. **Test-first** (Vitest, como no
-candidate-edit) — o JS extraído entra na cobertura, então cobrir os handlers (single-call OOO, bulk-call, transições)
-mantendo o floor. Incremental, 1 bloco/feature por commit (mini-projeto à parte, como o Item 2).
+**A) EXTRAIR — JS lógico inline (dívida clara, ~516 linhas / 6 arquivos):**
+| Arquivo | Blocos | ~Linhas | Conteúdo |
+|---|---|---|---|
+| `recruitment/...notice-edit-page-renderer.php` | 7 | ~373 | tab-switch, CSV import, transições, ações de classificação + OOO, bulk-call, preview-status — ✅ s25 (`ffc-recruitment-notice-edit.js`) |
+| `admin/...form-editor-geofence-metabox.php` | 2 | ~39 | UI de config de geofence — ✅ s22 (`ffc-form-editor-geofence-metabox.js`) |
+| `recruitment/...admin-page.php` | 1 | ~37 | (1 bloco no render) — ✅ s23 (`ffc-recruitment-candidates-import.js`) |
+| `admin/...device-threshold-upgrade-notice.php` | 1 | ~25 | ação/dismiss do aviso admin — ✅ s19 (`ffc-device-threshold-notice.js`) |
+| `admin/...form-list-columns.php` | 1 | ~22 | comportamento de coluna na list-table — ✅ s20 (`ffc-form-list-copy-shortcode.js`) |
+| `audience/...audience-admin-import.php` | 1 | ~20 | UI de import — ✅ s21 (`ffc-audience-admin-import.js`) |
 
-**Status.** Registrado, **adiado** (decisão do mantenedor) — não inflar a PR de auditoria; tratar depois.
+**B) SOFT (`wp_add_inline_script` — já passa pelo enqueue/ordenação, mas ainda é JS em string; baixa prioridade):**
+`admin/...admin-user-custom-fields.php` (~30, toggle colapsável) · `self-scheduling/...appointment-receipt-handler.php` (contexto de **impressão** → provavelmente legítimo, como e-mail/PDF).
+
+**C) NÃO extrair (não é JS lógico):** `<script type="text/html">` (template wp.template em `audience-admin-audience.php`) e `<script type="application/json">` data-islands (`self-scheduling-shortcode.php`, `reregistration-form-renderer.php`) — são markup/dados, ficam.
+
+**Por que é dívida (A).** Não passa por ESLint (gate zero-erro), não tem teste Vitest, não usa minificação/cache-bust, e é difícil de ler/manter. Mesma classe do candidate-edit (Item 3/s13).
+
+**Abordagem.** Por arquivo (ou por tela): extrair os blocos para `assets/js/ffc-*.js`, mover interpolações (i18n via `esc_js`, REST roots, `wp_create_nonce`, mapas como `data-ffc-empties`) para `wp_localize_script`/data-attributes, remover os `echo '<script>'`. **Test-first** (Vitest) onde o handler for testável; ESLint/floor mantidos. Incremental, 1 arquivo/feature por commit.
+
+**Status.** ✅ **Item 10 CONCLUÍDO — 6/6 arquivos extraídos** (device-threshold-notice s19, form-list-copy-shortcode s20, audience-admin-import s21, form-editor-geofence-metabox s22, recruitment-candidates-import s23, notice-edit-page-renderer s25). Grupo A esvaziado. Restam só os SOFT (`wp_add_inline_script`) e os data-islands (categorias B/C), deliberadamente fora de escopo.
+
+---
+
+## Item 11 — Bug: "horário diferenciado de saída" (schedule exception) não é single-use de verdade  🟥 (avaliar juntos antes de corrigir)
+
+**Relato do mantenedor.** Operador configura um horário de saída diferenciado pelo acesso público; a submissão é criada; **mesmo atualizando a página a mensagem de exceção continua aparecendo**, e foi possível **gerar dois certificados com o mesmo horário diferenciado**. O uso deveria ser único (mecanismo via cookie).
+
+**Como o fluxo funciona hoje** (`ScheduleExceptionSession` + `Shortcodes::render` + `FormProcessor`):
+1. Operador chama o AJAX (Sprint 4) → `create()` assina um token HMAC (payload: form_id, start/end override, jti, `exp = time()+1800`) e seta o cookie `ffc_exception_<form_id>` (HttpOnly, 30 min).
+2. Render do formulário público (shortcode, durante `the_content`): `read_from_cookie()` verifica assinatura+expiração; se OK, **deveria** `clear()` o cookie ("read+clear" = single-use), mostra o banner e embute o token num `<input hidden>`.
+3. Submissão: `FormProcessor` re-verifica o token via `verify_token()` (assinatura + `exp` + `form_id`) e persiste o override.
+
+**Diagnóstico — são DOIS defeitos independentes:**
+
+- **Defeito A — o `clear()` do cookie roda tarde demais (headers já enviados).** `Shortcodes::render` executa no filtro `the_content`, ou seja **depois** que o tema já emitiu `<!doctype><head>…` e o WordPress já fez flush dos headers HTTP. `setcookie()` nesse ponto falha ("headers already sent") e **o navegador nunca apaga o cookie**. No refresh, o cookie ainda está lá (dentro dos 30 min) → `read_from_cookie()` valida de novo → o banner reaparece e o token é re-embutido. É exatamente o "mesmo atualizando a página a mensagem ainda está lá". É determinístico (salvo full-page buffering de algum plugin de cache).
+- **Defeito B — não há enforcement server-side de uso único do token.** Mesmo que o cookie fosse limpo, o token HMAC é válido pelos 30 min inteiros e `FormProcessor` (≈ linha 77) só checa assinatura+`exp`+`form_id`. **Não existe ledger de `jti` consumido**: o campo `jti` é gerado mas nunca gravado/conferido (o docblock o chama de "not a security primitive"). Logo o mesmo token pode ser submetido N vezes na janela, cada uma gerando um certificado com o horário diferenciado. É o "gerei dois certificados". (O comentário no código aposta no rate-limit por CPF para barrar replay — controle diferente, e insuficiente p/ esta garantia.)
+
+**Raiz conceitual.** O "single-use" foi implementado como "ler+limpar o cookie uma vez", mas (1) o cookie é só transporte — a credencial que de fato autoriza o override na submissão é o token no corpo do form, e (2) apagar o cookie não invalida cópias do token já renderizadas. Single-use real precisa ser server-side sobre o token, não sobre o cookie.
+
+**Direções de correção (a decidir juntos — NÃO implementado ainda):**
+1. **(Defeito A) Mover o `clear()` para antes do flush de headers** — capturar+verificar o cookie num hook como `template_redirect`/`wp` (guardar o payload num static por-request) e limpar ali; o shortcode só lê o static. (JS não resolve: cookie é HttpOnly.) Conserta o "banner volta no refresh", mas é só UX.
+2. **(Defeito B — correção de segurança autoritativa) Ledger de `jti` consumido** — gravar o `jti` no primeiro submit bem-sucedido (tabela pequena ou option/transient TTL-bounded de 30 min) e rejeitar no `FormProcessor` qualquer `jti` já consumido. Isso torna o uso realmente único independentemente do cookie e neutraliza o duplo-certificado. **É a prioridade.**
+3. Opcional: após consumo bem-sucedido, garantir que o re-render não mostre banner (decorre de 1+2).
+
+**Convenção de storage (CLAUDE.md).** Se o ledger virar tabela, o carimbo de consumo é Categoria A (instante) → `BIGINT UNSIGNED` com `time()`; cleanup dos `jti` expirados em 30 min.
+
+**Status.** ✅ **Corrigido (A+B) nesta PR — sprint 24.** Decisão conjunta: escopo A+B, veículo = esta PR (#480).
+
+**O que foi feito (s24):**
+- **Ledger de `jti` consumido** (`ScheduleExceptionSession::try_consume_jti()` / `is_jti_consumed()` / `cleanup_expired_consumed()`): uso-único atômico via `INSERT IGNORE` na tabela `options` (a UNIQUE em `option_name` é o lock — o primeiro a reivindicar o `jti` vence; replays/double-click perdem o INSERT). Marcadores `ffc_sched_exc_used_<jti>` com `autoload='no'`, guardando o `exp` do token; sweep diário no `ffcertificate_daily_cleanup_hook`.
+- **Defeito B (FormProcessor):** a reivindicação atômica roda no **ponto de sucesso** (`maybe_persist_schedule_exception()`), não no verify do token — assim uma falha de validação a jusante não queima o token. Quem perde a corrida grava no baseline (sem override). Pré-check barato `live_exception_payload()` (verify + escopo + jti não-consumido) decide o `$has_exception` cedo (mantém o bypass de IP-rate-limit só p/ a exceção viva).
+- **Defeito A (Shortcodes::render):** o banner some quando o `jti` já foi consumido (`is_jti_consumed`), mesmo com o cookie ainda válido — o ledger, não o cookie, é a fonte da verdade (o `setcookie` de `clear()` não roda em `the_content`, headers já enviados; fica como best-effort).
+- **Testes:** +6 em `ScheduleExceptionSessionTest` (consume vence/perde/empty, is_consumed presente/ausente/empty, cleanup deleta/no-op), +6 em `FormProcessorScheduleExceptionTest` (`maybe_persist` vence/perde, `live_exception_payload` válido/consumido/form-mismatch/garbage), +1 em `FrontendShortcodesTest` (banner suprimido quando jti consumido). Suíte completa 4913 ✓, PHPStan 8 ✓, WPCS ✓.
+
+**Storage (CLAUDE.md).** O ledger usa a tabela `options` (não uma tabela nova) com TTL de 30 min reapado pelo cron — evita migração/activator. O `exp` guardado é Categoria A (instante, unix UTC).
 
 ---
 
@@ -474,8 +524,9 @@ mantendo o floor. Incremental, 1 bloco/feature por commit (mini-projeto à parte
 6. **Item 6 — Dívida técnica** (avaliar atuar no único item acionável ou adiar).
 7. **Item 7 — Bug da justificativa fora de ordem com lista filtrada** (bug funcional, fora do escopo de refactor).
 8. **Item 8 — Feature: retroceder status final de candidato** (avaliar em conjunto antes de implementar).
-9. **Item 9 — Feature: cancelamento de agendamento por token** (decidido no Item 6; implementar depois).
+9. **Item 9 — Feature: cancelamento de agendamento por token** ✅ implementado na s26 (`AppointmentCancellationHandler`, página pública por token).
 10. **Item 10 — Extrair JS inline do recruitment para arquivos .js** (dívida registrada; extrair depois, test-first).
+11. **Item 11 — Bug: schedule exception não é single-use** ✅ corrigido (A+B) na s24 — ledger de jti atômico + banner ciente do consumo.
 
 ## Log de sprints (commits desta PR)
 | # | Item | Descrição | Commit |
@@ -499,3 +550,13 @@ mantendo o floor. Incremental, 1 bloco/feature por commit (mini-projeto à parte
 | 16 | 3 | fragmentar `audience-loader` (1131→408): ~13 handlers `ajax_*` + 2 helpers → `AudienceAjaxController` (facade via `register()`) **test-first** (3 helper tests movidos + registro + 2 caracterizações); PHPStan 8 + WPCS + PHPUnit ✓. **Item 3 concluído.** | sprint 16 |
 | 17 | 4 | avaliar consolidações: remover stub morto `ffc-calendar-admin.js` (+ enqueue/localize/nonce/jquery-ui-theme + teste + coverage-exclude); CSS de badges e split recruitment mantidos (escopo correto). Vitest 1045 ✓ + PHPUnit + PHPStan + WPCS ✓. **Item 4 concluído.** | sprint 17 |
 | 18 | 7 | corrigir bug do gate de justificativa fora-de-ordem: detecção client-side passa a ler o mapa autoritativo `data-ffc-empties` (servidor, lista não-filtrada/não-paginada) via `compute_empties_by_adjutancy` em vez de varrer o DOM filtrado; conserta filtro + paginação; +3 testes; PHPUnit 4898 + PHPStan 8 + WPCS ✓ | sprint 18 |
+| 19 | 10 | extrair JS inline de `device-threshold-upgrade-notice.php` (~25 linhas, 1 bloco) → `ffc-device-threshold-notice.js` (IIFE verbatim, lê action/nonce de `data-*` + `ajaxurl`, zero interpolação PHP); enqueue via `wp_enqueue_script`; +4 testes Vitest; ESLint + Vitest + `php -l` + PHPStan 8 + WPCS + PHPUnit ✓ | sprint 19 |
+| 20 | 10 | extrair JS inline de `form-list-columns.php` (~22 linhas, copy-to-clipboard do shortcode) → `ffc-form-list-copy-shortcode.js`; remove método morto `inline_styles()` + hook `admin_head-edit.php`, enqueue no footer existente. **Guard `readyState`** acrescentado (o inline rodava em `admin_head` antes do DOMContentLoaded; o asset no footer pode carregar depois — sem o guard o handler nunca bindava); +4 testes Vitest; ESLint + Vitest + `php -l` + PHPStan 8 + WPCS + PHPUnit ✓ | sprint 20 |
+| 21 | 10 | extrair JS inline de `audience-admin-import.php` (~20 linhas, tab-switch jQuery Import/Export) → `ffc-audience-admin-import.js` (verbatim, dep `jquery`); enqueue em `render_content`; +4 testes Vitest (real jQuery, `css('display')`); stub `wp_enqueue_script` no PHPUnit; ESLint + Vitest + `php -l` + PHPStan 8 + WPCS + PHPUnit ✓ | sprint 21 |
+| 22 | 10 | extrair JS inline de `form-editor-geofence-metabox.php` (2 blocos, ~39 linhas: during-row dual-gate + toggle de fonte de área geo) → `ffc-form-editor-geofence-metabox.js` (um arquivo, 2 IIFEs selector-guarded, dep `jquery`); helper `enqueue_metabox_script()` idempotente chamado de `render_time` + `render_geolocation`; assert PHPUnit trocado de `toggleGeoSource` p/ marcador DOM `geo_area_source`; +5 testes Vitest; ESLint + Vitest + `php -l` + PHPStan 8 + WPCS + PHPUnit ✓ | sprint 22 |
+| 22b | 10 | hotfix CI: o `FormEditorMetaboxRendererTest` renderiza o metabox indiretamente e não tinha stub de `wp_enqueue_script` (o teste por-arquivo da s22 passava e mascarava) → `MissingFunctionExpectations` na suíte completa (PHPUnit 8.3/8.4). Stub adicionado | sprint 22b |
+| 23 | 10 | extrair JS inline de `recruitment-admin-page.php` (~37 linhas, 1 bloco: 2 handlers de import CSV chamados via `onchange`/`onsubmit`) → `ffc-recruitment-candidates-import.js` (funções globais, config via `wp_localize_script` `ffcRecruitmentCandidatesImport` no assets-manager: REST notices root + nonce + i18n); controles lidos via `form.elements.namedItem()` (API canônica, testável em jsdom); locais PHP mortos removidos (`$nonce`/labels); +10 testes Vitest (gating de status, endpoints prelim/definitive, ticker, 2xx/erro/network); ESLint + Vitest + `php -l` + PHPStan 8 + WPCS + PHPUnit ✓ | sprint 23 |
+| 24 | 11 | corrigir single-use da exceção de horário (A+B): ledger de `jti` consumido (`INSERT IGNORE` atômico em `options`, sweep diário) em `ScheduleExceptionSession`; `FormProcessor` reivindica no ponto de sucesso (`maybe_persist_schedule_exception`) + pré-check `live_exception_payload`; `Shortcodes::render` suprime banner quando jti consumido; +13 testes PHPUnit; suíte 4913 + PHPStan 8 + WPCS ✓ | sprint 24 |
+| 24b | 10 | hotfix WPCS: o refactor da s24 juntou `$token_form` ao grupo de atribuições de `$schedule_exception_payload` → warning de alinhamento (cs2pr falha em warnings); phpcbf realinhou | sprint 24b |
+| 25 | 10 | extrair os 7 blocos inline de `notice-edit-page-renderer.php` (~373 linhas) → `ffc-recruitment-notice-edit.js` (1 IIFE; globais via inline onclick/onsubmit; 2 métodos só-script removidos; config única `ffcRecruitmentNoticeEdit` localizada no assets-manager: restRoot+nonce+reasonRequired+strings+importStrings; noticeId via `data-notice-id`, empties via `data-ffc-empties`; controles via `form.elements.namedItem()`). **Item 10 fechado (6/6).** +29 testes Vitest (tab-switch, import prelim/def, snapshot, attach/detach, bulk-call OOO, cls-act, preview-status, resoluções 2xx/erro); floor 82 mantido (notice-edit 90.78%); ESLint + Vitest + `php -l` + PHPStan 8 + WPCS + PHPUnit ✓ | sprint 25 |
+| 26 | 9 | **feature: cancelamento de agendamento por token** — `AppointmentCancellationHandler` (query var público + `template_redirect`, página autossuficiente + CSS), `get_cancellation_url` por token (re-valida via `cancel_appointment`/`hash_equals`), branch puro `classify_request`, fix de double-encode do `add_query_arg`; +16 testes PHPUnit; PHPStan 8 + WPCS + Stylelint + suites self-scheduling/email/loader (191) ✓ | sprint 26 |

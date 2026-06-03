@@ -648,7 +648,6 @@ final class RecruitmentAdminPage {
 			return;
 		}
 
-		$nonce       = wp_create_nonce( 'wp_rest' );
 		$example_url = wp_nonce_url(
 			add_query_arg(
 				array( 'action' => 'ffc_recruitment_download_csv_example' ),
@@ -703,55 +702,13 @@ final class RecruitmentAdminPage {
 		echo '</p>';
 		echo '</form>';
 
-		$processing_label = esc_js( __( 'Processing CSV…', 'ffcertificate' ) );
-		$elapsed_label    = esc_js( __( 'elapsed', 'ffcertificate' ) );
-		$rest_root        = esc_url_raw( rest_url( 'ffcertificate/v1/recruitment/notices/' ) );
-
-		// Inline JS — mirrors ffcRecruitmentImportFromEdit on the
-		// Notice Edit page. Reuses the same REST endpoints (no new
-		// backend) so the importer service and activity logger fire
-		// unchanged. If this duplication grows, factor both into a
-		// delegated handler in ffc-recruitment-admin.js.
-		// phpcs:disable WordPress.Security.EscapeOutput.OutputNotEscaped -- $processing_label / $elapsed_label / $rest_root are esc_js / esc_url_raw encoded above; $nonce is esc_attr-encoded.
-		echo '<script>'
-			. 'function ffcRecruitmentImportNoticeChanged(sel){'
-			. 'var opt=sel.options[sel.selectedIndex];'
-			. 'var st=opt?opt.getAttribute("data-status"):"";'
-			. 'var defRadio=document.querySelector(\'#ffc-recruitment-candidates-import input[name="list_target"][value="definitive"]\');'
-			. 'var prelimRadio=document.querySelector(\'#ffc-recruitment-candidates-import input[name="list_target"][value="preliminary"]\');'
-			. 'var help=document.getElementById("ffc-cand-import-target-help");'
-			. 'if(st==="preliminary"){defRadio.disabled=false;help.textContent="' . esc_js( __( 'Both lists are available for this notice.', 'ffcertificate' ) ) . '";}'
-			. 'else if(st==="draft"){defRadio.disabled=true;defRadio.checked=false;prelimRadio.checked=true;help.textContent="' . esc_js( __( 'Draft notices can only receive the preliminary list.', 'ffcertificate' ) ) . '";}'
-			. 'else{defRadio.disabled=true;defRadio.checked=false;prelimRadio.checked=true;help.textContent="' . esc_js( __( 'Pick a notice above to see which lists can receive the import.', 'ffcertificate' ) ) . '";}'
-			. '}'
-			. 'function ffcRecruitmentImportFromCandidates(form){'
-			. 'var nid=parseInt(form.notice_id.value,10);'
-			. 'if(!(nid>0)){alert("' . esc_js( __( 'Please select a target notice.', 'ffcertificate' ) ) . '");return false;}'
-			. 'var target=form.list_target.value;'
-			. 'var fd=new FormData();'
-			. 'fd.append("csv_file",form.csv_file.files[0]);'
-			. 'var url;'
-			. 'if(target==="definitive"){url="' . $rest_root . '"+nid+"/promote-preview";fd.append("mode","definitive_import");}'
-			. 'else{url="' . $rest_root . '"+nid+"/import";}'
-			. 'var btn=document.getElementById("ffc-cand-csv-submit");'
-			. 'var status=document.getElementById("ffc-cand-csv-status");'
-			. 'var progress=document.getElementById("ffc-cand-csv-progress");'
-			. 'var progressText=document.getElementById("ffc-cand-csv-progress-text");'
-			. 'btn.disabled=true;progress.style.display="inline-flex";status.textContent="";'
-			. 'var startedAt=Date.now();'
-			. 'function tick(){var sec=Math.floor((Date.now()-startedAt)/1000);progressText.textContent="' . $processing_label . ' "+sec+"s ' . $elapsed_label . '";}'
-			. 'tick();var timer=setInterval(tick,1000);'
-			. 'function cleanup(){clearInterval(timer);progress.style.display="none";btn.disabled=false;}'
-			. 'fetch(url,{method:"POST",headers:{"X-WP-Nonce":"' . esc_attr( $nonce ) . '"},body:fd,credentials:"same-origin"})'
-			. '.then(function(r){return r.json().then(function(d){return{status:r.status,body:d};});}).then(function(o){'
-			. 'cleanup();'
-			. 'if(o.status>=200&&o.status<300){status.textContent="OK ("+((o.body&&o.body.message)?o.body.message:JSON.stringify(o.body))+")";location.reload();}'
-			. 'else{status.textContent="Error: "+((o.body&&o.body.message)?o.body.message:JSON.stringify(o.body));}'
-			. '}).catch(function(e){cleanup();status.textContent="Network error: "+e.message;});'
-			. 'return false;}'
-			. '</script>';
-		// phpcs:enable WordPress.Security.EscapeOutput.OutputNotEscaped
-
+		// The CSV-import handlers (ffcRecruitmentImportNoticeChanged /
+		// ffcRecruitmentImportFromCandidates) ship in
+		// assets/js/ffc-recruitment-candidates-import.js, enqueued +
+		// localized by RecruitmentAdminAssetsManager. They mirror
+		// ffcRecruitmentImportFromEdit on the Notice Edit page, reusing the
+		// same REST endpoints (no new backend) so the importer service and
+		// activity logger fire unchanged.
 		echo '</div></div>';
 	}
 

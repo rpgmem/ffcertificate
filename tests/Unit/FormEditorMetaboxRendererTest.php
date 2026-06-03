@@ -57,6 +57,10 @@ class FormEditorMetaboxRendererTest extends TestCase {
                 echo '<textarea id="' . $id . '">' . $content . '</textarea>';
             }
         );
+        // The geofence metabox (rendered through this renderer) now enqueues
+        // its UI-wiring asset instead of echoing inline <script>; stub the
+        // enqueue so the render path doesn't fatal under Brain\Monkey.
+        Functions\when( 'wp_enqueue_script' )->justReturn( null );
 
         if ( ! defined( 'ABSPATH' ) ) {
             define( 'ABSPATH', '/tmp/' );

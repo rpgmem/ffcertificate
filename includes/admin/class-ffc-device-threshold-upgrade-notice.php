@@ -70,32 +70,15 @@ class DeviceThresholdUpgradeNotice {
 				?>
 			</p>
 		</div>
-		<script>
-		(function () {
-			var notice = document.querySelector( '.ffc-device-threshold-notice' );
-			if ( ! notice ) { return; }
-			notice.addEventListener( 'click', function ( e ) {
-				if ( ! e.target.classList.contains( 'notice-dismiss' ) ) { return; }
-				var action = notice.getAttribute( 'data-ffc-action' );
-				var nonce = notice.getAttribute( 'data-ffc-nonce' );
-				var body = 'action=' + encodeURIComponent( action ) + '&_ajax_nonce=' + encodeURIComponent( nonce );
-				if ( typeof window.fetch === 'function' ) {
-					window.fetch( ajaxurl, {
-						method: 'POST',
-						credentials: 'same-origin',
-						headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-						body: body
-					} );
-				} else if ( window.XMLHttpRequest ) {
-					var xhr = new XMLHttpRequest();
-					xhr.open( 'POST', ajaxurl, true );
-					xhr.setRequestHeader( 'Content-Type', 'application/x-www-form-urlencoded' );
-					xhr.send( body );
-				}
-			} );
-		}());
-		</script>
 		<?php
+		$s = \FreeFormCertificate\Core\Utils::asset_suffix();
+		wp_enqueue_script(
+			'ffc-device-threshold-notice',
+			FFC_PLUGIN_URL . "assets/js/ffc-device-threshold-notice{$s}.js",
+			array(),
+			FFC_VERSION,
+			true
+		);
 	}
 
 	/**
