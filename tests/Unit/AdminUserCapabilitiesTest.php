@@ -32,6 +32,9 @@ class AdminUserCapabilitiesTest extends TestCase {
     /** @var Mockery\MockInterface alias mock for Utils */
     private $utils_mock;
 
+    /** @var Mockery\MockInterface alias mock for AudienceRepository */
+    private $audience_repo_mock;
+
     protected function setUp(): void {
         parent::setUp();
         Monkey\setUp();
@@ -88,6 +91,15 @@ class AdminUserCapabilitiesTest extends TestCase {
             ) )
             ->byDefault();
 
+        // AudienceRepository alias mock — render() lists active audiences and
+        // the user's memberships for the editable membership checklist; save()
+        // diffs and applies add_member/remove_member.
+        $this->audience_repo_mock = Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceRepository' );
+        $this->audience_repo_mock->shouldReceive( 'get_all' )->andReturn( array() )->byDefault();
+        $this->audience_repo_mock->shouldReceive( 'get_user_audiences' )->andReturn( array() )->byDefault();
+        $this->audience_repo_mock->shouldReceive( 'add_member' )->andReturn( 1 )->byDefault();
+        $this->audience_repo_mock->shouldReceive( 'remove_member' )->andReturn( true )->byDefault();
+
         // Utils alias mock
         $this->utils_mock = Mockery::mock( 'alias:FreeFormCertificate\Core\Utils' );
         $this->utils_mock->shouldReceive( 'asset_suffix' )
@@ -104,7 +116,10 @@ class AdminUserCapabilitiesTest extends TestCase {
             echo $text;
         } );
         Functions\when( 'esc_attr' )->returnArg();
+        Functions\when( 'esc_attr__' )->returnArg();
         Functions\when( 'esc_html' )->returnArg();
+        Functions\when( 'esc_url' )->returnArg();
+        Functions\when( 'admin_url' )->returnArg();
         Functions\when( 'checked' )->alias( function ( $checked, $current = true, $echo = true ) {
             $result = $checked == $current ? ' checked=\'checked\'' : '';
             if ( $echo ) {
@@ -171,12 +186,20 @@ class AdminUserCapabilitiesTest extends TestCase {
                 array(),
                 FFC_VERSION
             );
+        Functions\expect( 'wp_enqueue_style' )
+            ->once()
+            ->with(
+                'ffc-user-permissions',
+                Mockery::pattern( '/ffc-user-permissions\.min\.css/' ),
+                array( 'ffc-common' ),
+                FFC_VERSION
+            );
         Functions\expect( 'wp_enqueue_script' )
             ->once()
             ->with(
                 'ffc-user-capabilities',
                 Mockery::pattern( '/ffc-user-capabilities\.min\.js/' ),
-                array( 'jquery' ),
+                array(),
                 FFC_VERSION,
                 true
             );
@@ -258,22 +281,78 @@ class AdminUserCapabilitiesTest extends TestCase {
         AdminUserCapabilities::render_capability_fields( $user );
         $output = ob_get_clean();
 
-        // Should contain the heading
+        // Heading + panel wrapper.
         $this->assertStringContainsString( 'FFC Permissions', $output );
+        $this->assertStringContainsString( 'ffc-cap-panel', $output );
 
-        // Should contain checkbox inputs for capabilities
+        // Checkbox inputs across the user-level groups…
         $this->assertStringContainsString( 'ffc_cap_ffc_view_own_certificates', $output );
         $this->assertStringContainsString( 'ffc_cap_ffc_download_own_certificates', $output );
         $this->assertStringContainsString( 'ffc_cap_ffc_book_appointments', $output );
         $this->assertStringContainsString( 'ffc_cap_ffc_view_self_scheduling', $output );
         $this->assertStringContainsString( 'ffc_cap_ffc_manage_reregistration', $output );
 
-        // Should contain the nonce field
-        $this->assertStringContainsString( 'ffc_capabilities_nonce', $output );
+        // …and the admin-level caps that the old flat form never rendered
+        // (proves the full 26-cap catalog is now shown, fixing the silent
+        // remove_cap() on save).
+        $this->assertStringContainsString( 'ffc_cap_ffc_manage_recruitment', $output );
+        $this->assertStringContainsString( 'ffc_cap_ffc_view_recruitment_pii', $output );
+        $this->assertStringContainsString( 'ffc_cap_ffc_manage_settings', $output );
 
-        // Should contain quick-action buttons
-        $this->assertStringContainsString( 'ffc-grant-all-caps', $output );
-        $this->assertStringContainsString( 'ffc-revoke-all-caps', $output );
+        // New affordances: slug chips, origin badges, search box, presets.
+        $this->assertStringContainsString( 'ffc-cap-slug', $output );
+        $this->assertStringContainsString( 'ffc-cap-origin', $output );
+        $this->assertStringContainsString( 'ffc-cap-search', $output );
+        $this->assertStringContainsString( 'data-ffc-preset="all"', $output );
+        $this->assertStringContainsString( 'data-ffc-preset="none"', $output );
+
+        // Read-only context summary (role + audiences).
+        $this->assertStringContainsString( 'ffc-cap-context', $output );
+        $this->assertStringContainsString( 'ffc_user', $output );
+        $this->assertStringContainsString( 'page=ffc-scheduling-audiences', $output );
+
+        // Nonce field.
+        $this->assertStringContainsString( 'ffc_capabilities_nonce', $output );
+    }
+
+    public function test_render_outputs_audience_membership_checklist(): void {
+        Functions\when( 'current_user_can' )->justReturn( true );
+        Functions\when( 'user_can' )->justReturn( false );
+
+        $this->audience_repo_mock->shouldReceive( 'get_all' )->andReturn(
+            array(
+                (object) array(
+                    'id'    => 3,
+                    'name'  => 'Teachers',
+                    'color' => '#ff0000',
+                ),
+                (object) array(
+                    'id'    => 7,
+                    'name'  => 'Staff',
+                    'color' => '',
+                ),
+            )
+        );
+        // The user is a member of audience 7 only.
+        $this->audience_repo_mock->shouldReceive( 'get_user_audiences' )->andReturn(
+            array( (object) array( 'id' => 7 ) )
+        );
+
+        $user        = new \WP_User( 5 );
+        $user->roles = array( 'ffc_user' );
+
+        ob_start();
+        AdminUserCapabilities::render_capability_fields( $user );
+        $output = ob_get_clean();
+
+        // Both active audiences render as checkboxes.
+        $this->assertStringContainsString( 'name="ffc_audience[]" value="3"', $output );
+        $this->assertStringContainsString( 'name="ffc_audience[]" value="7"', $output );
+        $this->assertStringContainsString( 'Teachers', $output );
+
+        // The current membership (7) is pre-checked; the non-membership (3) is not.
+        $this->assertMatchesRegularExpression( '/value="7"[^>]*checked/', $output );
+        $this->assertDoesNotMatchRegularExpression( '/value="3"[^>]*checked/', $output );
     }
 
     // ==================================================================
@@ -355,6 +434,80 @@ class AdminUserCapabilitiesTest extends TestCase {
         // All capabilities should have been removed
         $this->assertArrayNotHasKey( 'ffc_view_own_certificates', $user->caps );
         $this->assertArrayNotHasKey( 'ffc_book_appointments', $user->caps );
+    }
+
+    // ==================================================================
+    // save_capability_fields() — audience membership sync
+    // ==================================================================
+
+    public function test_save_adds_audience_membership(): void {
+        $_POST['ffc_capabilities_nonce'] = 'valid_nonce';
+        $_POST['ffc_audience']           = array( '3', '7' );
+
+        Functions\when( 'wp_verify_nonce' )->justReturn( 1 );
+        Functions\when( 'current_user_can' )->justReturn( true );
+
+        $this->audience_repo_mock->shouldReceive( 'get_all' )->andReturn(
+            array( (object) array( 'id' => 3 ), (object) array( 'id' => 7 ) )
+        );
+        // Already a member of 7 → only 3 should be added, nothing removed.
+        $this->audience_repo_mock->shouldReceive( 'get_user_audiences' )->andReturn(
+            array( (object) array( 'id' => 7 ) )
+        );
+        $this->audience_repo_mock->shouldReceive( 'add_member' )->once()->with( 3, 5 )->andReturn( 1 );
+        $this->audience_repo_mock->shouldReceive( 'remove_member' )->never();
+
+        $user = new \WP_User( 5 );
+        Functions\when( 'get_userdata' )->justReturn( $user );
+
+        AdminUserCapabilities::save_capability_fields( 5 );
+
+        unset( $_POST['ffc_audience'] );
+        $this->assertTrue( true );
+    }
+
+    public function test_save_removes_audience_membership_when_unchecked(): void {
+        $_POST['ffc_capabilities_nonce'] = 'valid_nonce';
+        // No ffc_audience key → every box unchecked → drop current memberships.
+
+        Functions\when( 'wp_verify_nonce' )->justReturn( 1 );
+        Functions\when( 'current_user_can' )->justReturn( true );
+
+        $this->audience_repo_mock->shouldReceive( 'get_all' )->andReturn(
+            array( (object) array( 'id' => 7 ) )
+        );
+        $this->audience_repo_mock->shouldReceive( 'get_user_audiences' )->andReturn(
+            array( (object) array( 'id' => 7 ) )
+        );
+        $this->audience_repo_mock->shouldReceive( 'remove_member' )->once()->with( 7, 5 )->andReturn( true );
+        $this->audience_repo_mock->shouldReceive( 'add_member' )->never();
+
+        $user = new \WP_User( 5 );
+        Functions\when( 'get_userdata' )->justReturn( $user );
+
+        AdminUserCapabilities::save_capability_fields( 5 );
+
+        $this->assertTrue( true );
+    }
+
+    public function test_save_does_not_touch_audiences_when_none_active(): void {
+        $_POST['ffc_capabilities_nonce'] = 'valid_nonce';
+
+        Functions\when( 'wp_verify_nonce' )->justReturn( 1 );
+        Functions\when( 'current_user_can' )->justReturn( true );
+
+        // No active audiences → the checklist never rendered → sync must be a
+        // no-op so an unrelated save can't wipe memberships.
+        $this->audience_repo_mock->shouldReceive( 'get_all' )->andReturn( array() );
+        $this->audience_repo_mock->shouldReceive( 'add_member' )->never();
+        $this->audience_repo_mock->shouldReceive( 'remove_member' )->never();
+
+        $user = new \WP_User( 5 );
+        Functions\when( 'get_userdata' )->justReturn( $user );
+
+        AdminUserCapabilities::save_capability_fields( 5 );
+
+        $this->assertTrue( true );
     }
 
     // ==================================================================

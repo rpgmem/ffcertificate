@@ -48,18 +48,25 @@ class AdminUserCapabilities {
 			return;
 		}
 		$s = \FreeFormCertificate\Core\Utils::asset_suffix();
-		// ffc-common.css carries the .ffc-toggle switch styles used by the
-		// capability fields (render_toggle); it isn't otherwise loaded here.
+		// ffc-common.css carries the .ffc-toggle switch styles reused by the
+		// capability rows; ffc-user-permissions.css adds the grouped-card
+		// layout, slug chips, origin badges and search/preset toolbar.
 		wp_enqueue_style(
 			'ffc-common',
 			FFC_PLUGIN_URL . "assets/css/ffc-common{$s}.css",
 			array(),
 			FFC_VERSION
 		);
+		wp_enqueue_style(
+			'ffc-user-permissions',
+			FFC_PLUGIN_URL . "assets/css/ffc-user-permissions{$s}.css",
+			array( 'ffc-common' ),
+			FFC_VERSION
+		);
 		wp_enqueue_script(
 			'ffc-user-capabilities',
 			FFC_PLUGIN_URL . "assets/js/ffc-user-capabilities{$s}.js",
-			array( 'jquery' ),
+			array(),
 			FFC_VERSION,
 			true
 		);
@@ -89,233 +96,293 @@ class AdminUserCapabilities {
 			return;
 		}
 
-		// Get current capabilities.
-		$capabilities = \FreeFormCertificate\UserDashboard\UserManager::get_user_ffc_capabilities( $user->ID );
-
 		// Add nonce.
 		wp_nonce_field( 'ffc_user_capabilities', 'ffc_capabilities_nonce' );
 
-		?>
-		<h2><?php esc_html_e( 'FFC Permissions', 'ffcertificate' ); ?></h2>
-		<p class="description">
-			<?php esc_html_e( 'Manage which FFC features this user can access. Capabilities are checked in addition to role permissions.', 'ffcertificate' ); ?>
-		</p>
+		echo '<h2>' . esc_html__( 'FFC Permissions', 'ffcertificate' ) . '</h2>';
+		echo '<p class="description">' . esc_html__( 'Manage which FFC features this user can access. These are granted per user, on top of the role permissions.', 'ffcertificate' ) . '</p>';
 
-		<table class="form-table" role="presentation">
-			<tbody>
-				<!-- Certificate Capabilities -->
-				<tr>
-					<th scope="row"><?php esc_html_e( 'Certificate Permissions', 'ffcertificate' ); ?></th>
-					<td>
-						<fieldset>
-							<legend class="screen-reader-text">
-								<span><?php esc_html_e( 'Certificate Permissions', 'ffcertificate' ); ?></span>
-							</legend>
+		echo '<div class="ffc-cap-panel">';
+		self::render_context_summary( $user );
+		self::render_toolbar();
+		self::render_groups( $user );
+		echo '</div>';
+	}
 
-							<?php
-							\FreeFormCertificate\Admin\AdminUI::render_toggle(
-								array(
-									'name'    => 'ffc_cap_ffc_view_own_certificates',
-									'id'      => 'ffc_cap_ffc_view_own_certificates',
-									'checked' => ! empty( $capabilities['ffc_view_own_certificates'] ),
-									'label'   => __( 'View own certificates', 'ffcertificate' ),
-								)
-							);
-							?>
-							<br>
+	/**
+	 * Read-only context: the user's role(s) and audience memberships.
+	 *
+	 * Neither is edited here by design — the role uses WordPress' native
+	 * selector on the same screen, and audience membership is managed on the
+	 * dedicated Audiences page. Surfacing them gives the admin the context to
+	 * read the per-cap origin badges ("Role" vs "User") correctly.
+	 *
+	 * @param \WP_User $user User being edited.
+	 * @return void
+	 */
+	private static function render_context_summary( \WP_User $user ): void {
+		echo '<div class="ffc-cap-context">';
 
-							<?php
-							\FreeFormCertificate\Admin\AdminUI::render_toggle(
-								array(
-									'name'    => 'ffc_cap_ffc_download_own_certificates',
-									'id'      => 'ffc_cap_ffc_download_own_certificates',
-									'checked' => ! empty( $capabilities['ffc_download_own_certificates'] ),
-									'label'   => __( 'Download own certificates', 'ffcertificate' ),
-								)
-							);
-							?>
-							<br>
+		// Roles.
+		echo '<div class="ffc-cap-context-item">';
+		echo '<span class="ffc-cap-context-label">' . esc_html__( 'Role', 'ffcertificate' ) . '</span>';
+		echo '<span class="ffc-cap-context-val">';
+		$role_labels = self::role_labels( $user );
+		if ( empty( $role_labels ) ) {
+			echo '<em>' . esc_html__( 'No role', 'ffcertificate' ) . '</em>';
+		} else {
+			foreach ( $role_labels as $role_label ) {
+				echo '<span class="ffc-cap-chip">' . esc_html( $role_label ) . '</span>';
+			}
+		}
+		echo '</span>';
+		echo '<span class="ffc-cap-context-hint">' . esc_html__( 'Edit the role in the standard WordPress selector on this page. Permissions inherited from the role are tagged "Role" below.', 'ffcertificate' ) . '</span>';
+		echo '</div>';
 
-							<?php
-							\FreeFormCertificate\Admin\AdminUI::render_toggle(
-								array(
-									'name'    => 'ffc_cap_ffc_view_certificate_history',
-									'id'      => 'ffc_cap_ffc_view_certificate_history',
-									'checked' => ! empty( $capabilities['ffc_view_certificate_history'] ),
-									'label'   => __( 'View certificate history', 'ffcertificate' ),
-								)
-							);
-							?>
+		// Audiences — editable membership checklist.
+		self::render_audience_membership( $user );
 
-							<p class="description">
-								<?php esc_html_e( 'Allow access to certificate-related features in the user dashboard.', 'ffcertificate' ); ?>
-							</p>
-						</fieldset>
-					</td>
-				</tr>
+		echo '</div>';
+	}
 
-				<!-- Appointment Capabilities -->
-				<tr>
-					<th scope="row"><?php esc_html_e( 'Appointment Permissions', 'ffcertificate' ); ?></th>
-					<td>
-						<fieldset>
-							<legend class="screen-reader-text">
-								<span><?php esc_html_e( 'Appointment Permissions', 'ffcertificate' ); ?></span>
-							</legend>
+	/**
+	 * Render the editable audience-membership checklist.
+	 *
+	 * Lists every *active* audience as a checkbox (pre-checked when the user
+	 * is a member). Submitting the profile form syncs membership via
+	 * {@see self::sync_audience_membership()}. Only active audiences are
+	 * shown, so a membership in an inactive audience is never touched here.
+	 *
+	 * @param \WP_User $user User being edited.
+	 * @return void
+	 */
+	private static function render_audience_membership( \WP_User $user ): void {
+		$all_active = self::active_audiences();
+		$member_ids = self::user_audience_ids( $user->ID );
 
-							<?php
-							\FreeFormCertificate\Admin\AdminUI::render_toggle(
-								array(
-									'name'    => 'ffc_cap_ffc_book_appointments',
-									'id'      => 'ffc_cap_ffc_book_appointments',
-									'checked' => ! empty( $capabilities['ffc_book_appointments'] ),
-									'label'   => __( 'Book appointments', 'ffcertificate' ),
-								)
-							);
-							?>
-							<br>
+		echo '<div class="ffc-cap-context-item ffc-cap-audiences">';
+		echo '<span class="ffc-cap-context-label">' . esc_html__( 'Audiences', 'ffcertificate' ) . '</span>';
 
-							<?php
-							\FreeFormCertificate\Admin\AdminUI::render_toggle(
-								array(
-									'name'    => 'ffc_cap_ffc_view_self_scheduling',
-									'id'      => 'ffc_cap_ffc_view_self_scheduling',
-									'checked' => ! empty( $capabilities['ffc_view_self_scheduling'] ),
-									'label'   => __( 'View own appointments', 'ffcertificate' ),
-								)
-							);
-							?>
-							<br>
+		if ( empty( $all_active ) ) {
+			echo '<span class="ffc-cap-context-val"><em>' . esc_html__( 'No audiences defined yet.', 'ffcertificate' ) . '</em></span>';
+		} else {
+			echo '<div class="ffc-cap-audience-list" role="group" aria-label="' . esc_attr__( 'Audience membership', 'ffcertificate' ) . '">';
+			foreach ( $all_active as $audience ) {
+				$aid     = (int) $audience->id;
+				$name    = (string) $audience->name;
+				$color   = isset( $audience->color ) ? (string) $audience->color : '';
+				$checked = in_array( $aid, $member_ids, true );
 
-							<?php
-							\FreeFormCertificate\Admin\AdminUI::render_toggle(
-								array(
-									'name'    => 'ffc_cap_ffc_cancel_own_appointments',
-									'id'      => 'ffc_cap_ffc_cancel_own_appointments',
-									'checked' => ! empty( $capabilities['ffc_cancel_own_appointments'] ),
-									'label'   => __( 'Cancel own appointments', 'ffcertificate' ),
-								)
-							);
-							?>
-							<br>
+				echo '<label class="ffc-cap-aud">';
+				echo '<input type="checkbox" name="ffc_audience[]" value="' . esc_attr( (string) $aid ) . '"' . ( $checked ? ' checked' : '' ) . '>';
+				if ( '' !== $color ) {
+					echo '<span class="ffc-cap-aud-dot" style="--ffc-cap-chip-color:' . esc_attr( $color ) . '"></span>';
+				}
+				echo '<span class="ffc-cap-aud-name">' . esc_html( $name ) . '</span>';
+				echo '</label>';
+			}
+			echo '</div>';
+		}
 
-							<?php
-							\FreeFormCertificate\Admin\AdminUI::render_toggle(
-								array(
-									'name'    => 'ffc_cap_ffc_scheduling_bypass',
-									'id'      => 'ffc_cap_ffc_scheduling_bypass',
-									'checked' => ! empty( $capabilities['ffc_scheduling_bypass'] ),
-									'label'   => __( 'Scheduling bypass (admin-level access)', 'ffcertificate' ),
-								)
-							);
-							?>
-							<span class="description"><?php esc_html_e( 'Allows viewing private calendars, booking past dates, out-of-hours, and blocked dates.', 'ffcertificate' ); ?></span>
+		printf(
+			'<a class="ffc-cap-context-hint" href="%1$s">%2$s</a>',
+			esc_url( admin_url( 'admin.php?page=ffc-scheduling-audiences' ) ),
+			esc_html__( 'Open the Audiences screen →', 'ffcertificate' )
+		);
+		echo '</div>';
+	}
 
-							<p class="description">
-								<?php esc_html_e( 'Allow access to appointment-related features. Calendar-specific settings also apply.', 'ffcertificate' ); ?>
-							</p>
-						</fieldset>
-					</td>
-				</tr>
+	/**
+	 * Search box + grant/revoke-all preset buttons.
+	 *
+	 * @return void
+	 */
+	private static function render_toolbar(): void {
+		echo '<div class="ffc-cap-toolbar">';
+		printf(
+			'<input type="search" class="ffc-cap-search" placeholder="%1$s" aria-label="%2$s">',
+			esc_attr__( 'Search permission or slug…', 'ffcertificate' ),
+			esc_attr__( 'Search permissions', 'ffcertificate' )
+		);
+		echo '<span class="ffc-cap-presets">';
+		printf( '<button type="button" class="button" data-ffc-preset="all">%s</button>', esc_html__( 'Grant all', 'ffcertificate' ) );
+		printf( '<button type="button" class="button" data-ffc-preset="none">%s</button>', esc_html__( 'Revoke all', 'ffcertificate' ) );
+		echo '</span>';
+		echo '</div>';
+	}
 
-				<!-- Audience Capabilities -->
-				<tr>
-					<th scope="row"><?php esc_html_e( 'Audience Permissions', 'ffcertificate' ); ?></th>
-					<td>
-						<fieldset>
-							<legend class="screen-reader-text">
-								<span><?php esc_html_e( 'Audience Permissions', 'ffcertificate' ); ?></span>
-							</legend>
+	/**
+	 * Render every capability group as a collapsible card.
+	 *
+	 * @param \WP_User $user User being edited.
+	 * @return void
+	 */
+	private static function render_groups( \WP_User $user ): void {
+		$user_caps = $user->caps;
 
-							<?php
-							\FreeFormCertificate\Admin\AdminUI::render_toggle(
-								array(
-									'name'    => 'ffc_cap_ffc_view_audience_bookings',
-									'id'      => 'ffc_cap_ffc_view_audience_bookings',
-									'checked' => ! empty( $capabilities['ffc_view_audience_bookings'] ),
-									'label'   => __( 'View audience bookings', 'ffcertificate' ),
-								)
-							);
-							?>
-							<span class="description"><?php esc_html_e( 'Allows viewing group/audience bookings in the dashboard.', 'ffcertificate' ); ?></span>
+		foreach ( \FreeFormCertificate\UserDashboard\CapabilityCatalog::groups() as $group ) {
+			$is_admin = 'admin' === $group['level'];
+			$total    = count( $group['caps'] );
 
-							<p class="description">
-								<?php esc_html_e( 'Allow access to audience/group scheduling features.', 'ffcertificate' ); ?>
-							</p>
-						</fieldset>
-					</td>
-				</tr>
+			// Build the rows first so the header can show a live granted count.
+			$rows    = '';
+			$granted = 0;
+			foreach ( $group['caps'] as $slug => $meta ) {
+				$granted_user = ! empty( $user_caps[ $slug ] );
+				if ( $granted_user ) {
+					++$granted;
+				}
+				$effective = user_can( $user->ID, $slug );
+				$origin    = $granted_user ? 'user' : ( $effective ? 'role' : 'none' );
+				$rows     .= self::render_cap_row( (string) $slug, $meta, (string) $group['key'], $granted_user, $origin );
+			}
 
-				<!-- Admin-level Capabilities -->
-				<tr>
-					<th scope="row"><?php esc_html_e( 'Admin Permissions', 'ffcertificate' ); ?></th>
-					<td>
-						<fieldset>
-							<legend class="screen-reader-text">
-								<span><?php esc_html_e( 'Admin Permissions', 'ffcertificate' ); ?></span>
-							</legend>
+			printf(
+				'<section class="ffc-cap-group%1$s" data-ffc-group="%2$s">',
+				$is_admin ? ' is-collapsed' : '',
+				esc_attr( (string) $group['key'] )
+			);
 
-							<?php
-							\FreeFormCertificate\Admin\AdminUI::render_toggle(
-								array(
-									'name'    => 'ffc_cap_ffc_manage_reregistration',
-									'id'      => 'ffc_cap_ffc_manage_reregistration',
-									'checked' => ! empty( $capabilities['ffc_manage_reregistration'] ),
-									'label'   => __( 'Manage reregistration campaigns', 'ffcertificate' ),
-								)
-							);
-							?>
-							<span class="description"><?php esc_html_e( 'Access the Reregistration admin page.', 'ffcertificate' ); ?></span>
-						</fieldset>
-					</td>
-				</tr>
+			// Header.
+			echo '<button type="button" class="ffc-cap-group-h" aria-expanded="' . ( $is_admin ? 'false' : 'true' ) . '">';
+			echo '<span class="ffc-cap-caret" aria-hidden="true"></span>';
+			echo '<span class="ffc-cap-gtitle">' . esc_html( (string) $group['label'] ) . '</span>';
+			if ( $is_admin ) {
+				echo '<span class="ffc-cap-badge-admin">' . esc_html__( 'admin', 'ffcertificate' ) . '</span>';
+			}
+			echo '<span class="ffc-cap-gmeta"><span class="ffc-cap-count">' . (int) $granted . '</span>/' . (int) $total . '</span>';
+			echo '</button>';
 
-				<!-- Submission editing -->
-				<tr>
-					<th scope="row"><?php esc_html_e( 'Submission editing', 'ffcertificate' ); ?></th>
-					<td>
-						<fieldset>
-							<legend class="screen-reader-text">
-								<span><?php esc_html_e( 'Submission editing', 'ffcertificate' ); ?></span>
-							</legend>
+			// Body.
+			echo '<div class="ffc-cap-group-body">';
+			echo $rows; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- render_cap_row() returns markup whose dynamic parts are individually escaped.
+			echo '</div>';
 
-							<?php
-							\FreeFormCertificate\Admin\AdminUI::render_toggle(
-								array(
-									'name'    => 'ffc_cap_ffc_certificate_update',
-									'id'      => 'ffc_cap_ffc_certificate_update',
-									'checked' => ! empty( $capabilities['ffc_certificate_update'] ),
-									'label'   => __( 'Edit submission data on issued certificates', 'ffcertificate' ),
-								)
-							);
-							?>
-							<span class="description"><?php esc_html_e( '(Lets the user fix typos / corrections on already-emitted certificates without holding manage_options.)', 'ffcertificate' ); ?></span>
-						</fieldset>
-					</td>
-				</tr>
+			echo '</section>';
+		}
+	}
 
-				<!-- Quick Actions -->
-				<tr>
-					<th scope="row"><?php esc_html_e( 'Quick Actions', 'ffcertificate' ); ?></th>
-					<td>
-						<button type="button" class="button" id="ffc-grant-all-caps">
-							<?php esc_html_e( 'Grant All', 'ffcertificate' ); ?>
-						</button>
-						<button type="button" class="button" id="ffc-revoke-all-caps">
-							<?php esc_html_e( 'Revoke All', 'ffcertificate' ); ?>
-						</button>
-						<button type="button" class="button" id="ffc-grant-certificates">
-							<?php esc_html_e( 'Grant Certificates Only', 'ffcertificate' ); ?>
-						</button>
-						<button type="button" class="button" id="ffc-grant-appointments">
-							<?php esc_html_e( 'Grant Appointments Only', 'ffcertificate' ); ?>
-						</button>
-						<!-- Scripts in ffc-user-capabilities.js -->
-					</td>
-				</tr>
-			</tbody>
-		</table>
-		<?php
+	/**
+	 * Render a single capability row: switch + label + description +
+	 * copyable slug chip + origin badge.
+	 *
+	 * @param string                $slug         Capability slug.
+	 * @param array<string, string> $meta         Catalog metadata (`label`, `description`).
+	 * @param string                $group_key    Owning group key (for JS preset/filter hooks).
+	 * @param bool                  $checked      Whether a user-level grant exists.
+	 * @param string                $origin       `user` | `role` | `none`.
+	 * @return string Markup with every dynamic part escaped.
+	 */
+	private static function render_cap_row( string $slug, array $meta, string $group_key, bool $checked, string $origin ): string {
+		$label = isset( $meta['label'] ) ? (string) $meta['label'] : $slug;
+		$desc  = isset( $meta['description'] ) ? (string) $meta['description'] : '';
+
+		$toggle = \FreeFormCertificate\Admin\AdminUI::get_toggle(
+			array(
+				'name'        => 'ffc_cap_' . $slug,
+				'id'          => 'ffc_cap_' . $slug,
+				'checked'     => $checked,
+				'label'       => '',
+				'input_class' => 'ffc-cap-checkbox',
+				'data'        => array( 'ffc-cap-group' => $group_key ),
+			)
+		);
+
+		return sprintf(
+			'<div class="ffc-cap-row" data-ffc-cap-name="%1$s" data-ffc-cap-slug="%2$s">'
+				. '<div class="ffc-cap-row-toggle">%3$s</div>'
+				. '<div class="ffc-cap-row-text">'
+				. '<span class="ffc-cap-row-name">%4$s</span>'
+				. '<span class="ffc-cap-row-desc">%5$s</span>'
+				. '<span class="ffc-cap-slug">%2$s<button type="button" class="ffc-cap-copy" data-ffc-copy="%2$s" aria-label="%6$s" title="%6$s">⧉</button></span>'
+				. '</div>'
+				. '<span class="ffc-cap-origin ffc-cap-origin--%7$s">%8$s</span>'
+				. '</div>',
+			esc_attr( strtolower( $label . ' ' . $slug ) ),
+			esc_attr( $slug ),
+			$toggle, // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- AdminUI::get_toggle() returns pre-escaped markup.
+			esc_html( $label ),
+			esc_html( $desc ),
+			esc_attr__( 'Copy slug', 'ffcertificate' ),
+			esc_attr( $origin ),
+			esc_html( self::origin_label( $origin ) )
+		);
+	}
+
+	/**
+	 * Human label for an origin badge.
+	 *
+	 * @param string $origin `user` | `role` | `none`.
+	 * @return string
+	 */
+	private static function origin_label( string $origin ): string {
+		switch ( $origin ) {
+			case 'user':
+				return __( 'User', 'ffcertificate' );
+			case 'role':
+				return __( 'Role', 'ffcertificate' );
+			default:
+				return __( '—', 'ffcertificate' );
+		}
+	}
+
+	/**
+	 * Display labels for the user's role(s), falling back to the raw slug
+	 * when the role catalog is unavailable (e.g. in unit tests).
+	 *
+	 * @param \WP_User $user User being edited.
+	 * @return list<string>
+	 */
+	private static function role_labels( \WP_User $user ): array {
+		$roles = $user->roles;
+		if ( function_exists( 'wp_roles' ) ) {
+			$names = wp_roles()->get_names();
+			return array_values(
+				array_map(
+					static function ( $slug ) use ( $names ) {
+						return isset( $names[ $slug ] ) ? (string) $names[ $slug ] : (string) $slug;
+					},
+					$roles
+				)
+			);
+		}
+		return array_values( array_map( 'strval', $roles ) );
+	}
+
+	/**
+	 * All active audiences, name-ordered, for the membership checklist.
+	 *
+	 * @return list<\stdClass>
+	 */
+	private static function active_audiences(): array {
+		if ( class_exists( '\FreeFormCertificate\Audience\AudienceRepository' ) ) {
+			return \FreeFormCertificate\Audience\AudienceRepository::get_all(
+				array(
+					'status'  => 'active',
+					'orderby' => 'name',
+					'order'   => 'ASC',
+				)
+			);
+		}
+		return array();
+	}
+
+	/**
+	 * IDs of the active audiences the user currently belongs to.
+	 *
+	 * @param int $user_id User ID.
+	 * @return array<int>
+	 */
+	private static function user_audience_ids( int $user_id ): array {
+		if ( ! class_exists( '\FreeFormCertificate\Audience\AudienceRepository' ) ) {
+			return array();
+		}
+		return array_map(
+			static function ( $audience ) {
+				return (int) $audience->id;
+			},
+			\FreeFormCertificate\Audience\AudienceRepository::get_user_audiences( $user_id )
+		);
 	}
 
 	/**
@@ -335,8 +402,11 @@ class AdminUserCapabilities {
 			return;
 		}
 
-		// Use centralized capability list from UserManager.
-		$all_capabilities = \FreeFormCertificate\UserDashboard\UserManager::get_all_capabilities();
+		// Iterate exactly the capabilities the form rendered (the catalog),
+		// so a cap that has no checkbox is never silently stripped on save.
+		// The catalog is asserted to equal UserManager::get_all_capabilities()
+		// by CapabilityCatalogTest, so this stays in lockstep with the registry.
+		$all_capabilities = \FreeFormCertificate\UserDashboard\CapabilityCatalog::all_slugs();
 
 		// Get user.
 		$user = get_userdata( $user_id );
@@ -359,6 +429,19 @@ class AdminUserCapabilities {
 			}
 		}
 
+		// Audience membership — gathered here (inside the nonce-verified
+		// scope) and synced below. Absent key = every box unchecked = remove
+		// all (active) memberships; sync_audience_membership() guards the
+		// "no audiences rendered" case so it can't wipe on an unrelated save.
+		$submitted_audiences = array();
+		if ( isset( $_POST['ffc_audience'] ) ) {
+			$raw_audiences = wp_unslash( $_POST['ffc_audience'] ); // phpcs:ignore WordPress.Security.ValidatedSanitized.InputNotSanitized -- cast to int below.
+			if ( is_array( $raw_audiences ) ) {
+				$submitted_audiences = array_map( 'intval', $raw_audiences );
+			}
+		}
+		self::sync_audience_membership( $user_id, $submitted_audiences );
+
 		// Log the change.
 		if ( class_exists( '\FreeFormCertificate\Core\Debug' ) ) {
 			\FreeFormCertificate\Core\Debug::log_user_manager(
@@ -367,6 +450,67 @@ class AdminUserCapabilities {
 					'user_id'      => $user_id,
 					'admin_id'     => get_current_user_id(),
 					'capabilities' => \FreeFormCertificate\UserDashboard\UserManager::get_user_ffc_capabilities( $user_id ),
+				)
+			);
+		}
+	}
+
+	/**
+	 * Sync a user's audience memberships against the submitted checklist.
+	 *
+	 * Diffs the submitted (active, whitelisted) audience IDs against the
+	 * user's current active memberships and applies the minimal set of
+	 * add/remove operations. Only active audiences participate, so a
+	 * membership in an inactive audience — never shown in the checklist —
+	 * is preserved.
+	 *
+	 * Safety: if there are no active audiences (the checklist wouldn't have
+	 * rendered), this returns without removing anything, so it can't wipe
+	 * memberships when the audience section wasn't part of the form.
+	 *
+	 * @param int        $user_id            User being edited.
+	 * @param array<int> $submitted_audiences Raw submitted audience IDs.
+	 * @return void
+	 */
+	private static function sync_audience_membership( int $user_id, array $submitted_audiences ): void {
+		if ( ! class_exists( '\FreeFormCertificate\Audience\AudienceRepository' ) ) {
+			return;
+		}
+
+		$active = self::active_audiences();
+		if ( empty( $active ) ) {
+			return;
+		}
+
+		$valid_ids = array_map(
+			static function ( $audience ) {
+				return (int) $audience->id;
+			},
+			$active
+		);
+
+		// Whitelist the submission against the real active set.
+		$submitted = array_values( array_intersect( $submitted_audiences, $valid_ids ) );
+		$current   = self::user_audience_ids( $user_id );
+
+		$to_add    = array_diff( $submitted, $current );
+		$to_remove = array_diff( $current, $submitted );
+
+		foreach ( $to_add as $audience_id ) {
+			\FreeFormCertificate\Audience\AudienceRepository::add_member( (int) $audience_id, $user_id );
+		}
+		foreach ( $to_remove as $audience_id ) {
+			\FreeFormCertificate\Audience\AudienceRepository::remove_member( (int) $audience_id, $user_id );
+		}
+
+		if ( ( ! empty( $to_add ) || ! empty( $to_remove ) ) && class_exists( '\FreeFormCertificate\Core\Debug' ) ) {
+			\FreeFormCertificate\Core\Debug::log_user_manager(
+				'Admin updated user audience membership',
+				array(
+					'user_id'  => $user_id,
+					'admin_id' => get_current_user_id(),
+					'added'    => array_values( $to_add ),
+					'removed'  => array_values( $to_remove ),
 				)
 			);
 		}
