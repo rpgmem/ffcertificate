@@ -217,19 +217,27 @@ Entrega incremental: 1 arquivo/sprint, cada um com sua bateria de gates verde an
 
 ---
 
-## Item 4 — Arquivos fragmentados que deveriam ser consolidados  ⬜
+## Item 4 — Arquivos fragmentados que deveriam ser consolidados  ✅ (avaliado + cleanup — sprint 17)
 
-A maioria da fragmentação JS é **justificada por enqueue condicional**. Candidatos reais:
+A maioria da fragmentação JS é **justificada por enqueue condicional**. Avaliação dos candidatos:
 
-- **CSS:** `assets/css/ffc-calendar-admin.css` (46 linhas, só ajustes de list-table) → fundir em calendar core/frontend.
-- **JS:** `assets/js/ffc-calendar-admin.js` (28 linhas) → fundir em `assets/js/ffc-calendar-core.js`.
-- **Opcional/baixa prioridade:** `ffc-recruitment-admin.css` + `ffc-recruitment-public.css` (contextos disjuntos).
+- **`assets/js/ffc-calendar-admin.js` (28 linhas) → ❌ não fundir; REMOVIDO.** Investigado: era um **stub vazio**
+  (`bindEvents()` no-op desde 4.1.0). O objeto localizado `ffcSelfSchedulingAdmin` (ajaxurl/nonce/strings) **não
+  era lido por nenhum JS** e o nonce `ffc_self_scheduling_admin_nonce` **nunca era verificado** server-side; as deps
+  `jquery-ui-sortable/datepicker` + `jquery-ui-theme` não tinham widget (nenhuma view usa). Fundir um stub vazio no
+  `calendar-core.js` (que carrega também no **frontend**) só espalharia código morto e mexeria num arquivo testado.
+  Ação correta = **remover** o JS + enqueue + localize + nonce + jquery-ui-theme + o teste smoke + a entrada de
+  coverage-exclude. (sprint 17)
+- **`assets/css/ffc-calendar-admin.css` (46 linhas) → ✅ MANTER.** São os badges de status (`.ffc-status-*`) usados
+  na tela admin de appointments; é o único CSS admin daquela tela — **sem alvo de fusão válido** (fundir em CSS
+  frontend carregaria estilos admin no frontend). Continua enfileirado (só ele).
+- **`ffc-recruitment-admin.css` + `ffc-recruitment-public.css` → ✅ MANTER separados** (contextos disjuntos
+  admin vs público — a própria separação é o correto).
 
 **Manter separados:** dashboard (8 arquivos), audience (frontend/admin), geofence (frontend/admin/validation) —
 a divisão acompanha o carregamento por página.
 
-### Plano
-_A preencher. Verificar enqueue/handles antes de fundir; cache-bust/versão na release PR._
+**Conclusão:** Item 4 não tinha fusão segura/valiosa; o único ganho real foi remover o stub morto `calendar-admin.js`.
 
 ---
 
@@ -344,3 +352,4 @@ completa (não a lista filtrada). Cobrir com teste (filtrado vs. não-filtrado).
 | 14 | 3 | fragmentar `rate-limit-checker` (1226→1026): 7 helpers de persistência → `RateLimitRepository` (facade, API pública intacta, 13 call-sites repontados); PHPUnit 4885 ✓ + PHPStan 8 ✓ + WPCS ✓ | sprint 14 |
 | 15 | 3 | fragmentar `recruitment-admin-page` (1128→1029): `dispatch_action` (state-transitions) → `RecruitmentAdminActions` **test-first** (+7 testes); render_* ficam (WP_List_Table-coupled, justificado); PHPStan 8 + WPCS + PHPUnit ✓ | sprint 15 |
 | 16 | 3 | fragmentar `audience-loader` (1131→408): ~13 handlers `ajax_*` + 2 helpers → `AudienceAjaxController` (facade via `register()`) **test-first** (3 helper tests movidos + registro + 2 caracterizações); PHPStan 8 + WPCS + PHPUnit ✓. **Item 3 concluído.** | sprint 16 |
+| 17 | 4 | avaliar consolidações: remover stub morto `ffc-calendar-admin.js` (+ enqueue/localize/nonce/jquery-ui-theme + teste + coverage-exclude); CSS de badges e split recruitment mantidos (escopo correto). Vitest 1045 ✓ + PHPUnit + PHPStan + WPCS ✓. **Item 4 concluído.** | sprint 17 |
