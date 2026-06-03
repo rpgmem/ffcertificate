@@ -438,7 +438,15 @@ aponta para o dashboard com params mortos (`action=cancel&appointment_id`) e exi
 - Segurança: token de uso único? rate-limit? expiração? (o `confirmation_token` já existe por agendamento).
 - Atualizar `get_cancellation_url` (remover params mortos, adicionar token) + teste do fluxo nopriv.
 
-**Status.** Não iniciado — feature à parte, fora desta PR de auditoria.
+**Status.** ✅ **Implementado — sprint 26.**
+
+**O que foi feito (s26):**
+- **`AppointmentCancellationHandler`** (novo, espelha `AppointmentReceiptHandler`): query var público `ffc_cancel_appointment` + `token`, interceptado em `template_redirect`; página autossuficiente (sem tema, com `assets/css/ffc-appointment-cancellation.css`). GET → confirma (resumo do agendamento + textarea de motivo + nonce); POST (nonce ok) → chama `AppointmentHandler::cancel_appointment($id,$token,$reason)` que **re-valida o token** e todas as regras de calendário.
+- **Segurança:** comparação de token via `hash_equals` (`token_matches`), mensagem genérica p/ link inválido OU appointment inexistente (não vaza ids), nonce no POST (CSRF), `noindex,nofollow`. Token é a credencial primária (re-checada no backend).
+- **`get_cancellation_url`** (email handler) agora gera a URL por token via o novo handler (fallback p/ aba do dashboard em linhas legadas sem token). Removidos os params mortos `action=cancel&appointment_id`.
+- **Decisão de branch isolada** em `classify_request()` (pura, testável: invalid_link / invalid_token / already_cancelled / process / confirm) já que os métodos de render terminam em `exit()`.
+- Registrado no loader. **Bug pego em teste:** `add_query_arg` já url-encoda valores → removido `rawurlencode` que duplicava a codificação (igual ao receipt handler).
+- **Testes:** +16 PHPUnit (URL c/ e sem token, query vars, `token_matches` ×4, `classify_request` ×6, `confirm_submitted` nonce ×3, no-op sem query var). Self-scheduling/email/loader/receipt suites (191) ✓; PHPStan 8 + WPCS + Stylelint ✓.
 
 ---
 
@@ -516,7 +524,7 @@ aponta para o dashboard com params mortos (`action=cancel&appointment_id`) e exi
 6. **Item 6 — Dívida técnica** (avaliar atuar no único item acionável ou adiar).
 7. **Item 7 — Bug da justificativa fora de ordem com lista filtrada** (bug funcional, fora do escopo de refactor).
 8. **Item 8 — Feature: retroceder status final de candidato** (avaliar em conjunto antes de implementar).
-9. **Item 9 — Feature: cancelamento de agendamento por token** (decidido no Item 6; implementar depois).
+9. **Item 9 — Feature: cancelamento de agendamento por token** ✅ implementado na s26 (`AppointmentCancellationHandler`, página pública por token).
 10. **Item 10 — Extrair JS inline do recruitment para arquivos .js** (dívida registrada; extrair depois, test-first).
 11. **Item 11 — Bug: schedule exception não é single-use** ✅ corrigido (A+B) na s24 — ledger de jti atômico + banner ciente do consumo.
 
@@ -551,3 +559,4 @@ aponta para o dashboard com params mortos (`action=cancel&appointment_id`) e exi
 | 24 | 11 | corrigir single-use da exceção de horário (A+B): ledger de `jti` consumido (`INSERT IGNORE` atômico em `options`, sweep diário) em `ScheduleExceptionSession`; `FormProcessor` reivindica no ponto de sucesso (`maybe_persist_schedule_exception`) + pré-check `live_exception_payload`; `Shortcodes::render` suprime banner quando jti consumido; +13 testes PHPUnit; suíte 4913 + PHPStan 8 + WPCS ✓ | sprint 24 |
 | 24b | 10 | hotfix WPCS: o refactor da s24 juntou `$token_form` ao grupo de atribuições de `$schedule_exception_payload` → warning de alinhamento (cs2pr falha em warnings); phpcbf realinhou | sprint 24b |
 | 25 | 10 | extrair os 7 blocos inline de `notice-edit-page-renderer.php` (~373 linhas) → `ffc-recruitment-notice-edit.js` (1 IIFE; globais via inline onclick/onsubmit; 2 métodos só-script removidos; config única `ffcRecruitmentNoticeEdit` localizada no assets-manager: restRoot+nonce+reasonRequired+strings+importStrings; noticeId via `data-notice-id`, empties via `data-ffc-empties`; controles via `form.elements.namedItem()`). **Item 10 fechado (6/6).** +29 testes Vitest (tab-switch, import prelim/def, snapshot, attach/detach, bulk-call OOO, cls-act, preview-status, resoluções 2xx/erro); floor 82 mantido (notice-edit 90.78%); ESLint + Vitest + `php -l` + PHPStan 8 + WPCS + PHPUnit ✓ | sprint 25 |
+| 26 | 9 | **feature: cancelamento de agendamento por token** — `AppointmentCancellationHandler` (query var público + `template_redirect`, página autossuficiente + CSS), `get_cancellation_url` por token (re-valida via `cancel_appointment`/`hash_equals`), branch puro `classify_request`, fix de double-encode do `add_query_arg`; +16 testes PHPUnit; PHPStan 8 + WPCS + Stylelint + suites self-scheduling/email/loader (191) ✓ | sprint 26 |
