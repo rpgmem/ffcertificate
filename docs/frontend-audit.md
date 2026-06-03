@@ -279,7 +279,7 @@ nonce; URLs com `encodeURIComponent`.
 
 ---
 
-## Item 6 — Dívida técnica espalhada / não tratada  ⬜
+## Item 6 — Dívida técnica espalhada / não tratada  ⏸️ (avaliado s18; única ação acionável adiada como feature (B))
 
 8 marcadores reais (`for now`), **todos intencionais e com roadmap** — nenhum é bug:
 - **Acionável (baixa prioridade):** `includes/self-scheduling/class-ffc-self-scheduling-appointment-email-handler.php:446`
@@ -290,8 +290,36 @@ nonce; URLs com `encodeURIComponent`.
 Não há `TODO/FIXME/HACK/XXX` pendentes. "Temporary"/"XXX" achados são nomes de métodos legítimos
 (`block_temporarily`) ou placeholders em exemplos.
 
-### Plano
-_A preencher (ou marcar ⏸️ se decidirmos não atuar agora)._
+### Plano / Avaliação (sprint 18)
+
+**Investigado o único acionável (`get_cancellation_url`).** Fluxo real de cancelamento existe e funciona:
+AJAX `ffc_cancel_appointment` (nonce `ffc_self_scheduling_nonce`) → `cancel_appointment($id, $token, $reason)`
+que autoriza por **admin**, **dono logado** (`ffc_cancel_own_appointments`), OU **token** (`hash_equals` contra
+`confirmation_token` — permite cancelar **sem login**). Há `wp_ajax_nopriv_ffc_cancel_appointment`.
+
+**O problema:** `get_cancellation_url()` gera URL do dashboard `?tab=appointments&action=cancel&appointment_id=X`
+**sem token nem nonce**, e o JS do dashboard (`ffc-user-dashboard-appointments.js`) **não lê** `action`/`appointment_id`
+— cancela só via botão. Logo: o link do e-mail leva o usuário logado à aba (onde ele acha o agendamento e clica
+Cancelar manualmente), mas os params `action=cancel&appointment_id` são **mortos**; convidado não-logado não tem
+caminho fácil. O comentário "placeholder… implement later" está desatualizado.
+
+**Opções (escopos diferentes):**
+- **(A) Dashboard consome o deep-link** — o painel de appointments, ao carregar com `action=cancel&appointment_id`,
+  abre o confirm de cancelamento daquele agendamento (reusa o fluxo botão/AJAX existente). Resolve os params mortos;
+  só ajuda **usuário logado**. JS + teste; baixo risco (confirm-gated, nonce-gated, aditivo).
+- **(B) Cancelamento por token sem login** — `get_cancellation_url` passa o `confirmation_token`; nova
+  página/endpoint público processa o token (a "página dedicada" do comentário). É **feature nova** (fora do tema
+  refactor da auditoria), maior superfície.
+- **(C) Cleanup mínimo** — remover os params mortos (link → aba de appointments) + corrigir o comentário. Zero
+  risco, sem ganho de UX.
+
+**Recomendação:** (A) é o melhor custo/benefício dentro do escopo (transforma params mortos em fluxo útil para o
+caso comum); (B) é feature à parte; (C) é o mínimo honesto.
+
+**Decisão (mantenedor): (B)** — implementar a **página/endpoint de cancelamento por token** (link do e-mail carrega
+o `confirmation_token`; processa sem login via `hash_equals`) como **feature separada, depois** (não nesta PR de
+auditoria). Item 6 fica **⏸️** com a análise acima registrada; os outros 7 marcadores `for now` seguem
+intencionais/documentados (sem ação). Ver "Item 9" abaixo para o acompanhamento da feature.
 
 ---
 
@@ -350,6 +378,27 @@ permitidas + efeitos colaterais, e cobrir com testes da state machine._
 
 ---
 
+## Item 9 — Feature: página/endpoint de cancelamento de agendamento por token  ⬜ (decidido no Item 6; implementar depois)
+
+**Origem.** Resolução escolhida (B) para a dívida do Item 6 (`get_cancellation_url`). Hoje o link de cancelamento
+nos e-mails de agendamento (`class-ffc-self-scheduling-appointment-email-handler.php` → `get_cancellation_url`)
+aponta para o dashboard com params mortos (`action=cancel&appointment_id`) e exige login.
+
+**Objetivo.** Permitir cancelar **sem login** via link do e-mail: `get_cancellation_url()` passa o
+`confirmation_token` do agendamento; uma página/endpoint público valida-o (o backend já suporta —
+`cancel_appointment($id, $token, $reason)` faz `hash_equals` contra `confirmation_token`, e há
+`wp_ajax_nopriv_ffc_cancel_appointment`) e executa o cancelamento com confirmação.
+
+**A definir na implementação:**
+- Forma do destino: página dedicada (shortcode/template) vs. endpoint que renderiza um confirm + processa.
+- UX de confirmação + motivo opcional (`reason`); mensagens de sucesso/erro (já cancelado, token inválido, cancelamento desabilitado no calendário).
+- Segurança: token de uso único? rate-limit? expiração? (o `confirmation_token` já existe por agendamento).
+- Atualizar `get_cancellation_url` (remover params mortos, adicionar token) + teste do fluxo nopriv.
+
+**Status.** Não iniciado — feature à parte, fora desta PR de auditoria.
+
+---
+
 ## Ordem de execução sugerida
 
 1. **Item 5 — Segurança** (rápido, alto valor, baixo risco): escapar outputs do dashboard + `rel=noopener`.
@@ -360,6 +409,7 @@ permitidas + efeitos colaterais, e cobrir com testes da state machine._
 6. **Item 6 — Dívida técnica** (avaliar atuar no único item acionável ou adiar).
 7. **Item 7 — Bug da justificativa fora de ordem com lista filtrada** (bug funcional, fora do escopo de refactor).
 8. **Item 8 — Feature: retroceder status final de candidato** (avaliar em conjunto antes de implementar).
+9. **Item 9 — Feature: cancelamento de agendamento por token** (decidido no Item 6; implementar depois).
 
 ## Log de sprints (commits desta PR)
 | # | Item | Descrição | Commit |
