@@ -146,7 +146,7 @@ só csv-download e reavaliar, ou os dois gigantes; (c) incluir geofence no escop
 
 ---
 
-## Item 3 — Arquivos PHP com múltiplas responsabilidades a fragmentar  🟦 (candidate-edit JS ✅ s13; rate-limit + revisar pendentes)
+## Item 3 — Arquivos PHP com múltiplas responsabilidades a fragmentar  🟦 (candidate-edit JS ✅ s13; rate-limit ✅ s14; revisar pendente)
 
 | Arquivo | Linhas | Veredito |
 |---|---|---|
@@ -163,7 +163,14 @@ métodos estáticos, já extraído de god-object), `...csv-importer.php` (1551, 
 Gates: PHPStan 8 + WPCS + PHPUnit (8.3/8.4) + coverage floor. **Risco de regressão > JS/CSS.**
 Regra geral: preservar contrato público + comportamento; testes existentes = rede de segurança.
 
-**A) `rate-limit-checker` (1226) → facade + Repository (+ Config).** Classe `final` 100% estática,
+**A) `rate-limit-checker` (1226) → facade + Repository (+ Config).** ✅ (sprint 14) — `RateLimitChecker`
+1226→1026 linhas; 7 helpers privados de persistência (`get_count_from_db`, `increment_counter`,
+`get_submission_count`, `is_temporarily_blocked`, `block_temporarily`, `get_window_start/end`) extraídos
+para `RateLimitRepository` nova (autoload por convenção `class-ffc-rate-limit-repository.php`); 13 call-sites
+repontados `self::` → `RateLimitRepository::`. API pública 100% intacta (zero mudança de call-site externo/teste).
+**Verificado localmente** (composer install no ambiente): PHPUnit completo **4885 testes ✓**, PHPStan 8 ✓, WPCS ✓.
+
+**A) [plano original]** Classe `final` 100% estática,
 chamada como `RateLimitChecker::...` em 3 arquivos + **7 suítes de teste**. Abordagem **facade
 (baixo risco)**: manter TODOS os métodos públicos em `RateLimitChecker` (zero mudança de call-site/teste);
 extrair os helpers **privados de persistência** (`get_count_from_db`, `increment_counter`,
@@ -307,3 +314,4 @@ completa (não a lista filtrada). Cobrir com teste (filtrado vs. não-filtrado).
 | 11 | 1 | extração de CSS inline da feature **audience** (`admin-calendar` 19 + `admin-audience` 1) → 15 classes `.ffc-aud-*` em `ffc-audience-admin.css`; `display:none` puros + cores data-driven mantidos inline (estado JS/por-registro); Stylelint + `php -l` + build ok | sprint 11 |
 | 12 | 1 | extração de CSS inline da feature **reregistration** (`reregistration-admin` 7) → 5 classes `.ffc-rereg-*` em `ffc-reregistration-admin.css`; modal `display:none` + `background` dinâmico inline. **Item 1 concluído.** | sprint 12 |
 | 13 | 3 | fragmentar `candidate-edit-page` (1104→989): 2 blocos `<script>` inline → `ffc-recruitment-candidate-edit.js` (enqueue+localize); +9 testes; ESLint + `php -l` + build + floor 82 ok | sprint 13 |
+| 14 | 3 | fragmentar `rate-limit-checker` (1226→1026): 7 helpers de persistência → `RateLimitRepository` (facade, API pública intacta, 13 call-sites repontados); PHPUnit 4885 ✓ + PHPStan 8 ✓ + WPCS ✓ | sprint 14 |
