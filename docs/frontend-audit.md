@@ -471,6 +471,33 @@ aponta para o dashboard com params mortos (`action=cancel&appointment_id`) e exi
 
 ---
 
+## Item 11 — Bug: "horário diferenciado de saída" (schedule exception) não é single-use de verdade  🟥 (avaliar juntos antes de corrigir)
+
+**Relato do mantenedor.** Operador configura um horário de saída diferenciado pelo acesso público; a submissão é criada; **mesmo atualizando a página a mensagem de exceção continua aparecendo**, e foi possível **gerar dois certificados com o mesmo horário diferenciado**. O uso deveria ser único (mecanismo via cookie).
+
+**Como o fluxo funciona hoje** (`ScheduleExceptionSession` + `Shortcodes::render` + `FormProcessor`):
+1. Operador chama o AJAX (Sprint 4) → `create()` assina um token HMAC (payload: form_id, start/end override, jti, `exp = time()+1800`) e seta o cookie `ffc_exception_<form_id>` (HttpOnly, 30 min).
+2. Render do formulário público (shortcode, durante `the_content`): `read_from_cookie()` verifica assinatura+expiração; se OK, **deveria** `clear()` o cookie ("read+clear" = single-use), mostra o banner e embute o token num `<input hidden>`.
+3. Submissão: `FormProcessor` re-verifica o token via `verify_token()` (assinatura + `exp` + `form_id`) e persiste o override.
+
+**Diagnóstico — são DOIS defeitos independentes:**
+
+- **Defeito A — o `clear()` do cookie roda tarde demais (headers já enviados).** `Shortcodes::render` executa no filtro `the_content`, ou seja **depois** que o tema já emitiu `<!doctype><head>…` e o WordPress já fez flush dos headers HTTP. `setcookie()` nesse ponto falha ("headers already sent") e **o navegador nunca apaga o cookie**. No refresh, o cookie ainda está lá (dentro dos 30 min) → `read_from_cookie()` valida de novo → o banner reaparece e o token é re-embutido. É exatamente o "mesmo atualizando a página a mensagem ainda está lá". É determinístico (salvo full-page buffering de algum plugin de cache).
+- **Defeito B — não há enforcement server-side de uso único do token.** Mesmo que o cookie fosse limpo, o token HMAC é válido pelos 30 min inteiros e `FormProcessor` (≈ linha 77) só checa assinatura+`exp`+`form_id`. **Não existe ledger de `jti` consumido**: o campo `jti` é gerado mas nunca gravado/conferido (o docblock o chama de "not a security primitive"). Logo o mesmo token pode ser submetido N vezes na janela, cada uma gerando um certificado com o horário diferenciado. É o "gerei dois certificados". (O comentário no código aposta no rate-limit por CPF para barrar replay — controle diferente, e insuficiente p/ esta garantia.)
+
+**Raiz conceitual.** O "single-use" foi implementado como "ler+limpar o cookie uma vez", mas (1) o cookie é só transporte — a credencial que de fato autoriza o override na submissão é o token no corpo do form, e (2) apagar o cookie não invalida cópias do token já renderizadas. Single-use real precisa ser server-side sobre o token, não sobre o cookie.
+
+**Direções de correção (a decidir juntos — NÃO implementado ainda):**
+1. **(Defeito A) Mover o `clear()` para antes do flush de headers** — capturar+verificar o cookie num hook como `template_redirect`/`wp` (guardar o payload num static por-request) e limpar ali; o shortcode só lê o static. (JS não resolve: cookie é HttpOnly.) Conserta o "banner volta no refresh", mas é só UX.
+2. **(Defeito B — correção de segurança autoritativa) Ledger de `jti` consumido** — gravar o `jti` no primeiro submit bem-sucedido (tabela pequena ou option/transient TTL-bounded de 30 min) e rejeitar no `FormProcessor` qualquer `jti` já consumido. Isso torna o uso realmente único independentemente do cookie e neutraliza o duplo-certificado. **É a prioridade.**
+3. Opcional: após consumo bem-sucedido, garantir que o re-render não mostre banner (decorre de 1+2).
+
+**Convenção de storage (CLAUDE.md).** Se o ledger virar tabela, o carimbo de consumo é Categoria A (instante) → `BIGINT UNSIGNED` com `time()`; cleanup dos `jti` expirados em 30 min.
+
+**Status.** Diagnóstico fechado; **aguardando decisão conjunta** sobre escopo (só B, ou A+B) e veículo (hotfix vs. feature nesta PR / próxima). Não tocar até alinhar.
+
+---
+
 ## Ordem de execução sugerida
 
 1. **Item 5 — Segurança** (rápido, alto valor, baixo risco): escapar outputs do dashboard + `rel=noopener`.
@@ -483,6 +510,7 @@ aponta para o dashboard com params mortos (`action=cancel&appointment_id`) e exi
 8. **Item 8 — Feature: retroceder status final de candidato** (avaliar em conjunto antes de implementar).
 9. **Item 9 — Feature: cancelamento de agendamento por token** (decidido no Item 6; implementar depois).
 10. **Item 10 — Extrair JS inline do recruitment para arquivos .js** (dívida registrada; extrair depois, test-first).
+11. **Item 11 — Bug: schedule exception não é single-use** (diagnóstico fechado; avaliar juntos escopo/veículo antes de corrigir).
 
 ## Log de sprints (commits desta PR)
 | # | Item | Descrição | Commit |
