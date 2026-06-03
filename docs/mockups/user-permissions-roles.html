@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>FFC — Permissões unificadas: papéis (presets) + capabilities</title>
+<style>
+  :root{
+    --wp-blue:#2271b1;--wp-blue-d:#135e96;--ink:#1d2327;--muted:#646970;
+    --line:#dcdcde;--bg:#f0f0f1;--card:#fff;--ok:#00733b;--role:#8c5e00;
+    --chip:#f6f7f7;--chip-bd:#c3c4c7;--hl:#fff7e6;--hl-bd:#f0c36d;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);
+    font:14px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif}
+  .wrap{max-width:940px;margin:24px auto;padding:0 16px}
+  h1{font-size:22px;font-weight:400;margin:0 0 4px}
+  .sub{color:var(--muted);margin:0 0 18px}
+  .panel{background:var(--card);border:1px solid var(--line);border-radius:6px;overflow:hidden;
+    box-shadow:0 1px 1px rgba(0,0,0,.04)}
+  .phead{padding:14px 18px;border-bottom:1px solid var(--line)}
+  .phead h2{font-size:16px;margin:0}
+  .phead .hint{color:var(--muted);font-size:12.5px;margin-top:2px}
+
+  /* ---- roles band ---- */
+  .roles{padding:14px 18px;border-bottom:1px solid var(--line);background:#fbfbfc}
+  .roles .lbl{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.4px;color:var(--muted);margin-bottom:8px}
+  .role-chips{display:flex;flex-wrap:wrap;gap:8px}
+  .role{display:inline-flex;align-items:center;gap:8px;padding:6px 12px;border-radius:20px;cursor:pointer;
+    border:1px solid var(--chip-bd);background:#fff;user-select:none;transition:.12s}
+  .role:hover{border-color:var(--wp-blue);box-shadow:0 0 0 3px rgba(34,113,177,.12)}
+  .role .nm{font-weight:600;font-size:13px}
+  .role .ct{font-size:11px;color:var(--muted)}
+  .role.on{background:#eaf2fa;border-color:var(--wp-blue);color:var(--wp-blue-d)}
+  .role.on .ct{color:var(--wp-blue-d)}
+  .role .mark{width:16px;height:16px;border-radius:50%;border:1.5px solid var(--chip-bd);display:inline-flex;align-items:center;justify-content:center;font-size:11px}
+  .role.on .mark{background:var(--wp-blue);border-color:var(--wp-blue);color:#fff}
+  .role.special{border-style:dashed;cursor:not-allowed;opacity:.85}
+  .role.special:hover{box-shadow:none;border-color:var(--chip-bd)}
+  .scope-note{margin-top:10px;font-size:12px;color:var(--muted);background:#fff8e5;border:1px solid #f0d9b5;
+    border-radius:5px;padding:7px 10px}
+
+  /* ---- toolbar ---- */
+  .toolbar{display:flex;gap:10px;align-items:center;justify-content:space-between;padding:10px 18px;border-bottom:1px solid var(--line);flex-wrap:wrap}
+  .toolbar input[type=search]{padding:6px 10px;border:1px solid var(--chip-bd);border-radius:4px;min-width:220px}
+  .legend{display:flex;gap:14px;flex-wrap:wrap;font-size:12px;color:var(--muted)}
+  .legend span{display:inline-flex;align-items:center;gap:6px}
+  .dot{width:10px;height:10px;border-radius:50%}
+
+  /* ---- groups ---- */
+  .group{border-bottom:1px solid var(--line)}
+  .group:last-child{border-bottom:0}
+  .ghead{display:flex;align-items:center;gap:10px;padding:10px 18px;background:#fbfbfc;cursor:pointer;font-weight:600;font-size:13px}
+  .ghead .gmeta{margin-left:auto;color:var(--muted);font-size:12px;font-weight:400}
+  .gbadge{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.3px;color:var(--role);background:#fff4e5;border:1px solid #f0d9b5;border-radius:10px;padding:1px 7px}
+
+  /* ---- cap row ---- */
+  .cap{display:grid;grid-template-columns:46px 1fr auto;gap:12px;align-items:center;padding:10px 18px;border-top:1px solid #f1f1f2;transition:background .12s}
+  .cap.lit{background:var(--hl);box-shadow:inset 3px 0 0 var(--hl-bd)}
+  .cap .nm{font-weight:600}
+  .cap .ds{color:var(--muted);font-size:12.5px;margin-top:1px}
+  .cap .slug{display:inline-block;margin-top:5px;font:11px/1 ui-monospace,Menlo,Consolas,monospace;background:var(--chip);border:1px solid var(--chip-bd);color:#3c434a;padding:2px 6px;border-radius:4px}
+  .rtag{display:none;margin-left:8px;font-size:10.5px;font-weight:600;color:var(--role);background:#fff4e5;border:1px solid #f0d9b5;border-radius:9px;padding:1px 7px;vertical-align:middle}
+  .cap.lit .rtag{display:inline-block}
+
+  /* toggle */
+  .tg{position:relative;display:inline-block;width:40px;height:22px}
+  .tg input{opacity:0;width:0;height:0}
+  .trk{position:absolute;inset:0;background:#c3c4c7;border-radius:22px;transition:.15s}
+  .trk:before{content:"";position:absolute;height:16px;width:16px;left:3px;top:3px;background:#fff;border-radius:50%;transition:.15s}
+  .tg input:checked + .trk{background:var(--wp-blue)}
+  .tg input:checked + .trk:before{transform:translateX(18px)}
+  .tg.byrole .trk{background:var(--role);cursor:not-allowed}
+  .tg.byrole .trk:before{box-shadow:0 0 0 2px #fff4e5}
+
+  .origin{justify-self:end;font-size:10.5px;font-weight:600;padding:2px 9px;border-radius:11px;white-space:nowrap}
+  .o-role{color:var(--role);background:#fff4e5;border:1px solid #f0d9b5}
+  .o-user{color:var(--ok);background:#e6f4ea;border:1px solid #b7e1c2}
+  .o-none{color:var(--muted);background:#f6f7f7;border:1px solid var(--chip-bd)}
+  .foot{color:var(--muted);font-size:12px;margin:14px 2px}
+  code{background:#f6f7f7;border:1px solid #e0e0e0;border-radius:3px;padding:0 4px;font-size:12px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Proposta — Permissionamento unificado: papéis como presets + capabilities</h1>
+  <p class="sub">Numa tela só: atribua <strong>papéis</strong> (presets) e veja, ao vivo, quais <strong>capabilities</strong> eles acendem. Ajustes finos por usuário ficam como toggles aditivos. Mockup estático — chips, hover-iluminação, busca e recálculo funcionam.</p>
+
+  <div class="panel">
+    <div class="phead">
+      <h2>Permissões FFC</h2>
+      <div class="hint">Usuário <strong>maria.silva</strong>. Efetivo = <em>união das caps dos papéis</em> + ajustes por usuário.</div>
+    </div>
+
+    <div class="roles">
+      <div class="lbl">Papéis (presets) — passe o mouse para ver o que cada um concede; clique para atribuir</div>
+      <div class="role-chips" id="chips"></div>
+      <div class="scope-note">⚠ Atribuir/remover papéis afeta <strong>somente este usuário</strong>. O <em>conteúdo</em> de cada papel (quais caps ele concede) é global e aqui é apenas leitura.</div>
+    </div>
+
+    <div class="toolbar">
+      <input type="search" id="q" placeholder="Buscar permissão ou slug…">
+      <div class="legend">
+        <span><span class="dot" style="background:#8c5e00"></span> Concedida por papel</span>
+        <span><span class="dot" style="background:#00733b"></span> Concedida ao usuário</span>
+        <span><span class="dot" style="background:#c3c4c7"></span> Não concedida</span>
+      </div>
+    </div>
+
+    <div id="groups"></div>
+  </div>
+
+  <p class="foot">A "iluminação": ao passar o mouse num papel, as linhas que ele concede acendem (faixa âmbar + etiqueta do papel). Ao <strong>atribuir</strong> o papel, essas caps passam a "Perfil" (toggle âmbar, travado — para tirar, remova o papel). O resto continua como ajuste fino por usuário (toggle azul).</p>
+</div>
+
+<script>
+// ---- sample data (slugs reais do FFC) ----
+const CAP = {
+  certificate:{label:"Certificados", admin:false, caps:[
+    ["ffc_view_own_certificates","Ver os próprios certificados"],
+    ["ffc_download_own_certificates","Baixar os próprios certificados"],
+    ["ffc_view_certificate_history","Ver histórico de certificados"]]},
+  appointment:{label:"Agendamentos", admin:false, caps:[
+    ["ffc_book_appointments","Marcar agendamentos"],
+    ["ffc_view_self_scheduling","Ver os próprios agendamentos"],
+    ["ffc_cancel_own_appointments","Cancelar os próprios agendamentos"]]},
+  audience:{label:"Audiências", admin:false, caps:[
+    ["ffc_view_audience_bookings","Ver agendamentos da audiência"]]},
+  admin_modules:{label:"Administração — Módulos", admin:true, caps:[
+    ["ffc_scheduling_bypass","Bypass de agendamento"],
+    ["ffc_manage_audiences","Gerenciar audiências"],
+    ["ffc_manage_self_scheduling","Gerenciar auto-agendamento"],
+    ["ffc_manage_settings","Gerenciar configurações"],
+    ["ffc_view_activity_log","Ver log de atividades"]]},
+  admin_recruitment:{label:"Administração — Recrutamento", admin:true, caps:[
+    ["ffc_manage_recruitment","Gerenciar recrutamento (guarda-chuva)"],
+    ["ffc_view_recruitment","Ver recrutamento"],
+    ["ffc_call_recruitment_candidates","Convocar candidatos"],
+    ["ffc_view_recruitment_pii","Ver dados sensíveis (PII)"]]},
+};
+
+// roles → caps (definição global; aqui só leitura)
+const ROLES = [
+  {key:"ffc_user", name:"FFC User", caps:["ffc_view_own_certificates","ffc_download_own_certificates","ffc_view_certificate_history","ffc_book_appointments","ffc_view_self_scheduling","ffc_cancel_own_appointments","ffc_view_audience_bookings"]},
+  {key:"ffc_recruitment_manager", name:"Recrutador", caps:["ffc_manage_recruitment","ffc_view_recruitment","ffc_call_recruitment_candidates","ffc_view_recruitment_pii"]},
+  {key:"ffc_scheduler", name:"Coord. Agendamento", caps:["ffc_manage_self_scheduling","ffc_manage_audiences","ffc_scheduling_bypass","ffc_view_audience_bookings"]},
+  {key:"administrator", name:"Administrador", special:true, caps:[]}, // manage_options → tudo
+];
+
+const assigned = new Set(["ffc_user"]);   // papéis atribuídos
+const perUser  = new Set();                 // concessões por-usuário (ajuste fino)
+
+const roleCaps = k => (ROLES.find(r=>r.key===k)||{}).caps||[];
+const rolesGranting = slug => ROLES.filter(r=>assigned.has(r.key) && r.caps.includes(slug));
+
+// ---- render chips ----
+const chips = document.getElementById("chips");
+ROLES.forEach(r=>{
+  const el=document.createElement("button");
+  el.className="role"+(assigned.has(r.key)?" on":"")+(r.special?" special":"");
+  el.dataset.role=r.key;
+  el.innerHTML=`<span class="mark">${assigned.has(r.key)?"✓":""}</span><span class="nm">${r.name}</span>`+
+    (r.special?`<span class="ct">manage_options → tudo</span>`:`<span class="ct">${r.caps.length} caps</span>`);
+  if(!r.special){
+    el.addEventListener("mouseenter",()=>illuminate(r.caps));
+    el.addEventListener("mouseleave",()=>illuminate([]));
+    el.addEventListener("click",()=>{ assigned.has(r.key)?assigned.delete(r.key):assigned.add(r.key); recompute(); });
+  } else {
+    el.title="Administrador concede manage_options → todas as permissões. Não editável neste painel.";
+  }
+  chips.appendChild(el);
+});
+
+// ---- render groups ----
+const groups=document.getElementById("groups");
+Object.entries(CAP).forEach(([gkey,g])=>{
+  const sec=document.createElement("section"); sec.className="group"; sec.dataset.group=gkey;
+  sec.innerHTML=`<div class="ghead">${g.label}${g.admin?' <span class="gbadge">admin</span>':''}<span class="gmeta" data-count>—</span></div>`;
+  const body=document.createElement("div");
+  g.caps.forEach(([slug,label])=>{
+    const row=document.createElement("div"); row.className="cap"; row.dataset.slug=slug; row.dataset.name=(label+" "+slug).toLowerCase();
+    row.innerHTML=`
+      <label class="tg" data-slug="${slug}"><input type="checkbox"><span class="trk"></span></label>
+      <div><span class="nm">${label}</span><span class="rtag" data-rtag></span>
+        <div class="ds"><span class="slug">${slug}</span></div></div>
+      <span class="origin o-none" data-origin>—</span>`;
+    body.appendChild(row);
+  });
+  sec.appendChild(body); groups.appendChild(sec);
+});
+
+// per-user toggle handling (only when NOT granted by a role)
+groups.addEventListener("click",e=>{
+  const tg=e.target.closest(".tg"); if(!tg)return;
+  const slug=tg.dataset.slug;
+  if(rolesGranting(slug).length){ e.preventDefault(); flash(tg); return; } // travado: vem de papel
+  perUser.has(slug)?perUser.delete(slug):perUser.add(slug);
+  recompute();
+});
+function flash(tg){ tg.style.transition="none"; tg.style.outline="2px solid #f0c36d"; setTimeout(()=>{tg.style.outline="";},500); }
+
+// hover illumination
+function illuminate(caps){
+  document.querySelectorAll(".cap").forEach(row=>{
+    const on=caps.includes(row.dataset.slug);
+    row.classList.toggle("lit",on);
+    if(on){ const r=ROLES.find(x=>x.caps===caps)||ROLES.find(x=>x.caps.includes(row.dataset.slug)); }
+  });
+  // set role tag text
+  document.querySelectorAll(".cap.lit").forEach(row=>{
+    const r=ROLES.find(x=>caps===x.caps); row.querySelector("[data-rtag]").textContent = r?("via "+r.name):"via papel";
+  });
+}
+
+// recompute effective state + badges + counts
+function recompute(){
+  // chips visual
+  document.querySelectorAll(".role").forEach(el=>{
+    const k=el.dataset.role, on=assigned.has(k);
+    el.classList.toggle("on",on); const m=el.querySelector(".mark"); if(m && !ROLES.find(r=>r.key===k).special) m.textContent=on?"✓":"";
+  });
+  document.querySelectorAll(".cap").forEach(row=>{
+    const slug=row.dataset.slug;
+    const byRole=rolesGranting(slug);
+    const cb=row.querySelector("input"); const tg=row.querySelector(".tg");
+    const origin=row.querySelector("[data-origin]");
+    if(byRole.length){
+      cb.checked=true; tg.classList.add("byrole");
+      origin.className="origin o-role"; origin.textContent="Perfil";
+      tg.title="Concedida por: "+byRole.map(r=>r.name).join(", ");
+    } else if(perUser.has(slug)){
+      cb.checked=true; tg.classList.remove("byrole");
+      origin.className="origin o-user"; origin.textContent="Usuário"; tg.title="";
+    } else {
+      cb.checked=false; tg.classList.remove("byrole");
+      origin.className="origin o-none"; origin.textContent="—"; tg.title="";
+    }
+  });
+  // counts
+  document.querySelectorAll(".group").forEach(sec=>{
+    const n=[...sec.querySelectorAll(".cap input")].filter(c=>c.checked).length;
+    const t=sec.querySelectorAll(".cap").length;
+    sec.querySelector("[data-count]").textContent=`${n}/${t} ativas`;
+  });
+}
+
+// search
+document.getElementById("q").addEventListener("input",e=>{
+  const t=e.target.value.trim().toLowerCase();
+  document.querySelectorAll(".group").forEach(sec=>{
+    let any=false;
+    sec.querySelectorAll(".cap").forEach(r=>{ const hit=!t||r.dataset.name.includes(t); r.style.display=hit?"":"none"; if(hit)any=true; });
+    sec.style.display=any?"":"none";
+  });
+});
+
+recompute();
+</script>
+</body>
+</html>
