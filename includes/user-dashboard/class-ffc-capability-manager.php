@@ -849,13 +849,7 @@ class CapabilityManager {
 	 * @return void
 	 */
 	public static function relabel_ffc_roles( \WP_Roles $wp_roles ): void {
-		$labels = array(
-			'ffc_user'                     => __( 'FFC User', 'ffcertificate' ),
-			self::RECRUITMENT_MANAGER_ROLE => __( 'Recruitment Manager', 'ffcertificate' ),
-		);
-		foreach ( self::module_roles_definition() as $slug => $def ) {
-			$labels[ $slug ] = $def['label'];
-		}
+		$labels = self::ffc_managed_role_labels();
 
 		foreach ( $labels as $slug => $label ) {
 			if ( isset( $wp_roles->roles[ $slug ] ) ) {
@@ -865,5 +859,28 @@ class CapabilityManager {
 				$wp_roles->role_names[ $slug ] = $label;
 			}
 		}
+	}
+
+	/**
+	 * Canonical map of every FFC-managed role slug → display label.
+	 *
+	 * The authoritative set of roles the plugin owns: `ffc_user`, the
+	 * recruitment manager, and the 6.2.0 module/recruitment-tier roles. This
+	 * is the list the role-capability editor (Settings → User Access) is
+	 * allowed to touch — independent of whichever caps a role currently
+	 * carries, so a role whose FFC caps were all unchecked still appears.
+	 *
+	 * @since 6.9.0
+	 * @return array<string, string>
+	 */
+	public static function ffc_managed_role_labels(): array {
+		$labels = array(
+			'ffc_user'                     => __( 'FFC User', 'ffcertificate' ),
+			self::RECRUITMENT_MANAGER_ROLE => __( 'Recruitment Manager', 'ffcertificate' ),
+		);
+		foreach ( self::module_roles_definition() as $slug => $def ) {
+			$labels[ $slug ] = $def['label'];
+		}
+		return $labels;
 	}
 }

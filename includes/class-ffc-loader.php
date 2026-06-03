@@ -251,6 +251,7 @@ class Loader {
 			$this->admin_ajax   = new AdminAjax();
 			AdminUserColumns::init();
 			AdminUserCapabilities::init();
+			\FreeFormCertificate\Admin\RoleCapabilityEditor::init();
 			\FreeFormCertificate\Admin\AdminMenuVisibility::init();
 			\FreeFormCertificate\Admin\DeviceThresholdUpgradeNotice::init();
 			\FreeFormCertificate\Admin\SettingsAjaxEndpoint::init();

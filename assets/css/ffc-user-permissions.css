@@ -412,6 +412,33 @@
 	display: inline-block;
 }
 
+/* ---- role → capability editor (Settings → User Access) --------------- */
+.ffc-role-editor-sep {
+	margin: 28px 0 12px;
+}
+
+.ffc-role-impact {
+	max-width: 860px;
+}
+
+.ffc-role-pick {
+	font-weight: 600;
+}
+
+.ffc-role-pick select {
+	margin-left: 4px;
+	max-width: 320px;
+}
+
+.ffc-cap-savestate {
+	align-self: center;
+	min-width: 48px;
+	text-align: right;
+	font-size: 11.5px;
+	font-weight: 600;
+	color: #00733b;
+}
+
 /* ---- search "no results" / hidden rows ------------------------------- */
 .ffc-cap-row[hidden],
 .ffc-cap-group[hidden] {
