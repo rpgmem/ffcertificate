@@ -176,6 +176,67 @@ final class RecruitmentAdminAssetsManager {
 			)
 		);
 
+		// Notice Edit page handlers (CSV import-from-edit, snapshot promote,
+		// adjutancy attach/detach, classification tab switch, per-row
+		// Call/bulk-call/status, preview-status dropdowns), extracted from the
+		// seven inline <script> blocks in RecruitmentNoticeEditPageRenderer
+		// (frontend-audit Item 10). Functions stay global (inline
+		// onclick/onsubmit); config arrives via the localized object below so
+		// the renderer carries no inline interpolation. Depends on the admin
+		// bundle (shared confirm modal) + the batched importer.
+		$rec_settings = RecruitmentSettings::all();
+		wp_enqueue_script(
+			'ffc-recruitment-notice-edit',
+			FFC_PLUGIN_URL . "assets/js/ffc-recruitment-notice-edit{$s}.js",
+			array( self::HANDLE_JS, 'ffc-recruitment-import-batched' ),
+			$js_ver,
+			true
+		);
+		wp_localize_script(
+			'ffc-recruitment-notice-edit',
+			'ffcRecruitmentNoticeEdit',
+			array(
+				'restRoot'       => esc_url_raw( rest_url( 'ffcertificate/v1/recruitment/' ) ),
+				'nonce'          => wp_create_nonce( 'wp_rest' ),
+				'reasonRequired' => array(
+					'denied'         => ! empty( $rec_settings['preview_reason_required_denied'] ),
+					'granted'        => ! empty( $rec_settings['preview_reason_required_granted'] ),
+					'appeal_denied'  => ! empty( $rec_settings['preview_reason_required_appeal_denied'] ),
+					'appeal_granted' => ! empty( $rec_settings['preview_reason_required_appeal_granted'] ),
+				),
+				'importStrings'  => array(
+					'ingesting'        => __( 'Ingesting…', 'ffcertificate' ),
+					'validating'       => __( 'Validating…', 'ffcertificate' ),
+					'processing'       => __( 'Processing…', 'ffcertificate' ),
+					'committing'       => __( 'Finalising…', 'ffcertificate' ),
+					'done'             => __( 'OK', 'ffcertificate' ),
+					'errorPrefix'      => __( 'Error:', 'ffcertificate' ),
+					'networkError'     => __( 'Network error', 'ffcertificate' ),
+					'validationFailed' => __( 'Validation failed — review the per-line errors below and re-import.', 'ffcertificate' ),
+				),
+				'strings'        => array(
+					'processingCsv'         => __( 'Processing CSV…', 'ffcertificate' ),
+					'bulkNoSel'             => __( 'Select at least one row first.', 'ffcertificate' ),
+					'bulkNoDate'            => __( 'Date and time are required for bulk call.', 'ffcertificate' ),
+					'confirmOooSingle'      => __( 'This call would skip a higher-ranked candidate (out of order). Continue?', 'ffcertificate' ),
+					'promptOooReason'       => __( 'Justification for calling out of order (required):', 'ffcertificate' ),
+					'reasonRequired'        => __( 'A justification is required to proceed.', 'ffcertificate' ),
+					'bulkModalTitle'        => __( 'Issue calls for the selected candidates?', 'ffcertificate' ),
+					/* translators: 1: number of selected rows, 2: date, 3: time */
+					'bulkModalBodyTpl'      => __( 'About to issue {count} call(s) for {date} at {time}.', 'ffcertificate' ),
+					'bulkModalCta'          => __( 'Issue calls', 'ffcertificate' ),
+					'bulkConsequenceAtomic' => __( 'Atomic — any single conflict rolls back the entire batch.', 'ffcertificate' ),
+					'bulkConsequenceLog'    => __( 'A "bulk call" audit entry is recorded with the selected candidates.', 'ffcertificate' ),
+					'bulkConsequenceOoo'    => __( 'One or more selected rows would skip a higher-ranked candidate (out of order).', 'ffcertificate' ),
+					'bulkReasonLabel'       => __( 'Justification for calling out of order (required)', 'ffcertificate' ),
+					'dateToAssume'          => __( 'Date to assume (YYYY-MM-DD):', 'ffcertificate' ),
+					'timeToAssume'          => __( 'Time to assume (HH:MM):', 'ffcertificate' ),
+					'cancellationReason'    => __( 'Cancellation reason (required):', 'ffcertificate' ),
+					'reopenReason'          => __( 'Reopen reason (required):', 'ffcertificate' ),
+				),
+			)
+		);
+
 		// Autosave infra for the Settings tab — `data-ffc-autosave-key`
 		// toggles in `render_settings_tab()` bind via the shared
 		// ffc-admin-autosave widget against SettingsAjaxEndpoint. Mirrors

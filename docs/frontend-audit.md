@@ -451,7 +451,7 @@ aponta para o dashboard com params mortos (`action=cancel&appointment_id`) e exi
 **A) EXTRAIR — JS lógico inline (dívida clara, ~516 linhas / 6 arquivos):**
 | Arquivo | Blocos | ~Linhas | Conteúdo |
 |---|---|---|---|
-| `recruitment/...notice-edit-page-renderer.php` | 7 | ~373 | tab-switch, CSV import, transições, ações de classificação + OOO, bulk-call, preview-status |
+| `recruitment/...notice-edit-page-renderer.php` | 7 | ~373 | tab-switch, CSV import, transições, ações de classificação + OOO, bulk-call, preview-status — ✅ s25 (`ffc-recruitment-notice-edit.js`) |
 | `admin/...form-editor-geofence-metabox.php` | 2 | ~39 | UI de config de geofence — ✅ s22 (`ffc-form-editor-geofence-metabox.js`) |
 | `recruitment/...admin-page.php` | 1 | ~37 | (1 bloco no render) — ✅ s23 (`ffc-recruitment-candidates-import.js`) |
 | `admin/...device-threshold-upgrade-notice.php` | 1 | ~25 | ação/dismiss do aviso admin — ✅ s19 (`ffc-device-threshold-notice.js`) |
@@ -467,7 +467,7 @@ aponta para o dashboard com params mortos (`action=cancel&appointment_id`) e exi
 
 **Abordagem.** Por arquivo (ou por tela): extrair os blocos para `assets/js/ffc-*.js`, mover interpolações (i18n via `esc_js`, REST roots, `wp_create_nonce`, mapas como `data-ffc-empties`) para `wp_localize_script`/data-attributes, remover os `echo '<script>'`. **Test-first** (Vitest) onde o handler for testável; ESLint/floor mantidos. Incremental, 1 arquivo/feature por commit.
 
-**Status.** Inventário fechado; **executar incremental** nesta PR (Itens 8/9/10). Progresso: 5/6 extraídos (device-threshold-notice s19, form-list-copy-shortcode s20, audience-admin-import s21, form-editor-geofence-metabox s22, recruitment-candidates-import s23). Resta: `notice-edit-page-renderer` (~373, 7 blocos, por último).
+**Status.** ✅ **Item 10 CONCLUÍDO — 6/6 arquivos extraídos** (device-threshold-notice s19, form-list-copy-shortcode s20, audience-admin-import s21, form-editor-geofence-metabox s22, recruitment-candidates-import s23, notice-edit-page-renderer s25). Grupo A esvaziado. Restam só os SOFT (`wp_add_inline_script`) e os data-islands (categorias B/C), deliberadamente fora de escopo.
 
 ---
 
@@ -549,3 +549,5 @@ aponta para o dashboard com params mortos (`action=cancel&appointment_id`) e exi
 | 22b | 10 | hotfix CI: o `FormEditorMetaboxRendererTest` renderiza o metabox indiretamente e não tinha stub de `wp_enqueue_script` (o teste por-arquivo da s22 passava e mascarava) → `MissingFunctionExpectations` na suíte completa (PHPUnit 8.3/8.4). Stub adicionado | sprint 22b |
 | 23 | 10 | extrair JS inline de `recruitment-admin-page.php` (~37 linhas, 1 bloco: 2 handlers de import CSV chamados via `onchange`/`onsubmit`) → `ffc-recruitment-candidates-import.js` (funções globais, config via `wp_localize_script` `ffcRecruitmentCandidatesImport` no assets-manager: REST notices root + nonce + i18n); controles lidos via `form.elements.namedItem()` (API canônica, testável em jsdom); locais PHP mortos removidos (`$nonce`/labels); +10 testes Vitest (gating de status, endpoints prelim/definitive, ticker, 2xx/erro/network); ESLint + Vitest + `php -l` + PHPStan 8 + WPCS + PHPUnit ✓ | sprint 23 |
 | 24 | 11 | corrigir single-use da exceção de horário (A+B): ledger de `jti` consumido (`INSERT IGNORE` atômico em `options`, sweep diário) em `ScheduleExceptionSession`; `FormProcessor` reivindica no ponto de sucesso (`maybe_persist_schedule_exception`) + pré-check `live_exception_payload`; `Shortcodes::render` suprime banner quando jti consumido; +13 testes PHPUnit; suíte 4913 + PHPStan 8 + WPCS ✓ | sprint 24 |
+| 24b | 10 | hotfix WPCS: o refactor da s24 juntou `$token_form` ao grupo de atribuições de `$schedule_exception_payload` → warning de alinhamento (cs2pr falha em warnings); phpcbf realinhou | sprint 24b |
+| 25 | 10 | extrair os 7 blocos inline de `notice-edit-page-renderer.php` (~373 linhas) → `ffc-recruitment-notice-edit.js` (1 IIFE; globais via inline onclick/onsubmit; 2 métodos só-script removidos; config única `ffcRecruitmentNoticeEdit` localizada no assets-manager: restRoot+nonce+reasonRequired+strings+importStrings; noticeId via `data-notice-id`, empties via `data-ffc-empties`; controles via `form.elements.namedItem()`). **Item 10 fechado (6/6).** +29 testes Vitest (tab-switch, import prelim/def, snapshot, attach/detach, bulk-call OOO, cls-act, preview-status, resoluções 2xx/erro); floor 82 mantido (notice-edit 90.78%); ESLint + Vitest + `php -l` + PHPStan 8 + WPCS + PHPUnit ✓ | sprint 25 |
