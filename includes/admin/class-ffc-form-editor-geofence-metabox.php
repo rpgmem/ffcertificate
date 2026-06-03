@@ -318,27 +318,8 @@ class FormEditorGeofenceMetabox {
 				</table>
 			</div>
 		</div>
-		<script>
-		jQuery(function($) {
-			// "Display during, outside daily slot" row has a dual gate:
-			// it's only meaningful when the event spans multiple days AND
-			// the operator picked per-day time semantics. The outer
-			// .ffc-collapsed-target initializer handles the multi-day side
-			// for the End Date / Time Behavior rows; the during-row needs
-			// the AND of both, so we wire it manually here. Without this,
-			// flipping time_mode between span and daily wouldn't toggle the
-			// row at runtime (we currently only honour the initial SSR
-			// state).
-			function syncDuringRow() {
-				var multi   = $('#ffc_geofence_multi_day').is(':checked');
-				var isDaily = $('input[name="ffc_geofence[time_mode]"]:checked').val() === 'daily';
-				$('#ffc-datetime-hide-mode-during-row').toggle( multi && isDaily );
-			}
-			$('#ffc_geofence_multi_day, input[name="ffc_geofence[time_mode]"]').on('change', syncDuringRow);
-			syncDuringRow();
-		});
-		</script>
 		<?php
+		$this->enqueue_metabox_script();
 	}
 
 	/**
@@ -578,25 +559,24 @@ class FormEditorGeofenceMetabox {
 				</tbody>
 			</table>
 		</div>
-		<script>
-		jQuery(function($) {
-			function toggleGeoSource(prefix) {
-				var source = $('input[name="ffc_geofence[' + prefix + '_source]"]:checked').val();
-				var container = $('input[name="ffc_geofence[' + prefix + '_source]"]').closest('td');
-				container.find('.ffc-geo-source-locations')[source === 'locations' ? 'show' : 'hide']();
-				container.find('.ffc-geo-source-custom')[source === 'custom' ? 'show' : 'hide']();
-			}
-			$('input[name="ffc_geofence[geo_area_source]"]').on('change', function() { toggleGeoSource('geo_area'); });
-			$('input[name="ffc_geofence[geo_ip_area_source]"]').on('change', function() { toggleGeoSource('geo_ip_area'); });
-			toggleGeoSource('geo_area');
-			toggleGeoSource('geo_ip_area');
-
-			// IP-Areas-Permissive collapse is now handled by the generic
-			// `.ffc-collapsed-target` initializer in ffc-admin.js
-			// (#238 / Sprint 3) — the container above carries
-			// data-ffc-master="ffc_geofence_geo_ip_areas_permissive".
-		});
-		</script>
 		<?php
+		$this->enqueue_metabox_script();
+	}
+
+	/**
+	 * Enqueue the metabox UI-wiring asset. Idempotent across the two render
+	 * methods (`render_time` / `render_geolocation`) — WordPress dedupes the
+	 * second enqueue by handle, and the asset's two initializers are each
+	 * selector-guarded so loading on either section is harmless.
+	 */
+	private function enqueue_metabox_script(): void {
+		$s = \FreeFormCertificate\Core\Utils::asset_suffix();
+		wp_enqueue_script(
+			'ffc-form-editor-geofence-metabox',
+			FFC_PLUGIN_URL . "assets/js/ffc-form-editor-geofence-metabox{$s}.js",
+			array( 'jquery' ),
+			FFC_VERSION,
+			true
+		);
 	}
 }
