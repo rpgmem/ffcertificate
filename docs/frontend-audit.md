@@ -442,25 +442,32 @@ aponta para o dashboard com params mortos (`action=cancel&appointment_id`) e exi
 
 ---
 
-## Item 10 — Dívida: JS inline em PHP (recruitment) deveria ir para arquivos `.js` dedicados  ⬜ (registrado s18; extrair depois)
+## Item 10 — Dívida: JS inline em PHP deveria ir para arquivos `.js` dedicados  🟦 (inventário completo s19; extração incremental)
 
-**Origem.** Notado ao corrigir o Item 7: a detecção OOO vive num `echo '<script>'` inline. Levantamento:
-`includes/recruitment/class-ffc-recruitment-notice-edit-page-renderer.php` tem **~311 linhas de JS inline** em
-**~7 blocos `<script>`** (tab-switch, import CSV, transições de status, ações de classificação + OOO, preview-status,
-bulk-call) com **~69 interpolações** PHP (strings i18n via `esc_js`, REST URLs, `wp_create_nonce`). Há **mais JS
-inline** em `class-ffc-recruitment-admin-page.php` e outros.
+**Origem.** Notado ao corrigir o Item 7. Pedido do mantenedor: varrer **todo** o plugin, não só recruitment.
 
-**Por que é dívida.** JS inline não passa por ESLint (gate zero-erro), não tem teste Vitest, não usa o pipeline de
-minificação/cache-bust (`?ver=`), e é mais difícil de ler/manter. É a **mesma classe** já tratada no candidate-edit
-(Item 3 / sprint 13) e no CSS (Item 1).
+**Inventário completo (varredura `echo '<script>'` / `<script>` em `includes/` + `templates/`):**
 
-**Abordagem proposta (quando for feito).** Extrair para `assets/js/ffc-recruitment-classifications.js` (e talvez um
-por tela), movendo as interpolações para um objeto via `wp_enqueue_script` + `wp_localize_script` (REST roots, nonce,
-strings, **e o mapa `data-ffc-empties` / config**); remover os `echo '<script>'`. **Test-first** (Vitest, como no
-candidate-edit) — o JS extraído entra na cobertura, então cobrir os handlers (single-call OOO, bulk-call, transições)
-mantendo o floor. Incremental, 1 bloco/feature por commit (mini-projeto à parte, como o Item 2).
+**A) EXTRAIR — JS lógico inline (dívida clara, ~516 linhas / 6 arquivos):**
+| Arquivo | Blocos | ~Linhas | Conteúdo |
+|---|---|---|---|
+| `recruitment/...notice-edit-page-renderer.php` | 7 | ~373 | tab-switch, CSV import, transições, ações de classificação + OOO, bulk-call, preview-status |
+| `admin/...form-editor-geofence-metabox.php` | 2 | ~39 | UI de config de geofence |
+| `recruitment/...admin-page.php` | 1 | ~37 | (1 bloco no render) |
+| `admin/...device-threshold-upgrade-notice.php` | 1 | ~25 | ação/dismiss do aviso admin |
+| `admin/...form-list-columns.php` | 1 | ~22 | comportamento de coluna na list-table |
+| `audience/...audience-admin-import.php` | 1 | ~20 | UI de import |
 
-**Status.** Registrado, **adiado** (decisão do mantenedor) — não inflar a PR de auditoria; tratar depois.
+**B) SOFT (`wp_add_inline_script` — já passa pelo enqueue/ordenação, mas ainda é JS em string; baixa prioridade):**
+`admin/...admin-user-custom-fields.php` (~30, toggle colapsável) · `self-scheduling/...appointment-receipt-handler.php` (contexto de **impressão** → provavelmente legítimo, como e-mail/PDF).
+
+**C) NÃO extrair (não é JS lógico):** `<script type="text/html">` (template wp.template em `audience-admin-audience.php`) e `<script type="application/json">` data-islands (`self-scheduling-shortcode.php`, `reregistration-form-renderer.php`) — são markup/dados, ficam.
+
+**Por que é dívida (A).** Não passa por ESLint (gate zero-erro), não tem teste Vitest, não usa minificação/cache-bust, e é difícil de ler/manter. Mesma classe do candidate-edit (Item 3/s13).
+
+**Abordagem.** Por arquivo (ou por tela): extrair os blocos para `assets/js/ffc-*.js`, mover interpolações (i18n via `esc_js`, REST roots, `wp_create_nonce`, mapas como `data-ffc-empties`) para `wp_localize_script`/data-attributes, remover os `echo '<script>'`. **Test-first** (Vitest) onde o handler for testável; ESLint/floor mantidos. Incremental, 1 arquivo/feature por commit.
+
+**Status.** Inventário fechado; **executar incremental** nesta PR (Itens 8/9/10).
 
 ---
 
