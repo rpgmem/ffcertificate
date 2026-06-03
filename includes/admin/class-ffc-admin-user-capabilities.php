@@ -139,36 +139,56 @@ class AdminUserCapabilities {
 		echo '<span class="ffc-cap-context-hint">' . esc_html__( 'Edit the role in the standard WordPress selector on this page. Permissions inherited from the role are tagged "Role" below.', 'ffcertificate' ) . '</span>';
 		echo '</div>';
 
-		// Audiences.
-		echo '<div class="ffc-cap-context-item">';
+		// Audiences — editable membership checklist.
+		self::render_audience_membership( $user );
+
+		echo '</div>';
+	}
+
+	/**
+	 * Render the editable audience-membership checklist.
+	 *
+	 * Lists every *active* audience as a checkbox (pre-checked when the user
+	 * is a member). Submitting the profile form syncs membership via
+	 * {@see self::sync_audience_membership()}. Only active audiences are
+	 * shown, so a membership in an inactive audience is never touched here.
+	 *
+	 * @param \WP_User $user User being edited.
+	 * @return void
+	 */
+	private static function render_audience_membership( \WP_User $user ): void {
+		$all_active = self::active_audiences();
+		$member_ids = self::user_audience_ids( $user->ID );
+
+		echo '<div class="ffc-cap-context-item ffc-cap-audiences">';
 		echo '<span class="ffc-cap-context-label">' . esc_html__( 'Audiences', 'ffcertificate' ) . '</span>';
-		echo '<span class="ffc-cap-context-val">';
-		$audiences = self::user_audiences( $user->ID );
-		if ( empty( $audiences ) ) {
-			echo '<em>' . esc_html__( 'Not a member of any audience', 'ffcertificate' ) . '</em>';
+
+		if ( empty( $all_active ) ) {
+			echo '<span class="ffc-cap-context-val"><em>' . esc_html__( 'No audiences defined yet.', 'ffcertificate' ) . '</em></span>';
 		} else {
-			foreach ( $audiences as $audience ) {
-				$color = (string) $audience['color'];
-				$name  = (string) $audience['name'];
+			echo '<div class="ffc-cap-audience-list" role="group" aria-label="' . esc_attr__( 'Audience membership', 'ffcertificate' ) . '">';
+			foreach ( $all_active as $audience ) {
+				$aid     = (int) $audience->id;
+				$name    = (string) $audience->name;
+				$color   = isset( $audience->color ) ? (string) $audience->color : '';
+				$checked = in_array( $aid, $member_ids, true );
+
+				echo '<label class="ffc-cap-aud">';
+				echo '<input type="checkbox" name="ffc_audience[]" value="' . esc_attr( (string) $aid ) . '"' . ( $checked ? ' checked' : '' ) . '>';
 				if ( '' !== $color ) {
-					printf(
-						'<span class="ffc-cap-chip ffc-cap-chip--color" style="--ffc-cap-chip-color:%1$s">%2$s</span>',
-						esc_attr( $color ),
-						esc_html( $name )
-					);
-				} else {
-					echo '<span class="ffc-cap-chip">' . esc_html( $name ) . '</span>';
+					echo '<span class="ffc-cap-aud-dot" style="--ffc-cap-chip-color:' . esc_attr( $color ) . '"></span>';
 				}
+				echo '<span class="ffc-cap-aud-name">' . esc_html( $name ) . '</span>';
+				echo '</label>';
 			}
+			echo '</div>';
 		}
-		echo '</span>';
+
 		printf(
 			'<a class="ffc-cap-context-hint" href="%1$s">%2$s</a>',
 			esc_url( admin_url( 'admin.php?page=ffc-scheduling-audiences' ) ),
-			esc_html__( 'Manage audience membership →', 'ffcertificate' )
+			esc_html__( 'Open the Audiences screen →', 'ffcertificate' )
 		);
-		echo '</div>';
-
 		echo '</div>';
 	}
 
@@ -330,16 +350,39 @@ class AdminUserCapabilities {
 	}
 
 	/**
-	 * Active audiences the user belongs to (read-only summary).
+	 * All active audiences, name-ordered, for the membership checklist.
 	 *
-	 * @param int $user_id User ID.
-	 * @return list<array{name: string, color: string}>
+	 * @return list<\stdClass>
 	 */
-	private static function user_audiences( int $user_id ): array {
+	private static function active_audiences(): array {
 		if ( class_exists( '\FreeFormCertificate\Audience\AudienceRepository' ) ) {
-			return \FreeFormCertificate\Audience\AudienceRepository::get_user_audience_badges( $user_id );
+			return \FreeFormCertificate\Audience\AudienceRepository::get_all(
+				array(
+					'status'  => 'active',
+					'orderby' => 'name',
+					'order'   => 'ASC',
+				)
+			);
 		}
 		return array();
+	}
+
+	/**
+	 * IDs of the active audiences the user currently belongs to.
+	 *
+	 * @param int $user_id User ID.
+	 * @return array<int>
+	 */
+	private static function user_audience_ids( int $user_id ): array {
+		if ( ! class_exists( '\FreeFormCertificate\Audience\AudienceRepository' ) ) {
+			return array();
+		}
+		return array_map(
+			static function ( $audience ) {
+				return (int) $audience->id;
+			},
+			\FreeFormCertificate\Audience\AudienceRepository::get_user_audiences( $user_id )
+		);
 	}
 
 	/**
@@ -386,6 +429,19 @@ class AdminUserCapabilities {
 			}
 		}
 
+		// Audience membership — gathered here (inside the nonce-verified
+		// scope) and synced below. Absent key = every box unchecked = remove
+		// all (active) memberships; sync_audience_membership() guards the
+		// "no audiences rendered" case so it can't wipe on an unrelated save.
+		$submitted_audiences = array();
+		if ( isset( $_POST['ffc_audience'] ) ) {
+			$raw_audiences = wp_unslash( $_POST['ffc_audience'] ); // phpcs:ignore WordPress.Security.ValidatedSanitized.InputNotSanitized -- cast to int below.
+			if ( is_array( $raw_audiences ) ) {
+				$submitted_audiences = array_map( 'intval', $raw_audiences );
+			}
+		}
+		self::sync_audience_membership( $user_id, $submitted_audiences );
+
 		// Log the change.
 		if ( class_exists( '\FreeFormCertificate\Core\Debug' ) ) {
 			\FreeFormCertificate\Core\Debug::log_user_manager(
@@ -394,6 +450,67 @@ class AdminUserCapabilities {
 					'user_id'      => $user_id,
 					'admin_id'     => get_current_user_id(),
 					'capabilities' => \FreeFormCertificate\UserDashboard\UserManager::get_user_ffc_capabilities( $user_id ),
+				)
+			);
+		}
+	}
+
+	/**
+	 * Sync a user's audience memberships against the submitted checklist.
+	 *
+	 * Diffs the submitted (active, whitelisted) audience IDs against the
+	 * user's current active memberships and applies the minimal set of
+	 * add/remove operations. Only active audiences participate, so a
+	 * membership in an inactive audience — never shown in the checklist —
+	 * is preserved.
+	 *
+	 * Safety: if there are no active audiences (the checklist wouldn't have
+	 * rendered), this returns without removing anything, so it can't wipe
+	 * memberships when the audience section wasn't part of the form.
+	 *
+	 * @param int        $user_id            User being edited.
+	 * @param array<int> $submitted_audiences Raw submitted audience IDs.
+	 * @return void
+	 */
+	private static function sync_audience_membership( int $user_id, array $submitted_audiences ): void {
+		if ( ! class_exists( '\FreeFormCertificate\Audience\AudienceRepository' ) ) {
+			return;
+		}
+
+		$active = self::active_audiences();
+		if ( empty( $active ) ) {
+			return;
+		}
+
+		$valid_ids = array_map(
+			static function ( $audience ) {
+				return (int) $audience->id;
+			},
+			$active
+		);
+
+		// Whitelist the submission against the real active set.
+		$submitted = array_values( array_intersect( $submitted_audiences, $valid_ids ) );
+		$current   = self::user_audience_ids( $user_id );
+
+		$to_add    = array_diff( $submitted, $current );
+		$to_remove = array_diff( $current, $submitted );
+
+		foreach ( $to_add as $audience_id ) {
+			\FreeFormCertificate\Audience\AudienceRepository::add_member( (int) $audience_id, $user_id );
+		}
+		foreach ( $to_remove as $audience_id ) {
+			\FreeFormCertificate\Audience\AudienceRepository::remove_member( (int) $audience_id, $user_id );
+		}
+
+		if ( ( ! empty( $to_add ) || ! empty( $to_remove ) ) && class_exists( '\FreeFormCertificate\Core\Debug' ) ) {
+			\FreeFormCertificate\Core\Debug::log_user_manager(
+				'Admin updated user audience membership',
+				array(
+					'user_id'  => $user_id,
+					'admin_id' => get_current_user_id(),
+					'added'    => array_values( $to_add ),
+					'removed'  => array_values( $to_remove ),
 				)
 			);
 		}
