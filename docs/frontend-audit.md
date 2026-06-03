@@ -393,7 +393,7 @@ empties; fallback `#id` quando o slug não resolve). PHPUnit completo 4898 ✓ �
 
 ---
 
-## Item 8 — Feature: admin retroceder o status final de um candidato para "antes de chamado"  ⬜ (avaliar juntos antes de fazer)
+## Item 8 — Feature: admin retroceder o status final de um candidato para "antes de chamado"  ✅ (implementado — override audited)
 
 **Pedido.** Permitir que o admin **retroceda o status final** de um candidato de convocação para um estado
 **anterior ao "chamado"** (ex.: voltar de `hired`/`accepted`/`not_shown`/`called` → `empty`/aguardando), desfazendo
@@ -413,11 +413,68 @@ convocação, audit log, e-mails já disparados, vaga liberada, etc.).
 - Permissão/gating (cap `ffc_manage_recruitment`) + confirmação destrutiva na UI (como o padrão `data-ffc-confirm-*`).
 - Idempotência/concorrência com a máquina de estados existente; cobertura de teste da nova transição.
 
-**Status.** Não iniciado. **Avaliar em conjunto antes de codar** (a pedido do mantenedor).
+**Status.** ✅ **Implementado.** Decisões confirmadas pelo mantenedor (escopo dos três estados presos, efeitos de
+fila/vaga sem e-mail, override fura o reopen-freeze) e codadas com cobertura de testes. Detalhe abaixo.
 
-### Plano
-_A preencher na sessão de avaliação — mapear `RecruitmentClassificationStateMachine`, definir transições reversas
-permitidas + efeitos colaterais, e cobrir com testes da state machine._
+**O que foi feito:**
+- **`RecruitmentClassificationStateMachine::admin_override_to_empty( int $id, string $reason )`** — caminho de
+  override separado de `transition_to`, restrito a `OVERRIDABLE_TO_EMPTY = {hired, withdrew, not_shown}`. Ignora
+  `TRANSITIONS`, o terminal guard e o reopen-freeze por design; `reason` obrigatório; CAS race-safe via `set_status`;
+  recusa status não-overridable (`recruitment_override_not_overridable`) e idempotente quando já `empty`. Efeitos
+  (vaga reabre, candidato volta ao rank original) saem do próprio flip — `set_status` toca só `status`/`updated_at`,
+  preserva `ranking`; vaga é derivada da contagem de `hired`. Sem e-mail ao candidato.
+- **`RecruitmentActivityLogger::classification_override_to_empty()`** — evento `WARNING` distinto
+  (`recruitment_classification_override_to_empty`, flag `override=1`) para o override aparecer no audit trail como
+  ação privilegiada, separado do `recruitment_classification_status_changed` rotineiro.
+- **REST:** `POST /classifications/{id}/override-to-empty` (cap `ffc_manage_recruitment`, `reason` required) →
+  `override_classification_to_empty()`.
+- **UI:** botão "Undo decision (admin)" (`link-delete`) nas linhas `hired`/`withdrew`/`not_shown` do renderer; JS
+  `ffcRecruitmentClsAct` ramo `override` pede `confirm()` destrutivo + `prompt()` de motivo e POSTa o endpoint.
+- **Testes:** +9 PHPUnit na state machine (hired/withdrew ok, not_shown fura freeze, reason vazio, desconhecido,
+  idempotente, não-overridable, corrida perdida) +2 no REST controller (reason/404 → 409, rota registrada) +3 Vitest
+  (confirm→prompt→POST, confirm recusado, motivo vazio). PHPUnit 4939 ✓ · Vitest 1104 ✓ · ESLint/WPCS/PHPStan 8 ✓.
+
+### Decisões (defaults registrados — corrigir pontualmente se necessário)
+
+Levantamento da máquina de estados real (`RecruitmentClassificationStateMachine`):
+- `TRANSITIONS`: `empty→called`; `called→{accepted,not_shown,hired,withdrew,empty}`;
+  `accepted→{hired,not_shown,withdrew,empty}`; `not_shown→{empty}`; `hired→∅`; `withdrew→∅`.
+- Reverts para `empty` que **já existem**: `called→empty` e `accepted→empty` (ação *cancel*, `reason` obrigatório);
+  `not_shown→empty` (ação *reopen*, `reason` obrigatório) — mas **congelado** quando `notice.was_reopened = '1'`
+  (regra reopen-freeze, retorna `recruitment_reopen_freeze_active`).
+- **Únicos terminais de verdade:** `hired` e `withdrew` (mapeiam para `∅`; guard explícito devolve
+  `recruitment_state_terminal_hired` / `recruitment_state_terminal_withdrew`).
+- Transições são atômicas (CAS via `RecruitmentClassificationRepository::set_status($id,$from,$to)` → 1 linha afetada)
+  e toda mudança chama `RecruitmentActivityLogger::classification_status_changed()`.
+
+1. **Escopo (confirmado pelo mantenedor):** override admin desbloqueia os **três estados "presos" → `empty`:
+   `hired`, `withdrew` e `not_shown`.** Os dois primeiros são terminais (`∅`); `not_shown→empty` já existe como
+   *reopen* mas fica congelado por `was_reopened` — o override também libera esse caso. (`called/accepted→empty` já
+   existem via *cancel* e ficam fora do override, sem duplicar.)
+2. **Efeitos colaterais (confirmado):** reabrir a vaga (liberar o assento de `hired`) + devolver o candidato a
+   `empty`/aguardando na posição/rank original + **registrar no activity log** com o `reason`. **Sem e-mail
+   automático** ao candidato (correção de erro do operador; notificação fica como flag opcional futura).
+3. **Reopen-freeze (confirmado):** o override **fura o congelamento** para os três estados (escape hatch
+   privilegiado e auditado é o propósito); o evento é registrado no log para rastreabilidade.
+4. **Forma / gating:** método **separado** `admin_override_to_empty()` (NÃO afrouxar `TRANSITIONS` — o lifecycle
+   normal continua estrito); cap `ffc_manage_recruitment`; `reason` **obrigatório**; confirmação destrutiva na UI
+   via padrão `data-ffc-confirm-*`; idempotência/concorrência herdadas do CAS de `set_status`.
+
+### Plano de implementação (test-first, sprints = commits)
+
+1. **State machine:** novo método público `admin_override_to_empty( int $classification_id, string $reason ): array`
+   — valida `current ∈ {hired, withdrew, not_shown}`, exige `reason` não-vazio, executa o CAS
+   `set_status($id, $current, 'empty')` (ignora `TRANSITIONS`, terminal guard e reopen-freeze por ser caminho de
+   override), loga a transição reversa (marcador de override no contexto do logger). Retorna o mesmo shape
+   `{success, errors}` das demais transições.
+2. **Side effects:** confirmar que voltar a `empty` já reabre a vaga/fila pela lógica existente de contagem (a vaga é
+   derivada do nº de `hired`, não um flag separado) — validar em teste; ajustar só se houver estado materializado.
+3. **Admin UI:** ação/botão "Desfazer decisão" nos cards/linhas de `hired` e `withdrew` em `RecruitmentAdminPage`,
+   gated por `current_user_can('ffc_manage_recruitment')`, com `data-ffc-confirm-*` (texto destrutivo) + campo de motivo.
+4. **AJAX handler:** endpoint dedicado (nonce + cap recheck) → chama `admin_override_to_empty`; mapear erros para
+   mensagens i18n.
+5. **Testes:** state machine (hired→empty ok, withdrew→empty ok, reason vazio recusado, status não-terminal recusado,
+   bypass de reopen-freeze, CAS perde corrida → `recruitment_state_locked`); handler (cap/nonce/erro). Manter floors.
 
 ---
 

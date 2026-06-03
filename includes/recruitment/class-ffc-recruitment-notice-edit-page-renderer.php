@@ -1127,11 +1127,16 @@ final class RecruitmentNoticeEditPageRenderer {
 				break;
 			case 'not_shown':
 				$out .= self::cls_button( $id, 'reopen', __( 'Reopen (if not frozen)', 'ffcertificate' ), 'secondary' );
+				// Admin override (#Item 8): reset to waiting even when the
+				// reopen-freeze would block the plain `reopen` above.
+				$out .= self::cls_button( $id, 'override', __( 'Undo decision (admin)', 'ffcertificate' ), 'link-delete' );
 				break;
 			case 'hired':
 			case 'withdrew':
-				// Terminal — no actions.
-				$out .= '<em>' . esc_html__( '(terminal)', 'ffcertificate' ) . '</em>';
+				// Terminal under the normal lifecycle — but an admin may undo a
+				// realized decision via the audited override (#Item 8): reopens
+				// the vacancy and returns the candidate to the waiting queue.
+				$out .= self::cls_button( $id, 'override', __( 'Undo decision (admin)', 'ffcertificate' ), 'link-delete' );
 				break;
 		}
 		return $out;

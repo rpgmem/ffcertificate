@@ -81,10 +81,11 @@ class RecruitmentClassificationsRestControllerTest extends TestCase {
     public function test_register_routes_registers_classification_route_groups(): void {
         $this->controller->register_routes();
 
-        // 14 register_rest_route calls: list/item/import/promote/call/bulk-call/
-        // status/preview-status/cancel-call/adjutancy + 4 batched-import endpoints
-        // (import-job/start, import-job/validate, import-job/batch, import-job/commit).
-        $this->assertCount( 14, $this->registered_routes );
+        // 15 register_rest_route calls: list/item/import/promote/call/bulk-call/
+        // status/preview-status/override-to-empty/cancel-call/adjutancy + 4
+        // batched-import endpoints (import-job/start, import-job/validate,
+        // import-job/batch, import-job/commit).
+        $this->assertCount( 15, $this->registered_routes );
     }
 
     public function test_register_routes_includes_classifications_and_import_routes(): void {
@@ -96,6 +97,35 @@ class RecruitmentClassificationsRestControllerTest extends TestCase {
         $this->assertStringContainsString( '/classifications', $combined );
         $this->assertStringContainsString( '/import', $combined );
         $this->assertStringContainsString( '/promote-preview', $combined );
+        $this->assertStringContainsString( '/override-to-empty', $combined );
+    }
+
+    // ------------------------------------------------------------------
+    // override_classification_to_empty() — #Item 8
+    // ------------------------------------------------------------------
+
+    public function test_override_to_empty_returns_409_when_reason_missing(): void {
+        // Routed through the real state machine: empty reason is gated before
+        // any DB read, so the handler surfaces a 409 WP_Error.
+        $result = $this->controller->override_classification_to_empty(
+            $this->make_request( array( 'id' => 10, 'reason' => '' ) )
+        );
+
+        $this->assertInstanceOf( \WP_Error::class, $result );
+        $this->assertSame( 'recruitment_transition_reason_required', $result->get_error_code() );
+        $this->assertSame( 409, $result->get_error_data()['status'] );
+    }
+
+    public function test_override_to_empty_returns_409_when_classification_missing(): void {
+        // get_by_id default-mock returns null → state machine reports
+        // not-found, handler maps it to a 409 WP_Error.
+        $result = $this->controller->override_classification_to_empty(
+            $this->make_request( array( 'id' => 999, 'reason' => 'Undo hire' ) )
+        );
+
+        $this->assertInstanceOf( \WP_Error::class, $result );
+        $this->assertSame( 'recruitment_classification_not_found', $result->get_error_code() );
+        $this->assertSame( 409, $result->get_error_data()['status'] );
     }
 
     // ------------------------------------------------------------------

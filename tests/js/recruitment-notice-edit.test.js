@@ -34,6 +34,8 @@ const CFG = {
 		timeToAssume: 'TIME?',
 		cancellationReason: 'CANCEL?',
 		reopenReason: 'REOPEN?',
+		confirmOverride: 'OVERRIDE_CONFIRM?',
+		overrideReason: 'OVERRIDE_REASON?',
 	},
 };
 
@@ -347,6 +349,43 @@ describe('ffcRecruitmentClsAct', () => {
 		expect(fetchSpy.mock.calls[0][0]).toBe(CLASS + '8/status');
 		expect(fetchSpy.mock.calls[0][1].method).toBe('PUT');
 		expect(fetchSpy.mock.calls[0][1].body).toContain('status=accepted');
+	});
+
+	it('override: confirms, prompts a reason, then POSTs /override-to-empty', () => {
+		document.body.innerHTML = '<button data-cls-id="12" data-cls-action="override">Undo</button>';
+		loadScript(SCRIPT);
+		const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(true);
+		vi.spyOn(window, 'prompt').mockReturnValueOnce('hired the wrong person');
+
+		window.ffcRecruitmentClsAct(document.querySelector('button'));
+
+		expect(confirmSpy).toHaveBeenCalledWith('OVERRIDE_CONFIRM?');
+		expect(fetchSpy.mock.calls[0][0]).toBe(CLASS + '12/override-to-empty');
+		expect(fetchSpy.mock.calls[0][1].method).toBe('POST');
+		expect(fetchSpy.mock.calls[0][1].body).toContain('reason=hired+the+wrong+person');
+	});
+
+	it('override: aborts (no fetch) when the destructive confirm is declined', () => {
+		document.body.innerHTML = '<button data-cls-id="12" data-cls-action="override">Undo</button>';
+		loadScript(SCRIPT);
+		vi.spyOn(window, 'confirm').mockReturnValue(false);
+		const promptSpy = vi.spyOn(window, 'prompt');
+
+		window.ffcRecruitmentClsAct(document.querySelector('button'));
+
+		expect(promptSpy).not.toHaveBeenCalled();
+		expect(fetchSpy).not.toHaveBeenCalled();
+	});
+
+	it('override: aborts when the reason is left blank', () => {
+		document.body.innerHTML = '<button data-cls-id="12" data-cls-action="override">Undo</button>';
+		loadScript(SCRIPT);
+		vi.spyOn(window, 'confirm').mockReturnValue(true);
+		vi.spyOn(window, 'prompt').mockReturnValueOnce('   '); // whitespace only
+
+		window.ffcRecruitmentClsAct(document.querySelector('button'));
+
+		expect(fetchSpy).not.toHaveBeenCalled();
 	});
 });
 

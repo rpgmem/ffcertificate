@@ -233,6 +233,8 @@ final class RecruitmentAdminAssetsManager {
 					'timeToAssume'          => __( 'Time to assume (HH:MM):', 'ffcertificate' ),
 					'cancellationReason'    => __( 'Cancellation reason (required):', 'ffcertificate' ),
 					'reopenReason'          => __( 'Reopen reason (required):', 'ffcertificate' ),
+					'confirmOverride'       => __( 'This will undo a realized decision (hired / withdrew / no-show), reopen the vacancy and return the candidate to the waiting queue at their original position. The candidate is NOT notified. Continue?', 'ffcertificate' ),
+					'overrideReason'        => __( 'Reason for undoing this decision (required, audited):', 'ffcertificate' ),
 				),
 			)
 		);
