@@ -32,6 +32,9 @@ class AdminUserCapabilitiesTest extends TestCase {
     /** @var Mockery\MockInterface alias mock for Utils */
     private $utils_mock;
 
+    /** @var Mockery\MockInterface alias mock for AudienceRepository */
+    private $audience_repo_mock;
+
     protected function setUp(): void {
         parent::setUp();
         Monkey\setUp();
@@ -88,6 +91,13 @@ class AdminUserCapabilitiesTest extends TestCase {
             ) )
             ->byDefault();
 
+        // AudienceRepository alias mock — render() reads the user's audience
+        // memberships for the read-only context summary.
+        $this->audience_repo_mock = Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceRepository' );
+        $this->audience_repo_mock->shouldReceive( 'get_user_audience_badges' )
+            ->andReturn( array() )
+            ->byDefault();
+
         // Utils alias mock
         $this->utils_mock = Mockery::mock( 'alias:FreeFormCertificate\Core\Utils' );
         $this->utils_mock->shouldReceive( 'asset_suffix' )
@@ -104,7 +114,10 @@ class AdminUserCapabilitiesTest extends TestCase {
             echo $text;
         } );
         Functions\when( 'esc_attr' )->returnArg();
+        Functions\when( 'esc_attr__' )->returnArg();
         Functions\when( 'esc_html' )->returnArg();
+        Functions\when( 'esc_url' )->returnArg();
+        Functions\when( 'admin_url' )->returnArg();
         Functions\when( 'checked' )->alias( function ( $checked, $current = true, $echo = true ) {
             $result = $checked == $current ? ' checked=\'checked\'' : '';
             if ( $echo ) {
@@ -171,12 +184,20 @@ class AdminUserCapabilitiesTest extends TestCase {
                 array(),
                 FFC_VERSION
             );
+        Functions\expect( 'wp_enqueue_style' )
+            ->once()
+            ->with(
+                'ffc-user-permissions',
+                Mockery::pattern( '/ffc-user-permissions\.min\.css/' ),
+                array( 'ffc-common' ),
+                FFC_VERSION
+            );
         Functions\expect( 'wp_enqueue_script' )
             ->once()
             ->with(
                 'ffc-user-capabilities',
                 Mockery::pattern( '/ffc-user-capabilities\.min\.js/' ),
-                array( 'jquery' ),
+                array(),
                 FFC_VERSION,
                 true
             );
@@ -258,22 +279,38 @@ class AdminUserCapabilitiesTest extends TestCase {
         AdminUserCapabilities::render_capability_fields( $user );
         $output = ob_get_clean();
 
-        // Should contain the heading
+        // Heading + panel wrapper.
         $this->assertStringContainsString( 'FFC Permissions', $output );
+        $this->assertStringContainsString( 'ffc-cap-panel', $output );
 
-        // Should contain checkbox inputs for capabilities
+        // Checkbox inputs across the user-level groups…
         $this->assertStringContainsString( 'ffc_cap_ffc_view_own_certificates', $output );
         $this->assertStringContainsString( 'ffc_cap_ffc_download_own_certificates', $output );
         $this->assertStringContainsString( 'ffc_cap_ffc_book_appointments', $output );
         $this->assertStringContainsString( 'ffc_cap_ffc_view_self_scheduling', $output );
         $this->assertStringContainsString( 'ffc_cap_ffc_manage_reregistration', $output );
 
-        // Should contain the nonce field
-        $this->assertStringContainsString( 'ffc_capabilities_nonce', $output );
+        // …and the admin-level caps that the old flat form never rendered
+        // (proves the full 26-cap catalog is now shown, fixing the silent
+        // remove_cap() on save).
+        $this->assertStringContainsString( 'ffc_cap_ffc_manage_recruitment', $output );
+        $this->assertStringContainsString( 'ffc_cap_ffc_view_recruitment_pii', $output );
+        $this->assertStringContainsString( 'ffc_cap_ffc_manage_settings', $output );
 
-        // Should contain quick-action buttons
-        $this->assertStringContainsString( 'ffc-grant-all-caps', $output );
-        $this->assertStringContainsString( 'ffc-revoke-all-caps', $output );
+        // New affordances: slug chips, origin badges, search box, presets.
+        $this->assertStringContainsString( 'ffc-cap-slug', $output );
+        $this->assertStringContainsString( 'ffc-cap-origin', $output );
+        $this->assertStringContainsString( 'ffc-cap-search', $output );
+        $this->assertStringContainsString( 'data-ffc-preset="all"', $output );
+        $this->assertStringContainsString( 'data-ffc-preset="none"', $output );
+
+        // Read-only context summary (role + audiences).
+        $this->assertStringContainsString( 'ffc-cap-context', $output );
+        $this->assertStringContainsString( 'ffc_user', $output );
+        $this->assertStringContainsString( 'page=ffc-scheduling-audiences', $output );
+
+        // Nonce field.
+        $this->assertStringContainsString( 'ffc_capabilities_nonce', $output );
     }
 
     // ==================================================================
