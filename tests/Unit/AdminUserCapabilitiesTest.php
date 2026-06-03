@@ -137,6 +137,56 @@ class AdminUserCapabilitiesTest extends TestCase {
         Functions\when( 'get_current_user_id' )->justReturn( 1 );
         Functions\when( 'get_option' )->justReturn( array() );
         Functions\when( 'get_userdata' )->justReturn( false );
+        Functions\when( 'absint' )->alias( 'intval' );
+        Functions\when( 'sanitize_key' )->returnArg();
+        Functions\when( 'wp_create_nonce' )->justReturn( 'role-nonce' );
+        Functions\when( 'wp_localize_script' )->justReturn( true );
+        Functions\when( '_n' )->alias(
+            static function ( $single, $plural, $number ) {
+                return 1 === $number ? $single : $plural;
+            }
+        );
+
+        // wp_roles(): a minimal stand-in exposing ->roles + get_names(), so
+        // ffc_preset_roles() can discover the FFC roles (those granting an FFC
+        // cap and NOT manage_options).
+        $roles_obj = new class() {
+            /** @var array<string,array<string,mixed>> */
+            public $roles = array(
+                'ffc_user'                 => array(
+                    'capabilities' => array(
+                        'read'                      => true,
+                        'ffc_view_own_certificates' => true,
+                        'ffc_book_appointments'     => true,
+                    ),
+                ),
+                'ffc_recruitment_manager'  => array(
+                    'capabilities' => array(
+                        'read'                   => true,
+                        'ffc_manage_recruitment' => true,
+                        'ffc_view_recruitment'   => true,
+                    ),
+                ),
+                'administrator'            => array(
+                    'capabilities' => array(
+                        'manage_options'      => true,
+                        'ffc_manage_settings' => true,
+                    ),
+                ),
+                'subscriber'               => array(
+                    'capabilities' => array( 'read' => true ),
+                ),
+            );
+            public function get_names() {
+                return array(
+                    'ffc_user'                => 'FFC User',
+                    'ffc_recruitment_manager' => 'Recruitment Manager',
+                    'administrator'           => 'Administrator',
+                    'subscriber'              => 'Subscriber',
+                );
+            }
+        };
+        Functions\when( 'wp_roles' )->justReturn( $roles_obj );
     }
 
     protected function tearDown(): void {
@@ -353,6 +403,156 @@ class AdminUserCapabilitiesTest extends TestCase {
         // The current membership (7) is pre-checked; the non-membership (3) is not.
         $this->assertMatchesRegularExpression( '/value="7"[^>]*checked/', $output );
         $this->assertDoesNotMatchRegularExpression( '/value="3"[^>]*checked/', $output );
+    }
+
+    // ==================================================================
+    // render_capability_fields() — role preset chips (#Frente A)
+    // ==================================================================
+
+    public function test_render_outputs_role_preset_chips_and_locks_role_caps(): void {
+        Functions\when( 'current_user_can' )->justReturn( true );
+        Functions\when( 'user_can' )->justReturn( false );
+
+        $user        = new \WP_User( 5 );
+        $user->roles = array( 'ffc_user' );
+
+        ob_start();
+        AdminUserCapabilities::render_capability_fields( $user );
+        $output = ob_get_clean();
+
+        // FFC roles render as assignable chips; ffc_user is currently assigned.
+        $this->assertStringContainsString( 'data-ffc-role="ffc_user"', $output );
+        $this->assertStringContainsString( 'data-ffc-role="ffc_recruitment_manager"', $output );
+        $this->assertMatchesRegularExpression( '/data-ffc-role="ffc_user"[^>]*aria-pressed="true"/', $output );
+
+        // administrator (manage_options) and subscriber (no FFC cap) are excluded.
+        $this->assertStringNotContainsString( 'data-ffc-role="administrator"', $output );
+        $this->assertStringNotContainsString( 'data-ffc-role="subscriber"', $output );
+
+        // Caps the ffc_user role grants lock as "Role" (byrole toggle + badge).
+        $this->assertStringContainsString( 'ffc-cap-toggle--byrole', $output );
+        $this->assertStringContainsString( 'ffc-cap-origin--role', $output );
+    }
+
+    // ==================================================================
+    // ajax_toggle_user_role() — role assignment (#Frente A)
+    // ==================================================================
+
+    /**
+     * Invoke the AJAX handler, capturing the wp_send_json_* payload. The
+     * stubs throw so execution halts exactly where the real wp_die would.
+     *
+     * @return array<string, mixed>
+     */
+    private function run_ajax_role(): array {
+        $captured = array();
+        Functions\when( 'check_ajax_referer' )->justReturn( true );
+        Functions\when( 'wp_send_json_success' )->alias(
+            static function ( $data = null ) use ( &$captured ) {
+                $captured = array( 'ok' => true, 'data' => $data );
+                throw new \Exception( 'ffc_json_halt' );
+            }
+        );
+        Functions\when( 'wp_send_json_error' )->alias(
+            static function ( $data = null, $code = null ) use ( &$captured ) {
+                $captured = array( 'ok' => false, 'data' => $data, 'code' => $code );
+                throw new \Exception( 'ffc_json_halt' );
+            }
+        );
+        try {
+            AdminUserCapabilities::ajax_toggle_user_role();
+        } catch ( \Exception $e ) {
+            if ( 'ffc_json_halt' !== $e->getMessage() ) {
+                throw $e;
+            }
+        }
+        return $captured;
+    }
+
+    public function test_ajax_assigns_a_preset_role(): void {
+        $_POST['user_id'] = '5';
+        $_POST['role']    = 'ffc_recruitment_manager';
+        $_POST['assign']  = '1';
+
+        $user        = new \WP_User( 5 );
+        $user->roles = array( 'ffc_user' );
+        Functions\when( 'get_userdata' )->justReturn( $user );
+
+        $res = $this->run_ajax_role();
+
+        $this->assertTrue( $res['ok'] );
+        $this->assertContains( 'ffc_recruitment_manager', $user->roles );
+        $this->assertContains( 'ffc_user', $user->roles );
+
+        unset( $_POST['user_id'], $_POST['role'], $_POST['assign'] );
+    }
+
+    public function test_ajax_removes_a_preset_role(): void {
+        $_POST['user_id'] = '5';
+        $_POST['role']    = 'ffc_user';
+        $_POST['assign']  = '0';
+
+        $user        = new \WP_User( 5 );
+        $user->roles = array( 'ffc_user', 'ffc_recruitment_manager' );
+        Functions\when( 'get_userdata' )->justReturn( $user );
+
+        $res = $this->run_ajax_role();
+
+        $this->assertTrue( $res['ok'] );
+        $this->assertNotContains( 'ffc_user', $user->roles );
+        $this->assertContains( 'ffc_recruitment_manager', $user->roles );
+
+        unset( $_POST['user_id'], $_POST['role'], $_POST['assign'] );
+    }
+
+    public function test_ajax_rejects_non_preset_role(): void {
+        $_POST['user_id'] = '5';
+        $_POST['role']    = 'editor';
+        $_POST['assign']  = '1';
+
+        $user        = new \WP_User( 5 );
+        $user->roles = array( 'ffc_user' );
+        Functions\when( 'get_userdata' )->justReturn( $user );
+
+        $res = $this->run_ajax_role();
+
+        $this->assertFalse( $res['ok'] );
+        $this->assertSame( 'role_not_assignable', $res['data']['message'] );
+        $this->assertNotContains( 'editor', $user->roles );
+
+        unset( $_POST['user_id'], $_POST['role'], $_POST['assign'] );
+    }
+
+    public function test_ajax_refuses_to_edit_admin_target(): void {
+        $_POST['user_id'] = '5';
+        $_POST['role']    = 'ffc_user';
+        $_POST['assign']  = '0';
+
+        Functions\when( 'user_can' )->justReturn( true ); // target is an administrator
+        $user = new \WP_User( 5 );
+        Functions\when( 'get_userdata' )->justReturn( $user );
+
+        $res = $this->run_ajax_role();
+
+        $this->assertFalse( $res['ok'] );
+        $this->assertSame( 'cannot_edit_admin', $res['data']['message'] );
+
+        unset( $_POST['user_id'], $_POST['role'], $_POST['assign'] );
+    }
+
+    public function test_ajax_requires_manage_options(): void {
+        $_POST['user_id'] = '5';
+        $_POST['role']    = 'ffc_user';
+        $_POST['assign']  = '1';
+
+        Functions\when( 'current_user_can' )->justReturn( false );
+
+        $res = $this->run_ajax_role();
+
+        $this->assertFalse( $res['ok'] );
+        $this->assertSame( 'forbidden', $res['data']['message'] );
+
+        unset( $_POST['user_id'], $_POST['role'], $_POST['assign'] );
     }
 
     // ==================================================================
