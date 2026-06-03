@@ -322,6 +322,34 @@ completa (não a lista filtrada). Cobrir com teste (filtrado vs. não-filtrado).
 
 ---
 
+## Item 8 — Feature: admin retroceder o status final de um candidato para "antes de chamado"  ⬜ (avaliar juntos antes de fazer)
+
+**Pedido.** Permitir que o admin **retroceda o status final** de um candidato de convocação para um estado
+**anterior ao "chamado"** (ex.: voltar de `hired`/`accepted`/`not_shown`/`called` → `empty`/aguardando), desfazendo
+uma chamada/decisão.
+
+**Contexto técnico (a investigar na avaliação).** Os status de classificação são geridos por
+`RecruitmentClassificationStateMachine` (+ `RecruitmentClassificationRepository`); os estados conhecidos hoje são
+`empty` (aguardando), `called`, `accepted`, `not_shown`, `hired` (ver `classification_status_label()` em
+`RecruitmentAdminPage`). Há ações de transição (call/promote) e provavelmente regras de quais transições são
+permitidas. "Retroceder" significa adicionar uma transição reversa (e decidir efeitos colaterais: fila/ordem de
+convocação, audit log, e-mails já disparados, vaga liberada, etc.).
+
+**Pontos a decidir juntos (antes de implementar):**
+- Quais status finais podem retroceder e para qual estado exatamente (só `called→empty`, ou também
+  `hired/accepted/not_shown→empty`?).
+- Efeitos colaterais: a posição na fila volta? Reabre a vaga? Registra no activity log? Notifica o candidato?
+- Permissão/gating (cap `ffc_manage_recruitment`) + confirmação destrutiva na UI (como o padrão `data-ffc-confirm-*`).
+- Idempotência/concorrência com a máquina de estados existente; cobertura de teste da nova transição.
+
+**Status.** Não iniciado. **Avaliar em conjunto antes de codar** (a pedido do mantenedor).
+
+### Plano
+_A preencher na sessão de avaliação — mapear `RecruitmentClassificationStateMachine`, definir transições reversas
+permitidas + efeitos colaterais, e cobrir com testes da state machine._
+
+---
+
 ## Ordem de execução sugerida
 
 1. **Item 5 — Segurança** (rápido, alto valor, baixo risco): escapar outputs do dashboard + `rel=noopener`.
@@ -330,7 +358,8 @@ completa (não a lista filtrada). Cobrir com teste (filtrado vs. não-filtrado).
 4. **Item 1 — Extração de CSS inline** dos 2 maiores (recruitment-notice-edit, tab-migrations).
 5. **Item 3 — Fragmentação PHP** (`rate-limit-checker`) e **Item 4 — consolidações** pequenas (oportunístico).
 6. **Item 6 — Dívida técnica** (avaliar atuar no único item acionável ou adiar).
-7. **Item 7 — Bug da justificativa fora de ordem com lista filtrada** (último; bug funcional, fora do escopo de refactor).
+7. **Item 7 — Bug da justificativa fora de ordem com lista filtrada** (bug funcional, fora do escopo de refactor).
+8. **Item 8 — Feature: retroceder status final de candidato** (avaliar em conjunto antes de implementar).
 
 ## Log de sprints (commits desta PR)
 | # | Item | Descrição | Commit |
