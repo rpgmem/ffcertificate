@@ -323,7 +323,7 @@ intencionais/documentados (sem ação). Ver "Item 9" abaixo para o acompanhament
 
 ---
 
-## Item 7 — Bug: caixa de justificativa some ao "chamar" fora de ordem com a listagem filtrada  🟦 (avaliado s18; correção planejada)
+## Item 7 — Bug: caixa de justificativa some ao "chamar" fora de ordem com a listagem filtrada  ✅ (avaliado + corrigido s18)
 
 **Sintoma.** No admin de convocação de um edital, ao **filtrar** os candidatos e então clicar
 em **"chamar"** um usuário que está **fora de ordem**, a **caixa de justificativa não aparece** —
@@ -379,6 +379,17 @@ avisado upfront (preenche a data e bate no erro do servidor / erro no single-cal
 **Esforço:** médio. **Risco:** baixo-médio (aditivo no servidor + troca da fonte no JS; comportamento sem filtro
 inalterado). **Recomendação:** corrigir — é a única falha funcional real achada na auditoria (mesmo sendo UX, fura
 a expectativa do operador e gera erro confuso).
+
+### Correção (sprint 18) — implementada
+
+Novo helper `RecruitmentNoticeEditPageRenderer::compute_empties_by_adjutancy($rows)` constrói o mapa autoritativo
+`{ adjutancySlug: [{id,rank}…] }` das classificações `empty` a partir do `$definitive_rows` **não-filtrado**
+(computado antes do `apply_filters`). Emitido na view como `data-ffc-empties` no painel `data-ffc-clspanel="definitive"`.
+No JS inline (`render_classification_actions_script`), `ffcRecruitmentLowestEmpty()` e o threshold do bulk passaram a
+ler esse mapa via novo `ffcRecruitmentEmptiesMap()` (JSON.parse do atributo) em vez de `panel.querySelectorAll`. Isso
+conserta **também** o caso de paginação (não só o filtro), já que a fonte deixa de ser o DOM (filtrado **e** paginado).
+**Test-first:** `RecruitmentNoticeEditPageRendererTest` (3 casos: agrupa/ordena/exclui não-empty; mapa vazio sem
+empties; fallback `#id` quando o slug não resolve). PHPUnit completo 4898 ✓ · PHPStan 8 ✓ · WPCS ✓.
 
 ---
 
@@ -464,3 +475,4 @@ aponta para o dashboard com params mortos (`action=cancel&appointment_id`) e exi
 | 15 | 3 | fragmentar `recruitment-admin-page` (1128→1029): `dispatch_action` (state-transitions) → `RecruitmentAdminActions` **test-first** (+7 testes); render_* ficam (WP_List_Table-coupled, justificado); PHPStan 8 + WPCS + PHPUnit ✓ | sprint 15 |
 | 16 | 3 | fragmentar `audience-loader` (1131→408): ~13 handlers `ajax_*` + 2 helpers → `AudienceAjaxController` (facade via `register()`) **test-first** (3 helper tests movidos + registro + 2 caracterizações); PHPStan 8 + WPCS + PHPUnit ✓. **Item 3 concluído.** | sprint 16 |
 | 17 | 4 | avaliar consolidações: remover stub morto `ffc-calendar-admin.js` (+ enqueue/localize/nonce/jquery-ui-theme + teste + coverage-exclude); CSS de badges e split recruitment mantidos (escopo correto). Vitest 1045 ✓ + PHPUnit + PHPStan + WPCS ✓. **Item 4 concluído.** | sprint 17 |
+| 18 | 7 | corrigir bug do gate de justificativa fora-de-ordem: detecção client-side passa a ler o mapa autoritativo `data-ffc-empties` (servidor, lista não-filtrada/não-paginada) via `compute_empties_by_adjutancy` em vez de varrer o DOM filtrado; conserta filtro + paginação; +3 testes; PHPUnit 4898 + PHPStan 8 + WPCS ✓ | sprint 18 |

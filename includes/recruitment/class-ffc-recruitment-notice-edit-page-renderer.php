@@ -748,6 +748,13 @@ final class RecruitmentNoticeEditPageRenderer {
 		$preview         = RecruitmentClassificationRepository::get_for_notice( $notice_id, 'preview' );
 		$definitive_rows = RecruitmentClassificationRepository::get_for_notice( $notice_id, 'definitive' );
 
+		// Authoritative out-of-order source for the client gate (#Item7):
+		// computed from the UNFILTERED, unpaginated definitive list before the
+		// filter below narrows $definitive_rows for display. Handed to the JS
+		// via the definitive panel's data-ffc-empties attribute so the
+		// justification prompt fires regardless of the active filter / page.
+		$def_empties_by_adj = self::compute_empties_by_adjutancy( $definitive_rows );
+
 		// Once a definitive list exists for the notice the preview tab
 		// becomes mostly archival — operators are working off the
 		// definitive ranking. Captured from the unfiltered query so an
@@ -794,7 +801,7 @@ final class RecruitmentNoticeEditPageRenderer {
 		self::render_classifications_table( $preview, false, 'preliminary' );
 		echo '</div>';
 
-		echo '<div data-ffc-clspanel="definitive" style="display:' . esc_attr( $def_display ) . ';">';
+		echo '<div data-ffc-clspanel="definitive" data-ffc-empties="' . esc_attr( (string) wp_json_encode( $def_empties_by_adj ) ) . '" style="display:' . esc_attr( $def_display ) . ';">';
 		self::render_classifications_table( $definitive_rows, true, 'definitive' );
 		echo '</div>';
 
@@ -1293,27 +1300,28 @@ final class RecruitmentNoticeEditPageRenderer {
 		$bulk_reason_label       = esc_js( __( 'Justification for calling out of order (required)', 'ffcertificate' ) );
 
 		echo '<script>'
-			// Compute the lowest-rank `empty` row per adjutancy from the
-			// rendered DOM. Used by both the single-row Call handler and
-			// the bulk-call handler to detect skips before any prompt.
-			//
-			// Scoped to the Definitive panel: the Preliminary table also
-			// renders `data-cls-*` rows and they are ALWAYS status="empty"
-			// per the §5.2 invariant (preview rows can't be called); a
-			// global scan would let those preview rows pin the lowest-rank
-			// empty in their adjutancy and then every definitive call ≥ 2
-			// would falsely trip the OOO prompt.
-			. 'function ffcRecruitmentLowestEmpty(){'
+			// Out-of-order detection reads the AUTHORITATIVE empties map from
+			// the definitive panel's data-ffc-empties attribute (server-built
+			// from the full, unfiltered/unpaginated queue — see
+			// compute_empties_by_adjutancy / #Item7). Scanning the rendered DOM
+			// was wrong: the table is filtered (server-side) + paginated, so a
+			// narrowed view hid the true lower-rank empties and the called
+			// candidate looked like next-in-queue, skipping the justification
+			// prompt. Shape: { adjutancySlug: [{id,rank}, …] }.
+			. 'function ffcRecruitmentEmptiesMap(){'
 			. 'var panel=document.querySelector(\'[data-ffc-clspanel="definitive"]\');'
 			. 'if(!panel)return {};'
-			. 'var rows=panel.querySelectorAll("tr[data-cls-id]");'
+			. 'try{return JSON.parse(panel.getAttribute("data-ffc-empties")||"{}");}catch(e){return {};}'
+			. '}'
+			// Lowest-rank `empty` per adjutancy (single-row Call handler).
+			. 'function ffcRecruitmentLowestEmpty(){'
+			. 'var empties=ffcRecruitmentEmptiesMap();'
 			. 'var lowest={};'
-			. 'for(var i=0;i<rows.length;i++){'
-			. 'var tr=rows[i];'
-			. 'if(tr.getAttribute("data-cls-status")!=="empty")continue;'
-			. 'var adj=tr.getAttribute("data-cls-adjutancy");'
-			. 'var rank=parseInt(tr.getAttribute("data-cls-rank"),10);'
-			. 'if(!lowest[adj]||rank<lowest[adj]){lowest[adj]=rank;}'
+			. 'for(var adj in empties){'
+			. 'var list=empties[adj];'
+			. 'for(var i=0;i<list.length;i++){'
+			. 'if(!(adj in lowest)||list[i].rank<lowest[adj]){lowest[adj]=list[i].rank;}'
+			. '}'
 			. '}'
 			. 'return lowest;'
 			. '}'
@@ -1341,18 +1349,7 @@ final class RecruitmentNoticeEditPageRenderer {
 			// would flag rank 2 and rank 3 as OOO because rank 1 is
 			// still empty at scan time, even though rank 1 is also in
 			// the same selection and gets called atomically alongside.
-			. 'var panel=document.querySelector(\'[data-ffc-clspanel="definitive"]\');'
-			. 'var emptyByAdj={};'
-			. 'if(panel){'
-			. 'var allRows=panel.querySelectorAll("tr[data-cls-id]");'
-			. 'for(var p=0;p<allRows.length;p++){'
-			. 'var ptr=allRows[p];'
-			. 'if(ptr.getAttribute("data-cls-status")!=="empty")continue;'
-			. 'var padj=ptr.getAttribute("data-cls-adjutancy");'
-			. 'if(!emptyByAdj[padj])emptyByAdj[padj]=[];'
-			. 'emptyByAdj[padj].push({id:parseInt(ptr.getAttribute("data-cls-id"),10),rank:parseInt(ptr.getAttribute("data-cls-rank"),10)});'
-			. '}'
-			. '}'
+			. 'var emptyByAdj=ffcRecruitmentEmptiesMap();'
 			. 'for(var k in emptyByAdj){emptyByAdj[k].sort(function(a,b){return a.rank-b.rank;});}'
 			. 'var selSet={};'
 			. 'for(var s=0;s<ids.length;s++){selSet[String(ids[s])]=true;}'
@@ -1565,6 +1562,50 @@ final class RecruitmentNoticeEditPageRenderer {
 			}
 		}
 		return $out;
+	}
+
+	/**
+	 * Authoritative out-of-order map for the client gate (#Item7).
+	 *
+	 * Groups every `empty` classification by adjutancy slug, each list sorted
+	 * ascending by rank. The client-side out-of-order detection in
+	 * {@see render_classification_actions_script()} previously scanned the
+	 * rendered DOM, but that table is both filtered (server-side) and
+	 * paginated — so a narrowed view drops the true lower-rank empties and the
+	 * called candidate looks like next-in-queue, skipping the justification
+	 * prompt. This map is built from the full, unfiltered/unpaginated
+	 * definitive list (the same queue the server's `find_lowest_rank_empty`
+	 * enforces) and handed to the JS via the panel's `data-ffc-empties`
+	 * attribute. Keyed by slug to match the rows' `data-cls-adjutancy`.
+	 *
+	 * @param array<int, object> $rows Definitive-list classification rows.
+	 * @phpstan-param list<ClassificationRow> $rows
+	 * @return array<string, array<int, array{id:int, rank:int}>>
+	 */
+	private static function compute_empties_by_adjutancy( array $rows ): array {
+		$empties = array_filter( $rows, static fn( $r ) => 'empty' === (string) $r->status );
+		if ( empty( $empties ) ) {
+			return array();
+		}
+
+		$adj_ids = array_map( static fn( $r ) => (int) $r->adjutancy_id, $empties );
+		$slugs   = self::lookup_map( array_unique( $adj_ids ), array( RecruitmentAdjutancyRepository::class, 'get_by_id' ), 'slug' );
+
+		$map = array();
+		foreach ( $empties as $r ) {
+			$slug           = $slugs[ (int) $r->adjutancy_id ] ?? '#' . (int) $r->adjutancy_id;
+			$map[ $slug ][] = array(
+				'id'   => (int) $r->id,
+				'rank' => (int) $r->rank,
+			);
+		}
+
+		foreach ( $map as &$list ) {
+			usort( $list, static fn( $a, $b ) => $a['rank'] <=> $b['rank'] );
+		}
+		unset( $list );
+
+		return $map;
 	}
 
 	/**
