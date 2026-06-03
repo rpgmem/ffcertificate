@@ -117,6 +117,9 @@ describe('Sprint 1 (#361) — browser-env diagnostic log gating', () => {
 		const infoSpy = vi.spyOn(console, 'info').mockImplementation(() => {});
 
 		loadScript('assets/js/ffc-geofence-frontend.js');
+		loadScript('assets/js/ffc-geofence-datetime.js');
+		loadScript('assets/js/ffc-geofence-gps.js');
+		loadScript('assets/js/ffc-geofence-preflight.js');
 		window.ffcGeofenceConfig = { _global: { debug: false } };
 		window.FFCGeofence.init();
 		await Promise.resolve();

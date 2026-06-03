@@ -1,7 +1,20 @@
 /**
- * Public CSV Download — AJAX batched export with intermediate info screen.
+ * Public CSV Download — shared core (config + runtime state + UI helpers).
  *
- * Flow:
+ * This file owns the `window.FFCCsv` singleton: the localized config, the
+ * mutable DOM/job state shared across flows, the progress-overlay helpers,
+ * the flash message, the form-button helpers, and the boot sequence.
+ *
+ * The individual flows live in sibling files that depend on this handle and
+ * read/extend the namespace:
+ *  - ffc-csv-info-screen.js        → step 1 (info screen) + section builders
+ *  - ffc-csv-cert-preview.js       → certificate preview modal
+ *  - ffc-csv-download-flow.js      → batched export (start → batch → download)
+ *  - ffc-csv-open-early.js         → "Start Form Now" (early open)
+ *  - ffc-csv-extend-end.js         → "Postpone close"
+ *  - ffc-csv-schedule-exception.js → per-participant schedule exception (#366)
+ *
+ * Flow overview:
  *  1. ffc_public_csv_info     → validate hash → show form details screen
  *  2. (optional) cert preview → modal with certificate HTML
  *  3. ffc_public_csv_start    → create export job → returns job_id, total
@@ -15,1113 +28,146 @@
 (function ($) {
 	'use strict';
 
-	var cfg         = window.ffc_csv_download || {};
-	var MIN_DISPLAY = cfg.min_display_ms || 1500;
-	var SAFETY_MS   = 300000; // 5 min hard timeout
-	var strings     = cfg.strings || {};
-
-	// DOM refs (set in init)
-	var $container, $form, $btn, $overlay;
-	// Serialised form payload reused across the start / batch AJAX calls.
-	var formData;
-	// Job state
-	var jobId, nonceBatch, total, startTime, safetyTimer;
-
-	// ── Initialise ──────────────────────────────────────────────
-
-	function init() {
-		$container = $('.ffc-public-csv-download');
-		$form      = $container.find('form');
-		if (!$form.length) {
-			return;
-		}
-		$btn = $form.find('.ffc-submit-btn');
-		$form.on('submit', onSubmitInfo);
-
-		// 6.3.4: apply the canonical CPF/RF mask helper to the optional CPF
-		// field rendered when _ffc_csv_public_cpf_mode is set on the target
-		// form. Reuses the same Masks API the certificate form uses, so the
-		// formatting (XXX.XXX.XXX-XX) and the on-blur valid/invalid styling
-		// match exactly. Auto-discovers inputs by name="cpf" / id="ffc-pcd-cpf".
-		if (window.FFC && window.FFC.Frontend && window.FFC.Frontend.Masks) {
-			window.FFC.Frontend.Masks.applyCpfRf($container.find('input[name="cpf"]'));
-		}
-	}
-
-	// ── Step 1: Request form info ───────────────────────────────
-
-	function onSubmitInfo(e) {
-		e.preventDefault();
-		disableBtn();
-		showOverlay(strings.validating || 'Validating…');
-
-		formData = $form.serialize();
-
-		FFC.request('ffc_public_csv_info', formData)
-			.then(function (data) {
-				hideOverlay();
-				renderInfoScreen(data);
-			})
-			.catch(function (err) {
-				hideOverlay();
-				if (err && err.fromServer) {
-					showFlash(err.message || strings.error || 'Error', 'error');
-					enableBtn();
-				} else {
-					showFlash(strings.connError || 'Connection error.', 'error');
-					enableBtn();
-				}
-			});
-	}
-
-	// ── Render info screen ──────────────────────────────────────
-
-	function renderInfoScreen(info) {
-		var html = '';
-
-		// Header with back button.
-		html += '<div class="ffc-info-header">';
-		html += '<button type="button" class="ffc-info-back" title="' + esc(strings.backToForm || 'Back') + '">';
-		html += '<span class="ffc-info-back-arrow">&#8592;</span> ' + esc(strings.backToForm || 'Back');
-		html += '</button>';
-		html += '<h2>' + esc(strings.formDetails || 'Form Details') + '</h2>';
-		html += '</div>';
-
-		// Form title + submissions.
-		html += '<div class="ffc-info-section ffc-info-summary">';
-		html += '<div class="ffc-info-row">';
-		html += '<span class="ffc-info-label">' + esc(strings.formTitle || 'Form') + '</span>';
-		html += '<span class="ffc-info-value">' + esc(info.form_title) + '</span>';
-		html += '</div>';
-		html += '<div class="ffc-info-row">';
-		html += '<span class="ffc-info-label">' + esc(strings.totalSubmissions || 'Total submissions') + '</span>';
-		html += '<span class="ffc-info-value">' + info.submission_count + '</span>';
-		html += '</div>';
-		html += '</div>';
-
-		// Restrictions (only if any are active).
-		html += buildRestrictionsSection(info.restrictions);
-
-		// Availability period.
-		html += buildDatetimeSection(info.datetime, info.status);
-
-		// Geolocation.
-		html += buildGeolocationSection(info.geolocation);
-
-		// Quiz.
-		html += buildQuizSection(info.quiz);
-
-		// CSV download section.
-		html += buildCsvSection(info.csv, info.status);
-
-		// Status message.
-		html += buildStatusMessage(info.status);
-
-		// Action buttons.
-		html += '<div class="ffc-info-actions">';
-		if (info.status.can_preview_cert) {
-			html += '<button type="button" class="ffc-info-btn ffc-info-btn-secondary ffc-btn-cert-preview">';
-			html += esc(strings.previewCertificate || 'Preview Certificate');
-			html += '</button>';
-		} else if (info.status.cert_preview_disabled_by_admin) {
-			html += '<button type="button" class="ffc-info-btn ffc-info-btn-secondary ffc-btn-cert-preview" disabled '
-				+ 'title="' + esc(strings.certPreviewDisabledTip || 'Certificate Preview disabled') + '">';
-			html += esc(strings.previewCertificate || 'Preview Certificate');
-			html += '</button>';
-		}
-		// Start Form Early: enabled when can_open_early; disabled-visible
-		// when admin turned it off (so the operator sees the feature exists
-		// but is blocked); hidden otherwise. Same shape for Postpone Close.
-		if (info.status.can_open_early) {
-			html += '<button type="button" class="ffc-info-btn ffc-info-btn-warning ffc-btn-open-early" '
-				+ 'title="' + esc(strings.openEarlyTooltip || 'Overrides the scheduled start time. Form opens immediately.') + '">';
-			html += esc(strings.startFormNow || 'Start Form Now');
-			html += '</button>';
-		} else if (info.status.start_early_disabled_by_admin) {
-			html += '<button type="button" class="ffc-info-btn ffc-info-btn-warning ffc-btn-open-early" disabled '
-				+ 'title="' + esc(strings.startEarlyDisabledTip || 'Start Form Early disabled') + '">';
-			html += esc(strings.startFormNow || 'Start Form Now');
-			html += '</button>';
-		}
-		if (info.status.can_extend_end) {
-			html += '<button type="button" class="ffc-info-btn ffc-info-btn-warning ffc-btn-extend-end" '
-				+ 'title="' + esc(strings.postponeCloseTooltip || 'Move the form\'s close time later within the same day. One-shot per form.') + '">';
-			html += esc(strings.postponeClose || 'Postpone close');
-			html += '</button>';
-		} else if (info.status.extend_end_disabled_by_admin) {
-			html += '<button type="button" class="ffc-info-btn ffc-info-btn-warning ffc-btn-extend-end" disabled '
-				+ 'title="' + esc(strings.extendEndDisabledTip || 'Postpone Close disabled') + '">';
-			html += esc(strings.postponeClose || 'Postpone close');
-			html += '</button>';
-		}
-		// Schedule exception button (#366). Gated server-side by
-		// `can_schedule_exception` which mirrors the action's
-		// is_eligible(); no `*_disabled_by_admin` variant since admins
-		// who opt out simply don't show the button to operators (the
-		// flow itself stays hidden, no "feature exists but unavailable"
-		// surface).
-		if (info.status.can_schedule_exception) {
-			html += '<button type="button" class="ffc-info-btn ffc-info-btn-warning ffc-btn-schedule-exception" '
-				+ 'title="' + esc(strings.scheduleExceptionTooltip || 'Create a one-use schedule exception for a single participant submission.') + '">';
-			html += esc(strings.scheduleException || 'Entry/exit exception');
-			html += '</button>';
-		}
-		// Download CSV button is always rendered — toggle disabled state.
-		// Admin-disabled gets a specific tooltip so the operator knows the
-		// feature was turned off intentionally vs. just temporarily blocked
-		// (form still active, quota exhausted, etc., which the info alert
-		// below explains).
-		if (info.status.can_download) {
-			html += '<button type="button" class="ffc-info-btn ffc-info-btn-primary ffc-btn-download-csv">';
-			html += esc(strings.downloadCsv || 'Download CSV');
-			html += '</button>';
-		} else if (info.status.csv_download_disabled_by_admin) {
-			html += '<button type="button" class="ffc-info-btn ffc-info-btn-primary ffc-btn-download-csv" disabled '
-				+ 'title="' + esc(strings.csvDownloadDisabledTip || 'CSV download disabled') + '">';
-			html += esc(strings.downloadCsv || 'Download CSV');
-			html += '</button>';
-		} else {
-			html += '<button type="button" class="ffc-info-btn ffc-info-btn-primary ffc-btn-download-csv" disabled>';
-			html += esc(strings.downloadCsv || 'Download CSV');
-			html += '</button>';
-		}
-		html += '</div>';
-
-		// Replace container content.
-		$container.html('<div class="ffc-info-screen">' + html + '</div>');
-		// Stash for the open-early modal copy (needs original start
-		// formatted for the warning text).
-		$container.data('ffc-last-info', info);
-
-		// Bind events.
-		$container.find('.ffc-info-back').on('click', goBack);
-		$container.find('.ffc-btn-download-csv').not('[disabled]').on('click', onDownloadClick);
-		$container.find('.ffc-btn-cert-preview').on('click', onCertPreviewClick);
-		$container.find('.ffc-btn-open-early').on('click', onOpenEarlyClick);
-		$container.find('.ffc-btn-extend-end').on('click', onExtendEndClick);
-		$container.find('.ffc-btn-schedule-exception').on('click', onScheduleExceptionClick);
-	}
-
-	// ── Section builders ────────────────────────────────────────
-
-	function buildRestrictionsSection(restrictions) {
-		if (!restrictions) return '';
-		var items = [];
-		if (restrictions.password)  items.push(strings.passwordRequired  || 'Password required');
-		if (restrictions.allowlist) items.push(strings.approvedUsersOnly || 'Restricted to approved users');
-		if (restrictions.denylist)  items.push(strings.blockedUsers      || 'Blocked users list active');
-		if (restrictions.ticket)   items.push(strings.accessCodeRequired || 'Access code (ticket) required');
-
-		if (!items.length) return '';
-
-		var html = '<div class="ffc-info-section">';
-		html += '<h3>' + esc(strings.accessRestrictions || 'Access Restrictions') + '</h3>';
-		html += '<ul class="ffc-info-list ffc-info-list-restrictions">';
-		for (var i = 0; i < items.length; i++) {
-			html += '<li>' + esc(items[i]) + '</li>';
-		}
-		html += '</ul>';
-		html += '</div>';
-		return html;
-	}
-
-	function buildDatetimeSection(dt, status) {
-		if (!dt.has_dates && !dt.has_times) return '';
-
-		var inf = strings.infinity || '∞';
-		var html = '<div class="ffc-info-section">';
-		html += '<h3>' + esc(strings.availability || 'Availability Period') + '</h3>';
-
-		if (dt.has_dates) {
-			html += '<div class="ffc-info-row">';
-			html += '<span class="ffc-info-label">' + esc(strings.dateStart || 'Start date') + '</span>';
-			html += '<span class="ffc-info-value">' + (dt.date_start ? esc(dt.date_start) : inf) + '</span>';
-			html += '</div>';
-			html += '<div class="ffc-info-row">';
-			html += '<span class="ffc-info-label">' + esc(strings.dateEnd || 'End date') + '</span>';
-			html += '<span class="ffc-info-value">' + (dt.date_end ? esc(dt.date_end) : inf) + '</span>';
-			html += '</div>';
-		}
-
-		if (dt.has_times) {
-			html += '<div class="ffc-info-row">';
-			html += '<span class="ffc-info-label">' + esc(strings.timeStart || 'Start time') + '</span>';
-			html += '<span class="ffc-info-value">' + (dt.time_start ? esc(dt.time_start) : inf) + '</span>';
-			html += '</div>';
-			html += '<div class="ffc-info-row">';
-			html += '<span class="ffc-info-label">' + esc(strings.timeEnd || 'End time') + '</span>';
-			html += '<span class="ffc-info-value">' + (dt.time_end ? esc(dt.time_end) : inf) + '</span>';
-			html += '</div>';
-		}
-
-		// Alert when no end date.
-		if (!status.has_end_date) {
-			html += '<div class="ffc-info-alert ffc-info-alert-warning">';
-			html += esc(strings.noEndDateAlert || 'This form has no end date configured. The CSV download will only be available after the administrator sets an end date.');
-			html += '</div>';
-		}
-
-		html += '</div>';
-		return html;
-	}
-
-	function buildGeolocationSection(geo) {
-		if (!geo || !geo.enabled) return '';
-
-		var html = '<div class="ffc-info-section">';
-		html += '<h3>' + esc(strings.geolocation || 'Geolocation') + '</h3>';
-
-		// GPS locations.
-		if (geo.gps_enabled) {
-			if (geo.gps_locations && geo.gps_locations.length) {
-				html += '<div class="ffc-info-subsection">';
-				html += '<span class="ffc-info-sublabel">' + esc(strings.gpsLocations || 'GPS Locations') + '</span>';
-				html += '<ul class="ffc-info-list ffc-info-list-locations">';
-				for (var i = 0; i < geo.gps_locations.length; i++) {
-					var loc = geo.gps_locations[i];
-					html += '<li><a href="' + esc(loc.maps_url) + '" target="_blank" rel="noopener noreferrer">' + esc(loc.name) + '</a></li>';
-				}
-				html += '</ul>';
-				html += '</div>';
-			} else if (geo.gps_custom) {
-				html += '<div class="ffc-info-row">';
-				html += '<span class="ffc-info-value"><a href="https://www.google.com/maps" target="_blank" rel="noopener noreferrer">' + esc(strings.geolocationEnabled || 'Geolocation enabled') + '</a></span>';
-				html += '</div>';
-			}
-		}
-
-		// IP locations.
-		if (geo.ip_enabled && (geo.ip_locations || geo.ip_custom)) {
-			if (geo.ip_locations && geo.ip_locations.length) {
-				html += '<div class="ffc-info-subsection">';
-				html += '<span class="ffc-info-sublabel">' + esc(strings.ipLocations || 'IP Locations') + '</span>';
-				html += '<ul class="ffc-info-list ffc-info-list-locations">';
-				for (var j = 0; j < geo.ip_locations.length; j++) {
-					var ipLoc = geo.ip_locations[j];
-					html += '<li><a href="' + esc(ipLoc.maps_url) + '" target="_blank" rel="noopener noreferrer">' + esc(ipLoc.name) + '</a></li>';
-				}
-				html += '</ul>';
-				html += '</div>';
-			} else if (geo.ip_custom) {
-				html += '<div class="ffc-info-row">';
-				html += '<span class="ffc-info-value"><a href="https://www.google.com/maps" target="_blank" rel="noopener noreferrer">' + esc(strings.geolocationEnabled || 'Geolocation enabled') + '</a></span>';
-				html += '</div>';
-			}
-		}
-
-		html += '</div>';
-		return html;
-	}
-
-	function buildQuizSection(quiz) {
-		if (!quiz || !quiz.enabled) return '';
-
-		var html = '<div class="ffc-info-section">';
-		html += '<h3>' + esc(strings.quizEvaluation || 'Quiz / Evaluation') + '</h3>';
-		html += '<div class="ffc-info-row">';
-		html += '<span class="ffc-info-label">' + esc(strings.passingScore || 'Minimum passing score') + '</span>';
-		html += '<span class="ffc-info-value">' + quiz.passing_score + '%</span>';
-		html += '</div>';
-		html += '<div class="ffc-info-row">';
-		html += '<span class="ffc-info-label">' + esc(strings.maxAttempts || 'Maximum attempts') + '</span>';
-		html += '<span class="ffc-info-value">' + (quiz.max_attempts > 0 ? quiz.max_attempts : esc(strings.unlimited || 'Unlimited')) + '</span>';
-		html += '</div>';
-		html += '</div>';
-		return html;
-	}
-
-	function buildCsvSection(csv, _status) {
-		var html = '<div class="ffc-info-section">';
-		html += '<h3>' + esc(strings.csvDownload || 'CSV Download') + '</h3>';
-		html += '<div class="ffc-info-row">';
-		html += '<span class="ffc-info-label">' + esc(strings.downloadQuota || 'Download quota') + '</span>';
-		var quotaText = (strings.quotaUsed || '%1$d of %2$d used')
-			.replace('%1$d', csv.count)
-			.replace('%2$d', csv.limit);
-		html += '<span class="ffc-info-value">' + esc(quotaText) + '</span>';
-		html += '</div>';
-		html += '</div>';
-		return html;
-	}
-
-	function buildStatusMessage(status) {
-		var html = '';
-		var reason = status.download_blocked_reason;
-
-		if (reason === 'no_end_date') {
-			// Already shown in datetime section alert.
-			return '';
-		}
-
-		if (reason === 'active') {
-			var msg = (strings.formActiveUntil || 'This form is still active until %s. The download will be available after the end date.')
-				.replace('%s', status.end_date_formatted || '');
-			if (status.before_start) {
-				msg = (strings.beforeStartMsg || 'The form collection has not started yet. It will begin on %s.')
-					.replace('%s', status.start_date_formatted || '');
-			}
-			html += '<div class="ffc-info-alert ffc-info-alert-info">' + esc(msg) + '</div>';
-		} else if (reason === 'quota_exhausted') {
-			html += '<div class="ffc-info-alert ffc-info-alert-warning">' + esc(strings.quotaExhausted || 'The download quota for this form has been exhausted.') + '</div>';
-		} else if (reason === 'download_disabled') {
-			// CSV Download sub-toggle (post-#241) is off — Start Early /
-			// Postpone Close may still be available on this same page.
-			html += '<div class="ffc-info-alert ffc-info-alert-info">' + esc(strings.csvDownloadDisabled || 'The CSV download is not available for this form.') + '</div>';
-		} else if (!reason) {
-			html += '<div class="ffc-info-alert ffc-info-alert-success">' + esc(strings.downloadReady || 'The form collection period has ended. The CSV is ready for download.') + '</div>';
-		}
-
-		return html;
-	}
-
-	// ── Back button ─────────────────────────────────────────────
-
-	function goBack() {
-		location.reload();
-	}
-
-	// ── Flash message ───────────────────────────────────────────
-
-	function showFlash(msg, type) {
-		$container.find('.ffc-pcd-message').remove();
-		var cls = type === 'error' ? 'ffc-verify-error' : 'ffc-verify-success';
-		var $flash = $('<div class="ffc-verify-result ffc-pcd-message"><div class="' + cls + '">' + esc(msg) + '</div></div>');
-		$container.find('.ffc-verification-header').after($flash);
-	}
-
-	// ── Certificate preview ─────────────────────────────────────
-
-	function onCertPreviewClick() {
-		var $btn = $(this);
-		$btn.prop('disabled', true).text(strings.loadingPreview || 'Loading preview…');
-
-		FFC.request('ffc_public_cert_preview', formData)
-			.then(function (data) {
-				$btn.prop('disabled', false).text(strings.previewCertificate || 'Preview Certificate');
-				showCertPreviewModal(data);
-			})
-			.catch(function (err) {
-				$btn.prop('disabled', false).text(strings.previewCertificate || 'Preview Certificate');
-				alert((err && err.fromServer && err.message) || strings.connError || 'Connection error.');
-			});
-	}
-
-	function showCertPreviewModal(data) {
-		var sampleData = buildSampleData(data.fields, data.previewSamples);
-		var processedHtml = replacePlaceholders(data.html, sampleData);
-
-		var iframeHtml = '<!DOCTYPE html><html><head><meta charset="UTF-8">';
-		iframeHtml += '<style>';
-		iframeHtml += 'html, body { margin: 0; padding: 0; }';
-		iframeHtml += 'body { font-family: Arial, Helvetica, sans-serif; ';
-		if (data.bg_image) {
-			iframeHtml += 'background-image: url(' + data.bg_image + '); ';
-			iframeHtml += 'background-size: cover; background-position: center; background-repeat: no-repeat; ';
-		}
-		iframeHtml += '}';
-		iframeHtml += '</style></head><body>';
-		iframeHtml += processedHtml;
-		iframeHtml += '</body></html>';
-
-		var previewTitle = strings.certPreviewTitle || 'Certificate Preview';
-		var closeText    = strings.close || 'Close';
-		var noteText     = strings.certPreviewNote || 'Placeholders replaced with sample data. QR code shown as placeholder.';
-
-		var $modal = $('<div id="ffc-preview-modal">' +
-			'<div class="ffc-preview-backdrop"></div>' +
-			'<div class="ffc-preview-container">' +
-				'<div class="ffc-preview-header">' +
-					'<h2>' + esc(previewTitle) + '</h2>' +
-					'<button type="button" class="ffc-preview-close" title="' + esc(closeText) + '">&times;</button>' +
-				'</div>' +
-				'<div class="ffc-preview-note">' + esc(noteText) + '</div>' +
-				'<div class="ffc-preview-body">' +
-					'<iframe id="ffc-preview-iframe" frameborder="0"></iframe>' +
-				'</div>' +
-			'</div>' +
-		'</div>');
-
-		$('body').append($modal);
-
-		var iframe    = $modal.find('#ffc-preview-iframe')[0];
-		var iframeDoc = iframe.contentWindow || iframe.contentDocument;
-		if (iframeDoc.document) {
-			iframeDoc = iframeDoc.document;
-		}
-		iframeDoc.open();
-		iframeDoc.write(iframeHtml);
-		iframeDoc.close();
-
-		requestAnimationFrame(function () {
-			$modal.addClass('ffc-preview-visible');
-		});
-
-		function closePreview() {
-			$modal.removeClass('ffc-preview-visible');
-			setTimeout(function () { $modal.remove(); }, 200);
-			$(document).off('keydown.ffcCertPreview');
-		}
-
-		$modal.find('.ffc-preview-close').on('click', closePreview);
-		$modal.find('.ffc-preview-backdrop').on('click', closePreview);
-		$(document).on('keydown.ffcCertPreview', function (e) {
-			if (e.key === 'Escape') closePreview();
-		});
-	}
-
-	// Seed the preview from the canonical PHP sample map
-	// (CertificatePreviewSamples::get_map(), delivered in the AJAX payload
-	// as previewSamples) so system placeholders fill the same as the real
-	// generators. The form's own fields are overlaid on top.
-	function buildSampleData(fields, previewSamples) {
-		var data = $.extend({}, previewSamples || {});
-
-		if (fields && fields.length) {
-			for (var i = 0; i < fields.length; i++) {
-				if (fields[i].name && !data[fields[i].name]) {
-					data[fields[i].name] = fields[i].label || fields[i].name;
-				}
-			}
-		}
-
-		return data;
-	}
-
-	function replacePlaceholders(html, data) {
-		html = html.replace(/\{\{(\w+)\}\}/g, function (match, key) {
-			return data[key] !== undefined ? data[key] : match;
-		});
-		html = html.replace(/\{\{qr_code[^}]*\}\}/g,
-			'<svg width="150" height="150" viewBox="0 0 150 150" xmlns="http://www.w3.org/2000/svg">' +
-			'<rect width="150" height="150" fill="#f0f0f0" stroke="#ccc" stroke-width="1"/>' +
-			'<text x="75" y="70" text-anchor="middle" font-size="12" fill="#999">QR Code</text>' +
-			'<text x="75" y="90" text-anchor="middle" font-size="10" fill="#bbb">(preview)</text>' +
-			'</svg>'
-		);
-		html = html.replace(/\{\{validation_url[^}]*\}\}/g,
-			'<a href="#" style="color:#0073aa;">https://example.com/valid/#token=abc123</a>'
-		);
-		return html;
-	}
-
-	// ── Download CSV (triggers existing export flow) ────────────
-
-	function onDownloadClick() {
-		var $dlBtn = $(this);
-		$dlBtn.prop('disabled', true).addClass('ffc-btn-loading');
-		showOverlay(strings.validating || 'Validating…');
-		startTime   = Date.now();
-		safetyTimer = setTimeout(function () {
-			showError(strings.timeout || 'Export timed out.');
-		}, SAFETY_MS);
-
-		// Step 3 — start export job (reuses saved form data).
-		FFC.request('ffc_public_csv_start', formData)
-			.then(function (data) {
-				jobId      = data.job_id;
-				nonceBatch = data.nonce_batch;
-				total      = data.total;
-
-				updateStatus(
-					(strings.generating || 'Generating CSV — %d records…')
-						.replace('%d', total)
-				);
-				updateProgress(0, total);
-
-				// Step 4 — process batches.
-				processBatch($dlBtn);
-			})
-			.catch(function (err) {
-				showError((err && err.fromServer && err.message) || strings.connError || 'Connection error.');
-				$dlBtn.prop('disabled', false).removeClass('ffc-btn-loading');
-			});
-	}
-
-	// ── Recursive batch processing ──────────────────────────────
-
-	function processBatch($dlBtn) {
-		// The batch endpoint expects its own per-job nonce (`nonce_batch`),
-		// not the global ffc_ajax nonce. Pass it via options.nonce so
-		// FFC.request injects it as the canonical `nonce` payload field;
-		// also keep it in the data under its server-side key.
-		FFC.request('ffc_public_csv_batch', {
-			job_id: jobId,
-			nonce_batch: nonceBatch
-		})
-			.then(function (data) {
-				updateProgress(data.processed, data.total);
-				updateStatus(
-					(strings.exporting || 'Exporting %1$d / %2$d…')
-						.replace('%1$d', data.processed)
-						.replace('%2$d', data.total)
-				);
-
-				if (data.done) {
-					onExportComplete($dlBtn);
-				} else {
-					processBatch($dlBtn);
-				}
-			})
-			.catch(function (err) {
-				showError((err && err.fromServer && err.message) || strings.connError || 'Connection error.');
-				if ($dlBtn) $dlBtn.prop('disabled', false).removeClass('ffc-btn-loading');
-			});
-	}
-
-	// ── Download via hidden iframe ──────────────────────────────
-
-	function onExportComplete($dlBtn) {
-		clearTimeout(safetyTimer);
-		updateProgress(total, total);
-		updateStatus(strings.downloading || 'Starting download…');
-
-		var downloadUrl = cfg.ajax_url
-			+ '?action=ffc_public_csv_download'
-			+ '&job_id='      + encodeURIComponent(jobId)
-			+ '&nonce_batch=' + encodeURIComponent(nonceBatch);
-
-		var $iframe = $('<iframe>', { src: downloadUrl })
-			.css('display', 'none')
-			.appendTo('body');
-
-		var elapsed   = Date.now() - startTime;
-		var remaining = Math.max(0, MIN_DISPLAY - elapsed);
-
-		setTimeout(function () {
-			updateStatus(strings.complete || 'Download complete!');
-			$overlay.find('.ffc-csv-progress-bar-fill').addClass('ffc-csv-complete');
-
-			setTimeout(function () {
-				hideOverlay();
-				if ($dlBtn) $dlBtn.prop('disabled', false).removeClass('ffc-btn-loading');
-				$iframe.remove();
-			}, 2000);
-		}, remaining);
-	}
-
-	// ── Overlay helpers ─────────────────────────────────────────
-
-	function showOverlay(text) {
-		if ($overlay) {
-			$overlay.remove();
-		}
-
-		$overlay = $(
-			'<div class="ffc-csv-progress-overlay" role="alertdialog" aria-live="assertive">' +
-				'<div class="ffc-csv-progress-card">' +
-					'<div class="ffc-csv-progress-status">' + esc(text) + '</div>' +
-					'<div class="ffc-csv-progress-bar-container">' +
-						'<div class="ffc-csv-progress-bar-fill" style="width:0%"></div>' +
-					'</div>' +
-					'<div class="ffc-csv-progress-percent">0 %</div>' +
-				'</div>' +
-			'</div>'
-		).appendTo('body');
-	}
-
-	function hideOverlay() {
-		if ($overlay) {
-			$overlay.fadeOut(300, function () { $(this).remove(); });
-			$overlay = null;
-		}
-	}
-
-	function updateProgress(current, max) {
-		if (!$overlay) return;
-		var pct = max > 0 ? Math.min(100, Math.round((current / max) * 100)) : 0;
-		$overlay.find('.ffc-csv-progress-bar-fill').css('width', pct + '%');
-		$overlay.find('.ffc-csv-progress-percent').text(pct + ' %');
-	}
-
-	function updateStatus(text) {
-		if (!$overlay) return;
-		$overlay.find('.ffc-csv-progress-status').text(text);
-	}
-
-	function showError(msg) {
-		clearTimeout(safetyTimer);
-		if ($overlay) {
-			$overlay.find('.ffc-csv-progress-status').text(strings.error || 'Error');
-			$overlay.find('.ffc-csv-progress-bar-fill').addClass('ffc-csv-error');
-
-			var $err = $overlay.find('.ffc-csv-progress-error');
-			if (!$err.length) {
-				$err = $('<div class="ffc-csv-progress-error"></div>')
-					.appendTo($overlay.find('.ffc-csv-progress-card'));
-			}
-			$err.text(msg);
-
-			setTimeout(function () { hideOverlay(); }, 4000);
-		}
-	}
-
-	// ── Form state helpers ──────────────────────────────────────
-
-	function disableBtn() {
-		if ($btn) $btn.prop('disabled', true).addClass('ffc-btn-loading');
-	}
-
-	function enableBtn() {
-		if ($btn) $btn.prop('disabled', false).removeClass('ffc-btn-loading');
-	}
-
-	// ── Start Form Now (early-open) ─────────────────────────────
-
-	// Click handler for the .ffc-btn-open-early button. Pops the
-	// confirmation modal first — defensive UX since this is irreversible
-	// from the operator's phone (admin can still walk it back in the
-	// editor, but the operator on stage shouldn't trip it).
-	function onOpenEarlyClick() {
-		var info = lastInfo();
-		var origStart = info && info.status ? (info.status.start_date_formatted || '') : '';
-		showOpenEarlyModal(origStart);
-	}
-
-	function lastInfo() {
-		return $container && $container.data('ffc-last-info');
-	}
-
-	function showOpenEarlyModal(origStart) {
-		// Clean up any prior modal.
-		$('.ffc-open-early-modal').remove();
-
-		var nowDate = new Date();
-		var pad = function (n) { return n < 10 ? '0' + n : '' + n; };
-		var nowFormatted = pad(nowDate.getDate()) + '/' + pad(nowDate.getMonth() + 1) + '/' + nowDate.getFullYear()
-			+ ' ' + pad(nowDate.getHours()) + ':' + pad(nowDate.getMinutes());
-
-		var modalHtml = ''
-			+ '<div class="ffc-open-early-modal" role="dialog" aria-modal="true" aria-labelledby="ffc-open-early-title">'
-			+   '<div class="ffc-open-early-backdrop"></div>'
-			+   '<div class="ffc-open-early-container">'
-			+     '<div class="ffc-open-early-header">'
-			+       '<h2 id="ffc-open-early-title">'
-			+         '<span aria-hidden="true">⚠️</span> '
-			+         esc(strings.openEarlyTitle || 'Start form now?')
-			+       '</h2>'
-			+       '<button type="button" class="ffc-open-early-close" title="' + esc(strings.cancel || 'Cancel') + '">&times;</button>'
-			+     '</div>'
-			+     '<div class="ffc-open-early-body">'
-			+       '<p>' + esc(strings.openEarlyBody1 || 'This will override the scheduled start time. The form will open immediately for all users.') + '</p>'
-			+       '<ul class="ffc-open-early-times">'
-			+         (origStart
-				? '<li>' + esc(strings.openEarlyOrigLabel || 'Scheduled start:') + ' <strong>' + esc(origStart) + '</strong></li>'
-				: '')
-			+         '<li>' + esc(strings.openEarlyNewLabel || 'New start will be:') + ' <strong>' + esc(strings.openEarlyNewNow || 'now') + ' (' + esc(nowFormatted) + ')</strong></li>'
-			+       '</ul>'
-			+       '<p class="ffc-open-early-warn"><strong>'
-			+         esc(strings.openEarlyIrreversible || 'This cannot be undone from this page.')
-			+       '</strong></p>'
-			+       '<p class="ffc-open-early-warn-cache">'
-			+         esc(strings.openEarlyCacheWarn || 'If your site uses page caching (Cloudflare, W3 Total Cache, etc.), some visitors may see the old "not yet started" state until the cache refreshes. Ask them to reload if needed.')
-			+       '</p>'
-			+     '</div>'
-			+     '<div class="ffc-open-early-actions">'
-			+       '<button type="button" class="ffc-info-btn ffc-info-btn-primary ffc-open-early-cancel" autofocus>'
-			+         esc(strings.cancel || 'Cancel')
-			+       '</button>'
-			+       '<button type="button" class="ffc-info-btn ffc-info-btn-warning ffc-open-early-confirm">'
-			+         esc(strings.openEarlyConfirm || 'Confirm and start form')
-			+       '</button>'
-			+     '</div>'
-			+   '</div>'
-			+ '</div>';
-
-		var $modal = $(modalHtml).appendTo(document.body);
-		// Trap Esc to cancel.
-		var onKey = function (e) {
-			if (e.key === 'Escape') {
-				closeModal();
-			}
-		};
-		$(document).on('keydown.ffcOpenEarly', onKey);
-
-		function closeModal() {
-			$(document).off('keydown.ffcOpenEarly');
-			$modal.remove();
-		}
-
-		$modal.find('.ffc-open-early-cancel, .ffc-open-early-close, .ffc-open-early-backdrop').on('click', closeModal);
-		$modal.find('.ffc-open-early-confirm').on('click', function () {
-			closeModal();
-			submitOpenEarly();
-		});
-
-		// Ensure the Cancel button has focus on open.
-		setTimeout(function () { $modal.find('.ffc-open-early-cancel').focus(); }, 0);
-	}
-
-	function submitOpenEarly() {
-		var $btnEarly = $container.find('.ffc-btn-open-early');
-		$btnEarly.prop('disabled', true).text(strings.starting || 'Starting…');
-
-		// Page's existing form carries form_id + hash + nonce; strip its
-		// `action` so FFC.request can inject ours.
-		var payload = $form.serialize().replace(/(^|&)action=[^&]*/, '');
-
-		FFC.request('ffc_public_open_early', payload)
-			.then(function (data) {
-				window.alert((data && data.message) || (strings.openEarlySuccess || 'Form is now open.'));
-				// Full reload — the original form was replaced by the
-				// info screen, so re-running the validation flow from
-				// scratch is the cleanest way to repaint with the new
-				// state (before_start is now false, button is gone).
-				window.location.reload();
-			})
-			.catch(function (err) {
-				window.alert((err && err.fromServer && err.message) || strings.error || 'Action failed.');
-				$btnEarly.prop('disabled', false).text(strings.startFormNow || 'Start Form Now');
-			});
-	}
-
-	// ── Postpone close (extend-end) ─────────────────────────────
-
-	function onExtendEndClick() {
-		var info = lastInfo();
-		// Compose the "current scheduled close" display from date-only +
-		// raw 24h time, so the modal always shows HH:MM regardless of the
-		// site's `time_format` setting (#243 Sprint 3 — fixes AM/PM display
-		// when site uses `g:i a`). Falls back to `end_date_formatted` for
-		// pre-#243 backends that don't return `current_date_end_formatted`.
-		var dateOnly    = info && info.status ? (info.status.current_date_end_formatted || '') : '';
-		var currentTime = info && info.status ? (info.status.current_time_end || '') : '';
-		var currentEnd  = (dateOnly && currentTime)
-			? (dateOnly + ' ' + currentTime)
-			: (info && info.status ? (info.status.end_date_formatted || '') : '');
-		showExtendEndModal(currentEnd, currentTime);
-	}
-
-	function showExtendEndModal(currentEnd, currentTime) {
-		// Clean up any prior modal.
-		$('.ffc-extend-end-modal').remove();
-
-		// Default the time picker to current_time_end + 30 min, clamped
-		// to 23:59. The user can edit freely; server validates.
-		var defaultNew = currentTime;
-		if (currentTime && /^\d{2}:\d{2}$/.test(currentTime)) {
-			var parts = currentTime.split(':');
-			var mins  = parseInt(parts[0], 10) * 60 + parseInt(parts[1], 10) + 30;
-			if (mins > 23 * 60 + 59) { mins = 23 * 60 + 59; }
-			var hh = Math.floor(mins / 60);
-			var mm = mins % 60;
-			defaultNew = (hh < 10 ? '0' : '') + hh + ':' + (mm < 10 ? '0' : '') + mm;
-		}
-
-		var modalHtml = ''
-			+ '<div class="ffc-extend-end-modal ffc-open-early-modal" role="dialog" aria-modal="true" aria-labelledby="ffc-extend-end-title">'
-			+   '<div class="ffc-open-early-backdrop"></div>'
-			+   '<div class="ffc-open-early-container">'
-			+     '<div class="ffc-open-early-header">'
-			+       '<h2 id="ffc-extend-end-title">'
-			+         '<span aria-hidden="true">⏰</span> '
-			+         esc(strings.postponeCloseTitle || 'Postpone form close?')
-			+       '</h2>'
-			+       '<button type="button" class="ffc-open-early-close ffc-extend-end-close" title="' + esc(strings.cancel || 'Cancel') + '">&times;</button>'
-			+     '</div>'
-			+     '<div class="ffc-open-early-body">'
-			+       '<p>' + esc(strings.postponeCloseBody || 'Pick a new close time within the same day. This action is one-shot — once confirmed it cannot be repeated from this page.') + '</p>'
-			+       '<ul class="ffc-open-early-times">'
-			+         (currentEnd
-				? '<li>' + esc(strings.postponeCurrentLabel || 'Current scheduled close:') + ' <strong>' + esc(currentEnd) + '</strong></li>'
-				: '')
-			+       '</ul>'
-			+       '<p>'
-			+         '<label for="ffc-extend-end-input"><strong>' + esc(strings.postponeNewLabel || 'New close time:') + '</strong></label> '
-			+         '<input type="time" id="ffc-extend-end-input" class="ffc-extend-end-input" value="' + esc(defaultNew) + '" '
-			+         (currentTime ? 'min="' + esc(currentTime) + '" ' : '')
-			+         'max="23:59" required>'
-			+       '</p>'
-			+       '<p class="ffc-open-early-warn"><strong>'
-			+         esc(strings.postponeIrreversible || 'This action can only be performed once per form.')
-			+       '</strong></p>'
-			+       '<p class="ffc-open-early-warn-cache">'
-			+         esc(strings.openEarlyCacheWarn || 'If your site uses page caching, some visitors may see the old close time until the cache refreshes.')
-			+       '</p>'
-			+     '</div>'
-			+     '<div class="ffc-open-early-actions">'
-			+       '<button type="button" class="ffc-info-btn ffc-info-btn-primary ffc-extend-end-cancel" autofocus>'
-			+         esc(strings.cancel || 'Cancel')
-			+       '</button>'
-			+       '<button type="button" class="ffc-info-btn ffc-info-btn-warning ffc-extend-end-confirm">'
-			+         esc(strings.postponeConfirm || 'Confirm postponement')
-			+       '</button>'
-			+     '</div>'
-			+   '</div>'
-			+ '</div>';
-
-		var $modal = $(modalHtml).appendTo(document.body);
-		var onKey = function (e) {
-			if (e.key === 'Escape') { closeModal(); }
-		};
-		$(document).on('keydown.ffcExtendEnd', onKey);
-
-		function closeModal() {
-			$(document).off('keydown.ffcExtendEnd');
-			$modal.remove();
-		}
-
-		// Client-side validation surface: an inline error chip + red border
-		// on the time input. Server is the authority — these checks are
-		// pure UX so the operator gets feedback before submit (#243 S3).
-		var $input    = $modal.find('.ffc-extend-end-input');
-		var $errorMsg = $('<p class="ffc-extend-end-error" role="alert" style="color:#d63638;margin:6px 0 0;font-size:13px;" hidden></p>');
-		$input.closest('p').append($errorMsg);
-
-		function setError(msg) {
-			$input.addClass('ffc-extend-end-input-invalid').css('border-color', '#d63638');
-			$errorMsg.text(msg).removeAttr('hidden');
-		}
-		function clearError() {
-			$input.removeClass('ffc-extend-end-input-invalid').css('border-color', '');
-			$errorMsg.attr('hidden', 'hidden').text('');
-		}
-		// Clear the error indication on every keystroke / picker change so the
-		// user sees their correction acknowledged immediately.
-		$input.on('input change', clearError);
-
-		// Validate the user-supplied HH:MM string against the existing
-		// current_time_end and "now" — returns null when OK, or the localized
-		// error string when invalid. Mirrors the server-side validation tags
-		// in `ExtendEndAction::validate_new_time_end()` for UX parity.
-		function validateInput(value) {
-			if (!value || !/^([01]\d|2[0-3]):[0-5]\d$/.test(value)) {
-				return strings.postponeInvalidFormat
-					|| strings.postponeInvalid
-					|| 'Please enter a valid time (HH:MM).';
-			}
-			if (currentTime && value <= currentTime) {
-				return (strings.postponeBeforeCurrent || 'Time must be later than the current close (%s).').replace('%s', currentTime);
-			}
-			// "Now" comparison uses the JS clock — the server clock can drift
-			// slightly but the message is still accurate enough for UX.
-			var now    = new Date();
-			var nowStr = (now.getHours() < 10 ? '0' : '') + now.getHours()
-				+ ':' + (now.getMinutes() < 10 ? '0' : '') + now.getMinutes();
-			if (value <= nowStr) {
-				return strings.postponeBeforeNow || 'Time must be in the future.';
-			}
-			return null;
-		}
-
-		$modal.find('.ffc-extend-end-cancel, .ffc-extend-end-close, .ffc-open-early-backdrop').on('click', closeModal);
-		$modal.find('.ffc-extend-end-confirm').on('click', function () {
-			var newTime = $input.val();
-			var err     = validateInput(newTime);
-			if (err) {
-				setError(err);
-				$input.focus();
-				return;
-			}
-			closeModal();
-			submitExtendEnd(newTime);
-		});
-
-		setTimeout(function () { $modal.find('.ffc-extend-end-cancel').focus(); }, 0);
-	}
-
-	function submitExtendEnd(newTime) {
-		var $btn = $container.find('.ffc-btn-extend-end');
-		$btn.prop('disabled', true).text(strings.postponing || 'Postponing…');
-
-		var payload = $form.serialize().replace(/(^|&)action=[^&]*/, '')
-			+ '&new_time_end=' + encodeURIComponent(newTime);
-
-		FFC.request('ffc_public_extend_end', payload)
-			.then(function (data) {
-				window.alert((data && data.message) || (strings.postponeSuccess || 'Close time postponed.'));
-				window.location.reload();
-			})
-			.catch(function (err) {
-				window.alert((err && err.fromServer && err.message) || strings.error || 'Action failed.');
-				$btn.prop('disabled', false).text(strings.postponeClose || 'Postpone close');
-			});
-	}
-
-	// ── Schedule Exception (#366) ───────────────────────────────────
-	// Pops a modal with two TIME inputs pre-filled from the baseline
-	// (class_time_* or geofence time_*), validates client-side, hands
-	// off to the AJAX action. On success the modal swaps to a CTA that
-	// opens the form URL in a new tab — the click preserves the user
-	// gesture so popup blockers don't fire.
-
-	function onScheduleExceptionClick() {
-		var info = $container.data('ffc-last-info') || {};
-		var status = info.status || {};
-		showScheduleExceptionModal({
-			baselineStart: status.schedule_baseline_start || '',
-			baselineEnd:   status.schedule_baseline_end   || '',
-			windowStart:   status.schedule_window_start   || '',
-			windowEnd:     status.schedule_window_end     || '',
-			defaultMode:   status.schedule_default_mode   || 'now'
-		});
-	}
-
-	function showScheduleExceptionModal(opts) {
-		$('.ffc-schedule-exception-modal').remove();
-
-		var modalHtml = ''
-			+ '<div class="ffc-schedule-exception-modal ffc-open-early-modal" role="dialog" aria-modal="true" aria-labelledby="ffc-sched-exc-title">'
-			+   '<div class="ffc-open-early-backdrop"></div>'
-			+   '<div class="ffc-open-early-container">'
-			+     '<div class="ffc-open-early-header">'
-			+       '<h2 id="ffc-sched-exc-title">'
-			+         '<span aria-hidden="true">⏱️</span> '
-			+         esc(strings.scheduleExceptionTitle || 'Schedule exception')
-			+       '</h2>'
-			+       '<button type="button" class="ffc-open-early-close ffc-sched-exc-close" title="' + esc(strings.cancel || 'Cancel') + '">&times;</button>'
-			+     '</div>'
-			+     '<div class="ffc-open-early-body ffc-sched-exc-body">'
-			+       '<p>' + esc(strings.scheduleExceptionBody || 'Set a different schedule for one participant. The next form submission opened from this modal will record this exception.') + '</p>'
-			+       '<p>'
-			+         '<label><input type="radio" name="ffc-sched-exc-mode" value="now" ' + (opts.defaultMode === 'now' ? 'checked' : '') + '> '
-			+         esc(strings.scheduleExceptionModeNow || 'End now (start stays at baseline)')
-			+         '</label><br>'
-			+         '<label><input type="radio" name="ffc-sched-exc-mode" value="manual" ' + (opts.defaultMode === 'manual' ? 'checked' : '') + '> '
-			+         esc(strings.scheduleExceptionModeManual || 'Edit both ends manually')
-			+         '</label>'
-			+       '</p>'
-			+       '<p>'
-			+         '<label for="ffc-sched-exc-start"><strong>' + esc(strings.scheduleExceptionStartLabel || 'New start:') + '</strong></label> '
-			+         '<input type="time" id="ffc-sched-exc-start" class="ffc-extend-end-input ffc-sched-exc-start" value="' + esc(opts.baselineStart) + '">'
-			+         '&nbsp;&nbsp;'
-			+         '<label for="ffc-sched-exc-end"><strong>' + esc(strings.scheduleExceptionEndLabel || 'New end:') + '</strong></label> '
-			+         '<input type="time" id="ffc-sched-exc-end" class="ffc-extend-end-input ffc-sched-exc-end" value="' + esc(opts.baselineEnd) + '">'
-			+       '</p>'
-			+       '<p class="ffc-sched-exc-error" role="alert" style="color:#d63638;margin:6px 0 0;font-size:13px;" hidden></p>'
-			+     '</div>'
-			+     '<div class="ffc-open-early-actions ffc-sched-exc-actions">'
-			+       '<button type="button" class="ffc-info-btn ffc-info-btn-primary ffc-sched-exc-cancel" autofocus>'
-			+         esc(strings.cancel || 'Cancel')
-			+       '</button>'
-			+       '<button type="button" class="ffc-info-btn ffc-info-btn-warning ffc-sched-exc-confirm">'
-			+         esc(strings.scheduleExceptionConfirm || 'Create exception')
-			+       '</button>'
-			+     '</div>'
-			+   '</div>'
-			+ '</div>';
-
-		var $modal = $(modalHtml).appendTo(document.body);
-		var $start = $modal.find('.ffc-sched-exc-start');
-		var $end   = $modal.find('.ffc-sched-exc-end');
-		var $err   = $modal.find('.ffc-sched-exc-error');
-
-		function setError(msg) {
-			$err.text(msg).removeAttr('hidden');
-		}
-		function clearError() {
-			$err.attr('hidden', 'hidden').text('');
-		}
-
-		function applyMode() {
-			var mode = $modal.find('input[name="ffc-sched-exc-mode"]:checked').val();
-			if (mode === 'now') {
-				// Start stays baseline (disabled), end gets current local time.
-				$start.val(opts.baselineStart).prop('disabled', true);
-				var now    = new Date();
-				var nowStr = (now.getHours()   < 10 ? '0' : '') + now.getHours()
-					+ ':' + (now.getMinutes() < 10 ? '0' : '') + now.getMinutes();
-				$end.val(nowStr).prop('disabled', false);
-			} else {
-				$start.prop('disabled', false);
-				$end.prop('disabled', false);
-			}
-			clearError();
-		}
-		$modal.find('input[name="ffc-sched-exc-mode"]').on('change', applyMode);
-		applyMode();
-
-		$start.add($end).on('input change', clearError);
-
-		var onKey = function (e) { if (e.key === 'Escape') { closeModal(); } };
-		$(document).on('keydown.ffcSchedExc', onKey);
-		function closeModal() {
-			$(document).off('keydown.ffcSchedExc');
-			$modal.remove();
-		}
-
-		function validate() {
-			var s = $start.val();
-			var e = $end.val();
-			if ((s && !/^([01]\d|2[0-3]):[0-5]\d$/.test(s)) || (e && !/^([01]\d|2[0-3]):[0-5]\d$/.test(e))) {
-				return strings.scheduleExceptionBadFormat || 'Please pick valid times (HH:MM).';
-			}
-			if (s && e && s >= e) {
-				return strings.scheduleExceptionRangeInverted || 'Start must be earlier than end.';
-			}
-			if (opts.windowStart && s && s < opts.windowStart) {
-				return (strings.scheduleExceptionOutOfWindow || 'Range must stay within %1$s–%2$s.').replace('%1$s', opts.windowStart).replace('%2$s', opts.windowEnd);
-			}
-			if (opts.windowEnd && e && e > opts.windowEnd) {
-				return (strings.scheduleExceptionOutOfWindow || 'Range must stay within %1$s–%2$s.').replace('%1$s', opts.windowStart).replace('%2$s', opts.windowEnd);
-			}
-			if (s === opts.baselineStart && e === opts.baselineEnd) {
-				return strings.scheduleExceptionNoChange || 'Override matches the baseline — nothing to do.';
-			}
-			return null;
-		}
-
-		$modal.find('.ffc-sched-exc-cancel, .ffc-sched-exc-close, .ffc-open-early-backdrop').on('click', closeModal);
-		$modal.find('.ffc-sched-exc-confirm').on('click', function () {
-			var err = validate();
-			if (err) { setError(err); return; }
-			submitScheduleException($start.val(), $end.val(), $modal, opts);
-		});
-
-		setTimeout(function () { $modal.find('.ffc-sched-exc-cancel').focus(); }, 0);
-	}
-
-	function submitScheduleException(startVal, endVal, $modal, opts) {
-		var $confirm = $modal.find('.ffc-sched-exc-confirm');
-		$confirm.prop('disabled', true).text(strings.scheduleExceptionSubmitting || 'Creating…');
-
-		// Send empty string when the value matches the baseline — the
-		// server treats '' as "leave at baseline", which produces a
-		// cleaner audit row than a redundant override repeat.
-		var payloadStart = (startVal === opts.baselineStart) ? '' : startVal;
-		var payloadEnd   = (endVal   === opts.baselineEnd)   ? '' : endVal;
-
-		var payload = $form.serialize().replace(/(^|&)action=[^&]*/, '')
-			+ '&start_override=' + encodeURIComponent(payloadStart)
-			+ '&end_override='   + encodeURIComponent(payloadEnd);
-
-		FFC.request('ffc_public_schedule_exception', payload)
-			.then(function (data) {
-				// Swap modal body to the post-create CTA — preserves the
-				// click-driven user gesture for the window.open call below
-				// so popup blockers don't engage.
-				var url = (data && data.form_url) ? data.form_url : '/';
-				$modal.find('.ffc-sched-exc-body').html(
-					'<p>' + esc(strings.scheduleExceptionStaged || 'Exception staged. Open the participant\'s form in the next tab to consume it.') + '</p>'
-				);
-				$modal.find('.ffc-sched-exc-actions').html(
-					'<a class="ffc-info-btn ffc-info-btn-primary ffc-sched-exc-open" href="' + esc(url) + '" target="_blank" rel="noopener">'
-					+ esc(strings.scheduleExceptionOpenForm || 'Open participant form')
-					+ '</a>'
-				);
-				$modal.find('.ffc-sched-exc-open').on('click', function () {
-					// Close shortly after the new tab opens — gives the
-					// browser a beat to commit the navigation.
-					setTimeout(function () { $modal.remove(); }, 100);
-				});
-			})
-			.catch(function (err) {
-				$confirm.prop('disabled', false).text(strings.scheduleExceptionConfirm || 'Create exception');
-				$modal.find('.ffc-sched-exc-error')
-					.text((err && err.fromServer && err.message) || strings.error || 'Action failed.')
-					.removeAttr('hidden');
-			});
-	}
-
-	// ── Utility ─────────────────────────────────────────────────
-
 	function esc(str) {
 		var div = document.createElement('div');
 		div.appendChild(document.createTextNode(str));
 		return div.innerHTML;
 	}
 
+	var cfg     = window.ffc_csv_download || {};
+	var strings = cfg.strings || {};
+
+	// Shared singleton. Flow modules read config + helpers and read/write the
+	// mutable runtime state (DOM refs, serialised payload, overlay handle,
+	// safety timer) through this object so behaviour is identical to the
+	// pre-split single-file version.
+	var api = window.FFCCsv = {
+		cfg: cfg,
+		strings: strings,
+		esc: esc,
+
+		// DOM refs (set in init) + runtime state shared across flow modules.
+		$container: null,
+		$form: null,
+		$btn: null,
+		$overlay: null,
+		// Serialised form payload reused across the info / start / preview calls.
+		formData: null,
+		// Hard-timeout handle for the export job (set by the download flow,
+		// cleared here in showError and on export completion).
+		safetyTimer: null,
+
+		// ── Overlay helpers ─────────────────────────────────────────
+
+		showOverlay: function (text) {
+			if (api.$overlay) {
+				api.$overlay.remove();
+			}
+
+			api.$overlay = $(
+				'<div class="ffc-csv-progress-overlay" role="alertdialog" aria-live="assertive">' +
+					'<div class="ffc-csv-progress-card">' +
+						'<div class="ffc-csv-progress-status">' + esc(text) + '</div>' +
+						'<div class="ffc-csv-progress-bar-container">' +
+							'<div class="ffc-csv-progress-bar-fill" style="width:0%"></div>' +
+						'</div>' +
+						'<div class="ffc-csv-progress-percent">0 %</div>' +
+					'</div>' +
+				'</div>'
+			).appendTo('body');
+		},
+
+		hideOverlay: function () {
+			if (api.$overlay) {
+				api.$overlay.fadeOut(300, function () { $(this).remove(); });
+				api.$overlay = null;
+			}
+		},
+
+		updateProgress: function (current, max) {
+			if (!api.$overlay) return;
+			var pct = max > 0 ? Math.min(100, Math.round((current / max) * 100)) : 0;
+			api.$overlay.find('.ffc-csv-progress-bar-fill').css('width', pct + '%');
+			api.$overlay.find('.ffc-csv-progress-percent').text(pct + ' %');
+		},
+
+		updateStatus: function (text) {
+			if (!api.$overlay) return;
+			api.$overlay.find('.ffc-csv-progress-status').text(text);
+		},
+
+		showError: function (msg) {
+			clearTimeout(api.safetyTimer);
+			if (api.$overlay) {
+				api.$overlay.find('.ffc-csv-progress-status').text(strings.error || 'Error');
+				api.$overlay.find('.ffc-csv-progress-bar-fill').addClass('ffc-csv-error');
+
+				var $err = api.$overlay.find('.ffc-csv-progress-error');
+				if (!$err.length) {
+					$err = $('<div class="ffc-csv-progress-error"></div>')
+						.appendTo(api.$overlay.find('.ffc-csv-progress-card'));
+				}
+				$err.text(msg);
+
+				setTimeout(function () { api.hideOverlay(); }, 4000);
+			}
+		},
+
+		// ── Flash message ───────────────────────────────────────────
+
+		showFlash: function (msg, type) {
+			api.$container.find('.ffc-pcd-message').remove();
+			var cls = type === 'error' ? 'ffc-verify-error' : 'ffc-verify-success';
+			var $flash = $('<div class="ffc-verify-result ffc-pcd-message"><div class="' + cls + '">' + esc(msg) + '</div></div>');
+			api.$container.find('.ffc-verification-header').after($flash);
+		},
+
+		// ── Form state helpers ──────────────────────────────────────
+
+		disableBtn: function () {
+			if (api.$btn) api.$btn.prop('disabled', true).addClass('ffc-btn-loading');
+		},
+
+		enableBtn: function () {
+			if (api.$btn) api.$btn.prop('disabled', false).removeClass('ffc-btn-loading');
+		},
+
+		// ── Misc ────────────────────────────────────────────────────
+
+		// Stashed by the info screen for the modal flows that need the
+		// original schedule formatting (open-early / extend-end / exception).
+		lastInfo: function () {
+			return api.$container && api.$container.data('ffc-last-info');
+		},
+
+		goBack: function () {
+			location.reload();
+		},
+
+		// ── Initialise ──────────────────────────────────────────────
+
+		init: function () {
+			api.$container = $('.ffc-public-csv-download');
+			api.$form      = api.$container.find('form');
+			if (!api.$form.length) {
+				return;
+			}
+			api.$btn = api.$form.find('.ffc-submit-btn');
+			api.$form.on('submit', api.onSubmitInfo);
+
+			// 6.3.4: apply the canonical CPF/RF mask helper to the optional CPF
+			// field rendered when _ffc_csv_public_cpf_mode is set on the target
+			// form. Reuses the same Masks API the certificate form uses, so the
+			// formatting (XXX.XXX.XXX-XX) and the on-blur valid/invalid styling
+			// match exactly. Auto-discovers inputs by name="cpf" / id="ffc-pcd-cpf".
+			if (window.FFC && window.FFC.Frontend && window.FFC.Frontend.Masks) {
+				window.FFC.Frontend.Masks.applyCpfRf(api.$container.find('input[name="cpf"]'));
+			}
+		}
+	};
+
 	// ── Boot ────────────────────────────────────────────────────
 
-	$(document).ready(init);
+	$(document).ready(api.init);
 
 })(jQuery);

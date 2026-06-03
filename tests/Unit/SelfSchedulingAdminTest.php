@@ -105,15 +105,18 @@ class SelfSchedulingAdminTest extends TestCase {
         $screen = (object) array( 'post_type' => 'ffc_self_scheduling', 'id' => 'ffc_self_scheduling' );
         Functions\when( 'get_current_screen' )->justReturn( $screen );
 
-        $enqueued = array();
-        Functions\when( 'wp_enqueue_script' )->alias( function () use ( &$enqueued ) {
-            $enqueued[] = func_get_arg( 0 );
+        $enqueued_styles = array();
+        Functions\when( 'wp_enqueue_style' )->alias( function () use ( &$enqueued_styles ) {
+            $enqueued_styles[] = func_get_arg( 0 );
         } );
 
         $admin = new SelfSchedulingAdmin();
         $admin->enqueue_admin_assets( 'edit.php' );
 
-        $this->assertContains( 'ffc-calendar-admin', $enqueued );
+        // The screen now loads only the status-badge stylesheet — the empty
+        // ffc-calendar-admin.js stub + its dead localize were removed in the
+        // frontend-audit Item 4 cleanup.
+        $this->assertContains( 'ffc-calendar-admin', $enqueued_styles );
     }
 
     // ==================================================================

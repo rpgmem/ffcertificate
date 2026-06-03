@@ -119,6 +119,33 @@ final class RecruitmentAdminAssetsManager {
 			true
 		);
 
+		// Candidate-edit page interactions (PII reveal + adjutancy swap),
+		// extracted from inline <script> blocks (frontend-audit Item 3). The
+		// handlers are document-delegated and inert when their buttons aren't
+		// rendered, so enqueuing on every recruitment screen is harmless.
+		wp_enqueue_script(
+			'ffc-recruitment-candidate-edit',
+			FFC_PLUGIN_URL . "assets/js/ffc-recruitment-candidate-edit{$s}.js",
+			array(),
+			$js_ver,
+			true
+		);
+		wp_localize_script(
+			'ffc-recruitment-candidate-edit',
+			'ffcRecruitmentCandidateEdit',
+			array(
+				'revealRoot' => esc_url_raw( rest_url( 'ffcertificate/v1/recruitment/candidates/' ) ),
+				'classRoot'  => esc_url_raw( rest_url( 'ffcertificate/v1/recruitment/classifications/' ) ),
+				'nonce'      => wp_create_nonce( 'wp_rest' ),
+				'strings'    => array(
+					'hide'   => __( 'Hide', 'ffcertificate' ),
+					'reveal' => __( 'Reveal', 'ffcertificate' ),
+					'saved'  => __( 'Saved', 'ffcertificate' ),
+					'error'  => __( 'Error', 'ffcertificate' ),
+				),
+			)
+		);
+
 		// Autosave infra for the Settings tab — `data-ffc-autosave-key`
 		// toggles in `render_settings_tab()` bind via the shared
 		// ffc-admin-autosave widget against SettingsAjaxEndpoint. Mirrors

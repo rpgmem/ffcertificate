@@ -29,7 +29,6 @@ export default defineConfig({
 				'assets/js/ffc-admin-pdf.js',            // Coupled to html2canvas + jsPDF.
 				'assets/js/ffc-pdf-generator.js',        // Coupled to html2canvas + jsPDF.
 				'assets/js/ffc-calendar-frontend.js',    // Built on FullCalendar plugin API.
-				'assets/js/ffc-calendar-admin.js',       // Tiny bridge feeding FullCalendar config.
 			],
 		},
 	},

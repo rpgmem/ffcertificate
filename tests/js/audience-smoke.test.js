@@ -27,6 +27,16 @@
 import { describe, it, expect, beforeAll, beforeEach, afterEach, vi } from 'vitest';
 import { loadScript } from './helpers.js';
 
+// The former monolith was split into a core (window.FFCAudience) plus three
+// flow modules; load them in dependency order so the namespace is complete
+// before $(document).ready fires init().
+function loadAudience() {
+	loadScript('assets/js/ffc-audience.js');
+	loadScript('assets/js/ffc-audience-calendar.js');
+	loadScript('assets/js/ffc-audience-bookings.js');
+	loadScript('assets/js/ffc-audience-booking-form.js');
+}
+
 function fullCalendarFixture() {
 	document.body.innerHTML = `
 		<div id="ffc-audience-calendar"
@@ -138,7 +148,7 @@ afterEach(() => {
 describe('ffc-audience — init bail', () => {
 	it('does nothing when #ffc-audience-calendar is absent', async () => {
 		document.body.innerHTML = '<div>no calendar here</div>';
-		expect(() => loadScript('assets/js/ffc-audience.js')).not.toThrow();
+		expect(() => loadAudience()).not.toThrow();
 		await new Promise((r) => setTimeout(r, 0));
 	});
 });
@@ -150,7 +160,7 @@ describe('ffc-audience — init bail', () => {
 describe('ffc-audience — init on a minimal fixture', () => {
 	it('runs end-to-end without throwing and writes the month header', async () => {
 		fullCalendarFixture();
-		loadScript('assets/js/ffc-audience.js');
+		loadAudience();
 		await new Promise((r) => setTimeout(r, 0));
 
 		// renderCalendar populates the current-month header with
@@ -186,7 +196,7 @@ describe('ffc-audience — init on a minimal fixture', () => {
 		wrap.appendChild(document.getElementById('ffc-day-modal'));
 		document.body.appendChild(wrap);
 
-		loadScript('assets/js/ffc-audience.js');
+		loadAudience();
 		await new Promise((r) => setTimeout(r, 0));
 
 		// After init() the modals should be direct children of <body>.
@@ -196,7 +206,7 @@ describe('ffc-audience — init on a minimal fixture', () => {
 
 	it('converts WP locale (pt_BR) to BCP 47 format (pt-BR) at load time', async () => {
 		fullCalendarFixture();
-		loadScript('assets/js/ffc-audience.js');
+		loadAudience();
 		await new Promise((r) => setTimeout(r, 0));
 
 		expect(window.ffcAudience.locale).toBe('pt-BR');
@@ -210,7 +220,7 @@ describe('ffc-audience — init on a minimal fixture', () => {
 describe('ffc-audience — month navigation', () => {
 	async function mountAndLoad() {
 		fullCalendarFixture();
-		loadScript('assets/js/ffc-audience.js');
+		loadAudience();
 		await new Promise((r) => setTimeout(r, 0));
 	}
 
@@ -250,7 +260,7 @@ describe('ffc-audience — month navigation', () => {
 describe('ffc-audience — filter selects', () => {
 	async function mountAndLoad() {
 		fullCalendarFixture();
-		loadScript('assets/js/ffc-audience.js');
+		loadAudience();
 		await new Promise((r) => setTimeout(r, 0));
 	}
 
@@ -288,7 +298,7 @@ describe('ffc-audience — filter selects', () => {
 describe('ffc-audience — modal close + ESC', () => {
 	async function mountAndLoad() {
 		fullCalendarFixture();
-		loadScript('assets/js/ffc-audience.js');
+		loadAudience();
 		await new Promise((r) => setTimeout(r, 0));
 	}
 
@@ -336,7 +346,7 @@ describe('ffc-audience — modal close + ESC', () => {
 describe('ffc-audience — booking modal handlers', () => {
 	async function mountAndLoad() {
 		fullCalendarFixture();
-		loadScript('assets/js/ffc-audience.js');
+		loadAudience();
 		await new Promise((r) => setTimeout(r, 0));
 	}
 

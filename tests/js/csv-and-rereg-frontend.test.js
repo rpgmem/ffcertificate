@@ -94,7 +94,10 @@ describe('ffc-csv-download — load-side', () => {
 			window.ffc_ajax = { ajax_url: '/wp-admin/admin-ajax.php', nonce: '', strings: {} };
 			loadScript('assets/js/ffc-core.js');
 		}
-		await loadOnReady('assets/js/ffc-csv-download.js');
+		// Core owns window.FFCCsv + the form-submit binding; info-screen
+		// registers api.onSubmitInfo (the submit handler under test).
+		loadScript('assets/js/ffc-csv-download.js');
+		await loadOnReady('assets/js/ffc-csv-info-screen.js');
 
 		const postSpy = vi.spyOn(window.$, 'post').mockImplementation(() => postChain({}));
 		const ev = window.$.Event('submit');

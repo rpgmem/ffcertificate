@@ -359,7 +359,7 @@ class ReregistrationAdmin {
 				</a>
 			</td>
 			<td class="column-auto">
-				<?php echo $item->auto_approve ? '<span class="dashicons dashicons-yes-alt" style="color:#00a32a"></span>' : '<span class="dashicons dashicons-minus" style="color:#a7aaad"></span>'; ?>
+				<?php echo $item->auto_approve ? '<span class="dashicons dashicons-yes-alt ffc-rereg-yes"></span>' : '<span class="dashicons dashicons-minus ffc-rereg-muted"></span>'; ?>
 			</td>
 			<td class="column-actions">
 				<a href="<?php echo esc_url( $edit_url ); ?>"><?php esc_html_e( 'Edit', 'ffcertificate' ); ?></a> |
@@ -600,7 +600,7 @@ class ReregistrationAdmin {
 
 		<!-- Filters & actions -->
 		<div class="tablenav top">
-			<form method="get" class="ffc-rereg-filters" style="display:inline;">
+			<form method="get" class="ffc-rereg-filters ffc-rereg-inline">
 				<input type="hidden" name="page" value="<?php echo esc_attr( self::MENU_SLUG ); ?>">
 				<input type="hidden" name="view" value="submissions">
 				<input type="hidden" name="id" value="<?php echo esc_attr( (string) $id ); ?>">
@@ -613,7 +613,7 @@ class ReregistrationAdmin {
 				<input type="search" name="s" value="<?php echo esc_attr( $search ?? '' ); ?>" placeholder="<?php esc_attr_e( 'Search name or email...', 'ffcertificate' ); ?>">
 				<?php submit_button( __( 'Filter', 'ffcertificate' ), '', '', false ); ?>
 			</form>
-			<a href="<?php echo esc_url( $export_url ); ?>" class="button" style="margin-left:10px;">
+			<a href="<?php echo esc_url( $export_url ); ?>" class="button ffc-rereg-ml-10">
 				<?php esc_html_e( 'Export CSV', 'ffcertificate' ); ?>
 			</a>
 		</div>
@@ -741,17 +741,17 @@ class ReregistrationAdmin {
 				<?php endif; ?>
 				<?php if ( $can_return_to_draft ) : ?>
 					<a href="<?php echo esc_url( $draft_url ); ?>" class="button button-small ffc-return-draft-btn" title="<?php esc_attr_e( 'Return to user for revision', 'ffcertificate' ); ?>">
-						<span class="dashicons dashicons-edit" style="vertical-align:middle;font-size:14px"></span>
+						<span class="dashicons dashicons-edit ffc-rereg-icon"></span>
 						<?php esc_html_e( 'Return to Draft', 'ffcertificate' ); ?>
 					</a>
 				<?php endif; ?>
 				<button type="button" class="button button-small ffc-view-details-btn" data-submission-id="<?php echo esc_attr( $sub->id ); ?>">
-					<span class="dashicons dashicons-visibility" style="vertical-align:middle;font-size:14px"></span>
+					<span class="dashicons dashicons-visibility ffc-rereg-icon"></span>
 					<?php esc_html_e( 'View Details', 'ffcertificate' ); ?>
 				</button>
 				<?php if ( in_array( $sub->status, array( 'submitted', 'approved' ), true ) ) : ?>
 					<button type="button" class="button button-small ffc-ficha-btn" data-submission-id="<?php echo esc_attr( $sub->id ); ?>">
-						<span class="dashicons dashicons-media-document" style="vertical-align:middle;font-size:14px"></span>
+						<span class="dashicons dashicons-media-document ffc-rereg-icon"></span>
 						<?php esc_html_e( 'Ficha', 'ffcertificate' ); ?>
 					</button>
 				<?php endif; ?>

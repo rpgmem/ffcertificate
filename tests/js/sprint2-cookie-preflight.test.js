@@ -14,6 +14,9 @@ import { loadScript } from './helpers.js';
 
 beforeAll(() => {
 	loadScript('assets/js/ffc-geofence-frontend.js');
+	loadScript('assets/js/ffc-geofence-datetime.js');
+	loadScript('assets/js/ffc-geofence-gps.js');
+	loadScript('assets/js/ffc-geofence-preflight.js');
 });
 
 beforeEach(() => {

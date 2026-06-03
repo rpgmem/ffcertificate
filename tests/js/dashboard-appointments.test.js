@@ -99,6 +99,28 @@ describe('FFCDashboard.panels.appointments.render', () => {
 		expect(buttons[0].getAttribute('href')).toBe('https://x.test/receipt/1');
 	});
 
+	it('escapes HTML in the calendar_title cell so injected markup cannot execute', () => {
+		panel().render([makeAppt({ calendar_title: '<img src=x onerror=alert(1)>' })], 1);
+		const container = document.getElementById('tab-appointments');
+		expect(container.querySelector('img')).toBeNull();
+		expect(container.textContent).toContain('<img src=x onerror=alert(1)>');
+	});
+
+	it('keeps a quote-breakout receipt_url inside the href and sets rel=noopener', () => {
+		panel().render([makeAppt({ receipt_url: 'https://x.test/"><img src=x onerror=alert(1)>' })], 1);
+		const buttons = document.querySelectorAll('#tab-appointments .ffc-btn-receipt');
+		// escAttr() neutralises the closing quote: one anchor, no smuggled <img>.
+		expect(buttons.length).toBe(1);
+		expect(document.querySelector('#tab-appointments td img')).toBeNull();
+	});
+
+	it('adds rel="noopener noreferrer" to the target=_blank receipt link', () => {
+		panel().render([makeAppt({ receipt_url: 'https://x.test/receipt/1' })], 1);
+		const link = document.querySelector('#tab-appointments .ffc-btn-receipt');
+		expect(link.getAttribute('target')).toBe('_blank');
+		expect(link.getAttribute('rel')).toBe('noopener noreferrer');
+	});
+
 	it('attaches the appointment-status class with the status value', () => {
 		panel().render([
 			makeAppt({ status: 'confirmed', status_label: 'Confirmed' }),

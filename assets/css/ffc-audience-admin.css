@@ -502,3 +502,87 @@
     top: -1px;
     content: "\f226";
 }
+
+/* ── Extracted inline styles (frontend-audit Item 1) ──────────────────────
+   Static inline style="" attributes moved out of the audience admin views
+   (admin-calendar, admin-audience). Pure display:none initial-state toggles
+   (driven by .show()/.hide() in the JS) and the data-driven background-color
+   badges stay inline by design. */
+
+.ffc-aud-flex-center {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+}
+
+.ffc-aud-flex-end {
+    display: flex;
+    gap: 15px;
+    align-items: flex-end;
+    flex-wrap: wrap;
+}
+
+.ffc-aud-flex-250 {
+    flex: 1;
+    min-width: 250px;
+}
+
+.ffc-aud-flex-200 {
+    flex: 1;
+    min-width: 200px;
+}
+
+.ffc-aud-panel {
+    margin-bottom: 20px;
+    padding: 15px;
+    background: #f6f7f7;
+    border: 1px solid #ddd;
+}
+
+.ffc-aud-user-dropdown {
+    display: none;
+    position: absolute;
+    z-index: 100;
+    background: #fff;
+    border: 1px solid #ddd;
+    max-height: 200px;
+    overflow-y: auto;
+    width: 300px;
+}
+
+.ffc-aud-maxw-160 {
+    max-width: 160px;
+}
+
+.ffc-aud-w-full {
+    width: 100%;
+}
+
+.ffc-aud-w-30pct {
+    width: 30%;
+}
+
+.ffc-aud-w-15pct {
+    width: 15%;
+}
+
+.ffc-aud-w-10pct {
+    width: 10%;
+}
+
+.ffc-aud-w-180 {
+    width: 180px;
+}
+
+.ffc-aud-w-150 {
+    width: 150px;
+}
+
+.ffc-aud-w-100 {
+    width: 100px;
+}
+
+.ffc-aud-check {
+    color: #00a32a;
+    font-weight: 600;
+}

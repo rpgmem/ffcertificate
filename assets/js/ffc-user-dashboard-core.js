@@ -22,6 +22,11 @@
     var helpers = {
         esc: function (str) { return $('<div>').text(str || '').html(); },
 
+        // Attribute-safe escape: esc() encodes < > & but not the double quote
+        // that would break out of an HTML attribute value, so harden href/src
+        // interpolations with the extra quote replacement.
+        escAttr: function (str) { return helpers.esc(str).replace(/"/g, '&quot;'); },
+
         pad2: function (n) { return n < 10 ? '0' + n : '' + n; },
 
         getPageSize: function () {

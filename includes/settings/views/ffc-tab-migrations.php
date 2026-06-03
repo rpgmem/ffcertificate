@@ -141,7 +141,7 @@ try {
 			</p>
 
 			<?php if ( ! empty( $ffcertificate_status_error ) ) : ?>
-				<div class="notice notice-warning inline" style="margin: 10px 0;">
+				<div class="notice notice-warning inline ffc-set-my-10">
 					<p><strong><?php esc_html_e( 'Status check error:', 'ffcertificate' ); ?></strong> <?php echo esc_html( $ffcertificate_status_error ); ?></p>
 				</div>
 			<?php endif; ?>
@@ -299,19 +299,19 @@ try {
 			</div>
 
 			<?php if ( $ffcertificate_cleanup_msg ) : ?>
-				<div class="notice notice-success inline" style="margin: 10px 0;">
+				<div class="notice notice-success inline ffc-set-my-10">
 					<p><?php echo esc_html( $ffcertificate_cleanup_msg ); ?></p>
 				</div>
 			<?php endif; ?>
 			<?php if ( $ffcertificate_cleanup_err ) : ?>
-				<div class="notice notice-error inline" style="margin: 10px 0;">
+				<div class="notice notice-error inline ffc-set-my-10">
 					<p><?php echo esc_html( $ffcertificate_cleanup_err ); ?></p>
 				</div>
 			<?php endif; ?>
 
 			<!-- Grace-window form -->
-			<form method="post" action="<?php echo esc_url( $ffcertificate_save_days_url ); ?>" style="margin: 12px 0;">
-				<label for="ffc-obsolete-days" style="margin-right: 8px;">
+			<form method="post" action="<?php echo esc_url( $ffcertificate_save_days_url ); ?>" class="ffc-set-my-12">
+				<label for="ffc-obsolete-days" class="ffc-set-mr-8">
 					<?php esc_html_e( 'Remove shortcodes for forms ended more than', 'ffcertificate' ); ?>
 				</label>
 				<input
@@ -322,7 +322,7 @@ try {
 					max="3650"
 					step="1"
 					value="<?php echo esc_attr( (string) $ffcertificate_cleanup_days ); ?>"
-					style="width: 90px;">
+					class="ffc-set-w-90">
 				<span><?php esc_html_e( 'days ago', 'ffcertificate' ); ?></span>
 				<button type="submit" class="button button-secondary">
 					<?php esc_html_e( 'Save', 'ffcertificate' ); ?>
@@ -366,7 +366,7 @@ try {
 				$ffcertificate_report_truncated = ! empty( $ffcertificate_cleanup_report['truncated'] );
 				$ffcertificate_report_days      = isset( $ffcertificate_cleanup_report['days'] ) ? (int) $ffcertificate_cleanup_report['days'] : $ffcertificate_cleanup_days;
 				?>
-				<h4 style="margin-top: 18px;">
+				<h4 class="ffc-set-mt-18">
 					<?php if ( $ffcertificate_report_is_dry ) : ?>
 						<?php esc_html_e( 'Preview report', 'ffcertificate' ); ?>
 					<?php else : ?>
@@ -404,12 +404,12 @@ try {
 				</div>
 
 				<?php if ( ! empty( $ffcertificate_report_items ) ) : ?>
-					<table class="widefat striped" style="margin-top: 10px;">
+					<table class="widefat striped ffc-set-mt-10">
 						<thead>
 							<tr>
 								<th><?php esc_html_e( 'Post', 'ffcertificate' ); ?></th>
 								<th><?php esc_html_e( 'Type', 'ffcertificate' ); ?></th>
-								<th style="width: 110px; text-align: right;">
+								<th class="ffc-set-w-110-right">
 									<?php if ( $ffcertificate_report_is_dry ) : ?>
 										<?php esc_html_e( 'Would remove', 'ffcertificate' ); ?>
 									<?php else : ?>
@@ -445,7 +445,7 @@ try {
 										<?php endif; ?>
 									</td>
 									<td><code><?php echo esc_html( $ffcertificate_item_type ); ?></code></td>
-									<td style="text-align: right;"><?php echo esc_html( number_format_i18n( $ffcertificate_item_count ) ); ?></td>
+									<td class="ffc-set-text-right"><?php echo esc_html( number_format_i18n( $ffcertificate_item_count ) ); ?></td>
 								</tr>
 							<?php endforeach; ?>
 						</tbody>
@@ -513,15 +513,15 @@ try {
 			</div>
 
 			<?php if ( $ffcertificate_url_msg ) : ?>
-				<div class="notice notice-success inline" style="margin: 10px 0;"><p><?php echo esc_html( $ffcertificate_url_msg ); ?></p></div>
+				<div class="notice notice-success inline ffc-set-my-10"><p><?php echo esc_html( $ffcertificate_url_msg ); ?></p></div>
 			<?php endif; ?>
 			<?php if ( $ffcertificate_url_err ) : ?>
-				<div class="notice notice-error inline" style="margin: 10px 0;"><p><?php echo esc_html( $ffcertificate_url_err ); ?></p></div>
+				<div class="notice notice-error inline ffc-set-my-10"><p><?php echo esc_html( $ffcertificate_url_err ); ?></p></div>
 			<?php endif; ?>
 
-			<form method="post" action="<?php echo esc_url( $ffcertificate_url_preview_url ); ?>" style="margin: 12px 0;">
-									<fieldset style="margin-bottom: 10px;">
-						<div style="margin-bottom:6px;">
+			<form method="post" action="<?php echo esc_url( $ffcertificate_url_preview_url ); ?>" class="ffc-set-my-12">
+									<fieldset class="ffc-set-mb-10">
+						<div class="ffc-set-mb-6">
 							<?php
 							\FreeFormCertificate\Admin\AdminUI::render_toggle(
 								array(
@@ -534,7 +534,7 @@ try {
 							);
 							?>
 						</div>
-						<div style="margin-bottom:6px; display:flex; align-items:center; gap:6px; flex-wrap:wrap;">
+						<div class="ffc-set-filter-row">
 							<?php
 							\FreeFormCertificate\Admin\AdminUI::render_toggle(
 								array(
@@ -546,7 +546,7 @@ try {
 								)
 							);
 							?>
-							<input type="number" name="url_cleanup_days" min="1" max="3650" step="1" value="<?php echo esc_attr( (string) $ffcertificate_url_days ); ?>" style="width:80px;" data-ffc-autosave-key="url_cleanup_days">
+							<input type="number" name="url_cleanup_days" min="1" max="3650" step="1" value="<?php echo esc_attr( (string) $ffcertificate_url_days ); ?>" class="ffc-set-w-80" data-ffc-autosave-key="url_cleanup_days">
 							<span><?php esc_html_e( 'days ago', 'ffcertificate' ); ?></span>
 						</div>
 						<div>
@@ -596,7 +596,7 @@ try {
 				$ffcertificate_url_items      = isset( $ffcertificate_url_report['affected'] ) && is_array( $ffcertificate_url_report['affected'] ) ? $ffcertificate_url_report['affected'] : array();
 				$ffcertificate_url_truncated  = ! empty( $ffcertificate_url_report['truncated'] );
 				?>
-				<h4 style="margin-top: 18px;">
+				<h4 class="ffc-set-mt-18">
 					<?php echo $ffcertificate_url_is_dry ? esc_html__( 'Preview report', 'ffcertificate' ) : esc_html__( 'Cleanup report', 'ffcertificate' ); ?>
 				</h4>
 
@@ -624,7 +624,7 @@ try {
 				</div>
 
 				<?php if ( ! empty( $ffcertificate_url_items ) ) : ?>
-					<table class="widefat striped" style="margin-top: 10px;">
+					<table class="widefat striped ffc-set-mt-10">
 						<thead>
 							<tr>
 								<th><?php esc_html_e( 'Short code', 'ffcertificate' ); ?></th>
@@ -702,17 +702,17 @@ try {
 			</p>
 
 			<?php if ( $ffcertificate_pa_msg ) : ?>
-				<div class="notice notice-success inline" style="margin: 10px 0;"><p><?php echo esc_html( $ffcertificate_pa_msg ); ?></p></div>
+				<div class="notice notice-success inline ffc-set-my-10"><p><?php echo esc_html( $ffcertificate_pa_msg ); ?></p></div>
 			<?php endif; ?>
 			<?php if ( $ffcertificate_pa_err ) : ?>
-				<div class="notice notice-error inline" style="margin: 10px 0;"><p><?php echo esc_html( $ffcertificate_pa_err ); ?></p></div>
+				<div class="notice notice-error inline ffc-set-my-10"><p><?php echo esc_html( $ffcertificate_pa_err ); ?></p></div>
 			<?php endif; ?>
 
-			<form method="post" action="<?php echo esc_url( $ffcertificate_pa_preview_url ); ?>" style="margin: 12px 0;">
-				<label for="ffc-pubaccess-days" style="margin-right: 8px;">
+			<form method="post" action="<?php echo esc_url( $ffcertificate_pa_preview_url ); ?>" class="ffc-set-my-12">
+				<label for="ffc-pubaccess-days" class="ffc-set-mr-8">
 					<?php esc_html_e( 'Disable access on forms ended more than', 'ffcertificate' ); ?>
 				</label>
-				<input type="number" id="ffc-pubaccess-days" name="public_access_disable_days" min="1" max="3650" step="1" value="<?php echo esc_attr( (string) $ffcertificate_pa_days ); ?>" style="width: 90px;">
+				<input type="number" id="ffc-pubaccess-days" name="public_access_disable_days" min="1" max="3650" step="1" value="<?php echo esc_attr( (string) $ffcertificate_pa_days ); ?>" class="ffc-set-w-90">
 				<span><?php esc_html_e( 'days ago', 'ffcertificate' ); ?></span>
 				<button type="submit" class="button button-secondary">
 					<span class="dashicons dashicons-visibility"></span>
@@ -746,7 +746,7 @@ try {
 				$ffcertificate_pa_items      = isset( $ffcertificate_pa_report['affected'] ) && is_array( $ffcertificate_pa_report['affected'] ) ? $ffcertificate_pa_report['affected'] : array();
 				$ffcertificate_pa_truncated  = ! empty( $ffcertificate_pa_report['truncated'] );
 				?>
-				<h4 style="margin-top: 18px;">
+				<h4 class="ffc-set-mt-18">
 					<?php echo $ffcertificate_pa_is_dry ? esc_html__( 'Preview report', 'ffcertificate' ) : esc_html__( 'Result', 'ffcertificate' ); ?>
 				</h4>
 
@@ -762,7 +762,7 @@ try {
 				</div>
 
 				<?php if ( ! empty( $ffcertificate_pa_items ) ) : ?>
-					<table class="widefat striped" style="margin-top: 10px;">
+					<table class="widefat striped ffc-set-mt-10">
 						<thead>
 							<tr>
 								<th><?php esc_html_e( 'Form', 'ffcertificate' ); ?></th>
@@ -845,13 +845,13 @@ try {
 			</p>
 
 			<?php if ( $ffcertificate_sa_msg ) : ?>
-				<div class="notice notice-success inline" style="margin: 10px 0;"><p><?php echo esc_html( $ffcertificate_sa_msg ); ?></p></div>
+				<div class="notice notice-success inline ffc-set-my-10"><p><?php echo esc_html( $ffcertificate_sa_msg ); ?></p></div>
 			<?php endif; ?>
 			<?php if ( $ffcertificate_sa_err ) : ?>
-				<div class="notice notice-error inline" style="margin: 10px 0;"><p><?php echo esc_html( $ffcertificate_sa_err ); ?></p></div>
+				<div class="notice notice-error inline ffc-set-my-10"><p><?php echo esc_html( $ffcertificate_sa_err ); ?></p></div>
 			<?php endif; ?>
 
-			<div class="ffc-migration-actions" style="margin: 12px 0;">
+			<div class="ffc-migration-actions ffc-set-my-12">
 				<a href="<?php echo esc_url( $ffcertificate_sa_scan_url ); ?>" class="button button-secondary">
 					<span class="dashicons dashicons-search"></span>
 					<?php esc_html_e( 'Run audit', 'ffcertificate' ); ?>
@@ -880,7 +880,7 @@ try {
 							</div>
 						<?php endforeach; ?>
 					</div>
-					<p class="description" style="margin-top: 10px;">
+					<p class="description ffc-set-mt-10">
 						<?php esc_html_e( 'Counts are capped at 50 per check (a “+” means there may be more). These are leads to investigate, not automatic fixes.', 'ffcertificate' ); ?>
 					</p>
 				<?php endif; ?>

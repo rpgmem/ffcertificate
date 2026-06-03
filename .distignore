@@ -26,6 +26,7 @@
 
 # Tests & docs not shipped to users
 /tests
+/docs
 /CHANGELOG.md
 /CONTRIBUTING.md
 /SECURITY.md

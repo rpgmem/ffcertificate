@@ -310,7 +310,7 @@ class AudienceAdminAudience {
 						<?php if ( $is_child ) : ?>
 							<p class="description">
 								<?php if ( $is_self_join ) : ?>
-									<span style="color: #00a32a; font-weight: 600;">&check;</span>
+									<span class="ffc-aud-check">&check;</span>
 									<?php esc_html_e( 'Inherited from parent audience. Users can join this group from their dashboard.', 'ffcertificate' ); ?>
 								<?php else : ?>
 									<?php esc_html_e( 'This setting is controlled by the parent audience.', 'ffcertificate' ); ?>

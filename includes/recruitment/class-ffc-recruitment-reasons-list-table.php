@@ -207,7 +207,7 @@ class RecruitmentReasonsListTable extends \WP_List_Table {
 		}
 		$pills = array();
 		foreach ( $decoded as $key ) {
-			$pills[] = '<span style="display:inline-block;padding:1px 8px;margin-right:4px;border-radius:10px;background:#f0f0f1;font-size:11px;">' . esc_html( $labels[ $key ] ?? $key ) . '</span>';
+			$pills[] = '<span class="ffc-rec-pill">' . esc_html( $labels[ $key ] ?? $key ) . '</span>';
 		}
 		return implode( '', $pills );
 	}

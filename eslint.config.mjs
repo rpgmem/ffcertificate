@@ -42,6 +42,7 @@ export default [
 				ffcDashboardConfig: 'readonly',
 				ffcRecruitment: 'readonly',
 				ffcRecruitmentConfig: 'readonly',
+				ffcRecruitmentCandidateEdit: 'readonly',
 				ffcAudience: 'readonly',
 				ffcAudienceAdmin: 'readonly',
 				ffcAudienceConfig: 'readonly',
@@ -77,6 +78,7 @@ export default [
 				FFCAudience: 'writable',
 				FFCCalendar: 'writable',
 				FFCCalendarCore: 'writable',
+				FFCCsv: 'writable',
 				FFC: 'writable',
 
 				// Third-party.

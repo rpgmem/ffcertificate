@@ -729,6 +729,25 @@ class AudienceShortcode {
 			true
 		);
 
+		// Calendar modules split out of the former monolith. Each depends on
+		// 'ffc-audience' (the shared core that owns window.FFCAudience and the
+		// normalized ffcAudience config) and extends the namespace.
+		foreach (
+			array(
+				'ffc-audience-calendar',
+				'ffc-audience-bookings',
+				'ffc-audience-booking-form',
+			) as $ffc_audience_module
+		) {
+			wp_enqueue_script(
+				$ffc_audience_module,
+				FFC_PLUGIN_URL . "assets/js/{$ffc_audience_module}{$s}.js",
+				array( 'jquery', 'ffc-core', 'ffc-audience' ),
+				FFC_VERSION,
+				true
+			);
+		}
+
 		// Dynamic fragments: refresh the wp_rest + ffc_search_users nonces
 		// localised on `ffcAudience` so cached (per-user) pages don't keep
 		// serving the nonce of whoever the cache entry was generated for.

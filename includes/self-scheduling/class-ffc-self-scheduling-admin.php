@@ -116,37 +116,16 @@ class SelfSchedulingAdmin {
 
 		$s = \FreeFormCertificate\Core\Utils::asset_suffix();
 
+		// Only the status-badge styles are needed on this screen. The old
+		// ffc-calendar-admin.js was an empty stub whose localize object
+		// (ffcSelfSchedulingAdmin) and admin nonce were never read by any
+		// script, and the jquery-ui deps/theme it pulled in had no widget to
+		// drive — all removed in the frontend-audit Item 4 cleanup.
 		wp_enqueue_style(
 			'ffc-calendar-admin',
 			plugins_url( "assets/css/ffc-calendar-admin{$s}.css", dirname( __DIR__, 1 ) ),
 			array(),
 			FFC_VERSION
 		);
-
-		wp_enqueue_script(
-			'ffc-calendar-admin',
-			plugins_url( "assets/js/ffc-calendar-admin{$s}.js", dirname( __DIR__, 1 ) ),
-			array( 'jquery', 'jquery-ui-sortable', 'jquery-ui-datepicker' ),
-			FFC_VERSION,
-			true
-		);
-
-		wp_localize_script(
-			'ffc-calendar-admin',
-			'ffcSelfSchedulingAdmin',
-			array(
-				'ajaxurl' => admin_url( 'admin-ajax.php' ),
-				'nonce'   => wp_create_nonce( 'ffc_self_scheduling_admin_nonce' ),
-				'strings' => array(
-					'confirmDelete'  => __( 'Are you sure you want to delete this?', 'ffcertificate' ),
-					'confirmCancel'  => __( 'Are you sure you want to cancel this appointment?', 'ffcertificate' ),
-					'selectCalendar' => __( 'Please select a calendar', 'ffcertificate' ),
-					'selectDate'     => __( 'Please select a date', 'ffcertificate' ),
-					'selectTime'     => __( 'Please select a time', 'ffcertificate' ),
-				),
-			)
-		);
-
-		wp_enqueue_style( 'jquery-ui-theme', FFC_PLUGIN_URL . 'libs/css/jquery-ui-smoothness.css', array(), FFC_JQUERY_UI_VERSION );
 	}
 }

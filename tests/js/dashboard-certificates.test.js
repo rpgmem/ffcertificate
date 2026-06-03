@@ -71,6 +71,32 @@ describe('FFCDashboard.panels.certificates.render', () => {
 		expect(buttons[0].getAttribute('href')).toBe('https://x.test/y');
 	});
 
+	it('escapes HTML in text cells so injected markup cannot execute', () => {
+		panel().render([makeCert({ form_title: '<img src=x onerror=alert(1)>', email: '<b>e</b>@x.test' })], 1);
+		const container = document.getElementById('tab-certificates');
+		// The payload must not materialise as real DOM nodes…
+		expect(container.querySelector('img')).toBeNull();
+		expect(container.querySelector('table b')).toBeNull();
+		// …it survives as inert text instead.
+		expect(container.textContent).toContain('<img src=x onerror=alert(1)>');
+	});
+
+	it('keeps a quote-breakout magic_link inside the href attribute', () => {
+		panel().render([makeCert({ magic_link: 'https://x.test/"><img src=x onerror=alert(1)>' })], 1);
+		const buttons = document.querySelectorAll('#tab-certificates .ffc-btn-pdf');
+		// escAttr() neutralises the closing quote: exactly one anchor and no
+		// smuggled <img> sibling in the actions cell.
+		expect(buttons.length).toBe(1);
+		expect(document.querySelector('#tab-certificates td img')).toBeNull();
+	});
+
+	it('adds rel="noopener noreferrer" to the target=_blank PDF link', () => {
+		panel().render([makeCert({ magic_link: 'https://x.test/y' })], 1);
+		const link = document.querySelector('#tab-certificates .ffc-btn-pdf');
+		expect(link.getAttribute('target')).toBe('_blank');
+		expect(link.getAttribute('rel')).toBe('noopener noreferrer');
+	});
+
 	it("applies 'consent-yes' / 'consent-no' classes based on consent_given", () => {
 		panel().render([makeCert({ consent_given: 1, auth_code: 'A' }), makeCert({ consent_given: 0, auth_code: 'B' })], 1);
 		expect(document.querySelectorAll('#tab-certificates .consent-yes').length).toBe(1);

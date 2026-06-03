@@ -27,6 +27,9 @@ import { loadScript } from './helpers.js';
 
 beforeAll(() => {
 	loadScript('assets/js/ffc-geofence-frontend.js');
+	loadScript('assets/js/ffc-geofence-datetime.js');
+	loadScript('assets/js/ffc-geofence-gps.js');
+	loadScript('assets/js/ffc-geofence-preflight.js');
 });
 
 function installLocationHttps() {
@@ -102,14 +105,14 @@ describe('FFCGeofence.showForm — clears inline display:none from validateGeolo
 		restoreLoc();
 	});
 
-	it('after a cache-hit checkLocation success: also no inline display:none', () => {
+	it('after a cache-hit showForm: also no inline display:none', () => {
 		vi.useFakeTimers();
 		const restoreLoc = installLocationHttps();
-		// Seed a cached location inside the test area.
+		// Seed a pass token (recent successful validation).
 		window.localStorage.setItem(
 			'ffc_geo_ffc-form-778',
 			JSON.stringify({
-				location: { latitude: 0, longitude: 0, accuracy: 5 },
+				validated: true,
 				expires: Math.floor(Date.now() / 1000) + 600,
 			}),
 		);

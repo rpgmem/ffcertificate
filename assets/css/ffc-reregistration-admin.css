@@ -369,3 +369,30 @@ body.ffc-modal-open {
 .ffc-details-empty {
     color: #a7aaad;
 }
+
+/* ── Extracted inline styles (frontend-audit Item 1) ──────────────────────
+   Static inline style="" attributes moved out of the reregistration admin
+   view. The submission-details modal keeps its inline display:none (initial
+   state toggled by .show()/.hide() in the JS) and the per-audience
+   background-color dot stays inline (data-driven). */
+
+.ffc-rereg-icon {
+    vertical-align: middle;
+    font-size: 14px;
+}
+
+.ffc-rereg-ml-10 {
+    margin-left: 10px;
+}
+
+.ffc-rereg-inline {
+    display: inline;
+}
+
+.ffc-rereg-yes {
+    color: #00a32a;
+}
+
+.ffc-rereg-muted {
+    color: #a7aaad;
+}
