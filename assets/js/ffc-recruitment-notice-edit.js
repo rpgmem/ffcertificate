@@ -313,6 +313,18 @@
 			p2.append('reason', reason2);
 			url = base + id + '/status';
 			init = { method: 'PUT', headers: { 'X-WP-Nonce': nonce, 'Content-Type': 'application/x-www-form-urlencoded' }, body: p2.toString(), credentials: 'same-origin' };
+		} else if (action === 'override') {
+			// Admin override (#Item 8): undo a realized hired/withdrew/not_shown
+			// decision. Destructive — confirm first, then require an audited
+			// reason. Hits the dedicated endpoint that bypasses the terminal
+			// guard and the reopen-freeze server-side.
+			if (!confirm(strings.confirmOverride || '')) { return; }
+			var oReason = prompt(strings.overrideReason || '');
+			if (!oReason || !oReason.trim()) { return; }
+			var po = new URLSearchParams();
+			po.append('reason', oReason);
+			url = base + id + '/override-to-empty';
+			init = { method: 'POST', headers: { 'X-WP-Nonce': nonce, 'Content-Type': 'application/x-www-form-urlencoded' }, body: po.toString(), credentials: 'same-origin' };
 		} else {
 			var p3 = new URLSearchParams();
 			p3.append('status', action);

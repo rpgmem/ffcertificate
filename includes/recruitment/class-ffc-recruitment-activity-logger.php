@@ -176,6 +176,36 @@ final class RecruitmentActivityLogger {
 	}
 
 	/**
+	 * Admin override forced a *stuck* classification back to `empty`.
+	 *
+	 * Logged as a distinct, `WARNING`-level event (not the routine
+	 * `recruitment_classification_status_changed`) so the audit trail flags
+	 * privileged overrides that bypassed the terminal guard / reopen-freeze.
+	 * The reason is always present — {@see
+	 * RecruitmentClassificationStateMachine::admin_override_to_empty} gates
+	 * on it before reaching this point.
+	 *
+	 * @param int    $classification_id Classification ID.
+	 * @param string $from   Overridden status (`hired|withdrew|not_shown`).
+	 * @param string $reason Justification supplied by the operator.
+	 * @return void
+	 */
+	public static function classification_override_to_empty( int $classification_id, string $from, string $reason ): void {
+		ActivityLog::log(
+			'recruitment_classification_override_to_empty',
+			ActivityLog::LEVEL_WARNING,
+			array(
+				'classification_id' => $classification_id,
+				'from'              => $from,
+				'to'                => 'empty',
+				'reason'            => $reason,
+				'override'          => 1,
+			),
+			get_current_user_id()
+		);
+	}
+
+	/**
 	 * Single convocation created.
 	 *
 	 * @param int  $call_id Call ID.

@@ -258,4 +258,91 @@ class RecruitmentClassificationStateMachineTest extends TestCase {
 		$this->assertFalse( $result['success'] );
 		$this->assertSame( array( 'recruitment_state_locked' ), $result['errors'] );
 	}
+
+	// -- admin_override_to_empty (#Item 8) -----------------------------------
+
+	public function test_override_hired_to_empty_succeeds(): void {
+		$this->wpdb->shouldReceive( 'get_row' )->once()->andReturn( $this->classification_stub( 'hired' ) );
+		$this->wpdb->shouldReceive( 'query' )->once()->andReturn( 1 );
+
+		$result = RecruitmentClassificationStateMachine::admin_override_to_empty( 10, 'Hired by mistake' );
+
+		$this->assertTrue( $result['success'] );
+		$this->assertSame( array(), $result['errors'] );
+	}
+
+	public function test_override_withdrew_to_empty_succeeds(): void {
+		$this->wpdb->shouldReceive( 'get_row' )->once()->andReturn( $this->classification_stub( 'withdrew' ) );
+		$this->wpdb->shouldReceive( 'query' )->once()->andReturn( 1 );
+
+		$result = RecruitmentClassificationStateMachine::admin_override_to_empty( 10, 'Logged the wrong candidate' );
+
+		$this->assertTrue( $result['success'] );
+	}
+
+	/**
+	 * The override deliberately bypasses the reopen-freeze: a `not_shown`
+	 * row on a reopened notice is unreachable via `transition_to` (see
+	 * test_not_shown_to_empty_blocked_when_notice_was_reopened) but the
+	 * admin override resets it. Proof: the notice is never fetched (only one
+	 * get_row, for the classification), so no freeze gate runs.
+	 */
+	public function test_override_not_shown_to_empty_bypasses_reopen_freeze(): void {
+		$this->wpdb->shouldReceive( 'get_row' )->once()->andReturn( $this->classification_stub( 'not_shown' ) );
+		$this->wpdb->shouldReceive( 'query' )->once()->andReturn( 1 );
+
+		$result = RecruitmentClassificationStateMachine::admin_override_to_empty( 10, 'Candidate did show — operator error' );
+
+		$this->assertTrue( $result['success'] );
+	}
+
+	public function test_override_requires_reason(): void {
+		// Reason is gated before any DB read — no get_row, no query.
+		$this->wpdb->shouldNotReceive( 'query' );
+
+		$result = RecruitmentClassificationStateMachine::admin_override_to_empty( 10, '   ' );
+
+		$this->assertFalse( $result['success'] );
+		$this->assertSame( array( 'recruitment_transition_reason_required' ), $result['errors'] );
+	}
+
+	public function test_override_unknown_classification_fails(): void {
+		$this->wpdb->shouldReceive( 'get_row' )->once()->andReturn( null );
+
+		$result = RecruitmentClassificationStateMachine::admin_override_to_empty( 999, 'Undo' );
+
+		$this->assertFalse( $result['success'] );
+		$this->assertSame( array( 'recruitment_classification_not_found' ), $result['errors'] );
+	}
+
+	public function test_override_idempotent_when_already_empty(): void {
+		$this->wpdb->shouldReceive( 'get_row' )->once()->andReturn( $this->classification_stub( 'empty' ) );
+		$this->wpdb->shouldNotReceive( 'query' );
+
+		$result = RecruitmentClassificationStateMachine::admin_override_to_empty( 10, 'Already waiting' );
+
+		$this->assertTrue( $result['success'] );
+	}
+
+	public function test_override_rejects_non_overridable_status(): void {
+		// `called` is reversible via the normal cancel flow — the override
+		// refuses it so it can't double as a generic "set any status" backdoor.
+		$this->wpdb->shouldReceive( 'get_row' )->once()->andReturn( $this->classification_stub( 'called' ) );
+		$this->wpdb->shouldNotReceive( 'query' );
+
+		$result = RecruitmentClassificationStateMachine::admin_override_to_empty( 10, 'Trying to shortcut' );
+
+		$this->assertFalse( $result['success'] );
+		$this->assertStringContainsString( 'recruitment_override_not_overridable', $result['errors'][0] );
+	}
+
+	public function test_override_lost_race_surfaces_error(): void {
+		$this->wpdb->shouldReceive( 'get_row' )->once()->andReturn( $this->classification_stub( 'hired' ) );
+		$this->wpdb->shouldReceive( 'query' )->once()->andReturn( 0 );
+
+		$result = RecruitmentClassificationStateMachine::admin_override_to_empty( 10, 'Undo hire' );
+
+		$this->assertFalse( $result['success'] );
+		$this->assertSame( array( 'recruitment_state_locked' ), $result['errors'] );
+	}
 }

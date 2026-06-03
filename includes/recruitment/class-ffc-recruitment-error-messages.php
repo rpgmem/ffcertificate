@@ -123,6 +123,7 @@ final class RecruitmentErrorMessages {
 			'recruitment_transition_race_lost'             => __( 'Another operator changed this notice\'s status moments ago. Reload to see the current state.', 'ffcertificate' ),
 			'recruitment_transition_reason_required'       => __( 'A reason is required for this status transition.', 'ffcertificate' ),
 			'recruitment_reopen_freeze_active'             => __( 'This notice is in a post-reopen freeze and the affected fields are temporarily locked.', 'ffcertificate' ),
+			'recruitment_override_not_overridable'         => __( 'Only candidates that are hired, withdrawn, or marked as no-show can be reset to waiting.', 'ffcertificate' ),
 
 			// Adjutancies.
 			'recruitment_adjutancy_not_found'              => __( 'Adjutancy not found.', 'ffcertificate' ),
