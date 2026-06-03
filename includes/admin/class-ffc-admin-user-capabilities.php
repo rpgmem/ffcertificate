@@ -34,6 +34,13 @@ class AdminUserCapabilities {
 		add_action( 'personal_options_update', array( __CLASS__, 'save_capability_fields' ) );
 		add_action( 'edit_user_profile_update', array( __CLASS__, 'save_capability_fields' ) );
 
+		// Role assignment is applied out-of-band via AJAX (one role at a time)
+		// rather than on the profile-form submit. This keeps it isolated from
+		// WordPress core's `set_role` and from any third-party multi-role
+		// plugin that also writes roles on the same submit — avoiding a
+		// last-writer-wins conflict over role membership.
+		add_action( 'wp_ajax_ffc_toggle_user_role', array( __CLASS__, 'ajax_toggle_user_role' ) );
+
 		// Enqueue scripts on user profile pages.
 		add_action( 'admin_enqueue_scripts', array( __CLASS__, 'enqueue_scripts' ) );
 	}
@@ -69,6 +76,42 @@ class AdminUserCapabilities {
 			array(),
 			FFC_VERSION,
 			true
+		);
+
+		// The target user: own profile (profile.php) or another user
+		// (user-edit.php?user_id=N). Mirrors how core resolves it.
+		$target_id = 'user-edit.php' === $hook_suffix
+			? ( isset( $_GET['user_id'] ) ? absint( wp_unslash( $_GET['user_id'] ) ) : 0 ) // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- read-only screen resolution, mirrors core user-edit.php.
+			: get_current_user_id();
+
+		$presets  = self::ffc_preset_roles();
+		$assigned = array();
+		$user     = $target_id > 0 ? get_userdata( $target_id ) : false;
+		if ( $user instanceof \WP_User ) {
+			$assigned = array_values( array_intersect( (array) $user->roles, array_keys( $presets ) ) );
+		}
+
+		$role_caps = array();
+		foreach ( $presets as $slug => $def ) {
+			$role_caps[ $slug ] = $def['caps'];
+		}
+
+		wp_localize_script(
+			'ffc-user-capabilities',
+			'ffcUserPerms',
+			array(
+				'ajaxUrl'  => admin_url( 'admin-ajax.php' ),
+				'nonce'    => wp_create_nonce( 'ffc_toggle_user_role' ),
+				'userId'   => $target_id,
+				'roleCaps' => $role_caps,
+				'assigned' => $assigned,
+				'i18n'     => array(
+					'error' => __( 'Could not update the role. Please reload and try again.', 'ffcertificate' ),
+					'user'  => __( 'User', 'ffcertificate' ),
+					'role'  => __( 'Role', 'ffcertificate' ),
+					'none'  => __( '—', 'ffcertificate' ),
+				),
+			)
 		);
 	}
 
@@ -123,25 +166,76 @@ class AdminUserCapabilities {
 	private static function render_context_summary( \WP_User $user ): void {
 		echo '<div class="ffc-cap-context">';
 
-		// Roles.
-		echo '<div class="ffc-cap-context-item">';
-		echo '<span class="ffc-cap-context-label">' . esc_html__( 'Role', 'ffcertificate' ) . '</span>';
-		echo '<span class="ffc-cap-context-val">';
-		$role_labels = self::role_labels( $user );
-		if ( empty( $role_labels ) ) {
-			echo '<em>' . esc_html__( 'No role', 'ffcertificate' ) . '</em>';
-		} else {
-			foreach ( $role_labels as $role_label ) {
-				echo '<span class="ffc-cap-chip">' . esc_html( $role_label ) . '</span>';
-			}
-		}
-		echo '</span>';
-		echo '<span class="ffc-cap-context-hint">' . esc_html__( 'Edit the role in the standard WordPress selector on this page. Permissions inherited from the role are tagged "Role" below.', 'ffcertificate' ) . '</span>';
-		echo '</div>';
+		// Roles — assignable FFC preset chips (applied immediately via AJAX).
+		self::render_role_presets( $user );
 
 		// Audiences — editable membership checklist.
 		self::render_audience_membership( $user );
 
+		echo '</div>';
+	}
+
+	/**
+	 * Render the FFC role chips as assignable presets.
+	 *
+	 * Each chip is a preset that grants a bundle of capabilities; toggling it
+	 * assigns/removes the role for *this* user (immediately, via AJAX — see
+	 * {@see self::ajax_toggle_user_role()}) and the capability grid below
+	 * recomputes live, marking role-granted caps as "Role". The role
+	 * *definition* (which caps a role contains) is global and read-only here.
+	 *
+	 * Non-FFC roles the user holds (e.g. `subscriber`) are shown muted, for
+	 * context — they're managed by WordPress / other plugins, never here.
+	 *
+	 * @param \WP_User $user User being edited.
+	 * @return void
+	 */
+	private static function render_role_presets( \WP_User $user ): void {
+		$presets    = self::ffc_preset_roles();
+		$user_roles = (array) $user->roles;
+
+		echo '<div class="ffc-cap-context-item ffc-cap-roles">';
+		echo '<span class="ffc-cap-context-label">' . esc_html__( 'Roles (presets)', 'ffcertificate' ) . '</span>';
+
+		if ( empty( $presets ) ) {
+			echo '<span class="ffc-cap-context-val"><em>' . esc_html__( 'No FFC roles available.', 'ffcertificate' ) . '</em></span>';
+		} else {
+			echo '<div class="ffc-cap-role-chips" role="group" aria-label="' . esc_attr__( 'FFC roles', 'ffcertificate' ) . '">';
+			foreach ( $presets as $slug => $def ) {
+				$assigned = in_array( $slug, $user_roles, true );
+				printf(
+					'<button type="button" class="ffc-cap-role%1$s" data-ffc-role="%2$s" aria-pressed="%3$s">'
+						. '<span class="ffc-cap-role-mark" aria-hidden="true"></span>'
+						. '<span class="ffc-cap-role-nm">%4$s</span>'
+						. '<span class="ffc-cap-role-ct">%5$s</span>'
+						. '</button>',
+					$assigned ? ' is-on' : '',
+					esc_attr( $slug ),
+					$assigned ? 'true' : 'false',
+					esc_html( $def['label'] ),
+					esc_html(
+						sprintf(
+							/* translators: %d: number of capabilities the role grants */
+							_n( '%d cap', '%d caps', count( $def['caps'] ), 'ffcertificate' ),
+							count( $def['caps'] )
+						)
+					)
+				);
+			}
+			echo '</div>';
+
+			// Non-FFC roles shown read-only for context.
+			$other = array_values( array_diff( $user_roles, array_keys( $presets ) ) );
+			if ( ! empty( $other ) ) {
+				echo '<span class="ffc-cap-role-other">' . esc_html__( 'Other roles:', 'ffcertificate' ) . ' ';
+				foreach ( $other as $role_slug ) {
+					echo '<span class="ffc-cap-chip ffc-cap-chip--muted">' . esc_html( self::role_label( (string) $role_slug ) ) . '</span> ';
+				}
+				echo '</span>';
+			}
+		}
+
+		echo '<span class="ffc-cap-context-hint">' . esc_html__( 'Hover a role to see what it grants. Assigning a role applies immediately and affects only this user; it does not send an e-mail.', 'ffcertificate' ) . '</span>';
 		echo '</div>';
 	}
 
@@ -218,7 +312,8 @@ class AdminUserCapabilities {
 	 * @return void
 	 */
 	private static function render_groups( \WP_User $user ): void {
-		$user_caps = $user->caps;
+		$user_caps  = $user->caps;
+		$role_union = self::user_role_caps_union( $user );
 
 		foreach ( \FreeFormCertificate\UserDashboard\CapabilityCatalog::groups() as $group ) {
 			$is_admin = 'admin' === $group['level'];
@@ -229,12 +324,15 @@ class AdminUserCapabilities {
 			$granted = 0;
 			foreach ( $group['caps'] as $slug => $meta ) {
 				$granted_user = ! empty( $user_caps[ $slug ] );
-				if ( $granted_user ) {
+				// Role precedence: a cap a role grants is locked/"Role" even if a
+				// redundant per-user override also exists (matches the live JS
+				// recompute when chips are toggled).
+				$by_role = in_array( (string) $slug, $role_union, true );
+				$origin  = $by_role ? 'role' : ( $granted_user ? 'user' : 'none' );
+				if ( 'none' !== $origin ) {
 					++$granted;
 				}
-				$effective = user_can( $user->ID, $slug );
-				$origin    = $granted_user ? 'user' : ( $effective ? 'role' : 'none' );
-				$rows     .= self::render_cap_row( (string) $slug, $meta, (string) $group['key'], $granted_user, $origin );
+				$rows .= self::render_cap_row( (string) $slug, $meta, (string) $group['key'], $granted_user, $origin );
 			}
 
 			printf(
@@ -277,26 +375,33 @@ class AdminUserCapabilities {
 		$label = isset( $meta['label'] ) ? (string) $meta['label'] : $slug;
 		$desc  = isset( $meta['description'] ) ? (string) $meta['description'] : '';
 
-		$toggle = \FreeFormCertificate\Admin\AdminUI::get_toggle(
+		// Role-granted caps render ON but disabled: a disabled checkbox is not
+		// submitted, so the profile-form save never writes a redundant per-user
+		// override for something a role already grants — to change it, toggle
+		// the role. User-level grants stay enabled and submittable.
+		$by_role = 'role' === $origin;
+		$toggle  = \FreeFormCertificate\Admin\AdminUI::get_toggle(
 			array(
 				'name'        => 'ffc_cap_' . $slug,
 				'id'          => 'ffc_cap_' . $slug,
-				'checked'     => $checked,
+				'checked'     => $by_role ? true : $checked,
+				'disabled'    => $by_role,
 				'label'       => '',
+				'class'       => $by_role ? 'ffc-cap-toggle--byrole' : '',
 				'input_class' => 'ffc-cap-checkbox',
 				'data'        => array( 'ffc-cap-group' => $group_key ),
 			)
 		);
 
 		return sprintf(
-			'<div class="ffc-cap-row" data-ffc-cap-name="%1$s" data-ffc-cap-slug="%2$s">'
+			'<div class="ffc-cap-row" data-ffc-cap-name="%1$s" data-ffc-cap-slug="%2$s" data-ffc-user-granted="%9$s">'
 				. '<div class="ffc-cap-row-toggle">%3$s</div>'
 				. '<div class="ffc-cap-row-text">'
-				. '<span class="ffc-cap-row-name">%4$s</span>'
+				. '<span class="ffc-cap-row-name">%4$s</span><span class="ffc-cap-role-tag" data-ffc-role-tag></span>'
 				. '<span class="ffc-cap-row-desc">%5$s</span>'
 				. '<span class="ffc-cap-slug">%2$s<button type="button" class="ffc-cap-copy" data-ffc-copy="%2$s" aria-label="%6$s" title="%6$s">⧉</button></span>'
 				. '</div>'
-				. '<span class="ffc-cap-origin ffc-cap-origin--%7$s">%8$s</span>'
+				. '<span class="ffc-cap-origin ffc-cap-origin--%7$s" data-ffc-origin>%8$s</span>'
 				. '</div>',
 			esc_attr( strtolower( $label . ' ' . $slug ) ),
 			esc_attr( $slug ),
@@ -305,7 +410,8 @@ class AdminUserCapabilities {
 			esc_html( $desc ),
 			esc_attr__( 'Copy slug', 'ffcertificate' ),
 			esc_attr( $origin ),
-			esc_html( self::origin_label( $origin ) )
+			esc_html( self::origin_label( $origin ) ),
+			$checked ? '1' : '0'
 		);
 	}
 
@@ -327,26 +433,84 @@ class AdminUserCapabilities {
 	}
 
 	/**
-	 * Display labels for the user's role(s), falling back to the raw slug
-	 * when the role catalog is unavailable (e.g. in unit tests).
+	 * Display label for a single role slug (falls back to the slug).
+	 *
+	 * @param string $slug Role slug.
+	 * @return string
+	 */
+	private static function role_label( string $slug ): string {
+		if ( function_exists( 'wp_roles' ) ) {
+			$names = wp_roles()->get_names();
+			if ( isset( $names[ $slug ] ) ) {
+				return (string) $names[ $slug ];
+			}
+		}
+		return $slug;
+	}
+
+	/**
+	 * The FFC "preset" roles: every registered role that grants at least one
+	 * cataloged FFC capability and does NOT grant `manage_options` (admins are
+	 * excluded — the whole panel is hidden for them anyway).
+	 *
+	 * Auto-discovered from `wp_roles()` so newly-registered FFC roles appear
+	 * without code changes here. Each role is reduced to the subset of caps
+	 * that live in the {@see CapabilityCatalog} — that's what the UI can
+	 * illuminate; core/other caps a role may carry are irrelevant here.
+	 *
+	 * @return array<string, array{label: string, caps: list<string>}>
+	 */
+	private static function ffc_preset_roles(): array {
+		if ( ! function_exists( 'wp_roles' ) ) {
+			return array();
+		}
+		$catalog = \FreeFormCertificate\UserDashboard\CapabilityCatalog::all_slugs();
+		$names   = wp_roles()->get_names();
+		$out     = array();
+
+		foreach ( wp_roles()->roles as $slug => $role ) {
+			$caps = isset( $role['capabilities'] ) && is_array( $role['capabilities'] ) ? $role['capabilities'] : array();
+			// Skip admin-equivalent roles.
+			if ( ! empty( $caps['manage_options'] ) ) {
+				continue;
+			}
+			$granted = array();
+			foreach ( $catalog as $cap ) {
+				if ( ! empty( $caps[ $cap ] ) ) {
+					$granted[] = $cap;
+				}
+			}
+			if ( empty( $granted ) ) {
+				continue;
+			}
+			$out[ (string) $slug ] = array(
+				'label' => isset( $names[ $slug ] ) ? (string) $names[ $slug ] : (string) $slug,
+				'caps'  => $granted,
+			);
+		}
+
+		return $out;
+	}
+
+	/**
+	 * Union of cataloged FFC caps granted by the roles the user currently
+	 * holds (intersected with the preset role map, so it matches exactly what
+	 * the client-side recompute uses).
 	 *
 	 * @param \WP_User $user User being edited.
 	 * @return list<string>
 	 */
-	private static function role_labels( \WP_User $user ): array {
-		$roles = $user->roles;
-		if ( function_exists( 'wp_roles' ) ) {
-			$names = wp_roles()->get_names();
-			return array_values(
-				array_map(
-					static function ( $slug ) use ( $names ) {
-						return isset( $names[ $slug ] ) ? (string) $names[ $slug ] : (string) $slug;
-					},
-					$roles
-				)
-			);
+	private static function user_role_caps_union( \WP_User $user ): array {
+		$presets = self::ffc_preset_roles();
+		$union   = array();
+		foreach ( (array) $user->roles as $slug ) {
+			if ( isset( $presets[ $slug ] ) ) {
+				foreach ( $presets[ $slug ]['caps'] as $cap ) {
+					$union[ $cap ] = true;
+				}
+			}
 		}
-		return array_values( array_map( 'strval', $roles ) );
+		return array_keys( $union );
 	}
 
 	/**
@@ -514,6 +678,71 @@ class AdminUserCapabilities {
 				)
 			);
 		}
+	}
+
+	/**
+	 * AJAX: assign or remove a single FFC preset role for a user.
+	 *
+	 * Deliberately isolated from the profile-form submit so it never races
+	 * WordPress core's `set_role` or a third-party multi-role plugin that
+	 * also writes roles on that submit. Restricted to {@see
+	 * self::ffc_preset_roles()} so it can't grant arbitrary roles, refuses to
+	 * touch `manage_options` users, and is cap- + nonce-gated. Audited.
+	 *
+	 * @return void
+	 */
+	public static function ajax_toggle_user_role(): void {
+		check_ajax_referer( 'ffc_toggle_user_role', 'nonce' );
+
+		if ( ! current_user_can( 'manage_options' ) ) {
+			wp_send_json_error( array( 'message' => 'forbidden' ), 403 );
+		}
+
+		$user_id = isset( $_POST['user_id'] ) ? absint( wp_unslash( $_POST['user_id'] ) ) : 0;
+		$role    = isset( $_POST['role'] ) ? sanitize_key( wp_unslash( $_POST['role'] ) ) : '';
+		$assign  = isset( $_POST['assign'] ) && '1' === (string) wp_unslash( $_POST['assign'] );
+
+		$user = $user_id > 0 ? get_userdata( $user_id ) : false;
+		if ( ! $user instanceof \WP_User ) {
+			wp_send_json_error( array( 'message' => 'user_not_found' ), 404 );
+		}
+
+		// Never edit administrators through this panel.
+		if ( user_can( $user_id, 'manage_options' ) ) {
+			wp_send_json_error( array( 'message' => 'cannot_edit_admin' ), 409 );
+		}
+
+		// Only FFC preset roles may be assigned here.
+		$presets = self::ffc_preset_roles();
+		if ( ! isset( $presets[ $role ] ) ) {
+			wp_send_json_error( array( 'message' => 'role_not_assignable' ), 400 );
+		}
+
+		if ( $assign ) {
+			$user->add_role( $role );
+		} else {
+			$user->remove_role( $role );
+		}
+
+		if ( class_exists( '\FreeFormCertificate\Core\Debug' ) ) {
+			\FreeFormCertificate\Core\Debug::log_user_manager(
+				'Admin updated user role assignment',
+				array(
+					'user_id'  => $user_id,
+					'admin_id' => get_current_user_id(),
+					'role'     => $role,
+					'assigned' => $assign ? 1 : 0,
+				)
+			);
+		}
+
+		wp_send_json_success(
+			array(
+				'role'     => $role,
+				'assigned' => $assign,
+				'roles'    => array_values( (array) $user->roles ),
+			)
+		);
 	}
 
 	/**

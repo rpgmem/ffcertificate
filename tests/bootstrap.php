@@ -255,7 +255,13 @@ if ( ! class_exists( 'WP_User' ) ) {
         }
 
         public function add_role( $role ) {
-            $this->roles[] = $role;
+            if ( ! in_array( $role, $this->roles, true ) ) {
+                $this->roles[] = $role;
+            }
+        }
+
+        public function remove_role( $role ) {
+            $this->roles = array_values( array_diff( $this->roles, array( $role ) ) );
         }
 
         public function set_role( $role ) {

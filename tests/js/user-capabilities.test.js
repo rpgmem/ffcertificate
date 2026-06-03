@@ -156,3 +156,121 @@ describe('live count', () => {
 		expect(admCount.textContent).toBe('1');
 	});
 });
+
+// ---- role preset chips + illumination + live recompute (#Frente A) ----
+
+function rolePanelMarkup() {
+	return `
+	<div class="ffc-cap-panel">
+		<div class="ffc-cap-roles">
+			<div class="ffc-cap-role-chips">
+				<button class="ffc-cap-role is-on" data-ffc-role="ffc_user" aria-pressed="true">
+					<span class="ffc-cap-role-mark"></span><span class="ffc-cap-role-nm">FFC User</span><span class="ffc-cap-role-ct">2 caps</span>
+				</button>
+				<button class="ffc-cap-role" data-ffc-role="ffc_recruitment_manager" aria-pressed="false">
+					<span class="ffc-cap-role-mark"></span><span class="ffc-cap-role-nm">Recruitment Manager</span><span class="ffc-cap-role-ct">1 cap</span>
+				</button>
+			</div>
+		</div>
+		<section class="ffc-cap-group" data-ffc-group="g">
+			<button class="ffc-cap-group-h"><span class="ffc-cap-count">1</span>/3</button>
+			<div class="ffc-cap-group-body">
+				${capRow('cap_a', true)}
+				${capRow('cap_b', false)}
+				${capRow('cap_c', false)}
+			</div>
+		</section>
+	</div>`;
+}
+
+function capRow(slug, userGranted) {
+	return `<div class="ffc-cap-row" data-ffc-cap-slug="${slug}" data-ffc-cap-name="${slug}" data-ffc-user-granted="${userGranted ? '1' : '0'}">
+		<label class="ffc-toggle"><input type="checkbox" class="ffc-cap-checkbox"${userGranted ? ' checked' : ''}><span class="ffc-toggle-track"></span></label>
+		<div><span class="ffc-cap-row-name">${slug}</span><span class="ffc-cap-role-tag" data-ffc-role-tag></span></div>
+		<span class="ffc-cap-origin" data-ffc-origin>—</span>
+	</div>`;
+}
+
+function roleSetup(fetchImpl) {
+	window.ffcUserPerms = {
+		ajaxUrl: '/wp-admin/admin-ajax.php',
+		nonce: 'role-nonce',
+		userId: 5,
+		roleCaps: { ffc_user: ['cap_a', 'cap_b'], ffc_recruitment_manager: ['cap_c'] },
+		assigned: ['ffc_user'],
+		i18n: { user: 'User', role: 'Role', none: '—', error: 'Err' },
+	};
+	if (fetchImpl) {
+		window.fetch = fetchImpl;
+		globalThis.fetch = fetchImpl;
+	}
+	document.body.innerHTML = rolePanelMarkup();
+	window.ffcUserPermissionsInit();
+}
+
+describe('role presets', () => {
+	afterEach(() => {
+		delete window.ffcUserPerms;
+	});
+
+	it('illuminates the caps a role grants on hover and clears on leave', () => {
+		roleSetup();
+		const chip = document.querySelector('[data-ffc-role="ffc_recruitment_manager"]');
+		chip.dispatchEvent(new Event('mouseenter'));
+
+		const rowC = document.querySelector('[data-ffc-cap-slug="cap_c"]');
+		expect(rowC.classList.contains('is-lit')).toBe(true);
+		expect(rowC.querySelector('[data-ffc-role-tag]').textContent).toBe('Recruitment Manager');
+		// A cap the role does not grant stays dark.
+		expect(document.querySelector('[data-ffc-cap-slug="cap_a"]').classList.contains('is-lit')).toBe(false);
+
+		chip.dispatchEvent(new Event('mouseleave'));
+		expect(rowC.classList.contains('is-lit')).toBe(false);
+	});
+
+	it('assigns a role via AJAX and locks the caps it grants as "Role"', async () => {
+		const fetchMock = vi.fn(() => Promise.resolve({ json: () => Promise.resolve({ success: true }) }));
+		roleSetup(fetchMock);
+
+		document.querySelector('[data-ffc-role="ffc_recruitment_manager"]').click();
+
+		expect(fetchMock).toHaveBeenCalledTimes(1);
+		const body = fetchMock.mock.calls[0][1].body;
+		expect(body).toContain('action=ffc_toggle_user_role');
+		expect(body).toContain('role=ffc_recruitment_manager');
+		expect(body).toContain('assign=1');
+
+		await new Promise((r) => setTimeout(r, 0));
+
+		const chip = document.querySelector('[data-ffc-role="ffc_recruitment_manager"]');
+		expect(chip.classList.contains('is-on')).toBe(true);
+		expect(chip.getAttribute('aria-pressed')).toBe('true');
+
+		const rowC = document.querySelector('[data-ffc-cap-slug="cap_c"]');
+		const cb = rowC.querySelector('.ffc-cap-checkbox');
+		expect(cb.checked).toBe(true);
+		expect(cb.disabled).toBe(true);
+		expect(rowC.querySelector('[data-ffc-origin]').textContent).toBe('Role');
+	});
+
+	it('removing a role restores the per-user state of its caps', async () => {
+		const fetchMock = vi.fn(() => Promise.resolve({ json: () => Promise.resolve({ success: true }) }));
+		roleSetup(fetchMock);
+
+		// cap_a is user-granted (data-ffc-user-granted="1"); ffc_user also grants it.
+		document.querySelector('[data-ffc-role="ffc_user"]').click();
+		await new Promise((r) => setTimeout(r, 0));
+
+		const rowA = document.querySelector('[data-ffc-cap-slug="cap_a"]');
+		const cbA = rowA.querySelector('.ffc-cap-checkbox');
+		// No longer role-locked → enabled, and restored to its user-granted state.
+		expect(cbA.disabled).toBe(false);
+		expect(cbA.checked).toBe(true);
+		expect(rowA.querySelector('[data-ffc-origin]').textContent).toBe('User');
+
+		// cap_b was not user-granted → reverts to none.
+		const rowB = document.querySelector('[data-ffc-cap-slug="cap_b"]');
+		expect(rowB.querySelector('.ffc-cap-checkbox').checked).toBe(false);
+		expect(rowB.querySelector('[data-ffc-origin]').textContent).toBe('—');
+	});
+});

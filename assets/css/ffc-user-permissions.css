@@ -293,6 +293,125 @@
 	border: 1px solid #c3c4c7;
 }
 
+/* ---- role preset chips ----------------------------------------------- */
+.ffc-cap-role-chips {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 8px;
+	margin: 2px 0 6px;
+}
+
+.ffc-cap-role {
+	display: inline-flex;
+	align-items: center;
+	gap: 8px;
+	padding: 5px 12px;
+	border-radius: 20px;
+	border: 1px solid #c3c4c7;
+	background: #fff;
+	cursor: pointer;
+	font: inherit;
+	color: #1d2327;
+	transition: box-shadow 0.12s, border-color 0.12s, background 0.12s;
+}
+
+.ffc-cap-role:hover {
+	border-color: #2271b1;
+	box-shadow: 0 0 0 3px rgba(34, 113, 177, 0.12);
+}
+
+.ffc-cap-role.is-on {
+	background: #eaf2fa;
+	border-color: #2271b1;
+	color: #135e96;
+}
+
+.ffc-cap-role-mark {
+	width: 16px;
+	height: 16px;
+	border-radius: 50%;
+	border: 1.5px solid #c3c4c7;
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+}
+
+.ffc-cap-role.is-on .ffc-cap-role-mark {
+	background: #2271b1;
+	border-color: #2271b1;
+}
+
+.ffc-cap-role.is-on .ffc-cap-role-mark::after {
+	content: "✓";
+	color: #fff;
+	font-size: 11px;
+	line-height: 1;
+}
+
+.ffc-cap-role-nm {
+	font-weight: 600;
+	font-size: 13px;
+}
+
+.ffc-cap-role-ct {
+	font-size: 11px;
+	color: #646970;
+}
+
+.ffc-cap-role.is-on .ffc-cap-role-ct {
+	color: #135e96;
+}
+
+.ffc-cap-role[disabled] {
+	opacity: 0.6;
+	cursor: progress;
+}
+
+.ffc-cap-role-other {
+	display: block;
+	margin-top: 4px;
+	font-size: 12px;
+	color: #646970;
+}
+
+.ffc-cap-chip--muted {
+	background: #f6f7f7;
+	color: #787c82;
+}
+
+/* role-granted capability: amber, "locked" toggle */
+.ffc-toggle.ffc-cap-toggle--byrole input[type="checkbox"]:checked + .ffc-toggle-track {
+	background: #b8860b;
+	cursor: not-allowed;
+}
+
+.ffc-toggle.ffc-cap-toggle--byrole .ffc-toggle-track::after {
+	box-shadow: 0 0 0 2px #fff4e5;
+}
+
+/* hover-illumination of the caps a role grants */
+.ffc-cap-row.is-lit {
+	background: #fff7e6;
+	box-shadow: inset 3px 0 0 #f0c36d;
+}
+
+.ffc-cap-role-tag {
+	display: none;
+	margin-left: 8px;
+	font-size: 10.5px;
+	font-weight: 600;
+	color: #8c5e00;
+	background: #fff4e5;
+	border: 1px solid #f0d9b5;
+	border-radius: 9px;
+	padding: 1px 7px;
+	vertical-align: middle;
+}
+
+.ffc-cap-row.is-lit .ffc-cap-role-tag:not(:empty) {
+	display: inline-block;
+}
+
 /* ---- search "no results" / hidden rows ------------------------------- */
 .ffc-cap-row[hidden],
 .ffc-cap-group[hidden] {
