@@ -146,6 +146,36 @@ final class RecruitmentAdminAssetsManager {
 			)
 		);
 
+		// CSV-import handlers for the Candidates tab's import section,
+		// extracted from an inline <script> in RecruitmentAdminPage
+		// (frontend-audit Item 10). The two functions stay global because
+		// the markup invokes them via inline onchange/onsubmit; their config
+		// (REST notices root + nonce + i18n) arrives via the localized object
+		// below so the PHP carries no inline interpolation.
+		wp_enqueue_script(
+			'ffc-recruitment-candidates-import',
+			FFC_PLUGIN_URL . "assets/js/ffc-recruitment-candidates-import{$s}.js",
+			array(),
+			$js_ver,
+			true
+		);
+		wp_localize_script(
+			'ffc-recruitment-candidates-import',
+			'ffcRecruitmentCandidatesImport',
+			array(
+				'noticesRoot' => esc_url_raw( rest_url( 'ffcertificate/v1/recruitment/notices/' ) ),
+				'nonce'       => wp_create_nonce( 'wp_rest' ),
+				'strings'     => array(
+					'bothLists'    => __( 'Both lists are available for this notice.', 'ffcertificate' ),
+					'draftOnly'    => __( 'Draft notices can only receive the preliminary list.', 'ffcertificate' ),
+					'pickNotice'   => __( 'Pick a notice above to see which lists can receive the import.', 'ffcertificate' ),
+					'selectTarget' => __( 'Please select a target notice.', 'ffcertificate' ),
+					'processing'   => __( 'Processing CSV…', 'ffcertificate' ),
+					'elapsed'      => __( 'elapsed', 'ffcertificate' ),
+				),
+			)
+		);
+
 		// Autosave infra for the Settings tab — `data-ffc-autosave-key`
 		// toggles in `render_settings_tab()` bind via the shared
 		// ffc-admin-autosave widget against SettingsAjaxEndpoint. Mirrors
