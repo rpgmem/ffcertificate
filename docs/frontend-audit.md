@@ -456,7 +456,7 @@ aponta para o dashboard com params mortos (`action=cancel&appointment_id`) e exi
 | `recruitment/...admin-page.php` | 1 | ~37 | (1 bloco no render) |
 | `admin/...device-threshold-upgrade-notice.php` | 1 | ~25 | ação/dismiss do aviso admin — ✅ s19 (`ffc-device-threshold-notice.js`) |
 | `admin/...form-list-columns.php` | 1 | ~22 | comportamento de coluna na list-table — ✅ s20 (`ffc-form-list-copy-shortcode.js`) |
-| `audience/...audience-admin-import.php` | 1 | ~20 | UI de import |
+| `audience/...audience-admin-import.php` | 1 | ~20 | UI de import — ✅ s21 (`ffc-audience-admin-import.js`) |
 
 **B) SOFT (`wp_add_inline_script` — já passa pelo enqueue/ordenação, mas ainda é JS em string; baixa prioridade):**
 `admin/...admin-user-custom-fields.php` (~30, toggle colapsável) · `self-scheduling/...appointment-receipt-handler.php` (contexto de **impressão** → provavelmente legítimo, como e-mail/PDF).
@@ -467,7 +467,7 @@ aponta para o dashboard com params mortos (`action=cancel&appointment_id`) e exi
 
 **Abordagem.** Por arquivo (ou por tela): extrair os blocos para `assets/js/ffc-*.js`, mover interpolações (i18n via `esc_js`, REST roots, `wp_create_nonce`, mapas como `data-ffc-empties`) para `wp_localize_script`/data-attributes, remover os `echo '<script>'`. **Test-first** (Vitest) onde o handler for testável; ESLint/floor mantidos. Incremental, 1 arquivo/feature por commit.
 
-**Status.** Inventário fechado; **executar incremental** nesta PR (Itens 8/9/10). Progresso: 2/6 extraídos (device-threshold-notice s19, form-list-copy-shortcode s20).
+**Status.** Inventário fechado; **executar incremental** nesta PR (Itens 8/9/10). Progresso: 3/6 extraídos (device-threshold-notice s19, form-list-copy-shortcode s20, audience-admin-import s21).
 
 ---
 
@@ -508,3 +508,4 @@ aponta para o dashboard com params mortos (`action=cancel&appointment_id`) e exi
 | 18 | 7 | corrigir bug do gate de justificativa fora-de-ordem: detecção client-side passa a ler o mapa autoritativo `data-ffc-empties` (servidor, lista não-filtrada/não-paginada) via `compute_empties_by_adjutancy` em vez de varrer o DOM filtrado; conserta filtro + paginação; +3 testes; PHPUnit 4898 + PHPStan 8 + WPCS ✓ | sprint 18 |
 | 19 | 10 | extrair JS inline de `device-threshold-upgrade-notice.php` (~25 linhas, 1 bloco) → `ffc-device-threshold-notice.js` (IIFE verbatim, lê action/nonce de `data-*` + `ajaxurl`, zero interpolação PHP); enqueue via `wp_enqueue_script`; +4 testes Vitest; ESLint + Vitest + `php -l` + PHPStan 8 + WPCS + PHPUnit ✓ | sprint 19 |
 | 20 | 10 | extrair JS inline de `form-list-columns.php` (~22 linhas, copy-to-clipboard do shortcode) → `ffc-form-list-copy-shortcode.js`; remove método morto `inline_styles()` + hook `admin_head-edit.php`, enqueue no footer existente. **Guard `readyState`** acrescentado (o inline rodava em `admin_head` antes do DOMContentLoaded; o asset no footer pode carregar depois — sem o guard o handler nunca bindava); +4 testes Vitest; ESLint + Vitest + `php -l` + PHPStan 8 + WPCS + PHPUnit ✓ | sprint 20 |
+| 21 | 10 | extrair JS inline de `audience-admin-import.php` (~20 linhas, tab-switch jQuery Import/Export) → `ffc-audience-admin-import.js` (verbatim, dep `jquery`); enqueue em `render_content`; +4 testes Vitest (real jQuery, `css('display')`); stub `wp_enqueue_script` no PHPUnit; ESLint + Vitest + `php -l` + PHPStan 8 + WPCS + PHPUnit ✓ | sprint 21 |

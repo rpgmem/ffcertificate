@@ -47,6 +47,10 @@ class AudienceAdminImportTest extends TestCase {
         Functions\when( 'sanitize_sql_orderby' )->returnArg();
         Functions\when( 'sanitize_key' )->returnArg();
         Functions\when( 'submit_button' )->justReturn( '' );
+        // render_content() now enqueues the tab-switch asset instead of
+        // echoing an inline <script>; stub the enqueue so the render path
+        // doesn't fatal under Brain\Monkey.
+        Functions\when( 'wp_enqueue_script' )->justReturn( null );
 
         if ( ! defined( 'ABSPATH' ) ) {
             define( 'ABSPATH', '/tmp/' );
