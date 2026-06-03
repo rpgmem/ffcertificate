@@ -454,7 +454,7 @@ aponta para o dashboard com params mortos (`action=cancel&appointment_id`) e exi
 | `recruitment/...notice-edit-page-renderer.php` | 7 | ~373 | tab-switch, CSV import, transições, ações de classificação + OOO, bulk-call, preview-status |
 | `admin/...form-editor-geofence-metabox.php` | 2 | ~39 | UI de config de geofence |
 | `recruitment/...admin-page.php` | 1 | ~37 | (1 bloco no render) |
-| `admin/...device-threshold-upgrade-notice.php` | 1 | ~25 | ação/dismiss do aviso admin |
+| `admin/...device-threshold-upgrade-notice.php` | 1 | ~25 | ação/dismiss do aviso admin — ✅ s19 (`ffc-device-threshold-notice.js`) |
 | `admin/...form-list-columns.php` | 1 | ~22 | comportamento de coluna na list-table |
 | `audience/...audience-admin-import.php` | 1 | ~20 | UI de import |
 
@@ -467,7 +467,7 @@ aponta para o dashboard com params mortos (`action=cancel&appointment_id`) e exi
 
 **Abordagem.** Por arquivo (ou por tela): extrair os blocos para `assets/js/ffc-*.js`, mover interpolações (i18n via `esc_js`, REST roots, `wp_create_nonce`, mapas como `data-ffc-empties`) para `wp_localize_script`/data-attributes, remover os `echo '<script>'`. **Test-first** (Vitest) onde o handler for testável; ESLint/floor mantidos. Incremental, 1 arquivo/feature por commit.
 
-**Status.** Inventário fechado; **executar incremental** nesta PR (Itens 8/9/10).
+**Status.** Inventário fechado; **executar incremental** nesta PR (Itens 8/9/10). Progresso: 1/6 extraídos (device-threshold-notice, s19).
 
 ---
 
@@ -506,3 +506,4 @@ aponta para o dashboard com params mortos (`action=cancel&appointment_id`) e exi
 | 16 | 3 | fragmentar `audience-loader` (1131→408): ~13 handlers `ajax_*` + 2 helpers → `AudienceAjaxController` (facade via `register()`) **test-first** (3 helper tests movidos + registro + 2 caracterizações); PHPStan 8 + WPCS + PHPUnit ✓. **Item 3 concluído.** | sprint 16 |
 | 17 | 4 | avaliar consolidações: remover stub morto `ffc-calendar-admin.js` (+ enqueue/localize/nonce/jquery-ui-theme + teste + coverage-exclude); CSS de badges e split recruitment mantidos (escopo correto). Vitest 1045 ✓ + PHPUnit + PHPStan + WPCS ✓. **Item 4 concluído.** | sprint 17 |
 | 18 | 7 | corrigir bug do gate de justificativa fora-de-ordem: detecção client-side passa a ler o mapa autoritativo `data-ffc-empties` (servidor, lista não-filtrada/não-paginada) via `compute_empties_by_adjutancy` em vez de varrer o DOM filtrado; conserta filtro + paginação; +3 testes; PHPUnit 4898 + PHPStan 8 + WPCS ✓ | sprint 18 |
+| 19 | 10 | extrair JS inline de `device-threshold-upgrade-notice.php` (~25 linhas, 1 bloco) → `ffc-device-threshold-notice.js` (IIFE verbatim, lê action/nonce de `data-*` + `ajaxurl`, zero interpolação PHP); enqueue via `wp_enqueue_script`; +4 testes Vitest; ESLint + Vitest + `php -l` + PHPStan 8 + WPCS + PHPUnit ✓ | sprint 19 |
