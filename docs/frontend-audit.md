@@ -323,7 +323,7 @@ intencionais/documentados (sem ação). Ver "Item 9" abaixo para o acompanhament
 
 ---
 
-## Item 7 — Bug: caixa de justificativa some ao "chamar" fora de ordem com a listagem filtrada  ⬜ (último a tratar)
+## Item 7 — Bug: caixa de justificativa some ao "chamar" fora de ordem com a listagem filtrada  🟦 (avaliado s18; correção planejada)
 
 **Sintoma.** No admin de convocação de um edital, ao **filtrar** os candidatos e então clicar
 em **"chamar"** um usuário que está **fora de ordem**, a **caixa de justificativa não aparece** —
@@ -342,11 +342,43 @@ então o gate que dispara o modal de justificativa não ativa e o fluxo segue pa
 posição/next-in-queue) e o endpoint AJAX correspondente. Conferir se a ordem é derivada do DOM filtrado
 ou de uma fonte canônica (ranking completo do edital) no servidor.
 
-**Status.** Não corrigido. Tratar por **último** no roadmap, após os itens de refactor/segurança acima.
+**Status.** Avaliado (sprint 18). Causa-raiz confirmada; correção planejada.
 
-### Plano
-_A preencher — reproduzir, localizar o gate de justificativa, e fazer a checagem de ordem usar a fila
-completa (não a lista filtrada). Cobrir com teste (filtrado vs. não-filtrado)._
+### Avaliação (sprint 18) — causa-raiz confirmada
+
+**Causa-raiz.** Em `RecruitmentNoticeEditPageRenderer::render_classification_actions_script()` o JS detecta
+"fora de ordem" escaneando o **DOM renderizado** — `panel.querySelectorAll("tr[data-cls-id]")` em
+`ffcRecruitmentLowestEmpty()` (single-call) e no threshold do bulk-call — para achar a linha `empty` de menor
+rank por adjutancy. Mas o filtro da tela é **server-side**: `render_classifications_section()` faz
+`RecruitmentClassificationFilterManager::apply_filters($definitive_rows, $filters)` **antes** de renderizar
+(linhas 772-773), então o `<tbody>` só contém as linhas filtradas. Filtrando para mostrar só o candidato de rank
+alto, as linhas `empty` de rank menor **somem do DOM** → o JS computa esse candidato como o "menor empty" → acha
+que ele é o próximo da fila → **não marca OOO** → não abre o modal de justificativa → segue direto para a data.
+Sem filtro, todas as linhas estão no DOM → detecção correta. Afeta **single-call e bulk-call** (ambos usam o scan).
+
+**Severidade: bug de UX, NÃO bypass de auditoria.** O servidor é a autoridade e reforça corretamente:
+`RecruitmentCallService` (linha ~329) computa `RecruitmentClassificationRepository::find_lowest_rank_empty(notice_id,
+adjutancy_id, list_type)` direto do **banco** (per-adjutancy, não filtrado pelo UI) e, se a chamada é OOO **sem**
+`out_of_order_reason`, **rejeita** com `recruitment_out_of_order_requires_reason`. Logo, uma chamada OOO filtrada
+sem justificativa **falha no servidor** — a integridade/ordem/audit não é furada. O defeito é o operador não ser
+avisado upfront (preenche a data e bate no erro do servidor / erro no single-call).
+
+### Plano de correção (proposto)
+
+**Tornar a detecção client-side autoritativa** (não depender do DOM filtrado):
+1. **Servidor** — em `render_classifications_section()`, antes do `apply_filters`, computar do conjunto
+   **não-filtrado** (ou via consulta dedicada ao repo) o mapa `empties_by_adjutancy = { adj_slug: [{id,rank}…
+   ordenado], … }` das classificações `empty` da lista **definitive** do edital (a fonte autoritativa que o
+   `find_lowest_rank_empty` já usa). Passar à view (data-attribute no painel definitive ou objeto localizado).
+2. **JS** — `ffcRecruitmentLowestEmpty()` e o threshold do bulk passam a usar esse mapa do servidor em vez de
+   `panel.querySelectorAll`. Lógica idêntica (single: menor rank do mapa; bulk: menor empty fora da seleção).
+3. **Testes** — PHP para a nova consulta/repo + o cálculo do mapa; o reforço server-side já é coberto
+   (`RecruitmentCallServiceTest`). Idealmente um teste de detecção (mas o JS é inline `<script>` — caracterizar via
+   a montagem do mapa no renderer).
+
+**Esforço:** médio. **Risco:** baixo-médio (aditivo no servidor + troca da fonte no JS; comportamento sem filtro
+inalterado). **Recomendação:** corrigir — é a única falha funcional real achada na auditoria (mesmo sendo UX, fura
+a expectativa do operador e gera erro confuso).
 
 ---
 
