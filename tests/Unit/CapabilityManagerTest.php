@@ -523,4 +523,69 @@ class CapabilityManagerTest extends TestCase {
         CapabilityManager::remove_role();
         $this->assertTrue( $removed );
     }
+
+    public function test_taxonomy_cap_renames_maps_old_slugs_to_standard(): void {
+        $map = CapabilityManager::taxonomy_cap_renames();
+
+        // The self_scheduling -> own_appointments pair reverses the 4.5.0 rename.
+        $this->assertSame( 'ffc_view_own_appointments', $map['ffc_view_self_scheduling'] );
+        $this->assertSame( 'ffc_manage_appointments', $map['ffc_manage_self_scheduling'] );
+        $this->assertSame( 'ffc_edit_certificates', $map['ffc_certificate_update'] );
+        $this->assertSame( 'ffc_manage_custom_fields', $map['ffc_manage_user_custom_fields'] );
+        $this->assertSame( 'ffc_import_recruitment', $map['ffc_import_recruitment_csv'] );
+        $this->assertSame( 'ffc_view_forms_api', $map['ffc_read_forms_api'] );
+        $this->assertCount( 10, $map );
+        // No identity entries (a botched rename map would no-op silently).
+        foreach ( $map as $old => $new ) {
+            $this->assertNotSame( $old, $new, "rename pair must not be identity: {$old}" );
+        }
+    }
+
+    public function test_migrate_taxonomy_renames_rewrites_user_and_role(): void {
+        Functions\when( 'get_users' )->justReturn( array( 1 ) );
+
+        // User holds an old-named cap; expect it rewritten to the new slug.
+        $user        = Mockery::mock( 'WP_User' );
+        $user->caps  = array( 'ffc_view_self_scheduling' => true );
+        $user_added  = array();
+        $user_removed = array();
+        $user->shouldReceive( 'add_cap' )->andReturnUsing(
+            function ( $cap, $val = true ) use ( &$user_added ) {
+                $user_added[ $cap ] = $val;
+            }
+        );
+        $user->shouldReceive( 'remove_cap' )->andReturnUsing(
+            function ( $cap ) use ( &$user_removed ) {
+                $user_removed[] = $cap;
+            }
+        );
+        Functions\when( 'get_userdata' )->justReturn( $user );
+
+        // One role (administrator) holds an old-named cap too.
+        $role               = Mockery::mock( 'WP_Role' );
+        $role->capabilities = array( 'ffc_manage_self_scheduling' => true );
+        $role_added         = array();
+        $role_removed       = array();
+        $role->shouldReceive( 'add_cap' )->andReturnUsing(
+            function ( $cap, $val = true ) use ( &$role_added ) {
+                $role_added[ $cap ] = $val;
+            }
+        );
+        $role->shouldReceive( 'remove_cap' )->andReturnUsing(
+            function ( $cap ) use ( &$role_removed ) {
+                $role_removed[] = $cap;
+            }
+        );
+        $wp_roles        = Mockery::mock();
+        $wp_roles->roles = array( 'administrator' => array() );
+        Functions\when( 'wp_roles' )->justReturn( $wp_roles );
+        Functions\when( 'get_role' )->justReturn( $role );
+
+        CapabilityManager::migrate_taxonomy_renames();
+
+        $this->assertArrayHasKey( 'ffc_view_own_appointments', $user_added );
+        $this->assertContains( 'ffc_view_self_scheduling', $user_removed );
+        $this->assertArrayHasKey( 'ffc_manage_appointments', $role_added );
+        $this->assertContains( 'ffc_manage_self_scheduling', $role_removed );
+    }
 }

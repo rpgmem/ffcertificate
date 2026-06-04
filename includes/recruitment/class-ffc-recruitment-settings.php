@@ -105,6 +105,17 @@ final class RecruitmentSettings {
 				'show_in_rest'      => false,
 			)
 		);
+
+		// 3-state model: the settings-tab form posts to options.php, which gates
+		// on this option-group capability. Delegating it to the granular cap
+		// lets a Recruitment Admin (and WP admins) save the form while a plain
+		// Recruitment Manager — who lacks the settings cap — cannot.
+		add_filter(
+			'option_page_capability_' . self::OPTION_GROUP,
+			static function () {
+				return 'ffc_manage_recruitment_settings';
+			}
+		);
 	}
 
 	/**

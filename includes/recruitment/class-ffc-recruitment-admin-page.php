@@ -212,11 +212,14 @@ final class RecruitmentAdminPage {
 			'settings'    => __( 'Settings', 'ffcertificate' ),
 		);
 		foreach ( $tabs as $tab => $label ) {
+			// The Settings tab carries its own view cap (3-state); the rest stay
+			// on the umbrella recruitment cap.
+			$tab_cap = ( 'settings' === $tab ) ? 'ffc_view_recruitment_settings' : self::CAP;
 			add_submenu_page(
 				self::PAGE_SLUG,
 				$label,
 				$label,
-				self::CAP,
+				$tab_cap,
 				'notices' === $tab ? self::PAGE_SLUG : self::PAGE_SLUG . '&tab=' . $tab,
 				array( self::class, 'render_page' )
 			);
@@ -271,6 +274,11 @@ final class RecruitmentAdminPage {
 		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Tab switching is read-only.
 		$tab = isset( $_GET['tab'] ) ? sanitize_key( wp_unslash( (string) $_GET['tab'] ) ) : 'notices';
 		if ( ! in_array( $tab, array( 'notices', 'adjutancies', 'reasons', 'candidates', 'settings' ), true ) ) {
+			$tab = 'notices';
+		}
+		// 3-state: the Settings tab needs its own view cap (só vê) — the umbrella
+		// alone (held by a plain Recruitment Manager) is not enough.
+		if ( 'settings' === $tab && ! self::can_view_settings() ) {
 			$tab = 'notices';
 		}
 
@@ -341,6 +349,11 @@ final class RecruitmentAdminPage {
 				'icon'  => 'admin-generic',
 			),
 		);
+
+		// Hide the Settings tab from users without its view cap (3-state).
+		if ( ! self::can_view_settings() ) {
+			unset( $tabs['settings'] );
+		}
 
 		echo '<ul class="ffc-settings-tabs__nav" role="tablist" aria-orientation="vertical">';
 		foreach ( $tabs as $slug => $tab ) {
@@ -724,12 +737,21 @@ final class RecruitmentAdminPage {
 	 */
 	private static function render_settings_tab(): void {
 		$settings = RecruitmentSettings::all();
+		$can_edit = self::can_edit_settings();
 
 		echo '<h2>' . esc_html__( 'Settings', 'ffcertificate' ) . '</h2>';
 		echo '<p>' . esc_html__( 'Email templates and public shortcode tuning. Saved values populate the convocation email and the public shortcode cache/rate-limit/page-size knobs.', 'ffcertificate' ) . '</p>';
 
+		if ( ! $can_edit ) {
+			echo '<p class="description"><em>' . esc_html__( 'Read-only — you do not have permission to change recruitment settings.', 'ffcertificate' ) . '</em></p>';
+		}
+
 		echo '<form method="post" action="' . esc_url( admin_url( 'options.php' ) ) . '">';
 		settings_fields( RecruitmentSettings::OPTION_GROUP );
+		if ( ! $can_edit ) {
+			// A disabled fieldset blocks every input + submission inside it.
+			echo '<fieldset disabled>';
+		}
 
 		$opt = RecruitmentSettings::OPTION_NAME;
 
@@ -904,8 +926,33 @@ final class RecruitmentAdminPage {
 		echo '</tbody></table>';
 		echo '</div>';
 
-		submit_button();
+		if ( $can_edit ) {
+			submit_button();
+		} else {
+			echo '</fieldset>';
+		}
 		echo '</form>';
+	}
+
+	/**
+	 * 3-state gate helpers for the recruitment Settings tab. Viewing needs the
+	 * view cap (admins + Recruitment Admin); editing/saving needs the manage
+	 * cap (which the options.php capability filter also enforces server-side).
+	 *
+	 * @return bool
+	 */
+	private static function can_view_settings(): bool {
+		return \FreeFormCertificate\Core\Utils::current_user_can_admin_or( 'ffc_view_recruitment_settings' )
+			|| \FreeFormCertificate\Core\Utils::current_user_can_admin_or( 'ffc_manage_recruitment_settings' );
+	}
+
+	/**
+	 * Whether the current user can edit/save the recruitment Settings tab.
+	 *
+	 * @return bool
+	 */
+	private static function can_edit_settings(): bool {
+		return \FreeFormCertificate\Core\Utils::current_user_can_admin_or( 'ffc_manage_recruitment_settings' );
 	}
 
 	/**

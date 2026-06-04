@@ -350,6 +350,15 @@ class AudienceAdminAudience {
 	 * @return void
 	 */
 	private function render_custom_fields_section( int $audience_id ): void {
+		// 3-state model: hidden without view; read-only with view-only; editable
+		// with manage. The save/delete/replicate AJAX is gated server-side by
+		// ffc_manage_custom_fields regardless of what the UI renders.
+		if ( ! \FreeFormCertificate\Core\Utils::current_user_can_admin_or( 'ffc_view_custom_fields' )
+			&& ! \FreeFormCertificate\Core\Utils::current_user_can_admin_or( 'ffc_manage_custom_fields' ) ) {
+			return;
+		}
+		$can_edit_fields = \FreeFormCertificate\Core\Utils::current_user_can_admin_or( 'ffc_manage_custom_fields' );
+
 		// Ensure standard fields are seeded for this audience before rendering.
 		if ( class_exists( '\FreeFormCertificate\Reregistration\ReregistrationStandardFieldsSeeder' ) ) {
 			\FreeFormCertificate\Reregistration\ReregistrationStandardFieldsSeeder::seed_for_audience( $audience_id );
@@ -379,6 +388,7 @@ class AudienceAdminAudience {
 				<?php endif; ?>
 			</div>
 
+			<?php if ( $can_edit_fields ) : ?>
 			<p>
 				<button type="button" id="ffc-add-custom-field" class="button">
 					<?php esc_html_e( '+ Add Field', 'ffcertificate' ); ?>
@@ -394,6 +404,9 @@ class AudienceAdminAudience {
 				<?php endif; ?>
 				<span id="ffc-custom-fields-status" class="ffc-save-status"></span>
 			</p>
+			<?php else : ?>
+			<p class="description"><em><?php esc_html_e( 'Read-only — you do not have permission to edit custom field definitions.', 'ffcertificate' ); ?></em></p>
+			<?php endif; ?>
 		</div>
 
 		<!-- Template for new field row (used by JS) -->

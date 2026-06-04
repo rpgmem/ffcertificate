@@ -142,16 +142,29 @@ class SubmissionsList extends \WP_List_Table {
 	 */
 	private function render_actions( array $item ): string {
 		$base_url = admin_url( 'edit.php?post_type=ffc_form&page=ffc-submissions' );
-		$edit_url = add_query_arg(
-			array(
-				'action'        => 'edit',
-				'submission_id' => $item['id'],
-			),
-			$base_url
-		);
 
-		$actions  = '<a href="' . esc_url( $edit_url ) . '" class="button button-small">' . esc_html__( 'Edit', 'ffcertificate' ) . '</a> ';
+		// 3-state model: read-only viewers (ffc_view_certificates) get the PDF
+		// button only; editing a record needs ffc_edit_certificates; the
+		// trash/restore/delete write actions need ffc_manage_certificates.
+		$can_manage = \FreeFormCertificate\Core\Utils::current_user_can_admin_or( 'ffc_manage_certificates' );
+		$can_edit   = $can_manage || \FreeFormCertificate\Core\Utils::current_user_can_admin_or( 'ffc_edit_certificates' );
+
+		$actions = '';
+		if ( $can_edit ) {
+			$edit_url = add_query_arg(
+				array(
+					'action'        => 'edit',
+					'submission_id' => $item['id'],
+				),
+				$base_url
+			);
+			$actions .= '<a href="' . esc_url( $edit_url ) . '" class="button button-small">' . esc_html__( 'Edit', 'ffcertificate' ) . '</a> ';
+		}
 		$actions .= $this->render_pdf_button( $item );
+
+		if ( ! $can_manage ) {
+			return $actions;
+		}
 
 		if ( isset( $item['status'] ) && 'publish' === $item['status'] ) {
 			$trash_url = wp_nonce_url(
@@ -319,6 +332,12 @@ class SubmissionsList extends \WP_List_Table {
 	 * @return array<string, string>
 	 */
 	protected function get_bulk_actions() {
+		// Read-only viewers (ffc_view_certificates without manage) get no bulk
+		// write actions.
+		if ( ! \FreeFormCertificate\Core\Utils::current_user_can_admin_or( 'ffc_manage_certificates' ) ) {
+			return array();
+		}
+
         // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Status is a display filter parameter.
 		$status = isset( $_GET['status'] ) ? sanitize_key( wp_unslash( $_GET['status'] ) ) : 'publish';
 		if ( 'trash' === $status ) {
