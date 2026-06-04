@@ -803,21 +803,24 @@ class CapabilityManager {
 	private static function module_roles_definition(): array {
 		return array(
 			// ── Cross-module roles ───────────────────────────────────────
+			// Each manage role also carries its matching `view` cap so the
+			// admin menu/tab (gated by a single view-cap string) stays visible
+			// to managers — the inline write gates still require the manage cap.
 			'ffc_certificate_manager'     => array(
 				'label' => __( 'FFC Certificate Manager', 'ffcertificate' ),
-				'caps'  => array( 'ffc_manage_certificates', 'ffc_export_certificates', 'ffc_edit_certificates' ),
+				'caps'  => array( 'ffc_view_certificates', 'ffc_manage_certificates', 'ffc_export_certificates', 'ffc_edit_certificates' ),
 			),
 			'ffc_self_scheduling_manager' => array(
 				'label' => __( 'FFC Self-Scheduling Manager', 'ffcertificate' ),
-				'caps'  => array( 'ffc_manage_appointments', 'ffc_scheduling_bypass', 'ffc_export_certificates' ),
+				'caps'  => array( 'ffc_view_appointments', 'ffc_manage_appointments', 'ffc_scheduling_bypass', 'ffc_export_certificates' ),
 			),
 			'ffc_audience_manager'        => array(
 				'label' => __( 'FFC Audience Manager', 'ffcertificate' ),
-				'caps'  => array( 'ffc_manage_audiences' ),
+				'caps'  => array( 'ffc_view_audiences', 'ffc_manage_audiences' ),
 			),
 			'ffc_reregistration_manager'  => array(
 				'label' => __( 'FFC Reregistration Manager', 'ffcertificate' ),
-				'caps'  => array( 'ffc_manage_reregistration' ),
+				'caps'  => array( 'ffc_view_reregistration', 'ffc_manage_reregistration' ),
 			),
 			'ffc_operator'                => array(
 				'label' => __( 'FFC Operator (read-only)', 'ffcertificate' ),
