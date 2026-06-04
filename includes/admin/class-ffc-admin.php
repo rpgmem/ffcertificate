@@ -197,7 +197,7 @@ class Admin {
 			'edit.php?post_type=ffc_form',
 			__( 'Submissions', 'ffcertificate' ),
 			__( 'Submissions', 'ffcertificate' ),
-			'manage_options',
+			'ffc_view_certificates',
 			'ffc-submissions',
 			array( $this, 'display_submissions_page' )
 		);
@@ -211,6 +211,13 @@ class Admin {
 	public function handle_submission_actions(): void {
         // phpcs:disable WordPress.Security.NonceVerification.Recommended -- Nonce verified per-action below via wp_verify_nonce and check_admin_referer.
 		if ( \FreeFormCertificate\Core\Utils::get_get_string( 'page' ) !== 'ffc-submissions' ) {
+			return;
+		}
+
+		// Write actions (trash/restore/delete + bulk) require the manage cap —
+		// the *vê e edita* tier. Read-only viewers (ffc_view_certificates) reach
+		// the page but never run these branches.
+		if ( ! \FreeFormCertificate\Core\Utils::current_user_can_admin_or( 'ffc_manage_certificates' ) ) {
 			return;
 		}
 

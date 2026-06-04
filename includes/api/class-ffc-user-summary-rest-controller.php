@@ -93,7 +93,7 @@ class UserSummaryRestController {
 			}
 
 			// Next appointment.
-			if ( $this->user_has_capability( 'ffc_view_self_scheduling', $user_id, $ctx['is_view_as'] ) ) {
+			if ( $this->user_has_capability( 'ffc_view_own_appointments', $user_id, $ctx['is_view_as'] ) ) {
 				$apt_repo = new \FreeFormCertificate\Repositories\AppointmentRepository();
 				$next     = $apt_repo->findNextUpcomingForUser( $user_id );
 
@@ -117,7 +117,7 @@ class UserSummaryRestController {
 			}
 
 			// Upcoming group events.
-			if ( $this->user_has_capability( 'ffc_view_audience_bookings', $user_id, $ctx['is_view_as'] ) ) {
+			if ( $this->user_has_capability( 'ffc_view_own_audience_bookings', $user_id, $ctx['is_view_as'] ) ) {
 				$bookings_table = $wpdb->prefix . 'ffc_audience_bookings';
 
 				// Schema guard stays in the controller; the service trusts

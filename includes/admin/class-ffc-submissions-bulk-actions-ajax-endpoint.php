@@ -67,7 +67,7 @@ class SubmissionsBulkActionsAjaxEndpoint {
 	public static function handle(): void {
 		check_ajax_referer( self::AJAX_ACTION, 'nonce' );
 
-		if ( ! current_user_can( 'manage_options' ) ) {
+		if ( ! \FreeFormCertificate\Core\Utils::current_user_can_admin_or( 'ffc_manage_certificates' ) ) {
 			wp_send_json_error(
 				array( 'message' => __( 'You do not have permission to modify submissions.', 'ffcertificate' ) ),
 				403

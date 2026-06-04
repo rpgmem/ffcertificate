@@ -156,7 +156,7 @@ class FormRestControllerTest extends TestCase {
         $route = $this->registered_routes[0];
         $this->assertSame( '/forms', $route['route'] );
         // 6.4.1: switched from `__return_true` to a method callback
-        // that delegates to current_user_can('ffc_read_forms_api').
+        // that delegates to current_user_can('ffc_view_forms_api').
         $this->assertIsArray( $route['args']['permission_callback'] );
         $this->assertSame( 'permission_read_forms_api', $route['args']['permission_callback'][1] );
     }

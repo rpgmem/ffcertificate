@@ -93,7 +93,7 @@ class RecruitmentRestSupportTraitTest extends TestCase {
     public function test_check_can_import_csv_accepts_either_cap(): void {
         $this->assertFalse( $this->host->check_can_import_csv() );
 
-        $this->caps['ffc_import_recruitment_csv'] = true;
+        $this->caps['ffc_import_recruitment'] = true;
         $this->assertTrue( $this->host->check_can_import_csv() );
 
         $this->caps = array( 'ffc_manage_recruitment' => true );
@@ -103,7 +103,7 @@ class RecruitmentRestSupportTraitTest extends TestCase {
     public function test_check_can_call_candidates_accepts_either_cap(): void {
         $this->assertFalse( $this->host->check_can_call_candidates() );
 
-        $this->caps['ffc_call_recruitment_candidates'] = true;
+        $this->caps['ffc_call_recruitment'] = true;
         $this->assertTrue( $this->host->check_can_call_candidates() );
 
         $this->caps = array( 'ffc_manage_recruitment' => true );

@@ -56,7 +56,7 @@ class CapabilityManager {
 	public const CERTIFICATE_CAPABILITIES = array(
 		'ffc_view_own_certificates',
 		'ffc_download_own_certificates',
-		'ffc_view_certificate_history',
+		'ffc_view_own_certificate_history',
 	);
 
 	/**
@@ -71,7 +71,7 @@ class CapabilityManager {
 		return array(
 			'view_own_certificates'     => 'ffc_view_own_certificates',
 			'download_own_certificates' => 'ffc_download_own_certificates',
-			'view_certificate_history'  => 'ffc_view_certificate_history',
+			'view_certificate_history'  => 'ffc_view_own_certificate_history',
 		);
 	}
 
@@ -124,11 +124,92 @@ class CapabilityManager {
 	}
 
 	/**
+	 * Taxonomy rename map (old => new) for the plugin-wide capability naming
+	 * standard `ffc_<action>_[own_]<domain>[_<qualifier>]`.
+	 *
+	 * ⚠ The `ffc_view_self_scheduling => ffc_view_own_appointments` entry
+	 * **reverses** the historical 4.5.0 migration
+	 * ({@see \FreeFormCertificate\Migrations\MigrationRenameCapabilities},
+	 * which mapped `ffc_view_own_appointments => ffc_view_self_scheduling`).
+	 * It is applied here under a **new** option flag so the two never collide.
+	 *
+	 * @since 6.9.0
+	 * @return array<string, string>
+	 */
+	public static function taxonomy_cap_renames(): array {
+		return array(
+			'ffc_view_certificate_history'    => 'ffc_view_own_certificate_history',
+			'ffc_view_self_scheduling'        => 'ffc_view_own_appointments',
+			'ffc_view_audience_bookings'      => 'ffc_view_own_audience_bookings',
+			'ffc_book_appointments'           => 'ffc_book_own_appointments',
+			'ffc_manage_self_scheduling'      => 'ffc_manage_appointments',
+			'ffc_certificate_update'          => 'ffc_edit_certificates',
+			'ffc_manage_user_custom_fields'   => 'ffc_manage_custom_fields',
+			'ffc_import_recruitment_csv'      => 'ffc_import_recruitment',
+			'ffc_call_recruitment_candidates' => 'ffc_call_recruitment',
+			'ffc_read_forms_api'              => 'ffc_view_forms_api',
+		);
+	}
+
+	/**
+	 * Idempotent migration that rewrites every taxonomy-renamed cap grant on
+	 * (1) every user's user-meta caps and (2) every role definition (including
+	 * `administrator` and the FFC roles), preserving the boolean value.
+	 *
+	 * Runs once per install via {@see \FreeFormCertificate\Loader} on
+	 * `plugins_loaded`, flagged by a dedicated option so it never re-runs and
+	 * never collides with the 4.5.0 rename migration.
+	 *
+	 * @since 6.9.0
+	 * @return array<string, int> Per-rename count of users migrated.
+	 */
+	public static function migrate_taxonomy_renames(): array {
+		$renames = self::taxonomy_cap_renames();
+		$counts  = array();
+
+		// 1. User-meta grants.
+		$users = get_users( array( 'fields' => 'ID' ) );
+		foreach ( $renames as $old => $new ) {
+			$counts[ $old ] = 0;
+			foreach ( $users as $user_id ) {
+				$user = get_userdata( (int) $user_id );
+				if ( ! $user ) {
+					continue;
+				}
+				if ( isset( $user->caps[ $old ] ) ) {
+					$value = (bool) $user->caps[ $old ];
+					$user->add_cap( $new, $value );
+					$user->remove_cap( $old );
+					++$counts[ $old ];
+				}
+			}
+		}
+
+		// 2. Role definitions — administrator + every FFC/custom role.
+		$wp_roles = wp_roles();
+		foreach ( array_keys( $wp_roles->roles ) as $role_slug ) {
+			$role = get_role( $role_slug );
+			if ( ! $role ) {
+				continue;
+			}
+			foreach ( $renames as $old => $new ) {
+				if ( isset( $role->capabilities[ $old ] ) ) {
+					$value = (bool) $role->capabilities[ $old ];
+					$role->add_cap( $new, $value );
+					$role->remove_cap( $old );
+				}
+			}
+		}
+
+		return $counts;
+	}
+
+	/**
 	 * All appointment-related capabilities
 	 */
 	public const APPOINTMENT_CAPABILITIES = array(
-		'ffc_book_appointments',
-		'ffc_view_self_scheduling',
+		'ffc_book_own_appointments',
+		'ffc_view_own_appointments',
 		'ffc_cancel_own_appointments',
 	);
 
@@ -138,7 +219,7 @@ class CapabilityManager {
 	 * @since 4.9.3
 	 */
 	public const AUDIENCE_CAPABILITIES = array(
-		'ffc_view_audience_bookings',
+		'ffc_view_own_audience_bookings',
 	);
 
 	/**
@@ -164,10 +245,10 @@ class CapabilityManager {
 		// module to a dedicated operator without giving full WP admin.
 		'ffc_manage_certificates',
 		'ffc_export_certificates',
-		'ffc_manage_self_scheduling',
+		'ffc_manage_appointments',
 		'ffc_manage_audiences',
 		'ffc_view_activity_log',
-		'ffc_manage_user_custom_fields',
+		'ffc_manage_custom_fields',
 		'ffc_view_as_user',
 		'ffc_manage_settings',
 
@@ -178,8 +259,8 @@ class CapabilityManager {
 		// stays as the umbrella cap (catch-all backwards-compat) for any
 		// endpoint that doesn't match one of the granular entries.
 		'ffc_view_recruitment',
-		'ffc_import_recruitment_csv',
-		'ffc_call_recruitment_candidates',
+		'ffc_import_recruitment',
+		'ffc_call_recruitment',
 		'ffc_view_recruitment_pii',
 		'ffc_manage_recruitment_settings',
 		'ffc_manage_recruitment_reasons',
@@ -188,7 +269,7 @@ class CapabilityManager {
 		// `FUTURE_CAPABILITIES` placeholder; gates the admin submission
 		// edit page so non-admin operators can fix typos in issued
 		// certificates without holding `manage_options`.
-		'ffc_certificate_update',
+		'ffc_edit_certificates',
 
 		// REST-API authentication caps (6.4.1). Granted to external
 		// integrators authenticating via WordPress Application Passwords
@@ -200,7 +281,20 @@ class CapabilityManager {
 		// lands here; calendars and appointments stay public-by-design
 		// because their REST routes serve the public booking shortcode
 		// directly. See issue #139.
-		'ffc_read_forms_api',
+		'ffc_view_forms_api',
+
+		// Read-only "view" caps — the *só vê* tier of the 3-state permission
+		// model (não vê / só vê / vê e edita). Each pairs with a `manage`
+		// cap above so a surface can be shown read-only without granting
+		// edit. Gate helper: `canView = manage_options || view || manage`.
+		'ffc_view_certificates',
+		'ffc_view_appointments',
+		'ffc_view_audiences',
+		'ffc_view_reregistration',
+		'ffc_view_custom_fields',
+		'ffc_view_settings',
+		'ffc_view_recruitment_settings',
+		'ffc_view_recruitment_reasons',
 	);
 
 	/**
@@ -221,7 +315,7 @@ class CapabilityManager {
 	 * - `ffc_reregistration` (4.9.3): never wired. Audience-targeting on
 	 *   reregistration objects already filters who can submit each form;
 	 *   adding a per-user cap on top was redundant. Removed in 6.2.0.
-	 * - `ffc_certificate_update` (4.9.3): wired in 6.2.0 as a real admin
+	 * - `ffc_edit_certificates` (4.9.3): wired in 6.2.0 as a real admin
 	 *   cap (see `ADMIN_CAPABILITIES` above).
 	 *
 	 * @since 4.9.3
@@ -709,25 +803,35 @@ class CapabilityManager {
 	private static function module_roles_definition(): array {
 		return array(
 			// ── Cross-module roles ───────────────────────────────────────
+			// Each manage role also carries its matching `view` cap so the
+			// admin menu/tab (gated by a single view-cap string) stays visible
+			// to managers — the inline write gates still require the manage cap.
 			'ffc_certificate_manager'     => array(
 				'label' => __( 'FFC Certificate Manager', 'ffcertificate' ),
-				'caps'  => array( 'ffc_manage_certificates', 'ffc_export_certificates', 'ffc_certificate_update' ),
+				'caps'  => array( 'ffc_view_certificates', 'ffc_manage_certificates', 'ffc_export_certificates', 'ffc_edit_certificates' ),
 			),
 			'ffc_self_scheduling_manager' => array(
 				'label' => __( 'FFC Self-Scheduling Manager', 'ffcertificate' ),
-				'caps'  => array( 'ffc_manage_self_scheduling', 'ffc_scheduling_bypass', 'ffc_export_certificates' ),
+				'caps'  => array( 'ffc_view_appointments', 'ffc_manage_appointments', 'ffc_scheduling_bypass', 'ffc_export_certificates' ),
 			),
 			'ffc_audience_manager'        => array(
 				'label' => __( 'FFC Audience Manager', 'ffcertificate' ),
-				'caps'  => array( 'ffc_manage_audiences' ),
+				'caps'  => array( 'ffc_view_audiences', 'ffc_manage_audiences' ),
 			),
 			'ffc_reregistration_manager'  => array(
 				'label' => __( 'FFC Reregistration Manager', 'ffcertificate' ),
-				'caps'  => array( 'ffc_manage_reregistration' ),
+				'caps'  => array( 'ffc_view_reregistration', 'ffc_manage_reregistration' ),
 			),
 			'ffc_operator'                => array(
 				'label' => __( 'FFC Operator (read-only)', 'ffcertificate' ),
-				'caps'  => array( 'ffc_view_activity_log', 'ffc_view_audience_bookings', 'ffc_view_self_scheduling', 'ffc_view_recruitment' ),
+				'caps'  => array(
+					'ffc_view_certificates',
+					'ffc_view_appointments',
+					'ffc_view_audiences',
+					'ffc_view_reregistration',
+					'ffc_view_activity_log',
+					'ffc_view_recruitment',
+				),
 			),
 
 			// ── Recruitment tier ─────────────────────────────────────────
@@ -737,7 +841,7 @@ class CapabilityManager {
 			),
 			'ffc_recruitment_operator'    => array(
 				'label' => __( 'FFC Recruitment Operator', 'ffcertificate' ),
-				'caps'  => array( 'ffc_view_recruitment', 'ffc_call_recruitment_candidates' ),
+				'caps'  => array( 'ffc_view_recruitment', 'ffc_call_recruitment' ),
 			),
 			// `ffc_recruitment_manager` already exists (6.0.0). It will be
 			// upgraded by `register_recruitment_manager_role()` — extra caps
@@ -746,11 +850,13 @@ class CapabilityManager {
 				'label' => __( 'FFC Recruitment Admin', 'ffcertificate' ),
 				'caps'  => array(
 					'ffc_view_recruitment',
-					'ffc_call_recruitment_candidates',
-					'ffc_import_recruitment_csv',
+					'ffc_call_recruitment',
+					'ffc_import_recruitment',
 					'ffc_view_recruitment_pii',
 					'ffc_manage_recruitment',
+					'ffc_view_recruitment_settings',
 					'ffc_manage_recruitment_settings',
+					'ffc_view_recruitment_reasons',
 					'ffc_manage_recruitment_reasons',
 				),
 			),
@@ -799,8 +905,8 @@ class CapabilityManager {
 		if ( $existing_manager ) {
 			$tier_2_caps = array(
 				'ffc_view_recruitment',
-				'ffc_call_recruitment_candidates',
-				'ffc_import_recruitment_csv',
+				'ffc_call_recruitment',
+				'ffc_import_recruitment',
 				'ffc_view_recruitment_pii',
 			);
 			foreach ( $tier_2_caps as $cap ) {

@@ -64,8 +64,8 @@ if ( ! defined( 'ABSPATH' ) ) {
 	<ul>
 		<li><code>ffc_view_recruitment</code> — <?php esc_html_e( 'view the recruitment admin pages.', 'ffcertificate' ); ?></li>
 		<li><code>ffc_manage_recruitment</code> — <?php esc_html_e( 'create / edit notices, candidates, adjutancies and reasons.', 'ffcertificate' ); ?></li>
-		<li><code>ffc_import_recruitment_csv</code> — <?php esc_html_e( 'import candidates from CSV.', 'ffcertificate' ); ?></li>
-		<li><code>ffc_call_recruitment_candidates</code> — <?php esc_html_e( 'record call-ups / convocations.', 'ffcertificate' ); ?></li>
+		<li><code>ffc_import_recruitment</code> — <?php esc_html_e( 'import candidates from CSV.', 'ffcertificate' ); ?></li>
+		<li><code>ffc_call_recruitment</code> — <?php esc_html_e( 'record call-ups / convocations.', 'ffcertificate' ); ?></li>
 		<li><code>ffc_view_recruitment_pii</code> — <?php esc_html_e( 'reveal unmasked personal data (CPF/RF/email) — without it, those columns stay masked.', 'ffcertificate' ); ?></li>
 	</ul>
 

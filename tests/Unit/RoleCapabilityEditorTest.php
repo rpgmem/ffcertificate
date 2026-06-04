@@ -113,7 +113,7 @@ class RoleCapabilityEditorTest extends TestCase {
 						array(
 							'read'                      => true, // non-catalog: ignored
 							'ffc_view_own_certificates' => true,
-							'ffc_book_appointments'     => true,
+							'ffc_book_own_appointments'     => true,
 						)
 					);
 				}
@@ -125,7 +125,7 @@ class RoleCapabilityEditorTest extends TestCase {
 
 		$this->assertArrayHasKey( 'ffc_user', $map );
 		$this->assertContains( 'ffc_view_own_certificates', $map['ffc_user'] );
-		$this->assertContains( 'ffc_book_appointments', $map['ffc_user'] );
+		$this->assertContains( 'ffc_book_own_appointments', $map['ffc_user'] );
 		$this->assertNotContains( 'read', $map['ffc_user'] ); // non-catalog filtered out
 	}
 

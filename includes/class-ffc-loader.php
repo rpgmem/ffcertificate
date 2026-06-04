@@ -323,6 +323,7 @@ class Loader {
 
 		$this->ensure_admin_capabilities();
 		$this->ensure_legacy_caps_renamed();
+		$this->ensure_taxonomy_renamed();
 		$this->define_admin_hooks();
 		$this->init_rest_api();
 	}
@@ -377,6 +378,28 @@ class Loader {
 	}
 
 	/**
+	 * One-time migration that renames capabilities to the plugin-wide naming
+	 * standard (`ffc_<action>_[own_]<domain>[_<qualifier>]`) across every user
+	 * and role. Idempotent + version-flagged via `ffc_taxonomy_caps_renamed_v1`.
+	 *
+	 * Separate flag from the 4.5.0 rename migration: one of its pairs
+	 * (`ffc_view_own_appointments` → `ffc_view_own_appointments`) reverses that
+	 * historical rename, so the two must never share a completion flag.
+	 *
+	 * @since 6.9.0
+	 */
+	private function ensure_taxonomy_renamed(): void {
+		$flag = 'ffc_taxonomy_caps_renamed_v1';
+		if ( '1' === get_option( $flag, '' ) ) {
+			return;
+		}
+		if ( class_exists( '\FreeFormCertificate\UserDashboard\CapabilityManager' ) ) {
+			\FreeFormCertificate\UserDashboard\CapabilityManager::migrate_taxonomy_renames();
+		}
+		update_option( $flag, '1', true );
+	}
+
+	/**
 	 * Initialize REST API
 	 *
 	 * @since 3.0.0
@@ -407,7 +430,7 @@ class Loader {
 	 */
 	private function ensure_admin_capabilities(): void {
 		// v2: added cleanup of user-level false overrides for admin users.
-		$version_key = 'ffc_admin_caps_version_v2';
+		$version_key = 'ffc_admin_caps_version_v3';
 		$current     = get_option( $version_key, '' );
 
 		if ( FFC_VERSION === $current ) {

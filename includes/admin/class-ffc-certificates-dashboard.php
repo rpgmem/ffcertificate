@@ -25,7 +25,7 @@ class CertificatesDashboard {
 
 	public const MENU_SLUG  = 'ffc-certificates-dashboard';
 	public const PARENT     = 'edit.php?post_type=ffc_form';
-	public const CAPABILITY = 'edit_others_posts';
+	public const CAPABILITY = 'ffc_view_certificates';
 
 	/**
 	 * Register WordPress hooks.

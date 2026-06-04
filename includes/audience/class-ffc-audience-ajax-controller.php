@@ -432,7 +432,7 @@ final class AudienceAjaxController {
 	public function ajax_save_custom_fields(): void {
 		try {
 			$this->verify_ajax_nonce( 'ffc_admin_nonce' );
-			$this->check_ajax_permission();
+			$this->check_ajax_permission( 'ffc_manage_custom_fields' );
 
 			$audience_id = $this->get_post_int( 'audience_id' );
             // phpcs:ignore WordPress.Security.NonceVerification.Missing, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Nonce verified in $this->verify_ajax_nonce() above; JSON decoded and sanitized per-field below.
@@ -622,7 +622,7 @@ final class AudienceAjaxController {
 	public function ajax_replicate_field_options(): void {
 		try {
 			$this->verify_ajax_nonce( 'ffc_admin_nonce' );
-			$this->check_ajax_permission();
+			$this->check_ajax_permission( 'ffc_manage_custom_fields' );
 
 			$audience_id = $this->get_post_int( 'audience_id' );
 			if ( ! $audience_id ) {
@@ -715,7 +715,7 @@ final class AudienceAjaxController {
 	public function ajax_delete_custom_field(): void {
 		try {
 			$this->verify_ajax_nonce( 'ffc_admin_nonce' );
-			$this->check_ajax_permission();
+			$this->check_ajax_permission( 'ffc_manage_custom_fields' );
 
 			$field_id = $this->get_post_int( 'field_id' );
 			if ( ! $field_id ) {

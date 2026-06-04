@@ -45,14 +45,14 @@ class AdminUserCapabilitiesTest extends TestCase {
             ->andReturn( array(
                 'ffc_view_own_certificates'      => true,
                 'ffc_download_own_certificates'  => false,
-                'ffc_view_certificate_history'   => false,
-                'ffc_book_appointments'          => false,
-                'ffc_view_self_scheduling'       => false,
+                'ffc_view_own_certificate_history'   => false,
+                'ffc_book_own_appointments'          => false,
+                'ffc_view_own_appointments'       => false,
                 'ffc_cancel_own_appointments'    => false,
                 'ffc_scheduling_bypass'          => false,
-                'ffc_view_audience_bookings'     => false,
+                'ffc_view_own_audience_bookings'     => false,
                 'ffc_manage_reregistration'      => false,
-                'ffc_certificate_update'         => false,
+                'ffc_edit_certificates'         => false,
             ) )
             ->byDefault();
         $this->user_manager_mock->shouldReceive( 'has_certificate_access' )
@@ -65,29 +65,29 @@ class AdminUserCapabilitiesTest extends TestCase {
             ->andReturn( array(
                 'ffc_view_own_certificates',
                 'ffc_download_own_certificates',
-                'ffc_view_certificate_history',
-                'ffc_book_appointments',
-                'ffc_view_self_scheduling',
+                'ffc_view_own_certificate_history',
+                'ffc_book_own_appointments',
+                'ffc_view_own_appointments',
                 'ffc_cancel_own_appointments',
                 'ffc_scheduling_bypass',
-                'ffc_view_audience_bookings',
+                'ffc_view_own_audience_bookings',
                 'ffc_manage_reregistration',
                 'ffc_manage_recruitment',
                 'ffc_manage_certificates',
                 'ffc_export_certificates',
-                'ffc_manage_self_scheduling',
+                'ffc_manage_appointments',
                 'ffc_manage_audiences',
                 'ffc_view_activity_log',
-                'ffc_manage_user_custom_fields',
+                'ffc_manage_custom_fields',
                 'ffc_view_as_user',
                 'ffc_manage_settings',
                 'ffc_view_recruitment',
-                'ffc_import_recruitment_csv',
-                'ffc_call_recruitment_candidates',
+                'ffc_import_recruitment',
+                'ffc_call_recruitment',
                 'ffc_view_recruitment_pii',
                 'ffc_manage_recruitment_settings',
                 'ffc_manage_recruitment_reasons',
-                'ffc_certificate_update',
+                'ffc_edit_certificates',
             ) )
             ->byDefault();
 
@@ -157,7 +157,7 @@ class AdminUserCapabilitiesTest extends TestCase {
                     'capabilities' => array(
                         'read'                      => true,
                         'ffc_view_own_certificates' => true,
-                        'ffc_book_appointments'     => true,
+                        'ffc_book_own_appointments'     => true,
                     ),
                 ),
                 'ffc_recruitment_manager'  => array(
@@ -338,8 +338,8 @@ class AdminUserCapabilitiesTest extends TestCase {
         // Checkbox inputs across the user-level groups…
         $this->assertStringContainsString( 'ffc_cap_ffc_view_own_certificates', $output );
         $this->assertStringContainsString( 'ffc_cap_ffc_download_own_certificates', $output );
-        $this->assertStringContainsString( 'ffc_cap_ffc_book_appointments', $output );
-        $this->assertStringContainsString( 'ffc_cap_ffc_view_self_scheduling', $output );
+        $this->assertStringContainsString( 'ffc_cap_ffc_book_own_appointments', $output );
+        $this->assertStringContainsString( 'ffc_cap_ffc_view_own_appointments', $output );
         $this->assertStringContainsString( 'ffc_cap_ffc_manage_reregistration', $output );
 
         // …and the admin-level caps that the old flat form never rendered
@@ -594,7 +594,7 @@ class AdminUserCapabilitiesTest extends TestCase {
     public function test_save_grants_capabilities(): void {
         $_POST['ffc_capabilities_nonce'] = 'valid_nonce';
         $_POST['ffc_cap_ffc_view_own_certificates'] = '1';
-        $_POST['ffc_cap_ffc_book_appointments'] = '1';
+        $_POST['ffc_cap_ffc_book_own_appointments'] = '1';
 
         Functions\when( 'wp_verify_nonce' )->justReturn( 1 );
         Functions\when( 'current_user_can' )->justReturn( true );
@@ -606,14 +606,14 @@ class AdminUserCapabilitiesTest extends TestCase {
 
         // Granted capabilities should be true
         $this->assertTrue( $user->caps['ffc_view_own_certificates'] );
-        $this->assertTrue( $user->caps['ffc_book_appointments'] );
+        $this->assertTrue( $user->caps['ffc_book_own_appointments'] );
 
         // Non-granted capabilities should have been removed (not present)
         $this->assertArrayNotHasKey( 'download_own_certificates', $user->caps );
-        $this->assertArrayNotHasKey( 'ffc_view_self_scheduling', $user->caps );
+        $this->assertArrayNotHasKey( 'ffc_view_own_appointments', $user->caps );
 
         // Clean up
-        unset( $_POST['ffc_cap_ffc_view_own_certificates'], $_POST['ffc_cap_ffc_book_appointments'] );
+        unset( $_POST['ffc_cap_ffc_view_own_certificates'], $_POST['ffc_cap_ffc_book_own_appointments'] );
     }
 
     public function test_save_removes_capabilities(): void {
@@ -626,14 +626,14 @@ class AdminUserCapabilitiesTest extends TestCase {
         $user = new \WP_User( 5 );
         // Pre-grant some capabilities
         $user->add_cap( 'ffc_view_own_certificates', true );
-        $user->add_cap( 'ffc_book_appointments', true );
+        $user->add_cap( 'ffc_book_own_appointments', true );
         Functions\when( 'get_userdata' )->justReturn( $user );
 
         AdminUserCapabilities::save_capability_fields( 5 );
 
         // All capabilities should have been removed
         $this->assertArrayNotHasKey( 'ffc_view_own_certificates', $user->caps );
-        $this->assertArrayNotHasKey( 'ffc_book_appointments', $user->caps );
+        $this->assertArrayNotHasKey( 'ffc_book_own_appointments', $user->caps );
     }
 
     // ==================================================================

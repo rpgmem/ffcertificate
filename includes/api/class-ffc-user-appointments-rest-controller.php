@@ -75,7 +75,7 @@ class UserAppointmentsRestController {
 				);
 			}
 
-			if ( ! $this->user_has_capability( 'ffc_view_self_scheduling', $user_id, $ctx['is_view_as'] ) ) {
+			if ( ! $this->user_has_capability( 'ffc_view_own_appointments', $user_id, $ctx['is_view_as'] ) ) {
 				return new \WP_Error(
 					'capability_denied',
 					__( 'You do not have permission to view appointments', 'ffcertificate' ),

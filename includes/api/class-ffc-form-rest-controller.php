@@ -76,7 +76,7 @@ class FormRestController {
 		//
 		// Authenticated. External integrators use a WordPress
 		// Application Password (Basic Auth, since WP 5.6) to call
-		// this endpoint; the linked user must hold `ffc_read_forms_api`
+		// this endpoint; the linked user must hold `ffc_view_forms_api`
 		// (granted to the administrator role automatically; delegable
 		// to other roles via the standard WP cap UI). The previous
 		// `__return_true` permission_callback exposed the
@@ -127,7 +127,7 @@ class FormRestController {
 		// Returns only id + title + the fields renderers need (name, label,
 		// type, required, options) and is the documented entry point for
 		// integrators that want to build a custom form UI without holding
-		// `ffc_read_forms_api`. The trim is enforced inside the handler
+		// `ffc_view_forms_api`. The trim is enforced inside the handler
 		// (see get_form_schema()) and is filterable via
 		// `ffcertificate_rest_form_schema` so projects can add or remove
 		// keys without having to fork the controller. See issue #139.
@@ -188,7 +188,7 @@ class FormRestController {
 	 * @return bool
 	 */
 	public function permission_read_forms_api(): bool {
-		return current_user_can( 'ffc_read_forms_api' );
+		return current_user_can( 'ffc_view_forms_api' );
 	}
 
 	/**
