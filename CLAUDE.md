@@ -116,6 +116,36 @@ The 14 debug-area toggles continue to be read via `Debug::is_enabled($area)` —
 
 Classes that already encapsulate `get_option('ffc_settings')` in their own private helper (e.g. `UrlShortenerService::get_settings()`) do NOT need to migrate — they're already centralized.
 
+## Capability naming
+
+All FFC capabilities follow one grammar (ratified in #488, applied plugin-wide):
+
+```
+ffc_<action>_[own_]<domain>[_<qualifier>]
+```
+
+- **Actions (closed vocabulary):** `view` (read-only) · `manage` (read-write: create/edit/delete/configure) · `export` · `import` · `edit` (modify existing records — narrower than `manage`) · `delete`. Flow-specific verbs: `book`, `cancel`, `download`, `call`, `bypass`.
+- **`own_`** marks a self-scoped end-user cap (frontend; the user's own data).
+- **Domains (canonical):** `certificates`, `appointments`, `audiences`, `reregistration`, `custom_fields`, `activity_log`, `settings`, `recruitment`, `url_shortener`, `forms_api`.
+- **Qualifiers:** `_pii`, `_settings`, `_reasons`, `_history`.
+
+### 3-state permission model
+
+Every admin domain exposes a `view`/`manage` pair so each surface has three states — *não vê* / *só vê* / *vê e edita* — with the WP admin (`manage_options`) above all:
+
+```
+canView = current_user_can('manage_options') || view_cap || manage_cap
+canEdit = current_user_can('manage_options') || manage_cap
+```
+
+A `manage` role does **not** need to also carry the `view` cap — `canView` already includes `manage`. Hidden when neither; read-only render (disabled inputs, no save, row/bulk actions hidden) when only `view`. Use `Utils::current_user_can_admin_or($cap)` for inline gates; menu/tab caps take the slug directly (admins hold every FFC admin cap via the activation/`ensure_admin_capabilities` grant).
+
+### Registry, catalog, migration
+
+- Machine list: `CapabilityManager` (`*_CAPABILITIES` consts + `module_roles_definition()`).
+- Human metadata: `CapabilityCatalog::groups()`. **Invariant** (enforced by `CapabilityCatalogTest`): `CapabilityCatalog::all_slugs()` must equal `CapabilityManager::get_all_capabilities()` as a set — adding a cap to one without the other fails CI.
+- Renames ship with a one-shot, option-flagged migration that rewrites grants on every user (`user_meta`) **and** every role definition (see `CapabilityManager::migrate_taxonomy_renames()` + `Loader::ensure_taxonomy_renamed()`). Renames are a **breaking change** for external integrations referencing old slugs — call it out in the CHANGELOG.
+
 ## Branch naming
 
 Use `claude/<short-kebab-description>` for feature branches that target `develop`. Examples in main history: `claude/js-coverage-sprint-B-audience-smoke`, `claude/csv-import-normalize-cpf-rf`. Use `hotfix/<short-kebab-description>` when cutting an urgent fix from `main` (see "Develop branch workflow" → Hotfixes). The remote refuses pushes to `main` and `develop` directly; always go through a PR.

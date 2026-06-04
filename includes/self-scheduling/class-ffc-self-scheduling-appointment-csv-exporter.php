@@ -358,7 +358,7 @@ class AppointmentCsvExporter {
 				wp_die( esc_html__( 'Security check failed.', 'ffcertificate' ) );
 			}
 
-			if ( ! \FreeFormCertificate\Core\Utils::current_user_can_admin_or( 'ffc_manage_self_scheduling' ) ) {
+			if ( ! \FreeFormCertificate\Core\Utils::current_user_can_admin_or( 'ffc_manage_appointments' ) ) {
 				wp_die( esc_html__( 'You do not have permission to export appointments.', 'ffcertificate' ) );
 			}
 

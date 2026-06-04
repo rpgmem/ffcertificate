@@ -109,7 +109,7 @@ class UserCertificatesRestController {
 
 			// Check per-capability permissions for the target user.
 			$can_download     = $this->user_has_capability( 'ffc_download_own_certificates', $user_id, $ctx['is_view_as'] );
-			$can_view_history = $this->user_has_capability( 'ffc_view_certificate_history', $user_id, $ctx['is_view_as'] );
+			$can_view_history = $this->user_has_capability( 'ffc_view_own_certificate_history', $user_id, $ctx['is_view_as'] );
 
 			$certificates = array();
 

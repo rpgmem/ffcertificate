@@ -590,7 +590,7 @@ final class RecruitmentAdminPage {
 		// operator can pick the target notice without navigating
 		// through the Notices tab first. Gated by the same capability
 		// the REST endpoint enforces.
-		if ( current_user_can( 'ffc_import_recruitment_csv' ) || current_user_can( 'ffc_manage_recruitment' ) ) {
+		if ( current_user_can( 'ffc_import_recruitment' ) || current_user_can( 'ffc_manage_recruitment' ) ) {
 			self::render_candidates_csv_import_section();
 		} else {
 			echo '<p>' . esc_html__( 'Candidates are imported per-notice via CSV — open the target notice (Notices tab → Edit) and use the "Import candidates (CSV)" section.', 'ffcertificate' ) . '</p>';

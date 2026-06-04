@@ -44,7 +44,7 @@ trait RecruitmentRestSupport {
 	 *
 	 * The umbrella `ffc_manage_recruitment` cap remains the catch-all
 	 * — anyone holding it passes every admin route. The granular 6.2.0
-	 * caps (`ffc_view_recruitment`, `ffc_import_recruitment_csv`, etc.)
+	 * caps (`ffc_view_recruitment`, `ffc_import_recruitment`, etc.)
 	 * are layered on top via dedicated permission callbacks for the
 	 * higher-blast-radius routes ({@see self::check_can_view_recruitment()},
 	 * {@see self::check_can_import_csv()}, {@see self::check_can_call_candidates()}),
@@ -73,14 +73,14 @@ trait RecruitmentRestSupport {
 	 * Permission gate for CSV import + promote-preview routes. The
 	 * highest-blast-radius operations on the module — replace entire
 	 * preview / definitive lists atomically. Accepts either the granular
-	 * `ffc_import_recruitment_csv` cap or the umbrella
+	 * `ffc_import_recruitment` cap or the umbrella
 	 * `ffc_manage_recruitment`.
 	 *
 	 * @since 6.2.0
 	 * @return bool
 	 */
 	public function check_can_import_csv(): bool {
-		return current_user_can( 'ffc_import_recruitment_csv' ) || current_user_can( 'ffc_manage_recruitment' );
+		return current_user_can( 'ffc_import_recruitment' ) || current_user_can( 'ffc_manage_recruitment' );
 	}
 
 	/**
@@ -88,14 +88,14 @@ trait RecruitmentRestSupport {
 	 * commits the candidate to a date / time, so operators that should
 	 * only manage data (without disparate communication authority) get
 	 * a separate cap. Accepts either the granular
-	 * `ffc_call_recruitment_candidates` cap or the umbrella
+	 * `ffc_call_recruitment` cap or the umbrella
 	 * `ffc_manage_recruitment`.
 	 *
 	 * @since 6.2.0
 	 * @return bool
 	 */
 	public function check_can_call_candidates(): bool {
-		return current_user_can( 'ffc_call_recruitment_candidates' ) || current_user_can( 'ffc_manage_recruitment' );
+		return current_user_can( 'ffc_call_recruitment' ) || current_user_can( 'ffc_manage_recruitment' );
 	}
 
 	/**

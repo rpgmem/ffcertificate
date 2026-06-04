@@ -166,8 +166,8 @@ class AudienceActivatorTest extends TestCase {
 
         AudienceActivator::register_capabilities();
 
-        $this->assertArrayHasKey( 'ffc_view_audience_bookings', $ffc_user_role->capabilities );
-        $this->assertTrue( $ffc_user_role->capabilities['ffc_view_audience_bookings'] );
+        $this->assertArrayHasKey( 'ffc_view_own_audience_bookings', $ffc_user_role->capabilities );
+        $this->assertTrue( $ffc_user_role->capabilities['ffc_view_own_audience_bookings'] );
     }
 
     // ==================================================================
@@ -186,8 +186,8 @@ class AudienceActivatorTest extends TestCase {
 
         AudienceActivator::register_capabilities();
 
-        $this->assertArrayHasKey( 'ffc_view_audience_bookings', $subscriber_role->capabilities );
-        $this->assertTrue( $subscriber_role->capabilities['ffc_view_audience_bookings'] );
+        $this->assertArrayHasKey( 'ffc_view_own_audience_bookings', $subscriber_role->capabilities );
+        $this->assertTrue( $subscriber_role->capabilities['ffc_view_own_audience_bookings'] );
     }
 
     // ==================================================================
@@ -368,12 +368,12 @@ class AudienceActivatorTest extends TestCase {
 
         // Verify capabilities were added by register_capabilities (called from create_tables)
         $this->assertArrayHasKey(
-            'ffc_view_audience_bookings',
+            'ffc_view_own_audience_bookings',
             $ffc_user_role->capabilities,
             'create_tables() should call register_capabilities() which adds cap to ffc_user'
         );
         $this->assertArrayHasKey(
-            'ffc_view_audience_bookings',
+            'ffc_view_own_audience_bookings',
             $subscriber_role->capabilities,
             'create_tables() should call register_capabilities() which adds cap to subscriber'
         );

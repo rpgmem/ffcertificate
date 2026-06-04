@@ -80,7 +80,7 @@ final class CapabilityCatalog {
 						'label'       => __( 'Download own certificates', 'ffcertificate' ),
 						'description' => __( 'Enables the certificate PDF download button.', 'ffcertificate' ),
 					),
-					'ffc_view_certificate_history'  => array(
+					'ffc_view_own_certificate_history'  => array(
 						'label'       => __( 'View certificate history', 'ffcertificate' ),
 						'description' => __( "Lists the user's previous certificate emissions.", 'ffcertificate' ),
 					),
@@ -91,11 +91,11 @@ final class CapabilityCatalog {
 				'label' => __( 'Appointments', 'ffcertificate' ),
 				'level' => 'user',
 				'caps'  => array(
-					'ffc_book_appointments'       => array(
+					'ffc_book_own_appointments'       => array(
 						'label'       => __( 'Book appointments', 'ffcertificate' ),
 						'description' => __( 'Allows reserving slots on public calendars.', 'ffcertificate' ),
 					),
-					'ffc_view_self_scheduling'    => array(
+					'ffc_view_own_appointments'    => array(
 						'label'       => __( 'View own appointments', 'ffcertificate' ),
 						'description' => __( 'Shows the slots the user has already booked.', 'ffcertificate' ),
 					),
@@ -110,7 +110,7 @@ final class CapabilityCatalog {
 				'label' => __( 'Audiences', 'ffcertificate' ),
 				'level' => 'user',
 				'caps'  => array(
-					'ffc_view_audience_bookings' => array(
+					'ffc_view_own_audience_bookings' => array(
 						'label'       => __( 'View audience bookings', 'ffcertificate' ),
 						'description' => __( 'Shows group/audience bookings in the dashboard.', 'ffcertificate' ),
 					),
@@ -121,6 +121,31 @@ final class CapabilityCatalog {
 				'label' => __( 'Administration — Modules', 'ffcertificate' ),
 				'level' => 'admin',
 				'caps'  => array(
+					// Read-only "view" tier (só vê) — pairs with each manage cap.
+					'ffc_view_certificates'         => array(
+						'label'       => __( 'View certificates', 'ffcertificate' ),
+						'description' => __( 'Read-only access to the submissions list and certificates dashboard.', 'ffcertificate' ),
+					),
+					'ffc_view_appointments'         => array(
+						'label'       => __( 'View appointments', 'ffcertificate' ),
+						'description' => __( 'Read-only access to all scheduled appointments.', 'ffcertificate' ),
+					),
+					'ffc_view_audiences'            => array(
+						'label'       => __( 'View audiences', 'ffcertificate' ),
+						'description' => __( 'Read-only access to audiences and their members.', 'ffcertificate' ),
+					),
+					'ffc_view_reregistration'       => array(
+						'label'       => __( 'View reregistration campaigns', 'ffcertificate' ),
+						'description' => __( 'Read-only access to the Reregistration admin page.', 'ffcertificate' ),
+					),
+					'ffc_view_custom_fields'        => array(
+						'label'       => __( 'View custom fields', 'ffcertificate' ),
+						'description' => __( 'Read-only access to user/audience custom field definitions.', 'ffcertificate' ),
+					),
+					'ffc_view_settings'             => array(
+						'label'       => __( 'View settings', 'ffcertificate' ),
+						'description' => __( 'Read-only access to the plugin Settings page.', 'ffcertificate' ),
+					),
 					'ffc_scheduling_bypass'         => array(
 						'label'       => __( 'Scheduling bypass', 'ffcertificate' ),
 						'description' => __( 'Private calendars, past dates, out-of-hours and blocked dates.', 'ffcertificate' ),
@@ -133,11 +158,11 @@ final class CapabilityCatalog {
 						'label'       => __( 'Export certificates', 'ffcertificate' ),
 						'description' => __( 'Download bulk certificate exports.', 'ffcertificate' ),
 					),
-					'ffc_certificate_update'        => array(
+					'ffc_edit_certificates'        => array(
 						'label'       => __( 'Edit submission data on issued certificates', 'ffcertificate' ),
 						'description' => __( 'Fix typos on already-issued certificates without holding manage_options.', 'ffcertificate' ),
 					),
-					'ffc_manage_self_scheduling'    => array(
+					'ffc_manage_appointments'    => array(
 						'label'       => __( 'Manage self-scheduling', 'ffcertificate' ),
 						'description' => __( 'Configure personal calendars and self-scheduling windows.', 'ffcertificate' ),
 					),
@@ -149,7 +174,7 @@ final class CapabilityCatalog {
 						'label'       => __( 'Manage reregistration campaigns', 'ffcertificate' ),
 						'description' => __( 'Access the Reregistration admin page.', 'ffcertificate' ),
 					),
-					'ffc_manage_user_custom_fields' => array(
+					'ffc_manage_custom_fields' => array(
 						'label'       => __( 'Manage user custom fields', 'ffcertificate' ),
 						'description' => __( 'Define extra user/audience fields.', 'ffcertificate' ),
 					),
@@ -165,7 +190,7 @@ final class CapabilityCatalog {
 						'label'       => __( 'Manage settings', 'ffcertificate' ),
 						'description' => __( 'Access the plugin Settings page.', 'ffcertificate' ),
 					),
-					'ffc_read_forms_api'            => array(
+					'ffc_view_forms_api'            => array(
 						'label'       => __( 'Read forms via REST API', 'ffcertificate' ),
 						'description' => __( 'For external integrators authenticating with Application Passwords.', 'ffcertificate' ),
 					),
@@ -180,15 +205,23 @@ final class CapabilityCatalog {
 						'label'       => __( 'Manage recruitment (umbrella)', 'ffcertificate' ),
 						'description' => __( 'Full access to the recruitment module.', 'ffcertificate' ),
 					),
+					'ffc_view_recruitment_settings'   => array(
+						'label'       => __( 'View recruitment settings', 'ffcertificate' ),
+						'description' => __( 'Read-only access to the recruitment Settings tab.', 'ffcertificate' ),
+					),
+					'ffc_view_recruitment_reasons'    => array(
+						'label'       => __( 'View reasons', 'ffcertificate' ),
+						'description' => __( 'Read-only access to the status-reason catalog.', 'ffcertificate' ),
+					),
 					'ffc_view_recruitment'            => array(
 						'label'       => __( 'View recruitment', 'ffcertificate' ),
 						'description' => __( 'Read-only access to notices and classifications.', 'ffcertificate' ),
 					),
-					'ffc_import_recruitment_csv'      => array(
+					'ffc_import_recruitment'      => array(
 						'label'       => __( 'Import recruitment CSV', 'ffcertificate' ),
 						'description' => __( 'Upload candidate lists.', 'ffcertificate' ),
 					),
-					'ffc_call_recruitment_candidates' => array(
+					'ffc_call_recruitment' => array(
 						'label'       => __( 'Call candidates', 'ffcertificate' ),
 						'description' => __( 'Issue and cancel convocations.', 'ffcertificate' ),
 					),

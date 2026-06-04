@@ -93,13 +93,13 @@ if ( ! defined( 'ABSPATH' ) ) {
 				<tr>
 					<td><code>GET</code></td>
 					<td><code>/forms</code></td>
-					<td><code>ffc_read_forms_api</code></td>
+					<td><code>ffc_view_forms_api</code></td>
 					<td><?php esc_html_e( 'List of published forms (id, title, status, dates, link). Capped at 100 per request.', 'ffcertificate' ); ?></td>
 				</tr>
 				<tr>
 					<td><code>GET</code></td>
 					<td><code>/forms/{id}</code></td>
-					<td><code>ffc_read_forms_api</code></td>
+					<td><code>ffc_view_forms_api</code></td>
 					<td><?php esc_html_e( 'Single form metadata (id, title, status, dates, link). For form structure use /forms/{id}/schema.', 'ffcertificate' ); ?></td>
 				</tr>
 			</tbody>
@@ -114,7 +114,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 		<h4><?php esc_html_e( 'Example: list forms with curl', 'ffcertificate' ); ?></h4>
 		<pre><code>curl -u USERNAME:APP_PASSWORD https://your-site.com/wp-json/ffc/v1/forms?limit=20</code></pre>
 		<p>
-			<?php esc_html_e( 'Replace USERNAME with the WordPress login of the integrator user, and APP_PASSWORD with the token created from the user\'s "Application Passwords" panel. The user must hold ffc_read_forms_api.', 'ffcertificate' ); ?>
+			<?php esc_html_e( 'Replace USERNAME with the WordPress login of the integrator user, and APP_PASSWORD with the token created from the user\'s "Application Passwords" panel. The user must hold ffc_view_forms_api.', 'ffcertificate' ); ?>
 		</p>
 	</div>
 

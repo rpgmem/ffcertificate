@@ -124,7 +124,7 @@ class UserAudienceRestController {
 				);
 			}
 
-			if ( ! $this->user_has_capability( 'ffc_view_audience_bookings', $user_id, $ctx['is_view_as'] ) ) {
+			if ( ! $this->user_has_capability( 'ffc_view_own_audience_bookings', $user_id, $ctx['is_view_as'] ) ) {
 				return new \WP_Error(
 					'capability_denied',
 					__( 'You do not have permission to view audience bookings', 'ffcertificate' ),
