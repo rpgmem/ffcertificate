@@ -32,6 +32,8 @@ class RecruitmentAdminActionsTest extends TestCase {
 
 		Functions\when( 'wp_unslash' )->returnArg();
 		Functions\when( 'absint' )->alias( static fn( $v ) => (int) $v );
+		// dispatch() now gates every write on the manage cap (via Utils).
+		Functions\when( 'current_user_can' )->justReturn( true );
 		Functions\when( 'check_admin_referer' )->justReturn( true );
 		Functions\when( 'admin_url' )->returnArg();
 		Functions\when( 'add_query_arg' )->alias(
@@ -75,6 +77,19 @@ class RecruitmentAdminActionsTest extends TestCase {
 
 		$this->assertStringContainsString( 'tab=notices', $url );
 		$this->assertStringContainsString( 'page=ffc-recruitment', $url );
+	}
+
+	public function test_dispatch_is_noop_without_manage_cap(): void {
+		// 3-state: a read-only viewer (no ffc_manage_recruitment) must not be
+		// able to trigger a destructive dispatch action via a crafted URL.
+		Functions\when( 'current_user_can' )->justReturn( false );
+		$_GET['notice_id'] = '42';
+		$repo              = Mockery::mock( 'alias:FreeFormCertificate\Recruitment\RecruitmentNoticeRepository' );
+		$repo->shouldNotReceive( 'delete' );
+
+		$url = $this->dispatchCapture( 'delete-notice' );
+
+		$this->assertSame( '', $url );
 	}
 
 	public function test_delete_notice_skips_delete_when_id_is_zero_but_still_redirects(): void {

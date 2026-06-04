@@ -60,15 +60,23 @@ submenus de audiência → `ffc_view_audiences`; submenu Appointments →
   Approve/Reject/Return-to-draft + bulk Apply escondidos para viewers; o título
   da linha aponta para *Submissions* (read) quando não pode editar. Habilita um
   **auditor de rerregistração**.
-- ⬜ **Audience** — re-gatear o menu "Scheduling" (pai + submenus de audiência)
-  para `ffc_view_audiences`; render gates `manage_audiences` → `canView`;
-  esconder botões de escrita. Escritas via `check_ajax_permission()` já
-  independentes.
-- ⬜ **Appointments** — submenu + `render_appointments_page` → `ffc_view_appointments`;
-  esconder ações de escrita da lista; confirmar cap das ações (cancel/export).
-- ⬜ **Recruitment** — **primeiro** gatear `RecruitmentAdminActions::dispatch`
-  por cap; depois abrir `render_page`/menu para `ffc_view_recruitment`; esconder
-  botões de escrita por aba. Realiza os roles **auditor/operator** (hoje REST-only).
+- ✅ **Audience** — menu "Scheduling" (pai + 7 submenus) → `ffc_view_audiences`.
+  `render_page` não tem gate próprio (depende do cap do menu) e as escritas
+  vivem em `handle_actions` (`manage_audiences`) + AJAX (`check_ajax_permission`),
+  ambas independentes → abrir a leitura é seguro. *(Botões de escrita ainda
+  visíveis ao viewer mas barrados server-side — polimento de UI pendente.)*
+- ✅ **Appointments** — submenu + `render_appointments_page` →
+  `ffc_view_appointments`; Confirm/Cancel da lista escondidos; a mutação
+  (confirm/cancel) já era `ffc_manage_appointments`-gated na view.
+- ✅ **Recruitment** — `RecruitmentAdminActions::dispatch` **endurecido**
+  (re-checa `ffc_manage_recruitment`); `render_page`/menu/abas (exceto settings)
+  → `ffc_view_recruitment`; edit screens exigem manage. Demais escritas (edit
+  pages, REST call/import/reasons) já tinham cap próprio. Realiza auditor/operator.
+  *(Botões "Create/New" por aba ainda visíveis ao viewer — polimento pendente.)*
+
+### Pendente (polimento de UI, não-segurança)
+Esconder os botões "Add/Create/New" para viewers em **audiences** (5 páginas) e
+**recruitment** (4 abas). As escritas já são barradas server-side; é só UX.
 
 ## Testes / gates
 

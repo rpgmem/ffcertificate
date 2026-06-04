@@ -41,6 +41,15 @@ final class RecruitmentAdminActions {
 	 * @return void
 	 */
 	public static function dispatch( string $action ): void {
+		// Every dispatch branch is a destructive write. Historically these
+		// relied on the page-level manage gate; now that the recruitment admin
+		// opens read-only for ffc_view_recruitment, gate the writes here so a
+		// read-only viewer (who never sees the row-action links) still can't
+		// trigger one via a crafted URL.
+		if ( ! \FreeFormCertificate\Core\Utils::current_user_can_admin_or( 'ffc_manage_recruitment' ) ) {
+			return;
+		}
+
 		switch ( $action ) {
 			case 'delete-notice':
 				$id = isset( $_GET['notice_id'] ) ? absint( wp_unslash( (string) $_GET['notice_id'] ) ) : 0;
