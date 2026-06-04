@@ -45,8 +45,11 @@ final class RecruitmentAdminPage {
 	/** Submenu slug — used as the `?page=` query param. */
 	public const PAGE_SLUG = 'ffc-recruitment';
 
-	/** Cap gating menu visibility + every render. */
+	/** Manage cap — every write (edit screens, dispatch, status changes). */
 	private const CAP = 'ffc_manage_recruitment';
+
+	/** Read-only "view" cap — opens the admin UI as the *só vê* tier. */
+	private const VIEW_CAP = 'ffc_view_recruitment';
 
 	/**
 	 * Translate a notice-lifecycle enum value into a localized label.
@@ -184,7 +187,7 @@ final class RecruitmentAdminPage {
 		add_menu_page(
 			__( 'Recruitment', 'ffcertificate' ),
 			__( 'Recruitment', 'ffcertificate' ),
-			self::CAP,
+			self::VIEW_CAP,
 			self::PAGE_SLUG,
 			array( self::class, 'render_page' ),
 			'dashicons-groups',
@@ -212,9 +215,9 @@ final class RecruitmentAdminPage {
 			'settings'    => __( 'Settings', 'ffcertificate' ),
 		);
 		foreach ( $tabs as $tab => $label ) {
-			// The Settings tab carries its own view cap (3-state); the rest stay
-			// on the umbrella recruitment cap.
-			$tab_cap = ( 'settings' === $tab ) ? 'ffc_view_recruitment_settings' : self::CAP;
+			// Settings tab carries its own view cap; the data tabs open read-only
+			// under the recruitment view cap (writes stay manage-gated).
+			$tab_cap = ( 'settings' === $tab ) ? 'ffc_view_recruitment_settings' : self::VIEW_CAP;
 			add_submenu_page(
 				self::PAGE_SLUG,
 				$label,
@@ -233,9 +236,13 @@ final class RecruitmentAdminPage {
 	 * @return void
 	 */
 	public static function render_page(): void {
-		if ( ! current_user_can( self::CAP ) ) {
+		// 3-state: the admin UI opens read-only for ffc_view_recruitment;
+		// every write (edit screens, dispatch deletes, status changes, call,
+		// import) stays gated by its own cap.
+		if ( ! \FreeFormCertificate\Core\Utils::current_user_can_admin_or( self::VIEW_CAP ) ) {
 			wp_die( esc_html__( 'Access denied.', 'ffcertificate' ) );
 		}
+		$can_edit = \FreeFormCertificate\Core\Utils::current_user_can_admin_or( self::CAP );
 
 		// Action dispatcher — row actions / GET-link operations land here
 		// before the default tab render runs. Each action validates its
@@ -247,6 +254,9 @@ final class RecruitmentAdminPage {
 		// Edit screens hijack the whole render — they have their own
 		// chrome (h1 + back link) and don't share the tab strip.
 		if ( 'edit-notice' === $action || 'edit-candidate' === $action || 'edit-reason' === $action || 'edit-adjutancy' === $action ) {
+			if ( ! $can_edit ) {
+				wp_die( esc_html__( 'Access denied.', 'ffcertificate' ) );
+			}
 			echo '<div class="wrap ffc-recruitment-admin">';
 			echo '<h1>' . esc_html__( 'Recruitment', 'ffcertificate' ) . '</h1>';
 			// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- read-only flash.
@@ -544,6 +554,11 @@ final class RecruitmentAdminPage {
 	 * @return void
 	 */
 	private static function render_create_reason_form(): void {
+		// 3-state: read-only viewers don't get the create form (the REST
+		// endpoint behind it is manage-gated anyway).
+		if ( ! \FreeFormCertificate\Core\Utils::current_user_can_admin_or( self::CAP ) ) {
+			return;
+		}
 		$default_color = RecruitmentReasonRepository::DEFAULT_COLOR;
 
 		echo '<h3>' . esc_html__( 'Create new reason', 'ffcertificate' ) . '</h3>';
@@ -962,6 +977,9 @@ final class RecruitmentAdminPage {
 	 * @return void
 	 */
 	private static function render_create_notice_form(): void {
+		if ( ! \FreeFormCertificate\Core\Utils::current_user_can_admin_or( self::CAP ) ) {
+			return;
+		}
 		echo '<h3>' . esc_html__( 'Create new notice', 'ffcertificate' ) . '</h3>';
 		echo '<form id="ffc-create-notice" method="post" data-ffc-create-endpoint="notices">';
 		echo '<table class="form-table"><tbody>';
@@ -981,6 +999,9 @@ final class RecruitmentAdminPage {
 	 * @return void
 	 */
 	private static function render_create_adjutancy_form(): void {
+		if ( ! \FreeFormCertificate\Core\Utils::current_user_can_admin_or( self::CAP ) ) {
+			return;
+		}
 		$default_color = RecruitmentAdjutancyRepository::DEFAULT_COLOR;
 
 		echo '<h3>' . esc_html__( 'Create new adjutancy', 'ffcertificate' ) . '</h3>';

@@ -208,7 +208,7 @@ class AudienceAdminPage {
 		add_menu_page(
 			__( 'Scheduling', 'ffcertificate' ),
 			__( 'Scheduling', 'ffcertificate' ),
-			'ffc_manage_audiences',
+			'ffc_view_audiences',
 			self::MENU_SLUG,
 			array( $this->dashboard, 'render_dashboard_page' ),
 			'dashicons-calendar-alt',
@@ -228,7 +228,7 @@ class AudienceAdminPage {
 			self::MENU_SLUG,
 			__( 'Dashboard', 'ffcertificate' ),
 			__( 'Dashboard', 'ffcertificate' ),
-			'ffc_manage_audiences',
+			'ffc_view_audiences',
 			self::MENU_SLUG . '-dashboard',
 			array( $this->dashboard, 'render_dashboard_page' )
 		);
@@ -238,7 +238,7 @@ class AudienceAdminPage {
 			self::MENU_SLUG,
 			__( 'Audience Calendars', 'ffcertificate' ),
 			__( 'Audience Calendars', 'ffcertificate' ),
-			'ffc_manage_audiences',
+			'ffc_view_audiences',
 			self::MENU_SLUG . '-calendars',
 			array( $this->calendar, 'render_page' )
 		);
@@ -248,7 +248,7 @@ class AudienceAdminPage {
 			self::MENU_SLUG,
 			__( 'Environments', 'ffcertificate' ),
 			__( 'Environments', 'ffcertificate' ),
-			'ffc_manage_audiences',
+			'ffc_view_audiences',
 			self::MENU_SLUG . '-environments',
 			array( $this->environment, 'render_page' )
 		);
@@ -258,7 +258,7 @@ class AudienceAdminPage {
 			self::MENU_SLUG,
 			__( 'Audiences', 'ffcertificate' ),
 			__( 'Audiences', 'ffcertificate' ),
-			'ffc_manage_audiences',
+			'ffc_view_audiences',
 			self::MENU_SLUG . '-audiences',
 			array( $this->audience, 'render_page' )
 		);
@@ -268,7 +268,7 @@ class AudienceAdminPage {
 			self::MENU_SLUG,
 			__( 'Audience Bookings', 'ffcertificate' ),
 			__( 'Audience Bookings', 'ffcertificate' ),
-			'ffc_manage_audiences',
+			'ffc_view_audiences',
 			self::MENU_SLUG . '-bookings',
 			array( $this->bookings, 'render_page' )
 		);
@@ -284,7 +284,7 @@ class AudienceAdminPage {
 			self::MENU_SLUG,
 			__( 'Settings', 'ffcertificate' ),
 			__( 'Settings', 'ffcertificate' ),
-			'ffc_manage_audiences',
+			'ffc_view_audiences',
 			self::MENU_SLUG . '-settings',
 			array( $this->settings, 'render_page' )
 		);
