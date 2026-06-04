@@ -324,6 +324,7 @@ class Loader {
 		$this->ensure_admin_capabilities();
 		$this->ensure_legacy_caps_renamed();
 		$this->ensure_taxonomy_renamed();
+		$this->ensure_delete_caps_granted();
 		$this->define_admin_hooks();
 		$this->init_rest_api();
 	}
@@ -400,6 +401,26 @@ class Loader {
 	}
 
 	/**
+	 * One-time migration that seeds the destructive `ffc_delete_<domain>` caps
+	 * (GAP E) onto every user/role already holding the matching
+	 * `ffc_manage_<domain>` cap, preserving current delete behavior when the
+	 * delete tier is split out of `manage`. Idempotent + version-flagged via
+	 * `ffc_delete_caps_granted_v1`.
+	 *
+	 * @since 6.9.0
+	 */
+	private function ensure_delete_caps_granted(): void {
+		$flag = 'ffc_delete_caps_granted_v1';
+		if ( '1' === get_option( $flag, '' ) ) {
+			return;
+		}
+		if ( class_exists( '\FreeFormCertificate\UserDashboard\CapabilityManager' ) ) {
+			\FreeFormCertificate\UserDashboard\CapabilityManager::migrate_delete_caps_grant();
+		}
+		update_option( $flag, '1', true );
+	}
+
+	/**
 	 * Initialize REST API
 	 *
 	 * @since 3.0.0
@@ -430,7 +451,10 @@ class Loader {
 	 */
 	private function ensure_admin_capabilities(): void {
 		// v2: added cleanup of user-level false overrides for admin users.
-		$version_key = 'ffc_admin_caps_version_v3';
+		// v4: added the GAP E destructive `ffc_delete_*` caps — bumping the key
+		// forces the administrator role to pick them up once even on installs
+		// (e.g. the testes site) that don't change FFC_VERSION per batch.
+		$version_key = 'ffc_admin_caps_version_v4';
 		$current     = get_option( $version_key, '' );
 
 		if ( FFC_VERSION === $current ) {

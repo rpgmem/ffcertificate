@@ -111,6 +111,22 @@ trait RecruitmentRestSupport {
 	}
 
 	/**
+	 * Permission gate for the destructive DELETE routes (notices, candidates,
+	 * adjutancies, classifications, reasons). GAP E splits deletion out of the
+	 * umbrella `ffc_manage_recruitment` into its own `ffc_delete_recruitment`
+	 * cap, gated **strictly** — there is deliberately no `|| manage` fallback,
+	 * so a recruitment manager whose delete cap was revoked can still configure
+	 * the module but cannot delete records. The migration seeds the delete cap
+	 * onto everyone who held `manage` at upgrade, preserving current behavior.
+	 *
+	 * @since 6.9.0
+	 * @return bool
+	 */
+	public function check_can_delete_recruitment(): bool {
+		return current_user_can( 'ffc_delete_recruitment' );
+	}
+
+	/**
 	 * Permission gate for the candidate-self endpoint.
 	 *
 	 * @return bool

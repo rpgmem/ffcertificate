@@ -300,7 +300,100 @@ class CapabilityManager {
 		// Short URLs admin page is delegable without manage_options.
 		'ffc_view_url_shortener',
 		'ffc_manage_url_shortener',
+
+		// Destructive "delete" tier (GAP E). Each `ffc_delete_<domain>` cap
+		// gates the irreversible removal paths of its domain *strictly* — the
+		// delete handlers no longer fall back to the broader `manage` cap, so a
+		// role can hold `manage` (create/edit/configure) without being able to
+		// delete. The one-shot `migrate_delete_caps_grant()` migration grants
+		// each delete cap to everyone who already holds the matching `manage`
+		// cap, preserving current behavior on upgrade; admins restrict by
+		// removing the delete cap from a role. See `delete_cap_grant_map()`.
+		'ffc_delete_certificates',
+		'ffc_delete_appointments',
+		'ffc_delete_audiences',
+		'ffc_delete_reregistration',
+		'ffc_delete_custom_fields',
+		'ffc_delete_recruitment',
+		'ffc_delete_url_shortener',
 	);
+
+	/**
+	 * Map of `manage` cap => the `delete` cap it seeds on upgrade (GAP E).
+	 *
+	 * The one-shot migration {@see self::migrate_delete_caps_grant()} grants the
+	 * value cap to every user/role that already holds the key cap, so existing
+	 * managers keep their delete ability after the destructive tier is split out
+	 * of `manage`. To take delete away from a manager, remove the delete cap
+	 * from that role/user after the migration has run.
+	 *
+	 * @since 6.9.0
+	 * @return array<string, string>
+	 */
+	public static function delete_cap_grant_map(): array {
+		return array(
+			'ffc_manage_certificates'   => 'ffc_delete_certificates',
+			'ffc_manage_appointments'   => 'ffc_delete_appointments',
+			'ffc_manage_audiences'      => 'ffc_delete_audiences',
+			'ffc_manage_reregistration' => 'ffc_delete_reregistration',
+			'ffc_manage_custom_fields'  => 'ffc_delete_custom_fields',
+			'ffc_manage_recruitment'    => 'ffc_delete_recruitment',
+			'ffc_manage_url_shortener'  => 'ffc_delete_url_shortener',
+		);
+	}
+
+	/**
+	 * Idempotent migration that seeds each `ffc_delete_<domain>` cap onto every
+	 * user and role that already holds the matching `ffc_manage_<domain>` cap
+	 * (GAP E). Preserves current delete behavior when the destructive tier is
+	 * introduced; never removes a `manage` cap.
+	 *
+	 * Runs once per install via {@see \FreeFormCertificate\Loader} on
+	 * `plugins_loaded`, flagged by the `ffc_delete_caps_granted_v1` option.
+	 *
+	 * @since 6.9.0
+	 * @return array<string, int> Per-delete-cap count of users seeded.
+	 */
+	public static function migrate_delete_caps_grant(): array {
+		$map    = self::delete_cap_grant_map();
+		$counts = array();
+
+		// 1. User-meta grants.
+		$users = get_users( array( 'fields' => 'ID' ) );
+		foreach ( $map as $manage => $delete ) {
+			$counts[ $delete ] = 0;
+			foreach ( $users as $user_id ) {
+				$user = get_userdata( (int) $user_id );
+				if ( ! $user ) {
+					continue;
+				}
+				// Seed only where the manage cap is an explicit grant and the
+				// delete cap isn't already present (idempotent).
+				if ( isset( $user->caps[ $manage ] ) && true === $user->caps[ $manage ]
+					&& ! isset( $user->caps[ $delete ] ) ) {
+					$user->add_cap( $delete, true );
+					++$counts[ $delete ];
+				}
+			}
+		}
+
+		// 2. Role definitions — administrator + every FFC/custom role.
+		$wp_roles = wp_roles();
+		foreach ( array_keys( $wp_roles->roles ) as $role_slug ) {
+			$role = get_role( $role_slug );
+			if ( ! $role ) {
+				continue;
+			}
+			foreach ( $map as $manage => $delete ) {
+				if ( isset( $role->capabilities[ $manage ] ) && true === $role->capabilities[ $manage ]
+					&& ! isset( $role->capabilities[ $delete ] ) ) {
+					$role->add_cap( $delete, true );
+				}
+			}
+		}
+
+		return $counts;
+	}
 
 	/**
 	 * Slug for the dedicated recruitment-manager role.
@@ -813,19 +906,19 @@ class CapabilityManager {
 			// to managers — the inline write gates still require the manage cap.
 			'ffc_certificate_manager'     => array(
 				'label' => __( 'FFC Certificate Manager', 'ffcertificate' ),
-				'caps'  => array( 'ffc_view_certificates', 'ffc_manage_certificates', 'ffc_export_certificates', 'ffc_edit_certificates' ),
+				'caps'  => array( 'ffc_view_certificates', 'ffc_manage_certificates', 'ffc_export_certificates', 'ffc_edit_certificates', 'ffc_delete_certificates' ),
 			),
 			'ffc_self_scheduling_manager' => array(
 				'label' => __( 'FFC Self-Scheduling Manager', 'ffcertificate' ),
-				'caps'  => array( 'ffc_view_appointments', 'ffc_manage_appointments', 'ffc_scheduling_bypass', 'ffc_export_certificates' ),
+				'caps'  => array( 'ffc_view_appointments', 'ffc_manage_appointments', 'ffc_delete_appointments', 'ffc_scheduling_bypass', 'ffc_export_certificates' ),
 			),
 			'ffc_audience_manager'        => array(
 				'label' => __( 'FFC Audience Manager', 'ffcertificate' ),
-				'caps'  => array( 'ffc_view_audiences', 'ffc_manage_audiences' ),
+				'caps'  => array( 'ffc_view_audiences', 'ffc_manage_audiences', 'ffc_delete_audiences' ),
 			),
 			'ffc_reregistration_manager'  => array(
 				'label' => __( 'FFC Reregistration Manager', 'ffcertificate' ),
-				'caps'  => array( 'ffc_view_reregistration', 'ffc_manage_reregistration' ),
+				'caps'  => array( 'ffc_view_reregistration', 'ffc_manage_reregistration', 'ffc_delete_reregistration' ),
 			),
 			'ffc_operator'                => array(
 				'label' => __( 'FFC Operator (read-only)', 'ffcertificate' ),
@@ -863,6 +956,7 @@ class CapabilityManager {
 					'ffc_import_recruitment',
 					'ffc_view_recruitment_pii',
 					'ffc_manage_recruitment',
+					'ffc_delete_recruitment',
 					'ffc_view_recruitment_settings',
 					'ffc_manage_recruitment_settings',
 					'ffc_view_recruitment_reasons',
@@ -917,6 +1011,7 @@ class CapabilityManager {
 				'ffc_call_recruitment',
 				'ffc_import_recruitment',
 				'ffc_view_recruitment_pii',
+				'ffc_delete_recruitment',
 			);
 			foreach ( $tier_2_caps as $cap ) {
 				if ( ! isset( $existing_manager->capabilities[ $cap ] ) ) {

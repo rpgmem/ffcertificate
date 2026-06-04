@@ -41,12 +41,18 @@ final class RecruitmentAdminActions {
 	 * @return void
 	 */
 	public static function dispatch( string $action ): void {
-		// Every dispatch branch is a destructive write. Historically these
-		// relied on the page-level manage gate; now that the recruitment admin
-		// opens read-only for ffc_view_recruitment, gate the writes here so a
+		// Every dispatch branch is a destructive delete. GAP E splits record
+		// deletion (notices, adjutancies, candidates) out of the umbrella
+		// manage cap into the dedicated `ffc_delete_recruitment` cap — a manager
+		// without it can configure the module but cannot delete records, and a
 		// read-only viewer (who never sees the row-action links) still can't
-		// trigger one via a crafted URL.
-		if ( ! \FreeFormCertificate\Core\Utils::current_user_can_admin_or( 'ffc_manage_recruitment' ) ) {
+		// trigger one via a crafted URL. Reasons are a config catalog with their
+		// own manage cap, so reason deletion stays under `ffc_manage_recruitment`
+		// (unchanged), not the records-delete cap.
+		$required_cap = ( 'delete-reason' === $action )
+			? 'ffc_manage_recruitment'
+			: 'ffc_delete_recruitment';
+		if ( ! \FreeFormCertificate\Core\Utils::current_user_can_admin_or( $required_cap ) ) {
 			return;
 		}
 

@@ -876,6 +876,9 @@ class AudienceAdminAudience {
 		// Handle delete (only inactive items can be permanently deleted).
         // phpcs:ignore WordPress.Security.NonceVerification.Recommended
 		if ( isset( $_GET['action'] ) && 'delete' === $_GET['action'] && isset( $_GET['id'] ) && isset( $_GET['page'] ) && $_GET['page'] === $this->menu_slug . '-audiences' ) {
+			if ( ! Utils::current_user_can_admin_or( 'ffc_delete_audiences' ) ) {
+				wp_die( esc_html__( 'You do not have permission to delete audiences.', 'ffcertificate' ) );
+			}
 			$id = absint( $_GET['id'] );
 			if ( wp_verify_nonce( Utils::get_get_string( '_wpnonce' ), 'delete_audience_' . $id ) ) {
 				$aud = AudienceRepository::get_by_id( $id );

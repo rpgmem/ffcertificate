@@ -660,6 +660,9 @@ class AudienceAdminCalendar {
 		// Handle delete (only inactive items can be permanently deleted).
         // phpcs:ignore WordPress.Security.NonceVerification.Recommended
 		if ( isset( $_GET['action'] ) && 'delete' === $_GET['action'] && isset( $_GET['id'] ) ) {
+			if ( ! \FreeFormCertificate\Core\Utils::current_user_can_admin_or( 'ffc_delete_audiences' ) ) {
+				wp_die( esc_html__( 'You do not have permission to delete calendars.', 'ffcertificate' ) );
+			}
 			$id = absint( $_GET['id'] );
 			if ( wp_verify_nonce( Utils::get_get_string( '_wpnonce' ), 'delete_schedule_' . $id ) ) {
 				$schedule = AudienceScheduleRepository::get_by_id( $id );

@@ -940,6 +940,12 @@ class ReregistrationAdmin {
 			return;
 		}
 
+		// Deleting a campaign cascades to its submissions — gated by the
+		// dedicated destructive cap (GAP E), not the page-level manage cap.
+		if ( ! \FreeFormCertificate\Core\Utils::current_user_can_admin_or( 'ffc_delete_reregistration' ) ) {
+			wp_die( esc_html__( 'You do not have permission to delete reregistration campaigns.', 'ffcertificate' ) );
+		}
+
 		$id = absint( $_GET['id'] );
 		if ( ! wp_verify_nonce( \FreeFormCertificate\Core\Utils::get_get_string( '_wpnonce' ), 'delete_reregistration_' . $id ) ) {
 			return;

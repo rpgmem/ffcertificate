@@ -618,4 +618,98 @@ class CapabilityManagerTest extends TestCase {
         $this->assertArrayHasKey( 'ffc_manage_appointments', $role_added );
         $this->assertContains( 'ffc_manage_self_scheduling', $role_removed );
     }
+
+    // ------------------------------------------------------------------
+    // GAP E — destructive ffc_delete_* tier
+    // ------------------------------------------------------------------
+
+    public function test_admin_capabilities_contains_delete_tier(): void {
+        foreach ( array(
+            'ffc_delete_certificates',
+            'ffc_delete_appointments',
+            'ffc_delete_audiences',
+            'ffc_delete_reregistration',
+            'ffc_delete_custom_fields',
+            'ffc_delete_recruitment',
+            'ffc_delete_url_shortener',
+        ) as $cap ) {
+            $this->assertContains( $cap, CapabilityManager::ADMIN_CAPABILITIES, "ADMIN_CAPABILITIES must contain {$cap}" );
+        }
+    }
+
+    public function test_delete_cap_grant_map_pairs_each_manage_to_its_delete(): void {
+        $map = CapabilityManager::delete_cap_grant_map();
+        $this->assertCount( 7, $map );
+        $this->assertSame( 'ffc_delete_certificates', $map['ffc_manage_certificates'] );
+        $this->assertSame( 'ffc_delete_recruitment', $map['ffc_manage_recruitment'] );
+        $this->assertSame( 'ffc_delete_url_shortener', $map['ffc_manage_url_shortener'] );
+        // Every key is a real manage cap and every value a real delete cap.
+        foreach ( $map as $manage => $delete ) {
+            $this->assertStringStartsWith( 'ffc_manage_', $manage );
+            $this->assertContains( $delete, CapabilityManager::ADMIN_CAPABILITIES, "{$delete} must be a registered cap" );
+        }
+    }
+
+    public function test_module_roles_grant_matching_delete_caps_but_operator_excluded(): void {
+        $created = array();
+        Functions\when( 'get_role' )->justReturn( null );
+        Functions\when( 'add_role' )->alias(
+            static function ( string $slug, string $label, array $caps ) use ( &$created ): bool {
+                $created[ $slug ] = $caps;
+                return true;
+            }
+        );
+
+        CapabilityManager::register_module_roles();
+
+        // Each manager role carries the delete cap of the domain it manages.
+        $this->assertTrue( $created['ffc_certificate_manager']['ffc_delete_certificates'] );
+        $this->assertTrue( $created['ffc_self_scheduling_manager']['ffc_delete_appointments'] );
+        $this->assertTrue( $created['ffc_audience_manager']['ffc_delete_audiences'] );
+        $this->assertTrue( $created['ffc_reregistration_manager']['ffc_delete_reregistration'] );
+        $this->assertTrue( $created['ffc_recruitment_admin']['ffc_delete_recruitment'] );
+
+        // The read-only operator never receives a delete cap.
+        foreach ( CapabilityManager::delete_cap_grant_map() as $delete_cap ) {
+            $this->assertArrayNotHasKey( $delete_cap, $created['ffc_operator'], "ffc_operator must NOT grant {$delete_cap}" );
+        }
+    }
+
+    public function test_migrate_delete_caps_grant_seeds_delete_onto_manage_holders(): void {
+        Functions\when( 'get_users' )->justReturn( array( 1 ) );
+
+        // User holds a manage cap but not its delete cap → expect delete seeded.
+        $user        = Mockery::mock( 'WP_User' );
+        $user->caps  = array( 'ffc_manage_certificates' => true );
+        $user_added  = array();
+        $user->shouldReceive( 'add_cap' )->andReturnUsing(
+            function ( $cap, $val = true ) use ( &$user_added ) {
+                $user_added[ $cap ] = $val;
+            }
+        );
+        $user->shouldReceive( 'remove_cap' )->never();
+        Functions\when( 'get_userdata' )->justReturn( $user );
+
+        // Role holds the recruitment manage cap → expect ffc_delete_recruitment.
+        $role               = Mockery::mock( 'WP_Role' );
+        $role->capabilities = array( 'ffc_manage_recruitment' => true );
+        $role_added         = array();
+        $role->shouldReceive( 'add_cap' )->andReturnUsing(
+            function ( $cap, $val = true ) use ( &$role_added ) {
+                $role_added[ $cap ] = $val;
+            }
+        );
+        $wp_roles        = Mockery::mock();
+        $wp_roles->roles = array( 'administrator' => array() );
+        Functions\when( 'wp_roles' )->justReturn( $wp_roles );
+        Functions\when( 'get_role' )->justReturn( $role );
+
+        CapabilityManager::migrate_delete_caps_grant();
+
+        // Seeded the matching delete cap, never touched the manage cap.
+        $this->assertTrue( $user_added['ffc_delete_certificates'] ?? null );
+        $this->assertArrayNotHasKey( 'ffc_delete_recruitment', $user_added );
+        $this->assertTrue( $role_added['ffc_delete_recruitment'] ?? null );
+        $this->assertArrayNotHasKey( 'ffc_delete_certificates', $role_added );
+    }
 }

@@ -11,7 +11,7 @@
  */
 
 .ffc-cap-panel {
-	max-width: 860px;
+	width: 100%;
 	margin: 8px 0 4px;
 	border: 1px solid #dcdcde;
 	border-radius: 6px;

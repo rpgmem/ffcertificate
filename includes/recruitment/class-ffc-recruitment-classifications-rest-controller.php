@@ -287,7 +287,7 @@ final class RecruitmentClassificationsRestController {
 			array(
 				'methods'             => \WP_REST_Server::DELETABLE,
 				'callback'            => array( $this, 'delete_classification' ),
-				'permission_callback' => array( $this, 'check_admin_cap' ),
+				'permission_callback' => array( $this, 'check_can_delete_recruitment' ),
 			)
 		);
 

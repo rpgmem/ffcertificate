@@ -277,6 +277,12 @@ class RecruitmentAdjutanciesListTable extends \WP_List_Table {
 			return;
 		}
 
+		// Bulk delete is gated by the dedicated destructive cap (GAP E), not the
+		// page-level manage cap that merely renders the table.
+		if ( ! \FreeFormCertificate\Core\Utils::current_user_can_admin_or( 'ffc_delete_recruitment' ) ) {
+			return;
+		}
+
 		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- _wpnonce is checked below.
 		check_admin_referer( 'bulk-' . $this->_args['plural'] );
 

@@ -237,6 +237,9 @@ class Admin {
 						$this->submission_handler->restore_submission( $id );
 					}
 					if ( 'delete' === $action ) {
+						if ( ! \FreeFormCertificate\Core\Utils::current_user_can_admin_or( 'ffc_delete_certificates' ) ) {
+							wp_die( esc_html__( 'You do not have permission to delete submissions.', 'ffcertificate' ) );
+						}
 						$this->submission_handler->delete_submission( $id );
 					}
 					$this->redirect_with_msg( $action );
@@ -264,6 +267,9 @@ class Admin {
 					$this->submission_handler->bulk_restore_submissions( $ids );
 					$this->redirect_with_msg( 'bulk_done' );
 				} elseif ( 'bulk_delete' === $bulk_action ) {
+					if ( ! \FreeFormCertificate\Core\Utils::current_user_can_admin_or( 'ffc_delete_certificates' ) ) {
+						wp_die( esc_html__( 'You do not have permission to delete submissions.', 'ffcertificate' ) );
+					}
 					$this->submission_handler->bulk_delete_submissions( $ids );
 					$this->redirect_with_msg( 'bulk_done' );
 				} elseif ( 'move_to_form' === $bulk_action ) {
