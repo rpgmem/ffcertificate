@@ -376,6 +376,7 @@ class UrlShortenerAdminPageTest extends TestCase {
     }
 
     public function test_handle_actions_returns_early_without_action(): void {
+        Functions\when( 'current_user_can' )->justReturn( true );
         $_GET['page'] = 'ffc-short-urls';
 
         $this->service->shouldNotReceive( 'trash_short_url' );
@@ -386,7 +387,22 @@ class UrlShortenerAdminPageTest extends TestCase {
         $this->page->handle_actions();
     }
 
+    public function test_handle_actions_read_only_user_cannot_write(): void {
+        // GAP B 3-state: a user without ffc_manage_url_shortener (and not admin)
+        // reaches the page (view cap) but the GET-link write actions no-op.
+        Functions\when( 'current_user_can' )->justReturn( false );
+        $_GET['page']       = 'ffc-short-urls';
+        $_GET['ffc_action'] = 'trash';
+        $_GET['id']         = '5';
+        $_GET['_wpnonce']   = 'valid_nonce';
+
+        $this->service->shouldNotReceive( 'trash_short_url' );
+
+        $this->page->handle_actions();
+    }
+
     public function test_handle_actions_trash_calls_service(): void {
+        Functions\when( 'current_user_can' )->justReturn( true );
         $_GET['page']       = 'ffc-short-urls';
         $_GET['ffc_action'] = 'trash';
         $_GET['id']         = '5';
@@ -405,6 +421,7 @@ class UrlShortenerAdminPageTest extends TestCase {
     }
 
     public function test_handle_actions_toggle_calls_service(): void {
+        Functions\when( 'current_user_can' )->justReturn( true );
         $_GET['page']       = 'ffc-short-urls';
         $_GET['ffc_action'] = 'toggle';
         $_GET['id']         = '8';
@@ -423,6 +440,7 @@ class UrlShortenerAdminPageTest extends TestCase {
     }
 
     public function test_handle_actions_nonce_failure_dies(): void {
+        Functions\when( 'current_user_can' )->justReturn( true );
         $_GET['page']       = 'ffc-short-urls';
         $_GET['ffc_action'] = 'trash';
         $_GET['id']         = '5';

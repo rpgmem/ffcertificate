@@ -111,6 +111,9 @@
                 <element value="ffc_view_reregistration"/>
                 <element value="ffc_view_custom_fields"/>
                 <element value="ffc_view_settings"/>
+                <!-- URL shortener domain (GAP B). -->
+                <element value="ffc_view_url_shortener"/>
+                <element value="ffc_manage_url_shortener"/>
                 <!-- Recruitment caps. -->
                 <element value="ffc_manage_recruitment"/>
                 <element value="ffc_view_recruitment"/>

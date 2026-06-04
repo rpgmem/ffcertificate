@@ -123,7 +123,7 @@ class UrlShortenerAdminPage {
 			'edit.php?post_type=ffc_form',
 			__( 'Short URLs', 'ffcertificate' ),
 			__( 'Short URLs', 'ffcertificate' ),
-			'manage_options',
+			'ffc_view_url_shortener',
 			'ffc-short-urls',
 			array( $this, 'render_page' )
 		);
@@ -134,6 +134,12 @@ class UrlShortenerAdminPage {
 	 */
 	public function handle_actions(): void {
 		if ( \FreeFormCertificate\Core\Utils::get_get_string( 'page' ) !== 'ffc-short-urls' ) {
+			return;
+		}
+
+		// These GET-link actions are all writes (trash/restore/delete/toggle/
+		// empty_trash) — read-only viewers never run them.
+		if ( ! \FreeFormCertificate\Core\Utils::current_user_can_admin_or( 'ffc_manage_url_shortener' ) ) {
 			return;
 		}
 
@@ -204,7 +210,7 @@ class UrlShortenerAdminPage {
 	 */
 	public function ajax_create(): void {
 		$this->verify_ajax_nonce( 'ffc_short_url_nonce' );
-		$this->check_ajax_permission();
+		$this->check_ajax_permission( 'ffc_manage_url_shortener' );
 
 		// phpcs:ignore WordPress.Security.NonceVerification.Missing -- Nonce verified in $this->verify_ajax_nonce() above.
 		$url   = esc_url_raw( wp_unslash( $_POST['target_url'] ?? '' ) );
@@ -230,7 +236,7 @@ class UrlShortenerAdminPage {
 	 */
 	public function ajax_delete(): void {
 		$this->verify_ajax_nonce( 'ffc_short_url_nonce' );
-		$this->check_ajax_permission();
+		$this->check_ajax_permission( 'ffc_manage_url_shortener' );
 
 		// phpcs:ignore WordPress.Security.NonceVerification.Missing -- Nonce verified in $this->verify_ajax_nonce() above.
 		$id = (int) ( $_POST['id'] ?? 0 );
@@ -247,7 +253,7 @@ class UrlShortenerAdminPage {
 	 */
 	public function ajax_trash(): void {
 		$this->verify_ajax_nonce( 'ffc_short_url_nonce' );
-		$this->check_ajax_permission();
+		$this->check_ajax_permission( 'ffc_manage_url_shortener' );
 
 		// phpcs:ignore WordPress.Security.NonceVerification.Missing -- Nonce verified in $this->verify_ajax_nonce() above.
 		$id = (int) ( $_POST['id'] ?? 0 );
@@ -264,7 +270,7 @@ class UrlShortenerAdminPage {
 	 */
 	public function ajax_restore(): void {
 		$this->verify_ajax_nonce( 'ffc_short_url_nonce' );
-		$this->check_ajax_permission();
+		$this->check_ajax_permission( 'ffc_manage_url_shortener' );
 
 		// phpcs:ignore WordPress.Security.NonceVerification.Missing -- Nonce verified in $this->verify_ajax_nonce() above.
 		$id = (int) ( $_POST['id'] ?? 0 );
@@ -281,7 +287,7 @@ class UrlShortenerAdminPage {
 	 */
 	public function ajax_empty_trash(): void {
 		$this->verify_ajax_nonce( 'ffc_short_url_nonce' );
-		$this->check_ajax_permission();
+		$this->check_ajax_permission( 'ffc_manage_url_shortener' );
 
 		$trashed = $this->service->get_repository()->findPaginated(
 			array(
@@ -301,7 +307,7 @@ class UrlShortenerAdminPage {
 	 */
 	public function ajax_toggle(): void {
 		$this->verify_ajax_nonce( 'ffc_short_url_nonce' );
-		$this->check_ajax_permission();
+		$this->check_ajax_permission( 'ffc_manage_url_shortener' );
 
 		// phpcs:ignore WordPress.Security.NonceVerification.Missing -- Nonce verified in $this->verify_ajax_nonce() above.
 		$id = (int) ( $_POST['id'] ?? 0 );

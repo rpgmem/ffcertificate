@@ -108,7 +108,7 @@ class ReregistrationAdmin {
 			self::MENU_SLUG,
 			__( 'Custom Fields', 'ffcertificate' ),
 			__( 'Custom Fields', 'ffcertificate' ),
-			'manage_options',
+			self::CAPABILITY,
 			'ffc-custom-fields',
 			array( ReregistrationCustomFieldsPage::class, 'render' )
 		);

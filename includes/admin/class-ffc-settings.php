@@ -139,7 +139,7 @@ class Settings {
 			'edit.php?post_type=ffc_form',
 			__( 'Settings', 'ffcertificate' ),
 			__( 'Settings', 'ffcertificate' ),
-			'manage_options',
+			'ffc_view_settings',
 			'ffc-settings',
 			array( $this, 'display_settings_page' )
 		);
