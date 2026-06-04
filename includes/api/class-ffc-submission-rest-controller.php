@@ -391,10 +391,13 @@ class SubmissionRestController {
 	}
 
 	/**
-	 * Check admin permission
+	 * Check admin permission for the read-only submission REST routes.
+	 *
+	 * 3-state model: viewing the admin submission data needs the certificates
+	 * view cap (manage holders carry it too; WP admins always pass).
 	 */
 	public function check_admin_permission(): bool {
-		return current_user_can( 'manage_options' );
+		return \FreeFormCertificate\Core\Utils::current_user_can_admin_or( 'ffc_view_certificates' );
 	}
 
 	/**

@@ -228,7 +228,7 @@ class UrlShortenerQrHandler {
 	 */
 	public function handle_download_png(): void {
 		$this->verify_ajax_nonce( 'ffc_short_url_nonce' );
-		$this->check_ajax_permission();
+		$this->check_ajax_permission( 'ffc_view_url_shortener' );
 
 		$target = $this->resolve_qr_target();
 		$base64 = $this->generate_qr_base64( $target['url'], 400 );
@@ -251,7 +251,7 @@ class UrlShortenerQrHandler {
 	 */
 	public function handle_download_svg(): void {
 		$this->verify_ajax_nonce( 'ffc_short_url_nonce' );
-		$this->check_ajax_permission();
+		$this->check_ajax_permission( 'ffc_view_url_shortener' );
 
 		$target = $this->resolve_qr_target();
 		$svg    = $this->generate_svg( $target['url'], 400 );

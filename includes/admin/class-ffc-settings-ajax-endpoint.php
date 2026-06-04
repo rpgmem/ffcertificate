@@ -11,7 +11,7 @@
  * Security:
  *   - nonce verified against the action name (matches the FFC.request
  *     helper which passes `nonce: window.ffc_ajax.nonce`).
- *   - capability gated on `manage_options` (matches the settings page).
+ *   - capability gated on `ffc_manage_settings` (matches the settings page).
  *   - keys live in a hardcoded allowlist; no arbitrary option writes.
  *   - each allowlisted key has its own value type + sanitisation.
  *
@@ -56,7 +56,7 @@ class SettingsAjaxEndpoint {
 	 *                Use this for tabs that store settings nested by
 	 *                group, e.g. ffc_rate_limit_settings → ip → enabled.
 	 *   - 'type'   — value type: 'bool' for checkbox-like toggles.
-	 *   - 'cap'    — required capability (default 'manage_options').
+	 *   - 'cap'    — required capability (default 'ffc_manage_settings').
 	 *
 	 * Adding a new auto-saveable field is a single-line append here.
 	 *
@@ -123,27 +123,27 @@ class SettingsAjaxEndpoint {
 			'admin_bypass_datetime'         => array(
 				'option' => 'ffc_geolocation_settings',
 				'type'   => 'bool',
-				'cap'    => 'manage_options',
+				'cap'    => 'ffc_manage_settings',
 			),
 			'admin_bypass_geo'              => array(
 				'option' => 'ffc_geolocation_settings',
 				'type'   => 'bool',
-				'cap'    => 'manage_options',
+				'cap'    => 'ffc_manage_settings',
 			),
 			'ip_api_enabled'                => array(
 				'option' => 'ffc_geolocation_settings',
 				'type'   => 'bool',
-				'cap'    => 'manage_options',
+				'cap'    => 'ffc_manage_settings',
 			),
 			'ip_api_cascade'                => array(
 				'option' => 'ffc_geolocation_settings',
 				'type'   => 'bool',
-				'cap'    => 'manage_options',
+				'cap'    => 'ffc_manage_settings',
 			),
 			'ip_cache_enabled'              => array(
 				'option' => 'ffc_geolocation_settings',
 				'type'   => 'bool',
-				'cap'    => 'manage_options',
+				'cap'    => 'ffc_manage_settings',
 			),
 			// User Access tab — stored in its own option (ffc_user_access_settings)
 			// with flat keys. The JS-side key is prefixed `user_access_*` so it
@@ -152,19 +152,19 @@ class SettingsAjaxEndpoint {
 				'option' => 'ffc_user_access_settings',
 				'path'   => array( 'block_wp_admin' ),
 				'type'   => 'bool',
-				'cap'    => 'manage_options',
+				'cap'    => 'ffc_manage_settings',
 			),
 			'user_access_bypass_for_admins' => array(
 				'option' => 'ffc_user_access_settings',
 				'path'   => array( 'bypass_for_admins' ),
 				'type'   => 'bool',
-				'cap'    => 'manage_options',
+				'cap'    => 'ffc_manage_settings',
 			),
 			'user_access_allow_admin_bar'   => array(
 				'option' => 'ffc_user_access_settings',
 				'path'   => array( 'allow_admin_bar' ),
 				'type'   => 'bool',
-				'cap'    => 'manage_options',
+				'cap'    => 'ffc_manage_settings',
 			),
 			// SMTP semantic rework — the on-disk slot is `disable_all_emails`
 			// (kept for compatibility) but the UI now exposes the inverted
@@ -175,7 +175,7 @@ class SettingsAjaxEndpoint {
 				'path'   => array( 'disable_all_emails' ),
 				'type'   => 'bool',
 				'invert' => true,
-				'cap'    => 'manage_options',
+				'cap'    => 'ffc_manage_settings',
 			),
 		);
 
@@ -203,7 +203,7 @@ class SettingsAjaxEndpoint {
 			$allowlist[ $key ] = array(
 				'option' => 'ffc_settings',
 				'type'   => 'bool',
-				'cap'    => 'manage_options',
+				'cap'    => 'ffc_manage_settings',
 			);
 		}
 
@@ -249,7 +249,7 @@ class SettingsAjaxEndpoint {
 				'option' => 'ffc_rate_limit_settings',
 				'path'   => $path,
 				'type'   => 'bool',
-				'cap'    => 'manage_options',
+				'cap'    => 'ffc_manage_settings',
 			);
 		}
 
@@ -352,7 +352,7 @@ class SettingsAjaxEndpoint {
 				array(
 					'option' => 'ffc_settings',
 					'type'   => $type,
-					'cap'    => 'manage_options',
+					'cap'    => 'ffc_manage_settings',
 				),
 				$extra
 			);
@@ -449,7 +449,7 @@ class SettingsAjaxEndpoint {
 					'option' => 'ffc_rate_limit_settings',
 					'path'   => $path,
 					'type'   => $type,
-					'cap'    => 'manage_options',
+					'cap'    => 'ffc_manage_settings',
 				),
 				$extra
 			);
@@ -463,7 +463,7 @@ class SettingsAjaxEndpoint {
 			'path'    => array( 'device', 'signals_enabled' ),
 			'type'    => 'string[]',
 			'options' => array( 'cookie', 'ua', 'screen', 'tz', 'concurrency', 'memory', 'canvas', 'audio', 'webgl', 'fonts', 'plugins', 'permissions', 'mediaqueries', 'math' ),
-			'cap'     => 'manage_options',
+			'cap'     => 'ffc_manage_settings',
 		);
 
 		return $allowlist;
@@ -493,7 +493,7 @@ class SettingsAjaxEndpoint {
 		}
 
 		$entry = $allowlist[ $key ];
-		$cap   = $entry['cap'] ?? 'manage_options';
+		$cap   = $entry['cap'] ?? 'ffc_manage_settings';
 		if ( ! current_user_can( $cap ) ) {
 			wp_send_json_error( array( 'message' => __( 'You do not have permission to change this setting.', 'ffcertificate' ) ), 403 );
 		}

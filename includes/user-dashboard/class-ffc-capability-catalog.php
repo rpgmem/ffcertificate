@@ -194,6 +194,14 @@ final class CapabilityCatalog {
 						'label'       => __( 'Read forms via REST API', 'ffcertificate' ),
 						'description' => __( 'For external integrators authenticating with Application Passwords.', 'ffcertificate' ),
 					),
+					'ffc_view_url_shortener'    => array(
+						'label'       => __( 'View short URLs', 'ffcertificate' ),
+						'description' => __( 'Read-only access to the Short URLs admin page.', 'ffcertificate' ),
+					),
+					'ffc_manage_url_shortener'  => array(
+						'label'       => __( 'Manage short URLs', 'ffcertificate' ),
+						'description' => __( 'Create, edit, toggle, trash and delete short URLs.', 'ffcertificate' ),
+					),
 				),
 			),
 			array(

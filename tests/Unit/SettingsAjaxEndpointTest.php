@@ -62,7 +62,7 @@ class SettingsAjaxEndpointTest extends TestCase {
         $this->assertArrayHasKey( 'admin_bypass_geo', $list );
         $this->assertSame( 'ffc_geolocation_settings', $list['admin_bypass_datetime']['option'] );
         $this->assertSame( 'bool', $list['admin_bypass_datetime']['type'] );
-        $this->assertSame( 'manage_options', $list['admin_bypass_datetime']['cap'] );
+        $this->assertSame( 'ffc_manage_settings', $list['admin_bypass_datetime']['cap'] );
     }
 
     // ==================================================================

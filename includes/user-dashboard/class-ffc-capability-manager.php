@@ -295,6 +295,11 @@ class CapabilityManager {
 		'ffc_view_settings',
 		'ffc_view_recruitment_settings',
 		'ffc_view_recruitment_reasons',
+
+		// URL shortener domain (GAP B). Its own view/manage pair so the
+		// Short URLs admin page is delegable without manage_options.
+		'ffc_view_url_shortener',
+		'ffc_manage_url_shortener',
 	);
 
 	/**
@@ -831,6 +836,7 @@ class CapabilityManager {
 					'ffc_view_reregistration',
 					'ffc_view_activity_log',
 					'ffc_view_recruitment',
+					'ffc_view_url_shortener',
 				),
 			),
 
