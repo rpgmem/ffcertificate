@@ -78,7 +78,9 @@ class AudienceAdminAudience {
 
 		?>
 		<h1 class="wp-heading-inline"><?php esc_html_e( 'Audiences', 'ffcertificate' ); ?></h1>
+		<?php if ( \FreeFormCertificate\Core\Utils::current_user_can_admin_or( 'ffc_manage_audiences' ) ) : ?>
 		<a href="<?php echo esc_url( $add_url ); ?>" class="page-title-action"><?php esc_html_e( 'Add New', 'ffcertificate' ); ?></a>
+		<?php endif; ?>
 		<hr class="wp-header-end">
 
 		<?php settings_errors( 'ffc_audience' ); ?>

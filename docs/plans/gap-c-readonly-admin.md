@@ -74,9 +74,12 @@ submenus de audiência → `ffc_view_audiences`; submenu Appointments →
   pages, REST call/import/reasons) já tinham cap próprio. Realiza auditor/operator.
   *(Botões "Create/New" por aba ainda visíveis ao viewer — polimento pendente.)*
 
-### Pendente (polimento de UI, não-segurança)
-Esconder os botões "Add/Create/New" para viewers em **audiences** (5 páginas) e
-**recruitment** (4 abas). As escritas já são barradas server-side; é só UX.
+### Polimento "esconder topo" — feito
+Os botões de criação de topo agora são escondidos para viewers:
+**audiences** ("Add New" em audiences/calendars/environments) e **recruitment**
+(forms "Create" de notice/adjutancy/reason). Ações de escrita por-linha
+(edit/delete/call) ainda aparecem mas seguem barradas server-side — refino
+opcional fora do escopo "topo".
 
 ## Testes / gates
 

@@ -554,6 +554,11 @@ final class RecruitmentAdminPage {
 	 * @return void
 	 */
 	private static function render_create_reason_form(): void {
+		// 3-state: read-only viewers don't get the create form (the REST
+		// endpoint behind it is manage-gated anyway).
+		if ( ! \FreeFormCertificate\Core\Utils::current_user_can_admin_or( self::CAP ) ) {
+			return;
+		}
 		$default_color = RecruitmentReasonRepository::DEFAULT_COLOR;
 
 		echo '<h3>' . esc_html__( 'Create new reason', 'ffcertificate' ) . '</h3>';
@@ -972,6 +977,9 @@ final class RecruitmentAdminPage {
 	 * @return void
 	 */
 	private static function render_create_notice_form(): void {
+		if ( ! \FreeFormCertificate\Core\Utils::current_user_can_admin_or( self::CAP ) ) {
+			return;
+		}
 		echo '<h3>' . esc_html__( 'Create new notice', 'ffcertificate' ) . '</h3>';
 		echo '<form id="ffc-create-notice" method="post" data-ffc-create-endpoint="notices">';
 		echo '<table class="form-table"><tbody>';
@@ -991,6 +999,9 @@ final class RecruitmentAdminPage {
 	 * @return void
 	 */
 	private static function render_create_adjutancy_form(): void {
+		if ( ! \FreeFormCertificate\Core\Utils::current_user_can_admin_or( self::CAP ) ) {
+			return;
+		}
 		$default_color = RecruitmentAdjutancyRepository::DEFAULT_COLOR;
 
 		echo '<h3>' . esc_html__( 'Create new adjutancy', 'ffcertificate' ) . '</h3>';
