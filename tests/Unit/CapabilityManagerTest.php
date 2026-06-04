@@ -194,6 +194,36 @@ class CapabilityManagerTest extends TestCase {
         $this->assertTrue( $created['ffc_recruitment_admin']['ffc_manage_recruitment_settings'] );
         $this->assertTrue( $created['ffc_recruitment_admin']['ffc_manage_recruitment_reasons'] );
         $this->assertTrue( $created['ffc_recruitment_admin']['ffc_view_recruitment_pii'] );
+
+        // ffc_operator is the cross-module read-only auditor (GAP D): sees every
+        // module read-only…
+        $operator = $created['ffc_operator'];
+        foreach ( array(
+            'ffc_view_certificates',
+            'ffc_view_appointments',
+            'ffc_view_audiences',
+            'ffc_view_reregistration',
+            'ffc_view_custom_fields',
+            'ffc_view_activity_log',
+            'ffc_view_recruitment',
+            'ffc_view_recruitment_settings',
+            'ffc_view_recruitment_reasons',
+            'ffc_view_url_shortener',
+        ) as $view_cap ) {
+            $this->assertTrue( $operator[ $view_cap ], "ffc_operator must grant {$view_cap}" );
+        }
+        // …but never write caps, the Settings page, raw PII, the REST
+        // integrator cap, or impersonation.
+        foreach ( array(
+            'ffc_manage_certificates',
+            'ffc_manage_audiences',
+            'ffc_view_settings',
+            'ffc_view_recruitment_pii',
+            'ffc_view_forms_api',
+            'ffc_view_as_user',
+        ) as $forbidden ) {
+            $this->assertArrayNotHasKey( $forbidden, $operator, "ffc_operator must NOT grant {$forbidden}" );
+        }
     }
 
     // ------------------------------------------------------------------
