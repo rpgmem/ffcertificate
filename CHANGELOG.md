@@ -9,6 +9,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 
 ### Changed
 
+- Inline JS extracted to enqueued files: the admin user-profile custom-data collapsible-section wiring (`ffc-custom-fields-collapse.js`) and the appointments-list row "Cancel" prompt/redirect (`ffc-self-scheduling-admin-appointments.js`, now `data-*`-driven instead of an inline `onclick`). Both covered by new Vitest tests.
 - Form editor → Email tab: enabling "Send Email to User" seeds the editor with a default `{{name}}` body instead of a blank field (forms with a custom message are untouched).
 - Form editor → Time tab (multi-day on): End date must now be at least one day after Start — live `min` of start+1 on the input plus server-side `analyze_datetime_order()` flagging both fields on save (single-day forms unaffected).
 

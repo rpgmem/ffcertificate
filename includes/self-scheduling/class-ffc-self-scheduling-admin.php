@@ -129,5 +129,15 @@ class SelfSchedulingAdmin {
 			array(),
 			FFC_VERSION
 		);
+
+		// Row "Cancel" action handler for the appointments list (extracted from
+		// an inline onclick in views/appointments-list.php).
+		wp_enqueue_script(
+			'ffc-self-scheduling-admin-appointments',
+			plugins_url( "assets/js/ffc-self-scheduling-admin-appointments{$s}.js", dirname( __DIR__, 1 ) ),
+			array(),
+			FFC_VERSION,
+			true
+		);
 	}
 }
