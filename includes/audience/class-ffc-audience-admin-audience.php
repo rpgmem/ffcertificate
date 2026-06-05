@@ -13,6 +13,10 @@ use FreeFormCertificate\Core\Utils;
 
 use FreeFormCertificate\Core\ColorValidator;
 
+if ( ! defined( 'ABSPATH' ) ) {
+	exit;
+}
+
 /**
  * Handles audience CRUD rendering and actions.
  *
