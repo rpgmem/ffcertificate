@@ -291,6 +291,11 @@ final class RecruitmentAdminPage {
 		if ( 'settings' === $tab && ! self::can_view_settings() ) {
 			$tab = 'notices';
 		}
+		// 3-state (GAP I): the Reasons tab is carved out the same way — its own
+		// view/manage caps, not the page-level `ffc_view_recruitment`.
+		if ( 'reasons' === $tab && ! self::can_view_reasons() ) {
+			$tab = 'notices';
+		}
 
 		echo '<div class="wrap ffc-recruitment-admin">';
 		echo '<h1>' . esc_html__( 'Recruitment', 'ffcertificate' ) . '</h1>';
@@ -363,6 +368,10 @@ final class RecruitmentAdminPage {
 		// Hide the Settings tab from users without its view cap (3-state).
 		if ( ! self::can_view_settings() ) {
 			unset( $tabs['settings'] );
+		}
+		// Hide the Reasons tab from users without its view cap (3-state, GAP I).
+		if ( ! self::can_view_reasons() ) {
+			unset( $tabs['reasons'] );
 		}
 
 		echo '<ul class="ffc-settings-tabs__nav" role="tablist" aria-orientation="vertical">';
@@ -534,7 +543,7 @@ final class RecruitmentAdminPage {
 		echo '<h2>' . esc_html__( 'Reasons', 'ffcertificate' ) . '</h2>';
 		echo '<p class="description">' . esc_html__( 'Global catalog of operator-defined labels attached to a preliminary-list candidate when setting their preliminary status. Reusable across every notice (no need to attach per-edital).', 'ffcertificate' ) . '</p>';
 
-		$table = new RecruitmentReasonsListTable();
+		$table = new RecruitmentReasonsListTable( self::can_edit_reasons() );
 		$table->prepare_items();
 
 		echo '<form method="get">';
@@ -554,9 +563,10 @@ final class RecruitmentAdminPage {
 	 * @return void
 	 */
 	private static function render_create_reason_form(): void {
-		// 3-state: read-only viewers don't get the create form (the REST
-		// endpoint behind it is manage-gated anyway).
-		if ( ! \FreeFormCertificate\Core\Utils::current_user_can_admin_or( self::CAP ) ) {
+		// 3-state (GAP I): read-only viewers don't get the create form. Gated by
+		// the strict reasons-manage cap, not the umbrella — the REST endpoint
+		// behind it enforces the same cap.
+		if ( ! self::can_edit_reasons() ) {
 			return;
 		}
 		$default_color = RecruitmentReasonRepository::DEFAULT_COLOR;
@@ -970,6 +980,30 @@ final class RecruitmentAdminPage {
 	 */
 	private static function can_edit_settings(): bool {
 		return \FreeFormCertificate\Core\Utils::current_user_can_admin_or( 'ffc_manage_recruitment_settings' );
+	}
+
+	/**
+	 * 3-state gate helpers for the recruitment Reasons tab (GAP I), mirroring
+	 * the Settings tab. Viewing the catalog needs the dedicated view cap (or the
+	 * manage cap, which implies view); creating/editing/deleting a reason needs
+	 * the manage cap *strictly* — the umbrella `ffc_manage_recruitment` no longer
+	 * grants it. A behavior-preserving migration seeds both caps onto existing
+	 * `view`/`manage` recruitment holders so nobody loses access on upgrade.
+	 *
+	 * @return bool
+	 */
+	private static function can_view_reasons(): bool {
+		return \FreeFormCertificate\Core\Utils::current_user_can_admin_or( 'ffc_view_recruitment_reasons' )
+			|| \FreeFormCertificate\Core\Utils::current_user_can_admin_or( 'ffc_manage_recruitment_reasons' );
+	}
+
+	/**
+	 * Whether the current user can create/edit/delete recruitment reasons.
+	 *
+	 * @return bool
+	 */
+	private static function can_edit_reasons(): bool {
+		return \FreeFormCertificate\Core\Utils::current_user_can_admin_or( 'ffc_manage_recruitment_reasons' );
 	}
 
 	/**

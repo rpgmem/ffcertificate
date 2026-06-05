@@ -105,13 +105,18 @@ trait RecruitmentRestSupport {
 	/**
 	 * Permission gate for the reasons-catalog routes. Reasons are global
 	 * across every notice — managing them is a config-style operation
-	 * separated from day-to-day notice management.
+	 * separated from day-to-day notice management. GAP I makes the
+	 * `ffc_manage_recruitment_reasons` cap *strict* (mirroring the Settings
+	 * sub-domain): the umbrella `ffc_manage_recruitment` no longer grants it,
+	 * so a plain Recruitment Manager needs the reasons cap explicitly. A
+	 * behavior-preserving migration seeds it onto every umbrella holder at
+	 * upgrade, and the FFC recruitment roles carry it in their definitions.
 	 *
 	 * @since 6.2.0
 	 * @return bool
 	 */
 	public function check_can_manage_reasons(): bool {
-		return current_user_can( 'ffc_manage_recruitment_reasons' ) || current_user_can( 'ffc_manage_recruitment' );
+		return current_user_can( 'ffc_manage_recruitment_reasons' );
 	}
 
 	/**

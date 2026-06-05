@@ -34,9 +34,23 @@ class RecruitmentReasonsListTable extends \WP_List_Table {
 	private const MAX_PER_PAGE     = 100;
 
 	/**
-	 * Constructor.
+	 * Whether the current user may edit reasons (the strict
+	 * `ffc_manage_recruitment_reasons` tier — GAP I). When false the table
+	 * renders read-only: no Edit/Delete row actions, no bulk-delete control,
+	 * and {@see self::process_bulk_action()} refuses to act even on a crafted
+	 * POST.
+	 *
+	 * @var bool
 	 */
-	public function __construct() {
+	private bool $can_edit;
+
+	/**
+	 * Constructor.
+	 *
+	 * @param bool $can_edit Whether the viewer holds the reasons-manage tier.
+	 */
+	public function __construct( bool $can_edit = true ) {
+		$this->can_edit = $can_edit;
 		parent::__construct(
 			array(
 				'singular' => 'reason',
@@ -82,6 +96,10 @@ class RecruitmentReasonsListTable extends \WP_List_Table {
 	 * @return array<string, string>
 	 */
 	protected function get_bulk_actions() {
+		// Read-only viewers (GAP I) get no destructive bulk control.
+		if ( ! $this->can_edit ) {
+			return array();
+		}
 		return array(
 			'bulk-delete' => __( 'Delete', 'ffcertificate' ),
 		);
@@ -141,7 +159,13 @@ class RecruitmentReasonsListTable extends \WP_List_Table {
 				__( 'This cannot be undone.', 'ffcertificate' ),
 			)
 		);
-		$actions             = array(
+		// Read-only viewers (GAP I) see the slug as plain text — no Edit link
+		// (the edit screen is manage-gated and would wp_die) and no row actions.
+		if ( ! $this->can_edit ) {
+			return sprintf( '<strong><code>%s</code></strong>', esc_html( $slug ) );
+		}
+
+		$actions = array(
 			'edit'   => sprintf( '<a href="%s">%s</a>', esc_url( $edit_url ), esc_html__( 'Edit', 'ffcertificate' ) ),
 			'delete' => sprintf(
 				'<a href="%s" class="submitdelete" data-ffc-confirm data-ffc-confirm-title="%s" data-ffc-confirm-body="%s" data-ffc-confirm-consequences="%s" data-ffc-confirm-cta="%s" data-ffc-confirm-style="destructive">%s</a>',
@@ -173,6 +197,15 @@ class RecruitmentReasonsListTable extends \WP_List_Table {
 	protected function column_color( $item ): string {
 		$id    = (int) $item['id'];
 		$color = (string) ( $item['color'] ?? RecruitmentReasonRepository::DEFAULT_COLOR );
+		// Read-only viewers (GAP I) see a static swatch — the inline picker
+		// PATCHes via the manage-gated REST route and would 403.
+		if ( ! $this->can_edit ) {
+			return sprintf(
+				'<span class="ffc-reason-color-swatch" style="display:inline-block;width:1em;height:1em;border:1px solid #ccc;vertical-align:middle;background:%s"></span> <code>%s</code>',
+				esc_attr( $color ),
+				esc_html( $color )
+			);
+		}
 		return sprintf(
 			'<input type="color" value="%s" data-ffc-color-endpoint="reasons" data-ffc-entity-id="%d" class="ffc-reason-color-picker" aria-label="%s"> <code class="ffc-reason-color-hex" data-ffc-color-hex>%s</code>',
 			esc_attr( $color ),
@@ -306,6 +339,15 @@ class RecruitmentReasonsListTable extends \WP_List_Table {
 	 */
 	protected function process_bulk_action(): void {
 		if ( 'bulk-delete' !== $this->current_action() ) {
+			return;
+		}
+
+		// GAP I: bulk-delete is the strict `ffc_manage_recruitment_reasons` tier.
+		// Previously this method checked only the nonce, so any user who could
+		// reach the Reasons tab (read-only `ffc_view_recruitment` holders, e.g.
+		// the Recruitment Auditor) could delete reasons via a crafted POST. Gate
+		// it server-side regardless of what the table rendered.
+		if ( ! \FreeFormCertificate\Core\Utils::current_user_can_admin_or( 'ffc_manage_recruitment_reasons' ) ) {
 			return;
 		}
 

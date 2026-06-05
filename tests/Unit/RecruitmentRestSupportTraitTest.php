@@ -113,14 +113,17 @@ class RecruitmentRestSupportTraitTest extends TestCase {
         $this->assertTrue( $this->host->check_can_call_candidates() );
     }
 
-    public function test_check_can_manage_reasons_accepts_either_cap(): void {
+    public function test_check_can_manage_reasons_requires_strict_reasons_cap(): void {
+        // GAP I: reasons are a carved-out strict tier — the umbrella
+        // `ffc_manage_recruitment` no longer grants reason editing.
         $this->assertFalse( $this->host->check_can_manage_reasons() );
 
         $this->caps['ffc_manage_recruitment_reasons'] = true;
         $this->assertTrue( $this->host->check_can_manage_reasons() );
 
+        // Manage alone is NOT enough anymore.
         $this->caps = array( 'ffc_manage_recruitment' => true );
-        $this->assertTrue( $this->host->check_can_manage_reasons() );
+        $this->assertFalse( $this->host->check_can_manage_reasons() );
     }
 
     public function test_check_logged_in_delegates_to_is_user_logged_in(): void {
