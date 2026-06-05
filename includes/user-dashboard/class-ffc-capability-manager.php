@@ -426,7 +426,7 @@ class CapabilityManager {
 	 * Get all FFC capabilities consolidated
 	 *
 	 * @since 4.9.3
-	 * @return array<int, string> All FFC capability names
+	 * @return list<string> All FFC capability names
 	 */
 	public static function get_all_capabilities(): array {
 		return array_merge(
@@ -901,6 +901,17 @@ class CapabilityManager {
 	private static function module_roles_definition(): array {
 		return array(
 			// ── Cross-module roles ───────────────────────────────────────
+			// `ffc_administrator` is the aggregator (GAP F): a full FFC admin
+			// that carries *every* FFC capability — the complete admin surface
+			// plus the end-user self-service (`own_`) caps — but deliberately
+			// NOT `manage_options`, so a site can delegate full plugin
+			// administration without handing out WordPress super-admin. Its cap
+			// set is the live `get_all_capabilities()` list, so any capability
+			// added in a future release is granted to it automatically.
+			'ffc_administrator'           => array(
+				'label' => __( 'FFC Administrator', 'ffcertificate' ),
+				'caps'  => self::get_all_capabilities(),
+			),
 			// Each manage role also carries its matching `view` cap so the
 			// admin menu/tab (gated by a single view-cap string) stays visible
 			// to managers — the inline write gates still require the manage cap.

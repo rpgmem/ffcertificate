@@ -152,6 +152,7 @@ class CapabilityManagerTest extends TestCase {
         CapabilityManager::register_module_roles();
 
         $expected_slugs = array(
+            'ffc_administrator',
             'ffc_certificate_manager',
             'ffc_self_scheduling_manager',
             'ffc_audience_manager',
@@ -165,6 +166,46 @@ class CapabilityManagerTest extends TestCase {
             $this->assertArrayHasKey( $slug, $created, "Missing role: {$slug}" );
             $this->assertTrue( $created[ $slug ]['caps']['read'], "Role {$slug} must include read cap" );
         }
+    }
+
+    public function test_ffc_administrator_aggregates_every_capability_without_manage_options(): void {
+        $created = array();
+        Functions\when( 'get_role' )->justReturn( null );
+        Functions\when( 'add_role' )->alias(
+            static function ( string $slug, string $label, array $caps ) use ( &$created ): bool {
+                $created[ $slug ] = $caps;
+                return true;
+            }
+        );
+
+        CapabilityManager::register_module_roles();
+
+        $admin = $created['ffc_administrator'];
+
+        // Carries `read` plus EVERY FFC capability (admin surface + the
+        // end-user self-service `own_` caps) — the GAP F aggregator.
+        $this->assertTrue( $admin['read'] );
+        foreach ( CapabilityManager::get_all_capabilities() as $cap ) {
+            $this->assertTrue( $admin[ $cap ] ?? null, "ffc_administrator must grant {$cap}" );
+        }
+
+        // Spot-check representative caps from each tier, including the GAP E
+        // destructive caps and the most sensitive admin caps.
+        foreach ( array(
+            'ffc_view_own_certificates',
+            'ffc_manage_certificates',
+            'ffc_delete_certificates',
+            'ffc_delete_recruitment',
+            'ffc_view_recruitment_pii',
+            'ffc_view_as_user',
+            'ffc_manage_settings',
+        ) as $cap ) {
+            $this->assertTrue( $admin[ $cap ] ?? null, "ffc_administrator must grant {$cap}" );
+        }
+
+        // But NOT WordPress super-admin — the whole point is full FFC admin
+        // without `manage_options`.
+        $this->assertArrayNotHasKey( 'manage_options', $admin );
     }
 
     public function test_register_module_roles_grants_caps_per_role(): void {
