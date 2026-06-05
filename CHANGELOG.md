@@ -7,6 +7,8 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+## [6.10.0] (2026-06-05)
+
 ### Added
 
 - `ffc_administrator` aggregator role — every FFC capability (admin + end-user), but not `manage_options`, so the whole plugin can be delegated without WP super-admin (GAP F).
