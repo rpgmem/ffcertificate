@@ -1837,6 +1837,18 @@ details.ffc-consent-description > p {
     box-shadow: 0 0 0 3px var(--ffc-focus-ring, rgba(0, 115, 170, 0.2));
 }
 
+/* Client-side validation error state — set via .ffc-extend-end-input-invalid
+   in ffc-csv-extend-end.js (was previously a JS inline border-color). */
+.ffc-extend-end-modal .ffc-extend-end-input-invalid {
+    border-color: var(--ffc-danger, #d63638);
+}
+
+.ffc-extend-end-error {
+    margin: 6px 0 0;
+    font-size: 13px;
+    color: var(--ffc-danger, #d63638);
+}
+
 .ffc-open-early-actions {
     display: flex;
     justify-content: flex-end;

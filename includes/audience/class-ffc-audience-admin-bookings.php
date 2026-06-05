@@ -217,7 +217,7 @@ class AudienceAdminBookings {
 									</a>
 									<?php if ( 'active' === $booking->status ) : ?>
 										|
-										<a href="#" class="ffc-cancel-booking" data-booking-id="<?php echo esc_attr( $booking->id ); ?>" style="color: #a00;">
+										<a href="#" class="ffc-cancel-booking delete-link" data-booking-id="<?php echo esc_attr( $booking->id ); ?>">
 											<?php esc_html_e( 'Cancel', 'ffcertificate' ); ?>
 										</a>
 									<?php endif; ?>

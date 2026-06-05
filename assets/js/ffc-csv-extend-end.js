@@ -102,15 +102,15 @@
 		// on the time input. Server is the authority — these checks are
 		// pure UX so the operator gets feedback before submit (#243 S3).
 		var $input    = $modal.find('.ffc-extend-end-input');
-		var $errorMsg = $('<p class="ffc-extend-end-error" role="alert" style="color:#d63638;margin:6px 0 0;font-size:13px;" hidden></p>');
+		var $errorMsg = $('<p class="ffc-extend-end-error" role="alert" hidden></p>');
 		$input.closest('p').append($errorMsg);
 
 		function setError(msg) {
-			$input.addClass('ffc-extend-end-input-invalid').css('border-color', '#d63638');
+			$input.addClass('ffc-extend-end-input-invalid');
 			$errorMsg.text(msg).removeAttr('hidden');
 		}
 		function clearError() {
-			$input.removeClass('ffc-extend-end-input-invalid').css('border-color', '');
+			$input.removeClass('ffc-extend-end-input-invalid');
 			$errorMsg.attr('hidden', 'hidden').text('');
 		}
 		// Clear the error indication on every keystroke / picker change so the

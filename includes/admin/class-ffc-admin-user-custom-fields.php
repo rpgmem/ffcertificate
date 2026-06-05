@@ -263,10 +263,10 @@ class AdminUserCustomFields {
 						<thead>
 							<tr>
 								<th><?php esc_html_e( 'Day', 'ffcertificate' ); ?></th>
-								<th><?php esc_html_e( 'Entry 1', 'ffcertificate' ); ?> <span style="color:#d63638">*</span></th>
+								<th><?php esc_html_e( 'Entry 1', 'ffcertificate' ); ?> <span class="required">*</span></th>
 								<th><?php esc_html_e( 'Exit 1', 'ffcertificate' ); ?></th>
 								<th><?php esc_html_e( 'Entry 2', 'ffcertificate' ); ?></th>
-								<th><?php esc_html_e( 'Exit 2', 'ffcertificate' ); ?> <span style="color:#d63638">*</span></th>
+								<th><?php esc_html_e( 'Exit 2', 'ffcertificate' ); ?> <span class="required">*</span></th>
 								<th></th>
 							</tr>
 						</thead>
