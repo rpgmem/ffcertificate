@@ -230,6 +230,24 @@ final class CapabilityCatalog {
 						'label'       => __( 'Delete short URLs', 'ffcertificate' ),
 						'description' => __( 'Trash, restore, permanently delete and empty the short-URL trash.', 'ffcertificate' ),
 					),
+
+					// Granular "export" tier (GAP G) — gates bulk CSV data
+					// extraction separately from manage. A manager without
+					// these can configure but not download the dataset.
+					// Certificates already has its export cap above, and
+					// activity-log export stays under its read-only view cap.
+					'ffc_export_appointments'   => array(
+						'label'       => __( 'Export appointments', 'ffcertificate' ),
+						'description' => __( 'Download the bulk appointments CSV.', 'ffcertificate' ),
+					),
+					'ffc_export_reregistration' => array(
+						'label'       => __( 'Export reregistration submissions', 'ffcertificate' ),
+						'description' => __( 'Download a campaign\'s submissions as CSV.', 'ffcertificate' ),
+					),
+					'ffc_export_audiences'      => array(
+						'label'       => __( 'Export audiences', 'ffcertificate' ),
+						'description' => __( 'Download the members and audiences CSV exports.', 'ffcertificate' ),
+					),
 				),
 			),
 			array(

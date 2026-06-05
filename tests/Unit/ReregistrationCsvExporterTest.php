@@ -96,9 +96,31 @@ class ReregistrationCsvExporterTest extends TestCase {
         $_GET['id'] = '5';
         $_GET['_wpnonce'] = 'valid';
         Functions\when( 'wp_verify_nonce' )->justReturn( true );
+        // Holds the export cap (GAP G) so the gate passes and the not-found
+        // path is exercised.
+        Functions\when( 'current_user_can' )->justReturn( true );
 
         $repoMock = Mockery::mock( 'alias:FreeFormCertificate\Reregistration\ReregistrationRepository' );
         $repoMock->shouldReceive( 'get_by_id' )->with( 5 )->andReturn( null );
+
+        ReregistrationCsvExporter::handle_export();
+        $this->assertTrue( true );
+    }
+
+    // ==================================================================
+    // handle_export() — lacks the ffc_export_reregistration cap (GAP G)
+    // ==================================================================
+
+    public function test_handle_export_returns_early_without_export_cap(): void {
+        $_GET['action'] = 'export_csv';
+        $_GET['id'] = '5';
+        $_GET['_wpnonce'] = 'valid';
+        Functions\when( 'wp_verify_nonce' )->justReturn( true );
+        // No FFC caps and not an admin → export gate must block before lookup.
+        Functions\when( 'current_user_can' )->justReturn( false );
+
+        $repoMock = Mockery::mock( 'alias:FreeFormCertificate\Reregistration\ReregistrationRepository' );
+        $repoMock->shouldReceive( 'get_by_id' )->never();
 
         ReregistrationCsvExporter::handle_export();
         $this->assertTrue( true );

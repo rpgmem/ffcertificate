@@ -316,6 +316,21 @@ class CapabilityManager {
 		'ffc_delete_custom_fields',
 		'ffc_delete_recruitment',
 		'ffc_delete_url_shortener',
+
+		// Granular "export" tier (GAP G). Each `ffc_export_<domain>` cap gates
+		// the bulk CSV data-extraction path of its domain *strictly* — the
+		// export handlers no longer fall back to the broader `manage` cap, so a
+		// role can hold `manage` (create/edit/configure) without being able to
+		// extract the dataset. Mirrors the long-standing `ffc_export_certificates`
+		// model. The one-shot `migrate_export_caps_grant()` migration grants each
+		// export cap to everyone who already holds the matching `manage` cap,
+		// preserving current behavior on upgrade; admins restrict by removing the
+		// export cap from a role. See `export_cap_grant_map()`. Certificates
+		// already has `ffc_export_certificates` above, and activity-log export
+		// stays under its read-only `ffc_view_activity_log` cap.
+		'ffc_export_appointments',
+		'ffc_export_reregistration',
+		'ffc_export_audiences',
 	);
 
 	/**
@@ -388,6 +403,83 @@ class CapabilityManager {
 				if ( isset( $role->capabilities[ $manage ] ) && true === $role->capabilities[ $manage ]
 					&& ! isset( $role->capabilities[ $delete ] ) ) {
 					$role->add_cap( $delete, true );
+				}
+			}
+		}
+
+		return $counts;
+	}
+
+	/**
+	 * Map of `manage` cap => the `export` cap it seeds on upgrade (GAP G).
+	 *
+	 * The one-shot migration {@see self::migrate_export_caps_grant()} grants the
+	 * value cap to every user/role that already holds the key cap, so existing
+	 * managers keep their bulk-export ability after the export tier is split out
+	 * of `manage`. To take export away from a manager, remove the export cap from
+	 * that role/user after the migration has run.
+	 *
+	 * Certificates is intentionally absent: `ffc_export_certificates` predates
+	 * this split and has always been a standalone cap (never granted by
+	 * `ffc_manage_certificates`), so there is nothing to seed for it.
+	 *
+	 * @since 6.9.0
+	 * @return array<string, string>
+	 */
+	public static function export_cap_grant_map(): array {
+		return array(
+			'ffc_manage_appointments'   => 'ffc_export_appointments',
+			'ffc_manage_reregistration' => 'ffc_export_reregistration',
+			'ffc_manage_audiences'      => 'ffc_export_audiences',
+		);
+	}
+
+	/**
+	 * Idempotent migration that seeds each `ffc_export_<domain>` cap onto every
+	 * user and role that already holds the matching `ffc_manage_<domain>` cap
+	 * (GAP G). Preserves current export behavior when the export tier is split
+	 * out of `manage`; never removes a `manage` cap.
+	 *
+	 * Runs once per install via {@see \FreeFormCertificate\Loader} on
+	 * `plugins_loaded`, flagged by the `ffc_export_caps_granted_v1` option.
+	 *
+	 * @since 6.9.0
+	 * @return array<string, int> Per-export-cap count of users seeded.
+	 */
+	public static function migrate_export_caps_grant(): array {
+		$map    = self::export_cap_grant_map();
+		$counts = array();
+
+		// 1. User-meta grants.
+		$users = get_users( array( 'fields' => 'ID' ) );
+		foreach ( $map as $manage => $export ) {
+			$counts[ $export ] = 0;
+			foreach ( $users as $user_id ) {
+				$user = get_userdata( (int) $user_id );
+				if ( ! $user ) {
+					continue;
+				}
+				// Seed only where the manage cap is an explicit grant and the
+				// export cap isn't already present (idempotent).
+				if ( isset( $user->caps[ $manage ] ) && true === $user->caps[ $manage ]
+					&& ! isset( $user->caps[ $export ] ) ) {
+					$user->add_cap( $export, true );
+					++$counts[ $export ];
+				}
+			}
+		}
+
+		// 2. Role definitions — administrator + every FFC/custom role.
+		$wp_roles = wp_roles();
+		foreach ( array_keys( $wp_roles->roles ) as $role_slug ) {
+			$role = get_role( $role_slug );
+			if ( ! $role ) {
+				continue;
+			}
+			foreach ( $map as $manage => $export ) {
+				if ( isset( $role->capabilities[ $manage ] ) && true === $role->capabilities[ $manage ]
+					&& ! isset( $role->capabilities[ $export ] ) ) {
+					$role->add_cap( $export, true );
 				}
 			}
 		}
@@ -921,15 +1013,15 @@ class CapabilityManager {
 			),
 			'ffc_self_scheduling_manager' => array(
 				'label' => __( 'FFC Self-Scheduling Manager', 'ffcertificate' ),
-				'caps'  => array( 'ffc_view_appointments', 'ffc_manage_appointments', 'ffc_delete_appointments', 'ffc_scheduling_bypass', 'ffc_export_certificates' ),
+				'caps'  => array( 'ffc_view_appointments', 'ffc_manage_appointments', 'ffc_delete_appointments', 'ffc_scheduling_bypass', 'ffc_export_certificates', 'ffc_export_appointments' ),
 			),
 			'ffc_audience_manager'        => array(
 				'label' => __( 'FFC Audience Manager', 'ffcertificate' ),
-				'caps'  => array( 'ffc_view_audiences', 'ffc_manage_audiences', 'ffc_delete_audiences' ),
+				'caps'  => array( 'ffc_view_audiences', 'ffc_manage_audiences', 'ffc_delete_audiences', 'ffc_export_audiences' ),
 			),
 			'ffc_reregistration_manager'  => array(
 				'label' => __( 'FFC Reregistration Manager', 'ffcertificate' ),
-				'caps'  => array( 'ffc_view_reregistration', 'ffc_manage_reregistration', 'ffc_delete_reregistration' ),
+				'caps'  => array( 'ffc_view_reregistration', 'ffc_manage_reregistration', 'ffc_delete_reregistration', 'ffc_export_reregistration' ),
 			),
 			'ffc_operator'                => array(
 				'label' => __( 'FFC Operator (read-only)', 'ffcertificate' ),

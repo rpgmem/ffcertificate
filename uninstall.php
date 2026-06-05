@@ -216,6 +216,7 @@ remove_role( 'ffc_recruitment_manager' );
 // runs in a stripped-down context that doesn't load the plugin's autoloader.
 foreach (
 	array(
+		'ffc_administrator',
 		'ffc_certificate_manager',
 		'ffc_self_scheduling_manager',
 		'ffc_audience_manager',
@@ -277,6 +278,11 @@ $ffcertificate_caps = array(
 
 	// Reactivated submission-edit cap (6.2.0).
 	'ffc_certificate_update',
+
+	// Granular export tier (GAP G).
+	'ffc_export_appointments',
+	'ffc_export_reregistration',
+	'ffc_export_audiences',
 
 	// Removed 6.2.0 placeholder, kept here for cleanup on installs
 	// that activated it before the placeholder was retired.

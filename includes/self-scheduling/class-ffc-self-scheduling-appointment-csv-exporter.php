@@ -358,7 +358,10 @@ class AppointmentCsvExporter {
 				wp_die( esc_html__( 'Security check failed.', 'ffcertificate' ) );
 			}
 
-			if ( ! \FreeFormCertificate\Core\Utils::current_user_can_admin_or( 'ffc_manage_appointments' ) ) {
+			// Bulk export is its own capability tier (GAP G), split out of
+			// `ffc_manage_appointments` — a manager can configure the calendar
+			// without holding the right to extract the full attendee dataset.
+			if ( ! \FreeFormCertificate\Core\Utils::current_user_can_admin_or( 'ffc_export_appointments' ) ) {
 				wp_die( esc_html__( 'You do not have permission to export appointments.', 'ffcertificate' ) );
 			}
 
