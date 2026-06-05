@@ -358,13 +358,17 @@ class FormEditorSaveHandler {
 				$extend_end = ! empty( $public_raw['extend_end_enabled'] ) ? '1' : '0';
 				update_post_meta( $post_id, '_ffc_csv_public_extend_end_enabled', $extend_end );
 
-				// Limit: positive integer ≥ 1. Fall back to settings default (min 1).
-				$limit = isset( $public_raw['limit'] ) ? absint( $public_raw['limit'] ) : 0;
-				if ( $limit < 1 ) {
-					$default_limit = \FreeFormCertificate\Settings\SettingsReader::get_int( 'public_csv_default_limit', 1 );
-					$limit         = $default_limit > 0 ? $default_limit : 1;
+				// Limit: a positive integer ≥ 1, or empty to inherit the global
+				// default (Settings → Advanced → Default Download Limit). An empty
+				// value deletes the meta so the read paths (validator + info
+				// builder) fall back to the global, matching the device-fingerprint
+				// inherit semantics — no per-form value is forced.
+				$limit_raw = isset( $public_raw['limit'] ) ? trim( (string) $public_raw['limit'] ) : '';
+				if ( '' === $limit_raw || absint( $limit_raw ) < 1 ) {
+					delete_post_meta( $post_id, '_ffc_csv_public_limit' );
+				} else {
+					update_post_meta( $post_id, '_ffc_csv_public_limit', absint( $limit_raw ) );
 				}
-				update_post_meta( $post_id, '_ffc_csv_public_limit', $limit );
 
 				// Hash handling: auto-generate on first enable, or regenerate on request.
 				$current_hash   = (string) get_post_meta( $post_id, '_ffc_csv_public_hash', true );

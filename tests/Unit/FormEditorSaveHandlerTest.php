@@ -681,6 +681,63 @@ class FormEditorSaveHandlerTest extends TestCase {
     }
 
     /**
+     * Public Operator Access: a blank Download Limit inherits the global default
+     * (delete the meta) instead of force-saving the resolved global value.
+     */
+    public function test_public_csv_blank_limit_inherits_global_not_forced(): void {
+        $bag     = $this->stub_for_save();
+        $written = &$bag[0];
+
+        $deleted = array();
+        Functions\when( 'delete_post_meta' )->alias(
+            static function ( $id, $key ) use ( &$deleted ): bool {
+                $deleted[] = $key;
+                return true;
+            }
+        );
+        // Existing hash so the save skips hash generation; '' for everything else.
+        Functions\when( 'get_post_meta' )->alias(
+            static fn( $id, $key ) => '_ffc_csv_public_hash' === $key ? 'existinghash' : ''
+        );
+
+        $_POST = array(
+            'ffc_form_nonce' => 'ok',
+            'ffc_config'     => array( 'pdf_layout' => '{{auth_code}} {{name}} {{cpf_rf}}' ),
+            'ffc_csv_public' => array(
+                'enabled' => '1',
+                'limit'   => '',
+            ),
+        );
+
+        $this->handler->save_form_data( 10 );
+
+        $this->assertArrayNotHasKey( '_ffc_csv_public_limit', $written, 'blank limit must not be written to a forced value' );
+        $this->assertContains( '_ffc_csv_public_limit', $deleted, 'blank limit must delete the meta so the global default is inherited' );
+    }
+
+    public function test_public_csv_explicit_limit_is_persisted(): void {
+        $bag     = $this->stub_for_save();
+        $written = &$bag[0];
+
+        Functions\when( 'get_post_meta' )->alias(
+            static fn( $id, $key ) => '_ffc_csv_public_hash' === $key ? 'existinghash' : ''
+        );
+
+        $_POST = array(
+            'ffc_form_nonce' => 'ok',
+            'ffc_config'     => array( 'pdf_layout' => '{{auth_code}} {{name}} {{cpf_rf}}' ),
+            'ffc_csv_public' => array(
+                'enabled' => '1',
+                'limit'   => '7',
+            ),
+        );
+
+        $this->handler->save_form_data( 10 );
+
+        $this->assertSame( 7, $written['_ffc_csv_public_limit'] );
+    }
+
+    /**
      * The 4 restriction toggles independently gate their own data fields.
      * Each off → the corresponding meta is omitted from the new write.
      */
