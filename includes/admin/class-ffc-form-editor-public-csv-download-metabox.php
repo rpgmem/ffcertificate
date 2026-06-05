@@ -43,10 +43,21 @@ class FormEditorPublicCsvDownloadMetabox {
 	 * @param WP_Post $post The post object.
 	 */
 	public function render( WP_Post $post ): void {
-		$enabled = (string) get_post_meta( $post->ID, '_ffc_csv_public_enabled', true );
-		$hash    = (string) get_post_meta( $post->ID, '_ffc_csv_public_hash', true );
-		$limit   = (int) get_post_meta( $post->ID, '_ffc_csv_public_limit', true );
-		$count   = (int) get_post_meta( $post->ID, '_ffc_csv_public_count', true );
+		$enabled   = (string) get_post_meta( $post->ID, '_ffc_csv_public_enabled', true );
+		$hash      = (string) get_post_meta( $post->ID, '_ffc_csv_public_hash', true );
+		$limit_raw = get_post_meta( $post->ID, '_ffc_csv_public_limit', true );
+		$limit     = ( '' === (string) $limit_raw ) ? 0 : (int) $limit_raw;
+		// Global fallback (Settings → Advanced → Default Download Limit). A blank
+		// per-form limit inherits it; the runtime resolves the same way.
+		$global_limit = \FreeFormCertificate\Settings\SettingsReader::get_int( 'public_csv_default_limit', 1 );
+		if ( $global_limit < 1 ) {
+			$global_limit = 1;
+		}
+		// Whether the form sets its own limit. When false the field renders empty
+		// (placeholder) and the resolution block below sets $limit to the global
+		// default for the "Current usage of N" display.
+		$has_custom_limit = $limit > 0;
+		$count            = (int) get_post_meta( $post->ID, '_ffc_csv_public_count', true );
 
 		// 3 operator-feature toggles. Defaults reflect the user's stated
 		// "enable master → Download ON, Start Early OFF, Postpone Close OFF"
@@ -219,17 +230,31 @@ class FormEditorPublicCsvDownloadMetabox {
 							min="1"
 							step="1"
 							class="small-text"
-							value="<?php echo esc_attr( (string) $limit ); ?>">
+							value="<?php echo $has_custom_limit ? esc_attr( (string) $limit ) : ''; ?>" placeholder="<?php esc_attr_e( 'Inherit from global', 'ffcertificate' ); ?>">
 					<p class="description">
 						<?php
 						printf(
-							/* translators: 1: current count, 2: limit */
+							/* translators: 1: current count, 2: effective limit (per-form or inherited global) */
 							esc_html__( 'Maximum number of CSV downloads allowed via the public page. Current usage: %1$d of %2$d.', 'ffcertificate' ),
 							(int) $count,
 							(int) $limit
 						);
 						?>
 					</p>
+					<?php if ( ! $has_custom_limit ) : ?>
+						<p class="description">
+							<?php
+							echo wp_kses(
+								sprintf(
+									/* translators: %s: highlighted current global default download limit */
+									esc_html__( 'Leave empty to inherit the global default — currently %s (Settings → Advanced → Default Download Limit).', 'ffcertificate' ),
+									'<span class="ffc-global-default">' . esc_html( (string) $global_limit ) . '</span>'
+								),
+								array( 'span' => array( 'class' => array() ) )
+							);
+							?>
+						</p>
+					<?php endif; ?>
 				</td>
 			</tr>
 
