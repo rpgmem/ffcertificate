@@ -10,6 +10,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 ### Changed
 
 - Form editor → Email tab: enabling "Send Email to User" now seeds the message editor with a default body (a friendly `{{name}}` intro) instead of a blank field, so operators start from a ready template they can keep or edit. A form that already has a custom message keeps it untouched.
+- Form editor → Time tab: with "Multiple days" on, the **End date must now be at least one day after the Start date** (previously equal dates were accepted). The End `<input>` carries a live `min` of start + 1 day (kept in sync as the Start date changes) and the server-side `analyze_datetime_order()` flags both date fields red on save when the rule is violated. Single-day forms (multi-day off) are unaffected — they still mirror `date_end = date_start`.
 
 ### Fixed
 
