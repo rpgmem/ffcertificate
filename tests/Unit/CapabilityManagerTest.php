@@ -802,6 +802,11 @@ class CapabilityManagerTest extends TestCase {
         // Certificate manager keeps the standalone certificate export cap.
         $this->assertTrue( $created['ffc_certificate_manager']['ffc_export_certificates'] );
 
+        // The Self-Scheduling Manager manages appointments only — it must NOT
+        // carry the cross-domain certificate export cap (audit cleanup): that
+        // belongs to the Certificate Manager / Administrator.
+        $this->assertArrayNotHasKey( 'ffc_export_certificates', $created['ffc_self_scheduling_manager'] );
+
         // The read-only operator never receives a granular export cap.
         foreach ( CapabilityManager::export_cap_grant_map() as $export_cap ) {
             $this->assertArrayNotHasKey( $export_cap, $created['ffc_operator'], "ffc_operator must NOT grant {$export_cap}" );
