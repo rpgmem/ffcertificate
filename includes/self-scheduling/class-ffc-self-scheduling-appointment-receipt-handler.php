@@ -146,6 +146,16 @@ class AppointmentReceiptHandler {
 			FFC_VERSION,
 			true
 		);
+
+		// Receipt "Download PDF" button wiring (extracted from an inline
+		// <script>); reads the localized ffcReceiptData object below.
+		wp_enqueue_script(
+			'ffc-self-scheduling-receipt',
+			FFC_PLUGIN_URL . "assets/js/ffc-self-scheduling-receipt{$s}.js",
+			array( 'jquery', 'ffc-pdf-generator' ),
+			FFC_VERSION,
+			true
+		);
 	}
 
 	/**
@@ -488,7 +498,7 @@ class AppointmentReceiptHandler {
 				: '';
 
 			wp_localize_script(
-				'ffc-pdf-generator',
+				'ffc-self-scheduling-receipt',
 				'ffcReceiptData',
 				array(
 					'pdfData'        => $pdf_data ? $pdf_data : null,
@@ -502,34 +512,11 @@ class AppointmentReceiptHandler {
 				)
 			);
 
-			wp_add_inline_script(
-				'ffc-pdf-generator',
-				'
-                jQuery(document).ready(function($) {
-                    $("#ffc-download-pdf-btn").on("click", function() {
-                        if (typeof window.ffcGeneratePDF !== "function") {
-                            console.error("FFC PDF Generator not loaded");
-                            alert(ffcReceiptData.errorMsg);
-                            return;
-                        }
-                        if (ffcReceiptData.pdfData && ffcReceiptData.pdfData.html) {
-                            window.ffcGeneratePDF(ffcReceiptData.pdfData, ffcReceiptData.pdfData.filename || "appointment_receipt.pdf");
-                            return;
-                        }
-                        var htmlContent = $("#ffc-receipt-content").html();
-                        var filename = ffcReceiptData.validationCode
-                            ? "Appointment_Receipt_" + ffcReceiptData.validationCode + ".pdf"
-                            : "Appointment_Receipt_" + ffcReceiptData.appointmentId + ".pdf";
-                        window.ffcGeneratePDF({ html: htmlContent, bg_image: null }, filename);
-                    });
-                });
-            '
-			);
-
 			wp_print_scripts( 'jquery' );
 			wp_print_scripts( 'html2canvas' );
 			wp_print_scripts( 'jspdf' );
 			wp_print_scripts( 'ffc-pdf-generator' );
+			wp_print_scripts( 'ffc-self-scheduling-receipt' );
 			?>
 		</body>
 		</html>
