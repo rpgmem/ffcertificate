@@ -546,6 +546,18 @@
     margin: 10px 0;
 }
 
+/* Inline highlight for the "currently inherited from global" value shown in
+   per-form field descriptions (e.g. Device Fingerprint max / threshold /
+   message). Subtle wp-admin-blue chip so the operator can see what an empty
+   field will fall back to without it shouting. */
+.ffc-global-default {
+    padding: 0 4px;
+    border-radius: 3px;
+    background: #f0f6fc;
+    color: #2271b1;
+    font-weight: 600;
+}
+
 /* Section subtitles inside metaboxes (Start Form Early sub-block,
    etc.) — sits below the main metabox h2 with a thin separator. */
 .ffc-section-subtitle {
