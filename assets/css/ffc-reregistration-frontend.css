@@ -159,12 +159,6 @@
     min-height: 72px;
 }
 
-.ffc-field-hint {
-    margin: 4px 0 0;
-    font-size: 12px;
-    color: #8c8f94;
-}
-
 /* ── Row Layouts ────────────────────────────── */
 
 .ffc-rereg-row {
@@ -181,15 +175,6 @@
 .ffc-rereg-row .ffc-rereg-field input,
 .ffc-rereg-row .ffc-rereg-field select {
     max-width: 100%;
-}
-
-.ffc-rereg-field-sm {
-    flex: 0 0 100px;
-    max-width: 120px;
-}
-
-.ffc-rereg-field-grow {
-    flex: 2;
 }
 
 /* ── Dependent Select ───────────────────────── */
@@ -392,11 +377,6 @@
 
     .ffc-rereg-row .ffc-rereg-field {
         margin-bottom: 16px;
-    }
-
-    .ffc-rereg-field-sm {
-        flex: 1;
-        max-width: 100%;
     }
 
     .ffc-rereg-field input[type="text"],
