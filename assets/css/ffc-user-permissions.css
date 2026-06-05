@@ -193,6 +193,55 @@
 	border: 1px solid #f0d9b5;
 }
 
+/* Section divider between the self-service and administration tiers. */
+.ffc-cap-section {
+	margin: 18px 0 8px;
+	padding-bottom: 4px;
+	border-bottom: 1px solid #dcdcde;
+	font-size: 11px;
+	font-weight: 700;
+	text-transform: uppercase;
+	letter-spacing: 0.6px;
+	color: #646970;
+}
+
+.ffc-cap-section:first-child {
+	margin-top: 0;
+}
+
+/* Per-cap surface badge — only on the caps whose execution context isn't
+   obvious from the section (REST API, frontend booking-flow bypass). */
+.ffc-cap-badge-surface {
+	display: inline-block;
+	margin-left: 6px;
+	padding: 1px 6px;
+	border-radius: 9px;
+	font-size: 9.5px;
+	font-weight: 700;
+	text-transform: uppercase;
+	letter-spacing: 0.3px;
+	vertical-align: middle;
+	border: 1px solid transparent;
+}
+
+.ffc-cap-badge-surface--api {
+	color: #3858a8;
+	background: #eef2fb;
+	border-color: #cdd8f3;
+}
+
+.ffc-cap-badge-surface--frontend {
+	color: #2a7a46;
+	background: #eafaf0;
+	border-color: #c3e9d2;
+}
+
+.ffc-cap-badge-surface--admin {
+	color: #555;
+	background: #f0f0f1;
+	border-color: #dcdcde;
+}
+
 .ffc-cap-gmeta {
 	margin-left: auto;
 	font-size: 12px;

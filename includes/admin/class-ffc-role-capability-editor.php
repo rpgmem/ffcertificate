@@ -213,10 +213,17 @@ final class RoleCapabilityEditor {
 	 * @return void
 	 */
 	private static function render_catalog_grid( array $granted ): void {
+		$prev_level = null;
 		foreach ( CapabilityCatalog::groups() as $group ) {
 			$is_admin = 'admin' === $group['level'];
 			$total    = count( $group['caps'] );
 			$count    = 0;
+
+			// Section divider between the self-service and administration tiers.
+			if ( $group['level'] !== $prev_level ) {
+				echo '<h3 class="ffc-cap-section">' . esc_html( CapabilityCatalog::level_section_label( (string) $group['level'] ) ) . '</h3>';
+				$prev_level = $group['level'];
+			}
 
 			$rows = '';
 			foreach ( $group['caps'] as $slug => $meta ) {
@@ -224,7 +231,7 @@ final class RoleCapabilityEditor {
 				if ( $on ) {
 					++$count;
 				}
-				$toggle = AdminUI::get_toggle(
+				$toggle        = AdminUI::get_toggle(
 					array(
 						// Name is unused (persisted via AJAX, not this form) but
 						// AdminUI::get_toggle refuses to render without one.
@@ -236,12 +243,13 @@ final class RoleCapabilityEditor {
 						'data'        => array( 'ffc-cap-slug' => (string) $slug ),
 					)
 				);
-				$label  = (string) $meta['label'];
-				$desc   = (string) $meta['description'];
-				$rows  .= sprintf(
+				$label         = (string) $meta['label'];
+				$desc          = (string) $meta['description'];
+				$surface_badge = CapabilityCatalog::surface_badge_html( $meta );
+				$rows         .= sprintf(
 					'<div class="ffc-cap-row" data-ffc-cap-name="%1$s" data-ffc-cap-slug="%2$s">'
 						. '<div class="ffc-cap-row-toggle">%3$s</div>'
-						. '<div class="ffc-cap-row-text"><span class="ffc-cap-row-name">%4$s</span>'
+						. '<div class="ffc-cap-row-text"><span class="ffc-cap-row-name">%4$s%6$s</span>'
 						. '<span class="ffc-cap-row-desc">%5$s</span>'
 						. '<span class="ffc-cap-slug">%2$s</span></div>'
 						. '<span class="ffc-cap-savestate" data-ffc-savestate aria-live="polite"></span>'
@@ -250,16 +258,18 @@ final class RoleCapabilityEditor {
 					esc_attr( (string) $slug ),
 					$toggle, // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- AdminUI::get_toggle() returns pre-escaped markup.
 					esc_html( $label ),
-					esc_html( $desc )
+					esc_html( $desc ),
+					$surface_badge // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- built from esc_* in surface_badge().
 				);
 			}
 
+			// Every group starts collapsed for easier navigation; the live
+			// search auto-expands the groups that still have hits.
 			printf(
-				'<section class="ffc-cap-group%1$s" data-ffc-group="%2$s">',
-				$is_admin ? ' is-collapsed' : '',
+				'<section class="ffc-cap-group is-collapsed" data-ffc-group="%1$s">',
 				esc_attr( (string) $group['key'] )
 			);
-			echo '<button type="button" class="ffc-cap-group-h" aria-expanded="' . ( $is_admin ? 'false' : 'true' ) . '">';
+			echo '<button type="button" class="ffc-cap-group-h" aria-expanded="false">';
 			echo '<span class="ffc-cap-caret" aria-hidden="true"></span>';
 			echo '<span class="ffc-cap-gtitle">' . esc_html( (string) $group['label'] ) . '</span>';
 			if ( $is_admin ) {
