@@ -36,10 +36,12 @@ class FormEditorEmailMetabox {
 		$subject    = isset( $config['email_subject'] ) ? $config['email_subject'] : __( 'Your Certificate', 'ffcertificate' );
 		$body       = isset( $config['email_body'] ) ? (string) $config['email_body'] : '';
 		// When the email is enabled but no custom message was written yet, seed
-		// the editor with a sensible default so the operator starts from a
-		// ready template instead of a blank field. `wp_strip_all_tags` treats a
-		// cleared TinyMCE body (`<p></p>`) as empty too.
-		if ( '' === trim( wp_strip_all_tags( $body ) ) ) {
+		// the editor with a sensible default so the operator starts from a ready
+		// template instead of a blank field. Strip tags / &nbsp; / whitespace
+		// with a native preg_replace (no WP function dependency, so every test
+		// that renders this metabox doesn't need to stub one) so a cleared
+		// TinyMCE body (`<p></p>`) also counts as empty.
+		if ( '' === (string) preg_replace( '/<[^>]*>|&nbsp;|\s+/', '', $body ) ) {
 			$body = self::default_email_body();
 		}
 		$collapsed = ( '1' !== (string) $send_email );

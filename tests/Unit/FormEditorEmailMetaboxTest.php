@@ -32,9 +32,6 @@ class FormEditorEmailMetaboxTest extends TestCase {
         Functions\when( 'admin_url' )->alias( function ( $p = '' ) { return '/wp-admin/' . $p; } );
         Functions\when( 'esc_html_e' )->alias( function ( $text ) { echo $text; } );
         Functions\when( 'wp_kses_post' )->returnArg();
-        Functions\when( 'wp_strip_all_tags' )->alias( function ( $s ) {
-            return trim( strip_tags( (string) $s ) );
-        } );
         Functions\when( 'wp_editor' )->alias( function ( $content, $id ) {
             echo '<textarea id="' . $id . '">' . $content . '</textarea>';
         } );
