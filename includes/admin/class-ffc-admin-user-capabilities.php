@@ -315,9 +315,16 @@ class AdminUserCapabilities {
 		$user_caps  = $user->caps;
 		$role_union = self::user_role_caps_union( $user );
 
+		$prev_level = null;
 		foreach ( \FreeFormCertificate\UserDashboard\CapabilityCatalog::groups() as $group ) {
 			$is_admin = 'admin' === $group['level'];
 			$total    = count( $group['caps'] );
+
+			// Section divider between the self-service and administration tiers.
+			if ( $group['level'] !== $prev_level ) {
+				echo '<h3 class="ffc-cap-section">' . esc_html( \FreeFormCertificate\UserDashboard\CapabilityCatalog::level_section_label( (string) $group['level'] ) ) . '</h3>';
+				$prev_level = $group['level'];
+			}
 
 			// Build the rows first so the header can show a live granted count.
 			$rows    = '';
@@ -335,14 +342,15 @@ class AdminUserCapabilities {
 				$rows .= self::render_cap_row( (string) $slug, $meta, (string) $group['key'], $granted_user, $origin );
 			}
 
+			// Every group starts collapsed for easier navigation; the live
+			// search auto-expands the groups that still have hits.
 			printf(
-				'<section class="ffc-cap-group%1$s" data-ffc-group="%2$s">',
-				$is_admin ? ' is-collapsed' : '',
+				'<section class="ffc-cap-group is-collapsed" data-ffc-group="%1$s">',
 				esc_attr( (string) $group['key'] )
 			);
 
 			// Header.
-			echo '<button type="button" class="ffc-cap-group-h" aria-expanded="' . ( $is_admin ? 'false' : 'true' ) . '">';
+			echo '<button type="button" class="ffc-cap-group-h" aria-expanded="false">';
 			echo '<span class="ffc-cap-caret" aria-hidden="true"></span>';
 			echo '<span class="ffc-cap-gtitle">' . esc_html( (string) $group['label'] ) . '</span>';
 			if ( $is_admin ) {
@@ -372,8 +380,9 @@ class AdminUserCapabilities {
 	 * @return string Markup with every dynamic part escaped.
 	 */
 	private static function render_cap_row( string $slug, array $meta, string $group_key, bool $checked, string $origin ): string {
-		$label = isset( $meta['label'] ) ? (string) $meta['label'] : $slug;
-		$desc  = isset( $meta['description'] ) ? (string) $meta['description'] : '';
+		$label         = isset( $meta['label'] ) ? (string) $meta['label'] : $slug;
+		$desc          = isset( $meta['description'] ) ? (string) $meta['description'] : '';
+		$surface_badge = \FreeFormCertificate\UserDashboard\CapabilityCatalog::surface_badge_html( $meta );
 
 		// Role-granted caps render ON but disabled: a disabled checkbox is not
 		// submitted, so the profile-form save never writes a redundant per-user
@@ -397,7 +406,7 @@ class AdminUserCapabilities {
 			'<div class="ffc-cap-row" data-ffc-cap-name="%1$s" data-ffc-cap-slug="%2$s" data-ffc-user-granted="%9$s">'
 				. '<div class="ffc-cap-row-toggle">%3$s</div>'
 				. '<div class="ffc-cap-row-text">'
-				. '<span class="ffc-cap-row-name">%4$s</span><span class="ffc-cap-role-tag" data-ffc-role-tag></span>'
+				. '<span class="ffc-cap-row-name">%4$s%10$s</span><span class="ffc-cap-role-tag" data-ffc-role-tag></span>'
 				. '<span class="ffc-cap-row-desc">%5$s</span>'
 				. '<span class="ffc-cap-slug">%2$s<button type="button" class="ffc-cap-copy" data-ffc-copy="%2$s" aria-label="%6$s" title="%6$s">⧉</button></span>'
 				. '</div>'
@@ -411,7 +420,8 @@ class AdminUserCapabilities {
 			esc_attr__( 'Copy slug', 'ffcertificate' ),
 			esc_attr( $origin ),
 			esc_html( self::origin_label( $origin ) ),
-			$checked ? '1' : '0'
+			$checked ? '1' : '0',
+			$surface_badge // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- pre-escaped by CapabilityCatalog::surface_badge_html().
 		);
 	}
 
