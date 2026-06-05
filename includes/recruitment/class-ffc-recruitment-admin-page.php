@@ -617,8 +617,10 @@ final class RecruitmentAdminPage {
 		// importer on the Notice Edit screen, exposed here so the
 		// operator can pick the target notice without navigating
 		// through the Notices tab first. Gated by the same capability
-		// the REST endpoint enforces.
-		if ( current_user_can( 'ffc_import_recruitment' ) || current_user_can( 'ffc_manage_recruitment' ) ) {
+		// the REST endpoint enforces — the strict `ffc_import_recruitment`
+		// tier (GAP H); the umbrella `ffc_manage_recruitment` no longer grants
+		// it.
+		if ( current_user_can( 'ffc_import_recruitment' ) ) {
 			self::render_candidates_csv_import_section();
 		} else {
 			echo '<p>' . esc_html__( 'Candidates are imported per-notice via CSV — open the target notice (Notices tab → Edit) and use the "Import candidates (CSV)" section.', 'ffcertificate' ) . '</p>';

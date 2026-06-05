@@ -284,6 +284,9 @@ $ffcertificate_caps = array(
 	'ffc_export_reregistration',
 	'ffc_export_audiences',
 
+	// Granular import tier (GAP H).
+	'ffc_import_audiences',
+
 	// Removed 6.2.0 placeholder, kept here for cleanup on installs
 	// that activated it before the placeholder was retired.
 	'ffc_reregistration',

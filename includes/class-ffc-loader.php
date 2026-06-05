@@ -326,6 +326,7 @@ class Loader {
 		$this->ensure_taxonomy_renamed();
 		$this->ensure_delete_caps_granted();
 		$this->ensure_export_caps_granted();
+		$this->ensure_import_caps_granted();
 		$this->define_admin_hooks();
 		$this->init_rest_api();
 	}
@@ -437,6 +438,26 @@ class Loader {
 		}
 		if ( class_exists( '\FreeFormCertificate\UserDashboard\CapabilityManager' ) ) {
 			\FreeFormCertificate\UserDashboard\CapabilityManager::migrate_export_caps_grant();
+		}
+		update_option( $flag, '1', true );
+	}
+
+	/**
+	 * One-time migration that seeds the granular import caps (GAP H) onto every
+	 * user/role already holding the matching `manage` cap, preserving current
+	 * bulk-import behavior when the import tier is enforced strictly (new
+	 * `ffc_import_audiences`, and `ffc_import_recruitment` losing its umbrella
+	 * fallback). Idempotent + version-flagged via `ffc_import_caps_granted_v1`.
+	 *
+	 * @since 6.9.0
+	 */
+	private function ensure_import_caps_granted(): void {
+		$flag = 'ffc_import_caps_granted_v1';
+		if ( '1' === get_option( $flag, '' ) ) {
+			return;
+		}
+		if ( class_exists( '\FreeFormCertificate\UserDashboard\CapabilityManager' ) ) {
+			\FreeFormCertificate\UserDashboard\CapabilityManager::migrate_import_caps_grant();
 		}
 		update_option( $flag, '1', true );
 	}

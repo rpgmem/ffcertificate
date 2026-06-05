@@ -846,4 +846,85 @@ class CapabilityManagerTest extends TestCase {
         $this->assertTrue( $role_added['ffc_export_audiences'] ?? null );
         $this->assertArrayNotHasKey( 'ffc_export_appointments', $role_added );
     }
+
+    public function test_admin_capabilities_contains_import_tier(): void {
+        // ffc_import_audiences is new (GAP H); ffc_import_recruitment predates
+        // it but is now strictly enforced.
+        $this->assertContains( 'ffc_import_audiences', CapabilityManager::ADMIN_CAPABILITIES );
+        $this->assertContains( 'ffc_import_recruitment', CapabilityManager::ADMIN_CAPABILITIES );
+    }
+
+    public function test_import_cap_grant_map_pairs_each_manage_to_its_import(): void {
+        $map = CapabilityManager::import_cap_grant_map();
+        $this->assertCount( 2, $map );
+        $this->assertSame( 'ffc_import_audiences', $map['ffc_manage_audiences'] );
+        $this->assertSame( 'ffc_import_recruitment', $map['ffc_manage_recruitment'] );
+        foreach ( $map as $manage => $import ) {
+            $this->assertStringStartsWith( 'ffc_manage_', $manage );
+            $this->assertStringStartsWith( 'ffc_import_', $import );
+            $this->assertContains( $import, CapabilityManager::ADMIN_CAPABILITIES, "{$import} must be a registered cap" );
+        }
+    }
+
+    public function test_module_roles_grant_matching_import_caps_but_operator_excluded(): void {
+        $created = array();
+        Functions\when( 'get_role' )->justReturn( null );
+        Functions\when( 'add_role' )->alias(
+            static function ( string $slug, string $label, array $caps ) use ( &$created ): bool {
+                $created[ $slug ] = $caps;
+                return true;
+            }
+        );
+
+        CapabilityManager::register_module_roles();
+
+        // Audience manager carries the new audiences import cap; the recruitment
+        // admin already carries the recruitment import cap.
+        $this->assertTrue( $created['ffc_audience_manager']['ffc_import_audiences'] );
+        $this->assertTrue( $created['ffc_recruitment_admin']['ffc_import_recruitment'] );
+
+        // The read-only operator never receives a granular import cap.
+        foreach ( CapabilityManager::import_cap_grant_map() as $import_cap ) {
+            $this->assertArrayNotHasKey( $import_cap, $created['ffc_operator'], "ffc_operator must NOT grant {$import_cap}" );
+        }
+    }
+
+    public function test_migrate_import_caps_grant_seeds_import_onto_manage_holders(): void {
+        Functions\when( 'get_users' )->justReturn( array( 1 ) );
+
+        // User holds the audiences manage cap → expect ffc_import_audiences.
+        $user       = Mockery::mock( 'WP_User' );
+        $user->caps = array( 'ffc_manage_audiences' => true );
+        $user_added = array();
+        $user->shouldReceive( 'add_cap' )->andReturnUsing(
+            function ( $cap, $val = true ) use ( &$user_added ) {
+                $user_added[ $cap ] = $val;
+            }
+        );
+        $user->shouldReceive( 'remove_cap' )->never();
+        Functions\when( 'get_userdata' )->justReturn( $user );
+
+        // Role holds the recruitment manage cap → expect ffc_import_recruitment
+        // seeded (preserves umbrella-reliant custom roles after the tightening).
+        $role               = Mockery::mock( 'WP_Role' );
+        $role->capabilities = array( 'ffc_manage_recruitment' => true );
+        $role_added         = array();
+        $role->shouldReceive( 'add_cap' )->andReturnUsing(
+            function ( $cap, $val = true ) use ( &$role_added ) {
+                $role_added[ $cap ] = $val;
+            }
+        );
+        $wp_roles        = Mockery::mock();
+        $wp_roles->roles = array( 'administrator' => array() );
+        Functions\when( 'wp_roles' )->justReturn( $wp_roles );
+        Functions\when( 'get_role' )->justReturn( $role );
+
+        CapabilityManager::migrate_import_caps_grant();
+
+        // Seeded the matching import cap, never touched the manage cap.
+        $this->assertTrue( $user_added['ffc_import_audiences'] ?? null );
+        $this->assertArrayNotHasKey( 'ffc_import_recruitment', $user_added );
+        $this->assertTrue( $role_added['ffc_import_recruitment'] ?? null );
+        $this->assertArrayNotHasKey( 'ffc_import_audiences', $role_added );
+    }
 }
