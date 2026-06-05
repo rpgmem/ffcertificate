@@ -550,7 +550,7 @@ class AudienceAdminCalendar {
 				<tbody>
 					<?php foreach ( $holidays as $holiday ) : ?>
 						<tr>
-							<td><?php echo esc_html( \FreeFormCertificate\Core\DateFormatter::format_date( $holiday->holiday_date ) ); ?></td>
+							<td><?php echo esc_html( \FreeFormCertificate\Core\DateFormatter::format_wallclock_date( (string) $holiday->holiday_date ) ); ?></td>
 							<td><?php echo esc_html( $holiday->description ? $holiday->description : '—' ); ?></td>
 							<td>
 								<?php
