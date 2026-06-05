@@ -1957,13 +1957,26 @@ details.ffc-consent-description > p {
 
 #ffc-preview-modal .ffc-preview-body {
     flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: auto;
+    padding: 12px;
+}
+
+/* Faithful preview: the iframe renders at the real A4 page size and JS scales
+   it via transform; the stage is sized to the scaled footprint so the layout
+   matches the visual and the page centers without clipping its borders. */
+.ffc-preview-stage {
+    position: relative;
+    flex: 0 0 auto;
     overflow: hidden;
 }
 
 #ffc-preview-iframe {
-    width: 100%;
-    height: 100%;
+    display: block;
     border: none;
+    background: #fff;
 }
 
 /* Dark mode alert overrides */
