@@ -1096,3 +1096,15 @@ html:has(.ffc-settings-back-to-top) {
     gap: 6px;
     flex-wrap: wrap;
 }
+
+/* 3-state Settings — read-only lock.
+   A viewer with `ffc_view_settings` but not `ffc_manage_settings` gets the
+   whole active tab body wrapped in `<fieldset disabled>` so every control is
+   inert. Strip the default fieldset chrome (border / padding / margin) so the
+   read-only render is visually identical to the editable one. */
+.ffc-settings-readonly-lock {
+    border: 0;
+    margin: 0;
+    padding: 0;
+    min-width: 0;
+}

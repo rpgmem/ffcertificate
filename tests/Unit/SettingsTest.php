@@ -666,4 +666,61 @@ class SettingsTest extends TestCase {
 
         $this->settings->handle_submission_link_audit();
     }
+
+    // ==================================================================
+    // 3-state Settings — read-only render for ffc_view_settings (G3)
+    // ==================================================================
+
+    /**
+     * Inject a single fake tab and render the page, returning the HTML.
+     */
+    private function render_settings_page_html(): string {
+        Functions\when( 'esc_html_e' )->alias( function ( $text ) { echo $text; } );
+        Functions\when( 'esc_html' )->returnArg();
+        Functions\when( 'esc_attr' )->returnArg();
+        Functions\when( 'settings_errors' )->justReturn( null );
+
+        $tab = new class() {
+            public function get_id(): string {
+                return 'general'; }
+            public function get_icon(): string {
+                return 'dashicons-admin-generic'; }
+            public function get_title(): string {
+                return 'General'; }
+            public function render(): void {
+                echo '<input type="text" name="ffc_settings[x]">'; }
+        };
+
+        $ref  = new \ReflectionProperty( $this->settings, 'tabs' );
+        $ref->setAccessible( true );
+        $ref->setValue( $this->settings, array( 'general' => $tab ) );
+
+        $_GET['tab'] = 'general';
+        ob_start();
+        $this->settings->display_settings_page();
+        $html = (string) ob_get_clean();
+        unset( $_GET['tab'] );
+        return $html;
+    }
+
+    public function test_display_settings_page_locks_form_for_view_only_user(): void {
+        // current_user_can(false) => current_user_can_admin_or('ffc_manage_settings') is false.
+        Functions\when( 'current_user_can' )->justReturn( false );
+
+        $html = $this->render_settings_page_html();
+
+        $this->assertStringContainsString( '<fieldset disabled', $html, 'View-only render must wrap the tab body in a disabled fieldset.' );
+        $this->assertStringContainsString( 'ffc-settings-readonly-lock', $html );
+        $this->assertStringContainsString( 'Read-only', $html, 'A read-only banner must be shown.' );
+    }
+
+    public function test_display_settings_page_does_not_lock_for_manager(): void {
+        // Manager holds ffc_manage_settings -> no read-only lock.
+        Functions\when( 'current_user_can' )->justReturn( true );
+
+        $html = $this->render_settings_page_html();
+
+        $this->assertStringNotContainsString( '<fieldset disabled', $html );
+        $this->assertStringNotContainsString( 'ffc-settings-readonly-lock', $html );
+    }
 }
