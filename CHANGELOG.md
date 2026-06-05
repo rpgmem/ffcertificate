@@ -7,6 +7,10 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Changed
+
+- Form editor → Email tab: enabling "Send Email to User" now seeds the message editor with a default body (a friendly `{{name}}` intro) instead of a blank field, so operators start from a ready template they can keep or edit. A form that already has a custom message keeps it untouched.
+
 ### Fixed
 
 - Activation no longer logs a malformed `ALTER TABLE … ADD COLUMN -- …` DB error: a `-- ` SQL comment that contained backtick identifiers (e.g. `` `submitted_at` ``) inside a `dbDelta()` CREATE TABLE made dbDelta's column-diff parser misread the comment as a real column. Removed the offending backtick comments from the four affected schema files (reregistration submissions, custom fields, self-scheduling, recruitment); guarded by a test that scans every dbDelta source.
