@@ -558,16 +558,6 @@
     font-weight: 600;
 }
 
-/* Section subtitles inside metaboxes (Start Form Early sub-block,
-   etc.) — sits below the main metabox h2 with a thin separator. */
-.ffc-section-subtitle {
-    margin: 24px 0 4px;
-    padding-top: 14px;
-    border-top: 1px solid var(--ffc-border, #e0e0e0);
-    font-size: 14px;
-    font-weight: 600;
-}
-
 /* Status pill — used by the Start Form Early row to surface
    eligibility (Available / Already started / Form ended / etc.) */
 .ffc-status-pill {

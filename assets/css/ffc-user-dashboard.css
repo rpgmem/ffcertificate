@@ -1444,23 +1444,6 @@
     margin: 8px 0;
 }
 
-/* Audience Groups in Profile */
-.ffc-audience-groups-list {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 6px;
-    margin-top: 4px;
-}
-
-.ffc-audience-group-tag {
-    display: inline-block;
-    padding: 3px 10px;
-    border-radius: 10px;
-    font-size: 12px;
-    font-weight: 600;
-    color: #fff;
-}
-
 /* ==========================================================================
    RESPONSIVE
    ========================================================================== */

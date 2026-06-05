@@ -86,14 +86,6 @@
 }
 
 /**
- * Select full width
- */
-.ffc-select-full {
-    width: 100%;
-    max-width: 400px;
-}
-
-/**
  * Form input grouping
  */
 .ffc-input-group {
