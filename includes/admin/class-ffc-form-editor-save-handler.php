@@ -440,13 +440,14 @@ class FormEditorSaveHandler {
 			// preserve the persisted max / threshold / message instead of
 			// silently deleting them.
 			if ( '1' === $device_enabled ) {
-				// Max submissions: when the user enables the metabox without
-				// providing a value, default to 2 (per UX spec). This is a
-				// hard default — not an inherit-from-global — because the
-				// vast majority of forms want the same conservative limit.
+				// Max submissions: an empty value inherits the global default
+				// (Settings → Rate Limit → Device Fingerprint → max_per_form).
+				// Deleting the meta lets RateLimitChecker::get_device_effective_settings()
+				// fall back to the global at read time — same inherit-from-global
+				// semantics as the threshold + message below.
 				$max_raw = isset( $device_raw['max'] ) ? trim( (string) $device_raw['max'] ) : '';
 				if ( '' === $max_raw ) {
-					update_post_meta( $post_id, '_ffc_device_limit_max', 2 );
+					delete_post_meta( $post_id, '_ffc_device_limit_max' );
 				} else {
 					update_post_meta( $post_id, '_ffc_device_limit_max', max( 1, absint( $max_raw ) ) );
 				}

@@ -128,8 +128,8 @@ class FormEditorDeviceLimitMetabox {
 						min="1"
 						max="100"
 						value="<?php echo esc_attr( $max ); ?>"
-						placeholder="<?php esc_attr_e( 'Default: 2', 'ffcertificate' ); ?>">
-					<p class="description"><?php esc_html_e( 'Defaults to 2 when this metabox is enabled. Override here to set a per-form value.', 'ffcertificate' ); ?></p>
+						placeholder="<?php esc_attr_e( 'Inherit from global', 'ffcertificate' ); ?>">
+					<p class="description"><?php esc_html_e( 'Leave empty to inherit the global default (Settings → Rate Limit → Device Fingerprint).', 'ffcertificate' ); ?></p>
 				</td>
 			</tr>
 
