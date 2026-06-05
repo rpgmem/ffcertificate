@@ -112,6 +112,37 @@ class FormEditorGeofenceMetaboxTest extends TestCase {
         $this->assertStringNotContainsString( 'ffc_geofence[datetime_enabled]', $html );
     }
 
+    public function test_render_emits_end_min_when_multi_day_on(): void {
+        $html = $this->render(
+            array(
+                'multi_day'  => '1',
+                'date_start' => '2026-06-05',
+                'date_end'   => '2026-06-10',
+            )
+        );
+
+        // With multi-day on the End date carries a min of Start + 1 day.
+        $this->assertStringContainsString( 'min="2026-06-06"', $html );
+    }
+
+    public function test_render_omits_end_min_when_multi_day_off(): void {
+        // Regression: with multi-day off the End field is hidden and mirrors
+        // Start, so emitting a min of start+1 made the hidden control fail
+        // native validation and block submission ("invalid form control … is
+        // not focusable"). The min must be absent in this state.
+        $html = $this->render(
+            array(
+                'multi_day'  => '0',
+                'date_start' => '2026-06-05',
+                'date_end'   => '2026-06-05',
+            )
+        );
+
+        $this->assertStringContainsString( 'id="ffc_geofence_date_end"', $html );
+        $this->assertStringContainsString( 'min=""', $html );
+        $this->assertStringNotContainsString( 'min="2026-06-06"', $html );
+    }
+
     public function test_render_does_not_throw_with_partial_geofence_config(): void {
         $html = $this->render(
             array(

@@ -92,9 +92,14 @@ class FormEditorGeofenceMetabox {
 		$multi_day_aria            = '1' === $multi_day ? 'false' : 'true';
 		$show_during_row           = ( '1' === $multi_day && 'daily' === $time_mode );
 		// Client floor for the End date: with multi-day on it must be at least
-		// the day after Start. The metabox JS keeps this `min` in sync live.
+		// the day after Start. Only emit `min` when multi-day is on — when off,
+		// the End field is hidden and mirrors Start, so a `min` of start+1 would
+		// make the hidden control fail native validation and block the whole
+		// form from submitting ("invalid form control … is not focusable").
+		// The metabox JS keeps this `min` in sync live (and adds/removes it when
+		// multi-day toggles).
 		$date_end_min = '';
-		if ( '' !== $date_start ) {
+		if ( '1' === $multi_day && '' !== $date_start ) {
 			$start_next_ts = strtotime( $date_start . ' +1 day' );
 			if ( false !== $start_next_ts ) {
 				$date_end_min = gmdate( 'Y-m-d', $start_next_ts );
