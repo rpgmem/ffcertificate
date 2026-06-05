@@ -36,7 +36,11 @@ if ( ! defined( 'ABSPATH' ) ) {
  */
 final class RecruitmentReasonEditPage {
 
-	private const CAP = 'ffc_manage_recruitment';
+	/**
+	 * Edit/save gate. GAP I moved reasons onto their own strict tier — the
+	 * umbrella `ffc_manage_recruitment` no longer grants reason editing.
+	 */
+	private const CAP = 'ffc_manage_recruitment_reasons';
 
 	/**
 	 * Hook the admin-post save endpoint.
@@ -54,7 +58,7 @@ final class RecruitmentReasonEditPage {
 	 * @return void
 	 */
 	public static function render(): void {
-		if ( ! current_user_can( self::CAP ) ) {
+		if ( ! \FreeFormCertificate\Core\Utils::current_user_can_admin_or( self::CAP ) ) {
 			wp_die( esc_html__( 'Access denied.', 'ffcertificate' ) );
 		}
 
@@ -157,7 +161,7 @@ final class RecruitmentReasonEditPage {
 	 * @return void
 	 */
 	public static function handle_save(): void {
-		if ( ! current_user_can( self::CAP ) ) {
+		if ( ! \FreeFormCertificate\Core\Utils::current_user_can_admin_or( self::CAP ) ) {
 			wp_die( esc_html__( 'Access denied.', 'ffcertificate' ) );
 		}
 		$reason_id = isset( $_POST['reason_id'] ) ? absint( wp_unslash( (string) $_POST['reason_id'] ) ) : 0;

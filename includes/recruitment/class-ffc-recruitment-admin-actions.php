@@ -47,10 +47,11 @@ final class RecruitmentAdminActions {
 		// without it can configure the module but cannot delete records, and a
 		// read-only viewer (who never sees the row-action links) still can't
 		// trigger one via a crafted URL. Reasons are a config catalog with their
-		// own manage cap, so reason deletion stays under `ffc_manage_recruitment`
-		// (unchanged), not the records-delete cap.
+		// own manage tier, so reason deletion is gated by the strict
+		// `ffc_manage_recruitment_reasons` cap (GAP I) — the umbrella no longer
+		// grants it — not the records-delete cap.
 		$required_cap = ( 'delete-reason' === $action )
-			? 'ffc_manage_recruitment'
+			? 'ffc_manage_recruitment_reasons'
 			: 'ffc_delete_recruitment';
 		if ( ! \FreeFormCertificate\Core\Utils::current_user_can_admin_or( $required_cap ) ) {
 			return;

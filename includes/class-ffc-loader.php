@@ -327,6 +327,7 @@ class Loader {
 		$this->ensure_delete_caps_granted();
 		$this->ensure_export_caps_granted();
 		$this->ensure_import_caps_granted();
+		$this->ensure_reasons_caps_wired();
 		$this->define_admin_hooks();
 		$this->init_rest_api();
 	}
@@ -458,6 +459,26 @@ class Loader {
 		}
 		if ( class_exists( '\FreeFormCertificate\UserDashboard\CapabilityManager' ) ) {
 			\FreeFormCertificate\UserDashboard\CapabilityManager::migrate_import_caps_grant();
+		}
+		update_option( $flag, '1', true );
+	}
+
+	/**
+	 * One-time migration that seeds the recruitment-reasons caps (GAP I) onto
+	 * every user/role that already holds the matching source cap, so nobody
+	 * loses read or edit access when the Reasons tab is carved onto its own
+	 * strict 3-state tier. Idempotent + version-flagged via
+	 * `ffc_reasons_caps_wired_v1`.
+	 *
+	 * @since 6.9.0
+	 */
+	private function ensure_reasons_caps_wired(): void {
+		$flag = 'ffc_reasons_caps_wired_v1';
+		if ( '1' === get_option( $flag, '' ) ) {
+			return;
+		}
+		if ( class_exists( '\FreeFormCertificate\UserDashboard\CapabilityManager' ) ) {
+			\FreeFormCertificate\UserDashboard\CapabilityManager::migrate_reasons_caps_grant();
 		}
 		update_option( $flag, '1', true );
 	}

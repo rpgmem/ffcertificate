@@ -573,6 +573,76 @@ class CapabilityManager {
 	}
 
 	/**
+	 * Map of source cap => the recruitment-reasons cap it seeds on upgrade
+	 * (GAP I). Unlike the delete/export/import maps (all keyed on a `manage`
+	 * cap), reasons split into a *pair*: the read tier is seeded from whoever
+	 * could already see the Reasons tab (`ffc_view_recruitment`), and the edit
+	 * tier from whoever could already edit reasons via the umbrella
+	 * (`ffc_manage_recruitment`). This preserves both read and edit access when
+	 * the reasons sub-domain is carved out of the page/umbrella caps.
+	 *
+	 * @since 6.9.0
+	 * @return array<string, string>
+	 */
+	public static function reasons_cap_grant_map(): array {
+		return array(
+			'ffc_view_recruitment'   => 'ffc_view_recruitment_reasons',
+			'ffc_manage_recruitment' => 'ffc_manage_recruitment_reasons',
+		);
+	}
+
+	/**
+	 * Idempotent migration that seeds the recruitment-reasons caps onto every
+	 * user/role that already holds the matching source cap (GAP I). Preserves
+	 * current read/edit access when the Reasons tab is moved onto its own strict
+	 * 3-state tier; never removes a source cap.
+	 *
+	 * Runs once per install via {@see \FreeFormCertificate\Loader} on
+	 * `plugins_loaded`, flagged by the `ffc_reasons_caps_wired_v1` option.
+	 *
+	 * @since 6.9.0
+	 * @return array<string, int> Per-reasons-cap count of users seeded.
+	 */
+	public static function migrate_reasons_caps_grant(): array {
+		$map    = self::reasons_cap_grant_map();
+		$counts = array();
+
+		// 1. User-meta grants.
+		$users = get_users( array( 'fields' => 'ID' ) );
+		foreach ( $map as $source => $reasons_cap ) {
+			$counts[ $reasons_cap ] = 0;
+			foreach ( $users as $user_id ) {
+				$user = get_userdata( (int) $user_id );
+				if ( ! $user ) {
+					continue;
+				}
+				if ( isset( $user->caps[ $source ] ) && true === $user->caps[ $source ]
+					&& ! isset( $user->caps[ $reasons_cap ] ) ) {
+					$user->add_cap( $reasons_cap, true );
+					++$counts[ $reasons_cap ];
+				}
+			}
+		}
+
+		// 2. Role definitions — administrator + every FFC/custom role.
+		$wp_roles = wp_roles();
+		foreach ( array_keys( $wp_roles->roles ) as $role_slug ) {
+			$role = get_role( $role_slug );
+			if ( ! $role ) {
+				continue;
+			}
+			foreach ( $map as $source => $reasons_cap ) {
+				if ( isset( $role->capabilities[ $source ] ) && true === $role->capabilities[ $source ]
+					&& ! isset( $role->capabilities[ $reasons_cap ] ) ) {
+					$role->add_cap( $reasons_cap, true );
+				}
+			}
+		}
+
+		return $counts;
+	}
+
+	/**
 	 * Slug for the dedicated recruitment-manager role.
 	 *
 	 * The role is granted `read` + `ffc_manage_recruitment` so site admins
@@ -1127,11 +1197,11 @@ class CapabilityManager {
 			// ── Recruitment tier ─────────────────────────────────────────
 			'ffc_recruitment_auditor'     => array(
 				'label' => __( 'FFC Recruitment Auditor', 'ffcertificate' ),
-				'caps'  => array( 'ffc_view_recruitment' ),
+				'caps'  => array( 'ffc_view_recruitment', 'ffc_view_recruitment_reasons' ),
 			),
 			'ffc_recruitment_operator'    => array(
 				'label' => __( 'FFC Recruitment Operator', 'ffcertificate' ),
-				'caps'  => array( 'ffc_view_recruitment', 'ffc_call_recruitment' ),
+				'caps'  => array( 'ffc_view_recruitment', 'ffc_call_recruitment', 'ffc_view_recruitment_reasons' ),
 			),
 			// `ffc_recruitment_manager` already exists (6.0.0). It will be
 			// upgraded by `register_recruitment_manager_role()` — extra caps
@@ -1200,6 +1270,11 @@ class CapabilityManager {
 				'ffc_import_recruitment',
 				'ffc_view_recruitment_pii',
 				'ffc_delete_recruitment',
+				// GAP I: reasons split into their own strict tier. A plain
+				// Recruitment Manager previously edited reasons via the umbrella;
+				// carry both reasons caps explicitly so that keeps working.
+				'ffc_view_recruitment_reasons',
+				'ffc_manage_recruitment_reasons',
 			);
 			foreach ( $tier_2_caps as $cap ) {
 				if ( ! isset( $existing_manager->capabilities[ $cap ] ) ) {

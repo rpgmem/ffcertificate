@@ -932,4 +932,79 @@ class CapabilityManagerTest extends TestCase {
         $this->assertTrue( $role_added['ffc_import_recruitment'] ?? null );
         $this->assertArrayNotHasKey( 'ffc_import_audiences', $role_added );
     }
+
+    // ------------------------------------------------------------------
+    // GAP I — recruitment reasons 3-state tier
+    // ------------------------------------------------------------------
+
+    public function test_reasons_cap_grant_map_pairs_view_and_manage_sources(): void {
+        $map = CapabilityManager::reasons_cap_grant_map();
+        $this->assertCount( 2, $map );
+        // Read tier seeded from page-view; edit tier from the umbrella.
+        $this->assertSame( 'ffc_view_recruitment_reasons', $map['ffc_view_recruitment'] );
+        $this->assertSame( 'ffc_manage_recruitment_reasons', $map['ffc_manage_recruitment'] );
+        foreach ( $map as $reasons_cap ) {
+            $this->assertContains( $reasons_cap, CapabilityManager::ADMIN_CAPABILITIES, "{$reasons_cap} must be a registered cap" );
+        }
+    }
+
+    public function test_module_roles_grant_reasons_view_cap_to_recruitment_viewers(): void {
+        $created = array();
+        Functions\when( 'get_role' )->justReturn( null );
+        Functions\when( 'add_role' )->alias(
+            static function ( string $slug, string $label, array $caps ) use ( &$created ): bool {
+                $created[ $slug ] = $caps;
+                return true;
+            }
+        );
+
+        CapabilityManager::register_module_roles();
+
+        // Read-only recruitment roles see the Reasons tab → carry the view cap.
+        $this->assertTrue( $created['ffc_recruitment_auditor']['ffc_view_recruitment_reasons'] );
+        $this->assertTrue( $created['ffc_recruitment_operator']['ffc_view_recruitment_reasons'] );
+        // The auditor is read-only — it must NOT carry the manage tier.
+        $this->assertArrayNotHasKey( 'ffc_manage_recruitment_reasons', $created['ffc_recruitment_auditor'] );
+        // The Recruitment Admin carries both reasons caps.
+        $this->assertTrue( $created['ffc_recruitment_admin']['ffc_view_recruitment_reasons'] );
+        $this->assertTrue( $created['ffc_recruitment_admin']['ffc_manage_recruitment_reasons'] );
+    }
+
+    public function test_migrate_reasons_caps_grant_seeds_pair_onto_source_holders(): void {
+        Functions\when( 'get_users' )->justReturn( array( 1 ) );
+
+        // User holds the page-view cap → expect the reasons view cap seeded.
+        $user       = Mockery::mock( 'WP_User' );
+        $user->caps = array( 'ffc_view_recruitment' => true );
+        $user_added = array();
+        $user->shouldReceive( 'add_cap' )->andReturnUsing(
+            function ( $cap, $val = true ) use ( &$user_added ) {
+                $user_added[ $cap ] = $val;
+            }
+        );
+        $user->shouldReceive( 'remove_cap' )->never();
+        Functions\when( 'get_userdata' )->justReturn( $user );
+
+        // Role holds the umbrella → expect the reasons manage cap seeded.
+        $role               = Mockery::mock( 'WP_Role' );
+        $role->capabilities = array( 'ffc_manage_recruitment' => true );
+        $role_added         = array();
+        $role->shouldReceive( 'add_cap' )->andReturnUsing(
+            function ( $cap, $val = true ) use ( &$role_added ) {
+                $role_added[ $cap ] = $val;
+            }
+        );
+        $wp_roles        = Mockery::mock();
+        $wp_roles->roles = array( 'administrator' => array() );
+        Functions\when( 'wp_roles' )->justReturn( $wp_roles );
+        Functions\when( 'get_role' )->justReturn( $role );
+
+        CapabilityManager::migrate_reasons_caps_grant();
+
+        // Seeded the matching reasons cap, never touched the source cap.
+        $this->assertTrue( $user_added['ffc_view_recruitment_reasons'] ?? null );
+        $this->assertArrayNotHasKey( 'ffc_manage_recruitment_reasons', $user_added );
+        $this->assertTrue( $role_added['ffc_manage_recruitment_reasons'] ?? null );
+        $this->assertArrayNotHasKey( 'ffc_view_recruitment_reasons', $role_added );
+    }
 }
