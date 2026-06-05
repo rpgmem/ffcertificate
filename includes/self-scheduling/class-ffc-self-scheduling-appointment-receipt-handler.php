@@ -192,28 +192,30 @@ class AppointmentReceiptHandler {
 			}
 		}
 
+		// appointment_date / start_time / end_time are Category B wall-clock
+		// values (DATE / TIME) — render them literally, no timezone shift.
+		// strtotime() + format_date/time() would parse them as UTC instants
+		// and then re-apply the site offset, shifting a 09:00 slot to 06:00 on
+		// a UTC-3 site.
 		$appointment_date = __( 'N/A', 'ffcertificate' );
 		if ( ! empty( $appointment['appointment_date'] ) ) {
-			$timestamp = strtotime( $appointment['appointment_date'] );
-			if ( false !== $timestamp ) {
-				$appointment_date = \FreeFormCertificate\Core\DateFormatter::format_date( $timestamp );
+			$formatted = \FreeFormCertificate\Core\DateFormatter::format_wallclock_date( (string) $appointment['appointment_date'] );
+			if ( '' !== $formatted ) {
+				$appointment_date = $formatted;
 			}
 		}
 
 		$start_time = __( 'N/A', 'ffcertificate' );
 		if ( ! empty( $appointment['start_time'] ) ) {
-			$timestamp = strtotime( $appointment['start_time'] );
-			if ( false !== $timestamp ) {
-				$start_time = \FreeFormCertificate\Core\DateFormatter::format_time( $timestamp );
+			$formatted = \FreeFormCertificate\Core\DateFormatter::format_wallclock_time( (string) $appointment['start_time'] );
+			if ( '' !== $formatted ) {
+				$start_time = $formatted;
 			}
 		}
 
 		$end_time = '';
 		if ( ! empty( $appointment['end_time'] ) ) {
-			$timestamp = strtotime( $appointment['end_time'] );
-			if ( false !== $timestamp ) {
-				$end_time = \FreeFormCertificate\Core\DateFormatter::format_time( $timestamp );
-			}
+			$end_time = \FreeFormCertificate\Core\DateFormatter::format_wallclock_time( (string) $appointment['end_time'] );
 		}
 
 		$created_at = __( 'N/A', 'ffcertificate' );

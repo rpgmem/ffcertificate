@@ -305,7 +305,12 @@ class AppointmentHandler {
 					if ( $count < $max_per_slot ) {
 						$slots[] = array(
 							'time'      => $slot_time,
-							'display'   => \FreeFormCertificate\Core\DateFormatter::format_time( $current_time ),
+							// $slot_time is a wall-clock TIME (Category B) — render
+							// it as-is, no timezone shift (see DateFormatter::
+							// format_wallclock_time). Passing $current_time (a UTC
+							// unix int) to format_time() previously shifted the
+							// displayed slot by the site offset.
+							'display'   => \FreeFormCertificate\Core\DateFormatter::format_wallclock_time( $slot_time ),
 							'available' => $max_per_slot - $count,
 							'total'     => $max_per_slot,
 						);
