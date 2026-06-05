@@ -49,7 +49,7 @@ class CapabilityManagerTest extends TestCase {
         $caps = CapabilityManager::CERTIFICATE_CAPABILITIES;
         $this->assertContains( 'ffc_view_own_certificates', $caps );
         $this->assertContains( 'ffc_download_own_certificates', $caps );
-        $this->assertContains( 'ffc_view_certificate_history', $caps );
+        $this->assertContains( 'ffc_view_own_certificate_history', $caps );
         $this->assertCount( 3, $caps );
     }
 
@@ -65,20 +65,20 @@ class CapabilityManagerTest extends TestCase {
         $this->assertCount( 3, $renames );
         $this->assertSame( 'ffc_view_own_certificates', $renames['view_own_certificates'] );
         $this->assertSame( 'ffc_download_own_certificates', $renames['download_own_certificates'] );
-        $this->assertSame( 'ffc_view_certificate_history', $renames['view_certificate_history'] );
+        $this->assertSame( 'ffc_view_own_certificate_history', $renames['view_certificate_history'] );
     }
 
     public function test_appointment_capabilities_contains_expected_caps(): void {
         $caps = CapabilityManager::APPOINTMENT_CAPABILITIES;
-        $this->assertContains( 'ffc_book_appointments', $caps );
-        $this->assertContains( 'ffc_view_self_scheduling', $caps );
+        $this->assertContains( 'ffc_book_own_appointments', $caps );
+        $this->assertContains( 'ffc_view_own_appointments', $caps );
         $this->assertContains( 'ffc_cancel_own_appointments', $caps );
         $this->assertCount( 3, $caps );
     }
 
     public function test_audience_capabilities_contains_expected_caps(): void {
         $caps = CapabilityManager::AUDIENCE_CAPABILITIES;
-        $this->assertContains( 'ffc_view_audience_bookings', $caps );
+        $this->assertContains( 'ffc_view_own_audience_bookings', $caps );
         $this->assertCount( 1, $caps );
     }
 
@@ -93,10 +93,10 @@ class CapabilityManagerTest extends TestCase {
         $caps = CapabilityManager::ADMIN_CAPABILITIES;
         $this->assertContains( 'ffc_manage_certificates', $caps );
         $this->assertContains( 'ffc_export_certificates', $caps );
-        $this->assertContains( 'ffc_manage_self_scheduling', $caps );
+        $this->assertContains( 'ffc_manage_appointments', $caps );
         $this->assertContains( 'ffc_manage_audiences', $caps );
         $this->assertContains( 'ffc_view_activity_log', $caps );
-        $this->assertContains( 'ffc_manage_user_custom_fields', $caps );
+        $this->assertContains( 'ffc_manage_custom_fields', $caps );
         $this->assertContains( 'ffc_view_as_user', $caps );
         $this->assertContains( 'ffc_manage_settings', $caps );
     }
@@ -104,15 +104,15 @@ class CapabilityManagerTest extends TestCase {
     public function test_admin_capabilities_contains_6_2_recruitment_granular_caps(): void {
         $caps = CapabilityManager::ADMIN_CAPABILITIES;
         $this->assertContains( 'ffc_view_recruitment', $caps );
-        $this->assertContains( 'ffc_import_recruitment_csv', $caps );
-        $this->assertContains( 'ffc_call_recruitment_candidates', $caps );
+        $this->assertContains( 'ffc_import_recruitment', $caps );
+        $this->assertContains( 'ffc_call_recruitment', $caps );
         $this->assertContains( 'ffc_view_recruitment_pii', $caps );
         $this->assertContains( 'ffc_manage_recruitment_settings', $caps );
         $this->assertContains( 'ffc_manage_recruitment_reasons', $caps );
     }
 
     public function test_admin_capabilities_contains_reactivated_certificate_update(): void {
-        $this->assertContains( 'ffc_certificate_update', CapabilityManager::ADMIN_CAPABILITIES );
+        $this->assertContains( 'ffc_edit_certificates', CapabilityManager::ADMIN_CAPABILITIES );
     }
 
     public function test_admin_capabilities_contains_rest_api_caps(): void {
@@ -120,13 +120,13 @@ class CapabilityManagerTest extends TestCase {
         // integrators using Application Passwords. Pinned by a test so
         // future contributors know it's grant-on-activation territory
         // and not a leftover placeholder.
-        $this->assertContains( 'ffc_read_forms_api', CapabilityManager::ADMIN_CAPABILITIES );
+        $this->assertContains( 'ffc_view_forms_api', CapabilityManager::ADMIN_CAPABILITIES );
     }
 
     public function test_future_capabilities_constant_is_empty_in_6_2(): void {
         // Both placeholders retired in 6.2.0:
         //   - ffc_reregistration: removed (audience-targeting already covers).
-        //   - ffc_certificate_update: promoted to ADMIN_CAPABILITIES.
+        //   - ffc_edit_certificates: promoted to ADMIN_CAPABILITIES.
         $this->assertSame( array(), CapabilityManager::FUTURE_CAPABILITIES );
     }
 
@@ -152,6 +152,7 @@ class CapabilityManagerTest extends TestCase {
         CapabilityManager::register_module_roles();
 
         $expected_slugs = array(
+            'ffc_administrator',
             'ffc_certificate_manager',
             'ffc_self_scheduling_manager',
             'ffc_audience_manager',
@@ -165,6 +166,46 @@ class CapabilityManagerTest extends TestCase {
             $this->assertArrayHasKey( $slug, $created, "Missing role: {$slug}" );
             $this->assertTrue( $created[ $slug ]['caps']['read'], "Role {$slug} must include read cap" );
         }
+    }
+
+    public function test_ffc_administrator_aggregates_every_capability_without_manage_options(): void {
+        $created = array();
+        Functions\when( 'get_role' )->justReturn( null );
+        Functions\when( 'add_role' )->alias(
+            static function ( string $slug, string $label, array $caps ) use ( &$created ): bool {
+                $created[ $slug ] = $caps;
+                return true;
+            }
+        );
+
+        CapabilityManager::register_module_roles();
+
+        $admin = $created['ffc_administrator'];
+
+        // Carries `read` plus EVERY FFC capability (admin surface + the
+        // end-user self-service `own_` caps) — the GAP F aggregator.
+        $this->assertTrue( $admin['read'] );
+        foreach ( CapabilityManager::get_all_capabilities() as $cap ) {
+            $this->assertTrue( $admin[ $cap ] ?? null, "ffc_administrator must grant {$cap}" );
+        }
+
+        // Spot-check representative caps from each tier, including the GAP E
+        // destructive caps and the most sensitive admin caps.
+        foreach ( array(
+            'ffc_view_own_certificates',
+            'ffc_manage_certificates',
+            'ffc_delete_certificates',
+            'ffc_delete_recruitment',
+            'ffc_view_recruitment_pii',
+            'ffc_view_as_user',
+            'ffc_manage_settings',
+        ) as $cap ) {
+            $this->assertTrue( $admin[ $cap ] ?? null, "ffc_administrator must grant {$cap}" );
+        }
+
+        // But NOT WordPress super-admin — the whole point is full FFC admin
+        // without `manage_options`.
+        $this->assertArrayNotHasKey( 'manage_options', $admin );
     }
 
     public function test_register_module_roles_grants_caps_per_role(): void {
@@ -182,18 +223,48 @@ class CapabilityManagerTest extends TestCase {
         // Spot-check a few of the cap maps.
         $this->assertTrue( $created['ffc_certificate_manager']['ffc_manage_certificates'] );
         $this->assertTrue( $created['ffc_certificate_manager']['ffc_export_certificates'] );
-        $this->assertTrue( $created['ffc_certificate_manager']['ffc_certificate_update'] );
+        $this->assertTrue( $created['ffc_certificate_manager']['ffc_edit_certificates'] );
 
         $this->assertTrue( $created['ffc_recruitment_auditor']['ffc_view_recruitment'] );
-        $this->assertArrayNotHasKey( 'ffc_call_recruitment_candidates', $created['ffc_recruitment_auditor'] );
+        $this->assertArrayNotHasKey( 'ffc_call_recruitment', $created['ffc_recruitment_auditor'] );
 
         $this->assertTrue( $created['ffc_recruitment_operator']['ffc_view_recruitment'] );
-        $this->assertTrue( $created['ffc_recruitment_operator']['ffc_call_recruitment_candidates'] );
-        $this->assertArrayNotHasKey( 'ffc_import_recruitment_csv', $created['ffc_recruitment_operator'] );
+        $this->assertTrue( $created['ffc_recruitment_operator']['ffc_call_recruitment'] );
+        $this->assertArrayNotHasKey( 'ffc_import_recruitment', $created['ffc_recruitment_operator'] );
 
         $this->assertTrue( $created['ffc_recruitment_admin']['ffc_manage_recruitment_settings'] );
         $this->assertTrue( $created['ffc_recruitment_admin']['ffc_manage_recruitment_reasons'] );
         $this->assertTrue( $created['ffc_recruitment_admin']['ffc_view_recruitment_pii'] );
+
+        // ffc_operator is the cross-module read-only auditor (GAP D): sees every
+        // module read-only…
+        $operator = $created['ffc_operator'];
+        foreach ( array(
+            'ffc_view_certificates',
+            'ffc_view_appointments',
+            'ffc_view_audiences',
+            'ffc_view_reregistration',
+            'ffc_view_custom_fields',
+            'ffc_view_activity_log',
+            'ffc_view_recruitment',
+            'ffc_view_recruitment_settings',
+            'ffc_view_recruitment_reasons',
+            'ffc_view_url_shortener',
+        ) as $view_cap ) {
+            $this->assertTrue( $operator[ $view_cap ], "ffc_operator must grant {$view_cap}" );
+        }
+        // …but never write caps, the Settings page, raw PII, the REST
+        // integrator cap, or impersonation.
+        foreach ( array(
+            'ffc_manage_certificates',
+            'ffc_manage_audiences',
+            'ffc_view_settings',
+            'ffc_view_recruitment_pii',
+            'ffc_view_forms_api',
+            'ffc_view_as_user',
+        ) as $forbidden ) {
+            $this->assertArrayNotHasKey( $forbidden, $operator, "ffc_operator must NOT grant {$forbidden}" );
+        }
     }
 
     // ------------------------------------------------------------------
@@ -211,10 +282,10 @@ class CapabilityManagerTest extends TestCase {
 
         $this->assertCount( $expected_count, $all );
         $this->assertContains( 'ffc_view_own_certificates', $all );
-        $this->assertContains( 'ffc_book_appointments', $all );
-        $this->assertContains( 'ffc_view_audience_bookings', $all );
+        $this->assertContains( 'ffc_book_own_appointments', $all );
+        $this->assertContains( 'ffc_view_own_audience_bookings', $all );
         $this->assertContains( 'ffc_scheduling_bypass', $all );
-        $this->assertContains( 'ffc_certificate_update', $all );
+        $this->assertContains( 'ffc_edit_certificates', $all );
     }
 
     // ------------------------------------------------------------------
@@ -345,7 +416,7 @@ class CapabilityManagerTest extends TestCase {
 
     public function test_has_appointment_access_returns_true_when_user_has_cap(): void {
         $mock_user = Mockery::mock( 'WP_User' );
-        $mock_user->shouldReceive( 'has_cap' )->with( 'ffc_book_appointments' )->andReturn( true );
+        $mock_user->shouldReceive( 'has_cap' )->with( 'ffc_book_own_appointments' )->andReturn( true );
 
         Functions\when( 'get_userdata' )->justReturn( $mock_user );
         Functions\when( 'user_can' )->justReturn( false );
@@ -378,7 +449,7 @@ class CapabilityManagerTest extends TestCase {
 
         $this->assertIsArray( $caps );
         $this->assertTrue( $caps['ffc_view_own_certificates'] );
-        $this->assertFalse( $caps['ffc_book_appointments'] );
+        $this->assertFalse( $caps['ffc_book_own_appointments'] );
     }
 
     public function test_get_user_ffc_capabilities_returns_empty_for_invalid_user(): void {
@@ -403,11 +474,11 @@ class CapabilityManagerTest extends TestCase {
 
     public function test_set_user_capability_revokes_valid_cap(): void {
         $mock_user = Mockery::mock( 'WP_User' );
-        $mock_user->shouldReceive( 'add_cap' )->with( 'ffc_book_appointments', false )->once();
+        $mock_user->shouldReceive( 'add_cap' )->with( 'ffc_book_own_appointments', false )->once();
 
         Functions\when( 'get_userdata' )->justReturn( $mock_user );
 
-        $result = CapabilityManager::set_user_capability( 5, 'ffc_book_appointments', false );
+        $result = CapabilityManager::set_user_capability( 5, 'ffc_book_own_appointments', false );
         $this->assertTrue( $result );
     }
 
@@ -467,7 +538,7 @@ class CapabilityManagerTest extends TestCase {
         // here would break multi-role users (admin + ffc_user) by overriding
         // admin-granted `true` via array_merge in WP cap resolution.
         $this->assertArrayNotHasKey( 'ffc_view_own_certificates', $captured_caps );
-        $this->assertArrayNotHasKey( 'ffc_book_appointments', $captured_caps );
+        $this->assertArrayNotHasKey( 'ffc_book_own_appointments', $captured_caps );
         $this->assertArrayNotHasKey( 'ffc_manage_recruitment', $captured_caps );
     }
 
@@ -522,5 +593,418 @@ class CapabilityManagerTest extends TestCase {
 
         CapabilityManager::remove_role();
         $this->assertTrue( $removed );
+    }
+
+    public function test_taxonomy_cap_renames_maps_old_slugs_to_standard(): void {
+        $map = CapabilityManager::taxonomy_cap_renames();
+
+        // The self_scheduling -> own_appointments pair reverses the 4.5.0 rename.
+        $this->assertSame( 'ffc_view_own_appointments', $map['ffc_view_self_scheduling'] );
+        $this->assertSame( 'ffc_manage_appointments', $map['ffc_manage_self_scheduling'] );
+        $this->assertSame( 'ffc_edit_certificates', $map['ffc_certificate_update'] );
+        $this->assertSame( 'ffc_manage_custom_fields', $map['ffc_manage_user_custom_fields'] );
+        $this->assertSame( 'ffc_import_recruitment', $map['ffc_import_recruitment_csv'] );
+        $this->assertSame( 'ffc_view_forms_api', $map['ffc_read_forms_api'] );
+        $this->assertCount( 10, $map );
+        // No identity entries (a botched rename map would no-op silently).
+        foreach ( $map as $old => $new ) {
+            $this->assertNotSame( $old, $new, "rename pair must not be identity: {$old}" );
+        }
+    }
+
+    public function test_migrate_taxonomy_renames_rewrites_user_and_role(): void {
+        Functions\when( 'get_users' )->justReturn( array( 1 ) );
+
+        // User holds an old-named cap; expect it rewritten to the new slug.
+        $user        = Mockery::mock( 'WP_User' );
+        $user->caps  = array( 'ffc_view_self_scheduling' => true );
+        $user_added  = array();
+        $user_removed = array();
+        $user->shouldReceive( 'add_cap' )->andReturnUsing(
+            function ( $cap, $val = true ) use ( &$user_added ) {
+                $user_added[ $cap ] = $val;
+            }
+        );
+        $user->shouldReceive( 'remove_cap' )->andReturnUsing(
+            function ( $cap ) use ( &$user_removed ) {
+                $user_removed[] = $cap;
+            }
+        );
+        Functions\when( 'get_userdata' )->justReturn( $user );
+
+        // One role (administrator) holds an old-named cap too.
+        $role               = Mockery::mock( 'WP_Role' );
+        $role->capabilities = array( 'ffc_manage_self_scheduling' => true );
+        $role_added         = array();
+        $role_removed       = array();
+        $role->shouldReceive( 'add_cap' )->andReturnUsing(
+            function ( $cap, $val = true ) use ( &$role_added ) {
+                $role_added[ $cap ] = $val;
+            }
+        );
+        $role->shouldReceive( 'remove_cap' )->andReturnUsing(
+            function ( $cap ) use ( &$role_removed ) {
+                $role_removed[] = $cap;
+            }
+        );
+        $wp_roles        = Mockery::mock();
+        $wp_roles->roles = array( 'administrator' => array() );
+        Functions\when( 'wp_roles' )->justReturn( $wp_roles );
+        Functions\when( 'get_role' )->justReturn( $role );
+
+        CapabilityManager::migrate_taxonomy_renames();
+
+        $this->assertArrayHasKey( 'ffc_view_own_appointments', $user_added );
+        $this->assertContains( 'ffc_view_self_scheduling', $user_removed );
+        $this->assertArrayHasKey( 'ffc_manage_appointments', $role_added );
+        $this->assertContains( 'ffc_manage_self_scheduling', $role_removed );
+    }
+
+    // ------------------------------------------------------------------
+    // GAP E — destructive ffc_delete_* tier
+    // ------------------------------------------------------------------
+
+    public function test_admin_capabilities_contains_delete_tier(): void {
+        foreach ( array(
+            'ffc_delete_certificates',
+            'ffc_delete_appointments',
+            'ffc_delete_audiences',
+            'ffc_delete_reregistration',
+            'ffc_delete_custom_fields',
+            'ffc_delete_recruitment',
+            'ffc_delete_url_shortener',
+        ) as $cap ) {
+            $this->assertContains( $cap, CapabilityManager::ADMIN_CAPABILITIES, "ADMIN_CAPABILITIES must contain {$cap}" );
+        }
+    }
+
+    public function test_delete_cap_grant_map_pairs_each_manage_to_its_delete(): void {
+        $map = CapabilityManager::delete_cap_grant_map();
+        $this->assertCount( 7, $map );
+        $this->assertSame( 'ffc_delete_certificates', $map['ffc_manage_certificates'] );
+        $this->assertSame( 'ffc_delete_recruitment', $map['ffc_manage_recruitment'] );
+        $this->assertSame( 'ffc_delete_url_shortener', $map['ffc_manage_url_shortener'] );
+        // Every key is a real manage cap and every value a real delete cap.
+        foreach ( $map as $manage => $delete ) {
+            $this->assertStringStartsWith( 'ffc_manage_', $manage );
+            $this->assertContains( $delete, CapabilityManager::ADMIN_CAPABILITIES, "{$delete} must be a registered cap" );
+        }
+    }
+
+    public function test_module_roles_grant_matching_delete_caps_but_operator_excluded(): void {
+        $created = array();
+        Functions\when( 'get_role' )->justReturn( null );
+        Functions\when( 'add_role' )->alias(
+            static function ( string $slug, string $label, array $caps ) use ( &$created ): bool {
+                $created[ $slug ] = $caps;
+                return true;
+            }
+        );
+
+        CapabilityManager::register_module_roles();
+
+        // Each manager role carries the delete cap of the domain it manages.
+        $this->assertTrue( $created['ffc_certificate_manager']['ffc_delete_certificates'] );
+        $this->assertTrue( $created['ffc_self_scheduling_manager']['ffc_delete_appointments'] );
+        $this->assertTrue( $created['ffc_audience_manager']['ffc_delete_audiences'] );
+        $this->assertTrue( $created['ffc_reregistration_manager']['ffc_delete_reregistration'] );
+        $this->assertTrue( $created['ffc_recruitment_admin']['ffc_delete_recruitment'] );
+
+        // The read-only operator never receives a delete cap.
+        foreach ( CapabilityManager::delete_cap_grant_map() as $delete_cap ) {
+            $this->assertArrayNotHasKey( $delete_cap, $created['ffc_operator'], "ffc_operator must NOT grant {$delete_cap}" );
+        }
+    }
+
+    public function test_migrate_delete_caps_grant_seeds_delete_onto_manage_holders(): void {
+        Functions\when( 'get_users' )->justReturn( array( 1 ) );
+
+        // User holds a manage cap but not its delete cap → expect delete seeded.
+        $user        = Mockery::mock( 'WP_User' );
+        $user->caps  = array( 'ffc_manage_certificates' => true );
+        $user_added  = array();
+        $user->shouldReceive( 'add_cap' )->andReturnUsing(
+            function ( $cap, $val = true ) use ( &$user_added ) {
+                $user_added[ $cap ] = $val;
+            }
+        );
+        $user->shouldReceive( 'remove_cap' )->never();
+        Functions\when( 'get_userdata' )->justReturn( $user );
+
+        // Role holds the recruitment manage cap → expect ffc_delete_recruitment.
+        $role               = Mockery::mock( 'WP_Role' );
+        $role->capabilities = array( 'ffc_manage_recruitment' => true );
+        $role_added         = array();
+        $role->shouldReceive( 'add_cap' )->andReturnUsing(
+            function ( $cap, $val = true ) use ( &$role_added ) {
+                $role_added[ $cap ] = $val;
+            }
+        );
+        $wp_roles        = Mockery::mock();
+        $wp_roles->roles = array( 'administrator' => array() );
+        Functions\when( 'wp_roles' )->justReturn( $wp_roles );
+        Functions\when( 'get_role' )->justReturn( $role );
+
+        CapabilityManager::migrate_delete_caps_grant();
+
+        // Seeded the matching delete cap, never touched the manage cap.
+        $this->assertTrue( $user_added['ffc_delete_certificates'] ?? null );
+        $this->assertArrayNotHasKey( 'ffc_delete_recruitment', $user_added );
+        $this->assertTrue( $role_added['ffc_delete_recruitment'] ?? null );
+        $this->assertArrayNotHasKey( 'ffc_delete_certificates', $role_added );
+    }
+
+    public function test_admin_capabilities_contains_export_tier(): void {
+        foreach ( array(
+            'ffc_export_appointments',
+            'ffc_export_reregistration',
+            'ffc_export_audiences',
+        ) as $cap ) {
+            $this->assertContains( $cap, CapabilityManager::ADMIN_CAPABILITIES, "ADMIN_CAPABILITIES must contain {$cap}" );
+        }
+        // Certificates keeps its long-standing standalone export cap.
+        $this->assertContains( 'ffc_export_certificates', CapabilityManager::ADMIN_CAPABILITIES );
+    }
+
+    public function test_export_cap_grant_map_pairs_each_manage_to_its_export(): void {
+        $map = CapabilityManager::export_cap_grant_map();
+        $this->assertCount( 3, $map );
+        $this->assertSame( 'ffc_export_appointments', $map['ffc_manage_appointments'] );
+        $this->assertSame( 'ffc_export_reregistration', $map['ffc_manage_reregistration'] );
+        $this->assertSame( 'ffc_export_audiences', $map['ffc_manage_audiences'] );
+        // Certificates is intentionally absent — ffc_export_certificates is a
+        // standalone cap never seeded from ffc_manage_certificates.
+        $this->assertArrayNotHasKey( 'ffc_manage_certificates', $map );
+        // Every key is a real manage cap and every value a registered export cap.
+        foreach ( $map as $manage => $export ) {
+            $this->assertStringStartsWith( 'ffc_manage_', $manage );
+            $this->assertStringStartsWith( 'ffc_export_', $export );
+            $this->assertContains( $export, CapabilityManager::ADMIN_CAPABILITIES, "{$export} must be a registered cap" );
+        }
+    }
+
+    public function test_module_roles_grant_matching_export_caps_but_operator_excluded(): void {
+        $created = array();
+        Functions\when( 'get_role' )->justReturn( null );
+        Functions\when( 'add_role' )->alias(
+            static function ( string $slug, string $label, array $caps ) use ( &$created ): bool {
+                $created[ $slug ] = $caps;
+                return true;
+            }
+        );
+
+        CapabilityManager::register_module_roles();
+
+        // Each manager role carries the export cap of the domain it manages.
+        $this->assertTrue( $created['ffc_self_scheduling_manager']['ffc_export_appointments'] );
+        $this->assertTrue( $created['ffc_audience_manager']['ffc_export_audiences'] );
+        $this->assertTrue( $created['ffc_reregistration_manager']['ffc_export_reregistration'] );
+        // Certificate manager keeps the standalone certificate export cap.
+        $this->assertTrue( $created['ffc_certificate_manager']['ffc_export_certificates'] );
+
+        // The Self-Scheduling Manager manages appointments only — it must NOT
+        // carry the cross-domain certificate export cap (audit cleanup): that
+        // belongs to the Certificate Manager / Administrator.
+        $this->assertArrayNotHasKey( 'ffc_export_certificates', $created['ffc_self_scheduling_manager'] );
+
+        // The read-only operator never receives a granular export cap.
+        foreach ( CapabilityManager::export_cap_grant_map() as $export_cap ) {
+            $this->assertArrayNotHasKey( $export_cap, $created['ffc_operator'], "ffc_operator must NOT grant {$export_cap}" );
+        }
+        $this->assertArrayNotHasKey( 'ffc_export_certificates', $created['ffc_operator'] );
+    }
+
+    public function test_migrate_export_caps_grant_seeds_export_onto_manage_holders(): void {
+        Functions\when( 'get_users' )->justReturn( array( 1 ) );
+
+        // User holds a manage cap but not its export cap → expect export seeded.
+        $user       = Mockery::mock( 'WP_User' );
+        $user->caps = array( 'ffc_manage_appointments' => true );
+        $user_added = array();
+        $user->shouldReceive( 'add_cap' )->andReturnUsing(
+            function ( $cap, $val = true ) use ( &$user_added ) {
+                $user_added[ $cap ] = $val;
+            }
+        );
+        $user->shouldReceive( 'remove_cap' )->never();
+        Functions\when( 'get_userdata' )->justReturn( $user );
+
+        // Role holds the audiences manage cap → expect ffc_export_audiences.
+        $role               = Mockery::mock( 'WP_Role' );
+        $role->capabilities = array( 'ffc_manage_audiences' => true );
+        $role_added         = array();
+        $role->shouldReceive( 'add_cap' )->andReturnUsing(
+            function ( $cap, $val = true ) use ( &$role_added ) {
+                $role_added[ $cap ] = $val;
+            }
+        );
+        $wp_roles        = Mockery::mock();
+        $wp_roles->roles = array( 'administrator' => array() );
+        Functions\when( 'wp_roles' )->justReturn( $wp_roles );
+        Functions\when( 'get_role' )->justReturn( $role );
+
+        CapabilityManager::migrate_export_caps_grant();
+
+        // Seeded the matching export cap, never touched the manage cap.
+        $this->assertTrue( $user_added['ffc_export_appointments'] ?? null );
+        $this->assertArrayNotHasKey( 'ffc_export_audiences', $user_added );
+        $this->assertTrue( $role_added['ffc_export_audiences'] ?? null );
+        $this->assertArrayNotHasKey( 'ffc_export_appointments', $role_added );
+    }
+
+    public function test_admin_capabilities_contains_import_tier(): void {
+        // ffc_import_audiences is new (GAP H); ffc_import_recruitment predates
+        // it but is now strictly enforced.
+        $this->assertContains( 'ffc_import_audiences', CapabilityManager::ADMIN_CAPABILITIES );
+        $this->assertContains( 'ffc_import_recruitment', CapabilityManager::ADMIN_CAPABILITIES );
+    }
+
+    public function test_import_cap_grant_map_pairs_each_manage_to_its_import(): void {
+        $map = CapabilityManager::import_cap_grant_map();
+        $this->assertCount( 2, $map );
+        $this->assertSame( 'ffc_import_audiences', $map['ffc_manage_audiences'] );
+        $this->assertSame( 'ffc_import_recruitment', $map['ffc_manage_recruitment'] );
+        foreach ( $map as $manage => $import ) {
+            $this->assertStringStartsWith( 'ffc_manage_', $manage );
+            $this->assertStringStartsWith( 'ffc_import_', $import );
+            $this->assertContains( $import, CapabilityManager::ADMIN_CAPABILITIES, "{$import} must be a registered cap" );
+        }
+    }
+
+    public function test_module_roles_grant_matching_import_caps_but_operator_excluded(): void {
+        $created = array();
+        Functions\when( 'get_role' )->justReturn( null );
+        Functions\when( 'add_role' )->alias(
+            static function ( string $slug, string $label, array $caps ) use ( &$created ): bool {
+                $created[ $slug ] = $caps;
+                return true;
+            }
+        );
+
+        CapabilityManager::register_module_roles();
+
+        // Audience manager carries the new audiences import cap; the recruitment
+        // admin already carries the recruitment import cap.
+        $this->assertTrue( $created['ffc_audience_manager']['ffc_import_audiences'] );
+        $this->assertTrue( $created['ffc_recruitment_admin']['ffc_import_recruitment'] );
+
+        // The read-only operator never receives a granular import cap.
+        foreach ( CapabilityManager::import_cap_grant_map() as $import_cap ) {
+            $this->assertArrayNotHasKey( $import_cap, $created['ffc_operator'], "ffc_operator must NOT grant {$import_cap}" );
+        }
+    }
+
+    public function test_migrate_import_caps_grant_seeds_import_onto_manage_holders(): void {
+        Functions\when( 'get_users' )->justReturn( array( 1 ) );
+
+        // User holds the audiences manage cap → expect ffc_import_audiences.
+        $user       = Mockery::mock( 'WP_User' );
+        $user->caps = array( 'ffc_manage_audiences' => true );
+        $user_added = array();
+        $user->shouldReceive( 'add_cap' )->andReturnUsing(
+            function ( $cap, $val = true ) use ( &$user_added ) {
+                $user_added[ $cap ] = $val;
+            }
+        );
+        $user->shouldReceive( 'remove_cap' )->never();
+        Functions\when( 'get_userdata' )->justReturn( $user );
+
+        // Role holds the recruitment manage cap → expect ffc_import_recruitment
+        // seeded (preserves umbrella-reliant custom roles after the tightening).
+        $role               = Mockery::mock( 'WP_Role' );
+        $role->capabilities = array( 'ffc_manage_recruitment' => true );
+        $role_added         = array();
+        $role->shouldReceive( 'add_cap' )->andReturnUsing(
+            function ( $cap, $val = true ) use ( &$role_added ) {
+                $role_added[ $cap ] = $val;
+            }
+        );
+        $wp_roles        = Mockery::mock();
+        $wp_roles->roles = array( 'administrator' => array() );
+        Functions\when( 'wp_roles' )->justReturn( $wp_roles );
+        Functions\when( 'get_role' )->justReturn( $role );
+
+        CapabilityManager::migrate_import_caps_grant();
+
+        // Seeded the matching import cap, never touched the manage cap.
+        $this->assertTrue( $user_added['ffc_import_audiences'] ?? null );
+        $this->assertArrayNotHasKey( 'ffc_import_recruitment', $user_added );
+        $this->assertTrue( $role_added['ffc_import_recruitment'] ?? null );
+        $this->assertArrayNotHasKey( 'ffc_import_audiences', $role_added );
+    }
+
+    // ------------------------------------------------------------------
+    // GAP I — recruitment reasons 3-state tier
+    // ------------------------------------------------------------------
+
+    public function test_reasons_cap_grant_map_pairs_view_and_manage_sources(): void {
+        $map = CapabilityManager::reasons_cap_grant_map();
+        $this->assertCount( 2, $map );
+        // Read tier seeded from page-view; edit tier from the umbrella.
+        $this->assertSame( 'ffc_view_recruitment_reasons', $map['ffc_view_recruitment'] );
+        $this->assertSame( 'ffc_manage_recruitment_reasons', $map['ffc_manage_recruitment'] );
+        foreach ( $map as $reasons_cap ) {
+            $this->assertContains( $reasons_cap, CapabilityManager::ADMIN_CAPABILITIES, "{$reasons_cap} must be a registered cap" );
+        }
+    }
+
+    public function test_module_roles_grant_reasons_view_cap_to_recruitment_viewers(): void {
+        $created = array();
+        Functions\when( 'get_role' )->justReturn( null );
+        Functions\when( 'add_role' )->alias(
+            static function ( string $slug, string $label, array $caps ) use ( &$created ): bool {
+                $created[ $slug ] = $caps;
+                return true;
+            }
+        );
+
+        CapabilityManager::register_module_roles();
+
+        // Read-only recruitment roles see the Reasons tab → carry the view cap.
+        $this->assertTrue( $created['ffc_recruitment_auditor']['ffc_view_recruitment_reasons'] );
+        $this->assertTrue( $created['ffc_recruitment_operator']['ffc_view_recruitment_reasons'] );
+        // The auditor is read-only — it must NOT carry the manage tier.
+        $this->assertArrayNotHasKey( 'ffc_manage_recruitment_reasons', $created['ffc_recruitment_auditor'] );
+        // The Recruitment Admin carries both reasons caps.
+        $this->assertTrue( $created['ffc_recruitment_admin']['ffc_view_recruitment_reasons'] );
+        $this->assertTrue( $created['ffc_recruitment_admin']['ffc_manage_recruitment_reasons'] );
+    }
+
+    public function test_migrate_reasons_caps_grant_seeds_pair_onto_source_holders(): void {
+        Functions\when( 'get_users' )->justReturn( array( 1 ) );
+
+        // User holds the page-view cap → expect the reasons view cap seeded.
+        $user       = Mockery::mock( 'WP_User' );
+        $user->caps = array( 'ffc_view_recruitment' => true );
+        $user_added = array();
+        $user->shouldReceive( 'add_cap' )->andReturnUsing(
+            function ( $cap, $val = true ) use ( &$user_added ) {
+                $user_added[ $cap ] = $val;
+            }
+        );
+        $user->shouldReceive( 'remove_cap' )->never();
+        Functions\when( 'get_userdata' )->justReturn( $user );
+
+        // Role holds the umbrella → expect the reasons manage cap seeded.
+        $role               = Mockery::mock( 'WP_Role' );
+        $role->capabilities = array( 'ffc_manage_recruitment' => true );
+        $role_added         = array();
+        $role->shouldReceive( 'add_cap' )->andReturnUsing(
+            function ( $cap, $val = true ) use ( &$role_added ) {
+                $role_added[ $cap ] = $val;
+            }
+        );
+        $wp_roles        = Mockery::mock();
+        $wp_roles->roles = array( 'administrator' => array() );
+        Functions\when( 'wp_roles' )->justReturn( $wp_roles );
+        Functions\when( 'get_role' )->justReturn( $role );
+
+        CapabilityManager::migrate_reasons_caps_grant();
+
+        // Seeded the matching reasons cap, never touched the source cap.
+        $this->assertTrue( $user_added['ffc_view_recruitment_reasons'] ?? null );
+        $this->assertArrayNotHasKey( 'ffc_manage_recruitment_reasons', $user_added );
+        $this->assertTrue( $role_added['ffc_manage_recruitment_reasons'] ?? null );
+        $this->assertArrayNotHasKey( 'ffc_view_recruitment_reasons', $role_added );
     }
 }

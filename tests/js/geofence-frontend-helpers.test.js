@@ -17,6 +17,9 @@ beforeAll(() => {
 		},
 	};
 	loadScript('assets/js/ffc-geofence-frontend.js');
+	loadScript('assets/js/ffc-geofence-datetime.js');
+	loadScript('assets/js/ffc-geofence-gps.js');
+	loadScript('assets/js/ffc-geofence-preflight.js');
 });
 
 beforeEach(() => {
@@ -185,10 +188,13 @@ describe('FFCGeofence.isSafari', () => {
 // ----------------------------------------------------------------------
 
 describe('FFCGeofence.getLocationCache / setLocationCache', () => {
-	it('round-trips a location under the same formId', () => {
-		G().setLocationCache('ffc-form-42', { latitude: -23.5, longitude: -46.6, accuracy: 10 }, 600);
-		const got = G().getLocationCache('ffc-form-42');
-		expect(got).toEqual({ latitude: -23.5, longitude: -46.6, accuracy: 10 });
+	it('round-trips a pass token under the same formId', () => {
+		G().setLocationCache('ffc-form-42', 600);
+		expect(G().getLocationCache('ffc-form-42')).toBe(true);
+		// Only the non-sensitive token is persisted — never coordinates.
+		const raw = JSON.parse(window.localStorage.getItem('ffc_geo_ffc-form-42'));
+		expect(raw.validated).toBe(true);
+		expect(raw.location).toBeUndefined();
 	});
 
 	it('returns null when no cache entry exists for the formId', () => {
@@ -197,9 +203,19 @@ describe('FFCGeofence.getLocationCache / setLocationCache', () => {
 
 	it('returns null and clears the entry when the TTL expired', () => {
 		// Set with TTL of -10s — already expired.
-		G().setLocationCache('ffc-form-7', { latitude: 1, longitude: 2 }, -10);
+		G().setLocationCache('ffc-form-7', -10);
 		expect(G().getLocationCache('ffc-form-7')).toBeNull();
 		expect(window.localStorage.getItem('ffc_geo_ffc-form-7')).toBeNull();
+	});
+
+	it('treats a legacy coordinates entry as a miss (no stale coords read back)', () => {
+		// Pre-6.x builds stored {location, expires}; the pass-token reader
+		// ignores it so the visitor re-validates via GPS.
+		window.localStorage.setItem('ffc_geo_ffc-form-legacy', JSON.stringify({
+			location: { latitude: 1, longitude: 2 },
+			expires: Math.floor(Date.now() / 1000) + 600,
+		}));
+		expect(G().getLocationCache('ffc-form-legacy')).toBeNull();
 	});
 
 	it('returns null when the cached JSON is malformed', () => {

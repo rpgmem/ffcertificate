@@ -54,9 +54,8 @@ final class RecruitmentNoticeEditPageRenderer {
 	public static function render_csv_import_section( object $notice ): void {
 		$notice_id = (int) $notice->id;
 		$status    = (string) $notice->status;
-		$nonce     = wp_create_nonce( 'wp_rest' );
 
-		echo '<div class="postbox" style="margin-top:20px;">';
+		echo '<div class="postbox ffc-rec-mt-20">';
 		echo '<h2 class="hndle"><span>' . esc_html__( 'Import candidates (CSV)', 'ffcertificate' ) . '</span></h2>';
 		echo '<div class="inside">';
 
@@ -76,13 +75,13 @@ final class RecruitmentNoticeEditPageRenderer {
 			'ffc_recruitment_download_csv_example'
 		);
 		echo '<p><a class="button" href="' . esc_url( $example_url ) . '">&darr; ' . esc_html__( 'Download example CSV', 'ffcertificate' ) . '</a> ';
-		echo '<span class="description" style="margin-left:.5em;">' . esc_html__( 'Two-row sample with every column populated. Use it as a starting point for your own file.', 'ffcertificate' ) . '</span></p>';
+		echo '<span class="description ffc-rec-ml-half">' . esc_html__( 'Two-row sample with every column populated. Use it as a starting point for your own file.', 'ffcertificate' ) . '</span></p>';
 
-		echo '<form id="ffc-recruitment-edit-import" method="post" enctype="multipart/form-data" onsubmit="return ffcRecruitmentImportFromEdit(this);">';
+		echo '<form id="ffc-recruitment-edit-import" method="post" enctype="multipart/form-data" data-notice-id="' . esc_attr( (string) $notice_id ) . '" onsubmit="return ffcRecruitmentImportFromEdit(this);">';
 		echo '<table class="form-table"><tbody>';
 
 		echo '<tr><th><label>' . esc_html__( 'Target list', 'ffcertificate' ) . '</label></th><td>';
-		echo '<label style="margin-right:1em;"><input type="radio" name="list_target" value="preliminary" checked> ' . esc_html__( 'Preliminary list', 'ffcertificate' ) . '</label>';
+		echo '<label class="ffc-rec-mr-1"><input type="radio" name="list_target" value="preliminary" checked> ' . esc_html__( 'Preliminary list', 'ffcertificate' ) . '</label>';
 		if ( 'preliminary' === $status ) {
 			echo '<label><input type="radio" name="list_target" value="definitive"> ' . esc_html__( 'Definitive list (also transitions notice to `definitive`)', 'ffcertificate' ) . '</label>';
 		}
@@ -104,78 +103,27 @@ final class RecruitmentNoticeEditPageRenderer {
 		// Progress widget — `<progress>` + counter for the batched preview
 		// flow; falls back to the spinner-only look for the definitive
 		// flow (which still posts in one shot to /promote-preview).
-		echo '<span id="ffc-edit-csv-progress" style="display:none;align-items:center;gap:.5em;">';
-		echo '<span class="spinner is-active" style="float:none;margin:0;"></span>';
-		echo '<progress id="ffc-edit-csv-progress-bar" max="1" value="0" style="width:200px;height:14px;"></progress>';
+		echo '<span id="ffc-edit-csv-progress" class="ffc-rec-progress-inline">';
+		echo '<span class="spinner is-active ffc-rec-spinner-flush"></span>';
+		echo '<progress id="ffc-edit-csv-progress-bar" max="1" value="0" class="ffc-rec-progress-bar"></progress>';
 		echo '<span id="ffc-edit-csv-progress-text"></span>';
 		echo '</span>';
-		echo '<span id="ffc-edit-csv-status" style="margin-left:1em;font-family:monospace;font-size:12px;"></span>';
+		echo '<span id="ffc-edit-csv-status" class="ffc-rec-mono-status"></span>';
 		echo '</p>';
 		// Per-line validation errors land here when /import-job/validate
 		// returns a non-empty list. Hidden by default; the orchestrator
 		// fills it in and the operator scrolls through what to fix.
-		echo '<ul id="ffc-edit-csv-errors" style="margin:.5em 0 0;padding-left:1.5em;font-family:monospace;font-size:12px;color:#b32d2e;"></ul>';
+		echo '<ul id="ffc-edit-csv-errors" class="ffc-rec-csv-errors"></ul>';
 		echo '</form>';
 
-		// Inline submit handler. The `preview` flow hands off to
-		// `window.ffcRecruitmentImportBatched.run()` (start → loop batch →
-		// commit) so notices with hundreds of candidates stop racing the
-		// gateway timeout. The `definitive` flow keeps the old single-
-		// request shape against /promote-preview because that endpoint
-		// also performs the snapshot + state transition under a 15-second
-		// countdown — batching there would need a different design.
-		$strings   = array(
-			'ingesting'        => __( 'Ingesting…', 'ffcertificate' ),
-			'validating'       => __( 'Validating…', 'ffcertificate' ),
-			'processing'       => __( 'Processing…', 'ffcertificate' ),
-			'committing'       => __( 'Finalising…', 'ffcertificate' ),
-			'done'             => __( 'OK', 'ffcertificate' ),
-			'errorPrefix'      => __( 'Error:', 'ffcertificate' ),
-			'networkError'     => __( 'Network error', 'ffcertificate' ),
-			'validationFailed' => __( 'Validation failed — review the per-line errors below and re-import.', 'ffcertificate' ),
-		);
-		$rest_root = rest_url( 'ffcertificate/v1/recruitment/' );
-		echo '<script>'
-			. 'function ffcRecruitmentImportFromEdit(form){'
-			. 'var nid=' . (int) $notice_id . ';'
-			. 'var target=form.list_target.value;'
-			. 'var file=form.csv_file.files[0];'
-			. 'var btn=document.getElementById("ffc-edit-csv-submit");'
-			. 'var status=document.getElementById("ffc-edit-csv-status");'
-			. 'var progress=document.getElementById("ffc-edit-csv-progress");'
-			. 'var progressBar=document.getElementById("ffc-edit-csv-progress-bar");'
-			. 'var progressText=document.getElementById("ffc-edit-csv-progress-text");'
-			. 'var errorList=document.getElementById("ffc-edit-csv-errors");'
-			. 'btn.disabled=true;status.textContent="";if(errorList){errorList.innerHTML="";}'
-			. 'if(target!=="definitive"&&window.ffcRecruitmentImportBatched){'
-			// Preview list → staging-based orchestrator (4 phases).
-			. 'window.ffcRecruitmentImportBatched.run({'
-			. 'noticeId:nid,file:file,'
-			. 'restRoot:' . wp_json_encode( esc_url_raw( $rest_root ) ) . ','
-			. 'nonce:' . wp_json_encode( $nonce ) . ','
-			. 'btn:btn,status:status,'
-			. 'progressWrap:progress,progressBar:progressBar,progressText:progressText,'
-			. 'errorList:errorList,'
-			. 'strings:' . wp_json_encode( $strings )
-			. '}).catch(function(){});'
-			. 'return false;'
-			. '}'
-			// Definitive list → single-shot /promote-preview (unchanged).
-			. 'var fd=new FormData();fd.append("csv_file",file);'
-			. 'fd.append("mode","definitive_import");'
-			. 'var url=' . wp_json_encode( esc_url_raw( $rest_root ) ) . '+"notices/"+nid+"/promote-preview";'
-			. 'progress.style.display="inline-flex";'
-			. 'progressBar.style.display="none";'
-			. 'progressText.textContent=' . wp_json_encode( __( 'Processing CSV…', 'ffcertificate' ) ) . ';'
-			. 'function cleanup(){progress.style.display="none";progressBar.style.display="";btn.disabled=false;}'
-			. 'fetch(url,{method:"POST",headers:{"X-WP-Nonce":' . wp_json_encode( $nonce ) . '},body:fd,credentials:"same-origin"})'
-			. '.then(function(r){return r.json().then(function(d){return{status:r.status,body:d};});}).then(function(o){'
-			. 'cleanup();'
-			. 'if(o.status>=200&&o.status<300){status.textContent="OK ("+((o.body&&o.body.message)?o.body.message:JSON.stringify(o.body))+")";location.reload();}'
-			. 'else{status.textContent="Error: "+((o.body&&o.body.message)?o.body.message:JSON.stringify(o.body));}'
-			. '}).catch(function(e){cleanup();status.textContent="Network error: "+e.message;});'
-			. 'return false;}'
-			. '</script>';
+		// The submit handler (ffcRecruitmentImportFromEdit) ships in
+		// assets/js/ffc-recruitment-notice-edit.js. The preview flow hands
+		// off to window.ffcRecruitmentImportBatched.run() (start → loop batch
+		// → commit) so notices with hundreds of candidates stop racing the
+		// gateway timeout; the definitive flow keeps the single-request shape
+		// against /promote-preview. The notice id rides on the form's
+		// data-notice-id attribute; strings/nonce/REST root come from the
+		// localized ffcRecruitmentNoticeEdit object.
 
 		echo '</div></div>';
 	}
@@ -190,7 +138,7 @@ final class RecruitmentNoticeEditPageRenderer {
 	public static function render_general_section( object $notice ): void {
 		$nonce_action = 'ffc_recruitment_save_notice_' . (int) $notice->id;
 
-		echo '<div class="postbox" style="margin-top:20px;">';
+		echo '<div class="postbox ffc-rec-mt-20">';
 		echo '<h2 class="hndle"><span>' . esc_html__( 'General', 'ffcertificate' ) . '</span></h2>';
 		echo '<div class="inside">';
 
@@ -281,7 +229,7 @@ final class RecruitmentNoticeEditPageRenderer {
 		// whether the preliminary-list reason text is exposed publicly.
 		$rendered_in_grid = static fn( string $key ): bool => 'preview_reason' !== $key;
 
-		$html = '<div class="ffc-recruitment-columns-toggles" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:6px 16px;">';
+		$html = '<div class="ffc-recruitment-columns-toggles ffc-rec-columns-grid">';
 		foreach ( $labels as $key => $label ) {
 			if ( ! $rendered_in_grid( $key ) ) {
 				continue;
@@ -289,7 +237,7 @@ final class RecruitmentNoticeEditPageRenderer {
 			$is_mandatory = in_array( $key, $mandatory, true );
 			$checked      = $is_mandatory || ! empty( $state[ $key ] );
 			$id_attr      = 'ffc-notice-pcc-' . $key;
-			$html        .= '<div style="display:flex;align-items:center;gap:6px;">';
+			$html        .= '<div class="ffc-rec-flex-center-6">';
 			if ( $is_mandatory ) {
 				// A disabled toggle doesn't post; a hidden sibling pins the
 				// value=1 so the save handler always sees the mandatory
@@ -304,7 +252,7 @@ final class RecruitmentNoticeEditPageRenderer {
 						'label'    => $label,
 					)
 				);
-				$html .= ' <em style="color:#646970;font-size:11px;">(' . esc_html__( 'mandatory', 'ffcertificate' ) . ')</em>';
+				$html .= ' <em class="ffc-rec-mandatory-note">(' . esc_html__( 'mandatory', 'ffcertificate' ) . ')</em>';
 			} else {
 				$html .= \FreeFormCertificate\Admin\AdminUI::get_toggle(
 					array(
@@ -455,7 +403,7 @@ final class RecruitmentNoticeEditPageRenderer {
 		$current      = (string) $notice->status;
 		$nonce_action = 'ffc_recruitment_transition_notice_' . (int) $notice->id;
 
-		echo '<div class="postbox" style="margin-top:20px;">';
+		echo '<div class="postbox ffc-rec-mt-20">';
 		echo '<h2 class="hndle"><span>' . esc_html__( 'Status', 'ffcertificate' ) . '</span></h2>';
 		echo '<div class="inside">';
 
@@ -499,7 +447,7 @@ final class RecruitmentNoticeEditPageRenderer {
 				$cfg          = isset( $modal_config[ $target ] ) ? $modal_config[ $target ] : null;
 				$consequences = wp_json_encode( $cfg ? $cfg['consequences'] : array() );
 
-				echo '<form method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '" style="display:inline;margin-right:.5em;"';
+				echo '<form method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '" class="ffc-rec-inline-form"';
 				if ( $cfg ) {
 					echo ' data-ffc-confirm'
 						. ' data-ffc-confirm-title="' . esc_attr( $cfg['title'] ) . '"'
@@ -581,7 +529,7 @@ final class RecruitmentNoticeEditPageRenderer {
 			submit_button( __( 'Promote to definitive', 'ffcertificate' ), 'primary', '', false );
 			echo '</form>';
 
-			echo '<hr style="margin:1.5em 0;">';
+			echo '<hr class="ffc-rec-my-15">';
 			return;
 		}
 
@@ -594,7 +542,6 @@ final class RecruitmentNoticeEditPageRenderer {
 		// attributes on the button itself; the modal intercepts the
 		// click and on confirm sets data-ffc-confirm-ok=1 so the
 		// existing handler proceeds.
-		$rest_nonce            = wp_create_nonce( 'wp_rest' );
 		$snapshot_consequences = wp_json_encode(
 			array(
 				__( 'The current preliminary list is copied verbatim into the definitive list.', 'ffcertificate' ),
@@ -616,23 +563,12 @@ final class RecruitmentNoticeEditPageRenderer {
 		echo '<button type="button" class="button button-secondary" onclick="document.getElementById(\'ffc-recruitment-edit-import\').scrollIntoView({behavior:\'smooth\'});">' . esc_html__( 'B — Import a new list as definitive', 'ffcertificate' ) . '</button>';
 		echo '</p>';
 
-		// The confirm flow intercepts the click and re-fires it after
-		// the user confirms (with data-ffc-confirm-ok=1 set). The
-		// handler skips the fetch unless that flag is present so the
-		// first click only opens the modal.
-		echo '<script>'
-			. 'function ffcRecruitmentSnapshotPromote(nid, btn){'
-			. 'if(btn&&btn.getAttribute("data-ffc-confirm-ok")!=="1"){return false;}'
-			. 'var fd=new FormData();fd.append("mode","snapshot");'
-			. 'fetch("' . esc_url_raw( rest_url( 'ffcertificate/v1/recruitment/notices/' ) ) . '"+nid+"/promote-preview",{'
-			. 'method:"POST",headers:{"X-WP-Nonce":"' . esc_attr( $rest_nonce ) . '"},body:fd,credentials:"same-origin"'
-			. '}).then(function(r){return r.json().then(function(d){return{status:r.status,body:d};});}).then(function(o){'
-			. 'if(o.status>=200&&o.status<300){location.reload();}else{alert((o.body&&o.body.message)?o.body.message:JSON.stringify(o.body));}'
-			. '}).catch(function(e){alert("Network error: "+e.message);});'
-			. '}'
-			. '</script>';
+		// The confirm flow (data-ffc-confirm) intercepts the click and
+		// re-fires it with data-ffc-confirm-ok=1; ffcRecruitmentSnapshotPromote
+		// (in ffc-recruitment-notice-edit.js) skips the fetch until that flag
+		// is present so the first click only opens the modal.
 
-		echo '<hr style="margin:1.5em 0;">';
+		echo '<hr class="ffc-rec-my-15">';
 	}
 
 	/**
@@ -652,9 +588,8 @@ final class RecruitmentNoticeEditPageRenderer {
 		$adjutancies  = RecruitmentAdjutancyRepository::get_all();
 		$attached_ids = array_values( RecruitmentNoticeAdjutancyRepository::get_adjutancy_ids_for_notice( $notice_id ) );
 		$attached_set = array_flip( $attached_ids );
-		$nonce        = wp_create_nonce( 'wp_rest' );
 
-		echo '<div class="postbox" style="margin-top:20px;">';
+		echo '<div class="postbox ffc-rec-mt-20">';
 		echo '<h2 class="hndle"><span>' . esc_html__( 'Adjutancies', 'ffcertificate' ) . '</span></h2>';
 		echo '<div class="inside">';
 		echo '<p>' . esc_html__( 'Adjutancies referenced by CSV imports must be attached to the notice via this section.', 'ffcertificate' ) . '</p>';
@@ -700,26 +635,10 @@ final class RecruitmentNoticeEditPageRenderer {
 			echo '</form>';
 		}
 
-		// Same inline handlers as sprint A1 — to be consolidated into
-		// the assets manager bundle in sprint C polish.
-		echo '<script>'
-			. 'function ffcAttachAdjutancy(form){'
-			. 'var nid=form.getAttribute("data-notice");'
-			. 'var aid=form.adjutancy_id.value;'
-			. 'fetch("' . esc_url_raw( rest_url( 'ffcertificate/v1/recruitment/notices/' ) ) . '"+nid+"/adjutancies/"+aid,{'
-			. 'method:"PUT",headers:{"X-WP-Nonce":"' . esc_attr( $nonce ) . '"},credentials:"same-origin"'
-			. '}).then(function(r){return r.json().then(function(d){return{status:r.status,body:d};});}).then(function(o){'
-			. 'if(o.status>=200&&o.status<300){location.reload();}else{alert((o.body&&o.body.message)?o.body.message:JSON.stringify(o.body));}'
-			. '});return false;}'
-			. 'function ffcDetachAdjutancy(a){'
-			. 'var nid=a.getAttribute("data-notice");'
-			. 'var aid=a.getAttribute("data-adjutancy");'
-			. 'fetch("' . esc_url_raw( rest_url( 'ffcertificate/v1/recruitment/notices/' ) ) . '"+nid+"/adjutancies/"+aid,{'
-			. 'method:"DELETE",headers:{"X-WP-Nonce":"' . esc_attr( $nonce ) . '"},credentials:"same-origin"'
-			. '}).then(function(r){return r.json().then(function(d){return{status:r.status,body:d};});}).then(function(o){'
-			. 'if(o.status>=200&&o.status<300){location.reload();}else{alert((o.body&&o.body.message)?o.body.message:JSON.stringify(o.body));}'
-			. '});return false;}'
-			. '</script>';
+		// ffcAttachAdjutancy / ffcDetachAdjutancy ship in
+		// ffc-recruitment-notice-edit.js; they read the notice/adjutancy ids
+		// from the data-notice / data-adjutancy attributes already on the
+		// form and the detach link.
 
 		echo '</div></div>';
 	}
@@ -748,6 +667,13 @@ final class RecruitmentNoticeEditPageRenderer {
 		$preview         = RecruitmentClassificationRepository::get_for_notice( $notice_id, 'preview' );
 		$definitive_rows = RecruitmentClassificationRepository::get_for_notice( $notice_id, 'definitive' );
 
+		// Authoritative out-of-order source for the client gate (#Item7):
+		// computed from the UNFILTERED, unpaginated definitive list before the
+		// filter below narrows $definitive_rows for display. Handed to the JS
+		// via the definitive panel's data-ffc-empties attribute so the
+		// justification prompt fires regardless of the active filter / page.
+		$def_empties_by_adj = self::compute_empties_by_adjutancy( $definitive_rows );
+
 		// Once a definitive list exists for the notice the preview tab
 		// becomes mostly archival — operators are working off the
 		// definitive ranking. Captured from the unfiltered query so an
@@ -772,7 +698,7 @@ final class RecruitmentNoticeEditPageRenderer {
 		$preview         = RecruitmentClassificationFilterManager::apply_filters( $preview, $filters );
 		$definitive_rows = RecruitmentClassificationFilterManager::apply_filters( $definitive_rows, $filters );
 
-		echo '<div class="postbox" style="margin-top:20px;">';
+		echo '<div class="postbox ffc-rec-mt-20">';
 		echo '<h2 class="hndle"><span>' . esc_html__( 'Classifications', 'ffcertificate' ) . '</span></h2>';
 		echo '<div class="inside">';
 
@@ -785,7 +711,7 @@ final class RecruitmentNoticeEditPageRenderer {
 		$prev_display   = $prev_is_active ? 'block' : 'none';
 		$def_display    = $prev_is_active ? 'none' : 'block';
 
-		echo '<h2 class="nav-tab-wrapper" style="margin:0 0 1em;">';
+		echo '<h2 class="nav-tab-wrapper ffc-rec-mb-1">';
 		echo '<a href="#" class="' . esc_attr( $prev_tab_class ) . '" data-ffc-clstab="preliminary" onclick="return ffcRecruitmentClsTabSwitch(this);">' . esc_html__( 'Preliminary', 'ffcertificate' ) . '</a>';
 		echo '<a href="#" class="' . esc_attr( $def_tab_class ) . '" data-ffc-clstab="definitive" onclick="return ffcRecruitmentClsTabSwitch(this);">' . esc_html__( 'Definitive', 'ffcertificate' ) . '</a>';
 		echo '</h2>';
@@ -794,26 +720,14 @@ final class RecruitmentNoticeEditPageRenderer {
 		self::render_classifications_table( $preview, false, 'preliminary' );
 		echo '</div>';
 
-		echo '<div data-ffc-clspanel="definitive" style="display:' . esc_attr( $def_display ) . ';">';
+		echo '<div data-ffc-clspanel="definitive" data-ffc-empties="' . esc_attr( (string) wp_json_encode( $def_empties_by_adj ) ) . '" style="display:' . esc_attr( $def_display ) . ';">';
 		self::render_classifications_table( $definitive_rows, true, 'definitive' );
 		echo '</div>';
 
-		// Tab toggle handler. Switches the .nav-tab-active class, shows
-		// the matching panel, and writes `ffc_cls_tab` into the URL via
-		// history.replaceState so a subsequent pagination link click
-		// preserves whichever tab the operator chose manually.
-		echo '<script>'
-			. 'function ffcRecruitmentClsTabSwitch(a){'
-			. 'var key=a.getAttribute("data-ffc-clstab");'
-			. 'var nav=a.parentNode;'
-			. 'var tabs=nav.querySelectorAll(".nav-tab");'
-			. 'for(var i=0;i<tabs.length;i++){tabs[i].classList.remove("nav-tab-active");}'
-			. 'a.classList.add("nav-tab-active");'
-			. 'var panels=nav.parentNode.querySelectorAll("[data-ffc-clspanel]");'
-			. 'for(var j=0;j<panels.length;j++){panels[j].style.display=panels[j].getAttribute("data-ffc-clspanel")===key?"block":"none";}'
-			. 'try{var u=new URL(window.location.href);u.searchParams.set("ffc_cls_tab",key);history.replaceState(null,"",u.toString());}catch(e){}'
-			. 'return false;}'
-			. '</script>';
+		// The tab toggle handler (ffcRecruitmentClsTabSwitch) ships in
+		// ffc-recruitment-notice-edit.js: it swaps .nav-tab-active, shows the
+		// matching [data-ffc-clspanel], and writes ffc_cls_tab into the URL so
+		// a later pagination click preserves the operator's chosen tab.
 
 		echo '</div></div>';
 	}
@@ -845,7 +759,7 @@ final class RecruitmentNoticeEditPageRenderer {
 			admin_url( 'admin.php' )
 		);
 
-		echo '<form method="get" class="ffc-cls-filters" style="margin-bottom:1em;display:flex;flex-wrap:wrap;gap:6px;align-items:center;">';
+		echo '<form method="get" class="ffc-cls-filters ffc-rec-cls-filters">';
 		echo '<input type="hidden" name="page" value="' . esc_attr( RecruitmentAdminPage::PAGE_SLUG ) . '">';
 		echo '<input type="hidden" name="action" value="edit-notice">';
 		echo '<input type="hidden" name="notice_id" value="' . esc_attr( (string) $notice_id ) . '">';
@@ -952,7 +866,7 @@ final class RecruitmentNoticeEditPageRenderer {
 
 		echo '<table class="widefat striped"><thead><tr>';
 		if ( $with_actions ) {
-			echo '<th style="width:1%;"><input type="checkbox" id="ffc-cls-bulk-all" onclick="ffcRecruitmentClsToggleAll(this);" title="' . esc_attr__( 'Select all waiting rows on this page', 'ffcertificate' ) . '"></th>';
+			echo '<th class="ffc-rec-col-checkbox"><input type="checkbox" id="ffc-cls-bulk-all" onclick="ffcRecruitmentClsToggleAll(this);" title="' . esc_attr__( 'Select all waiting rows on this page', 'ffcertificate' ) . '"></th>';
 		}
 		echo '<th>' . esc_html__( 'Rank', 'ffcertificate' ) . '</th>';
 		echo '<th>' . esc_html__( 'Candidate', 'ffcertificate' ) . '</th>';
@@ -1021,12 +935,10 @@ final class RecruitmentNoticeEditPageRenderer {
 
 		self::render_classifications_pagination( $tab_key, $total, $current_page, $per_page );
 
-		if ( $with_actions ) {
-			self::render_classification_actions_script();
-		}
-		if ( $is_preview_tab ) {
-			self::render_preview_status_script();
-		}
+		// The per-row Call / bulk-call / preview-status handlers ship in
+		// assets/js/ffc-recruitment-notice-edit.js (frontend-audit Item 10),
+		// enqueued + localized by RecruitmentAdminAssetsManager. The markup
+		// here only needs the data-* hooks the script reads.
 	}
 
 	/**
@@ -1166,32 +1078,22 @@ final class RecruitmentNoticeEditPageRenderer {
 	 * @return void
 	 */
 	private static function render_bulk_call_toolbar(): void {
-		echo '<div class="ffc-cls-bulk-toolbar" style="background:#f6f7f7;border:1px solid #dcdcde;border-radius:4px;padding:10px 12px;margin-bottom:8px;">';
+		echo '<div class="ffc-cls-bulk-toolbar ffc-rec-bulk-toolbar">';
 		echo '<strong>' . esc_html__( 'Bulk call', 'ffcertificate' ) . '</strong> ';
-		echo '<span style="margin-left:.5em;">' . esc_html__( 'Date:', 'ffcertificate' ) . ' </span>';
-		echo '<input type="date" id="ffc-bulk-date" style="margin-right:.5em;">';
+		echo '<span class="ffc-rec-ml-half">' . esc_html__( 'Date:', 'ffcertificate' ) . ' </span>';
+		echo '<input type="date" id="ffc-bulk-date" class="ffc-rec-mr-half">';
 		echo '<span>' . esc_html__( 'Time:', 'ffcertificate' ) . ' </span>';
-		echo '<input type="time" id="ffc-bulk-time" style="margin-right:.5em;">';
+		echo '<input type="time" id="ffc-bulk-time" class="ffc-rec-mr-half">';
 		echo '<button type="button" class="button button-primary" onclick="ffcRecruitmentBulkCall();">' . esc_html__( 'Call selected', 'ffcertificate' ) . '</button>';
-		echo '<span id="ffc-bulk-status" style="margin-left:1em;font-family:monospace;font-size:12px;"></span>';
+		echo '<span id="ffc-bulk-status" class="ffc-rec-mono-status"></span>';
 		// §6 — bulk call is atomic; any single race-loss rolls back the entire batch.
-		echo '<p class="description" style="margin:6px 0 0;">' . esc_html__( 'Select rows in waiting status to bulk-call them with the same date and time. The operation is atomic — any single conflict rolls back the entire batch. Date and time are remembered from the previous successful call.', 'ffcertificate' ) . '</p>';
+		echo '<p class="description ffc-rec-mt-6px">' . esc_html__( 'Select rows in waiting status to bulk-call them with the same date and time. The operation is atomic — any single conflict rolls back the entire batch. Date and time are remembered from the previous successful call.', 'ffcertificate' ) . '</p>';
 		echo '</div>';
 
-		// Pre-fill the date / time inputs from localStorage so a follow-
-		// up bulk-call doesn't make the operator retype the same values
-		// the next time they open this notice. The values are written
-		// from ffcRecruitmentBulkCall() on a successful submit.
-		echo '<script>'
-			. '(function(){'
-			. 'try{'
-			. 'var d=localStorage.getItem("ffcRecruitmentLastBulkDate");'
-			. 'var t=localStorage.getItem("ffcRecruitmentLastBulkTime");'
-			. 'if(d){document.getElementById("ffc-bulk-date").value=d;}'
-			. 'if(t){document.getElementById("ffc-bulk-time").value=t;}'
-			. '}catch(e){}'
-			. '})();'
-			. '</script>';
+		// The date/time inputs are pre-filled from localStorage by
+		// ffc-recruitment-notice-edit.js (init → prefillBulkDateTime) so a
+		// follow-up bulk-call doesn't make the operator retype the same
+		// values; ffcRecruitmentBulkCall() writes them on a successful submit.
 	}
 
 	/**
@@ -1225,11 +1127,16 @@ final class RecruitmentNoticeEditPageRenderer {
 				break;
 			case 'not_shown':
 				$out .= self::cls_button( $id, 'reopen', __( 'Reopen (if not frozen)', 'ffcertificate' ), 'secondary' );
+				// Admin override (#Item 8): reset to waiting even when the
+				// reopen-freeze would block the plain `reopen` above.
+				$out .= self::cls_button( $id, 'override', __( 'Undo decision (admin)', 'ffcertificate' ), 'link-delete' );
 				break;
 			case 'hired':
 			case 'withdrew':
-				// Terminal — no actions.
-				$out .= '<em>' . esc_html__( '(terminal)', 'ffcertificate' ) . '</em>';
+				// Terminal under the normal lifecycle — but an admin may undo a
+				// realized decision via the audited override (#Item 8): reopens
+				// the vacancy and returns the candidate to the waiting queue.
+				$out .= self::cls_button( $id, 'override', __( 'Undo decision (admin)', 'ffcertificate' ), 'link-delete' );
 				break;
 		}
 		return $out;
@@ -1255,7 +1162,7 @@ final class RecruitmentNoticeEditPageRenderer {
 			$class .= ' button-link-delete';
 		}
 		return sprintf(
-			'<button type="button" class="%s" style="margin-right:.25em;" data-cls-id="%d" data-cls-action="%s" onclick="ffcRecruitmentClsAct(this);">%s</button>',
+			'<button type="button" class="%s ffc-rec-mr-quarter" data-cls-id="%d" data-cls-action="%s" onclick="ffcRecruitmentClsAct(this);">%s</button>',
 			esc_attr( $class ),
 			$id,
 			esc_attr( $action ),
@@ -1263,290 +1170,6 @@ final class RecruitmentNoticeEditPageRenderer {
 		);
 	}
 
-	/**
-	 * Render the inline JS that drives the per-row action buttons.
-	 * Rendered once after the Definitive table.
-	 *
-	 * @return void
-	 */
-	private static function render_classification_actions_script(): void {
-		$nonce              = wp_create_nonce( 'wp_rest' );
-		$call_url           = esc_url_raw( rest_url( 'ffcertificate/v1/recruitment/classifications/' ) );
-		$bulk_url           = esc_url_raw( rest_url( 'ffcertificate/v1/recruitment/classifications/bulk-call' ) );
-		$bulk_no_sel        = esc_js( __( 'Select at least one row first.', 'ffcertificate' ) );
-		$bulk_no_date       = esc_js( __( 'Date and time are required for bulk call.', 'ffcertificate' ) );
-		$confirm_ooo_single = esc_js( __( 'This call would skip a higher-ranked candidate (out of order). Continue?', 'ffcertificate' ) );
-		$prompt_ooo_reason  = esc_js( __( 'Justification for calling out of order (required):', 'ffcertificate' ) );
-		$reason_required    = esc_js( __( 'A justification is required to proceed.', 'ffcertificate' ) );
-		// Bulk-call modal copy (issue #262 item 4 — confirms now go
-		// through ffcRecruitmentAdmin.openConfirmModal instead of native
-		// confirm()/prompt()). Body template uses sprintf-style {count},
-		// {date}, {time} placeholders that the JS resolves at click time
-		// since the modal config is built dynamically.
-		$bulk_modal_title = esc_js( __( 'Issue calls for the selected candidates?', 'ffcertificate' ) );
-		/* translators: 1: number of selected rows, 2: date, 3: time */
-		$bulk_modal_body_tpl     = esc_js( __( 'About to issue {count} call(s) for {date} at {time}.', 'ffcertificate' ) );
-		$bulk_modal_cta          = esc_js( __( 'Issue calls', 'ffcertificate' ) );
-		$bulk_consequence_atomic = esc_js( __( 'Atomic — any single conflict rolls back the entire batch.', 'ffcertificate' ) );
-		$bulk_consequence_log    = esc_js( __( 'A "bulk call" audit entry is recorded with the selected candidates.', 'ffcertificate' ) );
-		$bulk_consequence_ooo    = esc_js( __( 'One or more selected rows would skip a higher-ranked candidate (out of order).', 'ffcertificate' ) );
-		$bulk_reason_label       = esc_js( __( 'Justification for calling out of order (required)', 'ffcertificate' ) );
-
-		echo '<script>'
-			// Compute the lowest-rank `empty` row per adjutancy from the
-			// rendered DOM. Used by both the single-row Call handler and
-			// the bulk-call handler to detect skips before any prompt.
-			//
-			// Scoped to the Definitive panel: the Preliminary table also
-			// renders `data-cls-*` rows and they are ALWAYS status="empty"
-			// per the §5.2 invariant (preview rows can't be called); a
-			// global scan would let those preview rows pin the lowest-rank
-			// empty in their adjutancy and then every definitive call ≥ 2
-			// would falsely trip the OOO prompt.
-			. 'function ffcRecruitmentLowestEmpty(){'
-			. 'var panel=document.querySelector(\'[data-ffc-clspanel="definitive"]\');'
-			. 'if(!panel)return {};'
-			. 'var rows=panel.querySelectorAll("tr[data-cls-id]");'
-			. 'var lowest={};'
-			. 'for(var i=0;i<rows.length;i++){'
-			. 'var tr=rows[i];'
-			. 'if(tr.getAttribute("data-cls-status")!=="empty")continue;'
-			. 'var adj=tr.getAttribute("data-cls-adjutancy");'
-			. 'var rank=parseInt(tr.getAttribute("data-cls-rank"),10);'
-			. 'if(!lowest[adj]||rank<lowest[adj]){lowest[adj]=rank;}'
-			. '}'
-			. 'return lowest;'
-			. '}'
-			// Bulk-call helpers — toggle-all + submit handler.
-			. 'function ffcRecruitmentClsToggleAll(cb){'
-			. 'var boxes=document.querySelectorAll(".ffc-cls-bulk-cb:not([disabled])");'
-			. 'for(var i=0;i<boxes.length;i++){boxes[i].checked=cb.checked;}'
-			. '}'
-			. 'function ffcRecruitmentBulkCall(){'
-			. 'var status=document.getElementById("ffc-bulk-status");'
-			. 'var date=document.getElementById("ffc-bulk-date").value;'
-			. 'var time=document.getElementById("ffc-bulk-time").value;'
-			. 'if(!date||!time){status.textContent="' . esc_attr( $bulk_no_date ) . '";return;}'
-			. 'var ids=[];var boxes=document.querySelectorAll(".ffc-cls-bulk-cb:checked");'
-			. 'for(var i=0;i<boxes.length;i++){ids.push(parseInt(boxes[i].value,10));}'
-			. 'if(ids.length===0){status.textContent="' . esc_attr( $bulk_no_sel ) . '";return;}'
-			// Out-of-order detection: per adjutancy, find the lowest-rank
-			// empty row that's NOT in this bulk selection (the
-			// "threshold"). Any selected row in that adjutancy with
-			// rank > threshold means the bulk would skip someone.
-			//
-			// Naïvely comparing against the global lowest-empty rank
-			// (the previous logic) tripped on every legitimate
-			// in-order bulk: selecting ranks 1+2+3 from empties [1,2,3]
-			// would flag rank 2 and rank 3 as OOO because rank 1 is
-			// still empty at scan time, even though rank 1 is also in
-			// the same selection and gets called atomically alongside.
-			. 'var panel=document.querySelector(\'[data-ffc-clspanel="definitive"]\');'
-			. 'var emptyByAdj={};'
-			. 'if(panel){'
-			. 'var allRows=panel.querySelectorAll("tr[data-cls-id]");'
-			. 'for(var p=0;p<allRows.length;p++){'
-			. 'var ptr=allRows[p];'
-			. 'if(ptr.getAttribute("data-cls-status")!=="empty")continue;'
-			. 'var padj=ptr.getAttribute("data-cls-adjutancy");'
-			. 'if(!emptyByAdj[padj])emptyByAdj[padj]=[];'
-			. 'emptyByAdj[padj].push({id:parseInt(ptr.getAttribute("data-cls-id"),10),rank:parseInt(ptr.getAttribute("data-cls-rank"),10)});'
-			. '}'
-			. '}'
-			. 'for(var k in emptyByAdj){emptyByAdj[k].sort(function(a,b){return a.rank-b.rank;});}'
-			. 'var selSet={};'
-			. 'for(var s=0;s<ids.length;s++){selSet[String(ids[s])]=true;}'
-			. 'var anyOoO=false;'
-			. 'for(var adjKey in emptyByAdj){'
-			. 'var threshold=Infinity;'
-			. 'var rows=emptyByAdj[adjKey];'
-			. 'for(var t=0;t<rows.length;t++){'
-			. 'if(!selSet[String(rows[t].id)]){threshold=rows[t].rank;break;}'
-			. '}'
-			. 'for(var u=0;u<rows.length;u++){'
-			. 'if(selSet[String(rows[u].id)]&&rows[u].rank>threshold){anyOoO=true;break;}'
-			. '}'
-			. 'if(anyOoO)break;'
-			. '}'
-			// Build modal config dynamically — copy/style/reason-gate depend
-			// on whether OOO was detected. Confirmation always goes through
-			// the shared confirm-modal (issue #262 item 4) so the operator
-			// gets the same look-and-feel as the destructive transitions.
-			. 'var consequences=["' . esc_attr( $bulk_consequence_atomic ) . '","' . esc_attr( $bulk_consequence_log ) . '"];'
-			. 'if(anyOoO){consequences.push("' . esc_attr( $bulk_consequence_ooo ) . '");}'
-			. 'var bodyTpl="' . esc_attr( $bulk_modal_body_tpl ) . '";'
-			. 'var bodyText=bodyTpl.replace("{count}",String(ids.length)).replace("{date}",date).replace("{time}",time);'
-			. 'var modalCfg={'
-			. 'title:"' . esc_attr( $bulk_modal_title ) . '",'
-			. 'body:bodyText,'
-			. 'consequences:consequences,'
-			. 'cta:"' . esc_attr( $bulk_modal_cta ) . '",'
-			. 'style:anyOoO?"destructive":"primary",'
-			. 'reasonLabel:anyOoO?"' . esc_attr( $bulk_reason_label ) . '":""'
-			. '};'
-			. 'window.ffcRecruitmentAdmin.openConfirmModal(modalCfg,function(sharedReason){'
-			. 'var reasons={};'
-			. 'if(anyOoO){for(var k=0;k<ids.length;k++){reasons[String(ids[k])]=sharedReason;}}'
-			. 'status.textContent="…";'
-			. 'var bulkPayload={classification_ids:ids,date_to_assume:date,time_to_assume:time};'
-			. 'if(anyOoO){bulkPayload.out_of_order_reasons=reasons;}'
-			. 'fetch("' . esc_js( $bulk_url ) . '",{'
-			. 'method:"POST",'
-			. 'headers:{"X-WP-Nonce":"' . esc_js( $nonce ) . '","Content-Type":"application/json"},'
-			. 'body:JSON.stringify(bulkPayload),'
-			. 'credentials:"same-origin"'
-			. '}).then(function(r){return r.json().then(function(d){return{status:r.status,body:d};});}).then(function(o){'
-			. 'if(o.status>=200&&o.status<300){'
-			// Persist the just-used values so the next bulk call (on
-			// this notice or any other) opens with the same defaults.
-			// Most operators issue calls in batches with identical
-			// date/time; remembering saves a few keystrokes per round.
-			. 'try{localStorage.setItem("ffcRecruitmentLastBulkDate",date);localStorage.setItem("ffcRecruitmentLastBulkTime",time);}catch(e){}'
-			. 'location.reload();'
-			. '}'
-			. 'else{status.textContent="Error: "+((o.body&&o.body.message)?o.body.message:JSON.stringify(o.body));}'
-			. '}).catch(function(e){status.textContent="Network error: "+e.message;});'
-			. '});' // close openConfirmModal callback.
-			. '}'
-			// Per-row action handler (Call / Mark accepted / etc.).
-			. 'function ffcRecruitmentClsAct(btn){'
-			. 'var id=btn.getAttribute("data-cls-id");'
-			. 'var action=btn.getAttribute("data-cls-action");'
-			. 'var nonce="' . esc_js( $nonce ) . '";'
-			. 'var base="' . esc_js( $call_url ) . '";'
-			. 'var url,init;'
-			. 'if(action==="call"){'
-			// Out-of-order is detected BEFORE asking date/time so the
-			// admin sees the warning/justification step at the top of
-			// the flow rather than after committing to a schedule.
-			. 'var oooReason="";'
-			. 'var tr=document.querySelector(\'tr[data-cls-id="\'+id+\'"]\');'
-			. 'if(tr){'
-			. 'var rank=parseInt(tr.getAttribute("data-cls-rank"),10);'
-			. 'var adj=tr.getAttribute("data-cls-adjutancy");'
-			. 'var lowest=ffcRecruitmentLowestEmpty();'
-			. 'if(lowest[adj]&&rank>lowest[adj]){'
-			. 'if(!confirm("' . esc_attr( $confirm_ooo_single ) . '"))return;'
-			. 'oooReason=prompt("' . esc_attr( $prompt_ooo_reason ) . '")||"";'
-			. 'if(!oooReason.trim()){alert("' . esc_attr( $reason_required ) . '");return;}'
-			. '}'
-			. '}'
-			. 'var date=prompt("' . esc_js( __( 'Date to assume (YYYY-MM-DD):', 'ffcertificate' ) ) . '");'
-			. 'if(!date)return;'
-			. 'var time=prompt("' . esc_js( __( 'Time to assume (HH:MM):', 'ffcertificate' ) ) . '");'
-			. 'if(!time)return;'
-			. 'var fd=new FormData();fd.append("date_to_assume",date);fd.append("time_to_assume",time);'
-			. 'if(oooReason)fd.append("out_of_order_reason",oooReason);'
-			. 'url=base+id+"/call";init={method:"POST",headers:{"X-WP-Nonce":nonce},body:fd,credentials:"same-origin"};'
-			. '}else if(action==="cancel"){'
-			. 'var reason=prompt("' . esc_js( __( 'Cancellation reason (required):', 'ffcertificate' ) ) . '");'
-			. 'if(!reason)return;'
-			. 'var p=new URLSearchParams();p.append("status","empty");p.append("reason",reason);'
-			. 'url=base+id+"/status";init={method:"PUT",headers:{"X-WP-Nonce":nonce,"Content-Type":"application/x-www-form-urlencoded"},body:p.toString(),credentials:"same-origin"};'
-			. '}else if(action==="reopen"){'
-			. 'var reason2=prompt("' . esc_js( __( 'Reopen reason (required):', 'ffcertificate' ) ) . '");'
-			. 'if(!reason2)return;'
-			. 'var p2=new URLSearchParams();p2.append("status","empty");p2.append("reason",reason2);'
-			. 'url=base+id+"/status";init={method:"PUT",headers:{"X-WP-Nonce":nonce,"Content-Type":"application/x-www-form-urlencoded"},body:p2.toString(),credentials:"same-origin"};'
-			. '}else{'
-			. 'var p3=new URLSearchParams();p3.append("status",action);'
-			. 'url=base+id+"/status";init={method:"PUT",headers:{"X-WP-Nonce":nonce,"Content-Type":"application/x-www-form-urlencoded"},body:p3.toString(),credentials:"same-origin"};'
-			. '}'
-			. 'btn.disabled=true;'
-			. 'fetch(url,init).then(function(r){return r.json().then(function(d){return{status:r.status,body:d};});}).then(function(o){'
-			. 'if(o.status>=200&&o.status<300){location.reload();}'
-			. 'else{alert((o.body&&o.body.message)?o.body.message:JSON.stringify(o.body));btn.disabled=false;}'
-			. '}).catch(function(e){alert("Network error: "+e.message);btn.disabled=false;});'
-			. '}'
-			. '</script>';
-	}
-
-	/**
-	 * Inline JS that drives the per-row preview_status + reason
-	 * dropdowns on the Preliminary tab. Listens at `change` so the
-	 * REST PATCH fires once per commit. The reason dropdown is
-	 * filtered + cleared when the status flips so operators can't
-	 * pick a reason that doesn't apply to the chosen status.
-	 *
-	 * @return void
-	 */
-	private static function render_preview_status_script(): void {
-		$nonce    = wp_create_nonce( 'wp_rest' );
-		$base_url = esc_url_raw( rest_url( 'ffcertificate/v1/recruitment/classifications/' ) );
-		$settings = RecruitmentSettings::all();
-		// Per-status reason-required flags surfaced to the JS so the
-		// dropdown UX can preflight the requirement client-side
-		// instead of round-tripping the rejection from the server.
-		$required_map = array(
-			'denied'         => ! empty( $settings['preview_reason_required_denied'] ),
-			'granted'        => ! empty( $settings['preview_reason_required_granted'] ),
-			'appeal_denied'  => ! empty( $settings['preview_reason_required_appeal_denied'] ),
-			'appeal_granted' => ! empty( $settings['preview_reason_required_appeal_granted'] ),
-		);
-
-		echo '<script>'
-			. '(function(){'
-			. 'var ffcReasonRequired=' . wp_json_encode( $required_map ) . ';'
-			. 'function ffcRecruitmentPreviewMarkRequired(reasonSel,required){'
-			. 'reasonSel.style.outline=required?"2px solid #d63638":"";'
-			. 'reasonSel.style.outlineOffset=required?"2px":"";'
-			. 'reasonSel.setAttribute("aria-required",required?"true":"false");'
-			. '}'
-			. 'function ffcRecruitmentPreviewSync(row){'
-			. 'var id=row.getAttribute("data-cls-id");'
-			. 'var statusSel=row.querySelector(".ffc-cls-preview-status");'
-			. 'var reasonSel=row.querySelector(".ffc-cls-preview-reason");'
-			. 'var status=statusSel.value;'
-			. 'var reasonId=parseInt(reasonSel.value,10)||0;'
-			// Preflight: if the chosen status requires a reason and the
-			// dropdown is at "— none —", flag the dropdown red and skip
-			// the PATCH. The server-side check still runs as a backstop;
-			// this just spares the round-trip + alert() for the common
-			// case where the operator just hasn\'t picked yet.
-			. 'if(ffcReasonRequired[status]===true&&reasonId<=0){'
-			. 'ffcRecruitmentPreviewMarkRequired(reasonSel,true);'
-			. 'return;'
-			. '}'
-			. 'ffcRecruitmentPreviewMarkRequired(reasonSel,false);'
-			. 'var fd=new FormData();fd.append("preview_status",status);'
-			. 'if(reasonId>0){fd.append("preview_reason_id",String(reasonId));}'
-			. 'fetch(' . wp_json_encode( $base_url ) . '+id+"/preview-status",{'
-			. 'method:"POST",'
-			. 'headers:{"X-WP-Nonce":"' . esc_js( $nonce ) . '","X-HTTP-Method-Override":"PATCH"},'
-			. 'body:fd,'
-			. 'credentials:"same-origin"'
-			. '}).then(function(r){return r.json().then(function(d){return{status:r.status,body:d};});}).then(function(o){'
-			. 'if(o.status>=200&&o.status<300){return;}'
-			. 'alert((o.body&&o.body.message)?o.body.message:JSON.stringify(o.body));'
-			. '});'
-			. '}'
-			. 'document.querySelectorAll("tr[data-cls-id]").forEach(function(row){'
-			. 'var statusSel=row.querySelector(".ffc-cls-preview-status");'
-			. 'var reasonSel=row.querySelector(".ffc-cls-preview-reason");'
-			. 'if(!statusSel||!reasonSel)return;'
-			. 'statusSel.addEventListener("change",function(){'
-			. 'var status=statusSel.value;'
-			. 'var opts=reasonSel.querySelectorAll("option[data-applies]");'
-			. 'opts.forEach(function(opt){'
-			. 'var applies=(opt.getAttribute("data-applies")||"").split(",");'
-			. 'var allowed=applies.length===0||applies[0]===""||applies.indexOf(status)!==-1;'
-			. 'opt.style.display=allowed?"":"none";'
-			. '});'
-			. 'if(status==="empty"){reasonSel.value="0";reasonSel.disabled=true;ffcRecruitmentPreviewMarkRequired(reasonSel,false);}'
-			. 'else{reasonSel.disabled=false;'
-			// If the previously-selected reason is no longer allowed for
-			// the new status, reset to "none" so the server doesn't reject
-			// the PATCH with a status_mismatch.
-			. 'var current=reasonSel.options[reasonSel.selectedIndex];'
-			. 'if(current&&current.style.display==="none"){reasonSel.value="0";}'
-			. '}'
-			. 'ffcRecruitmentPreviewSync(row);'
-			. '});'
-			. 'reasonSel.addEventListener("change",function(){ffcRecruitmentPreviewSync(row);});'
-			. '});'
-			. '})();'
-			. '</script>';
-	}
 
 	/**
 	 * Build a {id → field} map by calling a repository getter for each id.
@@ -1565,6 +1188,50 @@ final class RecruitmentNoticeEditPageRenderer {
 			}
 		}
 		return $out;
+	}
+
+	/**
+	 * Authoritative out-of-order map for the client gate (#Item7).
+	 *
+	 * Groups every `empty` classification by adjutancy slug, each list sorted
+	 * ascending by rank. The client-side out-of-order detection in
+	 * {@see render_classification_actions_script()} previously scanned the
+	 * rendered DOM, but that table is both filtered (server-side) and
+	 * paginated — so a narrowed view drops the true lower-rank empties and the
+	 * called candidate looks like next-in-queue, skipping the justification
+	 * prompt. This map is built from the full, unfiltered/unpaginated
+	 * definitive list (the same queue the server's `find_lowest_rank_empty`
+	 * enforces) and handed to the JS via the panel's `data-ffc-empties`
+	 * attribute. Keyed by slug to match the rows' `data-cls-adjutancy`.
+	 *
+	 * @param array<int, object> $rows Definitive-list classification rows.
+	 * @phpstan-param list<ClassificationRow> $rows
+	 * @return array<string, array<int, array{id:int, rank:int}>>
+	 */
+	private static function compute_empties_by_adjutancy( array $rows ): array {
+		$empties = array_filter( $rows, static fn( $r ) => 'empty' === (string) $r->status );
+		if ( empty( $empties ) ) {
+			return array();
+		}
+
+		$adj_ids = array_map( static fn( $r ) => (int) $r->adjutancy_id, $empties );
+		$slugs   = self::lookup_map( array_unique( $adj_ids ), array( RecruitmentAdjutancyRepository::class, 'get_by_id' ), 'slug' );
+
+		$map = array();
+		foreach ( $empties as $r ) {
+			$slug           = $slugs[ (int) $r->adjutancy_id ] ?? '#' . (int) $r->adjutancy_id;
+			$map[ $slug ][] = array(
+				'id'   => (int) $r->id,
+				'rank' => (int) $r->rank,
+			);
+		}
+
+		foreach ( $map as &$list ) {
+			usort( $list, static fn( $a, $b ) => $a['rank'] <=> $b['rank'] );
+		}
+		unset( $list );
+
+		return $map;
 	}
 
 	/**

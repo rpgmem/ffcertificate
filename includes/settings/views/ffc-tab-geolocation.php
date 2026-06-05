@@ -67,8 +67,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 											name="ffc_locations[<?php echo esc_attr( $ffc_loc['id'] ); ?>][lat]"
 											value="<?php echo esc_attr( $ffc_loc['lat'] ); ?>"
 											step="any" min="-90" max="90"
-											style="width: 120px;"
-											class="ffc-location-field"
+											class="ffc-location-field ffc-set-w-120"
 											data-field="lat"
 											required>
 								</td>
@@ -77,8 +76,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 											name="ffc_locations[<?php echo esc_attr( $ffc_loc['id'] ); ?>][lng]"
 											value="<?php echo esc_attr( $ffc_loc['lng'] ); ?>"
 											step="any" min="-180" max="180"
-											style="width: 120px;"
-											class="ffc-location-field"
+											class="ffc-location-field ffc-set-w-120"
 											data-field="lng"
 											required>
 								</td>
@@ -87,8 +85,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 											name="ffc_locations[<?php echo esc_attr( $ffc_loc['id'] ); ?>][radius]"
 											value="<?php echo esc_attr( $ffc_loc['radius'] ); ?>"
 											step="any" min="1"
-											style="width: 100px;"
-											class="ffc-location-field"
+											class="ffc-location-field ffc-set-w-100"
 											data-field="radius"
 											required>
 								</td>
@@ -154,24 +151,21 @@ if ( ! defined( 'ABSPATH' ) ) {
 						<td>
 							<input type="number" name="ffc_location_new[lat]" value=""
 									step="any" min="-90" max="90"
-									style="width: 120px;"
-									class="ffc-location-new-field"
+									class="ffc-location-new-field ffc-set-w-120"
 									data-field="lat"
 									placeholder="<?php esc_attr_e( 'Latitude', 'ffcertificate' ); ?>">
 						</td>
 						<td>
 							<input type="number" name="ffc_location_new[lng]" value=""
 									step="any" min="-180" max="180"
-									style="width: 120px;"
-									class="ffc-location-new-field"
+									class="ffc-location-new-field ffc-set-w-120"
 									data-field="lng"
 									placeholder="<?php esc_attr_e( 'Longitude', 'ffcertificate' ); ?>">
 						</td>
 						<td>
 							<input type="number" name="ffc_location_new[radius]" value=""
 									step="any" min="1"
-									style="width: 100px;"
-									class="ffc-location-new-field"
+									class="ffc-location-new-field ffc-set-w-100"
 									data-field="radius"
 									placeholder="1000">
 						</td>
@@ -422,8 +416,8 @@ if ( ! defined( 'ABSPATH' ) ) {
 							<thead>
 								<tr>
 									<th scope="col"><?php esc_html_e( 'Failure case', 'ffcertificate' ); ?></th>
-									<th scope="col" style="text-align: center;"><?php esc_html_e( 'Allow', 'ffcertificate' ); ?></th>
-									<th scope="col" style="text-align: center;"><?php esc_html_e( 'Block', 'ffcertificate' ); ?></th>
+									<th scope="col" class="ffc-set-text-center"><?php esc_html_e( 'Allow', 'ffcertificate' ); ?></th>
+									<th scope="col" class="ffc-set-text-center"><?php esc_html_e( 'Block', 'ffcertificate' ); ?></th>
 								</tr>
 							</thead>
 							<tbody>
@@ -431,14 +425,14 @@ if ( ! defined( 'ABSPATH' ) ) {
 									<?php $case_value = $fallback_cases[ $case_key ] ?? 'block'; ?>
 									<tr>
 										<td><?php echo esc_html( $case_label ); ?></td>
-										<td style="text-align: center;">
+										<td class="ffc-set-text-center">
 											<input type="radio"
 												name="gps_fallback_cases[<?php echo esc_attr( $case_key ); ?>]"
 												value="allow"
 												<?php checked( $case_value, 'allow' ); ?>
 												aria-label="<?php echo esc_attr( sprintf( /* translators: %s = failure case label */ __( 'Allow access when %s', 'ffcertificate' ), $case_label ) ); ?>">
 										</td>
-										<td style="text-align: center;">
+										<td class="ffc-set-text-center">
 											<input type="radio"
 												name="gps_fallback_cases[<?php echo esc_attr( $case_key ); ?>]"
 												value="block"

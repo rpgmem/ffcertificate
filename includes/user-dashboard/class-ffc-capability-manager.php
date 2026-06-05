@@ -56,7 +56,7 @@ class CapabilityManager {
 	public const CERTIFICATE_CAPABILITIES = array(
 		'ffc_view_own_certificates',
 		'ffc_download_own_certificates',
-		'ffc_view_certificate_history',
+		'ffc_view_own_certificate_history',
 	);
 
 	/**
@@ -71,7 +71,7 @@ class CapabilityManager {
 		return array(
 			'view_own_certificates'     => 'ffc_view_own_certificates',
 			'download_own_certificates' => 'ffc_download_own_certificates',
-			'view_certificate_history'  => 'ffc_view_certificate_history',
+			'view_certificate_history'  => 'ffc_view_own_certificate_history',
 		);
 	}
 
@@ -124,11 +124,92 @@ class CapabilityManager {
 	}
 
 	/**
+	 * Taxonomy rename map (old => new) for the plugin-wide capability naming
+	 * standard `ffc_<action>_[own_]<domain>[_<qualifier>]`.
+	 *
+	 * ⚠ The `ffc_view_self_scheduling => ffc_view_own_appointments` entry
+	 * **reverses** the historical 4.5.0 migration
+	 * ({@see \FreeFormCertificate\Migrations\MigrationRenameCapabilities},
+	 * which mapped `ffc_view_own_appointments => ffc_view_self_scheduling`).
+	 * It is applied here under a **new** option flag so the two never collide.
+	 *
+	 * @since 6.9.0
+	 * @return array<string, string>
+	 */
+	public static function taxonomy_cap_renames(): array {
+		return array(
+			'ffc_view_certificate_history'    => 'ffc_view_own_certificate_history',
+			'ffc_view_self_scheduling'        => 'ffc_view_own_appointments',
+			'ffc_view_audience_bookings'      => 'ffc_view_own_audience_bookings',
+			'ffc_book_appointments'           => 'ffc_book_own_appointments',
+			'ffc_manage_self_scheduling'      => 'ffc_manage_appointments',
+			'ffc_certificate_update'          => 'ffc_edit_certificates',
+			'ffc_manage_user_custom_fields'   => 'ffc_manage_custom_fields',
+			'ffc_import_recruitment_csv'      => 'ffc_import_recruitment',
+			'ffc_call_recruitment_candidates' => 'ffc_call_recruitment',
+			'ffc_read_forms_api'              => 'ffc_view_forms_api',
+		);
+	}
+
+	/**
+	 * Idempotent migration that rewrites every taxonomy-renamed cap grant on
+	 * (1) every user's user-meta caps and (2) every role definition (including
+	 * `administrator` and the FFC roles), preserving the boolean value.
+	 *
+	 * Runs once per install via {@see \FreeFormCertificate\Loader} on
+	 * `plugins_loaded`, flagged by a dedicated option so it never re-runs and
+	 * never collides with the 4.5.0 rename migration.
+	 *
+	 * @since 6.9.0
+	 * @return array<string, int> Per-rename count of users migrated.
+	 */
+	public static function migrate_taxonomy_renames(): array {
+		$renames = self::taxonomy_cap_renames();
+		$counts  = array();
+
+		// 1. User-meta grants.
+		$users = get_users( array( 'fields' => 'ID' ) );
+		foreach ( $renames as $old => $new ) {
+			$counts[ $old ] = 0;
+			foreach ( $users as $user_id ) {
+				$user = get_userdata( (int) $user_id );
+				if ( ! $user ) {
+					continue;
+				}
+				if ( isset( $user->caps[ $old ] ) ) {
+					$value = (bool) $user->caps[ $old ];
+					$user->add_cap( $new, $value );
+					$user->remove_cap( $old );
+					++$counts[ $old ];
+				}
+			}
+		}
+
+		// 2. Role definitions — administrator + every FFC/custom role.
+		$wp_roles = wp_roles();
+		foreach ( array_keys( $wp_roles->roles ) as $role_slug ) {
+			$role = get_role( $role_slug );
+			if ( ! $role ) {
+				continue;
+			}
+			foreach ( $renames as $old => $new ) {
+				if ( isset( $role->capabilities[ $old ] ) ) {
+					$value = (bool) $role->capabilities[ $old ];
+					$role->add_cap( $new, $value );
+					$role->remove_cap( $old );
+				}
+			}
+		}
+
+		return $counts;
+	}
+
+	/**
 	 * All appointment-related capabilities
 	 */
 	public const APPOINTMENT_CAPABILITIES = array(
-		'ffc_book_appointments',
-		'ffc_view_self_scheduling',
+		'ffc_book_own_appointments',
+		'ffc_view_own_appointments',
 		'ffc_cancel_own_appointments',
 	);
 
@@ -138,7 +219,7 @@ class CapabilityManager {
 	 * @since 4.9.3
 	 */
 	public const AUDIENCE_CAPABILITIES = array(
-		'ffc_view_audience_bookings',
+		'ffc_view_own_audience_bookings',
 	);
 
 	/**
@@ -164,10 +245,10 @@ class CapabilityManager {
 		// module to a dedicated operator without giving full WP admin.
 		'ffc_manage_certificates',
 		'ffc_export_certificates',
-		'ffc_manage_self_scheduling',
+		'ffc_manage_appointments',
 		'ffc_manage_audiences',
 		'ffc_view_activity_log',
-		'ffc_manage_user_custom_fields',
+		'ffc_manage_custom_fields',
 		'ffc_view_as_user',
 		'ffc_manage_settings',
 
@@ -178,8 +259,8 @@ class CapabilityManager {
 		// stays as the umbrella cap (catch-all backwards-compat) for any
 		// endpoint that doesn't match one of the granular entries.
 		'ffc_view_recruitment',
-		'ffc_import_recruitment_csv',
-		'ffc_call_recruitment_candidates',
+		'ffc_import_recruitment',
+		'ffc_call_recruitment',
 		'ffc_view_recruitment_pii',
 		'ffc_manage_recruitment_settings',
 		'ffc_manage_recruitment_reasons',
@@ -188,7 +269,7 @@ class CapabilityManager {
 		// `FUTURE_CAPABILITIES` placeholder; gates the admin submission
 		// edit page so non-admin operators can fix typos in issued
 		// certificates without holding `manage_options`.
-		'ffc_certificate_update',
+		'ffc_edit_certificates',
 
 		// REST-API authentication caps (6.4.1). Granted to external
 		// integrators authenticating via WordPress Application Passwords
@@ -200,8 +281,366 @@ class CapabilityManager {
 		// lands here; calendars and appointments stay public-by-design
 		// because their REST routes serve the public booking shortcode
 		// directly. See issue #139.
-		'ffc_read_forms_api',
+		'ffc_view_forms_api',
+
+		// Read-only "view" caps — the *só vê* tier of the 3-state permission
+		// model (não vê / só vê / vê e edita). Each pairs with a `manage`
+		// cap above so a surface can be shown read-only without granting
+		// edit. Gate helper: `canView = manage_options || view || manage`.
+		'ffc_view_certificates',
+		'ffc_view_appointments',
+		'ffc_view_audiences',
+		'ffc_view_reregistration',
+		'ffc_view_custom_fields',
+		'ffc_view_settings',
+		'ffc_view_recruitment_settings',
+		'ffc_view_recruitment_reasons',
+
+		// URL shortener domain (GAP B). Its own view/manage pair so the
+		// Short URLs admin page is delegable without manage_options.
+		'ffc_view_url_shortener',
+		'ffc_manage_url_shortener',
+
+		// Destructive "delete" tier (GAP E). Each `ffc_delete_<domain>` cap
+		// gates the irreversible removal paths of its domain *strictly* — the
+		// delete handlers no longer fall back to the broader `manage` cap, so a
+		// role can hold `manage` (create/edit/configure) without being able to
+		// delete. The one-shot `migrate_delete_caps_grant()` migration grants
+		// each delete cap to everyone who already holds the matching `manage`
+		// cap, preserving current behavior on upgrade; admins restrict by
+		// removing the delete cap from a role. See `delete_cap_grant_map()`.
+		'ffc_delete_certificates',
+		'ffc_delete_appointments',
+		'ffc_delete_audiences',
+		'ffc_delete_reregistration',
+		'ffc_delete_custom_fields',
+		'ffc_delete_recruitment',
+		'ffc_delete_url_shortener',
+
+		// Granular "export" tier (GAP G). Each `ffc_export_<domain>` cap gates
+		// the bulk CSV data-extraction path of its domain *strictly* — the
+		// export handlers no longer fall back to the broader `manage` cap, so a
+		// role can hold `manage` (create/edit/configure) without being able to
+		// extract the dataset. Mirrors the long-standing `ffc_export_certificates`
+		// model. The one-shot `migrate_export_caps_grant()` migration grants each
+		// export cap to everyone who already holds the matching `manage` cap,
+		// preserving current behavior on upgrade; admins restrict by removing the
+		// export cap from a role. See `export_cap_grant_map()`. Certificates
+		// already has `ffc_export_certificates` above, and activity-log export
+		// stays under its read-only `ffc_view_activity_log` cap.
+		'ffc_export_appointments',
+		'ffc_export_reregistration',
+		'ffc_export_audiences',
+
+		// Granular "import" tier (GAP H). Bulk CSV ingestion is split out of
+		// `manage` for the domains where loading external data is the most
+		// sensitive action. `ffc_import_audiences` is new; `ffc_import_recruitment`
+		// already exists above but is tightened in 6.9.0 to *strict* enforcement —
+		// its handlers no longer accept the umbrella `ffc_manage_recruitment` as a
+		// fallback, joining `ffc_delete_recruitment` (GAP E) as a carved-out tier.
+		// The one-shot `migrate_import_caps_grant()` migration seeds each import
+		// cap onto every holder of the matching `manage` cap, preserving current
+		// behavior on upgrade. See `import_cap_grant_map()`.
+		'ffc_import_audiences',
 	);
+
+	/**
+	 * Map of `manage` cap => the `delete` cap it seeds on upgrade (GAP E).
+	 *
+	 * The one-shot migration {@see self::migrate_delete_caps_grant()} grants the
+	 * value cap to every user/role that already holds the key cap, so existing
+	 * managers keep their delete ability after the destructive tier is split out
+	 * of `manage`. To take delete away from a manager, remove the delete cap
+	 * from that role/user after the migration has run.
+	 *
+	 * @since 6.9.0
+	 * @return array<string, string>
+	 */
+	public static function delete_cap_grant_map(): array {
+		return array(
+			'ffc_manage_certificates'   => 'ffc_delete_certificates',
+			'ffc_manage_appointments'   => 'ffc_delete_appointments',
+			'ffc_manage_audiences'      => 'ffc_delete_audiences',
+			'ffc_manage_reregistration' => 'ffc_delete_reregistration',
+			'ffc_manage_custom_fields'  => 'ffc_delete_custom_fields',
+			'ffc_manage_recruitment'    => 'ffc_delete_recruitment',
+			'ffc_manage_url_shortener'  => 'ffc_delete_url_shortener',
+		);
+	}
+
+	/**
+	 * Idempotent migration that seeds each `ffc_delete_<domain>` cap onto every
+	 * user and role that already holds the matching `ffc_manage_<domain>` cap
+	 * (GAP E). Preserves current delete behavior when the destructive tier is
+	 * introduced; never removes a `manage` cap.
+	 *
+	 * Runs once per install via {@see \FreeFormCertificate\Loader} on
+	 * `plugins_loaded`, flagged by the `ffc_delete_caps_granted_v1` option.
+	 *
+	 * @since 6.9.0
+	 * @return array<string, int> Per-delete-cap count of users seeded.
+	 */
+	public static function migrate_delete_caps_grant(): array {
+		$map    = self::delete_cap_grant_map();
+		$counts = array();
+
+		// 1. User-meta grants.
+		$users = get_users( array( 'fields' => 'ID' ) );
+		foreach ( $map as $manage => $delete ) {
+			$counts[ $delete ] = 0;
+			foreach ( $users as $user_id ) {
+				$user = get_userdata( (int) $user_id );
+				if ( ! $user ) {
+					continue;
+				}
+				// Seed only where the manage cap is an explicit grant and the
+				// delete cap isn't already present (idempotent).
+				if ( isset( $user->caps[ $manage ] ) && true === $user->caps[ $manage ]
+					&& ! isset( $user->caps[ $delete ] ) ) {
+					$user->add_cap( $delete, true );
+					++$counts[ $delete ];
+				}
+			}
+		}
+
+		// 2. Role definitions — administrator + every FFC/custom role.
+		$wp_roles = wp_roles();
+		foreach ( array_keys( $wp_roles->roles ) as $role_slug ) {
+			$role = get_role( $role_slug );
+			if ( ! $role ) {
+				continue;
+			}
+			foreach ( $map as $manage => $delete ) {
+				if ( isset( $role->capabilities[ $manage ] ) && true === $role->capabilities[ $manage ]
+					&& ! isset( $role->capabilities[ $delete ] ) ) {
+					$role->add_cap( $delete, true );
+				}
+			}
+		}
+
+		return $counts;
+	}
+
+	/**
+	 * Map of `manage` cap => the `export` cap it seeds on upgrade (GAP G).
+	 *
+	 * The one-shot migration {@see self::migrate_export_caps_grant()} grants the
+	 * value cap to every user/role that already holds the key cap, so existing
+	 * managers keep their bulk-export ability after the export tier is split out
+	 * of `manage`. To take export away from a manager, remove the export cap from
+	 * that role/user after the migration has run.
+	 *
+	 * Certificates is intentionally absent: `ffc_export_certificates` predates
+	 * this split and has always been a standalone cap (never granted by
+	 * `ffc_manage_certificates`), so there is nothing to seed for it.
+	 *
+	 * @since 6.9.0
+	 * @return array<string, string>
+	 */
+	public static function export_cap_grant_map(): array {
+		return array(
+			'ffc_manage_appointments'   => 'ffc_export_appointments',
+			'ffc_manage_reregistration' => 'ffc_export_reregistration',
+			'ffc_manage_audiences'      => 'ffc_export_audiences',
+		);
+	}
+
+	/**
+	 * Idempotent migration that seeds each `ffc_export_<domain>` cap onto every
+	 * user and role that already holds the matching `ffc_manage_<domain>` cap
+	 * (GAP G). Preserves current export behavior when the export tier is split
+	 * out of `manage`; never removes a `manage` cap.
+	 *
+	 * Runs once per install via {@see \FreeFormCertificate\Loader} on
+	 * `plugins_loaded`, flagged by the `ffc_export_caps_granted_v1` option.
+	 *
+	 * @since 6.9.0
+	 * @return array<string, int> Per-export-cap count of users seeded.
+	 */
+	public static function migrate_export_caps_grant(): array {
+		$map    = self::export_cap_grant_map();
+		$counts = array();
+
+		// 1. User-meta grants.
+		$users = get_users( array( 'fields' => 'ID' ) );
+		foreach ( $map as $manage => $export ) {
+			$counts[ $export ] = 0;
+			foreach ( $users as $user_id ) {
+				$user = get_userdata( (int) $user_id );
+				if ( ! $user ) {
+					continue;
+				}
+				// Seed only where the manage cap is an explicit grant and the
+				// export cap isn't already present (idempotent).
+				if ( isset( $user->caps[ $manage ] ) && true === $user->caps[ $manage ]
+					&& ! isset( $user->caps[ $export ] ) ) {
+					$user->add_cap( $export, true );
+					++$counts[ $export ];
+				}
+			}
+		}
+
+		// 2. Role definitions — administrator + every FFC/custom role.
+		$wp_roles = wp_roles();
+		foreach ( array_keys( $wp_roles->roles ) as $role_slug ) {
+			$role = get_role( $role_slug );
+			if ( ! $role ) {
+				continue;
+			}
+			foreach ( $map as $manage => $export ) {
+				if ( isset( $role->capabilities[ $manage ] ) && true === $role->capabilities[ $manage ]
+					&& ! isset( $role->capabilities[ $export ] ) ) {
+					$role->add_cap( $export, true );
+				}
+			}
+		}
+
+		return $counts;
+	}
+
+	/**
+	 * Map of `manage` cap => the `import` cap it seeds on upgrade (GAP H).
+	 *
+	 * The one-shot migration {@see self::migrate_import_caps_grant()} grants the
+	 * value cap to every user/role that already holds the key cap, so existing
+	 * managers keep their bulk-import ability after the import tier is enforced
+	 * strictly. Covers the newly-split `ffc_import_audiences` and the
+	 * `ffc_import_recruitment` cap whose umbrella fallback is removed in 6.9.0
+	 * (custom roles relying on `ffc_manage_recruitment` to import keep working).
+	 * To take import away from a manager, remove the import cap afterward.
+	 *
+	 * @since 6.9.0
+	 * @return array<string, string>
+	 */
+	public static function import_cap_grant_map(): array {
+		return array(
+			'ffc_manage_audiences'   => 'ffc_import_audiences',
+			'ffc_manage_recruitment' => 'ffc_import_recruitment',
+		);
+	}
+
+	/**
+	 * Idempotent migration that seeds each `ffc_import_<domain>` cap onto every
+	 * user and role that already holds the matching `ffc_manage_<domain>` cap
+	 * (GAP H). Preserves current import behavior when the import tier is enforced
+	 * strictly; never removes a `manage` cap.
+	 *
+	 * Runs once per install via {@see \FreeFormCertificate\Loader} on
+	 * `plugins_loaded`, flagged by the `ffc_import_caps_granted_v1` option.
+	 *
+	 * @since 6.9.0
+	 * @return array<string, int> Per-import-cap count of users seeded.
+	 */
+	public static function migrate_import_caps_grant(): array {
+		$map    = self::import_cap_grant_map();
+		$counts = array();
+
+		// 1. User-meta grants.
+		$users = get_users( array( 'fields' => 'ID' ) );
+		foreach ( $map as $manage => $import ) {
+			$counts[ $import ] = 0;
+			foreach ( $users as $user_id ) {
+				$user = get_userdata( (int) $user_id );
+				if ( ! $user ) {
+					continue;
+				}
+				// Seed only where the manage cap is an explicit grant and the
+				// import cap isn't already present (idempotent).
+				if ( isset( $user->caps[ $manage ] ) && true === $user->caps[ $manage ]
+					&& ! isset( $user->caps[ $import ] ) ) {
+					$user->add_cap( $import, true );
+					++$counts[ $import ];
+				}
+			}
+		}
+
+		// 2. Role definitions — administrator + every FFC/custom role.
+		$wp_roles = wp_roles();
+		foreach ( array_keys( $wp_roles->roles ) as $role_slug ) {
+			$role = get_role( $role_slug );
+			if ( ! $role ) {
+				continue;
+			}
+			foreach ( $map as $manage => $import ) {
+				if ( isset( $role->capabilities[ $manage ] ) && true === $role->capabilities[ $manage ]
+					&& ! isset( $role->capabilities[ $import ] ) ) {
+					$role->add_cap( $import, true );
+				}
+			}
+		}
+
+		return $counts;
+	}
+
+	/**
+	 * Map of source cap => the recruitment-reasons cap it seeds on upgrade
+	 * (GAP I). Unlike the delete/export/import maps (all keyed on a `manage`
+	 * cap), reasons split into a *pair*: the read tier is seeded from whoever
+	 * could already see the Reasons tab (`ffc_view_recruitment`), and the edit
+	 * tier from whoever could already edit reasons via the umbrella
+	 * (`ffc_manage_recruitment`). This preserves both read and edit access when
+	 * the reasons sub-domain is carved out of the page/umbrella caps.
+	 *
+	 * @since 6.9.0
+	 * @return array<string, string>
+	 */
+	public static function reasons_cap_grant_map(): array {
+		return array(
+			'ffc_view_recruitment'   => 'ffc_view_recruitment_reasons',
+			'ffc_manage_recruitment' => 'ffc_manage_recruitment_reasons',
+		);
+	}
+
+	/**
+	 * Idempotent migration that seeds the recruitment-reasons caps onto every
+	 * user/role that already holds the matching source cap (GAP I). Preserves
+	 * current read/edit access when the Reasons tab is moved onto its own strict
+	 * 3-state tier; never removes a source cap.
+	 *
+	 * Runs once per install via {@see \FreeFormCertificate\Loader} on
+	 * `plugins_loaded`, flagged by the `ffc_reasons_caps_wired_v1` option.
+	 *
+	 * @since 6.9.0
+	 * @return array<string, int> Per-reasons-cap count of users seeded.
+	 */
+	public static function migrate_reasons_caps_grant(): array {
+		$map    = self::reasons_cap_grant_map();
+		$counts = array();
+
+		// 1. User-meta grants.
+		$users = get_users( array( 'fields' => 'ID' ) );
+		foreach ( $map as $source => $reasons_cap ) {
+			$counts[ $reasons_cap ] = 0;
+			foreach ( $users as $user_id ) {
+				$user = get_userdata( (int) $user_id );
+				if ( ! $user ) {
+					continue;
+				}
+				if ( isset( $user->caps[ $source ] ) && true === $user->caps[ $source ]
+					&& ! isset( $user->caps[ $reasons_cap ] ) ) {
+					$user->add_cap( $reasons_cap, true );
+					++$counts[ $reasons_cap ];
+				}
+			}
+		}
+
+		// 2. Role definitions — administrator + every FFC/custom role.
+		$wp_roles = wp_roles();
+		foreach ( array_keys( $wp_roles->roles ) as $role_slug ) {
+			$role = get_role( $role_slug );
+			if ( ! $role ) {
+				continue;
+			}
+			foreach ( $map as $source => $reasons_cap ) {
+				if ( isset( $role->capabilities[ $source ] ) && true === $role->capabilities[ $source ]
+					&& ! isset( $role->capabilities[ $reasons_cap ] ) ) {
+					$role->add_cap( $reasons_cap, true );
+				}
+			}
+		}
+
+		return $counts;
+	}
 
 	/**
 	 * Slug for the dedicated recruitment-manager role.
@@ -221,7 +660,7 @@ class CapabilityManager {
 	 * - `ffc_reregistration` (4.9.3): never wired. Audience-targeting on
 	 *   reregistration objects already filters who can submit each form;
 	 *   adding a per-user cap on top was redundant. Removed in 6.2.0.
-	 * - `ffc_certificate_update` (4.9.3): wired in 6.2.0 as a real admin
+	 * - `ffc_edit_certificates` (4.9.3): wired in 6.2.0 as a real admin
 	 *   cap (see `ADMIN_CAPABILITIES` above).
 	 *
 	 * @since 4.9.3
@@ -234,7 +673,7 @@ class CapabilityManager {
 	 * Get all FFC capabilities consolidated
 	 *
 	 * @since 4.9.3
-	 * @return array<int, string> All FFC capability names
+	 * @return list<string> All FFC capability names
 	 */
 	public static function get_all_capabilities(): array {
 		return array_merge(
@@ -709,35 +1148,60 @@ class CapabilityManager {
 	private static function module_roles_definition(): array {
 		return array(
 			// ── Cross-module roles ───────────────────────────────────────
+			// `ffc_administrator` is the aggregator (GAP F): a full FFC admin
+			// that carries *every* FFC capability — the complete admin surface
+			// plus the end-user self-service (`own_`) caps — but deliberately
+			// NOT `manage_options`, so a site can delegate full plugin
+			// administration without handing out WordPress super-admin. Its cap
+			// set is the live `get_all_capabilities()` list, so any capability
+			// added in a future release is granted to it automatically.
+			'ffc_administrator'           => array(
+				'label' => __( 'FFC Administrator', 'ffcertificate' ),
+				'caps'  => self::get_all_capabilities(),
+			),
+			// Each manage role also carries its matching `view` cap so the
+			// admin menu/tab (gated by a single view-cap string) stays visible
+			// to managers — the inline write gates still require the manage cap.
 			'ffc_certificate_manager'     => array(
 				'label' => __( 'FFC Certificate Manager', 'ffcertificate' ),
-				'caps'  => array( 'ffc_manage_certificates', 'ffc_export_certificates', 'ffc_certificate_update' ),
+				'caps'  => array( 'ffc_view_certificates', 'ffc_manage_certificates', 'ffc_export_certificates', 'ffc_edit_certificates', 'ffc_delete_certificates' ),
 			),
 			'ffc_self_scheduling_manager' => array(
 				'label' => __( 'FFC Self-Scheduling Manager', 'ffcertificate' ),
-				'caps'  => array( 'ffc_manage_self_scheduling', 'ffc_scheduling_bypass', 'ffc_export_certificates' ),
+				'caps'  => array( 'ffc_view_appointments', 'ffc_manage_appointments', 'ffc_delete_appointments', 'ffc_scheduling_bypass', 'ffc_export_appointments' ),
 			),
 			'ffc_audience_manager'        => array(
 				'label' => __( 'FFC Audience Manager', 'ffcertificate' ),
-				'caps'  => array( 'ffc_manage_audiences' ),
+				'caps'  => array( 'ffc_view_audiences', 'ffc_manage_audiences', 'ffc_delete_audiences', 'ffc_export_audiences', 'ffc_import_audiences' ),
 			),
 			'ffc_reregistration_manager'  => array(
 				'label' => __( 'FFC Reregistration Manager', 'ffcertificate' ),
-				'caps'  => array( 'ffc_manage_reregistration' ),
+				'caps'  => array( 'ffc_view_reregistration', 'ffc_manage_reregistration', 'ffc_delete_reregistration', 'ffc_export_reregistration' ),
 			),
 			'ffc_operator'                => array(
 				'label' => __( 'FFC Operator (read-only)', 'ffcertificate' ),
-				'caps'  => array( 'ffc_view_activity_log', 'ffc_view_audience_bookings', 'ffc_view_self_scheduling', 'ffc_view_recruitment' ),
+				'caps'  => array(
+					'ffc_view_certificates',
+					'ffc_view_appointments',
+					'ffc_view_audiences',
+					'ffc_view_reregistration',
+					'ffc_view_custom_fields',
+					'ffc_view_activity_log',
+					'ffc_view_recruitment',
+					'ffc_view_recruitment_settings',
+					'ffc_view_recruitment_reasons',
+					'ffc_view_url_shortener',
+				),
 			),
 
 			// ── Recruitment tier ─────────────────────────────────────────
 			'ffc_recruitment_auditor'     => array(
 				'label' => __( 'FFC Recruitment Auditor', 'ffcertificate' ),
-				'caps'  => array( 'ffc_view_recruitment' ),
+				'caps'  => array( 'ffc_view_recruitment', 'ffc_view_recruitment_reasons' ),
 			),
 			'ffc_recruitment_operator'    => array(
 				'label' => __( 'FFC Recruitment Operator', 'ffcertificate' ),
-				'caps'  => array( 'ffc_view_recruitment', 'ffc_call_recruitment_candidates' ),
+				'caps'  => array( 'ffc_view_recruitment', 'ffc_call_recruitment', 'ffc_view_recruitment_reasons' ),
 			),
 			// `ffc_recruitment_manager` already exists (6.0.0). It will be
 			// upgraded by `register_recruitment_manager_role()` — extra caps
@@ -746,11 +1210,14 @@ class CapabilityManager {
 				'label' => __( 'FFC Recruitment Admin', 'ffcertificate' ),
 				'caps'  => array(
 					'ffc_view_recruitment',
-					'ffc_call_recruitment_candidates',
-					'ffc_import_recruitment_csv',
+					'ffc_call_recruitment',
+					'ffc_import_recruitment',
 					'ffc_view_recruitment_pii',
 					'ffc_manage_recruitment',
+					'ffc_delete_recruitment',
+					'ffc_view_recruitment_settings',
 					'ffc_manage_recruitment_settings',
+					'ffc_view_recruitment_reasons',
 					'ffc_manage_recruitment_reasons',
 				),
 			),
@@ -799,9 +1266,15 @@ class CapabilityManager {
 		if ( $existing_manager ) {
 			$tier_2_caps = array(
 				'ffc_view_recruitment',
-				'ffc_call_recruitment_candidates',
-				'ffc_import_recruitment_csv',
+				'ffc_call_recruitment',
+				'ffc_import_recruitment',
 				'ffc_view_recruitment_pii',
+				'ffc_delete_recruitment',
+				// GAP I: reasons split into their own strict tier. A plain
+				// Recruitment Manager previously edited reasons via the umbrella;
+				// carry both reasons caps explicitly so that keeps working.
+				'ffc_view_recruitment_reasons',
+				'ffc_manage_recruitment_reasons',
 			);
 			foreach ( $tier_2_caps as $cap ) {
 				if ( ! isset( $existing_manager->capabilities[ $cap ] ) ) {
@@ -849,13 +1322,7 @@ class CapabilityManager {
 	 * @return void
 	 */
 	public static function relabel_ffc_roles( \WP_Roles $wp_roles ): void {
-		$labels = array(
-			'ffc_user'                     => __( 'FFC User', 'ffcertificate' ),
-			self::RECRUITMENT_MANAGER_ROLE => __( 'Recruitment Manager', 'ffcertificate' ),
-		);
-		foreach ( self::module_roles_definition() as $slug => $def ) {
-			$labels[ $slug ] = $def['label'];
-		}
+		$labels = self::ffc_managed_role_labels();
 
 		foreach ( $labels as $slug => $label ) {
 			if ( isset( $wp_roles->roles[ $slug ] ) ) {
@@ -865,5 +1332,28 @@ class CapabilityManager {
 				$wp_roles->role_names[ $slug ] = $label;
 			}
 		}
+	}
+
+	/**
+	 * Canonical map of every FFC-managed role slug → display label.
+	 *
+	 * The authoritative set of roles the plugin owns: `ffc_user`, the
+	 * recruitment manager, and the 6.2.0 module/recruitment-tier roles. This
+	 * is the list the role-capability editor (Settings → User Access) is
+	 * allowed to touch — independent of whichever caps a role currently
+	 * carries, so a role whose FFC caps were all unchecked still appears.
+	 *
+	 * @since 6.9.0
+	 * @return array<string, string>
+	 */
+	public static function ffc_managed_role_labels(): array {
+		$labels = array(
+			'ffc_user'                     => __( 'FFC User', 'ffcertificate' ),
+			self::RECRUITMENT_MANAGER_ROLE => __( 'Recruitment Manager', 'ffcertificate' ),
+		);
+		foreach ( self::module_roles_definition() as $slug => $def ) {
+			$labels[ $slug ] = $def['label'];
+		}
+		return $labels;
 	}
 }

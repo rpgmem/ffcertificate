@@ -76,7 +76,17 @@ jobs:
           # host na primeira conexão e exige match em conexões futuras.
           # Mais seguro que `no` (vulnerável a MITM); funciona quando o
           # `ssh-keyscan` acima falhou silenciosamente.
-          rsync -avz --delete \
+          #
+          # `ConnectTimeout` + retry: a hospedagem de testes ocasionalmente
+          # recusa/derruba a conexão (servidor reiniciando, blip de rede).
+          # Sem timeout explícito o connect espera ~2min no SYN e o deploy
+          # falha num único blip — deixando o testes numa versão antiga. Aqui
+          # cada tentativa falha rápido (30s) e o rsync (idempotente) é
+          # repetido até 3× com backoff antes de dar o build como falho.
+          SSH_CMD="ssh -i ~/.ssh/deploy_key -p $PORT -o StrictHostKeyChecking=accept-new -o ConnectTimeout=30 -o ServerAliveInterval=15 -o ServerAliveCountMax=4"
+          attempt=1
+          max_attempts=3
+          until rsync -avz --delete \
             --exclude='.git/' \
             --exclude='.github/' \
             --exclude='.githooks/' \
@@ -111,8 +121,18 @@ jobs:
             --exclude='CONTRIBUTING.md' \
             --exclude='SECURITY.md' \
             --exclude='html/' \
-            -e "ssh -i ~/.ssh/deploy_key -p $PORT -o StrictHostKeyChecking=accept-new" \
-            ./ "${SSH_USER}@${SSH_HOST}:${REMOTE_PATH}/"
+            -e "$SSH_CMD" \
+            ./ "${SSH_USER}@${SSH_HOST}:${REMOTE_PATH}/"; do
+            status=$?
+            if [ "$attempt" -ge "$max_attempts" ]; then
+              echo "::error::rsync to testes failed after ${max_attempts} attempts (last exit ${status})."
+              exit "$status"
+            fi
+            backoff=$((attempt * 20))
+            echo "::warning::rsync attempt ${attempt} failed (exit ${status}); retrying in ${backoff}s…"
+            sleep "$backoff"
+            attempt=$((attempt + 1))
+          done
 
       - name: Cleanup SSH key
         if: always()

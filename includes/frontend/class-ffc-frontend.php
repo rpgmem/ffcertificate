@@ -187,6 +187,20 @@ class Frontend {
 			// ffc-core dep: ffc-geofence-frontend.js calls FFC.request() (6 sites incl. the pre-flight telemetry endpoint added in 6.6.4 follow-up).
 			wp_enqueue_script( 'ffc-geofence-frontend', FFC_PLUGIN_URL . "assets/js/ffc-geofence-frontend{$s}.js", array( 'jquery', 'ffc-core' ), FFC_VERSION, true );
 
+			// Validation modules split out of the former monolith. Each extends
+			// the window.FFCGeofence object (Object.assign) and depends on the
+			// core handle so it loads after it. The geofence config localize
+			// stays on 'ffc-geofence-frontend'.
+			foreach (
+				array(
+					'ffc-geofence-datetime',
+					'ffc-geofence-gps',
+					'ffc-geofence-preflight',
+				) as $ffc_geofence_module
+			) {
+				wp_enqueue_script( $ffc_geofence_module, FFC_PLUGIN_URL . "assets/js/{$ffc_geofence_module}{$s}.js", array( 'jquery', 'ffc-geofence-frontend' ), FFC_VERSION, true );
+			}
+
 			// Pass geofence configurations to frontend.
 			$this->localize_geofence_config();
 
@@ -330,6 +344,28 @@ class Frontend {
 				FFC_VERSION,
 				true
 			);
+
+			// Flow modules split out of the former monolith. Each depends on
+			// 'ffc-csv-download' (the shared core that owns window.FFCCsv) and
+			// reads the localized config from it — no per-file localize needed.
+			foreach (
+				array(
+					'ffc-csv-info-screen',
+					'ffc-csv-cert-preview',
+					'ffc-csv-download-flow',
+					'ffc-csv-open-early',
+					'ffc-csv-extend-end',
+					'ffc-csv-schedule-exception',
+				) as $ffc_csv_module
+			) {
+				wp_enqueue_script(
+					$ffc_csv_module,
+					FFC_PLUGIN_URL . "assets/js/{$ffc_csv_module}{$s}.js",
+					array( 'jquery', 'ffc-core', 'ffc-csv-download' ),
+					FFC_VERSION,
+					true
+				);
+			}
 			wp_localize_script(
 				'ffc-csv-download',
 				'ffc_csv_download',

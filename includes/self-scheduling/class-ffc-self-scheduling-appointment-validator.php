@@ -200,7 +200,7 @@ class AppointmentValidator {
 
 		// 12. Validate user permissions (capability AND calendar config)
 		if ( is_user_logged_in() && ! $has_bypass ) {
-			if ( ! current_user_can( 'ffc_book_appointments' ) ) {
+			if ( ! current_user_can( 'ffc_book_own_appointments' ) ) {
 				return new \WP_Error(
 					'capability_denied',
 					__( 'You do not have permission to book appointments.', 'ffcertificate' )

@@ -424,7 +424,7 @@
                 detailsHtml += ffcCalendar.strings.downloadReceipt;
                 detailsHtml += '</button>';
             } else if (data.receipt_url) {
-                detailsHtml += ' <a href="' + esc(data.receipt_url) + '" class="ffc-btn ffc-btn-secondary" target="_blank">';
+                detailsHtml += ' <a href="' + esc(data.receipt_url) + '" class="ffc-btn ffc-btn-secondary" target="_blank" rel="noopener noreferrer">';
                 detailsHtml += ffcCalendar.strings.downloadReceipt;
                 detailsHtml += '</a>';
             }

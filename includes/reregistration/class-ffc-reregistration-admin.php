@@ -49,6 +49,23 @@ class ReregistrationAdmin {
 	private const CAPABILITY = 'ffc_manage_reregistration';
 
 	/**
+	 * Read-only "view" capability — the *só vê* tier of the 3-state model.
+	 * Opens the campaigns list/submissions read-only; every write still
+	 * requires {@see self::CAPABILITY}.
+	 */
+	private const VIEW_CAPABILITY = 'ffc_view_reregistration';
+
+	/**
+	 * Whether the current user can edit (create/update/delete) — the manage
+	 * tier. WP admins always pass.
+	 *
+	 * @return bool
+	 */
+	private function can_edit(): bool {
+		return \FreeFormCertificate\Core\Utils::current_user_can_admin_or( self::CAPABILITY );
+	}
+
+	/**
 	 * AJAX handler (lazily created in init()).
 	 *
 	 * @var ReregistrationAjaxHandler|null
@@ -84,7 +101,7 @@ class ReregistrationAdmin {
 		add_menu_page(
 			__( 'Reregistration', 'ffcertificate' ),
 			__( 'Reregistration', 'ffcertificate' ),
-			self::CAPABILITY,
+			self::VIEW_CAPABILITY,
 			self::MENU_SLUG,
 			array( $this, 'render_page' ),
 			'dashicons-update-alt',
@@ -98,7 +115,7 @@ class ReregistrationAdmin {
 			self::MENU_SLUG,
 			__( 'Campaigns', 'ffcertificate' ),
 			__( 'Campaigns', 'ffcertificate' ),
-			self::CAPABILITY,
+			self::VIEW_CAPABILITY,
 			self::MENU_SLUG,
 			array( $this, 'render_page' )
 		);
@@ -108,7 +125,7 @@ class ReregistrationAdmin {
 			self::MENU_SLUG,
 			__( 'Custom Fields', 'ffcertificate' ),
 			__( 'Custom Fields', 'ffcertificate' ),
-			'manage_options',
+			self::CAPABILITY,
 			'ffc-custom-fields',
 			array( ReregistrationCustomFieldsPage::class, 'render' )
 		);
@@ -193,12 +210,19 @@ class ReregistrationAdmin {
 	 * @return void
 	 */
 	public function render_page(): void {
-		if ( ! current_user_can( self::CAPABILITY ) ) {
+		// 3-state: viewers (ffc_view_reregistration) reach the list/submissions
+		// read-only; the campaign editor (new/edit) needs the manage cap.
+		if ( ! \FreeFormCertificate\Core\Utils::current_user_can_admin_or( self::VIEW_CAPABILITY ) ) {
 			wp_die( esc_html__( 'Permission denied.', 'ffcertificate' ) );
 		}
 
         // phpcs:ignore WordPress.Security.NonceVerification.Recommended
 		$view = \FreeFormCertificate\Core\Utils::get_get_string( 'view', 'list' );
+
+		// The editor form is a write surface — deny read-only viewers.
+		if ( in_array( $view, array( 'new', 'edit' ), true ) && ! $this->can_edit() ) {
+			wp_die( esc_html__( 'Permission denied.', 'ffcertificate' ) );
+		}
         // phpcs:ignore WordPress.Security.NonceVerification.Recommended
 		$id = isset( $_GET['id'] ) ? absint( $_GET['id'] ) : 0;
 
@@ -248,10 +272,13 @@ class ReregistrationAdmin {
 		$items     = ReregistrationRepository::get_all( $filters );
 		$audiences = AudienceRepository::get_hierarchical();
 		$new_url   = admin_url( 'admin.php?page=' . self::MENU_SLUG . '&view=new' );
+		$can_edit  = $this->can_edit();
 
 		?>
 		<h1 class="wp-heading-inline"><?php esc_html_e( 'Reregistration', 'ffcertificate' ); ?></h1>
+		<?php if ( $can_edit ) : ?>
 		<a href="<?php echo esc_url( $new_url ); ?>" class="page-title-action"><?php esc_html_e( 'Add New', 'ffcertificate' ); ?></a>
+		<?php endif; ?>
 		<hr class="wp-header-end">
 
 		<?php settings_errors( 'ffc_reregistration' ); ?>
@@ -293,7 +320,7 @@ class ReregistrationAdmin {
 					<tr><td colspan="7"><?php esc_html_e( 'No reregistrations found.', 'ffcertificate' ); ?></td></tr>
 				<?php else : ?>
 					<?php foreach ( $items as $item ) : ?>
-						<?php $this->render_list_row( $item ); ?>
+						<?php $this->render_list_row( $item, $can_edit ); ?>
 					<?php endforeach; ?>
 				<?php endif; ?>
 			</tbody>
@@ -304,13 +331,15 @@ class ReregistrationAdmin {
 	/**
 	 * Render a single list row.
 	 *
-	 * @param object $item Reregistration object.
+	 * @param object $item     Reregistration object.
+	 * @param bool   $can_edit Whether the current user can edit (manage tier).
 	 * @phpstan-param ReregistrationRow $item
 	 * @return void
 	 */
-	private function render_list_row( object $item ): void {
+	private function render_list_row( object $item, bool $can_edit = true ): void {
 		$edit_url   = admin_url( 'admin.php?page=' . self::MENU_SLUG . '&view=edit&id=' . $item->id );
 		$subs_url   = admin_url( 'admin.php?page=' . self::MENU_SLUG . '&view=submissions&id=' . $item->id );
+		$title_url  = $can_edit ? $edit_url : $subs_url;
 		$delete_url = wp_nonce_url(
 			admin_url( 'admin.php?page=' . self::MENU_SLUG . '&action=delete&id=' . $item->id ),
 			'delete_reregistration_' . $item->id
@@ -326,7 +355,7 @@ class ReregistrationAdmin {
 		?>
 		<tr>
 			<td class="column-title">
-				<strong><a href="<?php echo esc_url( $edit_url ); ?>"><?php echo esc_html( $item->title ); ?></a></strong>
+				<strong><a href="<?php echo esc_url( $title_url ); ?>"><?php echo esc_html( $item->title ); ?></a></strong>
 			</td>
 			<td class="column-audience">
 				<?php if ( empty( $audiences ) ) : ?>
@@ -359,15 +388,20 @@ class ReregistrationAdmin {
 				</a>
 			</td>
 			<td class="column-auto">
-				<?php echo $item->auto_approve ? '<span class="dashicons dashicons-yes-alt" style="color:#00a32a"></span>' : '<span class="dashicons dashicons-minus" style="color:#a7aaad"></span>'; ?>
+				<?php echo $item->auto_approve ? '<span class="dashicons dashicons-yes-alt ffc-rereg-yes"></span>' : '<span class="dashicons dashicons-minus ffc-rereg-muted"></span>'; ?>
 			</td>
 			<td class="column-actions">
+				<?php if ( $can_edit ) : ?>
 				<a href="<?php echo esc_url( $edit_url ); ?>"><?php esc_html_e( 'Edit', 'ffcertificate' ); ?></a> |
-				<a href="<?php echo esc_url( $subs_url ); ?>"><?php esc_html_e( 'Submissions', 'ffcertificate' ); ?></a> |
+				<?php endif; ?>
+				<a href="<?php echo esc_url( $subs_url ); ?>"><?php esc_html_e( 'Submissions', 'ffcertificate' ); ?></a>
+				<?php if ( $can_edit ) : ?>
+				|
 				<a href="<?php echo esc_url( $delete_url ); ?>" class="delete-link"
 					onclick="return confirm(ffcReregistrationAdmin?.strings?.confirmDelete || 'Delete?');">
 					<?php esc_html_e( 'Delete', 'ffcertificate' ); ?>
 				</a>
+				<?php endif; ?>
 			</td>
 		</tr>
 		<?php
@@ -545,6 +579,8 @@ class ReregistrationAdmin {
 			wp_die( esc_html__( 'Reregistration not found.', 'ffcertificate' ) );
 		}
 
+		$can_edit = $this->can_edit();
+
         // phpcs:ignore WordPress.Security.NonceVerification.Recommended
 		$status_filter = \FreeFormCertificate\Core\Utils::get_get_string( 'sub_status' );
 		if ( '' === $status_filter ) {
@@ -600,7 +636,7 @@ class ReregistrationAdmin {
 
 		<!-- Filters & actions -->
 		<div class="tablenav top">
-			<form method="get" class="ffc-rereg-filters" style="display:inline;">
+			<form method="get" class="ffc-rereg-filters ffc-rereg-inline">
 				<input type="hidden" name="page" value="<?php echo esc_attr( self::MENU_SLUG ); ?>">
 				<input type="hidden" name="view" value="submissions">
 				<input type="hidden" name="id" value="<?php echo esc_attr( (string) $id ); ?>">
@@ -613,7 +649,7 @@ class ReregistrationAdmin {
 				<input type="search" name="s" value="<?php echo esc_attr( $search ?? '' ); ?>" placeholder="<?php esc_attr_e( 'Search name or email...', 'ffcertificate' ); ?>">
 				<?php submit_button( __( 'Filter', 'ffcertificate' ), '', '', false ); ?>
 			</form>
-			<a href="<?php echo esc_url( $export_url ); ?>" class="button" style="margin-left:10px;">
+			<a href="<?php echo esc_url( $export_url ); ?>" class="button ffc-rereg-ml-10">
 				<?php esc_html_e( 'Export CSV', 'ffcertificate' ); ?>
 			</a>
 		</div>
@@ -624,6 +660,7 @@ class ReregistrationAdmin {
 			<input type="hidden" name="ffc_action" value="bulk_submissions">
 			<input type="hidden" name="reregistration_id" value="<?php echo esc_attr( (string) $id ); ?>">
 
+			<?php if ( $can_edit ) : ?>
 			<div class="tablenav top">
 				<select name="bulk_action">
 					<option value=""><?php esc_html_e( 'Bulk Actions', 'ffcertificate' ); ?></option>
@@ -633,6 +670,7 @@ class ReregistrationAdmin {
 				</select>
 				<?php submit_button( __( 'Apply', 'ffcertificate' ), 'action', '', false ); ?>
 			</div>
+			<?php endif; ?>
 
 			<table class="wp-list-table widefat fixed striped">
 				<thead>
@@ -651,7 +689,7 @@ class ReregistrationAdmin {
 						<tr><td colspan="7"><?php esc_html_e( 'No submissions found.', 'ffcertificate' ); ?></td></tr>
 					<?php else : ?>
 						<?php foreach ( $submissions as $sub ) : ?>
-							<?php $this->render_submission_row( $sub, $id ); ?>
+							<?php $this->render_submission_row( $sub, $id, $can_edit ); ?>
 						<?php endforeach; ?>
 					<?php endif; ?>
 				</tbody>
@@ -679,10 +717,11 @@ class ReregistrationAdmin {
 	 *
 	 * @param object $sub         Submission object.
 	 * @param int    $rereg_id    Reregistration ID.
+	 * @param bool   $can_edit    Whether the current user can edit (manage tier).
 	 * @phpstan-param ReregistrationSubmissionRow $sub
 	 * @return void
 	 */
-	private function render_submission_row( object $sub, int $rereg_id ): void {
+	private function render_submission_row( object $sub, int $rereg_id, bool $can_edit = true ): void {
 		$approve_url = wp_nonce_url(
 			admin_url( 'admin.php?page=' . self::MENU_SLUG . '&action=approve&sub_id=' . $sub->id . '&id=' . $rereg_id ),
 			'approve_submission_' . $sub->id
@@ -729,7 +768,7 @@ class ReregistrationAdmin {
 			<td><?php echo esc_html( $submitted ); ?></td>
 			<td><?php echo esc_html( $reviewed ); ?></td>
 			<td>
-				<?php if ( 'submitted' === $sub->status ) : ?>
+				<?php if ( 'submitted' === $sub->status && $can_edit ) : ?>
 					<a href="<?php echo esc_url( $approve_url ); ?>" class="button button-small"><?php esc_html_e( 'Approve', 'ffcertificate' ); ?></a>
 					<a href="<?php echo esc_url( $reject_url ); ?>" class="button button-small button-link-delete"><?php esc_html_e( 'Reject', 'ffcertificate' ); ?></a>
 				<?php elseif ( 'pending' === $sub->status ) : ?>
@@ -739,19 +778,19 @@ class ReregistrationAdmin {
 				<?php else : ?>
 					—
 				<?php endif; ?>
-				<?php if ( $can_return_to_draft ) : ?>
+				<?php if ( $can_return_to_draft && $can_edit ) : ?>
 					<a href="<?php echo esc_url( $draft_url ); ?>" class="button button-small ffc-return-draft-btn" title="<?php esc_attr_e( 'Return to user for revision', 'ffcertificate' ); ?>">
-						<span class="dashicons dashicons-edit" style="vertical-align:middle;font-size:14px"></span>
+						<span class="dashicons dashicons-edit ffc-rereg-icon"></span>
 						<?php esc_html_e( 'Return to Draft', 'ffcertificate' ); ?>
 					</a>
 				<?php endif; ?>
 				<button type="button" class="button button-small ffc-view-details-btn" data-submission-id="<?php echo esc_attr( $sub->id ); ?>">
-					<span class="dashicons dashicons-visibility" style="vertical-align:middle;font-size:14px"></span>
+					<span class="dashicons dashicons-visibility ffc-rereg-icon"></span>
 					<?php esc_html_e( 'View Details', 'ffcertificate' ); ?>
 				</button>
 				<?php if ( in_array( $sub->status, array( 'submitted', 'approved' ), true ) ) : ?>
 					<button type="button" class="button button-small ffc-ficha-btn" data-submission-id="<?php echo esc_attr( $sub->id ); ?>">
-						<span class="dashicons dashicons-media-document" style="vertical-align:middle;font-size:14px"></span>
+						<span class="dashicons dashicons-media-document ffc-rereg-icon"></span>
 						<?php esc_html_e( 'Ficha', 'ffcertificate' ); ?>
 					</button>
 				<?php endif; ?>
@@ -899,6 +938,12 @@ class ReregistrationAdmin {
         // phpcs:ignore WordPress.Security.NonceVerification.Recommended
 		if ( ! isset( $_GET['action'] ) || 'delete' !== $_GET['action'] || ! isset( $_GET['id'] ) ) {
 			return;
+		}
+
+		// Deleting a campaign cascades to its submissions — gated by the
+		// dedicated destructive cap (GAP E), not the page-level manage cap.
+		if ( ! \FreeFormCertificate\Core\Utils::current_user_can_admin_or( 'ffc_delete_reregistration' ) ) {
+			wp_die( esc_html__( 'You do not have permission to delete reregistration campaigns.', 'ffcertificate' ) );
 		}
 
 		$id = absint( $_GET['id'] );

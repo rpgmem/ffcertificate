@@ -20,11 +20,17 @@
  *      {@see read_from_cookie()}, verifies signature + expiry, and
  *      either embeds the token + override values as hidden inputs OR
  *      bails out silently if the token is missing/tampered/expired.
- *      Immediately after a successful read, the cookie is cleared via
- *      {@see clear()} so the same operator-issued exception cannot be
- *      consumed twice by a refresh.
- *   3. Sprint 6's submission handler re-verifies the hidden-input
- *      token via {@see verify_token()} before persisting the override.
+ *      It also drops the banner when the token's `jti` is already in the
+ *      consumed ledger ({@see is_jti_consumed()}). It still calls
+ *      {@see clear()} best-effort, but that `setcookie()` can't actually
+ *      run from `the_content` (headers are already sent) — so the ledger,
+ *      not the cookie, is what makes the exception one-use.
+ *   3. Sprint 6's submission handler re-verifies the hidden-input token
+ *      via {@see verify_token()} and then atomically claims its one-time
+ *      use via {@see try_consume_jti()} before persisting the override.
+ *      The first submission to claim the `jti` wins; a racing double-click
+ *      or a replayed token loses the claim and is recorded at baseline,
+ *      so one operator-issued exception mints exactly one adjusted cert.
  *
  * Why split cookie storage from token verification:
  *   - The cookie carries the token through the first navigation
@@ -72,6 +78,14 @@ class ScheduleExceptionSession {
 	 * — `wp_salt('nonce')` alone would be cross-feature.
 	 */
 	private const KEY_SCOPE = '|ffc_schedule_exception_v1';
+
+	/**
+	 * `option_name` prefix for the consumed-token ledger (#Item11). One
+	 * row per spent `jti`; the value holds the token's `exp` so the daily
+	 * sweep can reap it. Stored `autoload='no'` so it never bloats the
+	 * alloptions cache.
+	 */
+	private const CONSUMED_OPTION_PREFIX = 'ffc_sched_exc_used_';
 
 	/**
 	 * Build the per-form cookie name. The form_id suffix lets an
@@ -204,6 +218,82 @@ class ScheduleExceptionSession {
 		);
 
 		unset( $_COOKIE[ self::cookie_name( $form_id ) ] );
+	}
+
+	/**
+	 * Atomically claim a token's one-time use (#Item11). The first caller
+	 * to claim a given `jti` gets true; every later caller — a double-click,
+	 * a refreshed tab re-POSTing the still-valid token, a deliberate replay —
+	 * gets false.
+	 *
+	 * Atomicity comes from the `option_name` UNIQUE index: `INSERT IGNORE`
+	 * makes exactly one writer win even under concurrent submissions, which a
+	 * read-then-write (`get_option` + `update_option`) could not guarantee.
+	 * The row stores the token's own `exp` so {@see cleanup_expired_consumed()}
+	 * can reap it ~30 min later.
+	 *
+	 * @param string $jti Token unique id (`payload['jti']`).
+	 * @param int    $exp Token expiry, unix seconds (`payload['exp']`).
+	 * @return bool True if THIS call claimed the use; false if already spent
+	 *              or `$jti` is empty.
+	 */
+	public static function try_consume_jti( string $jti, int $exp ): bool {
+		if ( '' === $jti ) {
+			return false;
+		}
+		global $wpdb;
+		$name = self::CONSUMED_OPTION_PREFIX . $jti;
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- atomic single-use claim; the UNIQUE option_name index IS the lock and a cached read would defeat it.
+		$wpdb->query(
+			$wpdb->prepare(
+				"INSERT IGNORE INTO {$wpdb->options} (option_name, option_value, autoload) VALUES (%s, %s, 'no')",
+				$name,
+				(string) $exp
+			)
+		);
+		return (int) $wpdb->rows_affected > 0;
+	}
+
+	/**
+	 * Non-mutating check: has this token's `jti` already been consumed?
+	 * Used by the render path so a spent exception stops re-rendering its
+	 * banner (the cookie can't be cleared from `the_content` — headers are
+	 * already sent — so the ledger, not the cookie, is the source of truth).
+	 *
+	 * @param string $jti Token unique id.
+	 * @return bool
+	 */
+	public static function is_jti_consumed( string $jti ): bool {
+		if ( '' === $jti ) {
+			return false;
+		}
+		return false !== get_option( self::CONSUMED_OPTION_PREFIX . $jti, false );
+	}
+
+	/**
+	 * Delete consumed-token markers whose stored expiry is in the past.
+	 * Hooked to the daily cleanup cron.
+	 *
+	 * @return int Number of stale markers reaped.
+	 */
+	public static function cleanup_expired_consumed(): int {
+		global $wpdb;
+		$like = $wpdb->esc_like( self::CONSUMED_OPTION_PREFIX ) . '%';
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- maintenance sweep over a tiny, non-autoloaded key space.
+		$names = $wpdb->get_col(
+			$wpdb->prepare(
+				"SELECT option_name FROM {$wpdb->options} WHERE option_name LIKE %s AND CAST(option_value AS UNSIGNED) < %d",
+				$like,
+				time()
+			)
+		);
+		if ( empty( $names ) ) {
+			return 0;
+		}
+		foreach ( $names as $name ) {
+			delete_option( (string) $name );
+		}
+		return count( $names );
 	}
 
 	/**

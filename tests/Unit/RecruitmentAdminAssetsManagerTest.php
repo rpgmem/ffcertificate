@@ -28,6 +28,9 @@ class RecruitmentAdminAssetsManagerTest extends TestCase {
         Functions\when( 'esc_url_raw' )->returnArg();
         Functions\when( 'rest_url' )->alias( fn( $p = '' ) => 'https://example.test/wp-json/' . $p );
         Functions\when( 'wp_create_nonce' )->justReturn( 'test-nonce' );
+        // The notice-edit localize reads RecruitmentSettings::all(), which
+        // pulls the option; default (empty) is fine for the enqueue gate.
+        Functions\when( 'get_option' )->justReturn( array() );
 
         if ( ! defined( 'FFC_PLUGIN_DIR' ) ) {
             define( 'FFC_PLUGIN_DIR', '/tmp/ffc_recruitment_assets_test/' );

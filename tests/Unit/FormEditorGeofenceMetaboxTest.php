@@ -41,6 +41,10 @@ class FormEditorGeofenceMetaboxTest extends TestCase {
         Functions\when( 'get_transient' )->justReturn( array() );
         Functions\when( 'get_option' )->justReturn( array() );
         Functions\when( 'apply_filters' )->returnArg( 2 );
+        // render_time() / render_geolocation() now enqueue the metabox
+        // UI-wiring asset instead of echoing inline <script>; stub the
+        // enqueue so the render paths don't fatal under Brain\Monkey.
+        Functions\when( 'wp_enqueue_script' )->justReturn( null );
 
         $this->metabox = new FormEditorGeofenceMetabox();
     }
@@ -101,7 +105,9 @@ class FormEditorGeofenceMetaboxTest extends TestCase {
         $html = (string) ob_get_clean();
 
         $this->assertStringContainsString( 'ffc_geofence[geo_enabled]', $html );
-        $this->assertStringContainsString( 'toggleGeoSource', $html );
+        // The area-source radios the (now-extracted) toggleGeoSource handler
+        // drives are unique to this section.
+        $this->assertStringContainsString( 'ffc_geofence[geo_area_source]', $html );
         // …and none of the datetime controls.
         $this->assertStringNotContainsString( 'ffc_geofence[datetime_enabled]', $html );
     }

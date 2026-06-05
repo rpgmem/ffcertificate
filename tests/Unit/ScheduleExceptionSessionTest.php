@@ -253,4 +253,104 @@ class ScheduleExceptionSessionTest extends TestCase {
         $this->assertSame( 'ffc_exception_1', ScheduleExceptionSession::cookie_name( 1 ) );
         $this->assertSame( 'ffc_exception_999', ScheduleExceptionSession::cookie_name( 999 ) );
     }
+
+    // ==================================================================
+    // Consumed-jti ledger — atomic single-use (#Item11)
+    // ==================================================================
+
+    /**
+     * Wire a $wpdb whose INSERT IGNORE reports `$rows_affected` rows, so
+     * try_consume_jti() can be driven deterministically.
+     *
+     * @param int $rows_affected Value the mocked query sets on the wpdb.
+     * @return \Mockery\MockInterface
+     */
+    private function mock_wpdb_insert( int $rows_affected ) {
+        global $wpdb;
+        $wpdb                = \Mockery::mock( 'wpdb' );
+        $wpdb->options       = 'wp_options';
+        $wpdb->rows_affected = 0;
+        $wpdb->shouldReceive( 'prepare' )->andReturn( 'SQL' );
+        $wpdb->shouldReceive( 'query' )->andReturnUsing(
+            function () use ( $wpdb, $rows_affected ) {
+                $wpdb->rows_affected = $rows_affected;
+                return $rows_affected;
+            }
+        );
+        return $wpdb;
+    }
+
+    public function test_try_consume_jti_returns_true_when_insert_wins(): void {
+        $this->mock_wpdb_insert( 1 );
+        $this->assertTrue( ScheduleExceptionSession::try_consume_jti( 'abc123', time() + 1800 ) );
+    }
+
+    public function test_try_consume_jti_returns_false_on_replay(): void {
+        // INSERT IGNORE affects 0 rows when the jti was already claimed.
+        $this->mock_wpdb_insert( 0 );
+        $this->assertFalse( ScheduleExceptionSession::try_consume_jti( 'abc123', time() + 1800 ) );
+    }
+
+    public function test_try_consume_jti_rejects_empty_jti_without_touching_db(): void {
+        global $wpdb;
+        $wpdb = \Mockery::mock( 'wpdb' );
+        $wpdb->shouldNotReceive( 'query' );
+        $this->assertFalse( ScheduleExceptionSession::try_consume_jti( '', time() + 1800 ) );
+    }
+
+    public function test_is_jti_consumed_true_when_marker_present(): void {
+        Functions\when( 'get_option' )->alias(
+            static fn( $key, $default = false ) => 'ffc_sched_exc_used_spent' === $key ? '123' : $default
+        );
+        $this->assertTrue( ScheduleExceptionSession::is_jti_consumed( 'spent' ) );
+    }
+
+    public function test_is_jti_consumed_false_when_marker_absent(): void {
+        Functions\when( 'get_option' )->alias( static fn( $key, $default = false ) => $default );
+        $this->assertFalse( ScheduleExceptionSession::is_jti_consumed( 'fresh' ) );
+    }
+
+    public function test_is_jti_consumed_false_for_empty_jti(): void {
+        // No get_option needed — short-circuits on the empty guard.
+        $this->assertFalse( ScheduleExceptionSession::is_jti_consumed( '' ) );
+    }
+
+    public function test_cleanup_expired_consumed_deletes_only_stale_markers(): void {
+        global $wpdb;
+        $wpdb          = \Mockery::mock( 'wpdb' );
+        $wpdb->options = 'wp_options';
+        $wpdb->shouldReceive( 'esc_like' )->andReturnUsing( static fn( $v ) => $v );
+        $wpdb->shouldReceive( 'prepare' )->andReturn( 'SQL' );
+        $wpdb->shouldReceive( 'get_col' )->andReturn(
+            array( 'ffc_sched_exc_used_old1', 'ffc_sched_exc_used_old2' )
+        );
+
+        $deleted = array();
+        Functions\when( 'delete_option' )->alias(
+            function ( $name ) use ( &$deleted ) {
+                $deleted[] = $name;
+                return true;
+            }
+        );
+
+        $count = ScheduleExceptionSession::cleanup_expired_consumed();
+
+        $this->assertSame( 2, $count );
+        $this->assertSame(
+            array( 'ffc_sched_exc_used_old1', 'ffc_sched_exc_used_old2' ),
+            $deleted
+        );
+    }
+
+    public function test_cleanup_expired_consumed_no_op_when_nothing_stale(): void {
+        global $wpdb;
+        $wpdb          = \Mockery::mock( 'wpdb' );
+        $wpdb->options = 'wp_options';
+        $wpdb->shouldReceive( 'esc_like' )->andReturnUsing( static fn( $v ) => $v );
+        $wpdb->shouldReceive( 'prepare' )->andReturn( 'SQL' );
+        $wpdb->shouldReceive( 'get_col' )->andReturn( array() );
+        Functions\when( 'delete_option' )->justReturn( true );
+
+        $this->assertSame( 0, ScheduleExceptionSession::cleanup_expired_consumed() );
+    }
 }

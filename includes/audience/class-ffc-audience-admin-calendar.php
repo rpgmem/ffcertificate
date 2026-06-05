@@ -69,7 +69,9 @@ class AudienceAdminCalendar {
 
 		?>
 		<h1 class="wp-heading-inline"><?php esc_html_e( 'Calendars', 'ffcertificate' ); ?></h1>
+		<?php if ( \FreeFormCertificate\Core\Utils::current_user_can_admin_or( 'ffc_manage_audiences' ) ) : ?>
 		<a href="<?php echo esc_url( $add_url ); ?>" class="page-title-action"><?php esc_html_e( 'Add New', 'ffcertificate' ); ?></a>
+		<?php endif; ?>
 		<hr class="wp-header-end">
 
 		<?php settings_errors( 'ffc_audience' ); ?>
@@ -333,12 +335,12 @@ class AudienceAdminCalendar {
 						<label for="schedule_booking_label_singular"><?php esc_html_e( 'Booking Badge Label', 'ffcertificate' ); ?></label>
 					</th>
 					<td>
-						<div style="display: flex; gap: 10px; align-items: center;">
-							<input type="text" name="schedule_booking_label_singular" id="schedule_booking_label_singular" class="regular-text" style="max-width: 160px;"
+						<div class="ffc-aud-flex-center">
+							<input type="text" name="schedule_booking_label_singular" id="schedule_booking_label_singular" class="regular-text ffc-aud-maxw-160"
 									value="<?php echo esc_attr( $schedule->booking_label_singular ?? '' ); ?>"
 									placeholder="<?php echo esc_attr__( 'booking', 'ffcertificate' ); ?>">
 							<span>/</span>
-							<input type="text" name="schedule_booking_label_plural" id="schedule_booking_label_plural" class="regular-text" style="max-width: 160px;"
+							<input type="text" name="schedule_booking_label_plural" id="schedule_booking_label_plural" class="regular-text ffc-aud-maxw-160"
 									value="<?php echo esc_attr( $schedule->booking_label_plural ?? '' ); ?>"
 									placeholder="<?php echo esc_attr__( 'bookings', 'ffcertificate' ); ?>">
 						</div>
@@ -414,12 +416,12 @@ class AudienceAdminCalendar {
 				<?php esc_html_e( 'Manage which users have access to this calendar and what they can do. For private calendars, only listed users can see and book. For public calendars, these permissions control who can book and cancel.', 'ffcertificate' ); ?>
 			</p>
 
-			<div class="ffc-user-access-add" style="margin-bottom: 20px; padding: 15px; background: #f6f7f7; border: 1px solid #ddd;">
-				<div style="display: flex; gap: 15px; align-items: flex-end; flex-wrap: wrap;">
-					<div style="flex: 1; min-width: 250px;">
+			<div class="ffc-user-access-add ffc-aud-panel">
+				<div class="ffc-aud-flex-end">
+					<div class="ffc-aud-flex-250">
 						<label for="ffc-user-search"><strong><?php esc_html_e( 'Add User', 'ffcertificate' ); ?></strong></label><br>
-						<input type="text" id="ffc-user-search" class="regular-text" placeholder="<?php esc_attr_e( 'Search by name or email...', 'ffcertificate' ); ?>" autocomplete="off" style="width: 100%;">
-						<div id="ffc-user-search-results" style="display: none; position: absolute; z-index: 100; background: #fff; border: 1px solid #ddd; max-height: 200px; overflow-y: auto; width: 300px;"></div>
+						<input type="text" id="ffc-user-search" class="regular-text ffc-aud-w-full" placeholder="<?php esc_attr_e( 'Search by name or email...', 'ffcertificate' ); ?>" autocomplete="off">
+						<div id="ffc-user-search-results" class="ffc-aud-user-dropdown"></div>
 					</div>
 					<div>
 						<button type="button" id="ffc-add-user-btn" class="button button-secondary" disabled>
@@ -436,11 +438,11 @@ class AudienceAdminCalendar {
 			<table class="wp-list-table widefat fixed striped" id="ffc-permissions-table" data-schedule-id="<?php echo esc_attr( (string) $id ); ?>">
 				<thead>
 					<tr>
-						<th style="width: 30%;"><?php esc_html_e( 'User', 'ffcertificate' ); ?></th>
-						<th style="width: 15%;"><?php esc_html_e( 'Can Book', 'ffcertificate' ); ?></th>
-						<th style="width: 15%;"><?php esc_html_e( 'Cancel Others', 'ffcertificate' ); ?></th>
-						<th style="width: 15%;"><?php esc_html_e( 'Override Conflicts', 'ffcertificate' ); ?></th>
-						<th style="width: 10%;"><?php esc_html_e( 'Actions', 'ffcertificate' ); ?></th>
+						<th class="ffc-aud-w-30pct"><?php esc_html_e( 'User', 'ffcertificate' ); ?></th>
+						<th class="ffc-aud-w-15pct"><?php esc_html_e( 'Can Book', 'ffcertificate' ); ?></th>
+						<th class="ffc-aud-w-15pct"><?php esc_html_e( 'Cancel Others', 'ffcertificate' ); ?></th>
+						<th class="ffc-aud-w-15pct"><?php esc_html_e( 'Override Conflicts', 'ffcertificate' ); ?></th>
+						<th class="ffc-aud-w-10pct"><?php esc_html_e( 'Actions', 'ffcertificate' ); ?></th>
 					</tr>
 				</thead>
 				<tbody>
@@ -513,17 +515,17 @@ class AudienceAdminCalendar {
 			<h2><?php esc_html_e( 'Holidays / Closed Dates', 'ffcertificate' ); ?></h2>
 			<p class="description"><?php esc_html_e( 'Add specific dates when the calendar will be closed (holidays, maintenance, etc.).', 'ffcertificate' ); ?></p>
 
-			<form method="post" action="" class="ffc-holiday-form" style="margin-bottom: 20px; padding: 15px; background: #f6f7f7; border: 1px solid #ddd;">
+			<form method="post" action="" class="ffc-holiday-form ffc-aud-panel">
 				<?php wp_nonce_field( 'add_holiday', 'ffc_holiday_nonce' ); ?>
 				<input type="hidden" name="schedule_id" value="<?php echo esc_attr( (string) $id ); ?>">
 				<input type="hidden" name="ffc_action" value="add_holiday">
 
-				<div style="display: flex; gap: 15px; align-items: flex-end; flex-wrap: wrap;">
+				<div class="ffc-aud-flex-end">
 					<div>
 						<label for="holiday_date"><strong><?php esc_html_e( 'Date', 'ffcertificate' ); ?></strong></label><br>
-						<input type="date" name="holiday_date" id="holiday_date" required style="width: 180px;">
+						<input type="date" name="holiday_date" id="holiday_date" required class="ffc-aud-w-180">
 					</div>
-					<div style="flex: 1; min-width: 200px;">
+					<div class="ffc-aud-flex-200">
 						<label for="holiday_description"><strong><?php esc_html_e( 'Description (optional)', 'ffcertificate' ); ?></strong></label><br>
 						<input type="text" name="holiday_description" id="holiday_description" class="regular-text" placeholder="<?php esc_attr_e( 'e.g., Christmas Day', 'ffcertificate' ); ?>">
 					</div>
@@ -540,9 +542,9 @@ class AudienceAdminCalendar {
 			<table class="wp-list-table widefat fixed striped">
 				<thead>
 					<tr>
-						<th style="width: 150px;"><?php esc_html_e( 'Date', 'ffcertificate' ); ?></th>
+						<th class="ffc-aud-w-150"><?php esc_html_e( 'Date', 'ffcertificate' ); ?></th>
 						<th><?php esc_html_e( 'Description', 'ffcertificate' ); ?></th>
-						<th style="width: 100px;"><?php esc_html_e( 'Actions', 'ffcertificate' ); ?></th>
+						<th class="ffc-aud-w-100"><?php esc_html_e( 'Actions', 'ffcertificate' ); ?></th>
 					</tr>
 				</thead>
 				<tbody>
@@ -658,6 +660,9 @@ class AudienceAdminCalendar {
 		// Handle delete (only inactive items can be permanently deleted).
         // phpcs:ignore WordPress.Security.NonceVerification.Recommended
 		if ( isset( $_GET['action'] ) && 'delete' === $_GET['action'] && isset( $_GET['id'] ) ) {
+			if ( ! \FreeFormCertificate\Core\Utils::current_user_can_admin_or( 'ffc_delete_audiences' ) ) {
+				wp_die( esc_html__( 'You do not have permission to delete calendars.', 'ffcertificate' ) );
+			}
 			$id = absint( $_GET['id'] );
 			if ( wp_verify_nonce( Utils::get_get_string( '_wpnonce' ), 'delete_schedule_' . $id ) ) {
 				$schedule = AudienceScheduleRepository::get_by_id( $id );

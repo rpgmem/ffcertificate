@@ -87,6 +87,21 @@ final class RecruitmentClassificationStateMachine {
 	);
 
 	/**
+	 * Statuses an admin may force back to `empty` via the privileged
+	 * {@see admin_override_to_empty} escape hatch.
+	 *
+	 * These are exactly the three states a candidate can get *stuck* in:
+	 * `hired` and `withdrew` are terminal (map to `∅` in TRANSITIONS), and
+	 * `not_shown` is reversible by `reopen` *except* once the parent notice's
+	 * `was_reopened = '1'` freezes it. The override deliberately reaches all
+	 * three. `called`/`accepted` are intentionally excluded — the normal
+	 * `cancel` transition already returns those to `empty`.
+	 *
+	 * @var list<string>
+	 */
+	private const OVERRIDABLE_TO_EMPTY = array( 'hired', 'withdrew', 'not_shown' );
+
+	/**
 	 * Attempt to transition a classification to a new status.
 	 *
 	 * Out-of-order calls (`empty → called` with a reason) are handled by
@@ -158,6 +173,73 @@ final class RecruitmentClassificationStateMachine {
 			$classification_id,
 			$current,
 			$new_status,
+			$reason
+		);
+
+		return self::success();
+	}
+
+	/**
+	 * Admin override: force a *stuck* classification back to `empty`.
+	 *
+	 * Privileged escape hatch (#Item 8) for undoing a realized decision the
+	 * normal lifecycle refuses to reverse. Unlike {@see transition_to}, this
+	 * deliberately bypasses the `TRANSITIONS` table, the terminal guard
+	 * (`hired`/`withdrew`) AND the reopen-freeze gate (`not_shown` on a
+	 * reopened notice) — that bypass is the entire point of an audited,
+	 * cap-gated admin override.
+	 *
+	 * Side effects fall out of the status flip itself, with no extra writes:
+	 * a freed `hired` seat reopens the vacancy (the vacancy count is derived
+	 * from the number of `hired` rows), and the candidate returns to
+	 * `empty`/waiting at its original position because {@see
+	 * RecruitmentClassificationRepository::set_status} touches only `status`
+	 * (the `ranking` column is left intact). No candidate e-mail is sent —
+	 * this silently corrects an operator decision.
+	 *
+	 * Still race-safe (CAS via `set_status`) and reason-gated for the audit
+	 * trail. Restricted to the three {@see OVERRIDABLE_TO_EMPTY} statuses so
+	 * it can't be abused as a generic "set any status" backdoor.
+	 *
+	 * @param int    $classification_id Target classification.
+	 * @param string $reason            Mandatory justification (audited).
+	 * @return TransitionResult
+	 */
+	public static function admin_override_to_empty( int $classification_id, string $reason ): array {
+		if ( '' === trim( $reason ) ) {
+			return self::failure( 'recruitment_transition_reason_required' );
+		}
+
+		$classification = RecruitmentClassificationRepository::get_by_id( $classification_id );
+		if ( null === $classification ) {
+			return self::failure( 'recruitment_classification_not_found' );
+		}
+
+		$current = $classification->status;
+
+		// Idempotent — already where the override would land.
+		if ( 'empty' === $current ) {
+			return self::success();
+		}
+
+		if ( ! in_array( $current, self::OVERRIDABLE_TO_EMPTY, true ) ) {
+			return self::failure( 'recruitment_override_not_overridable: ' . $current );
+		}
+
+		// Atomic transition (race-safe). Bypasses TRANSITIONS/terminal/freeze
+		// by design — see method docblock.
+		$affected = RecruitmentClassificationRepository::set_status(
+			$classification_id,
+			$current,
+			'empty'
+		);
+		if ( 1 !== $affected ) {
+			return self::failure( 'recruitment_state_locked' );
+		}
+
+		RecruitmentActivityLogger::classification_override_to_empty(
+			$classification_id,
+			$current,
 			$reason
 		);
 

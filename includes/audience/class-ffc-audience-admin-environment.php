@@ -102,7 +102,9 @@ class AudienceAdminEnvironment {
 
 		?>
 		<h1 class="wp-heading-inline"><?php echo esc_html( $env_label ); ?></h1>
+		<?php if ( \FreeFormCertificate\Core\Utils::current_user_can_admin_or( 'ffc_manage_audiences' ) ) : ?>
 		<a href="<?php echo esc_url( $add_url ); ?>" class="page-title-action"><?php esc_html_e( 'Add New', 'ffcertificate' ); ?></a>
+		<?php endif; ?>
 		<hr class="wp-header-end">
 
 		<?php settings_errors( 'ffc_audience' ); ?>
@@ -483,6 +485,9 @@ class AudienceAdminEnvironment {
 		// Handle delete (only inactive items can be permanently deleted).
         // phpcs:ignore WordPress.Security.NonceVerification.Recommended
 		if ( isset( $_GET['action'] ) && 'delete' === $_GET['action'] && isset( $_GET['id'] ) && isset( $_GET['page'] ) && $_GET['page'] === $this->menu_slug . '-environments' ) {
+			if ( ! \FreeFormCertificate\Core\Utils::current_user_can_admin_or( 'ffc_delete_audiences' ) ) {
+				wp_die( esc_html__( 'You do not have permission to delete environments.', 'ffcertificate' ) );
+			}
 			$id = absint( $_GET['id'] );
 			if ( wp_verify_nonce( \FreeFormCertificate\Core\Utils::get_get_string( '_wpnonce' ), 'delete_environment_' . $id ) ) {
 				$env = AudienceEnvironmentRepository::get_by_id( $id );

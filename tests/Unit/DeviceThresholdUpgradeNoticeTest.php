@@ -34,6 +34,10 @@ class DeviceThresholdUpgradeNoticeTest extends TestCase {
         Functions\when( 'wp_parse_args' )->alias( function ( $args, $defaults ) {
             return array_merge( $defaults, is_array( $args ) ? $args : array() );
         } );
+        // The dismiss handler now ships as a dedicated asset enqueued from
+        // maybe_render() instead of an inline <script>; stub the enqueue so the
+        // render path doesn't fatal under Brain\Monkey.
+        Functions\when( 'wp_enqueue_script' )->justReturn( null );
     }
 
     protected function tearDown(): void {

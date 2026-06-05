@@ -239,4 +239,11 @@ $ffcertificate_dashboard_url     = $ffcertificate_dashboard_page_id ? get_permal
 			</button>
 		</p>
 	</form>
+
+	<?php
+	// Role → capability editor (global role definitions). Rendered outside
+	// the settings <form> above: it persists per-toggle via its own AJAX
+	// endpoint, independent of the User Access options save.
+	\FreeFormCertificate\Admin\RoleCapabilityEditor::render();
+	?>
 </div>

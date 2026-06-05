@@ -78,7 +78,9 @@ class AudienceAdminAudience {
 
 		?>
 		<h1 class="wp-heading-inline"><?php esc_html_e( 'Audiences', 'ffcertificate' ); ?></h1>
+		<?php if ( \FreeFormCertificate\Core\Utils::current_user_can_admin_or( 'ffc_manage_audiences' ) ) : ?>
 		<a href="<?php echo esc_url( $add_url ); ?>" class="page-title-action"><?php esc_html_e( 'Add New', 'ffcertificate' ); ?></a>
+		<?php endif; ?>
 		<hr class="wp-header-end">
 
 		<?php settings_errors( 'ffc_audience' ); ?>
@@ -310,7 +312,7 @@ class AudienceAdminAudience {
 						<?php if ( $is_child ) : ?>
 							<p class="description">
 								<?php if ( $is_self_join ) : ?>
-									<span style="color: #00a32a; font-weight: 600;">&check;</span>
+									<span class="ffc-aud-check">&check;</span>
 									<?php esc_html_e( 'Inherited from parent audience. Users can join this group from their dashboard.', 'ffcertificate' ); ?>
 								<?php else : ?>
 									<?php esc_html_e( 'This setting is controlled by the parent audience.', 'ffcertificate' ); ?>
@@ -350,6 +352,15 @@ class AudienceAdminAudience {
 	 * @return void
 	 */
 	private function render_custom_fields_section( int $audience_id ): void {
+		// 3-state model: hidden without view; read-only with view-only; editable
+		// with manage. The save/delete/replicate AJAX is gated server-side by
+		// ffc_manage_custom_fields regardless of what the UI renders.
+		if ( ! \FreeFormCertificate\Core\Utils::current_user_can_admin_or( 'ffc_view_custom_fields' )
+			&& ! \FreeFormCertificate\Core\Utils::current_user_can_admin_or( 'ffc_manage_custom_fields' ) ) {
+			return;
+		}
+		$can_edit_fields = \FreeFormCertificate\Core\Utils::current_user_can_admin_or( 'ffc_manage_custom_fields' );
+
 		// Ensure standard fields are seeded for this audience before rendering.
 		if ( class_exists( '\FreeFormCertificate\Reregistration\ReregistrationStandardFieldsSeeder' ) ) {
 			\FreeFormCertificate\Reregistration\ReregistrationStandardFieldsSeeder::seed_for_audience( $audience_id );
@@ -379,6 +390,7 @@ class AudienceAdminAudience {
 				<?php endif; ?>
 			</div>
 
+			<?php if ( $can_edit_fields ) : ?>
 			<p>
 				<button type="button" id="ffc-add-custom-field" class="button">
 					<?php esc_html_e( '+ Add Field', 'ffcertificate' ); ?>
@@ -394,6 +406,9 @@ class AudienceAdminAudience {
 				<?php endif; ?>
 				<span id="ffc-custom-fields-status" class="ffc-save-status"></span>
 			</p>
+			<?php else : ?>
+			<p class="description"><em><?php esc_html_e( 'Read-only — you do not have permission to edit custom field definitions.', 'ffcertificate' ); ?></em></p>
+			<?php endif; ?>
 		</div>
 
 		<!-- Template for new field row (used by JS) -->
@@ -861,6 +876,9 @@ class AudienceAdminAudience {
 		// Handle delete (only inactive items can be permanently deleted).
         // phpcs:ignore WordPress.Security.NonceVerification.Recommended
 		if ( isset( $_GET['action'] ) && 'delete' === $_GET['action'] && isset( $_GET['id'] ) && isset( $_GET['page'] ) && $_GET['page'] === $this->menu_slug . '-audiences' ) {
+			if ( ! Utils::current_user_can_admin_or( 'ffc_delete_audiences' ) ) {
+				wp_die( esc_html__( 'You do not have permission to delete audiences.', 'ffcertificate' ) );
+			}
 			$id = absint( $_GET['id'] );
 			if ( wp_verify_nonce( Utils::get_get_string( '_wpnonce' ), 'delete_audience_' . $id ) ) {
 				$aud = AudienceRepository::get_by_id( $id );

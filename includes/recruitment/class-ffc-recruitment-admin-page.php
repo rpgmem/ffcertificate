@@ -45,8 +45,11 @@ final class RecruitmentAdminPage {
 	/** Submenu slug — used as the `?page=` query param. */
 	public const PAGE_SLUG = 'ffc-recruitment';
 
-	/** Cap gating menu visibility + every render. */
+	/** Manage cap — every write (edit screens, dispatch, status changes). */
 	private const CAP = 'ffc_manage_recruitment';
+
+	/** Read-only "view" cap — opens the admin UI as the *só vê* tier. */
+	private const VIEW_CAP = 'ffc_view_recruitment';
 
 	/**
 	 * Translate a notice-lifecycle enum value into a localized label.
@@ -184,7 +187,7 @@ final class RecruitmentAdminPage {
 		add_menu_page(
 			__( 'Recruitment', 'ffcertificate' ),
 			__( 'Recruitment', 'ffcertificate' ),
-			self::CAP,
+			self::VIEW_CAP,
 			self::PAGE_SLUG,
 			array( self::class, 'render_page' ),
 			'dashicons-groups',
@@ -212,11 +215,14 @@ final class RecruitmentAdminPage {
 			'settings'    => __( 'Settings', 'ffcertificate' ),
 		);
 		foreach ( $tabs as $tab => $label ) {
+			// Settings tab carries its own view cap; the data tabs open read-only
+			// under the recruitment view cap (writes stay manage-gated).
+			$tab_cap = ( 'settings' === $tab ) ? 'ffc_view_recruitment_settings' : self::VIEW_CAP;
 			add_submenu_page(
 				self::PAGE_SLUG,
 				$label,
 				$label,
-				self::CAP,
+				$tab_cap,
 				'notices' === $tab ? self::PAGE_SLUG : self::PAGE_SLUG . '&tab=' . $tab,
 				array( self::class, 'render_page' )
 			);
@@ -230,9 +236,13 @@ final class RecruitmentAdminPage {
 	 * @return void
 	 */
 	public static function render_page(): void {
-		if ( ! current_user_can( self::CAP ) ) {
+		// 3-state: the admin UI opens read-only for ffc_view_recruitment;
+		// every write (edit screens, dispatch deletes, status changes, call,
+		// import) stays gated by its own cap.
+		if ( ! \FreeFormCertificate\Core\Utils::current_user_can_admin_or( self::VIEW_CAP ) ) {
 			wp_die( esc_html__( 'Access denied.', 'ffcertificate' ) );
 		}
+		$can_edit = \FreeFormCertificate\Core\Utils::current_user_can_admin_or( self::CAP );
 
 		// Action dispatcher — row actions / GET-link operations land here
 		// before the default tab render runs. Each action validates its
@@ -244,6 +254,9 @@ final class RecruitmentAdminPage {
 		// Edit screens hijack the whole render — they have their own
 		// chrome (h1 + back link) and don't share the tab strip.
 		if ( 'edit-notice' === $action || 'edit-candidate' === $action || 'edit-reason' === $action || 'edit-adjutancy' === $action ) {
+			if ( ! $can_edit ) {
+				wp_die( esc_html__( 'Access denied.', 'ffcertificate' ) );
+			}
 			echo '<div class="wrap ffc-recruitment-admin">';
 			echo '<h1>' . esc_html__( 'Recruitment', 'ffcertificate' ) . '</h1>';
 			// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- read-only flash.
@@ -265,12 +278,22 @@ final class RecruitmentAdminPage {
 		}
 
 		if ( '' !== $action ) {
-			self::dispatch_action( $action );
+			RecruitmentAdminActions::dispatch( $action );
 		}
 
 		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Tab switching is read-only.
 		$tab = isset( $_GET['tab'] ) ? sanitize_key( wp_unslash( (string) $_GET['tab'] ) ) : 'notices';
 		if ( ! in_array( $tab, array( 'notices', 'adjutancies', 'reasons', 'candidates', 'settings' ), true ) ) {
+			$tab = 'notices';
+		}
+		// 3-state: the Settings tab needs its own view cap (só vê) — the umbrella
+		// alone (held by a plain Recruitment Manager) is not enough.
+		if ( 'settings' === $tab && ! self::can_view_settings() ) {
+			$tab = 'notices';
+		}
+		// 3-state (GAP I): the Reasons tab is carved out the same way — its own
+		// view/manage caps, not the page-level `ffc_view_recruitment`.
+		if ( 'reasons' === $tab && ! self::can_view_reasons() ) {
 			$tab = 'notices';
 		}
 
@@ -341,6 +364,15 @@ final class RecruitmentAdminPage {
 				'icon'  => 'admin-generic',
 			),
 		);
+
+		// Hide the Settings tab from users without its view cap (3-state).
+		if ( ! self::can_view_settings() ) {
+			unset( $tabs['settings'] );
+		}
+		// Hide the Reasons tab from users without its view cap (3-state, GAP I).
+		if ( ! self::can_view_reasons() ) {
+			unset( $tabs['reasons'] );
+		}
 
 		echo '<ul class="ffc-settings-tabs__nav" role="tablist" aria-orientation="vertical">';
 		foreach ( $tabs as $slug => $tab ) {
@@ -414,10 +446,10 @@ final class RecruitmentAdminPage {
 			),
 			admin_url( 'admin.php' )
 		);
-		echo '<div class="notice notice-info inline" style="padding:16px 20px;margin:1em 0;">';
-		echo '<h3 style="margin-top:0;">' . esc_html__( 'Welcome to Recruitment', 'ffcertificate' ) . '</h3>';
+		echo '<div class="notice notice-info inline ffc-rec-welcome-notice">';
+		echo '<h3 class="ffc-rec-mt-0">' . esc_html__( 'Welcome to Recruitment', 'ffcertificate' ) . '</h3>';
 		echo '<p>' . esc_html__( 'No notices yet. The typical path to your first call is:', 'ffcertificate' ) . '</p>';
-		echo '<ol style="margin-left:20px;">';
+		echo '<ol class="ffc-rec-ml-20">';
 		echo '<li>' . sprintf(
 			/* translators: %s: link to the Adjutancies tab */
 			wp_kses_post( __( 'Define at least one <a href="%s">adjutancy</a> (subject / role) — these are reusable across notices.', 'ffcertificate' ) ),
@@ -477,105 +509,6 @@ final class RecruitmentAdminPage {
 	}
 
 	/**
-	 * Dispatch a `?action=…` GET-link operation triggered from a row
-	 * action in the list tables. Each branch validates its own nonce
-	 * via `check_admin_referer` and short-circuits with `wp_safe_redirect`
-	 * back to the canonical tab so the URL stays clean.
-	 *
-	 * Edit-screen actions (`edit-notice`, `edit-candidate`, etc.) are
-	 * handled earlier in render_page() — they're full-screen renders,
-	 * not redirects.
-	 *
-	 * @param string $action Sanitized action key from the request.
-	 * @return void
-	 */
-	private static function dispatch_action( string $action ): void {
-		switch ( $action ) {
-			case 'delete-notice':
-				$id = isset( $_GET['notice_id'] ) ? absint( wp_unslash( (string) $_GET['notice_id'] ) ) : 0;
-				if ( $id > 0 ) {
-					check_admin_referer( 'ffc_recruitment_delete_notice_' . $id );
-					RecruitmentNoticeRepository::delete( $id );
-				}
-				wp_safe_redirect(
-					add_query_arg(
-						array(
-							'page' => self::PAGE_SLUG,
-							'tab'  => 'notices',
-						),
-						admin_url( 'admin.php' )
-					)
-				);
-				exit;
-
-			case 'delete-adjutancy':
-				$id = isset( $_GET['adjutancy_id'] ) ? absint( wp_unslash( (string) $_GET['adjutancy_id'] ) ) : 0;
-				if ( $id > 0 ) {
-					check_admin_referer( 'ffc_recruitment_delete_adjutancy_' . $id );
-					// DeleteService gates on §14: rejects when notice_adjutancy
-					// or classification rows reference this adjutancy. The
-					// envelope's success flag is opaque from the redirect path
-					// (UI lands in sprint B's edit screen with proper feedback).
-					RecruitmentDeleteService::delete_adjutancy( $id );
-				}
-				wp_safe_redirect(
-					add_query_arg(
-						array(
-							'page' => self::PAGE_SLUG,
-							'tab'  => 'adjutancies',
-						),
-						admin_url( 'admin.php' )
-					)
-				);
-				exit;
-
-			case 'delete-reason':
-				$id = isset( $_GET['reason_id'] ) ? absint( wp_unslash( (string) $_GET['reason_id'] ) ) : 0;
-				if ( $id > 0 ) {
-					check_admin_referer( 'ffc_recruitment_delete_reason_' . $id );
-					// Reasons are referentially gated like adjutancies: a
-					// reason that's still linked to any classification's
-					// preview_reason_id can't be removed without orphaning
-					// the audit trail. Silently no-op on a blocked delete;
-					// the list table's deletion gate already explains the
-					// rule via the row-action confirm copy.
-					if ( 0 === RecruitmentReasonRepository::count_references( $id ) ) {
-						RecruitmentReasonRepository::delete( $id );
-					}
-				}
-				wp_safe_redirect(
-					add_query_arg(
-						array(
-							'page' => self::PAGE_SLUG,
-							'tab'  => 'reasons',
-						),
-						admin_url( 'admin.php' )
-					)
-				);
-				exit;
-
-			case 'delete-candidate':
-				$id = isset( $_GET['candidate_id'] ) ? absint( wp_unslash( (string) $_GET['candidate_id'] ) ) : 0;
-				if ( $id > 0 ) {
-					check_admin_referer( 'ffc_recruitment_delete_candidate_' . $id );
-					// DeleteService gates on §7-bis: zero classifications.
-					// The reason-collection UI lives on sprint C's edit screen.
-					RecruitmentDeleteService::delete_candidate( $id );
-				}
-				wp_safe_redirect(
-					add_query_arg(
-						array(
-							'page' => self::PAGE_SLUG,
-							'tab'  => 'candidates',
-						),
-						admin_url( 'admin.php' )
-					)
-				);
-				exit;
-		}
-	}
-
-	/**
 	 * Adjutancies tab — list + create form.
 	 *
 	 * @return void
@@ -610,7 +543,7 @@ final class RecruitmentAdminPage {
 		echo '<h2>' . esc_html__( 'Reasons', 'ffcertificate' ) . '</h2>';
 		echo '<p class="description">' . esc_html__( 'Global catalog of operator-defined labels attached to a preliminary-list candidate when setting their preliminary status. Reusable across every notice (no need to attach per-edital).', 'ffcertificate' ) . '</p>';
 
-		$table = new RecruitmentReasonsListTable();
+		$table = new RecruitmentReasonsListTable( self::can_edit_reasons() );
 		$table->prepare_items();
 
 		echo '<form method="get">';
@@ -630,6 +563,12 @@ final class RecruitmentAdminPage {
 	 * @return void
 	 */
 	private static function render_create_reason_form(): void {
+		// 3-state (GAP I): read-only viewers don't get the create form. Gated by
+		// the strict reasons-manage cap, not the umbrella — the REST endpoint
+		// behind it enforces the same cap.
+		if ( ! self::can_edit_reasons() ) {
+			return;
+		}
 		$default_color = RecruitmentReasonRepository::DEFAULT_COLOR;
 
 		echo '<h3>' . esc_html__( 'Create new reason', 'ffcertificate' ) . '</h3>';
@@ -651,10 +590,10 @@ final class RecruitmentAdminPage {
 			'appeal_granted' => __( 'Appeal granted', 'ffcertificate' ),
 		);
 		echo '<tr><th>' . esc_html__( 'Applies to', 'ffcertificate' ) . '</th><td>';
-		echo '<div style="display:flex;flex-wrap:wrap;gap:6px 16px;">';
+		echo '<div class="ffc-rec-flex-wrap">';
 		foreach ( $applies_options as $key => $label ) {
 			$id_attr = 'ffc-reason-applies-' . $key;
-			echo '<label for="' . esc_attr( $id_attr ) . '" style="display:flex;align-items:center;gap:6px;">';
+			echo '<label for="' . esc_attr( $id_attr ) . '" class="ffc-rec-flex-center-6">';
 			echo '<input id="' . esc_attr( $id_attr ) . '" type="checkbox" name="applies_to[]" value="' . esc_attr( $key ) . '">';
 			echo esc_html( $label );
 			echo '</label>';
@@ -688,8 +627,10 @@ final class RecruitmentAdminPage {
 		// importer on the Notice Edit screen, exposed here so the
 		// operator can pick the target notice without navigating
 		// through the Notices tab first. Gated by the same capability
-		// the REST endpoint enforces.
-		if ( current_user_can( 'ffc_import_recruitment_csv' ) || current_user_can( 'ffc_manage_recruitment' ) ) {
+		// the REST endpoint enforces — the strict `ffc_import_recruitment`
+		// tier (GAP H); the umbrella `ffc_manage_recruitment` no longer grants
+		// it.
+		if ( current_user_can( 'ffc_import_recruitment' ) ) {
 			self::render_candidates_csv_import_section();
 		} else {
 			echo '<p>' . esc_html__( 'Candidates are imported per-notice via CSV — open the target notice (Notices tab → Edit) and use the "Import candidates (CSV)" section.', 'ffcertificate' ) . '</p>';
@@ -737,7 +678,7 @@ final class RecruitmentAdminPage {
 			}
 		}
 
-		echo '<div class="postbox" style="margin-top:20px;">';
+		echo '<div class="postbox ffc-rec-mt-20">';
 		echo '<h2 class="hndle"><span>' . esc_html__( 'Import candidates (CSV)', 'ffcertificate' ) . '</span></h2>';
 		echo '<div class="inside">';
 
@@ -747,7 +688,6 @@ final class RecruitmentAdminPage {
 			return;
 		}
 
-		$nonce       = wp_create_nonce( 'wp_rest' );
 		$example_url = wp_nonce_url(
 			add_query_arg(
 				array( 'action' => 'ffc_recruitment_download_csv_example' ),
@@ -758,7 +698,7 @@ final class RecruitmentAdminPage {
 
 		echo '<p>' . esc_html__( 'Pick a notice, select the target list, and upload your CSV. The notice picker only lists notices where import is allowed.', 'ffcertificate' ) . '</p>';
 		echo '<p><a class="button" href="' . esc_url( $example_url ) . '">&darr; ' . esc_html__( 'Download example CSV', 'ffcertificate' ) . '</a> ';
-		echo '<span class="description" style="margin-left:.5em;">' . esc_html__( 'UTF-8 CSV (BOM optional). Required headers (English): name, cpf, rf, email, adjutancy, rank, score, pcd. Optional: phone, time_points, hab_emebs.', 'ffcertificate' ) . '</span></p>';
+		echo '<span class="description ffc-rec-ml-half">' . esc_html__( 'UTF-8 CSV (BOM optional). Required headers (English): name, cpf, rf, email, adjutancy, rank, score, pcd. Optional: phone, time_points, hab_emebs.', 'ffcertificate' ) . '</span></p>';
 
 		echo '<form id="ffc-recruitment-candidates-import" method="post" enctype="multipart/form-data" onsubmit="return ffcRecruitmentImportFromCandidates(this);">';
 		echo '<table class="form-table"><tbody>';
@@ -782,7 +722,7 @@ final class RecruitmentAdminPage {
 		// disabled by default — the onchange handler enables it only
 		// when the selected notice's status is `preliminary`.
 		echo '<tr><th><label>' . esc_html__( 'Target list', 'ffcertificate' ) . '</label></th><td>';
-		echo '<label style="margin-right:1em;"><input type="radio" name="list_target" value="preliminary" checked> ' . esc_html__( 'Preliminary list', 'ffcertificate' ) . '</label>';
+		echo '<label class="ffc-rec-mr-1"><input type="radio" name="list_target" value="preliminary" checked> ' . esc_html__( 'Preliminary list', 'ffcertificate' ) . '</label>';
 		echo '<label><input type="radio" name="list_target" value="definitive" disabled> ' . esc_html__( 'Definitive list (also transitions notice to `definitive`)', 'ffcertificate' ) . '</label>';
 		echo '<p class="description" id="ffc-cand-import-target-help">' . esc_html__( 'Pick a notice above to see which lists can receive the import.', 'ffcertificate' ) . '</p>';
 		echo '</td></tr>';
@@ -794,63 +734,21 @@ final class RecruitmentAdminPage {
 		echo '</tbody></table>';
 		echo '<p>';
 		echo '<button id="ffc-cand-csv-submit" type="submit" class="button button-primary">' . esc_html__( 'Import', 'ffcertificate' ) . '</button> ';
-		echo '<span id="ffc-cand-csv-progress" style="display:none;align-items:center;gap:.5em;">';
-		echo '<span class="spinner is-active" style="float:none;margin:0;"></span>';
+		echo '<span id="ffc-cand-csv-progress" class="ffc-rec-progress-inline">';
+		echo '<span class="spinner is-active ffc-rec-spinner-flush"></span>';
 		echo '<span id="ffc-cand-csv-progress-text"></span>';
 		echo '</span>';
-		echo '<span id="ffc-cand-csv-status" style="margin-left:1em;font-family:monospace;font-size:12px;"></span>';
+		echo '<span id="ffc-cand-csv-status" class="ffc-rec-mono-status"></span>';
 		echo '</p>';
 		echo '</form>';
 
-		$processing_label = esc_js( __( 'Processing CSV…', 'ffcertificate' ) );
-		$elapsed_label    = esc_js( __( 'elapsed', 'ffcertificate' ) );
-		$rest_root        = esc_url_raw( rest_url( 'ffcertificate/v1/recruitment/notices/' ) );
-
-		// Inline JS — mirrors ffcRecruitmentImportFromEdit on the
-		// Notice Edit page. Reuses the same REST endpoints (no new
-		// backend) so the importer service and activity logger fire
-		// unchanged. If this duplication grows, factor both into a
-		// delegated handler in ffc-recruitment-admin.js.
-		// phpcs:disable WordPress.Security.EscapeOutput.OutputNotEscaped -- $processing_label / $elapsed_label / $rest_root are esc_js / esc_url_raw encoded above; $nonce is esc_attr-encoded.
-		echo '<script>'
-			. 'function ffcRecruitmentImportNoticeChanged(sel){'
-			. 'var opt=sel.options[sel.selectedIndex];'
-			. 'var st=opt?opt.getAttribute("data-status"):"";'
-			. 'var defRadio=document.querySelector(\'#ffc-recruitment-candidates-import input[name="list_target"][value="definitive"]\');'
-			. 'var prelimRadio=document.querySelector(\'#ffc-recruitment-candidates-import input[name="list_target"][value="preliminary"]\');'
-			. 'var help=document.getElementById("ffc-cand-import-target-help");'
-			. 'if(st==="preliminary"){defRadio.disabled=false;help.textContent="' . esc_js( __( 'Both lists are available for this notice.', 'ffcertificate' ) ) . '";}'
-			. 'else if(st==="draft"){defRadio.disabled=true;defRadio.checked=false;prelimRadio.checked=true;help.textContent="' . esc_js( __( 'Draft notices can only receive the preliminary list.', 'ffcertificate' ) ) . '";}'
-			. 'else{defRadio.disabled=true;defRadio.checked=false;prelimRadio.checked=true;help.textContent="' . esc_js( __( 'Pick a notice above to see which lists can receive the import.', 'ffcertificate' ) ) . '";}'
-			. '}'
-			. 'function ffcRecruitmentImportFromCandidates(form){'
-			. 'var nid=parseInt(form.notice_id.value,10);'
-			. 'if(!(nid>0)){alert("' . esc_js( __( 'Please select a target notice.', 'ffcertificate' ) ) . '");return false;}'
-			. 'var target=form.list_target.value;'
-			. 'var fd=new FormData();'
-			. 'fd.append("csv_file",form.csv_file.files[0]);'
-			. 'var url;'
-			. 'if(target==="definitive"){url="' . $rest_root . '"+nid+"/promote-preview";fd.append("mode","definitive_import");}'
-			. 'else{url="' . $rest_root . '"+nid+"/import";}'
-			. 'var btn=document.getElementById("ffc-cand-csv-submit");'
-			. 'var status=document.getElementById("ffc-cand-csv-status");'
-			. 'var progress=document.getElementById("ffc-cand-csv-progress");'
-			. 'var progressText=document.getElementById("ffc-cand-csv-progress-text");'
-			. 'btn.disabled=true;progress.style.display="inline-flex";status.textContent="";'
-			. 'var startedAt=Date.now();'
-			. 'function tick(){var sec=Math.floor((Date.now()-startedAt)/1000);progressText.textContent="' . $processing_label . ' "+sec+"s ' . $elapsed_label . '";}'
-			. 'tick();var timer=setInterval(tick,1000);'
-			. 'function cleanup(){clearInterval(timer);progress.style.display="none";btn.disabled=false;}'
-			. 'fetch(url,{method:"POST",headers:{"X-WP-Nonce":"' . esc_attr( $nonce ) . '"},body:fd,credentials:"same-origin"})'
-			. '.then(function(r){return r.json().then(function(d){return{status:r.status,body:d};});}).then(function(o){'
-			. 'cleanup();'
-			. 'if(o.status>=200&&o.status<300){status.textContent="OK ("+((o.body&&o.body.message)?o.body.message:JSON.stringify(o.body))+")";location.reload();}'
-			. 'else{status.textContent="Error: "+((o.body&&o.body.message)?o.body.message:JSON.stringify(o.body));}'
-			. '}).catch(function(e){cleanup();status.textContent="Network error: "+e.message;});'
-			. 'return false;}'
-			. '</script>';
-		// phpcs:enable WordPress.Security.EscapeOutput.OutputNotEscaped
-
+		// The CSV-import handlers (ffcRecruitmentImportNoticeChanged /
+		// ffcRecruitmentImportFromCandidates) ship in
+		// assets/js/ffc-recruitment-candidates-import.js, enqueued +
+		// localized by RecruitmentAdminAssetsManager. They mirror
+		// ffcRecruitmentImportFromEdit on the Notice Edit page, reusing the
+		// same REST endpoints (no new backend) so the importer service and
+		// activity logger fire unchanged.
 		echo '</div></div>';
 	}
 
@@ -866,12 +764,21 @@ final class RecruitmentAdminPage {
 	 */
 	private static function render_settings_tab(): void {
 		$settings = RecruitmentSettings::all();
+		$can_edit = self::can_edit_settings();
 
 		echo '<h2>' . esc_html__( 'Settings', 'ffcertificate' ) . '</h2>';
 		echo '<p>' . esc_html__( 'Email templates and public shortcode tuning. Saved values populate the convocation email and the public shortcode cache/rate-limit/page-size knobs.', 'ffcertificate' ) . '</p>';
 
+		if ( ! $can_edit ) {
+			echo '<p class="description"><em>' . esc_html__( 'Read-only — you do not have permission to change recruitment settings.', 'ffcertificate' ) . '</em></p>';
+		}
+
 		echo '<form method="post" action="' . esc_url( admin_url( 'options.php' ) ) . '">';
 		settings_fields( RecruitmentSettings::OPTION_GROUP );
+		if ( ! $can_edit ) {
+			// A disabled fieldset blocks every input + submission inside it.
+			echo '<fieldset disabled>';
+		}
 
 		$opt = RecruitmentSettings::OPTION_NAME;
 
@@ -934,7 +841,7 @@ final class RecruitmentAdminPage {
 		foreach ( $status_color_rows as $field => $label ) {
 			echo '<tr><th><label for="ffc-rs-' . esc_attr( $field ) . '">' . esc_html( $label ) . '</label></th><td>';
 			echo '<input id="ffc-rs-' . esc_attr( $field ) . '" type="color" name="' . esc_attr( $opt ) . '[' . esc_attr( $field ) . ']" value="' . esc_attr( (string) $settings[ $field ] ) . '">';
-			echo ' <code style="margin-left:.5em;">' . esc_html( (string) $settings[ $field ] ) . '</code>';
+			echo ' <code class="ffc-rec-ml-half">' . esc_html( (string) $settings[ $field ] ) . '</code>';
 			echo '</td></tr>';
 		}
 		echo '</tbody></table>';
@@ -955,7 +862,7 @@ final class RecruitmentAdminPage {
 		foreach ( $preview_color_rows as $field => $label ) {
 			echo '<tr><th><label for="ffc-rs-' . esc_attr( $field ) . '">' . esc_html( $label ) . '</label></th><td>';
 			echo '<input id="ffc-rs-' . esc_attr( $field ) . '" type="color" name="' . esc_attr( $opt ) . '[' . esc_attr( $field ) . ']" value="' . esc_attr( (string) $settings[ $field ] ) . '">';
-			echo ' <code style="margin-left:.5em;">' . esc_html( (string) $settings[ $field ] ) . '</code>';
+			echo ' <code class="ffc-rec-ml-half">' . esc_html( (string) $settings[ $field ] ) . '</code>';
 			echo '</td></tr>';
 		}
 		echo '</tbody></table>';
@@ -999,7 +906,7 @@ final class RecruitmentAdminPage {
 		foreach ( $subscription_color_rows as $field => $label ) {
 			echo '<tr><th><label for="ffc-rs-' . esc_attr( $field ) . '">' . esc_html( $label ) . '</label></th><td>';
 			echo '<input id="ffc-rs-' . esc_attr( $field ) . '" type="color" name="' . esc_attr( $opt ) . '[' . esc_attr( $field ) . ']" value="' . esc_attr( (string) $settings[ $field ] ) . '">';
-			echo ' <code style="margin-left:.5em;">' . esc_html( (string) $settings[ $field ] ) . '</code>';
+			echo ' <code class="ffc-rec-ml-half">' . esc_html( (string) $settings[ $field ] ) . '</code>';
 			echo '</td></tr>';
 		}
 		echo '</tbody></table>';
@@ -1019,7 +926,7 @@ final class RecruitmentAdminPage {
 		foreach ( $notice_status_color_rows as $field => $label ) {
 			echo '<tr><th><label for="ffc-rs-' . esc_attr( $field ) . '">' . esc_html( $label ) . '</label></th><td>';
 			echo '<input id="ffc-rs-' . esc_attr( $field ) . '" type="color" name="' . esc_attr( $opt ) . '[' . esc_attr( $field ) . ']" value="' . esc_attr( (string) $settings[ $field ] ) . '">';
-			echo ' <code style="margin-left:.5em;">' . esc_html( (string) $settings[ $field ] ) . '</code>';
+			echo ' <code class="ffc-rec-ml-half">' . esc_html( (string) $settings[ $field ] ) . '</code>';
 			echo '</td></tr>';
 		}
 		echo '</tbody></table>';
@@ -1046,8 +953,57 @@ final class RecruitmentAdminPage {
 		echo '</tbody></table>';
 		echo '</div>';
 
-		submit_button();
+		if ( $can_edit ) {
+			submit_button();
+		} else {
+			echo '</fieldset>';
+		}
 		echo '</form>';
+	}
+
+	/**
+	 * 3-state gate helpers for the recruitment Settings tab. Viewing needs the
+	 * view cap (admins + Recruitment Admin); editing/saving needs the manage
+	 * cap (which the options.php capability filter also enforces server-side).
+	 *
+	 * @return bool
+	 */
+	private static function can_view_settings(): bool {
+		return \FreeFormCertificate\Core\Utils::current_user_can_admin_or( 'ffc_view_recruitment_settings' )
+			|| \FreeFormCertificate\Core\Utils::current_user_can_admin_or( 'ffc_manage_recruitment_settings' );
+	}
+
+	/**
+	 * Whether the current user can edit/save the recruitment Settings tab.
+	 *
+	 * @return bool
+	 */
+	private static function can_edit_settings(): bool {
+		return \FreeFormCertificate\Core\Utils::current_user_can_admin_or( 'ffc_manage_recruitment_settings' );
+	}
+
+	/**
+	 * 3-state gate helpers for the recruitment Reasons tab (GAP I), mirroring
+	 * the Settings tab. Viewing the catalog needs the dedicated view cap (or the
+	 * manage cap, which implies view); creating/editing/deleting a reason needs
+	 * the manage cap *strictly* — the umbrella `ffc_manage_recruitment` no longer
+	 * grants it. A behavior-preserving migration seeds both caps onto existing
+	 * `view`/`manage` recruitment holders so nobody loses access on upgrade.
+	 *
+	 * @return bool
+	 */
+	private static function can_view_reasons(): bool {
+		return \FreeFormCertificate\Core\Utils::current_user_can_admin_or( 'ffc_view_recruitment_reasons' )
+			|| \FreeFormCertificate\Core\Utils::current_user_can_admin_or( 'ffc_manage_recruitment_reasons' );
+	}
+
+	/**
+	 * Whether the current user can create/edit/delete recruitment reasons.
+	 *
+	 * @return bool
+	 */
+	private static function can_edit_reasons(): bool {
+		return \FreeFormCertificate\Core\Utils::current_user_can_admin_or( 'ffc_manage_recruitment_reasons' );
 	}
 
 	/**
@@ -1057,6 +1013,9 @@ final class RecruitmentAdminPage {
 	 * @return void
 	 */
 	private static function render_create_notice_form(): void {
+		if ( ! \FreeFormCertificate\Core\Utils::current_user_can_admin_or( self::CAP ) ) {
+			return;
+		}
 		echo '<h3>' . esc_html__( 'Create new notice', 'ffcertificate' ) . '</h3>';
 		echo '<form id="ffc-create-notice" method="post" data-ffc-create-endpoint="notices">';
 		echo '<table class="form-table"><tbody>';
@@ -1076,6 +1035,9 @@ final class RecruitmentAdminPage {
 	 * @return void
 	 */
 	private static function render_create_adjutancy_form(): void {
+		if ( ! \FreeFormCertificate\Core\Utils::current_user_can_admin_or( self::CAP ) ) {
+			return;
+		}
 		$default_color = RecruitmentAdjutancyRepository::DEFAULT_COLOR;
 
 		echo '<h3>' . esc_html__( 'Create new adjutancy', 'ffcertificate' ) . '</h3>';
@@ -1100,8 +1062,8 @@ final class RecruitmentAdminPage {
 	 * @return void
 	 */
 	private static function render_rest_pointer(): void {
-		echo '<details style="margin-top:1em;"><summary>' . esc_html__( 'Available REST endpoints', 'ffcertificate' ) . '</summary>';
-		echo '<pre style="background:#f5f5f5;padding:1em;">'
+		echo '<details class="ffc-rec-mt-1"><summary>' . esc_html__( 'Available REST endpoints', 'ffcertificate' ) . '</summary>';
+		echo '<pre class="ffc-rec-pre-block">'
 			. esc_html(
 				"GET    /wp-json/ffcertificate/v1/recruitment/notices\n"
 				. "POST   /wp-json/ffcertificate/v1/recruitment/notices\n"

@@ -8,13 +8,17 @@
 //     other browser advances at 0/3s/10s.
 //   - The cache-hit path no longer skips the loading UI. It mounts the
 //     same spinner, waits FFCGeofence.MIN_LOADING_MS (600 ms) so the
-//     user gets a visual "verifying location" tick, then resolves via
-//     `checkLocation`.
+//     user gets a visual "verifying location" tick, then releases the
+//     form via `showForm` (the cache now holds a pass token, so no
+//     distance re-check is needed).
 import { describe, it, expect, beforeAll, beforeEach, afterEach, vi } from 'vitest';
 import { loadScript } from './helpers.js';
 
 beforeAll(() => {
 	loadScript('assets/js/ffc-geofence-frontend.js');
+	loadScript('assets/js/ffc-geofence-datetime.js');
+	loadScript('assets/js/ffc-geofence-gps.js');
+	loadScript('assets/js/ffc-geofence-preflight.js');
 });
 
 function installLocationHttps() {
@@ -162,14 +166,14 @@ describe('progressive loading — non-Safari gets phase-2 at 3 s and phase-3 at 
 // ----------------------------------------------------------------------
 
 describe('cache-hit — spinner is held for FFCGeofence.MIN_LOADING_MS before form is released', () => {
-	it('mounts the loading state and only calls checkLocation after the min-display delay', () => {
+	it('mounts the loading state and only releases the form after the min-display delay', () => {
 		vi.useFakeTimers();
 		const restoreLoc = installLocationHttps();
-		// Seed a valid cached location inside the test area.
+		// Seed a valid pass token (recent successful validation).
 		window.localStorage.setItem(
 			'ffc_geo_ffc-form-2001',
 			JSON.stringify({
-				location: { latitude: 0, longitude: 0, accuracy: 5 },
+				validated: true,
 				expires: Math.floor(Date.now() / 1000) + 600,
 			}),
 		);
@@ -194,7 +198,7 @@ describe('cache-hit — spinner is held for FFCGeofence.MIN_LOADING_MS before fo
 		vi.advanceTimersByTime(window.FFCGeofence.MIN_LOADING_MS - 1);
 		expect($w.hasClass('ffc-validated')).toBe(false);
 
-		// At the min delay: loading state torn down and checkLocation
+		// At the min delay: loading state torn down and showForm
 		// has unlocked the form.
 		vi.advanceTimersByTime(1);
 		expect($w.find('.ffc-geofence-loading-msg').length).toBe(0);
@@ -210,7 +214,7 @@ describe('cache-hit — spinner is held for FFCGeofence.MIN_LOADING_MS before fo
 		window.localStorage.setItem(
 			'ffc_geo_ffc-form-2002',
 			JSON.stringify({
-				location: { latitude: 0, longitude: 0, accuracy: 5 },
+				validated: true,
 				expires: Math.floor(Date.now() / 1000) + 600,
 			}),
 		);

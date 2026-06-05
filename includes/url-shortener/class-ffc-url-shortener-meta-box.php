@@ -266,7 +266,7 @@ class UrlShortenerMetaBox {
 	 */
 	public function ajax_regenerate(): void {
 		$this->verify_ajax_nonce( 'ffc_short_url_nonce' );
-		$this->check_ajax_permission();
+		$this->check_ajax_permission( 'ffc_manage_url_shortener' );
 
 		// phpcs:ignore WordPress.Security.NonceVerification.Missing -- Nonce verified in $this->verify_ajax_nonce() above.
 		$post_id = (int) ( $_POST['post_id'] ?? 0 );

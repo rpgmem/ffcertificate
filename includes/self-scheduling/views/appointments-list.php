@@ -123,8 +123,11 @@ if ( ! class_exists( 'FFC_Appointments_List_Table' ) ) :
 		public function column_id( $item ): string {
 			$actions       = array();
 			$ffc_page_slug = 'ffc-appointments';
+			// 3-state: confirm/cancel are writes — hidden from read-only viewers
+			// (the mutation itself is also manage-gated server-side below).
+			$ffc_can_edit_appt = \FreeFormCertificate\Core\Utils::current_user_can_admin_or( 'ffc_manage_appointments' );
 
-			if ( 'pending' === $item['status'] ) {
+			if ( 'pending' === $item['status'] && $ffc_can_edit_appt ) {
 				$confirm_url        = wp_nonce_url(
 					add_query_arg(
 						array(
@@ -143,7 +146,7 @@ if ( ! class_exists( 'FFC_Appointments_List_Table' ) ) :
 				);
 			}
 
-			if ( in_array( $item['status'], array( 'pending', 'confirmed' ), true ) ) {
+			if ( $ffc_can_edit_appt && in_array( $item['status'], array( 'pending', 'confirmed' ), true ) ) {
 				$cancel_url        = wp_nonce_url(
 					add_query_arg(
 						array(
@@ -372,7 +375,7 @@ $ffcertificate_action               = \FreeFormCertificate\Core\Utils::get_get_s
 if ( $ffc_self_scheduling_appointment_id > 0 ) {
 
 	// Verify user has admin permissions.
-	if ( ! \FreeFormCertificate\Core\Utils::current_user_can_admin_or( 'ffc_manage_self_scheduling' ) ) {
+	if ( ! \FreeFormCertificate\Core\Utils::current_user_can_admin_or( 'ffc_manage_appointments' ) ) {
 		wp_die( esc_html__( 'You do not have permission to perform this action.', 'ffcertificate' ) );
 	}
 

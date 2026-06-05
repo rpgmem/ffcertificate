@@ -1,0 +1,76 @@
+/**
+ * Standalone styles for the public token-based appointment cancellation page
+ * (#Item9). Loaded only by AppointmentCancellationHandler's self-contained
+ * page, so the selectors are intentionally generic / page-scoped.
+ */
+.ffc-cancel-page {
+	margin: 0;
+	padding: 2rem 1rem;
+	background: #f0f0f1;
+	color: #1d2327;
+	font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+	line-height: 1.5;
+}
+
+.ffc-cancel-card {
+	max-width: 32rem;
+	margin: 0 auto;
+	padding: 2rem;
+	background: #fff;
+	border: 1px solid #dcdcde;
+	border-radius: 8px;
+	box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+}
+
+.ffc-cancel-card h1 {
+	margin-top: 0;
+	font-size: 1.5rem;
+}
+
+.ffc-cancel-summary {
+	margin: 1.5rem 0;
+	padding: 1rem;
+	background: #f6f7f7;
+	border-radius: 6px;
+}
+
+.ffc-cancel-summary dt {
+	font-weight: 600;
+	color: #50575e;
+}
+
+.ffc-cancel-summary dd {
+	margin: 0 0 0.75rem;
+}
+
+.ffc-cancel-summary dd:last-child {
+	margin-bottom: 0;
+}
+
+.ffc-cancel-form label {
+	font-weight: 600;
+}
+
+.ffc-cancel-form textarea {
+	width: 100%;
+	box-sizing: border-box;
+	padding: 0.5rem;
+	border: 1px solid #8c8f94;
+	border-radius: 4px;
+}
+
+.ffc-cancel-confirm-btn {
+	display: inline-block;
+	padding: 0.6rem 1.25rem;
+	font-size: 1rem;
+	color: #fff;
+	background: #d63638;
+	border: 0;
+	border-radius: 4px;
+	cursor: pointer;
+}
+
+.ffc-cancel-confirm-btn:hover,
+.ffc-cancel-confirm-btn:focus {
+	background: #b32d2e;
+}

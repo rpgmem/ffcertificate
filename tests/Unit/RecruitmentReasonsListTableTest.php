@@ -141,4 +141,33 @@ class RecruitmentReasonsListTableTest extends TestCase {
         $out = $this->call_protected( 'column_created_at', array( array( 'created_at' => '2026-05-18 10:00:00' ) ) );
         $this->assertSame( '2026-05-18 10:00:00', $out );
     }
+
+    // ------------------------------------------------------------------
+    // GAP I — read-only viewer (can_edit = false)
+    // ------------------------------------------------------------------
+
+    public function test_get_bulk_actions_empty_for_read_only_viewer(): void {
+        $table = new RecruitmentReasonsListTable( false );
+        $ref   = new \ReflectionMethod( $table, 'get_bulk_actions' );
+        $ref->setAccessible( true );
+        $this->assertSame( array(), $ref->invoke( $table ) );
+    }
+
+    public function test_column_color_renders_static_swatch_for_read_only_viewer(): void {
+        $table = new RecruitmentReasonsListTable( false );
+        $ref   = new \ReflectionMethod( $table, 'column_color' );
+        $ref->setAccessible( true );
+        $out = $ref->invokeArgs( $table, array( array( 'id' => 3, 'color' => '#abcdef' ) ) );
+
+        // No editable input; just a swatch + hex code.
+        $this->assertStringNotContainsString( '<input', $out );
+        $this->assertStringContainsString( '#abcdef', $out );
+    }
+
+    public function test_column_color_renders_picker_for_editor(): void {
+        // Default constructor (can_edit = true) keeps the inline picker.
+        $out = $this->call_protected( 'column_color', array( array( 'id' => 3, 'color' => '#abcdef' ) ) );
+        $this->assertStringContainsString( 'type="color"', $out );
+        $this->assertStringContainsString( 'data-ffc-color-endpoint="reasons"', $out );
+    }
 }

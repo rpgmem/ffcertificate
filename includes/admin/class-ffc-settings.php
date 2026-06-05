@@ -139,7 +139,7 @@ class Settings {
 			'edit.php?post_type=ffc_form',
 			__( 'Settings', 'ffcertificate' ),
 			__( 'Settings', 'ffcertificate' ),
-			'manage_options',
+			'ffc_view_settings',
 			'ffc-settings',
 			array( $this, 'display_settings_page' )
 		);
@@ -343,7 +343,20 @@ class Settings {
 			<span id="ffc-settings-top" aria-hidden="true"></span>
 			<h1><?php esc_html_e( 'Certificate Settings', 'ffcertificate' ); ?></h1>
 			<?php settings_errors( 'ffc_settings' ); ?>
-			
+			<?php
+			// 3-state Settings: the page menu opens on `ffc_view_settings` (só vê),
+			// but saving requires `ffc_manage_settings`. For a view-only user the
+			// whole tab body is wrapped in a disabled <fieldset> below so the page
+			// is a *real* read-only surface (no live inputs that silently fail at
+			// the manage-gated save handler), mirroring the recruitment Settings tab.
+			$ffc_settings_can_edit = \FreeFormCertificate\Core\Utils::current_user_can_admin_or( 'ffc_manage_settings' );
+			if ( ! $ffc_settings_can_edit ) {
+				echo '<div class="notice notice-info inline"><p>'
+					. esc_html__( 'Read-only — you can view these settings but do not have permission to change them.', 'ffcertificate' )
+					. '</p></div>';
+			}
+			?>
+
 			<?php
 			// Display migration messages.
             // phpcs:disable WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- sanitized via sanitize_text_field().
@@ -377,6 +390,15 @@ class Settings {
 
 				<div id="ffc-settings-tabpanel-<?php echo esc_attr( $active_tab ); ?>" class="ffc-settings-tabs__panel" role="tabpanel" aria-labelledby="ffc-settings-tabnav-<?php echo esc_attr( $active_tab ); ?>" tabindex="0">
 					<?php
+					// A disabled <fieldset> natively disables every descendant form
+					// control (inputs, selects, textareas, submit + action buttons)
+					// across whichever tab is active, so read-only is enforced for
+					// all tabs without touching each tab's own template. The save
+					// handlers + AJAX endpoints already gate on `ffc_manage_settings`
+					// server-side; this just stops the UI from looking editable.
+					if ( ! $ffc_settings_can_edit ) {
+						echo '<fieldset disabled class="ffc-settings-readonly-lock">';
+					}
 					if ( isset( $this->tabs[ $active_tab ] ) ) {
 						$this->tabs[ $active_tab ]->render();
 					} elseif ( ! empty( $this->tabs ) ) {
@@ -384,6 +406,9 @@ class Settings {
 						reset( $this->tabs );
 						$first_tab = current( $this->tabs );
 						$first_tab->render();
+					}
+					if ( ! $ffc_settings_can_edit ) {
+						echo '</fieldset>';
 					}
 					?>
 				</div>

@@ -67,7 +67,7 @@ class SubmissionsBulkActionsAjaxEndpoint {
 	public static function handle(): void {
 		check_ajax_referer( self::AJAX_ACTION, 'nonce' );
 
-		if ( ! current_user_can( 'manage_options' ) ) {
+		if ( ! \FreeFormCertificate\Core\Utils::current_user_can_admin_or( 'ffc_manage_certificates' ) ) {
 			wp_send_json_error(
 				array( 'message' => __( 'You do not have permission to modify submissions.', 'ffcertificate' ) ),
 				403
@@ -80,6 +80,17 @@ class SubmissionsBulkActionsAjaxEndpoint {
 			wp_send_json_error(
 				array( 'message' => __( 'Unknown action.', 'ffcertificate' ) ),
 				400
+			);
+		}
+
+		// The permanent delete is gated by the dedicated destructive cap (GAP E),
+		// strictly — `manage` alone (which still gates trash/restore above) is
+		// not sufficient. Trash is reversible and stays under `manage`.
+		if ( 'delete' === $action
+			&& ! \FreeFormCertificate\Core\Utils::current_user_can_admin_or( 'ffc_delete_certificates' ) ) {
+			wp_send_json_error(
+				array( 'message' => __( 'You do not have permission to delete submissions.', 'ffcertificate' ) ),
+				403
 			);
 		}
 

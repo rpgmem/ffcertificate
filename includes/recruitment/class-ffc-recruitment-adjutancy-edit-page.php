@@ -90,7 +90,7 @@ final class RecruitmentAdjutancyEditPage {
 			? (string) $adjutancy->color
 			: RecruitmentAdjutancyRepository::DEFAULT_COLOR;
 
-		echo '<div class="postbox" style="margin-top:20px;">';
+		echo '<div class="postbox ffc-rec-mt-20">';
 		echo '<h2 class="hndle"><span>' . esc_html__( 'General', 'ffcertificate' ) . '</span></h2>';
 		echo '<div class="inside">';
 
@@ -110,7 +110,7 @@ final class RecruitmentAdjutancyEditPage {
 
 		echo '<tr><th><label for="ffc-adjutancy-edit-color">' . esc_html__( 'Badge color', 'ffcertificate' ) . '</label></th>';
 		echo '<td><input id="ffc-adjutancy-edit-color" type="color" name="color" value="' . esc_attr( $color ) . '">';
-		echo ' <code style="margin-left:.5em;">' . esc_html( $color ) . '</code>';
+		echo ' <code class="ffc-rec-ml-half">' . esc_html( $color ) . '</code>';
 		echo '<p class="description">' . esc_html__( 'Background color for the badge on the public shortcode. Accepts #RGB / #RRGGBB / #RRGGBBAA. Bad values fall back to the default.', 'ffcertificate' ) . '</p></td></tr>';
 
 		echo '</tbody></table>';

@@ -1,9 +1,11 @@
-// Tests for the three small isolated scripts in `assets/js/` that are
+// Tests for the small isolated scripts in `assets/js/` that are
 // pure IIFE side-effect modules (no public global API).
 //
 //   - ffc-dark-mode.js          (32 LOC)  — toggles `.ffc-dark-mode` on <html>.
-//   - ffc-user-capabilities.js  (37 LOC)  — bulk-toggle buttons on the user profile.
 //   - ffc-smtp-settings.js      (36 LOC)  — mode toggle + disable-all in admin.
+//
+// (ffc-user-capabilities.js now has its own suite — see
+//  tests/js/user-capabilities.test.js.)
 //
 // Each script registers handlers / applies state on parse. Tests
 // reload the script via `vm.runInThisContext` with the desired
@@ -65,58 +67,10 @@ describe('ffc-dark-mode', () => {
 });
 
 // ----------------------------------------------------------------------
-// ffc-user-capabilities.js
+// ffc-user-capabilities.js — the per-user capability manager was redesigned
+// (grouped cards, search, presets, slug chips, origin badges) and now has
+// its own dedicated suite in tests/js/user-capabilities.test.js.
 // ----------------------------------------------------------------------
-
-describe('ffc-user-capabilities', () => {
-	beforeEach(async () => {
-		document.body.innerHTML = `
-			<button id="ffc-grant-all-caps">Grant all</button>
-			<button id="ffc-revoke-all-caps">Revoke all</button>
-			<button id="ffc-grant-certificates">Grant certs</button>
-			<button id="ffc-grant-appointments">Grant appts</button>
-			<input type="checkbox" name="ffc_cap_certificate_view" />
-			<input type="checkbox" name="ffc_cap_certificate_edit" />
-			<input type="checkbox" name="ffc_cap_ffc_appointment_view" />
-			<input type="checkbox" name="ffc_cap_ffc_appointment_edit" />
-			<input type="checkbox" name="ffc_cap_other_thing" />
-		`;
-		loadScript('assets/js/ffc-user-capabilities.js');
-		// jQuery 4 defers `$(document).ready(cb)` to a microtask even when
-		// the document is already complete — wait one tick so the script's
-		// handlers are bound before the test simulates clicks.
-		await new Promise((r) => setTimeout(r, 0));
-	});
-
-	it('Grant All checks every ffc_cap_* checkbox', () => {
-		document.getElementById('ffc-grant-all-caps').click();
-		const boxes = document.querySelectorAll('input[name^="ffc_cap_"]');
-		boxes.forEach((b) => expect(b.checked).toBe(true));
-	});
-
-	it('Revoke All unchecks every ffc_cap_* checkbox', () => {
-		// First grant, then revoke.
-		document.getElementById('ffc-grant-all-caps').click();
-		document.getElementById('ffc-revoke-all-caps').click();
-		const boxes = document.querySelectorAll('input[name^="ffc_cap_"]');
-		boxes.forEach((b) => expect(b.checked).toBe(false));
-	});
-
-	it('Grant certificates only checks the certificate caps', () => {
-		document.getElementById('ffc-grant-certificates').click();
-		expect(document.querySelector('input[name="ffc_cap_certificate_view"]').checked).toBe(true);
-		expect(document.querySelector('input[name="ffc_cap_certificate_edit"]').checked).toBe(true);
-		expect(document.querySelector('input[name="ffc_cap_ffc_appointment_view"]').checked).toBe(false);
-		expect(document.querySelector('input[name="ffc_cap_other_thing"]').checked).toBe(false);
-	});
-
-	it('Grant appointments only checks the appointment caps', () => {
-		document.getElementById('ffc-grant-appointments').click();
-		expect(document.querySelector('input[name="ffc_cap_ffc_appointment_view"]').checked).toBe(true);
-		expect(document.querySelector('input[name="ffc_cap_ffc_appointment_edit"]').checked).toBe(true);
-		expect(document.querySelector('input[name="ffc_cap_certificate_view"]').checked).toBe(false);
-	});
-});
 
 // ----------------------------------------------------------------------
 // ffc-smtp-settings.js

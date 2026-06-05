@@ -40,7 +40,6 @@ class FormListColumns {
 		add_filter( 'manage_ffc_form_posts_columns', array( __CLASS__, 'add_columns' ) );
 		add_action( 'manage_ffc_form_posts_custom_column', array( __CLASS__, 'render_column' ), 10, 2 );
 		add_filter( 'manage_edit-ffc_form_sortable_columns', array( __CLASS__, 'sortable_columns' ) );
-		add_action( 'admin_head-edit.php', array( __CLASS__, 'inline_styles' ) );
 		add_action( 'pre_get_posts', array( __CLASS__, 'search_by_id' ) );
 		add_action( 'admin_enqueue_scripts', array( __CLASS__, 'enqueue_features_script' ) );
 	}
@@ -86,6 +85,13 @@ class FormListColumns {
 					'error'  => __( 'Save failed', 'ffcertificate' ),
 				),
 			)
+		);
+		wp_enqueue_script(
+			'ffc-form-list-copy-shortcode',
+			FFC_PLUGIN_URL . "assets/js/ffc-form-list-copy-shortcode{$s}.js",
+			array(),
+			FFC_VERSION,
+			true
 		);
 	}
 
@@ -318,40 +324,5 @@ class FormListColumns {
 
 		$query->set( 'post__in', array( absint( trim( $search ) ) ) );
 		$query->set( 's', '' );
-	}
-
-	/**
-	 * Print inline styles and copy-to-clipboard script for the forms list screen.
-	 */
-	public static function inline_styles(): void {
-		$screen = get_current_screen();
-		if ( ! $screen || 'ffc_form' !== $screen->post_type ) {
-			return;
-		}
-
-		?>
-		<script>
-		document.addEventListener('DOMContentLoaded', function() {
-			document.querySelectorAll('.ffc-copy-shortcode').forEach(function(btn) {
-				btn.addEventListener('click', function() {
-					var shortcode = this.getAttribute('data-shortcode');
-					if (navigator.clipboard) {
-						navigator.clipboard.writeText(shortcode);
-					} else {
-						var t = document.createElement('textarea');
-						t.value = shortcode;
-						document.body.appendChild(t);
-						t.select();
-						document.execCommand('copy');
-						document.body.removeChild(t);
-					}
-					this.classList.add('copied');
-					var self = this;
-					setTimeout(function() { self.classList.remove('copied'); }, 1500);
-				});
-			});
-		});
-		</script>
-		<?php
 	}
 }

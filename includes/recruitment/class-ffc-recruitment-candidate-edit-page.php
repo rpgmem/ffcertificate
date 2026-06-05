@@ -116,7 +116,7 @@ final class RecruitmentCandidateEditPage {
 			$email     = is_string( $decrypted ) ? $decrypted : '';
 		}
 
-		echo '<div class="postbox" style="margin-top:20px;">';
+		echo '<div class="postbox ffc-rec-mt-20">';
 		echo '<h2 class="hndle"><span>' . esc_html__( 'General', 'ffcertificate' ) . '</span></h2>';
 		echo '<div class="inside">';
 
@@ -162,7 +162,7 @@ final class RecruitmentCandidateEditPage {
 		// (issue #330).
 		$tier = RecruitmentPiiAccessPolicy::resolve( $candidate, get_current_user_id() );
 
-		echo '<div class="postbox" style="margin-top:20px;">';
+		echo '<div class="postbox ffc-rec-mt-20">';
 		echo '<h2 class="hndle"><span>' . esc_html__( 'Sensitive data (admin only)', 'ffcertificate' ) . '</span></h2>';
 		echo '<div class="inside">';
 
@@ -212,7 +212,7 @@ final class RecruitmentCandidateEditPage {
 					__( 'The WordPress user account itself is preserved untouched.', 'ffcertificate' ),
 				)
 			);
-			echo ' <form method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '" style="display:inline;margin-left:.5em;"'
+			echo ' <form method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '" class="ffc-rec-inline-ml"'
 				. ' data-ffc-confirm'
 				. ' data-ffc-confirm-title="' . esc_attr__( 'Unlink WordPress user?', 'ffcertificate' ) . '"'
 				. ' data-ffc-confirm-body="' . esc_attr__( 'Unlink this candidate from the WordPress user account.', 'ffcertificate' ) . '"'
@@ -235,7 +235,7 @@ final class RecruitmentCandidateEditPage {
 		// already saw the current state in the row above).
 		echo '<tr><th>' . esc_html__( 'Link manually to WP user', 'ffcertificate' ) . '</th>';
 		echo '<td>';
-		echo '<form method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '" style="display:inline;">';
+		echo '<form method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '" class="ffc-rec-inline">';
 		echo '<input type="hidden" name="action" value="ffc_recruitment_link_candidate_user">';
 		echo '<input type="hidden" name="candidate_id" value="' . esc_attr( (string) $candidate->id ) . '">';
 		wp_nonce_field( $nonce_action );
@@ -247,12 +247,9 @@ final class RecruitmentCandidateEditPage {
 
 		echo '</tbody></table>';
 
-		// Inline JS for the reveal buttons. Only emitted when the user is
-		// on the `reveal` tier — the `unmasked` and `masked` tiers don't
-		// render the button so the script would be a no-op anyway.
-		if ( RecruitmentPiiAccessPolicy::TIER_REVEAL === $tier ) {
-			self::render_sensitive_reveal_script();
-		}
+		// PII reveal/hide is handled by the enqueued
+		// assets/js/ffc-recruitment-candidate-edit.js (a document-delegated
+		// handler that's inert unless the reveal-tier buttons are present).
 
 		echo '</div></div>';
 	}
@@ -282,7 +279,7 @@ final class RecruitmentCandidateEditPage {
 	 * - `unmasked`: decrypt and show the value immediately, same as
 	 *   render_decrypted().
 	 * - `reveal`: render a `<code>` placeholder with a "Reveal" button
-	 *   alongside; the JS handler (see render_sensitive_reveal_script())
+	 *   alongside; the enqueued ffc-recruitment-candidate-edit.js handler
 	 *   POSTs to /candidates/{id}/reveal-pii on click and swaps the
 	 *   placeholder text in place.
 	 * - `masked`: render the placeholder without the button — the user
@@ -345,68 +342,6 @@ final class RecruitmentCandidateEditPage {
 	}
 
 	/**
-	 * Inline JS for the "Reveal" buttons in the Sensitive data postbox
-	 * (issue #330). Rendered once per page load by render_sensitive_section
-	 * when the user is on the `reveal` tier.
-	 *
-	 * The handler POSTs to /candidates/{id}/reveal-pii with the field key,
-	 * swaps the placeholder text on success, replaces the button with a
-	 * "Hide" toggle that restores the placeholder, and surfaces any error
-	 * inline so the operator knows whether the request failed (and why)
-	 * without a page reload.
-	 *
-	 * @return void
-	 */
-	private static function render_sensitive_reveal_script(): void {
-		$rest_root  = esc_url_raw( rest_url( 'ffcertificate/v1/recruitment/candidates/' ) );
-		$nonce      = wp_create_nonce( 'wp_rest' );
-		$hide_lbl   = esc_js( __( 'Hide', 'ffcertificate' ) );
-		$reveal_lbl = esc_js( __( 'Reveal', 'ffcertificate' ) );
-		$err_lbl    = esc_js( __( 'Error', 'ffcertificate' ) );
-
-		// phpcs:disable WordPress.Security.EscapeOutput.OutputNotEscaped -- All interpolated values are escaped via esc_url_raw / esc_js / esc_attr above; no user-controlled content.
-		echo '<script>'
-			. '(function(){'
-			. 'document.addEventListener("click",function(ev){'
-			. 'var btn=ev.target;'
-			. 'if(!btn||!btn.classList||!btn.classList.contains("ffc-pii-reveal-btn"))return;'
-			. 'ev.preventDefault();'
-			. 'var cid=btn.getAttribute("data-ffc-pii-candidate");'
-			. 'var field=btn.getAttribute("data-ffc-pii-field");'
-			. 'var ph=btn.parentNode.querySelector(\'.ffc-pii-placeholder[data-ffc-pii-field="\'+field+\'"]\');'
-			. 'if(!cid||!field||!ph)return;'
-			. 'if(btn.getAttribute("data-ffc-pii-revealed")==="1"){'
-			// Hide path — restore the saved placeholder text and reset the button label.
-			. 'ph.textContent=btn.getAttribute("data-ffc-pii-mask")||"";'
-			. 'btn.textContent="' . $reveal_lbl . '";'
-			. 'btn.removeAttribute("data-ffc-pii-revealed");'
-			. 'return;'
-			. '}'
-			. 'btn.disabled=true;'
-			. 'var fd=new FormData();fd.append("field",field);'
-			. 'fetch("' . $rest_root . '"+cid+"/reveal-pii",{'
-			. 'method:"POST",'
-			. 'headers:{"X-WP-Nonce":"' . esc_attr( $nonce ) . '"},'
-			. 'body:fd,credentials:"same-origin"'
-			. '}).then(function(r){return r.json().then(function(d){return{status:r.status,body:d};});}).then(function(o){'
-			. 'btn.disabled=false;'
-			. 'if(o.status>=200&&o.status<300&&o.body&&typeof o.body.value==="string"){'
-			. 'btn.setAttribute("data-ffc-pii-mask",ph.textContent);'
-			. 'ph.textContent=o.body.value;'
-			. 'btn.textContent="' . $hide_lbl . '";'
-			. 'btn.setAttribute("data-ffc-pii-revealed","1");'
-			. '}else{'
-			. 'var msg=(o.body&&o.body.message)?o.body.message:"' . $err_lbl . '";'
-			. 'ph.textContent="["+msg+"]";'
-			. '}'
-			. '}).catch(function(){btn.disabled=false;ph.textContent="[' . $err_lbl . ']";});'
-			. '});'
-			. '})();'
-			. '</script>';
-		// phpcs:enable WordPress.Security.EscapeOutput.OutputNotEscaped
-	}
-
-	/**
 	 * Section 3: Classifications + call history for this candidate.
 	 *
 	 * @param object $candidate Candidate row.
@@ -416,7 +351,7 @@ final class RecruitmentCandidateEditPage {
 	private static function render_classifications_section( object $candidate ): void {
 		$classifications = RecruitmentClassificationRepository::get_for_candidate( (int) $candidate->id );
 
-		echo '<div class="postbox" style="margin-top:20px;">';
+		echo '<div class="postbox ffc-rec-mt-20">';
 		echo '<h2 class="hndle"><span>' . esc_html__( 'Classifications + call history', 'ffcertificate' ) . '</span></h2>';
 		echo '<div class="inside">';
 
@@ -458,7 +393,6 @@ final class RecruitmentCandidateEditPage {
 				echo '</tr>';
 			}
 			echo '</tbody></table>';
-			self::render_adjutancy_swap_script();
 
 			// Render an inline calls table per classification that has any calls.
 			foreach ( $classifications as $c ) {
@@ -466,7 +400,7 @@ final class RecruitmentCandidateEditPage {
 				if ( empty( $calls ) ) {
 					continue;
 				}
-				echo '<h4 style="margin-top:1.5em;">' . sprintf(
+				echo '<h4 class="ffc-rec-mt-1-5em">' . sprintf(
 					/* translators: %d — classification id */
 					esc_html__( 'Calls for classification #%d', 'ffcertificate' ),
 					(int) $c->id
@@ -537,7 +471,7 @@ final class RecruitmentCandidateEditPage {
 	private static function render_history_section( object $candidate ): void {
 		$entries = RecruitmentCandidateHistoryService::get_for_candidate( (int) $candidate->id );
 
-		echo '<div class="postbox" style="margin-top:20px;">';
+		echo '<div class="postbox ffc-rec-mt-20">';
 		echo '<h2 class="hndle"><span>' . esc_html__( 'History', 'ffcertificate' ) . '</span></h2>';
 		echo '<div class="inside">';
 
@@ -610,7 +544,7 @@ final class RecruitmentCandidateEditPage {
 		$nonce_action         = 'ffc_recruitment_delete_candidate_' . $id;
 		$classification_count = RecruitmentClassificationRepository::count_for_candidate( $id );
 
-		echo '<div class="postbox" style="margin-top:20px;">';
+		echo '<div class="postbox ffc-rec-mt-20">';
 		echo '<h2 class="hndle"><span>' . esc_html__( 'Hard-delete candidate', 'ffcertificate' ) . '</span></h2>';
 		echo '<div class="inside">';
 
@@ -842,7 +776,9 @@ final class RecruitmentCandidateEditPage {
 	 * @return void
 	 */
 	public static function handle_delete(): void {
-		if ( ! current_user_can( self::CAP ) ) {
+		// Hard-deleting a candidate is destructive — gated by the dedicated
+		// delete cap (GAP E), not the page-level manage cap.
+		if ( ! \FreeFormCertificate\Core\Utils::current_user_can_admin_or( 'ffc_delete_recruitment' ) ) {
 			wp_die( esc_html__( 'Access denied.', 'ffcertificate' ) );
 		}
 		$id = isset( $_POST['candidate_id'] ) ? absint( wp_unslash( (string) $_POST['candidate_id'] ) ) : 0;
@@ -1050,55 +986,5 @@ final class RecruitmentCandidateEditPage {
 		$html .= ' <span class="ffc-adjutancy-swap-msg" aria-live="polite"></span>';
 		$html .= '</span>';
 		return $html;
-	}
-
-	/**
-	 * Inline JS for the per-row Adjutancy swap button. Issue #331.
-	 *
-	 * On click: PATCH /classifications/{id}/adjutancy with the selected
-	 * option, surface success or the WP_Error message inline (the REST
-	 * controller emits a stable `code` field per failure mode so we
-	 * could branch on it for richer messaging later — for now we just
-	 * show whatever the server returned).
-	 *
-	 * @since 6.6.2
-	 * @return void
-	 */
-	private static function render_adjutancy_swap_script(): void {
-		$rest_root = esc_url_raw( rest_url( 'ffcertificate/v1/recruitment/classifications/' ) );
-		$nonce     = wp_create_nonce( 'wp_rest' );
-		$ok_lbl    = esc_js( __( 'Saved', 'ffcertificate' ) );
-		$err_lbl   = esc_js( __( 'Error', 'ffcertificate' ) );
-
-		// phpcs:disable WordPress.Security.EscapeOutput.OutputNotEscaped -- All interpolated values escaped via esc_url_raw / esc_js above.
-		echo '<script>'
-			. '(function(){'
-			. 'document.addEventListener("click",function(ev){'
-			. 'var btn=ev.target;'
-			. 'if(!btn||!btn.classList||!btn.classList.contains("ffc-adjutancy-swap-btn"))return;'
-			. 'ev.preventDefault();'
-			. 'var wrap=btn.closest(".ffc-adjutancy-swap");'
-			. 'if(!wrap)return;'
-			. 'var cid=wrap.getAttribute("data-ffc-cls-id");'
-			. 'var sel=wrap.querySelector(".ffc-adjutancy-swap-select");'
-			. 'var msg=wrap.querySelector(".ffc-adjutancy-swap-msg");'
-			. 'if(!cid||!sel||!msg)return;'
-			. 'msg.textContent="";'
-			. 'btn.disabled=true;'
-			. 'fetch("' . $rest_root . '"+encodeURIComponent(cid)+"/adjutancy",{'
-			. 'method:"PATCH",'
-			. 'credentials:"same-origin",'
-			. 'headers:{"Content-Type":"application/json","X-WP-Nonce":"' . esc_js( $nonce ) . '"},'
-			. 'body:JSON.stringify({adjutancy_id:parseInt(sel.value,10)})'
-			. '}).then(function(r){return r.json().then(function(b){return{ok:r.ok,body:b};});})'
-			. '.then(function(res){'
-			. 'btn.disabled=false;'
-			. 'if(res.ok&&res.body&&res.body.success){msg.textContent="' . $ok_lbl . '";msg.style.color="#1a7f37";}'
-			. 'else{msg.textContent="' . $err_lbl . ': "+((res.body&&res.body.message)||"");msg.style.color="#b91c1c";}'
-			. '}).catch(function(){btn.disabled=false;msg.textContent="' . $err_lbl . '";msg.style.color="#b91c1c";});'
-			. '});'
-			. '})();'
-			. '</script>';
-		// phpcs:enable WordPress.Security.EscapeOutput.OutputNotEscaped
 	}
 }

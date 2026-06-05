@@ -34,6 +34,7 @@ use FreeFormCertificate\SelfScheduling\AppointmentHandler;
 use FreeFormCertificate\SelfScheduling\AppointmentAjaxHandler;
 use FreeFormCertificate\SelfScheduling\AppointmentEmailHandler;
 use FreeFormCertificate\SelfScheduling\AppointmentReceiptHandler;
+use FreeFormCertificate\SelfScheduling\AppointmentCancellationHandler;
 use FreeFormCertificate\SelfScheduling\AppointmentCsvExporter;
 use FreeFormCertificate\SelfScheduling\SelfSchedulingShortcode;
 use FreeFormCertificate\Audience\AudienceLoader;
@@ -250,6 +251,7 @@ class Loader {
 			$this->admin_ajax   = new AdminAjax();
 			AdminUserColumns::init();
 			AdminUserCapabilities::init();
+			\FreeFormCertificate\Admin\RoleCapabilityEditor::init();
 			\FreeFormCertificate\Admin\AdminMenuVisibility::init();
 			\FreeFormCertificate\Admin\DeviceThresholdUpgradeNotice::init();
 			\FreeFormCertificate\Admin\SettingsAjaxEndpoint::init();
@@ -287,7 +289,10 @@ class Loader {
 		new AppointmentAjaxHandler( $this->self_scheduling_appointment_handler );
 		$this->self_scheduling_email_handler   = new AppointmentEmailHandler();
 		$this->self_scheduling_receipt_handler = new AppointmentReceiptHandler();
-		$this->self_scheduling_shortcode       = new SelfSchedulingShortcode();
+		// #Item9 — public token-based cancellation page reached from the
+		// appointment e-mails; delegates the actual cancel to the handler.
+		new AppointmentCancellationHandler( $this->self_scheduling_appointment_handler );
+		$this->self_scheduling_shortcode = new SelfSchedulingShortcode();
 
 		$this->audience_loader = AudienceLoader::get_instance();
 		$this->audience_loader->init();
@@ -318,6 +323,11 @@ class Loader {
 
 		$this->ensure_admin_capabilities();
 		$this->ensure_legacy_caps_renamed();
+		$this->ensure_taxonomy_renamed();
+		$this->ensure_delete_caps_granted();
+		$this->ensure_export_caps_granted();
+		$this->ensure_import_caps_granted();
+		$this->ensure_reasons_caps_wired();
 		$this->define_admin_hooks();
 		$this->init_rest_api();
 	}
@@ -372,6 +382,108 @@ class Loader {
 	}
 
 	/**
+	 * One-time migration that renames capabilities to the plugin-wide naming
+	 * standard (`ffc_<action>_[own_]<domain>[_<qualifier>]`) across every user
+	 * and role. Idempotent + version-flagged via `ffc_taxonomy_caps_renamed_v1`.
+	 *
+	 * Separate flag from the 4.5.0 rename migration: one of its pairs
+	 * (`ffc_view_own_appointments` → `ffc_view_own_appointments`) reverses that
+	 * historical rename, so the two must never share a completion flag.
+	 *
+	 * @since 6.9.0
+	 */
+	private function ensure_taxonomy_renamed(): void {
+		$flag = 'ffc_taxonomy_caps_renamed_v1';
+		if ( '1' === get_option( $flag, '' ) ) {
+			return;
+		}
+		if ( class_exists( '\FreeFormCertificate\UserDashboard\CapabilityManager' ) ) {
+			\FreeFormCertificate\UserDashboard\CapabilityManager::migrate_taxonomy_renames();
+		}
+		update_option( $flag, '1', true );
+	}
+
+	/**
+	 * One-time migration that seeds the destructive `ffc_delete_<domain>` caps
+	 * (GAP E) onto every user/role already holding the matching
+	 * `ffc_manage_<domain>` cap, preserving current delete behavior when the
+	 * delete tier is split out of `manage`. Idempotent + version-flagged via
+	 * `ffc_delete_caps_granted_v1`.
+	 *
+	 * @since 6.9.0
+	 */
+	private function ensure_delete_caps_granted(): void {
+		$flag = 'ffc_delete_caps_granted_v1';
+		if ( '1' === get_option( $flag, '' ) ) {
+			return;
+		}
+		if ( class_exists( '\FreeFormCertificate\UserDashboard\CapabilityManager' ) ) {
+			\FreeFormCertificate\UserDashboard\CapabilityManager::migrate_delete_caps_grant();
+		}
+		update_option( $flag, '1', true );
+	}
+
+	/**
+	 * One-time migration that seeds the granular `ffc_export_<domain>` caps
+	 * (GAP G) onto every user/role already holding the matching
+	 * `ffc_manage_<domain>` cap, preserving current bulk-export behavior when the
+	 * export tier is split out of `manage`. Idempotent + version-flagged via
+	 * `ffc_export_caps_granted_v1`.
+	 *
+	 * @since 6.9.0
+	 */
+	private function ensure_export_caps_granted(): void {
+		$flag = 'ffc_export_caps_granted_v1';
+		if ( '1' === get_option( $flag, '' ) ) {
+			return;
+		}
+		if ( class_exists( '\FreeFormCertificate\UserDashboard\CapabilityManager' ) ) {
+			\FreeFormCertificate\UserDashboard\CapabilityManager::migrate_export_caps_grant();
+		}
+		update_option( $flag, '1', true );
+	}
+
+	/**
+	 * One-time migration that seeds the granular import caps (GAP H) onto every
+	 * user/role already holding the matching `manage` cap, preserving current
+	 * bulk-import behavior when the import tier is enforced strictly (new
+	 * `ffc_import_audiences`, and `ffc_import_recruitment` losing its umbrella
+	 * fallback). Idempotent + version-flagged via `ffc_import_caps_granted_v1`.
+	 *
+	 * @since 6.9.0
+	 */
+	private function ensure_import_caps_granted(): void {
+		$flag = 'ffc_import_caps_granted_v1';
+		if ( '1' === get_option( $flag, '' ) ) {
+			return;
+		}
+		if ( class_exists( '\FreeFormCertificate\UserDashboard\CapabilityManager' ) ) {
+			\FreeFormCertificate\UserDashboard\CapabilityManager::migrate_import_caps_grant();
+		}
+		update_option( $flag, '1', true );
+	}
+
+	/**
+	 * One-time migration that seeds the recruitment-reasons caps (GAP I) onto
+	 * every user/role that already holds the matching source cap, so nobody
+	 * loses read or edit access when the Reasons tab is carved onto its own
+	 * strict 3-state tier. Idempotent + version-flagged via
+	 * `ffc_reasons_caps_wired_v1`.
+	 *
+	 * @since 6.9.0
+	 */
+	private function ensure_reasons_caps_wired(): void {
+		$flag = 'ffc_reasons_caps_wired_v1';
+		if ( '1' === get_option( $flag, '' ) ) {
+			return;
+		}
+		if ( class_exists( '\FreeFormCertificate\UserDashboard\CapabilityManager' ) ) {
+			\FreeFormCertificate\UserDashboard\CapabilityManager::migrate_reasons_caps_grant();
+		}
+		update_option( $flag, '1', true );
+	}
+
+	/**
 	 * Initialize REST API
 	 *
 	 * @since 3.0.0
@@ -402,7 +514,10 @@ class Loader {
 	 */
 	private function ensure_admin_capabilities(): void {
 		// v2: added cleanup of user-level false overrides for admin users.
-		$version_key = 'ffc_admin_caps_version_v2';
+		// v4: added the GAP E destructive `ffc_delete_*` caps — bumping the key
+		// forces the administrator role to pick them up once even on installs
+		// (e.g. the testes site) that don't change FFC_VERSION per batch.
+		$version_key = 'ffc_admin_caps_version_v4';
 		$current     = get_option( $version_key, '' );
 
 		if ( FFC_VERSION === $current ) {
@@ -481,6 +596,15 @@ class Loader {
 			'ffcertificate_daily_cleanup_hook',
 			static function (): void {
 				\FreeFormCertificate\Admin\CsvExporter::cleanup_stale_export_jobs();
+			}
+		);
+		// #Item11: reap spent schedule-exception jti markers whose 30-min
+		// expiry has lapsed. Returns the reaped count; wrapped void per
+		// PHPStan's return.void rule on action callbacks.
+		add_action(
+			'ffcertificate_daily_cleanup_hook',
+			static function (): void {
+				\FreeFormCertificate\Frontend\ScheduleExceptionSession::cleanup_expired_consumed();
 			}
 		);
 		add_action( 'ffcertificate_reregistration_expire_hook', array( ReregistrationRepository::class, 'expire_overdue' ) );

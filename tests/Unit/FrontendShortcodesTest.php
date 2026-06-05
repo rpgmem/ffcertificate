@@ -43,7 +43,18 @@ class FrontendShortcodesTest extends TestCase {
         Functions\when( 'FreeFormCertificate\Core\wp_unslash' )->returnArg();
         Functions\when( 'wp_rand' )->alias( function ( int $min = 0, int $max = 0 ) { return random_int( $min, $max ); } );
         Functions\when( 'wp_hash' )->alias( function ( $data ) { return hash( 'sha256', $data ); } );
-        Functions\when( 'get_option' )->justReturn( array() );
+        // #Item11: the schedule-exception render path checks the consumed-jti
+        // ledger via get_option( 'ffc_sched_exc_used_<jti>', false ). Honor the
+        // passed default for that key so an unspent token still renders its
+        // banner; every other key keeps the legacy array() stand-in.
+        Functions\when( 'get_option' )->alias(
+            function ( $key, $default = false ) {
+                if ( is_string( $key ) && 0 === strpos( $key, 'ffc_sched_exc_used_' ) ) {
+                    return $default;
+                }
+                return array();
+            }
+        );
         // Sprint 5 #366: render_form() now reaches into
         // ScheduleExceptionSession which needs wp_salt + is_ssl +
         // setcookie stubs even on the no-exception path (the cookie
@@ -522,6 +533,35 @@ class FrontendShortcodesTest extends TestCase {
             str_repeat( 'a', 64 )
         );
         $_COOKIE['ffc_exception_42'] = $token;
+
+        $html = $this->render_form_with();
+
+        $this->assertStringNotContainsString( 'ffc-schedule-exception-banner', $html );
+        $this->assertStringNotContainsString( 'ffc_schedule_exception_token', $html );
+    }
+
+    public function test_render_form_suppresses_banner_when_jti_already_consumed(): void {
+        // #Item11 — a token whose jti is in the consumed ledger is a spent
+        // exception: even though the cookie is still valid, the render path
+        // must not re-show the banner or re-embed the token (this is what
+        // makes the message disappear after the submission, on refresh).
+        $token                       = \FreeFormCertificate\Frontend\ScheduleExceptionSession::create(
+            42,
+            '08:00',
+            '17:30',
+            str_repeat( 'a', 64 )
+        );
+        $_COOKIE['ffc_exception_42'] = $token;
+
+        // Force the ledger to report ANY consumed-marker lookup as present.
+        Functions\when( 'get_option' )->alias(
+            function ( $key, $default = false ) {
+                if ( is_string( $key ) && 0 === strpos( $key, 'ffc_sched_exc_used_' ) ) {
+                    return '1'; // marker present → consumed.
+                }
+                return array();
+            }
+        );
 
         $html = $this->render_form_with();
 

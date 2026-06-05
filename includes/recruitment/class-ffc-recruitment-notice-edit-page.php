@@ -144,7 +144,13 @@ final class RecruitmentNoticeEditPage {
 		RecruitmentNoticeEditPageRenderer::render_general_section( $notice );
 		RecruitmentNoticeEditPageRenderer::render_status_section( $notice );
 		RecruitmentNoticeEditPageRenderer::render_adjutancies_section( $notice );
-		RecruitmentNoticeEditPageRenderer::render_csv_import_section( $notice );
+		// The CSV import section is the strict `ffc_import_recruitment` tier
+		// (GAP H) — hidden from a manager who holds the page-level
+		// `ffc_manage_recruitment` but not the carved-out import cap. The REST
+		// endpoint enforces the same cap regardless.
+		if ( current_user_can( 'ffc_import_recruitment' ) ) {
+			RecruitmentNoticeEditPageRenderer::render_csv_import_section( $notice );
+		}
 		RecruitmentNoticeEditPageRenderer::render_classifications_section( $notice );
 	}
 

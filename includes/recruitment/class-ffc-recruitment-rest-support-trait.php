@@ -44,7 +44,7 @@ trait RecruitmentRestSupport {
 	 *
 	 * The umbrella `ffc_manage_recruitment` cap remains the catch-all
 	 * — anyone holding it passes every admin route. The granular 6.2.0
-	 * caps (`ffc_view_recruitment`, `ffc_import_recruitment_csv`, etc.)
+	 * caps (`ffc_view_recruitment`, `ffc_import_recruitment`, etc.)
 	 * are layered on top via dedicated permission callbacks for the
 	 * higher-blast-radius routes ({@see self::check_can_view_recruitment()},
 	 * {@see self::check_can_import_csv()}, {@see self::check_can_call_candidates()}),
@@ -72,15 +72,19 @@ trait RecruitmentRestSupport {
 	/**
 	 * Permission gate for CSV import + promote-preview routes. The
 	 * highest-blast-radius operations on the module — replace entire
-	 * preview / definitive lists atomically. Accepts either the granular
-	 * `ffc_import_recruitment_csv` cap or the umbrella
-	 * `ffc_manage_recruitment`.
+	 * preview / definitive lists atomically. Requires the granular
+	 * `ffc_import_recruitment` cap *strictly* (GAP H): the umbrella
+	 * `ffc_manage_recruitment` is no longer accepted as a fallback, so a
+	 * manager can be denied bulk ingestion while keeping view/call/manage.
+	 * Joins `ffc_delete_recruitment` (GAP E) as a carved-out tier. WP admins
+	 * and the FFC recruitment roles hold the cap explicitly; a one-shot
+	 * migration seeds it onto custom roles that relied on the umbrella.
 	 *
 	 * @since 6.2.0
 	 * @return bool
 	 */
 	public function check_can_import_csv(): bool {
-		return current_user_can( 'ffc_import_recruitment_csv' ) || current_user_can( 'ffc_manage_recruitment' );
+		return current_user_can( 'ffc_import_recruitment' );
 	}
 
 	/**
@@ -88,26 +92,47 @@ trait RecruitmentRestSupport {
 	 * commits the candidate to a date / time, so operators that should
 	 * only manage data (without disparate communication authority) get
 	 * a separate cap. Accepts either the granular
-	 * `ffc_call_recruitment_candidates` cap or the umbrella
+	 * `ffc_call_recruitment` cap or the umbrella
 	 * `ffc_manage_recruitment`.
 	 *
 	 * @since 6.2.0
 	 * @return bool
 	 */
 	public function check_can_call_candidates(): bool {
-		return current_user_can( 'ffc_call_recruitment_candidates' ) || current_user_can( 'ffc_manage_recruitment' );
+		return current_user_can( 'ffc_call_recruitment' ) || current_user_can( 'ffc_manage_recruitment' );
 	}
 
 	/**
 	 * Permission gate for the reasons-catalog routes. Reasons are global
 	 * across every notice — managing them is a config-style operation
-	 * separated from day-to-day notice management.
+	 * separated from day-to-day notice management. GAP I makes the
+	 * `ffc_manage_recruitment_reasons` cap *strict* (mirroring the Settings
+	 * sub-domain): the umbrella `ffc_manage_recruitment` no longer grants it,
+	 * so a plain Recruitment Manager needs the reasons cap explicitly. A
+	 * behavior-preserving migration seeds it onto every umbrella holder at
+	 * upgrade, and the FFC recruitment roles carry it in their definitions.
 	 *
 	 * @since 6.2.0
 	 * @return bool
 	 */
 	public function check_can_manage_reasons(): bool {
-		return current_user_can( 'ffc_manage_recruitment_reasons' ) || current_user_can( 'ffc_manage_recruitment' );
+		return current_user_can( 'ffc_manage_recruitment_reasons' );
+	}
+
+	/**
+	 * Permission gate for the destructive DELETE routes (notices, candidates,
+	 * adjutancies, classifications, reasons). GAP E splits deletion out of the
+	 * umbrella `ffc_manage_recruitment` into its own `ffc_delete_recruitment`
+	 * cap, gated **strictly** — there is deliberately no `|| manage` fallback,
+	 * so a recruitment manager whose delete cap was revoked can still configure
+	 * the module but cannot delete records. The migration seeds the delete cap
+	 * onto everyone who held `manage` at upgrade, preserving current behavior.
+	 *
+	 * @since 6.9.0
+	 * @return bool
+	 */
+	public function check_can_delete_recruitment(): bool {
+		return current_user_can( 'ffc_delete_recruitment' );
 	}
 
 	/**

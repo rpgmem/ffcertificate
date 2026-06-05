@@ -255,27 +255,15 @@ class AudienceAdminImport {
 			</div><!-- .ffc-import-sections -->
 			</div><!-- #ffc-export-tab -->
 
-		<script>
-		jQuery(function($) {
-			$('.nav-tab-wrapper .nav-tab').on('click', function(e) {
-				e.preventDefault();
-				var tab = $(this).data('tab');
-				$('.nav-tab-wrapper .nav-tab').removeClass('nav-tab-active');
-				$(this).addClass('nav-tab-active');
-				$('.ffc-tab-content').hide();
-				$('#' + tab).show();
-			});
-			// Restore tab from URL hash.
-			if (window.location.hash) {
-				var hash = window.location.hash.substring(1);
-				var $tab = $('.nav-tab[data-tab="' + hash + '"]');
-				if ($tab.length) {
-					$tab.trigger('click');
-				}
-			}
-		});
-		</script>
 		<?php
+		$s = \FreeFormCertificate\Core\Utils::asset_suffix();
+		wp_enqueue_script(
+			'ffc-audience-admin-import',
+			FFC_PLUGIN_URL . "assets/js/ffc-audience-admin-import{$s}.js",
+			array( 'jquery' ),
+			FFC_VERSION,
+			true
+		);
 	}
 
 	/**
@@ -284,13 +272,24 @@ class AudienceAdminImport {
 	 * @return void
 	 */
 	public function handle_csv_import(): void {
-		if ( ! \FreeFormCertificate\Core\Utils::current_user_can_admin_or( 'ffc_manage_audiences' ) ) {
+		// Both bulk export (GAP G) and bulk import (GAP H) are their own
+		// capability tiers, split out of `ffc_manage_audiences`: the export
+		// branches require `ffc_export_audiences`, the import branches require
+		// `ffc_import_audiences`. So a manager can be denied dataset extraction
+		// and/or bulk ingestion, and an export-only or import-only role works
+		// without `manage`. Enter the handler if the user can do any of the
+		// three; each branch enforces its own cap below. The sample-template
+		// download is an import aid, so it follows `manage` or `import`.
+		$can_manage = \FreeFormCertificate\Core\Utils::current_user_can_admin_or( 'ffc_manage_audiences' );
+		$can_export = \FreeFormCertificate\Core\Utils::current_user_can_admin_or( 'ffc_export_audiences' );
+		$can_import = \FreeFormCertificate\Core\Utils::current_user_can_admin_or( 'ffc_import_audiences' );
+		if ( ! $can_manage && ! $can_export && ! $can_import ) {
 			return;
 		}
 
-		// Handle sample download.
+		// Handle sample download (import template — `manage` or `import`).
         // phpcs:ignore WordPress.Security.NonceVerification.Recommended
-		if ( isset( $_GET['download_sample'] ) && isset( $_GET['_wpnonce'] ) ) {
+		if ( ( $can_manage || $can_import ) && isset( $_GET['download_sample'] ) && isset( $_GET['_wpnonce'] ) ) {
 			$type = \FreeFormCertificate\Core\Utils::get_get_string( 'download_sample' );
 			if ( wp_verify_nonce( \FreeFormCertificate\Core\Utils::get_get_string( '_wpnonce' ), 'download_sample' ) ) {
 				$filename = 'audiences' === $type ? 'audiences-sample.csv' : 'members-sample.csv';
@@ -302,24 +301,33 @@ class AudienceAdminImport {
 			}
 		}
 
-		// Handle members export.
+		// Handle members export (export tier — `ffc_export_audiences`).
 		if ( isset( $_POST['ffc_action'] ) && 'export_members' === $_POST['ffc_action'] ) {
+			if ( ! $can_export ) {
+				return;
+			}
 			if ( ! wp_verify_nonce( \FreeFormCertificate\Core\Utils::get_post_string( 'ffc_export_members_nonce' ), 'ffc_export_members' ) ) {
 				return;
 			}
 			$this->export_members_csv();
 		}
 
-		// Handle audiences export.
+		// Handle audiences export (export tier — `ffc_export_audiences`).
 		if ( isset( $_POST['ffc_action'] ) && 'export_audiences' === $_POST['ffc_action'] ) {
+			if ( ! $can_export ) {
+				return;
+			}
 			if ( ! wp_verify_nonce( \FreeFormCertificate\Core\Utils::get_post_string( 'ffc_export_audiences_nonce' ), 'ffc_export_audiences' ) ) {
 				return;
 			}
 			$this->export_audiences_csv();
 		}
 
-		// Handle members import.
+		// Handle members import (import tier — `ffc_import_audiences`).
 		if ( isset( $_POST['ffc_action'] ) && 'import_members' === $_POST['ffc_action'] ) {
+			if ( ! $can_import ) {
+				return;
+			}
 			if ( ! wp_verify_nonce( \FreeFormCertificate\Core\Utils::get_post_string( 'ffc_import_members_nonce' ), 'ffc_import_members' ) ) {
 				return;
 			}
@@ -368,8 +376,11 @@ class AudienceAdminImport {
 			}
 		}
 
-		// Handle audiences import.
+		// Handle audiences import (import tier — `ffc_import_audiences`).
 		if ( isset( $_POST['ffc_action'] ) && 'import_audiences' === $_POST['ffc_action'] ) {
+			if ( ! $can_import ) {
+				return;
+			}
 			if ( ! wp_verify_nonce( \FreeFormCertificate\Core\Utils::get_post_string( 'ffc_import_audiences_nonce' ), 'ffc_import_audiences' ) ) {
 				return;
 			}

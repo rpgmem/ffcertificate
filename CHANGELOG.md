@@ -7,1449 +7,734 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+## [6.10.0] (2026-06-05)
+
+### Added
+
+- `ffc_administrator` aggregator role — every FFC capability (admin + end-user), but not `manage_options`, so the whole plugin can be delegated without WP super-admin (GAP F).
+- Settings → User Access: a role-capability editor for FFC roles (per-toggle AJAX, global/retroactive, audit-logged).
+- Per-user capability editor on the user-edit screen redesigned: grouped cards, search, copyable slug chips, origin (User/Role) badges, assignable role chips, inline audience membership; fixes a latent bug that stripped uncheckable caps on save.
+- Recruitment: admin "Undo decision" — send a `hired`/`withdrew`/`not_shown` candidate back to the queue (audited, reason-required, WARNING-level).
+- Appointments: login-free cancellation page reached from the e-mail link (token-validated, `noindex`, nonce-guarded).
+
+### Changed
+
+- ⚠ Plugin-wide capability naming standard + 3-state model (breaking for integrations on old slugs): 10 caps renamed, 8 read-only `view` caps added (26 → 34); one-shot migration rewrites grants on every user + role.
+- Three previously-inert admin caps now enforced: `ffc_manage_certificates` (Submissions + dashboard), `ffc_manage_custom_fields`, and the recruitment Settings tab (`view`/`manage_recruitment_settings`) — delegation without `manage_options`.
+- More blanket `manage_options` gates replaced with delegable caps (GAP B): Settings page, admin submission REST, reregistration Custom Fields, and a new Short URLs domain (`ffc_view`/`manage_url_shortener`); 34 → 36 caps.
+- Read-only "só vê" admin tier across modules (GAP C, 3-state): reregistration / appointments / audiences / recruitment open read-only on the `view` cap; writes stay `manage`-gated; `RecruitmentAdminActions::dispatch` hardened to re-check on every destructive action.
+- `ffc_operator` is now a complete cross-module read-only auditor (GAP D) — gains `view_custom_fields` / `view_recruitment_settings` / `view_recruitment_reasons` / `view_url_shortener`.
+- ⚠ Deletion is its own strict tier (GAP E): seven `ffc_delete_<domain>` caps; delete handlers no longer fall back to `manage`; migration seeds onto `manage` holders.
+- ⚠ Bulk CSV export is its own strict tier (GAP G): `ffc_export_appointments` / `_reregistration` / `_audiences`; migration seeds onto `manage` holders.
+- ⚠ Bulk CSV import is its own strict tier (GAP H): new `ffc_import_audiences` + `ffc_import_recruitment` tightened (no umbrella fallback); migration seeds onto `manage` holders.
+- ⚠ Recruitment Reasons is a strict 3-state tier (GAP I): `ffc_view`/`manage_recruitment_reasons`; closes a bulk-delete cap gap (was nonce-only); migration preserves access.
+- Capability editors: the permission list is organized by module (one card per module) with a Self-service / Administration divider, all groups collapsed by default, and surface badges on the exceptions (`API` on `forms_api`, `frontend` on `scheduling_bypass`).
+- Dropped a stray cross-domain `ffc_export_certificates` grant from `ffc_self_scheduling_manager` (definition only; no upgrade behavior change).
+- Settings page is now a real read-only surface for the `ffc_view_settings` tier (G3): the active tab is wrapped in a disabled `<fieldset>` + a read-only banner.
+- Internal frontend audit: inline admin JS extracted to dedicated lint-tested asset files (no behavior change).
+- Internal frontend audit: large maintainability refactor splitting the monolithic frontend scripts + oversized PHP classes behind their existing APIs (no behavior change).
+
+### Fixed
+
+- User permissions card now spans the full content width on both editor surfaces.
+- Schedule exception (operator exit-time override) is now truly single-use — a `jti` replay ledger claims the token atomically and the banner clears after use.
+- Recruitment notice editor: "call out of order" now prompts for a justification even when the classification list is filtered or paginated (authoritative empties map, not the DOM).
+- User dashboard: untrusted values escaped + `rel="noopener noreferrer"` on external links (XSS / tabnabbing).
+- Geofence: the location cache stores a short-lived "validated" pass token instead of raw GPS coordinates.
+
 ## [6.9.0] (2026-06-02)
 
 ### Added
 
-- **Recruitment notice editor: Subscription (PCD/GERAL) column on both classification tables.** Operators no longer have to bounce to the public list to see a candidate's subscription type — the column renders the same chip used on the public surface (`RecruitmentPublicShortcodeRenderer::render_subscription_badge` promoted to public so admin and frontend share the canonical badge with the colors configured in `RecruitmentSettings`). Per-row PCD verification uses the existing `RecruitmentPcdHasher::verify`; full candidate rows are bulk-loaded via `RecruitmentCandidateRepository::get_by_ids()` in a single SQL round-trip so the new column introduces no N+1.
-- **Recruitment notice editor UX polish (six sub-items).** (1) The classifications tab defaults to **Definitive** when the notice already has any `list_type='definitive'` rows — operators land on the live ranking instead of clicking once on every page load, computed from the unfiltered query so an in-flight filter that zeroes the definitive view doesn't bounce the default back. (2) **Pagination** on both Preliminary and Definitive tables (50 rows per page) with tab-scoped URL params (`ffc_cls_paged_preliminary` / `ffc_cls_paged_definitive`) so each tab paginates independently; pagination links carry `ffc_cls_tab=<key>` and the JS tab-switch handler writes the same param via `history.replaceState`, so reload after a manual tab switch lands on the right tab. Built on `paginate_links()` to match every other plugin list table. (3) Public list **total-count badge** next to the "Aguardando chamar" / "Chamados" section headings — pill on the right shows the post-filter row count so when the visitor types into the search box the badge reflects the narrowed list instead of the global total. (4) Public list **search button polish**: primary-fill pill with an inline magnifying-glass SVG glyph (no extra asset, no font dependency) and the existing label, behind the `.ffc-recruitment-search-btn` class for theme overrides. (5) **Adjutancy slug locked on edit** — the slug is referenced by the public list's `?adjutancy=…` URL param and by the CSV import column lookup; renaming silently breaks shared links and the next CSV upload. Edit page renders the slug as a `readonly+disabled` input with a copyable value and a description that points at the Name field for cosmetic changes; `handle_save()` drops slug from the update payload so a tampered or stale client POST can't restore the break-on-rename behaviour. (6) **Reason slug locked on edit** — same treatment; reason slug is surfaced in `recruitment_classification_*_reason_set` activity-log entries and potentially consumed by external dashboards.
-- **`UserCreator::get_or_create_user_dual`: dual-identifier entry point for callers carrying both CPF and RF.** The legacy `get_or_create_user()` only takes one hash; recruitment is the only flow in the plugin where a single row can present both — and passing only one of them missed a previously-registered submission keyed on the OTHER, falling through to email-only matching or creating a duplicate user. The new method checks both columns against both hashes in a single SQL pass (`cpf_hash = %s OR rf_hash = %s`) and falls back to the same email lookup + create branches identically. `link_orphaned_records_dual()` mirrors the link-back logic against both columns so any orphan submission or appointment row matching either hash gets attached to the resolved user. Recruitment's `maybe_promote_candidate()` is the first caller; existing single-hash callers (`SubmissionHandler`, `SelfSchedulingAppointmentHandler`) stay on the original entry point because their forms can only present one identifier at a time.
+- Recruitment notice editor: Subscription (PCD/GERAL) column on both classification tables (shared badge with the public list; bulk-loaded, no N+1).
+- Recruitment notice editor UX polish: Definitive tab as the default when definitive rows exist, independent pagination on both tables, public-list count badge + search-button polish, and locked adjutancy/reason slugs on edit.
+- `UserCreator::get_or_create_user_dual()` — dual CPF+RF lookup in one SQL pass so recruitment no longer misses a match keyed on the other identifier.
 
 ### Changed
 
-- **Recruitment CSV import flow (V10 → V11): atomic four-phase staging with plaintext-at-rest scratch table.** Replaces the original transient-based batched flow with database-backed staging tables (`ffc_recruitment_import_jobs` + `ffc_recruitment_import_staging`). Four phases: `POST /import-job/start` writes the parsed CSV rows into staging (plaintext CPF/RF/email — the table is ephemeral, 24h TTL via `cleanup_stale_staging_jobs`, behind admin auth, never exposed via public REST), `POST /import-job/validate` runs five SQL-bounded validation rules in one pass (`GROUP BY cpf_normalized`, `COUNT(DISTINCT email)`, etc.), `POST /import-job/batch` promotes 50 rows per call via the existing `upsert_candidate()` (where `Encryption::encrypt` + `Encryption::hash` apply on their way into the permanent `ffc_recruitment_candidate` table — encryption posture for canonical storage is **unchanged**), and `POST /import-job/commit` performs an atomic `INSERT … SELECT` swap into `ffc_recruitment_classification`. Mid-flight crashes never leave partial state in the live list; orphan staging is reaped on the next `ingest_job` TTL sweep. Plaintext scratch unblocks SQL-native validation and shaves the per-row crypto cost off the synchronous `/start` request that was pushing real-world CSVs past the gateway timeout.
-- **Recruitment public candidate list: windowed pagination instead of every-page-number.** A 7-page window centered on the current page (`current ± 3`), slid at the edges so it always emits the full window when there's room. First (`«`), previous (`‹`), next (`›`), last (`»`) arrows render only when the corresponding direction has more pages — no inert affordances. `aria-label` + `title` + `aria-current="page"` on the active number give screen readers / keyboard navigation parity with the visual UI. Notices with 50+ pages now scan in seconds.
+- Recruitment CSV import (V11): atomic four-phase DB-staged flow (start → validate → batch → commit) with a 24h-TTL plaintext scratch table; resolves gateway timeouts on large notices.
+- Recruitment public list: windowed pagination (7-page window + first/prev/next/last) instead of every page number.
 
 ### Fixed
 
-- **Recruitment public list: the `withdrew` status now shows the translated label and the configured badge color.** Both maps in `RecruitmentPublicShortcodeRenderer` (`status_label()` and `render_status_badge()`) were missing the `withdrew` enum value that V8 added to the schema; the label fell through to the raw `"withdrew"` string instead of the pt_BR translation `Desistiu`, and the color fell back to the neutral `#e9ecef` instead of `status_color_withdrew` from settings. One row added to each map.
-- **Recruitment CSV import validate phase: `lines` was a MariaDB reserved word.** `validate_job()`'s duplicate-detection queries used `GROUP_CONCAT(line_no ORDER BY row_no) AS lines`, which parses fine on generic MySQL but fails on MariaDB (`LOAD DATA INFILE … LINES TERMINATED BY …`). Latent since V10 — the bug never reached `/validate` because `/start` was timing out at the gateway. Alias renamed to `csv_lines` in both Rule 4 (per-identifier duplicate detection) and Rule 5 (`cpf_normalized` field divergence) queries.
-- **Recruitment CSV import V9: `list_type` ENUM coercion silently breaking staging.** `ffc_recruitment_classification.list_type` was declared as `ENUM('preview','definitive')`, but the batched importer (#462) wrote `__staging_<uuid>` markers into that column while a job streamed batches in. MySQL's default non-strict mode silently coerced every invalid ENUM value to the empty string `''`, so every staging row from every concurrent job collided on the UNIQUE `(candidate_id, adjutancy_id, notice_id, list_type)` index — visible as the misleading `Duplicate entry '1668-1-1-'` cascade in `debug.log`. V9 migration widens the column to `VARCHAR(50)` (the two enum strings round-trip cleanly, no data change for live rows) and purges legacy `list_type=''` rows the broken staging strategy left behind.
-- **Recruitment CSV import: silent UNIQUE-constraint duplicates surface as a clear error.** `validate()` only checked duplicate `(cpf + adjutancy)` pairs, but `upsert_candidate()` collapses rows that share ANY of `cpf` / `rf` / `email` onto a single candidate record — so a CSV with two rows sharing the same RF (with different CPFs, or one row with no CPF) used to slip past validation and then trip the `uq_candidate_adjutancy_notice_list` UNIQUE constraint at INSERT time. `validate()` now runs a physical-identity pre-pass that groups rows by any shared `cpf` / `rf` / `email` and detects `(logical_candidate + adjutancy)` duplicates before any DB write. Error code renamed `recruitment_csv_duplicate_cpf_adjutancy` → `recruitment_csv_duplicate_candidate_adjutancy` to reflect the broader rule. Killed-job orphan staging rows are now reaped via a new `cleanup_orphan_staging_rows()` helper run at `start_job()` time (no extra cron needed).
-- **Recruitment CSV import: large notices stop hitting the gateway timeout.** The legacy single-request `POST /notices/{id}/import` was processing parse + validate + transactional wipe-and-reinsert + per-candidate user creation inside one request, racing the gateway timeout on notices with a few hundred rows. The admin's preview-list import now follows the three-phase pattern (start → batch → commit) so each request stays well under the timeout. Atomicity is preserved — interrupted jobs leave the previous live list intact. The definitive-list flow (`/promote-preview`) keeps its single-request shape because it runs under a 15-second countdown.
+- Recruitment public list: `withdrew` now shows the translated label and the configured badge color.
+- Recruitment CSV validate: `lines` was a MariaDB reserved word → aliased to `csv_lines`.
+- Recruitment CSV: `list_type` ENUM coercion silently broke staging (V9 widens it to `VARCHAR(50)` + purges legacy `''` rows).
+- Recruitment CSV: duplicates sharing RF/email are now caught in validation instead of tripping the UNIQUE index at insert.
+- Recruitment CSV: the admin preliminary import moved to start → batch → commit to stop gateway timeouts.
 
 ## [6.8.0] (2026-05-31)
 
 ### Added
 
-- **Form editor "Time" tab: a "Multiple days" toggle gates the multi-day controls.** When off (single-day event), the End Date input, the "Time Behavior" (span/daily) radios and the "Display during, outside daily slot" row are hidden — they only apply to multi-day campaigns. The toggle is persisted at `_ffc_geofence_config[multi_day]`; on save with it off, the handler mirrors `date_end = date_start` so the runtime bounds the form to a single calendar day regardless of any stale end date. Forms saved before the flag existed infer it (on when the two dates differ, off otherwise) and persist the explicit value on first save.
-- **Geofence block / error messages now enforce a minimum length (Settings convention).** When a date/time or geolocation restriction is enabled, its block message (`msg_datetime`, `msg_geo_blocked`, `msg_geo_error`) must be at least 25 characters (`FormEditorSaveHandler::GEOFENCE_MESSAGE_MIN_LENGTH`, measured with `mb_strlen`); the form save is blocked with the error routed to the owning tab. Empty or too-short messages used to reach the frontend as a blank string, which the AJAX layer surfaced as a generic "Connection error" — making a legitimate block look like a silent failure. The shipped default messages all exceed 25 chars, so forms keeping the defaults save cleanly.
-- **Recruitment: new terminal candidate status `withdrew` (Desistente).** Joins `hired` as a second terminal classification status — a candidate who actively withdraws after being called or accepted is now distinguishable from one who simply did not show up. Allowed transitions: `called → withdrew` and `accepted → withdrew`. Once set, the candidate cannot be moved (`recruitment_state_terminal_withdrew` error mirrors the existing `…_hired`); the reopen-freeze rule covers it automatically because the terminal check fires first. New "Mark withdrew" buttons appear next to the existing call-lifecycle actions on the Definitive list in the notice editor. The status has its own configurable badge color (`status_color_withdrew`, defaults to a soft pink-red `#f5c6cb` so it sits next to `not_shown`'s color but stays distinct) — a row was added to the Status badge colors block in Settings. The schema enum widens to include `withdrew` via a new V8 migration (`migrate_add_withdrew_status` — pure `MODIFY status ENUM(...)`, no rows touched).
-- **{{schedule}} / {{schedule_total}} are now documented (Settings → Documentation, §2 Template Variables).** Both placeholders have been resolved at runtime by `PdfGenerator::generate_html()` since #366 Sprint 7 (per-submission Schedule Exception → form-level Class Schedule → form's Time Range → empty), but they were never listed in the variables table, so certificate templates that referenced them rendered the raw `{{…}}` token. The two new rows describe the precedence order and include a sample value (`08:00 – 17:30` / `9h 30min`).
-- **Documentation tab: the Quick Navigation index now sticks to the top and auto-collapses as you scroll.** Settings → Documentation is one long page (21 sections); the "Quick Navigation" TOC card now uses `position: sticky` so it follows you down the page, and a small script (`ffc-doc-toc.js`, ~25 lines) watches a sentinel placed just above the original TOC position via `IntersectionObserver` — when the user scrolls past the sentinel the card collapses into a thin strip showing just the title + a chevron; scrolling back to the top expands it again. Clicking the collapsed strip toggles it manually for a quick peek without scrolling, and clicking any anchor inside re-collapses the strip so the next scroll re-syncs to the auto-driven state. Falls back to the always-expanded sticky TOC when `IntersectionObserver` is unavailable.
-- **Floating "Back to top" button on every Settings tab.** Originally added on the long Documentation tab (#426), the button now lives in the shared settings wrapper so it appears across every `page=ffc-settings` tab (Documentation, Advanced, Geolocation, Migrations, User Access, SMTP, URL Shortener, Cache, General, Rate Limit). Still zero JS — a pure HTML anchor (`#ffc-settings-top`) paired with `scroll-behavior: smooth` scoped via `:has(.ffc-settings-back-to-top)` to the settings page only, so other admin screens are untouched. Honours `prefers-reduced-motion`, has an accessible `aria-label`, and degrades to an instant jump in browsers without `:has()` support. The hook class renames from `.ffc-doc-back-to-top` → `.ffc-settings-back-to-top` and the anchor id from `#ffc-doc-top` → `#ffc-settings-top` to reflect the broader scope.
-- **"Duplicate this form" is now available from inside the form editor too**, not just the list view. The Publish (Submit) box gains a small "Duplicate this form" link that triggers the same nonce-protected `admin_action_ffc_duplicate_form` flow as the listing's row action — same handler, same nonce, same copy semantics (fields, layout, geofence, CSV/device settings copied; access hash, counters and audit log start fresh). The link is gated by post type (`ffc_form`) and capability, and hidden on auto-drafts since there is nothing meaningful to copy yet.
-- **The certificate form editor now uses a vertical tabbed layout** (WooCommerce "Product data" style) instead of seven stacked metaboxes. The sections become left-rail tabs with a short label + dashicon: Layout, Fields, Security, Email, **Time**, **Geolocation**, Quiz, Operator — the former combined "Geolocation & Date/Time" box is split into a **Time** tab (date/time window + per-participant schedule exceptions) and a **Geolocation** tab (GPS/IP areas), which also removes the old tab-inside-a-tab button bar. Tabs are keyboard-navigable (WAI-ARIA tablist + arrow/Home/End), deep-linkable via a `#ffc-tab-<key>` URL hash that survives reload, and a failed save flags the offending tab (Layout for missing PDF tags; Time or Geolocation for the matching geofence error) and auto-opens it. Panels still POST and autosave exactly as before — with JS disabled they degrade to the previous stacked layout. The "1."…"N." numeric prefixes are dropped and each panel heading now carries its tab's dashicon.
-- **Required Certificate Tags are now configurable (Settings → Advanced) and enforced before save.** A new list (one `{{tag}}` per line; defaults to `{{auth_code}}` / `{{name}}` / `{{cpf_rf}}`) defines the placeholders every certificate layout must contain; `{{auth_code}}` is always required and force-injected even if removed, since certificate verification depends on it. When a layout is missing any of them, the form editor now **blocks the save client-side**, opens the Layout tab and shows a banner listing exactly what is missing (the historical `{{name}}`/`{{nome}}` alias still counts as satisfied). The server keeps the prior non-blocking warning as a backstop for JS-disabled clients. Read via `SettingsReader::required_certificate_tags()`.
-- **Activity Log: granular control over what gets recorded (Settings → Advanced).** Beyond the master on/off switch, you can now set a **minimum level** (debug / info / warning / error — only events at or above it are stored), shown as a visual "threshold" table: picking a level tints it and every more-severe level below it soft green (recorded) while rows above stay neutral (ignored), so the more-data ↔ less-data trade-off is obvious. You can also toggle **seven categories** on/off (Submissions, Scheduling, Public Operator Access, Users & Privacy, Recruitment, Migrations, System & Security). Both default to "log everything" so existing installs are unchanged until tuned. `ActivityLog::log()` applies both filters right after the master toggle (before any DB work); `ActivityLog::category_for_action()` maps each event to its category. Settings persist via both the autosave endpoint and the form save handler.
-- **Activity Log now records three delivery events:** `pdf_generated` (a certificate/ficha/receipt PDF was generated), `certificate_emailed` (a submission email is being sent), and `csv_downloaded` (a public-operator CSV download was delivered). The first two are logged by the activity-log subscriber off the existing `ffcertificate_after_pdf_generation` / `ffcertificate_before_email_send` hooks; the CSV event is logged at the public download's delivery point (mirroring the per-form audit ring buffer into the site-wide log). All three are `info` level and labelled in the log viewer; no personal data (e.g. recipient email) is stored in their context.
-- **Certificates dashboard: each form in the day side-list now has a discreet "view submissions" link.** On `page=ffc-certificates-dashboard`, selecting a day lists that day's forms; each row now carries a small dashicon link that opens the Submissions list pre-filtered to that form (`page=ffc-submissions&filter_form_id[0]=<id>`). The link is muted by default and brightens on hover/focus.
-- **New maintenance tool: Submission ↔ user link audit (Settings → Data Migrations).** A report-only scan (it never writes — there is no apply step) for submissions wrongly linked to WordPress users, covering four cases: a `user_id` pointing to a deleted user; one user bound to more than one distinct CPF/RF identity; an unlinked submission whose CPF matches a linked record; and a single CPF shared across multiple users. Detection runs entirely off the deterministic `cpf_hash` / `rf_hash` columns (plus a `wp_users` existence join), so no decryption is involved. Findings are leads to investigate manually — re-linking identity records automatically is intentionally out of scope. Built on the maintenance-tool framework (`SubmissionLinkAuditor implements MaintenanceToolInterface`, `is_actionable() === false`); the four queries live in `SubmissionRepository`.
-- **New maintenance tool: Disable Public Operator Access on old forms (Settings → Data Migrations).** Switches off Public Operator Access — the master `_ffc_csv_public_enabled` flag plus its four sub-feature flags (`download`/`preview`/`start_early`/`extend_end`) — on published forms whose collection period ended more than a configurable grace window ago. "Old" reuses `Geofence::has_form_expired_by_days()`, the same expiry source of truth as the obsolete-shortcode cleaner. Disabling is non-destructive to configuration: the access token (`_ffc_csv_public_hash`), limit, counter, CPF mode and whitelist are all preserved, so access can be re-enabled later without reconfiguring — only the behaviour is turned off. Always preview first (dry run lists the affected forms); the disable button unlocks for 5 minutes after a successful preview. Built on the maintenance-tool framework (`PublicOperatorAccessDisabler implements MaintenanceToolInterface`).
-- **New maintenance tool: Short URL Cleanup (Settings → Data Migrations).** Deletes obsolete rows from the URL shortener (`ffc_short_urls`) under three independently-toggleable criteria: *orphaned* (the `post_id` target no longer exists), *never clicked* (`click_count = 0` and created more than a configurable grace window ago), and *trashed* (`status = 'trashed'`). Always preview first (dry run): the report breaks the matches down by reason and lists the affected codes; the destructive delete button only unlocks for 5 minutes after a successful preview. Built on the maintenance-tool framework — `UrlShortenerCleaner implements MaintenanceToolInterface`, registered in `MaintenanceToolRegistry::create_default()`, with the candidate query (`UrlShortenerRepository::find_cleanup_candidates()`) exposing per-row reason flags so a row matched by several criteria is labelled accurately.
-- **The "Termo de Ciência" (acknowledgment notice) is now editable per-audience.** It was hardcoded in two places — the reregistration form and the ficha PDF template — so changing the wording meant a code edit. It is now a display-only `acknowledgment` standard field stored in `wp_ffc_custom_fields.field_options['html']`, edited with the WordPress visual editor (`wp_editor`) inside the audience's Reregistration Fields section. Both the form's acknowledgment fieldset and the ficha PDF's section 6 render from this field (single source of truth), and "Replicate lists to children" propagates it to descendant audiences like any other standard field's options. Audiences that predate the field fall back to the shipped default notice (`ReregistrationFieldOptions::get_default_termo_ciencia_html()`), so existing forms are unchanged until edited. The block carries no user input — it's skipped during value collection, validation and persistence.
+- Form editor "Time" tab: a "Multiple days" toggle gates the multi-day controls (single-day forms mirror `date_end = date_start`).
+- Geofence block/error messages now enforce a 25-char minimum so an empty message can't surface as a generic "Connection error".
+- Recruitment: new terminal status `withdrew` (Desistente) — `called`/`accepted` → `withdrew`, own badge color, V8 enum migration.
+- `{{schedule}}` / `{{schedule_total}}` documented in Settings → Documentation §2.
+- Documentation tab: the Quick Navigation index sticks to the top and auto-collapses on scroll.
+- Floating "Back to top" button on every Settings tab.
+- "Duplicate this form" is now available from inside the form editor (Publish box), not just the list.
+- Certificate form editor adopts a vertical tabbed layout (Layout / Fields / Security / Email / Time / Geolocation / Quiz / Operator), keyboard-navigable + deep-linkable, with failed-save tab flagging.
+- Required Certificate Tags are configurable (Settings → Advanced) and enforced before save (`{{auth_code}}` always required).
+- Activity Log: granular control over what's recorded — a minimum level + seven on/off categories (Settings → Advanced).
+- Activity Log records three delivery events: `pdf_generated`, `certificate_emailed`, `csv_downloaded`.
+- Certificates dashboard: each form in the day side-list gets a "view submissions" link (pre-filtered).
+- New maintenance tool: Submission ↔ user link audit (report-only, Settings → Data Migrations).
+- New maintenance tool: Disable Public Operator Access on old forms (non-destructive, preview-first).
+- New maintenance tool: Short URL Cleanup (orphaned / never-clicked / trashed, preview-first).
+- The "Termo de Ciência" acknowledgment notice is now editable per-audience (visual editor; ficha PDF + form read from it).
 
 ### Changed
 
-- **Form editor Time / Geolocation tabs reorganised into full-width cards, with IP-dependent controls gated.** The Time tab's three logical groups (Event Schedule reference, Date/Time Restrictions, Per-participant exception) and the Geolocation tab now render as `<div class="card">` blocks matching the Settings views, spanning the full panel width (overriding WP-core's 520px cap). On the Geolocation tab, the "IP Geolocation Areas" and "GPS + IP Logic" rows collapse when the form's "IP Address (backend validation)" toggle is off, and that toggle is itself disabled (with a link to Settings → Geolocation) when IP geolocation is globally off. The long help paragraph above the Schedule Exception toggle was shortened.
-- **Settings → Geolocation: IP-API dependent rows collapse on the master toggle, and the Fallback Behavior order now follows gate primacy.** Five rows in the "IP Geolocation API" card (Primary Service, Service Cascade, IPInfo API Key, IP Cache, IP Cache Duration) plus the two IP-dependent fallback rows hide when "IP Geolocation" is off. The "Fallback Behavior" rows are reordered GPS → IP → Both, matching the order each gate fires (GPS is browser-side and runs first).
-- **Rate Limit settings: the Whitelist and Blacklist cards gained "Show" collapse toggles.** Visual-only declutter — the toggle hides the four IP/Emails/Domains/CPFs textareas when off (they stay in the form and the runtime keeps reading the lists), and the Activity Log card on Settings → Advanced similarly collapses its retention / level / category sub-options when the master toggle is off.
-- **Form editor "Time" tab: the event reference schedule is now a primary, top-of-tab section instead of being buried inside Schedule Exception.** A new "Event Schedule (Reference)" subsection at the top of the Time tab hosts the `class_time_start` / `class_time_end` inputs that feed the `{{schedule}}` PDF placeholder (resolved by `PdfGenerator` since #366 Sprint 7; documented in #433). Decoupling these inputs from the per-participant `Schedule Exception` toggle fixes the prior friction where setting an event schedule required enabling an unrelated feature — the inputs were inside the Exception's collapsible `<tbody>` and only appeared when its master toggle was on. The Schedule Exception subsection keeps its master toggle + Default Modal Mode in place, and its description now clarifies that the exception **overrides the Event Schedule above** per-submission. Same `ffc_geofence[class_time_*]` POST keys — no data migration, no runtime change to access-window resolution: only the visual position moved. **Save guard:** when Event Schedule is filled on a form, the certificate layout **must** contain `{{schedule}}` (otherwise the operator's configured event time silently drops from the rendered certificate). The save handler and the client-side guard from #424 both pick this up dynamically — the global Required Certificate Tags list (Settings → Advanced) stays untouched, and forms that don't fill Event Schedule keep the previous behaviour.
-- **Import & Export folds into Scheduling Settings as a 4th tab.** `page=ffc-scheduling-import` is no longer a separate sidebar submenu — it now lives as the "Import & Export" tab inside `page=ffc-scheduling-settings` (icon `database-import`), alongside General / Self-Scheduling / Audience. The four CSV import + export forms render unchanged inside the tab body via a new `AudienceAdminImport::render_content()` method that skips the page-level `<div class="wrap"><h1>` chrome; `render_page()` is kept as a back-compat wrapper. Old bookmarks / docs / dashboard links that point at the previous URL get a transparent **301 redirect** to `page=ffc-scheduling-settings&tab=import` via a new `admin_init` action (`AudienceAdminPage::redirect_legacy_import_url`). The "Tools" menu separator was retired (Settings was the only remaining item under it once Import moved in), so Settings now sits at the bottom of the Audience group.
-- **Two more admin pages adopt the WooCommerce-style vertical tab layout** (after #429 rolled it out on `page=ffc-settings`), so the full plugin admin shares the same look. (1) `page=ffc-scheduling-settings` (Scheduling Settings, renderer `AudienceAdminSettings::render_page`) — the three tabs General / Self-Scheduling / Audience move into the same `.ffc-settings-tabs__*` structure and gain Dashicons icons (`admin-generic` / `calendar-alt` / `groups`). (2) `page=ffc-recruitment` (Recruitment admin page, renderer `RecruitmentAdminPage::render_page`) — the five tabs Notices / Adjutancies / Reasons / Candidates / Settings convert too, with icons `megaphone` / `building` / `format-status` / `id` / `admin-generic`. Both pages keep the `?page=…&tab=<id>` URL contract verbatim so bookmarks / shared links keep working, and every per-tab `<form>` and save flow is unchanged — only the chrome changes. The recruitment page now enqueues `ffc-admin-settings.css` (the `.ffc-settings-tabs__*` rules live there); the other rules in that file are scoped under `.ffc-settings-wrap` and stay dormant on the recruitment screen.
-- **Settings page (`page=ffc-settings`) adopts the WooCommerce-style vertical tab layout** used by the certificate form editor (#423), so the two main admin surfaces share the same look-and-feel: a left-rail nav with the active tab marked by a coloured border, a single panel on the right. The page-reload save model is kept verbatim — each of the nine independent per-tab `<form>` flows (Cache / User Access / Geolocation / SMTP / Rate Limit / Advanced / URL Shortener / Migrations / General) still POSTs to its own handler exactly as before; only the chrome changes. On narrow screens the nav wraps above the panel as a horizontal strip. The `?tab=<id>` URL contract is preserved, so bookmarks and shared links continue to work. The tab icons are normalized to Dashicons inside the nav (via a CSS override scoped to `.ffc-settings-tabs__nav`) so they match the form-editor look; the existing emoji rendering for `.ffc-icon-*` everywhere else in the plugin is untouched.
-- **Activity Log: four events were raised from `info` to `warning`** so they stand out in the log: `data_cleanup` (automatic deletion of old submissions), `recruitment_classification_deleted`, `recruitment_adjutancy_deleted`, and `tickets_purged_expired`. These join the other destructive/irreversible actions already logged at warning level.
-- **In-plugin documentation refresh (Settings → Documentation), part 4 (staleness pass).** Custom-field types (§9) now list the three missing real types (`dependent_select`, `working_hours`, `acknowledgment`). Developer Hooks (§17) gained the undocumented hooks: `ffcertificate_pdf_filename`, `ffcertificate_before_data_deletion`, `ffcertificate_appointment_receipt_filename`, and the seven `ffcertificate_self_scheduling_*` email/lifecycle hooks. Minor QR wording fix (§5: "100px–500px"). The remaining sections (validation URL, HTML/styling, custom fields, geofence, features, security, examples, URL shortener, troubleshooting) were reviewed and verified accurate.
-- **In-plugin documentation refresh (Settings → Documentation), part 3.** Added two sections that didn't exist: **20. Recruitment** (admin tabs, notice lifecycle `draft → preliminary → active → closed`, the two public shortcodes, the granular capabilities, and the PII-masking note) and **21. Maintenance Tools** (the four Data Migrations tools — obsolete-shortcode cleanup, short-URL cleanup, disable-public-operator-access, and the report-only submission↔user link audit — plus the preview-before-apply model). Both are linked from the table of contents.
-- **In-plugin documentation refresh (Settings → Documentation), part 2.** The PDF Template Variables section (2) now lists the general certificate placeholders that were missing (`{{display_name}}`, `{{reference_year}}`, `{{fill_date}}` / `{{date}}`, `{{status}}`) and a note that any profile field the form collects (`{{rg}}`, `{{celular}}`, `{{endereco}}`, `{{cargo_funcao_acumulo}}`, …) resolves in templates — pointing to the full catalog in the Ficha PDF section to avoid duplication. The Ficha PDF section (11) gained `{{termo_ciencia}}` (the editable acknowledgment notice) and a note on the dependent-select split placeholders (`{{divisao_setor}}` plus `{{divisao_setor_parent}}` / `{{divisao_setor_child}}`, generalisable to any dependent_select field via the `_parent` / `_child` suffixes).
-- **In-plugin documentation refresh (Settings → Documentation), part 1.** The table of contents now links the REST API Authentication section (19), which existed but was unreachable. The Shortcodes reference gained the two recruitment shortcodes (`[ffc_recruitment_queue notice="…"]` with its `adjutancy` attribute + `?q` / `?adjutancy` / `?subscription` / `?page_*` URL filters, and `[ffc_recruitment_my_calls]`) and now lists the `[ffc_audience]` attributes (`schedule_id`, `environment_id`, `view`).
-- **Recruitment editors: the public-column grid and the reason "applies to" group are now toggle switches.** On the notice editor (`page=ffc-recruitment&action=edit-notice`) the public-column visibility checkboxes and on the reason editor (`&tab=reasons&action=edit-reason`) the "applies to" status checkboxes render as `.ffc-toggle` switches. Field names (`public_columns[…]`, `applies_to[]`) and the mandatory-column hidden-input trick are unchanged, so the save handlers behave identically; `ffc-common.css` is now a dependency of the recruitment-admin stylesheet so the switch styles load. Added `AdminUI::get_toggle()` (returns the toggle markup as a string) for the notice renderer, which builds its HTML as a string rather than echoing.
-- **User-profile FFC capability fields are now toggle switches.** The ten capability checkboxes on the WordPress user-edit / profile screen (view/download own certificates, book/cancel appointments, scheduling bypass, manage reregistration, edit issued submissions, …) render as `.ffc-toggle` switches for consistency with the rest of the admin. The field names are unchanged, so the save handler and the Grant/Revoke-all bulk JS buttons (which select by `name`) keep working; `ffc-common.css` (the toggle styles) is now enqueued on the profile screen, where it wasn't loaded before.
-- **Data Migrations tab: the cleanup/audit cards now have proper padding and the Short URL Cleanup criteria are toggle switches.** The maintenance cards are core `.postbox` elements, but the `.postbox .inside` padding lives in wp-admin's `edit.css`, which isn't loaded on this custom settings page — so their content sat flush against the border (the intro `.card` was unaffected, since it's styled by the plugin's own CSS). Added explicit padding to `.ffc-migration-card`. The three Short URL Cleanup criteria checkboxes (orphaned / never-clicked / trashed) are now `.ffc-toggle` switches for consistency with the rest of the admin; their form field names are unchanged.
-- **Certificate previews now fill the full placeholder set from a single PHP source of truth.** Both preview paths kept their own short hardcoded sample object (~13 keys in `ffc-admin-pdf.js` for the admin form-editor preview, ~12 in `ffc-csv-download.js` for the public pre-open preview), so templates using any other placeholder (e.g. `{{site_name}}`, `{{rg}}`, `{{validation_code}}`, `{{reference_year}}`, the ficha/atestado address block `{{bairro}}` / `{{cep}}` / `{{endereco}}` / `{{cidade}}` / `{{uf}}` …, and the appointment-receipt fields) rendered the raw `{{…}}` token. The canonical placeholder → sample-value map now lives in `CertificatePreviewSamples::get_map()` and is surfaced to both previews — localized as `ffc_ajax.previewSamples` for the admin editor and returned in the `ajax_cert_preview` payload for the public preview. Each preview consumes it and only overlays values PHP can't know at request time (the live form title and the form's own field names). `{{qr_code…}}` and `{{validation_url…}}` keep their existing JS-side special rendering.
-- **Activity Log: the pre-flight `reason` codes now show a human-readable label.** Rows logged as `preflight_blocked` previously surfaced only the raw `"reason":"gps_prompt"` in the Context JSON, which is opaque (it means *the GPS pre-explainer banner was shown before the browser's permission prompt* — not "denied"). A friendly summary now renders above the raw dump mapping `cookies` / `gps_denied` / `gps_prompt` to clear labels, and the action itself is labelled "Pre-flight Banner Shown". The stored enum value is unchanged (it stays a stable machine key the stats aggregator counts on) — the clarity is display-only, so old and new rows both render cleanly with no migration.
-- **More boolean admin settings now use the toggle-switch component (`.ffc-toggle`)** instead of plain checkboxes, for visual consistency: the CSV public-access metabox's "Regenerate hash on save" / "Reset download counter on save", the Advanced settings "Reset ID counter to 1", the audience field-builder's Required / Active / Sensitive flags (both the new-row template and existing rows), and the audience calendar's per-user permission grid (can_book / can_cancel_others / can_override_conflicts). The underlying input names, JS-serialiser class hooks (`.ffc-field-*`, `.ffc-perm-toggle`) and `data-perm` attributes are preserved, so save/serialisation behaviour is unchanged. `AdminUI::render_toggle()` gained an optional `title` arg so the "Sensitive" field keeps its encryption-at-rest tooltip.
-- **Internal: the obsolete-shortcode cleanup now runs through a pluggable maintenance-tool framework.** Introduced `MaintenanceToolInterface` + `MaintenanceToolRegistry` (new `FreeFormCertificate\Maintenance` namespace); `ObsoleteShortcodeCleaner` implements the interface and the Settings → Data Migrations handler dispatches through `MaintenanceToolRegistry::create_default()` instead of instantiating the cleaner directly. Behaviour is unchanged — this is the foundation for the upcoming URL-shortener cleanup, public-operator-access disabling and submission-link audit tools, each of which will plug in by implementing the same interface. (`ObsoleteShortcodeCleaner::run()` now takes its grace window via the options array — `run( array $options )` — instead of a positional argument.)
+- Form editor Time / Geolocation tabs reorganized into full-width cards, with IP-dependent controls gated on the IP toggle.
+- Settings → Geolocation: IP-API rows collapse on the master toggle; Fallback Behavior reordered GPS → IP → Both.
+- Rate Limit + Activity Log cards gained "Show" collapse toggles for their sub-options.
+- Form editor Time tab: the event reference schedule (`class_time_*`, feeds `{{schedule}}`) is a primary top-of-tab section, decoupled from Schedule Exception; save guard requires `{{schedule}}` when filled.
+- Import & Export folds into Scheduling Settings as a 4th tab (301 redirect from the old URL).
+- Scheduling Settings + Recruitment admin adopt the vertical tab layout (URL contract preserved).
+- Settings page adopts the vertical tab layout (per-tab save model unchanged).
+- Activity Log: four events raised `info` → `warning` (`data_cleanup`, recruitment classification/adjutancy delete, `tickets_purged_expired`).
+- In-plugin documentation refresh (Settings → Documentation), parts 1–4: new Recruitment + Maintenance Tools sections, missing template variables / hooks / shortcodes filled, staleness pass.
+- Recruitment editors: public-column grid + reason "applies to" group render as toggle switches.
+- User-profile FFC capability fields render as toggle switches.
+- Data Migrations cards: proper padding + Short URL Cleanup criteria as toggles.
+- Certificate previews fill the full placeholder set from one PHP source (`CertificatePreviewSamples`).
+- Activity Log: pre-flight `reason` codes show a human-readable label (stored enum unchanged).
+- More boolean admin settings use the `.ffc-toggle` switch component.
+- Internal: obsolete-shortcode cleanup runs through a pluggable maintenance-tool framework (`MaintenanceToolInterface` + registry).
 
 ### Fixed
 
-- **Submitting a certificate form could silently fail when the IP rate limit was disabled.** `FormProcessor::handle_submission_ajax()` calls `RateLimiter::check_ip_limit()` directly as an early brute-force gate, independently of `check_all()` — and that early path did not honour the `ip.enabled` toggle. With IP rate limiting turned off in the panel, the gate still fired off a stale hour counter in the object cache, blocking every submission with a 1-hour wait. On top of that, an empty rate-limit "Message" propagated as a blank string that the frontend rendered as nothing — indistinguishable from "the button does nothing". `check_ip_limit()` now returns immediately when `ip.enabled` is false, and `format_message()` falls back to a non-empty default for every gate (IP / email / CPF / device).
-- **Geofence date/time and geolocation blocks could surface with an empty message.** `validate_datetime()` / `validate_geolocation()` resolved their copy with `$config['msg_*'] ?? $default`, where `??` only substitutes for `null`, not for an empty string — so an operator who cleared the "Blocked Message" field propagated `''` to the response, which the frontend mapped to a generic "Connection error". A runtime fallback (`Geofence::message_or_default()`) now guarantees a non-empty, phase-specific message regardless of the stored value (covers legacy data, imports and direct DB edits); the frontend already used `||`, so this aligns the PHP side.
-- **Certificate preview rendered a hardcoded `{{schedule}}` sample instead of the form's configured time.** `CertificatePreviewSamples::get_map()` always returned `08:00 – 17:30` / `9h 30min` for the schedule placeholders regardless of which form was being previewed. It now accepts the form ID (passed by both the admin layout editor and the public CSV-download preview) and resolves the sample through the same Class Schedule → Time Range chain the real PDF generator uses, falling back to the docs-row sample when no time range is configured.
-- **Certificate preview was leaving `{{schedule}}` and `{{schedule_total}}` as raw tokens.** Both placeholders are resolved at runtime by `PdfGenerator::generate_html()` (and were documented in §2 Template Variables in the previous PR), but the canonical preview-sample map in `CertificatePreviewSamples::get_map()` — fed to the admin form-editor preview (`ffc-admin-pdf.js`) and the public CSV-download preview (`ffc-csv-download.js`) — never had entries for these two keys, so templates that referenced them rendered the literal `{{schedule}}` / `{{schedule_total}}` in both preview surfaces. Added the two keys (`08:00 – 17:30` / `9h 30min`) matching the values shown in the docs row.
-- **Settings page "Back to top" button didn't float as expected on tabs other than Documentation.** When the floating affordance was promoted to every settings tab (#427), rendering it inside `<div class="wrap ffc-settings-wrap">` made it behave differently depending on the tab — most tabs wrap their content in a `<form>` (or other long-running container) that interfered with the `position: fixed` styling, so the link drew inline at the bottom of the page on those tabs instead of floating bottom-right. The button now renders via `admin_footer-{$hook}` on the settings page, which places it at `<body>` level outside `.wrap`, `.ffc-tab-content`, every per-tab `<form>` and any animated container — `position: fixed` resolves against the viewport unconditionally on all tabs. The `<span id="ffc-settings-top">` anchor target stays inside the wrap (the smooth-scroll `:has()` selector keeps working because the button is still in the DOM).
-- **Self-scheduling calendar editor: the config toggles rendered as plain checkboxes.** The editor already used `render_toggle`, but the full `.ffc-toggle` switch component lives in `ffc-common.css`, which this screen didn't enqueue — only `ffc-calendar-editor.css` (which carries a scoped layout tweak for the email toggles). So the Allow-cancellation / Requires-approval / Restrict-* / Admin-bypass toggles showed as raw checkboxes. `ffc-common.css` is now enqueued (as a dependency of `ffc-calendar-editor.css`) on the `ffc_self_scheduling` edit screen, so all the switches render correctly.
-- **Ficha PDF: Divisão and Setor cells printed the literal placeholder instead of the values.** `default_ficha_template.html` referenced `{{divisao}}` / `{{setor}}`, but `FichaGenerator` only ever emits the combined `divisao_setor` value (`"<parent> - <child>"`), so neither placeholder was substituted. The generator now also exposes each `dependent_select` field's two halves as `{{<key>_parent}}` / `{{<key>_child}}` (the combined `{{<key>}}` form stays for back-compat), and the template's Divisão/Setor cells point at `{{divisao_setor_parent}}` / `{{divisao_setor_child}}`. The standard-field variable building moved into the unit-tested `FichaGenerator::build_standard_field_variables()`.
-
----
+- Submitting a form could silently fail when the IP rate limit was disabled (`check_ip_limit` now honors `ip.enabled`; non-empty default messages for every gate).
+- Geofence date/time and geolocation blocks could surface with an empty message (runtime `message_or_default()` fallback).
+- Certificate preview rendered a hardcoded `{{schedule}}` sample instead of the form's configured time.
+- Certificate preview left `{{schedule}}` / `{{schedule_total}}` as raw tokens.
+- Settings "Back to top" button didn't float on tabs other than Documentation (now rendered at `<body>` level via `admin_footer`).
+- Self-scheduling calendar editor: config toggles rendered as plain checkboxes (`ffc-common.css` now enqueued).
+- Ficha PDF: Divisão/Setor cells printed the literal placeholder (dependent-select now exposes `{{<key>_parent}}` / `{{<key>_child}}`).
 
 ## [6.7.7] (2026-05-23)
 
-### Fixed (i18n)
+### Fixed
 
-- **5 geofence/spinner messages were unreachable for translators.** `assets/js/ffc-geofence-frontend.js` reads its UI strings from `ffcGeofenceConfig._global.strings` (the `wp_localize_script` payload). When a key is absent from the payload, `getString()` falls back to the English literal baked into the JS source — and Loco / Poedit have no way to surface the string for translation because no `__()` call ever ran for it. The PHP-side localize map in `class-ffc-frontend.php::ffcGeofenceConfig._global.strings` was missing 5 keys that the JS actively requests. Effect: PT-BR (and any other locale) saw those messages render in English. Fixed:
-  - `awaitingPermission` — non-Safari progressive-loading phase 2.
-  - `stillTrying` — non-Safari progressive-loading phase 3.
-  - `safariSafetyTimeout` — Safari fallback after the geolocation callback never resolves.
-  - `safetyTimeout` — non-Safari sibling.
-  - `reloadPageBtn` — the button label rendered next to both timeout messages above.
-
-  All 5 now flow through `__('…', 'ffcertificate')` in the PHP map and reach the JS via `wp_localize_script`. The English fallback in `getString()` is preserved as a defensive default for the rare cases where the localize payload doesn't make it.
-
-### Bundle cache
-
-- **`FFC_VERSION` bumped 6.7.6 → 6.7.7** across the three sync sites. No `assets/` bundle change (only PHP-side strings) but the JS-side cache key still rotates because of the version bump.
-
----
+- 5 geofence/spinner messages were unreachable for translators — now flow through `__()` + `wp_localize_script` (English fallback kept).
 
 ## [6.7.6] (2026-05-23)
 
 ### Fixed
 
-- **Multiple GPS / location spinners stacking on the same form.** `FFCGeofence.showLoadingMessage()` (in `assets/js/ffc-geofence-frontend.js`) called `formWrapper.prepend(html)` unconditionally — if the function fired twice (e.g. a cached pre-flight followed by the real GPS check before the cached path's `hideLoadingMessage` timeout fired, or a re-init race during page load), the page ended up with 2+ stacked `.ffc-geofence-loading-msg` elements, each rendering its own spinner. Reported by an admin: "às vezes vejo dois ou mais spinners de localização ao abrir o formulário". Fix: made `showLoadingMessage()` idempotent — if a `.ffc-geofence-loading-msg` already exists in the wrapper, the function now delegates to `updateLoadingMessage()` instead of prepending a fresh one. Net effect: at most one spinner ever in the DOM regardless of how many times the function is called; the running animation is preserved across phase-message updates.
-
-### Tests
-
-- 1 new Vitest case in `geofence-frontend-helpers.test.js` (`show is idempotent — calling twice never stacks two spinners`) — calls `showLoadingMessage` twice with different messages, asserts only one `.ffc-geofence-loading-msg` element exists, the visible text is the latest one, and the spinner element is preserved.
-
-### Bundle cache
-
-- **`FFC_VERSION` bumped 6.7.5 → 6.7.6** across the three sync sites. `assets/js/ffc-geofence-frontend.min.js` rebuilt via `npm run build:js`.
-
----
+- Multiple GPS/location spinners could stack on one form — `showLoadingMessage()` is now idempotent (at most one spinner).
 
 ## [6.7.5] (2026-05-23)
 
-Six fixes around the `/valid` reregistration card, the ficha PDF, the appointment card, and the "Document Invalid" error screen — reported in a single review pass after 6.7.4.
+### Fixed
 
-### Fixed — `/valid` reregistration verification
-
-- **Submission status moved from the header into a body detail row, rendered as a colored pill.** Pre-6.7.5 the header carried both the universal "Reregistration Record Valid" badge AND a centered text line below it with the submission status ("EXPIRADO", "APROVADO"…) — that second line floated alone with no visual weight. The status now lives in `.ffc-preview-body` as a `.ffc-detail-row` with a `Status:` label on the left and a colored pill on the right, matching the appointment-status pill family. New CSS rules `.ffc-status-in_progress` / `.ffc-status-submitted` / `.ffc-status-approved` / `.ffc-status-rejected` / `.ffc-status-expired` give each state its semantic color (info / info / success / danger / warning) using the existing palette variables.
-- **Campaign period now surfaced.** Without it, a verifier looking at an expired ficha had no way to know when the campaign was actually open — only that the submission existed. New "Campaign Period: DD/MM/YYYY — DD/MM/YYYY" row, populated from the underlying reregistration row's `start_date` / `end_date` columns. Verification handler now surfaces both fields in the `reregistration` array of the response shape; the renderer adds the row when both dates are present and parseable.
-
-### Fixed — `/valid` appointment verification
-
-- **Doubled gray separator between "Time" row and "Participant Data" header.** Same root cause as the certificate-path fix in 6.7.2 (#382) — `<hr>` + the H4's blue underline + the last detail row's bottom border stacked into a visible doubled line. Dropped the `<hr>`; the H4 underline already provides the section break.
-
-### Fixed — "Document Invalid" error card
-
-- **Manual-verification input placeholder copy now uses the same "validation code" terminology as the rest of the UI.** Pre-6.7.5 the JS localized key `enterAuthCode` produced "Enter auth code" / "Digite o código de autorização" — but the surrounding /valid card consistently labels the field "Validation Code" / "Código de Validação". Switched the source string to "Enter validation code" so the Loco PT-BR translation will collapse to "Digite o código de validação" on the next translation pass. JS-side English fallback also updated for parity.
-
-### Fixed — Ficha PDF template
-
-- **Reference year now shown below the "FICHA DE RECADASTRAMENTO" title.** Dynamic — pulled from the campaign's `start_date` column (the year of the cycle of record), not from "now". Means re-downloading an expired-campaign ficha years later still shows the right cycle year, not the download moment.
-- **Footer changed from "Gerado em: {generation_date}" to "Preenchido em: {submitted_at}".** Pre-6.7.5 the footer rendered the moment the PDF was REGENERATED — confusing because the participant filed the form earlier. Now the footer carries the canonical submission date. `{{generation_date}}` template var kept available for back-compat with custom templates that still reference it.
-
-### Tests
-
-- 3 new assertions added to `VerificationResponseRendererTest::test_format_reregistration_renders_approved_status` covering the status pill class, the localized status label in the body, and the Campaign Period row.
-- PHP suite 4696/4696 green. JS suite 957/957 green. PHPCS + PHPStan + Stylelint + ESLint all clean.
-
-### Bundle cache
-
-- **`FFC_VERSION` bumped 6.7.4 → 6.7.5** across the three sync sites. `ffc-frontend.min.css` + `ffc-common.min.css` + `ffc-frontend.min.js` rebuilt.
-
----
+- `/valid` reregistration: submission status moved into a colored body pill; campaign period surfaced.
+- `/valid` appointment: removed the doubled gray separator before "Participant Data".
+- "Document Invalid" card: manual-verification placeholder uses "validation code" terminology.
+- Ficha PDF: reference year shown below the title (from the campaign cycle); footer now "Preenchido em" (submission date).
 
 ## [6.7.4] (2026-05-23)
 
-Three fixes around the `/valid` verification page reported after 6.7.2/6.7.3.
-
 ### Fixed
 
-- **`/valid` appointment + reregistration verification now masks participant CPF / email.** 6.7.2 had applied `mask_cpf()` + `mask_email()` to the CERTIFICATE verification path but left the appointment and reregistration paths still calling `format_document()` (full CPF) and rendering `$rereg['email']` verbatim. Same privacy concern: `/valid` is a PUBLIC page; anyone with the auth code / magic-link token can reach it, and surfacing the full CPF + email of the participant is a leak. Now: appointment renderer masks `$data['cpf_rf']` (no email row on this surface so no email mask needed); reregistration renderer masks both `cpf` and `email`. Updated `VerificationResponseRendererTest` to assert the new masked shape (`carlos@example.com` no longer appears in the rendered HTML — `c***@example.com` does).
-- **"Document Invalid" failure screen now uses the `.ffc-certificate-preview` card structure.** Pre-6.7.4 `showVerificationError()` (in `assets/js/ffc-frontend.js`) built a plain `<div class="ffc-verification-error">` block with no relation to the success card's visual language — so when the user landed on a bad token / unknown code, they got a generic error block that bore no family resemblance to the success state on `/valid`. Now the same `.ffc-certificate-preview` outer + `.ffc-preview-header` + `.ffc-preview-body` structure renders, just with a red-gradient header (`.ffc-error` modifier on the card) + `.ffc-status-badge.error` pill + `.ffc-icon-error` (❌) marker. The "Or try manual verification" form moves inside `.ffc-preview-body` and gets a soft top-border separator. Both visual states (success ↔ error) now read as members of the same family — the participant immediately recognises the layout regardless of outcome.
-- **Reregistration magic links now resolve after the parent campaign expires.** `ReregistrationSubmissionRepository::get_by_magic_token()` and the sibling `get_by_auth_code()` both filtered `WHERE status IN ('submitted', 'approved')` in their SQL — when the parent campaign hit its end date and the submission's status flipped to `expired` for housekeeping, the queries stopped finding the row. Net effect: clicking the magic link of a once-approved ficha after the campaign ended returned "Document Invalid". Same shape of bug we fixed in the dashboard REST controller in 6.7.2 (`UserReregistrationsRestController::can_download`), but here in the storage layer. Added `'expired'` to both whitelists. Locked with two new PHPUnit cases in `ReregistrationSubmissionRepositoryTest` that capture the prepared SQL and assert `'expired'` is in the IN clause. `'rejected'` / `'pending'` / `'in_progress'` stay excluded — those never had an auth_code generated anyway, so they couldn't reach a magic-link verification path even if surfaced.
-
-### Added (CSS)
-
-- `.ffc-shortcode .ffc-certificate-preview.ffc-error` modifier — red border, red box-shadow, red gradient header.
-- `.ffc-shortcode .ffc-status-badge.error` pill — translucent error background on the red gradient.
-- `.ffc-icon-error::before` content `\274C` (❌) — sibling to the existing `.ffc-icon-success`.
-- `.ffc-shortcode .ffc-manual-verification-form` + descendant rules — h4 styling, input box, submit button.
-
-### Bundle cache
-
-- **`FFC_VERSION` bumped 6.7.3 → 6.7.4** across the three sync sites. `assets/css/ffc-frontend.min.css`, `assets/css/ffc-common.min.css`, and `assets/js/ffc-frontend.min.js` rebuilt.
-
-### Tests
-
-- PHP suite 4694+/4694+ green (3 new cases — 1 reregistration email-masking assertion + 2 SQL-whitelist captures).
-- JS suite 957/957 green.
-
----
+- `/valid` appointment + reregistration now mask participant CPF / email (the certificate path already did).
+- "Document Invalid" failure screen now uses the `.ffc-certificate-preview` card structure (red variant).
+- Reregistration magic links resolve after the parent campaign expires (`expired` added to the storage-layer whitelists).
 
 ## [6.7.3] (2026-05-23)
 
-### Fixed (i18n)
+### Fixed
 
-- **10 hardcoded Portuguese fallback strings in `assets/js/ffc-reregistration-frontend.js` translated to English.** The script reads its UI strings from `S.*` (the `wp_localize_script` payload). When that payload is missing — script loading before the localize call, plugin embedded in a non-localized context, etc. — the `|| 'fallback'` defaults take over. Pre-6.7.3 those fallbacks were Portuguese (`'Carregando formulário...'`, `'Selecione'`, `'CPF inválido.'`, …), so non-PT-BR sites would see Portuguese strings leak through. Fallbacks now read in English so the same code path serves PT-BR via the localize payload AND any other locale via the English fallback. The PHP-side `wp_localize_script` map was already correctly translatable — only the JS-side defaults needed the swap. Strings affected:
-  - `'Carregando formulário...'` → `'Loading form...'`
-  - `'Erro ao carregar formulário.'` → `'Error loading form.'`
-  - `'Selecione Divisão / Local'` → `'Select Division / Location'`
-  - `'Selecione'` (×2 occurrences) → `'Select'`
-  - `'Este campo é obrigatório.'` → `'This field is required.'`
-  - `'CPF inválido.'` → `'Invalid CPF.'`
-  - `'E-mail inválido.'` → `'Invalid email.'`
-  - `'Telefone inválido.'` → `'Invalid phone number.'`
-  - `'Formato inválido.'` → `'Invalid format.'`
-
-### Bundle cache
-
-- **`FFC_VERSION` bumped 6.7.2 → 6.7.3** across the three sync sites. `assets/js/ffc-reregistration-frontend.min.js` rebuilt via `npm run build:js`.
-
-### Tests
-
-- JS suite 957/957 green (unchanged surface; the fallbacks aren't exercised by tests directly — they're defensive defaults).
-
-### Out of scope (next i18n pass)
-
-- A broader codebase-wide sweep for hardcoded PT-BR strings is pending. This PR fixes one file with the most user-visible drift; a follow-up sweep PR will cover the rest if found.
-
----
+- 10 hardcoded Portuguese fallback strings in `ffc-reregistration-frontend.js` switched to English (PT-BR still flows via the localize payload).
 
 ## [6.7.2] (2026-05-23)
 
-Seven small-to-medium fixes across three surfaces (post-submission card, `/valid` verification page, user dashboard reregistrations list) reported in a single review pass after the 6.7.1 polish landed in production.
+### Fixed
 
-### Fixed — post-submission card
-
-- **Removed the duplicate "Success!" preamble line.** The badge "CERTIFICATE ISSUED" + the H3 "Certificate Details" already communicate success; an extra `<p>` with the form's `success_message` on top was redundant noise. Dropped the `<p class="ffc-success-message">` block from `templates/submission-success.php`. The `$success_message` variable still flows through `Utils::generate_success_html()` (no API change) — it's just not rendered anymore. Sites that customised the message in the form editor lose surfacing on this screen, but the `/valid` verification page still shows the same data.
-- **Gray actions strip now extends to include the "Can't find the PDF?" block.** Pre-6.7.2 `<details class="ffc-success-where-is-file">` sat OUTSIDE `.ffc-preview-actions`, breaking the gray background mid-card with a white band below the download button. Moved the `<details>` INTO `.ffc-preview-actions`; the strip's existing `background: var(--ffc-bg-alt)` + `border-top` now wraps both the CTA and the hint.
-- **Hint summary type-size lifted to H4-level (16px).** The "Can't find the PDF?" summary was 13px in the previous round, reading as a tiny tertiary line — out of scale with the "Save this link to download again later:" H4 it should sit alongside as a peer. Now `font-size: 16px / font-weight: 600 / var(--ffc-text)` — matches the H4 size, drops the internal background-alt + border-left (now redundant inside the gray strip).
-
-### Fixed — `/valid` verification page
-
-- **Doubled gray separator between the "Certificate Details" rows and the "Participant Data" header.** Same root cause we fixed for the success card in 6.7.1 — `<hr>` + the H4 blue underline (from the 6.6.12 rule) + the last detail row's own bottom border = three stacked horizontal lines reading as a doubled separator. Dropped the `<hr>` from `templates/certificate-preview.php` above `<h4>Participant Data:</h4>`; the H4's blue underline already provides the section break. Applies retroactively to every existing `/valid` page render.
-- **CPF / RF / E-mail now masked in the public verification response.** `/valid` is a PUBLIC page — anyone with the auth code (or magic-link token) can pull it up. Surfacing the full `123.456.789-09` CPF and `participant@example.com` email was a privacy leak; the page's purpose is to prove "this certificate exists and belongs to $name", not to dump PII. `format_field_value()` in `VerificationResponseRenderer` now applies `DocumentFormatter::mask_cpf()` (renders `123.***.***-09`) for `cpf` / `cpf_rf` / `rg` fields and `DocumentFormatter::mask_email()` for `email`. Name / program / phone / other arbitrary fields stay verbatim — no over-masking. Both masks already existed in `DocumentFormatter`; only the renderer integration changed.
-- **"Recorded schedule" line now always carries both ends.** Pre-6.7.2 `build_schedule_exception_block()` used `$start_override ?: context['schedule_start_after']` for the after-range, which left the start blank when only the end was overridden (e.g. participant left early — `end` shifted from 12h to 11h21, `start` untouched). The result rendered as "Recorded schedule: 11h21" with no start, visually implying the participant's window was a single point in time. Now: the side that was NOT overridden falls back to the corresponding `schedule_*_before` value from the audit context. A partial-end override now reads "Recorded schedule: 9h to 11h21" — start preserved from baseline, end from override. Locks the new behaviour with an updated PHPUnit case in `VerificationResponseRendererTest::test_block_decodes_context_when_stored_as_json_string`.
-
-### Fixed — user dashboard reregistrations
-
-- **Download button now appears for `expired` submissions that already carry an `auth_code`.** `UserReregistrationsRestController` gated `can_download` on `status IN ('submitted', 'approved')`, which excluded `expired` rows even when the submission had been approved and an auth code generated. When the parent campaign hits its end date the submission row's status flips to `expired` for housekeeping, but the participant must keep the ability to download the ficha they earned. Changed to `! empty( $sub->auth_code )` — the presence of the code is the canonical proof the submission was processed. `rejected` rows never get an auth_code generated so they stay non-downloadable automatically; pending / in-progress drafts likewise. Two new PHPUnit cases lock both branches (expired-with-auth_code can download; rejected cannot).
-
-### Tests
-
-- 4 new PHPUnit cases in `VerificationResponseRendererTest`: cpf-mask integration, email-mask integration, no-over-masking for arbitrary fields, plus the schedule-after-range fallback assertion.
-- 2 new PHPUnit cases in `UserReregistrationsRestControllerTest`: expired-with-auth_code → can_download true; rejected → can_download false.
-- 1 stub addition to the renderer test's setUp (`is_email` Brain Monkey alias) so `DocumentFormatter::mask_email()` resolves outside WordPress.
-
-### Bundle cache
-
-- **`FFC_VERSION` bumped 6.7.1 → 6.7.2** across the three sync sites (plugin header, `FFC_VERSION` constant, `readme.txt` Stable tag). `assets/css/ffc-frontend.min.css` rebuilt via `npm run build:css`.
-
----
+- Post-submission card: removed the duplicate "Success!" preamble; gray actions strip now wraps the "Can't find the PDF?" block; hint summary lifted to H4 size.
+- `/valid`: removed the doubled gray separator; CPF / RF / e-mail now masked in the public response; "Recorded schedule" always carries both ends.
+- User dashboard reregistrations: download button now appears for `expired` submissions that already carry an `auth_code`.
 
 ## [6.7.1] (2026-05-23)
 
-Layout fixes for two visual regressions reported on the post-submission flow and the schedule-exception banner that the 6.6.12 / #380 polish PRs left behind, plus the cache-key bump that #376 / #380 should have carried but didn't.
-
 ### Fixed
 
-- **Post-submission success card was constrained to 450px and looked visually narrower than `/valid`.** The success card markup (`.ffc-certificate-preview` with `max-width: 700px`) is injected via `$form.html(data.html)` INTO `.ffc-submission-form`, which carries a `max-width: 450px` cap from the form-render rules. The cap is correct for input fields but wrong for a replacement success card. Added `:has()` rule that lifts the cap to `100%` when the form's content is a `.ffc-success-response` — so the post-submit and `/valid` cards now render at matching widths.
-- **Schedule-exception banner on the form was wider than the form fields below it AND used the default `<p>` font size.** The banner inherited `.ffc-form-info-block` styling: full width of the form-wrapper (`~540px after padding`) and no `font-size` override (the WordPress theme's default `<p>` size took over, ~16-18px depending on theme). Now: `max-width: 450px` aligned with the fields, centered, full 2px blue border (replacing the 4px-left-only treatment) to match the `/valid` notice family, and explicit `font-size: 14px / line-height: 1.5` on the inner `<p>`. The banner now reads as a deliberate notice card instead of a fat sidebar strip.
-- **Doubled gray separator between the "Date" row and the "Save this link" section on the success card.** `templates/submission-success.php` carried both an `<hr>` AND the `<h4>` blue-underline (the rule added in 6.6.12) between the two sections, plus the bottom border of the preceding `.ffc-detail-row`. Net effect on screen: a thin gray bottom-border, then a gray `<hr>` line directly below it — visually reading as a doubled rule before the blue H4 underline. Dropped the `<hr>` from the template; the H4's blue underline already provides the section break.
-- **"Can't find the downloaded PDF?" `<details>` block at the bottom of the success card rendered too large.** Pre-6.7.1 the block used a generous `margin: 18px 30px 25px` + `12px 16px` padding and inherited the WordPress theme's default `<summary>` / `<li>` font size — the result was a chunky panel that competed visually with the primary "Download PDF again" CTA above it. Reduced the block to `max-width: 450px` (matches the auth-code / magic-link rows above it), `padding: 8px 14px`, summary at `font-size: 13px` in `var(--ffc-text-secondary)`, list items at `font-size: 13px / line-height: 1.5`. Now reads as a secondary hint instead of a competing CTA.
-
-### Bundle cache
-
-- **`FFC_VERSION` bumped 6.7.0 → 6.7.1** across the three sync sites (plugin header, `FFC_VERSION` constant, `readme.txt` Stable tag). This bump is overdue — both #376 (forward-port of 6.6.11 + 6.6.12 to main) and #380 (`.ffc-schedule-exception-block` polish on `/valid`) modified `assets/css/ffc-frontend.min.css` without bumping `FFC_VERSION`, leaving production CDN / LiteSpeed / WP Rocket caches serving stale bundles under the `?ver=6.7.0` key. The 6.7.1 bump rotates the cache key so the polished `/valid` block, the new post-submit card, and these layout fixes all reach the browser together.
-
-### Tests
-
-- 4689 / 4689 PHP cases green (unchanged surface).
-- 957 / 957 JS cases green (unchanged surface).
-- The fixes are CSS-only; no markup pinned by tests was touched.
-
-### Bundles
-
-- `assets/css/ffc-frontend.min.css` rebuilt via `npm run build:css`.
-
-### Maintenance
-
-- **`release/6.6.x` channel closed.** All 6.6.x hotfixes (6.6.8 → 6.6.12) were forward-ported to `main` via #371 and #376. The branch was formally merged into `main` via #377 and then retired. The final tip is preserved at tag `v6.6.12-final` for any emergency 6.6.x backport need; from that tag a `hotfix/6.6.13` branch could be cut if required. Going forward, all maintenance happens on `main` and ships under the 6.7.x line — please upgrade to 6.7.x for continued support. Tracked in #378.
-
----
+- Post-submission success card no longer constrained to 450px (matches `/valid` width).
+- Schedule-exception banner aligned to the form width with a proper notice card treatment.
+- Removed the doubled gray separator on the success card; shrank the oversized "Can't find the PDF?" block.
 
 ## [6.7.0] (2026-05-22)
 
-Per-submission **schedule exception** flow (#366). When a participant misses a chunk of a class — leaves early, joins late, or has carga horária reduzida — an authenticated operator on the public CSV-download panel can now issue a one-use exception that overrides the certificate's `{schedule}` placeholder for that single submission. The remaining 99% of submissions render with the form's baseline schedule unchanged.
+Per-submission **schedule exception**: an authenticated operator on the public CSV-download panel can issue a one-use exception that overrides a single submission's `{{schedule}}`.
 
 ### Added
 
-- **`[ffc_csv_download]` panel: "Entry/exit exception" button.** Surfaces only when the per-form toggle is on (off by default) and the operator passed the hash + CPF gate. Opens a modal with `Now` (one-tap end-time) or `Manual` (both ends editable) modes, validates the override against the form's effective open window client-side, and on confirm calls a new AJAX endpoint (`wp_ajax_nopriv_ffc_public_schedule_exception`) that stages the exception via a 30-minute HttpOnly + SameSite=Lax cookie. The modal then swaps to a CTA that opens the form URL in a new tab — the click preserves the user gesture so popup blockers don't engage.
-- **`[ffc_form]` shortcode: schedule-exception banner + hidden token.** When the participant lands on the form URL with the operator-issued cookie set, the form render reads + verifies the signed token, embeds it as a hidden input (`ffc_schedule_exception_token`), shows a discreet banner (`Schedule exception active: 08:00 to 17:30. This submission will be recorded with the adjusted schedule.`), and **clears the cookie in the same request** so the operator's bridge is strictly one-use.
-- **Submission handler: verify, persist, audit.** `FormProcessor::handle_submission_ajax()` reads the hidden-input token at the top of the pipeline, verifies it via HMAC, bypasses the per-IP rate-limit gate (per-CPF rate-limit stays on so a single participant cannot replay), and after the submission row is inserted (a) writes the override values into two new `TIME NULL` columns on `ffc_submissions` (`schedule_start_override`, `schedule_end_override`) and (b) emits two new ActivityLog rows: `schedule_override_created` (full before / after range + operator masked CPF + participant CPF hash + Category A unix UTC `ts`) and `operator_ip_bypass` (bypassed IP).
-- **`{{schedule}}` and `{{schedule_total}}` placeholders.** New helpers `DateFormatter::format_schedule()` and `DateFormatter::format_schedule_total()` render wall-clock ranges in the compact PT/EN-friendly `8h às 19h30` / `11 horas` / `11h 30min` shape the spec calls out. `PdfGenerator::generate_html()` resolves each side independently through the 3-tier hybrid: per-submission override → form-level `class_time_*` → geofence `time_*` → empty. Email pipeline picks up the same placeholders automatically because it funnels through the same `generate_html()` path.
-- **`/valid` certificate verification: "Adjusted entry / exit schedule" block.** When the submission carries either override column, the verification page surfaces the full before → after range, the masked operator CPF, and the moment of adjustment. The `before` range is pinned at exception-staging time inside the audit row's `context` JSON, so a later admin edit to `class_time_*` for an unrelated reason does NOT retroactively rewrite history on existing certificates. The `ts` is rendered via `DateFormatter::format_datetime()` from the Category A unix UTC int, not from the activity_log `created_at` DATETIME column (which stays housekeeping per CLAUDE.md).
-- **Activity Log admin renderer.** The two new action types (`schedule_override_created`, `operator_ip_bypass`) get friendly fact summaries above the raw JSON dump: before / after range, operator masked CPF, participant CPF hash (truncated to 12 chars + ellipsis — full hash stays in the raw block below for forensic correlation), submission ID. The filter dropdown lists both actions under "Schedule Override Created" / "Operator IP Bypass". Existing actions render identically.
-- **`ScheduleExceptionSession` + `ScheduleExceptionAction` classes.** The crypto + cookie + business-logic boundary. Token is `base64url(payload).base64url(hmac-sha256)`, signed with `wp_salt('nonce')` + module scope, 30 min expiry, `v=1` version field for future format migrations, payload bound to `form_id` against cross-form replay.
-- **Per-form admin toggles in the Geofence metabox.** New subsection "Per-participant entry/exit exception" carries the master toggle, two optional `class_time_*` baseline inputs, and a default-mode select. All four values land inside the existing `_ffc_geofence_config` array meta — `handle_form_duplication()` copies them with no code change because the meta key is already in its propagation list.
+- `[ffc_csv_download]` panel: "Entry/exit exception" button (Now / Manual modes) staging the exception via a 30-min HttpOnly cookie.
+- `[ffc_form]`: schedule-exception banner + hidden signed token; the cookie is cleared in the same request (strictly one-use).
+- Submission handler verifies + persists the override into two new `TIME NULL` columns and emits `schedule_override_created` + `operator_ip_bypass` audit rows.
+- `{{schedule}}` / `{{schedule_total}}` placeholders (`DateFormatter::format_schedule*`, 3-tier resolution) across PDF + email.
+- `/valid`: "Adjusted entry/exit schedule" block (before → after range pinned at staging time, masked operator CPF).
+- Activity Log renderer for the two new actions; per-form admin toggles in the Geofence metabox.
+- `ScheduleExceptionSession` + `ScheduleExceptionAction` (HMAC token, form-bound, versioned).
 
 ### Changed
 
-- **`ffc_submissions` schema.** Two new nullable `TIME` columns added through the existing `Activator::maybe_add_columns()` migration. NULL means "no override — use the baseline at render time". Category B wall-clock per CLAUDE.md.
-- **`ActivityLog` action vocabulary.** Two new constants (`ACTION_SCHEDULE_OVERRIDE_CREATED`, `ACTION_OPERATOR_IP_BYPASS`). The constant values are also inlined as literals in `FormProcessor::persist_schedule_exception()` so the test harness can spy on `ActivityLog::log()` via a Mockery alias without booting the real wpdb-backed class.
+- `ffc_submissions`: two new nullable `TIME` columns (Category B wall-clock).
+- `ActivityLog` vocabulary: two new action constants.
 
-### Fixed (forward-ported from 6.6.8 / 6.6.9 / 6.6.10)
+### Fixed (forward-ported from 6.6.8–6.6.10)
 
-- **`[ffc_form]` shortcode: geofence config not localized when the shortcode uses unquoted or extra-attribute syntax** (6.6.8). `Frontend::localize_geofence_config()` matched form IDs with a hand-rolled regex (`/\[ffc_form\s+id=['"](\d+)['"]\]/`) that **required** the `id` attribute to be wrapped in quotes AND to be the LAST attribute before the closing bracket. WordPress's shortcode parser accepts `[ffc_form id=42]` (unquoted shorthand) and `[ffc_form id="42" class="ffc-custom"]` (extra attributes) as valid — admins who used either format saw the form render with no geofence at all because the localization step silently dropped them. Symptom on the user side: setting *"Display before opening" → "Hide form completely"* in the admin had no effect — the form remained visible before its start date. Fix: replace the hand-rolled regex with `get_shortcode_regex(['ffc_form'])` and parse attributes via `shortcode_parse_atts()`, the WP-canonical helpers that handle every quoting variant the platform parser accepts.
-- **URL Shortener admin: QR download / regenerate / copy buttons fail silently on sites that combine JS** (6.6.8). `ffc-url-shortener-admin.js` declared only `['jquery']` as a script dependency but the click handlers call `FFC.request()`, which lives on `ffc-core`. WordPress loads both scripts on the page, but JS combiners (LiteSpeed JS Combine, WP Rocket Combine, etc.) flatten the dependency tree — without `ffc-core` in the declared chain, the combined bundle can execute the URL Shortener script before `window.FFC` is defined, throwing `TypeError: FFC.request is undefined` and aborting the click handler silently. Same fix shape as 6.6.7 (#367) applied to the four public-facing sites; this admin site was missed in that pass. Both enqueues (post-edit metabox + admin list page) now list `ffc-core`.
-- **URL Shortener admin: same buttons still inert on regular post/page edit screens (Gutenberg)** (6.6.9). 6.6.8 declared `'ffc-core'` as a dep but assumed the handle was already registered. That holds on FFC-owned pages (`post_type === 'ffc_form'` or `page=ffc-*`), but the URL Shortener metabox also renders on regular post / page edit screens when the post type is enabled — and on those screens `AdminAssetsManager::is_ffc_page()` returns false, so `ffc-core` was never registered for the request. WordPress's enqueue path silently dropped the unknown dep, `window.FFC` stayed undefined, and the QR PNG / SVG / Regenerate / Copy buttons still failed silently. Reported on the production site (Gutenberg post edit, standard `post` post type, URL Shortener metabox visible in the sidebar). Fix: register `ffc-core` early on every `admin_enqueue_scripts` request via a new `Loader::register_admin_core_assets()` hook (priority 1, before any module enqueues run). Idempotent — guarded by `wp_script_is('ffc-core', 'registered')` so it's a no-op on FFC pages where `AdminAssetsManager` already registered the handle. Mirrors the frontend `register_frontend_assets()` pattern.
-- **Form duplication: four CSV-public-download sub-feature toggles missed by `CPT::handle_form_duplication()`** (6.6.10). `_ffc_csv_public_download_enabled`, `_ffc_csv_public_preview_enabled`, `_ffc_csv_public_start_early_enabled`, and `_ffc_csv_public_extend_end_enabled` are persisted by `FormEditorSaveHandler::save_form_data()` whenever the admin saves the form's "CSV Download público" section. The 6.5.6 → 6.5.12 sprints that introduced each toggle never added it to the duplicator's hard-coded `$config_metas` list, so a duplicate had empty meta on all four — and empty meta reads as the FormEditorSaveHandler default at metabox render time ('1' for download / preview / start_early, '0' for extend_end). Net effect: any admin who had disabled the download / preview / start_early sub-toggle on the original saw it silently re-enabled on the duplicate; any admin who had enabled extend_end saw it silently disabled. Fix: add the four keys to `$config_metas`. The hash + counter exclusions stay — those are still intentionally not copied.
-
-### Tests
-
-- 65+ new PHPUnit cases across 8 files covering: schema migration idempotency, the action gate cascade and override-validation matrix, the session crypto round-trip (tamper / expiry / version / form-id-mismatch rejection), cookie attribute correctness, form-render embed + clear, submission handler persistence + audit emit, placeholder formatter / resolver, `/valid` block assembly, and the admin renderer.
-- 7 new Vitest cases for the operator modal (render gating, modal open with baseline pre-fill, client-side validation, AJAX success → CTA swap, AJAX failure → button re-enabled + error visible, Escape closes).
-- 3 additional PHPUnit cases in `FrontendTest` covering the regex switch from the forward-ported 6.6.8 fix: quoted, unquoted, and extra-attributes shortcode shapes all land in `ffcGeofenceConfig`.
-- 3 additional PHPUnit cases in `LoaderTest` for the 6.6.9 admin-side `ffc-core` registration: constructor wires the `admin_enqueue_scripts` hook at priority 1; method registers `ffc-core` when not yet registered; method is a no-op when `AdminAssetsManager` already registered it.
-- 1 additional PHPUnit case in `CptTest` (`test_handle_form_duplication_copies_all_per_form_metas`) for the 6.6.10 duplicator fix: every persisted per-form meta key copied verbatim; hash + counter exclusions preserved. Acts as the regression lock for future sub-feature toggles.
-
-### i18n
-
-- 50+ new strings (operator modal, banner, action error messages, audit labels, /valid block). PT-BR translations added to `ffcertificate-pt_BR.po` and `.mo` recompiled; `.l10n.php` regenerated.
-
-### Out of scope (carried over from the issue spec)
-
-- GPS / geofence bypass for the operator path (operator "confirms in-person" overrides GPS imprecision) — separate feature.
-- Re-edit of an existing exception — current contract is one-use, admin must delete the submission and operator recreates.
-- Restriction of an exception to a specific participant CPF — current contract trusts the operator to hand the tablet to the right person within the 30-minute window.
-- Admin list filter for "exceptional submissions only" — explicitly out per the issue spec ("sem badge na lista de submissões").
-
----
+- `[ffc_form]` geofence config not localized for unquoted / extra-attribute shortcodes (now uses `get_shortcode_regex` + `shortcode_parse_atts`).
+- URL Shortener admin QR/regenerate/copy buttons inert when JS is combined, and on non-FFC (Gutenberg) screens (`ffc-core` dependency + early registration).
+- Form duplication missed four CSV-public-download sub-feature toggles.
 
 ## [6.6.12] (2026-05-22)
 
-UX hotfix on the 6.6.x maintenance branch. The post-submission success card (rendered after a participant submits a certificate form) had drifted into a layout that no longer matched the `/valid` verification page: a centered big green check icon followed by left-aligned `Form: / Date: / Authentication Code:` rows with the labels in bold and the values inline, a copy button squeezed into a flex row, an "always-visible" device-hints block at the bottom, and the schedule-exception preamble banner at the top pushing "Sucesso!" below the fold on mobile. Reported as visually inconsistent — the verification card the same participant sees minutes later at `/valid` uses a clean blue-gradient header badge, a centered card with `.ffc-detail-row` label/value rows, and a single primary CTA at the bottom. Two different visual identities for the same artefact.
+### Changed
 
-This release unifies both screens under the `/valid` visual language.
-
-### Changed (UX)
-
-- **`templates/submission-success.php` rewritten** to share structure with `templates/certificate-preview.php`: `.ffc-certificate-preview` outer card, `.ffc-preview-header` with the blue gradient + "Certificate Issued" badge (mirroring the `/valid` "Valid Certificate" badge), `.ffc-preview-body` with an `<h3>Certificate Details</h3>` header (now visually identical to the `/valid` H3, blue underline included), `.ffc-detail-row` rows for Authentication Code / Form / Date, and a `.ffc-preview-actions` strip at the bottom holding the persistent "Download PDF again" button. The pre-6.6.12 big green check + bold-label rows + flat-blue download button are gone.
-- **CPF is no longer surfaced on the success card**. The post-submission step is the only spot in the flow where the user just *typed* their own CPF — re-rendering it here added zero value and contradicted the "minimum-disclosure" pattern the rest of the plugin follows. The verification page (`/valid`) still shows CPF because that is the authenticity-proof context.
-- **"Where to find your certificate" guidance is now a collapsible `<details>` block** at the bottom of the card, closed by default. Pre-6.6.12 the three platform-specific lines all rendered open; JS hid the irrelevant two (`filterPlatformGuidance` in `assets/js/ffc-frontend.js`), but the wrapper, title, and one visible line still took ~80px of vertical space that competed with the primary CTA. Collapsing it gives experienced users an uncluttered screen and one-click access for the rest. The `.ffc-success-where-is-file` class + `data-platform` markers are preserved so the existing JS filter and the four `success-card.test.js` cases keep working unchanged.
-
-### Changed (consistency)
-
-- **`/valid` H4 section headers now share the blue underline treatment with the H3.** Pre-6.6.12 `<h3>Certificate Details</h3>` had `border-bottom: 2px solid var(--ffc-primary); padding-bottom: 10px` and the H4 headers below (`Participant Data:`, plus the 6.7.0 `Adjusted entry / exit schedule` block on `main`) had neither — making the page look like one anchored section followed by two floating ones. Single CSS rule, no template edits, applies retroactively to every existing H4 inside `.ffc-preview-body`.
+- Post-submission success card rewritten to share the `/valid` visual language (blue-gradient header, detail rows, single primary CTA); CPF no longer surfaced on this screen; "where to find your certificate" is now a collapsed `<details>` block.
+- `/valid` H4 section headers share the H3 blue-underline treatment.
 
 ### Removed
 
-- **9 obsolete CSS rules** in `assets/css/ffc-frontend.css`: `.ffc-success-icon`, `.ffc-auth-code` (unused — distinct from `.ffc-success-code` which stays), `.ffc-success-details`, `.ffc-success-row`, `.ffc-success-row-label`, `.ffc-success-row-value`, `.ffc-success-row-block` (+ its 2 descendant selectors), `.ffc-success-actions`, `.ffc-success-download-btn`. The classes themselves remain as secondary class names on the new markup so the seven `SuccessHtmlTest` cases (`ffc-success-auth-code`, `ffc-success-code`, `ffc-success-magic-link`, `ffc-success-download-btn`, etc.) keep matching — they only carry no styling weight anymore.
-
-### Bundles
-
-- `assets/css/ffc-frontend.min.css` rebuilt (`npm run build:css`). No JS changes — `ffc-frontend.js` already had every selector the new template needs (`.ffc-download-pdf-btn`, `.ffc-copy-btn`, `.ffc-success-where-is-file li[data-platform]`).
-
-### Tests
-
-- 7/7 `SuccessHtmlTest` (PHP) green — all class-presence assertions still match because the legacy classes are preserved as secondaries.
-- 8/8 `success-card.test.js` (Vitest) green — copy-button + platform-filter cases use their own fixture HTML and exercise the JS surface, not the template structure.
-
-### Out of scope (deferred to a follow-up on `main`)
-
-- The `Adjusted entry / exit schedule` block introduced in 6.7.0 (`#369`) still uses an oversized explanatory paragraph and a default-styled wrapper. The same kind of inconsistency this PR fixes for the rest of the card — reducing that paragraph to body size, wrapping the block in a soft-yellow notice with a left border, and prefixing the H4 with an `ℹ` icon — needs to land on `main` in a follow-up PR.
-
----
+- 9 obsolete success-card CSS rules (legacy class names kept as secondaries).
 
 ## [6.6.11] (2026-05-22)
 
-⚠ **Breaking change for downstream automations matching PDF filenames** — forward-ported to `main` after release/6.6.x shipped (#374).
-
-Hotfix to unify the three divergent PDF filename patterns across the plugin. Pre-6.6.11 the certificate, appointment receipt, and ficha PDFs each used a different shape (`{kebab-title}_{authCODE}.pdf`, `{lower-translated}_{code}.pdf`, `Ficha_{Title}_{Display Name}.pdf`), and the receipt prefix even drifted by locale because it came from `__('Appointment_Receipt')`. The new shape is the same across all three generators: `{translated-prefix}_{entity_id}_{LETTER}-{code}.pdf` — e.g. `certificado_666_C-MLQQZ9UX9MWF.pdf`, `recibo_42_A-7K3M9P2XQRST.pdf`, `ficha_99_R-ABCDEF123456.pdf` (PT-BR). Sites that depend on the old filename shapes for DMS regex matching / email attachment routing / external download automations MUST adjust their patterns OR pin a stable shape via the new central filter (see "How to pin a stable shape" below).
+⚠ Breaking for downstream automations matching PDF filenames.
 
 ### Changed (breaking)
 
-- **All plugin-generated PDF filenames now follow `{prefix}_{entity_id}_{LETTER}-{code}.pdf`**, produced by the new shared helper `\FreeFormCertificate\Core\Utils::build_pdf_filename( string $type, int $entity_id, string $code )`. The three generators (`PdfGenerator::generate_pdf_data()`, `PdfGenerator::generate_pdf_data_from_form()`, `PdfGenerator::generate_appointment_pdf_data()`, `FichaGenerator::generate_ficha_data()`) all delegate to this helper instead of constructing filenames inline. The private `PdfGenerator::generate_filename()` method that previously held the legacy kebab-lowercase logic has been removed.
-- **Auth-code "virtual prefix" letter from `DocumentFormatter` is now embedded in the filename**: certificates get `C-`, appointment receipts get `A-`, fichas get `R-` — mirroring the same letters used at `/valid` and in emails. The helper detects already-prefixed and pre-formatted codes (e.g. caller passing `C-MLQQ-Z9UX-9MWF` from a display rendering) and **does not double-prefix**, also stripping inner dashes from the body for filesystem compactness. Synthetic `S{id}` fallbacks for draft fichas stay un-prefixed since they are not verifiable auth codes.
-- **Prefix is translatable** via `_x()` with the `pdf filename prefix - …` context. Default labels: `certificado` (certificate), `recibo` (appointment receipt), `ficha` (reregistration record). PT-BR sites get those literal slugs; sites in other locales get whatever the translator provides (e.g. `certificate` / `receipt` / `record` for EN).
-- **Appointment receipt now has its own filter** `ffcertificate_appointment_receipt_filename( $filename, $calendar_id, $validation_code, $appointment )`. Pre-6.6.11 this PDF was the only one without a per-type filter.
-- **Ficha filename now uses `auth_code` (when populated) or `S{submission_id}` fallback** instead of `{Title}_{Display Name}`.
+- All plugin-generated PDF filenames now follow `{prefix}_{entity_id}_{LETTER}-{code}.pdf` via the shared `Utils::build_pdf_filename()` (prefix translatable; letter `C`/`A`/`R`; no double-prefix).
+- Appointment receipt gained its own `ffcertificate_appointment_receipt_filename` filter; ficha uses `auth_code` (or `S{id}`).
 
 ### Added
 
-- **New central hook `ffcertificate_pdf_filename( $filename, $type, $entity_id, $code )`** fires for every PDF the plugin generates, BEFORE the per-type hooks. Documented escape-hatch for automation-driven sites.
-
-### How to pin a stable shape (for DMS / automation sites)
-
-```php
-add_filter( 'ffcertificate_pdf_filename', function ( $filename, $type, $entity_id, $code ) {
-    $stable = array( 'certificate' => 'certificate', 'appointment_receipt' => 'receipt', 'ficha' => 'record' );
-    $prefix = $stable[ $type ] ?? $type;
-    return '' !== $code
-        ? sprintf( '%s_%d_%s.pdf', $prefix, $entity_id, $code )
-        : sprintf( '%s_%d.pdf', $prefix, $entity_id );
-}, 10, 4 );
-```
-
----
+- Central `ffcertificate_pdf_filename` hook fired for every PDF before the per-type hooks (escape hatch to pin a stable shape).
 
 ## [6.6.10] (2026-05-22)
 
-Hotfix on the 6.6.x maintenance branch (#373 → release/6.6.x). See `release/6.6.x` for the shipped tag; the fix is forward-ported into 6.7.0 above.
-
 ### Fixed
 
-- **Form duplication: four CSV-public-download sub-feature toggles missed by `CPT::handle_form_duplication()`.** See the fourth bullet of the "Fixed (forward-ported from 6.6.8 / 6.6.9 / 6.6.10)" entry under 6.7.0 for the full diagnosis.
-
----
+- Form duplication: four CSV-public-download sub-feature toggles missed by `CPT::handle_form_duplication()` (hotfix; forward-ported into 6.7.0).
 
 ## [6.6.9] (2026-05-22)
 
-Follow-up to the URL Shortener half of 6.6.8 (#370 → release/6.6.x). See `release/6.6.x` for the shipped tag; the fix is forward-ported into 6.7.0 above.
-
 ### Fixed
 
-- **URL Shortener admin: QR PNG / SVG / Regenerate / Copy buttons still inert on non-FFC admin screens.** See the third bullet of the "Fixed (forward-ported from 6.6.8 / 6.6.9)" entry under 6.7.0 for the full diagnosis.
-
----
+- URL Shortener admin QR/regenerate/copy buttons still inert on non-FFC admin screens (hotfix; forward-ported into 6.7.0).
 
 ## [6.6.8] (2026-05-22)
 
-Hotfix on the 6.6.x maintenance branch. See `release/6.6.x` for the shipped tag; the same two fixes are forward-ported into 6.7.0 above so installs on `main` carry them too.
-
 ### Fixed
 
-- **`[ffc_form]` shortcode: geofence config not localized when the shortcode uses unquoted or extra-attribute syntax.** See the "Fixed (forward-ported from 6.6.8)" entry under 6.7.0 for the full diagnosis.
-- **URL Shortener admin: QR download / regenerate / copy buttons fail silently on sites that combine JS.** Same scope as the forward-port note in 6.7.0.
-
-### Notes
-
-- This release branches off `release/6.6.x` rather than `main` so it could ship while the 6.7.0 feature (Schedule exception per submission, #366) was still in testing.
-
----
+- `[ffc_form]` geofence config not localized for unquoted/extra-attribute shortcodes; URL Shortener admin buttons fail silently when JS is combined (hotfix off `release/6.6.x`; forward-ported into 6.7.0).
 
 ## [6.6.7] (2026-05-21)
 
-Follow-up to the PR #352 (6.6.2) dependency cleanup. Four public-facing JS enqueues never had `ffc-core` listed as a dependency, so any page combining their script via a JS-combining cache plugin (LiteSpeed JS Combine, WP Rocket Combine, etc.) ended up with `FFC is not defined` and a non-functional widget. Reported on `dresaomiguel.com.br/avaliacoes-e-provas/` where `[ffc_audience schedule_id="1"]` failed to render the calendar.
-
 ### Fixed
 
-- **`[ffc_audience]` shortcode: calendar fails to load events when JS is combined.** `ffc-audience.js` calls `FFC.request()` once (search-users path) but its enqueue declared only `['jquery']` as dependency. Added `ffc-core` so WordPress (and downstream cache plugins) preserve load order.
-- **`[ffc_self_scheduling]` shortcode: same root cause on two siblings.** `ffc-frontend-helpers.js` (3 FFC call sites) and `ffc-calendar-core.js` (1 FFC call site) were enqueued with only `['jquery']`. Both now list `ffc-core`.
-- **Public form pre-flight pipeline: `ffc-geofence-frontend.js` enqueue missing `ffc-core` dependency.** This file gained 6 `FFC.request` call sites across 6.6.4 / follow-up (geofence telemetry, cookie sanity, GPS pre-check) but the original 6.6.4 enqueue still declared only `['jquery']`. Without a JS combiner this worked because `ffc-frontend-js` (enqueued one line above) already pulls `ffc-core`, but combiners that flatten dependencies dropped `ffc-core` from the bundle.
-
-### Why these escaped 6.6.2
-
-PR #352 walked the 5 public shortcodes that existed at the time and added `ffc-core` to each. `ffc-audience` (Audience module), `ffc-frontend-helpers` / `ffc-calendar-core` (Self-Scheduling module), and `ffc-geofence-frontend` (Frontend) all gained `FFC.request` call sites in *later* releases (6.6.4 for geofence; 6.5.x for the calendar siblings) without their enqueues being updated. The fix is mechanical (4 × `array('jquery')` → `array('jquery', 'ffc-core')`) and has no behavioural effect on installs that don't combine JS.
-
----
+- Four public-facing JS enqueues (`ffc-audience`, `ffc-frontend-helpers`, `ffc-calendar-core`, `ffc-geofence-frontend`) missing the `ffc-core` dependency — broke `FFC.request` on sites that combine JS.
 
 ## [6.6.6] (2026-05-21)
 
-Two production-reported fixes surfaced by enabling WP_DEBUG_LOG on a 6.6.5 install.
-
 ### Fixed
 
-- **`Uncaught TypeError` on every certificate reprint** (`Utils::generate_success_html()`). The 6.6.0 schema migration switched `submissions.submission_date` from MySQL DATETIME string to BIGINT UNSIGNED unix int. The reprint branch in `FormProcessor::handle_submission_ajax` passes that int through, but `generate_success_html()` still declared `string $submission_date` — every reprint threw a fatal that the AJAX layer surfaced as a generic 500. Fresh submissions kept working because they pass a `current_time('mysql')` string. Fix: signature now accepts `int|string`; `DateFormatter::format_datetime()` already accepted both internally.
-- **`Unknown column 'action'` on the form-editor pre-flight stats metabox** for installs whose `ffc_activity_log` table was created in a pre-`action`-column plugin version. The legacy `create_table()` early-returned on `table_exists()`, so dbDelta never ran to add columns added in later releases. New `ActivityLog::maybe_create_table()` (mirrors `RateLimitActivator::maybe_create_tables()` pattern) compares a stored `ffc_activity_log_db_version` option against the code's expected version and re-runs dbDelta once on legacy installs. Wired into `Loader::on_plugins_loaded` alongside the rate-limit equivalent.
-
----
+- `Uncaught TypeError` on certificate reprint — `generate_success_html()` now accepts `int|string` for the unix-int submission date.
+- `Unknown column 'action'` on legacy `ffc_activity_log` installs — new `maybe_create_table()` re-runs dbDelta once via a stored DB-version option.
 
 ## [6.6.5] (2026-05-21)
 
-> ### ⚠ Breaking change: minimum PHP bumped 8.1 → 8.3
->
-> Visitors / sites running on PHP 8.1 or 8.2 will not auto-upgrade to this release. WordPress enforces the `Requires PHP` plugin header — installs on 8.1 / 8.2 stay pinned at 6.6.4 until the host upgrades PHP. Both versions are EOL'd / approaching EOL upstream (8.1 security-only support ends late 2026; 8.2 active support ended late 2025), and the project's own production deploys run 8.3, so the maintenance gain outweighs the loss of coverage for two unsupported versions.
->
-> **What to expect**:
->
-> - Existing 8.1/8.2 sites continue to work on 6.6.4 (no regressions; their plugin update notification just no longer surfaces 6.6.5).
-> - 8.3+ sites get the full release on their next auto-update or manual refresh.
-> - No source code changes in this release beyond the version declarations + a small dead-code cleanup PHPStan 2.1.55 surfaced after the composer upgrade (recruitment public shortcode renderer; behaviour unchanged because the branch was unreachable).
+⚠ Minimum PHP bumped 8.1 → 8.3 (8.1/8.2 installs stay on 6.6.4 via the `Requires PHP` header).
 
 ### Changed
 
-- **Minimum PHP version bumped 8.1 → 8.3** across all four declarations: `ffcertificate.php` plugin header (`Requires PHP: 8.3`), `FFC_MIN_PHP_VERSION` constant, `readme.txt` `Requires PHP:`, and `composer.json` (`>=8.3` + platform pin `8.3`). PHPStan target pinned via new `phpVersion: 80300` in `phpstan.neon.dist` so analysis stays target-aware regardless of CI runner version.
-- **CI matrix slimmed 4 → 2 PHP versions**. PHPUnit matrix now runs `['8.3', '8.4']` (was `['8.1', '8.2', '8.3', '8.4']`). PHPStan, Coverage, Composer audit, and PHPCS jobs all switched runtime from PHP 8.1 → 8.3 to match the new minimum + benefit from the faster runtime. Coverage step's wall-clock drops ~1.5-3 minutes (PHP 8.3 is ~5-15% faster than 8.1 on PHPUnit-heavy workloads); total runner-minutes per PR drops ~30% (12 jobs instead of 14).
+- Minimum PHP 8.1 → 8.3 across all declarations; PHPStan target pinned `phpVersion: 80300`; CI matrix slimmed to 8.3/8.4.
 
 ### Fixed
 
-- **Dead-code branch in `RecruitmentPublicShortcodeRenderer::render_row`** surfaced by PHPStan 2.1.55 (the patch composer pulled during the bump). The `else` branch's inner `if ( $show_date && $cols['…'] )` checks were unreachable by construction — the outer condition negates as "either `$show_date` is false OR both columns are false", which forces both inner conditions to false. Removed the dead lines; no behaviour change.
-
----
+- Removed a dead, unreachable branch in `RecruitmentPublicShortcodeRenderer::render_row` (PHPStan 2.1.55; no behavior change).
 
 ## [6.6.4] (2026-05-20)
 
-Pre-flight permission checks + server-side reorderings + user-facing copy polish. Single PR, 8 sprints, ~280 LoC production + 22 new tests. Covers the iOS Safari / cached-HTML failure modes that 6.6.2.1 / 6.6.3 began addressing, but proactively — surfacing the underlying browser-permission state before the user submits instead of recovering after failure.
+Pre-flight permission checks + server-side reorderings + copy polish.
 
 ### Added
 
-- **Cookie sanity check**. New STEP 2 between datetime and GPS in the geofence pre-flight pipeline. Probes `document.cookie` write+read roundtrip on the visitor's origin. Visitors with cookies fully blocked at the browser level see a yellow warning banner with platform-specific instructions (iOS/Android/desktop) and a permissive "Try anyway" CTA. Does NOT catch Safari ITP mid-session partitioning — that case is still handled by the 6.6.3 server-side `refresh_nonce` auto-recovery.
-- **GPS permission pre-check**. Wraps the existing `getCurrentPosition` call with `navigator.permissions.query ({name: 'geolocation'})`. Three branches:
-  - `granted` — silent fall-through to the existing native flow (zero user-visible change).
-  - `denied` — yellow "Location blocked" banner with iOS/Android/ desktop instructions to unblock + "Try anyway" CTA. Native `getCurrentPosition` is NOT called.
-  - `prompt` — explainer banner with explicit "Continue" CTA so the native prompt fires inside a fresh user-gesture window (matters on iOS Safari, which silently refuses async-deferred geolocation prompts).
-  `PermissionStatus.onchange` listener picks up settings changes without a page reload. iOS Safari <16 (no Permissions API) falls through to today's behaviour — no regression.
-- **Diagnostic log**. `console.info` of service worker registrations + clipboard write permission state at FFCGeofence init. Pure observability, no UI. Helps support triage screenshot- based reports of "Security check failed" / "form didn't appear".
+- Cookie sanity check (STEP 2 of the geofence pre-flight) — warns visitors with cookies fully blocked.
+- GPS permission pre-check via `navigator.permissions.query` (granted/denied/prompt branches; iOS-safe).
+- 15th Debug toggle `debug_browser_env` gating an opt-in browser-environment diagnostic log.
+- Pre-flight bail telemetry (`ffc_log_preflight_bail`, hashed IP) + per-form "User-friction stats" badges in the editor.
 
 ### Changed
 
-- **Server: LGPD + email presence before field validation**. The two cheapest presence checks now run BEFORE the per-field validation loop (CPF/RF regex + checksum). Combined errors land in a single `errors` array on the response so the client can surface "Email required AND LGPD missing" in one round-trip instead of fixing CPF first, then resubmitting, then seeing the LGPD error. Legacy `message` field still carries the first error for backward compatibility.
-- **Server: Geofence before consolidated rate limit**. `Geofence::can_access_form` (read-only, single get_post_meta + optional IP lookup) moved above `RateLimiter::check_all` (writes via `record_attempt`). A visitor outside the geofence no longer ticks the rate-limit counter on every retry — the budget stays intact for the next legitimate attempt. Rate-limit IP at the top of the handler (step 1) still catches DoS before geofence.
-- **Rate-limit countdown polish**. The live mm:ss countdown for the rate-limit gate gains: synchronous initial paint (no more "0:00" flicker before the first tick), `role= "status"` + `aria-live="polite"` for screen readers, and an XSS regression guard that HTML-escapes the server `message` argument before injecting it into the notice.
-- **Empathetic rewording of 2 admin-error messages**. "Form configuration not found." → "This form is not available right now. Please contact the organizer." Raw submission save errors → "We couldn't save your submission. Try again — if the problem persists, contact the organizer." Original repo messages preserved under a new `detail` field for admin / support triage.
-- **i18n housekeeping**. PT-BR translations added for every new string in this release across `.po`, `.l10n.php`, and `.mo`. Pre-existing duplicate translations that were silently breaking `msgfmt` since that merge (no visible regression because WP 6.5+ reads `.l10n.php` directly, not `.mo`) are also stripped — 76 lines of duplicate entries removed.
+- Server: LGPD + email presence checks run before per-field validation (combined `errors` array).
+- Server: geofence check moved before the consolidated rate limit (outside-geofence retries don't burn the budget).
+- Rate-limit countdown polish (synchronous first paint, `aria-live`, escaped message).
+- Empathetic rewording of two admin-facing error messages (raw text moved to a `detail` field).
+- Settings → Debug toggles grouped into Client / Server / Admin sections.
 
-### Tests
+### Fixed
 
-- Vitest: 944 pass (was 920). 24 new cases across 4 files: `sprint1-diagnostic-log` (2), `sprint2-cookie-preflight` (8), `sprint3-gps-preflight` (8), `sprint6-rate-limit-countdown` (6).
-- PHPUnit: 2 new test classes — `FormProcessorPreflightOrderTest` (4 cases pinning the LGPD + email reorder contract including the combined `errors` array) and `FormProcessorGeofenceBeforeRateLimitTest` (2 cases pinning the geofence-before-ratelimit reorder; Mockery's `shouldNotReceive` catches accidental re-introduction of the old order).
-
-### Follow-up — debug toggle UX, telemetry, and admin visibility
-
-Lands under 6.6.4 (no version bump). Five extra sprints / commits extending the pre-flight work above with admin visibility and debug-toggle hygiene.
-
-#### Fixed
-
-- **Diagnostic log was always-on**. `logDiagnostics` ran unconditionally on every visitor, polluting the production browser console. Moved out of `ffc-geofence-frontend.js` (where it lived for scope-mismatch reasons — service workers + clipboard are browser-wide signals, not geofence-specific) into `ffc-frontend.js`, gated on a NEW dedicated `debug_browser_env` toggle. Default OFF.
-
-#### Added
-
-- **15th Debug toggle: `debug_browser_env`**. New `Debug::AREA_BROWSER_ENV` constant + UI in Settings → Debug → Client (browser) section. Admins enable it explicitly for triage; production stays quiet.
-- **Pre-flight bail telemetry**. New `wp_ajax_ffc_log_preflight_bail` endpoint writes an ActivityLog row whenever the cookie / GPS-denied / GPS-prompt banner renders. Payload: `{form_id, reason, ip_hash}`. IP is hashed (sha256 + wp_salt('auth'), 12-char prefix) — no raw PII in the audit trail. Nonce-protected via `ffc_frontend_nonce` (so the refresh_nonce auto-recovery applies if the cached nonce is stale).
-- **Per-form stats badges** in the form editor sidebar. New metabox "User-friction stats — last 30 days" with three badges:
-  - 🍪 N cookie wall
-  - 📍 N GPS denied
-  - 📋 N GPS prompt
-  Each badge links to the Activity Log filtered by `preflight_blocked`. High counts on a specific reason signal a setup issue (e.g. GPS denied dominating → geofence too tight; cookie wall dominating → cached HTML serving wrong nonces).
-
-#### Changed
-
-- **Settings → Debug tab visual grouping**. The 15 toggles (previously a flat alphabetical list) are now organized into three named sub-sections: Client (browser), Server / Processing, Admin / Operational. Each section gets a short italic blurb explaining the volume / safety tradeoff. Existing per-toggle descriptions + the autosave behaviour (FormMetaAjaxEndpoint) are unchanged.
-
-#### Tests added in this follow-up
-
-- Vitest: `sprint1-followup-debug-toggle` (3 cases) — gate on/off + regression guard that FFCGeofence.init no longer fires the diagnostic log. `sprint2-followup-preflight-telemetry` (5 cases) — each banner fires the right reason, happy path silent, rejection swallowed.
-- PHPUnit: `PreflightTelemetryTest` (4 cases) — nonce/refresh, invalid form_id, invalid reason, happy-path log shape with hashed IP. `PreflightStatsServiceTest` (5 cases) — empty, invalid form_id, multi-reason aggregation, cross-form isolation, robustness to malformed context. `DebugToggleGroupingTest` (2 cases) — section ordering + each toggle in its expected section.
-
-Also removed the now-obsolete `sprint1-diagnostic-log.test.js` from 6.6.4 — it asserted the always-on behaviour the follow-up explicitly fixes.
-
----
+- The diagnostic log was always-on — moved behind `debug_browser_env` (default off).
 
 ## [6.6.3] (2026-05-20)
 
-iOS Safari + cached-HTML stale-nonce safety net. The cache-bust release 6.6.2.1 didn't resolve "Security check failed." for an iOS visitor: the symptom persisted even with `?ver=6.6.2.1` on every asset, which means the actual stale-nonce code path was reached on the server, not just stale code in the client.
-
 ### Fixed
 
-- **Server-side stale-nonce auto-recovery on form submission AND certificate verification.** When `wp_verify_nonce` rejects, both `FormProcessor::handle_submission_ajax` and `VerificationHandler::handle_verification_ajax` now respond with `refresh_nonce: true` + `new_nonce: '<fresh>'` alongside the existing error message. Both endpoints share the same `ffc_frontend_nonce` action and the same iOS / cache failure modes, so they get the same treatment. (Verification also switches from `check_ajax_referer` — which `wp_die`s with 403 on failure — to explicit `wp_verify_nonce` so the client can read the structured error.) The fresh nonce is bound to the visitor's current session cookie via `wp_create_nonce`, so an attacker who can't present a valid cookie can't use it.
-- **Client-side single-retry on FFC.request.** When a request comes back with `refresh_nonce` flagged, `FFC.request` updates `window.ffc_ajax.nonce` (the live-getter from 6.6.2 picks it up automatically) and re-issues the same call exactly once. An `options._ffcNonceRetried` guard prevents ping-pong. The user never sees the "Security check failed" message in the common recoverable cases. Generic: every endpoint that responds with `refresh_nonce` benefits — adding the treatment to other nonce checks (self-scheduling AJAX, public CSV download) is now a server-side-only change.
-
-### Why this safety net is needed even after the 6.6.2.1 cache-bust
-
-Three iOS-specific scenarios slip past asset cache invalidation:
-
-1. **Cached HTML carrying another visitor's nonce on shared hosts**
-   — `?ver=…` bumps the `.min.js` cache key but the `[ffc_form]` page HTML itself is still served from the page cache, and that HTML carries the nonce that was generated for whoever first warmed the cache entry. `ffc-dynamic-fragments.js` is supposed to refresh the nonce in place, but its `XMLHttpRequest` swallows any failure silently (CSP, service workers, hosting CDN policies blocking POST to admin-ajax.php from specific UAs).
-2. **Safari ITP / iCloud Private Relay rotating the session cookie between page render and submit** — iOS Safari is the only browser that can produce a session-token mismatch on the same domain without the user doing anything.
-3. **`ffc-dynamic-fragments` not running at all** — DOMContentLoaded doesn't fire on some page transitions (bfcache restore), so the nonce refresh path is skipped entirely.
-
-The retry covers all three without the client needing to know which one applies.
-
-### Tests
-
-- Vitest: 5 new cases in `tests/js/ffc-core-nonce-retry.test.js` pinning the retry contract (updates `ffc_ajax.nonce`, retries once, no retry without `refresh_nonce`, no retry without `new_nonce`, preserves the final error payload).
-- PHPUnit: `FormProcessorNonceRecoveryTest` + `VerificationHandlerNonceRecoveryTest` each assert that the server payload includes `refresh_nonce: true` + a non-empty `new_nonce` when `wp_verify_nonce` returns false on the respective endpoint.
-
----
+- Server-side stale-nonce auto-recovery on form submission + certificate verification (`refresh_nonce` + fresh `new_nonce`), with a single client-side retry — fixes "Security check failed" on iOS Safari / cached HTML.
 
 ## [6.6.2.1] (2026-05-20)
 
-Cache-bust-only release — no source code changes. Bumps `FFC_VERSION` so the asset cache key `?ver=…` rotates and browsers / CDNs re-download the `.min.js` and `.min.css` that were modified by PRs (stale-nonce fix) and (success-card auth-code wrap + PT-BR translations) without their own version bumps.
-
-**Versioning convention introduced here**: when a release exists only to invalidate asset caches (no functional change beyond what the previous version already shipped on disk), append a 4th segment to the prior version instead of consuming a fresh patch number. So a "real" patch goes `6.6.2 → 6.6.3`, but a cache-bust-only sibling of 6.6.2 goes `6.6.2 → 6.6.2.1`. Future cache-bust-only siblings of 6.6.3 would be `6.6.3.1`, `6.6.3.2`, etc.
-
-### Fixed
-
-- **Stale-nonce fix wasn't reaching cached clients** — iOS Safari (and CDN edges in front of LiteSpeed / Varnish / WP Rocket) keep `ffc-core.min.js?ver=6.6.2` pinned in their HTTP cache. Re-saving the file content on the origin without changing the query string is invisible to those caches, so visitors kept hitting the original snapshot-nonce code path and seeing "A verificação de segurança falhou." even though the source on disk had the getter fix. Bumping `FFC_VERSION` to `6.6.2.1` flips every enqueued script and stylesheet to `?ver=6.6.2.1` and forces a re-fetch.
-- **Same applies to 's CSS / template / translation changes** — `ffc-frontend.min.css` and the success-card layout would otherwise stay broken on cached clients.
-
----
+Cache-bust-only release (no source change) — rotates `?ver=…` so the stale-nonce fix + success-card CSS reach cached clients. Introduces the 4th-segment cache-bust versioning convention.
 
 ## [6.6.2] (2026-05-20)
 
-Public certificate form — user-messaging sweep. Six-sprint PR that overhauls every customer-facing message in the submission + download flow, plus carries forward the two regression fixes that were sitting in Unreleased after 6.6.1.
-
 ### Added
 
-- **Persistent success card** with magic-link URL, auth-code, copy buttons, "Download PDF again" CTA, and platform-specific "where to find your certificate" hints (Android Downloads / iOS Files / desktop Downloads bar). `Utils::generate_success_html` now accepts the submission ID + handler so it can surface `MagicLinkHelper::get_submission_magic_link` — users who close the tab can return any time and re-issue without re-submitting.
-- **Universal "didn't download?" link** on the desktop / Android Chrome `pdf.save` path. The iOS / Samsung / WebView branches already had a manual fallback; the desktop branch silently failed when extensions or strict-tracking config ate the download. Overlay now stays open 6 s on desktop (was 2 s) so the user sees the link.
-- **Pre-submission warnings**: "Please do not close this tab" line inside the generation overlay (was only painted in the placeholder-tab branches before), plus `navigator.onLine === false` short-circuit on form submit and download click with an actionable "you appear to be offline" message.
+- Persistent success card with magic-link URL, auth-code, copy buttons, "Download PDF again", and platform-specific "where to find your certificate" hints.
+- Universal "didn't download?" link on the desktop/Android download path; pre-submission "don't close this tab" + offline warnings.
 
 ### Changed
 
-- **Actionable error panel** replaces every blocking `alert` in `ffc-pdf-generator.js`. Lib-load failure, missing wrapper, blank canvas, CORS taint (SecurityError on `getImageData`), and html2canvas rejection each get a specific headline + actionable body copy, with a {Try again, Close} pair (or {Close}-only on non-recoverable failures). CORS gets a special "this is a server-side problem, contact the organizer" message and no retry button.
-- **Overlay accessibility** (WCAG 2.1.2 + 2.4.3 + 4.1.2): `role="dialog"`, `aria-modal`, `aria-labelledby`, `aria-describedby`, `aria-busy` toggled true→false on error paint, `aria-live="polite"` on the status line, focus moves into the dialog on open and returns to the trigger on close, Tab is trapped within the dialog, Escape closes only when interactive controls are present (no-op during in-flight render).
+- Actionable error panel replaces every blocking `alert` in `ffc-pdf-generator.js` (per-failure copy, CORS guidance).
+- Generation overlay accessibility (dialog role, focus trap, `aria-live`, Escape handling).
 
 ### Fixed
 
-- **Activity log INSERT failing under FK after 4.9.7** — `ActivityLog::flush_buffer` was passing `user_id = 0` for system-event rows. The `fk_ffc_activity_log_user` constraint references `wp_users(ID)`, so every system-event INSERT was rejected. The "no user / anonymous" semantics now map to `NULL` at INSERT time, and the activator's `create_table` was realigned with the post-FK-migration state (`DEFAULT NULL`) so fresh installs land on the right schema.
-- **`FFC.request is not a function` on every public shortcode** — the AJAX migration enqueued `ffc-core.js` only on admin screens. `ffc-core` is now registered for the frontend in `Loader::register_frontend_assets` and listed as a dependency on the 5 public-facing enqueues. Dashboard sibling scripts get it transitively via `ffc-dashboard`.
-
----
+- Activity-log INSERT failing under the post-4.9.7 FK (system rows now map to `user_id = NULL`).
+- `FFC.request is not a function` on public shortcodes (`ffc-core` registered on the frontend + listed as a dependency).
 
 ## [6.6.1] (2026-05-18)
 
-Code-quality sweep bundle from the umbrella audit: test-gap closeout, nonce-verification audit ( follow-up), dead-code reauditing ( follow-up), and residual cleanup between the - PRs and the batch.
-
-### ⚠ Breaking change for `GET /forms` REST consumers
-> The `GET /forms` REST endpoint now uses real pagination via `page` and `per_page` query args (WP REST convention). The legacy `limit` arg is **removed** — clients still passing `?limit=N` will have it silently ignored. Default `per_page` is **10** (was implicitly up to 100). Responses now carry `X-WP-Total`, `X-WP-TotalPages`, and a `Link` header (`first`, `prev`, `next`, `last`).
-> Migration: `?limit=50` → `?per_page=50`; iterate `?page=N` until `X-WP-TotalPages` is exhausted. No shim period.
+⚠ `GET /forms` REST now uses `page`/`per_page` pagination; the legacy `limit` arg is removed (default `per_page` 10; `X-WP-Total*` + `Link` headers).
 
 ### Removed
 
-- `?limit=N` on `GET /forms` (use `?per_page=N`).
-- `Utils::debug_log` shim (`@deprecated 6.2.0`) — migrate external callers to `Debug::log_*` (see `Debug::AREA_*` constants).
-- `PublicCsvDownload::maybe_wipe_legacy_logs` + its `DOWNLOAD_LOG_FORMAT` / `OPTION_LOG_FORMAT` constants. The wipe ran on every install during the 6.3.3 → 6.3.6 window.
-- Unused `FFC_DEBUG` constant and its PHPStan stub.
-- Deprecated CSS aliases: `.ffc-conditional-field`, `.ffc-csv-public-disabled`, `.ffc-device-limit-disabled`, `.ffc-device-limit-globally-off`. The class emission in the geofence metabox row was also removed (visibility is JS-driven now).
+- `?limit=N` on `GET /forms`; `Utils::debug_log` shim; `PublicCsvDownload::maybe_wipe_legacy_logs`; unused `FFC_DEBUG`; four deprecated CSS aliases.
 
 ### Changed
 
-- **AJAX migration umbrella closes**. 20 JS files / ~70 inline `$.ajax({...})` / `$.post` / `$.get` sites migrated to the centralised `FFC.request` (admin-ajax) and new `FFC.rest` helpers in `assets/js/ffc-core.js`. `FFC.rest` injects `X-WP-Nonce`, JSON-encodes write bodies, preserves the jqXHR in `Error.xhr`. The helper gained: string-payload support (`$form.serialize`), `err.data` auxiliary fields, `err.xhr`, `options.timeout`, both-shape `wp_send_json_error` recognition (bare string or `{message}`), and `err.fromServer` to distinguish server-supplied messages from the library's fallback. `ffc-dynamic-fragments.js` was intentionally left on raw `XMLHttpRequest` for a separate refactor; the search now returns only `ffc-core.js` itself.
-- **POST/GET sanitize migration umbrella closes**. ~120 inline `sanitize_text_field(wp_unslash($_POST/$_GET[…]))` patterns migrated to the four new `Utils::get_post_string` / `get_get_string` / `get_post_int` / `get_post_bool` helpers, across frontend (36 sites), audience (48 of 55 — 7 use complex gates), admin + reregistration (14 files), and the first batch (24 sites across core / shortcodes / url-shortener / settings / self-scheduling). `RestSupport::get_post_param` / `get_post_int` now delegate to the static helpers.
-- **5 reuse helpers** consolidate scattered patterns: `DataSanitizer::normalize_cpf_rf` (22 sites), `Utils::get_export_filename` (4), `get_day_of_week_number` (5), `sanitize_username_slug` (2), `get_post_array` (4). ~33 call sites migrated.
-- **`ffc_settings` centralized** via new `FreeFormCertificate\Settings\SettingsReader` with generic getter (`get`, `get_bool`, `get_int`, `all`) + 20 typed accessors. 25 call sites migrated; relies on WP's built-in `alloptions` cache (no perf change). Debug toggles continue via `Debug::is_enabled($area)`.
-- **`GET /forms` real pagination**: `page` / `per_page` query args (defaults 1 / 10), `X-WP-Total` / `X-WP-TotalPages` / `Link` headers. Out-of-range pages return `[]` with status 200 (not 404).
-- **Recruitment admin**: 5 inline `<script>` blocks moved into `ffc-recruitment-admin.js` and consolidated into 2 generic delegated handlers (`form[data-ffc-create-endpoint]`, `input[data-ffc-color-endpoint]`).
-
-### Documentation
-
-- Classify `created_at` / `updated_at` housekeeping columns as a documented exception to Category A storage (CLAUDE.md).
-- Add "Legacy compat shims — audit log" section to CLAUDE.md documenting the 4 by-design shims (capability migration, cron cleanup, API-contract keys, encryption fallback).
-- Correct misleading "backwards compat" framing on `AbstractRepository::get_allowed_where_columns`, `ReregistrationFrontend::get_user_reregistrations`, and `UserDataRestController` (none are shims).
-
----
+- AJAX migration umbrella closed — ~70 inline jQuery AJAX sites moved to `FFC.request` / `FFC.rest`.
+- POST/GET sanitize migration closed — ~120 inline sanitize patterns moved to `Utils::get_*` helpers.
+- 5 reuse helpers consolidated (~33 call sites); `ffc_settings` centralized via `SettingsReader` (25 sites).
+- Recruitment admin: 5 inline scripts consolidated into `ffc-recruitment-admin.js`.
 
 ## [6.6.0] (2026-05-17)
 
-> ### ⚠ Breaking change for external SQL consumers
->
-> This release converts four "instant in time" columns from `DATETIME` to `BIGINT UNSIGNED` storing unix UTC seconds, plus seven sibling instant columns in the same tables:
->
-> | Table | Columns |
-> | --- | --- |
-> | `wp_ffc_submissions` | `submission_date`, `consent_date`, `edited_at` |
-> | `wp_ffc_reregistration_submissions` | `submitted_at`, `reviewed_at` |
-> | `wp_ffc_recruitment_call` | `called_at`, `cancelled_at` |
-> | `wp_ffc_appointments` | `approved_at`, `cancelled_at`, `consent_date`, `reminder_sent_at` |
->
-> Column **names** are unchanged. The plugin runs an idempotent backfill on first load that interprets the existing DATETIME literal in the site's timezone and stores it as unix UTC, then drops the old column and renames the new one over it. Inside the plugin everything reads/writes through `DateFormatter` so the change is invisible.
->
-> **External SQL (Metabase, PhpMyAdmin, custom reports) needs migration**:
->
-> - Old: `WHERE submission_date >= '2026-01-01'` → New: `WHERE submission_date >= UNIX_TIMESTAMP('2026-01-01')`
-> - Old: `ORDER BY submission_date DESC` → unchanged (int sorts the same direction)
-> - Old: `SELECT DATE(submission_date)` → New: `SELECT DATE(FROM_UNIXTIME(submission_date))`
->
-> Caveat documented for the curious: if the admin changed the site timezone at any point between 6.5.x and 6.6.0, the rows written under the old TZ are interpreted at backfill time in the **new** TZ — that introduces a fixed offset per row. Can't be recovered without a TZ-change audit log (we don't keep one). Backup the database before the update if the historical accuracy matters for those rows.
+⚠ Breaking for external SQL: four "instant" columns (+ seven siblings) converted from `DATETIME` to `BIGINT UNSIGNED` unix-UTC seconds (names unchanged; idempotent backfill on first load). External SQL must use `UNIX_TIMESTAMP()` / `FROM_UNIXTIME()`.
 
 ### Changed
 
-- **Sub-escopos (a) (b) (c) (d) (e) (f) of — instants as unix UTC int + auditoria de render + docs + release bump.** End-to-end implementation of the Category A storage convention from CLAUDE.md. Each sub-escopo carries its own dedicated commit on (see commit log for the per-column refactor map of writes/reads/tests). The migrations are gated on per-routine option flags so they're safe to re-attempt after a partial-failure restart, and the staging-column → backfill → drop+rename pattern is encapsulated in `DatabaseHelperTrait::migrate_datetime_column_to_unix` so future Category A column migrations are one helper call.
-
-- **DateFormatter: route the last user-visible display sites through the helper** (#249 sub-escopo d). / a handful of admin/list screens still rendered dates via `date_i18n` or `gmdate` — the Activity Log row metadata, the two Audience holiday tables, the Audience bookings list, and the self-scheduling appointments list's Time column. All five now call `DateFormatter::format_date` / `format_time` so the plugin's `ffc_settings` date/time format owns every screen and a future WP-TZ change re-renders without per-site edits. Out of scope (and kept as-is): filenames built with `gmdate('Y-m-d')`, day-of-week int extraction with `(int) gmdate('w', $ts)`, cache/rate-limiter window keys, SQL stored-value round-tripping for Category B wall-clock columns, and the iCal `DTSTAMP` per RFC 5545 — all canonical strings, not display.
-
-- **Settings → General: combobox + custom-format fallback for every date/time field, date-only presets**. Every format field (Date Format, Time Format, PDF Date Format override, PDF Time Format override) is now a `<select>` with curated presets plus a "Custom Format" entry that reveals an adjacent text input. Smart-match on load: legacy values like `"d/m/Y H:i"` open the dropdown on the stripped equivalent (`"d/m/Y"`) instead of the first option, with no DB writes. `DateFormatter::strip_time_chars` is now public so the view can call it; runtime resolver gained a private `date_only` wrapper. Four new option keys land on the autosave allowlist + defaults map.
+- Category A storage (`#249`): instants stored as unix-UTC int, encapsulated in `DatabaseHelperTrait::migrate_datetime_column_to_unix` (option-flagged, restart-safe).
+- DateFormatter now owns the last user-visible display sites (activity log, audience holiday/booking tables, appointments Time column).
+- Settings → General: combobox + custom-format fallback for every date/time field, with smart-match on load.
 
 ### Fixed
 
-- **Public Operator Access audit CSV: timestamp now respects the site timezone.** The "Download audit log (CSV)" export labelled its first column `timestamp_utc` and emitted UTC values via `gmdate`. Admins outside UTC had to convert in a spreadsheet to make sense of the log. Renamed the column to `timestamp` and switched the formatter to `wp_date('Y-m-d H:i:s', $ts)` so it follows WP's configured timezone (the stored ring-buffer value is still a UTC unix timestamp).
-
-- **DateFormatter: duplicated time on certificate / appointment verification + raw dates in "Minhas Convocações"**. Two issues reported after the 6.6.0 rollout: (1) verification cards rendered the issue date as e.g. `"12/05/2026 18:57 18:57"` because legacy installs had time-bearing `date_format` values that, once the helper started concatenating `time_format`, produced duplicates. Fix: `resolve_date_format` strips PHP time-format chars on read, honoring `\\`-escapes; user's saved value untouched. (2) "Minhas Convocações" echoed raw DB values (`"2026-05-02 13:43:52"` etc.) — three datetime cells now route through `format_datetime` / `format_date` / `format_time`, and score uses `number_format_i18n(…, 2)`.
-
----
+- Public Operator Access audit CSV: timestamp column renders in the site timezone (`wp_date`) instead of UTC.
+- DateFormatter: fixed duplicated time on verification cards and raw dates in "Minhas Convocações".
 
 ## [6.5.14] (2026-05-15)
 
-### Changed
-
-- **Canonical date/time formatting through a single helper**. New `FreeFormCertificate\Core\DateFormatter` (`format_date` / `format_time` / `format_datetime` + resolvers) replaces ~25 user-visible call sites that reached for `get_option('date_format')` or hardcoded a format string — the plugin's own `ffc_settings['date_format']` setting was decorative before. New `time_format`, `date_format_pdf`, `time_format_pdf` settings keys (PDF empty inherits the default). New-install default flipped `'F j, Y'` → `'d/m/Y'`; sites that explicitly saved `'F j, Y'` keep it. Settings → General now renders a divergence notice when the plugin's effective format differs from WordPress's globals. Self-scheduling slot picker also migrated. Deferred: 2 JS helpers in `ffc-geofence-frontend.js` (canonical Y-m-d / H:i strings used for backend comparison — localizing them would break the diff). 22 new DateFormatterTest cases.
-- **Operator Access — public-page polish + behaviour cleanup**. Six fixes: master-OFF message reworded to reference "Operator Access" not "CSV download"; action buttons render disabled (not hidden) when admin turned a sub-feature off, with per-button tooltips; postpone-close modal pins 24h format + does client-side validation; CPF/RF i18n strings localized into `ffc_csv_download.strings` too (was only `ffc_ajax`); new Certificate Preview as the 4th operator-feature toggle; operator actions (`action_early_open`, `action_postpone_close`) now write to the per-form audit CSV + re-validate the CPF server-side (closed a hash-only privilege gap).
-- **Master-toggle UX consolidation across the form editor**. (1) "Public CSV Download" renamed to "Public Operator Access" in editor + Settings + docs; meta keys (`_ffc_csv_public_*`) kept. (2) Skip-on-off save semantics for 11 master toggles (Restriction ×4, Email, DateTime, Geolocation, IP-Permissive, Quiz, CPF-mode) — sub-meta no longer rewritten when the master is off, so values survive a toggle-off-toggle-on cycle. (3) Unified visibility via the new `.ffc-collapsed-target` wrapper + `.ffc-collapsed` JS pattern in `ffc-admin.js` (reads `data-ffc-master` / `data-ffc-master-value`, syncs `aria-hidden` + `aria-expanded`). Three previously save-required toggles gain live-update. Legacy CSS aliases kept as no-ops until 6.6.0.
-- **Form-editor master toggles — follow-up fixes after**. Section 7 master now collapses ALL three sub-features (Start Early + Postpone Close were outside the wrapper); "Access Hash" input replaced by a single share-link row with a Copy button (clipboard + execCommand fallback, new `data-ffc-copy-target` convention); Section 3's 4 restriction toggles migrated from slideUp/slideDown on `<tr>` to the unified `.ffc-collapsed-target` pattern.
-- **Device Fingerprint Limit merged into Restriction & Security**. Form editor 8 → 7 sections; inlined the toggle as the 5th Restriction item. POST namespace (`ffc_device_limit[…]`) unchanged.
-- **Section 7 polish — independent CSV Download toggle + collapse fix**. New `_ffc_csv_public_download_enabled` sub-toggle (defaults `'1'`). Admins can keep Operator Access on for Start-Early / Postpone-Close while disabling the CSV download for read-only deployments. New step 7b in `validate_form_access`.
-
 ### Added
 
-- **Auto-save for the form-editor master toggles**. 13 boolean toggle keys (12 + `csv_public_download_enabled` in) auto-save via the new `FormMetaAjaxEndpoint` — `wp_ajax_ffc_update_form_meta`, gated on `edit_post` for the exact post_id, with inline "Saving…/Saved/Save failed" chip. Intentionally NOT on the allowlist: `_ffc_csv_public_enabled` — first-time enable generates a hash + bumps cpf_mode, side effects stay in the full save handler. fixes a hook-order race that broke the localize call.
-- **Audit log: explicit `download_delivered` tag**. The ring buffer used to record CPF-validation outcomes only, written BEFORE streaming — so a streaming failure left the log lying, and `none` mode without a volunteered CPF wrote nothing at all. Both download paths now emit `download_delivered` right before bytes leave the server. The new tag is excluded from metabox summary buckets (would double-count CPF-gated flows); `download_success` keeps sourcing from the long-lived `META_COUNT` counter.
+- Auto-save for the form-editor master toggles (13 boolean keys) via `FormMetaAjaxEndpoint`.
+- Audit log: explicit `download_delivered` tag emitted right before bytes leave the server.
+
+### Changed
+
+- Canonical date/time formatting through `DateFormatter` (~25 sites); new `time_format` / PDF format keys; new-install default `'F j, Y'` → `'d/m/Y'`.
+- "Public CSV Download" renamed "Public Operator Access"; skip-on-off save semantics for 11 master toggles; unified `.ffc-collapsed-target` visibility pattern.
+- Device Fingerprint Limit merged into Restriction & Security (8 → 7 editor sections).
+- Independent CSV-download sub-toggle (`_ffc_csv_public_download_enabled`).
 
 ### Fixed
 
-- **Form-meta autosave silently broken by hook-order race**. `FormEditor::enqueue_scripts` and `AdminAssetsManager::enqueue_admin_assets` both hooked `admin_enqueue_scripts` at default priority 10, with FormEditor instantiated first — so `wp_localize_script('ffc-admin-js', …)` fired against a not-yet-registered handle and WP silently dropped the data. Fix: bump FormEditor's hook priority to 20. Regression test pins the > 10 contract.
-- **Operator Access info screen — misleading "ready to download" message when CSV download is disabled**. New `download_disabled` reason in `CsvDownloadFormInfoBuilder` + JS branch in `buildStatusMessage` renders the localized `csvDownloadDisabled` string instead of falling through to the success branch.
+- Form-meta autosave broken by a hook-order race (FormEditor enqueue priority bumped to 20).
+- Operator Access info screen showed "ready to download" when CSV download was disabled.
 
 ## [6.5.13] (2026-05-15)
 
 ### Changed
 
-- **Public CSV audit summary now reports three operator-facing buckets** (replaces "Total attempts / Successful / Failed"). The metabox in the form editor's *Public Operator Access* section displays: (1) **Successful accesses** — CPF + CAPTCHA both validated; (2) **Successful downloads** — count of CSV files actually generated; (3) **Failed attempts** — CPF or CAPTCHA rejection. Aggregation lives in `PublicCsvDownload::get_audit_log_summary` which keeps the legacy `count` / `success` / `fail` keys as a back-compat shim — see CLAUDE.md "Legacy compat shims".
-- **Admin form save now resets the postpone-close one-shot.** When an admin saves a form in the editor, `FormEditorSaveHandler::save_form_data` now wipes `_ffc_csv_public_end_postponed_at` and `_ffc_csv_public_end_postponed_from` — letting trusted operators on the public download page postpone the close again within the newly-configured window. The admin save is the natural cycle boundary: whatever they're now configuring supersedes the prior operator state. (`EarlyOpenAction` has no persistent flag — its one-shot is structural via `date_start <= now`, so pushing `date_start` back to the future via the metabox already self-re-enables the early-open button.)
-
----
+- Public CSV audit summary reports three operator-facing buckets (legacy `count`/`success`/`fail` keys kept as a back-compat shim).
+- Admin form save resets the postpone-close one-shot.
 
 ## [6.5.12] (2026-05-15)
 
 ### Added
 
-- **"Postpone close" public operator action** — sibling of "Start Form Now" but for the close boundary. Trusted operators on the venue floor can push a form's `time_end` later within the same calendar day, exactly once per form, using the same CSV-public hash as the credential. New `ExtendEndAction` centralises eligibility (10 stable reason tags) and a single `do` writer that updates `time_end` + persists an audit ring entry with `kind='extend_end'`. Page-cache invalidation hooks into `FormCache::purge_external_caches`. Renders a confirmation banner on the public CSV page; admin sees the audit entry in the same metabox as Start-Now.
-
----
+- "Postpone close" public operator action (`ExtendEndAction`) — push a form's `time_end` later within the same day, once per form, on the public hash.
 
 ## [6.5.11] (2026-05-15)
 
 ### Fixed
 
-- **Early-open / geofence edits: page cache wasn't actually being purged for the user-visible page.** The `ffc_form` CPT is registered with `'public' => false`, so the per-post `flush_post( $form_id )` calls into W3 Total Cache / LiteSpeed / WP Super Cache / WP Rocket were no-ops for the visible surface — what visitors actually see is the WP page that embeds `[ffc_form id=N]` via shortcode, a different post the cache plugins can't link to the form id. Fix: `FormCache::purge_external_caches` now also walks `posts_with_shortcode( 'ffc_form', $form_id )` and triggers `flush_post` for each embedding page. Behaviour is observable in the Activity Log under `cache_purged_for_embed`.
-
----
+- Early-open / geofence edits now purge the page cache for the embedding page (walks `posts_with_shortcode`), not just the unreachable CPT post.
 
 ## [6.5.10] (2026-05-15)
 
 ### Fixed
 
-- **Early-open: form didn't actually open after the action ran.** Two issues:
-  - `EarlyOpenAction::execute` overwrote both `date_start` and `time_start`, but the Geofence validator compares `current_time` against `time_start` AND `time_end`. With the original `time_end` left in place, pushing `time_start` later in the day produced an inverted daily window (form blocked). The action now narrows the write to `time_start` only and trusts the operator's configured `date_start` / `date_end` / `time_end` / `time_mode`. Regression tests in `EarlyOpenActionTest`.
-  - **Same-day guard.** Since the action only rewrites `time_start`, exposing the button on a form whose `date_start` is in the future would let an operator shift the clock while `date_start` still rejects the form. New `not_today` eligibility tag and a matching predicate in `CsvDownloadFormInfoBuilder::can_open_early`; the metabox status pill mirrors the guard. Three regression tests cover the new branch.
-
----
+- Early-open now actually opens the form — writes only `time_start` (not `time_end`) and adds a same-day (`not_today`) guard.
 
 ## [6.5.9] (2026-05-15)
 
 ### Changed
 
-- **Early-open confirmation modal restyled to match the cert-preview modal chrome.** The "Iniciar formulário agora?" modal on the public download page used a plain white card that visually diverged from the rest of the plugin's overlays. It now uses the same shell as `#ffc-preview-modal`: dark slate header (`#1d2327`) carrying the title + a close ×, structured white body for the warning copy + scheduled / new-start times + cache warning, and a footer that hosts the Cancel-emphasised / Confirm-warning action pair. Backdrop opacity bumped from 0.5 to 0.75 to match the cert-preview overlay so both modals dim the page identically. New `.ffc-open-early-close` button is wired alongside the Cancel button and the backdrop click into the same `closeModal` handler. Vitest regression test in `tests/js/csv-download-open-early.test.js` covers the new close button.
-
----
+- Early-open confirmation modal restyled to match the cert-preview modal chrome.
 
 ## [6.5.8] (2026-05-15)
 
 ### Added
 
-- **Start Form Early — per-form on/off toggle in the metabox.** The Public Operator Access metabox (form editor Section 7) gains a new `Start Form Early` toggle bound to a new `_ffc_csv_public_start_early_enabled` post-meta. When off, `EarlyOpenAction::is_eligible` rejects with a new `early_open_disabled` reason tag and the public CSV-download page won't show the "Start Form Now" button to operators. Independent of the Public Download master toggle — admins can keep the public download on while disabling the early-start action for read-only deployments. Defaults to '1' when the meta is unset (pre-6.5.8 forms) so the feature doesn't regress for installs already using it. `CsvDownloadFormInfoBuilder::can_open_early` mirrors the same predicate so the JS button gating stays in sync.
+- "Start Form Early" per-form on/off toggle (`_ffc_csv_public_start_early_enabled`).
 
 ### Changed
 
-- **"Start Form Early" metabox section — drop the duplicate operator URL.** The Public Operator Access metabox (form editor Section 7) used to render a *second* URL block under "Start Form Early URL" with its own Copy button. There is no separate URL — operators visit the same public CSV download page (the URL surfaced in the section above) and the "Start Form Now" button appears there when the form is eligible. The section now collapses to a status pill mirroring `EarlyOpenAction::is_eligible` so admins can see at a glance why the button is / isn't visible.
+- "Start Form Early" metabox section drops the duplicate operator URL for an eligibility status pill.
 
 ### Fixed
 
-- **Forms-list inline toggles + cache buttons + settings autosave all returned "Connection error".** The shared `FFC.request` helper was clobbering caller-supplied `data.nonce` with `options.nonce || this.config.nonce || ''`. Six admin features passed their endpoint-specific nonce via `data.nonce` and got silently overwritten with `FFC.config.nonce` (created for action `ffc_admin_pdf_nonce`), which fails verification on every other action. Fix: `FFC.request` no longer overwrites a caller-supplied `data.nonce`; only fills it when missing. Adds Vitest coverage for the four call shapes that regressed.
-
----
+- Forms-list inline toggles + cache buttons + settings autosave returned "Connection error" — `FFC.request` no longer clobbers a caller-supplied `data.nonce`.
 
 ## [6.5.7] (2026-05-14)
 
 ### Added
 
-- **Recruitment — Adjutancy edit screen.** The "Edit" row action on the Adjutancies list table previously generated a `?action=edit-adjutancy` URL with no handler — clicking it just reloaded the same list. A dedicated edit page now renders the General section (slug, name, badge color) and persists via `admin-post.php` → `RecruitmentAdjutancyRepository::update`. Mirrors `RecruitmentReasonEditPage` structurally. The slug edit path checks `get_by_slug` before update to surface a clear "slug taken" flash error instead of letting `wpdb->update` return `false` silently when the UNIQUE constraint rejects the row.
+- Recruitment Adjutancy edit screen (the row action previously had no handler).
 
 ### Changed
 
-- **Self-scheduling editor — 10 more `.ffc-toggle` conversions** (`post_type=ffc_self_scheduling`). Settings metabox (5 checkboxes): Allow User Cancellation, Require Manual Approval, Restrict Viewing to Business Hours, Restrict Booking to Business Hours, Admin Bypass. Notifications metabox (5 checkboxes): Send confirmation email to user, Send notification to admin on new booking, Send notification when booking is approved / cancelled, Send reminder before appointment. The `#allow_cancellation` JS hook in `ffc-calendar-editor.js` (toggles the visibility of the "Cancellation Deadline" row) keeps working because `render_toggle` preserves the inner `<input>`'s `id`. Side fix: `.ffc-email-checkbox-label` CSS rule swapped for `.ffc-email-toggles.ffc-toggle` so the new toggles stack vertically with consistent breathing room.
+- Self-scheduling editor: 10 more `.ffc-toggle` conversions.
 
 ### Fixed
 
-- **Toggle autosave looked broken because the badge broke the CSS sibling rule.** `FFC.Admin.autoSaveField` injected its "Saving… / Saved" badge by calling `$field.after` — fine for plain `<input>` fields, but the `.ffc-toggle` markup is `<label><input><span.ffc-toggle-track><span.label></label>`, and placing a `<span>` between the input and the track killed the `input:checked +.ffc-toggle-track` adjacent-sibling rule that recolours the track on toggle-on. Users saw the toggle flip back to the off-looking state right after clicking it and concluded autosave wasn't running (it actually saved fine). The widget now anchors the badge AFTER the wrapping `.ffc-toggle` label, leaving the track adjacent to the input where the CSS expects it. Regression test in `tests/js/admin-autosave.test.js` asserts both that the badge lives outside the label and that the track remains the immediate next sibling of the input.
-- **Recruitment — Adjutancies "Edit" row action did nothing.** The list table generated an `?action=edit-adjutancy` URL but neither the page router nor `dispatch_action` knew what to do with it; the URL just redrew the list. See the Added section for the new edit screen.
-- **`WP_Scripts::add` doing_it_wrong notice — four enqueues declared a missing `ffc-admin` dependency.** WordPress 6.9.1 added a `doing_it_wrong` warning when a script is enqueued with a handle that hasn't been registered; the plugin's admin script is registered as `ffc-admin-js` but four call sites mistakenly listed it as `ffc-admin` (the *style* handle) in their deps array — `class-ffc-form-list-columns.php` (forms list inline toggles, added in), `class-ffc-settings-tab.php` (settings autosave), `class-ffc-tab-cache.php` (cache actions), and `class-ffc-tab-geolocation.php` (geolocation autosave). All four now declare `ffc-admin-js`. Functional impact was nil — WordPress still loaded the scripts — but the notice spammed `debug.log` on every admin page render.
-
----
+- Toggle autosave looked broken because the badge broke the CSS sibling rule (badge now anchored outside the label).
+- `WP_Scripts::add` doing_it_wrong notice — four enqueues declared the missing `ffc-admin` handle instead of `ffc-admin-js`.
 
 ## [6.5.6] (2026-05-14)
 
 ### Added
 
-- **Public Operator Access — "Start Form Now" early-open**. Trusted operators on the venue floor can flip a form's scheduled `date_start` / `time_start` to "now" without admin login, using the same hash that already authenticates the public CSV download. The button surfaces on the existing `[ffc_csv_download]` shortcode page next to "Preview Certificate" — only when the form is gated by datetime restrictions, public CSV access is on, the form hasn't started yet, and (if there's a geofence) the operator is inside it. New `StartFormNowAction` centralises eligibility (8 stable reason tags) and a single `do` writer; audit entry written with `kind='start_now'`; cache purge follows.
-- **Daily cron — purge unredeemed ticket pools of ended forms**. New `FreeFormCertificate\Admin\ExpiredTicketsCleanup` runs `ffc_daily_expired_tickets_cleanup` once per day. Each tick scans every published `ffc_form` and wipes `_ffc_form_config[generated_codes_list]` for forms that match all three: ticket gate enabled, `Geofence::has_form_expired` true, and a non-empty codes list. The toggle stays as history; only the codes are cleared. Idempotent — the form drops out of the sweep on subsequent days. Audited via the new `tickets_purged_expired` Activity Log event (info level, includes the count of removed codes). Scheduled in the activator (one-hour offset to avoid collision with the existing daily cleanup) and unscheduled in the deactivator.
+- "Start Form Now" early-open public operator action (`StartFormNowAction`) on the public hash.
+- Daily cron purges unredeemed ticket pools of ended forms (`ExpiredTicketsCleanup`).
 
 ### Changed
 
-- **Public CSV Download metabox renamed to "Public Operator Access"**. Section 7 of the form editor now reflects the broadened scope of the public hash credential — it gates both the existing CSV download flow and the new "Start Form Now" early-open action. Metabox `id` is unchanged so screen-options preferences (collapsed / hidden state) carry forward.
-- **FormCache now propagates invalidation to third-party page-cache plugins**. New `FormCache::purge_external_caches( $form_id, $reason = '' )` is a best-effort sweep that calls W3TC, LiteSpeed, WP Super Cache, and WP Rocket per-post purge APIs — each guarded by `class_exists` / `function_exists` + try/catch so a misbehaving cache plugin can't break the request. Reasons are logged via `Debug::log_cache` for triage. Called from every meta write that affects the public-facing form page (early-open, geofence edits, form metabox saves).
-- **Calendar edit page — 6 more `.ffc-toggle` conversions** (`page=ffc-scheduling-calendars&action=edit`). Notifications block (3 checkboxes): `schedule_notify_booking`, `schedule_notify_cancel`, `schedule_include_ics`. Event list block: `schedule_show_event_list`. Isolated Calendar: `schedule_is_isolated`. `Status` `<select>` (active/inactive) collapses to a hidden-sibling + toggle pair, same shape as the audience Status conversion.
-- **Environment edit page — 2 more `.ffc-toggle` conversions** (`page=ffc-scheduling-environments&action=edit`). The per-weekday "Closed" checkbox in the working-hours editor renders as a toggle. `Status` `<select>` collapses to hidden-sibling + toggle.
+- "Public CSV Download" metabox renamed "Public Operator Access".
+- `FormCache::purge_external_caches()` propagates invalidation to W3TC / LiteSpeed / WP Super Cache / WP Rocket.
+- Calendar (6) + Environment (2) edit pages: more `.ffc-toggle` conversions.
 
 ### Fixed
 
-- **Reregistration "Email Notifications" toggles overlapping their labels.** WordPress admin core ships a `.form-table td fieldset label { display: inline-block }` rule that overrode the plugin's `.ffc-toggle { display: inline-flex }`, collapsing the toggle track over the start of the label text. The reregistration edit page wrapped the three notification toggles in a `<fieldset>` (triggering that rule); `.ffc-toggle` now also declares the rule on `.form-table td.ffc-toggle` + `.form-table td fieldset.ffc-toggle` to win the specificity battle, and the offending `<fieldset>` was replaced with a plain `<div>` since it carried no `<legend>`. `position: relative` is also added so the visually-hidden checkbox is scoped to the label, not the viewport.
-
----
+- Reregistration "Email Notifications" toggles overlapping their labels (WP-core fieldset rule specificity).
 
 ## [6.5.5] (2026-05-14)
 
-**Admin UX modernisation release.** This drop chases a single thread across the WordPress admin: every flow that used to do a full page reload on every click now has an AJAX path that keeps the user in place, and every boolean feature flag now renders as the `.ffc-toggle` switch shipped in 6.5.4. The form-POST fallbacks and admin_init handlers stay intact so users with JavaScript disabled keep the original behaviour.
+Admin UX modernisation: AJAX-in-place flows + `.ffc-toggle` switches across the admin (form-POST fallbacks kept).
 
 ### Changed
 
-- **Form-builder "Required?" field flag → `.ffc-toggle`**. The per-field "Required?" checkbox in Section 2 of the form editor now renders as a toggle switch in both the PHP template and the JS template that appends new field rows. The `.ffc-field-required` class is preserved on the inner `<input>` so the field-builder serialiser (which reads `$row.find('.ffc-field-required').is(':checked')` when packing rows for `save_post`) keeps working unchanged. `AdminUI::render_toggle` gains an optional `input_class` arg for this use case.
-
-- **Hotfix: `.ffc-toggle` missing CSS on reregistration / audience pages + 4 more conversions**. Visual bug: toggles rendered without their track / background on the reregistration edit screen. Root cause: `ffc-reregistration-admin.css` and `ffc-audience-admin.css` were enqueued with `array` deps so WordPress's dependency graph never guaranteed `ffc-common.css` (which holds the `.ffc-toggle` rules) would load first. Defensive fix: register `ffc-common` up-front (guarded with `function_exists( 'wp_style_is' )`) and declare it as an explicit dep on the page CSS. While here, 4 more boolean UI elements converted to `.ffc-toggle`: audience `Status` `<select>` (hidden+toggle pair), audience `Allow Self-Join` checkbox, audience CSV importer `Create users` checkbox, recruitment notice `Show preliminary reasons publicly` checkbox.
-
-- **Toggle sweep round 3 — recruitment + reregistration + form-editor + SMTP radios**. 13 more boolean UI elements move to `.ffc-toggle`:
-  - **Recruitment Settings** (4 checkboxes): the four "Preliminary list — reason required?" flags (`preview_reason_required_denied/granted/appeal_denied/appeal_granted`).
-  - **Reregistration Edit** (4 checkboxes): `rereg_auto_approve` + the three email-notification flags (`rereg_email_invitation/reminder/confirmation`).
-  - **Form editor — Email Settings (Section 4)** (1 select): the `send_user_email` Yes/No dropdown becomes a hidden-sibling + toggle pair so the stored value stays `'0'` / `'1'`.
-  - **SMTP tab** (4 radio pairs explicitly deferred in): each "User Creation Emails" Enabled/Disabled radio pair (`send_wp_user_email_submission/appointment/csv_import/migration`) collapses to one toggle. Each row keeps a hidden sibling so the WP POST always carries the field — unchecked toggles save as `'0'`, checked save as `'1'`, no data shape change.
-
-- **Submissions list — bulk + per-row trash / restore / delete via AJAX**. The Submissions admin list used to do a full page reload for both the WP-list-table bulk form (select 50 rows → Trash → Apply) and every per-row Trash / Restore / Delete button (anchor link → admin_init handler → redirect). Now a single new `ffc_submissions_bulk_action` endpoint handles all three actions over JSON, accepting a 1-N array of IDs. The matching `<tr>` rows fade out and are removed; a toast confirms the count via `FFC.Admin.showNotification`. Cap-gated on `manage_options`. The destructive Delete still asks for confirmation. `move_to_form` is intentionally left alone — it has its own dedicated modal flow with conflict detection. The legacy admin_init handler stays as the no-JS fallback so every button + the bulk form still work when JS is unavailable.
-
-- **Activity Log — filter / search / pagination via AJAX (no page reload)**. The Activity Log admin screen used to reload the entire page on every filter dropdown change, search submission, and pagination click. A new `ffc_activity_log_fetch` endpoint now returns server-rendered `table_html` + `pagination_html` + counts; the JS swaps just those two blocks, and `history.pushState` keeps the URL bookmarkable so the browser back button restores the previous filter. Row + pagination markup is shared with the initial PHP render via two new helpers on `AdminActivityLogPage` (`render_rows_html` / `render_pagination_html`) so the AJAX path can't drift from the server render. The Export CSV link is left alone (`php://output` streaming is already correct); clicking it just pops a small "Preparing CSV download…" toast.
-
-- **Migrations tab — JSON-batch runner replaces the HTML-parsing loop**. The migration auto-batch loop used to `$.ajax` the full Settings → Migrations page on every iteration (~50 KB of HTML), parse it on the client, scrape `aria-valuenow` from a re-rendered card to update the progress bar, and increment a *fake* `iterations × 100` counter that was wrong on the last (typically shorter) batch. It now POSTs to a new `ffc_migration_run_batch` AJAX endpoint that returns a small JSON snapshot — `{ processed, total, migrated, pending, percent, is_complete }` — per iteration. Each tick repaints the bar + counters with the real numbers and accumulates the actual `processed` from each batch. Faster, lower bandwidth, accurate. The legacy admin_init handler stays as the no-JS fallback (one batch per click + redirect).
-
-- **Forms list — inline toggles for CSV public / Quiz / Device limit**. The Forms admin list (`edit.php?post_type=ffc_form`) gains a new **Features** column with three `.ffc-toggle` switches per row. Flipping any of them persists immediately via a new `ffc_update_form_feature` AJAX endpoint and a `Saving… / Saved` badge confirms the write — no more opening the editor, clicking a checkbox, hitting Update, and navigating back just to flip one flag. Server-side the endpoint validates the feature key against a whitelist and writes the matching post meta.
-
-- **Toggle sweep round 2 — metaboxes + missed settings checkboxes**. Visual-only swap of `<input type="checkbox">` to `AdminUI::render_toggle` across:
-  - **5 form-editor metaboxes** (14 toggles): geofence, device-limit, public CSV download, quiz, restriction. Each preserves its original `name` / `id` so existing form-builder JS keeps working — only rendering changes; saved via the existing `save_post` hook, no AJAX added.
-  - **24 settings-tab checkboxes** missed in the original sweep: URL Shortener, Rate Limit logging / UI / device-signal tracking matrix, User Access.
-  - **SMTP "Email Status" label** renamed to "Disable All Emails" so the toggle ON state lines up with the action it describes.
-
-- **Cache tab "Warm Cache Now" / "Clear Cache" run inline**. Both buttons used to be `<a href="?action=…">` redirects that ran the action server-side and refreshed the page. They now intercept the click via a small `ffc-cache-actions.js` module: the action POSTs to one of two new AJAX endpoints (`ffc_cache_warm` / `ffc_cache_clear`), the button shows a "Working…" state, and the result lands as a `FFC.Admin.showNotification` toast — no reload, no lost scroll/tab state. The legacy admin_init handler stays as the no-JS fallback and the original nonce'd href is preserved on the buttons; only the click is intercepted when JS + jQuery + `FFC.request` are available. The destructive Clear button still asks for confirmation.
-
-- **Admin checkbox sweep — 28 settings now render as `.ffc-toggle` switches**. The toggle infrastructure shipped in 6.5.4 spreads beyond the Geolocation tab: every boolean feature flag on **Cache** (3), **SMTP** (1), **Advanced** (1 + 14 debug flags), and **Rate Limit** (9) now uses the mobile-style switch styled with the plugin's primary colour. Each switch auto-saves inline via the `ffc_update_setting` AJAX endpoint — debounced 400 ms, with a "Saving… / Saved" badge — so admins no longer have to scroll to the bottom of the tab and click "Save Changes" just to flip one flag. The form-POST bulk save still works for every other field on the tab.
-- **Admin auto-save covers non-boolean settings too**. The same inline-save badge now fires on **33 more fields** across Cache / Advanced / General / Rate Limit — numeric inputs (`cleanup_days`, `qr_default_*`, `cache_expiration`, `ip_max_per_hour`, every `*_max_per_*` and retention setting in the rate-limit tab, …), select dropdowns (`dark_mode`, `date_format`, `code_editor_theme`, `qr_default_error_level`, `ip_apply_to`), short text (`main_address`, `date_format_custom`), URL (`csv_download_page_url`), and the 5 rate-limit "blocked" message textareas (which use a longer 800 ms debounce so admins can type a sentence without the save firing mid-word). Server-side every value goes through the right sanitiser: integers are cast and clamped to declared `min`/`max`; URLs use `esc_url_raw`; multi-line messages use `sanitize_textarea_field`; everything else uses `sanitize_text_field`. The full-tab POST keeps working as a fallback.
-- **Settings AJAX endpoint supports nested option arrays.** `SettingsAjaxEndpoint` allowlist entries can now declare a `path` (ordered list of keys) so a single endpoint can target deeply-nested settings like `ffc_rate_limit_settings[device][bypass_logged_in_managers]` without flattening the option shape. Used by the 9 rate-limit toggles and the 24 nested numeric / select / message fields from the expansion.
-- **Auto-save wiring is now framework-wide.** The doc-ready scan that wires every `[data-ffc-autosave-key]` input moved from `ffc-geolocation-settings.js` into `ffc-admin-autosave.js` as `FFC.Admin.bootAutoSaveFields`. Any admin page that enqueues the autosave widget gets the wiring for free — no per-tab JS needed. Fields can also declare a per-field debounce via `data-ffc-autosave-debounce="<ms>"` (used by the rate-limit message textareas).
-
----
+- Form-builder "Required?" flag, 28+ settings checkboxes, and 13+ recruitment/reregistration/form/SMTP booleans converted to `.ffc-toggle`.
+- Submissions list bulk + per-row trash/restore/delete via AJAX; Activity Log filter/search/pagination via AJAX; Migrations JSON-batch runner; Forms-list inline feature toggles; Cache warm/clear inline.
+- Non-boolean settings (33 fields) gained inline auto-save; `SettingsAjaxEndpoint` supports nested option arrays; auto-save wiring is framework-wide (`bootAutoSaveFields`).
 
 ## [6.5.4] (2026-05-13)
 
-Maintenance + UX release. Fixes a handful of geofence-frontend bugs (form flash on first paint, iOS stale-fix acceptance, blocked form showing only the title, Custom preset not toggling its per-case table in real time), replaces the binary "When GPS fails" admin setting with a preset + per-case matrix that's also exposed inline, and adds a small admin-AJAX infrastructure (FFC.request helper + auto-save widget + toggle-switch CSS) used to make a few atomic settings save instantly and the geofence-locations table edit-able inline.
-
 ### Changed
 
-- **Geolocation fallback policy is now per-case**. The single "When GPS fails" dropdown was replaced by a preset combobox (`Tolerant` / `Hybrid` / `Strict` / `Custom`) backed by a five-row matrix the admin can edit directly when `Custom` is selected. Each row decides whether to allow or block access for one specific failure mode: user denied permission, browser doesn't support geolocation, position unavailable, browser timeout, and the 40-second iOS safety timer. The previous binary setting routed every failure through the same answer; the new structure lets sites be tolerant with conscious user decisions (permission denied / no API) while still locking the form on technical failures (timeout / safety). New installs default to `Hybrid`; existing installs are migrated silently — `gps_fallback='allow'` → `Tolerant`, `gps_fallback='block'` → `Strict`. No admin action required to preserve the current behaviour.
-- **Blocked-form messages got more actionable copy.** The strings shown when GPS fails (permission denied, position unavailable, browser timeout, safety timeout) now tell the user exactly what to do to recover — enable location services, check the connection, reload — instead of restating the error code. Each transient-failure block also renders a **"Reload page" button** so the user doesn't have to figure out how to reload on mobile.
-- **Progressive loading messages unified across platforms**. Until now only Safari/iOS saw the three-stage "Requesting / Waiting for permission / Still trying" sequence (0/8/20 s). Every other browser got a single static "Detecting your location…" line. Chrome / Edge / Firefox now run the same three stages at the tighter 0/3/10 s cadence that matches their typical permission-prompt timing; Safari keeps its 0/8/20 s. The cache-hit path also mounts the same spinner and holds it for `FFCGeofence.MIN_LOADING_MS` (600 ms) before releasing the form, so admins get a visible "verified" tick instead of an instant transition from spinner-less to form-visible.
-- **Boolean settings on Settings → Geolocation render as toggle switches.** The five checkboxes on that tab (IP API enable, cascade, IP cache, admin bypass datetime, admin bypass geo) now use a `.ffc-toggle` mobile-style switch styled with the plugin's primary colour. Underlying `<input type="checkbox">` is preserved for accessibility and form-POST semantics — the change is purely visual.
-- **Admin bypass toggles save inline.** `admin_bypass_datetime` and `admin_bypass_geo` now persist instantly (debounced 400 ms) via a new generic `ffc_update_setting` AJAX endpoint, surfacing a "Saving… / Saved" badge next to each switch. The full-form save still works for them as a fallback.
-- **Geofence Locations table is now editable inline.** Edit a row's name / lat / lng / radius, change the default-GPS or default-IP radio, click Delete, or fill the footer fields and click "Add location" — each operation persists via a per-row AJAX call (`ffc_location_save` / `ffc_location_delete`) without reloading the page. The form-POST fallback for the same fields is preserved.
+- Geolocation fallback policy is now per-case: preset combobox (Tolerant/Hybrid/Strict/Custom) + a five-row matrix (existing installs migrated silently).
+- More actionable blocked-form copy with a "Reload page" button; progressive loading messages unified across browsers.
+- Settings → Geolocation booleans render as `.ffc-toggle`; admin-bypass toggles save inline; the Geofence Locations table is editable inline.
 
 ### Fixed
 
-- **Form "flash" before geofence validation**. The CSS rule meant to hide the certificate form while GPS was being validated used a descendant combinator (`.ffc-shortcode.ffc-has-geofence …`), but the markup puts both classes on the same wrapper — so the rule never matched and the form rendered visible from first paint, only being hidden the moment JS ran. Selector switched to the chained form (`.ffc-shortcode.ffc-has-geofence …`) so the hide rule actually applies. Code comment added explaining the why so a future edit can't silently regress it.
-- **iOS Safari accepting stale cached positions**. `getCurrentPosition` ran with `maximumAge: 30000` on Safari, so a user who was inside the allowed area moments ago could walk out and iOS would happily return the pre-walk-out fix; the form rendered as valid despite the user being elsewhere. Tightened to `5000` — still avoids the GPS-prompt latency on warm reloads, no longer accepts a fix from before the user moved. Non-Safari unchanged.
-- **Form body stayed hidden after a successful first-visit validation**. `validateGeolocation` calls `.hide` on the form body before requesting GPS, which sets an inline `display: none`. On success, `showForm` only added the `ffc-validated` class — the inline rule should have been overridden by the CSS show rule's `!important` per spec, but at least one real browser path left the form invisible. `showForm` now also calls `.show` on the form body so the post-validation transition is independent of cascade resolution order.
-- **Custom preset's per-case table only appeared after a save**. The radio table mounted with the HTML `hidden` attribute and the toggle JS flipped that attribute. `hidden` is set at user-agent origin (`display:none !important`); WP admin's `.widefat` rule sets `display: table` at author origin, which wins the cascade. Initial state is now driven by an inline `style="display: none"`, and JS toggles visibility through jQuery `.toggle` (which sets inline display and beats `.widefat`). Selecting "Custom" reveals the radios immediately.
+- Form "flash" before geofence validation (selector fix); iOS Safari accepting stale cached positions (`maximumAge` 30s → 5s); form body staying hidden after a successful first validation; Custom preset's per-case table only appearing after a save.
 
-### Internal
+### Added
 
-- **New `FFC.request(action, data, options)`** in `ffc-core.js` — promise-based admin/frontend AJAX chokepoint wrapping `jQuery.post`. Centralises nonce injection + response unwrapping + error normalisation. Sits alongside the legacy callback-based `FFC.ajax`; new code uses `FFC.request`, old call-sites migrate opportunistically when the file is touched.
-- **New `FFC.Admin.autoSaveField($field, config)`** in `ffc-admin-autosave.js` — debounced inline-save widget with "Saving / Saved / Error" badge. Used by `admin_bypass_*` toggles.
-- **New `.ffc-toggle` CSS component** + `AdminUI::render_toggle` PHP helper for mobile-style boolean switches. Markup keeps the native checkbox for accessibility.
-- **New admin AJAX endpoints**: `ffc_update_setting` (single-key incremental updater, allowlist + capability + sanitisation) and `ffc_location_save` / `ffc_location_delete` (per-row CRUD for the locations table).
-
----
+- `FFC.request()` AJAX chokepoint, `FFC.Admin.autoSaveField()`, the `.ffc-toggle` component + `AdminUI::render_toggle()`, and the `ffc_update_setting` / `ffc_location_*` endpoints.
 
 ## [6.5.3] (2026-05-13)
 
-Maintenance release — bumps two vendored libraries, fixes two form-editor save bugs, normalises CPF/RF values on recruitment CSV import, and clears two jQuery 4 compatibility regressions in the reregistration form. Internal: large JS test-coverage push (49% → 73% line coverage on `assets/js/`), CI tightening, ESLint warnings cleared.
-
 ### Changed
 
-- **Vendored thumbmarkjs bumped 1.8.1 → 1.9.0** (`libs/js/thumbmark-1.9.0.umd.js`, `FFC_THUMBMARK_VERSION`). API surface used by `assets/js/ffc-device-signals.js` (`setOption('logging', false)`, `getFingerprintData`, `stableStringify`) is preserved. The `DeviceSignalsLoggingOffTest::test_vendored_thumbmarkjs_present_at_pinned_path` path assertion was updated to track the new bundle name; both JS and PHP test suites pass against the bumped version.
-- **jQuery UI theme bumped 1.14.1 → 1.14.2** (`libs/css/jquery-ui-smoothness.css`, `FFC_JQUERY_UI_VERSION`). The CSS payload is byte-identical between the two upstream releases — only the file-header comment moves to `v1.14.2 - 2026-01-28` — so the visible change is the cache-bust version string emitted by `wp_enqueue_style`.
-- **Recruitment CSV import: CPF and RF columns are now normalised at parse time**. The importer strips punctuation (`.`, `-`, spaces, slashes), accepts canonical-length values as-is, and left-pads shorter values with leading zeros up to the canonical width (11 digits for CPF, 7 for RF). Pre-formatted values from Excel/Sheets (`123.456.789-09`, `123.456-7`) are accepted directly; values that exceed the canonical width are rejected with new `recruitment_csv_cpf_too_long` / `recruitment_csv_rf_too_long` error codes instead of being accepted silently. The normalised digit string is written back into the row before downstream consumers see it.
+- Vendored thumbmarkjs 1.8.1 → 1.9.0; jQuery UI theme 1.14.1 → 1.14.2.
+- Recruitment CSV import normalizes CPF/RF at parse time (strip punctuation, left-pad; reject over-length with new error codes).
 
 ### Fixed
 
-- **Form editor: turning the Public CSV Download (group 7) or Device Fingerprint Limit (group 8) toggle OFF did not persist.** The browser strips unchecked checkboxes from the POST and the admin JS also disables every sub-field on uncheck, so the entire `ffc_csv_public` / `ffc_device_limit` array vanished from `$_POST` and the save handler's `isset` guard skipped the block — leaving `_ffc_csv_public_enabled` / `_ffc_device_limit_enabled` stuck at `'1'`. Each metabox now emits a hidden `[present]=1` marker outside the `<table>` (out of reach of both the sub-field disable JS and the globally-off disable), so the array is always submitted and the save handler always sees the user's intent to disable.
-- **Form editor: explicitly choosing "No — only Form ID + Hash" for the public CSV CPF gate silently reverted to "Audit".** `FormEditorSaveHandler::save_form_data` unconditionally coerced `'none' → 'audit'` on every save, masking the user's choice. Coercion now only applies on the very first enable transition (toggle flipping `0 → 1` while the dropdown is at the default `'none'`); on later saves the user's explicit selection sticks.
-- **Reregistration form: every blur threw `TypeError: $.trim is not a function` under jQuery 4**, blocking all blur-based field validation. `assets/js/ffc-reregistration-frontend.js` now uses the native `String.prototype.trim` via `($field.val || '').trim`.
-- **Reregistration form: save-draft and submit always sent `fields: {}` under jQuery 4.** jQuery 4's stricter attribute-value parser rejects the unescaped `[` inside `[name^="fields["]`, so `getFields` silently returned an empty set. The selector is now `[name^="fields"]` — every reregistration field is named `fields[…]`, so the bare prefix is sufficient.
-
-### Internal
-
-- **JS unit coverage `assets/js/` raised from 7.37% to 72.84%** across multiple sprints. Per-file highlights: `ffc-admin.js` 54 → 95 %, `ffc-frontend.js` 56 → 95 %, `ffc-frontend-helpers.js` 69 → 95 %, `ffc-geofence-frontend.js` 57 → 92 %, `ffc-csv-download.js` 25 → 90 %, `ffc-reregistration-frontend.js` 22 → 96 %, `ffc-audience.js` 0 → 47 %. Two 0% blind spots closed (`ffc-working-hours.js`, `ffc-geofence-admin.js` shell). `JS_COVERAGE_FLOOR_LINES` gate ratcheted from 47 to 70.
-- **CI: Coverage job timeout raised 15 → 20 min** to absorb the wider PHP suite (pcov + ~3 800 tests routinely lands at 14-15 min and was tripping the prior ceiling).
-- **ESLint: the nine pre-existing `no-unused-vars` warnings cleared.** Dead `escapeHtml` / `getEnvironmentName` helpers removed; legitimate callback-signature args (`onDayClick($day)`, jQuery AJAX `error(xhr, status, error)`) underscore-prefixed.
-- **`CLAUDE.md` added at repo root** documenting the auto-merge convention, webhook semantics, CI gates, and test-infrastructure notes that new agent sessions inherit nothing of on cold start.
-
----
+- Form editor: turning the Public CSV Download / Device Fingerprint master toggle OFF didn't persist (hidden `[present]=1` marker).
+- Form editor: choosing "No — only Form ID + Hash" for the public CSV CPF gate silently reverted to "Audit".
+- Reregistration form: `$.trim is not a function` + empty `fields: {}` under jQuery 4 (native `trim`, relaxed selector).
 
 ## [6.5.2] (2026-05-10)
 
-> **Refactor the user-dashboard god-object into self-registering panels.** `assets/js/ffc-user-dashboard.js` was 1548 LOC of one IIFE owning seven panel renderers, AJAX state, and a tab dispatch built from chained `if/else if`. Adding a panel touched five places. Split into 8 files with a panel registry: core dispatches via `FFCDashboard.panels[tab].render(state, page)`, and adding a panel now needs zero edits to the core file.
-
 ### Changed
 
-- **`assets/js/ffc-user-dashboard.js` removed; replaced by 8 sibling files.** `ffc-user-dashboard-core.js` (panel registry, generic event bindings, summary header, tab dispatch); `ffc-user-dashboard-cal-export.js` (ICS / Google / Outlook export utilities, shared by appointments + audience); `ffc-user-dashboard-{certificates,appointments,audience,reregistrations,profile}.js` (per-tab panels self-registering into `FFCDashboard.panels`); `ffc-user-dashboard-audience-join.js` (joinable-groups subsection rendered into the profile panel).
-- **`includes/shortcodes/class-ffc-dashboard-asset-manager.php` enqueues all 8 scripts with explicit dependency chain.** The legacy `'ffc-dashboard'` handle is preserved (now points at the core file) so external dependents (`ffc-reregistration-frontend`, etc.) keep working without changes. New handles `ffc-dashboard-{cal-export,certificates,appointments,audience,reregistrations,profile,audience-join}` each declare their deps on core (and `ffc-dashboard-cal-export` for appointments/audience, `ffc-dashboard-profile` for audience-join).
-- **Tab dispatch is now table-driven.** The chained `if (target === 'certificates') { … } else if …` in `loadInitialTab`, `switchTab`, `applyTabFilter`, and `handlePagination` (4 places, 5 panels each) becomes `var panel = this.panels[tab]; if (panel) panel.{load,render}(…)`. A future panel just creates a new file and a `wp_enqueue_script` line; no edits to `ffc-user-dashboard-core.js`.
-
-### Deferred
-
-- **`assets/js/ffc-audience.js` split.** The original audit grouped this with user-dashboard, but on closer inspection it's a procedural module (35+ functions sharing a `state` object inside one IIFE), not a god-object. Splitting would be source-level reorganisation, not architectural cleanup. Combined with low churn (2 commits in the last 6 months), the cost/benefit doesn't justify the work today. Plan documented for the day activity on the file justifies it.
-
----
+- User-dashboard god-object split into a panel registry + 8 self-registering files (legacy `ffc-dashboard` handle preserved; table-driven tab dispatch).
 
 ## [6.5.1] (2026-05-10)
 
-**DRY audit on the AJAX handler boilerplate.** The audit asked for an `AjaxRequestTrait` collapsing the `check_ajax_referer` + `current_user_can` + `wp_send_json_error` triplet — but that trait already exists at `includes/core/class-ffc-ajax-trait.php` since 4.11.2. The remaining ask was call-site adoption across four admin handler classes. After two attempts (initial migration and a Brain Monkey state-rebinding workaround) hit irreducible cross-class test pollution in the suite, the actual call-site swap was reverted on this branch — leaving only the small, low-risk trait extension below as the real shipped change. See "Deferred" for the full reasoning.
-
 ### Added
 
-- **`AjaxTrait::check_ajax_admin_or( string $granular_cap )`.** Encodes the "site admin always passes, plus delegated operators with `$granular_cap` pass" contract that admin-export and admin-settings handlers want. Available for new and migrated handlers; no existing handler adopts it in this release.
-
-### Deferred
-
-- **Call-site migration to `AjaxTrait` (4 classes, 8 handlers).** Implemented and tested individually, but the full-suite run hit `Brain\Monkey\Expectation\Exception\MissingFunctionExpectations: "wp_unslash" is not defined nor mocked` inside the trait, on cross-class boundaries only. Diagnosis: Brain Monkey defines an eval'd placeholder for `wp_unslash` the first time any test class stubs it; the placeholder survives `Monkey\tearDown`, so subsequent test classes' `Functions\when` rebinds throw. Mitigated by ensuring every AjaxTrait test class re-stubs `wp_unslash` in its own `setUp`; broader fix tracked under the Brain Monkey rebind issue.
-
-### Honest no-ops (audit findings already implemented or not actual duplication)
-
-- **#143 S2 — `Sanitizer` utility class:** 32 inline `array_map('sanitize_text_field', …)` / `array_map('absint', …)` callsites across the codebase. Introduction tested correctly in isolation but reproduced the same Brain Monkey cross-test pollution as S1 — same deferral rationale. The real win is small (each callsite is a single line) and doesn't justify destabilising the test harness.
-- **#143 S3 — `DateFormatManager`:** WordPress's `get_option` already caches via `wp_cache_get`, so a memoising service for `date_format` / `time_format` would only save the function-call overhead, not the query. Marginal value, declined.
-- **#143 S4 — `TableNames` / `SettingsKeys` / `Capabilities` constants classes:** the audit estimated 28+ literals; reality is 209 callsites of `wpdb->prefix. 'ffc_X'` alone. Constant-class migration would touch 209 sites for a small typo-protection win — disproportionate churn for the value.
-- **#143 S5 — `FormFieldRenderer`:** the 8 classes that implement `render_field`/`render_section` live in 6 distinct domains (admin form-editor metabox, admin custom-fields metabox, reregistration form, settings tab, recruitment public shortcode, generic shortcodes). Each emits different markup against different field-type ecosystems. A unified renderer would either become a god-object or be too thin to add value.
-- **#143 S6 — Shared modal CSS:** the two implementations the audit flagged (`assets/css/ffc-audience.css` `.ffc-shortcode.ffc-modal*` vs `assets/css/ffc-admin-move-submissions.css` `.ffc-move-modal*`) actually use different class names, different positioning, and different visual treatment. They're two separate modals, not duplicates of one — extraction would force one to regress visually.
-
----
+- `AjaxTrait::check_ajax_admin_or()` encoding the "site admin OR delegated `$granular_cap`" gate.
 
 ## [6.5.0] (2026-05-10)
 
-**Performance and stability.** Three real implementations + three "already done in earlier releases" honest no-ops + one deferred-as-follow-up. Minor bump because the migration adds indexes on existing tables and changes the `create` invariant on audience bookings (now atomic).
-
 ### Added
 
-- **`Activator::maybe_add_perf_indexes` (#144 S1).** Adds `KEY idx_created (created_at)` to `ffc_recruitment_candidate`, `ffc_recruitment_notice`, and `ffc_reregistration_submissions` on installs that didn't have them. Idempotent — gated on `ffc_perf_indexes_db_version` keyed to `FFC_VERSION`. Hooked from `Loader::init_plugin` so existing installs pick up the indexes on next page load. The audit also asked about `idx_updated` / other tables; investigation showed `ffc_activity_log`, `ffc_rate_limit_logs`, `ffc_device_signals` already declare `idx_created`, and tables like `ffc_user_profiles` have no query orders/filters on `created_at` — adding indexes there would be pure write overhead, so left alone.
-- **`ReregistrationSubmissionRepository::stream_for_export` (#144 S5).** Generator yielding rows in 500-row chunks, used by `ReregistrationCsvExporter` instead of materialising the full result set. Bounded memory for 50k+ row exports.
-- **Cron `cleanup_stale_export_jobs` (#144 S6).** Hooked into the existing `ffcertificate_daily_cleanup_hook`, walks `_transient_ffc_csv_export_*` and `_transient_ffc_public_csv_*` rows in `wp_options`, unlinks the temp CSV files referenced in the payload, deletes the transient. Reclaims disk space + DB rows from CSV exports the user abandoned mid-flight.
+- `maybe_add_perf_indexes` (`idx_created` on three tables); `ReregistrationSubmissionRepository::stream_for_export` (chunked generator); cron `cleanup_stale_export_jobs`.
 
 ### Changed
 
-- **`AudienceBookingRepository::create` is now atomic (#144 S2).** Conflict-check + insert run inside a `START TRANSACTION... COMMIT` block, with a `SELECT... FOR UPDATE` on the conflict predicate. Before this commit, two concurrent requests for the same `(environment, date, time)` slot could both pass the conflict check (no row existed yet) and both insert. The `idx_env_date_status` index already declared on the table gives InnoDB the row + gap locks needed to block concurrent inserts in the locked range. Mirrors the pattern at `SelfSchedulingAppointmentHandler::create_or_update:140`.
-
-### Honest no-ops (audit findings already implemented)
-
-- **#144 S4 — N+1 in admin user columns:** already batch-loaded since v4.9.7 (`load_certificate_counts`, `load_appointment_counts`, `load_recruitment_notice_counts`). Three GROUP BY queries per page render, regardless of user count.
-- **#144 S7 — Activity log pagination:** already implemented; `class-ffc-admin-activity-log-page.php` uses `$per_page = 50` (smaller than the requested LIMIT 100) and `$total_pages` for navigation. Export path keeps the full dump (`limit => 999999`).
-- **#144 S8 — Conditional asset enqueue:** every public-frontend `wp_enqueue_scripts` hook in the plugin already gates on `has_shortcode` against the rendered post content (or enqueues from inside the shortcode's `render`). No unconditional enqueue exists.
-
-### Deferred to follow-up
-
-- **#144 S3 — Async ficha generation via Action Scheduler:** the work requires bundling Action Scheduler (~150 LOC + two custom tables + a new admin page) which is a wider surface than this PR's scope. Tracked as.
-
----
+- `AudienceBookingRepository::create` is now atomic (`SELECT … FOR UPDATE` inside a transaction) to prevent double-booking.
 
 ## [6.4.1] (2026-05-10)
 
-**REST API lockdown.** Plugs a config-blob leak in the public REST surface and adds a circuit-breaker on the public booking calendars. `GET /wp-json/ffc/v1/forms` and `GET /wp-json/ffc/v1/forms/{id}` previously carried `permission_callback => '__return_true'` and returned the full `_ffc_form_config` blob — which on a typical install contains `allowed_users_list`, `denied_users_list`, `validation_code`, `generated_codes_list`, `geo_areas`, `geo_ip_area_location_ids`, `email_body`, `email_subject`. Anyone with the public REST URL could enumerate every form's gating policy.
+⚠ Security: `GET /forms` + `GET /forms/{id}` previously returned the full `_ffc_form_config` blob to anonymous callers (gate lists, codes, geofence). Rotate generated/validation codes after upgrading if the API was public.
 
 ### Added
 
-- **`ffc_read_forms_api` capability.** New admin-level capability granted to the `administrator` role automatically via `Loader::ensure_admin_capabilities` (runs once per `FFC_VERSION` change). External integrators authenticate with WordPress Application Passwords (HTTP Basic, since WP 5.6); the linked user must hold the cap.
-- **Documentation tab section "19. REST API Authentication".** Distinguishes public-by-design endpoints (form submission, certificate verification, booking calendars) from authenticated endpoints. Includes a curl example using Application Passwords + the new capability.
+- `ffc_read_forms_api` capability (Application-Passwords auth); Documentation §19 "REST API Authentication".
 
 ### Changed
 
-- **`GET /forms` / `GET /forms/{id}` now require `ffc_read_forms_api`.** Permission callback delegates to `current_user_can`. Trimmed payload: only `id`, `title`, `status`, `date`, `modified`, `link` — the `_ffc_form_config` blob, `fields` array, and `background` are gone. Integrators that need form structure use the public-by-design `GET /forms/{id}/schema` endpoint.
-- **`limit` parameter on `GET /forms` clamped at 100.** Out-of-range or non-numeric values coerce to the default of 100. Pagination is a follow-up.
-- **Calendar GET routes carry an IP-keyed rate-limit circuit breaker.** `GET /calendars`, `GET /calendars/{id}`, and `GET /calendars/{id}/slots` now reject requests from IPs that have already tripped the rate-limit pool (typically populated by failed/abusive submit/verify hits from the same address). Returns HTTP 429 with `wait_seconds`.
-
-### Documented
-
-- **Public-by-design routes carry an explicit `phpcs:ignore` comment + per-route block docblock.** `GET /forms/{id}/schema`, `POST /forms/{id}/submit`, `POST /verify`, `POST /calendars/{id}/appointments`, and the three calendar GETs each describe the public flow they serve and the secondary defences in play (rate-limit pool, geofence, hash_equals on tokens, CPF/RF validation). Future contributors see the rationale without having to chase the audit trail.
-
-### Security
-
-- No CVE assigned. Pre-6.4.1 the `_ffc_form_config` blob was readable by any anonymous caller via `GET /wp-json/ffc/v1/forms`. The blob contains gate-list metadata (allowed/denied user IDs, generated/validation codes, geofence configuration). Sites running pre-6.4.1 should treat their generated/validation codes and gate-list contents as compromised; rotate codes after upgrading if the API was reachable from the public internet.
-
----
+- `GET /forms*` now require `ffc_read_forms_api` and return a trimmed payload; `limit` clamped at 100; calendar GET routes carry an IP rate-limit circuit breaker (HTTP 429).
 
 ## [6.4.0] (2026-05-10)
 
-> **Unified CSV IO abstraction.** Internal refactor: every CSV the plugin reads or writes now flows through a single pair of primitives — `\FreeFormCertificate\Core\Csv::writer` / `Csv::reader` — instead of the eight exporters and two importers each implementing fputcsv/fgetcsv/delimiter detection/BOM handling on their own. No user-facing change for files that already used `;` (the post-6.3.9 default); audience export templates now correctly emit a UTF-8 BOM (previously they were the only files in the plugin that didn't, causing Excel to render accented characters as mojibake until manually fixing encoding). Minor bump because the surface area touched is broad even though behaviour is preserved on every public format.
-
 ### Added
 
-- **Certificates Dashboard (admin).** New page registered as the first item under the Certificate menu (`edit.php?post_type=ffc_form&page=ffc-certificates-dashboard`). Renders a monthly calendar of every form keyed by its GeoFence start date (with a fallback to the publication date when the form has no GeoFence configured), plus a side list of forms scheduled for the day clicked in the calendar. Day cells get a count chip — green when at least one form on the day is GeoFence-sourced, gray when all are post_date fallbacks. Backed by a new `GET /ffc/v1/certificates/calendar` REST endpoint gated on `edit_others_posts` (Editor + Administrator). Reuses the existing `FFCCalendarCore` JS grid.
-- **Csv / CsvWriter / CsvReader (`includes/core/`).** Public IO primitives (`final class` facade + worker pair). Writer guarantees: BOM emitted exactly once before the first row, `;` delimiter by default, RFC 4180 quoting, optional `skip_bom` flag for append-mode workers picking up after an init writer. Reader guarantees: BOM stripped at byte 0 if present, `,`-vs-`;` auto-detection on the first line (ties → `,` for back-compat), `each(callable)` streams body rows for memory-bounded imports, `header`/`all`/`close` for the convenience cases. 28 PHPUnit cases cover round-trip integrity, BOM contract, all four quoting edge cases, and the resource-vs-string entry points.
+- Certificates Dashboard (admin) — monthly calendar of forms by GeoFence start date, backed by a new REST endpoint.
+- `Csv` / `CsvWriter` / `CsvReader` IO primitives (BOM-once, `;` default, RFC 4180, auto-detect on read).
 
 ### Changed
 
-- **CSV exports migrated to `Csv::writer`.** Eight exporters touched, one per commit: admin submissions (`CsvExporter`), public synchronous + async submissions (`PublicCsvExporter`), self-scheduling appointments (`AppointmentCsvExporter`), recruitment notice template, reregistration submissions (`ReregistrationCsvExporter`), audience admin templates (members + audiences), public-csv-download audit log, admin activity log. Per-exporter mb_convert_encoding and BOM-emission code removed; the writer handles both centrally.
-- **CSV imports migrated to `Csv::reader`.** Two importers (recruitment + audience) drop their per-class `detect_delimiter` / `peek_delimiter` / `parse_csv_line` / `strip_utf8_bom` helpers (~250 LOC removed). Recruitment importer's previous line-splitter (`preg_split('/\r\n|\n|\r/', $content)` + `str_getcsv` per physical line) is replaced with the reader's `fgetcsv`-based parser, which now correctly handles quoted multi-line cells (was a silent parse failure before).
-- **CsvExportTrait scope narrowed.** `output_csv` removed (replaced by the new writer); the trait now contains only the JSON-data-shape helpers (extract_dynamic_keys, decode_json_field, build_dynamic_headers, extract_dynamic_values) used by the submission and appointment exporters to flatten encrypted/plaintext `data` columns into dynamic spreadsheet columns.
+- Eight CSV exporters + two importers migrated to the new primitives (~250 LOC of per-class CSV helpers removed; quoted multi-line cells now parse correctly).
 
 ### Fixed
 
-- **Audience export templates now emit UTF-8 BOM.** `members-export-*.csv` and `audiences-export-*.csv` were the only CSV files in the plugin without a BOM, so Excel opened them in the wrong encoding by default. The migration to `Csv::writer` standardises BOM emission. Round-trip with the matching importer is unaffected: the importer always tolerated BOM either way.
-- **Audience shortcode modals fall behind the calendar instead of appearing as an overlay.** The day-detail and booking modals in `[ffc_audience]` were rendered outside the `.ffc-shortcode` wrapper that the `ffc-calendar-wrapper` refactor introduced, so the `.ffc-shortcode.ffc-modal` rules (which provide `position: fixed`, the dark backdrop and centred placement) never matched. Modals dropped into normal flow and rendered inline below the calendar. Added `ffc-shortcode` to each modal's class list so the existing scoped CSS applies again — minimal change, no layout or selector-broadening side effects.
-
----
+- Audience export templates now emit a UTF-8 BOM; `[ffc_audience]` modals render as overlays again (missing `ffc-shortcode` class).
 
 ## [6.3.11] (2026-05-10)
 
-**Form-editor UX polish + specificity hardening + duplication fix + small a11y/CSS chores.** The per-form Public CSV Download and Device Fingerprint metaboxes get the same enable/disable + preservation discipline as the rest of the form editor; the form-duplication action no longer silently drops eight per-form settings; and every public shortcode CSS selector now sits at specificity (0,2,0) so theme overrides at `.entry-content div {... }` (the historical collision pattern that prompted the `.ffc-input !important` flood) can no longer break the layout.
-
 ### Added
 
-- **`.ffc-shortcode` anchor class on every public shortcode wrapper.** New side-class — emitted alongside the existing wrapper class on `[ffc_form]`, `[ffc_verification]`, `[ffc_self_scheduling]`, `[ffc_csv_download]`, `[ffc_audience]`, `[user_dashboard_personal]`, and the two recruitment shortcodes — lets every frontend rule prefix itself with `.ffc-shortcode` and hit (0,2,0) without rewriting selectors per-shortcode. Wrapper-class selectors (e.g. `.ffc-form-wrapper`) use the chained form `.ffc-shortcode.ffc-form-wrapper`; descendants use the descendant form. The `.ffc-input !important` flood is preserved for now (its removal needs per-theme visual QA); the specificity raise is the primary defence..
-- **Public CSV Download metabox — visual breakdown of audit attempts.** The audit-log row used to render a single sentence ("N attempts logged"); now shows three colour-coded cards (Total / Successful / Failed). Successful = `success` + `audit_pass` + `voluntary` result tags; Failed = everything else (defaulting unknown future tags to "fail" avoids silently inflating success). Cards use the existing design tokens so dark mode + high-contrast inherit automatically.
-- **Stylelint baseline** with `@wordpress/stylelint-config` and pragmatic project overrides (preserves snake_case ID selectors that match plugin form-field IDs, allows named `white`, etc.). New scripts: `npm run lint:css` and `npm run lint:css:fix`. Auto-fix applied across the source CSS: `font-weight: bold/normal` → `700/400`, `:before` → `::before`, redundant single-word font-family quotes dropped.
-- **`.ffc-initially-hidden` utility** (no `!important`) for elements that JS reveals via inline `display`. Replaces the inline `style="display:none"` on the verification-page spinner and disambiguates it from the existing `.ffc-hidden` honeypot helper (which uses `position: absolute !important`).
+- `.ffc-shortcode` anchor class on every public wrapper so frontend rules sit at specificity (0,2,0).
+- Public CSV Download metabox: colour-coded audit breakdown; Stylelint baseline; `.ffc-initially-hidden` utility.
 
 ### Changed
 
-- **Public CSV Download metabox now disables every sub-field when "Enable Public Download" is off.** Initial paint is server-rendered via `disabled`; subsequent toggles update inline via JS without a save round-trip. Visual fade through `.ffc-csv-public-disabled`. Save handler short-circuits the sub-field branch when `enabled=0` so toggling the feature off and saving preserves the persisted limit / hash / CPF mode / whitelist instead of overwriting them with the "no fields submitted" defaults that disabled inputs would silently produce.
-- **Public CSV Download — CPF mode defaults to `audit` on first enable + save.** Previous behaviour stored `none` (no logging). Now newly-enabled public downloads always log every attempt out of the box; site owners must explicitly opt out by selecting "No — only Form ID + Hash" again after the first save.
-- **Public CSV Download — whitelist textarea only renders when persisted mode is `whitelist`.** Switching the dropdown alone no longer reveals it — the user must save the form first. A short tip line is rendered in the slot when the toggle is on but the persisted mode is something else, so the dropdown→save→reveal workflow is discoverable. Save handler also stops deleting the whitelist when the textarea is absent from the POST (mode-in-flight scenario), preserving the persisted list.
-- **Device Fingerprint metabox now hard-gates on the global subsystem.** When **Settings → Rate Limit → Device Fingerprint** is OFF, every input including the master "Enable for this form" checkbox renders disabled — existing values stay visible (read-only) so the admin can audit what was configured. The red warning is preserved verbatim. When global is ON but per-form is OFF, the master checkbox stays editable; secondary fields (max, threshold, message) lock until the user enables the per-form override.
-- **Device Fingerprint — `Max submissions per device` defaults to 2 when left blank.** Hard default (not inherit-from-global), written to post meta on first enabled save. Threshold and message keep the inherit-from-global semantic (empty deletes the meta so the global default applies at read time). Placeholder updated from "Inherit from global" to "Default: 2".
-- **Typography variables migrated from px to rem.** `--ffc-font-size-xs` through `--ffc-font-size-2xl` in `assets/css/ffc-common.css` now expressed as rem fractions of the 16px root (xs=0.6875rem, sm=0.8125rem, base=0.875rem, lg=1rem, xl=1.125rem, 2xl=1.5rem). Honours the user's browser font-size preference for accessibility.
+- Public CSV Download metabox disables sub-fields when off (preserving persisted values); CPF mode defaults to `audit` on first enable; whitelist textarea only renders when the persisted mode is `whitelist`.
+- Device Fingerprint metabox hard-gates on the global subsystem; `Max per device` defaults to 2; typography variables migrated px → rem.
 
 ### Fixed
 
-- **Form duplication copies Public CSV + Device Fingerprint settings.** `Cpt::handle_form_duplication` previously copied only fields, config, bg image, and geofence config; everything stored under its own meta key — every option 7 / option 8 setting — was silently lost on duplication. Now copies eight additional config metas: `_ffc_csv_public_enabled`, `_ffc_csv_public_limit`, `_ffc_csv_public_cpf_mode`, `_ffc_csv_public_cpf_whitelist`, `_ffc_device_limit_enabled`, `_ffc_device_limit_max`, `_ffc_device_match_threshold`, `_ffc_device_limit_message`. Hash, counter, and audit log are intentionally NOT copied: a shared hash would let the same pre-shared download URL unlock both forms (security regression), the counter belongs to the original, and the audit log is per-form history. The next save with `_ffc_csv_public_enabled=1` regenerates the hash automatically.
-- **`Undefined array key "enable_restriction"` warning on form save.** `FormEditorSaveHandler::save_form_data` read several `$_POST['ffc_config']` keys directly without a fallback — when the form editor posted `ffc_config` without those checkboxes (default state / conditional rendering), PHP 8+ emitted `Warning` lines into `debug.log` on every save. Behaviour was unchanged (`sanitize_key(null)` returns `''`), but the log was polluted. Every scalar lookup now uses `?? ''`, matching the convention already used for `email_body` and the geofence block below.
-- **`email_hash_rehash` migration no longer re-surfaces as pending after new submissions.** The migration's status accounting was cursor-based: any row with `id > cursor` was reported as pending. Once all legacy rows had been walked, new submissions (which already write the salted hash via `Encryption::hash`) inserted ids above the cursor and falsely re-appeared as pending in the admin UI. New `ffc_email_hash_rehash_completed` flag latches the migration as complete once both tables have been walked with no errors; subsequent inserts do not re-trigger the alarm because the buggy write paths were already fixed and new rows are correct by construction.
-
----
+- Form duplication now copies the eight Public CSV + Device Fingerprint metas; `Undefined array key` warnings on save; `email_hash_rehash` no longer re-surfaces as pending after new submissions.
 
 ## [6.3.10] (2026-05-09)
 
-**Bugfix release.** Fixes around the per-device submission limit (added in v6.3.0) plus a polish pass on reprint UX and i18n coverage. The server-side gate now correctly lets the reprint flow through; the form gains a friendly client-side hint when the current device has already submitted before; the reprint success card now surfaces the existing certificate's authentication code (it was silently missing on reprint); and several JS-only fallback strings introduced over v6.3.6–v6.3.10 are now translatable through the standard `wp_localize_script` pipeline.
-
 ### Fixed
 
-- **Reprint flow now bypasses the device fingerprint limit.** The pipeline order in `FormProcessor::handle_submission_ajax` was: `RateLimiter::check_all` (which contains the device fingerprint N-of-M check) →... → `ReprintDetector::detect`. So a legitimate user who lost their PDF and tried to re-submit from the same device hit the device gate first, got a "Multiple submissions detected from this device" error, and never reached the reprint detector that would have returned the existing submission. New behaviour: we pre-run `ReprintDetector::detect` BEFORE `check_all` and, when it flags `is_reprint=true`, set `$skip_device = true` (the same flag the manager bypass already uses, so `RateLimiter::check_all` stays untouched). The reprint detector still runs at its canonical position later for the actual flow; the pre-run is purely a gate decision. ~10 LOC change.
-- **PDF post-download confirmation messages are now translatable.** Four user-visible strings shown at the end of the PDF generation flow (`pdfOpenedIOS`, `pdfSavedAndroid`, `pdfDownloaded`, `pdfBlankWarning`) lived only as JS string literals in `assets/js/ffc-pdf-generator.js` and were never extracted by the gettext pipeline — so a pt_BR site would still see *"PDF saved! Check your Downloads folder."* in English even with the Brazilian translation file loaded. They now flow through `wp_localize_script( 'ffc-frontend', 'ffc_ajax', [ 'strings' => [... ] ] )` like every other PDF-flow string, are picked up by the existing `__` extractor, and ship with pt_BR translations.
-- **pt_BR catalogue back-filled.** `languages/ffcertificate-pt_BR.po` was missing the strings introduced in v6.3.6 (placeholder-tab + manual-fallback flow), v6.3.7 (WebView preventive banner) and v6.3.10 (already-submitted notice). All ~17 entries are now translated and `ffcertificate-pt_BR.mo` recompiled. The stale `ffcertificate-pt_BR.l10n.php` cache is removed so WordPress 6.5+ regenerates it from the fresh `.mo` on next load.
+- Reprint flow now bypasses the device fingerprint limit (reprint detector pre-runs before `check_all`).
+- PDF post-download confirmation messages are translatable; pt_BR catalogue back-filled.
 
 ### Added
 
-- **Friendly "already submitted" notice on `[ffc_form]`.** A new client-side script (`assets/js/ffc-already-submitted-notice.js`) tracks successful submissions in `localStorage.ffc_submitted_forms` (capped at 50 form IDs). On subsequent loads of a form whose ID is in the list, the page renders a dismissible info banner above the form: *"You may have already submitted this form. We detected a previous submission from this device. If you lost your certificate, just fill in your CPF and submit — the system recognises it and returns the existing certificate."* Soft hint, not a hard block — server-side gate (now reprint-aware) remains the source of truth. The banner dismissal is remembered for the session (`sessionStorage`). Three new i18n strings: `title`, `body`, `dismiss`. CSS reuses the design tokens already in `ffc-frontend.css`, mobile-responsive.
-- **Reprint success card now shows the authentication code.** Before, the success card on reprint was missing the "Authentication Code:" row because `$submission_data['auth_code']` was never populated for the reprint branch (the value lives on the existing DB row, not on the user-resubmitted form data). The non-quiz reprint branch now copies `auth_code` from the `ReprintDetector` payload, and the quiz reprint branch copies it from the existing submission row, so `templates/submission-success.php` renders the code on reprint exactly as it does on a brand-new submission. (Earlier in this same release line we briefly also embedded the code in the H3 message — that caused it to render twice and was reverted; the dedicated row in the card is the single source of truth.)
-
-### Backwards compatibility
-
-- The actual reprint detection logic is unchanged — same query against `cpf_hash`/`rf_hash` on `wp_ffc_submissions`, same `is_reprint` semantics. Only the ordering relative to the device check changes.
-- Users on a fresh device who try to submit a different CPF still hit the device gate as expected (no reprint match, `$skip_device` stays false).
-- Manager bypass + reprint stack correctly: manager already had `$skip_device = true`; reprint just adds another path to that same flag.
-- Notice script is a pure progressive enhancement — sites with localStorage disabled (private mode, restrictive policies) just don't see it; nothing breaks.
-
-No schema change.
-
----
+- Friendly "already submitted" notice on `[ffc_form]` (localStorage, soft hint); reprint success card now shows the authentication code.
 
 ## [6.3.9] (2026-05-09)
 
-**Consistency release.** Standardises every plugin-emitted CSV on the semicolon (`;`) delimiter, fixing three exporters that were still using the comma default and breaking Excel-pt-BR / WPS / LibreOffice locale opens. Audience importer gains delimiter auto-detection so legacy comma-separated files keep working.
-
 ### Changed
 
-- **Three CSV exporters now emit `;` instead of `,`**, matching the rest of the plugin (which already used `;` since 5.x): the public CSV download audit-log exporter (`PublicCsvDownload::handle_export_log_request`, introduced in 6.3.3), the reregistration submissions exporter (`ReregistrationCsvExporter`), and the audience admin import templates (`AudienceAdminImport::export_*_csv`). Now a Brazilian admin double-clicking the `.csv` no longer sees everything crammed into column A.
-- **Audience importer auto-detects `,` vs `;`.** Mirrors the recruitment importer's `detect_delimiter` strategy: peek the header line, count unquoted occurrences, return whichever wins (ties resolve to `,`). Implemented as a private `peek_delimiter` static helper that rewinds the file handle so the regular `fgetcsv` loop runs unchanged. Comma-separated files exported by older versions (or hand-authored elsewhere) continue importing without changes.
-- **Sample CSVs in `AudienceCsvImporter::get_sample_csv`** updated to use `;` to match the live export templates. Cosmetic only — the importer accepts both.
-
-### Backwards compatibility
-
-- **Existing comma-separated CSV files**: still import correctly via the audience importer's auto-detect (added in this release) and the recruitment importer's pre-existing detection. Nothing breaks.
-- **Custom downstream parsers (admin's external tooling)**: if a site automated parsing of the reregistration or audit-log CSV against the comma format, those scripts need a one-line update to `;`. Documented here.
-
-No PHP/server schema change. PHPUnit + PHPStan + WPCS clean.
-
----
+- Three CSV exporters now emit `;` (audit log, reregistration, audience templates); audience importer auto-detects `,` vs `;`.
 
 ## [6.3.8] (2026-05-08)
 
-**UX release — two form-copy fixes.** Shrinks the device fingerprint LGPD disclosure on `[ffc_form]` and corrects the CPF-field labelling in `[ffc_csv_download]`'s `audit` mode where the markup contradicted the server behaviour.
-
 ### Changed
 
-- **Device fingerprint disclosure** in the certificate form's consent box is now a native `<details>` / `<summary>` element. Default state shows a single short line ("We anonymously identify your device to prevent duplicate submissions. Learn more."); clicking expands a paragraph with the technical specifics (`thumbmarkjs`, MIT licence, locally processed signals, no third-party transmission). Two i18n strings instead of one. Preserves all LGPD-required information for auditors while cleaning up the form for typical users.
-- **CSS polish for the new `<details>` variant**: native disclosure markers hidden on Chrome/Firefox/Safari, focus ring matched to the primary colour token, "Learn more" rendered as an underlined cue that drops the underline once expanded. ~30 LOC added to the existing `.ffc-consent-description` selector chain — no new CSS files.
+- Device fingerprint disclosure is now a `<details>`/`<summary>` element (short line + expandable specifics).
 
 ### Fixed
 
-- **`[ffc_csv_download]` CPF field in `audit` mode now correctly identifies the field as required.** The server-side validator (`PublicCsvDownload::validate_cpf_requirement`) has always rejected an empty or malformed CPF in `audit` mode (returns `'CPF is required to download this CSV.'` and `'Invalid CPF.'` respectively) — only the matching against an allow-list was skipped. The shortcode markup contradicted that on three points: missing the `*` required marker, missing `required aria-required="true"` on the `<input>`, and the description text claiming "does not gate the download". Updated to: `*` shown, `required` set, and the description rewritten to *"Your CPF is required for traceability and is recorded in this form's audit log (encrypted at rest). It is not validated against any allow-list."*
-- **Form editor metabox copy aligned with actual behaviour.** The CPF mode dropdown's `audit` option used to read *"Audit — ask but never block"*, which contradicted the server (it does block on missing or malformed CPF; only the list-match step is skipped). Renamed to *"Audit — require CPF, but do not match against any list"*. While there, updated the help text below the dropdown to mention that the CPF is **encrypted at rest** (not hashed — the schema changed in 6.3.3) and to point at the "Download audit log (CSV)" button just below.
-
-No PHP/server change. JS/test coverage unchanged.
-
----
+- `[ffc_csv_download]` CPF field in `audit` mode now correctly marks itself required; form-editor metabox copy aligned with the actual (blocking) behaviour.
 
 ## [6.3.7] (2026-05-08)
 
-**UX release.** Adds a preventive in-app browser warning banner to `[ffc_form]` and `[ffc_csv_download]`. Builds on the v6.3.6 popup-blocker fallbacks but tries to nudge users to open the page in a real browser **before** they invest time filling the form.
-
 ### Added
 
-- **WebView warning banner** — when the page is loaded inside an Android WebView (host UA contains `; wv)`) or an iOS in-app browser (Facebook, Instagram, Twitter/X, WhatsApp, LinkedIn, TikTok, Line), an amber banner appears above the form recommending the user open the page in their main browser. Two CTAs:
-  - **"Open in browser"** — Android WebView gets an `intent://…;package=com.android.chrome;scheme=https;end` deep-link that hands control to Chrome. iOS in-app browsers can't be flipped programmatically; they get an `alert` with manual menu instructions.
-  - **"Continue anyway"** — dismisses the banner and stores a `sessionStorage` flag so the user isn't re-nagged. The v6.3.6 fallback layers (pre-open tab + manual-tap CSV button) still cover anyone who proceeds.
-- New file: `assets/js/ffc-webview-warning.js` (~150 LOC, vanilla JS, no jQuery dep).
-- New CSS block at the end of `assets/css/ffc-frontend.css` (`.ffc-webview-warning*`, ~70 LOC), reusing the design tokens already in the stylesheet.
-- Five new i18n strings under the `ffc_webview_warning.strings` localized object: `title`, `body`, `openInBrowser`, `continueAnyway`, `iosInstructions`. JS keeps English fallbacks if a site isn't translated yet.
-
-### Why preventive matters even with v6.3.6
-
-The technical fix in v6.3.6 (pre-open tab + manual-tap fallback) catches almost all silent download failures, but Android WebView remains an outlier:
-- Many Android WebViews **don't have a built-in PDF viewer**, so opening the blob URL just shows raw bytes.
-- The share sheet inside a WebView often lacks "Save to Files" or "Save to Downloads".
-- `<a download>` is widely ignored.
-
-Asking the user to switch to Chrome/Safari **once**, before they fill the form, sidesteps all of those quirks for the rest of the session.
-
-### Detection scope
-
-The banner only fires for confirmed in-app browsers:
-
-| Platform | UA marker |
-|---|---|
-| Android WebView | `; wv)` or `; wv;` |
-| Facebook (iOS) | `FBAN`, `FBAV`, `FBIOS` |
-| Instagram (iOS) | `Instagram` |
-| Twitter/X (iOS) | `TwitterIOS/`, `Twitter for iPhone` |
-| WhatsApp (iOS) | `WhatsApp` |
-| LinkedIn (iOS) | `LinkedInApp` |
-| TikTok (iOS) | `BytedanceWebView`, `musical_ly` |
-| Line (iOS) | `Line/` |
-
-Real Safari (mobile + desktop), Chrome iOS (`CriOS`), Android Chrome, Samsung Internet, Firefox, Edge — none of these match. False-positive rate is essentially zero.
-
-No PHP/server change. Existing 3806-test PHPUnit suite stays green.
-
----
+- WebView warning banner on `[ffc_form]` / `[ffc_csv_download]` for Android WebView + iOS in-app browsers (open-in-browser / continue-anyway), `ffc-webview-warning.js`.
 
 ## [6.3.6] (2026-05-08)
 
-**Bugfix release.** Fixes a silent download failure where the certificate PDF would never appear after the spinner finished — no console error, no alert, just the success message overlaying nothing. Originally reported on iOS Safari; further reports confirmed the same bug on Samsung Internet (Android) and Android WebView (in-app browsers like Facebook / Instagram / WhatsApp / TikTok).
-
 ### Fixed
 
-- **Certificate downloads no longer fail silently on iOS Safari, Samsung Internet, and Android WebView.** The previous flow called `window.open( blobUrl, '_blank' )` inside the `html2canvas` Promise resolver — by then the user-gesture token from the original click was long gone (1-3 s after html2canvas completed) and popup blockers dropped the call without a peep, returning `null`. The success overlay still fired, so the user got a green check with nothing to show for it.
-  - **Pre-open the destination tab synchronously inside the click handler.** New `pdfWindow = window.open( 'about:blank', '_blank' )` runs at the top of `generateAndDownloadPDF` for at-risk UAs while the gesture token is still alive. The tab paints a "Gerando seu certificado…" placeholder; after html2canvas resolves we swap `pdfWindow.location.href` to the blob URL.
-  - **Mac Safari, Chrome (desktop or Android), Firefox and Edge** continue to use `pdf.save` — they honour `<a download>` correctly. Old "any UA with `safari` and not `chrome`" detection is gone.
-  - **Manual-tap fallback** when the placeholder tab couldn't be opened or was closed early: the overlay renders an explicit "Tap to open the PDF" link styled as a button — a fresh user gesture, so the browser opens the blob URL without intervention.
-  - Error paths (html2canvas throw, blank-canvas guard, `toDataURL` SecurityError) close the placeholder tab so the user isn't left with a stuck "Gerando…" tab.
-  - **Browser-aware success message** + five new i18n strings (`pdfGeneratingTab`, `pdfGeneratingTabHint`, `pdfManualOpenIOS`, `pdfManualHintIOS`, `pdfOpenedAndroidTab`).
-
-No PHP/server change. No schema change. JS-only patch in `assets/js/ffc-pdf-generator.js`. Existing 3806-test PHPUnit suite stays green.
-
----
+- Certificate downloads no longer fail silently on iOS Safari / Samsung Internet / Android WebView — pre-open the destination tab synchronously inside the click; manual-tap fallback; browser-aware messaging.
 
 ## [6.3.5] (2026-05-08)
 
-**Bugfix release.** Fixes a one-day drift in the dates rendered on the `[ffc_csv_download]` info screen for any site whose WordPress timezone is west of UTC (e.g. `America/Sao_Paulo` / BRT).
-
 ### Fixed
 
-- **`[ffc_csv_download]` info screen showed dates one day earlier** than what the form admin configured (e.g. a form set to start on `12/05/2026` rendered `11/05/2026` in the body, even though the footer status message correctly said "começará em 12/05/2026"). Root cause: `PublicCsvDownload::build_datetime_info` ran `strtotime( $date_start )` on a bare `Y-m-d` string, which PHP parses as **UTC** midnight. `wp_date` then formatted that timestamp in the site timezone (e.g. BRT, UTC-3), shifting the day backwards by 3 hours and crossing the midnight boundary. Fixed by anchoring each date with `new DateTimeImmutable( $date, $tz )` before formatting — same approach `Geofence::get_form_start_timestamp` (which fed the correct footer message) was already using. Two regression tests added to `PublicCsvDownloadTest`: `_keeps_configured_date_when_tz_is_brt` and `_handles_blank_dates`. 3806 unit tests pass (was 3804).
-
----
+- `[ffc_csv_download]` info screen showed dates one day early in sub-UTC timezones (anchor with `DateTimeImmutable($date, $tz)` before formatting).
 
 ## [6.3.4] (2026-05-07)
 
-**Patch release — UX polish.** Two consistency fixes for the CPF input rendered inside the public CSV download shortcode (`[ffc_csv_download]`): same elegant LGPD consent-box visual that `[ffc_form]` uses, and the same input mask + on-blur validation. Both are pure reuse of helpers that already shipped — no new code paths server-side.
-
 ### Changed
 
-- **`[ffc_csv_download]` CPF field** is now wrapped in a `<div class="ffc-lgpd-consent ffc-pcd-cpf-consent">` container (the same outer treatment used on the certificate form's consent block — bordered, primary accent, soft shadow, rounded corners). The audit disclosure text uses the existing `.ffc-consent-description` styling for the left-border accent, and the field label uses `.ffc-consent-text` typography. CSS reuse only — no new selectors added.
+- `[ffc_csv_download]` CPF field wrapped in the same LGPD consent box as `[ffc_form]`.
 
 ### Fixed
 
-- **`[ffc_csv_download]` CPF field now applies the standard CPF mask** (`XXX.XXX.XXX-XX` formatting while typing + invalid/valid styling on blur). Previously the input was raw text. Fix is a 4-line wiring: the existing `assets/js/ffc-frontend-helpers.js` already exposes `window.FFC.Frontend.Masks.applyCpfRf`, but it wasn't being enqueued on pages that render `[ffc_csv_download]`. Added it as a script dependency of `ffc-csv-download` and called the helper from the shortcode's init function.
-
-Both changes apply to all three CPF-mode variants the shortcode renders (audit / required / optional), so the experience is consistent regardless of how the form was prefilled or which `_ffc_csv_public_cpf_mode` the target form uses.
-
----
+- `[ffc_csv_download]` CPF field now applies the standard CPF mask + on-blur validation (helper enqueued on the page).
 
 ## [6.3.3] (2026-05-07)
 
-**Patch release — auditable CSV downloads.** The per-form CSV download audit log (introduced in 6.3.0) now stores CPFs **encrypted at-rest** instead of one-way-hashed, and gains a one-click CSV export from the form editor for actual auditability. Reuses the same `Encryption` pipeline that already protects `wp_ffc_submissions`.
-
 ### Added
 
-- **CSV export endpoint** for the audit log: `admin-post.php?action=ffc_export_csv_public_download_log&form_id=N&_wpnonce=…`. Streams the `_ffc_csv_public_download_log` post-meta as a UTF-8-BOM CSV (`timestamp_utc, ip, mode, cpf, result`). CPFs are decrypted on the fly via `Encryption::decrypt`. Auth: nonce + `edit_post` on the form + `Utils::current_user_can_admin_or('ffc_manage_settings')`.
-- **"Download audit log (CSV)" button** in the form editor's "Public CSV Download" metabox, plus a live count ("N attempts logged on this form."). Hidden when the log is empty.
-- **Voluntary logging in `mode = 'none'`**: if a user happens to fill the CPF field on a form that doesn't require it (because the shortcode renders the field for safety when the URL has no prefill), and the digits form a valid CPF, the entry is now logged with `result = 'voluntary'`. Junk inputs are silently dropped — they don't compete for the 100-entry cap.
+- CSV export of the per-form download audit log (CPF decrypted on the fly); "Download audit log (CSV)" button + live count; voluntary logging in `mode = none`.
 
 ### Changed
 
-- **Audit log schema** — entries now carry `cpf_encrypted` instead of `cpf_hash`. The hash field was write-only since 6.3.0 (no code path read it), so dropping it has no functional impact and matches the pattern the plugin already uses for `wp_ffc_submissions.cpf_encrypted`. Schema flag bumped to `1.3.0` and stored in the new `ffc_csv_public_download_log_format` option.
-- **LGPD disclosure** on the public-download shortcode now states the CPF is "encrypted at rest in the form's audit log" rather than just "logged for audit purposes". Wording also adjusted for the `optional` (no-prefill) variant: "If filled, it will be recorded in the form's audit log even when the form does not require it."
+- Audit log stores `cpf_encrypted` instead of the write-only `cpf_hash`; LGPD disclosure updated to "encrypted at rest".
 
 ### Removed
 
-- **`cpf_hash` field in audit log entries.** Pre-6.3.3 entries (written by 6.3.0/6.3.1/6.3.2) are wiped on the first `plugins_loaded` after upgrade by the new `PublicCsvDownload::maybe_wipe_legacy_logs`. Justification: 6.3.0 → 6.3.2 all shipped within the same 24-hour window with effectively zero install base, so a clean wipe avoids carrying `[legacy: hashed only]` placeholders forever in CSV exports. The wipe is idempotent (gated by the `ffc_csv_public_download_log_format` option flag).
-
-### Backwards compatibility
-
-- The validation logic for `whitelist`, `participants`, `owner`, `audit` and `none` modes is **untouched**. Only the audit-log writer changed. The participants-mode hash-lookup against `wp_ffc_submissions.cpf_hash` keeps working exactly as before; that's a separate hash on a different table.
-- Sites running without `Encryption::is_configured` (i.e. without `SECURE_AUTH_KEY`/`LOGGED_IN_KEY`) still log entries — `cpf_encrypted` falls back to `''`, the export shows `[encryption disabled]`, and the metabox renders a hint to configure encryption.
-- 3804 unit tests pass (was 3799; +5 new in `PublicCsvDownloadTest`).
-
----
+- `cpf_hash` from audit-log entries (legacy entries wiped once on upgrade; near-zero install base).
 
 ## [6.3.2] (2026-05-07)
 
-**Patch release — broaden the device fingerprint palette.** Builds on the v6.3.1 thumbmarkjs swap by mapping four additional components into the SQL schema and bumping the fresh-install default `match_threshold` from 5 to 7 to keep the same false-positive ratio against the larger 13-signal palette (was 5/9 ≈ 55%, now 7/13 ≈ 54%). Existing sites keep their persisted threshold; a one-shot dismissable admin notice suggests the bump for sites that still hold the legacy default.
-
 ### Added
 
-- **4 new fingerprint signals**, all routed through `ThumbmarkJS.getFingerprintData` and hashed with SubtleCrypto SHA-256 client-side: `plugins`, `permissions`, `mediaqueries`, `math`. Each gets its own column in `wp_ffc_device_signals` (`sig_plugins`, `sig_permissions`, `sig_mediaqueries`, `sig_math`, all `char(64) DEFAULT NULL`).
-- **`DeviceThresholdUpgradeNotice`** (dismissable) — surfaces once on `admin_notices` for sites where `device.enabled = true` AND `match_threshold = 5`, suggesting they raise the threshold to 7 in **Settings → Rate Limit → Device Fingerprint**. Persists dismissal in the `ffc_device_threshold_v632_notice_dismissed` option. AJAX-dismissed via the standard WP `notice-dismiss` button.
-- Settings UI: 4 new checkboxes ("Browser plugins list", "Permissions API state", "Media queries", "Math precision probes") under "Signals collected". The threshold input range moves from 3-8 to 3-12 (both global and per-form metabox).
+- 4 new device fingerprint signals (`plugins`, `permissions`, `mediaqueries`, `math`) with their own columns; a dismissable notice suggesting the threshold bump.
 
 ### Changed
 
-- **Schema migration** — `RateLimitActivator::create_tables` now always calls `dbDelta` on the signals table (it used to skip when the table existed). Idempotent; on existing installs `dbDelta` simply ALTERs in the 4 new columns. DB version bumps from `1.1.0` to `1.2.0`; `maybe_create_tables` triggers the migration on plugin load.
-- **Default `match_threshold`** raised from `5` → `7` for fresh installs only. Existing installs keep their saved value (the option is persisted in `ffc_rate_limit_settings` and won't get overwritten); the admin notice above carries the recommendation.
-- **`RateLimiter::check_device_limit`** signal-keys array, `record_device_signals` write list, settings sanitization whitelist and `get_device_effective_settings` clamp all extended to the 13-signal palette + threshold range 3-12.
-
-### Backwards compatibility
-
-- Rows written by 6.3.0 / 6.3.1 stay readable. Their 4 new columns are `NULL`, which the SQL `CASE WHEN (sig_X =:x)` aggregate evaluates to `NULL` (not match) — so they keep contributing whatever matches they already had with the original 9 signals, just no contribution from the new 4. No data loss, no forced re-fingerprinting.
-- Existing per-form `_ffc_device_match_threshold` overrides outside the new 3-12 clamp are normalised on next save.
-- 3799 unit tests pass (was 3793; +6 from the new threshold default test and 5 admin-notice gating tests; the `RateLimitActivatorTest` upgrade-path test was rewritten in place rather than added).
-
----
+- Signals schema migration (DB 1.1.0 → 1.2.0); fresh-install default `match_threshold` 5 → 7 (existing installs keep their value); palette/threshold range extended to 13 / 3-12.
 
 ## [6.3.1] (2026-05-07)
 
-**Patch release — swap-only.** Replaces the hand-rolled device-fingerprint collector introduced in 6.3.0 with the maintained [thumbmarkjs](https://github.com/thumbmarkjs/thumbmarkjs) library (MIT, vendored at `libs/js/thumbmark-1.8.1.umd.js`). Server algorithm, schema, settings, JSON contract, threshold default, retention, bypass logic and LGPD posture are **all unchanged**.
-
-Why: thumbmarkjs's `stabilizationExclusionRules` keep canvas/audio/fonts/webgl probes stable across Firefox-RFP, Brave, Tor and Safari-Private automatically — quirks we used to chase by hand. Migration is intentionally minimal so the change set stays auditable.
-
 ### Changed
 
-- **Device fingerprint collector** — `assets/js/ffc-device-signals.js` now delegates the raw signal probes to `ThumbmarkJS.getFingerprintData` and hashes each component with SubtleCrypto SHA-256 locally. The 10 SQL columns (`sig_cookie`, `sig_ua`, `sig_screen`, `sig_tz`, `sig_concurrency`, `sig_memory`, `sig_canvas`, `sig_audio`, `sig_webgl`, `sig_fonts`) and the JSON `ffc_device_signals` payload format are unchanged. The cookie continues to be our own `ffc_device_id` UUID in `localStorage` (thumbmarkjs does not manage cross-session cookies).
-- **LGPD disclosure** — the per-form consent block now cites the third-party library by name and explicitly states "no data is sent to any third-party server".
-
-### Added
-
-- `libs/js/thumbmark-1.8.1.umd.js` — vendored UMD build (32 KB raw / ~12 KB gzipped). SHA-256: `b3f07b2701030d55fdbeef51f7dd366d3d9bb7dde415056b6e96ef0414ea0d5b`.
-- `FFC_THUMBMARK_VERSION` constant pinning the vendored version.
-- `tests/Unit/DeviceSignalsLoggingOffTest.php` — regression guard asserting that the JS bootstrap **always** calls `setOption( 'logging', false )` before the first probe and uses `getFingerprintData` (not the combined-hash `getFingerprint`).
-
-### Telemetry note
-
-thumbmarkjs ships with `logging: true` by default, which sends a 0.01%-sampled POST to `api.thumbmarkjs.com` once per session "to improve the library". We **unconditionally disable** that beacon at module bootstrap; the disable call is grep-tested by `DeviceSignalsLoggingOffTest`. No fingerprint signal ever leaves the visitor's browser; only the SHA-256 hex hashes computed locally are sent to the WP site itself.
-
-### Backwards compatibility
-
-- `wp_ffc_device_signals` rows written by 6.3.0 remain readable. The cookie-shortcut match continues to work because the cookie hash is still SHA-256 of the same `ffc_device_id` UUID. The 9 non-cookie hashes will differ between 6.3.0 and 6.3.1 (different probe inputs), so a returning user who clears `localStorage` may get one "free" submission before the new fingerprint starts colliding. This is acceptable for a swap release; the cookie persistence carries the most weight in practice.
-- No schema migration; `ffc_rate_limit_db_version` stays at `1.1.0`.
-
----
+- Device fingerprint collector swapped to the vendored thumbmarkjs (MIT) — server algorithm, schema, contract and LGPD posture unchanged; the library telemetry beacon is unconditionally disabled (grep-tested).
 
 ## [6.3.0] (2026-05-07)
 
-**Two opt-in anti-fraud features for public form workflows.** Adds a CPF gate on the public CSV download (five modes, audit log) and a per-device submission limit on the certificate form (multi-signal browser fingerprint with an "N of M" matching rule, optional bypass for admins / Certificate Managers).
+Two opt-in anti-fraud features for public form workflows.
 
 ### Added
 
-- **Per-device submission limit.** New rate-limit subsystem combining a persistent `ffc_device_id` cookie (UUID v4 in `localStorage`) with up to 9 independently-hashed browser fingerprint signals (UA, screen, timezone, hardware concurrency, device memory, canvas, audio context, WebGL renderer, fonts). The server applies an "N of M" matching rule: two submissions are treated as the same device when their cookie hash matches OR when at least the configured threshold of non-cookie signals match. New `wp_ffc_device_signals` table (10 SHA-256 char(64) columns + FK to `ffc_submissions`) stores the hashes; `RateLimitActivator` bumps the rate-limit DB version to `1.1.0`.
-  - **Global settings** under Settings → Rate Limit → Device Fingerprint with 9 keys including `enabled`, `max_per_form`, `match_threshold` (3-8), `signals_enabled`, `bypass_logged_in_managers`, `retention_days`. Daily cleanup cron purges old rows.
-  - **Per-form override** on the form metabox with optional max, threshold, and message; empty fields inherit the global default.
-  - **Manager bypass** when `bypass_logged_in_managers` is on; bypassed submissions tagged `reason='manager_bypass'` in the rate-limit log.
-  - **`RateLimiter::check_device_limit`** — single `CASE WHEN` SQL that sums per-signal matches and plugs into `check_all` after the global whitelist and before the global limit.
-  - **`assets/js/ffc-device-signals.js`** — vanilla JS module collects only enabled signals, SHA-256 hashes each via SubtleCrypto, writes a JSON `ffc_device_signals` hidden input on every `form.ffc-submission-form`. Missing APIs / RFP-randomised values silently skipped.
-  - **LGPD disclosure** — the form's consent block automatically gains a one-line note about device fingerprinting when the limit is active.
-
-- **CPF gate on public CSV download (Feature 1 /).** New per-form `_ffc_csv_public_cpf_mode` meta with five modes:
-  - `none` — legacy behaviour, no CPF asked.
-  - `audit` — ask, format-validate, log, never block.
-  - `participants` — CPF must hash-match an existing submission of the form (uses the same `Encryption::hash` rule as `RateLimiter::get_submission_count`).
-  - `owner` — CPF must match the form author's `ffc_user_cpf` user meta.
-  - `whitelist` — CPF must appear in `_ffc_csv_public_cpf_whitelist` (textarea, normalised to unique 11-digit strings).
-  - **Audit log** — `_ffc_csv_public_download_log` post meta retains the latest 100 attempts as `{ts, ip, mode, sha256(cpf_digits), result}` where result is one of `success | fail_missing | fail_format | fail_match | fail_unknown_mode | audit_pass`.
-  - Validation runs at all three entry points: synchronous fallback (`PublicCsvDownload::handle_request`), info AJAX (`PublicCsvDownload::ajax_info`), and the export start AJAX (`PublicCsvExporter::ajax_start`).
+- Per-device submission limit: persistent `ffc_device_id` cookie + up to 9 hashed browser-fingerprint signals with an "N of M" match rule, global + per-form settings, manager bypass, daily cleanup, new `ffc_device_signals` table.
+- CPF gate on the public CSV download with five modes (`none`/`audit`/`participants`/`owner`/`whitelist`) + a 100-entry audit log, enforced at all three entry points.
 
 ### Changed
 
-- **76 legacy `Utils::debug_log` calls migrated to the per-area `Debug::log_*` system.** Previously every call fired whenever `WP_DEBUG=true` with no admin toggle — including frontend shortcode renders that polluted production logs. Each call now lands in one of 14 area-specific helpers gated by a checkbox in **Settings → Advanced → Debug**. Five new areas added (`debug_frontend`, `debug_admin`, `debug_self_scheduling`, `debug_audience`, `debug_qrcode`), each defaulting OFF. `Utils::debug_log` is now a `@deprecated` thin wrapper that delegates to `Debug::AREA_FORM_PROCESSOR` for any third-party callers; new code should use `Debug::log_*` directly.
-- **FFC role labels now translate correctly on `wp-admin/users.php`.** WordPress stores role labels verbatim in `wp_user_roles` at `add_role` time, and its built-in `translate_user_role` resolves them against the **default** WP textdomain — so plugin-provided role names never localized even when the.po file was loaded. New `wp_roles_init` hook (`CapabilityManager::relabel_ffc_roles`) re-applies `__( …, 'ffcertificate' )` to every FFC role's `name` + `role_names` entry on every page load, so `users.php` always shows the operator's locale.
-
-### Test coverage
-
-- `RateLimiterTest`: 11 new tests covering `should_bypass_for_manager`, `get_device_effective_settings` (inherit, override, clamp), `check_device_limit` (disabled-noop, whitelist, count-blocks), `record_device_signals` (no-op when disabled, filters disabled signals to NULL).
-- `PublicCsvDownloadTest`: 7 new tests covering each CPF mode + audit-log capping at `DOWNLOAD_LOG_MAX`.
-- `RateLimitActivatorTest`: existing 8 tests updated for the third table + version bump.
-- 3790 unit tests pass total (was 3772).
-
----
+- 76 legacy `Utils::debug_log` calls migrated to the per-area `Debug::log_*` system (5 new areas, default off; `debug_log` now a deprecated wrapper).
+- FFC role labels now translate on `wp-admin/users.php` (`wp_roles_init` re-applies `__()`).
 
 ## [6.2.0] (2026-05-04)
 
-**Capabilities + roles overhaul + admin UX scoping + upgrade safety.** 14 granular admin capabilities replace blanket `manage_options` gates so site owners can delegate scoped roles without giving full WP admin. 9 new roles wrap the new caps into pre-built bundles (Certificate Manager, Self-Scheduling Manager, Audience Manager, Reregistration Manager, FFC Operator, plus a 4-tier recruitment ladder: Auditor → Operator → Manager → Admin). A defense-in-depth admin-UX layer hides core WP menus, blocks direct-URL access, and prunes the top admin bar per role. The 3 legacy non-namespaced certificate caps (`view_own_certificates` etc.) are renamed to the consistent `ffc_*` namespace with a one-time idempotent migration. A pre-existing in-place-upgrade bug that left recruitment tables un-created when bypassing reactivation is fixed.
+Capabilities + roles overhaul: 14 granular admin caps replace blanket `manage_options` gates, 9 pre-built roles wrap them, and an admin-UX scoping layer hides core menus per role.
 
 ### Added
 
-- **14 new granular capabilities** (`ADMIN_CAPABILITIES` constant, registered on activation + auto-granted to administrators on version bump):
-  - Cross-module: `ffc_manage_certificates`, `ffc_export_certificates`, `ffc_manage_self_scheduling`, `ffc_manage_audiences`, `ffc_view_activity_log`, `ffc_manage_user_custom_fields`, `ffc_view_as_user`, `ffc_manage_settings`.
-  - Per-domain recruitment: `ffc_view_recruitment`, `ffc_import_recruitment_csv`, `ffc_call_recruitment_candidates`, `ffc_view_recruitment_pii`, `ffc_manage_recruitment_settings`, `ffc_manage_recruitment_reasons`. The umbrella `ffc_manage_recruitment` cap stays as the catch-all backwards-compat for routes that don't match a granular cap.
-- **9 new roles** registered idempotently on activation and on `plugins_loaded` so in-place plugin updates self-heal:
-  - Cross-module: `ffc_certificate_manager`, `ffc_self_scheduling_manager`, `ffc_audience_manager`, `ffc_reregistration_manager`, `ffc_operator` (read-only generalist).
-  - Recruitment tier (each tier inherits from the one above): `ffc_recruitment_auditor` (read-only), `ffc_recruitment_operator` (auditor + can call candidates), `ffc_recruitment_manager` (existing role expanded with the new granular caps), `ffc_recruitment_admin` (full surface incl. settings + reasons).
-- **`AdminMenuVisibility`** — defense-in-depth UX layer hiding core WP menus (Posts/Comments/Pages/Tools/Plugins/Themes/Users), blocking direct-URL access (redirect to the role's landing page), and pruning top admin-bar nodes (`new-content`, `comments`) per FFC role. `manage_options` users are exempt; multi-role users inherit the most permissive policy. NOT a security boundary — caps remain the source of truth; this is UX scoping.
-- **`Utils::current_user_can_admin_or( $cap )`** helper — passes if the user has `manage_options` OR the granular cap. Used at every gate point swapped from blanket `manage_options` to a granular cap, keeping every site admin's access intact.
+- 14 granular admin capabilities (cross-module + per-domain recruitment; umbrella `ffc_manage_recruitment` kept as catch-all).
+- 9 roles (Certificate / Self-Scheduling / Audience / Reregistration managers, FFC Operator, + a 4-tier recruitment ladder), registered idempotently so in-place updates self-heal.
+- `AdminMenuVisibility` UX layer (hides core menus, blocks direct URLs, prunes the admin bar per role — UX, not the security boundary); `Utils::current_user_can_admin_or()`.
 
 ### Changed
 
-- **`ffc_certificate_update` reactivated** — was a never-wired placeholder in `FUTURE_CAPABILITIES` since 4.9.3. Promoted to `ADMIN_CAPABILITIES` and now gates `class-ffc-admin-submission-edit-page.php` so non-admin operators can fix typos in issued certificates. The user-edit metabox label was also rewritten from "Future feature" placeholders to a real description.
-- **3 legacy certificate caps renamed** to the consistent `ffc_*` namespace + one-time migration (`ffc_legacy_caps_renamed_v1` flag):
-  - `view_own_certificates` → `ffc_view_own_certificates`
-  - `download_own_certificates` → `ffc_download_own_certificates`
-  - `view_certificate_history` → `ffc_view_certificate_history`
-  Migration walks every WP user, transfers user-meta grants from the legacy name to the new name, and rewrites the `ffc_user` role definition. Idempotent + version-flagged so re-running is a no-op.
-- **20+ admin entry points re-gated** from `manage_options` to the corresponding granular cap (or `manage_options` OR `ffc_*` via `Utils::current_user_can_admin_or`), including: Activity Log page, CSV exporter, Self-Scheduling admin/CPT/cleanup/CSV, Audience admin (5 pages + 8 menu items), Settings page (4 inline guards + save handler), Dashboard view-as-user, Submission edit page, Reregistration custom-fields page. The recruitment REST controller adds 4 dedicated permission callbacks for the highest-blast-radius routes (CSV import, promote-preview, single + bulk call, reasons CRUD); other recruitment routes stay on the umbrella `ffc_manage_recruitment` cap by design.
+- `ffc_certificate_update` reactivated (gates the issued-certificate edit screen); 3 legacy certificate caps renamed to the `ffc_*` namespace (one-time migration); 20+ admin entry points re-gated from `manage_options` to granular caps.
 
 ### Removed
 
-- **`ffc_reregistration` placeholder cap** — never wired since its 4.9.3 introduction. Audience-targeting on reregistration objects already filters who can submit each form, so the per-user cap was redundant. Removed from `ADMIN_CAPABILITIES`; the `FUTURE_CAPABILITIES` constant is now empty (kept as `array` so external code referencing it doesn't fatal). `uninstall.php` continues to strip the cap from any user that had it granted.
+- `ffc_reregistration` placeholder cap (never wired; audience-targeting already covers it).
 
 ### Fixed
 
-- **Recruitment tables + manager role no longer require deactivate/reactivate** to land on in-place plugin updates. `register_activation_hook` is the only entry-point firing `RecruitmentActivator::create_tables` and `CapabilityManager::register_recruitment_manager_role` in 6.0.0–6.1.0; the WordPress "Update plugin" button DOES NOT fire that hook. Effect on the affected cohort: `maybe_migrate` ran on `plugins_loaded` against tables that didn't exist, silently failing. Fix: hook `create_tables` at `plugins_loaded` priority 9 + role registration at priority 10 (before `maybe_migrate` at priority 11). All three calls are idempotent — each table-create + role-register short-circuits when the artifact already exists.
-- **`_load_textdomain_just_in_time was called incorrectly` notice** (WP 6.7+) emitted by the v6.2.0 role-registration hooks. WP 6.7+ rejects `__` calls before `init`; the role labels were resolved via `__` on `plugins_loaded` callbacks. Both `Loader::register_ffc_roles_safe` and the recruitment-loader's role registration now hook on `init` priority 1 instead of `plugins_loaded`. Non-translated work (`create_tables`, `maybe_migrate`) stays on `plugins_loaded`.
-- **FFC role labels not translatable on `wp-admin/users.php`.** WordPress stores the role label verbatim in the `wp_user_roles` option at `add_role` time, then displays it via `translate_user_role` against the **default** WP textdomain — so plugin-provided role labels never translate, even after the `.po` is loaded. New `CapabilityManager::relabel_ffc_roles` hooks `wp_roles_init` and re-applies `__` against the plugin's textdomain on every page load. Affects the 11 FFC roles (`ffc_user`, `ffc_recruitment_manager`, plus the 9 added in this release).
-- **Per-area debug toggles for the legacy `Utils::debug_log` callsites.** 76 calls across 29 files used to fire whenever `WP_DEBUG=true` with no per-area toggle (e.g. `[FFC] Form shortcode rendered` would spam the log on every shortcode render). Migrated to the existing `Debug::log_*` system with 5 new areas (`AREA_FRONTEND`, `AREA_ADMIN`, `AREA_SELF_SCHEDULING`, `AREA_AUDIENCE`, `AREA_QRCODE`) so each domain has its own toggle in Settings → Advanced → Debug. `Utils::debug_log` is now `@deprecated` and delegates to `Debug::AREA_FORM_PROCESSOR` for backwards compat. Existing 9 area toggles are unchanged.
-
----
+- Recruitment tables + manager role no longer require deactivate/reactivate on in-place updates (hooked at `plugins_loaded`, idempotent); fixed the WP 6.7+ `_load_textdomain_just_in_time` notice; FFC role labels translate on `users.php`.
 
 ## [6.1.0] (2026-05-02)
 
-**Recruitment admin UX parity + dashboard integration + Preliminary list visual axis.**. Recruitment admin moves from inline `<table>` placeholders to full `WP_List_Table` listings with pagination, search, sort, bulk actions + dedicated edit screens. Candidate-self section becomes an automatic tab inside `[user_dashboard_personal]`. Preliminary list gains a configurable visual axis (Empty / Denied / Granted / Appeal denied / Appeal granted) backed by a global Reasons catalog without touching the state machine.
+Recruitment admin UX parity + dashboard integration + a Preliminary-list visual axis.
 
 ### Added
 
-- **List-table admin (Notices / Adjutancies / Candidates / Reasons)** — sortable, paginated, searchable, with bulk-delete + nonce-protected row actions.
-- **Dedicated edit screens** for notices (5 sections incl. transitions, attach/detach, CSV import, classifications) + candidates (general, sensitive data, classification + call history, hard-delete) + reasons.
-- **Notice ↔ adjutancy attach UI + REST** (`PUT/DELETE /notices/{id}/adjutancies/{adjutancy_id}`) — fixes a `recruitment_notice_has_no_adjutancies` 400 that blocked CSV imports on fresh installs.
-- **Semicolon CSV delimiter auto-detection** for BR/EU spreadsheet exports (sniffs `,` vs `;` outside quoted segments).
-- **Per-adjutancy + per-status badge colors** with operator-configurable palettes via `<input type="color">`. Schema migration v4 adds `color` column to `ffc_recruitment_adjutancy`.
-- **Public shortcode polish** — adjutancy filter (functional now; was silently ignored), name search (`?q=`), subscription-type filter (PCD/GERAL), persistent filter UI, BR-format dates (DD-MM-YYYY) + 2-decimal scores.
-- **Out-of-order call confirm + reason prompt** (single + bulk).
-- **12h public-shortcode cache TTL** with admin-write invalidation via versioned cache key.
-- **Dashboard view-as fix** — `RecruitmentDashboardSection::render_for_user( int $user_id )` threads the impersonated user id through; standalone shortcode also honors `DashboardViewMode::get_view_as_user_id`.
-- **Preliminary visual statuses + Reasons catalog.** Schema migration v5 adds `preview_status` ENUM + `preview_reason_id` to `ffc_recruitment_classification` and creates `ffc_recruitment_reason` (slug, label, color, applies_to CSV). New REST surface `/recruitment/reasons`. Per-row inline `preview_status` + `reason` dropdowns on the Preliminary tab; reason dropdown auto-filters by `applies_to`. Per-notice `public_columns_config.preview_reason` toggle controls public visibility.
-- **Optional CSV columns `time_points` (DECIMAL) + `hab_emebs` (TINYINT)** — schema migration v6 adds them to `ffc_recruitment_classification`; both default 0 so existing CSVs unaffected.
-- **CSV import activity indicator + example-CSV download** on the notice edit page.
-- **Notice-status configurable badge colors** (4 sub-keys for draft / preliminary / definitive / closed).
-- **Empty-state guidance card** on the Notices tab for fresh installs; **bulk-call date/time pre-fill** via localStorage.
-- **`preliminary → definitive` confirm prompt** + **client-side preflight** of the reason-required flag.
-- **`Core\BadgeHtml` precursor** — single shared badge HTML helper consolidating 7 near-identical inline-styled renderers.
+- Full `WP_List_Table` admin (Notices / Adjutancies / Candidates / Reasons) + dedicated edit screens; notice ↔ adjutancy attach UI + REST.
+- Semicolon CSV auto-detection; per-adjutancy + per-status configurable badge colors; out-of-order call confirm + reason prompt; 12h public-shortcode cache with admin-write invalidation.
+- Preliminary visual statuses + global Reasons catalog (`preview_status` + `preview_reason_id`, new `/recruitment/reasons` REST); optional CSV columns `time_points` + `hab_emebs`; CSV import activity indicator + example download.
 
 ### Changed
 
-- **Notice status `active` → `definitive`** (intermediate `final` rename retired). Schema migrations v2 + v3 cover both upgrade cohorts idempotently. Error code `recruitment_definitive_to_preliminary_blocked_by_calls` finalized — REST consumers should update.
-- **CSV import flow relocated** from the Candidates tab to the Notice edit screen (operator is already editing the target notice — no need for the picker).
-- **Public shortcode status branching** rebalanced — `draft` / `preliminary` / `definitive` / `closed` each get appropriate banners + listing visibility.
-- **`UserCreator::generate_username`** prefers the email prefix over name-based slugs (aligns recruitment promotion with the legacy form-submission path).
-- **`public_columns_config` editor** swapped from raw-JSON textarea to on/off checkbox grid; mandatory columns (rank, name) cannot be turned off.
-- **FFC top-level menu positions** floated to 26.1 / 26.2 / 26.3 to keep the FFC block contiguous against third-party plugins claiming integer 26/27/28.
-- **Public shortcode "Called" section** sort: newest-first.
-- **i18n sweep** — stray pt-BR strings cleared from docstrings; "Not yet called" → "Waiting called".
+- Notice status `active` → `definitive` (idempotent migrations); CSV import relocated to the Notice edit screen; `public_columns_config` editor swapped to a checkbox grid (mandatory columns locked); FFC menu positions floated to keep the block contiguous.
 
 ### Performance
 
-- **Public shortcode candidate-fetch**: N round-trips → 1 (`RecruitmentCandidateRepository::get_by_ids` warms the object cache with a single `WHERE id IN (...)`). 30–50% latency improvement on cold-cache renders.
+- Public shortcode candidate fetch: N round-trips → 1 (`get_by_ids`), 30–50% faster on cold cache.
 
 ### Fixed
 
-- **OOO call detection** scoped to the Definitive panel only (was scanning Preliminary rows whose `status='empty'` invariant produced false positives).
-- **Bulk-call OOO false positives** — per-adjutancy threshold now ignores rows in the same selection.
-- **Admin alerts** surface `body.message` instead of the raw JSON envelope on REST errors.
-
-### Note
-
-- **No "Trash" / soft-delete** on Notices, Adjutancies, Candidates — per -bis of the recruitment plan, hard-delete-with-referential-gates is the explicit choice. The "preserve history" path for notices is `status=closed`.
-
----
+- Out-of-order call detection scoped to the Definitive panel; bulk-call false positives; admin alerts surface `body.message` instead of the raw envelope.
 
 ## [6.0.4] (2026-05-01)
 
-**Recruitment admin UI — Candidates tab CSV import + editable Settings tab.** The two surfaces that shipped as MVP placeholders in 6.0.0 / 6.0.2 are now functional: the **Candidates** tab gets a CSV upload form (notice picker + file input) wired to `POST /notices/{id}/import` with an inline status panel; the **Settings** tab moves from a read-only key/value dump to a full edit form backed by the WP Settings API (`options.php` + `register_setting`'s sanitize callback), exposing all 7 sub-keys (email subject / from address / from name / body HTML, public cache TTL, public rate limit, public default page size).
-
 ### Added
 
-- **CSV import form on the Candidates tab.** `RecruitmentAdminPage::render_csv_import_form` lists every notice in `draft` or `preliminary` (the only states that accept preview-list import per ) in a `<select>`, prompts for a CSV file (UTF-8, EN headers, `accept=".csv,text/csv"`), and POSTs the multipart payload to `/wp-json/ffcertificate/v1/recruitment/notices/{id}/import` with `X-WP-Nonce` cookie auth. An inline status span surfaces the JSON response (count + errors on success, error code on rejection). Active / closed notices are filtered out of the dropdown so the operator can't pick a notice the endpoint will reject. If no notice is in `draft`/`preliminary`, the form renders a "create a notice first" hint pointing at the Notices tab.
-- **Editable Settings tab.** `RecruitmentAdminPage::render_settings_tab` now renders an HTML form posting to `options.php` with `settings_fields(RecruitmentSettings::OPTION_GROUP)` so the Settings API runs `RecruitmentSettings::sanitize` on save. Two sections: **Email template** (subject, from address, from name, HTML body in a code-styled textarea) and **Public shortcode** (cache TTL seconds, per-IP rate limit per minute, default page size). Inline placeholder reference for the email template lists every supported `{{token}}`. Replaces the previous read-only `<table class="widefat">` dump that exposed values without an edit path.
-
----
+- Recruitment Candidates tab: CSV import form (notice picker + file → `POST /notices/{id}/import`) with an inline status panel.
+- Recruitment Settings tab: editable form via the WP Settings API (email template + public shortcode knobs), replacing the read-only dump.
 
 ## [6.0.3] (2026-05-01)
 
-**Three-fix release.** (1) i18n cleanup of the recruitment module. (2) Capability-resolution bug — multi-role users (admin + ffc_user) had FFC caps blocked by ffc_user's explicit `=> false` entries via WP's `array_merge` cap resolution. (3) `AudienceBookingRepository::count` silently ignored `start_date`/`end_date` filters, causing the dashboard's "upcoming bookings" stat to count past + future + cancelled bookings indiscriminately.
-
 ### Fixed
 
-- **Capability resolution for multi-role users.** The `ffc_user` role was registered with every FFC cap as `=> false`. WP's `WP_User::get_role_caps` merges role capability maps via `array_merge`, and an explicit `false` in one role overwrites a `true` from another — so an `administrator + ffc_user` user had every FFC cap silently denied at the role layer regardless of what `administrator` granted. Live repro: `current_user_can( 'manage_ffc_forms' )` returned false on multi-role admins. Fix: `ffc_user` role now omits the FFC caps entirely instead of setting them to `false`, so the merge no longer overwrites grants from a stronger role.
-- **`AudienceBookingRepository::count` honors `start_date` / `end_date` filters.** Pre-6.0.3 the method only handled `environment_id`, `status`, `booking_date`, `created_by` and silently dropped any other filter key. The `AudienceAdminDashboard::get_audience_stats` "upcoming bookings" stat passed `start_date => current_time('Y-m-d')` expecting "bookings on or after today" — but the filter was discarded and the count returned every active booking ever made. Added `WHERE booking_date >= %s` and `WHERE booking_date <= %s` clauses mirroring `get_all` (lines 110-118). Two new unit tests pin the SQL shape.
+- Capability resolution for multi-role users — `ffc_user` no longer sets FFC caps to `false` (which `array_merge` let overwrite a stronger role's grant).
+- `AudienceBookingRepository::count` now honors `start_date` / `end_date` filters (fixes the inflated "upcoming bookings" stat).
 
-### Changed (i18n)
+### Changed
 
-- **Public shortcode (`class-ffc-recruitment-public-shortcode.php`)** — 21 source-key conversions: error messages (`Notice not found.`, `Notice not yet published.`, `Adjutancy not found for this notice.`, `No candidates classified yet.`, `Notice closed.`, `Too many requests. Please try again in a few seconds.`), section headers (`Not yet called`, `Called`), table column headers (`Rank`, `Name`, `Score`, `Status`, `Date to assume`), filter UI (`Filter by adjutancy:`, `All`), status pills (`Waiting`, `Called`, `Did not show up`, `Hired`).
-- **Candidate-self dashboard (`class-ffc-recruitment-dashboard-section.php`)** — 22 source-key conversions: section heading (`My Calls`), classification banners (`Preliminary classification — subject to review`, `Final classification`), block headings (`Your classification(s) for this notice`, `Call history`), empty-state copy (`You have not been called for this notice yet.`, `No classification visible at the moment.`), table columns (`Adjutancy`, `Rank`, `Score`, `Status`, `Called at`, `Date to assume`, `Time`, `Notes`), situação derivations (`Waiting`, `Called`, `Did not show up`, `Hired`, `Cancelled`, `Call reverted`).
-- **Admin page (`class-ffc-recruitment-admin-page.php`)** — 16 source-key conversions: cap-deny copy (`Access denied.`), notices table (`Code`, `Name`, `Status`, `Reopened?`, `Created at`, `Yes`), empty states (`No notices registered yet.`, `No adjutancies registered yet.`), candidates-tab placeholder copy, settings-tab read-only banner, form labels (`Create new notice`, `Create`, `Create new adjutancy`), REST help summary (`Available REST endpoints`, `All admin endpoints require the ffc_manage_recruitment capability.`).
-- **Settings (`class-ffc-recruitment-settings.php`)** — default email subject (`Convocação - {{notice_code}} - {{adjutancy}}` → `Call - {{notice_code}} - {{adjutancy}}`) and the entire default body HTML template normalized to EN-source. Placeholder tokens (`{{name}}`, `{{notice_code}}`, etc.) are unchanged.
-- **`languages/ffcertificate-pt_BR.po`** — appended one PT translation entry per new EN msgid (45 entries total across the four files). The legacy PT-source msgids that the source code no longer references are left in place (orphaned but harmless); a `wp i18n make-pot` regeneration in a future maintenance pass will prune them automatically.
-- **Tests** — `RecruitmentDashboardSectionTest` and `RecruitmentPublicShortcodeTest` flipped from asserting on PT-rendered strings (`Classificação preliminar`, `Edital não informado.`, etc.) to asserting on the new EN sources, since Brain\Monkey's `__` stub returns the msgid verbatim. 214 recruitment tests / 629 assertions still green.
-
----
+- Recruitment module i18n: ~59 source-key conversions to English across the public shortcode, candidate-self dashboard, admin page and settings (PT-BR flows via `.po`).
 
 ## [6.0.2] (2026-05-01)
 
-**UX — wp-admin sidebar.** The recruitment module gets its own top-level menu item (icon `dashicons-groups`, position 28) instead of being tucked under the `ffc_form` CPT, mirroring the Audience (position 26) and Reregistration (position 27) modules so the three sibling business modules sit together in the sidebar. The `ffc_form` CPT's `menu_name` is also shortened from "Free Form Certificate" (full plugin name) to just "Certificate" (the actual content the menu manages). All sidebar-visible labels in the recruitment module — menu name, page heading, four tab labels — are also normalized from Portuguese-source to English-source `__` keys per the i18n convention (Portuguese flows in via `.po`, never as the source string).
-
 ### Changed
 
-- **`RecruitmentAdminPage::register_menu` switched from `add_submenu_page('edit.php?post_type=ffc_form', …)` to `add_menu_page(…, 'dashicons-groups', 28)`.** The four-tab layout (Notices, Adjutancies, Candidates, Settings) is unchanged; only the parent and the sidebar entry move. Tab URLs in `render_tabs` swap `admin_url('edit.php')` + `post_type=ffc_form` for `admin_url('admin.php')` since the page is no longer a CPT child.
-- **`CPT::register_form_cpt` `menu_name` label changed from "Free Form Certificate" to "Certificate".** The verbose plugin-name label was a holdover from the pre-modularization era; the menu now describes its content (certificates) rather than its owner (the plugin).
-- **i18n normalization in `RecruitmentAdminPage`.** The five sidebar-visible labels (menu name, page heading, four tab names + their h2 headers) now use English-source `__` keys: `Recrutamento` → `Recruitment`, `Editais` → `Notices`, `Matérias` → `Adjutancies`, `Candidatos` → `Candidates`, `Configurações` → `Settings`. Portuguese rendering continues to flow through `languages/ffcertificate-pt_BR.po`. Note: the deeper recruitment surface (form labels, status messages, button text in the public shortcode and candidate-self dashboard) still has ~40 Portuguese-source `__` keys that need a follow-up sweep — they were not touched in this PR to keep the diff focused on the sidebar UX the user can actually see.
-
----
+- Recruitment module gets its own top-level menu (`dashicons-groups`, position 28) instead of living under the `ffc_form` CPT; `ffc_form` `menu_name` shortened to "Certificate"; sidebar-visible labels normalized to English source.
 
 ## [6.0.1] (2026-05-01)
 
-**Hotfix — recruitment activator: `dbDelta` rejects column-level `COMMENT '…'` clauses.** The 6.0.0 `CREATE TABLE` statements for `ffc_recruitment_notice`, `ffc_recruitment_candidate`, `ffc_recruitment_classification`, and `ffc_recruitment_call` carried inline `COMMENT 'documentation text'` clauses on several columns. WordPress's `dbDelta` parser does not understand the `COMMENT '…'` syntax — the apostrophes break its column-definition regex, the malformed SQL is forwarded to the database, and MariaDB rejects it with "syntax error near 'Site TZ'" / "near 'HMAC(salt, (1|0)||id)'" / "near 'Ties allowed'". The four tables were never actually created on activation; only `ffc_recruitment_adjutancy` and `ffc_recruitment_notice_adjutancy` (which had no COMMENT clauses) made it through, leaving the schema half-populated and any recruitment admin / shortcode access broken with `WP_Error` from missing tables.
-
 ### Fixed
 
-- **`RecruitmentActivator` — strip every column-level `COMMENT '…'` clause from the four affected `CREATE TABLE` statements** (`includes/recruitment/class-ffc-recruitment-activator.php`). Column semantics live in the entity classes' PHPDoc per the original plan; they don't belong in `dbDelta`-bound SQL. Existing 6.0.0 installs that hit this bug recover by reactivating the plugin: `RecruitmentActivator::create_tables` skips already-created tables via `table_exists` and recreates only the four that failed.
-
----
+- Recruitment activator: stripped column-level `COMMENT '…'` clauses that `dbDelta` rejected, which had left four recruitment tables un-created on 6.0.0 activation (recover by reactivating).
 
 ## [6.0.0] (2026-05-01)
 
-**Recruitment module** for Brazilian public-tender ("concurso público")
-candidate queue management, plus PHPStan baseline retirement
-(level 7 → 8, zero errors, no baseline).
+**Recruitment module** for Brazilian public-tender candidate-queue management, plus PHPStan baseline retirement (level 7 → 8, zero errors).
 
 ### Added
 
-- **Recruitment module (PRs)**: six new InnoDB tables under `ffc_recruitment_*`, six repositories with `@phpstan-type` row aliases, atomic CSV importer (single-transaction wipe+reinsert, rollback on any validation error), two state machines (Notice `draft|preliminary|active|closed`, Classification `empty|called|accepted|hired|not_shown` with reopen-freeze cross-aggregate rule), call/promotion/delete services, PCD HMAC hasher, email dispatcher with masked placeholders, 21-route admin REST surface under `ffcertificate/v1/recruitment`, `[ffc_recruitment_queue]` public shortcode + `[ffc_recruitment_my_calls]` candidate dashboard section, wp-admin Recrutamento submenu, `ffc_manage_recruitment` capability + `ffc_recruitment_manager` role, single serialized `ffc_recruitment_settings` option, `uninstall.php` cleanup. 21 test classes, ~229 tests, ~668 assertions.
-- **"Move to form…" bulk action** on the Submissions admin list. Available when the list is filtered by exactly one form; opens a modal picker, runs identifier-based conflict detection (`cpf_hash`/`rf_hash`/`email_hash`/`user_id`), keeps duplicates in the source, reports the conflicting IDs back. New `SubmissionRepository::moveBetweenForms` + `SubmissionHandler::move_submissions_between_forms` + dedicated modal JS/CSS bundle. Single `submission_moved` audit entry per call.
-- **PHPStan repository row aliases** across audience, reregistration, submission, appointment, and blocked-date repositories.
-- **`CONTRIBUTING.md` "Static analysis conventions" section** documenting the deliberate `@phpstan-ignore` patterns on `$wpdb->prepare` literal-string requirements and the `@phpstan-type`/`@phpstan-import-type` workflow.
+- Recruitment module: six `ffc_recruitment_*` tables + repositories, atomic CSV importer, two state machines (notice + classification with reopen-freeze), call/promotion/delete services, PCD HMAC hasher, masked-placeholder email dispatcher, 21-route admin REST surface, `[ffc_recruitment_queue]` + `[ffc_recruitment_my_calls]` shortcodes, the Recrutamento submenu, `ffc_manage_recruitment` cap + `ffc_recruitment_manager` role, `uninstall.php` cleanup.
+- "Move to form…" bulk action on the Submissions list (identifier-based conflict detection, audited).
+- PHPStan repository row aliases; `CONTRIBUTING.md` static-analysis conventions section.
 
 ### Changed
 
-- **PHPStan level 7 → 8**, baseline of 231 suppressed errors retired, `treatPhpDocTypesAsCertain: false` removed. Reached by typing every repository row shape, removing 20 `@deprecated Utils::*` shims (150+ call sites migrated to `DocumentFormatter`/`AuthCodeService`/ `SecurityService`/`DataSanitizer`), and hardening nullability across ~40 files.
-- **`phpstan-stubs.php` parses constants from `ffcertificate.php`** — the hand-maintained `FFC_VERSION` had drifted three minors behind.
-- **`AudienceEnvironmentRepository::get_working_hours`** typed `array<string, …>` (weekday-slug-keyed) to match the actual JSON column shape.
-- **`ActivityLog` vocabulary** gains `submission_moved`.
+- PHPStan level 7 → 8, 231-entry baseline retired (typed every repository row shape, removed 20 `@deprecated Utils::*` shims across 150+ call sites).
+- `phpstan-stubs.php` parses `FFC_VERSION` from the plugin file; `AudienceEnvironmentRepository::get_working_hours` typed; `ActivityLog` gains `submission_moved`.
 
 ### Fixed
 
-- **Null narrowing across 5 PHPStan level-8 hotspots**: `UserManager::get_user_emails` post-decryption type, `wp_date`/`gmdate` consumers of `strtotime` results in the reregistration + verification + ficha screens, `get_post` null in the frontend form processor, `preg_replace` return in `DocumentFormatter`, `MigrationRegistry::get_migration` null in `MigrationStatusCalculator`.
+- Null narrowing across 5 PHPStan level-8 hotspots.
 
 ### Removed
 
-- `phpstan-baseline.neon` (231 entries), 20 `@deprecated Utils::*` shim methods + the `PHONE_REGEX` constant, `Admin\CsvExporter::handle_export_request` redirect stub + its two hook registrations, two "remove in next major" legacy fallbacks (`ReprintDetector` JSON-LIKE scan and `VerificationHandler::build_appointment_result` `cpf_rf` legacy column), and three dead `onlyWritten` properties (`Admin::$form_editor`, `$settings_page`, `Frontend::$dynamic_fragments`). (PRs)
+- `phpstan-baseline.neon`, 20 `@deprecated Utils::*` shims + `PHONE_REGEX`, the `CsvExporter::handle_export_request` stub, two "remove in next major" legacy fallbacks, and three dead properties.
 
 ### Security
 
-- Move-action bulk endpoint gated by `manage_options` + `bulk-submissions` nonce — no new capability surface.
+- Move-action bulk endpoint gated by `manage_options` + nonce (no new capability surface).
 
 ---
 

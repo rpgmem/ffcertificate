@@ -228,6 +228,23 @@ final class RecruitmentClassificationsRestController {
 
 		register_rest_route(
 			$ns,
+			$base . '/classifications/(?P<id>\d+)/override-to-empty',
+			array(
+				'methods'             => \WP_REST_Server::CREATABLE,
+				'callback'            => array( $this, 'override_classification_to_empty' ),
+				'permission_callback' => array( $this, 'check_admin_cap' ),
+				'args'                => array(
+					'reason' => array(
+						'type'              => 'string',
+						'required'          => true,
+						'sanitize_callback' => 'sanitize_text_field',
+					),
+				),
+			)
+		);
+
+		register_rest_route(
+			$ns,
 			$base . '/classifications/(?P<id>\d+)/preview-status',
 			array(
 				'methods'             => \WP_REST_Server::EDITABLE,
@@ -270,7 +287,7 @@ final class RecruitmentClassificationsRestController {
 			array(
 				'methods'             => \WP_REST_Server::DELETABLE,
 				'callback'            => array( $this, 'delete_classification' ),
-				'permission_callback' => array( $this, 'check_admin_cap' ),
+				'permission_callback' => array( $this, 'check_can_delete_recruitment' ),
 			)
 		);
 
@@ -599,6 +616,30 @@ final class RecruitmentClassificationsRestController {
 			(string) $request->get_param( 'status' ),
 			is_string( $reason ) ? $reason : null
 		);
+		if ( ! $result['success'] ) {
+			return $this->wp_error_from_envelope( $result['errors'], 409 );
+		}
+
+		return new \WP_REST_Response( $result, 200 );
+	}
+
+	/**
+	 * POST /classifications/{id}/override-to-empty
+	 *
+	 * Admin escape hatch (#Item 8): force a `hired`/`withdrew`/`not_shown`
+	 * classification back to `empty`, undoing a realized decision. Bypasses
+	 * the terminal guard and the reopen-freeze; the mandatory `reason` is
+	 * audited as a privileged override event. Reopening the vacancy and
+	 * restoring the candidate's queue position fall out of the status flip
+	 * (see {@see RecruitmentClassificationStateMachine::admin_override_to_empty}).
+	 *
+	 * @param \WP_REST_Request $request Request.
+	 * @return \WP_REST_Response|\WP_Error
+	 */
+	public function override_classification_to_empty( \WP_REST_Request $request ) {
+		$id     = (int) $request->get_param( 'id' );
+		$reason = (string) $request->get_param( 'reason' );
+		$result = RecruitmentClassificationStateMachine::admin_override_to_empty( $id, $reason );
 		if ( ! $result['success'] ) {
 			return $this->wp_error_from_envelope( $result['errors'], 409 );
 		}

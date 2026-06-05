@@ -33,7 +33,7 @@ class CertificatesDashboardTest extends TestCase {
     public function test_constants_match_planned_values(): void {
         $this->assertSame( 'ffc-certificates-dashboard', CertificatesDashboard::MENU_SLUG );
         $this->assertSame( 'edit.php?post_type=ffc_form', CertificatesDashboard::PARENT );
-        $this->assertSame( 'edit_others_posts', CertificatesDashboard::CAPABILITY );
+        $this->assertSame( 'ffc_view_certificates', CertificatesDashboard::CAPABILITY );
     }
 
     public function test_init_registers_admin_menu_hooks(): void {
@@ -61,7 +61,7 @@ class CertificatesDashboardTest extends TestCase {
         $this->assertCount( 1, $captured );
         // add_submenu_page args: parent_slug, page_title, menu_title, capability, menu_slug, callback.
         $this->assertSame( 'edit.php?post_type=ffc_form', $captured[0][0] );
-        $this->assertSame( 'edit_others_posts', $captured[0][3] );
+        $this->assertSame( 'ffc_view_certificates', $captured[0][3] );
         $this->assertSame( 'ffc-certificates-dashboard', $captured[0][4] );
     }
 
@@ -102,7 +102,7 @@ class CertificatesDashboardTest extends TestCase {
                 array( 'Add New', 'edit_posts', 'post-new.php?post_type=ffc_form' ),
                 array( 'Submissions', 'manage_options', 'ffc-submissions' ),
                 array( 'Activity Log', 'ffc_view_activity_log', 'ffc-activity-log' ),
-                array( 'Dashboard', 'edit_others_posts', 'ffc-certificates-dashboard' ),
+                array( 'Dashboard', 'ffc_view_certificates', 'ffc-certificates-dashboard' ),
             ),
         );
 
