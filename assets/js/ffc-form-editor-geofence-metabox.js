@@ -24,6 +24,26 @@ jQuery(function ($) {
 	}
 	$('#ffc_geofence_multi_day, input[name="ffc_geofence[time_mode]"]').on('change', syncDuringRow);
 	syncDuringRow();
+
+	// End date floor: with multi-day on, the End must be at least the day after
+	// Start. Keep the native `min` in sync as Start changes so the browser's
+	// date picker flags an out-of-range End live (server-side validate_datetime
+	// is the authority on save).
+	function syncEndDateMin() {
+		var $start = $('#ffc_geofence_date_start');
+		var $end   = $('#ffc_geofence_date_end');
+		if ( ! $start.length || ! $end.length ) { return; }
+		var startVal = $start.val();
+		if ( ! startVal ) { $end.removeAttr('min'); return; }
+		var d = new Date(startVal + 'T00:00:00');
+		if ( isNaN(d.getTime()) ) { $end.removeAttr('min'); return; }
+		d.setDate(d.getDate() + 1);
+		var mm = String(d.getMonth() + 1).padStart(2, '0');
+		var dd = String(d.getDate()).padStart(2, '0');
+		$end.attr('min', d.getFullYear() + '-' + mm + '-' + dd);
+	}
+	$('#ffc_geofence_date_start').on('change', syncEndDateMin);
+	syncEndDateMin();
 });
 
 // Geolocation: each area picker (GPS + IP) toggles between the saved-locations

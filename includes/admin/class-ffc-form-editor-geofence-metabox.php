@@ -91,6 +91,15 @@ class FormEditorGeofenceMetabox {
 		$multi_day_collapsed_class = '1' === $multi_day ? '' : ' ffc-collapsed';
 		$multi_day_aria            = '1' === $multi_day ? 'false' : 'true';
 		$show_during_row           = ( '1' === $multi_day && 'daily' === $time_mode );
+		// Client floor for the End date: with multi-day on it must be at least
+		// the day after Start. The metabox JS keeps this `min` in sync live.
+		$date_end_min = '';
+		if ( '' !== $date_start ) {
+			$start_next_ts = strtotime( $date_start . ' +1 day' );
+			if ( false !== $start_next_ts ) {
+				$date_end_min = gmdate( 'Y-m-d', $start_next_ts );
+			}
+		}
 		$datetime_hide_mode_before = Geofence::resolve_hide_mode( $config, 'before' );
 		$datetime_hide_mode_during = Geofence::resolve_hide_mode( $config, 'during' );
 		$datetime_hide_mode_after  = Geofence::resolve_hide_mode( $config, 'after' );
@@ -184,12 +193,12 @@ class FormEditorGeofenceMetabox {
 					<tr>
 						<th><label><?php esc_html_e( 'Date Range', 'ffcertificate' ); ?></label></th>
 						<td>
-							<label><?php esc_html_e( 'Start:', 'ffcertificate' ); ?> <input type="date" name="ffc_geofence[date_start]" value="<?php echo esc_attr( $date_start ); ?>"<?php echo $invalid_attr( 'date_start' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- closure returns pre-built class attribute. ?>></label>
+							<label><?php esc_html_e( 'Start:', 'ffcertificate' ); ?> <input type="date" id="ffc_geofence_date_start" name="ffc_geofence[date_start]" value="<?php echo esc_attr( $date_start ); ?>"<?php echo $invalid_attr( 'date_start' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- closure returns pre-built class attribute. ?>></label>
 							<span class="ffc-collapsed-target<?php echo esc_attr( $multi_day_collapsed_class ); ?>"
 								data-ffc-master="ffc_geofence_multi_day"
 								aria-hidden="<?php echo esc_attr( $multi_day_aria ); ?>">
 								&nbsp;&nbsp;
-								<label><?php esc_html_e( 'End:', 'ffcertificate' ); ?> <input type="date" name="ffc_geofence[date_end]" value="<?php echo esc_attr( $date_end ); ?>"<?php echo $invalid_attr( 'date_end' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>></label>
+								<label><?php esc_html_e( 'End:', 'ffcertificate' ); ?> <input type="date" id="ffc_geofence_date_end" name="ffc_geofence[date_end]" value="<?php echo esc_attr( $date_end ); ?>" min="<?php echo esc_attr( $date_end_min ); ?>"<?php echo $invalid_attr( 'date_end' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>></label>
 							</span>
 							<p class="description"><?php esc_html_e( 'Leave empty for no date restriction. Format: YYYY-MM-DD', 'ffcertificate' ); ?></p>
 							<p class="description ffc-datetime-order-error"<?php echo $datetime_order_msg ? '' : ' style="display:none;"'; ?>>
