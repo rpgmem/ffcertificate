@@ -32,6 +32,9 @@ class FormEditorEmailMetaboxTest extends TestCase {
         Functions\when( 'admin_url' )->alias( function ( $p = '' ) { return '/wp-admin/' . $p; } );
         Functions\when( 'esc_html_e' )->alias( function ( $text ) { echo $text; } );
         Functions\when( 'wp_kses_post' )->returnArg();
+        Functions\when( 'wp_strip_all_tags' )->alias( function ( $s ) {
+            return trim( strip_tags( (string) $s ) );
+        } );
         Functions\when( 'wp_editor' )->alias( function ( $content, $id ) {
             echo '<textarea id="' . $id . '">' . $content . '</textarea>';
         } );
@@ -88,5 +91,27 @@ class FormEditorEmailMetaboxTest extends TestCase {
         $html = $this->render();
 
         $this->assertStringContainsString( 'Your Certificate', $html );
+    }
+
+    public function test_render_seeds_default_body_when_email_body_empty(): void {
+        // Email enabled, no custom body yet → editor is pre-filled with the
+        // default intro instead of a blank field.
+        $html = $this->render( array( 'send_user_email' => '1' ) );
+
+        $this->assertStringContainsString( FormEditorEmailMetabox::default_email_body(), $html );
+        $this->assertStringContainsString( 'Hello {{name}},', $html );
+    }
+
+    public function test_render_keeps_custom_body_over_default(): void {
+        // A real custom body is preserved (not overwritten by the default).
+        $html = $this->render(
+            array(
+                'send_user_email' => '1',
+                'email_body'      => '<p>My own message</p>',
+            )
+        );
+
+        $this->assertStringContainsString( '<p>My own message</p>', $html );
+        $this->assertStringNotContainsString( 'Use the button below to view and download it', $html );
     }
 }
