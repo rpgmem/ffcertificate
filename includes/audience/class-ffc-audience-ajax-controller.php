@@ -715,7 +715,9 @@ final class AudienceAjaxController {
 	public function ajax_delete_custom_field(): void {
 		try {
 			$this->verify_ajax_nonce( 'ffc_admin_nonce' );
-			$this->check_ajax_permission( 'ffc_manage_custom_fields' );
+			// Deleting a field definition is destructive — gated by the dedicated
+			// delete cap (GAP E), not the broader manage cap.
+			$this->check_ajax_permission( 'ffc_delete_custom_fields' );
 
 			$field_id = $this->get_post_int( 'field_id' );
 			if ( ! $field_id ) {

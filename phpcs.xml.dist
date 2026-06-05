@@ -124,6 +124,14 @@
                 <element value="ffc_manage_recruitment_reasons"/>
                 <element value="ffc_view_recruitment_settings"/>
                 <element value="ffc_view_recruitment_reasons"/>
+                <!-- Destructive delete tier (GAP E). -->
+                <element value="ffc_delete_certificates"/>
+                <element value="ffc_delete_appointments"/>
+                <element value="ffc_delete_audiences"/>
+                <element value="ffc_delete_reregistration"/>
+                <element value="ffc_delete_custom_fields"/>
+                <element value="ffc_delete_recruitment"/>
+                <element value="ffc_delete_url_shortener"/>
                 <!-- Legacy names kept only for migration paths (pre-6.2.0 +
                      the 4.5.0 self_scheduling slug reversed by the taxonomy
                      migration). Not used in live current_user_can() gates. -->

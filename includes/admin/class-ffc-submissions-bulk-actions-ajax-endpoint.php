@@ -83,6 +83,17 @@ class SubmissionsBulkActionsAjaxEndpoint {
 			);
 		}
 
+		// The permanent delete is gated by the dedicated destructive cap (GAP E),
+		// strictly — `manage` alone (which still gates trash/restore above) is
+		// not sufficient. Trash is reversible and stays under `manage`.
+		if ( 'delete' === $action
+			&& ! \FreeFormCertificate\Core\Utils::current_user_can_admin_or( 'ffc_delete_certificates' ) ) {
+			wp_send_json_error(
+				array( 'message' => __( 'You do not have permission to delete submissions.', 'ffcertificate' ) ),
+				403
+			);
+		}
+
 		$raw_ids = isset( $_POST['ids'] ) ? wp_unslash( $_POST['ids'] ) : array();
 		if ( ! is_array( $raw_ids ) ) {
 			$raw_ids = array();

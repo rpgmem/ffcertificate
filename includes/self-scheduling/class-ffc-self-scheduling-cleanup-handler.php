@@ -45,8 +45,9 @@ class SelfSchedulingCleanupHandler {
 			);
 		}
 
-		// Verify permissions.
-		if ( ! \FreeFormCertificate\Core\Utils::current_user_can_admin_or( 'ffc_manage_appointments' ) ) {
+		// Verify permissions. This handler only ever deletes appointments, so it
+		// is gated by the dedicated destructive cap (GAP E), not `manage`.
+		if ( ! \FreeFormCertificate\Core\Utils::current_user_can_admin_or( 'ffc_delete_appointments' ) ) {
 			wp_send_json_error(
 				array(
 					'message' => __( 'You do not have permission to perform this action', 'ffcertificate' ),

@@ -151,6 +151,14 @@ class UrlShortenerAdminPage {
 		$action = sanitize_key( wp_unslash( $_GET['ffc_action'] ) );
 		$nonce  = \FreeFormCertificate\Core\Utils::get_get_string( '_wpnonce' );
 
+		// Removal actions (trash/restore/delete/empty_trash) require the dedicated
+		// destructive cap (GAP E). Toggle stays under manage above.
+		$removal_actions = array( 'trash', 'restore', 'delete', 'empty_trash' );
+		if ( in_array( $action, $removal_actions, true )
+			&& ! \FreeFormCertificate\Core\Utils::current_user_can_admin_or( 'ffc_delete_url_shortener' ) ) {
+			wp_die( esc_html__( 'You do not have permission to delete short URLs.', 'ffcertificate' ) );
+		}
+
 		if ( 'trash' === $action && isset( $_GET['id'] ) ) {
 			if ( ! wp_verify_nonce( $nonce, 'ffc_short_url_trash_' . absint( $_GET['id'] ) ) ) {
 				wp_die( esc_html__( 'Security check failed.', 'ffcertificate' ) );
@@ -236,7 +244,7 @@ class UrlShortenerAdminPage {
 	 */
 	public function ajax_delete(): void {
 		$this->verify_ajax_nonce( 'ffc_short_url_nonce' );
-		$this->check_ajax_permission( 'ffc_manage_url_shortener' );
+		$this->check_ajax_permission( 'ffc_delete_url_shortener' );
 
 		// phpcs:ignore WordPress.Security.NonceVerification.Missing -- Nonce verified in $this->verify_ajax_nonce() above.
 		$id = (int) ( $_POST['id'] ?? 0 );
@@ -253,7 +261,7 @@ class UrlShortenerAdminPage {
 	 */
 	public function ajax_trash(): void {
 		$this->verify_ajax_nonce( 'ffc_short_url_nonce' );
-		$this->check_ajax_permission( 'ffc_manage_url_shortener' );
+		$this->check_ajax_permission( 'ffc_delete_url_shortener' );
 
 		// phpcs:ignore WordPress.Security.NonceVerification.Missing -- Nonce verified in $this->verify_ajax_nonce() above.
 		$id = (int) ( $_POST['id'] ?? 0 );
@@ -270,7 +278,7 @@ class UrlShortenerAdminPage {
 	 */
 	public function ajax_restore(): void {
 		$this->verify_ajax_nonce( 'ffc_short_url_nonce' );
-		$this->check_ajax_permission( 'ffc_manage_url_shortener' );
+		$this->check_ajax_permission( 'ffc_delete_url_shortener' );
 
 		// phpcs:ignore WordPress.Security.NonceVerification.Missing -- Nonce verified in $this->verify_ajax_nonce() above.
 		$id = (int) ( $_POST['id'] ?? 0 );
@@ -287,7 +295,7 @@ class UrlShortenerAdminPage {
 	 */
 	public function ajax_empty_trash(): void {
 		$this->verify_ajax_nonce( 'ffc_short_url_nonce' );
-		$this->check_ajax_permission( 'ffc_manage_url_shortener' );
+		$this->check_ajax_permission( 'ffc_delete_url_shortener' );
 
 		$trashed = $this->service->get_repository()->findPaginated(
 			array(

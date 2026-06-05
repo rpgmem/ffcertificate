@@ -200,7 +200,35 @@ final class CapabilityCatalog {
 					),
 					'ffc_manage_url_shortener'  => array(
 						'label'       => __( 'Manage short URLs', 'ffcertificate' ),
-						'description' => __( 'Create, edit, toggle, trash and delete short URLs.', 'ffcertificate' ),
+						'description' => __( 'Create, edit and toggle short URLs (delete is its own cap below).', 'ffcertificate' ),
+					),
+
+					// Destructive "delete" tier (GAP E) — gates irreversible
+					// removal separately from manage. A manager without these
+					// can create/edit but not delete.
+					'ffc_delete_certificates'   => array(
+						'label'       => __( 'Delete certificates', 'ffcertificate' ),
+						'description' => __( 'Permanently delete certificate submissions (bulk delete).', 'ffcertificate' ),
+					),
+					'ffc_delete_appointments'   => array(
+						'label'       => __( 'Delete appointments', 'ffcertificate' ),
+						'description' => __( 'Permanently delete appointments and calendar cleanup purges.', 'ffcertificate' ),
+					),
+					'ffc_delete_audiences'      => array(
+						'label'       => __( 'Delete audiences', 'ffcertificate' ),
+						'description' => __( 'Delete audiences, calendars, environments and bookings.', 'ffcertificate' ),
+					),
+					'ffc_delete_reregistration' => array(
+						'label'       => __( 'Delete reregistration campaigns', 'ffcertificate' ),
+						'description' => __( 'Delete campaigns and their submissions (cascade).', 'ffcertificate' ),
+					),
+					'ffc_delete_custom_fields'  => array(
+						'label'       => __( 'Delete custom fields', 'ffcertificate' ),
+						'description' => __( 'Delete user/audience custom field definitions.', 'ffcertificate' ),
+					),
+					'ffc_delete_url_shortener'  => array(
+						'label'       => __( 'Delete short URLs', 'ffcertificate' ),
+						'description' => __( 'Trash, restore, permanently delete and empty the short-URL trash.', 'ffcertificate' ),
 					),
 				),
 			),
@@ -244,6 +272,10 @@ final class CapabilityCatalog {
 					'ffc_manage_recruitment_reasons'  => array(
 						'label'       => __( 'Manage reasons', 'ffcertificate' ),
 						'description' => __( 'The status-reason catalog.', 'ffcertificate' ),
+					),
+					'ffc_delete_recruitment'          => array(
+						'label'       => __( 'Delete recruitment records', 'ffcertificate' ),
+						'description' => __( 'Permanently delete notices, candidates, adjutancies and classifications (reason deletion stays under Manage reasons).', 'ffcertificate' ),
 					),
 				),
 			),
