@@ -331,6 +331,17 @@ class CapabilityManager {
 		'ffc_export_appointments',
 		'ffc_export_reregistration',
 		'ffc_export_audiences',
+
+		// Granular "import" tier (GAP H). Bulk CSV ingestion is split out of
+		// `manage` for the domains where loading external data is the most
+		// sensitive action. `ffc_import_audiences` is new; `ffc_import_recruitment`
+		// already exists above but is tightened in 6.9.0 to *strict* enforcement —
+		// its handlers no longer accept the umbrella `ffc_manage_recruitment` as a
+		// fallback, joining `ffc_delete_recruitment` (GAP E) as a carved-out tier.
+		// The one-shot `migrate_import_caps_grant()` migration seeds each import
+		// cap onto every holder of the matching `manage` cap, preserving current
+		// behavior on upgrade. See `import_cap_grant_map()`.
+		'ffc_import_audiences',
 	);
 
 	/**
@@ -480,6 +491,80 @@ class CapabilityManager {
 				if ( isset( $role->capabilities[ $manage ] ) && true === $role->capabilities[ $manage ]
 					&& ! isset( $role->capabilities[ $export ] ) ) {
 					$role->add_cap( $export, true );
+				}
+			}
+		}
+
+		return $counts;
+	}
+
+	/**
+	 * Map of `manage` cap => the `import` cap it seeds on upgrade (GAP H).
+	 *
+	 * The one-shot migration {@see self::migrate_import_caps_grant()} grants the
+	 * value cap to every user/role that already holds the key cap, so existing
+	 * managers keep their bulk-import ability after the import tier is enforced
+	 * strictly. Covers the newly-split `ffc_import_audiences` and the
+	 * `ffc_import_recruitment` cap whose umbrella fallback is removed in 6.9.0
+	 * (custom roles relying on `ffc_manage_recruitment` to import keep working).
+	 * To take import away from a manager, remove the import cap afterward.
+	 *
+	 * @since 6.9.0
+	 * @return array<string, string>
+	 */
+	public static function import_cap_grant_map(): array {
+		return array(
+			'ffc_manage_audiences'   => 'ffc_import_audiences',
+			'ffc_manage_recruitment' => 'ffc_import_recruitment',
+		);
+	}
+
+	/**
+	 * Idempotent migration that seeds each `ffc_import_<domain>` cap onto every
+	 * user and role that already holds the matching `ffc_manage_<domain>` cap
+	 * (GAP H). Preserves current import behavior when the import tier is enforced
+	 * strictly; never removes a `manage` cap.
+	 *
+	 * Runs once per install via {@see \FreeFormCertificate\Loader} on
+	 * `plugins_loaded`, flagged by the `ffc_import_caps_granted_v1` option.
+	 *
+	 * @since 6.9.0
+	 * @return array<string, int> Per-import-cap count of users seeded.
+	 */
+	public static function migrate_import_caps_grant(): array {
+		$map    = self::import_cap_grant_map();
+		$counts = array();
+
+		// 1. User-meta grants.
+		$users = get_users( array( 'fields' => 'ID' ) );
+		foreach ( $map as $manage => $import ) {
+			$counts[ $import ] = 0;
+			foreach ( $users as $user_id ) {
+				$user = get_userdata( (int) $user_id );
+				if ( ! $user ) {
+					continue;
+				}
+				// Seed only where the manage cap is an explicit grant and the
+				// import cap isn't already present (idempotent).
+				if ( isset( $user->caps[ $manage ] ) && true === $user->caps[ $manage ]
+					&& ! isset( $user->caps[ $import ] ) ) {
+					$user->add_cap( $import, true );
+					++$counts[ $import ];
+				}
+			}
+		}
+
+		// 2. Role definitions — administrator + every FFC/custom role.
+		$wp_roles = wp_roles();
+		foreach ( array_keys( $wp_roles->roles ) as $role_slug ) {
+			$role = get_role( $role_slug );
+			if ( ! $role ) {
+				continue;
+			}
+			foreach ( $map as $manage => $import ) {
+				if ( isset( $role->capabilities[ $manage ] ) && true === $role->capabilities[ $manage ]
+					&& ! isset( $role->capabilities[ $import ] ) ) {
+					$role->add_cap( $import, true );
 				}
 			}
 		}
@@ -1017,7 +1102,7 @@ class CapabilityManager {
 			),
 			'ffc_audience_manager'        => array(
 				'label' => __( 'FFC Audience Manager', 'ffcertificate' ),
-				'caps'  => array( 'ffc_view_audiences', 'ffc_manage_audiences', 'ffc_delete_audiences', 'ffc_export_audiences' ),
+				'caps'  => array( 'ffc_view_audiences', 'ffc_manage_audiences', 'ffc_delete_audiences', 'ffc_export_audiences', 'ffc_import_audiences' ),
 			),
 			'ffc_reregistration_manager'  => array(
 				'label' => __( 'FFC Reregistration Manager', 'ffcertificate' ),

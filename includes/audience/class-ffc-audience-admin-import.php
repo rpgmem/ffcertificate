@@ -272,21 +272,24 @@ class AudienceAdminImport {
 	 * @return void
 	 */
 	public function handle_csv_import(): void {
-		// Bulk export is its own capability tier (GAP G), split out of
-		// `ffc_manage_audiences`: the two export branches require
-		// `ffc_export_audiences` only — so a manager can be denied dataset
-		// extraction, and an export-only role works without `manage`. Import and
-		// the sample-template download stay under `manage`. Enter the handler if
-		// the user can do either; each branch enforces its own cap below.
+		// Both bulk export (GAP G) and bulk import (GAP H) are their own
+		// capability tiers, split out of `ffc_manage_audiences`: the export
+		// branches require `ffc_export_audiences`, the import branches require
+		// `ffc_import_audiences`. So a manager can be denied dataset extraction
+		// and/or bulk ingestion, and an export-only or import-only role works
+		// without `manage`. Enter the handler if the user can do any of the
+		// three; each branch enforces its own cap below. The sample-template
+		// download is an import aid, so it follows `manage` or `import`.
 		$can_manage = \FreeFormCertificate\Core\Utils::current_user_can_admin_or( 'ffc_manage_audiences' );
 		$can_export = \FreeFormCertificate\Core\Utils::current_user_can_admin_or( 'ffc_export_audiences' );
-		if ( ! $can_manage && ! $can_export ) {
+		$can_import = \FreeFormCertificate\Core\Utils::current_user_can_admin_or( 'ffc_import_audiences' );
+		if ( ! $can_manage && ! $can_export && ! $can_import ) {
 			return;
 		}
 
-		// Handle sample download (import template — `manage` only).
+		// Handle sample download (import template — `manage` or `import`).
         // phpcs:ignore WordPress.Security.NonceVerification.Recommended
-		if ( $can_manage && isset( $_GET['download_sample'] ) && isset( $_GET['_wpnonce'] ) ) {
+		if ( ( $can_manage || $can_import ) && isset( $_GET['download_sample'] ) && isset( $_GET['_wpnonce'] ) ) {
 			$type = \FreeFormCertificate\Core\Utils::get_get_string( 'download_sample' );
 			if ( wp_verify_nonce( \FreeFormCertificate\Core\Utils::get_get_string( '_wpnonce' ), 'download_sample' ) ) {
 				$filename = 'audiences' === $type ? 'audiences-sample.csv' : 'members-sample.csv';
@@ -320,9 +323,9 @@ class AudienceAdminImport {
 			$this->export_audiences_csv();
 		}
 
-		// Handle members import (`manage` only).
+		// Handle members import (import tier — `ffc_import_audiences`).
 		if ( isset( $_POST['ffc_action'] ) && 'import_members' === $_POST['ffc_action'] ) {
-			if ( ! $can_manage ) {
+			if ( ! $can_import ) {
 				return;
 			}
 			if ( ! wp_verify_nonce( \FreeFormCertificate\Core\Utils::get_post_string( 'ffc_import_members_nonce' ), 'ffc_import_members' ) ) {
@@ -373,9 +376,9 @@ class AudienceAdminImport {
 			}
 		}
 
-		// Handle audiences import (`manage` only).
+		// Handle audiences import (import tier — `ffc_import_audiences`).
 		if ( isset( $_POST['ffc_action'] ) && 'import_audiences' === $_POST['ffc_action'] ) {
-			if ( ! $can_manage ) {
+			if ( ! $can_import ) {
 				return;
 			}
 			if ( ! wp_verify_nonce( \FreeFormCertificate\Core\Utils::get_post_string( 'ffc_import_audiences_nonce' ), 'ffc_import_audiences' ) ) {

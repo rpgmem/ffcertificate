@@ -90,14 +90,17 @@ class RecruitmentRestSupportTraitTest extends TestCase {
         $this->assertTrue( $this->host->check_can_view_recruitment() );
     }
 
-    public function test_check_can_import_csv_accepts_either_cap(): void {
+    public function test_check_can_import_csv_requires_strict_import_cap(): void {
+        // GAP H: import is a carved-out strict tier — the umbrella
+        // `ffc_manage_recruitment` no longer grants it.
         $this->assertFalse( $this->host->check_can_import_csv() );
 
         $this->caps['ffc_import_recruitment'] = true;
         $this->assertTrue( $this->host->check_can_import_csv() );
 
+        // Manage alone is NOT enough anymore.
         $this->caps = array( 'ffc_manage_recruitment' => true );
-        $this->assertTrue( $this->host->check_can_import_csv() );
+        $this->assertFalse( $this->host->check_can_import_csv() );
     }
 
     public function test_check_can_call_candidates_accepts_either_cap(): void {

@@ -72,15 +72,19 @@ trait RecruitmentRestSupport {
 	/**
 	 * Permission gate for CSV import + promote-preview routes. The
 	 * highest-blast-radius operations on the module — replace entire
-	 * preview / definitive lists atomically. Accepts either the granular
-	 * `ffc_import_recruitment` cap or the umbrella
-	 * `ffc_manage_recruitment`.
+	 * preview / definitive lists atomically. Requires the granular
+	 * `ffc_import_recruitment` cap *strictly* (GAP H): the umbrella
+	 * `ffc_manage_recruitment` is no longer accepted as a fallback, so a
+	 * manager can be denied bulk ingestion while keeping view/call/manage.
+	 * Joins `ffc_delete_recruitment` (GAP E) as a carved-out tier. WP admins
+	 * and the FFC recruitment roles hold the cap explicitly; a one-shot
+	 * migration seeds it onto custom roles that relied on the umbrella.
 	 *
 	 * @since 6.2.0
 	 * @return bool
 	 */
 	public function check_can_import_csv(): bool {
-		return current_user_can( 'ffc_import_recruitment' ) || current_user_can( 'ffc_manage_recruitment' );
+		return current_user_can( 'ffc_import_recruitment' );
 	}
 
 	/**

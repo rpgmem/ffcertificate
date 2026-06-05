@@ -248,6 +248,15 @@ final class CapabilityCatalog {
 						'label'       => __( 'Export audiences', 'ffcertificate' ),
 						'description' => __( 'Download the members and audiences CSV exports.', 'ffcertificate' ),
 					),
+
+					// Granular "import" tier (GAP H) — gates bulk CSV ingestion
+					// separately from manage. A manager without this can
+					// configure audiences but not bulk-load members/audiences.
+					// Recruitment's import cap lives in its own group below.
+					'ffc_import_audiences'      => array(
+						'label'       => __( 'Import audiences', 'ffcertificate' ),
+						'description' => __( 'Bulk-load members and audiences from CSV.', 'ffcertificate' ),
+					),
 				),
 			),
 			array(
