@@ -215,6 +215,7 @@ final class RecruitmentAdminAssetsManager {
 					'validationFailed' => __( 'Validation failed — review the per-line errors below and re-import.', 'ffcertificate' ),
 				),
 				'strings'        => array(
+					'networkError'          => __( 'Network error:', 'ffcertificate' ),
 					'processingCsv'         => __( 'Processing CSV…', 'ffcertificate' ),
 					'bulkNoSel'             => __( 'Select at least one row first.', 'ffcertificate' ),
 					'bulkNoDate'            => __( 'Date and time are required for bulk call.', 'ffcertificate' ),

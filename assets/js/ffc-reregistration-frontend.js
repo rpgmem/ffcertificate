@@ -228,13 +228,13 @@
                 var $tbody = $wrap.find('tbody');
                 var $row = $('<tr>' +
                     '<td><select class="ffc-wh-day">' +
-                    '<option value="0">' + (S.sunday || 'Domingo') + '</option>' +
-                    '<option value="1">' + (S.monday || 'Segunda') + '</option>' +
-                    '<option value="2">' + (S.tuesday || 'Terça') + '</option>' +
-                    '<option value="3">' + (S.wednesday || 'Quarta') + '</option>' +
-                    '<option value="4">' + (S.thursday || 'Quinta') + '</option>' +
-                    '<option value="5">' + (S.friday || 'Sexta') + '</option>' +
-                    '<option value="6">' + (S.saturday || 'Sábado') + '</option>' +
+                    '<option value="0">' + (S.sunday || 'Sunday') + '</option>' +
+                    '<option value="1">' + (S.monday || 'Monday') + '</option>' +
+                    '<option value="2">' + (S.tuesday || 'Tuesday') + '</option>' +
+                    '<option value="3">' + (S.wednesday || 'Wednesday') + '</option>' +
+                    '<option value="4">' + (S.thursday || 'Thursday') + '</option>' +
+                    '<option value="5">' + (S.friday || 'Friday') + '</option>' +
+                    '<option value="6">' + (S.saturday || 'Saturday') + '</option>' +
                     '</select></td>' +
                     '<td><input type="time" class="ffc-wh-entry1"></td>' +
                     '<td><input type="time" class="ffc-wh-exit1"></td>' +

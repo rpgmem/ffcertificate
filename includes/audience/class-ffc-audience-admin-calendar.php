@@ -11,6 +11,10 @@ namespace FreeFormCertificate\Audience;
 
 use FreeFormCertificate\Core\Utils;
 
+if ( ! defined( 'ABSPATH' ) ) {
+	exit;
+}
+
 /**
  * Handles calendar admin pages (list, form, actions).
  */
