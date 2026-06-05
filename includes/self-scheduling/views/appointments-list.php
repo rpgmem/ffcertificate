@@ -247,8 +247,8 @@ if ( ! class_exists( 'FFC_Appointments_List_Table' ) ) :
 		 * @param array<string, mixed> $item Row data.
 		 */
 		public function column_time( $item ): string {
-			$start = \FreeFormCertificate\Core\DateFormatter::format_time( (string) $item['start_time'] );
-			$end   = \FreeFormCertificate\Core\DateFormatter::format_time( (string) $item['end_time'] );
+			$start = \FreeFormCertificate\Core\DateFormatter::format_wallclock_time( (string) $item['start_time'] );
+			$end   = \FreeFormCertificate\Core\DateFormatter::format_wallclock_time( (string) $item['end_time'] );
 			return esc_html( $start . ' - ' . $end );
 		}
 

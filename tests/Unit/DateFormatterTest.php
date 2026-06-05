@@ -166,6 +166,48 @@ class DateFormatterTest extends TestCase {
 		$this->assertSame( '', DateFormatter::format_date( 'not a date' ) );
 	}
 
+	public function test_wallclock_empty_or_null_returns_empty_string(): void {
+		$this->assertSame( '', DateFormatter::format_wallclock_date( null ) );
+		$this->assertSame( '', DateFormatter::format_wallclock_time( null ) );
+		$this->assertSame( '', DateFormatter::format_wallclock_date( '' ) );
+		$this->assertSame( '', DateFormatter::format_wallclock_time( '' ) );
+	}
+
+	/**
+	 * The wall-clock helpers render Category B DATE/TIME strings literally —
+	 * no site-timezone shift — while the instant API (format_date/time) applies
+	 * `wp_timezone()`. Re-stubs `wp_date`/`wp_timezone` so the site sits at
+	 * UTC-3 and `wp_date` honours the timezone argument (the default stub in
+	 * setUp ignores it), reproducing the production environment where a 09:00
+	 * appointment slot was displaying as 06:00.
+	 */
+	public function test_wallclock_helpers_do_not_apply_site_timezone(): void {
+		$prev_tz = date_default_timezone_get(); // phpcs:ignore WordPress.DateTime.RestrictedFunctions.timezone_change_date_default_timezone_get
+		date_default_timezone_set( 'UTC' ); // phpcs:ignore WordPress.DateTime.RestrictedFunctions.timezone_change_date_default_timezone_set -- mirror WP core, deterministic strtotime.
+
+		Functions\when( 'wp_timezone' )->alias( static function () {
+			return new \DateTimeZone( '-03:00' );
+		} );
+		Functions\when( 'wp_date' )->alias( static function ( $format, $ts = null, $tz = null ) {
+			$ts = null === $ts ? time() : (int) $ts;
+			$dt = ( new \DateTimeImmutable( '@' . $ts ) )->setTimezone(
+				$tz instanceof \DateTimeZone ? $tz : new \DateTimeZone( 'UTC' )
+			);
+			return $dt->format( $format );
+		} );
+
+		// Wall-clock values render as-is (no -3h shift).
+		$this->assertSame( '09:00', DateFormatter::format_wallclock_time( '09:00:00' ) );
+		$this->assertSame( '17:00', DateFormatter::format_wallclock_time( '17:00:00' ) );
+		$this->assertSame( '20/05/2026', DateFormatter::format_wallclock_date( '2026-05-20' ) );
+
+		// Contrast: the same wall-clock string through the instant API DOES
+		// shift by the site offset — the bug the wall-clock helper avoids.
+		$this->assertSame( '06:00', DateFormatter::format_time( '09:00:00' ) );
+
+		date_default_timezone_set( $prev_tz ); // phpcs:ignore WordPress.DateTime.RestrictedFunctions.timezone_change_date_default_timezone_set
+	}
+
 	// ──────────────────────────────────────────────────────────────.
 	// Resolver public surface
 	// ──────────────────────────────────────────────────────────────.
