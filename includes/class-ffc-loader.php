@@ -325,6 +325,7 @@ class Loader {
 		$this->ensure_legacy_caps_renamed();
 		$this->ensure_taxonomy_renamed();
 		$this->ensure_delete_caps_granted();
+		$this->ensure_export_caps_granted();
 		$this->define_admin_hooks();
 		$this->init_rest_api();
 	}
@@ -416,6 +417,26 @@ class Loader {
 		}
 		if ( class_exists( '\FreeFormCertificate\UserDashboard\CapabilityManager' ) ) {
 			\FreeFormCertificate\UserDashboard\CapabilityManager::migrate_delete_caps_grant();
+		}
+		update_option( $flag, '1', true );
+	}
+
+	/**
+	 * One-time migration that seeds the granular `ffc_export_<domain>` caps
+	 * (GAP G) onto every user/role already holding the matching
+	 * `ffc_manage_<domain>` cap, preserving current bulk-export behavior when the
+	 * export tier is split out of `manage`. Idempotent + version-flagged via
+	 * `ffc_export_caps_granted_v1`.
+	 *
+	 * @since 6.9.0
+	 */
+	private function ensure_export_caps_granted(): void {
+		$flag = 'ffc_export_caps_granted_v1';
+		if ( '1' === get_option( $flag, '' ) ) {
+			return;
+		}
+		if ( class_exists( '\FreeFormCertificate\UserDashboard\CapabilityManager' ) ) {
+			\FreeFormCertificate\UserDashboard\CapabilityManager::migrate_export_caps_grant();
 		}
 		update_option( $flag, '1', true );
 	}

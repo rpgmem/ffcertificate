@@ -43,6 +43,15 @@ class ReregistrationCsvExporter {
 			return;
 		}
 
+		// Bulk export is its own capability tier (GAP G), split out of
+		// `ffc_manage_reregistration`. The caller's page-level gate already
+		// requires `manage`; this additional check lets a manager be denied the
+		// dataset extraction without losing campaign management. Mirrors how the
+		// delete tier (GAP E) re-checks `ffc_delete_reregistration`.
+		if ( ! \FreeFormCertificate\Core\Utils::current_user_can_admin_or( 'ffc_export_reregistration' ) ) {
+			return;
+		}
+
 		$rereg = ReregistrationRepository::get_by_id( $id );
 		if ( ! $rereg ) {
 			return;
