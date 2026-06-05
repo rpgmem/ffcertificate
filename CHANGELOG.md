@@ -7,6 +7,11 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Fixed
+
+- Activation no longer logs a malformed `ALTER TABLE … ADD COLUMN -- …` DB error: a `-- ` SQL comment that contained backtick identifiers (e.g. `` `submitted_at` ``) inside a `dbDelta()` CREATE TABLE made dbDelta's column-diff parser misread the comment as a real column. Removed the offending backtick comments from the four affected schema files (reregistration submissions, custom fields, self-scheduling, recruitment); guarded by a test that scans every dbDelta source.
+- Activation no longer logs a `Table 'ffc_audiences' doesn't exist` DB error on a fresh install: the reregistration standard-fields seeder ran before the audiences table was created, so it now skips cleanly (and re-seeds on a later load) when the table isn't present yet.
+
 ## [6.10.0] (2026-06-05)
 
 ### Added

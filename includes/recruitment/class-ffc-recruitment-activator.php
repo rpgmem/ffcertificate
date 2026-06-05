@@ -748,7 +748,6 @@ class RecruitmentActivator {
             out_of_order tinyint(1) NOT NULL DEFAULT 0,
             out_of_order_reason text DEFAULT NULL,
             cancellation_reason text DEFAULT NULL,
-            -- `cancelled_at` is Category A (instant) since 6.6.0 (#249 sub-escopo d).
             cancelled_at bigint(20) unsigned DEFAULT NULL,
             cancelled_by bigint(20) unsigned DEFAULT NULL,
             notes text DEFAULT NULL,
