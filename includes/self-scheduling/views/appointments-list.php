@@ -159,10 +159,10 @@ if ( ! class_exists( 'FFC_Appointments_List_Table' ) ) :
 					'ffc_cancel_appointment_' . $item['id']
 				);
 				$actions['cancel'] = sprintf(
-					'<a href="#" onclick="var r=prompt(\'%s\'); if(r && r.length >= 5){window.location=\'%s&reason=\'+encodeURIComponent(r);} return false;" style="color: #b32d2e;">%s</a>',
-					esc_js( __( 'Please provide a reason for cancellation (minimum 5 characters):', 'ffcertificate' ) ),
+					'<a href="#" class="ffc-appointment-cancel delete-link" data-cancel-url="%s" data-prompt="%s">%s</a>',
 					esc_url( $cancel_url ),
-					__( 'Cancel', 'ffcertificate' )
+					esc_attr__( 'Please provide a reason for cancellation (minimum 5 characters):', 'ffcertificate' ),
+					esc_html__( 'Cancel', 'ffcertificate' )
 				);
 			}
 

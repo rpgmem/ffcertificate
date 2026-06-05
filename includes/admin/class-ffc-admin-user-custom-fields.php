@@ -56,6 +56,7 @@ class AdminUserCustomFields {
 		wp_enqueue_style( 'ffc-working-hours', FFC_PLUGIN_URL . "assets/css/ffc-working-hours{$s}.css", array(), FFC_VERSION );
 		wp_enqueue_style( 'ffc-custom-fields-admin', FFC_PLUGIN_URL . "assets/css/ffc-custom-fields-admin{$s}.css", array(), FFC_VERSION );
 		wp_enqueue_script( 'ffc-working-hours', FFC_PLUGIN_URL . "assets/js/ffc-working-hours{$s}.js", array( 'jquery' ), FFC_VERSION, true );
+		wp_enqueue_script( 'ffc-custom-fields-collapse', FFC_PLUGIN_URL . "assets/js/ffc-custom-fields-collapse{$s}.js", array(), FFC_VERSION, true );
 		wp_localize_script(
 			'ffc-working-hours',
 			'ffcWorkingHours',
@@ -183,29 +184,9 @@ class AdminUserCustomFields {
 				</div>
 			</div>
 		<?php endforeach; ?>
-
 		<?php
-		wp_add_inline_script(
-			'ffc-working-hours',
-			'
-            (function() {
-                document.querySelectorAll(".ffc-cf-toggle").forEach(function(heading) {
-                    heading.addEventListener("click", function() {
-                        var targetId = this.getAttribute("data-target");
-                        var body = document.getElementById(targetId);
-                        var isCollapsed = this.classList.toggle("collapsed");
-                        this.setAttribute("aria-expanded", !isCollapsed);
-                        if (body) { body.classList.toggle("collapsed", isCollapsed); }
-                    });
-                    heading.addEventListener("keydown", function(e) {
-                        if (e.key === "Enter" || e.key === " ") { e.preventDefault(); this.click(); }
-                    });
-                });
-            })();
-        '
-		);
-		?>
-		<?php
+		// Collapsible-section wiring lives in assets/js/ffc-custom-fields-collapse.js
+		// (enqueued in enqueue_assets()); the markup above carries the data-target ids.
 	}
 
 	/**
