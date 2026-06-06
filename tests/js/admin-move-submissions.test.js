@@ -1,5 +1,5 @@
 // Sprint F1 — deep coverage for ffc-admin-move-submissions.js (162 LOC,
-// previously 25.92%). The existing `admin-small.test.js` covers the
+// previously 25.92%). The existing `admin-movesubmissions-recruitment-urlshortener.test.js` covers the
 // load-time bail and the bulk-action interception happy path. This file
 // covers the full modal lifecycle that wasn't reached before:
 //

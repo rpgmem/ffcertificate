@@ -27,7 +27,7 @@ afterEach(() => {
 	vi.useRealTimers();
 });
 
-describe('Sprint 6 — RateLimit.show initial render', () => {
+describe('RateLimit.show initial render', () => {
 	it('paints the correct mm:ss on first render, no "0:00" flicker', () => {
 		window.FFC.Frontend.RateLimit.show('Try later', 95);
 
@@ -64,7 +64,7 @@ describe('Sprint 6 — RateLimit.show initial render', () => {
 	});
 });
 
-describe('Sprint 6 — RateLimit countdown ticking', () => {
+describe('RateLimit countdown ticking', () => {
 	it('decrements every second and re-enables the form on zero', () => {
 		vi.useFakeTimers();
 		window.FFC.Frontend.RateLimit.show('Wait', 3);

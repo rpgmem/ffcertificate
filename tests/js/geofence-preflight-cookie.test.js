@@ -56,7 +56,7 @@ function setupGeofenceForm(formId, config) {
 	};
 }
 
-describe('Sprint 2 — checkCookieSupport probe', () => {
+describe('checkCookieSupport probe', () => {
 	it('returns true when cookieEnabled is true and the probe roundtrips', () => {
 		// jsdom's document.cookie roundtrips for first-party.
 		const ok = window.FFCGeofence.checkCookieSupport();
@@ -85,7 +85,7 @@ describe('Sprint 2 — checkCookieSupport probe', () => {
 	});
 });
 
-describe('Sprint 2 — handleCookieBlocked banner', () => {
+describe('handleCookieBlocked banner', () => {
 	it('paints the banner with title, body, platform-specific instructions, and CTA', () => {
 		setupGeofenceForm(42, {
 			adminBypass: false,
