@@ -53,4 +53,25 @@ describe('ffc-custom-fields-collapse', () => {
 		heading.dispatchEvent(new window.KeyboardEvent('keydown', { key: 'Tab', bubbles: true }));
 		expect(heading.classList.contains('collapsed')).toBe(false);
 	});
+
+	it('defers init to DOMContentLoaded when the document is still loading', () => {
+		install();
+		// Force the "loading" branch so the script wires DOMContentLoaded
+		// instead of calling init() inline (jsdom reports 'complete' by default).
+		const desc = Object.getOwnPropertyDescriptor(Document.prototype, 'readyState');
+		Object.defineProperty(document, 'readyState', { configurable: true, get: () => 'loading' });
+		try {
+			loadScript(SCRIPT);
+			const heading = document.querySelector('.ffc-cf-toggle');
+			// Handler not wired yet — clicking does nothing until DOMContentLoaded.
+			heading.click();
+			expect(heading.classList.contains('collapsed')).toBe(false);
+			document.dispatchEvent(new window.Event('DOMContentLoaded'));
+			heading.click();
+			expect(heading.classList.contains('collapsed')).toBe(true);
+		} finally {
+			if (desc) Object.defineProperty(document, 'readyState', desc);
+			else delete document.readyState;
+		}
+	});
 });
