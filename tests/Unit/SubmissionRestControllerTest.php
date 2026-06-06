@@ -12,7 +12,12 @@ use FreeFormCertificate\API\SubmissionRestController;
 use FreeFormCertificate\Repositories\SubmissionRepository;
 
 /**
- * Tests for SubmissionRestController: route registration, permission checks, verify endpoint.
+ * Tests for SubmissionRestController: route registration, permission checks,
+ * the list / single / verify handlers, and the admin permission gate.
+ *
+ * The static collaborators (Encryption, DocumentFormatter, Utils, RateLimiter)
+ * run as the real autoloaded classes — the unit bootstrap configures
+ * encryption keys and the handlers only need WP-function + $wpdb stubs.
  */
 class SubmissionRestControllerTest extends TestCase {
 
@@ -35,6 +40,11 @@ class SubmissionRestControllerTest extends TestCase {
                 'args'      => $args,
             );
         });
+
+        // Stubs for the route-registration + null-repo + not-found tests.
+        // These paths do not reach the real static collaborators.
+        Functions\when( '__' )->returnArg();
+        Functions\when( 'rest_ensure_response' )->alias( fn ( $data ) => $data );
     }
 
     protected function tearDown(): void {
@@ -138,5 +148,63 @@ class SubmissionRestControllerTest extends TestCase {
 
         $result = $ctrl->get_submissions( $request );
         $this->assertInstanceOf( \WP_Error::class, $result );
+    }
+
+    public function test_get_submission_returns_error_without_repo(): void {
+        $ctrl    = new SubmissionRestController( 'ffc/v1', null );
+        $request = Mockery::mock( 'WP_REST_Request' );
+        $request->shouldReceive( 'get_param' )->with( 'id' )->andReturn( 5 );
+
+        $result = $ctrl->get_submission( $request );
+        $this->assertInstanceOf( \WP_Error::class, $result );
+        $this->assertSame( 'repository_not_found', $result->get_error_code() );
+    }
+
+    // Note: the verify_certificate() handler-path tests (which exercise the
+    // real RateLimiter / Encryption / DocumentFormatter statics) live in the
+    // separate-process SubmissionVerifyRestControllerTest so they get a clean
+    // function table immune to leaked global/namespaced mocks from earlier
+    // same-process tests.
+
+    // ------------------------------------------------------------------
+    // check_admin_permission (delegates to Utils::current_user_can_admin_or)
+    // ------------------------------------------------------------------
+
+    public function test_check_admin_permission_true_for_admin(): void {
+        Functions\when( 'current_user_can' )->alias( fn ( $cap ) => 'manage_options' === $cap );
+
+        $ctrl = new SubmissionRestController( 'ffc/v1', null );
+        $this->assertTrue( $ctrl->check_admin_permission() );
+    }
+
+    public function test_check_admin_permission_true_for_granular_cap(): void {
+        Functions\when( 'current_user_can' )->alias( fn ( $cap ) => 'ffc_view_certificates' === $cap );
+
+        $ctrl = new SubmissionRestController( 'ffc/v1', null );
+        $this->assertTrue( $ctrl->check_admin_permission() );
+    }
+
+    public function test_check_admin_permission_false_without_caps(): void {
+        Functions\when( 'current_user_can' )->justReturn( false );
+
+        $ctrl = new SubmissionRestController( 'ffc/v1', null );
+        $this->assertFalse( $ctrl->check_admin_permission() );
+    }
+
+    // ------------------------------------------------------------------
+    // get_submission() — not-found (no real statics on this path)
+    // ------------------------------------------------------------------
+
+    public function test_get_submission_returns_not_found(): void {
+        $repo = Mockery::mock( SubmissionRepository::class );
+        $repo->shouldReceive( 'findById' )->once()->with( 7 )->andReturn( null );
+
+        $ctrl    = new SubmissionRestController( 'ffc/v1', $repo );
+        $request = Mockery::mock( 'WP_REST_Request' );
+        $request->shouldReceive( 'get_param' )->with( 'id' )->andReturn( 7 );
+
+        $result = $ctrl->get_submission( $request );
+        $this->assertInstanceOf( \WP_Error::class, $result );
+        $this->assertSame( 'submission_not_found', $result->get_error_code() );
     }
 }

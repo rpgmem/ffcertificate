@@ -26,7 +26,12 @@ use FreeFormCertificate\Core\Encryption;
 use FreeFormCertificate\Core\SensitiveFieldRegistry;
 
 /**
- * @coversNothing
+ * The single method under test is Encryption::decrypt — these tests pin its
+ * decrypt-failure audit emission. ActivityLog and SensitiveFieldRegistry are
+ * exercised only as collaborators (the buffer sink + the sensitivity gate),
+ * so attribution belongs to Encryption.
+ *
+ * @covers \FreeFormCertificate\Core\Encryption
  */
 class DecryptFailureLoggingTest extends TestCase {
 
