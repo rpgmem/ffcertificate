@@ -19,6 +19,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 
 ### Fixed
 
+- Audience bookings: wall-clock `booking_date`/`start_time`/`end_time` no longer shift by the site UTC offset on display — the admin bookings list, the user-dashboard bookings REST response (and its `is_past` flag, now a site-local date comparison), and the booking created/cancelled e-mails all render the literal value via `format_wallclock_date()`/`format_wallclock_time()`. (Same class as the self-scheduling/holiday fix; the audience JS already handled times correctly.)
 - Self-scheduling: wall-clock `appointment_date`/`start_time`/`end_time` no longer shift by the site UTC offset on display — new `DateFormatter::format_wallclock_date()`/`format_wallclock_time()` render the literal value across every self-scheduling display (instant API unchanged).
 - Scheduling Settings → Holidays: global and per-calendar holiday dates no longer display one day early on sub-UTC sites — both lists render the wall-clock DATE via `format_wallclock_date()`.
 - Certificate preview (form editor + operator page) no longer crops borders — renders at the real PDF page size (A4, landscape default) and scales the whole frame to fit the modal, preserving aspect (recomputes on resize).

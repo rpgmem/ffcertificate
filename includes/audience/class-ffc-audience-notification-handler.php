@@ -398,22 +398,25 @@ class AudienceNotificationHandler {
 	}
 
 	/**
-	 * Format date for display.
-	 * Delegates to EmailTemplateService::format_date().
+	 * Format a wall-clock booking date for display.
 	 *
-	 * @param string $date Date.
+	 * `booking_date` is a Category B wall-clock DATE — render the literal value
+	 * with no timezone conversion (passing it through the instant API would
+	 * parse it as UTC midnight and re-apply wp_timezone(), rolling the date
+	 * back a day on sub-UTC sites).
+	 *
+	 * @param string $date Wall-clock date string (Y-m-d).
 	 */
 	private static function format_date( string $date ): string {
-		return \FreeFormCertificate\Scheduling\EmailTemplateService::format_date( $date );
+		return \FreeFormCertificate\Core\DateFormatter::format_wallclock_date( $date );
 	}
 
 	/**
-	 * Format time for display.
-	 * Delegates to EmailTemplateService::format_time().
+	 * Format a wall-clock booking time for display (Category B, no TZ shift).
 	 *
-	 * @param string $time Time.
+	 * @param string $time Wall-clock time string (H:i:s).
 	 */
 	private static function format_time( string $time ): string {
-		return \FreeFormCertificate\Scheduling\EmailTemplateService::format_time( $time );
+		return \FreeFormCertificate\Core\DateFormatter::format_wallclock_time( $time );
 	}
 }
