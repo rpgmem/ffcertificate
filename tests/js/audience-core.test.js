@@ -1,5 +1,6 @@
-// Deep coverage for assets/js/ffc-audience.js — the window.FFCAudience
-// singleton. Two parts:
+// Coverage for assets/js/ffc-audience.js — the window.FFCAudience
+// singleton (canonical core-helpers suite; absorbed the former
+// audience-core-helpers.test.js, whose cases were a strict subset). Two parts:
 //
 //   1. The pure leaf helpers (date/time/pad, escapeHtml, booking label,
 //      the audience-tree utilities, environment colour/label lookup,
