@@ -9,6 +9,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 
 ### Changed
 
+- Namespace compliance: the appointments admin list table (the lone plugin class still in the global namespace as `FFC_Appointments_List_Table`, embedded in a view) is now the autoloaded `FreeFormCertificate\SelfScheduling\AppointmentsListTable`. Every plugin class now lives under `FreeFormCertificate\` (only the bootstrap `FFC_Autoloader` stays global, by necessity).
 - Inline JS extracted to enqueued files: the admin user-profile custom-data collapsible-section wiring (`ffc-custom-fields-collapse.js`) and the appointments-list row "Cancel" prompt/redirect (`ffc-self-scheduling-admin-appointments.js`, now `data-*`-driven instead of an inline `onclick`). Both covered by new Vitest tests.
 - Inline JS extracted: the appointment-receipt "Download PDF" button handler moved from a `wp_add_inline_script` block to an enqueued `ffc-self-scheduling-receipt.js` (data via the localized `ffcReceiptData`), covered by new Vitest tests.
 - CSS hygiene: moved the extend-end modal's client-validation styling out of JS inline styles into `ffc-frontend.css` (the `.ffc-extend-end-input-invalid` class now has a real rule plus an `.ffc-extend-end-error` rule), and replaced hardcoded inline `color` styles on the working-hours required asterisks and the booking Cancel link with the existing `.required` / WP-core `.delete-link` classes. No visual change.
