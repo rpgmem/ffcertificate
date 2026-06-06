@@ -10,7 +10,7 @@
 //   4. Adds a dismiss button that sets the sessionStorage flag.
 //
 // Sprint C of #168.
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { loadScript } from './helpers.js';
 
 const STORAGE_KEY = 'ffc_webview_warning_dismissed';
@@ -86,5 +86,88 @@ describe('ffc-webview-warning', () => {
 		setUA('Mozilla/5.0 (Linux; Android 13; wv) AppleWebKit/537.36');
 		loadScript('assets/js/ffc-webview-warning.js');
 		expect(document.querySelector('.ffc-webview-warning')).toBeNull();
+	});
+
+	it('defers rendering to DOMContentLoaded while the document is loading', () => {
+		setUA('Mozilla/5.0 (Linux; Android 13; wv) AppleWebKit/537.36');
+		const readyStateSpy = vi
+			.spyOn(document, 'readyState', 'get')
+			.mockReturnValue('loading');
+		const addSpy = vi.spyOn(document, 'addEventListener');
+
+		loadScript('assets/js/ffc-webview-warning.js');
+
+		// Not rendered yet — deferred.
+		expect(document.querySelector('.ffc-webview-warning')).toBeNull();
+		const dclCall = addSpy.mock.calls.find((c) => c[0] === 'DOMContentLoaded');
+		expect(dclCall).toBeTruthy();
+		readyStateSpy.mockRestore();
+		dclCall[1]();
+		expect(document.querySelector('.ffc-webview-warning')).not.toBeNull();
+		addSpy.mockRestore();
+	});
+
+	describe('"Open in browser" CTA', () => {
+		let savedLocation;
+		beforeEach(() => {
+			savedLocation = window.location;
+		});
+		afterEach(() => {
+			Object.defineProperty(window, 'location', {
+				value: savedLocation,
+				configurable: true,
+				writable: true,
+			});
+			vi.restoreAllMocks();
+		});
+
+		it('Android WebView: navigates to an intent:// Chrome deep-link', () => {
+			setUA('Mozilla/5.0 (Linux; Android 13; wv) AppleWebKit/537.36');
+			// Replace location with a settable stub.
+			Object.defineProperty(window, 'location', {
+				value: { href: 'https://example.com/page', replace: vi.fn() },
+				configurable: true,
+				writable: true,
+			});
+			loadScript('assets/js/ffc-webview-warning.js');
+
+			document.querySelector('.ffc-webview-warning-open').click();
+
+			expect(window.location.href).toBe(
+				'intent://example.com/page#Intent;scheme=https;package=com.android.chrome;end'
+			);
+		});
+
+		it('Android WebView: alerts the iOS hint when intent navigation throws', () => {
+			setUA('Mozilla/5.0 (Linux; Android 13; wv) AppleWebKit/537.36');
+			const alertSpy = vi.spyOn(window, 'alert').mockImplementation(() => {});
+			// A location whose href setter throws → falls back to the alert.
+			Object.defineProperty(window, 'location', {
+				configurable: true,
+				value: {
+					get href() {
+						return 'https://example.com/p';
+					},
+					set href(v) {
+						throw new Error('blocked');
+					},
+				},
+			});
+			loadScript('assets/js/ffc-webview-warning.js');
+
+			document.querySelector('.ffc-webview-warning-open').click();
+			expect(alertSpy).toHaveBeenCalled();
+		});
+
+		it('iOS in-app browser: alerts the manual-menu instructions', () => {
+			setUA('Mozilla/5.0 (iPhone; CPU iPhone OS 16_0 like Mac OS X) Instagram 310.0.0');
+			const alertSpy = vi.spyOn(window, 'alert').mockImplementation(() => {});
+			loadScript('assets/js/ffc-webview-warning.js');
+
+			document.querySelector('.ffc-webview-warning-open').click();
+			expect(alertSpy).toHaveBeenCalledWith(
+				expect.stringContaining('Open in Safari')
+			);
+		});
 	});
 });

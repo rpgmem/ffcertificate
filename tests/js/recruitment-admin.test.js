@@ -204,6 +204,28 @@ describe('ffc-recruitment-admin: create-form submit handler', () => {
 
 		expect(event.defaultPrevented).toBe(true);
 	});
+
+	it('ignores a submit event whose target has no matches() method', () => {
+		// Dispatch a submit on `document` itself — document has no .matches,
+		// exercising the `typeof form.matches !== 'function'` guard.
+		const event = new Event('submit', { bubbles: true, cancelable: true });
+		document.dispatchEvent(event);
+		expect(fetchMock).not.toHaveBeenCalled();
+		expect(event.defaultPrevented).toBe(false);
+	});
+
+	it('preventDefaults but does not fetch when the endpoint attribute is empty', () => {
+		document.body.innerHTML = `
+			<form data-ffc-create-endpoint="" action="/x"></form>
+		`;
+		const event = new Event('submit', { bubbles: true, cancelable: true });
+		document.querySelector('form').dispatchEvent(event);
+
+		// matches() still hits (attribute present), so default is prevented,
+		// but the empty endpoint short-circuits before fetch.
+		expect(event.defaultPrevented).toBe(true);
+		expect(fetchMock).not.toHaveBeenCalled();
+	});
 });
 
 describe('ffc-recruitment-admin: color-picker change handler', () => {
@@ -272,6 +294,20 @@ describe('ffc-recruitment-admin: color-picker change handler', () => {
 		document.querySelector('input').dispatchEvent(
 			new Event('change', { bubbles: true })
 		);
+
+		expect(fetchMock).not.toHaveBeenCalled();
+	});
+
+	it('ignores a change event whose target has no matches() method', () => {
+		const event = new Event('change', { bubbles: true });
+		document.dispatchEvent(event);
+		expect(fetchMock).not.toHaveBeenCalled();
+	});
+
+	it('ignores a color change when the entity id is zero / non-numeric', () => {
+		// matches() passes (both attrs present) but parseInt → 0 → !entityId.
+		const input = mountPicker('reasons', 0, '#000');
+		input.dispatchEvent(new Event('change', { bubbles: true }));
 
 		expect(fetchMock).not.toHaveBeenCalled();
 	});
@@ -629,6 +665,161 @@ describe('ffc-recruitment-admin: confirm modal', () => {
 		expect(onConfirm).toHaveBeenCalledTimes(1);
 
 		vi.useRealTimers();
+	});
+
+	it('reuses the existing modal overlay on a second open', () => {
+		window.ffcRecruitmentAdmin.openConfirmModal({ title: 'First', cta: 'A' }, vi.fn());
+		const first = getModalOverlay();
+		// Cancel and reopen — getModal() should return the SAME node.
+		first.querySelector('.ffc-confirm-modal-cancel').click();
+		window.ffcRecruitmentAdmin.openConfirmModal({ title: 'Second', cta: 'B' }, vi.fn());
+		expect(getModalOverlay()).toBe(first);
+		expect(document.querySelectorAll('#ffc-confirm-modal').length).toBe(1);
+	});
+
+	it('clicking the overlay backdrop cancels the modal', () => {
+		const onCancel = vi.fn();
+		window.ffcRecruitmentAdmin.openConfirmModal({ title: 'X', cta: 'OK' }, vi.fn(), onCancel);
+		const modal = getModalOverlay();
+		// e.target === modal (the overlay itself) → handleCancel().
+		modal.dispatchEvent(new Event('click', { bubbles: true }));
+		expect(onCancel).toHaveBeenCalledTimes(1);
+		expect(modal.hidden).toBe(true);
+	});
+
+	it('ignores a click on the inner dialog (target !== overlay)', () => {
+		const onCancel = vi.fn();
+		window.ffcRecruitmentAdmin.openConfirmModal({ title: 'X', cta: 'OK' }, vi.fn(), onCancel);
+		const modal = getModalOverlay();
+		modal.querySelector('.ffc-confirm-modal').dispatchEvent(new Event('click', { bubbles: true }));
+		expect(onCancel).not.toHaveBeenCalled();
+		expect(modal.hidden).toBe(false);
+	});
+
+	it('the confirm button is inert while disabled (reason gate)', () => {
+		const onConfirm = vi.fn();
+		window.ffcRecruitmentAdmin.openConfirmModal(
+			{ title: 'X', cta: 'OK', reasonLabel: 'Why' },
+			onConfirm
+		);
+		const cta = getModalOverlay().querySelector('.ffc-confirm-modal-confirm');
+		expect(cta.disabled).toBe(true);
+		// Direct call to the handler while disabled → early return, no onConfirm.
+		cta.onclick();
+		expect(onConfirm).not.toHaveBeenCalled();
+	});
+
+	it('renders empty consequences for malformed JSON without throwing', () => {
+		document.body.innerHTML = `
+			<form id="tbad" data-ffc-confirm data-ffc-confirm-cta="Go"
+			      data-ffc-confirm-consequences='not-json{'></form>
+		`;
+		const form = document.getElementById('tbad');
+		form.submit = vi.fn();
+		expect(() =>
+			form.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }))
+		).not.toThrow();
+		// No consequence list rendered.
+		expect(getModalOverlay().querySelectorAll('.ffc-confirm-modal-consequences li').length).toBe(0);
+	});
+
+	it('renders empty consequences when the JSON is not an array', () => {
+		document.body.innerHTML = `
+			<form id="tobj" data-ffc-confirm data-ffc-confirm-cta="Go"
+			      data-ffc-confirm-consequences='{"a":1}'></form>
+		`;
+		const form = document.getElementById('tobj');
+		form.submit = vi.fn();
+		form.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
+		expect(getModalOverlay().querySelectorAll('.ffc-confirm-modal-consequences li').length).toBe(0);
+	});
+
+	it('renders empty consequences when the consequences string is empty', () => {
+		document.body.innerHTML = `
+			<form id="tempty" data-ffc-confirm data-ffc-confirm-cta="Go"
+			      data-ffc-confirm-consequences=""></form>
+		`;
+		const form = document.getElementById('tempty');
+		form.submit = vi.fn();
+		// Empty string hits parseConsequences('')'s `!raw` early return.
+		form.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
+		expect(getModalOverlay().querySelectorAll('.ffc-confirm-modal-consequences li').length).toBe(0);
+	});
+
+	it('ignores a click with no [data-ffc-confirm] ancestor', () => {
+		document.body.innerHTML = '<div id="plain">nothing special</div>';
+		const event = new Event('click', { bubbles: true, cancelable: true });
+		document.getElementById('plain').dispatchEvent(event);
+		// No modal created.
+		expect(getModalOverlay()).toBeNull();
+		expect(event.defaultPrevented).toBe(false);
+	});
+
+	it('does not re-intercept a click when the trigger already carries the ok-flag', () => {
+		document.body.innerHTML = `
+			<a id="tokflag" href="/go" data-ffc-confirm data-ffc-confirm-cta="Go"
+			   data-ffc-confirm-ok="1">Go</a>
+		`;
+		// shouldIntercept() returns false because of data-ffc-confirm-ok=1 →
+		// the click handler returns at the shouldIntercept gate (line 457).
+		const event = new Event('click', { bubbles: true, cancelable: true });
+		document.getElementById('tokflag').dispatchEvent(event);
+		expect(getModalOverlay()).toBeNull();
+		expect(event.defaultPrevented).toBe(false);
+	});
+
+	it('does not open the modal on a click that lands on a confirm FORM (submit owns it)', () => {
+		document.body.innerHTML = `
+			<form id="tclickform" data-ffc-confirm data-ffc-confirm-cta="Go">
+				<span id="inner">x</span>
+			</form>
+		`;
+		// Clicking inside the form bubbles to the form (data-ffc-confirm), but
+		// the click handler bails on `el.tagName === 'FORM'` so submit owns it.
+		const event = new Event('click', { bubbles: true, cancelable: true });
+		document.getElementById('inner').dispatchEvent(event);
+		expect(getModalOverlay()).toBeNull();
+		expect(event.defaultPrevented).toBe(false);
+	});
+
+	it('replaces a stale reason input on the form before re-firing submit', () => {
+		document.body.innerHTML = `
+			<form id="treason" data-ffc-confirm data-ffc-confirm-cta="Go"
+			      data-ffc-confirm-reason-label="Why"
+			      data-ffc-confirm-reason-name="motivo">
+				<input type="hidden" name="motivo" value="stale"
+				       data-ffc-confirm-reason-input="1">
+			</form>
+		`;
+		const form = document.getElementById('treason');
+		form.submit = vi.fn();
+
+		form.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
+		const modal = getModalOverlay();
+		const input = modal.querySelector('#ffc-confirm-modal-reason-input');
+		input.value = 'fresh reason';
+		input.dispatchEvent(new Event('input', { bubbles: true }));
+		modal.querySelector('.ffc-confirm-modal-confirm').click();
+
+		// Exactly one reason input remains, carrying the fresh value.
+		const reasonInputs = form.querySelectorAll('input[data-ffc-confirm-reason-input]');
+		expect(reasonInputs.length).toBe(1);
+		expect(reasonInputs[0].value).toBe('fresh reason');
+		expect(form.submit).toHaveBeenCalledTimes(1);
+	});
+
+	it('on confirm with a standalone button trigger: re-fires .click()', () => {
+		document.body.innerHTML = `
+			<button id="tbtn" type="button" data-ffc-confirm data-ffc-confirm-cta="Go">Act</button>
+		`;
+		const btn = document.getElementById('tbtn');
+		const clickSpy = vi.fn();
+		btn.click = clickSpy;
+		btn.dispatchEvent(new Event('click', { bubbles: true, cancelable: true }));
+		// The modal opened; confirming re-fires the button's own click.
+		getModalOverlay().querySelector('.ffc-confirm-modal-confirm').click();
+		expect(btn.getAttribute('data-ffc-confirm-ok')).toBe('1');
+		expect(clickSpy).toHaveBeenCalled();
 	});
 
 	it('countdown + reason: CTA enables only when BOTH the countdown reaches 0 AND a reason is typed', () => {

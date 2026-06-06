@@ -140,6 +140,18 @@ describe('FFCGeofence.validateDateTime', () => {
 		expect(result.phase).toBe('after');
 	});
 
+	it('returns valid when currently within the composed span', () => {
+		const result = window.FFCGeofence.validateDateTime({
+			dateStart: '2000-01-01',
+			dateEnd: '2999-01-02',
+			timeStart: '00:00',
+			timeEnd: '23:59',
+			timeMode: 'span',
+		});
+		expect(result.valid).toBe(true);
+		expect(result.message).toBe('');
+	});
+
 	it('uses the custom message when provided on a failed validation', () => {
 		const result = window.FFCGeofence.validateDateTime({
 			dateStart: '2999-01-01',

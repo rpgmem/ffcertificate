@@ -102,6 +102,18 @@ describe('success-card copy button', () => {
 		window.$('.ffc-copy-btn').trigger('click');
 		expect(execSpy).not.toHaveBeenCalled();
 	});
+
+	it('restores the original label 2s after a copy', async () => {
+		vi.useFakeTimers();
+		document.execCommand = function () { return true; };
+		const $btn = installCopyButton('ABC');
+		$btn.trigger('click');
+		// execCommand path is synchronous → feedback label applied.
+		expect($btn.text()).toBe('Copied!');
+		vi.advanceTimersByTime(2000);
+		expect($btn.text()).toBe('Copy');
+		vi.useRealTimers();
+	});
 });
 
 describe('success-card platform guidance filter', () => {

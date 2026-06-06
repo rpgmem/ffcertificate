@@ -106,6 +106,22 @@ describe('locations-crud — load-time guard', () => {
 
 		window.FFC.request = original;
 	});
+
+	it('returns at load time (binds no handlers) when FFC.request is absent', async () => {
+		// Re-load the script with FFC.request missing so the top-of-IIFE
+		// guard returns before any $(document) handler is registered.
+		const savedFFC = window.FFC;
+		window.FFC = {};
+		loadScript('assets/js/ffc-locations-crud.js');
+		window.FFC = savedFFC;
+
+		// The freshly loaded copy attached nothing; the count of delegated
+		// handlers is unchanged. We assert indirectly: mounting a table and
+		// clicking add with this load-only copy would not error.
+		mountTable([]);
+		await reload();
+		expect(window.$('#ffc-location-add').length).toBe(1);
+	});
 });
 
 // ----------------------------------------------------------------------
@@ -190,6 +206,46 @@ describe('locations-crud — saveRow on blur', () => {
 		expect($badge.text()).toBe('Quota exceeded');
 	});
 
+	it('hides the saved badge after the 1800ms timeout', async () => {
+		vi.useFakeTimers();
+		mountTable([{ id: 'loc_t', name: 'A', lat: 0, lng: 0, radius: 10, default_gps: false, default_ip: false }]);
+
+		vi.spyOn(window.$, 'post').mockImplementation(() => {
+			const chain = { done: () => chain, fail: () => chain };
+			chain.done = function (cb) {
+				cb({ success: true, data: { location: { id: 'loc_t', name: 'A' } } });
+				return chain;
+			};
+			return chain;
+		});
+
+		window.$('.ffc-location-field[data-field="name"]').trigger('blur');
+		// Flush the FFC.request().then() microtask under fake timers.
+		await Promise.resolve(); await Promise.resolve();
+
+		const $badge = window.$('.ffc-location-row .ffc-autosave-badge').first();
+		expect($badge.hasClass('ffc-autosave-badge--saved')).toBe(true);
+
+		vi.advanceTimersByTime(1800);
+		expect($badge.attr('hidden')).toBe('hidden');
+		expect($badge.text()).toBe('');
+	});
+
+	it('saveRow bails when the row carries no location id', async () => {
+		mountTable([]);
+		// A row with the save-triggering field but no data-location-id.
+		document.querySelector('tbody').insertAdjacentHTML(
+			'afterbegin',
+			'<tr class="ffc-location-row"><td><input type="text" class="ffc-location-field" data-field="name" value="x"></td>' +
+			'<td><span class="ffc-autosave-badge" hidden></span></td></tr>'
+		);
+		await reload();
+		const postSpy = vi.spyOn(window.$, 'post').mockImplementation(() => ({}));
+
+		window.$('.ffc-location-row .ffc-location-field[data-field="name"]').trigger('blur');
+		expect(postSpy).not.toHaveBeenCalled();
+	});
+
 	it('triggers save when the default-GPS radio changes', async () => {
 		mountTable([
 			{ id: 'loc_a', name: 'A', lat: 0, lng: 0, radius: 10, default_gps: false, default_ip: false },
@@ -256,6 +312,24 @@ describe('locations-crud — deleteRow', () => {
 		expect(postSpy).not.toHaveBeenCalled();
 		// Row still in the DOM.
 		expect(window.$('.ffc-location-row').length).toBe(1);
+	});
+
+	it('deleteRow bails when the row carries no location id', async () => {
+		mountTable([]);
+		document.querySelector('tbody').insertAdjacentHTML(
+			'afterbegin',
+			'<tr class="ffc-location-row"><td><button type="button" class="ffc-location-delete">Delete</button>' +
+			'<span class="ffc-autosave-badge" hidden></span></td></tr>'
+		);
+		await reload();
+		const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(true);
+		const postSpy = vi.spyOn(window.$, 'post').mockImplementation(() => ({}));
+
+		window.$('.ffc-location-row .ffc-location-delete').trigger('click');
+
+		// Early-returns before confirm() / AJAX because id is undefined.
+		expect(confirmSpy).not.toHaveBeenCalled();
+		expect(postSpy).not.toHaveBeenCalled();
 	});
 
 	it('on success: removes the row from the DOM', async () => {

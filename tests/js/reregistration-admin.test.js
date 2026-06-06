@@ -321,6 +321,41 @@ describe('rereg-admin — submission details modal', () => {
 		expect(window.$('.ffc-modal-body').text()).toContain('fields');
 	});
 
+	it('bails on a view-details click when the button has no submission id', async () => {
+		document.body.innerHTML = `
+			<button type="button" class="ffc-view-details-btn">Details</button>
+			<div id="ffc-submission-details-modal" style="display:none">
+				<div class="ffc-modal-body"><p class="ffc-modal-loading"></p></div>
+			</div>
+		`;
+		await reload();
+		const postSpy = vi.spyOn(window.$, 'post').mockImplementation(() => ({ done: () => ({ fail: () => ({}) }) }));
+
+		window.$('.ffc-view-details-btn').trigger('click');
+		await flush();
+
+		expect(postSpy).not.toHaveBeenCalled();
+		// Modal stays hidden.
+		expect(window.$('#ffc-submission-details-modal').css('display')).toBe('none');
+	});
+
+	it('renders the fallback error when the response resolves without html', async () => {
+		mountModalFixture();
+		await reload();
+		// Resolves successfully but with no `html` field → else branch.
+		vi.spyOn(window.$, 'post').mockImplementation(() => ({
+			done: function (cb) {
+				cb({ success: true, data: { other: 'value' } });
+				return { fail: () => ({}) };
+			},
+		}));
+
+		window.$('.ffc-view-details-btn').trigger('click');
+		await flush();
+
+		expect(window.$('.ffc-modal-body').text()).toContain('Failed to load');
+	});
+
 	it('shows the server error in the modal when response.success=false', async () => {
 		mountModalFixture();
 		await reload();
@@ -501,6 +536,56 @@ describe('rereg-admin — audience transfer list', () => {
 		expect(window.$('.ffc-transfer-selected .ffc-transfer-item').length).toBe(3);
 	});
 
+	it('removing a selected parent cascades its children back to available', async () => {
+		mountTransfer({
+			audiences: [
+				{ id: 10, name: 'Parent', color: '#000', children: [11, 12] },
+				{ id: 11, name: 'Child 1', color: '#111', parent: 10 },
+				{ id: 12, name: 'Child 2', color: '#222', parent: 10 },
+			],
+			selected: [10, 11, 12],
+		});
+		await reload();
+		expect(window.$('.ffc-transfer-selected .ffc-transfer-item').length).toBe(3);
+
+		// Double-click the parent in the selected column → removeAudience(10)
+		// also splices its children (11, 12) out of selectedIds.
+		window.$('.ffc-transfer-selected .ffc-transfer-item[data-id="10"]').trigger('dblclick');
+		await flush();
+		expect(window.$('.ffc-transfer-selected .ffc-transfer-item').length).toBe(0);
+		expect(window.$('.ffc-transfer-available .ffc-transfer-item').length).toBe(3);
+	});
+
+	it('arrow button "←" moves all highlighted selected items back to available', async () => {
+		mountTransfer({ selected: [1, 2, 3] });
+		await reload();
+		window.$('.ffc-transfer-selected .ffc-transfer-item').addClass('ffc-transfer-highlight');
+		window.$('.ffc-transfer-remove').trigger('click');
+		await flush();
+		expect(window.$('.ffc-transfer-selected .ffc-transfer-item').length).toBe(0);
+		expect(window.$('.ffc-transfer-available .ffc-transfer-item').length).toBe(3);
+	});
+
+	it('"←" tolerates a child already removed via its parent cascade', async () => {
+		// Parent + children all selected and highlighted. Removing the parent
+		// cascade-removes the children; the subsequent removeAudience(child)
+		// then finds idx === -1 and short-circuits.
+		mountTransfer({
+			audiences: [
+				{ id: 10, name: 'Parent', color: '#000', children: [11, 12] },
+				{ id: 11, name: 'Child 1', color: '#111', parent: 10 },
+				{ id: 12, name: 'Child 2', color: '#222', parent: 10 },
+			],
+			selected: [10, 11, 12],
+		});
+		await reload();
+		window.$('.ffc-transfer-selected .ffc-transfer-item').addClass('ffc-transfer-highlight');
+		window.$('.ffc-transfer-remove').trigger('click');
+		await flush();
+		expect(window.$('.ffc-transfer-selected .ffc-transfer-item').length).toBe(0);
+		expect(window.$('.ffc-transfer-available .ffc-transfer-item').length).toBe(3);
+	});
+
 	it('debounces member-count AJAX (300 ms) and renders the response', async () => {
 		// Mount + reload under REAL timers so the script's $(document).ready
 		// microtask resolves; then switch to fake timers BEFORE advancing.
@@ -534,6 +619,17 @@ describe('rereg-admin — audience transfer list', () => {
 		await flush();
 		expect(ev.isDefaultPrevented()).toBe(true);
 		expect(window.$('.ffc-transfer-selected').hasClass('ffc-transfer-error')).toBe(true);
+	});
+
+	it('clears the error pulse after the 2000ms timeout', async () => {
+		mountTransfer();
+		await reload();
+		vi.useFakeTimers();
+		window.$('form').trigger(window.$.Event('submit'));
+		expect(window.$('.ffc-transfer-selected').hasClass('ffc-transfer-error')).toBe(true);
+		vi.advanceTimersByTime(2000);
+		expect(window.$('.ffc-transfer-selected').hasClass('ffc-transfer-error')).toBe(false);
+		vi.useRealTimers();
 	});
 
 	it('clicking a transfer-item toggles the highlight class', async () => {

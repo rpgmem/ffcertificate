@@ -235,6 +235,54 @@ describe('rereg input masks', () => {
 		await flush();
 		expect(el.value).toBe('12.345.678-9');
 	});
+
+	it('formats partial CPF inputs at each length tier', async () => {
+		await mountWithForm('<form id="ffc-rereg-form"><input data-mask="cpf" name="cpf"></form>');
+		const el = document.querySelector('[data-mask="cpf"]');
+		// 7-9 digits → two-dot tier (line 89/90).
+		el.value = '1234567';
+		window.$(el).trigger('input');
+		await flush();
+		expect(el.value).toBe('123.456.7');
+		// 4-6 digits → one-dot tier (line 91/92).
+		el.value = '1234';
+		window.$(el).trigger('input');
+		await flush();
+		expect(el.value).toBe('123.4');
+	});
+
+	it('formats a partial phone input (2-6 digits)', async () => {
+		await mountWithForm('<form id="ffc-rereg-form"><input data-mask="phone" name="ph"></form>');
+		const el = document.querySelector('[data-mask="phone"]');
+		el.value = '1198';
+		window.$(el).trigger('input');
+		await flush();
+		expect(el.value).toBe('(11) 98');
+	});
+
+	it('formats a partial RF input (4-6 digits)', async () => {
+		await mountWithForm('<form id="ffc-rereg-form"><input data-mask="rf" name="rf"></form>');
+		const el = document.querySelector('[data-mask="rf"]');
+		el.value = '1234';
+		window.$(el).trigger('input');
+		await flush();
+		expect(el.value).toBe('123.4');
+	});
+
+	it('formats partial CIN inputs at the 6-8 and 3-5 digit tiers', async () => {
+		await mountWithForm('<form id="ffc-rereg-form"><input data-mask="cin" name="cin"></form>');
+		const el = document.querySelector('[data-mask="cin"]');
+		// 6-8 digits → two-dot tier (line 136/137).
+		el.value = '123456';
+		window.$(el).trigger('input');
+		await flush();
+		expect(el.value).toBe('12.345.6');
+		// 3-5 digits → one-dot tier (line 138/139).
+		el.value = '123';
+		window.$(el).trigger('input');
+		await flush();
+		expect(el.value).toBe('12.3');
+	});
 });
 
 // ----------------------------------------------------------------------
@@ -286,6 +334,35 @@ describe('rereg blur validation', () => {
 		window.$(el).val('529.982.247-25').trigger('blur');
 		await flush();
 		expect(window.$('.ffc-rereg-field').hasClass('has-error')).toBe(false);
+	});
+
+	it('flags a CPF with the wrong number of digits', async () => {
+		await mountForm(`
+			<div class="ffc-rereg-field" data-format="cpf">
+				<input name="cpf" />
+				<span class="ffc-field-error"></span>
+			</div>
+		`);
+		const el = document.querySelector('[name="cpf"]');
+		// Only 5 digits → validateCpf length check returns false (line 349).
+		window.$(el).val('12345').trigger('blur');
+		await flush();
+		expect(window.$('.ffc-rereg-field').hasClass('has-error')).toBe(true);
+		expect(window.$('.ffc-field-error').text()).toBe('Invalid CPF.');
+	});
+
+	it('flags a CPF made of repeated digits', async () => {
+		await mountForm(`
+			<div class="ffc-rereg-field" data-format="cpf">
+				<input name="cpf" />
+				<span class="ffc-field-error"></span>
+			</div>
+		`);
+		const el = document.querySelector('[name="cpf"]');
+		// 11 identical digits → rejected by the repeated-digit guard.
+		window.$(el).val('111.111.111-11').trigger('blur');
+		await flush();
+		expect(window.$('.ffc-rereg-field').hasClass('has-error')).toBe(true);
 	});
 
 	it('flags invalid email', async () => {
@@ -389,6 +466,19 @@ describe('rereg divisão→setor cascade', () => {
 		// mountCascade is async; calling it with malformed JSON must not
 		// reject (the IIFE catches and degrades silently).
 		await mountCascade('{ invalid');
+	});
+
+	it('re-selects the previously chosen setor when it exists in the new list', async () => {
+		await mountCascade(JSON.stringify({ A: ['A1', 'A2'] }));
+		const $setor = window.$('#ffc_rereg_setor');
+		// Seed a current value that is also present under division A.
+		$setor.append('<option value="A2">A2</option>').val('A2');
+		window.$('#ffc_rereg_divisao').val('A').trigger('change');
+		await flush();
+
+		// The matching option is rendered selected (line 174).
+		expect($setor.val()).toBe('A2');
+		expect($setor.find('option[value="A2"]').prop('selected')).toBe(true);
 	});
 });
 
@@ -570,6 +660,60 @@ describe('rereg save draft', () => {
 
 		expect(window.$('.ffc-rereg-status').text()).toBe('Error saving.');
 	});
+
+	it('clears the success status after the 3s timeout', async () => {
+		await mountForm();
+		vi.restoreAllMocks();
+		vi.useFakeTimers();
+		vi.spyOn(window.$, 'post').mockImplementation(() => postChain({ done: { success: true } }));
+
+		window.$('.ffc-rereg-draft-btn').trigger('click');
+		// Flush the $.post().done() microtask under fake timers.
+		await Promise.resolve(); await Promise.resolve();
+		expect(window.$('.ffc-rereg-status').text()).toBe('Draft saved.');
+
+		vi.advanceTimersByTime(3000);
+		expect(window.$('.ffc-rereg-status').text()).toBe('');
+		expect(window.$('.ffc-rereg-status').hasClass('ffc-status-ok')).toBe(false);
+		vi.useRealTimers();
+	});
+
+	it('collects radio values and skips non-matching field names', async () => {
+		document.body.innerHTML = `
+			<button class="ffc-rereg-open-form" data-reregistration-id="9"></button>
+		`;
+		vi.spyOn(window.$, 'post').mockImplementation((url, payload) => {
+			if (payload.action === 'ffc_get_reregistration_form') {
+				return postChain({ done: {
+					success: true,
+					data: {
+						html: `
+							<form id="ffc-rereg-form">
+								<input type="hidden" name="reregistration_id" value="9" />
+								<input type="radio" name="fields[gender]" value="m">
+								<input type="radio" name="fields[gender]" value="f" checked>
+								<input type="text" name="fields_not_matching" value="ignored">
+								<span class="ffc-rereg-status"></span>
+								<button type="button" class="ffc-rereg-draft-btn">Save</button>
+							</form>
+						`,
+					},
+				} });
+			}
+			return postChain({});
+		});
+		window.$('.ffc-rereg-open-form').trigger('click');
+		await flush();
+
+		vi.restoreAllMocks();
+		const postSpy = vi.spyOn(window.$, 'post').mockImplementation(() => postChain({ done: { success: true } }));
+		window.$('.ffc-rereg-draft-btn').trigger('click');
+		await flush();
+
+		const payload = postSpy.mock.calls[0][1];
+		// Radio → selected value; the `fields_not_matching` name is excluded.
+		expect(payload.fields).toEqual({ gender: 'f' });
+	});
 });
 
 // ----------------------------------------------------------------------
@@ -669,6 +813,59 @@ describe('rereg submit', () => {
 		expect(window.$('.ffc-dashboard-notice').text()).toBe('Submitted OK!');
 		// Banner gets slideUp; with fx.off=true display is none.
 		expect(window.$('.ffc-rereg-banner').css('display')).toBe('none');
+	});
+
+	it('blocks submission when a non-required format field holds an invalid value', async () => {
+		const originalVisible = window.$.expr.pseudos.visible;
+		window.$.expr.pseudos.visible = () => true;
+		try {
+			await mountValidForm();
+			// Add an optional (not required) CPF field carrying a bad value so
+			// the "validate format fields even if not required" loop runs.
+			window.$('#ffc-rereg-form').prepend(`
+				<div class="ffc-rereg-field" data-format="cpf">
+					<input name="fields[cpf]" value="123" />
+					<span class="ffc-field-error"></span>
+				</div>
+			`);
+			vi.restoreAllMocks();
+			const postSpy = vi.spyOn(window.$, 'post').mockImplementation(() => {
+				const chain = { fail: () => chain };
+				return chain;
+			});
+
+			window.$('#ffc-rereg-form').trigger('submit');
+			await flush();
+
+			// Invalid optional format → submission blocked, no AJAX.
+			expect(postSpy).not.toHaveBeenCalled();
+			expect(window.$('[data-format="cpf"]').hasClass('has-error')).toBe(true);
+		} finally {
+			window.$.expr.pseudos.visible = originalVisible;
+		}
+	});
+
+	it('validates an optional format field that wraps no input by reading the wrapper itself', async () => {
+		const originalVisible = window.$.expr.pseudos.visible;
+		window.$.expr.pseudos.visible = () => true;
+		try {
+			await mountValidForm();
+			// data-format on an element with a value but no child input → the
+			// `if (!$f.length) $f = $(this)` fallback path (line 406).
+			window.$('#ffc-rereg-form').prepend(
+				'<input class="ffc-rereg-field" name="fields[cpf]" data-format="cpf" value="529.982.247-25" />'
+			);
+			vi.restoreAllMocks();
+			const postSpy = vi.spyOn(window.$, 'post').mockImplementation(() => postChain({ done: { success: true } }));
+
+			window.$('#ffc-rereg-form').trigger('submit');
+			await flush();
+
+			// Valid CPF on the wrapper itself → submission proceeds.
+			expect(postSpy).toHaveBeenCalled();
+		} finally {
+			window.$.expr.pseudos.visible = originalVisible;
+		}
 	});
 
 	it('renders server-side errors on response.success=false with errors map', async () => {

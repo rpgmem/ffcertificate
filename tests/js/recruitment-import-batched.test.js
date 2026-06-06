@@ -216,6 +216,24 @@ describe('ffcRecruitmentImportBatched.run — happy path', () => {
 		expect(els.btn.disabled).toBe(false);
 		expect(els.wrap.style.display).toBe('none');
 	});
+
+	it('falls back to the status node (with +N more) when no errorList is given', async () => {
+		const els = mountDom();
+
+		fetchMock
+			.mockReturnValueOnce(jsonResponse({ ok: true, job_id: 'JOB-3', total: 5 }))
+			.mockReturnValueOnce(jsonResponse({
+				ok: true,
+				errors: ['e1', 'e2', 'e3', 'e4', 'e5'],
+			}));
+
+		// callRun does NOT pass errorList → renderErrorList uses the status node.
+		await expect(callRun(els)).rejects.toThrow(/Validation failed/);
+
+		// First 3 errors previewed in the status, plus the "(+2 more)" suffix.
+		expect(els.status.textContent).toContain('e1 | e2 | e3');
+		expect(els.status.textContent).toContain('(+2 more)');
+	});
 });
 
 describe('ffcRecruitmentImportBatched.run — failure handling', () => {

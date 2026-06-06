@@ -530,6 +530,16 @@ describe('FFCGeofence.recheck', () => {
 		expect(window.$('#ffc-form-501').hasClass('ffc-validated')).toBe(true);
 	});
 
+	it('skips config keys whose form wrapper is not in the DOM', () => {
+		document.body.innerHTML = '';
+		window.ffcGeofenceConfig = {
+			999: { datetime: { enabled: false }, geo: { enabled: false } },
+		};
+		// No #ffc-form-999 element → recheck bails on the length === 0 guard.
+		expect(() => window.FFCGeofence.recheck()).not.toThrow();
+		expect(window.$('#ffc-form-999').length).toBe(0);
+	});
+
 	it('skips forms currently in geofence-loading state', () => {
 		document.body.innerHTML = `
 			<div id="ffc-form-502" class="ffc-geofence-loading">

@@ -58,4 +58,27 @@ describe('ffc-self-scheduling-admin-appointments', () => {
 
 		expect(window.location).toBe('INITIAL');
 	});
+
+	it('defers binding to DOMContentLoaded while the document is still loading', () => {
+		window.prompt = vi.fn(() => 'valid reason');
+		delete window.location;
+		window.location = 'INITIAL';
+		const readyStateSpy = vi
+			.spyOn(document, 'readyState', 'get')
+			.mockReturnValue('loading');
+		const addSpy = vi.spyOn(document, 'addEventListener');
+
+		loadScript(SCRIPT);
+
+		const dclCall = addSpy.mock.calls.find((c) => c[0] === 'DOMContentLoaded');
+		expect(dclCall).toBeTruthy();
+		readyStateSpy.mockRestore();
+		dclCall[1]();
+
+		document.querySelector('.ffc-appointment-cancel').click();
+		expect(window.location).toBe(URL + '&reason=valid%20reason');
+
+		readyStateSpy.mockRestore();
+		addSpy.mockRestore();
+	});
 });

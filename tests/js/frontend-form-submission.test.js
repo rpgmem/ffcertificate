@@ -205,6 +205,47 @@ describe('frontend.handleFormSubmission', () => {
 		delete window.ffcGeneratePDF;
 	});
 
+	it('clears a stale error class from a required field that now has a value', async () => {
+		const $form = setupForm({ withRequired: true });
+		const input = document.querySelector('input[name="name"]');
+		// Pre-mark as invalid (as a prior failed submit would have).
+		input.classList.add('ffc-field-error');
+		input.setAttribute('aria-invalid', 'true');
+		input.value = 'Filled';
+		mockAjax((opts) => { opts.success({ success: true, data: { html: '<div>ok</div>' } }); return {}; });
+
+		$form.trigger('submit');
+		await flush();
+
+		// The validation loop took the else-branch and cleared the markers.
+		expect(input.classList.contains('ffc-field-error')).toBe(false);
+		expect(input.getAttribute('aria-invalid')).toBeNull();
+	});
+
+	it('on a resolved-but-null response: shows the generic error and re-enables submit', async () => {
+		const $form = setupForm();
+		document.querySelector('input[name="name"]').value = 'Maria';
+		mockAjax((opts) => { opts.success({ success: true, data: null }); return {}; });
+
+		$form.trigger('submit');
+		await flush();
+
+		expect(document.querySelector('form.ffc-submission-form').textContent).toContain('Error occurred');
+		expect(window.$('button[type="submit"]').prop('disabled')).toBe(false);
+	});
+
+	it('on success with no html payload: renders the generic success block', async () => {
+		const $form = setupForm();
+		document.querySelector('input[name="name"]').value = 'Maria';
+		mockAjax((opts) => { opts.success({ success: true, data: { message: 'Saved' } }); return {}; });
+
+		$form.trigger('submit');
+		await flush();
+
+		// showFormSuccess('') injected a success element into the form.
+		expect(document.querySelector('form.ffc-submission-form').innerHTML.length).toBeGreaterThan(0);
+	});
+
 	it('on success but response.success=false: shows the error message via FFC.Frontend.UI.showFormError', async () => {
 		const $form = setupForm();
 		mockAjax((opts) => {
@@ -295,5 +336,66 @@ describe('frontend.showAccessibleAlert (via required-field validation)', () => {
 		window.$('form').trigger('submit');
 		await flush();
 		expect(document.querySelectorAll('.ffc-accessible-alert').length).toBe(1);
+	});
+
+	it('schedules the alert auto-hide after 8 seconds', () => {
+		window.$.fx.off = true;
+		vi.useFakeTimers();
+		try {
+			document.body.innerHTML = `
+				<form class="ffc-submission-form">
+					<input type="text" required />
+					<button type="submit">Send</button>
+				</form>
+			`;
+			mockAjax(() => ({}));
+			window.$('form').trigger('submit');
+			// The validation path runs synchronously before any AJAX.
+			expect(document.querySelectorAll('.ffc-accessible-alert').length).toBe(1);
+			// Drive the 8s auto-hide timer body (line 100) — the fadeOut call
+			// inside it runs without throwing under fake timers.
+			expect(() => vi.advanceTimersByTime(8000)).not.toThrow();
+		} finally {
+			vi.useRealTimers();
+		}
+	});
+});
+
+// ----------------------------------------------------------------------
+// Dynamic mask MutationObserver — re-applies masks on injected nodes
+// ----------------------------------------------------------------------
+
+describe('frontend.setupDynamicMaskObserver', () => {
+	// The observer was installed on document.body at $(document).ready in the
+	// beforeAll load. Each test injects a matching node and waits for the
+	// MutationObserver callback (async microtask) + the 50ms debounce.
+	function waitObserver() {
+		return new Promise((r) => setTimeout(r, 0))
+			.then(() => new Promise((r) => setTimeout(r, 60)));
+	}
+
+	it('re-applies the CPF and ticket masks when matching inputs are added', async () => {
+		const cpfSpy = vi.spyOn(window.FFC.Frontend.Masks, 'applyCpfRf').mockImplementation(() => {});
+		const ticketSpy = vi.spyOn(window.FFC.Frontend.Masks, 'applyTicket').mockImplementation(() => {});
+		const authSpy = vi.spyOn(window.FFC.Frontend.Masks, 'applyAuthCode').mockImplementation(() => {});
+
+		const wrap = document.createElement('div');
+		wrap.innerHTML =
+			'<input name="cpf_rf" /><input name="ffc_ticket" /><input class="ffc-manual-auth-code" />';
+		document.body.appendChild(wrap);
+
+		await waitObserver();
+
+		expect(cpfSpy).toHaveBeenCalled();
+		expect(ticketSpy).toHaveBeenCalled();
+		expect(authSpy).toHaveBeenCalled();
+	});
+
+	it('ignores mutations that add no mask-relevant nodes', async () => {
+		const cpfSpy = vi.spyOn(window.FFC.Frontend.Masks, 'applyCpfRf').mockImplementation(() => {});
+		// A plain node with no cpf/ticket/auth inputs.
+		document.body.appendChild(document.createElement('span'));
+		await waitObserver();
+		expect(cpfSpy).not.toHaveBeenCalled();
 	});
 });

@@ -208,4 +208,19 @@ describe('candidate-edit — adjutancy swap', () => {
 
 		expect(fetchMock).not.toHaveBeenCalled();
 	});
+
+	it('is a no-op when the wrapper lacks the select / msg / cls-id', async () => {
+		const wrap = document.createElement('span');
+		wrap.className = 'ffc-adjutancy-swap';
+		// No data-ffc-cls-id, no select, no msg.
+		const btn = document.createElement('button');
+		btn.className = 'ffc-adjutancy-swap-btn';
+		wrap.appendChild(btn);
+		document.body.appendChild(wrap);
+
+		btn.click();
+		await flush();
+
+		expect(fetchMock).not.toHaveBeenCalled();
+	});
 });
