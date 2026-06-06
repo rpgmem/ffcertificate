@@ -197,4 +197,247 @@ class AppointmentCancellationHandlerTest extends TestCase {
 		$handler->handle_cancellation_request();
 		$this->assertTrue( true );
 	}
+
+	// ---- handle_cancellation_request routing -------------------------
+	//
+	// The render_*() methods all funnel into render_page(), which calls
+	// Utils::asset_suffix() and then exit(). We alias-mock Utils::asset_suffix
+	// to throw a sentinel so the routing + render entry are exercised without
+	// the process-ending exit(), then assert the correct branch was taken via
+	// the captured page title / message routed through __().
+
+	/**
+	 * Capture which message render_page() received by intercepting __().
+	 *
+	 * @runInSeparateProcess
+	 * @preserveGlobalState disabled
+	 */
+	public function test_handle_request_routes_invalid_link_for_missing_id(): void {
+		// Truthy-but-non-numeric query var → passes the `! get_query_var` guard
+		// yet absint()s to 0, triggering the invalid_link branch.
+		Functions\when( 'get_query_var' )->alias(
+			static function ( $var ) {
+				return AppointmentCancellationHandler::QUERY_VAR === $var ? 'abc' : '';
+			}
+		);
+		Functions\when( 'absint' )->alias( static fn( $v ) => abs( (int) $v ) );
+
+		$captured = $this->stub_render_capture();
+
+		$handler = $this->make_handler();
+		try {
+			$handler->handle_cancellation_request();
+			$this->fail( 'Expected render to short-circuit via Utils::asset_suffix.' );
+		} catch ( \RuntimeException $e ) {
+			$this->assertSame( 'render-page', $e->getMessage() );
+		}
+
+		$this->assert_captured_contains( $captured, 'Invalid cancellation link.' );
+	}
+
+	/**
+	 * @runInSeparateProcess
+	 * @preserveGlobalState disabled
+	 */
+	public function test_handle_request_routes_already_cancelled(): void {
+		Functions\when( 'get_query_var' )->alias(
+			static function ( $var ) {
+				if ( AppointmentCancellationHandler::QUERY_VAR === $var ) {
+					return '42';
+				}
+				return 'tok';
+			}
+		);
+		Functions\when( 'absint' )->alias( static fn( $v ) => abs( (int) $v ) );
+
+		$appt_repo = Mockery::mock( 'overload:FreeFormCertificate\Repositories\AppointmentRepository' );
+		$appt_repo->shouldReceive( 'findById' )->with( 42 )->andReturn(
+			array( 'confirmation_token' => 'tok', 'status' => 'cancelled' )
+		);
+
+		$captured = $this->stub_render_capture();
+
+		$handler = $this->make_handler();
+		try {
+			$handler->handle_cancellation_request();
+			$this->fail( 'Expected render to short-circuit.' );
+		} catch ( \RuntimeException $e ) {
+			$this->assertSame( 'render-page', $e->getMessage() );
+		}
+
+		$this->assert_captured_contains( $captured, 'Already cancelled' );
+	}
+
+	/**
+	 * @runInSeparateProcess
+	 * @preserveGlobalState disabled
+	 */
+	public function test_handle_request_renders_confirm_form_with_calendar(): void {
+		Functions\when( 'get_query_var' )->alias(
+			static function ( $var ) {
+				if ( AppointmentCancellationHandler::QUERY_VAR === $var ) {
+					return '42';
+				}
+				return 'tok';
+			}
+		);
+		Functions\when( 'absint' )->alias( static fn( $v ) => abs( (int) $v ) );
+		Functions\when( 'wp_nonce_field' )->justReturn( '' );
+
+		$appt_repo = Mockery::mock( 'overload:FreeFormCertificate\Repositories\AppointmentRepository' );
+		$appt_repo->shouldReceive( 'findById' )->with( 42 )->andReturn(
+			array(
+				'confirmation_token' => 'tok',
+				'status'             => 'confirmed',
+				'calendar_id'        => 9,
+				'appointment_date'   => '2026-05-20',
+				'start_time'         => '09:00:00',
+			)
+		);
+
+		$cal_repo = Mockery::mock( 'overload:FreeFormCertificate\Repositories\CalendarRepository' );
+		$cal_repo->shouldReceive( 'findById' )->with( 9 )->andReturn( array( 'title' => 'Clinic' ) );
+
+		Mockery::mock( 'alias:FreeFormCertificate\Core\DateFormatter' )
+			->shouldReceive( 'format_wallclock_date' )->andReturn( '20/05/2026' )
+			->shouldReceive( 'format_wallclock_time' )->andReturn( '09:00' );
+
+		$captured = $this->stub_render_capture();
+
+		$handler = $this->make_handler();
+		try {
+			$handler->handle_cancellation_request();
+			$this->fail( 'Expected render to short-circuit.' );
+		} catch ( \RuntimeException $e ) {
+			$this->assertSame( 'render-page', $e->getMessage() );
+		}
+
+		// Confirm form heading routed through esc_html_e / __.
+		$this->assert_captured_contains( $captured, 'Cancel appointment' );
+	}
+
+	// ---- process_cancellation ----------------------------------------
+
+	/**
+	 * @runInSeparateProcess
+	 * @preserveGlobalState disabled
+	 */
+	public function test_process_cancellation_renders_error_on_wp_error(): void {
+		$error = Mockery::mock( 'WP_Error' );
+		$error->shouldReceive( 'get_error_message' )->andReturn( 'too late' );
+		Functions\when( 'is_wp_error' )->justReturn( true );
+		Functions\when( 'sanitize_textarea_field' )->returnArg();
+
+		$appt_handler = Mockery::mock( 'FreeFormCertificate\SelfScheduling\AppointmentHandler' );
+		$appt_handler->shouldReceive( 'cancel_appointment' )->with( 42, 'tok', '' )->andReturn( $error );
+
+		Functions\when( 'add_filter' )->justReturn( true );
+		Functions\when( 'add_action' )->justReturn( true );
+		$handler = new AppointmentCancellationHandler( $appt_handler );
+
+		$captured = $this->stub_render_capture();
+
+		try {
+			$this->invoke_process_cancellation( $handler, 42, 'tok' );
+			$this->fail( 'Expected render to short-circuit.' );
+		} catch ( \RuntimeException $e ) {
+			$this->assertSame( 'render-page', $e->getMessage() );
+		}
+
+		$this->assert_captured_contains( $captured, 'Could not cancel' );
+	}
+
+	/**
+	 * @runInSeparateProcess
+	 * @preserveGlobalState disabled
+	 */
+	public function test_process_cancellation_renders_success(): void {
+		Functions\when( 'is_wp_error' )->justReturn( false );
+		Functions\when( 'sanitize_textarea_field' )->returnArg();
+		$_POST['ffc_cancel_reason'] = 'changed plans';
+
+		$appt_handler = Mockery::mock( 'FreeFormCertificate\SelfScheduling\AppointmentHandler' );
+		$appt_handler->shouldReceive( 'cancel_appointment' )->with( 42, 'tok', 'changed plans' )->andReturn( true );
+
+		Functions\when( 'add_filter' )->justReturn( true );
+		Functions\when( 'add_action' )->justReturn( true );
+		$handler = new AppointmentCancellationHandler( $appt_handler );
+
+		$captured = $this->stub_render_capture();
+
+		try {
+			$this->invoke_process_cancellation( $handler, 42, 'tok' );
+			$this->fail( 'Expected render to short-circuit.' );
+		} catch ( \RuntimeException $e ) {
+			$this->assertSame( 'render-page', $e->getMessage() );
+		}
+
+		$this->assert_captured_contains( $captured, 'Appointment cancelled' );
+
+		unset( $_POST['ffc_cancel_reason'] );
+	}
+
+	/**
+	 * Wire up the render-path WP function stubs and capture every string that
+	 * reaches __()/esc_html_e(); make Utils::asset_suffix() throw so render_page
+	 * stops before exit().
+	 *
+	 * @return array{strings: list<string>}
+	 */
+	private function stub_render_capture(): \ArrayObject {
+		// An ArrayObject so the closures and the returned handle share one
+		// instance — a plain array would be copied on return and the test would
+		// never observe the captured strings.
+		$captured = new \ArrayObject();
+
+		// Capture every label that reaches the render layer. render_notice()
+		// passes title+body through esc_html(); render_confirm_form() emits its
+		// headings via esc_html_e(). Neither is stubbed in setUp(), so these are
+		// the first (and only) definitions in the test process.
+		Functions\when( 'esc_html' )->alias(
+			static function ( $text ) use ( $captured ) {
+				$captured->append( $text );
+				return $text;
+			}
+		);
+		Functions\when( 'esc_url' )->returnArg();
+		Functions\when( 'esc_html_e' )->alias(
+			static function ( $text ) use ( $captured ) {
+				$captured->append( $text );
+			}
+		);
+		Functions\when( 'get_language_attributes' )->justReturn( 'lang="en"' );
+		Functions\when( 'get_bloginfo' )->justReturn( 'Site' );
+		Functions\when( 'nocache_headers' )->justReturn( null );
+		Functions\when( 'status_header' )->justReturn( null );
+
+		// render_page() reads Utils::asset_suffix() before emitting the page
+		// body; throw there to exercise the full routing + render entry without
+		// the process-ending exit() or any echoed HTML.
+		Mockery::mock( 'alias:FreeFormCertificate\Core\Utils' )
+			->shouldReceive( 'asset_suffix' )
+			->andReturnUsing(
+				static function () {
+					throw new \RuntimeException( 'render-page' );
+				}
+			);
+
+		return $captured;
+	}
+
+	/**
+	 * @param \ArrayObject<int, string> $captured Captured render-layer strings.
+	 */
+	private function assert_captured_contains( \ArrayObject $captured, string $needle ): void {
+		$this->assertContains( $needle, $captured->getArrayCopy() );
+	}
+
+	/**
+	 * Invoke the private process_cancellation().
+	 */
+	private function invoke_process_cancellation( AppointmentCancellationHandler $handler, int $id, string $token ): void {
+		$ref = new \ReflectionMethod( AppointmentCancellationHandler::class, 'process_cancellation' );
+		$ref->setAccessible( true );
+		$ref->invoke( $handler, $id, $token );
+	}
 }
