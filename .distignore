@@ -48,6 +48,15 @@
 # Manual support scripts (not part of the plugin runtime)
 /force-split-migration.php
 
+# Instance-specific sample assets in html/ — NOT generic plugin defaults
+# (the shipped defaults are the html/default_* templates + signatures).
+# These are org/deployment-specific (São Paulo logos, a named signature,
+# a sample atestado) and should not go to end users in the dist zip.
+/html/Logo_Cidade_SP_SemFundo.png
+/html/Logo_DRE_v2-scaled.png
+/html/ludmila_santos.png
+/html/atestado_estagios.html
+
 # Editor/OS junk
 *.swp
 *.swo
