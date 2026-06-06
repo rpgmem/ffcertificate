@@ -640,3 +640,148 @@ describe('audience-admin — calendar permissions', () => {
 		expect(window.$('#ffc-no-permissions-row').length).toBe(1);
 	});
 });
+
+// ----------------------------------------------------------------------
+// Residual branches — error paths + guards
+// ----------------------------------------------------------------------
+
+describe('audience-admin — residual branches', () => {
+	function mountSearch() {
+		document.body.innerHTML = `
+			<input id="user_search">
+			<div id="user_results"></div>
+			<div id="selected_users"></div>
+			<input type="hidden" id="selected_user_ids">
+		`;
+	}
+
+	function mountPermissions(scheduleId = '42') {
+		document.body.innerHTML = `
+			<table id="ffc-permissions-table" data-schedule-id="${scheduleId}">
+				<tbody>
+					<tr data-user-id="5"><td>existing</td></tr>
+				</tbody>
+			</table>
+			<input id="ffc-user-search">
+			<input type="hidden" id="ffc-selected-user-id">
+			<div id="ffc-user-search-results"></div>
+			<button id="ffc-add-user-btn" disabled>Add</button>
+		`;
+	}
+
+	it('user search (group members): hides results on a network error', async () => {
+		mountSearch();
+		await reload();
+		vi.useFakeTimers();
+		vi.spyOn(window.$, 'post').mockImplementation(() => postChain({ fail: true }));
+		window.$('#user_results').addClass('active').html('<div>old</div>');
+
+		window.$('#user_search').val('alice').trigger('input');
+		vi.advanceTimersByTime(300);
+		await flush();
+
+		expect(window.$('#user_results').hasClass('active')).toBe(false);
+		expect(window.$('#user_results').html()).toBe('');
+	});
+
+	it('renders a user result even when the name is empty (escHtml falsy guard)', async () => {
+		mountSearch();
+		await reload();
+		vi.useFakeTimers();
+		vi.spyOn(window.$, 'post').mockImplementation(() => postChain({ done: { success: true, data: [{ id: 5, name: '', email: 'a@x' }] } }));
+
+		window.$('#user_search').val('al').trigger('input');
+		vi.advanceTimersByTime(300);
+		await flush();
+
+		expect(window.$('#user_results .ffc-user-result').length).toBe(1);
+	});
+
+	it('calendar permissions: bails when the table has no schedule id', async () => {
+		// data-schedule-id absent → initCalendarPermissions returns early,
+		// so the user-search input never wires up an AJAX call.
+		mountPermissions('');
+		await reload();
+		const postSpy = vi.spyOn(window.$, 'post').mockImplementation(() => postChain({}));
+		vi.useFakeTimers();
+
+		window.$('#ffc-user-search').val('alice').trigger('input');
+		vi.advanceTimersByTime(400);
+		expect(postSpy).not.toHaveBeenCalled();
+	});
+
+	it('calendar permissions search: under 2 chars hides the results', async () => {
+		mountPermissions();
+		await reload();
+		window.$('#ffc-user-search-results').show().html('<div>x</div>');
+
+		window.$('#ffc-user-search').val('a').trigger('input');
+		await flush();
+
+		expect(window.$('#ffc-user-search-results').css('display')).toBe('none');
+	});
+
+	it('calendar permissions search: marks already-added users disabled', async () => {
+		mountPermissions();
+		await reload();
+		vi.useFakeTimers();
+		// User 5 already has a row → rendered as disabled with the
+		// "already added" note; user 6 is selectable.
+		vi.spyOn(window.$, 'post').mockImplementation(() => postChain({ done: { success: true, data: [
+			{ id: 5, name: 'Existing', email: 'e@x' },
+			{ id: 6, name: 'New', email: 'n@x' },
+		] } }));
+
+		window.$('#ffc-user-search').val('ex').trigger('input');
+		vi.advanceTimersByTime(300);
+		await flush();
+
+		expect(window.$('#ffc-user-search-results .ffc-user-exists').length).toBe(1);
+		expect(window.$('#ffc-user-search-results').text()).toContain('already added');
+		expect(window.$('#ffc-user-search-results .ffc-user-result').length).toBe(2);
+	});
+
+	it('calendar permissions search: hides results on a network error', async () => {
+		mountPermissions();
+		await reload();
+		vi.useFakeTimers();
+		vi.spyOn(window.$, 'post').mockImplementation(() => postChain({ fail: true }));
+		window.$('#ffc-user-search-results').show().html('<div>x</div>');
+
+		window.$('#ffc-user-search').val('alice').trigger('input');
+		vi.advanceTimersByTime(300);
+		await flush();
+
+		expect(window.$('#ffc-user-search-results').css('display')).toBe('none');
+	});
+
+	it('add user: alerts the error message and re-enables on a failed add', async () => {
+		mountPermissions();
+		await reload();
+		// Select user 6 first so selectedUserId is set.
+		window.$('#ffc-user-search-results').html('<div class="ffc-user-result" data-id="6" data-name="New"></div>');
+		window.$('#ffc-user-search-results .ffc-user-result').trigger('click');
+		await flush();
+
+		vi.spyOn(window.$, 'post').mockImplementation(() => postChain({ done: { success: false, data: { message: 'Cannot add' } } }));
+		const alertSpy = vi.spyOn(window, 'alert').mockImplementation(() => {});
+
+		window.$('#ffc-add-user-btn').trigger('click');
+		await flush();
+
+		expect(alertSpy).toHaveBeenCalledWith('Cannot add');
+		expect(window.$('#ffc-add-user-btn').prop('disabled')).toBe(false);
+	});
+
+	it('add user: no-ops when no user is selected', async () => {
+		mountPermissions();
+		await reload();
+		const postSpy = vi.spyOn(window.$, 'post').mockImplementation(() => postChain({}));
+
+		// selectedUserId stays 0 → the handler returns before posting.
+		window.$('#ffc-add-user-btn').prop('disabled', false).trigger('click');
+		await flush();
+
+		expect(postSpy).not.toHaveBeenCalled();
+	});
+});

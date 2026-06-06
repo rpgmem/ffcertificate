@@ -12,7 +12,7 @@ beforeAll(() => {
 		ajaxUrl: '/wp-admin/admin-ajax.php',
 		restUrl: '/wp-json/ffc/v1/audience/',
 		nonce: 'n',
-		locale: 'pt_BR',
+		locale: 'pt-BR',
 		strings: {
 			booking: 'booking', bookings: 'bookings',
 			noBookings: 'No bookings for this day.',
@@ -81,17 +81,13 @@ describe('ffc-audience-bookings — loadDayBookings render', () => {
 	it('renders only active bookings by default (cancelled hidden)', () => {
 		api.loadDayBookings(DATE);
 		const $items = window.$('#ffc-day-bookings .ffc-booking-item');
-		expect($items.length).toBe(2); // two active, cancelled filtered out
-		// Timed booking shows HH:MM - HH:MM; all-day shows the All Day label.
+		expect($items.length).toBe(2);
 		const html = window.$('#ffc-day-bookings').html();
 		expect(html).toContain('09:00 - 10:00');
 		expect(html).toContain('All Day');
-		// Description is HTML-escaped.
 		expect(html).toContain('Timed &lt;b&gt;one&lt;/b&gt;');
-		// Audience tag rendered with the collapsed/sub name.
 		expect(html).toContain('ffc-audience-tag');
 		expect(html).toContain('Sub');
-		// canBook → cancel action present for active bookings.
 		expect(window.$('#ffc-day-bookings .ffc-cancel-booking').length).toBe(2);
 	});
 
@@ -138,7 +134,7 @@ describe('ffc-audience-bookings — openDayModal', () => {
 describe('ffc-audience-bookings — cancelBooking', () => {
 	it('bails without a REST call when the reason prompt is empty', () => {
 		const restSpy = vi.spyOn(window.FFC, 'rest');
-		vi.spyOn(window, 'prompt').mockReturnValue('   '); // whitespace → treated as empty
+		vi.spyOn(window, 'prompt').mockReturnValue('   ');
 		api.loadDayBookings(DATE);
 		window.$('#ffc-day-bookings .ffc-cancel-booking').first().trigger('click');
 		expect(restSpy).not.toHaveBeenCalled();
@@ -150,8 +146,6 @@ describe('ffc-audience-bookings — cancelBooking', () => {
 		const restSpy = vi.spyOn(window.FFC, 'rest').mockResolvedValue({ success: true });
 
 		api.loadDayBookings(DATE);
-		// Bookings render sorted by start_time, so target the 09:00 one by id
-		// rather than relying on DOM order.
 		window.$('#ffc-day-bookings .ffc-cancel-booking[data-id="1"]').trigger('click');
 		await Promise.resolve().then(() => Promise.resolve());
 
@@ -164,7 +158,7 @@ describe('ffc-audience-bookings — cancelBooking', () => {
 		expect(api.renderCalendar).toHaveBeenCalled();
 	});
 
-	it('alerts the error message when the cancel fails', async () => {
+	it('alerts the server message when the cancel reports failure', async () => {
 		vi.spyOn(window, 'prompt').mockReturnValue('reason');
 		const alertSpy = vi.spyOn(window, 'alert').mockImplementation(() => {});
 		vi.spyOn(window.FFC, 'rest').mockResolvedValue({ success: false, message: 'Nope' });
@@ -174,5 +168,17 @@ describe('ffc-audience-bookings — cancelBooking', () => {
 		await Promise.resolve().then(() => Promise.resolve());
 
 		expect(alertSpy).toHaveBeenCalledWith('Nope');
+	});
+
+	it('alerts the generic error on a rejected cancel request', async () => {
+		vi.spyOn(window, 'prompt').mockReturnValue('reason');
+		const alertSpy = vi.spyOn(window, 'alert').mockImplementation(() => {});
+		vi.spyOn(window.FFC, 'rest').mockRejectedValue(new Error('net'));
+
+		api.loadDayBookings(DATE);
+		window.$('#ffc-day-bookings .ffc-cancel-booking').first().trigger('click');
+		await Promise.resolve().then(() => Promise.resolve());
+
+		expect(alertSpy).toHaveBeenCalledWith('Error');
 	});
 });
