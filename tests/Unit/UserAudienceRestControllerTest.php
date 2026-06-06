@@ -178,6 +178,60 @@ class UserAudienceRestControllerTest extends TestCase {
         $this->assertEmpty( $result['bookings'] );
     }
 
+    public function test_get_user_audience_bookings_renders_wall_clock_without_tz_shift(): void {
+        // Regression: booking_date/start_time/end_time are wall-clock (Category B)
+        // values. On a UTC-3 site they must render literally — a 05/06 09:00–17:00
+        // booking must NOT shift to 04/06 06:00–14:00. Drives a real booking row
+        // through the controller with a timezone-honouring wp_date stub.
+        $prev_tz = date_default_timezone_get(); // phpcs:ignore WordPress.DateTime.RestrictedFunctions.timezone_change_date_default_timezone_get
+        date_default_timezone_set( 'UTC' ); // phpcs:ignore WordPress.DateTime.RestrictedFunctions.timezone_change_date_default_timezone_set
+
+        Functions\when( 'get_current_user_id' )->justReturn( 5 );
+        Functions\when( 'current_user_can' )->justReturn( true );
+        Functions\when( 'current_time' )->justReturn( '2026-06-06' );
+        Functions\when( 'get_option' )->alias( function ( $key, $default = false ) {
+            return 'ffc_settings' === $key ? array() : ( false !== $default ? $default : '' );
+        } );
+        Functions\when( 'wp_timezone' )->alias( static function () {
+            return new \DateTimeZone( '-03:00' );
+        } );
+        Functions\when( 'wp_date' )->alias( static function ( $format, $ts = null, $tz = null ) {
+            $ts = null === $ts ? time() : (int) $ts;
+            $dt = ( new \DateTimeImmutable( '@' . $ts ) )->setTimezone(
+                $tz instanceof \DateTimeZone ? $tz : new \DateTimeZone( 'UTC' )
+            );
+            return $dt->format( $format );
+        } );
+
+        $booking_row = array(
+            'id'               => 1,
+            'booking_date'     => '2026-06-05',
+            'start_time'       => '09:00:00',
+            'end_time'         => '17:00:00',
+            'status'           => 'active',
+            'environment_id'   => 2,
+            'environment_name' => 'Env',
+            'schedule_name'    => 'Sched',
+            'description'      => '',
+        );
+        // 1st get_results = the booking; 2nd = audience batch-load (empty).
+        $this->wpdb->shouldReceive( 'get_results' )->andReturn( array( $booking_row ), array() );
+
+        $ctrl    = new UserAudienceRestController( 'ffc/v1' );
+        $result  = $ctrl->get_user_audience_bookings( $this->make_request() );
+
+        date_default_timezone_set( $prev_tz ); // phpcs:ignore WordPress.DateTime.RestrictedFunctions.timezone_change_date_default_timezone_set
+
+        $this->assertIsArray( $result );
+        $this->assertNotEmpty( $result['bookings'] );
+        $row = $result['bookings'][0];
+        $this->assertSame( '05/06/2026', $row['booking_date'], 'date must not shift back a day' );
+        $this->assertSame( '09:00', $row['start_time'], 'start time must not shift' );
+        $this->assertSame( '17:00', $row['end_time'], 'end time must not shift' );
+        $this->assertSame( '2026-06-05', $row['booking_date_raw'] );
+        $this->assertTrue( $row['is_past'], '2026-06-05 is before site-local today 2026-06-06' );
+    }
+
     // ------------------------------------------------------------------
     // get_joinable_groups()
     // ------------------------------------------------------------------
