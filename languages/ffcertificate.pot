@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Free Form Certificate\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-06-05 21:46+0000\n"
+"POT-Creation-Date: 2026-06-06 00:52+0000\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -192,7 +192,7 @@ msgstr[0] ""
 msgstr[1] ""
 
 #. %d: number of members added
-#: includes/audience/class-ffc-audience-admin-audience.php:849
+#: includes/audience/class-ffc-audience-admin-audience.php:853
 msgid "%d member(s) added successfully."
 msgstr ""
 
@@ -288,19 +288,19 @@ msgid "%s contains invalid entries."
 msgstr ""
 
 #. %s: environment label (singular)
-#: includes/audience/class-ffc-audience-admin-environment.php:416
+#: includes/audience/class-ffc-audience-admin-environment.php:420
 #, php-format
 msgid "%s created successfully."
 msgstr ""
 
 #. %s: environment label (singular)
-#: includes/audience/class-ffc-audience-admin-environment.php:418
+#: includes/audience/class-ffc-audience-admin-environment.php:422
 #, php-format
 msgid "%s deactivated successfully."
 msgstr ""
 
 #. %s: environment label (singular)
-#: includes/audience/class-ffc-audience-admin-environment.php:420
+#: includes/audience/class-ffc-audience-admin-environment.php:424
 #, php-format
 msgid "%s deleted successfully."
 msgstr ""
@@ -386,7 +386,7 @@ msgid "%s requires both selections."
 msgstr ""
 
 #. %s: environment label (singular)
-#: includes/audience/class-ffc-audience-admin-environment.php:464
+#: includes/audience/class-ffc-audience-admin-environment.php:468
 #, php-format
 msgid "%s updated successfully."
 msgstr ""
@@ -403,7 +403,7 @@ msgstr ""
 msgid "%s: Exit 2 is required for each day."
 msgstr ""
 
-#: includes/admin/class-ffc-admin-user-custom-fields.php:232
+#: includes/admin/class-ffc-admin-user-custom-fields.php:213
 msgid "&mdash; Select &mdash;"
 msgstr ""
 
@@ -423,11 +423,11 @@ msgstr ""
 msgid "(definitive)"
 msgstr ""
 
-#: includes/admin/class-ffc-submissions-list.php:115 includes/admin/class-ffc-csv-exporter.php:439 includes/self-scheduling/class-ffc-self-scheduling-appointment-csv-exporter.php:138 includes/frontend/class-ffc-public-csv-exporter.php:782 includes/self-scheduling/views/appointments-list.php:216 includes/self-scheduling/views/appointments-list.php:465
+#: includes/admin/class-ffc-submissions-list.php:115 includes/admin/class-ffc-csv-exporter.php:439 includes/self-scheduling/class-ffc-self-scheduling-appointment-csv-exporter.php:138 includes/self-scheduling/class-ffc-self-scheduling-appointments-list-table.php:215 includes/frontend/class-ffc-public-csv-exporter.php:782 includes/self-scheduling/views/appointments-list.php:125
 msgid "(Deleted)"
 msgstr ""
 
-#: includes/self-scheduling/views/appointments-list.php:231 includes/self-scheduling/views/appointments-list.php:491
+#: includes/self-scheduling/class-ffc-self-scheduling-appointments-list-table.php:230 includes/self-scheduling/views/appointments-list.php:151
 msgid "(Guest)"
 msgstr ""
 
@@ -447,7 +447,7 @@ msgstr ""
 msgid "(no classifications)"
 msgstr ""
 
-#: includes/audience/class-ffc-audience-admin-audience.php:428 includes/audience/class-ffc-audience-admin-audience.php:568
+#: includes/audience/class-ffc-audience-admin-audience.php:432 includes/audience/class-ffc-audience-admin-audience.php:572
 msgid "(No group)"
 msgstr ""
 
@@ -503,15 +503,15 @@ msgstr ""
 msgid "(scope to one environment),"
 msgstr ""
 
-#: includes/audience/class-ffc-audience-admin-audience.php:652 includes/audience/class-ffc-audience-loader.php:243
+#: includes/audience/class-ffc-audience-admin-audience.php:656 includes/audience/class-ffc-audience-loader.php:243
 msgid "+ Add Department"
 msgstr ""
 
-#: includes/audience/class-ffc-audience-admin-audience.php:657
+#: includes/audience/class-ffc-audience-admin-audience.php:661
 msgid "+ Add Division"
 msgstr ""
 
-#: includes/audience/class-ffc-audience-admin-audience.php:396
+#: includes/audience/class-ffc-audience-admin-audience.php:400
 msgid "+ Add Field"
 msgstr ""
 
@@ -711,7 +711,7 @@ msgstr ""
 msgid "[%s] Appointment Cancelled - Calendar No Longer Available"
 msgstr ""
 
-#: includes/recruitment/class-ffc-recruitment-admin-assets-manager.php:229
+#: includes/recruitment/class-ffc-recruitment-admin-assets-manager.php:230
 msgid "A \"bulk call\" audit entry is recorded with the selected candidates."
 msgstr ""
 
@@ -739,7 +739,7 @@ msgstr ""
 msgid "A hash will be generated automatically when you enable Public Operator Access above and save the form."
 msgstr ""
 
-#: includes/recruitment/class-ffc-recruitment-admin-assets-manager.php:223
+#: includes/recruitment/class-ffc-recruitment-admin-assets-manager.php:224
 msgid "A justification is required to proceed."
 msgstr ""
 
@@ -784,7 +784,7 @@ msgid "A — Publish preliminary as definitive (snapshot, no changes)"
 msgstr ""
 
 #. 1: number of selected rows, 2: date, 3: time
-#: includes/recruitment/class-ffc-recruitment-admin-assets-manager.php:226
+#: includes/recruitment/class-ffc-recruitment-admin-assets-manager.php:227
 msgid "About to issue {count} call(s) for {date} at {time}."
 msgstr ""
 
@@ -906,7 +906,7 @@ msgstr ""
 msgid "Action fired when a CSV export finishes writing"
 msgstr ""
 
-#: includes/shortcodes/class-ffc-dashboard-asset-manager.php:219 includes/admin/class-ffc-submissions-list.php:83 includes/admin/class-ffc-form-editor-layout-metabox.php:58 includes/self-scheduling/class-ffc-self-scheduling-editor.php:327 includes/reregistration/class-ffc-reregistration-custom-fields-page.php:56 includes/reregistration/class-ffc-reregistration-admin.php:315 includes/reregistration/class-ffc-reregistration-admin.php:684 includes/url-shortener/class-ffc-url-shortener-admin-page.php:480 includes/recruitment/class-ffc-recruitment-notice-edit-page-renderer.php:883 includes/audience/class-ffc-audience-admin-bookings.php:154 includes/audience/class-ffc-audience-admin-environment.php:133 includes/audience/class-ffc-audience-admin-calendar.php:86 includes/audience/class-ffc-audience-admin-calendar.php:445 includes/audience/class-ffc-audience-admin-calendar.php:547 includes/audience/class-ffc-audience-admin-audience.php:95 includes/audience/class-ffc-audience-admin-audience.php:739 includes/audience/class-ffc-audience-admin-settings.php:233 includes/settings/views/ffc-tab-geolocation.php:44 includes/settings/views/ffc-tab-cache.php:218
+#: includes/shortcodes/class-ffc-dashboard-asset-manager.php:219 includes/admin/class-ffc-submissions-list.php:83 includes/admin/class-ffc-form-editor-layout-metabox.php:58 includes/self-scheduling/class-ffc-self-scheduling-editor.php:327 includes/reregistration/class-ffc-reregistration-custom-fields-page.php:56 includes/reregistration/class-ffc-reregistration-admin.php:315 includes/reregistration/class-ffc-reregistration-admin.php:684 includes/url-shortener/class-ffc-url-shortener-admin-page.php:480 includes/recruitment/class-ffc-recruitment-notice-edit-page-renderer.php:883 includes/audience/class-ffc-audience-admin-bookings.php:154 includes/audience/class-ffc-audience-admin-environment.php:137 includes/audience/class-ffc-audience-admin-calendar.php:90 includes/audience/class-ffc-audience-admin-calendar.php:449 includes/audience/class-ffc-audience-admin-calendar.php:551 includes/audience/class-ffc-audience-admin-audience.php:99 includes/audience/class-ffc-audience-admin-audience.php:743 includes/audience/class-ffc-audience-admin-settings.php:233 includes/settings/views/ffc-tab-geolocation.php:44 includes/settings/views/ffc-tab-cache.php:218
 msgid "Actions"
 msgstr ""
 
@@ -914,7 +914,7 @@ msgstr ""
 msgid "Activate the campaign — invitation emails are sent automatically"
 msgstr ""
 
-#: includes/shortcodes/class-ffc-dashboard-asset-manager.php:315 includes/self-scheduling/class-ffc-self-scheduling-editor.php:257 includes/reregistration/class-ffc-reregistration-repository.php:54 includes/url-shortener/class-ffc-url-shortener-admin-page.php:389 includes/url-shortener/class-ffc-url-shortener-admin-page.php:427 includes/url-shortener/class-ffc-url-shortener-admin-page.php:499 includes/audience/class-ffc-audience-admin-bookings.php:130 includes/audience/class-ffc-audience-admin-bookings.php:210 includes/audience/class-ffc-audience-admin-environment.php:183 includes/audience/class-ffc-audience-admin-environment.php:375 includes/audience/class-ffc-audience-admin-calendar.php:128 includes/audience/class-ffc-audience-admin-calendar.php:400 includes/audience/class-ffc-audience-admin-audience.php:164 includes/audience/class-ffc-audience-admin-audience.php:297 includes/audience/class-ffc-audience-admin-audience.php:451 includes/audience/class-ffc-audience-admin-audience.php:588 includes/audience/class-ffc-audience-loader.php:388 includes/settings/views/ffc-tab-cache.php:61 includes/settings/views/ffc-tab-cache.php:70 includes/settings/views/ffc-tab-cache.php:80
+#: includes/shortcodes/class-ffc-dashboard-asset-manager.php:315 includes/self-scheduling/class-ffc-self-scheduling-editor.php:257 includes/reregistration/class-ffc-reregistration-repository.php:54 includes/url-shortener/class-ffc-url-shortener-admin-page.php:389 includes/url-shortener/class-ffc-url-shortener-admin-page.php:427 includes/url-shortener/class-ffc-url-shortener-admin-page.php:499 includes/audience/class-ffc-audience-admin-bookings.php:130 includes/audience/class-ffc-audience-admin-bookings.php:210 includes/audience/class-ffc-audience-admin-environment.php:187 includes/audience/class-ffc-audience-admin-environment.php:379 includes/audience/class-ffc-audience-admin-calendar.php:132 includes/audience/class-ffc-audience-admin-calendar.php:404 includes/audience/class-ffc-audience-admin-audience.php:168 includes/audience/class-ffc-audience-admin-audience.php:301 includes/audience/class-ffc-audience-admin-audience.php:455 includes/audience/class-ffc-audience-admin-audience.php:592 includes/audience/class-ffc-audience-loader.php:388 includes/settings/views/ffc-tab-cache.php:61 includes/settings/views/ffc-tab-cache.php:70 includes/settings/views/ffc-tab-cache.php:80
 msgid "Active"
 msgstr ""
 
@@ -990,7 +990,7 @@ msgstr ""
 msgid "Add all"
 msgstr ""
 
-#: includes/admin/class-ffc-admin-user-custom-fields.php:311 includes/reregistration/class-ffc-reregistration-form-renderer.php:584
+#: includes/admin/class-ffc-admin-user-custom-fields.php:292 includes/reregistration/class-ffc-reregistration-form-renderer.php:584
 msgid "Add Day"
 msgstr ""
 
@@ -1002,7 +1002,7 @@ msgstr ""
 msgid "Add fields with labels, types, and validation rules"
 msgstr ""
 
-#: includes/audience/class-ffc-audience-admin-calendar.php:533 includes/audience/class-ffc-audience-admin-settings.php:219
+#: includes/audience/class-ffc-audience-admin-calendar.php:537 includes/audience/class-ffc-audience-admin-settings.php:219
 msgid "Add Holiday"
 msgstr ""
 
@@ -1010,25 +1010,25 @@ msgstr ""
 msgid "Add location"
 msgstr ""
 
-#: includes/audience/class-ffc-audience-admin-audience.php:711
+#: includes/audience/class-ffc-audience-admin-audience.php:715
 msgid "Add Members"
 msgstr ""
 
-#: includes/reregistration/class-ffc-reregistration-admin.php:280 includes/audience/class-ffc-audience-admin-environment.php:106 includes/audience/class-ffc-audience-admin-calendar.php:73 includes/audience/class-ffc-audience-admin-audience.php:82
+#: includes/reregistration/class-ffc-reregistration-admin.php:280 includes/audience/class-ffc-audience-admin-environment.php:110 includes/audience/class-ffc-audience-admin-calendar.php:77 includes/audience/class-ffc-audience-admin-audience.php:86
 msgid "Add New"
 msgstr ""
 
 #. %s: environment label (singular, e.g. "Room")
-#: includes/audience/class-ffc-audience-admin-environment.php:245
+#: includes/audience/class-ffc-audience-admin-environment.php:249
 #, php-format
 msgid "Add New %s"
 msgstr ""
 
-#: includes/audience/class-ffc-audience-admin-audience.php:199
+#: includes/audience/class-ffc-audience-admin-audience.php:203
 msgid "Add New Audience"
 msgstr ""
 
-#: includes/audience/class-ffc-audience-admin-calendar.php:161 includes/audience/class-ffc-audience-admin-settings.php:309
+#: includes/audience/class-ffc-audience-admin-calendar.php:165 includes/audience/class-ffc-audience-admin-settings.php:309
 msgid "Add New Calendar"
 msgstr ""
 
@@ -1052,15 +1052,15 @@ msgstr ""
 msgid "Add selected"
 msgstr ""
 
-#: includes/audience/class-ffc-audience-admin-audience.php:724
+#: includes/audience/class-ffc-audience-admin-audience.php:728
 msgid "Add Selected Members"
 msgstr ""
 
-#: includes/audience/class-ffc-audience-admin-calendar.php:516
+#: includes/audience/class-ffc-audience-admin-calendar.php:520
 msgid "Add specific dates when the calendar will be closed (holidays, maintenance, etc.)."
 msgstr ""
 
-#: includes/audience/class-ffc-audience-admin-calendar.php:422 includes/audience/class-ffc-audience-admin-calendar.php:428
+#: includes/audience/class-ffc-audience-admin-calendar.php:426 includes/audience/class-ffc-audience-admin-calendar.php:432
 msgid "Add User"
 msgstr ""
 
@@ -1184,7 +1184,7 @@ msgstr ""
 msgid "Admin must manually approve all bookings"
 msgstr ""
 
-#: includes/self-scheduling/class-ffc-self-scheduling-appointment-csv-exporter.php:75 includes/self-scheduling/views/appointments-list.php:560
+#: includes/self-scheduling/class-ffc-self-scheduling-appointment-csv-exporter.php:75 includes/self-scheduling/views/appointments-list.php:220
 msgid "Admin Notes"
 msgstr ""
 
@@ -1307,7 +1307,7 @@ msgstr ""
 msgid "All Audiences"
 msgstr ""
 
-#: includes/audience/class-ffc-audience-admin-environment.php:116 includes/audience/class-ffc-audience-shortcode.php:249 includes/self-scheduling/views/appointments-list.php:337
+#: includes/self-scheduling/class-ffc-self-scheduling-appointments-list-table.php:336 includes/audience/class-ffc-audience-admin-environment.php:120 includes/audience/class-ffc-audience-shortcode.php:249
 msgid "All Calendars"
 msgstr ""
 
@@ -1359,7 +1359,7 @@ msgstr ""
 msgid "All Status"
 msgstr ""
 
-#: includes/reregistration/class-ffc-reregistration-admin.php:291 includes/reregistration/class-ffc-reregistration-admin.php:644 includes/self-scheduling/views/appointments-list.php:346
+#: includes/self-scheduling/class-ffc-self-scheduling-appointments-list-table.php:345 includes/reregistration/class-ffc-reregistration-admin.php:291 includes/reregistration/class-ffc-reregistration-admin.php:644
 msgid "All Statuses"
 msgstr ""
 
@@ -1417,7 +1417,7 @@ msgstr ""
 msgid "Allow operators with the hash to use this form's public surface."
 msgstr ""
 
-#: includes/audience/class-ffc-audience-admin-audience.php:309
+#: includes/audience/class-ffc-audience-admin-audience.php:313
 msgid "Allow Self-Join"
 msgstr ""
 
@@ -1628,7 +1628,7 @@ msgstr[0] ""
 msgstr[1] ""
 
 #. %d: appointment ID
-#: includes/self-scheduling/views/appointments-list.php:525
+#: includes/self-scheduling/views/appointments-list.php:185
 msgid "Appointment #%d"
 msgstr ""
 
@@ -1662,7 +1662,7 @@ msgstr ""
 msgid "Appointment cancelled successfully"
 msgstr ""
 
-#: includes/self-scheduling/class-ffc-self-scheduling-appointment-ajax-handler.php:268 includes/self-scheduling/views/appointments-list.php:433
+#: includes/self-scheduling/class-ffc-self-scheduling-appointment-ajax-handler.php:268 includes/self-scheduling/views/appointments-list.php:93
 msgid "Appointment cancelled successfully."
 msgstr ""
 
@@ -1686,7 +1686,7 @@ msgstr ""
 msgid "Appointment Confirmation: %s"
 msgstr ""
 
-#: includes/self-scheduling/views/appointments-list.php:404
+#: includes/self-scheduling/views/appointments-list.php:64
 msgid "Appointment confirmed successfully."
 msgstr ""
 
@@ -1698,7 +1698,7 @@ msgstr ""
 msgid "Appointment Date"
 msgstr ""
 
-#: includes/frontend/class-ffc-verification-response-renderer.php:244 includes/self-scheduling/views/appointments-list.php:537 includes/self-scheduling/views/appointments-list.php:588
+#: includes/frontend/class-ffc-verification-response-renderer.php:244 includes/self-scheduling/views/appointments-list.php:197 includes/self-scheduling/views/appointments-list.php:248
 msgid "Appointment Details"
 msgstr ""
 
@@ -1714,11 +1714,11 @@ msgstr ""
 msgid "Appointment Hooks"
 msgstr ""
 
-#: includes/self-scheduling/class-ffc-self-scheduling-appointment-receipt-handler.php:421
+#: includes/self-scheduling/class-ffc-self-scheduling-appointment-receipt-handler.php:431
 msgid "Appointment ID:"
 msgstr ""
 
-#: includes/self-scheduling/class-ffc-self-scheduling-appointment-receipt-handler.php:419
+#: includes/self-scheduling/class-ffc-self-scheduling-appointment-receipt-handler.php:429
 msgid "Appointment Information"
 msgstr ""
 
@@ -1726,11 +1726,11 @@ msgstr ""
 msgid "Appointment not found"
 msgstr ""
 
-#: includes/self-scheduling/class-ffc-self-scheduling-appointment-handler.php:349 includes/self-scheduling/class-ffc-self-scheduling-appointment-receipt-handler.php:73 includes/self-scheduling/views/appointments-list.php:456
+#: includes/self-scheduling/class-ffc-self-scheduling-appointment-handler.php:349 includes/self-scheduling/class-ffc-self-scheduling-appointment-receipt-handler.php:73 includes/self-scheduling/views/appointments-list.php:116
 msgid "Appointment not found."
 msgstr ""
 
-#: includes/generators/class-ffc-pdf-generator.php:760 includes/generators/class-ffc-pdf-generator.php:846 includes/self-scheduling/class-ffc-self-scheduling-appointment-receipt-handler.php:246 includes/self-scheduling/class-ffc-self-scheduling-appointment-receipt-handler.php:394
+#: includes/generators/class-ffc-pdf-generator.php:760 includes/generators/class-ffc-pdf-generator.php:846 includes/self-scheduling/class-ffc-self-scheduling-appointment-receipt-handler.php:256 includes/self-scheduling/class-ffc-self-scheduling-appointment-receipt-handler.php:404
 msgid "Appointment Receipt"
 msgstr ""
 
@@ -1754,7 +1754,7 @@ msgstr ""
 msgid "Appointment status (pending, confirmed, cancelled, completed, no_show)"
 msgstr ""
 
-#: includes/admin/class-ffc-admin-user-columns.php:112 includes/user-dashboard/class-ffc-capability-catalog.php:125 includes/user-dashboard/class-ffc-capability-catalog.php:188 includes/user-dashboard/class-ffc-capability-manager.php:857 includes/self-scheduling/class-ffc-self-scheduling-admin.php:45 includes/self-scheduling/class-ffc-self-scheduling-admin.php:46 includes/audience/class-ffc-audience-admin-settings.php:314 includes/self-scheduling/views/appointments-list.php:624
+#: includes/admin/class-ffc-admin-user-columns.php:112 includes/user-dashboard/class-ffc-capability-catalog.php:125 includes/user-dashboard/class-ffc-capability-catalog.php:188 includes/user-dashboard/class-ffc-capability-manager.php:857 includes/self-scheduling/class-ffc-self-scheduling-admin.php:45 includes/self-scheduling/class-ffc-self-scheduling-admin.php:46 includes/audience/class-ffc-audience-admin-settings.php:314 includes/self-scheduling/views/appointments-list.php:284
 msgid "Appointments"
 msgstr ""
 
@@ -1821,16 +1821,16 @@ msgid "Are you sure you want to cancel this booking?"
 msgstr ""
 
 #. %s: environment label (singular)
-#: includes/audience/class-ffc-audience-admin-environment.php:192
+#: includes/audience/class-ffc-audience-admin-environment.php:196
 #, php-format
 msgid "Are you sure you want to deactivate this %s?"
 msgstr ""
 
-#: includes/audience/class-ffc-audience-admin-audience.php:171
+#: includes/audience/class-ffc-audience-admin-audience.php:175
 msgid "Are you sure you want to deactivate this audience?"
 msgstr ""
 
-#: includes/audience/class-ffc-audience-admin-calendar.php:134
+#: includes/audience/class-ffc-audience-admin-calendar.php:138
 msgid "Are you sure you want to deactivate this calendar?"
 msgstr ""
 
@@ -1868,16 +1868,16 @@ msgid "Are you sure you want to permanently delete all items in the trash?"
 msgstr ""
 
 #. %s: environment label (singular)
-#: includes/audience/class-ffc-audience-admin-environment.php:201
+#: includes/audience/class-ffc-audience-admin-environment.php:205
 #, php-format
 msgid "Are you sure you want to permanently delete this %s?"
 msgstr ""
 
-#: includes/audience/class-ffc-audience-admin-audience.php:175
+#: includes/audience/class-ffc-audience-admin-audience.php:179
 msgid "Are you sure you want to permanently delete this audience?"
 msgstr ""
 
-#: includes/audience/class-ffc-audience-admin-calendar.php:138
+#: includes/audience/class-ffc-audience-admin-calendar.php:142
 msgid "Are you sure you want to permanently delete this calendar?"
 msgstr ""
 
@@ -1913,7 +1913,7 @@ msgstr ""
 msgid "At least one user must be selected."
 msgstr ""
 
-#: includes/recruitment/class-ffc-recruitment-admin-assets-manager.php:228
+#: includes/recruitment/class-ffc-recruitment-admin-assets-manager.php:229
 msgid "Atomic — any single conflict rolls back the entire batch."
 msgstr ""
 
@@ -1925,7 +1925,7 @@ msgstr ""
 msgid "Audience"
 msgstr ""
 
-#: includes/audience/class-ffc-audience-admin-calendar.php:354
+#: includes/audience/class-ffc-audience-admin-calendar.php:358
 msgid "Audience Badge Format"
 msgstr ""
 
@@ -1937,7 +1937,7 @@ msgstr ""
 msgid "Audience Calendars"
 msgstr ""
 
-#: includes/audience/class-ffc-audience-admin-audience.php:789
+#: includes/audience/class-ffc-audience-admin-audience.php:793
 msgid "Audience created successfully."
 msgstr ""
 
@@ -1945,11 +1945,11 @@ msgstr ""
 msgid "Audience Custom Fields:"
 msgstr ""
 
-#: includes/audience/class-ffc-audience-admin-audience.php:790
+#: includes/audience/class-ffc-audience-admin-audience.php:794
 msgid "Audience deactivated successfully."
 msgstr ""
 
-#: includes/audience/class-ffc-audience-admin-audience.php:791
+#: includes/audience/class-ffc-audience-admin-audience.php:795
 msgid "Audience deleted successfully."
 msgstr ""
 
@@ -1973,7 +1973,7 @@ msgstr ""
 msgid "Audience Name"
 msgstr ""
 
-#: includes/audience/class-ffc-audience-ajax-controller.php:458 includes/audience/class-ffc-audience-ajax-controller.php:634 includes/audience/class-ffc-audience-admin-audience.php:204 includes/audience/class-ffc-audience-admin-audience.php:698
+#: includes/audience/class-ffc-audience-ajax-controller.php:458 includes/audience/class-ffc-audience-ajax-controller.php:634 includes/audience/class-ffc-audience-admin-audience.php:208 includes/audience/class-ffc-audience-admin-audience.php:702
 msgid "Audience not found."
 msgstr ""
 
@@ -1985,7 +1985,7 @@ msgstr ""
 msgid "Audience Scheduling Settings"
 msgstr ""
 
-#: includes/audience/class-ffc-audience-admin-audience.php:822
+#: includes/audience/class-ffc-audience-admin-audience.php:826
 msgid "Audience updated successfully."
 msgstr ""
 
@@ -1997,7 +1997,7 @@ msgstr ""
 msgid "Audience:"
 msgstr ""
 
-#: includes/shortcodes/class-ffc-dashboard-asset-manager.php:240 includes/admin/class-ffc-admin-user-capabilities.php:258 includes/user-dashboard/class-ffc-capability-catalog.php:144 includes/user-dashboard/class-ffc-capability-catalog.php:216 includes/reregistration/class-ffc-reregistration-admin.php:453 includes/audience/class-ffc-audience-admin-audience.php:80 includes/audience/class-ffc-audience-loader.php:381 includes/audience/class-ffc-audience-admin-page.php:259 includes/audience/class-ffc-audience-admin-page.php:260 includes/audience/class-ffc-audience-admin-settings.php:462
+#: includes/shortcodes/class-ffc-dashboard-asset-manager.php:240 includes/admin/class-ffc-admin-user-capabilities.php:258 includes/user-dashboard/class-ffc-capability-catalog.php:144 includes/user-dashboard/class-ffc-capability-catalog.php:216 includes/reregistration/class-ffc-reregistration-admin.php:453 includes/audience/class-ffc-audience-admin-audience.php:84 includes/audience/class-ffc-audience-loader.php:381 includes/audience/class-ffc-audience-admin-page.php:259 includes/audience/class-ffc-audience-admin-page.php:260 includes/audience/class-ffc-audience-admin-settings.php:462
 msgid "Audiences"
 msgstr ""
 
@@ -2174,7 +2174,7 @@ msgid "Back"
 msgstr ""
 
 #. %s: environment label (plural, e.g. "Environments", "Rooms")
-#: includes/audience/class-ffc-audience-admin-environment.php:262
+#: includes/audience/class-ffc-audience-admin-environment.php:266
 #, php-format
 msgid "Back to %s"
 msgstr ""
@@ -2183,11 +2183,11 @@ msgstr ""
 msgid "Back to Adjutancies"
 msgstr ""
 
-#: includes/audience/class-ffc-audience-admin-audience.php:214 includes/audience/class-ffc-audience-admin-audience.php:706
+#: includes/audience/class-ffc-audience-admin-audience.php:218 includes/audience/class-ffc-audience-admin-audience.php:710
 msgid "Back to Audiences"
 msgstr ""
 
-#: includes/audience/class-ffc-audience-admin-calendar.php:175
+#: includes/audience/class-ffc-audience-admin-calendar.php:179
 msgid "Back to Calendars"
 msgstr ""
 
@@ -2199,7 +2199,7 @@ msgstr ""
 msgid "Back to draft"
 msgstr ""
 
-#: includes/self-scheduling/views/appointments-list.php:530 includes/self-scheduling/views/appointments-list.php:590
+#: includes/self-scheduling/views/appointments-list.php:190 includes/self-scheduling/views/appointments-list.php:250
 msgid "Back to List"
 msgstr ""
 
@@ -2323,7 +2323,7 @@ msgstr ""
 msgid "Being prepared; never shown publicly."
 msgstr ""
 
-#: includes/audience/class-ffc-audience-admin-calendar.php:325
+#: includes/audience/class-ffc-audience-admin-calendar.php:329
 msgid "Below"
 msgstr ""
 
@@ -2426,15 +2426,15 @@ msgstr ""
 msgid "Booked"
 msgstr ""
 
-#: includes/self-scheduling/class-ffc-self-scheduling-appointment-receipt-handler.php:439 includes/frontend/class-ffc-verification-response-renderer.php:292
+#: includes/self-scheduling/class-ffc-self-scheduling-appointment-receipt-handler.php:449 includes/frontend/class-ffc-verification-response-renderer.php:292
 msgid "Booked on:"
 msgstr ""
 
-#: includes/self-scheduling/class-ffc-self-scheduling-shortcode.php:202 includes/audience/class-ffc-audience-admin-calendar.php:341 includes/audience/class-ffc-audience-shortcode.php:757
+#: includes/self-scheduling/class-ffc-self-scheduling-shortcode.php:202 includes/audience/class-ffc-audience-admin-calendar.php:345 includes/audience/class-ffc-audience-shortcode.php:757
 msgid "booking"
 msgstr ""
 
-#: includes/audience/class-ffc-audience-admin-calendar.php:335
+#: includes/audience/class-ffc-audience-admin-calendar.php:339
 msgid "Booking Badge Label"
 msgstr ""
 
@@ -2483,7 +2483,7 @@ msgstr ""
 msgid "Bookings"
 msgstr ""
 
-#: includes/self-scheduling/class-ffc-self-scheduling-shortcode.php:203 includes/audience/class-ffc-audience-admin-calendar.php:345 includes/audience/class-ffc-audience-shortcode.php:758
+#: includes/self-scheduling/class-ffc-self-scheduling-shortcode.php:203 includes/audience/class-ffc-audience-admin-calendar.php:349 includes/audience/class-ffc-audience-shortcode.php:758
 msgid "bookings"
 msgstr ""
 
@@ -2647,7 +2647,7 @@ msgstr[1] ""
 msgid "Cached QR Codes:"
 msgstr ""
 
-#: includes/shortcodes/class-ffc-dashboard-asset-manager.php:212 includes/privacy/class-ffc-privacy-handler.php:344 includes/self-scheduling/class-ffc-self-scheduling-appointment-email-handler.php:181 includes/self-scheduling/class-ffc-self-scheduling-appointment-csv-exporter.php:64 includes/audience/class-ffc-audience-admin-environment.php:131 includes/audience/class-ffc-audience-admin-environment.php:276 includes/self-scheduling/views/appointments-list.php:73 includes/self-scheduling/views/appointments-list.php:541
+#: includes/shortcodes/class-ffc-dashboard-asset-manager.php:212 includes/privacy/class-ffc-privacy-handler.php:344 includes/self-scheduling/class-ffc-self-scheduling-appointment-email-handler.php:181 includes/self-scheduling/class-ffc-self-scheduling-appointment-csv-exporter.php:64 includes/self-scheduling/class-ffc-self-scheduling-appointments-list-table.php:72 includes/audience/class-ffc-audience-admin-environment.php:135 includes/audience/class-ffc-audience-admin-environment.php:280 includes/self-scheduling/views/appointments-list.php:201
 msgid "Calendar"
 msgstr ""
 
@@ -2661,15 +2661,15 @@ msgstr ""
 msgid "Calendar can only be viewed during working hours"
 msgstr ""
 
-#: includes/audience/class-ffc-audience-admin-calendar.php:594
+#: includes/audience/class-ffc-audience-admin-calendar.php:598
 msgid "Calendar created successfully."
 msgstr ""
 
-#: includes/audience/class-ffc-audience-admin-calendar.php:595
+#: includes/audience/class-ffc-audience-admin-calendar.php:599
 msgid "Calendar deactivated successfully."
 msgstr ""
 
-#: includes/audience/class-ffc-audience-admin-calendar.php:596
+#: includes/audience/class-ffc-audience-admin-calendar.php:600
 msgid "Calendar deleted successfully."
 msgstr ""
 
@@ -2677,7 +2677,7 @@ msgstr ""
 msgid "Calendar has no working hours configured. Please contact the administrator."
 msgstr ""
 
-#: includes/self-scheduling/class-ffc-self-scheduling-appointment-csv-exporter.php:65 includes/audience/class-ffc-audience-admin-calendar.php:188
+#: includes/self-scheduling/class-ffc-self-scheduling-appointment-csv-exporter.php:65 includes/audience/class-ffc-audience-admin-calendar.php:192
 msgid "Calendar ID"
 msgstr ""
 
@@ -2701,7 +2701,7 @@ msgstr ""
 msgid "Calendar not found in database. Save the calendar first."
 msgstr ""
 
-#: includes/self-scheduling/class-ffc-self-scheduling-appointment-handler.php:108 includes/self-scheduling/class-ffc-self-scheduling-appointment-handler.php:228 includes/self-scheduling/class-ffc-self-scheduling-appointment-handler.php:355 includes/self-scheduling/class-ffc-self-scheduling-shortcode.php:265 includes/audience/class-ffc-audience-ajax-controller.php:322 includes/audience/class-ffc-audience-admin-calendar.php:166
+#: includes/self-scheduling/class-ffc-self-scheduling-appointment-handler.php:108 includes/self-scheduling/class-ffc-self-scheduling-appointment-handler.php:228 includes/self-scheduling/class-ffc-self-scheduling-appointment-handler.php:355 includes/self-scheduling/class-ffc-self-scheduling-shortcode.php:265 includes/audience/class-ffc-audience-ajax-controller.php:322 includes/audience/class-ffc-audience-admin-calendar.php:170
 msgid "Calendar not found."
 msgstr ""
 
@@ -2713,7 +2713,7 @@ msgstr ""
 msgid "Calendar status (inactive = no new bookings allowed)"
 msgstr ""
 
-#: includes/audience/class-ffc-audience-admin-calendar.php:639
+#: includes/audience/class-ffc-audience-admin-calendar.php:643
 msgid "Calendar updated successfully."
 msgstr ""
 
@@ -2733,7 +2733,7 @@ msgstr ""
 msgid "Calendar:"
 msgstr ""
 
-#: includes/audience/class-ffc-audience-admin-calendar.php:71
+#: includes/audience/class-ffc-audience-admin-calendar.php:75
 msgid "Calendars"
 msgstr ""
 
@@ -2838,7 +2838,7 @@ msgstr ""
 msgid "Campaigns"
 msgstr ""
 
-#: includes/audience/class-ffc-audience-admin-calendar.php:442
+#: includes/audience/class-ffc-audience-admin-calendar.php:446
 msgid "Can Book"
 msgstr ""
 
@@ -2850,7 +2850,7 @@ msgstr ""
 msgid "Can't find the downloaded PDF?"
 msgstr ""
 
-#: includes/shortcodes/class-ffc-dashboard-asset-manager.php:227 includes/shortcodes/class-ffc-dashboard-asset-manager.php:253 includes/admin/class-ffc-submissions-list.php:611 includes/admin/class-ffc-admin-assets-manager.php:603 includes/admin/class-ffc-admin-assets-manager.php:834 includes/admin/class-ffc-admin-submission-edit-page.php:131 includes/reregistration/class-ffc-reregistration-form-renderer.php:140 includes/recruitment/class-ffc-recruitment-admin-assets-manager.php:294 includes/audience/class-ffc-audience-admin-bookings.php:221 includes/audience/class-ffc-audience-shortcode.php:415 includes/audience/class-ffc-audience-shortcode.php:822 includes/frontend/class-ffc-frontend.php:464 includes/self-scheduling/views/appointments-list.php:165
+#: includes/shortcodes/class-ffc-dashboard-asset-manager.php:227 includes/shortcodes/class-ffc-dashboard-asset-manager.php:253 includes/admin/class-ffc-submissions-list.php:611 includes/admin/class-ffc-admin-assets-manager.php:603 includes/admin/class-ffc-admin-assets-manager.php:834 includes/admin/class-ffc-admin-submission-edit-page.php:131 includes/self-scheduling/class-ffc-self-scheduling-appointments-list-table.php:164 includes/reregistration/class-ffc-reregistration-form-renderer.php:140 includes/recruitment/class-ffc-recruitment-admin-assets-manager.php:295 includes/audience/class-ffc-audience-admin-bookings.php:221 includes/audience/class-ffc-audience-shortcode.php:415 includes/audience/class-ffc-audience-shortcode.php:822 includes/frontend/class-ffc-frontend.php:464
 msgid "Cancel"
 msgstr ""
 
@@ -2866,7 +2866,7 @@ msgstr ""
 msgid "Cancel call"
 msgstr ""
 
-#: includes/audience/class-ffc-audience-admin-calendar.php:443
+#: includes/audience/class-ffc-audience-admin-calendar.php:447
 msgid "Cancel Others"
 msgstr ""
 
@@ -2899,7 +2899,7 @@ msgstr ""
 msgid "Cancellation Reason"
 msgstr ""
 
-#: includes/recruitment/class-ffc-recruitment-admin-assets-manager.php:234
+#: includes/recruitment/class-ffc-recruitment-admin-assets-manager.php:235
 msgid "Cancellation reason (required):"
 msgstr ""
 
@@ -2915,7 +2915,7 @@ msgstr ""
 msgid "CANCELLED"
 msgstr ""
 
-#: includes/shortcodes/class-ffc-dashboard-asset-manager.php:243 includes/api/class-ffc-user-appointments-rest-controller.php:160 includes/api/class-ffc-user-audience-rest-controller.php:160 includes/generators/class-ffc-pdf-generator.php:713 includes/self-scheduling/class-ffc-self-scheduling-appointment-email-handler.php:431 includes/self-scheduling/class-ffc-self-scheduling-appointment-csv-exporter.php:169 includes/self-scheduling/class-ffc-self-scheduling-appointment-receipt-handler.php:233 includes/recruitment/class-ffc-recruitment-dashboard-section.php:344 includes/audience/class-ffc-audience-admin-bookings.php:131 includes/audience/class-ffc-audience-admin-bookings.php:210 includes/audience/class-ffc-audience-loader.php:389 includes/audience/class-ffc-audience-shortcode.php:823 includes/frontend/class-ffc-verification-response-renderer.php:212 includes/self-scheduling/views/appointments-list.php:264 includes/self-scheduling/views/appointments-list.php:349 includes/self-scheduling/views/appointments-list.php:512
+#: includes/shortcodes/class-ffc-dashboard-asset-manager.php:243 includes/api/class-ffc-user-appointments-rest-controller.php:160 includes/api/class-ffc-user-audience-rest-controller.php:164 includes/generators/class-ffc-pdf-generator.php:713 includes/self-scheduling/class-ffc-self-scheduling-appointment-email-handler.php:431 includes/self-scheduling/class-ffc-self-scheduling-appointment-csv-exporter.php:169 includes/self-scheduling/class-ffc-self-scheduling-appointments-list-table.php:263 includes/self-scheduling/class-ffc-self-scheduling-appointments-list-table.php:348 includes/self-scheduling/class-ffc-self-scheduling-appointment-receipt-handler.php:243 includes/recruitment/class-ffc-recruitment-dashboard-section.php:344 includes/audience/class-ffc-audience-admin-bookings.php:131 includes/audience/class-ffc-audience-admin-bookings.php:210 includes/audience/class-ffc-audience-loader.php:389 includes/audience/class-ffc-audience-shortcode.php:823 includes/frontend/class-ffc-verification-response-renderer.php:212 includes/self-scheduling/views/appointments-list.php:172
 msgid "Cancelled"
 msgstr ""
 
@@ -2936,7 +2936,7 @@ msgstr ""
 msgid "Cancelled By"
 msgstr ""
 
-#: includes/self-scheduling/views/appointments-list.php:425
+#: includes/self-scheduling/views/appointments-list.php:85
 msgid "Cancelled by admin"
 msgstr ""
 
@@ -3327,7 +3327,7 @@ msgstr ""
 msgid "Client (browser)"
 msgstr ""
 
-#: includes/admin/class-ffc-submissions-list.php:595 includes/admin/class-ffc-admin-assets-manager.php:856 includes/self-scheduling/class-ffc-self-scheduling-shortcode.php:533 includes/reregistration/class-ffc-reregistration-admin.php:705 includes/url-shortener/class-ffc-url-shortener-admin-page.php:600 includes/recruitment/class-ffc-recruitment-admin-assets-manager.php:293 includes/recruitment/class-ffc-recruitment-notice-edit-page-renderer.php:1258 includes/audience/class-ffc-audience-loader.php:384 includes/audience/class-ffc-audience-shortcode.php:328 includes/audience/class-ffc-audience-shortcode.php:434 includes/audience/class-ffc-audience-shortcode.php:449 includes/frontend/class-ffc-frontend.php:316 includes/frontend/class-ffc-frontend.php:451
+#: includes/admin/class-ffc-submissions-list.php:595 includes/admin/class-ffc-admin-assets-manager.php:856 includes/self-scheduling/class-ffc-self-scheduling-shortcode.php:533 includes/reregistration/class-ffc-reregistration-admin.php:705 includes/url-shortener/class-ffc-url-shortener-admin-page.php:600 includes/recruitment/class-ffc-recruitment-admin-assets-manager.php:294 includes/recruitment/class-ffc-recruitment-notice-edit-page-renderer.php:1258 includes/audience/class-ffc-audience-loader.php:384 includes/audience/class-ffc-audience-shortcode.php:328 includes/audience/class-ffc-audience-shortcode.php:434 includes/audience/class-ffc-audience-shortcode.php:449 includes/frontend/class-ffc-frontend.php:316 includes/frontend/class-ffc-frontend.php:451
 msgid "Close"
 msgstr ""
 
@@ -3343,7 +3343,7 @@ msgstr ""
 msgid "Close time postponed."
 msgstr ""
 
-#: includes/self-scheduling/class-ffc-self-scheduling-shortcode.php:199 includes/self-scheduling/class-ffc-self-scheduling-appointment-ajax-handler.php:332 includes/reregistration/class-ffc-reregistration-repository.php:56 includes/recruitment/class-ffc-recruitment-admin-page.php:71 includes/recruitment/class-ffc-recruitment-admin-page.php:924 includes/audience/class-ffc-audience-admin-environment.php:349 includes/audience/class-ffc-audience-shortcode.php:304 includes/audience/class-ffc-audience-shortcode.php:819
+#: includes/self-scheduling/class-ffc-self-scheduling-shortcode.php:199 includes/self-scheduling/class-ffc-self-scheduling-appointment-ajax-handler.php:332 includes/reregistration/class-ffc-reregistration-repository.php:56 includes/recruitment/class-ffc-recruitment-admin-page.php:71 includes/recruitment/class-ffc-recruitment-admin-page.php:924 includes/audience/class-ffc-audience-admin-environment.php:353 includes/audience/class-ffc-audience-shortcode.php:304 includes/audience/class-ffc-audience-shortcode.php:819
 msgid "Closed"
 msgstr ""
 
@@ -3375,7 +3375,7 @@ msgstr ""
 msgid "Collect updated information from audience members with configurable email notifications and approval workflow"
 msgstr ""
 
-#: includes/audience/class-ffc-audience-admin-environment.php:129 includes/audience/class-ffc-audience-admin-environment.php:308 includes/audience/class-ffc-audience-admin-audience.php:92 includes/audience/class-ffc-audience-admin-audience.php:255
+#: includes/audience/class-ffc-audience-admin-environment.php:133 includes/audience/class-ffc-audience-admin-environment.php:312 includes/audience/class-ffc-audience-admin-audience.php:96 includes/audience/class-ffc-audience-admin-audience.php:259
 msgid "Color"
 msgstr ""
 
@@ -3383,11 +3383,11 @@ msgstr ""
 msgid "Color for the \"Multiple audiences\" badge shown in the event list when an event has more than 2 audiences."
 msgstr ""
 
-#: includes/audience/class-ffc-audience-admin-audience.php:260
+#: includes/audience/class-ffc-audience-admin-audience.php:264
 msgid "Color used for visual identification in calendars."
 msgstr ""
 
-#: includes/audience/class-ffc-audience-admin-environment.php:318
+#: includes/audience/class-ffc-audience-admin-environment.php:322
 msgid "Color used to identify this environment in the calendar."
 msgstr ""
 
@@ -3435,7 +3435,7 @@ msgstr ""
 msgid "Complete Reregistration"
 msgstr ""
 
-#: includes/shortcodes/class-ffc-dashboard-asset-manager.php:316 includes/api/class-ffc-user-appointments-rest-controller.php:161 includes/generators/class-ffc-pdf-generator.php:714 includes/self-scheduling/class-ffc-self-scheduling-appointment-email-handler.php:432 includes/self-scheduling/class-ffc-self-scheduling-appointment-csv-exporter.php:170 includes/self-scheduling/class-ffc-self-scheduling-appointment-receipt-handler.php:234 includes/frontend/class-ffc-verification-response-renderer.php:213 includes/self-scheduling/views/appointments-list.php:265 includes/self-scheduling/views/appointments-list.php:350 includes/self-scheduling/views/appointments-list.php:513
+#: includes/shortcodes/class-ffc-dashboard-asset-manager.php:316 includes/api/class-ffc-user-appointments-rest-controller.php:161 includes/generators/class-ffc-pdf-generator.php:714 includes/self-scheduling/class-ffc-self-scheduling-appointment-email-handler.php:432 includes/self-scheduling/class-ffc-self-scheduling-appointment-csv-exporter.php:170 includes/self-scheduling/class-ffc-self-scheduling-appointments-list-table.php:264 includes/self-scheduling/class-ffc-self-scheduling-appointments-list-table.php:349 includes/self-scheduling/class-ffc-self-scheduling-appointment-receipt-handler.php:244 includes/frontend/class-ffc-verification-response-renderer.php:213 includes/self-scheduling/views/appointments-list.php:173
 msgid "Completed"
 msgstr ""
 
@@ -3479,11 +3479,11 @@ msgstr ""
 msgid "Configure URL Shortener settings in the \"URL Shortener\" tab. If you change the prefix, rewrite rules are flushed automatically."
 msgstr ""
 
-#: includes/recruitment/class-ffc-recruitment-admin-assets-manager.php:296 includes/self-scheduling/views/appointments-list.php:145
+#: includes/self-scheduling/class-ffc-self-scheduling-appointments-list-table.php:144 includes/recruitment/class-ffc-recruitment-admin-assets-manager.php:297
 msgid "Confirm"
 msgstr ""
 
-#: includes/recruitment/class-ffc-recruitment-admin-assets-manager.php:295
+#: includes/recruitment/class-ffc-recruitment-admin-assets-manager.php:296
 msgid "Confirm action"
 msgstr ""
 
@@ -3519,11 +3519,11 @@ msgstr ""
 msgid "Confirmation Email Subject"
 msgstr ""
 
-#: includes/self-scheduling/views/appointments-list.php:564
+#: includes/self-scheduling/views/appointments-list.php:224
 msgid "Confirmation Token"
 msgstr ""
 
-#: includes/api/class-ffc-user-appointments-rest-controller.php:159 includes/api/class-ffc-user-audience-rest-controller.php:159 includes/generators/class-ffc-pdf-generator.php:712 includes/self-scheduling/class-ffc-self-scheduling-appointment-email-handler.php:430 includes/self-scheduling/class-ffc-self-scheduling-appointment-csv-exporter.php:168 includes/self-scheduling/class-ffc-self-scheduling-shortcode.php:210 includes/self-scheduling/class-ffc-self-scheduling-appointment-receipt-handler.php:232 includes/frontend/class-ffc-verification-response-renderer.php:211 includes/self-scheduling/views/appointments-list.php:263 includes/self-scheduling/views/appointments-list.php:348 includes/self-scheduling/views/appointments-list.php:511
+#: includes/api/class-ffc-user-appointments-rest-controller.php:159 includes/api/class-ffc-user-audience-rest-controller.php:163 includes/generators/class-ffc-pdf-generator.php:712 includes/self-scheduling/class-ffc-self-scheduling-appointment-email-handler.php:430 includes/self-scheduling/class-ffc-self-scheduling-appointment-csv-exporter.php:168 includes/self-scheduling/class-ffc-self-scheduling-appointments-list-table.php:262 includes/self-scheduling/class-ffc-self-scheduling-appointments-list-table.php:347 includes/self-scheduling/class-ffc-self-scheduling-shortcode.php:210 includes/self-scheduling/class-ffc-self-scheduling-appointment-receipt-handler.php:242 includes/frontend/class-ffc-verification-response-renderer.php:211 includes/self-scheduling/views/appointments-list.php:171
 msgid "Confirmed"
 msgstr ""
 
@@ -3677,7 +3677,7 @@ msgstr ""
 msgid "Copy slug"
 msgstr ""
 
-#: includes/audience/class-ffc-audience-admin-audience.php:403
+#: includes/audience/class-ffc-audience-admin-audience.php:407
 msgid "Copy this audience's option lists (departments, unions, work schedules…) to all child and grandchild audiences. Overwrites their current lists."
 msgstr ""
 
@@ -3719,6 +3719,12 @@ msgstr ""
 
 #: includes/recruitment/class-ffc-recruitment-error-messages.php:171
 msgid "Could not create the reason. Please try again."
+msgstr ""
+
+#. 1: record ID, 2: table name
+#: includes/migrations/strategies/class-ffc-email-hash-rehash-migration-strategy.php:333
+#, php-format
+msgid "Could not decrypt email for ID %1$d in %2$s"
 msgstr ""
 
 #: includes/recruitment/class-ffc-recruitment-error-messages.php:132
@@ -3767,6 +3773,12 @@ msgstr ""
 
 #: includes/recruitment/class-ffc-recruitment-error-messages.php:147
 msgid "Could not remove the classification entry. Please try again."
+msgstr ""
+
+#. 1: record ID, 2: table name
+#: includes/migrations/strategies/class-ffc-cpf-rf-split-migration-strategy.php:309
+#, php-format
+msgid "Could not resolve plain value for ID %1$d in %2$s"
 msgstr ""
 
 #: includes/recruitment/class-ffc-recruitment-error-messages.php:137
@@ -3825,7 +3837,7 @@ msgstr ""
 msgid "Course"
 msgstr ""
 
-#: includes/admin/class-ffc-csv-exporter.php:458 includes/admin/class-ffc-admin-submission-edit-page.php:433 includes/recruitment/class-ffc-recruitment-public-shortcode-renderer.php:92 includes/recruitment/class-ffc-recruitment-candidate-edit-page.php:176 includes/audience/class-ffc-audience-admin-audience.php:479 includes/audience/class-ffc-audience-admin-audience.php:664 includes/frontend/class-ffc-verification-response-renderer.php:460 includes/frontend/class-ffc-public-csv-exporter.php:663 includes/frontend/class-ffc-public-csv-download.php:225 includes/self-scheduling/views/appointments-list.php:548
+#: includes/admin/class-ffc-csv-exporter.php:458 includes/admin/class-ffc-admin-submission-edit-page.php:433 includes/recruitment/class-ffc-recruitment-public-shortcode-renderer.php:92 includes/recruitment/class-ffc-recruitment-candidate-edit-page.php:176 includes/audience/class-ffc-audience-admin-audience.php:483 includes/audience/class-ffc-audience-admin-audience.php:668 includes/frontend/class-ffc-verification-response-renderer.php:460 includes/frontend/class-ffc-public-csv-exporter.php:663 includes/frontend/class-ffc-public-csv-download.php:225 includes/self-scheduling/views/appointments-list.php:208
 msgid "CPF"
 msgstr ""
 
@@ -3930,7 +3942,7 @@ msgid "Create"
 msgstr ""
 
 #. %s: environment label (singular, e.g. "Room")
-#: includes/audience/class-ffc-audience-admin-environment.php:389
+#: includes/audience/class-ffc-audience-admin-environment.php:393
 #, php-format
 msgid "Create %s"
 msgstr ""
@@ -3955,7 +3967,7 @@ msgstr ""
 msgid "Create and edit notices (editais). Each notice has a code, a lifecycle status, and a configurable set of public columns."
 msgstr ""
 
-#: includes/audience/class-ffc-audience-admin-dashboard.php:166 includes/audience/class-ffc-audience-admin-audience.php:339
+#: includes/audience/class-ffc-audience-admin-dashboard.php:166 includes/audience/class-ffc-audience-admin-audience.php:343
 msgid "Create Audience"
 msgstr ""
 
@@ -3967,7 +3979,7 @@ msgstr ""
 msgid "Create Booking"
 msgstr ""
 
-#: includes/audience/class-ffc-audience-admin-calendar.php:408
+#: includes/audience/class-ffc-audience-admin-calendar.php:412
 msgid "Create Calendar"
 msgstr ""
 
@@ -4019,7 +4031,7 @@ msgstr ""
 msgid "Create, edit and toggle short URLs (delete is its own cap below)."
 msgstr ""
 
-#: includes/self-scheduling/views/appointments-list.php:79 includes/self-scheduling/views/appointments-list.php:562
+#: includes/self-scheduling/class-ffc-self-scheduling-appointments-list-table.php:78 includes/self-scheduling/views/appointments-list.php:222
 msgid "Created"
 msgstr ""
 
@@ -4117,7 +4129,7 @@ msgstr ""
 msgid "Current date/time when PDF is being generated"
 msgstr ""
 
-#: includes/audience/class-ffc-audience-admin-audience.php:729
+#: includes/audience/class-ffc-audience-admin-audience.php:733
 msgid "Current Members"
 msgstr ""
 
@@ -4149,7 +4161,7 @@ msgstr ""
 msgid "Current year (4 digits)"
 msgstr ""
 
-#: includes/audience/class-ffc-audience-admin-audience.php:420 includes/audience/class-ffc-audience-admin-audience.php:546
+#: includes/audience/class-ffc-audience-admin-audience.php:424 includes/audience/class-ffc-audience-admin-audience.php:550
 msgid "Custom"
 msgstr ""
 
@@ -4161,7 +4173,7 @@ msgstr ""
 msgid "Custom Coordinates:"
 msgstr ""
 
-#: includes/reregistration/class-ffc-reregistration-custom-fields-page.php:46 includes/reregistration/class-ffc-reregistration-admin.php:126 includes/reregistration/class-ffc-reregistration-admin.php:127 includes/self-scheduling/views/appointments-list.php:569
+#: includes/reregistration/class-ffc-reregistration-custom-fields-page.php:46 includes/reregistration/class-ffc-reregistration-admin.php:126 includes/reregistration/class-ffc-reregistration-admin.php:127 includes/self-scheduling/views/appointments-list.php:229
 msgid "Custom Fields"
 msgstr ""
 
@@ -4173,7 +4185,7 @@ msgstr ""
 msgid "Custom fields are defined per audience. Select an audience to manage its fields."
 msgstr ""
 
-#: includes/admin/class-ffc-admin-user-custom-fields.php:114
+#: includes/admin/class-ffc-admin-user-custom-fields.php:115
 msgid "Custom fields from audience memberships. Fields are grouped by audience."
 msgstr ""
 
@@ -4189,11 +4201,11 @@ msgstr ""
 msgid "Custom Format:"
 msgstr ""
 
-#: includes/audience/class-ffc-audience-admin-calendar.php:232
+#: includes/audience/class-ffc-audience-admin-calendar.php:236
 msgid "Custom label for the environments of this calendar (e.g. \"Rooms\", \"Categories\", \"Services\"). Leave empty to use the default \"Environments\"."
 msgstr ""
 
-#: includes/audience/class-ffc-audience-admin-audience.php:482 includes/audience/class-ffc-audience-admin-audience.php:667
+#: includes/audience/class-ffc-audience-admin-audience.php:486 includes/audience/class-ffc-audience-admin-audience.php:671
 msgid "Custom Regex"
 msgstr ""
 
@@ -4201,7 +4213,7 @@ msgstr ""
 msgid "Custom regular expression pattern"
 msgstr ""
 
-#: includes/audience/class-ffc-audience-admin-calendar.php:348
+#: includes/audience/class-ffc-audience-admin-calendar.php:352
 msgid "Custom singular/plural label for the booking count shown in calendar day cells (e.g. \"session\" / \"sessions\"). Leave empty to use default."
 msgstr ""
 
@@ -4337,7 +4349,7 @@ msgstr ""
 msgid "Database Migrations"
 msgstr ""
 
-#: includes/shortcodes/class-ffc-dashboard-asset-manager.php:213 includes/admin/class-ffc-submissions-list.php:82 includes/admin/class-ffc-form-editor-builder-metabox.php:155 includes/admin/class-ffc-admin-assets-manager.php:814 includes/privacy/class-ffc-privacy-handler.php:348 includes/privacy/class-ffc-privacy-handler.php:533 includes/self-scheduling/class-ffc-self-scheduling-appointment-email-handler.php:182 includes/self-scheduling/class-ffc-self-scheduling-shortcode.php:205 includes/audience/class-ffc-audience-admin-bookings.php:147 includes/audience/class-ffc-audience-admin-calendar.php:525 includes/audience/class-ffc-audience-admin-calendar.php:545 includes/audience/class-ffc-audience-loader.php:375 includes/audience/class-ffc-audience-admin-settings.php:199 includes/audience/class-ffc-audience-admin-settings.php:231 includes/audience/class-ffc-audience-shortcode.php:335 includes/frontend/class-ffc-verification-response-renderer.php:465 includes/self-scheduling/views/appointments-list.php:76 includes/self-scheduling/views/appointments-list.php:542
+#: includes/shortcodes/class-ffc-dashboard-asset-manager.php:213 includes/admin/class-ffc-submissions-list.php:82 includes/admin/class-ffc-form-editor-builder-metabox.php:155 includes/admin/class-ffc-admin-assets-manager.php:814 includes/privacy/class-ffc-privacy-handler.php:348 includes/privacy/class-ffc-privacy-handler.php:533 includes/self-scheduling/class-ffc-self-scheduling-appointment-email-handler.php:182 includes/self-scheduling/class-ffc-self-scheduling-appointments-list-table.php:75 includes/self-scheduling/class-ffc-self-scheduling-shortcode.php:205 includes/audience/class-ffc-audience-admin-bookings.php:147 includes/audience/class-ffc-audience-admin-calendar.php:529 includes/audience/class-ffc-audience-admin-calendar.php:549 includes/audience/class-ffc-audience-loader.php:375 includes/audience/class-ffc-audience-admin-settings.php:199 includes/audience/class-ffc-audience-admin-settings.php:231 includes/audience/class-ffc-audience-shortcode.php:335 includes/frontend/class-ffc-verification-response-renderer.php:465 includes/self-scheduling/views/appointments-list.php:202
 msgid "Date"
 msgstr ""
 
@@ -4345,7 +4357,7 @@ msgstr ""
 msgid "Date & Time Restrictions"
 msgstr ""
 
-#: includes/recruitment/class-ffc-recruitment-admin-assets-manager.php:220
+#: includes/recruitment/class-ffc-recruitment-admin-assets-manager.php:221
 msgid "Date and time are required for bulk call."
 msgstr ""
 
@@ -4385,7 +4397,7 @@ msgstr ""
 msgid "Date to assume"
 msgstr ""
 
-#: includes/recruitment/class-ffc-recruitment-admin-assets-manager.php:232
+#: includes/recruitment/class-ffc-recruitment-admin-assets-manager.php:233
 msgid "Date to assume (YYYY-MM-DD):"
 msgstr ""
 
@@ -4409,7 +4421,7 @@ msgstr ""
 msgid "Date/Time Restrictions"
 msgstr ""
 
-#: templates/submission-success.php:67 includes/generators/class-ffc-pdf-generator.php:849 includes/self-scheduling/class-ffc-self-scheduling-appointment-email-handler.php:102 includes/self-scheduling/class-ffc-self-scheduling-appointment-email-handler.php:246 includes/self-scheduling/class-ffc-self-scheduling-appointment-email-handler.php:309 includes/self-scheduling/class-ffc-self-scheduling-appointment-email-handler.php:367 includes/self-scheduling/class-ffc-self-scheduling-appointment-receipt-handler.php:431 includes/recruitment/class-ffc-recruitment-notice-edit-page-renderer.php:1083 includes/audience/class-ffc-audience-notification-handler.php:330 includes/audience/class-ffc-audience-notification-handler.php:358 includes/frontend/class-ffc-verification-response-renderer.php:261
+#: templates/submission-success.php:67 includes/generators/class-ffc-pdf-generator.php:849 includes/self-scheduling/class-ffc-self-scheduling-appointment-email-handler.php:102 includes/self-scheduling/class-ffc-self-scheduling-appointment-email-handler.php:246 includes/self-scheduling/class-ffc-self-scheduling-appointment-email-handler.php:309 includes/self-scheduling/class-ffc-self-scheduling-appointment-email-handler.php:367 includes/self-scheduling/class-ffc-self-scheduling-appointment-receipt-handler.php:441 includes/recruitment/class-ffc-recruitment-notice-edit-page-renderer.php:1083 includes/audience/class-ffc-audience-notification-handler.php:330 includes/audience/class-ffc-audience-notification-handler.php:358 includes/frontend/class-ffc-verification-response-renderer.php:261
 msgid "Date:"
 msgstr ""
 
@@ -4425,7 +4437,7 @@ msgstr ""
 msgid "Date: plugin uses %1$s, WordPress uses %2$s."
 msgstr ""
 
-#: includes/admin/class-ffc-admin-user-custom-fields.php:284 includes/self-scheduling/class-ffc-self-scheduling-editor.php:324 includes/reregistration/class-ffc-reregistration-form-renderer.php:557 includes/reregistration/class-ffc-ficha-generator.php:238
+#: includes/admin/class-ffc-admin-user-custom-fields.php:265 includes/self-scheduling/class-ffc-self-scheduling-editor.php:324 includes/reregistration/class-ffc-reregistration-form-renderer.php:557 includes/reregistration/class-ffc-ficha-generator.php:238
 msgid "Day"
 msgstr ""
 
@@ -4445,7 +4457,7 @@ msgstr ""
 msgid "Days remaining:"
 msgstr ""
 
-#: includes/audience/class-ffc-audience-admin-environment.php:195 includes/audience/class-ffc-audience-admin-calendar.php:135 includes/audience/class-ffc-audience-admin-audience.php:172
+#: includes/audience/class-ffc-audience-admin-environment.php:199 includes/audience/class-ffc-audience-admin-calendar.php:139 includes/audience/class-ffc-audience-admin-audience.php:176
 msgid "Deactivate"
 msgstr ""
 
@@ -4540,7 +4552,7 @@ msgstr ""
 msgid "Default: link to magic, text shows /valid"
 msgstr ""
 
-#: includes/audience/class-ffc-audience-admin-audience.php:382
+#: includes/audience/class-ffc-audience-admin-audience.php:386
 msgid "Define all fields shown during reregistration. Standard fields can be reordered, relabelled, regrouped and deactivated, but not deleted. Use \"+ Add Field\" to create custom fields."
 msgstr ""
 
@@ -4586,7 +4598,7 @@ msgstr ""
 msgid "Definitive list (also transitions notice to `definitive`)"
 msgstr ""
 
-#: includes/admin/class-ffc-submissions-list.php:204 includes/reregistration/class-ffc-reregistration-admin.php:402 includes/recruitment/class-ffc-recruitment-reasons-list-table.php:104 includes/recruitment/class-ffc-recruitment-reasons-list-table.php:176 includes/recruitment/class-ffc-recruitment-reasons-list-table.php:177 includes/recruitment/class-ffc-recruitment-adjutancies-list-table.php:86 includes/recruitment/class-ffc-recruitment-adjutancies-list-table.php:150 includes/recruitment/class-ffc-recruitment-adjutancies-list-table.php:151 includes/recruitment/class-ffc-recruitment-candidates-list-table.php:165 includes/recruitment/class-ffc-recruitment-candidates-list-table.php:166 includes/recruitment/class-ffc-recruitment-notices-list-table.php:99 includes/recruitment/class-ffc-recruitment-notices-list-table.php:160 includes/recruitment/class-ffc-recruitment-notices-list-table.php:161 includes/audience/class-ffc-audience-admin-environment.php:204 includes/audience/class-ffc-audience-admin-calendar.php:139 includes/audience/class-ffc-audience-admin-calendar.php:563 includes/audience/class-ffc-audience-admin-audience.php:176 includes/audience/class-ffc-audience-admin-settings.php:261 includes/settings/views/ffc-tab-geolocation.php:108 includes/settings/tabs/class-ffc-tab-geolocation.php:97
+#: includes/admin/class-ffc-submissions-list.php:204 includes/reregistration/class-ffc-reregistration-admin.php:402 includes/recruitment/class-ffc-recruitment-reasons-list-table.php:104 includes/recruitment/class-ffc-recruitment-reasons-list-table.php:176 includes/recruitment/class-ffc-recruitment-reasons-list-table.php:177 includes/recruitment/class-ffc-recruitment-adjutancies-list-table.php:86 includes/recruitment/class-ffc-recruitment-adjutancies-list-table.php:150 includes/recruitment/class-ffc-recruitment-adjutancies-list-table.php:151 includes/recruitment/class-ffc-recruitment-candidates-list-table.php:165 includes/recruitment/class-ffc-recruitment-candidates-list-table.php:166 includes/recruitment/class-ffc-recruitment-notices-list-table.php:99 includes/recruitment/class-ffc-recruitment-notices-list-table.php:160 includes/recruitment/class-ffc-recruitment-notices-list-table.php:161 includes/audience/class-ffc-audience-admin-environment.php:208 includes/audience/class-ffc-audience-admin-calendar.php:143 includes/audience/class-ffc-audience-admin-calendar.php:567 includes/audience/class-ffc-audience-admin-audience.php:180 includes/audience/class-ffc-audience-admin-settings.php:261 includes/settings/views/ffc-tab-geolocation.php:108 includes/settings/tabs/class-ffc-tab-geolocation.php:97
 msgid "Delete"
 msgstr ""
 
@@ -4694,7 +4706,7 @@ msgstr ""
 msgid "Delete this candidate?"
 msgstr ""
 
-#: includes/audience/class-ffc-audience-admin-calendar.php:562
+#: includes/audience/class-ffc-audience-admin-calendar.php:566
 msgid "Delete this holiday?"
 msgstr ""
 
@@ -4754,7 +4766,7 @@ msgstr ""
 msgid "Department"
 msgstr ""
 
-#: includes/audience/class-ffc-audience-admin-audience.php:647 includes/audience/class-ffc-audience-loader.php:240
+#: includes/audience/class-ffc-audience-admin-audience.php:651 includes/audience/class-ffc-audience-loader.php:240
 msgid "Department name"
 msgstr ""
 
@@ -4770,11 +4782,11 @@ msgstr ""
 msgid "Describe the purpose of this booking (15-300 characters)"
 msgstr ""
 
-#: includes/shortcodes/class-ffc-dashboard-asset-manager.php:239 includes/privacy/class-ffc-privacy-handler.php:541 includes/self-scheduling/class-ffc-self-scheduling-editor.php:219 includes/audience/class-ffc-audience-admin-bookings.php:150 includes/audience/class-ffc-audience-admin-environment.php:300 includes/audience/class-ffc-audience-admin-calendar.php:217 includes/audience/class-ffc-audience-admin-calendar.php:546 includes/audience/class-ffc-audience-loader.php:377 includes/audience/class-ffc-audience-admin-settings.php:207 includes/audience/class-ffc-audience-admin-settings.php:232 includes/audience/class-ffc-audience-shortcode.php:390 includes/settings/views/documentation/10-reregistration.php:39 includes/settings/views/documentation/10-reregistration.php:82 includes/settings/views/documentation/06-validation-url.php:24 includes/settings/views/documentation/12-geofence-locations.php:28 includes/settings/views/documentation/01-shortcodes.php:23 includes/settings/views/documentation/17-hooks.php:26 includes/settings/views/documentation/17-hooks.php:46 includes/settings/views/documentation/17-hooks.php:62 includes/settings/views/documentation/17-hooks.php:85 includes/settings/views/documentation/17-hooks.php:104 includes/settings/views/documentation/17-hooks.php:132 includes/settings/views/documentation/17-hooks.php:150 includes/settings/views/documentation/17-hooks.php:168 includes/settings/views/documentation/16-url-shortener.php:60 includes/settings/views/documentation/09-audience-custom-fields.php:27 includes/settings/views/documentation/02-variables.php:24 includes/settings/views/documentation/03-quiz-variables.php:24 includes/settings/views/documentation/11-ficha-pdf.php:38 includes/settings/views/documentation/11-ficha-pdf.php:59 includes/settings/views/documentation/11-ficha-pdf.php:82 includes/settings/views/documentation/11-ficha-pdf.php:101 includes/settings/views/documentation/11-ficha-pdf.php:119 includes/settings/views/documentation/05-qr-code.php:24 includes/settings/views/documentation/04-appointment-variables.php:24
+#: includes/shortcodes/class-ffc-dashboard-asset-manager.php:239 includes/privacy/class-ffc-privacy-handler.php:541 includes/self-scheduling/class-ffc-self-scheduling-editor.php:219 includes/audience/class-ffc-audience-admin-bookings.php:150 includes/audience/class-ffc-audience-admin-environment.php:304 includes/audience/class-ffc-audience-admin-calendar.php:221 includes/audience/class-ffc-audience-admin-calendar.php:550 includes/audience/class-ffc-audience-loader.php:377 includes/audience/class-ffc-audience-admin-settings.php:207 includes/audience/class-ffc-audience-admin-settings.php:232 includes/audience/class-ffc-audience-shortcode.php:390 includes/settings/views/documentation/10-reregistration.php:39 includes/settings/views/documentation/10-reregistration.php:82 includes/settings/views/documentation/06-validation-url.php:24 includes/settings/views/documentation/12-geofence-locations.php:28 includes/settings/views/documentation/01-shortcodes.php:23 includes/settings/views/documentation/17-hooks.php:26 includes/settings/views/documentation/17-hooks.php:46 includes/settings/views/documentation/17-hooks.php:62 includes/settings/views/documentation/17-hooks.php:85 includes/settings/views/documentation/17-hooks.php:104 includes/settings/views/documentation/17-hooks.php:132 includes/settings/views/documentation/17-hooks.php:150 includes/settings/views/documentation/17-hooks.php:168 includes/settings/views/documentation/16-url-shortener.php:60 includes/settings/views/documentation/09-audience-custom-fields.php:27 includes/settings/views/documentation/02-variables.php:24 includes/settings/views/documentation/03-quiz-variables.php:24 includes/settings/views/documentation/11-ficha-pdf.php:38 includes/settings/views/documentation/11-ficha-pdf.php:59 includes/settings/views/documentation/11-ficha-pdf.php:82 includes/settings/views/documentation/11-ficha-pdf.php:101 includes/settings/views/documentation/11-ficha-pdf.php:119 includes/settings/views/documentation/05-qr-code.php:24 includes/settings/views/documentation/04-appointment-variables.php:24
 msgid "Description"
 msgstr ""
 
-#: includes/audience/class-ffc-audience-admin-calendar.php:529
+#: includes/audience/class-ffc-audience-admin-calendar.php:533
 msgid "Description (optional)"
 msgstr ""
 
@@ -4786,7 +4798,7 @@ msgstr ""
 msgid "Description must be between 15 and 300 characters."
 msgstr ""
 
-#: includes/self-scheduling/class-ffc-self-scheduling-appointment-receipt-handler.php:412 includes/audience/class-ffc-audience-notification-handler.php:332 includes/audience/class-ffc-audience-notification-handler.php:360
+#: includes/self-scheduling/class-ffc-self-scheduling-appointment-receipt-handler.php:422 includes/audience/class-ffc-audience-notification-handler.php:332 includes/audience/class-ffc-audience-notification-handler.php:360
 msgid "Description:"
 msgstr ""
 
@@ -4948,7 +4960,7 @@ msgstr ""
 msgid "Division / Department"
 msgstr ""
 
-#: includes/audience/class-ffc-audience-admin-audience.php:641 includes/audience/class-ffc-audience-loader.php:239
+#: includes/audience/class-ffc-audience-admin-audience.php:645 includes/audience/class-ffc-audience-loader.php:239
 msgid "Division name"
 msgstr ""
 
@@ -5069,7 +5081,7 @@ msgstr ""
 msgid "Download own certificates"
 msgstr ""
 
-#: includes/self-scheduling/class-ffc-self-scheduling-appointment-receipt-handler.php:388 includes/frontend/class-ffc-frontend.php:264
+#: includes/self-scheduling/class-ffc-self-scheduling-appointment-receipt-handler.php:398 includes/frontend/class-ffc-frontend.php:264
 msgid "Download PDF"
 msgstr ""
 
@@ -5165,7 +5177,7 @@ msgstr ""
 msgid "Dynamic reregistration fields migration encountered issues. Check details."
 msgstr ""
 
-#: includes/admin/class-ffc-csv-exporter.php:456 includes/recruitment/class-ffc-recruitment-public-shortcode-renderer.php:98 includes/frontend/class-ffc-public-csv-exporter.php:661 includes/self-scheduling/views/appointments-list.php:545
+#: includes/admin/class-ffc-csv-exporter.php:456 includes/recruitment/class-ffc-recruitment-public-shortcode-renderer.php:98 includes/frontend/class-ffc-public-csv-exporter.php:661 includes/self-scheduling/views/appointments-list.php:205
 msgid "E-mail"
 msgstr ""
 
@@ -5173,7 +5185,7 @@ msgstr ""
 msgid "e.g. Christmas, Carnival..."
 msgstr ""
 
-#: includes/audience/class-ffc-audience-admin-calendar.php:530
+#: includes/audience/class-ffc-audience-admin-calendar.php:534
 msgid "e.g., Christmas Day"
 msgstr ""
 
@@ -5193,12 +5205,12 @@ msgstr ""
 msgid "Early-start is only available on the form's scheduled start day."
 msgstr ""
 
-#: includes/shortcodes/class-ffc-dashboard-asset-manager.php:317 includes/admin/class-ffc-submissions-list.php:161 includes/reregistration/class-ffc-reregistration-admin.php:395 includes/recruitment/class-ffc-recruitment-reasons-list-table.php:169 includes/recruitment/class-ffc-recruitment-adjutancies-list-table.php:143 includes/recruitment/class-ffc-recruitment-candidates-list-table.php:158 includes/recruitment/class-ffc-recruitment-notices-list-table.php:153 includes/audience/class-ffc-audience-admin-environment.php:187 includes/audience/class-ffc-audience-admin-calendar.php:132 includes/audience/class-ffc-audience-admin-audience.php:168
+#: includes/shortcodes/class-ffc-dashboard-asset-manager.php:317 includes/admin/class-ffc-submissions-list.php:161 includes/reregistration/class-ffc-reregistration-admin.php:395 includes/recruitment/class-ffc-recruitment-reasons-list-table.php:169 includes/recruitment/class-ffc-recruitment-adjutancies-list-table.php:143 includes/recruitment/class-ffc-recruitment-candidates-list-table.php:158 includes/recruitment/class-ffc-recruitment-notices-list-table.php:153 includes/audience/class-ffc-audience-admin-environment.php:191 includes/audience/class-ffc-audience-admin-calendar.php:136 includes/audience/class-ffc-audience-admin-audience.php:172
 msgid "Edit"
 msgstr ""
 
 #. %s: environment label (singular, e.g. "Room")
-#: includes/audience/class-ffc-audience-admin-environment.php:243
+#: includes/audience/class-ffc-audience-admin-environment.php:247
 #, php-format
 msgid "Edit %s"
 msgstr ""
@@ -5209,7 +5221,7 @@ msgstr ""
 msgid "Edit adjutancy — %s"
 msgstr ""
 
-#: includes/audience/class-ffc-audience-admin-audience.php:206
+#: includes/audience/class-ffc-audience-admin-audience.php:210
 msgid "Edit Audience"
 msgstr ""
 
@@ -5217,7 +5229,7 @@ msgstr ""
 msgid "Edit both ends manually"
 msgstr ""
 
-#: includes/audience/class-ffc-audience-admin-calendar.php:168
+#: includes/audience/class-ffc-audience-admin-calendar.php:172
 msgid "Edit Calendar"
 msgstr ""
 
@@ -5297,7 +5309,7 @@ msgstr ""
 msgid "elapsed"
 msgstr ""
 
-#: includes/shortcodes/class-ffc-dashboard-asset-manager.php:217 includes/admin/class-ffc-submissions-list.php:79 includes/admin/class-ffc-form-editor-builder-metabox.php:48 includes/admin/class-ffc-form-editor-builder-metabox.php:153 includes/admin/class-ffc-admin-assets-manager.php:808 includes/admin/class-ffc-form-editor-metabox-renderer.php:322 includes/admin/class-ffc-admin-submission-edit-page.php:421 includes/privacy/class-ffc-privacy-handler.php:138 includes/privacy/class-ffc-privacy-handler.php:256 includes/privacy/class-ffc-privacy-handler.php:364 includes/self-scheduling/class-ffc-self-scheduling-appointment-email-handler.php:186 includes/self-scheduling/class-ffc-self-scheduling-appointment-csv-exporter.php:68 includes/self-scheduling/class-ffc-self-scheduling-shortcode.php:208 includes/self-scheduling/class-ffc-self-scheduling-shortcode.php:578 includes/reregistration/class-ffc-reregistration-csv-exporter.php:86 includes/reregistration/class-ffc-reregistration-admin.php:680 includes/recruitment/class-ffc-recruitment-candidate-edit-page.php:133 includes/audience/class-ffc-audience-admin-audience.php:480 includes/audience/class-ffc-audience-admin-audience.php:665 includes/audience/class-ffc-audience-admin-audience.php:738 includes/frontend/class-ffc-verification-response-renderer.php:463 includes/self-scheduling/views/appointments-list.php:75
+#: includes/shortcodes/class-ffc-dashboard-asset-manager.php:217 includes/admin/class-ffc-submissions-list.php:79 includes/admin/class-ffc-form-editor-builder-metabox.php:48 includes/admin/class-ffc-form-editor-builder-metabox.php:153 includes/admin/class-ffc-admin-assets-manager.php:808 includes/admin/class-ffc-form-editor-metabox-renderer.php:322 includes/admin/class-ffc-admin-submission-edit-page.php:421 includes/privacy/class-ffc-privacy-handler.php:138 includes/privacy/class-ffc-privacy-handler.php:256 includes/privacy/class-ffc-privacy-handler.php:364 includes/self-scheduling/class-ffc-self-scheduling-appointment-email-handler.php:186 includes/self-scheduling/class-ffc-self-scheduling-appointment-csv-exporter.php:68 includes/self-scheduling/class-ffc-self-scheduling-appointments-list-table.php:74 includes/self-scheduling/class-ffc-self-scheduling-shortcode.php:208 includes/self-scheduling/class-ffc-self-scheduling-shortcode.php:578 includes/reregistration/class-ffc-reregistration-csv-exporter.php:86 includes/reregistration/class-ffc-reregistration-admin.php:680 includes/recruitment/class-ffc-recruitment-candidate-edit-page.php:133 includes/audience/class-ffc-audience-admin-audience.php:484 includes/audience/class-ffc-audience-admin-audience.php:669 includes/audience/class-ffc-audience-admin-audience.php:742 includes/frontend/class-ffc-verification-response-renderer.php:463
 msgid "Email"
 msgstr ""
 
@@ -5365,7 +5377,7 @@ msgstr ""
 msgid "Email templates and public shortcode tuning. Saved values populate the convocation email and the public shortcode cache/rate-limit/page-size knobs."
 msgstr ""
 
-#: includes/self-scheduling/class-ffc-self-scheduling-appointment-receipt-handler.php:452 includes/reregistration/class-ffc-ficha-generator.php:474 includes/frontend/class-ffc-verification-response-renderer.php:430
+#: includes/self-scheduling/class-ffc-self-scheduling-appointment-receipt-handler.php:462 includes/reregistration/class-ffc-ficha-generator.php:474 includes/frontend/class-ffc-verification-response-renderer.php:430
 msgid "Email:"
 msgstr ""
 
@@ -5581,7 +5593,7 @@ msgstr ""
 msgid "Enables the certificate PDF download button."
 msgstr ""
 
-#: includes/audience/class-ffc-audience-admin-audience.php:461 includes/audience/class-ffc-audience-admin-audience.php:600
+#: includes/audience/class-ffc-audience-admin-audience.php:465 includes/audience/class-ffc-audience-admin-audience.php:604
 msgid "Encrypt this value at rest (AES-256)."
 msgstr ""
 
@@ -5713,11 +5725,11 @@ msgstr ""
 msgid "Entry"
 msgstr ""
 
-#: includes/admin/class-ffc-admin-user-custom-fields.php:285 includes/reregistration/class-ffc-reregistration-form-renderer.php:558
+#: includes/admin/class-ffc-admin-user-custom-fields.php:266 includes/reregistration/class-ffc-reregistration-form-renderer.php:558
 msgid "Entry 1"
 msgstr ""
 
-#: includes/admin/class-ffc-admin-user-custom-fields.php:287 includes/reregistration/class-ffc-reregistration-form-renderer.php:560
+#: includes/admin/class-ffc-admin-user-custom-fields.php:268 includes/reregistration/class-ffc-reregistration-form-renderer.php:560
 msgid "Entry 2"
 msgstr ""
 
@@ -5729,15 +5741,15 @@ msgstr ""
 msgid "Environment"
 msgstr ""
 
-#: includes/audience/class-ffc-audience-admin-calendar.php:225
+#: includes/audience/class-ffc-audience-admin-calendar.php:229
 msgid "Environment Label"
 msgstr ""
 
-#: includes/audience/class-ffc-audience-admin-environment.php:232
+#: includes/audience/class-ffc-audience-admin-environment.php:236
 msgid "Environment not found."
 msgstr ""
 
-#: includes/audience/class-ffc-audience-admin-calendar.php:230 includes/audience/class-ffc-audience-admin-page.php:249 includes/audience/class-ffc-audience-admin-page.php:250 includes/audience/class-ffc-audience-schedule-repository.php:534 includes/audience/class-ffc-audience-admin-settings.php:459
+#: includes/audience/class-ffc-audience-admin-calendar.php:234 includes/audience/class-ffc-audience-admin-page.php:249 includes/audience/class-ffc-audience-admin-page.php:250 includes/audience/class-ffc-audience-schedule-repository.php:534 includes/audience/class-ffc-audience-admin-settings.php:459
 msgid "Environments"
 msgstr ""
 
@@ -5809,24 +5821,24 @@ msgstr ""
 msgid "Error generating unique codes. Please try a smaller quantity."
 msgstr ""
 
-#: includes/api/class-ffc-user-audience-rest-controller.php:410
+#: includes/api/class-ffc-user-audience-rest-controller.php:414
 msgid "Error joining group"
 msgstr ""
 
-#: includes/api/class-ffc-user-audience-rest-controller.php:478
+#: includes/api/class-ffc-user-audience-rest-controller.php:482
 msgid "Error leaving group"
 msgstr ""
 
-#: includes/api/class-ffc-user-audience-rest-controller.php:524
+#: includes/api/class-ffc-user-audience-rest-controller.php:528
 msgid "Error leaving groups"
 msgstr ""
 
-#: includes/self-scheduling/views/appointments-list.php:589
+#: includes/self-scheduling/views/appointments-list.php:249
 msgid "Error loading appointment:"
 msgstr ""
 
 #. %s: error message
-#: includes/api/class-ffc-user-audience-rest-controller.php:206
+#: includes/api/class-ffc-user-audience-rest-controller.php:210
 #, php-format
 msgid "Error loading audience bookings: %s"
 msgstr ""
@@ -5839,7 +5851,7 @@ msgstr ""
 msgid "Error loading form."
 msgstr ""
 
-#: includes/api/class-ffc-user-audience-rest-controller.php:298
+#: includes/api/class-ffc-user-audience-rest-controller.php:302
 msgid "Error loading joinable groups"
 msgstr ""
 
@@ -5857,7 +5869,7 @@ msgstr ""
 msgid "Error Message"
 msgstr ""
 
-#: includes/audience/class-ffc-audience-admin-audience.php:485 includes/audience/class-ffc-audience-admin-audience.php:670
+#: includes/audience/class-ffc-audience-admin-audience.php:489 includes/audience/class-ffc-audience-admin-audience.php:674
 msgid "Error message for regex"
 msgstr ""
 
@@ -5937,7 +5949,7 @@ msgstr ""
 msgid "Error: PDF container not found"
 msgstr ""
 
-#: includes/self-scheduling/class-ffc-self-scheduling-appointment-receipt-handler.php:497
+#: includes/self-scheduling/class-ffc-self-scheduling-appointment-receipt-handler.php:507
 msgid "Error: PDF generator not loaded. Please refresh the page."
 msgstr ""
 
@@ -5961,11 +5973,11 @@ msgstr ""
 msgid "Event"
 msgstr ""
 
-#: includes/self-scheduling/class-ffc-self-scheduling-appointment-receipt-handler.php:405
+#: includes/self-scheduling/class-ffc-self-scheduling-appointment-receipt-handler.php:415
 msgid "Event Details"
 msgstr ""
 
-#: includes/audience/class-ffc-audience-admin-calendar.php:307
+#: includes/audience/class-ffc-audience-admin-calendar.php:311
 msgid "Event List"
 msgstr ""
 
@@ -5985,7 +5997,7 @@ msgstr ""
 msgid "Event spans more than one day"
 msgstr ""
 
-#: templates/certificate-preview.php:47 includes/generators/class-ffc-pdf-generator.php:848 includes/self-scheduling/class-ffc-self-scheduling-appointment-receipt-handler.php:407 includes/frontend/class-ffc-verification-response-renderer.php:255
+#: templates/certificate-preview.php:47 includes/generators/class-ffc-pdf-generator.php:848 includes/self-scheduling/class-ffc-self-scheduling-appointment-receipt-handler.php:417 includes/frontend/class-ffc-verification-response-renderer.php:255
 msgid "Event:"
 msgstr ""
 
@@ -6061,11 +6073,11 @@ msgstr ""
 msgid "Exit"
 msgstr ""
 
-#: includes/admin/class-ffc-admin-user-custom-fields.php:286 includes/reregistration/class-ffc-reregistration-form-renderer.php:559
+#: includes/admin/class-ffc-admin-user-custom-fields.php:267 includes/reregistration/class-ffc-reregistration-form-renderer.php:559
 msgid "Exit 1"
 msgstr ""
 
-#: includes/admin/class-ffc-admin-user-custom-fields.php:288 includes/reregistration/class-ffc-reregistration-form-renderer.php:561
+#: includes/admin/class-ffc-admin-user-custom-fields.php:269 includes/reregistration/class-ffc-reregistration-form-renderer.php:561
 msgid "Exit 2"
 msgstr ""
 
@@ -6125,7 +6137,7 @@ msgstr ""
 msgid "Export certificates"
 msgstr ""
 
-#: includes/reregistration/class-ffc-reregistration-admin.php:653 includes/admin/views/ffc-admin-activity-log.php:102 includes/self-scheduling/views/appointments-list.php:625
+#: includes/reregistration/class-ffc-reregistration-admin.php:653 includes/admin/views/ffc-admin-activity-log.php:102 includes/self-scheduling/views/appointments-list.php:285
 msgid "Export CSV"
 msgstr ""
 
@@ -6203,7 +6215,7 @@ msgstr ""
 msgid "Failed to add auth_code/magic_token to table %s."
 msgstr ""
 
-#: includes/self-scheduling/class-ffc-self-scheduling-appointment-handler.php:417 includes/self-scheduling/views/appointments-list.php:442
+#: includes/self-scheduling/class-ffc-self-scheduling-appointment-handler.php:417 includes/self-scheduling/views/appointments-list.php:102
 msgid "Failed to cancel appointment."
 msgstr ""
 
@@ -6211,7 +6223,7 @@ msgstr ""
 msgid "Failed to cancel booking."
 msgstr ""
 
-#: includes/self-scheduling/views/appointments-list.php:413
+#: includes/self-scheduling/views/appointments-list.php:73
 msgid "Failed to confirm appointment."
 msgstr ""
 
@@ -6329,7 +6341,7 @@ msgstr ""
 msgid "FFC Certificates"
 msgstr ""
 
-#: includes/admin/class-ffc-admin-user-custom-fields.php:113
+#: includes/admin/class-ffc-admin-user-custom-fields.php:114
 msgid "FFC Custom Data"
 msgstr ""
 
@@ -6418,7 +6430,7 @@ msgstr ""
 msgid "Field deleted successfully."
 msgstr ""
 
-#: includes/admin/class-ffc-admin-assets-manager.php:799 includes/audience/class-ffc-audience-admin-audience.php:421 includes/audience/class-ffc-audience-admin-audience.php:561
+#: includes/admin/class-ffc-admin-assets-manager.php:799 includes/audience/class-ffc-audience-admin-audience.php:425 includes/audience/class-ffc-audience-admin-audience.php:565
 msgid "Field Label"
 msgstr ""
 
@@ -6430,11 +6442,11 @@ msgstr ""
 msgid "Field Type:"
 msgstr ""
 
-#: includes/audience/class-ffc-audience-admin-audience.php:628
+#: includes/audience/class-ffc-audience-admin-audience.php:632
 msgid "field_key"
 msgstr ""
 
-#: includes/audience/class-ffc-audience-admin-audience.php:467
+#: includes/audience/class-ffc-audience-admin-audience.php:471
 msgid "field_key (auto)"
 msgstr ""
 
@@ -6472,7 +6484,7 @@ msgstr ""
 msgid "Files removed after X days. Set to 0 to disable."
 msgstr ""
 
-#: includes/shortcodes/class-ffc-dashboard-asset-manager.php:295 includes/admin/class-ffc-submissions-list.php:575 includes/reregistration/class-ffc-reregistration-admin.php:302 includes/reregistration/class-ffc-reregistration-admin.php:650 includes/url-shortener/class-ffc-url-shortener-admin-page.php:437 includes/recruitment/class-ffc-recruitment-candidates-list-table.php:418 includes/recruitment/class-ffc-recruitment-notice-edit-page-renderer.php:791 includes/audience/class-ffc-audience-admin-bookings.php:137 includes/audience/class-ffc-audience-admin-environment.php:123 includes/admin/views/ffc-admin-activity-log.php:55 includes/self-scheduling/views/appointments-list.php:354
+#: includes/shortcodes/class-ffc-dashboard-asset-manager.php:295 includes/admin/class-ffc-submissions-list.php:575 includes/self-scheduling/class-ffc-self-scheduling-appointments-list-table.php:353 includes/reregistration/class-ffc-reregistration-admin.php:302 includes/reregistration/class-ffc-reregistration-admin.php:650 includes/url-shortener/class-ffc-url-shortener-admin-page.php:437 includes/recruitment/class-ffc-recruitment-candidates-list-table.php:418 includes/recruitment/class-ffc-recruitment-notice-edit-page-renderer.php:791 includes/audience/class-ffc-audience-admin-bookings.php:137 includes/audience/class-ffc-audience-admin-environment.php:127 includes/admin/views/ffc-admin-activity-log.php:55
 msgid "Filter"
 msgstr ""
 
@@ -6766,7 +6778,7 @@ msgstr ""
 msgid "Fri"
 msgstr ""
 
-#: includes/shortcodes/class-ffc-dashboard-asset-manager.php:131 includes/shortcodes/class-ffc-dashboard-asset-manager.php:175 includes/admin/class-ffc-admin-user-custom-fields.php:86 includes/admin/class-ffc-admin-user-custom-fields.php:274 includes/self-scheduling/class-ffc-self-scheduling-editor.php:106 includes/self-scheduling/class-ffc-self-scheduling-editor.php:313 includes/reregistration/class-ffc-reregistration-form-renderer.php:547 includes/audience/class-ffc-audience-admin-environment.php:332
+#: includes/shortcodes/class-ffc-dashboard-asset-manager.php:131 includes/shortcodes/class-ffc-dashboard-asset-manager.php:175 includes/admin/class-ffc-admin-user-custom-fields.php:87 includes/admin/class-ffc-admin-user-custom-fields.php:255 includes/self-scheduling/class-ffc-self-scheduling-editor.php:106 includes/self-scheduling/class-ffc-self-scheduling-editor.php:313 includes/reregistration/class-ffc-reregistration-form-renderer.php:547 includes/audience/class-ffc-audience-admin-environment.php:336
 msgid "Friday"
 msgstr ""
 
@@ -6831,7 +6843,7 @@ msgstr ""
 msgid "Future (%d)"
 msgstr ""
 
-#: includes/audience/class-ffc-audience-admin-calendar.php:256
+#: includes/audience/class-ffc-audience-admin-calendar.php:260
 msgid "Future Days Limit"
 msgstr ""
 
@@ -6880,7 +6892,7 @@ msgid "Generate Tickets"
 msgstr ""
 
 #. %s: date and time of generation
-#: includes/self-scheduling/class-ffc-self-scheduling-appointment-receipt-handler.php:475
+#: includes/self-scheduling/class-ffc-self-scheduling-appointment-receipt-handler.php:485
 #, php-format
 msgid "Generated on %s"
 msgstr ""
@@ -6894,7 +6906,7 @@ msgstr ""
 msgid "Generating CSV — %d records…"
 msgstr ""
 
-#: includes/admin/class-ffc-admin-assets-manager.php:766 includes/self-scheduling/class-ffc-self-scheduling-shortcode.php:221 includes/self-scheduling/class-ffc-self-scheduling-appointment-receipt-handler.php:499 includes/reregistration/class-ffc-reregistration-admin.php:187 includes/frontend/class-ffc-frontend.php:287
+#: includes/admin/class-ffc-admin-assets-manager.php:766 includes/self-scheduling/class-ffc-self-scheduling-shortcode.php:221 includes/self-scheduling/class-ffc-self-scheduling-appointment-receipt-handler.php:509 includes/reregistration/class-ffc-reregistration-admin.php:187 includes/frontend/class-ffc-frontend.php:287
 msgid "Generating PDF..."
 msgstr ""
 
@@ -7092,15 +7104,15 @@ msgstr ""
 msgid "Group Events"
 msgstr ""
 
-#: includes/api/class-ffc-user-audience-rest-controller.php:365 includes/api/class-ffc-user-audience-rest-controller.php:435
+#: includes/api/class-ffc-user-audience-rest-controller.php:369 includes/api/class-ffc-user-audience-rest-controller.php:439
 msgid "Group ID is required"
 msgstr ""
 
-#: includes/api/class-ffc-user-audience-rest-controller.php:452
+#: includes/api/class-ffc-user-audience-rest-controller.php:456
 msgid "Group not found or cannot be left by user"
 msgstr ""
 
-#: includes/api/class-ffc-user-audience-rest-controller.php:375
+#: includes/api/class-ffc-user-audience-rest-controller.php:379
 msgid "Group not found or does not allow self-join"
 msgstr ""
 
@@ -7181,7 +7193,7 @@ msgstr ""
 msgid "Hello,%1$s%2$sWe regret to inform you that your appointment has been cancelled because the calendar \"%3$s\" is no longer available.%4$s%5$sAppointment Details:%6$s- Date: %7$s%8$s- Time: %9$s%10$s- Calendar: %11$s%12$s%13$sWe apologize for any inconvenience this may cause.%14$s%15$sBest regards,%16$s%17$s"
 msgstr ""
 
-#: includes/audience/class-ffc-audience-admin-audience.php:487 includes/audience/class-ffc-audience-admin-audience.php:672
+#: includes/audience/class-ffc-audience-admin-audience.php:491 includes/audience/class-ffc-audience-admin-audience.php:676
 msgid "Help text (optional)"
 msgstr ""
 
@@ -7233,15 +7245,15 @@ msgstr ""
 msgid "Holiday"
 msgstr ""
 
-#: includes/audience/class-ffc-audience-admin-calendar.php:689
+#: includes/audience/class-ffc-audience-admin-calendar.php:693
 msgid "Holiday added successfully."
 msgstr ""
 
-#: includes/audience/class-ffc-audience-admin-calendar.php:597
+#: includes/audience/class-ffc-audience-admin-calendar.php:601
 msgid "Holiday deleted successfully."
 msgstr ""
 
-#: includes/audience/class-ffc-audience-admin-calendar.php:515
+#: includes/audience/class-ffc-audience-admin-calendar.php:519
 msgid "Holidays / Closed Dates"
 msgstr ""
 
@@ -7281,7 +7293,7 @@ msgstr ""
 msgid "Hover a role to see what it grants. Assigning a role applies immediately and affects only this user; it does not send an e-mail."
 msgstr ""
 
-#: includes/audience/class-ffc-audience-admin-calendar.php:366
+#: includes/audience/class-ffc-audience-admin-calendar.php:370
 msgid "How audience badges are displayed. \"Name only\" shows just the audience name. \"Parent: Name\" prefixes with the parent category when available."
 msgstr ""
 
@@ -7385,7 +7397,7 @@ msgstr ""
 msgid "I hold"
 msgstr ""
 
-#: includes/admin/class-ffc-submissions-list.php:77 includes/admin/class-ffc-form-list-columns.php:112 includes/admin/class-ffc-csv-exporter.php:452 includes/self-scheduling/class-ffc-self-scheduling-appointment-csv-exporter.php:63 includes/audience/class-ffc-audience-admin-bookings.php:146 includes/frontend/class-ffc-public-csv-exporter.php:657 includes/self-scheduling/views/appointments-list.php:72
+#: includes/admin/class-ffc-submissions-list.php:77 includes/admin/class-ffc-form-list-columns.php:112 includes/admin/class-ffc-csv-exporter.php:452 includes/self-scheduling/class-ffc-self-scheduling-appointment-csv-exporter.php:63 includes/self-scheduling/class-ffc-self-scheduling-appointments-list-table.php:71 includes/audience/class-ffc-audience-admin-bookings.php:146 includes/frontend/class-ffc-public-csv-exporter.php:657
 msgid "ID"
 msgstr ""
 
@@ -7409,7 +7421,7 @@ msgstr ""
 msgid "If your site uses page caching (Cloudflare, W3 Total Cache, etc.), some visitors may see the old \"not yet started\" state until the cache refreshes. Ask them to reload if needed."
 msgstr ""
 
-#: includes/audience/class-ffc-audience-admin-calendar.php:378
+#: includes/audience/class-ffc-audience-admin-calendar.php:382
 msgid "Ignore conflicts from other calendars"
 msgstr ""
 
@@ -7507,11 +7519,11 @@ msgstr ""
 msgid "In use"
 msgstr ""
 
-#: includes/self-scheduling/class-ffc-self-scheduling-editor.php:258 includes/audience/class-ffc-audience-admin-environment.php:183 includes/audience/class-ffc-audience-admin-calendar.php:128 includes/audience/class-ffc-audience-admin-audience.php:164
+#: includes/self-scheduling/class-ffc-self-scheduling-editor.php:258 includes/audience/class-ffc-audience-admin-environment.php:187 includes/audience/class-ffc-audience-admin-calendar.php:132 includes/audience/class-ffc-audience-admin-audience.php:168
 msgid "Inactive"
 msgstr ""
 
-#: includes/audience/class-ffc-audience-admin-calendar.php:298
+#: includes/audience/class-ffc-audience-admin-calendar.php:302
 msgid "Include .ics calendar file in emails"
 msgstr ""
 
@@ -7519,7 +7531,7 @@ msgstr ""
 msgid "Includes user ID, IP address, and timestamp for LGPD compliance."
 msgstr ""
 
-#: includes/audience/class-ffc-audience-admin-audience.php:158
+#: includes/audience/class-ffc-audience-admin-audience.php:162
 msgid "Including children"
 msgstr ""
 
@@ -7560,12 +7572,12 @@ msgid "Inherit — use Time Format above"
 msgstr ""
 
 #. %s: parent audience name
-#: includes/admin/class-ffc-admin-user-custom-fields.php:162
+#: includes/admin/class-ffc-admin-user-custom-fields.php:163
 #, php-format
 msgid "Inherited from %s"
 msgstr ""
 
-#: includes/audience/class-ffc-audience-admin-audience.php:316
+#: includes/audience/class-ffc-audience-admin-audience.php:320
 msgid "Inherited from parent audience. Users can join this group from their dashboard."
 msgstr ""
 
@@ -7897,7 +7909,7 @@ msgstr ""
 msgid "Is it safe?"
 msgstr ""
 
-#: includes/audience/class-ffc-audience-admin-calendar.php:371
+#: includes/audience/class-ffc-audience-admin-calendar.php:375
 msgid "Isolated Calendar"
 msgstr ""
 
@@ -7905,11 +7917,11 @@ msgstr ""
 msgid "Issue and cancel convocations."
 msgstr ""
 
-#: includes/recruitment/class-ffc-recruitment-admin-assets-manager.php:227
+#: includes/recruitment/class-ffc-recruitment-admin-assets-manager.php:228
 msgid "Issue calls"
 msgstr ""
 
-#: includes/recruitment/class-ffc-recruitment-admin-assets-manager.php:224
+#: includes/recruitment/class-ffc-recruitment-admin-assets-manager.php:225
 msgid "Issue calls for the selected candidates?"
 msgstr ""
 
@@ -7977,11 +7989,11 @@ msgstr ""
 msgid "Just click \"Run Migration\" once! The process will automatically continue processing batches of 100 records until complete. You can watch the progress bar update in real-time."
 msgstr ""
 
-#: includes/recruitment/class-ffc-recruitment-admin-assets-manager.php:231
+#: includes/recruitment/class-ffc-recruitment-admin-assets-manager.php:232
 msgid "Justification for calling out of order (required)"
 msgstr ""
 
-#: includes/recruitment/class-ffc-recruitment-admin-assets-manager.php:222
+#: includes/recruitment/class-ffc-recruitment-admin-assets-manager.php:223
 msgid "Justification for calling out of order (required):"
 msgstr ""
 
@@ -8061,7 +8073,7 @@ msgstr ""
 msgid "Leave empty to inherit the global default — currently %s (Settings → Rate Limit → Device Fingerprint)."
 msgstr ""
 
-#: includes/audience/class-ffc-audience-admin-environment.php:359
+#: includes/audience/class-ffc-audience-admin-environment.php:363
 msgid "Leave times empty to use default (08:00 - 18:00)."
 msgstr ""
 
@@ -8554,7 +8566,7 @@ msgstr ""
 msgid "Manage which FFC features this user can access. These are granted per user, on top of the role permissions."
 msgstr ""
 
-#: includes/audience/class-ffc-audience-admin-calendar.php:416
+#: includes/audience/class-ffc-audience-admin-calendar.php:420
 msgid "Manage which users have access to this calendar and what they can do. For private calendars, only listed users can see and book. For public calendars, these permissions control who can book and cancel."
 msgstr ""
 
@@ -8610,7 +8622,7 @@ msgstr ""
 msgid "Married"
 msgstr ""
 
-#: includes/audience/class-ffc-audience-admin-audience.php:469 includes/audience/class-ffc-audience-admin-audience.php:630
+#: includes/audience/class-ffc-audience-admin-audience.php:473 includes/audience/class-ffc-audience-admin-audience.php:634
 msgid "Mask (cpf, phone, cep…)"
 msgstr ""
 
@@ -8690,7 +8702,7 @@ msgstr ""
 msgid "Maximum attempts"
 msgstr ""
 
-#: includes/audience/class-ffc-audience-admin-calendar.php:262
+#: includes/audience/class-ffc-audience-admin-calendar.php:266
 msgid "Maximum days in advance that non-admin users can book. Leave empty for no limit."
 msgstr ""
 
@@ -8740,7 +8752,7 @@ msgstr ""
 msgid "Medium (15% correction) - Recommended"
 msgstr ""
 
-#: includes/audience/class-ffc-audience-admin-audience.php:792
+#: includes/audience/class-ffc-audience-admin-audience.php:796
 msgid "Member removed successfully."
 msgstr ""
 
@@ -8756,12 +8768,12 @@ msgstr ""
 msgid "member(s) have overlapping bookings."
 msgstr ""
 
-#: includes/audience/class-ffc-audience-admin-audience.php:93 includes/audience/class-ffc-audience-admin-audience.php:169
+#: includes/audience/class-ffc-audience-admin-audience.php:97 includes/audience/class-ffc-audience-admin-audience.php:173
 msgid "Members"
 msgstr ""
 
 #. %s: audience name
-#: includes/audience/class-ffc-audience-admin-audience.php:705
+#: includes/audience/class-ffc-audience-admin-audience.php:709
 #, php-format
 msgid "Members of %s"
 msgstr ""
@@ -8961,7 +8973,7 @@ msgstr ""
 msgid "Mon"
 msgstr ""
 
-#: includes/shortcodes/class-ffc-dashboard-asset-manager.php:115 includes/shortcodes/class-ffc-dashboard-asset-manager.php:171 includes/admin/class-ffc-admin-user-custom-fields.php:70 includes/admin/class-ffc-admin-user-custom-fields.php:270 includes/self-scheduling/class-ffc-self-scheduling-editor.php:102 includes/self-scheduling/class-ffc-self-scheduling-editor.php:309 includes/reregistration/class-ffc-reregistration-form-renderer.php:543 includes/audience/class-ffc-audience-admin-environment.php:328
+#: includes/shortcodes/class-ffc-dashboard-asset-manager.php:115 includes/shortcodes/class-ffc-dashboard-asset-manager.php:171 includes/admin/class-ffc-admin-user-custom-fields.php:71 includes/admin/class-ffc-admin-user-custom-fields.php:251 includes/self-scheduling/class-ffc-self-scheduling-editor.php:102 includes/self-scheduling/class-ffc-self-scheduling-editor.php:309 includes/reregistration/class-ffc-reregistration-form-renderer.php:543 includes/audience/class-ffc-audience-admin-environment.php:332
 msgid "Monday"
 msgstr ""
 
@@ -9041,11 +9053,11 @@ msgstr ""
 msgid "My Campaign"
 msgstr ""
 
-#: includes/generators/class-ffc-pdf-generator.php:665 includes/generators/class-ffc-pdf-generator.php:673 includes/generators/class-ffc-pdf-generator.php:687 includes/generators/class-ffc-pdf-generator.php:725 includes/self-scheduling/class-ffc-self-scheduling-appointment-receipt-handler.php:200 includes/self-scheduling/class-ffc-self-scheduling-appointment-receipt-handler.php:208 includes/self-scheduling/class-ffc-self-scheduling-appointment-receipt-handler.php:221 includes/self-scheduling/class-ffc-self-scheduling-appointment-receipt-handler.php:408 includes/frontend/class-ffc-verification-response-renderer.php:38 includes/frontend/class-ffc-verification-response-renderer.php:176 includes/frontend/class-ffc-verification-response-renderer.php:185 includes/frontend/class-ffc-verification-response-renderer.php:200 includes/frontend/class-ffc-verification-response-renderer.php:316 includes/frontend/class-ffc-verification-response-renderer.php:339
+#: includes/generators/class-ffc-pdf-generator.php:665 includes/generators/class-ffc-pdf-generator.php:673 includes/generators/class-ffc-pdf-generator.php:687 includes/generators/class-ffc-pdf-generator.php:725 includes/self-scheduling/class-ffc-self-scheduling-appointment-receipt-handler.php:210 includes/self-scheduling/class-ffc-self-scheduling-appointment-receipt-handler.php:218 includes/self-scheduling/class-ffc-self-scheduling-appointment-receipt-handler.php:231 includes/self-scheduling/class-ffc-self-scheduling-appointment-receipt-handler.php:418 includes/frontend/class-ffc-verification-response-renderer.php:38 includes/frontend/class-ffc-verification-response-renderer.php:176 includes/frontend/class-ffc-verification-response-renderer.php:185 includes/frontend/class-ffc-verification-response-renderer.php:200 includes/frontend/class-ffc-verification-response-renderer.php:316 includes/frontend/class-ffc-verification-response-renderer.php:339
 msgid "N/A"
 msgstr ""
 
-#: includes/privacy/class-ffc-privacy-handler.php:360 includes/self-scheduling/class-ffc-self-scheduling-appointment-email-handler.php:185 includes/self-scheduling/class-ffc-self-scheduling-appointment-csv-exporter.php:67 includes/self-scheduling/class-ffc-self-scheduling-shortcode.php:207 includes/self-scheduling/class-ffc-self-scheduling-shortcode.php:564 includes/reregistration/class-ffc-reregistration-standard-fields-seeder.php:114 includes/reregistration/class-ffc-reregistration-csv-exporter.php:85 includes/recruitment/class-ffc-recruitment-admin-page.php:1024 includes/recruitment/class-ffc-recruitment-admin-page.php:1048 includes/recruitment/class-ffc-recruitment-adjutancies-list-table.php:59 includes/recruitment/class-ffc-recruitment-candidates-list-table.php:73 includes/recruitment/class-ffc-recruitment-public-shortcode-renderer.php:86 includes/recruitment/class-ffc-recruitment-adjutancy-edit-page.php:108 includes/recruitment/class-ffc-recruitment-notices-list-table.php:66 includes/recruitment/class-ffc-recruitment-candidate-edit-page.php:130 includes/recruitment/class-ffc-recruitment-notice-edit-page-renderer.php:157 includes/recruitment/class-ffc-recruitment-notice-edit-page-renderer.php:282 includes/audience/class-ffc-audience-admin-environment.php:130 includes/audience/class-ffc-audience-admin-environment.php:291 includes/audience/class-ffc-audience-admin-calendar.php:82 includes/audience/class-ffc-audience-admin-calendar.php:208 includes/audience/class-ffc-audience-admin-audience.php:91 includes/audience/class-ffc-audience-admin-audience.php:246 includes/frontend/class-ffc-verification-response-renderer.php:462 includes/settings/views/ffc-tab-geolocation.php:38 includes/self-scheduling/views/appointments-list.php:74 includes/self-scheduling/views/appointments-list.php:544 includes/settings/views/documentation/12-geofence-locations.php:32
+#: includes/privacy/class-ffc-privacy-handler.php:360 includes/self-scheduling/class-ffc-self-scheduling-appointment-email-handler.php:185 includes/self-scheduling/class-ffc-self-scheduling-appointment-csv-exporter.php:67 includes/self-scheduling/class-ffc-self-scheduling-appointments-list-table.php:73 includes/self-scheduling/class-ffc-self-scheduling-shortcode.php:207 includes/self-scheduling/class-ffc-self-scheduling-shortcode.php:564 includes/reregistration/class-ffc-reregistration-standard-fields-seeder.php:114 includes/reregistration/class-ffc-reregistration-csv-exporter.php:85 includes/recruitment/class-ffc-recruitment-admin-page.php:1024 includes/recruitment/class-ffc-recruitment-admin-page.php:1048 includes/recruitment/class-ffc-recruitment-adjutancies-list-table.php:59 includes/recruitment/class-ffc-recruitment-candidates-list-table.php:73 includes/recruitment/class-ffc-recruitment-public-shortcode-renderer.php:86 includes/recruitment/class-ffc-recruitment-adjutancy-edit-page.php:108 includes/recruitment/class-ffc-recruitment-notices-list-table.php:66 includes/recruitment/class-ffc-recruitment-candidate-edit-page.php:130 includes/recruitment/class-ffc-recruitment-notice-edit-page-renderer.php:157 includes/recruitment/class-ffc-recruitment-notice-edit-page-renderer.php:282 includes/audience/class-ffc-audience-admin-environment.php:134 includes/audience/class-ffc-audience-admin-environment.php:295 includes/audience/class-ffc-audience-admin-calendar.php:86 includes/audience/class-ffc-audience-admin-calendar.php:212 includes/audience/class-ffc-audience-admin-audience.php:95 includes/audience/class-ffc-audience-admin-audience.php:250 includes/frontend/class-ffc-verification-response-renderer.php:462 includes/settings/views/ffc-tab-geolocation.php:38 includes/self-scheduling/views/appointments-list.php:204 includes/settings/views/documentation/12-geofence-locations.php:32
 msgid "Name"
 msgstr ""
 
@@ -9061,7 +9073,7 @@ msgstr ""
 msgid "Name of the scheduling calendar"
 msgstr ""
 
-#: includes/audience/class-ffc-audience-admin-calendar.php:359
+#: includes/audience/class-ffc-audience-admin-calendar.php:363
 msgid "Name only"
 msgstr ""
 
@@ -9069,7 +9081,7 @@ msgstr ""
 msgid "Name to display as sender"
 msgstr ""
 
-#: includes/shortcodes/class-ffc-dashboard-asset-manager.php:222 includes/generators/class-ffc-pdf-generator.php:847 includes/self-scheduling/class-ffc-self-scheduling-appointment-receipt-handler.php:447 includes/reregistration/class-ffc-ficha-generator.php:473 includes/frontend/class-ffc-verification-response-renderer.php:279 includes/frontend/class-ffc-verification-response-renderer.php:416
+#: includes/shortcodes/class-ffc-dashboard-asset-manager.php:222 includes/generators/class-ffc-pdf-generator.php:847 includes/self-scheduling/class-ffc-self-scheduling-appointment-receipt-handler.php:457 includes/reregistration/class-ffc-ficha-generator.php:473 includes/frontend/class-ffc-verification-response-renderer.php:279 includes/frontend/class-ffc-verification-response-renderer.php:416
 msgid "Name:"
 msgstr ""
 
@@ -9107,6 +9119,10 @@ msgstr ""
 
 #: includes/self-scheduling/class-ffc-self-scheduling-shortcode.php:219
 msgid "Network error. Please check your connection and try again."
+msgstr ""
+
+#: includes/recruitment/class-ffc-recruitment-admin-assets-manager.php:218
+msgid "Network error:"
 msgstr ""
 
 #: includes/settings/views/ffc-tab-migrations.php:613
@@ -9218,7 +9234,7 @@ msgid "No"
 msgstr ""
 
 #. %s: environment label (e.g. "Environments", "Rooms")
-#: includes/audience/class-ffc-audience-admin-environment.php:142
+#: includes/audience/class-ffc-audience-admin-environment.php:146
 #, php-format
 msgid "No %s found."
 msgstr ""
@@ -9255,7 +9271,7 @@ msgstr ""
 msgid "No audiences defined yet."
 msgstr ""
 
-#: includes/reregistration/class-ffc-reregistration-custom-fields-page.php:61 includes/audience/class-ffc-audience-admin-audience.php:101
+#: includes/reregistration/class-ffc-reregistration-custom-fields-page.php:61 includes/audience/class-ffc-audience-admin-audience.php:105
 msgid "No audiences found."
 msgstr ""
 
@@ -9271,7 +9287,7 @@ msgstr ""
 msgid "No bookings found."
 msgstr ""
 
-#: includes/audience/class-ffc-audience-admin-calendar.php:92
+#: includes/audience/class-ffc-audience-admin-calendar.php:96
 msgid "No calendars found."
 msgstr ""
 
@@ -9335,7 +9351,7 @@ msgstr ""
 msgid "No FFC roles available."
 msgstr ""
 
-#: includes/audience/class-ffc-audience-admin-audience.php:478 includes/audience/class-ffc-audience-admin-audience.php:663
+#: includes/audience/class-ffc-audience-admin-audience.php:482 includes/audience/class-ffc-audience-admin-audience.php:667
 msgid "No format validation"
 msgstr ""
 
@@ -9355,7 +9371,7 @@ msgstr ""
 msgid "No global holidays configured."
 msgstr ""
 
-#: includes/audience/class-ffc-audience-admin-calendar.php:571
+#: includes/audience/class-ffc-audience-admin-calendar.php:575
 msgid "No holidays defined yet."
 msgstr ""
 
@@ -9379,7 +9395,7 @@ msgstr ""
 msgid "No matching short URLs found. Nothing to clean up."
 msgstr ""
 
-#: includes/audience/class-ffc-audience-admin-audience.php:732
+#: includes/audience/class-ffc-audience-admin-audience.php:736
 msgid "No members yet."
 msgstr ""
 
@@ -9443,7 +9459,7 @@ msgstr ""
 msgid "No short URLs found."
 msgstr ""
 
-#: includes/api/class-ffc-user-appointments-rest-controller.php:162 includes/generators/class-ffc-pdf-generator.php:715 includes/self-scheduling/class-ffc-self-scheduling-appointment-email-handler.php:433 includes/self-scheduling/class-ffc-self-scheduling-appointment-csv-exporter.php:171 includes/self-scheduling/class-ffc-self-scheduling-appointment-receipt-handler.php:235 includes/frontend/class-ffc-verification-response-renderer.php:214 includes/self-scheduling/views/appointments-list.php:266 includes/self-scheduling/views/appointments-list.php:351 includes/self-scheduling/views/appointments-list.php:514
+#: includes/api/class-ffc-user-appointments-rest-controller.php:162 includes/generators/class-ffc-pdf-generator.php:715 includes/self-scheduling/class-ffc-self-scheduling-appointment-email-handler.php:433 includes/self-scheduling/class-ffc-self-scheduling-appointment-csv-exporter.php:171 includes/self-scheduling/class-ffc-self-scheduling-appointments-list-table.php:265 includes/self-scheduling/class-ffc-self-scheduling-appointments-list-table.php:350 includes/self-scheduling/class-ffc-self-scheduling-appointment-receipt-handler.php:245 includes/frontend/class-ffc-verification-response-renderer.php:214 includes/self-scheduling/views/appointments-list.php:174
 msgid "No Show"
 msgstr ""
 
@@ -9501,7 +9517,7 @@ msgstr ""
 msgid "No users found."
 msgstr ""
 
-#: includes/audience/class-ffc-audience-admin-calendar.php:451 includes/audience/class-ffc-audience-loader.php:394
+#: includes/audience/class-ffc-audience-admin-calendar.php:455 includes/audience/class-ffc-audience-loader.php:394
 msgid "No users have been granted access yet."
 msgstr ""
 
@@ -9533,7 +9549,7 @@ msgstr ""
 msgid "None (not recommended)"
 msgstr ""
 
-#: includes/audience/class-ffc-audience-admin-audience.php:269
+#: includes/audience/class-ffc-audience-admin-audience.php:273
 msgid "None (top-level audience)"
 msgstr ""
 
@@ -9574,7 +9590,7 @@ msgstr ""
 msgid "Note: When this option is enabled, the email will only be sent when the user submits the form. This will add them to a waiting list and emails will be sent progressively."
 msgstr ""
 
-#: includes/shortcodes/class-ffc-dashboard-asset-manager.php:220 includes/privacy/class-ffc-privacy-handler.php:372 includes/self-scheduling/class-ffc-self-scheduling-appointment-email-handler.php:188 includes/self-scheduling/class-ffc-self-scheduling-appointment-receipt-handler.php:466 includes/recruitment/class-ffc-recruitment-dashboard-section.php:287 includes/recruitment/class-ffc-recruitment-candidate-edit-page.php:142 includes/recruitment/class-ffc-recruitment-candidate-edit-page.php:414
+#: includes/shortcodes/class-ffc-dashboard-asset-manager.php:220 includes/privacy/class-ffc-privacy-handler.php:372 includes/self-scheduling/class-ffc-self-scheduling-appointment-email-handler.php:188 includes/self-scheduling/class-ffc-self-scheduling-appointment-receipt-handler.php:476 includes/recruitment/class-ffc-recruitment-dashboard-section.php:287 includes/recruitment/class-ffc-recruitment-candidate-edit-page.php:142 includes/recruitment/class-ffc-recruitment-candidate-edit-page.php:414
 msgid "Notes"
 msgstr ""
 
@@ -9604,7 +9620,7 @@ msgstr ""
 msgid "Notice closed."
 msgstr ""
 
-#: includes/audience/class-ffc-audience-admin-audience.php:474
+#: includes/audience/class-ffc-audience-admin-audience.php:478
 msgid "Notice HTML (supports basic formatting and links)"
 msgstr ""
 
@@ -9616,7 +9632,7 @@ msgstr ""
 msgid "Notice not found."
 msgstr ""
 
-#: includes/audience/class-ffc-audience-admin-audience.php:607
+#: includes/audience/class-ffc-audience-admin-audience.php:611
 msgid "Notice shown at the end of the reregistration form and printed on the ficha PDF. Use \"Replicate lists to children\" to push it to descendant audiences."
 msgstr ""
 
@@ -9644,7 +9660,7 @@ msgstr ""
 msgid "Notification Preferences"
 msgstr ""
 
-#: includes/self-scheduling/class-ffc-self-scheduling-editor.php:568 includes/audience/class-ffc-audience-admin-calendar.php:267
+#: includes/self-scheduling/class-ffc-self-scheduling-editor.php:568 includes/audience/class-ffc-audience-admin-calendar.php:271
 msgid "Notifications"
 msgstr ""
 
@@ -9760,7 +9776,7 @@ msgstr ""
 msgid "One CPF per line. Only used when the mode above is set to \"Whitelist\". Formatting is ignored — only digits matter."
 msgstr ""
 
-#: includes/recruitment/class-ffc-recruitment-admin-assets-manager.php:230
+#: includes/recruitment/class-ffc-recruitment-admin-assets-manager.php:231
 msgid "One or more selected rows would skip a higher-ranked candidate (out of order)."
 msgstr ""
 
@@ -9884,7 +9900,7 @@ msgstr ""
 msgid "Options"
 msgstr ""
 
-#: includes/audience/class-ffc-audience-admin-audience.php:471 includes/audience/class-ffc-audience-admin-audience.php:632
+#: includes/audience/class-ffc-audience-admin-audience.php:475 includes/audience/class-ffc-audience-admin-audience.php:636
 msgid "Options (one per line)"
 msgstr ""
 
@@ -9956,7 +9972,7 @@ msgstr ""
 msgid "Out of order"
 msgstr ""
 
-#: includes/audience/class-ffc-audience-admin-calendar.php:444
+#: includes/audience/class-ffc-audience-admin-calendar.php:448
 msgid "Override Conflicts"
 msgstr ""
 
@@ -9996,11 +10012,11 @@ msgstr ""
 msgid "Paragraph with spacing"
 msgstr ""
 
-#: includes/audience/class-ffc-audience-admin-audience.php:265
+#: includes/audience/class-ffc-audience-admin-audience.php:269
 msgid "Parent Audience"
 msgstr ""
 
-#: includes/audience/class-ffc-audience-admin-calendar.php:362
+#: includes/audience/class-ffc-audience-admin-calendar.php:366
 msgid "Parent: Name"
 msgstr ""
 
@@ -10156,11 +10172,11 @@ msgstr ""
 msgid "PDF Time Format (override)"
 msgstr ""
 
-#: includes/api/class-ffc-user-appointments-rest-controller.php:158 includes/api/class-ffc-user-reregistrations-rest-controller.php:88 includes/admin/class-ffc-cpt.php:278 includes/self-scheduling/class-ffc-self-scheduling-appointment-csv-exporter.php:167 includes/reregistration/class-ffc-reregistration-submission-repository.php:49 includes/settings/views/ffc-tab-migrations.php:171 includes/self-scheduling/views/appointments-list.php:262 includes/self-scheduling/views/appointments-list.php:347 includes/self-scheduling/views/appointments-list.php:510
+#: includes/api/class-ffc-user-appointments-rest-controller.php:158 includes/api/class-ffc-user-reregistrations-rest-controller.php:88 includes/admin/class-ffc-cpt.php:278 includes/self-scheduling/class-ffc-self-scheduling-appointment-csv-exporter.php:167 includes/self-scheduling/class-ffc-self-scheduling-appointments-list-table.php:261 includes/self-scheduling/class-ffc-self-scheduling-appointments-list-table.php:346 includes/reregistration/class-ffc-reregistration-submission-repository.php:49 includes/settings/views/ffc-tab-migrations.php:171 includes/self-scheduling/views/appointments-list.php:170
 msgid "Pending"
 msgstr ""
 
-#: includes/generators/class-ffc-pdf-generator.php:711 includes/self-scheduling/class-ffc-self-scheduling-appointment-email-handler.php:429 includes/self-scheduling/class-ffc-self-scheduling-shortcode.php:211 includes/self-scheduling/class-ffc-self-scheduling-appointment-receipt-handler.php:231 includes/frontend/class-ffc-verification-response-renderer.php:210
+#: includes/generators/class-ffc-pdf-generator.php:711 includes/self-scheduling/class-ffc-self-scheduling-appointment-email-handler.php:429 includes/self-scheduling/class-ffc-self-scheduling-shortcode.php:211 includes/self-scheduling/class-ffc-self-scheduling-appointment-receipt-handler.php:241 includes/frontend/class-ffc-verification-response-renderer.php:210
 msgid "Pending Approval"
 msgstr ""
 
@@ -10276,7 +10292,7 @@ msgstr ""
 msgid "Personal email"
 msgstr ""
 
-#: includes/self-scheduling/class-ffc-self-scheduling-appointment-receipt-handler.php:445
+#: includes/self-scheduling/class-ffc-self-scheduling-appointment-receipt-handler.php:455
 msgid "Personal Information"
 msgstr ""
 
@@ -10288,7 +10304,7 @@ msgstr ""
 msgid "Personal Schedule"
 msgstr ""
 
-#: includes/privacy/class-ffc-privacy-handler.php:145 includes/privacy/class-ffc-privacy-handler.php:368 includes/self-scheduling/class-ffc-self-scheduling-appointment-email-handler.php:187 includes/self-scheduling/class-ffc-self-scheduling-appointment-csv-exporter.php:69 includes/recruitment/class-ffc-recruitment-candidates-list-table.php:75 includes/recruitment/class-ffc-recruitment-candidate-edit-page.php:139 includes/audience/class-ffc-audience-admin-audience.php:481 includes/audience/class-ffc-audience-admin-audience.php:666 includes/frontend/class-ffc-verification-response-renderer.php:467 includes/self-scheduling/views/appointments-list.php:546
+#: includes/privacy/class-ffc-privacy-handler.php:145 includes/privacy/class-ffc-privacy-handler.php:368 includes/self-scheduling/class-ffc-self-scheduling-appointment-email-handler.php:187 includes/self-scheduling/class-ffc-self-scheduling-appointment-csv-exporter.php:69 includes/recruitment/class-ffc-recruitment-candidates-list-table.php:75 includes/recruitment/class-ffc-recruitment-candidate-edit-page.php:139 includes/audience/class-ffc-audience-admin-audience.php:485 includes/audience/class-ffc-audience-admin-audience.php:670 includes/frontend/class-ffc-verification-response-renderer.php:467 includes/self-scheduling/views/appointments-list.php:206
 msgid "Phone"
 msgstr ""
 
@@ -10296,7 +10312,7 @@ msgstr ""
 msgid "Phone number"
 msgstr ""
 
-#: includes/shortcodes/class-ffc-dashboard-asset-manager.php:248 includes/self-scheduling/class-ffc-self-scheduling-appointment-receipt-handler.php:458
+#: includes/shortcodes/class-ffc-dashboard-asset-manager.php:248 includes/self-scheduling/class-ffc-self-scheduling-appointment-receipt-handler.php:468
 msgid "Phone:"
 msgstr ""
 
@@ -10422,7 +10438,7 @@ msgstr ""
 msgid "Please pick valid times (HH:MM)."
 msgstr ""
 
-#: includes/self-scheduling/views/appointments-list.php:163
+#: includes/self-scheduling/class-ffc-self-scheduling-appointments-list-table.php:163
 msgid "Please provide a reason for cancellation (minimum 5 characters):"
 msgstr ""
 
@@ -10487,7 +10503,7 @@ msgstr ""
 msgid "Please wait %d seconds."
 msgstr ""
 
-#: includes/admin/class-ffc-admin-assets-manager.php:762 includes/self-scheduling/class-ffc-self-scheduling-shortcode.php:222 includes/self-scheduling/class-ffc-self-scheduling-appointment-receipt-handler.php:500 includes/frontend/class-ffc-frontend.php:286
+#: includes/admin/class-ffc-admin-assets-manager.php:762 includes/self-scheduling/class-ffc-self-scheduling-shortcode.php:222 includes/self-scheduling/class-ffc-self-scheduling-appointment-receipt-handler.php:510 includes/frontend/class-ffc-frontend.php:286
 msgid "Please wait, this may take a few seconds..."
 msgstr ""
 
@@ -10511,7 +10527,7 @@ msgstr ""
 msgid "Popular SMTP Providers"
 msgstr ""
 
-#: includes/audience/class-ffc-audience-admin-calendar.php:319
+#: includes/audience/class-ffc-audience-admin-calendar.php:323
 msgid "Position"
 msgstr ""
 
@@ -10727,7 +10743,7 @@ msgstr ""
 msgid "Primary Service"
 msgstr ""
 
-#: includes/self-scheduling/class-ffc-self-scheduling-appointment-receipt-handler.php:389
+#: includes/self-scheduling/class-ffc-self-scheduling-appointment-receipt-handler.php:399
 msgid "Print"
 msgstr ""
 
@@ -10743,7 +10759,7 @@ msgstr ""
 msgid "Privacy:"
 msgstr ""
 
-#: includes/self-scheduling/class-ffc-self-scheduling-editor.php:460 includes/self-scheduling/class-ffc-self-scheduling-editor.php:470 includes/self-scheduling/class-ffc-self-scheduling-shortcode.php:334 includes/audience/class-ffc-audience-admin-calendar.php:123 includes/audience/class-ffc-audience-admin-calendar.php:243 includes/audience/class-ffc-audience-shortcode.php:171
+#: includes/self-scheduling/class-ffc-self-scheduling-editor.php:460 includes/self-scheduling/class-ffc-self-scheduling-editor.php:470 includes/self-scheduling/class-ffc-self-scheduling-shortcode.php:334 includes/audience/class-ffc-audience-admin-calendar.php:127 includes/audience/class-ffc-audience-admin-calendar.php:247 includes/audience/class-ffc-audience-shortcode.php:171
 msgid "Private"
 msgstr ""
 
@@ -10763,7 +10779,7 @@ msgstr ""
 msgid "Processed "
 msgstr ""
 
-#: includes/recruitment/class-ffc-recruitment-admin-assets-manager.php:173 includes/recruitment/class-ffc-recruitment-admin-assets-manager.php:218
+#: includes/recruitment/class-ffc-recruitment-admin-assets-manager.php:173 includes/recruitment/class-ffc-recruitment-admin-assets-manager.php:219
 msgid "Processing CSV…"
 msgstr ""
 
@@ -10779,7 +10795,7 @@ msgstr ""
 msgid "Profile"
 msgstr ""
 
-#: includes/audience/class-ffc-audience-admin-audience.php:468 includes/audience/class-ffc-audience-admin-audience.php:629
+#: includes/audience/class-ffc-audience-admin-audience.php:472 includes/audience/class-ffc-audience-admin-audience.php:633
 msgid "profile_key (optional)"
 msgstr ""
 
@@ -10832,7 +10848,7 @@ msgstr ""
 msgid "Provisional ranking published for review."
 msgstr ""
 
-#: includes/self-scheduling/class-ffc-self-scheduling-editor.php:459 includes/self-scheduling/class-ffc-self-scheduling-editor.php:469 includes/audience/class-ffc-audience-admin-calendar.php:123 includes/audience/class-ffc-audience-admin-calendar.php:246
+#: includes/self-scheduling/class-ffc-self-scheduling-editor.php:459 includes/self-scheduling/class-ffc-self-scheduling-editor.php:469 includes/audience/class-ffc-audience-admin-calendar.php:127 includes/audience/class-ffc-audience-admin-calendar.php:250
 msgid "Public"
 msgstr ""
 
@@ -10880,7 +10896,7 @@ msgstr ""
 msgid "Public: anyone can book. Private: only logged-in users can book."
 msgstr ""
 
-#: includes/audience/class-ffc-audience-admin-calendar.php:250
+#: includes/audience/class-ffc-audience-admin-calendar.php:254
 msgid "Public: visible to everyone. Private: only visible to logged-in users who belong to an audience group. Scheduling is always restricted to authorized members."
 msgstr ""
 
@@ -11160,7 +11176,7 @@ msgstr ""
 msgid "Read-only — you do not have permission to change recruitment settings."
 msgstr ""
 
-#: includes/audience/class-ffc-audience-admin-audience.php:410
+#: includes/audience/class-ffc-audience-admin-audience.php:414
 msgid "Read-only — you do not have permission to edit custom field definitions."
 msgstr ""
 
@@ -11180,7 +11196,7 @@ msgstr ""
 msgid "Reason creation failed (duplicate slug?)."
 msgstr ""
 
-#: includes/recruitment/class-ffc-recruitment-admin-assets-manager.php:237
+#: includes/recruitment/class-ffc-recruitment-admin-assets-manager.php:238
 msgid "Reason for undoing this decision (required, audited):"
 msgstr ""
 
@@ -11291,7 +11307,7 @@ msgstr ""
 msgid "Regenerate hash on save (invalidates the current link)."
 msgstr ""
 
-#: includes/audience/class-ffc-audience-admin-audience.php:484 includes/audience/class-ffc-audience-admin-audience.php:669
+#: includes/audience/class-ffc-audience-admin-audience.php:488 includes/audience/class-ffc-audience-admin-audience.php:673
 msgid "Regex pattern"
 msgstr ""
 
@@ -11378,7 +11394,7 @@ msgstr ""
 msgid "Reminder: {reregistration_title} — {days_left} days left"
 msgstr ""
 
-#: includes/admin/class-ffc-form-editor-builder-metabox.php:127 includes/admin/class-ffc-admin-assets-manager.php:796 includes/self-scheduling/class-ffc-self-scheduling-editor.php:99 includes/self-scheduling/class-ffc-self-scheduling-editor.php:347 includes/audience/class-ffc-audience-ajax-controller.php:366 includes/audience/class-ffc-audience-admin-calendar.php:503 includes/audience/class-ffc-audience-admin-audience.php:494 includes/audience/class-ffc-audience-admin-audience.php:680 includes/audience/class-ffc-audience-admin-audience.php:757
+#: includes/admin/class-ffc-form-editor-builder-metabox.php:127 includes/admin/class-ffc-admin-assets-manager.php:796 includes/self-scheduling/class-ffc-self-scheduling-editor.php:99 includes/self-scheduling/class-ffc-self-scheduling-editor.php:347 includes/audience/class-ffc-audience-ajax-controller.php:366 includes/audience/class-ffc-audience-admin-calendar.php:507 includes/audience/class-ffc-audience-admin-audience.php:498 includes/audience/class-ffc-audience-admin-audience.php:684 includes/audience/class-ffc-audience-admin-audience.php:761
 msgid "Remove"
 msgstr ""
 
@@ -11390,11 +11406,11 @@ msgstr ""
 msgid "Remove all"
 msgstr ""
 
-#: includes/audience/class-ffc-audience-admin-audience.php:648 includes/audience/class-ffc-audience-loader.php:242
+#: includes/audience/class-ffc-audience-admin-audience.php:652 includes/audience/class-ffc-audience-loader.php:242
 msgid "Remove department"
 msgstr ""
 
-#: includes/audience/class-ffc-audience-admin-audience.php:642 includes/audience/class-ffc-audience-loader.php:241
+#: includes/audience/class-ffc-audience-admin-audience.php:646 includes/audience/class-ffc-audience-loader.php:241
 msgid "Remove division"
 msgstr ""
 
@@ -11418,7 +11434,7 @@ msgstr ""
 msgid "Remove this holiday?"
 msgstr ""
 
-#: includes/audience/class-ffc-audience-admin-audience.php:756
+#: includes/audience/class-ffc-audience-admin-audience.php:760
 msgid "Remove this member?"
 msgstr ""
 
@@ -11458,7 +11474,7 @@ msgstr ""
 msgid "Reopen reason (required)"
 msgstr ""
 
-#: includes/recruitment/class-ffc-recruitment-admin-assets-manager.php:235
+#: includes/recruitment/class-ffc-recruitment-admin-assets-manager.php:236
 msgid "Reopen reason (required):"
 msgstr ""
 
@@ -11490,7 +11506,7 @@ msgstr ""
 msgid "Replace USERNAME with the WordPress login of the integrator user, and APP_PASSWORD with the token created from the user's \"Application Passwords\" panel. The user must hold ffc_view_forms_api."
 msgstr ""
 
-#: includes/audience/class-ffc-audience-admin-audience.php:404
+#: includes/audience/class-ffc-audience-admin-audience.php:408
 msgid "Replicate lists to children"
 msgstr ""
 
@@ -11561,7 +11577,7 @@ msgstr ""
 msgid "Require users to have a single-use ticket to generate the certificate (it is consumed after use)."
 msgstr ""
 
-#: includes/audience/class-ffc-audience-admin-audience.php:443 includes/audience/class-ffc-audience-admin-audience.php:579
+#: includes/audience/class-ffc-audience-admin-audience.php:447 includes/audience/class-ffc-audience-admin-audience.php:583
 msgid "Required"
 msgstr ""
 
@@ -11633,7 +11649,7 @@ msgstr ""
 msgid "Reregistration deleted successfully."
 msgstr ""
 
-#: includes/audience/class-ffc-audience-admin-audience.php:381
+#: includes/audience/class-ffc-audience-admin-audience.php:385
 msgid "Reregistration Fields"
 msgstr ""
 
@@ -11795,7 +11811,7 @@ msgstr ""
 msgid "Revoke all"
 msgstr ""
 
-#: includes/admin/class-ffc-csv-exporter.php:459 includes/admin/class-ffc-admin-submission-edit-page.php:433 includes/reregistration/class-ffc-reregistration-standard-fields-seeder.php:150 includes/recruitment/class-ffc-recruitment-public-shortcode-renderer.php:95 includes/recruitment/class-ffc-recruitment-candidate-edit-page.php:186 includes/frontend/class-ffc-verification-response-renderer.php:461 includes/frontend/class-ffc-public-csv-exporter.php:664 includes/self-scheduling/views/appointments-list.php:551
+#: includes/admin/class-ffc-csv-exporter.php:459 includes/admin/class-ffc-admin-submission-edit-page.php:433 includes/reregistration/class-ffc-reregistration-standard-fields-seeder.php:150 includes/recruitment/class-ffc-recruitment-public-shortcode-renderer.php:95 includes/recruitment/class-ffc-recruitment-candidate-edit-page.php:186 includes/frontend/class-ffc-verification-response-renderer.php:461 includes/frontend/class-ffc-public-csv-exporter.php:664 includes/self-scheduling/views/appointments-list.php:211
 msgid "RF"
 msgstr ""
 
@@ -11935,7 +11951,7 @@ msgstr ""
 msgid "Sat"
 msgstr ""
 
-#: includes/shortcodes/class-ffc-dashboard-asset-manager.php:135 includes/shortcodes/class-ffc-dashboard-asset-manager.php:176 includes/admin/class-ffc-admin-user-custom-fields.php:90 includes/admin/class-ffc-admin-user-custom-fields.php:275 includes/self-scheduling/class-ffc-self-scheduling-editor.php:107 includes/self-scheduling/class-ffc-self-scheduling-editor.php:314 includes/reregistration/class-ffc-reregistration-form-renderer.php:548 includes/audience/class-ffc-audience-admin-environment.php:333
+#: includes/shortcodes/class-ffc-dashboard-asset-manager.php:135 includes/shortcodes/class-ffc-dashboard-asset-manager.php:176 includes/admin/class-ffc-admin-user-custom-fields.php:91 includes/admin/class-ffc-admin-user-custom-fields.php:256 includes/self-scheduling/class-ffc-self-scheduling-editor.php:107 includes/self-scheduling/class-ffc-self-scheduling-editor.php:314 includes/reregistration/class-ffc-reregistration-form-renderer.php:548 includes/audience/class-ffc-audience-admin-environment.php:337
 msgid "Saturday"
 msgstr ""
 
@@ -11979,7 +11995,7 @@ msgstr ""
 msgid "Save failed. Please try again."
 msgstr ""
 
-#: includes/audience/class-ffc-audience-admin-audience.php:399
+#: includes/audience/class-ffc-audience-admin-audience.php:403
 msgid "Save Fields"
 msgstr ""
 
@@ -12143,7 +12159,7 @@ msgstr ""
 msgid "Search by name"
 msgstr ""
 
-#: includes/audience/class-ffc-audience-admin-calendar.php:423
+#: includes/audience/class-ffc-audience-admin-calendar.php:427
 msgid "Search by name or email..."
 msgstr ""
 
@@ -12195,7 +12211,7 @@ msgstr ""
 msgid "Search users..."
 msgstr ""
 
-#: includes/audience/class-ffc-audience-admin-audience.php:718
+#: includes/audience/class-ffc-audience-admin-audience.php:722
 msgid "Search users:"
 msgstr ""
 
@@ -12270,11 +12286,11 @@ msgstr ""
 msgid "Select (Combobox)"
 msgstr ""
 
-#: includes/audience/class-ffc-audience-admin-environment.php:280
+#: includes/audience/class-ffc-audience-admin-environment.php:284
 msgid "Select a calendar"
 msgstr ""
 
-#: includes/audience/class-ffc-audience-admin-audience.php:276
+#: includes/audience/class-ffc-audience-admin-audience.php:280
 msgid "Select a parent to create a sub-group (up to 3 hierarchy levels)."
 msgstr ""
 
@@ -12302,7 +12318,7 @@ msgstr ""
 msgid "Select at least one classification to call in bulk."
 msgstr ""
 
-#: includes/recruitment/class-ffc-recruitment-admin-assets-manager.php:219
+#: includes/recruitment/class-ffc-recruitment-admin-assets-manager.php:220
 msgid "Select at least one row first."
 msgstr ""
 
@@ -12430,11 +12446,11 @@ msgstr ""
 msgid "Send confirmation email to user"
 msgstr ""
 
-#: includes/audience/class-ffc-audience-admin-calendar.php:287
+#: includes/audience/class-ffc-audience-admin-calendar.php:291
 msgid "Send email on cancellation"
 msgstr ""
 
-#: includes/audience/class-ffc-audience-admin-calendar.php:276
+#: includes/audience/class-ffc-audience-admin-calendar.php:280
 msgid "Send email on new booking"
 msgstr ""
 
@@ -12506,7 +12522,7 @@ msgstr ""
 msgid "Send welcome email when a new WordPress user is created via form submission. The email contains a password reset link."
 msgstr ""
 
-#: includes/audience/class-ffc-audience-admin-audience.php:460 includes/audience/class-ffc-audience-admin-audience.php:597
+#: includes/audience/class-ffc-audience-admin-audience.php:464 includes/audience/class-ffc-audience-admin-audience.php:601
 msgid "Sensitive"
 msgstr ""
 
@@ -12707,7 +12723,7 @@ msgstr ""
 msgid "Short URLs are created automatically when a post/page is published (if auto-create is enabled)"
 msgstr ""
 
-#: includes/admin/class-ffc-form-list-columns.php:116 includes/audience/class-ffc-audience-admin-calendar.php:196 includes/settings/views/documentation/01-shortcodes.php:22
+#: includes/admin/class-ffc-form-list-columns.php:116 includes/audience/class-ffc-audience-admin-calendar.php:200 includes/settings/views/documentation/01-shortcodes.php:22
 msgid "Shortcode"
 msgstr ""
 
@@ -12739,7 +12755,7 @@ msgstr ""
 msgid "Show cancelled bookings"
 msgstr ""
 
-#: includes/audience/class-ffc-audience-admin-calendar.php:314
+#: includes/audience/class-ffc-audience-admin-calendar.php:318
 msgid "Show event list alongside the calendar"
 msgstr ""
 
@@ -12839,11 +12855,11 @@ msgstr ""
 msgid "Shows the slots the user has already booked."
 msgstr ""
 
-#: includes/audience/class-ffc-audience-admin-calendar.php:322
+#: includes/audience/class-ffc-audience-admin-calendar.php:326
 msgid "Side (responsive)"
 msgstr ""
 
-#: includes/audience/class-ffc-audience-admin-calendar.php:329
+#: includes/audience/class-ffc-audience-admin-calendar.php:333
 msgid "Side: appears next to the calendar on desktop, moves below on mobile. Below: always below the calendar."
 msgstr ""
 
@@ -12940,7 +12956,7 @@ msgstr ""
 msgid "Split CPF/RF for %d records"
 msgstr ""
 
-#: includes/audience/class-ffc-audience-admin-audience.php:545
+#: includes/audience/class-ffc-audience-admin-audience.php:549
 msgid "Standard"
 msgstr ""
 
@@ -13012,7 +13028,7 @@ msgstr ""
 msgid "Statistics"
 msgstr ""
 
-#: includes/shortcodes/class-ffc-dashboard-asset-manager.php:215 includes/admin/class-ffc-submissions-list.php:81 includes/admin/class-ffc-csv-exporter.php:466 includes/admin/class-ffc-admin-submission-edit-page.php:222 includes/privacy/class-ffc-privacy-handler.php:356 includes/privacy/class-ffc-privacy-handler.php:545 includes/self-scheduling/class-ffc-self-scheduling-appointment-email-handler.php:184 includes/self-scheduling/class-ffc-self-scheduling-appointment-csv-exporter.php:73 includes/self-scheduling/class-ffc-self-scheduling-editor.php:254 includes/self-scheduling/class-ffc-self-scheduling-shortcode.php:209 includes/reregistration/class-ffc-reregistration-csv-exporter.php:87 includes/reregistration/class-ffc-reregistration-admin.php:311 includes/reregistration/class-ffc-reregistration-admin.php:467 includes/reregistration/class-ffc-reregistration-admin.php:681 includes/url-shortener/class-ffc-url-shortener-admin-page.php:479 includes/recruitment/class-ffc-recruitment-public-shortcode-renderer.php:110 includes/recruitment/class-ffc-recruitment-notices-list-table.php:67 includes/recruitment/class-ffc-recruitment-dashboard-section.php:207 includes/recruitment/class-ffc-recruitment-dashboard-section.php:286 includes/recruitment/class-ffc-recruitment-candidate-edit-page.php:377 includes/recruitment/class-ffc-recruitment-notice-edit-page-renderer.php:284 includes/recruitment/class-ffc-recruitment-notice-edit-page-renderer.php:407 includes/recruitment/class-ffc-recruitment-notice-edit-page-renderer.php:880 includes/audience/class-ffc-audience-admin-bookings.php:152 includes/audience/class-ffc-audience-admin-environment.php:132 includes/audience/class-ffc-audience-admin-environment.php:364 includes/audience/class-ffc-audience-admin-calendar.php:85 includes/audience/class-ffc-audience-admin-calendar.php:389 includes/audience/class-ffc-audience-admin-audience.php:94 includes/audience/class-ffc-audience-admin-audience.php:281 includes/audience/class-ffc-audience-loader.php:379 includes/audience/class-ffc-audience-admin-settings.php:155 includes/frontend/class-ffc-public-csv-exporter.php:671 includes/self-scheduling/views/appointments-list.php:78 includes/self-scheduling/views/appointments-list.php:540 includes/settings/views/documentation/20-recruitment.php:40
+#: includes/shortcodes/class-ffc-dashboard-asset-manager.php:215 includes/admin/class-ffc-submissions-list.php:81 includes/admin/class-ffc-csv-exporter.php:466 includes/admin/class-ffc-admin-submission-edit-page.php:222 includes/privacy/class-ffc-privacy-handler.php:356 includes/privacy/class-ffc-privacy-handler.php:545 includes/self-scheduling/class-ffc-self-scheduling-appointment-email-handler.php:184 includes/self-scheduling/class-ffc-self-scheduling-appointment-csv-exporter.php:73 includes/self-scheduling/class-ffc-self-scheduling-appointments-list-table.php:77 includes/self-scheduling/class-ffc-self-scheduling-editor.php:254 includes/self-scheduling/class-ffc-self-scheduling-shortcode.php:209 includes/reregistration/class-ffc-reregistration-csv-exporter.php:87 includes/reregistration/class-ffc-reregistration-admin.php:311 includes/reregistration/class-ffc-reregistration-admin.php:467 includes/reregistration/class-ffc-reregistration-admin.php:681 includes/url-shortener/class-ffc-url-shortener-admin-page.php:479 includes/recruitment/class-ffc-recruitment-public-shortcode-renderer.php:110 includes/recruitment/class-ffc-recruitment-notices-list-table.php:67 includes/recruitment/class-ffc-recruitment-dashboard-section.php:207 includes/recruitment/class-ffc-recruitment-dashboard-section.php:286 includes/recruitment/class-ffc-recruitment-candidate-edit-page.php:377 includes/recruitment/class-ffc-recruitment-notice-edit-page-renderer.php:284 includes/recruitment/class-ffc-recruitment-notice-edit-page-renderer.php:407 includes/recruitment/class-ffc-recruitment-notice-edit-page-renderer.php:880 includes/audience/class-ffc-audience-admin-bookings.php:152 includes/audience/class-ffc-audience-admin-environment.php:136 includes/audience/class-ffc-audience-admin-environment.php:368 includes/audience/class-ffc-audience-admin-calendar.php:89 includes/audience/class-ffc-audience-admin-calendar.php:393 includes/audience/class-ffc-audience-admin-audience.php:98 includes/audience/class-ffc-audience-admin-audience.php:285 includes/audience/class-ffc-audience-loader.php:379 includes/audience/class-ffc-audience-admin-settings.php:155 includes/frontend/class-ffc-public-csv-exporter.php:671 includes/self-scheduling/views/appointments-list.php:200 includes/settings/views/documentation/20-recruitment.php:40
 msgid "Status"
 msgstr ""
 
@@ -13296,7 +13312,7 @@ msgstr ""
 msgid "Sun"
 msgstr ""
 
-#: includes/shortcodes/class-ffc-dashboard-asset-manager.php:111 includes/shortcodes/class-ffc-dashboard-asset-manager.php:170 includes/admin/class-ffc-admin-user-custom-fields.php:66 includes/admin/class-ffc-admin-user-custom-fields.php:269 includes/self-scheduling/class-ffc-self-scheduling-editor.php:101 includes/self-scheduling/class-ffc-self-scheduling-editor.php:308 includes/reregistration/class-ffc-reregistration-form-renderer.php:542 includes/audience/class-ffc-audience-admin-environment.php:334
+#: includes/shortcodes/class-ffc-dashboard-asset-manager.php:111 includes/shortcodes/class-ffc-dashboard-asset-manager.php:170 includes/admin/class-ffc-admin-user-custom-fields.php:67 includes/admin/class-ffc-admin-user-custom-fields.php:250 includes/self-scheduling/class-ffc-self-scheduling-editor.php:101 includes/self-scheduling/class-ffc-self-scheduling-editor.php:308 includes/reregistration/class-ffc-reregistration-form-renderer.php:542 includes/audience/class-ffc-audience-admin-environment.php:338
 msgid "Sunday"
 msgstr ""
 
@@ -13823,7 +13839,7 @@ msgstr ""
 msgid "This call has already been cancelled."
 msgstr ""
 
-#: includes/recruitment/class-ffc-recruitment-admin-assets-manager.php:221
+#: includes/recruitment/class-ffc-recruitment-admin-assets-manager.php:222
 msgid "This call would skip a higher-ranked candidate (out of order). Continue?"
 msgstr ""
 
@@ -14045,7 +14061,7 @@ msgstr ""
 msgid "This reregistration has already been completed or expired."
 msgstr ""
 
-#: includes/audience/class-ffc-audience-admin-audience.php:318
+#: includes/audience/class-ffc-audience-admin-audience.php:322
 msgid "This setting is controlled by the parent audience."
 msgstr ""
 
@@ -14097,7 +14113,7 @@ msgstr ""
 msgid "This will replace current content. Continue?"
 msgstr ""
 
-#: includes/recruitment/class-ffc-recruitment-admin-assets-manager.php:236
+#: includes/recruitment/class-ffc-recruitment-admin-assets-manager.php:237
 msgid "This will undo a realized decision (hired / withdrew / no-show), reopen the vacancy and return the candidate to the waiting queue at their original position. The candidate is NOT notified. Continue?"
 msgstr ""
 
@@ -14109,7 +14125,7 @@ msgstr ""
 msgid "Thu"
 msgstr ""
 
-#: includes/shortcodes/class-ffc-dashboard-asset-manager.php:127 includes/shortcodes/class-ffc-dashboard-asset-manager.php:174 includes/admin/class-ffc-admin-user-custom-fields.php:82 includes/admin/class-ffc-admin-user-custom-fields.php:273 includes/self-scheduling/class-ffc-self-scheduling-editor.php:105 includes/self-scheduling/class-ffc-self-scheduling-editor.php:312 includes/reregistration/class-ffc-reregistration-form-renderer.php:546 includes/audience/class-ffc-audience-admin-environment.php:331
+#: includes/shortcodes/class-ffc-dashboard-asset-manager.php:127 includes/shortcodes/class-ffc-dashboard-asset-manager.php:174 includes/admin/class-ffc-admin-user-custom-fields.php:83 includes/admin/class-ffc-admin-user-custom-fields.php:254 includes/self-scheduling/class-ffc-self-scheduling-editor.php:105 includes/self-scheduling/class-ffc-self-scheduling-editor.php:312 includes/reregistration/class-ffc-reregistration-form-renderer.php:546 includes/audience/class-ffc-audience-admin-environment.php:335
 msgid "Thursday"
 msgstr ""
 
@@ -14141,7 +14157,7 @@ msgstr ""
 msgid "tickets generated successfully!"
 msgstr ""
 
-#: includes/shortcodes/class-ffc-dashboard-asset-manager.php:214 includes/admin/class-ffc-form-editor-metabox-renderer.php:328 includes/privacy/class-ffc-privacy-handler.php:352 includes/privacy/class-ffc-privacy-handler.php:537 includes/self-scheduling/class-ffc-self-scheduling-appointment-email-handler.php:183 includes/self-scheduling/class-ffc-self-scheduling-shortcode.php:206 includes/recruitment/class-ffc-recruitment-public-shortcode-renderer.php:119 includes/recruitment/class-ffc-recruitment-dashboard-section.php:285 includes/recruitment/class-ffc-recruitment-candidate-edit-page.php:411 includes/audience/class-ffc-audience-admin-bookings.php:148 includes/audience/class-ffc-audience-loader.php:376 includes/self-scheduling/views/appointments-list.php:77 includes/self-scheduling/views/appointments-list.php:543
+#: includes/shortcodes/class-ffc-dashboard-asset-manager.php:214 includes/admin/class-ffc-form-editor-metabox-renderer.php:328 includes/privacy/class-ffc-privacy-handler.php:352 includes/privacy/class-ffc-privacy-handler.php:537 includes/self-scheduling/class-ffc-self-scheduling-appointment-email-handler.php:183 includes/self-scheduling/class-ffc-self-scheduling-appointments-list-table.php:76 includes/self-scheduling/class-ffc-self-scheduling-shortcode.php:206 includes/recruitment/class-ffc-recruitment-public-shortcode-renderer.php:119 includes/recruitment/class-ffc-recruitment-dashboard-section.php:285 includes/recruitment/class-ffc-recruitment-candidate-edit-page.php:411 includes/audience/class-ffc-audience-admin-bookings.php:148 includes/audience/class-ffc-audience-loader.php:376 includes/self-scheduling/views/appointments-list.php:203
 msgid "Time"
 msgstr ""
 
@@ -14207,11 +14223,11 @@ msgstr ""
 msgid "Time to assume"
 msgstr ""
 
-#: includes/recruitment/class-ffc-recruitment-admin-assets-manager.php:233
+#: includes/recruitment/class-ffc-recruitment-admin-assets-manager.php:234
 msgid "Time to assume (HH:MM):"
 msgstr ""
 
-#: includes/generators/class-ffc-pdf-generator.php:850 includes/self-scheduling/class-ffc-self-scheduling-appointment-email-handler.php:103 includes/self-scheduling/class-ffc-self-scheduling-appointment-email-handler.php:247 includes/self-scheduling/class-ffc-self-scheduling-appointment-email-handler.php:310 includes/self-scheduling/class-ffc-self-scheduling-appointment-email-handler.php:368 includes/self-scheduling/class-ffc-self-scheduling-appointment-receipt-handler.php:435 includes/recruitment/class-ffc-recruitment-notice-edit-page-renderer.php:1085 includes/audience/class-ffc-audience-notification-handler.php:331 includes/audience/class-ffc-audience-notification-handler.php:359 includes/frontend/class-ffc-verification-response-renderer.php:266
+#: includes/generators/class-ffc-pdf-generator.php:850 includes/self-scheduling/class-ffc-self-scheduling-appointment-email-handler.php:103 includes/self-scheduling/class-ffc-self-scheduling-appointment-email-handler.php:247 includes/self-scheduling/class-ffc-self-scheduling-appointment-email-handler.php:310 includes/self-scheduling/class-ffc-self-scheduling-appointment-email-handler.php:368 includes/self-scheduling/class-ffc-self-scheduling-appointment-receipt-handler.php:445 includes/recruitment/class-ffc-recruitment-notice-edit-page-renderer.php:1085 includes/audience/class-ffc-audience-notification-handler.php:331 includes/audience/class-ffc-audience-notification-handler.php:359 includes/frontend/class-ffc-verification-response-renderer.php:266
 msgid "Time:"
 msgstr ""
 
@@ -14273,7 +14289,7 @@ msgstr ""
 msgid "To"
 msgstr ""
 
-#: includes/audience/class-ffc-audience-admin-environment.php:354
+#: includes/audience/class-ffc-audience-admin-environment.php:358
 msgid "to"
 msgstr ""
 
@@ -14299,7 +14315,7 @@ msgstr ""
 msgid "Today"
 msgstr ""
 
-#: includes/audience/class-ffc-audience-admin-audience.php:491 includes/audience/class-ffc-audience-admin-audience.php:676
+#: includes/audience/class-ffc-audience-admin-audience.php:495 includes/audience/class-ffc-audience-admin-audience.php:680
 msgid "Toggle details"
 msgstr ""
 
@@ -14457,7 +14473,7 @@ msgstr ""
 msgid "Tue"
 msgstr ""
 
-#: includes/shortcodes/class-ffc-dashboard-asset-manager.php:119 includes/shortcodes/class-ffc-dashboard-asset-manager.php:172 includes/admin/class-ffc-admin-user-custom-fields.php:74 includes/admin/class-ffc-admin-user-custom-fields.php:271 includes/self-scheduling/class-ffc-self-scheduling-editor.php:103 includes/self-scheduling/class-ffc-self-scheduling-editor.php:310 includes/reregistration/class-ffc-reregistration-form-renderer.php:544 includes/audience/class-ffc-audience-admin-environment.php:329
+#: includes/shortcodes/class-ffc-dashboard-asset-manager.php:119 includes/shortcodes/class-ffc-dashboard-asset-manager.php:172 includes/admin/class-ffc-admin-user-custom-fields.php:75 includes/admin/class-ffc-admin-user-custom-fields.php:252 includes/self-scheduling/class-ffc-self-scheduling-editor.php:103 includes/self-scheduling/class-ffc-self-scheduling-editor.php:310 includes/reregistration/class-ffc-reregistration-form-renderer.php:544 includes/audience/class-ffc-audience-admin-environment.php:333
 msgid "Tuesday"
 msgstr ""
 
@@ -14489,7 +14505,7 @@ msgstr ""
 msgid "Type"
 msgstr ""
 
-#: includes/audience/class-ffc-audience-admin-audience.php:719
+#: includes/audience/class-ffc-audience-admin-audience.php:723
 msgid "Type to search..."
 msgstr ""
 
@@ -14561,7 +14577,7 @@ msgstr ""
 msgid "Unique validation code for the appointment"
 msgstr ""
 
-#: includes/api/class-ffc-user-audience-rest-controller.php:169 includes/admin/class-ffc-admin-submission-edit-page.php:193 includes/privacy/class-ffc-privacy-handler.php:245 includes/privacy/class-ffc-privacy-handler.php:345 includes/audience/class-ffc-audience-admin-bookings.php:190 includes/audience/class-ffc-audience-ajax-controller.php:166 includes/audience/class-ffc-audience-notification-handler.php:70 includes/audience/class-ffc-audience-notification-handler.php:156
+#: includes/api/class-ffc-user-audience-rest-controller.php:173 includes/admin/class-ffc-admin-submission-edit-page.php:193 includes/privacy/class-ffc-privacy-handler.php:245 includes/privacy/class-ffc-privacy-handler.php:345 includes/audience/class-ffc-audience-admin-bookings.php:190 includes/audience/class-ffc-audience-ajax-controller.php:166 includes/audience/class-ffc-audience-notification-handler.php:70 includes/audience/class-ffc-audience-notification-handler.php:156
 msgid "Unknown"
 msgstr ""
 
@@ -14646,16 +14662,16 @@ msgid "Upcoming Bookings"
 msgstr ""
 
 #. %s: environment label (singular, e.g. "Room")
-#: includes/audience/class-ffc-audience-admin-environment.php:387
+#: includes/audience/class-ffc-audience-admin-environment.php:391
 #, php-format
 msgid "Update %s"
 msgstr ""
 
-#: includes/audience/class-ffc-audience-admin-audience.php:339
+#: includes/audience/class-ffc-audience-admin-audience.php:343
 msgid "Update Audience"
 msgstr ""
 
-#: includes/audience/class-ffc-audience-admin-calendar.php:408
+#: includes/audience/class-ffc-audience-admin-calendar.php:412
 msgid "Update Calendar"
 msgstr ""
 
@@ -14771,7 +14787,7 @@ msgstr ""
 msgid "Use this image"
 msgstr ""
 
-#: includes/audience/class-ffc-audience-admin-calendar.php:201
+#: includes/audience/class-ffc-audience-admin-calendar.php:205
 msgid "Use this shortcode to display the calendar on any page or post."
 msgstr ""
 
@@ -14787,7 +14803,7 @@ msgstr ""
 msgid "Useful for staff registering certificates for legitimate participants from a single device. Bypassed submissions are tagged in the rate-limit log with reason \"manager_bypass\"."
 msgstr ""
 
-#: includes/admin/class-ffc-admin-activity-log-page.php:78 includes/admin/class-ffc-admin-activity-log-page.php:138 includes/admin/class-ffc-admin-user-capabilities.php:110 includes/admin/class-ffc-admin-user-capabilities.php:437 includes/reregistration/class-ffc-reregistration-admin.php:679 includes/audience/class-ffc-audience-admin-calendar.php:441 includes/audience/class-ffc-audience-admin-audience.php:737 includes/admin/views/ffc-admin-activity-log.php:120
+#: includes/admin/class-ffc-admin-activity-log-page.php:78 includes/admin/class-ffc-admin-activity-log-page.php:138 includes/admin/class-ffc-admin-user-capabilities.php:110 includes/admin/class-ffc-admin-user-capabilities.php:437 includes/reregistration/class-ffc-reregistration-admin.php:679 includes/audience/class-ffc-audience-admin-calendar.php:445 includes/audience/class-ffc-audience-admin-audience.php:741 includes/admin/views/ffc-admin-activity-log.php:120
 msgid "User"
 msgstr ""
 
@@ -14801,7 +14817,7 @@ msgstr ""
 msgid "User Access"
 msgstr ""
 
-#: includes/audience/class-ffc-audience-admin-calendar.php:414
+#: includes/audience/class-ffc-audience-admin-calendar.php:418
 msgid "User Access & Permissions"
 msgstr ""
 
@@ -14905,7 +14921,7 @@ msgstr ""
 msgid "User not found."
 msgstr ""
 
-#: includes/self-scheduling/class-ffc-self-scheduling-appointment-csv-exporter.php:74 includes/self-scheduling/views/appointments-list.php:557
+#: includes/self-scheduling/class-ffc-self-scheduling-appointment-csv-exporter.php:74 includes/self-scheduling/views/appointments-list.php:217
 msgid "User Notes"
 msgstr ""
 
@@ -14947,7 +14963,7 @@ msgstr ""
 msgid "Users can cancel their own appointments"
 msgstr ""
 
-#: includes/audience/class-ffc-audience-admin-audience.php:329
+#: includes/audience/class-ffc-audience-admin-audience.php:333
 msgid "Users can join/leave child groups from their dashboard"
 msgstr ""
 
@@ -15007,11 +15023,11 @@ msgstr ""
 msgid "Validating…"
 msgstr ""
 
-#: includes/shortcodes/class-ffc-dashboard-asset-manager.php:313 includes/self-scheduling/class-ffc-self-scheduling-shortcode.php:216 includes/self-scheduling/views/appointments-list.php:554
+#: includes/shortcodes/class-ffc-dashboard-asset-manager.php:313 includes/self-scheduling/class-ffc-self-scheduling-shortcode.php:216 includes/self-scheduling/views/appointments-list.php:214
 msgid "Validation Code"
 msgstr ""
 
-#: includes/generators/class-ffc-pdf-generator.php:851 includes/self-scheduling/class-ffc-self-scheduling-appointment-receipt-handler.php:426 includes/frontend/class-ffc-verification-response-renderer.php:248 includes/frontend/class-ffc-verification-response-renderer.php:383
+#: includes/generators/class-ffc-pdf-generator.php:851 includes/self-scheduling/class-ffc-self-scheduling-appointment-receipt-handler.php:436 includes/frontend/class-ffc-verification-response-renderer.php:248 includes/frontend/class-ffc-verification-response-renderer.php:383
 msgid "Validation Code:"
 msgstr ""
 
@@ -15075,7 +15091,7 @@ msgstr ""
 msgid "Verifying..."
 msgstr ""
 
-#: includes/audience/class-ffc-audience-admin-bookings.php:216 includes/self-scheduling/views/appointments-list.php:180
+#: includes/self-scheduling/class-ffc-self-scheduling-appointments-list-table.php:179 includes/audience/class-ffc-audience-admin-bookings.php:216
 msgid "View"
 msgstr ""
 
@@ -15187,7 +15203,7 @@ msgstr ""
 msgid "View reasons"
 msgstr ""
 
-#: includes/shortcodes/class-ffc-dashboard-asset-manager.php:228 includes/self-scheduling/views/appointments-list.php:198
+#: includes/shortcodes/class-ffc-dashboard-asset-manager.php:228 includes/self-scheduling/class-ffc-self-scheduling-appointments-list-table.php:197
 msgid "View Receipt"
 msgstr ""
 
@@ -15231,7 +15247,7 @@ msgstr ""
 msgid "Viewing Restriction Message"
 msgstr ""
 
-#: includes/self-scheduling/class-ffc-self-scheduling-editor.php:456 includes/audience/class-ffc-audience-admin-calendar.php:83 includes/audience/class-ffc-audience-admin-calendar.php:238
+#: includes/self-scheduling/class-ffc-self-scheduling-editor.php:456 includes/audience/class-ffc-audience-admin-calendar.php:87 includes/audience/class-ffc-audience-admin-calendar.php:242
 msgid "Visibility"
 msgstr ""
 
@@ -15343,7 +15359,7 @@ msgstr ""
 msgid "Wed"
 msgstr ""
 
-#: includes/shortcodes/class-ffc-dashboard-asset-manager.php:123 includes/shortcodes/class-ffc-dashboard-asset-manager.php:173 includes/admin/class-ffc-admin-user-custom-fields.php:78 includes/admin/class-ffc-admin-user-custom-fields.php:272 includes/self-scheduling/class-ffc-self-scheduling-editor.php:104 includes/self-scheduling/class-ffc-self-scheduling-editor.php:311 includes/reregistration/class-ffc-reregistration-form-renderer.php:545 includes/audience/class-ffc-audience-admin-environment.php:330
+#: includes/shortcodes/class-ffc-dashboard-asset-manager.php:123 includes/shortcodes/class-ffc-dashboard-asset-manager.php:173 includes/admin/class-ffc-admin-user-custom-fields.php:79 includes/admin/class-ffc-admin-user-custom-fields.php:253 includes/self-scheduling/class-ffc-self-scheduling-editor.php:104 includes/self-scheduling/class-ffc-self-scheduling-editor.php:311 includes/reregistration/class-ffc-reregistration-form-renderer.php:545 includes/audience/class-ffc-audience-admin-environment.php:334
 msgid "Wednesday"
 msgstr ""
 
@@ -15427,11 +15443,11 @@ msgstr ""
 msgid "When enabled, actions like submission creation, data access, and settings changes are logged."
 msgstr ""
 
-#: includes/audience/class-ffc-audience-admin-audience.php:333
+#: includes/audience/class-ffc-audience-admin-audience.php:337
 msgid "When enabled, all descendant audiences inherit this setting. Users can join up to 2 child groups."
 msgstr ""
 
-#: includes/audience/class-ffc-audience-admin-calendar.php:383
+#: includes/audience/class-ffc-audience-admin-calendar.php:387
 msgid "When enabled, audience same-day and user overlap checks only consider bookings within this calendar. Environment conflicts are always per-environment regardless of this setting."
 msgstr ""
 
@@ -15601,7 +15617,7 @@ msgstr ""
 msgid "Workflow:"
 msgstr ""
 
-#: includes/reregistration/class-ffc-reregistration-standard-fields-seeder.php:425 includes/audience/class-ffc-audience-admin-environment.php:323
+#: includes/reregistration/class-ffc-reregistration-standard-fields-seeder.php:425 includes/audience/class-ffc-audience-admin-environment.php:327
 msgid "Working Hours"
 msgstr ""
 
@@ -15709,11 +15725,11 @@ msgstr ""
 msgid "You are about to snapshot the preliminary list as the definitive list."
 msgstr ""
 
-#: includes/api/class-ffc-user-audience-rest-controller.php:379
+#: includes/api/class-ffc-user-audience-rest-controller.php:383
 msgid "You are already a member of this group"
 msgstr ""
 
-#: includes/api/class-ffc-user-audience-rest-controller.php:466
+#: includes/api/class-ffc-user-audience-rest-controller.php:470
 msgid "You are not a member of this group"
 msgstr ""
 
@@ -15742,7 +15758,7 @@ msgid "You can also verify this certificate manually at"
 msgstr ""
 
 #. %d: maximum number of groups
-#: includes/api/class-ffc-user-audience-rest-controller.php:388
+#: includes/api/class-ffc-user-audience-rest-controller.php:392
 msgid "You can join a maximum of %d groups. Leave one first."
 msgstr ""
 
@@ -15782,15 +15798,15 @@ msgstr ""
 msgid "You do not have permission to change this setting."
 msgstr ""
 
-#: includes/audience/class-ffc-audience-admin-audience.php:880
+#: includes/audience/class-ffc-audience-admin-audience.php:884
 msgid "You do not have permission to delete audiences."
 msgstr ""
 
-#: includes/audience/class-ffc-audience-admin-calendar.php:664
+#: includes/audience/class-ffc-audience-admin-calendar.php:668
 msgid "You do not have permission to delete calendars."
 msgstr ""
 
-#: includes/audience/class-ffc-audience-admin-environment.php:489
+#: includes/audience/class-ffc-audience-admin-environment.php:493
 msgid "You do not have permission to delete environments."
 msgstr ""
 
@@ -15846,7 +15862,7 @@ msgstr ""
 msgid "You do not have permission to perform this action"
 msgstr ""
 
-#: includes/self-scheduling/views/appointments-list.php:379
+#: includes/self-scheduling/views/appointments-list.php:39
 msgid "You do not have permission to perform this action."
 msgstr ""
 
@@ -15895,18 +15911,18 @@ msgid "You have not been called for this notice yet."
 msgstr ""
 
 #. %s: group name
-#: includes/api/class-ffc-user-audience-rest-controller.php:405
+#: includes/api/class-ffc-user-audience-rest-controller.php:409
 #, php-format
 msgid "You joined \"%s\"!"
 msgstr ""
 
 #. %s: group name
-#: includes/api/class-ffc-user-audience-rest-controller.php:473
+#: includes/api/class-ffc-user-audience-rest-controller.php:477
 #, php-format
 msgid "You left \"%s\"."
 msgstr ""
 
-#: includes/api/class-ffc-user-audience-rest-controller.php:519
+#: includes/api/class-ffc-user-audience-rest-controller.php:523
 msgid "You left all groups."
 msgstr ""
 
@@ -15926,7 +15942,7 @@ msgstr ""
 msgid "You must agree to the terms to book an appointment."
 msgstr ""
 
-#: includes/api/class-ffc-user-profile-rest-controller.php:320 includes/api/class-ffc-user-profile-rest-controller.php:398 includes/api/class-ffc-user-reregistrations-rest-controller.php:73 includes/api/class-ffc-user-audience-rest-controller.php:227 includes/api/class-ffc-user-audience-rest-controller.php:361 includes/api/class-ffc-user-audience-rest-controller.php:431 includes/api/class-ffc-user-audience-rest-controller.php:498
+#: includes/api/class-ffc-user-profile-rest-controller.php:320 includes/api/class-ffc-user-profile-rest-controller.php:398 includes/api/class-ffc-user-reregistrations-rest-controller.php:73 includes/api/class-ffc-user-audience-rest-controller.php:231 includes/api/class-ffc-user-audience-rest-controller.php:365 includes/api/class-ffc-user-audience-rest-controller.php:435 includes/api/class-ffc-user-audience-rest-controller.php:502
 msgid "You must be logged in"
 msgstr ""
 
