@@ -390,13 +390,14 @@ class RecruitmentCsvImporterTest extends TestCase {
 
 	/**
 	 * @param list<array<string, mixed>> $rows
+	 * @param array<string, int>         $map  Adjutancy slug → id.
 	 * @return list<string>
 	 */
-	private function validate_rows( array $rows ): array {
+	private function validate_rows( array $rows, array $map = array( 'mat' => 1 ) ): array {
 		$ref = new \ReflectionClass( RecruitmentCsvImporter::class );
 		$m   = $ref->getMethod( 'validate' );
 		$m->setAccessible( true );
-		return $m->invoke( null, $rows, 1, 'preview', array( 'mat' => 1 ) );
+		return $m->invoke( null, $rows, 1, 'preview', $map );
 	}
 
 	private function csv_row( array $overrides = array() ): array {
@@ -509,5 +510,129 @@ class RecruitmentCsvImporterTest extends TestCase {
 		// of both offending rows so we know both made it through.
 		$this->assertStringContainsString( 'line=3', $lines );
 		$this->assertStringContainsString( 'line=4', $lines );
+	}
+
+	// ------------------------------------------------------------------
+	// validate() — per-row field-shape rules.
+	// ------------------------------------------------------------------
+
+	public function test_validate_rejects_row_with_no_cpf_or_rf(): void {
+		$rows   = array( $this->csv_row( array( 'cpf' => '', 'rf' => '' ) ) );
+		$errors = $this->validate_rows( $rows );
+
+		$this->assertNotEmpty( $errors );
+		$this->assertStringContainsString( 'recruitment_csv_missing_cpf_or_rf', $errors[0] );
+	}
+
+	public function test_validate_rejects_cpf_too_long(): void {
+		$rows   = array( $this->csv_row( array( 'cpf' => '123456789012345' ) ) );
+		$errors = $this->validate_rows( $rows );
+
+		$this->assertStringContainsString( 'recruitment_csv_cpf_too_long', $errors[0] );
+	}
+
+	public function test_validate_rejects_rf_too_long(): void {
+		$rows   = array( $this->csv_row( array( 'cpf' => '', 'rf' => '123456789' ) ) );
+		$errors = $this->validate_rows( $rows );
+
+		$this->assertStringContainsString( 'recruitment_csv_rf_too_long', $errors[0] );
+	}
+
+	public function test_validate_rejects_missing_score(): void {
+		$rows   = array( $this->csv_row( array( 'score' => '' ) ) );
+		$errors = $this->validate_rows( $rows );
+
+		$this->assertStringContainsString( 'recruitment_csv_missing_score', $errors[0] );
+	}
+
+	public function test_validate_rejects_comma_decimal_score(): void {
+		$rows   = array( $this->csv_row( array( 'score' => '90,5' ) ) );
+		$errors = $this->validate_rows( $rows );
+
+		$this->assertStringContainsString( 'recruitment_csv_score_uses_comma_decimal', $errors[0] );
+	}
+
+	public function test_validate_rejects_non_numeric_score(): void {
+		$rows   = array( $this->csv_row( array( 'score' => 'abc' ) ) );
+		$errors = $this->validate_rows( $rows );
+
+		$this->assertStringContainsString( 'recruitment_csv_score_invalid_format', $errors[0] );
+	}
+
+	public function test_validate_rejects_zero_rank(): void {
+		$rows   = array( $this->csv_row( array( 'rank' => '0' ) ) );
+		$errors = $this->validate_rows( $rows );
+
+		$this->assertStringContainsString( 'recruitment_csv_rank_invalid', $errors[0] );
+	}
+
+	public function test_validate_rejects_non_numeric_rank(): void {
+		$rows   = array( $this->csv_row( array( 'rank' => 'x' ) ) );
+		$errors = $this->validate_rows( $rows );
+
+		$this->assertStringContainsString( 'recruitment_csv_rank_invalid', $errors[0] );
+	}
+
+	public function test_validate_rejects_comma_decimal_time_points(): void {
+		$rows   = array( $this->csv_row( array( 'time_points' => '1,5' ) ) );
+		$errors = $this->validate_rows( $rows );
+
+		$this->assertStringContainsString( 'recruitment_csv_time_points_uses_comma_decimal', $errors[0] );
+	}
+
+	public function test_validate_rejects_invalid_time_points_format(): void {
+		$rows   = array( $this->csv_row( array( 'time_points' => 'abc' ) ) );
+		$errors = $this->validate_rows( $rows );
+
+		$this->assertStringContainsString( 'recruitment_csv_time_points_invalid_format', $errors[0] );
+	}
+
+	public function test_validate_accepts_valid_time_points(): void {
+		$rows   = array( $this->csv_row( array( 'time_points' => '12.5' ) ) );
+		$errors = $this->validate_rows( $rows );
+
+		$this->assertEmpty( $errors );
+	}
+
+	public function test_validate_rejects_missing_adjutancy_slug(): void {
+		$rows   = array( $this->csv_row( array( 'adjutancy' => '' ) ) );
+		$errors = $this->validate_rows( $rows );
+
+		$this->assertStringContainsString( 'recruitment_csv_missing_adjutancy', $errors[0] );
+	}
+
+	public function test_validate_rejects_adjutancy_not_in_notice(): void {
+		$rows   = array( $this->csv_row( array( 'adjutancy' => 'unknown' ) ) );
+		$errors = $this->validate_rows( $rows );
+
+		$this->assertStringContainsString( 'recruitment_csv_adjutancy_not_in_notice: unknown', $errors[0] );
+	}
+
+	public function test_validate_detects_candidate_field_divergence_same_cpf(): void {
+		// Same CPF in two rows but a different name. The rows sit in
+		// DIFFERENT adjutancies (both in the map) so the duplicate-pair
+		// check passes and the candidate-field divergence rule fires: the
+		// first row is the reference, the second diverges on `name`.
+		$rows = array(
+			$this->csv_row( array( '_line' => 2, 'cpf' => '12345678901', 'name' => 'Alice', 'adjutancy' => 'mat' ) ),
+			$this->csv_row( array( '_line' => 3, 'cpf' => '12345678901', 'name' => 'Alicia', 'adjutancy' => 'por' ) ),
+		);
+
+		$errors = $this->validate_rows(
+			$rows,
+			array(
+				'mat' => 1,
+				'por' => 2,
+			)
+		);
+
+		$div = array_filter( $errors, static fn ( $e ) => false !== strpos( $e, 'candidate_field_divergence' ) );
+		$this->assertNotEmpty( $div );
+		$this->assertStringContainsString( 'field=name', implode( '', $div ) );
+	}
+
+	public function test_validate_accepts_clean_single_row(): void {
+		$errors = $this->validate_rows( array( $this->csv_row() ) );
+		$this->assertEmpty( $errors );
 	}
 }
