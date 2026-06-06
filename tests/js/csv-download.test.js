@@ -1037,3 +1037,49 @@ describe('csv-download — overlay helpers', () => {
 		expect(window.$('.ffc-csv-progress-error').length).toBe(0);
 	});
 });
+
+describe('csv-download — event schedule (reference) section', () => {
+	async function reachInfoScreen(statusExtra) {
+		mountContainer();
+		await loadAndReady();
+		const info = defaultInfo();
+		info.status = { ...info.status, ...statusExtra };
+		const postSpy = vi.spyOn(window.$, 'ajax');
+		postSpy.mockImplementationOnce(() => postChain({ done: { success: true, data: info } }));
+		window.$('.ffc-public-csv-download form').trigger('submit');
+		await flush();
+		return postSpy;
+	}
+
+	it('renders the reference schedule when it differs from the access window', async () => {
+		await reachInfoScreen({
+			schedule_window_start:   '14:30',
+			schedule_window_end:     '23:00',
+			schedule_baseline_start: '00:00',
+			schedule_baseline_end:   '23:59',
+		});
+		const $sec = window.$('.ffc-info-section-schedule-ref');
+		expect($sec.length).toBe(1);
+		expect($sec.find('h3').text()).toContain('Event Schedule (Reference)');
+		const text = $sec.text();
+		expect(text).toContain('00:00');
+		expect(text).toContain('23:59');
+		// The note clarifies it is not the access window.
+		expect($sec.find('.ffc-info-schedule-ref-note').length).toBe(1);
+	});
+
+	it('omits the reference schedule when it equals the access window', async () => {
+		await reachInfoScreen({
+			schedule_window_start:   '08:00',
+			schedule_window_end:     '18:00',
+			schedule_baseline_start: '08:00',
+			schedule_baseline_end:   '18:00',
+		});
+		expect(window.$('.ffc-info-section-schedule-ref').length).toBe(0);
+	});
+
+	it('omits the reference schedule when no baseline is provided', async () => {
+		await reachInfoScreen({});
+		expect(window.$('.ffc-info-section-schedule-ref').length).toBe(0);
+	});
+});
