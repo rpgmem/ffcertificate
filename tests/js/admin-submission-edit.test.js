@@ -192,4 +192,121 @@ describe('User search', () => {
 		await flush();
 		expect(spy).toHaveBeenCalledOnce();
 	});
+
+	it('renders the default no-users message when the response has no users array', async () => {
+		vi.spyOn(window.$, 'post').mockImplementation(() => postChain({ done: { success: true, data: {} } }));
+		document.getElementById('ffc-user-search-input').value = 'qu';
+		document.querySelector('.ffc-search-user-btn').click();
+		await flush();
+		expect(document.getElementById('ffc-user-search-results').textContent).toContain('No users found.');
+	});
+
+	it('alerts the search-error string when the request rejects without fromServer', async () => {
+		vi.spyOn(window.$, 'post').mockImplementation(() => postChain({ fail: { status: 0 } }));
+		globalThis.alert.mockClear?.();
+		document.getElementById('ffc-user-search-input').value = 'qu';
+		document.querySelector('.ffc-search-user-btn').click();
+		await flush();
+		expect(globalThis.alert).toHaveBeenCalledWith('Search error');
+	});
+
+	it('shows the server-provided message when the rejection comes fromServer', async () => {
+		vi.spyOn(window.$, 'post').mockImplementation(() => postChain({ done: { success: false, data: { message: 'Backend down' } } }));
+		document.getElementById('ffc-user-search-input').value = 'qu';
+		document.querySelector('.ffc-search-user-btn').click();
+		await flush();
+		expect(document.getElementById('ffc-user-search-results').textContent).toContain('Backend down');
+	});
+});
+
+// ----------------------------------------------------------------------
+// Select / clear user from results (delegated handlers)
+// ----------------------------------------------------------------------
+
+describe('User selection from results', () => {
+	beforeEach(async () => {
+		window.ffc_submission_edit.clear_selection = 'Clear';
+		document.body.innerHTML = `
+			<input id="ffc-user-search-input" type="text" value="maria" />
+			<button class="ffc-search-user-btn" data-nonce="n">Search</button>
+			<span id="ffc-search-spinner"></span>
+			<div id="ffc-user-search-results">
+				<div class="ffc-search-result-item"
+					data-user-id="7"
+					data-display-name="Maria"
+					data-email="maria@example.com"
+					data-avatar="https://x.test/a.png"></div>
+			</div>
+			<div id="ffc-selected-user-preview"></div>
+			<input id="ffc-selected-user-id" type="hidden" />
+		`;
+		await loadOnReady();
+	});
+
+	it('selecting a result sets the hidden id and renders the preview', () => {
+		document.querySelector('.ffc-search-result-item').click();
+		expect(document.getElementById('ffc-selected-user-id').value).toBe('7');
+		const preview = document.getElementById('ffc-selected-user-preview');
+		expect(preview.textContent).toContain('Maria');
+		expect(preview.textContent).toContain('maria@example.com');
+		expect(preview.textContent).toContain('Clear');
+		// Search input is cleared after selection.
+		expect(document.getElementById('ffc-user-search-input').value).toBe('');
+	});
+
+	it('clear-selection empties the hidden id and hides the preview', () => {
+		document.querySelector('.ffc-search-result-item').click();
+		document.querySelector('.ffc-clear-selection').click();
+		expect(document.getElementById('ffc-selected-user-id').value).toBe('');
+		expect(document.getElementById('ffc-selected-user-preview').style.display).toBe('none');
+	});
+});
+
+// ----------------------------------------------------------------------
+// Collapsible consent section
+// ----------------------------------------------------------------------
+
+describe('Collapsible consent section', () => {
+	beforeEach(async () => {
+		window.$.fx.off = true;
+		document.body.innerHTML = `
+			<div class="ffc-consent-box is-open">
+				<div class="ffc-consent-header" tabindex="0" aria-expanded="true">Consent</div>
+				<div class="ffc-consent-details">details</div>
+			</div>
+		`;
+		await loadOnReady();
+	});
+
+	it('clicking the header collapses an open consent box', () => {
+		const header = document.querySelector('.ffc-consent-header');
+		header.click();
+		const box = document.querySelector('.ffc-consent-box');
+		expect(box.classList.contains('is-open')).toBe(false);
+		expect(header.getAttribute('aria-expanded')).toBe('false');
+	});
+
+	it('clicking the header again re-opens a collapsed box', () => {
+		const header = document.querySelector('.ffc-consent-header');
+		header.click(); // close
+		header.click(); // open
+		const box = document.querySelector('.ffc-consent-box');
+		expect(box.classList.contains('is-open')).toBe(true);
+		expect(header.getAttribute('aria-expanded')).toBe('true');
+	});
+
+	it('Enter keypress toggles the section', () => {
+		const header = document.querySelector('.ffc-consent-header');
+		const ev = window.$.Event('keypress', { which: 13 });
+		window.$(header).trigger(ev);
+		expect(document.querySelector('.ffc-consent-box').classList.contains('is-open')).toBe(false);
+	});
+
+	it('ignores non-Enter/Space keypresses', () => {
+		const header = document.querySelector('.ffc-consent-header');
+		const ev = window.$.Event('keypress', { which: 65 });
+		window.$(header).trigger(ev);
+		// Still open — the handler returned early.
+		expect(document.querySelector('.ffc-consent-box').classList.contains('is-open')).toBe(true);
+	});
 });

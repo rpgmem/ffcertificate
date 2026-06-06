@@ -283,3 +283,140 @@ describe('FFC admin-autosave — bootAutoSaveFields page-init', () => {
 		spy.mockRestore();
 	});
 });
+
+// ----------------------------------------------------------------------
+// Extra branches: explicit/pre-existing badge, radio-without-name,
+// multi-checkbox collection, nonce injection, destroy with live timers.
+// ----------------------------------------------------------------------
+
+describe('FFC.Admin.autoSaveField — extra branches', () => {
+	it('reuses an explicitly-passed badge node', () => {
+		document.body.innerHTML = `
+			<input type="checkbox" id="t" />
+			<span id="my-badge"></span>
+		`;
+		vi.spyOn(window.$, 'post').mockImplementation(() => makeChain(() => ({ success: true, data: {} })));
+		const $badge = window.$('#my-badge');
+		window.FFC.Admin.autoSaveField(window.$('#t'), { key: 'k', $badge });
+		window.$('#t').prop('checked', true).trigger('change');
+		vi.advanceTimersByTime(400);
+		// No new ffc-autosave-badge created — the explicit one is used.
+		expect(document.querySelectorAll('.ffc-autosave-badge').length).toBe(0);
+		expect(window.$('#my-badge').text()).toContain('Saving');
+	});
+
+	it('reuses an already-injected badge on a second autoSaveField call', () => {
+		document.body.innerHTML = '<input type="checkbox" id="t" />';
+		vi.spyOn(window.$, 'post').mockImplementation(() => makeChain(() => ({ success: true, data: {} })));
+		window.FFC.Admin.autoSaveField(window.$('#t'), { key: 'k' });
+		// First call injected a badge after the input. A second call should
+		// reuse it rather than inject a duplicate.
+		window.FFC.Admin.autoSaveField(window.$('#t'), { key: 'k' });
+		expect(document.querySelectorAll('.ffc-autosave-badge').length).toBe(1);
+	});
+
+	it('falls back to $field.val() for a radio with no name attribute', () => {
+		document.body.innerHTML = '<input type="radio" id="r" value="solo" checked>';
+		const postSpy = vi.spyOn(window.$, 'post').mockImplementation(() => makeChain(() => ({ success: true, data: {} })));
+		window.FFC.Admin.autoSaveField(window.$('#r'), { key: 'k' });
+		window.$('#r').trigger('change');
+		vi.advanceTimersByTime(400);
+		expect(postSpy.mock.calls[0][1].value).toBe('solo');
+	});
+
+	it('injects the localized nonce from window.ffcAdminAutosave', () => {
+		document.body.innerHTML = '<input type="checkbox" id="t" />';
+		window.ffcAdminAutosave = { nonce: 'autosave-nonce-123' };
+		const postSpy = vi.spyOn(window.$, 'post').mockImplementation(() => makeChain(() => ({ success: true, data: {} })));
+		window.FFC.Admin.autoSaveField(window.$('#t'), { key: 'k' });
+		window.$('#t').prop('checked', true).trigger('change');
+		vi.advanceTimersByTime(400);
+		expect(postSpy.mock.calls[0][1].nonce).toBe('autosave-nonce-123');
+		delete window.ffcAdminAutosave;
+	});
+
+	it('clears the linger timer when a new change reschedules during the "Saved" window', async () => {
+		document.body.innerHTML = '<input type="checkbox" id="t" />';
+		vi.spyOn(window.$, 'post').mockImplementation(() => makeChain(() => ({ success: true, data: {} })));
+		window.FFC.Admin.autoSaveField(window.$('#t'), { key: 'k' });
+
+		window.$('#t').prop('checked', true).trigger('change');
+		vi.advanceTimersByTime(400);
+		await Promise.resolve();
+		await Promise.resolve();
+		const $badge = window.$('.ffc-autosave-badge');
+		expect($badge.hasClass('ffc-autosave-badge--saved')).toBe(true);
+
+		// Trigger another change while the "Saved" linger timer is live.
+		window.$('#t').prop('checked', false).trigger('change');
+		// scheduleSave should have cleared the linger timer, so advancing
+		// past the original linger does NOT hide the badge prematurely.
+		vi.advanceTimersByTime(400);
+		await Promise.resolve();
+		await Promise.resolve();
+		expect($badge.attr('hidden')).toBeUndefined();
+	});
+
+	it('destroy() clears a pending timer without throwing', () => {
+		document.body.innerHTML = '<input type="checkbox" id="t" />';
+		vi.spyOn(window.$, 'post').mockImplementation(() => makeChain(() => ({ success: true, data: {} })));
+		const ctrl = window.FFC.Admin.autoSaveField(window.$('#t'), { key: 'k' });
+		// Schedule a save (live pendingTimer) but do NOT let it fire.
+		window.$('#t').prop('checked', true).trigger('change');
+		expect(() => ctrl.destroy()).not.toThrow();
+		expect(document.querySelectorAll('.ffc-autosave-badge').length).toBe(0);
+	});
+
+	it('destroy() clears the linger timer when one is live', async () => {
+		document.body.innerHTML = '<input type="checkbox" id="t" />';
+		vi.spyOn(window.$, 'post').mockImplementation(() => makeChain(() => ({ success: true, data: {} })));
+		const ctrl = window.FFC.Admin.autoSaveField(window.$('#t'), { key: 'k' });
+		window.$('#t').prop('checked', true).trigger('change');
+		// Let the save resolve so a lingerTimer is created (and pendingTimer
+		// is cleared to null). Then destroy hits the lingerTimer branch.
+		vi.advanceTimersByTime(400);
+		await Promise.resolve();
+		await Promise.resolve();
+		expect(() => ctrl.destroy()).not.toThrow();
+		expect(document.querySelectorAll('.ffc-autosave-badge').length).toBe(0);
+	});
+
+	it('extracts a plain text field value with no transform/checkbox/radio', () => {
+		document.body.innerHTML = '<input type="text" id="plain" value="hello">';
+		const postSpy = vi.spyOn(window.$, 'post').mockImplementation(() => makeChain(() => ({ success: true, data: {} })));
+		window.FFC.Admin.autoSaveField(window.$('#plain'), { key: 'k' });
+		window.$('#plain').val('world').trigger('change');
+		vi.advanceTimersByTime(400);
+		expect(postSpy.mock.calls[0][1].value).toBe('world');
+	});
+
+	it('multi-checkbox group POSTs the collected checked values as an array', () => {
+		document.body.innerHTML = `
+			<input type="checkbox" data-ffc-autosave-key="signals" data-ffc-autosave-multi value="ua" checked>
+			<input type="checkbox" data-ffc-autosave-key="signals" data-ffc-autosave-multi value="ip">
+			<input type="checkbox" data-ffc-autosave-key="signals" data-ffc-autosave-multi value="tz" checked>
+		`;
+		const postSpy = vi.spyOn(window.$, 'post').mockImplementation(() => makeChain(() => ({ success: true, data: {} })));
+		window.FFC.Admin.bootAutoSaveFields();
+
+		// Toggling any sibling fires the anchor's change handler.
+		window.$('[value="ip"]').prop('checked', true).trigger('change');
+		vi.advanceTimersByTime(400);
+
+		expect(postSpy).toHaveBeenCalledTimes(1);
+		expect(postSpy.mock.calls[0][1].value).toEqual(['ua', 'ip', 'tz']);
+	});
+
+	it('binds only the first occurrence of a multi key as the anchor', () => {
+		document.body.innerHTML = `
+			<input type="checkbox" data-ffc-autosave-key="g" data-ffc-autosave-multi value="a">
+			<input type="checkbox" data-ffc-autosave-key="g" data-ffc-autosave-multi value="b">
+		`;
+		const spy = vi.spyOn(window.FFC.Admin, 'autoSaveField').mockImplementation(() => ({ destroy: () => {} }));
+		window.FFC.Admin.bootAutoSaveFields();
+		// Only one anchor wired despite two siblings sharing the key.
+		expect(spy).toHaveBeenCalledTimes(1);
+		expect(spy.mock.calls[0][1].$group.length).toBe(2);
+		spy.mockRestore();
+	});
+});

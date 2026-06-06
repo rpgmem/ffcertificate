@@ -451,3 +451,136 @@ describe('custom-fields-admin — row UI handlers', () => {
 		expect(window.$('.ffc-custom-field-row').hasClass('ffc-field-inactive')).toBe(false);
 	});
 });
+
+// ----------------------------------------------------------------------
+// saveFields — tinymce flush + dependent_select groups branches
+// ----------------------------------------------------------------------
+
+describe('custom-fields-admin — saveFields extra branches', () => {
+	it('flushes TinyMCE editors before reading the textareas', async () => {
+		const triggerSave = vi.fn();
+		window.tinymce = { triggerSave };
+		vi.spyOn(window.$, 'post').mockImplementation(() => postChain({ done: { success: true } }));
+		const originalLocation = window.location;
+		Object.defineProperty(window, 'location', {
+			configurable: true, writable: true, value: { reload: vi.fn() },
+		});
+
+		window.$('#ffc-save-custom-fields').trigger('click');
+		await flush();
+		expect(triggerSave).toHaveBeenCalled();
+
+		Object.defineProperty(window, 'location', {
+			configurable: true, writable: true, value: originalLocation,
+		});
+		delete window.tinymce;
+	});
+
+	it('parses the dependent_select groups JSON from the synced hidden input', async () => {
+		window.$('.ffc-field-details-row td').append(
+			'<input type="hidden" class="ffc-ds-map-json" value=\'{"A":["x","y"]}\'>'
+		);
+		const postSpy = vi.spyOn(window.$, 'post').mockImplementation(() => postChain({ done: { success: true } }));
+		const originalLocation = window.location;
+		Object.defineProperty(window, 'location', {
+			configurable: true, writable: true, value: { reload: vi.fn() },
+		});
+
+		window.$('#ffc-save-custom-fields').trigger('click');
+		await flush();
+		const fields = JSON.parse(postSpy.mock.calls[0][1].fields);
+		expect(fields[0].groups).toEqual({ A: ['x', 'y'] });
+
+		Object.defineProperty(window, 'location', {
+			configurable: true, writable: true, value: originalLocation,
+		});
+	});
+
+	it('falls back to an empty object when the groups JSON is malformed', async () => {
+		window.$('.ffc-field-details-row td').append(
+			'<input type="hidden" class="ffc-ds-map-json" value="not-json{">'
+		);
+		const postSpy = vi.spyOn(window.$, 'post').mockImplementation(() => postChain({ done: { success: true } }));
+		const originalLocation = window.location;
+		Object.defineProperty(window, 'location', {
+			configurable: true, writable: true, value: { reload: vi.fn() },
+		});
+
+		window.$('#ffc-save-custom-fields').trigger('click');
+		await flush();
+		const fields = JSON.parse(postSpy.mock.calls[0][1].fields);
+		expect(fields[0].groups).toEqual({});
+
+		Object.defineProperty(window, 'location', {
+			configurable: true, writable: true, value: originalLocation,
+		});
+	});
+});
+
+// ----------------------------------------------------------------------
+// replicateFieldOptions — copy option lists to descendant audiences
+// ----------------------------------------------------------------------
+
+describe('custom-fields-admin — replicateFieldOptions', () => {
+	function mount() {
+		document.body.innerHTML = `
+			<div id="ffc-custom-fields-container" data-audience-id="9">
+				<button id="ffc-replicate-field-options">Replicate</button>
+				<span id="ffc-custom-fields-status"></span>
+			</div>
+		`;
+		window.$.fx.off = true;
+		if (!window.FFC) { loadScript('assets/js/ffc-core.js'); }
+		loadScript('assets/js/ffc-custom-fields-admin.js');
+		return new Promise((r) => setTimeout(r, 0));
+	}
+
+	afterEach(() => {
+		vi.restoreAllMocks();
+	});
+
+	it('bails when there is no audience-id', async () => {
+		await mount();
+		window.$('#ffc-custom-fields-container').removeAttr('data-audience-id');
+		const postSpy = vi.spyOn(window.$, 'post').mockImplementation(() => ({}));
+		window.$('#ffc-replicate-field-options').trigger('click');
+		await flush();
+		expect(postSpy).not.toHaveBeenCalled();
+	});
+
+	it('bails when the user declines the confirm', async () => {
+		await mount();
+		vi.spyOn(window, 'confirm').mockReturnValue(false);
+		const postSpy = vi.spyOn(window.$, 'post').mockImplementation(() => ({}));
+		window.$('#ffc-replicate-field-options').trigger('click');
+		await flush();
+		expect(postSpy).not.toHaveBeenCalled();
+	});
+
+	it('POSTs ffc_replicate_field_options and shows the success message on confirm', async () => {
+		await mount();
+		vi.spyOn(window, 'confirm').mockReturnValue(true);
+		const postSpy = vi.spyOn(window.$, 'post').mockImplementation(() => postChain({ done: { success: true, data: { message: 'Replicated to 4 audiences' } } }));
+		window.$('#ffc-replicate-field-options').trigger('click');
+		await flush();
+		expect(postSpy.mock.calls[0][1].action).toBe('ffc_replicate_field_options');
+		expect(postSpy.mock.calls[0][1].audience_id).toBe(9);
+		const $status = window.$('#ffc-custom-fields-status');
+		expect($status.text()).toBe('Replicated to 4 audiences');
+		expect($status.hasClass('ffc-status-success')).toBe(true);
+		// Button re-enabled by the trailing .then.
+		expect(window.$('#ffc-replicate-field-options').prop('disabled')).toBe(false);
+	});
+
+	it('shows the error status when replication fails', async () => {
+		await mount();
+		vi.spyOn(window, 'confirm').mockReturnValue(true);
+		vi.spyOn(window.$, 'post').mockImplementation(() => postChain({ done: { success: false, data: { message: 'Boom' } } }));
+		window.$('#ffc-replicate-field-options').trigger('click');
+		await flush();
+		const $status = window.$('#ffc-custom-fields-status');
+		expect($status.text()).toBe('Boom');
+		expect($status.hasClass('ffc-status-error')).toBe(true);
+		expect(window.$('#ffc-replicate-field-options').prop('disabled')).toBe(false);
+	});
+});

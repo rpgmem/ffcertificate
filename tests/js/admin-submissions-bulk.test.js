@@ -170,6 +170,26 @@ describe('Submissions bulk — form interception', () => {
 
 		expect(requestSpy).not.toHaveBeenCalled();
 	});
+
+	it('normalises bulk_restore to the restore action', async () => {
+		const requestSpy = vi.spyOn(window.FFC, 'request').mockResolvedValue({});
+		window.$('select[name="action"]').val('bulk_restore');
+		window.$('input[name="submission[]"][value="1"]').prop('checked', true);
+		dispatchSubmit();
+		await Promise.resolve(); await Promise.resolve();
+		expect(requestSpy.mock.calls[0][1].action_name).toBe('restore');
+	});
+
+	it('lets the form submit natively when both action selects are -1', () => {
+		const requestSpy = vi.spyOn(window.FFC, 'request');
+		window.$('select[name="action"]').val('-1');
+		window.$('select[name="action2"]').val('-1');
+		window.$('input[name="submission[]"][value="1"]').prop('checked', true);
+		const ev = new Event('submit', { bubbles: true, cancelable: true });
+		document.querySelector('form').dispatchEvent(ev);
+		expect(requestSpy).not.toHaveBeenCalled();
+		expect(ev.defaultPrevented).toBe(false);
+	});
 });
 
 describe('Submissions bulk — per-row buttons', () => {
@@ -222,6 +242,36 @@ describe('Submissions bulk — per-row buttons', () => {
 
 		window.$('#row-x a.button-small').trigger('click');
 
+		expect(requestSpy).not.toHaveBeenCalled();
+	});
+
+	it('ignores per-row links that are not on the Submissions page', () => {
+		document.body.innerHTML = `
+			<table><tr id="row-y">
+				<td>
+					<a href="edit.php?page=some-other-page&action=trash&submission_id=5" class="button button-small">Trash</a>
+				</td>
+			</tr></table>
+		`;
+		const requestSpy = vi.spyOn(window.FFC, 'request');
+		window.$('#row-y a.button-small').trigger('click');
+		expect(requestSpy).not.toHaveBeenCalled();
+	});
+});
+
+describe('Submissions bulk — non-Submissions form guard', () => {
+	it('does not intercept a form that is not the Submissions list form', () => {
+		document.body.innerHTML = `
+			<form id="other">
+				<input type="hidden" name="page" value="some-other-page">
+				<select name="action"><option value="bulk_trash" selected>Trash</option></select>
+				<input type="checkbox" name="submission[]" value="1" checked>
+			</form>
+		`;
+		const requestSpy = vi.spyOn(window.FFC, 'request');
+		document.getElementById('other').dispatchEvent(
+			new Event('submit', { bubbles: true, cancelable: true })
+		);
 		expect(requestSpy).not.toHaveBeenCalled();
 	});
 });
