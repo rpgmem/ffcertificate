@@ -290,6 +290,15 @@ describe('csv extend-end — validation', () => {
 // ----------------------------------------------------------------------
 
 describe('csv extend-end — submit', () => {
+	// Freeze ONLY Date (not setTimeout — loadScript's ready tick must still
+	// fire) to a fixed early time, so validateInput's "later than now" guard
+	// is deterministic regardless of the wall-clock when CI runs. Without
+	// this, a fixed new-time like 19:30 fails once real time passes it.
+	beforeEach(() => {
+		vi.useFakeTimers({ toFake: ['Date'] });
+		vi.setSystemTime(new Date('2026-06-10T08:00:00'));
+	});
+
 	it('POSTs ffc_public_extend_end on a valid confirm and reloads on success', async () => {
 		const postSpy = await reachInfoScreen();
 		const alertSpy = vi.spyOn(window, 'alert').mockImplementation(() => {});
