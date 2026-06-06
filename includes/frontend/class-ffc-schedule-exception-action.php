@@ -293,21 +293,24 @@ final class ScheduleExceptionAction {
 	}
 
 	/**
-	 * Build the URL the operator will hand to the participant. We point
-	 * at the same admin-post action that the form-render layer (Sprint
-	 * 5) wires up for the [ffc_form] shortcode — namely, any page that
-	 * embeds the form via `[ffc_form id=N]`. There's no canonical
-	 * "form page" URL because the form is a shortcode, not a CPT —
-	 * so the operator-side modal will be responsible for either using
-	 * the page the form is embedded on (which it knows from its own
-	 * config) or returning a "?ffc_form_id=N" landing that the host
-	 * site's documented setup decides.
+	 * Build the URL the operator will hand to the participant — the page
+	 * that embeds this form via the `[ffc_form id=N]` shortcode.
 	 *
-	 * For Sprint 4 we return `home_url()` (root) — the JS layer in
-	 * Sprint 5 will replace this with the actual embedded-page URL
-	 * once that lookup is implemented. This keeps the action's
-	 * contract simple (always returns a URL) and lets the JS layer
-	 * be the one place that resolves the embed location.
+	 * Resolution order:
+	 *   1. The `ffc_schedule_exception_form_url` filter, if a host site
+	 *      wants to hard-wire the landing (highest priority, unchanged
+	 *      contract).
+	 *   2. Auto-discovery: the most recently published page/post that
+	 *      contains `[ffc_form id="N"`. This is the Sprint 5 lookup that
+	 *      #366 deferred — there's no canonical "form page" because the
+	 *      form is a shortcode, not a CPT, so we search post_content the
+	 *      same way {@see \FreeFormCertificate\Submissions\FormCache} does
+	 *      for cache purging. When a form is embedded on more than one
+	 *      page we return the newest embed (`orderby=date DESC`), on the
+	 *      assumption that the latest page is the live landing.
+	 *   3. `home_url()` as a last-resort fallback when the form isn't
+	 *      embedded anywhere we can find — keeps the contract simple
+	 *      (always returns a URL).
 	 *
 	 * @param int $form_id Form post id.
 	 */
@@ -316,6 +319,26 @@ final class ScheduleExceptionAction {
 		if ( '' !== $candidate ) {
 			return $candidate;
 		}
+
+		$pages = get_posts(
+			array(
+				'post_type'      => array( 'page', 'post' ),
+				'post_status'    => 'publish',
+				's'              => '[ffc_form id="' . $form_id . '"',
+				'orderby'        => 'date',
+				'order'          => 'DESC',
+				'posts_per_page' => 1,
+				'fields'         => 'ids',
+			)
+		);
+
+		if ( ! empty( $pages ) ) {
+			$url = get_permalink( (int) $pages[0] );
+			if ( is_string( $url ) && '' !== $url ) {
+				return $url;
+			}
+		}
+
 		return home_url( '/' );
 	}
 }

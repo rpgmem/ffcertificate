@@ -42,6 +42,12 @@ class ScheduleExceptionActionTest extends TestCase {
         Functions\when( 'wp_json_encode' )->alias( static fn( $v ) => json_encode( $v ) );
         Functions\when( 'home_url' )->alias( static fn( $p = '' ) => 'https://example.test' . $p );
         Functions\when( 'apply_filters' )->returnArg( 2 );
+
+        // Form-URL auto-discovery (Sprint 5 of #366). Default: no page
+        // embeds the form, so resolve_form_url() falls back to home_url().
+        // Individual tests re-stub these to exercise the discovery path.
+        Functions\when( 'get_posts' )->justReturn( array() );
+        Functions\when( 'get_permalink' )->alias( static fn( $id = 0 ) => 'https://example.test/?p=' . (int) $id );
         Functions\when( 'wp_timezone' )->alias( static fn() => new \DateTimeZone( 'UTC' ) );
 
         // Cookie path lives in ScheduleExceptionSession; capture but don't
@@ -238,5 +244,42 @@ class ScheduleExceptionActionTest extends TestCase {
 
         $this->assertTrue( $result['ok'] );
         $this->assertSame( 'https://example.test/custom-form-42', $result['form_url'] );
+    }
+
+    public function test_execute_resolves_form_url_from_embedding_page(): void {
+        $this->seed_form();
+        // No filter override (default stub returns ''), so resolution falls
+        // through to the embedded-page lookup. Page 99 carries the shortcode.
+        Functions\when( 'get_posts' )->justReturn( array( 99 ) );
+        Functions\when( 'get_permalink' )->alias(
+            static fn( $id = 0 ) => 99 === (int) $id ? 'https://example.test/the-form-page/' : ''
+        );
+
+        $result = ScheduleExceptionAction::execute( 42, 'good-hash', '09:00', '17:00', '12345678900' );
+
+        $this->assertTrue( $result['ok'] );
+        $this->assertSame( 'https://example.test/the-form-page/', $result['form_url'] );
+    }
+
+    public function test_execute_falls_back_to_home_when_form_not_embedded(): void {
+        $this->seed_form();
+        // Default get_posts stub returns [] — form isn't embedded anywhere.
+        $result = ScheduleExceptionAction::execute( 42, 'good-hash', '09:00', '17:00', '12345678900' );
+
+        $this->assertTrue( $result['ok'] );
+        $this->assertSame( 'https://example.test/', $result['form_url'] );
+    }
+
+    public function test_execute_falls_back_to_home_when_permalink_empty(): void {
+        $this->seed_form();
+        // A page matches but get_permalink() returns false/'' (e.g. the
+        // post was trashed between the query and the permalink lookup).
+        Functions\when( 'get_posts' )->justReturn( array( 99 ) );
+        Functions\when( 'get_permalink' )->justReturn( false );
+
+        $result = ScheduleExceptionAction::execute( 42, 'good-hash', '09:00', '17:00', '12345678900' );
+
+        $this->assertTrue( $result['ok'] );
+        $this->assertSame( 'https://example.test/', $result['form_url'] );
     }
 }

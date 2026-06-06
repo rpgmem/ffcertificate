@@ -7,6 +7,10 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Fixed
+
+- Schedule exception (operator entry/exit override): the "Open participant form" hand-off no longer lands on the site home. `ScheduleExceptionAction::resolve_form_url()` now auto-discovers the page that embeds `[ffc_form id="N"`, returning the most recently published embed (the `ffc_schedule_exception_form_url` filter still wins; home stays only as a last-resort fallback) — the Sprint 5 lookup deferred in #366. The post-create modal also shows a spinner + "opening in a new tab" notice for a brief forced beat so the hand-off to the new tab is unmistakable.
+
 ## [6.10.0] (2026-06-05)
 
 ### Added

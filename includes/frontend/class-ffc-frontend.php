@@ -495,6 +495,7 @@ class Frontend {
 						'scheduleExceptionSubmitting'    => __( 'Creating…', 'ffcertificate' ),
 						'scheduleExceptionStaged'        => __( 'Exception staged. Open the participant\'s form in the next tab to consume it.', 'ffcertificate' ),
 						'scheduleExceptionOpenForm'      => __( 'Open participant form', 'ffcertificate' ),
+						'scheduleExceptionOpening'       => __( 'Opening the participant form in a new tab…', 'ffcertificate' ),
 						'scheduleExceptionBadFormat'     => __( 'Please pick valid times (HH:MM).', 'ffcertificate' ),
 						'scheduleExceptionRangeInverted' => __( 'Start must be earlier than end.', 'ffcertificate' ),
 						/* translators: %1$s and %2$s are HH:MM bounds of the form's open window */
