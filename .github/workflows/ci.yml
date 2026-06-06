@@ -99,8 +99,16 @@ jobs:
     # and the §7.4a Recruitment slice (#316, REST × 4 + trait + Reason
     # repository). Conservative 5pp bump leaves headroom for the
     # in-flight §7.4b (#317) and §7.4c (#318) follow-ups.
+    #
+    # 55 → 66 — PHP coverage campaign (Fase 1+2): direct unit tests added
+    # across the logic layer (self-scheduling CPT/handlers, reregistration
+    # email/csv, recruitment csv-importer/dispatcher, audience ajax/admin,
+    # repositories, REST controllers, validators, rate-limit, pdf data
+    # assembly), skipping HTML-render/markup boilerplate by design. Overall
+    # statement coverage 61.17% → 69.82% (31113/44564). Bump to 66 keeps a
+    # ~3.8pp buffer under the measured number (≤5pp policy — see CLAUDE.md).
     env:
-      COVERAGE_FLOOR_LINES: '55'
+      COVERAGE_FLOOR_LINES: '66'
     steps:
       - uses: actions/checkout@v6
       - uses: ./.github/actions/setup-composer

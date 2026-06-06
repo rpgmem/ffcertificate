@@ -34,7 +34,12 @@ use FreeFormCertificate\Repositories\AppointmentRepository;
 use FreeFormCertificate\Submissions\SubmissionHandler;
 
 /**
- * @coversNothing
+ * @coversNothing Cross-class characterization test (SubmissionHandler +
+ * AppointmentRepository + Encryption) — no single class is its subject, so
+ * there is no honest @covers target. The classes it exercises are each
+ * covered directly by their own suites (EncryptionTest, AppointmentRepositoryTest,
+ * SubmissionHandler tests), so suppressing attribution here loses no unique
+ * coverage; it only stops this contract test from inflating those numbers.
  * @runClassInSeparateProcess
  * @preserveGlobalState disabled
  */
