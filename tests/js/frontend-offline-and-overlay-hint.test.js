@@ -38,7 +38,7 @@ afterEach(() => {
 	vi.restoreAllMocks();
 });
 
-describe('Sprint 4 — overlay "don\'t close this tab" hint', () => {
+describe('overlay "don\'t close this tab" hint', () => {
 	it('paints the dontCloseTab line inside the overlay during generation', () => {
 		// Trigger the overlay via the lib-load error path (libraries
 		// stubs cleared by the bigger pdf-generator.test.js fixture).
@@ -88,7 +88,7 @@ describe('Sprint 4 — overlay "don\'t close this tab" hint', () => {
 	});
 });
 
-describe('Sprint 4 — offline short-circuit on form submit', () => {
+describe('offline short-circuit on form submit', () => {
 	function setupForm() {
 		document.body.innerHTML = `
 			<form class="ffc-submission-form">
@@ -130,7 +130,7 @@ describe('Sprint 4 — offline short-circuit on form submit', () => {
 	});
 });
 
-describe('Sprint 4 — offline short-circuit on download click', () => {
+describe('offline short-circuit on download click', () => {
 	it('bails with the offline message when navigator.onLine is false', () => {
 		Object.defineProperty(navigator, 'onLine', { configurable: true, value: false });
 		document.body.innerHTML = `

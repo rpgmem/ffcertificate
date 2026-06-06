@@ -80,7 +80,7 @@ function stubPermissions(state, { rejects = false } = {}) {
 	return status;
 }
 
-describe('Sprint 3 — Permissions API pre-check', () => {
+describe('GPS Permissions API pre-check', () => {
 	it('granted state: skips banner, falls through to native flow', async () => {
 		stubPermissions('granted');
 		setupForm(7);

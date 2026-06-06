@@ -2,7 +2,7 @@
 //   - .ffc-copy-btn → clipboard write (async API + legacy fallback)
 //   - filterPlatformGuidance hides the non-matching <li data-platform="…">
 //
-// Strategy mirrors tests/js/frontend-deep.test.js: load the same
+// Strategy mirrors tests/js/frontend-form-submission.test.js: load the same
 // ffc-core + frontend-helpers + frontend.js bundle that the page uses,
 // then drive the document via jsdom events. The helpers we want to
 // exercise are private to the IIFE; we exercise them via their public

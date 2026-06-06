@@ -1,5 +1,5 @@
 // Sprint E coverage for `assets/js/ffc-frontend.js` — covers paths that
-// `frontend-deep.test.js` left out:
+// `frontend-form-submission.test.js` left out:
 //
 //   - handleMagicLinkVerification (load-time AJAX driven by token in
 //     data attribute / hash / query string / no-token bail).

@@ -1,5 +1,5 @@
 // Sprint F1 — deep coverage for ffc-url-shortener-admin.js (247 LOC,
-// previously 33.19%). `admin-small.test.js` covers the basic copy
+// previously 33.19%). `admin-movesubmissions-recruitment-urlshortener.test.js` covers the basic copy
 // flow. This file drives the QR download / regenerate / modal / create
 // flows + the toast lifecycle.
 import { describe, it, expect, beforeAll, beforeEach, afterEach, vi } from 'vitest';

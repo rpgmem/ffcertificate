@@ -53,7 +53,7 @@ function setupModernAPIs() {
 	});
 }
 
-describe('Sprint 1 (#361) — browser-env diagnostic log gating', () => {
+describe('browser-env diagnostic log gating (#361)', () => {
 	it('does NOT emit anything when ffc_ajax.debug_browser_env is false (default)', async () => {
 		setupModernAPIs();
 		window.ffc_ajax = {

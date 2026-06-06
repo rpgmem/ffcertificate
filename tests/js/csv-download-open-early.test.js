@@ -5,7 +5,7 @@
 // Esc / backdrop close paths → confirm → AJAX success (alert + reload)
 // → AJAX failure (alert + button restore).
 //
-// Mirrors the fixture style of `csv-download-deep.test.js`.
+// Mirrors the fixture style of `csv-download.test.js`.
 
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { loadScript } from './helpers.js';

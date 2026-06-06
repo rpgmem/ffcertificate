@@ -74,7 +74,7 @@ function spyOnFFCRequest() {
 	return spy;
 }
 
-describe('Sprint 2 (#361) — telemetry ping on banner render', () => {
+describe('telemetry ping on banner render (#361)', () => {
 	it('cookie banner fires ffc_log_preflight_bail with reason=cookies', () => {
 		Object.defineProperty(navigator, 'cookieEnabled', { configurable: true, value: false });
 		setupForm(42);
