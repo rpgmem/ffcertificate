@@ -262,4 +262,88 @@ describe('ffc-device-signals — fingerprint pipeline', () => {
 		const h2 = await runWith(fp2);
 		expect(h1).toBe(h2);
 	});
+
+	it('falls back to an ephemeral UUID when localStorage is unavailable', async () => {
+		installCryptoMock();
+		installThumbmarkMock(fullFingerprintFixture());
+		window.ffc_device_config = { signals: ['cookie'] };
+		// Force getItem/setItem to throw so getOrCreateDeviceId hits its catch.
+		const getSpy = vi.spyOn(Storage.prototype, 'getItem').mockImplementation(() => {
+			throw new Error('storage disabled');
+		});
+		const setSpy = vi.spyOn(Storage.prototype, 'setItem').mockImplementation(() => {
+			throw new Error('storage disabled');
+		});
+
+		document.body.innerHTML = '<form class="ffc-submission-form"></form>';
+		loadScript('assets/js/ffc-device-signals.js');
+		await flush();
+
+		// A cookie hash still landed in the payload (from the ephemeral id).
+		const payload = JSON.parse(document.querySelector('input[name="ffc_device_signals"]').value);
+		expect(payload.cookie).toMatch(/^[0-9a-f]{64}$/);
+		getSpy.mockRestore();
+		setSpy.mockRestore();
+	});
+
+	it('falls back to JSON.stringify, then empty string, when both stringifiers throw', async () => {
+		installCryptoMock();
+		installThumbmarkMock(fullFingerprintFixture());
+		window.ThumbmarkJS.stableStringify = () => { throw new Error('stable failed'); };
+		window.ffc_device_config = { signals: ['screen'] };
+
+		// Make JSON.stringify throw on the screen object too (circular).
+		const circular = {};
+		circular.self = circular;
+		window.ThumbmarkJS.getFingerprintData = vi.fn(() =>
+			Promise.resolve({ ...fullFingerprintFixture(), screen: circular })
+		);
+
+		document.body.innerHTML = '<form class="ffc-submission-form"></form>';
+		loadScript('assets/js/ffc-device-signals.js');
+		await flush();
+
+		// stableStringify threw → JSON.stringify threw (circular) → '' →
+		// the empty value is filtered out, so `screen` is absent.
+		const payload = JSON.parse(document.querySelector('input[name="ffc_device_signals"]').value);
+		expect(payload.screen).toBeUndefined();
+	});
+
+	it('produces an empty payload when getFingerprintData rejects and cookie is disabled', async () => {
+		installCryptoMock();
+		installThumbmarkMock();
+		window.ThumbmarkJS.getFingerprintData = vi.fn(() => Promise.reject(new Error('down')));
+		// No 'cookie' signal → the catch path returns {} (no cookie to hash).
+		window.ffc_device_config = { signals: ['ua', 'tz'] };
+
+		document.body.innerHTML = '<form class="ffc-submission-form"></form>';
+		loadScript('assets/js/ffc-device-signals.js');
+		await flush();
+
+		const payload = JSON.parse(document.querySelector('input[name="ffc_device_signals"]').value);
+		expect(payload).toEqual({});
+	});
+
+	it('defers attachToForms to DOMContentLoaded while the document is loading', async () => {
+		installCryptoMock();
+		installThumbmarkMock(fullFingerprintFixture());
+		window.ffc_device_config = { signals: ['ua'] };
+		document.body.innerHTML = '<form class="ffc-submission-form"></form>';
+
+		const readyStateSpy = vi
+			.spyOn(document, 'readyState', 'get')
+			.mockReturnValue('loading');
+		const addSpy = vi.spyOn(document, 'addEventListener');
+
+		loadScript('assets/js/ffc-device-signals.js');
+
+		const dclCall = addSpy.mock.calls.find((c) => c[0] === 'DOMContentLoaded');
+		expect(dclCall).toBeTruthy();
+		readyStateSpy.mockRestore();
+		dclCall[1]();
+		await flush();
+
+		expect(document.querySelector('input[name="ffc_device_signals"]')).not.toBeNull();
+		addSpy.mockRestore();
+	});
 });

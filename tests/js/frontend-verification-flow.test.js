@@ -262,6 +262,22 @@ describe('frontend.handleMagicLinkVerification', () => {
 		const $btn = $container.find('.ffc-download-pdf-btn');
 		expect($btn.length).toBe(1);
 	});
+
+	it('legacy block renders the certificate preview when html_preview is present', async () => {
+		mountContainer({ withToken: true });
+		vi.spyOn(window.$, 'post').mockImplementation(() => postChain({ done: {
+				success: true,
+				data: {
+					form_title: 'My Form',
+					html_preview: '<span class="preview-content">PREVIEW</span>',
+				},
+			} }));
+
+		loadScript('assets/js/ffc-frontend.js');
+		await waitFor(() => window.$('.ffc-certificate-preview').length === 1);
+
+		expect(window.$('.ffc-certificate-preview .preview-content').text()).toBe('PREVIEW');
+	});
 });
 
 // ----------------------------------------------------------------------
@@ -348,6 +364,21 @@ describe('frontend.verificationForm submit', () => {
 		await flush();
 
 		expect(window.$('.ffc-accessible-alert').text()).toContain('Connection error');
+	});
+
+	it('on success: routes the resolved data into displayVerificationResult', async () => {
+		mountForm();
+		window.$('input[name="ffc_auth_code"]').val('CODE');
+		vi.spyOn(window.$, 'post').mockImplementation(() => postChain({ done: {
+				success: true,
+				data: { html: '<div class="verify-ok">Valid certificate</div>' },
+			} }));
+
+		window.$('.ffc-verification-form').trigger('submit');
+		await flush();
+
+		// displayVerificationResult wrote the server html into the container.
+		expect(window.$('.ffc-verification-container .verify-ok').text()).toBe('Valid certificate');
 	});
 });
 

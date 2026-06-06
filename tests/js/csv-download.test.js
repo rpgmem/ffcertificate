@@ -273,6 +273,26 @@ describe('csv-download — download flow', () => {
 		expect(window.$('iframe[src*="ffc_public_csv_download"]').length).toBe(1);
 	});
 
+	it('after completion, the cleanup timer hides the overlay, re-enables the button, and removes the iframe', async () => {
+		const postSpy = await reachInfoScreen();
+		const responses = [
+			{ success: true, data: { job_id: 'j-1', nonce_batch: 'nb', total: 10 } },
+			{ success: true, data: { processed: 10, total: 10, done: true } },
+		];
+		postSpy.mockImplementation(() => postChain({ done: responses.shift() }));
+
+		vi.useFakeTimers();
+		try {
+			window.$('.ffc-btn-download-csv').trigger('click');
+			// MIN_DISPLAY (1ms) + the 2000ms cleanup timer.
+			vi.advanceTimersByTime(2100);
+			// Cleanup callback ran: the hidden download iframe was removed.
+			expect(window.$('iframe[src*="ffc_public_csv_download"]').length).toBe(0);
+		} finally {
+			vi.useRealTimers();
+		}
+	});
+
 	it('shows the error overlay when start returns success=false', async () => {
 		const postSpy = await reachInfoScreen();
 		postSpy.mockImplementation(() => postChain({ done: { success: false, data: { message: 'Quota' } } }));
@@ -338,6 +358,23 @@ describe('csv-download — download flow', () => {
 		await flush();
 
 		expect(window.$('.ffc-csv-progress-error').text()).toContain('Connection error');
+	});
+
+	it('fires the safety-timeout error when the export never reports back', async () => {
+		const postSpy = await reachInfoScreen();
+		// The start call never resolves (no .done/.fail), so the only thing
+		// that can surface is the 5-minute safety timer.
+		postSpy.mockImplementation(() => ({ done: () => ({ fail: () => {} }) }));
+
+		vi.useFakeTimers();
+		try {
+			window.$('.ffc-btn-download-csv').trigger('click');
+			// Advance past SAFETY_MS (300000) so the safety timer's callback runs.
+			vi.advanceTimersByTime(300001);
+			expect(window.$('.ffc-csv-progress-error').text().length).toBeGreaterThan(0);
+		} finally {
+			vi.useRealTimers();
+		}
 	});
 });
 
@@ -649,5 +686,354 @@ describe('csv-download — schedule exception modal', () => {
 		window.$(document).trigger(ev);
 
 		expect(window.$('.ffc-schedule-exception-modal').length).toBe(0);
+	});
+
+	it('in "now" default mode, disables the start input and pre-fills end with the current time', async () => {
+		await renderInfoWith(infoWithException({ schedule_default_mode: 'now' }));
+		window.$('.ffc-btn-schedule-exception').trigger('click');
+
+		// Start locked to baseline, disabled; end auto-filled to a valid HH:MM.
+		expect(window.$('.ffc-sched-exc-start').prop('disabled')).toBe(true);
+		expect(window.$('.ffc-sched-exc-start').val()).toBe('08:00');
+		expect(window.$('.ffc-sched-exc-end').prop('disabled')).toBe(false);
+		expect(window.$('.ffc-sched-exc-end').val()).toMatch(/^([01]\d|2[0-3]):[0-5]\d$/);
+	});
+
+	it('switching the mode radio from manual to now re-applies the now-mode field state', async () => {
+		await renderInfoWith(infoWithException());
+		window.$('.ffc-btn-schedule-exception').trigger('click');
+		// Start enabled in manual mode.
+		expect(window.$('.ffc-sched-exc-start').prop('disabled')).toBe(false);
+
+		window.$('input[name="ffc-sched-exc-mode"][value="now"]').prop('checked', true).trigger('change');
+		expect(window.$('.ffc-sched-exc-start').prop('disabled')).toBe(true);
+	});
+
+	it('blocks submit when the start falls before the allowed window', async () => {
+		await renderInfoWith(infoWithException({ schedule_window_start: '09:00', schedule_window_end: '18:00' }));
+		window.$('.ffc-btn-schedule-exception').trigger('click');
+		window.$('.ffc-sched-exc-start').val('08:30');
+		window.$('.ffc-sched-exc-end').val('17:00');
+
+		const postSpy = vi.spyOn(window.$, 'post');
+		postSpy.mockClear();
+		window.$('.ffc-sched-exc-confirm').trigger('click');
+
+		expect(postSpy).not.toHaveBeenCalled();
+		expect(window.$('.ffc-sched-exc-error').attr('hidden')).toBeFalsy();
+	});
+
+	it('blocks submit when the end falls after the allowed window', async () => {
+		await renderInfoWith(infoWithException({ schedule_window_start: '08:00', schedule_window_end: '17:00' }));
+		window.$('.ffc-btn-schedule-exception').trigger('click');
+		window.$('.ffc-sched-exc-start').val('09:00');
+		window.$('.ffc-sched-exc-end').val('17:30');
+
+		const postSpy = vi.spyOn(window.$, 'post');
+		postSpy.mockClear();
+		window.$('.ffc-sched-exc-confirm').trigger('click');
+
+		expect(postSpy).not.toHaveBeenCalled();
+		expect(window.$('.ffc-sched-exc-error').attr('hidden')).toBeFalsy();
+	});
+
+	it('on success, clicking "Open participant form" schedules the modal teardown', async () => {
+		await renderInfoWith(infoWithException());
+		window.$('.ffc-btn-schedule-exception').trigger('click');
+		window.$('.ffc-sched-exc-start').val('09:00');
+		window.$('.ffc-sched-exc-end').val('17:00');
+
+		vi.spyOn(window.$, 'post').mockImplementation(() => postChain({
+			done: { success: true, data: { token: 'abc.def', form_url: 'https://example.test/landing' } },
+		}));
+		window.$('.ffc-sched-exc-confirm').trigger('click');
+		await flush();
+
+		const $open = window.$('.ffc-sched-exc-open');
+		expect($open.length).toBe(1);
+		$open.trigger('click');
+		// The teardown is on a 100ms timer; advance real time and assert removal.
+		await new Promise((r) => setTimeout(r, 120));
+		expect(window.$('.ffc-schedule-exception-modal').length).toBe(0);
+	});
+});
+
+// ----------------------------------------------------------------------
+// info-screen section builders + status messages (ffc-csv-info-screen.js)
+// ----------------------------------------------------------------------
+
+describe('csv-info-screen — section builders', () => {
+	async function renderInfoWith(info) {
+		mountContainer();
+		await loadAndReady();
+		vi.spyOn(window.$, 'post').mockImplementation(() => postChain({ done: { success: true, data: info } }));
+		window.$('.ffc-public-csv-download form').trigger('submit');
+		await flush();
+	}
+
+	it('renders all restriction list items (password, allowlist, denylist, ticket)', async () => {
+		await renderInfoWith(defaultInfo({
+			restrictions: { password: true, allowlist: true, denylist: true, ticket: true },
+		}));
+		expect(window.$('.ffc-info-list-restrictions li').length).toBe(4);
+	});
+
+	it('omits the restrictions section entirely when none are active', async () => {
+		await renderInfoWith(defaultInfo({
+			restrictions: { password: false, allowlist: false, denylist: false, ticket: false },
+		}));
+		expect(window.$('.ffc-info-list-restrictions').length).toBe(0);
+	});
+
+	it('omits the restrictions section when restrictions is null', async () => {
+		await renderInfoWith(defaultInfo({ restrictions: null }));
+		expect(window.$('.ffc-info-list-restrictions').length).toBe(0);
+	});
+
+	it('omits the datetime section when there are no dates or times', async () => {
+		await renderInfoWith(defaultInfo({
+			datetime: { has_dates: false, has_times: false },
+		}));
+		expect(window.$('.ffc-info-screen').text()).not.toContain('Availability');
+	});
+
+	it('renders GPS locations as map links', async () => {
+		await renderInfoWith(defaultInfo({
+			geolocation: {
+				enabled: true,
+				gps_enabled: true,
+				gps_locations: [
+					{ name: 'HQ', maps_url: 'https://maps.example/hq' },
+					{ name: 'Annex', maps_url: 'https://maps.example/annex' },
+				],
+			},
+		}));
+		const links = window.$('.ffc-info-list-locations a');
+		expect(links.length).toBe(2);
+		expect(links.eq(0).attr('href')).toBe('https://maps.example/hq');
+		expect(links.eq(0).text()).toBe('HQ');
+	});
+
+	it('renders the generic "geolocation enabled" link when GPS is custom (no named locations)', async () => {
+		await renderInfoWith(defaultInfo({
+			geolocation: { enabled: true, gps_enabled: true, gps_locations: [], gps_custom: true },
+		}));
+		expect(window.$('.ffc-info-list-locations').length).toBe(0);
+		expect(window.$('.ffc-info-value a[href="https://www.google.com/maps"]').length).toBe(1);
+	});
+
+	it('renders IP locations as map links', async () => {
+		await renderInfoWith(defaultInfo({
+			geolocation: {
+				enabled: true,
+				ip_enabled: true,
+				ip_locations: [{ name: 'Office IP', maps_url: 'https://maps.example/ip' }],
+			},
+		}));
+		const links = window.$('.ffc-info-list-locations a');
+		expect(links.length).toBe(1);
+		expect(links.eq(0).attr('href')).toBe('https://maps.example/ip');
+	});
+
+	it('renders the generic IP-enabled link when IP is custom (no named locations)', async () => {
+		await renderInfoWith(defaultInfo({
+			geolocation: { enabled: true, ip_enabled: true, ip_locations: [], ip_custom: true },
+		}));
+		expect(window.$('.ffc-info-value a[href="https://www.google.com/maps"]').length).toBe(1);
+	});
+
+	it('omits the geolocation section when geo is disabled', async () => {
+		await renderInfoWith(defaultInfo({ geolocation: { enabled: false } }));
+		expect(window.$('.ffc-info-list-locations').length).toBe(0);
+	});
+
+	it('renders the quiz section with passing score and a numeric max attempts', async () => {
+		await renderInfoWith(defaultInfo({
+			quiz: { enabled: true, passing_score: 70, max_attempts: 3 },
+		}));
+		const text = window.$('.ffc-info-screen').text();
+		expect(text).toContain('70%');
+		expect(text).toContain('3');
+	});
+
+	it('renders "Unlimited" for the quiz max attempts when max_attempts <= 0', async () => {
+		await renderInfoWith(defaultInfo({
+			quiz: { enabled: true, passing_score: 50, max_attempts: 0 },
+		}));
+		expect(window.$('.ffc-info-screen').text()).toContain('Unlimited');
+	});
+});
+
+describe('csv-info-screen — status messages + disabled button variants', () => {
+	async function renderInfoWith(info) {
+		mountContainer();
+		await loadAndReady();
+		vi.spyOn(window.$, 'post').mockImplementation(() => postChain({ done: { success: true, data: info } }));
+		window.$('.ffc-public-csv-download form').trigger('submit');
+		await flush();
+	}
+
+	function infoWithStatus(statusOverrides) {
+		return defaultInfo({
+			status: Object.assign({ has_end_date: true, can_preview_cert: false, can_download: false }, statusOverrides),
+		});
+	}
+
+	it('shows the "form active until" message for reason=active', async () => {
+		await renderInfoWith(infoWithStatus({
+			download_blocked_reason: 'active',
+			end_date_formatted: '31/12/2026',
+		}));
+		expect(window.$('.ffc-info-alert-info').length).toBe(1);
+		expect(window.$('.ffc-info-alert-info').text().length).toBeGreaterThan(0);
+	});
+
+	it('shows the before-start message when reason=active and before_start is true', async () => {
+		await renderInfoWith(infoWithStatus({
+			download_blocked_reason: 'active',
+			before_start: true,
+			start_date_formatted: '01/01/2027',
+		}));
+		expect(window.$('.ffc-info-alert-info').text()).toContain('01/01/2027');
+	});
+
+	it('shows the quota-exhausted warning for reason=quota_exhausted', async () => {
+		await renderInfoWith(infoWithStatus({ download_blocked_reason: 'quota_exhausted' }));
+		expect(window.$('.ffc-info-alert-warning').length).toBeGreaterThanOrEqual(1);
+	});
+
+	it('shows the download-disabled info message for reason=download_disabled', async () => {
+		await renderInfoWith(infoWithStatus({ download_blocked_reason: 'download_disabled' }));
+		expect(window.$('.ffc-info-alert-info').length).toBe(1);
+	});
+
+	it('shows the download-ready success message when no blocked reason', async () => {
+		await renderInfoWith(infoWithStatus({ can_download: true }));
+		expect(window.$('.ffc-info-alert-success').length).toBe(1);
+	});
+
+	it('suppresses the status message (returns empty) for reason=no_end_date', async () => {
+		await renderInfoWith(infoWithStatus({ has_end_date: false, download_blocked_reason: 'no_end_date' }));
+		expect(window.$('.ffc-info-alert-info').length).toBe(0);
+		expect(window.$('.ffc-info-alert-success').length).toBe(0);
+	});
+
+	it('renders the admin-disabled cert-preview button (disabled)', async () => {
+		await renderInfoWith(infoWithStatus({ cert_preview_disabled_by_admin: true }));
+		const $btn = window.$('.ffc-btn-cert-preview');
+		expect($btn.length).toBe(1);
+		expect($btn.prop('disabled')).toBe(true);
+	});
+
+	it('renders the open-early button (enabled) when can_open_early', async () => {
+		await renderInfoWith(infoWithStatus({ can_open_early: true }));
+		const $btn = window.$('.ffc-btn-open-early');
+		expect($btn.length).toBe(1);
+		expect($btn.prop('disabled')).toBe(false);
+	});
+
+	it('renders the admin-disabled open-early button when start_early_disabled_by_admin', async () => {
+		await renderInfoWith(infoWithStatus({ start_early_disabled_by_admin: true }));
+		const $btn = window.$('.ffc-btn-open-early');
+		expect($btn.length).toBe(1);
+		expect($btn.prop('disabled')).toBe(true);
+	});
+
+	it('renders the extend-end button (enabled) when can_extend_end', async () => {
+		await renderInfoWith(infoWithStatus({ can_extend_end: true }));
+		const $btn = window.$('.ffc-btn-extend-end');
+		expect($btn.length).toBe(1);
+		expect($btn.prop('disabled')).toBe(false);
+	});
+
+	it('renders the admin-disabled extend-end button when extend_end_disabled_by_admin', async () => {
+		await renderInfoWith(infoWithStatus({ extend_end_disabled_by_admin: true }));
+		const $btn = window.$('.ffc-btn-extend-end');
+		expect($btn.length).toBe(1);
+		expect($btn.prop('disabled')).toBe(true);
+	});
+
+	it('renders the admin-disabled download button when csv_download_disabled_by_admin', async () => {
+		await renderInfoWith(infoWithStatus({ csv_download_disabled_by_admin: true }));
+		const $btn = window.$('.ffc-btn-download-csv');
+		expect($btn.length).toBe(1);
+		expect($btn.prop('disabled')).toBe(true);
+	});
+});
+
+// ----------------------------------------------------------------------
+// FFCCsv overlay helpers (showOverlay / updateProgress / updateStatus /
+// showError) — exercised directly via the published window.FFCCsv API.
+// ----------------------------------------------------------------------
+
+describe('csv-download — overlay helpers', () => {
+	async function api() {
+		mountContainer();
+		await loadAndReady();
+		return window.FFCCsv;
+	}
+
+	it('showOverlay removes a pre-existing overlay before re-mounting', async () => {
+		const csv = await api();
+		csv.showOverlay('First');
+		expect(window.$('.ffc-csv-progress-overlay').length).toBe(1);
+		// A second call must tear the first one down (the if(api.$overlay) branch).
+		csv.showOverlay('Second');
+		expect(window.$('.ffc-csv-progress-overlay').length).toBe(1);
+		expect(window.$('.ffc-csv-progress-status').text()).toBe('Second');
+		csv.hideOverlay();
+	});
+
+	it('updateProgress is a no-op when no overlay is mounted', async () => {
+		const csv = await api();
+		csv.hideOverlay();
+		// Should not throw with no overlay present.
+		expect(() => csv.updateProgress(5, 10)).not.toThrow();
+		expect(window.$('.ffc-csv-progress-overlay').length).toBe(0);
+	});
+
+	it('updateProgress fills the bar to the computed percentage when an overlay exists', async () => {
+		const csv = await api();
+		csv.showOverlay('Working');
+		csv.updateProgress(3, 12);
+		expect(window.$('.ffc-csv-progress-percent').text()).toBe('25 %');
+		csv.hideOverlay();
+	});
+
+	it('updateStatus is a no-op when no overlay is mounted', async () => {
+		const csv = await api();
+		csv.hideOverlay();
+		expect(() => csv.updateStatus('hi')).not.toThrow();
+	});
+
+	it('updateStatus updates the overlay status text when an overlay exists', async () => {
+		const csv = await api();
+		csv.showOverlay('Working');
+		csv.updateStatus('Almost there');
+		expect(window.$('.ffc-csv-progress-status').text()).toBe('Almost there');
+		csv.hideOverlay();
+	});
+
+	it('showError injects the error node and tears the overlay down after the 4s timer', async () => {
+		const csv = await api();
+		csv.showOverlay('Working');
+		vi.useFakeTimers();
+		try {
+			csv.showError('Boom');
+			expect(window.$('.ffc-csv-progress-error').text()).toBe('Boom');
+			expect(window.$('.ffc-csv-progress-bar-fill').hasClass('ffc-csv-error')).toBe(true);
+			// The showError setTimeout(hideOverlay, 4000) fires the teardown.
+			vi.advanceTimersByTime(4001);
+			expect(window.$('.ffc-csv-progress-overlay').length).toBe(0);
+		} finally {
+			vi.useRealTimers();
+		}
+	});
+
+	it('showError is a no-op (beyond clearing the safety timer) when no overlay exists', async () => {
+		const csv = await api();
+		csv.hideOverlay();
+		expect(() => csv.showError('nope')).not.toThrow();
+		expect(window.$('.ffc-csv-progress-error').length).toBe(0);
 	});
 });

@@ -318,6 +318,18 @@ describe('admin migration manager dropdown', () => {
 
 		expect(window.$('#ffc-migrations-menu').hasClass('ffc-visible')).toBe(false);
 	});
+
+	it('clicking inside the menu keeps it open (stopPropagation)', async () => {
+		window.$('#ffc-migrations-btn').trigger('click');
+		await flush();
+		expect(window.$('#ffc-migrations-menu').hasClass('ffc-visible')).toBe(true);
+
+		// A click inside the menu must not bubble to the document handler
+		// that would otherwise close it.
+		window.$('#ffc-migrations-menu').trigger('click');
+		await flush();
+		expect(window.$('#ffc-migrations-menu').hasClass('ffc-visible')).toBe(true);
+	});
 });
 
 // ----------------------------------------------------------------------
@@ -475,5 +487,251 @@ describe('admin device-limit toggle', () => {
 		window.$('#ffc_device_limit_enabled').prop('checked', false).trigger('change');
 		await flush();
 		expect(window.$('.ffc-collapsed-target').hasClass('ffc-collapsed')).toBe(true);
+	});
+});
+
+// ----------------------------------------------------------------------
+// Copy-to-clipboard buttons (.ffc-copy-link[data-ffc-copy-target])
+// ----------------------------------------------------------------------
+
+describe('admin copy-to-clipboard', () => {
+	beforeAll(() => {
+		window.ffc_ajax = { strings: { copied: 'Copied!', copyFailed: 'Copy failed' } };
+		if (!window.FFC) { loadScript('assets/js/ffc-core.js'); }
+		// The delegated click handler is bound on document at IIFE eval —
+		// already present from prior suites' loads. Ensure at least one load.
+		loadScript('assets/js/ffc-admin.js');
+	});
+
+	beforeEach(() => {
+		document.body.innerHTML = `
+			<input id="copy-src" type="text" value="https://x.test/abc">
+			<button class="ffc-copy-link" data-ffc-copy-target="#copy-src">Copy</button>
+		`;
+	});
+
+	function getBtn() { return document.querySelector('.ffc-copy-link'); }
+
+	it('returns early when the target source does not exist', () => {
+		document.body.innerHTML = `
+			<button class="ffc-copy-link" data-ffc-copy-target="#missing">Copy</button>
+		`;
+		// Should not throw and should not change the label.
+		getBtn().click();
+		expect(getBtn().textContent).toBe('Copy');
+	});
+
+	it('uses navigator.clipboard.writeText and shows Copied! on success', async () => {
+		const writeText = vi.fn().mockResolvedValue();
+		Object.defineProperty(window.navigator, 'clipboard', {
+			value: { writeText },
+			configurable: true,
+		});
+		getBtn().click();
+		await flush();
+		expect(writeText).toHaveBeenCalledWith('https://x.test/abc');
+		expect(getBtn().textContent).toBe('Copied!');
+	});
+
+	it('shows Copy failed when navigator.clipboard.writeText rejects', async () => {
+		const writeText = vi.fn().mockRejectedValue(new Error('nope'));
+		Object.defineProperty(window.navigator, 'clipboard', {
+			value: { writeText },
+			configurable: true,
+		});
+		getBtn().click();
+		await flush();
+		expect(getBtn().textContent).toBe('Copy failed');
+	});
+
+	it('falls back to execCommand when navigator.clipboard is unavailable', () => {
+		Object.defineProperty(window.navigator, 'clipboard', {
+			value: undefined,
+			configurable: true,
+		});
+		document.execCommand = vi.fn().mockReturnValue(true);
+		getBtn().click();
+		expect(document.execCommand).toHaveBeenCalledWith('copy');
+		expect(getBtn().textContent).toBe('Copied!');
+	});
+
+	it('shows Copy failed when execCommand throws in the legacy fallback', () => {
+		Object.defineProperty(window.navigator, 'clipboard', {
+			value: undefined,
+			configurable: true,
+		});
+		document.execCommand = vi.fn(() => { throw new Error('boom'); });
+		getBtn().click();
+		expect(getBtn().textContent).toBe('Copy failed');
+	});
+});
+
+// ----------------------------------------------------------------------
+// document.ready field-builder bootstrap block (lines ~232-243)
+// ----------------------------------------------------------------------
+
+describe('admin document.ready field-builder bootstrap', () => {
+	it('warns when #ffc-fields-container is present but FieldBuilder is missing', async () => {
+		document.body.innerHTML = `
+			<button id="ffc-migrations-btn"></button>
+			<div id="ffc-migrations-menu"></div>
+			<div id="ffc-fields-container"></div>
+		`;
+		// Force the FieldBuilder lookup to fail.
+		const savedFB = window.FFC && window.FFC.Admin ? window.FFC.Admin.FieldBuilder : undefined;
+		if (window.FFC && window.FFC.Admin) { delete window.FFC.Admin.FieldBuilder; }
+		const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+		if (!window.FFC) { loadScript('assets/js/ffc-core.js'); }
+		loadScript('assets/js/ffc-admin.js');
+		await new Promise((r) => setTimeout(r, 0));
+		expect(warn).toHaveBeenCalledWith('[FFC Admin] Field Builder module not loaded');
+		if (savedFB && window.FFC && window.FFC.Admin) { window.FFC.Admin.FieldBuilder = savedFB; }
+	});
+
+	it('calls FieldBuilder.init when present', async () => {
+		document.body.innerHTML = `
+			<button id="ffc-migrations-btn"></button>
+			<div id="ffc-migrations-menu"></div>
+			<div id="ffc-fields-container"></div>
+		`;
+		window.FFC = window.FFC || {};
+		window.FFC.Admin = window.FFC.Admin || {};
+		const init = vi.fn();
+		window.FFC.Admin.FieldBuilder = { init };
+		loadScript('assets/js/ffc-admin.js');
+		await new Promise((r) => setTimeout(r, 0));
+		expect(init).toHaveBeenCalled();
+	});
+});
+
+// ----------------------------------------------------------------------
+// Notification + status setTimeout fadeout branches (lines 57, 118)
+// ----------------------------------------------------------------------
+
+describe('admin notification + status timers', () => {
+	beforeAll(() => {
+		if (!window.FFC) { loadScript('assets/js/ffc-core.js'); }
+		loadScript('assets/js/ffc-admin.js');
+	});
+
+	it('showNotification auto-dismisses after the duration elapses', () => {
+		vi.useFakeTimers();
+		document.body.innerHTML = '<div id="wpbody-content"></div>';
+		window.FFC.Admin.showNotification('hi', 'success', 1000);
+		expect(document.querySelectorAll('.ffc-admin-notification').length).toBe(1);
+		vi.advanceTimersByTime(1300);
+		expect(document.querySelectorAll('.ffc-admin-notification').length).toBe(0);
+		vi.useRealTimers();
+	});
+
+	it('showNotification dismiss button removes the notice on click', () => {
+		window.$.fx.off = true;
+		document.body.innerHTML = '<div id="wpbody-content"></div>';
+		window.FFC.Admin.showNotification('hi', 'info', 0);
+		document.querySelector('.notice-dismiss').click();
+		expect(document.querySelectorAll('.ffc-admin-notification').length).toBe(0);
+	});
+
+	it('renders the notice after .wrap > h1 when present', () => {
+		document.body.innerHTML = '<div class="wrap"><h1>Title</h1></div><div id="wpbody-content"></div>';
+		window.FFC.Admin.showNotification('hi', 'warning', 0);
+		const notif = document.querySelector('.ffc-admin-notification');
+		expect(notif).not.toBeNull();
+		expect(notif.previousElementSibling.tagName).toBe('H1');
+	});
+
+	it('clears the generate-codes success status after 5s', async () => {
+		vi.useFakeTimers();
+		window.ffc_ajax = {
+			nonce: 'n',
+			strings: { ticketsGeneratedSuccess: 'tickets generated successfully!' },
+		};
+		document.body.innerHTML = `
+			<input id="ffc_qty_codes" type="text" value="2">
+			<span id="ffc_gen_status"></span>
+			<textarea id="ffc_generated_list"></textarea>
+			<button id="ffc_btn_generate_codes" type="button">Generate</button>
+		`;
+		vi.spyOn(window.$, 'post').mockImplementation(() => postChain({ done: { success: true, data: { codes: 'X' } } }));
+		window.$('#ffc_btn_generate_codes').trigger('click');
+		// Allow the resolved promise reaction (timers are faked but
+		// microtasks still flush).
+		await Promise.resolve();
+		await Promise.resolve();
+		expect(window.$('#ffc_gen_status').text()).not.toBe('');
+		vi.advanceTimersByTime(5000);
+		expect(window.$('#ffc_gen_status').text()).toBe('');
+		vi.useRealTimers();
+	});
+});
+
+// ----------------------------------------------------------------------
+// CSV export — connection-error (non-fromServer) branches (lines 211, 223)
+// ----------------------------------------------------------------------
+
+describe('admin CSV export — connection errors', () => {
+	function setupExport() {
+		document.body.innerHTML = `
+			<button id="ffc-migrations-btn"></button>
+			<div id="ffc-migrations-menu"></div>
+			<button id="ffc-csv-export-btn" data-form-ids='[]' data-status="publish">Export</button>
+			<span id="ffc-csv-export-progress" style="display:none"></span>
+		`;
+	}
+
+	beforeAll(() => {
+		if (!window.FFC) { loadScript('assets/js/ffc-core.js'); }
+		loadScript('assets/js/ffc-admin.js');
+	});
+
+	it('shows the connection-error string when start rejects without fromServer', async () => {
+		window.ffc_ajax = { export_nonce: 'n', strings: { connectionError: 'Connection error.' } };
+		window.ajaxurl = '/wp-admin/admin-ajax.php';
+		setupExport();
+		vi.spyOn(window.$, 'post').mockImplementation(() => postChain({ fail: { status: 0 } }));
+		window.$('#ffc-csv-export-btn').trigger('click');
+		await flush();
+		expect(window.$('#ffc-csv-export-progress').text()).toBe('Connection error.');
+	});
+
+	it('shows the connection-error string when a batch rejects without fromServer', async () => {
+		window.ffc_ajax = { export_nonce: 'n', strings: { connectionError: 'Connection error.' } };
+		window.ajaxurl = '/wp-admin/admin-ajax.php';
+		setupExport();
+		vi.spyOn(window.$, 'post').mockImplementation((url, payload) => {
+			if (payload.action === 'ffc_csv_export_start') {
+				return postChain({ done: { success: true, data: { job_id: 'j', total: 5 } } });
+			}
+			return postChain({ fail: { status: 0 } });
+		});
+		window.$('#ffc-csv-export-btn').trigger('click');
+		for (let i = 0; i < 6; i++) { await Promise.resolve(); }
+		expect(window.$('#ffc-csv-export-progress').text()).toBe('Connection error.');
+	});
+
+	it('completes the batch-done branch including the deferred iframe cleanup', async () => {
+		window.ffc_ajax = {
+			export_nonce: 'n',
+			strings: { exportProgress: 'Exporting %1$d/%2$d…', exportDone: 'Done!' },
+		};
+		window.ajaxurl = '/wp-admin/admin-ajax.php';
+		window.$.fx.off = true;
+		setupExport();
+		// Key responses by action so stacked delegated handlers (one per
+		// prior admin.js load) all resolve consistently rather than racing
+		// over a shift()-based queue.
+		vi.spyOn(window.$, 'post').mockImplementation((url, payload) => {
+			if (payload.action === 'ffc_csv_export_start') {
+				return postChain({ done: { success: true, data: { job_id: 'j', total: 3 } } });
+			}
+			return postChain({ done: { success: true, data: { processed: 3, done: true } } });
+		});
+		window.$('#ffc-csv-export-btn').trigger('click');
+		for (let i = 0; i < 8; i++) { await Promise.resolve(); }
+		expect(window.$('iframe[src*="ffc_csv_export_download"]').length).toBeGreaterThanOrEqual(1);
+		// The 2000ms deferred block re-enables the button, sets the done
+		// text, removes the iframe and schedules the progress fadeOut.
+		await new Promise((r) => setTimeout(r, 2200));
+		expect(window.$('#ffc-csv-export-progress').text()).toContain('Done!');
 	});
 });

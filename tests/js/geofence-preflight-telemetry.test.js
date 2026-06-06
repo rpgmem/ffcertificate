@@ -150,4 +150,15 @@ describe('telemetry ping on banner render (#361)', () => {
 		// Should not throw.
 		expect(() => window.FFCGeofence.init()).not.toThrow();
 	});
+
+	it('does not ping when the wrapper id has no parseable form id', () => {
+		const spy = spyOnFFCRequest();
+		// Wrapper whose id strips to an empty/NaN form id → early return.
+		document.body.innerHTML = '<div id="ffc-form-" class="ffc-form-wrapper"></div>';
+		const $wrap = window.$('#ffc-form-');
+
+		window.FFCGeofence.logPreflightBail($wrap, 'cookies');
+
+		expect(spy).not.toHaveBeenCalled();
+	});
 });

@@ -125,4 +125,33 @@ describe('ffc-admin form-meta autosave', () => {
 		expect($chip.text()).toBe('Nope');
 		expect($chip.hasClass('is-error')).toBe(true);
 	});
+
+	it('returns early without POSTing when the autosave key is empty', async () => {
+		const postSpy = vi.spyOn(window.$, 'post').mockImplementation(() => postChain({}));
+		document.body.innerHTML = `
+			<input type="checkbox" id="t-empty" data-ffc-autosave-form-key="">
+		`;
+		if (!window.FFC) { loadScript('assets/js/ffc-core.js'); }
+		loadScript('assets/js/ffc-admin.js');
+		window.$('#t-empty').prop('checked', true).trigger('change');
+		await flush();
+		expect(postSpy).not.toHaveBeenCalled();
+	});
+
+	it('places the status chip directly after the field when no .ffc-toggle wrapper exists', async () => {
+		vi.spyOn(window.$, 'post').mockImplementation(() => postChain({ done: { success: true, data: {} } }));
+		document.body.innerHTML = `
+			<div id="bare">
+				<input type="text" id="t-bare" value="hi" data-ffc-autosave-form-key="bare_key">
+			</div>
+		`;
+		if (!window.FFC) { loadScript('assets/js/ffc-core.js'); }
+		loadScript('assets/js/ffc-admin.js');
+		window.$('#t-bare').val('changed').trigger('change');
+		await flush();
+		// Chip is the immediate next sibling of the bare input (no toggle wrap).
+		const chip = document.getElementById('t-bare').nextElementSibling;
+		expect(chip).not.toBeNull();
+		expect(chip.classList.contains('ffc-form-meta-autosave-status')).toBe(true);
+	});
 });

@@ -15,8 +15,17 @@ beforeAll(async () => {
 	window.ffcSelfSchedulingEditor = {
 		strings: {
 			confirmDelete: 'Delete this row?',
+			schedulingForced: 'Forced to Private.',
+			schedulingDesc: 'Public or private.',
+			confirmCleanup: 'Delete these appointments?',
+			confirmCleanupAll: 'Delete ALL appointments?',
+			deleting: 'Deleting…',
+			errorDeleting: 'Error deleting appointments',
+			errorServer: 'Error communicating with server',
 		},
 	};
+	window.ffc_ajax = { ajax_url: '/wp-admin/admin-ajax.php', nonce: 'n', strings: {} };
+	loadScript('assets/js/ffc-core.js');
 	document.body.innerHTML = `
 		<table>
 			<tbody id="ffc-working-hours-list">
@@ -129,5 +138,142 @@ describe('remove working hour (.ffc-remove-hour click)', () => {
 		// fadeOut + remove takes ~400ms.
 		await new Promise((r) => setTimeout(r, 500));
 		expect(document.querySelectorAll('#ffc-working-hours-list tr').length).toBe(1);
+	});
+});
+
+// ----------------------------------------------------------------------
+// toggleCancellationHours (#allow_cancellation change)
+// ----------------------------------------------------------------------
+
+describe('toggle cancellation hours (#allow_cancellation change)', () => {
+	beforeEach(() => {
+		window.$.fx.off = true;
+		// The handler toggles elements with class .ffc-cancellation-hours.
+		window.$('#cancellation-hours-row').attr('class', 'ffc-cancellation-hours').hide();
+	});
+
+	it('shows the cancellation hours when checked, hides them when unchecked', () => {
+		window.$('#allow_cancellation').prop('checked', true).trigger('change');
+		expect(window.$('.ffc-cancellation-hours').css('display')).not.toBe('none');
+		window.$('#allow_cancellation').prop('checked', false).trigger('change');
+		expect(window.$('.ffc-cancellation-hours').css('display')).toBe('none');
+	});
+});
+
+// ----------------------------------------------------------------------
+// toggleSchedulingVisibility (#ffc_visibility change)
+// ----------------------------------------------------------------------
+
+describe('toggle scheduling visibility (#ffc_visibility change)', () => {
+	beforeEach(() => {
+		window.$.fx.off = true;
+		document.getElementById('ffc-scheduling-section').innerHTML = `
+			<select id="ffc_scheduling_visibility">
+				<option value="public" selected>Public</option>
+				<option value="private">Private</option>
+			</select>
+			<p id="ffc-scheduling-desc"></p>
+		`;
+		window.$('#ffc_visibility').val('public');
+	});
+
+	it('forces scheduling to private + disabled and injects a hidden input when visibility is private', () => {
+		window.$('#ffc_visibility').val('private').trigger('change');
+		expect(window.$('#ffc_scheduling_visibility').val()).toBe('private');
+		expect(window.$('#ffc_scheduling_visibility').prop('disabled')).toBe(true);
+		// Hidden input ensures the disabled select's value is still submitted.
+		expect(window.$('#ffc_scheduling_visibility').next('input[type="hidden"]').length).toBe(1);
+		expect(window.$('#ffc-scheduling-desc').text()).toContain('Forced to Private');
+	});
+
+	it('does not duplicate the hidden input on a second private toggle', () => {
+		window.$('#ffc_visibility').val('private').trigger('change');
+		window.$('#ffc_visibility').val('private').trigger('change');
+		expect(window.$('#ffc_scheduling_visibility').next('input[type="hidden"]').length).toBe(1);
+	});
+
+	it('re-enables scheduling and removes the hidden input when visibility becomes public', () => {
+		window.$('#ffc_visibility').val('private').trigger('change');
+		window.$('#ffc_visibility').val('public').trigger('change');
+		expect(window.$('#ffc_scheduling_visibility').prop('disabled')).toBe(false);
+		expect(window.$('#ffc_scheduling_visibility').next('input[type="hidden"]').length).toBe(0);
+		expect(window.$('#ffc-scheduling-desc').text()).toContain('Public or private');
+	});
+});
+
+// ----------------------------------------------------------------------
+// initCleanup (.ffc-cleanup-btn click)
+// ----------------------------------------------------------------------
+
+describe('appointment cleanup (.ffc-cleanup-btn click)', () => {
+	beforeEach(() => {
+		window.$.fx.off = true;
+		document.getElementById('ffc-scheduling-section').innerHTML = `
+			<button class="ffc-cleanup-btn" data-action="old" data-calendar-id="7">Clean old</button>
+			<button class="ffc-cleanup-btn" data-action="all" data-calendar-id="7">Clean all</button>
+			<input type="hidden" id="ffc_cleanup_appointments_nonce" value="cleanup-nonce" />
+		`;
+	});
+
+	it('bails when the confirm is declined (no AJAX)', () => {
+		vi.spyOn(window, 'confirm').mockReturnValue(false);
+		const reqSpy = vi.spyOn(window.FFC, 'request');
+		window.$('.ffc-cleanup-btn[data-action="old"]').trigger('click');
+		expect(reqSpy).not.toHaveBeenCalled();
+	});
+
+	it('uses the "all" confirm message for the delete-all button', () => {
+		const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(false);
+		window.$('.ffc-cleanup-btn[data-action="all"]').trigger('click');
+		expect(confirmSpy).toHaveBeenCalledWith('Delete ALL appointments?');
+	});
+
+	it('disables the button and POSTs the cleanup request when confirmed', async () => {
+		vi.spyOn(window, 'confirm').mockReturnValue(true);
+		const reqSpy = vi.spyOn(window.FFC, 'request').mockReturnValue(new Promise(() => {}));
+		const $btn = window.$('.ffc-cleanup-btn[data-action="old"]');
+		$btn.trigger('click');
+		expect(reqSpy).toHaveBeenCalled();
+		expect(reqSpy.mock.calls[0][0]).toBe('ffc_cleanup_appointments');
+		expect(reqSpy.mock.calls[0][1]).toMatchObject({ calendar_id: 7, cleanup_action: 'old' });
+		expect($btn.prop('disabled')).toBe(true);
+		expect($btn.text()).toBe('Deleting…');
+	});
+
+	it('alerts the server message and re-enables the button on a fromServer error', async () => {
+		vi.spyOn(window, 'confirm').mockReturnValue(true);
+		const alertSpy = vi.spyOn(window, 'alert').mockImplementation(() => {});
+		vi.spyOn(window.FFC, 'request').mockRejectedValue({ fromServer: true, message: 'Boom' });
+		const $btn = window.$('.ffc-cleanup-btn[data-action="old"]');
+		$btn.trigger('click');
+		await Promise.resolve().then(() => Promise.resolve());
+		expect(alertSpy).toHaveBeenCalledWith('Boom');
+		expect($btn.prop('disabled')).toBe(false);
+	});
+
+	it('alerts the returned message and reloads on a successful cleanup', async () => {
+		vi.spyOn(window, 'confirm').mockReturnValue(true);
+		const alertSpy = vi.spyOn(window, 'alert').mockImplementation(() => {});
+		// jsdom does not implement navigation; stub reload so the success
+		// branch can run without throwing.
+		const reloadSpy = vi.fn();
+		Object.defineProperty(window, 'location', {
+			configurable: true,
+			value: { ...window.location, reload: reloadSpy },
+		});
+		vi.spyOn(window.FFC, 'request').mockResolvedValue({ message: 'Done' });
+		window.$('.ffc-cleanup-btn[data-action="old"]').trigger('click');
+		await Promise.resolve().then(() => Promise.resolve());
+		expect(alertSpy).toHaveBeenCalledWith('Done');
+		expect(reloadSpy).toHaveBeenCalled();
+	});
+
+	it('alerts the generic server-communication error on a network failure', async () => {
+		vi.spyOn(window, 'confirm').mockReturnValue(true);
+		const alertSpy = vi.spyOn(window, 'alert').mockImplementation(() => {});
+		vi.spyOn(window.FFC, 'request').mockRejectedValue(new Error('net'));
+		window.$('.ffc-cleanup-btn[data-action="old"]').trigger('click');
+		await Promise.resolve().then(() => Promise.resolve());
+		expect(alertSpy).toHaveBeenCalledWith('Error communicating with server');
 	});
 });

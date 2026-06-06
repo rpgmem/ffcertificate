@@ -191,3 +191,34 @@ describe('geofence iOS — firstMaxAge tightened to 5 s', () => {
 		restoreUa();
 	});
 });
+
+// ----------------------------------------------------------------------
+// detectPlatformFamily — UA → 'ios' | 'android' | 'desktop'
+// ----------------------------------------------------------------------
+
+describe('FFCGeofence.detectPlatformFamily', () => {
+	const origUA = navigator.userAgent;
+
+	function setUa(ua) {
+		Object.defineProperty(navigator, 'userAgent', { configurable: true, value: ua });
+	}
+
+	afterEach(() => {
+		Object.defineProperty(navigator, 'userAgent', { configurable: true, value: origUA });
+	});
+
+	it('returns ios for an iPhone UA', () => {
+		setUa('Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) Safari/604.1');
+		expect(window.FFCGeofence.detectPlatformFamily()).toBe('ios');
+	});
+
+	it('returns android for an Android UA', () => {
+		setUa('Mozilla/5.0 (Linux; Android 14; Pixel 8) AppleWebKit/537.36 Chrome/120.0 Mobile Safari/537.36');
+		expect(window.FFCGeofence.detectPlatformFamily()).toBe('android');
+	});
+
+	it('returns desktop for a Windows Chrome UA', () => {
+		setUa('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/120.0 Safari/537.36');
+		expect(window.FFCGeofence.detectPlatformFamily()).toBe('desktop');
+	});
+});

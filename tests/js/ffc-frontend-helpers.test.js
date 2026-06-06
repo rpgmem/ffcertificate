@@ -7,7 +7,7 @@
 // contrary to what Sprint E of #170 originally scoped.
 //
 // Sprint E of #170.
-import { describe, it, expect, beforeAll, beforeEach, vi } from 'vitest';
+import { describe, it, expect, beforeAll, beforeEach, afterEach, vi } from 'vitest';
 import { loadScript } from './helpers.js';
 
 beforeAll(() => {
@@ -26,6 +26,16 @@ beforeAll(() => {
 
 beforeEach(() => {
 	document.body.innerHTML = '';
+	// Disable jQuery animation queueing so fadeIn/fadeOut apply synchronously
+	// (jsdom has no rAF clock the way a browser does).
+	if (window.$) { window.$.fx.off = true; }
+});
+
+// Always restore real timers between tests so a fake-timer test that throws
+// mid-body can't leak its clock into the next test (which would hang on a
+// real `setTimeout`).
+afterEach(() => {
+	vi.useRealTimers();
 });
 
 // ----------------------------------------------------------------------
@@ -105,6 +115,12 @@ describe('FFC.Frontend.Validation.validateCPF', () => {
 	it('rejects a CPF with an invalid second check digit', () => {
 		expect(V().validateCPF('52998224724')).toBe(false); // last digit off by 1
 	});
+
+	it('accepts a valid CPF whose second check digit collapses from >=10 to 0', () => {
+		// 100.000.002-80 is valid and its second digit calc yields >=10 → 0
+		// (exercises the `if (digit2 >= 10) digit2 = 0` branch).
+		expect(V().validateCPF('10000000280')).toBe(true);
+	});
 });
 
 describe('FFC.Frontend.Validation.validateRF', () => {
@@ -182,6 +198,29 @@ describe('FFC.Frontend.UI.showFormError', () => {
 		expect(form.textContent).toContain('second');
 		expect(form.textContent).not.toContain('first');
 	});
+
+	it('auto-removes the error notice after 10 seconds', () => {
+		vi.useFakeTimers();
+		U().showFormError(window.$('#f'), 'Transient');
+		expect(window.$('#f .ffc-form-error').length).toBe(1);
+		// $.fx.off is true → the fadeOut callback removes the node synchronously
+		// once the 10s timer fires.
+		vi.advanceTimersByTime(10000);
+		expect(window.$('#f .ffc-form-error').length).toBe(0);
+		vi.useRealTimers();
+	});
+});
+
+describe('FFC.Frontend.RateLimit._formatRemaining', () => {
+	it('returns 0:00 for non-positive remaining', () => {
+		expect(window.FFC.Frontend.RateLimit._formatRemaining(0)).toBe('0:00');
+		expect(window.FFC.Frontend.RateLimit._formatRemaining(-5)).toBe('0:00');
+	});
+
+	it('formats minutes and zero-padded seconds', () => {
+		expect(window.FFC.Frontend.RateLimit._formatRemaining(75)).toBe('1:15');
+		expect(window.FFC.Frontend.RateLimit._formatRemaining(5)).toBe('0:05');
+	});
 });
 
 describe('FFC.Frontend.UI.showFormSuccess', () => {
@@ -226,5 +265,57 @@ describe('FFC.Frontend.Masks', () => {
 		await new Promise((r) => setTimeout(r, 0));
 		// Mask inserts a dash at the midpoint: ABCD-1234.
 		expect($i.val()).toBe('ABCD-1234');
+	});
+
+	it('applyAuthCode leaves a 4-or-fewer-char code unmasked', () => {
+		const $i = window.$('#t');
+		M().applyAuthCode($i);
+		$i.val('AB1').trigger('input');
+		expect($i.val()).toBe('AB1');
+	});
+
+	it('applyAuthCode masks a 12-char code as XXXX-XXXX-XXXX', () => {
+		const $i = window.$('#t');
+		M().applyAuthCode($i);
+		$i.val('ABCD1234EFGH').trigger('input');
+		expect($i.val()).toBe('ABCD-1234-EFGH');
+	});
+
+	it('applyAuthCode detects a prefix and clamps the code to 12 chars', () => {
+		const $i = window.$('#t');
+		M().applyAuthCode($i);
+		// Leading "C" prefix + 13 code chars (>12 total) → prefix split out,
+		// code clamped to 12 → "C-XXXX-XXXX-XXXX".
+		$i.val('C1234567890123').trigger('input');
+		expect($i.val()).toBe('C-1234-5678-9012');
+	});
+
+	it('applyAuthCode applies the mask to a pre-filled initial value', () => {
+		document.body.innerHTML = '<input id="t" type="text" value="WXYZ7890" />';
+		const $i = window.$('#t');
+		M().applyAuthCode($i);
+		expect($i.val()).toBe('WXYZ-7890');
+	});
+
+	it('applyAuthCode re-masks shortly after a paste event', () => {
+		vi.useFakeTimers();
+		const $i = window.$('#t');
+		M().applyAuthCode($i);
+		$i.val('ABCD1234');
+		$i.trigger('paste');
+		vi.advanceTimersByTime(10);
+		expect($i.val()).toBe('ABCD-1234');
+		vi.useRealTimers();
+	});
+
+	it('applyTicket re-masks shortly after a paste event', () => {
+		vi.useFakeTimers();
+		const $i = window.$('#t');
+		M().applyTicket($i);
+		$i.val('ABCD1234');
+		$i.trigger('paste');
+		vi.advanceTimersByTime(10);
+		expect($i.val()).toBe('ABCD-1234');
+		vi.useRealTimers();
 	});
 });

@@ -10,6 +10,7 @@ import { loadScript } from './helpers.js';
 
 describe('ffc-smtp-settings', () => {
 	beforeEach(async () => {
+		window.$.fx.off = true;
 		// Reflects the v4 markup — master switch is now #emails_enabled
 		// (positive framing), and the option rows carry .ffc-email-option-row
 		// so the script can hide them as a group.
@@ -72,5 +73,52 @@ describe('ffc-smtp-settings', () => {
 			// jQuery .toggle(true) sets display: '' (empty string), not 'block'.
 			expect(row.style.display).not.toBe('none');
 		});
+	});
+
+	it('re-hides #smtp-options when mode is switched back to non-custom', () => {
+		const custom = document.querySelector('input[name="ffc_settings[smtp_mode]"][value="custom"]');
+		custom.checked = true;
+		window.$(custom).trigger('change');
+		expect(document.getElementById('smtp-options').classList.contains('ffc-hidden')).toBe(false);
+
+		// Switch back to WordPress mode → slideUp callback re-adds ffc-hidden.
+		const wp = document.querySelector('input[name="ffc_settings[smtp_mode]"][value="wordpress"]');
+		wp.checked = true;
+		custom.checked = false;
+		window.$(wp).trigger('change');
+		expect(document.getElementById('smtp-options').classList.contains('ffc-hidden')).toBe(true);
+	});
+
+	it('ignores mode changes while the master switch is off', () => {
+		const cb = document.getElementById('emails_enabled');
+		cb.checked = false;
+		window.$(cb).trigger('change');
+
+		const custom = document.querySelector('input[name="ffc_settings[smtp_mode]"][value="custom"]');
+		custom.checked = true;
+		window.$(custom).trigger('change');
+
+		// Master switch off → the mode handler returns early; block stays hidden.
+		expect(document.getElementById('smtp-options').classList.contains('ffc-hidden')).toBe(true);
+	});
+});
+
+describe('ffc-smtp-settings — initial visibility with custom mode', () => {
+	it('reveals #smtp-options on load when emails are on AND mode=custom', async () => {
+		window.$.fx.off = true;
+		document.body.innerHTML = `
+			<input type="checkbox" id="emails_enabled" checked />
+			<tr class="ffc-email-option-row"><td>row</td></tr>
+			<div id="smtp-mode-options">
+				<label><input type="radio" name="ffc_settings[smtp_mode]" value="wordpress" />WordPress</label>
+				<label><input type="radio" name="ffc_settings[smtp_mode]" value="custom" checked />Custom</label>
+			</div>
+			<div id="smtp-options" class="ffc-hidden" style="display:none"></div>
+		`;
+		loadScript('assets/js/ffc-smtp-settings.js');
+		await new Promise((r) => setTimeout(r, 0));
+
+		// applyVisibility() on load took the `on && modeIsCustom()` branch.
+		expect(document.getElementById('smtp-options').classList.contains('ffc-hidden')).toBe(false);
 	});
 });

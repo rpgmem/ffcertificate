@@ -71,6 +71,29 @@ describe('ffc-form-list-copy-shortcode', () => {
 		expect(document.querySelector('textarea')).toBeNull();
 	});
 
+	it('defers init to DOMContentLoaded while the document is still loading', () => {
+		installButtons();
+		const writeText = vi.fn();
+		Object.defineProperty(navigator, 'clipboard', {
+			value: { writeText },
+			configurable: true,
+		});
+		const readyStateSpy = vi
+			.spyOn(document, 'readyState', 'get')
+			.mockReturnValue('loading');
+		const addSpy = vi.spyOn(document, 'addEventListener');
+
+		loadScript(SCRIPT);
+
+		const dclCall = addSpy.mock.calls.find((c) => c[0] === 'DOMContentLoaded');
+		expect(dclCall).toBeTruthy();
+		readyStateSpy.mockRestore();
+		dclCall[1]();
+
+		document.querySelector('.ffc-copy-shortcode').click();
+		expect(writeText).toHaveBeenCalledWith('[ffc_form id=42]');
+	});
+
 	it('no-ops when there are no copy buttons on the page', () => {
 		document.body.innerHTML = '<div>no buttons</div>';
 		const writeText = vi.fn();

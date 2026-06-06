@@ -352,4 +352,22 @@ describe('certificates-dashboard — renderSideList', () => {
 		capturedOpts.onDayClick('2026-06-05');
 		expect(window.$('.ffc-certificates-day-title').text()).toBe('#42');
 	});
+
+	it('formatDateLabel falls back to the raw date string when toLocaleDateString throws', async () => {
+		// The catch branch is defensive — toLocaleDateString does not throw
+		// for a valid Date in normal runtimes. Force it so the fallback path
+		// (return dateStr) is exercised.
+		const orig = Date.prototype.toLocaleDateString;
+		Date.prototype.toLocaleDateString = function () { throw new RangeError('boom'); };
+		try {
+			await seed([
+				{ date: '2026-06-05', source: 'geofence', title: 'X', id: 7, edit_url: '/edit/7', status: 'publish' },
+			]);
+			capturedOpts.onDayClick('2026-06-05');
+			// The side title carries the raw '2026-06-05' instead of a localized label.
+			expect(window.$('.ffc-certificates-side-title').text()).toContain('2026-06-05');
+		} finally {
+			Date.prototype.toLocaleDateString = orig;
+		}
+	});
 });

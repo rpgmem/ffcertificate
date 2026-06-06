@@ -109,6 +109,23 @@ describe('GPS Permissions API pre-check', () => {
 		expect(navigator.geolocation.getCurrentPosition).not.toHaveBeenCalled();
 	});
 
+	it('denied → "Try anyway" re-enters the native flow (preflight skipped)', async () => {
+		stubPermissions('denied');
+		setupForm(7);
+		window.FFCGeofence.init();
+		await Promise.resolve();
+		await Promise.resolve();
+
+		expect(document.querySelector('.ffc-preflight-gps')).not.toBeNull();
+		window.$('.ffc-preflight-try-anyway').trigger('click');
+
+		// Banner gone and validateGeolocation re-entered → loading state.
+		expect(document.querySelector('.ffc-preflight-gps')).toBeNull();
+		expect(
+			document.querySelector('.ffc-form-wrapper').classList.contains('ffc-geofence-loading')
+		).toBe(true);
+	});
+
 	it('denied state on iOS UA: surfaces iOS-specific instructions', async () => {
 		Object.defineProperty(navigator, 'userAgent', {
 			configurable: true,

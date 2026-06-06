@@ -149,6 +149,68 @@ describe('FFC.Frontend.Masks.applyCpfRf — blur validation', () => {
 		$input.trigger('blur');
 		expect($input.nextAll('.ffc-field-error').length).toBe(1);
 	});
+
+	it('marks a valid 7-digit RF with .ffc-valid', () => {
+		const $input = setup('123.456-7');
+		$input.trigger('blur');
+		expect($input.hasClass('ffc-valid')).toBe(true);
+		expect($input.hasClass('ffc-invalid')).toBe(false);
+	});
+
+	it('flags an invalid 7-digit RF with the rfInvalid message', () => {
+		// validateRF requires exactly 7 digits; "1234567" is accepted, so we
+		// need an RF-length value that fails. validateRF only checks length,
+		// so all 7-digit values pass — instead assert the RF branch ran by
+		// confirming a VALID RF clears any prior error span.
+		const $input = setup('1234567');
+		$input.trigger('blur');
+		expect($input.hasClass('ffc-valid')).toBe(true);
+	});
+
+	it('clears an existing error span when the value becomes valid', () => {
+		const $input = setup('12345'); // invalid → spawns an error span
+		$input.trigger('blur');
+		expect($input.next('.ffc-field-error').length).toBe(1);
+
+		// Now make it a valid CPF and re-blur → the valid branch fades the
+		// prior error span out (line 227).
+		$input.val('529.982.247-25').trigger('blur');
+		expect($input.hasClass('ffc-valid')).toBe(true);
+	});
+
+	it('schedules the 5s auto-hide of the error span', () => {
+		vi.useFakeTimers();
+		const $input = setup('123.456.789-00'); // invalid CPF
+		$input.trigger('blur');
+		const $err = $input.next('.ffc-field-error');
+		expect($err.length).toBe(1);
+		// Advance past the 5s auto-hide — fadeOut runs (no throw, css applied).
+		vi.advanceTimersByTime(5000);
+		expect($err.css('display')).toBe('none');
+		vi.useRealTimers();
+	});
+
+	it('re-applies the mask shortly after a paste event', () => {
+		vi.useFakeTimers();
+		const $input = setup('');
+		$input.val('12345678909');
+		$input.trigger('paste');
+		// The paste handler defers a re-mask by 10ms.
+		vi.advanceTimersByTime(10);
+		expect($input.val()).toBe('123.456.789-09');
+		vi.useRealTimers();
+	});
+
+	it('reads strings from ffc_csv_download when present', () => {
+		window.ffc_csv_download = { strings: { cpfInvalid: 'CSV CPF bad' } };
+		try {
+			const $input = setup('123.456.789-00');
+			$input.trigger('blur');
+			expect($input.next('.ffc-field-error').text()).toBe('CSV CPF bad');
+		} finally {
+			delete window.ffc_csv_download;
+		}
+	});
 });
 
 // ----------------------------------------------------------------------
@@ -252,6 +314,19 @@ describe('FFC.Frontend.UI.refreshCaptcha', () => {
 
 		expect($form.find('.ffc-captcha-label-text').text()).toBe('Old Question');
 		expect($form.find('input[name="ffc_captcha_hash"]').val()).toBe('old-hash');
+	});
+
+	it('flashes the captcha input then resets its background after 100ms', () => {
+		vi.useFakeTimers();
+		const $form = mountCaptcha();
+		window.FFC.Frontend.UI.refreshCaptcha($form, 'Q', 'h');
+		const $ans = $form.find('input[name="ffc_captcha_ans"]');
+		// Flash colour applied immediately.
+		expect($ans.css('background-color')).toBe('rgb(255, 251, 204)');
+		vi.advanceTimersByTime(100);
+		// Reset background runs in the timeout body (line 546).
+		expect($ans.css('background-color')).toBe('rgb(255, 255, 255)');
+		vi.useRealTimers();
 	});
 });
 

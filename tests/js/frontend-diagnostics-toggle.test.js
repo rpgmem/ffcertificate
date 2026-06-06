@@ -45,7 +45,8 @@ afterEach(async () => {
 function setupModernAPIs() {
 	Object.defineProperty(navigator, 'serviceWorker', {
 		configurable: true,
-		value: { getRegistrations: () => Promise.resolve([]) },
+		// One registration so the `regs.map(r => r.scope)` callback runs.
+		value: { getRegistrations: () => Promise.resolve([{ scope: 'https://example.com/' }]) },
 	});
 	Object.defineProperty(navigator, 'permissions', {
 		configurable: true,
@@ -98,11 +99,50 @@ describe('browser-env diagnostic log gating (#361)', () => {
 		await Promise.resolve();
 
 		expect(infoSpy).toHaveBeenCalledWith(
-			'[FFC Diagnostics] Service workers:', 0, []
+			'[FFC Diagnostics] Service workers:', 1, ['https://example.com/']
 		);
 		expect(infoSpy).toHaveBeenCalledWith(
 			'[FFC Diagnostics] Clipboard write permission:', 'granted'
 		);
+	});
+
+	it('reports "API not available" when the modern browser APIs are absent', async () => {
+		// Force both APIs undefined so the else-branches fire.
+		Object.defineProperty(navigator, 'serviceWorker', { configurable: true, value: undefined });
+		Object.defineProperty(navigator, 'permissions', { configurable: true, value: undefined });
+		window.ffc_ajax = { ajax_url: '/x', nonce: 'n', debug_browser_env: true, strings: {} };
+		const infoSpy = vi.spyOn(console, 'info').mockImplementation(() => {});
+
+		loadScript('assets/js/ffc-core.js');
+		loadScript('assets/js/ffc-frontend-helpers.js');
+		loadScript('assets/js/ffc-frontend.js');
+		await Promise.resolve();
+		await Promise.resolve();
+
+		expect(infoSpy).toHaveBeenCalledWith('[FFC Diagnostics] Service workers: API not available');
+		expect(infoSpy).toHaveBeenCalledWith('[FFC Diagnostics] Permissions API: not available');
+	});
+
+	it('reports "not queryable" when the clipboard permission query rejects', async () => {
+		Object.defineProperty(navigator, 'serviceWorker', {
+			configurable: true,
+			value: { getRegistrations: () => Promise.resolve([]) },
+		});
+		Object.defineProperty(navigator, 'permissions', {
+			configurable: true,
+			value: { query: () => Promise.reject(new Error('nope')) },
+		});
+		window.ffc_ajax = { ajax_url: '/x', nonce: 'n', debug_browser_env: true, strings: {} };
+		const infoSpy = vi.spyOn(console, 'info').mockImplementation(() => {});
+
+		loadScript('assets/js/ffc-core.js');
+		loadScript('assets/js/ffc-frontend-helpers.js');
+		loadScript('assets/js/ffc-frontend.js');
+		await Promise.resolve();
+		await Promise.resolve();
+		await Promise.resolve();
+
+		expect(infoSpy).toHaveBeenCalledWith('[FFC Diagnostics] Clipboard write permission: not queryable');
 	});
 
 	it('FFCGeofence.init no longer fires the diagnostic log (regression guard)', async () => {

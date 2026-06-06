@@ -201,4 +201,118 @@ describe('Activity Log — error path', () => {
 		// Existing rows untouched.
 		expect(window.$('#ffc-activity-log-table tbody').html()).toContain('old row');
 	});
+
+	it('falls back to window.alert when showNotification is unavailable', async () => {
+		vi.spyOn(window.FFC, 'request').mockRejectedValue(new Error('Net down'));
+		// Temporarily remove the showNotification helper.
+		const saved = window.FFC.Admin.showNotification;
+		window.FFC.Admin.showNotification = undefined;
+		const alertSpy = vi.spyOn(window, 'alert').mockImplementation(() => {});
+
+		document.querySelector('.tablenav.top .alignleft form')
+			.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
+		await Promise.resolve(); await Promise.resolve();
+
+		expect(alertSpy).toHaveBeenCalledWith('Net down');
+		window.FFC.Admin.showNotification = saved;
+	});
+});
+
+describe('Activity Log — applyResponse table-shell rebuild', () => {
+	it('builds the table shell when the table container has no <tbody>', async () => {
+		// Replace the table block with a bare container (no <table>/<tbody>).
+		window.$('#ffc-activity-log-table').html('');
+		vi.spyOn(window.FFC, 'request').mockResolvedValue({
+			is_empty: false,
+			table_html: '<tr><td>REBUILT</td></tr>',
+			pagination_html: '<div class="pg">1</div>',
+		});
+
+		document.querySelector('.tablenav.top .alignleft form')
+			.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
+		await Promise.resolve(); await Promise.resolve();
+
+		// The shell was injected and the row landed inside the new tbody.
+		expect(window.$('#ffc-activity-log-table table thead th').length).toBe(6);
+		expect(window.$('#ffc-activity-log-table tbody').html()).toContain('REBUILT');
+	});
+
+	it('does nothing when the activity-log table container is absent', async () => {
+		window.$('#ffc-activity-log-table').remove();
+		const requestSpy = vi.spyOn(window.FFC, 'request').mockResolvedValue({ is_empty: false, table_html: '<tr></tr>' });
+		// Filter submit handler short-circuits because $table() is empty.
+		document.querySelector('.tablenav.top .alignleft form')
+			.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
+		await Promise.resolve(); await Promise.resolve();
+		expect(requestSpy).not.toHaveBeenCalled();
+	});
+
+	it('applyResponse bails when the table vanishes after the fetch starts', async () => {
+		// The table exists at submit time (so the handler proceeds) but is
+		// removed before the deferred response resolves, exercising the
+		// `if (!$tbl.length) return;` guard inside applyResponse.
+		let resolveFn;
+		vi.spyOn(window.FFC, 'request').mockReturnValue(new Promise((res) => { resolveFn = res; }));
+		document.querySelector('.tablenav.top .alignleft form')
+			.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
+		// Remove the table while the request is in flight.
+		window.$('#ffc-activity-log-table').remove();
+		resolveFn({ is_empty: false, table_html: '<tr><td>X</td></tr>' });
+		await Promise.resolve(); await Promise.resolve();
+		// No table re-created — applyResponse returned early.
+		expect(document.getElementById('ffc-activity-log-table')).toBeNull();
+	});
+});
+
+describe('Activity Log — pagination + clear-filter guards', () => {
+	it('ignores pagination clicks whose href has no paged param', async () => {
+		window.$('#ffc-activity-log-pagination').html('<a href="?foo=bar">no-page</a>');
+		const requestSpy = vi.spyOn(window.FFC, 'request').mockResolvedValue({ is_empty: false, table_html: '' });
+		window.$('#ffc-activity-log-pagination a').trigger('click');
+		await Promise.resolve(); await Promise.resolve();
+		expect(requestSpy).not.toHaveBeenCalled();
+	});
+
+	it('does NOT intercept a filtered link (href carries level/log_action/s)', async () => {
+		// A button whose href already has filters is the "active filter"
+		// link, not Clear Filters — the handler must let it through.
+		window.$('.tablenav.top .alignleft form').append(
+			'<a href="?post_type=ffc_form&page=ffc-activity-log&level=warning" class="button">Filtered</a>'
+		);
+		const requestSpy = vi.spyOn(window.FFC, 'request').mockResolvedValue({ is_empty: false, table_html: '' });
+		const ev = window.$.Event('click');
+		window.$('.tablenav.top .alignleft a.button[href*="level=warning"]').trigger(ev);
+		await Promise.resolve(); await Promise.resolve();
+		expect(requestSpy).not.toHaveBeenCalled();
+		expect(ev.isDefaultPrevented()).toBe(false);
+	});
+});
+
+describe('Activity Log — popstate restore', () => {
+	it('restores filters from the history state and refetches without pushing', async () => {
+		const requestSpy = vi.spyOn(window.FFC, 'request').mockResolvedValue({ is_empty: false, table_html: '<tr></tr>', pagination_html: '' });
+
+		const popEvent = window.$.Event('popstate');
+		popEvent.originalEvent = {
+			state: { filters: { level: 'warning', log_action: 'submission_created', search: 'alice' }, paged: 3 },
+		};
+		window.$(window).trigger(popEvent);
+		await Promise.resolve(); await Promise.resolve();
+
+		expect(window.$('#filter-by-level').val()).toBe('warning');
+		expect(window.$('#filter-by-action').val()).toBe('submission_created');
+		expect(window.$('#ffc-log-search').val()).toBe('alice');
+		expect(requestSpy).toHaveBeenCalledWith('ffc_activity_log_fetch', expect.objectContaining({
+			level: 'warning', log_action: 'submission_created', search: 'alice', paged: 3,
+		}));
+	});
+
+	it('ignores popstate events with no saved filters', async () => {
+		const requestSpy = vi.spyOn(window.FFC, 'request').mockResolvedValue({ is_empty: false, table_html: '' });
+		const popEvent = window.$.Event('popstate');
+		popEvent.originalEvent = { state: null };
+		window.$(window).trigger(popEvent);
+		await Promise.resolve(); await Promise.resolve();
+		expect(requestSpy).not.toHaveBeenCalled();
+	});
 });

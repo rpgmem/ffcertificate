@@ -157,6 +157,26 @@ describe('handleCookieBlocked banner', () => {
 		expect(window.$('.ffc-submission-form').css('display')).not.toBe('none');
 	});
 
+	it('"Try anyway" shows the form directly when the form config is gone', () => {
+		Object.defineProperty(navigator, 'cookieEnabled', { configurable: true, value: false });
+		setupGeofenceForm(42, {
+			adminBypass: false,
+			datetime: { enabled: false },
+			geo: { enabled: false },
+		});
+
+		window.FFCGeofence.init();
+		expect(document.querySelector('.ffc-preflight-banner')).not.toBeNull();
+
+		// Drop the per-form config so the try-anyway handler takes its
+		// `if (! config) { this.showForm(...) }` branch.
+		delete window.ffcGeofenceConfig[42];
+		window.$('.ffc-preflight-try-anyway').trigger('click');
+
+		expect(document.querySelector('.ffc-preflight-banner')).toBeNull();
+		expect(window.$('.ffc-submission-form').css('display')).not.toBe('none');
+	});
+
 	it('does NOT run cookie check when datetime gate fails (early return)', () => {
 		Object.defineProperty(navigator, 'cookieEnabled', { configurable: true, value: false });
 		setupGeofenceForm(42, {

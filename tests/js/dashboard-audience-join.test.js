@@ -129,6 +129,58 @@ describe('FFCDashboard.audienceJoin.load', () => {
 		expect(section.querySelectorAll('.ffc-audience-leave-btn').length).toBe(1);
 	});
 
+	it('toggles the accordion open/closed on header click', async () => {
+		// renderJoinableGroups binds the accordion handler with
+		// $section.on(...) on every load(); prior tests in this file
+		// already triggered load(), so the SAME section element carries
+		// multiple identical delegated handlers — an even count cancels a
+		// single click's net effect. Recreate the section so exactly one
+		// handler is bound for this assertion.
+		document.getElementById('ffc-audience-join-section').remove();
+		document.getElementById('ffc-dashboard').insertAdjacentHTML(
+			'beforeend',
+			'<div id="ffc-audience-join-section"></div>'
+		);
+		mockAjaxSuccess({
+			parents: [{
+				id: 1, name: 'Parent', color: '#000',
+				children: [
+					{ id: 2, name: 'Child A', color: null, children: [], is_member: false },
+				],
+			}],
+			max_groups: 5,
+			joined_count: 0,
+		});
+		audienceJoin().load();
+		await flushPromises();
+		const section = document.querySelector('#ffc-audience-join-section');
+		const header = section.querySelector('.ffc-audience-accordion-toggle');
+		const list = section.querySelector('.ffc-audience-children-list');
+		// Collapsed initially.
+		expect(header.getAttribute('aria-expanded')).toBe('false');
+		expect(list.classList.contains('ffc-audience-collapsed')).toBe(true);
+
+		window.$(header).trigger('click');
+		expect(header.getAttribute('aria-expanded')).toBe('true');
+		expect(list.classList.contains('ffc-audience-collapsed')).toBe(false);
+		expect(section.querySelector('.ffc-audience-toggle-icon').textContent).toBe('−');
+
+		// Second click collapses again.
+		window.$(header).trigger('click');
+		expect(header.getAttribute('aria-expanded')).toBe('false');
+		expect(list.classList.contains('ffc-audience-collapsed')).toBe(true);
+		expect(section.querySelector('.ffc-audience-toggle-icon').textContent).toBe('+');
+	});
+
+	it('appends viewAsUserId to the joinable-groups request when impersonating', async () => {
+		window.ffcDashboard.viewAsUserId = 33;
+		const spy = vi.spyOn(window.$, 'ajax').mockImplementation(() => ({}));
+		audienceJoin().load();
+		await flushPromises();
+		expect(spy.mock.calls[0][0].url).toContain('?viewAsUserId=33');
+		delete window.ffcDashboard.viewAsUserId;
+	});
+
 	it('empties the section when AJAX errors out', async () => {
 		// Pre-populate so we can prove the error branch clears it.
 		document.querySelector('#ffc-audience-join-section').innerHTML = '<p>old</p>';

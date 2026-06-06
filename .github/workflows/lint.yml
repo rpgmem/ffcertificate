@@ -67,7 +67,16 @@ jobs:
       # jitter ~1pp), clearing the 85.53% high-water. Bumping 82 → 85 with
       # a ~2.8pp buffer over the lowest run (≤5pp floor-buffer policy —
       # see CLAUDE.md).
-      JS_COVERAGE_FLOOR_LINES: '85'
+      #
+      # "Toward 100%" pass: deep tests added across every remaining sub-100%
+      # source file (audience/calendar, admin, csv, dashboards, frontend,
+      # geofence, recruitment, reregistration + the long tail). Overall
+      # statement coverage ~88% → 99.44% (6893/6932). The ~40 residual lines
+      # are all documented as jsdom-unreachable or structurally dead (focus
+      # traps gated by :visible, env/feature guards, layout math needing real
+      # clientWidth, fake-timer-vs-promise cleanup). Bumping 85 → 96 — a
+      # ~3.4pp buffer under the measured number, within the ≤5pp policy.
+      JS_COVERAGE_FLOOR_LINES: '96'
     steps:
       - uses: actions/checkout@v6
       - uses: actions/setup-node@v6

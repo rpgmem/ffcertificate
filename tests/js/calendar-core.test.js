@@ -153,4 +153,143 @@ describe('FFCCalendarCore setters', () => {
 		inst.setOptions({ showLegend: false });
 		expect(inst.options.showLegend).toBe(false);
 	});
+
+	it('refresh re-renders the days without changing the month', () => {
+		const inst = build();
+		inst.goToDate('2026-06-15');
+		const before = inst.$month.text();
+		inst.refresh();
+		expect(inst.$month.text()).toBe(before);
+	});
+});
+
+// ----------------------------------------------------------------------
+// Constructor edge cases
+// ----------------------------------------------------------------------
+
+describe('FFCCalendarCore constructor edge cases', () => {
+	it('replaces (not index-merges) legendItems when overridden', () => {
+		const inst = build({ legendItems: [{ class: 'x', label: 'Custom' }] });
+		expect(inst.options.legendItems).toEqual([{ class: 'x', label: 'Custom' }]);
+		expect(document.querySelectorAll('#cal .ffc-legend-item').length).toBe(1);
+	});
+
+	it('renders a filters container when showFilters is enabled', () => {
+		build({ showFilters: true });
+		expect(document.querySelector('#cal .ffc-calendar-filters')).not.toBeNull();
+	});
+});
+
+// ----------------------------------------------------------------------
+// bindEvents — delegated click handlers
+// ----------------------------------------------------------------------
+
+describe('FFCCalendarCore bindEvents', () => {
+	it('prev / next nav buttons shift the rendered month', () => {
+		const inst = build();
+		inst.goToDate('2026-06-15');
+		window.$('#cal .ffc-next-month').trigger('click');
+		expect(inst.currentDate.getMonth()).toBe(6); // July
+		window.$('#cal .ffc-prev-month').trigger('click');
+		window.$('#cal .ffc-prev-month').trigger('click');
+		expect(inst.currentDate.getMonth()).toBe(4); // May
+	});
+
+	it('today button resets the current date', () => {
+		const inst = build();
+		inst.goToDate('2000-01-15');
+		window.$('#cal .ffc-today-btn').trigger('click');
+		expect(inst.currentDate.getFullYear()).toBe(new Date().getFullYear());
+	});
+
+	it('clicking a current-month day selects it and fires onDayClick', () => {
+		const onDayClick = vi.fn();
+		const inst = build({ onDayClick });
+		inst.goToDate('2026-06-15');
+		window.$('#cal .ffc-day[data-date="2026-06-15"]').trigger('click');
+		expect(inst.selectedDate).toBe('2026-06-15');
+		expect(onDayClick).toHaveBeenCalled();
+		expect(onDayClick.mock.calls[0][0]).toBe('2026-06-15');
+	});
+});
+
+// ----------------------------------------------------------------------
+// renderDays — class + content callbacks, min/max gating, onMonthChange
+// ----------------------------------------------------------------------
+
+describe('FFCCalendarCore renderDays', () => {
+	it('disables days before minDate and after maxDate', () => {
+		const inst = build({
+			minDate: new Date(2026, 5, 10),
+			maxDate: new Date(2026, 5, 20),
+		});
+		inst.goToDate('2026-06-15');
+		// Day 5 is before min, day 25 is after max → both disabled.
+		expect(window.$('#cal .ffc-day[data-date="2026-06-05"]').hasClass('ffc-disabled')).toBe(true);
+		expect(window.$('#cal .ffc-day[data-date="2026-06-25"]').hasClass('ffc-disabled')).toBe(true);
+	});
+
+	it('applies custom classes from getDayClasses and content from getDayContent', () => {
+		const inst = build({
+			getDayClasses: (dateStr) => (dateStr === '2026-06-15' ? ['ffc-mark'] : []),
+			getDayContent: (dateStr) => (dateStr === '2026-06-15' ? '<span class="custom-content">!</span>' : ''),
+		});
+		inst.goToDate('2026-06-15');
+		expect(window.$('#cal .ffc-day[data-date="2026-06-15"]').hasClass('ffc-mark')).toBe(true);
+		expect(window.$('#cal .ffc-day[data-date="2026-06-15"] .custom-content').length).toBe(1);
+	});
+
+	it('re-applies the ffc-selected class to the selected date on re-render', () => {
+		const inst = build();
+		inst.goToDate('2026-06-15');
+		inst.selectDate('2026-06-15');
+		inst.renderDays(); // re-render keeps the selection highlighted
+		expect(window.$('#cal .ffc-day[data-date="2026-06-15"]').hasClass('ffc-selected')).toBe(true);
+	});
+
+	it('fires onMonthChange only when the rendered year/month actually changes', () => {
+		const onMonthChange = vi.fn();
+		const inst = build({ onMonthChange });
+		inst.goToDate('2026-06-15');
+		const callsAfterJune = onMonthChange.mock.calls.length;
+		expect(callsAfterJune).toBeGreaterThanOrEqual(1);
+		// A bare re-render of the same month must NOT re-fire it.
+		inst.renderDays();
+		expect(onMonthChange.mock.calls.length).toBe(callsAfterJune);
+		// Navigating to a new month DOES re-fire it.
+		inst.goToDate('2026-07-15');
+		expect(onMonthChange.mock.calls.length).toBe(callsAfterJune + 1);
+		expect(onMonthChange.mock.calls.at(-1)).toEqual([2026, 7]); // 1-indexed month
+	});
+});
+
+// ----------------------------------------------------------------------
+// Misc accessors + destroy
+// ----------------------------------------------------------------------
+
+describe('FFCCalendarCore accessors + destroy', () => {
+	it('parseDate parses a Y-m-d string into a local Date', () => {
+		const inst = build();
+		const d = inst.parseDate('2027-03-09');
+		expect(d.getFullYear()).toBe(2027);
+		expect(d.getMonth()).toBe(2);
+		expect(d.getDate()).toBe(9);
+	});
+
+	it('getCurrentMonth returns the 1-indexed year/month', () => {
+		const inst = build();
+		inst.goToDate('2026-06-15');
+		expect(inst.getCurrentMonth()).toEqual({ year: 2026, month: 6 });
+	});
+
+	it('getFiltersContainer returns the filters element', () => {
+		const inst = build({ showFilters: true });
+		expect(inst.getFiltersContainer().length).toBe(1);
+	});
+
+	it('destroy empties the container and removes handlers', () => {
+		const inst = build();
+		inst.destroy();
+		expect(window.$('#cal').children().length).toBe(0);
+	});
 });

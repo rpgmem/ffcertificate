@@ -15,7 +15,7 @@ beforeAll(() => {
 		restUrl: '/wp-json/ffc/v1/audience/',
 		nonce: 'n',
 		searchUsersNonce: 'su-nonce',
-		locale: 'pt_BR',
+		locale: 'pt-BR',
 		strings: {
 			createBooking: 'Create booking',
 			loading: 'Loading…',
@@ -73,7 +73,6 @@ function modalFixture() {
 	`;
 }
 
-// Fill a valid audience-type booking so validate passes.
 function setValidAudienceForm() {
 	window.$('#booking-all-day').prop('checked', false);
 	window.$('#booking-start-time').val('09:00');
@@ -113,17 +112,47 @@ describe('ffc-audience-booking-form — openBookingModal', () => {
 	it('populates the environment select, sets the date display and shows the modal', () => {
 		api.openBookingModal('2026-06-10');
 		const $opts = window.$('#booking-environment-id option');
-		expect($opts.length).toBe(2); // two environments
+		expect($opts.length).toBe(2);
 		expect(window.$('.ffc-booking-date-display').text().length).toBeGreaterThan(0);
 		expect(window.$('#ffc-booking-modal').css('display')).not.toBe('none');
 		expect(window.$('#booking-date').val()).toBe('2026-06-10');
-		// Single schedule with environmentLabel relabels the env field.
 		expect(window.$('label[for="booking-environment-id"]').html()).toContain('Room');
 	});
 
 	it('pre-selects the passed environment id', () => {
 		api.openBookingModal('2026-06-10', '20');
 		expect(window.$('#booking-environment-id').val()).toBe('20');
+	});
+
+	it('groups options by schedule name when multiple schedules exist', () => {
+		api.state.config.schedules = [
+			{ id: 1, name: 'Sched A', environments: [{ id: 10, name: 'Env A' }] },
+			{ id: 2, name: 'Sched B', environments: [{ id: 20, name: 'Env B' }] },
+		];
+		api.openBookingModal('2026-06-10');
+		const labels = window.$('#booking-environment-id option').map((_, el) => el.textContent).get();
+		expect(labels).toContain('Sched A - Env A');
+		expect(labels).toContain('Sched B - Env B');
+	});
+
+	it('renders a single bare option when only one environment exists', () => {
+		api.state.config.schedules = [
+			{ id: 1, name: 'Sched A', environments: [{ id: 10, name: 'Only Env' }] },
+		];
+		api.openBookingModal('2026-06-10');
+		const $opts = window.$('#booking-environment-id option');
+		expect($opts.length).toBe(1);
+		expect($opts.eq(0).text()).toBe('Only Env');
+	});
+
+	it('resolves the environment label from the selected schedule', () => {
+		api.state.config.schedules = [
+			{ id: 1, name: 'Sched A', environmentLabel: 'Sala 1', environments: [{ id: 10, name: 'Env A' }] },
+			{ id: 2, name: 'Sched B', environmentLabel: 'Sala 2', environments: [{ id: 20, name: 'Env B' }] },
+		];
+		api.state.selectedSchedule = 2;
+		api.openBookingModal('2026-06-10');
+		expect(window.$('label[for="booking-environment-id"]').html()).toContain('Sala 2');
 	});
 });
 
@@ -141,7 +170,7 @@ describe('ffc-audience-booking-form — searchUsers', () => {
 		api.state.selectedUsers = { 7: 'Bob' };
 		vi.spyOn(window.FFC, 'request').mockResolvedValue([
 			{ id: 5, name: 'Alice', email: 'a@x.test' },
-			{ id: 7, name: 'Bob', email: 'b@x.test' }, // already selected → skipped
+			{ id: 7, name: 'Bob', email: 'b@x.test' },
 		]);
 		api.searchUsers('al');
 		await Promise.resolve().then(() => Promise.resolve());
@@ -216,13 +245,33 @@ describe('ffc-audience-booking-form — validation guards (via checkConflicts)',
 	it('skips time validation for an all-day booking', () => {
 		setValidAudienceForm();
 		window.$('#booking-all-day').prop('checked', true);
-		window.$('#booking-start-time').val(''); // ignored when all-day
+		window.$('#booking-start-time').val('');
 		const restSpy = vi.spyOn(window.FFC, 'rest').mockResolvedValue({ success: true, conflicts: {} });
 		api.checkConflicts();
 		expect(restSpy).toHaveBeenCalled();
-		// getBookingFormData substitutes the all-day window.
 		expect(restSpy.mock.calls[0][1].data.start_time).toBe('00:00');
 		expect(restSpy.mock.calls[0][1].data.end_time).toBe('23:59');
+	});
+});
+
+describe('ffc-audience-booking-form — getBookingFormData (via createBooking payload)', () => {
+	it('maps comma-separated user ids to an int array for a user booking', async () => {
+		setValidAudienceForm();
+		window.$('#booking-type').val('users');
+		window.$('#booking-user-ids').val('5, 7, ');
+		const restSpy = vi.spyOn(window.FFC, 'rest').mockResolvedValue({ success: true });
+		api.createBooking();
+		await Promise.resolve().then(() => Promise.resolve());
+		expect(restSpy.mock.calls[0][1].data.user_ids).toEqual([5, 7]);
+		expect(restSpy.mock.calls[0][1].data.booking_type).toBe('users');
+	});
+
+	it('maps selected audience ids to an int array for an audience booking', async () => {
+		setValidAudienceForm();
+		const restSpy = vi.spyOn(window.FFC, 'rest').mockResolvedValue({ success: true });
+		api.createBooking();
+		await Promise.resolve().then(() => Promise.resolve());
+		expect(restSpy.mock.calls[0][1].data.audience_ids).toEqual([11]);
 	});
 });
 
@@ -280,9 +329,45 @@ describe('ffc-audience-booking-form — checkConflicts outcomes', () => {
 		expect(alertSpy).toHaveBeenCalledWith('Bad');
 	});
 
-	it('alerts on a rejected conflict request', async () => {
+	it('alerts on a rejected conflict request (generic error)', async () => {
 		const alertSpy = vi.spyOn(window, 'alert').mockImplementation(() => {});
 		vi.spyOn(window.FFC, 'rest').mockRejectedValue({ message: 'boom', xhr: null });
+		api.checkConflicts();
+		await Promise.resolve().then(() => Promise.resolve());
+		expect(alertSpy).toHaveBeenCalledWith('Error');
+	});
+
+	it('surfaces the xhr responseJSON message on a rejected conflict request', async () => {
+		const alertSpy = vi.spyOn(window, 'alert').mockImplementation(() => {});
+		vi.spyOn(window.FFC, 'rest').mockRejectedValue({
+			message: 'http 409',
+			xhr: { responseJSON: { message: 'Server says conflict' } },
+		});
+		api.checkConflicts();
+		await Promise.resolve().then(() => Promise.resolve());
+		expect(alertSpy).toHaveBeenCalledWith('Server says conflict');
+	});
+
+	it('surfaces the timeout string when the xhr reports a timeout', async () => {
+		const alertSpy = vi.spyOn(window, 'alert').mockImplementation(() => {});
+		vi.spyOn(window.FFC, 'rest').mockRejectedValue({
+			message: 'timeout',
+			xhr: { statusText: 'timeout', responseJSON: null },
+		});
+		api.checkConflicts();
+		await Promise.resolve().then(() => Promise.resolve());
+		expect(alertSpy).toHaveBeenCalledWith('Timed out.');
+	});
+
+	it('alerts the generic error if the response handler throws', async () => {
+		const alertSpy = vi.spyOn(window, 'alert').mockImplementation(() => {});
+		// A truthy success with audience_same_day entries whose shape makes
+		// the grouping logic run; force a throw by passing a non-iterable
+		// bookings value with type user.
+		vi.spyOn(window.FFC, 'rest').mockResolvedValue({
+			success: true,
+			conflicts: { type: 'environment', bookings: null },
+		});
 		api.checkConflicts();
 		await Promise.resolve().then(() => Promise.resolve());
 		expect(alertSpy).toHaveBeenCalledWith('Error');
@@ -302,6 +387,15 @@ describe('ffc-audience-booking-form — createBooking', () => {
 		expect(alertSpy).toHaveBeenCalledWith('Booking created.');
 		expect(api.closeModals).toHaveBeenCalled();
 		expect(api.renderCalendar).toHaveBeenCalled();
+	});
+
+	it('blocks the POST when validation fails', () => {
+		setValidAudienceForm();
+		window.$('#booking-description').val('short');
+		const restSpy = vi.spyOn(window.FFC, 'rest');
+		vi.spyOn(window, 'alert').mockImplementation(() => {});
+		api.createBooking();
+		expect(restSpy).not.toHaveBeenCalled();
 	});
 
 	it('re-enables the button and alerts on a server failure', async () => {
