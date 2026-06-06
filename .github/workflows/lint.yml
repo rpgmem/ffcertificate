@@ -54,6 +54,13 @@ jobs:
       # measured 85.16% locally (below the #200 high-water-mark of
       # 85.53%). No headroom to bump on JS; wait for §7.4b/c follow-ups
       # or a dedicated JS-deep PR before ratcheting again.
+      #
+      # JS-deep pass (per-file ≥50% campaign): ffc-section-collapse
+      # 0%→100% and ffc-csv-extend-end 7.7%→98.5% (the two remaining
+      # near-0% shipped files). Overall 84.0%→85.05% — real per-file
+      # gains banked, but still a hair under the 85.53% high-water, so the
+      # floor stays 82 here; the audience-cluster follow-up (booking-form,
+      # bookings, audience) is expected to clear the high-water and bump.
       JS_COVERAGE_FLOOR_LINES: '82'
     steps:
       - uses: actions/checkout@v6
