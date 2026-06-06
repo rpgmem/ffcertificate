@@ -76,7 +76,7 @@ class ReregistrationAdminTest extends TestCase {
 
     protected function tearDown(): void {
         unset( $_GET['page'], $_GET['view'], $_GET['id'], $_GET['message'], $_GET['action'], $_GET['_wpnonce'] );
-        unset( $_POST['ffc_action'], $_POST['audience_ids'] );
+        unset( $_POST['ffc_action'], $_POST['audience_ids'], $_POST['reregistration_id'], $_POST['rereg_status'], $_POST['rereg_audience_ids'] );
         Monkey\tearDown();
         parent::tearDown();
     }
@@ -312,5 +312,188 @@ class ReregistrationAdminTest extends TestCase {
 
         $this->assertSame( 'success', $this->json_responses[0]['type'] );
         $this->assertSame( 0, $this->json_responses[0]['data']['count'] );
+    }
+
+    // ==================================================================
+    // handle_save() / handle_delete()
+    // ==================================================================
+
+    private function invoke_private( ReregistrationAdmin $admin, string $method, array $args = array() ) {
+        $ref = new \ReflectionMethod( ReregistrationAdmin::class, $method );
+        $ref->setAccessible( true );
+        return $ref->invokeArgs( $admin, $args );
+    }
+
+    /**
+     * @runInSeparateProcess
+     * @preserveGlobalState disabled
+     */
+    public function test_handle_save_creates_active_campaign_and_redirects(): void {
+        Functions\when( 'wp_verify_nonce' )->justReturn( true );
+        Functions\when( 'wp_safe_redirect' )->alias( fn() => throw new \RuntimeException( 'redirected' ) );
+
+        $_POST['ffc_action']         = 'save_reregistration';
+        $_POST['reregistration_id']  = 0;
+        $_POST['rereg_status']       = 'active';
+        $_POST['rereg_audience_ids'] = array( '3', '4' );
+
+        Mockery::mock( 'alias:FreeFormCertificate\Core\Utils' )
+            ->shouldReceive( 'current_user_can_admin_or' )->andReturn( true )
+            ->shouldReceive( 'get_post_string' )->andReturnUsing(
+                function ( $key, $default = '' ) {
+                    $map = array(
+                        'rereg_title'      => 'My Campaign',
+                        'rereg_start_date' => '2026-01-01',
+                        'rereg_end_date'   => '2026-12-31',
+                        'rereg_status'     => 'active',
+                    );
+                    return $map[ $key ] ?? $default;
+                }
+            );
+
+        Mockery::mock( 'alias:FreeFormCertificate\Reregistration\ReregistrationRepository' )
+            ->shouldReceive( 'create' )->once()->andReturn( 55 )
+            ->shouldReceive( 'set_audience_ids' )->once()->with( 55, array( 3, 4 ) );
+
+        Mockery::mock( 'alias:FreeFormCertificate\Reregistration\ReregistrationSubmissionRepository' )
+            ->shouldReceive( 'create_for_audience_members' )->once()->with( 55, array( 3, 4 ) );
+
+        Mockery::mock( 'alias:FreeFormCertificate\Reregistration\ReregistrationEmailHandler' )
+            ->shouldReceive( 'send_invitations' )->once()->with( 55 )->andReturn( 0 );
+
+        $admin = new ReregistrationAdmin();
+        $this->expectException( \RuntimeException::class );
+        $this->expectExceptionMessage( 'redirected' );
+        $this->invoke_private( $admin, 'handle_save' );
+    }
+
+    /**
+     * @runInSeparateProcess
+     * @preserveGlobalState disabled
+     */
+    public function test_handle_save_updates_existing_draft_campaign(): void {
+        Functions\when( 'wp_verify_nonce' )->justReturn( true );
+        Functions\when( 'wp_safe_redirect' )->alias( fn() => throw new \RuntimeException( 'redirected' ) );
+
+        $_POST['ffc_action']        = 'save_reregistration';
+        $_POST['reregistration_id'] = 9;
+
+        Mockery::mock( 'alias:FreeFormCertificate\Core\Utils' )
+            ->shouldReceive( 'current_user_can_admin_or' )->andReturn( true )
+            ->shouldReceive( 'get_post_string' )->andReturnUsing(
+                function ( $key, $default = '' ) {
+                    $map = array(
+                        'rereg_title'      => 'Updated',
+                        'rereg_start_date' => '2026-01-01',
+                        'rereg_end_date'   => '2026-12-31',
+                        'rereg_status'     => 'draft',
+                    );
+                    return $map[ $key ] ?? $default;
+                }
+            );
+
+        // Existing campaign already draft → no membership/invitation side effects.
+        Mockery::mock( 'alias:FreeFormCertificate\Reregistration\ReregistrationRepository' )
+            ->shouldReceive( 'get_by_id' )->with( 9 )->andReturn( (object) array( 'status' => 'draft' ) )
+            ->shouldReceive( 'update' )->once()->with( 9, Mockery::type( 'array' ) )
+            ->shouldReceive( 'set_audience_ids' )->once()->with( 9, array() );
+
+        $admin = new ReregistrationAdmin();
+        $this->expectException( \RuntimeException::class );
+        $this->expectExceptionMessage( 'redirected' );
+        $this->invoke_private( $admin, 'handle_save' );
+    }
+
+    public function test_handle_save_returns_early_without_action(): void {
+        unset( $_POST['ffc_action'] );
+        $admin = new ReregistrationAdmin();
+        $this->invoke_private( $admin, 'handle_save' );
+        $this->assertTrue( true );
+    }
+
+    /**
+     * @runInSeparateProcess
+     * @preserveGlobalState disabled
+     */
+    public function test_handle_save_returns_early_on_bad_nonce(): void {
+        $_POST['ffc_action'] = 'save_reregistration';
+        Functions\when( 'wp_verify_nonce' )->justReturn( false );
+        Mockery::mock( 'alias:FreeFormCertificate\Core\Utils' )
+            ->shouldReceive( 'get_post_string' )->andReturn( '' );
+
+        $admin = new ReregistrationAdmin();
+        $this->invoke_private( $admin, 'handle_save' );
+        $this->assertTrue( true );
+    }
+
+    public function test_handle_delete_returns_early_without_action(): void {
+        unset( $_GET['action'] );
+        $admin = new ReregistrationAdmin();
+        $this->invoke_private( $admin, 'handle_delete' );
+        $this->assertTrue( true );
+    }
+
+    /**
+     * @runInSeparateProcess
+     * @preserveGlobalState disabled
+     */
+    public function test_handle_delete_dies_without_delete_cap(): void {
+        $_GET['action'] = 'delete';
+        $_GET['id']     = '5';
+        Functions\when( 'wp_die' )->alias( fn( $msg ) => throw new \RuntimeException( $msg ) );
+
+        Mockery::mock( 'alias:FreeFormCertificate\Core\Utils' )
+            ->shouldReceive( 'current_user_can_admin_or' )->with( 'ffc_delete_reregistration' )->andReturn( false );
+
+        $admin = new ReregistrationAdmin();
+        $this->expectException( \RuntimeException::class );
+        $this->expectExceptionMessage( 'permission to delete' );
+        $this->invoke_private( $admin, 'handle_delete' );
+    }
+
+    /**
+     * @runInSeparateProcess
+     * @preserveGlobalState disabled
+     */
+    public function test_handle_delete_deletes_and_redirects(): void {
+        $_GET['action']   = 'delete';
+        $_GET['id']       = '5';
+        $_GET['_wpnonce'] = 'good';
+        Functions\when( 'wp_verify_nonce' )->justReturn( true );
+        Functions\when( 'wp_safe_redirect' )->alias( fn() => throw new \RuntimeException( 'redirected' ) );
+
+        Mockery::mock( 'alias:FreeFormCertificate\Core\Utils' )
+            ->shouldReceive( 'current_user_can_admin_or' )->andReturn( true )
+            ->shouldReceive( 'get_get_string' )->andReturn( 'good' );
+
+        Mockery::mock( 'alias:FreeFormCertificate\Reregistration\ReregistrationRepository' )
+            ->shouldReceive( 'delete' )->once()->with( 5 );
+
+        $admin = new ReregistrationAdmin();
+        $this->expectException( \RuntimeException::class );
+        $this->expectExceptionMessage( 'redirected' );
+        $this->invoke_private( $admin, 'handle_delete' );
+    }
+
+    /**
+     * @runInSeparateProcess
+     * @preserveGlobalState disabled
+     */
+    public function test_handle_delete_returns_early_on_bad_nonce(): void {
+        $_GET['action']   = 'delete';
+        $_GET['id']       = '5';
+        $_GET['_wpnonce'] = 'bad';
+        Functions\when( 'wp_verify_nonce' )->justReturn( false );
+
+        Mockery::mock( 'alias:FreeFormCertificate\Core\Utils' )
+            ->shouldReceive( 'current_user_can_admin_or' )->andReturn( true )
+            ->shouldReceive( 'get_get_string' )->andReturn( 'bad' );
+
+        Mockery::mock( 'alias:FreeFormCertificate\Reregistration\ReregistrationRepository' )
+            ->shouldReceive( 'delete' )->never();
+
+        $admin = new ReregistrationAdmin();
+        $this->invoke_private( $admin, 'handle_delete' );
+        $this->assertTrue( true );
     }
 }
