@@ -123,10 +123,14 @@
 			if (s && e && s >= e) {
 				return strings.scheduleExceptionRangeInverted || 'Start must be earlier than end.';
 			}
-			if (opts.windowStart && s && s < opts.windowStart) {
+			// Only a side the operator actually changed from the baseline is
+			// constrained to the window. A side left at baseline — notably the
+			// start in "End now (start stays at baseline)" mode — may legitimately
+			// sit outside the window (e.g. a 00:00 baseline under a 14:30 window).
+			if (opts.windowStart && s && s !== opts.baselineStart && s < opts.windowStart) {
 				return (strings.scheduleExceptionOutOfWindow || 'Range must stay within %1$s–%2$s.').replace('%1$s', opts.windowStart).replace('%2$s', opts.windowEnd);
 			}
-			if (opts.windowEnd && e && e > opts.windowEnd) {
+			if (opts.windowEnd && e && e !== opts.baselineEnd && e > opts.windowEnd) {
 				return (strings.scheduleExceptionOutOfWindow || 'Range must stay within %1$s–%2$s.').replace('%1$s', opts.windowStart).replace('%2$s', opts.windowEnd);
 			}
 			if (s === opts.baselineStart && e === opts.baselineEnd) {
