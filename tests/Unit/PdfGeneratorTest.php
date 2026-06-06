@@ -455,4 +455,157 @@ class PdfGeneratorTest extends TestCase {
         $this->assertSame( '08:30', $s, 'start falls through to class_time when override is null' );
         $this->assertSame( '17:00', $e, 'end takes the override' );
     }
+
+    // ==================================================================
+    // generate_html()
+    // ==================================================================
+
+    /** Stub the WP funcs that generate_html() / its placeholder helpers need. */
+    private function stub_html_funcs(): void {
+        Functions\when( 'wp_kses' )->alias( fn ( $v ) => (string) $v );
+        Functions\when( 'get_bloginfo' )->justReturn( 'Test Site' );
+        Functions\when( 'get_home_url' )->justReturn( 'https://example.com' );
+        Functions\when( 'untrailingslashit' )->alias( fn ( $u ) => rtrim( (string) $u, '/' ) );
+        Functions\when( 'site_url' )->alias( fn ( $p = '' ) => 'https://example.com/' . ltrim( (string) $p, '/' ) );
+        Functions\when( 'apply_filters' )->alias( fn ( $tag, $value = '' ) => $value );
+        Functions\when( 'get_option' )->justReturn( array() );
+        Functions\when( 'wp_normalize_path' )->alias( fn ( $p ) => str_replace( '\\', '/', (string) $p ) );
+        Functions\when( 'get_template_directory' )->justReturn( '/tmp/theme' );
+        Functions\when( 'get_stylesheet_directory' )->justReturn( '/tmp/theme' );
+        // Generators-namespaced fallbacks (the PdfGenerator class calls these unqualified).
+        Functions\when( 'FreeFormCertificate\Generators\wp_normalize_path' )->alias( fn ( $p ) => str_replace( '\\', '/', (string) $p ) );
+        Functions\when( 'FreeFormCertificate\Generators\get_template_directory' )->justReturn( '/tmp/theme' );
+        Functions\when( 'FreeFormCertificate\Generators\get_stylesheet_directory' )->justReturn( '/tmp/theme' );
+        Functions\when( 'FreeFormCertificate\Generators\apply_filters' )->alias( fn ( $tag, $value = '' ) => $value );
+        Functions\when( 'FreeFormCertificate\Generators\site_url' )->alias( fn ( $p = '' ) => 'https://example.com/' . ltrim( (string) $p, '/' ) );
+        Functions\when( 'FreeFormCertificate\Generators\untrailingslashit' )->alias( fn ( $u ) => rtrim( (string) $u, '/' ) );
+        Functions\when( 'FreeFormCertificate\Generators\get_bloginfo' )->justReturn( 'Test Site' );
+        Functions\when( 'FreeFormCertificate\Generators\get_home_url' )->justReturn( 'https://example.com' );
+        Functions\when( 'FreeFormCertificate\Generators\wp_kses' )->alias( fn ( $v ) => (string) $v );
+        Functions\when( 'FreeFormCertificate\Generators\esc_url' )->returnArg();
+        // build_pdf_filename() (Utils, Core namespace) uses _x().
+        Functions\when( '_x' )->returnArg();
+        Functions\when( 'FreeFormCertificate\Core\_x' )->returnArg();
+    }
+
+    public function test_generate_html_falls_back_to_default_when_no_layout(): void {
+        $this->stub_html_funcs();
+        $html = $this->invoke( 'generate_html', array( array( 'name' => 'Alice' ), 'My Event', array() ) );
+        $this->assertStringContainsString( 'My Event', $html );
+        $this->assertStringContainsString( 'Alice', $html );
+    }
+
+    public function test_generate_html_replaces_field_placeholders(): void {
+        $this->stub_html_funcs();
+        $config = array( 'pdf_layout' => '<p>Hello {{name}} - {{form_title}}</p>' );
+        $html   = $this->invoke( 'generate_html', array( array( 'name' => 'Bob' ), 'Cert', $config ) );
+        $this->assertStringContainsString( 'Bob', $html );
+        $this->assertStringContainsString( 'Cert', $html );
+        $this->assertStringNotContainsString( '{{name}}', $html );
+    }
+
+    public function test_generate_html_maps_email_and_quiz_aliases(): void {
+        $this->stub_html_funcs();
+        $config = array( 'pdf_layout' => '<p>{{email}} {{score}} {{score_percent}}</p>' );
+        $data   = array(
+            'user_email'    => 'x@y.com',
+            '_quiz_score'   => 8,
+            '_quiz_percent' => 80,
+        );
+        $html = $this->invoke( 'generate_html', array( $data, 'T', $config ) );
+        $this->assertStringContainsString( 'x@y.com', $html );
+        $this->assertStringContainsString( '8', $html );
+        $this->assertStringContainsString( '80', $html );
+    }
+
+    public function test_generate_html_processes_validation_url_placeholder(): void {
+        $this->stub_html_funcs();
+        Functions\when( 'esc_url' )->returnArg();
+        $config = array( 'pdf_layout' => '<p>{{validation_url link:v>v}}</p>' );
+        $html   = $this->invoke( 'generate_html', array( array(), 'T', $config ) );
+        $this->assertStringContainsString( '<a href=', $html );
+        $this->assertStringContainsString( 'ffc-validation-link', $html );
+    }
+
+    // ==================================================================
+    // process_validation_url_placeholders()
+    // ==================================================================
+
+    public function test_validation_url_default_uses_valid_url_fallback(): void {
+        $this->stub_html_funcs();
+        $layout = '{{validation_url}}';
+        $html   = $this->invoke( 'process_validation_url_placeholders', array( $layout, array() ) );
+        // No magic token → both href and text fall back to the /valid URL.
+        $this->assertStringContainsString( 'https://example.com/valid', $html );
+        $this->assertStringNotContainsString( '{{validation_url', $html );
+    }
+
+    public function test_validation_url_custom_text_target_and_color(): void {
+        $this->stub_html_funcs();
+        $layout = '{{validation_url link:v>"ClickHere" target:_blank color:red}}';
+        $html   = $this->invoke( 'process_validation_url_placeholders', array( $layout, array() ) );
+        $this->assertStringContainsString( 'ClickHere', $html );
+        $this->assertStringContainsString( 'target="_blank"', $html );
+        $this->assertStringContainsString( 'color: red', $html );
+    }
+
+    // ==================================================================
+    // get_qr_code_target_url()
+    // ==================================================================
+
+    public function test_qr_target_url_falls_back_to_valid_without_token(): void {
+        $this->stub_html_funcs();
+        $url = $this->invoke( 'get_qr_code_target_url', array( array() ) );
+        $this->assertSame( 'https://example.com/valid', $url );
+    }
+
+    // ==================================================================
+    // generate_appointment_pdf_data()
+    // ==================================================================
+
+    public function test_generate_appointment_pdf_data_assembles_array(): void {
+        $this->stub_html_funcs();
+        Functions\when( 'esc_url' )->returnArg();
+
+        if ( ! defined( 'FFC_PLUGIN_DIR' ) ) {
+            define( 'FFC_PLUGIN_DIR', \dirname( __DIR__, 2 ) . '/' );
+        }
+
+        $appointment = array(
+            'name'             => 'Carlos',
+            'appointment_date' => '2030-05-20',
+            'start_time'       => '09:00:00',
+            'end_time'         => '10:00:00',
+            'created_at'       => '2030-05-01 12:00:00',
+            'status'           => 'confirmed',
+            'validation_code'  => 'ABC123',
+            'id'               => 5,
+        );
+        $calendar = array( 'id' => 7, 'title' => 'Consulta' );
+
+        $result = $this->invoke( 'generate_appointment_pdf_data', array( $appointment, $calendar ) );
+
+        $this->assertIsArray( $result );
+        $this->assertArrayHasKey( 'html', $result );
+        $this->assertArrayHasKey( 'filename', $result );
+        $this->assertSame( 'appointment_receipt', $result['type'] );
+        $this->assertSame( 'Consulta', $result['form_title'] );
+        $this->assertNotEmpty( $result['html'] );
+    }
+
+    public function test_generate_appointment_pdf_data_handles_missing_optional_fields(): void {
+        $this->stub_html_funcs();
+        Functions\when( 'esc_url' )->returnArg();
+
+        if ( ! defined( 'FFC_PLUGIN_DIR' ) ) {
+            define( 'FFC_PLUGIN_DIR', \dirname( __DIR__, 2 ) . '/' );
+        }
+
+        // No date/time/status/code → falls back to N/A labels, empty codes.
+        $result = $this->invoke( 'generate_appointment_pdf_data', array( array(), array() ) );
+
+        $this->assertIsArray( $result );
+        $this->assertSame( 'appointment_receipt', $result['type'] );
+        $this->assertArrayHasKey( 'html', $result );
+    }
 }
