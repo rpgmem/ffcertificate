@@ -231,3 +231,35 @@ describe('audience-join — leaveAllGroups', () => {
 		expect($btn.text()).toBe('Leave all groups');
 	});
 });
+
+// ----------------------------------------------------------------------
+// viewAsUserId propagation on leave / leave-all
+// ----------------------------------------------------------------------
+
+describe('audience-join — viewAsUserId propagation', () => {
+	afterEach(() => {
+		delete window.ffcDashboard.viewAsUserId;
+	});
+
+	it('leaveGroup appends viewAsUserId', async () => {
+		window.ffcDashboard.viewAsUserId = 21;
+		vi.spyOn(window, 'confirm').mockReturnValue(true);
+		const ajaxSpy = vi.spyOn(window.$, 'ajax').mockImplementation(() => ({}));
+
+		window.$('.ffc-audience-leave-btn[data-id="9"]').trigger('click');
+		await flushPromises();
+
+		expect(ajaxSpy.mock.calls[0][0].url).toContain('?viewAsUserId=21');
+	});
+
+	it('leaveAllGroups appends viewAsUserId', async () => {
+		window.ffcDashboard.viewAsUserId = 22;
+		vi.spyOn(window, 'confirm').mockReturnValue(true);
+		const ajaxSpy = vi.spyOn(window.$, 'ajax').mockImplementation(() => ({}));
+
+		window.$('.ffc-leave-all-groups-btn').trigger('click');
+		await flushPromises();
+
+		expect(ajaxSpy.mock.calls[0][0].url).toContain('?viewAsUserId=22');
+	});
+});

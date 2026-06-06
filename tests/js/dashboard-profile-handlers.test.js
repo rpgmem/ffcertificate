@@ -367,4 +367,227 @@ describe('profile.saveNotificationPreferences', () => {
 		expect(spy).toHaveBeenCalledOnce();
 		expect(panel().state.preferences.newsletter).toBe(false);
 	});
+
+	it('on AJAX error: shows the saveError status', async () => {
+		Object.assign(window.ffcDashboard.strings, { saveError: 'Save failed' });
+		panel().render(PROFILE_FIXTURE);
+		if (! document.querySelector('.ffc-notif-toggle')) {
+			document.getElementById('tab-profile').insertAdjacentHTML(
+				'beforeend',
+				'<input type="checkbox" class="ffc-notif-toggle" data-key="newsletter" /><span class="ffc-notif-status"></span>'
+			);
+		}
+		mockAjaxError({});
+		window.$(document.querySelector('.ffc-notif-toggle')).trigger('change');
+		await flush();
+
+		expect(document.querySelector('.ffc-notif-status').textContent).toBe('Save failed');
+	});
+
+	it('on success: shows the saved notice then schedules a fadeOut', async () => {
+		window.$.fx.off = true;
+		Object.assign(window.ffcDashboard.strings, { notifSaved: 'Saved!' });
+		panel().render(PROFILE_FIXTURE);
+		if (! document.querySelector('.ffc-notif-toggle')) {
+			document.getElementById('tab-profile').insertAdjacentHTML(
+				'beforeend',
+				'<input type="checkbox" class="ffc-notif-toggle" data-key="newsletter" /><span class="ffc-notif-status"></span>'
+			);
+		}
+		// Drive the success branch under fake timers so the
+		// setTimeout(() => $status.fadeOut(), 2000) scheduled inside it can be
+		// advanced (with fx.off the fade is instantaneous → display:none).
+		vi.useFakeTimers();
+		try {
+			// $.ajax fires opts.success synchronously inside the spy; the
+			// FFC.rest promise resolves on the microtask queue, which the
+			// fake-timer clock still drains via the awaited flush below.
+			mockAjax((opts) => { if (opts.success) opts.success({ preferences: { newsletter: true } }); return {}; });
+			window.$(document.querySelector('.ffc-notif-toggle')).trigger('change');
+			// Microtasks (promise .then) still drain under fake timers.
+			await flush();
+			expect(document.querySelector('.ffc-notif-status').textContent).toBe('Saved!');
+			vi.advanceTimersByTime(2100);
+			expect(window.$('.ffc-notif-status').css('display')).toBe('none');
+		} finally {
+			vi.useRealTimers();
+		}
+	});
+});
+
+// ----------------------------------------------------------------------
+// renderListField — multi-value / single / fallback branches
+// ----------------------------------------------------------------------
+
+describe('profile.render — multi-value list fields', () => {
+	it('renders a <ul> when a field has more than one value', () => {
+		panel().render({
+			...PROFILE_FIXTURE,
+			names: ['Maria Silva', 'Maria S.'],
+			emails: ['a@x.test', 'b@x.test'],
+			cpfs_masked: ['111.***', '222.***'],
+		});
+		expect(document.querySelectorAll('#tab-profile ul.name-list li').length).toBe(2);
+		expect(document.querySelectorAll('#tab-profile ul.email-list li').length).toBe(2);
+		expect(document.querySelectorAll('#tab-profile ul.cpf-list li').length).toBe(2);
+	});
+
+	it('renders the fallback value when a list field is empty', () => {
+		panel().render({
+			...PROFILE_FIXTURE,
+			names: [],
+			display_name: 'Fallback Name',
+			emails: [],
+			email: 'fallback@x.test',
+			cpfs_masked: [],
+			cpf_masked: '999.***',
+		});
+		const text = document.querySelector('#tab-profile .ffc-profile-info').textContent;
+		expect(text).toContain('Fallback Name');
+		expect(text).toContain('fallback@x.test');
+		expect(text).toContain('999.***');
+	});
+});
+
+// ----------------------------------------------------------------------
+// load() / reload() — REST fetch + cache guard + viewAsUserId
+// ----------------------------------------------------------------------
+
+describe('profile.load / reload', () => {
+	afterEach(() => {
+		delete window.ffcDashboard.viewAsUserId;
+	});
+
+	it('load() fetches the profile and renders it', async () => {
+		mockAjaxSuccess(PROFILE_FIXTURE);
+		panel().load();
+		await flush();
+		expect(document.querySelector('#tab-profile .ffc-profile-info')).not.toBeNull();
+	});
+
+	it('load() short-circuits when .ffc-profile-info is already present', async () => {
+		panel().render(PROFILE_FIXTURE);
+		const spy = mockAjax(() => ({}));
+		panel().load();
+		await flush();
+		expect(spy).not.toHaveBeenCalled();
+	});
+
+	it('load() shows the error notice when the request fails', async () => {
+		Object.assign(window.ffcDashboard.strings, { error: 'Error' });
+		mockAjaxError({});
+		panel().load();
+		await flush();
+		expect(document.getElementById('tab-profile').innerHTML).toContain('Error');
+	});
+
+	it('load() appends viewAsUserId to the request URL when impersonating', async () => {
+		window.ffcDashboard.viewAsUserId = 88;
+		const spy = mockAjax(() => ({}));
+		panel().load();
+		await flush();
+		expect(spy.mock.calls[0][0].url).toContain('?viewAsUserId=88');
+	});
+
+	it('reload() clears state, re-fetches (bypassing the cache guard), and renders', async () => {
+		panel().render(PROFILE_FIXTURE);
+		mockAjaxSuccess(PROFILE_FIXTURE);
+		panel().reload();
+		await flush();
+		expect(panel().state).toEqual(PROFILE_FIXTURE);
+		expect(document.querySelector('#tab-profile .ffc-profile-info')).not.toBeNull();
+	});
+
+	it('reload() shows the error notice when the request fails', async () => {
+		Object.assign(window.ffcDashboard.strings, { error: 'Error' });
+		mockAjaxError({});
+		panel().reload();
+		await flush();
+		expect(document.getElementById('tab-profile').innerHTML).toContain('Error');
+	});
+
+	it('reload() appends viewAsUserId when impersonating', async () => {
+		window.ffcDashboard.viewAsUserId = 5;
+		const spy = mockAjax(() => ({}));
+		panel().reload();
+		await flush();
+		expect(spy.mock.calls[0][0].url).toContain('?viewAsUserId=5');
+	});
+});
+
+// ----------------------------------------------------------------------
+// viewAsUserId propagation on save / password / privacy / notif
+// ----------------------------------------------------------------------
+
+describe('profile — viewAsUserId propagation', () => {
+	beforeEach(() => {
+		window.ffcDashboard.viewAsUserId = 12;
+	});
+	afterEach(() => {
+		delete window.ffcDashboard.viewAsUserId;
+	});
+
+	it('saveProfile appends viewAsUserId', () => {
+		panel().render(PROFILE_FIXTURE);
+		window.$('.ffc-profile-edit-btn').trigger('click');
+		const spy = mockAjax(() => ({}));
+		window.$('.ffc-profile-save-btn').trigger('click');
+		expect(spy.mock.calls[0][0].url).toContain('?viewAsUserId=12');
+	});
+
+	it('changePassword appends viewAsUserId', () => {
+		panel().render(PROFILE_FIXTURE);
+		document.getElementById('ffc-current-password').value = 'oldpass';
+		document.getElementById('ffc-new-password').value = 'newpass123';
+		document.getElementById('ffc-confirm-password').value = 'newpass123';
+		const spy = mockAjax(() => ({}));
+		window.$('.ffc-password-save-btn').trigger('click');
+		expect(spy.mock.calls[0][0].url).toContain('?viewAsUserId=12');
+	});
+
+	it('privacyRequest appends viewAsUserId', () => {
+		panel().render(PROFILE_FIXTURE);
+		const spy = mockAjax(() => ({}));
+		window.$('.ffc-lgpd-export-btn').trigger('click');
+		expect(spy.mock.calls[0][0].url).toContain('?viewAsUserId=12');
+	});
+
+	it('saveNotificationPreferences appends viewAsUserId', () => {
+		panel().render(PROFILE_FIXTURE);
+		const spy = mockAjax(() => ({}));
+		window.$(document.querySelector('.ffc-notif-toggle')).trigger('change');
+		expect(spy.mock.calls[0][0].url).toContain('?viewAsUserId=12');
+	});
+});
+
+// ----------------------------------------------------------------------
+// privacyRequest error branch + password-form toggle
+// ----------------------------------------------------------------------
+
+describe('profile — misc handler branches', () => {
+	it('privacyRequest on error surfaces the server message', async () => {
+		panel().render(PROFILE_FIXTURE);
+		mockAjaxError({ responseJSON: { message: 'Privacy denied' } });
+		window.$('.ffc-lgpd-export-btn').trigger('click');
+		await flush();
+		expect(document.querySelector('.ffc-lgpd-status').textContent).toBe('Privacy denied');
+	});
+
+	it('the password-toggle button slides the password form into view', () => {
+		window.$.fx.off = true;
+		panel().render(PROFILE_FIXTURE);
+		// Hidden initially.
+		expect(window.$('#tab-profile .ffc-password-form').css('display')).toBe('none');
+		window.$('.ffc-password-toggle-btn').trigger('click');
+		expect(window.$('#tab-profile .ffc-password-form').css('display')).not.toBe('none');
+	});
+
+	it('render schedules audienceJoin.load() when the helper is present', async () => {
+		const loadSpy = vi.fn();
+		window.FFCDashboard.audienceJoin = { load: loadSpy };
+		panel().render(PROFILE_FIXTURE);
+		await new Promise((r) => setTimeout(r, 1));
+		expect(loadSpy).toHaveBeenCalled();
+		delete window.FFCDashboard.audienceJoin;
+	});
 });

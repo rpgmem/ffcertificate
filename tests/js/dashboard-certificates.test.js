@@ -7,11 +7,16 @@
 // and consent badge classes.
 //
 // Part of S4 of #163.
-import { describe, it, expect, beforeAll, beforeEach } from 'vitest';
-import { installDashboardFixtures, loadDashboardCore, loadPanel } from './dashboard-fixtures.js';
+import { describe, it, expect, beforeAll, beforeEach, afterEach, vi } from 'vitest';
+import { installDashboardFixtures, loadDashboardCore, loadPanel, flushPromises } from './dashboard-fixtures.js';
 
 beforeAll(() => {
 	installDashboardFixtures();
+	Object.assign(window.ffcDashboard.strings, {
+		noPermission: 'No permission',
+	});
+	window.ffcDashboard.restUrl = 'https://x.test/wp-json/ffc/v1/';
+	window.ffcDashboard.nonce = 'rest-nonce';
 	loadDashboardCore();
 	loadPanel('certificates');
 });
@@ -126,5 +131,121 @@ describe('FFCDashboard.panels.certificates.render', () => {
 		const rows = document.querySelectorAll('#tab-certificates table tbody tr');
 		expect(rows.length).toBe(1);
 		expect(rows[0].textContent).toContain('Beta');
+	});
+
+	it('filters out rows outside the from/to date range', () => {
+		const certs = [
+			makeCert({ submission_date_raw: '2026-01-01', auth_code: 'EARLY' }),
+			makeCert({ submission_date_raw: '2026-06-15', auth_code: 'MID' }),
+			makeCert({ submission_date_raw: '2026-12-31', auth_code: 'LATE' }),
+		];
+		panel().render(certs, 1);
+		document.querySelector('#tab-certificates .ffc-filter-from').value = '2026-03-01';
+		document.querySelector('#tab-certificates .ffc-filter-to').value = '2026-09-01';
+		panel().render(certs, 1);
+		const rows = document.querySelectorAll('#tab-certificates table tbody tr');
+		expect(rows.length).toBe(1);
+		expect(rows[0].textContent).toContain('MID');
+	});
+});
+
+// ----------------------------------------------------------------------
+// load() — guard / AJAX flow
+// ----------------------------------------------------------------------
+
+describe('FFCDashboard.panels.certificates.load', () => {
+	afterEach(() => {
+		vi.restoreAllMocks();
+		panel().state = null;
+		delete window.ffcDashboard.viewAsUserId;
+		delete window.ffcDashboard.canViewCertificates;
+	});
+
+	it('bails when #tab-certificates is missing', async () => {
+		document.getElementById('tab-certificates').remove();
+		const ajaxSpy = vi.spyOn(window.$, 'ajax').mockImplementation(() => ({}));
+
+		panel().load();
+		await flushPromises();
+
+		expect(ajaxSpy).not.toHaveBeenCalled();
+		document.getElementById('ffc-dashboard').insertAdjacentHTML(
+			'beforeend',
+			'<div id="tab-certificates" class="ffc-tab-content"></div>'
+		);
+	});
+
+	it('shows the noPermission notice when canViewCertificates is false', async () => {
+		window.ffcDashboard.canViewCertificates = false;
+		const ajaxSpy = vi.spyOn(window.$, 'ajax').mockImplementation(() => ({}));
+
+		panel().load();
+		await flushPromises();
+
+		expect(ajaxSpy).not.toHaveBeenCalled();
+		expect(document.getElementById('tab-certificates').innerHTML).toContain('No permission');
+	});
+
+	it('short-circuits when state is already populated', async () => {
+		panel().state = [];
+		const ajaxSpy = vi.spyOn(window.$, 'ajax').mockImplementation(() => ({}));
+
+		panel().load();
+		await flushPromises();
+
+		expect(ajaxSpy).not.toHaveBeenCalled();
+	});
+
+	it('GETs /user/certificates, sets X-WP-Nonce, and stores the response on state', async () => {
+		const ajaxSpy = vi.spyOn(window.$, 'ajax').mockImplementation((opts) => {
+			const xhr = { setRequestHeader: vi.fn() };
+			opts.beforeSend(xhr);
+			expect(xhr.setRequestHeader).toHaveBeenCalledWith('X-WP-Nonce', 'rest-nonce');
+			opts.success({ certificates: [makeCert({ auth_code: 'X' })] });
+			return {};
+		});
+
+		panel().load();
+		await flushPromises();
+
+		const opts = ajaxSpy.mock.calls[0][0];
+		expect(opts.url).toBe('https://x.test/wp-json/ffc/v1/user/certificates');
+		expect(panel().state.length).toBe(1);
+		expect(document.getElementById('tab-certificates').textContent).toContain('X');
+	});
+
+	it('appends viewAsUserId query string when impersonating', async () => {
+		window.ffcDashboard.viewAsUserId = 99;
+		const ajaxSpy = vi.spyOn(window.$, 'ajax').mockImplementation(() => ({}));
+
+		panel().load();
+		await flushPromises();
+
+		expect(ajaxSpy.mock.calls[0][0].url).toBe('https://x.test/wp-json/ffc/v1/user/certificates?viewAsUserId=99');
+	});
+
+	it('defaults state to [] when response.certificates is missing', async () => {
+		vi.spyOn(window.$, 'ajax').mockImplementation((opts) => {
+			opts.success({});
+			return {};
+		});
+
+		panel().load();
+		await flushPromises();
+
+		expect(panel().state).toEqual([]);
+		expect(document.querySelector('#tab-certificates .ffc-empty-state')).not.toBeNull();
+	});
+
+	it('renders the error notice when the AJAX call fails', async () => {
+		vi.spyOn(window.$, 'ajax').mockImplementation((opts) => {
+			opts.error();
+			return {};
+		});
+
+		panel().load();
+		await flushPromises();
+
+		expect(document.getElementById('tab-certificates').innerHTML).toContain('Error');
 	});
 });
