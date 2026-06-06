@@ -59,9 +59,15 @@ jobs:
       # 0%→100% and ffc-csv-extend-end 7.7%→98.5% (the two remaining
       # near-0% shipped files). Overall 84.0%→85.05% — real per-file
       # gains banked, but still a hair under the 85.53% high-water, so the
-      # floor stays 82 here; the audience-cluster follow-up (booking-form,
-      # bookings, audience) is expected to clear the high-water and bump.
-      JS_COVERAGE_FLOOR_LINES: '82'
+      # floor stayed 82 there; the audience-cluster follow-up clears it.
+      #
+      # Audience-cluster follow-up: ffc-audience 36%→71%, ffc-audience-
+      # bookings 28%→99%, ffc-audience-booking-form 13%→91%. Overall
+      # statement coverage → ~88% (clover 87.8–88.9% across runs; v8 async
+      # jitter ~1pp), clearing the 85.53% high-water. Bumping 82 → 85 with
+      # a ~2.8pp buffer over the lowest run (≤5pp floor-buffer policy —
+      # see CLAUDE.md).
+      JS_COVERAGE_FLOOR_LINES: '85'
     steps:
       - uses: actions/checkout@v6
       - uses: actions/setup-node@v6
