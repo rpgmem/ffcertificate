@@ -30,6 +30,9 @@ node_modules/
 .phpunit.result.cache
 /phpunit.xml
 
+# PHP coverage output (clover written at repo root by the CI coverage cmd)
+/coverage.xml
+
 # Images Assignatures
 html/*.png
 html/atestado_jair.html
