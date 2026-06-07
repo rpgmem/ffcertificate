@@ -7,6 +7,8 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+## [6.11.0] (2026-06-07)
+
 ### Added
 
 - Privacy Policy Guide: the plugin now contributes suggested privacy-policy text to **Settings → Privacy → Policy Guide** via `wp_add_privacy_policy_content()`. Covers the personal data FFC processes (name, e-mail, CPF/RF, phone, IP, custom fields), encryption at rest, the configured activity-log retention window, who has access, and the data-subject export/erase rights already served by the existing privacy exporters/erasers. Complements the LGPD/GDPR tooling in `PrivacyHandler`.
