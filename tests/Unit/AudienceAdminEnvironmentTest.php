@@ -247,9 +247,15 @@ class AudienceAdminEnvironmentTest extends TestCase {
         $page = new AudienceAdminEnvironment( 'ffc-scheduling' );
         $this->expectException( \RuntimeException::class );
         $this->expectExceptionMessage( 'Environment not found' );
+        // render_page() echoes the admin page wrapper before it detects the
+        // missing record and calls wp_die(); capture and discard that output
+        // so the markup doesn't leak into PHPUnit's stdout (the assertion is
+        // on the wp_die exception, not the buffer).
+        ob_start();
         try {
             $page->render_page();
         } finally {
+            ob_end_clean();
             unset( $_GET['action'], $_GET['id'] );
         }
     }
