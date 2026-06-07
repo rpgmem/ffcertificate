@@ -67,22 +67,43 @@
 		html += '<span class="ffc-info-label">' + esc(strings.totalSubmissions || 'Total submissions') + '</span>';
 		html += '<span class="ffc-info-value">' + info.submission_count + '</span>';
 		html += '</div>';
+		// Download quota — relocated from the former standalone CSV card so
+		// the at-a-glance numbers live together in the summary.
+		html += '<div class="ffc-info-row">';
+		html += '<span class="ffc-info-label">' + esc(strings.downloadQuota || 'Download quota') + '</span>';
+		var quotaText = (strings.quotaUsed || '%1$d of %2$d used')
+			.replace('%1$d', info.csv.count)
+			.replace('%2$d', info.csv.limit);
+		html += '<span class="ffc-info-value">' + esc(quotaText) + '</span>';
+		html += '</div>';
+		// Participant-form page link (#366 Sprint 5, generalised). A short
+		// "open" link instead of the raw URL so it fits the row layout;
+		// opens the public form in a new tab. Shown whenever a page embeds
+		// the form. Opening it does NOT stage or consume an exception token
+		// (that happens solely via the exception modal's confirm).
+		if (info.status.schedule_form_url) {
+			html += '<div class="ffc-info-row">';
+			html += '<span class="ffc-info-label">' + esc(strings.participantForm || 'Participant form') + '</span>';
+			html += '<span class="ffc-info-value">'
+				+ '<a class="ffc-info-form-link" href="' + esc(info.status.schedule_form_url) + '" target="_blank" rel="noopener">'
+				+ esc(strings.openForm || 'Open form') + '</a>'
+				+ '</span>';
+			html += '</div>';
+		}
 		html += '</div>';
 
 		// Restrictions (only if any are active).
 		html += buildRestrictionsSection(info.restrictions);
 
-		// Availability period.
-		html += buildDatetimeSection(info.datetime, info.status);
+		// Availability (access window) + event-schedule reference, merged
+		// into one Access-vs-Reference comparison table.
+		html += buildAvailabilityScheduleSection(info.datetime, info.status);
 
 		// Geolocation.
 		html += buildGeolocationSection(info.geolocation);
 
 		// Quiz.
 		html += buildQuizSection(info.quiz);
-
-		// CSV download section.
-		html += buildCsvSection(info.csv, info.status);
 
 		// Status message.
 		html += buildStatusMessage(info.status);
@@ -197,36 +218,89 @@
 		return html;
 	}
 
-	function buildDatetimeSection(dt, status) {
-		if (!dt.has_dates && !dt.has_times) return '';
+	// Merged availability (access window) + event-schedule (reference)
+	// comparison table. Up to two value columns:
+	//   - Access: the form's open window (dates + times, from time_*).
+	//   - Reference: the {schedule} baseline (class_time_*), times only,
+	//     shown only when it differs from the access window (so forms
+	//     without a separate event schedule don't show a redundant copy).
+	// Date rows carry no reference value (em-dash placeholder). Collapses
+	// to a single column when only one side is present; renders nothing
+	// when neither is.
+	function buildAvailabilityScheduleSection(dt, status) {
+		var hasWindow = dt.has_dates || dt.has_times;
 
-		var inf = strings.infinity || '∞';
-		var html = '<div class="ffc-info-section">';
-		html += '<h3>' + esc(strings.availability || 'Availability Period') + '</h3>';
+		var bStart = status.schedule_baseline_start || '';
+		var bEnd   = status.schedule_baseline_end   || '';
+		var wStart = status.schedule_window_start   || '';
+		var wEnd   = status.schedule_window_end     || '';
+		var hasRef = (bStart || bEnd) && !(bStart === wStart && bEnd === wEnd);
 
-		if (dt.has_dates) {
-			html += '<div class="ffc-info-row">';
-			html += '<span class="ffc-info-label">' + esc(strings.dateStart || 'Start date') + '</span>';
-			html += '<span class="ffc-info-value">' + (dt.date_start ? esc(dt.date_start) : inf) + '</span>';
-			html += '</div>';
-			html += '<div class="ffc-info-row">';
-			html += '<span class="ffc-info-label">' + esc(strings.dateEnd || 'End date') + '</span>';
-			html += '<span class="ffc-info-value">' + (dt.date_end ? esc(dt.date_end) : inf) + '</span>';
-			html += '</div>';
+		if (!hasWindow && !hasRef) return '';
+
+		var inf      = strings.infinity || '∞';
+		var twoCol   = hasWindow && hasRef;
+
+		var title = twoCol
+			? (strings.availabilitySchedule || 'Availability & Schedule')
+			: (hasWindow
+				? (strings.availability || 'Availability Period')
+				: (strings.scheduleReferenceTitle || 'Event Schedule (Reference)'));
+
+		var html = '<div class="ffc-info-section ffc-info-availability-schedule">';
+		html += '<h3>' + esc(title) + '</h3>';
+		html += '<table class="ffc-info-jtable">';
+
+		// Column headers only when both columns are present.
+		if (twoCol) {
+			html += '<thead><tr><th></th>';
+			html += '<th class="ffc-jcol" title="' + esc(strings.accessColumnTip || 'Form access window') + '">'
+				+ esc(strings.accessColumn || 'Access') + '</th>';
+			html += '<th class="ffc-jcol" title="' + esc(strings.referenceColumnTip || 'Event schedule printed on the certificate') + '">'
+				+ esc(strings.referenceColumn || 'Reference') + '</th>';
+			html += '</tr></thead>';
 		}
 
-		if (dt.has_times) {
-			html += '<div class="ffc-info-row">';
-			html += '<span class="ffc-info-label">' + esc(strings.timeStart || 'Start time') + '</span>';
-			html += '<span class="ffc-info-value">' + (dt.time_start ? esc(dt.time_start) : inf) + '</span>';
-			html += '</div>';
-			html += '<div class="ffc-info-row">';
-			html += '<span class="ffc-info-label">' + esc(strings.timeEnd || 'End time') + '</span>';
-			html += '<span class="ffc-info-value">' + (dt.time_end ? esc(dt.time_end) : inf) + '</span>';
-			html += '</div>';
+		html += '<tbody>';
+
+		// refVal === null → em-dash (date rows have no reference value);
+		// refVal === undefined → no reference cell at all (single column).
+		function row(label, accessVal, refVal) {
+			var h = '<tr><td class="ffc-jlbl">' + esc(label) + '</td>';
+			h += '<td class="ffc-jval">' + accessVal + '</td>';
+			if (twoCol) {
+				h += (refVal === null)
+					? '<td class="ffc-jdash">—</td>'
+					: '<td class="ffc-jval">' + refVal + '</td>';
+			}
+			return h + '</tr>';
 		}
 
-		// Alert when no end date.
+		if (hasWindow) {
+			if (dt.has_dates) {
+				html += row(strings.dateStart || 'Start date', dt.date_start ? esc(dt.date_start) : inf, null);
+				html += row(strings.dateEnd   || 'End date',   dt.date_end   ? esc(dt.date_end)   : inf, null);
+			}
+			var accStart = dt.has_times ? (dt.time_start ? esc(dt.time_start) : inf) : inf;
+			var accEnd   = dt.has_times ? (dt.time_end   ? esc(dt.time_end)   : inf) : inf;
+			html += row(strings.timeStart || 'Start time', accStart, twoCol ? (bStart ? esc(bStart) : inf) : undefined);
+			html += row(strings.timeEnd   || 'End time',   accEnd,   twoCol ? (bEnd   ? esc(bEnd)   : inf) : undefined);
+		} else {
+			// Reference-only: single column of baseline times.
+			html += row(strings.scheduleReferenceStart || 'Start', bStart ? esc(bStart) : inf, undefined);
+			html += row(strings.scheduleReferenceEnd   || 'End',   bEnd   ? esc(bEnd)   : inf, undefined);
+		}
+
+		html += '</tbody></table>';
+
+		// Reference clarification whenever a reference column/section shows.
+		if (hasRef) {
+			html += '<p class="ffc-info-schedule-ref-note">'
+				+ esc(strings.scheduleReferenceNote || 'Reference event schedule (printed on the certificate) — not the form access window.')
+				+ '</p>';
+		}
+
+		// No-end-date alert (relocated from the old datetime section).
 		if (!status.has_end_date) {
 			html += '<div class="ffc-info-alert ffc-info-alert-warning">';
 			html += esc(strings.noEndDateAlert || 'This form has no end date configured. The CSV download will only be available after the administrator sets an end date.');
@@ -297,20 +371,6 @@
 		html += '<div class="ffc-info-row">';
 		html += '<span class="ffc-info-label">' + esc(strings.maxAttempts || 'Maximum attempts') + '</span>';
 		html += '<span class="ffc-info-value">' + (quiz.max_attempts > 0 ? quiz.max_attempts : esc(strings.unlimited || 'Unlimited')) + '</span>';
-		html += '</div>';
-		html += '</div>';
-		return html;
-	}
-
-	function buildCsvSection(csv, _status) {
-		var html = '<div class="ffc-info-section">';
-		html += '<h3>' + esc(strings.csvDownload || 'CSV Download') + '</h3>';
-		html += '<div class="ffc-info-row">';
-		html += '<span class="ffc-info-label">' + esc(strings.downloadQuota || 'Download quota') + '</span>';
-		var quotaText = (strings.quotaUsed || '%1$d of %2$d used')
-			.replace('%1$d', csv.count)
-			.replace('%2$d', csv.limit);
-		html += '<span class="ffc-info-value">' + esc(quotaText) + '</span>';
 		html += '</div>';
 		html += '</div>';
 		return html;

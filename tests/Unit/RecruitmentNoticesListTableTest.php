@@ -135,4 +135,84 @@ class RecruitmentNoticesListTableTest extends TestCase {
         $out = $this->call_protected( 'column_default', array( array(), 'missing' ) );
         $this->assertSame( '', $out );
     }
+
+    public function test_column_created_at_echoes_raw_value(): void {
+        $out = $this->call_protected( 'column_created_at', array( array( 'created_at' => '2026-05-01 10:00:00' ) ) );
+        $this->assertSame( '2026-05-01 10:00:00', $out );
+    }
+
+    // ------------------------------------------------------------------
+    // convert_rows() — stdClass → array shape (static private)
+    // ------------------------------------------------------------------
+
+    private function call_static_private( string $method, array $args ) {
+        $ref = new \ReflectionMethod( RecruitmentNoticesListTable::class, $method );
+        $ref->setAccessible( true );
+        return $ref->invokeArgs( null, $args );
+    }
+
+    public function test_convert_rows_maps_object_fields_into_array_shape(): void {
+        $rows = array(
+            (object) array(
+                'id'           => '7',
+                'code'         => 'EDITAL-7',
+                'name'         => 'Concurso',
+                'status'       => 'draft',
+                'was_reopened' => '1',
+                'created_at'   => '2026-05-01 10:00:00',
+            ),
+        );
+
+        $out = $this->call_static_private( 'convert_rows', array( $rows ) );
+
+        $this->assertSame( 7, $out[0]['id'] );
+        $this->assertSame( 'EDITAL-7', $out[0]['code'] );
+        $this->assertSame( 'Concurso', $out[0]['name'] );
+        $this->assertSame( 'draft', $out[0]['status'] );
+        $this->assertSame( '1', $out[0]['was_reopened'] );
+        $this->assertSame( '2026-05-01 10:00:00', $out[0]['created_at'] );
+    }
+
+    public function test_convert_rows_returns_empty_for_empty_input(): void {
+        $this->assertSame( array(), $this->call_static_private( 'convert_rows', array( array() ) ) );
+    }
+
+    // ------------------------------------------------------------------
+    // sort_rows() — in-memory natural-case sort (static private)
+    // ------------------------------------------------------------------
+
+    private function rows_for_sort(): array {
+        return array(
+            array( 'code' => 'B', 'name' => 'beta', 'status' => 'draft', 'created_at' => '2026-01-02' ),
+            array( 'code' => 'A', 'name' => 'alpha', 'status' => 'closed', 'created_at' => '2026-01-01' ),
+            array( 'code' => 'C', 'name' => 'gamma', 'status' => 'definitive', 'created_at' => '2026-01-03' ),
+        );
+    }
+
+    public function test_sort_rows_ascending_by_code(): void {
+        $out = $this->call_static_private( 'sort_rows', array( $this->rows_for_sort(), 'code', 'asc' ) );
+        $this->assertSame( array( 'A', 'B', 'C' ), array_column( $out, 'code' ) );
+    }
+
+    public function test_sort_rows_descending_by_code(): void {
+        $out = $this->call_static_private( 'sort_rows', array( $this->rows_for_sort(), 'code', 'desc' ) );
+        $this->assertSame( array( 'C', 'B', 'A' ), array_column( $out, 'code' ) );
+    }
+
+    public function test_sort_rows_falls_back_to_created_at_for_disallowed_orderby(): void {
+        // 'status' IS allowed; 'id' is NOT → falls back to created_at asc.
+        $out = $this->call_static_private( 'sort_rows', array( $this->rows_for_sort(), 'id', 'asc' ) );
+        $this->assertSame(
+            array( '2026-01-01', '2026-01-02', '2026-01-03' ),
+            array_column( $out, 'created_at' )
+        );
+    }
+
+    public function test_sort_rows_allows_status_orderby(): void {
+        $out = $this->call_static_private( 'sort_rows', array( $this->rows_for_sort(), 'status', 'asc' ) );
+        $this->assertSame(
+            array( 'closed', 'definitive', 'draft' ),
+            array_column( $out, 'status' )
+        );
+    }
 }

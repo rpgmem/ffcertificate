@@ -23,6 +23,10 @@
 /phpunit.xml
 /phpunit.xml.dist
 /patchwork.json
+# JS/CSS build & lint tooling (dev-only, never loaded at runtime)
+/eslint.config.mjs
+/vitest.config.mjs
+/.stylelintrc.json
 
 # Tests & docs not shipped to users
 /tests
@@ -30,9 +34,28 @@
 /CHANGELOG.md
 /CONTRIBUTING.md
 /SECURITY.md
+# Internal agent/maintainer conventions — not for end users
+/CLAUDE.md
+
+# Generated / local-only artifacts (gitignored, but excluded defensively
+# in case the zip is built from a dirty working tree)
+/.claude
+/coverage-js
+/coverage.xml
+*.min.js.map
+*.min.css.map
 
 # Manual support scripts (not part of the plugin runtime)
 /force-split-migration.php
+
+# Instance-specific sample assets in html/ — NOT generic plugin defaults
+# (the shipped defaults are the html/default_* templates + signatures).
+# These are org/deployment-specific (São Paulo logos, a named signature,
+# a sample atestado) and should not go to end users in the dist zip.
+/html/Logo_Cidade_SP_SemFundo.png
+/html/Logo_DRE_v2-scaled.png
+/html/ludmila_santos.png
+/html/atestado_estagios.html
 
 # Editor/OS junk
 *.swp

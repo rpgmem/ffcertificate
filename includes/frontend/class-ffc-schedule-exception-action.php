@@ -272,17 +272,22 @@ final class ScheduleExceptionAction {
 			);
 		}
 
-		// Effective range must fit inside the form window. We compare
-		// only when both window bounds are present — a form without an
-		// explicit `time_start` / `time_end` (datetime_enabled but with
-		// blank times — unusual but legal) skips this branch.
-		if ( '' !== $window_start && '' !== $effective_start && strcmp( $effective_start, $window_start ) < 0 ) {
+		// Effective range must fit inside the form window — but only the
+		// end(s) the operator actually OVERRODE are constrained. A side left
+		// at baseline (empty override) is the admin's reference schedule,
+		// which may legitimately sit outside the override window (e.g. a
+		// 00:00–23:59 baseline with a 14:30–23:00 window). The "End now
+		// (start stays at baseline)" mode depends on this: it changes only
+		// the end, so the unchanged baseline start must not be window-checked.
+		// We compare only when both the window bound and the override are
+		// present.
+		if ( '' !== $window_start && '' !== $start_override && strcmp( $start_override, $window_start ) < 0 ) {
 			return array(
 				'ok'     => false,
 				'reason' => 'out_of_window',
 			);
 		}
-		if ( '' !== $window_end && '' !== $effective_end && strcmp( $effective_end, $window_end ) > 0 ) {
+		if ( '' !== $window_end && '' !== $end_override && strcmp( $end_override, $window_end ) > 0 ) {
 			return array(
 				'ok'     => false,
 				'reason' => 'out_of_window',
@@ -293,29 +298,73 @@ final class ScheduleExceptionAction {
 	}
 
 	/**
-	 * Build the URL the operator will hand to the participant. We point
-	 * at the same admin-post action that the form-render layer (Sprint
-	 * 5) wires up for the [ffc_form] shortcode — namely, any page that
-	 * embeds the form via `[ffc_form id=N]`. There's no canonical
-	 * "form page" URL because the form is a shortcode, not a CPT —
-	 * so the operator-side modal will be responsible for either using
-	 * the page the form is embedded on (which it knows from its own
-	 * config) or returning a "?ffc_form_id=N" landing that the host
-	 * site's documented setup decides.
+	 * Build the URL the operator will hand to the participant — the page
+	 * that embeds this form via the `[ffc_form id=N]` shortcode.
 	 *
-	 * For Sprint 4 we return `home_url()` (root) — the JS layer in
-	 * Sprint 5 will replace this with the actual embedded-page URL
-	 * once that lookup is implemented. This keeps the action's
-	 * contract simple (always returns a URL) and lets the JS layer
-	 * be the one place that resolves the embed location.
+	 * Resolution order:
+	 *   1. The `ffc_schedule_exception_form_url` filter, if a host site
+	 *      wants to hard-wire the landing (highest priority, unchanged
+	 *      contract).
+	 *   2. Auto-discovery: the most recently published page/post that
+	 *      contains `[ffc_form id="N"`. This is the Sprint 5 lookup that
+	 *      #366 deferred — there's no canonical "form page" because the
+	 *      form is a shortcode, not a CPT, so we search post_content the
+	 *      same way {@see \FreeFormCertificate\Submissions\FormCache} does
+	 *      for cache purging. When a form is embedded on more than one
+	 *      page we return the newest embed (`orderby=date DESC`), on the
+	 *      assumption that the latest page is the live landing.
+	 *   3. `home_url()` as a last-resort fallback when the form isn't
+	 *      embedded anywhere we can find — keeps the contract simple
+	 *      (always returns a URL).
+	 *
+	 * Always returns a URL (home as the last-resort fallback). For the
+	 * operator hand-off, where a URL must always exist.
 	 *
 	 * @param int $form_id Form post id.
 	 */
-	private static function resolve_form_url( int $form_id ): string {
+	public static function resolve_form_url( int $form_id ): string {
+		$url = self::find_form_page_url( $form_id );
+		return '' !== $url ? $url : home_url( '/' );
+	}
+
+	/**
+	 * Locate the published page/post that embeds this form via the
+	 * `[ffc_form id="N"` shortcode, or '' when none is found.
+	 *
+	 * Unlike {@see resolve_form_url()}, this does NOT fall back to the site
+	 * home — a '' return is a meaningful "the form isn't embedded anywhere"
+	 * signal, which the info-screen builder uses to decide whether to show
+	 * the operator a clickable "open participant form" link at all (#366
+	 * Sprint 5). The create endpoint keeps using resolve_form_url(), which
+	 * needs a guaranteed URL for the new-tab hand-off.
+	 *
+	 * @param int $form_id Form post id.
+	 */
+	public static function find_form_page_url( int $form_id ): string {
 		$candidate = (string) apply_filters( 'ffc_schedule_exception_form_url', '', $form_id );
 		if ( '' !== $candidate ) {
 			return $candidate;
 		}
-		return home_url( '/' );
+
+		$pages = get_posts(
+			array(
+				'post_type'      => array( 'page', 'post' ),
+				'post_status'    => 'publish',
+				's'              => '[ffc_form id="' . $form_id . '"',
+				'orderby'        => 'date',
+				'order'          => 'DESC',
+				'posts_per_page' => 1,
+				'fields'         => 'ids',
+			)
+		);
+
+		if ( ! empty( $pages ) ) {
+			$url = get_permalink( (int) $pages[0] );
+			if ( is_string( $url ) && '' !== $url ) {
+				return $url;
+			}
+		}
+
+		return '';
 	}
 }

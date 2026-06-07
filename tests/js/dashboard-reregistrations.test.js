@@ -7,8 +7,8 @@
 // visibility, and search filtering.
 //
 // Sprint B of #168.
-import { describe, it, expect, beforeAll, beforeEach } from 'vitest';
-import { installDashboardFixtures, loadDashboardCore, loadPanel } from './dashboard-fixtures.js';
+import { describe, it, expect, beforeAll, beforeEach, afterEach, vi } from 'vitest';
+import { installDashboardFixtures, loadDashboardCore, loadPanel, flushPromises } from './dashboard-fixtures.js';
 
 beforeAll(() => {
 	installDashboardFixtures();
@@ -26,7 +26,10 @@ beforeAll(() => {
 		actions: 'Actions',
 		editReregistration: 'Edit',
 		downloadFicha: 'Download Ficha',
+		noPermission: 'No permission',
 	});
+	window.ffcDashboard.restUrl = 'https://x.test/wp-json/ffc/v1/';
+	window.ffcDashboard.nonce = 'rest-nonce';
 	// Inject the panel's tab container, which install... doesn't include.
 	const dash = document.getElementById('ffc-dashboard');
 	if (dash && ! document.getElementById('tab-reregistrations')) {
@@ -116,5 +119,137 @@ describe('FFCDashboard.panels.reregistrations.render', () => {
 		], 1);
 		expect(document.querySelectorAll('#tab-reregistrations code.ffc-auth-code').length).toBe(1);
 		expect(document.querySelectorAll('#tab-reregistrations code.ffc-auth-code')[0].textContent).toBe('ABC123');
+	});
+
+	it('filters by search query (title / status_label / auth_code substring)', () => {
+		const items = [
+			makeRereg({ title: 'Alpha campaign', auth_code: 'AAA', reregistration_id: 1 }),
+			makeRereg({ title: 'Beta campaign',  auth_code: 'BBB', reregistration_id: 2 }),
+		];
+		panel().render(items, 1);
+		document.querySelector('#tab-reregistrations .ffc-filter-search').value = 'beta';
+		panel().render(items, 1);
+		const rows = document.querySelectorAll('#tab-reregistrations table tbody tr');
+		expect(rows.length).toBe(1);
+		expect(rows[0].textContent).toContain('Beta');
+	});
+
+	it('filters out rows outside the from/to date range', () => {
+		const items = [
+			// Excluded by the from bound (start_date < fromVal).
+			makeRereg({ start_date: '2026-01-01', end_date: '2026-02-01', title: 'EarlyCamp', reregistration_id: 1 }),
+			// Kept — inside both bounds.
+			makeRereg({ start_date: '2026-06-01', end_date: '2026-07-01', title: 'MidCamp', reregistration_id: 2 }),
+			// Excluded by the to bound (end_date > toVal).
+			makeRereg({ start_date: '2026-06-01', end_date: '2026-12-31', title: 'LateCamp', reregistration_id: 3 }),
+		];
+		panel().render(items, 1);
+		document.querySelector('#tab-reregistrations .ffc-filter-from').value = '2026-03-01';
+		document.querySelector('#tab-reregistrations .ffc-filter-to').value = '2026-09-01';
+		panel().render(items, 1);
+		const rows = document.querySelectorAll('#tab-reregistrations table tbody tr');
+		expect(rows.length).toBe(1);
+		expect(rows[0].textContent).toContain('MidCamp');
+	});
+});
+
+// ----------------------------------------------------------------------
+// load() — guard / AJAX flow
+// ----------------------------------------------------------------------
+
+describe('FFCDashboard.panels.reregistrations.load', () => {
+	afterEach(() => {
+		vi.restoreAllMocks();
+		panel().state = null;
+		delete window.ffcDashboard.viewAsUserId;
+		delete window.ffcDashboard.canViewReregistrations;
+	});
+
+	it('bails when #tab-reregistrations is missing', async () => {
+		document.getElementById('tab-reregistrations').remove();
+		const ajaxSpy = vi.spyOn(window.$, 'ajax').mockImplementation(() => ({}));
+
+		panel().load();
+		await flushPromises();
+
+		expect(ajaxSpy).not.toHaveBeenCalled();
+		document.getElementById('ffc-dashboard').insertAdjacentHTML(
+			'beforeend',
+			'<div id="tab-reregistrations" class="ffc-tab-content"></div>'
+		);
+	});
+
+	it('shows the noPermission notice when canViewReregistrations is false', async () => {
+		window.ffcDashboard.canViewReregistrations = false;
+		const ajaxSpy = vi.spyOn(window.$, 'ajax').mockImplementation(() => ({}));
+
+		panel().load();
+		await flushPromises();
+
+		expect(ajaxSpy).not.toHaveBeenCalled();
+		expect(document.getElementById('tab-reregistrations').innerHTML).toContain('No permission');
+	});
+
+	it('short-circuits when state is already populated', async () => {
+		panel().state = [];
+		const ajaxSpy = vi.spyOn(window.$, 'ajax').mockImplementation(() => ({}));
+
+		panel().load();
+		await flushPromises();
+
+		expect(ajaxSpy).not.toHaveBeenCalled();
+	});
+
+	it('GETs /user/reregistrations, sets X-WP-Nonce, and stores the response on state', async () => {
+		const ajaxSpy = vi.spyOn(window.$, 'ajax').mockImplementation((opts) => {
+			const xhr = { setRequestHeader: vi.fn() };
+			opts.beforeSend(xhr);
+			expect(xhr.setRequestHeader).toHaveBeenCalledWith('X-WP-Nonce', 'rest-nonce');
+			opts.success({ reregistrations: [makeRereg({ title: 'LoadedCampaign' })] });
+			return {};
+		});
+
+		panel().load();
+		await flushPromises();
+
+		const opts = ajaxSpy.mock.calls[0][0];
+		expect(opts.url).toBe('https://x.test/wp-json/ffc/v1/user/reregistrations');
+		expect(panel().state.length).toBe(1);
+		expect(document.getElementById('tab-reregistrations').textContent).toContain('LoadedCampaign');
+	});
+
+	it('appends viewAsUserId query string when impersonating', async () => {
+		window.ffcDashboard.viewAsUserId = 7;
+		const ajaxSpy = vi.spyOn(window.$, 'ajax').mockImplementation(() => ({}));
+
+		panel().load();
+		await flushPromises();
+
+		expect(ajaxSpy.mock.calls[0][0].url).toBe('https://x.test/wp-json/ffc/v1/user/reregistrations?viewAsUserId=7');
+	});
+
+	it('defaults state to [] when response.reregistrations is missing', async () => {
+		vi.spyOn(window.$, 'ajax').mockImplementation((opts) => {
+			opts.success({});
+			return {};
+		});
+
+		panel().load();
+		await flushPromises();
+
+		expect(panel().state).toEqual([]);
+		expect(document.querySelector('#tab-reregistrations .ffc-empty-state')).not.toBeNull();
+	});
+
+	it('renders the error notice when the AJAX call fails', async () => {
+		vi.spyOn(window.$, 'ajax').mockImplementation((opts) => {
+			opts.error();
+			return {};
+		});
+
+		panel().load();
+		await flushPromises();
+
+		expect(document.getElementById('tab-reregistrations').innerHTML).toContain('Error');
 	});
 });

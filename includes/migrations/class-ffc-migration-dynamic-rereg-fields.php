@@ -161,13 +161,16 @@ class MigrationDynamicReregFields {
 		$table_name      = $wpdb->prefix . 'ffc_reregistration_submissions';
 		$charset_collate = $wpdb->get_charset_collate();
 
+		// `submitted_at` / `reviewed_at` are Category A instants since 6.6.0 (#249).
+		// Keep inline `-- ` SQL comments OUT of the dbDelta string: its column-diff
+		// parser misreads a backtick identifier inside a comment as a real column
+		// and emits a broken `ALTER TABLE … ADD COLUMN -- …` (logged DB error).
 		$sql = "CREATE TABLE {$table_name} (
             id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
             reregistration_id bigint(20) unsigned NOT NULL,
             user_id bigint(20) unsigned NOT NULL,
             data json DEFAULT NULL,
             status varchar(20) NOT NULL DEFAULT 'pending',
-            -- `submitted_at`/`reviewed_at` are Category A instants since 6.6.0 (#249).
             submitted_at bigint(20) unsigned DEFAULT NULL,
             reviewed_at bigint(20) unsigned DEFAULT NULL,
             reviewed_by bigint(20) unsigned DEFAULT NULL,
@@ -222,6 +225,21 @@ class MigrationDynamicReregFields {
 			);
 		}
 
+		// Activation-order guard: on a fresh install the audiences table may not
+		// exist yet when this reregistration migration runs, and the seeder walks
+		// `ffc_audiences`. Skip cleanly (no audiences to seed yet) instead of
+		// emitting a "Table doesn't exist" DB error — the seeder re-runs on a
+		// later load once the table is present.
+		global $wpdb;
+		$audiences_table = $wpdb->prefix . 'ffc_audiences';
+		if ( ! self::table_exists( $audiences_table ) ) {
+			return array(
+				'success' => true,
+				'message' => __( 'Audiences table not ready yet (will seed on next run).', 'ffcertificate' ),
+				'seeded'  => 0,
+			);
+		}
+
 		$seeded = \FreeFormCertificate\Reregistration\ReregistrationStandardFieldsSeeder::seed_all_existing_audiences();
 
 		return array(
@@ -233,6 +251,25 @@ class MigrationDynamicReregFields {
 			),
 			'seeded'  => $seeded,
 		);
+	}
+
+	/**
+	 * Check if a table exists in the current database.
+	 *
+	 * @param string $table_name Fully-qualified table name.
+	 * @return bool
+	 */
+	private static function table_exists( string $table_name ): bool {
+		global $wpdb;
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+		$found = $wpdb->get_var(
+			$wpdb->prepare(
+				'SELECT TABLE_NAME FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_SCHEMA = %s AND TABLE_NAME = %s',
+				DB_NAME,
+				$table_name
+			)
+		);
+		return ! empty( $found );
 	}
 
 	/**

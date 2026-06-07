@@ -106,12 +106,13 @@ class FormEditorDeviceLimitMetabox {
 	 * @param WP_Post $post Form post.
 	 */
 	public function render_sub_options( WP_Post $post ): void {
-		$enabled       = (string) get_post_meta( $post->ID, '_ffc_device_limit_enabled', true );
-		$max           = (string) get_post_meta( $post->ID, '_ffc_device_limit_max', true );
-		$threshold     = (string) get_post_meta( $post->ID, '_ffc_device_match_threshold', true );
-		$message       = (string) get_post_meta( $post->ID, '_ffc_device_limit_message', true );
-		$global_active = $this->is_global_subsystem_active();
-		$sub_disabled  = ( ! $global_active ) || ( '1' !== $enabled );
+		$enabled         = (string) get_post_meta( $post->ID, '_ffc_device_limit_enabled', true );
+		$max             = (string) get_post_meta( $post->ID, '_ffc_device_limit_max', true );
+		$threshold       = (string) get_post_meta( $post->ID, '_ffc_device_match_threshold', true );
+		$message         = (string) get_post_meta( $post->ID, '_ffc_device_limit_message', true );
+		$global_active   = $this->is_global_subsystem_active();
+		$global_defaults = $this->get_global_device_defaults();
+		$sub_disabled    = ( ! $global_active ) || ( '1' !== $enabled );
 		?>
 		<div class="ffc-collapsed-target<?php echo $sub_disabled ? ' ffc-collapsed' : ''; ?>"
 			data-ffc-master="ffc_device_limit_enabled"
@@ -128,8 +129,14 @@ class FormEditorDeviceLimitMetabox {
 						min="1"
 						max="100"
 						value="<?php echo esc_attr( $max ); ?>"
-						placeholder="<?php esc_attr_e( 'Default: 2', 'ffcertificate' ); ?>">
-					<p class="description"><?php esc_html_e( 'Defaults to 2 when this metabox is enabled. Override here to set a per-form value.', 'ffcertificate' ); ?></p>
+						placeholder="<?php esc_attr_e( 'Inherit from global', 'ffcertificate' ); ?>">
+					<?php
+					$this->render_inherit_hint(
+						/* translators: %s: highlighted current global default — Max submissions per device. */
+						esc_html__( 'Leave empty to inherit the global default — currently %s (Settings → Rate Limit → Device Fingerprint).', 'ffcertificate' ),
+						(string) $global_defaults['max']
+					);
+					?>
 				</td>
 			</tr>
 
@@ -145,7 +152,13 @@ class FormEditorDeviceLimitMetabox {
 						max="12"
 						value="<?php echo esc_attr( $threshold ); ?>"
 						placeholder="<?php esc_attr_e( 'Inherit from global', 'ffcertificate' ); ?>">
-					<p class="description"><?php esc_html_e( 'Lower = more aggressive. Leave empty to inherit the global default.', 'ffcertificate' ); ?></p>
+					<?php
+					$this->render_inherit_hint(
+						/* translators: %s: highlighted current global default — match threshold. */
+						esc_html__( 'Lower = more aggressive. Leave empty to inherit the global default — currently %s.', 'ffcertificate' ),
+						(string) $global_defaults['threshold']
+					);
+					?>
 				</td>
 			</tr>
 
@@ -159,6 +172,16 @@ class FormEditorDeviceLimitMetabox {
 						rows="2"
 						class="large-text"
 						placeholder="<?php esc_attr_e( 'Inherit from global', 'ffcertificate' ); ?>"><?php echo esc_textarea( $message ); ?></textarea>
+					<?php
+					$ffc_global_msg = '' !== $global_defaults['message']
+						? $global_defaults['message']
+						: __( '(built-in default)', 'ffcertificate' );
+					$this->render_inherit_hint(
+						/* translators: %s: highlighted current global default — the block message shown when the device limit is reached. */
+						esc_html__( 'Leave empty to inherit the global block message — currently %s.', 'ffcertificate' ),
+						(string) $ffc_global_msg
+					);
+					?>
 				</td>
 			</tr>
 		</table>
@@ -176,5 +199,54 @@ class FormEditorDeviceLimitMetabox {
 		}
 		$rl_settings = \FreeFormCertificate\Security\RateLimiter::get_settings();
 		return ! empty( $rl_settings['device']['enabled'] );
+	}
+
+	/**
+	 * The current global Device Fingerprint defaults (max submissions per
+	 * device + match threshold), surfaced in the per-form field descriptions
+	 * so the operator sees what an empty field will inherit. Falls back to the
+	 * shipped defaults (2 / 7) when the subsystem class isn't available.
+	 *
+	 * @return array{max: int, threshold: int, message: string}
+	 */
+	private function get_global_device_defaults(): array {
+		$max = 2;
+		$thr = 7;
+		$msg = '';
+		if ( class_exists( '\FreeFormCertificate\Security\RateLimiter' ) ) {
+			$device = \FreeFormCertificate\Security\RateLimiter::get_settings()['device'] ?? array();
+			if ( isset( $device['max_per_form'] ) ) {
+				$max = max( 1, (int) $device['max_per_form'] );
+			}
+			if ( isset( $device['match_threshold'] ) ) {
+				$thr = max( 3, min( 12, (int) $device['match_threshold'] ) );
+			}
+			if ( isset( $device['message'] ) && is_string( $device['message'] ) ) {
+				$msg = trim( $device['message'] );
+			}
+		}
+		return array(
+			'max'       => $max,
+			'threshold' => $thr,
+			'message'   => $msg,
+		);
+	}
+
+	/**
+	 * Render a field description that shows the value an empty field inherits
+	 * from the global Device Fingerprint settings, with the value wrapped in a
+	 * subtly-highlighted `.ffc-global-default` span.
+	 *
+	 * @param string $template Translated sprintf template with a single `%s`
+	 *                         placeholder for the highlighted value.
+	 * @param string $value    Already-plain (un-escaped) global value to show.
+	 */
+	private function render_inherit_hint( string $template, string $value ): void {
+		echo '<p class="description">';
+		echo wp_kses(
+			sprintf( $template, '<span class="ffc-global-default">' . esc_html( $value ) . '</span>' ),
+			array( 'span' => array( 'class' => array() ) )
+		);
+		echo '</p>';
 	}
 }

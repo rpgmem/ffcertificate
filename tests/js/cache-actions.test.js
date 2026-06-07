@@ -128,3 +128,37 @@ describe('FFC Cache Actions — Clear', () => {
 		expect(confirmSpy).toHaveBeenCalledWith('Clear all cache?');
 	});
 });
+
+describe('FFC Cache Actions — payload / guards', () => {
+	it('attaches the per-action nonce to the request payload when localized', async () => {
+		window.ffcCacheActions.nonces = { ffc_cache_warm: 'warm-nonce' };
+		const requestSpy = vi.spyOn(window.FFC, 'request').mockResolvedValue({});
+		vi.spyOn(window.FFC.Admin, 'showNotification').mockImplementation(() => {});
+
+		window.$('.ffc-cache-warm-btn').trigger('click');
+		await Promise.resolve(); await Promise.resolve();
+
+		expect(requestSpy).toHaveBeenCalledWith('ffc_cache_warm', { nonce: 'warm-nonce' });
+		delete window.ffcCacheActions.nonces;
+	});
+
+	it('is a no-op for a matching button that carries no data-ffc-action', () => {
+		document.body.innerHTML =
+			'<a href="#" class="button ffc-cache-warm-btn">No action</a>';
+		const requestSpy = vi.spyOn(window.FFC, 'request');
+
+		window.$('.ffc-cache-warm-btn').trigger('click');
+
+		expect(requestSpy).not.toHaveBeenCalled();
+	});
+});
+
+describe('FFC Cache Actions — load-time guard', () => {
+	it('returns at load when FFC.Admin.showNotification is unavailable', () => {
+		const savedAdmin = window.FFC.Admin;
+		// Strip showNotification so the top-of-IIFE guard returns early.
+		window.FFC.Admin = {};
+		expect(() => loadScript('assets/js/ffc-cache-actions.js')).not.toThrow();
+		window.FFC.Admin = savedAdmin;
+	});
+});

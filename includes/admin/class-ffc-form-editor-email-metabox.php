@@ -34,8 +34,17 @@ class FormEditorEmailMetabox {
 		$config     = get_post_meta( $post->ID, '_ffc_form_config', true );
 		$send_email = isset( $config['send_user_email'] ) ? $config['send_user_email'] : '0';
 		$subject    = isset( $config['email_subject'] ) ? $config['email_subject'] : __( 'Your Certificate', 'ffcertificate' );
-		$body       = isset( $config['email_body'] ) ? $config['email_body'] : '';
-		$collapsed  = ( '1' !== (string) $send_email );
+		$body       = isset( $config['email_body'] ) ? (string) $config['email_body'] : '';
+		// When the email is enabled but no custom message was written yet, seed
+		// the editor with a sensible default so the operator starts from a ready
+		// template instead of a blank field. Strip tags / &nbsp; / whitespace
+		// with a native preg_replace (no WP function dependency, so every test
+		// that renders this metabox doesn't need to stub one) so a cleared
+		// TinyMCE body (`<p></p>`) also counts as empty.
+		if ( '' === (string) preg_replace( '/<[^>]*>|&nbsp;|\s+/', '', $body ) ) {
+			$body = self::default_email_body();
+		}
+		$collapsed = ( '1' !== (string) $send_email );
 		?>
 		<table class="form-table">
 			<tr>
@@ -115,5 +124,19 @@ class FormEditorEmailMetabox {
 		</table>
 		</div><!-- /.ffc-collapsed-target -->
 		<?php
+	}
+
+	/**
+	 * Default user-email body (custom message) seeded into the editor when a
+	 * form enables the email without a message of its own. Complements the
+	 * fixed email chrome (heading, authentication-code card, view/download
+	 * button) that {@see \FreeFormCertificate\Integrations\EmailHandler}
+	 * already builds — so this is just a friendly intro, not the whole email.
+	 *
+	 * @return string Default email body HTML (with `{{name}}` placeholder).
+	 */
+	public static function default_email_body(): string {
+		return '<p>' . __( 'Hello {{name}},', 'ffcertificate' ) . '</p>'
+			. '<p>' . __( 'Your certificate has been issued. Use the button below to view and download it, and keep your authentication code for future verification.', 'ffcertificate' ) . '</p>';
 	}
 }

@@ -14,7 +14,7 @@ use PHPUnit\Framework\TestCase;
 use FreeFormCertificate\UserDashboard\UserProfileFieldMap;
 
 /**
- * @coversNothing
+ * @covers \FreeFormCertificate\UserDashboard\UserProfileFieldMap
  */
 class UserProfileFieldMapTest extends TestCase {
 

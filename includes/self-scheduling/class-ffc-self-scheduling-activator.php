@@ -174,7 +174,6 @@ class SelfSchedulingActivator {
             approved_at bigint(20) unsigned DEFAULT NULL,
             approved_by bigint(20) unsigned DEFAULT NULL,
 
-            -- Cancellation tracking. `cancelled_at` Category A instant since 6.6.0.
             cancelled_at bigint(20) unsigned DEFAULT NULL,
             cancelled_by bigint(20) unsigned DEFAULT NULL,
             cancellation_reason text DEFAULT NULL,
@@ -185,7 +184,6 @@ class SelfSchedulingActivator {
             -- Validation code (user-friendly code for verification, like certificates)
             validation_code varchar(20) DEFAULT NULL,
 
-            -- LGPD Consent. `consent_date` Category A instant since 6.6.0.
             consent_given tinyint(1) DEFAULT 0,
             consent_date bigint(20) unsigned DEFAULT NULL,
             consent_text text DEFAULT NULL,

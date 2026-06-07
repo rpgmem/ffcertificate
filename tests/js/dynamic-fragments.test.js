@@ -249,4 +249,64 @@ describe('ffc-dynamic-fragments — applyFragments via XHR onload', () => {
 		expect(email.value).toBe('maria@example.com');
 		expect(email.getAttribute('readonly')).toBe('readonly');
 	});
+
+	it('default-captcha loop skips wrappers already handled by per-form captchas', () => {
+		// Both per-form (captchas[7]) and default (captcha) payloads, with the
+		// captcha fields living inside the handled wrapper. The default loop
+		// must `continue` over them, leaving the per-form values intact.
+		setupAndDeliver(
+			`<div class="ffc-form-wrapper" id="ffc-form-7">
+				<div class="ffc-captcha-row"><span class="ffc-captcha-label-text">old</span></div>
+				<input type="hidden" name="ffc_captcha_hash" value="old-hash" />
+				<input type="text" name="ffc_captcha_ans" value="seed" />
+			</div>`,
+			{
+				success: true,
+				data: {
+					captchas: { '7': { label: 'per-form-label', hash: 'per-form-hash' } },
+					captcha: { label: 'default-label', hash: 'default-hash' },
+				},
+			}
+		);
+		// Per-form values win; the default loop's continue prevented overwrite.
+		expect(document.querySelector('.ffc-captcha-label-text').textContent).toBe('per-form-label');
+		expect(document.querySelector('input[name="ffc_captcha_hash"]').value).toBe('per-form-hash');
+		expect(document.querySelector('input[name="ffc_captcha_ans"]').value).toBe('');
+	});
+});
+
+describe('ffc-dynamic-fragments — DOMContentLoaded deferral', () => {
+	beforeEach(() => {
+		installXHRMock();
+	});
+
+	it('defers refreshFragments to DOMContentLoaded while the document is still loading', () => {
+		document.body.innerHTML = '<div class="ffc-captcha-row"></div>';
+		window.ffcDynamic = { ajaxUrl: '/x' };
+
+		// Force the "loading" branch: stub document.readyState and capture
+		// the listener the IIFE registers instead of firing immediately.
+		const readyDescriptor = Object.getOwnPropertyDescriptor(Document.prototype, 'readyState')
+			|| Object.getOwnPropertyDescriptor(document, 'readyState');
+		Object.defineProperty(document, 'readyState', { configurable: true, get: () => 'loading' });
+		const addSpy = vi.spyOn(document, 'addEventListener');
+
+		loadScript('assets/js/ffc-dynamic-fragments.js');
+
+		// No XHR yet — refreshFragments was deferred, not run.
+		expect(MockXHR.lastInstance).toBeNull();
+		const domReady = addSpy.mock.calls.find((c) => c[0] === 'DOMContentLoaded');
+		expect(domReady).toBeTruthy();
+
+		// Firing the captured handler runs refreshFragments → XHR fires.
+		domReady[1]();
+		expect(MockXHR.lastInstance).not.toBeNull();
+
+		addSpy.mockRestore();
+		if (readyDescriptor) {
+			Object.defineProperty(document, 'readyState', readyDescriptor);
+		} else {
+			delete document.readyState;
+		}
+	});
 });

@@ -142,6 +142,43 @@ final class DateFormatter {
 	}
 
 	/**
+	 * Format a wall-clock DATE string (Category B) in the configured date
+	 * format, WITHOUT applying the site timezone.
+	 *
+	 * Category B values — `appointment_date`, `start_time`/`end_time`, etc.
+	 * (see CLAUDE.md "Date / time storage convention") — are stored literally
+	 * and mean the same thing regardless of timezone. Passing such a string to
+	 * {@see format_date()} mis-renders it: WordPress runs PHP with the default
+	 * timezone pinned to UTC, so `strtotime('2026-05-20')` yields the instant
+	 * at UTC midnight, and `wp_date()` then re-applies `wp_timezone()` — on a
+	 * UTC-3 site a 09:00 wall-clock time displays as 06:00. Pinning the render
+	 * timezone to UTC (matching how `strtotime()` parsed it) round-trips the
+	 * literal value untouched.
+	 *
+	 * @param string|null $wallclock Literal DATE string (e.g. 'Y-m-d'),
+	 *                               may be empty/null.
+	 * @param string      $context   'default' or 'pdf'.
+	 * @return string Formatted date, or '' on unparseable input.
+	 */
+	public static function format_wallclock_date( ?string $wallclock, string $context = 'default' ): string {
+		return self::format_date( $wallclock, $context, new \DateTimeZone( 'UTC' ) );
+	}
+
+	/**
+	 * Format a wall-clock TIME string (Category B) in the configured time
+	 * format, WITHOUT applying the site timezone. See
+	 * {@see format_wallclock_date()} for the rationale.
+	 *
+	 * @param string|null $wallclock Literal TIME string (e.g. 'H:i:s'),
+	 *                               may be empty/null.
+	 * @param string      $context   'default' or 'pdf'.
+	 * @return string Formatted time, or '' on unparseable input.
+	 */
+	public static function format_wallclock_time( ?string $wallclock, string $context = 'default' ): string {
+		return self::format_time( $wallclock, $context, new \DateTimeZone( 'UTC' ) );
+	}
+
+	/**
 	 * Resolve the date format for the requested context.
 	 *
 	 * @param string $context 'default' or 'pdf'.

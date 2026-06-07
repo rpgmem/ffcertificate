@@ -153,17 +153,157 @@ describe('FFC.Admin.FieldBuilder.updateJSON', () => {
 });
 
 describe('FFC.Admin.FieldBuilder.init — document delegates', () => {
+	beforeEach(() => {
+		window.$.fx.off = true;
+		FB().init();
+	});
+
+	it('returns early when #ffc-fields-container is absent', () => {
+		document.body.innerHTML = '<div id="other"></div>';
+		// Should not throw; nothing wired against the missing container.
+		expect(() => FB().init()).not.toThrow();
+	});
+
 	it('wires the .ffc-remove-field click that fades and removes the row + updates JSON', async () => {
 		// The handler asks for confirmation before removing — stub
 		// window.confirm to accept.
 		const confirmStub = vi.spyOn(window, 'confirm').mockReturnValue(true);
-		FB().init();
 		FB().addField('text');
 		document.querySelector('.ffc-remove-field').click();
-		// fadeOut animates over 300ms — wait for the animation to finish
-		// AND the post-animation `$(this).remove()` + JSON update.
-		await new Promise((r) => setTimeout(r, 600));
+		await new Promise((r) => setTimeout(r, 50));
 		expect(document.querySelectorAll('#ffc-fields-container .ffc-field-row').length).toBe(0);
 		confirmStub.mockRestore();
+	});
+
+	it('keeps the row when confirm is declined', () => {
+		const confirmStub = vi.spyOn(window, 'confirm').mockReturnValue(false);
+		FB().addField('text');
+		document.querySelector('.ffc-remove-field').click();
+		expect(document.querySelectorAll('#ffc-fields-container .ffc-field-row').length).toBe(1);
+		confirmStub.mockRestore();
+	});
+
+	it('updates JSON on change/input within the container', () => {
+		FB().addField('text');
+		const label = document.querySelector('.ffc-field-label');
+		label.value = 'Changed';
+		window.$(label).trigger('input');
+		const parsed = JSON.parse(document.getElementById('ffc-form-fields-json').value);
+		expect(parsed[0].label).toBe('Changed');
+	});
+
+	it('toggles JS-built rows when .ffc-field-type changes to info/embed/select', () => {
+		FB().addField('text');
+		const row = document.querySelector('.ffc-field-row');
+		const sel = row.querySelector('.ffc-field-type');
+
+		sel.value = 'info';
+		window.$(sel).trigger('change');
+		expect(row.querySelector('.ffc-content-row').style.display).not.toBe('none');
+		expect(row.querySelector('.ffc-standard-row').style.display).toBe('none');
+
+		sel.value = 'embed';
+		window.$(sel).trigger('change');
+		expect(row.querySelector('.ffc-embed-row').style.display).not.toBe('none');
+
+		sel.value = 'select';
+		window.$(sel).trigger('change');
+		// Options field becomes visible for select/radio/checkbox.
+		const opts = row.querySelector('.ffc-options-field');
+		if (opts) {
+			expect(opts.style.display).not.toBe('none');
+		}
+	});
+
+	it('toggles PHP-rendered rows via .ffc-field-type-selector using ffc-hidden classes', () => {
+		document.body.innerHTML = `
+			<div id="ffc-fields-container">
+				<div class="ffc-field-row">
+					<select class="ffc-field-type-selector">
+						<option value="text">text</option>
+						<option value="info">info</option>
+						<option value="embed">embed</option>
+						<option value="select">select</option>
+					</select>
+					<div class="ffc-content-field"></div>
+					<div class="ffc-embed-field"></div>
+					<div class="ffc-standard-row"></div>
+					<div class="ffc-options-field"></div>
+				</div>
+			</div>
+			<input type="hidden" id="ffc-form-fields-json" />
+		`;
+		// Re-init so the .on() bindings attach to this fresh container element.
+		FB().init();
+		const row = document.querySelector('.ffc-field-row');
+		const sel = row.querySelector('.ffc-field-type-selector');
+
+		sel.value = 'info';
+		window.$(sel).trigger('change');
+		expect(row.querySelector('.ffc-content-field').classList.contains('ffc-hidden')).toBe(false);
+		expect(row.querySelector('.ffc-standard-row').classList.contains('ffc-hidden')).toBe(true);
+
+		sel.value = 'embed';
+		window.$(sel).trigger('change');
+		expect(row.querySelector('.ffc-embed-field').classList.contains('ffc-hidden')).toBe(false);
+
+		sel.value = 'select';
+		window.$(sel).trigger('change');
+		expect(row.querySelector('.ffc-options-field').classList.contains('ffc-hidden')).toBe(false);
+
+		sel.value = 'text';
+		window.$(sel).trigger('change');
+		expect(row.querySelector('.ffc-options-field').classList.contains('ffc-hidden')).toBe(true);
+	});
+});
+
+describe('FFC.Admin.FieldBuilder — field type menu (.ffc-add-field click)', () => {
+	beforeEach(() => {
+		window.$.fx.off = true;
+		document.body.innerHTML = `
+			<button class="ffc-add-field">Add</button>
+			<div id="ffc-fields-container"></div>
+			<input type="hidden" id="ffc-form-fields-json" />
+		`;
+		FB().init();
+	});
+
+	it('opens a field-type menu listing every field type and adds the chosen type', () => {
+		document.querySelector('.ffc-add-field').click();
+		const menu = document.querySelector('.ffc-field-type-menu');
+		expect(menu).not.toBeNull();
+		const items = menu.querySelectorAll('li');
+		expect(items.length).toBeGreaterThan(0);
+
+		// Clicking an item adds that field and removes the menu.
+		const textItem = Array.from(items).find((li) => li.getAttribute('data-type') === 'text');
+		textItem.click();
+		expect(document.querySelectorAll('#ffc-fields-container .ffc-field-row').length).toBe(1);
+		expect(document.querySelector('.ffc-field-type-menu')).toBeNull();
+	});
+
+	it('removes a pre-existing menu before opening a new one', () => {
+		document.querySelector('.ffc-add-field').click();
+		document.querySelector('.ffc-add-field').click();
+		expect(document.querySelectorAll('.ffc-field-type-menu').length).toBe(1);
+	});
+
+	it('closes the menu on the deferred outside click', async () => {
+		document.querySelector('.ffc-add-field').click();
+		expect(document.querySelector('.ffc-field-type-menu')).not.toBeNull();
+		// The script defers wiring the document.one('click') by 100ms.
+		await new Promise((r) => setTimeout(r, 150));
+		document.body.click();
+		expect(document.querySelector('.ffc-field-type-menu')).toBeNull();
+	});
+});
+
+describe('FFC.Admin.FieldBuilder.updateJSON — missing JSON field', () => {
+	it('warns when no JSON field exists', () => {
+		document.body.innerHTML = '<div id="ffc-fields-container"></div>';
+		const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+		FB().updateJSON();
+		expect(warn).toHaveBeenCalledWith('[FFC] JSON field not found');
+		warn.mockRestore();
 	});
 });

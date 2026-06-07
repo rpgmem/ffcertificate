@@ -67,6 +67,13 @@ class CsvDownloadFormInfoBuilderCanOpenEarlyTest extends TestCase {
             return $this->meta_store[ $id ][ $key ] ?? '';
         } );
 
+        // Participant-form URL lookup (ScheduleExceptionAction::find_form_page_url,
+        // now resolved on every build). Default: no embedding page found, so the
+        // status carries an empty schedule_form_url and the summary shows no link.
+        Functions\when( 'apply_filters' )->returnArg( 2 );
+        Functions\when( 'get_posts' )->justReturn( array() );
+        Functions\when( 'get_permalink' )->justReturn( '' );
+
         // SubmissionRepository::countForExport.
         Mockery::mock( 'overload:FreeFormCertificate\Repositories\SubmissionRepository' )
             ->shouldReceive( 'countForExport' )->andReturn( 0 );

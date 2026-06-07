@@ -139,20 +139,24 @@ class UserAudienceRestController {
 			foreach ( $bookings as $booking ) {
 				$date_formatted = '';
 				if ( ! empty( $booking['booking_date'] ) ) {
-					$timestamp      = strtotime( $booking['booking_date'] );
-					$date_formatted = ( false !== $timestamp ) ? \FreeFormCertificate\Core\DateFormatter::format_date( $timestamp ) : $booking['booking_date'];
+					// booking_date is a wall-clock DATE (Category B) — render literally, no TZ shift.
+					$date_formatted = \FreeFormCertificate\Core\DateFormatter::format_wallclock_date( (string) $booking['booking_date'] );
+					if ( '' === $date_formatted ) {
+						$date_formatted = (string) $booking['booking_date'];
+					}
 				}
 
 				$time_formatted = '';
 				if ( ! empty( $booking['start_time'] ) ) {
-					$time_timestamp = strtotime( $booking['start_time'] );
-					$time_formatted = ( false !== $time_timestamp ) ? \FreeFormCertificate\Core\DateFormatter::format_time( $time_timestamp ) : $booking['start_time'];
+					$time_formatted = \FreeFormCertificate\Core\DateFormatter::format_wallclock_time( (string) $booking['start_time'] );
+					if ( '' === $time_formatted ) {
+						$time_formatted = (string) $booking['start_time'];
+					}
 				}
 
 				$end_time_formatted = '';
 				if ( ! empty( $booking['end_time'] ) ) {
-					$end_timestamp      = strtotime( $booking['end_time'] );
-					$end_time_formatted = ( false !== $end_timestamp ) ? \FreeFormCertificate\Core\DateFormatter::format_time( $end_timestamp ) : '';
+					$end_time_formatted = \FreeFormCertificate\Core\DateFormatter::format_wallclock_time( (string) $booking['end_time'] );
 				}
 
 				$status_labels = array(
@@ -161,7 +165,7 @@ class UserAudienceRestController {
 				);
 
 				$status  = $booking['status'] ?? 'active';
-				$is_past = strtotime( $booking['booking_date'] ) < strtotime( 'today' );
+				$is_past = (string) $booking['booking_date'] < current_time( 'Y-m-d' );
 
 				$bookings_formatted[] = array(
 					'id'               => (int) $booking['id'],

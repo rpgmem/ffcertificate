@@ -124,4 +124,48 @@ class AudienceAdminSettingsTest extends TestCase {
 
         $this->assertStringContainsString( 'wrap', $output );
     }
+
+    /**
+     * Regression: a holiday saved as 05/06 must render as 05/06, not 04/06.
+     * Holiday dates are wall-clock DATE strings; rendering them through the
+     * instant API on a UTC-3 site rolled them back one day. Drives a UTC-3
+     * site with a timezone-honouring wp_date stub and asserts the list shows
+     * the literal date.
+     */
+    public function test_general_tab_renders_holiday_date_without_timezone_shift(): void {
+        $prev_tz = date_default_timezone_get(); // phpcs:ignore WordPress.DateTime.RestrictedFunctions.timezone_change_date_default_timezone_get
+        date_default_timezone_set( 'UTC' ); // phpcs:ignore WordPress.DateTime.RestrictedFunctions.timezone_change_date_default_timezone_set
+
+        Functions\when( 'date_i18n' )->alias( function ( $f, $t = null ) { return date( $f, $t ?? time() ); } );
+        Functions\when( 'wp_nonce_url' )->justReturn( '/' );
+        Functions\when( 'get_option' )->alias( function ( $key, $default = false ) {
+            if ( 'ffc_global_holidays' === $key ) {
+                return array( array( 'date' => '2026-06-05', 'description' => 'Test holiday' ) );
+            }
+            if ( 'ffc_settings' === $key ) {
+                return array();
+            }
+            return false !== $default ? $default : '';
+        } );
+        Functions\when( 'wp_timezone' )->alias( static function () {
+            return new \DateTimeZone( '-03:00' );
+        } );
+        Functions\when( 'wp_date' )->alias( static function ( $format, $ts = null, $tz = null ) {
+            $ts = null === $ts ? time() : (int) $ts;
+            $dt = ( new \DateTimeImmutable( '@' . $ts ) )->setTimezone(
+                $tz instanceof \DateTimeZone ? $tz : new \DateTimeZone( 'UTC' )
+            );
+            return $dt->format( $format );
+        } );
+
+        $page = new AudienceAdminSettings( 'ffc-scheduling', \Mockery::mock( \FreeFormCertificate\Audience\AudienceAdminImport::class )->shouldIgnoreMissing() );
+        ob_start();
+        $page->render_page();
+        $output = ob_get_clean();
+
+        date_default_timezone_set( $prev_tz ); // phpcs:ignore WordPress.DateTime.RestrictedFunctions.timezone_change_date_default_timezone_set
+
+        $this->assertStringContainsString( '05/06/2026', $output );
+        $this->assertStringNotContainsString( '04/06/2026', $output );
+    }
 }

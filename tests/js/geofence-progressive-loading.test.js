@@ -237,3 +237,255 @@ describe('cache-hit — spinner is held for FFCGeofence.MIN_LOADING_MS before fo
 		restoreLoc();
 	});
 });
+
+// ----------------------------------------------------------------------
+// GPS success / safety-timer / Safari-retry / default-error internals
+// ----------------------------------------------------------------------
+
+describe('validateGeolocation — success, safety timer, Safari retry', () => {
+	it('onSuccess re-checks the location and validates an in-area fix', () => {
+		const restoreUa = installUa(CHROME_UA);
+		const restoreLoc = installLocationHttps();
+		Object.defineProperty(window.navigator, 'geolocation', {
+			configurable: true,
+			value: {
+				getCurrentPosition: (success) => {
+					success({ coords: { latitude: 0, longitude: 0, accuracy: 5 } });
+				},
+			},
+		});
+		const $w = mountForm(6001);
+
+		window.FFCGeofence.validateGeolocation($w, {
+			hideMode: 'message',
+			// Area centred on (0,0) so the fix is inside.
+			areas: [{ lat: 0, lng: 0, radius: 1000 }],
+			cacheEnabled: true,
+			cacheTtl: 300,
+		});
+
+		expect($w.hasClass('ffc-validated')).toBe(true);
+		// cacheGeofencePass wrote a pass token.
+		expect(window.localStorage.getItem('ffc_geo_ffc-form-6001')).toBeTruthy();
+		restoreLoc();
+		restoreUa();
+	});
+
+	it('getFreshGeoConfig prefers the live ffcGeofenceConfig geo block', () => {
+		const restoreUa = installUa(CHROME_UA);
+		const restoreLoc = installLocationHttps();
+		Object.defineProperty(window.navigator, 'geolocation', {
+			configurable: true,
+			value: {
+				getCurrentPosition: (success) => {
+					success({ coords: { latitude: 0, longitude: 0, accuracy: 5 } });
+				},
+			},
+		});
+		// Authoritative geo config keyed by the form id.
+		window.ffcGeofenceConfig = {
+			6002: { geo: { hideMode: 'message', areas: [{ lat: 0, lng: 0, radius: 1000 }] } },
+		};
+		const $w = mountForm(6002);
+
+		window.FFCGeofence.validateGeolocation($w, {
+			hideMode: 'message',
+			areas: [{ lat: 89, lng: 179, radius: 1 }], // stale fallback — would block
+		});
+
+		// getFreshGeoConfig() returned the live, in-area config → validated.
+		expect($w.hasClass('ffc-validated')).toBe(true);
+		delete window.ffcGeofenceConfig;
+		restoreLoc();
+		restoreUa();
+	});
+
+	it('fires the safety-timer fallback when geolocation never responds', () => {
+		vi.useFakeTimers();
+		const restoreUa = installUa(CHROME_UA);
+		const restoreLoc = installLocationHttps();
+		// Never calls success or error.
+		Object.defineProperty(window.navigator, 'geolocation', {
+			configurable: true,
+			value: { getCurrentPosition: () => {} },
+		});
+		const $w = mountForm(6003);
+
+		window.FFCGeofence.validateGeolocation($w, {
+			hideMode: 'message',
+			areas: [{ lat: 0, lng: 0, radius: 1 }],
+			gpsFallback: { safetyTimer: false },
+		});
+
+		// Non-Safari safety timeout is 25 s.
+		vi.advanceTimersByTime(25000);
+		expect($w.hasClass('ffc-geofence-loading')).toBe(false);
+		expect($w.find('.ffc-geofence-blocked').length).toBe(1);
+		restoreLoc();
+		restoreUa();
+	});
+
+	it('safety timer is inert once GPS already resolved', () => {
+		vi.useFakeTimers();
+		const restoreUa = installUa(CHROME_UA);
+		const restoreLoc = installLocationHttps();
+		let succeed;
+		Object.defineProperty(window.navigator, 'geolocation', {
+			configurable: true,
+			value: {
+				getCurrentPosition: (success) => {
+					// Defer success so we control when `resolved` flips true.
+					succeed = () => success({ coords: { latitude: 0, longitude: 0, accuracy: 5 } });
+				},
+			},
+		});
+		const $w = mountForm(6008);
+
+		window.FFCGeofence.validateGeolocation($w, {
+			hideMode: 'message',
+			areas: [{ lat: 0, lng: 0, radius: 1000 }],
+		});
+
+		// Resolve via success first (sets resolved=true, clears safetyTimer),
+		// then force the safety callback path by advancing far past it.
+		succeed();
+		expect($w.hasClass('ffc-validated')).toBe(true);
+		vi.advanceTimersByTime(60000);
+		// Still validated — the safety callback short-circuited on `resolved`.
+		expect($w.hasClass('ffc-validated')).toBe(true);
+		restoreLoc();
+		restoreUa();
+	});
+
+	it('onSuccess is idempotent — a duplicate fix is ignored', () => {
+		const restoreUa = installUa(CHROME_UA);
+		const restoreLoc = installLocationHttps();
+		let successCb;
+		Object.defineProperty(window.navigator, 'geolocation', {
+			configurable: true,
+			value: {
+				getCurrentPosition: (success) => {
+					successCb = success;
+					success({ coords: { latitude: 0, longitude: 0, accuracy: 5 } });
+				},
+			},
+		});
+		const $w = mountForm(6009);
+		const checkSpy = vi.spyOn(window.FFCGeofence, 'checkLocation');
+
+		window.FFCGeofence.validateGeolocation($w, {
+			hideMode: 'message',
+			areas: [{ lat: 0, lng: 0, radius: 1000 }],
+		});
+
+		const callsAfterFirst = checkSpy.mock.calls.length;
+		// Fire the captured success callback a second time — `resolved` guard
+		// makes it a no-op (no extra checkLocation).
+		successCb({ coords: { latitude: 0, longitude: 0, accuracy: 5 } });
+		expect(checkSpy.mock.calls.length).toBe(callsAfterFirst);
+		restoreLoc();
+		restoreUa();
+	});
+
+	it('Safari retries once with relaxed settings on a TIMEOUT', () => {
+		const restoreUa = installUa(SAFARI_UA);
+		const restoreLoc = installLocationHttps();
+		let calls = 0;
+		Object.defineProperty(window.navigator, 'geolocation', {
+			configurable: true,
+			value: {
+				getCurrentPosition: (success, error) => {
+					calls += 1;
+					if (calls === 1) {
+						// First attempt times out → triggers the Safari retry.
+						error({ code: 3, PERMISSION_DENIED: 1, POSITION_UNAVAILABLE: 2, TIMEOUT: 3 });
+					} else {
+						// Retry succeeds inside the area.
+						success({ coords: { latitude: 0, longitude: 0, accuracy: 5 } });
+					}
+				},
+			},
+		});
+		const $w = mountForm(6004);
+
+		window.FFCGeofence.validateGeolocation($w, {
+			hideMode: 'message',
+			areas: [{ lat: 0, lng: 0, radius: 1000 }],
+		});
+
+		expect(calls).toBe(2);
+		expect($w.hasClass('ffc-validated')).toBe(true);
+		restoreLoc();
+		restoreUa();
+	});
+
+	it('uses the default error branch for an unknown error code', () => {
+		const restoreUa = installUa(CHROME_UA);
+		const restoreLoc = installLocationHttps();
+		Object.defineProperty(window.navigator, 'geolocation', {
+			configurable: true,
+			value: {
+				getCurrentPosition: (_s, error) => {
+					// Code 99 matches no known case → default branch.
+					error({ code: 99, PERMISSION_DENIED: 1, POSITION_UNAVAILABLE: 2, TIMEOUT: 3 });
+				},
+			},
+		});
+		const $w = mountForm(6005);
+
+		window.FFCGeofence.validateGeolocation($w, {
+			hideMode: 'message',
+			areas: [],
+			messageError: 'Custom location error',
+			gpsFallback: { positionUnavailable: false },
+		});
+
+		expect($w.find('.ffc-geofence-blocked').text()).toContain('Custom location error');
+		restoreLoc();
+		restoreUa();
+	});
+
+	it('setLocationCache swallows a localStorage write failure', () => {
+		const setSpy = vi.spyOn(Storage.prototype, 'setItem').mockImplementation(() => {
+			throw new Error('quota');
+		});
+		// Should not throw despite the storage error.
+		expect(() => window.FFCGeofence.setLocationCache('ffc-form-6006', 300)).not.toThrow();
+		setSpy.mockRestore();
+	});
+
+	it('permissions.query throwing synchronously falls through to the native flow', () => {
+		const restoreUa = installUa(CHROME_UA);
+		const restoreLoc = installLocationHttps();
+		const getPos = vi.fn();
+		Object.defineProperty(window.navigator, 'permissions', {
+			configurable: true,
+			value: {
+				query: () => {
+					throw new Error('sync boom');
+				},
+			},
+		});
+		Object.defineProperty(window.navigator, 'geolocation', {
+			configurable: true,
+			value: { getCurrentPosition: getPos },
+		});
+		const $w = mountForm(6007);
+
+		// preflightDone defaults to false → the permissions.query block runs
+		// and its synchronous throw hits the catch at line 111.
+		window.FFCGeofence.validateGeolocation($w, {
+			hideMode: 'message',
+			areas: [{ lat: 0, lng: 0, radius: 1 }],
+		});
+
+		// The synchronous catch re-entered validateGeolocation → getCurrentPosition.
+		expect(getPos).toHaveBeenCalled();
+		Object.defineProperty(window.navigator, 'permissions', {
+			configurable: true,
+			value: undefined,
+		});
+		restoreLoc();
+		restoreUa();
+	});
+});

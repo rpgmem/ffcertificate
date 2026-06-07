@@ -273,4 +273,166 @@ describe('role presets', () => {
 		expect(rowB.querySelector('.ffc-cap-checkbox').checked).toBe(false);
 		expect(rowB.querySelector('[data-ffc-origin]').textContent).toBe('—');
 	});
+
+	it('illuminates on keyboard focus and clears on blur', () => {
+		roleSetup();
+		const chip = document.querySelector('[data-ffc-role="ffc_recruitment_manager"]');
+		chip.dispatchEvent(new Event('focus'));
+		const rowC = document.querySelector('[data-ffc-cap-slug="cap_c"]');
+		expect(rowC.classList.contains('is-lit')).toBe(true);
+		chip.dispatchEvent(new Event('blur'));
+		expect(rowC.classList.contains('is-lit')).toBe(false);
+	});
+
+	it('alerts and reverts the chip when the server reports failure', async () => {
+		const fetchMock = vi.fn(() => Promise.resolve({ json: () => Promise.resolve({ success: false }) }));
+		const alertSpy = vi.spyOn(window, 'alert').mockImplementation(() => {});
+		roleSetup(fetchMock);
+
+		const chip = document.querySelector('[data-ffc-role="ffc_recruitment_manager"]');
+		chip.click();
+		await new Promise((r) => setTimeout(r, 0));
+
+		expect(alertSpy).toHaveBeenCalledWith('Err');
+		// Chip is re-enabled but NOT marked on (assignment didn't take).
+		expect(chip.disabled).toBe(false);
+		expect(chip.classList.contains('is-on')).toBe(false);
+	});
+
+	it('alerts when the network request rejects', async () => {
+		const fetchMock = vi.fn(() => Promise.reject(new Error('offline')));
+		const alertSpy = vi.spyOn(window, 'alert').mockImplementation(() => {});
+		roleSetup(fetchMock);
+
+		const chip = document.querySelector('[data-ffc-role="ffc_recruitment_manager"]');
+		chip.click();
+		await new Promise((r) => setTimeout(r, 0));
+
+		expect(alertSpy).toHaveBeenCalledWith('Err');
+		expect(chip.disabled).toBe(false);
+	});
+
+	it('does not POST on chip click when ajaxUrl is absent', () => {
+		const fetchMock = vi.fn();
+		roleSetup(fetchMock);
+		window.ffcUserPerms.ajaxUrl = '';
+		window.ffcUserPermissionsInit();
+		document.querySelector('[data-ffc-role="ffc_recruitment_manager"]').click();
+		expect(fetchMock).not.toHaveBeenCalled();
+	});
+
+	it('preset "Grant all" skips role-locked (disabled) checkboxes', () => {
+		window.ffcUserPerms = {
+			roleCaps: {}, assigned: [], i18n: {},
+		};
+		// A panel with one disabled (role-locked) checkbox + one enabled.
+		document.body.innerHTML = `
+			<div class="ffc-cap-panel">
+				<button type="button" data-ffc-preset="all">all</button>
+				<section class="ffc-cap-group" data-ffc-group="g">
+					<button class="ffc-cap-group-h"><span class="ffc-cap-count">0</span></button>
+					<div class="ffc-cap-group-body">
+						<div class="ffc-cap-row" data-ffc-cap-slug="locked" data-ffc-cap-name="locked">
+							<input type="checkbox" class="ffc-cap-checkbox" disabled>
+							<span class="ffc-cap-origin" data-ffc-origin>Role</span>
+						</div>
+						<div class="ffc-cap-row" data-ffc-cap-slug="free" data-ffc-cap-name="free">
+							<input type="checkbox" class="ffc-cap-checkbox">
+							<span class="ffc-cap-origin" data-ffc-origin>—</span>
+						</div>
+					</div>
+				</section>
+			</div>`;
+		window.ffcUserPermissionsInit();
+		document.querySelector('[data-ffc-preset="all"]').click();
+
+		// The disabled (role-locked) box is left unchecked by the preset...
+		expect(document.querySelector('[data-ffc-cap-slug="locked"] .ffc-cap-checkbox').checked).toBe(false);
+		// ...while the free box is checked.
+		expect(document.querySelector('[data-ffc-cap-slug="free"] .ffc-cap-checkbox').checked).toBe(true);
+		delete window.ffcUserPerms;
+	});
+});
+
+describe('copy slug timeout + edge cases', () => {
+	it('restores the original glyph after the timeout', () => {
+		vi.useFakeTimers();
+		setup();
+		const writeText = vi.fn();
+		Object.defineProperty(navigator, 'clipboard', { value: { writeText }, configurable: true });
+		const btn = document.querySelector('.ffc-cap-copy');
+		const original = btn.textContent;
+		btn.click();
+		expect(btn.textContent).toBe('✓');
+		vi.advanceTimersByTime(900);
+		expect(btn.textContent).toBe(original);
+		vi.useRealTimers();
+	});
+});
+
+describe('checkbox change unchecking', () => {
+	it('removes from userGranted and sets origin to none when unchecked', () => {
+		setup();
+		const box = document.querySelector('[data-ffc-group="certificate"] .ffc-cap-checkbox');
+		// Initially checked. Uncheck it.
+		box.checked = false;
+		box.dispatchEvent(new Event('change'));
+		const count = document.querySelector('[data-ffc-group="certificate"] .ffc-cap-count');
+		expect(count.textContent).toBe('0');
+	});
+});
+
+describe('init guard / refreshRow no-checkbox', () => {
+	it('returns when there is no .ffc-cap-panel', () => {
+		document.body.innerHTML = '<div id="x"></div>';
+		expect(() => window.ffcUserPermissionsInit()).not.toThrow();
+	});
+
+	it('recompute tolerates a cap row without a checkbox', () => {
+		window.ffcUserPerms = {
+			ajaxUrl: '/x', nonce: 'n', userId: 1,
+			roleCaps: { r: ['cap_x'] }, assigned: ['r'],
+			i18n: {},
+		};
+		document.body.innerHTML = `
+			<div class="ffc-cap-panel">
+				<div class="ffc-cap-roles"><div class="ffc-cap-role-chips">
+					<button class="ffc-cap-role" data-ffc-role="r"><span class="ffc-cap-role-nm">R</span></button>
+				</div></div>
+				<section class="ffc-cap-group" data-ffc-group="g">
+					<div class="ffc-cap-group-body">
+						<div class="ffc-cap-row" data-ffc-cap-slug="cap_x" data-ffc-cap-name="cap_x"></div>
+					</div>
+				</section>
+			</div>`;
+		// init seeds + recompute may be triggered on assign; just ensure the
+		// checkbox-less row is skipped without throwing.
+		expect(() => window.ffcUserPermissionsInit()).not.toThrow();
+		// Hovering the role chip triggers illuminate (safe) and clicking would
+		// recompute → refreshRow hits the `if (!cb) return` guard.
+		const fetchMock = vi.fn(() => Promise.resolve({ json: () => Promise.resolve({ success: true }) }));
+		window.fetch = fetchMock; globalThis.fetch = fetchMock;
+		expect(() => document.querySelector('[data-ffc-role="r"]').click()).not.toThrow();
+		delete window.ffcUserPerms;
+	});
+
+	it('defers init to DOMContentLoaded while the document is loading', () => {
+		const desc = Object.getOwnPropertyDescriptor(document, 'readyState');
+		Object.defineProperty(document, 'readyState', { value: 'loading', configurable: true });
+		try {
+			document.body.innerHTML = panelMarkup();
+			loadScript('assets/js/ffc-user-capabilities.js');
+			// Before DOMContentLoaded the preset handler isn't wired.
+			document.querySelector('[data-ffc-preset="all"]').click();
+			const boxesBefore = [...document.querySelectorAll('.ffc-cap-checkbox')];
+			expect(boxesBefore.every((b) => b.checked)).toBe(false);
+			// Fire DOMContentLoaded → init wires the handlers.
+			document.dispatchEvent(new Event('DOMContentLoaded'));
+			document.querySelector('[data-ffc-preset="all"]').click();
+			const boxesAfter = [...document.querySelectorAll('.ffc-cap-checkbox')];
+			expect(boxesAfter.every((b) => b.checked)).toBe(true);
+		} finally {
+			if (desc) { Object.defineProperty(document, 'readyState', desc); }
+		}
+	});
 });

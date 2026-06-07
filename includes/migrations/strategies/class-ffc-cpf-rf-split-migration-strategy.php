@@ -305,7 +305,8 @@ class CpfRfSplitMigrationStrategy implements MigrationStrategyInterface {
 				$plain_value = $this->resolve_plain_value( $record );
 
 				if ( empty( $plain_value ) ) {
-					$errors[] = sprintf( 'Could not resolve plain value for ID %d in %s', $record['id'], $table_name );
+					/* translators: 1: record ID, 2: table name */
+					$errors[] = sprintf( __( 'Could not resolve plain value for ID %1$d in %2$s', 'ffcertificate' ), $record['id'], $table_name );
 					continue;
 				}
 

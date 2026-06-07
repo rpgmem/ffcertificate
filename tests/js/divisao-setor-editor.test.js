@@ -74,6 +74,22 @@ describe('ffc-divisao-setor-editor — sync', () => {
 
 		expect(hidden()).toEqual({ 'Div A': ['Dup', 'Unique'] });
 	});
+
+	it('falls back to the [name] selector when the target has no matching id', () => {
+		// data-target references a name attribute, not an id — exercises the
+		// `$('[name="…"]')` fallback in syncHidden().
+		document.body.innerHTML = `
+			<input type="hidden" name="ffc_ds_by_name" value="{}">
+			<div class="ffc-ds-editor" data-target="ffc_ds_by_name">
+				<div class="ffc-ds-divisions">${divisionMarkup('Div A', ['S1'])}</div>
+				<button type="button" class="ffc-ds-division-add">+ Add Division</button>
+			</div>`;
+		window.$('.ffc-ds-division-name').trigger('input');
+
+		expect(JSON.parse(window.$('[name="ffc_ds_by_name"]').val())).toEqual({
+			'Div A': ['S1'],
+		});
+	});
 });
 
 describe('ffc-divisao-setor-editor — add', () => {

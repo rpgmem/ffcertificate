@@ -622,6 +622,122 @@ class FormEditorSaveHandlerTest extends TestCase {
     }
 
     /**
+     * Device Fingerprint: a blank "Max submissions per device" must inherit the
+     * global default (delete the meta), NOT hard-force a value — the read path
+     * (`get_device_effective_settings`) falls back to the global when the meta
+     * is absent.
+     */
+    public function test_device_limit_blank_max_inherits_global_not_forced(): void {
+        $bag     = $this->stub_for_save();
+        $written = &$bag[0];
+
+        $deleted = array();
+        Functions\when( 'delete_post_meta' )->alias(
+            static function ( $id, $key ) use ( &$deleted ): bool {
+                $deleted[] = $key;
+                return true;
+            }
+        );
+        Functions\when( 'get_post_meta' )->alias( static fn( $id, $key ) => array() );
+
+        $_POST = array(
+            'ffc_form_nonce'   => 'ok',
+            'ffc_config'       => array( 'pdf_layout' => '{{auth_code}} {{name}} {{cpf_rf}}' ),
+            'ffc_device_limit' => array(
+                'enabled'   => '1',
+                'max'       => '',
+                'threshold' => '',
+                'message'   => '',
+            ),
+        );
+
+        $this->handler->save_form_data( 10 );
+
+        $this->assertArrayNotHasKey( '_ffc_device_limit_max', $written, 'blank max must not be written to a forced value' );
+        $this->assertContains( '_ffc_device_limit_max', $deleted, 'blank max must delete the meta so the global default is inherited' );
+    }
+
+    /**
+     * Device Fingerprint: an explicit max is persisted (clamped to >= 1).
+     */
+    public function test_device_limit_explicit_max_is_persisted(): void {
+        $bag     = $this->stub_for_save();
+        $written = &$bag[0];
+
+        Functions\when( 'get_post_meta' )->alias( static fn( $id, $key ) => array() );
+
+        $_POST = array(
+            'ffc_form_nonce'   => 'ok',
+            'ffc_config'       => array( 'pdf_layout' => '{{auth_code}} {{name}} {{cpf_rf}}' ),
+            'ffc_device_limit' => array(
+                'enabled' => '1',
+                'max'     => '5',
+            ),
+        );
+
+        $this->handler->save_form_data( 10 );
+
+        $this->assertSame( 5, $written['_ffc_device_limit_max'] );
+    }
+
+    /**
+     * Public Operator Access: a blank Download Limit inherits the global default
+     * (delete the meta) instead of force-saving the resolved global value.
+     */
+    public function test_public_csv_blank_limit_inherits_global_not_forced(): void {
+        $bag     = $this->stub_for_save();
+        $written = &$bag[0];
+
+        $deleted = array();
+        Functions\when( 'delete_post_meta' )->alias(
+            static function ( $id, $key ) use ( &$deleted ): bool {
+                $deleted[] = $key;
+                return true;
+            }
+        );
+        // Existing hash so the save skips hash generation; '' for everything else.
+        Functions\when( 'get_post_meta' )->alias(
+            static fn( $id, $key ) => '_ffc_csv_public_hash' === $key ? 'existinghash' : ''
+        );
+
+        $_POST = array(
+            'ffc_form_nonce' => 'ok',
+            'ffc_config'     => array( 'pdf_layout' => '{{auth_code}} {{name}} {{cpf_rf}}' ),
+            'ffc_csv_public' => array(
+                'enabled' => '1',
+                'limit'   => '',
+            ),
+        );
+
+        $this->handler->save_form_data( 10 );
+
+        $this->assertArrayNotHasKey( '_ffc_csv_public_limit', $written, 'blank limit must not be written to a forced value' );
+        $this->assertContains( '_ffc_csv_public_limit', $deleted, 'blank limit must delete the meta so the global default is inherited' );
+    }
+
+    public function test_public_csv_explicit_limit_is_persisted(): void {
+        $bag     = $this->stub_for_save();
+        $written = &$bag[0];
+
+        Functions\when( 'get_post_meta' )->alias(
+            static fn( $id, $key ) => '_ffc_csv_public_hash' === $key ? 'existinghash' : ''
+        );
+
+        $_POST = array(
+            'ffc_form_nonce' => 'ok',
+            'ffc_config'     => array( 'pdf_layout' => '{{auth_code}} {{name}} {{cpf_rf}}' ),
+            'ffc_csv_public' => array(
+                'enabled' => '1',
+                'limit'   => '7',
+            ),
+        );
+
+        $this->handler->save_form_data( 10 );
+
+        $this->assertSame( 7, $written['_ffc_csv_public_limit'] );
+    }
+
+    /**
      * The 4 restriction toggles independently gate their own data fields.
      * Each off → the corresponding meta is omitted from the new write.
      */

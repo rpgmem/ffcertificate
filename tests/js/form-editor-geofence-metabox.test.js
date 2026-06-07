@@ -58,6 +58,49 @@ describe('ffc-form-editor-geofence-metabox — during-row dual gate', () => {
 	});
 });
 
+describe('ffc-form-editor-geofence-metabox — End date min floor', () => {
+	function installDates({ multi, start, end }) {
+		document.body.innerHTML = `
+			<input type="checkbox" id="ffc_geofence_multi_day" ${multi ? 'checked' : ''}>
+			<input type="radio" name="ffc_geofence[time_mode]" value="span" checked>
+			<input type="radio" name="ffc_geofence[time_mode]" value="daily">
+			<input type="date" id="ffc_geofence_date_start" value="${start}">
+			<input type="date" id="ffc_geofence_date_end" value="${end}">
+			<table><tbody><tr id="ffc-datetime-hide-mode-during-row"><td>during</td></tr></tbody></table>
+		`;
+	}
+
+	it('sets End min to Start + 1 day when multi-day is on', async () => {
+		installDates({ multi: true, start: '2026-06-05', end: '2026-06-10' });
+		await loadOnReady();
+		expect(window.$('#ffc_geofence_date_end').attr('min')).toBe('2026-06-06');
+	});
+
+	it('does NOT set min when multi-day is off (hidden mirrored field stays valid)', async () => {
+		// Regression: with multi-day off the End field is hidden and mirrors
+		// Start, so a min of start+1 made the hidden control fail native
+		// validation and block submission ("invalid form control … not focusable").
+		installDates({ multi: false, start: '2026-06-05', end: '2026-06-05' });
+		await loadOnReady();
+		expect(window.$('#ffc_geofence_date_end').attr('min')).toBeUndefined();
+	});
+
+	it('removes min when multi-day is toggled off at runtime', async () => {
+		installDates({ multi: true, start: '2026-06-05', end: '2026-06-10' });
+		await loadOnReady();
+		expect(window.$('#ffc_geofence_date_end').attr('min')).toBe('2026-06-06');
+		window.$('#ffc_geofence_multi_day').prop('checked', false).trigger('change');
+		expect(window.$('#ffc_geofence_date_end').attr('min')).toBeUndefined();
+	});
+
+	it('re-applies min when Start changes while multi-day is on', async () => {
+		installDates({ multi: true, start: '2026-06-05', end: '2026-06-10' });
+		await loadOnReady();
+		window.$('#ffc_geofence_date_start').val('2026-07-01').trigger('change');
+		expect(window.$('#ffc_geofence_date_end').attr('min')).toBe('2026-07-02');
+	});
+});
+
 describe('ffc-form-editor-geofence-metabox — geo area-source toggle', () => {
 	function installGeo(source) {
 		// The handler walks up to the enclosing <td>, so the radios + panels

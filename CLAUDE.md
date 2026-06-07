@@ -27,6 +27,8 @@ The same gates run on PRs to `develop` and on the release PR `develop → main`.
 
 The coverage floors are ratcheted upward in the PR that delivers the gain — never lowered. The comment block above each `*_FLOOR_LINES` keeps the audit trail.
 
+**Acceptable floor buffer:** when bumping, the floor may sit up to **5 percentage points** below the freshly measured coverage. A buffer of ≤5pp is acceptable for both JS (`JS_COVERAGE_FLOOR_LINES`) and PHP (`COVERAGE_FLOOR_LINES`) — it absorbs v8/clover run-to-run jitter so the gate doesn't flake on fractional swings, without forcing the floor to chase every decimal. So: still ratchet up when a PR delivers a real gain, but leave no more than ~5pp on the table, and never set the floor *above* the lowest run you've actually observed.
+
 ## Test infrastructure
 
 - PHP: PHPUnit 9; tests under `tests/Unit` and `tests/Integration`.

@@ -2,7 +2,7 @@
 //   - .ffc-copy-btn → clipboard write (async API + legacy fallback)
 //   - filterPlatformGuidance hides the non-matching <li data-platform="…">
 //
-// Strategy mirrors tests/js/frontend-deep.test.js: load the same
+// Strategy mirrors tests/js/frontend-form-submission.test.js: load the same
 // ffc-core + frontend-helpers + frontend.js bundle that the page uses,
 // then drive the document via jsdom events. The helpers we want to
 // exercise are private to the IIFE; we exercise them via their public
@@ -101,6 +101,18 @@ describe('success-card copy button', () => {
 		const execSpy = vi.spyOn(document, 'execCommand');
 		window.$('.ffc-copy-btn').trigger('click');
 		expect(execSpy).not.toHaveBeenCalled();
+	});
+
+	it('restores the original label 2s after a copy', async () => {
+		vi.useFakeTimers();
+		document.execCommand = function () { return true; };
+		const $btn = installCopyButton('ABC');
+		$btn.trigger('click');
+		// execCommand path is synchronous → feedback label applied.
+		expect($btn.text()).toBe('Copied!');
+		vi.advanceTimersByTime(2000);
+		expect($btn.text()).toBe('Copy');
+		vi.useRealTimers();
 	});
 });
 

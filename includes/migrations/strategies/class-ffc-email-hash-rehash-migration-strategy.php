@@ -329,7 +329,8 @@ class EmailHashRehashMigrationStrategy implements MigrationStrategyInterface {
 
 				$plain = \FreeFormCertificate\Core\Encryption::decrypt( $encrypted );
 				if ( null === $plain || '' === $plain ) {
-					$errors[] = sprintf( 'Could not decrypt email for ID %d in %s', (int) $record['id'], $table );
+					/* translators: 1: record ID, 2: table name */
+					$errors[] = sprintf( __( 'Could not decrypt email for ID %1$d in %2$s', 'ffcertificate' ), (int) $record['id'], $table );
 					continue;
 				}
 

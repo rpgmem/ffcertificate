@@ -10,7 +10,7 @@
 //      notice.
 //
 // Sprint C of #168.
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { loadScript } from './helpers.js';
 
 const STORAGE_KEY = 'ffc_submitted_forms';
@@ -77,6 +77,39 @@ describe('ffc-already-submitted-notice', () => {
 		dismiss.click();
 		expect(document.querySelector('.ffc-already-submitted-notice')).toBeNull();
 		expect(window.sessionStorage.getItem(DISMISS_PREFIX + '99')).toBe('1');
+	});
+
+	it('renders no notice when the form_id is not a positive integer', async () => {
+		installForm(0);
+		window.localStorage.setItem(STORAGE_KEY, JSON.stringify([0]));
+		await loadOnReady();
+		expect(document.querySelector('.ffc-already-submitted-notice')).toBeNull();
+	});
+
+	it('treats a sessionStorage read failure as not-dismissed (still renders)', async () => {
+		installForm(33);
+		window.localStorage.setItem(STORAGE_KEY, JSON.stringify([33]));
+		// jsdom returns the same Storage instance per window but the script
+		// reads via `window.sessionStorage.getItem` — spy on the shared
+		// Storage.prototype so the dismissal probe throws. Only the
+		// dismissal key throws; every other read (incl. localStorage's
+		// submitted-forms list) delegates to the real implementation.
+		const realGet = Storage.prototype.getItem;
+		const spy = vi
+			.spyOn(Storage.prototype, 'getItem')
+			.mockImplementation(function (key) {
+				if (typeof key === 'string' && key.indexOf('ffc_already_submitted_dismissed_') === 0) {
+					throw new Error('blocked');
+				}
+				return realGet.call(this, key);
+			});
+		try {
+			await loadOnReady();
+			// The catch in isDismissedThisSession returns false → notice renders.
+			expect(document.querySelector('.ffc-already-submitted-notice')).not.toBeNull();
+		} finally {
+			spy.mockRestore();
+		}
 	});
 
 	it('does nothing when no .ffc-submission-form is on the page', async () => {

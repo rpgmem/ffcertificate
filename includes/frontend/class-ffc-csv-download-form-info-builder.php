@@ -87,6 +87,22 @@ final class CsvDownloadFormInfoBuilder {
 
 		$tz = wp_timezone();
 
+		// `can_schedule_exception` mirrors ScheduleExceptionAction::is_eligible()
+		// so the JS can't render a button the server would reject.
+		$can_schedule_exception = ! $before_start
+			&& ! $form_ended
+			&& '1' === (string) get_post_meta( $form_id, '_ffc_csv_public_enabled', true )
+			&& '1' === (string) ( $geofence_config['schedule_exception_enabled'] ?? '' )
+			&& '1' === (string) ( $geofence_config['datetime_enabled'] ?? '' );
+
+		// Pre-resolve the page that embeds this form so the operator gets a
+		// clickable "open participant form" link in the summary at
+		// validation time. Surfaced for ANY embedded form (not only when the
+		// schedule-exception flow is available) — it's a general reference to
+		// the public form page. Empty string when the form isn't embedded on
+		// any page, in which case the JS shows no link. #366 Sprint 5.
+		$schedule_form_url = \FreeFormCertificate\Frontend\ScheduleExceptionAction::find_form_page_url( $form_id );
+
 		return array(
 			'form_title'       => get_the_title( $form_id ),
 			'submission_count' => $submission_count,
@@ -165,15 +181,13 @@ final class CsvDownloadFormInfoBuilder {
 					? \FreeFormCertificate\Core\DateFormatter::format_date( $end_ts, 'default', $tz )
 					: '',
 				// `can_schedule_exception` powers the Sprint-4 "Entrada/saída
-				// diferenciada" button. Mirrors ScheduleExceptionAction::is_eligible()
-				// so the JS can't render a button the server will reject:
-				// per-form opt-IN ON, datetime restrictions ON, form open
-				// right now (`!before_start && !form_ended`). #366 Sprint 4.
-				'can_schedule_exception'         => ! $before_start
-					&& ! $form_ended
-					&& '1' === (string) get_post_meta( $form_id, '_ffc_csv_public_enabled', true )
-					&& '1' === (string) ( $geofence_config['schedule_exception_enabled'] ?? '' )
-					&& '1' === (string) ( $geofence_config['datetime_enabled'] ?? '' ),
+				// diferenciada" button (computed above so it also gates the
+				// pre-resolved `schedule_form_url`). #366 Sprint 4.
+				'can_schedule_exception'         => $can_schedule_exception,
+				// Pre-resolved participant-form page URL, surfaced to the
+				// operator on validation. Empty unless the exception flow is
+				// available. #366 Sprint 5.
+				'schedule_form_url'              => $schedule_form_url,
 				// Baseline values for the exception modal — class_time_*
 				// wins, geofence time_* falls back. The modal pre-fills
 				// both inputs so the operator only edits the side they

@@ -65,12 +65,16 @@ class ReregistrationEmailHandlerTest extends TestCase {
         global $wpdb;
         $wpdb = Mockery::mock('wpdb');
         $wpdb->prefix = 'wp_';
+        $wpdb->users = 'wp_users';
         $wpdb->last_error = '';
         $this->wpdb = $wpdb;
 
         Functions\when('wp_cache_get')->justReturn(false);
         Functions\when('wp_cache_set')->justReturn(true);
         Functions\when('wp_cache_delete')->justReturn(true);
+        Functions\when('wp_parse_args')->alias(function ($args, $defaults = array()) {
+            return array_merge((array) $defaults, (array) $args);
+        });
     }
 
     protected function tearDown(): void {
@@ -239,5 +243,146 @@ class ReregistrationEmailHandlerTest extends TestCase {
 
         ReregistrationEmailHandler::run_automated_reminders();
         $this->assertTrue(true);
+    }
+
+    public function test_run_automated_reminders_dispatches_per_campaign(): void {
+        $this->wpdb->shouldReceive('prepare')->andReturn('query');
+        $this->wpdb->shouldReceive('get_results')->andReturn(
+            array( (object) array( 'id' => 11 ), (object) array( 'id' => 22 ) )
+        );
+        // Each send_reminders() call re-enters get_by_id (get_row). Return a
+        // campaign with reminders disabled so the inner method short-circuits
+        // after the dispatch — we only need to prove the loop fans out.
+        $this->wpdb->shouldReceive('get_row')->andReturn(
+            (object) array(
+                'id'                     => 11,
+                'email_reminder_enabled' => 0,
+                'title'                  => 'C',
+                'start_date'             => '2026-01-01',
+                'end_date'               => '2026-12-31',
+            )
+        );
+
+        ReregistrationEmailHandler::run_automated_reminders();
+        $this->assertTrue(true);
+    }
+
+    // ==================================================================
+    // send_invitations() — full success path through send_to_user
+    // ==================================================================
+
+    public function test_send_invitations_sends_to_pending_members(): void {
+        $rereg = (object) array(
+            'id'                       => 1,
+            'title'                    => 'Campaign',
+            'email_invitation_enabled' => 1,
+            'audience_name'            => 'Teachers',
+            'start_date'               => '2026-01-01',
+            'end_date'                 => '2026-12-31',
+        );
+
+        // get_by_id() → rereg; get_by_reregistration() (pending) → submissions.
+        $this->wpdb->shouldReceive('prepare')->andReturn('query');
+        $this->wpdb->shouldReceive('get_row')->andReturn($rereg);
+        $this->wpdb->shouldReceive('get_results')->andReturn(
+            array(
+                (object) array( 'user_id' => 10 ),
+                (object) array( 'user_id' => 20 ),
+            )
+        );
+
+        Functions\when('get_userdata')->alias(function ($id) {
+            return (object) array(
+                'display_name' => 'User ' . $id,
+                'user_email'   => 'user' . $id . '@example.com',
+            );
+        });
+
+        Mockery::mock('alias:FreeFormCertificate\Scheduling\EmailTemplateService')
+            ->shouldReceive('format_date')->andReturn('2026-01-01')
+            ->shouldReceive('render_template')->andReturnUsing(fn($t) => $t)
+            ->shouldReceive('send')->andReturn(true);
+
+        $count = ReregistrationEmailHandler::send_invitations(1);
+        $this->assertSame(2, $count);
+    }
+
+    // ==================================================================
+    // send_reminders() — explicit user IDs filtered by status
+    // ==================================================================
+
+    public function test_send_reminders_with_explicit_user_ids(): void {
+        $rereg = (object) array(
+            'id'                     => 1,
+            'title'                  => 'Campaign',
+            'email_reminder_enabled' => 1,
+            'start_date'             => '2026-01-01',
+            'end_date'               => '2099-12-31',
+        );
+
+        // First get_row → rereg; subsequent get_row → per-user submission.
+        $this->wpdb->shouldReceive('prepare')->andReturn('query');
+        $this->wpdb->shouldReceive('get_row')->andReturn(
+            $rereg,
+            (object) array( 'user_id' => 10, 'status' => 'pending' ),
+            // User 20 already submitted → filtered out.
+            (object) array( 'user_id' => 20, 'status' => 'submitted' )
+        );
+
+        Functions\when('get_userdata')->alias(fn($id) => (object) array(
+            'display_name' => 'U' . $id,
+            'user_email'   => 'u' . $id . '@example.com',
+        ));
+
+        Mockery::mock('alias:FreeFormCertificate\Scheduling\EmailTemplateService')
+            ->shouldReceive('format_date')->andReturn('2026-01-01')
+            ->shouldReceive('render_template')->andReturnUsing(fn($t) => $t)
+            ->shouldReceive('send')->andReturn(true);
+
+        $count = ReregistrationEmailHandler::send_reminders(1, array(10, 20));
+        $this->assertSame(1, $count);
+    }
+
+    // ==================================================================
+    // send_confirmation() — full success path with magic link + auth code
+    // ==================================================================
+
+    public function test_send_confirmation_success_with_magic_link(): void {
+        $submission = (object) array(
+            'id'                => 1,
+            'reregistration_id' => 5,
+            'user_id'           => 10,
+            'status'            => 'submitted',
+            'magic_token'       => 'tok123',
+            'auth_code'         => 'AC99',
+        );
+        $rereg = (object) array(
+            'id'                         => 5,
+            'title'                      => 'Campaign',
+            'email_confirmation_enabled' => 1,
+            'start_date'                 => '2026-01-01',
+            'end_date'                   => '2026-12-31',
+        );
+
+        // Two get_by_id() lookups via wpdb: the submission, then its campaign.
+        // get_status_label() is pure (no DB), so the real repository is fine.
+        $this->wpdb->shouldReceive('prepare')->andReturn('query');
+        $this->wpdb->shouldReceive('get_row')->andReturn($submission, $rereg);
+
+        Functions\when('get_userdata')->justReturn((object) array(
+            'display_name' => 'Alice',
+            'user_email'   => 'alice@example.com',
+        ));
+
+        Mockery::mock('alias:FreeFormCertificate\Generators\MagicLinkHelper')
+            ->shouldReceive('generate_magic_link')->with('tok123')->andReturn('https://example.com/m/tok123');
+
+        Mockery::mock('alias:FreeFormCertificate\Scheduling\EmailTemplateService')
+            ->shouldReceive('format_date')->andReturn('2026-01-01')
+            ->shouldReceive('render_template')->andReturnUsing(fn($t) => $t)
+            ->shouldReceive('send')->andReturn(true);
+
+        $result = ReregistrationEmailHandler::send_confirmation(1);
+        $this->assertTrue($result);
     }
 }

@@ -112,4 +112,54 @@ describe('Forms-list features toggle', () => {
 
 		expect($row.find('.ffc-features-badge').text()).toBe('Save failed');
 	});
+
+	it('is a no-op when the toggle lacks form-id / feature data', () => {
+		const requestSpy = vi.spyOn(window.FFC, 'request');
+		document.body.innerHTML = `
+			<table><tr><td><label class="ffc-features-toggle">
+				<input type="checkbox">
+			</label></td></tr></table>
+		`;
+		window.$('.ffc-features-toggle input').prop('checked', true).trigger('change');
+		expect(requestSpy).not.toHaveBeenCalled();
+	});
+
+	it('tolerates a toggle whose row has no badge and clears it after the timeout', async () => {
+		vi.useFakeTimers();
+		vi.spyOn(window.FFC, 'request').mockResolvedValue({});
+		// Row WITH a badge so hideBadgeLater schedules its timeout body.
+		const $csv = window.$('#row-42 input[data-ffc-feature="csv_public_enabled"]');
+		$csv.prop('checked', true).trigger('change');
+
+		await Promise.resolve(); await Promise.resolve();
+		const $badge = window.$('#row-42 .ffc-features-badge');
+		expect($badge.hasClass('ffc-features-badge--saved')).toBe(true);
+
+		vi.advanceTimersByTime(1800);
+		expect($badge.attr('hidden')).toBe('hidden');
+		expect($badge.text()).toBe('');
+		vi.useRealTimers();
+	});
+
+	it('does not throw when the row has no badge element', async () => {
+		vi.spyOn(window.FFC, 'request').mockResolvedValue({});
+		document.body.innerHTML = `
+			<table><tr id="row-nobadge"><td><label class="ffc-features-toggle">
+				<input type="checkbox" data-ffc-form-id="7" data-ffc-feature="csv_public_enabled">
+			</label></td></tr></table>
+		`;
+		const $input = window.$('#row-nobadge input');
+		expect(() => $input.prop('checked', true).trigger('change')).not.toThrow();
+		await Promise.resolve(); await Promise.resolve();
+		expect($input.prop('disabled')).toBe(false);
+	});
+});
+
+describe('Forms-list features — load-time guard', () => {
+	it('returns at load when FFC.request is unavailable', () => {
+		const saved = window.FFC.request;
+		window.FFC.request = undefined;
+		expect(() => loadScript('assets/js/ffc-form-list-features.js')).not.toThrow();
+		window.FFC.request = saved;
+	});
 });

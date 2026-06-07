@@ -402,12 +402,27 @@ class Frontend {
 
 						// Info screen: availability.
 						'availability'                   => __( 'Availability Period', 'ffcertificate' ),
+						// Info screen: merged availability + event-schedule table.
+						'availabilitySchedule'           => __( 'Availability & Schedule', 'ffcertificate' ),
+						'accessColumn'                   => __( 'Access', 'ffcertificate' ),
+						'accessColumnTip'                => __( 'Form access window', 'ffcertificate' ),
+						'referenceColumn'                => __( 'Reference', 'ffcertificate' ),
+						'referenceColumnTip'             => __( 'Event schedule printed on the certificate', 'ffcertificate' ),
 						'dateStart'                      => __( 'Start date', 'ffcertificate' ),
 						'dateEnd'                        => __( 'End date', 'ffcertificate' ),
 						'timeStart'                      => __( 'Start time', 'ffcertificate' ),
 						'timeEnd'                        => __( 'End time', 'ffcertificate' ),
 						'infinity'                       => '∞',
 						'noEndDateAlert'                 => __( 'This form has no end date configured. The CSV download will only be available after the administrator sets an end date.', 'ffcertificate' ),
+						// Info screen: event schedule (reference) — distinct from the
+						// access window. Shown as the Reference column / section.
+						'scheduleReferenceTitle'         => __( 'Event Schedule (Reference)', 'ffcertificate' ),
+						'scheduleReferenceStart'         => __( 'Start', 'ffcertificate' ),
+						'scheduleReferenceEnd'           => __( 'End', 'ffcertificate' ),
+						'scheduleReferenceNote'          => __( 'Reference event schedule (printed on the certificate) — not the form access window.', 'ffcertificate' ),
+						// Info screen: participant-form page link (summary).
+						'participantForm'                => __( 'Participant form', 'ffcertificate' ),
+						'openForm'                       => __( 'Open form', 'ffcertificate' ),
 
 						// Info screen: geolocation.
 						'geolocation'                    => __( 'Geolocation', 'ffcertificate' ),
@@ -495,6 +510,7 @@ class Frontend {
 						'scheduleExceptionSubmitting'    => __( 'Creating…', 'ffcertificate' ),
 						'scheduleExceptionStaged'        => __( 'Exception staged. Open the participant\'s form in the next tab to consume it.', 'ffcertificate' ),
 						'scheduleExceptionOpenForm'      => __( 'Open participant form', 'ffcertificate' ),
+						'scheduleExceptionOpening'       => __( 'Opening the participant form in a new tab…', 'ffcertificate' ),
 						'scheduleExceptionBadFormat'     => __( 'Please pick valid times (HH:MM).', 'ffcertificate' ),
 						'scheduleExceptionRangeInverted' => __( 'Start must be earlier than end.', 'ffcertificate' ),
 						/* translators: %1$s and %2$s are HH:MM bounds of the form's open window */

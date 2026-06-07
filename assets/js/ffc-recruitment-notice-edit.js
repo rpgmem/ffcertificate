@@ -85,7 +85,7 @@
 					status.textContent = 'Error: ' + ((o.body && o.body.message) ? o.body.message : JSON.stringify(o.body));
 				}
 			})
-			.catch(function (e) { cleanup(); status.textContent = 'Network error: ' + e.message; });
+			.catch(function (e) { cleanup(); status.textContent = (strings.networkError || 'Network error:') + ' ' + e.message; });
 		return false;
 	};
 
@@ -101,7 +101,7 @@
 			.then(function (o) {
 				if (o.status >= 200 && o.status < 300) { location.reload(); }
 				else { alert((o.body && o.body.message) ? o.body.message : JSON.stringify(o.body)); }
-			}).catch(function (e) { alert('Network error: ' + e.message); });
+			}).catch(function (e) { alert((strings.networkError || 'Network error:') + ' ' + e.message); });
 	};
 
 	// -- Section 3: attach / detach adjutancy ---------------------------
@@ -263,7 +263,7 @@
 					} else {
 						status.textContent = 'Error: ' + ((o.body && o.body.message) ? o.body.message : JSON.stringify(o.body));
 					}
-				}).catch(function (e) { status.textContent = 'Network error: ' + e.message; });
+				}).catch(function (e) { status.textContent = (strings.networkError || 'Network error:') + ' ' + e.message; });
 		});
 	};
 
@@ -336,7 +336,7 @@
 			.then(function (o) {
 				if (o.status >= 200 && o.status < 300) { location.reload(); }
 				else { alert((o.body && o.body.message) ? o.body.message : JSON.stringify(o.body)); btn.disabled = false; }
-			}).catch(function (e) { alert('Network error: ' + e.message); btn.disabled = false; });
+			}).catch(function (e) { alert((strings.networkError || 'Network error:') + ' ' + e.message); btn.disabled = false; });
 	};
 
 	// -- Section 7: preliminary preview-status + reason dropdowns -------
