@@ -88,22 +88,20 @@ final class CsvDownloadFormInfoBuilder {
 		$tz = wp_timezone();
 
 		// `can_schedule_exception` mirrors ScheduleExceptionAction::is_eligible()
-		// so the JS can't render a button the server would reject. Hoisted to a
-		// local so it also gates the pre-resolved form URL below — we only pay
-		// the get_posts() lookup when the exception flow is actually available.
+		// so the JS can't render a button the server would reject.
 		$can_schedule_exception = ! $before_start
 			&& ! $form_ended
 			&& '1' === (string) get_post_meta( $form_id, '_ffc_csv_public_enabled', true )
 			&& '1' === (string) ( $geofence_config['schedule_exception_enabled'] ?? '' )
 			&& '1' === (string) ( $geofence_config['datetime_enabled'] ?? '' );
 
-		// Pre-resolve the page that embeds this form so the operator sees —
-		// and can open — the participant-form URL right at validation time,
-		// before staging the exception. Same resolver the create endpoint
-		// uses; empty when the flow is unavailable. #366 Sprint 5.
-		$schedule_form_url = $can_schedule_exception
-			? \FreeFormCertificate\Frontend\ScheduleExceptionAction::resolve_form_url( $form_id )
-			: '';
+		// Pre-resolve the page that embeds this form so the operator gets a
+		// clickable "open participant form" link in the summary at
+		// validation time. Surfaced for ANY embedded form (not only when the
+		// schedule-exception flow is available) — it's a general reference to
+		// the public form page. Empty string when the form isn't embedded on
+		// any page, in which case the JS shows no link. #366 Sprint 5.
+		$schedule_form_url = \FreeFormCertificate\Frontend\ScheduleExceptionAction::find_form_page_url( $form_id );
 
 		return array(
 			'form_title'       => get_the_title( $form_id ),
