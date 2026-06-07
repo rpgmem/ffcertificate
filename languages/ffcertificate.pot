@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Free Form Certificate\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-06-06 00:52+0000\n"
+"POT-Creation-Date: 2026-06-07 02:12+0000\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -51,7 +51,7 @@ msgid "%1$d of %2$d FK constraints exist"
 msgstr ""
 
 #. %1$d is current download count, %2$d is download limit
-#: includes/frontend/class-ffc-frontend.php:428
+#: includes/frontend/class-ffc-frontend.php:443
 #, php-format
 msgid "%1$d of %2$d used"
 msgstr ""
@@ -796,6 +796,10 @@ msgstr ""
 msgid "Accepts formats: 12345678900 or 123.456.789-00"
 msgstr ""
 
+#: includes/frontend/class-ffc-frontend.php:407
+msgid "Access"
+msgstr ""
+
 #: includes/frontend/class-ffc-frontend.php:401
 msgid "Access code (ticket) required"
 msgstr ""
@@ -1160,19 +1164,19 @@ msgstr ""
 msgid "Admin Bypass"
 msgstr ""
 
-#: includes/frontend/class-ffc-frontend.php:592
+#: includes/frontend/class-ffc-frontend.php:608
 msgid "Admin Bypass Mode Active"
 msgstr ""
 
-#: includes/frontend/class-ffc-frontend.php:589
+#: includes/frontend/class-ffc-frontend.php:605
 msgid "Admin Bypass Mode Active - Geofence restrictions are disabled for administrators"
 msgstr ""
 
-#: includes/frontend/class-ffc-frontend.php:590
+#: includes/frontend/class-ffc-frontend.php:606
 msgid "Admin Bypass: Date/Time restrictions are disabled for administrators"
 msgstr ""
 
-#: includes/frontend/class-ffc-frontend.php:591
+#: includes/frontend/class-ffc-frontend.php:607
 msgid "Admin Bypass: Geolocation restrictions are disabled for administrators"
 msgstr ""
 
@@ -2117,6 +2121,10 @@ msgstr ""
 msgid "Automatically generate a short URL when a post/page is published"
 msgstr ""
 
+#: includes/frontend/class-ffc-frontend.php:406
+msgid "Availability & Schedule"
+msgstr ""
+
 #: includes/frontend/class-ffc-frontend.php:404
 msgid "Availability Period"
 msgstr ""
@@ -2850,7 +2858,7 @@ msgstr ""
 msgid "Can't find the downloaded PDF?"
 msgstr ""
 
-#: includes/shortcodes/class-ffc-dashboard-asset-manager.php:227 includes/shortcodes/class-ffc-dashboard-asset-manager.php:253 includes/admin/class-ffc-submissions-list.php:611 includes/admin/class-ffc-admin-assets-manager.php:603 includes/admin/class-ffc-admin-assets-manager.php:834 includes/admin/class-ffc-admin-submission-edit-page.php:131 includes/self-scheduling/class-ffc-self-scheduling-appointments-list-table.php:164 includes/reregistration/class-ffc-reregistration-form-renderer.php:140 includes/recruitment/class-ffc-recruitment-admin-assets-manager.php:295 includes/audience/class-ffc-audience-admin-bookings.php:221 includes/audience/class-ffc-audience-shortcode.php:415 includes/audience/class-ffc-audience-shortcode.php:822 includes/frontend/class-ffc-frontend.php:464
+#: includes/shortcodes/class-ffc-dashboard-asset-manager.php:227 includes/shortcodes/class-ffc-dashboard-asset-manager.php:253 includes/admin/class-ffc-submissions-list.php:611 includes/admin/class-ffc-admin-assets-manager.php:603 includes/admin/class-ffc-admin-assets-manager.php:834 includes/admin/class-ffc-admin-submission-edit-page.php:131 includes/self-scheduling/class-ffc-self-scheduling-appointments-list-table.php:164 includes/reregistration/class-ffc-reregistration-form-renderer.php:140 includes/recruitment/class-ffc-recruitment-admin-assets-manager.php:295 includes/audience/class-ffc-audience-admin-bookings.php:221 includes/audience/class-ffc-audience-shortcode.php:415 includes/audience/class-ffc-audience-shortcode.php:822 includes/frontend/class-ffc-frontend.php:479
 msgid "Cancel"
 msgstr ""
 
@@ -3104,11 +3112,11 @@ msgstr ""
 msgid "Certificate Layout"
 msgstr ""
 
-#: includes/admin/class-ffc-admin-assets-manager.php:853 includes/admin/class-ffc-form-editor-public-csv-download-metabox.php:147 includes/frontend/class-ffc-frontend.php:449
+#: includes/admin/class-ffc-admin-assets-manager.php:853 includes/admin/class-ffc-form-editor-public-csv-download-metabox.php:147 includes/frontend/class-ffc-frontend.php:464
 msgid "Certificate Preview"
 msgstr ""
 
-#: includes/frontend/class-ffc-frontend.php:443
+#: includes/frontend/class-ffc-frontend.php:458
 msgid "Certificate Preview disabled"
 msgstr ""
 
@@ -3327,7 +3335,7 @@ msgstr ""
 msgid "Client (browser)"
 msgstr ""
 
-#: includes/admin/class-ffc-submissions-list.php:595 includes/admin/class-ffc-admin-assets-manager.php:856 includes/self-scheduling/class-ffc-self-scheduling-shortcode.php:533 includes/reregistration/class-ffc-reregistration-admin.php:705 includes/url-shortener/class-ffc-url-shortener-admin-page.php:600 includes/recruitment/class-ffc-recruitment-admin-assets-manager.php:294 includes/recruitment/class-ffc-recruitment-notice-edit-page-renderer.php:1258 includes/audience/class-ffc-audience-loader.php:384 includes/audience/class-ffc-audience-shortcode.php:328 includes/audience/class-ffc-audience-shortcode.php:434 includes/audience/class-ffc-audience-shortcode.php:449 includes/frontend/class-ffc-frontend.php:316 includes/frontend/class-ffc-frontend.php:451
+#: includes/admin/class-ffc-submissions-list.php:595 includes/admin/class-ffc-admin-assets-manager.php:856 includes/self-scheduling/class-ffc-self-scheduling-shortcode.php:533 includes/reregistration/class-ffc-reregistration-admin.php:705 includes/url-shortener/class-ffc-url-shortener-admin-page.php:600 includes/recruitment/class-ffc-recruitment-admin-assets-manager.php:294 includes/recruitment/class-ffc-recruitment-notice-edit-page-renderer.php:1258 includes/audience/class-ffc-audience-loader.php:384 includes/audience/class-ffc-audience-shortcode.php:328 includes/audience/class-ffc-audience-shortcode.php:434 includes/audience/class-ffc-audience-shortcode.php:449 includes/frontend/class-ffc-frontend.php:316 includes/frontend/class-ffc-frontend.php:466
 msgid "Close"
 msgstr ""
 
@@ -3339,7 +3347,7 @@ msgstr ""
 msgid "Close this notice?"
 msgstr ""
 
-#: includes/frontend/class-ffc-frontend.php:478 includes/frontend/class-ffc-public-csv-download.php:662
+#: includes/frontend/class-ffc-frontend.php:493 includes/frontend/class-ffc-public-csv-download.php:662
 msgid "Close time postponed."
 msgstr ""
 
@@ -3487,7 +3495,7 @@ msgstr ""
 msgid "Confirm action"
 msgstr ""
 
-#: includes/frontend/class-ffc-frontend.php:465
+#: includes/frontend/class-ffc-frontend.php:480
 msgid "Confirm and start form"
 msgstr ""
 
@@ -3499,7 +3507,7 @@ msgstr ""
 msgid "Confirm New Password"
 msgstr ""
 
-#: includes/frontend/class-ffc-frontend.php:476
+#: includes/frontend/class-ffc-frontend.php:491
 msgid "Confirm postponement"
 msgstr ""
 
@@ -3609,7 +3617,7 @@ msgstr ""
 msgid "Context"
 msgstr ""
 
-#: includes/frontend/class-ffc-frontend.php:649
+#: includes/frontend/class-ffc-frontend.php:665
 msgid "Continue"
 msgstr ""
 
@@ -3637,11 +3645,11 @@ msgstr ""
 msgid "Cookie wall shown (browser blocked our probe cookie)"
 msgstr ""
 
-#: includes/frontend/class-ffc-frontend.php:634
+#: includes/frontend/class-ffc-frontend.php:650
 msgid "Cookies are blocked in this browser. Without cookies, the form submission may fail. Enable cookies for this site, or try a different browser."
 msgstr ""
 
-#: includes/frontend/class-ffc-frontend.php:633
+#: includes/frontend/class-ffc-frontend.php:649
 msgid "Cookies blocked"
 msgstr ""
 
@@ -3955,7 +3963,7 @@ msgstr ""
 msgid "Create a field in Form Builder (e.g., field name:"
 msgstr ""
 
-#: includes/frontend/class-ffc-frontend.php:487
+#: includes/frontend/class-ffc-frontend.php:502
 msgid "Create a one-use schedule exception for a single participant submission."
 msgstr ""
 
@@ -3983,7 +3991,7 @@ msgstr ""
 msgid "Create Calendar"
 msgstr ""
 
-#: includes/frontend/class-ffc-frontend.php:494
+#: includes/frontend/class-ffc-frontend.php:509
 msgid "Create exception"
 msgstr ""
 
@@ -4053,7 +4061,7 @@ msgstr ""
 msgid "Created on %s."
 msgstr ""
 
-#: includes/frontend/class-ffc-frontend.php:495
+#: includes/frontend/class-ffc-frontend.php:510
 msgid "Creating…"
 msgstr ""
 
@@ -4061,11 +4069,11 @@ msgstr ""
 msgid "CSV"
 msgstr ""
 
-#: includes/admin/class-ffc-form-editor-public-csv-download-metabox.php:162 includes/frontend/class-ffc-frontend.php:425
+#: includes/admin/class-ffc-form-editor-public-csv-download-metabox.php:162 includes/frontend/class-ffc-frontend.php:440
 msgid "CSV Download"
 msgstr ""
 
-#: includes/frontend/class-ffc-frontend.php:440
+#: includes/frontend/class-ffc-frontend.php:455
 msgid "CSV download disabled"
 msgstr ""
 
@@ -4145,7 +4153,7 @@ msgstr ""
 msgid "Current Position/Role"
 msgstr ""
 
-#: includes/frontend/class-ffc-frontend.php:473
+#: includes/frontend/class-ffc-frontend.php:488
 msgid "Current scheduled close:"
 msgstr ""
 
@@ -4826,7 +4834,7 @@ msgstr ""
 msgid "Detected:"
 msgstr ""
 
-#: includes/frontend/class-ffc-frontend.php:595
+#: includes/frontend/class-ffc-frontend.php:611
 msgid "Detecting your location..."
 msgstr ""
 
@@ -5093,7 +5101,7 @@ msgstr ""
 msgid "Download QR codes in PNG or SVG format"
 msgstr ""
 
-#: includes/frontend/class-ffc-frontend.php:426
+#: includes/frontend/class-ffc-frontend.php:441
 msgid "Download quota"
 msgstr ""
 
@@ -5225,7 +5233,7 @@ msgstr ""
 msgid "Edit Audience"
 msgstr ""
 
-#: includes/frontend/class-ffc-frontend.php:491
+#: includes/frontend/class-ffc-frontend.php:506
 msgid "Edit both ends manually"
 msgstr ""
 
@@ -5625,11 +5633,15 @@ msgstr ""
 msgid "Encryption keys not configured. Required for email hash rehash migration."
 msgstr ""
 
+#: includes/frontend/class-ffc-frontend.php:421
+msgid "End"
+msgstr ""
+
 #: includes/reregistration/class-ffc-reregistration-admin.php:463
 msgid "End Date"
 msgstr ""
 
-#: includes/frontend/class-ffc-frontend.php:406
+#: includes/frontend/class-ffc-frontend.php:412
 msgid "End date"
 msgstr ""
 
@@ -5637,7 +5649,7 @@ msgstr ""
 msgid "End date is earlier than the start date."
 msgstr ""
 
-#: includes/frontend/class-ffc-frontend.php:490
+#: includes/frontend/class-ffc-frontend.php:505
 msgid "End now (start stays at baseline)"
 msgstr ""
 
@@ -5645,7 +5657,7 @@ msgstr ""
 msgid "End Time"
 msgstr ""
 
-#: includes/frontend/class-ffc-frontend.php:408
+#: includes/frontend/class-ffc-frontend.php:414
 msgid "End time"
 msgstr ""
 
@@ -5685,7 +5697,7 @@ msgstr ""
 msgid "Ensure that the listed IDs are allowed or blocked from retrieving certificates."
 msgstr ""
 
-#: includes/frontend/class-ffc-frontend.php:271 includes/frontend/class-ffc-frontend.php:515
+#: includes/frontend/class-ffc-frontend.php:271 includes/frontend/class-ffc-frontend.php:531
 msgid "Enter a valid CPF (11 digits) or RF (7 digits)"
 msgstr ""
 
@@ -5733,7 +5745,7 @@ msgstr ""
 msgid "Entry 2"
 msgstr ""
 
-#: includes/frontend/class-ffc-frontend.php:486
+#: includes/frontend/class-ffc-frontend.php:501
 msgid "Entry/exit exception"
 msgstr ""
 
@@ -5985,12 +5997,16 @@ msgstr ""
 msgid "Event Name"
 msgstr ""
 
-#: includes/admin/class-ffc-form-editor-geofence-metabox.php:141
+#: includes/admin/class-ffc-form-editor-geofence-metabox.php:141 includes/frontend/class-ffc-frontend.php:419
 msgid "Event Schedule (Reference)"
 msgstr ""
 
 #: includes/admin/class-ffc-form-editor.php:102 includes/security/class-ffc-geofence.php:89
 msgid "Event Schedule end time must be later than the start time."
+msgstr ""
+
+#: includes/frontend/class-ffc-frontend.php:410
+msgid "Event schedule printed on the certificate"
 msgstr ""
 
 #: includes/admin/class-ffc-form-editor-geofence-metabox.php:191
@@ -6061,7 +6077,7 @@ msgstr ""
 msgid "Example: Start 01/01 12:00 + End 10/01 23:00 = Open from 12:00 on Jan 1st until 23:00 on Jan 10th"
 msgstr ""
 
-#: includes/frontend/class-ffc-frontend.php:496
+#: includes/frontend/class-ffc-frontend.php:511
 msgid "Exception staged. Open the participant's form in the next tab to consume it."
 msgstr ""
 
@@ -6647,6 +6663,10 @@ msgstr ""
 msgid "Form"
 msgstr ""
 
+#: includes/frontend/class-ffc-frontend.php:408
+msgid "Form access window"
+msgstr ""
+
 #: includes/admin/class-ffc-form-editor-metabox-renderer.php:311
 msgid "Form Builder (Fields)"
 msgstr ""
@@ -6687,7 +6707,7 @@ msgstr ""
 msgid "Form is not published"
 msgstr ""
 
-#: includes/frontend/class-ffc-frontend.php:467 includes/frontend/class-ffc-public-csv-download.php:586
+#: includes/frontend/class-ffc-frontend.php:482 includes/frontend/class-ffc-public-csv-download.php:586
 msgid "Form is now open."
 msgstr ""
 
@@ -6950,7 +6970,7 @@ msgstr ""
 msgid "Geofencing (GPS + IP):"
 msgstr ""
 
-#: includes/admin/class-ffc-form-editor-metabox-renderer.php:334 includes/frontend/class-ffc-frontend.php:413 includes/settings/tabs/class-ffc-tab-geolocation.php:35
+#: includes/admin/class-ffc-form-editor-metabox-renderer.php:334 includes/frontend/class-ffc-frontend.php:428 includes/settings/tabs/class-ffc-tab-geolocation.php:35
 msgid "Geolocation"
 msgstr ""
 
@@ -6958,7 +6978,7 @@ msgstr ""
 msgid "Geolocation Configuration Error:"
 msgstr ""
 
-#: includes/frontend/class-ffc-frontend.php:416
+#: includes/frontend/class-ffc-frontend.php:431
 msgid "Geolocation enabled"
 msgstr ""
 
@@ -7050,7 +7070,7 @@ msgstr ""
 msgid "GPS Geolocation is enabled but no locations are selected."
 msgstr ""
 
-#: includes/frontend/class-ffc-frontend.php:414
+#: includes/frontend/class-ffc-frontend.php:429
 msgid "GPS Locations"
 msgstr ""
 
@@ -7417,7 +7437,7 @@ msgstr ""
 msgid "If you create these custom fields:"
 msgstr ""
 
-#: includes/frontend/class-ffc-frontend.php:463
+#: includes/frontend/class-ffc-frontend.php:478
 msgid "If your site uses page caching (Cloudflare, W3 Total Cache, etc.), some visitors may see the old \"not yet started\" state until the cache refreshes. Ask them to reload if needed."
 msgstr ""
 
@@ -7645,7 +7665,7 @@ msgstr ""
 msgid "Invalid code."
 msgstr ""
 
-#: includes/frontend/class-ffc-frontend.php:270 includes/frontend/class-ffc-frontend.php:514
+#: includes/frontend/class-ffc-frontend.php:270 includes/frontend/class-ffc-frontend.php:530
 msgid "Invalid CPF"
 msgstr ""
 
@@ -7867,7 +7887,7 @@ msgstr ""
 msgid "IP Geolocation:"
 msgstr ""
 
-#: includes/frontend/class-ffc-frontend.php:415
+#: includes/frontend/class-ffc-frontend.php:430
 msgid "IP Locations"
 msgstr ""
 
@@ -8256,7 +8276,7 @@ msgstr ""
 msgid "Loading form..."
 msgstr ""
 
-#: includes/frontend/class-ffc-frontend.php:452
+#: includes/frontend/class-ffc-frontend.php:467
 msgid "Loading preview…"
 msgstr ""
 
@@ -8284,15 +8304,15 @@ msgstr ""
 msgid "Loading…"
 msgstr ""
 
-#: includes/frontend/class-ffc-frontend.php:623
+#: includes/frontend/class-ffc-frontend.php:639
 msgid "Location access was denied. On Safari/iOS, go to Settings > Privacy & Security > Location Services and ensure it is enabled for your browser."
 msgstr ""
 
-#: includes/frontend/class-ffc-frontend.php:641
+#: includes/frontend/class-ffc-frontend.php:657
 msgid "Location blocked"
 msgstr ""
 
-#: includes/frontend/class-ffc-frontend.php:600
+#: includes/frontend/class-ffc-frontend.php:616
 msgid "Location information is unavailable."
 msgstr ""
 
@@ -8308,15 +8328,15 @@ msgstr ""
 msgid "Location not found."
 msgstr ""
 
-#: includes/frontend/class-ffc-frontend.php:599
+#: includes/frontend/class-ffc-frontend.php:615
 msgid "Location permission denied. Please enable location services."
 msgstr ""
 
-#: includes/frontend/class-ffc-frontend.php:601
+#: includes/frontend/class-ffc-frontend.php:617
 msgid "Location request timed out."
 msgstr ""
 
-#: includes/frontend/class-ffc-frontend.php:625
+#: includes/frontend/class-ffc-frontend.php:641
 msgid "Location request timed out. On Safari/iOS, ensure Location Services is enabled in Settings > Privacy & Security > Location Services."
 msgstr ""
 
@@ -8698,7 +8718,7 @@ msgstr ""
 msgid "Maximum appointments per day (0 = unlimited)"
 msgstr ""
 
-#: includes/frontend/class-ffc-frontend.php:421
+#: includes/frontend/class-ffc-frontend.php:436
 msgid "Maximum attempts"
 msgstr ""
 
@@ -8887,7 +8907,7 @@ msgstr ""
 msgid "Minimum notice required to cancel (e.g., 24 hours)"
 msgstr ""
 
-#: includes/frontend/class-ffc-frontend.php:420
+#: includes/frontend/class-ffc-frontend.php:435
 msgid "Minimum passing score"
 msgstr ""
 
@@ -9001,7 +9021,7 @@ msgstr ""
 msgid "Move submissions to another form"
 msgstr ""
 
-#: includes/frontend/class-ffc-frontend.php:470
+#: includes/frontend/class-ffc-frontend.php:485
 msgid "Move the form's close time later within the same day. One-shot per form."
 msgstr ""
 
@@ -9163,7 +9183,7 @@ msgstr ""
 msgid "New certificate issued"
 msgstr ""
 
-#: includes/frontend/class-ffc-frontend.php:474
+#: includes/frontend/class-ffc-frontend.php:489
 msgid "New close time:"
 msgstr ""
 
@@ -9171,7 +9191,7 @@ msgstr ""
 msgid "New cpf/rf columns not found. Please re-activate the plugin to create them."
 msgstr ""
 
-#: includes/frontend/class-ffc-frontend.php:493
+#: includes/frontend/class-ffc-frontend.php:508
 msgid "New end:"
 msgstr ""
 
@@ -9201,11 +9221,11 @@ msgstr ""
 msgid "New Scheduled Activity"
 msgstr ""
 
-#: includes/frontend/class-ffc-frontend.php:460
+#: includes/frontend/class-ffc-frontend.php:475
 msgid "New start will be:"
 msgstr ""
 
-#: includes/frontend/class-ffc-frontend.php:492
+#: includes/frontend/class-ffc-frontend.php:507
 msgid "New start:"
 msgstr ""
 
@@ -9668,7 +9688,7 @@ msgstr ""
 msgid "November"
 msgstr ""
 
-#: includes/frontend/class-ffc-frontend.php:461
+#: includes/frontend/class-ffc-frontend.php:476
 msgid "now"
 msgstr ""
 
@@ -9744,27 +9764,27 @@ msgstr ""
 msgid "On (always dark)"
 msgstr ""
 
-#: includes/frontend/class-ffc-frontend.php:636
+#: includes/frontend/class-ffc-frontend.php:652
 msgid "On Android Chrome: Settings → Site Settings → Cookies → Allow."
 msgstr ""
 
-#: includes/frontend/class-ffc-frontend.php:644
+#: includes/frontend/class-ffc-frontend.php:660
 msgid "On Android Chrome: tap the padlock in the address bar → Permissions → Location → Allow."
 msgstr ""
 
-#: includes/frontend/class-ffc-frontend.php:645
+#: includes/frontend/class-ffc-frontend.php:661
 msgid "On desktop: click the padlock in the address bar → Site Settings → Location → Allow."
 msgstr ""
 
-#: includes/frontend/class-ffc-frontend.php:637
+#: includes/frontend/class-ffc-frontend.php:653
 msgid "On desktop: open Settings → Privacy → Cookies and allow first-party cookies for this site."
 msgstr ""
 
-#: includes/frontend/class-ffc-frontend.php:635
+#: includes/frontend/class-ffc-frontend.php:651
 msgid "On iOS: Settings → Safari → turn OFF \"Block All Cookies\"."
 msgstr ""
 
-#: includes/frontend/class-ffc-frontend.php:643
+#: includes/frontend/class-ffc-frontend.php:659
 msgid "On iOS: tap the \"AA\" button in the address bar → Website Settings → Location → Allow."
 msgstr ""
 
@@ -9816,11 +9836,15 @@ msgstr ""
 msgid "Only mandatory fields"
 msgstr ""
 
+#: includes/frontend/class-ffc-frontend.php:425
+msgid "Open form"
+msgstr ""
+
 #: includes/frontend/class-ffc-frontend.php:145
 msgid "Open in browser"
 msgstr ""
 
-#: includes/frontend/class-ffc-frontend.php:497
+#: includes/frontend/class-ffc-frontend.php:512
 msgid "Open participant form"
 msgstr ""
 
@@ -9850,6 +9874,10 @@ msgstr ""
 
 #: includes/recruitment/class-ffc-recruitment-admin-page.php:459
 msgid "Open the new notice and attach the relevant adjutancies + import the candidate CSV."
+msgstr ""
+
+#: includes/frontend/class-ffc-frontend.php:513
+msgid "Opening the participant form in a new tab…"
 msgstr ""
 
 #: includes/admin/class-ffc-submissions-list.php:232
@@ -9976,7 +10004,7 @@ msgstr ""
 msgid "Override Conflicts"
 msgstr ""
 
-#: includes/frontend/class-ffc-frontend.php:502
+#: includes/frontend/class-ffc-frontend.php:518
 msgid "Override matches the baseline — nothing to do."
 msgstr ""
 
@@ -9984,7 +10012,7 @@ msgstr ""
 msgid "Override the ficha template file path"
 msgstr ""
 
-#: includes/frontend/class-ffc-frontend.php:456
+#: includes/frontend/class-ffc-frontend.php:471
 msgid "Overrides the scheduled start time. Form opens immediately."
 msgstr ""
 
@@ -10038,6 +10066,10 @@ msgstr ""
 
 #: includes/settings/views/documentation/04-appointment-variables.php:35
 msgid "Participant email"
+msgstr ""
+
+#: includes/frontend/class-ffc-frontend.php:424
+msgid "Participant form"
 msgstr ""
 
 #: includes/settings/views/documentation/04-appointment-variables.php:33
@@ -10324,7 +10356,7 @@ msgstr ""
 msgid "Pick a day in the calendar to see the forms scheduled for it."
 msgstr ""
 
-#: includes/frontend/class-ffc-frontend.php:472
+#: includes/frontend/class-ffc-frontend.php:487
 msgid "Pick a new close time within the same day. This action is one-shot — once confirmed it cannot be repeated from this page."
 msgstr ""
 
@@ -10354,7 +10386,7 @@ msgstr ""
 msgid "Place on a members area page. Candidates are matched by the CPF/RF on their account; no attributes are required."
 msgstr ""
 
-#: includes/admin/class-ffc-admin-assets-manager.php:855 includes/frontend/class-ffc-frontend.php:450
+#: includes/admin/class-ffc-admin-assets-manager.php:855 includes/frontend/class-ffc-frontend.php:465
 msgid "Placeholders replaced with sample data. QR code shown as placeholder."
 msgstr ""
 
@@ -10398,7 +10430,7 @@ msgstr ""
 msgid "Please enter a valid number."
 msgstr ""
 
-#: includes/frontend/class-ffc-frontend.php:481
+#: includes/frontend/class-ffc-frontend.php:496
 msgid "Please enter a valid time (HH:MM)."
 msgstr ""
 
@@ -10430,11 +10462,11 @@ msgstr ""
 msgid "Please pick a valid time (HH:MM)."
 msgstr ""
 
-#: includes/frontend/class-ffc-frontend.php:479
+#: includes/frontend/class-ffc-frontend.php:494
 msgid "Please pick a valid time later than the current close (HH:MM)."
 msgstr ""
 
-#: includes/frontend/class-ffc-frontend.php:498 includes/frontend/class-ffc-public-csv-download.php:716
+#: includes/frontend/class-ffc-frontend.php:514 includes/frontend/class-ffc-public-csv-download.php:716
 msgid "Please pick valid times (HH:MM)."
 msgstr ""
 
@@ -10575,11 +10607,11 @@ msgstr ""
 msgid "Postpone Close"
 msgstr ""
 
-#: includes/frontend/class-ffc-frontend.php:469
+#: includes/frontend/class-ffc-frontend.php:484
 msgid "Postpone close"
 msgstr ""
 
-#: includes/frontend/class-ffc-frontend.php:442
+#: includes/frontend/class-ffc-frontend.php:457
 msgid "Postpone Close disabled"
 msgstr ""
 
@@ -10587,7 +10619,7 @@ msgstr ""
 msgid "Postpone Close — status"
 msgstr ""
 
-#: includes/frontend/class-ffc-frontend.php:471
+#: includes/frontend/class-ffc-frontend.php:486
 msgid "Postpone form close?"
 msgstr ""
 
@@ -10599,7 +10631,7 @@ msgstr ""
 msgid "Postponing the close is disabled for this form."
 msgstr ""
 
-#: includes/frontend/class-ffc-frontend.php:477
+#: includes/frontend/class-ffc-frontend.php:492
 msgid "Postponing…"
 msgstr ""
 
@@ -10703,7 +10735,7 @@ msgstr ""
 msgid "Preview Calendar"
 msgstr ""
 
-#: includes/frontend/class-ffc-frontend.php:448
+#: includes/frontend/class-ffc-frontend.php:463
 msgid "Preview Certificate"
 msgstr ""
 
@@ -11032,7 +11064,7 @@ msgstr ""
 msgid "Quiz"
 msgstr ""
 
-#: includes/frontend/class-ffc-frontend.php:419
+#: includes/frontend/class-ffc-frontend.php:434
 msgid "Quiz / Evaluation"
 msgstr ""
 
@@ -11083,7 +11115,7 @@ msgid "Radius in meters around the center point"
 msgstr ""
 
 #. %1$s and %2$s are HH:MM bounds of the form's open window
-#: includes/frontend/class-ffc-frontend.php:501
+#: includes/frontend/class-ffc-frontend.php:517
 #, php-format
 msgid "Range must stay within %1$s–%2$s."
 msgstr ""
@@ -11295,6 +11327,14 @@ msgstr ""
 msgid "Redirects to the destination and counts clicks"
 msgstr ""
 
+#: includes/frontend/class-ffc-frontend.php:409
+msgid "Reference"
+msgstr ""
+
+#: includes/frontend/class-ffc-frontend.php:422
+msgid "Reference event schedule (printed on the certificate) — not the form access window."
+msgstr ""
+
 #: includes/url-shortener/class-ffc-url-shortener-meta-box.php:164
 msgid "Regenerate"
 msgstr ""
@@ -11360,7 +11400,7 @@ msgstr ""
 msgid "Rejected by admin (with notes)"
 msgstr ""
 
-#: includes/frontend/class-ffc-frontend.php:621
+#: includes/frontend/class-ffc-frontend.php:637
 msgid "Reload page"
 msgstr ""
 
@@ -11557,7 +11597,7 @@ msgstr ""
 msgid "Request timed out. Please try again."
 msgstr ""
 
-#: includes/frontend/class-ffc-frontend.php:604
+#: includes/frontend/class-ffc-frontend.php:620
 msgid "Requesting your location… If prompted, tap \"Allow\"."
 msgstr ""
 
@@ -12051,7 +12091,7 @@ msgstr ""
 msgid "Scan to instantly verify certificate authenticity"
 msgstr ""
 
-#: includes/frontend/class-ffc-frontend.php:488
+#: includes/frontend/class-ffc-frontend.php:503
 msgid "Schedule exception"
 msgstr ""
 
@@ -12079,7 +12119,7 @@ msgstr ""
 msgid "Scheduled date of the appointment"
 msgstr ""
 
-#: includes/frontend/class-ffc-frontend.php:459
+#: includes/frontend/class-ffc-frontend.php:474
 msgid "Scheduled start:"
 msgstr ""
 
@@ -12587,7 +12627,7 @@ msgstr ""
 msgid "Set \"notice\" to the notice code. The list shows only the columns marked public in the notice editor, and only while the notice is in a public state (preliminary / definitive); drafts and closed notices are hidden."
 msgstr ""
 
-#: includes/frontend/class-ffc-frontend.php:489
+#: includes/frontend/class-ffc-frontend.php:504
 msgid "Set a different schedule for one participant. The next form submission opened from this modal will record this exception."
 msgstr ""
 
@@ -12964,11 +13004,15 @@ msgstr ""
 msgid "Standard fields cannot be deleted. Deactivate instead."
 msgstr ""
 
+#: includes/frontend/class-ffc-frontend.php:420
+msgid "Start"
+msgstr ""
+
 #: includes/reregistration/class-ffc-reregistration-admin.php:459
 msgid "Start Date"
 msgstr ""
 
-#: includes/frontend/class-ffc-frontend.php:405
+#: includes/frontend/class-ffc-frontend.php:411
 msgid "Start date"
 msgstr ""
 
@@ -12976,7 +13020,7 @@ msgstr ""
 msgid "Start Form Early"
 msgstr ""
 
-#: includes/frontend/class-ffc-frontend.php:441
+#: includes/frontend/class-ffc-frontend.php:456
 msgid "Start Form Early disabled"
 msgstr ""
 
@@ -12984,15 +13028,15 @@ msgstr ""
 msgid "Start Form Early — status"
 msgstr ""
 
-#: includes/frontend/class-ffc-frontend.php:455
+#: includes/frontend/class-ffc-frontend.php:470
 msgid "Start Form Now"
 msgstr ""
 
-#: includes/frontend/class-ffc-frontend.php:457
+#: includes/frontend/class-ffc-frontend.php:472
 msgid "Start form now?"
 msgstr ""
 
-#: includes/frontend/class-ffc-frontend.php:499
+#: includes/frontend/class-ffc-frontend.php:515
 msgid "Start must be earlier than end."
 msgstr ""
 
@@ -13000,7 +13044,7 @@ msgstr ""
 msgid "Start Time"
 msgstr ""
 
-#: includes/frontend/class-ffc-frontend.php:407
+#: includes/frontend/class-ffc-frontend.php:413
 msgid "Start time"
 msgstr ""
 
@@ -13016,7 +13060,7 @@ msgstr ""
 msgid "Starting download…"
 msgstr ""
 
-#: includes/frontend/class-ffc-frontend.php:466
+#: includes/frontend/class-ffc-frontend.php:481
 msgid "Starting…"
 msgstr ""
 
@@ -13092,11 +13136,11 @@ msgstr ""
 msgid "Step 4:"
 msgstr ""
 
-#: includes/frontend/class-ffc-frontend.php:612
+#: includes/frontend/class-ffc-frontend.php:628
 msgid "Still trying to get your location… Check that location is enabled in your device settings."
 msgstr ""
 
-#: includes/frontend/class-ffc-frontend.php:606
+#: includes/frontend/class-ffc-frontend.php:622
 msgid "Still trying to get your location… If it is not working, check that Location Services is enabled in Settings > Privacy & Security > Location Services."
 msgstr ""
 
@@ -13552,7 +13596,7 @@ msgstr ""
 msgid "the child half only (e.g. the Sector)."
 msgstr ""
 
-#: includes/frontend/class-ffc-frontend.php:435
+#: includes/frontend/class-ffc-frontend.php:450
 msgid "The CSV download is not available for this form."
 msgstr ""
 
@@ -13585,7 +13629,7 @@ msgstr ""
 msgid "The disable button unlocks for 5 minutes after a successful preview."
 msgstr ""
 
-#: includes/frontend/class-ffc-frontend.php:433
+#: includes/frontend/class-ffc-frontend.php:448
 msgid "The download quota for this form has been exhausted."
 msgstr ""
 
@@ -13606,12 +13650,12 @@ msgid "The ficha template can be customized using the filter:"
 msgstr ""
 
 #. %s is the formatted start date
-#: includes/frontend/class-ffc-frontend.php:445
+#: includes/frontend/class-ffc-frontend.php:460
 #, php-format
 msgid "The form collection has not started yet. It will begin on %s."
 msgstr ""
 
-#: includes/frontend/class-ffc-frontend.php:434
+#: includes/frontend/class-ffc-frontend.php:449
 msgid "The form collection period has ended. The CSV is ready for download."
 msgstr ""
 
@@ -13641,7 +13685,7 @@ msgstr ""
 msgid "The HTML editor is empty. Add a template first."
 msgstr ""
 
-#: includes/frontend/class-ffc-frontend.php:253 includes/frontend/class-ffc-frontend.php:516
+#: includes/frontend/class-ffc-frontend.php:253 includes/frontend/class-ffc-frontend.php:532
 msgid "The ID must have exactly 7 digits (RF) or 11 digits (CPF)."
 msgstr ""
 
@@ -13794,7 +13838,7 @@ msgstr ""
 msgid "These variables are available in the appointment receipt PDF template (html/default_appointment_receipt_1.html):"
 msgstr ""
 
-#: includes/frontend/class-ffc-frontend.php:475
+#: includes/frontend/class-ffc-frontend.php:490
 msgid "This action can only be performed once per form."
 msgstr ""
 
@@ -13859,7 +13903,7 @@ msgstr ""
 msgid "This candidate has withdrawn and cannot be modified."
 msgstr ""
 
-#: includes/frontend/class-ffc-frontend.php:462
+#: includes/frontend/class-ffc-frontend.php:477
 msgid "This cannot be undone from this page."
 msgstr ""
 
@@ -13945,11 +13989,11 @@ msgstr ""
 msgid "This form has no end date configured. The administrator must set a Geolocation \"End Date\" to enable public downloads."
 msgstr ""
 
-#: includes/frontend/class-ffc-frontend.php:410
+#: includes/frontend/class-ffc-frontend.php:416
 msgid "This form has no end date configured. The CSV download will only be available after the administrator sets an end date."
 msgstr ""
 
-#: includes/security/class-ffc-geofence.php:275 includes/security/class-ffc-geofence.php:310 includes/frontend/class-ffc-frontend.php:629
+#: includes/security/class-ffc-geofence.php:275 includes/security/class-ffc-geofence.php:310 includes/frontend/class-ffc-frontend.php:645
 msgid "This form is no longer available."
 msgstr ""
 
@@ -13965,16 +14009,16 @@ msgstr ""
 msgid "This form is not available right now. Please contact the organizer."
 msgstr ""
 
-#: includes/security/class-ffc-geofence.php:262 includes/security/class-ffc-geofence.php:298 includes/frontend/class-ffc-frontend.php:628
+#: includes/security/class-ffc-geofence.php:262 includes/security/class-ffc-geofence.php:298 includes/frontend/class-ffc-frontend.php:644
 msgid "This form is not yet available."
 msgstr ""
 
-#: includes/security/class-ffc-geofence.php:328 includes/frontend/class-ffc-frontend.php:630
+#: includes/security/class-ffc-geofence.php:328 includes/frontend/class-ffc-frontend.php:646
 msgid "This form is only available during specific hours."
 msgstr ""
 
 #. %s is the formatted end date
-#: includes/frontend/class-ffc-frontend.php:432
+#: includes/frontend/class-ffc-frontend.php:447
 #, php-format
 msgid "This form is still active until %s. The download will be available after the end date."
 msgstr ""
@@ -13983,7 +14027,7 @@ msgstr ""
 msgid "This form is still active. Downloads are only allowed after the form end date has passed."
 msgstr ""
 
-#: includes/frontend/class-ffc-frontend.php:597
+#: includes/frontend/class-ffc-frontend.php:613
 msgid "This form requires a secure connection (HTTPS) to access your location. Please contact the site administrator."
 msgstr ""
 
@@ -14069,11 +14113,11 @@ msgstr ""
 msgid "This setting is not exposed for incremental updates."
 msgstr ""
 
-#: includes/frontend/class-ffc-frontend.php:648
+#: includes/frontend/class-ffc-frontend.php:664
 msgid "This site needs to confirm you are at the venue. After you tap \"Continue\", your browser will ask for permission."
 msgstr ""
 
-#: includes/frontend/class-ffc-frontend.php:642
+#: includes/frontend/class-ffc-frontend.php:658
 msgid "This site needs your location, but the browser has it set to \"block\" for this site."
 msgstr ""
 
@@ -14105,7 +14149,7 @@ msgstr ""
 msgid "This will modify the post_content of every affected post. Revisions will be created automatically. Continue?"
 msgstr ""
 
-#: includes/frontend/class-ffc-frontend.php:458
+#: includes/frontend/class-ffc-frontend.php:473
 msgid "This will override the scheduled start time. The form will open immediately for all users."
 msgstr ""
 
@@ -14173,12 +14217,12 @@ msgstr ""
 msgid "Time Format"
 msgstr ""
 
-#: includes/frontend/class-ffc-frontend.php:484
+#: includes/frontend/class-ffc-frontend.php:499
 msgid "Time must be in the future."
 msgstr ""
 
 #. %s is the current close time in HH:MM
-#: includes/frontend/class-ffc-frontend.php:483
+#: includes/frontend/class-ffc-frontend.php:498
 #, php-format
 msgid "Time must be later than the current close (%s)."
 msgstr ""
@@ -14461,7 +14505,7 @@ msgstr ""
 msgid "Try again"
 msgstr ""
 
-#: includes/frontend/class-ffc-frontend.php:638 includes/frontend/class-ffc-frontend.php:646
+#: includes/frontend/class-ffc-frontend.php:654 includes/frontend/class-ffc-frontend.php:662
 msgid "Try anyway"
 msgstr ""
 
@@ -14517,11 +14561,11 @@ msgstr ""
 msgid "Unable to create the schedule exception right now."
 msgstr ""
 
-#: includes/security/class-ffc-geofence.php:379 includes/frontend/class-ffc-frontend.php:598
+#: includes/security/class-ffc-geofence.php:379 includes/frontend/class-ffc-frontend.php:614
 msgid "Unable to determine your location."
 msgstr ""
 
-#: includes/frontend/class-ffc-frontend.php:624
+#: includes/frontend/class-ffc-frontend.php:640
 msgid "Unable to determine your location. On Safari/iOS, ensure Location Services is enabled in Settings > Privacy & Security > Location Services."
 msgstr ""
 
@@ -14621,7 +14665,7 @@ msgstr ""
 msgid "Unknown page cache (WPCACHEHOME defined)"
 msgstr ""
 
-#: includes/frontend/class-ffc-frontend.php:422
+#: includes/frontend/class-ffc-frontend.php:437
 msgid "Unlimited"
 msgstr ""
 
@@ -15279,11 +15323,11 @@ msgstr ""
 msgid "Waiting called"
 msgstr ""
 
-#: includes/frontend/class-ffc-frontend.php:611
+#: includes/frontend/class-ffc-frontend.php:627
 msgid "Waiting for location permission. Confirm the browser prompt if it appeared."
 msgstr ""
 
-#: includes/frontend/class-ffc-frontend.php:605
+#: includes/frontend/class-ffc-frontend.php:621
 msgid "Waiting for location permission… Check if a browser prompt appeared."
 msgstr ""
 
@@ -15347,7 +15391,7 @@ msgstr ""
 msgid "We detected a previous submission from this device. If you lost your certificate, just fill in your CPF and submit — the system recognises it and returns the existing certificate."
 msgstr ""
 
-#: includes/frontend/class-ffc-frontend.php:647
+#: includes/frontend/class-ffc-frontend.php:663
 msgid "We need your location"
 msgstr ""
 
@@ -15733,7 +15777,7 @@ msgstr ""
 msgid "You are not a member of this group"
 msgstr ""
 
-#: includes/frontend/class-ffc-frontend.php:602
+#: includes/frontend/class-ffc-frontend.php:618
 msgid "You are outside the allowed area for this form."
 msgstr ""
 
@@ -16012,7 +16056,7 @@ msgstr ""
 msgid "Your appointment is pending approval. You will receive an email confirmation once it is approved."
 msgstr ""
 
-#: includes/frontend/class-ffc-frontend.php:596
+#: includes/frontend/class-ffc-frontend.php:612
 msgid "Your browser does not support geolocation."
 msgstr ""
 
@@ -16055,11 +16099,11 @@ msgstr ""
 msgid "Your data will be stored securely and encrypted. You can request deletion at any time."
 msgstr ""
 
-#: includes/frontend/class-ffc-frontend.php:617
+#: includes/frontend/class-ffc-frontend.php:633
 msgid "Your device didn't respond to the location request. Make sure location is enabled and reload the page."
 msgstr ""
 
-#: includes/frontend/class-ffc-frontend.php:616
+#: includes/frontend/class-ffc-frontend.php:632
 msgid "Your device didn't respond to the location request. On Safari/iOS, ensure Location Services is enabled in Settings > Privacy & Security > Location Services, then reload the page."
 msgstr ""
 
