@@ -9,6 +9,8 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 
 ### Added
 
+- Privacy Policy Guide: the plugin now contributes suggested privacy-policy text to **Settings → Privacy → Policy Guide** via `wp_add_privacy_policy_content()`. Covers the personal data FFC processes (name, e-mail, CPF/RF, phone, IP, custom fields), encryption at rest, the configured activity-log retention window, who has access, and the data-subject export/erase rights already served by the existing privacy exporters/erasers. Complements the LGPD/GDPR tooling in `PrivacyHandler`.
+- Operator access info screen reorganised: the download quota and a short "Open form" link now live in the top summary card, and "Availability Period" + "Event Schedule (Reference)" are merged into one Access-vs-Reference comparison table (single column when only one applies).
 - Schedule exception: the operator now sees the participant-form page URL **at validation time** — a clickable preview line ("The participant form opens at: …") rendered on the info screen as soon as the form is validated, before staging the exception. The URL is pre-resolved server-side (`schedule_form_url` in the info payload) via the same resolver the hand-off uses; opening it does not stage or consume a token. #366 Sprint 5.
 
 ### Changed

@@ -141,7 +141,55 @@ class PrivacyHandlerTest extends TestCase {
             ->once()
             ->with('wp_privacy_personal_data_erasers', [PrivacyHandler::class, 'register_erasers']);
 
+        Functions\expect('add_action')
+            ->once()
+            ->with('admin_init', [PrivacyHandler::class, 'add_privacy_policy_content']);
+
         PrivacyHandler::init();
+    }
+
+    // ==================================================================
+    // add_privacy_policy_content()
+    // ==================================================================
+
+    public function test_add_privacy_policy_content_registers_suggested_text(): void {
+        Functions\when('esc_html__')->returnArg();
+        Functions\when('wp_kses_post')->returnArg();
+        Functions\when('get_option')->justReturn(['activity_log_retention_days' => 45]);
+
+        $captured = null;
+        Functions\expect('wp_add_privacy_policy_content')
+            ->once()
+            ->andReturnUsing(function ($name, $content) use (&$captured) {
+                $captured = [$name, $content];
+            });
+
+        PrivacyHandler::add_privacy_policy_content();
+
+        $this->assertSame('Free Form Certificate', $captured[0]);
+        // Covers the key PII categories and the configured retention window.
+        $this->assertStringContainsString('CPF', $captured[1]);
+        $this->assertStringContainsString('45 days', $captured[1]);
+        // The tutorial-classed guidance is present (excluded from the copy
+        // button by the Policy Guide, but emitted in the markup).
+        $this->assertStringContainsString('privacy-policy-tutorial', $captured[1]);
+    }
+
+    /**
+     * Runs in a separate process because once Brain Monkey defines
+     * wp_add_privacy_policy_content() in another test, PHP keeps it defined
+     * for the rest of the process and function_exists() can no longer be
+     * false. A fresh process guarantees the core function is absent.
+     *
+     * @runInSeparateProcess
+     * @preserveGlobalState disabled
+     */
+    public function test_add_privacy_policy_content_noop_when_core_function_missing(): void {
+        // wp_add_privacy_policy_content is intentionally NOT stubbed here, so
+        // function_exists() is false and the method must return without error
+        // (and without touching settings).
+        PrivacyHandler::add_privacy_policy_content();
+        $this->assertTrue(true);
     }
 
     // ==================================================================
