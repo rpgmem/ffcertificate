@@ -19,6 +19,11 @@
 	var strings = api.strings;
 	var esc     = api.esc;
 
+	// Forced delay (ms) the post-create modal lingers — spinner + notice —
+	// after the operator clicks "Open participant form", so the hand-off to
+	// the new tab is visually unmistakable rather than an instant vanish.
+	var SCHED_EXC_OPEN_DELAY_MS = 1200;
+
 	function onScheduleExceptionClick() {
 		var info = api.$container.data('ffc-last-info') || {};
 		var status = info.status || {};
@@ -178,9 +183,20 @@
 					+ '</a>'
 				);
 				$modal.find('.ffc-sched-exc-open').on('click', function () {
-					// Close shortly after the new tab opens — gives the
-					// browser a beat to commit the navigation.
-					setTimeout(function () { $modal.remove(); }, 100);
+					// The native anchor (target="_blank") opens the form in a
+					// new tab on THIS same click, preserving the user gesture
+					// so popup blockers stay quiet. Swap this tab's modal to a
+					// spinner + "opening" notice and hold it for a forced beat
+					// so the operator clearly sees a new screen is launching
+					// before the modal disappears.
+					$modal.find('.ffc-sched-exc-body').html(
+						'<p class="ffc-sched-exc-opening">'
+						+ '<span class="ffc-sched-exc-spinner" aria-hidden="true"></span> '
+						+ esc(strings.scheduleExceptionOpening || 'Opening the participant form in a new tab…')
+						+ '</p>'
+					);
+					$modal.find('.ffc-sched-exc-actions').empty();
+					setTimeout(function () { $modal.remove(); }, SCHED_EXC_OPEN_DELAY_MS);
 				});
 			})
 			.catch(function (err) {
