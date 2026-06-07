@@ -7,6 +7,10 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Added
+
+- Schedule exception: the operator now sees the participant-form page URL **at validation time** — a clickable preview line ("The participant form opens at: …") rendered on the info screen as soon as the form is validated, before staging the exception. The URL is pre-resolved server-side (`schedule_form_url` in the info payload) via the same resolver the hand-off uses; opening it does not stage or consume a token. #366 Sprint 5.
+
 ### Fixed
 
 - Schedule exception (operator entry/exit override): the "Open participant form" hand-off no longer lands on the site home. `ScheduleExceptionAction::resolve_form_url()` now auto-discovers the page that embeds `[ffc_form id="N"`, returning the most recently published embed (the `ffc_schedule_exception_form_url` filter still wins; home stays only as a last-resort fallback) — the Sprint 5 lookup deferred in #366. The post-create modal also shows a spinner + "opening in a new tab" notice for a brief forced beat so the hand-off to the new tab is unmistakable.

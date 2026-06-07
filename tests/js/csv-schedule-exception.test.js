@@ -47,6 +47,7 @@ function infoWithScheduleException(overrides = {}) {
 			can_preview_cert: false,
 			can_download: false,
 			can_schedule_exception: true,
+			schedule_form_url: 'https://example.test/the-form-page/',
 			schedule_baseline_start: '08:00',
 			schedule_baseline_end: '18:00',
 			schedule_window_start: '08:00',
@@ -122,6 +123,7 @@ beforeEach(() => {
 			scheduleExceptionStaged: 'Exception staged.',
 			scheduleExceptionOpenForm: 'Open participant form',
 			scheduleExceptionOpening: 'Opening the participant form in a new tab…',
+			scheduleExceptionFormUrlLabel: 'The participant form opens at:',
 		},
 	};
 	window.$.fx.off = true;
@@ -146,6 +148,22 @@ describe('csv schedule-exception — button render', () => {
 			infoWithScheduleException({ status: { can_schedule_exception: false } })
 		);
 		expect(window.$('.ffc-btn-schedule-exception').length).toBe(0);
+	});
+
+	it('previews the pre-resolved form URL as a clickable link on validation', async () => {
+		await reachInfoScreen();
+		const $link = window.$('.ffc-sched-exc-formurl');
+		expect($link.length).toBe(1);
+		expect($link.attr('href')).toBe('https://example.test/the-form-page/');
+		expect($link.attr('target')).toBe('_blank');
+		expect(window.$('.ffc-sched-exc-formurl-line').text()).toContain('The participant form opens at:');
+	});
+
+	it('omits the URL preview when schedule_form_url is empty', async () => {
+		await reachInfoScreen(
+			infoWithScheduleException({ status: { schedule_form_url: '' } })
+		);
+		expect(window.$('.ffc-sched-exc-formurl').length).toBe(0);
 	});
 });
 

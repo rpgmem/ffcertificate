@@ -1740,6 +1740,19 @@ details.ffc-consent-description > p {
     animation: spin 1s linear infinite;
 }
 
+/* Info-screen line that previews the participant-form page URL the
+   schedule-exception hand-off will open (#366 Sprint 5). */
+.ffc-sched-exc-formurl-line {
+    margin: 12px 0 0;
+    font-size: 13px;
+    color: var(--ffc-text-muted);
+    word-break: break-all;
+}
+
+.ffc-sched-exc-formurl {
+    color: var(--ffc-primary);
+}
+
 .ffc-open-early-backdrop {
     position: absolute;
     inset: 0;

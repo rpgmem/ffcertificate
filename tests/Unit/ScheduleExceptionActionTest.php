@@ -270,6 +270,20 @@ class ScheduleExceptionActionTest extends TestCase {
         $this->assertSame( 'https://example.test/', $result['form_url'] );
     }
 
+    public function test_resolve_form_url_is_public_and_discovers_embedding_page(): void {
+        // Public entry point used by the info-screen builder to pre-resolve
+        // the URL at validation time (#366 Sprint 5).
+        Functions\when( 'get_posts' )->justReturn( array( 7 ) );
+        Functions\when( 'get_permalink' )->alias(
+            static fn( $id = 0 ) => 7 === (int) $id ? 'https://example.test/inscricao/' : ''
+        );
+
+        $this->assertSame(
+            'https://example.test/inscricao/',
+            ScheduleExceptionAction::resolve_form_url( 42 )
+        );
+    }
+
     public function test_execute_falls_back_to_home_when_permalink_empty(): void {
         $this->seed_form();
         // A page matches but get_permalink() returns false/'' (e.g. the

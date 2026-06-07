@@ -312,9 +312,13 @@ final class ScheduleExceptionAction {
 	 *      embedded anywhere we can find — keeps the contract simple
 	 *      (always returns a URL).
 	 *
+	 * Public so the info-screen builder can pre-resolve and surface the
+	 * URL to the operator at form-validation time (#366 Sprint 5), reusing
+	 * the exact same resolution the create endpoint applies.
+	 *
 	 * @param int $form_id Form post id.
 	 */
-	private static function resolve_form_url( int $form_id ): string {
+	public static function resolve_form_url( int $form_id ): string {
 		$candidate = (string) apply_filters( 'ffc_schedule_exception_form_url', '', $form_id );
 		if ( '' !== $candidate ) {
 			return $candidate;
