@@ -35,6 +35,7 @@ class FormEditorPublicCsvDownloadMetaboxTest extends TestCase {
         Functions\when( 'esc_html_e' )->alias( function ( $text ) { echo $text; } );
         Functions\when( 'esc_attr_e' )->alias( function ( $text ) { echo $text; } );
         Functions\when( 'wp_kses_post' )->returnArg();
+        Functions\when( 'wp_kses' )->returnArg();
         Functions\when( 'checked' )->justReturn( '' );
         Functions\when( 'selected' )->justReturn( '' );
         Functions\when( 'get_option' )->justReturn( array() );
@@ -63,6 +64,26 @@ class FormEditorPublicCsvDownloadMetaboxTest extends TestCase {
         ob_start();
         $this->metabox->render( $post );
         return (string) ob_get_clean();
+    }
+
+    public function test_render_shows_inherit_hint_when_download_limit_blank(): void {
+        // No per-form limit → field empty (placeholder) + a hint showing the
+        // inherited global default in the subtle highlight chip.
+        $html = $this->render();
+
+        $this->assertStringContainsString( 'ffc-global-default', $html );
+        $this->assertStringContainsString( 'inherit the global default', $html );
+        $this->assertStringContainsString( 'placeholder="Inherit from global"', $html );
+    }
+
+    public function test_render_no_inherit_hint_when_download_limit_set(): void {
+        $this->meta_values['_ffc_csv_public_limit'] = '5';
+
+        $html = $this->render();
+
+        $this->assertStringContainsString( 'value="5"', $html );
+        $this->assertStringNotContainsString( 'ffc-global-default', $html );
+        $this->assertStringNotContainsString( 'inherit the global default', $html );
     }
 
     public function test_render_emits_three_operator_sub_toggles(): void {

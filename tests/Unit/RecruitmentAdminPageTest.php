@@ -102,4 +102,41 @@ class RecruitmentAdminPageTest extends TestCase {
         $this->assertStringContainsString( '[BADGE:', $html );
         $this->assertStringContainsString( 'preliminary', $html );
     }
+
+    public function test_notice_status_badge_falls_back_to_neutral_color_for_unknown_status(): void {
+        $html = RecruitmentAdminPage::notice_status_badge( 'bogus' );
+
+        // Unknown status → the `?? '#e9ecef'` neutral fallback color.
+        $this->assertStringContainsString( '#e9ecef', $html );
+    }
+
+    public function test_adjutancy_badge_returns_empty_string_for_null(): void {
+        $this->assertSame( '', RecruitmentAdminPage::adjutancy_badge( null ) );
+    }
+
+    public function test_adjutancy_badge_uses_row_color_when_present(): void {
+        $adjutancy = (object) array(
+            'name'  => 'Matemática',
+            'color' => '#123456',
+        );
+
+        $html = RecruitmentAdminPage::adjutancy_badge( $adjutancy );
+
+        $this->assertStringContainsString( '#123456', $html );
+        $this->assertStringContainsString( 'Matemática', $html );
+    }
+
+    public function test_adjutancy_badge_falls_back_to_default_color_when_blank(): void {
+        $adjutancy = (object) array(
+            'name'  => 'Português',
+            'color' => '',
+        );
+
+        $html = RecruitmentAdminPage::adjutancy_badge( $adjutancy );
+
+        $this->assertStringContainsString(
+            \FreeFormCertificate\Recruitment\RecruitmentAdjutancyRepository::DEFAULT_COLOR,
+            $html
+        );
+    }
 }

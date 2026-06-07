@@ -119,6 +119,14 @@ describe('FFC.rest — request composition', () => {
 		expect(xhr.setRequestHeader).toHaveBeenCalledWith('X-WP-Nonce', 'config-rest-n');
 	});
 
+	it('forwards a numeric options.timeout onto the $.ajax options', async () => {
+		const ajaxSpy = mockAjax(ajaxResolver({}));
+
+		await window.FFC.rest('/x', { method: 'GET', timeout: 5000 });
+
+		expect(ajaxSpy.mock.calls[0][0].timeout).toBe(5000);
+	});
+
 	it('options.nonce wins over config.restNonce', async () => {
 		window.FFC.config.restNonce = 'config-rest-n';
 		mockAjax(ajaxResolver({}));

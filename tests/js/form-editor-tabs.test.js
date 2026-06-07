@@ -181,6 +181,44 @@ describe('FFC.FormEditorTabs.init', () => {
 		expect(() => window.FFC.FormEditorTabs.init()).not.toThrow();
 	});
 
+	it('returns early for a container that has no tab anchors', () => {
+		document.body.innerHTML =
+			'<div class="ffc-form-tabs" data-ffc-form-tabs>' +
+			'<ul class="ffc-form-tabs__nav"></ul></div>';
+		window.FFC.FormEditorTabs.init();
+		// setupContainer bailed before adding is-ready.
+		expect(window.$('.ffc-form-tabs').hasClass('is-ready')).toBe(false);
+	});
+
+	it('ignores keydown keys outside the navigation set', () => {
+		buildTabs();
+		window.FFC.FormEditorTabs.init();
+		const before = tab('layout').attr('aria-selected');
+		// A key not in the switch → handler returns without moving focus.
+		tab('layout').trigger(window.$.Event('keydown', { key: 'a' }));
+		expect(tab('layout').attr('aria-selected')).toBe(before);
+	});
+
+	it('falls back to location.hash when history.replaceState is unavailable', () => {
+		buildTabs();
+		window.FFC.FormEditorTabs.init();
+		const savedReplace = window.history.replaceState;
+		// Force the else branch in updateHash.
+		Object.defineProperty(window.history, 'replaceState', {
+			value: undefined,
+			configurable: true,
+		});
+		try {
+			tab('email').trigger('click');
+			expect(window.location.hash).toBe('#ffc-tab-email');
+		} finally {
+			Object.defineProperty(window.history, 'replaceState', {
+				value: savedReplace,
+				configurable: true,
+			});
+		}
+	});
+
 	it('flags error tabs from window.ffcFormTabsErrors and opens the first', () => {
 		buildTabs();
 		window.ffcFormTabsErrors = ['geolocation'];
@@ -292,6 +330,75 @@ describe('FFC.FormEditorTabs — required-tag save guard', () => {
 		window.$('#post').trigger(ev);
 
 		expect(ev.isDefaultPrevented()).toBe(false);
+		expect(window.$('.ffc-form-tabs__required-warning').length).toBe(0);
+	});
+
+	it('does not install the guard when the container is not inside a form', () => {
+		// Tabs container with NO wrapping <form> → setupRequiredTagGuard bails.
+		document.body.innerHTML =
+			`<div class="ffc-form-tabs" data-ffc-form-tabs>` +
+			`<ul class="ffc-form-tabs__nav" role="tablist">` +
+			`<li><a id="ffc-tabnav-layout" class="ffc-form-tabs__tab is-active" role="tab" aria-controls="ffc-tabpanel-layout" aria-selected="true" tabindex="0">L</a></li>` +
+			`</ul><div class="ffc-form-tabs__panels">` +
+			`<section id="ffc-tabpanel-layout" class="ffc-form-tabs__panel is-active" role="tabpanel">` +
+			`<textarea id="ffc_pdf_layout">no tags</textarea></section></div></div>`;
+		expect(() => window.FFC.FormEditorTabs.init()).not.toThrow();
+		// No submit handler exists since there's no form to attach to.
+		expect(window.$('.ffc-form-tabs__required-warning').length).toBe(0);
+	});
+
+	it('lets the submit through when there is no #ffc_pdf_layout textarea', () => {
+		// Form + tabs but the layout textarea is absent → guard returns early.
+		document.body.innerHTML =
+			`<form id="post"><div class="ffc-form-tabs" data-ffc-form-tabs>` +
+			`<ul class="ffc-form-tabs__nav" role="tablist">` +
+			`<li><a id="ffc-tabnav-layout" class="ffc-form-tabs__tab is-active" role="tab" aria-controls="ffc-tabpanel-layout" aria-selected="true" tabindex="0">L</a></li>` +
+			`</ul><div class="ffc-form-tabs__panels">` +
+			`<section id="ffc-tabpanel-layout" class="ffc-form-tabs__panel is-active" role="tabpanel"></section>` +
+			`</div></div></form>`;
+		window.FFC.FormEditorTabs.init();
+
+		const ev = window.$.Event('submit');
+		window.$('#post').trigger(ev);
+		expect(ev.isDefaultPrevented()).toBe(false);
+	});
+
+	it('flushes CodeMirror into the textarea before validating on submit', () => {
+		buildEditorForm('{{auth_code}} {{name}} {{cpf_rf}}');
+		// Insert a sibling CodeMirror after the textarea whose .save() writes
+		// the canonical content back into #ffc_pdf_layout.
+		const save = vi.fn();
+		const cmEl = document.createElement('div');
+		cmEl.className = 'CodeMirror';
+		cmEl.CodeMirror = { save };
+		document.getElementById('ffc_pdf_layout').after(cmEl);
+
+		window.FFC.FormEditorTabs.init();
+		const ev = window.$.Event('submit');
+		window.$('#post').trigger(ev);
+
+		expect(save).toHaveBeenCalled();
+		expect(ev.isDefaultPrevented()).toBe(false);
+	});
+
+	it('still banners on the Layout tab when the layout panel is missing', () => {
+		// Required-tag config + form + textarea, but no #ffc-tabpanel-layout
+		// panel → showRequiredWarning takes its early-return; submit still blocks.
+		document.body.innerHTML =
+			`<form id="post"><div class="ffc-form-tabs" data-ffc-form-tabs>` +
+			`<ul class="ffc-form-tabs__nav" role="tablist">` +
+			`<li><a id="ffc-tabnav-email" class="ffc-form-tabs__tab is-active" role="tab" aria-controls="ffc-tabpanel-email" aria-selected="true" tabindex="0">E</a></li>` +
+			`</ul><div class="ffc-form-tabs__panels">` +
+			`<section id="ffc-tabpanel-email" class="ffc-form-tabs__panel is-active" role="tabpanel">` +
+			`<textarea id="ffc_pdf_layout">{{auth_code}} only</textarea></section>` +
+			`</div></div></form>`;
+		window.FFC.FormEditorTabs.init();
+
+		const ev = window.$.Event('submit');
+		window.$('#post').trigger(ev);
+
+		// Missing tags → submit blocked even though no banner could be placed.
+		expect(ev.isDefaultPrevented()).toBe(true);
 		expect(window.$('.ffc-form-tabs__required-warning').length).toBe(0);
 	});
 });

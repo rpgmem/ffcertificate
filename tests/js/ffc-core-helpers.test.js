@@ -180,6 +180,36 @@ describe('ffc-core.js — toggleFields()', () => {
 		window.$('#sel').val('b').trigger('change');
 		expect(window.$('#tgt2').css('display')).not.toBe('none');
 	});
+
+	it('defaults the select showValue to the first option when omitted', async () => {
+		await load();
+		document.body.innerHTML = `
+			<select id="sel3"><option value="x">x</option><option value="y">y</option></select>
+			<div id="tgt3">content</div>
+		`;
+		// No showValue → auto-detect resolves it to the first option ('x').
+		window.FFC.toggleFields('#sel3', '#tgt3');
+		// Current value 'x' === auto showValue → shown.
+		expect(window.$('#tgt3').css('display')).not.toBe('none');
+
+		window.$('#sel3').val('y').trigger('change');
+		expect(window.$('#tgt3').css('display')).toBe('none');
+	});
+
+	it('drives a radio group via the filtered :checked value', async () => {
+		await load();
+		document.body.innerHTML = `
+			<label><input type="radio" name="rg" value="on" /></label>
+			<label><input type="radio" name="rg" value="off" checked /></label>
+			<div id="tgt4">content</div>
+		`;
+		window.FFC.toggleFields('input[name="rg"]', '#tgt4', 'on');
+		// Currently 'off' is checked → hidden.
+		expect(window.$('#tgt4').css('display')).toBe('none');
+
+		window.$('input[name="rg"][value="on"]').prop('checked', true).trigger('change');
+		expect(window.$('#tgt4').css('display')).not.toBe('none');
+	});
 });
 
 describe('ffc-core.js — delegated [data-confirm] guard', () => {

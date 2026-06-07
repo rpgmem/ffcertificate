@@ -588,12 +588,6 @@ details.ffc-consent-description > p {
     align-items: stretch;
 }
 
-.ffc-shortcode .ffc-verify-input-group {
-    display: flex;
-    gap: 10px;
-    margin-bottom: 20px;
-}
-
 .ffc-shortcode .ffc-verify-input {
     padding: 12px 15px;
     border: 2px solid var(--ffc-border-light);
@@ -612,11 +606,6 @@ details.ffc-consent-description > p {
     outline: none;
     border-color: var(--ffc-primary);
     box-shadow: 0 0 0 3px var(--ffc-focus-ring);
-}
-
-.ffc-shortcode .ffc-verify-input-group .ffc-submit-btn {
-    flex: 0 0 120px;
-    width: auto;
 }
 
 .ffc-shortcode .ffc-no-js-security {
@@ -668,22 +657,6 @@ details.ffc-consent-description > p {
 .ffc-shortcode .ffc-verify-success h4 {
     margin: 15px 0 10px 0;
     font-size: 18px;
-}
-
-.ffc-shortcode .ffc-verify-data-list {
-    list-style: none;
-    padding: 0;
-    margin: 0;
-}
-
-.ffc-shortcode .ffc-verify-data-list li {
-    padding: 8px 0;
-    border-bottom: 1px solid var(--ffc-success-border);
-    font-size: 18px;
-}
-
-.ffc-shortcode .ffc-verify-data-list li:last-child {
-    border-bottom: none;
 }
 
 /* ============================================
@@ -868,14 +841,6 @@ details.ffc-consent-description > p {
 /* ============================================
    APPOINTMENT VERIFICATION (on /valid/ page)
    ============================================ */
-
-.ffc-shortcode .ffc-appointment-verification .ffc-auth-code-display span {
-    font-family: 'Courier New', monospace;
-    font-size: 20px;
-    font-weight: 700;
-    color: var(--ffc-primary);
-    letter-spacing: 2px;
-}
 
 .ffc-shortcode .ffc-appointment-status {
     display: inline-block;
@@ -1116,15 +1081,6 @@ details.ffc-consent-description > p {
         font-size: 18px;
     }
 
-    .ffc-shortcode .ffc-verify-input-group {
-        flex-direction: column;
-    }
-
-    .ffc-shortcode .ffc-verify-input-group .ffc-submit-btn {
-        flex: 1;
-        width: 100%;
-    }
-
     .ffc-shortcode .ffc-detail-row {
         flex-direction: column;
         align-items: flex-start;
@@ -1157,7 +1113,6 @@ details.ffc-consent-description > p {
 @media print {
     .ffc-shortcode .ffc-preview-header,
     .ffc-shortcode .ffc-preview-actions,
-    .ffc-shortcode .ffc-verify-input-group,
     .ffc-shortcode .ffc-submit-btn {
         display: none;
     }
@@ -1180,16 +1135,6 @@ details.ffc-consent-description > p {
    `.ffc-success-details`, `.ffc-success-row*`, `.ffc-success-actions`,
    `.ffc-success-download-btn`, `.ffc-auth-code`.
    ========================================================================== */
-
-/* Optional preamble text above "Certificate Details" — only renders when
-   the form supplies a custom success_message. Kept neutral so it does
-   not compete with the H3. */
-.ffc-shortcode .ffc-success-message {
-    margin: 0 0 20px;
-    font-size: 15px;
-    color: var(--ffc-text-secondary);
-    line-height: 1.5;
-}
 
 /* Auth-code row: the `.value.code` cell holds the <code> + copy button
    together. Right-aligned, wraps below on narrow widths. */
@@ -1871,6 +1816,18 @@ details.ffc-consent-description > p {
     box-shadow: 0 0 0 3px var(--ffc-focus-ring, rgba(0, 115, 170, 0.2));
 }
 
+/* Client-side validation error state — set via .ffc-extend-end-input-invalid
+   in ffc-csv-extend-end.js (was previously a JS inline border-color). */
+.ffc-extend-end-modal .ffc-extend-end-input-invalid {
+    border-color: var(--ffc-danger, #d63638);
+}
+
+.ffc-extend-end-error {
+    margin: 6px 0 0;
+    font-size: 13px;
+    color: var(--ffc-danger, #d63638);
+}
+
 .ffc-open-early-actions {
     display: flex;
     justify-content: flex-end;
@@ -1991,13 +1948,26 @@ details.ffc-consent-description > p {
 
 #ffc-preview-modal .ffc-preview-body {
     flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: auto;
+    padding: 12px;
+}
+
+/* Faithful preview: the iframe renders at the real A4 page size and JS scales
+   it via transform; the stage is sized to the scaled footprint so the layout
+   matches the visual and the page centers without clipping its borders. */
+.ffc-preview-stage {
+    position: relative;
+    flex: 0 0 auto;
     overflow: hidden;
 }
 
 #ffc-preview-iframe {
-    width: 100%;
-    height: 100%;
+    display: block;
     border: none;
+    background: #fff;
 }
 
 /* Dark mode alert overrides */

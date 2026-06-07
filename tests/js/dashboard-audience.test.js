@@ -7,8 +7,8 @@
 // rendering, sectioning, row classes, and filter-by-search.
 //
 // Part of S4 of #163.
-import { describe, it, expect, beforeAll, beforeEach } from 'vitest';
-import { installDashboardFixtures, loadDashboardCore, loadPanel } from './dashboard-fixtures.js';
+import { describe, it, expect, beforeAll, beforeEach, afterEach, vi } from 'vitest';
+import { installDashboardFixtures, loadDashboardCore, loadPanel, flushPromises } from './dashboard-fixtures.js';
 
 beforeAll(() => {
 	installDashboardFixtures();
@@ -20,7 +20,10 @@ beforeAll(() => {
 		description: 'Description',
 		audiences: 'Audiences',
 		noAudienceBookings: 'No audience bookings',
+		noPermission: 'No permission',
 	});
+	window.ffcDashboard.restUrl = 'https://x.test/wp-json/ffc/v1/';
+	window.ffcDashboard.nonce = 'rest-nonce';
 	loadDashboardCore();
 	loadPanel('cal-export');
 	loadPanel('audience');
@@ -117,5 +120,131 @@ describe('FFCDashboard.panels.audience.render', () => {
 		const rows = document.querySelectorAll('#tab-audience table tbody tr');
 		expect(rows.length).toBe(1);
 		expect(rows[0].textContent).toContain('Beta hall');
+	});
+
+	it('renders the schedule_name sub-label when present', () => {
+		panel().render([
+			makeBooking({ environment_name: 'Room A', schedule_name: 'Morning slot' }),
+		], 1);
+		const cell = document.querySelector('#tab-audience table tbody tr td');
+		expect(cell.textContent).toContain('Room A');
+		expect(cell.querySelector('small')).not.toBeNull();
+		expect(cell.textContent).toContain('Morning slot');
+	});
+
+	it('filters out rows outside the from/to date range', () => {
+		const bookings = [
+			makeBooking({ booking_date_raw: '2026-01-01', environment_name: 'EarlyHall' }),
+			makeBooking({ booking_date_raw: '2026-06-15', environment_name: 'MidHall' }),
+			makeBooking({ booking_date_raw: '2026-12-31', environment_name: 'LateHall' }),
+		];
+		panel().render(bookings, 1);
+		document.querySelector('#tab-audience .ffc-filter-from').value = '2026-03-01';
+		document.querySelector('#tab-audience .ffc-filter-to').value = '2026-09-01';
+		panel().render(bookings, 1);
+		const rows = document.querySelectorAll('#tab-audience table tbody tr');
+		expect(rows.length).toBe(1);
+		expect(rows[0].textContent).toContain('MidHall');
+	});
+});
+
+// ----------------------------------------------------------------------
+// load() — guard / AJAX flow
+// ----------------------------------------------------------------------
+
+describe('FFCDashboard.panels.audience.load', () => {
+	afterEach(() => {
+		vi.restoreAllMocks();
+		panel().state = null;
+		delete window.ffcDashboard.viewAsUserId;
+		delete window.ffcDashboard.canViewAudienceBookings;
+	});
+
+	it('bails when #tab-audience is missing', async () => {
+		document.getElementById('tab-audience').remove();
+		const ajaxSpy = vi.spyOn(window.$, 'ajax').mockImplementation(() => ({}));
+
+		panel().load();
+		await flushPromises();
+
+		expect(ajaxSpy).not.toHaveBeenCalled();
+		document.getElementById('ffc-dashboard').insertAdjacentHTML(
+			'beforeend',
+			'<div id="tab-audience" class="ffc-tab-content"></div>'
+		);
+	});
+
+	it('shows the noPermission notice when canViewAudienceBookings is false', async () => {
+		window.ffcDashboard.canViewAudienceBookings = false;
+		const ajaxSpy = vi.spyOn(window.$, 'ajax').mockImplementation(() => ({}));
+
+		panel().load();
+		await flushPromises();
+
+		expect(ajaxSpy).not.toHaveBeenCalled();
+		expect(document.getElementById('tab-audience').innerHTML).toContain('No permission');
+	});
+
+	it('short-circuits when state is already populated', async () => {
+		panel().state = [];
+		const ajaxSpy = vi.spyOn(window.$, 'ajax').mockImplementation(() => ({}));
+
+		panel().load();
+		await flushPromises();
+
+		expect(ajaxSpy).not.toHaveBeenCalled();
+	});
+
+	it('GETs /user/audience-bookings, sets X-WP-Nonce, and stores the response on state', async () => {
+		const ajaxSpy = vi.spyOn(window.$, 'ajax').mockImplementation((opts) => {
+			const xhr = { setRequestHeader: vi.fn() };
+			opts.beforeSend(xhr);
+			expect(xhr.setRequestHeader).toHaveBeenCalledWith('X-WP-Nonce', 'rest-nonce');
+			opts.success({ bookings: [makeBooking({ environment_name: 'LoadedHall' })] });
+			return {};
+		});
+
+		panel().load();
+		await flushPromises();
+
+		const opts = ajaxSpy.mock.calls[0][0];
+		expect(opts.url).toBe('https://x.test/wp-json/ffc/v1/user/audience-bookings');
+		expect(panel().state.length).toBe(1);
+		expect(document.getElementById('tab-audience').textContent).toContain('LoadedHall');
+	});
+
+	it('appends viewAsUserId query string when impersonating', async () => {
+		window.ffcDashboard.viewAsUserId = 42;
+		const ajaxSpy = vi.spyOn(window.$, 'ajax').mockImplementation(() => ({}));
+
+		panel().load();
+		await flushPromises();
+
+		expect(ajaxSpy.mock.calls[0][0].url).toBe('https://x.test/wp-json/ffc/v1/user/audience-bookings?viewAsUserId=42');
+	});
+
+	it('defaults state to [] when response.bookings is missing', async () => {
+		vi.spyOn(window.$, 'ajax').mockImplementation((opts) => {
+			opts.success({});
+			return {};
+		});
+
+		panel().load();
+		await flushPromises();
+
+		expect(panel().state).toEqual([]);
+		expect(document.querySelector('#tab-audience .ffc-empty-state')).not.toBeNull();
+	});
+
+	it('renders the error notice when the AJAX call fails', async () => {
+		vi.spyOn(window.$, 'ajax').mockImplementation((opts) => {
+			opts.error();
+			return {};
+		});
+
+		panel().load();
+		await flushPromises();
+
+		expect(document.getElementById('tab-audience').innerHTML).toContain('Error');
 	});
 });

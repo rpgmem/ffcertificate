@@ -253,9 +253,9 @@ class AppointmentCancellationHandler {
 
 		$when = '';
 		if ( '' !== $date ) {
-			$when = \FreeFormCertificate\Core\DateFormatter::format_date( $date );
+			$when = \FreeFormCertificate\Core\DateFormatter::format_wallclock_date( $date );
 			if ( '' !== $start ) {
-				$when .= ' · ' . \FreeFormCertificate\Core\DateFormatter::format_time( $start );
+				$when .= ' · ' . \FreeFormCertificate\Core\DateFormatter::format_wallclock_time( $start );
 			}
 		}
 

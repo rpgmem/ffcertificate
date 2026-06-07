@@ -11,9 +11,34 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 
 - Schedule exception: the operator now sees the participant-form page URL **at validation time** — a clickable preview line ("The participant form opens at: …") rendered on the info screen as soon as the form is validated, before staging the exception. The URL is pre-resolved server-side (`schedule_form_url` in the info payload) via the same resolver the hand-off uses; opening it does not stage or consume a token. #366 Sprint 5.
 
+### Changed
+
+- Namespace compliance: the appointments admin list table (the lone plugin class still in the global namespace as `FFC_Appointments_List_Table`, embedded in a view) is now the autoloaded `FreeFormCertificate\SelfScheduling\AppointmentsListTable`. Every plugin class now lives under `FreeFormCertificate\` (only the bootstrap `FFC_Autoloader` stays global, by necessity).
+- Inline JS extracted to enqueued files: the admin user-profile custom-data collapsible-section wiring (`ffc-custom-fields-collapse.js`) and the appointments-list row "Cancel" prompt/redirect (`ffc-self-scheduling-admin-appointments.js`, now `data-*`-driven instead of an inline `onclick`). Both covered by new Vitest tests.
+- Inline JS extracted: the appointment-receipt "Download PDF" button handler moved from a `wp_add_inline_script` block to an enqueued `ffc-self-scheduling-receipt.js` (data via the localized `ffcReceiptData`), covered by new Vitest tests.
+- CSS hygiene: moved the extend-end modal's client-validation styling out of JS inline styles into `ffc-frontend.css` (the `.ffc-extend-end-input-invalid` class now has a real rule plus an `.ffc-extend-end-error` rule), and replaced hardcoded inline `color` styles on the working-hours required asterisks and the booking Cancel link with the existing `.required` / WP-core `.delete-link` classes. No visual change.
+- CSS hygiene: removed 13 verified-dead CSS classes (zero references in PHP/JS/templates — e.g. `.ffc-verify-input-group`, `.ffc-success-message`, `.ffc-rereg-field-sm`, `.ffc-recruitment-pcd`). Dynamically-applied and grouped-selector live siblings (`.ffc-event-list-side/below`, `.ffc-recruitment-banner-definitive`, `.ffc-submit-btn`) were preserved; the six superseded `ffc-pdf-*` internal classes were intentionally left in place.
+- Form editor → Email tab: enabling "Send Email to User" seeds the editor with a default `{{name}}` body instead of a blank field (forms with a custom message are untouched).
+- Form editor → Time tab (multi-day on): End date must now be at least one day after Start — live `min` of start+1 on the input plus server-side `analyze_datetime_order()` flagging both fields on save (single-day forms unaffected).
+
 ### Fixed
 
 - Schedule exception (operator entry/exit override): the "Open participant form" hand-off no longer lands on the site home. `ScheduleExceptionAction::resolve_form_url()` now auto-discovers the page that embeds `[ffc_form id="N"`, returning the most recently published embed (the `ffc_schedule_exception_form_url` filter still wins; home stays only as a last-resort fallback) — the Sprint 5 lookup deferred in #366. The post-create modal also shows a spinner + "opening in a new tab" notice for a brief forced beat so the hand-off to the new tab is unmistakable.
+- Audience bookings: wall-clock `booking_date`/`start_time`/`end_time` no longer shift by the site UTC offset on display — the admin bookings list, the user-dashboard bookings REST response (and its `is_past` flag, now a site-local date comparison), and the booking created/cancelled e-mails all render the literal value via `format_wallclock_date()`/`format_wallclock_time()`. (Same class as the self-scheduling/holiday fix; the audience JS already handled times correctly.)
+- Self-scheduling: wall-clock `appointment_date`/`start_time`/`end_time` no longer shift by the site UTC offset on display — new `DateFormatter::format_wallclock_date()`/`format_wallclock_time()` render the literal value across every self-scheduling display (instant API unchanged).
+- Scheduling Settings → Holidays: global and per-calendar holiday dates no longer display one day early on sub-UTC sites — both lists render the wall-clock DATE via `format_wallclock_date()`.
+- Certificate preview (form editor + operator page) no longer crops borders — renders at the real PDF page size (A4, landscape default) and scales the whole frame to fit the modal, preserving aspect (recomputes on resize).
+- Form editor → Time tab: the start+1 `min` floor on the End date is now applied only while "Multiple days" is on, so the hidden mirrored End field no longer fails native validation and blocks save.
+- Form editor → Operator: a blank Download Limit now inherits the global default (empty deletes the per-form meta; "Inherit from global" placeholder + `.ffc-global-default` chip showing the current value).
+- Form editor → Restriction → Device Fingerprint: a blank max/threshold/message now inherits the global default instead of force-saving `2` (each field shows the inherited value in a `.ffc-global-default` chip; reverts the 6.3.11 hard-default).
+- Activation no longer logs a malformed `ALTER TABLE … ADD COLUMN` error — removed backtick-bearing `-- ` SQL comments that dbDelta misread as columns from four schema files (guarded by a test scanning every dbDelta source).
+- Fresh install: the reregistration standard-fields seeder no longer logs a `Table 'ffc_audiences' doesn't exist` error — it skips cleanly and re-seeds on a later load when the table isn't present yet.
+- i18n: the reregistration working-hours weekday dropdown fallbacks are now English (were Portuguese), and the recruitment notice-edit "Network error" messages are now translatable via a localized string instead of hardcoded — both surface through Loco.
+- i18n: the CPF/RF-split and email-rehash migration error strings shown in the Data Migrations report are now wrapped for translation.
+
+### Security
+
+- Added the `ABSPATH` direct-access guard to three audience admin class files (`AudienceAdminCalendar`, `AudienceAdminEnvironment`, `AudienceAdminAudience`) for consistency with the rest of the plugin.
 
 ## [6.10.0] (2026-06-05)
 

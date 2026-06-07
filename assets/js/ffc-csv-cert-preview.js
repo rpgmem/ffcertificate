@@ -33,10 +33,19 @@
 		var sampleData = buildSampleData(data.fields, data.previewSamples);
 		var processedHtml = replacePlaceholders(data.html, sampleData);
 
+		// Faithful preview: render at the real PDF page size (A4) for the form's
+		// orientation, then scale the whole iframe to fit the modal (fitPreview).
+		// Certificates default to landscape — the generator treats an unset
+		// orientation as landscape — so `background-size: cover` crops exactly
+		// like the generated PDF instead of being cropped by the modal's aspect.
+		var isPortrait = data.orientation === 'portrait';
+		var pageW = isPortrait ? 794 : 1123;
+		var pageH = isPortrait ? 1123 : 794;
+
 		var iframeHtml = '<!DOCTYPE html><html><head><meta charset="UTF-8">';
 		iframeHtml += '<style>';
-		iframeHtml += 'html, body { margin: 0; padding: 0; }';
-		iframeHtml += 'body { font-family: Arial, Helvetica, sans-serif; ';
+		iframeHtml += 'html, body { margin: 0; padding: 0; width: ' + pageW + 'px; height: ' + pageH + 'px; overflow: hidden; }';
+		iframeHtml += 'body { font-family: Arial, Helvetica, sans-serif; position: relative; ';
 		if (data.bg_image) {
 			iframeHtml += 'background-image: url(' + data.bg_image + '); ';
 			iframeHtml += 'background-size: cover; background-position: center; background-repeat: no-repeat; ';
@@ -59,7 +68,9 @@
 				'</div>' +
 				'<div class="ffc-preview-note">' + esc(noteText) + '</div>' +
 				'<div class="ffc-preview-body">' +
-					'<iframe id="ffc-preview-iframe" frameborder="0"></iframe>' +
+					'<div class="ffc-preview-stage">' +
+						'<iframe id="ffc-preview-iframe" frameborder="0"></iframe>' +
+					'</div>' +
 				'</div>' +
 			'</div>' +
 		'</div>');
@@ -75,14 +86,36 @@
 		iframeDoc.write(iframeHtml);
 		iframeDoc.close();
 
+		// Scale the A4-sized iframe down to fit the modal body, preserving the
+		// page aspect (no crop, no distortion). The stage wrapper is sized to the
+		// scaled footprint so the iframe centers cleanly.
+		function fitPreview() {
+			var bodyEl  = $modal.find('.ffc-preview-body')[0];
+			var stageEl = $modal.find('.ffc-preview-stage')[0];
+			if (!bodyEl || !stageEl) { return; }
+			var availW = bodyEl.clientWidth - 24;
+			var availH = bodyEl.clientHeight - 24;
+			if (availW <= 0 || availH <= 0) { return; }
+			var scale = Math.min(availW / pageW, availH / pageH, 1);
+			iframe.style.width           = pageW + 'px';
+			iframe.style.height          = pageH + 'px';
+			iframe.style.transformOrigin = 'top left';
+			iframe.style.transform       = 'scale(' + scale + ')';
+			stageEl.style.width  = Math.round(pageW * scale) + 'px';
+			stageEl.style.height = Math.round(pageH * scale) + 'px';
+		}
+
 		requestAnimationFrame(function () {
 			$modal.addClass('ffc-preview-visible');
+			fitPreview();
 		});
+		$(window).on('resize.ffcCertPreview', fitPreview);
 
 		function closePreview() {
 			$modal.removeClass('ffc-preview-visible');
 			setTimeout(function () { $modal.remove(); }, 200);
 			$(document).off('keydown.ffcCertPreview');
+			$(window).off('resize.ffcCertPreview');
 		}
 
 		$modal.find('.ffc-preview-close').on('click', closePreview);

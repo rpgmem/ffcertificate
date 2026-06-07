@@ -75,6 +75,9 @@
 		// Availability period.
 		html += buildDatetimeSection(info.datetime, info.status);
 
+		// Event schedule (reference) — only when distinct from the window above.
+		html += buildScheduleReferenceSection(info.status);
+
 		// Geolocation.
 		html += buildGeolocationSection(info.geolocation);
 
@@ -246,6 +249,38 @@
 			html += '</div>';
 		}
 
+		html += '</div>';
+		return html;
+	}
+
+	// Event schedule (reference) — the {schedule} baseline (class_time_*),
+	// distinct from the access window (time_*) rendered above. Surfaced only
+	// when it actually differs from the window, so forms without a separate
+	// event schedule don't show a redundant duplicate of the access times.
+	function buildScheduleReferenceSection(status) {
+		var bStart = status.schedule_baseline_start || '';
+		var bEnd   = status.schedule_baseline_end   || '';
+		var wStart = status.schedule_window_start   || '';
+		var wEnd   = status.schedule_window_end     || '';
+
+		if ((!bStart && !bEnd) || (bStart === wStart && bEnd === wEnd)) {
+			return '';
+		}
+
+		var inf = strings.infinity || '∞';
+		var html = '<div class="ffc-info-section ffc-info-section-schedule-ref">';
+		html += '<h3>' + esc(strings.scheduleReferenceTitle || 'Event Schedule (Reference)') + '</h3>';
+		html += '<div class="ffc-info-row">';
+		html += '<span class="ffc-info-label">' + esc(strings.scheduleReferenceStart || 'Start') + '</span>';
+		html += '<span class="ffc-info-value">' + (bStart ? esc(bStart) : inf) + '</span>';
+		html += '</div>';
+		html += '<div class="ffc-info-row">';
+		html += '<span class="ffc-info-label">' + esc(strings.scheduleReferenceEnd || 'End') + '</span>';
+		html += '<span class="ffc-info-value">' + (bEnd ? esc(bEnd) : inf) + '</span>';
+		html += '</div>';
+		html += '<p class="ffc-info-schedule-ref-note" style="font-size:12px;color:#646970;margin:6px 0 0;">'
+			+ esc(strings.scheduleReferenceNote || 'Reference event schedule (printed on the certificate) — not the form access window.')
+			+ '</p>';
 		html += '</div>';
 		return html;
 	}

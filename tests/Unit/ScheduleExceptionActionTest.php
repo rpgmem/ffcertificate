@@ -185,6 +185,44 @@ class ScheduleExceptionActionTest extends TestCase {
         $this->assertSame( 'out_of_window', $result['reason'] );
     }
 
+    public function test_execute_allows_end_now_when_baseline_start_is_outside_window(): void {
+        // Regression (#366): "End now (start stays at baseline)" keeps the
+        // start empty. With a baseline schedule (00:00-23:59) wider than the
+        // override window (14:30-23:00), the unchanged baseline start (00:00)
+        // sits below window_start — but it must NOT be window-checked, since
+        // the operator only overrode the end.
+        $this->seed_form( 42, array(
+            '_ffc_geofence_config' => array(
+                'datetime_enabled'           => '1',
+                'schedule_exception_enabled' => '1',
+                'time_start'                 => '14:30',
+                'time_end'                   => '23:00',
+                'class_time_start'           => '00:00',
+                'class_time_end'             => '23:59',
+                'date_start'                 => gmdate( 'Y-m-d', time() - DAY_IN_SECONDS ),
+                'date_end'                   => gmdate( 'Y-m-d', time() + DAY_IN_SECONDS ),
+            ),
+        ) );
+
+        // start_override '' = keep baseline 00:00; end_override 15:40 sits
+        // inside the window. Previously this failed with out_of_window.
+        $result = ScheduleExceptionAction::execute( 42, 'good-hash', '', '15:40', '12345678900' );
+
+        $this->assertTrue( $result['ok'], 'baseline start outside window must not block an end-only override' );
+        $this->assertArrayHasKey( 'token', $result );
+    }
+
+    public function test_execute_still_rejects_an_overridden_start_below_window(): void {
+        // The fix must not disable window validation for values the operator
+        // actually changes: an explicit start below window_start still fails.
+        $this->seed_form();
+        // Window 08:00-18:00; explicitly override the start to 07:00.
+        $result = ScheduleExceptionAction::execute( 42, 'good-hash', '07:00', '17:00', '12345678900' );
+
+        $this->assertFalse( $result['ok'] );
+        $this->assertSame( 'out_of_window', $result['reason'] );
+    }
+
     public function test_execute_rejects_bad_time_format(): void {
         $this->seed_form();
 

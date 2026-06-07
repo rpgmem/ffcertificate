@@ -316,4 +316,72 @@ class PublicCsvExporterTest extends TestCase {
 
         $this->assertSame( 3500, PublicCsvExporter::get_sync_max_rows() );
     }
+
+    // ==================================================================
+    // get_form_title_cached()
+    // ==================================================================
+
+    public function test_get_form_title_cached_returns_title(): void {
+        Functions\when( 'get_the_title' )->justReturn( 'Form X' );
+        $this->assertSame( 'Form X', $this->invoke( 'get_form_title_cached', array( 5 ) ) );
+    }
+
+    public function test_get_form_title_cached_uses_placeholder_for_deleted(): void {
+        Functions\when( 'get_the_title' )->justReturn( '' );
+        $this->assertSame( '(Deleted)', $this->invoke( 'get_form_title_cached', array( 99 ) ) );
+    }
+
+    public function test_get_form_title_cached_memoizes_lookup(): void {
+        // First lookup populates the cache; second must not call get_the_title
+        // again (we flip the stub to a sentinel that would fail the assert).
+        Functions\when( 'get_the_title' )->justReturn( 'Cached Title' );
+        $first = $this->invoke( 'get_form_title_cached', array( 7 ) );
+
+        Functions\when( 'get_the_title' )->justReturn( 'DIFFERENT' );
+        $second = $this->invoke( 'get_form_title_cached', array( 7 ) );
+
+        $this->assertSame( 'Cached Title', $first );
+        $this->assertSame( 'Cached Title', $second );
+    }
+
+    // ==================================================================
+    // scan_dynamic_keys() — paginated key harvesting
+    // ==================================================================
+
+    /** Inject a mock SubmissionRepository into the protected property. */
+    private function set_repository( $repo ): void {
+        $prop = new \ReflectionProperty( PublicCsvExporter::class, 'repository' );
+        $prop->setAccessible( true );
+        $prop->setValue( $this->exporter, $repo );
+    }
+
+    public function test_scan_dynamic_keys_merges_unique_keys_across_batches(): void {
+        $repo = \Mockery::mock( 'FreeFormCertificate\Repositories\SubmissionRepository' );
+        // First batch returns two rows, second batch empty → loop terminates.
+        $repo->shouldReceive( 'getExportKeysBatch' )
+            ->twice()
+            ->andReturn(
+                array(
+                    array( 'id' => 10, 'data' => '{"name":"A","city":"SP"}' ),
+                    array( 'id' => 20, 'data' => '{"name":"B","age":"30"}' ),
+                ),
+                array()
+            );
+
+        $this->set_repository( $repo );
+
+        $keys = $this->invoke( 'scan_dynamic_keys', array( array( 1 ), 'publish' ) );
+
+        sort( $keys );
+        $this->assertSame( array( 'age', 'city', 'name' ), $keys );
+    }
+
+    public function test_scan_dynamic_keys_returns_empty_when_no_rows(): void {
+        $repo = \Mockery::mock( 'FreeFormCertificate\Repositories\SubmissionRepository' );
+        $repo->shouldReceive( 'getExportKeysBatch' )->once()->andReturn( array() );
+
+        $this->set_repository( $repo );
+
+        $this->assertSame( array(), $this->invoke( 'scan_dynamic_keys', array( array( 1 ), 'publish' ) ) );
+    }
 }

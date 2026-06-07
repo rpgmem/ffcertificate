@@ -88,6 +88,26 @@ describe('ffc-doc-toc — initialisation', () => {
 		expect(observers[0].targets).toHaveLength(1);
 		expect(observers[0].targets[0]).toBe(document.querySelector('.ffc-doc-toc-sentinel'));
 	});
+
+	it('defers init to DOMContentLoaded while the document is still loading', () => {
+		buildDom();
+		const readyStateSpy = vi
+			.spyOn(document, 'readyState', 'get')
+			.mockReturnValue('loading');
+		const addSpy = vi.spyOn(document, 'addEventListener');
+
+		loadScript('assets/js/ffc-doc-toc.js');
+
+		// init was deferred, so no observer constructed yet.
+		expect(observers).toHaveLength(0);
+		const dclCall = addSpy.mock.calls.find((c) => c[0] === 'DOMContentLoaded');
+		expect(dclCall).toBeTruthy();
+
+		// Restore readyState before firing init so init() runs its body.
+		readyStateSpy.mockRestore();
+		dclCall[1]();
+		expect(observers).toHaveLength(1);
+	});
 });
 
 describe('ffc-doc-toc — IntersectionObserver-driven collapse', () => {

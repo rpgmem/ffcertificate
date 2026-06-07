@@ -408,6 +408,12 @@ class Frontend {
 						'timeEnd'                        => __( 'End time', 'ffcertificate' ),
 						'infinity'                       => '∞',
 						'noEndDateAlert'                 => __( 'This form has no end date configured. The CSV download will only be available after the administrator sets an end date.', 'ffcertificate' ),
+						// Info screen: event schedule (reference) — distinct from the
+						// access window above. Shown only when it differs from the window.
+						'scheduleReferenceTitle'         => __( 'Event Schedule (Reference)', 'ffcertificate' ),
+						'scheduleReferenceStart'         => __( 'Start', 'ffcertificate' ),
+						'scheduleReferenceEnd'           => __( 'End', 'ffcertificate' ),
+						'scheduleReferenceNote'          => __( 'Reference event schedule (printed on the certificate) — not the form access window.', 'ffcertificate' ),
 
 						// Info screen: geolocation.
 						'geolocation'                    => __( 'Geolocation', 'ffcertificate' ),

@@ -334,6 +334,32 @@ class GeofenceTest extends TestCase {
         $this->assertSame( $errors['date_start'], $errors['date_end'] );
     }
 
+    public function test_analyze_datetime_order_flags_equal_dates_when_multi_day(): void {
+        // Multi-day on: the end must be at least the day AFTER the start, so
+        // equal dates are invalid and both inputs go red.
+        $config = array(
+            'date_start' => '2026-06-01',
+            'date_end'   => '2026-06-01',
+            'multi_day'  => '1',
+            'time_mode'  => 'daily',
+        );
+        $errors = Geofence::analyze_datetime_order( $config );
+        $this->assertArrayHasKey( 'date_start', $errors );
+        $this->assertArrayHasKey( 'date_end', $errors );
+    }
+
+    public function test_analyze_datetime_order_allows_equal_dates_when_not_multi_day(): void {
+        // Single-day form mirrors date_end = date_start; equal dates are valid
+        // when multi_day is off.
+        $config = array(
+            'date_start' => '2026-06-01',
+            'date_end'   => '2026-06-01',
+            'multi_day'  => '0',
+            'time_mode'  => 'daily',
+        );
+        $this->assertSame( array(), Geofence::analyze_datetime_order( $config ) );
+    }
+
     public function test_analyze_datetime_order_flags_times_in_span_when_composed_inverted(): void {
         $config = array(
             'date_start' => '2026-06-01',

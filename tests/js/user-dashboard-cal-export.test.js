@@ -153,4 +153,42 @@ describe('ffc-user-dashboard-cal-export — dropdown interactions', () => {
 		expect(revokeObjectURL).toHaveBeenCalledWith('blob:fake');
 		clickSpy.mockRestore();
 	});
+
+	it('toggles the dropdown open on trigger-button click and closes other open dropdowns', () => {
+		// Add a second, already-open dropdown so the "close siblings" path runs.
+		document.body.insertAdjacentHTML(
+			'beforeend',
+			window.FFCDashboard.calExport.buildButton(makeEvent({ uid: 'evt-2' }))
+		);
+		const wraps = document.querySelectorAll('.ffc-cal-export-wrap');
+		// Force the second one open.
+		wraps[1].querySelector('.ffc-cal-export-dropdown').classList.add('open');
+
+		// Click the first trigger button.
+		window.$(wraps[0]).find('.ffc-cal-export-btn').trigger('click');
+
+		expect(wraps[0].querySelector('.ffc-cal-export-dropdown').classList.contains('open')).toBe(true);
+		// The previously-open sibling was closed.
+		expect(wraps[1].querySelector('.ffc-cal-export-dropdown').classList.contains('open')).toBe(false);
+
+		// A second click toggles it back closed.
+		window.$(wraps[0]).find('.ffc-cal-export-btn').trigger('click');
+		expect(wraps[0].querySelector('.ffc-cal-export-dropdown').classList.contains('open')).toBe(false);
+	});
+
+	it('handles an ICS download for an event with an empty summary (escapeIcsText empty-string guard)', () => {
+		document.body.innerHTML = window.FFCDashboard.calExport.buildButton(
+			makeEvent({ summary: '', description: '', location: '' })
+		);
+		window.URL.createObjectURL = vi.fn(() => 'blob:fake');
+		window.URL.revokeObjectURL = vi.fn();
+		const clickSpy = vi
+			.spyOn(window.HTMLAnchorElement.prototype, 'click')
+			.mockImplementation(() => {});
+
+		window.$('.ffc-cal-export-ics').trigger('click');
+
+		expect(window.URL.createObjectURL).toHaveBeenCalled();
+		clickSpy.mockRestore();
+	});
 });

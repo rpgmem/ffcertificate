@@ -11,6 +11,10 @@ namespace FreeFormCertificate\Audience;
 
 use FreeFormCertificate\Core\ColorValidator;
 
+if ( ! defined( 'ABSPATH' ) ) {
+	exit;
+}
+
 /**
  * Handles the Environments admin sub-page rendering and actions.
  */

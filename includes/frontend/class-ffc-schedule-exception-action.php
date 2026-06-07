@@ -272,17 +272,22 @@ final class ScheduleExceptionAction {
 			);
 		}
 
-		// Effective range must fit inside the form window. We compare
-		// only when both window bounds are present — a form without an
-		// explicit `time_start` / `time_end` (datetime_enabled but with
-		// blank times — unusual but legal) skips this branch.
-		if ( '' !== $window_start && '' !== $effective_start && strcmp( $effective_start, $window_start ) < 0 ) {
+		// Effective range must fit inside the form window — but only the
+		// end(s) the operator actually OVERRODE are constrained. A side left
+		// at baseline (empty override) is the admin's reference schedule,
+		// which may legitimately sit outside the override window (e.g. a
+		// 00:00–23:59 baseline with a 14:30–23:00 window). The "End now
+		// (start stays at baseline)" mode depends on this: it changes only
+		// the end, so the unchanged baseline start must not be window-checked.
+		// We compare only when both the window bound and the override are
+		// present.
+		if ( '' !== $window_start && '' !== $start_override && strcmp( $start_override, $window_start ) < 0 ) {
 			return array(
 				'ok'     => false,
 				'reason' => 'out_of_window',
 			);
 		}
-		if ( '' !== $window_end && '' !== $effective_end && strcmp( $effective_end, $window_end ) > 0 ) {
+		if ( '' !== $window_end && '' !== $end_override && strcmp( $end_override, $window_end ) > 0 ) {
 			return array(
 				'ok'     => false,
 				'reason' => 'out_of_window',

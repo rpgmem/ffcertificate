@@ -238,7 +238,11 @@ class AudienceAdminSettings {
 							<tr>
 								<td>
 									<?php
-									$formatted_holiday = \FreeFormCertificate\Core\DateFormatter::format_date( $holiday['date'] );
+									// Holiday dates are wall-clock DATE strings (Category B) stored
+									// literally as 'Y-m-d' — render without timezone conversion.
+									// format_date() would parse them as UTC midnight and re-apply
+									// wp_timezone(), rolling a 05/06 holiday back to 04/06 on UTC-3.
+									$formatted_holiday = \FreeFormCertificate\Core\DateFormatter::format_wallclock_date( $holiday['date'] );
 									echo esc_html( '' !== $formatted_holiday ? $formatted_holiday : $holiday['date'] );
 									?>
 								</td>

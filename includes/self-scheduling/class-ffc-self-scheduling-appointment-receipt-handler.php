@@ -146,6 +146,16 @@ class AppointmentReceiptHandler {
 			FFC_VERSION,
 			true
 		);
+
+		// Receipt "Download PDF" button wiring (extracted from an inline
+		// <script>); reads the localized ffcReceiptData object below.
+		wp_enqueue_script(
+			'ffc-self-scheduling-receipt',
+			FFC_PLUGIN_URL . "assets/js/ffc-self-scheduling-receipt{$s}.js",
+			array( 'jquery', 'ffc-pdf-generator' ),
+			FFC_VERSION,
+			true
+		);
 	}
 
 	/**
@@ -192,28 +202,30 @@ class AppointmentReceiptHandler {
 			}
 		}
 
+		// appointment_date / start_time / end_time are Category B wall-clock
+		// values (DATE / TIME) — render them literally, no timezone shift.
+		// strtotime() + format_date/time() would parse them as UTC instants
+		// and then re-apply the site offset, shifting a 09:00 slot to 06:00 on
+		// a UTC-3 site.
 		$appointment_date = __( 'N/A', 'ffcertificate' );
 		if ( ! empty( $appointment['appointment_date'] ) ) {
-			$timestamp = strtotime( $appointment['appointment_date'] );
-			if ( false !== $timestamp ) {
-				$appointment_date = \FreeFormCertificate\Core\DateFormatter::format_date( $timestamp );
+			$formatted = \FreeFormCertificate\Core\DateFormatter::format_wallclock_date( (string) $appointment['appointment_date'] );
+			if ( '' !== $formatted ) {
+				$appointment_date = $formatted;
 			}
 		}
 
 		$start_time = __( 'N/A', 'ffcertificate' );
 		if ( ! empty( $appointment['start_time'] ) ) {
-			$timestamp = strtotime( $appointment['start_time'] );
-			if ( false !== $timestamp ) {
-				$start_time = \FreeFormCertificate\Core\DateFormatter::format_time( $timestamp );
+			$formatted = \FreeFormCertificate\Core\DateFormatter::format_wallclock_time( (string) $appointment['start_time'] );
+			if ( '' !== $formatted ) {
+				$start_time = $formatted;
 			}
 		}
 
 		$end_time = '';
 		if ( ! empty( $appointment['end_time'] ) ) {
-			$timestamp = strtotime( $appointment['end_time'] );
-			if ( false !== $timestamp ) {
-				$end_time = \FreeFormCertificate\Core\DateFormatter::format_time( $timestamp );
-			}
+			$end_time = \FreeFormCertificate\Core\DateFormatter::format_wallclock_time( (string) $appointment['end_time'] );
 		}
 
 		$created_at = __( 'N/A', 'ffcertificate' );
@@ -486,7 +498,7 @@ class AppointmentReceiptHandler {
 				: '';
 
 			wp_localize_script(
-				'ffc-pdf-generator',
+				'ffc-self-scheduling-receipt',
 				'ffcReceiptData',
 				array(
 					'pdfData'        => $pdf_data ? $pdf_data : null,
@@ -500,34 +512,11 @@ class AppointmentReceiptHandler {
 				)
 			);
 
-			wp_add_inline_script(
-				'ffc-pdf-generator',
-				'
-                jQuery(document).ready(function($) {
-                    $("#ffc-download-pdf-btn").on("click", function() {
-                        if (typeof window.ffcGeneratePDF !== "function") {
-                            console.error("FFC PDF Generator not loaded");
-                            alert(ffcReceiptData.errorMsg);
-                            return;
-                        }
-                        if (ffcReceiptData.pdfData && ffcReceiptData.pdfData.html) {
-                            window.ffcGeneratePDF(ffcReceiptData.pdfData, ffcReceiptData.pdfData.filename || "appointment_receipt.pdf");
-                            return;
-                        }
-                        var htmlContent = $("#ffc-receipt-content").html();
-                        var filename = ffcReceiptData.validationCode
-                            ? "Appointment_Receipt_" + ffcReceiptData.validationCode + ".pdf"
-                            : "Appointment_Receipt_" + ffcReceiptData.appointmentId + ".pdf";
-                        window.ffcGeneratePDF({ html: htmlContent, bg_image: null }, filename);
-                    });
-                });
-            '
-			);
-
 			wp_print_scripts( 'jquery' );
 			wp_print_scripts( 'html2canvas' );
 			wp_print_scripts( 'jspdf' );
 			wp_print_scripts( 'ffc-pdf-generator' );
+			wp_print_scripts( 'ffc-self-scheduling-receipt' );
 			?>
 		</body>
 		</html>

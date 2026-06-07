@@ -91,9 +91,16 @@ class Geofence {
 			$errors['class_time_end']   = $msg;
 		}
 
-		// Date order — applies in any time_mode.
-		if ( '' !== $date_start && '' !== $date_end && $date_end < $date_start ) {
-			$msg                  = __( 'End date is earlier than the start date.', 'ffcertificate' );
+		// Date order — applies in any time_mode. With "multiple days" on, the
+		// end date must be strictly AFTER the start (at least the next day). A
+		// single-day form mirrors date_end = date_start, so equal dates are only
+		// rejected when multi_day is on.
+		$multi_day = isset( $config['multi_day'] ) && '1' === (string) $config['multi_day'];
+		if ( '' !== $date_start && '' !== $date_end
+			&& ( $multi_day ? $date_end <= $date_start : $date_end < $date_start ) ) {
+			$msg                  = $multi_day
+				? __( 'For a multi-day event, the end date must be at least one day after the start date.', 'ffcertificate' )
+				: __( 'End date is earlier than the start date.', 'ffcertificate' );
 			$errors['date_start'] = $msg;
 			$errors['date_end']   = $msg;
 			// Return early — composed-datetime / daily-time checks below would

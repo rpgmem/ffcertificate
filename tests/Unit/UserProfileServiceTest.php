@@ -27,7 +27,7 @@ use FreeFormCertificate\UserDashboard\UserProfileService;
 use FreeFormCertificate\UserDashboard\ViewPolicy;
 
 /**
- * @coversNothing
+ * @covers \FreeFormCertificate\UserDashboard\UserProfileService
  * @runTestsInSeparateProcesses
  * @preserveGlobalState disabled
  */
