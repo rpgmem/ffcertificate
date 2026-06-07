@@ -160,6 +160,19 @@
 		}
 		html += '</div>';
 
+		// Pre-resolved participant-form URL (#366 Sprint 5). Shown on
+		// validation so the operator knows — and can open — the page the
+		// exception flow will hand off to. Clicking here opens the public
+		// form page only; it does NOT stage or consume an exception token
+		// (that happens solely via the modal's "Create exception" confirm).
+		if (info.status.can_schedule_exception && info.status.schedule_form_url) {
+			html += '<p class="ffc-sched-exc-formurl-line">'
+				+ esc(strings.scheduleExceptionFormUrlLabel || 'The participant form opens at:')
+				+ ' <a class="ffc-sched-exc-formurl" href="' + esc(info.status.schedule_form_url) + '" target="_blank" rel="noopener">'
+				+ esc(info.status.schedule_form_url)
+				+ '</a></p>';
+		}
+
 		// Replace container content.
 		api.$container.html('<div class="ffc-info-screen">' + html + '</div>');
 		// Stash for the open-early modal copy (needs original start

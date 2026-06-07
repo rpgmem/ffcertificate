@@ -1664,6 +1664,40 @@ details.ffc-consent-description > p {
     justify-content: center;
 }
 
+/* Schedule-exception hand-off: spinner + notice shown for a forced beat
+   after the operator clicks "Open participant form", signalling the new
+   tab is launching. Reuses the global `spin` keyframes. */
+.ffc-sched-exc-opening {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin: 0;
+}
+
+.ffc-sched-exc-spinner {
+    display: inline-block;
+    flex: 0 0 auto;
+    width: 22px;
+    height: 22px;
+    border: 3px solid var(--ffc-border-light);
+    border-top: 3px solid var(--ffc-primary);
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+/* Info-screen line that previews the participant-form page URL the
+   schedule-exception hand-off will open (#366 Sprint 5). */
+.ffc-sched-exc-formurl-line {
+    margin: 12px 0 0;
+    font-size: 13px;
+    color: var(--ffc-text-muted);
+    word-break: break-all;
+}
+
+.ffc-sched-exc-formurl {
+    color: var(--ffc-primary);
+}
+
 .ffc-open-early-backdrop {
     position: absolute;
     inset: 0;

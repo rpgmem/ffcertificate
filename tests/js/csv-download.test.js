@@ -751,10 +751,18 @@ describe('csv-download — schedule exception modal', () => {
 
 		const $open = window.$('.ffc-sched-exc-open');
 		expect($open.length).toBe(1);
-		$open.trigger('click');
-		// The teardown is on a 100ms timer; advance real time and assert removal.
-		await new Promise((r) => setTimeout(r, 120));
+		vi.useFakeTimers();
+		// triggerHandler runs the bound handler without jsdom following the
+		// target="_blank" anchor.
+		$open.triggerHandler('click');
+		// Hand-off swaps to a spinner + notice and holds the modal for a
+		// forced beat (1200ms) before teardown — gives the operator a clear
+		// signal a new tab is launching.
+		expect(window.$('.ffc-sched-exc-spinner').length).toBe(1);
+		expect(window.$('.ffc-schedule-exception-modal').length).toBe(1);
+		vi.advanceTimersByTime(1200);
 		expect(window.$('.ffc-schedule-exception-modal').length).toBe(0);
+		vi.useRealTimers();
 	});
 });
 
