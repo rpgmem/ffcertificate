@@ -322,6 +322,25 @@ class ScheduleExceptionActionTest extends TestCase {
         );
     }
 
+    public function test_find_form_page_url_returns_empty_when_form_not_embedded(): void {
+        // Default stubs: filter returns '', get_posts returns []. Unlike
+        // resolve_form_url(), find_form_page_url() must NOT fall back to home —
+        // '' is the "no embed" signal the builder uses to hide the summary link.
+        $this->assertSame( '', ScheduleExceptionAction::find_form_page_url( 42 ) );
+    }
+
+    public function test_find_form_page_url_returns_permalink_of_embedding_page(): void {
+        Functions\when( 'get_posts' )->justReturn( array( 11 ) );
+        Functions\when( 'get_permalink' )->alias(
+            static fn( $id = 0 ) => 11 === (int) $id ? 'https://example.test/the-page/' : ''
+        );
+
+        $this->assertSame(
+            'https://example.test/the-page/',
+            ScheduleExceptionAction::find_form_page_url( 42 )
+        );
+    }
+
     public function test_execute_falls_back_to_home_when_permalink_empty(): void {
         $this->seed_form();
         // A page matches but get_permalink() returns false/'' (e.g. the

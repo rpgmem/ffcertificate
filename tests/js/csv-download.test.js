@@ -1059,35 +1059,80 @@ describe('csv-download — event schedule (reference) section', () => {
 		return postSpy;
 	}
 
-	it('renders the reference schedule when it differs from the access window', async () => {
+	it('renders a Reference column in the joint table when it differs from the access window', async () => {
 		await reachInfoScreen({
 			schedule_window_start:   '14:30',
 			schedule_window_end:     '23:00',
 			schedule_baseline_start: '00:00',
 			schedule_baseline_end:   '23:59',
 		});
-		const $sec = window.$('.ffc-info-section-schedule-ref');
+		const $sec = window.$('.ffc-info-availability-schedule');
 		expect($sec.length).toBe(1);
-		expect($sec.find('h3').text()).toContain('Event Schedule (Reference)');
+		// Two-column header (Access / Reference) present.
+		expect($sec.find('table.ffc-info-jtable thead th').length).toBe(3);
 		const text = $sec.text();
+		// Reference baseline times shown alongside the access window.
 		expect(text).toContain('00:00');
 		expect(text).toContain('23:59');
-		// The note clarifies it is not the access window.
+		// The note clarifies the reference column is not the access window.
 		expect($sec.find('.ffc-info-schedule-ref-note').length).toBe(1);
 	});
 
-	it('omits the reference schedule when it equals the access window', async () => {
+	it('shows a single column (no Reference) when the schedule equals the access window', async () => {
 		await reachInfoScreen({
 			schedule_window_start:   '08:00',
 			schedule_window_end:     '18:00',
 			schedule_baseline_start: '08:00',
 			schedule_baseline_end:   '18:00',
 		});
-		expect(window.$('.ffc-info-section-schedule-ref').length).toBe(0);
+		const $sec = window.$('.ffc-info-availability-schedule');
+		expect($sec.length).toBe(1); // availability still rendered
+		// No two-column header, no reference note.
+		expect($sec.find('table.ffc-info-jtable thead').length).toBe(0);
+		expect($sec.find('.ffc-info-schedule-ref-note').length).toBe(0);
 	});
 
-	it('omits the reference schedule when no baseline is provided', async () => {
+	it('shows a single column (no Reference) when no baseline is provided', async () => {
 		await reachInfoScreen({});
-		expect(window.$('.ffc-info-section-schedule-ref').length).toBe(0);
+		const $sec = window.$('.ffc-info-availability-schedule');
+		expect($sec.length).toBe(1);
+		expect($sec.find('.ffc-info-schedule-ref-note').length).toBe(0);
+	});
+});
+
+describe('csv-download — summary consolidation + joint table', () => {
+	async function reachInfoScreen(infoOverride) {
+		mountContainer();
+		await loadAndReady();
+		const postSpy = vi.spyOn(window.$, 'ajax');
+		postSpy.mockImplementationOnce(() => postChain({ done: { success: true, data: infoOverride || defaultInfo() } }));
+		window.$('.ffc-public-csv-download form').trigger('submit');
+		await flush();
+		return postSpy;
+	}
+
+	it('renders the download quota inside the summary section (not a standalone card)', async () => {
+		await reachInfoScreen(defaultInfo({ csv: { count: 3, limit: 10 } }));
+		// Quota lives in the summary now.
+		expect(window.$('.ffc-info-summary').text()).toContain('3 of 10 used');
+		// No separate section heading just for the CSV download quota.
+		const headings = window.$('.ffc-info-section h3').map(function () { return window.$(this).text(); }).get();
+		expect(headings).not.toContain('CSV Download');
+	});
+
+	it('puts date rows in the Access column only (em-dash under Reference) in the joint table', async () => {
+		await reachInfoScreen(defaultInfo({
+			status: {
+				has_end_date: true,
+				schedule_window_start:   '14:30',
+				schedule_window_end:     '23:00',
+				schedule_baseline_start: '00:00',
+				schedule_baseline_end:   '23:59',
+			},
+		}));
+		const $tbl = window.$('.ffc-info-availability-schedule table.ffc-info-jtable');
+		expect($tbl.length).toBe(1);
+		// Date rows (2) contribute the only em-dash cells (Reference side).
+		expect($tbl.find('.ffc-jdash').length).toBe(2);
 	});
 });

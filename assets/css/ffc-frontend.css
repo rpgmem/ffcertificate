@@ -1685,17 +1685,69 @@ details.ffc-consent-description > p {
     animation: spin 1s linear infinite;
 }
 
-/* Info-screen line that previews the participant-form page URL the
-   schedule-exception hand-off will open (#366 Sprint 5). */
-.ffc-sched-exc-formurl-line {
-    margin: 12px 0 0;
-    font-size: 13px;
-    color: var(--ffc-text-muted);
-    word-break: break-all;
+/* Info-screen summary: short "open participant form" link (#366 Sprint 5).
+   A compact link in the summary value column instead of the raw URL. */
+.ffc-public-csv-download .ffc-info-form-link {
+    color: var(--ffc-primary);
+    font-weight: 600;
+    text-decoration: none;
+    white-space: nowrap;
 }
 
-.ffc-sched-exc-formurl {
-    color: var(--ffc-primary);
+.ffc-public-csv-download .ffc-info-form-link:hover {
+    text-decoration: underline;
+}
+
+/* Merged availability + event-schedule (reference) comparison table. */
+.ffc-public-csv-download .ffc-info-jtable {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 14px;
+}
+
+.ffc-public-csv-download .ffc-info-jtable thead th {
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    color: var(--ffc-text-muted, #666);
+    border-bottom: 1px solid var(--ffc-border, #e0e0e0);
+    padding: 4px 6px;
+}
+
+.ffc-public-csv-download .ffc-info-jtable thead th.ffc-jcol {
+    text-align: right;
+}
+
+.ffc-public-csv-download .ffc-info-jtable td {
+    padding: 6px;
+    border-bottom: 1px solid var(--ffc-border, #e0e0e0);
+}
+
+.ffc-public-csv-download .ffc-info-jtable tbody tr:last-child td {
+    border-bottom: 0;
+}
+
+.ffc-public-csv-download .ffc-info-jtable .ffc-jlbl {
+    color: var(--ffc-text-muted, #666);
+}
+
+.ffc-public-csv-download .ffc-info-jtable .ffc-jval {
+    text-align: right;
+    font-weight: 500;
+    color: var(--ffc-text, #333);
+    font-variant-numeric: tabular-nums;
+}
+
+.ffc-public-csv-download .ffc-info-jtable .ffc-jdash {
+    text-align: right;
+    color: var(--ffc-border, #c3c4c7);
+}
+
+.ffc-public-csv-download .ffc-info-schedule-ref-note {
+    font-size: 12px;
+    color: var(--ffc-text-muted, #646970);
+    margin: 8px 0 0;
 }
 
 .ffc-open-early-backdrop {

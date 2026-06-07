@@ -150,20 +150,21 @@ describe('csv schedule-exception — button render', () => {
 		expect(window.$('.ffc-btn-schedule-exception').length).toBe(0);
 	});
 
-	it('previews the pre-resolved form URL as a clickable link on validation', async () => {
+	it('renders a short "open form" link in the summary on validation', async () => {
 		await reachInfoScreen();
-		const $link = window.$('.ffc-sched-exc-formurl');
+		const $link = window.$('.ffc-info-summary .ffc-info-form-link');
 		expect($link.length).toBe(1);
 		expect($link.attr('href')).toBe('https://example.test/the-form-page/');
 		expect($link.attr('target')).toBe('_blank');
-		expect(window.$('.ffc-sched-exc-formurl-line').text()).toContain('The participant form opens at:');
+		// Short link text, not the raw URL.
+		expect($link.text()).not.toContain('http');
 	});
 
-	it('omits the URL preview when schedule_form_url is empty', async () => {
+	it('omits the form link when schedule_form_url is empty', async () => {
 		await reachInfoScreen(
 			infoWithScheduleException({ status: { schedule_form_url: '' } })
 		);
-		expect(window.$('.ffc-sched-exc-formurl').length).toBe(0);
+		expect(window.$('.ffc-info-form-link').length).toBe(0);
 	});
 });
 
