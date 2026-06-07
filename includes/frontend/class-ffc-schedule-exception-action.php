@@ -317,13 +317,30 @@ final class ScheduleExceptionAction {
 	 *      embedded anywhere we can find — keeps the contract simple
 	 *      (always returns a URL).
 	 *
-	 * Public so the info-screen builder can pre-resolve and surface the
-	 * URL to the operator at form-validation time (#366 Sprint 5), reusing
-	 * the exact same resolution the create endpoint applies.
+	 * Always returns a URL (home as the last-resort fallback). For the
+	 * operator hand-off, where a URL must always exist.
 	 *
 	 * @param int $form_id Form post id.
 	 */
 	public static function resolve_form_url( int $form_id ): string {
+		$url = self::find_form_page_url( $form_id );
+		return '' !== $url ? $url : home_url( '/' );
+	}
+
+	/**
+	 * Locate the published page/post that embeds this form via the
+	 * `[ffc_form id="N"` shortcode, or '' when none is found.
+	 *
+	 * Unlike {@see resolve_form_url()}, this does NOT fall back to the site
+	 * home — a '' return is a meaningful "the form isn't embedded anywhere"
+	 * signal, which the info-screen builder uses to decide whether to show
+	 * the operator a clickable "open participant form" link at all (#366
+	 * Sprint 5). The create endpoint keeps using resolve_form_url(), which
+	 * needs a guaranteed URL for the new-tab hand-off.
+	 *
+	 * @param int $form_id Form post id.
+	 */
+	public static function find_form_page_url( int $form_id ): string {
 		$candidate = (string) apply_filters( 'ffc_schedule_exception_form_url', '', $form_id );
 		if ( '' !== $candidate ) {
 			return $candidate;
@@ -348,6 +365,6 @@ final class ScheduleExceptionAction {
 			}
 		}
 
-		return home_url( '/' );
+		return '';
 	}
 }
