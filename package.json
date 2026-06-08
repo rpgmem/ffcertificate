@@ -21,7 +21,7 @@
     "globals": "^17.6.0",
     "jquery": "^4.0.0",
     "jsdom": "^29.1.1",
-    "stylelint": "^16.26.1",
+    "stylelint": "^17.13.0",
     "terser": "^5.48.0",
     "vitest": "^4.1.8"
   }
