@@ -280,8 +280,15 @@ class SelfSchedulingShortcode {
 		$visibility            = $calendar['visibility'] ?? 'public';
 		$scheduling_visibility = $calendar['scheduling_visibility'] ?? 'public';
 
+		// A visitor who is neither logged in nor bypass-capable is gated out
+		// of private viewing AND private booking below. Resolving the predicate
+		// once (rather than re-spelling `! $is_logged_in && ! $has_bypass` in
+		// both gates) keeps the two checks from being spuriously correlated by
+		// static analysis across the early return.
+		$is_anonymous_visitor = ! $is_logged_in && ! $has_bypass;
+
 		// Visibility check: Private calendar + not logged in (and no bypass).
-		if ( 'private' === $visibility && ! $is_logged_in && ! $has_bypass ) {
+		if ( 'private' === $visibility && $is_anonymous_visitor ) {
 			return $this->render_private_visibility_message( $calendar );
 		}
 
@@ -307,7 +314,7 @@ class SelfSchedulingShortcode {
 		$can_book           = true;
 		$scheduling_message = '';
 
-		if ( 'private' === $scheduling_visibility && ! $is_logged_in && ! $has_bypass ) {
+		if ( 'private' === $scheduling_visibility && $is_anonymous_visitor ) {
 			$can_book           = false;
 			$scheduling_message = get_option(
 				'ffc_ss_scheduling_message',

@@ -97,8 +97,10 @@ class UrlShortenerMetaBox {
 			return;
 		}
 
-		if ( ! $record && 'publish' === $post->post_status ) {
-			// Auto-create if post is published.
+		// No record yet: the guard above already returned for any non-published
+		// post without a record, so reaching here with no record implies the
+		// post is published — auto-create the short URL.
+		if ( ! $record ) {
 			$permalink_raw = get_permalink( $post->ID );
 			$permalink     = $permalink_raw ? $permalink_raw : '';
 			$result        = $this->service->create_short_url( $permalink, $post->post_title, $post->ID );
