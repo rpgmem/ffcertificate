@@ -163,7 +163,6 @@
 /* Quebra de texto em emails e dados */
 .ffc-table-responsive table.wp-list-table td.column-email,
 .ffc-table-responsive table.wp-list-table td.column-data {
-    word-break: break-word;
     overflow-wrap: break-word;
 }
 
