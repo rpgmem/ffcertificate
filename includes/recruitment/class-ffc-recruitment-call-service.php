@@ -126,17 +126,19 @@ final class RecruitmentCallService {
 	 *
 	 * The shared `date_to_assume` / `time_to_assume` are applied to every
 	 * call row. Per-row out-of-order reasons are read from
-	 * `$out_of_order_reasons[$classification_id]` (string-keyed for
-	 * transport-friendliness when this surfaces as a REST body). Any
-	 * single-row failure rolls back the entire batch.
+	 * `$out_of_order_reasons[$classification_id]`. The map arrives as a
+	 * JSON object over the REST body (string keys on the wire), but PHP
+	 * normalises numeric string keys to int on decode, so the lookup uses
+	 * the int classification ID directly. Any single-row failure rolls
+	 * back the entire batch.
 	 *
-	 * @param array                 $classification_ids   Classifications to convocate (list<int>; must all be `empty`).
+	 * @param array              $classification_ids   Classifications to convocate (list<int>; must all be `empty`).
 	 * @phpstan-param list<int>     $classification_ids
-	 * @param string                $date_to_assume       `YYYY-MM-DD` shared across the batch.
-	 * @param string                $time_to_assume       `HH:MM` or `HH:MM:SS` shared across the batch.
-	 * @param int                   $created_by           WP user ID issuing the bulk call.
-	 * @param array<string, string> $out_of_order_reasons Keyed by classification ID (string).
-	 * @param string|null           $notes                Optional, applied to every call row.
+	 * @param string             $date_to_assume       `YYYY-MM-DD` shared across the batch.
+	 * @param string             $time_to_assume       `HH:MM` or `HH:MM:SS` shared across the batch.
+	 * @param int                $created_by           WP user ID issuing the bulk call.
+	 * @param array<int, string> $out_of_order_reasons Keyed by classification ID. PHP coerces numeric-string keys to int, so the runtime key type is int.
+	 * @param string|null        $notes                Optional, applied to every call row.
 	 * @return CallResult
 	 */
 	public static function call_bulk(
@@ -157,7 +159,7 @@ final class RecruitmentCallService {
 		$call_ids = array();
 
 		foreach ( $classification_ids as $classification_id ) {
-			$reason = $out_of_order_reasons[ (string) $classification_id ] ?? null;
+			$reason = $out_of_order_reasons[ $classification_id ] ?? null;
 
 			$result = self::call_one(
 				(int) $classification_id,
