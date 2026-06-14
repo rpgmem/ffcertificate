@@ -74,6 +74,15 @@ class Geofence {
 		$time_end   = isset( $config['time_end'] ) ? (string) $config['time_end'] : '';
 		$time_mode  = isset( $config['time_mode'] ) ? (string) $config['time_mode'] : 'daily';
 
+		// Resolve the "both fields filled" predicates once and reuse them
+		// across the date-order / span / daily checks below. Re-spelling the
+		// individual `'' !== $date_start && '' !== $date_end` emptiness tests
+		// inline in each branch lets static analysis spuriously correlate the
+		// two variables across the early-return boundary; a single boolean
+		// keeps the runtime guard intact without that side effect.
+		$has_dates = '' !== $date_start && '' !== $date_end;
+		$has_times = '' !== $time_start && '' !== $time_end;
+
 		// Event Schedule (Reference) — `class_time_*` drives the
 		// `{{schedule}}` placeholder and behaves like a single-day daily
 		// range, so end must come after start when both are filled.
@@ -96,7 +105,7 @@ class Geofence {
 		// single-day form mirrors date_end = date_start, so equal dates are only
 		// rejected when multi_day is on.
 		$multi_day = isset( $config['multi_day'] ) && '1' === (string) $config['multi_day'];
-		if ( '' !== $date_start && '' !== $date_end
+		if ( $has_dates
 			&& ( $multi_day ? $date_end <= $date_start : $date_end < $date_start ) ) {
 			$msg                  = $multi_day
 				? __( 'For a multi-day event, the end date must be at least one day after the start date.', 'ffcertificate' )
@@ -109,10 +118,7 @@ class Geofence {
 		}
 
 		// Span mode — composed datetime must move forward in time.
-		if ( 'span' === $time_mode
-			&& '' !== $date_start && '' !== $date_end
-			&& '' !== $time_start && '' !== $time_end
-		) {
+		if ( 'span' === $time_mode && $has_dates && $has_times ) {
 			$start = $date_start . ' ' . $time_start;
 			$end   = $date_end . ' ' . $time_end;
 			if ( $end <= $start ) {
@@ -127,10 +133,7 @@ class Geofence {
 		// Recurring overnight slots (e.g. 22:00–06:00) are not supported by the
 		// runtime; for a single overnight event use span mode with date_end on
 		// the next day.
-		if ( 'daily' === $time_mode
-			&& '' !== $time_start && '' !== $time_end
-			&& $time_end <= $time_start
-		) {
+		if ( 'daily' === $time_mode && $has_times && $time_end <= $time_start ) {
 			$msg                  = __( 'End time must be later than start time. For an overnight single event, switch the Time Mode to "Span" and set the end date to the next day.', 'ffcertificate' );
 			$errors['time_start'] = $msg;
 			$errors['time_end']   = $msg;
