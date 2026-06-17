@@ -24,6 +24,33 @@ if ( ! defined( 'ABSPATH' ) ) {
 final class RateLimitChecker {
 
 	/**
+	 * Strong device signals — high-entropy probes that rarely coincide
+	 * between two distinct physical devices and survive incognito /
+	 * cleared-storage sessions (they are hardware/software bound, not
+	 * stored client-side). The two-tier device match requires at least
+	 * `match_strong_min` of these to corroborate a fuzzy match before it
+	 * counts as the "same device", so matching only weak signals (which
+	 * are identical across whole fleets of same-model devices) can no
+	 * longer trigger a block on its own. Fixed in code by design.
+	 *
+	 * @since 6.7.8
+	 * @var string[]
+	 */
+	public const STRONG_SIGNALS = array( 'canvas', 'webgl', 'audio', 'fonts', 'plugins', 'permissions' );
+
+	/**
+	 * Weak device signals — low-entropy probes that are commonly identical
+	 * across many devices of the same model / OS / browser / locale, so a
+	 * match among these alone does not indicate the same physical device.
+	 * Listed for documentation + the admin grouping UI; the matcher derives
+	 * "weak" as "present non-cookie signal that is not in STRONG_SIGNALS".
+	 *
+	 * @since 6.7.8
+	 * @var string[]
+	 */
+	public const WEAK_SIGNALS = array( 'ua', 'screen', 'tz', 'concurrency', 'memory', 'mediaqueries', 'math' );
+
+	/**
 	 * Cached settings for the current request
 	 *
 	 * @since 4.6.13
@@ -84,6 +111,13 @@ final class RateLimitChecker {
 				// Existing installs keep their saved value; this default only
 				// applies to fresh installs that have never persisted the array.
 				'match_threshold'           => 7,
+				// 6.7.8: two-tier match. On top of `match_threshold` (total
+				// signals matched), a fuzzy block additionally requires at
+				// least this many STRONG_SIGNALS to match — so matching only
+				// weak signals (identical across same-model fleets) can no
+				// longer trigger a false block. 0 disables the strong tier
+				// (legacy behavior). Capped at count(STRONG_SIGNALS) = 6.
+				'match_strong_min'          => 2,
 				'signals_enabled'           => array( 'cookie', 'ua', 'screen', 'tz', 'concurrency', 'memory', 'canvas', 'audio', 'webgl', 'fonts', 'plugins', 'permissions', 'mediaqueries', 'math' ),
 				'bypass_logged_in_managers' => true,
 				'bypass_whitelist_signals'  => array(),
@@ -431,22 +465,30 @@ final class RateLimitChecker {
 	 * post-meta overrides on top of the global device.* values.
 	 *
 	 * @param int $form_id Form post ID.
-	 * @return array{max: int, threshold: int, message: string}
+	 * @return array{max: int, threshold: int, strong_min: int, message: string}
 	 */
 	public static function get_device_effective_settings( int $form_id ): array {
-		$d        = self::get_settings()['device'];
-		$max_meta = get_post_meta( $form_id, '_ffc_device_limit_max', true );
-		$thr_meta = get_post_meta( $form_id, '_ffc_device_match_threshold', true );
-		$msg_meta = get_post_meta( $form_id, '_ffc_device_limit_message', true );
+		$d           = self::get_settings()['device'];
+		$max_meta    = get_post_meta( $form_id, '_ffc_device_limit_max', true );
+		$thr_meta    = get_post_meta( $form_id, '_ffc_device_match_threshold', true );
+		$strong_meta = get_post_meta( $form_id, '_ffc_device_strong_min', true );
+		$msg_meta    = get_post_meta( $form_id, '_ffc_device_limit_message', true );
 
-		$max = ( '' !== $max_meta ) ? max( 1, (int) $max_meta ) : (int) $d['max_per_form'];
-		$thr = ( '' !== $thr_meta ) ? max( 3, min( 12, (int) $thr_meta ) ) : (int) $d['match_threshold'];
-		$msg = ( is_string( $msg_meta ) && '' !== $msg_meta ) ? $msg_meta : (string) $d['message'];
+		$strong_cap    = count( self::STRONG_SIGNALS );
+		$global_strong = isset( $d['match_strong_min'] ) ? (int) $d['match_strong_min'] : 2;
+
+		$max    = ( '' !== $max_meta ) ? max( 1, (int) $max_meta ) : (int) $d['max_per_form'];
+		$thr    = ( '' !== $thr_meta ) ? max( 3, min( 12, (int) $thr_meta ) ) : (int) $d['match_threshold'];
+		$strong = ( '' !== $strong_meta )
+			? max( 0, min( $strong_cap, (int) $strong_meta ) )
+			: max( 0, min( $strong_cap, $global_strong ) );
+		$msg    = ( is_string( $msg_meta ) && '' !== $msg_meta ) ? $msg_meta : (string) $d['message'];
 
 		return array(
-			'max'       => $max,
-			'threshold' => $thr,
-			'message'   => $msg,
+			'max'        => $max,
+			'threshold'  => $thr,
+			'strong_min' => $strong,
+			'message'    => $msg,
 		);
 	}
 
@@ -455,7 +497,16 @@ final class RateLimitChecker {
 	 *
 	 * Treats two submissions as "same device" when:
 	 *   (a) their cookie hash matches, OR
-	 *   (b) at least <threshold> non-cookie signal hashes match.
+	 *   (b) (two-tier) at least <threshold> non-cookie signals match AND
+	 *       at least <strong_min> of those are STRONG_SIGNALS.
+	 *
+	 * The strong tier exists because weak signals (ua/screen/tz/…) are
+	 * identical across whole fleets of same-model devices, so matching the
+	 * threshold on weak signals alone produced mass false positives. When
+	 * the incoming submission carries fewer strong signals than
+	 * <strong_min> the fuzzy tier cannot be corroborated, so we fall back
+	 * to the cookie path only (lenient) and never block on weak signals
+	 * alone — a near-miss is recorded in the log for operator visibility.
 	 *
 	 * Counts how many prior submissions of this form match the incoming
 	 * signal set; blocks if the count reaches the configured maximum.
@@ -494,20 +545,27 @@ final class RateLimitChecker {
 
 		$effective = self::get_device_effective_settings( $form_id );
 
-		$signal_keys = array( 'ua', 'screen', 'tz', 'concurrency', 'memory', 'canvas', 'audio', 'webgl', 'fonts', 'plugins', 'permissions', 'mediaqueries', 'math' );
-		$sum_parts   = array();
-		$values      = array();
+		$signal_keys   = array( 'ua', 'screen', 'tz', 'concurrency', 'memory', 'canvas', 'audio', 'webgl', 'fonts', 'plugins', 'permissions', 'mediaqueries', 'math' );
+		$sum_parts     = array();
+		$values        = array();
+		$strong_parts  = array();
+		$strong_values = array();
 		foreach ( $signal_keys as $k ) {
 			if ( ! empty( $signals[ $k ] ) ) {
 				$col         = 'sig_' . $k;
 				$sum_parts[] = "({$col} = %s)";
 				$values[]    = $signals[ $k ];
+				if ( in_array( $k, self::STRONG_SIGNALS, true ) ) {
+					$strong_parts[]  = "({$col} = %s)";
+					$strong_values[] = $signals[ $k ];
+				}
 			}
 		}
 
-		$threshold = $effective['threshold'];
-		$max       = $effective['max'];
-		$table     = $wpdb->prefix . 'ffc_device_signals';
+		$threshold  = $effective['threshold'];
+		$strong_min = $effective['strong_min'];
+		$max        = $effective['max'];
+		$table      = $wpdb->prefix . 'ffc_device_signals';
 
 		$count = 0;
 		if ( $cookie && empty( $sum_parts ) ) {
@@ -515,17 +573,52 @@ final class RateLimitChecker {
             // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 			$count = (int) $wpdb->get_var( $wpdb->prepare( 'SELECT COUNT(*) FROM %i WHERE form_id = %d AND sig_cookie = %s', $table, $form_id, $cookie ) );
 		} elseif ( ! empty( $sum_parts ) ) {
-			$sum_sql = implode( ' + ', $sum_parts );
-			if ( $cookie ) {
-				$where_sql = "form_id = %d AND ( sig_cookie = %s OR ( {$sum_sql} ) >= %d )";
-				$args      = array_merge( array( $table, $form_id, $cookie ), $values, array( $threshold ) );
+			$sum_sql         = implode( ' + ', $sum_parts );
+			$fuzzy_blockable = ( 0 === $strong_min ) || ( count( $strong_parts ) >= $strong_min );
+
+			if ( $fuzzy_blockable ) {
+				// Two-tier fuzzy condition: total threshold, plus (when the
+				// strong tier is active) a minimum of corroborating strong
+				// signals so weak-only matches can no longer block.
+				$fuzzy_sql  = "( {$sum_sql} ) >= %d";
+				$fuzzy_args = array_merge( $values, array( $threshold ) );
+				if ( $strong_min > 0 ) {
+					$strong_sql = implode( ' + ', $strong_parts );
+					$fuzzy_sql .= " AND ( {$strong_sql} ) >= %d";
+					$fuzzy_args = array_merge( $values, array( $threshold ), $strong_values, array( $strong_min ) );
+				}
+				if ( $cookie ) {
+					$where_sql = "form_id = %d AND ( sig_cookie = %s OR ( {$fuzzy_sql} ) )";
+					$args      = array_merge( array( $table, $form_id, $cookie ), $fuzzy_args );
+				} else {
+					$where_sql = "form_id = %d AND ( {$fuzzy_sql} )";
+					$args      = array_merge( array( $table, $form_id ), $fuzzy_args );
+				}
+				$sql = "SELECT COUNT(*) FROM %i WHERE {$where_sql}";
+                // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared
+				$count = (int) $wpdb->get_var( $wpdb->prepare( $sql, $args ) );
 			} else {
-				$where_sql = "form_id = %d AND ( {$sum_sql} ) >= %d";
-				$args      = array_merge( array( $table, $form_id ), $values, array( $threshold ) );
+				// Lenient: too few strong signals present to corroborate a
+				// fuzzy match. Rely on the cookie path only; never block on
+				// weak signals alone.
+				if ( $cookie ) {
+                    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+					$count = (int) $wpdb->get_var( $wpdb->prepare( 'SELECT COUNT(*) FROM %i WHERE form_id = %d AND sig_cookie = %s', $table, $form_id, $cookie ) );
+				}
+				// Visibility guard: weak signals alone would have crossed the
+				// total threshold (a near-miss the legacy 1-tier logic would
+				// have blocked). Record it so operators can spot low-entropy
+				// devices / strong-signal evasion in the rate-limit log.
+				if ( ! empty( $d['log_blocks'] ) && count( $sum_parts ) >= $threshold ) {
+					// $signals is a non-empty array of non-empty-string hashes
+					// here, so reset() always yields a usable identifier.
+					$d_id = $cookie ?? reset( $signals );
+					// Action 'suppressed' (not 'allowed') so it bypasses the
+					// log_allowed gate and is recorded whenever logging is on —
+					// this near-miss is the diagnostic signal operators need.
+					RateLimitLogger::log_attempt( 'device', (string) $d_id, 'suppressed', 'strong_signals_insufficient', $form_id );
+				}
 			}
-			$sql = "SELECT COUNT(*) FROM %i WHERE {$where_sql}";
-            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared
-			$count = (int) $wpdb->get_var( $wpdb->prepare( $sql, $args ) );
 		}
 
 		if ( $count >= $max ) {
