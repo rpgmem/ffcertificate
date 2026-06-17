@@ -490,6 +490,69 @@ class RateLimiterTest extends TestCase {
         $this->assertSame( 12, $eff['threshold'], 'Threshold above 12 must clamp to 12 (raised from 8 in 6.3.2 to match the 13-signal palette).' );
     }
 
+    public function test_get_device_effective_settings_default_strong_min_is_2(): void {
+        $this->stub_default_settings(
+            array( 'device' => array( 'enabled' => true, 'match_threshold' => 7, 'max_per_form' => 1 ) )
+        );
+        Functions\when( 'get_post_meta' )->justReturn( '' );
+
+        $eff = RateLimiter::get_device_effective_settings( 42 );
+
+        $this->assertSame( 2, $eff['strong_min'] );
+    }
+
+    public function test_get_device_effective_settings_inherits_global_strong_min(): void {
+        $this->stub_default_settings(
+            array( 'device' => array( 'enabled' => true, 'match_strong_min' => 4, 'max_per_form' => 1 ) )
+        );
+        Functions\when( 'get_post_meta' )->justReturn( '' );
+
+        $eff = RateLimiter::get_device_effective_settings( 42 );
+
+        $this->assertSame( 4, $eff['strong_min'] );
+    }
+
+    public function test_get_device_effective_settings_form_meta_overrides_strong_min(): void {
+        $this->stub_default_settings(
+            array( 'device' => array( 'enabled' => true, 'match_strong_min' => 2, 'max_per_form' => 1 ) )
+        );
+        Functions\when( 'get_post_meta' )->alias( function ( $post_id, $key ) {
+            return '_ffc_device_strong_min' === $key ? '5' : '';
+        } );
+
+        $eff = RateLimiter::get_device_effective_settings( 42 );
+
+        $this->assertSame( 5, $eff['strong_min'] );
+    }
+
+    public function test_get_device_effective_settings_clamps_strong_min(): void {
+        $this->stub_default_settings(
+            array( 'device' => array( 'enabled' => true, 'match_strong_min' => 2, 'max_per_form' => 1 ) )
+        );
+        Functions\when( 'get_post_meta' )->alias( function ( $post_id, $key ) {
+            return '_ffc_device_strong_min' === $key ? '99' : '';
+        } );
+
+        $eff = RateLimiter::get_device_effective_settings( 42 );
+
+        $this->assertSame( 6, $eff['strong_min'], 'Strong-min above 6 must clamp to count(STRONG_SIGNALS) = 6.' );
+    }
+
+    public function test_get_device_effective_settings_strong_min_zero_is_respected(): void {
+        // 0 is a valid explicit value (disables the strong tier), distinct
+        // from empty (inherit from global).
+        $this->stub_default_settings(
+            array( 'device' => array( 'enabled' => true, 'match_strong_min' => 3, 'max_per_form' => 1 ) )
+        );
+        Functions\when( 'get_post_meta' )->alias( function ( $post_id, $key ) {
+            return '_ffc_device_strong_min' === $key ? '0' : '';
+        } );
+
+        $eff = RateLimiter::get_device_effective_settings( 42 );
+
+        $this->assertSame( 0, $eff['strong_min'] );
+    }
+
     // ------------------------------------------------------------------
     // device.* — check_device_limit()
     // ------------------------------------------------------------------
@@ -550,6 +613,175 @@ class RateLimiterTest extends TestCase {
 
         $this->assertFalse( $result['allowed'] );
         $this->assertSame( 'device_limit', $result['reason'] );
+    }
+
+    public function test_check_device_limit_suppresses_fuzzy_when_strong_signals_insufficient(): void {
+        // Two-tier (6.7.8): weak signals alone — even when they meet the
+        // total threshold — must NOT block, because they are identical
+        // across same-model devices in a homogeneous audience.
+        global $wpdb;
+        $wpdb->shouldReceive( 'get_var' )->andReturn( '5' ); // Would block if consulted.
+
+        $this->stub_default_settings(
+            array(
+                'device' => array(
+                    'enabled'          => true,
+                    'max_per_form'     => 1,
+                    'match_threshold'  => 7,
+                    'match_strong_min' => 2,
+                    'log_blocks'       => true,
+                ),
+            )
+        );
+        Functions\when( 'get_post_meta' )->justReturn( '' );
+
+        // Seven WEAK signals, zero strong, no cookie -> strong tier cannot
+        // be satisfied -> fuzzy suppressed -> allowed.
+        $result = RateLimiter::check_device_limit(
+            42,
+            array(
+                'ua'           => str_repeat( 'a', 64 ),
+                'screen'       => str_repeat( 'b', 64 ),
+                'tz'           => str_repeat( 'c', 64 ),
+                'concurrency'  => str_repeat( 'd', 64 ),
+                'memory'       => str_repeat( 'e', 64 ),
+                'mediaqueries' => str_repeat( 'f', 64 ),
+                'math'         => str_repeat( '0', 64 ),
+            )
+        );
+
+        $this->assertTrue( $result['allowed'] );
+    }
+
+    public function test_check_device_limit_blocks_when_strong_minimum_met_without_cookie(): void {
+        global $wpdb;
+        $wpdb->shouldReceive( 'get_var' )->andReturn( '2' );
+
+        $this->stub_default_settings(
+            array(
+                'device' => array(
+                    'enabled'          => true,
+                    'max_per_form'     => 1,
+                    'match_threshold'  => 5,
+                    'match_strong_min' => 2,
+                    'message'          => 'blocked!',
+                ),
+            )
+        );
+        Functions\when( 'get_post_meta' )->justReturn( '' );
+
+        // 3 weak + 2 strong = 5 total (>= threshold) with 2 strong (>= min),
+        // no cookie -> fuzzy tier blockable -> blocked.
+        $result = RateLimiter::check_device_limit(
+            42,
+            array(
+                'ua'     => str_repeat( 'a', 64 ),
+                'screen' => str_repeat( 'b', 64 ),
+                'tz'     => str_repeat( 'c', 64 ),
+                'canvas' => str_repeat( 'd', 64 ),
+                'webgl'  => str_repeat( 'e', 64 ),
+            )
+        );
+
+        $this->assertFalse( $result['allowed'] );
+        $this->assertSame( 'device_limit', $result['reason'] );
+    }
+
+    public function test_check_device_limit_blocks_when_strong_minimum_met_with_cookie(): void {
+        global $wpdb;
+        $wpdb->shouldReceive( 'get_var' )->andReturn( '1' );
+
+        $this->stub_default_settings(
+            array(
+                'device' => array(
+                    'enabled'          => true,
+                    'max_per_form'     => 1,
+                    'match_threshold'  => 5,
+                    'match_strong_min' => 2,
+                    'message'          => 'blocked!',
+                ),
+            )
+        );
+        Functions\when( 'get_post_meta' )->justReturn( '' );
+
+        // Cookie present + 3 weak + 2 strong -> exercises the cookie OR
+        // (threshold AND strong) branch.
+        $result = RateLimiter::check_device_limit(
+            42,
+            array(
+                'cookie' => str_repeat( '9', 64 ),
+                'ua'     => str_repeat( 'a', 64 ),
+                'screen' => str_repeat( 'b', 64 ),
+                'tz'     => str_repeat( 'c', 64 ),
+                'canvas' => str_repeat( 'd', 64 ),
+                'webgl'  => str_repeat( 'e', 64 ),
+            )
+        );
+
+        $this->assertFalse( $result['allowed'] );
+    }
+
+    public function test_check_device_limit_strong_min_zero_blocks_on_threshold_alone(): void {
+        // strong_min = 0 disables the strong tier (legacy single-tier
+        // behavior): weak signals meeting the threshold block again.
+        global $wpdb;
+        $wpdb->shouldReceive( 'get_var' )->andReturn( '1' );
+
+        $this->stub_default_settings(
+            array(
+                'device' => array(
+                    'enabled'          => true,
+                    'max_per_form'     => 1,
+                    'match_threshold'  => 3,
+                    'match_strong_min' => 0,
+                    'message'          => 'blocked!',
+                ),
+            )
+        );
+        Functions\when( 'get_post_meta' )->justReturn( '' );
+
+        $result = RateLimiter::check_device_limit(
+            42,
+            array(
+                'ua'     => str_repeat( 'a', 64 ),
+                'screen' => str_repeat( 'b', 64 ),
+                'tz'     => str_repeat( 'c', 64 ),
+            )
+        );
+
+        $this->assertFalse( $result['allowed'] );
+    }
+
+    public function test_check_device_limit_lenient_still_blocks_via_cookie(): void {
+        // When strong signals are insufficient the fuzzy tier is suppressed,
+        // but a matching cookie is still authoritative and blocks.
+        global $wpdb;
+        $wpdb->shouldReceive( 'get_var' )->andReturn( '3' );
+
+        $this->stub_default_settings(
+            array(
+                'device' => array(
+                    'enabled'          => true,
+                    'max_per_form'     => 1,
+                    'match_threshold'  => 7,
+                    'match_strong_min' => 2,
+                    'message'          => 'blocked!',
+                ),
+            )
+        );
+        Functions\when( 'get_post_meta' )->justReturn( '' );
+
+        $result = RateLimiter::check_device_limit(
+            42,
+            array(
+                'cookie' => str_repeat( 'a', 64 ),
+                'ua'     => str_repeat( 'b', 64 ),
+                'screen' => str_repeat( 'c', 64 ),
+                'tz'     => str_repeat( 'd', 64 ),
+            )
+        );
+
+        $this->assertFalse( $result['allowed'] );
     }
 
     // ------------------------------------------------------------------

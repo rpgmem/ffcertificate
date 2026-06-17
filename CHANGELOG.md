@@ -7,6 +7,14 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Added
+
+- Device Fingerprint limit — **Minimum strong signals** setting (Settings → Rate Limit → Device Fingerprint, with a per-form override in the form editor and an auto-save slot). On top of the match threshold, a fuzzy "same device" match now additionally requires this many high-entropy *strong* signals (canvas, WebGL, audio, fonts, plugins, permissions) to corroborate. The "Signals collected" UI now groups signals visually as **Strong** vs **Weak** (with per-signal badges) so operators can see which signals carry real distinguishing power. Default 2; 0 restores the legacy single-tier behavior.
+
+### Fixed
+
+- Device Fingerprint limit no longer mass-false-blocks legitimate first-time submitters in homogeneous audiences (e.g. an event where most people use the same phone model / browser). The previous single-tier rule treated two visits as the same physical device whenever **any** N-of-13 signals matched, but the *weak* signals (user agent, screen, timezone, CPU/memory, media queries, math precision) are identical across whole fleets of same-model devices — so distinct people collided and everyone after the first was blocked. Matching is now **two-tier**: the threshold count **and** a minimum number of *strong* signals must match before a fuzzy block fires. Submissions that cannot emit enough strong signals (privacy browsers blocking canvas/WebGL) fall back to the cookie path only and are never blocked on weak signals alone; such near-misses are recorded in the rate-limit log (action `suppressed`) for operator visibility. The per-form scoping, the cookie OR-path, the whitelist/manager bypasses, and the reprint exemption are all unchanged.
+
 ## [6.11.0] (2026-06-07) — `d753ac3`
 
 ### Added

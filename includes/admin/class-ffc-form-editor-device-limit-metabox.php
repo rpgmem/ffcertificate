@@ -109,6 +109,7 @@ class FormEditorDeviceLimitMetabox {
 		$enabled         = (string) get_post_meta( $post->ID, '_ffc_device_limit_enabled', true );
 		$max             = (string) get_post_meta( $post->ID, '_ffc_device_limit_max', true );
 		$threshold       = (string) get_post_meta( $post->ID, '_ffc_device_match_threshold', true );
+		$strong_min      = (string) get_post_meta( $post->ID, '_ffc_device_strong_min', true );
 		$message         = (string) get_post_meta( $post->ID, '_ffc_device_limit_message', true );
 		$global_active   = $this->is_global_subsystem_active();
 		$global_defaults = $this->get_global_device_defaults();
@@ -164,6 +165,28 @@ class FormEditorDeviceLimitMetabox {
 
 			<tr class="ffc-device-limit-sub">
 				<th scope="row">
+					<label for="ffc_device_strong_min"><?php esc_html_e( 'Minimum strong signals (0-6)', 'ffcertificate' ); ?></label>
+				</th>
+				<td>
+					<input type="number"
+						name="ffc_device_limit[strong_min]"
+						id="ffc_device_strong_min"
+						min="0"
+						max="6"
+						value="<?php echo esc_attr( $strong_min ); ?>"
+						placeholder="<?php esc_attr_e( 'Inherit from global', 'ffcertificate' ); ?>">
+					<?php
+					$this->render_inherit_hint(
+						/* translators: %s: highlighted current global default — minimum strong signals. */
+						esc_html__( 'How many STRONG signals (canvas, WebGL, audio, fonts, plugins, permissions) must match in addition to the threshold. Higher = fewer false positives but easier to evade; 0 disables the strong tier. Leave empty to inherit the global default — currently %s.', 'ffcertificate' ),
+						(string) $global_defaults['strong_min']
+					);
+					?>
+				</td>
+			</tr>
+
+			<tr class="ffc-device-limit-sub">
+				<th scope="row">
 					<label for="ffc_device_limit_message"><?php esc_html_e( 'Block message', 'ffcertificate' ); ?></label>
 				</th>
 				<td>
@@ -207,12 +230,13 @@ class FormEditorDeviceLimitMetabox {
 	 * so the operator sees what an empty field will inherit. Falls back to the
 	 * shipped defaults (2 / 7) when the subsystem class isn't available.
 	 *
-	 * @return array{max: int, threshold: int, message: string}
+	 * @return array{max: int, threshold: int, strong_min: int, message: string}
 	 */
 	private function get_global_device_defaults(): array {
-		$max = 2;
-		$thr = 7;
-		$msg = '';
+		$max    = 2;
+		$thr    = 7;
+		$strong = 2;
+		$msg    = '';
 		if ( class_exists( '\FreeFormCertificate\Security\RateLimiter' ) ) {
 			$device = \FreeFormCertificate\Security\RateLimiter::get_settings()['device'] ?? array();
 			if ( isset( $device['max_per_form'] ) ) {
@@ -221,14 +245,18 @@ class FormEditorDeviceLimitMetabox {
 			if ( isset( $device['match_threshold'] ) ) {
 				$thr = max( 3, min( 12, (int) $device['match_threshold'] ) );
 			}
+			if ( isset( $device['match_strong_min'] ) ) {
+				$strong = max( 0, min( 6, (int) $device['match_strong_min'] ) );
+			}
 			if ( isset( $device['message'] ) && is_string( $device['message'] ) ) {
 				$msg = trim( $device['message'] );
 			}
 		}
 		return array(
-			'max'       => $max,
-			'threshold' => $thr,
-			'message'   => $msg,
+			'max'        => $max,
+			'threshold'  => $thr,
+			'strong_min' => $strong,
+			'message'    => $msg,
 		);
 	}
 

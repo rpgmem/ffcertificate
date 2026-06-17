@@ -360,7 +360,7 @@ class SettingsAjaxEndpoint {
 
 		// Rate-limit nested non-boolean fields.
 		$rate_limit_typed = array(
-			'ip_max_per_hour'        => array(
+			'ip_max_per_hour'         => array(
 				array( 'ip', 'max_per_hour' ),
 				'int',
 				array(
@@ -368,7 +368,7 @@ class SettingsAjaxEndpoint {
 					'max' => 1000,
 				),
 			),
-			'ip_max_per_day'         => array(
+			'ip_max_per_day'          => array(
 				array( 'ip', 'max_per_day' ),
 				'int',
 				array(
@@ -376,7 +376,7 @@ class SettingsAjaxEndpoint {
 					'max' => 10000,
 				),
 			),
-			'ip_cooldown_seconds'    => array(
+			'ip_cooldown_seconds'     => array(
 				array( 'ip', 'cooldown_seconds' ),
 				'int',
 				array(
@@ -384,22 +384,22 @@ class SettingsAjaxEndpoint {
 					'max' => 3600,
 				),
 			),
-			'ip_apply_to'            => array( array( 'ip', 'apply_to' ), 'string', array() ),
-			'ip_message'             => array( array( 'ip', 'message' ), 'string', array( 'as' => 'multiline_text' ) ),
-			'email_max_per_day'      => array( array( 'email', 'max_per_day' ), 'int', array( 'min' => 1 ) ),
-			'email_max_per_week'     => array( array( 'email', 'max_per_week' ), 'int', array( 'min' => 1 ) ),
-			'email_max_per_month'    => array( array( 'email', 'max_per_month' ), 'int', array( 'min' => 1 ) ),
-			'email_message'          => array( array( 'email', 'message' ), 'string', array( 'as' => 'multiline_text' ) ),
-			'cpf_max_per_month'      => array( array( 'cpf', 'max_per_month' ), 'int', array( 'min' => 1 ) ),
-			'cpf_max_per_year'       => array( array( 'cpf', 'max_per_year' ), 'int', array( 'min' => 1 ) ),
-			'cpf_block_threshold'    => array( array( 'cpf', 'block_threshold' ), 'int', array( 'min' => 1 ) ),
-			'cpf_block_hours'        => array( array( 'cpf', 'block_hours' ), 'int', array( 'min' => 1 ) ),
-			'cpf_block_duration'     => array( array( 'cpf', 'block_duration' ), 'int', array( 'min' => 1 ) ),
-			'cpf_message'            => array( array( 'cpf', 'message' ), 'string', array( 'as' => 'multiline_text' ) ),
-			'global_max_per_minute'  => array( array( 'global', 'max_per_minute' ), 'int', array( 'min' => 1 ) ),
-			'global_max_per_hour'    => array( array( 'global', 'max_per_hour' ), 'int', array( 'min' => 1 ) ),
-			'global_message'         => array( array( 'global', 'message' ), 'string', array( 'as' => 'multiline_text' ) ),
-			'device_max_per_form'    => array(
+			'ip_apply_to'             => array( array( 'ip', 'apply_to' ), 'string', array() ),
+			'ip_message'              => array( array( 'ip', 'message' ), 'string', array( 'as' => 'multiline_text' ) ),
+			'email_max_per_day'       => array( array( 'email', 'max_per_day' ), 'int', array( 'min' => 1 ) ),
+			'email_max_per_week'      => array( array( 'email', 'max_per_week' ), 'int', array( 'min' => 1 ) ),
+			'email_max_per_month'     => array( array( 'email', 'max_per_month' ), 'int', array( 'min' => 1 ) ),
+			'email_message'           => array( array( 'email', 'message' ), 'string', array( 'as' => 'multiline_text' ) ),
+			'cpf_max_per_month'       => array( array( 'cpf', 'max_per_month' ), 'int', array( 'min' => 1 ) ),
+			'cpf_max_per_year'        => array( array( 'cpf', 'max_per_year' ), 'int', array( 'min' => 1 ) ),
+			'cpf_block_threshold'     => array( array( 'cpf', 'block_threshold' ), 'int', array( 'min' => 1 ) ),
+			'cpf_block_hours'         => array( array( 'cpf', 'block_hours' ), 'int', array( 'min' => 1 ) ),
+			'cpf_block_duration'      => array( array( 'cpf', 'block_duration' ), 'int', array( 'min' => 1 ) ),
+			'cpf_message'             => array( array( 'cpf', 'message' ), 'string', array( 'as' => 'multiline_text' ) ),
+			'global_max_per_minute'   => array( array( 'global', 'max_per_minute' ), 'int', array( 'min' => 1 ) ),
+			'global_max_per_hour'     => array( array( 'global', 'max_per_hour' ), 'int', array( 'min' => 1 ) ),
+			'global_message'          => array( array( 'global', 'message' ), 'string', array( 'as' => 'multiline_text' ) ),
+			'device_max_per_form'     => array(
 				array( 'device', 'max_per_form' ),
 				'int',
 				array(
@@ -407,7 +407,7 @@ class SettingsAjaxEndpoint {
 					'max' => 100,
 				),
 			),
-			'device_match_threshold' => array(
+			'device_match_threshold'  => array(
 				array( 'device', 'match_threshold' ),
 				'int',
 				array(
@@ -415,7 +415,15 @@ class SettingsAjaxEndpoint {
 					'max' => 12,
 				),
 			),
-			'device_retention_days'  => array(
+			'device_match_strong_min' => array(
+				array( 'device', 'match_strong_min' ),
+				'int',
+				array(
+					'min' => 0,
+					'max' => 6,
+				),
+			),
+			'device_retention_days'   => array(
 				array( 'device', 'retention_days' ),
 				'int',
 				array(
@@ -423,10 +431,10 @@ class SettingsAjaxEndpoint {
 					'max' => 3650,
 				),
 			),
-			'device_message'         => array( array( 'device', 'message' ), 'string', array( 'as' => 'multiline_text' ) ),
-			'logging_retention_days' => array( array( 'logging', 'retention_days' ), 'int', array( 'min' => 1 ) ),
-			'logging_max_logs'       => array( array( 'logging', 'max_logs' ), 'int', array( 'min' => 100 ) ),
-			'read_message'           => array( array( 'read', 'message' ), 'string', array( 'as' => 'multiline_text' ) ),
+			'device_message'          => array( array( 'device', 'message' ), 'string', array( 'as' => 'multiline_text' ) ),
+			'logging_retention_days'  => array( array( 'logging', 'retention_days' ), 'int', array( 'min' => 1 ) ),
+			'logging_max_logs'        => array( array( 'logging', 'max_logs' ), 'int', array( 'min' => 100 ) ),
+			'read_message'            => array( array( 'read', 'message' ), 'string', array( 'as' => 'multiline_text' ) ),
 		);
 
 		// Per-endpoint numeric thresholds under read.endpoints.<ep>.{max_per_minute,max_per_hour}.
