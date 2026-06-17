@@ -7,6 +7,8 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+## [6.11.1] (2026-06-17)
+
 ### Added
 
 - Device Fingerprint limit — **Minimum strong signals** setting (Settings → Rate Limit → Device Fingerprint, with a per-form override in the form editor and an auto-save slot). On top of the match threshold, a fuzzy "same device" match now additionally requires this many high-entropy *strong* signals (canvas, WebGL, audio, fonts, plugins, permissions) to corroborate. The "Signals collected" UI now groups signals visually as **Strong** vs **Weak** (with per-signal badges) so operators can see which signals carry real distinguishing power. Default 2; 0 restores the legacy single-tier behavior.
