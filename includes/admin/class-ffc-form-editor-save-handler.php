@@ -466,6 +466,16 @@ class FormEditorSaveHandler {
 					update_post_meta( $post_id, '_ffc_device_match_threshold', max( 3, min( 12, absint( $thr_raw ) ) ) );
 				}
 
+				// Minimum strong signals (two-tier match). Empty inherits the
+				// global default; 0 is a valid explicit value (disables the
+				// strong tier for this form).
+				$strong_raw = isset( $device_raw['strong_min'] ) ? trim( (string) $device_raw['strong_min'] ) : '';
+				if ( '' === $strong_raw ) {
+					delete_post_meta( $post_id, '_ffc_device_strong_min' );
+				} else {
+					update_post_meta( $post_id, '_ffc_device_strong_min', max( 0, min( 6, absint( $strong_raw ) ) ) );
+				}
+
 				$msg_raw = isset( $device_raw['message'] ) ? sanitize_textarea_field( (string) $device_raw['message'] ) : '';
 				if ( '' === $msg_raw ) {
 					delete_post_meta( $post_id, '_ffc_device_limit_message' );

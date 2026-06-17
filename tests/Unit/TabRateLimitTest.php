@@ -335,6 +335,7 @@ class TabRateLimitTest extends TestCase {
         $_POST['email_check_database'] = '1';
         $_POST['device_max_per_form']  = '0';            // clamped to >= 1
         $_POST['device_match_threshold'] = '99';          // clamped to <= 12
+        $_POST['device_match_strong_min'] = '99';         // clamped to <= 6
         $_POST['device_signals_enabled'] = array( 'cookie', 'bogus', 'ua' );
         $_POST['whitelist_ips']      = "1.1.1.1\n2.2.2.2\n";
 
@@ -358,6 +359,7 @@ class TabRateLimitTest extends TestCase {
         // device clamps.
         $this->assertSame( 1, $saved['device']['max_per_form'] );
         $this->assertSame( 12, $saved['device']['match_threshold'] );
+        $this->assertSame( 6, $saved['device']['match_strong_min'] );
         // Only known signals survive the intersect; 'bogus' dropped.
         $this->assertSame( array( 'cookie', 'ua' ), $saved['device']['signals_enabled'] );
         // Whitelist split + trimmed, empty trailing line filtered out.
@@ -368,7 +370,8 @@ class TabRateLimitTest extends TestCase {
         unset(
             $_POST['ip_enabled'], $_POST['ip_max_per_hour'], $_POST['ip_apply_to'],
             $_POST['email_check_database'], $_POST['device_max_per_form'],
-            $_POST['device_match_threshold'], $_POST['device_signals_enabled'],
+            $_POST['device_match_threshold'], $_POST['device_match_strong_min'],
+            $_POST['device_signals_enabled'],
             $_POST['whitelist_ips']
         );
     }

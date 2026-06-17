@@ -163,7 +163,6 @@
 /* Quebra de texto em emails e dados */
 .ffc-table-responsive table.wp-list-table td.column-email,
 .ffc-table-responsive table.wp-list-table td.column-data {
-    word-break: break-word;
     overflow-wrap: break-word;
 }
 
@@ -420,13 +419,6 @@
     margin-right: 6px;
 }
 
-/* Garantir que não há regras duplicadas */
-#ffc_load_template_btn,
-#ffc_btn_import_html,
-#ffc_btn_media_lib {
-    display: inline-block;
-    margin-right: 10px;
-}
 /* ==========================================================================
    GEOFENCE META BOX STYLES - v3.0.0
    ========================================================================== */

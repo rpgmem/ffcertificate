@@ -1,5 +1,7 @@
 {
-  "extends": ["@wordpress/stylelint-config"],
+  "extends": [
+    "stylelint-config-recommended"
+  ],
   "ignoreFiles": [
     "assets/css/*.min.css",
     "assets/css/ffc-code-editor-dark.css"
@@ -26,7 +28,13 @@
     "media-feature-range-notation": "prefix",
     "font-family-no-missing-generic-family-keyword": [
       true,
-      { "ignoreFontFamilies": ["dashicons", "FontAwesome", "Font Awesome 6 Free"] }
+      {
+        "ignoreFontFamilies": [
+          "dashicons",
+          "FontAwesome",
+          "Font Awesome 6 Free"
+        ]
+      }
     ]
   }
 }

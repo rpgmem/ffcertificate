@@ -266,7 +266,7 @@ $ffcertificate_stats = \FreeFormCertificate\Security\RateLimiter::get_stats();
 
 <div class="card">
 	<h2 class="ffc-icon-shield"><?php esc_html_e( 'Device Fingerprint', 'ffcertificate' ); ?></h2>
-	<p class="description" data-ffc-section="rl-device"><?php esc_html_e( 'Limit submissions from the same physical device by combining a persistent cookie with multiple browser signals. The "N of M" rule treats two visits as the same device when at least the configured number of non-cookie signals match.', 'ffcertificate' ); ?></p>
+	<p class="description" data-ffc-section="rl-device"><?php esc_html_e( 'Limit submissions from the same physical device by combining a persistent cookie with multiple browser signals. Two visits count as the same device when (a) their cookie matches, or (b) they match at least the threshold number of signals AND at least the minimum number of STRONG signals. The strong-signal tier prevents false blocks across same-model devices in homogeneous audiences, where weak signals (browser/OS/screen/timezone) are identical between different people.', 'ffcertificate' ); ?></p>
 	<p>
 		<?php
 		\FreeFormCertificate\Admin\AdminUI::render_toggle(
@@ -293,7 +293,18 @@ $ffcertificate_stats = \FreeFormCertificate\Security\RateLimiter::get_stats();
 		<tr>
 			<th><?php esc_html_e( 'Match threshold (N of 13)', 'ffcertificate' ); ?></th>
 			<td><input type="number" name="device_match_threshold" value="<?php echo esc_attr( $ffcertificate_s['device']['match_threshold'] ); ?>" min="3" max="12" data-ffc-autosave-key="device_match_threshold">
-				<p class="description"><?php esc_html_e( 'How many non-cookie signals must match to consider it the same device. Lower = more aggressive (more false positives). Higher = harder to bypass but easier to evade. The default is 7 of 13.', 'ffcertificate' ); ?></p>
+				<p class="description"><?php esc_html_e( 'How many non-cookie signals (strong + weak) must match to consider it the same device. Lower = more aggressive (more false positives). Higher = harder to bypass but easier to evade. The default is 7 of 13.', 'ffcertificate' ); ?></p>
+			</td>
+		</tr>
+		<tr>
+			<th><?php esc_html_e( 'Minimum strong signals (0-6)', 'ffcertificate' ); ?></th>
+			<td><input type="number" name="device_match_strong_min" value="<?php echo esc_attr( $ffcertificate_s['device']['match_strong_min'] ?? 2 ); ?>" min="0" max="6" data-ffc-autosave-key="device_match_strong_min">
+				<p class="description">
+					<?php esc_html_e( 'On top of the threshold above, at least this many STRONG signals (canvas, WebGL, audio, fonts, plugins, permissions) must match before two visits count as the same device. Strong signals rarely coincide between different physical devices, so requiring them is what stops false blocks across same-model devices in a homogeneous audience.', 'ffcertificate' ); ?>
+					<br>
+					<strong><?php esc_html_e( 'Consequences of changing this:', 'ffcertificate' ); ?></strong>
+					<?php esc_html_e( 'Higher = fewer false positives, but easier to evade (a device only needs to differ on a few strong signals to escape). Lower = closer to the old behavior and more aggressive. 0 disables the strong tier entirely (block on the raw threshold alone — the legacy behavior that over-blocked homogeneous audiences). Submissions that cannot emit this many strong signals (e.g. privacy browsers blocking canvas/WebGL) fall back to the cookie only and are never blocked on weak signals alone. Default is 2.', 'ffcertificate' ); ?>
+				</p>
 			</td>
 		</tr>
 		<tr>
@@ -316,28 +327,79 @@ $ffcertificate_stats = \FreeFormCertificate\Security\RateLimiter::get_stats();
 					'mediaqueries' => __( 'Media queries (color scheme, reduced motion, …)', 'ffcertificate' ),
 					'math'         => __( 'Math precision probes (CPU/SO-specific IEEE-754 quirks)', 'ffcertificate' ),
 				);
-				foreach ( $ffcertificate_signals_options as $ffcertificate_sig_key => $ffcertificate_sig_label ) :
-					$ffcertificate_sig_checked = in_array( $ffcertificate_sig_key, (array) $ffcertificate_s['device']['signals_enabled'], true );
-					?>
-					<p>
-						<?php
-						\FreeFormCertificate\Admin\AdminUI::render_toggle(
-							array(
-								'name'    => 'device_signals_enabled[]',
-								'id'      => 'device_signal_' . $ffcertificate_sig_key,
-								'value'   => $ffcertificate_sig_key,
-								'checked' => $ffcertificate_sig_checked,
-								'label'   => $ffcertificate_sig_label,
-								'data'    => array(
-									'ffc-autosave-key'   => 'device_signals_enabled',
-									'ffc-autosave-multi' => '1',
-								),
-							)
-						);
-						?>
-					</p>
+
+				$ffcertificate_strong_keys = \FreeFormCertificate\Security\RateLimitChecker::STRONG_SIGNALS;
+
+				// Classify each signal into one of three visual groups so the
+				// admin can see which signals carry real distinguishing power.
+				$ffcertificate_signal_groups = array(
+					'cookie' => array(),
+					'strong' => array(),
+					'weak'   => array(),
+				);
+				foreach ( $ffcertificate_signals_options as $ffcertificate_sig_key => $ffcertificate_sig_label ) {
+					if ( 'cookie' === $ffcertificate_sig_key ) {
+						$ffcertificate_signal_groups['cookie'][ $ffcertificate_sig_key ] = $ffcertificate_sig_label;
+					} elseif ( in_array( $ffcertificate_sig_key, $ffcertificate_strong_keys, true ) ) {
+						$ffcertificate_signal_groups['strong'][ $ffcertificate_sig_key ] = $ffcertificate_sig_label;
+					} else {
+						$ffcertificate_signal_groups['weak'][ $ffcertificate_sig_key ] = $ffcertificate_sig_label;
+					}
+				}
+
+				// Inline styles keep the badge self-contained (no CSS rebuild).
+				$ffcertificate_badge_styles = array(
+					'cookie' => 'background:#cfe2ff;color:#084298;',
+					'strong' => 'background:#d1e7dd;color:#0f5132;',
+					'weak'   => 'background:#e2e3e5;color:#41464b;',
+				);
+				$ffcertificate_badge_labels = array(
+					'cookie' => __( 'Cookie', 'ffcertificate' ),
+					'strong' => __( 'Strong', 'ffcertificate' ),
+					'weak'   => __( 'Weak', 'ffcertificate' ),
+				);
+
+				$ffcertificate_render_signal = static function ( $key, $label, $group ) use ( $ffcertificate_s, $ffcertificate_badge_styles, $ffcertificate_badge_labels ) {
+					$checked = in_array( $key, (array) $ffcertificate_s['device']['signals_enabled'], true );
+					echo '<p class="ffc-device-signal-row">';
+					\FreeFormCertificate\Admin\AdminUI::render_toggle(
+						array(
+							'name'    => 'device_signals_enabled[]',
+							'id'      => 'device_signal_' . $key,
+							'value'   => $key,
+							'checked' => $checked,
+							'label'   => $label,
+							'data'    => array(
+								'ffc-autosave-key'   => 'device_signals_enabled',
+								'ffc-autosave-multi' => '1',
+							),
+						)
+					);
+					printf(
+						' <span class="ffc-signal-badge ffc-signal-badge--%1$s" style="%2$s display:inline-block;padding:1px 7px;border-radius:9px;font-size:11px;font-weight:600;vertical-align:middle;">%3$s</span>',
+						esc_attr( $group ),
+						esc_attr( $ffcertificate_badge_styles[ $group ] ),
+						esc_html( $ffcertificate_badge_labels[ $group ] )
+					);
+					echo '</p>';
+				};
+				?>
+
+				<?php foreach ( $ffcertificate_signal_groups['cookie'] as $ffcertificate_sig_key => $ffcertificate_sig_label ) : ?>
+					<?php $ffcertificate_render_signal( $ffcertificate_sig_key, $ffcertificate_sig_label, 'cookie' ); ?>
 				<?php endforeach; ?>
-				<p class="description"><?php esc_html_e( 'Disable canvas/audio/fonts for a privacy-minimal profile (lower entropy, easier to bypass).', 'ffcertificate' ); ?></p>
+
+				<p class="ffc-signal-group-heading" style="margin-bottom:2px;"><strong><?php esc_html_e( 'Strong signals', 'ffcertificate' ); ?></strong> — <span class="description"><?php esc_html_e( 'high entropy; hard to coincide between different physical devices and resistant to incognito. The strong-signal minimum is counted from these.', 'ffcertificate' ); ?></span></p>
+				<?php foreach ( $ffcertificate_signal_groups['strong'] as $ffcertificate_sig_key => $ffcertificate_sig_label ) : ?>
+					<?php $ffcertificate_render_signal( $ffcertificate_sig_key, $ffcertificate_sig_label, 'strong' ); ?>
+				<?php endforeach; ?>
+
+				<p class="ffc-signal-group-heading" style="margin-bottom:2px;"><strong><?php esc_html_e( 'Weak signals', 'ffcertificate' ); ?></strong> — <span class="description"><?php esc_html_e( 'low entropy; commonly identical across many devices of the same model/OS/browser, so matching these alone does not indicate the same device.', 'ffcertificate' ); ?></span></p>
+				<?php foreach ( $ffcertificate_signal_groups['weak'] as $ffcertificate_sig_key => $ffcertificate_sig_label ) : ?>
+					<?php $ffcertificate_render_signal( $ffcertificate_sig_key, $ffcertificate_sig_label, 'weak' ); ?>
+				<?php endforeach; ?>
+
+				<p class="description"><?php esc_html_e( 'Disabling strong signals lowers entropy and makes the limit easier to bypass. If you disable so many strong signals that fewer than the configured minimum remain, the strong tier can never be satisfied and only the cookie/threshold will apply.', 'ffcertificate' ); ?></p>
 			</td>
 		</tr>
 		<tr>
