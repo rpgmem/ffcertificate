@@ -405,7 +405,7 @@ details.ffc-consent-description > p {
    ACCESSIBILITY - HIGH CONTRAST
    ============================================ */
 
-@media (prefers-contrast: high) {
+@media (prefers-contrast: more) {
     .ffc-shortcode .ffc-lgpd-consent {
         border-width: 3px;
         border-color: #000;
@@ -821,7 +821,7 @@ details.ffc-consent-description > p {
     font-size: 14px;
     text-align: right;
     max-width: 60%;
-    word-wrap: break-word;
+    overflow-wrap: break-word;
 }
 
 .ffc-shortcode .ffc-detail-row .value.code {

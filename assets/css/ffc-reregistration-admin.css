@@ -363,7 +363,7 @@ body.ffc-modal-open {
     margin: 0;
     padding: 4px 0;
     border-bottom: 1px dashed #f0f0f1;
-    word-break: break-word;
+    overflow-wrap: break-word;
 }
 
 .ffc-details-empty {

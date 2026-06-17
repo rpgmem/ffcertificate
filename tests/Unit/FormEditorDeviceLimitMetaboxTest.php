@@ -97,13 +97,13 @@ class FormEditorDeviceLimitMetaboxTest extends TestCase {
     public function test_render_surfaces_inherited_global_defaults_with_highlight(): void {
         $html = $this->render();
 
-        // Each of the three sub-option descriptions (max / threshold / message)
-        // shows the value an empty field inherits from global, wrapped in the
-        // subtle-highlight `.ffc-global-default` span.
+        // Each of the four sub-option descriptions (max / threshold /
+        // strong_min / message) shows the value an empty field inherits from
+        // global, wrapped in the subtle-highlight `.ffc-global-default` span.
         $this->assertSame(
-            3,
+            4,
             substr_count( $html, 'ffc-global-default' ),
-            'max, threshold and message must each surface their inherited global value'
+            'max, threshold, strong_min and message must each surface their inherited global value'
         );
         $this->assertStringContainsString( 'inherit the global default', $html );
         $this->assertStringContainsString( 'inherit the global block message', $html );

@@ -396,8 +396,11 @@ final class RecruitmentCsvImporter {
 			$cpf_norm = self::normalise_id( $cpf_raw, 11 );
 			$rf_norm  = self::normalise_id( $rf_raw, 7 );
 
-			if ( '' === $cpf_norm['value'] && '' === $rf_norm['value']
-				&& false === $cpf_norm['too_long'] && false === $rf_norm['too_long'] ) {
+			// An empty normalised value already implies too_long === false
+			// (normalise_id only sets too_long when the digit string is
+			// non-empty and over-length), so checking value emptiness alone
+			// captures the "no identifier supplied" case.
+			if ( '' === $cpf_norm['value'] && '' === $rf_norm['value'] ) {
 				$errors[] = self::line_error( $line, 'recruitment_csv_missing_cpf_or_rf' );
 				continue;
 			}

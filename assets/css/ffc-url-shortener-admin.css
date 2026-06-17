@@ -215,7 +215,7 @@
     font-size: 16px;
     font-weight: 600;
     color: #1d2327;
-    word-break: break-word;
+    overflow-wrap: break-word;
 }
 
 .ffc-qr-modal__url {

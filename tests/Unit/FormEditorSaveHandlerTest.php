@@ -681,6 +681,63 @@ class FormEditorSaveHandlerTest extends TestCase {
     }
 
     /**
+     * Device Fingerprint: a blank "Minimum strong signals" inherits the global
+     * default (delete the meta), same inherit-from-global semantic as max /
+     * threshold.
+     */
+    public function test_device_limit_blank_strong_min_inherits_global(): void {
+        $bag     = $this->stub_for_save();
+        $written = &$bag[0];
+
+        $deleted = array();
+        Functions\when( 'delete_post_meta' )->alias(
+            static function ( $id, $key ) use ( &$deleted ): bool {
+                $deleted[] = $key;
+                return true;
+            }
+        );
+        Functions\when( 'get_post_meta' )->alias( static fn( $id, $key ) => array() );
+
+        $_POST = array(
+            'ffc_form_nonce'   => 'ok',
+            'ffc_config'       => array( 'pdf_layout' => '{{auth_code}} {{name}} {{cpf_rf}}' ),
+            'ffc_device_limit' => array(
+                'enabled'    => '1',
+                'strong_min' => '',
+            ),
+        );
+
+        $this->handler->save_form_data( 10 );
+
+        $this->assertArrayNotHasKey( '_ffc_device_strong_min', $written, 'blank strong_min must not be force-written' );
+        $this->assertContains( '_ffc_device_strong_min', $deleted, 'blank strong_min must delete the meta so the global default is inherited' );
+    }
+
+    /**
+     * Device Fingerprint: an explicit strong_min is persisted, and 0 (disable
+     * the strong tier) is a valid stored value — not treated as "inherit".
+     */
+    public function test_device_limit_explicit_strong_min_is_persisted(): void {
+        $bag     = $this->stub_for_save();
+        $written = &$bag[0];
+
+        Functions\when( 'get_post_meta' )->alias( static fn( $id, $key ) => array() );
+
+        $_POST = array(
+            'ffc_form_nonce'   => 'ok',
+            'ffc_config'       => array( 'pdf_layout' => '{{auth_code}} {{name}} {{cpf_rf}}' ),
+            'ffc_device_limit' => array(
+                'enabled'    => '1',
+                'strong_min' => '0',
+            ),
+        );
+
+        $this->handler->save_form_data( 10 );
+
+        $this->assertSame( 0, $written['_ffc_device_strong_min'] );
+    }
+
+    /**
      * Public Operator Access: a blank Download Limit inherits the global default
      * (delete the meta) instead of force-saving the resolved global value.
      */

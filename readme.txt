@@ -2,8 +2,8 @@
 Contributors: alexmeusburger
 Tags: certificate, form builder, pdf generation, verification, validation
 Requires at least: 6.2
-Tested up to: 6.9
-Stable tag: 6.11.0
+Tested up to: 7.0
+Stable tag: 6.11.1
 Requires PHP: 8.3
 License: GPLv3 or later
 License URI: https://www.gnu.org/licenses/gpl-3.0.html
@@ -48,6 +48,15 @@ Free Form Certificate is a complete WordPress solution for creating dynamic form
 * **Ficha PDF** - Generate PDF records for submissions with customizable templates.
 * **Dashboard Integration** - Users see reregistration banners and can submit/download ficha from their dashboard.
 
+= Recruitment (Public-Tender Candidate Queues) =
+
+* **Notice & Candidate Management** - Create tender notices (editais), register candidates, and manage classification lists with rank and score.
+* **Atomic CSV Import** - Single-transaction wipe-and-reinsert with rollback on any validation error; semicolon (BR/EU) delimiter auto-detection.
+* **Convocation Workflow** - Single and bulk candidate calls with append-only call history, cancellation, and an "Undo decision" action that returns a candidate to the queue.
+* **State Machines** - Notice (draft → preliminary → active → closed) and classification lifecycles, with the reopen-freeze rule that protects hired / not-shown rows.
+* **Public Queue & Candidate Dashboard** - `[ffc_recruitment_queue]` lists called vs. uncalled candidates per notice; `[ffc_recruitment_my_calls]` gives each candidate a self-service view of their classifications and calls.
+* **Email Dispatch** - Automatic convocation emails with masked PII placeholders.
+
 = Security & Restrictions =
 
 * **Geofencing** - Restrict form access by GPS coordinates or IP-based areas.
@@ -66,6 +75,8 @@ Free Form Certificate is a complete WordPress solution for creating dynamic form
 * **Data Migrations** - Automated migration framework with progress tracking and rollback.
 * **SMTP Configuration** - Built-in SMTP settings for reliable email delivery.
 * **REST API** - Full REST API for external integrations.
+* **Capabilities & Roles** - Granular, delegable permission system with a 3-state model (none / view-only / manage) per domain, dedicated roles, and per-user and per-role editors — delegate the whole plugin without WordPress super-admin.
+* **URL Shortener** - Built-in short-link domain for plugin-generated URLs.
 
 == Installation ==
 
@@ -158,6 +169,19 @@ Displays the user's personal dashboard with certificates, appointments, audience
 
 Example: `[user_dashboard_personal]`
 
+= [ffc_recruitment_queue] =
+Displays the public candidate queue for a tender notice, split into called and uncalled lists.
+
+* `notice` (required) - Notice code (edital).
+* `adjutancy` (optional) - Restrict the list to a single adjutancy / role.
+
+Example: `[ffc_recruitment_queue notice="EDITAL-2026-01"]`
+
+= [ffc_recruitment_my_calls] =
+Displays the logged-in candidate's own classifications and convocation history.
+
+Example: `[ffc_recruitment_my_calls]`
+
 == Layout & Placeholders ==
 
 In the certificate layout editor, use these dynamic tags:
@@ -182,8 +206,8 @@ now CHANGELOG.md alone.
 
 == Upgrade Notice ==
 
-= 6.5.14 =
-**UX consolidation + Section 7 polish** across the form editor master toggles. "Public CSV Download" renamed user-facing to "Public Operator Access" — the master now gates three independent sub-toggles (CSV Download, Start Form Early, Postpone Close), each with its own sub-options block and inline live-collapse. Save handler preserves sub-option values when their master is off (skip-on-off semantics). Master toggles auto-save on change. New `download_delivered` audit row records who actually received each CSV. Aliases "(formerly Public CSV Download)" preserved so old links still find the section. No data migrations; safe upgrade.
+= 6.11.0 =
+Privacy Policy Guide integration (Settings → Privacy → Policy Guide), a reorganized Public Operator Access info screen, and the schedule-exception flow now previews the participant-form URL at validation time. Completes full namespace compliance (every plugin class now lives under `FreeFormCertificate\`). No data migrations; safe upgrade.
 
 For older releases, see [CHANGELOG.md](CHANGELOG.md).
 
@@ -199,7 +223,7 @@ For older releases, see [CHANGELOG.md](CHANGELOG.md).
 * Submissions stored in `wp_ffc_submissions` table with optional field encryption
 * Appointments stored in `wp_ffc_appointments` table
 * Rate limiting data stored in `wp_ffc_rate_limits` table
-* Activity logs stored in `wp_ffc_activity_logs` table
+* Activity logs stored in `wp_ffc_activity_log` table
 
 = Data Retention =
 * Configurable automatic cleanup for old submissions

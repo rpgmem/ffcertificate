@@ -7,7 +7,17 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
-## [6.11.0] (2026-06-07)
+## [6.11.1] (2026-06-17)
+
+### Added
+
+- Device Fingerprint limit — **Minimum strong signals** setting (Settings → Rate Limit → Device Fingerprint, with a per-form override in the form editor and an auto-save slot). On top of the match threshold, a fuzzy "same device" match now additionally requires this many high-entropy *strong* signals (canvas, WebGL, audio, fonts, plugins, permissions) to corroborate. The "Signals collected" UI now groups signals visually as **Strong** vs **Weak** (with per-signal badges) so operators can see which signals carry real distinguishing power. Default 2; 0 restores the legacy single-tier behavior.
+
+### Fixed
+
+- Device Fingerprint limit no longer mass-false-blocks legitimate first-time submitters in homogeneous audiences (e.g. an event where most people use the same phone model / browser). The previous single-tier rule treated two visits as the same physical device whenever **any** N-of-13 signals matched, but the *weak* signals (user agent, screen, timezone, CPU/memory, media queries, math precision) are identical across whole fleets of same-model devices — so distinct people collided and everyone after the first was blocked. Matching is now **two-tier**: the threshold count **and** a minimum number of *strong* signals must match before a fuzzy block fires. Submissions that cannot emit enough strong signals (privacy browsers blocking canvas/WebGL) fall back to the cookie path only and are never blocked on weak signals alone; such near-misses are recorded in the rate-limit log (action `suppressed`) for operator visibility. The per-form scoping, the cookie OR-path, the whitelist/manager bypasses, and the reprint exemption are all unchanged.
+
+## [6.11.0] (2026-06-07) — `d753ac3`
 
 ### Added
 
@@ -44,7 +54,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 
 - Added the `ABSPATH` direct-access guard to three audience admin class files (`AudienceAdminCalendar`, `AudienceAdminEnvironment`, `AudienceAdminAudience`) for consistency with the rest of the plugin.
 
-## [6.10.0] (2026-06-05)
+## [6.10.0] (2026-06-05) — `b1ba3db`
 
 ### Added
 
@@ -79,7 +89,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 - User dashboard: untrusted values escaped + `rel="noopener noreferrer"` on external links (XSS / tabnabbing).
 - Geofence: the location cache stores a short-lived "validated" pass token instead of raw GPS coordinates.
 
-## [6.9.0] (2026-06-02)
+## [6.9.0] (2026-06-02) — `ca3c73e`
 
 ### Added
 
@@ -100,7 +110,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 - Recruitment CSV: duplicates sharing RF/email are now caught in validation instead of tripping the UNIQUE index at insert.
 - Recruitment CSV: the admin preliminary import moved to start → batch → commit to stop gateway timeouts.
 
-## [6.8.0] (2026-05-31)
+## [6.8.0] (2026-05-31) — `948a1be`
 
 ### Added
 
@@ -150,7 +160,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 - Self-scheduling calendar editor: config toggles rendered as plain checkboxes (`ffc-common.css` now enqueued).
 - Ficha PDF: Divisão/Setor cells printed the literal placeholder (dependent-select now exposes `{{<key>_parent}}` / `{{<key>_child}}`).
 
-## [6.7.7] (2026-05-23)
+## [6.7.7] (2026-05-23) — `73c9c9c`
 
 ### Fixed
 
@@ -162,7 +172,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 
 - Multiple GPS/location spinners could stack on one form — `showLoadingMessage()` is now idempotent (at most one spinner).
 
-## [6.7.5] (2026-05-23)
+## [6.7.5] (2026-05-23) — `1176500`
 
 ### Fixed
 
@@ -171,7 +181,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 - "Document Invalid" card: manual-verification placeholder uses "validation code" terminology.
 - Ficha PDF: reference year shown below the title (from the campaign cycle); footer now "Preenchido em" (submission date).
 
-## [6.7.4] (2026-05-23)
+## [6.7.4] (2026-05-23) — `7505af2`
 
 ### Fixed
 
@@ -179,13 +189,13 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 - "Document Invalid" failure screen now uses the `.ffc-certificate-preview` card structure (red variant).
 - Reregistration magic links resolve after the parent campaign expires (`expired` added to the storage-layer whitelists).
 
-## [6.7.3] (2026-05-23)
+## [6.7.3] (2026-05-23) — `6d091a2`
 
 ### Fixed
 
 - 10 hardcoded Portuguese fallback strings in `ffc-reregistration-frontend.js` switched to English (PT-BR still flows via the localize payload).
 
-## [6.7.2] (2026-05-23)
+## [6.7.2] (2026-05-23) — `d1cbd84`
 
 ### Fixed
 
@@ -193,7 +203,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 - `/valid`: removed the doubled gray separator; CPF / RF / e-mail now masked in the public response; "Recorded schedule" always carries both ends.
 - User dashboard reregistrations: download button now appears for `expired` submissions that already carry an `auth_code`.
 
-## [6.7.1] (2026-05-23)
+## [6.7.1] (2026-05-23) — `42851f3`
 
 ### Fixed
 
@@ -201,7 +211,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 - Schedule-exception banner aligned to the form width with a proper notice card treatment.
 - Removed the doubled gray separator on the success card; shrank the oversized "Can't find the PDF?" block.
 
-## [6.7.0] (2026-05-22)
+## [6.7.0] (2026-05-22) — `9dacfae`
 
 Per-submission **schedule exception**: an authenticated operator on the public CSV-download panel can issue a one-use exception that overrides a single submission's `{{schedule}}`.
 
@@ -226,7 +236,7 @@ Per-submission **schedule exception**: an authenticated operator on the public C
 - URL Shortener admin QR/regenerate/copy buttons inert when JS is combined, and on non-FFC (Gutenberg) screens (`ffc-core` dependency + early registration).
 - Form duplication missed four CSV-public-download sub-feature toggles.
 
-## [6.6.12] (2026-05-22)
+## [6.6.12] (2026-05-22) — `da7e499`
 
 ### Changed
 
@@ -237,7 +247,7 @@ Per-submission **schedule exception**: an authenticated operator on the public C
 
 - 9 obsolete success-card CSS rules (legacy class names kept as secondaries).
 
-## [6.6.11] (2026-05-22)
+## [6.6.11] (2026-05-22) — `5a2688f`
 
 ⚠ Breaking for downstream automations matching PDF filenames.
 
@@ -250,38 +260,38 @@ Per-submission **schedule exception**: an authenticated operator on the public C
 
 - Central `ffcertificate_pdf_filename` hook fired for every PDF before the per-type hooks (escape hatch to pin a stable shape).
 
-## [6.6.10] (2026-05-22)
+## [6.6.10] (2026-05-22) — `a5fb053`
 
 ### Fixed
 
 - Form duplication: four CSV-public-download sub-feature toggles missed by `CPT::handle_form_duplication()` (hotfix; forward-ported into 6.7.0).
 
-## [6.6.9] (2026-05-22)
+## [6.6.9] (2026-05-22) — `b758a28`
 
 ### Fixed
 
 - URL Shortener admin QR/regenerate/copy buttons still inert on non-FFC admin screens (hotfix; forward-ported into 6.7.0).
 
-## [6.6.8] (2026-05-22)
+## [6.6.8] (2026-05-22) — `ec9ad9d`
 
 ### Fixed
 
 - `[ffc_form]` geofence config not localized for unquoted/extra-attribute shortcodes; URL Shortener admin buttons fail silently when JS is combined (hotfix off `release/6.6.x`; forward-ported into 6.7.0).
 
-## [6.6.7] (2026-05-21)
+## [6.6.7] (2026-05-21) — `04608f5`
 
 ### Fixed
 
 - Four public-facing JS enqueues (`ffc-audience`, `ffc-frontend-helpers`, `ffc-calendar-core`, `ffc-geofence-frontend`) missing the `ffc-core` dependency — broke `FFC.request` on sites that combine JS.
 
-## [6.6.6] (2026-05-21)
+## [6.6.6] (2026-05-21) — `3cf84d1`
 
 ### Fixed
 
 - `Uncaught TypeError` on certificate reprint — `generate_success_html()` now accepts `int|string` for the unix-int submission date.
 - `Unknown column 'action'` on legacy `ffc_activity_log` installs — new `maybe_create_table()` re-runs dbDelta once via a stored DB-version option.
 
-## [6.6.5] (2026-05-21)
+## [6.6.5] (2026-05-21) — `faaaa30`
 
 ⚠ Minimum PHP bumped 8.1 → 8.3 (8.1/8.2 installs stay on 6.6.4 via the `Requires PHP` header).
 
@@ -293,7 +303,7 @@ Per-submission **schedule exception**: an authenticated operator on the public C
 
 - Removed a dead, unreachable branch in `RecruitmentPublicShortcodeRenderer::render_row` (PHPStan 2.1.55; no behavior change).
 
-## [6.6.4] (2026-05-20)
+## [6.6.4] (2026-05-20) — `b6ce71b`
 
 Pre-flight permission checks + server-side reorderings + copy polish.
 
@@ -316,17 +326,17 @@ Pre-flight permission checks + server-side reorderings + copy polish.
 
 - The diagnostic log was always-on — moved behind `debug_browser_env` (default off).
 
-## [6.6.3] (2026-05-20)
+## [6.6.3] (2026-05-20) — `3f86d29`
 
 ### Fixed
 
 - Server-side stale-nonce auto-recovery on form submission + certificate verification (`refresh_nonce` + fresh `new_nonce`), with a single client-side retry — fixes "Security check failed" on iOS Safari / cached HTML.
 
-## [6.6.2.1] (2026-05-20)
+## [6.6.2.1] (2026-05-20) — `908d640`
 
 Cache-bust-only release (no source change) — rotates `?ver=…` so the stale-nonce fix + success-card CSS reach cached clients. Introduces the 4th-segment cache-bust versioning convention.
 
-## [6.6.2] (2026-05-20)
+## [6.6.2] (2026-05-20) — `2102c62`
 
 ### Added
 
@@ -343,7 +353,7 @@ Cache-bust-only release (no source change) — rotates `?ver=…` so the stale-n
 - Activity-log INSERT failing under the post-4.9.7 FK (system rows now map to `user_id = NULL`).
 - `FFC.request is not a function` on public shortcodes (`ffc-core` registered on the frontend + listed as a dependency).
 
-## [6.6.1] (2026-05-18)
+## [6.6.1] (2026-05-18) — `c360f89`
 
 ⚠ `GET /forms` REST now uses `page`/`per_page` pagination; the legacy `limit` arg is removed (default `per_page` 10; `X-WP-Total*` + `Link` headers).
 
@@ -358,7 +368,7 @@ Cache-bust-only release (no source change) — rotates `?ver=…` so the stale-n
 - 5 reuse helpers consolidated (~33 call sites); `ffc_settings` centralized via `SettingsReader` (25 sites).
 - Recruitment admin: 5 inline scripts consolidated into `ffc-recruitment-admin.js`.
 
-## [6.6.0] (2026-05-17)
+## [6.6.0] (2026-05-17) — `ff29bf5`
 
 ⚠ Breaking for external SQL: four "instant" columns (+ seven siblings) converted from `DATETIME` to `BIGINT UNSIGNED` unix-UTC seconds (names unchanged; idempotent backfill on first load). External SQL must use `UNIX_TIMESTAMP()` / `FROM_UNIXTIME()`.
 
@@ -373,7 +383,7 @@ Cache-bust-only release (no source change) — rotates `?ver=…` so the stale-n
 - Public Operator Access audit CSV: timestamp column renders in the site timezone (`wp_date`) instead of UTC.
 - DateFormatter: fixed duplicated time on verification cards and raw dates in "Minhas Convocações".
 
-## [6.5.14] (2026-05-15)
+## [6.5.14] (2026-05-15) — `22ef510`
 
 ### Added
 
@@ -392,38 +402,38 @@ Cache-bust-only release (no source change) — rotates `?ver=…` so the stale-n
 - Form-meta autosave broken by a hook-order race (FormEditor enqueue priority bumped to 20).
 - Operator Access info screen showed "ready to download" when CSV download was disabled.
 
-## [6.5.13] (2026-05-15)
+## [6.5.13] (2026-05-15) — `29a3e9e`
 
 ### Changed
 
 - Public CSV audit summary reports three operator-facing buckets (legacy `count`/`success`/`fail` keys kept as a back-compat shim).
 - Admin form save resets the postpone-close one-shot.
 
-## [6.5.12] (2026-05-15)
+## [6.5.12] (2026-05-15) — `ed89e47`
 
 ### Added
 
 - "Postpone close" public operator action (`ExtendEndAction`) — push a form's `time_end` later within the same day, once per form, on the public hash.
 
-## [6.5.11] (2026-05-15)
+## [6.5.11] (2026-05-15) — `0d1028f`
 
 ### Fixed
 
 - Early-open / geofence edits now purge the page cache for the embedding page (walks `posts_with_shortcode`), not just the unreachable CPT post.
 
-## [6.5.10] (2026-05-15)
+## [6.5.10] (2026-05-15) — `7ad6e97`
 
 ### Fixed
 
 - Early-open now actually opens the form — writes only `time_start` (not `time_end`) and adds a same-day (`not_today`) guard.
 
-## [6.5.9] (2026-05-15)
+## [6.5.9] (2026-05-15) — `9976309`
 
 ### Changed
 
 - Early-open confirmation modal restyled to match the cert-preview modal chrome.
 
-## [6.5.8] (2026-05-15)
+## [6.5.8] (2026-05-15) — `df826bf`
 
 ### Added
 
@@ -437,7 +447,7 @@ Cache-bust-only release (no source change) — rotates `?ver=…` so the stale-n
 
 - Forms-list inline toggles + cache buttons + settings autosave returned "Connection error" — `FFC.request` no longer clobbers a caller-supplied `data.nonce`.
 
-## [6.5.7] (2026-05-14)
+## [6.5.7] (2026-05-14) — `53e18bb`
 
 ### Added
 
@@ -452,7 +462,7 @@ Cache-bust-only release (no source change) — rotates `?ver=…` so the stale-n
 - Toggle autosave looked broken because the badge broke the CSS sibling rule (badge now anchored outside the label).
 - `WP_Scripts::add` doing_it_wrong notice — four enqueues declared the missing `ffc-admin` handle instead of `ffc-admin-js`.
 
-## [6.5.6] (2026-05-14)
+## [6.5.6] (2026-05-14) — `9b4bcce`
 
 ### Added
 
@@ -469,7 +479,7 @@ Cache-bust-only release (no source change) — rotates `?ver=…` so the stale-n
 
 - Reregistration "Email Notifications" toggles overlapping their labels (WP-core fieldset rule specificity).
 
-## [6.5.5] (2026-05-14)
+## [6.5.5] (2026-05-14) — `fa5b9f0`
 
 Admin UX modernisation: AJAX-in-place flows + `.ffc-toggle` switches across the admin (form-POST fallbacks kept).
 
@@ -479,7 +489,7 @@ Admin UX modernisation: AJAX-in-place flows + `.ffc-toggle` switches across the 
 - Submissions list bulk + per-row trash/restore/delete via AJAX; Activity Log filter/search/pagination via AJAX; Migrations JSON-batch runner; Forms-list inline feature toggles; Cache warm/clear inline.
 - Non-boolean settings (33 fields) gained inline auto-save; `SettingsAjaxEndpoint` supports nested option arrays; auto-save wiring is framework-wide (`bootAutoSaveFields`).
 
-## [6.5.4] (2026-05-13)
+## [6.5.4] (2026-05-13) — `e52ab55`
 
 ### Changed
 
@@ -495,7 +505,7 @@ Admin UX modernisation: AJAX-in-place flows + `.ffc-toggle` switches across the 
 
 - `FFC.request()` AJAX chokepoint, `FFC.Admin.autoSaveField()`, the `.ffc-toggle` component + `AdminUI::render_toggle()`, and the `ffc_update_setting` / `ffc_location_*` endpoints.
 
-## [6.5.3] (2026-05-13)
+## [6.5.3] (2026-05-13) — `87325f0`
 
 ### Changed
 
@@ -508,19 +518,19 @@ Admin UX modernisation: AJAX-in-place flows + `.ffc-toggle` switches across the 
 - Form editor: choosing "No — only Form ID + Hash" for the public CSV CPF gate silently reverted to "Audit".
 - Reregistration form: `$.trim is not a function` + empty `fields: {}` under jQuery 4 (native `trim`, relaxed selector).
 
-## [6.5.2] (2026-05-10)
+## [6.5.2] (2026-05-10) — `1d83acc`
 
 ### Changed
 
 - User-dashboard god-object split into a panel registry + 8 self-registering files (legacy `ffc-dashboard` handle preserved; table-driven tab dispatch).
 
-## [6.5.1] (2026-05-10)
+## [6.5.1] (2026-05-10) — `e139b61`
 
 ### Added
 
 - `AjaxTrait::check_ajax_admin_or()` encoding the "site admin OR delegated `$granular_cap`" gate.
 
-## [6.5.0] (2026-05-10)
+## [6.5.0] (2026-05-10) — `a5d3c71`
 
 ### Added
 
@@ -530,7 +540,7 @@ Admin UX modernisation: AJAX-in-place flows + `.ffc-toggle` switches across the 
 
 - `AudienceBookingRepository::create` is now atomic (`SELECT … FOR UPDATE` inside a transaction) to prevent double-booking.
 
-## [6.4.1] (2026-05-10)
+## [6.4.1] (2026-05-10) — `c4c629d`
 
 ⚠ Security: `GET /forms` + `GET /forms/{id}` previously returned the full `_ffc_form_config` blob to anonymous callers (gate lists, codes, geofence). Rotate generated/validation codes after upgrading if the API was public.
 
@@ -542,7 +552,7 @@ Admin UX modernisation: AJAX-in-place flows + `.ffc-toggle` switches across the 
 
 - `GET /forms*` now require `ffc_read_forms_api` and return a trimmed payload; `limit` clamped at 100; calendar GET routes carry an IP rate-limit circuit breaker (HTTP 429).
 
-## [6.4.0] (2026-05-10)
+## [6.4.0] (2026-05-10) — `fa05a55`
 
 ### Added
 
@@ -557,7 +567,7 @@ Admin UX modernisation: AJAX-in-place flows + `.ffc-toggle` switches across the 
 
 - Audience export templates now emit a UTF-8 BOM; `[ffc_audience]` modals render as overlays again (missing `ffc-shortcode` class).
 
-## [6.3.11] (2026-05-10)
+## [6.3.11] (2026-05-10) — `4d60ac9`
 
 ### Added
 
@@ -573,7 +583,7 @@ Admin UX modernisation: AJAX-in-place flows + `.ffc-toggle` switches across the 
 
 - Form duplication now copies the eight Public CSV + Device Fingerprint metas; `Undefined array key` warnings on save; `email_hash_rehash` no longer re-surfaces as pending after new submissions.
 
-## [6.3.10] (2026-05-09)
+## [6.3.10] (2026-05-09) — `fc55952`
 
 ### Fixed
 
@@ -584,13 +594,13 @@ Admin UX modernisation: AJAX-in-place flows + `.ffc-toggle` switches across the 
 
 - Friendly "already submitted" notice on `[ffc_form]` (localStorage, soft hint); reprint success card now shows the authentication code.
 
-## [6.3.9] (2026-05-09)
+## [6.3.9] (2026-05-09) — `2454774`
 
 ### Changed
 
 - Three CSV exporters now emit `;` (audit log, reregistration, audience templates); audience importer auto-detects `,` vs `;`.
 
-## [6.3.8] (2026-05-08)
+## [6.3.8] (2026-05-08) — `886a3f0`
 
 ### Changed
 
@@ -600,25 +610,25 @@ Admin UX modernisation: AJAX-in-place flows + `.ffc-toggle` switches across the 
 
 - `[ffc_csv_download]` CPF field in `audit` mode now correctly marks itself required; form-editor metabox copy aligned with the actual (blocking) behaviour.
 
-## [6.3.7] (2026-05-08)
+## [6.3.7] (2026-05-08) — `096971b`
 
 ### Added
 
 - WebView warning banner on `[ffc_form]` / `[ffc_csv_download]` for Android WebView + iOS in-app browsers (open-in-browser / continue-anyway), `ffc-webview-warning.js`.
 
-## [6.3.6] (2026-05-08)
+## [6.3.6] (2026-05-08) — `e778135`
 
 ### Fixed
 
 - Certificate downloads no longer fail silently on iOS Safari / Samsung Internet / Android WebView — pre-open the destination tab synchronously inside the click; manual-tap fallback; browser-aware messaging.
 
-## [6.3.5] (2026-05-08)
+## [6.3.5] (2026-05-08) — `3f4ef18`
 
 ### Fixed
 
 - `[ffc_csv_download]` info screen showed dates one day early in sub-UTC timezones (anchor with `DateTimeImmutable($date, $tz)` before formatting).
 
-## [6.3.4] (2026-05-07)
+## [6.3.4] (2026-05-07) — `c700bfb`
 
 ### Changed
 
@@ -628,7 +638,7 @@ Admin UX modernisation: AJAX-in-place flows + `.ffc-toggle` switches across the 
 
 - `[ffc_csv_download]` CPF field now applies the standard CPF mask + on-blur validation (helper enqueued on the page).
 
-## [6.3.3] (2026-05-07)
+## [6.3.3] (2026-05-07) — `fefe87c`
 
 ### Added
 
@@ -642,7 +652,7 @@ Admin UX modernisation: AJAX-in-place flows + `.ffc-toggle` switches across the 
 
 - `cpf_hash` from audit-log entries (legacy entries wiped once on upgrade; near-zero install base).
 
-## [6.3.2] (2026-05-07)
+## [6.3.2] (2026-05-07) — `e42f796`
 
 ### Added
 
@@ -652,13 +662,13 @@ Admin UX modernisation: AJAX-in-place flows + `.ffc-toggle` switches across the 
 
 - Signals schema migration (DB 1.1.0 → 1.2.0); fresh-install default `match_threshold` 5 → 7 (existing installs keep their value); palette/threshold range extended to 13 / 3-12.
 
-## [6.3.1] (2026-05-07)
+## [6.3.1] (2026-05-07) — `779a837`
 
 ### Changed
 
 - Device fingerprint collector swapped to the vendored thumbmarkjs (MIT) — server algorithm, schema, contract and LGPD posture unchanged; the library telemetry beacon is unconditionally disabled (grep-tested).
 
-## [6.3.0] (2026-05-07)
+## [6.3.0] (2026-05-07) — `2757589`
 
 Two opt-in anti-fraud features for public form workflows.
 
@@ -672,7 +682,7 @@ Two opt-in anti-fraud features for public form workflows.
 - 76 legacy `Utils::debug_log` calls migrated to the per-area `Debug::log_*` system (5 new areas, default off; `debug_log` now a deprecated wrapper).
 - FFC role labels now translate on `wp-admin/users.php` (`wp_roles_init` re-applies `__()`).
 
-## [6.2.0] (2026-05-04)
+## [6.2.0] (2026-05-04) — `a7c2955`
 
 Capabilities + roles overhaul: 14 granular admin caps replace blanket `manage_options` gates, 9 pre-built roles wrap them, and an admin-UX scoping layer hides core menus per role.
 
@@ -694,7 +704,7 @@ Capabilities + roles overhaul: 14 granular admin caps replace blanket `manage_op
 
 - Recruitment tables + manager role no longer require deactivate/reactivate on in-place updates (hooked at `plugins_loaded`, idempotent); fixed the WP 6.7+ `_load_textdomain_just_in_time` notice; FFC role labels translate on `users.php`.
 
-## [6.1.0] (2026-05-02)
+## [6.1.0] (2026-05-02) — `cbaca70`
 
 Recruitment admin UX parity + dashboard integration + a Preliminary-list visual axis.
 
@@ -716,14 +726,14 @@ Recruitment admin UX parity + dashboard integration + a Preliminary-list visual 
 
 - Out-of-order call detection scoped to the Definitive panel; bulk-call false positives; admin alerts surface `body.message` instead of the raw envelope.
 
-## [6.0.4] (2026-05-01)
+## [6.0.4] (2026-05-01) — `0553f03`
 
 ### Added
 
 - Recruitment Candidates tab: CSV import form (notice picker + file → `POST /notices/{id}/import`) with an inline status panel.
 - Recruitment Settings tab: editable form via the WP Settings API (email template + public shortcode knobs), replacing the read-only dump.
 
-## [6.0.3] (2026-05-01)
+## [6.0.3] (2026-05-01) — `5f6dca4`
 
 ### Fixed
 
@@ -734,19 +744,19 @@ Recruitment admin UX parity + dashboard integration + a Preliminary-list visual 
 
 - Recruitment module i18n: ~59 source-key conversions to English across the public shortcode, candidate-self dashboard, admin page and settings (PT-BR flows via `.po`).
 
-## [6.0.2] (2026-05-01)
+## [6.0.2] (2026-05-01) — `028b4fa`
 
 ### Changed
 
 - Recruitment module gets its own top-level menu (`dashicons-groups`, position 28) instead of living under the `ffc_form` CPT; `ffc_form` `menu_name` shortened to "Certificate"; sidebar-visible labels normalized to English source.
 
-## [6.0.1] (2026-05-01)
+## [6.0.1] (2026-05-01) — `7b527dd`
 
 ### Fixed
 
 - Recruitment activator: stripped column-level `COMMENT '…'` clauses that `dbDelta` rejected, which had left four recruitment tables un-created on 6.0.0 activation (recover by reactivating).
 
-## [6.0.0] (2026-05-01)
+## [6.0.0] (2026-05-01) — `2cd30e4`
 
 **Recruitment module** for Brazilian public-tender candidate-queue management, plus PHPStan baseline retirement (level 7 → 8, zero errors).
 
@@ -775,7 +785,7 @@ Recruitment admin UX parity + dashboard integration + a Preliminary-list visual 
 
 ---
 
-## 5.4.1 (2026-04-24)
+## [5.4.1] (2026-04-24) — `fbcb4cd`
 
 Certificate HTML editor gains CodeMirror syntax highlighting with distinct coloring for HTML tags and `{{placeholder}}` tokens, plus a three-option `Code Editor Theme` setting (Auto / Light / Dark, dark by default on fresh installs) with a VS-Code-Dark+-inspired palette; the email body moves to a lightweight visual editor (`wp_editor` teeny); the global TinyMCE placeholder-protection filter is scoped to the plugin's post type so it no longer touches unrelated admin screens; a new per-calendar admin-bypass toggle replaces the hardcoded all-or-nothing bypass for self-scheduling; and the `[ffc_verification]` result card header stops rendering with the admin preview modal's dark slate background.
 
@@ -827,7 +837,7 @@ Certificate HTML editor gains CodeMirror syntax highlighting with distinct color
 
 ---
 
-## 5.4.0 (2026-04-23)
+## [5.4.0] (2026-04-23) — `a1f9365`
 
 Encryption and privacy hardening across the user-data surface (centralized sensitive-field policy, payload-driven activity log encryption, auditable decrypt failures, no-leak dual-storage fix), plus the accumulated security audit (Tier 1 + Tier 2), CSV download intermediate screen, and a performance pass for admin submissions at scale.
 
@@ -897,7 +907,7 @@ Encryption and privacy hardening across the user-data surface (centralized sensi
 
 ---
 
-## 5.3.0 (2026-04-17)
+## [5.3.0] (2026-04-17) — `8679cf5`
 
 Full-page cache compatibility, per-form captcha isolation, and CI pipeline improvements.
 
@@ -936,7 +946,7 @@ Full-page cache compatibility, per-form captcha isolation, and CI pipeline impro
 
 ---
 
-## 5.2.0 (2026-04-15)
+## [5.2.0] (2026-04-15) — `208ca56`
 
 Raise minimum PHP requirement from 7.4 to 8.1. PHP 7.4 reached end-of-life on 2022-11-28 and PHP 8.0 on 2023-11-26; both are unsupported. The previous lockfile was also resolving `doctrine/instantiator` 2.1.0 — which requires PHP 8.4 — silently breaking `composer install` on PHP 7.4/8.1/8.3 runners.
 
@@ -972,7 +982,7 @@ Raise minimum PHP requirement from 7.4 to 8.1. PHP 7.4 reached end-of-life on 20
 
 ---
 
-## 5.1.0 (2026-04-11)
+## [5.1.0] (2026-04-11) — `e6aa8d3`
 
 Public CSV download feature: form organizers without WordPress admin access can now retrieve the submissions CSV of a specific form via a revocable per-form hash, gated by form expiration and a configurable download quota. No new dependencies and no schema changes.
 
@@ -1083,7 +1093,7 @@ Public CSV download feature: form organizers without WordPress admin access can 
 
 ---
 
-## 5.0.3 (2026-03-27)
+## [5.0.3] (2026-03-27) — `dada78b`
 
 Performance optimizations for URL shortener and QR code generation, new admin columns for forms listing, and Safari/iOS geofence fixes.
 
@@ -1117,7 +1127,7 @@ Performance optimizations for URL shortener and QR code generation, new admin co
 
 ---
 
-## 5.0.2 (2026-03-03)
+## [5.0.2] (2026-03-03) — `a9cabcd`
 
 100% unit test coverage across all 21 modules (146 concrete classes), plus bug fixes, new features, and CSS/asset refactoring.
 
@@ -1182,7 +1192,7 @@ Performance optimizations for URL shortener and QR code generation, new admin co
 
 ---
 
-## 5.0.1 (2026-02-22)
+## [5.0.1] (2026-02-22) — `ba65db7`
 
 Security hardening, code quality improvements, URL Shortener test coverage, virtual auth code prefixes, and multiple bug fixes.
 
@@ -1243,7 +1253,7 @@ Security hardening, code quality improvements, URL Shortener test coverage, virt
 
 ---
 
-## 5.0.0 (2026-02-19)
+## [5.0.0] (2026-02-19) — `9742fd9`
 
 Multi-identifier architecture: split combined CPF/RF into independent columns, and retirement of 10 completed legacy migrations.
 
@@ -1306,7 +1316,7 @@ Multi-identifier architecture: split combined CPF/RF into independent columns, a
 
 ---
 
-## 4.12.26 (2026-02-18)
+## [4.12.26] (2026-02-18) — `aa54fd2`
 
 PHPStan level 6 — zero-baseline compliance. Resolved all 317 static analysis errors across 80+ files without any baseline suppressions.
 
@@ -1336,7 +1346,7 @@ PHPStan level 6 — zero-baseline compliance. Resolved all 317 static analysis e
 
 ---
 
-## 4.12.25 (2026-02-17)
+## [4.12.25] (2026-02-17) — `828a67d`
 
 Unit tests for EmailHelperTrait, AjaxTrait, and Debug: email sending/parsing helpers, AJAX parameter sanitization with nonce/permission checks, and per-area debug logging.
 
@@ -1353,7 +1363,7 @@ Unit tests for EmailHelperTrait, AjaxTrait, and Debug: email sending/parsing hel
 
 ---
 
-## 4.12.24 (2026-02-17)
+## [4.12.24] (2026-02-17) — `e1ad48b`
 
 Unit tests for CsvExportTrait, ActivityLogQuery, and AppointmentCsvExporter: dynamic column extraction, query building, CSV row formatting, transient caching.
 
@@ -1369,7 +1379,7 @@ Unit tests for CsvExportTrait, ActivityLogQuery, and AppointmentCsvExporter: dyn
 
 ---
 
-## 4.12.23 (2026-02-17)
+## [4.12.23] (2026-02-17) — `ea36ec6`
 
 Unit tests for BlockedDateRepository, EmailTemplateService, and ActivityLogSubscriber: recurring pattern matching, ICS generation, email wrapping, cache clearing, hook registrations.
 
@@ -1385,7 +1395,7 @@ Unit tests for BlockedDateRepository, EmailTemplateService, and ActivityLogSubsc
 
 ---
 
-## 4.12.22 (2026-02-17)
+## [4.12.22] (2026-02-17) — `4ec72ef`
 
 Unit tests for Self-Scheduling and Date Blocking: appointment validation, save handler sanitization, holiday/availability checks.
 
@@ -1401,7 +1411,7 @@ Unit tests for Self-Scheduling and Date Blocking: appointment validation, save h
 
 ---
 
-## 4.12.21 (2026-02-17)
+## [4.12.21] (2026-02-17) — `71ac5ab`
 
 Unit tests for Migrations, Scheduling, and Generators: pure logic coverage for data sanitization, working hours, and magic links.
 
@@ -1417,7 +1427,7 @@ Unit tests for Migrations, Scheduling, and Generators: pure logic coverage for d
 
 ---
 
-## 4.12.20 (2026-02-17)
+## [4.12.20] (2026-02-17) — `f5fed1f`
 
 Unit tests for Admin module: comprehensive coverage of settings validation, CSV export formatting, and geofence logic.
 
@@ -1433,7 +1443,7 @@ Unit tests for Admin module: comprehensive coverage of settings validation, CSV 
 
 ---
 
-## 4.12.19 (2026-02-17)
+## [4.12.19] (2026-02-17) — `294f87b`
 
 > Refactoring: extract focused classes from DashboardShortcode (720 → 395 lines, 45% reduction).
 
@@ -1445,7 +1455,7 @@ Unit tests for Admin module: comprehensive coverage of settings validation, CSV 
 
 ---
 
-## 4.12.18 (2026-02-17)
+## [4.12.18] (2026-02-17) — `264c5e7`
 
 Unit tests for SubmissionHandler: comprehensive coverage of update, decrypt, failure paths, and edge cases.
 
@@ -1467,7 +1477,7 @@ Unit tests for SubmissionHandler: comprehensive coverage of update, decrypt, fai
 
 ---
 
-## 4.12.17 (2026-02-17)
+## [4.12.17] (2026-02-17) — `0e9e416`
 
 > Refactoring: extract focused classes from FormProcessor.
 
@@ -1480,7 +1490,7 @@ Unit tests for SubmissionHandler: comprehensive coverage of update, decrypt, fai
 
 ---
 
-## 4.12.16 (2026-02-17)
+## [4.12.16] (2026-02-17) — `7691525`
 
 > Refactoring: extract focused classes from SelfSchedulingEditor (924 → 559 lines, 39% reduction).
 
@@ -1492,7 +1502,7 @@ Unit tests for SubmissionHandler: comprehensive coverage of update, decrypt, fai
 
 ---
 
-## 4.12.15 (2026-02-17)
+## [4.12.15] (2026-02-17) — `00d771e`
 
 Unit tests for Utils: comprehensive coverage of document validation, formatting, sanitization, captcha, and helper functions.
 
@@ -1509,7 +1519,7 @@ Unit tests for Utils: comprehensive coverage of document validation, formatting,
 
 ---
 
-## 4.12.14 (2026-02-17)
+## [4.12.14] (2026-02-17) — `ac03103`
 
 Unit tests for FormProcessor and PdfGenerator: quiz scoring, restriction checks, URL parsing, filename generation, and data enrichment.
 
@@ -1523,7 +1533,7 @@ Unit tests for FormProcessor and PdfGenerator: quiz scoring, restriction checks,
 
 ---
 
-## 4.12.13 (2026-02-17)
+## [4.12.13] (2026-02-17) — `0b81418`
 
 > Refactoring: extract focused classes from ReregistrationAdmin (1,125 → 830 lines).
 
@@ -1536,7 +1546,7 @@ Unit tests for FormProcessor and PdfGenerator: quiz scoring, restriction checks,
 
 ---
 
-## 4.12.12 (2026-02-17)
+## [4.12.12] (2026-02-17) — `2e94fc8`
 
 Unit tests for Reregistration module: field options and data processor.
 
@@ -1552,7 +1562,7 @@ Unit tests for Reregistration module: field options and data processor.
 
 ---
 
-## 4.12.11 (2026-02-17)
+## [4.12.11] (2026-02-17) — `1c41e07`
 
 Unit tests for Audience module: CSV importer and notification handler.
 
@@ -1567,7 +1577,7 @@ Unit tests for Audience module: CSV importer and notification handler.
 
 ---
 
-## 4.12.10 (2026-02-17)
+## [4.12.10] (2026-02-17) — `75214c4`
 
 Security hardening: regex validation, AJAX method enforcement, modern CSPRNG, prepared SQL statements.
 
@@ -1588,7 +1598,7 @@ Security hardening: regex validation, AJAX method enforcement, modern CSPRNG, pr
 
 ---
 
-## 4.12.9 (2026-02-17)
+## [4.12.9] (2026-02-17) — `94f2c8c`
 
 Fix: math captcha showing raw HTML as visible text on cached pages.
 
@@ -1607,7 +1617,7 @@ Fix: math captcha showing raw HTML as visible text on cached pages.
 
 ---
 
-## 4.12.8 (2026-02-17)
+## [4.12.8] (2026-02-17) — `83e9599`
 
 > Refactor Utils (dead code removal) and ReregistrationFrontend (1,330 lines → coordinator + 3 sub-classes).
 
@@ -1622,7 +1632,7 @@ Fix: math captcha showing raw HTML as visible text on cached pages.
 
 ---
 
-## 4.12.7 (2026-02-17)
+## [4.12.7] (2026-02-17) — `eda6b69`
 
 > Refactor UserDataRestController (1,415 lines → coordinator + 6 sub-controllers).
 
@@ -1641,7 +1651,7 @@ Fix: math captcha showing raw HTML as visible text on cached pages.
 
 ---
 
-## 4.12.6 (2026-02-17)
+## [4.12.6] (2026-02-17) — `7440601`
 
 Frontend cleanup: console.log removal, XSS hardening, CSS consolidation.
 
@@ -1664,7 +1674,7 @@ Frontend cleanup: console.log removal, XSS hardening, CSS consolidation.
 
 ---
 
-## 4.12.5 (2026-02-17)
+## [4.12.5] (2026-02-17) — `e45856e`
 
 Tests for critical classes: SubmissionHandler, UserCreator, CapabilityManager, and UserDataRestController endpoint callbacks.
 
@@ -1686,7 +1696,7 @@ Tests for critical classes: SubmissionHandler, UserCreator, CapabilityManager, a
 
 ---
 
-## 4.12.4 (2026-02-17)
+## [4.12.4] (2026-02-17) — `415ac1f`
 
 Performance and reliability: changelog extraction, ticket hash column, LIKE-on-JSON elimination.
 
@@ -1705,7 +1715,7 @@ Performance and reliability: changelog extraction, ticket hash column, LIKE-on-J
 
 ---
 
-## 4.12.3 (2026-02-17)
+## [4.12.3] (2026-02-17) — `e20818e`
 
 Security hardening: SQL injection prevention, XSS mitigation, and modal accessibility improvements.
 
@@ -1726,7 +1736,7 @@ Security hardening: SQL injection prevention, XSS mitigation, and modal accessib
 
 ---
 
-## 4.12.2 (2026-02-17)
+## [4.12.2] (2026-02-17) — `5710b33`
 
 > God class refactoring: UserManager and ActivityLog split into single-responsibility classes with full backward compatibility.
 
@@ -1740,7 +1750,7 @@ Security hardening: SQL injection prevention, XSS mitigation, and modal accessib
 
 ---
 
-## 4.12.1 (2026-02-16)
+## [4.12.1] (2026-02-16) — `fd17071`
 
 Test coverage expansion: from 3 to 9 test files, covering critical security and business logic paths.
 
@@ -1763,7 +1773,7 @@ Test coverage expansion: from 3 to 9 test files, covering critical security and 
 
 ---
 
-## 4.12.0 (2026-02-16)
+## [4.12.0] (2026-02-16) — `20166f0`
 
 Full-page cache compatibility: forms now work correctly behind LiteSpeed, Varnish, and other page caches.
 
@@ -1779,7 +1789,7 @@ Full-page cache compatibility: forms now work correctly behind LiteSpeed, Varnis
 
 ---
 
-## 4.11.0 (2026-02-15)
+## [4.11.0] (2026-02-15) — `a1373c9`
 
 Audience custom fields, reregistration campaigns, ficha PDF, email notifications, and audience hierarchy enhancements.
 
@@ -1805,7 +1815,7 @@ Audience custom fields, reregistration campaigns, ficha PDF, email notifications
 
 ---
 
-## 4.9.10 (2026-02-14)
+## [4.9.10] (2026-02-14) — `c98d898`
 
 Profile UX improvements and audience group self-assignment.
 
@@ -1823,7 +1833,7 @@ Profile UX improvements and audience group self-assignment.
 
 ---
 
-## 4.9.9 (2026-02-14)
+## [4.9.9] (2026-02-14) — `4554992`
 
 Security hardening, expanded audit trail, and LGPD compliance improvements.
 
@@ -1842,7 +1852,7 @@ Security hardening, expanded audit trail, and LGPD compliance improvements.
 
 ---
 
-## 4.9.8 (2026-02-14)
+## [4.9.8] (2026-02-14) — `d9f6ed3`
 
 Dashboard UX improvements and user self-service features.
 
@@ -1864,7 +1874,7 @@ Dashboard UX improvements and user self-service features.
 
 ---
 
-## 4.9.7 (2026-02-14)
+## [4.9.7] (2026-02-14) — `f7496c2`
 
 Performance, view-as accuracy, centralized user service, and database referential integrity.
 
@@ -1885,7 +1895,7 @@ Performance, view-as accuracy, centralized user service, and database referentia
 
 ---
 
-## 4.9.6 (2026-02-14)
+## [4.9.6] (2026-02-14) — `dccd36c`
 
 Editable user profile, orphaned record linking, and username privacy fix.
 
@@ -1905,7 +1915,7 @@ Editable user profile, orphaned record linking, and username privacy fix.
 
 ---
 
-## 4.9.5 (2026-02-14)
+## [4.9.5] (2026-02-14) — `406cb1a`
 
 LGPD/GDPR compliance: WordPress Privacy Tools integration (Export & Erase Personal Data).
 
@@ -1928,7 +1938,7 @@ LGPD/GDPR compliance: WordPress Privacy Tools integration (Export & Erase Person
 
 ---
 
-## 4.9.4 (2026-02-14)
+## [4.9.4] (2026-02-14) — `008d642`
 
 User profiles table, user deletion handling, and email change tracking.
 
@@ -1948,7 +1958,7 @@ User profiles table, user deletion handling, and email change tracking.
 
 ---
 
-## 4.9.3 (2026-02-14)
+## [4.9.3] (2026-02-14) — `bca0c47`
 
 > Capability system refactoring: centralized constants, enforced checks, simplified role model.
 
@@ -1973,7 +1983,7 @@ User profiles table, user deletion handling, and email change tracking.
 
 ---
 
-## 4.9.2 (2026-02-13)
+## [4.9.2] (2026-02-13) — `0870d29`
 
 UX improvements, race condition fix, and PHPCS compliance.
 
@@ -1991,7 +2001,7 @@ UX improvements, race condition fix, and PHPCS compliance.
 
 ---
 
-## 4.9.1 (2026-02-12)
+## [4.9.1] (2026-02-12) — `ffad599`
 
 Calendar display improvements, custom booking labels, audience badge format, and bug fixes.
 
@@ -2010,7 +2020,7 @@ Calendar display improvements, custom booking labels, audience badge format, and
 
 ---
 
-## 4.9.0 (2026-02-12)
+## [4.9.0] (2026-02-12) — `5aea1ba`
 
 New field types, Quiz/Evaluation mode for scored forms, and certificate quiz tags.
 
@@ -2030,7 +2040,7 @@ New field types, Quiz/Evaluation mode for scored forms, and certificate quiz tag
 
 ---
 
-## 4.8.0 (2026-02-11)
+## [4.8.0] (2026-02-11) — `95040fd`
 
 Calendar UX improvements, environment colors, event list panel, admin enhancements, and export functionality.
 
@@ -2071,7 +2081,7 @@ Calendar UX improvements, environment colors, event list panel, admin enhancemen
 
 ---
 
-## 4.7.0 (2026-02-09)
+## [4.7.0] (2026-02-09) — `97b1132`
 
 Visibility and scheduling controls for calendars, admin bypass system.
 
@@ -2104,7 +2114,7 @@ Visibility and scheduling controls for calendars, admin bypass system.
 
 ---
 
-## 4.6.16 (2026-02-08)
+## [4.6.16] (2026-02-08) — `07b4c36`
 
 Settings UX, dead code removal, code deduplication, version centralization, and bug fixes.
 
@@ -2141,7 +2151,7 @@ Settings UX, dead code removal, code deduplication, version centralization, and 
 
 ---
 
-## 4.6.15 (2026-02-08)
+## [4.6.15] (2026-02-08) — `c7506a1`
 
 Plugin Check Compliance: Hook prefix, SQL placeholders, deprecated API removal, and query caching.
 
@@ -2163,7 +2173,7 @@ Plugin Check Compliance: Hook prefix, SQL placeholders, deprecated API removal, 
 
 ---
 
-## 4.6.14 (2026-02-08)
+## [4.6.14] (2026-02-08) — `9b7ffb9`
 
 Accessibility & Responsive Design: Dark mode, CSS variables, ARIA attributes, and template accessibility.
 
@@ -2179,7 +2189,7 @@ Accessibility & Responsive Design: Dark mode, CSS variables, ARIA attributes, an
 
 ---
 
-## 4.6.13 (2026-02-08)
+## [4.6.13] (2026-02-08) — `bdfa1a2`
 
 Performance: Query caching, conditional loading, and N+1 elimination. Quality: i18n, documentation, icon CSS refactor.
 
@@ -2201,7 +2211,7 @@ Performance: Query caching, conditional loading, and N+1 elimination. Quality: i
 
 ---
 
-## 4.6.12 (2026-02-08)
+## [4.6.12] (2026-02-08) — `5f153b8`
 
 Quality: Unit testing, i18n compliance, and asset minification.
 
@@ -2220,7 +2230,7 @@ Quality: Unit testing, i18n compliance, and asset minification.
 
 ---
 
-## 4.6.11 (2026-02-08)
+## [4.6.11] (2026-02-08) — `b68d66f`
 
 Security hardening: REST API protection, uninstall cleanup, deprecated API removal.
 
@@ -2241,7 +2251,7 @@ Security hardening: REST API protection, uninstall cleanup, deprecated API remov
 
 ---
 
-## 4.6.10 (2026-02-08)
+## [4.6.10] (2026-02-08) — `905708d`
 
 Fix: Race condition in concurrent appointment booking (TOCTOU vulnerability).
 
@@ -2257,7 +2267,7 @@ Fix: Race condition in concurrent appointment booking (TOCTOU vulnerability).
 
 ---
 
-## 4.6.9 (2026-02-08)
+## [4.6.9] (2026-02-08) — `86a0020`
 
 Performance: Activity Log optimization with batch writes, auto-cleanup, and stats caching.
 
@@ -2280,7 +2290,7 @@ Performance: Activity Log optimization with batch writes, auto-cleanup, and stat
 
 ---
 
-## 4.6.8 (2026-02-08)
+## [4.6.8] (2026-02-08) — `2b7a0cb`
 
 > Refactor: Break down God classes into focused single-responsibility classes.
 
@@ -2295,7 +2305,7 @@ Performance: Activity Log optimization with batch writes, auto-cleanup, and stat
 
 ---
 
-## 4.6.7 (2026-02-07)
+## [4.6.7] (2026-02-07) — `c2d4c03`
 
 Accessibility: WCAG 2.1 AA compliance for all frontend components.
 
@@ -2319,7 +2329,7 @@ Accessibility: WCAG 2.1 AA compliance for all frontend components.
 
 ---
 
-## 4.6.6 (2026-02-07)
+## [4.6.6] (2026-02-07) — `e23dae9`
 
 Reliability: Standardize error handling across all modules.
 
@@ -2342,7 +2352,7 @@ Reliability: Standardize error handling across all modules.
 
 ---
 
-## 4.6.5 (2026-02-07)
+## [4.6.5] (2026-02-07) — `3da77eb`
 
 Architecture: Internal hook consumption — plugin uses its own hooks for activity logging.
 
@@ -2362,7 +2372,7 @@ Architecture: Internal hook consumption — plugin uses its own hooks for activi
 
 ---
 
-## 4.6.4 (2026-02-07)
+## [4.6.4] (2026-02-07) — `b29103d`
 
 Extensibility: Add 31 action/filter hooks for developer customization.
 
@@ -2379,7 +2389,7 @@ Extensibility: Add 31 action/filter hooks for developer customization.
 
 ---
 
-## 4.6.3 (2026-02-07)
+## [4.6.3] (2026-02-07) — `a10a72a`
 
 Security: Permission audit — add missing capability checks to admin handlers.
 
@@ -2393,7 +2403,7 @@ Security: Permission audit — add missing capability checks to admin handlers.
 
 ---
 
-## 4.6.2 (2026-02-07)
+## [4.6.2] (2026-02-07) — `c44b819`
 
 Performance: Fix N+1 queries and add composite database indexes.
 
@@ -2417,7 +2427,7 @@ Performance: Fix N+1 queries and add composite database indexes.
 
 ---
 
-## 4.6.1 (2026-02-07)
+## [4.6.1] (2026-02-07) — `048e11a`
 
 Security, accessibility, code quality, and structural refactoring.
 
@@ -2456,7 +2466,7 @@ Security, accessibility, code quality, and structural refactoring.
 
 ---
 
-## 4.6.0 (2026-02-06)
+## [4.6.0] (2026-02-06) — `c78bf74`
 
 Scheduling consolidation, user dashboard improvements, and bug fixes.
 
@@ -2496,7 +2506,7 @@ Scheduling consolidation, user dashboard improvements, and bug fixes.
 
 ---
 
-## 4.5.0 (2026-02-05)
+## [4.5.0] (2026-02-05)
 
 Audience scheduling system and unified calendar component.
 
@@ -2529,7 +2539,7 @@ Audience scheduling system and unified calendar component.
 
 ---
 
-## 4.4.0 (2026-02-04)
+## [4.4.0] (2026-02-04)
 
 Per-user capability system and self-scheduling rename.
 
@@ -2547,7 +2557,7 @@ Per-user capability system and self-scheduling rename.
 
 ---
 
-## 4.3.0 (2026-02-02)
+## [4.3.0] (2026-02-02) — `7f01f2e`
 
 WordPress Plugin Check compliance and distribution cleanup.
 
@@ -2570,7 +2580,7 @@ WordPress Plugin Check compliance and distribution cleanup.
 
 ---
 
-## 4.2.0 (2026-01-30)
+## [4.2.0] (2026-01-30)
 
 CSV export enhancements and calendar translations.
 
@@ -2586,7 +2596,7 @@ CSV export enhancements and calendar translations.
 
 ---
 
-## 4.1.1 (2026-01-27)
+## [4.1.1] (2026-01-27)
 
 Appointment receipts, validation codes, and admin improvements.
 
@@ -2601,7 +2611,7 @@ Appointment receipts, validation codes, and admin improvements.
 
 ---
 
-## 4.1.0 (2026-01-27)
+## [4.1.0] (2026-01-27)
 
 New appointment calendar and booking system.
 
@@ -2626,7 +2636,7 @@ New appointment calendar and booking system.
 
 ---
 
-## 4.0.0 (2026-01-26)
+## [4.0.0] (2026-01-26) — `9c0509b`
 
 > Breaking release: removal of backward-compatibility aliases and namespace finalization. **First stable tag bump from 2.8.0** since the 2.9.x development cycle began.
 
@@ -2657,7 +2667,7 @@ _The Data Encryption framework, first introduced during the 2.9.x development cy
 
 ---
 
-## 3.3.1 (2026-01-25)
+## [3.3.1] (2026-01-25)
 
 Bug fixes for strict types introduction.
 
@@ -2680,7 +2690,7 @@ Bug fixes for strict types introduction.
 
 ---
 
-## 3.3.0 (2026-01-25)
+## [3.3.0] (2026-01-25)
 
 Strict types and full type hints.
 
@@ -2692,7 +2702,7 @@ Strict types and full type hints.
 
 ---
 
-## 3.2.0 (2026-01-25)
+## [3.2.0] (2026-01-25)
 
 PSR-4 autoloader and namespace migration.
 
@@ -2709,7 +2719,7 @@ PSR-4 autoloader and namespace migration.
 
 ---
 
-## 3.1.0 (2026-01-24)
+## [3.1.0] (2026-01-24) — `de80749`
 
 _(development version, **not released as stable**; the Stable tag remained at 2.8.0 throughout the 3.x line until 4.0.0 finalization.)_
 
@@ -2741,7 +2751,7 @@ User dashboard, admin tools, and activity log viewer.
 
 ---
 
-## 3.0.0 (2026-01-20)
+## [3.0.0] (2026-01-20)
 
 Repository pattern, REST API, geofence, and migration manager.
 
@@ -2776,7 +2786,7 @@ _Starting with commit [`53cc4fa`](https://github.com/rpgmem/ffcertificate/commit
 
 ---
 
-## 2.10.0 (2026-01-20)
+## [2.10.0] (2026-01-20)
 
 Rate limiting with dedicated database tables.
 
@@ -2812,7 +2822,7 @@ Internal versioning bumped from `2.9.16` → `2.9.17` → `2.9.19` (header) / `F
 
 ---
 
-## 2.9.1 (2025-12-29)
+## [2.9.1] (2025-12-29)
 
 Activity log, form cache, and magic links fix.
 
@@ -2829,7 +2839,7 @@ Activity log, form cache, and magic links fix.
 
 ---
 
-## 2.9.0 (2025-12-28)
+## [2.9.0] (2025-12-28)
 
 QR Code generation on certificates.
 
@@ -2843,7 +2853,7 @@ _Note: QR Code work first appeared as experimental code in the 2.5.0 development
 
 ---
 
-## 2.8.0 (2025-12-28)
+## [2.8.0] (2025-12-28)
 
 Magic links for one-click certificate access.
 
@@ -2866,7 +2876,7 @@ Magic links for one-click certificate access.
 
 ---
 
-## 2.7.0 (2025-12-28)
+## [2.7.0] (2025-12-28)
 
 > Modular architecture refactoring.
 
@@ -2888,7 +2898,7 @@ Magic links for one-click certificate access.
 
 ---
 
-## 2.6.0 (2025-12-28)
+## [2.6.0] (2025-12-28) — `7b7a596`
 
 Code reorganization and internationalization.
 
@@ -2917,7 +2927,7 @@ Code reorganization and internationalization.
 
 ---
 
-## 2.5.0 (2025-12-14)
+## [2.5.0] (2025-12-14) — `94fc336`
 
 Development snapshot leading up to the 2.6.0 release; **never published as stable**. Reconstructed from forensic source diffs of the `wp-ffcertificate14-12-2025.zip`, `wp-ffcertificate16-12-2025.zip`, and `wp-ffcertificate23-12-2025.zip` snapshots.
 
@@ -2934,7 +2944,7 @@ Development snapshot leading up to the 2.6.0 release; **never published as stabl
 
 ---
 
-## 2.4.0 (2025-12-13)
+## [2.4.0] (2025-12-13)
 
 ### Changed
 
@@ -2942,7 +2952,7 @@ Development snapshot leading up to the 2.6.0 release; **never published as stabl
 
 ---
 
-## 2.3.0 (2025-12-12)
+## [2.3.0] (2025-12-12)
 
 ### Changed
 
@@ -2950,7 +2960,7 @@ Development snapshot leading up to the 2.6.0 release; **never published as stabl
 
 ---
 
-## 2.2.0 (2025-12-11)
+## [2.2.0] (2025-12-11)
 
 ### Changed
 
@@ -2958,7 +2968,7 @@ Development snapshot leading up to the 2.6.0 release; **never published as stabl
 
 ---
 
-## 2.1.0 (2025-12-10)
+## [2.1.0] (2025-12-10)
 
 ### Changed
 
@@ -2966,7 +2976,7 @@ Development snapshot leading up to the 2.6.0 release; **never published as stabl
 
 ---
 
-## 2.0.0 (2025-12-08)
+## [2.0.0] (2025-12-08)
 
 PDF generation overhaul, captcha, and reprint logic.
 
@@ -2988,7 +2998,7 @@ PDF generation overhaul, captcha, and reprint logic.
 
 ---
 
-## 1.5.0 (2025-12-05)
+## [1.5.0] (2025-12-05)
 
 Ticket system and form cloning.
 
@@ -3001,7 +3011,7 @@ Ticket system and form cloning.
 
 ---
 
-## 1.0.7 (~2025-12-01)
+## [1.0.7] (~2025-12-01)
 
 _Reconstructed from forensic source diff of `wp-ffcertificate_12_12_2025.zip`. That snapshot was archived on 2025-12-12 and carried `Version: 1.0.7` in the plugin header — but the 1.0.x patch series logically released **between 1.0.0 (2025-11-25) and 1.5.0 (2025-12-05)**, so the snapshot date is later than the actual release date. The snapshot date (~2025-12-12) is the latest verifiable touchpoint of the 1.0.x line; the release date itself is approximated as ~2025-12-01 to keep the file in chronologically descending order. The 1.0.x patch series was not separately documented in the developer's own changelog inside the 4.0.0 zip; this entry is reconstructed solely from the snapshot's plugin header and file listing._
 
@@ -3013,7 +3023,7 @@ _Reconstructed from forensic source diff of `wp-ffcertificate_12_12_2025.zip`. T
 
 ---
 
-## 1.0.0 (2025-11-25)
+## [1.0.0] (2025-11-25)
 
 Initial release.
 
