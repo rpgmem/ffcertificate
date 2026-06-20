@@ -13,7 +13,7 @@ jobs:
     name: Build plugin zip and create release
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
         with:
           # Need full history for auto-generated release notes.
           fetch-depth: 0
