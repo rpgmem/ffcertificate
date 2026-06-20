@@ -30,7 +30,7 @@ jobs:
     # Se um dia esse workflow virar `deploy-prod`, aí sim entra
     # `environment: production` com required reviewers.
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
         with:
           # Shallow clone OK — rsync envia working tree, não histórico.
           fetch-depth: 1
