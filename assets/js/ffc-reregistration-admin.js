@@ -198,17 +198,28 @@
             allAudiences.forEach(function (a) {
                 var inSelected = selectedIds.indexOf(a.id) !== -1;
                 var cls = 'ffc-transfer-item' + (a.parent ? ' ffc-transfer-child' : '');
-                var dot = '<span class="ffc-color-dot" style="background:' + a.color + '"></span>';
                 var label = (a.parent ? '— ' : '') + a.name;
-                var html = '<div class="' + cls + '" data-id="' + a.id + '">' + dot + ' ' +
-                    '<span class="ffc-transfer-label">' + label + '</span></div>';
+
+                // Build via jQuery text()/attr() so audience name/color/id are
+                // escaped. Previously concatenated into an HTML string and
+                // injected with .append(), which CodeQL flagged as
+                // js/xss-through-dom (a malicious audience name/color stored by
+                // a delegated audience manager could execute in the admin).
+                var $dot = $('<span>', { 'class': 'ffc-color-dot' });
+                if (/^#[0-9a-fA-F]{3,8}$/.test(a.color || '')) {
+                    $dot.css('background', a.color);
+                }
+                var $item = $('<div>', { 'class': cls, 'data-id': a.id })
+                    .append($dot)
+                    .append(document.createTextNode(' '))
+                    .append($('<span>', { 'class': 'ffc-transfer-label' }).text(label));
 
                 if (inSelected) {
-                    $selected.append(html);
-                    $hidden.append('<input type="hidden" name="rereg_audience_ids[]" value="' + a.id + '">');
+                    $selected.append($item);
+                    $hidden.append($('<input>', { type: 'hidden', name: 'rereg_audience_ids[]', value: a.id }));
                 } else {
                     if (!filter || a.name.toLowerCase().indexOf(filter) !== -1) {
-                        $available.append(html);
+                        $available.append($item);
                     }
                 }
             });
