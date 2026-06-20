@@ -84,7 +84,7 @@ jQuery(document).ready(function($) {
         // Toggle the .ffc-input-invalid class on each input based on the map.
         DATETIME_FIELDS.forEach(function(name) {
             var $input = $('input[name="' + name + '"]');
-            var key    = name.replace('ffc_geofence[', '').replace(']', '');
+            var key    = name.slice(name.indexOf('[') + 1, -1);
             $input.toggleClass('ffc-input-invalid', !!errors[key]);
         });
 
