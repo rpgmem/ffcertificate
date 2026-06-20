@@ -16,7 +16,7 @@ jobs:
     # from 88k to ~1.3k. Remaining violations only surface when a PR
     # touches a file that still has legacy issues.
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 0
       - uses: ./.github/actions/setup-composer
