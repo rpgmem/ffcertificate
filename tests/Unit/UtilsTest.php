@@ -717,24 +717,6 @@ class UtilsTest extends TestCase {
     }
 
     // ==================================================================
-    // get_allowed_html_tags() — Group B (WordPress mock)
-    // ==================================================================
-
-    public function test_allowed_html_tags_returns_array(): void {
-        Functions\when( 'apply_filters' )->alias( function() {
-            $args = func_get_args();
-            return $args[1]; // Return the second argument (the value being filtered)
-        } );
-        $tags = Utils::get_allowed_html_tags();
-        $this->assertIsArray( $tags );
-        $this->assertArrayHasKey( 'b', $tags );
-        $this->assertArrayHasKey( 'table', $tags );
-        $this->assertArrayHasKey( 'img', $tags );
-        $this->assertArrayHasKey( 'h1', $tags );
-        $this->assertArrayHasKey( 'ul', $tags );
-    }
-
-    // ==================================================================
     // generate_simple_captcha() — Group B (WordPress mock)
     // ==================================================================
 

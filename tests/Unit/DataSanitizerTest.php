@@ -36,8 +36,8 @@ class DataSanitizerTest extends TestCase {
             return strip_tags($data);
         });
 
-        // Mock Utils::get_allowed_html_tags() — called by recursive_sanitize
-        $utils_mock = Mockery::mock('alias:FreeFormCertificate\Core\Utils');
+        // Mock HtmlPolicy::get_allowed_html_tags() — called by recursive_sanitize
+        $utils_mock = Mockery::mock('alias:FreeFormCertificate\Core\HtmlPolicy');
         $utils_mock->shouldReceive('get_allowed_html_tags')
             ->andReturn(array(
                 'b'      => array(),

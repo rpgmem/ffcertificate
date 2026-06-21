@@ -529,7 +529,7 @@ class AdminSubmissionEditPage {
 
 		foreach ( $raw_data as $k => $v ) {
 			$sanitized_key   = sanitize_key( $k );
-			$sanitized_value = wp_kses( $v, \FreeFormCertificate\Core\Utils::get_allowed_html_tags() );
+			$sanitized_value = wp_kses( $v, \FreeFormCertificate\Core\HtmlPolicy::get_allowed_html_tags() );
 
 			// Normalize name fields (proper capitalization with lowercase connectives).
 			if ( in_array( $sanitized_key, $name_fields, true ) && ! empty( $sanitized_value ) ) {

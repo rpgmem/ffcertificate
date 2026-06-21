@@ -145,7 +145,7 @@ class FichaGenerator {
 			if ( is_array( $value ) ) {
 				$value = implode( ', ', $value );
 			}
-			$template = str_replace( '{{' . $key . '}}', wp_kses( $value, \FreeFormCertificate\Core\Utils::get_allowed_html_tags() ), $template );
+			$template = str_replace( '{{' . $key . '}}', wp_kses( $value, \FreeFormCertificate\Core\HtmlPolicy::get_allowed_html_tags() ), $template );
 		}
 
 		// Replace custom fields section.

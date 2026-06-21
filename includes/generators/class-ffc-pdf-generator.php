@@ -305,7 +305,7 @@ class PdfGenerator {
 			}
 
 			// Apply allowed HTML filtering.
-			$safe_value = wp_kses( $value, \FreeFormCertificate\Core\Utils::get_allowed_html_tags() );
+			$safe_value = wp_kses( $value, \FreeFormCertificate\Core\HtmlPolicy::get_allowed_html_tags() );
 			$layout     = str_replace( '{{' . $key . '}}', $safe_value, $layout );
 		}
 

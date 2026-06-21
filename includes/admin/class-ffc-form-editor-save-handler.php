@@ -105,7 +105,7 @@ class FormEditorSaveHandler {
 		if ( isset( $_POST['ffc_config'] ) ) {
             // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Each field sanitized individually below.
 			$config       = wp_unslash( $_POST['ffc_config'] );
-			$allowed_html = \FreeFormCertificate\Core\Utils::get_allowed_html_tags();
+			$allowed_html = \FreeFormCertificate\Core\HtmlPolicy::get_allowed_html_tags();
 
 			// Form essentials — not gated by any toggle.
 			$clean_config               = array();
