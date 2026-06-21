@@ -72,7 +72,7 @@ final class RecruitmentLoader {
 			'init',
 			static function (): void {
 				if ( class_exists( '\FreeFormCertificate\UserDashboard\CapabilityManager' ) ) {
-					\FreeFormCertificate\UserDashboard\CapabilityManager::register_recruitment_manager_role();
+					\FreeFormCertificate\UserDashboard\RoleRegistrar::register_recruitment_manager_role();
 				}
 			},
 			1

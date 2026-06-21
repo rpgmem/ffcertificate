@@ -9,6 +9,7 @@ use Mockery;
 use Mockery\Adapter\Phpunit\MockeryPHPUnitIntegration;
 use PHPUnit\Framework\TestCase;
 use FreeFormCertificate\UserDashboard\CapabilityManager;
+use FreeFormCertificate\UserDashboard\RoleRegistrar;
 
 /**
  * Tests for the recruitment-specific extension of CapabilityManager.
@@ -97,7 +98,7 @@ class RecruitmentCapabilityManagerTest extends TestCase {
 			}
 		);
 
-		CapabilityManager::register_recruitment_manager_role();
+		RoleRegistrar::register_recruitment_manager_role();
 
 		$this->assertSame( 'ffc_recruitment_manager', $captured_role );
 		$this->assertTrue( $captured_caps['read'] );
@@ -124,7 +125,7 @@ class RecruitmentCapabilityManagerTest extends TestCase {
 			}
 		);
 
-		CapabilityManager::register_recruitment_manager_role();
+		RoleRegistrar::register_recruitment_manager_role();
 
 		$this->assertFalse( $add_role_called, 'Existing role takes the upgrade path, not add_role' );
 		$this->assertTrue( $role->capabilities['ffc_manage_recruitment'], 'Missing cap is added' );
@@ -145,7 +146,7 @@ class RecruitmentCapabilityManagerTest extends TestCase {
 			}
 		);
 
-		CapabilityManager::register_recruitment_manager_role();
+		RoleRegistrar::register_recruitment_manager_role();
 
 		$this->assertTrue(
 			$role->capabilities['admin_custom_extra'],
@@ -162,7 +163,7 @@ class RecruitmentCapabilityManagerTest extends TestCase {
 			}
 		);
 
-		CapabilityManager::remove_recruitment_manager_role();
+		RoleRegistrar::remove_recruitment_manager_role();
 
 		$this->assertSame( 'ffc_recruitment_manager', $captured_slug );
 	}
