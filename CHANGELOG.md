@@ -7,7 +7,9 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
-## [6.11.2] (2026-06-21)
+### Changed
+
+- Internal refactor (#563 Sprint 1, PR 1a) — the 740-line `FormProcessor::handle_submission_ajax()` god-method now delegates its entry stages (schedule-exception bridge, IP throttle, nonce, CAPTCHA/honeypot, form-config resolution, preflight, field sanitization, device-signal resolution, geofence, consolidated rate-limit, access restrictions) to discrete, unit-testable guard classes under `FreeFormCertificate\Frontend\Submission\`. Each guard either populates a shared `SubmissionContext` or throws `SubmissionRejected` carrying the exact `wp_send_json_error()` payload; a thin orchestrator runs them in order and translates a rejection into the single JSON error response. Behavior-preserving: the JSON contract, gate ordering, and exit semantics are unchanged (pinned by the existing FormProcessor characterization tests plus a new per-guard suite). The quiz/normal save, PDF, and success stages remain inline pending PR 1b.
 
 ### Security
 
