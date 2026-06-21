@@ -232,58 +232,7 @@ final class RateLimitChecker {
 	 * @return array{allowed: bool, message?: string, reason?: string, wait_seconds?: int}
 	 */
 	public static function check_ip_limit( string $ip, ?int $form_id = null ): array {
-		$s = self::get_settings()['ip'];
-
-		// Respect the operator's master toggle. The form-submission DoS
-		// gate (FormProcessor::handle_submission_ajax) calls this method
-		// DIRECTLY at the top of the handler — before, and independently
-		// of, check_all()'s own `$s['ip']['enabled']` gating. Without this
-		// guard a form would keep blocking off a stale hour/day counter
-		// even after the operator turned IP rate limiting OFF in the panel
-		// (the reported "submit does nothing" with every limit disabled).
-		if ( empty( $s['enabled'] ) ) {
-			return array( 'allowed' => true );
-		}
-
-		$hk = 'ffc_rate_ip_' . md5( $ip . $form_id ) . '_hour';
-		// v3.2.0: Use Object Cache API (auto Redis/Memcached if available).
-		$hc = wp_cache_get( $hk, RateLimiter::CACHE_GROUP );
-		$hc = false !== $hc ? $hc : 0;
-		if ( $hc >= $s['max_per_hour'] ) {
-			return array(
-				'allowed'      => false,
-				'reason'       => 'ip_hour_limit',
-				'message'      => self::format_message( $s['message'], array( 'time' => __( '1 hour', 'ffcertificate' ) ) ),
-				'wait_seconds' => 3600,
-			);
-		}
-
-		$dc = RateLimitRepository::get_count_from_db( 'ip', $ip, 'day', $form_id );
-		if ( $dc >= $s['max_per_day'] ) {
-			return array(
-				'allowed'      => false,
-				'reason'       => 'ip_day_limit',
-				'message'      => self::format_message( $s['message'], array( 'time' => __( '24 hours', 'ffcertificate' ) ) ),
-				'wait_seconds' => 86400,
-			);
-		}
-
-		$last = wp_cache_get( 'ffc_rate_ip_' . md5( $ip . $form_id ) . '_last', RateLimiter::CACHE_GROUP );
-		if ( $last && ( time() - $last ) < $s['cooldown_seconds'] ) {
-			$w = $s['cooldown_seconds'] - ( time() - $last );
-			return array(
-				'allowed'      => false,
-				'reason'       => 'ip_cooldown',
-				'message'      => sprintf(
-					/* translators: %d: number of seconds to wait */
-					__( 'Please wait %d seconds.', 'ffcertificate' ),
-					$w
-				),
-				'wait_seconds' => $w,
-			);
-		}
-
-		return array( 'allowed' => true );
+		return ( new IpLimiter( new RateLimitSupport() ) )->check( $ip, $form_id );
 	}
 
 	/**
@@ -294,60 +243,7 @@ final class RateLimitChecker {
 	 * @return array{allowed: bool, message?: string, reason?: string, wait_seconds?: int}
 	 */
 	public static function check_email_limit( string $email, ?int $form_id = null ): array {
-		$s = self::get_settings()['email'];
-		if ( ! $s['check_database'] ) {
-			return array( 'allowed' => true );
-		}
-
-		$dc = RateLimitRepository::get_submission_count( 'email', $email, 'day', $form_id );
-		if ( $dc >= $s['max_per_day'] ) {
-			return array(
-				'allowed'      => false,
-				'reason'       => 'email_day_limit',
-				'message'      => self::format_message(
-					$s['message'],
-					array(
-						'count' => $dc,
-						'time'  => __( '24 hours', 'ffcertificate' ),
-					)
-				),
-				'wait_seconds' => 86400,
-			);
-		}
-
-		$wc = RateLimitRepository::get_submission_count( 'email', $email, 'week', $form_id );
-		if ( $wc >= $s['max_per_week'] ) {
-			return array(
-				'allowed'      => false,
-				'reason'       => 'email_week_limit',
-				'message'      => self::format_message(
-					$s['message'],
-					array(
-						'count' => $wc,
-						'time'  => __( '1 week', 'ffcertificate' ),
-					)
-				),
-				'wait_seconds' => 604800,
-			);
-		}
-
-		$mc = RateLimitRepository::get_submission_count( 'email', $email, 'month', $form_id );
-		if ( $mc >= $s['max_per_month'] ) {
-			return array(
-				'allowed'      => false,
-				'reason'       => 'email_month_limit',
-				'message'      => self::format_message(
-					$s['message'],
-					array(
-						'count' => $mc,
-						'time'  => __( '1 month', 'ffcertificate' ),
-					)
-				),
-				'wait_seconds' => 2592000,
-			);
-		}
-
-		return array( 'allowed' => true );
+		return ( new EmailLimiter( new RateLimitSupport() ) )->check( $email, $form_id );
 	}
 
 	/**
@@ -358,52 +254,7 @@ final class RateLimitChecker {
 	 * @return array{allowed: bool, message?: string, reason?: string, wait_seconds?: int}
 	 */
 	public static function check_cpf_limit( string $cpf, ?int $form_id = null ): array {
-		$s  = self::get_settings()['cpf'];
-		$cc = \FreeFormCertificate\Core\DataSanitizer::normalize_cpf_rf( $cpf );
-
-		if ( RateLimitRepository::is_temporarily_blocked( 'cpf', $cc, $form_id ) ) {
-			return array(
-				'allowed'      => false,
-				'reason'       => 'cpf_blocked',
-				'message'      => __( 'CPF blocked.', 'ffcertificate' ),
-				'wait_seconds' => 86400,
-			);
-		}
-
-		if ( $s['check_database'] ) {
-			$mc = RateLimitRepository::get_submission_count( 'cpf', $cc, 'month', $form_id );
-			if ( $mc >= $s['max_per_month'] ) {
-				return array(
-					'allowed'      => false,
-					'reason'       => 'cpf_month_limit',
-					'message'      => $s['message'],
-					'wait_seconds' => 2592000,
-				);
-			}
-
-			$yc = RateLimitRepository::get_submission_count( 'cpf', $cc, 'year', $form_id );
-			if ( $yc >= $s['max_per_year'] ) {
-				return array(
-					'allowed'      => false,
-					'reason'       => 'cpf_year_limit',
-					'message'      => $s['message'],
-					'wait_seconds' => 31536000,
-				);
-			}
-		}
-
-		$ac = RateLimitRepository::get_count_from_db( 'cpf', $cc, 'hour', $form_id );
-		if ( $ac >= $s['block_threshold'] ) {
-			RateLimitRepository::block_temporarily( 'cpf', $cc, $form_id, $s['block_duration'] );
-			return array(
-				'allowed'      => false,
-				'reason'       => 'cpf_abuse',
-				'message'      => __( 'CPF blocked.', 'ffcertificate' ),
-				'wait_seconds' => $s['block_duration'] * 3600,
-			);
-		}
-
-		return array( 'allowed' => true );
+		return ( new CpfLimiter( new RateLimitSupport() ) )->check( $cpf, $form_id );
 	}
 
 	/**
@@ -878,28 +729,6 @@ final class RateLimitChecker {
 	}
 
 	/**
-	 * Format message.
-	 *
-	 * Falls back to a sensible default when the configured template is empty
-	 * or whitespace-only. An operator can clear the rate-limit "Message"
-	 * field in settings (or an autosave can land an empty value), which used
-	 * to propagate an empty string all the way to the AJAX response —
-	 * surfacing as a silent block on the frontend (`rate_limit:true` with
-	 * `message:''`, which the client's RateLimit display renders as nothing).
-	 * Guaranteeing a non-empty string here keeps every rate-limit gate
-	 * (IP / email / CPF / device) visible regardless of the stored copy.
-	 *
-	 * @param string               $template Template.
-	 * @param array<string, mixed> $data Data.
-	 */
-	private static function format_message( string $template, array $data ): string {
-		if ( '' === trim( $template ) ) {
-			$template = __( 'Submission limit reached. Please wait {time} and try again.', 'ffcertificate' );
-		}
-		return str_replace( array( '{time}', '{count}', '{max}', '{remaining}' ), array( (string) ( $data['time'] ?? '' ), (string) ( $data['count'] ?? 0 ), (string) ( $data['max'] ?? 0 ), (string) ( ( $data['max'] ?? 0 ) - ( $data['count'] ?? 0 ) ) ), $template );
-	}
-
-	/**
 	 * Applies to form.
 	 *
 	 * @param mixed    $apply_to Apply to.
@@ -1026,7 +855,7 @@ final class RateLimitChecker {
 				return array(
 					'allowed'      => false,
 					'reason'       => 'read_minute_limit',
-					'message'      => self::format_message( $message, array( 'time' => __( '1 minute', 'ffcertificate' ) ) ),
+					'message'      => ( new RateLimitSupport() )->format_message( $message, array( 'time' => __( '1 minute', 'ffcertificate' ) ) ),
 					'wait_seconds' => 60,
 				);
 			}
@@ -1040,7 +869,7 @@ final class RateLimitChecker {
 				return array(
 					'allowed'      => false,
 					'reason'       => 'read_hour_limit',
-					'message'      => self::format_message( $message, array( 'time' => __( '1 hour', 'ffcertificate' ) ) ),
+					'message'      => ( new RateLimitSupport() )->format_message( $message, array( 'time' => __( '1 hour', 'ffcertificate' ) ) ),
 					'wait_seconds' => 3600,
 				);
 			}
