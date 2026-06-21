@@ -56,7 +56,7 @@ class LocationsAjaxEndpoint {
 	 */
 	public static function handle_save(): void {
 		check_ajax_referer( self::ACTION_SAVE, 'nonce' );
-		if ( ! \FreeFormCertificate\Core\Utils::current_user_can_admin_or( 'ffc_manage_settings' ) ) {
+		if ( ! \FreeFormCertificate\Core\Capabilities::current_user_can_admin_or( 'ffc_manage_settings' ) ) {
 			wp_send_json_error( array( 'message' => __( 'You do not have permission to manage locations.', 'ffcertificate' ) ), 403 );
 		}
 
@@ -99,7 +99,7 @@ class LocationsAjaxEndpoint {
 	 */
 	public static function handle_delete(): void {
 		check_ajax_referer( self::ACTION_DELETE, 'nonce' );
-		if ( ! \FreeFormCertificate\Core\Utils::current_user_can_admin_or( 'ffc_manage_settings' ) ) {
+		if ( ! \FreeFormCertificate\Core\Capabilities::current_user_can_admin_or( 'ffc_manage_settings' ) ) {
 			wp_send_json_error( array( 'message' => __( 'You do not have permission to manage locations.', 'ffcertificate' ) ), 403 );
 		}
 

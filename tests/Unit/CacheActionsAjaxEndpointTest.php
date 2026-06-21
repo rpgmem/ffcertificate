@@ -62,7 +62,7 @@ class CacheActionsAjaxEndpointTest extends TestCase {
     // ==================================================================
 
     public function test_warm_rejects_when_user_lacks_capability(): void {
-        Mockery::mock( 'alias:FreeFormCertificate\Core\Utils' )
+        Mockery::mock( 'alias:FreeFormCertificate\Core\Capabilities' )
             ->shouldReceive( 'current_user_can_admin_or' )
             ->with( 'ffc_manage_settings' )
             ->andReturn( false );
@@ -73,7 +73,7 @@ class CacheActionsAjaxEndpointTest extends TestCase {
     }
 
     public function test_clear_rejects_when_user_lacks_capability(): void {
-        Mockery::mock( 'alias:FreeFormCertificate\Core\Utils' )
+        Mockery::mock( 'alias:FreeFormCertificate\Core\Capabilities' )
             ->shouldReceive( 'current_user_can_admin_or' )
             ->with( 'ffc_manage_settings' )
             ->andReturn( false );
@@ -88,7 +88,7 @@ class CacheActionsAjaxEndpointTest extends TestCase {
     // ==================================================================
 
     public function test_warm_returns_count_from_form_cache(): void {
-        Mockery::mock( 'alias:FreeFormCertificate\Core\Utils' )
+        Mockery::mock( 'alias:FreeFormCertificate\Core\Capabilities' )
             ->shouldReceive( 'current_user_can_admin_or' )
             ->andReturn( true );
         Mockery::mock( 'alias:FreeFormCertificate\Submissions\FormCache' )
@@ -107,7 +107,7 @@ class CacheActionsAjaxEndpointTest extends TestCase {
     }
 
     public function test_warm_singular_message_when_only_one_form(): void {
-        Mockery::mock( 'alias:FreeFormCertificate\Core\Utils' )
+        Mockery::mock( 'alias:FreeFormCertificate\Core\Capabilities' )
             ->shouldReceive( 'current_user_can_admin_or' )
             ->andReturn( true );
         Mockery::mock( 'alias:FreeFormCertificate\Submissions\FormCache' )
@@ -123,7 +123,7 @@ class CacheActionsAjaxEndpointTest extends TestCase {
     }
 
     public function test_clear_invokes_form_cache_clear_all(): void {
-        Mockery::mock( 'alias:FreeFormCertificate\Core\Utils' )
+        Mockery::mock( 'alias:FreeFormCertificate\Core\Capabilities' )
             ->shouldReceive( 'current_user_can_admin_or' )
             ->andReturn( true );
         Mockery::mock( 'alias:FreeFormCertificate\Submissions\FormCache' )

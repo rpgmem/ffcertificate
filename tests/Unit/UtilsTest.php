@@ -12,6 +12,7 @@ use FreeFormCertificate\Core\DataSanitizer;
 use FreeFormCertificate\Core\DocumentFormatter;
 use FreeFormCertificate\Core\SecurityService;
 use FreeFormCertificate\Core\Utils;
+use FreeFormCertificate\Core\Capabilities;
 use FreeFormCertificate\Core\RequestInput;
 use FreeFormCertificate\Core\FilenameHelper;
 
@@ -633,12 +634,12 @@ class UtilsTest extends TestCase {
 
     public function test_current_user_can_manage_true(): void {
         Functions\when( 'current_user_can' )->justReturn( true );
-        $this->assertTrue( Utils::current_user_can_manage() );
+        $this->assertTrue( Capabilities::current_user_can_manage() );
     }
 
     public function test_current_user_can_manage_false(): void {
         Functions\when( 'current_user_can' )->justReturn( false );
-        $this->assertFalse( Utils::current_user_can_manage() );
+        $this->assertFalse( Capabilities::current_user_can_manage() );
     }
 
     // ==================================================================

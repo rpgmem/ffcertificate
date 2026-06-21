@@ -3,6 +3,8 @@ declare(strict_types=1);
 
 namespace FreeFormCertificate\Tests\Unit;
 
+use FreeFormCertificate\Core\Capabilities;
+
 use Brain\Monkey;
 use Brain\Monkey\Functions;
 use Mockery;
@@ -17,7 +19,7 @@ use FreeFormCertificate\UrlShortener\UrlShortenerRepository;
  * restore, toggle, empty_trash) and admin action routing.
  *
  * Runs in separate processes because the AJAX handlers call
- * Utils::current_user_can_manage() via AjaxTrait::check_ajax_permission(),
+ * Capabilities::current_user_can_manage() via AjaxTrait::check_ajax_permission(),
  * and other tests in the suite leave a Mockery alias for Utils loaded,
  * which makes the permission check resolve to a null mock instance.
  *

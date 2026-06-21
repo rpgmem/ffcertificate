@@ -146,8 +146,8 @@ class SubmissionsList extends \WP_List_Table {
 		// 3-state model: read-only viewers (ffc_view_certificates) get the PDF
 		// button only; editing a record needs ffc_edit_certificates; the
 		// trash/restore/delete write actions need ffc_manage_certificates.
-		$can_manage = \FreeFormCertificate\Core\Utils::current_user_can_admin_or( 'ffc_manage_certificates' );
-		$can_edit   = $can_manage || \FreeFormCertificate\Core\Utils::current_user_can_admin_or( 'ffc_edit_certificates' );
+		$can_manage = \FreeFormCertificate\Core\Capabilities::current_user_can_admin_or( 'ffc_manage_certificates' );
+		$can_edit   = $can_manage || \FreeFormCertificate\Core\Capabilities::current_user_can_admin_or( 'ffc_edit_certificates' );
 
 		$actions = '';
 		if ( $can_edit ) {
@@ -334,7 +334,7 @@ class SubmissionsList extends \WP_List_Table {
 	protected function get_bulk_actions() {
 		// Read-only viewers (ffc_view_certificates without manage) get no bulk
 		// write actions.
-		if ( ! \FreeFormCertificate\Core\Utils::current_user_can_admin_or( 'ffc_manage_certificates' ) ) {
+		if ( ! \FreeFormCertificate\Core\Capabilities::current_user_can_admin_or( 'ffc_manage_certificates' ) ) {
 			return array();
 		}
 

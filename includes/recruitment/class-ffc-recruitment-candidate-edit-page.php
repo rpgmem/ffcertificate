@@ -778,7 +778,7 @@ final class RecruitmentCandidateEditPage {
 	public static function handle_delete(): void {
 		// Hard-deleting a candidate is destructive — gated by the dedicated
 		// delete cap (GAP E), not the page-level manage cap.
-		if ( ! \FreeFormCertificate\Core\Utils::current_user_can_admin_or( 'ffc_delete_recruitment' ) ) {
+		if ( ! \FreeFormCertificate\Core\Capabilities::current_user_can_admin_or( 'ffc_delete_recruitment' ) ) {
 			wp_die( esc_html__( 'Access denied.', 'ffcertificate' ) );
 		}
 		$id = isset( $_POST['candidate_id'] ) ? absint( wp_unslash( (string) $_POST['candidate_id'] ) ) : 0;

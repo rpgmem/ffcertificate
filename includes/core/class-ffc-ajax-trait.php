@@ -18,6 +18,8 @@ declare(strict_types=1);
 
 namespace FreeFormCertificate\Core;
 
+use FreeFormCertificate\Core\Capabilities;
+
 use FreeFormCertificate\Core\RequestInput;
 
 if ( ! defined( 'ABSPATH' ) ) {
@@ -61,8 +63,8 @@ trait AjaxTrait {
 	 * @return void Dies with JSON error if permission denied.
 	 */
 	protected function check_ajax_permission( string $capability = 'manage_options' ): void {
-		if ( 'manage_options' === $capability && class_exists( '\FreeFormCertificate\Core\Utils' ) ) {
-			if ( ! Utils::current_user_can_manage() ) {
+		if ( 'manage_options' === $capability && class_exists( '\FreeFormCertificate\Core\Capabilities' ) ) {
+			if ( ! Capabilities::current_user_can_manage() ) {
 				wp_send_json_error( array( 'message' => __( 'Permission denied.', 'ffcertificate' ) ) );
 			}
 			return;
@@ -82,19 +84,19 @@ trait AjaxTrait {
 	 * Many FFC modules want "site admins can always do X, plus delegated
 	 * operators with cap Y can do X" — this helper encodes that contract
 	 * so handlers don't have to wire their own
-	 * `\Utils::current_user_can_admin_or()` boilerplate.
+	 * `\Capabilities::current_user_can_admin_or()` boilerplate.
 	 *
 	 * @since 6.5.1
 	 * @param string $granular_cap FFC capability that satisfies the check on its own.
 	 * @return void Dies with JSON error if neither admin nor cap-holder.
 	 */
 	protected function check_ajax_admin_or( string $granular_cap ): void {
-		if ( class_exists( '\FreeFormCertificate\Core\Utils' )
-			&& Utils::current_user_can_admin_or( $granular_cap ) ) {
+		if ( class_exists( '\FreeFormCertificate\Core\Capabilities' )
+			&& Capabilities::current_user_can_admin_or( $granular_cap ) ) {
 			return;
 		}
 
-		// Defensive fallback when Utils isn't loaded for some reason —
+		// Defensive fallback when Capabilities isn't loaded for some reason —
 		// preserves the canonical "admin OR granular" semantic.
 		if ( current_user_can( 'manage_options' ) ) {
 			return;

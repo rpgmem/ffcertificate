@@ -8,7 +8,7 @@
  *
  * Security:
  *   - nonce verified against the AJAX action name (FFC.request supplies it).
- *   - capability gated via Utils::current_user_can_admin_or, matching the
+ *   - capability gated via Capabilities::current_user_can_admin_or, matching the
  *     legacy handler's gate so privilege boundaries don't shift.
  *
  * @package FreeFormCertificate\Admin
@@ -18,6 +18,8 @@
 declare(strict_types=1);
 
 namespace FreeFormCertificate\Admin;
+
+use FreeFormCertificate\Core\Capabilities;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
@@ -47,7 +49,7 @@ class CacheActionsAjaxEndpoint {
 	 */
 	private static function guard( string $action ): void {
 		check_ajax_referer( $action, 'nonce' );
-		if ( ! \FreeFormCertificate\Core\Utils::current_user_can_admin_or( 'ffc_manage_settings' ) ) {
+		if ( ! \FreeFormCertificate\Core\Capabilities::current_user_can_admin_or( 'ffc_manage_settings' ) ) {
 			wp_send_json_error(
 				array( 'message' => __( 'You do not have permission to manage the cache.', 'ffcertificate' ) ),
 				403

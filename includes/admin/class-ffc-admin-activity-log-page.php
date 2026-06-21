@@ -98,7 +98,7 @@ class AdminActivityLogPage {
 			return;
 		}
 
-		if ( ! \FreeFormCertificate\Core\Utils::current_user_can_admin_or( 'ffc_view_activity_log' ) ) {
+		if ( ! \FreeFormCertificate\Core\Capabilities::current_user_can_admin_or( 'ffc_view_activity_log' ) ) {
 			wp_die( esc_html__( 'Unauthorized.', 'ffcertificate' ) );
 		}
 

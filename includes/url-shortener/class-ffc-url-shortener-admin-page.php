@@ -139,7 +139,7 @@ class UrlShortenerAdminPage {
 
 		// These GET-link actions are all writes (trash/restore/delete/toggle/
 		// empty_trash) — read-only viewers never run them.
-		if ( ! \FreeFormCertificate\Core\Utils::current_user_can_admin_or( 'ffc_manage_url_shortener' ) ) {
+		if ( ! \FreeFormCertificate\Core\Capabilities::current_user_can_admin_or( 'ffc_manage_url_shortener' ) ) {
 			return;
 		}
 
@@ -155,7 +155,7 @@ class UrlShortenerAdminPage {
 		// destructive cap (GAP E). Toggle stays under manage above.
 		$removal_actions = array( 'trash', 'restore', 'delete', 'empty_trash' );
 		if ( in_array( $action, $removal_actions, true )
-			&& ! \FreeFormCertificate\Core\Utils::current_user_can_admin_or( 'ffc_delete_url_shortener' ) ) {
+			&& ! \FreeFormCertificate\Core\Capabilities::current_user_can_admin_or( 'ffc_delete_url_shortener' ) ) {
 			wp_die( esc_html__( 'You do not have permission to delete short URLs.', 'ffcertificate' ) );
 		}
 

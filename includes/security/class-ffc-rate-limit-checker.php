@@ -306,7 +306,7 @@ final class RateLimitChecker {
 			return false;
 		}
 		if ( class_exists( '\FreeFormCertificate\Core\Utils' ) ) {
-			return \FreeFormCertificate\Core\Utils::current_user_can_admin_or( 'ffc_manage_settings' );
+			return \FreeFormCertificate\Core\Capabilities::current_user_can_admin_or( 'ffc_manage_settings' );
 		}
 		return current_user_can( 'manage_options' );
 	}

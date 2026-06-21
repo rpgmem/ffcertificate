@@ -33,6 +33,7 @@ declare(strict_types=1);
 namespace FreeFormCertificate\Frontend;
 
 use FreeFormCertificate\Core\Utils;
+use FreeFormCertificate\Core\Capabilities;
 use FreeFormCertificate\Core\RequestInput;
 
 use FreeFormCertificate\Security\Geofence;
@@ -792,7 +793,7 @@ class PublicCsvDownload {
 	 * `_ffc_csv_public_download_log` for a single form as a CSV download
 	 * with CPFs decrypted on the fly via {@see Encryption::decrypt}.
 	 *
-	 * Auth: nonce + user must satisfy {@see Utils::current_user_can_admin_or}
+	 * Auth: nonce + user must satisfy {@see Capabilities::current_user_can_admin_or}
 	 * with `ffc_manage_settings` AND have `edit_post` on the target form.
 	 *
 	 * @return void Streams CSV and exits; never returns on success.
@@ -813,7 +814,7 @@ class PublicCsvDownload {
 			wp_die( esc_html__( 'You do not have permission to export this log.', 'ffcertificate' ), 403 );
 		}
 		$can_audit = class_exists( '\FreeFormCertificate\Core\Utils' )
-			? \FreeFormCertificate\Core\Utils::current_user_can_admin_or( 'ffc_manage_settings' )
+			? \FreeFormCertificate\Core\Capabilities::current_user_can_admin_or( 'ffc_manage_settings' )
 			: current_user_can( 'manage_options' );
 		if ( ! $can_audit ) {
 			wp_die( esc_html__( 'You do not have permission to export this log.', 'ffcertificate' ), 403 );

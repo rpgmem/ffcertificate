@@ -3,6 +3,8 @@ declare(strict_types=1);
 
 namespace FreeFormCertificate\Tests\Unit;
 
+use FreeFormCertificate\Core\Capabilities;
+
 use Brain\Monkey;
 use Brain\Monkey\Functions;
 use Mockery;
@@ -58,7 +60,7 @@ class AdminSubmissionEditPageTest extends TestCase {
         $handler = Mockery::mock( 'FreeFormCertificate\Submissions\SubmissionHandler' );
         $page = new AdminSubmissionEditPage( $handler );
 
-        // Utils::current_user_can_manage() is autoloaded
+        // Capabilities::current_user_can_manage() is autoloaded
         Functions\when( 'current_user_can' )->justReturn( false );
 
         ob_start();

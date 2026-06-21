@@ -397,7 +397,7 @@ class SubmissionRestController {
 	 * view cap (manage holders carry it too; WP admins always pass).
 	 */
 	public function check_admin_permission(): bool {
-		return \FreeFormCertificate\Core\Utils::current_user_can_admin_or( 'ffc_view_certificates' );
+		return \FreeFormCertificate\Core\Capabilities::current_user_can_admin_or( 'ffc_view_certificates' );
 	}
 
 	/**

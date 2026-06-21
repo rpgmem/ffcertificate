@@ -239,10 +239,10 @@ final class RecruitmentAdminPage {
 		// 3-state: the admin UI opens read-only for ffc_view_recruitment;
 		// every write (edit screens, dispatch deletes, status changes, call,
 		// import) stays gated by its own cap.
-		if ( ! \FreeFormCertificate\Core\Utils::current_user_can_admin_or( self::VIEW_CAP ) ) {
+		if ( ! \FreeFormCertificate\Core\Capabilities::current_user_can_admin_or( self::VIEW_CAP ) ) {
 			wp_die( esc_html__( 'Access denied.', 'ffcertificate' ) );
 		}
-		$can_edit = \FreeFormCertificate\Core\Utils::current_user_can_admin_or( self::CAP );
+		$can_edit = \FreeFormCertificate\Core\Capabilities::current_user_can_admin_or( self::CAP );
 
 		// Action dispatcher — row actions / GET-link operations land here
 		// before the default tab render runs. Each action validates its
@@ -969,8 +969,8 @@ final class RecruitmentAdminPage {
 	 * @return bool
 	 */
 	private static function can_view_settings(): bool {
-		return \FreeFormCertificate\Core\Utils::current_user_can_admin_or( 'ffc_view_recruitment_settings' )
-			|| \FreeFormCertificate\Core\Utils::current_user_can_admin_or( 'ffc_manage_recruitment_settings' );
+		return \FreeFormCertificate\Core\Capabilities::current_user_can_admin_or( 'ffc_view_recruitment_settings' )
+			|| \FreeFormCertificate\Core\Capabilities::current_user_can_admin_or( 'ffc_manage_recruitment_settings' );
 	}
 
 	/**
@@ -979,7 +979,7 @@ final class RecruitmentAdminPage {
 	 * @return bool
 	 */
 	private static function can_edit_settings(): bool {
-		return \FreeFormCertificate\Core\Utils::current_user_can_admin_or( 'ffc_manage_recruitment_settings' );
+		return \FreeFormCertificate\Core\Capabilities::current_user_can_admin_or( 'ffc_manage_recruitment_settings' );
 	}
 
 	/**
@@ -993,8 +993,8 @@ final class RecruitmentAdminPage {
 	 * @return bool
 	 */
 	private static function can_view_reasons(): bool {
-		return \FreeFormCertificate\Core\Utils::current_user_can_admin_or( 'ffc_view_recruitment_reasons' )
-			|| \FreeFormCertificate\Core\Utils::current_user_can_admin_or( 'ffc_manage_recruitment_reasons' );
+		return \FreeFormCertificate\Core\Capabilities::current_user_can_admin_or( 'ffc_view_recruitment_reasons' )
+			|| \FreeFormCertificate\Core\Capabilities::current_user_can_admin_or( 'ffc_manage_recruitment_reasons' );
 	}
 
 	/**
@@ -1003,7 +1003,7 @@ final class RecruitmentAdminPage {
 	 * @return bool
 	 */
 	private static function can_edit_reasons(): bool {
-		return \FreeFormCertificate\Core\Utils::current_user_can_admin_or( 'ffc_manage_recruitment_reasons' );
+		return \FreeFormCertificate\Core\Capabilities::current_user_can_admin_or( 'ffc_manage_recruitment_reasons' );
 	}
 
 	/**
@@ -1013,7 +1013,7 @@ final class RecruitmentAdminPage {
 	 * @return void
 	 */
 	private static function render_create_notice_form(): void {
-		if ( ! \FreeFormCertificate\Core\Utils::current_user_can_admin_or( self::CAP ) ) {
+		if ( ! \FreeFormCertificate\Core\Capabilities::current_user_can_admin_or( self::CAP ) ) {
 			return;
 		}
 		echo '<h3>' . esc_html__( 'Create new notice', 'ffcertificate' ) . '</h3>';
@@ -1035,7 +1035,7 @@ final class RecruitmentAdminPage {
 	 * @return void
 	 */
 	private static function render_create_adjutancy_form(): void {
-		if ( ! \FreeFormCertificate\Core\Utils::current_user_can_admin_or( self::CAP ) ) {
+		if ( ! \FreeFormCertificate\Core\Capabilities::current_user_can_admin_or( self::CAP ) ) {
 			return;
 		}
 		$default_color = RecruitmentAdjutancyRepository::DEFAULT_COLOR;

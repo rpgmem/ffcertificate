@@ -74,7 +74,7 @@ class AudienceAdminCalendar {
 
 		?>
 		<h1 class="wp-heading-inline"><?php esc_html_e( 'Calendars', 'ffcertificate' ); ?></h1>
-		<?php if ( \FreeFormCertificate\Core\Utils::current_user_can_admin_or( 'ffc_manage_audiences' ) ) : ?>
+		<?php if ( \FreeFormCertificate\Core\Capabilities::current_user_can_admin_or( 'ffc_manage_audiences' ) ) : ?>
 		<a href="<?php echo esc_url( $add_url ); ?>" class="page-title-action"><?php esc_html_e( 'Add New', 'ffcertificate' ); ?></a>
 		<?php endif; ?>
 		<hr class="wp-header-end">
@@ -587,7 +587,7 @@ class AudienceAdminCalendar {
 	 * @return void
 	 */
 	public function handle_actions(): void {
-		if ( ! \FreeFormCertificate\Core\Utils::current_user_can_admin_or( 'ffc_manage_audiences' ) ) {
+		if ( ! \FreeFormCertificate\Core\Capabilities::current_user_can_admin_or( 'ffc_manage_audiences' ) ) {
 			return;
 		}
 
@@ -665,7 +665,7 @@ class AudienceAdminCalendar {
 		// Handle delete (only inactive items can be permanently deleted).
         // phpcs:ignore WordPress.Security.NonceVerification.Recommended
 		if ( isset( $_GET['action'] ) && 'delete' === $_GET['action'] && isset( $_GET['id'] ) ) {
-			if ( ! \FreeFormCertificate\Core\Utils::current_user_can_admin_or( 'ffc_delete_audiences' ) ) {
+			if ( ! \FreeFormCertificate\Core\Capabilities::current_user_can_admin_or( 'ffc_delete_audiences' ) ) {
 				wp_die( esc_html__( 'You do not have permission to delete calendars.', 'ffcertificate' ) );
 			}
 			$id = absint( $_GET['id'] );

@@ -337,7 +337,7 @@ class ReregistrationAdminTest extends TestCase {
         $_POST['rereg_status']       = 'active';
         $_POST['rereg_audience_ids'] = array( '3', '4' );
 
-        Mockery::mock( 'alias:FreeFormCertificate\Core\Utils' )
+        Mockery::mock( 'alias:FreeFormCertificate\Core\Capabilities' )
             ->shouldReceive( 'current_user_can_admin_or' )->andReturn( true );
         Mockery::mock( 'alias:FreeFormCertificate\Core\RequestInput' )
             ->shouldReceive( 'get_post_string' )->andReturnUsing(
@@ -379,7 +379,7 @@ class ReregistrationAdminTest extends TestCase {
         $_POST['ffc_action']        = 'save_reregistration';
         $_POST['reregistration_id'] = 9;
 
-        Mockery::mock( 'alias:FreeFormCertificate\Core\Utils' )
+        Mockery::mock( 'alias:FreeFormCertificate\Core\Capabilities' )
             ->shouldReceive( 'current_user_can_admin_or' )->andReturn( true );
         Mockery::mock( 'alias:FreeFormCertificate\Core\RequestInput' )
             ->shouldReceive( 'get_post_string' )->andReturnUsing(
@@ -444,7 +444,7 @@ class ReregistrationAdminTest extends TestCase {
         $_GET['id']     = '5';
         Functions\when( 'wp_die' )->alias( fn( $msg ) => throw new \RuntimeException( $msg ) );
 
-        Mockery::mock( 'alias:FreeFormCertificate\Core\Utils' )
+        Mockery::mock( 'alias:FreeFormCertificate\Core\Capabilities' )
             ->shouldReceive( 'current_user_can_admin_or' )->with( 'ffc_delete_reregistration' )->andReturn( false );
 
         $admin = new ReregistrationAdmin();
@@ -464,7 +464,7 @@ class ReregistrationAdminTest extends TestCase {
         Functions\when( 'wp_verify_nonce' )->justReturn( true );
         Functions\when( 'wp_safe_redirect' )->alias( fn() => throw new \RuntimeException( 'redirected' ) );
 
-        Mockery::mock( 'alias:FreeFormCertificate\Core\Utils' )
+        Mockery::mock( 'alias:FreeFormCertificate\Core\Capabilities' )
             ->shouldReceive( 'current_user_can_admin_or' )->andReturn( true );
         Mockery::mock( 'alias:FreeFormCertificate\Core\RequestInput' )
             ->shouldReceive( 'get_get_string' )->andReturn( 'good' );
@@ -488,7 +488,7 @@ class ReregistrationAdminTest extends TestCase {
         $_GET['_wpnonce'] = 'bad';
         Functions\when( 'wp_verify_nonce' )->justReturn( false );
 
-        Mockery::mock( 'alias:FreeFormCertificate\Core\Utils' )
+        Mockery::mock( 'alias:FreeFormCertificate\Core\Capabilities' )
             ->shouldReceive( 'current_user_can_admin_or' )->andReturn( true );
         Mockery::mock( 'alias:FreeFormCertificate\Core\RequestInput' )
             ->shouldReceive( 'get_get_string' )->andReturn( 'bad' );
