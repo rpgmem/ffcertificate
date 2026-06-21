@@ -7,9 +7,13 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Security
+
+- Reregistration admin — fixed a stored-XSS vector (CodeQL `js/xss-through-dom`) in the audience transfer list. Audience name/color/id read from a DOM `data-` attribute were string-concatenated into HTML and injected with `.append()` (both the *selected* and *available* branches), so a malicious audience name or color stored by a delegated audience manager could execute script in the reregistration admin screen. The list is now built with `jQuery('<el>', {…})` + `.text()`/`.attr()` (every value escaped; the color is applied only when it matches a hex pattern). DOM shape, `data-id` and hidden-input values are unchanged. Also hardened `ffc-geofence-admin.js` field-key derivation (CodeQL `js/incomplete-sanitization`) — not exploitable (hardcoded allowlist input) but cleared for good. (#564)
+
 ### Changed
 
-- Vendored thumbmarkjs 1.9.0 → 1.9.1 (MIT, `libs/js/`). Patch release; the server algorithm, fingerprint schema, contract and LGPD posture are unchanged, and the telemetry beacon stays unconditionally disabled.
+- Vendored thumbmarkjs 1.9.0 → 1.9.1 (MIT, `libs/js/`). Patch release; the server algorithm, fingerprint schema, contract and LGPD posture are unchanged, and the telemetry beacon stays unconditionally disabled. (#571)
 
 ## [6.11.1] (2026-06-17)
 
