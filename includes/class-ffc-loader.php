@@ -347,15 +347,15 @@ class Loader {
 	 */
 	public function register_ffc_roles_safe(): void {
 		if ( class_exists( '\FreeFormCertificate\UserDashboard\CapabilityManager' ) ) {
-			\FreeFormCertificate\UserDashboard\CapabilityManager::register_role();
-			\FreeFormCertificate\UserDashboard\CapabilityManager::register_module_roles();
+			\FreeFormCertificate\UserDashboard\RoleRegistrar::register_role();
+			\FreeFormCertificate\UserDashboard\RoleRegistrar::register_module_roles();
 
 			// Re-apply translated labels every time WP loads its roles.
 			// Without this, `users.php` would show the verbatim English
 			// label that was stored in the database at registration time.
-			// See `CapabilityManager::relabel_ffc_roles()` for full
+			// See `RoleRegistrar::relabel_ffc_roles()` for full
 			// rationale.
-			add_action( 'wp_roles_init', array( '\FreeFormCertificate\UserDashboard\CapabilityManager', 'relabel_ffc_roles' ) );
+			add_action( 'wp_roles_init', array( '\FreeFormCertificate\UserDashboard\RoleRegistrar', 'relabel_ffc_roles' ) );
 		}
 	}
 
@@ -376,7 +376,7 @@ class Loader {
 			return;
 		}
 		if ( class_exists( '\FreeFormCertificate\UserDashboard\CapabilityManager' ) ) {
-			\FreeFormCertificate\UserDashboard\CapabilityManager::migrate_legacy_certificate_caps();
+			\FreeFormCertificate\UserDashboard\CapabilityMigrator::migrate_legacy_certificate_caps();
 		}
 		update_option( $flag, '1', true );
 	}
@@ -398,7 +398,7 @@ class Loader {
 			return;
 		}
 		if ( class_exists( '\FreeFormCertificate\UserDashboard\CapabilityManager' ) ) {
-			\FreeFormCertificate\UserDashboard\CapabilityManager::migrate_taxonomy_renames();
+			\FreeFormCertificate\UserDashboard\CapabilityMigrator::migrate_taxonomy_renames();
 		}
 		update_option( $flag, '1', true );
 	}
@@ -418,7 +418,7 @@ class Loader {
 			return;
 		}
 		if ( class_exists( '\FreeFormCertificate\UserDashboard\CapabilityManager' ) ) {
-			\FreeFormCertificate\UserDashboard\CapabilityManager::migrate_delete_caps_grant();
+			\FreeFormCertificate\UserDashboard\CapabilityMigrator::migrate_delete_caps_grant();
 		}
 		update_option( $flag, '1', true );
 	}
@@ -438,7 +438,7 @@ class Loader {
 			return;
 		}
 		if ( class_exists( '\FreeFormCertificate\UserDashboard\CapabilityManager' ) ) {
-			\FreeFormCertificate\UserDashboard\CapabilityManager::migrate_export_caps_grant();
+			\FreeFormCertificate\UserDashboard\CapabilityMigrator::migrate_export_caps_grant();
 		}
 		update_option( $flag, '1', true );
 	}
@@ -458,7 +458,7 @@ class Loader {
 			return;
 		}
 		if ( class_exists( '\FreeFormCertificate\UserDashboard\CapabilityManager' ) ) {
-			\FreeFormCertificate\UserDashboard\CapabilityManager::migrate_import_caps_grant();
+			\FreeFormCertificate\UserDashboard\CapabilityMigrator::migrate_import_caps_grant();
 		}
 		update_option( $flag, '1', true );
 	}
@@ -478,7 +478,7 @@ class Loader {
 			return;
 		}
 		if ( class_exists( '\FreeFormCertificate\UserDashboard\CapabilityManager' ) ) {
-			\FreeFormCertificate\UserDashboard\CapabilityManager::migrate_reasons_caps_grant();
+			\FreeFormCertificate\UserDashboard\CapabilityMigrator::migrate_reasons_caps_grant();
 		}
 		update_option( $flag, '1', true );
 	}

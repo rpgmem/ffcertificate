@@ -80,8 +80,8 @@ class Activator {
 		}
 
 		if ( class_exists( '\FreeFormCertificate\UserDashboard\CapabilityManager' ) ) {
-			\FreeFormCertificate\UserDashboard\CapabilityManager::register_recruitment_manager_role();
-			\FreeFormCertificate\UserDashboard\CapabilityManager::register_module_roles();
+			\FreeFormCertificate\UserDashboard\RoleRegistrar::register_recruitment_manager_role();
+			\FreeFormCertificate\UserDashboard\RoleRegistrar::register_module_roles();
 		}
 
 		self::add_composite_indexes();

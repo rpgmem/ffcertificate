@@ -105,19 +105,19 @@ class UserManager {
 	/**
 	 * Register role.
 	 *
-	 * @see CapabilityManager::register_role()
+	 * @see RoleRegistrar::register_role()
 	 */
 	public static function register_role(): void {
-		CapabilityManager::register_role();
+		RoleRegistrar::register_role();
 	}
 
 	/**
 	 * Remove role.
 	 *
-	 * @see CapabilityManager::remove_role()
+	 * @see RoleRegistrar::remove_role()
 	 */
 	public static function remove_role(): void {
-		CapabilityManager::remove_role();
+		RoleRegistrar::remove_role();
 	}
 
 	/**

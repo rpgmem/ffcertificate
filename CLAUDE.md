@@ -146,7 +146,7 @@ A `manage` role does **not** need to also carry the `view` cap — `canView` alr
 
 - Machine list: `CapabilityManager` (`*_CAPABILITIES` consts + `module_roles_definition()`).
 - Human metadata: `CapabilityCatalog::groups()`. **Invariant** (enforced by `CapabilityCatalogTest`): `CapabilityCatalog::all_slugs()` must equal `CapabilityManager::get_all_capabilities()` as a set — adding a cap to one without the other fails CI.
-- Renames ship with a one-shot, option-flagged migration that rewrites grants on every user (`user_meta`) **and** every role definition (see `CapabilityManager::migrate_taxonomy_renames()` + `Loader::ensure_taxonomy_renamed()`). Renames are a **breaking change** for external integrations referencing old slugs — call it out in the CHANGELOG.
+- Renames ship with a one-shot, option-flagged migration that rewrites grants on every user (`user_meta`) **and** every role definition (see `CapabilityMigrator::migrate_taxonomy_renames()` + `Loader::ensure_taxonomy_renamed()`; the one-shot migrations live in `CapabilityMigrator` and role lifecycle in `RoleRegistrar` since #563 Sprint 2). Renames are a **breaking change** for external integrations referencing old slugs — call it out in the CHANGELOG.
 
 ## Branch naming
 
