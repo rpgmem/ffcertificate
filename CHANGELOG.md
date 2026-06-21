@@ -7,6 +7,8 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+## [6.11.2] (2026-06-21)
+
 ### Security
 
 - Reregistration admin — fixed a stored-XSS vector (CodeQL `js/xss-through-dom`) in the audience transfer list. Audience name/color/id read from a DOM `data-` attribute were string-concatenated into HTML and injected with `.append()` (both the *selected* and *available* branches), so a malicious audience name or color stored by a delegated audience manager could execute script in the reregistration admin screen. The list is now built with `jQuery('<el>', {…})` + `.text()`/`.attr()` (every value escaped; the color is applied only when it matches a hex pattern). DOM shape, `data-id` and hidden-input values are unchanged. Also hardened `ffc-geofence-admin.js` field-key derivation (CodeQL `js/incomplete-sanitization`) — not exploitable (hardcoded allowlist input) but cleared for good. (#564)
