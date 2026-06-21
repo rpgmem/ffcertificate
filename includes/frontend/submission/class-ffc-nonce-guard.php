@@ -21,7 +21,6 @@ declare(strict_types=1);
 
 namespace FreeFormCertificate\Frontend\Submission;
 
-use FreeFormCertificate\Core\Utils;
 use FreeFormCertificate\Core\RequestInput;
 
 if ( ! defined( 'ABSPATH' ) ) {
