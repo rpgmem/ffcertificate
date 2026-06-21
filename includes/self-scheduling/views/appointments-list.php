@@ -28,7 +28,7 @@ $ffcertificate_appointments_url = add_query_arg( array( 'page' => 'ffc-appointme
 // - appointment=X alone → view.
 // - appointment=X + ffc_action=confirm|cancel → mutation.
 $ffc_self_scheduling_appointment_id = isset( $_GET['appointment'] ) ? absint( wp_unslash( $_GET['appointment'] ) ) : 0;
-$ffcertificate_action               = \FreeFormCertificate\Core\Utils::get_get_string( 'ffc_action' );
+$ffcertificate_action               = \FreeFormCertificate\Core\RequestInput::get_get_string( 'ffc_action' );
 
 // phpcs:enable WordPress.Security.NonceVerification.Recommended
 

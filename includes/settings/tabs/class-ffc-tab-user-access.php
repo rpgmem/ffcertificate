@@ -86,14 +86,14 @@ class TabUserAccess extends SettingsTab {
 	 * Save settings (called by parent class)
 	 */
 	public function save_settings(): void {
-		if ( ! wp_verify_nonce( \FreeFormCertificate\Core\Utils::get_post_string( 'ffc_user_access_nonce' ), 'ffc_user_access_settings' ) ) {
+		if ( ! wp_verify_nonce( \FreeFormCertificate\Core\RequestInput::get_post_string( 'ffc_user_access_nonce' ), 'ffc_user_access_settings' ) ) {
 			return;
 		}
 
         // phpcs:disable WordPress.Security.NonceVerification.Missing, WordPress.Security.ValidatedSanitizedInput.MissingUnslash, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Nonce verified above via wp_verify_nonce. isset() checks used as boolean only.
 		$settings = array(
 			'block_wp_admin'    => isset( $_POST['block_wp_admin'] ),
-			'blocked_roles'     => \FreeFormCertificate\Core\Utils::get_post_array( 'blocked_roles', array( 'ffc_user' ) ),
+			'blocked_roles'     => \FreeFormCertificate\Core\RequestInput::get_post_array( 'blocked_roles', array( 'ffc_user' ) ),
 			'redirect_url'      => ! empty( $_POST['redirect_url'] ) ? esc_url_raw( wp_unslash( $_POST['redirect_url'] ) ) : home_url( '/dashboard' ),
 			'redirect_message'  => isset( $_POST['redirect_message'] ) ? sanitize_textarea_field( wp_unslash( $_POST['redirect_message'] ) ) : '',
 			'allow_admin_bar'   => isset( $_POST['allow_admin_bar'] ),

@@ -338,7 +338,8 @@ class ReregistrationAdminTest extends TestCase {
         $_POST['rereg_audience_ids'] = array( '3', '4' );
 
         Mockery::mock( 'alias:FreeFormCertificate\Core\Utils' )
-            ->shouldReceive( 'current_user_can_admin_or' )->andReturn( true )
+            ->shouldReceive( 'current_user_can_admin_or' )->andReturn( true );
+        Mockery::mock( 'alias:FreeFormCertificate\Core\RequestInput' )
             ->shouldReceive( 'get_post_string' )->andReturnUsing(
                 function ( $key, $default = '' ) {
                     $map = array(
@@ -379,7 +380,8 @@ class ReregistrationAdminTest extends TestCase {
         $_POST['reregistration_id'] = 9;
 
         Mockery::mock( 'alias:FreeFormCertificate\Core\Utils' )
-            ->shouldReceive( 'current_user_can_admin_or' )->andReturn( true )
+            ->shouldReceive( 'current_user_can_admin_or' )->andReturn( true );
+        Mockery::mock( 'alias:FreeFormCertificate\Core\RequestInput' )
             ->shouldReceive( 'get_post_string' )->andReturnUsing(
                 function ( $key, $default = '' ) {
                     $map = array(
@@ -418,7 +420,7 @@ class ReregistrationAdminTest extends TestCase {
     public function test_handle_save_returns_early_on_bad_nonce(): void {
         $_POST['ffc_action'] = 'save_reregistration';
         Functions\when( 'wp_verify_nonce' )->justReturn( false );
-        Mockery::mock( 'alias:FreeFormCertificate\Core\Utils' )
+        Mockery::mock( 'alias:FreeFormCertificate\Core\RequestInput' )
             ->shouldReceive( 'get_post_string' )->andReturn( '' );
 
         $admin = new ReregistrationAdmin();
@@ -463,7 +465,8 @@ class ReregistrationAdminTest extends TestCase {
         Functions\when( 'wp_safe_redirect' )->alias( fn() => throw new \RuntimeException( 'redirected' ) );
 
         Mockery::mock( 'alias:FreeFormCertificate\Core\Utils' )
-            ->shouldReceive( 'current_user_can_admin_or' )->andReturn( true )
+            ->shouldReceive( 'current_user_can_admin_or' )->andReturn( true );
+        Mockery::mock( 'alias:FreeFormCertificate\Core\RequestInput' )
             ->shouldReceive( 'get_get_string' )->andReturn( 'good' );
 
         Mockery::mock( 'alias:FreeFormCertificate\Reregistration\ReregistrationRepository' )
@@ -486,7 +489,8 @@ class ReregistrationAdminTest extends TestCase {
         Functions\when( 'wp_verify_nonce' )->justReturn( false );
 
         Mockery::mock( 'alias:FreeFormCertificate\Core\Utils' )
-            ->shouldReceive( 'current_user_can_admin_or' )->andReturn( true )
+            ->shouldReceive( 'current_user_can_admin_or' )->andReturn( true );
+        Mockery::mock( 'alias:FreeFormCertificate\Core\RequestInput' )
             ->shouldReceive( 'get_get_string' )->andReturn( 'bad' );
 
         Mockery::mock( 'alias:FreeFormCertificate\Reregistration\ReregistrationRepository' )

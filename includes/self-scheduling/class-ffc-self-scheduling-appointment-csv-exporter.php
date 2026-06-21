@@ -354,7 +354,7 @@ class AppointmentCsvExporter {
 		try {
 			// Security check.
             // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized, WordPress.Security.ValidatedSanitizedInput.MissingUnslash -- isset() is an existence check; value sanitized on next line.
-			if ( ! wp_verify_nonce( \FreeFormCertificate\Core\Utils::get_post_string( 'ffc_export_appointments_csv_action' ), 'ffc_export_appointments_csv_nonce' ) ) {
+			if ( ! wp_verify_nonce( \FreeFormCertificate\Core\RequestInput::get_post_string( 'ffc_export_appointments_csv_action' ), 'ffc_export_appointments_csv_nonce' ) ) {
 				wp_die( esc_html__( 'Security check failed.', 'ffcertificate' ) );
 			}
 
@@ -380,8 +380,8 @@ class AppointmentCsvExporter {
 				$statuses = array_map( 'sanitize_key', wp_unslash( $_POST['statuses'] ) );
 			}
 
-			$start_date = \FreeFormCertificate\Core\Utils::get_post_string( 'start_date' );
-			$end_date   = \FreeFormCertificate\Core\Utils::get_post_string( 'end_date' );
+			$start_date = \FreeFormCertificate\Core\RequestInput::get_post_string( 'start_date' );
+			$end_date   = \FreeFormCertificate\Core\RequestInput::get_post_string( 'end_date' );
 			if ( '' === $start_date ) {
 				$start_date = null;
 			}

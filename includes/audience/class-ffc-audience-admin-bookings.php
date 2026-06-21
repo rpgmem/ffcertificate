@@ -47,9 +47,9 @@ class AudienceAdminBookings {
         // phpcs:disable WordPress.Security.NonceVerification.Recommended -- Display filter parameters on admin page
 		$schedule_id    = isset( $_GET['schedule_id'] ) ? absint( $_GET['schedule_id'] ) : 0;
 		$environment_id = isset( $_GET['environment_id'] ) ? absint( $_GET['environment_id'] ) : 0;
-		$status_filter  = \FreeFormCertificate\Core\Utils::get_get_string( 'status' );
-		$date_from      = \FreeFormCertificate\Core\Utils::get_get_string( 'date_from' );
-		$date_to        = \FreeFormCertificate\Core\Utils::get_get_string( 'date_to' );
+		$status_filter  = \FreeFormCertificate\Core\RequestInput::get_get_string( 'status' );
+		$date_from      = \FreeFormCertificate\Core\RequestInput::get_get_string( 'date_from' );
+		$date_to        = \FreeFormCertificate\Core\RequestInput::get_get_string( 'date_to' );
         // phpcs:enable WordPress.Security.NonceVerification.Recommended
 
 		// Build query args.

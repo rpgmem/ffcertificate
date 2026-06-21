@@ -12,6 +12,7 @@ use FreeFormCertificate\Core\DataSanitizer;
 use FreeFormCertificate\Core\DocumentFormatter;
 use FreeFormCertificate\Core\SecurityService;
 use FreeFormCertificate\Core\Utils;
+use FreeFormCertificate\Core\RequestInput;
 use FreeFormCertificate\Core\FilenameHelper;
 
 /**
@@ -925,15 +926,15 @@ class UtilsTest extends TestCase {
     public function test_get_post_array_returns_default_when_key_absent(): void {
         $_POST = array();
 
-        $this->assertSame( array(), Utils::get_post_array( 'missing' ) );
-        $this->assertSame( array( 'fallback' ), Utils::get_post_array( 'missing', array( 'fallback' ) ) );
+        $this->assertSame( array(), RequestInput::get_post_array( 'missing' ) );
+        $this->assertSame( array( 'fallback' ), RequestInput::get_post_array( 'missing', array( 'fallback' ) ) );
     }
 
     public function test_get_post_array_returns_default_when_value_not_array(): void {
         Functions\when( 'wp_unslash' )->returnArg();
         $_POST = array( 'key' => 'not-an-array' );
 
-        $this->assertSame( array(), Utils::get_post_array( 'key' ) );
+        $this->assertSame( array(), RequestInput::get_post_array( 'key' ) );
     }
 
     public function test_get_post_array_sanitizes_string_values(): void {
@@ -946,7 +947,7 @@ class UtilsTest extends TestCase {
             'roles' => array( '  admin  ', '<b>editor</b>' ),
         );
 
-        $this->assertSame( array( 'admin', 'editor' ), Utils::get_post_array( 'roles' ) );
+        $this->assertSame( array( 'admin', 'editor' ), RequestInput::get_post_array( 'roles' ) );
     }
 
     public function test_get_post_array_strips_slashes_via_wp_unslash(): void {
@@ -957,7 +958,7 @@ class UtilsTest extends TestCase {
 
         $_POST = array( 'list' => array( 'foo\\bar' ) );
 
-        $this->assertSame( array( 'foobar' ), Utils::get_post_array( 'list' ) );
+        $this->assertSame( array( 'foobar' ), RequestInput::get_post_array( 'list' ) );
     }
 
     // ==================================================================
@@ -967,15 +968,15 @@ class UtilsTest extends TestCase {
     public function test_get_post_string_returns_default_when_key_absent(): void {
         $_POST = array();
 
-        $this->assertSame( '', Utils::get_post_string( 'missing' ) );
-        $this->assertSame( 'fallback', Utils::get_post_string( 'missing', 'fallback' ) );
+        $this->assertSame( '', RequestInput::get_post_string( 'missing' ) );
+        $this->assertSame( 'fallback', RequestInput::get_post_string( 'missing', 'fallback' ) );
     }
 
     public function test_get_post_string_returns_default_when_value_not_string(): void {
         Functions\when( 'wp_unslash' )->returnArg();
         $_POST = array( 'key' => array( 'array', 'not', 'string' ) );
 
-        $this->assertSame( 'def', Utils::get_post_string( 'key', 'def' ) );
+        $this->assertSame( 'def', RequestInput::get_post_string( 'key', 'def' ) );
     }
 
     public function test_get_post_string_sanitizes_and_unslashes(): void {
@@ -988,14 +989,14 @@ class UtilsTest extends TestCase {
 
         $_POST = array( 'name' => '  <b>John\\\'s</b>  ' );
 
-        $this->assertSame( "John's", Utils::get_post_string( 'name' ) );
+        $this->assertSame( "John's", RequestInput::get_post_string( 'name' ) );
     }
 
     public function test_get_get_string_returns_default_when_key_absent(): void {
         $_GET = array();
 
-        $this->assertSame( '', Utils::get_get_string( 'missing' ) );
-        $this->assertSame( 'def', Utils::get_get_string( 'missing', 'def' ) );
+        $this->assertSame( '', RequestInput::get_get_string( 'missing' ) );
+        $this->assertSame( 'def', RequestInput::get_get_string( 'missing', 'def' ) );
     }
 
     public function test_get_get_string_reads_get_not_post(): void {
@@ -1005,14 +1006,14 @@ class UtilsTest extends TestCase {
         $_GET  = array( 'k' => 'from-get' );
         $_POST = array( 'k' => 'from-post' );
 
-        $this->assertSame( 'from-get', Utils::get_get_string( 'k' ) );
+        $this->assertSame( 'from-get', RequestInput::get_get_string( 'k' ) );
     }
 
     public function test_get_get_string_returns_default_when_value_not_string(): void {
         Functions\when( 'wp_unslash' )->returnArg();
         $_GET = array( 'k' => array( 'arr' ) );
 
-        $this->assertSame( '', Utils::get_get_string( 'k' ) );
+        $this->assertSame( '', RequestInput::get_get_string( 'k' ) );
     }
 
     // ==================================================================
@@ -1022,8 +1023,8 @@ class UtilsTest extends TestCase {
     public function test_get_post_int_returns_default_when_absent(): void {
         $_POST = array();
 
-        $this->assertSame( 0, Utils::get_post_int( 'missing' ) );
-        $this->assertSame( 99, Utils::get_post_int( 'missing', 99 ) );
+        $this->assertSame( 0, RequestInput::get_post_int( 'missing' ) );
+        $this->assertSame( 99, RequestInput::get_post_int( 'missing', 99 ) );
     }
 
     public function test_get_post_int_casts_string_to_int(): void {
@@ -1034,7 +1035,7 @@ class UtilsTest extends TestCase {
 
         $_POST = array( 'limit' => '42' );
 
-        $this->assertSame( 42, Utils::get_post_int( 'limit' ) );
+        $this->assertSame( 42, RequestInput::get_post_int( 'limit' ) );
     }
 
     public function test_get_post_int_absint_strips_negative_sign(): void {
@@ -1045,7 +1046,7 @@ class UtilsTest extends TestCase {
 
         $_POST = array( 'n' => '-17' );
 
-        $this->assertSame( 17, Utils::get_post_int( 'n' ) );
+        $this->assertSame( 17, RequestInput::get_post_int( 'n' ) );
     }
 
     // ==================================================================
@@ -1055,8 +1056,8 @@ class UtilsTest extends TestCase {
     public function test_get_post_bool_returns_default_when_absent(): void {
         $_POST = array();
 
-        $this->assertFalse( Utils::get_post_bool( 'missing' ) );
-        $this->assertTrue( Utils::get_post_bool( 'missing', true ) );
+        $this->assertFalse( RequestInput::get_post_bool( 'missing' ) );
+        $this->assertTrue( RequestInput::get_post_bool( 'missing', true ) );
     }
 
     public function test_get_post_bool_truthy_values(): void {
@@ -1067,10 +1068,10 @@ class UtilsTest extends TestCase {
             'd' => 1,
         );
 
-        $this->assertTrue( Utils::get_post_bool( 'a' ) );
-        $this->assertTrue( Utils::get_post_bool( 'b' ) );
-        $this->assertTrue( Utils::get_post_bool( 'c' ) );
-        $this->assertTrue( Utils::get_post_bool( 'd' ) );
+        $this->assertTrue( RequestInput::get_post_bool( 'a' ) );
+        $this->assertTrue( RequestInput::get_post_bool( 'b' ) );
+        $this->assertTrue( RequestInput::get_post_bool( 'c' ) );
+        $this->assertTrue( RequestInput::get_post_bool( 'd' ) );
     }
 
     public function test_get_post_bool_falsy_values(): void {
@@ -1080,8 +1081,8 @@ class UtilsTest extends TestCase {
             'c' => 0,
         );
 
-        $this->assertFalse( Utils::get_post_bool( 'a' ) );
-        $this->assertFalse( Utils::get_post_bool( 'b' ) );
-        $this->assertFalse( Utils::get_post_bool( 'c' ) );
+        $this->assertFalse( RequestInput::get_post_bool( 'a' ) );
+        $this->assertFalse( RequestInput::get_post_bool( 'b' ) );
+        $this->assertFalse( RequestInput::get_post_bool( 'c' ) );
     }
 }

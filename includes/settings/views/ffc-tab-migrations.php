@@ -253,8 +253,8 @@ try {
 	$ffcertificate_cleanup_report = get_transient( 'ffc_obsolete_cleanup_report_' . $ffcertificate_user_id );
 	$ffcertificate_preview_ok     = (bool) get_transient( 'ffc_obsolete_cleanup_preview_ok_' . $ffcertificate_user_id );
 
-	$ffcertificate_cleanup_msg = \FreeFormCertificate\Core\Utils::get_get_string( 'obsolete_cleanup_msg' );
-	$ffcertificate_cleanup_err = \FreeFormCertificate\Core\Utils::get_get_string( 'obsolete_cleanup_error' );
+	$ffcertificate_cleanup_msg = \FreeFormCertificate\Core\RequestInput::get_get_string( 'obsolete_cleanup_msg' );
+	$ffcertificate_cleanup_err = \FreeFormCertificate\Core\RequestInput::get_get_string( 'obsolete_cleanup_error' );
 
 	$ffcertificate_base_url = add_query_arg(
 		array(
@@ -482,8 +482,8 @@ try {
 
 	$ffcertificate_url_report     = get_transient( 'ffc_url_cleanup_report_' . $ffcertificate_user_id );
 	$ffcertificate_url_preview_ok = (bool) get_transient( 'ffc_url_cleanup_preview_ok_' . $ffcertificate_user_id );
-	$ffcertificate_url_msg        = \FreeFormCertificate\Core\Utils::get_get_string( 'url_cleanup_msg' );
-	$ffcertificate_url_err        = \FreeFormCertificate\Core\Utils::get_get_string( 'url_cleanup_error' );
+	$ffcertificate_url_msg        = \FreeFormCertificate\Core\RequestInput::get_get_string( 'url_cleanup_msg' );
+	$ffcertificate_url_err        = \FreeFormCertificate\Core\RequestInput::get_get_string( 'url_cleanup_error' );
 
 	$ffcertificate_url_preview_url = wp_nonce_url(
 		add_query_arg( 'ffc_url_cleanup', 'preview', $ffcertificate_base_url ),
@@ -678,8 +678,8 @@ try {
 	$ffcertificate_pa_days       = max( 1, \FreeFormCertificate\Settings\SettingsReader::get_int( 'public_access_disable_days', 90 ) );
 	$ffcertificate_pa_report     = get_transient( 'ffc_pubaccess_report_' . $ffcertificate_user_id );
 	$ffcertificate_pa_preview_ok = (bool) get_transient( 'ffc_pubaccess_preview_ok_' . $ffcertificate_user_id );
-	$ffcertificate_pa_msg        = \FreeFormCertificate\Core\Utils::get_get_string( 'pubaccess_msg' );
-	$ffcertificate_pa_err        = \FreeFormCertificate\Core\Utils::get_get_string( 'pubaccess_error' );
+	$ffcertificate_pa_msg        = \FreeFormCertificate\Core\RequestInput::get_get_string( 'pubaccess_msg' );
+	$ffcertificate_pa_err        = \FreeFormCertificate\Core\RequestInput::get_get_string( 'pubaccess_error' );
 
 	$ffcertificate_pa_preview_url = wp_nonce_url(
 		add_query_arg( 'ffc_pubaccess', 'preview', $ffcertificate_base_url ),
@@ -818,8 +818,8 @@ try {
 	// Submission ↔ user link audit (report-only) (v6.7.x)
 	// ──────────────────────────────────────────────────────────────.
 	$ffcertificate_sa_report = get_transient( 'ffc_submission_audit_report_' . $ffcertificate_user_id );
-	$ffcertificate_sa_msg    = \FreeFormCertificate\Core\Utils::get_get_string( 'submission_audit_msg' );
-	$ffcertificate_sa_err    = \FreeFormCertificate\Core\Utils::get_get_string( 'submission_audit_error' );
+	$ffcertificate_sa_msg    = \FreeFormCertificate\Core\RequestInput::get_get_string( 'submission_audit_msg' );
+	$ffcertificate_sa_err    = \FreeFormCertificate\Core\RequestInput::get_get_string( 'submission_audit_error' );
 
 	$ffcertificate_sa_scan_url = wp_nonce_url(
 		add_query_arg( 'ffc_submission_audit', 'scan', $ffcertificate_base_url ),

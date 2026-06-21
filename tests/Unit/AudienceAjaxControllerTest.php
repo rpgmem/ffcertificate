@@ -61,13 +61,16 @@ class AudienceAjaxControllerTest extends TestCase {
 	private function mockUtils(): void {
 		$utils = Mockery::mock( 'alias:FreeFormCertificate\Core\Utils' );
 		$utils->shouldReceive( 'current_user_can_manage' )->andReturn( true )->byDefault();
-		$utils->shouldReceive( 'get_post_string' )->andReturnUsing(
+
+		// #563 Sprint 3 PR 3b — request-input accessors moved to RequestInput.
+		$ri = Mockery::mock( 'alias:FreeFormCertificate\Core\RequestInput' );
+		$ri->shouldReceive( 'get_post_string' )->andReturnUsing(
 			static fn( $k, $d = '' ) => isset( $_POST[ $k ] ) ? (string) $_POST[ $k ] : $d
 		)->byDefault();
-		$utils->shouldReceive( 'get_post_int' )->andReturnUsing(
+		$ri->shouldReceive( 'get_post_int' )->andReturnUsing(
 			static fn( $k, $d = 0 ) => isset( $_POST[ $k ] ) ? (int) $_POST[ $k ] : $d
 		)->byDefault();
-		$utils->shouldReceive( 'get_post_array' )->andReturnUsing(
+		$ri->shouldReceive( 'get_post_array' )->andReturnUsing(
 			static fn( $k ) => isset( $_POST[ $k ] ) ? (array) $_POST[ $k ] : array()
 		)->byDefault();
 	}

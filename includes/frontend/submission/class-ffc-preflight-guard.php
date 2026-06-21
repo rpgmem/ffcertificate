@@ -16,6 +16,7 @@ declare(strict_types=1);
 namespace FreeFormCertificate\Frontend\Submission;
 
 use FreeFormCertificate\Core\Utils;
+use FreeFormCertificate\Core\RequestInput;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
@@ -36,7 +37,7 @@ class PreflightGuard {
 		$preflight_errors = array();
 
 		// LGPD: trivial string compare, no field loop dependency.
-		if ( Utils::get_post_string( 'ffc_lgpd_consent' ) !== '1' ) {
+		if ( RequestInput::get_post_string( 'ffc_lgpd_consent' ) !== '1' ) {
 			$preflight_errors[] = __( 'You must agree to the Privacy Policy to continue.', 'ffcertificate' );
 		}
 
@@ -50,7 +51,7 @@ class PreflightGuard {
 		if ( ! empty( $email_field_names ) ) {
 			$email_missing = false;
 			foreach ( $email_field_names as $email_field ) {
-				$raw_email = Utils::get_post_string( $email_field );
+				$raw_email = RequestInput::get_post_string( $email_field );
 				if ( '' === trim( $raw_email ) ) {
 					$email_missing = true;
 					break;

@@ -37,7 +37,7 @@ class SelfSchedulingCleanupHandler {
 	 */
 	public function handle_cleanup_appointments(): void {
 		// Verify nonce.
-		if ( ! wp_verify_nonce( \FreeFormCertificate\Core\Utils::get_post_string( 'nonce' ), 'ffc_cleanup_appointments_nonce' ) ) {
+		if ( ! wp_verify_nonce( \FreeFormCertificate\Core\RequestInput::get_post_string( 'nonce' ), 'ffc_cleanup_appointments_nonce' ) ) {
 			wp_send_json_error(
 				array(
 					'message' => __( 'Security check failed', 'ffcertificate' ),
@@ -57,7 +57,7 @@ class SelfSchedulingCleanupHandler {
 
 		// Get parameters.
 		$calendar_id    = isset( $_POST['calendar_id'] ) ? absint( wp_unslash( $_POST['calendar_id'] ) ) : 0;
-		$cleanup_action = \FreeFormCertificate\Core\Utils::get_post_string( 'cleanup_action' );
+		$cleanup_action = \FreeFormCertificate\Core\RequestInput::get_post_string( 'cleanup_action' );
 
 		if ( ! $calendar_id || ! $cleanup_action ) {
 			wp_send_json_error(

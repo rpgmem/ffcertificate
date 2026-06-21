@@ -52,12 +52,12 @@ class SettingsSaveHandler {
 		}
 
 		// Handle General/SMTP/QR Settings.
-		if ( wp_verify_nonce( \FreeFormCertificate\Core\Utils::get_post_string( 'ffc_settings_nonce' ), 'ffc_settings_action' ) ) {
+		if ( wp_verify_nonce( \FreeFormCertificate\Core\RequestInput::get_post_string( 'ffc_settings_nonce' ), 'ffc_settings_action' ) ) {
 			$this->save_general_and_specific_settings();
 		}
 
 		// Handle User Access Settings (v3.1.0).
-		if ( wp_verify_nonce( \FreeFormCertificate\Core\Utils::get_post_string( 'ffc_user_access_nonce' ), 'ffc_user_access_settings' ) ) {
+		if ( wp_verify_nonce( \FreeFormCertificate\Core\RequestInput::get_post_string( 'ffc_user_access_nonce' ), 'ffc_user_access_settings' ) ) {
 			$this->save_user_access_settings();
 		}
 
@@ -76,7 +76,7 @@ class SettingsSaveHandler {
 	private function save_general_and_specific_settings(): void {
         // phpcs:disable WordPress.Security.NonceVerification.Missing -- Nonce verified in handle_all_submissions() via wp_verify_nonce.
 		$current = get_option( 'ffc_settings', array() );
-		$new     = \FreeFormCertificate\Core\Utils::get_post_array( 'ffc_settings' );
+		$new     = \FreeFormCertificate\Core\RequestInput::get_post_array( 'ffc_settings' );
 
 		$clean = $current;
 
@@ -401,7 +401,7 @@ class SettingsSaveHandler {
         // phpcs:disable WordPress.Security.ValidatedSanitizedInput.InputNotSanitized, WordPress.Security.ValidatedSanitizedInput.MissingUnslash -- isset()/empty()/is_array() are existence and type checks; values are sanitized with wp_unslash + sanitize_text_field/esc_url_raw/sanitize_textarea_field.
 		$settings = array(
 			'block_wp_admin'    => isset( $_POST['block_wp_admin'] ),
-			'blocked_roles'     => \FreeFormCertificate\Core\Utils::get_post_array( 'blocked_roles', array( 'ffc_user' ) ),
+			'blocked_roles'     => \FreeFormCertificate\Core\RequestInput::get_post_array( 'blocked_roles', array( 'ffc_user' ) ),
 			'redirect_url'      => ! empty( $_POST['redirect_url'] )
 				? esc_url_raw( wp_unslash( $_POST['redirect_url'] ) )
 				: home_url( '/dashboard' ),
@@ -430,8 +430,8 @@ class SettingsSaveHandler {
 	 */
 	private function handle_danger_zone(): void {
         // phpcs:disable WordPress.Security.NonceVerification.Missing -- Nonce verified in handle_all_submissions() via check_admin_referer.
-		$target        = \FreeFormCertificate\Core\Utils::get_post_string( 'delete_target', 'all' );
-		$reset_counter = \FreeFormCertificate\Core\Utils::get_post_string( 'reset_counter' ) === '1';
+		$target        = \FreeFormCertificate\Core\RequestInput::get_post_string( 'delete_target', 'all' );
+		$reset_counter = \FreeFormCertificate\Core\RequestInput::get_post_string( 'reset_counter' ) === '1';
         // phpcs:enable WordPress.Security.NonceVerification.Missing
 
 		/**

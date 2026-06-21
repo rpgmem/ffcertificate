@@ -213,7 +213,7 @@ class AudienceLoader {
 		);
 
 		// Custom fields CSS + JS (on audiences page).
-		$page = \FreeFormCertificate\Core\Utils::get_get_string( 'page' );
+		$page = \FreeFormCertificate\Core\RequestInput::get_get_string( 'page' );
 		if ( 'ffc-scheduling-audiences' === $page ) {
 			wp_enqueue_script( 'jquery-ui-sortable' );
 

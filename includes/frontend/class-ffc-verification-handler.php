@@ -19,6 +19,7 @@ declare(strict_types=1);
 namespace FreeFormCertificate\Frontend;
 
 use FreeFormCertificate\Core\Utils;
+use FreeFormCertificate\Core\RequestInput;
 
 use FreeFormCertificate\Submissions\SubmissionHandler;
 use FreeFormCertificate\Repositories\SubmissionRepository;
@@ -677,7 +678,7 @@ class VerificationHandler {
 		// No captcha - token proves legitimacy.
 
         // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Magic token authentication; no nonce needed for this public endpoint.
-		$token   = Utils::get_post_string( 'token' );
+		$token   = RequestInput::get_post_string( 'token' );
 		$user_ip = \FreeFormCertificate\Core\Utils::get_user_ip();
 
 		$rate_check = \FreeFormCertificate\Security\RateLimiter::check_verification( $user_ip );
@@ -767,7 +768,7 @@ class VerificationHandler {
 		// nonce is keyed to the current session cookie, so FFC.request
 		// can transparently retry once via its existing refresh_nonce
 		// branch.
-		if ( ! wp_verify_nonce( Utils::get_post_string( 'nonce' ), 'ffc_frontend_nonce' ) ) {
+		if ( ! wp_verify_nonce( RequestInput::get_post_string( 'nonce' ), 'ffc_frontend_nonce' ) ) {
 			wp_send_json_error(
 				array(
 					'message'       => __( 'Security check failed. Please refresh the page.', 'ffcertificate' ),
@@ -803,7 +804,7 @@ class VerificationHandler {
 			);
 		}
 
-		$auth_code = Utils::get_post_string( 'ffc_auth_code' );
+		$auth_code = RequestInput::get_post_string( 'ffc_auth_code' );
         // phpcs:enable WordPress.Security.NonceVerification.Missing
 		$result = $this->search_certificate( $auth_code );
 
