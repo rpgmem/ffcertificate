@@ -62,7 +62,7 @@ class ActivityLogAjaxEndpointTest extends TestCase {
     // ==================================================================
 
     public function test_rejects_when_user_lacks_capability(): void {
-        Mockery::mock( 'alias:FreeFormCertificate\Core\Utils' )
+        Mockery::mock( 'alias:FreeFormCertificate\Core\Capabilities' )
             ->shouldReceive( 'current_user_can_admin_or' )
             ->andReturn( false );
 
@@ -72,7 +72,7 @@ class ActivityLogAjaxEndpointTest extends TestCase {
     }
 
     public function test_rejects_when_activity_log_disabled(): void {
-        Mockery::mock( 'alias:FreeFormCertificate\Core\Utils' )
+        Mockery::mock( 'alias:FreeFormCertificate\Core\Capabilities' )
             ->shouldReceive( 'current_user_can_admin_or' )
             ->andReturn( true );
         Functions\when( 'get_option' )->justReturn( array() ); // missing enable_activity_log.
@@ -87,7 +87,7 @@ class ActivityLogAjaxEndpointTest extends TestCase {
     // ==================================================================
 
     public function test_returns_rendered_table_html_pagination_html_and_counts(): void {
-        Mockery::mock( 'alias:FreeFormCertificate\Core\Utils' )
+        Mockery::mock( 'alias:FreeFormCertificate\Core\Capabilities' )
             ->shouldReceive( 'current_user_can_admin_or' )
             ->andReturn( true );
         Functions\when( 'get_option' )->justReturn( array( 'enable_activity_log' => 1 ) );
@@ -123,7 +123,7 @@ class ActivityLogAjaxEndpointTest extends TestCase {
     }
 
     public function test_empty_result_sets_is_empty_true(): void {
-        Mockery::mock( 'alias:FreeFormCertificate\Core\Utils' )
+        Mockery::mock( 'alias:FreeFormCertificate\Core\Capabilities' )
             ->shouldReceive( 'current_user_can_admin_or' )
             ->andReturn( true );
         Functions\when( 'get_option' )->justReturn( array( 'enable_activity_log' => 1 ) );

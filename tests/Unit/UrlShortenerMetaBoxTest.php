@@ -3,6 +3,8 @@ declare(strict_types=1);
 
 namespace FreeFormCertificate\Tests\Unit;
 
+use FreeFormCertificate\Core\Capabilities;
+
 use Brain\Monkey;
 use Brain\Monkey\Functions;
 use Mockery;
@@ -240,7 +242,7 @@ class UrlShortenerMetaBoxTest extends TestCase {
 
     /**
      * Runs in a separate process because AjaxTrait::check_ajax_permission()
-     * calls Utils::current_user_can_manage(), and other tests in the suite
+     * calls Capabilities::current_user_can_manage(), and other tests in the suite
      * leave a Mockery alias for Utils loaded.
      *
      * @runInSeparateProcess

@@ -3,6 +3,8 @@ declare(strict_types=1);
 
 namespace FreeFormCertificate\Tests\Unit;
 
+use FreeFormCertificate\Core\Capabilities;
+
 use Brain\Monkey;
 use Brain\Monkey\Functions;
 use Mockery;
@@ -406,7 +408,7 @@ class RateLimiterTest extends TestCase {
         // Without the Utils class loaded, should_bypass_for_manager() falls
         // back to current_user_can('manage_options'). The class IS loaded
         // in this test environment via composer autoload, so we route
-        // through Utils::current_user_can_admin_or().
+        // through Capabilities::current_user_can_admin_or().
         $this->assertTrue( RateLimiter::should_bypass_for_manager() );
     }
 

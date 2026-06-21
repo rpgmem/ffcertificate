@@ -349,7 +349,7 @@ class Settings {
 			// whole tab body is wrapped in a disabled <fieldset> below so the page
 			// is a *real* read-only surface (no live inputs that silently fail at
 			// the manage-gated save handler), mirroring the recruitment Settings tab.
-			$ffc_settings_can_edit = \FreeFormCertificate\Core\Utils::current_user_can_admin_or( 'ffc_manage_settings' );
+			$ffc_settings_can_edit = \FreeFormCertificate\Core\Capabilities::current_user_can_admin_or( 'ffc_manage_settings' );
 			if ( ! $ffc_settings_can_edit ) {
 				echo '<div class="notice notice-info inline"><p>'
 					. esc_html__( 'Read-only — you can view these settings but do not have permission to change them.', 'ffcertificate' )
@@ -427,7 +427,7 @@ class Settings {
 			return;
 		}
 
-		if ( ! \FreeFormCertificate\Core\Utils::current_user_can_admin_or( 'ffc_manage_settings' ) ) {
+		if ( ! \FreeFormCertificate\Core\Capabilities::current_user_can_admin_or( 'ffc_manage_settings' ) ) {
 			wp_die( esc_html__( 'You do not have permission to run migrations.', 'ffcertificate' ) );
 		}
 
@@ -496,7 +496,7 @@ class Settings {
 			return;
 		}
 
-		if ( ! \FreeFormCertificate\Core\Utils::current_user_can_admin_or( 'ffc_manage_settings' ) ) {
+		if ( ! \FreeFormCertificate\Core\Capabilities::current_user_can_admin_or( 'ffc_manage_settings' ) ) {
 			wp_die( esc_html__( 'You do not have permission to run this action.', 'ffcertificate' ) );
 		}
 
@@ -648,7 +648,7 @@ class Settings {
 			return;
 		}
 
-		if ( ! \FreeFormCertificate\Core\Utils::current_user_can_admin_or( 'ffc_manage_settings' ) ) {
+		if ( ! \FreeFormCertificate\Core\Capabilities::current_user_can_admin_or( 'ffc_manage_settings' ) ) {
 			wp_die( esc_html__( 'You do not have permission to run this action.', 'ffcertificate' ) );
 		}
 
@@ -783,7 +783,7 @@ class Settings {
 			return;
 		}
 
-		if ( ! \FreeFormCertificate\Core\Utils::current_user_can_admin_or( 'ffc_manage_settings' ) ) {
+		if ( ! \FreeFormCertificate\Core\Capabilities::current_user_can_admin_or( 'ffc_manage_settings' ) ) {
 			wp_die( esc_html__( 'You do not have permission to run this action.', 'ffcertificate' ) );
 		}
 
@@ -892,7 +892,7 @@ class Settings {
 			return;
 		}
 
-		if ( ! \FreeFormCertificate\Core\Utils::current_user_can_admin_or( 'ffc_manage_settings' ) ) {
+		if ( ! \FreeFormCertificate\Core\Capabilities::current_user_can_admin_or( 'ffc_manage_settings' ) ) {
 			wp_die( esc_html__( 'You do not have permission to run this action.', 'ffcertificate' ) );
 		}
 
@@ -945,7 +945,7 @@ class Settings {
 	public function ajax_preview_date_format(): void {
 		check_ajax_referer( 'ffc_preview_date', 'nonce' );
 
-		if ( ! \FreeFormCertificate\Core\Utils::current_user_can_admin_or( 'ffc_manage_settings' ) ) {
+		if ( ! \FreeFormCertificate\Core\Capabilities::current_user_can_admin_or( 'ffc_manage_settings' ) ) {
 			wp_send_json_error( array( 'message' => __( 'Permission denied.', 'ffcertificate' ) ) );
 		}
 
@@ -974,7 +974,7 @@ class Settings {
 	 * Handle cache actions.
 	 */
 	public function handle_cache_actions(): void {
-		if ( ! \FreeFormCertificate\Core\Utils::current_user_can_admin_or( 'ffc_manage_settings' ) ) {
+		if ( ! \FreeFormCertificate\Core\Capabilities::current_user_can_admin_or( 'ffc_manage_settings' ) ) {
 			return;
 		}
 

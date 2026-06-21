@@ -58,7 +58,7 @@ final class RecruitmentReasonEditPage {
 	 * @return void
 	 */
 	public static function render(): void {
-		if ( ! \FreeFormCertificate\Core\Utils::current_user_can_admin_or( self::CAP ) ) {
+		if ( ! \FreeFormCertificate\Core\Capabilities::current_user_can_admin_or( self::CAP ) ) {
 			wp_die( esc_html__( 'Access denied.', 'ffcertificate' ) );
 		}
 
@@ -161,7 +161,7 @@ final class RecruitmentReasonEditPage {
 	 * @return void
 	 */
 	public static function handle_save(): void {
-		if ( ! \FreeFormCertificate\Core\Utils::current_user_can_admin_or( self::CAP ) ) {
+		if ( ! \FreeFormCertificate\Core\Capabilities::current_user_can_admin_or( self::CAP ) ) {
 			wp_die( esc_html__( 'Access denied.', 'ffcertificate' ) );
 		}
 		$reason_id = isset( $_POST['reason_id'] ) ? absint( wp_unslash( (string) $_POST['reason_id'] ) ) : 0;

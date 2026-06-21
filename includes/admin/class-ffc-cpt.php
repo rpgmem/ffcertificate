@@ -84,7 +84,7 @@ class CPT {
 			return $actions;
 		}
 
-		if ( ! \FreeFormCertificate\Core\Utils::current_user_can_manage() ) {
+		if ( ! \FreeFormCertificate\Core\Capabilities::current_user_can_manage() ) {
 			return $actions;
 		}
 
@@ -115,7 +115,7 @@ class CPT {
 		if ( ! $post || 'ffc_form' !== $post->post_type ) {
 			return;
 		}
-		if ( ! \FreeFormCertificate\Core\Utils::current_user_can_manage() ) {
+		if ( ! \FreeFormCertificate\Core\Capabilities::current_user_can_manage() ) {
 			return;
 		}
 		// New (auto-draft) posts have nothing meaningful to copy yet — the
@@ -142,7 +142,7 @@ class CPT {
 	 * Handles the duplication process when the action is triggered
 	 */
 	public function handle_form_duplication(): void {
-		if ( ! \FreeFormCertificate\Core\Utils::current_user_can_manage() ) {
+		if ( ! \FreeFormCertificate\Core\Capabilities::current_user_can_manage() ) {
 			\FreeFormCertificate\Core\Debug::log_admin(
 				'Unauthorized form duplication attempt',
 				array(

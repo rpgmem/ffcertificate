@@ -67,7 +67,7 @@ class MigrationActionsAjaxEndpointTest extends TestCase {
     // ==================================================================
 
     public function test_rejects_when_user_lacks_capability(): void {
-        Mockery::mock( 'alias:FreeFormCertificate\Core\Utils' )
+        Mockery::mock( 'alias:FreeFormCertificate\Core\Capabilities' )
             ->shouldReceive( 'current_user_can_admin_or' )
             ->andReturn( false );
 
@@ -77,7 +77,7 @@ class MigrationActionsAjaxEndpointTest extends TestCase {
     }
 
     public function test_rejects_missing_migration_key(): void {
-        Mockery::mock( 'alias:FreeFormCertificate\Core\Utils' )
+        Mockery::mock( 'alias:FreeFormCertificate\Core\Capabilities' )
             ->shouldReceive( 'current_user_can_admin_or' )
             ->andReturn( true );
 
@@ -89,7 +89,7 @@ class MigrationActionsAjaxEndpointTest extends TestCase {
     }
 
     public function test_rejects_unknown_migration(): void {
-        Mockery::mock( 'alias:FreeFormCertificate\Core\Utils' )
+        Mockery::mock( 'alias:FreeFormCertificate\Core\Capabilities' )
             ->shouldReceive( 'current_user_can_admin_or' )
             ->andReturn( true );
 
@@ -106,7 +106,7 @@ class MigrationActionsAjaxEndpointTest extends TestCase {
     }
 
     public function test_run_migration_error_is_surfaced(): void {
-        Mockery::mock( 'alias:FreeFormCertificate\Core\Utils' )
+        Mockery::mock( 'alias:FreeFormCertificate\Core\Capabilities' )
             ->shouldReceive( 'current_user_can_admin_or' )
             ->andReturn( true );
 
@@ -126,7 +126,7 @@ class MigrationActionsAjaxEndpointTest extends TestCase {
     // ==================================================================
 
     public function test_happy_path_returns_status_snapshot(): void {
-        Mockery::mock( 'alias:FreeFormCertificate\Core\Utils' )
+        Mockery::mock( 'alias:FreeFormCertificate\Core\Capabilities' )
             ->shouldReceive( 'current_user_can_admin_or' )
             ->andReturn( true );
 
@@ -160,7 +160,7 @@ class MigrationActionsAjaxEndpointTest extends TestCase {
     }
 
     public function test_completion_flag_propagates(): void {
-        Mockery::mock( 'alias:FreeFormCertificate\Core\Utils' )
+        Mockery::mock( 'alias:FreeFormCertificate\Core\Capabilities' )
             ->shouldReceive( 'current_user_can_admin_or' )
             ->andReturn( true );
 

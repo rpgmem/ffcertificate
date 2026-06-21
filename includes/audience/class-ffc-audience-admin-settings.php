@@ -550,7 +550,7 @@ class AudienceAdminSettings {
 	 * @return void
 	 */
 	public function handle_visibility_settings(): void {
-		if ( ! \FreeFormCertificate\Core\Utils::current_user_can_admin_or( 'ffc_manage_audiences' ) ) {
+		if ( ! \FreeFormCertificate\Core\Capabilities::current_user_can_admin_or( 'ffc_manage_audiences' ) ) {
 			return;
 		}
 
@@ -640,7 +640,7 @@ class AudienceAdminSettings {
 				return;
 			}
 
-			if ( ! \FreeFormCertificate\Core\Utils::current_user_can_admin_or( 'ffc_manage_audiences' ) ) {
+			if ( ! \FreeFormCertificate\Core\Capabilities::current_user_can_admin_or( 'ffc_manage_audiences' ) ) {
 				return;
 			}
 
@@ -684,7 +684,7 @@ class AudienceAdminSettings {
 				return;
 			}
 
-			if ( ! \FreeFormCertificate\Core\Utils::current_user_can_admin_or( 'ffc_manage_audiences' ) ) {
+			if ( ! \FreeFormCertificate\Core\Capabilities::current_user_can_admin_or( 'ffc_manage_audiences' ) ) {
 				return;
 			}
 

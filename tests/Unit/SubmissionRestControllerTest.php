@@ -3,6 +3,8 @@ declare(strict_types=1);
 
 namespace FreeFormCertificate\Tests\Unit;
 
+use FreeFormCertificate\Core\Capabilities;
+
 use Brain\Monkey;
 use Brain\Monkey\Functions;
 use Mockery;
@@ -167,7 +169,7 @@ class SubmissionRestControllerTest extends TestCase {
     // same-process tests.
 
     // ------------------------------------------------------------------
-    // check_admin_permission (delegates to Utils::current_user_can_admin_or)
+    // check_admin_permission (delegates to Capabilities::current_user_can_admin_or)
     // ------------------------------------------------------------------
 
     public function test_check_admin_permission_true_for_admin(): void {

@@ -59,7 +59,7 @@ class AudienceAjaxControllerTest extends TestCase {
 
 	/** Stub the Utils statics the AjaxTrait helpers delegate to. */
 	private function mockUtils(): void {
-		$utils = Mockery::mock( 'alias:FreeFormCertificate\Core\Utils' );
+		$utils = Mockery::mock( 'alias:FreeFormCertificate\Core\Capabilities' );
 		$utils->shouldReceive( 'current_user_can_manage' )->andReturn( true )->byDefault();
 
 		// #563 Sprint 3 PR 3b — request-input accessors moved to RequestInput.

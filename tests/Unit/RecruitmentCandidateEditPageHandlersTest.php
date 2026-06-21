@@ -3,6 +3,8 @@ declare(strict_types=1);
 
 namespace FreeFormCertificate\Tests\Unit;
 
+use FreeFormCertificate\Core\Capabilities;
+
 use Brain\Monkey;
 use Brain\Monkey\Functions;
 use Mockery;
@@ -57,8 +59,8 @@ class RecruitmentCandidateEditPageHandlersTest extends TestCase {
 			}
 		);
 
-		// Utils::current_user_can_admin_or — used by handle_delete's cap gate.
-		$this->utils = Mockery::mock( 'alias:FreeFormCertificate\Core\Utils' );
+		// Capabilities::current_user_can_admin_or — used by handle_delete's cap gate.
+		$this->utils = Mockery::mock( 'alias:FreeFormCertificate\Core\Capabilities' );
 		$this->utils->shouldReceive( 'current_user_can_admin_or' )->andReturn( true )->byDefault();
 	}
 

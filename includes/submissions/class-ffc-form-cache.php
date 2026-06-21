@@ -341,7 +341,7 @@ class FormCache {
 	 * Clear all form caches
 	 */
 	public static function clear_all_cache(): bool {
-		if ( ! \FreeFormCertificate\Core\Utils::current_user_can_admin_or( 'ffc_manage_settings' ) ) {
+		if ( ! \FreeFormCertificate\Core\Capabilities::current_user_can_admin_or( 'ffc_manage_settings' ) ) {
 			return false;
 		}
 

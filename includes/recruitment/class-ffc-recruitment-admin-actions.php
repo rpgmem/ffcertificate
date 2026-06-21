@@ -53,7 +53,7 @@ final class RecruitmentAdminActions {
 		$required_cap = ( 'delete-reason' === $action )
 			? 'ffc_manage_recruitment_reasons'
 			: 'ffc_delete_recruitment';
-		if ( ! \FreeFormCertificate\Core\Utils::current_user_can_admin_or( $required_cap ) ) {
+		if ( ! \FreeFormCertificate\Core\Capabilities::current_user_can_admin_or( $required_cap ) ) {
 			return;
 		}
 

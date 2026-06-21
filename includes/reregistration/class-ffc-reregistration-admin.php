@@ -62,7 +62,7 @@ class ReregistrationAdmin {
 	 * @return bool
 	 */
 	private function can_edit(): bool {
-		return \FreeFormCertificate\Core\Utils::current_user_can_admin_or( self::CAPABILITY );
+		return \FreeFormCertificate\Core\Capabilities::current_user_can_admin_or( self::CAPABILITY );
 	}
 
 	/**
@@ -212,7 +212,7 @@ class ReregistrationAdmin {
 	public function render_page(): void {
 		// 3-state: viewers (ffc_view_reregistration) reach the list/submissions
 		// read-only; the campaign editor (new/edit) needs the manage cap.
-		if ( ! \FreeFormCertificate\Core\Utils::current_user_can_admin_or( self::VIEW_CAPABILITY ) ) {
+		if ( ! \FreeFormCertificate\Core\Capabilities::current_user_can_admin_or( self::VIEW_CAPABILITY ) ) {
 			wp_die( esc_html__( 'Permission denied.', 'ffcertificate' ) );
 		}
 
@@ -942,7 +942,7 @@ class ReregistrationAdmin {
 
 		// Deleting a campaign cascades to its submissions — gated by the
 		// dedicated destructive cap (GAP E), not the page-level manage cap.
-		if ( ! \FreeFormCertificate\Core\Utils::current_user_can_admin_or( 'ffc_delete_reregistration' ) ) {
+		if ( ! \FreeFormCertificate\Core\Capabilities::current_user_can_admin_or( 'ffc_delete_reregistration' ) ) {
 			wp_die( esc_html__( 'You do not have permission to delete reregistration campaigns.', 'ffcertificate' ) );
 		}
 

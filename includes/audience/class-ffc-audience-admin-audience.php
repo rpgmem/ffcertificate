@@ -10,6 +10,7 @@ declare(strict_types=1);
 namespace FreeFormCertificate\Audience;
 
 use FreeFormCertificate\Core\Utils;
+use FreeFormCertificate\Core\Capabilities;
 use FreeFormCertificate\Core\RequestInput;
 
 use FreeFormCertificate\Core\ColorValidator;
@@ -83,7 +84,7 @@ class AudienceAdminAudience {
 
 		?>
 		<h1 class="wp-heading-inline"><?php esc_html_e( 'Audiences', 'ffcertificate' ); ?></h1>
-		<?php if ( \FreeFormCertificate\Core\Utils::current_user_can_admin_or( 'ffc_manage_audiences' ) ) : ?>
+		<?php if ( \FreeFormCertificate\Core\Capabilities::current_user_can_admin_or( 'ffc_manage_audiences' ) ) : ?>
 		<a href="<?php echo esc_url( $add_url ); ?>" class="page-title-action"><?php esc_html_e( 'Add New', 'ffcertificate' ); ?></a>
 		<?php endif; ?>
 		<hr class="wp-header-end">
@@ -360,11 +361,11 @@ class AudienceAdminAudience {
 		// 3-state model: hidden without view; read-only with view-only; editable
 		// with manage. The save/delete/replicate AJAX is gated server-side by
 		// ffc_manage_custom_fields regardless of what the UI renders.
-		if ( ! \FreeFormCertificate\Core\Utils::current_user_can_admin_or( 'ffc_view_custom_fields' )
-			&& ! \FreeFormCertificate\Core\Utils::current_user_can_admin_or( 'ffc_manage_custom_fields' ) ) {
+		if ( ! \FreeFormCertificate\Core\Capabilities::current_user_can_admin_or( 'ffc_view_custom_fields' )
+			&& ! \FreeFormCertificate\Core\Capabilities::current_user_can_admin_or( 'ffc_manage_custom_fields' ) ) {
 			return;
 		}
-		$can_edit_fields = \FreeFormCertificate\Core\Utils::current_user_can_admin_or( 'ffc_manage_custom_fields' );
+		$can_edit_fields = \FreeFormCertificate\Core\Capabilities::current_user_can_admin_or( 'ffc_manage_custom_fields' );
 
 		// Ensure standard fields are seeded for this audience before rendering.
 		if ( class_exists( '\FreeFormCertificate\Reregistration\ReregistrationStandardFieldsSeeder' ) ) {
@@ -781,7 +782,7 @@ class AudienceAdminAudience {
 	 * @return void
 	 */
 	public function handle_actions(): void {
-		if ( ! \FreeFormCertificate\Core\Utils::current_user_can_admin_or( 'ffc_manage_audiences' ) ) {
+		if ( ! \FreeFormCertificate\Core\Capabilities::current_user_can_admin_or( 'ffc_manage_audiences' ) ) {
 			return;
 		}
 
@@ -881,7 +882,7 @@ class AudienceAdminAudience {
 		// Handle delete (only inactive items can be permanently deleted).
         // phpcs:ignore WordPress.Security.NonceVerification.Recommended
 		if ( isset( $_GET['action'] ) && 'delete' === $_GET['action'] && isset( $_GET['id'] ) && isset( $_GET['page'] ) && $_GET['page'] === $this->menu_slug . '-audiences' ) {
-			if ( ! Utils::current_user_can_admin_or( 'ffc_delete_audiences' ) ) {
+			if ( ! Capabilities::current_user_can_admin_or( 'ffc_delete_audiences' ) ) {
 				wp_die( esc_html__( 'You do not have permission to delete audiences.', 'ffcertificate' ) );
 			}
 			$id = absint( $_GET['id'] );

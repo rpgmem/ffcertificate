@@ -347,7 +347,7 @@ class RecruitmentReasonsListTable extends \WP_List_Table {
 		// reach the Reasons tab (read-only `ffc_view_recruitment` holders, e.g.
 		// the Recruitment Auditor) could delete reasons via a crafted POST. Gate
 		// it server-side regardless of what the table rendered.
-		if ( ! \FreeFormCertificate\Core\Utils::current_user_can_admin_or( 'ffc_manage_recruitment_reasons' ) ) {
+		if ( ! \FreeFormCertificate\Core\Capabilities::current_user_can_admin_or( 'ffc_manage_recruitment_reasons' ) ) {
 			return;
 		}
 

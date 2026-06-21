@@ -280,9 +280,9 @@ class AudienceAdminImport {
 		// without `manage`. Enter the handler if the user can do any of the
 		// three; each branch enforces its own cap below. The sample-template
 		// download is an import aid, so it follows `manage` or `import`.
-		$can_manage = \FreeFormCertificate\Core\Utils::current_user_can_admin_or( 'ffc_manage_audiences' );
-		$can_export = \FreeFormCertificate\Core\Utils::current_user_can_admin_or( 'ffc_export_audiences' );
-		$can_import = \FreeFormCertificate\Core\Utils::current_user_can_admin_or( 'ffc_import_audiences' );
+		$can_manage = \FreeFormCertificate\Core\Capabilities::current_user_can_admin_or( 'ffc_manage_audiences' );
+		$can_export = \FreeFormCertificate\Core\Capabilities::current_user_can_admin_or( 'ffc_export_audiences' );
+		$can_import = \FreeFormCertificate\Core\Capabilities::current_user_can_admin_or( 'ffc_import_audiences' );
 		if ( ! $can_manage && ! $can_export && ! $can_import ) {
 			return;
 		}

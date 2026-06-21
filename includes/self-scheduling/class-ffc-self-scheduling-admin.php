@@ -58,7 +58,7 @@ class SelfSchedulingAdmin {
 	public function render_appointments_page(): void {
 		// 3-state: read-only viewers (ffc_view_appointments) may open the
 		// appointments list; cancel/write actions remain manage-gated.
-		if ( ! \FreeFormCertificate\Core\Utils::current_user_can_admin_or( 'ffc_view_appointments' ) ) {
+		if ( ! \FreeFormCertificate\Core\Capabilities::current_user_can_admin_or( 'ffc_view_appointments' ) ) {
 			wp_die( esc_html__( 'You do not have permission to access this page.', 'ffcertificate' ) );
 		}
 
