@@ -10,6 +10,7 @@ use Mockery\Adapter\Phpunit\MockeryPHPUnitIntegration;
 use PHPUnit\Framework\TestCase;
 use FreeFormCertificate\Recruitment\RecruitmentCsvImporter;
 use FreeFormCertificate\Recruitment\CsvParser;
+use FreeFormCertificate\Recruitment\CsvValidator;
 
 /**
  * Tests for RecruitmentCsvImporter.
@@ -395,10 +396,9 @@ class RecruitmentCsvImporterTest extends TestCase {
 	 * @return list<string>
 	 */
 	private function validate_rows( array $rows, array $map = array( 'mat' => 1 ) ): array {
-		$ref = new \ReflectionClass( RecruitmentCsvImporter::class );
-		$m   = $ref->getMethod( 'validate' );
-		$m->setAccessible( true );
-		return $m->invoke( null, $rows, 1, 'preview', $map );
+		// validate() moved to the extracted CsvValidator (public static) in
+		// #563 Sprint 6 (PR 6b); the importer now delegates to it.
+		return CsvValidator::validate( $rows, 1, 'preview', $map );
 	}
 
 	private function csv_row( array $overrides = array() ): array {
