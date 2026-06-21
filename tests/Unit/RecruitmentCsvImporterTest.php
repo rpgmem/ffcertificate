@@ -9,6 +9,7 @@ use Mockery;
 use Mockery\Adapter\Phpunit\MockeryPHPUnitIntegration;
 use PHPUnit\Framework\TestCase;
 use FreeFormCertificate\Recruitment\RecruitmentCsvImporter;
+use FreeFormCertificate\Recruitment\CsvParser;
 
 /**
  * Tests for RecruitmentCsvImporter.
@@ -281,17 +282,17 @@ class RecruitmentCsvImporterTest extends TestCase {
 	// ------------------------------------------------------------------
 
 	/**
-	 * Call the private `normalise_id` helper via reflection.
+	 * Call the `normalise_id` helper.
+	 *
+	 * Moved to the extracted {@see CsvParser} as a public static in #563
+	 * Sprint 6 (PR 6a); the importer now delegates to it.
 	 *
 	 * @param string $raw
 	 * @param int    $expected_length
 	 * @return array{value: string, too_long: bool}
 	 */
 	private function normalise( string $raw, int $expected_length ): array {
-		$ref = new \ReflectionClass( RecruitmentCsvImporter::class );
-		$m   = $ref->getMethod( 'normalise_id' );
-		$m->setAccessible( true );
-		return $m->invoke( null, $raw, $expected_length );
+		return CsvParser::normalise_id( $raw, $expected_length );
 	}
 
 	public function test_normalise_cpf_passes_through_canonical_value(): void {
