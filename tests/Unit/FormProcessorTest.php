@@ -8,8 +8,8 @@ use Brain\Monkey\Functions;
 use Mockery;
 use Mockery\Adapter\Phpunit\MockeryPHPUnitIntegration;
 use PHPUnit\Framework\TestCase;
-use FreeFormCertificate\Frontend\FormProcessor;
 use FreeFormCertificate\Frontend\AccessRestrictionChecker;
+use FreeFormCertificate\Frontend\Submission\SubmissionPersister;
 use FreeFormCertificate\Submissions\SubmissionHandler;
 
 /**
@@ -21,7 +21,7 @@ class FormProcessorTest extends TestCase {
 
     use MockeryPHPUnitIntegration;
 
-    /** @var FormProcessor */
+    /** @var SubmissionPersister */
     private $processor;
 
     protected function setUp(): void {
@@ -33,7 +33,8 @@ class FormProcessorTest extends TestCase {
         Functions\when( 'wp_unslash' )->returnArg();
 
         $mock_handler = Mockery::mock( SubmissionHandler::class );
-        $this->processor = new FormProcessor( $mock_handler );
+        // #563 Sprint 1 PR 1b — calculate_quiz_score moved to SubmissionPersister.
+        $this->processor = new SubmissionPersister( $mock_handler );
     }
 
     protected function tearDown(): void {
@@ -45,7 +46,7 @@ class FormProcessorTest extends TestCase {
      * Invoke a private method on FormProcessor.
      */
     private function invoke( string $method, array $args = [] ) {
-        $ref = new \ReflectionMethod( FormProcessor::class, $method );
+        $ref = new \ReflectionMethod( SubmissionPersister::class, $method );
         $ref->setAccessible( true );
         return $ref->invokeArgs( $this->processor, $args );
     }

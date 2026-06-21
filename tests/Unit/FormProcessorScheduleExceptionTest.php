@@ -8,7 +8,7 @@ use Brain\Monkey\Functions;
 use Mockery;
 use Mockery\Adapter\Phpunit\MockeryPHPUnitIntegration;
 use PHPUnit\Framework\TestCase;
-use FreeFormCertificate\Frontend\FormProcessor;
+use FreeFormCertificate\Frontend\Submission\SubmissionPersister;
 use FreeFormCertificate\Submissions\SubmissionHandler;
 
 /**
@@ -22,7 +22,7 @@ use FreeFormCertificate\Submissions\SubmissionHandler;
  * FormProcessorTest cases that don't need isolation. Mirrors the
  * established pattern in ActivityLogAjaxEndpointTest / CacheActionsAjaxEndpointTest.
  *
- * @covers \FreeFormCertificate\Frontend\FormProcessor::persist_schedule_exception
+ * @covers \FreeFormCertificate\Frontend\Submission\SubmissionPersister::persist_schedule_exception
  * @runTestsInSeparateProcesses
  * @preserveGlobalState disabled
  */
@@ -30,8 +30,8 @@ class FormProcessorScheduleExceptionTest extends TestCase {
 
     use MockeryPHPUnitIntegration;
 
-    /** @var FormProcessor */
-    private $processor;
+    /** @var SubmissionPersister */
+    private $persister;
 
     /** @var Mockery\MockInterface */
     private $repo;
@@ -60,7 +60,7 @@ class FormProcessorScheduleExceptionTest extends TestCase {
         $handler = Mockery::mock( SubmissionHandler::class );
         $handler->shouldReceive( 'get_repository' )->andReturn( $this->repo )->byDefault();
 
-        $this->processor = new FormProcessor( $handler );
+        $this->persister = new SubmissionPersister( $handler );
 
         // Alias ActivityLog so we can spy on log() and read constants
         // without booting the real wpdb-backed class.
@@ -90,9 +90,9 @@ class FormProcessorScheduleExceptionTest extends TestCase {
     }
 
     private function invoke_persist( int $submission_id, int $form_id, array $payload, string $cpf ): void {
-        $ref = new \ReflectionMethod( FormProcessor::class, 'persist_schedule_exception' );
+        $ref = new \ReflectionMethod( SubmissionPersister::class, 'persist_schedule_exception' );
         $ref->setAccessible( true );
-        $ref->invokeArgs( $this->processor, array( $submission_id, $form_id, $payload, $cpf ) );
+        $ref->invokeArgs( $this->persister, array( $submission_id, $form_id, $payload, $cpf ) );
     }
 
     private function full_payload( array $overrides = array() ): array {
@@ -249,9 +249,9 @@ class FormProcessorScheduleExceptionTest extends TestCase {
     }
 
     private function invoke_maybe_persist( int $submission_id, int $form_id, array $payload, string $cpf ): bool {
-        $ref = new \ReflectionMethod( FormProcessor::class, 'maybe_persist_schedule_exception' );
+        $ref = new \ReflectionMethod( SubmissionPersister::class, 'maybe_persist_schedule_exception' );
         $ref->setAccessible( true );
-        return (bool) $ref->invokeArgs( $this->processor, array( $submission_id, $form_id, $payload, $cpf ) );
+        return (bool) $ref->invokeArgs( $this->persister, array( $submission_id, $form_id, $payload, $cpf ) );
     }
 
     public function test_maybe_persist_applies_override_when_claim_wins(): void {

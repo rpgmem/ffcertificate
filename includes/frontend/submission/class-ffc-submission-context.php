@@ -117,4 +117,53 @@ class SubmissionContext {
 	 * @var array<string, mixed>
 	 */
 	public array $restriction_result = array();
+
+	/**
+	 * Persisted (or resolved) submission row id.
+	 *
+	 * @var int
+	 */
+	public int $submission_id = 0;
+
+	/**
+	 * Submission date string (wall-clock 'mysql') for the success render.
+	 *
+	 * @var string
+	 */
+	public string $real_submission_date = '';
+
+	/**
+	 * Whether this resolved to a reprint of an existing certificate.
+	 *
+	 * @var bool
+	 */
+	public bool $is_reprint = false;
+
+	/**
+	 * Whether the form runs in quiz mode.
+	 *
+	 * @var bool
+	 */
+	public bool $is_quiz = false;
+
+	/**
+	 * Quiz score breakdown, when quiz mode is active.
+	 *
+	 * @var array{score: int, max_score: int, percent: int}|null
+	 */
+	public ?array $quiz_score = null;
+
+	/**
+	 * Generated PDF payload handed back to the client.
+	 *
+	 * @var mixed
+	 */
+	public $pdf_data = null;
+
+	/**
+	 * Final success response payload for wp_send_json_success().
+	 *
+	 * @var array<string, mixed>
+	 */
+	public array $response = array();
 }
