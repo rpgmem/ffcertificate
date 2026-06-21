@@ -616,7 +616,7 @@ class Loader {
 	 * Only registers -- actual enqueue happens when shortcodes load their dependencies.
 	 */
 	public function register_frontend_assets(): void {
-		$s = \FreeFormCertificate\Core\Utils::asset_suffix();
+		$s = \FreeFormCertificate\Core\AssetHelper::asset_suffix();
 		wp_register_script( 'ffc-rate-limit', FFC_PLUGIN_URL . "assets/js/ffc-frontend-helpers{$s}.js", array( 'jquery' ), FFC_VERSION, true );
 
 		// ffc-core ships `window.FFC.request()` (the AJAX helper used by the
@@ -666,7 +666,7 @@ class Loader {
 			return;
 		}
 
-		$s = \FreeFormCertificate\Core\Utils::asset_suffix();
+		$s = \FreeFormCertificate\Core\AssetHelper::asset_suffix();
 		wp_register_script(
 			'ffc-core',
 			FFC_PLUGIN_URL . "assets/js/ffc-core{$s}.js",

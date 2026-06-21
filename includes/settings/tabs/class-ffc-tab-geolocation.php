@@ -59,7 +59,7 @@ class TabGeolocation extends SettingsTab {
 			return;
 		}
 
-		$s = \FreeFormCertificate\Core\Utils::asset_suffix();
+		$s = \FreeFormCertificate\Core\AssetHelper::asset_suffix();
 		// Shared helper enqueues ffc-core + ffc-admin-autosave AND localizes
 		// `ffcAdminAutosave.nonce` for the `ffc_update_setting` endpoint.
 		// Inlining the enqueues here (the pre-#440 shape) skipped the nonce

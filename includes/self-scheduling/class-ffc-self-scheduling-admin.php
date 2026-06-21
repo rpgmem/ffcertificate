@@ -116,7 +116,7 @@ class SelfSchedulingAdmin {
 			return;
 		}
 
-		$s = \FreeFormCertificate\Core\Utils::asset_suffix();
+		$s = \FreeFormCertificate\Core\AssetHelper::asset_suffix();
 
 		// Only the status-badge styles are needed on this screen. The old
 		// ffc-calendar-admin.js was an empty stub whose localize object

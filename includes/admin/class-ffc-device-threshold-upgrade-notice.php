@@ -71,7 +71,7 @@ class DeviceThresholdUpgradeNotice {
 			</p>
 		</div>
 		<?php
-		$s = \FreeFormCertificate\Core\Utils::asset_suffix();
+		$s = \FreeFormCertificate\Core\AssetHelper::asset_suffix();
 		wp_enqueue_script(
 			'ffc-device-threshold-notice',
 			FFC_PLUGIN_URL . "assets/js/ffc-device-threshold-notice{$s}.js",

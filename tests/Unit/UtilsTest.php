@@ -564,15 +564,6 @@ class UtilsTest extends TestCase {
     }
 
     // ==================================================================
-    // asset_suffix() — Group B (WordPress mock)
-    // ==================================================================
-
-    public function test_asset_suffix_production(): void {
-        // SCRIPT_DEBUG not defined → returns '.min'
-        $this->assertSame( '.min', Utils::asset_suffix() );
-    }
-
-    // ==================================================================
     // mask_email() — Group B (WordPress mock)
     // ==================================================================
 

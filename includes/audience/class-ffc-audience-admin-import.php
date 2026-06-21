@@ -256,7 +256,7 @@ class AudienceAdminImport {
 			</div><!-- #ffc-export-tab -->
 
 		<?php
-		$s = \FreeFormCertificate\Core\Utils::asset_suffix();
+		$s = \FreeFormCertificate\Core\AssetHelper::asset_suffix();
 		wp_enqueue_script(
 			'ffc-audience-admin-import',
 			FFC_PLUGIN_URL . "assets/js/ffc-audience-admin-import{$s}.js",

@@ -63,7 +63,7 @@ class SelfSchedulingEditor {
 			return;
 		}
 
-		$s = \FreeFormCertificate\Core\Utils::asset_suffix();
+		$s = \FreeFormCertificate\Core\AssetHelper::asset_suffix();
 
 		wp_enqueue_script(
 			'ffc-calendar-editor',

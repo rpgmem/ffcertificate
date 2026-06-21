@@ -201,7 +201,7 @@ abstract class SettingsTab {
 	 * inputs (toggles, etc.) backed by `SettingsAjaxEndpoint`.
 	 */
 	protected function enqueue_autosave_infra(): void {
-		$s = \FreeFormCertificate\Core\Utils::asset_suffix();
+		$s = \FreeFormCertificate\Core\AssetHelper::asset_suffix();
 		wp_enqueue_script(
 			'ffc-core',
 			FFC_PLUGIN_URL . "assets/js/ffc-core{$s}.js",

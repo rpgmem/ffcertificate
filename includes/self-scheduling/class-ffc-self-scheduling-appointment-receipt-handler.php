@@ -120,7 +120,7 @@ class AppointmentReceiptHandler {
 	 * @return void
 	 */
 	private function enqueue_pdf_scripts(): void {
-		$s = \FreeFormCertificate\Core\Utils::asset_suffix();
+		$s = \FreeFormCertificate\Core\AssetHelper::asset_suffix();
 
 		wp_enqueue_script(
 			'html2canvas',

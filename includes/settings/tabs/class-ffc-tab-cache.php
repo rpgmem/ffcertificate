@@ -53,7 +53,7 @@ class TabCache extends SettingsTab {
 
 		// Inline AJAX for the Warm / Clear cache buttons. Depends on
 		// ffc-core (FFC.request) + ffc-admin-js (showNotification).
-		$s = \FreeFormCertificate\Core\Utils::asset_suffix();
+		$s = \FreeFormCertificate\Core\AssetHelper::asset_suffix();
 		wp_enqueue_script(
 			'ffc-cache-actions',
 			FFC_PLUGIN_URL . "assets/js/ffc-cache-actions{$s}.js",

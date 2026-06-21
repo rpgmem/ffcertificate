@@ -25,50 +25,6 @@ if ( ! defined( 'ABSPATH' ) ) {
 class Utils {
 
 	/**
-	 * Get minified asset suffix based on SCRIPT_DEBUG constant
-	 *
-	 * Returns '.min' when SCRIPT_DEBUG is off (production),
-	 * or '' when SCRIPT_DEBUG is on (development).
-	 *
-	 * @since 4.6.12
-	 * @return string '.min' or ''
-	 */
-	public static function asset_suffix(): string {
-		return defined( 'SCRIPT_DEBUG' ) && SCRIPT_DEBUG ? '' : '.min';
-	}
-
-	/**
-	 * Enqueue dark mode script if enabled
-	 *
-	 * Shared between admin and frontend to avoid duplicate logic.
-	 *
-	 * @since 4.6.17
-	 */
-	public static function enqueue_dark_mode(): void {
-		$dark_mode = \FreeFormCertificate\Settings\SettingsReader::get( 'dark_mode', 'off' );
-
-		if ( 'off' === $dark_mode ) {
-			return;
-		}
-
-		$s = self::asset_suffix();
-		wp_enqueue_script(
-			'ffc-dark-mode',
-			FFC_PLUGIN_URL . "assets/js/ffc-dark-mode{$s}.js",
-			array(),
-			FFC_VERSION,
-			false
-		);
-		wp_localize_script(
-			'ffc-dark-mode',
-			'ffcDarkMode',
-			array(
-				'mode' => $dark_mode,
-			)
-		);
-	}
-
-	/**
 	 * Get submissions table name with current prefix
 	 *
 	 * Centralizes table name generation for consistency across all classes.

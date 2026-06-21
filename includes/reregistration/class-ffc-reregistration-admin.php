@@ -142,7 +142,7 @@ class ReregistrationAdmin {
 			return;
 		}
 
-		$s = \FreeFormCertificate\Core\Utils::asset_suffix();
+		$s = \FreeFormCertificate\Core\AssetHelper::asset_suffix();
 
 		// Make sure ffc-common.css is registered + available so the
 		// dependency below resolves even when this page isn't matched

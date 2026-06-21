@@ -87,7 +87,7 @@ class AdminAssetsManager {
 		}
 
 		$theme_choice = self::resolve_code_editor_theme();
-		$s            = \FreeFormCertificate\Core\Utils::asset_suffix();
+		$s            = \FreeFormCertificate\Core\AssetHelper::asset_suffix();
 
 		$codemirror_config = array(
 			'lineNumbers'   => true,
@@ -188,7 +188,7 @@ class AdminAssetsManager {
 	 * @since 4.6.16
 	 */
 	private function enqueue_dark_mode_script(): void {
-		\FreeFormCertificate\Core\Utils::enqueue_dark_mode();
+		\FreeFormCertificate\Core\AssetHelper::enqueue_dark_mode();
 	}
 
 	/**
@@ -197,7 +197,7 @@ class AdminAssetsManager {
 	 * @since 3.1.0
 	 */
 	private function enqueue_core_module(): void {
-		$s = \FreeFormCertificate\Core\Utils::asset_suffix();
+		$s = \FreeFormCertificate\Core\AssetHelper::asset_suffix();
 		wp_enqueue_script(
 			'ffc-core',
 			FFC_PLUGIN_URL . "assets/js/ffc-core{$s}.js",
@@ -227,7 +227,7 @@ class AdminAssetsManager {
 	 * 7. Conditional: ffc-admin-submission-edit (only on edit page)
 	 */
 	private function enqueue_css_assets(): void {
-		$s = \FreeFormCertificate\Core\Utils::asset_suffix();
+		$s = \FreeFormCertificate\Core\AssetHelper::asset_suffix();
 
 		// 1. Base styles (PDF core)
 		wp_enqueue_style(
@@ -282,7 +282,7 @@ class AdminAssetsManager {
 	 * @since 3.1.0 - Modular architecture
 	 */
 	private function enqueue_javascript_modules(): void {
-		$s = \FreeFormCertificate\Core\Utils::asset_suffix();
+		$s = \FreeFormCertificate\Core\AssetHelper::asset_suffix();
 
 		// 1. Field Builder module.
 		wp_enqueue_script(
@@ -322,7 +322,7 @@ class AdminAssetsManager {
 	 * - Submission Edit CSS + JS (only on edit page)
 	 */
 	private function enqueue_conditional_assets(): void {
-		$s = \FreeFormCertificate\Core\Utils::asset_suffix();
+		$s = \FreeFormCertificate\Core\AssetHelper::asset_suffix();
 
 		// Settings page styles + scripts.
 		if ( $this->is_settings_page() ) {
@@ -424,7 +424,7 @@ class AdminAssetsManager {
 	 * @return void
 	 */
 	private function enqueue_certificates_dashboard_assets(): void {
-		$s = \FreeFormCertificate\Core\Utils::asset_suffix();
+		$s = \FreeFormCertificate\Core\AssetHelper::asset_suffix();
 
 		wp_enqueue_style(
 			'ffc-certificates-dashboard',
@@ -511,7 +511,7 @@ class AdminAssetsManager {
 	 * flow (see {@see enqueue_move_submissions_assets()}).
 	 */
 	private function enqueue_submissions_bulk_assets(): void {
-		$s = \FreeFormCertificate\Core\Utils::asset_suffix();
+		$s = \FreeFormCertificate\Core\AssetHelper::asset_suffix();
 
 		wp_enqueue_script(
 			'ffc-core',
@@ -552,7 +552,7 @@ class AdminAssetsManager {
 			return;
 		}
 
-		$s = \FreeFormCertificate\Core\Utils::asset_suffix();
+		$s = \FreeFormCertificate\Core\AssetHelper::asset_suffix();
 
 		wp_enqueue_style(
 			'ffc-admin-move-submissions',
@@ -656,7 +656,7 @@ class AdminAssetsManager {
 	 * Enqueue submission edit page specific assets
 	 */
 	private function enqueue_submission_edit_assets(): void {
-		$s = \FreeFormCertificate\Core\Utils::asset_suffix();
+		$s = \FreeFormCertificate\Core\AssetHelper::asset_suffix();
 
 		// Edit page CSS.
 		wp_enqueue_style(

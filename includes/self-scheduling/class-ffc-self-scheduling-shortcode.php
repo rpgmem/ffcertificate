@@ -61,7 +61,7 @@ class SelfSchedulingShortcode {
 			return;
 		}
 
-		$s = \FreeFormCertificate\Core\Utils::asset_suffix();
+		$s = \FreeFormCertificate\Core\AssetHelper::asset_suffix();
 
 		// Enqueue FFC common styles (includes CSS variables, honeypot, captcha, etc.).
 		wp_enqueue_style(

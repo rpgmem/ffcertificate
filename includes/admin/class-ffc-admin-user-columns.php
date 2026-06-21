@@ -470,7 +470,7 @@ class AdminUserColumns {
 			return;
 		}
 
-		$s = \FreeFormCertificate\Core\Utils::asset_suffix();
+		$s = \FreeFormCertificate\Core\AssetHelper::asset_suffix();
 		wp_enqueue_style( 'ffc-admin', FFC_PLUGIN_URL . "assets/css/ffc-admin{$s}.css", array(), FFC_VERSION );
 	}
 }
