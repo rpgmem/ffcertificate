@@ -67,16 +67,6 @@ if ( ! defined( 'ABSPATH' ) ) {
 final class RecruitmentCsvImporter {
 
 	/**
-	 * Required CSV headers (all in English).
-	 */
-	private const REQUIRED_HEADERS = array( 'name', 'cpf', 'rf', 'email', 'adjutancy', 'rank', 'score', 'pcd' );
-
-	/**
-	 * Optional CSV headers.
-	 */
-	private const OPTIONAL_HEADERS = array( 'phone', 'time_points', 'hab_emebs' );
-
-	/**
 	 * Run a `preview` import on a notice in `draft` or `preliminary` state.
 	 *
 	 * Used by `POST /notices/{id}/import` (sprint 9.1). Sprint 5's notice
@@ -188,7 +178,7 @@ final class RecruitmentCsvImporter {
 						// case-insensitive truthy set as the pcd column
 						// (true/1/sim/yes).
 						'time_points'  => isset( $row['time_points'] ) && '' !== (string) $row['time_points'] ? (string) $row['time_points'] : '0',
-						'hab_emebs'    => self::parse_pcd_flag( $row['hab_emebs'] ?? '' ) ? 1 : 0,
+						'hab_emebs'    => CsvParser::parse_pcd_flag( $row['hab_emebs'] ?? '' ) ? 1 : 0,
 					)
 				);
 				if ( false === $classification_id ) {
@@ -217,74 +207,14 @@ final class RecruitmentCsvImporter {
 	/**
 	 * Parse raw CSV content into normalized associative rows.
 	 *
+	 * Stable public entry point; delegates to {@see CsvParser::parse()} (the
+	 * pure string→rows layer extracted in #563 Sprint 6).
+	 *
 	 * @param string $content Raw CSV (UTF-8; BOM stripped if present).
 	 * @return array{ok: bool, rows: list<array<string, mixed>>, errors: list<string>}
 	 */
 	public static function parse( string $content ): array {
-		if ( '' === trim( $content ) ) {
-			return array(
-				'ok'     => false,
-				'rows'   => array(),
-				'errors' => array( 'recruitment_csv_empty' ),
-			);
-		}
-
-		// Csv::reader_from_string() handles BOM stripping and the
-		// `,`-vs-`;` auto-detection (the canonical rule lifted from the
-		// previous self::detect_delimiter()). The reader's fgetcsv-based
-		// parser also handles quoted multi-line fields correctly, which
-		// the previous preg_split('/\r\n|\n|\r/') line-splitter did not —
-		// a quoted cell containing a literal newline would have been
-		// mis-parsed before.
-		$reader  = \FreeFormCertificate\Core\Csv::reader_from_string( $content );
-		$headers = array_map( 'strtolower', array_map( 'trim', $reader->header() ) );
-
-		$missing = array_diff( self::REQUIRED_HEADERS, $headers );
-		if ( ! empty( $missing ) ) {
-			$reader->close();
-			return array(
-				'ok'     => false,
-				'rows'   => array(),
-				'errors' => array( 'recruitment_csv_missing_headers: ' . implode( ',', $missing ) ),
-			);
-		}
-
-		// Build header → index map (keeps optional headers when present).
-		$index_map = array();
-		foreach ( $headers as $i => $name ) {
-			$index_map[ $name ] = $i;
-		}
-
-		$rows        = array();
-		$line_number = 1; // 1-based; header was logical row 1.
-		$reader->each(
-			static function ( array $cells ) use ( &$rows, &$line_number, $index_map ): void {
-				++$line_number;
-
-				// Skip rows that are all whitespace after parsing.
-				$any_value = false;
-				foreach ( $cells as $cell ) {
-					if ( '' !== trim( $cell ) ) {
-						$any_value = true;
-						break;
-					}
-				}
-				if ( ! $any_value ) {
-					return;
-				}
-
-				$row          = self::build_row( array_values( $cells ), $index_map );
-				$row['_line'] = $line_number;
-				$rows[]       = $row;
-			}
-		);
-		$reader->close();
-
-		return array(
-			'ok'     => true,
-			'rows'   => $rows,
-			'errors' => array(),
-		);
+		return CsvParser::parse( $content );
 	}
 
 	/**
@@ -322,8 +252,8 @@ final class RecruitmentCsvImporter {
 		$tag_to_id    = array(); // 'cpf:DIGITS' / 'rf:DIGITS' / 'em:STR' → identity_id.
 		$next_id      = 0;
 		foreach ( $rows as $idx => $row ) {
-			$row_cpf   = is_string( $row['cpf'] ?? null ) ? self::normalise_id( trim( $row['cpf'] ), 11 )['value'] : '';
-			$row_rf    = is_string( $row['rf'] ?? null ) ? self::normalise_id( trim( $row['rf'] ), 7 )['value'] : '';
+			$row_cpf   = is_string( $row['cpf'] ?? null ) ? CsvParser::normalise_id( trim( $row['cpf'] ), 11 )['value'] : '';
+			$row_rf    = is_string( $row['rf'] ?? null ) ? CsvParser::normalise_id( trim( $row['rf'] ), 7 )['value'] : '';
 			$row_email = is_string( $row['email'] ?? null ) ? strtolower( trim( $row['email'] ) ) : '';
 
 			$tags = array();
@@ -393,8 +323,8 @@ final class RecruitmentCsvImporter {
 			$cpf_raw = is_string( $row['cpf'] ) ? trim( $row['cpf'] ) : '';
 			$rf_raw  = is_string( $row['rf'] ) ? trim( $row['rf'] ) : '';
 
-			$cpf_norm = self::normalise_id( $cpf_raw, 11 );
-			$rf_norm  = self::normalise_id( $rf_raw, 7 );
+			$cpf_norm = CsvParser::normalise_id( $cpf_raw, 11 );
+			$rf_norm  = CsvParser::normalise_id( $rf_raw, 7 );
 
 			// An empty normalised value already implies too_long === false
 			// (normalise_id only sets too_long when the digit string is
@@ -550,7 +480,7 @@ final class RecruitmentCsvImporter {
 		$email = is_string( $row['email'] ) ? strtolower( trim( $row['email'] ) ) : '';
 		$name  = is_string( $row['name'] ) ? trim( $row['name'] ) : '';
 		$phone = is_string( $row['phone'] ) ? trim( $row['phone'] ) : '';
-		$pcd   = self::parse_pcd_flag( $row['pcd'] );
+		$pcd   = CsvParser::parse_pcd_flag( $row['pcd'] );
 
 		$cpf_hash   = '' !== $cpf ? Encryption::hash( $cpf ) : null;
 		$rf_hash    = '' !== $rf ? Encryption::hash( $rf ) : null;
@@ -716,45 +646,6 @@ final class RecruitmentCsvImporter {
 	}
 
 	/**
-	 * Build an associative row from positional CSV cells using the header map.
-	 *
-	 * Missing optional columns are filled with empty strings so downstream
-	 * code can treat them uniformly.
-	 *
-	 * @param array             $cells     Cell values (list<string>).
-	 * @phpstan-param list<string> $cells
-	 * @param array<string,int> $index_map Header → column index.
-	 * @return array<string, string>
-	 */
-	private static function build_row( array $cells, array $index_map ): array {
-		$row = array();
-		foreach ( array_merge( self::REQUIRED_HEADERS, self::OPTIONAL_HEADERS ) as $name ) {
-			if ( isset( $index_map[ $name ], $cells[ $index_map[ $name ] ] ) ) {
-				$row[ $name ] = (string) $cells[ $index_map[ $name ] ];
-			} else {
-				$row[ $name ] = '';
-			}
-		}
-		return $row;
-	}
-
-	/**
-	 * Parse the `pcd` column into a boolean.
-	 *
-	 * Accepts (case-insensitive): true, 1, sim, yes → true. Anything else → false.
-	 *
-	 * @param mixed $value Raw cell value.
-	 * @return bool
-	 */
-	private static function parse_pcd_flag( $value ): bool {
-		if ( is_bool( $value ) ) {
-			return $value;
-		}
-		$normalized = strtolower( trim( (string) $value ) );
-		return in_array( $normalized, array( 'true', '1', 'sim', 'yes' ), true );
-	}
-
-	/**
 	 * Format a per-line error for the result envelope.
 	 *
 	 * @param int    $line     1-based line number.
@@ -763,45 +654,6 @@ final class RecruitmentCsvImporter {
 	 */
 	private static function line_error( int $line, string $code ): string {
 		return sprintf( 'line=%d: %s', $line, $code );
-	}
-
-	/**
-	 * Normalise a CPF / RF cell value to its canonical digit-only form.
-	 *
-	 * Strips every non-digit character (so `123.456.789-09` becomes
-	 * `12345678909`), then left-pads with `'0'` when the result is shorter
-	 * than `$expected_length` (Excel/Sheets exports routinely drop
-	 * leading zeros). Returns `too_long => true` when the stripped value
-	 * exceeds the canonical width — callers should surface a clear error.
-	 *
-	 * @param string $raw             The trimmed cell value.
-	 * @param int    $expected_length Canonical width (11 for CPF, 7 for RF).
-	 * @return array{value: string, too_long: bool}
-	 */
-	private static function normalise_id( string $raw, int $expected_length ): array {
-		$digits = preg_replace( '/\D+/', '', $raw );
-		if ( ! is_string( $digits ) ) {
-			$digits = '';
-		}
-		if ( '' === $digits ) {
-			return array(
-				'value'    => '',
-				'too_long' => false,
-			);
-		}
-		if ( strlen( $digits ) > $expected_length ) {
-			return array(
-				'value'    => $digits,
-				'too_long' => true,
-			);
-		}
-		if ( strlen( $digits ) < $expected_length ) {
-			$digits = str_pad( $digits, $expected_length, '0', STR_PAD_LEFT );
-		}
-		return array(
-			'value'    => $digits,
-			'too_long' => false,
-		);
 	}
 
 	/**
@@ -999,8 +851,8 @@ final class RecruitmentCsvImporter {
 			$values       = array();
 			$placeholders = array();
 			foreach ( $chunk as $row ) {
-				$cpf_raw = is_string( $row['cpf'] ?? null ) ? self::normalise_id( trim( $row['cpf'] ), 11 )['value'] : '';
-				$rf_raw  = is_string( $row['rf'] ?? null ) ? self::normalise_id( trim( $row['rf'] ), 7 )['value'] : '';
+				$cpf_raw = is_string( $row['cpf'] ?? null ) ? CsvParser::normalise_id( trim( $row['cpf'] ), 11 )['value'] : '';
+				$rf_raw  = is_string( $row['rf'] ?? null ) ? CsvParser::normalise_id( trim( $row['rf'] ), 7 )['value'] : '';
 				$email   = is_string( $row['email'] ?? null ) ? strtolower( trim( $row['email'] ) ) : '';
 				$phone   = is_string( $row['phone'] ?? null ) ? trim( $row['phone'] ) : '';
 				$slug    = is_string( $row['adjutancy'] ?? null ) ? trim( $row['adjutancy'] ) : '';
@@ -1027,8 +879,8 @@ final class RecruitmentCsvImporter {
 					ctype_digit( (string) ( $row['rank'] ?? '' ) ) ? (int) $row['rank'] : 0,
 					is_string( $row['score'] ?? null ) ? trim( $row['score'] ) : (string) ( $row['score'] ?? '0' ),
 					isset( $row['time_points'] ) && '' !== (string) $row['time_points'] ? (string) $row['time_points'] : '0',
-					self::parse_pcd_flag( $row['hab_emebs'] ?? '' ) ? 1 : 0,
-					self::parse_pcd_flag( $row['pcd'] ?? '' ) ? 1 : 0
+					CsvParser::parse_pcd_flag( $row['hab_emebs'] ?? '' ) ? 1 : 0,
+					CsvParser::parse_pcd_flag( $row['pcd'] ?? '' ) ? 1 : 0
 				);
 			}
 
