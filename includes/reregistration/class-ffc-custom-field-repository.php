@@ -5,6 +5,15 @@
  * Handles database operations for audience-specific custom field definitions.
  * Field data for users is stored in wp_usermeta as JSON (key: ffc_custom_fields_data).
  *
+ * Since the #563 backlog read/write split (A6) this class is a thin façade:
+ * reads live in {@see CustomFieldReader}, writes in {@see CustomFieldWriter}.
+ * It is kept as the public entry point so the ~38 existing call sites and the
+ * public constants below need no change.
+ *
+ * Tech-debt (#563 B3): migrate call sites to depend on CustomFieldReader /
+ * CustomFieldWriter directly (read vs write at the call site), then retire this
+ * delegating façade. Tracked under the modular-monolith roadmap.
+ *
  * @since   4.11.0
  * @package FreeFormCertificate\Reregistration
  */
@@ -13,32 +22,18 @@ declare(strict_types=1);
 
 namespace FreeFormCertificate\Reregistration;
 
-use FreeFormCertificate\Audience\AudienceRepository;
-
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-
 /**
- * Handles CRUD operations for audience-specific custom field definitions.
+ * Public façade over {@see CustomFieldReader} + {@see CustomFieldWriter}.
  *
  * @since 4.11.0
  *
  * @phpstan-type CustomFieldRow \stdClass&object{id: string, audience_id: string, field_key: string, field_label: string, field_type: string, field_group: string, field_source: string, field_profile_key: string|null, field_mask: string|null, is_sensitive: string, field_options: string|null, validation_rules: string|null, sort_order: string, is_required: string, is_active: string, created_at: string, updated_at: string, source_audience_id?: string, source_audience_name?: string}
  */
 class CustomFieldRepository {
-	use \FreeFormCertificate\Core\StaticRepositoryTrait;
-
-	/**
-	 * Cache group for custom field queries.
-	 *
-	 * @return string
-	 */
-	protected static function cache_group(): string {
-		return 'ffc_custom_fields';
-	}
 
 	/**
 	 * Supported field types.
@@ -85,8 +80,12 @@ class CustomFieldRepository {
 	 * @return string
 	 */
 	public static function get_table_name(): string {
-		return self::db()->prefix . 'ffc_custom_fields';
+		return CustomFieldReader::get_table_name();
 	}
+
+	// ─────────────────────────────────────────────.
+	// Reads — delegate to CustomFieldReader.
+	// ─────────────────────────────────────────────.
 
 	/**
 	 * Get a single field by ID.
@@ -95,28 +94,7 @@ class CustomFieldRepository {
 	 * @return CustomFieldRow|null
 	 */
 	public static function get_by_id( int $field_id ): ?object {
-		$cached = static::cache_get( "id_{$field_id}" );
-		if ( false !== $cached ) {
-			return $cached;
-		}
-
-		$wpdb  = self::db();
-		$table = self::get_table_name();
-
-		/**
-		 * Cast wpdb result to typed shape.
-		 *
-		 * @var CustomFieldRow|null $result
-		 */
-		$result = $wpdb->get_row(
-			$wpdb->prepare( 'SELECT * FROM %i WHERE id = %d', $table, $field_id )
-		);
-
-		if ( $result ) {
-			static::cache_set( "id_{$field_id}", $result );
-		}
-
-		return $result;
+		return CustomFieldReader::get_by_id( $field_id );
 	}
 
 	/**
@@ -127,354 +105,29 @@ class CustomFieldRepository {
 	 * @return list<CustomFieldRow>
 	 */
 	public static function get_by_audience( int $audience_id, bool $active_only = true ): array {
-		$wpdb  = self::db();
-		$table = self::get_table_name();
-
-		$where  = 'WHERE audience_id = %d';
-		$values = array( $audience_id );
-
-		if ( $active_only ) {
-			$where .= ' AND is_active = 1';
-		}
-
-		$results = $wpdb->get_results(
-			$wpdb->prepare(
-				"SELECT * FROM %i {$where} ORDER BY sort_order ASC, id ASC",
-				array_merge( array( $table ), $values )
-			)
-		);
-		/**
-		 * Cast wpdb result to typed shape.
-		 *
-		 * @var list<CustomFieldRow>
-		 */
-		return is_array( $results ) ? $results : array();
+		return CustomFieldReader::get_by_audience( $audience_id, $active_only );
 	}
 
 	/**
 	 * Get fields for an audience including inherited fields from parent audiences.
 	 *
-	 * Walks up the hierarchy and collects all fields, ordered by hierarchy level
-	 * (parent fields first, then child fields), each group sorted by sort_order.
-	 *
 	 * @param int  $audience_id Audience ID.
 	 * @param bool $active_only Only return active fields.
-	 * @return list<CustomFieldRow> Fields with added 'source_audience_id' and 'source_audience_name' properties.
+	 * @return list<CustomFieldRow>
 	 */
 	public static function get_by_audience_with_parents( int $audience_id, bool $active_only = true ): array {
-		$audience = AudienceRepository::get_by_id( $audience_id );
-		if ( ! $audience ) {
-			return array();
-		}
-
-		// Collect audience IDs from bottom to top (child → parent).
-		$audience_chain = array();
-		$current        = $audience;
-		while ( $current ) {
-			$audience_chain[] = $current;
-			if ( ! empty( $current->parent_id ) ) {
-				$current = AudienceRepository::get_by_id( (int) $current->parent_id );
-			} else {
-				$current = null;
-			}
-		}
-
-		// Reverse to get top-down order (parent → child).
-		$audience_chain = array_reverse( $audience_chain );
-
-		$all_fields = array();
-		foreach ( $audience_chain as $aud ) {
-			$fields = self::get_by_audience( (int) $aud->id, $active_only );
-			foreach ( $fields as $field ) {
-				$field->source_audience_id   = (int) $aud->id;
-				$field->source_audience_name = $aud->name;
-				$all_fields[]                = $field;
-			}
-		}
-
-		return $all_fields;
+		return CustomFieldReader::get_by_audience_with_parents( $audience_id, $active_only );
 	}
 
 	/**
 	 * Get all fields for a user based on their audience memberships.
 	 *
-	 * @param int  $user_id    User ID.
+	 * @param int  $user_id     User ID.
 	 * @param bool $active_only Only return active fields.
-	 * @return list<CustomFieldRow> Fields grouped conceptually, with source_audience_* properties.
+	 * @return list<CustomFieldRow>
 	 */
 	public static function get_all_for_user( int $user_id, bool $active_only = true ): array {
-		$audiences = AudienceRepository::get_user_audiences( $user_id );
-		if ( empty( $audiences ) ) {
-			return array();
-		}
-
-		$all_fields = array();
-		$seen_ids   = array();
-
-		foreach ( $audiences as $audience ) {
-			$fields = self::get_by_audience_with_parents( (int) $audience->id, $active_only );
-			foreach ( $fields as $field ) {
-				// Avoid duplicates when user belongs to sibling audiences sharing a parent.
-				if ( ! isset( $seen_ids[ (int) $field->id ] ) ) {
-					$seen_ids[ (int) $field->id ] = true;
-					$all_fields[]                 = $field;
-				}
-			}
-		}
-
-		return $all_fields;
-	}
-
-	/**
-	 * Create a custom field.
-	 *
-	 * @param array<string, mixed> $data Field data.
-	 * @return int|false Field ID or false on failure.
-	 */
-	public static function create( array $data ) {
-		$wpdb  = self::db();
-		$table = self::get_table_name();
-
-		$defaults = array(
-			'audience_id'       => 0,
-			'field_key'         => '',
-			'field_label'       => '',
-			'field_type'        => 'text',
-			'field_group'       => '',
-			'field_source'      => 'custom',
-			'field_profile_key' => null,
-			'field_mask'        => null,
-			'is_sensitive'      => 0,
-			'field_options'     => null,
-			'validation_rules'  => null,
-			'sort_order'        => 0,
-			'is_required'       => 0,
-			'is_active'         => 1,
-		);
-		$data     = wp_parse_args( $data, $defaults );
-
-		// Validate field type.
-		if ( ! in_array( $data['field_type'], self::FIELD_TYPES, true ) ) {
-			$data['field_type'] = 'text';
-		}
-
-		// Validate field source.
-		if ( ! in_array( $data['field_source'], array( 'standard', 'custom' ), true ) ) {
-			$data['field_source'] = 'custom';
-		}
-
-		// Auto-generate field_key from label if empty.
-		if ( empty( $data['field_key'] ) ) {
-			$data['field_key'] = self::generate_field_key( $data['field_label'] );
-		}
-
-		// Ensure field_key uniqueness within audience.
-		$data['field_key'] = self::ensure_unique_key( $data['field_key'], (int) $data['audience_id'] );
-
-		$insert_data = array(
-			'audience_id'       => (int) $data['audience_id'],
-			'field_key'         => sanitize_key( $data['field_key'] ),
-			'field_label'       => sanitize_text_field( $data['field_label'] ),
-			'field_type'        => $data['field_type'],
-			'field_group'       => sanitize_text_field( (string) $data['field_group'] ),
-			'field_source'      => $data['field_source'],
-			'field_profile_key' => null !== $data['field_profile_key'] ? sanitize_key( (string) $data['field_profile_key'] ) : null,
-			'field_mask'        => null !== $data['field_mask'] ? sanitize_text_field( (string) $data['field_mask'] ) : null,
-			'is_sensitive'      => (int) $data['is_sensitive'],
-			'field_options'     => is_string( $data['field_options'] ) ? $data['field_options'] : wp_json_encode( $data['field_options'] ),
-			'validation_rules'  => is_string( $data['validation_rules'] ) ? $data['validation_rules'] : wp_json_encode( $data['validation_rules'] ),
-			'sort_order'        => (int) $data['sort_order'],
-			'is_required'       => (int) $data['is_required'],
-			'is_active'         => (int) $data['is_active'],
-		);
-
-		$result = $wpdb->insert(
-			$table,
-			$insert_data,
-			array( '%d', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%d', '%s', '%s', '%d', '%d', '%d' )
-		);
-
-		if ( $result ) {
-			self::invalidate_sensitive_registry_cache();
-		}
-
-		return $result ? $wpdb->insert_id : false;
-	}
-
-	/**
-	 * Update a custom field.
-	 *
-	 * @param int                  $field_id Field ID.
-	 * @param array<string, mixed> $data     Update data.
-	 * @return bool
-	 */
-	public static function update( int $field_id, array $data ): bool {
-		$wpdb  = self::db();
-		$table = self::get_table_name();
-
-		// Remove non-updatable fields.
-		unset( $data['id'], $data['created_at'] );
-
-		if ( empty( $data ) ) {
-			return false;
-		}
-
-		$update_data = array();
-		$format      = array();
-
-		$field_formats = array(
-			'audience_id'       => '%d',
-			'field_key'         => '%s',
-			'field_label'       => '%s',
-			'field_type'        => '%s',
-			'field_group'       => '%s',
-			'field_source'      => '%s',
-			'field_profile_key' => '%s',
-			'field_mask'        => '%s',
-			'is_sensitive'      => '%d',
-			'field_options'     => '%s',
-			'validation_rules'  => '%s',
-			'sort_order'        => '%d',
-			'is_required'       => '%d',
-			'is_active'         => '%d',
-		);
-
-		foreach ( $data as $key => $value ) {
-			if ( ! isset( $field_formats[ $key ] ) ) {
-				continue;
-			}
-
-			// Encode JSON fields.
-			if ( in_array( $key, array( 'field_options', 'validation_rules' ), true ) && ! is_string( $value ) ) {
-				$value = wp_json_encode( $value );
-			}
-
-			// Sanitize text fields.
-			if ( in_array( $key, array( 'field_key', 'field_profile_key' ), true ) ) {
-				$value = null !== $value ? sanitize_key( (string) $value ) : null;
-			} elseif ( in_array( $key, array( 'field_label', 'field_type', 'field_group', 'field_mask', 'field_source' ), true ) ) {
-				$value = null !== $value ? sanitize_text_field( (string) $value ) : null;
-			}
-
-			// Validate field type.
-			if ( 'field_type' === $key && ! in_array( $value, self::FIELD_TYPES, true ) ) {
-				$value = 'text';
-			}
-
-			// Validate field source.
-			if ( 'field_source' === $key && ! in_array( $value, array( 'standard', 'custom' ), true ) ) {
-				$value = 'custom';
-			}
-
-			$update_data[ $key ] = $value;
-			$format[]            = $field_formats[ $key ];
-		}
-
-		if ( empty( $update_data ) ) {
-			return false;
-		}
-
-		$result = $wpdb->update(
-			$table,
-			$update_data,
-			array( 'id' => $field_id ),
-			$format,
-			array( '%d' )
-		);
-
-		static::cache_delete( "id_{$field_id}" );
-
-		// Changes to is_sensitive or is_active must reset the registry's
-		// dynamic cache so ActivityLog picks the new set on next call.
-		if ( false !== $result && ( array_key_exists( 'is_sensitive', $update_data ) || array_key_exists( 'is_active', $update_data ) || array_key_exists( 'field_key', $update_data ) ) ) {
-			self::invalidate_sensitive_registry_cache();
-		}
-
-		return false !== $result;
-	}
-
-	/**
-	 * Delete a custom field definition.
-	 *
-	 * Standard fields (field_source='standard') cannot be deleted — only
-	 * deactivated. This is enforced to preserve the field seeding invariant.
-	 *
-	 * Note: This only removes the field definition. User data in wp_usermeta
-	 * remains as orphaned keys in the JSON — this is by design so data can
-	 * be recovered if the field is re-created.
-	 *
-	 * @param int $field_id Field ID.
-	 * @return bool
-	 */
-	public static function delete( int $field_id ): bool {
-		$field = self::get_by_id( $field_id );
-		if ( $field && isset( $field->field_source ) && 'standard' === $field->field_source ) {
-			return false;
-		}
-
-		$wpdb  = self::db();
-		$table = self::get_table_name();
-
-		$result = $wpdb->delete( $table, array( 'id' => $field_id ), array( '%d' ) );
-
-		static::cache_delete( "id_{$field_id}" );
-
-		if ( false !== $result && $field && ! empty( $field->is_sensitive ) ) {
-			self::invalidate_sensitive_registry_cache();
-		}
-
-		return false !== $result;
-	}
-
-	/**
-	 * Deactivate a field (hide but preserve data).
-	 *
-	 * @param int $field_id Field ID.
-	 * @return bool
-	 */
-	public static function deactivate( int $field_id ): bool {
-		$result = self::update( $field_id, array( 'is_active' => 0 ) );
-
-		static::cache_delete( "id_{$field_id}" );
-
-		return $result;
-	}
-
-	/**
-	 * Reactivate a previously deactivated field.
-	 *
-	 * @param int $field_id Field ID.
-	 * @return bool
-	 */
-	public static function reactivate( int $field_id ): bool {
-		$result = self::update( $field_id, array( 'is_active' => 1 ) );
-
-		static::cache_delete( "id_{$field_id}" );
-
-		return $result;
-	}
-
-	/**
-	 * Reorder fields by updating sort_order in batch.
-	 *
-	 * @param array<int> $field_ids Ordered array of field IDs.
-	 * @return bool
-	 */
-	public static function reorder( array $field_ids ): bool {
-		$wpdb  = self::db();
-		$table = self::get_table_name();
-
-		foreach ( $field_ids as $index => $field_id ) {
-			$wpdb->update(
-				$table,
-				array( 'sort_order' => $index ),
-				array( 'id' => (int) $field_id ),
-				array( '%d' ),
-				array( '%d' )
-			);
-		}
-
-		return true;
+		return CustomFieldReader::get_all_for_user( $user_id, $active_only );
 	}
 
 	/**
@@ -485,155 +138,73 @@ class CustomFieldRepository {
 	 * @return int
 	 */
 	public static function count_by_audience( int $audience_id, bool $active_only = true ): int {
-		$wpdb  = self::db();
-		$table = self::get_table_name();
-
-		$where  = 'WHERE audience_id = %d';
-		$values = array( $audience_id );
-
-		if ( $active_only ) {
-			$where .= ' AND is_active = 1';
-		}
-
-		return (int) $wpdb->get_var(
-			$wpdb->prepare( "SELECT COUNT(*) FROM %i {$where}", array_merge( array( $table ), $values ) )
-		);
+		return CustomFieldReader::count_by_audience( $audience_id, $active_only );
 	}
-
-	// ─────────────────────────────────────────────.
-	// Dynamic field grouping / profile / sensitive helpers.
-	// ─────────────────────────────────────────────.
 
 	/**
 	 * Get fields for an audience grouped by field_group.
 	 *
-	 * Preserves sort_order within groups. Groups appear in the order they
-	 * are first encountered in the sort sequence, so that drag-and-drop
-	 * ordering in the admin UI determines both field and group order.
-	 *
 	 * @param int  $audience_id Audience ID.
 	 * @param bool $active_only Only return active fields.
-	 * @return array<string, array<object>> Map of group_key => fields[].
+	 * @return array<string, array<object>>
 	 */
 	public static function get_by_audience_grouped( int $audience_id, bool $active_only = true ): array {
-		$fields  = self::get_by_audience( $audience_id, $active_only );
-		$grouped = array();
-
-		foreach ( $fields as $field ) {
-			$group = isset( $field->field_group ) ? (string) $field->field_group : '';
-			if ( ! isset( $grouped[ $group ] ) ) {
-				$grouped[ $group ] = array();
-			}
-			$grouped[ $group ][] = $field;
-		}
-
-		return $grouped;
+		return CustomFieldReader::get_by_audience_grouped( $audience_id, $active_only );
 	}
 
 	/**
 	 * Get the ordered list of groups for an audience.
 	 *
-	 * Groups are ordered by the minimum sort_order of their fields.
-	 *
 	 * @param int  $audience_id Audience ID.
 	 * @param bool $active_only Only consider active fields.
-	 * @return array<string> Ordered group keys.
+	 * @return array<string>
 	 */
 	public static function get_groups_for_audience( int $audience_id, bool $active_only = true ): array {
-		$grouped = self::get_by_audience_grouped( $audience_id, $active_only );
-		return array_keys( $grouped );
+		return CustomFieldReader::get_groups_for_audience( $audience_id, $active_only );
 	}
 
 	/**
-	 * Update only the field_group of a field.
-	 *
-	 * @param int    $field_id Field ID.
-	 * @param string $group    New group key.
-	 * @return bool
-	 */
-	public static function update_field_group( int $field_id, string $group ): bool {
-		return self::update( $field_id, array( 'field_group' => $group ) );
-	}
-
-	/**
-	 * Get fields that map to a user profile key (field_profile_key IS NOT NULL).
-	 *
-	 * Used by the data processor to sync reregistration data back to the
-	 * WordPress user profile upon approval.
+	 * Get fields that map to a user profile key.
 	 *
 	 * @param int  $audience_id Audience ID.
 	 * @param bool $active_only Only active fields.
 	 * @return list<CustomFieldRow>
 	 */
 	public static function get_profile_fields( int $audience_id, bool $active_only = true ): array {
-		$fields = self::get_by_audience( $audience_id, $active_only );
-		return array_values(
-			array_filter(
-				$fields,
-				static function ( $field ) {
-					return ! empty( $field->field_profile_key );
-				}
-			)
-		);
+		return CustomFieldReader::get_profile_fields( $audience_id, $active_only );
 	}
 
 	/**
 	 * Get sensitive (is_sensitive=1) fields for an audience.
-	 *
-	 * Used by the data processor to know which values must be encrypted
-	 * before persistence and decrypted on read.
 	 *
 	 * @param int  $audience_id Audience ID.
 	 * @param bool $active_only Only active fields.
 	 * @return list<CustomFieldRow>
 	 */
 	public static function get_sensitive_fields( int $audience_id, bool $active_only = true ): array {
-		$fields = self::get_by_audience( $audience_id, $active_only );
-		return array_values(
-			array_filter(
-				$fields,
-				static function ( $field ) {
-					return ! empty( $field->is_sensitive );
-				}
-			)
-		);
+		return CustomFieldReader::get_sensitive_fields( $audience_id, $active_only );
 	}
 
 	/**
 	 * Get the set of sensitive field_keys for an audience.
 	 *
-	 * Convenient lookup form used in hot paths (validation, encryption).
-	 *
 	 * @param int  $audience_id Audience ID.
 	 * @param bool $active_only Only active fields.
-	 * @return array<string> field_keys of sensitive fields.
+	 * @return array<string>
 	 */
 	public static function get_sensitive_keys_for_audience( int $audience_id, bool $active_only = true ): array {
-		$fields = self::get_sensitive_fields( $audience_id, $active_only );
-		return array_map(
-			static function ( $field ) {
-				return (string) $field->field_key;
-			},
-			$fields
-		);
+		return CustomFieldReader::get_sensitive_keys_for_audience( $audience_id, $active_only );
 	}
 
 	/**
 	 * Get fields for an audience indexed by field_key.
-	 *
-	 * Used by the data processor and renderer to perform O(1) field lookups.
 	 *
 	 * @param int  $audience_id Audience ID.
 	 * @param bool $active_only Only active fields.
 	 * @return array<string, object>
 	 */
 	public static function get_by_audience_keyed( int $audience_id, bool $active_only = true ): array {
-		$fields = self::get_by_audience( $audience_id, $active_only );
-		$keyed  = array();
-		foreach ( $fields as $field ) {
-			$keyed[ (string) $field->field_key ] = $field;
-		}
-		return $keyed;
+		return CustomFieldReader::get_by_audience_keyed( $audience_id, $active_only );
 	}
 
 	/**
@@ -644,58 +215,17 @@ class CustomFieldRepository {
 	 * @return CustomFieldRow|null
 	 */
 	public static function get_by_key( int $audience_id, string $field_key ): ?object {
-		$wpdb  = self::db();
-		$table = self::get_table_name();
-
-		/**
-		 * Cast wpdb result to typed shape.
-		 *
-		 * @var CustomFieldRow|null $result
-		 */
-		$result = $wpdb->get_row(
-			$wpdb->prepare(
-				'SELECT * FROM %i WHERE audience_id = %d AND field_key = %s LIMIT 1',
-				$table,
-				$audience_id,
-				$field_key
-			)
-		);
-
-		return $result ? $result : null;
+		return CustomFieldReader::get_by_key( $audience_id, $field_key );
 	}
-
-	// ─────────────────────────────────────────────.
-	// User data helpers (wp_usermeta JSON storage)
-	// ─────────────────────────────────────────────.
 
 	/**
 	 * Get custom field data for a user.
 	 *
 	 * @param int $user_id User ID.
-	 * @return array<string, mixed> Associative array of field_id => value.
+	 * @return array<string, mixed>
 	 */
 	public static function get_user_data( int $user_id ): array {
-		$data = get_user_meta( $user_id, self::USER_META_KEY, true );
-		if ( empty( $data ) || ! is_array( $data ) ) {
-			return array();
-		}
-		return $data;
-	}
-
-	/**
-	 * Save custom field data for a user.
-	 *
-	 * Merges with existing data (does not overwrite unrelated fields).
-	 *
-	 * @param int                  $user_id User ID.
-	 * @param array<string, mixed> $data    Associative array of field_{id} => value.
-	 * @return bool
-	 */
-	public static function save_user_data( int $user_id, array $data ): bool {
-		$existing = self::get_user_data( $user_id );
-		$merged   = array_merge( $existing, $data );
-
-		return (bool) update_user_meta( $user_id, self::USER_META_KEY, $merged );
+		return CustomFieldReader::get_user_data( $user_id );
 	}
 
 	/**
@@ -703,12 +233,163 @@ class CustomFieldRepository {
 	 *
 	 * @param int $user_id  User ID.
 	 * @param int $field_id Field ID.
-	 * @return mixed|null Field value or null if not set.
+	 * @return mixed|null
 	 */
 	public static function get_user_field_value( int $user_id, int $field_id ) {
-		$data = self::get_user_data( $user_id );
-		$key  = 'field_' . $field_id;
-		return $data[ $key ] ?? null;
+		return CustomFieldReader::get_user_field_value( $user_id, $field_id );
+	}
+
+	/**
+	 * Validate a field value against its definition.
+	 *
+	 * @param object $field Field definition object.
+	 * @param mixed  $value Value to validate.
+	 * @phpstan-param CustomFieldRow $field
+	 * @return true|\WP_Error
+	 */
+	public static function validate_field_value( object $field, $value ) {
+		return CustomFieldReader::validate_field_value( $field, $value );
+	}
+
+	/**
+	 * Get grouped choices for a dependent_select field.
+	 *
+	 * @param object $field Field definition.
+	 * @phpstan-param CustomFieldRow $field
+	 * @return array<string, array<string>>
+	 */
+	public static function get_dependent_choices( object $field ): array {
+		return CustomFieldReader::get_dependent_choices( $field );
+	}
+
+	/**
+	 * Get choices for a select field.
+	 *
+	 * @param object $field Field definition.
+	 * @phpstan-param CustomFieldRow $field
+	 * @return array<string>
+	 */
+	public static function get_field_choices( object $field ): array {
+		return CustomFieldReader::get_field_choices( $field );
+	}
+
+	/**
+	 * Get validation rules for a field.
+	 *
+	 * @param object $field Field definition.
+	 * @phpstan-param CustomFieldRow $field
+	 * @return array<string, mixed>
+	 */
+	public static function get_validation_rules( object $field ): array {
+		return CustomFieldReader::get_validation_rules( $field );
+	}
+
+	/**
+	 * List every `field_key` with `is_sensitive = 1` AND `is_active = 1`.
+	 *
+	 * @since 6.6.2
+	 * @return list<string>
+	 */
+	public static function list_sensitive_field_keys(): array {
+		return CustomFieldReader::list_sensitive_field_keys();
+	}
+
+	/**
+	 * Return the set of `field_key` values already present for an audience.
+	 *
+	 * @since 6.6.2
+	 * @param int $audience_id Audience ID.
+	 * @return array<string, bool>
+	 */
+	public static function existing_field_keys_for_audience( int $audience_id ): array {
+		return CustomFieldReader::existing_field_keys_for_audience( $audience_id );
+	}
+
+	// ─────────────────────────────────────────────.
+	// Writes — delegate to CustomFieldWriter.
+	// ─────────────────────────────────────────────.
+
+	/**
+	 * Create a custom field.
+	 *
+	 * @param array<string, mixed> $data Field data.
+	 * @return int|false Field ID or false on failure.
+	 */
+	public static function create( array $data ) {
+		return CustomFieldWriter::create( $data );
+	}
+
+	/**
+	 * Update a custom field.
+	 *
+	 * @param int                  $field_id Field ID.
+	 * @param array<string, mixed> $data     Update data.
+	 * @return bool
+	 */
+	public static function update( int $field_id, array $data ): bool {
+		return CustomFieldWriter::update( $field_id, $data );
+	}
+
+	/**
+	 * Delete a custom field definition.
+	 *
+	 * @param int $field_id Field ID.
+	 * @return bool
+	 */
+	public static function delete( int $field_id ): bool {
+		return CustomFieldWriter::delete( $field_id );
+	}
+
+	/**
+	 * Deactivate a field (hide but preserve data).
+	 *
+	 * @param int $field_id Field ID.
+	 * @return bool
+	 */
+	public static function deactivate( int $field_id ): bool {
+		return CustomFieldWriter::deactivate( $field_id );
+	}
+
+	/**
+	 * Reactivate a previously deactivated field.
+	 *
+	 * @param int $field_id Field ID.
+	 * @return bool
+	 */
+	public static function reactivate( int $field_id ): bool {
+		return CustomFieldWriter::reactivate( $field_id );
+	}
+
+	/**
+	 * Reorder fields by updating sort_order in batch.
+	 *
+	 * @param array<int> $field_ids Ordered array of field IDs.
+	 * @return bool
+	 */
+	public static function reorder( array $field_ids ): bool {
+		return CustomFieldWriter::reorder( $field_ids );
+	}
+
+	/**
+	 * Update only the field_group of a field.
+	 *
+	 * @param int    $field_id Field ID.
+	 * @param string $group    New group key.
+	 * @return bool
+	 */
+	public static function update_field_group( int $field_id, string $group ): bool {
+		return CustomFieldWriter::update_field_group( $field_id, $group );
+	}
+
+	/**
+	 * Save custom field data for a user.
+	 *
+	 * @param int                  $user_id User ID.
+	 * @param array<string, mixed> $data    Associative array of field_{id} => value.
+	 * @return bool
+	 */
+	public static function save_user_data( int $user_id, array $data ): bool {
+		return CustomFieldWriter::save_user_data( $user_id, $data );
 	}
 
 	/**
@@ -720,258 +401,17 @@ class CustomFieldRepository {
 	 * @return bool
 	 */
 	public static function set_user_field_value( int $user_id, int $field_id, $value ): bool {
-		return self::save_user_data( $user_id, array( 'field_' . $field_id => $value ) );
-	}
-
-	// ─────────────────────────────────────────────.
-	// Validation (delegates to CustomFieldValidator).
-	// ─────────────────────────────────────────────.
-
-	/**
-	 * Validate a field value against its definition.
-	 *
-	 * @param object $field Field definition object.
-	 * @param mixed  $value Value to validate.
-	 * @phpstan-param CustomFieldRow $field
-	 * @return true|\WP_Error True if valid, WP_Error with message if invalid.
-	 */
-	public static function validate_field_value( object $field, $value ) {
-		return CustomFieldValidator::validate( $field, $value );
+		return CustomFieldWriter::set_user_field_value( $user_id, $field_id, $value );
 	}
 
 	/**
-	 * Get grouped choices for a dependent_select field.
-	 *
-	 * Expected field_options format:
-	 *   {"groups": {"Parent Label": ["Child 1", "Child 2"], ...},
-	 *    "parent_label": "Divisão", "child_label": "Setor"}
-	 *
-	 * @param object $field Field definition.
-	 * @phpstan-param CustomFieldRow $field
-	 * @return array<string, array<string>> Parent => [children].
-	 */
-	public static function get_dependent_choices( object $field ): array {
-		$options = $field->field_options;
-		if ( is_string( $options ) ) {
-			$options = json_decode( $options, true );
-		}
-		return is_array( $options ) && isset( $options['groups'] ) && is_array( $options['groups'] ) ? $options['groups'] : array();
-	}
-
-	// ─────────────────────────────────────────────.
-	// Helpers.
-	// ─────────────────────────────────────────────.
-
-	/**
-	 * Invalidate SensitiveFieldRegistry's dynamic cache.
-	 *
-	 * Called whenever a row in wp_ffc_custom_fields is created, changed or
-	 * deleted in a way that may alter the set of is_sensitive=1 keys, so
-	 * ActivityLog's payload inspection sees the latest state on next call.
-	 *
-	 * @return void
-	 */
-	private static function invalidate_sensitive_registry_cache(): void {
-		if ( class_exists( \FreeFormCertificate\Core\SensitiveFieldRegistry::class ) ) {
-			\FreeFormCertificate\Core\SensitiveFieldRegistry::invalidate_dynamic_cache();
-		}
-	}
-
-	/**
-	 * Generate a field key from a label.
-	 *
-	 * @param string $label Field label.
-	 * @return string
-	 */
-	private static function generate_field_key( string $label ): string {
-		$key       = sanitize_title( $label );
-		$key       = str_replace( '-', '_', $key );
-		$key       = preg_replace( '/[^a-z0-9_]/', '', $key ) ?? '';
-		$truncated = substr( $key, 0, 100 );
-		return '' !== $truncated ? $truncated : 'field';
-	}
-
-	/**
-	 * Ensure a field key is unique within an audience.
-	 *
-	 * @param string $key         Desired key.
-	 * @param int    $audience_id Audience ID.
-	 * @param int    $exclude_id  Field ID to exclude from check (for updates).
-	 * @return string Unique key.
-	 */
-	private static function ensure_unique_key( string $key, int $audience_id, int $exclude_id = 0 ): string {
-		$wpdb  = self::db();
-		$table = self::get_table_name();
-
-		$original_key = $key;
-		$counter      = 1;
-
-		while ( true ) {
-			$where  = 'WHERE audience_id = %d AND field_key = %s';
-			$values = array( $audience_id, $key );
-
-			if ( $exclude_id > 0 ) {
-				$where   .= ' AND id != %d';
-				$values[] = $exclude_id;
-			}
-
-			$exists = (int) $wpdb->get_var(
-				$wpdb->prepare( "SELECT COUNT(*) FROM %i {$where}", array_merge( array( $table ), $values ) )
-			);
-
-			if ( 0 === $exists ) {
-				break;
-			}
-
-			$key = $original_key . '_' . $counter;
-			++$counter;
-		}
-
-		return $key;
-	}
-
-	/**
-	 * Get choices for a select field.
-	 *
-	 * @param object $field Field definition.
-	 * @phpstan-param CustomFieldRow $field
-	 * @return array<string>
-	 */
-	public static function get_field_choices( object $field ): array {
-		$options = $field->field_options;
-		if ( is_string( $options ) ) {
-			$options = json_decode( $options, true );
-		}
-		return is_array( $options ) && isset( $options['choices'] ) && is_array( $options['choices'] ) ? $options['choices'] : array();
-	}
-
-	/**
-	 * Get validation rules for a field.
-	 *
-	 * @param object $field Field definition.
-	 * @phpstan-param CustomFieldRow $field
-	 * @return array<string, mixed>
-	 */
-	public static function get_validation_rules( object $field ): array {
-		$rules = $field->validation_rules;
-		if ( is_string( $rules ) ) {
-			$rules = json_decode( $rules, true );
-		}
-		return is_array( $rules ) ? $rules : array();
-	}
-
-	/**
-	 * List every `field_key` that currently has `is_sensitive = 1`
-	 * AND `is_active = 1`. Used by
-	 * {@see \FreeFormCertificate\Core\SensitiveFieldRegistry::dynamic_sensitive_keys()}
-	 * to grow its sensitivity allow-list with admin-flagged fields.
-	 *
-	 * Centralizes a query that lived inline in the registry (issue #340).
-	 * Guards the table-existence via SHOW TABLES so a fresh install or
-	 * a test environment without the table degrades to an empty list
-	 * instead of throwing.
-	 *
-	 * @since 6.6.2
-	 * @return list<string> Field keys (unique, alphabetical not enforced).
-	 */
-	public static function list_sensitive_field_keys(): array {
-		global $wpdb;
-		$table = self::get_table_name();
-
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Table-existence guard.
-		$exists = $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $table ) );
-		if ( $exists !== $table ) {
-			return array();
-		}
-
-		// Column-existence guard: installs that pre-date the dynamic-fields
-		// migration (#249) carry the table without the `is_sensitive` column.
-		// SettingsTab callers can trigger this read during activity-log
-		// writes long before that migration runs, so detect the older shape
-		// and degrade to an empty list rather than emit a "Unknown column"
-		// query into debug.log on every settings save.
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-		$columns = $wpdb->get_col( $wpdb->prepare( 'SHOW COLUMNS FROM %i LIKE %s', $table, 'is_sensitive' ) );
-		if ( empty( $columns ) ) {
-			return array();
-		}
-
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Catalog read; caching handled at the caller (SensitiveFieldRegistry).
-		$rows = $wpdb->get_col(
-			$wpdb->prepare(
-				'SELECT DISTINCT field_key FROM %i WHERE is_sensitive = 1 AND is_active = 1',
-				$table
-			)
-		);
-		if ( ! is_array( $rows ) ) {
-			return array();
-		}
-
-		$out = array();
-		foreach ( $rows as $field_key ) {
-			if ( is_string( $field_key ) && '' !== $field_key ) {
-				$out[] = $field_key;
-			}
-		}
-		return $out;
-	}
-
-	/**
-	 * Return the set of `field_key` values already present for an
-	 * audience — used by the standard-fields seeder to skip rows that
-	 * were inserted in a previous run (the seeder is idempotent).
-	 *
-	 * Issue #340 centralization.
-	 *
-	 * @since 6.6.2
-	 * @param int $audience_id Audience ID.
-	 * @return array<string, bool> Map of `field_key => true` for O(1) lookup.
-	 */
-	public static function existing_field_keys_for_audience( int $audience_id ): array {
-		if ( $audience_id <= 0 ) {
-			return array();
-		}
-		global $wpdb;
-		$table = self::get_table_name();
-
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Indexed scan by audience_id.
-		$rows = $wpdb->get_col(
-			$wpdb->prepare( 'SELECT field_key FROM %i WHERE audience_id = %d', $table, $audience_id )
-		);
-		if ( ! is_array( $rows ) ) {
-			return array();
-		}
-		$keys = array();
-		foreach ( $rows as $field_key ) {
-			$key = (string) $field_key;
-			if ( '' !== $key ) {
-				$keys[ $key ] = true;
-			}
-		}
-		return $keys;
-	}
-
-	/**
-	 * INSERT a standard / dynamic field row. Wraps `$wpdb->insert()` so
-	 * the seeder doesn't have to spell out the column→format mapping.
-	 * Returns the new row id, or `false` on failure.
-	 *
-	 * Issue #340 centralization.
+	 * INSERT a standard / dynamic field row.
 	 *
 	 * @since 6.6.2
 	 * @param array<string, mixed> $data Column => value map.
 	 * @return int|false
 	 */
 	public static function insert_row( array $data ) {
-		global $wpdb;
-		$table = self::get_table_name();
-
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Single-row insert; format hints below kept in sync with the schema.
-		$result = $wpdb->insert(
-			$table,
-			$data,
-			array( '%d', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%d', '%s', '%s', '%d', '%d', '%d' )
-		);
-		return false === $result ? false : (int) $wpdb->insert_id;
+		return CustomFieldWriter::insert_row( $data );
 	}
 }
