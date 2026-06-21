@@ -17,6 +17,7 @@ declare(strict_types=1);
 namespace FreeFormCertificate\Frontend\Submission;
 
 use FreeFormCertificate\Core\Utils;
+use FreeFormCertificate\Core\RequestInput;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
@@ -102,8 +103,8 @@ class FieldSanitizer {
 		$submission_data['ffc_lgpd_consent'] = '1';
 
 		// Capture restriction fields (password/ticket) from POST.
-		$val_password = trim( Utils::get_post_string( 'ffc_password' ) );
-		$val_ticket   = strtoupper( trim( Utils::get_post_string( 'ffc_ticket' ) ) );
+		$val_password = trim( RequestInput::get_post_string( 'ffc_password' ) );
+		$val_ticket   = strtoupper( trim( RequestInput::get_post_string( 'ffc_ticket' ) ) );
 		$val_cpf      = isset( $submission_data['cpf_rf'] ) ? trim( (string) $submission_data['cpf_rf'] ) : '';
 
 		$ctx->submission_data = $submission_data;

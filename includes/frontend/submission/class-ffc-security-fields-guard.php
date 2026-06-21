@@ -16,6 +16,7 @@ declare(strict_types=1);
 namespace FreeFormCertificate\Frontend\Submission;
 
 use FreeFormCertificate\Core\Utils;
+use FreeFormCertificate\Core\RequestInput;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
@@ -35,13 +36,13 @@ class SecurityFieldsGuard {
 	public function apply( SubmissionContext $ctx ): void {
 		// ===== DEBUG CAPTCHA =====.
 		\FreeFormCertificate\Core\Debug::log_form( '===== CAPTCHA DEBUG =====' );
-		\FreeFormCertificate\Core\Debug::log_form( 'Answer received', Utils::get_post_string( 'ffc_captcha_ans', 'NOT SET' ) );
-		\FreeFormCertificate\Core\Debug::log_form( 'Hash received', Utils::get_post_string( 'ffc_captcha_hash', 'NOT SET' ) );
+		\FreeFormCertificate\Core\Debug::log_form( 'Answer received', RequestInput::get_post_string( 'ffc_captcha_ans', 'NOT SET' ) );
+		\FreeFormCertificate\Core\Debug::log_form( 'Hash received', RequestInput::get_post_string( 'ffc_captcha_hash', 'NOT SET' ) );
 
 		// phpcs:ignore WordPress.Security.NonceVerification.Missing, WordPress.Security.ValidatedSanitizedInput.MissingUnslash, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- isset() check only; values read via sanitized accessor below.
 		if ( isset( $_POST['ffc_captcha_ans'] ) && isset( $_POST['ffc_captcha_hash'] ) ) {
-			$test_answer    = trim( Utils::get_post_string( 'ffc_captcha_ans' ) );
-			$received_hash  = Utils::get_post_string( 'ffc_captcha_hash' );
+			$test_answer    = trim( RequestInput::get_post_string( 'ffc_captcha_ans' ) );
+			$received_hash  = RequestInput::get_post_string( 'ffc_captcha_hash' );
 			$generated_hash = wp_hash( $test_answer . 'ffc_math_salt' );
 
 			\FreeFormCertificate\Core\Debug::log_form( 'Trimmed answer', $test_answer );

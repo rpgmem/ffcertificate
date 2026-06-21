@@ -290,8 +290,8 @@ class AudienceAdminImport {
 		// Handle sample download (import template — `manage` or `import`).
         // phpcs:ignore WordPress.Security.NonceVerification.Recommended
 		if ( ( $can_manage || $can_import ) && isset( $_GET['download_sample'] ) && isset( $_GET['_wpnonce'] ) ) {
-			$type = \FreeFormCertificate\Core\Utils::get_get_string( 'download_sample' );
-			if ( wp_verify_nonce( \FreeFormCertificate\Core\Utils::get_get_string( '_wpnonce' ), 'download_sample' ) ) {
+			$type = \FreeFormCertificate\Core\RequestInput::get_get_string( 'download_sample' );
+			if ( wp_verify_nonce( \FreeFormCertificate\Core\RequestInput::get_get_string( '_wpnonce' ), 'download_sample' ) ) {
 				$filename = 'audiences' === $type ? 'audiences-sample.csv' : 'members-sample.csv';
 				header( 'Content-Type: text/csv' );
 				header( 'Content-Disposition: attachment; filename="' . $filename . '"' );
@@ -306,7 +306,7 @@ class AudienceAdminImport {
 			if ( ! $can_export ) {
 				return;
 			}
-			if ( ! wp_verify_nonce( \FreeFormCertificate\Core\Utils::get_post_string( 'ffc_export_members_nonce' ), 'ffc_export_members' ) ) {
+			if ( ! wp_verify_nonce( \FreeFormCertificate\Core\RequestInput::get_post_string( 'ffc_export_members_nonce' ), 'ffc_export_members' ) ) {
 				return;
 			}
 			$this->export_members_csv();
@@ -317,7 +317,7 @@ class AudienceAdminImport {
 			if ( ! $can_export ) {
 				return;
 			}
-			if ( ! wp_verify_nonce( \FreeFormCertificate\Core\Utils::get_post_string( 'ffc_export_audiences_nonce' ), 'ffc_export_audiences' ) ) {
+			if ( ! wp_verify_nonce( \FreeFormCertificate\Core\RequestInput::get_post_string( 'ffc_export_audiences_nonce' ), 'ffc_export_audiences' ) ) {
 				return;
 			}
 			$this->export_audiences_csv();
@@ -328,7 +328,7 @@ class AudienceAdminImport {
 			if ( ! $can_import ) {
 				return;
 			}
-			if ( ! wp_verify_nonce( \FreeFormCertificate\Core\Utils::get_post_string( 'ffc_import_members_nonce' ), 'ffc_import_members' ) ) {
+			if ( ! wp_verify_nonce( \FreeFormCertificate\Core\RequestInput::get_post_string( 'ffc_import_members_nonce' ), 'ffc_import_members' ) ) {
 				return;
 			}
 
@@ -381,7 +381,7 @@ class AudienceAdminImport {
 			if ( ! $can_import ) {
 				return;
 			}
-			if ( ! wp_verify_nonce( \FreeFormCertificate\Core\Utils::get_post_string( 'ffc_import_audiences_nonce' ), 'ffc_import_audiences' ) ) {
+			if ( ! wp_verify_nonce( \FreeFormCertificate\Core\RequestInput::get_post_string( 'ffc_import_audiences_nonce' ), 'ffc_import_audiences' ) ) {
 				return;
 			}
 

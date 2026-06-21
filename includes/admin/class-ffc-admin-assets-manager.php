@@ -177,7 +177,7 @@ class AdminAssetsManager {
 	private function is_ffc_page(): bool {
 		$is_ffc_post_type = ( 'ffc_form' === $this->post_type );
         // phpcs:ignore WordPress.Security.NonceVerification.Recommended, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized, WordPress.Security.ValidatedSanitizedInput.MissingUnslash -- Page routing check, no nonce needed.
-		$is_ffc_menu = strpos( \FreeFormCertificate\Core\Utils::get_get_string( 'page' ), 'ffc-' ) !== false;
+		$is_ffc_menu = strpos( \FreeFormCertificate\Core\RequestInput::get_get_string( 'page' ), 'ffc-' ) !== false;
 
 		return $is_ffc_post_type || $is_ffc_menu;
 	}

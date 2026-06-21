@@ -259,7 +259,7 @@ class Settings {
 		}
         // phpcs:enable WordPress.Security.NonceVerification.Recommended
 
-		if ( ! wp_verify_nonce( \FreeFormCertificate\Core\Utils::get_get_string( '_wpnonce' ), 'ffc_clear_qr_cache' ) ) {
+		if ( ! wp_verify_nonce( \FreeFormCertificate\Core\RequestInput::get_get_string( '_wpnonce' ), 'ffc_clear_qr_cache' ) ) {
 			return;
 		}
 
@@ -435,7 +435,7 @@ class Settings {
 		$migration_key = sanitize_key( wp_unslash( $_GET['ffc_run_migration'] ) );
 
 		// Verify nonce.
-		if ( ! wp_verify_nonce( \FreeFormCertificate\Core\Utils::get_get_string( '_wpnonce' ), 'ffc_migration_' . $migration_key ) ) {
+		if ( ! wp_verify_nonce( \FreeFormCertificate\Core\RequestInput::get_get_string( '_wpnonce' ), 'ffc_migration_' . $migration_key ) ) {
 			wp_die( esc_html__( 'Security check failed.', 'ffcertificate' ) );
 		}
 
@@ -950,9 +950,9 @@ class Settings {
 		}
 
         // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Nonce verified above via check_ajax_referer.
-		$format = \FreeFormCertificate\Core\Utils::get_post_string( 'format', 'F j, Y' );
+		$format = \FreeFormCertificate\Core\RequestInput::get_post_string( 'format', 'F j, Y' );
         // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Nonce verified above via check_ajax_referer.
-		$custom_format = \FreeFormCertificate\Core\Utils::get_post_string( 'custom_format' );
+		$custom_format = \FreeFormCertificate\Core\RequestInput::get_post_string( 'custom_format' );
 
 		// Sample date for preview.
 		$sample_date = '2026-01-04 15:30:45';

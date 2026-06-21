@@ -36,7 +36,7 @@ class ReregistrationSubmissionActions {
 		$sub_id   = absint( $_GET['sub_id'] );
 		$rereg_id = isset( $_GET['id'] ) ? absint( $_GET['id'] ) : 0;
 
-		if ( ! wp_verify_nonce( \FreeFormCertificate\Core\Utils::get_get_string( '_wpnonce' ), 'approve_submission_' . $sub_id ) ) {
+		if ( ! wp_verify_nonce( \FreeFormCertificate\Core\RequestInput::get_get_string( '_wpnonce' ), 'approve_submission_' . $sub_id ) ) {
 			return;
 		}
 
@@ -59,7 +59,7 @@ class ReregistrationSubmissionActions {
 		$sub_id   = absint( $_GET['sub_id'] );
 		$rereg_id = isset( $_GET['id'] ) ? absint( $_GET['id'] ) : 0;
 
-		if ( ! wp_verify_nonce( \FreeFormCertificate\Core\Utils::get_get_string( '_wpnonce' ), 'reject_submission_' . $sub_id ) ) {
+		if ( ! wp_verify_nonce( \FreeFormCertificate\Core\RequestInput::get_get_string( '_wpnonce' ), 'reject_submission_' . $sub_id ) ) {
 			return;
 		}
 
@@ -82,7 +82,7 @@ class ReregistrationSubmissionActions {
 		$sub_id   = absint( $_GET['sub_id'] );
 		$rereg_id = isset( $_GET['id'] ) ? absint( $_GET['id'] ) : 0;
 
-		if ( ! wp_verify_nonce( \FreeFormCertificate\Core\Utils::get_get_string( '_wpnonce' ), 'return_to_draft_submission_' . $sub_id ) ) {
+		if ( ! wp_verify_nonce( \FreeFormCertificate\Core\RequestInput::get_get_string( '_wpnonce' ), 'return_to_draft_submission_' . $sub_id ) ) {
 			return;
 		}
 
@@ -102,11 +102,11 @@ class ReregistrationSubmissionActions {
 		}
 
 		$rereg_id = isset( $_POST['reregistration_id'] ) ? absint( $_POST['reregistration_id'] ) : 0;
-		if ( ! wp_verify_nonce( \FreeFormCertificate\Core\Utils::get_post_string( 'ffc_bulk_nonce' ), 'bulk_submissions_' . $rereg_id ) ) {
+		if ( ! wp_verify_nonce( \FreeFormCertificate\Core\RequestInput::get_post_string( 'ffc_bulk_nonce' ), 'bulk_submissions_' . $rereg_id ) ) {
 			return;
 		}
 
-		$action = \FreeFormCertificate\Core\Utils::get_post_string( 'bulk_action' );
+		$action = \FreeFormCertificate\Core\RequestInput::get_post_string( 'bulk_action' );
 		$ids    = isset( $_POST['submission_ids'] ) ? array_map( 'absint', (array) $_POST['submission_ids'] ) : array();
 
 		if ( empty( $ids ) || empty( $action ) ) {

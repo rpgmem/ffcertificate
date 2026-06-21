@@ -3,6 +3,8 @@ declare(strict_types=1);
 
 namespace FreeFormCertificate\Tests\Unit;
 
+use FreeFormCertificate\Core\RequestInput;
+
 use Brain\Monkey;
 use Brain\Monkey\Functions;
 use Mockery;
@@ -51,7 +53,7 @@ class PreflightTelemetryTest extends TestCase {
         Functions\when( 'wp_salt' )->justReturn( 'test-salt' );
         Functions\when( 'wp_create_nonce' )->justReturn( 'fresh-nonce-xyz' );
 
-        // The real Utils::get_post_string reads $_POST after
+        // The real RequestInput::get_post_string reads $_POST after
         // sanitize_text_field + wp_unslash; both stubbed to identity
         // above, so the production call returns the raw $_POST value.
         // Utils::get_user_ip reads REMOTE_ADDR / proxy headers — we

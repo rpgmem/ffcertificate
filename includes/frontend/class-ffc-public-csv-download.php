@@ -33,6 +33,7 @@ declare(strict_types=1);
 namespace FreeFormCertificate\Frontend;
 
 use FreeFormCertificate\Core\Utils;
+use FreeFormCertificate\Core\RequestInput;
 
 use FreeFormCertificate\Security\Geofence;
 use FreeFormCertificate\Security\RateLimiter;
@@ -153,7 +154,7 @@ class PublicCsvDownload {
 		$security_html = $shortcodes->generate_security_fields();
 
 		$prefill_form_id = isset( $_GET['form_id'] ) ? absint( wp_unslash( $_GET['form_id'] ) ) : 0; // phpcs:ignore WordPress.Security.NonceVerification.Recommended
-		$prefill_hash    = Utils::get_get_string( 'hash' );
+		$prefill_hash    = RequestInput::get_get_string( 'hash' );
 
 		// CPF gate mode is per-form. We can't read it without a known form_id;
 		// when prefilled, honour that form's setting. Otherwise render the
@@ -302,7 +303,7 @@ class PublicCsvDownload {
 
 		// 2. Nonce.
 		// phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized, WordPress.Security.ValidatedSanitizedInput.MissingUnslash
-		if ( ! wp_verify_nonce( Utils::get_post_string( '_ffc_pcd_nonce' ), self::NONCE_ACTION ) ) {
+		if ( ! wp_verify_nonce( RequestInput::get_post_string( '_ffc_pcd_nonce' ), self::NONCE_ACTION ) ) {
 			$this->fail_redirect( __( 'Security check failed. Please refresh the page and try again.', 'ffcertificate' ) );
 		}
 
@@ -316,7 +317,7 @@ class PublicCsvDownload {
 		// phpcs:ignore WordPress.Security.NonceVerification.Missing -- Nonce verified above.
 		$form_id = isset( $_POST['form_id'] ) ? absint( wp_unslash( $_POST['form_id'] ) ) : 0;
 		// phpcs:ignore WordPress.Security.NonceVerification.Missing -- Nonce verified above.
-		$posted_hash = Utils::get_post_string( 'hash' );
+		$posted_hash = RequestInput::get_post_string( 'hash' );
 
 		// 4. Honeypot + CAPTCHA.
 		// phpcs:ignore WordPress.Security.NonceVerification.Missing -- Nonce verified above.
@@ -342,7 +343,7 @@ class PublicCsvDownload {
 
 		// 9b. CPF gate (per-form opt-in, no-op when mode = 'none').
 		// phpcs:ignore WordPress.Security.NonceVerification.Missing -- Nonce verified above.
-		$cpf_input = Utils::get_post_string( 'cpf' );
+		$cpf_input = RequestInput::get_post_string( 'cpf' );
 		$cpf_error = $this->validate_cpf_requirement( $form_id, $cpf_input );
 		if ( null !== $cpf_error ) {
 			$this->fail_redirect( $cpf_error );
@@ -409,7 +410,7 @@ class PublicCsvDownload {
 		}
 
 		// 2. Nonce.
-		if ( ! wp_verify_nonce( Utils::get_post_string( '_ffc_pcd_nonce' ), self::NONCE_ACTION ) ) { // phpcs:ignore WordPress.Security.ValidatedSanitizedInput
+		if ( ! wp_verify_nonce( RequestInput::get_post_string( '_ffc_pcd_nonce' ), self::NONCE_ACTION ) ) { // phpcs:ignore WordPress.Security.ValidatedSanitizedInput
 			wp_send_json_error( array( 'message' => __( 'Security check failed. Please refresh the page and try again.', 'ffcertificate' ) ) );
 		}
 
@@ -419,7 +420,7 @@ class PublicCsvDownload {
 		 * audit log.
 		 */
 		$form_id     = isset( $_POST['form_id'] ) ? absint( wp_unslash( $_POST['form_id'] ) ) : 0; // phpcs:ignore WordPress.Security.NonceVerification.Missing
-		$posted_hash = Utils::get_post_string( 'hash' );
+		$posted_hash = RequestInput::get_post_string( 'hash' );
 
 		// 4. Honeypot + CAPTCHA.
 		$security_check = \FreeFormCertificate\Core\SecurityService::validate_security_fields( $_POST ); // phpcs:ignore WordPress.Security.NonceVerification.Missing
@@ -444,7 +445,7 @@ class PublicCsvDownload {
 
 		// 7b. CPF gate (per-form opt-in, no-op when mode = 'none').
 		// phpcs:ignore WordPress.Security.NonceVerification.Missing -- Nonce verified above.
-		$cpf_input = Utils::get_post_string( 'cpf' );
+		$cpf_input = RequestInput::get_post_string( 'cpf' );
 		$cpf_error = $this->validate_cpf_requirement( $form_id, $cpf_input );
 		if ( null !== $cpf_error ) {
 			wp_send_json_error( array( 'message' => $cpf_error ) );
@@ -464,12 +465,12 @@ class PublicCsvDownload {
 	 */
 	public function ajax_cert_preview(): void {
 		// phpcs:ignore WordPress.Security.ValidatedSanitizedInput
-		if ( ! wp_verify_nonce( Utils::get_post_string( '_ffc_pcd_nonce' ), self::NONCE_ACTION ) ) {
+		if ( ! wp_verify_nonce( RequestInput::get_post_string( '_ffc_pcd_nonce' ), self::NONCE_ACTION ) ) {
 			wp_send_json_error( array( 'message' => __( 'Security check failed.', 'ffcertificate' ) ) );
 		}
 
 		$form_id     = isset( $_POST['form_id'] ) ? absint( wp_unslash( $_POST['form_id'] ) ) : 0; // phpcs:ignore WordPress.Security.NonceVerification.Missing
-		$posted_hash = Utils::get_post_string( 'hash' );
+		$posted_hash = RequestInput::get_post_string( 'hash' );
 
 		$error = $this->validate_hash_only( $form_id, $posted_hash );
 		if ( null !== $error ) {
@@ -526,13 +527,13 @@ class PublicCsvDownload {
 	 */
 	public function ajax_open_early(): void {
 		// phpcs:ignore WordPress.Security.ValidatedSanitizedInput
-		if ( ! wp_verify_nonce( Utils::get_post_string( '_ffc_pcd_nonce' ), self::NONCE_ACTION ) ) {
+		if ( ! wp_verify_nonce( RequestInput::get_post_string( '_ffc_pcd_nonce' ), self::NONCE_ACTION ) ) {
 			wp_send_json_error( array( 'message' => __( 'Security check failed.', 'ffcertificate' ) ), 403 );
 		}
 
 		$form_id     = isset( $_POST['form_id'] ) ? absint( wp_unslash( $_POST['form_id'] ) ) : 0; // phpcs:ignore WordPress.Security.NonceVerification.Missing
-		$posted_hash = Utils::get_post_string( 'hash' );
-		$cpf_input   = Utils::get_post_string( 'cpf' );
+		$posted_hash = RequestInput::get_post_string( 'hash' );
+		$cpf_input   = RequestInput::get_post_string( 'cpf' );
 
 		$audit_meta = array(
 			'user_id' => get_current_user_id(),
@@ -602,14 +603,14 @@ class PublicCsvDownload {
 	 */
 	public function ajax_extend_end(): void {
 		// phpcs:ignore WordPress.Security.ValidatedSanitizedInput
-		if ( ! wp_verify_nonce( Utils::get_post_string( '_ffc_pcd_nonce' ), self::NONCE_ACTION ) ) {
+		if ( ! wp_verify_nonce( RequestInput::get_post_string( '_ffc_pcd_nonce' ), self::NONCE_ACTION ) ) {
 			wp_send_json_error( array( 'message' => __( 'Security check failed.', 'ffcertificate' ) ), 403 );
 		}
 
 		$form_id      = isset( $_POST['form_id'] ) ? absint( wp_unslash( $_POST['form_id'] ) ) : 0; // phpcs:ignore WordPress.Security.NonceVerification.Missing
-		$posted_hash  = Utils::get_post_string( 'hash' );
-		$new_time_end = Utils::get_post_string( 'new_time_end' );
-		$cpf_input    = Utils::get_post_string( 'cpf' );
+		$posted_hash  = RequestInput::get_post_string( 'hash' );
+		$new_time_end = RequestInput::get_post_string( 'new_time_end' );
+		$cpf_input    = RequestInput::get_post_string( 'cpf' );
 
 		$audit_meta = array(
 			'user_id' => get_current_user_id(),
@@ -677,15 +678,15 @@ class PublicCsvDownload {
 	 */
 	public function ajax_schedule_exception(): void {
 		// phpcs:ignore WordPress.Security.ValidatedSanitizedInput
-		if ( ! wp_verify_nonce( Utils::get_post_string( '_ffc_pcd_nonce' ), self::NONCE_ACTION ) ) {
+		if ( ! wp_verify_nonce( RequestInput::get_post_string( '_ffc_pcd_nonce' ), self::NONCE_ACTION ) ) {
 			wp_send_json_error( array( 'message' => __( 'Security check failed.', 'ffcertificate' ) ), 403 );
 		}
 
 		$form_id        = isset( $_POST['form_id'] ) ? absint( wp_unslash( $_POST['form_id'] ) ) : 0; // phpcs:ignore WordPress.Security.NonceVerification.Missing
-		$posted_hash    = Utils::get_post_string( 'hash' );
-		$start_override = Utils::get_post_string( 'start_override' );
-		$end_override   = Utils::get_post_string( 'end_override' );
-		$cpf_input      = Utils::get_post_string( 'cpf' );
+		$posted_hash    = RequestInput::get_post_string( 'hash' );
+		$start_override = RequestInput::get_post_string( 'start_override' );
+		$end_override   = RequestInput::get_post_string( 'end_override' );
+		$cpf_input      = RequestInput::get_post_string( 'cpf' );
 
 		// Mirror ajax_extend_end's CPF re-validation. `silent_audit = true`
 		// keeps the per-form audit ring buffer untouched here — the row
@@ -800,7 +801,7 @@ class PublicCsvDownload {
         // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Nonce validated below.
 		$form_id = isset( $_GET['form_id'] ) ? absint( wp_unslash( $_GET['form_id'] ) ) : 0;
         // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
-		$nonce = Utils::get_get_string( '_wpnonce' );
+		$nonce = RequestInput::get_get_string( '_wpnonce' );
 
 		if ( ! wp_verify_nonce( $nonce, self::EXPORT_LOG_NONCE . '_' . $form_id ) ) {
 			wp_die( esc_html__( 'Security check failed.', 'ffcertificate' ), 403 );

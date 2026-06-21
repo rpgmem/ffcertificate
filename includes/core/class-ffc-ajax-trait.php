@@ -18,6 +18,8 @@ declare(strict_types=1);
 
 namespace FreeFormCertificate\Core;
 
+use FreeFormCertificate\Core\RequestInput;
+
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
@@ -43,7 +45,7 @@ trait AjaxTrait {
 			wp_send_json_error( array( 'message' => __( 'Security check failed. Please reload the page.', 'ffcertificate' ) ) );
 		}
 
-		$nonce_value = Utils::get_post_string( $field );
+		$nonce_value = RequestInput::get_post_string( $field );
 
 		if ( ! wp_verify_nonce( $nonce_value, $action ) ) {
 			wp_send_json_error( array( 'message' => __( 'Security check failed. Please reload the page.', 'ffcertificate' ) ) );
@@ -111,7 +113,7 @@ trait AjaxTrait {
 	 * @return string Sanitized value.
 	 */
 	protected function get_post_param( string $key, string $default = '' ): string {
-		return Utils::get_post_string( $key, $default );
+		return RequestInput::get_post_string( $key, $default );
 	}
 
 	/**
@@ -122,7 +124,7 @@ trait AjaxTrait {
 	 * @return int Sanitized integer value.
 	 */
 	protected function get_post_int( string $key, int $default = 0 ): int {
-		return Utils::get_post_int( $key, $default );
+		return RequestInput::get_post_int( $key, $default );
 	}
 
 	/**
@@ -132,7 +134,7 @@ trait AjaxTrait {
 	 * @return array<string> Sanitized string values, or empty array.
 	 */
 	protected function get_post_array( string $key ): array {
-		return Utils::get_post_array( $key );
+		return RequestInput::get_post_array( $key );
 	}
 
 	/**

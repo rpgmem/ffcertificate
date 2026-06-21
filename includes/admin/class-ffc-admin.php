@@ -210,7 +210,7 @@ class Admin {
 	 */
 	public function handle_submission_actions(): void {
         // phpcs:disable WordPress.Security.NonceVerification.Recommended -- Nonce verified per-action below via wp_verify_nonce and check_admin_referer.
-		if ( \FreeFormCertificate\Core\Utils::get_get_string( 'page' ) !== 'ffc-submissions' ) {
+		if ( \FreeFormCertificate\Core\RequestInput::get_get_string( 'page' ) !== 'ffc-submissions' ) {
 			return;
 		}
 
@@ -225,7 +225,7 @@ class Admin {
 		if ( isset( $_GET['submission_id'] ) && isset( $_GET['action'] ) ) {
 			$id                   = absint( wp_unslash( $_GET['submission_id'] ) );
 			$action               = sanitize_key( wp_unslash( $_GET['action'] ) );
-			$nonce                = \FreeFormCertificate\Core\Utils::get_get_string( '_wpnonce' );
+			$nonce                = \FreeFormCertificate\Core\RequestInput::get_get_string( '_wpnonce' );
 			$manipulation_actions = array( 'trash', 'restore', 'delete' );
 
 			if ( in_array( $action, $manipulation_actions, true ) ) {
@@ -521,7 +521,7 @@ class Admin {
 		$moved        = isset( $_GET['moved'] ) ? absint( wp_unslash( $_GET['moved'] ) ) : 0;
 		$conflicts    = isset( $_GET['conflicts'] ) ? absint( wp_unslash( $_GET['conflicts'] ) ) : 0;
 		$to_form      = isset( $_GET['to_form'] ) ? absint( wp_unslash( $_GET['to_form'] ) ) : 0;
-		$conflict_raw = \FreeFormCertificate\Core\Utils::get_get_string( 'conflict_id' );
+		$conflict_raw = \FreeFormCertificate\Core\RequestInput::get_get_string( 'conflict_id' );
 		// phpcs:enable WordPress.Security.NonceVerification.Recommended
 
 		$conflict_ids = array();

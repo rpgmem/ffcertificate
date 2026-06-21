@@ -540,7 +540,7 @@ class AdminSubmissionEditPage {
 		}
 
 		// Process user link change (simplified: value is user ID, empty string, or __keep__).
-		$linked_user_id = \FreeFormCertificate\Core\Utils::get_post_string( 'linked_user_id', '__keep__' );
+		$linked_user_id = \FreeFormCertificate\Core\RequestInput::get_post_string( 'linked_user_id', '__keep__' );
 
         // phpcs:enable WordPress.Security.NonceVerification.Missing
 

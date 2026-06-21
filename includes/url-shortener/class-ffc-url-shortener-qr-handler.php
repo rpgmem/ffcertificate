@@ -206,7 +206,7 @@ class UrlShortenerQrHandler {
 			);
 		}
 
-		$code = \FreeFormCertificate\Core\Utils::get_post_string( 'code' );
+		$code = \FreeFormCertificate\Core\RequestInput::get_post_string( 'code' );
 		if ( empty( $code ) ) {
 			wp_send_json_error( array( 'message' => __( 'Invalid code.', 'ffcertificate' ) ) );
 		}

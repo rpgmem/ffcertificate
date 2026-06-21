@@ -14,6 +14,7 @@ declare(strict_types=1);
 namespace FreeFormCertificate\Frontend;
 
 use FreeFormCertificate\Core\Utils;
+use FreeFormCertificate\Core\RequestInput;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
@@ -46,7 +47,7 @@ class AccessRestrictionChecker {
 		// ========================================.
 		if ( ! empty( $restrictions['password'] ) && '1' === $restrictions['password'] ) {
             // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Nonce verified in handle_submission_ajax() caller.
-			$password       = trim( Utils::get_post_string( 'ffc_password' ) );
+			$password       = trim( RequestInput::get_post_string( 'ffc_password' ) );
 			$valid_password = isset( $form_config['validation_code'] ) ? $form_config['validation_code'] : '';
 
 			if ( empty( $password ) ) {

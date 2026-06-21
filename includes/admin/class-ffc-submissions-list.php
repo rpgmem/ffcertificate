@@ -396,7 +396,7 @@ class SubmissionsList extends \WP_List_Table {
 		$status  = isset( $_GET['status'] ) ? sanitize_key( wp_unslash( $_GET['status'] ) ) : 'publish';
 		$search  = isset( $_REQUEST['s'] ) ? sanitize_text_field( wp_unslash( $_REQUEST['s'] ) ) : '';
 		$orderby = ( ! empty( $_GET['orderby'] ) ) ? sanitize_key( wp_unslash( $_GET['orderby'] ) ) : 'id';
-		$order   = \FreeFormCertificate\Core\Utils::get_get_string( 'order' ) === 'asc' ? 'ASC' : 'DESC';
+		$order   = \FreeFormCertificate\Core\RequestInput::get_get_string( 'order' ) === 'asc' ? 'ASC' : 'DESC';
 
 		$filter_form_ids = array();
         // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized, WordPress.Security.ValidatedSanitizedInput.MissingUnslash -- empty() existence check only.

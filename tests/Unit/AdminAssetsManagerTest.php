@@ -52,9 +52,10 @@ class AdminAssetsManagerTest extends TestCase {
 
         // Utils alias mock
         $this->utils_mock = Mockery::mock('alias:\FreeFormCertificate\Core\Utils');
+        $ri_mock = Mockery::mock( 'alias:\FreeFormCertificate\Core\RequestInput' );
         $this->utils_mock->shouldReceive('asset_suffix')->andReturn('.min')->byDefault();
         $this->utils_mock->shouldReceive('enqueue_dark_mode')->byDefault();
-        $this->utils_mock->shouldReceive('get_get_string')->andReturnUsing( function ( $key, $default = '' ) {
+        $ri_mock->shouldReceive('get_get_string')->andReturnUsing( function ( $key, $default = '' ) {
             return isset( $_GET[ $key ] ) && is_string( $_GET[ $key ] ) ? $_GET[ $key ] : $default;
         } )->byDefault();
     }

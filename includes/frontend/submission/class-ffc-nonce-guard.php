@@ -22,6 +22,7 @@ declare(strict_types=1);
 namespace FreeFormCertificate\Frontend\Submission;
 
 use FreeFormCertificate\Core\Utils;
+use FreeFormCertificate\Core\RequestInput;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
@@ -39,7 +40,7 @@ class NonceGuard {
 	 * @throws SubmissionRejected When the nonce is invalid.
 	 */
 	public function apply( SubmissionContext $ctx ): void {
-		if ( ! wp_verify_nonce( Utils::get_post_string( 'nonce' ), 'ffc_frontend_nonce' ) ) {
+		if ( ! wp_verify_nonce( RequestInput::get_post_string( 'nonce' ), 'ffc_frontend_nonce' ) ) {
 			throw new SubmissionRejected(
 				array(
 					'message'       => __( 'Security check failed. Please refresh the page.', 'ffcertificate' ),

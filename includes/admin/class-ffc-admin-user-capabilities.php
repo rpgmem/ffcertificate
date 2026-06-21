@@ -567,7 +567,7 @@ class AdminUserCapabilities {
 	 */
 	public static function save_capability_fields( int $user_id ): void {
 		// Verify nonce.
-		if ( ! wp_verify_nonce( \FreeFormCertificate\Core\Utils::get_post_string( 'ffc_capabilities_nonce' ), 'ffc_user_capabilities' ) ) {
+		if ( ! wp_verify_nonce( \FreeFormCertificate\Core\RequestInput::get_post_string( 'ffc_capabilities_nonce' ), 'ffc_user_capabilities' ) ) {
 			return;
 		}
 

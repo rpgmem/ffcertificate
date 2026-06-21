@@ -29,6 +29,7 @@ declare(strict_types=1);
 namespace FreeFormCertificate\Frontend;
 
 use FreeFormCertificate\Core\Utils;
+use FreeFormCertificate\Core\RequestInput;
 
 use FreeFormCertificate\Core\CsvExportTrait;
 use FreeFormCertificate\Repositories\SubmissionRepository;
@@ -323,7 +324,7 @@ class PublicCsvExporter {
 
 		// 2. Nonce.
 		// phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized, WordPress.Security.ValidatedSanitizedInput.MissingUnslash
-		if ( ! wp_verify_nonce( Utils::get_post_string( '_ffc_pcd_nonce' ), PublicCsvDownload::NONCE_ACTION ) ) {
+		if ( ! wp_verify_nonce( RequestInput::get_post_string( '_ffc_pcd_nonce' ), PublicCsvDownload::NONCE_ACTION ) ) {
 			wp_send_json_error( array( 'message' => __( 'Security check failed. Please refresh the page and try again.', 'ffcertificate' ) ) );
 		}
 
@@ -338,7 +339,7 @@ class PublicCsvExporter {
 		// phpcs:ignore WordPress.Security.NonceVerification.Missing -- Nonce verified above.
 		$form_id = isset( $_POST['form_id'] ) ? absint( wp_unslash( $_POST['form_id'] ) ) : 0;
 		// phpcs:ignore WordPress.Security.NonceVerification.Missing -- Nonce verified above.
-		$posted_hash = Utils::get_post_string( 'hash' );
+		$posted_hash = RequestInput::get_post_string( 'hash' );
 
 		if ( $form_id <= 0 || '' === $posted_hash ) {
 			wp_send_json_error( array( 'message' => __( 'Please inform both the Form ID and the Access Hash.', 'ffcertificate' ) ) );
@@ -353,7 +354,7 @@ class PublicCsvExporter {
 
 		// 9b. CPF gate (per-form opt-in, no-op when mode = 'none').
 		// phpcs:ignore WordPress.Security.NonceVerification.Missing -- Nonce verified above.
-		$cpf_input = Utils::get_post_string( 'cpf' );
+		$cpf_input = RequestInput::get_post_string( 'cpf' );
 		$cpf_error = $validator->validate_cpf_requirement( $form_id, $cpf_input );
 		if ( null !== $cpf_error ) {
 			wp_send_json_error( array( 'message' => $cpf_error ) );
@@ -467,7 +468,7 @@ class PublicCsvExporter {
 	 */
 	public function ajax_batch(): void {
 		// phpcs:ignore WordPress.Security.NonceVerification.Missing -- Verified via job-scoped nonce below.
-		$job_id = Utils::get_post_string( 'job_id' );
+		$job_id = RequestInput::get_post_string( 'job_id' );
 		$job    = get_transient( 'ffc_public_csv_' . $job_id );
 
 		if ( ! $job ) {
@@ -476,7 +477,7 @@ class PublicCsvExporter {
 
 		// Verify job-scoped nonce.
 		// phpcs:ignore WordPress.Security.NonceVerification.Missing -- Verified here.
-		$nonce = Utils::get_post_string( 'nonce_batch' );
+		$nonce = RequestInput::get_post_string( 'nonce_batch' );
 		if ( ! wp_verify_nonce( $nonce, 'ffc_public_csv_batch_' . $job_id ) ) {
 			wp_send_json_error( __( 'Security check failed.', 'ffcertificate' ) );
 		}
@@ -574,7 +575,7 @@ class PublicCsvExporter {
 	 */
 	public function ajax_download(): void {
 		// phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized, WordPress.Security.ValidatedSanitizedInput.MissingUnslash
-		$job_id = Utils::get_get_string( 'job_id' );
+		$job_id = RequestInput::get_get_string( 'job_id' );
 		$job    = get_transient( 'ffc_public_csv_' . $job_id );
 
 		if ( ! $job ) {
@@ -582,7 +583,7 @@ class PublicCsvExporter {
 		}
 
 		// phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized, WordPress.Security.ValidatedSanitizedInput.MissingUnslash
-		$nonce = Utils::get_get_string( 'nonce_batch' );
+		$nonce = RequestInput::get_get_string( 'nonce_batch' );
 		if ( ! wp_verify_nonce( $nonce, 'ffc_public_csv_batch_' . $job_id ) ) {
 			wp_die( esc_html__( 'Security check failed.', 'ffcertificate' ) );
 		}
