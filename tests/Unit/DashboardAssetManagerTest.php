@@ -144,7 +144,7 @@ class DashboardAssetManagerTest extends TestCase {
     // ==================================================================
 
     public function test_enqueue_assets_registers_required_assets(): void {
-        $utilsMock = Mockery::mock( 'alias:\FreeFormCertificate\Core\Utils' );
+        $utilsMock = Mockery::mock( 'alias:\FreeFormCertificate\Core\AssetHelper' );
         $utilsMock->shouldReceive( 'asset_suffix' )->andReturn( '.min' );
         $utilsMock->shouldReceive( 'enqueue_dark_mode' )->once();
 
@@ -166,7 +166,7 @@ class DashboardAssetManagerTest extends TestCase {
     // ==================================================================
 
     public function test_enqueue_assets_localizes_dashboard_data(): void {
-        $utilsMock = Mockery::mock( 'alias:\FreeFormCertificate\Core\Utils' );
+        $utilsMock = Mockery::mock( 'alias:\FreeFormCertificate\Core\AssetHelper' );
         $utilsMock->shouldReceive( 'asset_suffix' )->andReturn( '' );
         $utilsMock->shouldReceive( 'enqueue_dark_mode' )->once();
 
@@ -192,7 +192,7 @@ class DashboardAssetManagerTest extends TestCase {
     // ==================================================================
 
     public function test_enqueue_assets_admin_sees_certificates_and_appointments(): void {
-        $utilsMock = Mockery::mock( 'alias:\FreeFormCertificate\Core\Utils' );
+        $utilsMock = Mockery::mock( 'alias:\FreeFormCertificate\Core\AssetHelper' );
         $utilsMock->shouldReceive( 'asset_suffix' )->andReturn( '' );
         $utilsMock->shouldReceive( 'enqueue_dark_mode' )->once();
 
@@ -216,7 +216,7 @@ class DashboardAssetManagerTest extends TestCase {
     // ==================================================================
 
     public function test_enqueue_assets_view_as_mode(): void {
-        $utilsMock = Mockery::mock( 'alias:\FreeFormCertificate\Core\Utils' );
+        $utilsMock = Mockery::mock( 'alias:\FreeFormCertificate\Core\AssetHelper' );
         $utilsMock->shouldReceive( 'asset_suffix' )->andReturn( '' );
         $utilsMock->shouldReceive( 'enqueue_dark_mode' )->once();
 
@@ -237,7 +237,7 @@ class DashboardAssetManagerTest extends TestCase {
     // ==================================================================
 
     public function test_enqueue_assets_localizes_working_hours(): void {
-        $utilsMock = Mockery::mock( 'alias:\FreeFormCertificate\Core\Utils' );
+        $utilsMock = Mockery::mock( 'alias:\FreeFormCertificate\Core\AssetHelper' );
         $utilsMock->shouldReceive( 'asset_suffix' )->andReturn( '' );
         $utilsMock->shouldReceive( 'enqueue_dark_mode' )->once();
 

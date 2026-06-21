@@ -64,7 +64,7 @@ class AdminUserColumnsTest extends TestCase {
         $this->utils_mock->shouldReceive( 'get_submissions_table' )
             ->andReturn( 'wp_ffc_submissions' )
             ->byDefault();
-        $this->utils_mock->shouldReceive( 'asset_suffix' )
+        Mockery::mock( 'alias:FreeFormCertificate\Core\AssetHelper' )->shouldReceive( 'asset_suffix' )
             ->andReturn( '.min' )
             ->byDefault();
 
