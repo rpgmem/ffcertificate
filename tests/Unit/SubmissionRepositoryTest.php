@@ -356,4 +356,21 @@ class SubmissionRepositoryTest extends TestCase {
 
         $this->assertSame( array(), $this->repo->find_shared_identities( 50 ) );
     }
+
+    // ==================================================================
+    // get_submissions_table() — static accessor relocated from Core\Utils
+    // (#563 Sprint 5 phase 2). Reads the live $wpdb prefix.
+    // ==================================================================
+
+    public function test_get_submissions_table_returns_prefixed_name(): void {
+        global $wpdb;
+        $wpdb->prefix = 'wp_';
+        $this->assertSame( 'wp_ffc_submissions', SubmissionRepository::get_submissions_table() );
+    }
+
+    public function test_get_submissions_table_honours_multisite_prefix(): void {
+        global $wpdb;
+        $wpdb->prefix = 'wp_3_';
+        $this->assertSame( 'wp_3_ffc_submissions', SubmissionRepository::get_submissions_table() );
+    }
 }

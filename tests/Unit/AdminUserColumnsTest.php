@@ -61,9 +61,6 @@ class AdminUserColumnsTest extends TestCase {
 
         // Utils alias mock
         $this->utils_mock = Mockery::mock( 'alias:FreeFormCertificate\Core\Utils' );
-        $this->utils_mock->shouldReceive( 'get_submissions_table' )
-            ->andReturn( 'wp_ffc_submissions' )
-            ->byDefault();
         Mockery::mock( 'alias:FreeFormCertificate\Core\AssetHelper' )->shouldReceive( 'asset_suffix' )
             ->andReturn( '.min' )
             ->byDefault();

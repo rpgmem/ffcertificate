@@ -109,7 +109,7 @@ class Activator {
 	 */
 	private static function create_submissions_table(): void {
 		global $wpdb;
-		$table_name      = \FreeFormCertificate\Core\Utils::get_submissions_table();
+		$table_name      = \FreeFormCertificate\Repositories\SubmissionRepository::get_submissions_table();
 		$charset_collate = $wpdb->get_charset_collate();
 
 		if ( self::table_exists( $table_name ) ) {
@@ -242,7 +242,7 @@ class Activator {
 		}
 
 		global $wpdb;
-		$table = \FreeFormCertificate\Core\Utils::get_submissions_table();
+		$table = \FreeFormCertificate\Repositories\SubmissionRepository::get_submissions_table();
 
 		if ( ! self::table_exists( $table ) ) {
 			return; // Fresh install before create_submissions_table() — nothing to do.
@@ -463,7 +463,7 @@ class Activator {
 		global $wpdb;
 
 		// ffc_submissions (paired with submission_date from Sprint a).
-		$submissions_table = \FreeFormCertificate\Core\Utils::get_submissions_table();
+		$submissions_table = \FreeFormCertificate\Repositories\SubmissionRepository::get_submissions_table();
 		self::migrate_datetime_column_to_unix( $submissions_table, 'consent_date', true );
 		self::migrate_datetime_column_to_unix( $submissions_table, 'edited_at', true );
 
@@ -499,7 +499,7 @@ class Activator {
 	 */
 	private static function add_columns(): void {
 		global $wpdb;
-		$table_name = \FreeFormCertificate\Core\Utils::get_submissions_table();
+		$table_name = \FreeFormCertificate\Repositories\SubmissionRepository::get_submissions_table();
 
 		$columns = array(
 			'user_id'                 => array(
@@ -609,7 +609,7 @@ class Activator {
 	 * @since 4.6.2
 	 */
 	private static function add_composite_indexes(): void {
-		$table_name = \FreeFormCertificate\Core\Utils::get_submissions_table();
+		$table_name = \FreeFormCertificate\Repositories\SubmissionRepository::get_submissions_table();
 
 		self::add_indexes_if_missing(
 			$table_name,

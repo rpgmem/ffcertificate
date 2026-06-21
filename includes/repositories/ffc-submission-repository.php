@@ -79,12 +79,27 @@ class SubmissionRepository extends AbstractRepository {
 	}
 
 	/**
+	 * Submissions table name, with the current site prefix.
+	 *
+	 * Static accessor for callers that don't hold a repository instance — the
+	 * relocation target for the former `Core\Utils::get_submissions_table()`
+	 * (#563 Sprint 5 phase 2). Works correctly on Multisite (per-site prefix).
+	 *
+	 * @since 6.11.3
+	 * @return string Fully-prefixed table name.
+	 */
+	public static function get_submissions_table(): string {
+		global $wpdb;
+		return $wpdb->prefix . 'ffc_submissions';
+	}
+
+	/**
 	 * Get table name.
 	 *
 	 * @return string
 	 */
 	protected function get_table_name(): string {
-		return $this->wpdb->prefix . 'ffc_submissions';
+		return self::get_submissions_table();
 	}
 
 	/**

@@ -316,7 +316,7 @@ class AdminUserColumns {
 	 */
 	private static function load_certificate_counts(): void {
 		global $wpdb;
-		$table = \FreeFormCertificate\Core\Utils::get_submissions_table();
+		$table = \FreeFormCertificate\Repositories\SubmissionRepository::get_submissions_table();
 
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		$results = $wpdb->get_results(

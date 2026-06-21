@@ -735,22 +735,6 @@ class UtilsTest extends TestCase {
     }
 
     // ==================================================================
-    // get_submissions_table() — Group C (DB mock)
-    // ==================================================================
-
-    public function test_get_submissions_table(): void {
-        global $wpdb;
-        $wpdb = (object) array( 'prefix' => 'wp_' );
-        $this->assertSame( 'wp_ffc_submissions', Utils::get_submissions_table() );
-    }
-
-    public function test_get_submissions_table_multisite_prefix(): void {
-        global $wpdb;
-        $wpdb = (object) array( 'prefix' => 'wp_3_' );
-        $this->assertSame( 'wp_3_ffc_submissions', Utils::get_submissions_table() );
-    }
-
-    // ==================================================================
     // generate_simple_captcha() — Group B (WordPress mock)
     // ==================================================================
 

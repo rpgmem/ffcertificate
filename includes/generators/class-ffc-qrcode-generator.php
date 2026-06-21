@@ -387,7 +387,7 @@ class QRCodeGenerator {
 	 */
 	private function get_from_cache( int $submission_id ) {
 		global $wpdb;
-		$table_name = \FreeFormCertificate\Core\Utils::get_submissions_table();
+		$table_name = \FreeFormCertificate\Repositories\SubmissionRepository::get_submissions_table();
 
 		// Check if column exists.
 		if ( ! $this->cache_column_exists() ) {
@@ -415,7 +415,7 @@ class QRCodeGenerator {
 	 */
 	private function save_to_cache( int $submission_id, string $qr_base64 ): bool {
 		global $wpdb;
-		$table_name = \FreeFormCertificate\Core\Utils::get_submissions_table();
+		$table_name = \FreeFormCertificate\Repositories\SubmissionRepository::get_submissions_table();
 
 		// Check if column exists, create if needed.
 		if ( ! $this->cache_column_exists() ) {
@@ -440,7 +440,7 @@ class QRCodeGenerator {
 	 * @return bool
 	 */
 	private function cache_column_exists(): bool {
-		$table_name = \FreeFormCertificate\Core\Utils::get_submissions_table();
+		$table_name = \FreeFormCertificate\Repositories\SubmissionRepository::get_submissions_table();
 		return self::column_exists( $table_name, 'qr_code_cache' );
 	}
 
@@ -450,7 +450,7 @@ class QRCodeGenerator {
 	 * @return bool Success
 	 */
 	private function create_cache_column(): bool {
-		$table_name = \FreeFormCertificate\Core\Utils::get_submissions_table();
+		$table_name = \FreeFormCertificate\Repositories\SubmissionRepository::get_submissions_table();
 		return self::add_column_if_missing( $table_name, 'qr_code_cache', 'LONGTEXT NULL', 'magic_token' );
 	}
 
@@ -462,7 +462,7 @@ class QRCodeGenerator {
 	 */
 	public function clear_cache( int $submission_id = 0 ): bool {
 		global $wpdb;
-		$table_name = \FreeFormCertificate\Core\Utils::get_submissions_table();
+		$table_name = \FreeFormCertificate\Repositories\SubmissionRepository::get_submissions_table();
 
 		if ( ! $this->cache_column_exists() ) {
 			return false;
@@ -516,7 +516,7 @@ class QRCodeGenerator {
 	 */
 	public function generate_magic_link_qr( int $submission_id, int $size = 200 ): string {
 		global $wpdb;
-		$table_name = \FreeFormCertificate\Core\Utils::get_submissions_table();
+		$table_name = \FreeFormCertificate\Repositories\SubmissionRepository::get_submissions_table();
 
 		// Get submission magic token.
     // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
@@ -573,7 +573,7 @@ class QRCodeGenerator {
 	 */
 	public function get_cache_stats(): array {
 		global $wpdb;
-		$table_name = \FreeFormCertificate\Core\Utils::get_submissions_table();
+		$table_name = \FreeFormCertificate\Repositories\SubmissionRepository::get_submissions_table();
 
 		if ( ! $this->cache_column_exists() ) {
 			return array(

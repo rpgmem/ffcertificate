@@ -50,7 +50,7 @@ class UserCreator {
 	 */
 	public static function get_or_create_user( string $identifier_hash, string $email, array $submission_data = array(), string $context = CapabilityManager::CONTEXT_CERTIFICATE, string $identifier_type = self::TYPE_AUTO ) {
 		global $wpdb;
-		$table = \FreeFormCertificate\Core\Utils::get_submissions_table();
+		$table = \FreeFormCertificate\Repositories\SubmissionRepository::get_submissions_table();
 
 		// STEP 1: Check if identifier hash already has user_id in submissions.
 		// When type is known, search the specific column + legacy fallback.
@@ -141,7 +141,7 @@ class UserCreator {
 		}
 
 		global $wpdb;
-		$table = \FreeFormCertificate\Core\Utils::get_submissions_table();
+		$table = \FreeFormCertificate\Repositories\SubmissionRepository::get_submissions_table();
 
 		// STEP 1: Submissions lookup against the supplied hashes.
 		// Build a `cpf_hash = %s OR rf_hash = %s` clause that includes
@@ -235,7 +235,7 @@ class UserCreator {
 			$params[]      = $rf_hash;
 		}
 		$where             = implode( ' OR ', $where_parts );
-		$submissions_table = \FreeFormCertificate\Core\Utils::get_submissions_table();
+		$submissions_table = \FreeFormCertificate\Repositories\SubmissionRepository::get_submissions_table();
 
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber -- $where built from hard-coded fragments above with matching placeholder count.
@@ -385,7 +385,7 @@ class UserCreator {
 		$hash_where  = self::build_hash_where_clause( $identifier_type );
 		$hash_params = self::build_hash_params( $identifier_hash, $identifier_type );
 
-		$submissions_table = \FreeFormCertificate\Core\Utils::get_submissions_table();
+		$submissions_table = \FreeFormCertificate\Repositories\SubmissionRepository::get_submissions_table();
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber -- $hash_where and $hash_params built together in build_hash_* helpers with matching placeholder count.
 		$linked_submissions = $wpdb->query(

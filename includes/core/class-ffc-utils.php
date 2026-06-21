@@ -25,21 +25,6 @@ if ( ! defined( 'ABSPATH' ) ) {
 class Utils {
 
 	/**
-	 * Get submissions table name with current prefix
-	 *
-	 * Centralizes table name generation for consistency across all classes.
-	 * Works correctly with WordPress Multisite (different prefixes per site).
-	 *
-	 * @since 2.9.16
-	 * @return string Full table name with WordPress prefix
-	 */
-	public static function get_submissions_table(): string {
-		global $wpdb;
-		// Returns the real table name, WITHOUT calling this function again.
-		return $wpdb->prefix . 'ffc_submissions';
-	}
-
-	/**
 	 * Returns the list of allowed HTML tags and attributes.
 	 * Centralized here so Frontend, Email, and PDF Generator use the same validation rules.
 	 *

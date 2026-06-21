@@ -177,7 +177,7 @@ final class UserIdentifiersQueryService {
 	 */
 	private static function fetch_encrypted_cpf_rf_rows( int $user_id ): array {
 		global $wpdb;
-		$submissions_table  = \FreeFormCertificate\Core\Utils::get_submissions_table();
+		$submissions_table  = \FreeFormCertificate\Repositories\SubmissionRepository::get_submissions_table();
 		$appointments_table = $wpdb->prefix . 'ffc_self_scheduling_appointments';
 
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Cross-table UNION; bounded by (user_id) filter on both halves.
@@ -210,7 +210,7 @@ final class UserIdentifiersQueryService {
 	 */
 	private static function fetch_encrypted_emails( int $user_id ): array {
 		global $wpdb;
-		$submissions_table  = \FreeFormCertificate\Core\Utils::get_submissions_table();
+		$submissions_table  = \FreeFormCertificate\Repositories\SubmissionRepository::get_submissions_table();
 		$appointments_table = $wpdb->prefix . 'ffc_self_scheduling_appointments';
 
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Cross-table UNION; bounded by (user_id) filter on both halves.

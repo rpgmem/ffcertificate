@@ -369,7 +369,7 @@ class SubmissionPersister {
 		}
 
 		global $wpdb;
-		$table     = \FreeFormCertificate\Core\Utils::get_submissions_table();
+		$table     = \FreeFormCertificate\Repositories\SubmissionRepository::get_submissions_table();
 		$clean_cpf = \FreeFormCertificate\Core\DataSanitizer::normalize_cpf_rf( $cpf );
 
 		if ( class_exists( '\FreeFormCertificate\Core\Encryption' ) && \FreeFormCertificate\Core\Encryption::is_configured() ) {

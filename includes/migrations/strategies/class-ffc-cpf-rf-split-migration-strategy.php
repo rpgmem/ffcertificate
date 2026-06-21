@@ -62,7 +62,7 @@ class CpfRfSplitMigrationStrategy implements MigrationStrategyInterface {
 	 */
 	public function __construct() {
 		global $wpdb;
-		$this->submissions_table  = \FreeFormCertificate\Core\Utils::get_submissions_table();
+		$this->submissions_table  = \FreeFormCertificate\Repositories\SubmissionRepository::get_submissions_table();
 		$this->appointments_table = $wpdb->prefix . 'ffc_self_scheduling_appointments';
 	}
 
