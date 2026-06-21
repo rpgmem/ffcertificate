@@ -14,6 +14,14 @@ use FreeFormCertificate\Core\RequestInput;
  * accessors ($_POST/$_GET readers) are exercised through their many callers;
  * get_user_ip had no direct coverage before the move, so we pin its header
  * walk + private/reserved filtering + fallback here.
+ *
+ * The wp_unslash / sanitize_text_field stubs live in each test (not setUp) to
+ * match the proven RateLimiterTest get_user_ip pattern; the class also runs in
+ * isolated processes so a prior suite test that left wp_unslash under Brain
+ * Monkey/Patchwork management can't surface as "not defined nor mocked" here.
+ *
+ * @runTestsInSeparateProcesses
+ * @preserveGlobalState disabled
  */
 class RequestInputTest extends TestCase {
 
@@ -23,8 +31,6 @@ class RequestInputTest extends TestCase {
 	protected function setUp(): void {
 		parent::setUp();
 		Monkey\setUp();
-		Functions\when( 'wp_unslash' )->returnArg();
-		Functions\when( 'sanitize_text_field' )->returnArg();
 		$this->server_backup = $_SERVER;
 		// Start from a clean slate for the headers get_user_ip inspects.
 		foreach ( array( 'HTTP_CLIENT_IP', 'HTTP_X_FORWARDED_FOR', 'HTTP_X_FORWARDED', 'HTTP_X_CLUSTER_CLIENT_IP', 'HTTP_FORWARDED_FOR', 'HTTP_FORWARDED', 'REMOTE_ADDR' ) as $k ) {
@@ -38,12 +44,19 @@ class RequestInputTest extends TestCase {
 		parent::tearDown();
 	}
 
+	private function stub_request_funcs(): void {
+		Functions\when( 'wp_unslash' )->returnArg();
+		Functions\when( 'sanitize_text_field' )->returnArg();
+	}
+
 	public function test_returns_remote_addr_when_only_header_present(): void {
+		$this->stub_request_funcs();
 		$_SERVER['REMOTE_ADDR'] = '198.51.100.7';
 		$this->assertSame( '198.51.100.7', RequestInput::get_user_ip() );
 	}
 
 	public function test_prefers_forwarded_for_over_remote_addr(): void {
+		$this->stub_request_funcs();
 		// HTTP_X_FORWARDED_FOR is earlier in the precedence chain.
 		$_SERVER['HTTP_X_FORWARDED_FOR'] = '203.0.113.9';
 		$_SERVER['REMOTE_ADDR']          = '198.51.100.7';
@@ -51,6 +64,7 @@ class RequestInputTest extends TestCase {
 	}
 
 	public function test_skips_private_and_reserved_ips(): void {
+		$this->stub_request_funcs();
 		// Private (10.x) + loopback are reserved → skipped; falls through.
 		$_SERVER['HTTP_X_FORWARDED_FOR'] = '10.0.0.5';
 		$_SERVER['REMOTE_ADDR']          = '127.0.0.1';
@@ -58,12 +72,14 @@ class RequestInputTest extends TestCase {
 	}
 
 	public function test_returns_first_public_ip_from_comma_list(): void {
+		$this->stub_request_funcs();
 		// Proxy chains stack IPs; the first public one wins.
 		$_SERVER['HTTP_X_FORWARDED_FOR'] = '10.0.0.5, 203.0.113.42, 8.8.8.8';
 		$this->assertSame( '203.0.113.42', RequestInput::get_user_ip() );
 	}
 
 	public function test_falls_back_to_zero_when_nothing_present(): void {
+		$this->stub_request_funcs();
 		$this->assertSame( '0.0.0.0', RequestInput::get_user_ip() );
 	}
 }
