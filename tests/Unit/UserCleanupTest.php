@@ -43,7 +43,6 @@ class UserCleanupTest extends TestCase {
         // UserService::get_user_statistics() (reached via the #322
         // short-circuit `user_has_ffc_data` guard at the top of
         // anonymize_user_data) calls this for the certificate count.
-        $utilsMock->shouldReceive('get_submissions_table')->andReturn('wp_ffc_submissions')->byDefault();
 
         // DocumentFormatter::mask_email() (called by UserCleanup) calls is_email()
         // internally — provide a permissive stub.

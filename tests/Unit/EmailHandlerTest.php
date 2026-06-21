@@ -164,7 +164,7 @@ class EmailHandlerTest extends TestCase {
         $utilsMock = Mockery::mock( 'alias:\FreeFormCertificate\Core\Utils' );
         $utilsMock->shouldReceive( 'format_auth_code' )->andReturn( 'CERT-ABC123' );
         $utilsMock->shouldReceive( 'format_document' )->andReturnArg( 0 );
-        $utilsMock->shouldReceive( 'get_allowed_html_tags' )->andReturn( array() );
+        Mockery::mock( 'alias:\FreeFormCertificate\Core\HtmlPolicy' )->shouldReceive( 'get_allowed_html_tags' )->andReturn( array() );
         $utilsMock->shouldReceive( 'debug_log' )->andReturn();
 
         $magicMock = Mockery::mock( 'alias:\FreeFormCertificate\Generators\MagicLinkHelper' );
@@ -205,7 +205,7 @@ class EmailHandlerTest extends TestCase {
         $utilsMock = Mockery::mock( 'alias:\FreeFormCertificate\Core\Utils' );
         $utilsMock->shouldReceive( 'format_auth_code' )->andReturn( '' );
         $utilsMock->shouldReceive( 'format_document' )->andReturnArg( 0 );
-        $utilsMock->shouldReceive( 'get_allowed_html_tags' )->andReturn( array() );
+        Mockery::mock( 'alias:\FreeFormCertificate\Core\HtmlPolicy' )->shouldReceive( 'get_allowed_html_tags' )->andReturn( array() );
         $utilsMock->shouldReceive( 'debug_log' )->andReturn();
 
         $handler = new EmailHandler();

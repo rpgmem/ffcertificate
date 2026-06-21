@@ -42,8 +42,6 @@ class ReprintDetectorTest extends TestCase {
 
         // Alias mocks: prevent autoloading
         $utilsMock = Mockery::mock('alias:\FreeFormCertificate\Core\Utils');
-        $utilsMock->shouldReceive('get_submissions_table')
-            ->andReturn('wp_ffc_submissions')->byDefault();
         $utilsMock->shouldReceive('debug_log')->byDefault();
 
         // IMPORTANT: store the Encryption alias mock so tests can add

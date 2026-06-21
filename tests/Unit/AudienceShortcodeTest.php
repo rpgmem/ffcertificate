@@ -113,7 +113,7 @@ class AudienceShortcodeTest extends TestCase {
         Functions\when('get_permalink')->justReturn('https://example.com/page');
 
         // Stub Utils for enqueue_styles
-        $utilsMock = Mockery::mock('alias:FreeFormCertificate\Core\Utils');
+        $utilsMock = Mockery::mock('alias:FreeFormCertificate\Core\AssetHelper');
         $utilsMock->shouldReceive('asset_suffix')->andReturn('.min');
 
         $result = AudienceShortcode::render(array('schedule_id' => 1));
@@ -155,7 +155,7 @@ class AudienceShortcodeTest extends TestCase {
         Functions\when('wp_login_url')->justReturn('https://example.com/login');
         Functions\when('get_permalink')->justReturn('https://example.com/page');
 
-        $utilsMock = Mockery::mock('alias:FreeFormCertificate\Core\Utils');
+        $utilsMock = Mockery::mock('alias:FreeFormCertificate\Core\AssetHelper');
         $utilsMock->shouldReceive('asset_suffix')->andReturn('.min');
 
         $result = AudienceShortcode::render(array('schedule_id' => 1));
@@ -189,7 +189,7 @@ class AudienceShortcodeTest extends TestCase {
         $schedRepoMock = Mockery::mock('alias:FreeFormCertificate\Audience\AudienceScheduleRepository');
         $schedRepoMock->shouldReceive('get_by_id')->with(5)->andReturn($schedule);
 
-        $utilsMock = Mockery::mock('alias:FreeFormCertificate\Core\Utils');
+        $utilsMock = Mockery::mock('alias:FreeFormCertificate\Core\AssetHelper');
         $utilsMock->shouldReceive('asset_suffix')->andReturn('.min');
 
         $result = AudienceShortcode::render(array('schedule_id' => 5));
@@ -222,7 +222,7 @@ class AudienceShortcodeTest extends TestCase {
         $schedRepoMock = Mockery::mock('alias:FreeFormCertificate\Audience\AudienceScheduleRepository');
         $schedRepoMock->shouldReceive('get_by_user_access')->with(42)->andReturn(array());
 
-        $utilsMock = Mockery::mock('alias:FreeFormCertificate\Core\Utils');
+        $utilsMock = Mockery::mock('alias:FreeFormCertificate\Core\AssetHelper');
         $utilsMock->shouldReceive('asset_suffix')->andReturn('.min');
 
         $result = AudienceShortcode::render(array());
@@ -296,7 +296,7 @@ class AudienceShortcodeTest extends TestCase {
         $audRepoMock = Mockery::mock('alias:FreeFormCertificate\Audience\AudienceRepository');
         $audRepoMock->shouldReceive('get_hierarchical')->andReturn(array());
 
-        $utilsMock = Mockery::mock('alias:FreeFormCertificate\Core\Utils');
+        $utilsMock = Mockery::mock('alias:FreeFormCertificate\Core\AssetHelper');
         $utilsMock->shouldReceive('asset_suffix')->andReturn('.min');
 
         Functions\when('get_option')->alias(function ($key, $default = false) {
@@ -341,7 +341,7 @@ class AudienceShortcodeTest extends TestCase {
         $schedRepoMock = Mockery::mock('alias:FreeFormCertificate\Audience\AudienceScheduleRepository');
         $schedRepoMock->shouldReceive('get_by_id')->with(3)->andReturn($schedule);
 
-        $utilsMock = Mockery::mock('alias:FreeFormCertificate\Core\Utils');
+        $utilsMock = Mockery::mock('alias:FreeFormCertificate\Core\AssetHelper');
         $utilsMock->shouldReceive('asset_suffix')->andReturn('.min');
 
         Functions\when('get_option')->alias(function ($key, $default = false) {
@@ -379,7 +379,7 @@ class AudienceShortcodeTest extends TestCase {
         $schedRepoMock = Mockery::mock('alias:FreeFormCertificate\Audience\AudienceScheduleRepository');
         $schedRepoMock->shouldReceive('get_by_id')->with(99)->andReturn(null);
 
-        $utilsMock = Mockery::mock('alias:FreeFormCertificate\Core\Utils');
+        $utilsMock = Mockery::mock('alias:FreeFormCertificate\Core\AssetHelper');
         $utilsMock->shouldReceive('asset_suffix')->andReturn('.min');
 
         $result = AudienceShortcode::render(array('schedule_id' => 99));
@@ -401,7 +401,7 @@ class AudienceShortcodeTest extends TestCase {
         $schedRepoMock = Mockery::mock('alias:FreeFormCertificate\Audience\AudienceScheduleRepository');
         $schedRepoMock->shouldReceive('get_all')->andReturn(array());
 
-        $utilsMock = Mockery::mock('alias:FreeFormCertificate\Core\Utils');
+        $utilsMock = Mockery::mock('alias:FreeFormCertificate\Core\AssetHelper');
         $utilsMock->shouldReceive('asset_suffix')->andReturn('.min');
 
         Functions\when('get_option')->alias(function ($key, $default = false) {

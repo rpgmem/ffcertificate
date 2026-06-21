@@ -53,8 +53,6 @@ class UserServiceTest extends TestCase {
         $this->userManagerMock->shouldReceive('get_all_capabilities')->andReturn([])->byDefault();
 
         $this->utilsMock = Mockery::mock('alias:\FreeFormCertificate\Core\Utils');
-        $this->utilsMock->shouldReceive('get_submissions_table')
-            ->andReturn('wp_ffc_submissions')->byDefault();
         $this->utilsMock->shouldReceive('debug_log')->byDefault();
 
         // Default WP stubs

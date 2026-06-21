@@ -55,7 +55,7 @@ class AdminUserCustomFieldsTest extends TestCase {
         Functions\when('FreeFormCertificate\Core\wp_unslash')->returnArg();
 
         // Utils alias mock
-        $this->utils_mock = Mockery::mock('alias:\FreeFormCertificate\Core\Utils');
+        $this->utils_mock = Mockery::mock('alias:\FreeFormCertificate\Core\AssetHelper');
         $ri_mock = Mockery::mock( 'alias:\FreeFormCertificate\Core\RequestInput' );
         $ri_mock->shouldReceive( 'get_post_string' )->andReturnUsing( function ( $key, $default = '' ) {
             return isset( $_POST[ $key ] ) && is_string( $_POST[ $key ] ) ? $_POST[ $key ] : $default;
