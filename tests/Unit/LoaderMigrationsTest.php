@@ -15,8 +15,9 @@ use FreeFormCertificate\Loader;
  * and `register_ffc_roles_safe()`.
  *
  * Each helper is version-flagged: it reads an option flag, runs a
- * CapabilityManager migration once, then writes the flag. CapabilityManager
- * is alias-mocked, so these run in separate processes.
+ * CapabilityMigrator migration (or a RoleRegistrar registration) once, then
+ * writes the flag. Those classes are alias-mocked, so these run in separate
+ * processes.
  *
  * @covers \FreeFormCertificate\Loader
  * @runTestsInSeparateProcesses
@@ -62,7 +63,7 @@ class LoaderMigrationsTest extends TestCase {
             }
         );
 
-        $cm = Mockery::mock( 'alias:FreeFormCertificate\UserDashboard\CapabilityManager' );
+        $cm = Mockery::mock( 'alias:FreeFormCertificate\UserDashboard\CapabilityMigrator' );
         $cm->shouldReceive( $cap_method )->never();
 
         $this->invoke_private( $loader, $method );
@@ -85,7 +86,7 @@ class LoaderMigrationsTest extends TestCase {
             }
         );
 
-        $cm = Mockery::mock( 'alias:FreeFormCertificate\UserDashboard\CapabilityManager' );
+        $cm = Mockery::mock( 'alias:FreeFormCertificate\UserDashboard\CapabilityMigrator' );
         $cm->shouldReceive( $cap_method )->once();
 
         $this->invoke_private( $loader, $method );
@@ -114,9 +115,9 @@ class LoaderMigrationsTest extends TestCase {
     public function test_register_ffc_roles_safe_registers_roles_and_relabel_hook(): void {
         $loader = new Loader();
 
-        $cm = Mockery::mock( 'alias:FreeFormCertificate\UserDashboard\CapabilityManager' );
-        $cm->shouldReceive( 'register_role' )->once();
-        $cm->shouldReceive( 'register_module_roles' )->once();
+        $rr = Mockery::mock( 'alias:FreeFormCertificate\UserDashboard\RoleRegistrar' );
+        $rr->shouldReceive( 'register_role' )->once();
+        $rr->shouldReceive( 'register_module_roles' )->once();
 
         $added = array();
         Functions\when( 'add_action' )->alias(
