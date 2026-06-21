@@ -15,7 +15,7 @@ jobs:
     # Gating from day one — the codebase has 28 source files and 0 errors
     # after S1 of #161 (only 9 unused-vars warnings remain, which don't gate).
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
       - uses: actions/setup-node@v6
         with:
           node-version: '22'
@@ -78,7 +78,7 @@ jobs:
       # ~3.4pp buffer under the measured number, within the ≤5pp policy.
       JS_COVERAGE_FLOOR_LINES: '96'
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
       - uses: actions/setup-node@v6
         with:
           node-version: '22'
@@ -121,7 +121,7 @@ jobs:
     # chip away — the script and config are correct, only the policy
     # changes.
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
       - uses: actions/setup-node@v6
         with:
           node-version: '22'

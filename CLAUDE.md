@@ -179,6 +179,16 @@ develop   ─o─o─o─o─o─o─o─o─o─o─o─/             ← TESTE
 4. CHANGELOG entries go under the `[Unreleased]` section at the top of `CHANGELOG.md` — they stay there across multiple PRs.
 5. Auto-merge enabled (SQUASH). Once merged, `deploy-develop.yml` pushes the new HEAD to the testes server within ~1 minute.
 
+### Dependabot PRs
+
+Dependabot is configured with `target-branch: develop` for all three ecosystems (`composer`, `npm`, `github-actions`) in `.github/dependabot.yml`, so **version updates** open against `develop` correctly.
+
+**Security updates are the exception:** GitHub always raises Dependabot *security* updates against the repository's default branch (`main`), ignoring `target-branch` — this is not configurable. The default branch is intentionally kept as `main` (changing it would have repo-wide side effects), so security-update PRs will keep being born against `main`.
+
+**Rule — retarget to `develop`:** whenever a Dependabot PR opens against `main` (in practice, always a security update), change its base to `develop` and leave a one-line comment stating the reason (*correct flow: every change funnels through `develop` and ships in the consolidated release PR, never as an out-of-band `main` commit*). Then comment `@dependabot rebase` so the lockfile diff is recomputed against `develop`. The PR then rides the normal develop batch with auto-merge like any other.
+
+**Exception — genuine hotfix:** if the security fix is in a **runtime dependency** (shipped inside the plugin, not dev/CI tooling) *and* is severe enough to ship to production immediately, treat it as a hotfix (`hotfix/* → main`) instead of retargeting, then sync develop per "Sync `develop` with `main`". Dev/CI-only deps (`vitest`, `@vitest/coverage-v8`, `undici`, `js-yaml`, PHPStan, etc.) never qualify — they always ride the develop batch.
+
 ### Release PR (`develop → main`)
 
 When the batch on develop is validated against the testes site and ready to ship to prod:

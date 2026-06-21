@@ -14,7 +14,7 @@
     "setup-hooks": "git config core.hooksPath .githooks && echo 'Git hooks configured.'"
   },
   "devDependencies": {
-    "@vitest/coverage-v8": "^4.1.8",
+    "@vitest/coverage-v8": "^4.1.9",
     "clean-css-cli": "^5.6.3",
     "eslint": "^10.5.0",
     "globals": "^17.6.0",
@@ -22,7 +22,7 @@
     "jsdom": "^29.1.1",
     "stylelint": "^17.13.0",
     "terser": "^5.48.0",
-    "vitest": "^4.1.8",
+    "vitest": "^4.1.9",
     "stylelint-config-recommended": "^18.0.0"
   }
 }
