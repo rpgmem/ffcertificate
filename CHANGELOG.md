@@ -10,6 +10,9 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 ### Changed
 
 - Internal refactor (#563 Sprint 1, PR 1a) — the 740-line `FormProcessor::handle_submission_ajax()` god-method now delegates its entry stages (schedule-exception bridge, IP throttle, nonce, CAPTCHA/honeypot, form-config resolution, preflight, field sanitization, device-signal resolution, geofence, consolidated rate-limit, access restrictions) to discrete, unit-testable guard classes under `FreeFormCertificate\Frontend\Submission\`. Each guard either populates a shared `SubmissionContext` or throws `SubmissionRejected` carrying the exact `wp_send_json_error()` payload; a thin orchestrator runs them in order and translates a rejection into the single JSON error response. Behavior-preserving: the JSON contract, gate ordering, and exit semantics are unchanged (pinned by the existing FormProcessor characterization tests plus a new per-guard suite). The quiz/normal save, PDF, and success stages remain inline pending PR 1b.
+- Internal refactor (#563 Sprint 1, PR 1b) — completes the `FormProcessor::handle_submission_ajax()` split: the persistence (quiz + normal flows, including the `calculate_quiz_score`, `find_quiz_submission`, and schedule-exception helpers), PDF generation, and success-response stages move to `SubmissionPersister`, `PdfStage`, and `SuccessResponder` (the latter two taking the `SubmissionHandler` as a constructor dependency). The orchestrator is now a flat list of pipeline stages — guards throw `SubmissionRejected`, the final `SuccessResponder` populates `$ctx->response`, and the single exit emits either `wp_send_json_error()` or `wp_send_json_success()`. `FormProcessor` drops from ~1047 to ~85 lines. Behavior-preserving (existing characterization + per-guard suites stay green).
+
+## [6.11.2] (2026-06-21)
 
 ### Security
 
