@@ -7,6 +7,10 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Changed
+
+- Vendored thumbmarkjs 1.9.0 → 1.9.1 (MIT, `libs/js/`). Patch release; the server algorithm, fingerprint schema, contract and LGPD posture are unchanged, and the telemetry beacon stays unconditionally disabled.
+
 ## [6.11.1] (2026-06-17)
 
 ### Added
