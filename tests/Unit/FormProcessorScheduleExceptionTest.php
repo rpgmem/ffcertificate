@@ -292,10 +292,10 @@ class FormProcessorScheduleExceptionTest extends TestCase {
      * @return array<string, mixed>|null
      */
     private function invoke_live( string $token, int $form ) {
-        $ref = new \ReflectionMethod( FormProcessor::class, 'live_exception_payload' );
-        $ref->setAccessible( true );
+        // #563 Sprint 1 — live_exception_payload moved to ScheduleExceptionGuard
+        // (stage 1). It is a public static resolver now, so call it directly.
         /** @var array<string, mixed>|null $out */
-        $out = $ref->invoke( null, $token, $form );
+        $out = \FreeFormCertificate\Frontend\Submission\ScheduleExceptionGuard::live_exception_payload( $token, $form );
         return $out;
     }
 
