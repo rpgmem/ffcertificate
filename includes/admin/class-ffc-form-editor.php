@@ -75,7 +75,7 @@ class FormEditor {
 			return;
 		}
 
-		$s = \FreeFormCertificate\Core\Utils::asset_suffix();
+		$s = \FreeFormCertificate\Core\AssetHelper::asset_suffix();
 
 		// Pure validator (`window.FFCGeofenceValidation.analyzeDateTimeOrder`)
 		// — no jQuery dep, loaded first so the admin script can read it on

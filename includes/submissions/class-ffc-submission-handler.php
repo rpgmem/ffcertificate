@@ -171,7 +171,7 @@ class SubmissionHandler {
 		}
 
 		// 5. Get user IP.
-		$user_ip = \FreeFormCertificate\Core\Utils::get_user_ip();
+		$user_ip = \FreeFormCertificate\Core\RequestInput::get_user_ip();
 
 		// 5b. Extract ticket value (for hash-based lookup)
 		$ticket_value = isset( $extra_data['ticket'] ) ? strtoupper( trim( (string) $extra_data['ticket'] ) ) : null;
@@ -704,7 +704,7 @@ class SubmissionHandler {
 	 */
 	public function delete_all_submissions( ?int $form_id = null, bool $reset_auto_increment = false ): int {
 		global $wpdb;
-		$table = \FreeFormCertificate\Core\Utils::get_submissions_table();
+		$table = \FreeFormCertificate\Repositories\SubmissionRepository::get_submissions_table();
 
 		if ( $form_id ) {
 			// Delete from specific form using repository.
@@ -775,7 +775,7 @@ class SubmissionHandler {
 	 */
 	public function reset_submission_counter(): bool {
 		global $wpdb;
-		$table = \FreeFormCertificate\Core\Utils::get_submissions_table();
+		$table = \FreeFormCertificate\Repositories\SubmissionRepository::get_submissions_table();
 
 		// Get current max ID.
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
@@ -800,7 +800,7 @@ class SubmissionHandler {
 	 */
 	public function run_data_cleanup(): int {
 		global $wpdb;
-		$table = \FreeFormCertificate\Core\Utils::get_submissions_table();
+		$table = \FreeFormCertificate\Repositories\SubmissionRepository::get_submissions_table();
 
 		$cleanup_days = absint( get_option( 'ffc_cleanup_days', 0 ) );
 

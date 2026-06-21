@@ -13,7 +13,7 @@ use FreeFormCertificate\Migrations\Strategies\CpfRfSplitMigrationStrategy;
 /**
  * Tests for CpfRfSplitMigrationStrategy: splits combined cpf_rf into separate cpf/rf columns.
  *
- * The constructor calls Utils::get_submissions_table() and accesses $wpdb, so we
+ * The constructor calls SubmissionRepository::get_submissions_table() and accesses $wpdb, so we
  * construct with a properly stubbed environment, then use reflection for private methods.
  *
  * @covers \FreeFormCertificate\Migrations\Strategies\CpfRfSplitMigrationStrategy
@@ -72,7 +72,7 @@ class CpfRfSplitMigrationStrategyTest extends TestCase {
         Functions\when( 'FreeFormCertificate\Settings\get_option' )->justReturn( array() );
         Functions\when( 'FreeFormCertificate\Core\absint' )->alias( function( $val ) { return abs( (int) $val ); } );
 
-        // Construct strategy — constructor calls Utils::get_submissions_table() which uses $wpdb->prefix
+        // Construct strategy — constructor calls SubmissionRepository::get_submissions_table() which uses $wpdb->prefix
         $this->strategy = new CpfRfSplitMigrationStrategy();
         $this->ref = new \ReflectionClass( CpfRfSplitMigrationStrategy::class );
     }

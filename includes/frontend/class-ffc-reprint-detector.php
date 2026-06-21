@@ -35,7 +35,7 @@ class ReprintDetector {
 	 */
 	public static function detect( int $form_id, string $val_cpf, string $val_ticket ): array {
 		global $wpdb;
-		$table_name          = \FreeFormCertificate\Core\Utils::get_submissions_table();
+		$table_name          = \FreeFormCertificate\Repositories\SubmissionRepository::get_submissions_table();
 		$existing_submission = null;
 
 		// Check by ticket first (if provided).

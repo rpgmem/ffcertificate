@@ -54,7 +54,7 @@ class AdminUserCapabilities {
 		if ( 'user-edit.php' !== $hook_suffix && 'profile.php' !== $hook_suffix ) {
 			return;
 		}
-		$s = \FreeFormCertificate\Core\Utils::asset_suffix();
+		$s = \FreeFormCertificate\Core\AssetHelper::asset_suffix();
 		// ffc-common.css carries the .ffc-toggle switch styles reused by the
 		// capability rows; ffc-user-permissions.css adds the grouped-card
 		// layout, slug chips, origin badges and search/preset toolbar.

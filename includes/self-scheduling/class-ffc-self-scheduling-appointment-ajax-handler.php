@@ -106,7 +106,7 @@ class AppointmentAjaxHandler {
                 // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.MissingUnslash, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- isset() used as boolean only.
 				'consent_given'    => isset( $_POST['consent'] ) ? 1 : 0,
 				'consent_text'     => isset( $_POST['consent_text'] ) ? sanitize_textarea_field( wp_unslash( $_POST['consent_text'] ) ) : '',
-				'user_ip'          => \FreeFormCertificate\Core\Utils::get_user_ip(),
+				'user_ip'          => \FreeFormCertificate\Core\RequestInput::get_user_ip(),
 				'user_agent'       => isset( $_SERVER['HTTP_USER_AGENT'] ) ? sanitize_text_field( wp_unslash( $_SERVER['HTTP_USER_AGENT'] ) ) : '',
 			);
 

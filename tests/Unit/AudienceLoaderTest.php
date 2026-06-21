@@ -136,7 +136,7 @@ class AudienceLoaderTest extends TestCase {
     public function test_enqueue_admin_assets_enqueues_on_audience_page(): void {
         $loader = AudienceLoader::get_instance();
 
-        // Stub the Utils::asset_suffix call
+        // Stub the AssetHelper::asset_suffix call
         // The class is already loaded via autoloader; we mock the static call
         // by defining SCRIPT_DEBUG
         if (!defined('SCRIPT_DEBUG')) {

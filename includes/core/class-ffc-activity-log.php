@@ -253,7 +253,7 @@ class ActivityLog {
 			'context'           => $context_for_db,
 			'context_encrypted' => $context_encrypted,
 			'user_id'           => absint( $user_id ),
-			'user_ip'           => \FreeFormCertificate\Core\Utils::get_user_ip(),
+			'user_ip'           => \FreeFormCertificate\Core\RequestInput::get_user_ip(),
 			'submission_id'     => absint( $submission_id ),
 			'created_at'        => current_time( 'mysql' ),
 		);

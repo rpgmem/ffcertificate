@@ -693,7 +693,7 @@ class AudienceShortcode {
 	 * Enqueue CSS only (safe for all users)
 	 */
 	private static function enqueue_styles(): void {
-		$s = \FreeFormCertificate\Core\Utils::asset_suffix();
+		$s = \FreeFormCertificate\Core\AssetHelper::asset_suffix();
 		wp_enqueue_style(
 			'ffc-common',
 			FFC_PLUGIN_URL . "assets/css/ffc-common{$s}.css",
@@ -720,7 +720,7 @@ class AudienceShortcode {
 		self::enqueue_styles();
 
 		// JavaScript.
-		$s = \FreeFormCertificate\Core\Utils::asset_suffix();
+		$s = \FreeFormCertificate\Core\AssetHelper::asset_suffix();
 		wp_enqueue_script(
 			'ffc-audience',
 			FFC_PLUGIN_URL . "assets/js/ffc-audience{$s}.js",

@@ -39,7 +39,7 @@ class DataSanitizer {
 			}
 			return $sanitized;
 		}
-		return wp_kses( $data, Utils::get_allowed_html_tags() );
+		return wp_kses( $data, HtmlPolicy::get_allowed_html_tags() );
 	}
 
 	/**

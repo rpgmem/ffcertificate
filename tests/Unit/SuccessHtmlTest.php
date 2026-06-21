@@ -7,14 +7,14 @@ use Brain\Monkey;
 use Brain\Monkey\Functions;
 use Mockery\Adapter\Phpunit\MockeryPHPUnitIntegration;
 use PHPUnit\Framework\TestCase;
-use FreeFormCertificate\Core\Utils;
+use FreeFormCertificate\Frontend\Submission\SuccessHtmlRenderer;
 
 /**
  * Sprint 1 of #313 (6.6.2): success card now exposes the magic link, an
  * auth-code copy button, a persistent "download again" button, and
  * platform-specific "where is my file" hints. These tests pin the
  * additions to the template + the contract between
- * Utils::generate_success_html() and MagicLinkHelper.
+ * SuccessHtmlRenderer::generate_success_html() and MagicLinkHelper.
  *
  * @runClassInSeparateProcess
  * @preserveGlobalState disabled
@@ -87,7 +87,7 @@ class SuccessHtmlTest extends TestCase {
     }
 
     public function test_success_html_includes_auth_code_with_copy_button(): void {
-        $html = Utils::generate_success_html(
+        $html = SuccessHtmlRenderer::generate_success_html(
             array( 'auth_code' => 'ABC123XYZ' ),
             42,
             '2026-05-20 10:00:00',
@@ -105,7 +105,7 @@ class SuccessHtmlTest extends TestCase {
     }
 
     public function test_success_html_omits_auth_code_block_when_missing(): void {
-        $html = Utils::generate_success_html(
+        $html = SuccessHtmlRenderer::generate_success_html(
             array(),
             42,
             '2026-05-20 10:00:00',
@@ -121,7 +121,7 @@ class SuccessHtmlTest extends TestCase {
         $token   = str_repeat( 'a', 32 );
         $handler = $this->make_handler( $token );
 
-        $html = Utils::generate_success_html(
+        $html = SuccessHtmlRenderer::generate_success_html(
             array( 'auth_code' => 'ABC' ),
             42,
             '2026-05-20 10:00:00',
@@ -140,7 +140,7 @@ class SuccessHtmlTest extends TestCase {
     }
 
     public function test_success_html_omits_magic_link_section_without_handler(): void {
-        $html = Utils::generate_success_html(
+        $html = SuccessHtmlRenderer::generate_success_html(
             array( 'auth_code' => 'ABC' ),
             42,
             '2026-05-20 10:00:00',
@@ -154,7 +154,7 @@ class SuccessHtmlTest extends TestCase {
     }
 
     public function test_success_html_always_renders_persistent_download_button(): void {
-        $html = Utils::generate_success_html(
+        $html = SuccessHtmlRenderer::generate_success_html(
             array( 'auth_code' => 'X' ),
             42,
             '2026-05-20 10:00:00',
@@ -166,7 +166,7 @@ class SuccessHtmlTest extends TestCase {
     }
 
     public function test_success_html_renders_all_three_platform_hints(): void {
-        $html = Utils::generate_success_html(
+        $html = SuccessHtmlRenderer::generate_success_html(
             array( 'auth_code' => 'X' ),
             42,
             '2026-05-20 10:00:00',
@@ -183,7 +183,7 @@ class SuccessHtmlTest extends TestCase {
     }
 
     public function test_success_html_keeps_legacy_form_and_date_rows(): void {
-        $html = Utils::generate_success_html(
+        $html = SuccessHtmlRenderer::generate_success_html(
             array( 'auth_code' => 'X' ),
             42,
             '2026-05-20 10:00:00',

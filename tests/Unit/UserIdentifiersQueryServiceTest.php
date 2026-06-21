@@ -46,7 +46,6 @@ class UserIdentifiersQueryServiceTest extends TestCase {
 
 		// Default Utils stub: the service calls get_submissions_table().
 		$utilsMock = Mockery::mock( 'alias:FreeFormCertificate\Core\Utils' );
-		$utilsMock->shouldReceive( 'get_submissions_table' )->andReturn( 'wp_ffc_submissions' )->byDefault();
 	}
 
 	protected function tearDown(): void {

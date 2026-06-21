@@ -72,7 +72,7 @@ class SuccessResponder {
 		$response = array(
 			'message'  => $msg,
 			'pdf_data' => $ctx->pdf_data,
-			'html'     => \FreeFormCertificate\Core\Utils::generate_success_html(
+			'html'     => SuccessHtmlRenderer::generate_success_html(
 				$ctx->submission_data,
 				$ctx->form_id,
 				$ctx->real_submission_date,

@@ -36,7 +36,7 @@ class RateLimitGuard {
 			return;
 		}
 
-		$ip    = \FreeFormCertificate\Core\Utils::get_user_ip();
+		$ip    = \FreeFormCertificate\Core\RequestInput::get_user_ip();
 		$email = $ctx->user_email;
 		$cpf   = $ctx->val_cpf;
 

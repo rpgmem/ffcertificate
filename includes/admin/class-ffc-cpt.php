@@ -147,7 +147,7 @@ class CPT {
 				'Unauthorized form duplication attempt',
 				array(
 					'user_id' => get_current_user_id(),
-					'ip'      => \FreeFormCertificate\Core\Utils::get_user_ip(),
+					'ip'      => \FreeFormCertificate\Core\RequestInput::get_user_ip(),
 				)
 			);
 			wp_die( esc_html__( 'You do not have permission to duplicate this post.', 'ffcertificate' ) );

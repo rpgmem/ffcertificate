@@ -564,15 +564,6 @@ class UtilsTest extends TestCase {
     }
 
     // ==================================================================
-    // asset_suffix() — Group B (WordPress mock)
-    // ==================================================================
-
-    public function test_asset_suffix_production(): void {
-        // SCRIPT_DEBUG not defined → returns '.min'
-        $this->assertSame( '.min', Utils::asset_suffix() );
-    }
-
-    // ==================================================================
     // mask_email() — Group B (WordPress mock)
     // ==================================================================
 
@@ -723,40 +714,6 @@ class UtilsTest extends TestCase {
             'ffc_captcha_hash' => $hash,
         );
         $this->assertTrue( SecurityService::validate_security_fields( $data ) );
-    }
-
-    // ==================================================================
-    // get_allowed_html_tags() — Group B (WordPress mock)
-    // ==================================================================
-
-    public function test_allowed_html_tags_returns_array(): void {
-        Functions\when( 'apply_filters' )->alias( function() {
-            $args = func_get_args();
-            return $args[1]; // Return the second argument (the value being filtered)
-        } );
-        $tags = Utils::get_allowed_html_tags();
-        $this->assertIsArray( $tags );
-        $this->assertArrayHasKey( 'b', $tags );
-        $this->assertArrayHasKey( 'table', $tags );
-        $this->assertArrayHasKey( 'img', $tags );
-        $this->assertArrayHasKey( 'h1', $tags );
-        $this->assertArrayHasKey( 'ul', $tags );
-    }
-
-    // ==================================================================
-    // get_submissions_table() — Group C (DB mock)
-    // ==================================================================
-
-    public function test_get_submissions_table(): void {
-        global $wpdb;
-        $wpdb = (object) array( 'prefix' => 'wp_' );
-        $this->assertSame( 'wp_ffc_submissions', Utils::get_submissions_table() );
-    }
-
-    public function test_get_submissions_table_multisite_prefix(): void {
-        global $wpdb;
-        $wpdb = (object) array( 'prefix' => 'wp_3_' );
-        $this->assertSame( 'wp_3_ffc_submissions', Utils::get_submissions_table() );
     }
 
     // ==================================================================

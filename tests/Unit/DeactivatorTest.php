@@ -58,9 +58,6 @@ class DeactivatorTest extends TestCase {
         // Utils alias mock for get_submissions_table
         $this->utils_mock = Mockery::mock( 'alias:\FreeFormCertificate\Core\Utils' );
         $ri_mock = Mockery::mock( 'alias:\FreeFormCertificate\Core\RequestInput' );
-        $this->utils_mock->shouldReceive( 'get_submissions_table' )
-            ->andReturn( 'wp_ffc_submissions' )
-            ->byDefault();
         $ri_mock->shouldReceive( 'get_post_string' )->andReturnUsing( function ( $key, $default = '' ) {
             return isset( $_POST[ $key ] ) && is_string( $_POST[ $key ] ) ? $_POST[ $key ] : $default;
         } )->byDefault();
@@ -145,9 +142,6 @@ class DeactivatorTest extends TestCase {
     public function test_uninstall_cleanup_drops_submissions_table(): void {
         $_POST['confirm_uninstall'] = 'yes';
 
-        $this->utils_mock->shouldReceive( 'get_submissions_table' )
-            ->once()
-            ->andReturn( 'wp_ffc_submissions' );
 
         $queries = array();
         $this->wpdb->shouldReceive( 'prepare' )->andReturnUsing( function () use ( &$queries ) {

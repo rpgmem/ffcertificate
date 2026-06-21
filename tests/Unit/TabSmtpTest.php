@@ -110,11 +110,11 @@ class TabSmtpTest extends TestCase {
         $_GET['tab'] = 'smtp';
         Functions\when( 'wp_unslash' )->returnArg();
 
-        // Utils::asset_suffix() is now called twice (once on this tab + once
+        // AssetHelper::asset_suffix() is now called twice (once on this tab + once
         // inside enqueue_autosave_infra), and the autosave helper enqueues
         // four scripts: ffc-core, ffc-admin-autosave, ffc-section-collapse,
         // plus this tab's own ffc-smtp-settings.
-        $utils_mock = Mockery::mock( 'alias:FreeFormCertificate\Core\Utils' );
+        $utils_mock = Mockery::mock( 'alias:FreeFormCertificate\Core\AssetHelper' );
         $utils_mock->shouldReceive( 'asset_suffix' )
             ->twice()
             ->andReturn( '.min' );

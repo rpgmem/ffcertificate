@@ -277,7 +277,7 @@ class EmailHandler {
 			$label = ucwords( str_replace( '_', ' ', $k ) );
 			$body .= '<tr>';
 			$body .= '<td style="background:#f9f9f9; width:30%; font-weight: bold; border: 1px solid #ddd;">' . esc_html( $label ) . '</td>';
-			$body .= '<td style="border: 1px solid #ddd;">' . wp_kses( $display_v, \FreeFormCertificate\Core\Utils::get_allowed_html_tags() ) . '</td>';
+			$body .= '<td style="border: 1px solid #ddd;">' . wp_kses( $display_v, \FreeFormCertificate\Core\HtmlPolicy::get_allowed_html_tags() ) . '</td>';
 			$body .= '</tr>';
 		}
 		$body .= '</table></div>';

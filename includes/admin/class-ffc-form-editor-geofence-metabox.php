@@ -584,7 +584,7 @@ class FormEditorGeofenceMetabox {
 	 * selector-guarded so loading on either section is harmless.
 	 */
 	private function enqueue_metabox_script(): void {
-		$s = \FreeFormCertificate\Core\Utils::asset_suffix();
+		$s = \FreeFormCertificate\Core\AssetHelper::asset_suffix();
 		wp_enqueue_script(
 			'ffc-form-editor-geofence-metabox',
 			FFC_PLUGIN_URL . "assets/js/ffc-form-editor-geofence-metabox{$s}.js",

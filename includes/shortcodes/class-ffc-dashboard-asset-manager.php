@@ -76,14 +76,14 @@ class DashboardAssetManager {
 		$can_view_reregistrations = class_exists( '\FreeFormCertificate\Reregistration\ReregistrationSubmissionRepository' )
 			&& ! empty( \FreeFormCertificate\Reregistration\ReregistrationSubmissionRepository::get_all_by_user( $user_id ) );
 
-		$s = \FreeFormCertificate\Core\Utils::asset_suffix();
+		$s = \FreeFormCertificate\Core\AssetHelper::asset_suffix();
 
 		// Enqueue CSS (ffc-common provides icon classes).
 		wp_enqueue_style( 'ffc-common', FFC_PLUGIN_URL . "assets/css/ffc-common{$s}.css", array(), FFC_VERSION );
 		wp_enqueue_style( 'ffc-dashboard', FFC_PLUGIN_URL . "assets/css/ffc-user-dashboard{$s}.css", array( 'ffc-common' ), FFC_VERSION );
 
 		// Dark mode.
-		\FreeFormCertificate\Core\Utils::enqueue_dark_mode();
+		\FreeFormCertificate\Core\AssetHelper::enqueue_dark_mode();
 
 		// Enqueue JavaScript. The dashboard is split across 8 files since 6.5.2:
 		// `ffc-dashboard` is the core (handle preserved for backwards-compat with

@@ -377,8 +377,6 @@ class UserManagerTest extends TestCase {
 
         // Alias mock for Utils::get_submissions_table
         $utilsMock = Mockery::mock( 'alias:FreeFormCertificate\Core\Utils' );
-        $utilsMock->shouldReceive( 'get_submissions_table' )
-            ->andReturn( 'wp_ffc_submissions' );
 
         $this->wpdb->shouldReceive( 'get_results' )
             ->once()
@@ -404,8 +402,6 @@ class UserManagerTest extends TestCase {
         $fmtMock->shouldReceive( 'mask_cpf' )->never();
 
         $utilsMock = Mockery::mock( 'alias:FreeFormCertificate\Core\Utils' );
-        $utilsMock->shouldReceive( 'get_submissions_table' )
-            ->andReturn( 'wp_ffc_submissions' );
 
         $this->wpdb->shouldReceive( 'get_results' )
             ->once()
@@ -432,8 +428,6 @@ class UserManagerTest extends TestCase {
             ->andReturn( '123.***.***-01' );
 
         $utilsMock = Mockery::mock( 'alias:FreeFormCertificate\Core\Utils' );
-        $utilsMock->shouldReceive( 'get_submissions_table' )
-            ->andReturn( 'wp_ffc_submissions' );
 
         // Two rows with the same CPF → should deduplicate
         $this->wpdb->shouldReceive( 'get_results' )
@@ -467,8 +461,6 @@ class UserManagerTest extends TestCase {
             ->andReturn( 'RF1***5' );
 
         $utilsMock = Mockery::mock( 'alias:FreeFormCertificate\Core\Utils' );
-        $utilsMock->shouldReceive( 'get_submissions_table' )
-            ->andReturn( 'wp_ffc_submissions' );
 
         $this->wpdb->shouldReceive( 'get_results' )
             ->once()
@@ -503,8 +495,6 @@ class UserManagerTest extends TestCase {
             } );
 
         $utilsMock = Mockery::mock( 'alias:FreeFormCertificate\Core\Utils' );
-        $utilsMock->shouldReceive( 'get_submissions_table' )
-            ->andReturn( 'wp_ffc_submissions' );
 
         $this->wpdb->shouldReceive( 'get_results' )
             ->once()
@@ -572,8 +562,6 @@ class UserManagerTest extends TestCase {
             } );
 
         $utilsMock = Mockery::mock( 'alias:FreeFormCertificate\Core\Utils' );
-        $utilsMock->shouldReceive( 'get_submissions_table' )
-            ->andReturn( 'wp_ffc_submissions' );
 
         $this->wpdb->shouldReceive( 'get_results' )
             ->once()
@@ -601,8 +589,6 @@ class UserManagerTest extends TestCase {
         $fmtMock->shouldReceive( 'mask_cpf' )->never();
 
         $utilsMock = Mockery::mock( 'alias:FreeFormCertificate\Core\Utils' );
-        $utilsMock->shouldReceive( 'get_submissions_table' )
-            ->andReturn( 'wp_ffc_submissions' );
 
         $this->wpdb->shouldReceive( 'get_results' )
             ->once()
@@ -629,8 +615,6 @@ class UserManagerTest extends TestCase {
             ->andReturn( '123.***.***-01' );
 
         $utilsMock = Mockery::mock( 'alias:FreeFormCertificate\Core\Utils' );
-        $utilsMock->shouldReceive( 'get_submissions_table' )
-            ->andReturn( 'wp_ffc_submissions' );
 
         // Same CPF in two rows
         $this->wpdb->shouldReceive( 'get_results' )
@@ -718,8 +702,6 @@ class UserManagerTest extends TestCase {
             } );
 
         $utilsMock = Mockery::mock( 'alias:FreeFormCertificate\Core\Utils' );
-        $utilsMock->shouldReceive( 'get_submissions_table' )
-            ->andReturn( 'wp_ffc_submissions' );
 
         $this->wpdb->shouldReceive( 'get_col' )
             ->once()
@@ -751,8 +733,6 @@ class UserManagerTest extends TestCase {
             ->andReturn( 'not-an-email' );
 
         $utilsMock = Mockery::mock( 'alias:FreeFormCertificate\Core\Utils' );
-        $utilsMock->shouldReceive( 'get_submissions_table' )
-            ->andReturn( 'wp_ffc_submissions' );
 
         $this->wpdb->shouldReceive( 'get_col' )
             ->once()
@@ -782,8 +762,6 @@ class UserManagerTest extends TestCase {
             ->andThrow( new \Exception( 'Key missing' ) );
 
         $utilsMock = Mockery::mock( 'alias:FreeFormCertificate\Core\Utils' );
-        $utilsMock->shouldReceive( 'get_submissions_table' )
-            ->andReturn( 'wp_ffc_submissions' );
 
         $this->wpdb->shouldReceive( 'get_col' )
             ->once()

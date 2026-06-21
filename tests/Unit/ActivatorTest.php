@@ -44,9 +44,6 @@ class ActivatorTest extends TestCase {
 
         // Utils alias mock for get_submissions_table
         $this->utils_mock = Mockery::mock( 'alias:\FreeFormCertificate\Core\Utils' );
-        $this->utils_mock->shouldReceive( 'get_submissions_table' )
-            ->andReturn( 'wp_ffc_submissions' )
-            ->byDefault();
 
         // Default wpdb stubs — most tests need these
         $this->wpdb->shouldReceive( 'get_charset_collate' )

@@ -327,7 +327,7 @@ class AppointmentCancellationHandler {
 			header( 'Content-Type: text/html; charset=utf-8' );
 		}
 
-		$suffix    = \FreeFormCertificate\Core\Utils::asset_suffix();
+		$suffix    = \FreeFormCertificate\Core\AssetHelper::asset_suffix();
 		$style_url = FFC_PLUGIN_URL . "assets/css/ffc-appointment-cancellation{$suffix}.css";
 
 		echo '<!DOCTYPE html><html ' . get_language_attributes() . '><head>'; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- get_language_attributes() returns a safe attribute string.

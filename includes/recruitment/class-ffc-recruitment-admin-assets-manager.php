@@ -72,7 +72,7 @@ final class RecruitmentAdminAssetsManager {
 
 		// ffc-common.css carries the .ffc-toggle switch styles used by the
 		// notice/reason editors (render_toggle); load it as a dependency.
-		$s = \FreeFormCertificate\Core\Utils::asset_suffix();
+		$s = \FreeFormCertificate\Core\AssetHelper::asset_suffix();
 		wp_enqueue_style(
 			'ffc-common',
 			FFC_PLUGIN_URL . "assets/css/ffc-common{$s}.css",

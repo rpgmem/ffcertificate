@@ -369,7 +369,7 @@ class SubmissionPersister {
 		}
 
 		global $wpdb;
-		$table     = \FreeFormCertificate\Core\Utils::get_submissions_table();
+		$table     = \FreeFormCertificate\Repositories\SubmissionRepository::get_submissions_table();
 		$clean_cpf = \FreeFormCertificate\Core\DataSanitizer::normalize_cpf_rf( $cpf );
 
 		if ( class_exists( '\FreeFormCertificate\Core\Encryption' ) && \FreeFormCertificate\Core\Encryption::is_configured() ) {
@@ -511,7 +511,7 @@ class SubmissionPersister {
 			array(
 				'form_id'             => $form_id,
 				'submission_id'       => $submission_id,
-				'bypassed_ip'         => \FreeFormCertificate\Core\Utils::get_user_ip(),
+				'bypassed_ip'         => \FreeFormCertificate\Core\RequestInput::get_user_ip(),
 				'operator_cpf_hash'   => (string) ( $payload['operator_cpf_hash'] ?? '' ),
 				'operator_cpf_masked' => (string) ( $payload['operator_cpf_masked'] ?? '' ),
 				'ts'                  => time(),

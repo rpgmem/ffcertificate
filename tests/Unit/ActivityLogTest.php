@@ -269,7 +269,7 @@ class ActivityLogTest extends TestCase {
     public function test_log_returns_true_when_enabled(): void {
         $this->enableActivityLog();
 
-        // Utils::get_user_ip() will be called - it reads $_SERVER, returns '0.0.0.0' when empty.
+        // RequestInput::get_user_ip() will be called - it reads $_SERVER, returns '0.0.0.0' when empty.
         $result = ActivityLog::log('some_action', ActivityLog::LEVEL_INFO, [], 5, 10);
         $this->assertTrue($result);
     }
@@ -436,7 +436,7 @@ class ActivityLogTest extends TestCase {
     public function test_log_captures_user_ip(): void {
         $this->enableActivityLog();
 
-        // Utils::get_user_ip() reads $_SERVER. With no SERVER vars set it returns '0.0.0.0'.
+        // RequestInput::get_user_ip() reads $_SERVER. With no SERVER vars set it returns '0.0.0.0'.
         ActivityLog::log('test');
 
         $buffer = $this->getWriteBuffer();

@@ -84,7 +84,7 @@ class PublicCsvDownloadTest extends TestCase {
         Functions\when( 'get_transient' )->justReturn( false );
         Functions\when( 'delete_transient' )->justReturn( true );
 
-        // --- Utils::get_user_ip() avoids touching $_SERVER --------------
+        // --- RequestInput::get_user_ip() avoids touching $_SERVER --------------
         $_SERVER['REMOTE_ADDR'] = '203.0.113.99';
 
         // Namespaced stubs in FreeFormCertificate\Core — needed because

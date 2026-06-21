@@ -50,7 +50,7 @@ class VerificationHandlerTest extends TestCase {
         $wpdb->shouldReceive( 'get_results' )->andReturn( array() )->byDefault();
         $wpdb->shouldReceive( 'get_col' )->andReturn( array() )->byDefault();
 
-        // Set server IP for Utils::get_user_ip()
+        // Set server IP for RequestInput::get_user_ip()
         $_SERVER['REMOTE_ADDR'] = '127.0.0.1';
 
         // ------------------------------------------------------------------

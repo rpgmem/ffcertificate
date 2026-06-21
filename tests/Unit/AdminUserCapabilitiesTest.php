@@ -103,7 +103,7 @@ class AdminUserCapabilitiesTest extends TestCase {
         // Utils alias mock
         $this->utils_mock = Mockery::mock( 'alias:FreeFormCertificate\Core\Utils' );
         $ri_mock = Mockery::mock( 'alias:FreeFormCertificate\Core\RequestInput' );
-        $this->utils_mock->shouldReceive( 'asset_suffix' )
+        Mockery::mock( 'alias:FreeFormCertificate\Core\AssetHelper' )->shouldReceive( 'asset_suffix' )
             ->andReturn( '.min' )
             ->byDefault();
         $ri_mock->shouldReceive( 'get_post_string' )->andReturnUsing( function ( $key, $default = '' ) {
