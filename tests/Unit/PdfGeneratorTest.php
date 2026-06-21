@@ -167,7 +167,7 @@ class PdfGeneratorTest extends TestCase {
     }
 
     // 6.6.11 — removed `generate_filename()` private method tests. The
-    // helper logic moved to `\FreeFormCertificate\Core\Utils::build_pdf_filename()`
+    // helper logic moved to `\FreeFormCertificate\Core\FilenameHelper::build_pdf_filename()`
     // (covered by `UtilsTest::test_build_pdf_filename_*`). The pattern of
     // calling reflection on a removed private method is no longer valid.
 
