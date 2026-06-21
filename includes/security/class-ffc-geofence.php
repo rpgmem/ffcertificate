@@ -851,7 +851,7 @@ class Geofence {
 			return;
 		}
 
-		\FreeFormCertificate\Core\ActivityLog::log_access_denied( $reason, \FreeFormCertificate\Core\Utils::get_user_ip() );
+		\FreeFormCertificate\Core\ActivityLog::log_access_denied( $reason, \FreeFormCertificate\Core\RequestInput::get_user_ip() );
 
 		// Use centralized debug system.
 		if ( class_exists( '\FreeFormCertificate\Core\Debug' ) ) {

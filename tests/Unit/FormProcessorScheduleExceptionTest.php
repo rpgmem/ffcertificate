@@ -79,8 +79,8 @@ class FormProcessorScheduleExceptionTest extends TestCase {
                 return true;
             } );
 
-        // Alias Utils so get_user_ip is deterministic.
-        $utils = Mockery::mock( 'alias:\FreeFormCertificate\Core\Utils' );
+        // Alias RequestInput so get_user_ip is deterministic.
+        $utils = Mockery::mock( 'alias:\FreeFormCertificate\Core\RequestInput' );
         $utils->shouldReceive( 'get_user_ip' )->andReturn( '203.0.113.5' )->byDefault();
     }
 

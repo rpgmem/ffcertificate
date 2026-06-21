@@ -511,7 +511,7 @@ class SubmissionPersister {
 			array(
 				'form_id'             => $form_id,
 				'submission_id'       => $submission_id,
-				'bypassed_ip'         => \FreeFormCertificate\Core\Utils::get_user_ip(),
+				'bypassed_ip'         => \FreeFormCertificate\Core\RequestInput::get_user_ip(),
 				'operator_cpf_hash'   => (string) ( $payload['operator_cpf_hash'] ?? '' ),
 				'operator_cpf_masked' => (string) ( $payload['operator_cpf_masked'] ?? '' ),
 				'ts'                  => time(),

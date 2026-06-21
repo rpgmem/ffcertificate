@@ -35,7 +35,7 @@ class IpRateLimitGuard {
 	 */
 	public function apply( SubmissionContext $ctx ): void {
 		if ( ! $ctx->has_exception && class_exists( '\FreeFormCertificate\Security\RateLimiter' ) ) {
-			$user_ip    = \FreeFormCertificate\Core\Utils::get_user_ip();
+			$user_ip    = \FreeFormCertificate\Core\RequestInput::get_user_ip();
 			$rate_check = \FreeFormCertificate\Security\RateLimiter::check_ip_limit( $user_ip );
 			if ( ! $rate_check['allowed'] ) {
 				throw new SubmissionRejected(

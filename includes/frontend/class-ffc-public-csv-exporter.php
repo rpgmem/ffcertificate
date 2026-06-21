@@ -310,7 +310,7 @@ class PublicCsvExporter {
 	public function ajax_start(): void {
 		// 1. Rate limit.
 		if ( class_exists( RateLimiter::class ) ) {
-			$ip         = \FreeFormCertificate\Core\Utils::get_user_ip();
+			$ip         = \FreeFormCertificate\Core\RequestInput::get_user_ip();
 			$rate_check = RateLimiter::check_ip_limit( $ip );
 			if ( empty( $rate_check['allowed'] ) ) {
 				wp_send_json_error(
@@ -422,7 +422,7 @@ class PublicCsvExporter {
 		$writer->row( $headers );
 		$writer->close();
 
-		$ip_hash     = sha1( \FreeFormCertificate\Core\Utils::get_user_ip() );
+		$ip_hash     = sha1( \FreeFormCertificate\Core\RequestInput::get_user_ip() );
 		$nonce_batch = wp_create_nonce( 'ffc_public_csv_batch_' . $job_id );
 
 		// Capture digits-only CPF for the post-streaming audit row
@@ -483,7 +483,7 @@ class PublicCsvExporter {
 		}
 
 		// IP scope check.
-		$current_ip_hash = sha1( \FreeFormCertificate\Core\Utils::get_user_ip() );
+		$current_ip_hash = sha1( \FreeFormCertificate\Core\RequestInput::get_user_ip() );
 		if ( ! hash_equals( $job['ip_hash'], $current_ip_hash ) ) {
 			wp_send_json_error( __( 'Session mismatch.', 'ffcertificate' ) );
 		}
@@ -588,7 +588,7 @@ class PublicCsvExporter {
 			wp_die( esc_html__( 'Security check failed.', 'ffcertificate' ) );
 		}
 
-		$current_ip_hash = sha1( \FreeFormCertificate\Core\Utils::get_user_ip() );
+		$current_ip_hash = sha1( \FreeFormCertificate\Core\RequestInput::get_user_ip() );
 		if ( ! hash_equals( $job['ip_hash'], $current_ip_hash ) ) {
 			wp_die( esc_html__( 'Session mismatch.', 'ffcertificate' ) );
 		}

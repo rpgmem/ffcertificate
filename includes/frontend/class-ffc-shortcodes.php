@@ -84,7 +84,7 @@ class Shortcodes {
 			'Magic link shortcode rendered',
 			array(
 				'token' => substr( $token, 0, 8 ) . '...',
-				'ip'    => \FreeFormCertificate\Core\Utils::get_user_ip(),
+				'ip'    => \FreeFormCertificate\Core\RequestInput::get_user_ip(),
 			)
 		);
 
@@ -124,7 +124,7 @@ class Shortcodes {
 		\FreeFormCertificate\Core\Debug::log_frontend(
 			'Verification shortcode rendered',
 			array(
-				'ip'        => \FreeFormCertificate\Core\Utils::get_user_ip(),
+				'ip'        => \FreeFormCertificate\Core\RequestInput::get_user_ip(),
 				'has_token' => false,
 			)
 		);
@@ -153,7 +153,7 @@ class Shortcodes {
 				'Invalid form shortcode',
 				array(
 					'form_id' => $form_id,
-					'ip'      => \FreeFormCertificate\Core\Utils::get_user_ip(),
+					'ip'      => \FreeFormCertificate\Core\RequestInput::get_user_ip(),
 				)
 			);
 			return '<p>' . esc_html__( 'Form not found.', 'ffcertificate' ) . '</p>';
@@ -179,7 +179,7 @@ class Shortcodes {
 				'form_id'      => $form_id,
 				'form_title'   => \FreeFormCertificate\Core\Utils::truncate( $form_title, 50 ),
 				'fields_count' => count( $fields ),
-				'ip'           => \FreeFormCertificate\Core\Utils::get_user_ip(),
+				'ip'           => \FreeFormCertificate\Core\RequestInput::get_user_ip(),
 			)
 		);
 

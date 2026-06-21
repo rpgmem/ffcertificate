@@ -155,42 +155,6 @@ class Utils {
 	}
 
 	/**
-	 * Get user IP address with proxy support
-	 *
-	 * Checks multiple headers to get real IP even behind proxies/CDNs
-	 *
-	 * Get user ip.
-	 *
-	 * @return string IP address
-	 */
-	public static function get_user_ip(): string {
-		$ip_keys = array(
-			'HTTP_CLIENT_IP',
-			'HTTP_X_FORWARDED_FOR',
-			'HTTP_X_FORWARDED',
-			'HTTP_X_CLUSTER_CLIENT_IP',
-			'HTTP_FORWARDED_FOR',
-			'HTTP_FORWARDED',
-			'REMOTE_ADDR',
-		);
-
-		foreach ( $ip_keys as $key ) {
-			if ( array_key_exists( $key, $_SERVER ) ) {
-				foreach ( explode( ',', sanitize_text_field( wp_unslash( $_SERVER[ $key ] ) ) ) as $ip ) {
-					$ip = trim( $ip );
-
-					// Validate IP (exclude private/reserved ranges).
-					if ( filter_var( $ip, FILTER_VALIDATE_IP, FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE ) ) {
-						return $ip;
-					}
-				}
-			}
-		}
-
-		return '0.0.0.0';
-	}
-
-	/**
 	 * Convert bytes to human-readable format
 	 *
 	 * @param int $bytes Number of bytes.

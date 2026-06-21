@@ -86,7 +86,7 @@ class FormRestControllerTest extends TestCase {
 
         // Alias mocks for static-only classes
         $utils_mock = Mockery::mock( 'alias:\FreeFormCertificate\Core\Utils' );
-        $utils_mock->shouldReceive( 'get_user_ip' )->andReturn( '127.0.0.1' )->byDefault();
+        Mockery::mock( 'alias:\FreeFormCertificate\Core\RequestInput' )->shouldReceive( 'get_user_ip' )->andReturn( '127.0.0.1' )->byDefault();
         $utils_mock->shouldReceive( 'debug_log' )->byDefault();
 
         // DocumentFormatter is loaded for real (its PREFIX_* constants are needed

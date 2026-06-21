@@ -295,7 +295,7 @@ class PublicCsvDownload {
 		 * outcomes, which all run after we've parsed form_id below.
 		 */
 		if ( class_exists( RateLimiter::class ) ) {
-			$ip         = \FreeFormCertificate\Core\Utils::get_user_ip();
+			$ip         = \FreeFormCertificate\Core\RequestInput::get_user_ip();
 			$rate_check = RateLimiter::check_ip_limit( $ip );
 			if ( empty( $rate_check['allowed'] ) ) {
 				$this->fail_redirect( $rate_check['message'] ?? __( 'Too many requests. Please wait.', 'ffcertificate' ) );
@@ -403,7 +403,7 @@ class PublicCsvDownload {
 		 * (rate-limit, nonce) are intentionally not audit-logged.
 		 */
 		if ( class_exists( RateLimiter::class ) ) {
-			$ip         = \FreeFormCertificate\Core\Utils::get_user_ip();
+			$ip         = \FreeFormCertificate\Core\RequestInput::get_user_ip();
 			$rate_check = RateLimiter::check_ip_limit( $ip );
 			if ( empty( $rate_check['allowed'] ) ) {
 				wp_send_json_error( array( 'message' => $rate_check['message'] ?? __( 'Too many requests. Please wait.', 'ffcertificate' ) ) );
@@ -993,7 +993,7 @@ class PublicCsvDownload {
 	 * Build a transient key scoped to the current visitor's IP.
 	 */
 	private function flash_transient_key(): string {
-		$ip = \FreeFormCertificate\Core\Utils::get_user_ip();
+		$ip = \FreeFormCertificate\Core\RequestInput::get_user_ip();
 		return 'ffc_pcd_flash_' . sha1( $ip );
 	}
 

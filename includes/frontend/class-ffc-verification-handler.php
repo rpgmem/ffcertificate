@@ -504,7 +504,7 @@ class VerificationHandler {
 
 		// Rate limiting check — must run BEFORE format validation to prevent.
 		// attackers from probing token formats without being throttled.
-		$user_ip    = \FreeFormCertificate\Core\Utils::get_user_ip();
+		$user_ip    = \FreeFormCertificate\Core\RequestInput::get_user_ip();
 		$rate_check = \FreeFormCertificate\Security\RateLimiter::check_verification( $user_ip );
 		if ( ! $rate_check['allowed'] ) {
 			\FreeFormCertificate\Core\Debug::log_frontend( 'Magic token rate limited' );
@@ -567,7 +567,7 @@ class VerificationHandler {
 				array(
 					'method' => 'magic_link',
 					'token'  => substr( $token, 0, 8 ) . '...',
-					'ip'     => \FreeFormCertificate\Core\Utils::get_user_ip(),
+					'ip'     => \FreeFormCertificate\Core\RequestInput::get_user_ip(),
 				)
 			);
 		}
@@ -636,7 +636,7 @@ class VerificationHandler {
 					array(
 						'method'    => 'manual_verification',
 						'auth_code' => substr( $auth_code, 0, 4 ) . '...',
-						'ip'        => \FreeFormCertificate\Core\Utils::get_user_ip(),
+						'ip'        => \FreeFormCertificate\Core\RequestInput::get_user_ip(),
 					)
 				);
 			}
@@ -679,7 +679,7 @@ class VerificationHandler {
 
         // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Magic token authentication; no nonce needed for this public endpoint.
 		$token   = RequestInput::get_post_string( 'token' );
-		$user_ip = \FreeFormCertificate\Core\Utils::get_user_ip();
+		$user_ip = \FreeFormCertificate\Core\RequestInput::get_user_ip();
 
 		$rate_check = \FreeFormCertificate\Security\RateLimiter::check_verification( $user_ip );
 		if ( ! $rate_check['allowed'] ) {
@@ -794,7 +794,7 @@ class VerificationHandler {
 			);
 		}
 
-		$user_ip    = \FreeFormCertificate\Core\Utils::get_user_ip();
+		$user_ip    = \FreeFormCertificate\Core\RequestInput::get_user_ip();
 		$rate_check = \FreeFormCertificate\Security\RateLimiter::check_verification( $user_ip );
 		if ( ! $rate_check['allowed'] ) {
 			wp_send_json_error(

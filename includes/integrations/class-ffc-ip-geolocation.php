@@ -46,7 +46,7 @@ class IpGeolocation {
 
 		// Get user IP if not provided.
 		if ( empty( $ip ) ) {
-			$ip = \FreeFormCertificate\Core\Utils::get_user_ip();
+			$ip = \FreeFormCertificate\Core\RequestInput::get_user_ip();
 		}
 
 		// Validate IP.

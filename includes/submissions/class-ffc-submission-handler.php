@@ -171,7 +171,7 @@ class SubmissionHandler {
 		}
 
 		// 5. Get user IP.
-		$user_ip = \FreeFormCertificate\Core\Utils::get_user_ip();
+		$user_ip = \FreeFormCertificate\Core\RequestInput::get_user_ip();
 
 		// 5b. Extract ticket value (for hash-based lookup)
 		$ticket_value = isset( $extra_data['ticket'] ) ? strtoupper( trim( (string) $extra_data['ticket'] ) ) : null;

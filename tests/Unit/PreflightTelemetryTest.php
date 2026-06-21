@@ -56,7 +56,7 @@ class PreflightTelemetryTest extends TestCase {
         // The real RequestInput::get_post_string reads $_POST after
         // sanitize_text_field + wp_unslash; both stubbed to identity
         // above, so the production call returns the raw $_POST value.
-        // Utils::get_user_ip reads REMOTE_ADDR / proxy headers — we
+        // RequestInput::get_user_ip reads REMOTE_ADDR / proxy headers — we
         // pin REMOTE_ADDR via $_SERVER for predictable hash output.
         $_SERVER['REMOTE_ADDR'] = '203.0.113.42';
 

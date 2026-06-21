@@ -19,7 +19,7 @@ use FreeFormCertificate\Frontend\PublicCsvDownload;
  * Runs in separate processes: the CPF gate + audit writer call the real
  * DocumentFormatter / Encryption / Utils statics, and a leaked global
  * function expectation from an earlier same-process test (e.g. a torn-down
- * `wp_unslash` mock) would otherwise poison `Utils::get_user_ip()`. Process
+ * `wp_unslash` mock) would otherwise poison `RequestInput::get_user_ip()`. Process
  * isolation guarantees a clean function table per test.
  *
  * @covers \FreeFormCertificate\Frontend\CsvDownloadValidator
@@ -49,7 +49,7 @@ class CsvDownloadValidatorTest extends TestCase {
         Functions\when( '__' )->returnArg();
         Functions\when( 'sanitize_text_field' )->returnArg();
         Functions\when( 'wp_unslash' )->returnArg();
-        // Utils::get_user_ip() calls sanitize_text_field()/wp_unslash()
+        // RequestInput::get_user_ip() calls sanitize_text_field()/wp_unslash()
         // unqualified from the Core namespace. Define them as plain stable
         // passthroughs (NOT Brain\Monkey stubs) so they survive tearDown
         // without leaving a torn-down expectation that would poison a later

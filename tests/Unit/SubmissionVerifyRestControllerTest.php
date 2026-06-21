@@ -17,7 +17,7 @@ use FreeFormCertificate\Repositories\SubmissionRepository;
  * real static collaborators (Encryption / DocumentFormatter / Utils /
  * RateLimiter); process isolation gives each test a clean function table so a
  * leaked global/namespaced mock from an earlier same-process test can't poison
- * Utils::get_user_ip() or the rate-limit settings read.
+ * RequestInput::get_user_ip() or the rate-limit settings read.
  *
  * @covers \FreeFormCertificate\API\SubmissionRestController
  * @runTestsInSeparateProcesses
@@ -41,7 +41,7 @@ class SubmissionVerifyRestControllerTest extends TestCase {
         Functions\when( 'wp_parse_args' )->alias(
             fn ( $args, $defaults = array() ) => array_merge( $defaults, is_array( $args ) ? $args : array() )
         );
-        // Utils::get_user_ip() sanitizes $_SERVER via Core-namespaced funcs.
+        // RequestInput::get_user_ip() sanitizes $_SERVER via Core-namespaced funcs.
         Functions\when( 'sanitize_text_field' )->returnArg();
         Functions\when( 'wp_unslash' )->returnArg();
         Functions\when( 'FreeFormCertificate\Core\sanitize_text_field' )->returnArg();

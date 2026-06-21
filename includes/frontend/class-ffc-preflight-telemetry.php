@@ -16,7 +16,6 @@ declare(strict_types=1);
 namespace FreeFormCertificate\Frontend;
 
 use FreeFormCertificate\Core\ActivityLog;
-use FreeFormCertificate\Core\Utils;
 use FreeFormCertificate\Core\RequestInput;
 
 if ( ! defined( 'ABSPATH' ) ) {
@@ -88,7 +87,7 @@ class PreflightTelemetry {
 		// hold PII. Admins doing analysis can still group by IP-hash
 		// to see "is this the same visitor bouncing 3 times" without
 		// learning the IP itself.
-		$ip      = Utils::get_user_ip();
+		$ip      = RequestInput::get_user_ip();
 		$ip_hash = '' !== $ip ? substr( hash( 'sha256', $ip . wp_salt( 'auth' ) ), 0, 12 ) : '';
 
 		// `'info'` matches ActivityLog::LEVEL_INFO. Literal used here
