@@ -134,7 +134,7 @@ class PdfGenerator {
 		// `{translated-prefix}_{entity_id}_{auth_code}.pdf`. The per-type
 		// filter below still fires AFTER the central `ffcertificate_pdf_filename`
 		// (applied inside the helper) so existing customizations keep working.
-		$filename = \FreeFormCertificate\Core\Utils::build_pdf_filename( 'certificate', (int) $form_id, (string) $auth_code );
+		$filename = \FreeFormCertificate\Core\FilenameHelper::build_pdf_filename( 'certificate', (int) $form_id, (string) $auth_code );
 
 		/**
 		 * Filters the certificate PDF filename.
@@ -628,7 +628,7 @@ class PdfGenerator {
 
 		// 6.6.11 — standardized filename pattern (shared helper). See the
 		// sibling site in generate_pdf_data() for the full rationale.
-		$filename = \FreeFormCertificate\Core\Utils::build_pdf_filename( 'certificate', (int) $form_id, (string) $auth_code );
+		$filename = \FreeFormCertificate\Core\FilenameHelper::build_pdf_filename( 'certificate', (int) $form_id, (string) $auth_code );
 
 		// Log generation.
 		\FreeFormCertificate\Core\Debug::log_pdf(
@@ -770,7 +770,7 @@ class PdfGenerator {
 		// `ffcertificate_pdf_filename` override hook.
 		$validation_code = (string) ( $appointment['validation_code'] ?? '' );
 		$calendar_id     = (int) ( $calendar['id'] ?? 0 );
-		$filename        = \FreeFormCertificate\Core\Utils::build_pdf_filename( 'appointment_receipt', $calendar_id, $validation_code );
+		$filename        = \FreeFormCertificate\Core\FilenameHelper::build_pdf_filename( 'appointment_receipt', $calendar_id, $validation_code );
 
 		/**
 		 * Filters the appointment receipt PDF filename.

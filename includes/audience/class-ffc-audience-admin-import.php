@@ -450,7 +450,7 @@ class AudienceAdminImport {
 			$audience_map[ (int) $aud->id ] = $aud->name;
 		}
 
-		$filename = \FreeFormCertificate\Core\Utils::get_export_filename( 'members-export' );
+		$filename = \FreeFormCertificate\Core\FilenameHelper::get_export_filename( 'members-export' );
 		header( 'Content-Type: text/csv; charset=utf-8' );
 		header( 'Content-Disposition: attachment; filename="' . $filename . '"' );
 
@@ -503,7 +503,7 @@ class AudienceAdminImport {
 	private function export_audiences_csv(): void {
 		$audiences = AudienceRepository::get_hierarchical();
 
-		$filename = \FreeFormCertificate\Core\Utils::get_export_filename( 'audiences-export' );
+		$filename = \FreeFormCertificate\Core\FilenameHelper::get_export_filename( 'audiences-export' );
 		header( 'Content-Type: text/csv; charset=utf-8' );
 		header( 'Content-Disposition: attachment; filename="' . $filename . '"' );
 

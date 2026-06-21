@@ -12,6 +12,7 @@ use FreeFormCertificate\Core\DataSanitizer;
 use FreeFormCertificate\Core\DocumentFormatter;
 use FreeFormCertificate\Core\SecurityService;
 use FreeFormCertificate\Core\Utils;
+use FreeFormCertificate\Core\FilenameHelper;
 
 /**
  * Tests for Utils: document validation/formatting, sanitization, captcha, and helpers.
@@ -256,7 +257,7 @@ class UtilsTest extends TestCase {
         // from the code body for filesystem compactness.
         $this->assertSame(
             'certificado_666_C-MLQQZ9UX9MWF.pdf',
-            Utils::build_pdf_filename( 'certificate', 666, 'MLQQZ9UX9MWF' )
+            FilenameHelper::build_pdf_filename( 'certificate', 666, 'MLQQZ9UX9MWF' )
         );
     }
 
@@ -264,7 +265,7 @@ class UtilsTest extends TestCase {
         $this->stub_pdf_filename_helpers();
         $this->assertSame(
             'recibo_42_A-7K3M9P2XQRST.pdf',
-            Utils::build_pdf_filename( 'appointment_receipt', 42, '7K3M9P2XQRST' )
+            FilenameHelper::build_pdf_filename( 'appointment_receipt', 42, '7K3M9P2XQRST' )
         );
     }
 
@@ -273,7 +274,7 @@ class UtilsTest extends TestCase {
         // Approved ficha → real auth code from AuthCodeService.
         $this->assertSame(
             'ficha_99_R-ABCDEF123456.pdf',
-            Utils::build_pdf_filename( 'ficha', 99, 'ABCDEF123456' )
+            FilenameHelper::build_pdf_filename( 'ficha', 99, 'ABCDEF123456' )
         );
     }
 
@@ -283,7 +284,7 @@ class UtilsTest extends TestCase {
         // S{id} stays as-is, no `R-` prefix, since it's not a verifiable code.
         $this->assertSame(
             'ficha_99_S12345.pdf',
-            Utils::build_pdf_filename( 'ficha', 99, 'S12345' )
+            FilenameHelper::build_pdf_filename( 'ficha', 99, 'S12345' )
         );
     }
 
@@ -294,7 +295,7 @@ class UtilsTest extends TestCase {
         // inner dashes — does not re-prepend, does not duplicate.
         $this->assertSame(
             'certificado_666_C-MLQQZ9UX9MWF.pdf',
-            Utils::build_pdf_filename( 'certificate', 666, 'C-MLQQ-Z9UX-9MWF' )
+            FilenameHelper::build_pdf_filename( 'certificate', 666, 'C-MLQQ-Z9UX-9MWF' )
         );
     }
 
@@ -302,7 +303,7 @@ class UtilsTest extends TestCase {
         $this->stub_pdf_filename_helpers();
         $this->assertSame(
             'certificado_1_C-ABC123.pdf',
-            Utils::build_pdf_filename( 'certificate', 1, 'abc123' )
+            FilenameHelper::build_pdf_filename( 'certificate', 1, 'abc123' )
         );
     }
 
@@ -312,7 +313,7 @@ class UtilsTest extends TestCase {
         // the original input collapsed by the compact-body step.
         $this->assertSame(
             'certificado_1_C-ABCDEF123.pdf',
-            Utils::build_pdf_filename( 'certificate', 1, 'abc def/123' )
+            FilenameHelper::build_pdf_filename( 'certificate', 1, 'abc def/123' )
         );
     }
 
@@ -320,7 +321,7 @@ class UtilsTest extends TestCase {
         $this->stub_pdf_filename_helpers();
         $this->assertSame(
             'ficha_99.pdf',
-            Utils::build_pdf_filename( 'ficha', 99, '' )
+            FilenameHelper::build_pdf_filename( 'ficha', 99, '' )
         );
     }
 
@@ -328,7 +329,7 @@ class UtilsTest extends TestCase {
         $this->stub_pdf_filename_helpers();
         $this->assertSame(
             'certificado_0_C-X.pdf',
-            Utils::build_pdf_filename( 'certificate', -5, 'X' )
+            FilenameHelper::build_pdf_filename( 'certificate', -5, 'X' )
         );
     }
 
@@ -339,7 +340,7 @@ class UtilsTest extends TestCase {
         // hatch for sites adding custom PDF types via the central filter.
         $this->assertSame(
             'invoice_7_NF42.pdf',
-            Utils::build_pdf_filename( 'invoice', 7, 'NF42' )
+            FilenameHelper::build_pdf_filename( 'invoice', 7, 'NF42' )
         );
     }
 
@@ -359,15 +360,15 @@ class UtilsTest extends TestCase {
 
         $this->assertSame(
             'certificate_666_C-MLQQZ9UX9MWF.pdf',
-            Utils::build_pdf_filename( 'certificate', 666, 'MLQQZ9UX9MWF' )
+            FilenameHelper::build_pdf_filename( 'certificate', 666, 'MLQQZ9UX9MWF' )
         );
         $this->assertSame(
             'receipt_42_A-7K3M9P2X.pdf',
-            Utils::build_pdf_filename( 'appointment_receipt', 42, '7K3M9P2X' )
+            FilenameHelper::build_pdf_filename( 'appointment_receipt', 42, '7K3M9P2X' )
         );
         $this->assertSame(
             'record_99_S12345.pdf',
-            Utils::build_pdf_filename( 'ficha', 99, 'S12345' )
+            FilenameHelper::build_pdf_filename( 'ficha', 99, 'S12345' )
         );
     }
 
@@ -394,7 +395,7 @@ class UtilsTest extends TestCase {
 
         $this->assertSame(
             'certificate_666_C-MLQQZ9UX9MWF.pdf',
-            Utils::build_pdf_filename( 'certificate', 666, 'MLQQZ9UX9MWF' )
+            FilenameHelper::build_pdf_filename( 'certificate', 666, 'MLQQZ9UX9MWF' )
         );
     }
 
@@ -403,28 +404,28 @@ class UtilsTest extends TestCase {
     // ==================================================================
 
     public function test_sanitize_filename_simple(): void {
-        $this->assertSame( 'certificate.pdf', Utils::sanitize_filename( 'Certificate.pdf' ) );
+        $this->assertSame( 'certificate.pdf', FilenameHelper::sanitize_filename( 'Certificate.pdf' ) );
     }
 
     public function test_sanitize_filename_special_chars(): void {
-        $this->assertSame( 'meu-certificado.pdf', Utils::sanitize_filename( 'Meu Certificado!.pdf' ) );
+        $this->assertSame( 'meu-certificado.pdf', FilenameHelper::sanitize_filename( 'Meu Certificado!.pdf' ) );
     }
 
     public function test_sanitize_filename_multiple_dashes_collapsed(): void {
-        $this->assertSame( 'a-b.txt', Utils::sanitize_filename( 'a---b.txt' ) );
+        $this->assertSame( 'a-b.txt', FilenameHelper::sanitize_filename( 'a---b.txt' ) );
     }
 
     public function test_sanitize_filename_edge_dashes_trimmed(): void {
-        $this->assertSame( 'test.pdf', Utils::sanitize_filename( '--test--.pdf' ) );
+        $this->assertSame( 'test.pdf', FilenameHelper::sanitize_filename( '--test--.pdf' ) );
     }
 
     public function test_sanitize_filename_no_extension(): void {
-        $this->assertSame( 'readme', Utils::sanitize_filename( 'README' ) );
+        $this->assertSame( 'readme', FilenameHelper::sanitize_filename( 'README' ) );
     }
 
     public function test_sanitize_filename_accented_chars(): void {
         // ç and ã are 2 bytes each, both replaced by '-', then collapsed
-        $this->assertSame( 'certifica-o.pdf', Utils::sanitize_filename( 'Certificação.pdf' ) );
+        $this->assertSame( 'certifica-o.pdf', FilenameHelper::sanitize_filename( 'Certificação.pdf' ) );
     }
 
     // ==================================================================
@@ -823,7 +824,7 @@ class UtilsTest extends TestCase {
     public function test_get_export_filename_without_title(): void {
         Functions\when( 'sanitize_file_name' )->returnArg();
 
-        $result = Utils::get_export_filename( 'submissions' );
+        $result = FilenameHelper::get_export_filename( 'submissions' );
 
         $this->assertMatchesRegularExpression( '/^submissions-\d{4}-\d{2}-\d{2}\.csv$/', $result );
     }
@@ -831,7 +832,7 @@ class UtilsTest extends TestCase {
     public function test_get_export_filename_with_title(): void {
         Functions\when( 'sanitize_file_name' )->returnArg();
 
-        $result = Utils::get_export_filename( 'submissions', 'Course X' );
+        $result = FilenameHelper::get_export_filename( 'submissions', 'Course X' );
 
         $this->assertMatchesRegularExpression( '/^submissions-Course X-\d{4}-\d{2}-\d{2}\.csv$/', $result );
     }
@@ -839,7 +840,7 @@ class UtilsTest extends TestCase {
     public function test_get_export_filename_with_empty_string_title_skips_segment(): void {
         Functions\when( 'sanitize_file_name' )->returnArg();
 
-        $result = Utils::get_export_filename( 'audit', '' );
+        $result = FilenameHelper::get_export_filename( 'audit', '' );
 
         $this->assertMatchesRegularExpression( '/^audit-\d{4}-\d{2}-\d{2}\.csv$/', $result );
     }
@@ -849,7 +850,7 @@ class UtilsTest extends TestCase {
             return strtolower( preg_replace( '/[^a-z0-9_-]/i', '_', $name ) );
         } );
 
-        $result = Utils::get_export_filename( 'forms', 'My / Bad Name!' );
+        $result = FilenameHelper::get_export_filename( 'forms', 'My / Bad Name!' );
 
         $this->assertMatchesRegularExpression( '/^forms-my___bad_name_-\d{4}-\d{2}-\d{2}\.csv$/', $result );
     }

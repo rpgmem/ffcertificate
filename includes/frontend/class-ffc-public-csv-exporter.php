@@ -131,7 +131,7 @@ class PublicCsvExporter {
 		$include_edit_columns = $this->repository->hasEditInfo();
 
 		$form_title_raw = get_the_title( $form_id );
-		$filename       = \FreeFormCertificate\Core\Utils::sanitize_filename(
+		$filename       = \FreeFormCertificate\Core\FilenameHelper::sanitize_filename(
 			$form_title_raw ? $form_title_raw : ( 'form-' . $form_id )
 		) . '-' . gmdate( 'Y-m-d-His' ) . '.csv';
 
@@ -384,7 +384,7 @@ class PublicCsvExporter {
 		}
 
 		$form_title_raw = get_the_title( $form_id );
-		$filename       = \FreeFormCertificate\Core\Utils::sanitize_filename(
+		$filename       = \FreeFormCertificate\Core\FilenameHelper::sanitize_filename(
 			$form_title_raw ? $form_title_raw : ( 'form-' . $form_id )
 		) . '-' . gmdate( 'Y-m-d-His' ) . '.csv';
 

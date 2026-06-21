@@ -165,7 +165,7 @@ class AdminActivityLogPage {
 			);
 		}
 
-		$filename      = \FreeFormCertificate\Core\Utils::get_export_filename( 'ffc-activity-log' );
+		$filename      = \FreeFormCertificate\Core\FilenameHelper::get_export_filename( 'ffc-activity-log' );
 		$safe_filename = str_replace( array( "\r", "\n", '"' ), '', $filename );
 		header( 'Content-Type: text/csv; charset=utf-8' );
 		header( 'Content-Disposition: attachment; filename="' . $safe_filename . '"' );

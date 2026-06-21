@@ -181,7 +181,7 @@ class FichaGenerator {
 		$code     = ! empty( $submission->auth_code )
 			? (string) $submission->auth_code
 			: sprintf( 'S%d', $submission_id );
-		$filename = \FreeFormCertificate\Core\Utils::build_pdf_filename( 'ficha', (int) $rereg->id, $code );
+		$filename = \FreeFormCertificate\Core\FilenameHelper::build_pdf_filename( 'ficha', (int) $rereg->id, $code );
 
 		/**
 		 * Filters the ficha PDF filename.

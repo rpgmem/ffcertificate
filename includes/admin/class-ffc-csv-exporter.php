@@ -131,7 +131,7 @@ class CsvExporter {
 		} else {
 			$form_title = 'all-forms';
 		}
-		$filename = \FreeFormCertificate\Core\Utils::sanitize_filename( $form_title ) . '-' . gmdate( 'Y-m-d' ) . '.csv';
+		$filename = \FreeFormCertificate\Core\FilenameHelper::sanitize_filename( $form_title ) . '-' . gmdate( 'Y-m-d' ) . '.csv';
 
 		/**
 		 * Filters the filename used for admin CSV export downloads.
