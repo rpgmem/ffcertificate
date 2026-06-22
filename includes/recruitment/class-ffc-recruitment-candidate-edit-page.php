@@ -100,6 +100,24 @@ final class RecruitmentCandidateEditPage {
 	}
 
 	/**
+	 * LOGIC pass for {@see render_general_section()}: decrypt the stored
+	 * email ciphertext into the plaintext value shown in the editable field.
+	 * Returns the empty string when there is no stored email or decryption
+	 * fails — matching the previous inline behavior exactly.
+	 *
+	 * @param object $candidate Candidate row.
+	 * @phpstan-param CandidateRow $candidate
+	 * @return string Decrypted email, or '' when absent / undecryptable.
+	 */
+	private static function resolve_general_email( object $candidate ): string {
+		if ( null === $candidate->email_encrypted || '' === (string) $candidate->email_encrypted ) {
+			return '';
+		}
+		$decrypted = Encryption::decrypt( (string) $candidate->email_encrypted );
+		return is_string( $decrypted ) ? $decrypted : '';
+	}
+
+	/**
 	 * Section 1: General editable fields per §12.
 	 *
 	 * @param object $candidate Candidate row.
@@ -110,11 +128,8 @@ final class RecruitmentCandidateEditPage {
 		$id           = (int) $candidate->id;
 		$nonce_action = 'ffc_recruitment_save_candidate_' . $id;
 
-		$email = '';
-		if ( null !== $candidate->email_encrypted && '' !== (string) $candidate->email_encrypted ) {
-			$decrypted = Encryption::decrypt( (string) $candidate->email_encrypted );
-			$email     = is_string( $decrypted ) ? $decrypted : '';
-		}
+		// LOGIC pass — decrypt the stored email for the editable field.
+		$email = self::resolve_general_email( $candidate );
 
 		echo '<div class="postbox ffc-rec-mt-20">';
 		echo '<h2 class="hndle"><span>' . esc_html__( 'General', 'ffcertificate' ) . '</span></h2>';
@@ -342,22 +357,35 @@ final class RecruitmentCandidateEditPage {
 	}
 
 	/**
-	 * Section 3: Classifications + call history for this candidate.
+	 * LOGIC pass for {@see render_classifications_section()}: the candidate's
+	 * classification rows plus — only when at least one exists — the bulk
+	 * call-history grouping and the per-notice adjutancy map. Returns a struct
+	 * the section view consumes; no markup emitted.
+	 *
+	 * The two bulk lookups stay gated behind the non-empty check exactly as
+	 * before, so an empty candidate triggers zero extra queries. The per-row
+	 * notice / adjutancy lookups remain inside the render loop.
 	 *
 	 * @param object $candidate Candidate row.
 	 * @phpstan-param CandidateRow $candidate
-	 * @return void
+	 * @return array{
+	 *     classifications: array<int, object>,
+	 *     calls_by_class: array<int, list<object>>,
+	 *     adjutancies_by_notice: array<int, list<int>>
+	 * }
+	 * @phpstan-return array{
+	 *     classifications: array<int, ClassificationRow>,
+	 *     calls_by_class: array<int, list<CallRow>>,
+	 *     adjutancies_by_notice: array<int, list<int>>
+	 * }
 	 */
-	private static function render_classifications_section( object $candidate ): void {
+	private static function prepare_classifications_section_data( object $candidate ): array {
 		$classifications = RecruitmentClassificationRepository::get_for_candidate( (int) $candidate->id );
 
-		echo '<div class="postbox ffc-rec-mt-20">';
-		echo '<h2 class="hndle"><span>' . esc_html__( 'Classifications + call history', 'ffcertificate' ) . '</span></h2>';
-		echo '<div class="inside">';
+		$calls_by_class        = array();
+		$adjutancies_by_notice = array();
 
-		if ( empty( $classifications ) ) {
-			echo '<p><em>' . esc_html__( '(no classifications)', 'ffcertificate' ) . '</em></p>';
-		} else {
+		if ( ! empty( $classifications ) ) {
 			$classification_ids = array_map( static fn( $c ) => (int) $c->id, $classifications );
 			$calls_by_class     = self::group_calls_by_classification( $classification_ids );
 
@@ -367,6 +395,37 @@ final class RecruitmentCandidateEditPage {
 			// options (anything else would be rejected by the REST
 			// endpoint and lead to a confusing UX).
 			$adjutancies_by_notice = self::adjutancies_per_notice_for_rows( $classifications );
+		}
+
+		return array(
+			'classifications'       => $classifications,
+			'calls_by_class'        => $calls_by_class,
+			'adjutancies_by_notice' => $adjutancies_by_notice,
+		);
+	}
+
+	/**
+	 * Section 3: Classifications + call history for this candidate.
+	 *
+	 * @param object $candidate Candidate row.
+	 * @phpstan-param CandidateRow $candidate
+	 * @return void
+	 */
+	private static function render_classifications_section( object $candidate ): void {
+		// LOGIC pass — fetch the candidate's classifications and (when any
+		// exist) the bulk call-history grouping + per-notice adjutancy map.
+		$data            = self::prepare_classifications_section_data( $candidate );
+		$classifications = $data['classifications'];
+
+		echo '<div class="postbox ffc-rec-mt-20">';
+		echo '<h2 class="hndle"><span>' . esc_html__( 'Classifications + call history', 'ffcertificate' ) . '</span></h2>';
+		echo '<div class="inside">';
+
+		if ( empty( $classifications ) ) {
+			echo '<p><em>' . esc_html__( '(no classifications)', 'ffcertificate' ) . '</em></p>';
+		} else {
+			$calls_by_class        = $data['calls_by_class'];
+			$adjutancies_by_notice = $data['adjutancies_by_notice'];
 
 			echo '<table class="widefat striped"><thead><tr>';
 			echo '<th>' . esc_html__( 'Notice', 'ffcertificate' ) . '</th>';
