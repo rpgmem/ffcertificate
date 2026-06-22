@@ -172,7 +172,7 @@ class TabRateLimit extends SettingsTab {
 		// max_per_hour / max_per_day / cooldown_seconds / message). Use
 		// array_replace_recursive so missing leaves fall through to the
 		// defaults without losing operator-customised values.
-		$stored = get_option( 'ffc_rate_limit_settings', array() );
+		$stored = get_option( \FreeFormCertificate\Settings\RateLimitSettingsReader::OPTION_KEY, array() );
 		return is_array( $stored ) ? array_replace_recursive( $defaults, $stored ) : $defaults;
 	}
 
