@@ -55,77 +55,7 @@ final class RecruitmentNoticeEditPageRenderer {
 		$notice_id = (int) $notice->id;
 		$status    = (string) $notice->status;
 
-		echo '<div class="postbox ffc-rec-mt-20">';
-		echo '<h2 class="hndle"><span>' . esc_html__( 'Import candidates (CSV)', 'ffcertificate' ) . '</span></h2>';
-		echo '<div class="inside">';
-
-		if ( 'definitive' === $status || 'closed' === $status ) {
-			echo '<p>' . esc_html__( 'Import is disabled for notices in `definitive` or `closed` status. Move the notice back to `preliminary` (allowed only when zero calls have been issued) to re-import.', 'ffcertificate' ) . '</p>';
-			echo '</div></div>';
-			return;
-		}
-
-		echo '<p>' . esc_html__( 'UTF-8 CSV (BOM optional). Required headers (English): name, cpf, rf, email, adjutancy, rank, score, pcd. Optional headers: phone, time_points, hab_emebs. At least one of cpf/rf required per row. Comma or semicolon delimiter is auto-detected.', 'ffcertificate' ) . '</p>';
-
-		$example_url = wp_nonce_url(
-			add_query_arg(
-				array( 'action' => 'ffc_recruitment_download_csv_example' ),
-				admin_url( 'admin-post.php' )
-			),
-			'ffc_recruitment_download_csv_example'
-		);
-		echo '<p><a class="button" href="' . esc_url( $example_url ) . '">&darr; ' . esc_html__( 'Download example CSV', 'ffcertificate' ) . '</a> ';
-		echo '<span class="description ffc-rec-ml-half">' . esc_html__( 'Two-row sample with every column populated. Use it as a starting point for your own file.', 'ffcertificate' ) . '</span></p>';
-
-		echo '<form id="ffc-recruitment-edit-import" method="post" enctype="multipart/form-data" data-notice-id="' . esc_attr( (string) $notice_id ) . '" onsubmit="return ffcRecruitmentImportFromEdit(this);">';
-		echo '<table class="form-table"><tbody>';
-
-		echo '<tr><th><label>' . esc_html__( 'Target list', 'ffcertificate' ) . '</label></th><td>';
-		echo '<label class="ffc-rec-mr-1"><input type="radio" name="list_target" value="preliminary" checked> ' . esc_html__( 'Preliminary list', 'ffcertificate' ) . '</label>';
-		if ( 'preliminary' === $status ) {
-			echo '<label><input type="radio" name="list_target" value="definitive"> ' . esc_html__( 'Definitive list (also transitions notice to `definitive`)', 'ffcertificate' ) . '</label>';
-		}
-		echo '</td></tr>';
-
-		echo '<tr><th><label for="ffc-edit-csv-file">' . esc_html__( 'CSV file', 'ffcertificate' ) . '</label></th><td>';
-		echo '<input id="ffc-edit-csv-file" name="csv_file" type="file" accept=".csv,text/csv" required>';
-		echo '</td></tr>';
-
-		echo '</tbody></table>';
-		echo '<p>';
-		echo '<button id="ffc-edit-csv-submit" type="submit" class="button button-primary">' . esc_html__( 'Import', 'ffcertificate' ) . '</button> ';
-		// Spinner + elapsed counter sits in the same line. Hidden until
-		// submit fires; revealed by the inline JS below. The importer is
-		// a single atomic request (no streaming progress hook) so this is
-		// an "activity indicator with elapsed seconds", not a real
-		// progress bar — the goal is to make it clear the request is in
-		// flight on large CSVs that may take 5–30s to commit.
-		// Progress widget — `<progress>` + counter for the batched preview
-		// flow; falls back to the spinner-only look for the definitive
-		// flow (which still posts in one shot to /promote-preview).
-		echo '<span id="ffc-edit-csv-progress" class="ffc-rec-progress-inline">';
-		echo '<span class="spinner is-active ffc-rec-spinner-flush"></span>';
-		echo '<progress id="ffc-edit-csv-progress-bar" max="1" value="0" class="ffc-rec-progress-bar"></progress>';
-		echo '<span id="ffc-edit-csv-progress-text"></span>';
-		echo '</span>';
-		echo '<span id="ffc-edit-csv-status" class="ffc-rec-mono-status"></span>';
-		echo '</p>';
-		// Per-line validation errors land here when /import-job/validate
-		// returns a non-empty list. Hidden by default; the orchestrator
-		// fills it in and the operator scrolls through what to fix.
-		echo '<ul id="ffc-edit-csv-errors" class="ffc-rec-csv-errors"></ul>';
-		echo '</form>';
-
-		// The submit handler (ffcRecruitmentImportFromEdit) ships in
-		// assets/js/ffc-recruitment-notice-edit.js. The preview flow hands
-		// off to window.ffcRecruitmentImportBatched.run() (start → loop batch
-		// → commit) so notices with hundreds of candidates stop racing the
-		// gateway timeout; the definitive flow keeps the single-request shape
-		// against /promote-preview. The notice id rides on the form's
-		// data-notice-id attribute; strings/nonce/REST root come from the
-		// localized ffcRecruitmentNoticeEdit object.
-
-		echo '</div></div>';
+		include FFC_PLUGIN_DIR . 'templates/admin/recruitment/notice-edit/csv-import-section.php';
 	}
 
 	/**
@@ -138,59 +68,12 @@ final class RecruitmentNoticeEditPageRenderer {
 	public static function render_general_section( object $notice ): void {
 		$nonce_action = 'ffc_recruitment_save_notice_' . (int) $notice->id;
 
-		echo '<div class="postbox ffc-rec-mt-20">';
-		echo '<h2 class="hndle"><span>' . esc_html__( 'General', 'ffcertificate' ) . '</span></h2>';
-		echo '<div class="inside">';
+		// Pre-render the column-toggles grid (already-escaped HTML) so the
+		// template can reference it without reaching back into a private
+		// renderer helper.
+		$columns_toggles = self::render_columns_toggles( (string) $notice->public_columns_config );
 
-		echo '<form method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '">';
-		echo '<input type="hidden" name="action" value="ffc_recruitment_save_notice">';
-		echo '<input type="hidden" name="notice_id" value="' . esc_attr( (string) $notice->id ) . '">';
-		wp_nonce_field( $nonce_action );
-
-		echo '<table class="form-table"><tbody>';
-
-		echo '<tr><th><label>' . esc_html__( 'Code', 'ffcertificate' ) . '</label></th>';
-		echo '<td><code>' . esc_html( (string) $notice->code ) . '</code> ';
-		// §3.2 — codes are stable identifiers; never editable post-creation.
-		echo '<span class="description">' . esc_html__( '(read-only — codes are stable identifiers and cannot be changed after creation)', 'ffcertificate' ) . '</span></td></tr>';
-
-		echo '<tr><th><label for="ffc-notice-name">' . esc_html__( 'Name', 'ffcertificate' ) . '</label></th>';
-		echo '<td><input id="ffc-notice-name" type="text" class="regular-text" name="name" value="' . esc_attr( (string) $notice->name ) . '" required></td></tr>';
-
-		echo '<tr><th>' . esc_html__( 'Public columns', 'ffcertificate' ) . '</th>';
-		// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- render_columns_toggles() returns already-escaped HTML.
-		echo '<td>' . self::render_columns_toggles( (string) $notice->public_columns_config );
-		echo '<p class="description">' . esc_html__( 'Toggle which columns the public shortcode renders. Rank and Name are mandatory and cannot be turned off.', 'ffcertificate' ) . '</p></td></tr>';
-
-		// Dedicated row for the preliminary-reason public visibility
-		// toggle. Stored under the same `public_columns_config.preview_reason`
-		// key as the column grid so the save handler stays unchanged,
-		// but rendered separately because it isn't a column — it's a
-		// per-edital all-or-nothing toggle for whether the preliminary
-		// reason text shows up next to the badge on the public listing.
-		$decoded         = json_decode( (string) $notice->public_columns_config, true );
-		$decoded         = is_array( $decoded ) ? $decoded : array();
-		$preview_default = (array) json_decode( RecruitmentNoticeRepository::DEFAULT_PUBLIC_COLUMNS_CONFIG, true );
-		$preview_state   = array_merge( $preview_default, $decoded );
-		$preview_checked = ! empty( $preview_state['preview_reason'] );
-
-		echo '<tr><th>' . esc_html__( 'Preliminary reasons', 'ffcertificate' ) . '</th><td>';
-		\FreeFormCertificate\Admin\AdminUI::render_toggle(
-			array(
-				'name'    => 'public_columns[preview_reason]',
-				'id'      => 'ffc-notice-pcc-preview_reason',
-				'checked' => $preview_checked,
-				'label'   => __( 'Show preliminary reasons publicly on this notice', 'ffcertificate' ),
-			)
-		);
-		echo '<p class="description">' . esc_html__( 'When on, the public shortcode will render the reason label next to the preliminary status badge. Off by default per notice — operators decide all-or-nothing per edital.', 'ffcertificate' ) . '</p>';
-		echo '</td></tr>';
-
-		echo '</tbody></table>';
-		submit_button( __( 'Save general', 'ffcertificate' ) );
-		echo '</form>';
-
-		echo '</div></div>';
+		include FFC_PLUGIN_DIR . 'templates/admin/recruitment/notice-edit/general-section.php';
 	}
 
 	/**
@@ -585,11 +468,6 @@ final class RecruitmentNoticeEditPageRenderer {
 		$attached_ids = array_values( RecruitmentNoticeAdjutancyRepository::get_adjutancy_ids_for_notice( $notice_id ) );
 		$attached_set = array_flip( $attached_ids );
 
-		echo '<div class="postbox ffc-rec-mt-20">';
-		echo '<h2 class="hndle"><span>' . esc_html__( 'Adjutancies', 'ffcertificate' ) . '</span></h2>';
-		echo '<div class="inside">';
-		echo '<p>' . esc_html__( 'Adjutancies referenced by CSV imports must be attached to the notice via this section.', 'ffcertificate' ) . '</p>';
-
 		$attached_objects = array_values(
 			array_filter(
 				$adjutancies,
@@ -599,19 +477,6 @@ final class RecruitmentNoticeEditPageRenderer {
 			)
 		);
 
-		if ( empty( $attached_objects ) ) {
-			echo '<p><em>' . esc_html__( 'No adjutancies attached yet.', 'ffcertificate' ) . '</em></p>';
-		} else {
-			echo '<p><span class="ffc-attached-list">';
-			foreach ( $attached_objects as $a ) {
-				echo '<span class="ffc-attached">';
-				echo esc_html( (string) $a->slug );
-				echo ' <a href="#" data-notice="' . esc_attr( (string) $notice_id ) . '" data-adjutancy="' . esc_attr( (string) $a->id ) . '" onclick="return ffcDetachAdjutancy(this);" title="' . esc_attr__( 'Detach', 'ffcertificate' ) . '">×</a>';
-				echo '</span>';
-			}
-			echo '</span></p>';
-		}
-
 		$detached_objects = array_values(
 			array_filter(
 				$adjutancies,
@@ -620,23 +485,8 @@ final class RecruitmentNoticeEditPageRenderer {
 				}
 			)
 		);
-		if ( ! empty( $detached_objects ) ) {
-			echo '<form onsubmit="return ffcAttachAdjutancy(this);" data-notice="' . esc_attr( (string) $notice_id ) . '">';
-			echo '<select name="adjutancy_id">';
-			foreach ( $detached_objects as $a ) {
-				echo '<option value="' . esc_attr( (string) $a->id ) . '">' . esc_html( (string) $a->slug ) . ' — ' . esc_html( (string) $a->name ) . '</option>';
-			}
-			echo '</select>';
-			echo ' <button type="submit" class="button button-secondary">' . esc_html__( 'Attach', 'ffcertificate' ) . '</button>';
-			echo '</form>';
-		}
 
-		// ffcAttachAdjutancy / ffcDetachAdjutancy ship in
-		// ffc-recruitment-notice-edit.js; they read the notice/adjutancy ids
-		// from the data-notice / data-adjutancy attributes already on the
-		// form and the detach link.
-
-		echo '</div></div>';
+		include FFC_PLUGIN_DIR . 'templates/admin/recruitment/notice-edit/adjutancies-section.php';
 	}
 
 	/**
@@ -805,38 +655,7 @@ final class RecruitmentNoticeEditPageRenderer {
 			admin_url( 'admin.php' )
 		);
 
-		echo '<form method="get" class="ffc-cls-filters ffc-rec-cls-filters">';
-		echo '<input type="hidden" name="page" value="' . esc_attr( RecruitmentAdminPage::PAGE_SLUG ) . '">';
-		echo '<input type="hidden" name="action" value="edit-notice">';
-		echo '<input type="hidden" name="notice_id" value="' . esc_attr( (string) $notice_id ) . '">';
-
-		echo '<input type="text" name="ffc_cls_q" value="' . esc_attr( $query ) . '" placeholder="' . esc_attr__( 'Name (substring)', 'ffcertificate' ) . '" size="20">';
-		echo ' <input type="text" name="ffc_cls_cpf" value="' . esc_attr( $cpf ) . '" placeholder="' . esc_attr__( 'CPF (digits only)', 'ffcertificate' ) . '" size="15">';
-		echo ' <input type="text" name="ffc_cls_rf" value="' . esc_attr( $rf ) . '" placeholder="' . esc_attr__( 'RF (digits only)', 'ffcertificate' ) . '" size="10">';
-
-		if ( ! empty( $adjutancies ) ) {
-			echo ' <select name="ffc_cls_adj">';
-			echo '<option value="0">' . esc_html__( 'All adjutancies', 'ffcertificate' ) . '</option>';
-			foreach ( $adjutancies as $aid ) {
-				$row = RecruitmentAdjutancyRepository::get_by_id( (int) $aid );
-				if ( null === $row ) {
-					continue;
-				}
-				$is_selected = (int) $row->id === $adj_id ? ' selected' : '';
-				echo '<option value="' . esc_attr( (string) (int) $row->id ) . '"' . esc_attr( $is_selected ) . '>' . esc_html( (string) $row->name ) . '</option>';
-			}
-			echo '</select>';
-		}
-
-		echo ' <select name="ffc_cls_sub">';
-		echo '<option value=""' . selected( '', $subscription, false ) . '>' . esc_html__( 'All subscription types', 'ffcertificate' ) . '</option>';
-		echo '<option value="pcd"' . selected( 'pcd', $subscription, false ) . '>' . esc_html__( 'PCD only', 'ffcertificate' ) . '</option>';
-		echo '<option value="geral"' . selected( 'geral', $subscription, false ) . '>' . esc_html__( 'GERAL only', 'ffcertificate' ) . '</option>';
-		echo '</select>';
-
-		echo ' <button type="submit" class="button">' . esc_html__( 'Filter', 'ffcertificate' ) . '</button>';
-		echo ' <a href="' . esc_url( $reset_url ) . '" class="button-link">' . esc_html__( 'Reset', 'ffcertificate' ) . '</a>';
-		echo '</form>';
+		include FFC_PLUGIN_DIR . 'templates/admin/recruitment/notice-edit/classification-filters-form.php';
 	}
 
 	/**
@@ -1193,22 +1012,7 @@ final class RecruitmentNoticeEditPageRenderer {
 	 * @return void
 	 */
 	private static function render_bulk_call_toolbar(): void {
-		echo '<div class="ffc-cls-bulk-toolbar ffc-rec-bulk-toolbar">';
-		echo '<strong>' . esc_html__( 'Bulk call', 'ffcertificate' ) . '</strong> ';
-		echo '<span class="ffc-rec-ml-half">' . esc_html__( 'Date:', 'ffcertificate' ) . ' </span>';
-		echo '<input type="date" id="ffc-bulk-date" class="ffc-rec-mr-half">';
-		echo '<span>' . esc_html__( 'Time:', 'ffcertificate' ) . ' </span>';
-		echo '<input type="time" id="ffc-bulk-time" class="ffc-rec-mr-half">';
-		echo '<button type="button" class="button button-primary" onclick="ffcRecruitmentBulkCall();">' . esc_html__( 'Call selected', 'ffcertificate' ) . '</button>';
-		echo '<span id="ffc-bulk-status" class="ffc-rec-mono-status"></span>';
-		// §6 — bulk call is atomic; any single race-loss rolls back the entire batch.
-		echo '<p class="description ffc-rec-mt-6px">' . esc_html__( 'Select rows in waiting status to bulk-call them with the same date and time. The operation is atomic — any single conflict rolls back the entire batch. Date and time are remembered from the previous successful call.', 'ffcertificate' ) . '</p>';
-		echo '</div>';
-
-		// The date/time inputs are pre-filled from localStorage by
-		// ffc-recruitment-notice-edit.js (init → prefillBulkDateTime) so a
-		// follow-up bulk-call doesn't make the operator retype the same
-		// values; ffcRecruitmentBulkCall() writes them on a successful submit.
+		include FFC_PLUGIN_DIR . 'templates/admin/recruitment/notice-edit/bulk-call-toolbar.php';
 	}
 
 	/**
