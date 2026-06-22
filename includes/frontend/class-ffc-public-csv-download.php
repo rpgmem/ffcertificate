@@ -36,6 +36,9 @@ use FreeFormCertificate\Core\Utils;
 use FreeFormCertificate\Core\Capabilities;
 use FreeFormCertificate\Core\RequestInput;
 
+use FreeFormCertificate\Frontend\Csv\CsvDownloadAuditLog;
+use FreeFormCertificate\Frontend\Csv\CsvDownloadFlash;
+
 use FreeFormCertificate\Security\Geofence;
 use FreeFormCertificate\Security\RateLimiter;
 
@@ -81,11 +84,19 @@ class PublicCsvDownload {
 	private CsvDownloadFormInfoBuilder $form_info_builder;
 
 	/**
+	 * Flash-message helper (transient keyed by visitor IP).
+	 *
+	 * @var CsvDownloadFlash
+	 */
+	private CsvDownloadFlash $flash;
+
+	/**
 	 * Wire up the small collaborators that hold the extracted logic.
 	 */
 	public function __construct() {
 		$this->validator         = new CsvDownloadValidator();
 		$this->form_info_builder = new CsvDownloadFormInfoBuilder();
+		$this->flash             = new CsvDownloadFlash();
 	}
 
 	/**
@@ -861,38 +872,13 @@ class PublicCsvDownload {
 			$ip  = isset( $entry['ip'] ) ? (string) $entry['ip'] : '';
 			$mod = isset( $entry['mode'] ) ? (string) $entry['mode'] : '';
 			$res = isset( $entry['result'] ) ? (string) $entry['result'] : '';
-			$cpf = self::decrypt_log_entry_cpf( $entry );
+			$cpf = CsvDownloadAuditLog::decrypt_log_entry_cpf( $entry );
 			$writer->row( array( $ts, $ip, $mod, $cpf, $res ) );
 		}
 		$writer->close();
         // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose -- closing the php://output handle this method opened.
 		fclose( $fh );
 		exit;
-	}
-
-	/**
-	 * Decrypt a single log entry's CPF for display in the export.
-	 *
-	 * @param array<string, mixed> $entry Log entry row.
-	 * @return string Formatted CPF, '' when blank, or a marker for failures.
-	 */
-	private static function decrypt_log_entry_cpf( array $entry ): string {
-		$cipher = isset( $entry['cpf_encrypted'] ) ? (string) $entry['cpf_encrypted'] : '';
-		if ( '' === $cipher ) {
-			return '';
-		}
-		if ( ! class_exists( '\FreeFormCertificate\Core\Encryption' )
-			|| ! \FreeFormCertificate\Core\Encryption::is_configured() ) {
-			return '[encryption disabled]';
-		}
-		$plain = \FreeFormCertificate\Core\Encryption::decrypt( $cipher );
-		if ( ! is_string( $plain ) || '' === $plain ) {
-			return '[decrypt failed]';
-		}
-		if ( class_exists( '\FreeFormCertificate\Core\DocumentFormatter' ) ) {
-			return \FreeFormCertificate\Core\DocumentFormatter::format_cpf( $plain );
-		}
-		return $plain;
 	}
 
 	/**
@@ -926,63 +912,13 @@ class PublicCsvDownload {
 	 * @return array{count: int, success: int, fail: int, access_success: int, download_success: int, failed_access: int, url: string|null}
 	 */
 	public static function get_audit_log_summary( int $form_id ): array {
-		$log   = get_post_meta( $form_id, self::META_DOWNLOAD_LOG, true );
-		$log   = is_array( $log ) ? $log : array();
-		$count = count( $log );
-
-		// Validator-emitted "CPF passed" tags. Don't include
-		// `download_delivered` here — that tag was added in the
-		// post-#241 audit fix and always pairs with a pre-existing
-		// `success` / `audit_pass` / `voluntary` row from the
-		// validator (or stands alone in 'none' mode without CPF).
-		// Adding it would over-count CPF-gated flows. The exported
-		// audit CSV still shows the rows; the metabox summary just
-		// doesn't double-count them. `download_success` continues to
-		// source from META_COUNT, the long-lived counter that
-		// survives ring-buffer rotation.
-		$access_success_tags = array( 'success', 'audit_pass', 'voluntary' );
-		// `download_delivered` (PR #242) records actual file deliveries;
-		// `action_early_open` / `action_postpone_close` (#243 Sprint 6)
-		// record operator action events. Both are useful in the audit
-		// CSV but shouldn't count toward access_success / failed_access
-		// in the metabox summary (would double-count flows where the
-		// CPF gate also wrote its own validator row).
-		$delivery_tags  = array( 'download_delivered', 'action_early_open', 'action_postpone_close' );
-		$access_success = 0;
-		$failed_access  = 0;
-		foreach ( $log as $entry ) {
-			$result = is_array( $entry ) && isset( $entry['result'] ) ? (string) $entry['result'] : '';
-			if ( in_array( $result, $access_success_tags, true ) ) {
-				++$access_success;
-			} elseif ( in_array( $result, $delivery_tags, true ) ) {
-				continue;
-			} else {
-				++$failed_access;
-			}
-		}
-
-		$download_success = (int) get_post_meta( $form_id, self::META_COUNT, true );
-
-		$url = null;
-		if ( $count > 0 ) {
-			$url = add_query_arg(
-				array(
-					'action'   => self::EXPORT_LOG_ACTION,
-					'form_id'  => $form_id,
-					'_wpnonce' => wp_create_nonce( self::EXPORT_LOG_NONCE . '_' . $form_id ),
-				),
-				admin_url( 'admin-post.php' )
-			);
-		}
-		return array(
-			'count'            => $count,
-			'success'          => $access_success,
-			'fail'             => $failed_access,
-			'access_success'   => $access_success,
-			'download_success' => $download_success,
-			'failed_access'    => $failed_access,
-			'url'              => $url,
-		);
+		// Thin public delegator. The implementation lives in
+		// {@see CsvDownloadAuditLog::get_summary()} (#589 phase-2,
+		// Sprint E3). This method stays put because it is a public API
+		// contract (consumed by the form-editor metabox + pinned by
+		// PublicCsvDownloadTest); the returned array shape — including the
+		// legacy count/success/fail keys — is unchanged.
+		return CsvDownloadAuditLog::get_summary( $form_id );
 	}
 
 	// ──────────────────────────────────────────────────────────────.
@@ -990,52 +926,25 @@ class PublicCsvDownload {
 	// ──────────────────────────────────────────────────────────────.
 
 	/**
-	 * Build a transient key scoped to the current visitor's IP.
-	 */
-	private function flash_transient_key(): string {
-		$ip = \FreeFormCertificate\Core\RequestInput::get_user_ip();
-		return 'ffc_pcd_flash_' . sha1( $ip );
-	}
-
-	/**
 	 * Redirect back to the referring page after saving a flash message.
+	 *
+	 * Thin wrapper around {@see CsvDownloadFlash::fail_redirect()}.
 	 *
 	 * @param string $message User-facing error message.
 	 * @return never
 	 */
 	private function fail_redirect( string $message ): void {
-		set_transient(
-			$this->flash_transient_key(),
-			array(
-				'type'    => 'error',
-				'message' => $message,
-			),
-			self::FLASH_TRANSIENT_TTL
-		);
-
-		$redirect = wp_get_referer();
-		if ( ! $redirect ) {
-			$redirect = home_url( '/' );
-		}
-		wp_safe_redirect( $redirect );
-		exit;
+		$this->flash->fail_redirect( $message );
 	}
 
 	/**
 	 * Pull and clear the current visitor's flash message, if any.
 	 *
+	 * Thin wrapper around {@see CsvDownloadFlash::get_flash_message()}.
+	 *
 	 * @return array{type: string, message: string}|null
 	 */
 	private function get_flash_message(): ?array {
-		$key  = $this->flash_transient_key();
-		$data = get_transient( $key );
-		if ( ! is_array( $data ) || empty( $data['message'] ) ) {
-			return null;
-		}
-		delete_transient( $key );
-		return array(
-			'type'    => isset( $data['type'] ) ? (string) $data['type'] : 'error',
-			'message' => (string) $data['message'],
-		);
+		return $this->flash->get_flash_message();
 	}
 }
