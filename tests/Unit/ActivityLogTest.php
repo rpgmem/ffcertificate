@@ -1042,57 +1042,12 @@ class ActivityLogTest extends TestCase {
         $this->assertSame('export_personal_data', $decoded['type']);
     }
 
-    // ==================================================================
-    // Delegation methods exist (verify signatures)
-    // ==================================================================
 
-    public function test_get_activities_method_exists(): void {
-        $this->assertTrue(method_exists(ActivityLog::class, 'get_activities'));
 
-        $ref = new \ReflectionMethod(ActivityLog::class, 'get_activities');
-        $this->assertTrue($ref->isStatic());
-        $this->assertTrue($ref->isPublic());
-    }
 
-    public function test_count_activities_method_exists(): void {
-        $this->assertTrue(method_exists(ActivityLog::class, 'count_activities'));
 
-        $ref = new \ReflectionMethod(ActivityLog::class, 'count_activities');
-        $this->assertTrue($ref->isStatic());
-    }
 
-    public function test_cleanup_method_exists(): void {
-        $this->assertTrue(method_exists(ActivityLog::class, 'cleanup'));
 
-        $ref = new \ReflectionMethod(ActivityLog::class, 'cleanup');
-        $this->assertTrue($ref->isStatic());
-        $params = $ref->getParameters();
-        $this->assertSame('days', $params[0]->getName());
-        $this->assertSame(90, $params[0]->getDefaultValue());
-    }
-
-    public function test_run_cleanup_method_exists(): void {
-        $this->assertTrue(method_exists(ActivityLog::class, 'run_cleanup'));
-    }
-
-    public function test_get_stats_method_exists(): void {
-        $this->assertTrue(method_exists(ActivityLog::class, 'get_stats'));
-
-        $ref = new \ReflectionMethod(ActivityLog::class, 'get_stats');
-        $params = $ref->getParameters();
-        $this->assertSame('days', $params[0]->getName());
-        $this->assertSame(30, $params[0]->getDefaultValue());
-    }
-
-    public function test_get_submission_logs_method_exists(): void {
-        $this->assertTrue(method_exists(ActivityLog::class, 'get_submission_logs'));
-
-        $ref = new \ReflectionMethod(ActivityLog::class, 'get_submission_logs');
-        $params = $ref->getParameters();
-        $this->assertSame('submission_id', $params[0]->getName());
-        $this->assertSame('limit', $params[1]->getName());
-        $this->assertSame(100, $params[1]->getDefaultValue());
-    }
 
     // ==================================================================
     // Static state isolation between tests

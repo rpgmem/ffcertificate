@@ -225,7 +225,7 @@ class SubmissionHandler {
 					$lookup_cpf_hash,
 					$user_email,
 					$submission_data,
-					\FreeFormCertificate\UserDashboard\UserManager::CONTEXT_CERTIFICATE,
+					\FreeFormCertificate\UserDashboard\CapabilityManager::CONTEXT_CERTIFICATE,
 					$identifier_type
 				);
 

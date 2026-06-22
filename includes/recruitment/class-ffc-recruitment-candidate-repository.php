@@ -23,6 +23,14 @@
  * service layer (sprint 4) — the repository accepts whatever string the
  * caller supplies.
  *
+ * Since the #563 phase-2 read/write split (Sprint D1) this class is a thin
+ * façade: reads live in {@see RecruitmentCandidateReader}, writes in
+ * {@see RecruitmentCandidateWriter}. It is kept as the public entry point so
+ * existing call sites and the typed shape below need no change.
+ *
+ * Tech-debt (#563 B3): migrate call sites to depend on RecruitmentCandidateReader /
+ * RecruitmentCandidateWriter directly, then retire this delegating façade.
+ *
  * @package FreeFormCertificate\Recruitment
  * @since   6.0.0
  */
@@ -36,7 +44,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 /**
- * Database repository for `ffc_recruitment_candidate` rows.
+ * Public façade over {@see RecruitmentCandidateReader} + {@see RecruitmentCandidateWriter}.
  *
  * Encrypted columns (`*_encrypted`) and their corresponding hash columns
  * (`*_hash`) follow the existing plugin convention (cf. `Activator::add_columns`):
@@ -44,20 +52,11 @@ if ( ! defined( 'ABSPATH' ) ) {
  * delegated to {@see \FreeFormCertificate\Core\Encryption} at the service
  * layer; this repository never touches plaintext values.
  *
+ * @since 6.0.0
+ *
  * @phpstan-type CandidateRow \stdClass&object{id: numeric-string, user_id: numeric-string|null, name: string, cpf_encrypted: string|null, cpf_hash: string|null, rf_encrypted: string|null, rf_hash: string|null, email_encrypted: string|null, email_hash: string|null, phone: string|null, notes: string|null, pcd_hash: string, created_at: string, updated_at: string}
  */
 class RecruitmentCandidateRepository {
-
-	use \FreeFormCertificate\Core\StaticRepositoryTrait;
-
-	/**
-	 * Cache group for this repository.
-	 *
-	 * @return string
-	 */
-	protected static function cache_group(): string {
-		return 'ffc_recruitment_candidate';
-	}
 
 	/**
 	 * Get the fully-prefixed table name.
@@ -65,8 +64,12 @@ class RecruitmentCandidateRepository {
 	 * @return string
 	 */
 	public static function get_table_name(): string {
-		return self::db()->prefix . 'ffc_recruitment_candidate';
+		return RecruitmentCandidateReader::get_table_name();
 	}
+
+	// ─────────────────────────────────────────────.
+	// Reads — delegate to RecruitmentCandidateReader.
+	// ─────────────────────────────────────────────.
 
 	/**
 	 * Get a candidate by ID.
@@ -75,118 +78,27 @@ class RecruitmentCandidateRepository {
 	 * @return CandidateRow|null
 	 */
 	public static function get_by_id( int $id ): ?object {
-		$cached = static::cache_get( "id_{$id}" );
-		if ( false !== $cached ) {
-			/**
-			 * Object-cache return cast.
-			 *
-			 * @var CandidateRow|null $cached
-			 */
-			return $cached;
-		}
-
-		$wpdb  = self::db();
-		$table = self::get_table_name();
-
-		/**
-		 * Cast wpdb result to typed shape.
-		 *
-		 * @var CandidateRow|null $result
-		 */
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Object-cached; %i for table identifier.
-		$result = $wpdb->get_row(
-			$wpdb->prepare( 'SELECT * FROM %i WHERE id = %d', $table, $id )
-		);
-
-		if ( $result ) {
-			static::cache_set( "id_{$id}", $result );
-		}
-
-		return $result;
+		return RecruitmentCandidateReader::get_by_id( $id );
 	}
 
 	/**
 	 * Batch-fetch candidate rows by ID.
 	 *
-	 * Returns an `id => row` map for the supplied id list, single
-	 * `WHERE id IN (...)` query. Object cache is warmed for every
-	 * fetched row so subsequent {@see self::get_by_id()} lookups in
-	 * the same request hit the cache without a second SELECT — that's
-	 * the primary call pattern from the public shortcode's
-	 * `render_section()`, which still loops `get_by_id()` per row
-	 * inside `render_row()` for each cell that needs a name / cpf /
-	 * email lookup.
-	 *
-	 * Empty input returns an empty array. Duplicate ids in the input
-	 * are silently deduplicated.
-	 *
 	 * @param array<int, int> $ids Candidate IDs.
 	 * @return array<int, CandidateRow>
 	 */
 	public static function get_by_ids( array $ids ): array {
-		$ids = array_values( array_unique( array_filter( array_map( 'intval', $ids ), static fn( int $i ): bool => $i > 0 ) ) );
-		if ( empty( $ids ) ) {
-			return array();
-		}
-
-		$wpdb  = self::db();
-		$table = self::get_table_name();
-
-		// `%d` placeholders generated dynamically for the IN clause —
-		// $ids is already coerced to a list<int> above so the join is
-		// safe; the wpdb->prepare() call still binds each id per the
-		// placeholder count.
-		$placeholders = implode( ', ', array_fill( 0, count( $ids ), '%d' ) );
-		$sql          = "SELECT * FROM %i WHERE id IN ({$placeholders})";
-
-		/**
-		 * Cast wpdb's mixed return into the typed shape.
-		 *
-		 * @var list<CandidateRow>|null $rows
-		 */
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared -- Placeholders are %i + N×%d, all generated literals; $ids items are intval-coerced above.
-		$rows = $wpdb->get_results( $wpdb->prepare( $sql, array_merge( array( $table ), $ids ) ) );
-		if ( ! is_array( $rows ) ) {
-			return array();
-		}
-
-		$out = array();
-		foreach ( $rows as $row ) {
-			$row_id = (int) ( $row->id ?? 0 );
-			if ( $row_id <= 0 ) {
-				continue;
-			}
-			static::cache_set( "id_{$row_id}", $row );
-			$out[ $row_id ] = $row;
-		}
-		return $out;
+		return RecruitmentCandidateReader::get_by_ids( $ids );
 	}
 
 	/**
 	 * Look up a candidate by CPF hash.
 	 *
-	 * Used by the CSV importer to detect cross-CSV / cross-notice reuse: a
-	 * matching `cpf_hash` reuses the existing candidate row (with new
-	 * classifications added) instead of creating a duplicate.
-	 *
 	 * @param string $cpf_hash Hash produced by `Encryption::hash()`.
 	 * @return CandidateRow|null
 	 */
 	public static function get_by_cpf_hash( string $cpf_hash ): ?object {
-		$wpdb  = self::db();
-		$table = self::get_table_name();
-
-		/**
-		 * Cast wpdb result to typed shape.
-		 *
-		 * @var CandidateRow|null $result
-		 */
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Indexed by UNIQUE constraint.
-		$result = $wpdb->get_row(
-			$wpdb->prepare( 'SELECT * FROM %i WHERE cpf_hash = %s LIMIT 1', $table, $cpf_hash )
-		);
-
-		return $result ? $result : null;
+		return RecruitmentCandidateReader::get_by_cpf_hash( $cpf_hash );
 	}
 
 	/**
@@ -196,88 +108,31 @@ class RecruitmentCandidateRepository {
 	 * @return CandidateRow|null
 	 */
 	public static function get_by_rf_hash( string $rf_hash ): ?object {
-		$wpdb  = self::db();
-		$table = self::get_table_name();
-
-		/**
-		 * Cast wpdb result to typed shape.
-		 *
-		 * @var CandidateRow|null $result
-		 */
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Indexed by UNIQUE constraint (RF).
-		$result = $wpdb->get_row(
-			$wpdb->prepare( 'SELECT * FROM %i WHERE rf_hash = %s LIMIT 1', $table, $rf_hash )
-		);
-
-		return $result ? $result : null;
+		return RecruitmentCandidateReader::get_by_rf_hash( $rf_hash );
 	}
 
 	/**
 	 * Look up the first candidate matching a given email hash.
 	 *
-	 * `email_hash` is NOT enforced UNIQUE (see schema rationale in §3.4 of
-	 * the implementation plan: candidates may share an email address —
-	 * e.g. family members — so the unique key is CPF/RF). When multiple
-	 * candidates share the same email, the FIRST inserted is returned;
-	 * callers needing all matches should use a different query.
-	 *
 	 * @param string $email_hash Hash produced by `Encryption::hash()`.
 	 * @return CandidateRow|null
 	 */
 	public static function get_by_email_hash( string $email_hash ): ?object {
-		$wpdb  = self::db();
-		$table = self::get_table_name();
-
-		/**
-		 * Cast wpdb result to typed shape.
-		 *
-		 * @var CandidateRow|null $result
-		 */
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Indexed (non-unique) lookup.
-		$result = $wpdb->get_row(
-			$wpdb->prepare( 'SELECT * FROM %i WHERE email_hash = %s ORDER BY id ASC LIMIT 1', $table, $email_hash )
-		);
-
-		return $result ? $result : null;
+		return RecruitmentCandidateReader::get_by_email_hash( $email_hash );
 	}
 
 	/**
-	 * Get the candidate row for a logged-in WP user.
-	 *
-	 * Powers the candidate-self dashboard section ({@see GET /me/recruitment}).
-	 * A candidate may be linked to at most one `wp_users.ID` per row, but a
-	 * single user could in principle have multiple candidate rows (across
-	 * notices) — although in practice the unique CPF/RF constraints keep
-	 * cardinality low. This method returns ALL candidate rows for a user.
+	 * Get the candidate rows for a logged-in WP user.
 	 *
 	 * @param int $user_id WP user ID.
 	 * @return list<CandidateRow>
 	 */
 	public static function get_by_user_id( int $user_id ): array {
-		$wpdb  = self::db();
-		$table = self::get_table_name();
-
-		/**
-		 * Cast wpdb results to typed shape.
-		 *
-		 * @var list<CandidateRow>|null $results
-		 */
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Indexed by user_id.
-		$results = $wpdb->get_results(
-			$wpdb->prepare( 'SELECT * FROM %i WHERE user_id = %d', $table, $user_id )
-		);
-
-		return is_array( $results ) ? $results : array();
+		return RecruitmentCandidateReader::get_by_user_id( $user_id );
 	}
 
 	/**
 	 * Paginated list for the admin Candidates list table.
-	 *
-	 * `$name_search` filters case-insensitively against `name` (CPF/RF
-	 * lookups go through the dedicated hash methods because the column
-	 * is encrypted and the operator-typed value has to be hashed before
-	 * matching). Returns rows ordered by `created_at DESC` so the most
-	 * recently imported candidates surface first.
 	 *
 	 * @param string $name_search Optional substring filter on name (empty = no filter).
 	 * @param int    $limit       Maximum rows (1-200).
@@ -285,48 +140,12 @@ class RecruitmentCandidateRepository {
 	 * @return list<CandidateRow>
 	 */
 	public static function get_paginated( string $name_search, int $limit, int $offset ): array {
-		$wpdb  = self::db();
-		$table = self::get_table_name();
-
-		$limit  = max( 1, min( 200, $limit ) );
-		$offset = max( 0, $offset );
-
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-		$results = '' !== $name_search
-			? $wpdb->get_results(
-				$wpdb->prepare(
-					'SELECT * FROM %i WHERE name LIKE %s ORDER BY created_at DESC LIMIT %d OFFSET %d',
-					$table,
-					'%' . $wpdb->esc_like( $name_search ) . '%',
-					$limit,
-					$offset
-				)
-			)
-			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-			: $wpdb->get_results(
-				$wpdb->prepare(
-					'SELECT * FROM %i ORDER BY created_at DESC LIMIT %d OFFSET %d',
-					$table,
-					$limit,
-					$offset
-				)
-			);
-
-		/**
-		 * Cast wpdb's mixed return into the typed shape.
-		 *
-		 * @var list<CandidateRow>|null $results
-		 */
-		$results = $results;
-		return is_array( $results ) ? $results : array();
+		return RecruitmentCandidateReader::get_paginated( $name_search, $limit, $offset );
 	}
 
 	/**
 	 * Page of candidates that have at least one classification in the
-	 * supplied adjutancy. Mirrors {@see self::get_paginated()} but
-	 * inner-joins the classification table so the result set is scoped
-	 * to candidates active in that adjutancy. Used by the admin
-	 * Candidates tab's adjutancy filter.
+	 * supplied adjutancy.
 	 *
 	 * @param string $name_search Optional substring filter on name.
 	 * @param int    $adjutancy_id Adjutancy id (must be > 0).
@@ -335,33 +154,7 @@ class RecruitmentCandidateRepository {
 	 * @return list<CandidateRow>
 	 */
 	public static function get_paginated_for_adjutancy( string $name_search, int $adjutancy_id, int $limit, int $offset ): array {
-		$wpdb      = self::db();
-		$table     = self::get_table_name();
-		$cls_table = $wpdb->prefix . 'ffc_recruitment_classification';
-
-		$limit  = max( 1, min( 200, $limit ) );
-		$offset = max( 0, $offset );
-
-		// DISTINCT because a candidate can hold several classifications
-		// for the same adjutancy (across notices / list_types) and we
-		// want a single list-table row per candidate.
-		$sql = '' !== $name_search
-			? 'SELECT DISTINCT c.* FROM %i c INNER JOIN %i cls ON cls.candidate_id = c.id WHERE cls.adjutancy_id = %d AND c.name LIKE %s ORDER BY c.created_at DESC LIMIT %d OFFSET %d'
-			: 'SELECT DISTINCT c.* FROM %i c INNER JOIN %i cls ON cls.candidate_id = c.id WHERE cls.adjutancy_id = %d ORDER BY c.created_at DESC LIMIT %d OFFSET %d';
-
-		$args = '' !== $name_search
-			? array( $table, $cls_table, $adjutancy_id, '%' . $wpdb->esc_like( $name_search ) . '%', $limit, $offset )
-			: array( $table, $cls_table, $adjutancy_id, $limit, $offset );
-
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared -- $sql is one of two literals selected immediately above; both placeholders match $args.
-		$results = $wpdb->get_results( $wpdb->prepare( $sql, $args ) );
-
-		/**
-		 * Cast wpdb's mixed return into the typed shape.
-		 *
-		 * @var list<CandidateRow>|null $results
-		 */
-		return is_array( $results ) ? $results : array();
+		return RecruitmentCandidateReader::get_paginated_for_adjutancy( $name_search, $adjutancy_id, $limit, $offset );
 	}
 
 	/**
@@ -372,98 +165,32 @@ class RecruitmentCandidateRepository {
 	 * @return int
 	 */
 	public static function count_paginated_for_adjutancy( string $name_search, int $adjutancy_id ): int {
-		$wpdb      = self::db();
-		$table     = self::get_table_name();
-		$cls_table = $wpdb->prefix . 'ffc_recruitment_classification';
-
-		$sql = '' !== $name_search
-			? 'SELECT COUNT(DISTINCT c.id) FROM %i c INNER JOIN %i cls ON cls.candidate_id = c.id WHERE cls.adjutancy_id = %d AND c.name LIKE %s'
-			: 'SELECT COUNT(DISTINCT c.id) FROM %i c INNER JOIN %i cls ON cls.candidate_id = c.id WHERE cls.adjutancy_id = %d';
-
-		$args = '' !== $name_search
-			? array( $table, $cls_table, $adjutancy_id, '%' . $wpdb->esc_like( $name_search ) . '%' )
-			: array( $table, $cls_table, $adjutancy_id );
-
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared -- $sql is one of two literals selected immediately above; both placeholders match $args.
-		$total = $wpdb->get_var( $wpdb->prepare( $sql, $args ) );
-
-		return null === $total ? 0 : (int) $total;
+		return RecruitmentCandidateReader::count_paginated_for_adjutancy( $name_search, $adjutancy_id );
 	}
 
 	/**
 	 * Total candidate count, optionally filtered by `name` substring.
 	 *
-	 * Pairs with {@see self::get_paginated()} to drive the list table
-	 * pagination headers.
-	 *
 	 * @param string $name_search Optional substring filter on name.
 	 * @return int
 	 */
 	public static function count_paginated( string $name_search ): int {
-		$wpdb  = self::db();
-		$table = self::get_table_name();
-
-		if ( '' !== $name_search ) {
-			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-			$total = $wpdb->get_var(
-				$wpdb->prepare(
-					'SELECT COUNT(*) FROM %i WHERE name LIKE %s',
-					$table,
-					'%' . $wpdb->esc_like( $name_search ) . '%'
-				)
-			);
-		} else {
-			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-			$total = $wpdb->get_var(
-				$wpdb->prepare( 'SELECT COUNT(*) FROM %i', $table )
-			);
-		}
-
-		return null === $total ? 0 : (int) $total;
+		return RecruitmentCandidateReader::count_paginated( $name_search );
 	}
 
 	/**
-	 * Return every candidate row whose `email_hash` matches the given
-	 * digest. Used by the list-table when the operator types an email
-	 * into the search box — the column is non-unique so multiple
-	 * candidates can legitimately share it (family members, etc.).
+	 * Return every candidate ID whose `email_hash` matches the given digest.
 	 *
 	 * @since 6.6.2
 	 * @param string $email_hash Hash produced by `Encryption::hash()`.
 	 * @return list<int> Candidate IDs matching the hash (empty array on no match).
 	 */
 	public static function get_ids_by_email_hash( string $email_hash ): array {
-		$wpdb  = self::db();
-		$table = self::get_table_name();
-
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Indexed (non-unique) lookup.
-		$rows = $wpdb->get_col(
-			$wpdb->prepare( 'SELECT id FROM %i WHERE email_hash = %s', $table, $email_hash )
-		);
-
-		return array_values( array_map( 'intval', $rows ) );
+		return RecruitmentCandidateReader::get_ids_by_email_hash( $email_hash );
 	}
 
 	/**
 	 * Paginated candidates with combinable filters (issue #331 search frontend).
-	 *
-	 * All filters are AND-ed:
-	 *   - `$name_search`     — LIKE on the `name` column when non-empty.
-	 *   - `$id_constraint`   — array of candidate IDs the result is
-	 *     limited to (used by CPF / RF / email matches resolved upfront).
-	 *     `null` means "no constraint"; an empty array means "no
-	 *     candidates match" and the method short-circuits to `[]`.
-	 *   - `$adjutancy_id`    — `>0` joins on the classifications table
-	 *     and limits to candidates with at least one classification in
-	 *     that adjutancy.
-	 *   - `$status`          — one of `empty|called|accepted|not_shown|hired|withdrew`
-	 *     joins on the classifications table (list_type='definitive')
-	 *     and limits to candidates whose at-least-one definitive
-	 *     classification is in that status.
-	 *
-	 * When both `$adjutancy_id` and `$status` are set, the JOIN is
-	 * combined (same row must match both) — matches the operator's
-	 * mental model of "candidates currently called in adjutancy X".
 	 *
 	 * @since 6.6.2
 	 * @param string         $name_search   Optional substring filter on name.
@@ -482,63 +209,7 @@ class RecruitmentCandidateRepository {
 		int $limit,
 		int $offset
 	): array {
-		if ( is_array( $id_constraint ) && empty( $id_constraint ) ) {
-			return array();
-		}
-
-		$wpdb      = self::db();
-		$table     = self::get_table_name();
-		$cls_table = $wpdb->prefix . 'ffc_recruitment_classification';
-
-		$limit  = max( 1, min( 200, $limit ) );
-		$offset = max( 0, $offset );
-
-		$where          = array();
-		$where_a        = array();
-		$needs_cls_join = $adjutancy_id > 0 || '' !== $status;
-
-		if ( '' !== $name_search ) {
-			$where[]   = 'c.name LIKE %s';
-			$where_a[] = '%' . $wpdb->esc_like( $name_search ) . '%';
-		}
-		if ( is_array( $id_constraint ) ) {
-			$ids     = array_values( array_unique( array_map( 'intval', $id_constraint ) ) );
-			$where[] = 'c.id IN (' . implode( ',', array_fill( 0, count( $ids ), '%d' ) ) . ')';
-			$where_a = array_merge( $where_a, $ids );
-		}
-		if ( $adjutancy_id > 0 ) {
-			$where[]   = 'cls.adjutancy_id = %d';
-			$where_a[] = $adjutancy_id;
-		}
-		if ( '' !== $status ) {
-			$where[]   = 'cls.status = %s';
-			$where_a[] = $status;
-			$where[]   = "cls.list_type = 'definitive'";
-		}
-
-		$sql_args = array( $table );
-		$select   = 'SELECT DISTINCT c.* FROM %i c';
-		if ( $needs_cls_join ) {
-			$select    .= ' INNER JOIN %i cls ON cls.candidate_id = c.id';
-			$sql_args[] = $cls_table;
-		}
-		if ( ! empty( $where ) ) {
-			$select  .= ' WHERE ' . implode( ' AND ', $where );
-			$sql_args = array_merge( $sql_args, $where_a );
-		}
-		$select    .= ' ORDER BY c.created_at DESC LIMIT %d OFFSET %d';
-		$sql_args[] = $limit;
-		$sql_args[] = $offset;
-
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared -- $select is assembled from compile-time fragments with %s/%d placeholders matching $sql_args one-to-one.
-		$results = $wpdb->get_results( $wpdb->prepare( $select, $sql_args ) );
-
-		/**
-		 * Typed shape cast.
-		 *
-		 * @var list<CandidateRow>|null $results
-		 */
-		return is_array( $results ) ? $results : array();
+		return RecruitmentCandidateReader::get_paginated_filtered( $name_search, $id_constraint, $adjutancy_id, $status, $limit, $offset );
 	}
 
 	/**
@@ -557,235 +228,52 @@ class RecruitmentCandidateRepository {
 		int $adjutancy_id,
 		string $status
 	): int {
-		if ( is_array( $id_constraint ) && empty( $id_constraint ) ) {
-			return 0;
-		}
-
-		$wpdb      = self::db();
-		$table     = self::get_table_name();
-		$cls_table = $wpdb->prefix . 'ffc_recruitment_classification';
-
-		$where          = array();
-		$where_a        = array();
-		$needs_cls_join = $adjutancy_id > 0 || '' !== $status;
-
-		if ( '' !== $name_search ) {
-			$where[]   = 'c.name LIKE %s';
-			$where_a[] = '%' . $wpdb->esc_like( $name_search ) . '%';
-		}
-		if ( is_array( $id_constraint ) ) {
-			$ids     = array_values( array_unique( array_map( 'intval', $id_constraint ) ) );
-			$where[] = 'c.id IN (' . implode( ',', array_fill( 0, count( $ids ), '%d' ) ) . ')';
-			$where_a = array_merge( $where_a, $ids );
-		}
-		if ( $adjutancy_id > 0 ) {
-			$where[]   = 'cls.adjutancy_id = %d';
-			$where_a[] = $adjutancy_id;
-		}
-		if ( '' !== $status ) {
-			$where[]   = 'cls.status = %s';
-			$where_a[] = $status;
-			$where[]   = "cls.list_type = 'definitive'";
-		}
-
-		$sql_args = array( $table );
-		$select   = 'SELECT COUNT(DISTINCT c.id) FROM %i c';
-		if ( $needs_cls_join ) {
-			$select    .= ' INNER JOIN %i cls ON cls.candidate_id = c.id';
-			$sql_args[] = $cls_table;
-		}
-		if ( ! empty( $where ) ) {
-			$select  .= ' WHERE ' . implode( ' AND ', $where );
-			$sql_args = array_merge( $sql_args, $where_a );
-		}
-
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared -- $select assembled from compile-time fragments; placeholders match $sql_args.
-		$total = $wpdb->get_var( $wpdb->prepare( $select, $sql_args ) );
-
-		return null === $total ? 0 : (int) $total;
+		return RecruitmentCandidateReader::count_paginated_filtered( $name_search, $id_constraint, $adjutancy_id, $status );
 	}
+
+	// ─────────────────────────────────────────────.
+	// Writes — delegate to RecruitmentCandidateWriter.
+	// ─────────────────────────────────────────────.
 
 	/**
 	 * Insert a new candidate row.
-	 *
-	 * Required keys: `name`, `pcd_hash`. At least one of `cpf_hash` or
-	 * `rf_hash` must be present (caller's responsibility; the schema does
-	 * NOT enforce this — both columns allow NULL because UNIQUE indexes
-	 * permit multiple NULLs in MySQL).
-	 *
-	 * Optional keys: `user_id`, `cpf_encrypted`, `cpf_hash`, `rf_encrypted`,
-	 * `rf_hash`, `email_encrypted`, `email_hash`, `phone`, `notes`.
-	 *
-	 * Returns `false` on UNIQUE collision (`cpf_hash` or `rf_hash` already
-	 * present on another row) or other DB failure.
 	 *
 	 * @param array<string, mixed> $data Candidate payload (see allowed keys above).
 	 * @return int|false New candidate ID or false on failure.
 	 */
 	public static function create( array $data ) {
-		$wpdb  = self::db();
-		$table = self::get_table_name();
-
-		if ( ! isset( $data['name'], $data['pcd_hash'] ) || ! is_string( $data['name'] ) || ! is_string( $data['pcd_hash'] ) ) {
-			return false;
-		}
-
-		$now = current_time( 'mysql' );
-
-		$insert = array(
-			'name'       => $data['name'],
-			'pcd_hash'   => $data['pcd_hash'],
-			'created_at' => $now,
-			'updated_at' => $now,
-		);
-		$format = array( '%s', '%s', '%s', '%s' );
-
-		$optional_columns = array(
-			'user_id'         => '%d',
-			'cpf_encrypted'   => '%s',
-			'cpf_hash'        => '%s',
-			'rf_encrypted'    => '%s',
-			'rf_hash'         => '%s',
-			'email_encrypted' => '%s',
-			'email_hash'      => '%s',
-			'phone'           => '%s',
-			'notes'           => '%s',
-		);
-
-		foreach ( $optional_columns as $column => $column_format ) {
-			if ( array_key_exists( $column, $data ) && null !== $data[ $column ] ) {
-				$insert[ $column ] = $data[ $column ];
-				$format[]          = $column_format;
-			}
-		}
-
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Insert via wpdb helper.
-		$result = $wpdb->insert( $table, $insert, $format );
-
-		if ( ! $result ) {
-			return false;
-		}
-
-		do_action( 'ffc_recruitment_public_cache_dirty' );
-
-		return (int) $wpdb->insert_id;
+		return RecruitmentCandidateWriter::create( $data );
 	}
 
 	/**
 	 * Update mutable candidate fields.
-	 *
-	 * Accepted keys: `name`, `phone`, `notes`, `cpf_encrypted` + `cpf_hash`
-	 * (must be supplied together), `rf_encrypted` + `rf_hash` (together),
-	 * `email_encrypted` + `email_hash` (together).
-	 *
-	 * `user_id` is NOT writable here — use {@see self::set_user_id()} for
-	 * promotion. `pcd_hash` is NOT writable — PCD value is set on creation
-	 * only (sprint 4 enforces "PCD is CSV-only" per §12).
 	 *
 	 * @param int                  $id   Candidate ID.
 	 * @param array<string, mixed> $data Update payload.
 	 * @return bool
 	 */
 	public static function update( int $id, array $data ): bool {
-		$wpdb  = self::db();
-		$table = self::get_table_name();
-
-		$update = array();
-		$format = array();
-
-		$writable = array(
-			'name'            => '%s',
-			'phone'           => '%s',
-			'notes'           => '%s',
-			'cpf_encrypted'   => '%s',
-			'cpf_hash'        => '%s',
-			'rf_encrypted'    => '%s',
-			'rf_hash'         => '%s',
-			'email_encrypted' => '%s',
-			'email_hash'      => '%s',
-		);
-
-		foreach ( $writable as $column => $column_format ) {
-			if ( array_key_exists( $column, $data ) ) {
-				$update[ $column ] = $data[ $column ];
-				$format[]          = $column_format;
-			}
-		}
-
-		if ( empty( $update ) ) {
-			return false;
-		}
-
-		$update['updated_at'] = current_time( 'mysql' );
-		$format[]             = '%s';
-
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Update via wpdb helper.
-		$result = $wpdb->update( $table, $update, array( 'id' => $id ), $format, array( '%d' ) );
-
-		static::cache_delete( "id_{$id}" );
-
-		if ( false !== $result ) {
-			do_action( 'ffc_recruitment_public_cache_dirty' );
-		}
-
-		return false !== $result;
+		return RecruitmentCandidateWriter::update( $id, $data );
 	}
 
 	/**
 	 * Set or clear the linked `wp_users.ID` (promotion / un-link).
-	 *
-	 * Called by the service layer after `UserCreator::get_or_create_user()`
-	 * resolves a `wp_user` ID. Pass `null` to detach (rare; mostly for tests).
 	 *
 	 * @param int      $id Candidate ID.
 	 * @param int|null $user_id WP user ID, or null to clear.
 	 * @return bool
 	 */
 	public static function set_user_id( int $id, ?int $user_id ): bool {
-		$wpdb  = self::db();
-		$table = self::get_table_name();
-
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Update via wpdb helper.
-		$result = $wpdb->update(
-			$table,
-			array(
-				'user_id'    => $user_id,
-				'updated_at' => current_time( 'mysql' ),
-			),
-			array( 'id' => $id ),
-			array( '%d', '%s' ),
-			array( '%d' )
-		);
-
-		static::cache_delete( "id_{$id}" );
-
-		return false !== $result;
+		return RecruitmentCandidateWriter::set_user_id( $id, $user_id );
 	}
 
 	/**
 	 * Hard-delete a candidate row unconditionally.
 	 *
-	 * Deletion gating (zero classifications) lives in the REST controller
-	 * (sprint 7); this method is a pure CRUD primitive and assumes the
-	 * caller has already verified the gate. The linked `wp_user` (if any)
-	 * is preserved — the recruitment module never deletes WP users.
-	 *
 	 * @param int $id Candidate ID.
 	 * @return bool
 	 */
 	public static function delete( int $id ): bool {
-		$wpdb  = self::db();
-		$table = self::get_table_name();
-
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Delete via wpdb helper.
-		$result = $wpdb->delete( $table, array( 'id' => $id ), array( '%d' ) );
-
-		static::cache_delete( "id_{$id}" );
-
-		if ( false !== $result ) {
-			do_action( 'ffc_recruitment_public_cache_dirty' );
-		}
-
-		return false !== $result;
+		return RecruitmentCandidateWriter::delete( $id );
 	}
 }

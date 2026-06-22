@@ -623,7 +623,7 @@ class AdminUserCapabilities {
 				array(
 					'user_id'      => $user_id,
 					'admin_id'     => get_current_user_id(),
-					'capabilities' => \FreeFormCertificate\UserDashboard\UserManager::get_user_ffc_capabilities( $user_id ),
+					'capabilities' => \FreeFormCertificate\UserDashboard\CapabilityManager::get_user_ffc_capabilities( $user_id ),
 				)
 			);
 		}
@@ -762,7 +762,7 @@ class AdminUserCapabilities {
 	 * @return bool True if user has any FFC capability
 	 */
 	private static function has_any_ffc_capability( int $user_id ): bool {
-		return \FreeFormCertificate\UserDashboard\UserManager::has_certificate_access( $user_id ) ||
-				\FreeFormCertificate\UserDashboard\UserManager::has_appointment_access( $user_id );
+		return \FreeFormCertificate\UserDashboard\CapabilityManager::has_certificate_access( $user_id ) ||
+				\FreeFormCertificate\UserDashboard\CapabilityManager::has_appointment_access( $user_id );
 	}
 }

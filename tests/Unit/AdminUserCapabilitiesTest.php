@@ -40,7 +40,7 @@ class AdminUserCapabilitiesTest extends TestCase {
         Monkey\setUp();
 
         // UserManager alias mock
-        $this->user_manager_mock = Mockery::mock( 'alias:FreeFormCertificate\UserDashboard\UserManager' );
+        $this->user_manager_mock = Mockery::mock( 'alias:FreeFormCertificate\UserDashboard\CapabilityManager' );
         $this->user_manager_mock->shouldReceive( 'get_user_ffc_capabilities' )
             ->andReturn( array(
                 'ffc_view_own_certificates'      => true,

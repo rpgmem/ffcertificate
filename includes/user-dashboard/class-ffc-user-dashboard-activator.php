@@ -54,12 +54,12 @@ class UserDashboardActivator {
 		}
 
 		if ( class_exists( '\FreeFormCertificate\UserDashboard\UserManager' ) ) {
-			\FreeFormCertificate\UserDashboard\UserManager::register_role();
+			\FreeFormCertificate\UserDashboard\RoleRegistrar::register_role();
 
 			// Grant admin-level FFC capabilities to the administrator role.
 			$admin_role = get_role( 'administrator' );
 			if ( $admin_role ) {
-				foreach ( \FreeFormCertificate\UserDashboard\UserManager::ADMIN_CAPABILITIES as $cap ) {
+				foreach ( \FreeFormCertificate\UserDashboard\CapabilityManager::ADMIN_CAPABILITIES as $cap ) {
 					$admin_role->add_cap( $cap, true );
 				}
 			}

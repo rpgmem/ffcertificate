@@ -526,10 +526,10 @@ class Loader {
 
 		$admin_role = get_role( 'administrator' );
 		if ( $admin_role && class_exists( '\FreeFormCertificate\UserDashboard\UserManager' ) ) {
-			$all_ffc_caps = \FreeFormCertificate\UserDashboard\UserManager::get_all_capabilities();
+			$all_ffc_caps = \FreeFormCertificate\UserDashboard\CapabilityManager::get_all_capabilities();
 
 			// 1. Grant admin-level capabilities to the administrator role.
-			foreach ( \FreeFormCertificate\UserDashboard\UserManager::ADMIN_CAPABILITIES as $cap ) {
+			foreach ( \FreeFormCertificate\UserDashboard\CapabilityManager::ADMIN_CAPABILITIES as $cap ) {
 				if ( ! $admin_role->has_cap( $cap ) ) {
 					$admin_role->add_cap( $cap, true );
 				}

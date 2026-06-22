@@ -61,7 +61,7 @@ class PreflightStatsService {
 
 		$date_from = gmdate( 'Y-m-d H:i:s', time() - max( 1, $days ) * DAY_IN_SECONDS );
 
-		$rows = ActivityLog::get_activities(
+		$rows = \FreeFormCertificate\Core\ActivityLogQuery::get_activities(
 			array(
 				'action'    => 'preflight_blocked',
 				'date_from' => $date_from,

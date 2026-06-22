@@ -399,7 +399,7 @@ class UserAudienceRestController {
 
 			// Grant audience capabilities if needed.
 			if ( class_exists( '\FreeFormCertificate\UserDashboard\UserManager' ) ) {
-				\FreeFormCertificate\UserDashboard\UserManager::grant_audience_capabilities( $user_id );
+				\FreeFormCertificate\UserDashboard\CapabilityManager::grant_audience_capabilities( $user_id );
 			}
 
 			return rest_ensure_response(

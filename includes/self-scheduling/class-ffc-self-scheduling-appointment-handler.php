@@ -512,7 +512,7 @@ class AppointmentHandler {
 					$cpf_rf_hash,
 					$data['email'],
 					$submission_data,
-					\FreeFormCertificate\UserDashboard\UserManager::CONTEXT_APPOINTMENT,
+					\FreeFormCertificate\UserDashboard\CapabilityManager::CONTEXT_APPOINTMENT,
 					$identifier_type
 				);
 

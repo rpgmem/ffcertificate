@@ -18,6 +18,7 @@ use FreeFormCertificate\Recruitment\RecruitmentAdminPage;
  * smoke tier — they tie into the full WP-admin runtime + tab routing.
  *
  * @covers \FreeFormCertificate\Recruitment\RecruitmentAdminPage
+ * @covers \FreeFormCertificate\Recruitment\RecruitmentAdminPageRenderer
  * @runTestsInSeparateProcesses
  * @preserveGlobalState disabled
  */
@@ -34,6 +35,12 @@ class RecruitmentAdminPageTest extends TestCase {
     protected function setUp(): void {
         parent::setUp();
         Monkey\setUp();
+
+        // pcov does not attribute coverage to a class first autoloaded
+        // mid-test-method; preload the renderer here so its rendering
+        // helpers (exercised via the controller static entry points)
+        // register against the line-coverage floor.
+        class_exists( '\FreeFormCertificate\Recruitment\RecruitmentAdminPageRenderer' );
 
         Functions\when( '__' )->returnArg();
         Functions\when( 'esc_html__' )->returnArg();

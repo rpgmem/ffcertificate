@@ -45,7 +45,7 @@ class PreflightStatsServiceTest extends TestCase {
      * get_form_stats() will pull.
      */
     private function stub_activity_log_rows( array $rows ): void {
-        $mock = Mockery::mock( 'alias:\FreeFormCertificate\Core\ActivityLog' );
+        $mock = Mockery::mock( 'alias:\FreeFormCertificate\Core\ActivityLogQuery' );
         $mock->shouldReceive( 'get_activities' )->andReturn( $rows );
     }
 
