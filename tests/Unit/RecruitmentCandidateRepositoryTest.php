@@ -16,6 +16,8 @@ use FreeFormCertificate\Recruitment\RecruitmentCandidateRepository;
  * the CSV importer for cross-CSV / cross-notice candidate reuse.
  *
  * @covers \FreeFormCertificate\Recruitment\RecruitmentCandidateRepository
+ * @covers \FreeFormCertificate\Recruitment\RecruitmentCandidateReader
+ * @covers \FreeFormCertificate\Recruitment\RecruitmentCandidateWriter
  */
 class RecruitmentCandidateRepositoryTest extends TestCase {
 
