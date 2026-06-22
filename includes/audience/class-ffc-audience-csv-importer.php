@@ -408,7 +408,7 @@ class AudienceCsvImporter {
 		}
 
 		// Grant certificate capabilities via centralized UserManager.
-		\FreeFormCertificate\UserDashboard\UserManager::grant_certificate_capabilities( $user_id );
+		\FreeFormCertificate\UserDashboard\CapabilityManager::grant_certificate_capabilities( $user_id );
 
 		// Send welcome email (respects per-context settings, default: disabled for CSV).
 		if ( class_exists( '\FreeFormCertificate\Integrations\EmailHandler' ) ) {

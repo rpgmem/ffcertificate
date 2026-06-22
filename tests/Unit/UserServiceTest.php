@@ -30,6 +30,8 @@ class UserServiceTest extends TestCase {
 
     /** @var Mockery\MockInterface */
     private $userManagerMock;
+    /** @var \Mockery\MockInterface */
+    private $capManagerMock;
 
     /** @var Mockery\MockInterface */
     private $utilsMock;
@@ -50,7 +52,8 @@ class UserServiceTest extends TestCase {
         // hit the original (byDefault) expectations registered here.
         $this->userManagerMock = Mockery::mock('alias:\FreeFormCertificate\UserDashboard\UserManager');
         $this->userManagerMock->shouldReceive('get_profile')->andReturn([])->byDefault();
-        $this->userManagerMock->shouldReceive('get_all_capabilities')->andReturn([])->byDefault();
+        $this->capManagerMock = Mockery::mock('alias:\FreeFormCertificate\UserDashboard\CapabilityManager');
+        $this->capManagerMock->shouldReceive('get_all_capabilities')->andReturn([])->byDefault();
 
         $this->utilsMock = Mockery::mock('alias:\FreeFormCertificate\Core\Utils');
         $this->utilsMock->shouldReceive('debug_log')->byDefault();
@@ -130,7 +133,7 @@ class UserServiceTest extends TestCase {
                 'organization' => 'Acme Corp',
                 'notes' => 'VIP user',
             ]);
-        $userManagerMock->shouldReceive('get_all_capabilities')->andReturn([]);
+        $this->capManagerMock->shouldReceive('get_all_capabilities')->andReturn([]);
 
         $result = UserService::get_full_profile(42);
 
@@ -148,7 +151,7 @@ class UserServiceTest extends TestCase {
         $userManagerMock->shouldReceive('get_profile')
             ->with(10)
             ->andReturn([]); // no phone, department, etc.
-        $userManagerMock->shouldReceive('get_all_capabilities')->andReturn([]);
+        $this->capManagerMock->shouldReceive('get_all_capabilities')->andReturn([]);
 
         $result = UserService::get_full_profile(10);
 
@@ -167,7 +170,7 @@ class UserServiceTest extends TestCase {
             ->andReturn([
                 'display_name' => 'John from FFC',
             ]);
-        $userManagerMock->shouldReceive('get_all_capabilities')->andReturn([]);
+        $this->capManagerMock->shouldReceive('get_all_capabilities')->andReturn([]);
 
         $result = UserService::get_full_profile(42);
 
@@ -183,7 +186,7 @@ class UserServiceTest extends TestCase {
             ->andReturn([
                 'display_name' => '',
             ]);
-        $userManagerMock->shouldReceive('get_all_capabilities')->andReturn([]);
+        $this->capManagerMock->shouldReceive('get_all_capabilities')->andReturn([]);
 
         $result = UserService::get_full_profile(42);
 
@@ -199,7 +202,7 @@ class UserServiceTest extends TestCase {
             ->andReturn([
                 'preferences' => '{"theme":"dark"}',
             ]);
-        $userManagerMock->shouldReceive('get_all_capabilities')->andReturn([]);
+        $this->capManagerMock->shouldReceive('get_all_capabilities')->andReturn([]);
 
         $result = UserService::get_full_profile(42);
 
@@ -212,7 +215,7 @@ class UserServiceTest extends TestCase {
 
         $userManagerMock = $this->userManagerMock;
         $userManagerMock->shouldReceive('get_profile')->andReturn([]);
-        $userManagerMock->shouldReceive('get_all_capabilities')->andReturn([]);
+        $this->capManagerMock->shouldReceive('get_all_capabilities')->andReturn([]);
 
         $result = UserService::get_full_profile(42);
 
@@ -225,7 +228,7 @@ class UserServiceTest extends TestCase {
 
     public function test_get_user_capabilities_returns_cap_status_map(): void {
         $userManagerMock = $this->userManagerMock;
-        $userManagerMock->shouldReceive('get_all_capabilities')
+        $this->capManagerMock->shouldReceive('get_all_capabilities')
             ->andReturn(['ffc_view_certificates', 'ffc_download_pdf', 'ffc_manage_forms']);
         $userManagerMock->shouldReceive('get_profile')->andReturn([]);
 

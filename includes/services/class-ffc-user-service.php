@@ -94,7 +94,7 @@ class UserService {
 			return array();
 		}
 
-		$all_caps = \FreeFormCertificate\UserDashboard\UserManager::get_all_capabilities();
+		$all_caps = \FreeFormCertificate\UserDashboard\CapabilityManager::get_all_capabilities();
 		$result   = array();
 
 		foreach ( $all_caps as $cap ) {

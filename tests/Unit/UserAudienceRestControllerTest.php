@@ -54,7 +54,7 @@ class UserAudienceRestControllerTest extends TestCase {
         $utils_mock = Mockery::mock( 'alias:\FreeFormCertificate\Core\Utils' );
         $utils_mock->shouldReceive( 'debug_log' )->byDefault();
 
-        $user_manager_mock = Mockery::mock( 'alias:\FreeFormCertificate\UserDashboard\UserManager' );
+        $user_manager_mock = Mockery::mock( 'alias:\FreeFormCertificate\UserDashboard\CapabilityManager' );
         $user_manager_mock->shouldReceive( 'grant_audience_capabilities' )->byDefault();
 
         // Global $wpdb mock

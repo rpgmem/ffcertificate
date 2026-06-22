@@ -73,8 +73,8 @@ class ActivityLogAjaxEndpoint {
 		$args         = AdminActivityLogPage::build_query_args( $params, $per_page );
 		$current_page = (int) ( ( $args['offset'] / $per_page ) + 1 );
 
-		$logs       = \FreeFormCertificate\Core\ActivityLog::get_activities( $args );
-		$total_logs = \FreeFormCertificate\Core\ActivityLog::count_activities( $args );
+		$logs       = \FreeFormCertificate\Core\ActivityLogQuery::get_activities( $args );
+		$total_logs = \FreeFormCertificate\Core\ActivityLogQuery::count_activities( $args );
 
 		wp_send_json_success(
 			array(

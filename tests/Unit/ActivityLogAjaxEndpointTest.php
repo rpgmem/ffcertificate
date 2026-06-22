@@ -93,7 +93,7 @@ class ActivityLogAjaxEndpointTest extends TestCase {
         Functions\when( 'get_option' )->justReturn( array( 'enable_activity_log' => 1 ) );
 
         // Stub the ActivityLog static methods.
-        $log_mock = Mockery::mock( 'alias:FreeFormCertificate\Core\ActivityLog' );
+        $log_mock = Mockery::mock( 'alias:FreeFormCertificate\Core\ActivityLogQuery' );
         $log_mock->shouldReceive( 'get_activities' )->andReturn( array(
             array( 'created_at' => '2026-05-14 10:00:00', 'level' => 'info', 'action' => 'submission_created', 'user_id' => 0, 'user_ip' => '127.0.0.1', 'context' => '' ),
         ) );
@@ -128,7 +128,7 @@ class ActivityLogAjaxEndpointTest extends TestCase {
             ->andReturn( true );
         Functions\when( 'get_option' )->justReturn( array( 'enable_activity_log' => 1 ) );
 
-        $log = Mockery::mock( 'alias:FreeFormCertificate\Core\ActivityLog' );
+        $log = Mockery::mock( 'alias:FreeFormCertificate\Core\ActivityLogQuery' );
         $log->shouldReceive( 'get_activities' )->andReturn( array() );
         $log->shouldReceive( 'count_activities' )->andReturn( 0 );
 

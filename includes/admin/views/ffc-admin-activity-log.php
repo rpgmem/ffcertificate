@@ -143,7 +143,7 @@ $ffcertificate_base_url = admin_url( 'edit.php?post_type=ffc_form&page=ffc-activ
 	<div class="card ffc-activity-card">
 		<h2><?php esc_html_e( 'Activity Summary (Last 30 Days)', 'ffcertificate' ); ?></h2>
 		<?php
-		$ffcertificate_stats = \FreeFormCertificate\Core\ActivityLog::get_stats( 30 );
+		$ffcertificate_stats = \FreeFormCertificate\Core\ActivityLogQuery::get_stats( 30 );
 		?>
 		<p>
 			<strong><?php esc_html_e( 'Total Activities:', 'ffcertificate' ); ?></strong> <?php echo esc_html( number_format_i18n( $ffcertificate_stats['total'] ) ); ?>

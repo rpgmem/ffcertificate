@@ -129,7 +129,7 @@ class AdminActivityLogPage {
 		}
         // phpcs:enable WordPress.Security.NonceVerification.Recommended
 
-		$logs = \FreeFormCertificate\Core\ActivityLog::get_activities( $args );
+		$logs = \FreeFormCertificate\Core\ActivityLogQuery::get_activities( $args );
 
 		$headers = array(
 			__( 'Date/Time', 'ffcertificate' ),
@@ -225,8 +225,8 @@ class AdminActivityLogPage {
 			$args['search'] = $search;
 		}
 
-		$logs        = \FreeFormCertificate\Core\ActivityLog::get_activities( $args );
-		$total_logs  = \FreeFormCertificate\Core\ActivityLog::count_activities( $args );
+		$logs        = \FreeFormCertificate\Core\ActivityLogQuery::get_activities( $args );
+		$total_logs  = \FreeFormCertificate\Core\ActivityLogQuery::count_activities( $args );
 		$total_pages = ceil( $total_logs / $per_page );
 
 		// Get unique actions for filter.
