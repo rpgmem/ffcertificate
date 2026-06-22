@@ -281,30 +281,18 @@ class Settings {
 	}
 
 	/**
-	 * Display settings page with modular tabs
+	 * Resolve the display-time page state for {@see display_settings_page()}.
+	 *
+	 * Pure LOGIC pass — no markup. Reads the display-only URL parameters and
+	 * the current user's capability to decide which tab is active and whether
+	 * the page is editable. The message notices stay in the render method (they
+	 * echo at order-dependent positions) and are emitted via dedicated helpers.
+	 *
+	 * @return array{active_tab: string, can_edit: bool} Resolved page state.
 	 */
-	public function display_settings_page(): void {
-		// Lazy-load tabs on first render (avoids translation calls before 'init' hook).
-		if ( empty( $this->tabs ) ) {
-			$this->load_tabs();
-		}
-
-        // phpcs:disable WordPress.Security.NonceVerification.Recommended -- These are display-only URL parameters from redirects.
-		// Handle messages.
-        // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized, WordPress.Security.ValidatedSanitizedInput.MissingUnslash -- isset() existence check only.
-		if ( isset( $_GET['msg'] ) ) {
-			$msg = sanitize_key( wp_unslash( $_GET['msg'] ) );
-
-			if ( 'qr_cache_cleared' === $msg ) {
-				$cleared = isset( $_GET['cleared'] ) ? absint( wp_unslash( $_GET['cleared'] ) ) : 0;
-				echo '<div class="notice notice-success is-dismissible">';
-				/* translators: %d: number of QR codes cleared */
-				echo '<p>' . esc_html( sprintf( __( '%d QR Code(s) cleared from cache successfully.', 'ffcertificate' ), $cleared ) ) . '</p>';
-				echo '</div>';
-			}
-		}
-
+	private function resolve_page_state(): array {
 		// Get active tab (default to first tab).
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized, WordPress.Security.ValidatedSanitizedInput.MissingUnslash -- display-only URL parameter; sanitize_key applied.
 		$active_tab = isset( $_GET['tab'] ) ? sanitize_key( wp_unslash( $_GET['tab'] ) ) : '';
 
 		// If no tab specified, use first tab.
@@ -314,11 +302,59 @@ class Settings {
 			$active_tab = $first_tab->get_id();
 		}
 
-        // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized, WordPress.Security.ValidatedSanitizedInput.MissingUnslash -- isset() existence check only.
+		// 3-state Settings: the page menu opens on `ffc_view_settings` (só vê),
+		// but saving requires `ffc_manage_settings`. For a view-only user the
+		// whole tab body is wrapped in a disabled <fieldset> so the page is a
+		// *real* read-only surface (no live inputs that silently fail at the
+		// manage-gated save handler), mirroring the recruitment Settings tab.
+		$can_edit = \FreeFormCertificate\Core\Capabilities::current_user_can_admin_or( 'ffc_manage_settings' );
+
+		return array(
+			'active_tab' => $active_tab,
+			'can_edit'   => $can_edit,
+		);
+	}
+
+	/**
+	 * Echo the QR-cache-cleared success notice when the `msg` URL parameter
+	 * carries it. Split out of {@see display_settings_page()} so the render
+	 * method reads as markup emission; emitted at the same position as before.
+	 *
+	 * @return void
+	 */
+	private function render_qr_cache_message(): void {
+        // phpcs:ignore WordPress.Security.NonceVerification.Recommended, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized, WordPress.Security.ValidatedSanitizedInput.MissingUnslash -- isset() existence check only.
 		if ( isset( $_GET['msg'] ) ) {
+			// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- display-only URL parameter.
+			$msg = sanitize_key( wp_unslash( $_GET['msg'] ) );
+
+			if ( 'qr_cache_cleared' === $msg ) {
+				// phpcs:ignore WordPress.Security.NonceVerification.Recommended, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized, WordPress.Security.ValidatedSanitizedInput.MissingUnslash -- display-only URL parameter.
+				$cleared = isset( $_GET['cleared'] ) ? absint( wp_unslash( $_GET['cleared'] ) ) : 0;
+				echo '<div class="notice notice-success is-dismissible">';
+				/* translators: %d: number of QR codes cleared */
+				echo '<p>' . esc_html( sprintf( __( '%d QR Code(s) cleared from cache successfully.', 'ffcertificate' ), $cleared ) ) . '</p>';
+				echo '</div>';
+			}
+		}
+	}
+
+	/**
+	 * Echo the cache-warmed / cache-cleared success notices when the `msg`
+	 * URL parameter carries them. Split out of {@see display_settings_page()}
+	 * so the render method reads as markup emission; emitted at the same
+	 * position as before.
+	 *
+	 * @return void
+	 */
+	private function render_cache_messages(): void {
+        // phpcs:ignore WordPress.Security.NonceVerification.Recommended, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized, WordPress.Security.ValidatedSanitizedInput.MissingUnslash -- isset() existence check only.
+		if ( isset( $_GET['msg'] ) ) {
+			// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- display-only URL parameter.
 			$msg = sanitize_key( wp_unslash( $_GET['msg'] ) );
 
 			if ( 'cache_warmed' === $msg ) {
+				// phpcs:ignore WordPress.Security.NonceVerification.Recommended, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized, WordPress.Security.ValidatedSanitizedInput.MissingUnslash -- display-only URL parameter.
 				$count = isset( $_GET['count'] ) ? absint( wp_unslash( $_GET['count'] ) ) : 0;
 				echo '<div class="notice notice-success is-dismissible">';
 				echo '<p>' . esc_html(
@@ -337,6 +373,26 @@ class Settings {
 				echo '</div>';
 			}
 		}
+	}
+
+	/**
+	 * Display settings page with modular tabs
+	 */
+	public function display_settings_page(): void {
+		// Lazy-load tabs on first render (avoids translation calls before 'init' hook).
+		if ( empty( $this->tabs ) ) {
+			$this->load_tabs();
+		}
+
+        // phpcs:disable WordPress.Security.NonceVerification.Recommended -- These are display-only URL parameters from redirects.
+		// Handle messages.
+		$this->render_qr_cache_message();
+
+		// Resolve the active tab + capability state up front (pure logic).
+		$page_state = $this->resolve_page_state();
+		$active_tab = $page_state['active_tab'];
+
+		$this->render_cache_messages();
 
 		?>
 		<div class="wrap ffc-settings-wrap">
@@ -344,12 +400,7 @@ class Settings {
 			<h1><?php esc_html_e( 'Certificate Settings', 'ffcertificate' ); ?></h1>
 			<?php settings_errors( 'ffc_settings' ); ?>
 			<?php
-			// 3-state Settings: the page menu opens on `ffc_view_settings` (só vê),
-			// but saving requires `ffc_manage_settings`. For a view-only user the
-			// whole tab body is wrapped in a disabled <fieldset> below so the page
-			// is a *real* read-only surface (no live inputs that silently fail at
-			// the manage-gated save handler), mirroring the recruitment Settings tab.
-			$ffc_settings_can_edit = \FreeFormCertificate\Core\Capabilities::current_user_can_admin_or( 'ffc_manage_settings' );
+			$ffc_settings_can_edit = $page_state['can_edit'];
 			if ( ! $ffc_settings_can_edit ) {
 				echo '<div class="notice notice-info inline"><p>'
 					. esc_html__( 'Read-only — you can view these settings but do not have permission to change them.', 'ffcertificate' )
