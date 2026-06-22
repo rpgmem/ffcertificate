@@ -350,11 +350,10 @@ class FormEditorGeofenceMetabox {
 		// FFC_IP_Geolocation::lookup, which bails when this flag is
 		// falsy), so allowing the form-level toggle to be flipped on
 		// would silently produce an inert configuration. Read the
-		// `ffc_geolocation_settings` option directly because that's where
-		// the global flag lives — SettingsReader is scoped to
-		// `ffc_settings` and would always return false here.
-		$ffc_geo_settings      = get_option( 'ffc_geolocation_settings', array() );
-		$global_ip_api_enabled = is_array( $ffc_geo_settings ) && ! empty( $ffc_geo_settings['ip_api_enabled'] );
+		// `ffc_geolocation_settings` group via its dedicated reader —
+		// SettingsReader is scoped to `ffc_settings` and would always
+		// return false here.
+		$global_ip_api_enabled = \FreeFormCertificate\Settings\GeolocationSettingsReader::ip_api_enabled();
 
 		$geo_enabled              = ( $config['geo_enabled'] ?? '0' ) === '1' ? '1' : '0';
 		$geo_gps_enabled          = ( $config['geo_gps_enabled'] ?? '0' ) === '1' ? '1' : '0';

@@ -425,13 +425,9 @@ final class RecruitmentNoticeEditPageRenderer {
 			self::render_preliminary_to_final_options( $notice, $nonce_action );
 		}
 
-		$transitions = self::transitions_from( $current );
-
-		if ( 'preliminary' === $current ) {
-			// Already rendered the prelim → definitive controls above; here we
-			// only need the back-to-draft path.
-			unset( $transitions['definitive'] );
-		}
+		// LOGIC pass — the affordance transition set for the current state,
+		// minus the prelim → definitive path already rendered above.
+		$transitions = self::resolve_status_transitions( $current );
 
 		if ( empty( $transitions ) ) {
 			if ( 'preliminary' !== $current ) {
@@ -644,26 +640,35 @@ final class RecruitmentNoticeEditPageRenderer {
 	}
 
 	/**
-	 * Section 4: Classifications — preliminary + definitive tabs.
+	 * LOGIC pass for {@see render_classifications_section()}: the two
+	 * list_type fetches, the authoritative empties-by-adjutancy map, the
+	 * default-tab resolution, and the filter read + apply. Returns a struct
+	 * the section view consumes — no markup emitted.
 	 *
-	 * The two list_type stores get separate sub-tabs (one per list).
-	 * The Definitive tab additionally exposes per-row action buttons
-	 * (call / mark accepted / mark not_shown / mark hired / mark withdrew / cancel /
-	 * reopen) so the operator can drive the §5.2 classification
-	 * transitions without leaving the edit screen. Preliminary stays
-	 * read-only since per the §5.2 invariant preview rows are always
-	 * status='empty'.
+	 * Order mirrors the previous inline body exactly so query counts and the
+	 * "empties / has_definitive computed from the UNFILTERED list" invariant
+	 * are preserved: fetch preview, fetch definitive, compute empties from the
+	 * unfiltered definitive list, derive `has_definitive` from the unfiltered
+	 * list, resolve the active tab, then read + apply the filters to both
+	 * arrays.
 	 *
-	 * Tab switching is pure CSS-free DOM toggle in the inline JS;
-	 * the two `<table>` blocks render in the same `<div>` and the
-	 * active one gets `style="display:block"`.
-	 *
-	 * @param object $notice Notice row.
-	 * @phpstan-param NoticeRow $notice
-	 * @return void
+	 * @param int $notice_id Notice id.
+	 * @return array{
+	 *     preview: array<int, object>,
+	 *     definitive_rows: array<int, object>,
+	 *     def_empties_by_adj: array<string, array<int, array{id:int, rank:int}>>,
+	 *     active_tab: string,
+	 *     filters: array<string, mixed>
+	 * }
+	 * @phpstan-return array{
+	 *     preview: list<ClassificationRow>,
+	 *     definitive_rows: list<ClassificationRow>,
+	 *     def_empties_by_adj: array<string, array<int, array{id:int, rank:int}>>,
+	 *     active_tab: string,
+	 *     filters: array<string, mixed>
+	 * }
 	 */
-	public static function render_classifications_section( object $notice ): void {
-		$notice_id       = (int) $notice->id;
+	private static function prepare_classifications_section_data( int $notice_id ): array {
 		$preview         = RecruitmentClassificationRepository::get_for_notice( $notice_id, 'preview' );
 		$definitive_rows = RecruitmentClassificationRepository::get_for_notice( $notice_id, 'definitive' );
 
@@ -697,6 +702,47 @@ final class RecruitmentNoticeEditPageRenderer {
 		$filters         = RecruitmentClassificationFilterManager::read_filters( $notice_id );
 		$preview         = RecruitmentClassificationFilterManager::apply_filters( $preview, $filters );
 		$definitive_rows = RecruitmentClassificationFilterManager::apply_filters( $definitive_rows, $filters );
+
+		return array(
+			'preview'            => $preview,
+			'definitive_rows'    => $definitive_rows,
+			'def_empties_by_adj' => $def_empties_by_adj,
+			'active_tab'         => $active_tab,
+			'filters'            => $filters,
+		);
+	}
+
+	/**
+	 * Section 4: Classifications — preliminary + definitive tabs.
+	 *
+	 * The two list_type stores get separate sub-tabs (one per list).
+	 * The Definitive tab additionally exposes per-row action buttons
+	 * (call / mark accepted / mark not_shown / mark hired / mark withdrew / cancel /
+	 * reopen) so the operator can drive the §5.2 classification
+	 * transitions without leaving the edit screen. Preliminary stays
+	 * read-only since per the §5.2 invariant preview rows are always
+	 * status='empty'.
+	 *
+	 * Tab switching is pure CSS-free DOM toggle in the inline JS;
+	 * the two `<table>` blocks render in the same `<div>` and the
+	 * active one gets `style="display:block"`.
+	 *
+	 * @param object $notice Notice row.
+	 * @phpstan-param NoticeRow $notice
+	 * @return void
+	 */
+	public static function render_classifications_section( object $notice ): void {
+		$notice_id = (int) $notice->id;
+
+		// LOGIC pass — repository fetches, empties map, default-tab
+		// resolution, filter read + apply. View consumes the struct below.
+		$data = self::prepare_classifications_section_data( $notice_id );
+
+		$preview            = $data['preview'];
+		$definitive_rows    = $data['definitive_rows'];
+		$def_empties_by_adj = $data['def_empties_by_adj'];
+		$active_tab         = $data['active_tab'];
+		$filters            = $data['filters'];
 
 		echo '<div class="postbox ffc-rec-mt-20">';
 		echo '<h2 class="hndle"><span>' . esc_html__( 'Classifications', 'ffcertificate' ) . '</span></h2>';
@@ -794,29 +840,43 @@ final class RecruitmentNoticeEditPageRenderer {
 	}
 
 	/**
-	 * Render a classifications table for one list_type.
+	 * LOGIC pass for {@see render_classifications_table()}: pagination math,
+	 * bulk candidate/adjutancy fetches, the PCD map and the conditional reason
+	 * catalog. Returns a struct the view loop consumes — no markup emitted.
 	 *
-	 * When `$with_actions` is true (the Definitive tab), each row gets
-	 * an extra Actions column with the legal §5.2 transitions exposed
-	 * as buttons. The buttons fire inline `fetch()` calls against
-	 * `POST /classifications/{id}/call` and
-	 * `PATCH /classifications/{id}/status`.
+	 * The query/iteration order here mirrors the previous inline body exactly:
+	 * the page slice happens first (so the bulk fetches only touch the visible
+	 * page), then the single candidate round-trip feeds both the name and PCD
+	 * maps, then the adjutancy slug lookup, and finally — only on the
+	 * Preliminary tab — the reason catalog. The per-row adjutancy badge lookup
+	 * stays inside the render loop (a separate, intentional per-row call).
 	 *
 	 * @param array<int, object> $rows         Classification rows (post-filter).
 	 * @phpstan-param list<ClassificationRow> $rows
-	 * @param bool               $with_actions Whether to render the action column.
-	 * @param string             $tab_key      `preliminary` or `definitive` — used
-	 *                                          to scope the `ffc_cls_paged_<key>`
-	 *                                          URL param so each tab paginates
-	 *                                          independently.
-	 * @return void
+	 * @param bool               $with_actions Whether the Actions column renders.
+	 * @param string             $tab_key      `preliminary` or `definitive`.
+	 * @return array{
+	 *     rows: array<int, object>,
+	 *     total: int,
+	 *     current_page: int,
+	 *     per_page: int,
+	 *     candidates: array<int, string>,
+	 *     pcd_map: array<int, bool>,
+	 *     adjutancies: array<int, string>,
+	 *     reasons: array<int, object>
+	 * }
+	 * @phpstan-return array{
+	 *     rows: list<ClassificationRow>,
+	 *     total: int,
+	 *     current_page: int,
+	 *     per_page: int,
+	 *     candidates: array<int, string>,
+	 *     pcd_map: array<int, bool>,
+	 *     adjutancies: array<int, string>,
+	 *     reasons: list<ReasonRow>
+	 * }
 	 */
-	private static function render_classifications_table( array $rows, bool $with_actions, string $tab_key = 'preliminary' ): void {
-		if ( empty( $rows ) ) {
-			echo '<p><em>' . esc_html__( '(no rows)', 'ffcertificate' ) . '</em></p>';
-			return;
-		}
-
+	private static function prepare_classifications_table_data( array $rows, bool $with_actions, string $tab_key ): array {
 		// Pagination. Per-page matches the activity log helper so the
 		// admin viewport feels consistent across the plugin.
 		$per_page    = 50;
@@ -849,6 +909,62 @@ final class RecruitmentNoticeEditPageRenderer {
 		}
 		$adjutancies = self::lookup_map( array_unique( $adjutancy_ids ), array( RecruitmentAdjutancyRepository::class, 'get_by_id' ), 'slug' );
 
+		// On the Preliminary tab the Status column is always "Waiting"
+		// (the §5.2 invariant), so we replace it with the editable
+		// preview_status + reason dropdown. The Definitive tab keeps the
+		// existing Status badge.
+		$is_preview_tab = ! $with_actions;
+		$reasons        = $is_preview_tab ? RecruitmentReasonRepository::get_all() : array();
+
+		return array(
+			'rows'         => $rows,
+			'total'        => $total,
+			'current_page' => $current_page,
+			'per_page'     => $per_page,
+			'candidates'   => $candidates,
+			'pcd_map'      => $pcd_map,
+			'adjutancies'  => $adjutancies,
+			'reasons'      => $reasons,
+		);
+	}
+
+	/**
+	 * Render a classifications table for one list_type.
+	 *
+	 * When `$with_actions` is true (the Definitive tab), each row gets
+	 * an extra Actions column with the legal §5.2 transitions exposed
+	 * as buttons. The buttons fire inline `fetch()` calls against
+	 * `POST /classifications/{id}/call` and
+	 * `PATCH /classifications/{id}/status`.
+	 *
+	 * @param array<int, object> $rows         Classification rows (post-filter).
+	 * @phpstan-param list<ClassificationRow> $rows
+	 * @param bool               $with_actions Whether to render the action column.
+	 * @param string             $tab_key      `preliminary` or `definitive` — used
+	 *                                          to scope the `ffc_cls_paged_<key>`
+	 *                                          URL param so each tab paginates
+	 *                                          independently.
+	 * @return void
+	 */
+	private static function render_classifications_table( array $rows, bool $with_actions, string $tab_key = 'preliminary' ): void {
+		if ( empty( $rows ) ) {
+			echo '<p><em>' . esc_html__( '(no rows)', 'ffcertificate' ) . '</em></p>';
+			return;
+		}
+
+		// LOGIC pass — pagination math, bulk candidate/adjutancy fetches,
+		// PCD map, conditional reason catalog. View consumes the struct below.
+		$data = self::prepare_classifications_table_data( $rows, $with_actions, $tab_key );
+
+		$rows         = $data['rows'];
+		$total        = $data['total'];
+		$current_page = $data['current_page'];
+		$per_page     = $data['per_page'];
+		$candidates   = $data['candidates'];
+		$pcd_map      = $data['pcd_map'];
+		$adjutancies  = $data['adjutancies'];
+		$reasons      = $data['reasons'];
+
 		// Bulk-call toolbar (Definitive tab only): selected `empty` rows
 		// can be called together via POST /classifications/bulk-call. The
 		// REST endpoint enforces atomicity (all-or-nothing per §6) so a
@@ -862,7 +978,6 @@ final class RecruitmentNoticeEditPageRenderer {
 		// preview_status + reason dropdown. The Definitive tab keeps the
 		// existing Status badge.
 		$is_preview_tab = ! $with_actions;
-		$reasons        = $is_preview_tab ? RecruitmentReasonRepository::get_all() : array();
 
 		echo '<table class="widefat striped"><thead><tr>';
 		if ( $with_actions ) {
@@ -1264,5 +1379,27 @@ final class RecruitmentNoticeEditPageRenderer {
 			default:
 				return array();
 		}
+	}
+
+	/**
+	 * LOGIC pass for {@see render_status_section()}: the transition affordance
+	 * set actually offered as buttons for the current state. Identical to
+	 * {@see transitions_from()} except the prelim → definitive path is dropped
+	 * on the `preliminary` state, since that transition is rendered separately
+	 * by {@see render_preliminary_to_final_options()} above the button strip.
+	 *
+	 * @param string $current Current notice status.
+	 * @return array<string, string> map of target_status => label.
+	 */
+	private static function resolve_status_transitions( string $current ): array {
+		$transitions = self::transitions_from( $current );
+
+		if ( 'preliminary' === $current ) {
+			// Already rendered the prelim → definitive controls above; here we
+			// only need the back-to-draft path.
+			unset( $transitions['definitive'] );
+		}
+
+		return $transitions;
 	}
 }

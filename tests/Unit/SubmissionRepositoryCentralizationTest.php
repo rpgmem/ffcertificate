@@ -17,6 +17,8 @@ use FreeFormCertificate\Repositories\SubmissionRepository;
  * touch `wp_ffc_submissions` via raw wpdb.
  *
  * @covers \FreeFormCertificate\Repositories\SubmissionRepository
+ * @covers \FreeFormCertificate\Repositories\SubmissionReader
+ * @covers \FreeFormCertificate\Repositories\SubmissionWriter
  */
 class SubmissionRepositoryCentralizationTest extends TestCase {
 

@@ -150,7 +150,7 @@ final class RateLimitChecker {
 				'countdown_timer' => true,
 			),
 		);
-		self::$settings_cache = wp_parse_args( get_option( 'ffc_rate_limit_settings', $defaults ), $defaults );
+		self::$settings_cache = wp_parse_args( get_option( \FreeFormCertificate\Settings\RateLimitSettingsReader::OPTION_KEY, $defaults ), $defaults );
 		return self::$settings_cache;
 	}
 

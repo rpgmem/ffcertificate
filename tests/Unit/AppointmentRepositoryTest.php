@@ -15,6 +15,8 @@ use FreeFormCertificate\Repositories\AppointmentRepository;
  * status transitions, slot availability, statistics, and appointment creation.
  *
  * @covers \FreeFormCertificate\Repositories\AppointmentRepository
+ * @covers \FreeFormCertificate\Repositories\AppointmentReader
+ * @covers \FreeFormCertificate\Repositories\AppointmentWriter
  */
 class AppointmentRepositoryTest extends TestCase {
 

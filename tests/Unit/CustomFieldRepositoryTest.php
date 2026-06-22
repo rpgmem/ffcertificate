@@ -15,6 +15,8 @@ use FreeFormCertificate\Reregistration\CustomFieldRepository;
  * audience hierarchy traversal, and counting.
  *
  * @covers \FreeFormCertificate\Reregistration\CustomFieldRepository
+ * @covers \FreeFormCertificate\Reregistration\CustomFieldReader
+ * @covers \FreeFormCertificate\Reregistration\CustomFieldWriter
  */
 class CustomFieldRepositoryTest extends TestCase {
 

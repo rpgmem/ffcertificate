@@ -16,6 +16,8 @@ use FreeFormCertificate\Repositories\AppointmentRepository;
  * that used to live in admin / cleanup / REST / user-creator code.
  *
  * @covers \FreeFormCertificate\Repositories\AppointmentRepository
+ * @covers \FreeFormCertificate\Repositories\AppointmentReader
+ * @covers \FreeFormCertificate\Repositories\AppointmentWriter
  */
 class AppointmentRepositoryCentralizationTest extends TestCase {
 
