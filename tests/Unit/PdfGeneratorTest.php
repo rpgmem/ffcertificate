@@ -8,12 +8,16 @@ use Brain\Monkey\Functions;
 use Mockery\Adapter\Phpunit\MockeryPHPUnitIntegration;
 use PHPUnit\Framework\TestCase;
 use FreeFormCertificate\Generators\PdfGenerator;
+use FreeFormCertificate\Generators\PdfHtmlRenderer;
 
 /**
  * Tests for PdfGenerator: URL param parsing, filename generation,
  * default HTML, and submission data enrichment.
  *
  * Uses Reflection to access private methods for testing pure business logic.
+ *
+ * @covers \FreeFormCertificate\Generators\PdfGenerator
+ * @covers \FreeFormCertificate\Generators\PdfHtmlRenderer
  */
 class PdfGeneratorTest extends TestCase {
 
@@ -22,9 +26,33 @@ class PdfGeneratorTest extends TestCase {
     /** @var PdfGenerator */
     private $generator;
 
+    /** @var PdfHtmlRenderer */
+    private $renderer;
+
+    /**
+     * HTML-rendering / placeholder methods that moved to PdfHtmlRenderer
+     * in the #589 phase-2 split — invoke() reflects these on $this->renderer.
+     *
+     * @var array<int, string>
+     */
+    private $renderer_methods = array(
+        'generate_html',
+        'generate_default_html',
+        'process_qrcode_placeholders',
+        'get_qr_code_target_url',
+        'process_validation_url_placeholders',
+        'parse_validation_url_params',
+        'get_appointment_receipt_template',
+    );
+
     protected function setUp(): void {
         parent::setUp();
         Monkey\setUp();
+
+        // pcov does not record lines for files first autoloaded mid-test-method,
+        // so the renderer's coverage would attribute to nothing. Preload the
+        // extracted class here so pcov attributes its lines to this test.
+        class_exists( '\\FreeFormCertificate\\Generators\\PdfHtmlRenderer' );
 
         Functions\when( '__' )->returnArg();
         Functions\when( 'esc_html' )->returnArg();
@@ -58,6 +86,7 @@ class PdfGeneratorTest extends TestCase {
         } );
 
         $this->generator = new PdfGenerator();
+        $this->renderer  = new PdfHtmlRenderer();
     }
 
     protected function tearDown(): void {
@@ -69,9 +98,14 @@ class PdfGeneratorTest extends TestCase {
      * Invoke a private method on PdfGenerator.
      */
     private function invoke( string $method, array $args = [] ) {
-        $ref = new \ReflectionMethod( PdfGenerator::class, $method );
+        // Methods moved to PdfHtmlRenderer (#589 phase-2) reflect on the
+        // renderer instance; data-assembly methods stay on PdfGenerator.
+        $is_renderer = in_array( $method, $this->renderer_methods, true );
+        $target      = $is_renderer ? $this->renderer : $this->generator;
+        $class       = $is_renderer ? PdfHtmlRenderer::class : PdfGenerator::class;
+        $ref         = new \ReflectionMethod( $class, $method );
         $ref->setAccessible( true );
-        return $ref->invokeArgs( $this->generator, $args );
+        return $ref->invokeArgs( $target, $args );
     }
 
     // ==================================================================
