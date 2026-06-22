@@ -15,6 +15,8 @@ use FreeFormCertificate\Audience\AudienceRepository;
  * hierarchical queries, membership management, and caching.
  *
  * @covers \FreeFormCertificate\Audience\AudienceRepository
+ * @covers \FreeFormCertificate\Audience\AudienceReader
+ * @covers \FreeFormCertificate\Audience\AudienceWriter
  */
 class AudienceRepositoryTest extends TestCase {
 

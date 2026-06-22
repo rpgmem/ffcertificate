@@ -15,6 +15,8 @@ use FreeFormCertificate\Audience\AudienceBookingRepository;
  * booking audience/user management, conflict detection, caching, and count.
  *
  * @covers \FreeFormCertificate\Audience\AudienceBookingRepository
+ * @covers \FreeFormCertificate\Audience\AudienceBookingReader
+ * @covers \FreeFormCertificate\Audience\AudienceBookingWriter
  */
 class AudienceBookingRepositoryTest extends TestCase {
 
