@@ -38,7 +38,7 @@ class IpGeolocation {
 	 */
 	public static function get_location( ?string $ip = null, bool $use_cache = true ) {
 		// Get settings.
-		$settings = get_option( 'ffc_geolocation_settings', array() );
+		$settings = \FreeFormCertificate\Settings\GeolocationSettingsReader::all();
 
 		if ( empty( $settings['ip_api_enabled'] ) ) {
 			return new WP_Error( 'ip_api_disabled', __( 'IP Geolocation API is disabled.', 'ffcertificate' ) );

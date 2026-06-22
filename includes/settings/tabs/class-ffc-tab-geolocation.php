@@ -240,7 +240,7 @@ class TabGeolocation extends SettingsTab {
 	 * @return array<string, mixed>
 	 */
 	private function get_settings(): array {
-		$stored = get_option( 'ffc_geolocation_settings', array() );
+		$stored = get_option( \FreeFormCertificate\Settings\GeolocationSettingsReader::OPTION_KEY, array() );
 
 		// Backward-compat migration: pre-fallback-presets installs stored
 		// a single `gps_fallback` string ('allow' | 'block'). Map it to

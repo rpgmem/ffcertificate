@@ -37,6 +37,11 @@ class IpGeolocationTest extends TestCase {
 
         // Namespaced stubs: FreeFormCertificate\Integrations\*
         Functions\when( 'FreeFormCertificate\Integrations\get_option' )->justReturn( '' );
+        // get_location() now reads the geolocation option group via
+        // GeolocationSettingsReader (namespace FreeFormCertificate\Settings).
+        // Declare its namespaced get_option up front so per-test overrides
+        // below can redirect the reader's call site within the same process.
+        Functions\when( 'FreeFormCertificate\Settings\get_option' )->justReturn( '' );
         Functions\when( 'FreeFormCertificate\Integrations\__' )->returnArg();
         Functions\when( 'FreeFormCertificate\Integrations\is_wp_error' )->alias( function( $thing ) { return $thing instanceof \WP_Error; } );
         Functions\when( 'FreeFormCertificate\Integrations\get_transient' )->justReturn( false );
@@ -242,9 +247,15 @@ class IpGeolocationTest extends TestCase {
     }
 
     public function test_get_location_private_ip_returns_error(): void {
-        Functions\when( 'FreeFormCertificate\Integrations\get_option' )->justReturn(
-            array( 'ip_api_enabled' => '1', 'ip_api_service' => 'ip-api' )
-        );
+        // get_location() now reads the geolocation option via
+        // GeolocationSettingsReader (namespace FreeFormCertificate\Settings),
+        // so stub get_option there rather than in the Integrations namespace.
+        // Stub both the namespaced and global call sites: which one the
+        // reader's all() resolves to depends on whether another test in the
+        // same process already declared FreeFormCertificate\Settings\get_option.
+        $geo = array( 'ip_api_enabled' => '1', 'ip_api_service' => 'ip-api' );
+        Functions\when( 'FreeFormCertificate\Settings\get_option' )->justReturn( $geo );
+        Functions\when( 'get_option' )->justReturn( $geo );
 
         $result = IpGeolocation::get_location( '192.168.1.1' );
 
@@ -253,9 +264,12 @@ class IpGeolocationTest extends TestCase {
     }
 
     public function test_get_location_localhost_returns_error(): void {
-        Functions\when( 'FreeFormCertificate\Integrations\get_option' )->justReturn(
-            array( 'ip_api_enabled' => '1' )
-        );
+        // get_location() reads the geolocation option via
+        // GeolocationSettingsReader (namespace FreeFormCertificate\Settings).
+        // Stub both call sites (see private_ip test for the rationale).
+        $geo = array( 'ip_api_enabled' => '1' );
+        Functions\when( 'FreeFormCertificate\Settings\get_option' )->justReturn( $geo );
+        Functions\when( 'get_option' )->justReturn( $geo );
 
         $result = IpGeolocation::get_location( '127.0.0.1' );
 
