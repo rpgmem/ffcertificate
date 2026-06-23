@@ -16,6 +16,8 @@ use FreeFormCertificate\Recruitment\RecruitmentCallRepository;
  * and the idempotent `mark_cancelled` semantics.
  *
  * @covers \FreeFormCertificate\Recruitment\RecruitmentCallRepository
+ * @covers \FreeFormCertificate\Recruitment\RecruitmentCallReader
+ * @covers \FreeFormCertificate\Recruitment\RecruitmentCallWriter
  */
 class RecruitmentCallRepositoryTest extends TestCase {
 
@@ -39,6 +41,12 @@ class RecruitmentCallRepositoryTest extends TestCase {
 		Functions\when( 'wp_cache_set' )->justReturn( true );
 		Functions\when( 'wp_cache_delete' )->justReturn( true );
 		Functions\when( 'current_time' )->justReturn( '2026-05-01 10:00:00' );
+
+		// pcov does not record lines for files first autoloaded mid-test-method,
+		// so the extracted reader/writer's coverage would attribute to nothing.
+		// Preload the classes here so pcov attributes their lines to this test.
+		class_exists( '\\FreeFormCertificate\\Recruitment\\RecruitmentCallReader' );
+		class_exists( '\\FreeFormCertificate\\Recruitment\\RecruitmentCallWriter' );
 
 		$this->wpdb->shouldReceive( 'prepare' )
 			->andReturnUsing(
