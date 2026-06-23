@@ -4,8 +4,8 @@
  *
  * Read-side of the call repository split (#563 backlog, B3). Holds every
  * SELECT / lookup query for `ffc_recruitment_call`. Writes live in
- * {@see RecruitmentCallWriter}; {@see RecruitmentCallRepository} remains the
- * public façade that delegates to both.
+ * {@see RecruitmentCallWriter}. Callers depend on this reader (reads) and the
+ * writer (writes) directly; the delegating façade was retired in #563 B3-A.
  *
  * "Active call for classification" = the most recent row for the
  * classification with `cancelled_at IS NULL`. The composite index
@@ -13,8 +13,6 @@
  *
  * @package FreeFormCertificate\Recruitment
  * @since   6.11.3
- *
- * @phpstan-import-type CallRow from RecruitmentCallRepository
  */
 
 declare(strict_types=1);
@@ -30,7 +28,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  *
  * @since 6.11.3
  *
- * @phpstan-import-type CallRow from RecruitmentCallRepository
+ * @phpstan-type CallRow \stdClass&object{id: numeric-string, classification_id: numeric-string, called_at: numeric-string|int, date_to_assume: string, time_to_assume: string, out_of_order: numeric-string, out_of_order_reason: string|null, cancellation_reason: string|null, cancelled_at: numeric-string|int|null, cancelled_by: numeric-string|null, notes: string|null, created_by: numeric-string, created_at: string, updated_at: string}
  */
 class RecruitmentCallReader {
 

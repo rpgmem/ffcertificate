@@ -47,7 +47,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  * @phpstan-import-type CandidateRow      from RecruitmentCandidateRepository
  * @phpstan-import-type ClassificationRow from RecruitmentClassificationRepository
  * @phpstan-import-type NoticeRow         from RecruitmentNoticeRepository
- * @phpstan-import-type CallRow           from RecruitmentCallRepository
+ * @phpstan-import-type CallRow           from RecruitmentCallReader
  */
 final class RecruitmentDashboardSection {
 
@@ -247,7 +247,7 @@ final class RecruitmentDashboardSection {
 			return array();
 		}
 
-		$calls = RecruitmentCallRepository::get_history_for_classifications( $ids );
+		$calls = RecruitmentCallReader::get_history_for_classifications( $ids );
 
 		// Index classifications for quick lookup when building the joined
 		// rows.

@@ -54,7 +54,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  * @phpstan-import-type ClassificationRow from RecruitmentClassificationRepository
  * @phpstan-import-type NoticeRow         from RecruitmentNoticeRepository
  * @phpstan-import-type AdjutancyRow      from RecruitmentAdjutancyRepository
- * @phpstan-import-type CallRow           from RecruitmentCallRepository
+ * @phpstan-import-type CallRow           from RecruitmentCallReader
  */
 final class RecruitmentEmailDispatcher {
 
@@ -70,7 +70,7 @@ final class RecruitmentEmailDispatcher {
 	 * @return bool True on send attempted; false on missing email.
 	 */
 	public static function send_for_call( int $call_id ): bool {
-		$call = RecruitmentCallRepository::get_by_id( $call_id );
+		$call = RecruitmentCallReader::get_by_id( $call_id );
 		if ( null === $call ) {
 			return false;
 		}

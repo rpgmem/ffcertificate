@@ -47,7 +47,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  *
  * @phpstan-import-type CandidateRow      from RecruitmentCandidateRepository
  * @phpstan-import-type ClassificationRow from RecruitmentClassificationRepository
- * @phpstan-import-type CallRow           from RecruitmentCallRepository
+ * @phpstan-import-type CallRow           from RecruitmentCallReader
  */
 final class RecruitmentCandidateEditPage {
 
@@ -397,7 +397,7 @@ final class RecruitmentCandidateEditPage {
 	 * @phpstan-return array<int, list<CallRow>>
 	 */
 	private static function group_calls_by_classification( array $classification_ids ): array {
-		$rows = RecruitmentCallRepository::get_history_for_classifications( $classification_ids );
+		$rows = RecruitmentCallReader::get_history_for_classifications( $classification_ids );
 		$out  = array();
 		foreach ( $rows as $row ) {
 			$cid = (int) $row->classification_id;

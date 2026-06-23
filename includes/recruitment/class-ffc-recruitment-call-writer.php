@@ -4,8 +4,9 @@
  *
  * Write-side of the call repository split (#563 backlog, B3). Holds the
  * append-only INSERT, the cancellation stamp, and the (notes-only) UPDATE.
- * Reads live in {@see RecruitmentCallReader}; {@see RecruitmentCallRepository}
- * remains the public façade that delegates to both.
+ * Reads live in {@see RecruitmentCallReader}. Callers depend on the reader
+ * (reads) and this writer (writes) directly; the delegating façade was retired
+ * in #563 B3-A.
  *
  * Calls are append-only history: cancellation does NOT delete the row — it
  * stamps `cancellation_reason` / `cancelled_at` / `cancelled_by` on the

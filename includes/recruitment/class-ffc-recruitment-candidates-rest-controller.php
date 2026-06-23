@@ -394,7 +394,7 @@ final class RecruitmentCandidatesRestController {
 					'rank'      => (int) $cls->rank,
 					'score'     => $cls->score,
 					'status'    => $cls->status,
-					'calls'     => RecruitmentCallRepository::get_history_for_classification( (int) $cls->id ),
+					'calls'     => RecruitmentCallReader::get_history_for_classification( (int) $cls->id ),
 				);
 			}
 		}

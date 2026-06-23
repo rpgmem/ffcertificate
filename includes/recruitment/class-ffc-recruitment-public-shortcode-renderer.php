@@ -229,7 +229,7 @@ final class RecruitmentPublicShortcodeRenderer {
 			$html  .= '<td>' . self::render_subscription_badge( $is_pcd ) . '</td>';
 		}
 		if ( $show_date && ( $columns['date_to_assume'] || $columns['time_to_assume'] ) ) {
-			$call = RecruitmentCallRepository::get_active_for_classification( (int) $row->id );
+			$call = RecruitmentCallReader::get_active_for_classification( (int) $row->id );
 			if ( $columns['date_to_assume'] ) {
 				$date  = null === $call ? '' : self::format_date_br( (string) $call->date_to_assume );
 				$html .= '<td>' . esc_html( $date ) . '</td>';

@@ -113,7 +113,7 @@ class RecruitmentEmailDispatcherSendTest extends TestCase {
 	 * @return void
 	 */
 	private function wire_helpers( array $settings, bool $is_pcd ): void {
-		$call_repo = Mockery::mock( 'alias:FreeFormCertificate\Recruitment\RecruitmentCallRepository' );
+		$call_repo = Mockery::mock( 'alias:FreeFormCertificate\Recruitment\RecruitmentCallReader' );
 		$call_repo->shouldReceive( 'get_by_id' )->andReturn( $this->call_stub() );
 
 		$cls_repo = Mockery::mock( 'alias:FreeFormCertificate\Recruitment\RecruitmentClassificationRepository' );
