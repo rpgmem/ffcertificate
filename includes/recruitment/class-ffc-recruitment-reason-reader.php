@@ -132,16 +132,16 @@ class RecruitmentReasonReader {
 	public static function decode_applies_to( string $stored ): array {
 		$stored = trim( $stored );
 		if ( '' === $stored ) {
-			return RecruitmentReasonReader::APPLIES_TO_VALUES;
+			return self::APPLIES_TO_VALUES;
 		}
 		$parts = array_filter( array_map( 'trim', explode( ',', $stored ) ) );
 		$out   = array();
 		foreach ( $parts as $candidate ) {
-			if ( in_array( $candidate, RecruitmentReasonReader::APPLIES_TO_VALUES, true ) && ! in_array( $candidate, $out, true ) ) {
+			if ( in_array( $candidate, self::APPLIES_TO_VALUES, true ) && ! in_array( $candidate, $out, true ) ) {
 				$out[] = $candidate;
 			}
 		}
-		return empty( $out ) ? RecruitmentReasonReader::APPLIES_TO_VALUES : $out;
+		return empty( $out ) ? self::APPLIES_TO_VALUES : $out;
 	}
 
 	/**

@@ -410,7 +410,7 @@ class CustomFieldReader {
 	 * @return array<string, mixed> Associative array of field_id => value.
 	 */
 	public static function get_user_data( int $user_id ): array {
-		$data = get_user_meta( $user_id, CustomFieldReader::USER_META_KEY, true );
+		$data = get_user_meta( $user_id, self::USER_META_KEY, true );
 		if ( empty( $data ) || ! is_array( $data ) ) {
 			return array();
 		}
