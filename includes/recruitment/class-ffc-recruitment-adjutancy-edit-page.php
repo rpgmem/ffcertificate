@@ -30,7 +30,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 /**
  * Adjutancy edit screen renderer + admin-post save handler.
  *
- * @phpstan-import-type AdjutancyRow from RecruitmentAdjutancyRepository
+ * @phpstan-import-type AdjutancyRow from RecruitmentAdjutancyReader
  */
 final class RecruitmentAdjutancyEditPage {
 
@@ -58,7 +58,7 @@ final class RecruitmentAdjutancyEditPage {
 
 		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- read-only render.
 		$adjutancy_id = isset( $_GET['adjutancy_id'] ) ? absint( wp_unslash( (string) $_GET['adjutancy_id'] ) ) : 0;
-		$adjutancy    = $adjutancy_id > 0 ? RecruitmentAdjutancyRepository::get_by_id( $adjutancy_id ) : null;
+		$adjutancy    = $adjutancy_id > 0 ? RecruitmentAdjutancyReader::get_by_id( $adjutancy_id ) : null;
 
 		if ( null === $adjutancy ) {
 			echo '<div class="notice notice-error"><p>' . esc_html__( 'Adjutancy not found.', 'ffcertificate' ) . '</p></div>';
@@ -88,7 +88,7 @@ final class RecruitmentAdjutancyEditPage {
 		$nonce_action = 'ffc_recruitment_save_adjutancy_' . $id;
 		$color        = isset( $adjutancy->color ) && '' !== (string) $adjutancy->color
 			? (string) $adjutancy->color
-			: RecruitmentAdjutancyRepository::DEFAULT_COLOR;
+			: RecruitmentAdjutancyReader::DEFAULT_COLOR;
 
 		echo '<div class="postbox ffc-rec-mt-20">';
 		echo '<h2 class="hndle"><span>' . esc_html__( 'General', 'ffcertificate' ) . '</span></h2>';
@@ -146,7 +146,7 @@ final class RecruitmentAdjutancyEditPage {
 		$name  = isset( $_POST['name'] ) ? sanitize_text_field( wp_unslash( (string) $_POST['name'] ) ) : '';
 		$color = isset( $_POST['color'] ) ? sanitize_text_field( wp_unslash( (string) $_POST['color'] ) ) : '';
 
-		$ok = RecruitmentAdjutancyRepository::update(
+		$ok = RecruitmentAdjutancyWriter::update(
 			$adjutancy_id,
 			array(
 				'name'  => $name,

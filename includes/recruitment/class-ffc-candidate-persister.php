@@ -144,7 +144,7 @@ final class CandidatePersister {
 
 		$map = array();
 		foreach ( $ids as $id ) {
-			$adjutancy = RecruitmentAdjutancyRepository::get_by_id( $id );
+			$adjutancy = RecruitmentAdjutancyReader::get_by_id( $id );
 			if ( null !== $adjutancy ) {
 				$map[ $adjutancy->slug ] = $id;
 			}

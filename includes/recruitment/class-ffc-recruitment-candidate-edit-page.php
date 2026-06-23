@@ -876,7 +876,7 @@ final class RecruitmentCandidateEditPage {
 		$current_adj_id = (int) $c->adjutancy_id;
 		$notice_id      = (int) $c->notice_id;
 		$candidates     = $adjutancies_by_notice[ $notice_id ] ?? array();
-		$current_obj    = RecruitmentAdjutancyRepository::get_by_id( $current_adj_id );
+		$current_obj    = RecruitmentAdjutancyReader::get_by_id( $current_adj_id );
 		$current_label  = null !== $current_obj ? (string) $current_obj->slug : '#' . $current_adj_id;
 
 		if ( count( $candidates ) < 2 ) {
@@ -886,7 +886,7 @@ final class RecruitmentCandidateEditPage {
 		$html  = '<span class="ffc-adjutancy-swap" data-ffc-cls-id="' . esc_attr( (string) (int) $c->id ) . '">';
 		$html .= '<select class="ffc-adjutancy-swap-select">';
 		foreach ( $candidates as $aid ) {
-			$obj   = RecruitmentAdjutancyRepository::get_by_id( (int) $aid );
+			$obj   = RecruitmentAdjutancyReader::get_by_id( (int) $aid );
 			$label = null !== $obj ? (string) $obj->slug : '#' . (int) $aid;
 			$sel   = (int) $aid === $current_adj_id ? ' selected' : '';
 			$html .= '<option value="' . esc_attr( (string) (int) $aid ) . '"' . esc_attr( $sel ) . '>' . esc_html( $label ) . '</option>';

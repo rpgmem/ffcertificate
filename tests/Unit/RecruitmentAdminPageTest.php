@@ -142,7 +142,7 @@ class RecruitmentAdminPageTest extends TestCase {
         $html = RecruitmentAdminPage::adjutancy_badge( $adjutancy );
 
         $this->assertStringContainsString(
-            \FreeFormCertificate\Recruitment\RecruitmentAdjutancyRepository::DEFAULT_COLOR,
+            \FreeFormCertificate\Recruitment\RecruitmentAdjutancyReader::DEFAULT_COLOR,
             $html
         );
     }

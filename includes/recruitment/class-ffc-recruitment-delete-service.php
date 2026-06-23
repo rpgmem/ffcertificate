@@ -150,7 +150,7 @@ final class RecruitmentDeleteService {
 	 * @return DeleteResult
 	 */
 	public static function delete_adjutancy( int $adjutancy_id ): array {
-		$adjutancy = RecruitmentAdjutancyRepository::get_by_id( $adjutancy_id );
+		$adjutancy = RecruitmentAdjutancyReader::get_by_id( $adjutancy_id );
 		if ( null === $adjutancy ) {
 			return self::failure( 'recruitment_adjutancy_not_found' );
 		}
@@ -171,7 +171,7 @@ final class RecruitmentDeleteService {
 			);
 		}
 
-		$ok = RecruitmentAdjutancyRepository::delete( $adjutancy_id );
+		$ok = RecruitmentAdjutancyWriter::delete( $adjutancy_id );
 		if ( ! $ok ) {
 			return self::failure( 'recruitment_adjutancy_delete_failed' );
 		}

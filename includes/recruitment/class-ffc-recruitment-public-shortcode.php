@@ -240,7 +240,7 @@ final class RecruitmentPublicShortcode {
 		$list_type    = 'preliminary' === $notice->status ? 'preview' : 'definitive';
 		$adjutancy_id = null;
 		if ( '' !== $slug_filter ) {
-			$adjutancy = RecruitmentAdjutancyRepository::get_by_slug( $slug_filter );
+			$adjutancy = RecruitmentAdjutancyReader::get_by_slug( $slug_filter );
 			if ( null === $adjutancy ) {
 				return RecruitmentPublicShortcodeRenderer::msg( __( 'Adjutancy not found for this notice.', 'ffcertificate' ), 'error' );
 			}

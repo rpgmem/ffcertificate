@@ -164,7 +164,7 @@ final class RecruitmentPublicShortcodeRenderer {
 			$html .= '<td>' . esc_html( (string) $candidate->name ) . '</td>';
 		}
 		if ( $columns['adjutancy'] ) {
-			$adjutancy = RecruitmentAdjutancyRepository::get_by_id( (int) $row->adjutancy_id );
+			$adjutancy = RecruitmentAdjutancyReader::get_by_id( (int) $row->adjutancy_id );
 			$html     .= '<td>' . self::render_adjutancy_badge( $adjutancy ) . '</td>';
 		}
 		if ( $columns['cpf_masked'] ) {
@@ -355,7 +355,7 @@ final class RecruitmentPublicShortcodeRenderer {
 
 		$adjutancies = array();
 		foreach ( $ids as $id ) {
-			$a = RecruitmentAdjutancyRepository::get_by_id( $id );
+			$a = RecruitmentAdjutancyReader::get_by_id( $id );
 			if ( null !== $a ) {
 				$adjutancies[] = $a;
 			}
@@ -573,7 +573,7 @@ final class RecruitmentPublicShortcodeRenderer {
 		$color_raw = $adjutancy->color ?? '';
 		$color     = is_string( $color_raw ) && '' !== $color_raw
 			? $color_raw
-			: RecruitmentAdjutancyRepository::DEFAULT_COLOR;
+			: RecruitmentAdjutancyReader::DEFAULT_COLOR;
 		$name      = $adjutancy->name ?? '';
 		return BadgeHtml::render(
 			'ffc-recruitment-adjutancy-badge',

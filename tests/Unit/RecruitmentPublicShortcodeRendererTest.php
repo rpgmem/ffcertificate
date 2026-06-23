@@ -268,7 +268,7 @@ class RecruitmentPublicShortcodeRendererTest extends TestCase {
         // Blank color → repository default.
         $out = $this->invoke( 'render_adjutancy_badge', (object) array( 'name' => 'Por', 'color' => '' ) );
         $this->assertStringContainsString(
-            \FreeFormCertificate\Recruitment\RecruitmentAdjutancyRepository::DEFAULT_COLOR,
+            \FreeFormCertificate\Recruitment\RecruitmentAdjutancyReader::DEFAULT_COLOR,
             $out
         );
     }

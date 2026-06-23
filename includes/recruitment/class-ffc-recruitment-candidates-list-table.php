@@ -385,7 +385,7 @@ class RecruitmentCandidatesListTable extends \WP_List_Table {
 		// Adjutancy dropdown — limits the result set to candidates with at
 		// least one classification in the selected adjutancy. Combinable
 		// with every other filter via the unified paginated query.
-		$adjutancies = RecruitmentAdjutancyRepository::get_all();
+		$adjutancies = RecruitmentAdjutancyReader::get_all();
 		if ( ! empty( $adjutancies ) ) {
 			echo ' <select name="adjutancy_id">';
 			echo '<option value="0">' . esc_html__( 'All adjutancies', 'ffcertificate' ) . '</option>';

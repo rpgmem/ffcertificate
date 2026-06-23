@@ -53,7 +53,7 @@ class RecruitmentAdjutanciesRestControllerTest extends TestCase {
             }
         );
 
-        $this->adjRepoMock = Mockery::mock( 'alias:FreeFormCertificate\Recruitment\RecruitmentAdjutancyRepository' );
+        $this->adjRepoMock = Mockery::mock( 'alias:FreeFormCertificate\Recruitment\RecruitmentAdjutancyReader' );
         $this->adjRepoMock->shouldReceive( 'get_all' )->andReturn( array() )->byDefault();
         $this->adjRepoMock->shouldReceive( 'get_by_id' )->andReturn( null )->byDefault();
 

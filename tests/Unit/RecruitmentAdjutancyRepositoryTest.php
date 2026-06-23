@@ -8,13 +8,13 @@ use Brain\Monkey\Functions;
 use Mockery;
 use Mockery\Adapter\Phpunit\MockeryPHPUnitIntegration;
 use PHPUnit\Framework\TestCase;
-use FreeFormCertificate\Recruitment\RecruitmentAdjutancyRepository;
+use FreeFormCertificate\Recruitment\RecruitmentAdjutancyReader;
+use FreeFormCertificate\Recruitment\RecruitmentAdjutancyWriter;
 
 /**
- * Tests for RecruitmentAdjutancyRepository — the slug-keyed catalog of adjutancies
- * (matérias) reused across notices.
+ * Tests for the adjutancy repository read/write split — the slug-keyed catalog
+ * of adjutancies (matérias) reused across notices.
  *
- * @covers \FreeFormCertificate\Recruitment\RecruitmentAdjutancyRepository
  * @covers \FreeFormCertificate\Recruitment\RecruitmentAdjutancyReader
  * @covers \FreeFormCertificate\Recruitment\RecruitmentAdjutancyWriter
  */
@@ -62,13 +62,13 @@ class RecruitmentRecruitmentAdjutancyRepositoryTest extends TestCase {
 	}
 
 	public function test_get_table_name_uses_plugin_prefix(): void {
-		$this->assertSame( 'wp_ffc_recruitment_adjutancy', RecruitmentAdjutancyRepository::get_table_name() );
+		$this->assertSame( 'wp_ffc_recruitment_adjutancy', RecruitmentAdjutancyReader::get_table_name() );
 	}
 
 	public function test_get_by_id_returns_null_when_no_row_found(): void {
 		$this->wpdb->shouldReceive( 'get_row' )->once()->andReturn( null );
 
-		$this->assertNull( RecruitmentAdjutancyRepository::get_by_id( 999 ) );
+		$this->assertNull( RecruitmentAdjutancyReader::get_by_id( 999 ) );
 	}
 
 	public function test_get_by_id_returns_typed_row_and_caches_it(): void {
@@ -89,7 +89,7 @@ class RecruitmentRecruitmentAdjutancyRepositoryTest extends TestCase {
 			}
 		);
 
-		$result = RecruitmentAdjutancyRepository::get_by_id( 5 );
+		$result = RecruitmentAdjutancyReader::get_by_id( 5 );
 
 		$this->assertSame( $row, $result );
 		$this->assertTrue( $cache_set_called, 'A successful lookup should populate the object cache' );
@@ -98,7 +98,7 @@ class RecruitmentRecruitmentAdjutancyRepositoryTest extends TestCase {
 	public function test_get_by_slug_returns_null_when_slug_unknown(): void {
 		$this->wpdb->shouldReceive( 'get_row' )->once()->andReturn( null );
 
-		$this->assertNull( RecruitmentAdjutancyRepository::get_by_slug( 'nao-existe' ) );
+		$this->assertNull( RecruitmentAdjutancyReader::get_by_slug( 'nao-existe' ) );
 	}
 
 	public function test_get_by_slug_returns_row(): void {
@@ -109,7 +109,7 @@ class RecruitmentRecruitmentAdjutancyRepositoryTest extends TestCase {
 		);
 		$this->wpdb->shouldReceive( 'get_row' )->once()->andReturn( $row );
 
-		$result = RecruitmentAdjutancyRepository::get_by_slug( 'portugues' );
+		$result = RecruitmentAdjutancyReader::get_by_slug( 'portugues' );
 		$this->assertSame( $row, $result );
 	}
 
@@ -133,14 +133,14 @@ class RecruitmentRecruitmentAdjutancyRepositoryTest extends TestCase {
 
 		$this->wpdb->insert_id = 42;
 
-		$id = RecruitmentAdjutancyRepository::create( 'matematica', 'Matemática' );
+		$id = RecruitmentAdjutancyWriter::create( 'matematica', 'Matemática' );
 		$this->assertSame( 42, $id );
 	}
 
 	public function test_create_returns_false_on_insert_failure(): void {
 		$this->wpdb->shouldReceive( 'insert' )->once()->andReturn( false );
 
-		$this->assertFalse( RecruitmentAdjutancyRepository::create( 'dup', 'Duplicate' ) );
+		$this->assertFalse( RecruitmentAdjutancyWriter::create( 'dup', 'Duplicate' ) );
 	}
 
 	public function test_update_only_writes_known_keys(): void {
@@ -154,7 +154,7 @@ class RecruitmentRecruitmentAdjutancyRepositoryTest extends TestCase {
 				}
 			);
 
-		$result = RecruitmentAdjutancyRepository::update(
+		$result = RecruitmentAdjutancyWriter::update(
 			3,
 			array(
 				'name'             => 'Novo Nome',
@@ -173,7 +173,7 @@ class RecruitmentRecruitmentAdjutancyRepositoryTest extends TestCase {
 	public function test_update_returns_false_when_no_writable_fields_supplied(): void {
 		$this->wpdb->shouldNotReceive( 'update' );
 
-		$result = RecruitmentAdjutancyRepository::update( 3, array( 'forbidden' => 'x' ) );
+		$result = RecruitmentAdjutancyWriter::update( 3, array( 'forbidden' => 'x' ) );
 
 		$this->assertFalse( $result );
 	}
@@ -184,6 +184,6 @@ class RecruitmentRecruitmentAdjutancyRepositoryTest extends TestCase {
 			->with( 'wp_ffc_recruitment_adjutancy', array( 'id' => 9 ), array( '%d' ) )
 			->andReturn( 1 );
 
-		$this->assertTrue( RecruitmentAdjutancyRepository::delete( 9 ) );
+		$this->assertTrue( RecruitmentAdjutancyWriter::delete( 9 ) );
 	}
 }

@@ -4,8 +4,8 @@
  *
  * Write-side of the adjutancy repository split (#563 backlog, B3). Holds every
  * INSERT / UPDATE / DELETE plus the color-normalization helper. Reads live in
- * {@see RecruitmentAdjutancyReader}; {@see RecruitmentAdjutancyRepository}
- * remains the public façade that delegates to both.
+ * {@see RecruitmentAdjutancyReader}. Callers depend on the reader (reads) and
+ * this writer (writes) directly; the delegating façade was retired in #563 B3-A.
  *
  * Schema-level invariants enforced here:
  *
@@ -66,7 +66,7 @@ class RecruitmentAdjutancyWriter {
 	 * @param string $slug  Unique slug.
 	 * @param string $name  Display name.
 	 * @param string $color Optional badge background color (#RGB / #RRGGBB / #RRGGBBAA);
-	 *                      falls back to {@see RecruitmentAdjutancyRepository::DEFAULT_COLOR} on empty input.
+	 *                      falls back to {@see RecruitmentAdjutancyReader::DEFAULT_COLOR} on empty input.
 	 * @return int|false New adjutancy ID or false on failure.
 	 */
 	public static function create( string $slug, string $name, string $color = '' ) {
@@ -101,7 +101,7 @@ class RecruitmentAdjutancyWriter {
 	 * Normalize a color string into the canonical lowercase hex form.
 	 *
 	 * Accepts `#RGB`, `#RRGGBB`, or `#RRGGBBAA`; anything else falls back
-	 * to {@see RecruitmentAdjutancyRepository::DEFAULT_COLOR}. Mirrors the
+	 * to {@see RecruitmentAdjutancyReader::DEFAULT_COLOR}. Mirrors the
 	 * validator on {@see RecruitmentSettings::sanitize_color()} so the
 	 * per-adjutancy picker and the per-status picker enforce identical input
 	 * rules.
@@ -110,7 +110,7 @@ class RecruitmentAdjutancyWriter {
 	 * @return string
 	 */
 	public static function normalize_color( string $value ): string {
-		return \FreeFormCertificate\Core\ColorValidator::normalize( $value, RecruitmentAdjutancyRepository::DEFAULT_COLOR );
+		return \FreeFormCertificate\Core\ColorValidator::normalize( $value, RecruitmentAdjutancyReader::DEFAULT_COLOR );
 	}
 
 	/**

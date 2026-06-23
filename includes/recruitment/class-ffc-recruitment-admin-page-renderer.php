@@ -677,7 +677,7 @@ final class RecruitmentAdminPageRenderer {
 		if ( ! \FreeFormCertificate\Core\Capabilities::current_user_can_admin_or( 'ffc_manage_recruitment' ) ) {
 			return;
 		}
-		$default_color = RecruitmentAdjutancyRepository::DEFAULT_COLOR;
+		$default_color = RecruitmentAdjutancyReader::DEFAULT_COLOR;
 
 		echo '<h3>' . esc_html__( 'Create new adjutancy', 'ffcertificate' ) . '</h3>';
 		echo '<form id="ffc-create-adjutancy" method="post" data-ffc-create-endpoint="adjutancies">';

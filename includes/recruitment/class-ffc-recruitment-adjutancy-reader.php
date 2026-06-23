@@ -4,13 +4,11 @@
  *
  * Read-side of the adjutancy repository split (#563 backlog, B3). Holds every
  * SELECT / lookup query for `ffc_recruitment_adjutancy`. Writes live in
- * {@see RecruitmentAdjutancyWriter}; {@see RecruitmentAdjutancyRepository}
- * remains the public façade that delegates to both.
+ * {@see RecruitmentAdjutancyWriter}. Callers depend on this reader (reads) and
+ * the writer (writes) directly; the delegating façade was retired in #563 B3-A.
  *
  * @package FreeFormCertificate\Recruitment
  * @since   6.11.3
- *
- * @phpstan-import-type AdjutancyRow from RecruitmentAdjutancyRepository
  */
 
 declare(strict_types=1);
@@ -26,11 +24,16 @@ if ( ! defined( 'ABSPATH' ) ) {
  *
  * @since 6.11.3
  *
- * @phpstan-import-type AdjutancyRow from RecruitmentAdjutancyRepository
+ * @phpstan-type AdjutancyRow \stdClass&object{id: numeric-string, slug: string, name: string, color: string, created_at: string, updated_at: string}
  */
 class RecruitmentAdjutancyReader {
 
 	use \FreeFormCertificate\Core\StaticRepositoryTrait;
+
+	/**
+	 * Default adjutancy badge color, applied when a row's `color` is empty.
+	 */
+	public const DEFAULT_COLOR = '#e9ecef';
 
 	/**
 	 * Cache group for this repository.

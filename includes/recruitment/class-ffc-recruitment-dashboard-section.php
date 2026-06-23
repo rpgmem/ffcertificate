@@ -212,7 +212,7 @@ final class RecruitmentDashboardSection {
 			if ( $cls->list_type !== $wanted ) {
 				continue;
 			}
-			$adjutancy    = RecruitmentAdjutancyRepository::get_by_id( (int) $cls->adjutancy_id );
+			$adjutancy    = RecruitmentAdjutancyReader::get_by_id( (int) $cls->adjutancy_id );
 			$html        .= '<tr>';
 			$html        .= '<td>' . esc_html( null === $adjutancy ? '—' : $adjutancy->name ) . '</td>';
 			$html        .= '<td>' . esc_html( (string) $cls->rank ) . '</td>';
@@ -290,7 +290,7 @@ final class RecruitmentDashboardSection {
 		foreach ( $rows as $pair ) {
 			$call      = $pair['call'];
 			$class     = $pair['classification'];
-			$adjutancy = RecruitmentAdjutancyRepository::get_by_id( (int) $class->adjutancy_id );
+			$adjutancy = RecruitmentAdjutancyReader::get_by_id( (int) $class->adjutancy_id );
 			$adj_name  = null === $adjutancy ? '—' : (string) $adjutancy->name;
 			$situation = self::call_situation_label( $call, (string) $class->status );
 

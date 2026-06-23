@@ -88,7 +88,7 @@ class RecruitmentCsvImporterBatchedTest extends TestCase {
 		$junction = Mockery::mock( 'alias:FreeFormCertificate\Recruitment\RecruitmentNoticeAdjutancyRepository' );
 		$junction->shouldReceive( 'get_adjutancy_ids_for_notice' )->andReturn( $ids );
 
-		$adj = Mockery::mock( 'alias:FreeFormCertificate\Recruitment\RecruitmentAdjutancyRepository' );
+		$adj = Mockery::mock( 'alias:FreeFormCertificate\Recruitment\RecruitmentAdjutancyReader' );
 		$adj->shouldReceive( 'get_by_id' )->andReturnUsing(
 			static function ( $id ) {
 				return (object) array(

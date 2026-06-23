@@ -187,7 +187,7 @@ final class RecruitmentAdjutanciesRestController {
 	 * @return \WP_REST_Response
 	 */
 	public function list_adjutancies(): \WP_REST_Response {
-		return new \WP_REST_Response( RecruitmentAdjutancyRepository::get_all(), 200 );
+		return new \WP_REST_Response( RecruitmentAdjutancyReader::get_all(), 200 );
 	}
 
 	/**
@@ -197,7 +197,7 @@ final class RecruitmentAdjutanciesRestController {
 	 * @return \WP_REST_Response|\WP_Error
 	 */
 	public function create_adjutancy( \WP_REST_Request $request ) {
-		$id = RecruitmentAdjutancyRepository::create(
+		$id = RecruitmentAdjutancyWriter::create(
 			(string) $request->get_param( 'slug' ),
 			(string) $request->get_param( 'name' ),
 			(string) ( $request->get_param( 'color' ) ?? '' )
@@ -209,7 +209,7 @@ final class RecruitmentAdjutanciesRestController {
 				array( 'status' => 409 )
 			);
 		}
-		return new \WP_REST_Response( RecruitmentAdjutancyRepository::get_by_id( $id ), 201 );
+		return new \WP_REST_Response( RecruitmentAdjutancyReader::get_by_id( $id ), 201 );
 	}
 
 	/**
@@ -221,7 +221,7 @@ final class RecruitmentAdjutanciesRestController {
 	public function update_adjutancy( \WP_REST_Request $request ) {
 		$id   = (int) $request->get_param( 'id' );
 		$data = array_intersect_key( $request->get_params(), array_flip( array( 'slug', 'name', 'color' ) ) );
-		$ok   = RecruitmentAdjutancyRepository::update( $id, $data );
+		$ok   = RecruitmentAdjutancyWriter::update( $id, $data );
 		if ( ! $ok ) {
 			return new \WP_Error(
 				'recruitment_adjutancy_update_failed',
@@ -229,7 +229,7 @@ final class RecruitmentAdjutanciesRestController {
 				array( 'status' => 400 )
 			);
 		}
-		return new \WP_REST_Response( RecruitmentAdjutancyRepository::get_by_id( $id ), 200 );
+		return new \WP_REST_Response( RecruitmentAdjutancyReader::get_by_id( $id ), 200 );
 	}
 
 	/**
@@ -359,7 +359,7 @@ final class RecruitmentAdjutanciesRestController {
 		if ( null === RecruitmentNoticeReader::get_by_id( $notice_id ) ) {
 			return new \WP_Error( 'recruitment_notice_not_found', 'Notice not found.', array( 'status' => 404 ) );
 		}
-		if ( null === RecruitmentAdjutancyRepository::get_by_id( $adjutancy_id ) ) {
+		if ( null === RecruitmentAdjutancyReader::get_by_id( $adjutancy_id ) ) {
 			return new \WP_Error( 'recruitment_adjutancy_not_found', 'Adjutancy not found.', array( 'status' => 404 ) );
 		}
 
