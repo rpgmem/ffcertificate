@@ -9,12 +9,16 @@ use Mockery;
 use Mockery\Adapter\Phpunit\MockeryPHPUnitIntegration;
 use PHPUnit\Framework\TestCase;
 use FreeFormCertificate\Privacy\PrivacyHandler;
+use FreeFormCertificate\Privacy\PrivacyExporters;
+use FreeFormCertificate\Privacy\PrivacyErasers;
 
 /**
  * Tests for PrivacyHandler: exporter/eraser registration,
  * personal data export from multiple tables, and data erasure.
  *
  * @covers \FreeFormCertificate\Privacy\PrivacyHandler
+ * @covers \FreeFormCertificate\Privacy\PrivacyExporters
+ * @covers \FreeFormCertificate\Privacy\PrivacyErasers
  */
 class PrivacyHandlerTest extends TestCase {
 
@@ -274,7 +278,7 @@ class PrivacyHandlerTest extends TestCase {
     public function test_export_profile_returns_empty_for_nonexistent_user(): void {
         Functions\when('get_user_by')->justReturn(false);
 
-        $result = PrivacyHandler::export_profile('nobody@example.com');
+        $result = PrivacyExporters::export_profile('nobody@example.com');
 
         $this->assertSame(array('data' => array(), 'done' => true), $result);
     }
@@ -283,7 +287,7 @@ class PrivacyHandlerTest extends TestCase {
         $user = $this->make_user();
         Functions\when('get_user_by')->justReturn($user);
 
-        $result = PrivacyHandler::export_profile('user@example.com', 2);
+        $result = PrivacyExporters::export_profile('user@example.com', 2);
 
         $this->assertSame(array('data' => array(), 'done' => true), $result);
     }
@@ -294,7 +298,7 @@ class PrivacyHandlerTest extends TestCase {
         Functions\when('get_user_meta')->justReturn('');
         $this->mock_profile_dependencies($user);
 
-        $result = PrivacyHandler::export_profile('user@example.com');
+        $result = PrivacyExporters::export_profile('user@example.com');
 
         $this->assertTrue($result['done']);
         $this->assertCount(1, $result['data']);
@@ -314,7 +318,7 @@ class PrivacyHandlerTest extends TestCase {
         Functions\when('get_user_meta')->justReturn('2024-01-15');
         $this->mock_profile_dependencies($user);
 
-        $result = PrivacyHandler::export_profile('user@example.com');
+        $result = PrivacyExporters::export_profile('user@example.com');
 
         $item = $result['data'][0];
         $names = array_column($item['data'], 'name');
@@ -332,7 +336,7 @@ class PrivacyHandlerTest extends TestCase {
     public function test_export_certificates_returns_empty_for_nonexistent_user(): void {
         Functions\when('get_user_by')->justReturn(false);
 
-        $result = PrivacyHandler::export_certificates('nobody@example.com');
+        $result = PrivacyExporters::export_certificates('nobody@example.com');
 
         $this->assertSame(array('data' => array(), 'done' => true), $result);
     }
@@ -345,7 +349,7 @@ class PrivacyHandlerTest extends TestCase {
             ->once()
             ->andReturn(array());
 
-        $result = PrivacyHandler::export_certificates('user@example.com');
+        $result = PrivacyExporters::export_certificates('user@example.com');
 
         $this->assertSame(array(), $result['data']);
         $this->assertTrue($result['done']);
@@ -371,7 +375,7 @@ class PrivacyHandlerTest extends TestCase {
             ->once()
             ->andReturn($submissions);
 
-        $result = PrivacyHandler::export_certificates('user@example.com');
+        $result = PrivacyExporters::export_certificates('user@example.com');
 
         $this->assertCount(1, $result['data']);
         $this->assertTrue($result['done']);
@@ -412,7 +416,7 @@ class PrivacyHandlerTest extends TestCase {
             ->once()
             ->andReturn($submissions);
 
-        $result = PrivacyHandler::export_certificates('user@example.com');
+        $result = PrivacyExporters::export_certificates('user@example.com');
 
         $item = $result['data'][0];
         $auth_data = null;
@@ -446,7 +450,7 @@ class PrivacyHandlerTest extends TestCase {
             ->once()
             ->andReturn($submissions);
 
-        $result = PrivacyHandler::export_certificates('user@example.com');
+        $result = PrivacyExporters::export_certificates('user@example.com');
 
         $item = $result['data'][0];
         $consent_data = null;
@@ -480,7 +484,7 @@ class PrivacyHandlerTest extends TestCase {
             ->once()
             ->andReturn($submissions);
 
-        $result = PrivacyHandler::export_certificates('user@example.com');
+        $result = PrivacyExporters::export_certificates('user@example.com');
 
         $item = $result['data'][0];
         $consent_data = null;
@@ -515,7 +519,7 @@ class PrivacyHandlerTest extends TestCase {
             ->once()
             ->andReturn($submissions);
 
-        $result = PrivacyHandler::export_certificates('user@example.com');
+        $result = PrivacyExporters::export_certificates('user@example.com');
 
         $this->assertFalse($result['done']);
         $this->assertCount(50, $result['data']);
@@ -528,7 +532,7 @@ class PrivacyHandlerTest extends TestCase {
     public function test_export_appointments_returns_empty_for_nonexistent_user(): void {
         Functions\when('get_user_by')->justReturn(false);
 
-        $result = PrivacyHandler::export_appointments('nobody@example.com');
+        $result = PrivacyExporters::export_appointments('nobody@example.com');
 
         $this->assertSame(array('data' => array(), 'done' => true), $result);
     }
@@ -538,7 +542,7 @@ class PrivacyHandlerTest extends TestCase {
         Functions\when('get_user_by')->justReturn($user);
         $this->mock_no_tables_exist();
 
-        $result = PrivacyHandler::export_appointments('user@example.com');
+        $result = PrivacyExporters::export_appointments('user@example.com');
 
         $this->assertSame(array('data' => array(), 'done' => true), $result);
     }
@@ -552,7 +556,7 @@ class PrivacyHandlerTest extends TestCase {
             ->once()
             ->andReturn(array());
 
-        $result = PrivacyHandler::export_appointments('user@example.com');
+        $result = PrivacyExporters::export_appointments('user@example.com');
 
         $this->assertSame(array(), $result['data']);
         $this->assertTrue($result['done']);
@@ -582,7 +586,7 @@ class PrivacyHandlerTest extends TestCase {
             ->once()
             ->andReturn($appointments);
 
-        $result = PrivacyHandler::export_appointments('user@example.com');
+        $result = PrivacyExporters::export_appointments('user@example.com');
 
         $this->assertCount(1, $result['data']);
         $this->assertTrue($result['done']);
@@ -625,7 +629,7 @@ class PrivacyHandlerTest extends TestCase {
             ->once()
             ->andReturn($appointments);
 
-        $result = PrivacyHandler::export_appointments('user@example.com');
+        $result = PrivacyExporters::export_appointments('user@example.com');
 
         $this->assertFalse($result['done']);
         $this->assertCount(50, $result['data']);
@@ -638,7 +642,7 @@ class PrivacyHandlerTest extends TestCase {
     public function test_export_audience_groups_returns_empty_for_nonexistent_user(): void {
         Functions\when('get_user_by')->justReturn(false);
 
-        $result = PrivacyHandler::export_audience_groups('nobody@example.com');
+        $result = PrivacyExporters::export_audience_groups('nobody@example.com');
 
         $this->assertSame(array('data' => array(), 'done' => true), $result);
     }
@@ -648,7 +652,7 @@ class PrivacyHandlerTest extends TestCase {
         Functions\when('get_user_by')->justReturn($user);
         $this->mock_no_tables_exist();
 
-        $result = PrivacyHandler::export_audience_groups('user@example.com');
+        $result = PrivacyExporters::export_audience_groups('user@example.com');
 
         $this->assertSame(array('data' => array(), 'done' => true), $result);
     }
@@ -658,7 +662,7 @@ class PrivacyHandlerTest extends TestCase {
         Functions\when('get_user_by')->justReturn($user);
         $this->mock_all_tables_exist();
 
-        $result = PrivacyHandler::export_audience_groups('user@example.com', 2);
+        $result = PrivacyExporters::export_audience_groups('user@example.com', 2);
 
         $this->assertSame(array('data' => array(), 'done' => true), $result);
     }
@@ -685,7 +689,7 @@ class PrivacyHandlerTest extends TestCase {
             ->once()
             ->andReturn($groups);
 
-        $result = PrivacyHandler::export_audience_groups('user@example.com');
+        $result = PrivacyExporters::export_audience_groups('user@example.com');
 
         $this->assertCount(2, $result['data']);
         $this->assertTrue($result['done']);
@@ -708,7 +712,7 @@ class PrivacyHandlerTest extends TestCase {
             ->once()
             ->andReturn(array());
 
-        $result = PrivacyHandler::export_audience_groups('user@example.com');
+        $result = PrivacyExporters::export_audience_groups('user@example.com');
 
         $this->assertSame(array(), $result['data']);
         $this->assertTrue($result['done']);
@@ -721,7 +725,7 @@ class PrivacyHandlerTest extends TestCase {
     public function test_export_audience_bookings_returns_empty_for_nonexistent_user(): void {
         Functions\when('get_user_by')->justReturn(false);
 
-        $result = PrivacyHandler::export_audience_bookings('nobody@example.com');
+        $result = PrivacyExporters::export_audience_bookings('nobody@example.com');
 
         $this->assertSame(array('data' => array(), 'done' => true), $result);
     }
@@ -731,7 +735,7 @@ class PrivacyHandlerTest extends TestCase {
         Functions\when('get_user_by')->justReturn($user);
         $this->mock_no_tables_exist();
 
-        $result = PrivacyHandler::export_audience_bookings('user@example.com');
+        $result = PrivacyExporters::export_audience_bookings('user@example.com');
 
         $this->assertSame(array('data' => array(), 'done' => true), $result);
     }
@@ -745,7 +749,7 @@ class PrivacyHandlerTest extends TestCase {
             ->once()
             ->andReturn(array());
 
-        $result = PrivacyHandler::export_audience_bookings('user@example.com');
+        $result = PrivacyExporters::export_audience_bookings('user@example.com');
 
         $this->assertSame(array(), $result['data']);
         $this->assertTrue($result['done']);
@@ -773,7 +777,7 @@ class PrivacyHandlerTest extends TestCase {
             ->once()
             ->andReturn($bookings);
 
-        $result = PrivacyHandler::export_audience_bookings('user@example.com');
+        $result = PrivacyExporters::export_audience_bookings('user@example.com');
 
         $this->assertCount(1, $result['data']);
         $this->assertTrue($result['done']);
@@ -815,7 +819,7 @@ class PrivacyHandlerTest extends TestCase {
             ->once()
             ->andReturn($bookings);
 
-        $result = PrivacyHandler::export_audience_bookings('user@example.com');
+        $result = PrivacyExporters::export_audience_bookings('user@example.com');
 
         $item = $result['data'][0];
         $time_data = null;
@@ -852,7 +856,7 @@ class PrivacyHandlerTest extends TestCase {
             ->once()
             ->andReturn($bookings);
 
-        $result = PrivacyHandler::export_audience_bookings('user@example.com');
+        $result = PrivacyExporters::export_audience_bookings('user@example.com');
 
         $this->assertFalse($result['done']);
     }
@@ -864,7 +868,7 @@ class PrivacyHandlerTest extends TestCase {
     public function test_export_usermeta_returns_empty_for_nonexistent_user(): void {
         Functions\when('get_user_by')->justReturn(false);
 
-        $result = PrivacyHandler::export_usermeta('nobody@example.com');
+        $result = PrivacyExporters::export_usermeta('nobody@example.com');
 
         $this->assertSame(array('data' => array(), 'done' => true), $result);
     }
@@ -873,7 +877,7 @@ class PrivacyHandlerTest extends TestCase {
         $user = $this->make_user();
         Functions\when('get_user_by')->justReturn($user);
 
-        $result = PrivacyHandler::export_usermeta('user@example.com', 2);
+        $result = PrivacyExporters::export_usermeta('user@example.com', 2);
 
         $this->assertSame(array('data' => array(), 'done' => true), $result);
     }
@@ -886,7 +890,7 @@ class PrivacyHandlerTest extends TestCase {
             ->once()
             ->andReturn(array());
 
-        $result = PrivacyHandler::export_usermeta('user@example.com');
+        $result = PrivacyExporters::export_usermeta('user@example.com');
 
         $this->assertSame(array('data' => array(), 'done' => true), $result);
     }
@@ -904,7 +908,7 @@ class PrivacyHandlerTest extends TestCase {
             ->once()
             ->andReturn($meta_rows);
 
-        $result = PrivacyHandler::export_usermeta('user@example.com');
+        $result = PrivacyExporters::export_usermeta('user@example.com');
 
         $this->assertCount(1, $result['data']);
         $this->assertTrue($result['done']);
@@ -930,7 +934,7 @@ class PrivacyHandlerTest extends TestCase {
             ->once()
             ->andReturn($meta_rows);
 
-        $result = PrivacyHandler::export_usermeta('user@example.com');
+        $result = PrivacyExporters::export_usermeta('user@example.com');
 
         $item = $result['data'][0];
 
@@ -959,7 +963,7 @@ class PrivacyHandlerTest extends TestCase {
     public function test_erase_returns_no_action_for_nonexistent_user(): void {
         Functions\when('get_user_by')->justReturn(false);
 
-        $result = PrivacyHandler::erase_personal_data('nobody@example.com');
+        $result = PrivacyErasers::erase_personal_data('nobody@example.com');
 
         $this->assertFalse($result['items_removed']);
         $this->assertFalse($result['items_retained']);
@@ -984,7 +988,7 @@ class PrivacyHandlerTest extends TestCase {
                 return 0; // usermeta delete
             });
 
-        $result = PrivacyHandler::erase_personal_data('user@example.com');
+        $result = PrivacyErasers::erase_personal_data('user@example.com');
 
         $this->assertTrue($result['items_removed']);
         $this->assertTrue($result['items_retained']);
@@ -1016,7 +1020,7 @@ class PrivacyHandlerTest extends TestCase {
         $this->wpdb->shouldReceive('delete')
             ->andReturn(1);
 
-        $result = PrivacyHandler::erase_personal_data('user@example.com');
+        $result = PrivacyErasers::erase_personal_data('user@example.com');
 
         $this->assertTrue($result['items_removed']);
         $this->assertTrue($result['items_retained']);
@@ -1033,7 +1037,7 @@ class PrivacyHandlerTest extends TestCase {
         $this->wpdb->shouldReceive('query')
             ->andReturn(0);
 
-        $result = PrivacyHandler::erase_personal_data('user@example.com');
+        $result = PrivacyErasers::erase_personal_data('user@example.com');
 
         $this->assertFalse($result['items_removed']);
         $this->assertFalse($result['items_retained']);
@@ -1062,7 +1066,7 @@ class PrivacyHandlerTest extends TestCase {
                 return 0;
             });
 
-        $result = PrivacyHandler::erase_personal_data('user@example.com');
+        $result = PrivacyErasers::erase_personal_data('user@example.com');
 
         $this->assertTrue($result['items_removed']);
         $this->assertTrue($result['done']);
@@ -1098,7 +1102,7 @@ class PrivacyHandlerTest extends TestCase {
                 return 0;
             });
 
-        $result = PrivacyHandler::erase_personal_data('user@example.com');
+        $result = PrivacyErasers::erase_personal_data('user@example.com');
 
         $this->assertTrue($result['items_removed']);
         $this->assertTrue($result['done']);
@@ -1130,7 +1134,7 @@ class PrivacyHandlerTest extends TestCase {
                 return 7; // usermeta delete
             });
 
-        $result = PrivacyHandler::erase_personal_data('user@example.com');
+        $result = PrivacyErasers::erase_personal_data('user@example.com');
 
         $this->assertTrue($result['items_removed']);
         $this->assertTrue($result['done']);
@@ -1162,7 +1166,7 @@ class PrivacyHandlerTest extends TestCase {
         ];
 
         foreach ($export_methods as $method) {
-            $result = PrivacyHandler::$method('nobody@example.com');
+            $result = PrivacyExporters::$method('nobody@example.com');
 
             $this->assertArrayHasKey('data', $result, "Missing 'data' key in $method return");
             $this->assertArrayHasKey('done', $result, "Missing 'done' key in $method return");
@@ -1174,7 +1178,7 @@ class PrivacyHandlerTest extends TestCase {
     public function test_erase_returns_correct_structure(): void {
         Functions\when('get_user_by')->justReturn(false);
 
-        $result = PrivacyHandler::erase_personal_data('nobody@example.com');
+        $result = PrivacyErasers::erase_personal_data('nobody@example.com');
 
         $this->assertArrayHasKey('items_removed', $result);
         $this->assertArrayHasKey('items_retained', $result);
