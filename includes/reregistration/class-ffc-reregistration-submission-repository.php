@@ -4,6 +4,16 @@
  *
  * Handles database operations for individual user responses to reregistration campaigns.
  *
+ * Delegating façade over the read/write split introduced in #563 (Sprint D2):
+ * reads live in {@see ReregistrationSubmissionReader}, writes in
+ * {@see ReregistrationSubmissionWriter}. This class keeps the public contract
+ * (constants + method signatures) and forwards each call to the appropriate
+ * side.
+ *
+ * Tech-debt (#563 B3): migrate call sites to depend on
+ * ReregistrationSubmissionReader / ReregistrationSubmissionWriter directly,
+ * then retire this delegating façade.
+ *
  * @package FreeFormCertificate\Reregistration
  * @since 4.11.0
  */
@@ -16,23 +26,12 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 /**
  * Database repository for reregistration submission records.
  *
  * @phpstan-type ReregistrationSubmissionRow \stdClass&object{id: string, reregistration_id: string, user_id: string, status: string, submitted_at: numeric-string|int|null, reviewed_at: numeric-string|int|null, reviewed_by: string|null, notes: string|null, auth_code: string|null, magic_token: string|null, created_at: string, updated_at: string, data?: string|null}
  */
 class ReregistrationSubmissionRepository {
-	use \FreeFormCertificate\Core\StaticRepositoryTrait;
-
-	/**
-	 * Cache group for reregistration submission queries.
-	 *
-	 * @return string
-	 */
-	protected static function cache_group(): string {
-		return 'ffc_rereg_submissions';
-	}
 
 	/**
 	 * Valid submission statuses.
@@ -45,14 +44,7 @@ class ReregistrationSubmissionRepository {
 	 * @return array<string, string> Status key => translated label.
 	 */
 	public static function get_status_labels(): array {
-		return array(
-			'pending'     => __( 'Pending', 'ffcertificate' ),
-			'in_progress' => __( 'In Progress', 'ffcertificate' ),
-			'submitted'   => __( 'Submitted — Pending Review', 'ffcertificate' ),
-			'approved'    => __( 'Approved', 'ffcertificate' ),
-			'rejected'    => __( 'Rejected', 'ffcertificate' ),
-			'expired'     => __( 'Expired', 'ffcertificate' ),
-		);
+		return ReregistrationSubmissionReader::get_status_labels();
 	}
 
 	/**
@@ -62,8 +54,7 @@ class ReregistrationSubmissionRepository {
 	 * @return string Translated label (falls back to the key).
 	 */
 	public static function get_status_label( string $status ): string {
-		$labels = self::get_status_labels();
-		return $labels[ $status ] ?? $status;
+		return ReregistrationSubmissionReader::get_status_label( $status );
 	}
 
 	/**
@@ -72,7 +63,7 @@ class ReregistrationSubmissionRepository {
 	 * @return string
 	 */
 	public static function get_table_name(): string {
-		return self::db()->prefix . 'ffc_reregistration_submissions';
+		return ReregistrationSubmissionReader::get_table_name();
 	}
 
 	/**
@@ -82,28 +73,7 @@ class ReregistrationSubmissionRepository {
 	 * @return ReregistrationSubmissionRow|null
 	 */
 	public static function get_by_id( int $id ): ?object {
-		$cached = static::cache_get( "id_{$id}" );
-		if ( false !== $cached ) {
-			return $cached;
-		}
-
-		$wpdb  = self::db();
-		$table = self::get_table_name();
-
-		/**
-		 * Cast wpdb result to typed shape.
-		 *
-		 * @var ReregistrationSubmissionRow|null $result
-		 */
-		$result = $wpdb->get_row(
-			$wpdb->prepare( 'SELECT * FROM %i WHERE id = %d', $table, $id )
-		);
-
-		if ( $result ) {
-			static::cache_set( "id_{$id}", $result );
-		}
-
-		return $result;
+		return ReregistrationSubmissionReader::get_by_id( $id );
 	}
 
 	/**
@@ -114,29 +84,7 @@ class ReregistrationSubmissionRepository {
 	 * @return ReregistrationSubmissionRow|null
 	 */
 	public static function get_by_auth_code( string $auth_code ): ?object {
-		if ( empty( $auth_code ) ) {
-			return null;
-		}
-
-		$wpdb  = self::db();
-		$table = self::get_table_name();
-
-		/**
-		 * Cast wpdb result to typed shape.
-		 *
-		 * @var ReregistrationSubmissionRow|null $row
-		 */
-		$row = $wpdb->get_row(
-			// 6.7.4 — Include `expired` so a submission that was approved
-			// before the campaign closed still surfaces from its auth code.
-			// The status flip approved → expired happens for housekeeping
-			// when the campaign window ends; the auth code stays valid and
-			// the participant must keep the ability to reach the ficha
-			// they earned. `rejected` / `pending` / `in_progress` still
-			// excluded — those never had a code generated anyway.
-			$wpdb->prepare( "SELECT * FROM %i WHERE auth_code = %s AND status IN ('submitted', 'approved', 'expired')", $table, $auth_code )
-		);
-		return $row;
+		return ReregistrationSubmissionReader::get_by_auth_code( $auth_code );
 	}
 
 	/**
@@ -147,25 +95,7 @@ class ReregistrationSubmissionRepository {
 	 * @return ReregistrationSubmissionRow|null
 	 */
 	public static function get_by_magic_token( string $token ): ?object {
-		if ( empty( $token ) ) {
-			return null;
-		}
-
-		$wpdb  = self::db();
-		$table = self::get_table_name();
-
-		/**
-		 * Cast wpdb result to typed shape.
-		 *
-		 * @var ReregistrationSubmissionRow|null $row
-		 */
-		$row = $wpdb->get_row(
-			// 6.7.4 — Same `expired` inclusion as get_by_auth_code() above.
-			// Magic links printed on (or emailed about) an approved ficha
-			// must keep working after the parent campaign ends.
-			$wpdb->prepare( "SELECT * FROM %i WHERE magic_token = %s AND status IN ('submitted', 'approved', 'expired')", $table, $token )
-		);
-		return $row;
+		return ReregistrationSubmissionReader::get_by_magic_token( $token );
 	}
 
 	/**
@@ -176,14 +106,7 @@ class ReregistrationSubmissionRepository {
 	 * @return string The magic_token (existing or newly generated).
 	 */
 	public static function ensure_magic_token( object $submission ): string {
-		if ( ! empty( $submission->magic_token ) ) {
-			return $submission->magic_token;
-		}
-
-		$token = bin2hex( random_bytes( 32 ) );
-		self::update( (int) $submission->id, array( 'magic_token' => $token ) );
-
-		return $token;
+		return ReregistrationSubmissionWriter::ensure_magic_token( $submission );
 	}
 
 	/**
@@ -194,23 +117,7 @@ class ReregistrationSubmissionRepository {
 	 * @return ReregistrationSubmissionRow|null
 	 */
 	public static function get_by_reregistration_and_user( int $reregistration_id, int $user_id ): ?object {
-		$wpdb  = self::db();
-		$table = self::get_table_name();
-
-		/**
-		 * Cast wpdb result to typed shape.
-		 *
-		 * @var ReregistrationSubmissionRow|null $row
-		 */
-		$row = $wpdb->get_row(
-			$wpdb->prepare(
-				'SELECT * FROM %i WHERE reregistration_id = %d AND user_id = %d',
-				$table,
-				$reregistration_id,
-				$user_id
-			)
-		);
-		return $row;
+		return ReregistrationSubmissionReader::get_by_reregistration_and_user( $reregistration_id, $user_id );
 	}
 
 	/**
@@ -223,30 +130,7 @@ class ReregistrationSubmissionRepository {
 	 * @return list<ReregistrationSubmissionRow>
 	 */
 	public static function get_all_by_user( int $user_id ): array {
-		$wpdb        = self::db();
-		$table       = self::get_table_name();
-		$rereg_table = ReregistrationRepository::get_table_name();
-
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
-		$results = $wpdb->get_results(
-			$wpdb->prepare(
-				'SELECT s.*, r.title AS reregistration_title, r.start_date, r.end_date, r.status AS reregistration_status
-                 FROM %i s
-                 INNER JOIN %i r ON s.reregistration_id = r.id
-                 WHERE s.user_id = %d
-                 ORDER BY r.start_date DESC, s.created_at DESC',
-				$table,
-				$rereg_table,
-				$user_id
-			)
-		);
-
-		/**
-		 * Cast wpdb result to typed shape.
-		 *
-		 * @var list<ReregistrationSubmissionRow>
-		 */
-		return is_array( $results ) ? $results : array();
+		return ReregistrationSubmissionReader::get_all_by_user( $user_id );
 	}
 
 	/**
@@ -264,116 +148,17 @@ class ReregistrationSubmissionRepository {
 	 * @return list<ReregistrationSubmissionRow>
 	 */
 	public static function get_by_reregistration( int $reregistration_id, array $filters = array() ): array {
-		$wpdb  = self::db();
-		$table = self::get_table_name();
-
-		$defaults = array(
-			'status'  => null,
-			'search'  => null,
-			'orderby' => 'created_at',
-			'order'   => 'ASC',
-			'limit'   => 0,
-			'offset'  => 0,
-		);
-		$filters  = wp_parse_args( $filters, $defaults );
-
-		$where  = array( 's.reregistration_id = %d' );
-		$values = array( $reregistration_id );
-
-		if ( null !== $filters['status'] ) {
-			$where[]  = 's.status = %s';
-			$values[] = $filters['status'];
-		}
-
-		if ( ! empty( $filters['search'] ) ) {
-			$like     = '%' . $wpdb->esc_like( $filters['search'] ) . '%';
-			$where[]  = '(u.display_name LIKE %s OR u.user_email LIKE %s)';
-			$values[] = $like;
-			$values[] = $like;
-		}
-
-		$where_clause = 'WHERE ' . implode( ' AND ', $where );
-
-		$allowed_orderby = array( 'created_at', 'submitted_at', 'reviewed_at', 'status' );
-		$orderby         = in_array( $filters['orderby'], $allowed_orderby, true ) ? 's.' . $filters['orderby'] : 's.created_at';
-		$order           = strtoupper( $filters['order'] ) === 'DESC' ? 'DESC' : 'ASC';
-		$limit_clause    = $filters['limit'] > 0 ? sprintf( 'LIMIT %d OFFSET %d', $filters['limit'], $filters['offset'] ) : '';
-
-		$sql = "SELECT s.*, u.display_name AS user_name, u.user_email AS user_email
-                FROM %i s
-                LEFT JOIN %i u ON s.user_id = u.ID
-                {$where_clause}
-                ORDER BY {$orderby} {$order}
-                {$limit_clause}";
-
-		$prepare_values = array_merge( array( $table, $wpdb->users ), $values );
-
-        // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
-		/**
-		 * Description.
-		 *
-		 * @phpstan-ignore-next-line argument.type
-		 */
-		return $wpdb->get_results( $wpdb->prepare( $sql, $prepare_values ) );
+		return ReregistrationSubmissionReader::get_by_reregistration( $reregistration_id, $filters );
 	}
 
 	/**
 	 * Create a submission record.
 	 *
-	 * Create.
-	 *
-	 * Create.
-	 *
-	 * Create.
-	 *
-	 * Create.
-	 *
-	 * Create.
-	 *
 	 * @param array<string, mixed> $data Submission data.
 	 * @return int|false Submission ID or false.
 	 */
 	public static function create( array $data ) {
-		$wpdb  = self::db();
-		$table = self::get_table_name();
-
-		$defaults = array(
-			'reregistration_id' => 0,
-			'user_id'           => 0,
-			'data'              => null,
-			'status'            => 'pending',
-			'submitted_at'      => null,
-			'reviewed_at'       => null,
-			'reviewed_by'       => null,
-			'notes'             => null,
-		);
-		$data     = wp_parse_args( $data, $defaults );
-
-		$insert_data   = array(
-			'reregistration_id' => (int) $data['reregistration_id'],
-			'user_id'           => (int) $data['user_id'],
-			'status'            => $data['status'],
-		);
-		$insert_format = array( '%d', '%d', '%s' );
-
-		if ( null !== $data['data'] ) {
-			$insert_data['data'] = is_string( $data['data'] ) ? $data['data'] : wp_json_encode( $data['data'] );
-			$insert_format[]     = '%s';
-		}
-
-		if ( null !== $data['submitted_at'] ) {
-			$insert_data['submitted_at'] = $data['submitted_at'];
-			$insert_format[]             = '%s';
-		}
-
-		if ( null !== $data['notes'] ) {
-			$insert_data['notes'] = sanitize_textarea_field( $data['notes'] );
-			$insert_format[]      = '%s';
-		}
-
-		$result = $wpdb->insert( $table, $insert_data, $insert_format );
-
-		return $result ? $wpdb->insert_id : false;
+		return ReregistrationSubmissionWriter::create( $data );
 	}
 
 	/**
@@ -384,62 +169,7 @@ class ReregistrationSubmissionRepository {
 	 * @return bool
 	 */
 	public static function update( int $id, array $data ): bool {
-		$wpdb  = self::db();
-		$table = self::get_table_name();
-
-		unset( $data['id'], $data['reregistration_id'], $data['user_id'], $data['created_at'] );
-
-		if ( empty( $data ) ) {
-			return false;
-		}
-
-		$update_data = array();
-		$format      = array();
-
-		$field_formats = array(
-			'data'         => '%s',
-			'status'       => '%s',
-			// `submitted_at`/`reviewed_at` are unix UTC int since 6.6.0 (#249 sub-escopos b/d).
-			'submitted_at' => '%d',
-			'reviewed_at'  => '%d',
-			'reviewed_by'  => '%d',
-			'notes'        => '%s',
-			'auth_code'    => '%s',
-			'magic_token'  => '%s',
-		);
-
-		foreach ( $data as $key => $value ) {
-			if ( ! isset( $field_formats[ $key ] ) ) {
-				continue;
-			}
-
-			if ( 'data' === $key && ! is_string( $value ) ) {
-				$value = wp_json_encode( $value );
-			}
-
-			if ( 'notes' === $key && null !== $value ) {
-				$value = sanitize_textarea_field( $value );
-			}
-
-			$update_data[ $key ] = $value;
-			$format[]            = $field_formats[ $key ];
-		}
-
-		if ( empty( $update_data ) ) {
-			return false;
-		}
-
-		$result = $wpdb->update(
-			$table,
-			$update_data,
-			array( 'id' => $id ),
-			$format,
-			array( '%d' )
-		);
-
-		static::cache_delete( "id_{$id}" );
-
-		return false !== $result;
+		return ReregistrationSubmissionWriter::update( $id, $data );
 	}
 
 	/**
@@ -450,18 +180,7 @@ class ReregistrationSubmissionRepository {
 	 * @return bool
 	 */
 	public static function approve( int $id, int $reviewer_id ): bool {
-		$result = self::update(
-			$id,
-			array(
-				'status'      => 'approved',
-				'reviewed_at' => time(),
-				'reviewed_by' => $reviewer_id,
-			)
-		);
-
-		static::cache_delete( "id_{$id}" );
-
-		return $result;
+		return ReregistrationSubmissionWriter::approve( $id, $reviewer_id );
 	}
 
 	/**
@@ -473,19 +192,7 @@ class ReregistrationSubmissionRepository {
 	 * @return bool
 	 */
 	public static function reject( int $id, int $reviewer_id, string $notes = '' ): bool {
-		$result = self::update(
-			$id,
-			array(
-				'status'      => 'rejected',
-				'reviewed_at' => time(),
-				'reviewed_by' => $reviewer_id,
-				'notes'       => $notes,
-			)
-		);
-
-		static::cache_delete( "id_{$id}" );
-
-		return $result;
+		return ReregistrationSubmissionWriter::reject( $id, $reviewer_id, $notes );
 	}
 
 	/**
@@ -499,26 +206,7 @@ class ReregistrationSubmissionRepository {
 	 * @return bool
 	 */
 	public static function return_to_draft( int $id, int $reviewer_id ): bool {
-		$wpdb  = self::db();
-		$table = self::get_table_name();
-
-		$result = $wpdb->update(
-			$table,
-			array(
-				'status'       => 'in_progress',
-				'submitted_at' => null,
-				'reviewed_at'  => null,
-				'reviewed_by'  => null,
-				'notes'        => null,
-			),
-			array( 'id' => $id ),
-			array( '%s', '%s', '%s', '%s', '%s' ),
-			array( '%d' )
-		);
-
-		static::cache_delete( "id_{$id}" );
-
-		return false !== $result;
+		return ReregistrationSubmissionWriter::return_to_draft( $id, $reviewer_id );
 	}
 
 	/**
@@ -529,13 +217,7 @@ class ReregistrationSubmissionRepository {
 	 * @return int Number of submissions returned to draft.
 	 */
 	public static function bulk_return_to_draft( array $ids, int $reviewer_id ): int {
-		$count = 0;
-		foreach ( $ids as $id ) {
-			if ( self::return_to_draft( (int) $id, $reviewer_id ) ) {
-				++$count;
-			}
-		}
-		return $count;
+		return ReregistrationSubmissionWriter::bulk_return_to_draft( $ids, $reviewer_id );
 	}
 
 	/**
@@ -546,13 +228,7 @@ class ReregistrationSubmissionRepository {
 	 * @return int Number of approved submissions.
 	 */
 	public static function bulk_approve( array $ids, int $reviewer_id ): int {
-		$count = 0;
-		foreach ( $ids as $id ) {
-			if ( self::approve( (int) $id, $reviewer_id ) ) {
-				++$count;
-			}
-		}
-		return $count;
+		return ReregistrationSubmissionWriter::bulk_approve( $ids, $reviewer_id );
 	}
 
 	/**
@@ -562,40 +238,7 @@ class ReregistrationSubmissionRepository {
 	 * @return array<string, int> Counts keyed by status.
 	 */
 	public static function get_statistics( int $reregistration_id ): array {
-		$wpdb  = self::db();
-		$table = self::get_table_name();
-
-		$results_raw = $wpdb->get_results(
-			$wpdb->prepare(
-				'SELECT status, COUNT(*) as count FROM %i
-                WHERE reregistration_id = %d GROUP BY status',
-				$table,
-				$reregistration_id
-			)
-		);
-		/**
-		 * Cast wpdb result to typed shape.
-		 *
-		 * @var list<\stdClass&object{status: string, count: numeric-string}> $results
-		 */
-		$results = is_array( $results_raw ) ? $results_raw : array();
-
-		$stats = array(
-			'total'       => 0,
-			'pending'     => 0,
-			'in_progress' => 0,
-			'submitted'   => 0,
-			'approved'    => 0,
-			'rejected'    => 0,
-			'expired'     => 0,
-		);
-
-		foreach ( $results as $row ) {
-			$stats[ $row->status ] = (int) $row->count;
-			$stats['total']       += (int) $row->count;
-		}
-
-		return $stats;
+		return ReregistrationSubmissionReader::get_statistics( $reregistration_id );
 	}
 
 	/**
@@ -606,9 +249,7 @@ class ReregistrationSubmissionRepository {
 	 * @return list<ReregistrationSubmissionRow>
 	 */
 	public static function get_for_export( int $reregistration_id, array $filters = array() ): array {
-		$filters['limit']  = 0;
-		$filters['offset'] = 0;
-		return self::get_by_reregistration( $reregistration_id, $filters );
+		return ReregistrationSubmissionReader::get_for_export( $reregistration_id, $filters );
 	}
 
 	/**
@@ -623,22 +264,7 @@ class ReregistrationSubmissionRepository {
 	 * @return \Generator<int, ReregistrationSubmissionRow>
 	 */
 	public static function stream_for_export( int $reregistration_id, array $filters = array(), int $chunk_size = 500 ): \Generator {
-		$offset = 0;
-		while ( true ) {
-			$filters['limit']  = $chunk_size;
-			$filters['offset'] = $offset;
-			$rows              = self::get_by_reregistration( $reregistration_id, $filters );
-			if ( empty( $rows ) ) {
-				return;
-			}
-			foreach ( $rows as $row ) {
-				yield $row;
-			}
-			if ( count( $rows ) < $chunk_size ) {
-				return;
-			}
-			$offset += $chunk_size;
-		}
+		return ReregistrationSubmissionReader::stream_for_export( $reregistration_id, $filters, $chunk_size );
 	}
 
 	/**
@@ -651,30 +277,7 @@ class ReregistrationSubmissionRepository {
 	 * @return int Number of submissions created.
 	 */
 	public static function create_for_audience_members( int $reregistration_id, array $audience_ids ): int {
-		$user_ids = ReregistrationRepository::get_user_ids_for_audiences( $audience_ids );
-		$created  = 0;
-
-		foreach ( $user_ids as $user_id ) {
-			// Check if submission already exists.
-			$existing = self::get_by_reregistration_and_user( $reregistration_id, $user_id );
-			if ( $existing ) {
-				continue;
-			}
-
-			$result = self::create(
-				array(
-					'reregistration_id' => $reregistration_id,
-					'user_id'           => $user_id,
-					'status'            => 'pending',
-				)
-			);
-
-			if ( $result ) {
-				++$created;
-			}
-		}
-
-		return $created;
+		return ReregistrationSubmissionWriter::create_for_audience_members( $reregistration_id, $audience_ids );
 	}
 
 	/**
@@ -685,19 +288,6 @@ class ReregistrationSubmissionRepository {
 	 * @return int
 	 */
 	public static function count_by_reregistration( int $reregistration_id, ?string $status = null ): int {
-		$wpdb  = self::db();
-		$table = self::get_table_name();
-
-		$where  = 'WHERE reregistration_id = %d';
-		$values = array( $reregistration_id );
-
-		if ( null !== $status ) {
-			$where   .= ' AND status = %s';
-			$values[] = $status;
-		}
-
-		return (int) $wpdb->get_var(
-			$wpdb->prepare( "SELECT COUNT(*) FROM %i {$where}", array_merge( array( $table ), $values ) )
-		);
+		return ReregistrationSubmissionReader::count_by_reregistration( $reregistration_id, $status );
 	}
 }
