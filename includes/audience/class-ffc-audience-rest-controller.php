@@ -249,7 +249,7 @@ class AudienceRestController {
 		}
 
 		$booking_id = $request->get_param( 'id' );
-		$booking    = AudienceBookingRepository::get_by_id( $booking_id );
+		$booking    = AudienceBookingReader::get_by_id( $booking_id );
 
 		if ( ! $booking ) {
 			return false;
@@ -297,7 +297,7 @@ class AudienceRestController {
 		}
 
 		// Get bookings.
-		$bookings = AudienceBookingRepository::get_all( $args );
+		$bookings = AudienceBookingReader::get_all( $args );
 
 		// Get user info for each booking.
 		$user_id      = get_current_user_id();
@@ -307,7 +307,7 @@ class AudienceRestController {
 		// Transform bookings for response.
 		$bookings_data = array_map(
 			function ( $booking ) use ( $user_id, $is_logged_in, $has_bypass ) {
-				$audiences = AudienceBookingRepository::get_booking_audiences( (int) $booking->id );
+				$audiences = AudienceBookingReader::get_booking_audiences( (int) $booking->id );
 
 				// Non-logged-in users get public data (no personal details like created_by).
 				if ( ! $is_logged_in ) {
@@ -553,7 +553,7 @@ class AudienceRestController {
 		}
 
 		// Check for time slot conflicts (environment double-booking).
-		$conflicts = AudienceBookingRepository::get_conflicts( $environment_id, $booking_date, $start_time, $end_time );
+		$conflicts = AudienceBookingReader::get_conflicts( $environment_id, $booking_date, $start_time, $end_time );
 		if ( ! empty( $conflicts ) ) {
 			return new \WP_REST_Response(
 				array(
@@ -585,7 +585,7 @@ class AudienceRestController {
 		do_action( 'ffcertificate_before_audience_booking_create', $booking_data );
 
 		// Create the booking.
-		$booking_id = AudienceBookingRepository::create( $booking_data );
+		$booking_id = AudienceBookingWriter::create( $booking_data );
 
 		if ( ! $booking_id ) {
 			return new \WP_REST_Response(
@@ -632,7 +632,7 @@ class AudienceRestController {
 			);
 		}
 
-		$booking = AudienceBookingRepository::get_by_id( $booking_id );
+		$booking = AudienceBookingReader::get_by_id( $booking_id );
 		if ( ! $booking ) {
 			return new \WP_REST_Response(
 				array(
@@ -654,7 +654,7 @@ class AudienceRestController {
 		}
 
 		// Cancel the booking.
-		$result = AudienceBookingRepository::cancel( $booking_id, $reason );
+		$result = AudienceBookingWriter::cancel( $booking_id, $reason );
 
 		if ( ! $result ) {
 			return new \WP_REST_Response(
@@ -727,7 +727,7 @@ class AudienceRestController {
 			$is_hard_conflict = false;
 
 			// 1. Check environment time slot conflicts (hard conflict)
-			$env_conflicts = AudienceBookingRepository::get_conflicts( $environment_id, $booking_date, $start_time, $end_time );
+			$env_conflicts = AudienceBookingReader::get_conflicts( $environment_id, $booking_date, $start_time, $end_time );
 			if ( ! empty( $env_conflicts ) ) {
 				$response_data['type']     = 'environment';
 				$response_data['message']  = __( 'Time slot already booked for this environment.', 'ffcertificate' );
@@ -746,7 +746,7 @@ class AudienceRestController {
 
 			// 2. Check same audience group on same day (soft conflict)
 			if ( ! $is_hard_conflict && ! empty( $audience_ids ) ) {
-				$same_day = AudienceBookingRepository::get_audience_same_day_bookings( $booking_date, $audience_ids, null, $scope_schedule_id );
+				$same_day = AudienceBookingReader::get_audience_same_day_bookings( $booking_date, $audience_ids, null, $scope_schedule_id );
 				if ( ! empty( $same_day ) ) {
 					$response_data['audience_same_day'] = array_map(
 						function ( $b ) {
@@ -766,7 +766,7 @@ class AudienceRestController {
 			// 3. Check user conflicts — members with overlapping bookings (soft conflict)
 			// Only check if no hard conflict detected.
 			if ( ! $is_hard_conflict ) {
-				$user_conflicts = AudienceBookingRepository::get_user_conflicts(
+				$user_conflicts = AudienceBookingReader::get_user_conflicts(
 					$booking_date,
 					$start_time,
 					$end_time,

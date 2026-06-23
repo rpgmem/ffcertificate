@@ -188,7 +188,8 @@ class AudienceAjaxControllerTest extends TestCase {
 		Functions\when( 'sanitize_textarea_field' )->returnArg();
 		$_POST = array( 'nonce' => 'n', 'booking_id' => '9' );
 
-		$repo = Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceBookingRepository' );
+		$repo = Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceBookingReader' );
+		$repo_w = Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceBookingWriter' );
 		$repo->shouldReceive( 'get_by_id' )->with( 9 )->andReturn( null );
 
 		$this->dispatch( fn() => ( new AudienceAjaxController() )->ajax_cancel_booking() );
@@ -202,7 +203,8 @@ class AudienceAjaxControllerTest extends TestCase {
 		Functions\when( 'sanitize_textarea_field' )->returnArg();
 		$_POST = array( 'nonce' => 'n', 'booking_id' => '9' );
 
-		$repo = Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceBookingRepository' );
+		$repo = Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceBookingReader' );
+		$repo_w = Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceBookingWriter' );
 		$repo->shouldReceive( 'get_by_id' )->with( 9 )->andReturn( (object) array( 'status' => 'cancelled' ) );
 
 		$this->dispatch( fn() => ( new AudienceAjaxController() )->ajax_cancel_booking() );
@@ -216,9 +218,10 @@ class AudienceAjaxControllerTest extends TestCase {
 		Functions\when( 'sanitize_textarea_field' )->returnArg();
 		$_POST = array( 'nonce' => 'n', 'booking_id' => '9', 'reason' => 'x' );
 
-		$repo = Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceBookingRepository' );
+		$repo = Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceBookingReader' );
+		$repo_w = Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceBookingWriter' );
 		$repo->shouldReceive( 'get_by_id' )->with( 9 )->andReturn( (object) array( 'status' => 'active' ) );
-		$repo->shouldReceive( 'cancel' )->with( 9, 'x' )->andReturn( false );
+		$repo_w->shouldReceive( 'cancel' )->with( 9, 'x' )->andReturn( false );
 
 		$this->dispatch( fn() => ( new AudienceAjaxController() )->ajax_cancel_booking() );
 
@@ -232,9 +235,10 @@ class AudienceAjaxControllerTest extends TestCase {
 		Functions\when( 'do_action' )->justReturn( null );
 		$_POST = array( 'nonce' => 'n', 'booking_id' => '9', 'reason' => 'x' );
 
-		$repo = Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceBookingRepository' );
+		$repo = Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceBookingReader' );
+		$repo_w = Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceBookingWriter' );
 		$repo->shouldReceive( 'get_by_id' )->with( 9 )->andReturn( (object) array( 'status' => 'active' ) );
-		$repo->shouldReceive( 'cancel' )->with( 9, 'x' )->andReturn( true );
+		$repo_w->shouldReceive( 'cancel' )->with( 9, 'x' )->andReturn( true );
 
 		$this->dispatch( fn() => ( new AudienceAjaxController() )->ajax_cancel_booking() );
 
@@ -258,7 +262,8 @@ class AudienceAjaxControllerTest extends TestCase {
 		$this->mockUtils();
 		$_POST = array( 'nonce' => 'n', 'booking_id' => '4' );
 
-		$repo = Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceBookingRepository' );
+		$repo = Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceBookingReader' );
+		$repo_w = Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceBookingWriter' );
 		$repo->shouldReceive( 'get_by_id' )->with( 4 )->andReturn( null );
 
 		$this->dispatch( fn() => ( new AudienceAjaxController() )->ajax_get_booking() );
@@ -289,7 +294,8 @@ class AudienceAjaxControllerTest extends TestCase {
 			'users'            => array( 7 ),
 		);
 
-		$repo = Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceBookingRepository' );
+		$repo = Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceBookingReader' );
+		$repo_w = Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceBookingWriter' );
 		$repo->shouldReceive( 'get_by_id' )->with( 4 )->andReturn( $booking );
 
 		Functions\when( 'get_userdata' )->alias(
@@ -332,7 +338,8 @@ class AudienceAjaxControllerTest extends TestCase {
 			'users'            => array(),
 		);
 
-		$repo = Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceBookingRepository' );
+		$repo = Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceBookingReader' );
+		$repo_w = Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceBookingWriter' );
 		$repo->shouldReceive( 'get_by_id' )->with( 4 )->andReturn( $booking );
 
 		Functions\when( 'get_userdata' )->justReturn( false );

@@ -119,7 +119,7 @@ final class AudienceAjaxController {
 				wp_send_json_error( array( 'message' => __( 'Invalid booking ID.', 'ffcertificate' ) ) );
 			}
 
-			$booking = AudienceBookingRepository::get_by_id( $booking_id );
+			$booking = AudienceBookingReader::get_by_id( $booking_id );
 			if ( ! $booking ) {
 				wp_send_json_error( array( 'message' => __( 'Booking not found.', 'ffcertificate' ) ) );
 			}
@@ -128,7 +128,7 @@ final class AudienceAjaxController {
 				wp_send_json_error( array( 'message' => __( 'Booking is already cancelled.', 'ffcertificate' ) ) );
 			}
 
-			$result = AudienceBookingRepository::cancel( $booking_id, $reason );
+			$result = AudienceBookingWriter::cancel( $booking_id, $reason );
 			if ( ! $result ) {
 				wp_send_json_error( array( 'message' => __( 'Failed to cancel booking.', 'ffcertificate' ) ) );
 			}
@@ -156,7 +156,7 @@ final class AudienceAjaxController {
 				wp_send_json_error( array( 'message' => __( 'Invalid booking ID.', 'ffcertificate' ) ) );
 			}
 
-			$booking = AudienceBookingRepository::get_by_id( $booking_id );
+			$booking = AudienceBookingReader::get_by_id( $booking_id );
 			if ( ! $booking ) {
 				wp_send_json_error( array( 'message' => __( 'Booking not found.', 'ffcertificate' ) ) );
 			}

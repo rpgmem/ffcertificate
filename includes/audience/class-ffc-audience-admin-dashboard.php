@@ -51,7 +51,7 @@ class AudienceAdminDashboard {
 			'schedules'         => AudienceScheduleRepository::count( array( 'status' => 'active' ) ),
 			'environments'      => AudienceEnvironmentRepository::count( array( 'status' => 'active' ) ),
 			'audiences'         => AudienceReader::count( array( 'status' => 'active' ) ),
-			'upcoming_bookings' => AudienceBookingRepository::count(
+			'upcoming_bookings' => AudienceBookingReader::count(
 				array(
 					'status'     => 'active',
 					'start_date' => current_time( 'Y-m-d' ),

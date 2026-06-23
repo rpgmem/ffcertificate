@@ -75,7 +75,7 @@ class AudienceAdminBookings {
 		}
 
 		// Get bookings.
-		$bookings = AudienceBookingRepository::get_all( $args );
+		$bookings = AudienceBookingReader::get_all( $args );
 
 		// Get schedules for filter.
 		$schedules = AudienceScheduleRepository::get_all();

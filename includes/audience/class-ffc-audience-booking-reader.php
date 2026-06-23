@@ -4,8 +4,9 @@
  *
  * Read-side of the audience-booking repository split (#563 backlog, A6). Holds
  * every SELECT / lookup / conflict-query and the read-only aggregation helpers.
- * Writes live in {@see AudienceBookingWriter}; {@see AudienceBookingRepository}
- * remains the public façade that delegates to both.
+ * Writes live in {@see AudienceBookingWriter}. Callers depend on this reader
+ * (reads) and the writer (writes) directly; the delegating façade was retired
+ * in #563 B3-A.
  *
  * @package FreeFormCertificate\Audience
  * @since 6.11.3
@@ -25,7 +26,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  *
  * @since 6.11.3
  *
- * @phpstan-import-type BookingRow from AudienceBookingRepository
+ * @phpstan-type BookingRow \stdClass&object{id: numeric-string, environment_id: numeric-string, booking_date: string, start_time: string, end_time: string, booking_type: string, description: string, status: string, created_by: numeric-string, created_at: string, cancelled_by: numeric-string|null, cancelled_at: string|null, cancellation_reason: string|null, is_all_day?: numeric-string, environment_name?: string|null, schedule_id?: numeric-string|null, audience_name?: string, audience_id?: numeric-string, title?: string, audiences?: array<int, mixed>, users?: array<int, int>}
  */
 class AudienceBookingReader {
 	use \FreeFormCertificate\Core\StaticRepositoryTrait;
