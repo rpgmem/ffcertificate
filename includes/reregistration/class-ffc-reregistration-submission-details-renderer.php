@@ -22,7 +22,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  * Reregistration Submission Details Renderer.
  *
  * @phpstan-import-type ReregistrationSubmissionRow from ReregistrationSubmissionReader
- * @phpstan-import-type CustomFieldRow from CustomFieldRepository
+ * @phpstan-import-type CustomFieldRow from CustomFieldReader
  */
 final class ReregistrationSubmissionDetailsRenderer {
 

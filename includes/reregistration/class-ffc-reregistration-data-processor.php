@@ -41,7 +41,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  *
  * @phpstan-import-type ReregistrationRow from ReregistrationRepository
  * @phpstan-import-type ReregistrationSubmissionRow from ReregistrationSubmissionReader
- * @phpstan-import-type CustomFieldRow from CustomFieldRepository
+ * @phpstan-import-type CustomFieldRow from CustomFieldReader
  */
 class ReregistrationDataProcessor {
 
@@ -93,7 +93,7 @@ class ReregistrationDataProcessor {
 
 		foreach ( $fields as $field ) {
 			// Display-only blocks (e.g. acknowledgment) carry no user value.
-			if ( in_array( (string) $field->field_type, CustomFieldRepository::DISPLAY_ONLY_TYPES, true ) ) {
+			if ( in_array( (string) $field->field_type, CustomFieldReader::DISPLAY_ONLY_TYPES, true ) ) {
 				continue;
 			}
 
@@ -178,7 +178,7 @@ class ReregistrationDataProcessor {
 
 		foreach ( $fields as $field ) {
 			// Display-only blocks (e.g. acknowledgment) have nothing to validate.
-			if ( in_array( (string) $field->field_type, CustomFieldRepository::DISPLAY_ONLY_TYPES, true ) ) {
+			if ( in_array( (string) $field->field_type, CustomFieldReader::DISPLAY_ONLY_TYPES, true ) ) {
 				continue;
 			}
 
@@ -199,7 +199,7 @@ class ReregistrationDataProcessor {
 			}
 
 			// Delegate type-aware validation to the repository helper.
-			$check = CustomFieldRepository::validate_field_value( $field, $value );
+			$check = CustomFieldReader::validate_field_value( $field, $value );
 			if ( is_wp_error( $check ) ) {
 				$errors[ $name ] = $check->get_error_message();
 				continue;
@@ -211,7 +211,7 @@ class ReregistrationDataProcessor {
 			if ( 'dependent_select' === $field->field_type ) {
 				$decoded = is_string( $value ) ? json_decode( $value, true ) : $value;
 				if ( is_array( $decoded ) && ! empty( $decoded['parent'] ) && ! empty( $decoded['child'] ) ) {
-					$groups = CustomFieldRepository::get_dependent_choices( $field );
+					$groups = CustomFieldReader::get_dependent_choices( $field );
 					$parent = (string) $decoded['parent'];
 					$child  = (string) $decoded['child'];
 					if ( isset( $groups[ $parent ] ) && ! in_array( $child, $groups[ $parent ], true ) ) {
@@ -250,7 +250,7 @@ class ReregistrationDataProcessor {
 		$persisted_fields = array();
 		foreach ( $fields as $field ) {
 			// Display-only blocks (e.g. acknowledgment) are never persisted.
-			if ( in_array( (string) $field->field_type, CustomFieldRepository::DISPLAY_ONLY_TYPES, true ) ) {
+			if ( in_array( (string) $field->field_type, CustomFieldReader::DISPLAY_ONLY_TYPES, true ) ) {
 				continue;
 			}
 
@@ -372,7 +372,7 @@ class ReregistrationDataProcessor {
 	 * @param array<string, mixed> $values field_key => plain value.
 	 */
 	private static function store_user_snapshot( int $user_id, array $fields, array $values ): void {
-		$snapshot = CustomFieldRepository::get_user_data( $user_id );
+		$snapshot = CustomFieldReader::get_user_data( $user_id );
 
 		foreach ( $fields as $field ) {
 			if ( ! empty( $field->field_profile_key ) ) {
@@ -393,7 +393,7 @@ class ReregistrationDataProcessor {
 			$snapshot[ $key ] = $value;
 		}
 
-		CustomFieldRepository::save_user_data( $user_id, $snapshot );
+		CustomFieldWriter::save_user_data( $user_id, $snapshot );
 	}
 
 	/**
@@ -409,7 +409,7 @@ class ReregistrationDataProcessor {
 		$seen         = array();
 
 		foreach ( $audience_ids as $aud_id ) {
-			$fields = CustomFieldRepository::get_by_audience_with_parents( (int) $aud_id, true );
+			$fields = CustomFieldReader::get_by_audience_with_parents( (int) $aud_id, true );
 			foreach ( $fields as $field ) {
 				$id = (int) $field->id;
 				if ( ! isset( $seen[ $id ] ) ) {

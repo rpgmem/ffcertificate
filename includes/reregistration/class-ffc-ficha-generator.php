@@ -21,7 +21,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  * Generator for ficha output.
  *
  * @phpstan-import-type ReregistrationRow from ReregistrationRepository
- * @phpstan-import-type CustomFieldRow from CustomFieldRepository
+ * @phpstan-import-type CustomFieldRow from CustomFieldReader
  */
 class FichaGenerator {
 
@@ -491,7 +491,7 @@ class FichaGenerator {
 		$seen         = array();
 
 		foreach ( $audience_ids as $aud_id ) {
-			$fields = CustomFieldRepository::get_by_audience_with_parents( (int) $aud_id, true );
+			$fields = CustomFieldReader::get_by_audience_with_parents( (int) $aud_id, true );
 			foreach ( $fields as $field ) {
 				if ( ! isset( $seen[ (int) $field->id ] ) ) {
 					$seen[ (int) $field->id ] = true;

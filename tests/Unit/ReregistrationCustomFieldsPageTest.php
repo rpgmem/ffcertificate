@@ -105,7 +105,7 @@ class ReregistrationCustomFieldsPageTest extends TestCase {
             ->with( 'active' )
             ->andReturn( array( $parent ) );
 
-        $customFieldRepoMock = Mockery::mock( 'alias:FreeFormCertificate\Reregistration\CustomFieldRepository' );
+        $customFieldRepoMock = Mockery::mock( 'alias:FreeFormCertificate\Reregistration\CustomFieldReader' );
         $customFieldRepoMock->shouldReceive( 'count_by_audience' )
             ->andReturnUsing( function ( int $id, bool $active_only ) {
                 if ( $id === 1 ) return $active_only ? 3 : 5;

@@ -31,7 +31,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  *
  * @phpstan-import-type ReregistrationRow from ReregistrationRepository
  * @phpstan-import-type ReregistrationSubmissionRow from ReregistrationSubmissionReader
- * @phpstan-import-type CustomFieldRow from CustomFieldRepository
+ * @phpstan-import-type CustomFieldRow from CustomFieldReader
  * @phpstan-import-type AudienceRow from \FreeFormCertificate\Audience\AudienceReader
  */
 class ReregistrationAdmin {

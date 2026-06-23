@@ -265,8 +265,8 @@ final class SensitiveFieldRegistry {
 
 		$keys = array();
 
-		if ( class_exists( '\\FreeFormCertificate\\Reregistration\\CustomFieldRepository' ) ) {
-			foreach ( \FreeFormCertificate\Reregistration\CustomFieldRepository::list_sensitive_field_keys() as $field_key ) {
+		if ( class_exists( '\\FreeFormCertificate\\Reregistration\\CustomFieldReader' ) ) {
+			foreach ( \FreeFormCertificate\Reregistration\CustomFieldReader::list_sensitive_field_keys() as $field_key ) {
 				$keys[ $field_key ] = true;
 			}
 		}

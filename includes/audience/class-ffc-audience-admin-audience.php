@@ -23,7 +23,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  * Handles audience CRUD rendering and actions.
  *
  * @phpstan-import-type AudienceRow from AudienceReader
- * @phpstan-import-type CustomFieldRow from \FreeFormCertificate\Reregistration\CustomFieldRepository
+ * @phpstan-import-type CustomFieldRow from \FreeFormCertificate\Reregistration\CustomFieldReader
  */
 class AudienceAdminAudience {
 

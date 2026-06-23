@@ -23,7 +23,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  * Audience Admin Audience Renderer.
  *
  * @phpstan-import-type AudienceRow from AudienceReader
- * @phpstan-import-type CustomFieldRow from \FreeFormCertificate\Reregistration\CustomFieldRepository
+ * @phpstan-import-type CustomFieldRow from \FreeFormCertificate\Reregistration\CustomFieldReader
  */
 final class AudienceAdminAudienceRenderer {
 
@@ -329,8 +329,8 @@ final class AudienceAdminAudienceRenderer {
 			\FreeFormCertificate\Reregistration\ReregistrationStandardFieldsSeeder::seed_for_audience( $audience_id );
 		}
 
-		$fields       = \FreeFormCertificate\Reregistration\CustomFieldRepository::get_by_audience( $audience_id, false );
-		$field_types  = \FreeFormCertificate\Reregistration\CustomFieldRepository::FIELD_TYPES;
+		$fields       = \FreeFormCertificate\Reregistration\CustomFieldReader::get_by_audience( $audience_id, false );
+		$field_types  = \FreeFormCertificate\Reregistration\CustomFieldReader::FIELD_TYPES;
 		$group_labels = class_exists( '\FreeFormCertificate\Reregistration\ReregistrationStandardFieldsSeeder' )
 			? \FreeFormCertificate\Reregistration\ReregistrationStandardFieldsSeeder::get_group_labels()
 			: array();

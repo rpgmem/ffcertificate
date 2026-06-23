@@ -93,8 +93,8 @@ class ReregistrationCustomFieldsPage {
 	 * @return void
 	 */
 	private static function render_row( object $audience, string $edit_base, bool $is_child = false ): void {
-		$count    = CustomFieldRepository::count_by_audience( (int) $audience->id, false );
-		$active   = CustomFieldRepository::count_by_audience( (int) $audience->id, true );
+		$count    = CustomFieldReader::count_by_audience( (int) $audience->id, false );
+		$active   = CustomFieldReader::count_by_audience( (int) $audience->id, true );
 		$edit_url = $edit_base . $audience->id . '#ffc-custom-fields';
 
 		?>

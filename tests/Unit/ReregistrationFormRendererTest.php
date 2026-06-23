@@ -102,7 +102,7 @@ class ReregistrationFormRendererTest extends TestCase {
      * Register alias mocks for the renderer's static repository dependencies.
      *
      * @param array<object> $fields Fields to expose through
-     *                              CustomFieldRepository::get_by_audience_with_parents.
+     *                              CustomFieldReader::get_by_audience_with_parents.
      */
     private function mockRepositories( array $fields = array() ): void {
         self::$mockFields = $fields;
@@ -110,7 +110,7 @@ class ReregistrationFormRendererTest extends TestCase {
         $reregRepoMock = Mockery::mock( 'alias:FreeFormCertificate\Reregistration\ReregistrationRepository' );
         $reregRepoMock->shouldReceive( 'get_audience_ids' )->andReturn( empty( $fields ) ? array() : array( 1 ) );
 
-        $customFieldRepoMock = Mockery::mock( 'alias:FreeFormCertificate\Reregistration\CustomFieldRepository' );
+        $customFieldRepoMock = Mockery::mock( 'alias:FreeFormCertificate\Reregistration\CustomFieldReader' );
         $customFieldRepoMock->shouldReceive( 'get_by_audience_with_parents' )->andReturn( $fields );
         $customFieldRepoMock->shouldReceive( 'get_user_data' )->andReturn( array() );
 

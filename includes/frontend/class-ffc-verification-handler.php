@@ -445,7 +445,7 @@ class VerificationHandler {
 		$sub_data = $submission->data ? json_decode( $submission->data, true ) : array();
 		$values   = is_array( $sub_data['fields'] ?? null ) ? $sub_data['fields'] : array();
 
-		if ( ! $rereg || ! class_exists( '\\FreeFormCertificate\\Reregistration\\CustomFieldRepository' ) ) {
+		if ( ! $rereg || ! class_exists( '\\FreeFormCertificate\\Reregistration\\CustomFieldReader' ) ) {
 			return $values;
 		}
 
@@ -458,7 +458,7 @@ class VerificationHandler {
 		$audience_ids = \FreeFormCertificate\Reregistration\ReregistrationRepository::get_audience_ids( (int) $rereg->id );
 		$seen         = array();
 		foreach ( $audience_ids as $aud_id ) {
-			$fields = \FreeFormCertificate\Reregistration\CustomFieldRepository::get_by_audience_with_parents( (int) $aud_id, true );
+			$fields = \FreeFormCertificate\Reregistration\CustomFieldReader::get_by_audience_with_parents( (int) $aud_id, true );
 			foreach ( $fields as $field ) {
 				if ( isset( $seen[ (int) $field->id ] ) ) {
 					continue;

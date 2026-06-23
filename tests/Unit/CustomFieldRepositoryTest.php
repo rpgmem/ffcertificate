@@ -8,13 +8,13 @@ use Brain\Monkey\Functions;
 use Mockery;
 use Mockery\Adapter\Phpunit\MockeryPHPUnitIntegration;
 use PHPUnit\Framework\TestCase;
-use FreeFormCertificate\Reregistration\CustomFieldRepository;
+use FreeFormCertificate\Reregistration\CustomFieldReader;
+use FreeFormCertificate\Reregistration\CustomFieldWriter;
 
 /**
- * Tests for CustomFieldRepository: table names, CRUD, caching, user data,
- * audience hierarchy traversal, and counting.
+ * Tests for the custom-field repository read/write split: table names, CRUD,
+ * caching, user data, audience hierarchy traversal, and counting.
  *
- * @covers \FreeFormCertificate\Reregistration\CustomFieldRepository
  * @covers \FreeFormCertificate\Reregistration\CustomFieldReader
  * @covers \FreeFormCertificate\Reregistration\CustomFieldWriter
  */
@@ -39,6 +39,11 @@ class CustomFieldRepositoryTest extends TestCase {
         Functions\when('wp_cache_set')->justReturn(true);
         Functions\when('wp_cache_delete')->justReturn(true);
         Functions\when('__')->returnArg();
+
+        // pcov does not record lines for files first autoloaded mid-test-method,
+        // so preload the reader/writer here for correct coverage attribution.
+        class_exists('\\FreeFormCertificate\\Reregistration\\CustomFieldReader');
+        class_exists('\\FreeFormCertificate\\Reregistration\\CustomFieldWriter');
         Functions\when('wp_parse_args')->alias(function($args, $defaults = array()) {
             return array_merge($defaults, $args);
         });
@@ -112,14 +117,14 @@ class CustomFieldRepositoryTest extends TestCase {
     // ==================================================================
 
     public function test_get_table_name_returns_correct_name(): void {
-        $this->assertSame('wp_ffc_custom_fields', CustomFieldRepository::get_table_name());
+        $this->assertSame('wp_ffc_custom_fields', CustomFieldReader::get_table_name());
     }
 
     public function test_get_table_name_uses_wpdb_prefix(): void {
         global $wpdb;
         $wpdb->prefix = 'test_';
 
-        $this->assertSame('test_ffc_custom_fields', CustomFieldRepository::get_table_name());
+        $this->assertSame('test_ffc_custom_fields', CustomFieldReader::get_table_name());
 
         // Restore
         $wpdb->prefix = 'wp_';
@@ -135,7 +140,7 @@ class CustomFieldRepositoryTest extends TestCase {
         $this->wpdb->shouldReceive('prepare')->once()->andReturn('QUERY');
         $this->wpdb->shouldReceive('get_row')->once()->andReturn($field);
 
-        $result = CustomFieldRepository::get_by_id(5);
+        $result = CustomFieldReader::get_by_id(5);
 
         $this->assertNotNull($result);
         $this->assertEquals(5, $result->id);
@@ -146,7 +151,7 @@ class CustomFieldRepositoryTest extends TestCase {
         $this->wpdb->shouldReceive('prepare')->once()->andReturn('QUERY');
         $this->wpdb->shouldReceive('get_row')->once()->andReturn(null);
 
-        $result = CustomFieldRepository::get_by_id(999);
+        $result = CustomFieldReader::get_by_id(999);
 
         $this->assertNull($result);
     }
@@ -161,7 +166,7 @@ class CustomFieldRepositoryTest extends TestCase {
         // wpdb should NOT be called since cache hit
         $this->wpdb->shouldNotReceive('get_row');
 
-        $result = CustomFieldRepository::get_by_id(7);
+        $result = CustomFieldReader::get_by_id(7);
 
         $this->assertNotNull($result);
         $this->assertEquals(7, $result->id);
@@ -180,7 +185,7 @@ class CustomFieldRepositoryTest extends TestCase {
         $this->wpdb->shouldReceive('prepare')->once()->andReturn('QUERY');
         $this->wpdb->shouldReceive('get_results')->once()->andReturn($fields);
 
-        $result = CustomFieldRepository::get_by_audience(10);
+        $result = CustomFieldReader::get_by_audience(10);
 
         $this->assertCount(2, $result);
     }
@@ -194,7 +199,7 @@ class CustomFieldRepositoryTest extends TestCase {
         $this->wpdb->shouldReceive('prepare')->once()->andReturn('QUERY');
         $this->wpdb->shouldReceive('get_results')->once()->andReturn($fields);
 
-        $result = CustomFieldRepository::get_by_audience(10, false);
+        $result = CustomFieldReader::get_by_audience(10, false);
 
         $this->assertCount(2, $result);
     }
@@ -203,7 +208,7 @@ class CustomFieldRepositoryTest extends TestCase {
         $this->wpdb->shouldReceive('prepare')->once()->andReturn('QUERY');
         $this->wpdb->shouldReceive('get_results')->once()->andReturn([]);
 
-        $result = CustomFieldRepository::get_by_audience(10);
+        $result = CustomFieldReader::get_by_audience(10);
 
         $this->assertSame([], $result);
     }
@@ -216,7 +221,7 @@ class CustomFieldRepositoryTest extends TestCase {
         });
         $this->wpdb->shouldReceive('get_results')->once()->andReturn([]);
 
-        CustomFieldRepository::get_by_audience(10, true);
+        CustomFieldReader::get_by_audience(10, true);
 
         $this->assertStringContainsString('is_active = 1', $captured_query);
     }
@@ -229,7 +234,7 @@ class CustomFieldRepositoryTest extends TestCase {
         });
         $this->wpdb->shouldReceive('get_results')->once()->andReturn([]);
 
-        CustomFieldRepository::get_by_audience(10, false);
+        CustomFieldReader::get_by_audience(10, false);
 
         $this->assertStringNotContainsString('is_active = 1', $captured_query);
     }
@@ -244,7 +249,7 @@ class CustomFieldRepositoryTest extends TestCase {
         $this->wpdb->shouldReceive('prepare')->andReturn('QUERY');
         $this->wpdb->shouldReceive('get_row')->andReturn(null);
 
-        $result = CustomFieldRepository::get_by_audience_with_parents(999);
+        $result = CustomFieldReader::get_by_audience_with_parents(999);
 
         $this->assertSame([], $result);
     }
@@ -266,7 +271,7 @@ class CustomFieldRepositoryTest extends TestCase {
             ->once()
             ->andReturn($fields);
 
-        $result = CustomFieldRepository::get_by_audience_with_parents(10);
+        $result = CustomFieldReader::get_by_audience_with_parents(10);
 
         $this->assertCount(2, $result);
         // Each field should have source_audience_id and source_audience_name
@@ -299,7 +304,7 @@ class CustomFieldRepositoryTest extends TestCase {
         $this->wpdb->shouldReceive('get_results')
             ->andReturn($grandparent_fields, $parent_fields, $child_fields);
 
-        $result = CustomFieldRepository::get_by_audience_with_parents(10);
+        $result = CustomFieldReader::get_by_audience_with_parents(10);
 
         // Should have 3 fields total, grandparent first, then parent, then child
         $this->assertCount(3, $result);
@@ -327,7 +332,7 @@ class CustomFieldRepositoryTest extends TestCase {
         $this->wpdb->shouldReceive('get_row')->andReturn($audience);
         $this->wpdb->shouldReceive('get_results')->once()->andReturn([$field]);
 
-        $result = CustomFieldRepository::get_by_audience_with_parents(10);
+        $result = CustomFieldReader::get_by_audience_with_parents(10);
 
         $this->assertCount(1, $result);
         $this->assertObjectHasProperty('source_audience_id', $result[0]);
@@ -348,7 +353,7 @@ class CustomFieldRepositoryTest extends TestCase {
 
         $this->wpdb->shouldReceive('insert')->once()->andReturn(1);
 
-        $result = CustomFieldRepository::create([
+        $result = CustomFieldWriter::create([
             'audience_id'   => 10,
             'field_key'     => 'my_field',
             'field_label'   => 'My Field',
@@ -366,7 +371,7 @@ class CustomFieldRepositoryTest extends TestCase {
 
         $this->wpdb->shouldReceive('insert')->once()->andReturn(false);
 
-        $result = CustomFieldRepository::create([
+        $result = CustomFieldWriter::create([
             'audience_id' => 10,
             'field_key'   => 'fail_field',
             'field_label' => 'Fail',
@@ -388,7 +393,7 @@ class CustomFieldRepositoryTest extends TestCase {
                 return 1;
             });
 
-        CustomFieldRepository::create([
+        CustomFieldWriter::create([
             'audience_id' => 5,
             'field_key'   => 'test',
             'field_label' => 'Test',
@@ -414,7 +419,7 @@ class CustomFieldRepositoryTest extends TestCase {
                 return 1;
             });
 
-        CustomFieldRepository::create([
+        CustomFieldWriter::create([
             'audience_id' => 5,
             'field_key'   => 'test',
             'field_label' => 'Test',
@@ -437,7 +442,7 @@ class CustomFieldRepositoryTest extends TestCase {
             });
 
         $options = ['choices' => ['A', 'B', 'C']];
-        CustomFieldRepository::create([
+        CustomFieldWriter::create([
             'audience_id'   => 5,
             'field_key'     => 'select_field',
             'field_label'   => 'Select',
@@ -461,7 +466,7 @@ class CustomFieldRepositoryTest extends TestCase {
             });
 
         $options_json = '{"choices":["X","Y"]}';
-        CustomFieldRepository::create([
+        CustomFieldWriter::create([
             'audience_id'   => 5,
             'field_key'     => 'select_field',
             'field_label'   => 'Select',
@@ -485,7 +490,7 @@ class CustomFieldRepositoryTest extends TestCase {
                 return 1;
             });
 
-        CustomFieldRepository::create([
+        CustomFieldWriter::create([
             'audience_id' => 5,
             'field_label' => 'My Test Label',
         ]);
@@ -501,7 +506,7 @@ class CustomFieldRepositoryTest extends TestCase {
     public function test_update_returns_true_on_success(): void {
         $this->wpdb->shouldReceive('update')->once()->andReturn(1);
 
-        $result = CustomFieldRepository::update(5, [
+        $result = CustomFieldWriter::update(5, [
             'field_label' => 'Updated Label',
         ]);
 
@@ -511,7 +516,7 @@ class CustomFieldRepositoryTest extends TestCase {
     public function test_update_returns_false_on_failure(): void {
         $this->wpdb->shouldReceive('update')->once()->andReturn(false);
 
-        $result = CustomFieldRepository::update(5, [
+        $result = CustomFieldWriter::update(5, [
             'field_label' => 'Updated Label',
         ]);
 
@@ -522,7 +527,7 @@ class CustomFieldRepositoryTest extends TestCase {
         // No wpdb calls should happen
         $this->wpdb->shouldNotReceive('update');
 
-        $result = CustomFieldRepository::update(5, []);
+        $result = CustomFieldWriter::update(5, []);
 
         $this->assertFalse($result);
     }
@@ -531,7 +536,7 @@ class CustomFieldRepositoryTest extends TestCase {
         // Passing only 'id' and 'created_at' should result in empty update data
         $this->wpdb->shouldNotReceive('update');
 
-        $result = CustomFieldRepository::update(5, [
+        $result = CustomFieldWriter::update(5, [
             'id'         => 99,
             'created_at' => '2025-01-01',
         ]);
@@ -551,7 +556,7 @@ class CustomFieldRepositoryTest extends TestCase {
             return true;
         });
 
-        CustomFieldRepository::update(5, ['field_label' => 'Updated']);
+        CustomFieldWriter::update(5, ['field_label' => 'Updated']);
     }
 
     public function test_update_ignores_unknown_fields(): void {
@@ -563,7 +568,7 @@ class CustomFieldRepositoryTest extends TestCase {
                 return 1;
             });
 
-        CustomFieldRepository::update(5, [
+        CustomFieldWriter::update(5, [
             'field_label'   => 'Valid',
             'unknown_field' => 'should be ignored',
         ]);
@@ -580,7 +585,7 @@ class CustomFieldRepositoryTest extends TestCase {
                 return 1;
             });
 
-        CustomFieldRepository::update(5, [
+        CustomFieldWriter::update(5, [
             'field_type' => 'bogus_type',
         ]);
 
@@ -596,7 +601,7 @@ class CustomFieldRepositoryTest extends TestCase {
             });
 
         $rules = ['min_length' => 5, 'max_length' => 100];
-        CustomFieldRepository::update(5, [
+        CustomFieldWriter::update(5, [
             'validation_rules' => $rules,
         ]);
 
@@ -617,7 +622,7 @@ class CustomFieldRepositoryTest extends TestCase {
             ->with('wp_ffc_custom_fields', ['id' => 5], ['%d'])
             ->andReturn(1);
 
-        $result = CustomFieldRepository::delete(5);
+        $result = CustomFieldWriter::delete(5);
 
         $this->assertTrue($result);
     }
@@ -629,7 +634,7 @@ class CustomFieldRepositoryTest extends TestCase {
         ]));
         $this->wpdb->shouldReceive('delete')->once()->andReturn(false);
 
-        $result = CustomFieldRepository::delete(5);
+        $result = CustomFieldWriter::delete(5);
 
         $this->assertFalse($result);
     }
@@ -649,7 +654,7 @@ class CustomFieldRepositoryTest extends TestCase {
             return true;
         });
 
-        CustomFieldRepository::delete(5);
+        CustomFieldWriter::delete(5);
 
         $this->assertTrue($cache_deleted);
     }
@@ -662,7 +667,7 @@ class CustomFieldRepositoryTest extends TestCase {
         // delete() should short-circuit before calling $wpdb->delete.
         $this->wpdb->shouldNotReceive('delete');
 
-        $result = CustomFieldRepository::delete(99);
+        $result = CustomFieldWriter::delete(99);
 
         $this->assertFalse($result);
     }
@@ -675,7 +680,7 @@ class CustomFieldRepositoryTest extends TestCase {
         $this->wpdb->shouldReceive('prepare')->once()->andReturn('QUERY');
         $this->wpdb->shouldReceive('get_var')->once()->andReturn('5');
 
-        $result = CustomFieldRepository::count_by_audience(10);
+        $result = CustomFieldReader::count_by_audience(10);
 
         $this->assertSame(5, $result);
     }
@@ -684,7 +689,7 @@ class CustomFieldRepositoryTest extends TestCase {
         $this->wpdb->shouldReceive('prepare')->once()->andReturn('QUERY');
         $this->wpdb->shouldReceive('get_var')->once()->andReturn('8');
 
-        $result = CustomFieldRepository::count_by_audience(10, false);
+        $result = CustomFieldReader::count_by_audience(10, false);
 
         $this->assertSame(8, $result);
     }
@@ -693,7 +698,7 @@ class CustomFieldRepositoryTest extends TestCase {
         $this->wpdb->shouldReceive('prepare')->once()->andReturn('QUERY');
         $this->wpdb->shouldReceive('get_var')->once()->andReturn(null);
 
-        $result = CustomFieldRepository::count_by_audience(10);
+        $result = CustomFieldReader::count_by_audience(10);
 
         $this->assertSame(0, $result);
     }
@@ -706,7 +711,7 @@ class CustomFieldRepositoryTest extends TestCase {
         });
         $this->wpdb->shouldReceive('get_var')->once()->andReturn('0');
 
-        CustomFieldRepository::count_by_audience(10, true);
+        CustomFieldReader::count_by_audience(10, true);
 
         $this->assertStringContainsString('is_active = 1', $captured_query);
     }
@@ -719,7 +724,7 @@ class CustomFieldRepositoryTest extends TestCase {
         });
         $this->wpdb->shouldReceive('get_var')->once()->andReturn('0');
 
-        CustomFieldRepository::count_by_audience(10, false);
+        CustomFieldReader::count_by_audience(10, false);
 
         $this->assertStringNotContainsString('is_active = 1', $captured_query);
     }
@@ -733,7 +738,7 @@ class CustomFieldRepositoryTest extends TestCase {
 
         Functions\when('get_user_meta')->justReturn($meta_data);
 
-        $result = CustomFieldRepository::get_user_data(42);
+        $result = CustomFieldReader::get_user_data(42);
 
         $this->assertSame($meta_data, $result);
     }
@@ -741,7 +746,7 @@ class CustomFieldRepositoryTest extends TestCase {
     public function test_get_user_data_returns_empty_array_when_no_meta(): void {
         Functions\when('get_user_meta')->justReturn('');
 
-        $result = CustomFieldRepository::get_user_data(42);
+        $result = CustomFieldReader::get_user_data(42);
 
         $this->assertSame([], $result);
     }
@@ -749,7 +754,7 @@ class CustomFieldRepositoryTest extends TestCase {
     public function test_get_user_data_returns_empty_array_when_meta_is_not_array(): void {
         Functions\when('get_user_meta')->justReturn('not_an_array');
 
-        $result = CustomFieldRepository::get_user_data(42);
+        $result = CustomFieldReader::get_user_data(42);
 
         $this->assertSame([], $result);
     }
@@ -757,7 +762,7 @@ class CustomFieldRepositoryTest extends TestCase {
     public function test_get_user_data_returns_empty_array_when_meta_is_null(): void {
         Functions\when('get_user_meta')->justReturn(null);
 
-        $result = CustomFieldRepository::get_user_data(42);
+        $result = CustomFieldReader::get_user_data(42);
 
         $this->assertSame([], $result);
     }
@@ -777,7 +782,7 @@ class CustomFieldRepositoryTest extends TestCase {
             return true;
         });
 
-        CustomFieldRepository::save_user_data(42, ['field_2' => 'new_value']);
+        CustomFieldWriter::save_user_data(42, ['field_2' => 'new_value']);
 
         $this->assertNotNull($captured_args);
         $this->assertSame(42, $captured_args[0]); // user_id
@@ -797,7 +802,7 @@ class CustomFieldRepositoryTest extends TestCase {
             return true;
         });
 
-        CustomFieldRepository::save_user_data(42, ['field_1' => 'updated_value']);
+        CustomFieldWriter::save_user_data(42, ['field_1' => 'updated_value']);
 
         $this->assertSame('updated_value', $captured_args[2]['field_1']);
     }
@@ -806,7 +811,7 @@ class CustomFieldRepositoryTest extends TestCase {
         Functions\when('get_user_meta')->justReturn([]);
         Functions\when('update_user_meta')->justReturn(true);
 
-        $result = CustomFieldRepository::save_user_data(42, ['field_1' => 'val']);
+        $result = CustomFieldWriter::save_user_data(42, ['field_1' => 'val']);
 
         $this->assertTrue($result);
     }
@@ -815,7 +820,7 @@ class CustomFieldRepositoryTest extends TestCase {
         Functions\when('get_user_meta')->justReturn([]);
         Functions\when('update_user_meta')->justReturn(false);
 
-        $result = CustomFieldRepository::save_user_data(42, ['field_1' => 'val']);
+        $result = CustomFieldWriter::save_user_data(42, ['field_1' => 'val']);
 
         $this->assertFalse($result);
     }
@@ -828,7 +833,7 @@ class CustomFieldRepositoryTest extends TestCase {
         // AudienceReader::get_user_audiences returns empty
         $this->wpdb->shouldReceive('get_results')->andReturn([]);
 
-        $result = CustomFieldRepository::get_all_for_user(42);
+        $result = CustomFieldReader::get_all_for_user(42);
 
         $this->assertSame([], $result);
     }
@@ -848,7 +853,7 @@ class CustomFieldRepositoryTest extends TestCase {
         // AudienceReader::get_by_id(10) via get_row
         $this->wpdb->shouldReceive('get_row')->andReturn($audience);
 
-        $result = CustomFieldRepository::get_all_for_user(42);
+        $result = CustomFieldReader::get_all_for_user(42);
 
         $this->assertCount(1, $result);
         $this->assertEquals(1, $result[0]->id);
@@ -883,7 +888,7 @@ class CustomFieldRepositoryTest extends TestCase {
                 $parent_audience   // get_by_id(10) - parent of sibling_b
             );
 
-        $result = CustomFieldRepository::get_all_for_user(42);
+        $result = CustomFieldReader::get_all_for_user(42);
 
         // Field 100 (parent) should only appear once, plus 200 and 300
         $ids = array_map(function($f) { return (int) $f->id; }, $result);
@@ -908,7 +913,7 @@ class CustomFieldRepositoryTest extends TestCase {
                 return 1;
             });
 
-        CustomFieldRepository::deactivate(5);
+        CustomFieldWriter::deactivate(5);
 
         $this->assertSame(0, $captured_data['is_active']);
     }
@@ -922,7 +927,7 @@ class CustomFieldRepositoryTest extends TestCase {
                 return 1;
             });
 
-        CustomFieldRepository::reactivate(5);
+        CustomFieldWriter::reactivate(5);
 
         $this->assertSame(1, $captured_data['is_active']);
     }
@@ -939,7 +944,7 @@ class CustomFieldRepositoryTest extends TestCase {
                 return 1;
             });
 
-        $result = CustomFieldRepository::reorder([10, 20, 30]);
+        $result = CustomFieldWriter::reorder([10, 20, 30]);
 
         $this->assertTrue($result);
         $this->assertSame(3, $call_count);
@@ -950,25 +955,25 @@ class CustomFieldRepositoryTest extends TestCase {
     // ==================================================================
 
     public function test_field_types_constant_contains_expected_types(): void {
-        $this->assertContains('text', CustomFieldRepository::FIELD_TYPES);
-        $this->assertContains('number', CustomFieldRepository::FIELD_TYPES);
-        $this->assertContains('date', CustomFieldRepository::FIELD_TYPES);
-        $this->assertContains('select', CustomFieldRepository::FIELD_TYPES);
-        $this->assertContains('dependent_select', CustomFieldRepository::FIELD_TYPES);
-        $this->assertContains('checkbox', CustomFieldRepository::FIELD_TYPES);
-        $this->assertContains('textarea', CustomFieldRepository::FIELD_TYPES);
-        $this->assertContains('working_hours', CustomFieldRepository::FIELD_TYPES);
+        $this->assertContains('text', CustomFieldReader::FIELD_TYPES);
+        $this->assertContains('number', CustomFieldReader::FIELD_TYPES);
+        $this->assertContains('date', CustomFieldReader::FIELD_TYPES);
+        $this->assertContains('select', CustomFieldReader::FIELD_TYPES);
+        $this->assertContains('dependent_select', CustomFieldReader::FIELD_TYPES);
+        $this->assertContains('checkbox', CustomFieldReader::FIELD_TYPES);
+        $this->assertContains('textarea', CustomFieldReader::FIELD_TYPES);
+        $this->assertContains('working_hours', CustomFieldReader::FIELD_TYPES);
     }
 
     public function test_validation_formats_constant_contains_expected_formats(): void {
-        $this->assertContains('cpf', CustomFieldRepository::VALIDATION_FORMATS);
-        $this->assertContains('email', CustomFieldRepository::VALIDATION_FORMATS);
-        $this->assertContains('phone', CustomFieldRepository::VALIDATION_FORMATS);
-        $this->assertContains('custom_regex', CustomFieldRepository::VALIDATION_FORMATS);
+        $this->assertContains('cpf', CustomFieldReader::VALIDATION_FORMATS);
+        $this->assertContains('email', CustomFieldReader::VALIDATION_FORMATS);
+        $this->assertContains('phone', CustomFieldReader::VALIDATION_FORMATS);
+        $this->assertContains('custom_regex', CustomFieldReader::VALIDATION_FORMATS);
     }
 
     public function test_user_meta_key_constant(): void {
-        $this->assertSame('ffc_custom_fields_data', CustomFieldRepository::USER_META_KEY);
+        $this->assertSame('ffc_custom_fields_data', CustomFieldReader::USER_META_KEY);
     }
 
     // ==================================================================
@@ -978,7 +983,7 @@ class CustomFieldRepositoryTest extends TestCase {
     public function test_get_user_field_value_returns_value_when_exists(): void {
         Functions\when('get_user_meta')->justReturn(['field_5' => 'hello']);
 
-        $result = CustomFieldRepository::get_user_field_value(42, 5);
+        $result = CustomFieldReader::get_user_field_value(42, 5);
 
         $this->assertSame('hello', $result);
     }
@@ -986,7 +991,7 @@ class CustomFieldRepositoryTest extends TestCase {
     public function test_get_user_field_value_returns_null_when_not_set(): void {
         Functions\when('get_user_meta')->justReturn(['field_1' => 'something']);
 
-        $result = CustomFieldRepository::get_user_field_value(42, 999);
+        $result = CustomFieldReader::get_user_field_value(42, 999);
 
         $this->assertNull($result);
     }
@@ -1000,7 +1005,7 @@ class CustomFieldRepositoryTest extends TestCase {
             return true;
         });
 
-        CustomFieldRepository::set_user_field_value(42, 7, 'my_value');
+        CustomFieldWriter::set_user_field_value(42, 7, 'my_value');
 
         $this->assertArrayHasKey('field_7', $captured_data[2]);
         $this->assertSame('my_value', $captured_data[2]['field_7']);
@@ -1015,7 +1020,7 @@ class CustomFieldRepositoryTest extends TestCase {
             'field_options' => '{"choices":["Red","Green","Blue"]}',
         ]);
 
-        $choices = CustomFieldRepository::get_field_choices($field);
+        $choices = CustomFieldReader::get_field_choices($field);
 
         $this->assertSame(['Red', 'Green', 'Blue'], $choices);
     }
@@ -1025,7 +1030,7 @@ class CustomFieldRepositoryTest extends TestCase {
             'field_options' => ['choices' => ['A', 'B']],
         ]);
 
-        $choices = CustomFieldRepository::get_field_choices($field);
+        $choices = CustomFieldReader::get_field_choices($field);
 
         $this->assertSame(['A', 'B'], $choices);
     }
@@ -1033,7 +1038,7 @@ class CustomFieldRepositoryTest extends TestCase {
     public function test_get_field_choices_returns_empty_when_no_choices(): void {
         $field = $this->make_field(['field_options' => null]);
 
-        $choices = CustomFieldRepository::get_field_choices($field);
+        $choices = CustomFieldReader::get_field_choices($field);
 
         $this->assertSame([], $choices);
     }
@@ -1043,7 +1048,7 @@ class CustomFieldRepositoryTest extends TestCase {
             'validation_rules' => '{"min_length":3,"max_length":50}',
         ]);
 
-        $rules = CustomFieldRepository::get_validation_rules($field);
+        $rules = CustomFieldReader::get_validation_rules($field);
 
         $this->assertSame(3, $rules['min_length']);
         $this->assertSame(50, $rules['max_length']);
@@ -1052,7 +1057,7 @@ class CustomFieldRepositoryTest extends TestCase {
     public function test_get_validation_rules_returns_empty_when_null(): void {
         $field = $this->make_field(['validation_rules' => null]);
 
-        $rules = CustomFieldRepository::get_validation_rules($field);
+        $rules = CustomFieldReader::get_validation_rules($field);
 
         $this->assertSame([], $rules);
     }
@@ -1062,7 +1067,7 @@ class CustomFieldRepositoryTest extends TestCase {
             'validation_rules' => ['format' => 'email'],
         ]);
 
-        $rules = CustomFieldRepository::get_validation_rules($field);
+        $rules = CustomFieldReader::get_validation_rules($field);
 
         $this->assertSame('email', $rules['format']);
     }
@@ -1076,7 +1081,7 @@ class CustomFieldRepositoryTest extends TestCase {
             'field_options' => '{"groups":{"Dept A":["Team 1","Team 2"],"Dept B":["Team 3"]}}',
         ]);
 
-        $groups = CustomFieldRepository::get_dependent_choices($field);
+        $groups = CustomFieldReader::get_dependent_choices($field);
 
         $this->assertArrayHasKey('Dept A', $groups);
         $this->assertSame(['Team 1', 'Team 2'], $groups['Dept A']);
@@ -1086,7 +1091,7 @@ class CustomFieldRepositoryTest extends TestCase {
     public function test_get_dependent_choices_returns_empty_when_no_groups(): void {
         $field = $this->make_field(['field_options' => '{}']);
 
-        $groups = CustomFieldRepository::get_dependent_choices($field);
+        $groups = CustomFieldReader::get_dependent_choices($field);
 
         $this->assertSame([], $groups);
     }
@@ -1099,7 +1104,7 @@ class CustomFieldRepositoryTest extends TestCase {
     public function test_list_sensitive_field_keys_returns_empty_when_table_missing(): void {
         $this->wpdb->shouldReceive( 'get_var' )->once()->andReturn( null );
 
-        $this->assertSame( array(), CustomFieldRepository::list_sensitive_field_keys() );
+        $this->assertSame( array(), CustomFieldReader::list_sensitive_field_keys() );
     }
 
     public function test_list_sensitive_field_keys_returns_keys_when_table_present(): void {
@@ -1110,7 +1115,7 @@ class CustomFieldRepositoryTest extends TestCase {
             ->twice()
             ->andReturn( array( 'is_sensitive' ), array( 'cpf', 'rg', '' ) );
 
-        $keys = CustomFieldRepository::list_sensitive_field_keys();
+        $keys = CustomFieldReader::list_sensitive_field_keys();
 
         $this->assertSame( array( 'cpf', 'rg' ), $keys );
     }
@@ -1122,31 +1127,31 @@ class CustomFieldRepositoryTest extends TestCase {
         // The SELECT must not fire on the legacy schema.
         $this->wpdb->shouldNotReceive( 'get_results' );
 
-        $this->assertSame( array(), CustomFieldRepository::list_sensitive_field_keys() );
+        $this->assertSame( array(), CustomFieldReader::list_sensitive_field_keys() );
     }
 
     public function test_existing_field_keys_for_audience_returns_lookup_map(): void {
         $this->wpdb->shouldReceive( 'get_col' )->once()->andReturn( array( 'name', 'email' ) );
 
-        $this->assertSame( array( 'name' => true, 'email' => true ), CustomFieldRepository::existing_field_keys_for_audience( 5 ) );
+        $this->assertSame( array( 'name' => true, 'email' => true ), CustomFieldReader::existing_field_keys_for_audience( 5 ) );
     }
 
     public function test_existing_field_keys_for_audience_short_circuits_on_zero_id(): void {
         $this->wpdb->shouldNotReceive( 'get_col' );
 
-        $this->assertSame( array(), CustomFieldRepository::existing_field_keys_for_audience( 0 ) );
+        $this->assertSame( array(), CustomFieldReader::existing_field_keys_for_audience( 0 ) );
     }
 
     public function test_insert_row_returns_insert_id_on_success(): void {
         $this->wpdb->shouldReceive( 'insert' )->once()->andReturn( 1 );
         $this->wpdb->insert_id = 42;
 
-        $this->assertSame( 42, CustomFieldRepository::insert_row( array( 'audience_id' => 5 ) ) );
+        $this->assertSame( 42, CustomFieldWriter::insert_row( array( 'audience_id' => 5 ) ) );
     }
 
     public function test_insert_row_returns_false_on_failure(): void {
         $this->wpdb->shouldReceive( 'insert' )->once()->andReturn( false );
 
-        $this->assertFalse( CustomFieldRepository::insert_row( array( 'audience_id' => 5 ) ) );
+        $this->assertFalse( CustomFieldWriter::insert_row( array( 'audience_id' => 5 ) ) );
     }
 }
