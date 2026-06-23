@@ -73,7 +73,7 @@ final class RecruitmentDeleteService {
 	 * @return DeleteResult
 	 */
 	public static function delete_candidate( int $candidate_id ): array {
-		$candidate = RecruitmentCandidateRepository::get_by_id( $candidate_id );
+		$candidate = RecruitmentCandidateReader::get_by_id( $candidate_id );
 		if ( null === $candidate ) {
 			return self::failure( 'recruitment_candidate_not_found' );
 		}
@@ -87,7 +87,7 @@ final class RecruitmentDeleteService {
 			);
 		}
 
-		$ok = RecruitmentCandidateRepository::delete( $candidate_id );
+		$ok = RecruitmentCandidateWriter::delete( $candidate_id );
 		if ( ! $ok ) {
 			return self::failure( 'recruitment_candidate_delete_failed' );
 		}

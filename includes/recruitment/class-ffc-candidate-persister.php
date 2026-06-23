@@ -64,10 +64,10 @@ final class CandidatePersister {
 		// Look up existing candidate by cpf, then rf.
 		$existing = null;
 		if ( null !== $cpf_hash ) {
-			$existing = RecruitmentCandidateRepository::get_by_cpf_hash( $cpf_hash );
+			$existing = RecruitmentCandidateReader::get_by_cpf_hash( $cpf_hash );
 		}
 		if ( null === $existing && null !== $rf_hash ) {
-			$existing = RecruitmentCandidateRepository::get_by_rf_hash( $rf_hash );
+			$existing = RecruitmentCandidateReader::get_by_rf_hash( $rf_hash );
 		}
 
 		if ( null !== $existing ) {
@@ -75,7 +75,7 @@ final class CandidatePersister {
 
 			// Refresh mutable + previously-empty fields on the existing row;
 			// re-derive PCD hash so the new value (if any) takes effect.
-			RecruitmentCandidateRepository::update(
+			RecruitmentCandidateWriter::update(
 				$candidate_id,
 				array_filter(
 					array(
@@ -119,7 +119,7 @@ final class CandidatePersister {
 			$insert_payload['phone'] = $phone;
 		}
 
-		$candidate_id = RecruitmentCandidateRepository::create( $insert_payload );
+		$candidate_id = RecruitmentCandidateWriter::create( $insert_payload );
 		if ( false === $candidate_id ) {
 			return false;
 		}
@@ -162,7 +162,7 @@ final class CandidatePersister {
 	 */
 	private static function refresh_pcd_hash( int $candidate_id, bool $is_pcd ): void {
 		global $wpdb;
-		$table = RecruitmentCandidateRepository::get_table_name();
+		$table = RecruitmentCandidateReader::get_table_name();
 		$hash  = RecruitmentPcdHasher::compute( $candidate_id, $is_pcd );
 
 		$wpdb->update(
@@ -215,7 +215,7 @@ final class CandidatePersister {
 		);
 
 		if ( is_int( $user_id ) && $user_id > 0 ) {
-			RecruitmentCandidateRepository::set_user_id( $candidate_id, $user_id );
+			RecruitmentCandidateWriter::set_user_id( $candidate_id, $user_id );
 			RecruitmentActivityLogger::candidate_promoted( $candidate_id, $user_id );
 		}
 	}

@@ -8,7 +8,7 @@
  * previous list survives any validation failure.
  *
  * Acts as a service layer over the recruitment repositories: the importer
- * never bypasses {@see RecruitmentCandidateRepository} / {@see
+ * never bypasses {@see RecruitmentCandidateWriter} / {@see
  * RecruitmentClassificationRepository} writes, and it delegates wp_user
  * promotion to the existing {@see \FreeFormCertificate\UserDashboard\UserCreator}
  * (called with the new {@see CapabilityManager::CONTEXT_RECRUITMENT}).

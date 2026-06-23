@@ -44,7 +44,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 /**
  * Candidate-self dashboard section renderer.
  *
- * @phpstan-import-type CandidateRow      from RecruitmentCandidateRepository
+ * @phpstan-import-type CandidateRow      from RecruitmentCandidateReader
  * @phpstan-import-type ClassificationRow from RecruitmentClassificationRepository
  * @phpstan-import-type NoticeRow         from RecruitmentNoticeRepository
  * @phpstan-import-type CallRow           from RecruitmentCallReader
@@ -103,7 +103,7 @@ final class RecruitmentDashboardSection {
 			return '';
 		}
 
-		$candidates = RecruitmentCandidateRepository::get_by_user_id( $user_id );
+		$candidates = RecruitmentCandidateReader::get_by_user_id( $user_id );
 		if ( empty( $candidates ) ) {
 			// §9.1 visibility: hide the entire section when the user has
 			// no linked candidate row. Avoids surprise empty UI.

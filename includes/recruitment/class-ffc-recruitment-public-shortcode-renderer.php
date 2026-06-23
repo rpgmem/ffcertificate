@@ -34,7 +34,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  *   cpf_masked: bool, rf_masked: bool, email_masked: bool,
  * }
  *
- * @phpstan-import-type CandidateRow      from RecruitmentCandidateRepository
+ * @phpstan-import-type CandidateRow      from RecruitmentCandidateReader
  * @phpstan-import-type ClassificationRow from RecruitmentClassificationRepository
  * @phpstan-import-type NoticeRow         from RecruitmentNoticeRepository
  */
@@ -127,10 +127,10 @@ final class RecruitmentPublicShortcodeRenderer {
 		// individual SELECTs. Drops cold-cache render time on large
 		// notices from O(N) round-trips to O(1).
 		$candidate_ids = array_map( static fn( $r ) => (int) $r->candidate_id, $page_rows );
-		RecruitmentCandidateRepository::get_by_ids( $candidate_ids );
+		RecruitmentCandidateReader::get_by_ids( $candidate_ids );
 
 		foreach ( $page_rows as $row ) {
-			$candidate = RecruitmentCandidateRepository::get_by_id( (int) $row->candidate_id );
+			$candidate = RecruitmentCandidateReader::get_by_id( (int) $row->candidate_id );
 			if ( null === $candidate ) {
 				continue;
 			}

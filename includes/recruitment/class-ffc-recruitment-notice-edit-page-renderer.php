@@ -716,7 +716,7 @@ final class RecruitmentNoticeEditPageRenderer {
 		// Bulk-load the full candidate rows once (we need `pcd_hash` for
 		// the Subscription column; the `name` map below is fed from the
 		// same payload to keep this a single SQL round-trip).
-		$candidate_rows = RecruitmentCandidateRepository::get_by_ids( array_unique( $candidate_ids ) );
+		$candidate_rows = RecruitmentCandidateReader::get_by_ids( array_unique( $candidate_ids ) );
 		$candidates     = array();
 		$pcd_map        = array();
 		foreach ( $candidate_rows as $cand ) {

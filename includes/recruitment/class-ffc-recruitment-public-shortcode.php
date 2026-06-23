@@ -54,7 +54,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 /**
  * Public-facing shortcode renderer.
  *
- * @phpstan-import-type CandidateRow      from RecruitmentCandidateRepository
+ * @phpstan-import-type CandidateRow      from RecruitmentCandidateReader
  * @phpstan-import-type ClassificationRow from RecruitmentClassificationRepository
  * @phpstan-import-type NoticeRow         from RecruitmentNoticeRepository
  */
@@ -281,7 +281,7 @@ final class RecruitmentPublicShortcode {
 				array_filter(
 					$rows,
 					static function ( $row ) use ( $needle, $has_q, $has_sub, $subscription ): bool {
-						$candidate = RecruitmentCandidateRepository::get_by_id( (int) $row->candidate_id );
+						$candidate = RecruitmentCandidateReader::get_by_id( (int) $row->candidate_id );
 						if ( null === $candidate ) {
 							return false;
 						}
