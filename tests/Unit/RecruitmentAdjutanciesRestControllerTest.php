@@ -57,7 +57,7 @@ class RecruitmentAdjutanciesRestControllerTest extends TestCase {
         $this->adjRepoMock->shouldReceive( 'get_all' )->andReturn( array() )->byDefault();
         $this->adjRepoMock->shouldReceive( 'get_by_id' )->andReturn( null )->byDefault();
 
-        $this->reasonRepoMock = Mockery::mock( 'alias:FreeFormCertificate\Recruitment\RecruitmentReasonRepository' );
+        $this->reasonRepoMock = Mockery::mock( 'alias:FreeFormCertificate\Recruitment\RecruitmentReasonReader' );
         $this->reasonRepoMock->shouldReceive( 'get_all' )->andReturn( array() )->byDefault();
 
         $errMsgMock = Mockery::mock( 'alias:FreeFormCertificate\Recruitment\RecruitmentErrorMessages' );

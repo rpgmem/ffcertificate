@@ -106,8 +106,8 @@ final class RecruitmentAdminActions {
 					// the audit trail. Silently no-op on a blocked delete;
 					// the list table's deletion gate already explains the
 					// rule via the row-action confirm copy.
-					if ( 0 === RecruitmentReasonRepository::count_references( $id ) ) {
-						RecruitmentReasonRepository::delete( $id );
+					if ( 0 === RecruitmentReasonReader::count_references( $id ) ) {
+						RecruitmentReasonWriter::delete( $id );
 					}
 				}
 				wp_safe_redirect(

@@ -10,7 +10,7 @@
  *
  * Originally implemented three times in the recruitment module
  * (`RecruitmentSettings::sanitize_color`, `RecruitmentAdjutancyWriter::normalize_color`,
- * `RecruitmentReasonRepository::normalize_color`); consolidated here in
+ * `RecruitmentReasonWriter::normalize_color`); consolidated here in
  * 6.2.0 so the rules live in one place and additions (e.g. `hsl()`
  * support) only need one edit.
  *

@@ -114,9 +114,10 @@ class RecruitmentAdminActionsTest extends TestCase {
 
 	public function test_delete_reason_deletes_only_when_unreferenced(): void {
 		$_GET['reason_id'] = '5';
-		$repo              = Mockery::mock( 'alias:FreeFormCertificate\Recruitment\RecruitmentReasonRepository' );
+		$repo              = Mockery::mock( 'alias:FreeFormCertificate\Recruitment\RecruitmentReasonReader' );
 		$repo->shouldReceive( 'count_references' )->once()->with( 5 )->andReturn( 0 );
-		$repo->shouldReceive( 'delete' )->once()->with( 5 );
+		$repo_w            = Mockery::mock( 'alias:FreeFormCertificate\Recruitment\RecruitmentReasonWriter' );
+		$repo_w->shouldReceive( 'delete' )->once()->with( 5 );
 
 		$url = $this->dispatchCapture( 'delete-reason' );
 
@@ -125,9 +126,10 @@ class RecruitmentAdminActionsTest extends TestCase {
 
 	public function test_delete_reason_blocked_when_still_referenced(): void {
 		$_GET['reason_id'] = '5';
-		$repo              = Mockery::mock( 'alias:FreeFormCertificate\Recruitment\RecruitmentReasonRepository' );
+		$repo              = Mockery::mock( 'alias:FreeFormCertificate\Recruitment\RecruitmentReasonReader' );
 		$repo->shouldReceive( 'count_references' )->once()->with( 5 )->andReturn( 3 );
-		$repo->shouldNotReceive( 'delete' );
+		$repo_w            = Mockery::mock( 'alias:FreeFormCertificate\Recruitment\RecruitmentReasonWriter' );
+		$repo_w->shouldNotReceive( 'delete' );
 
 		$url = $this->dispatchCapture( 'delete-reason' );
 

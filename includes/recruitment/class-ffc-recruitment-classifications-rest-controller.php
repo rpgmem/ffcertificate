@@ -698,11 +698,11 @@ final class RecruitmentClassificationsRestController {
 		}
 
 		if ( $reason_id > 0 ) {
-			$reason = RecruitmentReasonRepository::get_by_id( $reason_id );
+			$reason = RecruitmentReasonReader::get_by_id( $reason_id );
 			if ( null === $reason ) {
 				return new \WP_Error( 'recruitment_preview_reason_not_found', RecruitmentErrorMessages::translate( 'recruitment_preview_reason_not_found' ), array( 'status' => 404 ) );
 			}
-			$applies = RecruitmentReasonRepository::decode_applies_to( (string) ( $reason->applies_to ?? '' ) );
+			$applies = RecruitmentReasonReader::decode_applies_to( (string) ( $reason->applies_to ?? '' ) );
 			if ( ! in_array( $preview_status, $applies, true ) ) {
 				return new \WP_Error( 'recruitment_preview_reason_status_mismatch', __( 'This reason cannot be used with the chosen preliminary status.', 'ffcertificate' ), array( 'status' => 400 ) );
 			}

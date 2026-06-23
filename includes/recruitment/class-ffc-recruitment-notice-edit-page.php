@@ -45,7 +45,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  *
  * @phpstan-import-type NoticeRow         from RecruitmentNoticeReader
  * @phpstan-import-type ClassificationRow from RecruitmentClassificationRepository
- * @phpstan-import-type ReasonRow         from RecruitmentReasonRepository
+ * @phpstan-import-type ReasonRow         from RecruitmentReasonReader
  */
 final class RecruitmentNoticeEditPage {
 

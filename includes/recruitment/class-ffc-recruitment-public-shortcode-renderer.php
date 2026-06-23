@@ -210,7 +210,7 @@ final class RecruitmentPublicShortcodeRenderer {
 				if ( ! empty( $columns['preview_reason'] ) && isset( $row->preview_reason_id ) && null !== $row->preview_reason_id ) {
 					$reason_id = (int) $row->preview_reason_id;
 					if ( $reason_id > 0 ) {
-						$reason = RecruitmentReasonRepository::get_by_id( $reason_id );
+						$reason = RecruitmentReasonReader::get_by_id( $reason_id );
 						if ( null !== $reason ) {
 							$reason_label = (string) $reason->label;
 						}

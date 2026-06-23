@@ -253,7 +253,7 @@ final class RecruitmentAdminPageRenderer {
 		if ( ! RecruitmentAdminPage::can_edit_reasons() ) {
 			return;
 		}
-		$default_color = RecruitmentReasonRepository::DEFAULT_COLOR;
+		$default_color = RecruitmentReasonReader::DEFAULT_COLOR;
 
 		echo '<h3>' . esc_html__( 'Create new reason', 'ffcertificate' ) . '</h3>';
 		echo '<form id="ffc-create-reason" method="post" data-ffc-create-endpoint="reasons">';

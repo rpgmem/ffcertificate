@@ -4,9 +4,9 @@
  *
  * Write-side of the reason repository split (#563 backlog, B3). Holds every
  * INSERT / UPDATE / DELETE plus the color- and applies_to-normalization
- * helpers. Reads live in {@see RecruitmentReasonReader};
- * {@see RecruitmentReasonRepository} remains the public façade that delegates
- * to both.
+ * helpers. Reads live in {@see RecruitmentReasonReader}. Callers depend on the
+ * reader (reads) and this writer (writes) directly; the delegating façade was
+ * retired in #563 B3-A.
  *
  * Schema-level invariants enforced here:
  *
@@ -64,7 +64,7 @@ class RecruitmentReasonWriter {
 	 * @param string            $slug       Unique slug.
 	 * @param string            $label      Display label.
 	 * @param string            $color      Optional badge color (#RGB / #RRGGBB / #RRGGBBAA).
-	 * @param array<int,string> $applies_to Subset of {@see RecruitmentReasonRepository::APPLIES_TO_VALUES}.
+	 * @param array<int,string> $applies_to Subset of {@see RecruitmentReasonReader::APPLIES_TO_VALUES}.
 	 *                                  Empty array = applies to every preview status.
 	 * @return int|false New reason ID or false on failure.
 	 */
@@ -180,14 +180,14 @@ class RecruitmentReasonWriter {
 	 * @return string
 	 */
 	public static function normalize_color( string $value ): string {
-		return \FreeFormCertificate\Core\ColorValidator::normalize( $value, RecruitmentReasonRepository::DEFAULT_COLOR );
+		return \FreeFormCertificate\Core\ColorValidator::normalize( $value, RecruitmentReasonReader::DEFAULT_COLOR );
 	}
 
 	/**
 	 * Normalize an applies_to selection into the canonical CSV form.
 	 *
 	 * Filters out values that aren't in
-	 * {@see RecruitmentReasonRepository::APPLIES_TO_VALUES}, deduplicates, and
+	 * {@see RecruitmentReasonReader::APPLIES_TO_VALUES}, deduplicates, and
 	 * joins with commas. An empty input becomes the empty string
 	 * (= "applies to every preview status").
 	 *
@@ -195,7 +195,7 @@ class RecruitmentReasonWriter {
 	 * @return string
 	 */
 	public static function normalize_applies_to( array $value ): string {
-		$allowed = RecruitmentReasonRepository::APPLIES_TO_VALUES;
+		$allowed = RecruitmentReasonReader::APPLIES_TO_VALUES;
 		$out     = array();
 		foreach ( $value as $candidate ) {
 			if ( ! is_string( $candidate ) ) {

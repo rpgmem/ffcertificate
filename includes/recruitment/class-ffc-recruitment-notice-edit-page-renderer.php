@@ -25,7 +25,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  *
  * @phpstan-import-type NoticeRow         from RecruitmentNoticeReader
  * @phpstan-import-type ClassificationRow from RecruitmentClassificationRepository
- * @phpstan-import-type ReasonRow         from RecruitmentReasonRepository
+ * @phpstan-import-type ReasonRow         from RecruitmentReasonReader
  */
 final class RecruitmentNoticeEditPageRenderer {
 
@@ -733,7 +733,7 @@ final class RecruitmentNoticeEditPageRenderer {
 		// preview_status + reason dropdown. The Definitive tab keeps the
 		// existing Status badge.
 		$is_preview_tab = ! $with_actions;
-		$reasons        = $is_preview_tab ? RecruitmentReasonRepository::get_all() : array();
+		$reasons        = $is_preview_tab ? RecruitmentReasonReader::get_all() : array();
 
 		return array(
 			'rows'         => $rows,
@@ -981,7 +981,7 @@ final class RecruitmentNoticeEditPageRenderer {
 		$html     = '<select class="ffc-cls-preview-reason" data-cls-id="' . esc_attr( (string) $cls_id ) . '"' . $disabled . '>';
 		$html    .= '<option value="0">' . esc_html__( '— none —', 'ffcertificate' ) . '</option>';
 		foreach ( $reasons as $reason ) {
-			$applies = RecruitmentReasonRepository::decode_applies_to( (string) ( $reason->applies_to ?? '' ) );
+			$applies = RecruitmentReasonReader::decode_applies_to( (string) ( $reason->applies_to ?? '' ) );
 			// `data-applies` lets the JS re-filter the options without a
 			// round-trip when the operator flips the status dropdown.
 			$applies_attr = implode( ',', $applies );
