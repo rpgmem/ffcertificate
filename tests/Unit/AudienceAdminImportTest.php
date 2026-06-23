@@ -81,16 +81,16 @@ class AudienceAdminImportTest extends TestCase {
     }
 
     // ==================================================================
-    // render_page() — renders import/export tabs
+    // render_content() — renders import/export tabs
     // ==================================================================
 
     public function test_render_page_renders_interface(): void {
         $page = new AudienceAdminImport( 'ffc-scheduling' );
         ob_start();
-        $page->render_page();
+        $page->render_content();
         $output = ob_get_clean();
 
-        $this->assertStringContainsString( 'wrap', $output );
+        $this->assertStringContainsString( 'ffc-import-tab', $output );
     }
 
     // ==================================================================

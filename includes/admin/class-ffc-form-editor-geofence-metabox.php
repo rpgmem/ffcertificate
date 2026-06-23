@@ -36,20 +36,6 @@ if ( ! defined( 'ABSPATH' ) ) {
 class FormEditorGeofenceMetabox {
 
 	/**
-	 * Render both sections stacked (back-compat single-metabox entry point).
-	 *
-	 * The live path is the tabbed container, which calls {@see render_time()}
-	 * and {@see render_geolocation()} as separate panels.
-	 *
-	 * @since 3.0.0
-	 * @param WP_Post $post The post object.
-	 */
-	public function render( WP_Post $post ): void {
-		$this->render_time( $post );
-		$this->render_geolocation( $post );
-	}
-
-	/**
 	 * Read the persisted geofence config blob.
 	 *
 	 * @param WP_Post $post The post object.
