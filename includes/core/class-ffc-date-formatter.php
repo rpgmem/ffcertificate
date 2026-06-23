@@ -290,15 +290,6 @@ final class DateFormatter {
 		return \FreeFormCertificate\Settings\SettingsReader::all();
 	}
 
-	/**
-	 * Backward-compat shim — pre-#244 tests called this to drop a
-	 * static cache. The helper no longer caches, so the method is a
-	 * no-op. Kept on the public surface so existing test files don't
-	 * break.
-	 */
-	public static function flush_cache(): void {
-		// Intentional no-op (see settings() rationale).
-	}
 
 	/**
 	 * Render a `start–end` schedule range as a compact human-readable

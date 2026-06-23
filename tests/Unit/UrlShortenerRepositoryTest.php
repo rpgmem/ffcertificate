@@ -15,6 +15,8 @@ use FreeFormCertificate\UrlShortener\UrlShortenerRepository;
  * incrementClickCount, codeExists, findPaginated, getStats.
  *
  * @covers \FreeFormCertificate\UrlShortener\UrlShortenerRepository
+ * @covers \FreeFormCertificate\UrlShortener\UrlShortenerReader
+ * @covers \FreeFormCertificate\UrlShortener\UrlShortenerWriter
  */
 class UrlShortenerRepositoryTest extends TestCase {
 
@@ -28,6 +30,13 @@ class UrlShortenerRepositoryTest extends TestCase {
     protected function setUp(): void {
         parent::setUp();
         Monkey\setUp();
+
+        // pcov does not record lines for files first autoloaded mid-test-method,
+        // so the read/write split classes' coverage would attribute to nothing.
+        // Preload the extracted classes here so pcov attributes their lines to
+        // this test (the façade composes both via `new`).
+        class_exists( '\\FreeFormCertificate\\UrlShortener\\UrlShortenerReader' );
+        class_exists( '\\FreeFormCertificate\\UrlShortener\\UrlShortenerWriter' );
 
         global $wpdb;
         $wpdb = Mockery::mock( 'wpdb' )->makePartial();

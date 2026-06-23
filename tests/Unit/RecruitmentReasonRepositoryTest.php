@@ -15,6 +15,8 @@ use FreeFormCertificate\Recruitment\RecruitmentReasonRepository;
  * applies_to / color normalization helpers used by the admin UI.
  *
  * @covers \FreeFormCertificate\Recruitment\RecruitmentReasonRepository
+ * @covers \FreeFormCertificate\Recruitment\RecruitmentReasonReader
+ * @covers \FreeFormCertificate\Recruitment\RecruitmentReasonWriter
  */
 class RecruitmentReasonRepositoryTest extends TestCase {
 
@@ -39,6 +41,12 @@ class RecruitmentReasonRepositoryTest extends TestCase {
         Functions\when( 'wp_cache_delete' )->justReturn( true );
         Functions\when( 'current_time' )->justReturn( '2026-05-18 10:00:00' );
         Functions\when( 'do_action' )->justReturn( null );
+
+        // pcov does not record lines for files first autoloaded mid-test-method,
+        // so the extracted reader/writer's coverage would attribute to nothing.
+        // Preload the classes here so pcov attributes their lines to this test.
+        class_exists( '\\FreeFormCertificate\\Recruitment\\RecruitmentReasonReader' );
+        class_exists( '\\FreeFormCertificate\\Recruitment\\RecruitmentReasonWriter' );
 
         $this->wpdb->shouldReceive( 'prepare' )
             ->andReturnUsing( fn( $sql ) => $sql )

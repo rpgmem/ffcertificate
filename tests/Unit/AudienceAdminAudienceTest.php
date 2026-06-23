@@ -12,6 +12,7 @@ use FreeFormCertificate\Audience\AudienceAdminAudience;
 
 /**
  * @covers \FreeFormCertificate\Audience\AudienceAdminAudience
+ * @covers \FreeFormCertificate\Audience\AudienceAdminAudienceRenderer
  * @runTestsInSeparateProcesses
  * @preserveGlobalState disabled
  */
@@ -22,6 +23,11 @@ class AudienceAdminAudienceTest extends TestCase {
     protected function setUp(): void {
         parent::setUp();
         Monkey\setUp();
+
+        // pcov does not record lines for files first autoloaded mid-test-method,
+        // so the extracted renderer's coverage would attribute to nothing.
+        // Preload the class here so pcov attributes its lines to this test.
+        class_exists( '\\FreeFormCertificate\\Audience\\AudienceAdminAudienceRenderer' );
 
         Functions\when( '__' )->returnArg();
         Functions\when( 'esc_html__' )->returnArg();
@@ -217,11 +223,8 @@ class AudienceAdminAudienceTest extends TestCase {
         $seeder->shouldReceive( 'seed_for_audience' )->andReturn( 0 );
         $seeder->shouldReceive( 'get_group_labels' )->andReturn( array() );
 
-        $page = new AudienceAdminAudience( 'ffc-scheduling' );
-        $ref  = new \ReflectionMethod( AudienceAdminAudience::class, 'render_custom_fields_section' );
-        $ref->setAccessible( true );
         ob_start();
-        $ref->invoke( $page, 5 );
+        \FreeFormCertificate\Audience\AudienceAdminAudienceRenderer::render_custom_fields_section( 5 );
         $output = ob_get_clean();
 
         $this->assertStringContainsString( 'Read-only', $output );
@@ -247,11 +250,8 @@ class AudienceAdminAudienceTest extends TestCase {
             'validation_rules'  => json_encode( array( 'format' => 'email' ) ),
         );
 
-        $page = new AudienceAdminAudience( 'ffc-scheduling' );
-        $ref  = new \ReflectionMethod( AudienceAdminAudience::class, 'render_custom_field_row' );
-        $ref->setAccessible( true );
         ob_start();
-        $ref->invoke( $page, $field, array( 'text', 'select', 'dependent_select' ), array() );
+        \FreeFormCertificate\Audience\AudienceAdminAudienceRenderer::render_custom_field_row( $field, array( 'text', 'select', 'dependent_select' ), array() );
         $output = ob_get_clean();
 
         $this->assertStringContainsString( 'My Select', $output );
@@ -280,11 +280,8 @@ class AudienceAdminAudienceTest extends TestCase {
             'validation_rules'  => null,
         );
 
-        $page = new AudienceAdminAudience( 'ffc-scheduling' );
-        $ref  = new \ReflectionMethod( AudienceAdminAudience::class, 'render_custom_field_row' );
-        $ref->setAccessible( true );
         ob_start();
-        $ref->invoke( $page, $field, array( 'text' ), array() );
+        \FreeFormCertificate\Audience\AudienceAdminAudienceRenderer::render_custom_field_row( $field, array( 'text' ), array() );
         $output = ob_get_clean();
 
         $this->assertStringContainsString( 'CPF', $output );

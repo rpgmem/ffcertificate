@@ -59,7 +59,8 @@ class FormEditorGeofenceMetaboxTest extends TestCase {
         $post     = Mockery::mock( 'WP_Post' );
         $post->ID = 77;
         ob_start();
-        $this->metabox->render( $post );
+        $this->metabox->render_time( $post );
+        $this->metabox->render_geolocation( $post );
         return (string) ob_get_clean();
     }
 

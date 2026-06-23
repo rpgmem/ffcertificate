@@ -16,6 +16,7 @@ use FreeFormCertificate\Admin\AdminAssetsManager;
  * conditional asset loading, and enqueue calls.
  *
  * @covers \FreeFormCertificate\Admin\AdminAssetsManager
+ * @covers \FreeFormCertificate\Admin\AdminConditionalAssets
  * @runTestsInSeparateProcesses
  * @preserveGlobalState disabled
  */
@@ -29,6 +30,11 @@ class AdminAssetsManagerTest extends TestCase {
     protected function setUp(): void {
         parent::setUp();
         Monkey\setUp();
+
+        // pcov does not record lines for files first autoloaded mid-test-method,
+        // so the extracted conditional-assets class's coverage would attribute to
+        // nothing. Preload the class here so pcov attributes its lines to this test.
+        class_exists( '\\FreeFormCertificate\\Admin\\AdminConditionalAssets' );
 
         // Common WP function stubs
         Functions\when('__')->returnArg();

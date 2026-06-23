@@ -20,6 +20,8 @@ use FreeFormCertificate\Recruitment\RecruitmentNoticeRepository;
  * scenarios — the core contract callers depend on.
  *
  * @covers \FreeFormCertificate\Recruitment\RecruitmentNoticeRepository
+ * @covers \FreeFormCertificate\Recruitment\RecruitmentNoticeReader
+ * @covers \FreeFormCertificate\Recruitment\RecruitmentNoticeWriter
  */
 class RecruitmentNoticeRepositoryTest extends TestCase {
 
@@ -43,6 +45,12 @@ class RecruitmentNoticeRepositoryTest extends TestCase {
 		Functions\when( 'wp_cache_set' )->justReturn( true );
 		Functions\when( 'wp_cache_delete' )->justReturn( true );
 		Functions\when( 'current_time' )->justReturn( '2026-05-01 10:00:00' );
+
+		// pcov does not record lines for files first autoloaded mid-test-method,
+		// so the extracted reader/writer's coverage would attribute to nothing.
+		// Preload the classes here so pcov attributes their lines to this test.
+		class_exists( '\\FreeFormCertificate\\Recruitment\\RecruitmentNoticeReader' );
+		class_exists( '\\FreeFormCertificate\\Recruitment\\RecruitmentNoticeWriter' );
 
 		$this->wpdb->shouldReceive( 'prepare' )
 			->andReturnUsing(

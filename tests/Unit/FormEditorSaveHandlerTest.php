@@ -8,11 +8,14 @@ use Brain\Monkey\Functions;
 use Mockery\Adapter\Phpunit\MockeryPHPUnitIntegration;
 use PHPUnit\Framework\TestCase;
 use FreeFormCertificate\Admin\FormEditorSaveHandler;
+use FreeFormCertificate\Admin\FormEditorSaveValidator;
 
 /**
  * Tests for FormEditorSaveHandler: geofence validation logic.
  *
  * Uses Reflection to access private methods for testing pure business logic.
+ *
+ * @covers \FreeFormCertificate\Admin\FormEditorSaveValidator
  */
 class FormEditorSaveHandlerTest extends TestCase {
 
@@ -21,9 +24,31 @@ class FormEditorSaveHandlerTest extends TestCase {
     /** @var FormEditorSaveHandler */
     private $handler;
 
+    /** @var FormEditorSaveValidator */
+    private $validator;
+
+    /**
+     * Validation methods moved to FormEditorSaveValidator in the #591 phase-3
+     * split — invoke() reflects these on $this->validator.
+     *
+     * @var array<int, string>
+     */
+    private $validator_methods = array(
+        'missing_required_tags',
+        'validate_geofence_config',
+        'geofence_message_errors',
+        'geofence_error_tab_keys',
+        'validate_areas_format',
+    );
+
     protected function setUp(): void {
         parent::setUp();
         Monkey\setUp();
+
+        // pcov does not record lines for files first autoloaded mid-test-method,
+        // so the extracted validator's coverage would attribute to nothing.
+        // Preload the class here so pcov attributes its lines to this test.
+        class_exists( '\\FreeFormCertificate\\Admin\\FormEditorSaveValidator' );
 
         Functions\when( '__' )->returnArg();
         Functions\when( 'sanitize_text_field' )->returnArg();
@@ -35,7 +60,8 @@ class FormEditorSaveHandlerTest extends TestCase {
         // Event Schedule → {{schedule}} required-tag gate override this.
         Functions\when( 'get_post_meta' )->justReturn( false );
 
-        $this->handler = new FormEditorSaveHandler();
+        $this->handler   = new FormEditorSaveHandler();
+        $this->validator = new FormEditorSaveValidator();
     }
 
     protected function tearDown(): void {
@@ -44,12 +70,17 @@ class FormEditorSaveHandlerTest extends TestCase {
     }
 
     /**
-     * Invoke a private method on FormEditorSaveHandler.
+     * Invoke a private method on FormEditorSaveHandler, or — for the
+     * validation methods moved to FormEditorSaveValidator (#591 phase-3) —
+     * on the validator instance.
      */
     private function invoke( string $method, array $args = [] ) {
-        $ref = new \ReflectionMethod( FormEditorSaveHandler::class, $method );
+        $is_validator = in_array( $method, $this->validator_methods, true );
+        $target       = $is_validator ? $this->validator : $this->handler;
+        $class        = $is_validator ? FormEditorSaveValidator::class : FormEditorSaveHandler::class;
+        $ref          = new \ReflectionMethod( $class, $method );
         $ref->setAccessible( true );
-        return $ref->invokeArgs( $this->handler, $args );
+        return $ref->invokeArgs( $target, $args );
     }
 
     /**

@@ -16,6 +16,8 @@ use FreeFormCertificate\Reregistration\ReregistrationSubmissionRepository;
  * and audience member submission creation.
  *
  * @covers \FreeFormCertificate\Reregistration\ReregistrationSubmissionRepository
+ * @covers \FreeFormCertificate\Reregistration\ReregistrationSubmissionReader
+ * @covers \FreeFormCertificate\Reregistration\ReregistrationSubmissionWriter
  * @runTestsInSeparateProcesses
  * @preserveGlobalState disabled
  */
@@ -29,6 +31,12 @@ class ReregistrationSubmissionRepositoryTest extends TestCase {
     protected function setUp(): void {
         parent::setUp();
         Monkey\setUp();
+
+        // pcov does not record lines for files first autoloaded mid-test-method,
+        // so the reader/writer coverage would attribute to nothing. Preload the
+        // extracted classes here so pcov attributes their lines to this test.
+        class_exists( '\\FreeFormCertificate\\Reregistration\\ReregistrationSubmissionReader' );
+        class_exists( '\\FreeFormCertificate\\Reregistration\\ReregistrationSubmissionWriter' );
 
         global $wpdb;
         $wpdb = Mockery::mock('wpdb');

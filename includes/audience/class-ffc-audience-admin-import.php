@@ -38,25 +38,6 @@ class AudienceAdminImport {
 	}
 
 	/**
-	 * Render import page (standalone wrap + h1).
-	 *
-	 * Kept for back-compat with any caller that still expects the page-level
-	 * chrome. The live entry point is `render_content()` — called by
-	 * {@see AudienceAdminSettings} as the "Import & Export" tab body so the
-	 * forms render inside the settings vertical-tab panel.
-	 *
-	 * @return void
-	 */
-	public function render_page(): void {
-		?>
-		<div class="wrap">
-			<h1><?php esc_html_e( 'Import & Export', 'ffcertificate' ); ?></h1>
-			<?php $this->render_content(); ?>
-		</div>
-		<?php
-	}
-
-	/**
 	 * Render the Import & Export body without the page-level wrap/h1, so it
 	 * can be embedded inside the Scheduling Settings vertical-tab panel.
 	 *

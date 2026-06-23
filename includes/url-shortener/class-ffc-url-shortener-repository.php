@@ -4,6 +4,17 @@
  *
  * Data access layer for ffc_short_urls table.
  *
+ * Since the #591 phase-3 (Sprint D2) read/write split this class is a thin
+ * façade: domain reads live in {@see UrlShortenerReader}, domain writes in
+ * {@see UrlShortenerWriter}. The generic CRUD (findById/insert/update/delete/…)
+ * inherited from {@see \FreeFormCertificate\Repositories\AbstractRepository}
+ * stays here so existing callers that use it directly are unaffected. The
+ * façade, reader and writer all bind the same global $wpdb, so caching and
+ * queries remain coherent.
+ *
+ * Tech-debt (#563 B3): migrate call sites to depend on UrlShortenerReader /
+ * UrlShortenerWriter directly, then retire this delegating façade.
+ *
  * @package FreeFormCertificate\UrlShortener
  * @since 5.1.0
  */
@@ -18,11 +29,33 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-// phpcs:disable WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 /**
- * Database repository for url shortener records.
+ * Public façade over {@see UrlShortenerReader} + {@see UrlShortenerWriter}.
  */
 class UrlShortenerRepository extends AbstractRepository {
+
+	/**
+	 * Read-side collaborator.
+	 *
+	 * @var UrlShortenerReader
+	 */
+	private UrlShortenerReader $reader;
+
+	/**
+	 * Write-side collaborator.
+	 *
+	 * @var UrlShortenerWriter
+	 */
+	private UrlShortenerWriter $writer;
+
+	/**
+	 * Constructor — wires up the read/write collaborators.
+	 */
+	public function __construct() {
+		parent::__construct();
+		$this->reader = new UrlShortenerReader();
+		$this->writer = new UrlShortenerWriter();
+	}
 
 	/**
 	 * Get table name.
@@ -42,6 +75,10 @@ class UrlShortenerRepository extends AbstractRepository {
 		return 'ffc_short_urls';
 	}
 
+	// ─────────────────────────────────────────────.
+	// Reads — delegate to UrlShortenerReader.
+	// ─────────────────────────────────────────────.
+
 	/**
 	 * Find a short URL record by its short code.
 	 *
@@ -49,24 +86,7 @@ class UrlShortenerRepository extends AbstractRepository {
 	 * @return array<string, mixed>|null
 	 */
 	public function findByShortCode( string $code ): ?array {
-		$cache_key = 'code_' . $code;
-		$cached    = $this->get_cache( $cache_key );
-
-		if ( false !== $cached ) {
-			return $cached;
-		}
-
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-		$result = $this->wpdb->get_row(
-			$this->wpdb->prepare( 'SELECT * FROM %i WHERE short_code = %s', $this->table, $code ),
-			ARRAY_A
-		);
-
-		if ( $result ) {
-			$this->set_cache( $cache_key, $result );
-		}
-
-		return $result;
+		return $this->reader->findByShortCode( $code );
 	}
 
 	/**
@@ -76,53 +96,7 @@ class UrlShortenerRepository extends AbstractRepository {
 	 * @return array<string, mixed>|null
 	 */
 	public function findByPostId( int $post_id ): ?array {
-		$cache_key = 'post_' . $post_id;
-		$cached    = $this->get_cache( $cache_key );
-
-		if ( false !== $cached ) {
-			return $cached;
-		}
-
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-		$result = $this->wpdb->get_row(
-			$this->wpdb->prepare(
-				'SELECT * FROM %i WHERE post_id = %d AND status = %s ORDER BY id DESC LIMIT 1',
-				$this->table,
-				$post_id,
-				'active'
-			),
-			ARRAY_A
-		);
-
-		if ( $result ) {
-			$this->set_cache( $cache_key, $result );
-		}
-
-		return $result;
-	}
-
-	/**
-	 * Increment the click counter for a short URL.
-	 *
-	 * Uses a lightweight UPDATE without cache invalidation since
-	 * the click_count field is not needed for redirect resolution.
-	 *
-	 * @param int $id Record ID.
-	 * @return bool
-	 */
-	public function incrementClickCount( int $id ): bool {
-		$sql = $this->wpdb->prepare(
-			'UPDATE %i SET click_count = click_count + 1 WHERE id = %d',
-			$this->table,
-			$id
-		);
-		if ( ! is_string( $sql ) ) {
-			return false;
-		}
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-		$result = $this->wpdb->query( $sql );
-
-		return false !== $result;
+		return $this->reader->findByPostId( $post_id );
 	}
 
 	/**
@@ -132,157 +106,28 @@ class UrlShortenerRepository extends AbstractRepository {
 	 * @return bool
 	 */
 	public function codeExists( string $code ): bool {
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-		$count = (int) $this->wpdb->get_var(
-			$this->wpdb->prepare(
-				'SELECT COUNT(*) FROM %i WHERE short_code = %s',
-				$this->table,
-				$code
-			)
-		);
-
-		return $count > 0;
+		return $this->reader->codeExists( $code );
 	}
 
 	/**
 	 * Find paginated short URLs for admin listing.
 	 *
-	 * @param array<string, mixed> $args {.
-	 *     @type int    $per_page  Items per page (default 20).
-	 *     @type int    $page      Current page (default 1).
-	 *     @type string $orderby   Column to sort by (default 'created_at').
-	 *     @type string $order     ASC or DESC (default 'DESC').
-	 *     @type string $search    Search term for title/target_url.
-	 *     @type string $status    Filter by status (default 'all').
-	 * }
+	 * @param array<string, mixed> $args Query args (see UrlShortenerReader::findPaginated).
 	 * @return array{items: array<int, array<string, mixed>>, total: int}
 	 */
 	public function findPaginated( array $args = array() ): array {
-		$defaults = array(
-			'per_page' => 20,
-			'page'     => 1,
-			'orderby'  => 'created_at',
-			'order'    => 'DESC',
-			'search'   => '',
-			'status'   => 'all',
-		);
-		$args     = wp_parse_args( $args, $defaults );
-
-		$where_clauses = array();
-		$where_values  = array();
-
-		if ( 'all' === $args['status'] ) {
-			// "All" excludes trashed items (like WordPress core).
-			$where_clauses[] = 'status != %s';
-			$where_values[]  = 'trashed';
-		} else {
-			$where_clauses[] = 'status = %s';
-			$where_values[]  = $args['status'];
-		}
-
-		if ( ! empty( $args['search'] ) ) {
-			$like            = '%' . $this->wpdb->esc_like( $args['search'] ) . '%';
-			$where_clauses[] = '(title LIKE %s OR target_url LIKE %s OR short_code LIKE %s)';
-			$where_values[]  = $like;
-			$where_values[]  = $like;
-			$where_values[]  = $like;
-		}
-
-		$where_sql = 'WHERE ' . implode( ' AND ', $where_clauses );
-
-		$allowed_columns = array( 'id', 'title', 'short_code', 'click_count', 'created_at', 'status' );
-		$orderby         = in_array( $args['orderby'], $allowed_columns, true ) ? $args['orderby'] : 'created_at';
-		$order           = strtoupper( $args['order'] ) === 'ASC' ? 'ASC' : 'DESC';
-
-		$offset   = ( max( 1, (int) $args['page'] ) - 1 ) * (int) $args['per_page'];
-		$per_page = (int) $args['per_page'];
-
-		// Build count query.
-		$count_query = "SELECT COUNT(*) FROM %i {$where_sql}";
-		$count_args  = array_merge( array( $this->table ), $where_values );
-
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-		$total = (int) $this->wpdb->get_var(
-			$this->wpdb->prepare( $count_query, ...$count_args ) // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
-		);
-
-		// Build items query.
-		$items_query = "SELECT * FROM %i {$where_sql} ORDER BY {$orderby} {$order} LIMIT %d OFFSET %d";
-		$items_args  = array_merge( array( $this->table ), $where_values, array( $per_page, $offset ) );
-
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-		$items = $this->wpdb->get_results(
-			$this->wpdb->prepare( $items_query, ...$items_args ), // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
-			ARRAY_A
-		);
-
-		return array(
-			'items' => $items ? $items : array(),
-			'total' => $total,
-		);
+		return $this->reader->findPaginated( $args );
 	}
 
 	/**
 	 * Find short URLs that are candidates for cleanup under the enabled criteria.
-	 *
-	 * Three independent criteria, OR-combined:
-	 *   - `orphaned`:      `post_id` is set but the referenced post no longer exists.
-	 *   - `never_clicked`: `click_count = 0` and the row was created more than
-	 *                      `$never_clicked_days` ago.
-	 *   - `trashed`:       `status = 'trashed'`.
-	 *
-	 * Each returned row carries `is_orphaned`, `is_never_clicked` and `is_trashed`
-	 * flags (computed for every row regardless of which criteria were enabled) so
-	 * the caller can label exactly why a row matched. Read-only — never mutates.
 	 *
 	 * @param array{orphaned?:bool, never_clicked?:bool, trashed?:bool} $criteria Enabled criteria.
 	 * @param int                                                       $never_clicked_days Grace window (days) for the never_clicked criterion.
 	 * @return array<int, array<string, mixed>> Matching rows (empty when no criteria enabled).
 	 */
 	public function find_cleanup_candidates( array $criteria, int $never_clicked_days ): array {
-		$days = max( 0, $never_clicked_days );
-
-		$orphan_expr  = '( s.post_id IS NOT NULL AND p.ID IS NULL )';
-		$nevclk_expr  = '( s.click_count = 0 AND s.created_at < ( NOW() - INTERVAL %d DAY ) )';
-		$trashed_expr = "( s.status = 'trashed' )";
-
-		$where = array();
-		if ( ! empty( $criteria['orphaned'] ) ) {
-			$where[] = $orphan_expr;
-		}
-		if ( ! empty( $criteria['never_clicked'] ) ) {
-			$where[] = $nevclk_expr;
-		}
-		if ( ! empty( $criteria['trashed'] ) ) {
-			$where[] = $trashed_expr;
-		}
-		if ( empty( $where ) ) {
-			return array();
-		}
-
-		// Placeholders appear in this order in the string: SELECT %d (is_never_clicked),
-		// FROM %i (short_urls), JOIN %i (posts), then WHERE %d only if never_clicked enabled.
-		$sql = "SELECT s.id, s.short_code, s.target_url, s.post_id, s.title, s.click_count, s.status, s.created_at,
-				{$orphan_expr} AS is_orphaned,
-				{$nevclk_expr} AS is_never_clicked,
-				{$trashed_expr} AS is_trashed
-			FROM %i s
-			LEFT JOIN %i p ON p.ID = s.post_id
-			WHERE " . implode( ' OR ', $where ) . '
-			ORDER BY s.id ASC';
-
-		$args = array( $days, $this->table, $this->wpdb->posts );
-		if ( ! empty( $criteria['never_clicked'] ) ) {
-			$args[] = $days;
-		}
-
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-		$rows = $this->wpdb->get_results(
-			$this->wpdb->prepare( $sql, ...$args ), // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
-			ARRAY_A
-		);
-
-		return is_array( $rows ) ? $rows : array();
+		return $this->reader->find_cleanup_candidates( $criteria, $never_clicked_days );
 	}
 
 	/**
@@ -291,76 +136,43 @@ class UrlShortenerRepository extends AbstractRepository {
 	 * @return array{total_links: int, active_links: int, total_clicks: int, trashed_links: int}
 	 */
 	public function getStats(): array {
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-		$row = $this->wpdb->get_row(
-			$this->wpdb->prepare(
-				"SELECT
-                    SUM(CASE WHEN status != 'trashed' THEN 1 ELSE 0 END) AS total_links,
-                    SUM(CASE WHEN status = 'active' THEN 1 ELSE 0 END) AS active_links,
-                    COALESCE(SUM(CASE WHEN status != 'trashed' THEN click_count ELSE 0 END), 0) AS total_clicks,
-                    SUM(CASE WHEN status = 'trashed' THEN 1 ELSE 0 END) AS trashed_links
-                FROM %i",
-				$this->table
-			),
-			ARRAY_A
-		);
-
-		return array(
-			'total_links'   => (int) ( $row['total_links'] ?? 0 ),
-			'active_links'  => (int) ( $row['active_links'] ?? 0 ),
-			'total_clicks'  => (int) ( $row['total_clicks'] ?? 0 ),
-			'trashed_links' => (int) ( $row['trashed_links'] ?? 0 ),
-		);
+		return $this->reader->getStats();
 	}
 
 	/**
-	 * Read the cached QR PNG payload for a short code. Issue #340
-	 * centralization (replaces a raw SELECT in
-	 * `UrlShortenerQrHandler::get_qr_cache`).
+	 * Read the cached QR PNG payload for a short code.
 	 *
 	 * @since 6.6.2
 	 * @param string $short_code Short URL code.
-	 * @return string Base64-encoded PNG, or empty string when no
-	 *                cache row exists / column is NULL.
+	 * @return string Base64-encoded PNG, or empty string when no cache row exists.
 	 */
 	public function findQrCacheByShortCode( string $short_code ): string {
-		if ( '' === $short_code ) {
-			return '';
-		}
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Narrow single-column lookup.
-		$value = $this->wpdb->get_var(
-			$this->wpdb->prepare( 'SELECT qr_cache FROM %i WHERE short_code = %s', $this->table, $short_code )
-		);
-		return is_string( $value ) && '' !== $value ? $value : '';
+		return $this->reader->findQrCacheByShortCode( $short_code );
+	}
+
+	// ─────────────────────────────────────────────.
+	// Writes — delegate to UrlShortenerWriter.
+	// ─────────────────────────────────────────────.
+
+	/**
+	 * Increment the click counter for a short URL.
+	 *
+	 * @param int $id Record ID.
+	 * @return bool
+	 */
+	public function incrementClickCount( int $id ): bool {
+		return $this->writer->incrementClickCount( $id );
 	}
 
 	/**
-	 * Persist the cached QR PNG payload for a short code. Issue #340
-	 * centralization (replaces a raw UPDATE in
-	 * `UrlShortenerQrHandler::set_qr_cache`).
+	 * Persist the cached QR PNG payload for a short code.
 	 *
 	 * @since 6.6.2
 	 * @param string $short_code Short URL code.
 	 * @param string $base64     Base64-encoded PNG payload to cache.
-	 * @return bool True when the UPDATE landed (or matched 0 rows
-	 *              cleanly), false on wpdb error.
+	 * @return bool True when the UPDATE landed, false on wpdb error.
 	 */
 	public function setQrCacheForShortCode( string $short_code, string $base64 ): bool {
-		if ( '' === $short_code ) {
-			return false;
-		}
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Single-row update keyed by short_code (UNIQUE).
-		$result = $this->wpdb->update(
-			$this->table,
-			array( 'qr_cache' => $base64 ),
-			array( 'short_code' => $short_code ),
-			array( '%s' ),
-			array( '%s' )
-		);
-		if ( false === $result ) {
-			return false;
-		}
-		$this->clear_cache();
-		return true;
+		return $this->writer->setQrCacheForShortCode( $short_code, $base64 );
 	}
 }
