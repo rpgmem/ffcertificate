@@ -363,7 +363,7 @@ class ReregistrationAdminTest extends TestCase {
             ->shouldReceive( 'create' )->once()->andReturn( 55 )
             ->shouldReceive( 'set_audience_ids' )->once()->with( 55, array( 3, 4 ) );
 
-        Mockery::mock( 'alias:FreeFormCertificate\Reregistration\ReregistrationSubmissionRepository' )
+        Mockery::mock( 'alias:FreeFormCertificate\Reregistration\ReregistrationSubmissionWriter' )
             ->shouldReceive( 'create_for_audience_members' )->once()->with( 55, array( 3, 4 ) );
 
         Mockery::mock( 'alias:FreeFormCertificate\Reregistration\ReregistrationEmailHandler' )
@@ -574,7 +574,7 @@ class ReregistrationAdminTest extends TestCase {
             ->shouldReceive( 'get_status_label' )->andReturn( 'Active' )
             ->shouldReceive( 'get_audiences' )->andReturn( array() );
 
-        Mockery::mock( 'alias:FreeFormCertificate\Reregistration\ReregistrationSubmissionRepository' )
+        Mockery::mock( 'alias:FreeFormCertificate\Reregistration\ReregistrationSubmissionReader' )
             ->shouldReceive( 'get_statistics' )->andReturn( array( 'approved' => 2, 'total' => 5 ) );
 
         $item = (object) array(

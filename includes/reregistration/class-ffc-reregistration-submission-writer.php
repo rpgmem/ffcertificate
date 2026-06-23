@@ -5,13 +5,14 @@
  * Write-side of the reregistration-submission repository split (#563 backlog,
  * Sprint D2). Holds every INSERT / UPDATE and the workflow mutators (approve,
  * reject, return-to-draft, bulk operations, token provisioning). Reads live in
- * {@see ReregistrationSubmissionReader}; {@see ReregistrationSubmissionRepository}
- * remains the public façade that delegates to both.
+ * {@see ReregistrationSubmissionReader}. Callers depend on the reader (reads)
+ * and this writer (writes) directly; the delegating façade was retired in
+ * #563 B3-A.
  *
  * @since   6.11.3
  * @package FreeFormCertificate\Reregistration
  *
- * @phpstan-import-type ReregistrationSubmissionRow from ReregistrationSubmissionRepository
+ * @phpstan-import-type ReregistrationSubmissionRow from ReregistrationSubmissionReader
  */
 
 declare(strict_types=1);
@@ -29,7 +30,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  *
  * @since 6.11.3
  *
- * @phpstan-import-type ReregistrationSubmissionRow from ReregistrationSubmissionRepository
+ * @phpstan-import-type ReregistrationSubmissionRow from ReregistrationSubmissionReader
  */
 class ReregistrationSubmissionWriter {
 	use \FreeFormCertificate\Core\StaticRepositoryTrait;

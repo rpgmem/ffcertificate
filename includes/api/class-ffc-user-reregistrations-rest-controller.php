@@ -73,7 +73,7 @@ class UserReregistrationsRestController {
 				return new \WP_Error( 'not_logged_in', __( 'You must be logged in', 'ffcertificate' ), array( 'status' => 401 ) );
 			}
 
-			if ( ! class_exists( '\FreeFormCertificate\Reregistration\ReregistrationSubmissionRepository' ) ) {
+			if ( ! class_exists( '\FreeFormCertificate\Reregistration\ReregistrationSubmissionReader' ) ) {
 				return rest_ensure_response(
 					array(
 						'reregistrations' => array(),
@@ -82,7 +82,7 @@ class UserReregistrationsRestController {
 				);
 			}
 
-			$submissions = \FreeFormCertificate\Reregistration\ReregistrationSubmissionRepository::get_all_by_user( $user_id );
+			$submissions = \FreeFormCertificate\Reregistration\ReregistrationSubmissionReader::get_all_by_user( $user_id );
 
 			$status_labels = array(
 				'pending'     => __( 'Pending', 'ffcertificate' ),
@@ -121,7 +121,7 @@ class UserReregistrationsRestController {
 				// Build magic link for direct verification.
 				$magic_link = '';
 				if ( $can_download ) {
-					$token      = \FreeFormCertificate\Reregistration\ReregistrationSubmissionRepository::ensure_magic_token( $sub );
+					$token      = \FreeFormCertificate\Reregistration\ReregistrationSubmissionWriter::ensure_magic_token( $sub );
 					$magic_link = \FreeFormCertificate\Generators\MagicLinkHelper::generate_magic_link( $token );
 				}
 

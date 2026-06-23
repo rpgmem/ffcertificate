@@ -4,14 +4,12 @@
  *
  * Read-side of the reregistration-submission repository split (#563 backlog,
  * Sprint D2). Holds every SELECT / lookup / derived-read query and the pure
- * status-label helpers. Writes live in {@see ReregistrationSubmissionWriter};
- * {@see ReregistrationSubmissionRepository} remains the public façade that
- * delegates to both.
+ * status-label helpers. Writes live in {@see ReregistrationSubmissionWriter}.
+ * Callers depend on this reader (reads) and the writer (writes) directly; the
+ * delegating façade was retired in #563 B3-A.
  *
  * @since   6.11.3
  * @package FreeFormCertificate\Reregistration
- *
- * @phpstan-import-type ReregistrationSubmissionRow from ReregistrationSubmissionRepository
  */
 
 declare(strict_types=1);
@@ -29,10 +27,15 @@ if ( ! defined( 'ABSPATH' ) ) {
  *
  * @since 6.11.3
  *
- * @phpstan-import-type ReregistrationSubmissionRow from ReregistrationSubmissionRepository
+ * @phpstan-type ReregistrationSubmissionRow \stdClass&object{id: string, reregistration_id: string, user_id: string, status: string, submitted_at: numeric-string|int|null, reviewed_at: numeric-string|int|null, reviewed_by: string|null, notes: string|null, auth_code: string|null, magic_token: string|null, created_at: string, updated_at: string, data?: string|null}
  */
 class ReregistrationSubmissionReader {
 	use \FreeFormCertificate\Core\StaticRepositoryTrait;
+
+	/**
+	 * Valid submission status values.
+	 */
+	public const STATUSES = array( 'pending', 'in_progress', 'submitted', 'approved', 'rejected', 'expired' );
 
 	/**
 	 * Cache group for reregistration submission queries.

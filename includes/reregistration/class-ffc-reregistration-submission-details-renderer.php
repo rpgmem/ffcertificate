@@ -21,7 +21,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 /**
  * Reregistration Submission Details Renderer.
  *
- * @phpstan-import-type ReregistrationSubmissionRow from ReregistrationSubmissionRepository
+ * @phpstan-import-type ReregistrationSubmissionRow from ReregistrationSubmissionReader
  * @phpstan-import-type CustomFieldRow from CustomFieldRepository
  */
 final class ReregistrationSubmissionDetailsRenderer {
@@ -69,7 +69,7 @@ final class ReregistrationSubmissionDetailsRenderer {
 				<p>
 					<strong><?php esc_html_e( 'Status:', 'ffcertificate' ); ?></strong>
 					<span class="ffc-status-badge ffc-status-<?php echo esc_attr( $submission->status ); ?>">
-						<?php echo esc_html( ReregistrationSubmissionRepository::get_status_label( $submission->status ) ); ?>
+						<?php echo esc_html( ReregistrationSubmissionReader::get_status_label( $submission->status ) ); ?>
 					</span>
 				</p>
 				<?php if ( $submitted_at ) : ?>

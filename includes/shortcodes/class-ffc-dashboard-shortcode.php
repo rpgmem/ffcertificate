@@ -113,8 +113,8 @@ class DashboardShortcode {
 		}
 
 		// Check if user has any reregistration submissions.
-		$can_view_reregistrations = class_exists( '\FreeFormCertificate\Reregistration\ReregistrationSubmissionRepository' )
-			&& ! empty( \FreeFormCertificate\Reregistration\ReregistrationSubmissionRepository::get_all_by_user( $user_id ) );
+		$can_view_reregistrations = class_exists( '\FreeFormCertificate\Reregistration\ReregistrationSubmissionReader' )
+			&& ! empty( \FreeFormCertificate\Reregistration\ReregistrationSubmissionReader::get_all_by_user( $user_id ) );
 
 		// Recruitment tab — visible when the user has at least one
 		// classification across recruitment notices (joined via

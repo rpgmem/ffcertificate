@@ -25,7 +25,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  * Reregistration Admin Renderer.
  *
  * @phpstan-import-type ReregistrationRow from ReregistrationRepository
- * @phpstan-import-type ReregistrationSubmissionRow from ReregistrationSubmissionRepository
+ * @phpstan-import-type ReregistrationSubmissionRow from ReregistrationSubmissionReader
  * @phpstan-import-type CustomFieldRow from CustomFieldRepository
  * @phpstan-import-type AudienceRow from \FreeFormCertificate\Audience\AudienceRepository
  */
@@ -135,7 +135,7 @@ final class ReregistrationAdminRenderer {
 			'delete_reregistration_' . $item->id
 		);
 
-		$stats     = ReregistrationSubmissionRepository::get_statistics( (int) $item->id );
+		$stats     = ReregistrationSubmissionReader::get_statistics( (int) $item->id );
 		$start_ts  = strtotime( $item->start_date );
 		$end_ts    = strtotime( $item->end_date );
 		$start     = \FreeFormCertificate\Core\DateFormatter::format_date( false === $start_ts ? null : $start_ts );
@@ -391,8 +391,8 @@ final class ReregistrationAdminRenderer {
 			$filters['search'] = $search;
 		}
 
-		$submissions = ReregistrationSubmissionRepository::get_by_reregistration( $id, $filters );
-		$stats       = ReregistrationSubmissionRepository::get_statistics( $id );
+		$submissions = ReregistrationSubmissionReader::get_by_reregistration( $id, $filters );
+		$stats       = ReregistrationSubmissionReader::get_statistics( $id );
 		$back_url    = admin_url( 'admin.php?page=' . $menu_slug );
 		$export_url  = wp_nonce_url(
 			admin_url( 'admin.php?page=' . $menu_slug . '&action=export_csv&id=' . $id ),
@@ -415,7 +415,7 @@ final class ReregistrationAdminRenderer {
 			<?php foreach ( $stats as $status => $count ) : ?>
 				<?php if ( 'total' !== $status ) : ?>
 					<span class="ffc-stat-item">
-						<span class="ffc-status-badge ffc-status-<?php echo esc_attr( $status ); ?>"><?php echo esc_html( ReregistrationSubmissionRepository::get_status_label( $status ) ); ?></span>
+						<span class="ffc-status-badge ffc-status-<?php echo esc_attr( $status ); ?>"><?php echo esc_html( ReregistrationSubmissionReader::get_status_label( $status ) ); ?></span>
 						<strong><?php echo esc_html( (string) $count ); ?></strong>
 					</span>
 				<?php endif; ?>
@@ -433,8 +433,8 @@ final class ReregistrationAdminRenderer {
 				<input type="hidden" name="id" value="<?php echo esc_attr( (string) $id ); ?>">
 				<select name="sub_status">
 					<option value=""><?php esc_html_e( 'All Statuses', 'ffcertificate' ); ?></option>
-					<?php foreach ( ReregistrationSubmissionRepository::STATUSES as $s ) : ?>
-						<option value="<?php echo esc_attr( $s ); ?>" <?php selected( $status_filter, $s ); ?>><?php echo esc_html( ReregistrationSubmissionRepository::get_status_label( $s ) ); ?></option>
+					<?php foreach ( ReregistrationSubmissionReader::STATUSES as $s ) : ?>
+						<option value="<?php echo esc_attr( $s ); ?>" <?php selected( $status_filter, $s ); ?>><?php echo esc_html( ReregistrationSubmissionReader::get_status_label( $s ) ); ?></option>
 					<?php endforeach; ?>
 				</select>
 				<input type="search" name="s" value="<?php echo esc_attr( $search ?? '' ); ?>" placeholder="<?php esc_attr_e( 'Search name or email...', 'ffcertificate' ); ?>">
@@ -554,7 +554,7 @@ final class ReregistrationAdminRenderer {
 			<td><?php echo esc_html( $sub->user_email ?? '—' ); ?></td>
 			<td>
 				<span class="ffc-status-badge ffc-status-<?php echo esc_attr( $sub->status ); ?>">
-					<?php echo esc_html( ReregistrationSubmissionRepository::get_status_label( $sub->status ) ); ?>
+					<?php echo esc_html( ReregistrationSubmissionReader::get_status_label( $sub->status ) ); ?>
 				</span>
 			</td>
 			<td><?php echo esc_html( $submitted ); ?></td>

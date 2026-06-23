@@ -40,7 +40,7 @@ class ReregistrationSubmissionActions {
 			return;
 		}
 
-		ReregistrationSubmissionRepository::approve( $sub_id, get_current_user_id() );
+		ReregistrationSubmissionWriter::approve( $sub_id, get_current_user_id() );
 		wp_safe_redirect( admin_url( 'admin.php?page=' . ReregistrationAdmin::MENU_SLUG . '&view=submissions&id=' . $rereg_id . '&message=approved' ) );
 		exit;
 	}
@@ -63,7 +63,7 @@ class ReregistrationSubmissionActions {
 			return;
 		}
 
-		ReregistrationSubmissionRepository::reject( $sub_id, get_current_user_id() );
+		ReregistrationSubmissionWriter::reject( $sub_id, get_current_user_id() );
 		wp_safe_redirect( admin_url( 'admin.php?page=' . ReregistrationAdmin::MENU_SLUG . '&view=submissions&id=' . $rereg_id . '&message=rejected' ) );
 		exit;
 	}
@@ -86,7 +86,7 @@ class ReregistrationSubmissionActions {
 			return;
 		}
 
-		ReregistrationSubmissionRepository::return_to_draft( $sub_id, get_current_user_id() );
+		ReregistrationSubmissionWriter::return_to_draft( $sub_id, get_current_user_id() );
 		wp_safe_redirect( admin_url( 'admin.php?page=' . ReregistrationAdmin::MENU_SLUG . '&view=submissions&id=' . $rereg_id . '&message=returned_to_draft' ) );
 		exit;
 	}
@@ -114,13 +114,13 @@ class ReregistrationSubmissionActions {
 		}
 
 		if ( 'approve' === $action ) {
-			ReregistrationSubmissionRepository::bulk_approve( $ids, get_current_user_id() );
+			ReregistrationSubmissionWriter::bulk_approve( $ids, get_current_user_id() );
 			wp_safe_redirect( admin_url( 'admin.php?page=' . ReregistrationAdmin::MENU_SLUG . '&view=submissions&id=' . $rereg_id . '&message=bulk_approved' ) );
 			exit;
 		}
 
 		if ( 'return_to_draft' === $action ) {
-			ReregistrationSubmissionRepository::bulk_return_to_draft( $ids, get_current_user_id() );
+			ReregistrationSubmissionWriter::bulk_return_to_draft( $ids, get_current_user_id() );
 			wp_safe_redirect( admin_url( 'admin.php?page=' . ReregistrationAdmin::MENU_SLUG . '&view=submissions&id=' . $rereg_id . '&message=bulk_returned_to_draft' ) );
 			exit;
 		}
@@ -129,7 +129,7 @@ class ReregistrationSubmissionActions {
 			// Collect user IDs from submission IDs.
 			$user_ids = array();
 			foreach ( $ids as $sub_id ) {
-				$sub = ReregistrationSubmissionRepository::get_by_id( $sub_id );
+				$sub = ReregistrationSubmissionReader::get_by_id( $sub_id );
 				if ( $sub ) {
 					$user_ids[] = (int) $sub->user_id;
 				}

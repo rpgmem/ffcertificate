@@ -445,7 +445,7 @@ class ReregistrationRepository {
 	public static function delete( int $id ): bool {
 		$wpdb       = self::db();
 		$table      = self::get_table_name();
-		$subs_table = ReregistrationSubmissionRepository::get_table_name();
+		$subs_table = ReregistrationSubmissionReader::get_table_name();
 		$junction   = self::get_audiences_table_name();
 
 		// Delete submissions first.
@@ -562,7 +562,7 @@ class ReregistrationRepository {
 	public static function expire_overdue(): void {
 		$wpdb       = self::db();
 		$table      = self::get_table_name();
-		$subs_table = ReregistrationSubmissionRepository::get_table_name();
+		$subs_table = ReregistrationSubmissionReader::get_table_name();
 
 		// Find active reregistrations past end date.
 		$overdue = $wpdb->get_results(

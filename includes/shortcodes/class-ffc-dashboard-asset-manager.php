@@ -73,8 +73,8 @@ class DashboardAssetManager {
 			$can_view_audience_bookings = self::user_has_audience_groups( $user_id );
 		}
 
-		$can_view_reregistrations = class_exists( '\FreeFormCertificate\Reregistration\ReregistrationSubmissionRepository' )
-			&& ! empty( \FreeFormCertificate\Reregistration\ReregistrationSubmissionRepository::get_all_by_user( $user_id ) );
+		$can_view_reregistrations = class_exists( '\FreeFormCertificate\Reregistration\ReregistrationSubmissionReader' )
+			&& ! empty( \FreeFormCertificate\Reregistration\ReregistrationSubmissionReader::get_all_by_user( $user_id ) );
 
 		$s = \FreeFormCertificate\Core\AssetHelper::asset_suffix();
 

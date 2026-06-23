@@ -40,7 +40,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  * Processor for reregistration data operations.
  *
  * @phpstan-import-type ReregistrationRow from ReregistrationRepository
- * @phpstan-import-type ReregistrationSubmissionRow from ReregistrationSubmissionRepository
+ * @phpstan-import-type ReregistrationSubmissionRow from ReregistrationSubmissionReader
  * @phpstan-import-type CustomFieldRow from CustomFieldRepository
  */
 class ReregistrationDataProcessor {
@@ -290,7 +290,7 @@ class ReregistrationDataProcessor {
 			$update_data['notes']       = __( 'Auto-approved', 'ffcertificate' );
 		}
 
-		ReregistrationSubmissionRepository::update( (int) $submission->id, $update_data );
+		ReregistrationSubmissionWriter::update( (int) $submission->id, $update_data );
 
 		// Sync profile-mapped fields back to the user profile. We pass the.
 		// *plain* (pre-encryption) values to update_extended_profile which.

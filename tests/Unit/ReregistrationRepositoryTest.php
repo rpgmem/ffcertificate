@@ -9,7 +9,6 @@ use Mockery;
 use Mockery\Adapter\Phpunit\MockeryPHPUnitIntegration;
 use PHPUnit\Framework\TestCase;
 use FreeFormCertificate\Reregistration\ReregistrationRepository;
-use FreeFormCertificate\Reregistration\ReregistrationSubmissionRepository;
 use FreeFormCertificate\Audience\AudienceRepository;
 
 /**

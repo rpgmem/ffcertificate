@@ -58,7 +58,7 @@ class ReregistrationFrontend {
 			wp_send_json_error( array( 'message' => __( 'Reregistration not found or not active.', 'ffcertificate' ) ) );
 		}
 
-		$submission = ReregistrationSubmissionRepository::get_by_reregistration_and_user( $reregistration_id, $user_id );
+		$submission = ReregistrationSubmissionReader::get_by_reregistration_and_user( $reregistration_id, $user_id );
 		if ( ! $submission ) {
 			wp_send_json_error( array( 'message' => __( 'No submission found for this user.', 'ffcertificate' ) ) );
 		}
@@ -98,7 +98,7 @@ class ReregistrationFrontend {
 			wp_send_json_error( array( 'message' => __( 'Reregistration not found or not active.', 'ffcertificate' ) ) );
 		}
 
-		$submission = ReregistrationSubmissionRepository::get_by_reregistration_and_user( $reregistration_id, $user_id );
+		$submission = ReregistrationSubmissionReader::get_by_reregistration_and_user( $reregistration_id, $user_id );
 		if ( ! $submission ) {
 			wp_send_json_error( array( 'message' => __( 'No submission found.', 'ffcertificate' ) ) );
 		}
@@ -153,14 +153,14 @@ class ReregistrationFrontend {
 			wp_send_json_error( array( 'message' => __( 'Reregistration not active.', 'ffcertificate' ) ) );
 		}
 
-		$submission = ReregistrationSubmissionRepository::get_by_reregistration_and_user( $reregistration_id, $user_id );
+		$submission = ReregistrationSubmissionReader::get_by_reregistration_and_user( $reregistration_id, $user_id );
 		if ( ! $submission || in_array( $submission->status, array( 'approved', 'expired' ), true ) ) {
 			wp_send_json_error( array( 'message' => __( 'Cannot save draft.', 'ffcertificate' ) ) );
 		}
 
 		$data = ReregistrationDataProcessor::collect_form_data( $rereg, $user_id );
 
-		ReregistrationSubmissionRepository::update(
+		ReregistrationSubmissionWriter::update(
 			(int) $submission->id,
 			array(
 				'data'   => $data,
@@ -178,7 +178,7 @@ class ReregistrationFrontend {
 	/**
 	 * Get active reregistrations for a user with submission status.
 	 *
-	 * Aggregates `ReregistrationRepository`, `ReregistrationSubmissionRepository`,
+	 * Aggregates `ReregistrationRepository`, `ReregistrationSubmissionReader`,
 	 * and `MagicLinkHelper` into a flat array consumed by the dashboard
 	 * shortcode, the REST `/user-data/reregistrations` endpoint, and the
 	 * user-summary REST endpoint. Not a delegate — owns the join logic.
@@ -191,13 +191,13 @@ class ReregistrationFrontend {
 		$result = array();
 
 		foreach ( $active as $rereg ) {
-			$submission = ReregistrationSubmissionRepository::get_by_reregistration_and_user( (int) $rereg->id, $user_id );
+			$submission = ReregistrationSubmissionReader::get_by_reregistration_and_user( (int) $rereg->id, $user_id );
 			$sub_status = $submission ? $submission->status : 'no_submission';
 
 			// Build magic link for submitted/approved submissions.
 			$magic_link = '';
 			if ( $submission && in_array( $sub_status, array( 'submitted', 'approved' ), true ) ) {
-				$token      = ReregistrationSubmissionRepository::ensure_magic_token( $submission );
+				$token      = ReregistrationSubmissionWriter::ensure_magic_token( $submission );
 				$magic_link = \FreeFormCertificate\Generators\MagicLinkHelper::generate_magic_link( $token );
 			}
 

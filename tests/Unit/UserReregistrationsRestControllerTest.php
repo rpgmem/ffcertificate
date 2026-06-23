@@ -28,6 +28,9 @@ class UserReregistrationsRestControllerTest extends TestCase {
     private $rereg_repo_mock;
 
     /** @var \Mockery\MockInterface */
+    private $rereg_writer_mock;
+
+    /** @var \Mockery\MockInterface */
     private $utils_mock;
 
     /** @var \Mockery\MockInterface */
@@ -64,9 +67,10 @@ class UserReregistrationsRestControllerTest extends TestCase {
         });
 
         // Alias mocks for static-only dependencies
-        $this->rereg_repo_mock = Mockery::mock( 'alias:\FreeFormCertificate\Reregistration\ReregistrationSubmissionRepository' );
+        $this->rereg_repo_mock   = Mockery::mock( 'alias:\FreeFormCertificate\Reregistration\ReregistrationSubmissionReader' );
+        $this->rereg_writer_mock = Mockery::mock( 'alias:\FreeFormCertificate\Reregistration\ReregistrationSubmissionWriter' );
         $this->rereg_repo_mock->shouldReceive( 'get_all_by_user' )->andReturn( array() )->byDefault();
-        $this->rereg_repo_mock->shouldReceive( 'ensure_magic_token' )->andReturn( 'test-token-123' )->byDefault();
+        $this->rereg_writer_mock->shouldReceive( 'ensure_magic_token' )->andReturn( 'test-token-123' )->byDefault();
 
         $this->utils_mock = Mockery::mock( 'alias:\FreeFormCertificate\Core\Utils' );
         $this->utils_mock->shouldReceive( 'debug_log' )->byDefault();
@@ -204,7 +208,7 @@ class UserReregistrationsRestControllerTest extends TestCase {
             ->with( 5 )
             ->andReturn( array( $sub ) );
 
-        $this->rereg_repo_mock->shouldReceive( 'ensure_magic_token' )
+        $this->rereg_writer_mock->shouldReceive( 'ensure_magic_token' )
             ->with( $sub )
             ->andReturn( 'magic-token-42' );
 
@@ -283,7 +287,7 @@ class UserReregistrationsRestControllerTest extends TestCase {
             ->with( 5 )
             ->andReturn( array( $sub ) );
 
-        $this->rereg_repo_mock->shouldReceive( 'ensure_magic_token' )
+        $this->rereg_writer_mock->shouldReceive( 'ensure_magic_token' )
             ->with( $sub )
             ->andReturn( 'magic-77' );
 

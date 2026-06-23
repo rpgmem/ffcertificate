@@ -20,7 +20,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  * Exporter for reregistration csv data.
  *
  * @phpstan-import-type CustomFieldRow from CustomFieldRepository
- * @phpstan-import-type ReregistrationSubmissionRow from ReregistrationSubmissionRepository
+ * @phpstan-import-type ReregistrationSubmissionRow from ReregistrationSubmissionReader
  * @phpstan-import-type ReregistrationRow from ReregistrationRepository
  */
 class ReregistrationCsvExporter {
@@ -60,7 +60,7 @@ class ReregistrationCsvExporter {
 		// Stream submissions in chunks of 500 so a 50k-row reregistration
 		// stays memory-bounded. The generator pipes straight into the
 		// CSV writer below without materialising the full result set.
-		$submissions = ReregistrationSubmissionRepository::stream_for_export( $id );
+		$submissions = ReregistrationSubmissionReader::stream_for_export( $id );
 		$fields      = self::get_custom_fields_for_reregistration( $rereg );
 
 		// Build CSV.

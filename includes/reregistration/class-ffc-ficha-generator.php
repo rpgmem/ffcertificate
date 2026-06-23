@@ -32,7 +32,7 @@ class FichaGenerator {
 	 * @return array<string, mixed>|null Null on failure.
 	 */
 	public static function generate_ficha_data( int $submission_id ): ?array {
-		$submission = ReregistrationSubmissionRepository::get_by_id( $submission_id );
+		$submission = ReregistrationSubmissionReader::get_by_id( $submission_id );
 		if ( ! $submission ) {
 			return null;
 		}
@@ -68,7 +68,7 @@ class FichaGenerator {
 		}
 
 		// Status labels (centralized in SubmissionRepository).
-		$status_labels = ReregistrationSubmissionRepository::get_status_labels();
+		$status_labels = ReregistrationSubmissionReader::get_status_labels();
 
 		$submitted_at = '';
 		if ( ! empty( $submission->submitted_at ) ) {

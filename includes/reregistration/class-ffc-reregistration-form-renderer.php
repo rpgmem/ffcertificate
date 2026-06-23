@@ -39,7 +39,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  * Renderer for reregistration form output.
  *
  * @phpstan-import-type ReregistrationRow from ReregistrationRepository
- * @phpstan-import-type ReregistrationSubmissionRow from ReregistrationSubmissionRepository
+ * @phpstan-import-type ReregistrationSubmissionRow from ReregistrationSubmissionReader
  * @phpstan-import-type CustomFieldRow from CustomFieldRepository
  */
 class ReregistrationFormRenderer {
