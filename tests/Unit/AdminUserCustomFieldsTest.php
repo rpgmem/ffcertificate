@@ -63,7 +63,7 @@ class AdminUserCustomFieldsTest extends TestCase {
         $this->utils_mock->shouldReceive('asset_suffix')->andReturn('.min')->byDefault();
 
         // Repository alias mocks
-        $this->audience_repo_mock = Mockery::mock('alias:\FreeFormCertificate\Audience\AudienceRepository');
+        $this->audience_repo_mock = Mockery::mock('alias:FreeFormCertificate\Audience\AudienceReader');
         $this->custom_field_repo_mock = Mockery::mock('alias:\FreeFormCertificate\Reregistration\CustomFieldRepository');
     }
 

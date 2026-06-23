@@ -14,7 +14,7 @@ declare(strict_types=1);
 namespace FreeFormCertificate\Admin;
 
 use FreeFormCertificate\Reregistration\CustomFieldRepository;
-use FreeFormCertificate\Audience\AudienceRepository;
+use FreeFormCertificate\Audience\AudienceReader;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
@@ -102,7 +102,7 @@ class AdminUserCustomFields {
 	 * @return void
 	 */
 	public static function render_section( \WP_User $user ): void {
-		$audiences = AudienceRepository::get_user_audiences( $user->ID );
+		$audiences = AudienceReader::get_user_audiences( $user->ID );
 		if ( empty( $audiences ) ) {
 			return;
 		}

@@ -288,7 +288,7 @@ class AudienceBookingReader {
 		$table           = self::get_table_name();
 		$users_table     = self::get_booking_users_table_name();
 		$audiences_table = self::get_booking_audiences_table_name();
-		$members_table   = AudienceRepository::get_members_table_name();
+		$members_table   = AudienceReader::get_members_table_name();
 		$env_table       = AudienceEnvironmentRepository::get_table_name();
 
 		$defaults = array(
@@ -350,7 +350,7 @@ class AudienceBookingReader {
 	public static function get_booking_audiences( int $booking_id ): array {
 		$wpdb            = self::db();
 		$table           = self::get_booking_audiences_table_name();
-		$audiences_table = AudienceRepository::get_table_name();
+		$audiences_table = AudienceReader::get_table_name();
 
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		$results = $wpdb->get_results(
@@ -405,7 +405,7 @@ class AudienceBookingReader {
 		// Get users from audiences.
 		$audiences = self::get_booking_audiences( $booking_id );
 		foreach ( $audiences as $audience ) {
-			$audience_users = AudienceRepository::get_members( (int) $audience->id, true );
+			$audience_users = AudienceReader::get_members( (int) $audience->id, true );
 			$users          = array_merge( $users, $audience_users );
 		}
 
@@ -506,12 +506,12 @@ class AudienceBookingReader {
 		$table         = self::get_table_name();
 		$ba_table      = self::get_booking_audiences_table_name();
 		$bu_table      = self::get_booking_users_table_name();
-		$members_table = AudienceRepository::get_members_table_name();
+		$members_table = AudienceReader::get_members_table_name();
 
 		// Get all users that would be affected by this booking.
 		$all_user_ids = $user_ids;
 		foreach ( $audience_ids as $audience_id ) {
-			$audience_users = AudienceRepository::get_members( (int) $audience_id, true );
+			$audience_users = AudienceReader::get_members( (int) $audience_id, true );
 			$all_user_ids   = array_merge( $all_user_ids, $audience_users );
 		}
 		$all_user_ids = array_unique( $all_user_ids );
@@ -624,7 +624,7 @@ class AudienceBookingReader {
 		$wpdb            = self::db();
 		$table           = self::get_table_name();
 		$ba_table        = self::get_booking_audiences_table_name();
-		$audiences_table = AudienceRepository::get_table_name();
+		$audiences_table = AudienceReader::get_table_name();
 
 		if ( empty( $audience_ids ) ) {
 			return array();

@@ -50,7 +50,7 @@ class AudienceAdminDashboard {
 		$audience_stats = array(
 			'schedules'         => AudienceScheduleRepository::count( array( 'status' => 'active' ) ),
 			'environments'      => AudienceEnvironmentRepository::count( array( 'status' => 'active' ) ),
-			'audiences'         => AudienceRepository::count( array( 'status' => 'active' ) ),
+			'audiences'         => AudienceReader::count( array( 'status' => 'active' ) ),
 			'upcoming_bookings' => AudienceBookingRepository::count(
 				array(
 					'status'     => 'active',

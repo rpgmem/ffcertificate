@@ -14,7 +14,7 @@ declare(strict_types=1);
 
 namespace FreeFormCertificate\Reregistration;
 
-use FreeFormCertificate\Audience\AudienceRepository;
+use FreeFormCertificate\Audience\AudienceReader;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
@@ -145,7 +145,7 @@ class ReregistrationRepository {
 	public static function get_audiences( int $reregistration_id ): array {
 		$wpdb      = self::db();
 		$junction  = self::get_audiences_table_name();
-		$audiences = AudienceRepository::get_table_name();
+		$audiences = AudienceReader::get_table_name();
 
 		$results = $wpdb->get_results(
 			$wpdb->prepare(
@@ -476,7 +476,7 @@ class ReregistrationRepository {
 	 * @return list<ReregistrationRow>
 	 */
 	public static function get_active_for_audience( int $audience_id ): array {
-		$audience = AudienceRepository::get_by_id( $audience_id );
+		$audience = AudienceReader::get_by_id( $audience_id );
 		if ( ! $audience ) {
 			return array();
 		}
@@ -486,7 +486,7 @@ class ReregistrationRepository {
 		$current      = $audience;
 		while ( ! empty( $current->parent_id ) ) {
 			$audience_ids[] = (int) $current->parent_id;
-			$current        = AudienceRepository::get_by_id( (int) $current->parent_id );
+			$current        = AudienceReader::get_by_id( (int) $current->parent_id );
 			if ( ! $current ) {
 				break;
 			}
@@ -526,7 +526,7 @@ class ReregistrationRepository {
 	 * @return list<ReregistrationRow>
 	 */
 	public static function get_active_for_user( int $user_id ): array {
-		$audiences = AudienceRepository::get_user_audiences( $user_id );
+		$audiences = AudienceReader::get_user_audiences( $user_id );
 		if ( empty( $audiences ) ) {
 			return array();
 		}
@@ -626,7 +626,7 @@ class ReregistrationRepository {
 		$user_ids = array();
 
 		foreach ( $audience_ids as $aud_id ) {
-			$members  = AudienceRepository::get_members( (int) $aud_id );
+			$members  = AudienceReader::get_members( (int) $aud_id );
 			$user_ids = array_merge( $user_ids, $members );
 		}
 

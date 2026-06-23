@@ -239,7 +239,7 @@ class CustomFieldRepositoryTest extends TestCase {
     // ==================================================================
 
     public function test_get_by_audience_with_parents_returns_empty_for_invalid_audience(): void {
-        // AudienceRepository::get_by_id will also use global $wpdb, and
+        // AudienceReader::get_by_id will also use global $wpdb, and
         // we rely on cache returning false + wpdb returning null for the audience lookup.
         $this->wpdb->shouldReceive('prepare')->andReturn('QUERY');
         $this->wpdb->shouldReceive('get_row')->andReturn(null);
@@ -257,7 +257,7 @@ class CustomFieldRepositoryTest extends TestCase {
             $this->make_field(['id' => 2, 'audience_id' => 10]),
         ];
 
-        // First get_row call: AudienceRepository::get_by_id(10) returns the audience
+        // First get_row call: AudienceReader::get_by_id(10) returns the audience
         $this->wpdb->shouldReceive('get_row')
             ->andReturn($audience);
 
@@ -291,7 +291,7 @@ class CustomFieldRepositoryTest extends TestCase {
             $this->make_field(['id' => 300, 'audience_id' => 10, 'field_key' => 'child_field']),
         ];
 
-        // AudienceRepository::get_by_id calls: child(10), then parent(5), then grandparent(1)
+        // AudienceReader::get_by_id calls: child(10), then parent(5), then grandparent(1)
         $this->wpdb->shouldReceive('get_row')
             ->andReturn($child, $parent, $grandparent);
 
@@ -825,7 +825,7 @@ class CustomFieldRepositoryTest extends TestCase {
     // ==================================================================
 
     public function test_get_all_for_user_returns_empty_when_no_audiences(): void {
-        // AudienceRepository::get_user_audiences returns empty
+        // AudienceReader::get_user_audiences returns empty
         $this->wpdb->shouldReceive('get_results')->andReturn([]);
 
         $result = CustomFieldRepository::get_all_for_user(42);
@@ -845,7 +845,7 @@ class CustomFieldRepositoryTest extends TestCase {
                 [$field]      // get_by_audience (inside get_by_audience_with_parents)
             );
 
-        // AudienceRepository::get_by_id(10) via get_row
+        // AudienceReader::get_by_id(10) via get_row
         $this->wpdb->shouldReceive('get_row')->andReturn($audience);
 
         $result = CustomFieldRepository::get_all_for_user(42);

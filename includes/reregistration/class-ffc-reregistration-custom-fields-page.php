@@ -12,7 +12,7 @@ declare(strict_types=1);
 
 namespace FreeFormCertificate\Reregistration;
 
-use FreeFormCertificate\Audience\AudienceRepository;
+use FreeFormCertificate\Audience\AudienceReader;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
@@ -21,7 +21,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 /**
  * Admin page for reregistration custom fields.
  *
- * @phpstan-import-type AudienceRow from AudienceRepository
+ * @phpstan-import-type AudienceRow from AudienceReader
  */
 class ReregistrationCustomFieldsPage {
 
@@ -38,7 +38,7 @@ class ReregistrationCustomFieldsPage {
 			wp_die( esc_html__( 'Permission denied.', 'ffcertificate' ) );
 		}
 
-		$audiences = AudienceRepository::get_hierarchical( 'active' );
+		$audiences = AudienceReader::get_hierarchical( 'active' );
 		$edit_base = admin_url( 'admin.php?page=ffc-scheduling-audiences&action=edit&id=' );
 
 		?>

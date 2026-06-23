@@ -8,13 +8,13 @@ use Brain\Monkey\Functions;
 use Mockery;
 use Mockery\Adapter\Phpunit\MockeryPHPUnitIntegration;
 use PHPUnit\Framework\TestCase;
-use FreeFormCertificate\Audience\AudienceRepository;
+use FreeFormCertificate\Audience\AudienceReader;
+use FreeFormCertificate\Audience\AudienceWriter;
 
 /**
- * Tests for AudienceRepository: table names, CRUD operations,
- * hierarchical queries, membership management, and caching.
+ * Tests for the audience repository read/write split: table names, CRUD
+ * operations, hierarchical queries, membership management, and caching.
  *
- * @covers \FreeFormCertificate\Audience\AudienceRepository
  * @covers \FreeFormCertificate\Audience\AudienceReader
  * @covers \FreeFormCertificate\Audience\AudienceWriter
  */
@@ -39,6 +39,11 @@ class AudienceRepositoryTest extends TestCase {
         Functions\when('wp_cache_set')->justReturn(true);
         Functions\when('wp_cache_delete')->justReturn(true);
         Functions\when('__')->returnArg();
+
+        // pcov does not record lines for files first autoloaded mid-test-method,
+        // so preload the reader/writer here for correct coverage attribution.
+        class_exists('\\FreeFormCertificate\\Audience\\AudienceReader');
+        class_exists('\\FreeFormCertificate\\Audience\\AudienceWriter');
         Functions\when('wp_parse_args')->alias(function($args, $defaults = array()) {
             return array_merge($defaults, $args);
         });
@@ -74,18 +79,18 @@ class AudienceRepositoryTest extends TestCase {
     // ==================================================================
 
     public function test_get_table_name_returns_audiences_table(): void {
-        $this->assertSame('wp_ffc_audiences', AudienceRepository::get_table_name());
+        $this->assertSame('wp_ffc_audiences', AudienceReader::get_table_name());
     }
 
     public function test_get_members_table_name_returns_audience_members_table(): void {
-        $this->assertSame('wp_ffc_audience_members', AudienceRepository::get_members_table_name());
+        $this->assertSame('wp_ffc_audience_members', AudienceReader::get_members_table_name());
     }
 
     public function test_table_names_use_wpdb_prefix(): void {
         $this->wpdb->prefix = 'custom_';
 
-        $this->assertSame('custom_ffc_audiences', AudienceRepository::get_table_name());
-        $this->assertSame('custom_ffc_audience_members', AudienceRepository::get_members_table_name());
+        $this->assertSame('custom_ffc_audiences', AudienceReader::get_table_name());
+        $this->assertSame('custom_ffc_audience_members', AudienceReader::get_members_table_name());
 
         // Restore
         $this->wpdb->prefix = 'wp_';
@@ -104,7 +109,7 @@ class AudienceRepositoryTest extends TestCase {
         $this->wpdb->shouldReceive('prepare')->once()->andReturn('SELECT * FROM wp_ffc_audiences ORDER BY name ASC');
         $this->wpdb->shouldReceive('get_results')->once()->andReturn($rows);
 
-        $result = AudienceRepository::get_all();
+        $result = AudienceReader::get_all();
 
         $this->assertCount(2, $result);
         $this->assertSame('Audience A', $result[0]->name);
@@ -118,7 +123,7 @@ class AudienceRepositoryTest extends TestCase {
         });
         $this->wpdb->shouldReceive('get_results')->once()->andReturn([]);
 
-        AudienceRepository::get_all(['parent_id' => 0]);
+        AudienceReader::get_all(['parent_id' => 0]);
 
         $this->assertStringContainsString('parent_id IS NULL', $captured_sql);
     }
@@ -131,7 +136,7 @@ class AudienceRepositoryTest extends TestCase {
         });
         $this->wpdb->shouldReceive('get_results')->once()->andReturn([]);
 
-        AudienceRepository::get_all(['parent_id' => 5]);
+        AudienceReader::get_all(['parent_id' => 5]);
 
         $this->assertStringContainsString('parent_id = %d', $captured_sql);
     }
@@ -144,7 +149,7 @@ class AudienceRepositoryTest extends TestCase {
         });
         $this->wpdb->shouldReceive('get_results')->once()->andReturn([]);
 
-        AudienceRepository::get_all(['status' => 'active']);
+        AudienceReader::get_all(['status' => 'active']);
 
         $this->assertStringContainsString('status = %s', $captured_sql);
     }
@@ -157,7 +162,7 @@ class AudienceRepositoryTest extends TestCase {
         });
         $this->wpdb->shouldReceive('get_results')->once()->andReturn([]);
 
-        AudienceRepository::get_all(['limit' => 10, 'offset' => 5]);
+        AudienceReader::get_all(['limit' => 10, 'offset' => 5]);
 
         $this->assertStringContainsString('LIMIT 10 OFFSET 5', $captured_sql);
     }
@@ -170,7 +175,7 @@ class AudienceRepositoryTest extends TestCase {
         });
         $this->wpdb->shouldReceive('get_results')->once()->andReturn([]);
 
-        AudienceRepository::get_all(['limit' => 0]);
+        AudienceReader::get_all(['limit' => 0]);
 
         $this->assertStringNotContainsString('LIMIT', $captured_sql);
     }
@@ -183,7 +188,7 @@ class AudienceRepositoryTest extends TestCase {
         });
         $this->wpdb->shouldReceive('get_results')->once()->andReturn([]);
 
-        AudienceRepository::get_all(['parent_id' => 3, 'status' => 'active']);
+        AudienceReader::get_all(['parent_id' => 3, 'status' => 'active']);
 
         $this->assertStringContainsString('parent_id = %d', $captured_sql);
         $this->assertStringContainsString('status = %s', $captured_sql);
@@ -200,7 +205,7 @@ class AudienceRepositoryTest extends TestCase {
         $this->wpdb->shouldReceive('prepare')->once()->andReturn('SELECT * FROM wp_ffc_audiences WHERE id = 1');
         $this->wpdb->shouldReceive('get_row')->once()->andReturn($audience);
 
-        $result = AudienceRepository::get_by_id(1);
+        $result = AudienceReader::get_by_id(1);
 
         $this->assertSame('Test Audience', $result->name);
     }
@@ -209,7 +214,7 @@ class AudienceRepositoryTest extends TestCase {
         $this->wpdb->shouldReceive('prepare')->once()->andReturn('QUERY');
         $this->wpdb->shouldReceive('get_row')->once()->andReturn(null);
 
-        $result = AudienceRepository::get_by_id(999);
+        $result = AudienceReader::get_by_id(999);
 
         $this->assertNull($result);
     }
@@ -224,7 +229,7 @@ class AudienceRepositoryTest extends TestCase {
         // wpdb should NOT be called since cache hit
         $this->wpdb->shouldNotReceive('get_row');
 
-        $result = AudienceRepository::get_by_id(1);
+        $result = AudienceReader::get_by_id(1);
 
         $this->assertSame('Cached Audience', $result->name);
     }
@@ -244,7 +249,7 @@ class AudienceRepositoryTest extends TestCase {
             return true;
         });
 
-        AudienceRepository::get_by_id(5);
+        AudienceReader::get_by_id(5);
     }
 
     public function test_get_by_id_does_not_cache_null_result(): void {
@@ -257,7 +262,7 @@ class AudienceRepositoryTest extends TestCase {
             return true;
         });
 
-        AudienceRepository::get_by_id(999);
+        AudienceReader::get_by_id(999);
 
         $this->assertFalse($cache_set_called);
     }
@@ -279,7 +284,7 @@ class AudienceRepositoryTest extends TestCase {
         });
         $this->wpdb->shouldReceive('get_results')->once()->andReturn($parents);
 
-        $result = AudienceRepository::get_parents();
+        $result = AudienceReader::get_parents();
 
         $this->assertCount(2, $result);
         $this->assertStringContainsString('parent_id IS NULL', $captured_sql);
@@ -293,7 +298,7 @@ class AudienceRepositoryTest extends TestCase {
         });
         $this->wpdb->shouldReceive('get_results')->once()->andReturn([]);
 
-        AudienceRepository::get_parents('active');
+        AudienceReader::get_parents('active');
 
         $this->assertStringContainsString('parent_id IS NULL', $captured_sql);
         $this->assertStringContainsString('status = %s', $captured_sql);
@@ -316,7 +321,7 @@ class AudienceRepositoryTest extends TestCase {
         });
         $this->wpdb->shouldReceive('get_results')->once()->andReturn($children);
 
-        $result = AudienceRepository::get_children(1);
+        $result = AudienceReader::get_children(1);
 
         $this->assertCount(2, $result);
         $this->assertStringContainsString('parent_id = %d', $captured_sql);
@@ -330,7 +335,7 @@ class AudienceRepositoryTest extends TestCase {
         });
         $this->wpdb->shouldReceive('get_results')->once()->andReturn([]);
 
-        AudienceRepository::get_children(1, 'active');
+        AudienceReader::get_children(1, 'active');
 
         $this->assertStringContainsString('parent_id = %d', $captured_sql);
         $this->assertStringContainsString('status = %s', $captured_sql);
@@ -352,7 +357,7 @@ class AudienceRepositoryTest extends TestCase {
         });
         $this->wpdb->shouldReceive('get_results')->once()->andReturn([$parent1, $parent2, $child1, $child2]);
 
-        $result = AudienceRepository::get_hierarchical();
+        $result = AudienceReader::get_hierarchical();
 
         $this->assertCount(2, $result);
         $this->assertObjectHasProperty('children', $result[0]);
@@ -365,7 +370,7 @@ class AudienceRepositoryTest extends TestCase {
         $this->wpdb->shouldReceive('prepare')->andReturn('QUERY');
         $this->wpdb->shouldReceive('get_results')->once()->andReturn([]);
 
-        $result = AudienceRepository::get_hierarchical();
+        $result = AudienceReader::get_hierarchical();
 
         $this->assertSame([], $result);
     }
@@ -379,7 +384,7 @@ class AudienceRepositoryTest extends TestCase {
         });
         $this->wpdb->shouldReceive('get_results')->andReturn([]);
 
-        AudienceRepository::get_hierarchical('active');
+        AudienceReader::get_hierarchical('active');
 
         $this->assertNotEmpty($captured_sqls);
         $this->assertStringContainsString('status = %s', $captured_sqls[0]);
@@ -405,7 +410,7 @@ class AudienceRepositoryTest extends TestCase {
             )
             ->andReturn(1);
 
-        $result = AudienceRepository::create([
+        $result = AudienceWriter::create([
             'name' => 'New Audience',
             'color' => '#ff0000',
         ]);
@@ -416,7 +421,7 @@ class AudienceRepositoryTest extends TestCase {
     public function test_create_returns_false_on_failure(): void {
         $this->wpdb->shouldReceive('insert')->once()->andReturn(false);
 
-        $result = AudienceRepository::create(['name' => 'Fail Audience']);
+        $result = AudienceWriter::create(['name' => 'Fail Audience']);
 
         $this->assertFalse($result);
     }
@@ -438,7 +443,7 @@ class AudienceRepositoryTest extends TestCase {
             )
             ->andReturn(1);
 
-        AudienceRepository::create(['name' => 'Default Test']);
+        AudienceWriter::create(['name' => 'Default Test']);
     }
 
     public function test_create_includes_allow_self_join(): void {
@@ -455,7 +460,7 @@ class AudienceRepositoryTest extends TestCase {
             )
             ->andReturn(1);
 
-        AudienceRepository::create(['name' => 'Self Join', 'allow_self_join' => 1]);
+        AudienceWriter::create(['name' => 'Self Join', 'allow_self_join' => 1]);
     }
 
     // ==================================================================
@@ -476,7 +481,7 @@ class AudienceRepositoryTest extends TestCase {
             )
             ->andReturn(1);
 
-        $result = AudienceRepository::update(1, ['name' => 'Updated Name']);
+        $result = AudienceWriter::update(1, ['name' => 'Updated Name']);
 
         $this->assertTrue($result);
     }
@@ -484,14 +489,14 @@ class AudienceRepositoryTest extends TestCase {
     public function test_update_returns_false_on_failure(): void {
         $this->wpdb->shouldReceive('update')->once()->andReturn(false);
 
-        $result = AudienceRepository::update(1, ['name' => 'Fail']);
+        $result = AudienceWriter::update(1, ['name' => 'Fail']);
 
         $this->assertFalse($result);
     }
 
     public function test_update_returns_false_when_data_is_empty_after_filtering(): void {
         // Only id, created_by, created_at are present -- all get unset
-        $result = AudienceRepository::update(1, [
+        $result = AudienceWriter::update(1, [
             'id' => 99,
             'created_by' => 5,
             'created_at' => '2024-01-01',
@@ -517,7 +522,7 @@ class AudienceRepositoryTest extends TestCase {
             )
             ->andReturn(1);
 
-        AudienceRepository::update(1, [
+        AudienceWriter::update(1, [
             'id' => 99,
             'created_by' => 5,
             'created_at' => '2024-01-01',
@@ -534,7 +539,7 @@ class AudienceRepositoryTest extends TestCase {
             return true;
         });
 
-        AudienceRepository::update(7, ['name' => 'Cached Update']);
+        AudienceWriter::update(7, ['name' => 'Cached Update']);
 
         $this->assertSame('id_7', $cache_deleted_key);
     }
@@ -555,7 +560,7 @@ class AudienceRepositoryTest extends TestCase {
             )
             ->andReturn(1);
 
-        AudienceRepository::update(1, ['name' => 'Good', 'bogus_field' => 'ignored']);
+        AudienceWriter::update(1, ['name' => 'Good', 'bogus_field' => 'ignored']);
     }
 
     // ==================================================================
@@ -581,7 +586,7 @@ class AudienceRepositoryTest extends TestCase {
             ->with('wp_ffc_audiences', ['id' => 5], ['%d'])
             ->andReturn(1);
 
-        $result = AudienceRepository::delete(5);
+        $result = AudienceWriter::delete(5);
 
         $this->assertTrue($result);
     }
@@ -598,7 +603,7 @@ class AudienceRepositoryTest extends TestCase {
             ->with('wp_ffc_audiences', ['id' => 5], ['%d'])
             ->andReturn(false);
 
-        $result = AudienceRepository::delete(5);
+        $result = AudienceWriter::delete(5);
 
         $this->assertFalse($result);
     }
@@ -622,7 +627,7 @@ class AudienceRepositoryTest extends TestCase {
             return 1;
         });
 
-        AudienceRepository::delete(5);
+        AudienceWriter::delete(5);
 
         // Should have 4 delete calls:
         // 1. child members, 2. child audience, 3. parent members, 4. parent audience
@@ -644,7 +649,7 @@ class AudienceRepositoryTest extends TestCase {
             return true;
         });
 
-        AudienceRepository::delete(8);
+        AudienceWriter::delete(8);
 
         $this->assertContains('id_8', $deleted_keys);
     }
@@ -669,7 +674,7 @@ class AudienceRepositoryTest extends TestCase {
             )
             ->andReturn(1);
 
-        $result = AudienceRepository::add_member(1, 42);
+        $result = AudienceWriter::add_member(1, 42);
 
         $this->assertSame(99, $result);
     }
@@ -681,7 +686,7 @@ class AudienceRepositoryTest extends TestCase {
 
         $this->wpdb->shouldNotReceive('insert');
 
-        $result = AudienceRepository::add_member(1, 42);
+        $result = AudienceWriter::add_member(1, 42);
 
         $this->assertFalse($result);
     }
@@ -691,7 +696,7 @@ class AudienceRepositoryTest extends TestCase {
         $this->wpdb->shouldReceive('get_var')->once()->andReturn('0');
         $this->wpdb->shouldReceive('insert')->once()->andReturn(false);
 
-        $result = AudienceRepository::add_member(1, 42);
+        $result = AudienceWriter::add_member(1, 42);
 
         $this->assertFalse($result);
     }
@@ -710,7 +715,7 @@ class AudienceRepositoryTest extends TestCase {
             )
             ->andReturn(1);
 
-        $result = AudienceRepository::remove_member(1, 42);
+        $result = AudienceWriter::remove_member(1, 42);
 
         $this->assertTrue($result);
     }
@@ -718,7 +723,7 @@ class AudienceRepositoryTest extends TestCase {
     public function test_remove_member_returns_false_on_failure(): void {
         $this->wpdb->shouldReceive('delete')->once()->andReturn(false);
 
-        $result = AudienceRepository::remove_member(1, 42);
+        $result = AudienceWriter::remove_member(1, 42);
 
         $this->assertFalse($result);
     }
@@ -727,7 +732,7 @@ class AudienceRepositoryTest extends TestCase {
         // delete returns 0 (no rows affected, but no error => not false)
         $this->wpdb->shouldReceive('delete')->once()->andReturn(0);
 
-        $result = AudienceRepository::remove_member(1, 999);
+        $result = AudienceWriter::remove_member(1, 999);
 
         $this->assertTrue($result);
     }
@@ -740,21 +745,21 @@ class AudienceRepositoryTest extends TestCase {
         $this->wpdb->shouldReceive('prepare')->once()->andReturn('QUERY');
         $this->wpdb->shouldReceive('get_var')->once()->andReturn('1');
 
-        $this->assertTrue(AudienceRepository::is_member(1, 42));
+        $this->assertTrue(AudienceReader::is_member(1, 42));
     }
 
     public function test_is_member_returns_false_when_not_member(): void {
         $this->wpdb->shouldReceive('prepare')->once()->andReturn('QUERY');
         $this->wpdb->shouldReceive('get_var')->once()->andReturn('0');
 
-        $this->assertFalse(AudienceRepository::is_member(1, 42));
+        $this->assertFalse(AudienceReader::is_member(1, 42));
     }
 
     public function test_is_member_returns_false_when_count_is_null(): void {
         $this->wpdb->shouldReceive('prepare')->once()->andReturn('QUERY');
         $this->wpdb->shouldReceive('get_var')->once()->andReturn(null);
 
-        $this->assertFalse(AudienceRepository::is_member(1, 42));
+        $this->assertFalse(AudienceReader::is_member(1, 42));
     }
 
     // ==================================================================
@@ -765,7 +770,7 @@ class AudienceRepositoryTest extends TestCase {
         $this->wpdb->shouldReceive('prepare')->andReturn('QUERY');
         $this->wpdb->shouldReceive('get_col')->once()->andReturn(['10', '20', '30']);
 
-        $result = AudienceRepository::get_members(1);
+        $result = AudienceReader::get_members(1);
 
         $this->assertSame([10, 20, 30], $result);
     }
@@ -774,7 +779,7 @@ class AudienceRepositoryTest extends TestCase {
         $this->wpdb->shouldReceive('prepare')->andReturn('QUERY');
         $this->wpdb->shouldReceive('get_col')->once()->andReturn([]);
 
-        $result = AudienceRepository::get_members(1);
+        $result = AudienceReader::get_members(1);
 
         $this->assertSame([], $result);
     }
@@ -797,7 +802,7 @@ class AudienceRepositoryTest extends TestCase {
         // get_col for members query (should include audience_ids 1, 3, 4)
         $this->wpdb->shouldReceive('get_col')->once()->andReturn(['10', '20']);
 
-        $result = AudienceRepository::get_members(1, true);
+        $result = AudienceReader::get_members(1, true);
 
         $this->assertSame([10, 20], $result);
     }
@@ -813,7 +818,7 @@ class AudienceRepositoryTest extends TestCase {
         });
         $this->wpdb->shouldReceive('get_col')->once()->andReturn([]);
 
-        AudienceRepository::get_members(1, false);
+        AudienceReader::get_members(1, false);
 
         $this->assertStringContainsString('IN (%d)', $captured_sql);
     }
@@ -822,7 +827,7 @@ class AudienceRepositoryTest extends TestCase {
         $this->wpdb->shouldReceive('prepare')->andReturn('QUERY');
         $this->wpdb->shouldReceive('get_col')->once()->andReturn(['1', '2', '3']);
 
-        $result = AudienceRepository::get_members(1);
+        $result = AudienceReader::get_members(1);
 
         foreach ($result as $id) {
             $this->assertIsInt($id);
@@ -842,7 +847,7 @@ class AudienceRepositoryTest extends TestCase {
         $this->wpdb->shouldReceive('prepare')->once()->andReturn('QUERY');
         $this->wpdb->shouldReceive('get_results')->once()->andReturn($audiences);
 
-        $result = AudienceRepository::get_user_audiences(42);
+        $result = AudienceReader::get_user_audiences(42);
 
         $this->assertCount(2, $result);
         $this->assertSame('Audience A', $result[0]->name);
@@ -852,7 +857,7 @@ class AudienceRepositoryTest extends TestCase {
         $this->wpdb->shouldReceive('prepare')->once()->andReturn('QUERY');
         $this->wpdb->shouldReceive('get_results')->once()->andReturn([]);
 
-        $result = AudienceRepository::get_user_audiences(42);
+        $result = AudienceReader::get_user_audiences(42);
 
         $this->assertSame([], $result);
     }
@@ -883,7 +888,7 @@ class AudienceRepositoryTest extends TestCase {
             return [$parent_audience]; // ancestor lookup by IDs
         });
 
-        $result = AudienceRepository::get_user_audiences(42, true);
+        $result = AudienceReader::get_user_audiences(42, true);
 
         $this->assertCount(2, $result);
         // Should be sorted by name
@@ -920,7 +925,7 @@ class AudienceRepositoryTest extends TestCase {
             return [$parent_audience]; // ancestor lookup returns same parent
         });
 
-        $result = AudienceRepository::get_user_audiences(42, true);
+        $result = AudienceReader::get_user_audiences(42, true);
 
         // Should not have duplicate parent
         $ids = array_column($result, 'id');
@@ -942,7 +947,7 @@ class AudienceRepositoryTest extends TestCase {
         // wpdb should NOT be called since cache hit
         $this->wpdb->shouldNotReceive('get_results');
 
-        $result = AudienceRepository::get_user_audiences(42);
+        $result = AudienceReader::get_user_audiences(42);
 
         $this->assertCount(1, $result);
         $this->assertSame('Cached Audience', $result[0]->name);
@@ -962,7 +967,7 @@ class AudienceRepositoryTest extends TestCase {
 
         $this->wpdb->shouldNotReceive('get_results');
 
-        $result = AudienceRepository::get_user_audiences(42, true);
+        $result = AudienceReader::get_user_audiences(42, true);
 
         $this->assertCount(1, $result);
     }
@@ -975,7 +980,7 @@ class AudienceRepositoryTest extends TestCase {
         $this->wpdb->shouldReceive('prepare')->andReturn('QUERY');
         $this->wpdb->shouldReceive('get_col')->once()->andReturn(['10', '20', '30']);
 
-        $count = AudienceRepository::get_member_count(1);
+        $count = AudienceReader::get_member_count(1);
 
         $this->assertSame(3, $count);
     }
@@ -984,7 +989,7 @@ class AudienceRepositoryTest extends TestCase {
         $this->wpdb->shouldReceive('prepare')->andReturn('QUERY');
         $this->wpdb->shouldReceive('get_col')->once()->andReturn([]);
 
-        $count = AudienceRepository::get_member_count(1);
+        $count = AudienceReader::get_member_count(1);
 
         $this->assertSame(0, $count);
     }
@@ -1003,7 +1008,7 @@ class AudienceRepositoryTest extends TestCase {
         // get_col for DISTINCT user_id
         $this->wpdb->shouldReceive('get_col')->once()->andReturn(['10', '20', '30', '40']);
 
-        $count = AudienceRepository::get_member_count(1, true);
+        $count = AudienceReader::get_member_count(1, true);
 
         $this->assertSame(4, $count);
     }
@@ -1020,7 +1025,7 @@ class AudienceRepositoryTest extends TestCase {
         $this->wpdb->shouldReceive('get_var')->andReturn('0'); // not a member
         $this->wpdb->shouldReceive('insert')->andReturn(1);
 
-        $added = AudienceRepository::bulk_add_members(1, [10, 20, 30]);
+        $added = AudienceWriter::bulk_add_members(1, [10, 20, 30]);
 
         $this->assertSame(3, $added);
     }
@@ -1037,13 +1042,13 @@ class AudienceRepositoryTest extends TestCase {
         });
         $this->wpdb->shouldReceive('insert')->andReturn(1);
 
-        $added = AudienceRepository::bulk_add_members(1, [10, 20, 30]);
+        $added = AudienceWriter::bulk_add_members(1, [10, 20, 30]);
 
         $this->assertSame(2, $added);
     }
 
     public function test_bulk_add_members_returns_zero_for_empty_array(): void {
-        $added = AudienceRepository::bulk_add_members(1, []);
+        $added = AudienceWriter::bulk_add_members(1, []);
 
         $this->assertSame(0, $added);
     }
@@ -1060,7 +1065,7 @@ class AudienceRepositoryTest extends TestCase {
             return $insert_call === 2 ? false : 1;
         });
 
-        $added = AudienceRepository::bulk_add_members(1, [10, 20, 30]);
+        $added = AudienceWriter::bulk_add_members(1, [10, 20, 30]);
 
         $this->assertSame(2, $added);
     }
@@ -1086,7 +1091,7 @@ class AudienceRepositoryTest extends TestCase {
         });
         $this->wpdb->shouldReceive('query')->once()->andReturn(1);
 
-        AudienceRepository::cascade_self_join(1, 1);
+        AudienceWriter::cascade_self_join(1, 1);
 
         $update_sqls = array_filter($captured_sqls, function($sql) {
             return stripos($sql, 'UPDATE') !== false;
@@ -1103,13 +1108,13 @@ class AudienceRepositoryTest extends TestCase {
     public function test_bulk_remove_members_removes_all_users(): void {
         $this->wpdb->shouldReceive('delete')->andReturn(1);
 
-        $removed = AudienceRepository::bulk_remove_members(1, [10, 20, 30]);
+        $removed = AudienceWriter::bulk_remove_members(1, [10, 20, 30]);
 
         $this->assertSame(3, $removed);
     }
 
     public function test_bulk_remove_members_returns_zero_for_empty_array(): void {
-        $removed = AudienceRepository::bulk_remove_members(1, []);
+        $removed = AudienceWriter::bulk_remove_members(1, []);
 
         $this->assertSame(0, $removed);
     }
@@ -1132,7 +1137,7 @@ class AudienceRepositoryTest extends TestCase {
         $this->wpdb->shouldReceive('get_var')->andReturn('0');
         $this->wpdb->shouldReceive('insert')->andReturn(1);
 
-        $result = AudienceRepository::set_members(1, [10, 20]);
+        $result = AudienceWriter::set_members(1, [10, 20]);
 
         $this->assertTrue($result);
     }
@@ -1145,7 +1150,7 @@ class AudienceRepositoryTest extends TestCase {
         $this->wpdb->shouldReceive('prepare')->once()->andReturn('QUERY');
         $this->wpdb->shouldReceive('get_var')->once()->andReturn('15');
 
-        $result = AudienceRepository::count();
+        $result = AudienceReader::count();
 
         $this->assertSame(15, $result);
     }
@@ -1158,7 +1163,7 @@ class AudienceRepositoryTest extends TestCase {
         });
         $this->wpdb->shouldReceive('get_var')->once()->andReturn('5');
 
-        AudienceRepository::count(['parent_id' => 0]);
+        AudienceReader::count(['parent_id' => 0]);
 
         $this->assertStringContainsString('parent_id IS NULL', $captured_sql);
     }
@@ -1171,7 +1176,7 @@ class AudienceRepositoryTest extends TestCase {
         });
         $this->wpdb->shouldReceive('get_var')->once()->andReturn('3');
 
-        AudienceRepository::count(['status' => 'active']);
+        AudienceReader::count(['status' => 'active']);
 
         $this->assertStringContainsString('status = %s', $captured_sql);
     }
@@ -1186,7 +1191,7 @@ class AudienceRepositoryTest extends TestCase {
 
         $this->wpdb->shouldNotReceive('get_var');
 
-        $result = AudienceRepository::count();
+        $result = AudienceReader::count();
 
         $this->assertSame(42, $result);
     }
@@ -1206,7 +1211,7 @@ class AudienceRepositoryTest extends TestCase {
         $this->wpdb->shouldReceive('prepare')->once()->andReturn('QUERY');
         $this->wpdb->shouldReceive('get_results')->once()->andReturn($audiences);
 
-        $result = AudienceRepository::search('Test');
+        $result = AudienceReader::search('Test');
 
         $this->assertCount(1, $result);
         $this->assertSame('Test Audience', $result[0]->name);
@@ -1217,7 +1222,7 @@ class AudienceRepositoryTest extends TestCase {
         $this->wpdb->shouldReceive('prepare')->once()->andReturn('QUERY');
         $this->wpdb->shouldReceive('get_results')->once()->andReturn([]);
 
-        $result = AudienceRepository::search('nonexistent');
+        $result = AudienceReader::search('nonexistent');
 
         $this->assertSame([], $result);
     }
@@ -1234,7 +1239,7 @@ class AudienceRepositoryTest extends TestCase {
 
         $this->wpdb->shouldNotReceive('get_results');
 
-        $result = AudienceRepository::search('cached');
+        $result = AudienceReader::search('cached');
 
         $this->assertCount(1, $result);
     }
@@ -1248,7 +1253,7 @@ class AudienceRepositoryTest extends TestCase {
         });
         $this->wpdb->shouldReceive('get_results')->once()->andReturn([]);
 
-        AudienceRepository::search('test', 5);
+        AudienceReader::search('test', 5);
 
         $this->assertStringContainsString('LIMIT %d', $captured_sql);
     }
@@ -1261,14 +1266,14 @@ class AudienceRepositoryTest extends TestCase {
         $this->wpdb->shouldReceive('prepare')->once()->andReturnUsing(fn($s) => $s);
         $this->wpdb->shouldReceive('get_col')->once()->andReturn(['1', '2', '7']);
 
-        $this->assertSame([1, 2, 7], AudienceRepository::get_all_ids());
+        $this->assertSame([1, 2, 7], AudienceReader::get_all_ids());
     }
 
     public function test_get_all_ids_returns_empty_when_no_rows(): void {
         $this->wpdb->shouldReceive('prepare')->once()->andReturnUsing(fn($s) => $s);
         $this->wpdb->shouldReceive('get_col')->once()->andReturn([]);
 
-        $this->assertSame([], AudienceRepository::get_all_ids());
+        $this->assertSame([], AudienceReader::get_all_ids());
     }
 
     public function test_get_user_audience_badges_returns_name_color_pairs(): void {
@@ -1278,7 +1283,7 @@ class AudienceRepositoryTest extends TestCase {
             ['name' => 'New', 'color' => '#0f0'],
         ]);
 
-        $badges = AudienceRepository::get_user_audience_badges(7);
+        $badges = AudienceReader::get_user_audience_badges(7);
 
         $this->assertCount(2, $badges);
         $this->assertSame('VIP', $badges[0]['name']);
@@ -1288,6 +1293,6 @@ class AudienceRepositoryTest extends TestCase {
     public function test_get_user_audience_badges_short_circuits_on_invalid_user(): void {
         $this->wpdb->shouldNotReceive('get_results');
 
-        $this->assertSame([], AudienceRepository::get_user_audience_badges(0));
+        $this->assertSame([], AudienceReader::get_user_audience_badges(0));
     }
 }

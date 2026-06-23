@@ -15,7 +15,7 @@ declare(strict_types=1);
 
 namespace FreeFormCertificate\Reregistration;
 
-use FreeFormCertificate\Audience\AudienceRepository;
+use FreeFormCertificate\Audience\AudienceReader;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
@@ -27,7 +27,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  * @phpstan-import-type ReregistrationRow from ReregistrationRepository
  * @phpstan-import-type ReregistrationSubmissionRow from ReregistrationSubmissionReader
  * @phpstan-import-type CustomFieldRow from CustomFieldRepository
- * @phpstan-import-type AudienceRow from \FreeFormCertificate\Audience\AudienceRepository
+ * @phpstan-import-type AudienceRow from \FreeFormCertificate\Audience\AudienceReader
  */
 final class ReregistrationAdminRenderer {
 
@@ -60,7 +60,7 @@ final class ReregistrationAdminRenderer {
 		}
 
 		$items     = ReregistrationRepository::get_all( $filters );
-		$audiences = AudienceRepository::get_hierarchical();
+		$audiences = AudienceReader::get_hierarchical();
 		$new_url   = admin_url( 'admin.php?page=' . $menu_slug . '&view=new' );
 
 		?>
@@ -220,7 +220,7 @@ final class ReregistrationAdminRenderer {
 			$title = __( 'Edit Reregistration', 'ffcertificate' );
 		}
 
-		$audiences    = AudienceRepository::get_hierarchical( 'active' );
+		$audiences    = AudienceReader::get_hierarchical( 'active' );
 		$selected_ids = $id > 0 ? ReregistrationRepository::get_audience_ids( $id ) : array();
 		$back_url     = admin_url( 'admin.php?page=' . $menu_slug );
 

@@ -71,7 +71,7 @@ class ReregistrationCustomFieldsPageTest extends TestCase {
     public function test_render_shows_no_audiences_message(): void {
         Functions\when( 'current_user_can' )->justReturn( true );
 
-        $audienceRepoMock = Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceRepository' );
+        $audienceRepoMock = Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceReader' );
         $audienceRepoMock->shouldReceive( 'get_hierarchical' )
             ->with( 'active' )
             ->andReturn( array() );
@@ -100,7 +100,7 @@ class ReregistrationCustomFieldsPageTest extends TestCase {
             ),
         );
 
-        $audienceRepoMock = Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceRepository' );
+        $audienceRepoMock = Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceReader' );
         $audienceRepoMock->shouldReceive( 'get_hierarchical' )
             ->with( 'active' )
             ->andReturn( array( $parent ) );

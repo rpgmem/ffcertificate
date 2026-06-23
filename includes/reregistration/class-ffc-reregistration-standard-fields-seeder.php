@@ -20,7 +20,7 @@ declare(strict_types=1);
 
 namespace FreeFormCertificate\Reregistration;
 
-use FreeFormCertificate\Audience\AudienceRepository;
+use FreeFormCertificate\Audience\AudienceReader;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
@@ -574,11 +574,11 @@ class ReregistrationStandardFieldsSeeder {
 	 * @return int Total number of fields inserted across audiences.
 	 */
 	public static function seed_all_existing_audiences(): int {
-		if ( ! class_exists( '\FreeFormCertificate\Audience\AudienceRepository' ) ) {
+		if ( ! class_exists( '\FreeFormCertificate\Audience\AudienceReader' ) ) {
 			return 0;
 		}
 
-		$ids = \FreeFormCertificate\Audience\AudienceRepository::get_all_ids();
+		$ids = \FreeFormCertificate\Audience\AudienceReader::get_all_ids();
 		if ( empty( $ids ) ) {
 			return 0;
 		}
@@ -629,7 +629,7 @@ class ReregistrationStandardFieldsSeeder {
 		}
 
 		$updated = 0;
-		foreach ( AudienceRepository::get_descendant_ids( $parent_audience_id ) as $aud_id ) {
+		foreach ( AudienceReader::get_descendant_ids( $parent_audience_id ) as $aud_id ) {
 			foreach ( $parent_options as $field_key => $options ) {
 				$field = CustomFieldRepository::get_by_key( (int) $aud_id, $field_key );
 				if ( null === $field ) {

@@ -22,7 +22,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 /**
  * Handles audience CRUD rendering and actions.
  *
- * @phpstan-import-type AudienceRow from AudienceRepository
+ * @phpstan-import-type AudienceRow from AudienceReader
  * @phpstan-import-type CustomFieldRow from \FreeFormCertificate\Reregistration\CustomFieldRepository
  */
 class AudienceAdminAudience {
@@ -115,20 +115,20 @@ class AudienceAdminAudience {
 			);
 
 			if ( $id > 0 ) {
-				AudienceRepository::update( $id, $data );
+				AudienceWriter::update( $id, $data );
 
 				// Cascade allow_self_join to children if this is a parent.
 				if ( empty( $data['parent_id'] ) ) {
-					AudienceRepository::cascade_self_join( $id, (int) $data['allow_self_join'] );
+					AudienceWriter::cascade_self_join( $id, (int) $data['allow_self_join'] );
 				}
 
 				add_settings_error( 'ffc_audience', 'ffc_message', __( 'Audience updated successfully.', 'ffcertificate' ), 'success' );
 			} else {
-				$new_id = AudienceRepository::create( $data );
+				$new_id = AudienceWriter::create( $data );
 				if ( $new_id ) {
 					// Cascade to children (if creating a parent from template/import).
 					if ( empty( $data['parent_id'] ) ) {
-						AudienceRepository::cascade_self_join( $new_id, (int) $data['allow_self_join'] );
+						AudienceWriter::cascade_self_join( $new_id, (int) $data['allow_self_join'] );
 					}
 					wp_safe_redirect( admin_url( 'admin.php?page=' . $this->menu_slug . '-audiences&action=edit&id=' . $new_id . '&message=created' ) );
 					exit;
@@ -147,7 +147,7 @@ class AudienceAdminAudience {
 
 			if ( $audience_id > 0 && ! empty( $user_ids_string ) ) {
 				$user_ids = array_map( 'absint', explode( ',', $user_ids_string ) );
-				$added    = AudienceRepository::bulk_add_members( $audience_id, $user_ids );
+				$added    = AudienceWriter::bulk_add_members( $audience_id, $user_ids );
 				/* translators: %d: number of members added */
 				add_settings_error( 'ffc_audience', 'ffc_message', sprintf( __( '%d member(s) added successfully.', 'ffcertificate' ), $added ), 'success' );
 			}
@@ -159,7 +159,7 @@ class AudienceAdminAudience {
 			$user_id     = absint( $_GET['remove_user'] );
 			$audience_id = absint( $_GET['id'] );
 			if ( wp_verify_nonce( RequestInput::get_get_string( '_wpnonce' ), 'remove_member_' . $user_id ) ) {
-				AudienceRepository::remove_member( $audience_id, $user_id );
+				AudienceWriter::remove_member( $audience_id, $user_id );
 				wp_safe_redirect( admin_url( 'admin.php?page=' . $this->menu_slug . '-audiences&action=members&id=' . $audience_id . '&message=member_removed' ) );
 				exit;
 			}
@@ -170,7 +170,7 @@ class AudienceAdminAudience {
 		if ( isset( $_GET['action'] ) && 'deactivate' === $_GET['action'] && isset( $_GET['id'] ) && isset( $_GET['page'] ) && $_GET['page'] === $this->menu_slug . '-audiences' ) {
 			$id = absint( $_GET['id'] );
 			if ( wp_verify_nonce( RequestInput::get_get_string( '_wpnonce' ), 'deactivate_audience_' . $id ) ) {
-				AudienceRepository::update( $id, array( 'status' => 'inactive' ) );
+				AudienceWriter::update( $id, array( 'status' => 'inactive' ) );
 				wp_safe_redirect( admin_url( 'admin.php?page=' . $this->menu_slug . '-audiences&message=deactivated' ) );
 				exit;
 			}
@@ -184,9 +184,9 @@ class AudienceAdminAudience {
 			}
 			$id = absint( $_GET['id'] );
 			if ( wp_verify_nonce( RequestInput::get_get_string( '_wpnonce' ), 'delete_audience_' . $id ) ) {
-				$aud = AudienceRepository::get_by_id( $id );
+				$aud = AudienceReader::get_by_id( $id );
 				if ( $aud && 'active' !== $aud->status ) {
-					AudienceRepository::delete( $id );
+					AudienceWriter::delete( $id );
 					wp_safe_redirect( admin_url( 'admin.php?page=' . $this->menu_slug . '-audiences&message=deleted' ) );
 					exit;
 				}

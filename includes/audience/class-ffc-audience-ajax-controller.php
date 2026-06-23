@@ -453,7 +453,7 @@ final class AudienceAjaxController {
 				wp_send_json_error( array( 'message' => __( 'Invalid data.', 'ffcertificate' ) ) );
 			}
 
-			$audience = AudienceRepository::get_by_id( $audience_id );
+			$audience = AudienceReader::get_by_id( $audience_id );
 			if ( ! $audience ) {
 				wp_send_json_error( array( 'message' => __( 'Audience not found.', 'ffcertificate' ) ) );
 			}
@@ -629,7 +629,7 @@ final class AudienceAjaxController {
 				wp_send_json_error( array( 'message' => __( 'Invalid data.', 'ffcertificate' ) ) );
 			}
 
-			$audience = AudienceRepository::get_by_id( $audience_id );
+			$audience = AudienceReader::get_by_id( $audience_id );
 			if ( ! $audience ) {
 				wp_send_json_error( array( 'message' => __( 'Audience not found.', 'ffcertificate' ) ) );
 			}

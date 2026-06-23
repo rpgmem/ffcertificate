@@ -4,13 +4,11 @@
  *
  * Read-side of the audience repository split (#563 backlog, A6). Holds every
  * SELECT / lookup / hierarchy-walk query and the derived read helpers. Writes
- * live in {@see AudienceWriter}; {@see AudienceRepository} remains the public
- * façade that delegates to both.
+ * live in {@see AudienceWriter}. Callers depend on this reader (reads) and the
+ * writer (writes) directly; the delegating façade was retired in #563 B3-A.
  *
  * @since   6.11.3
  * @package FreeFormCertificate\Audience
- *
- * @phpstan-import-type AudienceRow from AudienceRepository
  */
 
 declare(strict_types=1);
@@ -27,7 +25,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  *
  * @since 6.11.3
  *
- * @phpstan-import-type AudienceRow from AudienceRepository
+ * @phpstan-type AudienceRow \stdClass&object{id: numeric-string, name: string, color: string, parent_id: numeric-string|null, status: string, created_by: numeric-string, created_at: string, updated_at: string, allow_self_join?: numeric-string, children?: list<\stdClass>, depth?: int<0, 2>}
  */
 class AudienceReader {
 	use \FreeFormCertificate\Core\StaticRepositoryTrait;

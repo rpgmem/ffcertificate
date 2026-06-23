@@ -17,7 +17,7 @@ declare(strict_types=1);
 
 namespace FreeFormCertificate\Reregistration;
 
-use FreeFormCertificate\Audience\AudienceRepository;
+use FreeFormCertificate\Audience\AudienceReader;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
@@ -130,7 +130,7 @@ class CustomFieldReader {
 	 * @return list<CustomFieldRow> Fields with added 'source_audience_id' and 'source_audience_name' properties.
 	 */
 	public static function get_by_audience_with_parents( int $audience_id, bool $active_only = true ): array {
-		$audience = AudienceRepository::get_by_id( $audience_id );
+		$audience = AudienceReader::get_by_id( $audience_id );
 		if ( ! $audience ) {
 			return array();
 		}
@@ -141,7 +141,7 @@ class CustomFieldReader {
 		while ( $current ) {
 			$audience_chain[] = $current;
 			if ( ! empty( $current->parent_id ) ) {
-				$current = AudienceRepository::get_by_id( (int) $current->parent_id );
+				$current = AudienceReader::get_by_id( (int) $current->parent_id );
 			} else {
 				$current = null;
 			}
@@ -171,7 +171,7 @@ class CustomFieldReader {
 	 * @return list<CustomFieldRow> Fields grouped conceptually, with source_audience_* properties.
 	 */
 	public static function get_all_for_user( int $user_id, bool $active_only = true ): array {
-		$audiences = AudienceRepository::get_user_audiences( $user_id );
+		$audiences = AudienceReader::get_user_audiences( $user_id );
 		if ( empty( $audiences ) ) {
 			return array();
 		}

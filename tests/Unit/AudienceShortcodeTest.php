@@ -293,7 +293,7 @@ class AudienceShortcodeTest extends TestCase {
         $envRepoMock = Mockery::mock('alias:FreeFormCertificate\Audience\AudienceEnvironmentRepository');
         $envRepoMock->shouldReceive('get_by_schedule')->andReturn(array());
 
-        $audRepoMock = Mockery::mock('alias:FreeFormCertificate\Audience\AudienceRepository');
+        $audRepoMock = Mockery::mock('alias:FreeFormCertificate\Audience\AudienceReader');
         $audRepoMock->shouldReceive('get_hierarchical')->andReturn(array());
 
         $utilsMock = Mockery::mock('alias:FreeFormCertificate\Core\AssetHelper');

@@ -9,7 +9,6 @@ use Mockery;
 use Mockery\Adapter\Phpunit\MockeryPHPUnitIntegration;
 use PHPUnit\Framework\TestCase;
 use FreeFormCertificate\Reregistration\ReregistrationRepository;
-use FreeFormCertificate\Audience\AudienceRepository;
 
 /**
  * Tests for ReregistrationRepository: table names, CRUD, audience junction,
@@ -987,7 +986,7 @@ class ReregistrationRepositoryTest extends TestCase {
 
         // Mock AudienceRepository - since the class is already loaded, we need
         // to use a partial mock approach. We mock the wpdb calls that
-        // AudienceRepository::get_by_id will make internally.
+        // AudienceReader::get_by_id will make internally.
         // However, get_by_id uses cache first, so we provide the result via cache.
         Functions\when('wp_cache_get')->alias(function($key, $group = '') use ($audience) {
             if ($key === 'id_5' && $group === 'ffc_audiences') {
@@ -1005,7 +1004,7 @@ class ReregistrationRepositoryTest extends TestCase {
     }
 
     public function test_get_active_for_audience_returns_empty_when_audience_not_found(): void {
-        // AudienceRepository::get_by_id will check cache (returns false), then query DB
+        // AudienceReader::get_by_id will check cache (returns false), then query DB
         $this->wpdb->shouldReceive('get_row')->once()->andReturn(null);
 
         $result = ReregistrationRepository::get_active_for_audience(999);
@@ -1176,7 +1175,7 @@ class ReregistrationRepositoryTest extends TestCase {
         // get_audience_ids returns audience IDs
         $this->wpdb->shouldReceive('get_col')->once()->andReturn(array('10', '20'));
 
-        // AudienceRepository::get_members will query via wpdb
+        // AudienceReader::get_members will query via wpdb
         // We need to handle the prepare calls for get_members
         $this->wpdb->shouldReceive('get_col')
             ->andReturn(array('100', '200'), array('200', '300'));
@@ -1200,7 +1199,7 @@ class ReregistrationRepositoryTest extends TestCase {
     // ==================================================================
 
     public function test_get_user_ids_for_audiences_returns_user_ids(): void {
-        // AudienceRepository::get_members calls wpdb->get_col via prepare
+        // AudienceReader::get_members calls wpdb->get_col via prepare
         // For each audience_id, get_members is called
         $call_count = 0;
         $this->wpdb->shouldReceive('get_col')

@@ -68,7 +68,7 @@ class ReregistrationDataProcessorTest extends TestCase {
 
     /**
      * Configure the global $wpdb so that:
-     *   - AudienceRepository::get_by_id returns a one-level audience (no parent)
+     *   - AudienceReader::get_by_id returns a one-level audience (no parent)
      *   - ReregistrationRepository::get_audience_ids returns [1]
      *   - CustomFieldRepository::get_by_audience returns $fields
      *

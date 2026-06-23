@@ -529,8 +529,8 @@ class AdminUserCapabilities {
 	 * @return list<\stdClass>
 	 */
 	private static function active_audiences(): array {
-		if ( class_exists( '\FreeFormCertificate\Audience\AudienceRepository' ) ) {
-			return \FreeFormCertificate\Audience\AudienceRepository::get_all(
+		if ( class_exists( '\FreeFormCertificate\Audience\AudienceReader' ) ) {
+			return \FreeFormCertificate\Audience\AudienceReader::get_all(
 				array(
 					'status'  => 'active',
 					'orderby' => 'name',
@@ -548,14 +548,14 @@ class AdminUserCapabilities {
 	 * @return array<int>
 	 */
 	private static function user_audience_ids( int $user_id ): array {
-		if ( ! class_exists( '\FreeFormCertificate\Audience\AudienceRepository' ) ) {
+		if ( ! class_exists( '\FreeFormCertificate\Audience\AudienceReader' ) ) {
 			return array();
 		}
 		return array_map(
 			static function ( $audience ) {
 				return (int) $audience->id;
 			},
-			\FreeFormCertificate\Audience\AudienceRepository::get_user_audiences( $user_id )
+			\FreeFormCertificate\Audience\AudienceReader::get_user_audiences( $user_id )
 		);
 	}
 
@@ -647,7 +647,7 @@ class AdminUserCapabilities {
 	 * @return void
 	 */
 	private static function sync_audience_membership( int $user_id, array $submitted_audiences ): void {
-		if ( ! class_exists( '\FreeFormCertificate\Audience\AudienceRepository' ) ) {
+		if ( ! class_exists( '\FreeFormCertificate\Audience\AudienceReader' ) ) {
 			return;
 		}
 
@@ -671,10 +671,10 @@ class AdminUserCapabilities {
 		$to_remove = array_diff( $current, $submitted );
 
 		foreach ( $to_add as $audience_id ) {
-			\FreeFormCertificate\Audience\AudienceRepository::add_member( (int) $audience_id, $user_id );
+			\FreeFormCertificate\Audience\AudienceWriter::add_member( (int) $audience_id, $user_id );
 		}
 		foreach ( $to_remove as $audience_id ) {
-			\FreeFormCertificate\Audience\AudienceRepository::remove_member( (int) $audience_id, $user_id );
+			\FreeFormCertificate\Audience\AudienceWriter::remove_member( (int) $audience_id, $user_id );
 		}
 
 		if ( ( ! empty( $to_add ) || ! empty( $to_remove ) ) && class_exists( '\FreeFormCertificate\Core\Debug' ) ) {
