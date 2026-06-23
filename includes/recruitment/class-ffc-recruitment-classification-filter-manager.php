@@ -67,7 +67,7 @@ final class RecruitmentClassificationFilterManager {
 			$cpf_digits = $digits( $cpf );
 			if ( '' !== $cpf_digits ) {
 				$hash             = (string) \FreeFormCertificate\Core\Encryption::hash( $cpf_digits );
-				$candidate        = RecruitmentCandidateRepository::get_by_cpf_hash( $hash );
+				$candidate        = RecruitmentCandidateReader::get_by_cpf_hash( $hash );
 				$cpf_candidate_id = null === $candidate ? -1 : (int) $candidate->id;
 			}
 		}
@@ -75,7 +75,7 @@ final class RecruitmentClassificationFilterManager {
 			$rf_digits = $digits( $rf );
 			if ( '' !== $rf_digits ) {
 				$hash            = (string) \FreeFormCertificate\Core\Encryption::hash( $rf_digits );
-				$candidate       = RecruitmentCandidateRepository::get_by_rf_hash( $hash );
+				$candidate       = RecruitmentCandidateReader::get_by_rf_hash( $hash );
 				$rf_candidate_id = null === $candidate ? -1 : (int) $candidate->id;
 			}
 		}
@@ -140,7 +140,7 @@ final class RecruitmentClassificationFilterManager {
 			// Both the name search and the subscription filter need the
 			// candidate row; fetch it once when either is active.
 			$candidate = ( $has_q || $has_sub )
-				? RecruitmentCandidateRepository::get_by_id( $candidate_id )
+				? RecruitmentCandidateReader::get_by_id( $candidate_id )
 				: null;
 			if ( ( $has_q || $has_sub ) && null === $candidate ) {
 				continue;

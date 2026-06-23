@@ -27,7 +27,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  *
  * @since 4.5.0
  *
- * @phpstan-import-type AudienceRow from AudienceRepository
+ * @phpstan-import-type AudienceRow from AudienceReader
  * @phpstan-import-type ScheduleRow from AudienceScheduleRepository
  */
 class AudienceShortcode {
@@ -642,7 +642,7 @@ class AudienceShortcode {
 	 * @return array<int, array<string, mixed>>
 	 */
 	private static function get_public_audiences(): array {
-		$audiences = AudienceRepository::get_hierarchical( 'active' );
+		$audiences = AudienceReader::get_hierarchical( 'active' );
 		return array_map( array( __CLASS__, 'audience_to_array' ), $audiences );
 	}
 
@@ -675,10 +675,10 @@ class AudienceShortcode {
 	private static function get_user_audiences( int $user_id ): array {
 		// Admin can book any audience.
 		if ( user_can( $user_id, 'manage_options' ) ) {
-			$audiences = AudienceRepository::get_hierarchical( 'active' );
+			$audiences = AudienceReader::get_hierarchical( 'active' );
 		} else {
 			// Regular users can only book for audiences they belong to.
-			$audiences = AudienceRepository::get_user_audiences( $user_id, true );
+			$audiences = AudienceReader::get_user_audiences( $user_id, true );
 		}
 
 		return array_map( array( __CLASS__, 'audience_to_array' ), $audiences );

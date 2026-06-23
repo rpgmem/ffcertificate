@@ -49,7 +49,7 @@ class RecruitmentCandidatesRestControllerTest extends TestCase {
             }
         );
 
-        $this->repoMock = Mockery::mock( 'alias:FreeFormCertificate\Recruitment\RecruitmentCandidateRepository' );
+        $this->repoMock = Mockery::mock( 'alias:FreeFormCertificate\Recruitment\RecruitmentCandidateReader' );
         $this->repoMock->shouldReceive( 'get_by_id' )->andReturn( null )->byDefault();
         $this->repoMock->shouldReceive( 'get_by_cpf_hash' )->andReturn( null )->byDefault();
         $this->repoMock->shouldReceive( 'get_by_rf_hash' )->andReturn( null )->byDefault();

@@ -23,7 +23,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  * Handler for reregistration email operations.
  *
  * @phpstan-import-type ReregistrationRow from ReregistrationRepository
- * @phpstan-import-type ReregistrationSubmissionRow from ReregistrationSubmissionRepository
+ * @phpstan-import-type ReregistrationSubmissionRow from ReregistrationSubmissionReader
  */
 class ReregistrationEmailHandler {
 
@@ -45,7 +45,7 @@ class ReregistrationEmailHandler {
 			return 0;
 		}
 
-		$submissions = ReregistrationSubmissionRepository::get_by_reregistration(
+		$submissions = ReregistrationSubmissionReader::get_by_reregistration(
 			$reregistration_id,
 			array(
 				'status' => 'pending',
@@ -103,14 +103,14 @@ class ReregistrationEmailHandler {
 		if ( ! empty( $user_ids ) ) {
 			$submissions = array();
 			foreach ( $user_ids as $uid ) {
-				$sub = ReregistrationSubmissionRepository::get_by_reregistration_and_user( $reregistration_id, (int) $uid );
+				$sub = ReregistrationSubmissionReader::get_by_reregistration_and_user( $reregistration_id, (int) $uid );
 				if ( $sub && in_array( $sub->status, array( 'pending', 'in_progress' ), true ) ) {
 					$submissions[] = $sub;
 				}
 			}
 		} else {
-			$pending     = ReregistrationSubmissionRepository::get_by_reregistration( $reregistration_id, array( 'status' => 'pending' ) );
-			$in_progress = ReregistrationSubmissionRepository::get_by_reregistration( $reregistration_id, array( 'status' => 'in_progress' ) );
+			$pending     = ReregistrationSubmissionReader::get_by_reregistration( $reregistration_id, array( 'status' => 'pending' ) );
+			$in_progress = ReregistrationSubmissionReader::get_by_reregistration( $reregistration_id, array( 'status' => 'in_progress' ) );
 			$submissions = array_merge( $pending, $in_progress );
 		}
 
@@ -146,7 +146,7 @@ class ReregistrationEmailHandler {
 			return false;
 		}
 
-		$submission = ReregistrationSubmissionRepository::get_by_id( $submission_id );
+		$submission = ReregistrationSubmissionReader::get_by_id( $submission_id );
 		if ( ! $submission ) {
 			return false;
 		}
@@ -161,7 +161,7 @@ class ReregistrationEmailHandler {
 			return false;
 		}
 
-		$status_label = ReregistrationSubmissionRepository::get_status_label( $submission->status );
+		$status_label = ReregistrationSubmissionReader::get_status_label( $submission->status );
 
 		// Build magic link URL for direct verification.
 		$magic_link_url = '';

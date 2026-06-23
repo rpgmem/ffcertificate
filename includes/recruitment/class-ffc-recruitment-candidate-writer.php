@@ -5,8 +5,8 @@
  * Write-side of the candidate repository split (#563 phase-2, Sprint D1). Holds
  * every INSERT / UPDATE / DELETE for `ffc_recruitment_candidate` rows plus the
  * cache invalidation that accompanies them. Reads live in
- * {@see RecruitmentCandidateReader}; {@see RecruitmentCandidateRepository}
- * remains the public façade that delegates to both.
+ * {@see RecruitmentCandidateReader}. Callers depend on the reader (reads) and
+ * this writer (writes) directly; the delegating façade was retired in #563 B3-A.
  *
  * @package FreeFormCertificate\Recruitment
  * @since   6.0.0

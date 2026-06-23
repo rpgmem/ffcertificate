@@ -20,7 +20,7 @@ declare(strict_types=1);
 
 namespace FreeFormCertificate\Reregistration;
 
-use FreeFormCertificate\Audience\AudienceRepository;
+use FreeFormCertificate\Audience\AudienceReader;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
@@ -531,7 +531,7 @@ class ReregistrationStandardFieldsSeeder {
 			return 0;
 		}
 
-		$existing_keys = CustomFieldRepository::existing_field_keys_for_audience( $audience_id );
+		$existing_keys = CustomFieldReader::existing_field_keys_for_audience( $audience_id );
 
 		$definitions = self::get_standard_fields_definition();
 		$inserted    = 0;
@@ -558,7 +558,7 @@ class ReregistrationStandardFieldsSeeder {
 				'is_active'         => 1,
 			);
 
-			$result = CustomFieldRepository::insert_row( $insert_data );
+			$result = CustomFieldWriter::insert_row( $insert_data );
 
 			if ( false !== $result ) {
 				++$inserted;
@@ -574,11 +574,11 @@ class ReregistrationStandardFieldsSeeder {
 	 * @return int Total number of fields inserted across audiences.
 	 */
 	public static function seed_all_existing_audiences(): int {
-		if ( ! class_exists( '\FreeFormCertificate\Audience\AudienceRepository' ) ) {
+		if ( ! class_exists( '\FreeFormCertificate\Audience\AudienceReader' ) ) {
 			return 0;
 		}
 
-		$ids = \FreeFormCertificate\Audience\AudienceRepository::get_all_ids();
+		$ids = \FreeFormCertificate\Audience\AudienceReader::get_all_ids();
 		if ( empty( $ids ) ) {
 			return 0;
 		}
@@ -615,7 +615,7 @@ class ReregistrationStandardFieldsSeeder {
 
 		// Snapshot the parent's standard-field options, keyed by field_key.
 		$parent_options = array();
-		foreach ( CustomFieldRepository::get_by_audience( $parent_audience_id, false ) as $pf ) {
+		foreach ( CustomFieldReader::get_by_audience( $parent_audience_id, false ) as $pf ) {
 			if ( 'standard' === ( $pf->field_source ?? '' ) && null !== $pf->field_options ) {
 				$decoded = json_decode( (string) $pf->field_options, true );
 				if ( is_array( $decoded ) ) {
@@ -629,13 +629,13 @@ class ReregistrationStandardFieldsSeeder {
 		}
 
 		$updated = 0;
-		foreach ( AudienceRepository::get_descendant_ids( $parent_audience_id ) as $aud_id ) {
+		foreach ( AudienceReader::get_descendant_ids( $parent_audience_id ) as $aud_id ) {
 			foreach ( $parent_options as $field_key => $options ) {
-				$field = CustomFieldRepository::get_by_key( (int) $aud_id, $field_key );
+				$field = CustomFieldReader::get_by_key( (int) $aud_id, $field_key );
 				if ( null === $field ) {
 					continue;
 				}
-				if ( CustomFieldRepository::update( (int) $field->id, array( 'field_options' => $options ) ) ) {
+				if ( CustomFieldWriter::update( (int) $field->id, array( 'field_options' => $options ) ) ) {
 					++$updated;
 				}
 			}

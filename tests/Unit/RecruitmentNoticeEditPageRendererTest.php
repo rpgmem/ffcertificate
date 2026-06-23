@@ -45,7 +45,7 @@ class RecruitmentNoticeEditPageRendererTest extends TestCase {
 	}
 
 	public function test_groups_empties_by_adjutancy_slug_sorted_by_rank_excluding_non_empty(): void {
-		$adj = Mockery::mock( 'alias:FreeFormCertificate\Recruitment\RecruitmentAdjutancyRepository' );
+		$adj = Mockery::mock( 'alias:FreeFormCertificate\Recruitment\RecruitmentAdjutancyReader' );
 		$adj->shouldReceive( 'get_by_id' )->andReturnUsing(
 			static fn( $id ) => (object) array( 'slug' => 'adj-' . (int) $id )
 		);
@@ -87,7 +87,7 @@ class RecruitmentNoticeEditPageRendererTest extends TestCase {
 	}
 
 	public function test_falls_back_to_hashed_id_key_when_adjutancy_slug_missing(): void {
-		$adj = Mockery::mock( 'alias:FreeFormCertificate\Recruitment\RecruitmentAdjutancyRepository' );
+		$adj = Mockery::mock( 'alias:FreeFormCertificate\Recruitment\RecruitmentAdjutancyReader' );
 		// Repo can't resolve the adjutancy → lookup_map skips it → slug falls
 		// back to '#<id>' so the row still appears in the queue map.
 		$adj->shouldReceive( 'get_by_id' )->andReturn( null );

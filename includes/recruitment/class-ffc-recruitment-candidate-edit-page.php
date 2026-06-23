@@ -12,7 +12,7 @@
  *   1. General        — name, email, phone, notes (the §12 always-
  *                       editable set). Email change re-runs the
  *                       UserCreator promotion path via the existing
- *                       RecruitmentCandidateRepository::update flow.
+ *                       RecruitmentCandidateWriter::update flow.
  *   2. Sensitive data — CPF / RF / email decrypted in plain (cap-gated
  *                       per §10-bis admin surface column). CPF / RF
  *                       are read-only here since they're CSV-only per
@@ -45,9 +45,9 @@ if ( ! defined( 'ABSPATH' ) ) {
 /**
  * Candidate edit screen renderer + admin-post handlers.
  *
- * @phpstan-import-type CandidateRow      from RecruitmentCandidateRepository
+ * @phpstan-import-type CandidateRow      from RecruitmentCandidateReader
  * @phpstan-import-type ClassificationRow from RecruitmentClassificationRepository
- * @phpstan-import-type CallRow           from RecruitmentCallRepository
+ * @phpstan-import-type CallRow           from RecruitmentCallReader
  */
 final class RecruitmentCandidateEditPage {
 
@@ -78,7 +78,7 @@ final class RecruitmentCandidateEditPage {
 
 		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- read-only render.
 		$candidate_id = isset( $_GET['candidate_id'] ) ? absint( wp_unslash( (string) $_GET['candidate_id'] ) ) : 0;
-		$candidate    = $candidate_id > 0 ? RecruitmentCandidateRepository::get_by_id( $candidate_id ) : null;
+		$candidate    = $candidate_id > 0 ? RecruitmentCandidateReader::get_by_id( $candidate_id ) : null;
 		if ( null === $candidate ) {
 			echo '<div class="notice notice-error"><p>' . esc_html__( 'Candidate not found.', 'ffcertificate' ) . '</p></div>';
 			echo '<p><a href="' . esc_url( self::back_url() ) . '">&larr; ' . esc_html__( 'Back to Candidates', 'ffcertificate' ) . '</a></p>';
@@ -337,7 +337,7 @@ final class RecruitmentCandidateEditPage {
 			echo '</tr></thead><tbody>';
 
 			foreach ( $classifications as $c ) {
-				$notice_obj = RecruitmentNoticeRepository::get_by_id( (int) $c->notice_id );
+				$notice_obj = RecruitmentNoticeReader::get_by_id( (int) $c->notice_id );
 				$call_count = isset( $calls_by_class[ (int) $c->id ] ) ? count( $calls_by_class[ (int) $c->id ] ) : 0;
 
 				echo '<tr>';
@@ -397,7 +397,7 @@ final class RecruitmentCandidateEditPage {
 	 * @phpstan-return array<int, list<CallRow>>
 	 */
 	private static function group_calls_by_classification( array $classification_ids ): array {
-		$rows = RecruitmentCallRepository::get_history_for_classifications( $classification_ids );
+		$rows = RecruitmentCallReader::get_history_for_classifications( $classification_ids );
 		$out  = array();
 		foreach ( $rows as $row ) {
 			$cid = (int) $row->classification_id;
@@ -596,7 +596,7 @@ final class RecruitmentCandidateEditPage {
 		// repository write lands. Done BEFORE the update because the
 		// repository's update method invalidates the cache key but
 		// returns the wpdb int affected-rows, not the updated row.
-		$before = RecruitmentCandidateRepository::get_by_id( $id );
+		$before = RecruitmentCandidateReader::get_by_id( $id );
 
 		$update = array(
 			'name'  => $name,
@@ -615,7 +615,7 @@ final class RecruitmentCandidateEditPage {
 			$update['email_hash']      = Encryption::hash( $email );
 		}
 
-		RecruitmentCandidateRepository::update( $id, $update );
+		RecruitmentCandidateWriter::update( $id, $update );
 
 		if ( null !== $before ) {
 			$changes = self::diff_general_fields( $before, $name, $phone, $notes, $email );
@@ -745,7 +745,7 @@ final class RecruitmentCandidateEditPage {
 			self::redirect_with_notice( $id, 'link-user-not-found' );
 		}
 
-		RecruitmentCandidateRepository::set_user_id( $id, (int) $user->ID );
+		RecruitmentCandidateWriter::set_user_id( $id, (int) $user->ID );
 		self::redirect_with_notice( $id, 'link-user-ok' );
 	}
 
@@ -763,7 +763,7 @@ final class RecruitmentCandidateEditPage {
 		check_admin_referer( 'ffc_recruitment_link_candidate_user_' . $id );
 
 		if ( $id > 0 ) {
-			RecruitmentCandidateRepository::set_user_id( $id, null );
+			RecruitmentCandidateWriter::set_user_id( $id, null );
 		}
 		self::redirect_with_notice( $id, 'unlink-user-ok' );
 	}
@@ -876,7 +876,7 @@ final class RecruitmentCandidateEditPage {
 		$current_adj_id = (int) $c->adjutancy_id;
 		$notice_id      = (int) $c->notice_id;
 		$candidates     = $adjutancies_by_notice[ $notice_id ] ?? array();
-		$current_obj    = RecruitmentAdjutancyRepository::get_by_id( $current_adj_id );
+		$current_obj    = RecruitmentAdjutancyReader::get_by_id( $current_adj_id );
 		$current_label  = null !== $current_obj ? (string) $current_obj->slug : '#' . $current_adj_id;
 
 		if ( count( $candidates ) < 2 ) {
@@ -886,7 +886,7 @@ final class RecruitmentCandidateEditPage {
 		$html  = '<span class="ffc-adjutancy-swap" data-ffc-cls-id="' . esc_attr( (string) (int) $c->id ) . '">';
 		$html .= '<select class="ffc-adjutancy-swap-select">';
 		foreach ( $candidates as $aid ) {
-			$obj   = RecruitmentAdjutancyRepository::get_by_id( (int) $aid );
+			$obj   = RecruitmentAdjutancyReader::get_by_id( (int) $aid );
 			$label = null !== $obj ? (string) $obj->slug : '#' . (int) $aid;
 			$sel   = (int) $aid === $current_adj_id ? ' selected' : '';
 			$html .= '<option value="' . esc_attr( (string) (int) $aid ) . '"' . esc_attr( $sel ) . '>' . esc_html( $label ) . '</option>';

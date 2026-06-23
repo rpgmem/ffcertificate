@@ -32,7 +32,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  * Handler for verification operations.
  *
  * @phpstan-import-type ReregistrationRow from \FreeFormCertificate\Reregistration\ReregistrationRepository
- * @phpstan-import-type ReregistrationSubmissionRow from \FreeFormCertificate\Reregistration\ReregistrationSubmissionRepository
+ * @phpstan-import-type ReregistrationSubmissionRow from \FreeFormCertificate\Reregistration\ReregistrationSubmissionReader
  */
 class VerificationHandler {
 
@@ -324,7 +324,7 @@ class VerificationHandler {
 	 * @return array<string, mixed> Result array with 'found', 'submission', 'data', 'type'.
 	 */
 	private function search_reregistration_by_code( string $code ): array {
-		if ( ! class_exists( '\\FreeFormCertificate\\Reregistration\\ReregistrationSubmissionRepository' ) ) {
+		if ( ! class_exists( '\\FreeFormCertificate\\Reregistration\\ReregistrationSubmissionReader' ) ) {
 			return array(
 				'found'      => false,
 				'submission' => null,
@@ -332,7 +332,7 @@ class VerificationHandler {
 			);
 		}
 
-		$submission = \FreeFormCertificate\Reregistration\ReregistrationSubmissionRepository::get_by_auth_code( $code );
+		$submission = \FreeFormCertificate\Reregistration\ReregistrationSubmissionReader::get_by_auth_code( $code );
 		if ( ! $submission ) {
 			return array(
 				'found'      => false,
@@ -346,7 +346,7 @@ class VerificationHandler {
 
 		$fields = $this->decode_submission_fields( $submission, $rereg );
 
-		$status_labels = \FreeFormCertificate\Reregistration\ReregistrationSubmissionRepository::get_status_labels();
+		$status_labels = \FreeFormCertificate\Reregistration\ReregistrationSubmissionReader::get_status_labels();
 
 		return array(
 			'found'          => true,
@@ -380,7 +380,7 @@ class VerificationHandler {
 	 * @return array<string, mixed> Result array with 'found', 'submission', 'data', 'type'.
 	 */
 	private function search_reregistration_by_magic_token( string $token ): array {
-		if ( ! class_exists( '\\FreeFormCertificate\\Reregistration\\ReregistrationSubmissionRepository' ) ) {
+		if ( ! class_exists( '\\FreeFormCertificate\\Reregistration\\ReregistrationSubmissionReader' ) ) {
 			return array(
 				'found'      => false,
 				'submission' => null,
@@ -388,7 +388,7 @@ class VerificationHandler {
 			);
 		}
 
-		$submission = \FreeFormCertificate\Reregistration\ReregistrationSubmissionRepository::get_by_magic_token( $token );
+		$submission = \FreeFormCertificate\Reregistration\ReregistrationSubmissionReader::get_by_magic_token( $token );
 		if ( ! $submission ) {
 			return array(
 				'found'      => false,
@@ -403,7 +403,7 @@ class VerificationHandler {
 
 		$fields = $this->decode_submission_fields( $submission, $rereg );
 
-		$status_labels = \FreeFormCertificate\Reregistration\ReregistrationSubmissionRepository::get_status_labels();
+		$status_labels = \FreeFormCertificate\Reregistration\ReregistrationSubmissionReader::get_status_labels();
 
 		return array(
 			'found'          => true,
@@ -445,7 +445,7 @@ class VerificationHandler {
 		$sub_data = $submission->data ? json_decode( $submission->data, true ) : array();
 		$values   = is_array( $sub_data['fields'] ?? null ) ? $sub_data['fields'] : array();
 
-		if ( ! $rereg || ! class_exists( '\\FreeFormCertificate\\Reregistration\\CustomFieldRepository' ) ) {
+		if ( ! $rereg || ! class_exists( '\\FreeFormCertificate\\Reregistration\\CustomFieldReader' ) ) {
 			return $values;
 		}
 
@@ -458,7 +458,7 @@ class VerificationHandler {
 		$audience_ids = \FreeFormCertificate\Reregistration\ReregistrationRepository::get_audience_ids( (int) $rereg->id );
 		$seen         = array();
 		foreach ( $audience_ids as $aud_id ) {
-			$fields = \FreeFormCertificate\Reregistration\CustomFieldRepository::get_by_audience_with_parents( (int) $aud_id, true );
+			$fields = \FreeFormCertificate\Reregistration\CustomFieldReader::get_by_audience_with_parents( (int) $aud_id, true );
 			foreach ( $fields as $field ) {
 				if ( isset( $seen[ (int) $field->id ] ) ) {
 					continue;

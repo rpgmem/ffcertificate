@@ -4,13 +4,11 @@
  *
  * Read-side of the notice repository split (#563 backlog, B3). Holds every
  * SELECT / lookup query for `ffc_recruitment_notice`. Writes live in
- * {@see RecruitmentNoticeWriter}; {@see RecruitmentNoticeRepository} remains
- * the public façade that delegates to both.
+ * {@see RecruitmentNoticeWriter}. Callers depend on this reader (reads) and the
+ * writer (writes) directly; the delegating façade was retired in #563 B3-A.
  *
  * @package FreeFormCertificate\Recruitment
  * @since   6.11.3
- *
- * @phpstan-import-type NoticeRow from RecruitmentNoticeRepository
  */
 
 declare(strict_types=1);
@@ -26,11 +24,18 @@ if ( ! defined( 'ABSPATH' ) ) {
  *
  * @since 6.11.3
  *
- * @phpstan-import-type NoticeRow from RecruitmentNoticeRepository
+ * @phpstan-type NoticeRow \stdClass&object{id: numeric-string, code: string, name: string, status: string, opened_at: string|null, closed_at: string|null, was_reopened: numeric-string, public_columns_config: string, created_at: string, updated_at: string}
  */
 class RecruitmentNoticeReader {
 
 	use \FreeFormCertificate\Core\StaticRepositoryTrait;
+
+	/**
+	 * Default per-notice public column visibility, applied when a notice's
+	 * `public_columns_config` is empty. JSON string by construction so it can
+	 * seed the column directly on create/update.
+	 */
+	public const DEFAULT_PUBLIC_COLUMNS_CONFIG = '{"rank":true,"name":true,"adjutancy":true,"status":true,"pcd_badge":true,"date_to_assume":true,"time_to_assume":true,"score":false,"time_points":false,"hab_emebs":false,"cpf_masked":false,"rf_masked":false,"email_masked":false,"preview_reason":false}';
 
 	/**
 	 * Cache group for this repository.

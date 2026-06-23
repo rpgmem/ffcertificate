@@ -82,13 +82,13 @@ class RecruitmentCsvImporterBatchedTest extends TestCase {
 	 * @return void
 	 */
 	private function wire_repos( ?object $notice, array $ids = array( 2 ) ): void {
-		$notice_repo = Mockery::mock( 'alias:FreeFormCertificate\Recruitment\RecruitmentNoticeRepository' );
+		$notice_repo = Mockery::mock( 'alias:FreeFormCertificate\Recruitment\RecruitmentNoticeReader' );
 		$notice_repo->shouldReceive( 'get_by_id' )->andReturn( $notice );
 
 		$junction = Mockery::mock( 'alias:FreeFormCertificate\Recruitment\RecruitmentNoticeAdjutancyRepository' );
 		$junction->shouldReceive( 'get_adjutancy_ids_for_notice' )->andReturn( $ids );
 
-		$adj = Mockery::mock( 'alias:FreeFormCertificate\Recruitment\RecruitmentAdjutancyRepository' );
+		$adj = Mockery::mock( 'alias:FreeFormCertificate\Recruitment\RecruitmentAdjutancyReader' );
 		$adj->shouldReceive( 'get_by_id' )->andReturnUsing(
 			static function ( $id ) {
 				return (object) array(
@@ -345,12 +345,13 @@ class RecruitmentCsvImporterBatchedTest extends TestCase {
 
 	public function test_promote_batch_processes_rows_and_flips_state(): void {
 		// upsert_candidate path → no existing candidate, then create.
-		$cand_repo = Mockery::mock( 'alias:FreeFormCertificate\Recruitment\RecruitmentCandidateRepository' );
+		$cand_repo = Mockery::mock( 'alias:FreeFormCertificate\Recruitment\RecruitmentCandidateReader' );
 		$cand_repo->shouldReceive( 'get_by_cpf_hash' )->andReturn( null );
 		$cand_repo->shouldReceive( 'get_by_rf_hash' )->andReturn( null );
-		$cand_repo->shouldReceive( 'create' )->andReturn( 100 );
 		$cand_repo->shouldReceive( 'get_table_name' )->andReturn( 'wp_ffc_recruitment_candidate' );
-		$cand_repo->shouldReceive( 'set_user_id' )->andReturn( true );
+		$cand_repo_w = Mockery::mock( 'alias:FreeFormCertificate\Recruitment\RecruitmentCandidateWriter' );
+		$cand_repo_w->shouldReceive( 'create' )->andReturn( 100 );
+		$cand_repo_w->shouldReceive( 'set_user_id' )->andReturn( true );
 
 		$enc = Mockery::mock( 'alias:FreeFormCertificate\Core\Encryption' );
 		$enc->shouldReceive( 'hash' )->andReturnUsing( static fn ( $v ) => 'h:' . $v );
@@ -520,12 +521,13 @@ class RecruitmentCsvImporterBatchedTest extends TestCase {
 	 * @return void
 	 */
 	private function wire_run_writers( $classification_id = 200 ): void {
-		$cand_repo = Mockery::mock( 'alias:FreeFormCertificate\Recruitment\RecruitmentCandidateRepository' );
+		$cand_repo = Mockery::mock( 'alias:FreeFormCertificate\Recruitment\RecruitmentCandidateReader' );
 		$cand_repo->shouldReceive( 'get_by_cpf_hash' )->andReturn( null );
 		$cand_repo->shouldReceive( 'get_by_rf_hash' )->andReturn( null );
-		$cand_repo->shouldReceive( 'create' )->andReturn( 100 );
 		$cand_repo->shouldReceive( 'get_table_name' )->andReturn( 'wp_ffc_recruitment_candidate' );
-		$cand_repo->shouldReceive( 'set_user_id' )->andReturn( true );
+		$cand_repo_w = Mockery::mock( 'alias:FreeFormCertificate\Recruitment\RecruitmentCandidateWriter' );
+		$cand_repo_w->shouldReceive( 'create' )->andReturn( 100 );
+		$cand_repo_w->shouldReceive( 'set_user_id' )->andReturn( true );
 
 		$cls_repo = Mockery::mock( 'alias:FreeFormCertificate\Recruitment\RecruitmentClassificationRepository' );
 		$cls_repo->shouldReceive( 'delete_all_for_notice_list' )->andReturn( 0 );

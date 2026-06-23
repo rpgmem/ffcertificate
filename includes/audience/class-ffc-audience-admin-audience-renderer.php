@@ -22,8 +22,8 @@ if ( ! defined( 'ABSPATH' ) ) {
 /**
  * Audience Admin Audience Renderer.
  *
- * @phpstan-import-type AudienceRow from AudienceRepository
- * @phpstan-import-type CustomFieldRow from \FreeFormCertificate\Reregistration\CustomFieldRepository
+ * @phpstan-import-type AudienceRow from AudienceReader
+ * @phpstan-import-type CustomFieldRow from \FreeFormCertificate\Reregistration\CustomFieldReader
  */
 final class AudienceAdminAudienceRenderer {
 
@@ -34,7 +34,7 @@ final class AudienceAdminAudienceRenderer {
 	 * @return void
 	 */
 	public static function render_list( string $menu_slug ): void {
-		$audiences = AudienceRepository::get_hierarchical();
+		$audiences = AudienceReader::get_hierarchical();
 		$add_url   = admin_url( 'admin.php?page=' . $menu_slug . '-audiences&action=new' );
 
 		?>
@@ -83,9 +83,9 @@ final class AudienceAdminAudienceRenderer {
 	 * @return void
 	 */
 	public static function render_row_recursive( string $menu_slug, object $audience, int $level ): void {
-		$direct_count = AudienceRepository::get_member_count( (int) $audience->id );
+		$direct_count = AudienceReader::get_member_count( (int) $audience->id );
 		$has_children = ! empty( $audience->children );
-		$total_count  = $has_children ? AudienceRepository::get_member_count( (int) $audience->id, true ) : $direct_count;
+		$total_count  = $has_children ? AudienceReader::get_member_count( (int) $audience->id, true ) : $direct_count;
 
 		$edit_url    = admin_url( 'admin.php?page=' . $menu_slug . '-audiences&action=edit&id=' . $audience->id );
 		$members_url = admin_url( 'admin.php?page=' . $menu_slug . '-audiences&action=members&id=' . $audience->id );
@@ -162,14 +162,14 @@ final class AudienceAdminAudienceRenderer {
 		$page_title = __( 'Add New Audience', 'ffcertificate' );
 
 		if ( $id > 0 ) {
-			$audience = AudienceRepository::get_by_id( $id );
+			$audience = AudienceReader::get_by_id( $id );
 			if ( ! $audience ) {
 				wp_die( esc_html__( 'Audience not found.', 'ffcertificate' ) );
 			}
 			$page_title = __( 'Edit Audience', 'ffcertificate' );
 		}
 
-		$possible_parents = AudienceRepository::get_possible_parents( $id );
+		$possible_parents = AudienceReader::get_possible_parents( $id );
 		$back_url         = admin_url( 'admin.php?page=' . $menu_slug . '-audiences' );
 
 		?>
@@ -178,7 +178,7 @@ final class AudienceAdminAudienceRenderer {
 
 		<?php if ( $audience && ! empty( $audience->parent_id ) ) : ?>
 			<?php
-			$ancestors = AudienceRepository::get_ancestors( (int) $audience->id );
+			$ancestors = AudienceReader::get_ancestors( (int) $audience->id );
 			if ( ! empty( $ancestors ) ) :
 				?>
 			<div class="ffc-breadcrumb">
@@ -329,15 +329,15 @@ final class AudienceAdminAudienceRenderer {
 			\FreeFormCertificate\Reregistration\ReregistrationStandardFieldsSeeder::seed_for_audience( $audience_id );
 		}
 
-		$fields       = \FreeFormCertificate\Reregistration\CustomFieldRepository::get_by_audience( $audience_id, false );
-		$field_types  = \FreeFormCertificate\Reregistration\CustomFieldRepository::FIELD_TYPES;
+		$fields       = \FreeFormCertificate\Reregistration\CustomFieldReader::get_by_audience( $audience_id, false );
+		$field_types  = \FreeFormCertificate\Reregistration\CustomFieldReader::FIELD_TYPES;
 		$group_labels = class_exists( '\FreeFormCertificate\Reregistration\ReregistrationStandardFieldsSeeder' )
 			? \FreeFormCertificate\Reregistration\ReregistrationStandardFieldsSeeder::get_group_labels()
 			: array();
 
 		// "Replicate to children" is only meaningful when this audience has
 		// descendants to push its option lists down to.
-		$has_children = ! empty( AudienceRepository::get_children( $audience_id ) );
+		$has_children = ! empty( AudienceReader::get_children( $audience_id ) );
 
 		?>
 		<hr>
@@ -657,12 +657,12 @@ final class AudienceAdminAudienceRenderer {
 	 * @return void
 	 */
 	public static function render_members( string $menu_slug, int $id ): void {
-		$audience = AudienceRepository::get_by_id( $id );
+		$audience = AudienceReader::get_by_id( $id );
 		if ( ! $audience ) {
 			wp_die( esc_html__( 'Audience not found.', 'ffcertificate' ) );
 		}
 
-		$members  = AudienceRepository::get_members( (int) $audience->id );
+		$members  = AudienceReader::get_members( (int) $audience->id );
 		$back_url = admin_url( 'admin.php?page=' . $menu_slug . '-audiences' );
 
 		?>

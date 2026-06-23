@@ -138,7 +138,7 @@ final class RecruitmentAdminPage {
 		$color_raw = $adjutancy->color ?? '';
 		$color     = is_string( $color_raw ) && '' !== $color_raw
 			? $color_raw
-			: RecruitmentAdjutancyRepository::DEFAULT_COLOR;
+			: RecruitmentAdjutancyReader::DEFAULT_COLOR;
 		$name      = $adjutancy->name ?? '';
 		return BadgeHtml::render(
 			'ffc-recruitment-adjutancy-badge',

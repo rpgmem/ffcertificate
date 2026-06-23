@@ -107,7 +107,7 @@ final class RecruitmentAdminPageRenderer {
 		// the operator through the next steps. Keeps the standard list
 		// table + create form intact below; the card is just an
 		// orientation aid for fresh installs.
-		$total_notices = count( RecruitmentNoticeRepository::get_all() );
+		$total_notices = count( RecruitmentNoticeReader::get_all() );
 		if ( 0 === $total_notices ) {
 			self::render_notices_empty_state();
 		}
@@ -253,7 +253,7 @@ final class RecruitmentAdminPageRenderer {
 		if ( ! RecruitmentAdminPage::can_edit_reasons() ) {
 			return;
 		}
-		$default_color = RecruitmentReasonRepository::DEFAULT_COLOR;
+		$default_color = RecruitmentReasonReader::DEFAULT_COLOR;
 
 		echo '<h3>' . esc_html__( 'Create new reason', 'ffcertificate' ) . '</h3>';
 		echo '<form id="ffc-create-reason" method="post" data-ffc-create-endpoint="reasons">';
@@ -353,7 +353,7 @@ final class RecruitmentAdminPageRenderer {
 	 * @return void
 	 */
 	public static function render_candidates_csv_import_section(): void {
-		$all_notices = RecruitmentNoticeRepository::get_all();
+		$all_notices = RecruitmentNoticeReader::get_all();
 		$eligible    = array();
 		foreach ( $all_notices as $row ) {
 			$status = isset( $row->status ) ? (string) $row->status : '';
@@ -677,7 +677,7 @@ final class RecruitmentAdminPageRenderer {
 		if ( ! \FreeFormCertificate\Core\Capabilities::current_user_can_admin_or( 'ffc_manage_recruitment' ) ) {
 			return;
 		}
-		$default_color = RecruitmentAdjutancyRepository::DEFAULT_COLOR;
+		$default_color = RecruitmentAdjutancyReader::DEFAULT_COLOR;
 
 		echo '<h3>' . esc_html__( 'Create new adjutancy', 'ffcertificate' ) . '</h3>';
 		echo '<form id="ffc-create-adjutancy" method="post" data-ffc-create-endpoint="adjutancies">';

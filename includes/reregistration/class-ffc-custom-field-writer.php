@@ -4,8 +4,9 @@
  *
  * Write-side of the custom-field repository split (#563 backlog, A6). Holds every
  * INSERT / UPDATE / DELETE and the write-only helpers (key generation, cache
- * invalidation). Reads live in {@see CustomFieldReader}; {@see CustomFieldRepository}
- * remains the public façade that delegates to both.
+ * invalidation). Reads live in {@see CustomFieldReader}. Callers depend on the
+ * reader (reads) and this writer (writes) directly; the delegating façade was
+ * retired in #563 B3-A.
  *
  * @since   6.11.3
  * @package FreeFormCertificate\Reregistration
@@ -79,7 +80,7 @@ class CustomFieldWriter {
 		$data     = wp_parse_args( $data, $defaults );
 
 		// Validate field type.
-		if ( ! in_array( $data['field_type'], CustomFieldRepository::FIELD_TYPES, true ) ) {
+		if ( ! in_array( $data['field_type'], CustomFieldReader::FIELD_TYPES, true ) ) {
 			$data['field_type'] = 'text';
 		}
 
@@ -182,7 +183,7 @@ class CustomFieldWriter {
 			}
 
 			// Validate field type.
-			if ( 'field_type' === $key && ! in_array( $value, CustomFieldRepository::FIELD_TYPES, true ) ) {
+			if ( 'field_type' === $key && ! in_array( $value, CustomFieldReader::FIELD_TYPES, true ) ) {
 				$value = 'text';
 			}
 
@@ -326,7 +327,7 @@ class CustomFieldWriter {
 		$existing = CustomFieldReader::get_user_data( $user_id );
 		$merged   = array_merge( $existing, $data );
 
-		return (bool) update_user_meta( $user_id, CustomFieldRepository::USER_META_KEY, $merged );
+		return (bool) update_user_meta( $user_id, CustomFieldReader::USER_META_KEY, $merged );
 	}
 
 	/**

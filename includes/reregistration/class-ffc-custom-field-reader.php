@@ -4,20 +4,19 @@
  *
  * Read-side of the custom-field repository split (#563 backlog, A6). Holds every
  * SELECT / lookup / derived-read query and the pure field-introspection helpers.
- * Writes live in {@see CustomFieldWriter}; {@see CustomFieldRepository} remains
- * the public façade that delegates to both.
+ * Writes live in {@see CustomFieldWriter}. Callers depend on this reader (reads)
+ * and the writer (writes) directly; the delegating façade was retired in
+ * #563 B3-A. The canonical field-definition constants live here.
  *
  * @since   6.11.3
  * @package FreeFormCertificate\Reregistration
- *
- * @phpstan-import-type CustomFieldRow from CustomFieldRepository
  */
 
 declare(strict_types=1);
 
 namespace FreeFormCertificate\Reregistration;
 
-use FreeFormCertificate\Audience\AudienceRepository;
+use FreeFormCertificate\Audience\AudienceReader;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
@@ -30,10 +29,49 @@ if ( ! defined( 'ABSPATH' ) ) {
  *
  * @since 6.11.3
  *
- * @phpstan-import-type CustomFieldRow from CustomFieldRepository
+ * @phpstan-type CustomFieldRow \stdClass&object{id: string, audience_id: string, field_key: string, field_label: string, field_type: string, field_group: string, field_source: string, field_profile_key: string|null, field_mask: string|null, is_sensitive: string, field_options: string|null, validation_rules: string|null, sort_order: string, is_required: string, is_active: string, created_at: string, updated_at: string, source_audience_id?: string, source_audience_name?: string}
  */
 class CustomFieldReader {
 	use \FreeFormCertificate\Core\StaticRepositoryTrait;
+
+	/**
+	 * Supported field types.
+	 */
+	public const FIELD_TYPES = array(
+		'text',
+		'number',
+		'date',
+		'select',
+		'dependent_select',
+		'checkbox',
+		'textarea',
+		'working_hours',
+		'acknowledgment',
+	);
+
+	/**
+	 * Display-only field types — they render static content (no user input),
+	 * so they're skipped during value collection, validation and persistence.
+	 * Their content lives in `field_options` (e.g. `acknowledgment` → `html`).
+	 */
+	public const DISPLAY_ONLY_TYPES = array(
+		'acknowledgment',
+	);
+
+	/**
+	 * Built-in validation formats.
+	 */
+	public const VALIDATION_FORMATS = array(
+		'cpf',
+		'email',
+		'phone',
+		'custom_regex',
+	);
+
+	/**
+	 * User meta key for storing custom field data.
+	 */
+	public const USER_META_KEY = 'ffc_custom_fields_data';
 
 	/**
 	 * Cache group for custom field queries.
@@ -130,7 +168,7 @@ class CustomFieldReader {
 	 * @return list<CustomFieldRow> Fields with added 'source_audience_id' and 'source_audience_name' properties.
 	 */
 	public static function get_by_audience_with_parents( int $audience_id, bool $active_only = true ): array {
-		$audience = AudienceRepository::get_by_id( $audience_id );
+		$audience = AudienceReader::get_by_id( $audience_id );
 		if ( ! $audience ) {
 			return array();
 		}
@@ -141,7 +179,7 @@ class CustomFieldReader {
 		while ( $current ) {
 			$audience_chain[] = $current;
 			if ( ! empty( $current->parent_id ) ) {
-				$current = AudienceRepository::get_by_id( (int) $current->parent_id );
+				$current = AudienceReader::get_by_id( (int) $current->parent_id );
 			} else {
 				$current = null;
 			}
@@ -171,7 +209,7 @@ class CustomFieldReader {
 	 * @return list<CustomFieldRow> Fields grouped conceptually, with source_audience_* properties.
 	 */
 	public static function get_all_for_user( int $user_id, bool $active_only = true ): array {
-		$audiences = AudienceRepository::get_user_audiences( $user_id );
+		$audiences = AudienceReader::get_user_audiences( $user_id );
 		if ( empty( $audiences ) ) {
 			return array();
 		}
@@ -372,7 +410,7 @@ class CustomFieldReader {
 	 * @return array<string, mixed> Associative array of field_id => value.
 	 */
 	public static function get_user_data( int $user_id ): array {
-		$data = get_user_meta( $user_id, CustomFieldRepository::USER_META_KEY, true );
+		$data = get_user_meta( $user_id, self::USER_META_KEY, true );
 		if ( empty( $data ) || ! is_array( $data ) ) {
 			return array();
 		}

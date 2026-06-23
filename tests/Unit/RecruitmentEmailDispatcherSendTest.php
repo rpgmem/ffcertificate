@@ -113,19 +113,19 @@ class RecruitmentEmailDispatcherSendTest extends TestCase {
 	 * @return void
 	 */
 	private function wire_helpers( array $settings, bool $is_pcd ): void {
-		$call_repo = Mockery::mock( 'alias:FreeFormCertificate\Recruitment\RecruitmentCallRepository' );
+		$call_repo = Mockery::mock( 'alias:FreeFormCertificate\Recruitment\RecruitmentCallReader' );
 		$call_repo->shouldReceive( 'get_by_id' )->andReturn( $this->call_stub() );
 
 		$cls_repo = Mockery::mock( 'alias:FreeFormCertificate\Recruitment\RecruitmentClassificationRepository' );
 		$cls_repo->shouldReceive( 'get_by_id' )->andReturn( $this->classification_stub() );
 
-		$cand_repo = Mockery::mock( 'alias:FreeFormCertificate\Recruitment\RecruitmentCandidateRepository' );
+		$cand_repo = Mockery::mock( 'alias:FreeFormCertificate\Recruitment\RecruitmentCandidateReader' );
 		$cand_repo->shouldReceive( 'get_by_id' )->andReturn( $this->candidate_stub() );
 
-		$notice_repo = Mockery::mock( 'alias:FreeFormCertificate\Recruitment\RecruitmentNoticeRepository' );
+		$notice_repo = Mockery::mock( 'alias:FreeFormCertificate\Recruitment\RecruitmentNoticeReader' );
 		$notice_repo->shouldReceive( 'get_by_id' )->andReturn( $this->notice_stub() );
 
-		$adj_repo = Mockery::mock( 'alias:FreeFormCertificate\Recruitment\RecruitmentAdjutancyRepository' );
+		$adj_repo = Mockery::mock( 'alias:FreeFormCertificate\Recruitment\RecruitmentAdjutancyReader' );
 		$adj_repo->shouldReceive( 'get_by_id' )->andReturn( $this->adjutancy_stub() );
 
 		$enc = Mockery::mock( 'alias:FreeFormCertificate\Core\Encryption' );

@@ -259,9 +259,10 @@ class AudienceCsvImporterTest extends TestCase {
 
         Functions\when( 'get_user_by' )->justReturn( $mock_user );
 
-        // Mock AudienceRepository::add_member()
-        $repo_mock = Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceRepository' );
-        $repo_mock->shouldReceive( 'add_member' )
+        // Mock AudienceWriter::add_member()
+        $repo_mock = Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceReader' );
+        $repo_mock_w = Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceWriter' );
+        $repo_mock_w->shouldReceive( 'add_member' )
                   ->with( 5, 42 )
                   ->once()
                   ->andReturn( true );
@@ -284,8 +285,9 @@ class AudienceCsvImporterTest extends TestCase {
         $mock_user->user_email = 'test@example.com';
         Functions\when( 'get_user_by' )->justReturn( $mock_user );
 
-        $repo_mock = Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceRepository' );
-        $repo_mock->shouldReceive( 'add_member' )
+        $repo_mock = Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceReader' );
+        $repo_mock_w = Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceWriter' );
+        $repo_mock_w->shouldReceive( 'add_member' )
                   ->with( 5, 42 )
                   ->once()
                   ->andReturn( false );
@@ -340,11 +342,12 @@ class AudienceCsvImporterTest extends TestCase {
         // get_audience_id_by_name returns 0 for all (nothing exists yet)
         $wpdb->shouldReceive( 'get_var' )->andReturn( null );
 
-        $repo_mock = Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceRepository' );
+        $repo_mock = Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceReader' );
+        $repo_mock_w = Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceWriter' );
         $repo_mock->shouldReceive( 'get_table_name' )->andReturn( 'wp_ffc_audiences' );
 
         // Parent A should be created first (no parent_name)
-        $repo_mock->shouldReceive( 'create' )
+        $repo_mock_w->shouldReceive( 'create' )
                   ->with( Mockery::on( function ( $data ) {
                       return $data['name'] === 'Parent A' && $data['parent_id'] === null;
                   } ) )
@@ -370,9 +373,10 @@ class AudienceCsvImporterTest extends TestCase {
         // get_audience_id_by_name returns existing ID
         $wpdb->shouldReceive( 'get_var' )->andReturn( '5' );
 
-        $repo_mock = Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceRepository' );
+        $repo_mock = Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceReader' );
+        $repo_mock_w = Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceWriter' );
         $repo_mock->shouldReceive( 'get_table_name' )->andReturn( 'wp_ffc_audiences' );
-        $repo_mock->shouldReceive( 'create' )->never();
+        $repo_mock_w->shouldReceive( 'create' )->never();
 
         $result = AudienceCsvImporter::import_audiences( $path );
 
@@ -391,11 +395,12 @@ class AudienceCsvImporterTest extends TestCase {
         $wpdb = $this->mock_wpdb();
         $wpdb->shouldReceive( 'get_var' )->andReturn( null );
 
-        $repo_mock = Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceRepository' );
+        $repo_mock = Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceReader' );
+        $repo_mock_w = Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceWriter' );
         $repo_mock->shouldReceive( 'get_table_name' )->andReturn( 'wp_ffc_audiences' );
 
         // Should use default color when sanitize_hex_color returns empty
-        $repo_mock->shouldReceive( 'create' )
+        $repo_mock_w->shouldReceive( 'create' )
                   ->with( Mockery::on( function ( $data ) {
                       return $data['color'] === '#3788d8';
                   } ) )

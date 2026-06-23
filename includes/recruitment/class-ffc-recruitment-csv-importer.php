@@ -8,7 +8,7 @@
  * previous list survives any validation failure.
  *
  * Acts as a service layer over the recruitment repositories: the importer
- * never bypasses {@see RecruitmentCandidateRepository} / {@see
+ * never bypasses {@see RecruitmentCandidateWriter} / {@see
  * RecruitmentClassificationRepository} writes, and it delegates wp_user
  * promotion to the existing {@see \FreeFormCertificate\UserDashboard\UserCreator}
  * (called with the new {@see CapabilityManager::CONTEXT_RECRUITMENT}).
@@ -75,7 +75,7 @@ final class RecruitmentCsvImporter {
 	 * @return ImportResult
 	 */
 	public static function import_preview( int $notice_id, string $csv_content ): array {
-		$notice = RecruitmentNoticeRepository::get_by_id( $notice_id );
+		$notice = RecruitmentNoticeReader::get_by_id( $notice_id );
 		if ( null === $notice ) {
 			return self::failure( 'recruitment_notice_not_found' );
 		}
@@ -101,7 +101,7 @@ final class RecruitmentCsvImporter {
 	 * @return ImportResult
 	 */
 	public static function import_definitive( int $notice_id, string $csv_content ): array {
-		$notice = RecruitmentNoticeRepository::get_by_id( $notice_id );
+		$notice = RecruitmentNoticeReader::get_by_id( $notice_id );
 		if ( null === $notice ) {
 			return self::failure( 'recruitment_notice_not_found' );
 		}

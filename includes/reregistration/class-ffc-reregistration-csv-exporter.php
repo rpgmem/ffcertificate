@@ -19,8 +19,8 @@ if ( ! defined( 'ABSPATH' ) ) {
 /**
  * Exporter for reregistration csv data.
  *
- * @phpstan-import-type CustomFieldRow from CustomFieldRepository
- * @phpstan-import-type ReregistrationSubmissionRow from ReregistrationSubmissionRepository
+ * @phpstan-import-type CustomFieldRow from CustomFieldReader
+ * @phpstan-import-type ReregistrationSubmissionRow from ReregistrationSubmissionReader
  * @phpstan-import-type ReregistrationRow from ReregistrationRepository
  */
 class ReregistrationCsvExporter {
@@ -60,7 +60,7 @@ class ReregistrationCsvExporter {
 		// Stream submissions in chunks of 500 so a 50k-row reregistration
 		// stays memory-bounded. The generator pipes straight into the
 		// CSV writer below without materialising the full result set.
-		$submissions = ReregistrationSubmissionRepository::stream_for_export( $id );
+		$submissions = ReregistrationSubmissionReader::stream_for_export( $id );
 		$fields      = self::get_custom_fields_for_reregistration( $rereg );
 
 		// Build CSV.
@@ -147,7 +147,7 @@ class ReregistrationCsvExporter {
 		$seen         = array();
 
 		foreach ( $audience_ids as $aud_id ) {
-			$fields = CustomFieldRepository::get_by_audience_with_parents( (int) $aud_id, true );
+			$fields = CustomFieldReader::get_by_audience_with_parents( (int) $aud_id, true );
 			foreach ( $fields as $field ) {
 				if ( ! isset( $seen[ (int) $field->id ] ) ) {
 					$seen[ (int) $field->id ] = true;

@@ -54,9 +54,9 @@ if ( ! defined( 'ABSPATH' ) ) {
 /**
  * Public-facing shortcode renderer.
  *
- * @phpstan-import-type CandidateRow      from RecruitmentCandidateRepository
+ * @phpstan-import-type CandidateRow      from RecruitmentCandidateReader
  * @phpstan-import-type ClassificationRow from RecruitmentClassificationRepository
- * @phpstan-import-type NoticeRow         from RecruitmentNoticeRepository
+ * @phpstan-import-type NoticeRow         from RecruitmentNoticeReader
  */
 final class RecruitmentPublicShortcode {
 
@@ -221,7 +221,7 @@ final class RecruitmentPublicShortcode {
 	 * @return string
 	 */
 	public static function render_uncached( string $notice_code, string $slug_filter, int $page_top, int $page_bottom, bool $filter_locked = false, string $name_query = '', string $subscription = '' ): string {
-		$notice = RecruitmentNoticeRepository::get_by_code( $notice_code );
+		$notice = RecruitmentNoticeReader::get_by_code( $notice_code );
 		if ( null === $notice ) {
 			return RecruitmentPublicShortcodeRenderer::msg( __( 'Notice not found.', 'ffcertificate' ), 'error' );
 		}
@@ -240,7 +240,7 @@ final class RecruitmentPublicShortcode {
 		$list_type    = 'preliminary' === $notice->status ? 'preview' : 'definitive';
 		$adjutancy_id = null;
 		if ( '' !== $slug_filter ) {
-			$adjutancy = RecruitmentAdjutancyRepository::get_by_slug( $slug_filter );
+			$adjutancy = RecruitmentAdjutancyReader::get_by_slug( $slug_filter );
 			if ( null === $adjutancy ) {
 				return RecruitmentPublicShortcodeRenderer::msg( __( 'Adjutancy not found for this notice.', 'ffcertificate' ), 'error' );
 			}
@@ -281,7 +281,7 @@ final class RecruitmentPublicShortcode {
 				array_filter(
 					$rows,
 					static function ( $row ) use ( $needle, $has_q, $has_sub, $subscription ): bool {
-						$candidate = RecruitmentCandidateRepository::get_by_id( (int) $row->candidate_id );
+						$candidate = RecruitmentCandidateReader::get_by_id( (int) $row->candidate_id );
 						if ( null === $candidate ) {
 							return false;
 						}

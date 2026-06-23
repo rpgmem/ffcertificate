@@ -155,7 +155,7 @@ class UserProfileRestController {
 			$members_table   = $wpdb->prefix . 'ffc_audience_members';
 
 			if ( self::table_exists( $members_table ) ) {
-				$audience_groups = \FreeFormCertificate\Audience\AudienceRepository::get_user_audience_badges( $user_id );
+				$audience_groups = \FreeFormCertificate\Audience\AudienceReader::get_user_audience_badges( $user_id );
 
 				if ( empty( $audience_groups ) ) {
 					$audience_groups = array();

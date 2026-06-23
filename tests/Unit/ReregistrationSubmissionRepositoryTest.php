@@ -8,14 +8,14 @@ use Brain\Monkey\Functions;
 use Mockery;
 use Mockery\Adapter\Phpunit\MockeryPHPUnitIntegration;
 use PHPUnit\Framework\TestCase;
-use FreeFormCertificate\Reregistration\ReregistrationSubmissionRepository;
+use FreeFormCertificate\Reregistration\ReregistrationSubmissionReader;
+use FreeFormCertificate\Reregistration\ReregistrationSubmissionWriter;
 
 /**
- * Tests for ReregistrationSubmissionRepository: table name, status labels,
- * CRUD operations, approval/rejection workflows, bulk operations, statistics,
- * and audience member submission creation.
+ * Tests for the reregistration-submission repository read/write split: table
+ * name, status labels, CRUD operations, approval/rejection workflows, bulk
+ * operations, statistics, and audience member submission creation.
  *
- * @covers \FreeFormCertificate\Reregistration\ReregistrationSubmissionRepository
  * @covers \FreeFormCertificate\Reregistration\ReregistrationSubmissionReader
  * @covers \FreeFormCertificate\Reregistration\ReregistrationSubmissionWriter
  * @runTestsInSeparateProcesses
@@ -79,7 +79,7 @@ class ReregistrationSubmissionRepositoryTest extends TestCase {
     public function test_get_table_name_returns_prefixed_table(): void {
         $this->assertSame(
             'wp_ffc_reregistration_submissions',
-            ReregistrationSubmissionRepository::get_table_name()
+            ReregistrationSubmissionReader::get_table_name()
         );
     }
 
@@ -89,7 +89,7 @@ class ReregistrationSubmissionRepositoryTest extends TestCase {
 
     public function test_statuses_constant_contains_all_expected_values(): void {
         $expected = array('pending', 'in_progress', 'submitted', 'approved', 'rejected', 'expired');
-        $this->assertSame($expected, ReregistrationSubmissionRepository::STATUSES);
+        $this->assertSame($expected, ReregistrationSubmissionReader::STATUSES);
     }
 
     // ==================================================================
@@ -97,7 +97,7 @@ class ReregistrationSubmissionRepositoryTest extends TestCase {
     // ==================================================================
 
     public function test_get_status_labels_returns_all_statuses(): void {
-        $labels = ReregistrationSubmissionRepository::get_status_labels();
+        $labels = ReregistrationSubmissionReader::get_status_labels();
 
         $this->assertArrayHasKey('pending', $labels);
         $this->assertArrayHasKey('in_progress', $labels);
@@ -109,7 +109,7 @@ class ReregistrationSubmissionRepositoryTest extends TestCase {
     }
 
     public function test_get_status_labels_values_are_strings(): void {
-        $labels = ReregistrationSubmissionRepository::get_status_labels();
+        $labels = ReregistrationSubmissionReader::get_status_labels();
 
         foreach ($labels as $key => $label) {
             $this->assertIsString($label, "Label for '{$key}' should be a string.");
@@ -117,18 +117,18 @@ class ReregistrationSubmissionRepositoryTest extends TestCase {
     }
 
     public function test_get_status_label_returns_label_for_known_status(): void {
-        $label = ReregistrationSubmissionRepository::get_status_label('approved');
+        $label = ReregistrationSubmissionReader::get_status_label('approved');
         $this->assertSame('Approved', $label);
     }
 
     public function test_get_status_label_returns_key_for_unknown_status(): void {
-        $label = ReregistrationSubmissionRepository::get_status_label('nonexistent');
+        $label = ReregistrationSubmissionReader::get_status_label('nonexistent');
         $this->assertSame('nonexistent', $label);
     }
 
     public function test_get_status_label_returns_submitted_with_review_note(): void {
         // The __ mock returns the first argument, so the raw English string.
-        $label = ReregistrationSubmissionRepository::get_status_label('submitted');
+        $label = ReregistrationSubmissionReader::get_status_label('submitted');
         $this->assertStringContainsString('Submitted', $label);
     }
 
@@ -142,7 +142,7 @@ class ReregistrationSubmissionRepositoryTest extends TestCase {
         $this->wpdb->shouldReceive('prepare')->once()->andReturn('SELECT * FROM wp_ffc_reregistration_submissions WHERE id = 1');
         $this->wpdb->shouldReceive('get_row')->once()->andReturn($row);
 
-        $result = ReregistrationSubmissionRepository::get_by_id(1);
+        $result = ReregistrationSubmissionReader::get_by_id(1);
 
         $this->assertSame(1, $result->id);
         $this->assertSame('pending', $result->status);
@@ -152,7 +152,7 @@ class ReregistrationSubmissionRepositoryTest extends TestCase {
         $this->wpdb->shouldReceive('prepare')->once()->andReturn('QUERY');
         $this->wpdb->shouldReceive('get_row')->once()->andReturn(null);
 
-        $this->assertNull(ReregistrationSubmissionRepository::get_by_id(999));
+        $this->assertNull(ReregistrationSubmissionReader::get_by_id(999));
     }
 
     public function test_get_by_id_returns_cached_result_on_cache_hit(): void {
@@ -165,7 +165,7 @@ class ReregistrationSubmissionRepositoryTest extends TestCase {
         // wpdb should NOT be called since we have a cache hit.
         $this->wpdb->shouldNotReceive('get_row');
 
-        $result = ReregistrationSubmissionRepository::get_by_id(5);
+        $result = ReregistrationSubmissionReader::get_by_id(5);
 
         $this->assertSame(5, $result->id);
         $this->assertSame('approved', $result->status);
@@ -179,7 +179,7 @@ class ReregistrationSubmissionRepositoryTest extends TestCase {
 
         // Verify that cache_set is called via wp_cache_set.
         // The default justReturn(true) already handles this, but the call should happen.
-        $result = ReregistrationSubmissionRepository::get_by_id(3);
+        $result = ReregistrationSubmissionReader::get_by_id(3);
 
         $this->assertSame(3, $result->id);
     }
@@ -192,7 +192,7 @@ class ReregistrationSubmissionRepositoryTest extends TestCase {
         $this->wpdb->shouldNotReceive('prepare');
         $this->wpdb->shouldNotReceive('get_row');
 
-        $this->assertNull(ReregistrationSubmissionRepository::get_by_auth_code(''));
+        $this->assertNull(ReregistrationSubmissionReader::get_by_auth_code(''));
     }
 
     public function test_get_by_auth_code_queries_database_for_valid_code(): void {
@@ -201,7 +201,7 @@ class ReregistrationSubmissionRepositoryTest extends TestCase {
         $this->wpdb->shouldReceive('prepare')->once()->andReturn('QUERY');
         $this->wpdb->shouldReceive('get_row')->once()->andReturn($row);
 
-        $result = ReregistrationSubmissionRepository::get_by_auth_code('ABCD1234');
+        $result = ReregistrationSubmissionReader::get_by_auth_code('ABCD1234');
 
         $this->assertSame(10, $result->id);
         $this->assertSame('ABCD1234', $result->auth_code);
@@ -211,7 +211,7 @@ class ReregistrationSubmissionRepositoryTest extends TestCase {
         $this->wpdb->shouldReceive('prepare')->once()->andReturn('QUERY');
         $this->wpdb->shouldReceive('get_row')->once()->andReturn(null);
 
-        $this->assertNull(ReregistrationSubmissionRepository::get_by_auth_code('NONEXIST'));
+        $this->assertNull(ReregistrationSubmissionReader::get_by_auth_code('NONEXIST'));
     }
 
     public function test_get_by_auth_code_query_allows_expired_status(): void {
@@ -229,7 +229,7 @@ class ReregistrationSubmissionRepositoryTest extends TestCase {
             });
         $this->wpdb->shouldReceive('get_row')->once()->andReturn(null);
 
-        ReregistrationSubmissionRepository::get_by_auth_code('ANYCODE');
+        ReregistrationSubmissionReader::get_by_auth_code('ANYCODE');
 
         $this->assertStringContainsString( "'expired'", $captured_sql );
         $this->assertStringContainsString( "'submitted'", $captured_sql );
@@ -244,7 +244,7 @@ class ReregistrationSubmissionRepositoryTest extends TestCase {
         $this->wpdb->shouldNotReceive('prepare');
         $this->wpdb->shouldNotReceive('get_row');
 
-        $this->assertNull(ReregistrationSubmissionRepository::get_by_magic_token(''));
+        $this->assertNull(ReregistrationSubmissionReader::get_by_magic_token(''));
     }
 
     public function test_get_by_magic_token_queries_database_for_valid_token(): void {
@@ -254,7 +254,7 @@ class ReregistrationSubmissionRepositoryTest extends TestCase {
         $this->wpdb->shouldReceive('prepare')->once()->andReturn('QUERY');
         $this->wpdb->shouldReceive('get_row')->once()->andReturn($row);
 
-        $result = ReregistrationSubmissionRepository::get_by_magic_token($token);
+        $result = ReregistrationSubmissionReader::get_by_magic_token($token);
 
         $this->assertSame(15, $result->id);
         $this->assertSame($token, $result->magic_token);
@@ -264,7 +264,7 @@ class ReregistrationSubmissionRepositoryTest extends TestCase {
         $this->wpdb->shouldReceive('prepare')->once()->andReturn('QUERY');
         $this->wpdb->shouldReceive('get_row')->once()->andReturn(null);
 
-        $this->assertNull(ReregistrationSubmissionRepository::get_by_magic_token('deadbeef'));
+        $this->assertNull(ReregistrationSubmissionReader::get_by_magic_token('deadbeef'));
     }
 
     public function test_get_by_magic_token_query_allows_expired_status(): void {
@@ -280,7 +280,7 @@ class ReregistrationSubmissionRepositoryTest extends TestCase {
             });
         $this->wpdb->shouldReceive('get_row')->once()->andReturn(null);
 
-        ReregistrationSubmissionRepository::get_by_magic_token('deadbeef');
+        ReregistrationSubmissionReader::get_by_magic_token('deadbeef');
 
         $this->assertStringContainsString( "'expired'", $captured_sql );
         $this->assertStringContainsString( "'submitted'", $captured_sql );
@@ -298,7 +298,7 @@ class ReregistrationSubmissionRepositoryTest extends TestCase {
         // Should NOT call update since token already exists.
         $this->wpdb->shouldNotReceive('update');
 
-        $result = ReregistrationSubmissionRepository::ensure_magic_token($submission);
+        $result = ReregistrationSubmissionWriter::ensure_magic_token($submission);
 
         $this->assertSame($token, $result);
     }
@@ -310,7 +310,7 @@ class ReregistrationSubmissionRepositoryTest extends TestCase {
         $this->wpdb->shouldReceive('prepare')->andReturn('QUERY');
         $this->wpdb->shouldReceive('update')->once()->andReturn(1);
 
-        $result = ReregistrationSubmissionRepository::ensure_magic_token($submission);
+        $result = ReregistrationSubmissionWriter::ensure_magic_token($submission);
 
         // Generated token should be 64 hex characters (bin2hex of 32 random bytes).
         $this->assertSame(64, strlen($result));
@@ -323,7 +323,7 @@ class ReregistrationSubmissionRepositoryTest extends TestCase {
         $this->wpdb->shouldReceive('prepare')->andReturn('QUERY');
         $this->wpdb->shouldReceive('update')->once()->andReturn(1);
 
-        $result = ReregistrationSubmissionRepository::ensure_magic_token($submission);
+        $result = ReregistrationSubmissionWriter::ensure_magic_token($submission);
 
         $this->assertSame(64, strlen($result));
         $this->assertMatchesRegularExpression('/^[0-9a-f]{64}$/', $result);
@@ -339,7 +339,7 @@ class ReregistrationSubmissionRepositoryTest extends TestCase {
         $this->wpdb->shouldReceive('prepare')->once()->andReturn('QUERY');
         $this->wpdb->shouldReceive('get_row')->once()->andReturn($row);
 
-        $result = ReregistrationSubmissionRepository::get_by_reregistration_and_user(5, 42);
+        $result = ReregistrationSubmissionReader::get_by_reregistration_and_user(5, 42);
 
         $this->assertSame(30, $result->id);
         $this->assertSame(5, $result->reregistration_id);
@@ -350,7 +350,7 @@ class ReregistrationSubmissionRepositoryTest extends TestCase {
         $this->wpdb->shouldReceive('prepare')->once()->andReturn('QUERY');
         $this->wpdb->shouldReceive('get_row')->once()->andReturn(null);
 
-        $this->assertNull(ReregistrationSubmissionRepository::get_by_reregistration_and_user(5, 999));
+        $this->assertNull(ReregistrationSubmissionReader::get_by_reregistration_and_user(5, 999));
     }
 
     // ==================================================================
@@ -376,7 +376,7 @@ class ReregistrationSubmissionRepositoryTest extends TestCase {
 
         $this->wpdb->insert_id = 42;
 
-        $result = ReregistrationSubmissionRepository::create(array(
+        $result = ReregistrationSubmissionWriter::create(array(
             'reregistration_id' => 1,
             'user_id'           => 10,
         ));
@@ -399,7 +399,7 @@ class ReregistrationSubmissionRepositoryTest extends TestCase {
 
         $this->wpdb->insert_id = 50;
 
-        $result = ReregistrationSubmissionRepository::create(array(
+        $result = ReregistrationSubmissionWriter::create(array(
             'reregistration_id' => 1,
             'user_id'           => 10,
             'data'              => array('field' => 'value'),
@@ -423,7 +423,7 @@ class ReregistrationSubmissionRepositoryTest extends TestCase {
 
         $this->wpdb->insert_id = 51;
 
-        $result = ReregistrationSubmissionRepository::create(array(
+        $result = ReregistrationSubmissionWriter::create(array(
             'reregistration_id' => 1,
             'user_id'           => 10,
             'data'              => '{"already":"encoded"}',
@@ -447,7 +447,7 @@ class ReregistrationSubmissionRepositoryTest extends TestCase {
 
         $this->wpdb->insert_id = 52;
 
-        $result = ReregistrationSubmissionRepository::create(array(
+        $result = ReregistrationSubmissionWriter::create(array(
             'reregistration_id' => 1,
             'user_id'           => 10,
             'submitted_at'      => '2026-03-01 10:00:00',
@@ -471,7 +471,7 @@ class ReregistrationSubmissionRepositoryTest extends TestCase {
 
         $this->wpdb->insert_id = 53;
 
-        $result = ReregistrationSubmissionRepository::create(array(
+        $result = ReregistrationSubmissionWriter::create(array(
             'reregistration_id' => 1,
             'user_id'           => 10,
             'notes'             => 'Some notes',
@@ -483,7 +483,7 @@ class ReregistrationSubmissionRepositoryTest extends TestCase {
     public function test_create_returns_false_on_insert_failure(): void {
         $this->wpdb->shouldReceive('insert')->once()->andReturn(false);
 
-        $result = ReregistrationSubmissionRepository::create(array(
+        $result = ReregistrationSubmissionWriter::create(array(
             'reregistration_id' => 1,
             'user_id'           => 10,
         ));
@@ -505,7 +505,7 @@ class ReregistrationSubmissionRepositoryTest extends TestCase {
 
         $this->wpdb->insert_id = 54;
 
-        ReregistrationSubmissionRepository::create(array(
+        ReregistrationSubmissionWriter::create(array(
             'reregistration_id' => 1,
             'user_id'           => 10,
         ));
@@ -525,7 +525,7 @@ class ReregistrationSubmissionRepositoryTest extends TestCase {
 
         $this->wpdb->insert_id = 55;
 
-        ReregistrationSubmissionRepository::create(array(
+        ReregistrationSubmissionWriter::create(array(
             'reregistration_id' => 1,
             'user_id'           => 10,
             'status'            => 'in_progress',
@@ -550,7 +550,7 @@ class ReregistrationSubmissionRepositoryTest extends TestCase {
             )
             ->andReturn(1);
 
-        $result = ReregistrationSubmissionRepository::update(1, array(
+        $result = ReregistrationSubmissionWriter::update(1, array(
             'status' => 'submitted',
         ));
 
@@ -560,7 +560,7 @@ class ReregistrationSubmissionRepositoryTest extends TestCase {
     public function test_update_returns_false_on_failure(): void {
         $this->wpdb->shouldReceive('update')->once()->andReturn(false);
 
-        $result = ReregistrationSubmissionRepository::update(1, array(
+        $result = ReregistrationSubmissionWriter::update(1, array(
             'status' => 'submitted',
         ));
 
@@ -570,7 +570,7 @@ class ReregistrationSubmissionRepositoryTest extends TestCase {
     public function test_update_returns_false_for_empty_data(): void {
         $this->wpdb->shouldNotReceive('update');
 
-        $result = ReregistrationSubmissionRepository::update(1, array());
+        $result = ReregistrationSubmissionWriter::update(1, array());
 
         $this->assertFalse($result);
     }
@@ -579,7 +579,7 @@ class ReregistrationSubmissionRepositoryTest extends TestCase {
         // When only immutable fields are provided, nothing is left to update.
         $this->wpdb->shouldNotReceive('update');
 
-        $result = ReregistrationSubmissionRepository::update(1, array(
+        $result = ReregistrationSubmissionWriter::update(1, array(
             'id'                => 999,
             'reregistration_id' => 999,
             'user_id'           => 999,
@@ -593,7 +593,7 @@ class ReregistrationSubmissionRepositoryTest extends TestCase {
         // Unknown fields should be silently ignored.
         $this->wpdb->shouldNotReceive('update');
 
-        $result = ReregistrationSubmissionRepository::update(1, array(
+        $result = ReregistrationSubmissionWriter::update(1, array(
             'unknown_field' => 'value',
             'another_bad'   => 123,
         ));
@@ -615,7 +615,7 @@ class ReregistrationSubmissionRepositoryTest extends TestCase {
             )
             ->andReturn(1);
 
-        $result = ReregistrationSubmissionRepository::update(1, array(
+        $result = ReregistrationSubmissionWriter::update(1, array(
             'data' => array('key' => 'val'),
         ));
 
@@ -636,7 +636,7 @@ class ReregistrationSubmissionRepositoryTest extends TestCase {
             )
             ->andReturn(1);
 
-        $result = ReregistrationSubmissionRepository::update(1, array(
+        $result = ReregistrationSubmissionWriter::update(1, array(
             'data' => '{"raw":"json"}',
         ));
 
@@ -658,7 +658,7 @@ class ReregistrationSubmissionRepositoryTest extends TestCase {
             )
             ->andReturn(1);
 
-        $result = ReregistrationSubmissionRepository::update(1, array(
+        $result = ReregistrationSubmissionWriter::update(1, array(
             'notes' => '  trimmed notes  ',
         ));
 
@@ -679,7 +679,7 @@ class ReregistrationSubmissionRepositoryTest extends TestCase {
             )
             ->andReturn(1);
 
-        $result = ReregistrationSubmissionRepository::update(1, array(
+        $result = ReregistrationSubmissionWriter::update(1, array(
             'notes' => null,
         ));
 
@@ -691,7 +691,7 @@ class ReregistrationSubmissionRepositoryTest extends TestCase {
 
         // We rely on the wp_cache_delete stub returning true.
         // The method should call cache_delete("id_1").
-        $result = ReregistrationSubmissionRepository::update(1, array(
+        $result = ReregistrationSubmissionWriter::update(1, array(
             'status' => 'approved',
         ));
 
@@ -712,7 +712,7 @@ class ReregistrationSubmissionRepositoryTest extends TestCase {
             )
             ->andReturn(1);
 
-        $result = ReregistrationSubmissionRepository::update(1, array(
+        $result = ReregistrationSubmissionWriter::update(1, array(
             'auth_code' => 'ABCD1234',
         ));
 
@@ -735,7 +735,7 @@ class ReregistrationSubmissionRepositoryTest extends TestCase {
             )
             ->andReturn(1);
 
-        $result = ReregistrationSubmissionRepository::update(1, array(
+        $result = ReregistrationSubmissionWriter::update(1, array(
             'magic_token' => $token,
         ));
 
@@ -764,7 +764,7 @@ class ReregistrationSubmissionRepositoryTest extends TestCase {
             )
             ->andReturn(1);
 
-        $result = ReregistrationSubmissionRepository::approve(5, 99);
+        $result = ReregistrationSubmissionWriter::approve(5, 99);
 
         $this->assertTrue($result);
     }
@@ -772,7 +772,7 @@ class ReregistrationSubmissionRepositoryTest extends TestCase {
     public function test_approve_returns_false_on_failure(): void {
         $this->wpdb->shouldReceive('update')->once()->andReturn(false);
 
-        $result = ReregistrationSubmissionRepository::approve(5, 99);
+        $result = ReregistrationSubmissionWriter::approve(5, 99);
 
         $this->assertFalse($result);
     }
@@ -800,7 +800,7 @@ class ReregistrationSubmissionRepositoryTest extends TestCase {
             )
             ->andReturn(1);
 
-        $result = ReregistrationSubmissionRepository::reject(7, 99, 'Incomplete submission');
+        $result = ReregistrationSubmissionWriter::reject(7, 99, 'Incomplete submission');
 
         $this->assertTrue($result);
     }
@@ -820,7 +820,7 @@ class ReregistrationSubmissionRepositoryTest extends TestCase {
             )
             ->andReturn(1);
 
-        $result = ReregistrationSubmissionRepository::reject(7, 99);
+        $result = ReregistrationSubmissionWriter::reject(7, 99);
 
         $this->assertTrue($result);
     }
@@ -828,7 +828,7 @@ class ReregistrationSubmissionRepositoryTest extends TestCase {
     public function test_reject_returns_false_on_failure(): void {
         $this->wpdb->shouldReceive('update')->once()->andReturn(false);
 
-        $result = ReregistrationSubmissionRepository::reject(7, 99, 'Reason');
+        $result = ReregistrationSubmissionWriter::reject(7, 99, 'Reason');
 
         $this->assertFalse($result);
     }
@@ -855,7 +855,7 @@ class ReregistrationSubmissionRepositoryTest extends TestCase {
             )
             ->andReturn(1);
 
-        $result = ReregistrationSubmissionRepository::return_to_draft(8, 99);
+        $result = ReregistrationSubmissionWriter::return_to_draft(8, 99);
 
         $this->assertTrue($result);
     }
@@ -863,7 +863,7 @@ class ReregistrationSubmissionRepositoryTest extends TestCase {
     public function test_return_to_draft_returns_false_on_failure(): void {
         $this->wpdb->shouldReceive('update')->once()->andReturn(false);
 
-        $result = ReregistrationSubmissionRepository::return_to_draft(8, 99);
+        $result = ReregistrationSubmissionWriter::return_to_draft(8, 99);
 
         $this->assertFalse($result);
     }
@@ -872,7 +872,7 @@ class ReregistrationSubmissionRepositoryTest extends TestCase {
         // wpdb->update returns 0 (int) when no rows match but no error occurred.
         $this->wpdb->shouldReceive('update')->once()->andReturn(0);
 
-        $result = ReregistrationSubmissionRepository::return_to_draft(8, 99);
+        $result = ReregistrationSubmissionWriter::return_to_draft(8, 99);
 
         $this->assertTrue($result);
     }
@@ -884,7 +884,7 @@ class ReregistrationSubmissionRepositoryTest extends TestCase {
     public function test_bulk_approve_approves_all_submissions(): void {
         $this->wpdb->shouldReceive('update')->times(3)->andReturn(1);
 
-        $count = ReregistrationSubmissionRepository::bulk_approve(array(1, 2, 3), 99);
+        $count = ReregistrationSubmissionWriter::bulk_approve(array(1, 2, 3), 99);
 
         $this->assertSame(3, $count);
     }
@@ -893,13 +893,13 @@ class ReregistrationSubmissionRepositoryTest extends TestCase {
         $this->wpdb->shouldReceive('update')
             ->andReturn(1, false, 1);
 
-        $count = ReregistrationSubmissionRepository::bulk_approve(array(1, 2, 3), 99);
+        $count = ReregistrationSubmissionWriter::bulk_approve(array(1, 2, 3), 99);
 
         $this->assertSame(2, $count);
     }
 
     public function test_bulk_approve_returns_zero_for_empty_array(): void {
-        $count = ReregistrationSubmissionRepository::bulk_approve(array(), 99);
+        $count = ReregistrationSubmissionWriter::bulk_approve(array(), 99);
 
         $this->assertSame(0, $count);
     }
@@ -907,7 +907,7 @@ class ReregistrationSubmissionRepositoryTest extends TestCase {
     public function test_bulk_approve_returns_zero_when_all_fail(): void {
         $this->wpdb->shouldReceive('update')->times(2)->andReturn(false);
 
-        $count = ReregistrationSubmissionRepository::bulk_approve(array(1, 2), 99);
+        $count = ReregistrationSubmissionWriter::bulk_approve(array(1, 2), 99);
 
         $this->assertSame(0, $count);
     }
@@ -919,7 +919,7 @@ class ReregistrationSubmissionRepositoryTest extends TestCase {
     public function test_bulk_return_to_draft_returns_count(): void {
         $this->wpdb->shouldReceive('update')->times(2)->andReturn(1);
 
-        $count = ReregistrationSubmissionRepository::bulk_return_to_draft(array(10, 11), 99);
+        $count = ReregistrationSubmissionWriter::bulk_return_to_draft(array(10, 11), 99);
 
         $this->assertSame(2, $count);
     }
@@ -928,13 +928,13 @@ class ReregistrationSubmissionRepositoryTest extends TestCase {
         $this->wpdb->shouldReceive('update')
             ->andReturn(1, false);
 
-        $count = ReregistrationSubmissionRepository::bulk_return_to_draft(array(10, 11), 99);
+        $count = ReregistrationSubmissionWriter::bulk_return_to_draft(array(10, 11), 99);
 
         $this->assertSame(1, $count);
     }
 
     public function test_bulk_return_to_draft_returns_zero_for_empty_array(): void {
-        $count = ReregistrationSubmissionRepository::bulk_return_to_draft(array(), 99);
+        $count = ReregistrationSubmissionWriter::bulk_return_to_draft(array(), 99);
 
         $this->assertSame(0, $count);
     }
@@ -956,7 +956,7 @@ class ReregistrationSubmissionRepositoryTest extends TestCase {
         $this->wpdb->shouldReceive('prepare')->once()->andReturn('QUERY');
         $this->wpdb->shouldReceive('get_results')->once()->andReturn($rows);
 
-        $stats = ReregistrationSubmissionRepository::get_statistics(1);
+        $stats = ReregistrationSubmissionReader::get_statistics(1);
 
         $this->assertSame(28, $stats['total']);
         $this->assertSame(5, $stats['pending']);
@@ -971,7 +971,7 @@ class ReregistrationSubmissionRepositoryTest extends TestCase {
         $this->wpdb->shouldReceive('prepare')->once()->andReturn('QUERY');
         $this->wpdb->shouldReceive('get_results')->once()->andReturn(array());
 
-        $stats = ReregistrationSubmissionRepository::get_statistics(1);
+        $stats = ReregistrationSubmissionReader::get_statistics(1);
 
         $this->assertSame(0, $stats['total']);
         $this->assertSame(0, $stats['pending']);
@@ -991,7 +991,7 @@ class ReregistrationSubmissionRepositoryTest extends TestCase {
         $this->wpdb->shouldReceive('prepare')->once()->andReturn('QUERY');
         $this->wpdb->shouldReceive('get_results')->once()->andReturn($rows);
 
-        $stats = ReregistrationSubmissionRepository::get_statistics(1);
+        $stats = ReregistrationSubmissionReader::get_statistics(1);
 
         $this->assertSame(20, $stats['total']);
         $this->assertSame(15, $stats['approved']);
@@ -1010,7 +1010,7 @@ class ReregistrationSubmissionRepositoryTest extends TestCase {
         $this->wpdb->shouldReceive('prepare')->once()->andReturn('QUERY');
         $this->wpdb->shouldReceive('get_var')->once()->andReturn('12');
 
-        $count = ReregistrationSubmissionRepository::count_by_reregistration(1);
+        $count = ReregistrationSubmissionReader::count_by_reregistration(1);
 
         $this->assertSame(12, $count);
     }
@@ -1019,7 +1019,7 @@ class ReregistrationSubmissionRepositoryTest extends TestCase {
         $this->wpdb->shouldReceive('prepare')->once()->andReturn('QUERY');
         $this->wpdb->shouldReceive('get_var')->once()->andReturn('4');
 
-        $count = ReregistrationSubmissionRepository::count_by_reregistration(1, 'approved');
+        $count = ReregistrationSubmissionReader::count_by_reregistration(1, 'approved');
 
         $this->assertSame(4, $count);
     }
@@ -1028,7 +1028,7 @@ class ReregistrationSubmissionRepositoryTest extends TestCase {
         $this->wpdb->shouldReceive('prepare')->once()->andReturn('QUERY');
         $this->wpdb->shouldReceive('get_var')->once()->andReturn(null);
 
-        $count = ReregistrationSubmissionRepository::count_by_reregistration(1);
+        $count = ReregistrationSubmissionReader::count_by_reregistration(1);
 
         $this->assertSame(0, $count);
     }
@@ -1046,7 +1046,7 @@ class ReregistrationSubmissionRepositoryTest extends TestCase {
         $this->wpdb->shouldReceive('prepare')->once()->andReturn('QUERY');
         $this->wpdb->shouldReceive('get_results')->once()->andReturn($rows);
 
-        $results = ReregistrationSubmissionRepository::get_by_reregistration(1);
+        $results = ReregistrationSubmissionReader::get_by_reregistration(1);
 
         $this->assertCount(2, $results);
         $this->assertSame('Alice', $results[0]->user_name);
@@ -1062,7 +1062,7 @@ class ReregistrationSubmissionRepositoryTest extends TestCase {
             });
         $this->wpdb->shouldReceive('get_results')->once()->andReturn(array());
 
-        ReregistrationSubmissionRepository::get_by_reregistration(1, array('status' => 'approved'));
+        ReregistrationSubmissionReader::get_by_reregistration(1, array('status' => 'approved'));
     }
 
     public function test_get_by_reregistration_with_search_filter(): void {
@@ -1078,7 +1078,7 @@ class ReregistrationSubmissionRepositoryTest extends TestCase {
             });
         $this->wpdb->shouldReceive('get_results')->once()->andReturn(array());
 
-        ReregistrationSubmissionRepository::get_by_reregistration(1, array('search' => 'alice'));
+        ReregistrationSubmissionReader::get_by_reregistration(1, array('search' => 'alice'));
     }
 
     public function test_get_by_reregistration_with_limit_and_offset(): void {
@@ -1091,7 +1091,7 @@ class ReregistrationSubmissionRepositoryTest extends TestCase {
             });
         $this->wpdb->shouldReceive('get_results')->once()->andReturn(array());
 
-        ReregistrationSubmissionRepository::get_by_reregistration(1, array(
+        ReregistrationSubmissionReader::get_by_reregistration(1, array(
             'limit'  => 10,
             'offset' => 20,
         ));
@@ -1107,7 +1107,7 @@ class ReregistrationSubmissionRepositoryTest extends TestCase {
             });
         $this->wpdb->shouldReceive('get_results')->once()->andReturn(array());
 
-        ReregistrationSubmissionRepository::get_by_reregistration(1, array(
+        ReregistrationSubmissionReader::get_by_reregistration(1, array(
             'orderby' => 'malicious_column',
         ));
     }
@@ -1122,7 +1122,7 @@ class ReregistrationSubmissionRepositoryTest extends TestCase {
             });
         $this->wpdb->shouldReceive('get_results')->once()->andReturn(array());
 
-        ReregistrationSubmissionRepository::get_by_reregistration(1, array(
+        ReregistrationSubmissionReader::get_by_reregistration(1, array(
             'order' => 'DESC',
         ));
     }
@@ -1139,7 +1139,7 @@ class ReregistrationSubmissionRepositoryTest extends TestCase {
         $this->wpdb->shouldReceive('prepare')->once()->andReturn('QUERY');
         $this->wpdb->shouldReceive('get_results')->once()->andReturn($rows);
 
-        $results = ReregistrationSubmissionRepository::get_for_export(1);
+        $results = ReregistrationSubmissionReader::get_for_export(1);
 
         $this->assertCount(1, $results);
     }
@@ -1160,7 +1160,7 @@ class ReregistrationSubmissionRepositoryTest extends TestCase {
         $this->wpdb->shouldReceive('prepare')->once()->andReturn('QUERY');
         $this->wpdb->shouldReceive('get_results')->once()->andReturn($rows);
 
-        $results = ReregistrationSubmissionRepository::get_all_by_user(42);
+        $results = ReregistrationSubmissionReader::get_all_by_user(42);
 
         $this->assertCount(2, $results);
         $this->assertSame('Campaign A', $results[0]->reregistration_title);
@@ -1170,7 +1170,7 @@ class ReregistrationSubmissionRepositoryTest extends TestCase {
         $this->wpdb->shouldReceive('prepare')->once()->andReturn('QUERY');
         $this->wpdb->shouldReceive('get_results')->once()->andReturn(null);
 
-        $results = ReregistrationSubmissionRepository::get_all_by_user(42);
+        $results = ReregistrationSubmissionReader::get_all_by_user(42);
 
         $this->assertSame(array(), $results);
     }
@@ -1200,7 +1200,7 @@ class ReregistrationSubmissionRepositoryTest extends TestCase {
         $this->wpdb->shouldReceive('insert')->times(3)->andReturn(1);
         $this->wpdb->insert_id = 1;
 
-        $count = ReregistrationSubmissionRepository::create_for_audience_members(5, array(100, 200));
+        $count = ReregistrationSubmissionWriter::create_for_audience_members(5, array(100, 200));
 
         $this->assertSame(3, $count);
     }
@@ -1228,7 +1228,7 @@ class ReregistrationSubmissionRepositoryTest extends TestCase {
         $this->wpdb->shouldReceive('insert')->once()->andReturn(1);
         $this->wpdb->insert_id = 51;
 
-        $count = ReregistrationSubmissionRepository::create_for_audience_members(5, array(100));
+        $count = ReregistrationSubmissionWriter::create_for_audience_members(5, array(100));
 
         $this->assertSame(1, $count);
     }
@@ -1246,7 +1246,7 @@ class ReregistrationSubmissionRepositoryTest extends TestCase {
 
         $this->wpdb->shouldNotReceive('insert');
 
-        $count = ReregistrationSubmissionRepository::create_for_audience_members(5, array(100));
+        $count = ReregistrationSubmissionWriter::create_for_audience_members(5, array(100));
 
         $this->assertSame(0, $count);
     }
@@ -1271,7 +1271,7 @@ class ReregistrationSubmissionRepositoryTest extends TestCase {
             ->andReturn(1, false);
         $this->wpdb->insert_id = 1;
 
-        $count = ReregistrationSubmissionRepository::create_for_audience_members(5, array(100));
+        $count = ReregistrationSubmissionWriter::create_for_audience_members(5, array(100));
 
         $this->assertSame(1, $count);
     }

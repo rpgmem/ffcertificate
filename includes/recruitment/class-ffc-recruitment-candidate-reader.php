@@ -4,13 +4,12 @@
  *
  * Read-side of the candidate repository split (#563 phase-2, Sprint D1). Holds
  * every SELECT / lookup / count query for `ffc_recruitment_candidate` rows.
- * Writes live in {@see RecruitmentCandidateWriter}; {@see RecruitmentCandidateRepository}
- * remains the public façade that delegates to both.
+ * Writes live in {@see RecruitmentCandidateWriter}. Callers depend on this
+ * reader (reads) and the writer (writes) directly; the delegating façade was
+ * retired in #563 B3-A.
  *
  * @package FreeFormCertificate\Recruitment
  * @since   6.0.0
- *
- * @phpstan-import-type CandidateRow from RecruitmentCandidateRepository
  */
 
 declare(strict_types=1);
@@ -26,7 +25,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  *
  * @since 6.0.0
  *
- * @phpstan-import-type CandidateRow from RecruitmentCandidateRepository
+ * @phpstan-type CandidateRow \stdClass&object{id: numeric-string, user_id: numeric-string|null, name: string, cpf_encrypted: string|null, cpf_hash: string|null, rf_encrypted: string|null, rf_hash: string|null, email_encrypted: string|null, email_hash: string|null, phone: string|null, notes: string|null, pcd_hash: string, created_at: string, updated_at: string}
  */
 class RecruitmentCandidateReader {
 

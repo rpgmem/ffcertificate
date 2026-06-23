@@ -4,8 +4,8 @@
  *
  * Write-side of the audience repository split (#563 backlog, A6). Holds every
  * INSERT / UPDATE / DELETE and the membership mutation helpers. Reads live in
- * {@see AudienceReader}; {@see AudienceRepository} remains the public façade
- * that delegates to both.
+ * {@see AudienceReader}. Callers depend on the reader (reads) and this writer
+ * (writes) directly; the delegating façade was retired in #563 B3-A.
  *
  * @since   6.11.3
  * @package FreeFormCertificate\Audience

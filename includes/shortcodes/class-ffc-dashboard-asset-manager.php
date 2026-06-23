@@ -30,7 +30,7 @@ class DashboardAssetManager {
 	 * @return bool
 	 */
 	public static function user_has_audience_groups( int $user_id ): bool {
-		if ( ! class_exists( '\FreeFormCertificate\Audience\AudienceRepository' ) ) {
+		if ( ! class_exists( '\FreeFormCertificate\Audience\AudienceReader' ) ) {
 			return false;
 		}
 
@@ -39,7 +39,7 @@ class DashboardAssetManager {
 			return true;
 		}
 
-		$audiences = \FreeFormCertificate\Audience\AudienceRepository::get_user_audiences( $user_id );
+		$audiences = \FreeFormCertificate\Audience\AudienceReader::get_user_audiences( $user_id );
 		return ! empty( $audiences );
 	}
 
@@ -73,8 +73,8 @@ class DashboardAssetManager {
 			$can_view_audience_bookings = self::user_has_audience_groups( $user_id );
 		}
 
-		$can_view_reregistrations = class_exists( '\FreeFormCertificate\Reregistration\ReregistrationSubmissionRepository' )
-			&& ! empty( \FreeFormCertificate\Reregistration\ReregistrationSubmissionRepository::get_all_by_user( $user_id ) );
+		$can_view_reregistrations = class_exists( '\FreeFormCertificate\Reregistration\ReregistrationSubmissionReader' )
+			&& ! empty( \FreeFormCertificate\Reregistration\ReregistrationSubmissionReader::get_all_by_user( $user_id ) );
 
 		$s = \FreeFormCertificate\Core\AssetHelper::asset_suffix();
 

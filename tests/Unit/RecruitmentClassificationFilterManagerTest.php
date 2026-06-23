@@ -45,7 +45,7 @@ class RecruitmentClassificationFilterManagerTest extends TestCase {
         Functions\when( 'sanitize_key' )->returnArg();
         Functions\when( 'wp_unslash' )->returnArg();
 
-        $this->candRepoMock = Mockery::mock( 'alias:FreeFormCertificate\Recruitment\RecruitmentCandidateRepository' );
+        $this->candRepoMock = Mockery::mock( 'alias:FreeFormCertificate\Recruitment\RecruitmentCandidateReader' );
         $this->candRepoMock->shouldReceive( 'get_by_cpf_hash' )->andReturn( null )->byDefault();
         $this->candRepoMock->shouldReceive( 'get_by_rf_hash' )->andReturn( null )->byDefault();
         $this->candRepoMock->shouldReceive( 'get_by_id' )->andReturn( null )->byDefault();

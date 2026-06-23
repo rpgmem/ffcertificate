@@ -32,8 +32,11 @@ class AdminUserCapabilitiesTest extends TestCase {
     /** @var Mockery\MockInterface alias mock for Utils */
     private $utils_mock;
 
-    /** @var Mockery\MockInterface alias mock for AudienceRepository */
+    /** @var Mockery\MockInterface alias mock for AudienceReader */
     private $audience_repo_mock;
+
+    /** @var Mockery\MockInterface alias mock for AudienceWriter */
+    private $audience_writer_mock;
 
     protected function setUp(): void {
         parent::setUp();
@@ -94,11 +97,12 @@ class AdminUserCapabilitiesTest extends TestCase {
         // AudienceRepository alias mock — render() lists active audiences and
         // the user's memberships for the editable membership checklist; save()
         // diffs and applies add_member/remove_member.
-        $this->audience_repo_mock = Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceRepository' );
+        $this->audience_repo_mock   = Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceReader' );
+        $this->audience_writer_mock = Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceWriter' );
         $this->audience_repo_mock->shouldReceive( 'get_all' )->andReturn( array() )->byDefault();
         $this->audience_repo_mock->shouldReceive( 'get_user_audiences' )->andReturn( array() )->byDefault();
-        $this->audience_repo_mock->shouldReceive( 'add_member' )->andReturn( 1 )->byDefault();
-        $this->audience_repo_mock->shouldReceive( 'remove_member' )->andReturn( true )->byDefault();
+        $this->audience_writer_mock->shouldReceive( 'add_member' )->andReturn( 1 )->byDefault();
+        $this->audience_writer_mock->shouldReceive( 'remove_member' )->andReturn( true )->byDefault();
 
         // Utils alias mock
         $this->utils_mock = Mockery::mock( 'alias:FreeFormCertificate\Core\Utils' );
@@ -655,8 +659,8 @@ class AdminUserCapabilitiesTest extends TestCase {
         $this->audience_repo_mock->shouldReceive( 'get_user_audiences' )->andReturn(
             array( (object) array( 'id' => 7 ) )
         );
-        $this->audience_repo_mock->shouldReceive( 'add_member' )->once()->with( 3, 5 )->andReturn( 1 );
-        $this->audience_repo_mock->shouldReceive( 'remove_member' )->never();
+        $this->audience_writer_mock->shouldReceive( 'add_member' )->once()->with( 3, 5 )->andReturn( 1 );
+        $this->audience_writer_mock->shouldReceive( 'remove_member' )->never();
 
         $user = new \WP_User( 5 );
         Functions\when( 'get_userdata' )->justReturn( $user );
@@ -680,8 +684,8 @@ class AdminUserCapabilitiesTest extends TestCase {
         $this->audience_repo_mock->shouldReceive( 'get_user_audiences' )->andReturn(
             array( (object) array( 'id' => 7 ) )
         );
-        $this->audience_repo_mock->shouldReceive( 'remove_member' )->once()->with( 7, 5 )->andReturn( true );
-        $this->audience_repo_mock->shouldReceive( 'add_member' )->never();
+        $this->audience_writer_mock->shouldReceive( 'remove_member' )->once()->with( 7, 5 )->andReturn( true );
+        $this->audience_writer_mock->shouldReceive( 'add_member' )->never();
 
         $user = new \WP_User( 5 );
         Functions\when( 'get_userdata' )->justReturn( $user );
@@ -700,8 +704,8 @@ class AdminUserCapabilitiesTest extends TestCase {
         // No active audiences → the checklist never rendered → sync must be a
         // no-op so an unrelated save can't wipe memberships.
         $this->audience_repo_mock->shouldReceive( 'get_all' )->andReturn( array() );
-        $this->audience_repo_mock->shouldReceive( 'add_member' )->never();
-        $this->audience_repo_mock->shouldReceive( 'remove_member' )->never();
+        $this->audience_writer_mock->shouldReceive( 'add_member' )->never();
+        $this->audience_writer_mock->shouldReceive( 'remove_member' )->never();
 
         $user = new \WP_User( 5 );
         Functions\when( 'get_userdata' )->justReturn( $user );

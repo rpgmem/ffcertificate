@@ -26,7 +26,7 @@ if ( ! class_exists( '\WP_List_Table' ) ) {
 /**
  * Reasons list table.
  *
- * @phpstan-import-type ReasonRow from RecruitmentReasonRepository
+ * @phpstan-import-type ReasonRow from RecruitmentReasonReader
  */
 class RecruitmentReasonsListTable extends \WP_List_Table {
 
@@ -196,7 +196,7 @@ class RecruitmentReasonsListTable extends \WP_List_Table {
 	 */
 	protected function column_color( $item ): string {
 		$id    = (int) $item['id'];
-		$color = (string) ( $item['color'] ?? RecruitmentReasonRepository::DEFAULT_COLOR );
+		$color = (string) ( $item['color'] ?? RecruitmentReasonReader::DEFAULT_COLOR );
 		// Read-only viewers (GAP I) see a static swatch — the inline picker
 		// PATCHes via the manage-gated REST route and would 403.
 		if ( ! $this->can_edit ) {
@@ -224,7 +224,7 @@ class RecruitmentReasonsListTable extends \WP_List_Table {
 	 * @return string
 	 */
 	protected function column_applies_to( $item ): string {
-		$decoded = RecruitmentReasonRepository::decode_applies_to( (string) ( $item['applies_to'] ?? '' ) );
+		$decoded = RecruitmentReasonReader::decode_applies_to( (string) ( $item['applies_to'] ?? '' ) );
 		$labels  = array(
 			'denied'         => __( 'Denied', 'ffcertificate' ),
 			'granted'        => __( 'Granted', 'ffcertificate' ),
@@ -252,7 +252,7 @@ class RecruitmentReasonsListTable extends \WP_List_Table {
 	 * @return string
 	 */
 	protected function column_usage( $item ): string {
-		$count = RecruitmentReasonRepository::count_references( (int) $item['id'] );
+		$count = RecruitmentReasonReader::count_references( (int) $item['id'] );
 		return esc_html( (string) $count );
 	}
 
@@ -292,7 +292,7 @@ class RecruitmentReasonsListTable extends \WP_List_Table {
 
 		$this->process_bulk_action();
 
-		$rows = self::convert_rows( RecruitmentReasonRepository::get_all() );
+		$rows = self::convert_rows( RecruitmentReasonReader::get_all() );
 
 		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- read-only filter.
 		$search = isset( $_REQUEST['s'] ) ? sanitize_text_field( wp_unslash( (string) $_REQUEST['s'] ) ) : '';
@@ -363,10 +363,10 @@ class RecruitmentReasonsListTable extends \WP_List_Table {
 			if ( $id <= 0 ) {
 				continue;
 			}
-			if ( RecruitmentReasonRepository::count_references( $id ) > 0 ) {
+			if ( RecruitmentReasonReader::count_references( $id ) > 0 ) {
 				continue;
 			}
-			RecruitmentReasonRepository::delete( $id );
+			RecruitmentReasonWriter::delete( $id );
 		}
 	}
 
@@ -385,7 +385,7 @@ class RecruitmentReasonsListTable extends \WP_List_Table {
 					'id'         => (int) $row->id,
 					'slug'       => (string) $row->slug,
 					'label'      => (string) $row->label,
-					'color'      => isset( $row->color ) ? (string) $row->color : RecruitmentReasonRepository::DEFAULT_COLOR,
+					'color'      => isset( $row->color ) ? (string) $row->color : RecruitmentReasonReader::DEFAULT_COLOR,
 					'applies_to' => isset( $row->applies_to ) ? (string) $row->applies_to : '',
 					'created_at' => (string) $row->created_at,
 				);

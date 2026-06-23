@@ -312,7 +312,7 @@ class ReregistrationCsvExporterTest extends TestCase {
         $field_a = (object) array( 'id' => 10, 'field_label' => 'A' );
         $field_b = (object) array( 'id' => 20, 'field_label' => 'B' );
 
-        $cfMock = Mockery::mock( 'alias:FreeFormCertificate\Reregistration\CustomFieldRepository' );
+        $cfMock = Mockery::mock( 'alias:FreeFormCertificate\Reregistration\CustomFieldReader' );
         $cfMock->shouldReceive( 'get_by_audience_with_parents' )
             ->with( 1, true )
             ->andReturn( array( $field_a, $field_b ) );

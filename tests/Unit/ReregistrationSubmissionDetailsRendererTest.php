@@ -43,7 +43,7 @@ class ReregistrationSubmissionDetailsRendererTest extends TestCase {
         $seederMock = Mockery::mock( 'alias:FreeFormCertificate\Reregistration\ReregistrationStandardFieldsSeeder' );
         $seederMock->shouldReceive( 'get_group_labels' )->andReturn( $group_labels );
 
-        $repoMock = Mockery::mock( 'alias:FreeFormCertificate\Reregistration\ReregistrationSubmissionRepository' );
+        $repoMock = Mockery::mock( 'alias:FreeFormCertificate\Reregistration\ReregistrationSubmissionReader' );
         $repoMock->shouldReceive( 'get_status_label' )->andReturn( $status_label );
 
         $dateMock = Mockery::mock( 'alias:FreeFormCertificate\Core\DateFormatter' );

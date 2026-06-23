@@ -73,7 +73,7 @@ final class RecruitmentDeleteService {
 	 * @return DeleteResult
 	 */
 	public static function delete_candidate( int $candidate_id ): array {
-		$candidate = RecruitmentCandidateRepository::get_by_id( $candidate_id );
+		$candidate = RecruitmentCandidateReader::get_by_id( $candidate_id );
 		if ( null === $candidate ) {
 			return self::failure( 'recruitment_candidate_not_found' );
 		}
@@ -87,7 +87,7 @@ final class RecruitmentDeleteService {
 			);
 		}
 
-		$ok = RecruitmentCandidateRepository::delete( $candidate_id );
+		$ok = RecruitmentCandidateWriter::delete( $candidate_id );
 		if ( ! $ok ) {
 			return self::failure( 'recruitment_candidate_delete_failed' );
 		}
@@ -119,7 +119,7 @@ final class RecruitmentDeleteService {
 			return self::failure( 'recruitment_classification_not_empty_for_delete' );
 		}
 
-		$notice = RecruitmentNoticeRepository::get_by_id( (int) $classification->notice_id );
+		$notice = RecruitmentNoticeReader::get_by_id( (int) $classification->notice_id );
 		if ( null === $notice ) {
 			return self::failure( 'recruitment_notice_not_found' );
 		}
@@ -150,7 +150,7 @@ final class RecruitmentDeleteService {
 	 * @return DeleteResult
 	 */
 	public static function delete_adjutancy( int $adjutancy_id ): array {
-		$adjutancy = RecruitmentAdjutancyRepository::get_by_id( $adjutancy_id );
+		$adjutancy = RecruitmentAdjutancyReader::get_by_id( $adjutancy_id );
 		if ( null === $adjutancy ) {
 			return self::failure( 'recruitment_adjutancy_not_found' );
 		}
@@ -171,7 +171,7 @@ final class RecruitmentDeleteService {
 			);
 		}
 
-		$ok = RecruitmentAdjutancyRepository::delete( $adjutancy_id );
+		$ok = RecruitmentAdjutancyWriter::delete( $adjutancy_id );
 		if ( ! $ok ) {
 			return self::failure( 'recruitment_adjutancy_delete_failed' );
 		}

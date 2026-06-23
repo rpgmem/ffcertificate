@@ -8,14 +8,14 @@ use Brain\Monkey\Functions;
 use Mockery;
 use Mockery\Adapter\Phpunit\MockeryPHPUnitIntegration;
 use PHPUnit\Framework\TestCase;
-use FreeFormCertificate\Recruitment\RecruitmentCallRepository;
+use FreeFormCertificate\Recruitment\RecruitmentCallReader;
+use FreeFormCertificate\Recruitment\RecruitmentCallWriter;
 
 /**
- * Tests for RecruitmentCallRepository — covers the append-only history
- * contract, the §3.6 invariant on `out_of_order` + `out_of_order_reason`,
+ * Tests for the call repository read/write split — covers the append-only
+ * history contract, the §3.6 invariant on `out_of_order` + `out_of_order_reason`,
  * and the idempotent `mark_cancelled` semantics.
  *
- * @covers \FreeFormCertificate\Recruitment\RecruitmentCallRepository
  * @covers \FreeFormCertificate\Recruitment\RecruitmentCallReader
  * @covers \FreeFormCertificate\Recruitment\RecruitmentCallWriter
  */
@@ -63,13 +63,13 @@ class RecruitmentCallRepositoryTest extends TestCase {
 	}
 
 	public function test_get_table_name(): void {
-		$this->assertSame( 'wp_ffc_recruitment_call', RecruitmentCallRepository::get_table_name() );
+		$this->assertSame( 'wp_ffc_recruitment_call', RecruitmentCallReader::get_table_name() );
 	}
 
 	public function test_create_rejects_out_of_order_without_reason(): void {
 		$this->wpdb->shouldNotReceive( 'insert' );
 
-		$result = RecruitmentCallRepository::create(
+		$result = RecruitmentCallWriter::create(
 			array(
 				'classification_id' => 1,
 				'date_to_assume'    => '2026-06-01',
@@ -85,7 +85,7 @@ class RecruitmentCallRepositoryTest extends TestCase {
 	public function test_create_rejects_out_of_order_with_blank_reason(): void {
 		$this->wpdb->shouldNotReceive( 'insert' );
 
-		$result = RecruitmentCallRepository::create(
+		$result = RecruitmentCallWriter::create(
 			array(
 				'classification_id'   => 1,
 				'date_to_assume'      => '2026-06-01',
@@ -102,7 +102,7 @@ class RecruitmentCallRepositoryTest extends TestCase {
 		$this->wpdb->shouldReceive( 'insert' )->once()->andReturn( 1 );
 		$this->wpdb->insert_id = 7;
 
-		$result = RecruitmentCallRepository::create(
+		$result = RecruitmentCallWriter::create(
 			array(
 				'classification_id'   => 1,
 				'date_to_assume'      => '2026-06-01',
@@ -119,7 +119,7 @@ class RecruitmentCallRepositoryTest extends TestCase {
 		$this->wpdb->shouldReceive( 'insert' )->once()->andReturn( 1 );
 		$this->wpdb->insert_id = 8;
 
-		$result = RecruitmentCallRepository::create(
+		$result = RecruitmentCallWriter::create(
 			array(
 				'classification_id' => 1,
 				'date_to_assume'    => '2026-06-01',
@@ -133,14 +133,14 @@ class RecruitmentCallRepositoryTest extends TestCase {
 	public function test_mark_cancelled_returns_one_on_first_cancel(): void {
 		$this->wpdb->shouldReceive( 'query' )->once()->andReturn( 1 );
 
-		$this->assertSame( 1, RecruitmentCallRepository::mark_cancelled( 5, 'Admin reverted', 100 ) );
+		$this->assertSame( 1, RecruitmentCallWriter::mark_cancelled( 5, 'Admin reverted', 100 ) );
 	}
 
 	public function test_mark_cancelled_is_idempotent_within_a_single_cancel(): void {
 		// Second call hits a row already cancelled — WHERE cancelled_at IS NULL fails.
 		$this->wpdb->shouldReceive( 'query' )->once()->andReturn( 0 );
 
-		$this->assertSame( 0, RecruitmentCallRepository::mark_cancelled( 5, 'reason', 100 ) );
+		$this->assertSame( 0, RecruitmentCallWriter::mark_cancelled( 5, 'reason', 100 ) );
 	}
 
 	public function test_get_active_for_classification_returns_uncancelled_row(): void {
@@ -150,25 +150,25 @@ class RecruitmentCallRepositoryTest extends TestCase {
 		);
 		$this->wpdb->shouldReceive( 'get_row' )->once()->andReturn( $row );
 
-		$this->assertSame( $row, RecruitmentCallRepository::get_active_for_classification( 1 ) );
+		$this->assertSame( $row, RecruitmentCallReader::get_active_for_classification( 1 ) );
 	}
 
 	public function test_get_active_for_classification_returns_null_when_only_cancelled_calls_exist(): void {
 		$this->wpdb->shouldReceive( 'get_row' )->once()->andReturn( null );
 
-		$this->assertNull( RecruitmentCallRepository::get_active_for_classification( 1 ) );
+		$this->assertNull( RecruitmentCallReader::get_active_for_classification( 1 ) );
 	}
 
 	public function test_get_history_for_classifications_returns_empty_when_no_ids(): void {
 		$this->wpdb->shouldNotReceive( 'get_results' );
 
-		$this->assertSame( array(), RecruitmentCallRepository::get_history_for_classifications( array() ) );
+		$this->assertSame( array(), RecruitmentCallReader::get_history_for_classifications( array() ) );
 	}
 
 	public function test_count_for_classification_returns_int(): void {
 		$this->wpdb->shouldReceive( 'get_var' )->once()->andReturn( '3' );
 
-		$this->assertSame( 3, RecruitmentCallRepository::count_for_classification( 5 ) );
+		$this->assertSame( 3, RecruitmentCallReader::count_for_classification( 5 ) );
 	}
 
 	public function test_update_only_writes_notes(): void {
@@ -182,7 +182,7 @@ class RecruitmentCallRepositoryTest extends TestCase {
 				}
 			);
 
-		RecruitmentCallRepository::update(
+		RecruitmentCallWriter::update(
 			3,
 			array(
 				'notes'        => 'Updated notes',

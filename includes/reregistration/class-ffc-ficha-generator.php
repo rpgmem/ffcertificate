@@ -21,7 +21,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  * Generator for ficha output.
  *
  * @phpstan-import-type ReregistrationRow from ReregistrationRepository
- * @phpstan-import-type CustomFieldRow from CustomFieldRepository
+ * @phpstan-import-type CustomFieldRow from CustomFieldReader
  */
 class FichaGenerator {
 
@@ -32,7 +32,7 @@ class FichaGenerator {
 	 * @return array<string, mixed>|null Null on failure.
 	 */
 	public static function generate_ficha_data( int $submission_id ): ?array {
-		$submission = ReregistrationSubmissionRepository::get_by_id( $submission_id );
+		$submission = ReregistrationSubmissionReader::get_by_id( $submission_id );
 		if ( ! $submission ) {
 			return null;
 		}
@@ -68,7 +68,7 @@ class FichaGenerator {
 		}
 
 		// Status labels (centralized in SubmissionRepository).
-		$status_labels = ReregistrationSubmissionRepository::get_status_labels();
+		$status_labels = ReregistrationSubmissionReader::get_status_labels();
 
 		$submitted_at = '';
 		if ( ! empty( $submission->submitted_at ) ) {
@@ -491,7 +491,7 @@ class FichaGenerator {
 		$seen         = array();
 
 		foreach ( $audience_ids as $aud_id ) {
-			$fields = CustomFieldRepository::get_by_audience_with_parents( (int) $aud_id, true );
+			$fields = CustomFieldReader::get_by_audience_with_parents( (int) $aud_id, true );
 			foreach ( $fields as $field ) {
 				if ( ! isset( $seen[ (int) $field->id ] ) ) {
 					$seen[ (int) $field->id ] = true;

@@ -222,7 +222,7 @@ final class RecruitmentCallService {
 			return self::failure( 'recruitment_cancel_reason_required' );
 		}
 
-		$call = RecruitmentCallRepository::get_by_id( $call_id );
+		$call = RecruitmentCallReader::get_by_id( $call_id );
 		if ( null === $call ) {
 			return self::failure( 'recruitment_call_not_found' );
 		}
@@ -262,7 +262,7 @@ final class RecruitmentCallService {
 				);
 			}
 
-			$affected = RecruitmentCallRepository::mark_cancelled( $call_id, $reason, $cancelled_by );
+			$affected = RecruitmentCallWriter::mark_cancelled( $call_id, $reason, $cancelled_by );
 			if ( 1 !== $affected ) {
 				$wpdb->query( 'ROLLBACK' );
 				return self::failure( 'recruitment_call_cancel_race_lost' );
@@ -361,7 +361,7 @@ final class RecruitmentCallService {
 			$payload['notes'] = $notes;
 		}
 
-		$call_id = RecruitmentCallRepository::create( $payload );
+		$call_id = RecruitmentCallWriter::create( $payload );
 		if ( false === $call_id ) {
 			return self::inner_failure( 'recruitment_call_insert_failed' );
 		}

@@ -163,7 +163,7 @@ class AudienceCsvImporter {
 				}
 
 				// Add member to audience.
-				$added = AudienceRepository::add_member( $target_audience_id, $user_id );
+				$added = AudienceWriter::add_member( $target_audience_id, $user_id );
 				if ( $added ) {
 					++$result['imported'];
 				} else {
@@ -287,7 +287,7 @@ class AudienceCsvImporter {
 						continue;
 					}
 
-					$new_id = AudienceRepository::create(
+					$new_id = AudienceWriter::create(
 						array(
 							'name'      => $audience_data['name'],
 							'color'     => $audience_data['color'],
@@ -319,7 +319,7 @@ class AudienceCsvImporter {
 					continue;
 				}
 
-				$new_id = AudienceRepository::create(
+				$new_id = AudienceWriter::create(
 					array(
 						'name'      => $audience_data['name'],
 						'color'     => $audience_data['color'],
@@ -359,7 +359,7 @@ class AudienceCsvImporter {
 	 */
 	private static function get_audience_id_by_name( string $name ): int {
 		global $wpdb;
-		$table = AudienceRepository::get_table_name();
+		$table = AudienceReader::get_table_name();
 
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		$id = $wpdb->get_var(

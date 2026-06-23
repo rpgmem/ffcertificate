@@ -4,9 +4,9 @@
  *
  * Write-side of the notice repository split (#563 backlog, B3). Holds every
  * INSERT / UPDATE / DELETE and the atomic state-transition primitives used by
- * the {@see NoticeStateMachine}. Reads live in {@see RecruitmentNoticeReader};
- * {@see RecruitmentNoticeRepository} remains the public façade that delegates
- * to both.
+ * the {@see NoticeStateMachine}. Reads live in {@see RecruitmentNoticeReader}.
+ * Callers depend on the reader (reads) and this writer (writes) directly; the
+ * delegating façade was retired in #563 B3-A.
  *
  * State transitions are NOT performed here: the writer exposes raw status
  * setters used by the state machine. This separation keeps the writer as a
@@ -59,7 +59,7 @@ class RecruitmentNoticeWriter {
 	 * Create a new notice in `draft` status.
 	 *
 	 * `code` is uppercased on store. `public_columns_config` defaults to
-	 * {@see RecruitmentNoticeRepository::DEFAULT_PUBLIC_COLUMNS_CONFIG} when
+	 * {@see RecruitmentNoticeReader::DEFAULT_PUBLIC_COLUMNS_CONFIG} when
 	 * omitted; callers may override by passing a `public_columns_config` JSON
 	 * string.
 	 *
@@ -77,7 +77,7 @@ class RecruitmentNoticeWriter {
 		$table = self::get_table_name();
 
 		$now    = current_time( 'mysql' );
-		$config = '' === $public_columns_config ? RecruitmentNoticeRepository::DEFAULT_PUBLIC_COLUMNS_CONFIG : $public_columns_config;
+		$config = '' === $public_columns_config ? RecruitmentNoticeReader::DEFAULT_PUBLIC_COLUMNS_CONFIG : $public_columns_config;
 
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Insert via wpdb helper; explicit formats.
 		$result = $wpdb->insert(

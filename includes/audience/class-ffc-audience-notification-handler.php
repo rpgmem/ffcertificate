@@ -44,7 +44,7 @@ class AudienceNotificationHandler {
 	 * @return void
 	 */
 	public static function send_booking_created_notification( int $booking_id ): void {
-		$booking = AudienceBookingRepository::get_by_id( $booking_id );
+		$booking = AudienceBookingReader::get_by_id( $booking_id );
 		if ( ! $booking ) {
 			return;
 		}
@@ -60,7 +60,7 @@ class AudienceNotificationHandler {
 		}
 
 		// Get all affected users.
-		$affected_users = AudienceBookingRepository::get_all_affected_users( $booking_id );
+		$affected_users = AudienceBookingReader::get_all_affected_users( $booking_id );
 		if ( empty( $affected_users ) ) {
 			return;
 		}
@@ -87,7 +87,7 @@ class AudienceNotificationHandler {
 		);
 
 		// Get audiences for the booking.
-		$audiences                 = AudienceBookingRepository::get_booking_audiences( $booking_id );
+		$audiences                 = AudienceBookingReader::get_booking_audiences( $booking_id );
 		$audience_names            = array_map(
 			function ( $a ) {
 				return $a->name;
@@ -129,7 +129,7 @@ class AudienceNotificationHandler {
 	 * @return void
 	 */
 	public static function send_booking_cancelled_notification( int $booking_id, string $reason ): void {
-		$booking = AudienceBookingRepository::get_by_id( $booking_id );
+		$booking = AudienceBookingReader::get_by_id( $booking_id );
 		if ( ! $booking ) {
 			return;
 		}
@@ -145,7 +145,7 @@ class AudienceNotificationHandler {
 		}
 
 		// Get all affected users (from booking_users table).
-		$affected_users = AudienceBookingRepository::get_booking_users( (int) $booking_id );
+		$affected_users = AudienceBookingReader::get_booking_users( (int) $booking_id );
 
 		if ( empty( $affected_users ) ) {
 			return;
@@ -174,7 +174,7 @@ class AudienceNotificationHandler {
 		);
 
 		// Get audiences for the booking.
-		$audiences                 = AudienceBookingRepository::get_booking_audiences( $booking_id );
+		$audiences                 = AudienceBookingReader::get_booking_audiences( $booking_id );
 		$audience_names            = array_map(
 			function ( $a ) {
 				return $a->name;

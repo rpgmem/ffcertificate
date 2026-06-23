@@ -4,8 +4,9 @@
  *
  * Read-side of the audience-booking repository split (#563 backlog, A6). Holds
  * every SELECT / lookup / conflict-query and the read-only aggregation helpers.
- * Writes live in {@see AudienceBookingWriter}; {@see AudienceBookingRepository}
- * remains the public façade that delegates to both.
+ * Writes live in {@see AudienceBookingWriter}. Callers depend on this reader
+ * (reads) and the writer (writes) directly; the delegating façade was retired
+ * in #563 B3-A.
  *
  * @package FreeFormCertificate\Audience
  * @since 6.11.3
@@ -25,7 +26,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  *
  * @since 6.11.3
  *
- * @phpstan-import-type BookingRow from AudienceBookingRepository
+ * @phpstan-type BookingRow \stdClass&object{id: numeric-string, environment_id: numeric-string, booking_date: string, start_time: string, end_time: string, booking_type: string, description: string, status: string, created_by: numeric-string, created_at: string, cancelled_by: numeric-string|null, cancelled_at: string|null, cancellation_reason: string|null, is_all_day?: numeric-string, environment_name?: string|null, schedule_id?: numeric-string|null, audience_name?: string, audience_id?: numeric-string, title?: string, audiences?: array<int, mixed>, users?: array<int, int>}
  */
 class AudienceBookingReader {
 	use \FreeFormCertificate\Core\StaticRepositoryTrait;
@@ -288,7 +289,7 @@ class AudienceBookingReader {
 		$table           = self::get_table_name();
 		$users_table     = self::get_booking_users_table_name();
 		$audiences_table = self::get_booking_audiences_table_name();
-		$members_table   = AudienceRepository::get_members_table_name();
+		$members_table   = AudienceReader::get_members_table_name();
 		$env_table       = AudienceEnvironmentRepository::get_table_name();
 
 		$defaults = array(
@@ -350,7 +351,7 @@ class AudienceBookingReader {
 	public static function get_booking_audiences( int $booking_id ): array {
 		$wpdb            = self::db();
 		$table           = self::get_booking_audiences_table_name();
-		$audiences_table = AudienceRepository::get_table_name();
+		$audiences_table = AudienceReader::get_table_name();
 
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		$results = $wpdb->get_results(
@@ -405,7 +406,7 @@ class AudienceBookingReader {
 		// Get users from audiences.
 		$audiences = self::get_booking_audiences( $booking_id );
 		foreach ( $audiences as $audience ) {
-			$audience_users = AudienceRepository::get_members( (int) $audience->id, true );
+			$audience_users = AudienceReader::get_members( (int) $audience->id, true );
 			$users          = array_merge( $users, $audience_users );
 		}
 
@@ -506,12 +507,12 @@ class AudienceBookingReader {
 		$table         = self::get_table_name();
 		$ba_table      = self::get_booking_audiences_table_name();
 		$bu_table      = self::get_booking_users_table_name();
-		$members_table = AudienceRepository::get_members_table_name();
+		$members_table = AudienceReader::get_members_table_name();
 
 		// Get all users that would be affected by this booking.
 		$all_user_ids = $user_ids;
 		foreach ( $audience_ids as $audience_id ) {
-			$audience_users = AudienceRepository::get_members( (int) $audience_id, true );
+			$audience_users = AudienceReader::get_members( (int) $audience_id, true );
 			$all_user_ids   = array_merge( $all_user_ids, $audience_users );
 		}
 		$all_user_ids = array_unique( $all_user_ids );
@@ -624,7 +625,7 @@ class AudienceBookingReader {
 		$wpdb            = self::db();
 		$table           = self::get_table_name();
 		$ba_table        = self::get_booking_audiences_table_name();
-		$audiences_table = AudienceRepository::get_table_name();
+		$audiences_table = AudienceReader::get_table_name();
 
 		if ( empty( $audience_ids ) ) {
 			return array();

@@ -147,7 +147,8 @@ class AudienceAdminAudienceTest extends TestCase {
             'children' => array( $child ),
         );
 
-        $repo = Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceRepository' );
+        $repo = Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceReader' );
+        $repo_w = Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceWriter' );
         $repo->shouldReceive( 'get_hierarchical' )->andReturn( array( $parent ) );
         $repo->shouldReceive( 'get_member_count' )->andReturnUsing(
             static fn( $id, $recursive = false ) => $recursive ? 10 : 4
@@ -189,7 +190,8 @@ class AudienceAdminAudienceTest extends TestCase {
             'allow_self_join' => 0,
         );
 
-        $repo = Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceRepository' );
+        $repo = Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceReader' );
+        $repo_w = Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceWriter' );
         $repo->shouldReceive( 'get_by_id' )->with( 5 )->andReturn( $audience );
         $repo->shouldReceive( 'get_possible_parents' )->andReturn( array() );
         $repo->shouldReceive( 'get_children' )->with( 5 )->andReturn( array() );
@@ -216,7 +218,8 @@ class AudienceAdminAudienceTest extends TestCase {
             static fn( $cap ) => 'ffc_view_custom_fields' === $cap
         );
 
-        $repo = Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceRepository' );
+        $repo = Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceReader' );
+        $repo_w = Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceWriter' );
         $repo->shouldReceive( 'get_children' )->with( 5 )->andReturn( array() );
 
         $seeder = Mockery::mock( 'alias:FreeFormCertificate\Reregistration\ReregistrationStandardFieldsSeeder' );
@@ -307,7 +310,8 @@ class AudienceAdminAudienceTest extends TestCase {
             'allow_self_join' => 1,
         );
 
-        $repo = Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceRepository' );
+        $repo = Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceReader' );
+        $repo_w = Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceWriter' );
         $repo->shouldReceive( 'get_by_id' )->with( 5 )->andReturn( $audience );
         $repo->shouldReceive( 'get_possible_parents' )->with( 5 )->andReturn(
             array( (object) array( 'id' => 1, 'name' => 'Top', 'depth' => 0 ) )
@@ -334,7 +338,8 @@ class AudienceAdminAudienceTest extends TestCase {
         $_GET['id']     = '99';
         Functions\when( 'wp_die' )->alias( static function ( $m ) { throw new \RuntimeException( (string) $m ); } );
 
-        $repo = Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceRepository' );
+        $repo = Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceReader' );
+        $repo_w = Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceWriter' );
         $repo->shouldReceive( 'get_by_id' )->with( 99 )->andReturn( null );
 
         $page = new AudienceAdminAudience( 'ffc-scheduling' );
@@ -368,7 +373,8 @@ class AudienceAdminAudienceTest extends TestCase {
             static fn( $field, $id ) => (object) array( 'ID' => $id, 'display_name' => 'User' . $id, 'user_email' => $id . '@e.com' )
         );
 
-        $repo = Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceRepository' );
+        $repo = Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceReader' );
+        $repo_w = Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceWriter' );
         $repo->shouldReceive( 'get_by_id' )->with( 5 )->andReturn( (object) array( 'id' => 5, 'name' => 'Grp' ) );
         $repo->shouldReceive( 'get_members' )->with( 5 )->andReturn( array( 7, 8 ) );
 
@@ -387,7 +393,8 @@ class AudienceAdminAudienceTest extends TestCase {
         $_GET['id']     = '99';
         Functions\when( 'wp_die' )->alias( static function ( $m ) { throw new \RuntimeException( (string) $m ); } );
 
-        $repo = Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceRepository' );
+        $repo = Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceReader' );
+        $repo_w = Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceWriter' );
         $repo->shouldReceive( 'get_by_id' )->with( 99 )->andReturn( null );
 
         $page = new AudienceAdminAudience( 'ffc-scheduling' );
@@ -426,13 +433,14 @@ class AudienceAdminAudienceTest extends TestCase {
             'audience_self_join' => '1',
         );
 
-        $repo = Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceRepository' );
-        $repo->shouldReceive( 'create' )->once()->with(
+        $repo = Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceReader' );
+        $repo_w = Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceWriter' );
+        $repo_w->shouldReceive( 'create' )->once()->with(
             Mockery::on(
                 static fn( $d ) => 'Brand New' === $d['name'] && null === $d['parent_id'] && 1 === $d['allow_self_join']
             )
         )->andReturn( 50 );
-        $repo->shouldReceive( 'cascade_self_join' )->once()->with( 50, 1 )->andReturn( true );
+        $repo_w->shouldReceive( 'cascade_self_join' )->once()->with( 50, 1 )->andReturn( true );
 
         $page = new AudienceAdminAudience( 'ffc-scheduling' );
         $this->expectException( \RuntimeException::class );
@@ -455,9 +463,10 @@ class AudienceAdminAudienceTest extends TestCase {
             'audience_self_join' => '0',
         );
 
-        $repo = Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceRepository' );
-        $repo->shouldReceive( 'update' )->once()->with( 5, Mockery::type( 'array' ) )->andReturn( true );
-        $repo->shouldReceive( 'cascade_self_join' )->once()->with( 5, 0 )->andReturn( true );
+        $repo = Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceReader' );
+        $repo_w = Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceWriter' );
+        $repo_w->shouldReceive( 'update' )->once()->with( 5, Mockery::type( 'array' ) )->andReturn( true );
+        $repo_w->shouldReceive( 'cascade_self_join' )->once()->with( 5, 0 )->andReturn( true );
 
         $page = new AudienceAdminAudience( 'ffc-scheduling' );
         $page->handle_actions();
@@ -478,8 +487,9 @@ class AudienceAdminAudienceTest extends TestCase {
             'audience_status'    => 'active',
         );
 
-        $repo = Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceRepository' );
-        $repo->shouldReceive( 'update' )->once()->with( 5, Mockery::on( static fn( $d ) => 3 === $d['parent_id'] ) )->andReturn( true );
+        $repo = Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceReader' );
+        $repo_w = Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceWriter' );
+        $repo_w->shouldReceive( 'update' )->once()->with( 5, Mockery::on( static fn( $d ) => 3 === $d['parent_id'] ) )->andReturn( true );
         $repo->shouldNotReceive( 'cascade_self_join' );
 
         $page = new AudienceAdminAudience( 'ffc-scheduling' );
@@ -491,7 +501,8 @@ class AudienceAdminAudienceTest extends TestCase {
         Functions\when( 'wp_verify_nonce' )->justReturn( false );
         $_POST = array( 'ffc_action' => 'save_audience', 'ffc_audience_nonce' => 'bad' );
 
-        $repo = Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceRepository' );
+        $repo = Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceReader' );
+        $repo_w = Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceWriter' );
         $repo->shouldNotReceive( 'create' );
         $repo->shouldNotReceive( 'update' );
 
@@ -515,8 +526,9 @@ class AudienceAdminAudienceTest extends TestCase {
             'user_ids'              => '7,8,9',
         );
 
-        $repo = Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceRepository' );
-        $repo->shouldReceive( 'bulk_add_members' )->once()->with( 5, array( 7, 8, 9 ) )->andReturn( 3 );
+        $repo = Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceReader' );
+        $repo_w = Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceWriter' );
+        $repo_w->shouldReceive( 'bulk_add_members' )->once()->with( 5, array( 7, 8, 9 ) )->andReturn( 3 );
 
         $page = new AudienceAdminAudience( 'ffc-scheduling' );
         $page->handle_actions();
@@ -527,7 +539,8 @@ class AudienceAdminAudienceTest extends TestCase {
         Functions\when( 'wp_verify_nonce' )->justReturn( false );
         $_POST = array( 'ffc_action' => 'add_members', 'ffc_add_members_nonce' => 'bad' );
 
-        $repo = Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceRepository' );
+        $repo = Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceReader' );
+        $repo_w = Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceWriter' );
         $repo->shouldNotReceive( 'bulk_add_members' );
 
         $page = new AudienceAdminAudience( 'ffc-scheduling' );
@@ -545,8 +558,9 @@ class AudienceAdminAudienceTest extends TestCase {
         Functions\when( 'admin_url' )->returnArg();
         Functions\when( 'wp_safe_redirect' )->alias( static function ( $u ) { throw new \RuntimeException( 'redirect:' . $u ); } );
 
-        $repo = Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceRepository' );
-        $repo->shouldReceive( 'remove_member' )->once()->with( 5, 7 )->andReturn( true );
+        $repo = Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceReader' );
+        $repo_w = Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceWriter' );
+        $repo_w->shouldReceive( 'remove_member' )->once()->with( 5, 7 )->andReturn( true );
 
         $page = new AudienceAdminAudience( 'ffc-scheduling' );
         $this->expectException( \RuntimeException::class );
@@ -569,8 +583,9 @@ class AudienceAdminAudienceTest extends TestCase {
         Functions\when( 'admin_url' )->returnArg();
         Functions\when( 'wp_safe_redirect' )->alias( static function ( $u ) { throw new \RuntimeException( 'redirect:' . $u ); } );
 
-        $repo = Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceRepository' );
-        $repo->shouldReceive( 'update' )->once()->with( 5, array( 'status' => 'inactive' ) )->andReturn( true );
+        $repo = Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceReader' );
+        $repo_w = Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceWriter' );
+        $repo_w->shouldReceive( 'update' )->once()->with( 5, array( 'status' => 'inactive' ) )->andReturn( true );
 
         $page = new AudienceAdminAudience( 'ffc-scheduling' );
         $this->expectException( \RuntimeException::class );
@@ -589,9 +604,10 @@ class AudienceAdminAudienceTest extends TestCase {
         Functions\when( 'admin_url' )->returnArg();
         Functions\when( 'wp_safe_redirect' )->alias( static function ( $u ) { throw new \RuntimeException( 'redirect:' . $u ); } );
 
-        $repo = Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceRepository' );
+        $repo = Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceReader' );
+        $repo_w = Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceWriter' );
         $repo->shouldReceive( 'get_by_id' )->with( 5 )->andReturn( (object) array( 'status' => 'inactive' ) );
-        $repo->shouldReceive( 'delete' )->once()->with( 5 )->andReturn( true );
+        $repo_w->shouldReceive( 'delete' )->once()->with( 5 )->andReturn( true );
 
         $page = new AudienceAdminAudience( 'ffc-scheduling' );
         $this->expectException( \RuntimeException::class );
@@ -610,7 +626,8 @@ class AudienceAdminAudienceTest extends TestCase {
         );
         Functions\when( 'wp_verify_nonce' )->justReturn( 1 );
         Functions\when( 'wp_die' )->alias( static function ( $m ) { throw new \RuntimeException( (string) $m ); } );
-        Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceRepository' );
+        Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceReader' );
+        Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceWriter' );
 
         $page = new AudienceAdminAudience( 'ffc-scheduling' );
         $this->expectException( \RuntimeException::class );

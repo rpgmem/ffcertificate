@@ -8,14 +8,14 @@ use Brain\Monkey\Functions;
 use Mockery;
 use Mockery\Adapter\Phpunit\MockeryPHPUnitIntegration;
 use PHPUnit\Framework\TestCase;
-use FreeFormCertificate\Recruitment\RecruitmentCandidateRepository;
+use FreeFormCertificate\Recruitment\RecruitmentCandidateReader;
+use FreeFormCertificate\Recruitment\RecruitmentCandidateWriter;
 
 /**
- * Tests for RecruitmentCandidateRepository — covers CRUD primitives plus the
- * promotion link setter and the hash-based lookups (cpf, rf, email) used by
- * the CSV importer for cross-CSV / cross-notice candidate reuse.
+ * Tests for the candidate repository read/write split — covers CRUD primitives
+ * plus the promotion link setter and the hash-based lookups (cpf, rf, email)
+ * used by the CSV importer for cross-CSV / cross-notice candidate reuse.
  *
- * @covers \FreeFormCertificate\Recruitment\RecruitmentCandidateRepository
  * @covers \FreeFormCertificate\Recruitment\RecruitmentCandidateReader
  * @covers \FreeFormCertificate\Recruitment\RecruitmentCandidateWriter
  */
@@ -42,6 +42,11 @@ class RecruitmentCandidateRepositoryTest extends TestCase {
 		Functions\when( 'wp_cache_delete' )->justReturn( true );
 		Functions\when( 'current_time' )->justReturn( '2026-05-01 10:00:00' );
 
+		// pcov does not record lines for files first autoloaded mid-test-method,
+		// so preload the reader/writer here for correct coverage attribution.
+		class_exists( '\\FreeFormCertificate\\Recruitment\\RecruitmentCandidateReader' );
+		class_exists( '\\FreeFormCertificate\\Recruitment\\RecruitmentCandidateWriter' );
+
 		$this->wpdb->shouldReceive( 'prepare' )
 			->andReturnUsing(
 				function () {
@@ -57,28 +62,28 @@ class RecruitmentCandidateRepositoryTest extends TestCase {
 	}
 
 	public function test_get_table_name(): void {
-		$this->assertSame( 'wp_ffc_recruitment_candidate', RecruitmentCandidateRepository::get_table_name() );
+		$this->assertSame( 'wp_ffc_recruitment_candidate', RecruitmentCandidateReader::get_table_name() );
 	}
 
 	public function test_get_by_cpf_hash_returns_null_when_not_found(): void {
 		$this->wpdb->shouldReceive( 'get_row' )->once()->andReturn( null );
 
-		$this->assertNull( RecruitmentCandidateRepository::get_by_cpf_hash( 'abcd1234' ) );
+		$this->assertNull( RecruitmentCandidateReader::get_by_cpf_hash( 'abcd1234' ) );
 	}
 
 	public function test_get_by_cpf_hash_returns_row_on_match(): void {
 		$row = (object) array( 'id' => '1', 'cpf_hash' => 'abcd1234' );
 		$this->wpdb->shouldReceive( 'get_row' )->once()->andReturn( $row );
 
-		$this->assertSame( $row, RecruitmentCandidateRepository::get_by_cpf_hash( 'abcd1234' ) );
+		$this->assertSame( $row, RecruitmentCandidateReader::get_by_cpf_hash( 'abcd1234' ) );
 	}
 
 	public function test_create_rejects_when_required_fields_missing(): void {
 		$this->wpdb->shouldNotReceive( 'insert' );
 
-		$this->assertFalse( RecruitmentCandidateRepository::create( array( 'name' => 'Alice' ) ) );
-		$this->assertFalse( RecruitmentCandidateRepository::create( array( 'pcd_hash' => 'h' ) ) );
-		$this->assertFalse( RecruitmentCandidateRepository::create( array() ) );
+		$this->assertFalse( RecruitmentCandidateWriter::create( array( 'name' => 'Alice' ) ) );
+		$this->assertFalse( RecruitmentCandidateWriter::create( array( 'pcd_hash' => 'h' ) ) );
+		$this->assertFalse( RecruitmentCandidateWriter::create( array() ) );
 	}
 
 	public function test_create_includes_only_supplied_optional_columns(): void {
@@ -95,7 +100,7 @@ class RecruitmentCandidateRepositoryTest extends TestCase {
 			);
 		$this->wpdb->insert_id = 50;
 
-		$id = RecruitmentCandidateRepository::create(
+		$id = RecruitmentCandidateWriter::create(
 			array(
 				'name'     => 'Alice',
 				'pcd_hash' => 'pcd_hash_value',
@@ -115,7 +120,7 @@ class RecruitmentCandidateRepositoryTest extends TestCase {
 	public function test_create_returns_false_on_insert_failure(): void {
 		$this->wpdb->shouldReceive( 'insert' )->once()->andReturn( false );
 
-		$result = RecruitmentCandidateRepository::create(
+		$result = RecruitmentCandidateWriter::create(
 			array(
 				'name'     => 'Alice',
 				'pcd_hash' => 'h',
@@ -135,7 +140,7 @@ class RecruitmentCandidateRepositoryTest extends TestCase {
 				}
 			);
 
-		RecruitmentCandidateRepository::update(
+		RecruitmentCandidateWriter::update(
 			3,
 			array(
 				'name'     => 'New Name',
@@ -162,7 +167,7 @@ class RecruitmentCandidateRepositoryTest extends TestCase {
 				}
 			);
 
-		$this->assertTrue( RecruitmentCandidateRepository::set_user_id( 5, 100 ) );
+		$this->assertTrue( RecruitmentCandidateWriter::set_user_id( 5, 100 ) );
 		$this->assertSame( 100, $captured['user_id'] );
 	}
 
@@ -177,7 +182,7 @@ class RecruitmentCandidateRepositoryTest extends TestCase {
 				}
 			);
 
-		$this->assertTrue( RecruitmentCandidateRepository::set_user_id( 5, null ) );
+		$this->assertTrue( RecruitmentCandidateWriter::set_user_id( 5, null ) );
 		$this->assertNull( $captured['user_id'] );
 	}
 
@@ -188,14 +193,14 @@ class RecruitmentCandidateRepositoryTest extends TestCase {
 		);
 		$this->wpdb->shouldReceive( 'get_results' )->once()->andReturn( $rows );
 
-		$result = RecruitmentCandidateRepository::get_by_user_id( 100 );
+		$result = RecruitmentCandidateReader::get_by_user_id( 100 );
 		$this->assertCount( 2, $result );
 	}
 
 	public function test_delete_returns_true_on_success(): void {
 		$this->wpdb->shouldReceive( 'delete' )->once()->andReturn( 1 );
 
-		$this->assertTrue( RecruitmentCandidateRepository::delete( 5 ) );
+		$this->assertTrue( RecruitmentCandidateWriter::delete( 5 ) );
 	}
 
 	// ------------------------------------------------------------------
@@ -206,7 +211,7 @@ class RecruitmentCandidateRepositoryTest extends TestCase {
 		$this->wpdb->shouldReceive( 'esc_like' )->andReturnUsing( static fn( $v ) => $v )->byDefault();
 		$this->wpdb->shouldReceive( 'get_col' )->once()->andReturn( array( '1', '7', '12' ) );
 
-		$ids = RecruitmentCandidateRepository::get_ids_by_email_hash( 'fakehash' );
+		$ids = RecruitmentCandidateReader::get_ids_by_email_hash( 'fakehash' );
 
 		$this->assertSame( array( 1, 7, 12 ), $ids );
 	}
@@ -215,7 +220,7 @@ class RecruitmentCandidateRepositoryTest extends TestCase {
 		$this->wpdb->shouldReceive( 'esc_like' )->andReturnUsing( static fn( $v ) => $v )->byDefault();
 		$this->wpdb->shouldReceive( 'get_col' )->once()->andReturn( array() );
 
-		$ids = RecruitmentCandidateRepository::get_ids_by_email_hash( 'fakehash' );
+		$ids = RecruitmentCandidateReader::get_ids_by_email_hash( 'fakehash' );
 
 		$this->assertSame( array(), $ids );
 	}
@@ -229,7 +234,7 @@ class RecruitmentCandidateRepositoryTest extends TestCase {
 		// The query should never run.
 		$this->wpdb->shouldNotReceive( 'get_results' );
 
-		$rows = RecruitmentCandidateRepository::get_paginated_filtered( '', array(), 0, '', 20, 0 );
+		$rows = RecruitmentCandidateReader::get_paginated_filtered( '', array(), 0, '', 20, 0 );
 
 		$this->assertSame( array(), $rows );
 	}
@@ -237,7 +242,7 @@ class RecruitmentCandidateRepositoryTest extends TestCase {
 	public function test_count_paginated_filtered_short_circuits_on_empty_id_constraint(): void {
 		$this->wpdb->shouldNotReceive( 'get_var' );
 
-		$total = RecruitmentCandidateRepository::count_paginated_filtered( '', array(), 0, '' );
+		$total = RecruitmentCandidateReader::count_paginated_filtered( '', array(), 0, '' );
 
 		$this->assertSame( 0, $total );
 	}
@@ -248,7 +253,7 @@ class RecruitmentCandidateRepositoryTest extends TestCase {
 			->once()
 			->andReturn( array( (object) array( 'id' => '5', 'name' => 'Alice' ) ) );
 
-		$rows = RecruitmentCandidateRepository::get_paginated_filtered( '', null, 0, '', 20, 0 );
+		$rows = RecruitmentCandidateReader::get_paginated_filtered( '', null, 0, '', 20, 0 );
 
 		$this->assertCount( 1, $rows );
 		$this->assertSame( '5', $rows[0]->id );
@@ -271,7 +276,7 @@ class RecruitmentCandidateRepositoryTest extends TestCase {
 			);
 		$this->wpdb->shouldReceive( 'get_results' )->once()->andReturn( array() );
 
-		RecruitmentCandidateRepository::get_paginated_filtered( '', null, 0, 'called', 20, 0 );
+		RecruitmentCandidateReader::get_paginated_filtered( '', null, 0, 'called', 20, 0 );
 
 		$this->assertNotNull( $captured_sql );
 		$this->assertStringContainsString( 'INNER JOIN', (string) $captured_sql );
@@ -283,7 +288,7 @@ class RecruitmentCandidateRepositoryTest extends TestCase {
 		$this->wpdb->shouldReceive( 'esc_like' )->andReturnUsing( static fn( $v ) => $v )->byDefault();
 		$this->wpdb->shouldReceive( 'get_var' )->once()->andReturn( '42' );
 
-		$total = RecruitmentCandidateRepository::count_paginated_filtered( 'Alice', null, 0, '' );
+		$total = RecruitmentCandidateReader::count_paginated_filtered( 'Alice', null, 0, '' );
 
 		$this->assertSame( 42, $total );
 	}

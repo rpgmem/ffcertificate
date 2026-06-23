@@ -31,7 +31,7 @@ if ( ! class_exists( '\WP_List_Table' ) ) {
 /**
  * Notices list table.
  *
- * @phpstan-import-type NoticeRow from RecruitmentNoticeRepository
+ * @phpstan-import-type NoticeRow from RecruitmentNoticeReader
  */
 class RecruitmentNoticesListTable extends \WP_List_Table {
 
@@ -249,7 +249,7 @@ class RecruitmentNoticesListTable extends \WP_List_Table {
 
 		$this->process_bulk_action();
 
-		$rows = self::convert_rows( RecruitmentNoticeRepository::get_all() );
+		$rows = self::convert_rows( RecruitmentNoticeReader::get_all() );
 
 		// Search.
 		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- read-only filter, list pages don't need a nonce per WP convention.
@@ -311,7 +311,7 @@ class RecruitmentNoticesListTable extends \WP_List_Table {
 
 		foreach ( $ids as $id ) {
 			if ( $id > 0 ) {
-				RecruitmentNoticeRepository::delete( $id );
+				RecruitmentNoticeWriter::delete( $id );
 			}
 		}
 	}

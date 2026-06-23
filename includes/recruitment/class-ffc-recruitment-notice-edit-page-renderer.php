@@ -23,9 +23,9 @@ if ( ! defined( 'ABSPATH' ) ) {
 /**
  * Notice edit screen view-layer helpers.
  *
- * @phpstan-import-type NoticeRow         from RecruitmentNoticeRepository
+ * @phpstan-import-type NoticeRow         from RecruitmentNoticeReader
  * @phpstan-import-type ClassificationRow from RecruitmentClassificationRepository
- * @phpstan-import-type ReasonRow         from RecruitmentReasonRepository
+ * @phpstan-import-type ReasonRow         from RecruitmentReasonReader
  */
 final class RecruitmentNoticeEditPageRenderer {
 
@@ -102,7 +102,7 @@ final class RecruitmentNoticeEditPageRenderer {
 		 *
 		 * @var array<string,bool> $defaults
 		 */
-		$defaults = (array) json_decode( RecruitmentNoticeRepository::DEFAULT_PUBLIC_COLUMNS_CONFIG, true );
+		$defaults = (array) json_decode( RecruitmentNoticeReader::DEFAULT_PUBLIC_COLUMNS_CONFIG, true );
 		$state    = array_merge( $defaults, $decoded );
 
 		$mandatory = array( 'rank', 'name' );
@@ -464,7 +464,7 @@ final class RecruitmentNoticeEditPageRenderer {
 	 */
 	public static function render_adjutancies_section( object $notice ): void {
 		$notice_id    = (int) $notice->id;
-		$adjutancies  = RecruitmentAdjutancyRepository::get_all();
+		$adjutancies  = RecruitmentAdjutancyReader::get_all();
 		$attached_ids = array_values( RecruitmentNoticeAdjutancyRepository::get_adjutancy_ids_for_notice( $notice_id ) );
 		$attached_set = array_flip( $attached_ids );
 
@@ -716,7 +716,7 @@ final class RecruitmentNoticeEditPageRenderer {
 		// Bulk-load the full candidate rows once (we need `pcd_hash` for
 		// the Subscription column; the `name` map below is fed from the
 		// same payload to keep this a single SQL round-trip).
-		$candidate_rows = RecruitmentCandidateRepository::get_by_ids( array_unique( $candidate_ids ) );
+		$candidate_rows = RecruitmentCandidateReader::get_by_ids( array_unique( $candidate_ids ) );
 		$candidates     = array();
 		$pcd_map        = array();
 		foreach ( $candidate_rows as $cand ) {
@@ -726,14 +726,14 @@ final class RecruitmentNoticeEditPageRenderer {
 			// GERAL, mirroring the public shortcode's defensive default.
 			$pcd_map[ $cid ] = true === RecruitmentPcdHasher::verify( (string) ( $cand->pcd_hash ?? '' ), $cid );
 		}
-		$adjutancies = self::lookup_map( array_unique( $adjutancy_ids ), array( RecruitmentAdjutancyRepository::class, 'get_by_id' ), 'slug' );
+		$adjutancies = self::lookup_map( array_unique( $adjutancy_ids ), array( RecruitmentAdjutancyReader::class, 'get_by_id' ), 'slug' );
 
 		// On the Preliminary tab the Status column is always "Waiting"
 		// (the §5.2 invariant), so we replace it with the editable
 		// preview_status + reason dropdown. The Definitive tab keeps the
 		// existing Status badge.
 		$is_preview_tab = ! $with_actions;
-		$reasons        = $is_preview_tab ? RecruitmentReasonRepository::get_all() : array();
+		$reasons        = $is_preview_tab ? RecruitmentReasonReader::get_all() : array();
 
 		return array(
 			'rows'         => $rows,
@@ -843,7 +843,7 @@ final class RecruitmentNoticeEditPageRenderer {
 			echo '<td>' . esc_html( (string) $row->rank ) . '</td>';
 			echo '<td>' . esc_html( $candidate_name ) . '</td>';
 			// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- helper returns escaped HTML.
-			echo '<td>' . RecruitmentAdminPage::adjutancy_badge( RecruitmentAdjutancyRepository::get_by_id( (int) $row->adjutancy_id ) ) . '</td>';
+			echo '<td>' . RecruitmentAdminPage::adjutancy_badge( RecruitmentAdjutancyReader::get_by_id( (int) $row->adjutancy_id ) ) . '</td>';
 			$is_pcd = $pcd_map[ (int) $row->candidate_id ] ?? false;
 			// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- helper returns escaped HTML.
 			echo '<td>' . RecruitmentPublicShortcodeRenderer::render_subscription_badge( $is_pcd ) . '</td>';
@@ -981,7 +981,7 @@ final class RecruitmentNoticeEditPageRenderer {
 		$html     = '<select class="ffc-cls-preview-reason" data-cls-id="' . esc_attr( (string) $cls_id ) . '"' . $disabled . '>';
 		$html    .= '<option value="0">' . esc_html__( '— none —', 'ffcertificate' ) . '</option>';
 		foreach ( $reasons as $reason ) {
-			$applies = RecruitmentReasonRepository::decode_applies_to( (string) ( $reason->applies_to ?? '' ) );
+			$applies = RecruitmentReasonReader::decode_applies_to( (string) ( $reason->applies_to ?? '' ) );
 			// `data-applies` lets the JS re-filter the options without a
 			// round-trip when the operator flips the status dropdown.
 			$applies_attr = implode( ',', $applies );
@@ -1134,7 +1134,7 @@ final class RecruitmentNoticeEditPageRenderer {
 		}
 
 		$adj_ids = array_map( static fn( $r ) => (int) $r->adjutancy_id, $empties );
-		$slugs   = self::lookup_map( array_unique( $adj_ids ), array( RecruitmentAdjutancyRepository::class, 'get_by_id' ), 'slug' );
+		$slugs   = self::lookup_map( array_unique( $adj_ids ), array( RecruitmentAdjutancyReader::class, 'get_by_id' ), 'slug' );
 
 		$map = array();
 		foreach ( $empties as $r ) {

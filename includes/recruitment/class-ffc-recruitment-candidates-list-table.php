@@ -32,7 +32,7 @@ if ( ! class_exists( '\WP_List_Table' ) ) {
 /**
  * Candidates list table.
  *
- * @phpstan-import-type CandidateRow from RecruitmentCandidateRepository
+ * @phpstan-import-type CandidateRow from RecruitmentCandidateReader
  */
 class RecruitmentCandidatesListTable extends \WP_List_Table {
 
@@ -278,13 +278,13 @@ class RecruitmentCandidatesListTable extends \WP_List_Table {
 		$current_page = max( 1, $this->get_pagenum() );
 		$offset       = ( $current_page - 1 ) * $per_page;
 
-		$total_items = RecruitmentCandidateRepository::count_paginated_filtered(
+		$total_items = RecruitmentCandidateReader::count_paginated_filtered(
 			$search,
 			$id_constraint,
 			$adjutancy_id,
 			$status
 		);
-		$raw_rows    = RecruitmentCandidateRepository::get_paginated_filtered(
+		$raw_rows    = RecruitmentCandidateReader::get_paginated_filtered(
 			$search,
 			$id_constraint,
 			$adjutancy_id,
@@ -385,7 +385,7 @@ class RecruitmentCandidatesListTable extends \WP_List_Table {
 		// Adjutancy dropdown — limits the result set to candidates with at
 		// least one classification in the selected adjutancy. Combinable
 		// with every other filter via the unified paginated query.
-		$adjutancies = RecruitmentAdjutancyRepository::get_all();
+		$adjutancies = RecruitmentAdjutancyReader::get_all();
 		if ( ! empty( $adjutancies ) ) {
 			echo ' <select name="adjutancy_id">';
 			echo '<option value="0">' . esc_html__( 'All adjutancies', 'ffcertificate' ) . '</option>';
@@ -447,7 +447,7 @@ class RecruitmentCandidatesListTable extends \WP_List_Table {
 		}
 		if ( '' !== $email ) {
 			$hash   = (string) Encryption::hash( $email );
-			$sets[] = '' === $hash ? array() : RecruitmentCandidateRepository::get_ids_by_email_hash( $hash );
+			$sets[] = '' === $hash ? array() : RecruitmentCandidateReader::get_ids_by_email_hash( $hash );
 		}
 
 		if ( empty( $sets ) ) {
@@ -481,8 +481,8 @@ class RecruitmentCandidatesListTable extends \WP_List_Table {
 		}
 		$hash = (string) Encryption::hash( $digits );
 		$row  = 'cpf' === $kind
-			? RecruitmentCandidateRepository::get_by_cpf_hash( $hash )
-			: RecruitmentCandidateRepository::get_by_rf_hash( $hash );
+			? RecruitmentCandidateReader::get_by_cpf_hash( $hash )
+			: RecruitmentCandidateReader::get_by_rf_hash( $hash );
 		return null === $row ? array() : array( (int) $row->id );
 	}
 

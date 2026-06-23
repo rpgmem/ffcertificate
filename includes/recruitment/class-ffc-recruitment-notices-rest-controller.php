@@ -102,7 +102,7 @@ final class RecruitmentNoticesRestController {
 	 */
 	public function list_notices( \WP_REST_Request $request ): \WP_REST_Response {
 		$status  = $request->get_param( 'status' );
-		$notices = RecruitmentNoticeRepository::get_all( is_string( $status ) && '' !== $status ? $status : null );
+		$notices = RecruitmentNoticeReader::get_all( is_string( $status ) && '' !== $status ? $status : null );
 
 		return new \WP_REST_Response( $notices, 200 );
 	}
@@ -117,7 +117,7 @@ final class RecruitmentNoticesRestController {
 		$code = (string) $request->get_param( 'code' );
 		$name = (string) $request->get_param( 'name' );
 
-		$id = RecruitmentNoticeRepository::create( $code, $name );
+		$id = RecruitmentNoticeWriter::create( $code, $name );
 		if ( false === $id ) {
 			return new \WP_Error(
 				'recruitment_notice_create_failed',
@@ -126,7 +126,7 @@ final class RecruitmentNoticesRestController {
 			);
 		}
 
-		return new \WP_REST_Response( RecruitmentNoticeRepository::get_by_id( $id ), 201 );
+		return new \WP_REST_Response( RecruitmentNoticeReader::get_by_id( $id ), 201 );
 	}
 
 	/**
@@ -159,7 +159,7 @@ final class RecruitmentNoticesRestController {
 			array_flip( array( 'name', 'code', 'public_columns_config' ) )
 		);
 		if ( ! empty( $meta ) ) {
-			$ok = RecruitmentNoticeRepository::update( $id, $meta );
+			$ok = RecruitmentNoticeWriter::update( $id, $meta );
 			if ( ! $ok ) {
 				return new \WP_Error(
 					'recruitment_notice_update_failed',
@@ -169,7 +169,7 @@ final class RecruitmentNoticesRestController {
 			}
 		}
 
-		$notice = RecruitmentNoticeRepository::get_by_id( $id );
+		$notice = RecruitmentNoticeReader::get_by_id( $id );
 		if ( null === $notice ) {
 			return new \WP_Error( 'recruitment_notice_not_found', RecruitmentErrorMessages::translate( 'recruitment_notice_not_found' ), array( 'status' => 404 ) );
 		}

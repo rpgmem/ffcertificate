@@ -30,9 +30,9 @@ if ( ! defined( 'ABSPATH' ) ) {
  * Reregistration Admin.
  *
  * @phpstan-import-type ReregistrationRow from ReregistrationRepository
- * @phpstan-import-type ReregistrationSubmissionRow from ReregistrationSubmissionRepository
- * @phpstan-import-type CustomFieldRow from CustomFieldRepository
- * @phpstan-import-type AudienceRow from \FreeFormCertificate\Audience\AudienceRepository
+ * @phpstan-import-type ReregistrationSubmissionRow from ReregistrationSubmissionReader
+ * @phpstan-import-type CustomFieldRow from CustomFieldReader
+ * @phpstan-import-type AudienceRow from \FreeFormCertificate\Audience\AudienceReader
  */
 class ReregistrationAdmin {
 
@@ -350,7 +350,7 @@ class ReregistrationAdmin {
 
 			// If transitioning to active, create submissions for members and send invitations.
 			if ( 'active' === $data['status'] && 'active' !== $prev_status ) {
-				ReregistrationSubmissionRepository::create_for_audience_members( $id, $audience_ids );
+				ReregistrationSubmissionWriter::create_for_audience_members( $id, $audience_ids );
 				ReregistrationEmailHandler::send_invitations( $id );
 			}
 
@@ -363,7 +363,7 @@ class ReregistrationAdmin {
 
 				// If creating as active, also create submissions and send invitations.
 				if ( 'active' === $data['status'] ) {
-					ReregistrationSubmissionRepository::create_for_audience_members( $new_id, $audience_ids );
+					ReregistrationSubmissionWriter::create_for_audience_members( $new_id, $audience_ids );
 					ReregistrationEmailHandler::send_invitations( $new_id );
 				}
 

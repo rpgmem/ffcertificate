@@ -5,13 +5,11 @@
  * Read-side of the reason repository split (#563 backlog, B3). Holds every
  * SELECT / lookup query for `ffc_recruitment_reason`, the deletion-gate
  * reference count, and the pure `applies_to` decode helper. Writes live in
- * {@see RecruitmentReasonWriter}; {@see RecruitmentReasonRepository} remains
- * the public façade that delegates to both.
+ * {@see RecruitmentReasonWriter}. Callers depend on this reader (reads) and the
+ * writer (writes) directly; the delegating façade was retired in #563 B3-A.
  *
  * @package FreeFormCertificate\Recruitment
  * @since   6.11.3
- *
- * @phpstan-import-type ReasonRow from RecruitmentReasonRepository
  */
 
 declare(strict_types=1);
@@ -27,11 +25,21 @@ if ( ! defined( 'ABSPATH' ) ) {
  *
  * @since 6.11.3
  *
- * @phpstan-import-type ReasonRow from RecruitmentReasonRepository
+ * @phpstan-type ReasonRow \stdClass&object{id: numeric-string, slug: string, label: string, color: string, applies_to: string, created_at: string, updated_at: string}
  */
 class RecruitmentReasonReader {
 
 	use \FreeFormCertificate\Core\StaticRepositoryTrait;
+
+	/**
+	 * Default reason badge color, applied when a row's `color` is empty.
+	 */
+	public const DEFAULT_COLOR = '#e9ecef';
+
+	/**
+	 * Allowed `applies_to` values for a reason.
+	 */
+	public const APPLIES_TO_VALUES = array( 'denied', 'granted', 'appeal_denied', 'appeal_granted' );
 
 	/**
 	 * Cache group for this repository.
@@ -115,7 +123,7 @@ class RecruitmentReasonReader {
 
 	/**
 	 * Decode a stored applies_to CSV back into a list. An empty stored
-	 * value yields {@see RecruitmentReasonRepository::APPLIES_TO_VALUES}
+	 * value yields {@see RecruitmentReasonReader::APPLIES_TO_VALUES}
 	 * ("applies to all").
 	 *
 	 * @param string $stored CSV value from the row.
@@ -124,16 +132,16 @@ class RecruitmentReasonReader {
 	public static function decode_applies_to( string $stored ): array {
 		$stored = trim( $stored );
 		if ( '' === $stored ) {
-			return RecruitmentReasonRepository::APPLIES_TO_VALUES;
+			return self::APPLIES_TO_VALUES;
 		}
 		$parts = array_filter( array_map( 'trim', explode( ',', $stored ) ) );
 		$out   = array();
 		foreach ( $parts as $candidate ) {
-			if ( in_array( $candidate, RecruitmentReasonRepository::APPLIES_TO_VALUES, true ) && ! in_array( $candidate, $out, true ) ) {
+			if ( in_array( $candidate, self::APPLIES_TO_VALUES, true ) && ! in_array( $candidate, $out, true ) ) {
 				$out[] = $candidate;
 			}
 		}
-		return empty( $out ) ? RecruitmentReasonRepository::APPLIES_TO_VALUES : $out;
+		return empty( $out ) ? self::APPLIES_TO_VALUES : $out;
 	}
 
 	/**

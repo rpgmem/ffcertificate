@@ -5,8 +5,9 @@
  * Write-side of the audience-booking repository split (#563 backlog, A6). Holds
  * every INSERT / UPDATE / DELETE, the N:N junction mutators, and the
  * transactional `FOR UPDATE` conflict check that guards {@see self::create()}.
- * Reads live in {@see AudienceBookingReader}; {@see AudienceBookingRepository}
- * remains the public façade that delegates to both.
+ * Reads live in {@see AudienceBookingReader}. Callers depend on the reader
+ * (reads) and this writer (writes) directly; the delegating façade was retired
+ * in #563 B3-A.
  *
  * @package FreeFormCertificate\Audience
  * @since 6.11.3

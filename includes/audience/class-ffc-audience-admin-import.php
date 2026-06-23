@@ -44,7 +44,7 @@ class AudienceAdminImport {
 	 * @return void
 	 */
 	public function render_content(): void {
-		$audiences = AudienceRepository::get_hierarchical();
+		$audiences = AudienceReader::get_hierarchical();
 		?>
 		<?php settings_errors( 'ffc_audience' ); ?>
 
@@ -418,7 +418,7 @@ class AudienceAdminImport {
 		if ( $audience_id > 0 ) {
 			$audience_ids[] = $audience_id;
 		} else {
-			$all_audiences = AudienceRepository::get_all();
+			$all_audiences = AudienceReader::get_all();
 			foreach ( $all_audiences as $aud ) {
 				$audience_ids[] = (int) $aud->id;
 			}
@@ -426,7 +426,7 @@ class AudienceAdminImport {
 
 		// Build audience name map.
 		$audience_map  = array();
-		$all_audiences = AudienceRepository::get_all();
+		$all_audiences = AudienceReader::get_all();
 		foreach ( $all_audiences as $aud ) {
 			$audience_map[ (int) $aud->id ] = $aud->name;
 		}
@@ -445,7 +445,7 @@ class AudienceAdminImport {
 
 		$seen = array(); // Avoid duplicate rows for same user+audience.
 		foreach ( $audience_ids as $aid ) {
-			$member_ids    = AudienceRepository::get_members( $aid );
+			$member_ids    = AudienceReader::get_members( $aid );
 			$audience_name = isset( $audience_map[ $aid ] ) ? $audience_map[ $aid ] : '';
 
 			foreach ( $member_ids as $user_id ) {
@@ -482,7 +482,7 @@ class AudienceAdminImport {
 	 * @return void
 	 */
 	private function export_audiences_csv(): void {
-		$audiences = AudienceRepository::get_hierarchical();
+		$audiences = AudienceReader::get_hierarchical();
 
 		$filename = \FreeFormCertificate\Core\FilenameHelper::get_export_filename( 'audiences-export' );
 		header( 'Content-Type: text/csv; charset=utf-8' );

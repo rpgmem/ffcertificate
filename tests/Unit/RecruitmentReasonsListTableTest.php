@@ -40,12 +40,12 @@ class RecruitmentReasonsListTableTest extends TestCase {
         Functions\when( 'esc_attr' )->returnArg();
         Functions\when( 'esc_attr__' )->returnArg();
 
-        $this->reasonRepoMock = Mockery::mock( 'alias:FreeFormCertificate\Recruitment\RecruitmentReasonRepository' );
+        $this->reasonRepoMock = Mockery::mock( 'alias:FreeFormCertificate\Recruitment\RecruitmentReasonReader' );
         $this->reasonRepoMock->shouldReceive( 'count_references' )->andReturn( 0 )->byDefault();
         $this->reasonRepoMock->shouldReceive( 'decode_applies_to' )->andReturnUsing(
             fn( $stored ) => '' === $stored ? array( 'denied', 'granted', 'appeal_denied', 'appeal_granted' ) : explode( ',', $stored )
         );
-        if ( ! defined( 'FreeFormCertificate\Recruitment\RecruitmentReasonRepository::DEFAULT_COLOR' ) ) {
+        if ( ! defined( 'FreeFormCertificate\Recruitment\RecruitmentReasonReader::DEFAULT_COLOR' ) ) {
             // Add the constant via the alias mock's class definition.
             // (Mockery handles class-constant emulation on aliases.)
         }
