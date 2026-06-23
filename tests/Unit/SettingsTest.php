@@ -24,6 +24,7 @@ use FreeFormCertificate\Admin\Settings;
  * the PHPUnit process.
  *
  * @covers \FreeFormCertificate\Admin\Settings
+ * @covers \FreeFormCertificate\Admin\SettingsActionHandler
  * @runTestsInSeparateProcesses
  * @preserveGlobalState disabled
  */
@@ -43,6 +44,11 @@ class SettingsTest extends TestCase {
     protected function setUp(): void {
         parent::setUp();
         Monkey\setUp();
+
+        // pcov does not record lines for files first autoloaded mid-test-method,
+        // so the extracted action handler's coverage would attribute to nothing.
+        // Preload the class here so pcov attributes its lines to this test.
+        class_exists( '\\FreeFormCertificate\\Admin\\SettingsActionHandler' );
 
         // Mock $wpdb
         global $wpdb;
