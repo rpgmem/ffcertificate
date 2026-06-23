@@ -153,7 +153,7 @@ final class RecruitmentClassificationStateMachine {
 		// `not_shown → empty` would otherwise be allowed — gate it here.
 		if ( 'not_shown' === $current && 'empty' === $new_status ) {
 			$notice_id = (int) $classification->notice_id;
-			$notice    = RecruitmentNoticeRepository::get_by_id( $notice_id );
+			$notice    = RecruitmentNoticeReader::get_by_id( $notice_id );
 			if ( null !== $notice && '1' === $notice->was_reopened ) {
 				return self::failure( 'recruitment_reopen_freeze_active' );
 			}

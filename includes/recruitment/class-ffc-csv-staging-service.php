@@ -79,7 +79,7 @@ final class CsvStagingService {
 	 * @return array{ok: true, job_id: string, total: int}|array{ok: false, errors: list<string>}
 	 */
 	public static function ingest_job( int $notice_id, string $csv_content, string $list_type ) {
-		$notice = RecruitmentNoticeRepository::get_by_id( $notice_id );
+		$notice = RecruitmentNoticeReader::get_by_id( $notice_id );
 		if ( null === $notice ) {
 			return array(
 				'ok'     => false,

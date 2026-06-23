@@ -46,7 +46,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  *
  * @phpstan-import-type CandidateRow      from RecruitmentCandidateReader
  * @phpstan-import-type ClassificationRow from RecruitmentClassificationRepository
- * @phpstan-import-type NoticeRow         from RecruitmentNoticeRepository
+ * @phpstan-import-type NoticeRow         from RecruitmentNoticeReader
  * @phpstan-import-type CallRow           from RecruitmentCallReader
  */
 final class RecruitmentDashboardSection {
@@ -117,7 +117,7 @@ final class RecruitmentDashboardSection {
 			$classifications = RecruitmentClassificationRepository::get_for_candidate( $candidate_id );
 			foreach ( $classifications as $cls ) {
 				$notice_id = (int) $cls->notice_id;
-				$notice    = RecruitmentNoticeRepository::get_by_id( $notice_id );
+				$notice    = RecruitmentNoticeReader::get_by_id( $notice_id );
 				if ( null === $notice || 'draft' === $notice->status ) {
 					continue;
 				}

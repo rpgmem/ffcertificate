@@ -122,7 +122,7 @@ class RecruitmentEmailDispatcherSendTest extends TestCase {
 		$cand_repo = Mockery::mock( 'alias:FreeFormCertificate\Recruitment\RecruitmentCandidateReader' );
 		$cand_repo->shouldReceive( 'get_by_id' )->andReturn( $this->candidate_stub() );
 
-		$notice_repo = Mockery::mock( 'alias:FreeFormCertificate\Recruitment\RecruitmentNoticeRepository' );
+		$notice_repo = Mockery::mock( 'alias:FreeFormCertificate\Recruitment\RecruitmentNoticeReader' );
 		$notice_repo->shouldReceive( 'get_by_id' )->andReturn( $this->notice_stub() );
 
 		$adj_repo = Mockery::mock( 'alias:FreeFormCertificate\Recruitment\RecruitmentAdjutancyRepository' );

@@ -36,7 +36,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  *
  * @phpstan-import-type CandidateRow      from RecruitmentCandidateReader
  * @phpstan-import-type ClassificationRow from RecruitmentClassificationRepository
- * @phpstan-import-type NoticeRow         from RecruitmentNoticeRepository
+ * @phpstan-import-type NoticeRow         from RecruitmentNoticeReader
  */
 final class RecruitmentPublicShortcodeRenderer {
 
@@ -459,7 +459,7 @@ final class RecruitmentPublicShortcodeRenderer {
 		 *
 		 * @var array<string,bool> $default
 		 */
-		$default = (array) json_decode( RecruitmentNoticeRepository::DEFAULT_PUBLIC_COLUMNS_CONFIG, true );
+		$default = (array) json_decode( RecruitmentNoticeReader::DEFAULT_PUBLIC_COLUMNS_CONFIG, true );
 
 		$merged = array_merge( $default, $decoded );
 

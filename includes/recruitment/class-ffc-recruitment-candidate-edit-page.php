@@ -337,7 +337,7 @@ final class RecruitmentCandidateEditPage {
 			echo '</tr></thead><tbody>';
 
 			foreach ( $classifications as $c ) {
-				$notice_obj = RecruitmentNoticeRepository::get_by_id( (int) $c->notice_id );
+				$notice_obj = RecruitmentNoticeReader::get_by_id( (int) $c->notice_id );
 				$call_count = isset( $calls_by_class[ (int) $c->id ] ) ? count( $calls_by_class[ (int) $c->id ] ) : 0;
 
 				echo '<tr>';

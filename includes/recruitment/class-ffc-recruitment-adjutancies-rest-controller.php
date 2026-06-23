@@ -356,7 +356,7 @@ final class RecruitmentAdjutanciesRestController {
 		$notice_id    = (int) $request->get_param( 'id' );
 		$adjutancy_id = (int) $request->get_param( 'adjutancy_id' );
 
-		if ( null === RecruitmentNoticeRepository::get_by_id( $notice_id ) ) {
+		if ( null === RecruitmentNoticeReader::get_by_id( $notice_id ) ) {
 			return new \WP_Error( 'recruitment_notice_not_found', 'Notice not found.', array( 'status' => 404 ) );
 		}
 		if ( null === RecruitmentAdjutancyRepository::get_by_id( $adjutancy_id ) ) {

@@ -75,7 +75,7 @@ final class RecruitmentCsvImporter {
 	 * @return ImportResult
 	 */
 	public static function import_preview( int $notice_id, string $csv_content ): array {
-		$notice = RecruitmentNoticeRepository::get_by_id( $notice_id );
+		$notice = RecruitmentNoticeReader::get_by_id( $notice_id );
 		if ( null === $notice ) {
 			return self::failure( 'recruitment_notice_not_found' );
 		}
@@ -101,7 +101,7 @@ final class RecruitmentCsvImporter {
 	 * @return ImportResult
 	 */
 	public static function import_definitive( int $notice_id, string $csv_content ): array {
-		$notice = RecruitmentNoticeRepository::get_by_id( $notice_id );
+		$notice = RecruitmentNoticeReader::get_by_id( $notice_id );
 		if ( null === $notice ) {
 			return self::failure( 'recruitment_notice_not_found' );
 		}

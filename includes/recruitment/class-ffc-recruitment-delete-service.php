@@ -119,7 +119,7 @@ final class RecruitmentDeleteService {
 			return self::failure( 'recruitment_classification_not_empty_for_delete' );
 		}
 
-		$notice = RecruitmentNoticeRepository::get_by_id( (int) $classification->notice_id );
+		$notice = RecruitmentNoticeReader::get_by_id( (int) $classification->notice_id );
 		if ( null === $notice ) {
 			return self::failure( 'recruitment_notice_not_found' );
 		}

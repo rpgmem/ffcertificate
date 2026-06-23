@@ -370,7 +370,7 @@ final class RecruitmentCandidatesRestController {
 
 			foreach ( $classifications as $cls ) {
 				$notice_id = (int) $cls->notice_id;
-				$notice    = RecruitmentNoticeRepository::get_by_id( $notice_id );
+				$notice    = RecruitmentNoticeReader::get_by_id( $notice_id );
 				if ( null === $notice || 'draft' === $notice->status ) {
 					continue; // Draft notices are never exposed.
 				}

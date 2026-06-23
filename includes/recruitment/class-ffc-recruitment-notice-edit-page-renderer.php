@@ -23,7 +23,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 /**
  * Notice edit screen view-layer helpers.
  *
- * @phpstan-import-type NoticeRow         from RecruitmentNoticeRepository
+ * @phpstan-import-type NoticeRow         from RecruitmentNoticeReader
  * @phpstan-import-type ClassificationRow from RecruitmentClassificationRepository
  * @phpstan-import-type ReasonRow         from RecruitmentReasonRepository
  */
@@ -102,7 +102,7 @@ final class RecruitmentNoticeEditPageRenderer {
 		 *
 		 * @var array<string,bool> $defaults
 		 */
-		$defaults = (array) json_decode( RecruitmentNoticeRepository::DEFAULT_PUBLIC_COLUMNS_CONFIG, true );
+		$defaults = (array) json_decode( RecruitmentNoticeReader::DEFAULT_PUBLIC_COLUMNS_CONFIG, true );
 		$state    = array_merge( $defaults, $decoded );
 
 		$mandatory = array( 'rank', 'name' );

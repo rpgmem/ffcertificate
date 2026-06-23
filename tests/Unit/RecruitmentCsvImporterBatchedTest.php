@@ -82,7 +82,7 @@ class RecruitmentCsvImporterBatchedTest extends TestCase {
 	 * @return void
 	 */
 	private function wire_repos( ?object $notice, array $ids = array( 2 ) ): void {
-		$notice_repo = Mockery::mock( 'alias:FreeFormCertificate\Recruitment\RecruitmentNoticeRepository' );
+		$notice_repo = Mockery::mock( 'alias:FreeFormCertificate\Recruitment\RecruitmentNoticeReader' );
 		$notice_repo->shouldReceive( 'get_by_id' )->andReturn( $notice );
 
 		$junction = Mockery::mock( 'alias:FreeFormCertificate\Recruitment\RecruitmentNoticeAdjutancyRepository' );

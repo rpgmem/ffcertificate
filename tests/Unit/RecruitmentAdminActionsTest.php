@@ -70,7 +70,7 @@ class RecruitmentAdminActionsTest extends TestCase {
 
 	public function test_delete_notice_deletes_and_redirects_to_notices_tab(): void {
 		$_GET['notice_id'] = '42';
-		$repo              = Mockery::mock( 'alias:FreeFormCertificate\Recruitment\RecruitmentNoticeRepository' );
+		$repo              = Mockery::mock( 'alias:FreeFormCertificate\Recruitment\RecruitmentNoticeWriter' );
 		$repo->shouldReceive( 'delete' )->once()->with( 42 );
 
 		$url = $this->dispatchCapture( 'delete-notice' );
@@ -84,7 +84,7 @@ class RecruitmentAdminActionsTest extends TestCase {
 		// able to trigger a destructive dispatch action via a crafted URL.
 		Functions\when( 'current_user_can' )->justReturn( false );
 		$_GET['notice_id'] = '42';
-		$repo              = Mockery::mock( 'alias:FreeFormCertificate\Recruitment\RecruitmentNoticeRepository' );
+		$repo              = Mockery::mock( 'alias:FreeFormCertificate\Recruitment\RecruitmentNoticeWriter' );
 		$repo->shouldNotReceive( 'delete' );
 
 		$url = $this->dispatchCapture( 'delete-notice' );
@@ -94,7 +94,7 @@ class RecruitmentAdminActionsTest extends TestCase {
 
 	public function test_delete_notice_skips_delete_when_id_is_zero_but_still_redirects(): void {
 		$_GET['notice_id'] = '0';
-		$repo              = Mockery::mock( 'alias:FreeFormCertificate\Recruitment\RecruitmentNoticeRepository' );
+		$repo              = Mockery::mock( 'alias:FreeFormCertificate\Recruitment\RecruitmentNoticeWriter' );
 		$repo->shouldNotReceive( 'delete' );
 
 		$url = $this->dispatchCapture( 'delete-notice' );

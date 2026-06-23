@@ -52,7 +52,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  *
  * @phpstan-import-type CandidateRow      from RecruitmentCandidateReader
  * @phpstan-import-type ClassificationRow from RecruitmentClassificationRepository
- * @phpstan-import-type NoticeRow         from RecruitmentNoticeRepository
+ * @phpstan-import-type NoticeRow         from RecruitmentNoticeReader
  * @phpstan-import-type AdjutancyRow      from RecruitmentAdjutancyRepository
  * @phpstan-import-type CallRow           from RecruitmentCallReader
  */
@@ -85,7 +85,7 @@ final class RecruitmentEmailDispatcher {
 			return false;
 		}
 
-		$notice    = RecruitmentNoticeRepository::get_by_id( (int) $classification->notice_id );
+		$notice    = RecruitmentNoticeReader::get_by_id( (int) $classification->notice_id );
 		$adjutancy = RecruitmentAdjutancyRepository::get_by_id( (int) $classification->adjutancy_id );
 		if ( null === $notice || null === $adjutancy ) {
 			return false;

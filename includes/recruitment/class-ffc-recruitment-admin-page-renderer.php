@@ -107,7 +107,7 @@ final class RecruitmentAdminPageRenderer {
 		// the operator through the next steps. Keeps the standard list
 		// table + create form intact below; the card is just an
 		// orientation aid for fresh installs.
-		$total_notices = count( RecruitmentNoticeRepository::get_all() );
+		$total_notices = count( RecruitmentNoticeReader::get_all() );
 		if ( 0 === $total_notices ) {
 			self::render_notices_empty_state();
 		}
@@ -353,7 +353,7 @@ final class RecruitmentAdminPageRenderer {
 	 * @return void
 	 */
 	public static function render_candidates_csv_import_section(): void {
-		$all_notices = RecruitmentNoticeRepository::get_all();
+		$all_notices = RecruitmentNoticeReader::get_all();
 		$eligible    = array();
 		foreach ( $all_notices as $row ) {
 			$status = isset( $row->status ) ? (string) $row->status : '';

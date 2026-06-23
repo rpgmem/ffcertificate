@@ -43,7 +43,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 /**
  * Notice edit screen renderer + admin-post save handler.
  *
- * @phpstan-import-type NoticeRow         from RecruitmentNoticeRepository
+ * @phpstan-import-type NoticeRow         from RecruitmentNoticeReader
  * @phpstan-import-type ClassificationRow from RecruitmentClassificationRepository
  * @phpstan-import-type ReasonRow         from RecruitmentReasonRepository
  */
@@ -127,7 +127,7 @@ final class RecruitmentNoticeEditPage {
 
 		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- read-only render; mutating actions live on the dedicated handlers.
 		$notice_id = isset( $_GET['notice_id'] ) ? absint( wp_unslash( (string) $_GET['notice_id'] ) ) : 0;
-		$notice    = $notice_id > 0 ? RecruitmentNoticeRepository::get_by_id( $notice_id ) : null;
+		$notice    = $notice_id > 0 ? RecruitmentNoticeReader::get_by_id( $notice_id ) : null;
 		if ( null === $notice ) {
 			echo '<div class="notice notice-error"><p>' . esc_html__( 'Notice not found.', 'ffcertificate' ) . '</p></div>';
 			echo '<p><a href="' . esc_url( self::back_url() ) . '">&larr; ' . esc_html__( 'Back to Notices', 'ffcertificate' ) . '</a></p>';
@@ -190,7 +190,7 @@ final class RecruitmentNoticeEditPage {
 		$built['name'] = true;
 		$config        = wp_json_encode( $built );
 
-		RecruitmentNoticeRepository::update(
+		RecruitmentNoticeWriter::update(
 			$notice_id,
 			array(
 				'name'                  => $name,
