@@ -29,6 +29,8 @@ The coverage floors are ratcheted upward in the PR that delivers the gain — ne
 
 **Acceptable floor buffer:** when bumping, the floor may sit up to **5 percentage points** below the freshly measured coverage. A buffer of ≤5pp is acceptable for both JS (`JS_COVERAGE_FLOOR_LINES`) and PHP (`COVERAGE_FLOOR_LINES`) — it absorbs v8/clover run-to-run jitter so the gate doesn't flake on fractional swings, without forcing the floor to chase every decimal. So: still ratchet up when a PR delivers a real gain, but leave no more than ~5pp on the table, and never set the floor *above* the lowest run you've actually observed.
 
+**Module-boundary guard (#563 B3).** `tests/Unit/ModuleBoundaryTest.php` freezes the cross-module dependency graph of `includes/` (a "module" = the first namespace segment after `FreeFormCertificate\`; an edge = module A referencing `FreeFormCertificate\B\…`) against the committed baseline `tests/fixtures/module-boundary-baseline.php`. It runs in the normal PHPUnit gate. The graph is a **ratchet that can only shrink**: a *new* edge fails (new cross-module coupling — justify it or route through a facade); a *removed* edge also fails (coupling eliminated — lock the win in). After an intentional change, regenerate + review the diff: `FFC_UPDATE_BOUNDARY_BASELINE=1 vendor/bin/phpunit --filter ModuleBoundary`. Never regenerate just to make a red guard green without understanding the new edge.
+
 ## Test infrastructure
 
 - PHP: PHPUnit 9; tests under `tests/Unit` and `tests/Integration`.
