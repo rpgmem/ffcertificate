@@ -11,8 +11,11 @@
  * writer all bind the same global $wpdb, so transactions and locks remain
  * coherent.
  *
- * Tech-debt (#563 B3): migrate call sites to depend on SubmissionReader /
- * SubmissionWriter directly, then retire this delegating façade.
+ * Design note (#563 B3-A): unlike the static repository façades (retired in
+ * B3-A), this instance façade is kept by design — it is the transactional
+ * aggregate root (read → write → commit on the one shared $wpdb the façade,
+ * reader and writer all bind), so it must NOT be retired into separate
+ * reader/writer call sites.
  *
  * V3.3.0: Added strict types and type hints for better code safety
  * v3.2.0: Migrated to namespace (Phase 2)

@@ -12,8 +12,11 @@
  * façade, reader and writer all bind the same global $wpdb, so caching and
  * queries remain coherent.
  *
- * Tech-debt (#563 B3): migrate call sites to depend on UrlShortenerReader /
- * UrlShortenerWriter directly, then retire this delegating façade.
+ * Design note (#563 B3-A): unlike the static repository façades (retired in
+ * B3-A), this instance façade is kept by design — it is the transactional
+ * aggregate root (composing reader + writer on the one shared $wpdb, with the
+ * inherited generic CRUD), so it must NOT be retired into separate
+ * reader/writer call sites.
  *
  * @package FreeFormCertificate\UrlShortener
  * @since 5.1.0

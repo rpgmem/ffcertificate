@@ -12,9 +12,11 @@
  * use it directly are unaffected. The façade, reader and writer all bind the
  * same global $wpdb, so transactions and FOR UPDATE locks remain coherent.
  *
- * Tech-debt (#563 B3): migrate call sites to depend on AppointmentReader /
- * AppointmentWriter directly (read vs write at the call site), then retire this
- * delegating façade. Tracked under the modular-monolith roadmap.
+ * Design note (#563 B3-A): unlike the static repository façades (retired in
+ * B3-A), this instance façade is kept by design. It is the transactional
+ * aggregate root — `begin_transaction()` → `FOR UPDATE` read → write →
+ * `commit()` run on the one shared $wpdb the façade, reader and writer all
+ * bind — so it must NOT be retired into separate reader/writer call sites.
  *
  * @package FreeFormCertificate\Repositories
  * @since 4.1.0
