@@ -18,7 +18,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 - Internal refactor (#591) — split the remaining admin/handler god-classes behind same-signature delegators (`FormEditorSaveHandler`, `AudienceAdminAudience`, `PrivacyHandler`, `AdminAssetsManager`, and the critical-path `SubmissionHandler` → `SubmissionLifecycleService`); read/write-split the smaller repositories (recruitment notice/adjutancy/reason/call, url-shortener, reregistration-submission); extracted `SettingsActionHandler` from `Settings`; removed the lone dead `DateFormatter::flush_cache()` shim and dead back-compat entry points. The remaining migration-tail shims (`Encryption` plaintext fallback, `cpf_rf_encrypted`, ficha `generation_date`) stay — evidence-gated, not dead code. Behavior-preserving.
 - Internal architecture (#563 — module boundaries) — added a dependency-free module-boundary guard (`tests/Unit/ModuleBoundaryTest.php` + committed baseline, 130 edges) that fails CI on any new cross-module coupling and can only shrink — regenerate with `FFC_UPDATE_BOUNDARY_BASELINE=1 vendor/bin/phpunit --filter ModuleBoundary` (#593). Then retired the nine static repository façades, migrating every caller to the `*Reader` / `*Writer` classes directly (row-shape types + public constants rehomed onto the readers; `class_exists()` availability guards and `@phpstan-import-type` consumers repointed). The three **instance** façades (`AppointmentRepository`, `SubmissionRepository`, `UrlShortenerRepository`) are kept by design — they are the transactional aggregate root (`begin_transaction()` → `FOR UPDATE` read → write → `commit()` on one `$wpdb`), not dead delegators. Graph unchanged at 130 edges; full suite green (5513 tests); PHPStan L8 + WPCS clean. (#594)
 
-## [6.11.2] (2026-06-21)
+## [6.11.2] (2026-06-21) — `1b1b90d`
 
 ### Security
 
@@ -28,7 +28,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 
 - Vendored thumbmarkjs 1.9.0 → 1.9.1 (MIT, `libs/js/`). Patch release; the server algorithm, fingerprint schema, contract and LGPD posture are unchanged, and the telemetry beacon stays unconditionally disabled. (#571)
 
-## [6.11.1] (2026-06-17)
+## [6.11.1] (2026-06-17) — `97278ec`
 
 ### Added
 
@@ -187,7 +187,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 
 - 5 geofence/spinner messages were unreachable for translators — now flow through `__()` + `wp_localize_script` (English fallback kept).
 
-## [6.7.6] (2026-05-23)
+## [6.7.6] (2026-05-23) — `73c9c9c`
 
 ### Fixed
 
