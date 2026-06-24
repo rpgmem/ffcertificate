@@ -222,7 +222,7 @@ When the batch on develop is validated against the testes site and ready to ship
 1. Open a single PR `develop → main`.
 2. In that PR (committed onto `develop` immediately before opening):
    - Bump `FFC_VERSION` in the three sync sites (`ffcertificate.php` header, `FFC_VERSION` constant, `readme.txt` `Stable tag`). See "Versioning".
-   - Rename the `[Unreleased]` heading in `CHANGELOG.md` to `[X.Y.Z] (YYYY-MM-DD)` and add a fresh empty `[Unreleased]` heading above it.
+   - Rename the `[Unreleased]` heading in `CHANGELOG.md` to `[X.Y.Z] (YYYY-MM-DD)` and add a fresh empty `[Unreleased]` heading above it. **Then, once the release PR squash-merges into `main`, backfill the release commit reference onto that heading** by appending `` — `<short-sha>` `` (the 7-char short SHA of the squash commit on `main`), matching every other shipped version header. A missing suffix means the backfill was skipped (as for 6.11.1 / 6.11.2, fixed retroactively).
    - Run `npm run build:js` if any JS/CSS in `assets/` changed across the batch and the bundles weren't already rebuilt mid-flight (the "Verify minified assets are up to date" gate would catch this anyway).
 3. Auto-merge SQUASH into `main`. The squash commit subject should follow main's convention: `X.Y.Z — <short summary of the batch>`.
 4. After merge, rebase `develop` on `main` (see Sync below) so the next batch starts from the bumped baseline.
