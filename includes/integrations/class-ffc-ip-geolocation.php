@@ -61,8 +61,8 @@ class IpGeolocation {
 				self::debug_log(
 					'IP location from cache',
 					array(
-						'ip'       => $ip,
-						'location' => $cached,
+						'ip_hash'  => self::hash_ip( $ip ),
+						'location' => self::redact_location_ip( $cached ),
 					)
 				);
 				return $cached;
@@ -109,7 +109,7 @@ class IpGeolocation {
 			'Fetching from service',
 			array(
 				'service' => $service,
-				'ip_hash' => substr( hash( 'sha256', $ip ), 0, 16 ),
+				'ip_hash' => self::hash_ip( $ip ),
 			)
 		);
 
@@ -173,7 +173,7 @@ class IpGeolocation {
 			'timestamp'    => time(),
 		);
 
-		self::debug_log( 'ip-api success', $location );
+		self::debug_log( 'ip-api success', self::redact_location_ip( $location ) );
 		return $location;
 	}
 
@@ -235,7 +235,7 @@ class IpGeolocation {
 			'timestamp'    => time(),
 		);
 
-		self::debug_log( 'ipinfo success', $location );
+		self::debug_log( 'ipinfo success', self::redact_location_ip( $location ) );
 		return $location;
 	}
 
@@ -347,6 +347,31 @@ class IpGeolocation {
 		} else {
 			return in_array( true, $matches, true ); // At least one must match.
 		}
+	}
+
+	/**
+	 * Truncated SHA-256 of an IP, for privacy-preserving debug logs (LGPD).
+	 *
+	 * @param string $ip Raw IP address.
+	 * @return string 16-hex-char digest.
+	 */
+	private static function hash_ip( string $ip ): string {
+		return substr( hash( 'sha256', $ip ), 0, 16 );
+	}
+
+	/**
+	 * Return a copy of a location array with the raw `ip` field replaced by its
+	 * truncated hash, for safe debug logging. The returned/cached location
+	 * structure is unchanged — only the log copy is redacted.
+	 *
+	 * @param mixed $location Location array (or anything; passed through if not an array).
+	 * @return mixed
+	 */
+	private static function redact_location_ip( $location ) {
+		if ( is_array( $location ) && isset( $location['ip'] ) && is_string( $location['ip'] ) && '' !== $location['ip'] ) {
+			$location['ip'] = self::hash_ip( $location['ip'] );
+		}
+		return $location;
 	}
 
 	/**
