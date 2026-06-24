@@ -15,14 +15,9 @@ namespace FreeFormCertificate;
 
 use FreeFormCertificate\Submissions\SubmissionHandler;
 use FreeFormCertificate\Integrations\EmailHandler;
-use FreeFormCertificate\Admin\CsvExporter;
+use FreeFormCertificate\Admin\AdminLoader;
 use FreeFormCertificate\Admin\CPT;
-use FreeFormCertificate\Admin\Admin;
-use FreeFormCertificate\Admin\AdminUserColumns;
-use FreeFormCertificate\Admin\AdminUserCapabilities;
-use FreeFormCertificate\Admin\FormListColumns;
 use FreeFormCertificate\Frontend\Frontend;
-use FreeFormCertificate\Admin\AdminAjax;
 use FreeFormCertificate\API\RestController;
 use FreeFormCertificate\Shortcodes\DashboardShortcode;
 use FreeFormCertificate\UserDashboard\AccessControl;
@@ -39,7 +34,6 @@ use FreeFormCertificate\SelfScheduling\AppointmentCsvExporter;
 use FreeFormCertificate\SelfScheduling\SelfSchedulingShortcode;
 use FreeFormCertificate\Audience\AudienceLoader;
 use FreeFormCertificate\Privacy\PrivacyHandler;
-use FreeFormCertificate\Admin\AdminUserCustomFields;
 use FreeFormCertificate\Core\ActivityLogSubscriber;
 use FreeFormCertificate\Reregistration\ReregistrationAdmin;
 use FreeFormCertificate\Reregistration\ReregistrationFrontend;
@@ -70,11 +64,11 @@ class Loader {
 	 */
 	protected $email_handler;
 	/**
-	 * Csv exporter.
+	 * Admin module loader.
 	 *
-	 * @var \FreeFormCertificate\Admin\CsvExporter|null
+	 * @var \FreeFormCertificate\Admin\AdminLoader|null
 	 */
-	protected $csv_exporter;
+	protected $admin_loader;
 	/**
 	 * Cpt.
 	 *
@@ -82,23 +76,11 @@ class Loader {
 	 */
 	protected $cpt;
 	/**
-	 * Admin.
-	 *
-	 * @var \FreeFormCertificate\Admin\Admin|null
-	 */
-	protected $admin;
-	/**
 	 * Frontend.
 	 *
 	 * @var \FreeFormCertificate\Frontend\Frontend
 	 */
 	protected $frontend;
-	/**
-	 * Admin ajax.
-	 *
-	 * @var \FreeFormCertificate\Admin\AdminAjax|null
-	 */
-	protected $admin_ajax;
 	/**
 	 * Self scheduling cpt.
 	 *
@@ -246,25 +228,11 @@ class Loader {
 
 		// Admin-only classes skipped on frontend.
 		if ( is_admin() ) {
-			$this->csv_exporter = new CsvExporter();
-			$this->admin        = new Admin( $this->submission_handler, $this->csv_exporter );
-			$this->admin_ajax   = new AdminAjax();
-			AdminUserColumns::init();
-			AdminUserCapabilities::init();
-			\FreeFormCertificate\Admin\RoleCapabilityEditor::init();
-			\FreeFormCertificate\Admin\AdminMenuVisibility::init();
-			\FreeFormCertificate\Admin\DeviceThresholdUpgradeNotice::init();
-			\FreeFormCertificate\Admin\SettingsAjaxEndpoint::init();
-			\FreeFormCertificate\Admin\FormMetaAjaxEndpoint::init();
-			\FreeFormCertificate\Admin\LocationsAjaxEndpoint::init();
-			\FreeFormCertificate\Admin\CacheActionsAjaxEndpoint::init();
-			\FreeFormCertificate\Admin\FormFeaturesAjaxEndpoint::init();
-			\FreeFormCertificate\Admin\MigrationActionsAjaxEndpoint::init();
-			\FreeFormCertificate\Admin\ActivityLogAjaxEndpoint::init();
-			\FreeFormCertificate\Admin\SubmissionsBulkActionsAjaxEndpoint::init();
-			\FreeFormCertificate\Admin\ExpiredTicketsCleanup::init();
-			FormListColumns::init();
-			AdminUserCustomFields::init();
+			// Admin module — single bootstrap entry point (#563 B3): wires
+			// every admin-only Admin\… class behind one symbol instead of
+			// newing-up ~20 classes here. Mirrors AudienceLoader/RecruitmentLoader.
+			$this->admin_loader = new AdminLoader( $this->submission_handler );
+			$this->admin_loader->init();
 			$reregistration_admin = new ReregistrationAdmin();
 			$reregistration_admin->init();
 			$this->self_scheduling_admin        = new SelfSchedulingAdmin();
