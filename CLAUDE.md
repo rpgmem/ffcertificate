@@ -17,6 +17,8 @@ After `mcp__github__create_pull_request`:
 
 Don't poll CI manually after step 2 unless the user asks. The webhook subscription delivers **failures + comments + the final merge event**; green completion is silent by design.
 
+**Batch related work; gate the draft→ready flip.** Group trivially-related changes — especially docs-only (CHANGELOG / CLAUDE.md / comments) — into one PR; they gain nothing from the per-PR testes deploy and only multiply CI runs and rebase churn. Use **draft** to accumulate commits and keep the window short: open the PR late (work essentially done + locally green), rebase if `develop` moves under it, and treat a second forced rebase as the signal to finish or split. **Before flipping draft→ready + auto-merge:** if the PR completes a pre-agreed unit (a planned sprint/roadmap item with obvious done-criteria), go straight to ready + auto-merge; if the scope is ad-hoc or emerged mid-session — completeness not obvious from a plan — **confirm with the user first**, so follow-ups stay batched in the same PR instead of spawning a trickle of tiny PRs. No calendar deadline on drafts — the signal is drift (develop moving under the branch), not elapsed time.
+
 ## CI gates (all gating, enforced on `main` and `develop`)
 
 - PHP: PHPStan (level 8) · WPCS · PHPUnit (8.3/8.4) · Coverage ≥ floor (clover, env `COVERAGE_FLOOR_LINES` in `.github/workflows/ci.yml`).
