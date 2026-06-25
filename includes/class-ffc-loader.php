@@ -189,6 +189,12 @@ class Loader {
 		DashboardShortcode::init();
 		// Reregistration module — single bootstrap entry point (#563 B3).
 		( new ReregistrationLoader() )->init();
+		// UserDashboard has no module loader by design (#563 B3): these two
+		// init() calls are its only bootstrap wiring. Its larger
+		// Root→UserDashboard surface is capability/role lifecycle
+		// (register_ffc_roles_safe() / ensure_*_caps() below) — orchestrator
+		// responsibility, not module bootstrap, so a loader would narrow
+		// nothing. See CLAUDE.md "Module bootstrap (per-module loaders)".
 		AccessControl::init();
 		UserCleanup::init();
 		PrivacyHandler::init();
