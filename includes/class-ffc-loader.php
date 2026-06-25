@@ -35,8 +35,7 @@ use FreeFormCertificate\SelfScheduling\SelfSchedulingShortcode;
 use FreeFormCertificate\Audience\AudienceLoader;
 use FreeFormCertificate\Privacy\PrivacyHandler;
 use FreeFormCertificate\Core\ActivityLogSubscriber;
-use FreeFormCertificate\Reregistration\ReregistrationAdmin;
-use FreeFormCertificate\Reregistration\ReregistrationFrontend;
+use FreeFormCertificate\Reregistration\ReregistrationLoader;
 use FreeFormCertificate\Reregistration\ReregistrationRepository;
 use FreeFormCertificate\Reregistration\ReregistrationEmailHandler;
 use FreeFormCertificate\UrlShortener\UrlShortenerActivator;
@@ -233,8 +232,6 @@ class Loader {
 			// newing-up ~20 classes here. Mirrors AudienceLoader/RecruitmentLoader.
 			$this->admin_loader = new AdminLoader( $this->submission_handler );
 			$this->admin_loader->init();
-			$reregistration_admin = new ReregistrationAdmin();
-			$reregistration_admin->init();
 			$this->self_scheduling_admin        = new SelfSchedulingAdmin();
 			$this->self_scheduling_editor       = new SelfSchedulingEditor();
 			$this->self_scheduling_csv_exporter = new AppointmentCsvExporter();
@@ -244,10 +241,8 @@ class Loader {
 		$this->frontend = new Frontend( $this->submission_handler );
 
 		DashboardShortcode::init();
-		ReregistrationFrontend::init();
-		if ( class_exists( '\FreeFormCertificate\Reregistration\ReregistrationStandardFieldsSeeder' ) ) {
-			\FreeFormCertificate\Reregistration\ReregistrationStandardFieldsSeeder::register();
-		}
+		// Reregistration module — single bootstrap entry point (#563 B3).
+		( new ReregistrationLoader() )->init();
 		AccessControl::init();
 		UserCleanup::init();
 		PrivacyHandler::init();
