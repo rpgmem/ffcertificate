@@ -76,7 +76,12 @@ jobs:
       # traps gated by :visible, env/feature guards, layout math needing real
       # clientWidth, fake-timer-vs-promise cleanup). Bumping 85 → 96 — a
       # ~3.4pp buffer under the measured number, within the ≤5pp policy.
-      JS_COVERAGE_FLOOR_LINES: '96'
+      #
+      # 6.12.0 re-measure: 99.41% lines (6911/6952). Coverage held at the
+      # ~99.4% high-water across the develop batch, so lock in part of the
+      # standing gain: 96 → 97, leaving a ~2.4pp buffer (covers the ~1pp v8
+      # async jitter noted above; within the ≤5pp policy).
+      JS_COVERAGE_FLOOR_LINES: '97'
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-node@v6
