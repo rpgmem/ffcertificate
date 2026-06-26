@@ -22,21 +22,11 @@ use FreeFormCertificate\API\RestController;
 use FreeFormCertificate\Shortcodes\DashboardShortcode;
 use FreeFormCertificate\UserDashboard\AccessControl;
 use FreeFormCertificate\UserDashboard\UserCleanup;
-use FreeFormCertificate\SelfScheduling\SelfSchedulingCPT;
-use FreeFormCertificate\SelfScheduling\SelfSchedulingAdmin;
-use FreeFormCertificate\SelfScheduling\SelfSchedulingEditor;
-use FreeFormCertificate\SelfScheduling\AppointmentHandler;
-use FreeFormCertificate\SelfScheduling\AppointmentAjaxHandler;
-use FreeFormCertificate\SelfScheduling\AppointmentEmailHandler;
-use FreeFormCertificate\SelfScheduling\AppointmentReceiptHandler;
-use FreeFormCertificate\SelfScheduling\AppointmentCancellationHandler;
-use FreeFormCertificate\SelfScheduling\AppointmentCsvExporter;
-use FreeFormCertificate\SelfScheduling\SelfSchedulingShortcode;
+use FreeFormCertificate\SelfScheduling\SelfSchedulingLoader;
 use FreeFormCertificate\Audience\AudienceLoader;
 use FreeFormCertificate\Privacy\PrivacyHandler;
 use FreeFormCertificate\Core\ActivityLogSubscriber;
-use FreeFormCertificate\Reregistration\ReregistrationAdmin;
-use FreeFormCertificate\Reregistration\ReregistrationFrontend;
+use FreeFormCertificate\Reregistration\ReregistrationLoader;
 use FreeFormCertificate\Reregistration\ReregistrationRepository;
 use FreeFormCertificate\Reregistration\ReregistrationEmailHandler;
 use FreeFormCertificate\UrlShortener\UrlShortenerActivator;
@@ -82,53 +72,11 @@ class Loader {
 	 */
 	protected $frontend;
 	/**
-	 * Self scheduling cpt.
+	 * Self-Scheduling module loader.
 	 *
-	 * @var \FreeFormCertificate\SelfScheduling\SelfSchedulingCPT
+	 * @var \FreeFormCertificate\SelfScheduling\SelfSchedulingLoader|null
 	 */
-	protected $self_scheduling_cpt;
-	/**
-	 * Self scheduling admin.
-	 *
-	 * @var \FreeFormCertificate\SelfScheduling\SelfSchedulingAdmin|null
-	 */
-	protected $self_scheduling_admin;
-	/**
-	 * Self scheduling editor.
-	 *
-	 * @var \FreeFormCertificate\SelfScheduling\SelfSchedulingEditor|null
-	 */
-	protected $self_scheduling_editor;
-	/**
-	 * Self scheduling appointment handler.
-	 *
-	 * @var \FreeFormCertificate\SelfScheduling\AppointmentHandler
-	 */
-	protected $self_scheduling_appointment_handler;
-	/**
-	 * Self scheduling email handler.
-	 *
-	 * @var \FreeFormCertificate\SelfScheduling\AppointmentEmailHandler
-	 */
-	protected $self_scheduling_email_handler;
-	/**
-	 * Self scheduling receipt handler.
-	 *
-	 * @var \FreeFormCertificate\SelfScheduling\AppointmentReceiptHandler
-	 */
-	protected $self_scheduling_receipt_handler;
-	/**
-	 * Self scheduling csv exporter.
-	 *
-	 * @var \FreeFormCertificate\SelfScheduling\AppointmentCsvExporter|null
-	 */
-	protected $self_scheduling_csv_exporter;
-	/**
-	 * Self scheduling shortcode.
-	 *
-	 * @var \FreeFormCertificate\SelfScheduling\SelfSchedulingShortcode
-	 */
-	protected $self_scheduling_shortcode;
+	protected $self_scheduling_loader;
 	/**
 	 * Audience loader.
 	 *
@@ -233,34 +181,27 @@ class Loader {
 			// newing-up ~20 classes here. Mirrors AudienceLoader/RecruitmentLoader.
 			$this->admin_loader = new AdminLoader( $this->submission_handler );
 			$this->admin_loader->init();
-			$reregistration_admin = new ReregistrationAdmin();
-			$reregistration_admin->init();
-			$this->self_scheduling_admin        = new SelfSchedulingAdmin();
-			$this->self_scheduling_editor       = new SelfSchedulingEditor();
-			$this->self_scheduling_csv_exporter = new AppointmentCsvExporter();
 		}
 
 		// Frontend + AJAX classes.
 		$this->frontend = new Frontend( $this->submission_handler );
 
 		DashboardShortcode::init();
-		ReregistrationFrontend::init();
-		if ( class_exists( '\FreeFormCertificate\Reregistration\ReregistrationStandardFieldsSeeder' ) ) {
-			\FreeFormCertificate\Reregistration\ReregistrationStandardFieldsSeeder::register();
-		}
+		// Reregistration module — single bootstrap entry point (#563 B3).
+		( new ReregistrationLoader() )->init();
+		// UserDashboard has no module loader by design (#563 B3): these two
+		// init() calls are its only bootstrap wiring. Its larger
+		// Root→UserDashboard surface is capability/role lifecycle
+		// (register_ffc_roles_safe() / ensure_*_caps() below) — orchestrator
+		// responsibility, not module bootstrap, so a loader would narrow
+		// nothing. See CLAUDE.md "Module bootstrap (per-module loaders)".
 		AccessControl::init();
 		UserCleanup::init();
 		PrivacyHandler::init();
 
-		$this->self_scheduling_cpt                 = new SelfSchedulingCPT();
-		$this->self_scheduling_appointment_handler = new AppointmentHandler();
-		new AppointmentAjaxHandler( $this->self_scheduling_appointment_handler );
-		$this->self_scheduling_email_handler   = new AppointmentEmailHandler();
-		$this->self_scheduling_receipt_handler = new AppointmentReceiptHandler();
-		// #Item9 — public token-based cancellation page reached from the
-		// appointment e-mails; delegates the actual cancel to the handler.
-		new AppointmentCancellationHandler( $this->self_scheduling_appointment_handler );
-		$this->self_scheduling_shortcode = new SelfSchedulingShortcode();
+		// Self-Scheduling module — single bootstrap entry point (#563 B3).
+		$this->self_scheduling_loader = new SelfSchedulingLoader();
+		$this->self_scheduling_loader->init();
 
 		$this->audience_loader = AudienceLoader::get_instance();
 		$this->audience_loader->init();

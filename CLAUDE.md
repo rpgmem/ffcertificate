@@ -56,6 +56,16 @@ Data-access classes are split read-side vs write-side. Two shapes — pick by wh
 
 When splitting or adding a repo, default to static; reach for the instance-façade only when callers need a read-modify-write transaction. **Test note:** a caller's alias mock that stubs both reads and writes must become **two** alias mocks — one on the `*Reader`, one on the `*Writer` — or the write call hits the real (un-mocked) class.
 
+## Module bootstrap (per-module loaders)
+
+Each feature module exposes a single bootstrap entry point — a `*Loader` class whose `init()` wires the module's runtime classes — so the orchestrator (`Loader::init_plugin()`) touches **one symbol per module** instead of newing-up its internals inline. This keeps `Loader` a thin composition root and narrows the `Root → <module>` dependency surface (#563 B3 coupling reduction). Current loaders: `AdminLoader`, `AudienceLoader`, `RecruitmentLoader`, `UrlShortenerLoader`, `ReregistrationLoader`, `SelfSchedulingLoader`.
+
+Pattern: `init()` runs the module's wiring in its original order, gating admin-only pieces behind `is_admin()`; held-alive instances are kept as `protected` properties (so PHPStan doesn't flag them write-only); fire-and-forget `::init()` / one-shot `new` calls need no property. Pin the wiring with a `*LoaderTest` (overload/alias-mock the wired classes; assert each is constructed / `::init()`-ed) carrying `@covers` + a `class_exists()` pcov-preload in `setUp()`.
+
+**Only extract genuine module bootstrap.** A loader is worth it when the `Root → module` edge is *bootstrap wiring* (instantiating the module's runtime classes). It is NOT worth it when the edge is *orchestrator-level lifecycle* — role/capability registration & migration (`RoleRegistrar` / `CapabilityManager` / `CapabilityMigrator`), cron-event registration, or activation/upgrade `maybe_migrate()` — which legitimately belongs to the orchestrator. Extracting those into a "loader" would be indirection that narrows nothing (the bad-facade trap; see "Repository pattern" for the same principle).
+
+**Documented exception — UserDashboard has no loader (deliberate, B3 phase 2).** Its only bootstrap wiring is `AccessControl::init()` + `UserCleanup::init()` (2 calls, left inline in `Loader`). The bulk of its `Root → UserDashboard` surface is capability/role lifecycle (`RoleRegistrar` / `CapabilityManager` / `CapabilityMigrator`) invoked from `Loader::register_ffc_roles_safe()` / `ensure_*_caps()` — orchestrator responsibility, not module bootstrap. A `UserDashboardLoader` would move 2 lines without shrinking the edge, so it was intentionally skipped.
+
 ## Date / time storage convention
 
 Two categories. Pick the right one when adding a new column or touching an existing one — see #249 for the migration roadmap that retires the mixed pre-#244 patterns.
