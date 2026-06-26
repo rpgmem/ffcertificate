@@ -19,6 +19,7 @@ declare(strict_types=1);
 namespace FreeFormCertificate\Frontend;
 
 use FreeFormCertificate\Core\Utils;
+use FreeFormCertificate\Core\RequestInput;
 
 use FreeFormCertificate\Submissions\SubmissionHandler;
 use FreeFormCertificate\Repositories\SubmissionRepository;
@@ -31,7 +32,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  * Handler for verification operations.
  *
  * @phpstan-import-type ReregistrationRow from \FreeFormCertificate\Reregistration\ReregistrationRepository
- * @phpstan-import-type ReregistrationSubmissionRow from \FreeFormCertificate\Reregistration\ReregistrationSubmissionRepository
+ * @phpstan-import-type ReregistrationSubmissionRow from \FreeFormCertificate\Reregistration\ReregistrationSubmissionReader
  */
 class VerificationHandler {
 
@@ -323,7 +324,7 @@ class VerificationHandler {
 	 * @return array<string, mixed> Result array with 'found', 'submission', 'data', 'type'.
 	 */
 	private function search_reregistration_by_code( string $code ): array {
-		if ( ! class_exists( '\\FreeFormCertificate\\Reregistration\\ReregistrationSubmissionRepository' ) ) {
+		if ( ! class_exists( '\\FreeFormCertificate\\Reregistration\\ReregistrationSubmissionReader' ) ) {
 			return array(
 				'found'      => false,
 				'submission' => null,
@@ -331,7 +332,7 @@ class VerificationHandler {
 			);
 		}
 
-		$submission = \FreeFormCertificate\Reregistration\ReregistrationSubmissionRepository::get_by_auth_code( $code );
+		$submission = \FreeFormCertificate\Reregistration\ReregistrationSubmissionReader::get_by_auth_code( $code );
 		if ( ! $submission ) {
 			return array(
 				'found'      => false,
@@ -345,7 +346,7 @@ class VerificationHandler {
 
 		$fields = $this->decode_submission_fields( $submission, $rereg );
 
-		$status_labels = \FreeFormCertificate\Reregistration\ReregistrationSubmissionRepository::get_status_labels();
+		$status_labels = \FreeFormCertificate\Reregistration\ReregistrationSubmissionReader::get_status_labels();
 
 		return array(
 			'found'          => true,
@@ -379,7 +380,7 @@ class VerificationHandler {
 	 * @return array<string, mixed> Result array with 'found', 'submission', 'data', 'type'.
 	 */
 	private function search_reregistration_by_magic_token( string $token ): array {
-		if ( ! class_exists( '\\FreeFormCertificate\\Reregistration\\ReregistrationSubmissionRepository' ) ) {
+		if ( ! class_exists( '\\FreeFormCertificate\\Reregistration\\ReregistrationSubmissionReader' ) ) {
 			return array(
 				'found'      => false,
 				'submission' => null,
@@ -387,7 +388,7 @@ class VerificationHandler {
 			);
 		}
 
-		$submission = \FreeFormCertificate\Reregistration\ReregistrationSubmissionRepository::get_by_magic_token( $token );
+		$submission = \FreeFormCertificate\Reregistration\ReregistrationSubmissionReader::get_by_magic_token( $token );
 		if ( ! $submission ) {
 			return array(
 				'found'      => false,
@@ -402,7 +403,7 @@ class VerificationHandler {
 
 		$fields = $this->decode_submission_fields( $submission, $rereg );
 
-		$status_labels = \FreeFormCertificate\Reregistration\ReregistrationSubmissionRepository::get_status_labels();
+		$status_labels = \FreeFormCertificate\Reregistration\ReregistrationSubmissionReader::get_status_labels();
 
 		return array(
 			'found'          => true,
@@ -444,7 +445,7 @@ class VerificationHandler {
 		$sub_data = $submission->data ? json_decode( $submission->data, true ) : array();
 		$values   = is_array( $sub_data['fields'] ?? null ) ? $sub_data['fields'] : array();
 
-		if ( ! $rereg || ! class_exists( '\\FreeFormCertificate\\Reregistration\\CustomFieldRepository' ) ) {
+		if ( ! $rereg || ! class_exists( '\\FreeFormCertificate\\Reregistration\\CustomFieldReader' ) ) {
 			return $values;
 		}
 
@@ -457,7 +458,7 @@ class VerificationHandler {
 		$audience_ids = \FreeFormCertificate\Reregistration\ReregistrationRepository::get_audience_ids( (int) $rereg->id );
 		$seen         = array();
 		foreach ( $audience_ids as $aud_id ) {
-			$fields = \FreeFormCertificate\Reregistration\CustomFieldRepository::get_by_audience_with_parents( (int) $aud_id, true );
+			$fields = \FreeFormCertificate\Reregistration\CustomFieldReader::get_by_audience_with_parents( (int) $aud_id, true );
 			foreach ( $fields as $field ) {
 				if ( isset( $seen[ (int) $field->id ] ) ) {
 					continue;
@@ -503,7 +504,7 @@ class VerificationHandler {
 
 		// Rate limiting check — must run BEFORE format validation to prevent.
 		// attackers from probing token formats without being throttled.
-		$user_ip    = \FreeFormCertificate\Core\Utils::get_user_ip();
+		$user_ip    = \FreeFormCertificate\Core\RequestInput::get_user_ip();
 		$rate_check = \FreeFormCertificate\Security\RateLimiter::check_verification( $user_ip );
 		if ( ! $rate_check['allowed'] ) {
 			\FreeFormCertificate\Core\Debug::log_frontend( 'Magic token rate limited' );
@@ -566,7 +567,7 @@ class VerificationHandler {
 				array(
 					'method' => 'magic_link',
 					'token'  => substr( $token, 0, 8 ) . '...',
-					'ip'     => \FreeFormCertificate\Core\Utils::get_user_ip(),
+					'ip'     => \FreeFormCertificate\Core\RequestInput::get_user_ip(),
 				)
 			);
 		}
@@ -635,7 +636,7 @@ class VerificationHandler {
 					array(
 						'method'    => 'manual_verification',
 						'auth_code' => substr( $auth_code, 0, 4 ) . '...',
-						'ip'        => \FreeFormCertificate\Core\Utils::get_user_ip(),
+						'ip'        => \FreeFormCertificate\Core\RequestInput::get_user_ip(),
 					)
 				);
 			}
@@ -677,8 +678,8 @@ class VerificationHandler {
 		// No captcha - token proves legitimacy.
 
         // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Magic token authentication; no nonce needed for this public endpoint.
-		$token   = Utils::get_post_string( 'token' );
-		$user_ip = \FreeFormCertificate\Core\Utils::get_user_ip();
+		$token   = RequestInput::get_post_string( 'token' );
+		$user_ip = \FreeFormCertificate\Core\RequestInput::get_user_ip();
 
 		$rate_check = \FreeFormCertificate\Security\RateLimiter::check_verification( $user_ip );
 		if ( ! $rate_check['allowed'] ) {
@@ -767,7 +768,7 @@ class VerificationHandler {
 		// nonce is keyed to the current session cookie, so FFC.request
 		// can transparently retry once via its existing refresh_nonce
 		// branch.
-		if ( ! wp_verify_nonce( Utils::get_post_string( 'nonce' ), 'ffc_frontend_nonce' ) ) {
+		if ( ! wp_verify_nonce( RequestInput::get_post_string( 'nonce' ), 'ffc_frontend_nonce' ) ) {
 			wp_send_json_error(
 				array(
 					'message'       => __( 'Security check failed. Please refresh the page.', 'ffcertificate' ),
@@ -793,7 +794,7 @@ class VerificationHandler {
 			);
 		}
 
-		$user_ip    = \FreeFormCertificate\Core\Utils::get_user_ip();
+		$user_ip    = \FreeFormCertificate\Core\RequestInput::get_user_ip();
 		$rate_check = \FreeFormCertificate\Security\RateLimiter::check_verification( $user_ip );
 		if ( ! $rate_check['allowed'] ) {
 			wp_send_json_error(
@@ -803,7 +804,7 @@ class VerificationHandler {
 			);
 		}
 
-		$auth_code = Utils::get_post_string( 'ffc_auth_code' );
+		$auth_code = RequestInput::get_post_string( 'ffc_auth_code' );
         // phpcs:enable WordPress.Security.NonceVerification.Missing
 		$result = $this->search_certificate( $auth_code );
 

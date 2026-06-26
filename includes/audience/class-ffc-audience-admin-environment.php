@@ -42,7 +42,7 @@ class AudienceAdminEnvironment {
 	 * @return void
 	 */
 	public function render_page(): void {
-		$action = \FreeFormCertificate\Core\Utils::get_get_string( 'action', 'list' );
+		$action = \FreeFormCertificate\Core\RequestInput::get_get_string( 'action', 'list' );
         // phpcs:ignore WordPress.Security.NonceVerification.Recommended
 		$id = isset( $_GET['id'] ) ? absint( $_GET['id'] ) : 0;
 
@@ -106,7 +106,7 @@ class AudienceAdminEnvironment {
 
 		?>
 		<h1 class="wp-heading-inline"><?php echo esc_html( $env_label ); ?></h1>
-		<?php if ( \FreeFormCertificate\Core\Utils::current_user_can_admin_or( 'ffc_manage_audiences' ) ) : ?>
+		<?php if ( \FreeFormCertificate\Core\Capabilities::current_user_can_admin_or( 'ffc_manage_audiences' ) ) : ?>
 		<a href="<?php echo esc_url( $add_url ); ?>" class="page-title-action"><?php esc_html_e( 'Add New', 'ffcertificate' ); ?></a>
 		<?php endif; ?>
 		<hr class="wp-header-end">
@@ -406,14 +406,14 @@ class AudienceAdminEnvironment {
 	 * @return void
 	 */
 	public function handle_actions(): void {
-		if ( ! \FreeFormCertificate\Core\Utils::current_user_can_admin_or( 'ffc_manage_audiences' ) ) {
+		if ( ! \FreeFormCertificate\Core\Capabilities::current_user_can_admin_or( 'ffc_manage_audiences' ) ) {
 			return;
 		}
 
 		// Show feedback for redirect-based actions.
         // phpcs:ignore WordPress.Security.NonceVerification.Recommended
 		if ( isset( $_GET['message'] ) && isset( $_GET['page'] ) && $_GET['page'] === $this->menu_slug . '-environments' ) {
-			$msg      = \FreeFormCertificate\Core\Utils::get_get_string( 'message' );
+			$msg      = \FreeFormCertificate\Core\RequestInput::get_get_string( 'message' );
 			$label    = AudienceScheduleRepository::get_environment_label( 0, true );
 			$messages = array(
 				/* translators: %s: environment label (singular) */
@@ -430,7 +430,7 @@ class AudienceAdminEnvironment {
 
 		// Handle save.
 		if ( isset( $_POST['ffc_action'] ) && 'save_environment' === $_POST['ffc_action'] ) {
-			if ( ! wp_verify_nonce( \FreeFormCertificate\Core\Utils::get_post_string( 'ffc_environment_nonce' ), 'save_environment' ) ) {
+			if ( ! wp_verify_nonce( \FreeFormCertificate\Core\RequestInput::get_post_string( 'ffc_environment_nonce' ), 'save_environment' ) ) {
 				return;
 			}
 
@@ -454,11 +454,11 @@ class AudienceAdminEnvironment {
 
 			$data = array(
 				'schedule_id'   => isset( $_POST['environment_schedule'] ) ? absint( $_POST['environment_schedule'] ) : 0,
-				'name'          => \FreeFormCertificate\Core\Utils::get_post_string( 'environment_name' ),
+				'name'          => \FreeFormCertificate\Core\RequestInput::get_post_string( 'environment_name' ),
 				'color'         => $color ? $color : '#3788d8',
 				'description'   => isset( $_POST['environment_description'] ) ? sanitize_textarea_field( wp_unslash( $_POST['environment_description'] ) ) : '',
 				'working_hours' => $working_hours,
-				'status'        => \FreeFormCertificate\Core\Utils::get_post_string( 'environment_status', 'active' ),
+				'status'        => \FreeFormCertificate\Core\RequestInput::get_post_string( 'environment_status', 'active' ),
 			);
 
 			if ( $id > 0 ) {
@@ -479,7 +479,7 @@ class AudienceAdminEnvironment {
         // phpcs:ignore WordPress.Security.NonceVerification.Recommended
 		if ( isset( $_GET['action'] ) && 'deactivate' === $_GET['action'] && isset( $_GET['id'] ) && isset( $_GET['page'] ) && $_GET['page'] === $this->menu_slug . '-environments' ) {
 			$id = absint( $_GET['id'] );
-			if ( wp_verify_nonce( \FreeFormCertificate\Core\Utils::get_get_string( '_wpnonce' ), 'deactivate_environment_' . $id ) ) {
+			if ( wp_verify_nonce( \FreeFormCertificate\Core\RequestInput::get_get_string( '_wpnonce' ), 'deactivate_environment_' . $id ) ) {
 				AudienceEnvironmentRepository::update( $id, array( 'status' => 'inactive' ) );
 				wp_safe_redirect( admin_url( 'admin.php?page=' . $this->menu_slug . '-environments&message=deactivated' ) );
 				exit;
@@ -489,11 +489,11 @@ class AudienceAdminEnvironment {
 		// Handle delete (only inactive items can be permanently deleted).
         // phpcs:ignore WordPress.Security.NonceVerification.Recommended
 		if ( isset( $_GET['action'] ) && 'delete' === $_GET['action'] && isset( $_GET['id'] ) && isset( $_GET['page'] ) && $_GET['page'] === $this->menu_slug . '-environments' ) {
-			if ( ! \FreeFormCertificate\Core\Utils::current_user_can_admin_or( 'ffc_delete_audiences' ) ) {
+			if ( ! \FreeFormCertificate\Core\Capabilities::current_user_can_admin_or( 'ffc_delete_audiences' ) ) {
 				wp_die( esc_html__( 'You do not have permission to delete environments.', 'ffcertificate' ) );
 			}
 			$id = absint( $_GET['id'] );
-			if ( wp_verify_nonce( \FreeFormCertificate\Core\Utils::get_get_string( '_wpnonce' ), 'delete_environment_' . $id ) ) {
+			if ( wp_verify_nonce( \FreeFormCertificate\Core\RequestInput::get_get_string( '_wpnonce' ), 'delete_environment_' . $id ) ) {
 				$env = AudienceEnvironmentRepository::get_by_id( $id );
 				if ( $env && 'active' !== $env->status ) {
 					AudienceEnvironmentRepository::delete( $id );

@@ -70,7 +70,7 @@ class AdminSubmissionEditPage {
 	 * @return bool True if user can edit submissions
 	 */
 	private function can_edit_submission(): bool {
-		return \FreeFormCertificate\Core\Utils::current_user_can_admin_or( 'ffc_edit_certificates' );
+		return \FreeFormCertificate\Core\Capabilities::current_user_can_admin_or( 'ffc_edit_certificates' );
 	}
 
 	/**
@@ -529,7 +529,7 @@ class AdminSubmissionEditPage {
 
 		foreach ( $raw_data as $k => $v ) {
 			$sanitized_key   = sanitize_key( $k );
-			$sanitized_value = wp_kses( $v, \FreeFormCertificate\Core\Utils::get_allowed_html_tags() );
+			$sanitized_value = wp_kses( $v, \FreeFormCertificate\Core\HtmlPolicy::get_allowed_html_tags() );
 
 			// Normalize name fields (proper capitalization with lowercase connectives).
 			if ( in_array( $sanitized_key, $name_fields, true ) && ! empty( $sanitized_value ) ) {
@@ -540,7 +540,7 @@ class AdminSubmissionEditPage {
 		}
 
 		// Process user link change (simplified: value is user ID, empty string, or __keep__).
-		$linked_user_id = \FreeFormCertificate\Core\Utils::get_post_string( 'linked_user_id', '__keep__' );
+		$linked_user_id = \FreeFormCertificate\Core\RequestInput::get_post_string( 'linked_user_id', '__keep__' );
 
         // phpcs:enable WordPress.Security.NonceVerification.Missing
 

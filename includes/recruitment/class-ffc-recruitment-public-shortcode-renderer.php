@@ -34,9 +34,9 @@ if ( ! defined( 'ABSPATH' ) ) {
  *   cpf_masked: bool, rf_masked: bool, email_masked: bool,
  * }
  *
- * @phpstan-import-type CandidateRow      from RecruitmentCandidateRepository
+ * @phpstan-import-type CandidateRow      from RecruitmentCandidateReader
  * @phpstan-import-type ClassificationRow from RecruitmentClassificationRepository
- * @phpstan-import-type NoticeRow         from RecruitmentNoticeRepository
+ * @phpstan-import-type NoticeRow         from RecruitmentNoticeReader
  */
 final class RecruitmentPublicShortcodeRenderer {
 
@@ -127,10 +127,10 @@ final class RecruitmentPublicShortcodeRenderer {
 		// individual SELECTs. Drops cold-cache render time on large
 		// notices from O(N) round-trips to O(1).
 		$candidate_ids = array_map( static fn( $r ) => (int) $r->candidate_id, $page_rows );
-		RecruitmentCandidateRepository::get_by_ids( $candidate_ids );
+		RecruitmentCandidateReader::get_by_ids( $candidate_ids );
 
 		foreach ( $page_rows as $row ) {
-			$candidate = RecruitmentCandidateRepository::get_by_id( (int) $row->candidate_id );
+			$candidate = RecruitmentCandidateReader::get_by_id( (int) $row->candidate_id );
 			if ( null === $candidate ) {
 				continue;
 			}
@@ -164,7 +164,7 @@ final class RecruitmentPublicShortcodeRenderer {
 			$html .= '<td>' . esc_html( (string) $candidate->name ) . '</td>';
 		}
 		if ( $columns['adjutancy'] ) {
-			$adjutancy = RecruitmentAdjutancyRepository::get_by_id( (int) $row->adjutancy_id );
+			$adjutancy = RecruitmentAdjutancyReader::get_by_id( (int) $row->adjutancy_id );
 			$html     .= '<td>' . self::render_adjutancy_badge( $adjutancy ) . '</td>';
 		}
 		if ( $columns['cpf_masked'] ) {
@@ -210,7 +210,7 @@ final class RecruitmentPublicShortcodeRenderer {
 				if ( ! empty( $columns['preview_reason'] ) && isset( $row->preview_reason_id ) && null !== $row->preview_reason_id ) {
 					$reason_id = (int) $row->preview_reason_id;
 					if ( $reason_id > 0 ) {
-						$reason = RecruitmentReasonRepository::get_by_id( $reason_id );
+						$reason = RecruitmentReasonReader::get_by_id( $reason_id );
 						if ( null !== $reason ) {
 							$reason_label = (string) $reason->label;
 						}
@@ -229,7 +229,7 @@ final class RecruitmentPublicShortcodeRenderer {
 			$html  .= '<td>' . self::render_subscription_badge( $is_pcd ) . '</td>';
 		}
 		if ( $show_date && ( $columns['date_to_assume'] || $columns['time_to_assume'] ) ) {
-			$call = RecruitmentCallRepository::get_active_for_classification( (int) $row->id );
+			$call = RecruitmentCallReader::get_active_for_classification( (int) $row->id );
 			if ( $columns['date_to_assume'] ) {
 				$date  = null === $call ? '' : self::format_date_br( (string) $call->date_to_assume );
 				$html .= '<td>' . esc_html( $date ) . '</td>';
@@ -355,7 +355,7 @@ final class RecruitmentPublicShortcodeRenderer {
 
 		$adjutancies = array();
 		foreach ( $ids as $id ) {
-			$a = RecruitmentAdjutancyRepository::get_by_id( $id );
+			$a = RecruitmentAdjutancyReader::get_by_id( $id );
 			if ( null !== $a ) {
 				$adjutancies[] = $a;
 			}
@@ -459,7 +459,7 @@ final class RecruitmentPublicShortcodeRenderer {
 		 *
 		 * @var array<string,bool> $default
 		 */
-		$default = (array) json_decode( RecruitmentNoticeRepository::DEFAULT_PUBLIC_COLUMNS_CONFIG, true );
+		$default = (array) json_decode( RecruitmentNoticeReader::DEFAULT_PUBLIC_COLUMNS_CONFIG, true );
 
 		$merged = array_merge( $default, $decoded );
 
@@ -573,7 +573,7 @@ final class RecruitmentPublicShortcodeRenderer {
 		$color_raw = $adjutancy->color ?? '';
 		$color     = is_string( $color_raw ) && '' !== $color_raw
 			? $color_raw
-			: RecruitmentAdjutancyRepository::DEFAULT_COLOR;
+			: RecruitmentAdjutancyReader::DEFAULT_COLOR;
 		$name      = $adjutancy->name ?? '';
 		return BadgeHtml::render(
 			'ffc-recruitment-adjutancy-badge',

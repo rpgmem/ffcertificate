@@ -24,6 +24,7 @@ class AdminAjaxTest extends TestCase {
 
     /** @var Mockery\MockInterface Alias mock for Utils */
     private $utils_mock;
+    private $caps_mock;
 
     /** @var Mockery\MockInterface Overload mock for WP_User_Query */
     private $user_query_mock;
@@ -61,13 +62,14 @@ class AdminAjaxTest extends TestCase {
 
         // Utils alias mock — required by check_ajax_permission for 'manage_options'
         $this->utils_mock = Mockery::mock( 'alias:\FreeFormCertificate\Core\Utils' );
-        $this->utils_mock->shouldReceive( 'current_user_can_manage' )->andReturn( true )->byDefault();
+        $this->caps_mock  = Mockery::mock( 'alias:\FreeFormCertificate\Core\Capabilities' );
+        $ri_mock = Mockery::mock( 'alias:\FreeFormCertificate\Core\RequestInput' );
+        $this->caps_mock->shouldReceive( 'current_user_can_manage' )->andReturn( true )->byDefault();
         $this->utils_mock->shouldReceive( 'debug_log' )->byDefault();
-        $this->utils_mock->shouldReceive( 'get_submissions_table' )->andReturn( 'wp_ffc_submissions' )->byDefault();
-        $this->utils_mock->shouldReceive( 'get_post_string' )->andReturnUsing( function ( $key, $default = '' ) {
+        $ri_mock->shouldReceive( 'get_post_string' )->andReturnUsing( function ( $key, $default = '' ) {
             return isset( $_POST[ $key ] ) && is_string( $_POST[ $key ] ) ? $_POST[ $key ] : $default;
         } )->byDefault();
-        $this->utils_mock->shouldReceive( 'get_post_int' )->andReturnUsing( function ( $key, $default = 0 ) {
+        $ri_mock->shouldReceive( 'get_post_int' )->andReturnUsing( function ( $key, $default = 0 ) {
             return isset( $_POST[ $key ] ) ? (int) $_POST[ $key ] : $default;
         } )->byDefault();
 
@@ -161,7 +163,7 @@ class AdminAjaxTest extends TestCase {
         $_POST['nonce'] = 'valid_nonce';
 
         // Permission denied
-        $this->utils_mock->shouldReceive( 'current_user_can_manage' )->andReturn( false );
+        $this->caps_mock->shouldReceive( 'current_user_can_manage' )->andReturn( false );
         Functions\when( 'current_user_can' )->justReturn( false );
 
         $ajax = new AdminAjax();

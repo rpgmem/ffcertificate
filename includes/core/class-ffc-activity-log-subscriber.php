@@ -263,7 +263,7 @@ class ActivityLogSubscriber {
 			return;
 		}
 
-		ActivityLog::run_cleanup();
+		\FreeFormCertificate\Core\ActivityLogQuery::run_cleanup();
 		\set_transient( 'ffc_last_log_cleanup', time(), DAY_IN_SECONDS );
 	}
 
@@ -284,7 +284,7 @@ class ActivityLogSubscriber {
 			return;
 		}
 
-		ActivityLog::run_cleanup();
+		\FreeFormCertificate\Core\ActivityLogQuery::run_cleanup();
 		\set_transient( 'ffc_last_log_cleanup', time(), DAY_IN_SECONDS );
 	}
 }

@@ -112,7 +112,7 @@ class RecruitmentNoticeEditPageHandlersTest extends TestCase {
 			)
 		);
 
-		$repo     = Mockery::mock( 'alias:FreeFormCertificate\Recruitment\RecruitmentNoticeRepository' );
+		$repo     = Mockery::mock( 'alias:FreeFormCertificate\Recruitment\RecruitmentNoticeWriter' );
 		$captured = null;
 		$repo->shouldReceive( 'update' )->once()->andReturnUsing(
 			function ( $id, $data ) use ( &$captured ) {

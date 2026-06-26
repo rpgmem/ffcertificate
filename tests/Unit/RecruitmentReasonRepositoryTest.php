@@ -8,13 +8,15 @@ use Brain\Monkey\Functions;
 use Mockery;
 use Mockery\Adapter\Phpunit\MockeryPHPUnitIntegration;
 use PHPUnit\Framework\TestCase;
-use FreeFormCertificate\Recruitment\RecruitmentReasonRepository;
+use FreeFormCertificate\Recruitment\RecruitmentReasonReader;
+use FreeFormCertificate\Recruitment\RecruitmentReasonWriter;
 
 /**
- * Tests for RecruitmentReasonRepository — CRUD primitives + the
+ * Tests for the reason repository read/write split — CRUD primitives + the
  * applies_to / color normalization helpers used by the admin UI.
  *
- * @covers \FreeFormCertificate\Recruitment\RecruitmentReasonRepository
+ * @covers \FreeFormCertificate\Recruitment\RecruitmentReasonReader
+ * @covers \FreeFormCertificate\Recruitment\RecruitmentReasonWriter
  */
 class RecruitmentReasonRepositoryTest extends TestCase {
 
@@ -40,6 +42,12 @@ class RecruitmentReasonRepositoryTest extends TestCase {
         Functions\when( 'current_time' )->justReturn( '2026-05-18 10:00:00' );
         Functions\when( 'do_action' )->justReturn( null );
 
+        // pcov does not record lines for files first autoloaded mid-test-method,
+        // so the extracted reader/writer's coverage would attribute to nothing.
+        // Preload the classes here so pcov attributes their lines to this test.
+        class_exists( '\\FreeFormCertificate\\Recruitment\\RecruitmentReasonReader' );
+        class_exists( '\\FreeFormCertificate\\Recruitment\\RecruitmentReasonWriter' );
+
         $this->wpdb->shouldReceive( 'prepare' )
             ->andReturnUsing( fn( $sql ) => $sql )
             ->byDefault();
@@ -55,7 +63,7 @@ class RecruitmentReasonRepositoryTest extends TestCase {
     // ------------------------------------------------------------------
 
     public function test_get_table_name_returns_prefixed_name(): void {
-        $this->assertSame( 'wp_ffc_recruitment_reason', RecruitmentReasonRepository::get_table_name() );
+        $this->assertSame( 'wp_ffc_recruitment_reason', RecruitmentReasonReader::get_table_name() );
     }
 
     // ------------------------------------------------------------------
@@ -66,7 +74,7 @@ class RecruitmentReasonRepositoryTest extends TestCase {
         $row = (object) array( 'id' => '7', 'slug' => 'denied', 'label' => 'Denied' );
         $this->wpdb->shouldReceive( 'get_row' )->once()->andReturn( $row );
 
-        $result = RecruitmentReasonRepository::get_by_id( 7 );
+        $result = RecruitmentReasonReader::get_by_id( 7 );
 
         $this->assertSame( $row, $result );
     }
@@ -74,7 +82,7 @@ class RecruitmentReasonRepositoryTest extends TestCase {
     public function test_get_by_id_returns_null_when_row_missing(): void {
         $this->wpdb->shouldReceive( 'get_row' )->andReturn( null );
 
-        $this->assertNull( RecruitmentReasonRepository::get_by_id( 9999 ) );
+        $this->assertNull( RecruitmentReasonReader::get_by_id( 9999 ) );
     }
 
     public function test_get_by_id_returns_cached_value_without_db_hit(): void {
@@ -83,7 +91,7 @@ class RecruitmentReasonRepositoryTest extends TestCase {
         // No get_row call must happen.
         $this->wpdb->shouldReceive( 'get_row' )->never();
 
-        $this->assertSame( $cached, RecruitmentReasonRepository::get_by_id( 1 ) );
+        $this->assertSame( $cached, RecruitmentReasonReader::get_by_id( 1 ) );
     }
 
     // ------------------------------------------------------------------
@@ -102,14 +110,14 @@ class RecruitmentReasonRepositoryTest extends TestCase {
         } );
         $this->wpdb->shouldReceive( 'get_results' )->once()->andReturn( $rows );
 
-        $this->assertSame( $rows, RecruitmentReasonRepository::get_all() );
+        $this->assertSame( $rows, RecruitmentReasonReader::get_all() );
         $this->assertStringContainsString( 'ORDER BY label ASC', $captured_sql );
     }
 
     public function test_get_all_returns_empty_array_when_no_rows(): void {
         $this->wpdb->shouldReceive( 'get_results' )->andReturn( null );
 
-        $this->assertSame( array(), RecruitmentReasonRepository::get_all() );
+        $this->assertSame( array(), RecruitmentReasonReader::get_all() );
     }
 
     // ------------------------------------------------------------------
@@ -124,7 +132,7 @@ class RecruitmentReasonRepositoryTest extends TestCase {
         } );
         $this->wpdb->insert_id = 42;
 
-        $id = RecruitmentReasonRepository::create( 'denied', 'Denied', '#ff0000', array( 'denied', 'appeal_denied' ) );
+        $id = RecruitmentReasonWriter::create( 'denied', 'Denied', '#ff0000', array( 'denied', 'appeal_denied' ) );
 
         $this->assertSame( 42, $id );
         $this->assertSame( 'denied', $captured['slug'] );
@@ -137,7 +145,7 @@ class RecruitmentReasonRepositoryTest extends TestCase {
     public function test_create_returns_false_when_insert_fails(): void {
         $this->wpdb->shouldReceive( 'insert' )->andReturn( false );
 
-        $this->assertFalse( RecruitmentReasonRepository::create( 'duplicate', 'Dup' ) );
+        $this->assertFalse( RecruitmentReasonWriter::create( 'duplicate', 'Dup' ) );
     }
 
     public function test_create_filters_unknown_applies_to_values(): void {
@@ -148,7 +156,7 @@ class RecruitmentReasonRepositoryTest extends TestCase {
         } );
         $this->wpdb->insert_id = 5;
 
-        RecruitmentReasonRepository::create(
+        RecruitmentReasonWriter::create(
             'x',
             'X',
             '',
@@ -165,7 +173,7 @@ class RecruitmentReasonRepositoryTest extends TestCase {
     public function test_update_returns_false_when_payload_has_no_known_fields(): void {
         $this->wpdb->shouldReceive( 'update' )->never();
 
-        $this->assertFalse( RecruitmentReasonRepository::update( 1, array( 'ignored_field' => 'x' ) ) );
+        $this->assertFalse( RecruitmentReasonWriter::update( 1, array( 'ignored_field' => 'x' ) ) );
     }
 
     public function test_update_succeeds_with_partial_payload_and_invalidates_cache(): void {
@@ -181,7 +189,7 @@ class RecruitmentReasonRepositoryTest extends TestCase {
             return true;
         } );
 
-        $ok = RecruitmentReasonRepository::update( 7, array( 'label' => 'New Label' ) );
+        $ok = RecruitmentReasonWriter::update( 7, array( 'label' => 'New Label' ) );
 
         $this->assertTrue( $ok );
         $this->assertSame( 7, $captured['where']['id'] );
@@ -197,7 +205,7 @@ class RecruitmentReasonRepositoryTest extends TestCase {
             return 1;
         } );
 
-        RecruitmentReasonRepository::update( 1, array( 'applies_to' => array( 'granted', 'denied' ) ) );
+        RecruitmentReasonWriter::update( 1, array( 'applies_to' => array( 'granted', 'denied' ) ) );
 
         $this->assertSame( 'granted,denied', $captured['applies_to'] );
     }
@@ -215,14 +223,14 @@ class RecruitmentReasonRepositoryTest extends TestCase {
             return true;
         } );
 
-        $this->assertTrue( RecruitmentReasonRepository::delete( 11 ) );
+        $this->assertTrue( RecruitmentReasonWriter::delete( 11 ) );
         $this->assertContains( 'id_11', $deletes );
     }
 
     public function test_delete_returns_false_when_wpdb_delete_returns_false(): void {
         $this->wpdb->shouldReceive( 'delete' )->andReturn( false );
 
-        $this->assertFalse( RecruitmentReasonRepository::delete( 11 ) );
+        $this->assertFalse( RecruitmentReasonWriter::delete( 11 ) );
     }
 
     // ------------------------------------------------------------------
@@ -232,18 +240,18 @@ class RecruitmentReasonRepositoryTest extends TestCase {
     public function test_normalize_applies_to_dedupes_and_drops_unknowns(): void {
         $this->assertSame(
             'denied,granted',
-            RecruitmentReasonRepository::normalize_applies_to( array( 'denied', 'denied', 'granted', 'unknown' ) )
+            RecruitmentReasonWriter::normalize_applies_to( array( 'denied', 'denied', 'granted', 'unknown' ) )
         );
     }
 
     public function test_normalize_applies_to_empty_returns_empty_string(): void {
-        $this->assertSame( '', RecruitmentReasonRepository::normalize_applies_to( array() ) );
+        $this->assertSame( '', RecruitmentReasonWriter::normalize_applies_to( array() ) );
     }
 
     public function test_normalize_applies_to_drops_non_string_entries(): void {
         $this->assertSame(
             'denied',
-            RecruitmentReasonRepository::normalize_applies_to( array( 'denied', 42, null, false ) )
+            RecruitmentReasonWriter::normalize_applies_to( array( 'denied', 42, null, false ) )
         );
     }
 
@@ -253,29 +261,29 @@ class RecruitmentReasonRepositoryTest extends TestCase {
 
     public function test_decode_applies_to_empty_returns_full_set(): void {
         $this->assertSame(
-            RecruitmentReasonRepository::APPLIES_TO_VALUES,
-            RecruitmentReasonRepository::decode_applies_to( '' )
+            RecruitmentReasonReader::APPLIES_TO_VALUES,
+            RecruitmentReasonReader::decode_applies_to( '' )
         );
     }
 
     public function test_decode_applies_to_decodes_csv_back_into_list(): void {
         $this->assertSame(
             array( 'denied', 'granted' ),
-            RecruitmentReasonRepository::decode_applies_to( 'denied,granted' )
+            RecruitmentReasonReader::decode_applies_to( 'denied,granted' )
         );
     }
 
     public function test_decode_applies_to_drops_unknown_values_and_dedupes(): void {
         $this->assertSame(
             array( 'denied', 'granted' ),
-            RecruitmentReasonRepository::decode_applies_to( 'denied,unknown,granted,denied' )
+            RecruitmentReasonReader::decode_applies_to( 'denied,unknown,granted,denied' )
         );
     }
 
     public function test_decode_applies_to_returns_full_set_when_all_values_unknown(): void {
         $this->assertSame(
-            RecruitmentReasonRepository::APPLIES_TO_VALUES,
-            RecruitmentReasonRepository::decode_applies_to( 'bogus,more_bogus' )
+            RecruitmentReasonReader::APPLIES_TO_VALUES,
+            RecruitmentReasonReader::decode_applies_to( 'bogus,more_bogus' )
         );
     }
 
@@ -286,12 +294,12 @@ class RecruitmentReasonRepositoryTest extends TestCase {
     public function test_count_references_returns_int_count(): void {
         $this->wpdb->shouldReceive( 'get_var' )->andReturn( '3' );
 
-        $this->assertSame( 3, RecruitmentReasonRepository::count_references( 7 ) );
+        $this->assertSame( 3, RecruitmentReasonReader::count_references( 7 ) );
     }
 
     public function test_count_references_returns_zero_when_get_var_null(): void {
         $this->wpdb->shouldReceive( 'get_var' )->andReturn( null );
 
-        $this->assertSame( 0, RecruitmentReasonRepository::count_references( 7 ) );
+        $this->assertSame( 0, RecruitmentReasonReader::count_references( 7 ) );
     }
 }

@@ -163,4 +163,18 @@
     <rule ref="Squiz.PHP.CommentedOutCode">
         <exclude name="Squiz.PHP.CommentedOutCode.Found"/>
     </rule>
+
+    <!--
+        #563 Sprint 1 — submission pipeline guards throw SubmissionRejected
+        carrying a wp_send_json_error() *payload array*, never an HTML-output
+        message. The exception is always caught by the FormProcessor
+        orchestrator and routed through wp_send_json_error() (JSON), so the
+        sniff's concern (an uncaught exception message echoed to the page)
+        cannot occur here. Escaping these translated strings with esc_html()
+        would corrupt apostrophes in the user-facing JSON messages. Scope the
+        exclusion narrowly to the guard directory.
+    -->
+    <rule ref="WordPress.Security.EscapeOutput.ExceptionNotEscaped">
+        <exclude-pattern>*/includes/frontend/submission/*</exclude-pattern>
+    </rule>
 </ruleset>

@@ -316,7 +316,7 @@ class AdminUserColumns {
 	 */
 	private static function load_certificate_counts(): void {
 		global $wpdb;
-		$table = \FreeFormCertificate\Core\Utils::get_submissions_table();
+		$table = \FreeFormCertificate\Repositories\SubmissionRepository::get_submissions_table();
 
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		$results = $wpdb->get_results(
@@ -470,7 +470,7 @@ class AdminUserColumns {
 			return;
 		}
 
-		$s = \FreeFormCertificate\Core\Utils::asset_suffix();
+		$s = \FreeFormCertificate\Core\AssetHelper::asset_suffix();
 		wp_enqueue_style( 'ffc-admin', FFC_PLUGIN_URL . "assets/css/ffc-admin{$s}.css", array(), FFC_VERSION );
 	}
 }

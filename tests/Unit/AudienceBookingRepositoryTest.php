@@ -8,13 +8,16 @@ use Brain\Monkey\Functions;
 use Mockery;
 use Mockery\Adapter\Phpunit\MockeryPHPUnitIntegration;
 use PHPUnit\Framework\TestCase;
-use FreeFormCertificate\Audience\AudienceBookingRepository;
+use FreeFormCertificate\Audience\AudienceBookingReader;
+use FreeFormCertificate\Audience\AudienceBookingWriter;
 
 /**
- * Tests for AudienceBookingRepository: table names, CRUD operations,
- * booking audience/user management, conflict detection, caching, and count.
+ * Tests for the audience-booking repository read/write split: table names, CRUD
+ * operations, booking audience/user management, conflict detection, caching,
+ * and count.
  *
- * @covers \FreeFormCertificate\Audience\AudienceBookingRepository
+ * @covers \FreeFormCertificate\Audience\AudienceBookingReader
+ * @covers \FreeFormCertificate\Audience\AudienceBookingWriter
  */
 class AudienceBookingRepositoryTest extends TestCase {
 
@@ -37,6 +40,11 @@ class AudienceBookingRepositoryTest extends TestCase {
         Functions\when('wp_cache_set')->justReturn(true);
         Functions\when('wp_cache_delete')->justReturn(true);
         Functions\when('__')->returnArg();
+
+        // pcov does not record lines for files first autoloaded mid-test-method,
+        // so preload the reader/writer here for correct coverage attribution.
+        class_exists('\\FreeFormCertificate\\Audience\\AudienceBookingReader');
+        class_exists('\\FreeFormCertificate\\Audience\\AudienceBookingWriter');
         Functions\when('wp_parse_args')->alias(function($args, $defaults = array()) {
             return array_merge($defaults, $args);
         });
@@ -79,23 +87,23 @@ class AudienceBookingRepositoryTest extends TestCase {
     // ==================================================================
 
     public function test_get_table_name_returns_bookings_table(): void {
-        $this->assertSame('wp_ffc_audience_bookings', AudienceBookingRepository::get_table_name());
+        $this->assertSame('wp_ffc_audience_bookings', AudienceBookingReader::get_table_name());
     }
 
     public function test_get_booking_audiences_table_name_returns_correct_table(): void {
-        $this->assertSame('wp_ffc_audience_booking_audiences', AudienceBookingRepository::get_booking_audiences_table_name());
+        $this->assertSame('wp_ffc_audience_booking_audiences', AudienceBookingReader::get_booking_audiences_table_name());
     }
 
     public function test_get_booking_users_table_name_returns_correct_table(): void {
-        $this->assertSame('wp_ffc_audience_booking_users', AudienceBookingRepository::get_booking_users_table_name());
+        $this->assertSame('wp_ffc_audience_booking_users', AudienceBookingReader::get_booking_users_table_name());
     }
 
     public function test_table_names_use_wpdb_prefix(): void {
         $this->wpdb->prefix = 'custom_';
 
-        $this->assertSame('custom_ffc_audience_bookings', AudienceBookingRepository::get_table_name());
-        $this->assertSame('custom_ffc_audience_booking_audiences', AudienceBookingRepository::get_booking_audiences_table_name());
-        $this->assertSame('custom_ffc_audience_booking_users', AudienceBookingRepository::get_booking_users_table_name());
+        $this->assertSame('custom_ffc_audience_bookings', AudienceBookingReader::get_table_name());
+        $this->assertSame('custom_ffc_audience_booking_audiences', AudienceBookingReader::get_booking_audiences_table_name());
+        $this->assertSame('custom_ffc_audience_booking_users', AudienceBookingReader::get_booking_users_table_name());
 
         // Restore
         $this->wpdb->prefix = 'wp_';
@@ -114,7 +122,7 @@ class AudienceBookingRepositoryTest extends TestCase {
         $this->wpdb->shouldReceive('prepare')->once()->andReturn('SELECT b.* FROM ...');
         $this->wpdb->shouldReceive('get_results')->once()->andReturn($rows);
 
-        $result = AudienceBookingRepository::get_all();
+        $result = AudienceBookingReader::get_all();
 
         $this->assertCount(2, $result);
         $this->assertSame('Booking A', $result[0]->description);
@@ -128,7 +136,7 @@ class AudienceBookingRepositoryTest extends TestCase {
         });
         $this->wpdb->shouldReceive('get_results')->once()->andReturn([]);
 
-        AudienceBookingRepository::get_all(['environment_id' => 5]);
+        AudienceBookingReader::get_all(['environment_id' => 5]);
 
         $this->assertStringContainsString('b.environment_id = %d', $captured_sql);
     }
@@ -141,7 +149,7 @@ class AudienceBookingRepositoryTest extends TestCase {
         });
         $this->wpdb->shouldReceive('get_results')->once()->andReturn([]);
 
-        AudienceBookingRepository::get_all(['schedule_id' => 3]);
+        AudienceBookingReader::get_all(['schedule_id' => 3]);
 
         $this->assertStringContainsString('e.schedule_id = %d', $captured_sql);
     }
@@ -154,7 +162,7 @@ class AudienceBookingRepositoryTest extends TestCase {
         });
         $this->wpdb->shouldReceive('get_results')->once()->andReturn([]);
 
-        AudienceBookingRepository::get_all(['booking_date' => '2026-03-15']);
+        AudienceBookingReader::get_all(['booking_date' => '2026-03-15']);
 
         $this->assertStringContainsString('b.booking_date = %s', $captured_sql);
     }
@@ -167,7 +175,7 @@ class AudienceBookingRepositoryTest extends TestCase {
         });
         $this->wpdb->shouldReceive('get_results')->once()->andReturn([]);
 
-        AudienceBookingRepository::get_all([
+        AudienceBookingReader::get_all([
             'start_date' => '2026-03-01',
             'end_date' => '2026-03-31',
         ]);
@@ -184,7 +192,7 @@ class AudienceBookingRepositoryTest extends TestCase {
         });
         $this->wpdb->shouldReceive('get_results')->once()->andReturn([]);
 
-        AudienceBookingRepository::get_all(['status' => 'active']);
+        AudienceBookingReader::get_all(['status' => 'active']);
 
         $this->assertStringContainsString('b.status = %s', $captured_sql);
     }
@@ -197,7 +205,7 @@ class AudienceBookingRepositoryTest extends TestCase {
         });
         $this->wpdb->shouldReceive('get_results')->once()->andReturn([]);
 
-        AudienceBookingRepository::get_all(['booking_type' => 'audience']);
+        AudienceBookingReader::get_all(['booking_type' => 'audience']);
 
         $this->assertStringContainsString('b.booking_type = %s', $captured_sql);
     }
@@ -210,7 +218,7 @@ class AudienceBookingRepositoryTest extends TestCase {
         });
         $this->wpdb->shouldReceive('get_results')->once()->andReturn([]);
 
-        AudienceBookingRepository::get_all(['created_by' => 42]);
+        AudienceBookingReader::get_all(['created_by' => 42]);
 
         $this->assertStringContainsString('b.created_by = %d', $captured_sql);
     }
@@ -223,7 +231,7 @@ class AudienceBookingRepositoryTest extends TestCase {
         });
         $this->wpdb->shouldReceive('get_results')->once()->andReturn([]);
 
-        AudienceBookingRepository::get_all(['limit' => 10, 'offset' => 5]);
+        AudienceBookingReader::get_all(['limit' => 10, 'offset' => 5]);
 
         $this->assertStringContainsString('LIMIT 10 OFFSET 5', $captured_sql);
     }
@@ -236,7 +244,7 @@ class AudienceBookingRepositoryTest extends TestCase {
         });
         $this->wpdb->shouldReceive('get_results')->once()->andReturn([]);
 
-        AudienceBookingRepository::get_all(['limit' => 0]);
+        AudienceBookingReader::get_all(['limit' => 0]);
 
         $this->assertStringNotContainsString('LIMIT', $captured_sql);
     }
@@ -249,7 +257,7 @@ class AudienceBookingRepositoryTest extends TestCase {
         });
         $this->wpdb->shouldReceive('get_results')->once()->andReturn([]);
 
-        AudienceBookingRepository::get_all([
+        AudienceBookingReader::get_all([
             'environment_id' => 1,
             'status' => 'active',
             'created_by' => 5,
@@ -269,7 +277,7 @@ class AudienceBookingRepositoryTest extends TestCase {
         });
         $this->wpdb->shouldReceive('get_results')->once()->andReturn([]);
 
-        AudienceBookingRepository::get_all();
+        AudienceBookingReader::get_all();
 
         $this->assertStringContainsString('INNER JOIN', $captured_sql);
         $this->assertStringContainsString('b.environment_id = e.id', $captured_sql);
@@ -293,7 +301,7 @@ class AudienceBookingRepositoryTest extends TestCase {
         // get_booking_users query
         $this->wpdb->shouldReceive('get_col')->once()->andReturn([]);
 
-        $result = AudienceBookingRepository::get_by_id(1);
+        $result = AudienceBookingReader::get_by_id(1);
 
         $this->assertSame('Test Booking', $result->description);
         $this->assertSame([], $result->audiences);
@@ -304,7 +312,7 @@ class AudienceBookingRepositoryTest extends TestCase {
         $this->wpdb->shouldReceive('prepare')->once()->andReturn('QUERY');
         $this->wpdb->shouldReceive('get_row')->once()->andReturn(null);
 
-        $result = AudienceBookingRepository::get_by_id(999);
+        $result = AudienceBookingReader::get_by_id(999);
 
         $this->assertNull($result);
     }
@@ -324,7 +332,7 @@ class AudienceBookingRepositoryTest extends TestCase {
         // wpdb should NOT be called since cache hit
         $this->wpdb->shouldNotReceive('get_row');
 
-        $result = AudienceBookingRepository::get_by_id(1);
+        $result = AudienceBookingReader::get_by_id(1);
 
         $this->assertSame('Cached Booking', $result->description);
     }
@@ -345,7 +353,7 @@ class AudienceBookingRepositoryTest extends TestCase {
             return true;
         });
 
-        AudienceBookingRepository::get_by_id(5);
+        AudienceBookingReader::get_by_id(5);
 
         $this->assertSame('id_5', $cache_set_called_with_key);
     }
@@ -360,7 +368,7 @@ class AudienceBookingRepositoryTest extends TestCase {
             return true;
         });
 
-        AudienceBookingRepository::get_by_id(999);
+        AudienceBookingReader::get_by_id(999);
 
         $this->assertFalse($cache_set_called);
     }
@@ -378,7 +386,7 @@ class AudienceBookingRepositoryTest extends TestCase {
         $this->wpdb->shouldReceive('get_results')->once()->andReturn($audiences);
         $this->wpdb->shouldReceive('get_col')->once()->andReturn($user_ids);
 
-        $result = AudienceBookingRepository::get_by_id(10);
+        $result = AudienceBookingReader::get_by_id(10);
 
         $this->assertCount(2, $result->audiences);
         $this->assertSame('Audience A', $result->audiences[0]->name);
@@ -397,7 +405,7 @@ class AudienceBookingRepositoryTest extends TestCase {
         $this->wpdb->shouldReceive('prepare')->once()->andReturn('QUERY');
         $this->wpdb->shouldReceive('get_results')->once()->andReturn($rows);
 
-        $result = AudienceBookingRepository::get_by_date(5, '2026-03-15');
+        $result = AudienceBookingReader::get_by_date(5, '2026-03-15');
 
         $this->assertCount(1, $result);
     }
@@ -410,7 +418,7 @@ class AudienceBookingRepositoryTest extends TestCase {
         });
         $this->wpdb->shouldReceive('get_results')->once()->andReturn([]);
 
-        AudienceBookingRepository::get_by_date(5, '2026-03-15', 'active');
+        AudienceBookingReader::get_by_date(5, '2026-03-15', 'active');
 
         $this->assertStringContainsString('b.environment_id = %d', $captured_sql);
         $this->assertStringContainsString('b.booking_date = %s', $captured_sql);
@@ -429,7 +437,7 @@ class AudienceBookingRepositoryTest extends TestCase {
         });
         $this->wpdb->shouldReceive('get_results')->once()->andReturn([]);
 
-        AudienceBookingRepository::get_by_date_range(5, '2026-03-01', '2026-03-31');
+        AudienceBookingReader::get_by_date_range(5, '2026-03-01', '2026-03-31');
 
         $this->assertStringContainsString('b.environment_id = %d', $captured_sql);
         $this->assertStringContainsString('b.booking_date >= %s', $captured_sql);
@@ -444,7 +452,7 @@ class AudienceBookingRepositoryTest extends TestCase {
         });
         $this->wpdb->shouldReceive('get_results')->once()->andReturn([]);
 
-        AudienceBookingRepository::get_by_date_range(5, '2026-03-01', '2026-03-31', 'cancelled');
+        AudienceBookingReader::get_by_date_range(5, '2026-03-01', '2026-03-31', 'cancelled');
 
         $this->assertStringContainsString('b.status = %s', $captured_sql);
     }
@@ -461,7 +469,7 @@ class AudienceBookingRepositoryTest extends TestCase {
         });
         $this->wpdb->shouldReceive('get_results')->once()->andReturn([]);
 
-        AudienceBookingRepository::get_by_creator(42);
+        AudienceBookingReader::get_by_creator(42);
 
         $this->assertStringContainsString('b.created_by = %d', $captured_sql);
     }
@@ -474,7 +482,7 @@ class AudienceBookingRepositoryTest extends TestCase {
         });
         $this->wpdb->shouldReceive('get_results')->once()->andReturn([]);
 
-        AudienceBookingRepository::get_by_creator(42, ['status' => 'active']);
+        AudienceBookingReader::get_by_creator(42, ['status' => 'active']);
 
         $this->assertStringContainsString('b.created_by = %d', $captured_sql);
         $this->assertStringContainsString('b.status = %s', $captured_sql);
@@ -492,7 +500,7 @@ class AudienceBookingRepositoryTest extends TestCase {
         });
         $this->wpdb->shouldReceive('get_results')->once()->andReturn([]);
 
-        AudienceBookingRepository::get_by_participant(42);
+        AudienceBookingReader::get_by_participant(42);
 
         $this->assertStringContainsString('SELECT DISTINCT b.*', $captured_sql);
         $this->assertStringContainsString('LEFT JOIN', $captured_sql);
@@ -507,7 +515,7 @@ class AudienceBookingRepositoryTest extends TestCase {
         });
         $this->wpdb->shouldReceive('get_results')->once()->andReturn([]);
 
-        AudienceBookingRepository::get_by_participant(42, [
+        AudienceBookingReader::get_by_participant(42, [
             'start_date' => '2026-03-01',
             'end_date' => '2026-03-31',
             'status' => 'active',
@@ -543,7 +551,7 @@ class AudienceBookingRepositoryTest extends TestCase {
             )
             ->andReturn(1);
 
-        $result = AudienceBookingRepository::create([
+        $result = AudienceBookingWriter::create([
             'environment_id' => 5,
             'booking_date' => '2026-03-15',
             'start_time' => '09:00',
@@ -556,7 +564,7 @@ class AudienceBookingRepositoryTest extends TestCase {
 
     public function test_create_returns_false_when_missing_required_fields(): void {
         // Missing environment_id (defaults to 0, which is falsy)
-        $result = AudienceBookingRepository::create([
+        $result = AudienceBookingWriter::create([
             'booking_date' => '2026-03-15',
             'start_time' => '09:00',
             'end_time' => '10:00',
@@ -567,7 +575,7 @@ class AudienceBookingRepositoryTest extends TestCase {
     }
 
     public function test_create_returns_false_when_missing_booking_date(): void {
-        $result = AudienceBookingRepository::create([
+        $result = AudienceBookingWriter::create([
             'environment_id' => 5,
             'start_time' => '09:00',
             'end_time' => '10:00',
@@ -578,7 +586,7 @@ class AudienceBookingRepositoryTest extends TestCase {
     }
 
     public function test_create_returns_false_when_missing_start_time(): void {
-        $result = AudienceBookingRepository::create([
+        $result = AudienceBookingWriter::create([
             'environment_id' => 5,
             'booking_date' => '2026-03-15',
             'end_time' => '10:00',
@@ -589,7 +597,7 @@ class AudienceBookingRepositoryTest extends TestCase {
     }
 
     public function test_create_returns_false_when_missing_end_time(): void {
-        $result = AudienceBookingRepository::create([
+        $result = AudienceBookingWriter::create([
             'environment_id' => 5,
             'booking_date' => '2026-03-15',
             'start_time' => '09:00',
@@ -600,7 +608,7 @@ class AudienceBookingRepositoryTest extends TestCase {
     }
 
     public function test_create_returns_false_when_missing_description(): void {
-        $result = AudienceBookingRepository::create([
+        $result = AudienceBookingWriter::create([
             'environment_id' => 5,
             'booking_date' => '2026-03-15',
             'start_time' => '09:00',
@@ -613,7 +621,7 @@ class AudienceBookingRepositoryTest extends TestCase {
     public function test_create_returns_false_on_insert_failure(): void {
         $this->wpdb->shouldReceive('insert')->once()->andReturn(false);
 
-        $result = AudienceBookingRepository::create([
+        $result = AudienceBookingWriter::create([
             'environment_id' => 5,
             'booking_date' => '2026-03-15',
             'start_time' => '09:00',
@@ -633,7 +641,7 @@ class AudienceBookingRepositoryTest extends TestCase {
         ));
         $this->wpdb->shouldNotReceive('insert');
 
-        $result = AudienceBookingRepository::create([
+        $result = AudienceBookingWriter::create([
             'environment_id' => 5,
             'booking_date' => '2026-03-15',
             'start_time' => '09:00',
@@ -654,7 +662,7 @@ class AudienceBookingRepositoryTest extends TestCase {
             return 1;
         });
 
-        AudienceBookingRepository::create([
+        AudienceBookingWriter::create([
             'environment_id' => 5,
             'booking_date' => '2026-03-15',
             'start_time' => '09:00',
@@ -684,7 +692,7 @@ class AudienceBookingRepositoryTest extends TestCase {
             )
             ->andReturn(1);
 
-        AudienceBookingRepository::create([
+        AudienceBookingWriter::create([
             'environment_id' => 1,
             'booking_date' => '2026-03-15',
             'start_time' => '09:00',
@@ -721,7 +729,7 @@ class AudienceBookingRepositoryTest extends TestCase {
             ->once()
             ->andReturn(1);
 
-        $result = AudienceBookingRepository::create([
+        $result = AudienceBookingWriter::create([
             'environment_id' => 1,
             'booking_date' => '2026-03-15',
             'start_time' => '09:00',
@@ -761,7 +769,7 @@ class AudienceBookingRepositoryTest extends TestCase {
             ->once()
             ->andReturn(1);
 
-        $result = AudienceBookingRepository::create([
+        $result = AudienceBookingWriter::create([
             'environment_id' => 1,
             'booking_date' => '2026-03-15',
             'start_time' => '09:00',
@@ -787,7 +795,7 @@ class AudienceBookingRepositoryTest extends TestCase {
             )
             ->andReturn(1);
 
-        AudienceBookingRepository::create([
+        AudienceBookingWriter::create([
             'environment_id' => 1,
             'booking_date' => '2026-03-15',
             'start_time' => '00:00',
@@ -815,7 +823,7 @@ class AudienceBookingRepositoryTest extends TestCase {
             )
             ->andReturn(1);
 
-        $result = AudienceBookingRepository::update(1, ['description' => 'Updated description']);
+        $result = AudienceBookingWriter::update(1, ['description' => 'Updated description']);
 
         $this->assertTrue($result);
     }
@@ -837,7 +845,7 @@ class AudienceBookingRepositoryTest extends TestCase {
             )
             ->andReturn(1);
 
-        AudienceBookingRepository::update(1, [
+        AudienceBookingWriter::update(1, [
             'id' => 99,
             'created_by' => 5,
             'created_at' => '2024-01-01',
@@ -847,7 +855,7 @@ class AudienceBookingRepositoryTest extends TestCase {
 
     public function test_update_returns_true_when_data_is_empty_after_filtering(): void {
         // With only protected fields, no wpdb->update is called, but update() still returns true
-        $result = AudienceBookingRepository::update(1, [
+        $result = AudienceBookingWriter::update(1, [
             'id' => 99,
             'created_by' => 5,
             'created_at' => '2024-01-01',
@@ -884,7 +892,7 @@ class AudienceBookingRepositoryTest extends TestCase {
             ->twice()
             ->andReturn(1);
 
-        $result = AudienceBookingRepository::update(1, [
+        $result = AudienceBookingWriter::update(1, [
             'description' => 'Updated',
             'audience_ids' => [10, 20],
         ]);
@@ -919,7 +927,7 @@ class AudienceBookingRepositoryTest extends TestCase {
             ->times(3)
             ->andReturn(1);
 
-        $result = AudienceBookingRepository::update(1, [
+        $result = AudienceBookingWriter::update(1, [
             'description' => 'Updated',
             'user_ids' => [100, 200, 300],
         ]);
@@ -938,7 +946,7 @@ class AudienceBookingRepositoryTest extends TestCase {
             return true;
         });
 
-        AudienceBookingRepository::update(7, ['description' => 'Cache test']);
+        AudienceBookingWriter::update(7, ['description' => 'Cache test']);
 
         $this->assertSame('id_7', $cache_deleted_key);
     }
@@ -957,7 +965,7 @@ class AudienceBookingRepositoryTest extends TestCase {
             )
             ->andReturn(1);
 
-        AudienceBookingRepository::update(1, ['description' => 'Good', 'bogus_field' => 'ignored']);
+        AudienceBookingWriter::update(1, ['description' => 'Good', 'bogus_field' => 'ignored']);
     }
 
     public function test_update_accepts_all_known_fields(): void {
@@ -983,7 +991,7 @@ class AudienceBookingRepositoryTest extends TestCase {
             )
             ->andReturn(1);
 
-        AudienceBookingRepository::update(1, [
+        AudienceBookingWriter::update(1, [
             'environment_id' => 2,
             'booking_date' => '2026-04-01',
             'start_time' => '10:00',
@@ -1018,13 +1026,13 @@ class AudienceBookingRepositoryTest extends TestCase {
             )
             ->andReturn(1);
 
-        $result = AudienceBookingRepository::cancel(5, 'Schedule conflict');
+        $result = AudienceBookingWriter::cancel(5, 'Schedule conflict');
 
         $this->assertTrue($result);
     }
 
     public function test_cancel_returns_false_when_reason_is_empty(): void {
-        $result = AudienceBookingRepository::cancel(5, '');
+        $result = AudienceBookingWriter::cancel(5, '');
 
         $this->assertFalse($result);
     }
@@ -1040,7 +1048,7 @@ class AudienceBookingRepositoryTest extends TestCase {
             return true;
         });
 
-        AudienceBookingRepository::cancel(8, 'Cancelled reason');
+        AudienceBookingWriter::cancel(8, 'Cancelled reason');
 
         // cancel() calls update() which clears cache, then cancel() clears cache again
         $this->assertContains('id_8', $deleted_keys);
@@ -1069,7 +1077,7 @@ class AudienceBookingRepositoryTest extends TestCase {
             ->with('wp_ffc_audience_bookings', ['id' => 5], ['%d'])
             ->andReturn(1);
 
-        $result = AudienceBookingRepository::delete(5);
+        $result = AudienceBookingWriter::delete(5);
 
         $this->assertTrue($result);
     }
@@ -1088,7 +1096,7 @@ class AudienceBookingRepositoryTest extends TestCase {
             ->with('wp_ffc_audience_bookings', ['id' => 5], ['%d'])
             ->andReturn(false);
 
-        $result = AudienceBookingRepository::delete(5);
+        $result = AudienceBookingWriter::delete(5);
 
         $this->assertFalse($result);
     }
@@ -1104,7 +1112,7 @@ class AudienceBookingRepositoryTest extends TestCase {
             return true;
         });
 
-        AudienceBookingRepository::delete(8);
+        AudienceBookingWriter::delete(8);
 
         $this->assertContains('id_8', $deleted_keys);
     }
@@ -1117,7 +1125,7 @@ class AudienceBookingRepositoryTest extends TestCase {
             return 1;
         });
 
-        AudienceBookingRepository::delete(1);
+        AudienceBookingWriter::delete(1);
 
         $this->assertSame([
             'wp_ffc_audience_booking_audiences',
@@ -1140,7 +1148,7 @@ class AudienceBookingRepositoryTest extends TestCase {
             )
             ->andReturn(1);
 
-        $result = AudienceBookingRepository::add_booking_audience(1, 10);
+        $result = AudienceBookingWriter::add_booking_audience(1, 10);
 
         $this->assertTrue($result);
     }
@@ -1150,7 +1158,7 @@ class AudienceBookingRepositoryTest extends TestCase {
             ->once()
             ->andReturn(false);
 
-        $result = AudienceBookingRepository::add_booking_audience(1, 10);
+        $result = AudienceBookingWriter::add_booking_audience(1, 10);
 
         $this->assertFalse($result);
     }
@@ -1169,7 +1177,7 @@ class AudienceBookingRepositoryTest extends TestCase {
             )
             ->andReturn(1);
 
-        $result = AudienceBookingRepository::remove_booking_audience(1, 10);
+        $result = AudienceBookingWriter::remove_booking_audience(1, 10);
 
         $this->assertTrue($result);
     }
@@ -1179,7 +1187,7 @@ class AudienceBookingRepositoryTest extends TestCase {
             ->once()
             ->andReturn(false);
 
-        $result = AudienceBookingRepository::remove_booking_audience(1, 10);
+        $result = AudienceBookingWriter::remove_booking_audience(1, 10);
 
         $this->assertFalse($result);
     }
@@ -1197,7 +1205,7 @@ class AudienceBookingRepositoryTest extends TestCase {
         $this->wpdb->shouldReceive('prepare')->once()->andReturn('QUERY');
         $this->wpdb->shouldReceive('get_results')->once()->andReturn($audiences);
 
-        $result = AudienceBookingRepository::get_booking_audiences(5);
+        $result = AudienceBookingReader::get_booking_audiences(5);
 
         $this->assertCount(2, $result);
         $this->assertSame('Audience A', $result[0]->name);
@@ -1208,7 +1216,7 @@ class AudienceBookingRepositoryTest extends TestCase {
         $this->wpdb->shouldReceive('prepare')->once()->andReturn('QUERY');
         $this->wpdb->shouldReceive('get_results')->once()->andReturn([]);
 
-        $result = AudienceBookingRepository::get_booking_audiences(5);
+        $result = AudienceBookingReader::get_booking_audiences(5);
 
         $this->assertSame([], $result);
     }
@@ -1221,7 +1229,7 @@ class AudienceBookingRepositoryTest extends TestCase {
         });
         $this->wpdb->shouldReceive('get_results')->once()->andReturn([]);
 
-        AudienceBookingRepository::get_booking_audiences(5);
+        AudienceBookingReader::get_booking_audiences(5);
 
         $this->assertStringContainsString('INNER JOIN', $captured_sql);
         $this->assertStringContainsString('a.id = ba.audience_id', $captured_sql);
@@ -1249,7 +1257,7 @@ class AudienceBookingRepositoryTest extends TestCase {
             ->once()
             ->andReturn(1);
 
-        $result = AudienceBookingRepository::set_booking_audiences(1, [10, 20]);
+        $result = AudienceBookingWriter::set_booking_audiences(1, [10, 20]);
 
         $this->assertTrue($result);
     }
@@ -1264,7 +1272,7 @@ class AudienceBookingRepositoryTest extends TestCase {
         // No inserts should happen
         $this->wpdb->shouldNotReceive('insert');
 
-        $result = AudienceBookingRepository::set_booking_audiences(1, []);
+        $result = AudienceBookingWriter::set_booking_audiences(1, []);
 
         $this->assertTrue($result);
     }
@@ -1283,7 +1291,7 @@ class AudienceBookingRepositoryTest extends TestCase {
             )
             ->andReturn(1);
 
-        $result = AudienceBookingRepository::add_booking_user(1, 42);
+        $result = AudienceBookingWriter::add_booking_user(1, 42);
 
         $this->assertTrue($result);
     }
@@ -1293,7 +1301,7 @@ class AudienceBookingRepositoryTest extends TestCase {
             ->once()
             ->andReturn(false);
 
-        $result = AudienceBookingRepository::add_booking_user(1, 42);
+        $result = AudienceBookingWriter::add_booking_user(1, 42);
 
         $this->assertFalse($result);
     }
@@ -1312,7 +1320,7 @@ class AudienceBookingRepositoryTest extends TestCase {
             )
             ->andReturn(1);
 
-        $result = AudienceBookingRepository::remove_booking_user(1, 42);
+        $result = AudienceBookingWriter::remove_booking_user(1, 42);
 
         $this->assertTrue($result);
     }
@@ -1322,7 +1330,7 @@ class AudienceBookingRepositoryTest extends TestCase {
             ->once()
             ->andReturn(false);
 
-        $result = AudienceBookingRepository::remove_booking_user(1, 42);
+        $result = AudienceBookingWriter::remove_booking_user(1, 42);
 
         $this->assertFalse($result);
     }
@@ -1335,7 +1343,7 @@ class AudienceBookingRepositoryTest extends TestCase {
         $this->wpdb->shouldReceive('prepare')->once()->andReturn('QUERY');
         $this->wpdb->shouldReceive('get_col')->once()->andReturn(['5', '10', '15']);
 
-        $result = AudienceBookingRepository::get_booking_users(1);
+        $result = AudienceBookingReader::get_booking_users(1);
 
         $this->assertSame([5, 10, 15], $result);
     }
@@ -1344,7 +1352,7 @@ class AudienceBookingRepositoryTest extends TestCase {
         $this->wpdb->shouldReceive('prepare')->once()->andReturn('QUERY');
         $this->wpdb->shouldReceive('get_col')->once()->andReturn([]);
 
-        $result = AudienceBookingRepository::get_booking_users(1);
+        $result = AudienceBookingReader::get_booking_users(1);
 
         $this->assertSame([], $result);
     }
@@ -1357,7 +1365,7 @@ class AudienceBookingRepositoryTest extends TestCase {
         });
         $this->wpdb->shouldReceive('get_col')->once()->andReturn([]);
 
-        AudienceBookingRepository::get_booking_users(1);
+        AudienceBookingReader::get_booking_users(1);
 
         $this->assertStringContainsString('SELECT user_id FROM', $captured_sql);
         $this->assertStringContainsString('booking_id = %d', $captured_sql);
@@ -1384,7 +1392,7 @@ class AudienceBookingRepositoryTest extends TestCase {
             ->once()
             ->andReturn(1);
 
-        $result = AudienceBookingRepository::set_booking_users(1, [100, 200]);
+        $result = AudienceBookingWriter::set_booking_users(1, [100, 200]);
 
         $this->assertTrue($result);
     }
@@ -1399,7 +1407,7 @@ class AudienceBookingRepositoryTest extends TestCase {
         // No inserts should happen
         $this->wpdb->shouldNotReceive('insert');
 
-        $result = AudienceBookingRepository::set_booking_users(1, []);
+        $result = AudienceBookingWriter::set_booking_users(1, []);
 
         $this->assertTrue($result);
     }
@@ -1416,7 +1424,7 @@ class AudienceBookingRepositoryTest extends TestCase {
         $this->wpdb->shouldReceive('prepare')->once()->andReturn('QUERY');
         $this->wpdb->shouldReceive('get_results')->once()->andReturn($conflicts);
 
-        $result = AudienceBookingRepository::get_conflicts(1, '2026-03-15', '09:30', '10:00');
+        $result = AudienceBookingReader::get_conflicts(1, '2026-03-15', '09:30', '10:00');
 
         $this->assertCount(1, $result);
         $this->assertSame(2, $result[0]->id);
@@ -1426,7 +1434,7 @@ class AudienceBookingRepositoryTest extends TestCase {
         $this->wpdb->shouldReceive('prepare')->once()->andReturn('QUERY');
         $this->wpdb->shouldReceive('get_results')->once()->andReturn([]);
 
-        $result = AudienceBookingRepository::get_conflicts(1, '2026-03-15', '09:00', '10:00');
+        $result = AudienceBookingReader::get_conflicts(1, '2026-03-15', '09:00', '10:00');
 
         $this->assertSame([], $result);
     }
@@ -1439,7 +1447,7 @@ class AudienceBookingRepositoryTest extends TestCase {
         });
         $this->wpdb->shouldReceive('get_results')->once()->andReturn([]);
 
-        AudienceBookingRepository::get_conflicts(1, '2026-03-15', '09:00', '10:00');
+        AudienceBookingReader::get_conflicts(1, '2026-03-15', '09:00', '10:00');
 
         $this->assertStringContainsString('environment_id = %d', $captured_sql);
         $this->assertStringContainsString('booking_date = %s', $captured_sql);
@@ -1459,7 +1467,7 @@ class AudienceBookingRepositoryTest extends TestCase {
         });
         $this->wpdb->shouldReceive('get_results')->once()->andReturn([]);
 
-        AudienceBookingRepository::get_conflicts(1, '2026-03-15', '09:00', '10:00', 99);
+        AudienceBookingReader::get_conflicts(1, '2026-03-15', '09:00', '10:00', 99);
 
         $this->assertStringContainsString('id != %d', $captured_sql);
     }
@@ -1472,7 +1480,7 @@ class AudienceBookingRepositoryTest extends TestCase {
         });
         $this->wpdb->shouldReceive('get_results')->once()->andReturn([]);
 
-        AudienceBookingRepository::get_conflicts(1, '2026-03-15', '09:00', '10:00');
+        AudienceBookingReader::get_conflicts(1, '2026-03-15', '09:00', '10:00');
 
         $this->assertStringNotContainsString('id !=', $captured_sql);
     }
@@ -1489,13 +1497,13 @@ class AudienceBookingRepositoryTest extends TestCase {
         $this->wpdb->shouldReceive('prepare')->once()->andReturn('QUERY');
         $this->wpdb->shouldReceive('get_results')->once()->andReturn($bookings);
 
-        $result = AudienceBookingRepository::get_audience_same_day_bookings('2026-03-15', [10, 20]);
+        $result = AudienceBookingReader::get_audience_same_day_bookings('2026-03-15', [10, 20]);
 
         $this->assertCount(1, $result);
     }
 
     public function test_get_audience_same_day_bookings_returns_empty_for_empty_audience_ids(): void {
-        $result = AudienceBookingRepository::get_audience_same_day_bookings('2026-03-15', []);
+        $result = AudienceBookingReader::get_audience_same_day_bookings('2026-03-15', []);
 
         $this->assertSame([], $result);
     }
@@ -1508,7 +1516,7 @@ class AudienceBookingRepositoryTest extends TestCase {
         });
         $this->wpdb->shouldReceive('get_results')->once()->andReturn([]);
 
-        AudienceBookingRepository::get_audience_same_day_bookings('2026-03-15', [10, 20]);
+        AudienceBookingReader::get_audience_same_day_bookings('2026-03-15', [10, 20]);
 
         $this->assertStringContainsString('booking_date = %s', $captured_sql);
         $this->assertStringContainsString("status = 'active'", $captured_sql);
@@ -1525,7 +1533,7 @@ class AudienceBookingRepositoryTest extends TestCase {
         });
         $this->wpdb->shouldReceive('get_results')->once()->andReturn([]);
 
-        AudienceBookingRepository::get_audience_same_day_bookings('2026-03-15', [10], 99);
+        AudienceBookingReader::get_audience_same_day_bookings('2026-03-15', [10], 99);
 
         $this->assertStringContainsString('b.id != %d', $captured_sql);
     }
@@ -1538,7 +1546,7 @@ class AudienceBookingRepositoryTest extends TestCase {
         $this->wpdb->shouldReceive('prepare')->once()->andReturn('SELECT COUNT(*) FROM ...');
         $this->wpdb->shouldReceive('get_var')->once()->andReturn('15');
 
-        $result = AudienceBookingRepository::count();
+        $result = AudienceBookingReader::count();
 
         $this->assertSame(15, $result);
     }
@@ -1551,7 +1559,7 @@ class AudienceBookingRepositoryTest extends TestCase {
         });
         $this->wpdb->shouldReceive('get_var')->once()->andReturn('5');
 
-        $result = AudienceBookingRepository::count(['environment_id' => 3]);
+        $result = AudienceBookingReader::count(['environment_id' => 3]);
 
         $this->assertSame(5, $result);
         $this->assertStringContainsString('environment_id = %d', $captured_sql);
@@ -1565,7 +1573,7 @@ class AudienceBookingRepositoryTest extends TestCase {
         });
         $this->wpdb->shouldReceive('get_var')->once()->andReturn('3');
 
-        $result = AudienceBookingRepository::count(['status' => 'active']);
+        $result = AudienceBookingReader::count(['status' => 'active']);
 
         $this->assertSame(3, $result);
         $this->assertStringContainsString('status = %s', $captured_sql);
@@ -1579,7 +1587,7 @@ class AudienceBookingRepositoryTest extends TestCase {
         });
         $this->wpdb->shouldReceive('get_var')->once()->andReturn('2');
 
-        $result = AudienceBookingRepository::count(['booking_date' => '2026-03-15']);
+        $result = AudienceBookingReader::count(['booking_date' => '2026-03-15']);
 
         $this->assertSame(2, $result);
         $this->assertStringContainsString('booking_date = %s', $captured_sql);
@@ -1593,7 +1601,7 @@ class AudienceBookingRepositoryTest extends TestCase {
         });
         $this->wpdb->shouldReceive('get_var')->once()->andReturn('7');
 
-        $result = AudienceBookingRepository::count(['start_date' => '2026-05-01']);
+        $result = AudienceBookingReader::count(['start_date' => '2026-05-01']);
 
         $this->assertSame(7, $result);
         $this->assertStringContainsString('booking_date >= %s', $captured_sql);
@@ -1607,7 +1615,7 @@ class AudienceBookingRepositoryTest extends TestCase {
         });
         $this->wpdb->shouldReceive('get_var')->once()->andReturn('3');
 
-        $result = AudienceBookingRepository::count(['end_date' => '2026-05-31']);
+        $result = AudienceBookingReader::count(['end_date' => '2026-05-31']);
 
         $this->assertSame(3, $result);
         $this->assertStringContainsString('booking_date <= %s', $captured_sql);
@@ -1621,7 +1629,7 @@ class AudienceBookingRepositoryTest extends TestCase {
         });
         $this->wpdb->shouldReceive('get_var')->once()->andReturn('4');
 
-        $result = AudienceBookingRepository::count(['created_by' => 42]);
+        $result = AudienceBookingReader::count(['created_by' => 42]);
 
         $this->assertSame(4, $result);
         $this->assertStringContainsString('created_by = %d', $captured_sql);
@@ -1635,7 +1643,7 @@ class AudienceBookingRepositoryTest extends TestCase {
         });
         $this->wpdb->shouldReceive('get_var')->once()->andReturn('1');
 
-        $result = AudienceBookingRepository::count([
+        $result = AudienceBookingReader::count([
             'environment_id' => 1,
             'status' => 'active',
             'booking_date' => '2026-03-15',
@@ -1654,7 +1662,7 @@ class AudienceBookingRepositoryTest extends TestCase {
         $this->wpdb->shouldReceive('prepare')->once()->andReturn('QUERY');
         $this->wpdb->shouldReceive('get_var')->once()->andReturn('0');
 
-        $result = AudienceBookingRepository::count();
+        $result = AudienceBookingReader::count();
 
         $this->assertSame(0, $result);
     }
@@ -1663,7 +1671,7 @@ class AudienceBookingRepositoryTest extends TestCase {
         $this->wpdb->shouldReceive('prepare')->once()->andReturn('QUERY');
         $this->wpdb->shouldReceive('get_var')->once()->andReturn(null);
 
-        $result = AudienceBookingRepository::count();
+        $result = AudienceBookingReader::count();
 
         $this->assertSame(0, $result);
         $this->assertIsInt($result);

@@ -113,8 +113,8 @@ class DashboardShortcode {
 		}
 
 		// Check if user has any reregistration submissions.
-		$can_view_reregistrations = class_exists( '\FreeFormCertificate\Reregistration\ReregistrationSubmissionRepository' )
-			&& ! empty( \FreeFormCertificate\Reregistration\ReregistrationSubmissionRepository::get_all_by_user( $user_id ) );
+		$can_view_reregistrations = class_exists( '\FreeFormCertificate\Reregistration\ReregistrationSubmissionReader' )
+			&& ! empty( \FreeFormCertificate\Reregistration\ReregistrationSubmissionReader::get_all_by_user( $user_id ) );
 
 		// Recruitment tab — visible when the user has at least one
 		// classification across recruitment notices (joined via
@@ -135,7 +135,7 @@ class DashboardShortcode {
 
 		// Get current tab - default to first available tab.
 		$default_tab = $can_view_certificates ? 'certificates' : ( $can_view_appointments ? 'appointments' : ( $can_view_audience_bookings ? 'audience' : ( $can_view_reregistrations ? 'reregistrations' : ( $can_view_recruitment ? 'recruitment' : 'profile' ) ) ) );
-		$current_tab = \FreeFormCertificate\Core\Utils::get_get_string( 'tab', $default_tab );
+		$current_tab = \FreeFormCertificate\Core\RequestInput::get_get_string( 'tab', $default_tab );
 
 		// Start output buffering.
 		ob_start();
@@ -332,7 +332,7 @@ class DashboardShortcode {
 	 * @return string HTML output
 	 */
 	private static function render_redirect_message(): string {
-		if ( \FreeFormCertificate\Core\Utils::get_get_string( 'ffc_redirect' ) !== 'access_denied' ) {
+		if ( \FreeFormCertificate\Core\RequestInput::get_get_string( 'ffc_redirect' ) !== 'access_denied' ) {
 			return '';
 		}
 

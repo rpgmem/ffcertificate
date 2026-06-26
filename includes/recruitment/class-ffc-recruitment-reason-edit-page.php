@@ -32,7 +32,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 /**
  * Reason edit screen renderer + admin-post save handler.
  *
- * @phpstan-import-type ReasonRow from RecruitmentReasonRepository
+ * @phpstan-import-type ReasonRow from RecruitmentReasonReader
  */
 final class RecruitmentReasonEditPage {
 
@@ -58,13 +58,13 @@ final class RecruitmentReasonEditPage {
 	 * @return void
 	 */
 	public static function render(): void {
-		if ( ! \FreeFormCertificate\Core\Utils::current_user_can_admin_or( self::CAP ) ) {
+		if ( ! \FreeFormCertificate\Core\Capabilities::current_user_can_admin_or( self::CAP ) ) {
 			wp_die( esc_html__( 'Access denied.', 'ffcertificate' ) );
 		}
 
 		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- read-only render.
 		$reason_id = isset( $_GET['reason_id'] ) ? absint( wp_unslash( (string) $_GET['reason_id'] ) ) : 0;
-		$reason    = $reason_id > 0 ? RecruitmentReasonRepository::get_by_id( $reason_id ) : null;
+		$reason    = $reason_id > 0 ? RecruitmentReasonReader::get_by_id( $reason_id ) : null;
 
 		if ( null === $reason ) {
 			echo '<div class="notice notice-error"><p>' . esc_html__( 'Reason not found.', 'ffcertificate' ) . '</p></div>';
@@ -92,13 +92,13 @@ final class RecruitmentReasonEditPage {
 	private static function render_general_section( object $reason ): void {
 		$id           = (int) $reason->id;
 		$nonce_action = 'ffc_recruitment_save_reason_' . $id;
-		$applies_to   = RecruitmentReasonRepository::decode_applies_to( (string) ( $reason->applies_to ?? '' ) );
+		$applies_to   = RecruitmentReasonReader::decode_applies_to( (string) ( $reason->applies_to ?? '' ) );
 		// `decode_applies_to` returns the full set when storage is empty
 		// (= "applies to all"). Distinguish "stored empty" from "stored
 		// every value" so the checkbox grid renders correctly: when
 		// stored is empty, leave every box unchecked.
 		$is_applies_all = '' === trim( (string) ( $reason->applies_to ?? '' ) );
-		$color          = isset( $reason->color ) ? (string) $reason->color : RecruitmentReasonRepository::DEFAULT_COLOR;
+		$color          = isset( $reason->color ) ? (string) $reason->color : RecruitmentReasonReader::DEFAULT_COLOR;
 
 		$applies_options = array(
 			'denied'         => __( 'Denied', 'ffcertificate' ),
@@ -161,7 +161,7 @@ final class RecruitmentReasonEditPage {
 	 * @return void
 	 */
 	public static function handle_save(): void {
-		if ( ! \FreeFormCertificate\Core\Utils::current_user_can_admin_or( self::CAP ) ) {
+		if ( ! \FreeFormCertificate\Core\Capabilities::current_user_can_admin_or( self::CAP ) ) {
 			wp_die( esc_html__( 'Access denied.', 'ffcertificate' ) );
 		}
 		$reason_id = isset( $_POST['reason_id'] ) ? absint( wp_unslash( (string) $_POST['reason_id'] ) ) : 0;
@@ -189,7 +189,7 @@ final class RecruitmentReasonEditPage {
 			}
 		}
 
-		RecruitmentReasonRepository::update(
+		RecruitmentReasonWriter::update(
 			$reason_id,
 			array(
 				'label'      => $label,

@@ -30,6 +30,9 @@ class AudienceRestControllerTest extends TestCase {
     private $booking_repo_mock;
 
     /** @var \Mockery\MockInterface */
+    private $booking_writer_mock;
+
+    /** @var \Mockery\MockInterface */
     private $env_repo_mock;
 
     /** @var \Mockery\MockInterface */
@@ -63,15 +66,16 @@ class AudienceRestControllerTest extends TestCase {
         $this->calendar_repo_mock = Mockery::mock( 'alias:\FreeFormCertificate\Repositories\CalendarRepository' );
         $this->calendar_repo_mock->shouldReceive( 'userHasSchedulingBypass' )->andReturn( false )->byDefault();
 
-        $this->booking_repo_mock = Mockery::mock( 'alias:\FreeFormCertificate\Audience\AudienceBookingRepository' );
+        $this->booking_repo_mock   = Mockery::mock( 'alias:\FreeFormCertificate\Audience\AudienceBookingReader' );
+        $this->booking_writer_mock = Mockery::mock( 'alias:\FreeFormCertificate\Audience\AudienceBookingWriter' );
         $this->booking_repo_mock->shouldReceive( 'get_by_id' )->andReturn( null )->byDefault();
         $this->booking_repo_mock->shouldReceive( 'get_all' )->andReturn( array() )->byDefault();
         $this->booking_repo_mock->shouldReceive( 'get_booking_audiences' )->andReturn( array() )->byDefault();
         $this->booking_repo_mock->shouldReceive( 'get_conflicts' )->andReturn( array() )->byDefault();
         $this->booking_repo_mock->shouldReceive( 'get_audience_same_day_bookings' )->andReturn( array() )->byDefault();
         $this->booking_repo_mock->shouldReceive( 'get_user_conflicts' )->andReturn( array( 'bookings' => array(), 'affected_users' => array() ) )->byDefault();
-        $this->booking_repo_mock->shouldReceive( 'create' )->andReturn( 1 )->byDefault();
-        $this->booking_repo_mock->shouldReceive( 'cancel' )->andReturn( true )->byDefault();
+        $this->booking_writer_mock->shouldReceive( 'create' )->andReturn( 1 )->byDefault();
+        $this->booking_writer_mock->shouldReceive( 'cancel' )->andReturn( true )->byDefault();
 
         $this->env_repo_mock = Mockery::mock( 'alias:\FreeFormCertificate\Audience\AudienceEnvironmentRepository' );
         $this->env_repo_mock->shouldReceive( 'get_by_id' )->andReturn( null )->byDefault();
@@ -525,7 +529,7 @@ class AudienceRestControllerTest extends TestCase {
         $this->schedule_repo_mock->shouldReceive( 'user_can_book' )->andReturn( true );
         $this->schedule_repo_mock->shouldReceive( 'get_by_id' )->andReturn( null );
         $this->booking_repo_mock->shouldReceive( 'get_conflicts' )->andReturn( array() );
-        $this->booking_repo_mock->shouldReceive( 'create' )->andReturn( 42 );
+        $this->booking_writer_mock->shouldReceive( 'create' )->andReturn( 42 );
 
         $ctrl    = new AudienceRestController();
         $request = $this->make_request( array(
@@ -607,7 +611,7 @@ class AudienceRestControllerTest extends TestCase {
             'status' => 'active',
         );
         $this->booking_repo_mock->shouldReceive( 'get_by_id' )->with( 1 )->andReturn( $booking );
-        $this->booking_repo_mock->shouldReceive( 'cancel' )->with( 1, 'Cannot attend the meeting anymore' )->andReturn( true );
+        $this->booking_writer_mock->shouldReceive( 'cancel' )->with( 1, 'Cannot attend the meeting anymore' )->andReturn( true );
 
         $ctrl    = new AudienceRestController();
         $request = $this->make_request( array(

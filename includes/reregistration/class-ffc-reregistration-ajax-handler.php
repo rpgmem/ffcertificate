@@ -94,7 +94,7 @@ final class ReregistrationAjaxHandler {
 			wp_send_json_error( array( 'message' => __( 'Invalid submission.', 'ffcertificate' ) ) );
 		}
 
-		$submission = ReregistrationSubmissionRepository::get_by_id( $submission_id );
+		$submission = ReregistrationSubmissionReader::get_by_id( $submission_id );
 		if ( ! $submission ) {
 			wp_send_json_error( array( 'message' => __( 'Submission not found.', 'ffcertificate' ) ) );
 		}

@@ -54,7 +54,7 @@ class AdminUserCapabilities {
 		if ( 'user-edit.php' !== $hook_suffix && 'profile.php' !== $hook_suffix ) {
 			return;
 		}
-		$s = \FreeFormCertificate\Core\Utils::asset_suffix();
+		$s = \FreeFormCertificate\Core\AssetHelper::asset_suffix();
 		// ffc-common.css carries the .ffc-toggle switch styles reused by the
 		// capability rows; ffc-user-permissions.css adds the grouped-card
 		// layout, slug chips, origin badges and search/preset toolbar.
@@ -529,8 +529,8 @@ class AdminUserCapabilities {
 	 * @return list<\stdClass>
 	 */
 	private static function active_audiences(): array {
-		if ( class_exists( '\FreeFormCertificate\Audience\AudienceRepository' ) ) {
-			return \FreeFormCertificate\Audience\AudienceRepository::get_all(
+		if ( class_exists( '\FreeFormCertificate\Audience\AudienceReader' ) ) {
+			return \FreeFormCertificate\Audience\AudienceReader::get_all(
 				array(
 					'status'  => 'active',
 					'orderby' => 'name',
@@ -548,14 +548,14 @@ class AdminUserCapabilities {
 	 * @return array<int>
 	 */
 	private static function user_audience_ids( int $user_id ): array {
-		if ( ! class_exists( '\FreeFormCertificate\Audience\AudienceRepository' ) ) {
+		if ( ! class_exists( '\FreeFormCertificate\Audience\AudienceReader' ) ) {
 			return array();
 		}
 		return array_map(
 			static function ( $audience ) {
 				return (int) $audience->id;
 			},
-			\FreeFormCertificate\Audience\AudienceRepository::get_user_audiences( $user_id )
+			\FreeFormCertificate\Audience\AudienceReader::get_user_audiences( $user_id )
 		);
 	}
 
@@ -567,7 +567,7 @@ class AdminUserCapabilities {
 	 */
 	public static function save_capability_fields( int $user_id ): void {
 		// Verify nonce.
-		if ( ! wp_verify_nonce( \FreeFormCertificate\Core\Utils::get_post_string( 'ffc_capabilities_nonce' ), 'ffc_user_capabilities' ) ) {
+		if ( ! wp_verify_nonce( \FreeFormCertificate\Core\RequestInput::get_post_string( 'ffc_capabilities_nonce' ), 'ffc_user_capabilities' ) ) {
 			return;
 		}
 
@@ -623,7 +623,7 @@ class AdminUserCapabilities {
 				array(
 					'user_id'      => $user_id,
 					'admin_id'     => get_current_user_id(),
-					'capabilities' => \FreeFormCertificate\UserDashboard\UserManager::get_user_ffc_capabilities( $user_id ),
+					'capabilities' => \FreeFormCertificate\UserDashboard\CapabilityManager::get_user_ffc_capabilities( $user_id ),
 				)
 			);
 		}
@@ -647,7 +647,7 @@ class AdminUserCapabilities {
 	 * @return void
 	 */
 	private static function sync_audience_membership( int $user_id, array $submitted_audiences ): void {
-		if ( ! class_exists( '\FreeFormCertificate\Audience\AudienceRepository' ) ) {
+		if ( ! class_exists( '\FreeFormCertificate\Audience\AudienceReader' ) ) {
 			return;
 		}
 
@@ -671,10 +671,10 @@ class AdminUserCapabilities {
 		$to_remove = array_diff( $current, $submitted );
 
 		foreach ( $to_add as $audience_id ) {
-			\FreeFormCertificate\Audience\AudienceRepository::add_member( (int) $audience_id, $user_id );
+			\FreeFormCertificate\Audience\AudienceWriter::add_member( (int) $audience_id, $user_id );
 		}
 		foreach ( $to_remove as $audience_id ) {
-			\FreeFormCertificate\Audience\AudienceRepository::remove_member( (int) $audience_id, $user_id );
+			\FreeFormCertificate\Audience\AudienceWriter::remove_member( (int) $audience_id, $user_id );
 		}
 
 		if ( ( ! empty( $to_add ) || ! empty( $to_remove ) ) && class_exists( '\FreeFormCertificate\Core\Debug' ) ) {
@@ -762,7 +762,7 @@ class AdminUserCapabilities {
 	 * @return bool True if user has any FFC capability
 	 */
 	private static function has_any_ffc_capability( int $user_id ): bool {
-		return \FreeFormCertificate\UserDashboard\UserManager::has_certificate_access( $user_id ) ||
-				\FreeFormCertificate\UserDashboard\UserManager::has_appointment_access( $user_id );
+		return \FreeFormCertificate\UserDashboard\CapabilityManager::has_certificate_access( $user_id ) ||
+				\FreeFormCertificate\UserDashboard\CapabilityManager::has_appointment_access( $user_id );
 	}
 }

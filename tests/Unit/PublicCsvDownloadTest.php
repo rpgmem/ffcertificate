@@ -27,6 +27,10 @@ use FreeFormCertificate\Security\RateLimitChecker;
  *    wp_raise_memory_limit — that runs at the top of PublicCsvExporter::stream_form_csv
  *    AFTER the counter has been incremented, which is the observable behavior
  *    we care about here.
+ *
+ * @covers \FreeFormCertificate\Frontend\PublicCsvDownload
+ * @covers \FreeFormCertificate\Frontend\Csv\CsvDownloadAuditLog
+ * @covers \FreeFormCertificate\Frontend\Csv\CsvDownloadFlash
  */
 class PublicCsvDownloadTest extends TestCase {
 
@@ -84,7 +88,7 @@ class PublicCsvDownloadTest extends TestCase {
         Functions\when( 'get_transient' )->justReturn( false );
         Functions\when( 'delete_transient' )->justReturn( true );
 
-        // --- Utils::get_user_ip() avoids touching $_SERVER --------------
+        // --- RequestInput::get_user_ip() avoids touching $_SERVER --------------
         $_SERVER['REMOTE_ADDR'] = '203.0.113.99';
 
         // Namespaced stubs in FreeFormCertificate\Core — needed because

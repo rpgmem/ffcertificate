@@ -33,6 +33,11 @@ declare(strict_types=1);
 namespace FreeFormCertificate\Frontend;
 
 use FreeFormCertificate\Core\Utils;
+use FreeFormCertificate\Core\Capabilities;
+use FreeFormCertificate\Core\RequestInput;
+
+use FreeFormCertificate\Frontend\Csv\CsvDownloadAuditLog;
+use FreeFormCertificate\Frontend\Csv\CsvDownloadFlash;
 
 use FreeFormCertificate\Security\Geofence;
 use FreeFormCertificate\Security\RateLimiter;
@@ -79,11 +84,19 @@ class PublicCsvDownload {
 	private CsvDownloadFormInfoBuilder $form_info_builder;
 
 	/**
+	 * Flash-message helper (transient keyed by visitor IP).
+	 *
+	 * @var CsvDownloadFlash
+	 */
+	private CsvDownloadFlash $flash;
+
+	/**
 	 * Wire up the small collaborators that hold the extracted logic.
 	 */
 	public function __construct() {
 		$this->validator         = new CsvDownloadValidator();
 		$this->form_info_builder = new CsvDownloadFormInfoBuilder();
+		$this->flash             = new CsvDownloadFlash();
 	}
 
 	/**
@@ -153,7 +166,7 @@ class PublicCsvDownload {
 		$security_html = $shortcodes->generate_security_fields();
 
 		$prefill_form_id = isset( $_GET['form_id'] ) ? absint( wp_unslash( $_GET['form_id'] ) ) : 0; // phpcs:ignore WordPress.Security.NonceVerification.Recommended
-		$prefill_hash    = Utils::get_get_string( 'hash' );
+		$prefill_hash    = RequestInput::get_get_string( 'hash' );
 
 		// CPF gate mode is per-form. We can't read it without a known form_id;
 		// when prefilled, honour that form's setting. Otherwise render the
@@ -293,7 +306,7 @@ class PublicCsvDownload {
 		 * outcomes, which all run after we've parsed form_id below.
 		 */
 		if ( class_exists( RateLimiter::class ) ) {
-			$ip         = \FreeFormCertificate\Core\Utils::get_user_ip();
+			$ip         = \FreeFormCertificate\Core\RequestInput::get_user_ip();
 			$rate_check = RateLimiter::check_ip_limit( $ip );
 			if ( empty( $rate_check['allowed'] ) ) {
 				$this->fail_redirect( $rate_check['message'] ?? __( 'Too many requests. Please wait.', 'ffcertificate' ) );
@@ -302,7 +315,7 @@ class PublicCsvDownload {
 
 		// 2. Nonce.
 		// phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized, WordPress.Security.ValidatedSanitizedInput.MissingUnslash
-		if ( ! wp_verify_nonce( Utils::get_post_string( '_ffc_pcd_nonce' ), self::NONCE_ACTION ) ) {
+		if ( ! wp_verify_nonce( RequestInput::get_post_string( '_ffc_pcd_nonce' ), self::NONCE_ACTION ) ) {
 			$this->fail_redirect( __( 'Security check failed. Please refresh the page and try again.', 'ffcertificate' ) );
 		}
 
@@ -316,7 +329,7 @@ class PublicCsvDownload {
 		// phpcs:ignore WordPress.Security.NonceVerification.Missing -- Nonce verified above.
 		$form_id = isset( $_POST['form_id'] ) ? absint( wp_unslash( $_POST['form_id'] ) ) : 0;
 		// phpcs:ignore WordPress.Security.NonceVerification.Missing -- Nonce verified above.
-		$posted_hash = Utils::get_post_string( 'hash' );
+		$posted_hash = RequestInput::get_post_string( 'hash' );
 
 		// 4. Honeypot + CAPTCHA.
 		// phpcs:ignore WordPress.Security.NonceVerification.Missing -- Nonce verified above.
@@ -342,7 +355,7 @@ class PublicCsvDownload {
 
 		// 9b. CPF gate (per-form opt-in, no-op when mode = 'none').
 		// phpcs:ignore WordPress.Security.NonceVerification.Missing -- Nonce verified above.
-		$cpf_input = Utils::get_post_string( 'cpf' );
+		$cpf_input = RequestInput::get_post_string( 'cpf' );
 		$cpf_error = $this->validate_cpf_requirement( $form_id, $cpf_input );
 		if ( null !== $cpf_error ) {
 			$this->fail_redirect( $cpf_error );
@@ -401,7 +414,7 @@ class PublicCsvDownload {
 		 * (rate-limit, nonce) are intentionally not audit-logged.
 		 */
 		if ( class_exists( RateLimiter::class ) ) {
-			$ip         = \FreeFormCertificate\Core\Utils::get_user_ip();
+			$ip         = \FreeFormCertificate\Core\RequestInput::get_user_ip();
 			$rate_check = RateLimiter::check_ip_limit( $ip );
 			if ( empty( $rate_check['allowed'] ) ) {
 				wp_send_json_error( array( 'message' => $rate_check['message'] ?? __( 'Too many requests. Please wait.', 'ffcertificate' ) ) );
@@ -409,7 +422,7 @@ class PublicCsvDownload {
 		}
 
 		// 2. Nonce.
-		if ( ! wp_verify_nonce( Utils::get_post_string( '_ffc_pcd_nonce' ), self::NONCE_ACTION ) ) { // phpcs:ignore WordPress.Security.ValidatedSanitizedInput
+		if ( ! wp_verify_nonce( RequestInput::get_post_string( '_ffc_pcd_nonce' ), self::NONCE_ACTION ) ) { // phpcs:ignore WordPress.Security.ValidatedSanitizedInput
 			wp_send_json_error( array( 'message' => __( 'Security check failed. Please refresh the page and try again.', 'ffcertificate' ) ) );
 		}
 
@@ -419,7 +432,7 @@ class PublicCsvDownload {
 		 * audit log.
 		 */
 		$form_id     = isset( $_POST['form_id'] ) ? absint( wp_unslash( $_POST['form_id'] ) ) : 0; // phpcs:ignore WordPress.Security.NonceVerification.Missing
-		$posted_hash = Utils::get_post_string( 'hash' );
+		$posted_hash = RequestInput::get_post_string( 'hash' );
 
 		// 4. Honeypot + CAPTCHA.
 		$security_check = \FreeFormCertificate\Core\SecurityService::validate_security_fields( $_POST ); // phpcs:ignore WordPress.Security.NonceVerification.Missing
@@ -444,7 +457,7 @@ class PublicCsvDownload {
 
 		// 7b. CPF gate (per-form opt-in, no-op when mode = 'none').
 		// phpcs:ignore WordPress.Security.NonceVerification.Missing -- Nonce verified above.
-		$cpf_input = Utils::get_post_string( 'cpf' );
+		$cpf_input = RequestInput::get_post_string( 'cpf' );
 		$cpf_error = $this->validate_cpf_requirement( $form_id, $cpf_input );
 		if ( null !== $cpf_error ) {
 			wp_send_json_error( array( 'message' => $cpf_error ) );
@@ -464,12 +477,12 @@ class PublicCsvDownload {
 	 */
 	public function ajax_cert_preview(): void {
 		// phpcs:ignore WordPress.Security.ValidatedSanitizedInput
-		if ( ! wp_verify_nonce( Utils::get_post_string( '_ffc_pcd_nonce' ), self::NONCE_ACTION ) ) {
+		if ( ! wp_verify_nonce( RequestInput::get_post_string( '_ffc_pcd_nonce' ), self::NONCE_ACTION ) ) {
 			wp_send_json_error( array( 'message' => __( 'Security check failed.', 'ffcertificate' ) ) );
 		}
 
 		$form_id     = isset( $_POST['form_id'] ) ? absint( wp_unslash( $_POST['form_id'] ) ) : 0; // phpcs:ignore WordPress.Security.NonceVerification.Missing
-		$posted_hash = Utils::get_post_string( 'hash' );
+		$posted_hash = RequestInput::get_post_string( 'hash' );
 
 		$error = $this->validate_hash_only( $form_id, $posted_hash );
 		if ( null !== $error ) {
@@ -526,13 +539,13 @@ class PublicCsvDownload {
 	 */
 	public function ajax_open_early(): void {
 		// phpcs:ignore WordPress.Security.ValidatedSanitizedInput
-		if ( ! wp_verify_nonce( Utils::get_post_string( '_ffc_pcd_nonce' ), self::NONCE_ACTION ) ) {
+		if ( ! wp_verify_nonce( RequestInput::get_post_string( '_ffc_pcd_nonce' ), self::NONCE_ACTION ) ) {
 			wp_send_json_error( array( 'message' => __( 'Security check failed.', 'ffcertificate' ) ), 403 );
 		}
 
 		$form_id     = isset( $_POST['form_id'] ) ? absint( wp_unslash( $_POST['form_id'] ) ) : 0; // phpcs:ignore WordPress.Security.NonceVerification.Missing
-		$posted_hash = Utils::get_post_string( 'hash' );
-		$cpf_input   = Utils::get_post_string( 'cpf' );
+		$posted_hash = RequestInput::get_post_string( 'hash' );
+		$cpf_input   = RequestInput::get_post_string( 'cpf' );
 
 		$audit_meta = array(
 			'user_id' => get_current_user_id(),
@@ -602,14 +615,14 @@ class PublicCsvDownload {
 	 */
 	public function ajax_extend_end(): void {
 		// phpcs:ignore WordPress.Security.ValidatedSanitizedInput
-		if ( ! wp_verify_nonce( Utils::get_post_string( '_ffc_pcd_nonce' ), self::NONCE_ACTION ) ) {
+		if ( ! wp_verify_nonce( RequestInput::get_post_string( '_ffc_pcd_nonce' ), self::NONCE_ACTION ) ) {
 			wp_send_json_error( array( 'message' => __( 'Security check failed.', 'ffcertificate' ) ), 403 );
 		}
 
 		$form_id      = isset( $_POST['form_id'] ) ? absint( wp_unslash( $_POST['form_id'] ) ) : 0; // phpcs:ignore WordPress.Security.NonceVerification.Missing
-		$posted_hash  = Utils::get_post_string( 'hash' );
-		$new_time_end = Utils::get_post_string( 'new_time_end' );
-		$cpf_input    = Utils::get_post_string( 'cpf' );
+		$posted_hash  = RequestInput::get_post_string( 'hash' );
+		$new_time_end = RequestInput::get_post_string( 'new_time_end' );
+		$cpf_input    = RequestInput::get_post_string( 'cpf' );
 
 		$audit_meta = array(
 			'user_id' => get_current_user_id(),
@@ -677,15 +690,15 @@ class PublicCsvDownload {
 	 */
 	public function ajax_schedule_exception(): void {
 		// phpcs:ignore WordPress.Security.ValidatedSanitizedInput
-		if ( ! wp_verify_nonce( Utils::get_post_string( '_ffc_pcd_nonce' ), self::NONCE_ACTION ) ) {
+		if ( ! wp_verify_nonce( RequestInput::get_post_string( '_ffc_pcd_nonce' ), self::NONCE_ACTION ) ) {
 			wp_send_json_error( array( 'message' => __( 'Security check failed.', 'ffcertificate' ) ), 403 );
 		}
 
 		$form_id        = isset( $_POST['form_id'] ) ? absint( wp_unslash( $_POST['form_id'] ) ) : 0; // phpcs:ignore WordPress.Security.NonceVerification.Missing
-		$posted_hash    = Utils::get_post_string( 'hash' );
-		$start_override = Utils::get_post_string( 'start_override' );
-		$end_override   = Utils::get_post_string( 'end_override' );
-		$cpf_input      = Utils::get_post_string( 'cpf' );
+		$posted_hash    = RequestInput::get_post_string( 'hash' );
+		$start_override = RequestInput::get_post_string( 'start_override' );
+		$end_override   = RequestInput::get_post_string( 'end_override' );
+		$cpf_input      = RequestInput::get_post_string( 'cpf' );
 
 		// Mirror ajax_extend_end's CPF re-validation. `silent_audit = true`
 		// keeps the per-form audit ring buffer untouched here — the row
@@ -791,7 +804,7 @@ class PublicCsvDownload {
 	 * `_ffc_csv_public_download_log` for a single form as a CSV download
 	 * with CPFs decrypted on the fly via {@see Encryption::decrypt}.
 	 *
-	 * Auth: nonce + user must satisfy {@see Utils::current_user_can_admin_or}
+	 * Auth: nonce + user must satisfy {@see Capabilities::current_user_can_admin_or}
 	 * with `ffc_manage_settings` AND have `edit_post` on the target form.
 	 *
 	 * @return void Streams CSV and exits; never returns on success.
@@ -800,7 +813,7 @@ class PublicCsvDownload {
         // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Nonce validated below.
 		$form_id = isset( $_GET['form_id'] ) ? absint( wp_unslash( $_GET['form_id'] ) ) : 0;
         // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
-		$nonce = Utils::get_get_string( '_wpnonce' );
+		$nonce = RequestInput::get_get_string( '_wpnonce' );
 
 		if ( ! wp_verify_nonce( $nonce, self::EXPORT_LOG_NONCE . '_' . $form_id ) ) {
 			wp_die( esc_html__( 'Security check failed.', 'ffcertificate' ), 403 );
@@ -812,7 +825,7 @@ class PublicCsvDownload {
 			wp_die( esc_html__( 'You do not have permission to export this log.', 'ffcertificate' ), 403 );
 		}
 		$can_audit = class_exists( '\FreeFormCertificate\Core\Utils' )
-			? \FreeFormCertificate\Core\Utils::current_user_can_admin_or( 'ffc_manage_settings' )
+			? \FreeFormCertificate\Core\Capabilities::current_user_can_admin_or( 'ffc_manage_settings' )
 			: current_user_can( 'manage_options' );
 		if ( ! $can_audit ) {
 			wp_die( esc_html__( 'You do not have permission to export this log.', 'ffcertificate' ), 403 );
@@ -859,38 +872,13 @@ class PublicCsvDownload {
 			$ip  = isset( $entry['ip'] ) ? (string) $entry['ip'] : '';
 			$mod = isset( $entry['mode'] ) ? (string) $entry['mode'] : '';
 			$res = isset( $entry['result'] ) ? (string) $entry['result'] : '';
-			$cpf = self::decrypt_log_entry_cpf( $entry );
+			$cpf = CsvDownloadAuditLog::decrypt_log_entry_cpf( $entry );
 			$writer->row( array( $ts, $ip, $mod, $cpf, $res ) );
 		}
 		$writer->close();
         // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose -- closing the php://output handle this method opened.
 		fclose( $fh );
 		exit;
-	}
-
-	/**
-	 * Decrypt a single log entry's CPF for display in the export.
-	 *
-	 * @param array<string, mixed> $entry Log entry row.
-	 * @return string Formatted CPF, '' when blank, or a marker for failures.
-	 */
-	private static function decrypt_log_entry_cpf( array $entry ): string {
-		$cipher = isset( $entry['cpf_encrypted'] ) ? (string) $entry['cpf_encrypted'] : '';
-		if ( '' === $cipher ) {
-			return '';
-		}
-		if ( ! class_exists( '\FreeFormCertificate\Core\Encryption' )
-			|| ! \FreeFormCertificate\Core\Encryption::is_configured() ) {
-			return '[encryption disabled]';
-		}
-		$plain = \FreeFormCertificate\Core\Encryption::decrypt( $cipher );
-		if ( ! is_string( $plain ) || '' === $plain ) {
-			return '[decrypt failed]';
-		}
-		if ( class_exists( '\FreeFormCertificate\Core\DocumentFormatter' ) ) {
-			return \FreeFormCertificate\Core\DocumentFormatter::format_cpf( $plain );
-		}
-		return $plain;
 	}
 
 	/**
@@ -924,63 +912,13 @@ class PublicCsvDownload {
 	 * @return array{count: int, success: int, fail: int, access_success: int, download_success: int, failed_access: int, url: string|null}
 	 */
 	public static function get_audit_log_summary( int $form_id ): array {
-		$log   = get_post_meta( $form_id, self::META_DOWNLOAD_LOG, true );
-		$log   = is_array( $log ) ? $log : array();
-		$count = count( $log );
-
-		// Validator-emitted "CPF passed" tags. Don't include
-		// `download_delivered` here — that tag was added in the
-		// post-#241 audit fix and always pairs with a pre-existing
-		// `success` / `audit_pass` / `voluntary` row from the
-		// validator (or stands alone in 'none' mode without CPF).
-		// Adding it would over-count CPF-gated flows. The exported
-		// audit CSV still shows the rows; the metabox summary just
-		// doesn't double-count them. `download_success` continues to
-		// source from META_COUNT, the long-lived counter that
-		// survives ring-buffer rotation.
-		$access_success_tags = array( 'success', 'audit_pass', 'voluntary' );
-		// `download_delivered` (PR #242) records actual file deliveries;
-		// `action_early_open` / `action_postpone_close` (#243 Sprint 6)
-		// record operator action events. Both are useful in the audit
-		// CSV but shouldn't count toward access_success / failed_access
-		// in the metabox summary (would double-count flows where the
-		// CPF gate also wrote its own validator row).
-		$delivery_tags  = array( 'download_delivered', 'action_early_open', 'action_postpone_close' );
-		$access_success = 0;
-		$failed_access  = 0;
-		foreach ( $log as $entry ) {
-			$result = is_array( $entry ) && isset( $entry['result'] ) ? (string) $entry['result'] : '';
-			if ( in_array( $result, $access_success_tags, true ) ) {
-				++$access_success;
-			} elseif ( in_array( $result, $delivery_tags, true ) ) {
-				continue;
-			} else {
-				++$failed_access;
-			}
-		}
-
-		$download_success = (int) get_post_meta( $form_id, self::META_COUNT, true );
-
-		$url = null;
-		if ( $count > 0 ) {
-			$url = add_query_arg(
-				array(
-					'action'   => self::EXPORT_LOG_ACTION,
-					'form_id'  => $form_id,
-					'_wpnonce' => wp_create_nonce( self::EXPORT_LOG_NONCE . '_' . $form_id ),
-				),
-				admin_url( 'admin-post.php' )
-			);
-		}
-		return array(
-			'count'            => $count,
-			'success'          => $access_success,
-			'fail'             => $failed_access,
-			'access_success'   => $access_success,
-			'download_success' => $download_success,
-			'failed_access'    => $failed_access,
-			'url'              => $url,
-		);
+		// Thin public delegator. The implementation lives in
+		// {@see CsvDownloadAuditLog::get_summary()} (#589 phase-2,
+		// Sprint E3). This method stays put because it is a public API
+		// contract (consumed by the form-editor metabox + pinned by
+		// PublicCsvDownloadTest); the returned array shape — including the
+		// legacy count/success/fail keys — is unchanged.
+		return CsvDownloadAuditLog::get_summary( $form_id );
 	}
 
 	// ──────────────────────────────────────────────────────────────.
@@ -988,52 +926,25 @@ class PublicCsvDownload {
 	// ──────────────────────────────────────────────────────────────.
 
 	/**
-	 * Build a transient key scoped to the current visitor's IP.
-	 */
-	private function flash_transient_key(): string {
-		$ip = \FreeFormCertificate\Core\Utils::get_user_ip();
-		return 'ffc_pcd_flash_' . sha1( $ip );
-	}
-
-	/**
 	 * Redirect back to the referring page after saving a flash message.
+	 *
+	 * Thin wrapper around {@see CsvDownloadFlash::fail_redirect()}.
 	 *
 	 * @param string $message User-facing error message.
 	 * @return never
 	 */
 	private function fail_redirect( string $message ): void {
-		set_transient(
-			$this->flash_transient_key(),
-			array(
-				'type'    => 'error',
-				'message' => $message,
-			),
-			self::FLASH_TRANSIENT_TTL
-		);
-
-		$redirect = wp_get_referer();
-		if ( ! $redirect ) {
-			$redirect = home_url( '/' );
-		}
-		wp_safe_redirect( $redirect );
-		exit;
+		$this->flash->fail_redirect( $message );
 	}
 
 	/**
 	 * Pull and clear the current visitor's flash message, if any.
 	 *
+	 * Thin wrapper around {@see CsvDownloadFlash::get_flash_message()}.
+	 *
 	 * @return array{type: string, message: string}|null
 	 */
 	private function get_flash_message(): ?array {
-		$key  = $this->flash_transient_key();
-		$data = get_transient( $key );
-		if ( ! is_array( $data ) || empty( $data['message'] ) ) {
-			return null;
-		}
-		delete_transient( $key );
-		return array(
-			'type'    => isset( $data['type'] ) ? (string) $data['type'] : 'error',
-			'message' => (string) $data['message'],
-		);
+		return $this->flash->get_flash_message();
 	}
 }

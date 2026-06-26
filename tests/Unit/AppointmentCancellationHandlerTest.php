@@ -201,7 +201,7 @@ class AppointmentCancellationHandlerTest extends TestCase {
 	// ---- handle_cancellation_request routing -------------------------
 	//
 	// The render_*() methods all funnel into render_page(), which calls
-	// Utils::asset_suffix() and then exit(). We alias-mock Utils::asset_suffix
+	// AssetHelper::asset_suffix() and then exit(). We alias-mock AssetHelper::asset_suffix
 	// to throw a sentinel so the routing + render entry are exercised without
 	// the process-ending exit(), then assert the correct branch was taken via
 	// the captured page title / message routed through __().
@@ -227,7 +227,7 @@ class AppointmentCancellationHandlerTest extends TestCase {
 		$handler = $this->make_handler();
 		try {
 			$handler->handle_cancellation_request();
-			$this->fail( 'Expected render to short-circuit via Utils::asset_suffix.' );
+			$this->fail( 'Expected render to short-circuit via AssetHelper::asset_suffix.' );
 		} catch ( \RuntimeException $e ) {
 			$this->assertSame( 'render-page', $e->getMessage() );
 		}
@@ -379,7 +379,7 @@ class AppointmentCancellationHandlerTest extends TestCase {
 
 	/**
 	 * Wire up the render-path WP function stubs and capture every string that
-	 * reaches __()/esc_html_e(); make Utils::asset_suffix() throw so render_page
+	 * reaches __()/esc_html_e(); make AssetHelper::asset_suffix() throw so render_page
 	 * stops before exit().
 	 *
 	 * @return array{strings: list<string>}
@@ -411,10 +411,10 @@ class AppointmentCancellationHandlerTest extends TestCase {
 		Functions\when( 'nocache_headers' )->justReturn( null );
 		Functions\when( 'status_header' )->justReturn( null );
 
-		// render_page() reads Utils::asset_suffix() before emitting the page
+		// render_page() reads AssetHelper::asset_suffix() before emitting the page
 		// body; throw there to exercise the full routing + render entry without
 		// the process-ending exit() or any echoed HTML.
-		Mockery::mock( 'alias:FreeFormCertificate\Core\Utils' )
+		Mockery::mock( 'alias:FreeFormCertificate\Core\AssetHelper' )
 			->shouldReceive( 'asset_suffix' )
 			->andReturnUsing(
 				static function () {

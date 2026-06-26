@@ -6,7 +6,7 @@
  * format validation (CPF, email, phone, regex), and complex types
  * (working_hours, dependent_select).
  *
- * Extracted from CustomFieldRepository to separate validation concerns
+ * Extracted from CustomFieldReader to separate validation concerns
  * from data persistence.
  *
  * @since   5.2.0
@@ -26,7 +26,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  *
  * @since 5.2.0
  *
- * @phpstan-import-type CustomFieldRow from CustomFieldRepository
+ * @phpstan-import-type CustomFieldRow from CustomFieldReader
  */
 class CustomFieldValidator {
 
@@ -76,7 +76,7 @@ class CustomFieldValidator {
 				break;
 
 			case 'select':
-				$options = CustomFieldRepository::get_field_choices( $field );
+				$options = CustomFieldReader::get_field_choices( $field );
 				if ( ! empty( $options ) && ! in_array( $value, $options, true ) ) {
 					return new \WP_Error(
 						'field_invalid_option',
@@ -102,7 +102,7 @@ class CustomFieldValidator {
 		}
 
 		// Format validation from validation_rules.
-		$rules = CustomFieldRepository::get_validation_rules( $field );
+		$rules = CustomFieldReader::get_validation_rules( $field );
 		if ( ! empty( $rules ) ) {
 			$format_result = self::validate_format( $field, $value, $rules );
 			if ( is_wp_error( $format_result ) ) {
@@ -277,7 +277,7 @@ class CustomFieldValidator {
 			);
 		}
 
-		$groups = CustomFieldRepository::get_dependent_choices( $field );
+		$groups = CustomFieldReader::get_dependent_choices( $field );
 		if ( empty( $groups ) ) {
 			return true;
 		}

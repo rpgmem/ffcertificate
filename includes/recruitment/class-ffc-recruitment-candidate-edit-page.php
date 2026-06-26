@@ -12,7 +12,7 @@
  *   1. General        — name, email, phone, notes (the §12 always-
  *                       editable set). Email change re-runs the
  *                       UserCreator promotion path via the existing
- *                       RecruitmentCandidateRepository::update flow.
+ *                       RecruitmentCandidateWriter::update flow.
  *   2. Sensitive data — CPF / RF / email decrypted in plain (cap-gated
  *                       per §10-bis admin surface column). CPF / RF
  *                       are read-only here since they're CSV-only per
@@ -45,9 +45,9 @@ if ( ! defined( 'ABSPATH' ) ) {
 /**
  * Candidate edit screen renderer + admin-post handlers.
  *
- * @phpstan-import-type CandidateRow      from RecruitmentCandidateRepository
+ * @phpstan-import-type CandidateRow      from RecruitmentCandidateReader
  * @phpstan-import-type ClassificationRow from RecruitmentClassificationRepository
- * @phpstan-import-type CallRow           from RecruitmentCallRepository
+ * @phpstan-import-type CallRow           from RecruitmentCallReader
  */
 final class RecruitmentCandidateEditPage {
 
@@ -78,7 +78,7 @@ final class RecruitmentCandidateEditPage {
 
 		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- read-only render.
 		$candidate_id = isset( $_GET['candidate_id'] ) ? absint( wp_unslash( (string) $_GET['candidate_id'] ) ) : 0;
-		$candidate    = $candidate_id > 0 ? RecruitmentCandidateRepository::get_by_id( $candidate_id ) : null;
+		$candidate    = $candidate_id > 0 ? RecruitmentCandidateReader::get_by_id( $candidate_id ) : null;
 		if ( null === $candidate ) {
 			echo '<div class="notice notice-error"><p>' . esc_html__( 'Candidate not found.', 'ffcertificate' ) . '</p></div>';
 			echo '<p><a href="' . esc_url( self::back_url() ) . '">&larr; ' . esc_html__( 'Back to Candidates', 'ffcertificate' ) . '</a></p>';
@@ -100,6 +100,24 @@ final class RecruitmentCandidateEditPage {
 	}
 
 	/**
+	 * LOGIC pass for {@see render_general_section()}: decrypt the stored
+	 * email ciphertext into the plaintext value shown in the editable field.
+	 * Returns the empty string when there is no stored email or decryption
+	 * fails — matching the previous inline behavior exactly.
+	 *
+	 * @param object $candidate Candidate row.
+	 * @phpstan-param CandidateRow $candidate
+	 * @return string Decrypted email, or '' when absent / undecryptable.
+	 */
+	private static function resolve_general_email( object $candidate ): string {
+		if ( null === $candidate->email_encrypted || '' === (string) $candidate->email_encrypted ) {
+			return '';
+		}
+		$decrypted = Encryption::decrypt( (string) $candidate->email_encrypted );
+		return is_string( $decrypted ) ? $decrypted : '';
+	}
+
+	/**
 	 * Section 1: General editable fields per §12.
 	 *
 	 * @param object $candidate Candidate row.
@@ -110,43 +128,10 @@ final class RecruitmentCandidateEditPage {
 		$id           = (int) $candidate->id;
 		$nonce_action = 'ffc_recruitment_save_candidate_' . $id;
 
-		$email = '';
-		if ( null !== $candidate->email_encrypted && '' !== (string) $candidate->email_encrypted ) {
-			$decrypted = Encryption::decrypt( (string) $candidate->email_encrypted );
-			$email     = is_string( $decrypted ) ? $decrypted : '';
-		}
+		// LOGIC pass — decrypt the stored email for the editable field.
+		$email = self::resolve_general_email( $candidate );
 
-		echo '<div class="postbox ffc-rec-mt-20">';
-		echo '<h2 class="hndle"><span>' . esc_html__( 'General', 'ffcertificate' ) . '</span></h2>';
-		echo '<div class="inside">';
-
-		echo '<form method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '">';
-		echo '<input type="hidden" name="action" value="ffc_recruitment_save_candidate">';
-		echo '<input type="hidden" name="candidate_id" value="' . esc_attr( (string) $id ) . '">';
-		wp_nonce_field( $nonce_action );
-
-		echo '<table class="form-table"><tbody>';
-
-		echo '<tr><th><label for="ffc-cand-name">' . esc_html__( 'Name', 'ffcertificate' ) . '</label></th>';
-		echo '<td><input id="ffc-cand-name" type="text" class="regular-text" name="name" value="' . esc_attr( (string) $candidate->name ) . '" required></td></tr>';
-
-		echo '<tr><th><label for="ffc-cand-email">' . esc_html__( 'Email', 'ffcertificate' ) . '</label></th>';
-		echo '<td><input id="ffc-cand-email" type="email" class="regular-text" name="email" value="' . esc_attr( $email ) . '">';
-		// §4 trigger 3 — internal reference, not surfaced to operators.
-		echo '<p class="description">' . esc_html__( 'Setting / changing the email re-runs the user promotion path: an existing WP user matched by email gets linked here, otherwise a new WP user is created.', 'ffcertificate' ) . '</p>';
-		echo '</td></tr>';
-
-		echo '<tr><th><label for="ffc-cand-phone">' . esc_html__( 'Phone', 'ffcertificate' ) . '</label></th>';
-		echo '<td><input id="ffc-cand-phone" type="text" class="regular-text" name="phone" value="' . esc_attr( null === $candidate->phone ? '' : (string) $candidate->phone ) . '"></td></tr>';
-
-		echo '<tr><th><label for="ffc-cand-notes">' . esc_html__( 'Notes', 'ffcertificate' ) . '</label></th>';
-		echo '<td><textarea id="ffc-cand-notes" name="notes" rows="4" class="large-text">' . esc_textarea( null === $candidate->notes ? '' : (string) $candidate->notes ) . '</textarea></td></tr>';
-
-		echo '</tbody></table>';
-		submit_button( __( 'Save general', 'ffcertificate' ) );
-		echo '</form>';
-
-		echo '</div></div>';
+		include FFC_PLUGIN_DIR . 'templates/admin/recruitment/candidate-edit/general-section.php';
 	}
 
 	/**
@@ -162,96 +147,25 @@ final class RecruitmentCandidateEditPage {
 		// (issue #330).
 		$tier = RecruitmentPiiAccessPolicy::resolve( $candidate, get_current_user_id() );
 
-		echo '<div class="postbox ffc-rec-mt-20">';
-		echo '<h2 class="hndle"><span>' . esc_html__( 'Sensitive data (admin only)', 'ffcertificate' ) . '</span></h2>';
-		echo '<div class="inside">';
-
-		if ( RecruitmentPiiAccessPolicy::TIER_REVEAL === $tier ) {
-			echo '<p class="description">' . esc_html__( 'Sensitive fields are masked by default. Click "Reveal" to view; each reveal is recorded in the activity log.', 'ffcertificate' ) . '</p>';
-		}
-
-		echo '<table class="form-table"><tbody>';
-
-		// phpcs:disable WordPress.Security.EscapeOutput.OutputNotEscaped -- render_sensitive_row returns escaped HTML built from esc_html() and known-safe markup.
-		echo '<tr><th>' . esc_html__( 'CPF', 'ffcertificate' ) . '</th>';
-		echo '<td>' . self::render_sensitive_row(
+		// Pre-render the two PII cells (already-escaped HTML) so the template
+		// can reference them without reaching back into the private
+		// render_sensitive_row() helper.
+		$cpf_cell = self::render_sensitive_row(
 			$tier,
 			(int) $candidate->id,
 			'cpf',
 			(string) ( $candidate->cpf_encrypted ?? '' ),
 			array( DocumentFormatter::class, 'format_cpf' )
-		) . ' ';
-		echo '<span class="description">' . esc_html__( 'CSV import only — not editable here.', 'ffcertificate' ) . '</span></td></tr>';
-
-		echo '<tr><th>' . esc_html__( 'RF', 'ffcertificate' ) . '</th>';
-		echo '<td>' . self::render_sensitive_row(
+		);
+		$rf_cell  = self::render_sensitive_row(
 			$tier,
 			(int) $candidate->id,
 			'rf',
 			(string) ( $candidate->rf_encrypted ?? '' ),
 			array( DocumentFormatter::class, 'format_rf' )
-		) . ' ';
-		echo '<span class="description">' . esc_html__( 'CSV import only — not editable here.', 'ffcertificate' ) . '</span></td></tr>';
-		// phpcs:enable WordPress.Security.EscapeOutput.OutputNotEscaped
+		);
 
-		echo '<tr><th>' . esc_html__( 'Linked WP user', 'ffcertificate' ) . '</th>';
-		echo '<td>';
-		$user_id      = null === $candidate->user_id ? 0 : (int) $candidate->user_id;
-		$nonce_action = 'ffc_recruitment_link_candidate_user_' . (int) $candidate->id;
-		if ( $user_id > 0 ) {
-			$user = get_userdata( $user_id );
-			if ( false !== $user ) {
-				echo '<a href="' . esc_url( get_edit_user_link( $user_id ) ) . '">' . esc_html( $user->user_login ) . '</a>';
-			} else {
-				echo '<code>#' . esc_html( (string) $user_id ) . '</code> <em>(' . esc_html__( 'orphaned reference', 'ffcertificate' ) . ')</em>';
-			}
-			// Unlink form — clears the user_id without touching the wp_user.
-			$unlink_consequences = wp_json_encode(
-				array(
-					__( 'The candidate\'s user_id column is cleared.', 'ffcertificate' ),
-					__( 'The WordPress user account itself is preserved untouched.', 'ffcertificate' ),
-				)
-			);
-			echo ' <form method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '" class="ffc-rec-inline-ml"'
-				. ' data-ffc-confirm'
-				. ' data-ffc-confirm-title="' . esc_attr__( 'Unlink WordPress user?', 'ffcertificate' ) . '"'
-				. ' data-ffc-confirm-body="' . esc_attr__( 'Unlink this candidate from the WordPress user account.', 'ffcertificate' ) . '"'
-				. ' data-ffc-confirm-consequences="' . esc_attr( (string) $unlink_consequences ) . '"'
-				. ' data-ffc-confirm-cta="' . esc_attr__( 'Unlink', 'ffcertificate' ) . '"'
-				. ' data-ffc-confirm-style="destructive">';
-			echo '<input type="hidden" name="action" value="ffc_recruitment_unlink_candidate_user">';
-			echo '<input type="hidden" name="candidate_id" value="' . esc_attr( (string) $candidate->id ) . '">';
-			wp_nonce_field( $nonce_action );
-			echo '<button type="submit" class="button button-link-delete">' . esc_html__( 'Unlink', 'ffcertificate' ) . '</button>';
-			echo '</form>';
-		} else {
-			echo '<em>' . esc_html__( '(not promoted yet)', 'ffcertificate' ) . '</em>';
-		}
-		echo '</td></tr>';
-
-		// Link form — operator picks any wp_user by ID/login/email and the
-		// candidate's user_id is set to it. Same admin-post handler routes
-		// both link + relink (no separate "force" mode — the operator
-		// already saw the current state in the row above).
-		echo '<tr><th>' . esc_html__( 'Link manually to WP user', 'ffcertificate' ) . '</th>';
-		echo '<td>';
-		echo '<form method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '" class="ffc-rec-inline">';
-		echo '<input type="hidden" name="action" value="ffc_recruitment_link_candidate_user">';
-		echo '<input type="hidden" name="candidate_id" value="' . esc_attr( (string) $candidate->id ) . '">';
-		wp_nonce_field( $nonce_action );
-		echo '<input type="text" name="user_lookup" placeholder="' . esc_attr__( 'WP user ID, login, or email', 'ffcertificate' ) . '" class="regular-text" required> ';
-		echo '<button type="submit" class="button button-secondary">' . esc_html__( 'Link', 'ffcertificate' ) . '</button>';
-		echo '<p class="description">' . esc_html__( 'Resolved via WP_User lookup (numeric → ID, contains @ → email, otherwise login). Does NOT create users; only links existing ones.', 'ffcertificate' ) . '</p>';
-		echo '</form>';
-		echo '</td></tr>';
-
-		echo '</tbody></table>';
-
-		// PII reveal/hide is handled by the enqueued
-		// assets/js/ffc-recruitment-candidate-edit.js (a document-delegated
-		// handler that's inert unless the reveal-tier buttons are present).
-
-		echo '</div></div>';
+		include FFC_PLUGIN_DIR . 'templates/admin/recruitment/candidate-edit/sensitive-section.php';
 	}
 
 	/**
@@ -342,22 +256,35 @@ final class RecruitmentCandidateEditPage {
 	}
 
 	/**
-	 * Section 3: Classifications + call history for this candidate.
+	 * LOGIC pass for {@see render_classifications_section()}: the candidate's
+	 * classification rows plus — only when at least one exists — the bulk
+	 * call-history grouping and the per-notice adjutancy map. Returns a struct
+	 * the section view consumes; no markup emitted.
+	 *
+	 * The two bulk lookups stay gated behind the non-empty check exactly as
+	 * before, so an empty candidate triggers zero extra queries. The per-row
+	 * notice / adjutancy lookups remain inside the render loop.
 	 *
 	 * @param object $candidate Candidate row.
 	 * @phpstan-param CandidateRow $candidate
-	 * @return void
+	 * @return array{
+	 *     classifications: array<int, object>,
+	 *     calls_by_class: array<int, list<object>>,
+	 *     adjutancies_by_notice: array<int, list<int>>
+	 * }
+	 * @phpstan-return array{
+	 *     classifications: array<int, ClassificationRow>,
+	 *     calls_by_class: array<int, list<CallRow>>,
+	 *     adjutancies_by_notice: array<int, list<int>>
+	 * }
 	 */
-	private static function render_classifications_section( object $candidate ): void {
+	private static function prepare_classifications_section_data( object $candidate ): array {
 		$classifications = RecruitmentClassificationRepository::get_for_candidate( (int) $candidate->id );
 
-		echo '<div class="postbox ffc-rec-mt-20">';
-		echo '<h2 class="hndle"><span>' . esc_html__( 'Classifications + call history', 'ffcertificate' ) . '</span></h2>';
-		echo '<div class="inside">';
+		$calls_by_class        = array();
+		$adjutancies_by_notice = array();
 
-		if ( empty( $classifications ) ) {
-			echo '<p><em>' . esc_html__( '(no classifications)', 'ffcertificate' ) . '</em></p>';
-		} else {
+		if ( ! empty( $classifications ) ) {
 			$classification_ids = array_map( static fn( $c ) => (int) $c->id, $classifications );
 			$calls_by_class     = self::group_calls_by_classification( $classification_ids );
 
@@ -367,6 +294,37 @@ final class RecruitmentCandidateEditPage {
 			// options (anything else would be rejected by the REST
 			// endpoint and lead to a confusing UX).
 			$adjutancies_by_notice = self::adjutancies_per_notice_for_rows( $classifications );
+		}
+
+		return array(
+			'classifications'       => $classifications,
+			'calls_by_class'        => $calls_by_class,
+			'adjutancies_by_notice' => $adjutancies_by_notice,
+		);
+	}
+
+	/**
+	 * Section 3: Classifications + call history for this candidate.
+	 *
+	 * @param object $candidate Candidate row.
+	 * @phpstan-param CandidateRow $candidate
+	 * @return void
+	 */
+	private static function render_classifications_section( object $candidate ): void {
+		// LOGIC pass — fetch the candidate's classifications and (when any
+		// exist) the bulk call-history grouping + per-notice adjutancy map.
+		$data            = self::prepare_classifications_section_data( $candidate );
+		$classifications = $data['classifications'];
+
+		echo '<div class="postbox ffc-rec-mt-20">';
+		echo '<h2 class="hndle"><span>' . esc_html__( 'Classifications + call history', 'ffcertificate' ) . '</span></h2>';
+		echo '<div class="inside">';
+
+		if ( empty( $classifications ) ) {
+			echo '<p><em>' . esc_html__( '(no classifications)', 'ffcertificate' ) . '</em></p>';
+		} else {
+			$calls_by_class        = $data['calls_by_class'];
+			$adjutancies_by_notice = $data['adjutancies_by_notice'];
 
 			echo '<table class="widefat striped"><thead><tr>';
 			echo '<th>' . esc_html__( 'Notice', 'ffcertificate' ) . '</th>';
@@ -379,7 +337,7 @@ final class RecruitmentCandidateEditPage {
 			echo '</tr></thead><tbody>';
 
 			foreach ( $classifications as $c ) {
-				$notice_obj = RecruitmentNoticeRepository::get_by_id( (int) $c->notice_id );
+				$notice_obj = RecruitmentNoticeReader::get_by_id( (int) $c->notice_id );
 				$call_count = isset( $calls_by_class[ (int) $c->id ] ) ? count( $calls_by_class[ (int) $c->id ] ) : 0;
 
 				echo '<tr>';
@@ -439,7 +397,7 @@ final class RecruitmentCandidateEditPage {
 	 * @phpstan-return array<int, list<CallRow>>
 	 */
 	private static function group_calls_by_classification( array $classification_ids ): array {
-		$rows = RecruitmentCallRepository::get_history_for_classifications( $classification_ids );
+		$rows = RecruitmentCallReader::get_history_for_classifications( $classification_ids );
 		$out  = array();
 		foreach ( $rows as $row ) {
 			$cid = (int) $row->classification_id;
@@ -544,60 +502,12 @@ final class RecruitmentCandidateEditPage {
 		$nonce_action         = 'ffc_recruitment_delete_candidate_' . $id;
 		$classification_count = RecruitmentClassificationRepository::count_for_candidate( $id );
 
-		echo '<div class="postbox ffc-rec-mt-20">';
-		echo '<h2 class="hndle"><span>' . esc_html__( 'Hard-delete candidate', 'ffcertificate' ) . '</span></h2>';
-		echo '<div class="inside">';
+		// LOGIC pass — the consequence bullets for the confirm modal (only
+		// consulted when the §7-bis gate passes; the template guards on
+		// $classification_count before reading it).
+		$delete_consequences = self::build_delete_consequences( $candidate );
 
-		if ( $classification_count > 0 ) {
-			echo '<p>' . sprintf(
-				/* translators: %d — count of classifications referencing the candidate */
-				esc_html__( 'Blocked: this candidate is referenced by %d classification(s). Delete those first (or leave them — historical records survive).', 'ffcertificate' ),
-				(int) $classification_count
-			) . '</p>';
-			echo '</div></div>';
-			return;
-		}
-
-		echo '<p>' . esc_html__( 'Removes the candidate row permanently. The linked WordPress user (if any) is preserved untouched. ActivityLog entries are kept (with sensitive payloads already redacted).', 'ffcertificate' ) . '</p>';
-
-		// Issue #331 asked for `last_classification_at` / `last_call_at`
-		// in the dialog. With the current §7-bis gate (`classification_count
-		// === 0`) those are always null by construction — the candidate
-		// can't be deleted while any classification still references it,
-		// and calls hang off classifications. So we surface the timestamps
-		// that ARE always meaningful (and that the operator actually wants
-		// before a destructive action): when the row was created and when
-		// it was last touched. Plus the WP user link, if any — the modal
-		// already says "preserved untouched" but seeing the actual login
-		// helps the operator confirm they're looking at the right row.
-		$hard_delete_consequences = wp_json_encode(
-			self::build_delete_consequences( $candidate )
-		);
-		echo '<form method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '"'
-			. ' data-ffc-confirm'
-			. ' data-ffc-confirm-title="' . esc_attr__( 'Hard-delete this candidate?', 'ffcertificate' ) . '"'
-			. ' data-ffc-confirm-body="' . esc_attr__( 'You are about to permanently delete this candidate record.', 'ffcertificate' ) . '"'
-			. ' data-ffc-confirm-consequences="' . esc_attr( (string) $hard_delete_consequences ) . '"'
-			. ' data-ffc-confirm-cta="' . esc_attr__( 'Delete permanently', 'ffcertificate' ) . '"'
-			. ' data-ffc-confirm-style="destructive"'
-			. ' data-ffc-confirm-reason-label="' . esc_attr__( 'Reason (logged):', 'ffcertificate' ) . '">';
-		echo '<input type="hidden" name="action" value="ffc_recruitment_delete_candidate">';
-		echo '<input type="hidden" name="candidate_id" value="' . esc_attr( (string) $id ) . '">';
-		wp_nonce_field( $nonce_action );
-		// No-JS fallback: a plain reason input that submits with the form
-		// when the modal interceptor (assets/js/ffc-recruitment-admin.js)
-		// hasn't loaded. When JS is on, the modal injects its own hidden
-		// `reason` input after this one — the appended value wins in PHP's
-		// `$_POST` parsing, so the operator's modal-typed reason takes
-		// precedence and the inline field becomes a no-JS safety net.
-		echo '<noscript><p>'
-			. '<label for="ffc-cand-delete-reason">' . esc_html__( 'Reason (logged):', 'ffcertificate' ) . '</label><br>'
-			. '<input id="ffc-cand-delete-reason" type="text" class="large-text" name="reason" required>'
-			. '</p></noscript>';
-		submit_button( __( 'Delete permanently', 'ffcertificate' ), 'delete' );
-		echo '</form>';
-
-		echo '</div></div>';
+		include FFC_PLUGIN_DIR . 'templates/admin/recruitment/candidate-edit/delete-section.php';
 	}
 
 	/**
@@ -686,7 +596,7 @@ final class RecruitmentCandidateEditPage {
 		// repository write lands. Done BEFORE the update because the
 		// repository's update method invalidates the cache key but
 		// returns the wpdb int affected-rows, not the updated row.
-		$before = RecruitmentCandidateRepository::get_by_id( $id );
+		$before = RecruitmentCandidateReader::get_by_id( $id );
 
 		$update = array(
 			'name'  => $name,
@@ -705,7 +615,7 @@ final class RecruitmentCandidateEditPage {
 			$update['email_hash']      = Encryption::hash( $email );
 		}
 
-		RecruitmentCandidateRepository::update( $id, $update );
+		RecruitmentCandidateWriter::update( $id, $update );
 
 		if ( null !== $before ) {
 			$changes = self::diff_general_fields( $before, $name, $phone, $notes, $email );
@@ -778,7 +688,7 @@ final class RecruitmentCandidateEditPage {
 	public static function handle_delete(): void {
 		// Hard-deleting a candidate is destructive — gated by the dedicated
 		// delete cap (GAP E), not the page-level manage cap.
-		if ( ! \FreeFormCertificate\Core\Utils::current_user_can_admin_or( 'ffc_delete_recruitment' ) ) {
+		if ( ! \FreeFormCertificate\Core\Capabilities::current_user_can_admin_or( 'ffc_delete_recruitment' ) ) {
 			wp_die( esc_html__( 'Access denied.', 'ffcertificate' ) );
 		}
 		$id = isset( $_POST['candidate_id'] ) ? absint( wp_unslash( (string) $_POST['candidate_id'] ) ) : 0;
@@ -835,7 +745,7 @@ final class RecruitmentCandidateEditPage {
 			self::redirect_with_notice( $id, 'link-user-not-found' );
 		}
 
-		RecruitmentCandidateRepository::set_user_id( $id, (int) $user->ID );
+		RecruitmentCandidateWriter::set_user_id( $id, (int) $user->ID );
 		self::redirect_with_notice( $id, 'link-user-ok' );
 	}
 
@@ -853,7 +763,7 @@ final class RecruitmentCandidateEditPage {
 		check_admin_referer( 'ffc_recruitment_link_candidate_user_' . $id );
 
 		if ( $id > 0 ) {
-			RecruitmentCandidateRepository::set_user_id( $id, null );
+			RecruitmentCandidateWriter::set_user_id( $id, null );
 		}
 		self::redirect_with_notice( $id, 'unlink-user-ok' );
 	}
@@ -966,7 +876,7 @@ final class RecruitmentCandidateEditPage {
 		$current_adj_id = (int) $c->adjutancy_id;
 		$notice_id      = (int) $c->notice_id;
 		$candidates     = $adjutancies_by_notice[ $notice_id ] ?? array();
-		$current_obj    = RecruitmentAdjutancyRepository::get_by_id( $current_adj_id );
+		$current_obj    = RecruitmentAdjutancyReader::get_by_id( $current_adj_id );
 		$current_label  = null !== $current_obj ? (string) $current_obj->slug : '#' . $current_adj_id;
 
 		if ( count( $candidates ) < 2 ) {
@@ -976,7 +886,7 @@ final class RecruitmentCandidateEditPage {
 		$html  = '<span class="ffc-adjutancy-swap" data-ffc-cls-id="' . esc_attr( (string) (int) $c->id ) . '">';
 		$html .= '<select class="ffc-adjutancy-swap-select">';
 		foreach ( $candidates as $aid ) {
-			$obj   = RecruitmentAdjutancyRepository::get_by_id( (int) $aid );
+			$obj   = RecruitmentAdjutancyReader::get_by_id( (int) $aid );
 			$label = null !== $obj ? (string) $obj->slug : '#' . (int) $aid;
 			$sel   = (int) $aid === $current_adj_id ? ' selected' : '';
 			$html .= '<option value="' . esc_attr( (string) (int) $aid ) . '"' . esc_attr( $sel ) . '>' . esc_html( $label ) . '</option>';

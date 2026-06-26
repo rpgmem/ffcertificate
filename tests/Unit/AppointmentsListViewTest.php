@@ -73,9 +73,10 @@ class AppointmentsListViewTest extends TestCase {
         $_GET['appointment'] = '5';
         Functions\when( 'wp_die' )->alias( fn( $msg ) => throw new \RuntimeException( $msg ) );
 
-        Mockery::mock( 'alias:FreeFormCertificate\Core\Utils' )
-            ->shouldReceive( 'get_get_string' )->andReturn( '' )
+        Mockery::mock( 'alias:FreeFormCertificate\Core\Capabilities' )
             ->shouldReceive( 'current_user_can_admin_or' )->andReturn( false );
+        Mockery::mock( 'alias:FreeFormCertificate\Core\RequestInput' )
+            ->shouldReceive( 'get_get_string' )->andReturn( '' );
 
         $this->expectException( \RuntimeException::class );
         $this->expectExceptionMessage( 'do not have permission' );
@@ -92,9 +93,10 @@ class AppointmentsListViewTest extends TestCase {
         Functions\when( 'check_admin_referer' )->justReturn( true );
         Functions\when( 'wp_safe_redirect' )->alias( fn() => throw new \RuntimeException( 'redirected' ) );
 
-        Mockery::mock( 'alias:FreeFormCertificate\Core\Utils' )
-            ->shouldReceive( 'get_get_string' )->andReturnUsing( fn( $k ) => 'ffc_action' === $k ? 'confirm' : '' )
+        Mockery::mock( 'alias:FreeFormCertificate\Core\Capabilities' )
             ->shouldReceive( 'current_user_can_admin_or' )->andReturn( true );
+        Mockery::mock( 'alias:FreeFormCertificate\Core\RequestInput' )
+            ->shouldReceive( 'get_get_string' )->andReturnUsing( fn( $k ) => 'ffc_action' === $k ? 'confirm' : '' );
 
         $appt_repo = Mockery::mock( 'overload:FreeFormCertificate\Repositories\AppointmentRepository' );
         $appt_repo->shouldReceive( 'confirm' )->with( 5, 1 )->andReturn( true );
@@ -116,9 +118,10 @@ class AppointmentsListViewTest extends TestCase {
         Functions\when( 'check_admin_referer' )->justReturn( true );
         Functions\when( 'wp_safe_redirect' )->alias( fn() => throw new \RuntimeException( 'redirected' ) );
 
-        Mockery::mock( 'alias:FreeFormCertificate\Core\Utils' )
-            ->shouldReceive( 'get_get_string' )->andReturnUsing( fn( $k ) => 'ffc_action' === $k ? 'confirm' : '' )
+        Mockery::mock( 'alias:FreeFormCertificate\Core\Capabilities' )
             ->shouldReceive( 'current_user_can_admin_or' )->andReturn( true );
+        Mockery::mock( 'alias:FreeFormCertificate\Core\RequestInput' )
+            ->shouldReceive( 'get_get_string' )->andReturnUsing( fn( $k ) => 'ffc_action' === $k ? 'confirm' : '' );
 
         $appt_repo = Mockery::mock( 'overload:FreeFormCertificate\Repositories\AppointmentRepository' );
         $appt_repo->shouldReceive( 'confirm' )->with( 5, 1 )->andReturn( false );
@@ -141,9 +144,10 @@ class AppointmentsListViewTest extends TestCase {
         Functions\when( 'sanitize_textarea_field' )->returnArg();
         Functions\when( 'wp_safe_redirect' )->alias( fn() => throw new \RuntimeException( 'redirected' ) );
 
-        Mockery::mock( 'alias:FreeFormCertificate\Core\Utils' )
-            ->shouldReceive( 'get_get_string' )->andReturnUsing( fn( $k ) => 'ffc_action' === $k ? 'cancel' : '' )
+        Mockery::mock( 'alias:FreeFormCertificate\Core\Capabilities' )
             ->shouldReceive( 'current_user_can_admin_or' )->andReturn( true );
+        Mockery::mock( 'alias:FreeFormCertificate\Core\RequestInput' )
+            ->shouldReceive( 'get_get_string' )->andReturnUsing( fn( $k ) => 'ffc_action' === $k ? 'cancel' : '' );
 
         $appt_repo = Mockery::mock( 'overload:FreeFormCertificate\Repositories\AppointmentRepository' );
         $appt_repo->shouldReceive( 'cancel' )->with( 5, 1, 'Admin closed slot' )->andReturn( true );
@@ -162,9 +166,10 @@ class AppointmentsListViewTest extends TestCase {
         $_GET['appointment'] = '5';
         Functions\when( 'get_user_by' )->justReturn( false );
 
-        Mockery::mock( 'alias:FreeFormCertificate\Core\Utils' )
-            ->shouldReceive( 'get_get_string' )->andReturn( '' )
+        Mockery::mock( 'alias:FreeFormCertificate\Core\Capabilities' )
             ->shouldReceive( 'current_user_can_admin_or' )->andReturn( true );
+        Mockery::mock( 'alias:FreeFormCertificate\Core\RequestInput' )
+            ->shouldReceive( 'get_get_string' )->andReturn( '' );
 
         $appt = array(
             'id'               => 5,
@@ -198,9 +203,10 @@ class AppointmentsListViewTest extends TestCase {
     public function test_view_detail_not_found_shows_notice(): void {
         $_GET['appointment'] = '5';
 
-        Mockery::mock( 'alias:FreeFormCertificate\Core\Utils' )
-            ->shouldReceive( 'get_get_string' )->andReturn( '' )
+        Mockery::mock( 'alias:FreeFormCertificate\Core\Capabilities' )
             ->shouldReceive( 'current_user_can_admin_or' )->andReturn( true );
+        Mockery::mock( 'alias:FreeFormCertificate\Core\RequestInput' )
+            ->shouldReceive( 'get_get_string' )->andReturn( '' );
 
         $appt_repo = Mockery::mock( 'overload:FreeFormCertificate\Repositories\AppointmentRepository' );
         $appt_repo->shouldReceive( 'findById' )->with( 5 )->andReturn( null );
@@ -218,9 +224,10 @@ class AppointmentsListViewTest extends TestCase {
     // ==================================================================
 
     public function test_view_renders_list_table_by_default(): void {
-        Mockery::mock( 'alias:FreeFormCertificate\Core\Utils' )
-            ->shouldReceive( 'get_get_string' )->andReturn( '' )
+        Mockery::mock( 'alias:FreeFormCertificate\Core\Capabilities' )
             ->shouldReceive( 'current_user_can_admin_or' )->andReturn( true );
+        Mockery::mock( 'alias:FreeFormCertificate\Core\RequestInput' )
+            ->shouldReceive( 'get_get_string' )->andReturn( '' );
 
         $appt_repo = Mockery::mock( 'overload:FreeFormCertificate\Repositories\AppointmentRepository' );
         $appt_repo->shouldReceive( 'findAll' )->andReturn( array() );

@@ -12,6 +12,9 @@ use FreeFormCertificate\Core\DataSanitizer;
 use FreeFormCertificate\Core\DocumentFormatter;
 use FreeFormCertificate\Core\SecurityService;
 use FreeFormCertificate\Core\Utils;
+use FreeFormCertificate\Core\Capabilities;
+use FreeFormCertificate\Core\RequestInput;
+use FreeFormCertificate\Core\FilenameHelper;
 
 /**
  * Tests for Utils: document validation/formatting, sanitization, captcha, and helpers.
@@ -256,7 +259,7 @@ class UtilsTest extends TestCase {
         // from the code body for filesystem compactness.
         $this->assertSame(
             'certificado_666_C-MLQQZ9UX9MWF.pdf',
-            Utils::build_pdf_filename( 'certificate', 666, 'MLQQZ9UX9MWF' )
+            FilenameHelper::build_pdf_filename( 'certificate', 666, 'MLQQZ9UX9MWF' )
         );
     }
 
@@ -264,7 +267,7 @@ class UtilsTest extends TestCase {
         $this->stub_pdf_filename_helpers();
         $this->assertSame(
             'recibo_42_A-7K3M9P2XQRST.pdf',
-            Utils::build_pdf_filename( 'appointment_receipt', 42, '7K3M9P2XQRST' )
+            FilenameHelper::build_pdf_filename( 'appointment_receipt', 42, '7K3M9P2XQRST' )
         );
     }
 
@@ -273,7 +276,7 @@ class UtilsTest extends TestCase {
         // Approved ficha → real auth code from AuthCodeService.
         $this->assertSame(
             'ficha_99_R-ABCDEF123456.pdf',
-            Utils::build_pdf_filename( 'ficha', 99, 'ABCDEF123456' )
+            FilenameHelper::build_pdf_filename( 'ficha', 99, 'ABCDEF123456' )
         );
     }
 
@@ -283,7 +286,7 @@ class UtilsTest extends TestCase {
         // S{id} stays as-is, no `R-` prefix, since it's not a verifiable code.
         $this->assertSame(
             'ficha_99_S12345.pdf',
-            Utils::build_pdf_filename( 'ficha', 99, 'S12345' )
+            FilenameHelper::build_pdf_filename( 'ficha', 99, 'S12345' )
         );
     }
 
@@ -294,7 +297,7 @@ class UtilsTest extends TestCase {
         // inner dashes — does not re-prepend, does not duplicate.
         $this->assertSame(
             'certificado_666_C-MLQQZ9UX9MWF.pdf',
-            Utils::build_pdf_filename( 'certificate', 666, 'C-MLQQ-Z9UX-9MWF' )
+            FilenameHelper::build_pdf_filename( 'certificate', 666, 'C-MLQQ-Z9UX-9MWF' )
         );
     }
 
@@ -302,7 +305,7 @@ class UtilsTest extends TestCase {
         $this->stub_pdf_filename_helpers();
         $this->assertSame(
             'certificado_1_C-ABC123.pdf',
-            Utils::build_pdf_filename( 'certificate', 1, 'abc123' )
+            FilenameHelper::build_pdf_filename( 'certificate', 1, 'abc123' )
         );
     }
 
@@ -312,7 +315,7 @@ class UtilsTest extends TestCase {
         // the original input collapsed by the compact-body step.
         $this->assertSame(
             'certificado_1_C-ABCDEF123.pdf',
-            Utils::build_pdf_filename( 'certificate', 1, 'abc def/123' )
+            FilenameHelper::build_pdf_filename( 'certificate', 1, 'abc def/123' )
         );
     }
 
@@ -320,7 +323,7 @@ class UtilsTest extends TestCase {
         $this->stub_pdf_filename_helpers();
         $this->assertSame(
             'ficha_99.pdf',
-            Utils::build_pdf_filename( 'ficha', 99, '' )
+            FilenameHelper::build_pdf_filename( 'ficha', 99, '' )
         );
     }
 
@@ -328,7 +331,7 @@ class UtilsTest extends TestCase {
         $this->stub_pdf_filename_helpers();
         $this->assertSame(
             'certificado_0_C-X.pdf',
-            Utils::build_pdf_filename( 'certificate', -5, 'X' )
+            FilenameHelper::build_pdf_filename( 'certificate', -5, 'X' )
         );
     }
 
@@ -339,7 +342,7 @@ class UtilsTest extends TestCase {
         // hatch for sites adding custom PDF types via the central filter.
         $this->assertSame(
             'invoice_7_NF42.pdf',
-            Utils::build_pdf_filename( 'invoice', 7, 'NF42' )
+            FilenameHelper::build_pdf_filename( 'invoice', 7, 'NF42' )
         );
     }
 
@@ -359,15 +362,15 @@ class UtilsTest extends TestCase {
 
         $this->assertSame(
             'certificate_666_C-MLQQZ9UX9MWF.pdf',
-            Utils::build_pdf_filename( 'certificate', 666, 'MLQQZ9UX9MWF' )
+            FilenameHelper::build_pdf_filename( 'certificate', 666, 'MLQQZ9UX9MWF' )
         );
         $this->assertSame(
             'receipt_42_A-7K3M9P2X.pdf',
-            Utils::build_pdf_filename( 'appointment_receipt', 42, '7K3M9P2X' )
+            FilenameHelper::build_pdf_filename( 'appointment_receipt', 42, '7K3M9P2X' )
         );
         $this->assertSame(
             'record_99_S12345.pdf',
-            Utils::build_pdf_filename( 'ficha', 99, 'S12345' )
+            FilenameHelper::build_pdf_filename( 'ficha', 99, 'S12345' )
         );
     }
 
@@ -394,7 +397,7 @@ class UtilsTest extends TestCase {
 
         $this->assertSame(
             'certificate_666_C-MLQQZ9UX9MWF.pdf',
-            Utils::build_pdf_filename( 'certificate', 666, 'MLQQZ9UX9MWF' )
+            FilenameHelper::build_pdf_filename( 'certificate', 666, 'MLQQZ9UX9MWF' )
         );
     }
 
@@ -403,28 +406,28 @@ class UtilsTest extends TestCase {
     // ==================================================================
 
     public function test_sanitize_filename_simple(): void {
-        $this->assertSame( 'certificate.pdf', Utils::sanitize_filename( 'Certificate.pdf' ) );
+        $this->assertSame( 'certificate.pdf', FilenameHelper::sanitize_filename( 'Certificate.pdf' ) );
     }
 
     public function test_sanitize_filename_special_chars(): void {
-        $this->assertSame( 'meu-certificado.pdf', Utils::sanitize_filename( 'Meu Certificado!.pdf' ) );
+        $this->assertSame( 'meu-certificado.pdf', FilenameHelper::sanitize_filename( 'Meu Certificado!.pdf' ) );
     }
 
     public function test_sanitize_filename_multiple_dashes_collapsed(): void {
-        $this->assertSame( 'a-b.txt', Utils::sanitize_filename( 'a---b.txt' ) );
+        $this->assertSame( 'a-b.txt', FilenameHelper::sanitize_filename( 'a---b.txt' ) );
     }
 
     public function test_sanitize_filename_edge_dashes_trimmed(): void {
-        $this->assertSame( 'test.pdf', Utils::sanitize_filename( '--test--.pdf' ) );
+        $this->assertSame( 'test.pdf', FilenameHelper::sanitize_filename( '--test--.pdf' ) );
     }
 
     public function test_sanitize_filename_no_extension(): void {
-        $this->assertSame( 'readme', Utils::sanitize_filename( 'README' ) );
+        $this->assertSame( 'readme', FilenameHelper::sanitize_filename( 'README' ) );
     }
 
     public function test_sanitize_filename_accented_chars(): void {
         // ç and ã are 2 bytes each, both replaced by '-', then collapsed
-        $this->assertSame( 'certifica-o.pdf', Utils::sanitize_filename( 'Certificação.pdf' ) );
+        $this->assertSame( 'certifica-o.pdf', FilenameHelper::sanitize_filename( 'Certificação.pdf' ) );
     }
 
     // ==================================================================
@@ -561,15 +564,6 @@ class UtilsTest extends TestCase {
     }
 
     // ==================================================================
-    // asset_suffix() — Group B (WordPress mock)
-    // ==================================================================
-
-    public function test_asset_suffix_production(): void {
-        // SCRIPT_DEBUG not defined → returns '.min'
-        $this->assertSame( '.min', Utils::asset_suffix() );
-    }
-
-    // ==================================================================
     // mask_email() — Group B (WordPress mock)
     // ==================================================================
 
@@ -631,12 +625,12 @@ class UtilsTest extends TestCase {
 
     public function test_current_user_can_manage_true(): void {
         Functions\when( 'current_user_can' )->justReturn( true );
-        $this->assertTrue( Utils::current_user_can_manage() );
+        $this->assertTrue( Capabilities::current_user_can_manage() );
     }
 
     public function test_current_user_can_manage_false(): void {
         Functions\when( 'current_user_can' )->justReturn( false );
-        $this->assertFalse( Utils::current_user_can_manage() );
+        $this->assertFalse( Capabilities::current_user_can_manage() );
     }
 
     // ==================================================================
@@ -723,40 +717,6 @@ class UtilsTest extends TestCase {
     }
 
     // ==================================================================
-    // get_allowed_html_tags() — Group B (WordPress mock)
-    // ==================================================================
-
-    public function test_allowed_html_tags_returns_array(): void {
-        Functions\when( 'apply_filters' )->alias( function() {
-            $args = func_get_args();
-            return $args[1]; // Return the second argument (the value being filtered)
-        } );
-        $tags = Utils::get_allowed_html_tags();
-        $this->assertIsArray( $tags );
-        $this->assertArrayHasKey( 'b', $tags );
-        $this->assertArrayHasKey( 'table', $tags );
-        $this->assertArrayHasKey( 'img', $tags );
-        $this->assertArrayHasKey( 'h1', $tags );
-        $this->assertArrayHasKey( 'ul', $tags );
-    }
-
-    // ==================================================================
-    // get_submissions_table() — Group C (DB mock)
-    // ==================================================================
-
-    public function test_get_submissions_table(): void {
-        global $wpdb;
-        $wpdb = (object) array( 'prefix' => 'wp_' );
-        $this->assertSame( 'wp_ffc_submissions', Utils::get_submissions_table() );
-    }
-
-    public function test_get_submissions_table_multisite_prefix(): void {
-        global $wpdb;
-        $wpdb = (object) array( 'prefix' => 'wp_3_' );
-        $this->assertSame( 'wp_3_ffc_submissions', Utils::get_submissions_table() );
-    }
-
-    // ==================================================================
     // generate_simple_captcha() — Group B (WordPress mock)
     // ==================================================================
 
@@ -823,7 +783,7 @@ class UtilsTest extends TestCase {
     public function test_get_export_filename_without_title(): void {
         Functions\when( 'sanitize_file_name' )->returnArg();
 
-        $result = Utils::get_export_filename( 'submissions' );
+        $result = FilenameHelper::get_export_filename( 'submissions' );
 
         $this->assertMatchesRegularExpression( '/^submissions-\d{4}-\d{2}-\d{2}\.csv$/', $result );
     }
@@ -831,7 +791,7 @@ class UtilsTest extends TestCase {
     public function test_get_export_filename_with_title(): void {
         Functions\when( 'sanitize_file_name' )->returnArg();
 
-        $result = Utils::get_export_filename( 'submissions', 'Course X' );
+        $result = FilenameHelper::get_export_filename( 'submissions', 'Course X' );
 
         $this->assertMatchesRegularExpression( '/^submissions-Course X-\d{4}-\d{2}-\d{2}\.csv$/', $result );
     }
@@ -839,7 +799,7 @@ class UtilsTest extends TestCase {
     public function test_get_export_filename_with_empty_string_title_skips_segment(): void {
         Functions\when( 'sanitize_file_name' )->returnArg();
 
-        $result = Utils::get_export_filename( 'audit', '' );
+        $result = FilenameHelper::get_export_filename( 'audit', '' );
 
         $this->assertMatchesRegularExpression( '/^audit-\d{4}-\d{2}-\d{2}\.csv$/', $result );
     }
@@ -849,7 +809,7 @@ class UtilsTest extends TestCase {
             return strtolower( preg_replace( '/[^a-z0-9_-]/i', '_', $name ) );
         } );
 
-        $result = Utils::get_export_filename( 'forms', 'My / Bad Name!' );
+        $result = FilenameHelper::get_export_filename( 'forms', 'My / Bad Name!' );
 
         $this->assertMatchesRegularExpression( '/^forms-my___bad_name_-\d{4}-\d{2}-\d{2}\.csv$/', $result );
     }
@@ -924,15 +884,15 @@ class UtilsTest extends TestCase {
     public function test_get_post_array_returns_default_when_key_absent(): void {
         $_POST = array();
 
-        $this->assertSame( array(), Utils::get_post_array( 'missing' ) );
-        $this->assertSame( array( 'fallback' ), Utils::get_post_array( 'missing', array( 'fallback' ) ) );
+        $this->assertSame( array(), RequestInput::get_post_array( 'missing' ) );
+        $this->assertSame( array( 'fallback' ), RequestInput::get_post_array( 'missing', array( 'fallback' ) ) );
     }
 
     public function test_get_post_array_returns_default_when_value_not_array(): void {
         Functions\when( 'wp_unslash' )->returnArg();
         $_POST = array( 'key' => 'not-an-array' );
 
-        $this->assertSame( array(), Utils::get_post_array( 'key' ) );
+        $this->assertSame( array(), RequestInput::get_post_array( 'key' ) );
     }
 
     public function test_get_post_array_sanitizes_string_values(): void {
@@ -945,7 +905,7 @@ class UtilsTest extends TestCase {
             'roles' => array( '  admin  ', '<b>editor</b>' ),
         );
 
-        $this->assertSame( array( 'admin', 'editor' ), Utils::get_post_array( 'roles' ) );
+        $this->assertSame( array( 'admin', 'editor' ), RequestInput::get_post_array( 'roles' ) );
     }
 
     public function test_get_post_array_strips_slashes_via_wp_unslash(): void {
@@ -956,7 +916,7 @@ class UtilsTest extends TestCase {
 
         $_POST = array( 'list' => array( 'foo\\bar' ) );
 
-        $this->assertSame( array( 'foobar' ), Utils::get_post_array( 'list' ) );
+        $this->assertSame( array( 'foobar' ), RequestInput::get_post_array( 'list' ) );
     }
 
     // ==================================================================
@@ -966,15 +926,15 @@ class UtilsTest extends TestCase {
     public function test_get_post_string_returns_default_when_key_absent(): void {
         $_POST = array();
 
-        $this->assertSame( '', Utils::get_post_string( 'missing' ) );
-        $this->assertSame( 'fallback', Utils::get_post_string( 'missing', 'fallback' ) );
+        $this->assertSame( '', RequestInput::get_post_string( 'missing' ) );
+        $this->assertSame( 'fallback', RequestInput::get_post_string( 'missing', 'fallback' ) );
     }
 
     public function test_get_post_string_returns_default_when_value_not_string(): void {
         Functions\when( 'wp_unslash' )->returnArg();
         $_POST = array( 'key' => array( 'array', 'not', 'string' ) );
 
-        $this->assertSame( 'def', Utils::get_post_string( 'key', 'def' ) );
+        $this->assertSame( 'def', RequestInput::get_post_string( 'key', 'def' ) );
     }
 
     public function test_get_post_string_sanitizes_and_unslashes(): void {
@@ -987,14 +947,14 @@ class UtilsTest extends TestCase {
 
         $_POST = array( 'name' => '  <b>John\\\'s</b>  ' );
 
-        $this->assertSame( "John's", Utils::get_post_string( 'name' ) );
+        $this->assertSame( "John's", RequestInput::get_post_string( 'name' ) );
     }
 
     public function test_get_get_string_returns_default_when_key_absent(): void {
         $_GET = array();
 
-        $this->assertSame( '', Utils::get_get_string( 'missing' ) );
-        $this->assertSame( 'def', Utils::get_get_string( 'missing', 'def' ) );
+        $this->assertSame( '', RequestInput::get_get_string( 'missing' ) );
+        $this->assertSame( 'def', RequestInput::get_get_string( 'missing', 'def' ) );
     }
 
     public function test_get_get_string_reads_get_not_post(): void {
@@ -1004,14 +964,14 @@ class UtilsTest extends TestCase {
         $_GET  = array( 'k' => 'from-get' );
         $_POST = array( 'k' => 'from-post' );
 
-        $this->assertSame( 'from-get', Utils::get_get_string( 'k' ) );
+        $this->assertSame( 'from-get', RequestInput::get_get_string( 'k' ) );
     }
 
     public function test_get_get_string_returns_default_when_value_not_string(): void {
         Functions\when( 'wp_unslash' )->returnArg();
         $_GET = array( 'k' => array( 'arr' ) );
 
-        $this->assertSame( '', Utils::get_get_string( 'k' ) );
+        $this->assertSame( '', RequestInput::get_get_string( 'k' ) );
     }
 
     // ==================================================================
@@ -1021,8 +981,8 @@ class UtilsTest extends TestCase {
     public function test_get_post_int_returns_default_when_absent(): void {
         $_POST = array();
 
-        $this->assertSame( 0, Utils::get_post_int( 'missing' ) );
-        $this->assertSame( 99, Utils::get_post_int( 'missing', 99 ) );
+        $this->assertSame( 0, RequestInput::get_post_int( 'missing' ) );
+        $this->assertSame( 99, RequestInput::get_post_int( 'missing', 99 ) );
     }
 
     public function test_get_post_int_casts_string_to_int(): void {
@@ -1033,7 +993,7 @@ class UtilsTest extends TestCase {
 
         $_POST = array( 'limit' => '42' );
 
-        $this->assertSame( 42, Utils::get_post_int( 'limit' ) );
+        $this->assertSame( 42, RequestInput::get_post_int( 'limit' ) );
     }
 
     public function test_get_post_int_absint_strips_negative_sign(): void {
@@ -1044,7 +1004,7 @@ class UtilsTest extends TestCase {
 
         $_POST = array( 'n' => '-17' );
 
-        $this->assertSame( 17, Utils::get_post_int( 'n' ) );
+        $this->assertSame( 17, RequestInput::get_post_int( 'n' ) );
     }
 
     // ==================================================================
@@ -1054,8 +1014,8 @@ class UtilsTest extends TestCase {
     public function test_get_post_bool_returns_default_when_absent(): void {
         $_POST = array();
 
-        $this->assertFalse( Utils::get_post_bool( 'missing' ) );
-        $this->assertTrue( Utils::get_post_bool( 'missing', true ) );
+        $this->assertFalse( RequestInput::get_post_bool( 'missing' ) );
+        $this->assertTrue( RequestInput::get_post_bool( 'missing', true ) );
     }
 
     public function test_get_post_bool_truthy_values(): void {
@@ -1066,10 +1026,10 @@ class UtilsTest extends TestCase {
             'd' => 1,
         );
 
-        $this->assertTrue( Utils::get_post_bool( 'a' ) );
-        $this->assertTrue( Utils::get_post_bool( 'b' ) );
-        $this->assertTrue( Utils::get_post_bool( 'c' ) );
-        $this->assertTrue( Utils::get_post_bool( 'd' ) );
+        $this->assertTrue( RequestInput::get_post_bool( 'a' ) );
+        $this->assertTrue( RequestInput::get_post_bool( 'b' ) );
+        $this->assertTrue( RequestInput::get_post_bool( 'c' ) );
+        $this->assertTrue( RequestInput::get_post_bool( 'd' ) );
     }
 
     public function test_get_post_bool_falsy_values(): void {
@@ -1079,8 +1039,8 @@ class UtilsTest extends TestCase {
             'c' => 0,
         );
 
-        $this->assertFalse( Utils::get_post_bool( 'a' ) );
-        $this->assertFalse( Utils::get_post_bool( 'b' ) );
-        $this->assertFalse( Utils::get_post_bool( 'c' ) );
+        $this->assertFalse( RequestInput::get_post_bool( 'a' ) );
+        $this->assertFalse( RequestInput::get_post_bool( 'b' ) );
+        $this->assertFalse( RequestInput::get_post_bool( 'c' ) );
     }
 }

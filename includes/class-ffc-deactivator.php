@@ -51,12 +51,12 @@ class Deactivator {
 		// Security check: Ensure this was a conscious post action with a nonce.
 		// Note: WordPress deactivation via the "Plugins" page doesn't send POST data by default.
         // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Deactivation hook; nonce handled by WordPress plugin deactivation flow.
-		if ( \FreeFormCertificate\Core\Utils::get_post_string( 'confirm_uninstall' ) !== 'yes' ) {
+		if ( \FreeFormCertificate\Core\RequestInput::get_post_string( 'confirm_uninstall' ) !== 'yes' ) {
 			wp_die( esc_html__( 'Please confirm the uninstallation to proceed.', 'ffcertificate' ) );
 		}
 
 		global $wpdb;
-		$table_name = \FreeFormCertificate\Core\Utils::get_submissions_table();
+		$table_name = \FreeFormCertificate\Repositories\SubmissionRepository::get_submissions_table();
 
 		// 1. Drop the submissions table.
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.SchemaChange, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching

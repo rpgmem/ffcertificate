@@ -150,7 +150,7 @@ final class RateLimitChecker {
 				'countdown_timer' => true,
 			),
 		);
-		self::$settings_cache = wp_parse_args( get_option( 'ffc_rate_limit_settings', $defaults ), $defaults );
+		self::$settings_cache = wp_parse_args( get_option( \FreeFormCertificate\Settings\RateLimitSettingsReader::OPTION_KEY, $defaults ), $defaults );
 		return self::$settings_cache;
 	}
 
@@ -232,58 +232,7 @@ final class RateLimitChecker {
 	 * @return array{allowed: bool, message?: string, reason?: string, wait_seconds?: int}
 	 */
 	public static function check_ip_limit( string $ip, ?int $form_id = null ): array {
-		$s = self::get_settings()['ip'];
-
-		// Respect the operator's master toggle. The form-submission DoS
-		// gate (FormProcessor::handle_submission_ajax) calls this method
-		// DIRECTLY at the top of the handler — before, and independently
-		// of, check_all()'s own `$s['ip']['enabled']` gating. Without this
-		// guard a form would keep blocking off a stale hour/day counter
-		// even after the operator turned IP rate limiting OFF in the panel
-		// (the reported "submit does nothing" with every limit disabled).
-		if ( empty( $s['enabled'] ) ) {
-			return array( 'allowed' => true );
-		}
-
-		$hk = 'ffc_rate_ip_' . md5( $ip . $form_id ) . '_hour';
-		// v3.2.0: Use Object Cache API (auto Redis/Memcached if available).
-		$hc = wp_cache_get( $hk, RateLimiter::CACHE_GROUP );
-		$hc = false !== $hc ? $hc : 0;
-		if ( $hc >= $s['max_per_hour'] ) {
-			return array(
-				'allowed'      => false,
-				'reason'       => 'ip_hour_limit',
-				'message'      => self::format_message( $s['message'], array( 'time' => __( '1 hour', 'ffcertificate' ) ) ),
-				'wait_seconds' => 3600,
-			);
-		}
-
-		$dc = RateLimitRepository::get_count_from_db( 'ip', $ip, 'day', $form_id );
-		if ( $dc >= $s['max_per_day'] ) {
-			return array(
-				'allowed'      => false,
-				'reason'       => 'ip_day_limit',
-				'message'      => self::format_message( $s['message'], array( 'time' => __( '24 hours', 'ffcertificate' ) ) ),
-				'wait_seconds' => 86400,
-			);
-		}
-
-		$last = wp_cache_get( 'ffc_rate_ip_' . md5( $ip . $form_id ) . '_last', RateLimiter::CACHE_GROUP );
-		if ( $last && ( time() - $last ) < $s['cooldown_seconds'] ) {
-			$w = $s['cooldown_seconds'] - ( time() - $last );
-			return array(
-				'allowed'      => false,
-				'reason'       => 'ip_cooldown',
-				'message'      => sprintf(
-					/* translators: %d: number of seconds to wait */
-					__( 'Please wait %d seconds.', 'ffcertificate' ),
-					$w
-				),
-				'wait_seconds' => $w,
-			);
-		}
-
-		return array( 'allowed' => true );
+		return ( new IpLimiter( new RateLimitSupport() ) )->check( $ip, $form_id );
 	}
 
 	/**
@@ -294,60 +243,7 @@ final class RateLimitChecker {
 	 * @return array{allowed: bool, message?: string, reason?: string, wait_seconds?: int}
 	 */
 	public static function check_email_limit( string $email, ?int $form_id = null ): array {
-		$s = self::get_settings()['email'];
-		if ( ! $s['check_database'] ) {
-			return array( 'allowed' => true );
-		}
-
-		$dc = RateLimitRepository::get_submission_count( 'email', $email, 'day', $form_id );
-		if ( $dc >= $s['max_per_day'] ) {
-			return array(
-				'allowed'      => false,
-				'reason'       => 'email_day_limit',
-				'message'      => self::format_message(
-					$s['message'],
-					array(
-						'count' => $dc,
-						'time'  => __( '24 hours', 'ffcertificate' ),
-					)
-				),
-				'wait_seconds' => 86400,
-			);
-		}
-
-		$wc = RateLimitRepository::get_submission_count( 'email', $email, 'week', $form_id );
-		if ( $wc >= $s['max_per_week'] ) {
-			return array(
-				'allowed'      => false,
-				'reason'       => 'email_week_limit',
-				'message'      => self::format_message(
-					$s['message'],
-					array(
-						'count' => $wc,
-						'time'  => __( '1 week', 'ffcertificate' ),
-					)
-				),
-				'wait_seconds' => 604800,
-			);
-		}
-
-		$mc = RateLimitRepository::get_submission_count( 'email', $email, 'month', $form_id );
-		if ( $mc >= $s['max_per_month'] ) {
-			return array(
-				'allowed'      => false,
-				'reason'       => 'email_month_limit',
-				'message'      => self::format_message(
-					$s['message'],
-					array(
-						'count' => $mc,
-						'time'  => __( '1 month', 'ffcertificate' ),
-					)
-				),
-				'wait_seconds' => 2592000,
-			);
-		}
-
-		return array( 'allowed' => true );
+		return ( new EmailLimiter( new RateLimitSupport() ) )->check( $email, $form_id );
 	}
 
 	/**
@@ -358,52 +254,7 @@ final class RateLimitChecker {
 	 * @return array{allowed: bool, message?: string, reason?: string, wait_seconds?: int}
 	 */
 	public static function check_cpf_limit( string $cpf, ?int $form_id = null ): array {
-		$s  = self::get_settings()['cpf'];
-		$cc = \FreeFormCertificate\Core\DataSanitizer::normalize_cpf_rf( $cpf );
-
-		if ( RateLimitRepository::is_temporarily_blocked( 'cpf', $cc, $form_id ) ) {
-			return array(
-				'allowed'      => false,
-				'reason'       => 'cpf_blocked',
-				'message'      => __( 'CPF blocked.', 'ffcertificate' ),
-				'wait_seconds' => 86400,
-			);
-		}
-
-		if ( $s['check_database'] ) {
-			$mc = RateLimitRepository::get_submission_count( 'cpf', $cc, 'month', $form_id );
-			if ( $mc >= $s['max_per_month'] ) {
-				return array(
-					'allowed'      => false,
-					'reason'       => 'cpf_month_limit',
-					'message'      => $s['message'],
-					'wait_seconds' => 2592000,
-				);
-			}
-
-			$yc = RateLimitRepository::get_submission_count( 'cpf', $cc, 'year', $form_id );
-			if ( $yc >= $s['max_per_year'] ) {
-				return array(
-					'allowed'      => false,
-					'reason'       => 'cpf_year_limit',
-					'message'      => $s['message'],
-					'wait_seconds' => 31536000,
-				);
-			}
-		}
-
-		$ac = RateLimitRepository::get_count_from_db( 'cpf', $cc, 'hour', $form_id );
-		if ( $ac >= $s['block_threshold'] ) {
-			RateLimitRepository::block_temporarily( 'cpf', $cc, $form_id, $s['block_duration'] );
-			return array(
-				'allowed'      => false,
-				'reason'       => 'cpf_abuse',
-				'message'      => __( 'CPF blocked.', 'ffcertificate' ),
-				'wait_seconds' => $s['block_duration'] * 3600,
-			);
-		}
-
-		return array( 'allowed' => true );
+		return ( new CpfLimiter( new RateLimitSupport() ) )->check( $cpf, $form_id );
 	}
 
 	/**
@@ -455,7 +306,7 @@ final class RateLimitChecker {
 			return false;
 		}
 		if ( class_exists( '\FreeFormCertificate\Core\Utils' ) ) {
-			return \FreeFormCertificate\Core\Utils::current_user_can_admin_or( 'ffc_manage_settings' );
+			return \FreeFormCertificate\Core\Capabilities::current_user_can_admin_or( 'ffc_manage_settings' );
 		}
 		return current_user_can( 'manage_options' );
 	}
@@ -468,28 +319,7 @@ final class RateLimitChecker {
 	 * @return array{max: int, threshold: int, strong_min: int, message: string}
 	 */
 	public static function get_device_effective_settings( int $form_id ): array {
-		$d           = self::get_settings()['device'];
-		$max_meta    = get_post_meta( $form_id, '_ffc_device_limit_max', true );
-		$thr_meta    = get_post_meta( $form_id, '_ffc_device_match_threshold', true );
-		$strong_meta = get_post_meta( $form_id, '_ffc_device_strong_min', true );
-		$msg_meta    = get_post_meta( $form_id, '_ffc_device_limit_message', true );
-
-		$strong_cap    = count( self::STRONG_SIGNALS );
-		$global_strong = isset( $d['match_strong_min'] ) ? (int) $d['match_strong_min'] : 2;
-
-		$max    = ( '' !== $max_meta ) ? max( 1, (int) $max_meta ) : (int) $d['max_per_form'];
-		$thr    = ( '' !== $thr_meta ) ? max( 3, min( 12, (int) $thr_meta ) ) : (int) $d['match_threshold'];
-		$strong = ( '' !== $strong_meta )
-			? max( 0, min( $strong_cap, (int) $strong_meta ) )
-			: max( 0, min( $strong_cap, $global_strong ) );
-		$msg    = ( is_string( $msg_meta ) && '' !== $msg_meta ) ? $msg_meta : (string) $d['message'];
-
-		return array(
-			'max'        => $max,
-			'threshold'  => $thr,
-			'strong_min' => $strong,
-			'message'    => $msg,
-		);
+		return ( new DeviceLimiter( new RateLimitSupport() ) )->get_effective_settings( $form_id );
 	}
 
 	/**
@@ -516,121 +346,7 @@ final class RateLimitChecker {
 	 * @return array{allowed: bool, message?: string, reason?: string, wait_seconds?: int}
 	 */
 	public static function check_device_limit( int $form_id, array $signals ): array {
-		global $wpdb;
-
-		$d = self::get_settings()['device'];
-		if ( empty( $d['enabled'] ) ) {
-			return array( 'allowed' => true );
-		}
-
-		$enabled_signals = is_array( $d['signals_enabled'] ) ? array_map( 'strval', $d['signals_enabled'] ) : array();
-		$signals         = array_filter(
-			$signals,
-			static function ( $v, $k ) use ( $enabled_signals ) {
-				return '' !== $v && in_array( $k, $enabled_signals, true );
-			},
-			ARRAY_FILTER_USE_BOTH
-		);
-
-		if ( empty( $signals ) ) {
-			return array( 'allowed' => true );
-		}
-
-		$cookie = $signals['cookie'] ?? null;
-
-		// Whitelisted cookie hashes bypass the limit entirely.
-		if ( $cookie && in_array( $cookie, (array) $d['bypass_whitelist_signals'], true ) ) {
-			return array( 'allowed' => true );
-		}
-
-		$effective = self::get_device_effective_settings( $form_id );
-
-		$signal_keys   = array( 'ua', 'screen', 'tz', 'concurrency', 'memory', 'canvas', 'audio', 'webgl', 'fonts', 'plugins', 'permissions', 'mediaqueries', 'math' );
-		$sum_parts     = array();
-		$values        = array();
-		$strong_parts  = array();
-		$strong_values = array();
-		foreach ( $signal_keys as $k ) {
-			if ( ! empty( $signals[ $k ] ) ) {
-				$col         = 'sig_' . $k;
-				$sum_parts[] = "({$col} = %s)";
-				$values[]    = $signals[ $k ];
-				if ( in_array( $k, self::STRONG_SIGNALS, true ) ) {
-					$strong_parts[]  = "({$col} = %s)";
-					$strong_values[] = $signals[ $k ];
-				}
-			}
-		}
-
-		$threshold  = $effective['threshold'];
-		$strong_min = $effective['strong_min'];
-		$max        = $effective['max'];
-		$table      = $wpdb->prefix . 'ffc_device_signals';
-
-		$count = 0;
-		if ( $cookie && empty( $sum_parts ) ) {
-			// Cookie-only fallback: count distinct submission rows with matching cookie.
-            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-			$count = (int) $wpdb->get_var( $wpdb->prepare( 'SELECT COUNT(*) FROM %i WHERE form_id = %d AND sig_cookie = %s', $table, $form_id, $cookie ) );
-		} elseif ( ! empty( $sum_parts ) ) {
-			$sum_sql         = implode( ' + ', $sum_parts );
-			$fuzzy_blockable = ( 0 === $strong_min ) || ( count( $strong_parts ) >= $strong_min );
-
-			if ( $fuzzy_blockable ) {
-				// Two-tier fuzzy condition: total threshold, plus (when the
-				// strong tier is active) a minimum of corroborating strong
-				// signals so weak-only matches can no longer block.
-				$fuzzy_sql  = "( {$sum_sql} ) >= %d";
-				$fuzzy_args = array_merge( $values, array( $threshold ) );
-				if ( $strong_min > 0 ) {
-					$strong_sql = implode( ' + ', $strong_parts );
-					$fuzzy_sql .= " AND ( {$strong_sql} ) >= %d";
-					$fuzzy_args = array_merge( $values, array( $threshold ), $strong_values, array( $strong_min ) );
-				}
-				if ( $cookie ) {
-					$where_sql = "form_id = %d AND ( sig_cookie = %s OR ( {$fuzzy_sql} ) )";
-					$args      = array_merge( array( $table, $form_id, $cookie ), $fuzzy_args );
-				} else {
-					$where_sql = "form_id = %d AND ( {$fuzzy_sql} )";
-					$args      = array_merge( array( $table, $form_id ), $fuzzy_args );
-				}
-				$sql = "SELECT COUNT(*) FROM %i WHERE {$where_sql}";
-                // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared
-				$count = (int) $wpdb->get_var( $wpdb->prepare( $sql, $args ) );
-			} else {
-				// Lenient: too few strong signals present to corroborate a
-				// fuzzy match. Rely on the cookie path only; never block on
-				// weak signals alone.
-				if ( $cookie ) {
-                    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-					$count = (int) $wpdb->get_var( $wpdb->prepare( 'SELECT COUNT(*) FROM %i WHERE form_id = %d AND sig_cookie = %s', $table, $form_id, $cookie ) );
-				}
-				// Visibility guard: weak signals alone would have crossed the
-				// total threshold (a near-miss the legacy 1-tier logic would
-				// have blocked). Record it so operators can spot low-entropy
-				// devices / strong-signal evasion in the rate-limit log.
-				if ( ! empty( $d['log_blocks'] ) && count( $sum_parts ) >= $threshold ) {
-					// $signals is a non-empty array of non-empty-string hashes
-					// here, so reset() always yields a usable identifier.
-					$d_id = $cookie ?? reset( $signals );
-					// Action 'suppressed' (not 'allowed') so it bypasses the
-					// log_allowed gate and is recorded whenever logging is on —
-					// this near-miss is the diagnostic signal operators need.
-					RateLimitLogger::log_attempt( 'device', (string) $d_id, 'suppressed', 'strong_signals_insufficient', $form_id );
-				}
-			}
-		}
-
-		if ( $count >= $max ) {
-			return array(
-				'allowed'      => false,
-				'reason'       => 'device_limit',
-				'message'      => $effective['message'],
-				'wait_seconds' => 0,
-			);
-		}
-
-		return array( 'allowed' => true );
+		return ( new DeviceLimiter( new RateLimitSupport() ) )->check( $form_id, $signals );
 	}
 
 	/**
@@ -645,30 +361,7 @@ final class RateLimitChecker {
 	 * @param array<string, string> $signals       Signal hashes.
 	 */
 	public static function record_device_signals( ?int $submission_id, int $form_id, array $signals ): void {
-		global $wpdb;
-		$d = self::get_settings()['device'];
-		if ( empty( $d['enabled'] ) ) {
-			return;
-		}
-		$enabled = is_array( $d['signals_enabled'] ) ? array_map( 'strval', $d['signals_enabled'] ) : array();
-		$row     = array(
-			'submission_id' => $submission_id,
-			'form_id'       => $form_id,
-		);
-		$has_any = false;
-		foreach ( array( 'cookie', 'ua', 'screen', 'tz', 'concurrency', 'memory', 'canvas', 'audio', 'webgl', 'fonts', 'plugins', 'permissions', 'mediaqueries', 'math' ) as $k ) {
-			if ( ! empty( $signals[ $k ] ) && in_array( $k, $enabled, true ) ) {
-				$row[ 'sig_' . $k ] = substr( (string) $signals[ $k ], 0, 64 );
-				$has_any            = true;
-			} else {
-				$row[ 'sig_' . $k ] = null;
-			}
-		}
-		if ( ! $has_any ) {
-			return;
-		}
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-		$wpdb->insert( $wpdb->prefix . 'ffc_device_signals', $row );
+		( new DeviceLimiter( new RateLimitSupport() ) )->record_signals( $submission_id, $form_id, $signals );
 	}
 
 	/**
@@ -878,28 +571,6 @@ final class RateLimitChecker {
 	}
 
 	/**
-	 * Format message.
-	 *
-	 * Falls back to a sensible default when the configured template is empty
-	 * or whitespace-only. An operator can clear the rate-limit "Message"
-	 * field in settings (or an autosave can land an empty value), which used
-	 * to propagate an empty string all the way to the AJAX response —
-	 * surfacing as a silent block on the frontend (`rate_limit:true` with
-	 * `message:''`, which the client's RateLimit display renders as nothing).
-	 * Guaranteeing a non-empty string here keeps every rate-limit gate
-	 * (IP / email / CPF / device) visible regardless of the stored copy.
-	 *
-	 * @param string               $template Template.
-	 * @param array<string, mixed> $data Data.
-	 */
-	private static function format_message( string $template, array $data ): string {
-		if ( '' === trim( $template ) ) {
-			$template = __( 'Submission limit reached. Please wait {time} and try again.', 'ffcertificate' );
-		}
-		return str_replace( array( '{time}', '{count}', '{max}', '{remaining}' ), array( (string) ( $data['time'] ?? '' ), (string) ( $data['count'] ?? 0 ), (string) ( $data['max'] ?? 0 ), (string) ( ( $data['max'] ?? 0 ) - ( $data['count'] ?? 0 ) ) ), $template );
-	}
-
-	/**
 	 * Applies to form.
 	 *
 	 * @param mixed    $apply_to Apply to.
@@ -1026,7 +697,7 @@ final class RateLimitChecker {
 				return array(
 					'allowed'      => false,
 					'reason'       => 'read_minute_limit',
-					'message'      => self::format_message( $message, array( 'time' => __( '1 minute', 'ffcertificate' ) ) ),
+					'message'      => ( new RateLimitSupport() )->format_message( $message, array( 'time' => __( '1 minute', 'ffcertificate' ) ) ),
 					'wait_seconds' => 60,
 				);
 			}
@@ -1040,7 +711,7 @@ final class RateLimitChecker {
 				return array(
 					'allowed'      => false,
 					'reason'       => 'read_hour_limit',
-					'message'      => self::format_message( $message, array( 'time' => __( '1 hour', 'ffcertificate' ) ) ),
+					'message'      => ( new RateLimitSupport() )->format_message( $message, array( 'time' => __( '1 hour', 'ffcertificate' ) ) ),
 					'wait_seconds' => 3600,
 				);
 			}

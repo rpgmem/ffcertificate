@@ -370,7 +370,7 @@ class UserAudienceRestController {
 			}
 
 			// Verify group is a child, active, and self-joinable.
-			$group = \FreeFormCertificate\Audience\AudienceRepository::get_by_id( $group_id );
+			$group = \FreeFormCertificate\Audience\AudienceReader::get_by_id( $group_id );
 			if ( ! $group
 				|| 'active' !== (string) ( $group->status ?? '' )
 				|| 1 !== (int) ( $group->allow_self_join ?? 0 )
@@ -379,7 +379,7 @@ class UserAudienceRestController {
 				return new \WP_Error( 'invalid_group', __( 'Group not found or does not allow self-join', 'ffcertificate' ), array( 'status' => 404 ) );
 			}
 
-			if ( \FreeFormCertificate\Audience\AudienceRepository::is_member( $group_id, $user_id ) ) {
+			if ( \FreeFormCertificate\Audience\AudienceReader::is_member( $group_id, $user_id ) ) {
 				return new \WP_Error( 'already_member', __( 'You are already a member of this group', 'ffcertificate' ), array( 'status' => 409 ) );
 			}
 
@@ -395,11 +395,11 @@ class UserAudienceRestController {
 			}
 
 			// Join the group.
-			\FreeFormCertificate\Audience\AudienceRepository::add_member( $group_id, $user_id );
+			\FreeFormCertificate\Audience\AudienceWriter::add_member( $group_id, $user_id );
 
 			// Grant audience capabilities if needed.
 			if ( class_exists( '\FreeFormCertificate\UserDashboard\UserManager' ) ) {
-				\FreeFormCertificate\UserDashboard\UserManager::grant_audience_capabilities( $user_id );
+				\FreeFormCertificate\UserDashboard\CapabilityManager::grant_audience_capabilities( $user_id );
 			}
 
 			return rest_ensure_response(

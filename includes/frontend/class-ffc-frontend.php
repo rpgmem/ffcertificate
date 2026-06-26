@@ -111,10 +111,10 @@ class Frontend {
 		$has_csv_download = has_shortcode( $post->post_content, 'ffc_csv_download' );
 
 		if ( $has_form || $has_verification || $has_csv_download ) {
-			$s = \FreeFormCertificate\Core\Utils::asset_suffix();
+			$s = \FreeFormCertificate\Core\AssetHelper::asset_suffix();
 
 			// Dark mode script (loaded early to prevent flash).
-			\FreeFormCertificate\Core\Utils::enqueue_dark_mode();
+			\FreeFormCertificate\Core\AssetHelper::enqueue_dark_mode();
 
 			// CSS - Using centralized version constant.
 			wp_enqueue_style( 'ffc-pdf-core', FFC_PLUGIN_URL . "assets/css/ffc-pdf-core{$s}.css", array(), FFC_VERSION );
@@ -173,7 +173,7 @@ class Frontend {
 		}
 
 		if ( $has_form || $has_verification ) {
-			$s = \FreeFormCertificate\Core\Utils::asset_suffix();
+			$s = \FreeFormCertificate\Core\AssetHelper::asset_suffix();
 
 			// PDF Libraries - Using centralized version constants.
 			wp_enqueue_script( 'html2canvas', FFC_PLUGIN_URL . 'libs/js/html2canvas.min.js', array(), FFC_HTML2CANVAS_VERSION, true );
@@ -329,7 +329,7 @@ class Frontend {
 		}
 
 		if ( $has_csv_download ) {
-			$s = $s ?? \FreeFormCertificate\Core\Utils::asset_suffix();
+			$s = $s ?? \FreeFormCertificate\Core\AssetHelper::asset_suffix();
 
 			wp_enqueue_script(
 				'ffc-csv-download',

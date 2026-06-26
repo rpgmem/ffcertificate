@@ -34,10 +34,18 @@ class SubmissionHandler {
 	private $repository;
 
 	/**
+	 * Lifecycle / maintenance collaborator.
+	 *
+	 * @var SubmissionLifecycleService
+	 */
+	private $lifecycle;
+
+	/**
 	 * Constructor.
 	 */
 	public function __construct() {
 		$this->repository = new SubmissionRepository();
+		$this->lifecycle  = new SubmissionLifecycleService( $this );
 	}
 
 	/**
@@ -110,12 +118,12 @@ class SubmissionHandler {
 	 *
 	 * @uses Repository::insert()
 	 *
-	 * @param int                  $form_id         Form ID.
-	 * @param string               $form_title      Form title.
-	 * @param array<string, mixed> $submission_data Submission data (passed by reference).
-	 * @param string               $user_email      User email.
-	 * @param array<string, mixed> $fields_config   Fields configuration.
-	 * @param array<string, mixed> $form_config     Form configuration.
+	 * @param int                              $form_id         Form ID.
+	 * @param string                           $form_title      Form title.
+	 * @param array<string, mixed>             $submission_data Submission data (passed by reference).
+	 * @param string                           $user_email      User email.
+	 * @param array<int, array<string, mixed>> $fields_config   Fields configuration (list of field definitions).
+	 * @param array<string, mixed>             $form_config     Form configuration.
 	 * @return int|\WP_Error
 	 */
 	public function process_submission( int $form_id, string $form_title, array &$submission_data, string $user_email, array $fields_config, array $form_config ) {
@@ -171,7 +179,7 @@ class SubmissionHandler {
 		}
 
 		// 5. Get user IP.
-		$user_ip = \FreeFormCertificate\Core\Utils::get_user_ip();
+		$user_ip = \FreeFormCertificate\Core\RequestInput::get_user_ip();
 
 		// 5b. Extract ticket value (for hash-based lookup)
 		$ticket_value = isset( $extra_data['ticket'] ) ? strtoupper( trim( (string) $extra_data['ticket'] ) ) : null;
@@ -225,7 +233,7 @@ class SubmissionHandler {
 					$lookup_cpf_hash,
 					$user_email,
 					$submission_data,
-					\FreeFormCertificate\UserDashboard\UserManager::CONTEXT_CERTIFICATE,
+					\FreeFormCertificate\UserDashboard\CapabilityManager::CONTEXT_CERTIFICATE,
 					$identifier_type
 				);
 
@@ -432,18 +440,7 @@ class SubmissionHandler {
 	 * @param int $id ID.
 	 */
 	public function trash_submission( int $id ): bool {
-		$result = $this->repository->updateStatus( $id, 'trash' );
-
-		if ( $result ) {
-			/**
-			 * Description.
-			 *
-			 * @since 4.6.4
-			 */
-			do_action( 'ffcertificate_submission_trashed', $id );
-		}
-
-		return (bool) $result;
+		return $this->lifecycle->trash_submission( $id );
 	}
 
 	/**
@@ -463,18 +460,7 @@ class SubmissionHandler {
 	 * @param int $id ID.
 	 */
 	public function restore_submission( int $id ): bool {
-		$result = $this->repository->updateStatus( $id, 'publish' );
-
-		if ( $result ) {
-			/**
-			 * Description.
-			 *
-			 * @since 4.6.4
-			 */
-			do_action( 'ffcertificate_submission_restored', $id );
-		}
-
-		return (bool) $result;
+		return $this->lifecycle->restore_submission( $id );
 	}
 
 	/**
@@ -494,25 +480,7 @@ class SubmissionHandler {
 	 * @param int $id ID.
 	 */
 	public function delete_submission( int $id ): bool {
-		/**
-		 * Description.
-		 *
-		 * @since 4.6.4
-		 */
-		do_action( 'ffcertificate_before_submission_delete', $id );
-
-		$result = $this->repository->delete( $id );
-
-		if ( $result ) {
-			/**
-			 * Description.
-			 *
-			 * @since 4.6.4
-			 */
-			do_action( 'ffcertificate_after_submission_delete', $id );
-		}
-
-		return (bool) $result;
+		return $this->lifecycle->delete_submission( $id );
 	}
 
 	/**
@@ -544,32 +512,7 @@ class SubmissionHandler {
 	 * @return int|false Number of rows affected or false on error
 	 */
 	public function bulk_trash_submissions( array $ids ) {
-		if ( empty( $ids ) ) {
-			return 0;
-		}
-
-		// Disable logging during bulk operation.
-		if ( class_exists( '\FreeFormCertificate\Core\ActivityLog' ) ) {
-			\FreeFormCertificate\Core\ActivityLog::disable_logging();
-		}
-
-		$result = $this->repository->bulkUpdateStatus( $ids, 'trash' );
-
-		// Re-enable logging.
-		if ( class_exists( '\FreeFormCertificate\Core\ActivityLog' ) ) {
-			\FreeFormCertificate\Core\ActivityLog::enable_logging();
-
-			// Log single bulk operation.
-			\FreeFormCertificate\Core\ActivityLog::log(
-				'bulk_trash',
-				\FreeFormCertificate\Core\ActivityLog::LEVEL_INFO,
-				array(
-					'count' => count( $ids ),
-				)
-			);
-		}
-
-		return $result;
+		return $this->lifecycle->bulk_trash_submissions( $ids );
 	}
 
 	/**
@@ -581,32 +524,7 @@ class SubmissionHandler {
 	 * @return int|false Number of rows affected or false on error
 	 */
 	public function bulk_restore_submissions( array $ids ) {
-		if ( empty( $ids ) ) {
-			return 0;
-		}
-
-		// Disable logging during bulk operation.
-		if ( class_exists( '\FreeFormCertificate\Core\ActivityLog' ) ) {
-			\FreeFormCertificate\Core\ActivityLog::disable_logging();
-		}
-
-		$result = $this->repository->bulkUpdateStatus( $ids, 'publish' );
-
-		// Re-enable logging.
-		if ( class_exists( '\FreeFormCertificate\Core\ActivityLog' ) ) {
-			\FreeFormCertificate\Core\ActivityLog::enable_logging();
-
-			// Log single bulk operation.
-			\FreeFormCertificate\Core\ActivityLog::log(
-				'bulk_restore',
-				\FreeFormCertificate\Core\ActivityLog::LEVEL_INFO,
-				array(
-					'count' => count( $ids ),
-				)
-			);
-		}
-
-		return $result;
+		return $this->lifecycle->bulk_restore_submissions( $ids );
 	}
 
 	/**
@@ -623,34 +541,7 @@ class SubmissionHandler {
 	 * @return array{moved: list<int>, conflicts: list<int>}
 	 */
 	public function move_submissions_between_forms( int $from_form_id, int $to_form_id, array $ids ): array {
-		$activity_log_class = '\FreeFormCertificate\Core\ActivityLog';
-
-		// Disable logging during bulk operation.
-		if ( class_exists( $activity_log_class ) ) {
-			\FreeFormCertificate\Core\ActivityLog::disable_logging();
-		}
-
-		$result = $this->repository->moveBetweenForms( $from_form_id, $to_form_id, $ids );
-
-		// Re-enable logging and emit a single audit entry.
-		if ( class_exists( $activity_log_class ) ) {
-			\FreeFormCertificate\Core\ActivityLog::enable_logging();
-			\FreeFormCertificate\Core\ActivityLog::log(
-				'submission_moved',
-				\FreeFormCertificate\Core\ActivityLog::LEVEL_INFO,
-				array(
-					'from_form_id'   => $from_form_id,
-					'to_form_id'     => $to_form_id,
-					'requested'      => count( $ids ),
-					'moved_count'    => count( $result['moved'] ),
-					'conflict_count' => count( $result['conflicts'] ),
-					'moved_ids'      => $result['moved'],
-					'conflict_ids'   => $result['conflicts'],
-				)
-			);
-		}
-
-		return $result;
+		return $this->lifecycle->move_submissions_between_forms( $from_form_id, $to_form_id, $ids );
 	}
 
 	/**
@@ -662,32 +553,7 @@ class SubmissionHandler {
 	 * @return int|false Number of rows deleted or false on error
 	 */
 	public function bulk_delete_submissions( array $ids ) {
-		if ( empty( $ids ) ) {
-			return 0;
-		}
-
-		// Disable logging during bulk operation (CRITICAL for performance).
-		if ( class_exists( '\FreeFormCertificate\Core\ActivityLog' ) ) {
-			\FreeFormCertificate\Core\ActivityLog::disable_logging();
-		}
-
-		$result = $this->repository->bulkDelete( $ids );
-
-		// Re-enable logging.
-		if ( class_exists( '\FreeFormCertificate\Core\ActivityLog' ) ) {
-			\FreeFormCertificate\Core\ActivityLog::enable_logging();
-
-			// Log single bulk operation instead of N individual logs.
-			\FreeFormCertificate\Core\ActivityLog::log(
-				'bulk_delete',
-				\FreeFormCertificate\Core\ActivityLog::LEVEL_WARNING,
-				array(
-					'count' => count( $ids ),
-				)
-			);
-		}
-
-		return $result;
+		return $this->lifecycle->bulk_delete_submissions( $ids );
 	}
 
 	/**
@@ -703,69 +569,7 @@ class SubmissionHandler {
 	 * @return int Number of rows deleted
 	 */
 	public function delete_all_submissions( ?int $form_id = null, bool $reset_auto_increment = false ): int {
-		global $wpdb;
-		$table = \FreeFormCertificate\Core\Utils::get_submissions_table();
-
-		if ( $form_id ) {
-			// Delete from specific form using repository.
-			$result = $this->repository->deleteByFormId( $form_id );
-
-			// Reset AUTO_INCREMENT if table is empty and requested.
-			if ( $reset_auto_increment ) {
-                // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-				$count = $wpdb->get_var( $wpdb->prepare( 'SELECT COUNT(*) FROM %i', $table ) );
-				if ( 0 === $count ) {
-                    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange
-					$wpdb->query( $wpdb->prepare( 'ALTER TABLE %i AUTO_INCREMENT = 1', $table ) );
-				}
-			}
-
-			return (int) $result;
-		}
-
-		// Delete ALL submissions from ALL forms.
-		$result = false;
-
-		if ( $reset_auto_increment ) {
-			// TRUNCATE resets AUTO_INCREMENT automatically.
-            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange
-			$result = $wpdb->query( $wpdb->prepare( 'TRUNCATE TABLE %i', $table ) );
-
-			// Also reset migration counters when resetting auto increment.
-			// This ensures migration panel shows correct stats after cleanup.
-			if ( false !== $result ) {
-				$this->reset_migration_counters();
-			}
-		} else {
-			// DELETE keeps AUTO_INCREMENT.
-            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-			$result = $wpdb->query( $wpdb->prepare( 'DELETE FROM %i', $table ) );
-		}
-
-		return false !== $result ? (int) $result : 0;  // Convert false to 0, ensure int.
-	}
-
-	/**
-	 * Reset all migration completion flags
-	 * Called when all submissions are deleted and counter is reset
-	 *
-	 * @return void
-	 */
-	private function reset_migration_counters(): void {
-		global $wpdb;
-
-		// Delete all migration completion flags.
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-		$wpdb->query(
-			$wpdb->prepare(
-				'DELETE FROM %i WHERE option_name LIKE %s',
-				$wpdb->options,
-				'ffc_migration_%_completed'
-			)
-		);
-
-		// Clear object cache for affected options.
-		wp_cache_delete( 'alloptions', 'options' );
+		return $this->lifecycle->delete_all_submissions( $form_id, $reset_auto_increment );
 	}
 
 	/**
@@ -774,23 +578,7 @@ class SubmissionHandler {
 	 * @return bool Query result
 	 */
 	public function reset_submission_counter(): bool {
-		global $wpdb;
-		$table = \FreeFormCertificate\Core\Utils::get_submissions_table();
-
-		// Get current max ID.
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-		$max_id = $wpdb->get_var( $wpdb->prepare( 'SELECT MAX(id) FROM %i', $table ) );
-
-		if ( null === $max_id ) {
-			// Table is empty, reset to 1.
-			$next_id = 1;
-		} else {
-			// Table has data, set to max_id + 1.
-			$next_id = intval( $max_id ) + 1;
-		}
-
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange
-		return $wpdb->query( $wpdb->prepare( 'ALTER TABLE %i AUTO_INCREMENT = %d', $table, $next_id ) );
+		return $this->lifecycle->reset_submission_counter();
 	}
 
 	/**
@@ -799,42 +587,7 @@ class SubmissionHandler {
 	 * @return int Number of deleted submissions
 	 */
 	public function run_data_cleanup(): int {
-		global $wpdb;
-		$table = \FreeFormCertificate\Core\Utils::get_submissions_table();
-
-		$cleanup_days = absint( get_option( 'ffc_cleanup_days', 0 ) );
-
-		if ( $cleanup_days <= 0 ) {
-			return 0;
-		}
-
-		$cutoff_ts = strtotime( "-{$cleanup_days} days" );
-		if ( false === $cutoff_ts ) {
-			$cutoff_ts = time();
-		}
-
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-		$deleted = $wpdb->query(
-			$wpdb->prepare(
-				// `submission_date` is unix UTC int since 6.6.0 (#249 sub-escopo a).
-				"DELETE FROM %i WHERE submission_date < %d AND status = 'publish'",
-				$table,
-				$cutoff_ts
-			)
-		);
-
-		if ( $deleted && class_exists( '\FreeFormCertificate\Core\ActivityLog' ) ) {
-			\FreeFormCertificate\Core\ActivityLog::log(
-				'data_cleanup',
-				\FreeFormCertificate\Core\ActivityLog::LEVEL_WARNING,
-				array(
-					'deleted_count' => $deleted,
-					'cutoff_ts'     => $cutoff_ts,
-				)
-			);
-		}
-
-		return false !== $deleted ? (int) $deleted : 0;
+		return $this->lifecycle->run_data_cleanup();
 	}
 
 	/**

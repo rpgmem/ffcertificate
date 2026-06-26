@@ -10,7 +10,7 @@
  *                            ↓
  *                          closed → definitive   (with reopen reason)
  *
- * Atomic transitions go through {@see RecruitmentNoticeRepository::set_status},
+ * Atomic transitions go through {@see RecruitmentNoticeWriter::set_status},
  * which uses a `WHERE status = '<expected>'` guard so concurrent transition
  * attempts safely fail with `affected_rows = 0`. Side-effects (stamping
  * `opened_at` on the first → definitive, `closed_at` on every → closed,
@@ -89,7 +89,7 @@ final class RecruitmentNoticeStateMachine {
 	 * @return TransitionResult
 	 */
 	public static function transition_to( int $notice_id, string $new_status, ?string $reason = null ): array {
-		$notice = RecruitmentNoticeRepository::get_by_id( $notice_id );
+		$notice = RecruitmentNoticeReader::get_by_id( $notice_id );
 		if ( null === $notice ) {
 			return self::failure( 'recruitment_notice_not_found' );
 		}
@@ -124,7 +124,7 @@ final class RecruitmentNoticeStateMachine {
 		}
 
 		// Atomic transition (race-safe).
-		$affected = RecruitmentNoticeRepository::set_status( $notice_id, $current, $new_status );
+		$affected = RecruitmentNoticeWriter::set_status( $notice_id, $current, $new_status );
 		if ( 1 !== $affected ) {
 			return self::failure( 'recruitment_transition_race_lost' );
 		}
@@ -141,7 +141,7 @@ final class RecruitmentNoticeStateMachine {
 	 * Run the per-target-state lifecycle stamping.
 	 *
 	 * - `definitive`  : stamp `opened_at` on the first → definitive (idempotent
-	 *               via the WHERE guard in {@see RecruitmentNoticeRepository::mark_opened}).
+	 *               via the WHERE guard in {@see RecruitmentNoticeWriter::mark_opened}).
 	 *               When the notice was previously `closed`, also flip
 	 *               `was_reopened = 1` (one-way) so the classification
 	 *               reopen-freeze rule kicks in.
@@ -162,22 +162,22 @@ final class RecruitmentNoticeStateMachine {
 	private static function apply_side_effects( int $notice_id, string $new_status ): void {
 		switch ( $new_status ) {
 			case 'definitive':
-				$notice = RecruitmentNoticeRepository::get_by_id( $notice_id );
+				$notice = RecruitmentNoticeReader::get_by_id( $notice_id );
 				if ( null === $notice ) {
 					return;
 				}
 
 				if ( null === $notice->opened_at ) {
-					RecruitmentNoticeRepository::mark_opened( $notice_id );
+					RecruitmentNoticeWriter::mark_opened( $notice_id );
 				}
 
 				if ( null !== $notice->closed_at ) {
 					// We arrived at definitive via reopen — set the flag.
-					RecruitmentNoticeRepository::mark_reopened( $notice_id );
+					RecruitmentNoticeWriter::mark_reopened( $notice_id );
 				}
 				break;
 			case 'closed':
-				RecruitmentNoticeRepository::mark_closed( $notice_id );
+				RecruitmentNoticeWriter::mark_closed( $notice_id );
 				break;
 		}
 	}

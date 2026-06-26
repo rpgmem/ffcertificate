@@ -10,7 +10,6 @@ use Mockery\Adapter\Phpunit\MockeryPHPUnitIntegration;
 use PHPUnit\Framework\TestCase;
 use FreeFormCertificate\Reregistration\ReregistrationEmailHandler;
 use FreeFormCertificate\Reregistration\ReregistrationRepository;
-use FreeFormCertificate\Reregistration\ReregistrationSubmissionRepository;
 
 /**
  * Tests for ReregistrationEmailHandler: invitation, reminder, confirmation,

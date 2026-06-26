@@ -59,7 +59,7 @@ class FormListColumns {
 			return;
 		}
 
-		$s = \FreeFormCertificate\Core\Utils::asset_suffix();
+		$s = \FreeFormCertificate\Core\AssetHelper::asset_suffix();
 		wp_enqueue_script(
 			'ffc-core',
 			FFC_PLUGIN_URL . "assets/js/ffc-core{$s}.js",
@@ -284,7 +284,7 @@ class FormListColumns {
 	 */
 	private static function load_submission_counts(): void {
 		global $wpdb;
-		$table = \FreeFormCertificate\Core\Utils::get_submissions_table();
+		$table = \FreeFormCertificate\Repositories\SubmissionRepository::get_submissions_table();
 
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		$results = $wpdb->get_results(

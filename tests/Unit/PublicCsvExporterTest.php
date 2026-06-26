@@ -19,6 +19,9 @@ use FreeFormCertificate\Frontend\PublicCsvExporter;
  *
  * Uses Reflection + newInstanceWithoutConstructor() to avoid the real
  * SubmissionRepository (which needs a wpdb).
+ *
+ * @covers \FreeFormCertificate\Frontend\PublicCsvExporter
+ * @covers \FreeFormCertificate\Frontend\Csv\PublicCsvRowFormatter
  */
 class PublicCsvExporterTest extends TestCase {
 
@@ -30,6 +33,11 @@ class PublicCsvExporterTest extends TestCase {
     protected function setUp(): void {
         parent::setUp();
         Monkey\setUp();
+
+        // Preload the extracted collaborator so pcov attributes the coverage
+        // this test drives through PublicCsvExporter delegation — pcov does not
+        // record lines for files first autoloaded mid-test-method (#589 E3).
+        class_exists( '\\FreeFormCertificate\Frontend\Csv\PublicCsvRowFormatter' );
 
         Functions\when( '__' )->returnArg();
         Functions\when( 'get_the_title' )->justReturn( 'Public Test Form' );
@@ -323,22 +331,26 @@ class PublicCsvExporterTest extends TestCase {
 
     public function test_get_form_title_cached_returns_title(): void {
         Functions\when( 'get_the_title' )->justReturn( 'Form X' );
-        $this->assertSame( 'Form X', $this->invoke( 'get_form_title_cached', array( 5 ) ) );
+        // get_form_title_cached moved to PublicCsvRowFormatter (#589 Sprint E3).
+        $formatter = new \FreeFormCertificate\Frontend\Csv\PublicCsvRowFormatter();
+        $this->assertSame( 'Form X', $formatter->get_form_title_cached( 5 ) );
     }
 
     public function test_get_form_title_cached_uses_placeholder_for_deleted(): void {
         Functions\when( 'get_the_title' )->justReturn( '' );
-        $this->assertSame( '(Deleted)', $this->invoke( 'get_form_title_cached', array( 99 ) ) );
+        $formatter = new \FreeFormCertificate\Frontend\Csv\PublicCsvRowFormatter();
+        $this->assertSame( '(Deleted)', $formatter->get_form_title_cached( 99 ) );
     }
 
     public function test_get_form_title_cached_memoizes_lookup(): void {
         // First lookup populates the cache; second must not call get_the_title
         // again (we flip the stub to a sentinel that would fail the assert).
+        $formatter = new \FreeFormCertificate\Frontend\Csv\PublicCsvRowFormatter();
         Functions\when( 'get_the_title' )->justReturn( 'Cached Title' );
-        $first = $this->invoke( 'get_form_title_cached', array( 7 ) );
+        $first = $formatter->get_form_title_cached( 7 );
 
         Functions\when( 'get_the_title' )->justReturn( 'DIFFERENT' );
-        $second = $this->invoke( 'get_form_title_cached', array( 7 ) );
+        $second = $formatter->get_form_title_cached( 7 );
 
         $this->assertSame( 'Cached Title', $first );
         $this->assertSame( 'Cached Title', $second );

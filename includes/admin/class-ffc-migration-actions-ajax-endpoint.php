@@ -10,7 +10,7 @@
  *
  * Security:
  *   - nonce verified against the action name (FFC.request supplies it).
- *   - capability gated via Utils::current_user_can_admin_or, matching
+ *   - capability gated via Capabilities::current_user_can_admin_or, matching
  *     the legacy handler so privilege boundaries don't shift.
  *
  * @package FreeFormCertificate\Admin
@@ -20,6 +20,8 @@
 declare(strict_types=1);
 
 namespace FreeFormCertificate\Admin;
+
+use FreeFormCertificate\Core\Capabilities;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
@@ -48,7 +50,7 @@ class MigrationActionsAjaxEndpoint {
 	public static function handle(): void {
 		check_ajax_referer( self::AJAX_ACTION, 'nonce' );
 
-		if ( ! \FreeFormCertificate\Core\Utils::current_user_can_admin_or( 'ffc_manage_settings' ) ) {
+		if ( ! \FreeFormCertificate\Core\Capabilities::current_user_can_admin_or( 'ffc_manage_settings' ) ) {
 			wp_send_json_error(
 				array( 'message' => __( 'You do not have permission to run migrations.', 'ffcertificate' ) ),
 				403

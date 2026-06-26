@@ -298,7 +298,7 @@ class SubmissionRestController {
 		try {
 			// Rate limit by IP — mirrors the AJAX verification handler.
 			if ( class_exists( '\FreeFormCertificate\Security\RateLimiter' ) ) {
-				$ip         = \FreeFormCertificate\Core\Utils::get_user_ip();
+				$ip         = \FreeFormCertificate\Core\RequestInput::get_user_ip();
 				$rate_check = \FreeFormCertificate\Security\RateLimiter::check_verification( $ip );
 				if ( empty( $rate_check['allowed'] ) ) {
 					return new \WP_Error(
@@ -397,7 +397,7 @@ class SubmissionRestController {
 	 * view cap (manage holders carry it too; WP admins always pass).
 	 */
 	public function check_admin_permission(): bool {
-		return \FreeFormCertificate\Core\Utils::current_user_can_admin_or( 'ffc_view_certificates' );
+		return \FreeFormCertificate\Core\Capabilities::current_user_can_admin_or( 'ffc_view_certificates' );
 	}
 
 	/**

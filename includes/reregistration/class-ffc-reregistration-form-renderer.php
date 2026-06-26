@@ -39,8 +39,8 @@ if ( ! defined( 'ABSPATH' ) ) {
  * Renderer for reregistration form output.
  *
  * @phpstan-import-type ReregistrationRow from ReregistrationRepository
- * @phpstan-import-type ReregistrationSubmissionRow from ReregistrationSubmissionRepository
- * @phpstan-import-type CustomFieldRow from CustomFieldRepository
+ * @phpstan-import-type ReregistrationSubmissionRow from ReregistrationSubmissionReader
+ * @phpstan-import-type CustomFieldRow from CustomFieldReader
  */
 class ReregistrationFormRenderer {
 
@@ -158,7 +158,7 @@ class ReregistrationFormRenderer {
 		$seen = array();
 
 		foreach ( $audience_ids as $aud_id ) {
-			$fields = CustomFieldRepository::get_by_audience_with_parents( (int) $aud_id, true );
+			$fields = CustomFieldReader::get_by_audience_with_parents( (int) $aud_id, true );
 			foreach ( $fields as $field ) {
 				$id = (int) $field->id;
 				if ( ! isset( $seen[ $id ] ) ) {
@@ -376,7 +376,7 @@ class ReregistrationFormRenderer {
 				break;
 
 			case 'select':
-				$choices = CustomFieldRepository::get_field_choices( $field );
+				$choices = CustomFieldReader::get_field_choices( $field );
 				printf(
 					'<select id="%s" name="%s"%s>',
 					esc_attr( $field_id ),
@@ -462,7 +462,7 @@ class ReregistrationFormRenderer {
 	 * @param string|null $value      Current JSON-encoded {parent,child} value.
 	 */
 	private static function render_dependent_select_field( object $field, string $field_id, string $field_name, ?string $value ): void {
-		$groups       = CustomFieldRepository::get_dependent_choices( $field );
+		$groups       = CustomFieldReader::get_dependent_choices( $field );
 		$opts         = self::decode_options( $field );
 		$parent_label = $opts['parent_label'] ?? __( 'Category', 'ffcertificate' );
 		$child_label  = $opts['child_label'] ?? __( 'Subcategory', 'ffcertificate' );

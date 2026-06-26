@@ -1,12 +1,14 @@
 <?php
 /**
- * Audience Repository
+ * Audience Reader
  *
- * Handles database operations for audience groups (públicos-alvo).
- * Supports 3-level hierarchy (parent / child / grandchild).
+ * Read-side of the audience repository split (#563 backlog, A6). Holds every
+ * SELECT / lookup / hierarchy-walk query and the derived read helpers. Writes
+ * live in {@see AudienceWriter}. Callers depend on this reader (reads) and the
+ * writer (writes) directly; the delegating façade was retired in #563 B3-A.
  *
+ * @since   6.11.3
  * @package FreeFormCertificate\Audience
- * @since 4.5.0
  */
 
 declare(strict_types=1);
@@ -19,15 +21,20 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 // phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber
 /**
- * Database repository for audience records.
+ * Read queries for audience records.
+ *
+ * @since 6.11.3
  *
  * @phpstan-type AudienceRow \stdClass&object{id: numeric-string, name: string, color: string, parent_id: numeric-string|null, status: string, created_by: numeric-string, created_at: string, updated_at: string, allow_self_join?: numeric-string, children?: list<\stdClass>, depth?: int<0, 2>}
  */
-class AudienceRepository {
+class AudienceReader {
 	use \FreeFormCertificate\Core\StaticRepositoryTrait;
 
 	/**
 	 * Cache group for this repository.
+	 *
+	 * Must match {@see AudienceWriter::cache_group()} so writes invalidate
+	 * the entries reads populate.
 	 *
 	 * @return string
 	 */
@@ -42,6 +49,15 @@ class AudienceRepository {
 	 */
 	public static function get_table_name(): string {
 		return self::db()->prefix . 'ffc_audiences';
+	}
+
+	/**
+	 * Get members table name
+	 *
+	 * @return string
+	 */
+	public static function get_members_table_name(): string {
+		return self::db()->prefix . 'ffc_audience_members';
 	}
 
 	/**
@@ -117,15 +133,6 @@ class AudienceRepository {
 	}
 
 	/**
-	 * Get members table name
-	 *
-	 * @return string
-	 */
-	public static function get_members_table_name(): string {
-		return self::db()->prefix . 'ffc_audience_members';
-	}
-
-	/**
 	 * Get all audiences
 	 *
 	 * @param array<string, mixed> $args Query arguments.
@@ -168,11 +175,11 @@ class AudienceRepository {
 		$orderby           = $orderby_sanitized ? $orderby_sanitized : 'name ASC';
 		$limit_clause      = $args['limit'] > 0 ? sprintf( 'LIMIT %d OFFSET %d', $args['limit'], $args['offset'] ) : '';
 
-        // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+		// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 		$sql = "SELECT * FROM %i {$where_clause} ORDER BY {$orderby} {$limit_clause}";
 
 		$prepare_args = array_merge( array( $table ), $values );
-        // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
+		// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
 		/**
 		 * Description.
 		 *
@@ -180,7 +187,7 @@ class AudienceRepository {
 		 */
 		$sql = $wpdb->prepare( $sql, $prepare_args );
 
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared
 		$results = $wpdb->get_results( $sql );
 		/**
 		 * Cast wpdb result to typed shape.
@@ -192,16 +199,6 @@ class AudienceRepository {
 
 	/**
 	 * Get audience by ID
-	 *
-	 * Get by id.
-	 *
-	 * Get by id.
-	 *
-	 * Get by id.
-	 *
-	 * Get by id.
-	 *
-	 * Get by id.
 	 *
 	 * @param int $id Audience ID.
 	 * @return AudienceRow|null
@@ -215,7 +212,7 @@ class AudienceRepository {
 		$wpdb  = self::db();
 		$table = self::get_table_name();
 
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		/**
 		 * Cast wpdb result to typed shape.
 		 *
@@ -295,240 +292,6 @@ class AudienceRepository {
 	}
 
 	/**
-	 * Create an audience
-	 *
-	 * @param array<string, mixed> $data Audience data.
-	 * @return int|false Audience ID or false on failure
-	 */
-	public static function create( array $data ) {
-		$wpdb  = self::db();
-		$table = self::get_table_name();
-
-		$defaults = array(
-			'name'            => '',
-			'color'           => '#3788d8',
-			'parent_id'       => null,
-			'status'          => 'active',
-			'allow_self_join' => 0,
-			'created_by'      => get_current_user_id(),
-		);
-		$data     = wp_parse_args( $data, $defaults );
-
-		$insert_data   = array(
-			'name'       => $data['name'],
-			'color'      => $data['color'],
-			'parent_id'  => $data['parent_id'],
-			'status'     => $data['status'],
-			'created_by' => $data['created_by'],
-		);
-		$insert_format = array( '%s', '%s', '%d', '%s', '%d' );
-
-		// Only include allow_self_join if column exists (migration may not have run).
-		if ( isset( $data['allow_self_join'] ) ) {
-			$insert_data['allow_self_join'] = (int) $data['allow_self_join'];
-			$insert_format[]                = '%d';
-		}
-
-		$result = $wpdb->insert( $table, $insert_data, $insert_format );
-
-		if ( ! $result ) {
-			return false;
-		}
-
-		$new_id = (int) $wpdb->insert_id;
-
-		/**
-		 * Fires after an audience is successfully created.
-		 *
-		 * Subscribers can perform secondary provisioning such as seeding
-		 * reregistration standard fields for the new audience.
-		 *
-		 * @since 4.13.0
-		 * @param int                  $audience_id New audience ID.
-		 * @param array<string, mixed> $data        Normalized creation data.
-		 */
-		do_action( 'ffc_audience_created', $new_id, $data );
-
-		return $new_id;
-	}
-
-	/**
-	 * Update an audience
-	 *
-	 * @param int                  $id Audience ID.
-	 * @param array<string, mixed> $data Update data.
-	 * @return bool
-	 */
-	public static function update( int $id, array $data ): bool {
-		$wpdb  = self::db();
-		$table = self::get_table_name();
-
-		// Remove fields that shouldn't be updated.
-		unset( $data['id'], $data['created_by'], $data['created_at'] );
-
-		if ( empty( $data ) ) {
-			return false;
-		}
-
-		// Build update data and format arrays.
-		$update_data = array();
-		$format      = array();
-
-		$field_formats = array(
-			'name'            => '%s',
-			'color'           => '%s',
-			'parent_id'       => '%d',
-			'status'          => '%s',
-			'allow_self_join' => '%d',
-		);
-
-		foreach ( $data as $key => $value ) {
-			if ( isset( $field_formats[ $key ] ) ) {
-				$update_data[ $key ] = $value;
-				$format[]            = $field_formats[ $key ];
-			}
-		}
-
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-		$result = $wpdb->update(
-			$table,
-			$update_data,
-			array( 'id' => $id ),
-			$format,
-			array( '%d' )
-		);
-
-		static::cache_delete( "id_{$id}" );
-
-		return false !== $result;
-	}
-
-	/**
-	 * Cascade allow_self_join flag from parent to all descendants
-	 *
-	 * @since 4.9.10
-	 * @param int $parent_id Parent audience ID.
-	 * @param int $value     1 or 0.
-	 * @return void
-	 */
-	public static function cascade_self_join( int $parent_id, int $value ): void {
-		$wpdb  = self::db();
-		$table = self::get_table_name();
-
-		$children = self::get_children( $parent_id );
-		if ( empty( $children ) ) {
-			return;
-		}
-
-		$child_ids    = array_map(
-			function ( $c ) {
-				return (int) $c->id;
-			},
-			$children
-		);
-		$placeholders = implode( ',', array_fill( 0, count( $child_ids ), '%d' ) );
-
-		$update_sql = $wpdb->prepare(
-			// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
-			"UPDATE %i SET allow_self_join = %d WHERE id IN ({$placeholders})",
-			array_merge( array( $table, $value ), $child_ids )
-		);
-		if ( is_string( $update_sql ) ) {
-			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared
-			$wpdb->query( $update_sql );
-		}
-
-		// Recurse into each child.
-		foreach ( $children as $child ) {
-			self::cascade_self_join( (int) $child->id, $value );
-		}
-	}
-
-	/**
-	 * Delete an audience
-	 *
-	 * Note: This also deletes all child audiences and member associations.
-	 *
-	 * @param int $id Audience ID.
-	 * @return bool
-	 */
-	public static function delete( int $id ): bool {
-		$wpdb          = self::db();
-		$table         = self::get_table_name();
-		$members_table = self::get_members_table_name();
-
-		// Delete children first.
-		$children = self::get_children( $id );
-		foreach ( $children as $child ) {
-			self::delete( (int) $child->id );
-		}
-
-		// Delete member associations.
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-		$wpdb->delete( $members_table, array( 'audience_id' => $id ), array( '%d' ) );
-
-		// Delete the audience.
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-		$result = $wpdb->delete( $table, array( 'id' => $id ), array( '%d' ) );
-
-		static::cache_delete( "id_{$id}" );
-
-		return false !== $result;
-	}
-
-	/**
-	 * Add a member to an audience
-	 *
-	 * @param int $audience_id Audience ID.
-	 * @param int $user_id User ID.
-	 * @return int|false Member ID or false on failure
-	 */
-	public static function add_member( int $audience_id, int $user_id ) {
-		$wpdb  = self::db();
-		$table = self::get_members_table_name();
-
-		// Check if already a member.
-		if ( self::is_member( $audience_id, $user_id ) ) {
-			return false;
-		}
-
-		$result = $wpdb->insert(
-			$table,
-			array(
-				'audience_id' => $audience_id,
-				'user_id'     => $user_id,
-			),
-			array( '%d', '%d' )
-		);
-
-		return $result ? $wpdb->insert_id : false;
-	}
-
-	/**
-	 * Remove a member from an audience
-	 *
-	 * @param int $audience_id Audience ID.
-	 * @param int $user_id User ID.
-	 * @return bool
-	 */
-	public static function remove_member( int $audience_id, int $user_id ): bool {
-		$wpdb  = self::db();
-		$table = self::get_members_table_name();
-
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-		$result = $wpdb->delete(
-			$table,
-			array(
-				'audience_id' => $audience_id,
-				'user_id'     => $user_id,
-			),
-			array( '%d', '%d' )
-		);
-
-		return false !== $result;
-	}
-
-	/**
 	 * Check if a user is a member of an audience
 	 *
 	 * @param int $audience_id Audience ID.
@@ -539,7 +302,7 @@ class AudienceRepository {
 		$wpdb  = self::db();
 		$table = self::get_members_table_name();
 
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		$count = $wpdb->get_var(
 			$wpdb->prepare(
 				'SELECT COUNT(*) FROM %i WHERE audience_id = %d AND user_id = %d',
@@ -573,14 +336,14 @@ class AudienceRepository {
 
 		$placeholders = implode( ',', array_fill( 0, count( $audience_ids ), '%d' ) );
 
-        // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare -- Dynamic IN() placeholders built from array_fill above.
+		// phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare -- Dynamic IN() placeholders built from array_fill above.
 		$results = $wpdb->get_col(
 			$wpdb->prepare(
 				"SELECT DISTINCT user_id FROM %i WHERE audience_id IN ({$placeholders})",
 				array_merge( array( $table ), $audience_ids )
 			)
 		);
-        // phpcs:enable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare
+		// phpcs:enable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare
 
 		return array_map( 'intval', $results );
 	}
@@ -608,7 +371,7 @@ class AudienceRepository {
 		$table         = self::get_table_name();
 		$members_table = self::get_members_table_name();
 
-        // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+		// phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		$audiences_raw = $wpdb->get_results(
 			$wpdb->prepare(
 				'SELECT a.* FROM %i a
@@ -620,7 +383,7 @@ class AudienceRepository {
 				$user_id
 			)
 		);
-        // phpcs:enable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+		// phpcs:enable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		/**
 		 * Cast wpdb result to typed shape.
 		 *
@@ -642,11 +405,11 @@ class AudienceRepository {
 				$ancestor_ids = array_unique( array_map( 'absint', $ancestor_ids ) );
 				$placeholders = implode( ',', array_fill( 0, count( $ancestor_ids ), '%d' ) );
 
-                // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber -- Dynamic IN() placeholders built from array_fill; cached below.
+				// phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber -- Dynamic IN() placeholders built from array_fill; cached below.
 				$parents_raw = $wpdb->get_results(
 					$wpdb->prepare( "SELECT * FROM %i WHERE id IN ({$placeholders}) AND status = 'active'", array_merge( array( $table ), $ancestor_ids ) )
 				);
-                // phpcs:enable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber
+				// phpcs:enable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber
 				/**
 		 * Cast wpdb result to typed shape.
 		 *
@@ -689,69 +452,6 @@ class AudienceRepository {
 	}
 
 	/**
-	 * Bulk add members to an audience
-	 *
-	 * @param int        $audience_id Audience ID.
-	 * @param array<int> $user_ids User IDs.
-	 * @return int Number of members added
-	 */
-	public static function bulk_add_members( int $audience_id, array $user_ids ): int {
-		$added = 0;
-		foreach ( $user_ids as $user_id ) {
-			if ( self::add_member( $audience_id, (int) $user_id ) ) {
-				++$added;
-			}
-		}
-		return $added;
-	}
-
-	/**
-	 * Bulk remove members from an audience
-	 *
-	 * @param int        $audience_id Audience ID.
-	 * @param array<int> $user_ids User IDs.
-	 * @return int Number of members removed
-	 */
-	public static function bulk_remove_members( int $audience_id, array $user_ids ): int {
-		$removed = 0;
-		foreach ( $user_ids as $user_id ) {
-			if ( self::remove_member( $audience_id, (int) $user_id ) ) {
-				++$removed;
-			}
-		}
-		return $removed;
-	}
-
-	/**
-	 * Replace all members of an audience
-	 *
-	 * @param int        $audience_id Audience ID.
-	 * @param array<int> $user_ids User IDs.
-	 * @return bool
-	 */
-	public static function set_members( int $audience_id, array $user_ids ): bool {
-		$wpdb  = self::db();
-		$table = self::get_members_table_name();
-
-        // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Intentional delete-and-reinsert for member sync.
-		$wpdb->delete( $table, array( 'audience_id' => $audience_id ), array( '%d' ) );
-        // phpcs:enable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-
-		// Add new members.
-		foreach ( $user_ids as $user_id ) {
-			self::add_member( $audience_id, (int) $user_id );
-		}
-
-		// Invalidate audience membership caches for affected users.
-		foreach ( $user_ids as $uid ) {
-			wp_cache_delete( 'ffcertificate_user_aud_' . (int) $uid . '_0', 'ffcertificate' );
-			wp_cache_delete( 'ffcertificate_user_aud_' . (int) $uid . '_1', 'ffcertificate' );
-		}
-
-		return true;
-	}
-
-	/**
 	 * Count audiences
 	 *
 	 * @param array<string, mixed> $args Query arguments (parent_id, status).
@@ -790,11 +490,11 @@ class AudienceRepository {
 		// Build prepared query with %i for table name.
 		$prepare_args = array_merge( array( $table ), $values );
 
-        // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Dynamic WHERE clause built from safe %s/%d placeholders; cached below.
+		// phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Dynamic WHERE clause built from safe %s/%d placeholders; cached below.
 		$result = (int) $wpdb->get_var(
 			$wpdb->prepare( "SELECT COUNT(*) FROM %i {$where_clause}", $prepare_args )
 		);
-        // phpcs:enable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+		// phpcs:enable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 		wp_cache_set( $cache_key, $result, 'ffcertificate' );
 
 		return $result;
@@ -822,7 +522,7 @@ class AudienceRepository {
 		$wpdb  = self::db();
 		$table = self::get_table_name();
 
-        // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+		// phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		$results_raw = $wpdb->get_results(
 			$wpdb->prepare(
 				"SELECT * FROM %i
@@ -834,7 +534,7 @@ class AudienceRepository {
 				$limit
 			)
 		);
-        // phpcs:enable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+		// phpcs:enable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		/**
 		 * Cast wpdb result to typed shape.
 		 *

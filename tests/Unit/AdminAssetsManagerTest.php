@@ -16,6 +16,7 @@ use FreeFormCertificate\Admin\AdminAssetsManager;
  * conditional asset loading, and enqueue calls.
  *
  * @covers \FreeFormCertificate\Admin\AdminAssetsManager
+ * @covers \FreeFormCertificate\Admin\AdminConditionalAssets
  * @runTestsInSeparateProcesses
  * @preserveGlobalState disabled
  */
@@ -29,6 +30,11 @@ class AdminAssetsManagerTest extends TestCase {
     protected function setUp(): void {
         parent::setUp();
         Monkey\setUp();
+
+        // pcov does not record lines for files first autoloaded mid-test-method,
+        // so the extracted conditional-assets class's coverage would attribute to
+        // nothing. Preload the class here so pcov attributes its lines to this test.
+        class_exists( '\\FreeFormCertificate\\Admin\\AdminConditionalAssets' );
 
         // Common WP function stubs
         Functions\when('__')->returnArg();
@@ -51,10 +57,11 @@ class AdminAssetsManagerTest extends TestCase {
         Functions\when('wp_timezone')->alias(static fn() => new \DateTimeZone('UTC'));
 
         // Utils alias mock
-        $this->utils_mock = Mockery::mock('alias:\FreeFormCertificate\Core\Utils');
+        $this->utils_mock = Mockery::mock('alias:\FreeFormCertificate\Core\AssetHelper');
+        $ri_mock = Mockery::mock( 'alias:\FreeFormCertificate\Core\RequestInput' );
         $this->utils_mock->shouldReceive('asset_suffix')->andReturn('.min')->byDefault();
         $this->utils_mock->shouldReceive('enqueue_dark_mode')->byDefault();
-        $this->utils_mock->shouldReceive('get_get_string')->andReturnUsing( function ( $key, $default = '' ) {
+        $ri_mock->shouldReceive('get_get_string')->andReturnUsing( function ( $key, $default = '' ) {
             return isset( $_GET[ $key ] ) && is_string( $_GET[ $key ] ) ? $_GET[ $key ] : $default;
         } )->byDefault();
     }

@@ -1,9 +1,11 @@
 <?php
 /**
- * Adjutancy Repository
+ * Adjutancy Writer
  *
- * CRUD for the global Adjutancy ("matéria") catalog. Adjutancies are reusable
- * across notices via the `ffc_recruitment_notice_adjutancy` junction.
+ * Write-side of the adjutancy repository split (#563 backlog, B3). Holds every
+ * INSERT / UPDATE / DELETE plus the color-normalization helper. Reads live in
+ * {@see RecruitmentAdjutancyReader}. Callers depend on the reader (reads) and
+ * this writer (writes) directly; the delegating façade was retired in #563 B3-A.
  *
  * Schema-level invariants enforced here:
  *
@@ -11,12 +13,10 @@
  *   constraint to surface duplicates as a `false` return.
  * - Deletion gating (zero references in `notice_adjutancy` and zero references
  *   in `classification`) is enforced by the service layer, not here — this
- *   repository's `delete()` is unconditional. The deletion gate lives in the
- *   REST controller / service so the gate can return a typed 409 with
- *   reference counts instead of a silent failure.
+ *   writer's `delete()` is unconditional.
  *
  * @package FreeFormCertificate\Recruitment
- * @since   6.0.0
+ * @since   6.11.3
  */
 
 declare(strict_types=1);
@@ -28,19 +28,19 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 /**
- * Database repository for `ffc_recruitment_adjutancy` rows.
+ * Write operations for `ffc_recruitment_adjutancy` rows.
  *
- * @phpstan-type AdjutancyRow \stdClass&object{id: numeric-string, slug: string, name: string, color: string, created_at: string, updated_at: string}
+ * @since 6.11.3
  */
-class RecruitmentAdjutancyRepository {
-
-	/** Default badge color used when admins haven't picked one yet. */
-	public const DEFAULT_COLOR = '#e9ecef';
+class RecruitmentAdjutancyWriter {
 
 	use \FreeFormCertificate\Core\StaticRepositoryTrait;
 
 	/**
 	 * Cache group for this repository.
+	 *
+	 * Must match {@see RecruitmentAdjutancyReader::cache_group()} so writes
+	 * invalidate the entries reads populate.
 	 *
 	 * @return string
 	 */
@@ -58,95 +58,6 @@ class RecruitmentAdjutancyRepository {
 	}
 
 	/**
-	 * Get an adjutancy row by ID.
-	 *
-	 * Cached per-row in the object cache; cache is invalidated by
-	 * {@see self::update()} and {@see self::delete()}.
-	 *
-	 * @param int $id Adjutancy ID.
-	 * @return AdjutancyRow|null
-	 */
-	public static function get_by_id( int $id ): ?object {
-		$cached = static::cache_get( "id_{$id}" );
-		if ( false !== $cached ) {
-			/**
-			 * Object-cache return cast.
-			 *
-			 * @var AdjutancyRow|null $cached
-			 */
-			return $cached;
-		}
-
-		$wpdb  = self::db();
-		$table = self::get_table_name();
-
-		/**
-		 * Cast wpdb result to typed shape.
-		 *
-		 * @var AdjutancyRow|null $result
-		 */
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Cached above and below; %i for table identifier.
-		$result = $wpdb->get_row(
-			$wpdb->prepare( 'SELECT * FROM %i WHERE id = %d', $table, $id )
-		);
-
-		if ( $result ) {
-			static::cache_set( "id_{$id}", $result );
-		}
-
-		return $result;
-	}
-
-	/**
-	 * Get an adjutancy row by slug.
-	 *
-	 * Used by the CSV importer (which receives the slug in the `adjutancy`
-	 * column) and by the public shortcode (which accepts the slug in its
-	 * `adjutancy=` attribute).
-	 *
-	 * @param string $slug Adjutancy slug (lowercase, unique).
-	 * @return AdjutancyRow|null
-	 */
-	public static function get_by_slug( string $slug ): ?object {
-		$wpdb  = self::db();
-		$table = self::get_table_name();
-
-		/**
-		 * Cast wpdb result to typed shape.
-		 *
-		 * @var AdjutancyRow|null $result
-		 */
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Slug lookup is uncached intentionally; called rarely on CSV import / shortcode render.
-		$result = $wpdb->get_row(
-			$wpdb->prepare( 'SELECT * FROM %i WHERE slug = %s LIMIT 1', $table, $slug )
-		);
-
-		return $result ? $result : null;
-	}
-
-	/**
-	 * List all adjutancies, ordered by name ASC.
-	 *
-	 * @return list<AdjutancyRow>
-	 */
-	public static function get_all(): array {
-		$wpdb  = self::db();
-		$table = self::get_table_name();
-
-		/**
-		 * Cast wpdb results to typed shape.
-		 *
-		 * @var list<AdjutancyRow>|null $results
-		 */
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Admin-only listing; small cardinality (~ tens of rows).
-		$results = $wpdb->get_results(
-			$wpdb->prepare( 'SELECT * FROM %i ORDER BY name ASC', $table )
-		);
-
-		return is_array( $results ) ? $results : array();
-	}
-
-	/**
 	 * Create a new adjutancy row.
 	 *
 	 * Caller is responsible for slug normalization. Returns `false` on
@@ -155,7 +66,7 @@ class RecruitmentAdjutancyRepository {
 	 * @param string $slug  Unique slug.
 	 * @param string $name  Display name.
 	 * @param string $color Optional badge background color (#RGB / #RRGGBB / #RRGGBBAA);
-	 *                      falls back to {@see self::DEFAULT_COLOR} on empty input.
+	 *                      falls back to {@see RecruitmentAdjutancyReader::DEFAULT_COLOR} on empty input.
 	 * @return int|false New adjutancy ID or false on failure.
 	 */
 	public static function create( string $slug, string $name, string $color = '' ) {
@@ -190,15 +101,16 @@ class RecruitmentAdjutancyRepository {
 	 * Normalize a color string into the canonical lowercase hex form.
 	 *
 	 * Accepts `#RGB`, `#RRGGBB`, or `#RRGGBBAA`; anything else falls back
-	 * to {@see self::DEFAULT_COLOR}. Mirrors the validator on
-	 * {@see RecruitmentSettings::sanitize_color()} so the per-adjutancy
-	 * picker and the per-status picker enforce identical input rules.
+	 * to {@see RecruitmentAdjutancyReader::DEFAULT_COLOR}. Mirrors the
+	 * validator on {@see RecruitmentSettings::sanitize_color()} so the
+	 * per-adjutancy picker and the per-status picker enforce identical input
+	 * rules.
 	 *
 	 * @param string $value Raw value.
 	 * @return string
 	 */
 	public static function normalize_color( string $value ): string {
-		return \FreeFormCertificate\Core\ColorValidator::normalize( $value, self::DEFAULT_COLOR );
+		return \FreeFormCertificate\Core\ColorValidator::normalize( $value, RecruitmentAdjutancyReader::DEFAULT_COLOR );
 	}
 
 	/**

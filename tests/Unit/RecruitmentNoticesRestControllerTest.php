@@ -14,7 +14,7 @@ use FreeFormCertificate\Recruitment\RecruitmentNoticesRestController;
  * Tests for the recruitment notices REST controller — route registration
  * plus the three endpoint handlers (list / create / update).
  *
- * Static dependencies (RecruitmentNoticeRepository, RecruitmentNoticeStateMachine,
+ * Static dependencies (RecruitmentNoticeReader/Writer, RecruitmentNoticeStateMachine,
  * RecruitmentErrorMessages) are alias-mocked once per test class. Per-test
  * behaviour overrides are applied via `shouldReceive` on the stored mocks.
  *
@@ -30,6 +30,9 @@ class RecruitmentNoticesRestControllerTest extends TestCase {
 
     /** @var \Mockery\MockInterface */
     private $repoMock;
+
+    /** @var \Mockery\MockInterface */
+    private $writerMock;
 
     /** @var \Mockery\MockInterface */
     private $smMock;
@@ -57,11 +60,12 @@ class RecruitmentNoticesRestControllerTest extends TestCase {
         // Alias-mock the static dependencies. Only one alias per class per
         // process is honoured by Mockery; subsequent shouldReceive() calls
         // in tests use the SAME stored reference.
-        $this->repoMock = Mockery::mock( 'alias:FreeFormCertificate\Recruitment\RecruitmentNoticeRepository' );
+        $this->repoMock   = Mockery::mock( 'alias:FreeFormCertificate\Recruitment\RecruitmentNoticeReader' );
+        $this->writerMock = Mockery::mock( 'alias:FreeFormCertificate\Recruitment\RecruitmentNoticeWriter' );
         $this->repoMock->shouldReceive( 'get_all' )->andReturn( array() )->byDefault();
         $this->repoMock->shouldReceive( 'get_by_id' )->andReturn( null )->byDefault();
-        $this->repoMock->shouldReceive( 'create' )->andReturn( false )->byDefault();
-        $this->repoMock->shouldReceive( 'update' )->andReturn( true )->byDefault();
+        $this->writerMock->shouldReceive( 'create' )->andReturn( false )->byDefault();
+        $this->writerMock->shouldReceive( 'update' )->andReturn( true )->byDefault();
 
         $this->smMock = Mockery::mock( 'alias:FreeFormCertificate\Recruitment\RecruitmentNoticeStateMachine' );
         $this->smMock->shouldReceive( 'transition_to' )
@@ -164,7 +168,7 @@ class RecruitmentNoticesRestControllerTest extends TestCase {
 
     public function test_create_notice_returns_201_on_success(): void {
         $created = (object) array( 'id' => 5, 'code' => 'NEW', 'name' => 'New' );
-        $this->repoMock->shouldReceive( 'create' )->with( 'NEW', 'New' )->andReturn( 5 );
+        $this->writerMock->shouldReceive( 'create' )->with( 'NEW', 'New' )->andReturn( 5 );
         $this->repoMock->shouldReceive( 'get_by_id' )->with( 5 )->andReturn( $created );
 
         $response = $this->controller->create_notice(
@@ -217,7 +221,7 @@ class RecruitmentNoticesRestControllerTest extends TestCase {
 
     public function test_update_notice_passes_meta_fields_through_to_repository(): void {
         $captured = null;
-        $this->repoMock->shouldReceive( 'update' )->andReturnUsing( function ( $id, $meta ) use ( &$captured ) {
+        $this->writerMock->shouldReceive( 'update' )->andReturnUsing( function ( $id, $meta ) use ( &$captured ) {
             $captured = compact( 'id', 'meta' );
             return true;
         } );

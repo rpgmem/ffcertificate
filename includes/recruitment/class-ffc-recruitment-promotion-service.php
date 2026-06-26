@@ -72,7 +72,7 @@ final class RecruitmentPromotionService {
 	 * @return SnapshotResult
 	 */
 	public static function snapshot_to_definitive( int $notice_id ): array {
-		$notice = RecruitmentNoticeRepository::get_by_id( $notice_id );
+		$notice = RecruitmentNoticeReader::get_by_id( $notice_id );
 		if ( null === $notice ) {
 			return self::failure( 'recruitment_notice_not_found' );
 		}

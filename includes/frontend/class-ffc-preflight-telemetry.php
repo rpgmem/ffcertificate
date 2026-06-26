@@ -16,7 +16,7 @@ declare(strict_types=1);
 namespace FreeFormCertificate\Frontend;
 
 use FreeFormCertificate\Core\ActivityLog;
-use FreeFormCertificate\Core\Utils;
+use FreeFormCertificate\Core\RequestInput;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
@@ -59,7 +59,7 @@ class PreflightTelemetry {
 		// Verify nonce — same action as the submit flow, so a stale
 		// nonce here triggers the same #356 auto-recover path on
 		// the client.
-		if ( ! wp_verify_nonce( Utils::get_post_string( 'nonce' ), 'ffc_frontend_nonce' ) ) {
+		if ( ! wp_verify_nonce( RequestInput::get_post_string( 'nonce' ), 'ffc_frontend_nonce' ) ) {
 			wp_send_json_error(
 				array(
 					'message'       => __( 'Security check failed.', 'ffcertificate' ),
@@ -72,7 +72,7 @@ class PreflightTelemetry {
         // phpcs:disable WordPress.Security.NonceVerification.Missing -- verified above.
 
 		$form_id = isset( $_POST['form_id'] ) ? absint( wp_unslash( $_POST['form_id'] ) ) : 0;
-		$reason  = Utils::get_post_string( 'reason' );
+		$reason  = RequestInput::get_post_string( 'reason' );
 
         // phpcs:enable WordPress.Security.NonceVerification.Missing
 
@@ -87,7 +87,7 @@ class PreflightTelemetry {
 		// hold PII. Admins doing analysis can still group by IP-hash
 		// to see "is this the same visitor bouncing 3 times" without
 		// learning the IP itself.
-		$ip      = Utils::get_user_ip();
+		$ip      = RequestInput::get_user_ip();
 		$ip_hash = '' !== $ip ? substr( hash( 'sha256', $ip . wp_salt( 'auth' ) ), 0, 12 ) : '';
 
 		// `'info'` matches ActivityLog::LEVEL_INFO. Literal used here

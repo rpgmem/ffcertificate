@@ -37,13 +37,13 @@ class DashboardViewMode {
 		// View-as is admin-only by default; the granular `ffc_view_as_user`
 		// cap (6.2.0) lets site admins delegate impersonation to support /
 		// audit operators without giving full WP admin.
-		if ( ! \FreeFormCertificate\Core\Utils::current_user_can_admin_or( 'ffc_view_as_user' ) ) {
+		if ( ! \FreeFormCertificate\Core\Capabilities::current_user_can_admin_or( 'ffc_view_as_user' ) ) {
 			return false;
 		}
 
         // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Nonce verified below via wp_verify_nonce.
 		$target_user_id = absint( wp_unslash( $_GET['ffc_view_as_user'] ) );
-		$nonce          = \FreeFormCertificate\Core\Utils::get_get_string( 'ffc_view_nonce' );
+		$nonce          = \FreeFormCertificate\Core\RequestInput::get_get_string( 'ffc_view_nonce' );
 
 		// Verify nonce.
 		if ( ! wp_verify_nonce( $nonce, 'ffc_view_as_user_' . $target_user_id ) ) {

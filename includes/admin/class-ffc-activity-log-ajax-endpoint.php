@@ -45,7 +45,7 @@ class ActivityLogAjaxEndpoint {
 	public static function handle(): void {
 		check_ajax_referer( self::AJAX_ACTION, 'nonce' );
 
-		if ( ! \FreeFormCertificate\Core\Utils::current_user_can_admin_or( 'ffc_view_activity_log' ) ) {
+		if ( ! \FreeFormCertificate\Core\Capabilities::current_user_can_admin_or( 'ffc_view_activity_log' ) ) {
 			wp_send_json_error(
 				array( 'message' => __( 'You do not have permission to view activity logs.', 'ffcertificate' ) ),
 				403
@@ -73,8 +73,8 @@ class ActivityLogAjaxEndpoint {
 		$args         = AdminActivityLogPage::build_query_args( $params, $per_page );
 		$current_page = (int) ( ( $args['offset'] / $per_page ) + 1 );
 
-		$logs       = \FreeFormCertificate\Core\ActivityLog::get_activities( $args );
-		$total_logs = \FreeFormCertificate\Core\ActivityLog::count_activities( $args );
+		$logs       = \FreeFormCertificate\Core\ActivityLogQuery::get_activities( $args );
+		$total_logs = \FreeFormCertificate\Core\ActivityLogQuery::count_activities( $args );
 
 		wp_send_json_success(
 			array(

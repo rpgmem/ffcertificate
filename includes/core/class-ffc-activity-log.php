@@ -253,7 +253,7 @@ class ActivityLog {
 			'context'           => $context_for_db,
 			'context_encrypted' => $context_encrypted,
 			'user_id'           => absint( $user_id ),
-			'user_ip'           => \FreeFormCertificate\Core\Utils::get_user_ip(),
+			'user_ip'           => \FreeFormCertificate\Core\RequestInput::get_user_ip(),
 			'submission_id'     => absint( $submission_id ),
 			'created_at'        => current_time( 'mysql' ),
 		);
@@ -426,81 +426,6 @@ class ActivityLog {
 		}
 		self::create_table();
 		update_option( 'ffc_activity_log_db_version', self::DB_VERSION );
-	}
-
-	// =====================================================================.
-	// Backward-compatible delegation → ActivityLogQuery (v4.12.2)
-	// =====================================================================.
-
-	/**
-	 * Get activities.
-	 *
-	 * @see ActivityLogQuery::get_activities()
-	 * @param array<string, mixed> $args Query arguments.
-	 * @return array<int, array<string, mixed>>
-	 */
-	public static function get_activities( array $args = array() ): array {
-		return ActivityLogQuery::get_activities( $args );
-	}
-
-	/**
-	 * Count activities.
-	 *
-	 * @see ActivityLogQuery::count_activities()
-	 * @param array<string, mixed> $args Query arguments.
-	 */
-	public static function count_activities( array $args = array() ): int {
-		return ActivityLogQuery::count_activities( $args );
-	}
-
-	/**
-	 * Cleanup.
-	 *
-	 * @see ActivityLogQuery::cleanup()
-	 * @param int $days Days.
-	 */
-	public static function cleanup( int $days = 90 ): int {
-		return ActivityLogQuery::cleanup( $days );
-	}
-
-	/**
-	 * Run cleanup.
-	 *
-	 * @see ActivityLogQuery::run_cleanup()
-	 */
-	public static function run_cleanup(): int {
-		return ActivityLogQuery::run_cleanup();
-	}
-
-	/**
-	 * Get stats.
-	 *
-	 * Get stats.
-	 *
-	 * Get stats.
-	 *
-	 * Get stats.
-	 *
-	 * Get stats.
-	 *
-	 * Get stats.
-	 *
-	 * Get stats.
-	 *
-	 * Get stats.
-	 *
-	 * Get stats.
-	 *
-	 * Get stats.
-	 *
-	 * Get stats.
-	 *
-	 * @see ActivityLogQuery::get_stats()
-	 * @param int $days Days.
-	 * @return array<string, mixed>
-	 */
-	public static function get_stats( int $days = 30 ): array {
-		return ActivityLogQuery::get_stats( $days );
 	}
 
 	/**
@@ -706,18 +631,6 @@ class ActivityLog {
 			),
 			$user_id
 		);
-	}
-
-	/**
-	 * Get submission logs.
-	 *
-	 * @see ActivityLogQuery::get_submission_logs()
-	 * @param int $submission_id Submission ID.
-	 * @param int $limit Limit.
-	 * @return array<int, array<string, mixed>>
-	 */
-	public static function get_submission_logs( int $submission_id, int $limit = 100 ): array {
-		return ActivityLogQuery::get_submission_logs( $submission_id, $limit );
 	}
 
 	/**

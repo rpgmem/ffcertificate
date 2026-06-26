@@ -44,7 +44,7 @@ class RecruitmentPublicShortcodeRendererTest extends TestCase {
         Functions\when( 'esc_attr' )->alias( fn( $s ) => htmlspecialchars( (string) $s, ENT_QUOTES, 'UTF-8' ) );
         Functions\when( 'esc_url' )->alias( fn( $s ) => filter_var( (string) $s, FILTER_SANITIZE_URL ) ?: (string) $s );
 
-        // parse_columns_config reads RecruitmentNoticeRepository::DEFAULT_PUBLIC_COLUMNS_CONFIG
+        // parse_columns_config reads RecruitmentNoticeReader::DEFAULT_PUBLIC_COLUMNS_CONFIG
         // (a class constant). We let the real class autoload so the constant
         // resolves — the renderer never calls methods on the repository.
 
@@ -268,7 +268,7 @@ class RecruitmentPublicShortcodeRendererTest extends TestCase {
         // Blank color → repository default.
         $out = $this->invoke( 'render_adjutancy_badge', (object) array( 'name' => 'Por', 'color' => '' ) );
         $this->assertStringContainsString(
-            \FreeFormCertificate\Recruitment\RecruitmentAdjutancyRepository::DEFAULT_COLOR,
+            \FreeFormCertificate\Recruitment\RecruitmentAdjutancyReader::DEFAULT_COLOR,
             $out
         );
     }

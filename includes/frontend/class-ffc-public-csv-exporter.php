@@ -29,8 +29,10 @@ declare(strict_types=1);
 namespace FreeFormCertificate\Frontend;
 
 use FreeFormCertificate\Core\Utils;
+use FreeFormCertificate\Core\RequestInput;
 
 use FreeFormCertificate\Core\CsvExportTrait;
+use FreeFormCertificate\Frontend\Csv\PublicCsvRowFormatter;
 use FreeFormCertificate\Repositories\SubmissionRepository;
 use FreeFormCertificate\Security\RateLimiter;
 
@@ -86,17 +88,31 @@ class PublicCsvExporter {
 	protected $repository;
 
 	/**
-	 * Cached form titles to avoid repeated get_the_title() lookups.
+	 * Row formatter collaborator (headers / row formatting / key scan).
 	 *
-	 * @var array<int, string>
+	 * Lazily constructed so it survives `newInstanceWithoutConstructor()` in
+	 * tests; the repository is passed per-call to `scan_dynamic_keys()`.
+	 *
+	 * @var PublicCsvRowFormatter|null
 	 */
-	private array $form_title_cache = array();
+	private ?PublicCsvRowFormatter $row_formatter = null;
 
 	/**
 	 * Constructor.
 	 */
 	public function __construct() {
 		$this->repository = new SubmissionRepository();
+	}
+
+	/**
+	 * Lazily build (and memoize) the row formatter bound to this exporter's
+	 * repository.
+	 */
+	private function row_formatter(): PublicCsvRowFormatter {
+		if ( null === $this->row_formatter ) {
+			$this->row_formatter = new PublicCsvRowFormatter();
+		}
+		return $this->row_formatter;
 	}
 
 	/**
@@ -131,7 +147,7 @@ class PublicCsvExporter {
 		$include_edit_columns = $this->repository->hasEditInfo();
 
 		$form_title_raw = get_the_title( $form_id );
-		$filename       = \FreeFormCertificate\Core\Utils::sanitize_filename(
+		$filename       = \FreeFormCertificate\Core\FilenameHelper::sanitize_filename(
 			$form_title_raw ? $form_title_raw : ( 'form-' . $form_id )
 		) . '-' . gmdate( 'Y-m-d-His' ) . '.csv';
 
@@ -309,7 +325,7 @@ class PublicCsvExporter {
 	public function ajax_start(): void {
 		// 1. Rate limit.
 		if ( class_exists( RateLimiter::class ) ) {
-			$ip         = \FreeFormCertificate\Core\Utils::get_user_ip();
+			$ip         = \FreeFormCertificate\Core\RequestInput::get_user_ip();
 			$rate_check = RateLimiter::check_ip_limit( $ip );
 			if ( empty( $rate_check['allowed'] ) ) {
 				wp_send_json_error(
@@ -323,7 +339,7 @@ class PublicCsvExporter {
 
 		// 2. Nonce.
 		// phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized, WordPress.Security.ValidatedSanitizedInput.MissingUnslash
-		if ( ! wp_verify_nonce( Utils::get_post_string( '_ffc_pcd_nonce' ), PublicCsvDownload::NONCE_ACTION ) ) {
+		if ( ! wp_verify_nonce( RequestInput::get_post_string( '_ffc_pcd_nonce' ), PublicCsvDownload::NONCE_ACTION ) ) {
 			wp_send_json_error( array( 'message' => __( 'Security check failed. Please refresh the page and try again.', 'ffcertificate' ) ) );
 		}
 
@@ -338,7 +354,7 @@ class PublicCsvExporter {
 		// phpcs:ignore WordPress.Security.NonceVerification.Missing -- Nonce verified above.
 		$form_id = isset( $_POST['form_id'] ) ? absint( wp_unslash( $_POST['form_id'] ) ) : 0;
 		// phpcs:ignore WordPress.Security.NonceVerification.Missing -- Nonce verified above.
-		$posted_hash = Utils::get_post_string( 'hash' );
+		$posted_hash = RequestInput::get_post_string( 'hash' );
 
 		if ( $form_id <= 0 || '' === $posted_hash ) {
 			wp_send_json_error( array( 'message' => __( 'Please inform both the Form ID and the Access Hash.', 'ffcertificate' ) ) );
@@ -353,7 +369,7 @@ class PublicCsvExporter {
 
 		// 9b. CPF gate (per-form opt-in, no-op when mode = 'none').
 		// phpcs:ignore WordPress.Security.NonceVerification.Missing -- Nonce verified above.
-		$cpf_input = Utils::get_post_string( 'cpf' );
+		$cpf_input = RequestInput::get_post_string( 'cpf' );
 		$cpf_error = $validator->validate_cpf_requirement( $form_id, $cpf_input );
 		if ( null !== $cpf_error ) {
 			wp_send_json_error( array( 'message' => $cpf_error ) );
@@ -384,7 +400,7 @@ class PublicCsvExporter {
 		}
 
 		$form_title_raw = get_the_title( $form_id );
-		$filename       = \FreeFormCertificate\Core\Utils::sanitize_filename(
+		$filename       = \FreeFormCertificate\Core\FilenameHelper::sanitize_filename(
 			$form_title_raw ? $form_title_raw : ( 'form-' . $form_id )
 		) . '-' . gmdate( 'Y-m-d-His' ) . '.csv';
 
@@ -421,7 +437,7 @@ class PublicCsvExporter {
 		$writer->row( $headers );
 		$writer->close();
 
-		$ip_hash     = sha1( \FreeFormCertificate\Core\Utils::get_user_ip() );
+		$ip_hash     = sha1( \FreeFormCertificate\Core\RequestInput::get_user_ip() );
 		$nonce_batch = wp_create_nonce( 'ffc_public_csv_batch_' . $job_id );
 
 		// Capture digits-only CPF for the post-streaming audit row
@@ -467,7 +483,7 @@ class PublicCsvExporter {
 	 */
 	public function ajax_batch(): void {
 		// phpcs:ignore WordPress.Security.NonceVerification.Missing -- Verified via job-scoped nonce below.
-		$job_id = Utils::get_post_string( 'job_id' );
+		$job_id = RequestInput::get_post_string( 'job_id' );
 		$job    = get_transient( 'ffc_public_csv_' . $job_id );
 
 		if ( ! $job ) {
@@ -476,13 +492,13 @@ class PublicCsvExporter {
 
 		// Verify job-scoped nonce.
 		// phpcs:ignore WordPress.Security.NonceVerification.Missing -- Verified here.
-		$nonce = Utils::get_post_string( 'nonce_batch' );
+		$nonce = RequestInput::get_post_string( 'nonce_batch' );
 		if ( ! wp_verify_nonce( $nonce, 'ffc_public_csv_batch_' . $job_id ) ) {
 			wp_send_json_error( __( 'Security check failed.', 'ffcertificate' ) );
 		}
 
 		// IP scope check.
-		$current_ip_hash = sha1( \FreeFormCertificate\Core\Utils::get_user_ip() );
+		$current_ip_hash = sha1( \FreeFormCertificate\Core\RequestInput::get_user_ip() );
 		if ( ! hash_equals( $job['ip_hash'], $current_ip_hash ) ) {
 			wp_send_json_error( __( 'Session mismatch.', 'ffcertificate' ) );
 		}
@@ -574,7 +590,7 @@ class PublicCsvExporter {
 	 */
 	public function ajax_download(): void {
 		// phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized, WordPress.Security.ValidatedSanitizedInput.MissingUnslash
-		$job_id = Utils::get_get_string( 'job_id' );
+		$job_id = RequestInput::get_get_string( 'job_id' );
 		$job    = get_transient( 'ffc_public_csv_' . $job_id );
 
 		if ( ! $job ) {
@@ -582,12 +598,12 @@ class PublicCsvExporter {
 		}
 
 		// phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized, WordPress.Security.ValidatedSanitizedInput.MissingUnslash
-		$nonce = Utils::get_get_string( 'nonce_batch' );
+		$nonce = RequestInput::get_get_string( 'nonce_batch' );
 		if ( ! wp_verify_nonce( $nonce, 'ffc_public_csv_batch_' . $job_id ) ) {
 			wp_die( esc_html__( 'Security check failed.', 'ffcertificate' ) );
 		}
 
-		$current_ip_hash = sha1( \FreeFormCertificate\Core\Utils::get_user_ip() );
+		$current_ip_hash = sha1( \FreeFormCertificate\Core\RequestInput::get_user_ip() );
 		if ( ! hash_equals( $job['ip_hash'], $current_ip_hash ) ) {
 			wp_die( esc_html__( 'Session mismatch.', 'ffcertificate' ) );
 		}
@@ -653,36 +669,14 @@ class PublicCsvExporter {
 	 * @return array<int, string>
 	 */
 	private function get_fixed_headers( bool $include_edit_columns = false ): array {
-		$headers = array(
-			__( 'ID', 'ffcertificate' ),
-			__( 'Form', 'ffcertificate' ),
-			__( 'User ID', 'ffcertificate' ),
-			__( 'Submission Date', 'ffcertificate' ),
-			__( 'E-mail', 'ffcertificate' ),
-			__( 'User IP', 'ffcertificate' ),
-			__( 'CPF', 'ffcertificate' ),
-			__( 'RF', 'ffcertificate' ),
-			__( 'Auth Code', 'ffcertificate' ),
-			__( 'Token', 'ffcertificate' ),
-			__( 'Consent Given', 'ffcertificate' ),
-			__( 'Consent Date', 'ffcertificate' ),
-			__( 'Consent IP', 'ffcertificate' ),
-			__( 'Consent Text', 'ffcertificate' ),
-			__( 'Status', 'ffcertificate' ),
-		);
-
-		if ( $include_edit_columns ) {
-			$headers[] = __( 'Was Edited', 'ffcertificate' );
-			$headers[] = __( 'Edit Date', 'ffcertificate' );
-			$headers[] = __( 'Edited By', 'ffcertificate' );
-		}
-
-		return $headers;
+		return $this->row_formatter()->get_fixed_headers( $include_edit_columns );
 	}
 
 	/**
 	 * Format one submission row as a CSV line — mirrors
 	 * `CsvExporter::format_csv_row()`.
+	 *
+	 * Thin delegator to {@see PublicCsvRowFormatter::format_csv_row()}.
 	 *
 	 * @param array<string, mixed> $row Row.
 	 * @param array<int, string>   $dynamic_keys Dynamic keys.
@@ -690,97 +684,19 @@ class PublicCsvExporter {
 	 * @return array<int, mixed>
 	 */
 	private function format_csv_row( array $row, array $dynamic_keys, bool $include_edit_columns = false ): array {
-		$form_display = $this->get_form_title_cached( (int) $row['form_id'] );
-
-		$email   = \FreeFormCertificate\Core\Encryption::decrypt_field( $row, 'email' );
-		$user_ip = \FreeFormCertificate\Core\Encryption::decrypt_field( $row, 'user_ip' );
-		$cpf_val = \FreeFormCertificate\Core\Encryption::decrypt_field( $row, 'cpf' );
-		$rf_val  = \FreeFormCertificate\Core\Encryption::decrypt_field( $row, 'rf' );
-
-		// `submission_date` is unix UTC int since 6.6.0 (#249 sub-escopo a).
-		// Format for the public CSV — admin/operator reads this in a spreadsheet.
-		$line = array(
-			$row['id'],
-			$form_display,
-			! empty( $row['user_id'] ) ? $row['user_id'] : '',
-			\FreeFormCertificate\Core\DateFormatter::format_datetime( (int) ( $row['submission_date'] ?? 0 ) ),
-			$email,
-			$user_ip,
-			$cpf_val,
-			$rf_val,
-			! empty( $row['auth_code'] ) ? $row['auth_code'] : '',
-			! empty( $row['magic_token'] ) ? $row['magic_token'] : '',
-			isset( $row['consent_given'] ) ? ( $row['consent_given'] ? __( 'Yes', 'ffcertificate' ) : __( 'No', 'ffcertificate' ) ) : '',
-			// `consent_date` is unix UTC int since 6.6.0 (#249 sub-escopo d).
-			! empty( $row['consent_date'] ) ? \FreeFormCertificate\Core\DateFormatter::format_datetime( (int) $row['consent_date'] ) : '',
-			$user_ip, // Consent IP.
-			! empty( $row['consent_text'] ) ? $row['consent_text'] : '',
-			! empty( $row['status'] ) ? $row['status'] : 'publish',
-		);
-
-		if ( $include_edit_columns ) {
-			$was_edited = '';
-			$edit_date  = '';
-			$edited_by  = '';
-			if ( ! empty( $row['edited_at'] ) ) {
-				$was_edited = __( 'Yes', 'ffcertificate' );
-				// `edited_at` is unix UTC int since 6.6.0 (#249 sub-escopo d).
-				$edit_date = \FreeFormCertificate\Core\DateFormatter::format_datetime( (int) $row['edited_at'] );
-				if ( ! empty( $row['edited_by'] ) ) {
-					$user      = get_userdata( (int) $row['edited_by'] );
-					$edited_by = $user ? $user->display_name : 'ID: ' . $row['edited_by'];
-				}
-			}
-			$line[] = $was_edited;
-			$line[] = $edit_date;
-			$line[] = $edited_by;
-		}
-
-		$data = $this->decode_json_field( $row, 'data', 'data_encrypted' );
-		foreach ( $dynamic_keys as $key ) {
-			$value  = $data[ $key ] ?? '';
-			$line[] = is_array( $value ) ? implode( ', ', $value ) : $value;
-		}
-
-		return $line;
+		return $this->row_formatter()->format_csv_row( $row, $dynamic_keys, $include_edit_columns );
 	}
 
 	/**
 	 * Scan all matching records to discover dynamic JSON keys.
+	 *
+	 * Thin delegator to {@see PublicCsvRowFormatter::scan_dynamic_keys()}.
 	 *
 	 * @param array<int, int> $form_ids Form IDs.
 	 * @param string          $status   Status.
 	 * @return array<int, string>
 	 */
 	private function scan_dynamic_keys( array $form_ids, string $status ): array {
-		$all_keys = array();
-		$cursor   = PHP_INT_MAX;
-
-		while ( true ) {
-			$batch = $this->repository->getExportKeysBatch( $form_ids, $status, $cursor, self::KEYS_BATCH_SIZE );
-			if ( empty( $batch ) ) {
-				break;
-			}
-			$all_keys = array_merge( $all_keys, $this->extract_dynamic_keys( $batch, 'data', 'data_encrypted' ) );
-			$last_row = end( $batch );
-			$cursor   = (int) $last_row['id'];
-			unset( $batch );
-		}
-
-		return array_values( array_unique( $all_keys ) );
-	}
-
-	/**
-	 * Get form title cached.
-	 *
-	 * @param int $form_id Form post ID.
-	 * @return string Form title or "(Deleted)" placeholder.
-	 */
-	private function get_form_title_cached( int $form_id ): string {
-		if ( ! isset( $this->form_title_cache[ $form_id ] ) ) {
-			$title                              = get_the_title( $form_id );
-			$this->form_title_cache[ $form_id ] = $title ? $title : __( '(Deleted)', 'ffcertificate' );
-		}
-		return $this->form_title_cache[ $form_id ];
+		return $this->row_formatter()->scan_dynamic_keys( $this->repository, $form_ids, $status );
 	}
 }

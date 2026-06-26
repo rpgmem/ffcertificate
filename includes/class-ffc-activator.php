@@ -36,15 +36,14 @@ class Activator {
 			\FreeFormCertificate\Security\RateLimitActivator::create_tables();
 		}
 
-		self::register_user_role();
-		self::create_dashboard_page();
-		self::create_user_profiles_table();
-		self::create_custom_fields_table();
-		self::create_reregistrations_table();
-		self::create_reregistration_audiences_table();
-		self::create_reregistration_submissions_table();
-		self::add_reregistration_submissions_columns();
-		self::migrate_reregistration_audience_to_junction();
+		if ( class_exists( '\FreeFormCertificate\UserDashboard\UserDashboardActivator' ) ) {
+			\FreeFormCertificate\UserDashboard\UserDashboardActivator::create_tables();
+		}
+
+		if ( class_exists( '\FreeFormCertificate\Reregistration\ReregistrationActivator' ) ) {
+			\FreeFormCertificate\Reregistration\ReregistrationActivator::create_tables();
+		}
+
 		self::upgrade_auth_code_unique_constraints();
 
 		if ( class_exists( '\FreeFormCertificate\Migrations\MigrationSelfSchedulingTables' ) ) {
@@ -80,8 +79,8 @@ class Activator {
 		}
 
 		if ( class_exists( '\FreeFormCertificate\UserDashboard\CapabilityManager' ) ) {
-			\FreeFormCertificate\UserDashboard\CapabilityManager::register_recruitment_manager_role();
-			\FreeFormCertificate\UserDashboard\CapabilityManager::register_module_roles();
+			\FreeFormCertificate\UserDashboard\RoleRegistrar::register_recruitment_manager_role();
+			\FreeFormCertificate\UserDashboard\RoleRegistrar::register_module_roles();
 		}
 
 		self::add_composite_indexes();
@@ -109,7 +108,7 @@ class Activator {
 	 */
 	private static function create_submissions_table(): void {
 		global $wpdb;
-		$table_name      = \FreeFormCertificate\Core\Utils::get_submissions_table();
+		$table_name      = \FreeFormCertificate\Repositories\SubmissionRepository::get_submissions_table();
 		$charset_collate = $wpdb->get_charset_collate();
 
 		if ( self::table_exists( $table_name ) ) {
@@ -242,7 +241,7 @@ class Activator {
 		}
 
 		global $wpdb;
-		$table = \FreeFormCertificate\Core\Utils::get_submissions_table();
+		$table = \FreeFormCertificate\Repositories\SubmissionRepository::get_submissions_table();
 
 		if ( ! self::table_exists( $table ) ) {
 			return; // Fresh install before create_submissions_table() — nothing to do.
@@ -463,7 +462,7 @@ class Activator {
 		global $wpdb;
 
 		// ffc_submissions (paired with submission_date from Sprint a).
-		$submissions_table = \FreeFormCertificate\Core\Utils::get_submissions_table();
+		$submissions_table = \FreeFormCertificate\Repositories\SubmissionRepository::get_submissions_table();
 		self::migrate_datetime_column_to_unix( $submissions_table, 'consent_date', true );
 		self::migrate_datetime_column_to_unix( $submissions_table, 'edited_at', true );
 
@@ -499,7 +498,7 @@ class Activator {
 	 */
 	private static function add_columns(): void {
 		global $wpdb;
-		$table_name = \FreeFormCertificate\Core\Utils::get_submissions_table();
+		$table_name = \FreeFormCertificate\Repositories\SubmissionRepository::get_submissions_table();
 
 		$columns = array(
 			'user_id'                 => array(
@@ -609,7 +608,7 @@ class Activator {
 	 * @since 4.6.2
 	 */
 	private static function add_composite_indexes(): void {
-		$table_name = \FreeFormCertificate\Core\Utils::get_submissions_table();
+		$table_name = \FreeFormCertificate\Repositories\SubmissionRepository::get_submissions_table();
 
 		self::add_indexes_if_missing(
 			$table_name,
@@ -693,292 +692,6 @@ class Activator {
 	}
 
 	/**
-	 * Register ffc_user role
-	 *
-	 * @since 3.1.0
-	 */
-	private static function register_user_role(): void {
-		// Load User Manager if not already loaded.
-		if ( ! class_exists( '\FreeFormCertificate\UserDashboard\UserManager' ) ) {
-			$user_manager_file = FFC_PLUGIN_DIR . 'includes/user-dashboard/class-ffc-user-manager.php';
-			if ( file_exists( $user_manager_file ) ) {
-				require_once $user_manager_file;
-			}
-		}
-
-		if ( class_exists( '\FreeFormCertificate\UserDashboard\UserManager' ) ) {
-			\FreeFormCertificate\UserDashboard\UserManager::register_role();
-
-			// Grant admin-level FFC capabilities to the administrator role.
-			$admin_role = get_role( 'administrator' );
-			if ( $admin_role ) {
-				foreach ( \FreeFormCertificate\UserDashboard\UserManager::ADMIN_CAPABILITIES as $cap ) {
-					$admin_role->add_cap( $cap, true );
-				}
-			}
-		}
-	}
-
-	/**
-	 * Create user profiles table
-	 *
-	 * @since 4.9.4
-	 */
-	private static function create_user_profiles_table(): void {
-		global $wpdb;
-		$table_name      = $wpdb->prefix . 'ffc_user_profiles';
-		$charset_collate = $wpdb->get_charset_collate();
-
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-		if ( $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $table_name ) ) === $table_name ) {
-			return;
-		}
-
-		$sql = "CREATE TABLE {$table_name} (
-            id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
-            user_id bigint(20) unsigned NOT NULL,
-            display_name varchar(250) DEFAULT '',
-            phone varchar(50) DEFAULT '',
-            department varchar(250) DEFAULT '',
-            organization varchar(250) DEFAULT '',
-            notes text DEFAULT NULL,
-            preferences json DEFAULT NULL,
-            created_at datetime DEFAULT CURRENT_TIMESTAMP,
-            updated_at datetime DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-            PRIMARY KEY (id),
-            UNIQUE KEY idx_user_id (user_id)
-        ) {$charset_collate};";
-
-		require_once ABSPATH . 'wp-admin/includes/upgrade.php';
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.SchemaChange
-		dbDelta( $sql );
-	}
-
-	/**
-	 * Create custom fields table
-	 *
-	 * Stores field definitions for audience-specific custom fields.
-	 * Field data for each user is stored as JSON in wp_usermeta.
-	 *
-	 * @since 4.11.0
-	 */
-	private static function create_custom_fields_table(): void {
-		global $wpdb;
-		$table_name      = $wpdb->prefix . 'ffc_custom_fields';
-		$charset_collate = $wpdb->get_charset_collate();
-
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-		if ( $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $table_name ) ) === $table_name ) {
-			return;
-		}
-
-		$sql = "CREATE TABLE {$table_name} (
-            id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
-            audience_id bigint(20) unsigned NOT NULL,
-            field_key varchar(100) NOT NULL,
-            field_label varchar(250) NOT NULL,
-            field_type varchar(50) NOT NULL DEFAULT 'text',
-            field_options json DEFAULT NULL,
-            validation_rules json DEFAULT NULL,
-            sort_order int(11) NOT NULL DEFAULT 0,
-            is_required tinyint(1) NOT NULL DEFAULT 0,
-            is_active tinyint(1) NOT NULL DEFAULT 1,
-            created_at datetime DEFAULT CURRENT_TIMESTAMP,
-            updated_at datetime DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-            PRIMARY KEY (id),
-            KEY idx_audience_id (audience_id),
-            KEY idx_field_key (field_key),
-            KEY idx_sort_order (audience_id, sort_order)
-        ) {$charset_collate};";
-
-		require_once ABSPATH . 'wp-admin/includes/upgrade.php';
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.SchemaChange
-		dbDelta( $sql );
-	}
-
-	/**
-	 * Create reregistrations table
-	 *
-	 * Stores reregistration campaigns linked to audiences.
-	 *
-	 * @since 4.11.0
-	 */
-	private static function create_reregistrations_table(): void {
-		global $wpdb;
-		$table_name      = $wpdb->prefix . 'ffc_reregistrations';
-		$charset_collate = $wpdb->get_charset_collate();
-
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-		if ( $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $table_name ) ) === $table_name ) {
-			return;
-		}
-
-		$sql = "CREATE TABLE {$table_name} (
-            id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
-            title varchar(250) NOT NULL,
-            start_date datetime NOT NULL,
-            end_date datetime NOT NULL,
-            auto_approve tinyint(1) NOT NULL DEFAULT 0,
-            email_invitation_enabled tinyint(1) NOT NULL DEFAULT 0,
-            email_reminder_enabled tinyint(1) NOT NULL DEFAULT 0,
-            email_confirmation_enabled tinyint(1) NOT NULL DEFAULT 0,
-            reminder_days int(11) NOT NULL DEFAULT 7,
-            status varchar(20) NOT NULL DEFAULT 'draft',
-            created_by bigint(20) unsigned NOT NULL,
-            created_at datetime DEFAULT CURRENT_TIMESTAMP,
-            updated_at datetime DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-            PRIMARY KEY (id),
-            KEY idx_status (status),
-            KEY idx_dates (start_date, end_date)
-        ) {$charset_collate};";
-
-		require_once ABSPATH . 'wp-admin/includes/upgrade.php';
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.SchemaChange
-		dbDelta( $sql );
-	}
-
-	/**
-	 * Create reregistration ↔ audiences junction table.
-	 *
-	 * @since 4.13.0
-	 */
-	private static function create_reregistration_audiences_table(): void {
-		global $wpdb;
-		$table_name      = $wpdb->prefix . 'ffc_reregistration_audiences';
-		$charset_collate = $wpdb->get_charset_collate();
-
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-		if ( $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $table_name ) ) === $table_name ) {
-			return;
-		}
-
-		$sql = "CREATE TABLE {$table_name} (
-            reregistration_id bigint(20) unsigned NOT NULL,
-            audience_id bigint(20) unsigned NOT NULL,
-            PRIMARY KEY (reregistration_id, audience_id),
-            KEY idx_audience_id (audience_id)
-        ) {$charset_collate};";
-
-		require_once ABSPATH . 'wp-admin/includes/upgrade.php';
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.SchemaChange
-		dbDelta( $sql );
-	}
-
-	/**
-	 * Migrate existing audience_id column data into the junction table.
-	 *
-	 * @since 4.13.0
-	 */
-	private static function migrate_reregistration_audience_to_junction(): void {
-		global $wpdb;
-		$rereg_table    = $wpdb->prefix . 'ffc_reregistrations';
-		$junction_table = $wpdb->prefix . 'ffc_reregistration_audiences';
-
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-		$has_column = $wpdb->get_results(
-			$wpdb->prepare(
-				'SHOW COLUMNS FROM %i LIKE %s',
-				$rereg_table,
-				'audience_id'
-			)
-		);
-
-		if ( empty( $has_column ) ) {
-			return; // Column already dropped — migration done.
-		}
-
-		// Copy audience_id into junction table (skip if already migrated).
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-		$wpdb->query(
-			$wpdb->prepare(
-				'INSERT IGNORE INTO %i (reregistration_id, audience_id)
-             SELECT id, audience_id FROM %i WHERE audience_id > 0',
-				$junction_table,
-				$rereg_table
-			)
-		);
-
-		// Drop the old column and its index.
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-		$wpdb->query( $wpdb->prepare( 'ALTER TABLE %i DROP INDEX idx_audience_id', $rereg_table ) );
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-		$wpdb->query( $wpdb->prepare( 'ALTER TABLE %i DROP COLUMN audience_id', $rereg_table ) );
-	}
-
-	/**
-	 * Create reregistration submissions table
-	 *
-	 * Stores individual user responses to reregistration campaigns.
-	 *
-	 * @since 4.11.0
-	 */
-	private static function create_reregistration_submissions_table(): void {
-		global $wpdb;
-		$table_name      = $wpdb->prefix . 'ffc_reregistration_submissions';
-		$charset_collate = $wpdb->get_charset_collate();
-
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-		if ( $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $table_name ) ) === $table_name ) {
-			return;
-		}
-
-		// `submitted_at` is Category A (instant) since 6.6.0 — unix UTC
-		// seconds. See CLAUDE.md "Date / time storage convention".
-		$sql = "CREATE TABLE {$table_name} (
-            id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
-            reregistration_id bigint(20) unsigned NOT NULL,
-            user_id bigint(20) unsigned NOT NULL,
-            data json DEFAULT NULL,
-            status varchar(20) NOT NULL DEFAULT 'pending',
-            submitted_at bigint(20) unsigned DEFAULT NULL,
-            reviewed_at bigint(20) unsigned DEFAULT NULL,
-            reviewed_by bigint(20) unsigned DEFAULT NULL,
-            notes text DEFAULT NULL,
-            created_at datetime DEFAULT CURRENT_TIMESTAMP,
-            updated_at datetime DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-            PRIMARY KEY (id),
-            UNIQUE KEY idx_reregistration_user (reregistration_id, user_id),
-            KEY idx_user_id (user_id),
-            KEY idx_status (status),
-            KEY idx_created (created_at)
-        ) {$charset_collate};";
-
-		require_once ABSPATH . 'wp-admin/includes/upgrade.php';
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.SchemaChange
-		dbDelta( $sql );
-	}
-
-	/**
-	 * Add auth_code column to reregistration submissions table for existing installs.
-	 *
-	 * @since 4.12.0
-	 */
-	private static function add_reregistration_submissions_columns(): void {
-		global $wpdb;
-		$table_name = $wpdb->prefix . 'ffc_reregistration_submissions';
-
-		if ( ! self::table_exists( $table_name ) ) {
-			return;
-		}
-
-		self::add_columns_if_missing(
-			$table_name,
-			array(
-				'auth_code'   => array(
-					'type'  => 'VARCHAR(20) DEFAULT NULL',
-					'after' => 'status',
-					'index' => 'auth_code',
-				),
-				'magic_token' => array(
-					'type'  => 'VARCHAR(64) DEFAULT NULL',
-					'after' => 'auth_code',
-					'index' => 'magic_token',
-				),
-			)
-		);
-	}
-
-	/**
 	 * Upgrade auth_code indexes to UNIQUE constraints across all tables.
 	 *
 	 * Prevents cross-table code collisions by ensuring each auth_code
@@ -1048,38 +761,6 @@ class Activator {
 			// Add UNIQUE constraint.
             // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Dynamic index name uq_{$column} from trusted internal config.
 			$wpdb->query( $wpdb->prepare( "ALTER TABLE %i ADD UNIQUE INDEX uq_{$column} (%i)", $table, $column ) );
-		}
-	}
-
-	/**
-	 * Create dashboard page
-	 *
-	 * @since 3.1.0
-	 */
-	private static function create_dashboard_page(): void {
-		$existing_page = get_page_by_path( 'dashboard' );
-
-		if ( $existing_page ) {
-			update_option( 'ffc_dashboard_page_id', $existing_page->ID );
-			return;
-		}
-
-		$page_data = array(
-			'post_title'     => 'My Dashboard',
-			'post_content'   => '[user_dashboard_personal]',
-			'post_status'    => 'publish',
-			'post_type'      => 'page',
-			'post_name'      => 'dashboard',
-			'post_author'    => 1,
-			'comment_status' => 'closed',
-			'ping_status'    => 'closed',
-		);
-
-		$page_id = wp_insert_post( $page_data, true );
-
-		if ( ! is_wp_error( $page_id ) ) {
-			update_option( 'ffc_dashboard_page_id', $page_id );
-			update_post_meta( $page_id, '_ffc_managed_page', '1' );
 		}
 	}
 }

@@ -37,7 +37,7 @@ class SelfSchedulingCleanupHandler {
 	 */
 	public function handle_cleanup_appointments(): void {
 		// Verify nonce.
-		if ( ! wp_verify_nonce( \FreeFormCertificate\Core\Utils::get_post_string( 'nonce' ), 'ffc_cleanup_appointments_nonce' ) ) {
+		if ( ! wp_verify_nonce( \FreeFormCertificate\Core\RequestInput::get_post_string( 'nonce' ), 'ffc_cleanup_appointments_nonce' ) ) {
 			wp_send_json_error(
 				array(
 					'message' => __( 'Security check failed', 'ffcertificate' ),
@@ -47,7 +47,7 @@ class SelfSchedulingCleanupHandler {
 
 		// Verify permissions. This handler only ever deletes appointments, so it
 		// is gated by the dedicated destructive cap (GAP E), not `manage`.
-		if ( ! \FreeFormCertificate\Core\Utils::current_user_can_admin_or( 'ffc_delete_appointments' ) ) {
+		if ( ! \FreeFormCertificate\Core\Capabilities::current_user_can_admin_or( 'ffc_delete_appointments' ) ) {
 			wp_send_json_error(
 				array(
 					'message' => __( 'You do not have permission to perform this action', 'ffcertificate' ),
@@ -57,7 +57,7 @@ class SelfSchedulingCleanupHandler {
 
 		// Get parameters.
 		$calendar_id    = isset( $_POST['calendar_id'] ) ? absint( wp_unslash( $_POST['calendar_id'] ) ) : 0;
-		$cleanup_action = \FreeFormCertificate\Core\Utils::get_post_string( 'cleanup_action' );
+		$cleanup_action = \FreeFormCertificate\Core\RequestInput::get_post_string( 'cleanup_action' );
 
 		if ( ! $calendar_id || ! $cleanup_action ) {
 			wp_send_json_error(

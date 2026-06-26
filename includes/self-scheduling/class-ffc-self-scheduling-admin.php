@@ -58,7 +58,7 @@ class SelfSchedulingAdmin {
 	public function render_appointments_page(): void {
 		// 3-state: read-only viewers (ffc_view_appointments) may open the
 		// appointments list; cancel/write actions remain manage-gated.
-		if ( ! \FreeFormCertificate\Core\Utils::current_user_can_admin_or( 'ffc_view_appointments' ) ) {
+		if ( ! \FreeFormCertificate\Core\Capabilities::current_user_can_admin_or( 'ffc_view_appointments' ) ) {
 			wp_die( esc_html__( 'You do not have permission to access this page.', 'ffcertificate' ) );
 		}
 
@@ -116,7 +116,7 @@ class SelfSchedulingAdmin {
 			return;
 		}
 
-		$s = \FreeFormCertificate\Core\Utils::asset_suffix();
+		$s = \FreeFormCertificate\Core\AssetHelper::asset_suffix();
 
 		// Only the status-badge styles are needed on this screen. The old
 		// ffc-calendar-admin.js was an empty stub whose localize object

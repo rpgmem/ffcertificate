@@ -17,6 +17,7 @@ declare(strict_types=1);
 namespace FreeFormCertificate\Frontend;
 
 use FreeFormCertificate\Core\Utils;
+use FreeFormCertificate\Core\RequestInput;
 
 use FreeFormCertificate\Core\SecurityService;
 use FreeFormCertificate\Submissions\SubmissionHandler;
@@ -83,7 +84,7 @@ class Shortcodes {
 			'Magic link shortcode rendered',
 			array(
 				'token' => substr( $token, 0, 8 ) . '...',
-				'ip'    => \FreeFormCertificate\Core\Utils::get_user_ip(),
+				'ip'    => \FreeFormCertificate\Core\RequestInput::get_user_ip(),
 			)
 		);
 
@@ -113,7 +114,7 @@ class Shortcodes {
 	public function render_verification_page( array $atts ): string {
 		// Check for magic token in URL query string (?token=).
         // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Token is a display/routing parameter for verification page.
-		$magic_token = Utils::get_get_string( 'token' );
+		$magic_token = RequestInput::get_get_string( 'token' );
 
 		if ( ! empty( $magic_token ) ) {
 			// Magic link access via query string - render preview container.
@@ -123,7 +124,7 @@ class Shortcodes {
 		\FreeFormCertificate\Core\Debug::log_frontend(
 			'Verification shortcode rendered',
 			array(
-				'ip'        => \FreeFormCertificate\Core\Utils::get_user_ip(),
+				'ip'        => \FreeFormCertificate\Core\RequestInput::get_user_ip(),
 				'has_token' => false,
 			)
 		);
@@ -152,7 +153,7 @@ class Shortcodes {
 				'Invalid form shortcode',
 				array(
 					'form_id' => $form_id,
-					'ip'      => \FreeFormCertificate\Core\Utils::get_user_ip(),
+					'ip'      => \FreeFormCertificate\Core\RequestInput::get_user_ip(),
 				)
 			);
 			return '<p>' . esc_html__( 'Form not found.', 'ffcertificate' ) . '</p>';
@@ -178,7 +179,7 @@ class Shortcodes {
 				'form_id'      => $form_id,
 				'form_title'   => \FreeFormCertificate\Core\Utils::truncate( $form_title, 50 ),
 				'fields_count' => count( $fields ),
-				'ip'           => \FreeFormCertificate\Core\Utils::get_user_ip(),
+				'ip'           => \FreeFormCertificate\Core\RequestInput::get_user_ip(),
 			)
 		);
 

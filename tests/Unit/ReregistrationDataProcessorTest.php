@@ -17,10 +17,10 @@ use FreeFormCertificate\Reregistration\ReregistrationDataProcessor;
  * The processor no longer distinguishes between "standard" and "custom"
  * fields — every field shown in the form is a row in wp_ffc_custom_fields
  * and the submission payload is a flat `fields: { field_key => value }`
- * map. Validation mirrors CustomFieldRepository::validate_field_value.
+ * map. Validation mirrors CustomFieldReader::validate_field_value.
  *
  * Uses real Utils::validate_cpf() / validate_phone() (pure helpers) and
- * mocks $wpdb so CustomFieldRepository::get_by_audience_with_parents
+ * mocks $wpdb so CustomFieldReader::get_by_audience_with_parents
  * returns whatever field definitions each test requires.
  */
 class ReregistrationDataProcessorTest extends TestCase {
@@ -68,9 +68,9 @@ class ReregistrationDataProcessorTest extends TestCase {
 
     /**
      * Configure the global $wpdb so that:
-     *   - AudienceRepository::get_by_id returns a one-level audience (no parent)
+     *   - AudienceReader::get_by_id returns a one-level audience (no parent)
      *   - ReregistrationRepository::get_audience_ids returns [1]
-     *   - CustomFieldRepository::get_by_audience returns $fields
+     *   - CustomFieldReader::get_by_audience returns $fields
      *
      * @param array<object> $fields Field stdClass definitions to return.
      */

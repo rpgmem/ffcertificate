@@ -28,7 +28,7 @@ require_once __DIR__ . '/class-ffc-recruitment-rest-support-trait.php';
 /**
  * REST controller for the recruitment candidates slice.
  *
- * @phpstan-import-type CandidateRow from RecruitmentCandidateRepository
+ * @phpstan-import-type CandidateRow from RecruitmentCandidateReader
  */
 final class RecruitmentCandidatesRestController {
 
@@ -155,7 +155,7 @@ final class RecruitmentCandidatesRestController {
 		if ( is_string( $cpf ) && '' !== $cpf ) {
 			$cpf_digits = \FreeFormCertificate\Core\DataSanitizer::normalize_cpf_rf( $cpf );
 			if ( '' !== $cpf_digits ) {
-				$candidate = RecruitmentCandidateRepository::get_by_cpf_hash( (string) Encryption::hash( $cpf_digits ) );
+				$candidate = RecruitmentCandidateReader::get_by_cpf_hash( (string) Encryption::hash( $cpf_digits ) );
 				return new \WP_REST_Response( null === $candidate ? array() : array( $this->shape_candidate_admin( $candidate ) ), 200 );
 			}
 		}
@@ -164,7 +164,7 @@ final class RecruitmentCandidatesRestController {
 		if ( is_string( $rf ) && '' !== $rf ) {
 			$rf_digits = \FreeFormCertificate\Core\DataSanitizer::normalize_cpf_rf( $rf );
 			if ( '' !== $rf_digits ) {
-				$candidate = RecruitmentCandidateRepository::get_by_rf_hash( (string) Encryption::hash( $rf_digits ) );
+				$candidate = RecruitmentCandidateReader::get_by_rf_hash( (string) Encryption::hash( $rf_digits ) );
 				return new \WP_REST_Response( null === $candidate ? array() : array( $this->shape_candidate_admin( $candidate ) ), 200 );
 			}
 		}
@@ -186,7 +186,7 @@ final class RecruitmentCandidatesRestController {
 	 */
 	public function get_candidate( \WP_REST_Request $request ) {
 		$id        = (int) $request->get_param( 'id' );
-		$candidate = RecruitmentCandidateRepository::get_by_id( $id );
+		$candidate = RecruitmentCandidateReader::get_by_id( $id );
 		if ( null === $candidate ) {
 			return new \WP_Error( 'recruitment_candidate_not_found', '', array( 'status' => 404 ) );
 		}
@@ -235,7 +235,7 @@ final class RecruitmentCandidatesRestController {
 			);
 		}
 
-		$ok = RecruitmentCandidateRepository::update( $id, $update );
+		$ok = RecruitmentCandidateWriter::update( $id, $update );
 		if ( ! $ok ) {
 			return new \WP_Error(
 				'recruitment_candidate_update_failed',
@@ -244,7 +244,7 @@ final class RecruitmentCandidatesRestController {
 			);
 		}
 
-		$candidate = RecruitmentCandidateRepository::get_by_id( $id );
+		$candidate = RecruitmentCandidateReader::get_by_id( $id );
 		return new \WP_REST_Response(
 			null === $candidate ? null : $this->shape_candidate_admin( $candidate ),
 			200
@@ -292,7 +292,7 @@ final class RecruitmentCandidatesRestController {
 			);
 		}
 
-		$candidate = RecruitmentCandidateRepository::get_by_id( $id );
+		$candidate = RecruitmentCandidateReader::get_by_id( $id );
 		if ( null === $candidate ) {
 			return new \WP_Error( 'recruitment_candidate_not_found', '', array( 'status' => 404 ) );
 		}
@@ -357,7 +357,7 @@ final class RecruitmentCandidatesRestController {
 			return new \WP_REST_Response( array(), 200 );
 		}
 
-		$candidates = RecruitmentCandidateRepository::get_by_user_id( $user_id );
+		$candidates = RecruitmentCandidateReader::get_by_user_id( $user_id );
 		if ( empty( $candidates ) ) {
 			return new \WP_REST_Response( array(), 200 );
 		}
@@ -370,7 +370,7 @@ final class RecruitmentCandidatesRestController {
 
 			foreach ( $classifications as $cls ) {
 				$notice_id = (int) $cls->notice_id;
-				$notice    = RecruitmentNoticeRepository::get_by_id( $notice_id );
+				$notice    = RecruitmentNoticeReader::get_by_id( $notice_id );
 				if ( null === $notice || 'draft' === $notice->status ) {
 					continue; // Draft notices are never exposed.
 				}
@@ -394,7 +394,7 @@ final class RecruitmentCandidatesRestController {
 					'rank'      => (int) $cls->rank,
 					'score'     => $cls->score,
 					'status'    => $cls->status,
-					'calls'     => RecruitmentCallRepository::get_history_for_classification( (int) $cls->id ),
+					'calls'     => RecruitmentCallReader::get_history_for_classification( (int) $cls->id ),
 				);
 			}
 		}

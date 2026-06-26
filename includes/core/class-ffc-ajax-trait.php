@@ -18,6 +18,10 @@ declare(strict_types=1);
 
 namespace FreeFormCertificate\Core;
 
+use FreeFormCertificate\Core\Capabilities;
+
+use FreeFormCertificate\Core\RequestInput;
+
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
@@ -43,7 +47,7 @@ trait AjaxTrait {
 			wp_send_json_error( array( 'message' => __( 'Security check failed. Please reload the page.', 'ffcertificate' ) ) );
 		}
 
-		$nonce_value = Utils::get_post_string( $field );
+		$nonce_value = RequestInput::get_post_string( $field );
 
 		if ( ! wp_verify_nonce( $nonce_value, $action ) ) {
 			wp_send_json_error( array( 'message' => __( 'Security check failed. Please reload the page.', 'ffcertificate' ) ) );
@@ -59,8 +63,8 @@ trait AjaxTrait {
 	 * @return void Dies with JSON error if permission denied.
 	 */
 	protected function check_ajax_permission( string $capability = 'manage_options' ): void {
-		if ( 'manage_options' === $capability && class_exists( '\FreeFormCertificate\Core\Utils' ) ) {
-			if ( ! Utils::current_user_can_manage() ) {
+		if ( 'manage_options' === $capability && class_exists( '\FreeFormCertificate\Core\Capabilities' ) ) {
+			if ( ! Capabilities::current_user_can_manage() ) {
 				wp_send_json_error( array( 'message' => __( 'Permission denied.', 'ffcertificate' ) ) );
 			}
 			return;
@@ -80,19 +84,19 @@ trait AjaxTrait {
 	 * Many FFC modules want "site admins can always do X, plus delegated
 	 * operators with cap Y can do X" — this helper encodes that contract
 	 * so handlers don't have to wire their own
-	 * `\Utils::current_user_can_admin_or()` boilerplate.
+	 * `\Capabilities::current_user_can_admin_or()` boilerplate.
 	 *
 	 * @since 6.5.1
 	 * @param string $granular_cap FFC capability that satisfies the check on its own.
 	 * @return void Dies with JSON error if neither admin nor cap-holder.
 	 */
 	protected function check_ajax_admin_or( string $granular_cap ): void {
-		if ( class_exists( '\FreeFormCertificate\Core\Utils' )
-			&& Utils::current_user_can_admin_or( $granular_cap ) ) {
+		if ( class_exists( '\FreeFormCertificate\Core\Capabilities' )
+			&& Capabilities::current_user_can_admin_or( $granular_cap ) ) {
 			return;
 		}
 
-		// Defensive fallback when Utils isn't loaded for some reason —
+		// Defensive fallback when Capabilities isn't loaded for some reason —
 		// preserves the canonical "admin OR granular" semantic.
 		if ( current_user_can( 'manage_options' ) ) {
 			return;
@@ -111,7 +115,7 @@ trait AjaxTrait {
 	 * @return string Sanitized value.
 	 */
 	protected function get_post_param( string $key, string $default = '' ): string {
-		return Utils::get_post_string( $key, $default );
+		return RequestInput::get_post_string( $key, $default );
 	}
 
 	/**
@@ -122,7 +126,7 @@ trait AjaxTrait {
 	 * @return int Sanitized integer value.
 	 */
 	protected function get_post_int( string $key, int $default = 0 ): int {
-		return Utils::get_post_int( $key, $default );
+		return RequestInput::get_post_int( $key, $default );
 	}
 
 	/**
@@ -132,7 +136,7 @@ trait AjaxTrait {
 	 * @return array<string> Sanitized string values, or empty array.
 	 */
 	protected function get_post_array( string $key ): array {
-		return Utils::get_post_array( $key );
+		return RequestInput::get_post_array( $key );
 	}
 
 	/**

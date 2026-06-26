@@ -425,8 +425,7 @@ class Geofence {
 	 * @return array<string, mixed>
 	 */
 	private static function handle_ip_fallback( array $config, $error ): array {
-		$global_settings = get_option( 'ffc_geolocation_settings', array() );
-		$fallback        = $global_settings['api_fallback'] ?? 'gps_only';
+		$fallback = \FreeFormCertificate\Settings\GeolocationSettingsReader::api_fallback();
 
 		// Use centralized debug system.
 		if ( class_exists( '\FreeFormCertificate\Core\Debug' ) ) {
@@ -669,8 +668,7 @@ class Geofence {
 			return false;
 		}
 
-		$settings = get_option( 'ffc_geolocation_settings', array() );
-		return ! empty( $settings['admin_bypass_datetime'] );
+		return \FreeFormCertificate\Settings\GeolocationSettingsReader::admin_bypass_datetime();
 	}
 
 	/**
@@ -683,8 +681,7 @@ class Geofence {
 			return false;
 		}
 
-		$settings = get_option( 'ffc_geolocation_settings', array() );
-		return ! empty( $settings['admin_bypass_geo'] );
+		return \FreeFormCertificate\Settings\GeolocationSettingsReader::admin_bypass_geo();
 	}
 
 	/**
@@ -727,10 +724,7 @@ class Geofence {
 		$has_partial_bypass = $bypass_datetime || $bypass_geo;
 
 		// Get global geolocation settings.
-		$geolocation_settings = get_option( 'ffc_geolocation_settings', array() );
-		$gps_cache_ttl        = ! empty( $geolocation_settings['gps_cache_ttl'] )
-			? absint( $geolocation_settings['gps_cache_ttl'] )
-			: 600; // Default 10 minutes.
+		$gps_cache_ttl = \FreeFormCertificate\Settings\GeolocationSettingsReader::gps_cache_ttl();
 
 		// Compose the per-case allow/block map for the frontend. Source
 		// of truth is `gps_fallback_cases` from the settings tab; if it's
@@ -739,9 +733,9 @@ class Geofence {
 		// hybrid defaults below are kept inline (rather than calling
 		// TabGeolocation::preset_to_cases) so this method has no
 		// settings-tab dependency at unit-test time.
-		$cases = $geolocation_settings['gps_fallback_cases'] ?? null;
+		$cases = \FreeFormCertificate\Settings\GeolocationSettingsReader::get( 'gps_fallback_cases' );
 		if ( ! is_array( $cases ) ) {
-			$legacy = $geolocation_settings['gps_fallback'] ?? '';
+			$legacy = \FreeFormCertificate\Settings\GeolocationSettingsReader::get( 'gps_fallback', '' );
 			if ( 'block' === $legacy ) {
 				$cases = array(
 					'permission_denied'    => 'block',
@@ -851,7 +845,7 @@ class Geofence {
 			return;
 		}
 
-		\FreeFormCertificate\Core\ActivityLog::log_access_denied( $reason, \FreeFormCertificate\Core\Utils::get_user_ip() );
+		\FreeFormCertificate\Core\ActivityLog::log_access_denied( $reason, \FreeFormCertificate\Core\RequestInput::get_user_ip() );
 
 		// Use centralized debug system.
 		if ( class_exists( '\FreeFormCertificate\Core\Debug' ) ) {

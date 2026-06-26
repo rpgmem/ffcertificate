@@ -10,7 +10,7 @@
  *
  * Persistence is per-toggle via AJAX (`WP_Role::add_cap`/`remove_cap`),
  * isolated from the User Access settings form on the same tab. Restricted to
- * {@see CapabilityManager::ffc_managed_role_labels()} (the plugin's own
+ * {@see RoleRegistrar::ffc_managed_role_labels()} (the plugin's own
  * roles) and to caps in the {@see CapabilityCatalog} — core/super roles and
  * non-FFC caps are never touched.
  *
@@ -26,7 +26,7 @@ declare(strict_types=1);
 namespace FreeFormCertificate\Admin;
 
 use FreeFormCertificate\UserDashboard\CapabilityCatalog;
-use FreeFormCertificate\UserDashboard\CapabilityManager;
+use FreeFormCertificate\UserDashboard\RoleRegistrar;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
@@ -63,7 +63,7 @@ final class RoleCapabilityEditor {
 			return;
 		}
 
-		$s = \FreeFormCertificate\Core\Utils::asset_suffix();
+		$s = \FreeFormCertificate\Core\AssetHelper::asset_suffix();
 		wp_enqueue_style( 'ffc-common', FFC_PLUGIN_URL . "assets/css/ffc-common{$s}.css", array(), FFC_VERSION );
 		wp_enqueue_style( 'ffc-user-permissions', FFC_PLUGIN_URL . "assets/css/ffc-user-permissions{$s}.css", array( 'ffc-common' ), FFC_VERSION );
 		wp_enqueue_script( 'ffc-role-editor', FFC_PLUGIN_URL . "assets/js/ffc-role-editor{$s}.js", array(), FFC_VERSION, true );
@@ -89,7 +89,7 @@ final class RoleCapabilityEditor {
 	 */
 	public static function editable_roles(): array {
 		$out = array();
-		foreach ( CapabilityManager::ffc_managed_role_labels() as $slug => $label ) {
+		foreach ( RoleRegistrar::ffc_managed_role_labels() as $slug => $label ) {
 			if ( null === get_role( $slug ) ) {
 				continue;
 			}
@@ -110,7 +110,7 @@ final class RoleCapabilityEditor {
 	public static function role_caps_map(): array {
 		$catalog = CapabilityCatalog::all_slugs();
 		$map     = array();
-		foreach ( array_keys( CapabilityManager::ffc_managed_role_labels() ) as $slug ) {
+		foreach ( array_keys( RoleRegistrar::ffc_managed_role_labels() ) as $slug ) {
 			$role = get_role( (string) $slug );
 			if ( null === $role ) {
 				continue;
@@ -300,7 +300,7 @@ final class RoleCapabilityEditor {
 		$cap       = isset( $_POST['cap'] ) ? sanitize_key( wp_unslash( $_POST['cap'] ) ) : '';
 		$grant     = isset( $_POST['grant'] ) && '1' === (string) wp_unslash( $_POST['grant'] );
 
-		if ( ! array_key_exists( $role_slug, CapabilityManager::ffc_managed_role_labels() ) ) {
+		if ( ! array_key_exists( $role_slug, RoleRegistrar::ffc_managed_role_labels() ) ) {
 			wp_send_json_error( array( 'message' => 'role_not_editable' ), 400 );
 		}
 		if ( ! in_array( $cap, CapabilityCatalog::all_slugs(), true ) ) {

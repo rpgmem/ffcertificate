@@ -89,7 +89,7 @@ class UserCertificatesRestController {
 				return new \WP_Error( 'missing_class', __( 'FFC_Utils class not found', 'ffcertificate' ), array( 'status' => 500 ) );
 			}
 
-			$table = \FreeFormCertificate\Core\Utils::get_submissions_table();
+			$table = \FreeFormCertificate\Repositories\SubmissionRepository::get_submissions_table();
 
             // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 			$submissions = $wpdb->get_results(

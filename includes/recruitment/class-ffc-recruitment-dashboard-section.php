@@ -44,10 +44,10 @@ if ( ! defined( 'ABSPATH' ) ) {
 /**
  * Candidate-self dashboard section renderer.
  *
- * @phpstan-import-type CandidateRow      from RecruitmentCandidateRepository
+ * @phpstan-import-type CandidateRow      from RecruitmentCandidateReader
  * @phpstan-import-type ClassificationRow from RecruitmentClassificationRepository
- * @phpstan-import-type NoticeRow         from RecruitmentNoticeRepository
- * @phpstan-import-type CallRow           from RecruitmentCallRepository
+ * @phpstan-import-type NoticeRow         from RecruitmentNoticeReader
+ * @phpstan-import-type CallRow           from RecruitmentCallReader
  */
 final class RecruitmentDashboardSection {
 
@@ -103,7 +103,7 @@ final class RecruitmentDashboardSection {
 			return '';
 		}
 
-		$candidates = RecruitmentCandidateRepository::get_by_user_id( $user_id );
+		$candidates = RecruitmentCandidateReader::get_by_user_id( $user_id );
 		if ( empty( $candidates ) ) {
 			// §9.1 visibility: hide the entire section when the user has
 			// no linked candidate row. Avoids surprise empty UI.
@@ -117,7 +117,7 @@ final class RecruitmentDashboardSection {
 			$classifications = RecruitmentClassificationRepository::get_for_candidate( $candidate_id );
 			foreach ( $classifications as $cls ) {
 				$notice_id = (int) $cls->notice_id;
-				$notice    = RecruitmentNoticeRepository::get_by_id( $notice_id );
+				$notice    = RecruitmentNoticeReader::get_by_id( $notice_id );
 				if ( null === $notice || 'draft' === $notice->status ) {
 					continue;
 				}
@@ -212,7 +212,7 @@ final class RecruitmentDashboardSection {
 			if ( $cls->list_type !== $wanted ) {
 				continue;
 			}
-			$adjutancy    = RecruitmentAdjutancyRepository::get_by_id( (int) $cls->adjutancy_id );
+			$adjutancy    = RecruitmentAdjutancyReader::get_by_id( (int) $cls->adjutancy_id );
 			$html        .= '<tr>';
 			$html        .= '<td>' . esc_html( null === $adjutancy ? '—' : $adjutancy->name ) . '</td>';
 			$html        .= '<td>' . esc_html( (string) $cls->rank ) . '</td>';
@@ -247,7 +247,7 @@ final class RecruitmentDashboardSection {
 			return array();
 		}
 
-		$calls = RecruitmentCallRepository::get_history_for_classifications( $ids );
+		$calls = RecruitmentCallReader::get_history_for_classifications( $ids );
 
 		// Index classifications for quick lookup when building the joined
 		// rows.
@@ -290,7 +290,7 @@ final class RecruitmentDashboardSection {
 		foreach ( $rows as $pair ) {
 			$call      = $pair['call'];
 			$class     = $pair['classification'];
-			$adjutancy = RecruitmentAdjutancyRepository::get_by_id( (int) $class->adjutancy_id );
+			$adjutancy = RecruitmentAdjutancyReader::get_by_id( (int) $class->adjutancy_id );
 			$adj_name  = null === $adjutancy ? '—' : (string) $adjutancy->name;
 			$situation = self::call_situation_label( $call, (string) $class->status );
 

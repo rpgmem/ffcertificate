@@ -1,21 +1,20 @@
 <?php
 /**
- * Notice Repository
+ * Notice Writer
  *
- * CRUD for the `ffc_recruitment_notice` table — the edital lifecycle
- * (draft → preliminary → active → closed).
+ * Write-side of the notice repository split (#563 backlog, B3). Holds every
+ * INSERT / UPDATE / DELETE and the atomic state-transition primitives used by
+ * the {@see NoticeStateMachine}. Reads live in {@see RecruitmentNoticeReader}.
+ * Callers depend on the reader (reads) and this writer (writes) directly; the
+ * delegating façade was retired in #563 B3-A.
  *
- * State transitions are NOT performed here: the repository exposes raw status
- * setters used by the {@see NoticeStateMachine} (sprint 5). This separation
- * keeps the repository as a thin CRUD primitive and the state machine as the
- * single source of truth for transition validity, reason gating, and the
- * `was_reopened` flag flip.
- *
- * The `code` column is normalized to UPPERCASE on insert/update; lookups via
- * {@see self::get_by_code()} re-uppercase the input for consistency.
+ * State transitions are NOT performed here: the writer exposes raw status
+ * setters used by the state machine. This separation keeps the writer as a
+ * thin CRUD primitive and the state machine as the single source of truth for
+ * transition validity, reason gating, and the `was_reopened` flag flip.
  *
  * @package FreeFormCertificate\Recruitment
- * @since   6.0.0
+ * @since   6.11.3
  */
 
 declare(strict_types=1);
@@ -27,32 +26,19 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 /**
- * Database repository for `ffc_recruitment_notice` rows.
+ * Write operations for `ffc_recruitment_notice` rows.
  *
- * `public_columns_config` is exposed as the raw JSON string; decoding into an
- * associative array is the caller's responsibility (typically the renderer or
- * the REST controller, which validates the shape against the schema in
- * §3.2 / §8.2 of the implementation plan).
- *
- * @phpstan-type NoticeRow \stdClass&object{id: numeric-string, code: string, name: string, status: string, opened_at: string|null, closed_at: string|null, was_reopened: numeric-string, public_columns_config: string, created_at: string, updated_at: string}
+ * @since 6.11.3
  */
-class RecruitmentNoticeRepository {
+class RecruitmentNoticeWriter {
 
 	use \FreeFormCertificate\Core\StaticRepositoryTrait;
 
 	/**
-	 * Default `public_columns_config` JSON applied to new notices.
-	 *
-	 * Mirrors §3.2 of the implementation plan. `rank` and `name` are the
-	 * mandatory columns and cannot be toggled off via PATCH (validation
-	 * lives in the REST controller, not here).
-	 *
-	 * @var string
-	 */
-	public const DEFAULT_PUBLIC_COLUMNS_CONFIG = '{"rank":true,"name":true,"adjutancy":true,"status":true,"pcd_badge":true,"date_to_assume":true,"time_to_assume":true,"score":false,"time_points":false,"hab_emebs":false,"cpf_masked":false,"rf_masked":false,"email_masked":false,"preview_reason":false}';
-
-	/**
 	 * Cache group for this repository.
+	 *
+	 * Must match {@see RecruitmentNoticeReader::cache_group()} so writes
+	 * invalidate the entries reads populate.
 	 *
 	 * @return string
 	 */
@@ -70,111 +56,12 @@ class RecruitmentNoticeRepository {
 	}
 
 	/**
-	 * Get a notice by ID.
-	 *
-	 * @param int $id Notice ID.
-	 * @return NoticeRow|null
-	 */
-	public static function get_by_id( int $id ): ?object {
-		$cached = static::cache_get( "id_{$id}" );
-		if ( false !== $cached ) {
-			/**
-			 * Object-cache return cast.
-			 *
-			 * @var NoticeRow|null $cached
-			 */
-			return $cached;
-		}
-
-		$wpdb  = self::db();
-		$table = self::get_table_name();
-
-		/**
-		 * Cast wpdb result to typed shape.
-		 *
-		 * @var NoticeRow|null $result
-		 */
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Object-cached above; %i for table identifier.
-		$result = $wpdb->get_row(
-			$wpdb->prepare( 'SELECT * FROM %i WHERE id = %d', $table, $id )
-		);
-
-		if ( $result ) {
-			static::cache_set( "id_{$id}", $result );
-		}
-
-		return $result;
-	}
-
-	/**
-	 * Get a notice by `code` (case-insensitive — input is uppercased before lookup).
-	 *
-	 * Used by the public shortcode to resolve `notice="EDITAL-2026-01"` and
-	 * by the admin import flow.
-	 *
-	 * @param string $code Notice code (any case; normalized internally).
-	 * @return NoticeRow|null
-	 */
-	public static function get_by_code( string $code ): ?object {
-		$wpdb  = self::db();
-		$table = self::get_table_name();
-
-		$normalized = strtoupper( $code );
-
-		/**
-		 * Cast wpdb result to typed shape.
-		 *
-		 * @var NoticeRow|null $result
-		 */
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Lookup by indexed UNIQUE column.
-		$result = $wpdb->get_row(
-			$wpdb->prepare( 'SELECT * FROM %i WHERE code = %s LIMIT 1', $table, $normalized )
-		);
-
-		return $result ? $result : null;
-	}
-
-	/**
-	 * List notices, optionally filtered by status.
-	 *
-	 * @param string|null $status One of {draft, preliminary, active, closed} or null for all.
-	 * @return list<NoticeRow>
-	 */
-	public static function get_all( ?string $status = null ): array {
-		$wpdb  = self::db();
-		$table = self::get_table_name();
-
-		if ( null !== $status ) {
-			/**
-			 * Cast wpdb results to typed shape.
-			 *
-			 * @var list<NoticeRow>|null $results
-			 */
-			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Admin listing; status column is indexed.
-			$results = $wpdb->get_results(
-				$wpdb->prepare( 'SELECT * FROM %i WHERE status = %s ORDER BY created_at DESC', $table, $status )
-			);
-		} else {
-			/**
-			 * Cast wpdb results to typed shape.
-			 *
-			 * @var list<NoticeRow>|null $results
-			 */
-			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Admin listing; small cardinality.
-			$results = $wpdb->get_results(
-				$wpdb->prepare( 'SELECT * FROM %i ORDER BY created_at DESC', $table )
-			);
-		}
-
-		return is_array( $results ) ? $results : array();
-	}
-
-	/**
 	 * Create a new notice in `draft` status.
 	 *
 	 * `code` is uppercased on store. `public_columns_config` defaults to
-	 * {@see self::DEFAULT_PUBLIC_COLUMNS_CONFIG} when omitted; callers may
-	 * override by passing a `public_columns_config` JSON string.
+	 * {@see RecruitmentNoticeReader::DEFAULT_PUBLIC_COLUMNS_CONFIG} when
+	 * omitted; callers may override by passing a `public_columns_config` JSON
+	 * string.
 	 *
 	 * State-transition timestamps (`opened_at`, `closed_at`) and the
 	 * `was_reopened` flag are NOT set here — those are managed by the state
@@ -190,7 +77,7 @@ class RecruitmentNoticeRepository {
 		$table = self::get_table_name();
 
 		$now    = current_time( 'mysql' );
-		$config = '' === $public_columns_config ? self::DEFAULT_PUBLIC_COLUMNS_CONFIG : $public_columns_config;
+		$config = '' === $public_columns_config ? RecruitmentNoticeReader::DEFAULT_PUBLIC_COLUMNS_CONFIG : $public_columns_config;
 
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Insert via wpdb helper; explicit formats.
 		$result = $wpdb->insert(

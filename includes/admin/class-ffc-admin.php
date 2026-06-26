@@ -210,14 +210,14 @@ class Admin {
 	 */
 	public function handle_submission_actions(): void {
         // phpcs:disable WordPress.Security.NonceVerification.Recommended -- Nonce verified per-action below via wp_verify_nonce and check_admin_referer.
-		if ( \FreeFormCertificate\Core\Utils::get_get_string( 'page' ) !== 'ffc-submissions' ) {
+		if ( \FreeFormCertificate\Core\RequestInput::get_get_string( 'page' ) !== 'ffc-submissions' ) {
 			return;
 		}
 
 		// Write actions (trash/restore/delete + bulk) require the manage cap —
 		// the *vê e edita* tier. Read-only viewers (ffc_view_certificates) reach
 		// the page but never run these branches.
-		if ( ! \FreeFormCertificate\Core\Utils::current_user_can_admin_or( 'ffc_manage_certificates' ) ) {
+		if ( ! \FreeFormCertificate\Core\Capabilities::current_user_can_admin_or( 'ffc_manage_certificates' ) ) {
 			return;
 		}
 
@@ -225,7 +225,7 @@ class Admin {
 		if ( isset( $_GET['submission_id'] ) && isset( $_GET['action'] ) ) {
 			$id                   = absint( wp_unslash( $_GET['submission_id'] ) );
 			$action               = sanitize_key( wp_unslash( $_GET['action'] ) );
-			$nonce                = \FreeFormCertificate\Core\Utils::get_get_string( '_wpnonce' );
+			$nonce                = \FreeFormCertificate\Core\RequestInput::get_get_string( '_wpnonce' );
 			$manipulation_actions = array( 'trash', 'restore', 'delete' );
 
 			if ( in_array( $action, $manipulation_actions, true ) ) {
@@ -237,7 +237,7 @@ class Admin {
 						$this->submission_handler->restore_submission( $id );
 					}
 					if ( 'delete' === $action ) {
-						if ( ! \FreeFormCertificate\Core\Utils::current_user_can_admin_or( 'ffc_delete_certificates' ) ) {
+						if ( ! \FreeFormCertificate\Core\Capabilities::current_user_can_admin_or( 'ffc_delete_certificates' ) ) {
 							wp_die( esc_html__( 'You do not have permission to delete submissions.', 'ffcertificate' ) );
 						}
 						$this->submission_handler->delete_submission( $id );
@@ -267,7 +267,7 @@ class Admin {
 					$this->submission_handler->bulk_restore_submissions( $ids );
 					$this->redirect_with_msg( 'bulk_done' );
 				} elseif ( 'bulk_delete' === $bulk_action ) {
-					if ( ! \FreeFormCertificate\Core\Utils::current_user_can_admin_or( 'ffc_delete_certificates' ) ) {
+					if ( ! \FreeFormCertificate\Core\Capabilities::current_user_can_admin_or( 'ffc_delete_certificates' ) ) {
 						wp_die( esc_html__( 'You do not have permission to delete submissions.', 'ffcertificate' ) );
 					}
 					$this->submission_handler->bulk_delete_submissions( $ids );
@@ -521,7 +521,7 @@ class Admin {
 		$moved        = isset( $_GET['moved'] ) ? absint( wp_unslash( $_GET['moved'] ) ) : 0;
 		$conflicts    = isset( $_GET['conflicts'] ) ? absint( wp_unslash( $_GET['conflicts'] ) ) : 0;
 		$to_form      = isset( $_GET['to_form'] ) ? absint( wp_unslash( $_GET['to_form'] ) ) : 0;
-		$conflict_raw = \FreeFormCertificate\Core\Utils::get_get_string( 'conflict_id' );
+		$conflict_raw = \FreeFormCertificate\Core\RequestInput::get_get_string( 'conflict_id' );
 		// phpcs:enable WordPress.Security.NonceVerification.Recommended
 
 		$conflict_ids = array();

@@ -94,7 +94,7 @@ class UserService {
 			return array();
 		}
 
-		$all_caps = \FreeFormCertificate\UserDashboard\UserManager::get_all_capabilities();
+		$all_caps = \FreeFormCertificate\UserDashboard\CapabilityManager::get_all_capabilities();
 		$result   = array();
 
 		foreach ( $all_caps as $cap ) {
@@ -121,7 +121,7 @@ class UserService {
 
 		// Certificate count.
 		if ( class_exists( '\FreeFormCertificate\Core\Utils' ) ) {
-			$table                 = \FreeFormCertificate\Core\Utils::get_submissions_table();
+			$table                 = \FreeFormCertificate\Repositories\SubmissionRepository::get_submissions_table();
 			$stats['certificates'] = (int) $wpdb->get_var(
 				$wpdb->prepare(
 					"SELECT COUNT(*) FROM %i WHERE user_id = %d AND status != 'trash'",

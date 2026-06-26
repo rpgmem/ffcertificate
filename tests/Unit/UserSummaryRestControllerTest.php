@@ -59,7 +59,6 @@ class UserSummaryRestControllerTest extends TestCase {
         // Alias mocks for static-only dependencies
         $utils_mock = Mockery::mock( 'alias:\FreeFormCertificate\Core\Utils' );
         $utils_mock->shouldReceive( 'debug_log' )->byDefault();
-        $utils_mock->shouldReceive( 'get_submissions_table' )->andReturn( 'wp_ffc_submissions' )->byDefault();
 
         $rereg_mock = Mockery::mock( 'alias:\FreeFormCertificate\Reregistration\ReregistrationFrontend' );
         $rereg_mock->shouldReceive( 'get_user_reregistrations' )->andReturn( array() )->byDefault();

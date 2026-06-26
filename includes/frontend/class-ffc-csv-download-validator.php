@@ -323,7 +323,7 @@ final class CsvDownloadValidator {
 		$existing   = is_array( $existing ) ? $existing : array();
 		$existing[] = array(
 			'ts'            => time(),
-			'ip'            => \FreeFormCertificate\Core\Utils::get_user_ip(),
+			'ip'            => \FreeFormCertificate\Core\RequestInput::get_user_ip(),
 			'mode'          => $mode,
 			'cpf_encrypted' => $cpf_encrypted,
 			'result'        => $result,

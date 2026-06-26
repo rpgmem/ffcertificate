@@ -79,10 +79,11 @@ class UserProfileRestControllerTest extends TestCase {
         $user_manager_mock->shouldReceive( 'get_user_emails' )->andReturn( array( 'john@example.com' ) )->byDefault();
         $user_manager_mock->shouldReceive( 'get_user_names' )->andReturn( array( 'John Doe' ) )->byDefault();
         $user_manager_mock->shouldReceive( 'update_profile' )->andReturn( true )->byDefault();
-        $user_manager_mock->shouldReceive( 'grant_audience_capabilities' )->byDefault();
+        $cap_manager_mock = Mockery::mock( 'alias:\FreeFormCertificate\UserDashboard\CapabilityManager' );
+		$cap_manager_mock->shouldReceive( 'grant_audience_capabilities' )->byDefault();
         // UserService::get_user_capabilities() (triggered indirectly via
         // get_full_profile after the #322 wire-up) calls this static.
-        $user_manager_mock->shouldReceive( 'get_all_capabilities' )->andReturn( array() )->byDefault();
+        $cap_manager_mock->shouldReceive( 'get_all_capabilities' )->andReturn( array() )->byDefault();
 
         $activity_log_mock = Mockery::mock( 'alias:\FreeFormCertificate\Core\ActivityLog' );
         $activity_log_mock->shouldReceive( 'log_profile_updated' )->byDefault();

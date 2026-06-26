@@ -1,28 +1,23 @@
 <?php
 /**
- * Reason Repository
+ * Reason Writer
  *
- * CRUD for the global "Reason" catalog — operator-defined labels
- * attached to a preliminary-list classification's `preview_status`
- * (e.g. "appeal granted because …", "denied because …"). Like
- * adjutancies in shape but reusable across every notice without an
- * attach junction.
+ * Write-side of the reason repository split (#563 backlog, B3). Holds every
+ * INSERT / UPDATE / DELETE plus the color- and applies_to-normalization
+ * helpers. Reads live in {@see RecruitmentReasonReader}. Callers depend on the
+ * reader (reads) and this writer (writes) directly; the delegating façade was
+ * retired in #563 B3-A.
  *
  * Schema-level invariants enforced here:
  *
  * - `slug` is UNIQUE (DB constraint). Insert/update operations rely on
  *   the constraint to surface duplicates as a `false` return.
  * - Deletion gating (zero references in `classification.preview_reason_id`)
- *   is enforced by the service layer, not here — this repository's
- *   `delete()` is unconditional.
- *
- * `applies_to` is an empty-or-CSV list of preview-status enum values
- * (`denied,granted,appeal_denied,appeal_granted`). Empty string means
- * "applies to every preview status"; a non-empty list narrows the
- * dropdown when the admin picks a status.
+ *   is enforced by the service layer, not here — this writer's `delete()`
+ *   is unconditional.
  *
  * @package FreeFormCertificate\Recruitment
- * @since   6.1.0
+ * @since   6.11.3
  */
 
 declare(strict_types=1);
@@ -34,22 +29,19 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 /**
- * Database repository for `ffc_recruitment_reason` rows.
+ * Write operations for `ffc_recruitment_reason` rows.
  *
- * @phpstan-type ReasonRow \stdClass&object{id: numeric-string, slug: string, label: string, color: string, applies_to: string, created_at: string, updated_at: string}
+ * @since 6.11.3
  */
-class RecruitmentReasonRepository {
+class RecruitmentReasonWriter {
 
 	use \FreeFormCertificate\Core\StaticRepositoryTrait;
 
-	/** Default badge color used when admins haven't picked one yet. */
-	public const DEFAULT_COLOR = '#e9ecef';
-
-	/** Preview-status enum values that a reason can be tagged with. */
-	public const APPLIES_TO_VALUES = array( 'denied', 'granted', 'appeal_denied', 'appeal_granted' );
-
 	/**
 	 * Cache group for this repository.
+	 *
+	 * Must match {@see RecruitmentReasonReader::cache_group()} so writes
+	 * invalidate the entries reads populate.
 	 *
 	 * @return string
 	 */
@@ -67,71 +59,12 @@ class RecruitmentReasonRepository {
 	}
 
 	/**
-	 * Get a reason row by ID.
-	 *
-	 * @param int $id Reason ID.
-	 * @return ReasonRow|null
-	 */
-	public static function get_by_id( int $id ): ?object {
-		$cached = static::cache_get( "id_{$id}" );
-		if ( false !== $cached ) {
-			/**
-			 * Object-cache return cast.
-			 *
-			 * @var ReasonRow|null $cached
-			 */
-			return $cached;
-		}
-
-		$wpdb  = self::db();
-		$table = self::get_table_name();
-
-		/**
-		 * Cast wpdb result to typed shape.
-		 *
-		 * @var ReasonRow|null $result
-		 */
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Cached above and below; %i for table identifier.
-		$result = $wpdb->get_row(
-			$wpdb->prepare( 'SELECT * FROM %i WHERE id = %d', $table, $id )
-		);
-
-		if ( $result ) {
-			static::cache_set( "id_{$id}", $result );
-		}
-
-		return $result;
-	}
-
-	/**
-	 * List all reasons, ordered by label ASC.
-	 *
-	 * @return list<ReasonRow>
-	 */
-	public static function get_all(): array {
-		$wpdb  = self::db();
-		$table = self::get_table_name();
-
-		/**
-		 * Cast wpdb results to typed shape.
-		 *
-		 * @var list<ReasonRow>|null $results
-		 */
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Admin-only listing; small cardinality.
-		$results = $wpdb->get_results(
-			$wpdb->prepare( 'SELECT * FROM %i ORDER BY label ASC', $table )
-		);
-
-		return is_array( $results ) ? $results : array();
-	}
-
-	/**
 	 * Create a new reason row.
 	 *
 	 * @param string            $slug       Unique slug.
 	 * @param string            $label      Display label.
 	 * @param string            $color      Optional badge color (#RGB / #RRGGBB / #RRGGBBAA).
-	 * @param array<int,string> $applies_to Subset of {@see self::APPLIES_TO_VALUES}.
+	 * @param array<int,string> $applies_to Subset of {@see RecruitmentReasonReader::APPLIES_TO_VALUES}.
 	 *                                  Empty array = applies to every preview status.
 	 * @return int|false New reason ID or false on failure.
 	 */
@@ -241,27 +174,28 @@ class RecruitmentReasonRepository {
 
 	/**
 	 * Normalize a color string into the canonical lowercase hex form.
-	 * Mirrors {@see RecruitmentAdjutancyRepository::normalize_color()}.
+	 * Mirrors {@see RecruitmentAdjutancyWriter::normalize_color()}.
 	 *
 	 * @param string $value Raw value.
 	 * @return string
 	 */
 	public static function normalize_color( string $value ): string {
-		return \FreeFormCertificate\Core\ColorValidator::normalize( $value, self::DEFAULT_COLOR );
+		return \FreeFormCertificate\Core\ColorValidator::normalize( $value, RecruitmentReasonReader::DEFAULT_COLOR );
 	}
 
 	/**
 	 * Normalize an applies_to selection into the canonical CSV form.
 	 *
-	 * Filters out values that aren't in {@see self::APPLIES_TO_VALUES},
-	 * deduplicates, and joins with commas. An empty input becomes the
-	 * empty string (= "applies to every preview status").
+	 * Filters out values that aren't in
+	 * {@see RecruitmentReasonReader::APPLIES_TO_VALUES}, deduplicates, and
+	 * joins with commas. An empty input becomes the empty string
+	 * (= "applies to every preview status").
 	 *
 	 * @param array<int, mixed> $value Raw selection.
 	 * @return string
 	 */
 	public static function normalize_applies_to( array $value ): string {
-		$allowed = self::APPLIES_TO_VALUES;
+		$allowed = RecruitmentReasonReader::APPLIES_TO_VALUES;
 		$out     = array();
 		foreach ( $value as $candidate ) {
 			if ( ! is_string( $candidate ) ) {
@@ -272,47 +206,5 @@ class RecruitmentReasonRepository {
 			}
 		}
 		return implode( ',', $out );
-	}
-
-	/**
-	 * Decode a stored applies_to CSV back into a list. An empty stored
-	 * value yields {@see self::APPLIES_TO_VALUES} ("applies to all").
-	 *
-	 * @param string $stored CSV value from the row.
-	 * @return list<string>
-	 */
-	public static function decode_applies_to( string $stored ): array {
-		$stored = trim( $stored );
-		if ( '' === $stored ) {
-			return self::APPLIES_TO_VALUES;
-		}
-		$parts = array_filter( array_map( 'trim', explode( ',', $stored ) ) );
-		$out   = array();
-		foreach ( $parts as $candidate ) {
-			if ( in_array( $candidate, self::APPLIES_TO_VALUES, true ) && ! in_array( $candidate, $out, true ) ) {
-				$out[] = $candidate;
-			}
-		}
-		return empty( $out ) ? self::APPLIES_TO_VALUES : $out;
-	}
-
-	/**
-	 * Count how many classification rows currently reference this
-	 * reason via `preview_reason_id`. Used by the deletion gate on the
-	 * Reasons admin tab.
-	 *
-	 * @param int $id Reason ID.
-	 * @return int
-	 */
-	public static function count_references( int $id ): int {
-		global $wpdb;
-		$cls_table = $wpdb->prefix . 'ffc_recruitment_classification';
-
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Admin-only deletion gate.
-		$count = $wpdb->get_var(
-			$wpdb->prepare( 'SELECT COUNT(*) FROM %i WHERE preview_reason_id = %d', $cls_table, $id )
-		);
-
-		return null === $count ? 0 : (int) $count;
 	}
 }

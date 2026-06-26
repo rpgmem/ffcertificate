@@ -426,7 +426,7 @@ class AudienceAdminPage {
 	 */
 	public function handle_form_submissions(): void {
 		// Only process on our admin pages.
-		if ( strpos( \FreeFormCertificate\Core\Utils::get_get_string( 'page' ), self::MENU_SLUG ) !== 0 ) {
+		if ( strpos( \FreeFormCertificate\Core\RequestInput::get_get_string( 'page' ), self::MENU_SLUG ) !== 0 ) {
 			return;
 		}
 

@@ -7,7 +7,21 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
-## [6.11.2] (2026-06-21)
+## [6.12.0] (2026-06-26)
+
+### Security
+
+- IP geolocation debug logging — hardened to never store a raw client IP, even with `debug_geofence` enabled. A security audit found `IpGeolocation::get_location()` wrote the raw IP into the ActivityLog `LEVEL_DEBUG` trail on the cache-hit and service-success paths (and via the returned `location.ip` field echoed into the log), inconsistently with the already-hashed `fetch_from_service` path and the salted-hash treatment in `PreflightTelemetry`. All debug-log call sites now emit a truncated SHA-256 (`hash_ip()`) and redact the `ip` field of any logged `location` array via a new `redact_location_ip()` helper; the value returned to callers and the cache entry are unchanged (the contract `location['ip']` is preserved). Low severity — the path is gated behind the off-by-default debug toggle and an IP is low-sensitivity operational data — but it removes a residual LGPD/GDPR exposure and aligns the module with the plugin's IP-hashing convention. No behavior change for callers. (#596)
+
+### Changed
+
+- Internal refactor (#563 — modular-monolith hardening) — decomposed the largest god-classes and the shared static hubs, behavior-preserving throughout (characterization tests first; markup/queries/hooks unchanged): the `FormProcessor` submission flow → a pipeline of testable guard/stage classes (~1047→85 lines); `CapabilityManager` → `CapabilityMigrator` / `RoleRegistrar` + a slim runtime manager; the `Core\Utils` god-utility dismantled into focused homes (`FilenameHelper`, `RequestInput`, `AssetHelper`, `HtmlPolicy`, `Capabilities`, `SuccessHtmlRenderer`, …), leaving only generic primitives; `RateLimitChecker` → per-dimension strategy classes; `RecruitmentCsvImporter` → `CsvParser` / `CsvValidator` / `CsvStagingService` / `CandidatePersister` (~1554→310); the monolithic `Activator` → per-module activators; the five large repositories → `*Reader` / `*Writer` behind a delegating façade; admin-renderer view/logic separation; and typed per-option-group settings readers `GeolocationSettingsReader` / `RateLimitSettingsReader`. Full suite green; PHPStan L8 + WPCS clean. (Detail in the linked PRs.)
+- Internal refactor (#589) — retired the `UserManager`→`CapabilityManager` and `ActivityLog`→`ActivityLogQuery` back-compat delegations (all call sites repointed); split `RecruitmentCandidateRepository` into reader/writer; decomposed the public-CSV classes and the `ReregistrationAdmin` / `RecruitmentAdminPage` god-classes into controller + renderer; extracted the large inline admin markup into `templates/` partials; and split `PdfGenerator` into renderer + data-assembly. Behavior-preserving — byte-identical markup, hooks unchanged.
+- Internal refactor (#591) — split the remaining admin/handler god-classes behind same-signature delegators (`FormEditorSaveHandler`, `AudienceAdminAudience`, `PrivacyHandler`, `AdminAssetsManager`, and the critical-path `SubmissionHandler` → `SubmissionLifecycleService`); read/write-split the smaller repositories (recruitment notice/adjutancy/reason/call, url-shortener, reregistration-submission); extracted `SettingsActionHandler` from `Settings`; removed the lone dead `DateFormatter::flush_cache()` shim and dead back-compat entry points. The remaining migration-tail shims (`Encryption` plaintext fallback, `cpf_rf_encrypted`, ficha `generation_date`) stay — evidence-gated, not dead code. Behavior-preserving.
+- Internal architecture (#563 — module boundaries) — added a dependency-free module-boundary guard (`tests/Unit/ModuleBoundaryTest.php` + committed baseline, 130 edges) that fails CI on any new cross-module coupling and can only shrink — regenerate with `FFC_UPDATE_BOUNDARY_BASELINE=1 vendor/bin/phpunit --filter ModuleBoundary` (#593). Then retired the nine static repository façades, migrating every caller to the `*Reader` / `*Writer` classes directly (row-shape types + public constants rehomed onto the readers; `class_exists()` availability guards and `@phpstan-import-type` consumers repointed). The three **instance** façades (`AppointmentRepository`, `SubmissionRepository`, `UrlShortenerRepository`) are kept by design — they are the transactional aggregate root (`begin_transaction()` → `FOR UPDATE` read → write → `commit()` on one `$wpdb`), not dead delegators. Graph unchanged at 130 edges; full suite green (5513 tests); PHPStan L8 + WPCS clean. (#594)
+- Internal architecture (#563 — per-module bootstrap loaders) — introduced single bootstrap entry points (`AdminLoader`, then `ReregistrationLoader` / `SelfSchedulingLoader`) so the orchestrator (`Loader`) wires each module through one symbol instead of newing up its internals inline, narrowing the `Root → <module>` surface. `UserDashboard` was deliberately left without a loader — its `Root` edge is capability/role lifecycle (orchestrator responsibility), not module bootstrap, so a loader would add indirection without shrinking the edge (decision documented in `CLAUDE.md`). Behavior-preserving; each loader pinned by a wiring test. (#600, #601)
+
+## [6.11.2] (2026-06-21) — `1b1b90d`
 
 ### Security
 
@@ -17,7 +31,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 
 - Vendored thumbmarkjs 1.9.0 → 1.9.1 (MIT, `libs/js/`). Patch release; the server algorithm, fingerprint schema, contract and LGPD posture are unchanged, and the telemetry beacon stays unconditionally disabled. (#571)
 
-## [6.11.1] (2026-06-17)
+## [6.11.1] (2026-06-17) — `97278ec`
 
 ### Added
 
@@ -33,7 +47,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 
 - Privacy Policy Guide: the plugin now contributes suggested privacy-policy text to **Settings → Privacy → Policy Guide** via `wp_add_privacy_policy_content()`. Covers the personal data FFC processes (name, e-mail, CPF/RF, phone, IP, custom fields), encryption at rest, the configured activity-log retention window, who has access, and the data-subject export/erase rights already served by the existing privacy exporters/erasers. Complements the LGPD/GDPR tooling in `PrivacyHandler`.
 - Operator access info screen reorganised: the download quota and a short "Open form" link now live in the top summary card, and "Availability Period" + "Event Schedule (Reference)" are merged into one Access-vs-Reference comparison table (single column when only one applies).
-- Schedule exception: the operator now sees the participant-form page URL **at validation time** — a clickable preview line ("The participant form opens at: …") rendered on the info screen as soon as the form is validated, before staging the exception. The URL is pre-resolved server-side (`schedule_form_url` in the info payload) via the same resolver the hand-off uses; opening it does not stage or consume a token. #366 Sprint 5.
+- Schedule exception: the operator now sees the participant-form page URL **at validation time** — a clickable preview line ("The participant form opens at: …") rendered on the info screen as soon as the form is validated, before staging the exception. The URL is pre-resolved server-side (`schedule_form_url` in the info payload) via the same resolver the hand-off uses; opening it does not stage or consume a token. #366.
 
 ### Changed
 
@@ -47,7 +61,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 
 ### Fixed
 
-- Schedule exception (operator entry/exit override): the "Open participant form" hand-off no longer lands on the site home. `ScheduleExceptionAction::resolve_form_url()` now auto-discovers the page that embeds `[ffc_form id="N"`, returning the most recently published embed (the `ffc_schedule_exception_form_url` filter still wins; home stays only as a last-resort fallback) — the Sprint 5 lookup deferred in #366. The post-create modal also shows a spinner + "opening in a new tab" notice for a brief forced beat so the hand-off to the new tab is unmistakable.
+- Schedule exception (operator entry/exit override): the "Open participant form" hand-off no longer lands on the site home. `ScheduleExceptionAction::resolve_form_url()` now auto-discovers the page that embeds `[ffc_form id="N"`, returning the most recently published embed (the `ffc_schedule_exception_form_url` filter still wins; home stays only as a last-resort fallback) — the lookup deferred in #366. The post-create modal also shows a spinner + "opening in a new tab" notice for a brief forced beat so the hand-off to the new tab is unmistakable.
 - Audience bookings: wall-clock `booking_date`/`start_time`/`end_time` no longer shift by the site UTC offset on display — the admin bookings list, the user-dashboard bookings REST response (and its `is_past` flag, now a site-local date comparison), and the booking created/cancelled e-mails all render the literal value via `format_wallclock_date()`/`format_wallclock_time()`. (Same class as the self-scheduling/holiday fix; the audience JS already handled times correctly.)
 - Self-scheduling: wall-clock `appointment_date`/`start_time`/`end_time` no longer shift by the site UTC offset on display — new `DateFormatter::format_wallclock_date()`/`format_wallclock_time()` render the literal value across every self-scheduling display (instant API unchanged).
 - Scheduling Settings → Holidays: global and per-calendar holiday dates no longer display one day early on sub-UTC sites — both lists render the wall-clock DATE via `format_wallclock_date()`.
@@ -87,7 +101,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 - ⚠ Recruitment Reasons is a strict 3-state tier (GAP I): `ffc_view`/`manage_recruitment_reasons`; closes a bulk-delete cap gap (was nonce-only); migration preserves access.
 - Capability editors: the permission list is organized by module (one card per module) with a Self-service / Administration divider, all groups collapsed by default, and surface badges on the exceptions (`API` on `forms_api`, `frontend` on `scheduling_bypass`).
 - Dropped a stray cross-domain `ffc_export_certificates` grant from `ffc_self_scheduling_manager` (definition only; no upgrade behavior change).
-- Settings page is now a real read-only surface for the `ffc_view_settings` tier (G3): the active tab is wrapped in a disabled `<fieldset>` + a read-only banner.
+- Settings page is now a real read-only surface for the `ffc_view_settings` tier: the active tab is wrapped in a disabled `<fieldset>` + a read-only banner.
 - Internal frontend audit: inline admin JS extracted to dedicated lint-tested asset files (no behavior change).
 - Internal frontend audit: large maintainability refactor splitting the monolithic frontend scripts + oversized PHP classes behind their existing APIs (no behavior change).
 
@@ -176,7 +190,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 
 - 5 geofence/spinner messages were unreachable for translators — now flow through `__()` + `wp_localize_script` (English fallback kept).
 
-## [6.7.6] (2026-05-23)
+## [6.7.6] (2026-05-23) — `73c9c9c`
 
 ### Fixed
 

@@ -633,7 +633,7 @@ class FormRestController {
 
 			// Rate limiting check.
 			if ( class_exists( '\FreeFormCertificate\Security\RateLimiter' ) ) {
-				$ip       = \FreeFormCertificate\Core\Utils::get_user_ip();
+				$ip       = \FreeFormCertificate\Core\RequestInput::get_user_ip();
 				$ip_check = \FreeFormCertificate\Security\RateLimiter::check_ip_limit( $ip );
 				if ( ! $ip_check['allowed'] ) {
 					return new \WP_Error(

@@ -72,7 +72,7 @@ class UrlShortenerAdminPage {
 	 * @param string $hook_suffix Admin page hook suffix.
 	 */
 	public function enqueue_assets( string $hook_suffix ): void {
-		$page = \FreeFormCertificate\Core\Utils::get_get_string( 'page' );
+		$page = \FreeFormCertificate\Core\RequestInput::get_get_string( 'page' );
 		if ( 'ffc-short-urls' !== $page ) {
 			return;
 		}
@@ -133,13 +133,13 @@ class UrlShortenerAdminPage {
 	 * Handle non-AJAX admin actions (bulk delete, toggle).
 	 */
 	public function handle_actions(): void {
-		if ( \FreeFormCertificate\Core\Utils::get_get_string( 'page' ) !== 'ffc-short-urls' ) {
+		if ( \FreeFormCertificate\Core\RequestInput::get_get_string( 'page' ) !== 'ffc-short-urls' ) {
 			return;
 		}
 
 		// These GET-link actions are all writes (trash/restore/delete/toggle/
 		// empty_trash) — read-only viewers never run them.
-		if ( ! \FreeFormCertificate\Core\Utils::current_user_can_admin_or( 'ffc_manage_url_shortener' ) ) {
+		if ( ! \FreeFormCertificate\Core\Capabilities::current_user_can_admin_or( 'ffc_manage_url_shortener' ) ) {
 			return;
 		}
 
@@ -149,13 +149,13 @@ class UrlShortenerAdminPage {
 		}
 
 		$action = sanitize_key( wp_unslash( $_GET['ffc_action'] ) );
-		$nonce  = \FreeFormCertificate\Core\Utils::get_get_string( '_wpnonce' );
+		$nonce  = \FreeFormCertificate\Core\RequestInput::get_get_string( '_wpnonce' );
 
 		// Removal actions (trash/restore/delete/empty_trash) require the dedicated
 		// destructive cap (GAP E). Toggle stays under manage above.
 		$removal_actions = array( 'trash', 'restore', 'delete', 'empty_trash' );
 		if ( in_array( $action, $removal_actions, true )
-			&& ! \FreeFormCertificate\Core\Utils::current_user_can_admin_or( 'ffc_delete_url_shortener' ) ) {
+			&& ! \FreeFormCertificate\Core\Capabilities::current_user_can_admin_or( 'ffc_delete_url_shortener' ) ) {
 			wp_die( esc_html__( 'You do not have permission to delete short URLs.', 'ffcertificate' ) );
 		}
 
@@ -222,7 +222,7 @@ class UrlShortenerAdminPage {
 
 		// phpcs:ignore WordPress.Security.NonceVerification.Missing -- Nonce verified in $this->verify_ajax_nonce() above.
 		$url   = esc_url_raw( wp_unslash( $_POST['target_url'] ?? '' ) );
-		$title = \FreeFormCertificate\Core\Utils::get_post_string( 'title' );
+		$title = \FreeFormCertificate\Core\RequestInput::get_post_string( 'title' );
 
 		if ( empty( $url ) ) {
 			wp_send_json_error( array( 'message' => __( 'URL is required.', 'ffcertificate' ) ) );
@@ -333,7 +333,7 @@ class UrlShortenerAdminPage {
 	public function render_page(): void {
         // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Display-only pagination parameter.
 		$page   = max( 1, (int) ( $_GET['paged'] ?? 1 ) );
-		$search = \FreeFormCertificate\Core\Utils::get_get_string( 's' );
+		$search = \FreeFormCertificate\Core\RequestInput::get_get_string( 's' );
         // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Display-only sort parameter.
 		$orderby = sanitize_key( $_GET['orderby'] ?? 'created_at' );
         // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Display-only sort direction parameter.

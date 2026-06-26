@@ -12,7 +12,7 @@ declare(strict_types=1);
 
 namespace FreeFormCertificate\Reregistration;
 
-use FreeFormCertificate\Audience\AudienceRepository;
+use FreeFormCertificate\Audience\AudienceReader;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
@@ -21,7 +21,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 /**
  * Admin page for reregistration custom fields.
  *
- * @phpstan-import-type AudienceRow from AudienceRepository
+ * @phpstan-import-type AudienceRow from AudienceReader
  */
 class ReregistrationCustomFieldsPage {
 
@@ -34,11 +34,11 @@ class ReregistrationCustomFieldsPage {
 	 * @return void
 	 */
 	public static function render(): void {
-		if ( ! \FreeFormCertificate\Core\Utils::current_user_can_admin_or( 'ffc_manage_reregistration' ) ) {
+		if ( ! \FreeFormCertificate\Core\Capabilities::current_user_can_admin_or( 'ffc_manage_reregistration' ) ) {
 			wp_die( esc_html__( 'Permission denied.', 'ffcertificate' ) );
 		}
 
-		$audiences = AudienceRepository::get_hierarchical( 'active' );
+		$audiences = AudienceReader::get_hierarchical( 'active' );
 		$edit_base = admin_url( 'admin.php?page=ffc-scheduling-audiences&action=edit&id=' );
 
 		?>
@@ -93,8 +93,8 @@ class ReregistrationCustomFieldsPage {
 	 * @return void
 	 */
 	private static function render_row( object $audience, string $edit_base, bool $is_child = false ): void {
-		$count    = CustomFieldRepository::count_by_audience( (int) $audience->id, false );
-		$active   = CustomFieldRepository::count_by_audience( (int) $audience->id, true );
+		$count    = CustomFieldReader::count_by_audience( (int) $audience->id, false );
+		$active   = CustomFieldReader::count_by_audience( (int) $audience->id, true );
 		$edit_url = $edit_base . $audience->id . '#ffc-custom-fields';
 
 		?>

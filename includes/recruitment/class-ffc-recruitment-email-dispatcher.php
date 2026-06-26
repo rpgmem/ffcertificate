@@ -50,11 +50,11 @@ if ( ! defined( 'ABSPATH' ) ) {
  * email on file for the candidate (admin-side warning surface — the call
  * still proceeds upstream).
  *
- * @phpstan-import-type CandidateRow      from RecruitmentCandidateRepository
+ * @phpstan-import-type CandidateRow      from RecruitmentCandidateReader
  * @phpstan-import-type ClassificationRow from RecruitmentClassificationRepository
- * @phpstan-import-type NoticeRow         from RecruitmentNoticeRepository
- * @phpstan-import-type AdjutancyRow      from RecruitmentAdjutancyRepository
- * @phpstan-import-type CallRow           from RecruitmentCallRepository
+ * @phpstan-import-type NoticeRow         from RecruitmentNoticeReader
+ * @phpstan-import-type AdjutancyRow      from RecruitmentAdjutancyReader
+ * @phpstan-import-type CallRow           from RecruitmentCallReader
  */
 final class RecruitmentEmailDispatcher {
 
@@ -70,7 +70,7 @@ final class RecruitmentEmailDispatcher {
 	 * @return bool True on send attempted; false on missing email.
 	 */
 	public static function send_for_call( int $call_id ): bool {
-		$call = RecruitmentCallRepository::get_by_id( $call_id );
+		$call = RecruitmentCallReader::get_by_id( $call_id );
 		if ( null === $call ) {
 			return false;
 		}
@@ -80,13 +80,13 @@ final class RecruitmentEmailDispatcher {
 			return false;
 		}
 
-		$candidate = RecruitmentCandidateRepository::get_by_id( (int) $classification->candidate_id );
+		$candidate = RecruitmentCandidateReader::get_by_id( (int) $classification->candidate_id );
 		if ( null === $candidate ) {
 			return false;
 		}
 
-		$notice    = RecruitmentNoticeRepository::get_by_id( (int) $classification->notice_id );
-		$adjutancy = RecruitmentAdjutancyRepository::get_by_id( (int) $classification->adjutancy_id );
+		$notice    = RecruitmentNoticeReader::get_by_id( (int) $classification->notice_id );
+		$adjutancy = RecruitmentAdjutancyReader::get_by_id( (int) $classification->adjutancy_id );
 		if ( null === $notice || null === $adjutancy ) {
 			return false;
 		}

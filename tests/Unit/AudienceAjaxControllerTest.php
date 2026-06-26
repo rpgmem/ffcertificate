@@ -59,15 +59,18 @@ class AudienceAjaxControllerTest extends TestCase {
 
 	/** Stub the Utils statics the AjaxTrait helpers delegate to. */
 	private function mockUtils(): void {
-		$utils = Mockery::mock( 'alias:FreeFormCertificate\Core\Utils' );
+		$utils = Mockery::mock( 'alias:FreeFormCertificate\Core\Capabilities' );
 		$utils->shouldReceive( 'current_user_can_manage' )->andReturn( true )->byDefault();
-		$utils->shouldReceive( 'get_post_string' )->andReturnUsing(
+
+		// #563 Sprint 3 PR 3b — request-input accessors moved to RequestInput.
+		$ri = Mockery::mock( 'alias:FreeFormCertificate\Core\RequestInput' );
+		$ri->shouldReceive( 'get_post_string' )->andReturnUsing(
 			static fn( $k, $d = '' ) => isset( $_POST[ $k ] ) ? (string) $_POST[ $k ] : $d
 		)->byDefault();
-		$utils->shouldReceive( 'get_post_int' )->andReturnUsing(
+		$ri->shouldReceive( 'get_post_int' )->andReturnUsing(
 			static fn( $k, $d = 0 ) => isset( $_POST[ $k ] ) ? (int) $_POST[ $k ] : $d
 		)->byDefault();
-		$utils->shouldReceive( 'get_post_array' )->andReturnUsing(
+		$ri->shouldReceive( 'get_post_array' )->andReturnUsing(
 			static fn( $k ) => isset( $_POST[ $k ] ) ? (array) $_POST[ $k ] : array()
 		)->byDefault();
 	}
@@ -185,7 +188,8 @@ class AudienceAjaxControllerTest extends TestCase {
 		Functions\when( 'sanitize_textarea_field' )->returnArg();
 		$_POST = array( 'nonce' => 'n', 'booking_id' => '9' );
 
-		$repo = Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceBookingRepository' );
+		$repo = Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceBookingReader' );
+		$repo_w = Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceBookingWriter' );
 		$repo->shouldReceive( 'get_by_id' )->with( 9 )->andReturn( null );
 
 		$this->dispatch( fn() => ( new AudienceAjaxController() )->ajax_cancel_booking() );
@@ -199,7 +203,8 @@ class AudienceAjaxControllerTest extends TestCase {
 		Functions\when( 'sanitize_textarea_field' )->returnArg();
 		$_POST = array( 'nonce' => 'n', 'booking_id' => '9' );
 
-		$repo = Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceBookingRepository' );
+		$repo = Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceBookingReader' );
+		$repo_w = Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceBookingWriter' );
 		$repo->shouldReceive( 'get_by_id' )->with( 9 )->andReturn( (object) array( 'status' => 'cancelled' ) );
 
 		$this->dispatch( fn() => ( new AudienceAjaxController() )->ajax_cancel_booking() );
@@ -213,9 +218,10 @@ class AudienceAjaxControllerTest extends TestCase {
 		Functions\when( 'sanitize_textarea_field' )->returnArg();
 		$_POST = array( 'nonce' => 'n', 'booking_id' => '9', 'reason' => 'x' );
 
-		$repo = Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceBookingRepository' );
+		$repo = Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceBookingReader' );
+		$repo_w = Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceBookingWriter' );
 		$repo->shouldReceive( 'get_by_id' )->with( 9 )->andReturn( (object) array( 'status' => 'active' ) );
-		$repo->shouldReceive( 'cancel' )->with( 9, 'x' )->andReturn( false );
+		$repo_w->shouldReceive( 'cancel' )->with( 9, 'x' )->andReturn( false );
 
 		$this->dispatch( fn() => ( new AudienceAjaxController() )->ajax_cancel_booking() );
 
@@ -229,9 +235,10 @@ class AudienceAjaxControllerTest extends TestCase {
 		Functions\when( 'do_action' )->justReturn( null );
 		$_POST = array( 'nonce' => 'n', 'booking_id' => '9', 'reason' => 'x' );
 
-		$repo = Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceBookingRepository' );
+		$repo = Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceBookingReader' );
+		$repo_w = Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceBookingWriter' );
 		$repo->shouldReceive( 'get_by_id' )->with( 9 )->andReturn( (object) array( 'status' => 'active' ) );
-		$repo->shouldReceive( 'cancel' )->with( 9, 'x' )->andReturn( true );
+		$repo_w->shouldReceive( 'cancel' )->with( 9, 'x' )->andReturn( true );
 
 		$this->dispatch( fn() => ( new AudienceAjaxController() )->ajax_cancel_booking() );
 
@@ -255,7 +262,8 @@ class AudienceAjaxControllerTest extends TestCase {
 		$this->mockUtils();
 		$_POST = array( 'nonce' => 'n', 'booking_id' => '4' );
 
-		$repo = Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceBookingRepository' );
+		$repo = Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceBookingReader' );
+		$repo_w = Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceBookingWriter' );
 		$repo->shouldReceive( 'get_by_id' )->with( 4 )->andReturn( null );
 
 		$this->dispatch( fn() => ( new AudienceAjaxController() )->ajax_get_booking() );
@@ -286,7 +294,8 @@ class AudienceAjaxControllerTest extends TestCase {
 			'users'            => array( 7 ),
 		);
 
-		$repo = Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceBookingRepository' );
+		$repo = Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceBookingReader' );
+		$repo_w = Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceBookingWriter' );
 		$repo->shouldReceive( 'get_by_id' )->with( 4 )->andReturn( $booking );
 
 		Functions\when( 'get_userdata' )->alias(
@@ -329,7 +338,8 @@ class AudienceAjaxControllerTest extends TestCase {
 			'users'            => array(),
 		);
 
-		$repo = Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceBookingRepository' );
+		$repo = Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceBookingReader' );
+		$repo_w = Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceBookingWriter' );
 		$repo->shouldReceive( 'get_by_id' )->with( 4 )->andReturn( $booking );
 
 		Functions\when( 'get_userdata' )->justReturn( false );
@@ -639,7 +649,8 @@ class AudienceAjaxControllerTest extends TestCase {
 		Functions\when( 'current_user_can' )->justReturn( true );
 		$_POST = array( 'nonce' => 'n', 'field_id' => '3' );
 
-		$repo = Mockery::mock( 'alias:FreeFormCertificate\Reregistration\CustomFieldRepository' );
+		$repo = Mockery::mock( 'alias:FreeFormCertificate\Reregistration\CustomFieldReader' );
+		$repo_w = Mockery::mock( 'alias:FreeFormCertificate\Reregistration\CustomFieldWriter' );
 		$repo->shouldReceive( 'get_by_id' )->with( 3 )->andReturn( null );
 
 		$this->dispatch( fn() => ( new AudienceAjaxController() )->ajax_delete_custom_field() );
@@ -653,7 +664,8 @@ class AudienceAjaxControllerTest extends TestCase {
 		Functions\when( 'current_user_can' )->justReturn( true );
 		$_POST = array( 'nonce' => 'n', 'field_id' => '3' );
 
-		$repo = Mockery::mock( 'alias:FreeFormCertificate\Reregistration\CustomFieldRepository' );
+		$repo = Mockery::mock( 'alias:FreeFormCertificate\Reregistration\CustomFieldReader' );
+		$repo_w = Mockery::mock( 'alias:FreeFormCertificate\Reregistration\CustomFieldWriter' );
 		$repo->shouldReceive( 'get_by_id' )->with( 3 )->andReturn( (object) array( 'field_source' => 'standard' ) );
 
 		$this->dispatch( fn() => ( new AudienceAjaxController() )->ajax_delete_custom_field() );
@@ -667,9 +679,10 @@ class AudienceAjaxControllerTest extends TestCase {
 		Functions\when( 'current_user_can' )->justReturn( true );
 		$_POST = array( 'nonce' => 'n', 'field_id' => '3' );
 
-		$repo = Mockery::mock( 'alias:FreeFormCertificate\Reregistration\CustomFieldRepository' );
+		$repo = Mockery::mock( 'alias:FreeFormCertificate\Reregistration\CustomFieldReader' );
+		$repo_w = Mockery::mock( 'alias:FreeFormCertificate\Reregistration\CustomFieldWriter' );
 		$repo->shouldReceive( 'get_by_id' )->with( 3 )->andReturn( (object) array( 'field_source' => 'custom' ) );
-		$repo->shouldReceive( 'delete' )->with( 3 )->andReturn( false );
+		$repo_w->shouldReceive( 'delete' )->with( 3 )->andReturn( false );
 
 		$this->dispatch( fn() => ( new AudienceAjaxController() )->ajax_delete_custom_field() );
 
@@ -682,9 +695,10 @@ class AudienceAjaxControllerTest extends TestCase {
 		Functions\when( 'current_user_can' )->justReturn( true );
 		$_POST = array( 'nonce' => 'n', 'field_id' => '3' );
 
-		$repo = Mockery::mock( 'alias:FreeFormCertificate\Reregistration\CustomFieldRepository' );
+		$repo = Mockery::mock( 'alias:FreeFormCertificate\Reregistration\CustomFieldReader' );
+		$repo_w = Mockery::mock( 'alias:FreeFormCertificate\Reregistration\CustomFieldWriter' );
 		$repo->shouldReceive( 'get_by_id' )->with( 3 )->andReturn( (object) array( 'field_source' => 'custom' ) );
-		$repo->shouldReceive( 'delete' )->with( 3 )->andReturn( true );
+		$repo_w->shouldReceive( 'delete' )->with( 3 )->andReturn( true );
 
 		$this->dispatch( fn() => ( new AudienceAjaxController() )->ajax_delete_custom_field() );
 
@@ -710,7 +724,7 @@ class AudienceAjaxControllerTest extends TestCase {
 		Functions\when( 'current_user_can' )->justReturn( true );
 		$_POST = array( 'nonce' => 'n', 'audience_id' => '4' );
 
-		$repo = Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceRepository' );
+		$repo = Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceReader' );
 		$repo->shouldReceive( 'get_by_id' )->with( 4 )->andReturn( null );
 
 		$this->dispatch( fn() => ( new AudienceAjaxController() )->ajax_replicate_field_options() );
@@ -725,7 +739,7 @@ class AudienceAjaxControllerTest extends TestCase {
 		Functions\when( '_n' )->alias( static fn( $s, $p, $n ) => $n === 1 ? $s : $p );
 		$_POST = array( 'nonce' => 'n', 'audience_id' => '4' );
 
-		$repo = Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceRepository' );
+		$repo = Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceReader' );
 		$repo->shouldReceive( 'get_by_id' )->with( 4 )->andReturn( (object) array( 'id' => 4 ) );
 
 		$seeder = Mockery::mock( 'alias:FreeFormCertificate\Reregistration\ReregistrationStandardFieldsSeeder' );
@@ -770,7 +784,7 @@ class AudienceAjaxControllerTest extends TestCase {
 		Functions\when( 'wp_unslash' )->returnArg();
 		$_POST = array( 'nonce' => 'n', 'audience_id' => '4', 'fields' => '[]' );
 
-		$repo = Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceRepository' );
+		$repo = Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceReader' );
 		$repo->shouldReceive( 'get_by_id' )->with( 4 )->andReturn( null );
 
 		$this->dispatch( fn() => ( new AudienceAjaxController() )->ajax_save_custom_fields() );
@@ -798,11 +812,12 @@ class AudienceAjaxControllerTest extends TestCase {
 		);
 		$_POST  = array( 'nonce' => 'n', 'audience_id' => '4', 'fields' => $fields );
 
-		$repo = Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceRepository' );
+		$repo = Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceReader' );
 		$repo->shouldReceive( 'get_by_id' )->with( 4 )->andReturn( (object) array( 'id' => 4 ) );
 
-		$cfr = Mockery::mock( 'alias:FreeFormCertificate\Reregistration\CustomFieldRepository' );
-		$cfr->shouldReceive( 'create' )->once()->andReturn( 99 );
+		$cfr = Mockery::mock( 'alias:FreeFormCertificate\Reregistration\CustomFieldReader' );
+		$cfr_w = Mockery::mock( 'alias:FreeFormCertificate\Reregistration\CustomFieldWriter' );
+		$cfr_w->shouldReceive( 'create' )->once()->andReturn( 99 );
 
 		$this->dispatch( fn() => ( new AudienceAjaxController() )->ajax_save_custom_fields() );
 
@@ -823,9 +838,10 @@ class AudienceAjaxControllerTest extends TestCase {
 		);
 		$_POST  = array( 'nonce' => 'n', 'audience_id' => '4', 'fields' => $fields );
 
-		$repo = Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceRepository' );
+		$repo = Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceReader' );
 		$repo->shouldReceive( 'get_by_id' )->with( 4 )->andReturn( (object) array( 'id' => 4 ) );
-		Mockery::mock( 'alias:FreeFormCertificate\Reregistration\CustomFieldRepository' );
+		Mockery::mock( 'alias:FreeFormCertificate\Reregistration\CustomFieldReader' );
+		Mockery::mock( 'alias:FreeFormCertificate\Reregistration\CustomFieldWriter' );
 
 		$this->dispatch( fn() => ( new AudienceAjaxController() )->ajax_save_custom_fields() );
 
@@ -846,12 +862,13 @@ class AudienceAjaxControllerTest extends TestCase {
 		);
 		$_POST  = array( 'nonce' => 'n', 'audience_id' => '4', 'fields' => $fields );
 
-		$repo = Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceRepository' );
+		$repo = Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceReader' );
 		$repo->shouldReceive( 'get_by_id' )->with( 4 )->andReturn( (object) array( 'id' => 4 ) );
 
-		$cfr = Mockery::mock( 'alias:FreeFormCertificate\Reregistration\CustomFieldRepository' );
+		$cfr = Mockery::mock( 'alias:FreeFormCertificate\Reregistration\CustomFieldReader' );
+		$cfr_w = Mockery::mock( 'alias:FreeFormCertificate\Reregistration\CustomFieldWriter' );
 		$cfr->shouldReceive( 'get_by_id' )->with( 12 )->andReturn( (object) array( 'field_source' => 'custom' ) );
-		$cfr->shouldReceive( 'update' )->with( 12, Mockery::type( 'array' ) )->andReturn( 1 );
+		$cfr_w->shouldReceive( 'update' )->with( 12, Mockery::type( 'array' ) )->andReturn( 1 );
 
 		$this->dispatch( fn() => ( new AudienceAjaxController() )->ajax_save_custom_fields() );
 
@@ -878,13 +895,14 @@ class AudienceAjaxControllerTest extends TestCase {
 		);
 		$_POST  = array( 'nonce' => 'n', 'audience_id' => '4', 'fields' => $fields );
 
-		$repo = Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceRepository' );
+		$repo = Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceReader' );
 		$repo->shouldReceive( 'get_by_id' )->with( 4 )->andReturn( (object) array( 'id' => 4 ) );
 
-		$cfr      = Mockery::mock( 'alias:FreeFormCertificate\Reregistration\CustomFieldRepository' );
+		$cfr      = Mockery::mock( 'alias:FreeFormCertificate\Reregistration\CustomFieldReader' );
+		$cfr_w = Mockery::mock( 'alias:FreeFormCertificate\Reregistration\CustomFieldWriter' );
 		$existing = (object) array( 'field_source' => 'standard', 'field_options' => null );
 		$cfr->shouldReceive( 'get_by_id' )->with( 12 )->andReturn( $existing );
-		$cfr->shouldReceive( 'update' )->once()->with(
+		$cfr_w->shouldReceive( 'update' )->once()->with(
 			12,
 			Mockery::on(
 				static function ( $data ) {
@@ -914,11 +932,12 @@ class AudienceAjaxControllerTest extends TestCase {
 		);
 		$_POST  = array( 'nonce' => 'n', 'audience_id' => '4', 'fields' => $fields );
 
-		$repo = Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceRepository' );
+		$repo = Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceReader' );
 		$repo->shouldReceive( 'get_by_id' )->with( 4 )->andReturn( (object) array( 'id' => 4 ) );
 
-		$cfr = Mockery::mock( 'alias:FreeFormCertificate\Reregistration\CustomFieldRepository' );
-		$cfr->shouldReceive( 'create' )->andReturn( 0 );
+		$cfr = Mockery::mock( 'alias:FreeFormCertificate\Reregistration\CustomFieldReader' );
+		$cfr_w = Mockery::mock( 'alias:FreeFormCertificate\Reregistration\CustomFieldWriter' );
+		$cfr_w->shouldReceive( 'create' )->andReturn( 0 );
 
 		$this->dispatch( fn() => ( new AudienceAjaxController() )->ajax_save_custom_fields() );
 

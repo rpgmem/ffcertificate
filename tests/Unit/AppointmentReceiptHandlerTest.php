@@ -225,7 +225,7 @@ class AppointmentReceiptHandlerTest extends TestCase {
             );
         Mockery::mock( 'overload:FreeFormCertificate\Repositories\CalendarRepository' );
 
-        Mockery::mock( 'alias:FreeFormCertificate\Core\Utils' )
+        Mockery::mock( 'alias:FreeFormCertificate\Core\AssetHelper' )
             ->shouldReceive( 'asset_suffix' )->andReturn( '.min' );
         Mockery::mock( 'alias:FreeFormCertificate\Generators\PdfGenerator' )
             ->shouldReceive( 'generate_appointment_pdf_data' )->andReturn( 'PDFDATA' );

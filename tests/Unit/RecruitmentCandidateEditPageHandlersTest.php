@@ -3,6 +3,8 @@ declare(strict_types=1);
 
 namespace FreeFormCertificate\Tests\Unit;
 
+use FreeFormCertificate\Core\Capabilities;
+
 use Brain\Monkey;
 use Brain\Monkey\Functions;
 use Mockery;
@@ -57,8 +59,8 @@ class RecruitmentCandidateEditPageHandlersTest extends TestCase {
 			}
 		);
 
-		// Utils::current_user_can_admin_or — used by handle_delete's cap gate.
-		$this->utils = Mockery::mock( 'alias:FreeFormCertificate\Core\Utils' );
+		// Capabilities::current_user_can_admin_or — used by handle_delete's cap gate.
+		$this->utils = Mockery::mock( 'alias:FreeFormCertificate\Core\Capabilities' );
 		$this->utils->shouldReceive( 'current_user_can_admin_or' )->andReturn( true )->byDefault();
 	}
 
@@ -122,10 +124,11 @@ class RecruitmentCandidateEditPageHandlersTest extends TestCase {
 		$_POST['phone']        = '';
 		$_POST['notes']        = 'A note';
 
-		$repo     = Mockery::mock( 'alias:FreeFormCertificate\Recruitment\RecruitmentCandidateRepository' );
+		$repo     = Mockery::mock( 'alias:FreeFormCertificate\Recruitment\RecruitmentCandidateReader' );
 		$repo->shouldReceive( 'get_by_id' )->andReturn( $this->candidate_before() );
+		$repo_w   = Mockery::mock( 'alias:FreeFormCertificate\Recruitment\RecruitmentCandidateWriter' );
 		$captured = null;
-		$repo->shouldReceive( 'update' )->once()->andReturnUsing(
+		$repo_w->shouldReceive( 'update' )->once()->andReturnUsing(
 			function ( $id, $data ) use ( &$captured ) {
 				$captured = array( $id, $data );
 				return 1;
@@ -169,10 +172,11 @@ class RecruitmentCandidateEditPageHandlersTest extends TestCase {
 		$_POST['phone']        = '111';
 		$_POST['notes']        = '';
 
-		$repo     = Mockery::mock( 'alias:FreeFormCertificate\Recruitment\RecruitmentCandidateRepository' );
+		$repo     = Mockery::mock( 'alias:FreeFormCertificate\Recruitment\RecruitmentCandidateReader' );
 		$repo->shouldReceive( 'get_by_id' )->andReturn( $this->candidate_before() );
+		$repo_w   = Mockery::mock( 'alias:FreeFormCertificate\Recruitment\RecruitmentCandidateWriter' );
 		$captured = null;
-		$repo->shouldReceive( 'update' )->once()->andReturnUsing(
+		$repo_w->shouldReceive( 'update' )->once()->andReturnUsing(
 			function ( $id, $data ) use ( &$captured ) {
 				$captured = $data;
 				return 1;
@@ -265,7 +269,7 @@ class RecruitmentCandidateEditPageHandlersTest extends TestCase {
 		$user->ID = 42;
 		Functions\when( 'get_user_by' )->justReturn( $user );
 
-		$repo    = Mockery::mock( 'alias:FreeFormCertificate\Recruitment\RecruitmentCandidateRepository' );
+		$repo    = Mockery::mock( 'alias:FreeFormCertificate\Recruitment\RecruitmentCandidateWriter' );
 		$set_uid = null;
 		$repo->shouldReceive( 'set_user_id' )->once()->andReturnUsing(
 			function ( $id, $uid ) use ( &$set_uid ) {
@@ -283,7 +287,7 @@ class RecruitmentCandidateEditPageHandlersTest extends TestCase {
 	public function test_handle_unlink_user_clears_pointer(): void {
 		$_POST['candidate_id'] = '5';
 
-		$repo    = Mockery::mock( 'alias:FreeFormCertificate\Recruitment\RecruitmentCandidateRepository' );
+		$repo    = Mockery::mock( 'alias:FreeFormCertificate\Recruitment\RecruitmentCandidateWriter' );
 		$cleared = false;
 		$repo->shouldReceive( 'set_user_id' )->once()->andReturnUsing(
 			function ( $id, $uid ) use ( &$cleared ) {

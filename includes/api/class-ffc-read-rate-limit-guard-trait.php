@@ -27,7 +27,7 @@ declare(strict_types=1);
 
 namespace FreeFormCertificate\API;
 
-use FreeFormCertificate\Core\Utils;
+use FreeFormCertificate\Core\RequestInput;
 use FreeFormCertificate\Security\RateLimiter;
 use FreeFormCertificate\Security\RateLimitChecker;
 use FreeFormCertificate\Security\RateLimitLogger;
@@ -63,7 +63,7 @@ trait ReadRateLimitGuardTrait {
 	 * @return \WP_Error|null
 	 */
 	protected function guard_read( string $endpoint_key ): ?\WP_Error {
-		$ip       = Utils::get_user_ip();
+		$ip       = RequestInput::get_user_ip();
 		$settings = RateLimiter::get_settings();
 		$read     = is_array( $settings['read'] ?? null ) ? $settings['read'] : array();
 

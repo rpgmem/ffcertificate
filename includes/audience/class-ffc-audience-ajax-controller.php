@@ -119,7 +119,7 @@ final class AudienceAjaxController {
 				wp_send_json_error( array( 'message' => __( 'Invalid booking ID.', 'ffcertificate' ) ) );
 			}
 
-			$booking = AudienceBookingRepository::get_by_id( $booking_id );
+			$booking = AudienceBookingReader::get_by_id( $booking_id );
 			if ( ! $booking ) {
 				wp_send_json_error( array( 'message' => __( 'Booking not found.', 'ffcertificate' ) ) );
 			}
@@ -128,7 +128,7 @@ final class AudienceAjaxController {
 				wp_send_json_error( array( 'message' => __( 'Booking is already cancelled.', 'ffcertificate' ) ) );
 			}
 
-			$result = AudienceBookingRepository::cancel( $booking_id, $reason );
+			$result = AudienceBookingWriter::cancel( $booking_id, $reason );
 			if ( ! $result ) {
 				wp_send_json_error( array( 'message' => __( 'Failed to cancel booking.', 'ffcertificate' ) ) );
 			}
@@ -156,7 +156,7 @@ final class AudienceAjaxController {
 				wp_send_json_error( array( 'message' => __( 'Invalid booking ID.', 'ffcertificate' ) ) );
 			}
 
-			$booking = AudienceBookingRepository::get_by_id( $booking_id );
+			$booking = AudienceBookingReader::get_by_id( $booking_id );
 			if ( ! $booking ) {
 				wp_send_json_error( array( 'message' => __( 'Booking not found.', 'ffcertificate' ) ) );
 			}
@@ -453,7 +453,7 @@ final class AudienceAjaxController {
 				wp_send_json_error( array( 'message' => __( 'Invalid data.', 'ffcertificate' ) ) );
 			}
 
-			$audience = AudienceRepository::get_by_id( $audience_id );
+			$audience = AudienceReader::get_by_id( $audience_id );
 			if ( ! $audience ) {
 				wp_send_json_error( array( 'message' => __( 'Audience not found.', 'ffcertificate' ) ) );
 			}
@@ -510,7 +510,7 @@ final class AudienceAjaxController {
 				$rules = array();
 				if ( ! empty( $field_data['format'] ) ) {
 					$format = sanitize_text_field( $field_data['format'] );
-					if ( in_array( $format, \FreeFormCertificate\Reregistration\CustomFieldRepository::VALIDATION_FORMATS, true ) ) {
+					if ( in_array( $format, \FreeFormCertificate\Reregistration\CustomFieldReader::VALIDATION_FORMATS, true ) ) {
 						$rules['format'] = $format;
 						if ( 'custom_regex' === $format ) {
 							$rules['custom_regex']         = $field_data['custom_regex'] ?? '';
@@ -544,7 +544,7 @@ final class AudienceAjaxController {
 				// lists (select choices / dependent_select groups). Type, key,
 				// mask, profile_key, etc. stay immutable for standard fields.
 				if ( ! $is_new ) {
-					$existing = \FreeFormCertificate\Reregistration\CustomFieldRepository::get_by_id( (int) $field_id );
+					$existing = \FreeFormCertificate\Reregistration\CustomFieldReader::get_by_id( (int) $field_id );
 					if ( $existing && isset( $existing->field_source ) && 'standard' === $existing->field_source ) {
 						$allowed = array(
 							'field_label',
@@ -569,7 +569,7 @@ final class AudienceAjaxController {
 					// New fields are always marked as custom; standard fields.
 					// are only ever created via the seeder.
 					$data['field_source'] = 'custom';
-					$new_id               = \FreeFormCertificate\Reregistration\CustomFieldRepository::create( $data );
+					$new_id               = \FreeFormCertificate\Reregistration\CustomFieldWriter::create( $data );
 					if ( $new_id ) {
 						$saved_ids[] = $new_id;
 					} else {
@@ -580,7 +580,7 @@ final class AudienceAjaxController {
 						);
 					}
 				} else {
-					$result = \FreeFormCertificate\Reregistration\CustomFieldRepository::update( (int) $field_id, $data );
+					$result = \FreeFormCertificate\Reregistration\CustomFieldWriter::update( (int) $field_id, $data );
 					if ( false !== $result ) {
 						$saved_ids[] = (int) $field_id;
 					} else {
@@ -629,7 +629,7 @@ final class AudienceAjaxController {
 				wp_send_json_error( array( 'message' => __( 'Invalid data.', 'ffcertificate' ) ) );
 			}
 
-			$audience = AudienceRepository::get_by_id( $audience_id );
+			$audience = AudienceReader::get_by_id( $audience_id );
 			if ( ! $audience ) {
 				wp_send_json_error( array( 'message' => __( 'Audience not found.', 'ffcertificate' ) ) );
 			}
@@ -724,7 +724,7 @@ final class AudienceAjaxController {
 				wp_send_json_error( array( 'message' => __( 'Invalid field ID.', 'ffcertificate' ) ) );
 			}
 
-			$field = \FreeFormCertificate\Reregistration\CustomFieldRepository::get_by_id( $field_id );
+			$field = \FreeFormCertificate\Reregistration\CustomFieldReader::get_by_id( $field_id );
 			if ( ! $field ) {
 				wp_send_json_error( array( 'message' => __( 'Field not found.', 'ffcertificate' ) ) );
 			}
@@ -738,7 +738,7 @@ final class AudienceAjaxController {
 				);
 			}
 
-			$result = \FreeFormCertificate\Reregistration\CustomFieldRepository::delete( $field_id );
+			$result = \FreeFormCertificate\Reregistration\CustomFieldWriter::delete( $field_id );
 			if ( ! $result ) {
 				wp_send_json_error( array( 'message' => __( 'Failed to delete field.', 'ffcertificate' ) ) );
 			}

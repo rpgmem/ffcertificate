@@ -71,7 +71,7 @@ class DeviceThresholdUpgradeNotice {
 			</p>
 		</div>
 		<?php
-		$s = \FreeFormCertificate\Core\Utils::asset_suffix();
+		$s = \FreeFormCertificate\Core\AssetHelper::asset_suffix();
 		wp_enqueue_script(
 			'ffc-device-threshold-notice',
 			FFC_PLUGIN_URL . "assets/js/ffc-device-threshold-notice{$s}.js",
@@ -89,7 +89,7 @@ class DeviceThresholdUpgradeNotice {
 		if ( ! current_user_can( 'manage_options' )
 			&& ! (
 				class_exists( '\FreeFormCertificate\Core\Utils' )
-				&& \FreeFormCertificate\Core\Utils::current_user_can_admin_or( 'ffc_manage_settings' )
+				&& \FreeFormCertificate\Core\Capabilities::current_user_can_admin_or( 'ffc_manage_settings' )
 			)
 		) {
 			wp_send_json_error( array( 'message' => 'forbidden' ), 403 );
@@ -112,7 +112,7 @@ class DeviceThresholdUpgradeNotice {
 		$can_manage = current_user_can( 'manage_options' )
 			|| (
 				class_exists( '\FreeFormCertificate\Core\Utils' )
-				&& \FreeFormCertificate\Core\Utils::current_user_can_admin_or( 'ffc_manage_settings' )
+				&& \FreeFormCertificate\Core\Capabilities::current_user_can_admin_or( 'ffc_manage_settings' )
 			);
 		if ( ! $can_manage ) {
 			return false;

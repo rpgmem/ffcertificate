@@ -36,20 +36,6 @@ if ( ! defined( 'ABSPATH' ) ) {
 class FormEditorGeofenceMetabox {
 
 	/**
-	 * Render both sections stacked (back-compat single-metabox entry point).
-	 *
-	 * The live path is the tabbed container, which calls {@see render_time()}
-	 * and {@see render_geolocation()} as separate panels.
-	 *
-	 * @since 3.0.0
-	 * @param WP_Post $post The post object.
-	 */
-	public function render( WP_Post $post ): void {
-		$this->render_time( $post );
-		$this->render_geolocation( $post );
-	}
-
-	/**
 	 * Read the persisted geofence config blob.
 	 *
 	 * @param WP_Post $post The post object.
@@ -350,11 +336,10 @@ class FormEditorGeofenceMetabox {
 		// FFC_IP_Geolocation::lookup, which bails when this flag is
 		// falsy), so allowing the form-level toggle to be flipped on
 		// would silently produce an inert configuration. Read the
-		// `ffc_geolocation_settings` option directly because that's where
-		// the global flag lives — SettingsReader is scoped to
-		// `ffc_settings` and would always return false here.
-		$ffc_geo_settings      = get_option( 'ffc_geolocation_settings', array() );
-		$global_ip_api_enabled = is_array( $ffc_geo_settings ) && ! empty( $ffc_geo_settings['ip_api_enabled'] );
+		// `ffc_geolocation_settings` group via its dedicated reader —
+		// SettingsReader is scoped to `ffc_settings` and would always
+		// return false here.
+		$global_ip_api_enabled = \FreeFormCertificate\Settings\GeolocationSettingsReader::ip_api_enabled();
 
 		$geo_enabled              = ( $config['geo_enabled'] ?? '0' ) === '1' ? '1' : '0';
 		$geo_gps_enabled          = ( $config['geo_gps_enabled'] ?? '0' ) === '1' ? '1' : '0';
@@ -584,7 +569,7 @@ class FormEditorGeofenceMetabox {
 	 * selector-guarded so loading on either section is harmless.
 	 */
 	private function enqueue_metabox_script(): void {
-		$s = \FreeFormCertificate\Core\Utils::asset_suffix();
+		$s = \FreeFormCertificate\Core\AssetHelper::asset_suffix();
 		wp_enqueue_script(
 			'ffc-form-editor-geofence-metabox',
 			FFC_PLUGIN_URL . "assets/js/ffc-form-editor-geofence-metabox{$s}.js",

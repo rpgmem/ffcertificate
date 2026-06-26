@@ -60,7 +60,6 @@ class UserCertificatesRestControllerTest extends TestCase {
 
         // Alias mocks for static-only dependencies
         $utils_mock = Mockery::mock( 'alias:\FreeFormCertificate\Core\Utils' );
-        $utils_mock->shouldReceive( 'get_submissions_table' )->andReturn( 'wp_ffc_submissions' )->byDefault();
         $utils_mock->shouldReceive( 'debug_log' )->byDefault();
 
         // DocumentFormatter::mask_email() (called by the controller) calls is_email()

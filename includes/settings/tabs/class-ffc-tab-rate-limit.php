@@ -172,7 +172,7 @@ class TabRateLimit extends SettingsTab {
 		// max_per_hour / max_per_day / cooldown_seconds / message). Use
 		// array_replace_recursive so missing leaves fall through to the
 		// defaults without losing operator-customised values.
-		$stored = get_option( 'ffc_rate_limit_settings', array() );
+		$stored = get_option( \FreeFormCertificate\Settings\RateLimitSettingsReader::OPTION_KEY, array() );
 		return is_array( $stored ) ? array_replace_recursive( $defaults, $stored ) : $defaults;
 	}
 
@@ -202,7 +202,7 @@ class TabRateLimit extends SettingsTab {
 				'max_per_hour'     => absint( wp_unslash( $_POST['ip_max_per_hour'] ?? 5 ) ),
 				'max_per_day'      => absint( wp_unslash( $_POST['ip_max_per_day'] ?? 20 ) ),
 				'cooldown_seconds' => absint( wp_unslash( $_POST['ip_cooldown_seconds'] ?? 60 ) ),
-				'apply_to'         => \FreeFormCertificate\Core\Utils::get_post_string( 'ip_apply_to', 'all' ),
+				'apply_to'         => \FreeFormCertificate\Core\RequestInput::get_post_string( 'ip_apply_to', 'all' ),
 				'message'          => sanitize_textarea_field( wp_unslash( $_POST['ip_message'] ?? '' ) ),
 			),
 			'email'     => array(
@@ -211,7 +211,7 @@ class TabRateLimit extends SettingsTab {
 				'max_per_week'   => absint( wp_unslash( $_POST['email_max_per_week'] ?? 10 ) ),
 				'max_per_month'  => absint( wp_unslash( $_POST['email_max_per_month'] ?? 30 ) ),
 				'wait_hours'     => absint( wp_unslash( $_POST['email_wait_hours'] ?? 24 ) ),
-				'apply_to'       => \FreeFormCertificate\Core\Utils::get_post_string( 'email_apply_to', 'all' ),
+				'apply_to'       => \FreeFormCertificate\Core\RequestInput::get_post_string( 'email_apply_to', 'all' ),
 				'message'        => sanitize_textarea_field( wp_unslash( $_POST['email_message'] ?? '' ) ),
 				'check_database' => isset( $_POST['email_check_database'] ),
 			),
@@ -222,7 +222,7 @@ class TabRateLimit extends SettingsTab {
 				'block_threshold' => absint( wp_unslash( $_POST['cpf_block_threshold'] ?? 3 ) ),
 				'block_hours'     => absint( wp_unslash( $_POST['cpf_block_hours'] ?? 1 ) ),
 				'block_duration'  => absint( wp_unslash( $_POST['cpf_block_duration'] ?? 24 ) ),
-				'apply_to'        => \FreeFormCertificate\Core\Utils::get_post_string( 'cpf_apply_to', 'all' ),
+				'apply_to'        => \FreeFormCertificate\Core\RequestInput::get_post_string( 'cpf_apply_to', 'all' ),
 				'message'         => sanitize_textarea_field( wp_unslash( $_POST['cpf_message'] ?? '' ) ),
 				'check_database'  => isset( $_POST['cpf_check_database'] ),
 			),

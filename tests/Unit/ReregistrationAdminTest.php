@@ -9,9 +9,11 @@ use Mockery;
 use Mockery\Adapter\Phpunit\MockeryPHPUnitIntegration;
 use PHPUnit\Framework\TestCase;
 use FreeFormCertificate\Reregistration\ReregistrationAdmin;
+use FreeFormCertificate\Reregistration\ReregistrationAdminRenderer;
 
 /**
  * @covers \FreeFormCertificate\Reregistration\ReregistrationAdmin
+ * @covers \FreeFormCertificate\Reregistration\ReregistrationAdminRenderer
  */
 class ReregistrationAdminTest extends TestCase {
 
@@ -23,6 +25,11 @@ class ReregistrationAdminTest extends TestCase {
     protected function setUp(): void {
         parent::setUp();
         Monkey\setUp();
+
+        // Preload the extracted view collaborator so pcov attributes the
+        // coverage this test drives through render_page delegation — pcov does
+        // not record lines for files first autoloaded mid-test-method (#589 E1).
+        class_exists( '\\FreeFormCertificate\\Reregistration\\ReregistrationAdminRenderer' );
 
         Functions\when( '__' )->returnArg();
         Functions\when( 'esc_html__' )->returnArg();
@@ -337,8 +344,9 @@ class ReregistrationAdminTest extends TestCase {
         $_POST['rereg_status']       = 'active';
         $_POST['rereg_audience_ids'] = array( '3', '4' );
 
-        Mockery::mock( 'alias:FreeFormCertificate\Core\Utils' )
-            ->shouldReceive( 'current_user_can_admin_or' )->andReturn( true )
+        Mockery::mock( 'alias:FreeFormCertificate\Core\Capabilities' )
+            ->shouldReceive( 'current_user_can_admin_or' )->andReturn( true );
+        Mockery::mock( 'alias:FreeFormCertificate\Core\RequestInput' )
             ->shouldReceive( 'get_post_string' )->andReturnUsing(
                 function ( $key, $default = '' ) {
                     $map = array(
@@ -355,7 +363,7 @@ class ReregistrationAdminTest extends TestCase {
             ->shouldReceive( 'create' )->once()->andReturn( 55 )
             ->shouldReceive( 'set_audience_ids' )->once()->with( 55, array( 3, 4 ) );
 
-        Mockery::mock( 'alias:FreeFormCertificate\Reregistration\ReregistrationSubmissionRepository' )
+        Mockery::mock( 'alias:FreeFormCertificate\Reregistration\ReregistrationSubmissionWriter' )
             ->shouldReceive( 'create_for_audience_members' )->once()->with( 55, array( 3, 4 ) );
 
         Mockery::mock( 'alias:FreeFormCertificate\Reregistration\ReregistrationEmailHandler' )
@@ -378,8 +386,9 @@ class ReregistrationAdminTest extends TestCase {
         $_POST['ffc_action']        = 'save_reregistration';
         $_POST['reregistration_id'] = 9;
 
-        Mockery::mock( 'alias:FreeFormCertificate\Core\Utils' )
-            ->shouldReceive( 'current_user_can_admin_or' )->andReturn( true )
+        Mockery::mock( 'alias:FreeFormCertificate\Core\Capabilities' )
+            ->shouldReceive( 'current_user_can_admin_or' )->andReturn( true );
+        Mockery::mock( 'alias:FreeFormCertificate\Core\RequestInput' )
             ->shouldReceive( 'get_post_string' )->andReturnUsing(
                 function ( $key, $default = '' ) {
                     $map = array(
@@ -418,7 +427,7 @@ class ReregistrationAdminTest extends TestCase {
     public function test_handle_save_returns_early_on_bad_nonce(): void {
         $_POST['ffc_action'] = 'save_reregistration';
         Functions\when( 'wp_verify_nonce' )->justReturn( false );
-        Mockery::mock( 'alias:FreeFormCertificate\Core\Utils' )
+        Mockery::mock( 'alias:FreeFormCertificate\Core\RequestInput' )
             ->shouldReceive( 'get_post_string' )->andReturn( '' );
 
         $admin = new ReregistrationAdmin();
@@ -442,7 +451,7 @@ class ReregistrationAdminTest extends TestCase {
         $_GET['id']     = '5';
         Functions\when( 'wp_die' )->alias( fn( $msg ) => throw new \RuntimeException( $msg ) );
 
-        Mockery::mock( 'alias:FreeFormCertificate\Core\Utils' )
+        Mockery::mock( 'alias:FreeFormCertificate\Core\Capabilities' )
             ->shouldReceive( 'current_user_can_admin_or' )->with( 'ffc_delete_reregistration' )->andReturn( false );
 
         $admin = new ReregistrationAdmin();
@@ -462,8 +471,9 @@ class ReregistrationAdminTest extends TestCase {
         Functions\when( 'wp_verify_nonce' )->justReturn( true );
         Functions\when( 'wp_safe_redirect' )->alias( fn() => throw new \RuntimeException( 'redirected' ) );
 
-        Mockery::mock( 'alias:FreeFormCertificate\Core\Utils' )
-            ->shouldReceive( 'current_user_can_admin_or' )->andReturn( true )
+        Mockery::mock( 'alias:FreeFormCertificate\Core\Capabilities' )
+            ->shouldReceive( 'current_user_can_admin_or' )->andReturn( true );
+        Mockery::mock( 'alias:FreeFormCertificate\Core\RequestInput' )
             ->shouldReceive( 'get_get_string' )->andReturn( 'good' );
 
         Mockery::mock( 'alias:FreeFormCertificate\Reregistration\ReregistrationRepository' )
@@ -485,8 +495,9 @@ class ReregistrationAdminTest extends TestCase {
         $_GET['_wpnonce'] = 'bad';
         Functions\when( 'wp_verify_nonce' )->justReturn( false );
 
-        Mockery::mock( 'alias:FreeFormCertificate\Core\Utils' )
-            ->shouldReceive( 'current_user_can_admin_or' )->andReturn( true )
+        Mockery::mock( 'alias:FreeFormCertificate\Core\Capabilities' )
+            ->shouldReceive( 'current_user_can_admin_or' )->andReturn( true );
+        Mockery::mock( 'alias:FreeFormCertificate\Core\RequestInput' )
             ->shouldReceive( 'get_get_string' )->andReturn( 'bad' );
 
         Mockery::mock( 'alias:FreeFormCertificate\Reregistration\ReregistrationRepository' )
@@ -495,5 +506,92 @@ class ReregistrationAdminTest extends TestCase {
         $admin = new ReregistrationAdmin();
         $this->invoke_private( $admin, 'handle_delete' );
         $this->assertTrue( true );
+    }
+
+    // ==================================================================
+    // ReregistrationAdminRenderer — view layer (extracted #589 E1)
+    // ==================================================================
+
+    public function test_renderer_audience_options_emits_hierarchical_options(): void {
+        Functions\when( 'selected' )->justReturn( '' );
+
+        $audiences = array(
+            (object) array(
+                'id'       => 1,
+                'name'     => 'Parent A',
+                'children' => array(
+                    (object) array( 'id' => 2, 'name' => 'Child A1' ),
+                ),
+            ),
+            (object) array( 'id' => 3, 'name' => 'Parent B', 'children' => array() ),
+        );
+
+        ob_start();
+        ReregistrationAdminRenderer::render_audience_options( $audiences, 2 );
+        $html = (string) ob_get_clean();
+
+        $this->assertStringContainsString( 'Parent A', $html );
+        $this->assertStringContainsString( '&mdash; Child A1', $html );
+        $this->assertStringContainsString( 'Parent B', $html );
+    }
+
+    public function test_renderer_audience_transfer_list_outputs_data_attributes(): void {
+        Functions\when( 'esc_attr_e' )->alias( function ( $text ) { echo $text; } );
+        Functions\when( 'wp_json_encode' )->alias( function ( $value ) { return json_encode( $value ); } );
+
+        $audiences = array(
+            (object) array(
+                'id'       => 1,
+                'name'     => 'Parent A',
+                'color'    => '#abc',
+                'children' => array(
+                    (object) array( 'id' => 2, 'name' => 'Child A1', 'color' => '#def' ),
+                ),
+            ),
+        );
+
+        ob_start();
+        ReregistrationAdminRenderer::render_audience_transfer_list( $audiences, array( 2 ) );
+        $html = (string) ob_get_clean();
+
+        $this->assertStringContainsString( 'ffc-transfer-list', $html );
+        $this->assertStringContainsString( 'data-audiences', $html );
+        $this->assertStringContainsString( 'data-selected', $html );
+    }
+
+    /**
+     * @runInSeparateProcess
+     * @preserveGlobalState disabled
+     */
+    public function test_renderer_list_row_renders_campaign_row(): void {
+        Functions\when( 'wp_nonce_url' )->returnArg();
+        Functions\when( 'esc_url' )->returnArg();
+
+        Mockery::mock( 'alias:FreeFormCertificate\Core\DateFormatter' )
+            ->shouldReceive( 'format_date' )->andReturn( '2026-01-01' );
+
+        Mockery::mock( 'alias:FreeFormCertificate\Reregistration\ReregistrationRepository' )
+            ->shouldReceive( 'get_status_label' )->andReturn( 'Active' )
+            ->shouldReceive( 'get_audiences' )->andReturn( array() );
+
+        Mockery::mock( 'alias:FreeFormCertificate\Reregistration\ReregistrationSubmissionReader' )
+            ->shouldReceive( 'get_statistics' )->andReturn( array( 'approved' => 2, 'total' => 5 ) );
+
+        $item = (object) array(
+            'id'           => 7,
+            'title'        => 'My Campaign',
+            'status'       => 'active',
+            'start_date'   => '2026-01-01 00:00:00',
+            'end_date'     => '2026-12-31 00:00:00',
+            'auto_approve' => 1,
+        );
+
+        ob_start();
+        ReregistrationAdminRenderer::render_list_row( 'ffc-reregistration', $item, true );
+        $html = (string) ob_get_clean();
+
+        $this->assertStringContainsString( 'My Campaign', $html );
+        $this->assertStringContainsString( 'column-actions', $html );
+        $this->assertStringContainsString( 'delete-link', $html );
     }
 }

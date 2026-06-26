@@ -3,6 +3,8 @@ declare(strict_types=1);
 
 namespace FreeFormCertificate\Tests\Unit;
 
+use FreeFormCertificate\Core\RequestInput;
+
 use Brain\Monkey;
 use Brain\Monkey\Functions;
 use Mockery;
@@ -238,7 +240,7 @@ class TabRateLimitTest extends TestCase {
         Functions\when( 'sanitize_text_field' )->returnArg();
         Functions\when( 'sanitize_textarea_field' )->returnArg();
         Functions\when( 'sanitize_key' )->alias( fn ( $v ) => strtolower( (string) $v ) );
-        // Utils::get_post_string (Core namespace) uses these unqualified.
+        // RequestInput::get_post_string (Core namespace) uses these unqualified.
         // Plain stable passthroughs (NOT Brain\Monkey stubs) so they survive
         // tearDown without leaving a torn-down expectation that could poison a
         // later same-process test.

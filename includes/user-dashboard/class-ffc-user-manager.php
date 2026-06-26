@@ -31,20 +31,6 @@ class UserManager {
 	use \FreeFormCertificate\Core\DatabaseHelperTrait;
 
 	// =====================================================================.
-	// Backward-compatible constant aliases → CapabilityManager.
-	// =====================================================================.
-
-	public const CONTEXT_CERTIFICATE = CapabilityManager::CONTEXT_CERTIFICATE;
-	public const CONTEXT_APPOINTMENT = CapabilityManager::CONTEXT_APPOINTMENT;
-	public const CONTEXT_AUDIENCE    = CapabilityManager::CONTEXT_AUDIENCE;
-
-	public const CERTIFICATE_CAPABILITIES = CapabilityManager::CERTIFICATE_CAPABILITIES;
-	public const APPOINTMENT_CAPABILITIES = CapabilityManager::APPOINTMENT_CAPABILITIES;
-	public const AUDIENCE_CAPABILITIES    = CapabilityManager::AUDIENCE_CAPABILITIES;
-	public const ADMIN_CAPABILITIES       = CapabilityManager::ADMIN_CAPABILITIES;
-	public const FUTURE_CAPABILITIES      = CapabilityManager::FUTURE_CAPABILITIES;
-
-	// =====================================================================.
 	// Backward-compatible delegation → UserCreator.
 	// =====================================================================.
 
@@ -59,7 +45,7 @@ class UserManager {
 	 * @param string               $identifier_type Identifier type.
 	 * @return int|\WP_Error User ID on success, WP_Error on failure
 	 */
-	public static function get_or_create_user( string $cpf_rf_hash, string $email, array $submission_data = array(), string $context = self::CONTEXT_CERTIFICATE, string $identifier_type = UserCreator::TYPE_AUTO ) {
+	public static function get_or_create_user( string $cpf_rf_hash, string $email, array $submission_data = array(), string $context = CapabilityManager::CONTEXT_CERTIFICATE, string $identifier_type = UserCreator::TYPE_AUTO ) {
 		return UserCreator::get_or_create_user( $cpf_rf_hash, $email, $submission_data, $context, $identifier_type );
 	}
 
@@ -73,7 +59,7 @@ class UserManager {
 	 * @param string               $context         Context.
 	 * @return int|\WP_Error User ID on success, WP_Error on failure.
 	 */
-	public static function get_or_create_user_dual( ?string $cpf_hash, ?string $rf_hash, string $email, array $submission_data = array(), string $context = self::CONTEXT_CERTIFICATE ) {
+	public static function get_or_create_user_dual( ?string $cpf_hash, ?string $rf_hash, string $email, array $submission_data = array(), string $context = CapabilityManager::CONTEXT_CERTIFICATE ) {
 		return UserCreator::get_or_create_user_dual( $cpf_hash, $rf_hash, $email, $submission_data, $context );
 	}
 
@@ -86,181 +72,6 @@ class UserManager {
 	 */
 	public static function generate_username( string $email, array $submission_data = array() ): string {
 		return UserCreator::generate_username( $email, $submission_data );
-	}
-
-	// =====================================================================.
-	// Backward-compatible delegation → CapabilityManager.
-	// =====================================================================.
-
-	/**
-	 * Get all FFC capabilities.
-	 *
-	 * @see CapabilityManager::get_all_capabilities()
-	 * @return array<int, string>
-	 */
-	public static function get_all_capabilities(): array {
-		return CapabilityManager::get_all_capabilities();
-	}
-
-	/**
-	 * Register role.
-	 *
-	 * @see CapabilityManager::register_role()
-	 */
-	public static function register_role(): void {
-		CapabilityManager::register_role();
-	}
-
-	/**
-	 * Remove role.
-	 *
-	 * @see CapabilityManager::remove_role()
-	 */
-	public static function remove_role(): void {
-		CapabilityManager::remove_role();
-	}
-
-	/**
-	 * Grant certificate capabilities.
-	 *
-	 * @see CapabilityManager::grant_certificate_capabilities()
-	 * @param int $user_id User ID.
-	 */
-	public static function grant_certificate_capabilities( int $user_id ): void {
-		CapabilityManager::grant_certificate_capabilities( $user_id );
-	}
-
-	/**
-	 * Grant appointment capabilities.
-	 *
-	 * @see CapabilityManager::grant_appointment_capabilities()
-	 * @param int $user_id User ID.
-	 */
-	public static function grant_appointment_capabilities( int $user_id ): void {
-		CapabilityManager::grant_appointment_capabilities( $user_id );
-	}
-
-	/**
-	 * Grant audience capabilities.
-	 *
-	 * @see CapabilityManager::grant_audience_capabilities()
-	 * @param int $user_id User ID.
-	 */
-	public static function grant_audience_capabilities( int $user_id ): void {
-		CapabilityManager::grant_audience_capabilities( $user_id );
-	}
-
-	/**
-	 * Check if has certificate access.
-	 *
-	 * @see CapabilityManager::has_certificate_access()
-	 * @param int $user_id User ID.
-	 */
-	public static function has_certificate_access( int $user_id ): bool {
-		return CapabilityManager::has_certificate_access( $user_id );
-	}
-
-	/**
-	 * Check if has appointment access.
-	 *
-	 * @see CapabilityManager::has_appointment_access()
-	 * @param int $user_id User ID.
-	 */
-	public static function has_appointment_access( int $user_id ): bool {
-		return CapabilityManager::has_appointment_access( $user_id );
-	}
-
-	/**
-	 * Get FFC capabilities assigned to a specific user.
-	 *
-	 * Get user ffc capabilities.
-	 *
-	 * Get user ffc capabilities.
-	 *
-	 * Get user ffc capabilities.
-	 *
-	 * Get user ffc capabilities.
-	 *
-	 * Get user ffc capabilities.
-	 *
-	 * Get user ffc capabilities.
-	 *
-	 * Get user ffc capabilities.
-	 *
-	 * Get user ffc capabilities.
-	 *
-	 * Get user ffc capabilities.
-	 *
-	 * Get user ffc capabilities.
-	 *
-	 * Get user ffc capabilities.
-	 *
-	 * Get user ffc capabilities.
-	 *
-	 * Get user ffc capabilities.
-	 *
-	 * Get user ffc capabilities.
-	 *
-	 * Get user ffc capabilities.
-	 *
-	 * Get user ffc capabilities.
-	 *
-	 * Get user ffc capabilities.
-	 *
-	 * Get user ffc capabilities.
-	 *
-	 * Get user ffc capabilities.
-	 *
-	 * Get user ffc capabilities.
-	 *
-	 * Get user ffc capabilities.
-	 *
-	 * Get user ffc capabilities.
-	 *
-	 * Get user ffc capabilities.
-	 *
-	 * Get user ffc capabilities.
-	 *
-	 * Get user ffc capabilities.
-	 *
-	 * Get user ffc capabilities.
-	 *
-	 * Get user ffc capabilities.
-	 *
-	 * Get user ffc capabilities.
-	 *
-	 * Get user ffc capabilities.
-	 *
-	 * Get user ffc capabilities.
-	 *
-	 * Get user ffc capabilities.
-	 *
-	 * Get user ffc capabilities.
-	 *
-	 * Get user ffc capabilities.
-	 *
-	 * Get user ffc capabilities.
-	 *
-	 * Get user ffc capabilities.
-	 *
-	 * @see CapabilityManager::get_user_ffc_capabilities()
-	 * @param int $user_id User ID.
-	 * @return array<string, bool>
-	 */
-	public static function get_user_ffc_capabilities( int $user_id ): array {
-		return CapabilityManager::get_user_ffc_capabilities( $user_id );
-	}
-
-	/**
-	 * Set user capability.
-	 *
-	 * @see CapabilityManager::set_user_capability()
-	 * @param int    $user_id User ID.
-	 * @param string $capability Capability.
-	 * @param bool   $grant Grant.
-	 */
-	public static function set_user_capability( int $user_id, string $capability, bool $grant ): bool {
-		return CapabilityManager::set_user_capability( $user_id, $capability, $grant );
 	}
 
 	// =====================================================================.
@@ -518,7 +329,7 @@ class UserManager {
 	 */
 	public static function get_user_names( int $user_id ): array {
 		global $wpdb;
-		$table = \FreeFormCertificate\Core\Utils::get_submissions_table();
+		$table = \FreeFormCertificate\Repositories\SubmissionRepository::get_submissions_table();
 
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		$submissions = $wpdb->get_col(

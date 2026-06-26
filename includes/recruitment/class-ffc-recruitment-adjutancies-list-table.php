@@ -27,7 +27,7 @@ if ( ! class_exists( '\WP_List_Table' ) ) {
 /**
  * Adjutancies list table.
  *
- * @phpstan-import-type AdjutancyRow from RecruitmentAdjutancyRepository
+ * @phpstan-import-type AdjutancyRow from RecruitmentAdjutancyReader
  */
 class RecruitmentAdjutanciesListTable extends \WP_List_Table {
 
@@ -171,7 +171,7 @@ class RecruitmentAdjutanciesListTable extends \WP_List_Table {
 	 */
 	protected function column_color( $item ): string {
 		$id    = (int) $item['id'];
-		$color = (string) ( $item['color'] ?? RecruitmentAdjutancyRepository::DEFAULT_COLOR );
+		$color = (string) ( $item['color'] ?? RecruitmentAdjutancyReader::DEFAULT_COLOR );
 		return sprintf(
 			'<input type="color" value="%s" data-ffc-color-endpoint="adjutancies" data-ffc-entity-id="%d" class="ffc-adjutancy-color-picker" aria-label="%s"> <code class="ffc-adjutancy-color-hex" data-ffc-color-hex>%s</code>',
 			esc_attr( $color ),
@@ -228,7 +228,7 @@ class RecruitmentAdjutanciesListTable extends \WP_List_Table {
 
 		$this->process_bulk_action();
 
-		$rows = self::convert_rows( RecruitmentAdjutancyRepository::get_all() );
+		$rows = self::convert_rows( RecruitmentAdjutancyReader::get_all() );
 
 		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- read-only filter.
 		$search = isset( $_REQUEST['s'] ) ? sanitize_text_field( wp_unslash( (string) $_REQUEST['s'] ) ) : '';
@@ -279,7 +279,7 @@ class RecruitmentAdjutanciesListTable extends \WP_List_Table {
 
 		// Bulk delete is gated by the dedicated destructive cap (GAP E), not the
 		// page-level manage cap that merely renders the table.
-		if ( ! \FreeFormCertificate\Core\Utils::current_user_can_admin_or( 'ffc_delete_recruitment' ) ) {
+		if ( ! \FreeFormCertificate\Core\Capabilities::current_user_can_admin_or( 'ffc_delete_recruitment' ) ) {
 			return;
 		}
 
@@ -313,7 +313,7 @@ class RecruitmentAdjutanciesListTable extends \WP_List_Table {
 					'id'         => (int) $row->id,
 					'slug'       => (string) $row->slug,
 					'name'       => (string) $row->name,
-					'color'      => isset( $row->color ) ? (string) $row->color : RecruitmentAdjutancyRepository::DEFAULT_COLOR,
+					'color'      => isset( $row->color ) ? (string) $row->color : RecruitmentAdjutancyReader::DEFAULT_COLOR,
 					'created_at' => (string) $row->created_at,
 				);
 			},

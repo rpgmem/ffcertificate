@@ -38,7 +38,26 @@ class FormEditorSaveHandler {
 	 * pushes the requirement upstream so operators author a meaningful
 	 * message instead of relying on the generic fallback. Tune here.
 	 */
-	public const GEOFENCE_MESSAGE_MIN_LENGTH = 25;
+	public const GEOFENCE_MESSAGE_MIN_LENGTH = FormEditorSaveValidator::GEOFENCE_MESSAGE_MIN_LENGTH;
+
+	/**
+	 * Validation cluster (pure helpers extracted in #591 phase-3).
+	 *
+	 * @var FormEditorSaveValidator|null
+	 */
+	private ?FormEditorSaveValidator $validator = null;
+
+	/**
+	 * Lazily resolve the validation helper.
+	 *
+	 * @return FormEditorSaveValidator
+	 */
+	private function validator(): FormEditorSaveValidator {
+		if ( null === $this->validator ) {
+			$this->validator = new FormEditorSaveValidator();
+		}
+		return $this->validator;
+	}
 
 	/**
 	 * Saves all form data and configurations
@@ -49,36 +68,65 @@ class FormEditorSaveHandler {
 		if ( defined( 'DOING_AUTOSAVE' ) && DOING_AUTOSAVE ) {
 			return;
 		}
-		if ( ! wp_verify_nonce( \FreeFormCertificate\Core\Utils::get_post_string( 'ffc_form_nonce' ), 'ffc_save_form_data' ) ) {
+		if ( ! wp_verify_nonce( \FreeFormCertificate\Core\RequestInput::get_post_string( 'ffc_form_nonce' ), 'ffc_save_form_data' ) ) {
 			return;
 		}
 		if ( ! current_user_can( 'edit_post', $post_id ) ) {
 			return;
 		}
 
-		// Reset the public-operator one-shot guards.
-		//
-		// Both `ExtendEndAction` and `EarlyOpenAction` persist a pair
-		// of metas the first time their respective action fires:
-		// - `META_POSTPONED_AT` / `META_POSTPONED_FROM` (extend end)
-		// - `META_OPENED_AT`    / `META_OPENED_FROM`    (early open)
-		// — after which `is_eligible()` returns `already_postponed` /
-		// `already_opened` and the frontend button disappears.
-		//
-		// An admin edit of the form is the natural cycle boundary —
-		// whatever the admin is now configuring supersedes the prior
-		// operator state, so we wipe both pairs and let the operator
-		// postpone / advance again within the new window.
+		$this->reset_operator_one_shot_meta( $post_id );
+
+		// 1. Save Form Fields.
+		$this->save_fields_meta( $post_id );
+
+		// 2. Save Configurations.
+		$this->save_config_meta( $post_id );
+
+		// 3. Save Geofence Configuration.
+		$this->save_geofence_meta( $post_id );
+
+		// 4. Save Public CSV Download configuration.
+		$this->save_csv_public_meta( $post_id );
+
+		// 5. Save Device Fingerprint Limit override.
+		$this->save_device_limit_meta( $post_id );
+	}
+
+	/**
+	 * Reset the public-operator one-shot guards.
+	 *
+	 * Both `ExtendEndAction` and `EarlyOpenAction` persist a pair
+	 * of metas the first time their respective action fires:
+	 * - `META_POSTPONED_AT` / `META_POSTPONED_FROM` (extend end)
+	 * - `META_OPENED_AT`    / `META_OPENED_FROM`    (early open)
+	 * — after which `is_eligible()` returns `already_postponed` /
+	 * `already_opened` and the frontend button disappears.
+	 *
+	 * An admin edit of the form is the natural cycle boundary —
+	 * whatever the admin is now configuring supersedes the prior
+	 * operator state, so we wipe both pairs and let the operator
+	 * postpone / advance again within the new window.
+	 *
+	 * @param int $post_id The post ID.
+	 */
+	private function reset_operator_one_shot_meta( int $post_id ): void {
 		delete_post_meta( $post_id, \FreeFormCertificate\Frontend\ExtendEndAction::META_POSTPONED_AT );
 		delete_post_meta( $post_id, \FreeFormCertificate\Frontend\ExtendEndAction::META_POSTPONED_FROM );
 		delete_post_meta( $post_id, \FreeFormCertificate\Frontend\EarlyOpenAction::META_OPENED_AT );
 		delete_post_meta( $post_id, \FreeFormCertificate\Frontend\EarlyOpenAction::META_OPENED_FROM );
+	}
 
-		// 1. Save Form Fields.
-        // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized, WordPress.Security.ValidatedSanitizedInput.MissingUnslash -- isset()/is_array() existence and type checks only.
+	/**
+	 * Persist the form-fields meta (`_ffc_form_fields`).
+	 *
+	 * @param int $post_id The post ID.
+	 */
+	private function save_fields_meta( int $post_id ): void {
+        // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized, WordPress.Security.ValidatedSanitizedInput.MissingUnslash, WordPress.Security.NonceVerification.Missing -- isset()/is_array() existence and type checks only; nonce verified in save_form_data() before dispatch.
 		if ( isset( $_POST['ffc_fields'] ) && is_array( $_POST['ffc_fields'] ) ) {
 			$clean_fields = array();
-            // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Each field sanitized individually below.
+            // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized, WordPress.Security.NonceVerification.Missing -- Each field sanitized individually below; nonce verified in save_form_data() before dispatch.
 			foreach ( wp_unslash( $_POST['ffc_fields'] ) as $index => $field ) {
 				if ( 'TEMPLATE' === $index || ( empty( $field['label'] ) && empty( $field['name'] ) && empty( $field['content'] ) && empty( $field['embed_url'] ) ) ) {
 					continue;
@@ -99,13 +147,19 @@ class FormEditorSaveHandler {
 		} else {
 			update_post_meta( $post_id, '_ffc_form_fields', array() );
 		}
+	}
 
-		// 2. Save Configurations.
-        // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized, WordPress.Security.ValidatedSanitizedInput.MissingUnslash -- isset() existence check only.
+	/**
+	 * Persist the form configuration meta (`_ffc_form_config`).
+	 *
+	 * @param int $post_id The post ID.
+	 */
+	private function save_config_meta( int $post_id ): void {
+        // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized, WordPress.Security.ValidatedSanitizedInput.MissingUnslash, WordPress.Security.NonceVerification.Missing -- isset() existence check only; nonce verified in save_form_data() before dispatch.
 		if ( isset( $_POST['ffc_config'] ) ) {
-            // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Each field sanitized individually below.
+            // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized, WordPress.Security.NonceVerification.Missing -- Each field sanitized individually below; nonce verified in save_form_data() before dispatch.
 			$config       = wp_unslash( $_POST['ffc_config'] );
-			$allowed_html = \FreeFormCertificate\Core\Utils::get_allowed_html_tags();
+			$allowed_html = \FreeFormCertificate\Core\HtmlPolicy::get_allowed_html_tags();
 
 			// Form essentials — not gated by any toggle.
 			$clean_config               = array();
@@ -169,7 +223,7 @@ class FormEditorSaveHandler {
 			// missing any tag from the configurable required list. The
 			// editor also blocks the submit client-side; this catches the
 			// JS-disabled case. Non-blocking — the post still saves.
-			$missing_tags = $this->missing_required_tags( $clean_config['pdf_layout'], $post_id );
+			$missing_tags = $this->validator()->missing_required_tags( $clean_config['pdf_layout'], $post_id );
 			if ( ! empty( $missing_tags ) ) {
 				set_transient( 'ffc_save_error_' . get_current_user_id(), $missing_tags, 45 );
 			}
@@ -181,11 +235,17 @@ class FormEditorSaveHandler {
 
 			update_post_meta( $post_id, '_ffc_form_config', array_merge( $current_config, $clean_config ) );
 		}
+	}
 
-		// 3. Save Geofence Configuration.
-        // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized, WordPress.Security.ValidatedSanitizedInput.MissingUnslash -- isset() existence check only.
+	/**
+	 * Persist the geofence configuration meta (`_ffc_geofence_config`).
+	 *
+	 * @param int $post_id The post ID.
+	 */
+	private function save_geofence_meta( int $post_id ): void {
+        // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized, WordPress.Security.ValidatedSanitizedInput.MissingUnslash, WordPress.Security.NonceVerification.Missing -- isset() existence check only; nonce verified in save_form_data() before dispatch.
 		if ( isset( $_POST['ffc_geofence'] ) ) {
-            // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Each field sanitized individually below.
+            // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized, WordPress.Security.NonceVerification.Missing -- Each field sanitized individually below; nonce verified in save_form_data() before dispatch.
 			$geofence = wp_unslash( $_POST['ffc_geofence'] );
 
 			// Skip-on-off per master toggle (Sprint 2 / #238). Each
@@ -286,12 +346,12 @@ class FormEditorSaveHandler {
 			}
 			$merged_geofence = array_merge( $current_geofence, $clean_geofence );
 
-			$validation_errors = $this->validate_geofence_config( $merged_geofence );
+			$validation_errors = $this->validator()->validate_geofence_config( $merged_geofence );
 			if ( ! empty( $validation_errors ) ) {
 				set_transient( 'ffc_geofence_error_' . get_current_user_id(), $validation_errors, 45 );
 				// Route each error category to its tab so the tab script can
 				// open the offending one (datetime → Time, area → Geolocation).
-				set_transient( 'ffc_geofence_error_tabs_' . get_current_user_id(), $this->geofence_error_tab_keys( $merged_geofence, $validation_errors ), 45 );
+				set_transient( 'ffc_geofence_error_tabs_' . get_current_user_id(), $this->validator()->geofence_error_tab_keys( $merged_geofence, $validation_errors ), 45 );
 			} else {
 				update_post_meta( $post_id, '_ffc_geofence_config', $merged_geofence );
 				// Public visibility of date_start/date_end (the form's
@@ -309,11 +369,17 @@ class FormEditorSaveHandler {
 				\FreeFormCertificate\Submissions\FormCache::purge_all_pages( $post_id, 'geofence_changed' );
 			}
 		}
+	}
 
-		// 4. Save Public CSV Download configuration.
-        // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized, WordPress.Security.ValidatedSanitizedInput.MissingUnslash -- isset() existence check; values sanitized below.
+	/**
+	 * Persist the Public CSV Download configuration metas.
+	 *
+	 * @param int $post_id The post ID.
+	 */
+	private function save_csv_public_meta( int $post_id ): void {
+        // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized, WordPress.Security.ValidatedSanitizedInput.MissingUnslash, WordPress.Security.NonceVerification.Missing -- isset() existence check; values sanitized below; nonce verified in save_form_data() before dispatch.
 		if ( isset( $_POST['ffc_csv_public'] ) && is_array( $_POST['ffc_csv_public'] ) ) {
-            // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Each key sanitized individually.
+            // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized, WordPress.Security.NonceVerification.Missing -- Each key sanitized individually; nonce verified in save_form_data() before dispatch.
 			$public_raw = wp_unslash( $_POST['ffc_csv_public'] );
 
 			$previous_enabled = (string) get_post_meta( $post_id, '_ffc_csv_public_enabled', true );
@@ -429,11 +495,17 @@ class FormEditorSaveHandler {
 				}
 			}
 		}
+	}
 
-		// 5. Save Device Fingerprint Limit override.
-        // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized, WordPress.Security.ValidatedSanitizedInput.MissingUnslash -- isset() existence check; values sanitized below.
+	/**
+	 * Persist the Device Fingerprint Limit override metas.
+	 *
+	 * @param int $post_id The post ID.
+	 */
+	private function save_device_limit_meta( int $post_id ): void {
+        // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized, WordPress.Security.ValidatedSanitizedInput.MissingUnslash, WordPress.Security.NonceVerification.Missing -- isset() existence check; values sanitized below; nonce verified in save_form_data() before dispatch.
 		if ( isset( $_POST['ffc_device_limit'] ) && is_array( $_POST['ffc_device_limit'] ) ) {
-            // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Each key sanitized individually.
+            // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized, WordPress.Security.NonceVerification.Missing -- Each key sanitized individually; nonce verified in save_form_data() before dispatch.
 			$device_raw = wp_unslash( $_POST['ffc_device_limit'] );
 
 			$device_enabled = ! empty( $device_raw['enabled'] ) ? '1' : '0';
@@ -520,301 +592,6 @@ class FormEditorSaveHandler {
 			'class_time_end'             => ! empty( $geofence['class_time_end'] ) ? sanitize_text_field( (string) $geofence['class_time_end'] ) : '',
 			'schedule_default_mode'      => $mode,
 		);
-	}
-
-	/**
-	 * Required certificate tags absent from a PDF layout.
-	 *
-	 * Reads the configurable required-tag list (Settings → Advanced) via
-	 * {@see SettingsReader::required_certificate_tags()} and honours the
-	 * historical `{{name}}`/`{{nome}}` alias — a layout using either token
-	 * satisfies a `{{name}}` requirement.
-	 *
-	 * `{{schedule}}` is dynamically added to the required list for this
-	 * save when the form has an Event Schedule configured (geofence
-	 * `class_time_start` or `class_time_end` non-empty). PdfGenerator
-	 * resolves `{{schedule}}` from that field, so a layout that omits
-	 * the placeholder would silently drop the operator-configured event
-	 * schedule.
-	 *
-	 * @param string $layout  PDF layout HTML.
-	 * @param int    $post_id Form post ID — used to read the per-form
-	 *                        geofence config and decide whether
-	 *                        `{{schedule}}` is mandatory for this save.
-	 * @return array<int, string> Missing `{{tag}}` tokens, in required order.
-	 */
-	private function missing_required_tags( string $layout, int $post_id ): array {
-		$required = \FreeFormCertificate\Settings\SettingsReader::required_certificate_tags();
-
-		// Per-form gate: when Event Schedule is configured, the layout
-		// MUST consume {{schedule}} or the operator's configured time
-		// silently disappears from the rendered certificate.
-		$geofence = get_post_meta( $post_id, '_ffc_geofence_config', true );
-		if ( is_array( $geofence )
-			&& ( ! empty( $geofence['class_time_start'] ) || ! empty( $geofence['class_time_end'] ) )
-			&& ! in_array( '{{schedule}}', $required, true )
-		) {
-			$required[] = '{{schedule}}';
-		}
-
-		$missing = array();
-		foreach ( $required as $tag ) {
-			$accepted = array( $tag );
-			if ( '{{name}}' === $tag ) {
-				$accepted[] = '{{nome}}';
-			}
-			$found = false;
-			foreach ( $accepted as $candidate ) {
-				if ( false !== strpos( $layout, $candidate ) ) {
-					$found = true;
-					break;
-				}
-			}
-			if ( ! $found ) {
-				$missing[] = $tag;
-			}
-		}
-		return $missing;
-	}
-
-	/**
-	 * Validate geofence configuration.
-	 *
-	 * @param array<string, mixed> $config Geofence config.
-	 * @return array<int, string> Validation error messages.
-	 */
-	private function validate_geofence_config( array $config ): array {
-		$errors = array();
-
-		$gps_source = $config['geo_area_source'] ?? 'custom';
-		$ip_source  = $config['geo_ip_area_source'] ?? 'custom';
-
-		// Defensive defaults — sub-options can be missing from $config when
-		// the master toggle is off and skip-on-off semantics (Sprint 2 /
-		// #238) preserved the prior values without re-emitting them here.
-		$gps_enabled   = $config['geo_gps_enabled'] ?? '0';
-		$ip_enabled    = $config['geo_ip_enabled'] ?? '0';
-		$ip_permissive = $config['geo_ip_areas_permissive'] ?? '0';
-		$geo_areas     = (string) ( $config['geo_areas'] ?? '' );
-		$geo_ip_areas  = (string) ( $config['geo_ip_areas'] ?? '' );
-
-		// Check if GPS is enabled but areas/locations are empty.
-		if ( '1' === $gps_enabled ) {
-			if ( 'locations' === $gps_source ) {
-				if ( empty( $config['geo_area_location_ids'] ) ) {
-					$errors[] = __( 'GPS Geolocation is enabled but no locations are selected.', 'ffcertificate' );
-				}
-			} elseif ( '' === trim( $geo_areas ) ) {
-				$errors[] = __( 'GPS Geolocation is enabled but no allowed areas are defined.', 'ffcertificate' );
-			}
-		}
-
-		// Check if IP is enabled with independent areas but areas/locations are empty.
-		if ( '1' === $ip_enabled && '1' === $ip_permissive ) {
-			if ( 'locations' === $ip_source ) {
-				if ( empty( $config['geo_ip_area_location_ids'] ) ) {
-					$errors[] = __( 'IP Geolocation is enabled with independent areas but no locations are selected.', 'ffcertificate' );
-				}
-			} elseif ( '' === trim( $geo_ip_areas ) ) {
-				$errors[] = __( 'IP Geolocation is enabled with independent areas but no IP areas are defined.', 'ffcertificate' );
-			}
-		}
-
-		// Validate datetime order (#159 S2). Date/time order checks live in
-		// `Geofence::analyze_datetime_order()` so the metabox renderer can
-		// reuse the same map to paint `ffc-input-invalid` on the offending
-		// inputs without duplicating the rules.
-		$datetime_errors = \FreeFormCertificate\Security\Geofence::analyze_datetime_order( $config );
-		if ( ! empty( $datetime_errors ) ) {
-			// Dedupe — the helper repeats the same message across paired
-			// fields (e.g. both `date_start` and `date_end`); the operator
-			// only needs to see each rule once in the admin notice.
-			$errors = array_merge( $errors, array_values( array_unique( array_values( $datetime_errors ) ) ) );
-		}
-
-		// Validate GPS areas format.
-		if ( '1' === $gps_enabled && 'custom' === $gps_source && '' !== trim( $geo_areas ) ) {
-			$gps_errors = $this->validate_areas_format( $geo_areas, 'GPS' );
-			$errors     = array_merge( $errors, $gps_errors );
-		}
-
-		// Validate IP areas format (if using independent areas).
-		if ( '1' === $ip_enabled && '1' === $ip_permissive && 'custom' === $ip_source && '' !== trim( $geo_ip_areas ) ) {
-			$ip_errors = $this->validate_areas_format( $geo_ip_areas, 'IP' );
-			$errors    = array_merge( $errors, $ip_errors );
-		}
-
-		// Block / error message minimum length (Time + Geolocation). Only
-		// enforced when the owning restriction is enabled — a form that
-		// doesn't gate by date/time or location isn't forced to author
-		// messages it will never show.
-		$message_errors = $this->geofence_message_errors( $config );
-		$errors         = array_merge( $errors, $message_errors['time'], $message_errors['geolocation'] );
-
-		return $errors;
-	}
-
-	/**
-	 * Validate the geofence block / error messages, split by owning tab.
-	 *
-	 * Returns a two-bucket map so {@see geofence_error_tab_keys()} can route
-	 * each failure to the tab that owns the field without re-matching on
-	 * message text. Each message is only checked when its parent toggle is
-	 * on:
-	 *  - `time`        → `msg_datetime` (when `datetime_enabled`)
-	 *  - `geolocation` → `msg_geo_blocked` + `msg_geo_error` (when `geo_enabled`)
-	 *
-	 * Length is measured with `mb_strlen` so accented Portuguese copy isn't
-	 * penalised byte-for-byte.
-	 *
-	 * @param array<string, mixed> $config Merged geofence config.
-	 * @return array{time: list<string>, geolocation: list<string>}
-	 */
-	private function geofence_message_errors( array $config ): array {
-		$min = self::GEOFENCE_MESSAGE_MIN_LENGTH;
-		$out = array(
-			'time'        => array(),
-			'geolocation' => array(),
-		);
-
-		if ( '1' === ( $config['datetime_enabled'] ?? '0' ) ) {
-			if ( mb_strlen( trim( (string) ( $config['msg_datetime'] ?? '' ) ) ) < $min ) {
-				$out['time'][] = sprintf(
-					/* translators: %d: minimum character count */
-					__( 'The date/time "Blocked Message" must be at least %d characters so visitors understand why the form is unavailable.', 'ffcertificate' ),
-					$min
-				);
-			}
-		}
-
-		if ( '1' === ( $config['geo_enabled'] ?? '0' ) ) {
-			if ( mb_strlen( trim( (string) ( $config['msg_geo_blocked'] ?? '' ) ) ) < $min ) {
-				$out['geolocation'][] = sprintf(
-					/* translators: %d: minimum character count */
-					__( 'The geolocation "Blocked Message" must be at least %d characters.', 'ffcertificate' ),
-					$min
-				);
-			}
-			if ( mb_strlen( trim( (string) ( $config['msg_geo_error'] ?? '' ) ) ) < $min ) {
-				$out['geolocation'][] = sprintf(
-					/* translators: %d: minimum character count */
-					__( 'The geolocation "Error Message" must be at least %d characters.', 'ffcertificate' ),
-					$min
-				);
-			}
-		}
-
-		return $out;
-	}
-
-	/**
-	 * Map a geofence validation failure to the tab(s) that own the offending
-	 * fields, so the editor's tab script can flag and open the right one.
-	 *
-	 * Reuses the flat error list from {@see validate_geofence_config()} and the
-	 * datetime-order helper instead of re-running the area checks: the
-	 * date/time-order messages belong to the "Time" tab; everything else
-	 * (GPS/IP area + format errors) belongs to "Geolocation".
-	 *
-	 * @param array<string, mixed> $config     Merged geofence config.
-	 * @param array<int, string>   $all_errors Flat error list for this config.
-	 * @return array<int, string> Ordered tab keys, e.g. ['time', 'geolocation'].
-	 */
-	private function geofence_error_tab_keys( array $config, array $all_errors ): array {
-		$keys            = array();
-		$datetime_errors = array_values(
-			array_unique(
-				array_values(
-					\FreeFormCertificate\Security\Geofence::analyze_datetime_order( $config )
-				)
-			)
-		);
-		$message_errors  = $this->geofence_message_errors( $config );
-
-		// Time tab owns the datetime-order messages plus the date/time
-		// "Blocked Message" length error.
-		$time_errors = array_merge( $datetime_errors, $message_errors['time'] );
-		if ( ! empty( $time_errors ) ) {
-			$keys[] = 'time';
-		}
-
-		// Geolocation tab owns everything else: GPS/IP area + format errors
-		// (whatever remains in $all_errors after removing the time-tab
-		// messages and the geo message-length errors) plus those geo
-		// message-length errors themselves.
-		$area_errors = array_diff( $all_errors, $time_errors, $message_errors['geolocation'] );
-		if ( ! empty( $area_errors ) || ! empty( $message_errors['geolocation'] ) ) {
-			$keys[] = 'geolocation';
-		}
-		return $keys;
-	}
-
-	/**
-	 * Validates area format (latitude, longitude, radius)
-	 *
-	 * @param string $areas_text Areas text (one per line).
-	 * @param string $type Type of area (GPS or IP) for error messages.
-	 * @return array<int, string> Array of validation errors
-	 */
-	private function validate_areas_format( string $areas_text, string $type ): array {
-		$errors      = array();
-		$lines       = array_filter( array_map( 'trim', explode( "\n", $areas_text ) ) );
-		$line_number = 0;
-
-		foreach ( $lines as $line ) {
-			++$line_number;
-
-			// Check format: lat,lng,radius.
-			if ( ! preg_match( '/^-?\d+(\.\d+)?\s*,\s*-?\d+(\.\d+)?\s*,\s*\d+(\.\d+)?$/', $line ) ) {
-				$errors[] = sprintf(
-					/* translators: 1: Area type (GPS/IP), 2: Line number */
-					__( '%1$s Area line %2$d: Invalid format. Use: latitude, longitude, radius', 'ffcertificate' ),
-					$type,
-					$line_number
-				);
-				continue;
-			}
-
-			// Parse values.
-			$parts  = array_map( 'trim', explode( ',', $line ) );
-			$lat    = floatval( $parts[0] );
-			$lng    = floatval( $parts[1] );
-			$radius = floatval( $parts[2] );
-
-			// Validate latitude range.
-			if ( $lat < -90 || $lat > 90 ) {
-				$errors[] = sprintf(
-					/* translators: 1: Area type (GPS/IP), 2: Line number, 3: Latitude value */
-					__( '%1$s Area line %2$d: Invalid latitude %3$s (must be between -90 and 90)', 'ffcertificate' ),
-					$type,
-					$line_number,
-					$lat
-				);
-			}
-
-			// Validate longitude range.
-			if ( $lng < -180 || $lng > 180 ) {
-				$errors[] = sprintf(
-					/* translators: 1: Area type (GPS/IP), 2: Line number, 3: Longitude value */
-					__( '%1$s Area line %2$d: Invalid longitude %3$s (must be between -180 and 180)', 'ffcertificate' ),
-					$type,
-					$line_number,
-					$lng
-				);
-			}
-
-			// Validate radius.
-			if ( $radius <= 0 ) {
-				$errors[] = sprintf(
-					/* translators: 1: Area type (GPS/IP), 2: Line number */
-					__( '%1$s Area line %2$d: Radius must be greater than 0', 'ffcertificate' ),
-					$type,
-					$line_number
-				);
-			}
-		}
-
-		return $errors;
 	}
 
 	/**

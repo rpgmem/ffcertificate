@@ -30,7 +30,7 @@ class DashboardAssetManager {
 	 * @return bool
 	 */
 	public static function user_has_audience_groups( int $user_id ): bool {
-		if ( ! class_exists( '\FreeFormCertificate\Audience\AudienceRepository' ) ) {
+		if ( ! class_exists( '\FreeFormCertificate\Audience\AudienceReader' ) ) {
 			return false;
 		}
 
@@ -39,7 +39,7 @@ class DashboardAssetManager {
 			return true;
 		}
 
-		$audiences = \FreeFormCertificate\Audience\AudienceRepository::get_user_audiences( $user_id );
+		$audiences = \FreeFormCertificate\Audience\AudienceReader::get_user_audiences( $user_id );
 		return ! empty( $audiences );
 	}
 
@@ -73,17 +73,17 @@ class DashboardAssetManager {
 			$can_view_audience_bookings = self::user_has_audience_groups( $user_id );
 		}
 
-		$can_view_reregistrations = class_exists( '\FreeFormCertificate\Reregistration\ReregistrationSubmissionRepository' )
-			&& ! empty( \FreeFormCertificate\Reregistration\ReregistrationSubmissionRepository::get_all_by_user( $user_id ) );
+		$can_view_reregistrations = class_exists( '\FreeFormCertificate\Reregistration\ReregistrationSubmissionReader' )
+			&& ! empty( \FreeFormCertificate\Reregistration\ReregistrationSubmissionReader::get_all_by_user( $user_id ) );
 
-		$s = \FreeFormCertificate\Core\Utils::asset_suffix();
+		$s = \FreeFormCertificate\Core\AssetHelper::asset_suffix();
 
 		// Enqueue CSS (ffc-common provides icon classes).
 		wp_enqueue_style( 'ffc-common', FFC_PLUGIN_URL . "assets/css/ffc-common{$s}.css", array(), FFC_VERSION );
 		wp_enqueue_style( 'ffc-dashboard', FFC_PLUGIN_URL . "assets/css/ffc-user-dashboard{$s}.css", array( 'ffc-common' ), FFC_VERSION );
 
 		// Dark mode.
-		\FreeFormCertificate\Core\Utils::enqueue_dark_mode();
+		\FreeFormCertificate\Core\AssetHelper::enqueue_dark_mode();
 
 		// Enqueue JavaScript. The dashboard is split across 8 files since 6.5.2:
 		// `ffc-dashboard` is the core (handle preserved for backwards-compat with

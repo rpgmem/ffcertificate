@@ -107,6 +107,12 @@ jobs:
     # assembly), skipping HTML-render/markup boilerplate by design. Overall
     # statement coverage 61.17% → 69.82% (31113/44564). Bump to 66 keeps a
     # ~3.8pp buffer under the measured number (≤5pp policy — see CLAUDE.md).
+    #
+    # 6.12.0 re-measure: 68.05% (30722/45146). The release batch added code
+    # (per-module loaders, #600/#601) faster than it added coverage, so the
+    # measured number slipped vs the prior run — no real gain to lock in this
+    # batch. Floor stays at 66 (now a ~2.05pp buffer, still within the ≤5pp
+    # policy); not lowered, not raised above the lowest observed run.
     env:
       COVERAGE_FLOOR_LINES: '66'
     steps:

@@ -98,10 +98,11 @@ class DashboardShortcodeTest extends TestCase {
         Functions\when( 'get_user_by' )->justReturn( $user );
         Functions\when( 'user_can' )->justReturn( false );
 
-        $utilsMock = Mockery::mock( 'alias:\FreeFormCertificate\Core\Utils' );
+        $utilsMock = Mockery::mock( 'alias:\FreeFormCertificate\Core\AssetHelper' );
+        $ri_mock = Mockery::mock( 'alias:\FreeFormCertificate\Core\RequestInput' );
         $utilsMock->shouldReceive( 'asset_suffix' )->andReturn( '' );
         $utilsMock->shouldReceive( 'enqueue_dark_mode' )->once();
-        $utilsMock->shouldReceive( 'get_get_string' )->andReturnUsing( function ( $key, $default = '' ) {
+        $ri_mock->shouldReceive( 'get_get_string' )->andReturnUsing( function ( $key, $default = '' ) {
             return isset( $_GET[ $key ] ) && is_string( $_GET[ $key ] ) ? $_GET[ $key ] : $default;
         } )->byDefault();
 
@@ -169,10 +170,11 @@ class DashboardShortcodeTest extends TestCase {
         Functions\when( 'get_user_by' )->justReturn( $user );
         Functions\when( 'user_can' )->justReturn( false );
 
-        $utilsMock = Mockery::mock( 'alias:\FreeFormCertificate\Core\Utils' );
+        $utilsMock = Mockery::mock( 'alias:\FreeFormCertificate\Core\AssetHelper' );
         $utilsMock->shouldReceive( 'asset_suffix' )->andReturn( '' );
         $utilsMock->shouldReceive( 'enqueue_dark_mode' )->once();
-        $utilsMock->shouldReceive( 'get_get_string' )->andReturnUsing( function ( $key, $default = '' ) {
+        $ri_mock = Mockery::mock( 'alias:\FreeFormCertificate\Core\RequestInput' );
+        $ri_mock->shouldReceive( 'get_get_string' )->andReturnUsing( function ( $key, $default = '' ) {
             return isset( $_GET[ $key ] ) && is_string( $_GET[ $key ] ) ? $_GET[ $key ] : $default;
         } )->byDefault();
 

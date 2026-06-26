@@ -178,7 +178,7 @@ class AppointmentRestController {
 
 			// Rate limiting (prevent automated booking abuse).
 			if ( class_exists( '\FreeFormCertificate\Security\RateLimiter' ) ) {
-				$ip         = \FreeFormCertificate\Core\Utils::get_user_ip();
+				$ip         = \FreeFormCertificate\Core\RequestInput::get_user_ip();
 				$rate_check = \FreeFormCertificate\Security\RateLimiter::check_ip_limit( $ip );
 
 				if ( ! $rate_check['allowed'] ) {
@@ -201,7 +201,7 @@ class AppointmentRestController {
 				'custom_data'      => isset( $params['custom_data'] ) ? $params['custom_data'] : array(),
 				'consent_given'    => isset( $params['consent'] ) ? 1 : 0,
 				'consent_text'     => isset( $params['consent_text'] ) ? sanitize_textarea_field( $params['consent_text'] ) : '',
-				'user_ip'          => \FreeFormCertificate\Core\Utils::get_user_ip(),
+				'user_ip'          => \FreeFormCertificate\Core\RequestInput::get_user_ip(),
 				'user_agent'       => isset( $_SERVER['HTTP_USER_AGENT'] ) ? sanitize_text_field( wp_unslash( $_SERVER['HTTP_USER_AGENT'] ) ) : '',
 			);
 

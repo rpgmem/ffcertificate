@@ -35,8 +35,11 @@ class AdminUserCustomFieldsTest extends TestCase {
     /** @var Mockery\MockInterface Alias mock for AudienceRepository */
     private $audience_repo_mock;
 
-    /** @var Mockery\MockInterface Alias mock for CustomFieldRepository */
+    /** @var Mockery\MockInterface Alias mock for CustomFieldReader */
     private $custom_field_repo_mock;
+
+    /** @var Mockery\MockInterface Alias mock for CustomFieldWriter */
+    private $custom_field_writer_mock;
 
     protected function setUp(): void {
         parent::setUp();
@@ -55,15 +58,17 @@ class AdminUserCustomFieldsTest extends TestCase {
         Functions\when('FreeFormCertificate\Core\wp_unslash')->returnArg();
 
         // Utils alias mock
-        $this->utils_mock = Mockery::mock('alias:\FreeFormCertificate\Core\Utils');
-        $this->utils_mock->shouldReceive( 'get_post_string' )->andReturnUsing( function ( $key, $default = '' ) {
+        $this->utils_mock = Mockery::mock('alias:\FreeFormCertificate\Core\AssetHelper');
+        $ri_mock = Mockery::mock( 'alias:\FreeFormCertificate\Core\RequestInput' );
+        $ri_mock->shouldReceive( 'get_post_string' )->andReturnUsing( function ( $key, $default = '' ) {
             return isset( $_POST[ $key ] ) && is_string( $_POST[ $key ] ) ? $_POST[ $key ] : $default;
         } )->byDefault();
         $this->utils_mock->shouldReceive('asset_suffix')->andReturn('.min')->byDefault();
 
         // Repository alias mocks
-        $this->audience_repo_mock = Mockery::mock('alias:\FreeFormCertificate\Audience\AudienceRepository');
-        $this->custom_field_repo_mock = Mockery::mock('alias:\FreeFormCertificate\Reregistration\CustomFieldRepository');
+        $this->audience_repo_mock = Mockery::mock('alias:FreeFormCertificate\Audience\AudienceReader');
+        $this->custom_field_repo_mock = Mockery::mock('alias:\FreeFormCertificate\Reregistration\CustomFieldReader');
+        $this->custom_field_writer_mock = Mockery::mock('alias:\FreeFormCertificate\Reregistration\CustomFieldWriter');
     }
 
     protected function tearDown(): void {
@@ -182,7 +187,7 @@ class AdminUserCustomFieldsTest extends TestCase {
     public function test_save_section_returns_early_without_nonce(): void {
         // No $_POST nonce set
         Functions\when('wp_verify_nonce')->justReturn(false);
-        $this->custom_field_repo_mock->shouldReceive('save_user_data')->never();
+        $this->custom_field_writer_mock->shouldReceive('save_user_data')->never();
 
         AdminUserCustomFields::save_section(1);
 
@@ -195,7 +200,7 @@ class AdminUserCustomFieldsTest extends TestCase {
 
         Functions\when('wp_verify_nonce')->justReturn(false);
 
-        $this->custom_field_repo_mock->shouldReceive('save_user_data')->never();
+        $this->custom_field_writer_mock->shouldReceive('save_user_data')->never();
 
         AdminUserCustomFields::save_section(1);
 
@@ -208,7 +213,7 @@ class AdminUserCustomFieldsTest extends TestCase {
         Functions\when('wp_verify_nonce')->justReturn(true);
         Functions\when('current_user_can')->justReturn(false);
 
-        $this->custom_field_repo_mock->shouldReceive('save_user_data')->never();
+        $this->custom_field_writer_mock->shouldReceive('save_user_data')->never();
 
         AdminUserCustomFields::save_section(1);
 
@@ -222,7 +227,7 @@ class AdminUserCustomFieldsTest extends TestCase {
         Functions\when('current_user_can')->justReturn(true);
 
         $this->custom_field_repo_mock->shouldReceive('get_all_for_user')->with(42, true)->andReturn([]);
-        $this->custom_field_repo_mock->shouldReceive('save_user_data')->never();
+        $this->custom_field_writer_mock->shouldReceive('save_user_data')->never();
 
         AdminUserCustomFields::save_section(42);
 
@@ -247,7 +252,7 @@ class AdminUserCustomFieldsTest extends TestCase {
             ->with(5, true)
             ->andReturn([$field]);
 
-        $this->custom_field_repo_mock->shouldReceive('save_user_data')
+        $this->custom_field_writer_mock->shouldReceive('save_user_data')
             ->once()
             ->with(5, Mockery::on(function ($data) {
                 return isset($data['field_10']) && $data['field_10'] === 'Engineering';
@@ -274,7 +279,7 @@ class AdminUserCustomFieldsTest extends TestCase {
             ->with(7, true)
             ->andReturn([$field]);
 
-        $this->custom_field_repo_mock->shouldReceive('save_user_data')
+        $this->custom_field_writer_mock->shouldReceive('save_user_data')
             ->once()
             ->with(7, Mockery::on(function ($data) {
                 return isset($data['field_20']) && $data['field_20'] === 1;
@@ -301,7 +306,7 @@ class AdminUserCustomFieldsTest extends TestCase {
             ->with(7, true)
             ->andReturn([$field]);
 
-        $this->custom_field_repo_mock->shouldReceive('save_user_data')
+        $this->custom_field_writer_mock->shouldReceive('save_user_data')
             ->once()
             ->with(7, Mockery::on(function ($data) {
                 return isset($data['field_20']) && $data['field_20'] === 0;
@@ -329,7 +334,7 @@ class AdminUserCustomFieldsTest extends TestCase {
             ->with(3, true)
             ->andReturn([$field]);
 
-        $this->custom_field_repo_mock->shouldReceive('save_user_data')
+        $this->custom_field_writer_mock->shouldReceive('save_user_data')
             ->once()
             ->with(3, Mockery::on(function ($data) {
                 return isset($data['field_30']) && $data['field_30'] === "Line 1\nLine 2";
@@ -357,7 +362,7 @@ class AdminUserCustomFieldsTest extends TestCase {
             ->with(1, true)
             ->andReturn([$field, $field]); // Duplicated
 
-        $this->custom_field_repo_mock->shouldReceive('save_user_data')
+        $this->custom_field_writer_mock->shouldReceive('save_user_data')
             ->once()
             ->with(1, Mockery::on(function ($data) {
                 // Should only have one entry despite two fields

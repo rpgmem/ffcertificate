@@ -46,12 +46,9 @@ class DateFormatterTest extends TestCase {
 		Functions\when( 'wp_timezone' )->alias( static function () {
 			return new \DateTimeZone( 'UTC' );
 		} );
-
-		DateFormatter::flush_cache();
 	}
 
 	protected function tearDown(): void {
-		DateFormatter::flush_cache();
 		Monkey\tearDown();
 		parent::tearDown();
 	}
@@ -237,9 +234,8 @@ class DateFormatterTest extends TestCase {
 		$this->ffc_settings = array( 'date_format' => 'Y-m-d' );
 		$this->assertSame( '2026-01-04', DateFormatter::format_date( 1767540600 ) );
 
-		// Mutate the option; without flush we'd still see the old format.
+		// Mutate the option; the helper reads settings fresh each call (no cache).
 		$this->ffc_settings = array( 'date_format' => 'd-m-Y' );
-		DateFormatter::flush_cache();
 		$this->assertSame( '04-01-2026', DateFormatter::format_date( 1767540600 ) );
 	}
 

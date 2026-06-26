@@ -124,7 +124,7 @@ class AppointmentsListTable extends \WP_List_Table {
 		$ffc_page_slug = 'ffc-appointments';
 		// 3-state: confirm/cancel are writes — hidden from read-only viewers
 		// (the mutation itself is also manage-gated server-side below).
-		$ffc_can_edit_appt = \FreeFormCertificate\Core\Utils::current_user_can_admin_or( 'ffc_manage_appointments' );
+		$ffc_can_edit_appt = \FreeFormCertificate\Core\Capabilities::current_user_can_admin_or( 'ffc_manage_appointments' );
 
 		if ( 'pending' === $item['status'] && $ffc_can_edit_appt ) {
 			$confirm_url        = wp_nonce_url(
@@ -279,7 +279,7 @@ class AppointmentsListTable extends \WP_List_Table {
 		// Get filter parameters.
 		// phpcs:disable WordPress.Security.NonceVerification.Recommended -- Standard WP_List_Table filter parameters.
 		$calendar_id = isset( $_GET['calendar_id'] ) ? absint( wp_unslash( $_GET['calendar_id'] ) ) : 0;
-		$status      = \FreeFormCertificate\Core\Utils::get_get_string( 'status' );
+		$status      = \FreeFormCertificate\Core\RequestInput::get_get_string( 'status' );
 		// phpcs:enable WordPress.Security.NonceVerification.Recommended
 
 		// Build conditions.
@@ -324,7 +324,7 @@ class AppointmentsListTable extends \WP_List_Table {
 
 		// phpcs:disable WordPress.Security.NonceVerification.Recommended -- Display filter parameters for dropdown selection.
 		$calendar_id = isset( $_GET['calendar_id'] ) ? absint( wp_unslash( $_GET['calendar_id'] ) ) : 0;
-		$status      = \FreeFormCertificate\Core\Utils::get_get_string( 'status' );
+		$status      = \FreeFormCertificate\Core\RequestInput::get_get_string( 'status' );
 		// phpcs:enable WordPress.Security.NonceVerification.Recommended
 
 		// Get all calendars for filter.

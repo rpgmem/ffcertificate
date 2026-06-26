@@ -3,6 +3,8 @@ declare(strict_types=1);
 
 namespace FreeFormCertificate\Tests\Unit;
 
+use FreeFormCertificate\Core\RequestInput;
+
 use Brain\Monkey;
 use Brain\Monkey\Functions;
 use Mockery;
@@ -185,8 +187,8 @@ class AppointmentsListTableTest extends TestCase {
         );
         $this->appt_repo->shouldReceive( 'count' )->andReturn( 5 );
 
-        // Utils::get_get_string for the status filter.
-        Mockery::mock( 'alias:FreeFormCertificate\Core\Utils' )
+        // RequestInput::get_get_string for the status filter.
+        Mockery::mock( 'alias:FreeFormCertificate\Core\RequestInput' )
             ->shouldReceive( 'get_get_string' )->andReturn( 'confirmed' );
 
         $table = new AppointmentsListTable();
@@ -207,7 +209,7 @@ class AppointmentsListTableTest extends TestCase {
     }
 
     public function test_extra_tablenav_renders_calendar_options(): void {
-        Mockery::mock( 'alias:FreeFormCertificate\Core\Utils' )
+        Mockery::mock( 'alias:FreeFormCertificate\Core\RequestInput' )
             ->shouldReceive( 'get_get_string' )->andReturn( '' );
         $this->cal_repo->shouldReceive( 'getActiveCalendars' )->andReturn(
             array( array( 'id' => 1, 'title' => 'Cal One' ) )

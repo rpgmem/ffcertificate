@@ -15,34 +15,18 @@ namespace FreeFormCertificate;
 
 use FreeFormCertificate\Submissions\SubmissionHandler;
 use FreeFormCertificate\Integrations\EmailHandler;
-use FreeFormCertificate\Admin\CsvExporter;
+use FreeFormCertificate\Admin\AdminLoader;
 use FreeFormCertificate\Admin\CPT;
-use FreeFormCertificate\Admin\Admin;
-use FreeFormCertificate\Admin\AdminUserColumns;
-use FreeFormCertificate\Admin\AdminUserCapabilities;
-use FreeFormCertificate\Admin\FormListColumns;
 use FreeFormCertificate\Frontend\Frontend;
-use FreeFormCertificate\Admin\AdminAjax;
 use FreeFormCertificate\API\RestController;
 use FreeFormCertificate\Shortcodes\DashboardShortcode;
 use FreeFormCertificate\UserDashboard\AccessControl;
 use FreeFormCertificate\UserDashboard\UserCleanup;
-use FreeFormCertificate\SelfScheduling\SelfSchedulingCPT;
-use FreeFormCertificate\SelfScheduling\SelfSchedulingAdmin;
-use FreeFormCertificate\SelfScheduling\SelfSchedulingEditor;
-use FreeFormCertificate\SelfScheduling\AppointmentHandler;
-use FreeFormCertificate\SelfScheduling\AppointmentAjaxHandler;
-use FreeFormCertificate\SelfScheduling\AppointmentEmailHandler;
-use FreeFormCertificate\SelfScheduling\AppointmentReceiptHandler;
-use FreeFormCertificate\SelfScheduling\AppointmentCancellationHandler;
-use FreeFormCertificate\SelfScheduling\AppointmentCsvExporter;
-use FreeFormCertificate\SelfScheduling\SelfSchedulingShortcode;
+use FreeFormCertificate\SelfScheduling\SelfSchedulingLoader;
 use FreeFormCertificate\Audience\AudienceLoader;
 use FreeFormCertificate\Privacy\PrivacyHandler;
-use FreeFormCertificate\Admin\AdminUserCustomFields;
 use FreeFormCertificate\Core\ActivityLogSubscriber;
-use FreeFormCertificate\Reregistration\ReregistrationAdmin;
-use FreeFormCertificate\Reregistration\ReregistrationFrontend;
+use FreeFormCertificate\Reregistration\ReregistrationLoader;
 use FreeFormCertificate\Reregistration\ReregistrationRepository;
 use FreeFormCertificate\Reregistration\ReregistrationEmailHandler;
 use FreeFormCertificate\UrlShortener\UrlShortenerActivator;
@@ -70,11 +54,11 @@ class Loader {
 	 */
 	protected $email_handler;
 	/**
-	 * Csv exporter.
+	 * Admin module loader.
 	 *
-	 * @var \FreeFormCertificate\Admin\CsvExporter|null
+	 * @var \FreeFormCertificate\Admin\AdminLoader|null
 	 */
-	protected $csv_exporter;
+	protected $admin_loader;
 	/**
 	 * Cpt.
 	 *
@@ -82,71 +66,17 @@ class Loader {
 	 */
 	protected $cpt;
 	/**
-	 * Admin.
-	 *
-	 * @var \FreeFormCertificate\Admin\Admin|null
-	 */
-	protected $admin;
-	/**
 	 * Frontend.
 	 *
 	 * @var \FreeFormCertificate\Frontend\Frontend
 	 */
 	protected $frontend;
 	/**
-	 * Admin ajax.
+	 * Self-Scheduling module loader.
 	 *
-	 * @var \FreeFormCertificate\Admin\AdminAjax|null
+	 * @var \FreeFormCertificate\SelfScheduling\SelfSchedulingLoader|null
 	 */
-	protected $admin_ajax;
-	/**
-	 * Self scheduling cpt.
-	 *
-	 * @var \FreeFormCertificate\SelfScheduling\SelfSchedulingCPT
-	 */
-	protected $self_scheduling_cpt;
-	/**
-	 * Self scheduling admin.
-	 *
-	 * @var \FreeFormCertificate\SelfScheduling\SelfSchedulingAdmin|null
-	 */
-	protected $self_scheduling_admin;
-	/**
-	 * Self scheduling editor.
-	 *
-	 * @var \FreeFormCertificate\SelfScheduling\SelfSchedulingEditor|null
-	 */
-	protected $self_scheduling_editor;
-	/**
-	 * Self scheduling appointment handler.
-	 *
-	 * @var \FreeFormCertificate\SelfScheduling\AppointmentHandler
-	 */
-	protected $self_scheduling_appointment_handler;
-	/**
-	 * Self scheduling email handler.
-	 *
-	 * @var \FreeFormCertificate\SelfScheduling\AppointmentEmailHandler
-	 */
-	protected $self_scheduling_email_handler;
-	/**
-	 * Self scheduling receipt handler.
-	 *
-	 * @var \FreeFormCertificate\SelfScheduling\AppointmentReceiptHandler
-	 */
-	protected $self_scheduling_receipt_handler;
-	/**
-	 * Self scheduling csv exporter.
-	 *
-	 * @var \FreeFormCertificate\SelfScheduling\AppointmentCsvExporter|null
-	 */
-	protected $self_scheduling_csv_exporter;
-	/**
-	 * Self scheduling shortcode.
-	 *
-	 * @var \FreeFormCertificate\SelfScheduling\SelfSchedulingShortcode
-	 */
-	protected $self_scheduling_shortcode;
+	protected $self_scheduling_loader;
 	/**
 	 * Audience loader.
 	 *
@@ -246,53 +176,32 @@ class Loader {
 
 		// Admin-only classes skipped on frontend.
 		if ( is_admin() ) {
-			$this->csv_exporter = new CsvExporter();
-			$this->admin        = new Admin( $this->submission_handler, $this->csv_exporter );
-			$this->admin_ajax   = new AdminAjax();
-			AdminUserColumns::init();
-			AdminUserCapabilities::init();
-			\FreeFormCertificate\Admin\RoleCapabilityEditor::init();
-			\FreeFormCertificate\Admin\AdminMenuVisibility::init();
-			\FreeFormCertificate\Admin\DeviceThresholdUpgradeNotice::init();
-			\FreeFormCertificate\Admin\SettingsAjaxEndpoint::init();
-			\FreeFormCertificate\Admin\FormMetaAjaxEndpoint::init();
-			\FreeFormCertificate\Admin\LocationsAjaxEndpoint::init();
-			\FreeFormCertificate\Admin\CacheActionsAjaxEndpoint::init();
-			\FreeFormCertificate\Admin\FormFeaturesAjaxEndpoint::init();
-			\FreeFormCertificate\Admin\MigrationActionsAjaxEndpoint::init();
-			\FreeFormCertificate\Admin\ActivityLogAjaxEndpoint::init();
-			\FreeFormCertificate\Admin\SubmissionsBulkActionsAjaxEndpoint::init();
-			\FreeFormCertificate\Admin\ExpiredTicketsCleanup::init();
-			FormListColumns::init();
-			AdminUserCustomFields::init();
-			$reregistration_admin = new ReregistrationAdmin();
-			$reregistration_admin->init();
-			$this->self_scheduling_admin        = new SelfSchedulingAdmin();
-			$this->self_scheduling_editor       = new SelfSchedulingEditor();
-			$this->self_scheduling_csv_exporter = new AppointmentCsvExporter();
+			// Admin module — single bootstrap entry point (#563 B3): wires
+			// every admin-only Admin\… class behind one symbol instead of
+			// newing-up ~20 classes here. Mirrors AudienceLoader/RecruitmentLoader.
+			$this->admin_loader = new AdminLoader( $this->submission_handler );
+			$this->admin_loader->init();
 		}
 
 		// Frontend + AJAX classes.
 		$this->frontend = new Frontend( $this->submission_handler );
 
 		DashboardShortcode::init();
-		ReregistrationFrontend::init();
-		if ( class_exists( '\FreeFormCertificate\Reregistration\ReregistrationStandardFieldsSeeder' ) ) {
-			\FreeFormCertificate\Reregistration\ReregistrationStandardFieldsSeeder::register();
-		}
+		// Reregistration module — single bootstrap entry point (#563 B3).
+		( new ReregistrationLoader() )->init();
+		// UserDashboard has no module loader by design (#563 B3): these two
+		// init() calls are its only bootstrap wiring. Its larger
+		// Root→UserDashboard surface is capability/role lifecycle
+		// (register_ffc_roles_safe() / ensure_*_caps() below) — orchestrator
+		// responsibility, not module bootstrap, so a loader would narrow
+		// nothing. See CLAUDE.md "Module bootstrap (per-module loaders)".
 		AccessControl::init();
 		UserCleanup::init();
 		PrivacyHandler::init();
 
-		$this->self_scheduling_cpt                 = new SelfSchedulingCPT();
-		$this->self_scheduling_appointment_handler = new AppointmentHandler();
-		new AppointmentAjaxHandler( $this->self_scheduling_appointment_handler );
-		$this->self_scheduling_email_handler   = new AppointmentEmailHandler();
-		$this->self_scheduling_receipt_handler = new AppointmentReceiptHandler();
-		// #Item9 — public token-based cancellation page reached from the
-		// appointment e-mails; delegates the actual cancel to the handler.
-		new AppointmentCancellationHandler( $this->self_scheduling_appointment_handler );
-		$this->self_scheduling_shortcode = new SelfSchedulingShortcode();
+		// Self-Scheduling module — single bootstrap entry point (#563 B3).
+		$this->self_scheduling_loader = new SelfSchedulingLoader();
+		$this->self_scheduling_loader->init();
 
 		$this->audience_loader = AudienceLoader::get_instance();
 		$this->audience_loader->init();
@@ -347,15 +256,15 @@ class Loader {
 	 */
 	public function register_ffc_roles_safe(): void {
 		if ( class_exists( '\FreeFormCertificate\UserDashboard\CapabilityManager' ) ) {
-			\FreeFormCertificate\UserDashboard\CapabilityManager::register_role();
-			\FreeFormCertificate\UserDashboard\CapabilityManager::register_module_roles();
+			\FreeFormCertificate\UserDashboard\RoleRegistrar::register_role();
+			\FreeFormCertificate\UserDashboard\RoleRegistrar::register_module_roles();
 
 			// Re-apply translated labels every time WP loads its roles.
 			// Without this, `users.php` would show the verbatim English
 			// label that was stored in the database at registration time.
-			// See `CapabilityManager::relabel_ffc_roles()` for full
+			// See `RoleRegistrar::relabel_ffc_roles()` for full
 			// rationale.
-			add_action( 'wp_roles_init', array( '\FreeFormCertificate\UserDashboard\CapabilityManager', 'relabel_ffc_roles' ) );
+			add_action( 'wp_roles_init', array( '\FreeFormCertificate\UserDashboard\RoleRegistrar', 'relabel_ffc_roles' ) );
 		}
 	}
 
@@ -376,7 +285,7 @@ class Loader {
 			return;
 		}
 		if ( class_exists( '\FreeFormCertificate\UserDashboard\CapabilityManager' ) ) {
-			\FreeFormCertificate\UserDashboard\CapabilityManager::migrate_legacy_certificate_caps();
+			\FreeFormCertificate\UserDashboard\CapabilityMigrator::migrate_legacy_certificate_caps();
 		}
 		update_option( $flag, '1', true );
 	}
@@ -398,7 +307,7 @@ class Loader {
 			return;
 		}
 		if ( class_exists( '\FreeFormCertificate\UserDashboard\CapabilityManager' ) ) {
-			\FreeFormCertificate\UserDashboard\CapabilityManager::migrate_taxonomy_renames();
+			\FreeFormCertificate\UserDashboard\CapabilityMigrator::migrate_taxonomy_renames();
 		}
 		update_option( $flag, '1', true );
 	}
@@ -418,7 +327,7 @@ class Loader {
 			return;
 		}
 		if ( class_exists( '\FreeFormCertificate\UserDashboard\CapabilityManager' ) ) {
-			\FreeFormCertificate\UserDashboard\CapabilityManager::migrate_delete_caps_grant();
+			\FreeFormCertificate\UserDashboard\CapabilityMigrator::migrate_delete_caps_grant();
 		}
 		update_option( $flag, '1', true );
 	}
@@ -438,7 +347,7 @@ class Loader {
 			return;
 		}
 		if ( class_exists( '\FreeFormCertificate\UserDashboard\CapabilityManager' ) ) {
-			\FreeFormCertificate\UserDashboard\CapabilityManager::migrate_export_caps_grant();
+			\FreeFormCertificate\UserDashboard\CapabilityMigrator::migrate_export_caps_grant();
 		}
 		update_option( $flag, '1', true );
 	}
@@ -458,7 +367,7 @@ class Loader {
 			return;
 		}
 		if ( class_exists( '\FreeFormCertificate\UserDashboard\CapabilityManager' ) ) {
-			\FreeFormCertificate\UserDashboard\CapabilityManager::migrate_import_caps_grant();
+			\FreeFormCertificate\UserDashboard\CapabilityMigrator::migrate_import_caps_grant();
 		}
 		update_option( $flag, '1', true );
 	}
@@ -478,7 +387,7 @@ class Loader {
 			return;
 		}
 		if ( class_exists( '\FreeFormCertificate\UserDashboard\CapabilityManager' ) ) {
-			\FreeFormCertificate\UserDashboard\CapabilityManager::migrate_reasons_caps_grant();
+			\FreeFormCertificate\UserDashboard\CapabilityMigrator::migrate_reasons_caps_grant();
 		}
 		update_option( $flag, '1', true );
 	}
@@ -526,10 +435,10 @@ class Loader {
 
 		$admin_role = get_role( 'administrator' );
 		if ( $admin_role && class_exists( '\FreeFormCertificate\UserDashboard\UserManager' ) ) {
-			$all_ffc_caps = \FreeFormCertificate\UserDashboard\UserManager::get_all_capabilities();
+			$all_ffc_caps = \FreeFormCertificate\UserDashboard\CapabilityManager::get_all_capabilities();
 
 			// 1. Grant admin-level capabilities to the administrator role.
-			foreach ( \FreeFormCertificate\UserDashboard\UserManager::ADMIN_CAPABILITIES as $cap ) {
+			foreach ( \FreeFormCertificate\UserDashboard\CapabilityManager::ADMIN_CAPABILITIES as $cap ) {
 				if ( ! $admin_role->has_cap( $cap ) ) {
 					$admin_role->add_cap( $cap, true );
 				}
@@ -616,7 +525,7 @@ class Loader {
 	 * Only registers -- actual enqueue happens when shortcodes load their dependencies.
 	 */
 	public function register_frontend_assets(): void {
-		$s = \FreeFormCertificate\Core\Utils::asset_suffix();
+		$s = \FreeFormCertificate\Core\AssetHelper::asset_suffix();
 		wp_register_script( 'ffc-rate-limit', FFC_PLUGIN_URL . "assets/js/ffc-frontend-helpers{$s}.js", array( 'jquery' ), FFC_VERSION, true );
 
 		// ffc-core ships `window.FFC.request()` (the AJAX helper used by the
@@ -666,7 +575,7 @@ class Loader {
 			return;
 		}
 
-		$s = \FreeFormCertificate\Core\Utils::asset_suffix();
+		$s = \FreeFormCertificate\Core\AssetHelper::asset_suffix();
 		wp_register_script(
 			'ffc-core',
 			FFC_PLUGIN_URL . "assets/js/ffc-core{$s}.js",

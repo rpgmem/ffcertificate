@@ -8,12 +8,12 @@ use Brain\Monkey\Functions;
 use Mockery;
 use Mockery\Adapter\Phpunit\MockeryPHPUnitIntegration;
 use PHPUnit\Framework\TestCase;
-use FreeFormCertificate\Frontend\FormProcessor;
 use FreeFormCertificate\Frontend\AccessRestrictionChecker;
+use FreeFormCertificate\Frontend\Submission\SubmissionPersister;
 use FreeFormCertificate\Submissions\SubmissionHandler;
 
 /**
- * Tests for AccessRestrictionChecker::check() and FormProcessor::calculate_quiz_score().
+ * Tests for AccessRestrictionChecker::check() and SubmissionPersister::calculate_quiz_score().
  *
  * Restriction tests call AccessRestrictionChecker directly (public static).
  * Quiz tests use Reflection to access the private calculate_quiz_score method.
@@ -22,7 +22,7 @@ class FormProcessorRestrictionsTest extends TestCase {
 
     use MockeryPHPUnitIntegration;
 
-    private FormProcessor $processor;
+    private SubmissionPersister $processor;
     private \ReflectionMethod $calculate_quiz_score;
 
     protected function setUp(): void {
@@ -31,10 +31,11 @@ class FormProcessorRestrictionsTest extends TestCase {
 
         $handler = Mockery::mock( SubmissionHandler::class );
 
-        $this->processor = new FormProcessor( $handler );
+        // #563 Sprint 1 PR 1b — calculate_quiz_score moved to SubmissionPersister.
+        $this->processor = new SubmissionPersister( $handler );
 
-        // Make private quiz method accessible via reflection.
-        $ref = new \ReflectionClass( FormProcessor::class );
+        // Make quiz method accessible via reflection.
+        $ref = new \ReflectionClass( SubmissionPersister::class );
 
         $this->calculate_quiz_score = $ref->getMethod( 'calculate_quiz_score' );
         $this->calculate_quiz_score->setAccessible( true );

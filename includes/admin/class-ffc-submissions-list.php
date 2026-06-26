@@ -146,8 +146,8 @@ class SubmissionsList extends \WP_List_Table {
 		// 3-state model: read-only viewers (ffc_view_certificates) get the PDF
 		// button only; editing a record needs ffc_edit_certificates; the
 		// trash/restore/delete write actions need ffc_manage_certificates.
-		$can_manage = \FreeFormCertificate\Core\Utils::current_user_can_admin_or( 'ffc_manage_certificates' );
-		$can_edit   = $can_manage || \FreeFormCertificate\Core\Utils::current_user_can_admin_or( 'ffc_edit_certificates' );
+		$can_manage = \FreeFormCertificate\Core\Capabilities::current_user_can_admin_or( 'ffc_manage_certificates' );
+		$can_edit   = $can_manage || \FreeFormCertificate\Core\Capabilities::current_user_can_admin_or( 'ffc_edit_certificates' );
 
 		$actions = '';
 		if ( $can_edit ) {
@@ -334,7 +334,7 @@ class SubmissionsList extends \WP_List_Table {
 	protected function get_bulk_actions() {
 		// Read-only viewers (ffc_view_certificates without manage) get no bulk
 		// write actions.
-		if ( ! \FreeFormCertificate\Core\Utils::current_user_can_admin_or( 'ffc_manage_certificates' ) ) {
+		if ( ! \FreeFormCertificate\Core\Capabilities::current_user_can_admin_or( 'ffc_manage_certificates' ) ) {
 			return array();
 		}
 
@@ -396,7 +396,7 @@ class SubmissionsList extends \WP_List_Table {
 		$status  = isset( $_GET['status'] ) ? sanitize_key( wp_unslash( $_GET['status'] ) ) : 'publish';
 		$search  = isset( $_REQUEST['s'] ) ? sanitize_text_field( wp_unslash( $_REQUEST['s'] ) ) : '';
 		$orderby = ( ! empty( $_GET['orderby'] ) ) ? sanitize_key( wp_unslash( $_GET['orderby'] ) ) : 'id';
-		$order   = \FreeFormCertificate\Core\Utils::get_get_string( 'order' ) === 'asc' ? 'ASC' : 'DESC';
+		$order   = \FreeFormCertificate\Core\RequestInput::get_get_string( 'order' ) === 'asc' ? 'ASC' : 'DESC';
 
 		$filter_form_ids = array();
         // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized, WordPress.Security.ValidatedSanitizedInput.MissingUnslash -- empty() existence check only.

@@ -13,8 +13,9 @@ declare(strict_types=1);
 
 namespace FreeFormCertificate\Admin;
 
-use FreeFormCertificate\Reregistration\CustomFieldRepository;
-use FreeFormCertificate\Audience\AudienceRepository;
+use FreeFormCertificate\Reregistration\CustomFieldReader;
+use FreeFormCertificate\Reregistration\CustomFieldWriter;
+use FreeFormCertificate\Audience\AudienceReader;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
@@ -23,7 +24,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 /**
  * Admin User Custom Fields.
  *
- * @phpstan-import-type CustomFieldRow from CustomFieldRepository
+ * @phpstan-import-type CustomFieldRow from CustomFieldReader
  */
 class AdminUserCustomFields {
 
@@ -51,7 +52,7 @@ class AdminUserCustomFields {
 			return;
 		}
 
-		$s = \FreeFormCertificate\Core\Utils::asset_suffix();
+		$s = \FreeFormCertificate\Core\AssetHelper::asset_suffix();
 
 		wp_enqueue_style( 'ffc-working-hours', FFC_PLUGIN_URL . "assets/css/ffc-working-hours{$s}.css", array(), FFC_VERSION );
 		wp_enqueue_style( 'ffc-custom-fields-admin', FFC_PLUGIN_URL . "assets/css/ffc-custom-fields-admin{$s}.css", array(), FFC_VERSION );
@@ -102,12 +103,12 @@ class AdminUserCustomFields {
 	 * @return void
 	 */
 	public static function render_section( \WP_User $user ): void {
-		$audiences = AudienceRepository::get_user_audiences( $user->ID );
+		$audiences = AudienceReader::get_user_audiences( $user->ID );
 		if ( empty( $audiences ) ) {
 			return;
 		}
 
-		$user_data          = CustomFieldRepository::get_user_data( $user->ID );
+		$user_data          = CustomFieldReader::get_user_data( $user->ID );
 		$rendered_field_ids = array();
 
 		?>
@@ -118,7 +119,7 @@ class AdminUserCustomFields {
 
 		<?php foreach ( $audiences as $audience ) : ?>
 			<?php
-			$fields = CustomFieldRepository::get_by_audience_with_parents( (int) $audience->id, true );
+			$fields = CustomFieldReader::get_by_audience_with_parents( (int) $audience->id, true );
 			if ( empty( $fields ) ) {
 				continue;
 			}
@@ -207,7 +208,7 @@ class AdminUserCustomFields {
 				break;
 
 			case 'select':
-				$choices = CustomFieldRepository::get_field_choices( $field );
+				$choices = CustomFieldReader::get_field_choices( $field );
 				?>
 				<select name="<?php echo esc_attr( $input_name ); ?>" id="<?php echo esc_attr( $input_name ); ?>">
 					<option value=""><?php esc_html_e( '&mdash; Select &mdash;', 'ffcertificate' ); ?></option>
@@ -311,7 +312,7 @@ class AdminUserCustomFields {
 	 */
 	public static function save_section( int $user_id ): void {
 		// Verify nonce.
-		if ( ! wp_verify_nonce( \FreeFormCertificate\Core\Utils::get_post_string( 'ffc_user_custom_fields_nonce' ), 'ffc_save_user_custom_fields' ) ) {
+		if ( ! wp_verify_nonce( \FreeFormCertificate\Core\RequestInput::get_post_string( 'ffc_user_custom_fields_nonce' ), 'ffc_save_user_custom_fields' ) ) {
 			return;
 		}
 
@@ -321,7 +322,7 @@ class AdminUserCustomFields {
 		}
 
 		// Get all fields for this user.
-		$fields = CustomFieldRepository::get_all_for_user( $user_id, true );
+		$fields = CustomFieldReader::get_all_for_user( $user_id, true );
 		if ( empty( $fields ) ) {
 			return;
 		}
@@ -371,6 +372,6 @@ class AdminUserCustomFields {
 			}
 		}
 
-		CustomFieldRepository::save_user_data( $user_id, $data );
+		CustomFieldWriter::save_user_data( $user_id, $data );
 	}
 }

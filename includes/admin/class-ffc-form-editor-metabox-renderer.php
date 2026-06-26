@@ -165,19 +165,6 @@ class FormEditorMetaboxRenderer {
 	}
 
 	/**
-	 * Render the "Geofence & Date/Time" metabox (both sections stacked).
-	 *
-	 * Back-compat entry point. The tabbed container splits this into the
-	 * "Time" and "Geolocation" tabs via {@see render_box_time()} and
-	 * {@see render_box_geolocation()}.
-	 *
-	 * @param WP_Post $post Post being edited.
-	 */
-	public function render_box_geofence( WP_Post $post ): void {
-		$this->geofence->render( $post );
-	}
-
-	/**
 	 * Render the date/time-restriction section ("Time" tab).
 	 *
 	 * @param WP_Post $post Post being edited.

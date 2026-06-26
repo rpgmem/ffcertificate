@@ -93,9 +93,8 @@ class RestController {
 			return $response;
 		}
 
-		$ip          = \FreeFormCertificate\Core\Utils::get_user_ip();
-		$settings    = get_option( 'ffc_rate_limit_settings', array() );
-		$ip_settings = $settings['ip'] ?? array();
+		$ip          = \FreeFormCertificate\Core\RequestInput::get_user_ip();
+		$ip_settings = \FreeFormCertificate\Settings\RateLimitSettingsReader::ip();
 
 		if ( empty( $ip_settings['enabled'] ) ) {
 			return $response;
