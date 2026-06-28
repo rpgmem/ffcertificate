@@ -11,6 +11,8 @@
  * @since   6.12.0
  */
 
+use FreeFormCertificate\Recruitment\RecruitmentAdminPage;
+
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
