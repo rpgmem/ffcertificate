@@ -459,4 +459,90 @@ class UrlShortenerAdminPageTest extends TestCase {
 
         $this->page->handle_actions();
     }
+
+    public function test_handle_actions_restore_calls_service(): void {
+        Functions\when( 'current_user_can' )->justReturn( true );
+        $_GET['page']       = 'ffc-short-urls';
+        $_GET['ffc_action'] = 'restore';
+        $_GET['id']         = '3';
+        $_GET['_wpnonce']   = 'valid_nonce';
+        Functions\when( 'wp_verify_nonce' )->justReturn( 1 );
+        Functions\when( 'admin_url' )->returnArg();
+        $this->service->shouldReceive( 'restore_short_url' )->with( 3 )->once();
+        Functions\when( 'wp_safe_redirect' )->alias(
+            static function () {
+                throw new \RuntimeException( 'redirected' );
+            }
+        );
+
+        $this->expectException( \RuntimeException::class );
+        $this->page->handle_actions();
+    }
+
+    public function test_handle_actions_delete_calls_service(): void {
+        Functions\when( 'current_user_can' )->justReturn( true );
+        $_GET['page']       = 'ffc-short-urls';
+        $_GET['ffc_action'] = 'delete';
+        $_GET['id']         = '9';
+        $_GET['_wpnonce']   = 'valid_nonce';
+        Functions\when( 'wp_verify_nonce' )->justReturn( 1 );
+        Functions\when( 'admin_url' )->returnArg();
+        $this->service->shouldReceive( 'delete_short_url' )->with( 9 )->once();
+        Functions\when( 'wp_safe_redirect' )->alias(
+            static function () {
+                throw new \RuntimeException( 'redirected' );
+            }
+        );
+
+        $this->expectException( \RuntimeException::class );
+        $this->page->handle_actions();
+    }
+
+    public function test_handle_actions_empty_trash_deletes_all_trashed(): void {
+        Functions\when( 'current_user_can' )->justReturn( true );
+        $_GET['page']       = 'ffc-short-urls';
+        $_GET['ffc_action'] = 'empty_trash';
+        $_GET['_wpnonce']   = 'valid_nonce';
+        Functions\when( 'wp_verify_nonce' )->justReturn( 1 );
+        Functions\when( 'admin_url' )->returnArg();
+
+        $repo = Mockery::mock( 'FreeFormCertificate\UrlShortener\UrlShortenerRepository' );
+        $repo->shouldReceive( 'findPaginated' )->once()->andReturn(
+            array( 'items' => array( array( 'id' => 1 ), array( 'id' => 2 ) ) )
+        );
+        $this->service->shouldReceive( 'get_repository' )->andReturn( $repo );
+        $this->service->shouldReceive( 'delete_short_url' )->with( 1 )->once();
+        $this->service->shouldReceive( 'delete_short_url' )->with( 2 )->once();
+        Functions\when( 'wp_safe_redirect' )->alias(
+            static function () {
+                throw new \RuntimeException( 'redirected' );
+            }
+        );
+
+        $this->expectException( \RuntimeException::class );
+        $this->page->handle_actions();
+    }
+
+    public function test_handle_actions_delete_without_delete_cap_dies(): void {
+        // manage cap granted, delete cap denied (manage_options false too).
+        Functions\when( 'current_user_can' )->alias(
+            static function ( $cap ) {
+                return 'ffc_manage_url_shortener' === $cap;
+            }
+        );
+        $_GET['page']       = 'ffc-short-urls';
+        $_GET['ffc_action'] = 'delete';
+        $_GET['id']         = '9';
+        $_GET['_wpnonce']   = 'valid_nonce';
+        Functions\when( 'esc_html__' )->returnArg();
+        Functions\when( 'wp_die' )->alias(
+            static function () {
+                throw new \RuntimeException( 'wp_die' );
+            }
+        );
+
+        $this->expectException( \RuntimeException::class );
+        $this->expectExceptionMessage( 'wp_die' );
+        $this->page->handle_actions();
+    }
 }

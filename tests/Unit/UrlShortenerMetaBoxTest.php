@@ -314,4 +314,48 @@ class UrlShortenerMetaBoxTest extends TestCase {
 
         $this->meta_box->on_save_post( 1, $post );
     }
+
+    // ==================================================================
+    // enqueue_assets()
+    // ==================================================================
+
+    public function test_enqueue_assets_skips_on_unrelated_hook(): void {
+        $this->service->shouldNotReceive( 'get_enabled_post_types' );
+        Functions\when( 'FreeFormCertificate\UrlShortener\get_post_type' )->justReturn( 'post' );
+
+        $this->meta_box->enqueue_assets( 'index.php' );
+        $this->assertTrue( true );
+    }
+
+    public function test_enqueue_assets_skips_when_post_type_not_enabled(): void {
+        Functions\when( 'FreeFormCertificate\UrlShortener\get_post_type' )->justReturn( 'attachment' );
+        $this->service->shouldReceive( 'get_enabled_post_types' )->andReturn( array( 'post', 'page' ) );
+
+        $this->meta_box->enqueue_assets( 'post.php' );
+        $this->assertTrue( true );
+    }
+
+    public function test_enqueue_assets_enqueues_on_enabled_post_edit(): void {
+        Functions\when( 'FreeFormCertificate\UrlShortener\get_post_type' )->justReturn( 'page' );
+        $this->service->shouldReceive( 'get_enabled_post_types' )->andReturn( array( 'post', 'page' ) );
+
+        $enqueued = array();
+        Functions\when( 'FreeFormCertificate\UrlShortener\wp_enqueue_style' )->alias(
+            static function ( $h ) use ( &$enqueued ) {
+                $enqueued[] = $h;
+            }
+        );
+        Functions\when( 'FreeFormCertificate\UrlShortener\wp_enqueue_script' )->alias(
+            static function ( $h ) use ( &$enqueued ) {
+                $enqueued[] = $h;
+            }
+        );
+        Functions\when( 'FreeFormCertificate\UrlShortener\wp_localize_script' )->justReturn( true );
+        Functions\when( 'FreeFormCertificate\UrlShortener\admin_url' )->returnArg();
+        Functions\when( 'FreeFormCertificate\UrlShortener\wp_create_nonce' )->justReturn( 'nonce' );
+
+        $this->meta_box->enqueue_assets( 'post-new.php' );
+
+        $this->assertContains( 'ffc-url-shortener-admin', $enqueued );
+    }
 }
