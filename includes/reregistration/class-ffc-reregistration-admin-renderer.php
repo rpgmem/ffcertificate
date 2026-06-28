@@ -63,58 +63,7 @@ final class ReregistrationAdminRenderer {
 		$audiences = AudienceReader::get_hierarchical();
 		$new_url   = admin_url( 'admin.php?page=' . $menu_slug . '&view=new' );
 
-		?>
-		<h1 class="wp-heading-inline"><?php esc_html_e( 'Reregistration', 'ffcertificate' ); ?></h1>
-		<?php if ( $can_edit ) : ?>
-		<a href="<?php echo esc_url( $new_url ); ?>" class="page-title-action"><?php esc_html_e( 'Add New', 'ffcertificate' ); ?></a>
-		<?php endif; ?>
-		<hr class="wp-header-end">
-
-		<?php settings_errors( 'ffc_reregistration' ); ?>
-
-		<!-- Filters -->
-		<div class="tablenav top">
-			<form method="get" class="ffc-rereg-filters">
-				<input type="hidden" name="page" value="<?php echo esc_attr( $menu_slug ); ?>">
-				<select name="status">
-					<option value=""><?php esc_html_e( 'All Statuses', 'ffcertificate' ); ?></option>
-					<?php foreach ( ReregistrationRepository::STATUSES as $s ) : ?>
-						<option value="<?php echo esc_attr( $s ); ?>" <?php selected( $status_filter, $s ); ?>>
-							<?php echo esc_html( ReregistrationRepository::get_status_label( $s ) ); ?>
-						</option>
-					<?php endforeach; ?>
-				</select>
-				<select name="audience_id">
-					<option value=""><?php esc_html_e( 'All Audiences', 'ffcertificate' ); ?></option>
-					<?php self::render_audience_options( $audiences, $audience_filter ); ?>
-				</select>
-				<?php submit_button( __( 'Filter', 'ffcertificate' ), '', '', false ); ?>
-			</form>
-		</div>
-
-		<table class="wp-list-table widefat fixed striped">
-			<thead>
-				<tr>
-					<th class="column-title"><?php esc_html_e( 'Title', 'ffcertificate' ); ?></th>
-					<th class="column-audience"><?php esc_html_e( 'Audience', 'ffcertificate' ); ?></th>
-					<th class="column-status"><?php esc_html_e( 'Status', 'ffcertificate' ); ?></th>
-					<th class="column-period"><?php esc_html_e( 'Period', 'ffcertificate' ); ?></th>
-					<th class="column-submissions"><?php esc_html_e( 'Submissions', 'ffcertificate' ); ?></th>
-					<th class="column-auto"><?php esc_html_e( 'Auto-approve', 'ffcertificate' ); ?></th>
-					<th class="column-actions"><?php esc_html_e( 'Actions', 'ffcertificate' ); ?></th>
-				</tr>
-			</thead>
-			<tbody>
-				<?php if ( empty( $items ) ) : ?>
-					<tr><td colspan="7"><?php esc_html_e( 'No reregistrations found.', 'ffcertificate' ); ?></td></tr>
-				<?php else : ?>
-					<?php foreach ( $items as $item ) : ?>
-						<?php self::render_list_row( $menu_slug, $item, $can_edit ); ?>
-					<?php endforeach; ?>
-				<?php endif; ?>
-			</tbody>
-		</table>
-		<?php
+		include FFC_PLUGIN_DIR . 'templates/admin/reregistration/list.php';
 	}
 
 	/**
@@ -142,59 +91,7 @@ final class ReregistrationAdminRenderer {
 		$end       = \FreeFormCertificate\Core\DateFormatter::format_date( false === $end_ts ? null : $end_ts );
 		$audiences = ReregistrationRepository::get_audiences( (int) $item->id );
 
-		?>
-		<tr>
-			<td class="column-title">
-				<strong><a href="<?php echo esc_url( $title_url ); ?>"><?php echo esc_html( $item->title ); ?></a></strong>
-			</td>
-			<td class="column-audience">
-				<?php if ( empty( $audiences ) ) : ?>
-					—
-				<?php else : ?>
-					<?php foreach ( $audiences as $aud ) : ?>
-						<span class="ffc-audience-badge">
-							<span class="ffc-color-dot" style="background:<?php echo esc_attr( $aud->color ); ?>"></span>
-							<?php echo esc_html( $aud->name ); ?>
-						</span>
-					<?php endforeach; ?>
-				<?php endif; ?>
-			</td>
-			<td class="column-status">
-				<span class="ffc-status-badge ffc-status-<?php echo esc_attr( $item->status ); ?>">
-					<?php echo esc_html( ReregistrationRepository::get_status_label( $item->status ) ); ?>
-				</span>
-			</td>
-			<td class="column-period"><?php echo esc_html( $start . ' — ' . $end ); ?></td>
-			<td class="column-submissions">
-				<a href="<?php echo esc_url( $subs_url ); ?>">
-					<?php
-					printf(
-						/* translators: 1: approved count 2: total count */
-						esc_html__( '%1$d / %2$d', 'ffcertificate' ),
-						absint( $stats['approved'] ),
-						absint( $stats['total'] )
-					);
-					?>
-				</a>
-			</td>
-			<td class="column-auto">
-				<?php echo $item->auto_approve ? '<span class="dashicons dashicons-yes-alt ffc-rereg-yes"></span>' : '<span class="dashicons dashicons-minus ffc-rereg-muted"></span>'; ?>
-			</td>
-			<td class="column-actions">
-				<?php if ( $can_edit ) : ?>
-				<a href="<?php echo esc_url( $edit_url ); ?>"><?php esc_html_e( 'Edit', 'ffcertificate' ); ?></a> |
-				<?php endif; ?>
-				<a href="<?php echo esc_url( $subs_url ); ?>"><?php esc_html_e( 'Submissions', 'ffcertificate' ); ?></a>
-				<?php if ( $can_edit ) : ?>
-				|
-				<a href="<?php echo esc_url( $delete_url ); ?>" class="delete-link"
-					onclick="return confirm(ffcReregistrationAdmin?.strings?.confirmDelete || 'Delete?');">
-					<?php esc_html_e( 'Delete', 'ffcertificate' ); ?>
-				</a>
-				<?php endif; ?>
-			</td>
-		</tr>
-		<?php
+		include FFC_PLUGIN_DIR . 'templates/admin/reregistration/list-row.php';
 	}
 
 	// ─────────────────────────────────────────────.
@@ -224,134 +121,7 @@ final class ReregistrationAdminRenderer {
 		$selected_ids = $id > 0 ? ReregistrationRepository::get_audience_ids( $id ) : array();
 		$back_url     = admin_url( 'admin.php?page=' . $menu_slug );
 
-		?>
-		<h1><?php echo esc_html( $title ); ?></h1>
-		<a href="<?php echo esc_url( $back_url ); ?>">&larr; <?php esc_html_e( 'Back to Reregistrations', 'ffcertificate' ); ?></a>
-
-		<?php settings_errors( 'ffc_reregistration' ); ?>
-
-		<form method="post" action="" class="ffc-form">
-			<?php wp_nonce_field( 'save_reregistration', 'ffc_reregistration_nonce' ); ?>
-			<input type="hidden" name="reregistration_id" value="<?php echo esc_attr( (string) $id ); ?>">
-			<input type="hidden" name="ffc_action" value="save_reregistration">
-
-			<table class="form-table" role="presentation"><tbody>
-				<tr>
-					<th scope="row"><label for="rereg_title"><?php esc_html_e( 'Title', 'ffcertificate' ); ?> <span class="required">*</span></label></th>
-					<td><input type="text" name="rereg_title" id="rereg_title" class="regular-text" value="<?php echo esc_attr( $item->title ?? '' ); ?>" required></td>
-				</tr>
-				<tr>
-					<th scope="row"><?php esc_html_e( 'Audiences', 'ffcertificate' ); ?> <span class="required">*</span></th>
-					<td>
-						<?php self::render_audience_transfer_list( $audiences, $selected_ids ); ?>
-					</td>
-				</tr>
-				<tr>
-					<th scope="row"><label for="rereg_start"><?php esc_html_e( 'Start Date', 'ffcertificate' ); ?> <span class="required">*</span></label></th>
-					<td><input type="datetime-local" name="rereg_start_date" id="rereg_start" value="<?php echo esc_attr( $item ? gmdate( 'Y-m-d\TH:i', (int) strtotime( $item->start_date ) ) : '' ); ?>" required></td>
-				</tr>
-				<tr>
-					<th scope="row"><label for="rereg_end"><?php esc_html_e( 'End Date', 'ffcertificate' ); ?> <span class="required">*</span></label></th>
-					<td><input type="datetime-local" name="rereg_end_date" id="rereg_end" value="<?php echo esc_attr( $item ? gmdate( 'Y-m-d\TH:i', (int) strtotime( $item->end_date ) ) : '' ); ?>" required></td>
-				</tr>
-				<tr>
-					<th scope="row"><label for="rereg_status"><?php esc_html_e( 'Status', 'ffcertificate' ); ?></label></th>
-					<td>
-						<select name="rereg_status" id="rereg_status">
-							<?php foreach ( ReregistrationRepository::STATUSES as $s ) : ?>
-								<option value="<?php echo esc_attr( $s ); ?>" <?php selected( $item->status ?? 'draft', $s ); ?>>
-									<?php echo esc_html( ReregistrationRepository::get_status_label( $s ) ); ?>
-								</option>
-							<?php endforeach; ?>
-						</select>
-					</td>
-				</tr>
-				<tr>
-					<th scope="row"><?php esc_html_e( 'Approval', 'ffcertificate' ); ?></th>
-					<td>
-						<?php
-						\FreeFormCertificate\Admin\AdminUI::render_toggle(
-							array(
-								'name'    => 'rereg_auto_approve',
-								'checked' => ! empty( $item->auto_approve ),
-								'label'   => __( 'Auto-approve submissions (no manual review needed)', 'ffcertificate' ),
-							)
-						);
-						?>
-					</td>
-				</tr>
-				<tr>
-					<th scope="row"><?php esc_html_e( 'Email Notifications', 'ffcertificate' ); ?></th>
-					<td>
-						<?php
-						// Plain <div> wrapper rather than <fieldset> — WP admin's
-						// `.form-table td fieldset label { display: inline-block }`
-						// rule was overriding `.ffc-toggle { display: inline-flex }`
-						// and rendering the toggle track over the label text.
-						?>
-						<div class="ffc-rereg-email-toggles">
-							<p>
-								<?php
-								\FreeFormCertificate\Admin\AdminUI::render_toggle(
-									array(
-										'name'    => 'rereg_email_invitation',
-										'checked' => ! empty( $item->email_invitation_enabled ),
-										'label'   => __( 'Send invitation email when activated', 'ffcertificate' ),
-									)
-								);
-								?>
-							</p>
-							<p>
-								<?php
-								\FreeFormCertificate\Admin\AdminUI::render_toggle(
-									array(
-										'name'    => 'rereg_email_reminder',
-										'checked' => ! empty( $item->email_reminder_enabled ),
-										'label'   => __( 'Send reminder email before deadline', 'ffcertificate' ),
-									)
-								);
-								?>
-							</p>
-							<p>
-								<?php
-								\FreeFormCertificate\Admin\AdminUI::render_toggle(
-									array(
-										'name'    => 'rereg_email_confirmation',
-										'checked' => ! empty( $item->email_confirmation_enabled ),
-										'label'   => __( 'Send confirmation email after submission', 'ffcertificate' ),
-									)
-								);
-								?>
-							</p>
-							<p class="description"><?php esc_html_e( 'All email notifications are disabled by default.', 'ffcertificate' ); ?></p>
-						</div>
-					</td>
-				</tr>
-				<tr>
-					<th scope="row"><label for="rereg_reminder_days"><?php esc_html_e( 'Reminder Days', 'ffcertificate' ); ?></label></th>
-					<td>
-						<input type="number" name="rereg_reminder_days" id="rereg_reminder_days" value="<?php echo esc_attr( $item->reminder_days ?? '7' ); ?>" min="1" max="30" class="small-text">
-						<p class="description"><?php esc_html_e( 'Send reminder this many days before the end date.', 'ffcertificate' ); ?></p>
-					</td>
-				</tr>
-			</tbody></table>
-
-			<p class="description" id="ffc-affected-users">
-				<?php
-				if ( $id > 0 ) {
-					$affected = ReregistrationRepository::get_affected_user_ids_for_reregistration( $id );
-					printf(
-						'<strong>%s</strong> %s',
-						esc_html__( 'Affected users:', 'ffcertificate' ),
-						esc_html( (string) count( $affected ) )
-					);
-				}
-				?>
-			</p>
-
-			<?php submit_button( $id > 0 ? __( 'Update Reregistration', 'ffcertificate' ) : __( 'Create Reregistration', 'ffcertificate' ) ); ?>
-		</form>
-		<?php
+		include FFC_PLUGIN_DIR . 'templates/admin/reregistration/form.php';
 	}
 
 	// ─────────────────────────────────────────────.
@@ -399,108 +169,7 @@ final class ReregistrationAdminRenderer {
 			'export_reregistration_' . $id
 		);
 
-		?>
-		<h1>
-			<?php
-			/* translators: %s: reregistration title */
-			echo esc_html( sprintf( __( 'Submissions: %s', 'ffcertificate' ), $rereg->title ) );
-			?>
-		</h1>
-		<a href="<?php echo esc_url( $back_url ); ?>">&larr; <?php esc_html_e( 'Back to Reregistrations', 'ffcertificate' ); ?></a>
-
-		<?php settings_errors( 'ffc_reregistration' ); ?>
-
-		<!-- Stats summary -->
-		<div class="ffc-rereg-stats">
-			<?php foreach ( $stats as $status => $count ) : ?>
-				<?php if ( 'total' !== $status ) : ?>
-					<span class="ffc-stat-item">
-						<span class="ffc-status-badge ffc-status-<?php echo esc_attr( $status ); ?>"><?php echo esc_html( ReregistrationSubmissionReader::get_status_label( $status ) ); ?></span>
-						<strong><?php echo esc_html( (string) $count ); ?></strong>
-					</span>
-				<?php endif; ?>
-			<?php endforeach; ?>
-			<span class="ffc-stat-item">
-				<?php esc_html_e( 'Total:', 'ffcertificate' ); ?> <strong><?php echo esc_html( (string) $stats['total'] ); ?></strong>
-			</span>
-		</div>
-
-		<!-- Filters & actions -->
-		<div class="tablenav top">
-			<form method="get" class="ffc-rereg-filters ffc-rereg-inline">
-				<input type="hidden" name="page" value="<?php echo esc_attr( $menu_slug ); ?>">
-				<input type="hidden" name="view" value="submissions">
-				<input type="hidden" name="id" value="<?php echo esc_attr( (string) $id ); ?>">
-				<select name="sub_status">
-					<option value=""><?php esc_html_e( 'All Statuses', 'ffcertificate' ); ?></option>
-					<?php foreach ( ReregistrationSubmissionReader::STATUSES as $s ) : ?>
-						<option value="<?php echo esc_attr( $s ); ?>" <?php selected( $status_filter, $s ); ?>><?php echo esc_html( ReregistrationSubmissionReader::get_status_label( $s ) ); ?></option>
-					<?php endforeach; ?>
-				</select>
-				<input type="search" name="s" value="<?php echo esc_attr( $search ?? '' ); ?>" placeholder="<?php esc_attr_e( 'Search name or email...', 'ffcertificate' ); ?>">
-				<?php submit_button( __( 'Filter', 'ffcertificate' ), '', '', false ); ?>
-			</form>
-			<a href="<?php echo esc_url( $export_url ); ?>" class="button ffc-rereg-ml-10">
-				<?php esc_html_e( 'Export CSV', 'ffcertificate' ); ?>
-			</a>
-		</div>
-
-		<!-- Bulk actions form -->
-		<form method="post" id="ffc-submissions-form">
-			<?php wp_nonce_field( 'bulk_submissions_' . $id, 'ffc_bulk_nonce' ); ?>
-			<input type="hidden" name="ffc_action" value="bulk_submissions">
-			<input type="hidden" name="reregistration_id" value="<?php echo esc_attr( (string) $id ); ?>">
-
-			<?php if ( $can_edit ) : ?>
-			<div class="tablenav top">
-				<select name="bulk_action">
-					<option value=""><?php esc_html_e( 'Bulk Actions', 'ffcertificate' ); ?></option>
-					<option value="approve"><?php esc_html_e( 'Approve', 'ffcertificate' ); ?></option>
-					<option value="return_to_draft"><?php esc_html_e( 'Return to Draft', 'ffcertificate' ); ?></option>
-					<option value="send_reminder"><?php esc_html_e( 'Send Reminder', 'ffcertificate' ); ?></option>
-				</select>
-				<?php submit_button( __( 'Apply', 'ffcertificate' ), 'action', '', false ); ?>
-			</div>
-			<?php endif; ?>
-
-			<table class="wp-list-table widefat fixed striped">
-				<thead>
-					<tr>
-						<td class="check-column"><input type="checkbox" id="cb-select-all"></td>
-						<th><?php esc_html_e( 'User', 'ffcertificate' ); ?></th>
-						<th><?php esc_html_e( 'Email', 'ffcertificate' ); ?></th>
-						<th><?php esc_html_e( 'Status', 'ffcertificate' ); ?></th>
-						<th><?php esc_html_e( 'Submitted', 'ffcertificate' ); ?></th>
-						<th><?php esc_html_e( 'Reviewed', 'ffcertificate' ); ?></th>
-						<th><?php esc_html_e( 'Actions', 'ffcertificate' ); ?></th>
-					</tr>
-				</thead>
-				<tbody>
-					<?php if ( empty( $submissions ) ) : ?>
-						<tr><td colspan="7"><?php esc_html_e( 'No submissions found.', 'ffcertificate' ); ?></td></tr>
-					<?php else : ?>
-						<?php foreach ( $submissions as $sub ) : ?>
-							<?php self::render_submission_row( $menu_slug, $sub, $id, $can_edit ); ?>
-						<?php endforeach; ?>
-					<?php endif; ?>
-				</tbody>
-			</table>
-		</form>
-
-		<!-- Submission details modal -->
-		<div id="ffc-submission-details-modal" class="ffc-modal" style="display:none;" role="dialog" aria-modal="true" aria-labelledby="ffc-submission-details-title">
-			<div class="ffc-modal-backdrop"></div>
-			<div class="ffc-modal-content">
-				<div class="ffc-modal-header">
-					<h2 id="ffc-submission-details-title"><?php esc_html_e( 'Submission Details', 'ffcertificate' ); ?></h2>
-					<button type="button" class="ffc-modal-close" aria-label="<?php esc_attr_e( 'Close', 'ffcertificate' ); ?>">&times;</button>
-				</div>
-				<div class="ffc-modal-body">
-					<p class="ffc-modal-loading"><?php esc_html_e( 'Loading…', 'ffcertificate' ); ?></p>
-				</div>
-			</div>
-		</div>
-		<?php
+		include FFC_PLUGIN_DIR . 'templates/admin/reregistration/submissions.php';
 	}
 
 	/**
@@ -545,50 +214,7 @@ final class ReregistrationAdminRenderer {
 		// Statuses that can be sent back to draft for user revision.
 		$can_return_to_draft = in_array( $sub->status, array( 'submitted', 'approved', 'rejected' ), true );
 
-		?>
-		<tr>
-			<th class="check-column">
-				<input type="checkbox" name="submission_ids[]" value="<?php echo esc_attr( $sub->id ); ?>">
-			</th>
-			<td><?php echo esc_html( $sub->user_name ?? '—' ); ?></td>
-			<td><?php echo esc_html( $sub->user_email ?? '—' ); ?></td>
-			<td>
-				<span class="ffc-status-badge ffc-status-<?php echo esc_attr( $sub->status ); ?>">
-					<?php echo esc_html( ReregistrationSubmissionReader::get_status_label( $sub->status ) ); ?>
-				</span>
-			</td>
-			<td><?php echo esc_html( $submitted ); ?></td>
-			<td><?php echo esc_html( $reviewed ); ?></td>
-			<td>
-				<?php if ( 'submitted' === $sub->status && $can_edit ) : ?>
-					<a href="<?php echo esc_url( $approve_url ); ?>" class="button button-small"><?php esc_html_e( 'Approve', 'ffcertificate' ); ?></a>
-					<a href="<?php echo esc_url( $reject_url ); ?>" class="button button-small button-link-delete"><?php esc_html_e( 'Reject', 'ffcertificate' ); ?></a>
-				<?php elseif ( 'pending' === $sub->status ) : ?>
-					<span class="description"><?php esc_html_e( 'Awaiting user', 'ffcertificate' ); ?></span>
-				<?php elseif ( ! empty( $sub->notes ) ) : ?>
-					<span class="description" title="<?php echo esc_attr( $sub->notes ); ?>"><?php esc_html_e( 'See notes', 'ffcertificate' ); ?></span>
-				<?php else : ?>
-					—
-				<?php endif; ?>
-				<?php if ( $can_return_to_draft && $can_edit ) : ?>
-					<a href="<?php echo esc_url( $draft_url ); ?>" class="button button-small ffc-return-draft-btn" title="<?php esc_attr_e( 'Return to user for revision', 'ffcertificate' ); ?>">
-						<span class="dashicons dashicons-edit ffc-rereg-icon"></span>
-						<?php esc_html_e( 'Return to Draft', 'ffcertificate' ); ?>
-					</a>
-				<?php endif; ?>
-				<button type="button" class="button button-small ffc-view-details-btn" data-submission-id="<?php echo esc_attr( $sub->id ); ?>">
-					<span class="dashicons dashicons-visibility ffc-rereg-icon"></span>
-					<?php esc_html_e( 'View Details', 'ffcertificate' ); ?>
-				</button>
-				<?php if ( in_array( $sub->status, array( 'submitted', 'approved' ), true ) ) : ?>
-					<button type="button" class="button button-small ffc-ficha-btn" data-submission-id="<?php echo esc_attr( $sub->id ); ?>">
-						<span class="dashicons dashicons-media-document ffc-rereg-icon"></span>
-						<?php esc_html_e( 'Ficha', 'ffcertificate' ); ?>
-					</button>
-				<?php endif; ?>
-			</td>
-		</tr>
-		<?php
+		include FFC_PLUGIN_DIR . 'templates/admin/reregistration/submission-row.php';
 	}
 
 	// ─────────────────────────────────────────────.
@@ -662,30 +288,6 @@ final class ReregistrationAdminRenderer {
 				}
 			}
 		}
-		?>
-		<?php
-			$flat_json     = wp_json_encode( $flat );
-			$selected_json = wp_json_encode( array_values( $selected_ids ) );
-		?>
-		<div class="ffc-transfer-list" data-audiences="<?php echo esc_attr( $flat_json ? $flat_json : '' ); ?>" data-selected="<?php echo esc_attr( $selected_json ? $selected_json : '' ); ?>">
-			<div class="ffc-transfer-col ffc-transfer-available">
-				<div class="ffc-transfer-header"><?php esc_html_e( 'Available', 'ffcertificate' ); ?></div>
-				<input type="text" class="ffc-transfer-search" placeholder="<?php esc_attr_e( 'Filter...', 'ffcertificate' ); ?>">
-				<div class="ffc-transfer-items"></div>
-			</div>
-			<div class="ffc-transfer-actions">
-				<button type="button" class="button ffc-transfer-add" title="<?php esc_attr_e( 'Add selected', 'ffcertificate' ); ?>">&rsaquo;</button>
-				<button type="button" class="button ffc-transfer-add-all" title="<?php esc_attr_e( 'Add all', 'ffcertificate' ); ?>">&raquo;</button>
-				<button type="button" class="button ffc-transfer-remove" title="<?php esc_attr_e( 'Remove selected', 'ffcertificate' ); ?>">&lsaquo;</button>
-				<button type="button" class="button ffc-transfer-remove-all" title="<?php esc_attr_e( 'Remove all', 'ffcertificate' ); ?>">&laquo;</button>
-			</div>
-			<div class="ffc-transfer-col ffc-transfer-selected">
-				<div class="ffc-transfer-header"><?php esc_html_e( 'Selected', 'ffcertificate' ); ?></div>
-				<div class="ffc-transfer-items"></div>
-			</div>
-			<div class="ffc-transfer-hidden-inputs"></div>
-		</div>
-		<p class="description ffc-transfer-member-count"></p>
-		<?php
+		include FFC_PLUGIN_DIR . 'templates/admin/reregistration/transfer-list.php';
 	}
 }
