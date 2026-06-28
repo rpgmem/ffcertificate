@@ -477,4 +477,63 @@ class TabGeolocationTest extends TestCase {
         @unlink( $tmp_dir . '/ffc-tab-geolocation.php' );
         @rmdir( $tmp_dir );
     }
+    // ==================================================================
+    // enqueue_scripts() + handle_location_delete()
+    // ==================================================================
+
+    public function test_enqueue_scripts_skips_on_wrong_hook(): void {
+        Functions\when( 'wp_enqueue_script' )->alias( function () { throw new \RuntimeException( 'enqueued' ); } );
+        $this->tab->enqueue_scripts( 'some-other-hook' );
+        $this->assertTrue( true );
+    }
+
+    public function test_enqueue_scripts_skips_on_wrong_tab(): void {
+        $_GET['tab'] = 'datetime';
+        Functions\when( 'wp_enqueue_script' )->alias( function () { throw new \RuntimeException( 'enqueued' ); } );
+        $this->tab->enqueue_scripts( 'ffc_form_page_ffc-settings' );
+        unset( $_GET['tab'] );
+        $this->assertTrue( true );
+    }
+
+    public function test_enqueue_scripts_enqueues_on_geolocation_tab(): void {
+        $_GET['tab'] = 'geolocation';
+        $handles = array();
+        Functions\when( 'wp_enqueue_script' )->alias( function ( $h ) use ( &$handles ) { $handles[] = $h; } );
+        Functions\when( 'wp_enqueue_style' )->justReturn( null );
+        Functions\when( 'wp_register_script' )->justReturn( true );
+        Functions\when( 'wp_localize_script' )->justReturn( true );
+        Functions\when( 'wp_create_nonce' )->justReturn( 'nonce' );
+        Functions\when( 'admin_url' )->returnArg();
+
+        $this->tab->enqueue_scripts( 'ffc_form_page_ffc-settings' );
+        unset( $_GET['tab'] );
+
+        $this->assertContains( 'ffc-geolocation-settings', $handles );
+        $this->assertContains( 'ffc-locations-crud', $handles );
+    }
+
+    public function test_handle_location_delete_noop_without_param(): void {
+        $ref = new \ReflectionMethod( TabGeolocation::class, 'handle_location_delete' );
+        $ref->setAccessible( true );
+        $ref->invoke( $this->tab );
+        $this->assertTrue( true );
+    }
+
+    public function test_handle_location_delete_dies_on_bad_nonce(): void {
+        $_GET['ffc_delete_location'] = 'loc1';
+        $_GET['_wpnonce']            = 'bad';
+        Functions\when( 'wp_verify_nonce' )->justReturn( false );
+        Functions\when( 'wp_die' )->alias( function () { throw new \RuntimeException( 'wp_die' ); } );
+
+        $ref = new \ReflectionMethod( TabGeolocation::class, 'handle_location_delete' );
+        $ref->setAccessible( true );
+
+        try {
+            $ref->invoke( $this->tab );
+            $this->fail( 'expected wp_die' );
+        } catch ( \RuntimeException $e ) {
+            $this->assertSame( 'wp_die', $e->getMessage() );
+        }
+        unset( $_GET['ffc_delete_location'], $_GET['_wpnonce'] );
+    }
 }
