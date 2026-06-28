@@ -305,4 +305,206 @@ class IpGeolocationTest extends TestCase {
 
         $this->assertSame( 5, $count );
     }
+
+    // ==================================================================
+    // get_location() — fetch / cache / cascade paths
+    // ==================================================================
+
+    /** Enable the geolocation API with the given extra settings. */
+    private function enable_geo( array $extra = array() ): void {
+        $geo = array_merge( array( 'ip_api_enabled' => '1', 'ip_api_service' => 'ip-api' ), $extra );
+        Functions\when( 'FreeFormCertificate\Settings\get_option' )->justReturn( $geo );
+        Functions\when( 'get_option' )->justReturn( $geo );
+        Functions\when( 'FreeFormCertificate\Integrations\apply_filters' )->alias(
+            static function ( $tag, $val = null ) {
+                return $val;
+            }
+        );
+    }
+
+    /** Stub wp_remote_get to dispatch by URL, with the body wired through. */
+    private function stub_http( callable $byUrl ): void {
+        Functions\when( 'FreeFormCertificate\Integrations\wp_remote_get' )->alias(
+            static function ( $url ) use ( $byUrl ) {
+                return $byUrl( (string) $url );
+            }
+        );
+        Functions\when( 'FreeFormCertificate\Integrations\wp_remote_retrieve_body' )->alias(
+            static function ( $resp ) {
+                return is_array( $resp ) ? (string) ( $resp['body'] ?? '' ) : '';
+            }
+        );
+    }
+
+    public function test_get_location_returns_cached_when_present(): void {
+        $this->enable_geo( array( 'ip_cache_enabled' => '1' ) );
+        $cached = array( 'ip' => '8.8.8.8', 'country' => 'US', 'service' => 'ip-api' );
+        Functions\when( 'FreeFormCertificate\Integrations\get_transient' )->justReturn( $cached );
+
+        $result = IpGeolocation::get_location( '8.8.8.8' );
+
+        $this->assertIsArray( $result );
+        $this->assertSame( 'US', $result['country'] );
+    }
+
+    public function test_get_location_ipapi_success_and_caches(): void {
+        $this->enable_geo( array( 'ip_cache_enabled' => '1', 'ip_cache_ttl' => 600 ) );
+        Functions\when( 'FreeFormCertificate\Integrations\get_transient' )->justReturn( false );
+        $body = (string) wp_json_encode(
+            array(
+                'status'      => 'success',
+                'country'     => 'United States',
+                'countryCode' => 'US',
+                'regionName'  => 'California',
+                'region'      => 'CA',
+                'city'        => 'Mountain View',
+                'lat'         => 37.4,
+                'lon'         => -122.0,
+            )
+        );
+        $this->stub_http(
+            static function () use ( $body ) {
+                return array( 'body' => $body );
+            }
+        );
+
+        $result = IpGeolocation::get_location( '8.8.8.8' );
+
+        $this->assertIsArray( $result );
+        $this->assertSame( 'ip-api', $result['service'] );
+        $this->assertSame( 'US', $result['country_code'] );
+        $this->assertSame( 'Mountain View', $result['city'] );
+    }
+
+    public function test_get_location_ipapi_api_error_status(): void {
+        $this->enable_geo();
+        $body = (string) wp_json_encode( array( 'status' => 'fail', 'message' => 'reserved range' ) );
+        $this->stub_http(
+            static function () use ( $body ) {
+                return array( 'body' => $body );
+            }
+        );
+
+        $result = IpGeolocation::get_location( '8.8.8.8' );
+
+        $this->assertInstanceOf( \WP_Error::class, $result );
+        $this->assertSame( 'api_error', $result->get_error_code() );
+    }
+
+    public function test_get_location_ipapi_invalid_response(): void {
+        $this->enable_geo();
+        $this->stub_http(
+            static function () {
+                return array( 'body' => 'not-json' );
+            }
+        );
+
+        $result = IpGeolocation::get_location( '8.8.8.8' );
+
+        $this->assertInstanceOf( \WP_Error::class, $result );
+        $this->assertSame( 'invalid_response', $result->get_error_code() );
+    }
+
+    public function test_get_location_ipinfo_success(): void {
+        $this->enable_geo( array( 'ip_api_service' => 'ipinfo', 'ipinfo_api_key' => 'k' ) );
+        $body = (string) wp_json_encode(
+            array(
+                'country' => 'BR',
+                'region'  => 'SP',
+                'city'    => 'Sao Paulo',
+                'loc'     => '-23.55,-46.63',
+            )
+        );
+        $this->stub_http(
+            static function () use ( $body ) {
+                return array( 'body' => $body );
+            }
+        );
+
+        $result = IpGeolocation::get_location( '8.8.8.8' );
+
+        $this->assertIsArray( $result );
+        $this->assertSame( 'ipinfo', $result['service'] );
+        $this->assertSame( 'Sao Paulo', $result['city'] );
+        $this->assertEqualsWithDelta( -23.55, $result['latitude'], 0.01 );
+    }
+
+    public function test_get_location_ipinfo_api_error(): void {
+        $this->enable_geo( array( 'ip_api_service' => 'ipinfo' ) );
+        $body = (string) wp_json_encode( array( 'error' => array( 'title' => 'rate limited' ) ) );
+        $this->stub_http(
+            static function () use ( $body ) {
+                return array( 'body' => $body );
+            }
+        );
+
+        $result = IpGeolocation::get_location( '8.8.8.8' );
+
+        $this->assertInstanceOf( \WP_Error::class, $result );
+        $this->assertSame( 'api_error', $result->get_error_code() );
+    }
+
+    public function test_get_location_unknown_service_returns_error(): void {
+        $this->enable_geo( array( 'ip_api_service' => 'bogus' ) );
+
+        $result = IpGeolocation::get_location( '8.8.8.8' );
+
+        $this->assertInstanceOf( \WP_Error::class, $result );
+        $this->assertSame( 'unknown_service', $result->get_error_code() );
+    }
+
+    public function test_get_location_cascades_to_alternative_on_primary_failure(): void {
+        $this->enable_geo( array( 'ip_api_service' => 'ip-api', 'ip_api_cascade' => '1' ) );
+        $ipinfo_body = (string) wp_json_encode(
+            array(
+                'country' => 'BR',
+                'region'  => 'SP',
+                'city'    => 'Campinas',
+                'loc'     => '-22.9,-47.0',
+            )
+        );
+        // ip-api (primary) fails; ipinfo (alternative) succeeds.
+        $this->stub_http(
+            static function ( $url ) use ( $ipinfo_body ) {
+                if ( false !== strpos( $url, 'ip-api.com' ) ) {
+                    return new \WP_Error( 'http_fail', 'down' );
+                }
+                return array( 'body' => $ipinfo_body );
+            }
+        );
+
+        $result = IpGeolocation::get_location( '8.8.8.8' );
+
+        $this->assertIsArray( $result );
+        $this->assertSame( 'ipinfo', $result['service'] );
+        $this->assertSame( 'Campinas', $result['city'] );
+    }
+
+    public function test_get_location_defaults_to_request_ip_when_omitted(): void {
+        $this->enable_geo();
+        Mockery::mock( 'alias:FreeFormCertificate\Core\RequestInput' )
+            ->shouldReceive( 'get_user_ip' )->andReturn( '8.8.8.8' );
+        $body = (string) wp_json_encode(
+            array(
+                'status'      => 'success',
+                'country'     => 'United States',
+                'countryCode' => 'US',
+                'regionName'  => 'California',
+                'region'      => 'CA',
+                'city'        => 'Mountain View',
+                'lat'         => 37.4,
+                'lon'         => -122.0,
+            )
+        );
+        $this->stub_http(
+            static function () use ( $body ) {
+                return array( 'body' => $body );
+            }
+        );
+
+        $result = IpGeolocation::get_location();
+
+        $this->assertIsArray( $result );
+        $this->assertSame( 'US', $result['country_code'] );
+    }
 }
