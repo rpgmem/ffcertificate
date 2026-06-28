@@ -482,8 +482,12 @@ class IpGeolocationTest extends TestCase {
 
     public function test_get_location_defaults_to_request_ip_when_omitted(): void {
         $this->enable_geo();
-        Mockery::mock( 'alias:FreeFormCertificate\Core\RequestInput' )
-            ->shouldReceive( 'get_user_ip' )->andReturn( '8.8.8.8' );
+        // Drive the real RequestInput::get_user_ip() via $_SERVER (no alias mock —
+        // RequestInput is already autoloaded by other suite tests, so an alias
+        // mock would collide in the full run).
+        $_SERVER['REMOTE_ADDR'] = '8.8.8.8';
+        Functions\when( 'FreeFormCertificate\Core\sanitize_text_field' )->returnArg();
+        Functions\when( 'FreeFormCertificate\Core\wp_unslash' )->returnArg();
         $body = (string) wp_json_encode(
             array(
                 'status'      => 'success',
@@ -506,5 +510,7 @@ class IpGeolocationTest extends TestCase {
 
         $this->assertIsArray( $result );
         $this->assertSame( 'US', $result['country_code'] );
+
+        unset( $_SERVER['REMOTE_ADDR'] );
     }
 }
