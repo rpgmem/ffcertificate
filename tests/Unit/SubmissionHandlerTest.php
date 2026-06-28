@@ -20,6 +20,7 @@ use FreeFormCertificate\Core\Encryption;
  * is always active.
  * @runClassInSeparateProcess
  * @preserveGlobalState disabled
+ * @covers \FreeFormCertificate\Submissions\SubmissionHandler
  * @covers \FreeFormCertificate\Submissions\SubmissionLifecycleService
  */
 class SubmissionHandlerTest extends TestCase {
@@ -34,8 +35,9 @@ class SubmissionHandlerTest extends TestCase {
         Monkey\setUp();
 
         // pcov does not record lines for files first autoloaded mid-test-method,
-        // so the lifecycle service's coverage would attribute to nothing. Preload
-        // the extracted class here so pcov attributes its lines to this test.
+        // so the handler + lifecycle service coverage would attribute to nothing.
+        // Preload both classes here so pcov attributes their lines to this test.
+        class_exists( '\\FreeFormCertificate\\Submissions\\SubmissionHandler' );
         class_exists( '\\FreeFormCertificate\\Submissions\\SubmissionLifecycleService' );
 
         // Mock global $wpdb
