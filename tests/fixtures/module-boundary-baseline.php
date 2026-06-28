@@ -78,7 +78,6 @@ return array(
 	'Recruitment>UserDashboard',
 	'Repositories>Core',
 	'Repositories>Submissions',
-	'Reregistration>Admin',
 	'Reregistration>Audience',
 	'Reregistration>Core',
 	'Reregistration>Generators',
