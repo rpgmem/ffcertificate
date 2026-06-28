@@ -480,4 +480,100 @@ class QRCodeGeneratorTest extends TestCase {
 
         $this->assertSame( '', $this->generator->generate_magic_link_qr( 7 ) );
     }
+
+    // ──────────────────────────────────────────────────────────────────.
+    // get_from_cache() / save_to_cache() — the per-submission cache
+    // read/write the parse_and_generate() path uses when a submission_id
+    // is supplied and caching is on. Private; driven via reflection.
+    // ──────────────────────────────────────────────────────────────────.
+
+    public function test_get_from_cache_returns_false_when_column_missing(): void {
+        // Default get_results → [] → column treated as absent.
+        $this->assertFalse( $this->invokePrivate( 'get_from_cache', array( 5 ) ) );
+    }
+
+    public function test_get_from_cache_returns_cached_value_when_present(): void {
+        global $wpdb;
+        $wpdb->shouldReceive( 'get_results' )
+            ->andReturn( array( (object) array( 'Field' => 'qr_code_cache' ) ) );
+        $wpdb->shouldReceive( 'get_var' )->andReturn( 'CACHEDB64' );
+
+        $this->assertSame( 'CACHEDB64', $this->invokePrivate( 'get_from_cache', array( 5 ) ) );
+    }
+
+    public function test_get_from_cache_returns_false_when_value_empty(): void {
+        global $wpdb;
+        $wpdb->shouldReceive( 'get_results' )
+            ->andReturn( array( (object) array( 'Field' => 'qr_code_cache' ) ) );
+        $wpdb->shouldReceive( 'get_var' )->andReturn( '' );
+
+        $this->assertFalse( $this->invokePrivate( 'get_from_cache', array( 5 ) ) );
+    }
+
+    public function test_save_to_cache_updates_when_column_present(): void {
+        global $wpdb;
+        $wpdb->shouldReceive( 'get_results' )
+            ->andReturn( array( (object) array( 'Field' => 'qr_code_cache' ) ) );
+
+        $captured = array();
+        $wpdb->shouldReceive( 'update' )
+            ->once()
+            ->andReturnUsing(
+                function ( $table, $data, $where ) use ( &$captured ) {
+                    $captured = compact( 'table', 'data', 'where' );
+                    return 1;
+                }
+            );
+
+        $this->assertTrue( $this->invokePrivate( 'save_to_cache', array( 42, 'NEWB64' ) ) );
+        $this->assertSame( 'wp_ffc_submissions', $captured['table'] );
+        $this->assertSame( 'NEWB64', $captured['data']['qr_code_cache'] );
+        $this->assertSame( 42, $captured['where']['id'] );
+    }
+
+    public function test_save_to_cache_returns_false_on_update_failure(): void {
+        global $wpdb;
+        $wpdb->shouldReceive( 'get_results' )
+            ->andReturn( array( (object) array( 'Field' => 'qr_code_cache' ) ) );
+        $wpdb->shouldReceive( 'update' )->andReturn( false );
+
+        $this->assertFalse( $this->invokePrivate( 'save_to_cache', array( 42, 'B64' ) ) );
+    }
+
+    // ──────────────────────────────────────────────────────────────────.
+    // parse_and_generate() — the cache-hit short-circuit and the
+    // cache-write-after-generate paths (submission_id + caching on).
+    // ──────────────────────────────────────────────────────────────────.
+
+    public function test_parse_and_generate_serves_from_cache_when_available(): void {
+        Functions\when( 'FreeFormCertificate\Generators\get_option' )->justReturn(
+            array( 'qr_cache_enabled' => 1 )
+        );
+        global $wpdb;
+        // Column present + cached value → cache-hit branch (no \QRcode render).
+        $wpdb->shouldReceive( 'get_results' )
+            ->andReturn( array( (object) array( 'Field' => 'qr_code_cache' ) ) );
+        $wpdb->shouldReceive( 'get_var' )->andReturn( 'CACHEDB64' );
+
+        $html = $this->generator->parse_and_generate( '{{qr_code}}', 'https://example.com', 5 );
+
+        $this->assertStringContainsString( 'CACHEDB64', $html );
+        $this->assertStringContainsString( '<img', $html );
+    }
+
+    public function test_parse_and_generate_caches_after_generation_on_miss(): void {
+        Functions\when( 'FreeFormCertificate\Generators\get_option' )->justReturn(
+            array( 'qr_cache_enabled' => 1 )
+        );
+        global $wpdb;
+        // Column present, but nothing cached yet → generate then save_to_cache.
+        $wpdb->shouldReceive( 'get_results' )
+            ->andReturn( array( (object) array( 'Field' => 'qr_code_cache' ) ) );
+        $wpdb->shouldReceive( 'get_var' )->andReturn( null );
+        $wpdb->shouldReceive( 'update' )->once()->andReturn( 1 );
+
+        $html = $this->generator->parse_and_generate( '{{qr_code}}', 'https://example.com', 7 );
+
+        $this->assertStringContainsString( '<img', $html );
+    }
 }
