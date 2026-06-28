@@ -195,4 +195,21 @@ class UrlShortenerQrHandlerTest extends TestCase {
         $ref->setAccessible( true );
         return $ref->invoke( $this->handler );
     }
+    // ==================================================================
+    // generate_svg() — pure matrix → SVG (phpqrcode raw, no GD/temp files)
+    // ==================================================================
+
+    public function test_generate_svg_returns_svg_markup(): void {
+        $svg = $this->handler->generate_svg( 'https://example.com/x', 200 );
+
+        $this->assertStringContainsString( '<svg', $svg );
+        $this->assertStringContainsString( 'viewBox', $svg );
+        $this->assertStringContainsString( 'fill="black"', $svg );
+    }
+
+    public function test_generate_svg_clamps_module_size_for_tiny_size(): void {
+        // size smaller than the module count forces module_size = 1.
+        $svg = $this->handler->generate_svg( 'https://example.com/x', 1 );
+        $this->assertStringContainsString( '<svg', $svg );
+    }
 }
