@@ -40,6 +40,12 @@ class PublicCsvExporterTest extends TestCase {
         class_exists( '\\FreeFormCertificate\Frontend\Csv\PublicCsvRowFormatter' );
 
         Functions\when( '__' )->returnArg();
+        // The exporter calls i18n/escape helpers unqualified inside the Frontend
+        // namespace; once Brain Monkey defines a namespaced function in the
+        // process it must stay mocked, so stub them globally here.
+        Functions\when( 'FreeFormCertificate\Frontend\__' )->returnArg();
+        Functions\when( 'FreeFormCertificate\Frontend\esc_html' )->returnArg();
+        Functions\when( 'FreeFormCertificate\Frontend\esc_html__' )->returnArg();
         Functions\when( 'get_the_title' )->justReturn( 'Public Test Form' );
         Functions\when( 'get_userdata' )->alias( function ( $id ) {
             $user = new \stdClass();
@@ -395,5 +401,176 @@ class PublicCsvExporterTest extends TestCase {
         $this->set_repository( $repo );
 
         $this->assertSame( array(), $this->invoke( 'scan_dynamic_keys', array( array( 1 ), 'publish' ) ) );
+    }
+
+    // ==================================================================
+    //  stream_form_csv() — synchronous export guard (over-limit path)
+    // ==================================================================
+
+    public function test_stream_form_csv_renders_limit_page_when_over_threshold(): void {
+        // The exporter calls these unqualified inside the Frontend namespace,
+        // so intercept the namespaced resolutions (raw header() included, to
+        // avoid "headers already sent" from PHPUnit's own output).
+        Functions\when( 'FreeFormCertificate\Frontend\status_header' )->justReturn( null );
+        Functions\when( 'FreeFormCertificate\Frontend\nocache_headers' )->justReturn( null );
+        Functions\when( 'FreeFormCertificate\Frontend\header' )->justReturn( null );
+        Functions\when( 'FreeFormCertificate\Frontend\esc_html' )->returnArg();
+        Functions\when( 'FreeFormCertificate\Frontend\__' )->returnArg();
+        // get_sync_max_rows() reads SettingsReader::get_int → default; the
+        // mocked count far exceeds it, so the sync path is refused.
+        $repo = \Mockery::mock( 'FreeFormCertificate\Repositories\SubmissionRepository' );
+        $repo->shouldReceive( 'countForExport' )->once()->andReturn( 9999999 );
+        $this->set_repository( $repo );
+
+        ob_start();
+        $this->exporter->stream_form_csv( 1, 'publish' );
+        $html = (string) ob_get_clean();
+
+        $this->assertStringContainsString( 'Export too large', $html );
+        $this->assertStringContainsString( '9999999', $html );
+    }
+
+    // ==================================================================
+    //  ajax_batch() / ajax_download() — request-security guard branches
+    // ==================================================================
+
+    /** Make wp_send_json_error / wp_die halt (as they do in production). */
+    private function stub_terminators(): void {
+        Functions\when( 'FreeFormCertificate\Frontend\wp_send_json_error' )->alias(
+            static function () {
+                throw new \RuntimeException( 'json_error' );
+            }
+        );
+        Functions\when( 'FreeFormCertificate\Frontend\wp_die' )->alias(
+            static function () {
+                throw new \RuntimeException( 'wp_die' );
+            }
+        );
+        Functions\when( 'FreeFormCertificate\Frontend\esc_html__' )->returnArg();
+    }
+
+    public function test_ajax_batch_rejects_when_job_missing(): void {
+        $this->stub_terminators();
+        Functions\when( 'FreeFormCertificate\Frontend\get_transient' )->justReturn( false );
+
+        $this->expectException( \RuntimeException::class );
+        $this->expectExceptionMessage( 'json_error' );
+        $this->exporter->ajax_batch();
+    }
+
+    public function test_ajax_batch_rejects_on_bad_nonce(): void {
+        $this->stub_terminators();
+        Functions\when( 'FreeFormCertificate\Frontend\get_transient' )->justReturn(
+            array( 'ip_hash' => 'x', 'form_ids' => array( 1 ), 'status' => 'publish', 'cursor' => 0 )
+        );
+        Functions\when( 'FreeFormCertificate\Frontend\wp_verify_nonce' )->justReturn( false );
+
+        $this->expectException( \RuntimeException::class );
+        $this->exporter->ajax_batch();
+    }
+
+    public function test_ajax_batch_rejects_on_ip_mismatch(): void {
+        $this->stub_terminators();
+        Functions\when( 'FreeFormCertificate\Frontend\get_transient' )->justReturn(
+            array( 'ip_hash' => 'no-match', 'form_ids' => array( 1 ), 'status' => 'publish', 'cursor' => 0 )
+        );
+        Functions\when( 'FreeFormCertificate\Frontend\wp_verify_nonce' )->justReturn( true );
+
+        $this->expectException( \RuntimeException::class );
+        $this->exporter->ajax_batch();
+    }
+
+    public function test_ajax_download_rejects_when_job_missing(): void {
+        $this->stub_terminators();
+        Functions\when( 'FreeFormCertificate\Frontend\get_transient' )->justReturn( false );
+
+        $this->expectException( \RuntimeException::class );
+        $this->expectExceptionMessage( 'wp_die' );
+        $this->exporter->ajax_download();
+    }
+
+    public function test_ajax_download_rejects_when_file_missing(): void {
+        $this->stub_terminators();
+        Functions\when( 'FreeFormCertificate\Frontend\get_transient' )->justReturn(
+            array( 'ip_hash' => sha1( '' ), 'file' => '/no/such/file.csv' )
+        );
+        Functions\when( 'FreeFormCertificate\Frontend\wp_verify_nonce' )->justReturn( true );
+
+        // job found + nonce ok + ip matches (sha1 of empty REMOTE_ADDR) → file_exists false → wp_die.
+        $this->expectException( \RuntimeException::class );
+        $this->exporter->ajax_download();
+    }
+
+    /** Job present, nonce ok, IP matches — set up the shared preconditions. */
+    private function prime_batch_job( array $overrides = array() ): void {
+        $_SERVER['REMOTE_ADDR'] = '203.0.113.7';
+        Functions\when( 'FreeFormCertificate\Core\sanitize_text_field' )->returnArg();
+        Functions\when( 'FreeFormCertificate\Core\wp_unslash' )->returnArg();
+        Functions\when( 'FreeFormCertificate\Frontend\wp_verify_nonce' )->justReturn( true );
+        Functions\when( 'FreeFormCertificate\Frontend\set_transient' )->justReturn( true );
+        Functions\when( 'FreeFormCertificate\Frontend\do_action' )->justReturn( null );
+        Functions\when( 'FreeFormCertificate\Frontend\apply_filters' )->alias(
+            static function () {
+                $a = func_get_args();
+                return $a[1] ?? null;
+            }
+        );
+        Functions\when( 'FreeFormCertificate\Frontend\wp_send_json_success' )->alias(
+            static function () {
+                throw new \RuntimeException( 'json_success' );
+            }
+        );
+        $job = array_merge(
+            array(
+                'ip_hash'              => sha1( '203.0.113.7' ),
+                'form_ids'            => array( 1 ),
+                'status'              => 'publish',
+                'cursor'              => 0,
+                'processed'           => 0,
+                'total'               => 5,
+                'dynamic_keys'        => array(),
+                'include_edit_columns' => false,
+            ),
+            $overrides
+        );
+        Functions\when( 'FreeFormCertificate\Frontend\get_transient' )->justReturn( $job );
+    }
+
+    public function test_ajax_batch_completes_when_batch_empty(): void {
+        $this->stub_terminators();
+        $this->prime_batch_job();
+        $repo = \Mockery::mock( 'FreeFormCertificate\Repositories\SubmissionRepository' );
+        $repo->shouldReceive( 'getExportBatch' )->once()->andReturn( array() );
+        $this->set_repository( $repo );
+
+        $this->expectException( \RuntimeException::class );
+        $this->expectExceptionMessage( 'json_success' );
+        $this->exporter->ajax_batch();
+
+        unset( $_SERVER['REMOTE_ADDR'] );
+    }
+
+    public function test_ajax_batch_writes_rows_and_advances_cursor(): void {
+        $this->stub_terminators();
+        $tmp = (string) tempnam( sys_get_temp_dir(), 'ffccsv' );
+        $this->prime_batch_job( array( 'file' => $tmp ) );
+        $repo = \Mockery::mock( 'FreeFormCertificate\Repositories\SubmissionRepository' );
+        $repo->shouldReceive( 'getExportBatch' )->once()->andReturn(
+            array(
+                array( 'id' => 11, 'form_id' => 1, 'data' => array(), 'auth_code' => 'A1' ),
+            )
+        );
+        $this->set_repository( $repo );
+
+        try {
+            $this->exporter->ajax_batch();
+            $this->fail( 'expected wp_send_json_success to halt' );
+        } catch ( \RuntimeException $e ) {
+            $this->assertSame( 'json_success', $e->getMessage() );
+        }
+
+        $this->assertNotEmpty( (string) file_get_contents( $tmp ), 'a CSV row should have been appended' );
+        @unlink( $tmp );
+        unset( $_SERVER['REMOTE_ADDR'] );
     }
 }
