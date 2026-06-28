@@ -7,6 +7,10 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Changed
+
+- Internal refactor (#563 — coverage hygiene) — extracted the inline admin markup from `RecruitmentAdminPageRenderer` (settings tab, candidates CSV-import section, the create-notice/adjutancy/reason forms, the tab nav, the first-run empty state and the REST pointer) into `templates/admin/recruitment/admin-page/*.php` partials. Markup is byte-identical; the renderer keeps only the data-prep/capability logic and includes each partial. The view class shrinks 729→354 lines (437→127 in-scope statements), moving pure presentation out of the coverage scope per the established `templates/` convention.
+
 ## [6.12.0] (2026-06-26) — `79f2c09`
 
 ### Security
