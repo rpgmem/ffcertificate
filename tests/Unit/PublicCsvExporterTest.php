@@ -20,8 +20,15 @@ use FreeFormCertificate\Frontend\PublicCsvExporter;
  * Uses Reflection + newInstanceWithoutConstructor() to avoid the real
  * SubmissionRepository (which needs a wpdb).
  *
+ * Runs in separate processes: the AJAX/stream paths define namespaced
+ * helper stubs (FreeFormCertificate\Frontend\__, apply_filters, header, …)
+ * that PHP cannot undefine, which would otherwise leak "MissingFunctionExpectations"
+ * into sibling Frontend-namespace tests (ScheduleExceptionAction, VerificationHandler).
+ *
  * @covers \FreeFormCertificate\Frontend\PublicCsvExporter
  * @covers \FreeFormCertificate\Frontend\Csv\PublicCsvRowFormatter
+ * @runTestsInSeparateProcesses
+ * @preserveGlobalState disabled
  */
 class PublicCsvExporterTest extends TestCase {
 
