@@ -8,6 +8,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 ## [Unreleased]
 
 ### Changed
+- Internal (#563 — coverage hygiene) — `@covers`-gap audit: `FormEditorSaveHandler` and `CsvValidator` were exercised by their dedicated tests (`FormEditorSaveHandlerTest`, `RecruitmentCsvImporterTest`) but filtered out of coverage because those tests `@covers`\'d only a sibling/parent class. Added the missing `@covers` (+ `class_exists()` preloads), attributing the existing execution — `FormEditorSaveHandler` 0%→70%, `CsvValidator` 0%→97%, overall PHP coverage 69.16%→70.17%. No new test code; no behavior change.
 - Internal (#563 — coverage hygiene) — ratcheted the PHP coverage floor `COVERAGE_FLOOR_LINES` 66 → 67 after the markup-extraction sweep (#605/#606/#607) moved ~788 uncovered statements into `templates/` (out of scope); re-measured 69.16%.
 - Internal (#563 — coverage hygiene) — `SubmissionHandlerTest` already exercises `SubmissionHandler` end-to-end (process/update/trash/restore/delete/bulk/decrypt/magic-token, 47 tests), but its `@covers` listed only the extracted `SubmissionLifecycleService`, so PHPUnit filtered the handler's executed lines out (reported 0%). Added the missing `@covers \\FreeFormCertificate\\Submissions\\SubmissionHandler` (+ a `class_exists()` preload), attributing the existing coverage — the handler goes 0%→90% and the `submissions` module 43%→76%. No new test code; no behavior change.
 
