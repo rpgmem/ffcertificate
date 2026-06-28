@@ -29,16 +29,60 @@ class RecruitmentCandidatesListTableTest extends TestCase {
 
         Functions\when( '__' )->returnArg();
         Functions\when( 'esc_html__' )->returnArg();
+        Functions\when( 'esc_attr__' )->returnArg();
         Functions\when( 'esc_html' )->returnArg();
         Functions\when( 'esc_attr' )->returnArg();
         Functions\when( 'esc_url' )->returnArg();
+        Functions\when( 'sanitize_text_field' )->returnArg();
+        Functions\when( 'sanitize_email' )->returnArg();
+        Functions\when( 'sanitize_key' )->alias( fn( $v ) => strtolower( preg_replace( '/[^a-z0-9_\-]/', '', (string) $v ) ) );
+        Functions\when( 'wp_unslash' )->returnArg();
+        Functions\when( 'absint' )->alias( fn( $v ) => abs( (int) $v ) );
+        Functions\when( 'add_query_arg' )->alias( fn( $args, $url = '' ) => $url . '?' . http_build_query( (array) $args ) );
+        Functions\when( 'admin_url' )->alias( fn( $p = '' ) => 'https://example.com/wp-admin/' . $p );
+        Functions\when( 'wp_nonce_url' )->alias( fn( $url, $action = -1 ) => $url . '&_wpnonce=test' );
+        Functions\when( 'wp_json_encode' )->alias( fn( $v ) => json_encode( $v ) );
         Functions\when( 'get_userdata' )->justReturn( false );
         Functions\when( 'get_edit_user_link' )->justReturn( '/wp-admin/user-edit.php?user_id=1' );
+
+        // Real stub for the admin page (PAGE_SLUG constant).
+        if ( ! class_exists( '\FreeFormCertificate\Recruitment\RecruitmentAdminPage', false ) ) {
+            eval(
+                'namespace FreeFormCertificate\Recruitment;'
+                . ' class RecruitmentAdminPage { public const PAGE_SLUG = "ffc-recruitment"; }'
+            );
+        }
+        // Reader stub — drives prepare_items() + resolve_id_constraint().
+        if ( ! class_exists( '\FreeFormCertificate\Recruitment\RecruitmentCandidateReader', false ) ) {
+            eval(
+                'namespace FreeFormCertificate\Recruitment;'
+                . ' class RecruitmentCandidateReader {'
+                . ' public static $count = 0;'
+                . ' public static $rows = array();'
+                . ' public static $cpf_row = null;'
+                . ' public static $rf_row = null;'
+                . ' public static $email_ids = array();'
+                . ' public static function count_paginated_filtered( $s, $c, $a, $st ) { return self::$count; }'
+                . ' public static function get_paginated_filtered( $s, $c, $a, $st, $pp, $off ) { return self::$rows; }'
+                . ' public static function get_by_cpf_hash( $h ) { return self::$cpf_row; }'
+                . ' public static function get_by_rf_hash( $h ) { return self::$rf_row; }'
+                . ' public static function get_ids_by_email_hash( $h ) { return self::$email_ids; } }'
+            );
+        }
+        \FreeFormCertificate\Recruitment\RecruitmentCandidateReader::$count     = 0;
+        \FreeFormCertificate\Recruitment\RecruitmentCandidateReader::$rows      = array();
+        \FreeFormCertificate\Recruitment\RecruitmentCandidateReader::$cpf_row   = null;
+        \FreeFormCertificate\Recruitment\RecruitmentCandidateReader::$rf_row    = null;
+        \FreeFormCertificate\Recruitment\RecruitmentCandidateReader::$email_ids = array();
 
         $this->table = new RecruitmentCandidatesListTable();
     }
 
     protected function tearDown(): void {
+        unset(
+            $_REQUEST['cpf'], $_REQUEST['rf'], $_REQUEST['email'], $_REQUEST['s'],
+            $_REQUEST['adjutancy_id'], $_REQUEST['status']
+        );
         Monkey\tearDown();
         parent::tearDown();
     }
@@ -127,5 +171,189 @@ class RecruitmentCandidatesListTableTest extends TestCase {
     public function test_column_created_at_returns_timestamp_string(): void {
         $out = $this->call_protected( 'column_created_at', array( array( 'created_at' => '2026-03-15 09:30:00' ) ) );
         $this->assertSame( '2026-03-15 09:30:00', $out );
+    }
+
+    // ------------------------------------------------------------------
+    // column_name() — row actions (Edit / Delete)
+    // ------------------------------------------------------------------
+
+    public function test_column_name_renders_edit_delete_row_actions(): void {
+        $out = $this->call_protected( 'column_name', array( array( 'id' => 11, 'name' => 'Jane Doe' ) ) );
+
+        $this->assertStringContainsString( 'Jane Doe', $out );
+        $this->assertStringContainsString( 'action=edit-candidate', $out );
+        $this->assertStringContainsString( 'action=delete-candidate', $out );
+        $this->assertStringContainsString( 'submitdelete', $out );
+    }
+
+    // ------------------------------------------------------------------
+    // prepare_items()
+    // ------------------------------------------------------------------
+
+    private function get_items(): array {
+        $ref = new \ReflectionProperty( $this->table, 'items' );
+        $ref->setAccessible( true );
+        return (array) $ref->getValue( $this->table );
+    }
+
+    private function candidate_obj( int $id, string $name, $user_id = null ): object {
+        return (object) array(
+            'id'         => $id,
+            'name'       => $name,
+            'user_id'    => $user_id,
+            'phone'      => '11999990000',
+            'created_at' => '2026-03-15 09:30:00',
+        );
+    }
+
+    public function test_prepare_items_maps_reader_rows_into_items(): void {
+        Functions\when( '_prime_user_caches' )->justReturn( null );
+        \FreeFormCertificate\Recruitment\RecruitmentCandidateReader::$count = 2;
+        \FreeFormCertificate\Recruitment\RecruitmentCandidateReader::$rows  = array(
+            $this->candidate_obj( 1, 'Alpha', 7 ),
+            $this->candidate_obj( 2, 'Beta', null ),
+        );
+
+        $this->table->prepare_items();
+
+        $items = $this->get_items();
+        $this->assertCount( 2, $items );
+        $this->assertSame( 'Alpha', $items[0]['name'] );
+        $this->assertSame( 7, $items[0]['user_id'] );
+        $this->assertNull( $items[1]['user_id'] );
+    }
+
+    public function test_prepare_items_empty_when_id_constraint_resolves_empty(): void {
+        // CPF typed but no matching candidate → constraint = empty array.
+        $_REQUEST['cpf'] = '123.456.789-00';
+
+        Mockery::mock( 'alias:FreeFormCertificate\Core\DataSanitizer' )
+            ->shouldReceive( 'normalize_cpf_rf' )->andReturn( '12345678900' );
+        Mockery::mock( 'alias:FreeFormCertificate\Core\Encryption' )
+            ->shouldReceive( 'hash' )->andReturn( 'abc' );
+        // cpf_row stays null → resolve returns empty array → 0 rows.
+        \FreeFormCertificate\Recruitment\RecruitmentCandidateReader::$count = 0;
+        \FreeFormCertificate\Recruitment\RecruitmentCandidateReader::$rows  = array();
+
+        $this->table->prepare_items();
+
+        $this->assertSame( array(), $this->get_items() );
+    }
+
+    // ------------------------------------------------------------------
+    // resolve_id_constraint() / resolve_cpf_or_rf_to_ids() (static private)
+    // ------------------------------------------------------------------
+
+    private function call_static_private( string $method, array $args ) {
+        $ref = new \ReflectionMethod( RecruitmentCandidatesListTable::class, $method );
+        $ref->setAccessible( true );
+        return $ref->invokeArgs( null, $args );
+    }
+
+    public function test_resolve_id_constraint_null_when_all_empty(): void {
+        $out = $this->call_static_private( 'resolve_id_constraint', array( '', '', '' ) );
+        $this->assertNull( $out );
+    }
+
+    public function test_resolve_id_constraint_intersects_cpf_and_email(): void {
+        Mockery::mock( 'alias:FreeFormCertificate\Core\DataSanitizer' )
+            ->shouldReceive( 'normalize_cpf_rf' )->andReturn( '12345678900' );
+        Mockery::mock( 'alias:FreeFormCertificate\Core\Encryption' )
+            ->shouldReceive( 'hash' )->andReturn( 'hashval' );
+
+        // CPF resolves to candidate id 5; email resolves to ids [5, 9] → ∩ = [5].
+        \FreeFormCertificate\Recruitment\RecruitmentCandidateReader::$cpf_row   = (object) array( 'id' => 5 );
+        \FreeFormCertificate\Recruitment\RecruitmentCandidateReader::$email_ids = array( 5, 9 );
+
+        $out = $this->call_static_private( 'resolve_id_constraint', array( '123', '', 'a@b.com' ) );
+        $this->assertSame( array( 5 ), $out );
+    }
+
+    public function test_resolve_id_constraint_empty_when_intersection_disjoint(): void {
+        Mockery::mock( 'alias:FreeFormCertificate\Core\DataSanitizer' )
+            ->shouldReceive( 'normalize_cpf_rf' )->andReturn( '12345678900' );
+        Mockery::mock( 'alias:FreeFormCertificate\Core\Encryption' )
+            ->shouldReceive( 'hash' )->andReturn( 'hashval' );
+
+        \FreeFormCertificate\Recruitment\RecruitmentCandidateReader::$cpf_row   = (object) array( 'id' => 5 );
+        \FreeFormCertificate\Recruitment\RecruitmentCandidateReader::$email_ids = array( 9 );
+
+        $out = $this->call_static_private( 'resolve_id_constraint', array( '123', '', 'a@b.com' ) );
+        $this->assertSame( array(), $out );
+    }
+
+    public function test_resolve_cpf_or_rf_to_ids_empty_for_blank_digits(): void {
+        Mockery::mock( 'alias:FreeFormCertificate\Core\DataSanitizer' )
+            ->shouldReceive( 'normalize_cpf_rf' )->andReturn( '' );
+
+        $out = $this->call_static_private( 'resolve_cpf_or_rf_to_ids', array( 'abc', 'cpf' ) );
+        $this->assertSame( array(), $out );
+    }
+
+    public function test_resolve_cpf_or_rf_to_ids_returns_id_for_rf_match(): void {
+        Mockery::mock( 'alias:FreeFormCertificate\Core\DataSanitizer' )
+            ->shouldReceive( 'normalize_cpf_rf' )->andReturn( '999' );
+        Mockery::mock( 'alias:FreeFormCertificate\Core\Encryption' )
+            ->shouldReceive( 'hash' )->andReturn( 'h' );
+        \FreeFormCertificate\Recruitment\RecruitmentCandidateReader::$rf_row = (object) array( 'id' => 42 );
+
+        $out = $this->call_static_private( 'resolve_cpf_or_rf_to_ids', array( '999', 'rf' ) );
+        $this->assertSame( array( 42 ), $out );
+    }
+
+    // ------------------------------------------------------------------
+    // convert_row() (static private)
+    // ------------------------------------------------------------------
+
+    public function test_convert_row_normalizes_nulls(): void {
+        $row = (object) array(
+            'id'         => '3',
+            'name'       => 'Carol',
+            'user_id'    => null,
+            'phone'      => null,
+            'created_at' => '2026-03-15 09:30:00',
+        );
+        $out = $this->call_static_private( 'convert_row', array( $row ) );
+
+        $this->assertSame( 3, $out['id'] );
+        $this->assertNull( $out['user_id'] );
+        $this->assertSame( '', $out['phone'] );
+    }
+
+    // ------------------------------------------------------------------
+    // extra_tablenav()
+    // ------------------------------------------------------------------
+
+    public function test_extra_tablenav_returns_early_for_bottom(): void {
+        ob_start();
+        $this->call_protected( 'extra_tablenav', array( 'bottom' ) );
+        $out = ob_get_clean();
+
+        $this->assertSame( '', $out );
+    }
+
+    public function test_extra_tablenav_top_renders_filters_and_adjutancy_options(): void {
+        // Adjutancy reader stub (separate class from the candidate reader).
+        if ( ! class_exists( '\FreeFormCertificate\Recruitment\RecruitmentAdjutancyReader', false ) ) {
+            eval(
+                'namespace FreeFormCertificate\Recruitment;'
+                . ' class RecruitmentAdjutancyReader {'
+                . ' public static $rows = array();'
+                . ' public static function get_all() { return self::$rows; } }'
+            );
+        }
+        \FreeFormCertificate\Recruitment\RecruitmentAdjutancyReader::$rows = array(
+            (object) array( 'id' => 4, 'name' => 'Adjutancy Four' ),
+        );
+
+        ob_start();
+        $this->call_protected( 'extra_tablenav', array( 'top' ) );
+        $out = ob_get_clean();
+
+        $this->assertStringContainsString( 'name="cpf"', $out );
+        $this->assertStringContainsString( 'name="rf"', $out );
+        $this->assertStringContainsString( 'name="email"', $out );
+        $this->assertStringContainsString( 'Adjutancy Four', $out );
+        $this->assertStringContainsString( 'name="status"', $out );
     }
 }

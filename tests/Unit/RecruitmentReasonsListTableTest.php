@@ -27,9 +27,6 @@ class RecruitmentReasonsListTableTest extends TestCase {
 
     private RecruitmentReasonsListTable $table;
 
-    /** @var \Mockery\MockInterface */
-    private $reasonRepoMock;
-
     protected function setUp(): void {
         parent::setUp();
         Monkey\setUp();
@@ -39,21 +36,49 @@ class RecruitmentReasonsListTableTest extends TestCase {
         Functions\when( 'esc_html' )->returnArg();
         Functions\when( 'esc_attr' )->returnArg();
         Functions\when( 'esc_attr__' )->returnArg();
+        Functions\when( 'esc_url' )->returnArg();
+        Functions\when( 'sanitize_text_field' )->returnArg();
+        Functions\when( 'sanitize_key' )->alias( fn( $v ) => strtolower( preg_replace( '/[^a-z0-9_\-]/', '', (string) $v ) ) );
+        Functions\when( 'wp_unslash' )->returnArg();
+        Functions\when( 'absint' )->alias( fn( $v ) => abs( (int) $v ) );
+        Functions\when( 'add_query_arg' )->alias( fn( $args, $url = '' ) => $url . '?' . http_build_query( (array) $args ) );
+        Functions\when( 'admin_url' )->alias( fn( $p = '' ) => 'https://example.com/wp-admin/' . $p );
+        Functions\when( 'wp_nonce_url' )->alias( fn( $url, $action = -1 ) => $url . '&_wpnonce=test' );
+        Functions\when( 'wp_json_encode' )->alias( fn( $v ) => json_encode( $v ) );
 
-        $this->reasonRepoMock = Mockery::mock( 'alias:FreeFormCertificate\Recruitment\RecruitmentReasonReader' );
-        $this->reasonRepoMock->shouldReceive( 'count_references' )->andReturn( 0 )->byDefault();
-        $this->reasonRepoMock->shouldReceive( 'decode_applies_to' )->andReturnUsing(
-            fn( $stored ) => '' === $stored ? array( 'denied', 'granted', 'appeal_denied', 'appeal_granted' ) : explode( ',', $stored )
-        );
-        if ( ! defined( 'FreeFormCertificate\Recruitment\RecruitmentReasonReader::DEFAULT_COLOR' ) ) {
-            // Add the constant via the alias mock's class definition.
-            // (Mockery handles class-constant emulation on aliases.)
+        // Real stub for the admin page (PAGE_SLUG constant).
+        if ( ! class_exists( '\FreeFormCertificate\Recruitment\RecruitmentAdminPage', false ) ) {
+            eval(
+                'namespace FreeFormCertificate\Recruitment;'
+                . ' class RecruitmentAdminPage { public const PAGE_SLUG = "ffc-recruitment"; }'
+            );
         }
+        // Real stub for the reader: DEFAULT_COLOR constant + get_all(), with
+        // count_references / decode_applies_to driven by static closures the
+        // individual tests can override.
+        if ( ! class_exists( '\FreeFormCertificate\Recruitment\RecruitmentReasonReader', false ) ) {
+            eval(
+                'namespace FreeFormCertificate\Recruitment;'
+                . ' class RecruitmentReasonReader {'
+                . ' public const DEFAULT_COLOR = "#cccccc";'
+                . ' public static $rows = array();'
+                . ' public static $references = array();'
+                . ' public static function get_all() { return self::$rows; }'
+                . ' public static function count_references( $id ) { return self::$references[ $id ] ?? 0; }'
+                . ' public static function decode_applies_to( $stored ) {'
+                . ' return "" === $stored'
+                . ' ? array( "denied", "granted", "appeal_denied", "appeal_granted" )'
+                . ' : explode( ",", $stored ); } }'
+            );
+        }
+        \FreeFormCertificate\Recruitment\RecruitmentReasonReader::$rows       = array();
+        \FreeFormCertificate\Recruitment\RecruitmentReasonReader::$references = array();
 
         $this->table = new RecruitmentReasonsListTable();
     }
 
     protected function tearDown(): void {
+        unset( $_REQUEST['s'], $_REQUEST['orderby'], $_REQUEST['order'], $_REQUEST['action'], $_REQUEST['action2'], $_REQUEST['reason_ids'] );
         Monkey\tearDown();
         parent::tearDown();
     }
@@ -130,7 +155,7 @@ class RecruitmentReasonsListTableTest extends TestCase {
     }
 
     public function test_column_usage_delegates_to_repository_count(): void {
-        $this->reasonRepoMock->shouldReceive( 'count_references' )->with( 7 )->andReturn( 5 );
+        \FreeFormCertificate\Recruitment\RecruitmentReasonReader::$references = array( 7 => 5 );
 
         $out = $this->call_protected( 'column_usage', array( array( 'id' => 7 ) ) );
 
@@ -169,5 +194,161 @@ class RecruitmentReasonsListTableTest extends TestCase {
         $out = $this->call_protected( 'column_color', array( array( 'id' => 3, 'color' => '#abcdef' ) ) );
         $this->assertStringContainsString( 'type="color"', $out );
         $this->assertStringContainsString( 'data-ffc-color-endpoint="reasons"', $out );
+    }
+
+    public function test_column_color_falls_back_to_default_color_for_editor(): void {
+        $out = $this->call_protected( 'column_color', array( array( 'id' => 3 ) ) );
+        $this->assertStringContainsString( '#cccccc', $out );
+    }
+
+    // ------------------------------------------------------------------
+    // column_slug() — editor (row actions) vs read-only (plain code)
+    // ------------------------------------------------------------------
+
+    public function test_column_slug_editor_renders_edit_delete_actions(): void {
+        $out = $this->call_protected( 'column_slug', array( array( 'id' => 9, 'slug' => 'no-show' ) ) );
+
+        $this->assertStringContainsString( 'no-show', $out );
+        $this->assertStringContainsString( 'action=edit-reason', $out );
+        $this->assertStringContainsString( 'action=delete-reason', $out );
+        $this->assertStringContainsString( 'submitdelete', $out );
+    }
+
+    public function test_column_slug_read_only_is_plain_code_no_actions(): void {
+        $table = new RecruitmentReasonsListTable( false );
+        $ref   = new \ReflectionMethod( $table, 'column_slug' );
+        $ref->setAccessible( true );
+        $out = $ref->invokeArgs( $table, array( array( 'id' => 9, 'slug' => 'no-show' ) ) );
+
+        $this->assertStringContainsString( 'no-show', $out );
+        $this->assertStringContainsString( '<code>', $out );
+        $this->assertStringNotContainsString( 'submitdelete', $out );
+        $this->assertStringNotContainsString( 'row-actions', $out );
+    }
+
+    // ------------------------------------------------------------------
+    // prepare_items()
+    // ------------------------------------------------------------------
+
+    private function reason_obj( int $id, string $slug, string $label ): object {
+        return (object) array(
+            'id'         => $id,
+            'slug'       => $slug,
+            'label'      => $label,
+            'color'      => '#abcdef',
+            'applies_to' => '',
+            'created_at' => '2026-01-0' . $id . ' 09:00:00',
+        );
+    }
+
+    private function get_items(): array {
+        $ref = new \ReflectionProperty( $this->table, 'items' );
+        $ref->setAccessible( true );
+        return (array) $ref->getValue( $this->table );
+    }
+
+    public function test_prepare_items_populates_items(): void {
+        \FreeFormCertificate\Recruitment\RecruitmentReasonReader::$rows = array(
+            $this->reason_obj( 1, 'alpha', 'Alpha' ),
+            $this->reason_obj( 2, 'beta', 'Beta' ),
+        );
+
+        $this->table->prepare_items();
+
+        $this->assertCount( 2, $this->get_items() );
+    }
+
+    public function test_prepare_items_applies_search_and_sort(): void {
+        $_REQUEST['orderby'] = 'slug';
+        $_REQUEST['order']   = 'asc';
+        \FreeFormCertificate\Recruitment\RecruitmentReasonReader::$rows = array(
+            $this->reason_obj( 1, 'gamma', 'Gamma label' ),
+            $this->reason_obj( 2, 'alpha', 'Alpha label' ),
+        );
+
+        $this->table->prepare_items();
+
+        $items = $this->get_items();
+        $this->assertSame( array( 'alpha', 'gamma' ), array_column( $items, 'slug' ) );
+    }
+
+    // ------------------------------------------------------------------
+    // process_bulk_action() — GAP I gating + reference block + delete
+    // ------------------------------------------------------------------
+
+    public function test_process_bulk_action_returns_early_without_action(): void {
+        Mockery::mock( 'alias:FreeFormCertificate\Recruitment\RecruitmentReasonWriter' )
+            ->shouldReceive( 'delete' )->never();
+
+        $this->call_protected( 'process_bulk_action' );
+        $this->assertTrue( true );
+    }
+
+    public function test_process_bulk_action_blocked_without_manage_cap(): void {
+        $_REQUEST['action'] = 'bulk-delete';
+
+        Mockery::mock( 'alias:FreeFormCertificate\Core\Capabilities' )
+            ->shouldReceive( 'current_user_can_admin_or' )->andReturn( false );
+        Mockery::mock( 'alias:FreeFormCertificate\Recruitment\RecruitmentReasonWriter' )
+            ->shouldReceive( 'delete' )->never();
+
+        $this->call_protected( 'process_bulk_action' );
+        $this->assertTrue( true );
+    }
+
+    public function test_process_bulk_action_skips_referenced_reasons(): void {
+        $_REQUEST['action']     = 'bulk-delete';
+        $_REQUEST['reason_ids'] = array( '5', '6' );
+
+        Functions\when( 'check_admin_referer' )->justReturn( true );
+        Mockery::mock( 'alias:FreeFormCertificate\Core\Capabilities' )
+            ->shouldReceive( 'current_user_can_admin_or' )->andReturn( true );
+
+        // Reason 5 has references → skipped; reason 6 is free → deleted.
+        \FreeFormCertificate\Recruitment\RecruitmentReasonReader::$references = array( 5 => 2, 6 => 0 );
+
+        $deleted = array();
+        Mockery::mock( 'alias:FreeFormCertificate\Recruitment\RecruitmentReasonWriter' )
+            ->shouldReceive( 'delete' )->andReturnUsing(
+                function ( $id ) use ( &$deleted ) {
+                    $deleted[] = $id;
+                    return true;
+                }
+            );
+
+        $this->call_protected( 'process_bulk_action' );
+
+        $this->assertSame( array( 6 ), $deleted );
+    }
+
+    // ------------------------------------------------------------------
+    // convert_rows() + sort_rows() — static private helpers
+    // ------------------------------------------------------------------
+
+    private function call_static_private( string $method, array $args ) {
+        $ref = new \ReflectionMethod( RecruitmentReasonsListTable::class, $method );
+        $ref->setAccessible( true );
+        return $ref->invokeArgs( null, $args );
+    }
+
+    public function test_convert_rows_defaults_color_and_applies_to(): void {
+        $rows = array(
+            (object) array( 'id' => '1', 'slug' => 's', 'label' => 'L', 'created_at' => '2026-01-01' ),
+        );
+        $out = $this->call_static_private( 'convert_rows', array( $rows ) );
+
+        $this->assertSame( 1, $out[0]['id'] );
+        $this->assertSame( '#cccccc', $out[0]['color'] );
+        $this->assertSame( '', $out[0]['applies_to'] );
+    }
+
+    public function test_sort_rows_falls_back_to_created_at(): void {
+        $rows = array(
+            array( 'slug' => 'b', 'label' => 'B', 'created_at' => '2026-01-02' ),
+            array( 'slug' => 'a', 'label' => 'A', 'created_at' => '2026-01-01' ),
+        );
+        $out = $this->call_static_private( 'sort_rows', array( $rows, 'bogus', 'asc' ) );
+
+        $this->assertSame( array( '2026-01-01', '2026-01-02' ), array_column( $out, 'created_at' ) );
     }
 }
