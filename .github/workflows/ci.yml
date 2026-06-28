@@ -113,8 +113,15 @@ jobs:
     # measured number slipped vs the prior run — no real gain to lock in this
     # batch. Floor stays at 66 (now a ~2.05pp buffer, still within the ≤5pp
     # policy); not lowered, not raised above the lowest observed run.
+    #
+    # 66 → 67 — markup-extraction sweep (#605/#606/#607): the inline admin
+    # markup of RecruitmentAdminPageRenderer / UrlShortenerAdminPage /
+    # ReregistrationAdminRenderer moved into templates/*.php (out of the
+    # coverage scope), removing ~788 uncovered statements from the denominator.
+    # Re-measured 69.16% (30676/44358). Bump to 67 locks in the gain with a
+    # ~2.16pp buffer (≤5pp policy).
     env:
-      COVERAGE_FLOOR_LINES: '66'
+      COVERAGE_FLOOR_LINES: '67'
     steps:
       - uses: actions/checkout@v7
       - uses: ./.github/actions/setup-composer
