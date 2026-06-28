@@ -28,6 +28,7 @@ use FreeFormCertificate\Recruitment\CsvValidator;
  *     integration tests in sprint 13.
  *
  * @covers \FreeFormCertificate\Recruitment\RecruitmentCsvImporter
+ * @covers \FreeFormCertificate\Recruitment\CsvValidator
  */
 class RecruitmentCsvImporterTest extends TestCase {
 

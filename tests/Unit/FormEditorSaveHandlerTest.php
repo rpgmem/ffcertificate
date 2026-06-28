@@ -16,6 +16,7 @@ use FreeFormCertificate\Admin\FormEditorSaveValidator;
  * Uses Reflection to access private methods for testing pure business logic.
  *
  * @covers \FreeFormCertificate\Admin\FormEditorSaveValidator
+ * @covers \FreeFormCertificate\Admin\FormEditorSaveHandler
  */
 class FormEditorSaveHandlerTest extends TestCase {
 
