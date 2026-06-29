@@ -10,13 +10,24 @@ use PHPUnit\Framework\TestCase;
 use FreeFormCertificate\Admin\CsvExporter;
 
 /**
- * Tests for CsvExporter: fixed headers, CSV row formatting, and CsvExportTrait.
+ * Tests for CsvExporter: fixed headers, CSV row formatting, CsvExportTrait,
+ * and the AJAX-driven batch export machinery (start / batch / download /
+ * cleanup / key-scan / row-count).
  *
  * Uses Reflection to access private/protected methods for testing business logic.
  * Uses newInstanceWithoutConstructor() to avoid SubmissionRepository dependency.
  *
+ * Runs in separate processes: the AJAX/stream paths define namespaced helper
+ * stubs (FreeFormCertificate\Admin\header, readfile, fopen, set_time_limit, …)
+ * for native functions PHP cannot redefine globally and cannot undefine, which
+ * would otherwise leak "MissingFunctionExpectations" into sibling tests.
+ *
  * v5.0.0: Updated for split CPF/RF columns (CPF + RF instead of CPF/RF).
  *         Fixed columns count: 15 (was 14), with edit: 18 (was 17).
+ *
+ * @covers \FreeFormCertificate\Admin\CsvExporter
+ * @runTestsInSeparateProcesses
+ * @preserveGlobalState disabled
  */
 class CsvExporterTest extends TestCase {
 
@@ -28,6 +39,10 @@ class CsvExporterTest extends TestCase {
     protected function setUp(): void {
         parent::setUp();
         Monkey\setUp();
+
+        // pcov does not attribute coverage to a class first autoloaded mid-test
+        // method, so preload the target class here.
+        class_exists( '\\FreeFormCertificate\Admin\CsvExporter' );
 
         Functions\when( '__' )->returnArg();
         Functions\when( 'get_the_title' )->justReturn( 'Test Form' );
@@ -337,5 +352,491 @@ class CsvExporterTest extends TestCase {
         $keys = array( 'tags' );
         $values = $this->invoke( 'extract_dynamic_values', array( $row, $keys, 'data', 'data_encrypted' ) );
         $this->assertSame( array( 'php, js' ), $values );
+    }
+
+    // ==================================================================
+    // AJAX machinery helpers
+    // ==================================================================
+
+    /** Inject a mock SubmissionRepository into the protected `repository` property. */
+    private function set_repository( $repo ): void {
+        $prop = new \ReflectionProperty( CsvExporter::class, 'repository' );
+        $prop->setAccessible( true );
+        $prop->setValue( $this->exporter, $repo );
+    }
+
+    /** Make wp_send_json_error / wp_send_json_success / wp_die halt as in production. */
+    private function stub_terminators(): void {
+        Functions\when( 'wp_send_json_error' )->alias(
+            static function () {
+                throw new \RuntimeException( 'json_error' );
+            }
+        );
+        Functions\when( 'wp_send_json_success' )->alias(
+            static function () {
+                throw new \RuntimeException( 'json_success' );
+            }
+        );
+        Functions\when( 'wp_die' )->alias(
+            static function () {
+                throw new \RuntimeException( 'wp_die' );
+            }
+        );
+        Functions\when( 'esc_html__' )->returnArg();
+        Functions\when( 'esc_html' )->returnArg();
+    }
+
+    /** Pass the shared check_ajax_referer / capability gate. */
+    private function pass_gates(): void {
+        Functions\when( 'check_ajax_referer' )->justReturn( true );
+        Functions\when( 'wp_verify_nonce' )->justReturn( true );
+        Functions\when( 'current_user_can' )->justReturn( true );
+        Functions\when( 'get_current_user_id' )->justReturn( 1 );
+    }
+
+    // ==================================================================
+    // register_ajax_hooks()
+    // ==================================================================
+
+    public function test_register_ajax_hooks_registers_three_actions(): void {
+        $hooks = array();
+        Functions\when( 'add_action' )->alias(
+            static function ( $hook ) use ( &$hooks ) {
+                $hooks[] = $hook;
+                return true;
+            }
+        );
+
+        $this->exporter->register_ajax_hooks();
+
+        $this->assertSame(
+            array( 'wp_ajax_ffc_csv_export_start', 'wp_ajax_ffc_csv_export_batch', 'wp_ajax_ffc_csv_export_download' ),
+            $hooks
+        );
+    }
+
+    // ==================================================================
+    // ajax_start() — guard branches + happy path
+    // ==================================================================
+
+    public function test_ajax_start_rejects_without_capability(): void {
+        $this->stub_terminators();
+        Functions\when( 'check_ajax_referer' )->justReturn( true );
+        Functions\when( 'current_user_can' )->justReturn( false );
+
+        $this->expectException( \RuntimeException::class );
+        $this->expectExceptionMessage( 'json_error' );
+        $this->exporter->ajax_start();
+    }
+
+    public function test_ajax_start_rejects_when_no_records(): void {
+        $this->stub_terminators();
+        $this->pass_gates();
+        Functions\when( 'wp_raise_memory_limit' )->justReturn( true );
+        Functions\when( 'FreeFormCertificate\Admin\set_time_limit' )->justReturn( true );
+
+        $repo = \Mockery::mock( 'FreeFormCertificate\Repositories\SubmissionRepository' );
+        $repo->shouldReceive( 'getExportKeysBatch' )->andReturn( array() );
+        $repo->shouldReceive( 'countForExport' )->once()->andReturn( 0 );
+        $this->set_repository( $repo );
+
+        $this->expectException( \RuntimeException::class );
+        $this->expectExceptionMessage( 'json_error' );
+        $this->exporter->ajax_start();
+    }
+
+    public function test_ajax_start_happy_path_writes_header_and_returns_job(): void {
+        $this->stub_terminators();
+        $this->pass_gates();
+        Functions\when( 'wp_raise_memory_limit' )->justReturn( true );
+        Functions\when( 'FreeFormCertificate\Admin\set_time_limit' )->justReturn( true );
+        Functions\when( 'sanitize_key' )->returnArg();
+        Functions\when( 'wp_unslash' )->returnArg();
+        Functions\when( 'absint' )->alias( static function ( $v ) { return abs( (int) $v ); } );
+        Functions\when( 'get_the_title' )->justReturn( 'My Form' );
+        Functions\when( 'trailingslashit' )->alias( static function ( $p ) { return rtrim( (string) $p, '/' ) . '/'; } );
+        Functions\when( 'wp_mkdir_p' )->alias(
+            static function ( $dir ) { return is_dir( $dir ) || @mkdir( $dir, 0777, true ); }
+        );
+        Functions\when( 'wp_generate_uuid4' )->justReturn( 'job-uuid-1234' );
+        Functions\when( 'set_transient' )->justReturn( true );
+        Functions\when( 'apply_filters' )->alias(
+            static function () {
+                $a = func_get_args();
+                return $a[1] ?? null;
+            }
+        );
+
+        $tmp_base = sys_get_temp_dir() . '/ffc-start-' . uniqid();
+        @mkdir( $tmp_base, 0777, true );
+        Functions\when( 'wp_upload_dir' )->justReturn( array( 'basedir' => $tmp_base ) );
+
+        // Native file fns used inside the Admin namespace: stub to no-op so the
+        // .htaccess guard write does not touch a real fs path unexpectedly.
+        Functions\when( 'FreeFormCertificate\Admin\file_exists' )->justReturn( false );
+        Functions\when( 'FreeFormCertificate\Admin\file_put_contents' )->justReturn( 1 );
+
+        $_POST['form_ids'] = array( 42 );
+        $_POST['status']   = 'publish';
+
+        $repo = \Mockery::mock( 'FreeFormCertificate\Repositories\SubmissionRepository' );
+        $repo->shouldReceive( 'getExportKeysBatch' )->andReturn(
+            array( array( 'id' => 5, 'data' => '{"city":"SP"}' ) ),
+            array()
+        );
+        $repo->shouldReceive( 'countForExport' )->once()->andReturn( 3 );
+        $repo->shouldReceive( 'hasEditInfo' )->once()->andReturn( false );
+        $this->set_repository( $repo );
+
+        $captured = null;
+        Functions\when( 'wp_send_json_success' )->alias(
+            static function ( $data ) use ( &$captured ) {
+                $captured = $data;
+                throw new \RuntimeException( 'json_success' );
+            }
+        );
+
+        try {
+            $this->exporter->ajax_start();
+            $this->fail( 'expected wp_send_json_success to halt' );
+        } catch ( \RuntimeException $e ) {
+            $this->assertSame( 'json_success', $e->getMessage() );
+        }
+
+        $this->assertIsArray( $captured );
+        $this->assertSame( 'job-uuid-1234', $captured['job_id'] );
+        $this->assertSame( 3, $captured['total'] );
+
+        // Header row should have been written to the temp file by Csv::writer.
+        $expected_file = $tmp_base . '/ffc-tmp/ffc-export-job-uuid-1234.csv';
+        $this->assertFileExists( $expected_file );
+        $this->assertNotEmpty( (string) file_get_contents( $expected_file ) );
+
+        @unlink( $expected_file );
+        @unlink( $tmp_base . '/ffc-tmp/.htaccess' );
+        unset( $_POST['form_ids'], $_POST['status'] );
+    }
+
+    public function test_ajax_start_multi_form_filename_branch(): void {
+        $this->stub_terminators();
+        $this->pass_gates();
+        Functions\when( 'wp_raise_memory_limit' )->justReturn( true );
+        Functions\when( 'FreeFormCertificate\Admin\set_time_limit' )->justReturn( true );
+        Functions\when( 'sanitize_key' )->returnArg();
+        Functions\when( 'wp_unslash' )->returnArg();
+        Functions\when( 'absint' )->alias( static function ( $v ) { return abs( (int) $v ); } );
+        Functions\when( 'trailingslashit' )->alias( static function ( $p ) { return rtrim( (string) $p, '/' ) . '/'; } );
+        Functions\when( 'wp_mkdir_p' )->alias(
+            static function ( $dir ) { return is_dir( $dir ) || @mkdir( $dir, 0777, true ); }
+        );
+        Functions\when( 'wp_generate_uuid4' )->justReturn( 'multi-job' );
+        Functions\when( 'set_transient' )->justReturn( true );
+        Functions\when( 'apply_filters' )->alias(
+            static function () {
+                $a = func_get_args();
+                return $a[1] ?? null;
+            }
+        );
+        Functions\when( 'FreeFormCertificate\Admin\file_exists' )->justReturn( true ); // .htaccess already present.
+
+        $tmp_base = sys_get_temp_dir() . '/ffc-multi-' . uniqid();
+        @mkdir( $tmp_base, 0777, true );
+        Functions\when( 'wp_upload_dir' )->justReturn( array( 'basedir' => $tmp_base ) );
+
+        $_POST['form_ids'] = array( 1, 2, 3 );
+        $_POST['status']   = 'publish';
+
+        $repo = \Mockery::mock( 'FreeFormCertificate\Repositories\SubmissionRepository' );
+        $repo->shouldReceive( 'getExportKeysBatch' )->andReturn( array() );
+        $repo->shouldReceive( 'countForExport' )->once()->andReturn( 2 );
+        $repo->shouldReceive( 'hasEditInfo' )->once()->andReturn( true );
+        $this->set_repository( $repo );
+
+        $this->expectException( \RuntimeException::class );
+        $this->expectExceptionMessage( 'json_success' );
+        try {
+            $this->exporter->ajax_start();
+        } finally {
+            @unlink( $tmp_base . '/ffc-tmp/ffc-export-multi-job.csv' );
+            unset( $_POST['form_ids'], $_POST['status'] );
+        }
+    }
+
+    // ==================================================================
+    // ajax_batch() — guard branches + happy paths
+    // ==================================================================
+
+    public function test_ajax_batch_rejects_without_capability(): void {
+        $this->stub_terminators();
+        Functions\when( 'check_ajax_referer' )->justReturn( true );
+        Functions\when( 'current_user_can' )->justReturn( false );
+
+        $this->expectException( \RuntimeException::class );
+        $this->expectExceptionMessage( 'json_error' );
+        $this->exporter->ajax_batch();
+    }
+
+    public function test_ajax_batch_rejects_when_job_missing(): void {
+        $this->stub_terminators();
+        $this->pass_gates();
+        Functions\when( 'get_transient' )->justReturn( false );
+
+        $this->expectException( \RuntimeException::class );
+        $this->expectExceptionMessage( 'json_error' );
+        $this->exporter->ajax_batch();
+    }
+
+    public function test_ajax_batch_rejects_on_user_mismatch(): void {
+        $this->stub_terminators();
+        $this->pass_gates();
+        // Current user is 1, job belongs to 99.
+        Functions\when( 'get_transient' )->justReturn(
+            array( 'user_id' => 99, 'form_ids' => array( 1 ), 'status' => 'publish', 'cursor' => 0 )
+        );
+
+        $this->expectException( \RuntimeException::class );
+        $this->expectExceptionMessage( 'json_error' );
+        $this->exporter->ajax_batch();
+    }
+
+    public function test_ajax_batch_completes_when_batch_empty(): void {
+        $this->stub_terminators();
+        $this->pass_gates();
+        Functions\when( 'FreeFormCertificate\Admin\set_time_limit' )->justReturn( true );
+        Functions\when( 'do_action' )->justReturn( null );
+        Functions\when( 'get_transient' )->justReturn(
+            array(
+                'user_id'              => 1,
+                'form_ids'             => array( 1 ),
+                'status'               => 'publish',
+                'cursor'               => 0,
+                'processed'            => 0,
+                'total'                => 0,
+                'file'                 => '/tmp/x.csv',
+                'dynamic_keys'         => array(),
+                'include_edit_columns' => false,
+            )
+        );
+
+        $repo = \Mockery::mock( 'FreeFormCertificate\Repositories\SubmissionRepository' );
+        $repo->shouldReceive( 'getExportBatch' )->once()->andReturn( array() );
+        $this->set_repository( $repo );
+
+        $this->expectException( \RuntimeException::class );
+        $this->expectExceptionMessage( 'json_success' );
+        $this->exporter->ajax_batch();
+    }
+
+    public function test_ajax_batch_writes_rows_and_advances_cursor(): void {
+        $this->stub_terminators();
+        $this->pass_gates();
+        Functions\when( 'FreeFormCertificate\Admin\set_time_limit' )->justReturn( true );
+        Functions\when( 'set_transient' )->justReturn( true );
+        Functions\when( 'apply_filters' )->alias(
+            static function () {
+                $a = func_get_args();
+                return $a[1] ?? null;
+            }
+        );
+
+        $tmp = (string) tempnam( sys_get_temp_dir(), 'ffccsv' );
+        Functions\when( 'get_transient' )->justReturn(
+            array(
+                'user_id'              => 1,
+                'form_ids'             => array( 1 ),
+                'status'               => 'publish',
+                'cursor'              => 0,
+                'processed'           => 0,
+                'total'               => 5,
+                'file'                => $tmp,
+                'dynamic_keys'        => array(),
+                'include_edit_columns' => false,
+            )
+        );
+
+        $repo = \Mockery::mock( 'FreeFormCertificate\Repositories\SubmissionRepository' );
+        $repo->shouldReceive( 'getExportBatch' )->once()->andReturn(
+            array(
+                array(
+                    'id'              => 11,
+                    'form_id'         => 1,
+                    'submission_date' => 0,
+                    'consent_given'   => 0,
+                    'data'            => '{}',
+                    'data_encrypted'  => '',
+                    'auth_code'       => 'A1',
+                ),
+            )
+        );
+        $this->set_repository( $repo );
+
+        try {
+            $this->exporter->ajax_batch();
+            $this->fail( 'expected wp_send_json_success to halt' );
+        } catch ( \RuntimeException $e ) {
+            $this->assertSame( 'json_success', $e->getMessage() );
+        }
+
+        $this->assertNotEmpty( (string) file_get_contents( $tmp ), 'a CSV row should have been appended' );
+        @unlink( $tmp );
+    }
+
+    // ==================================================================
+    // ajax_download() — guard branches
+    // ==================================================================
+
+    public function test_ajax_download_rejects_on_bad_nonce(): void {
+        $this->stub_terminators();
+        Functions\when( 'wp_verify_nonce' )->justReturn( false );
+
+        $this->expectException( \RuntimeException::class );
+        $this->expectExceptionMessage( 'wp_die' );
+        $this->exporter->ajax_download();
+    }
+
+    public function test_ajax_download_rejects_without_capability(): void {
+        $this->stub_terminators();
+        Functions\when( 'wp_verify_nonce' )->justReturn( true );
+        Functions\when( 'current_user_can' )->justReturn( false );
+
+        $this->expectException( \RuntimeException::class );
+        $this->expectExceptionMessage( 'wp_die' );
+        $this->exporter->ajax_download();
+    }
+
+    public function test_ajax_download_rejects_when_job_missing(): void {
+        $this->stub_terminators();
+        $this->pass_gates();
+        Functions\when( 'get_transient' )->justReturn( false );
+
+        $this->expectException( \RuntimeException::class );
+        $this->expectExceptionMessage( 'wp_die' );
+        $this->exporter->ajax_download();
+    }
+
+    public function test_ajax_download_rejects_when_file_missing(): void {
+        $this->stub_terminators();
+        $this->pass_gates();
+        Functions\when( 'get_transient' )->justReturn(
+            array( 'user_id' => 1, 'file' => '/no/such/ffc-file.csv', 'filename' => 'x.csv' )
+        );
+        // Native file_exists inside the Admin namespace → report missing.
+        Functions\when( 'FreeFormCertificate\Admin\file_exists' )->justReturn( false );
+
+        $this->expectException( \RuntimeException::class );
+        $this->expectExceptionMessage( 'wp_die' );
+        $this->exporter->ajax_download();
+    }
+
+    // ==================================================================
+    // cleanup_stale_export_jobs()
+    // ==================================================================
+
+    public function test_cleanup_stale_export_jobs_reclaims_expired_and_unlinks_file(): void {
+        $tmp = (string) tempnam( sys_get_temp_dir(), 'ffcstale' );
+
+        $wpdb = \Mockery::mock();
+        $wpdb->options = 'wp_options';
+        $wpdb->shouldReceive( 'esc_like' )->andReturnUsing( static function ( $v ) { return $v; } );
+        $wpdb->shouldReceive( 'prepare' )->andReturnUsing(
+            static function ( $q, $arg ) { return str_replace( '%s', $arg, $q ); }
+        );
+        // First prefix (admin) → one expired row referencing $tmp; second prefix → none.
+        $wpdb->shouldReceive( 'get_results' )->andReturn(
+            array(
+                (object) array(
+                    'option_name'  => '_transient_timeout_ffc_csv_export_abc',
+                    'option_value' => (string) ( time() - 100 ), // expired.
+                ),
+                (object) array(
+                    'option_name'  => '_transient_timeout_ffc_csv_export_fresh',
+                    'option_value' => (string) ( time() + 9999 ), // still valid.
+                ),
+            ),
+            array()
+        );
+        $GLOBALS['wpdb'] = $wpdb;
+
+        Functions\when( 'get_option' )->alias(
+            static function ( $name ) use ( $tmp ) {
+                if ( '_transient_ffc_csv_export_abc' === $name ) {
+                    return array( 'file' => $tmp );
+                }
+                return false;
+            }
+        );
+        $deleted = array();
+        Functions\when( 'delete_transient' )->alias(
+            static function ( $key ) use ( &$deleted ) {
+                $deleted[] = $key;
+                return true;
+            }
+        );
+        Functions\when( 'FreeFormCertificate\Admin\file_exists' )->alias(
+            static function ( $f ) { return file_exists( $f ); }
+        );
+        Functions\when( 'FreeFormCertificate\Admin\unlink' )->alias(
+            static function ( $f ) { return @unlink( $f ); }
+        );
+
+        $reclaimed = CsvExporter::cleanup_stale_export_jobs();
+
+        $this->assertSame( 1, $reclaimed );
+        $this->assertContains( 'ffc_csv_export_abc', $deleted );
+        $this->assertFileDoesNotExist( $tmp );
+
+        unset( $GLOBALS['wpdb'] );
+        @unlink( $tmp );
+    }
+
+    public function test_cleanup_stale_export_jobs_returns_zero_when_no_rows(): void {
+        $wpdb = \Mockery::mock();
+        $wpdb->options = 'wp_options';
+        $wpdb->shouldReceive( 'esc_like' )->andReturnUsing( static function ( $v ) { return $v; } );
+        $wpdb->shouldReceive( 'prepare' )->andReturn( 'SQL' );
+        $wpdb->shouldReceive( 'get_results' )->andReturn( array(), array() );
+        $GLOBALS['wpdb'] = $wpdb;
+
+        $this->assertSame( 0, CsvExporter::cleanup_stale_export_jobs() );
+
+        unset( $GLOBALS['wpdb'] );
+    }
+
+    // ==================================================================
+    // scan_dynamic_keys() / count_export_rows()
+    // ==================================================================
+
+    public function test_scan_dynamic_keys_merges_unique_keys_across_batches(): void {
+        $repo = \Mockery::mock( 'FreeFormCertificate\Repositories\SubmissionRepository' );
+        $repo->shouldReceive( 'getExportKeysBatch' )
+            ->twice()
+            ->andReturn(
+                array(
+                    array( 'id' => 10, 'data' => '{"name":"A","city":"SP"}' ),
+                    array( 'id' => 20, 'data' => '{"name":"B","age":"30"}' ),
+                ),
+                array()
+            );
+        $this->set_repository( $repo );
+
+        $keys = $this->invoke( 'scan_dynamic_keys', array( array( 1 ), 'publish' ) );
+        sort( $keys );
+        $this->assertSame( array( 'age', 'city', 'name' ), $keys );
+    }
+
+    public function test_scan_dynamic_keys_returns_empty_when_no_rows(): void {
+        $repo = \Mockery::mock( 'FreeFormCertificate\Repositories\SubmissionRepository' );
+        $repo->shouldReceive( 'getExportKeysBatch' )->once()->andReturn( array() );
+        $this->set_repository( $repo );
+
+        $this->assertSame( array(), $this->invoke( 'scan_dynamic_keys', array( null, 'publish' ) ) );
+    }
+
+    public function test_count_export_rows_delegates_to_repository(): void {
+        $repo = \Mockery::mock( 'FreeFormCertificate\Repositories\SubmissionRepository' );
+        $repo->shouldReceive( 'countForExport' )->once()->with( array( 7 ), 'trash' )->andReturn( 42 );
+        $this->set_repository( $repo );
+
+        $this->assertSame( 42, $this->invoke( 'count_export_rows', array( array( 7 ), 'trash' ) ) );
     }
 }

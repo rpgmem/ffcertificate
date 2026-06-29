@@ -23,7 +23,7 @@
  * @since   6.7.7
  */
 
-use FreeFormCertificate\Recruitment\RecruitmentAdjutancyRepository;
+use FreeFormCertificate\Recruitment\RecruitmentAdjutancyReader;
 use FreeFormCertificate\Recruitment\RecruitmentAdminPage;
 
 if ( ! defined( 'ABSPATH' ) ) {
@@ -44,7 +44,7 @@ if ( ! empty( $adjutancies ) ) {
 	echo ' <select name="ffc_cls_adj">';
 	echo '<option value="0">' . esc_html__( 'All adjutancies', 'ffcertificate' ) . '</option>';
 	foreach ( $adjutancies as $aid ) {
-		$row = RecruitmentAdjutancyRepository::get_by_id( (int) $aid );
+		$row = RecruitmentAdjutancyReader::get_by_id( (int) $aid );
 		if ( null === $row ) {
 			continue;
 		}

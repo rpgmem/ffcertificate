@@ -120,8 +120,16 @@ jobs:
     # coverage scope), removing ~788 uncovered statements from the denominator.
     # Re-measured 69.16% (30676/44358). Bump to 67 locks in the gain with a
     # ~2.16pp buffer (≤5pp policy).
+    #
+    # 67 → 73 — module coverage sweep (#563): direct unit/render tests lifted
+    # every remaining sub-70% module over the line — frontend, url-shortener,
+    # settings, self-scheduling, then admin (65.7%→71.1%) and recruitment
+    # (56.6%→82.0%) via AJAX-export, REST-controller, list-table, edit-page and
+    # renderer coverage. Every includes/ module is now ≥70%. Overall statement
+    # coverage 69.16% → 77.96% (34375/44095). Bump to 73 locks in the gain with
+    # a ~4.96pp buffer (≤5pp policy).
     env:
-      COVERAGE_FLOOR_LINES: '67'
+      COVERAGE_FLOOR_LINES: '73'
     steps:
       - uses: actions/checkout@v7
       - uses: ./.github/actions/setup-composer
