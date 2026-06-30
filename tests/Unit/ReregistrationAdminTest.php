@@ -46,6 +46,12 @@ class ReregistrationAdminTest extends TestCase {
         Functions\when( 'absint' )->alias( function ( $v ) { return abs( (int) $v ); } );
         Functions\when( 'sanitize_text_field' )->returnArg();
         Functions\when( 'wp_unslash' )->returnArg();
+        // RequestInput lives in the Core namespace and calls these unqualified;
+        // a sibling test may have defined the namespaced variants (which PHP
+        // cannot undefine), so stub them too or this test sees Brain Monkey's
+        // "not defined nor mocked" once that leak is in the process.
+        Functions\when( 'FreeFormCertificate\Core\wp_unslash' )->returnArg();
+        Functions\when( 'FreeFormCertificate\Core\sanitize_text_field' )->returnArg();
         Functions\when( 'wp_create_nonce' )->justReturn( 'test_nonce' );
         Functions\when( 'wp_enqueue_style' )->justReturn( true );
         Functions\when( 'wp_enqueue_script' )->justReturn( true );
