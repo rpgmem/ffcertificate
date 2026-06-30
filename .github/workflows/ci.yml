@@ -128,8 +128,14 @@ jobs:
     # renderer coverage. Every includes/ module is now ≥70%. Overall statement
     # coverage 69.16% → 77.96% (34375/44095). Bump to 73 locks in the gain with
     # a ~4.96pp buffer (≤5pp policy).
+    #
+    # 73 → 78 — push admin + frontend to ≥80% (#563): AJAX-export, list-table,
+    # edit-page, render and pipeline-stage tests took admin 71.1%→91.3% and
+    # frontend 70.5%→92.4% (both also cleared 90%). Overall statement coverage
+    # 77.96% → 82.95% (36579/44095). Bump to 78 locks in the gain with a
+    # ~4.95pp buffer (≤5pp policy).
     env:
-      COVERAGE_FLOOR_LINES: '73'
+      COVERAGE_FLOOR_LINES: '78'
     steps:
       - uses: actions/checkout@v7
       - uses: ./.github/actions/setup-composer
