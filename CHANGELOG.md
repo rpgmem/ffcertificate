@@ -7,6 +7,9 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Fixed
+- Recruitment admin screens — fixed three latent fatal errors in extracted templates that referenced classes retired in the #594 façade cleanup, so the affected branches would `Fatal error: class not found` when rendered: `notice-edit/general-section.php` (`RecruitmentNoticeRepository` → `RecruitmentNoticeReader`), `notice-edit/classification-filters-form.php` (`RecruitmentAdjutancyRepository` → `RecruitmentAdjutancyReader`), and `admin-page/tabs.php` (added the missing `use` import for `RecruitmentAdminPage`). Surfaced by new render smoke-tests. (#618)
+
 ### Changed
 - Internal (#563 — coverage) — raised `admin` 71.1%→91.3% and `frontend` 70.5%→92.4% (both also clearing 90%) with AJAX-export, list-table, edit-page, render and submission-pipeline tests across SubmissionsList, AdminSubmissionEditPage, the Admin orchestrator, ActivityLogPage, UserCustomFields, ConditionalAssets, FormListColumns, Settings, PublicCsvDownload (+ AJAX handlers), SubmissionPersister, VerificationHandler (+ AJAX), PublicCsvExporter, and the rate-limit/pdf/success stages. Overall PHP statement coverage 77.96%→82.95%; the floor `COVERAGE_FLOOR_LINES` is ratcheted 73→78. Tests only.
 - Internal (#563 — coverage) — lifted the last two sub-70% modules over the line: `admin` 65.7%→71.1% (CsvExporter AJAX export, SettingsActionHandler routes, SettingsSaveHandler, PreflightStatsService) and `recruitment` 56.6%→82.0% (the three REST controllers, the four list-tables, the reason/adjutancy edit-pages, CandidateReader, CandidatePersister, and the notice-edit/admin-page renderers). Every `includes/` module is now ≥70%; overall PHP statement coverage 69.16%→77.96%, and the floor `COVERAGE_FLOOR_LINES` is ratcheted 67→73. Tests only.
