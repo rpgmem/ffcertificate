@@ -16,8 +16,8 @@ use FreeFormCertificate\Admin\AdminSubmissionEditPage;
  * The static collaborators (Capabilities, DateFormatter, Encryption,
  * DocumentFormatter, MagicLinkHelper, HtmlPolicy, DataSanitizer,
  * RequestInput, Debug) are autoloaded statics, so they're replaced with
- * Mockery alias mocks; this forces @runTestsInSeparateProcesses +
- * @preserveGlobalState disabled so the aliases don't leak across tests.
+ * Mockery alias mocks; this forces process isolation (see the
+ * annotations below) so the aliases don't leak across tests.
  *
  * The terminal wp_die()/wp_safe_redirect()/exit are turned into marker
  * exceptions so each branch is observable; SubmissionHandler is a normal
