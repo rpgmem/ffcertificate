@@ -11,6 +11,7 @@
         "dealerdirect/phpcodesniffer-composer-installer": "^1.0",
         "phpcompatibility/phpcompatibility-wp": "^2.1",
         "phpstan/phpstan": "^2.1",
+        "phpunit/phpcov": "^8.0",
         "phpunit/phpunit": "^9.6",
         "squizlabs/php_codesniffer": "^3.10",
         "szepeviktor/phpstan-wordpress": "^2.0",
