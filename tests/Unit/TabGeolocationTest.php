@@ -17,6 +17,8 @@ use FreeFormCertificate\Settings\Tabs\TabGeolocation;
  * Reflection, get_default_settings, and get_settings.
  *
  * @covers \FreeFormCertificate\Settings\Tabs\TabGeolocation
+ * @runTestsInSeparateProcesses
+ * @preserveGlobalState disabled
  */
 class TabGeolocationTest extends TestCase {
 
@@ -535,5 +537,220 @@ class TabGeolocationTest extends TestCase {
             $this->assertSame( 'wp_die', $e->getMessage() );
         }
         unset( $_GET['ffc_delete_location'], $_GET['_wpnonce'] );
+    }
+
+    public function test_handle_location_delete_deletes_and_redirects_on_valid_nonce(): void {
+        $_GET['ffc_delete_location'] = 'loc1';
+        $_GET['_wpnonce']            = 'good';
+
+        Functions\when( 'wp_verify_nonce' )->justReturn( true );
+        Functions\when( 'remove_query_arg' )->justReturn( 'https://example.com/settings' );
+        Functions\when( 'wp_safe_redirect' )->justReturn( true );
+
+        $registry = Mockery::mock( 'alias:FreeFormCertificate\Security\GeofenceLocationRegistry' );
+        $registry->shouldReceive( 'delete' )->once()->with( 'loc1' )->andReturn( true );
+
+        // The real method calls exit; after the redirect. Intercept it so the
+        // test process survives and we can assert the redirect happened.
+        Functions\when( 'wp_safe_redirect' )->alias( function () {
+            throw new \RuntimeException( 'redirected' );
+        } );
+
+        $ref = new \ReflectionMethod( TabGeolocation::class, 'handle_location_delete' );
+        $ref->setAccessible( true );
+
+        try {
+            $ref->invoke( $this->tab );
+            $this->fail( 'expected redirect' );
+        } catch ( \RuntimeException $e ) {
+            $this->assertSame( 'redirected', $e->getMessage() );
+        }
+        unset( $_GET['ffc_delete_location'], $_GET['_wpnonce'] );
+    }
+
+    // ==================================================================
+    // save_locations() — new + existing location CRUD
+    // ==================================================================
+
+    public function test_save_locations_saves_new_and_updates_existing(): void {
+        $_POST['ffc_location_new'] = array(
+            'name'   => 'HQ',
+            'lat'    => '10.5',
+            'lng'    => '20.5',
+            'radius' => '500',
+        );
+        $_POST['ffc_locations'] = array(
+            'loc1' => array(
+                'name'   => 'Branch',
+                'lat'    => '1',
+                'lng'    => '2',
+                'radius' => '300',
+            ),
+            'ghost' => array( 'name' => 'Gone' ),
+        );
+        $_POST['ffc_location_default_gps'] = 'loc1';
+        $_POST['ffc_location_default_ip']  = 'loc1';
+
+        Functions\when( 'sanitize_text_field' )->returnArg();
+
+        $registry = Mockery::mock( 'alias:FreeFormCertificate\Security\GeofenceLocationRegistry' );
+        $saved = array();
+        $registry->shouldReceive( 'save' )->andReturnUsing( function ( $loc ) use ( &$saved ) {
+            $saved[] = $loc;
+            return $loc['id'] ?? 'new-id';
+        } );
+        // Known id resolves; the "ghost" id returns null → skipped.
+        $registry->shouldReceive( 'get_by_id' )->with( 'loc1' )->andReturn( array( 'id' => 'loc1' ) );
+        $registry->shouldReceive( 'get_by_id' )->with( 'ghost' )->andReturnNull();
+
+        $ref = new \ReflectionMethod( TabGeolocation::class, 'save_locations' );
+        $ref->setAccessible( true );
+        $ref->invoke( $this->tab );
+
+        // One new save + one existing update (ghost skipped) = 2 saves.
+        $this->assertCount( 2, $saved );
+        $this->assertSame( 'HQ', $saved[0]['name'] );
+        $this->assertFalse( $saved[0]['default_gps'] );
+        $this->assertSame( 'loc1', $saved[1]['id'] );
+        $this->assertTrue( $saved[1]['default_gps'] );
+        $this->assertTrue( $saved[1]['default_ip'] );
+
+        unset(
+            $_POST['ffc_location_new'],
+            $_POST['ffc_locations'],
+            $_POST['ffc_location_default_gps'],
+            $_POST['ffc_location_default_ip']
+        );
+    }
+
+    public function test_save_locations_skips_blank_new_name(): void {
+        $_POST['ffc_location_new'] = array( 'name' => '   ' );
+        Functions\when( 'sanitize_text_field' )->returnArg();
+
+        $registry = Mockery::mock( 'alias:FreeFormCertificate\Security\GeofenceLocationRegistry' );
+        $registry->shouldReceive( 'save' )->never();
+
+        $ref = new \ReflectionMethod( TabGeolocation::class, 'save_locations' );
+        $ref->setAccessible( true );
+        $ref->invoke( $this->tab );
+
+        $this->assertTrue( true );
+        unset( $_POST['ffc_location_new'] );
+    }
+
+    // ==================================================================
+    // render() — no POST (plain render path)
+    // ==================================================================
+
+    public function test_save_settings_custom_preset_non_array_cases_defaults_block(): void {
+        $_POST['ip_api_service']      = 'ip-api';
+        $_POST['api_fallback']        = 'gps_only';
+        $_POST['both_fail_fallback']  = 'block';
+        $_POST['gps_fallback_preset'] = 'custom';
+        // Non-array cases → normalised to array(), every case falls back to 'block'.
+        $_POST['gps_fallback_cases']  = 'not-an-array';
+
+        $captured = null;
+        Functions\when( 'update_option' )->alias( function ( $key, $value ) use ( &$captured ) {
+            if ( 'ffc_geolocation_settings' === $key ) {
+                $captured = $value;
+            }
+        } );
+        Functions\when( 'get_option' )->justReturn( array() );
+        Functions\when( 'get_current_user_id' )->justReturn( 1 );
+
+        $ref = new \ReflectionMethod( TabGeolocation::class, 'save_settings' );
+        $ref->setAccessible( true );
+        $ref->invoke( $this->tab );
+
+        $this->assertSame( 'custom', $captured['gps_fallback_preset'] );
+        foreach ( array( 'permission_denied', 'no_api', 'position_unavailable', 'timeout', 'safety_timer' ) as $k ) {
+            $this->assertSame( 'block', $captured['gps_fallback_cases'][ $k ] );
+        }
+    }
+
+    // ==================================================================
+    // render() — POST submission through the REAL render()
+    // ==================================================================
+
+    public function test_render_real_post_submission_saves_and_shows_notice(): void {
+        $_POST['ffc_save_geolocation'] = '1';
+        $_POST['ip_api_service']       = 'ip-api';
+        $_POST['api_fallback']         = 'gps_only';
+        $_POST['gps_fallback_preset']  = 'hybrid';
+        $_POST['both_fail_fallback']   = 'block';
+
+        Functions\when( 'check_admin_referer' )->justReturn( true );
+        Functions\when( 'update_option' )->justReturn( true );
+        Functions\when( 'get_option' )->justReturn( array() );
+        Functions\when( 'get_current_user_id' )->justReturn( 1 );
+        Functions\when( 'wp_parse_args' )->alias( function ( $args, $defaults ) {
+            return array_merge( $defaults, $args );
+        } );
+
+        Functions\when( 'wp_nonce_field' )->justReturn( '' );
+        Functions\when( 'selected' )->justReturn( '' );
+        Functions\when( 'checked' )->justReturn( '' );
+        Functions\when( 'submit_button' )->justReturn( null );
+        Functions\when( 'esc_html_e' )->alias( function ( $t ) { echo $t; } );
+        Functions\when( 'esc_url' )->returnArg();
+        Functions\when( 'esc_attr_e' )->alias( function ( $t ) { echo $t; } );
+        Functions\when( 'wp_nonce_url' )->justReturn( 'nonce-url' );
+        Functions\when( 'admin_url' )->returnArg();
+        Functions\when( 'add_query_arg' )->justReturn( 'q' );
+        Functions\when( 'number_format_i18n' )->returnArg();
+
+        $registry = Mockery::mock( 'alias:FreeFormCertificate\Security\GeofenceLocationRegistry' );
+        $registry->shouldReceive( 'get_all' )->andReturn( array() );
+        $registry->shouldReceive( 'get_default_gps' )->andReturnNull();
+        $registry->shouldReceive( 'get_default_ip' )->andReturnNull();
+        $registry->shouldReceive( 'save' )->andReturn( 'id' );
+        $registry->shouldReceive( 'get_by_id' )->andReturnNull();
+
+        ob_start();
+        try {
+            $this->tab->render();
+        } finally {
+            $output = ob_get_clean();
+        }
+
+        $this->assertStringContainsString( 'Geolocation settings saved successfully!', $output );
+    }
+
+    public function test_render_without_post_includes_view(): void {
+        unset( $_POST['ffc_save_geolocation'] );
+
+        // handle_location_delete() no-ops without the GET param.
+        Functions\when( 'get_option' )->justReturn( array() );
+        Functions\when( 'wp_parse_args' )->alias( function ( $args, $defaults ) {
+            return array_merge( $defaults, $args );
+        } );
+
+        // Stub the collaborators the real geolocation view partial uses.
+        Functions\when( 'wp_nonce_field' )->justReturn( '' );
+        Functions\when( 'selected' )->justReturn( '' );
+        Functions\when( 'checked' )->justReturn( '' );
+        Functions\when( 'submit_button' )->justReturn( null );
+        Functions\when( 'esc_html_e' )->alias( function ( $t ) { echo $t; } );
+        Functions\when( 'esc_url' )->returnArg();
+        Functions\when( 'esc_attr_e' )->alias( function ( $t ) { echo $t; } );
+        Functions\when( 'wp_nonce_url' )->justReturn( 'nonce-url' );
+        Functions\when( 'admin_url' )->returnArg();
+        Functions\when( 'add_query_arg' )->justReturn( 'q' );
+        Functions\when( 'number_format_i18n' )->returnArg();
+
+        $registry = Mockery::mock( 'alias:FreeFormCertificate\Security\GeofenceLocationRegistry' );
+        $registry->shouldReceive( 'get_all' )->andReturn( array() );
+        $registry->shouldReceive( 'get_default_gps' )->andReturnNull();
+        $registry->shouldReceive( 'get_default_ip' )->andReturnNull();
+
+        ob_start();
+        try {
+            $this->tab->render();
+        } finally {
+            $output = ob_get_clean();
+        }
+
+        $this->assertIsString( $output );
     }
 }

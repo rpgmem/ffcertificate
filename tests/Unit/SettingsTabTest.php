@@ -14,9 +14,12 @@ use FreeFormCertificate\Settings\SettingsTab;
  * Tests for SettingsTab: abstract base class for settings tabs.
  *
  * Uses an anonymous concrete subclass to test non-abstract functionality
- * (getters, render helpers, is_active, get_tab_url, get_option).
+ * (getters, render helpers, is_active, get_tab_url, get_option,
+ * enqueue_autosave_infra).
  *
  * @covers \FreeFormCertificate\Settings\SettingsTab
+ * @runTestsInSeparateProcesses
+ * @preserveGlobalState disabled
  */
 class SettingsTabTest extends TestCase {
 
@@ -322,5 +325,58 @@ class SettingsTabTest extends TestCase {
 
         $result = $this->tab->get_option( 'num_key' );
         $this->assertSame( '42', $result );
+    }
+
+    // ==================================================================
+    // init() default body — a subclass that does NOT override init()
+    // ==================================================================
+
+    public function test_default_init_leaves_properties_unset_and_order_ten(): void {
+        // A subclass whose init() is the base no-op: the base init() body
+        // (the "override in child class" default) runs here.
+        $tab = new class() extends SettingsTab {
+            public function render(): void {}
+        };
+
+        $this->assertNull( $tab->get_id() );
+        $this->assertSame( 10, $tab->get_order() );
+    }
+
+    // ==================================================================
+    // enqueue_autosave_infra() — enqueues ffc-core + autosave + collapse
+    // ==================================================================
+
+    public function test_enqueue_autosave_infra_enqueues_core_and_localizes_nonce(): void {
+        $tab = new class() extends SettingsTab {
+            protected function init(): void {
+                $this->tab_id = 'infra';
+            }
+            public function render(): void {}
+            public function public_enqueue_autosave_infra(): void {
+                $this->enqueue_autosave_infra();
+            }
+        };
+
+        $utils = Mockery::mock( 'alias:FreeFormCertificate\Core\AssetHelper' );
+        $utils->shouldReceive( 'asset_suffix' )->andReturn( '.min' );
+
+        $handles = array();
+        Functions\when( 'wp_enqueue_script' )->alias( function ( $h ) use ( &$handles ) {
+            $handles[] = $h;
+        } );
+        $localized = array();
+        Functions\when( 'wp_localize_script' )->alias( function ( $handle, $obj, $data ) use ( &$localized ) {
+            $localized[ $obj ] = $data;
+            return true;
+        } );
+        Functions\when( 'wp_create_nonce' )->justReturn( 'autosave-nonce' );
+
+        $tab->public_enqueue_autosave_infra();
+
+        $this->assertContains( 'ffc-core', $handles );
+        $this->assertContains( 'ffc-admin-autosave', $handles );
+        $this->assertContains( 'ffc-section-collapse', $handles );
+        $this->assertArrayHasKey( 'ffcAdminAutosave', $localized );
+        $this->assertSame( 'autosave-nonce', $localized['ffcAdminAutosave']['nonce'] );
     }
 }
