@@ -64,8 +64,14 @@ class EmailHelperTraitTest extends TestCase {
             return filter_var( $email, FILTER_VALIDATE_EMAIL ) ? $email : false;
         } );
 
-        // Namespaced stub: prevent "is not defined" error when Sprint 27 tests run first.
-        // EmailHelperTrait is in Core namespace; its function calls resolve there.
+        // EmailHelperTrait is in the Core namespace, so its unqualified get_option()
+        // resolves to FreeFormCertificate\Core\get_option first. Another (isolated)
+        // test may have created that namespaced symbol; PHP can't undefine it, so we
+        // (re)bind it here to delegate to the global stub above — this is a genuine
+        // Core->global bridge (not self-recursive), keeping this test order-independent.
+        Functions\when( 'FreeFormCertificate\Core\get_option' )->alias( function ( $key, $default = false ) {
+            return \get_option( $key, $default );
+        } );
     }
 
     protected function tearDown(): void {

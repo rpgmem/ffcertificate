@@ -77,14 +77,11 @@ class VerificationHandlerTest extends TestCase {
         } );
 
         // ------------------------------------------------------------------
-        // Namespaced WP function stubs (FreeFormCertificate\Core\*)
-        // PHP resolves unqualified function calls in the current namespace first.
-        // ------------------------------------------------------------------
-        Functions\when( 'sanitize_text_field' )->returnArg();
-        Functions\when( 'wp_unslash' )->returnArg();
+        // (wp_unslash / sanitize_text_field / absint / get_current_user_id are
+        // already stubbed above as globals; RequestInput in the Core namespace
+        // falls back to them. wp_unslash must stay `stripslashes` — the JSON
+        // slash-fallback paths depend on it — so we do NOT re-stub it here.)
         Functions\when( 'get_option' )->justReturn( '' );
-        Functions\when( 'absint' )->alias( function( $val ) { return abs( intval( $val ) ); } );
-        Functions\when( 'get_current_user_id' )->justReturn( 0 );
 
         // Namespaced stubs for FreeFormCertificate\Security\* (RateLimiter)
         Functions\when( 'get_option' )->justReturn( '' );
