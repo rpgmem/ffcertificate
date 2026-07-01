@@ -116,7 +116,11 @@ jobs:
   coverage:
     name: Coverage (PHP 8.3)
     needs: coverage-shard
-    if: always()
+    # Run on shard success OR failure (so a real shard failure produces a
+    # definitive red here), but NOT when the run is cancelled — e.g. a newer
+    # push cancels this run via the concurrency group; without this guard the
+    # merge job would run and report the cancellation as a spurious failure.
+    if: ${{ !cancelled() }}
     runs-on: ubuntu-latest
     timeout-minutes: 15
     # Promoted from advisory to gating in S3 of #161. The floor is set
