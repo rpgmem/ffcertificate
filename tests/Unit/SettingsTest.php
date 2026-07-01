@@ -50,6 +50,16 @@ class SettingsTest extends TestCase {
         // Preload the class here so pcov attributes its lines to this test.
         class_exists( '\\FreeFormCertificate\\Admin\\SettingsActionHandler' );
 
+        // SettingsTab's file does a top-level
+        // `require_once ABSPATH . 'wp-includes/formatting.php'` guarded by
+        // function_exists('wp_kses_post'). Define a stub BEFORE the autoloader
+        // first loads the base class (triggered by instantiating any real tab),
+        // so the require never fires against the non-existent test ABSPATH.
+        if ( ! function_exists( 'wp_kses_post' ) ) {
+            eval( 'function wp_kses_post( $v ) { return $v; }' );
+        }
+        class_exists( '\\FreeFormCertificate\\Settings\\SettingsTab' );
+
         // Mock $wpdb
         global $wpdb;
         $wpdb         = Mockery::mock( 'wpdb' )->makePartial();
@@ -728,5 +738,269 @@ class SettingsTest extends TestCase {
 
         $this->assertStringNotContainsString( '<fieldset disabled', $html );
         $this->assertStringNotContainsString( 'ffc-settings-readonly-lock', $html );
+    }
+
+    // ==================================================================
+    // load_tabs()
+    // ==================================================================
+
+    public function test_load_tabs_instantiates_real_tab_classes(): void {
+        Functions\when( 'apply_filters' )->alias( function ( $hook, $value ) {
+            return $value;
+        } );
+
+        $this->settings->load_tabs();
+
+        $ref = new \ReflectionProperty( $this->settings, 'tabs' );
+        $ref->setAccessible( true );
+        $tabs = $ref->getValue( $this->settings );
+
+        $this->assertNotEmpty( $tabs, 'load_tabs must instantiate the registered tabs.' );
+        $this->assertArrayHasKey( 'general', $tabs );
+    }
+
+    public function test_load_tabs_is_idempotent(): void {
+        Functions\when( 'apply_filters' )->alias( function ( $hook, $value ) {
+            return $value;
+        } );
+
+        // Seed a sentinel; a second call must short-circuit and keep it.
+        $ref = new \ReflectionProperty( $this->settings, 'tabs' );
+        $ref->setAccessible( true );
+        $sentinel = array( 'sentinel' => new \stdClass() );
+        $ref->setValue( $this->settings, $sentinel );
+
+        $this->settings->load_tabs();
+
+        $this->assertSame( $sentinel, $ref->getValue( $this->settings ) );
+    }
+
+    // ==================================================================
+    // add_settings_page()
+    // ==================================================================
+
+    public function test_add_settings_page_registers_submenu_and_footer_hook(): void {
+        $captured = array();
+        Functions\when( 'add_submenu_page' )->alias( function () {
+            return 'ffc_form_page_ffc-settings';
+        } );
+        Functions\when( 'add_action' )->alias( function ( $hook ) use ( &$captured ) {
+            $captured[] = $hook;
+            return true;
+        } );
+
+        $this->settings->add_settings_page();
+
+        $this->assertContains( 'admin_footer-ffc_form_page_ffc-settings', $captured );
+    }
+
+    public function test_add_settings_page_skips_footer_hook_when_no_hook_returned(): void {
+        $captured = array();
+        // add_submenu_page returns false when the current user lacks the cap.
+        Functions\when( 'add_submenu_page' )->justReturn( false );
+        Functions\when( 'add_action' )->alias( function ( $hook ) use ( &$captured ) {
+            $captured[] = $hook;
+            return true;
+        } );
+
+        $this->settings->add_settings_page();
+
+        foreach ( $captured as $hook ) {
+            $this->assertStringStartsNotWith( 'admin_footer-', $hook );
+        }
+        $this->assertTrue( true );
+    }
+
+    // ==================================================================
+    // render_back_to_top_link()
+    // ==================================================================
+
+    public function test_render_back_to_top_link_outputs_anchor(): void {
+        Functions\when( 'esc_attr_e' )->alias( function ( $text ) {
+            echo $text;
+        } );
+
+        ob_start();
+        $this->settings->render_back_to_top_link();
+        $html = (string) ob_get_clean();
+
+        $this->assertStringContainsString( 'ffc-settings-back-to-top', $html );
+        $this->assertStringContainsString( '#ffc-settings-top', $html );
+        $this->assertStringContainsString( 'dashicons-arrow-up-alt2', $html );
+    }
+
+    // ==================================================================
+    // display_settings_page() — message notices + fallbacks
+    // ==================================================================
+
+    /**
+     * Render the page with a single injected fake tab, capturing the HTML.
+     *
+     * @param string $active_tab_id Tab id to inject + select.
+     * @return string Rendered markup.
+     */
+    private function render_with_tab( string $active_tab_id = 'general' ): string {
+        Functions\when( 'esc_html_e' )->alias( function ( $text ) { echo $text; } );
+        Functions\when( 'esc_html' )->returnArg();
+        Functions\when( 'esc_attr' )->returnArg();
+        Functions\when( 'settings_errors' )->justReturn( null );
+        Functions\when( 'current_user_can' )->justReturn( true );
+
+        $tab = new class( $active_tab_id ) {
+            private $id;
+            public function __construct( $id ) {
+                $this->id = $id; }
+            public function get_id(): string {
+                return $this->id; }
+            public function get_icon(): string {
+                return 'dashicons-admin-generic'; }
+            public function get_title(): string {
+                return 'Tab'; }
+            public function render(): void {
+                echo '<p>tab-body</p>'; }
+        };
+
+        $ref = new \ReflectionProperty( $this->settings, 'tabs' );
+        $ref->setAccessible( true );
+        $ref->setValue( $this->settings, array( $active_tab_id => $tab ) );
+
+        ob_start();
+        $this->settings->display_settings_page();
+        return (string) ob_get_clean();
+    }
+
+    public function test_display_settings_page_shows_qr_cache_cleared_notice(): void {
+        $_GET['msg']     = 'qr_cache_cleared';
+        $_GET['cleared'] = '3';
+
+        $html = $this->render_with_tab();
+
+        $this->assertStringContainsString( 'notice-success', $html );
+        unset( $_GET['msg'], $_GET['cleared'] );
+    }
+
+    public function test_display_settings_page_shows_cache_warmed_notice(): void {
+        $_GET['msg']   = 'cache_warmed';
+        $_GET['count'] = '5';
+
+        $html = $this->render_with_tab();
+
+        $this->assertStringContainsString( 'notice-success', $html );
+        unset( $_GET['msg'], $_GET['count'] );
+    }
+
+    public function test_display_settings_page_shows_cache_cleared_notice(): void {
+        $_GET['msg'] = 'cache_cleared';
+
+        $html = $this->render_with_tab();
+
+        $this->assertStringContainsString( 'notice-success', $html );
+        unset( $_GET['msg'] );
+    }
+
+    public function test_display_settings_page_shows_migration_messages(): void {
+        $_GET['migration_success'] = 'Migration done';
+        $_GET['migration_error']   = 'Something failed';
+
+        $html = $this->render_with_tab();
+
+        $this->assertStringContainsString( 'Migration done', $html );
+        $this->assertStringContainsString( 'Something failed', $html );
+        unset( $_GET['migration_success'], $_GET['migration_error'] );
+    }
+
+    public function test_display_settings_page_renders_active_tab_body(): void {
+        $_GET['tab'] = 'general';
+
+        $html = $this->render_with_tab( 'general' );
+
+        $this->assertStringContainsString( 'tab-body', $html );
+        $this->assertStringContainsString( 'ffc-settings-tabs', $html );
+        unset( $_GET['tab'] );
+    }
+
+    public function test_display_settings_page_falls_back_to_first_tab_when_active_missing(): void {
+        // Request a tab that isn't in the set => render() falls back to first.
+        $_GET['tab'] = 'nonexistent';
+
+        Functions\when( 'esc_html_e' )->alias( function ( $text ) { echo $text; } );
+        Functions\when( 'esc_html' )->returnArg();
+        Functions\when( 'esc_attr' )->returnArg();
+        Functions\when( 'settings_errors' )->justReturn( null );
+        Functions\when( 'current_user_can' )->justReturn( true );
+
+        $tab = new class() {
+            public function get_id(): string {
+                return 'general'; }
+            public function get_icon(): string {
+                return 'dashicons-admin-generic'; }
+            public function get_title(): string {
+                return 'General'; }
+            public function render(): void {
+                echo '<p>first-tab-fallback</p>'; }
+        };
+
+        $ref = new \ReflectionProperty( $this->settings, 'tabs' );
+        $ref->setAccessible( true );
+        $ref->setValue( $this->settings, array( 'general' => $tab ) );
+
+        ob_start();
+        $this->settings->display_settings_page();
+        $html = (string) ob_get_clean();
+
+        $this->assertStringContainsString( 'first-tab-fallback', $html );
+        unset( $_GET['tab'] );
+    }
+
+    public function test_display_settings_page_lazy_loads_tabs_when_empty(): void {
+        // No tabs preset => display_settings_page calls load_tabs() itself.
+        // The `ffcertificate_settings_tabs` filter (last line of load_tabs)
+        // swaps in a single harmless fake tab so the page render doesn't have
+        // to drive a real tab view, while still exercising the lazy-load path.
+        $fake_tab = new class() {
+            public function get_id(): string {
+                return 'general'; }
+            public function get_icon(): string {
+                return 'dashicons-admin-generic'; }
+            public function get_title(): string {
+                return 'General'; }
+            public function get_order(): int {
+                return 10; }
+            public function render(): void {
+                echo '<p>lazy-loaded-body</p>'; }
+        };
+        Functions\when( 'apply_filters' )->alias( function ( $hook, $value ) use ( $fake_tab ) {
+            return array( 'general' => $fake_tab );
+        } );
+        Functions\when( 'esc_html_e' )->alias( function ( $text ) { echo $text; } );
+        Functions\when( 'esc_html' )->returnArg();
+        Functions\when( 'esc_attr' )->returnArg();
+        Functions\when( 'settings_errors' )->justReturn( null );
+        Functions\when( 'current_user_can' )->justReturn( true );
+
+        // Ensure tabs start empty so display_settings_page triggers load_tabs().
+        $ref = new \ReflectionProperty( $this->settings, 'tabs' );
+        $ref->setAccessible( true );
+        $ref->setValue( $this->settings, array() );
+
+        ob_start();
+        $this->settings->display_settings_page();
+        $html = (string) ob_get_clean();
+
+        $this->assertStringContainsString( 'Certificate Settings', $html );
+        $this->assertStringContainsString( 'lazy-loaded-body', $html );
+        $this->assertNotEmpty( $ref->getValue( $this->settings ) );
+    }
+
+    // ==================================================================
+    // handle_obsolete_shortcode_cleanup() delegation
+    // ==================================================================
+
+    public function test_handle_obsolete_shortcode_cleanup_does_nothing_without_request(): void {
+        unset( $_REQUEST['ffc_obsolete_cleanup'] );
+        Functions\expect( 'wp_verify_nonce' )->never();
+
+        $this->settings->handle_obsolete_shortcode_cleanup();
+        $this->assertTrue( true );
     }
 }

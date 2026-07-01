@@ -85,7 +85,15 @@ jobs:
     # more). PR #360's Coverage step took 18m51s — within the 20m
     # ceiling but with no headroom. 30m leaves room for new test
     # batches without re-bumping on every coverage-heavy PR.
-    timeout-minutes: 30
+    #
+    # Bumped 30 → 50 after the #563 coverage campaign grew the suite to
+    # ~6200 tests, many of them @runTestsInSeparateProcesses (alias-mock
+    # containment) — separate-process forks are markedly slower under pcov
+    # on 2-core runners and tripped the 30m ceiling (#622 cancelled at
+    # 30m00s). 50m restores headroom; the planned tests/bootstrap.php
+    # hardening (pre-defining leaked namespaced Core stubs) will let many
+    # of those tests drop process isolation and bring the runtime back down.
+    timeout-minutes: 50
     # Promoted from advisory to gating in S3 of #161. The floor is set
     # below the current line-coverage baseline so the gate doesn't fire
     # on day one but does catch a regression. Ratchet the floor upward
@@ -128,15 +136,26 @@ jobs:
     # renderer coverage. Every includes/ module is now ≥70%. Overall statement
     # coverage 69.16% → 77.96% (34375/44095). Bump to 73 locks in the gain with
     # a ~4.96pp buffer (≤5pp policy).
+    #
+    # 73 → 78 — push admin + frontend to ≥80% (#563): AJAX-export, list-table,
+    # edit-page, render and pipeline-stage tests took admin 71.1%→91.3% and
+    # frontend 70.5%→92.4% (both also cleared 90%). Overall statement coverage
+    # 77.96% → 82.95% (36579/44095). Bump to 78 locks in the gain with a
+    # ~4.95pp buffer (≤5pp policy).
     env:
-      COVERAGE_FLOOR_LINES: '73'
+      COVERAGE_FLOOR_LINES: '78'
     steps:
       - uses: actions/checkout@v7
       - uses: ./.github/actions/setup-composer
         with:
           php-version: '8.3'
           coverage: pcov
-          ini-values: pcov.directory=./includes,pcov.exclude="#(libraries|views)/#",memory_limit=512M
+          # memory_limit 512M -> 2G: the #563 campaign grew the suite to ~6200
+          # tests; the main process accumulates pcov coverage data + Patchwork
+          # (Brain Monkey) code-manipulation buffers and exhausted 512M at ~97%
+          # (#622, fatal in patchwork Stream.php). 2G leaves ample headroom; the
+          # planned coverage sharding will later cap per-job memory anyway.
+          ini-values: pcov.directory=./includes,pcov.exclude="#(libraries|views)/#",memory_limit=2G
       - name: Run PHPUnit with coverage
         run: vendor/bin/phpunit --coverage-clover coverage.xml
       - name: Enforce line-coverage floor

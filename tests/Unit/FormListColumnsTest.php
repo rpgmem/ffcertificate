@@ -12,6 +12,8 @@ use FreeFormCertificate\Admin\FormListColumns;
 
 /**
  * Tests for FormListColumns: column registration, column rendering, and ID search.
+ *
+ * @covers \FreeFormCertificate\Admin\FormListColumns
  */
 class FormListColumnsTest extends TestCase {
 
@@ -20,6 +22,9 @@ class FormListColumnsTest extends TestCase {
     protected function setUp(): void {
         parent::setUp();
         Monkey\setUp();
+
+        // pcov attribution: preload so its lines attribute to this test.
+        class_exists( '\\FreeFormCertificate\\Admin\\FormListColumns' );
 
         Functions\when( '__' )->returnArg();
         Functions\when( 'esc_html' )->returnArg();
@@ -42,6 +47,19 @@ class FormListColumnsTest extends TestCase {
     protected function tearDown(): void {
         Monkey\tearDown();
         parent::tearDown();
+    }
+
+    /**
+     * Seed the private static submission-counts cache so render_column's
+     * ffc_submissions branch resolves without touching the DB.
+     *
+     * @param array<int, int> $counts form_id => count.
+     */
+    private function set_counts_cache( array $counts ): void {
+        $ref  = new \ReflectionClass( FormListColumns::class );
+        $prop = $ref->getProperty( 'submission_counts_cache' );
+        $prop->setAccessible( true );
+        $prop->setValue( null, $counts );
     }
 
     // ------------------------------------------------------------------
@@ -158,6 +176,90 @@ class FormListColumnsTest extends TestCase {
 
         $this->assertStringContainsString( '7', $output );
         $this->assertStringNotContainsString( ' / ', $output );
+    }
+
+    public function test_render_column_submissions_empty_when_zero(): void {
+        // Pre-seed the static cache so no DB query runs.
+        $this->set_counts_cache( array( 42 => 0 ) );
+
+        ob_start();
+        FormListColumns::render_column( 'ffc_submissions', 42 );
+        $output = ob_get_clean();
+
+        $this->assertStringContainsString( '&mdash;', $output );
+        $this->assertStringContainsString( 'ffc-empty-value', $output );
+    }
+
+    public function test_render_column_submissions_links_when_nonzero(): void {
+        $this->set_counts_cache( array( 42 => 8 ) );
+
+        ob_start();
+        FormListColumns::render_column( 'ffc_submissions', 42 );
+        $output = ob_get_clean();
+
+        $this->assertStringContainsString( 'filter_form_id=42', $output );
+        $this->assertStringContainsString( '<strong>8</strong>', $output );
+    }
+
+    public function test_render_column_submissions_uses_zero_for_unknown_form(): void {
+        // Cache present but form id absent => defaults to 0 (empty render).
+        $this->set_counts_cache( array( 1 => 5 ) );
+
+        ob_start();
+        FormListColumns::render_column( 'ffc_submissions', 99 );
+        $output = ob_get_clean();
+
+        $this->assertStringContainsString( '&mdash;', $output );
+    }
+
+    public function test_render_column_unknown_key_outputs_nothing(): void {
+        ob_start();
+        FormListColumns::render_column( 'some_other_column', 42 );
+        $output = ob_get_clean();
+
+        $this->assertSame( '', $output );
+    }
+
+    // ------------------------------------------------------------------
+    // render_column => ffc_features (render_features_column / get_feature_states)
+    // ------------------------------------------------------------------
+
+    public function test_render_column_features_renders_three_toggles(): void {
+        Functions\when( 'current_user_can' )->justReturn( true );
+        Functions\when( 'get_post_meta' )->alias( function ( $id, $key ) {
+            $map = array(
+                '_ffc_csv_public_enabled' => '1',
+                '_ffc_form_config'        => array( 'quiz_enabled' => 1 ),
+                '_ffc_device_limit'       => array( 'enabled' => 1 ),
+            );
+            return $map[ $key ] ?? '';
+        } );
+
+        ob_start();
+        FormListColumns::render_column( 'ffc_features', 42 );
+        $output = ob_get_clean();
+
+        $this->assertStringContainsString( 'ffc-features-cell', $output );
+        $this->assertStringContainsString( 'ffc_features_csv_public_enabled_42', $output );
+        $this->assertStringContainsString( 'ffc_features_quiz_enabled_42', $output );
+        $this->assertStringContainsString( 'ffc_features_device_enabled_42', $output );
+        $this->assertStringContainsString( 'data-ffc-feature', $output );
+        $this->assertStringContainsString( 'ffc-features-badge', $output );
+        // All features on => checkboxes are checked.
+        $this->assertStringContainsString( 'checked', $output );
+    }
+
+    public function test_render_column_features_disabled_when_user_cannot_edit(): void {
+        Functions\when( 'current_user_can' )->justReturn( false );
+        Functions\when( 'get_post_meta' )->justReturn( '' );
+
+        ob_start();
+        FormListColumns::render_column( 'ffc_features', 42 );
+        $output = ob_get_clean();
+
+        // No edit cap => toggles render disabled and unchecked.
+        $this->assertStringContainsString( 'disabled', $output );
+        $this->assertStringNotContainsString( 'checked', $output );
     }
 
     // ------------------------------------------------------------------
