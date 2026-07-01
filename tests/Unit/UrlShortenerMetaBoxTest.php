@@ -279,6 +279,161 @@ class UrlShortenerMetaBoxTest extends TestCase {
         $this->meta_box->ajax_regenerate();
     }
 
+    public function test_ajax_regenerate_service_failure_sends_error(): void {
+        $_POST['nonce']   = 'valid';
+        $_POST['post_id'] = '11';
+
+        Functions\when( 'wp_verify_nonce' )->justReturn( 1 );
+        Functions\when( 'current_user_can' )->justReturn( true );
+        Functions\when( 'get_permalink' )->justReturn( 'https://example.com/page' );
+
+        $mock_post = $this->make_post( 11, 'publish', 'post' );
+        Functions\when( 'get_post' )->justReturn( $mock_post );
+
+        $repo = Mockery::mock( UrlShortenerRepository::class );
+        $repo->shouldReceive( 'findByPostId' )->with( 11 )->andReturn( null );
+        $this->service->shouldReceive( 'get_repository' )->andReturn( $repo );
+        $this->service->shouldReceive( 'create_short_url' )->once()->andReturn(
+            array(
+                'success' => false,
+                'error'   => 'boom',
+            )
+        );
+
+        $error_msg = '';
+        Functions\when( 'wp_send_json_error' )->alias(
+            static function ( $data ) use ( &$error_msg ) {
+                $error_msg = $data['message'] ?? '';
+                throw new \RuntimeException( 'json_error' );
+            }
+        );
+
+        try {
+            $this->meta_box->ajax_regenerate();
+        } catch ( \RuntimeException $e ) {
+            // Expected.
+        }
+
+        $this->assertSame( 'boom', $error_msg );
+    }
+
+    // ==================================================================
+    // init()
+    // ==================================================================
+
+    public function test_init_registers_hooks(): void {
+        $hooks = array();
+        Functions\when( 'add_action' )->alias(
+            static function ( $hook ) use ( &$hooks ) {
+                $hooks[] = $hook;
+            }
+        );
+
+        $this->meta_box->init();
+
+        $this->assertContains( 'add_meta_boxes', $hooks );
+        $this->assertContains( 'save_post', $hooks );
+        $this->assertContains( 'admin_enqueue_scripts', $hooks );
+        $this->assertContains( 'wp_ajax_ffc_regenerate_short_url', $hooks );
+    }
+
+    // ==================================================================
+    // render()
+    // ==================================================================
+
+    public function test_render_unpublished_no_record_shows_publish_hint(): void {
+        Functions\when( 'esc_html__' )->returnArg();
+        Functions\when( 'FreeFormCertificate\UrlShortener\esc_html__' )->returnArg();
+        Functions\when( 'FreeFormCertificate\UrlShortener\wp_nonce_field' )->justReturn( '' );
+        Functions\when( 'wp_nonce_field' )->justReturn( '' );
+
+        $post = $this->make_post( 3, 'draft', 'post' );
+
+        $repo = Mockery::mock( UrlShortenerRepository::class );
+        $repo->shouldReceive( 'findByPostId' )->with( 3 )->andReturn( null );
+        $this->service->shouldReceive( 'get_repository' )->andReturn( $repo );
+
+        // Auto-create must NOT run for a draft.
+        $this->service->shouldNotReceive( 'create_short_url' );
+
+        ob_start();
+        $this->meta_box->render( $post );
+        $html = ob_get_clean();
+
+        $this->assertStringContainsString( 'Publish the post', $html );
+    }
+
+    public function test_render_published_autocreate_fails_shows_error(): void {
+        Functions\when( 'esc_html__' )->returnArg();
+        Functions\when( 'FreeFormCertificate\UrlShortener\esc_html__' )->returnArg();
+
+        $post = $this->make_post( 4, 'publish', 'post' );
+        $post->post_title = 'Title';
+
+        $repo = Mockery::mock( UrlShortenerRepository::class );
+        $repo->shouldReceive( 'findByPostId' )->with( 4 )->andReturn( null );
+        $this->service->shouldReceive( 'get_repository' )->andReturn( $repo );
+        // setUp stubs the namespaced get_permalink to '.../my-post'.
+        $this->service->shouldReceive( 'create_short_url' )
+            ->with( 'https://example.com/my-post', 'Title', 4 )
+            ->andReturn( array( 'success' => false ) );
+
+        ob_start();
+        $this->meta_box->render( $post );
+        $html = ob_get_clean();
+
+        $this->assertStringContainsString( 'Could not generate', $html );
+    }
+
+    /**
+     * Full render path with an existing record and a cached QR code.
+     *
+     * Overloads UrlShortenerRepository so the QR handler's cache lookup
+     * (new UrlShortenerRepository()->findQrCacheByShortCode()) returns a
+     * cached base64 string, short-circuiting the CPU-heavy generator.
+     *
+     * @runInSeparateProcess
+     * @preserveGlobalState disabled
+     */
+    public function test_render_with_record_outputs_qr_and_buttons(): void {
+        foreach ( array( '', 'FreeFormCertificate\UrlShortener\\' ) as $ns ) {
+            Functions\when( $ns . 'esc_html__' )->returnArg();
+            Functions\when( $ns . 'esc_html_e' )->returnArg();
+            Functions\when( $ns . 'esc_html' )->returnArg();
+            Functions\when( $ns . 'esc_attr' )->returnArg();
+            Functions\when( $ns . 'esc_attr_e' )->returnArg();
+            Functions\when( $ns . 'number_format_i18n' )->returnArg();
+            Functions\when( $ns . 'wp_nonce_field' )->justReturn( '' );
+        }
+
+        $post = $this->make_post( 6, 'publish', 'post' );
+
+        // Overload the repository so both the meta-box's findByPostId lookup
+        // and the QR handler's internal `new UrlShortenerRepository()` cache
+        // lookup resolve to the same stubbed class (the QR cache hit
+        // short-circuits the CPU-heavy generator).
+        $overload = Mockery::mock( 'overload:FreeFormCertificate\UrlShortener\UrlShortenerRepository' );
+        $overload->shouldReceive( 'findByPostId' )->with( 6 )->andReturn(
+            array(
+                'id'          => 60,
+                'short_code'  => 'code60',
+                'click_count' => 12,
+            )
+        );
+        $overload->shouldReceive( 'findQrCacheByShortCode' )->andReturn( 'CACHEDBASE64' );
+
+        $this->service->shouldReceive( 'get_repository' )->andReturn( $overload );
+        $this->service->shouldReceive( 'get_short_url' )->with( 'code60' )->andReturn( 'https://example.com/go/code60' );
+
+        ob_start();
+        $this->meta_box->render( $post );
+        $html = ob_get_clean();
+
+        $this->assertStringContainsString( 'CACHEDBASE64', $html );
+        $this->assertStringContainsString( 'data-format="png"', $html );
+        $this->assertStringContainsString( 'data-format="svg"', $html );
+    }
+
     // ==================================================================
     // Helpers
     // ==================================================================
