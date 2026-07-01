@@ -60,16 +60,21 @@ foreach ( $inline as $file ) {
 	++$i;
 }
 
+// Emit absolute paths so the generated config is location-independent: it can
+// live in a temp dir and every separate-process test child resolves bootstrap,
+// files and coverage dirs the same way regardless of CWD.
 $entries = '';
 foreach ( $buckets[ $shard ] as $file ) {
-	$rel      = 'tests/Unit/' . basename( $file );
-	$entries .= "            <file>" . htmlspecialchars( $rel, ENT_XML1 ) . "</file>\n";
+	$abs      = $root . '/tests/Unit/' . basename( $file );
+	$entries .= "            <file>" . htmlspecialchars( $abs, ENT_XML1 ) . "</file>\n";
 }
+$bootstrap = htmlspecialchars( $root . '/tests/bootstrap.php', ENT_XML1 );
+$inc       = htmlspecialchars( $root . '/includes', ENT_XML1 );
 
 echo '<?xml version="1.0"?>' . "\n";
 echo <<<XML
 <phpunit
-    bootstrap="tests/bootstrap.php"
+    bootstrap="{$bootstrap}"
     backupGlobals="false"
     colors="true"
     convertErrorsToExceptions="true"
@@ -82,13 +87,13 @@ echo <<<XML
     </testsuites>
     <coverage>
         <include>
-            <directory suffix=".php">./includes</directory>
+            <directory suffix=".php">{$inc}</directory>
         </include>
         <exclude>
-            <directory suffix=".php">./includes/libraries</directory>
-            <directory suffix=".php">./includes/views</directory>
-            <directory suffix=".php">./includes/admin/views</directory>
-            <directory suffix=".php">./includes/settings/views</directory>
+            <directory suffix=".php">{$inc}/libraries</directory>
+            <directory suffix=".php">{$inc}/views</directory>
+            <directory suffix=".php">{$inc}/admin/views</directory>
+            <directory suffix=".php">{$inc}/settings/views</directory>
         </exclude>
     </coverage>
 </phpunit>
