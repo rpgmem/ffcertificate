@@ -627,19 +627,19 @@ class UrlShortenerAdminPageTest extends TestCase {
         $this->assertContains( 'wp_ajax_ffc_empty_trash_short_urls', $actions );
     }
 
-    public function test_register_menu_adds_submenu(): void {
+    public function test_register_menu_adds_top_level_menu(): void {
         $captured = array();
-        Functions\when( 'add_submenu_page' )->alias(
-            static function ( $parent, $page_title, $menu_title, $cap, $slug ) use ( &$captured ) {
-                $captured = compact( 'parent', 'cap', 'slug' );
+        Functions\when( 'add_menu_page' )->alias(
+            static function ( $page_title, $menu_title, $cap, $slug, $cb, $icon ) use ( &$captured ) {
+                $captured = compact( 'cap', 'slug', 'icon' );
             }
         );
 
         $this->page->register_menu();
 
-        $this->assertSame( 'edit.php?post_type=ffc_form', $captured['parent'] );
         $this->assertSame( 'ffc_view_url_shortener', $captured['cap'] );
         $this->assertSame( 'ffc-short-urls', $captured['slug'] );
+        $this->assertSame( 'dashicons-admin-links', $captured['icon'] );
     }
 
     public function test_enqueue_assets_skips_on_wrong_page(): void {

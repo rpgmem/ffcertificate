@@ -67,14 +67,16 @@ class AudienceAdminPageTest extends TestCase {
         );
     }
 
-    public function test_init_registers_admin_head_hook(): void {
+    public function test_init_registers_separator_css_hook(): void {
         $page = new AudienceAdminPage();
 
         $page->init();
 
+        // Registered on admin_enqueue_scripts (before admin_print_styles) so
+        // the inline style is attached to the admin-menu sheet before it prints.
         $this->assertTrue(
-            has_action( 'admin_head', 'FreeFormCertificate\Audience\AudienceAdminPage->print_menu_separator_css()' ) !== false,
-            'init() should register print_menu_separator_css on admin_head hook'
+            has_action( 'admin_enqueue_scripts', 'FreeFormCertificate\Audience\AudienceAdminPage->print_menu_separator_css()' ) !== false,
+            'init() should register print_menu_separator_css on admin_enqueue_scripts hook'
         );
     }
 
