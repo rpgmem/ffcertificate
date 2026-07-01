@@ -150,7 +150,12 @@ jobs:
         with:
           php-version: '8.3'
           coverage: pcov
-          ini-values: pcov.directory=./includes,pcov.exclude="#(libraries|views)/#",memory_limit=512M
+          # memory_limit 512M -> 2G: the #563 campaign grew the suite to ~6200
+          # tests; the main process accumulates pcov coverage data + Patchwork
+          # (Brain Monkey) code-manipulation buffers and exhausted 512M at ~97%
+          # (#622, fatal in patchwork Stream.php). 2G leaves ample headroom; the
+          # planned coverage sharding will later cap per-job memory anyway.
+          ini-values: pcov.directory=./includes,pcov.exclude="#(libraries|views)/#",memory_limit=2G
       - name: Run PHPUnit with coverage
         run: vendor/bin/phpunit --coverage-clover coverage.xml
       - name: Enforce line-coverage floor
