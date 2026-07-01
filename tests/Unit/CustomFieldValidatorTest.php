@@ -28,7 +28,7 @@ class CustomFieldValidatorTest extends TestCase {
         Functions\when( 'is_wp_error' )->alias( function ( $thing ) {
             return $thing instanceof \WP_Error;
         });
-        Functions\when( 'FreeFormCertificate\Reregistration\is_wp_error' )->alias( function ( $thing ) {
+        Functions\when( 'is_wp_error' )->alias( function ( $thing ) {
             return $thing instanceof \WP_Error;
         });
     }
@@ -431,7 +431,7 @@ class CustomFieldValidatorTest extends TestCase {
 
     public function test_validate_email_valid(): void {
         Functions\when( 'is_email' )->justReturn( true );
-        Functions\when( 'FreeFormCertificate\Reregistration\is_email' )->justReturn( true );
+        Functions\when( 'is_email' )->justReturn( true );
 
         $field = $this->make_field( array(
             'validation_rules' => array( 'format' => 'email' ),
@@ -442,7 +442,7 @@ class CustomFieldValidatorTest extends TestCase {
 
     public function test_validate_email_invalid(): void {
         Functions\when( 'is_email' )->justReturn( false );
-        Functions\when( 'FreeFormCertificate\Reregistration\is_email' )->justReturn( false );
+        Functions\when( 'is_email' )->justReturn( false );
 
         $field = $this->make_field( array(
             'validation_rules' => array( 'format' => 'email' ),

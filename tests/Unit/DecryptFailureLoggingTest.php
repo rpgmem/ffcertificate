@@ -88,9 +88,6 @@ class DecryptFailureLoggingTest extends TestCase {
             }
             return $default;
         } );
-        Functions\when( 'FreeFormCertificate\\Core\\get_option' )->alias( function ( $key, $default = false ) {
-            return \get_option( $key, $default );
-        } );
     }
 
     /**
@@ -98,9 +95,6 @@ class DecryptFailureLoggingTest extends TestCase {
      */
     private function disableActivityLog(): void {
         Functions\when( 'get_option' )->justReturn( array() );
-        Functions\when( 'FreeFormCertificate\\Core\\get_option' )->alias( function ( $key, $default = false ) {
-            return \get_option( $key, $default );
-        } );
     }
 
     private function resetActivityLogState(): void {

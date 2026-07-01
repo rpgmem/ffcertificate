@@ -15,6 +15,9 @@
     <exclude-pattern>*/includes/libraries/*</exclude-pattern>
     <exclude-pattern>*/libs/*</exclude-pattern>
     <exclude-pattern>*/tests/*</exclude-pattern>
+    <!-- CI/dev helper scripts (e.g. .github/scripts/shard-tests.php) are not
+         plugin runtime code and don't follow the WordPress runtime standards. -->
+    <exclude-pattern>*/.github/*</exclude-pattern>
     <exclude-pattern>*.min.js</exclude-pattern>
     <exclude-pattern>*.min.css</exclude-pattern>
 

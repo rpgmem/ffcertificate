@@ -40,8 +40,8 @@ class TabGeolocationTest extends TestCase {
         Functions\when( 'sanitize_text_field' )->returnArg();
         Functions\when( 'sanitize_textarea_field' )->returnArg();
         Functions\when( 'wp_unslash' )->returnArg();
-        Functions\when( 'FreeFormCertificate\Core\sanitize_text_field' )->returnArg();
-        Functions\when( 'FreeFormCertificate\Core\wp_unslash' )->returnArg();
+        Functions\when( 'sanitize_text_field' )->returnArg();
+        Functions\when( 'wp_unslash' )->returnArg();
         Functions\when( 'absint' )->alias( function ( $val ) {
             return abs( (int) $val );
         } );

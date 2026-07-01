@@ -62,22 +62,19 @@ class PdfGeneratorTest extends TestCase {
 
         // Namespaced stubs: prevent "is not defined" errors when Sprint 27 tests run first.
         // PdfGenerator is in Generators namespace.
-        Functions\when( 'FreeFormCertificate\Generators\esc_html' )->returnArg();
-        Functions\when( 'FreeFormCertificate\Generators\esc_html__' )->returnArg();
-        Functions\when( 'FreeFormCertificate\Generators\get_option' )->alias( function ( $key, $default = false ) {
-            return \get_option( $key, $default );
-        } );
-        Functions\when( 'FreeFormCertificate\Generators\home_url' )->alias( function ( $path = '' ) {
+        Functions\when( 'esc_html' )->returnArg();
+        Functions\when( 'esc_html__' )->returnArg();
+        Functions\when( 'home_url' )->alias( function ( $path = '' ) {
             return 'https://example.com' . $path;
         } );
-        Functions\when( 'FreeFormCertificate\Generators\wp_parse_url' )->alias( function ( $url, $component = -1 ) {
+        Functions\when( 'wp_parse_url' )->alias( function ( $url, $component = -1 ) {
             return parse_url( $url, $component );
         } );
-        Functions\when( 'FreeFormCertificate\Generators\trailingslashit' )->alias( function ( $url ) {
+        Functions\when( 'trailingslashit' )->alias( function ( $url ) {
             return rtrim( $url, '/' ) . '/';
         } );
-        Functions\when( 'FreeFormCertificate\Generators\esc_url' )->returnArg();
-        Functions\when( 'FreeFormCertificate\Generators\esc_attr' )->returnArg();
+        Functions\when( 'esc_url' )->returnArg();
+        Functions\when( 'esc_attr' )->returnArg();
         Functions\when( 'wp_date' )->alias( function ( $format, $ts = null, $tz = null ) {
             return gmdate( $format, $ts ?? time() );
         } );
@@ -507,19 +504,19 @@ class PdfGeneratorTest extends TestCase {
         Functions\when( 'get_template_directory' )->justReturn( '/tmp/theme' );
         Functions\when( 'get_stylesheet_directory' )->justReturn( '/tmp/theme' );
         // Generators-namespaced fallbacks (the PdfGenerator class calls these unqualified).
-        Functions\when( 'FreeFormCertificate\Generators\wp_normalize_path' )->alias( fn ( $p ) => str_replace( '\\', '/', (string) $p ) );
-        Functions\when( 'FreeFormCertificate\Generators\get_template_directory' )->justReturn( '/tmp/theme' );
-        Functions\when( 'FreeFormCertificate\Generators\get_stylesheet_directory' )->justReturn( '/tmp/theme' );
-        Functions\when( 'FreeFormCertificate\Generators\apply_filters' )->alias( fn ( $tag, $value = '' ) => $value );
-        Functions\when( 'FreeFormCertificate\Generators\site_url' )->alias( fn ( $p = '' ) => 'https://example.com/' . ltrim( (string) $p, '/' ) );
-        Functions\when( 'FreeFormCertificate\Generators\untrailingslashit' )->alias( fn ( $u ) => rtrim( (string) $u, '/' ) );
-        Functions\when( 'FreeFormCertificate\Generators\get_bloginfo' )->justReturn( 'Test Site' );
-        Functions\when( 'FreeFormCertificate\Generators\get_home_url' )->justReturn( 'https://example.com' );
-        Functions\when( 'FreeFormCertificate\Generators\wp_kses' )->alias( fn ( $v ) => (string) $v );
-        Functions\when( 'FreeFormCertificate\Generators\esc_url' )->returnArg();
+        Functions\when( 'wp_normalize_path' )->alias( fn ( $p ) => str_replace( '\\', '/', (string) $p ) );
+        Functions\when( 'get_template_directory' )->justReturn( '/tmp/theme' );
+        Functions\when( 'get_stylesheet_directory' )->justReturn( '/tmp/theme' );
+        Functions\when( 'apply_filters' )->alias( fn ( $tag, $value = '' ) => $value );
+        Functions\when( 'site_url' )->alias( fn ( $p = '' ) => 'https://example.com/' . ltrim( (string) $p, '/' ) );
+        Functions\when( 'untrailingslashit' )->alias( fn ( $u ) => rtrim( (string) $u, '/' ) );
+        Functions\when( 'get_bloginfo' )->justReturn( 'Test Site' );
+        Functions\when( 'get_home_url' )->justReturn( 'https://example.com' );
+        Functions\when( 'wp_kses' )->alias( fn ( $v ) => (string) $v );
+        Functions\when( 'esc_url' )->returnArg();
         // build_pdf_filename() (Utils, Core namespace) uses _x().
         Functions\when( '_x' )->returnArg();
-        Functions\when( 'FreeFormCertificate\Core\_x' )->returnArg();
+        Functions\when( '_x' )->returnArg();
     }
 
     public function test_generate_html_falls_back_to_default_when_no_layout(): void {

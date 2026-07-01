@@ -47,14 +47,14 @@ class PublicOperatorAccessDisablerTest extends TestCase {
 			return true;
 		};
 		Functions\when( 'update_post_meta' )->alias( $capture );
-		Functions\when( 'FreeFormCertificate\Maintenance\update_post_meta' )->alias( $capture );
+		Functions\when( 'update_post_meta' )->alias( $capture );
 
 		// Store-backed get_post (for the report title).
 		$get_post = function ( $post_id ) {
 			return $this->post_store[ (int) $post_id ] ?? null;
 		};
 		Functions\when( 'get_post' )->alias( $get_post );
-		Functions\when( 'FreeFormCertificate\Maintenance\get_post' )->alias( $get_post );
+		Functions\when( 'get_post' )->alias( $get_post );
 
 		// Geofence reads _ffc_geofence_config via get_post_meta + wp_timezone.
 		Functions\when( 'get_post_meta' )->alias(

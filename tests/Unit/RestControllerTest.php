@@ -30,10 +30,10 @@ class RestControllerTest extends TestCase {
         Functions\when( 'wp_cache_set' )->justReturn( true );
 
         // Namespaced stubs for repositories
-        Functions\when( 'FreeFormCertificate\Repositories\wp_cache_get' )->justReturn( false );
-        Functions\when( 'FreeFormCertificate\Repositories\wp_cache_set' )->justReturn( true );
-        Functions\when( 'FreeFormCertificate\Repositories\current_user_can' )->justReturn( false );
-        Functions\when( 'FreeFormCertificate\Repositories\user_can' )->justReturn( false );
+        Functions\when( 'wp_cache_get' )->justReturn( false );
+        Functions\when( 'wp_cache_set' )->justReturn( true );
+        Functions\when( 'current_user_can' )->justReturn( false );
+        Functions\when( 'user_can' )->justReturn( false );
 
         // Mock $wpdb
         global $wpdb;
