@@ -64,9 +64,6 @@ class PdfGeneratorTest extends TestCase {
         // PdfGenerator is in Generators namespace.
         Functions\when( 'esc_html' )->returnArg();
         Functions\when( 'esc_html__' )->returnArg();
-        Functions\when( 'get_option' )->alias( function ( $key, $default = false ) {
-            return \get_option( $key, $default );
-        } );
         Functions\when( 'home_url' )->alias( function ( $path = '' ) {
             return 'https://example.com' . $path;
         } );

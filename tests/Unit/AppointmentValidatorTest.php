@@ -62,12 +62,6 @@ class AppointmentValidatorTest extends TestCase {
 
         // Namespaced stubs: prevent "is not defined" errors when Sprint 27 tests run first.
         // Repositories namespace (CalendarRepository::userHasSchedulingBypass).
-        Functions\when( 'current_user_can' )->alias( function ( $cap ) {
-            return \current_user_can( $cap );
-        } );
-        Functions\when( 'user_can' )->alias( function ( $user_id, $cap ) {
-            return \user_can( $user_id, $cap );
-        } );
         // SelfScheduling namespace (AppointmentValidator itself).
         Functions\when( '__' )->returnArg();
         Functions\when( 'wp_timezone' )->alias( function() {
@@ -76,25 +70,7 @@ class AppointmentValidatorTest extends TestCase {
         Functions\when( 'is_wp_error' )->alias( function ( $thing ) {
             return $thing instanceof \WP_Error;
         } );
-        Functions\when( 'is_user_logged_in' )->alias( function () {
-            return \is_user_logged_in();
-        } );
-        Functions\when( 'current_user_can' )->alias( function ( $cap ) {
-            return \current_user_can( $cap );
-        } );
-        Functions\when( 'current_time' )->alias( function ( $type ) {
-            return \current_time( $type );
-        } );
-        Functions\when( 'get_option' )->alias( function ( $key, $default = false ) {
-            return \get_option( $key, $default );
-        } );
-        Functions\when( 'date_i18n' )->alias( function ( $format, $ts = false ) {
-            return \date_i18n( $format, $ts );
-        } );
         // Scheduling namespace (DateBlockingService).
-        Functions\when( 'get_option' )->alias( function ( $key, $default = false ) {
-            return \get_option( $key, $default );
-        } );
 
         $this->appointmentRepo = Mockery::mock( 'FreeFormCertificate\Repositories\AppointmentRepository' );
         $this->blockedDateRepo = Mockery::mock( 'FreeFormCertificate\Repositories\BlockedDateRepository' );

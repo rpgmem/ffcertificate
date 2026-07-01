@@ -39,14 +39,8 @@ class MagicLinkHelperTest extends TestCase {
 
         // Namespaced stubs: prevent "is not defined" errors when Sprint 27 tests run first.
         // MagicLinkHelper is in Generators namespace.
-        Functions\when( 'get_option' )->alias( function ( $key, $default = false ) {
-            return \get_option( $key, $default );
-        } );
         Functions\when( 'wp_parse_url' )->alias( function ( $url, $component = -1 ) {
             return parse_url( $url, $component );
-        } );
-        Functions\when( 'home_url' )->alias( function ( $path = '' ) {
-            return \home_url( $path );
         } );
         Functions\when( 'trailingslashit' )->alias( function ( $url ) {
             return rtrim( $url, '/' ) . '/';

@@ -40,12 +40,6 @@ class UserCreatorTest extends TestCase {
 
         // Namespaced stubs: prevent "is not defined" errors when Sprint 27 tests run first.
         // Core namespace (Debug calls get_option/get_current_user_id).
-        Functions\when( 'get_option' )->alias( function ( $key, $default = false ) {
-            return \get_option( $key, $default );
-        } );
-        Functions\when( 'get_current_user_id' )->alias( function () {
-            return \get_current_user_id();
-        } );
     }
 
     protected function tearDown(): void {
