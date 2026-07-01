@@ -26,6 +26,9 @@ class FichaGeneratorTest extends TestCase {
         parent::setUp();
         Monkey\setUp();
 
+        // pcov attribution preload (CLAUDE.md pcov gotcha).
+        class_exists('\FreeFormCertificate\Reregistration\FichaGenerator');
+
         Functions\when('__')->returnArg();
         Functions\when('esc_html__')->returnArg();
         Functions\when('esc_html')->returnArg();
@@ -429,5 +432,322 @@ class FichaGeneratorTest extends TestCase {
         // hardcoded in the template.
         $this->assertStringContainsString('{{termo_ciencia}}', $result);
         $this->assertStringNotContainsString('Declaração de Família WEB', $result);
+    }
+
+    // ==================================================================
+    // format_field_value() — remaining branches
+    // ==================================================================
+
+    public function test_format_field_value_default_array_joins_with_comma(): void {
+        $field = (object) ['field_type' => 'multiselect'];
+        $result = FichaGenerator::format_field_value($field, ['A', 'B', 'C']);
+        $this->assertSame('A, B, C', $result);
+    }
+
+    public function test_format_field_value_default_non_scalar_returns_empty(): void {
+        $field = (object) ['field_type' => 'text'];
+        $result = FichaGenerator::format_field_value($field, (object) ['x' => 1]);
+        $this->assertSame('', $result);
+    }
+
+    public function test_format_field_value_dependent_select_non_array_returns_empty(): void {
+        $field = (object) ['field_type' => 'dependent_select'];
+        // A plain string that is not JSON decodes to null → not an array.
+        $result = FichaGenerator::format_field_value($field, 'plain-string');
+        $this->assertSame('', $result);
+    }
+
+    // ==================================================================
+    // decrypt_field_values()
+    // ==================================================================
+
+    public function test_decrypt_field_values_passes_through_non_sensitive(): void {
+        $field  = (object) ['field_key' => 'hobby', 'is_sensitive' => 0];
+        $values = ['hobby' => 'Reading'];
+        $result = FichaGenerator::decrypt_field_values([$field], $values);
+        $this->assertSame('Reading', $result['hobby']);
+    }
+
+    public function test_decrypt_field_values_skips_empty_or_non_string(): void {
+        $fields = [
+            (object) ['field_key' => 'a', 'is_sensitive' => 1],
+            (object) ['field_key' => 'b', 'is_sensitive' => 1],
+            (object) ['field_key' => 'c', 'is_sensitive' => 1],
+        ];
+        $values = ['a' => '', 'b' => ['x'], 'c' => null];
+        $result = FichaGenerator::decrypt_field_values($fields, $values);
+        // Untouched — decryption skipped for empty / non-string values.
+        $this->assertSame('', $result['a']);
+        $this->assertSame(['x'], $result['b']);
+        $this->assertNull($result['c']);
+    }
+
+    /**
+     * @runInSeparateProcess
+     * @preserveGlobalState disabled
+     */
+    public function test_decrypt_field_values_decrypts_sensitive(): void {
+        $enc = Mockery::mock('overload:FreeFormCertificate\Core\Encryption');
+        $enc->shouldReceive('decrypt')->with('CIPHER')->andReturn('plain-cpf');
+
+        $field  = (object) ['field_key' => 'cpf', 'is_sensitive' => 1];
+        $values = ['cpf' => 'CIPHER'];
+        $result = FichaGenerator::decrypt_field_values([$field], $values);
+
+        $this->assertSame('plain-cpf', $result['cpf']);
+    }
+
+    /**
+     * @runInSeparateProcess
+     * @preserveGlobalState disabled
+     */
+    public function test_decrypt_field_values_keeps_original_when_decrypt_returns_null(): void {
+        $enc = Mockery::mock('overload:FreeFormCertificate\Core\Encryption');
+        $enc->shouldReceive('decrypt')->andReturn(null);
+
+        $field  = (object) ['field_key' => 'cpf', 'is_sensitive' => 1];
+        $values = ['cpf' => 'CIPHER'];
+        $result = FichaGenerator::decrypt_field_values([$field], $values);
+
+        $this->assertSame('CIPHER', $result['cpf']);
+    }
+
+    // ==================================================================
+    // get_custom_fields_for_reregistration()
+    // ==================================================================
+
+    public function test_get_custom_fields_for_reregistration_dedupes_by_id(): void {
+        Functions\when('wp_cache_get')->justReturn(false);
+        Functions\when('wp_cache_set')->justReturn(true);
+
+        // $wpdb drives ReregistrationRepository::get_audience_ids (get_col → [1,2])
+        // and CustomFieldReader::get_by_audience_with_parents (get_row audience,
+        // get_results fields). The same field id 10 appears for both audiences
+        // and must be collapsed to a single entry.
+        global $wpdb;
+        $wpdb = Mockery::mock('wpdb')->makePartial();
+        $wpdb->prefix = 'wp_';
+        $wpdb->shouldReceive('prepare')->andReturnUsing(function () {
+            return func_get_args()[0];
+        })->byDefault();
+        $wpdb->shouldReceive('get_col')->andReturn(['1', '2'])->byDefault();
+        $wpdb->shouldReceive('get_row')->andReturn((object) ['id' => 1, 'name' => 'Aud', 'parent_id' => 0])->byDefault();
+        $wpdb->shouldReceive('get_results')->andReturn([
+            (object) ['id' => 10, 'field_key' => 'shared', 'field_type' => 'text'],
+        ])->byDefault();
+
+        $rereg  = (object) ['id' => 5];
+        $fields = FichaGenerator::get_custom_fields_for_reregistration($rereg);
+
+        $this->assertCount(1, $fields);
+        $this->assertSame(10, (int) $fields[0]->id);
+    }
+
+    // ==================================================================
+    // generate_ficha_data() — early returns
+    // ==================================================================
+
+    /**
+     * @runInSeparateProcess
+     * @preserveGlobalState disabled
+     */
+    public function test_generate_ficha_data_returns_null_when_submission_missing(): void {
+        $reader = Mockery::mock('overload:FreeFormCertificate\Reregistration\ReregistrationSubmissionReader');
+        $reader->shouldReceive('get_by_id')->andReturn(null);
+
+        $this->assertNull(FichaGenerator::generate_ficha_data(1));
+    }
+
+    /**
+     * @runInSeparateProcess
+     * @preserveGlobalState disabled
+     */
+    public function test_generate_ficha_data_returns_null_when_rereg_missing(): void {
+        $sr = Mockery::mock('overload:FreeFormCertificate\Reregistration\ReregistrationSubmissionReader');
+        $sr->shouldReceive('get_by_id')->andReturn((object) ['reregistration_id' => 9]);
+
+        $rr = Mockery::mock('overload:FreeFormCertificate\Reregistration\ReregistrationRepository');
+        $rr->shouldReceive('get_by_id')->andReturn(null);
+
+        $this->assertNull(FichaGenerator::generate_ficha_data(1));
+    }
+
+    /**
+     * @runInSeparateProcess
+     * @preserveGlobalState disabled
+     */
+    public function test_generate_ficha_data_returns_null_when_user_missing(): void {
+        Functions\when('get_userdata')->justReturn(false);
+
+        $sr = Mockery::mock('overload:FreeFormCertificate\Reregistration\ReregistrationSubmissionReader');
+        $sr->shouldReceive('get_by_id')->andReturn((object) ['reregistration_id' => 9, 'user_id' => 7]);
+
+        $rr = Mockery::mock('overload:FreeFormCertificate\Reregistration\ReregistrationRepository');
+        $rr->shouldReceive('get_by_id')->andReturn((object) ['id' => 9, 'title' => 'C']);
+
+        $this->assertNull(FichaGenerator::generate_ficha_data(1));
+    }
+
+    // ==================================================================
+    // generate_ficha_data() — happy path
+    // ==================================================================
+
+    /**
+     * @runInSeparateProcess
+     * @preserveGlobalState disabled
+     */
+    public function test_generate_ficha_data_builds_full_payload(): void {
+        Functions\when('__')->returnArg();
+        Functions\when('esc_html__')->returnArg();
+        Functions\when('esc_html')->returnArg();
+        Functions\when('esc_attr')->returnArg();
+        Functions\when('_x')->returnArg();
+        Functions\when('wp_kses')->alias(function ($v) { return $v; });
+        Functions\when('wp_kses_post')->returnArg();
+        Functions\when('get_bloginfo')->justReturn('My Site');
+        Functions\when('get_home_url')->justReturn('https://example.test');
+        Functions\when('untrailingslashit')->alias(function ($u) { return rtrim($u, '/'); });
+        Functions\when('sanitize_file_name')->alias(function ($n) {
+            return preg_replace('/[^a-zA-Z0-9_\-.]/', '_', $n);
+        });
+        Functions\when('apply_filters')->alias(function ($tag, $value) {
+            // Force the fallback template so no filesystem read is needed and
+            // the placeholder replacement loop runs against known markers.
+            if ($tag === 'ffcertificate_ficha_template_file') {
+                return '/tmp/ffc-nonexistent-template.html';
+            }
+            return $value;
+        });
+
+        $submission = (object) [
+            'id'                => 42,
+            'reregistration_id' => 9,
+            'user_id'           => 7,
+            'data'              => json_encode(['fields' => ['display_name' => 'João', 'hobby' => 'Chess']]),
+            'status'            => 'approved',
+            'submitted_at'      => 1700000000,
+            'auth_code'         => 'ABCD1234',
+        ];
+        $rereg = (object) [
+            'id'            => 9,
+            'title'         => 'Recadastramento 2026',
+            'audience_name' => 'Servidores',
+            'start_date'    => '2026-02-15 00:00:00',
+        ];
+
+        $sr = Mockery::mock('overload:FreeFormCertificate\Reregistration\ReregistrationSubmissionReader');
+        $sr->shouldReceive('get_by_id')->andReturn($submission);
+        $sr->shouldReceive('get_status_labels')->andReturn(['approved' => 'Approved']);
+
+        $rr = Mockery::mock('overload:FreeFormCertificate\Reregistration\ReregistrationRepository');
+        $rr->shouldReceive('get_by_id')->andReturn($rereg);
+        $rr->shouldReceive('get_audience_ids')->andReturn([1]);
+
+        $cfr = Mockery::mock('overload:FreeFormCertificate\Reregistration\CustomFieldReader');
+        $cfr->shouldReceive('get_by_audience_with_parents')->andReturn([
+            (object) ['id' => 100, 'field_key' => 'display_name', 'field_label' => 'Name', 'field_type' => 'text', 'field_source' => 'standard', 'is_sensitive' => 0],
+            (object) ['id' => 101, 'field_key' => 'hobby', 'field_label' => 'Hobby', 'field_type' => 'text', 'field_source' => 'custom', 'is_sensitive' => 0],
+        ]);
+
+        $df = Mockery::mock('overload:FreeFormCertificate\Core\DateFormatter');
+        $df->shouldReceive('format_datetime')->andReturn('2023-11-14 22:13');
+
+        $fh = Mockery::mock('overload:FreeFormCertificate\Core\FilenameHelper');
+        $fh->shouldReceive('build_pdf_filename')->andReturn('ficha_9_R-ABCD1234.pdf');
+
+        $user = (object) [
+            'ID'           => 7,
+            'display_name' => 'João Silva',
+            'user_email'   => 'joao@example.test',
+        ];
+        Functions\when('get_userdata')->justReturn($user);
+
+        $result = FichaGenerator::generate_ficha_data(42);
+
+        $this->assertIsArray($result);
+        $this->assertSame('ficha', $result['type']);
+        $this->assertSame('portrait', $result['orientation']);
+        $this->assertSame('ficha_9_R-ABCD1234.pdf', $result['filename']);
+        $this->assertSame('joao@example.test', $result['user']['email']);
+        $this->assertSame(7, $result['user']['id']);
+        // Fallback template markers were replaced with the participant data.
+        $this->assertStringContainsString('João', $result['html']);
+        $this->assertStringContainsString('Approved', $result['html']);
+        // The custom (non-standard) 'hobby' field renders in the section.
+        $this->assertStringContainsString('Chess', $result['html']);
+        // Relative URLs are rewritten to absolute (site url injected).
+        $this->assertStringNotContainsString('{{display_name}}', $result['html']);
+    }
+
+    /**
+     * @runInSeparateProcess
+     * @preserveGlobalState disabled
+     */
+    public function test_generate_ficha_data_uses_synthetic_code_without_auth_code(): void {
+        Functions\when('__')->returnArg();
+        Functions\when('esc_html__')->returnArg();
+        Functions\when('esc_html')->returnArg();
+        Functions\when('_x')->returnArg();
+        Functions\when('wp_kses')->alias(function ($v) { return $v; });
+        Functions\when('wp_kses_post')->returnArg();
+        Functions\when('get_bloginfo')->justReturn('Site');
+        Functions\when('get_home_url')->justReturn('https://e.test');
+        Functions\when('untrailingslashit')->alias(function ($u) { return rtrim($u, '/'); });
+        Functions\when('sanitize_file_name')->alias(function ($n) { return $n; });
+        $captured_code = null;
+        Functions\when('apply_filters')->alias(function ($tag, $value) {
+            if ($tag === 'ffcertificate_ficha_template_file') {
+                return '/tmp/ffc-nonexistent-template.html';
+            }
+            return $value;
+        });
+
+        // No auth_code, no submitted_at, no start_date → exercises the
+        // synthetic `S{id}` fallback + the empty submitted_at / reference_year
+        // branches.
+        $submission = (object) [
+            'id'                => 55,
+            'reregistration_id' => 9,
+            'user_id'           => 7,
+            'data'              => null,
+            'status'            => 'submitted',
+            'submitted_at'      => 0,
+            'auth_code'         => '',
+        ];
+        $rereg = (object) ['id' => 9, 'title' => 'C', 'start_date' => ''];
+
+        $sr = Mockery::mock('overload:FreeFormCertificate\Reregistration\ReregistrationSubmissionReader');
+        $sr->shouldReceive('get_by_id')->andReturn($submission);
+        $sr->shouldReceive('get_status_labels')->andReturn([]);
+
+        $rr = Mockery::mock('overload:FreeFormCertificate\Reregistration\ReregistrationRepository');
+        $rr->shouldReceive('get_by_id')->andReturn($rereg);
+        $rr->shouldReceive('get_audience_ids')->andReturn([]);
+
+        $cfr = Mockery::mock('overload:FreeFormCertificate\Reregistration\CustomFieldReader');
+        $cfr->shouldReceive('get_by_audience_with_parents')->andReturn([]);
+
+        $df = Mockery::mock('overload:FreeFormCertificate\Core\DateFormatter');
+        $df->shouldReceive('format_datetime')->andReturn('now');
+
+        $fh = Mockery::mock('overload:FreeFormCertificate\Core\FilenameHelper');
+        $fh->shouldReceive('build_pdf_filename')->andReturnUsing(function ($type, $id, $code) use (&$captured_code) {
+            $captured_code = $code;
+            return 'ficha.pdf';
+        });
+
+        Functions\when('get_userdata')->justReturn((object) [
+            'ID'           => 7,
+            'display_name' => 'Ana',
+            'user_email'   => 'ana@e.test',
+        ]);
+
+        $result = FichaGenerator::generate_ficha_data(55);
+
+        $this->assertIsArray($result);
+        // Status with no label falls back to the raw status key.
+        $this->assertStringContainsString('submitted', $result['html']);
+        // Synthetic code S{submission_id} is used when auth_code is empty.
+        $this->assertSame('S55', $captured_code);
     }
 }
