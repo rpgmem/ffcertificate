@@ -85,7 +85,15 @@ jobs:
     # more). PR #360's Coverage step took 18m51s — within the 20m
     # ceiling but with no headroom. 30m leaves room for new test
     # batches without re-bumping on every coverage-heavy PR.
-    timeout-minutes: 30
+    #
+    # Bumped 30 → 50 after the #563 coverage campaign grew the suite to
+    # ~6200 tests, many of them @runTestsInSeparateProcesses (alias-mock
+    # containment) — separate-process forks are markedly slower under pcov
+    # on 2-core runners and tripped the 30m ceiling (#622 cancelled at
+    # 30m00s). 50m restores headroom; the planned tests/bootstrap.php
+    # hardening (pre-defining leaked namespaced Core stubs) will let many
+    # of those tests drop process isolation and bring the runtime back down.
+    timeout-minutes: 50
     # Promoted from advisory to gating in S3 of #161. The floor is set
     # below the current line-coverage baseline so the gate doesn't fire
     # on day one but does catch a regression. Ratchet the floor upward
