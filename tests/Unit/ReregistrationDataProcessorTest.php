@@ -22,6 +22,8 @@ use FreeFormCertificate\Reregistration\ReregistrationDataProcessor;
  * Uses real Utils::validate_cpf() / validate_phone() (pure helpers) and
  * mocks $wpdb so CustomFieldReader::get_by_audience_with_parents
  * returns whatever field definitions each test requires.
+ *
+ * @covers \FreeFormCertificate\Reregistration\ReregistrationDataProcessor
  */
 class ReregistrationDataProcessorTest extends TestCase {
 
@@ -30,6 +32,11 @@ class ReregistrationDataProcessorTest extends TestCase {
     protected function setUp(): void {
         parent::setUp();
         Monkey\setUp();
+
+        // pcov attribution: preload the class-under-test so coverage is
+        // attributed even though the autoloader would otherwise pull it in
+        // mid-test (CLAUDE.md pcov gotcha).
+        class_exists( '\FreeFormCertificate\Reregistration\ReregistrationDataProcessor' );
 
         Functions\when( '__' )->returnArg();
         Functions\when( 'esc_html__' )->returnArg();
@@ -610,5 +617,263 @@ class ReregistrationDataProcessorTest extends TestCase {
 
         $this->assertArrayHasKey( 'display_name', $data['fields'] );
         $this->assertArrayNotHasKey( 'acknowledgment', $data['fields'] );
+    }
+
+    // ==================================================================
+    // collect_form_data() — per-type sanitization branches
+    // ==================================================================
+
+    public function test_collect_form_data_sanitizes_every_field_type(): void {
+        $this->setup_wpdb_with_fields( array(
+            $this->make_field( array( 'id' => 1, 'field_key' => 'wh', 'field_type' => 'working_hours' ) ),
+            $this->make_field( array( 'id' => 2, 'field_key' => 'dep', 'field_type' => 'dependent_select' ) ),
+            $this->make_field( array( 'id' => 3, 'field_key' => 'bio', 'field_type' => 'textarea' ) ),
+            $this->make_field( array( 'id' => 4, 'field_key' => 'age', 'field_type' => 'number' ) ),
+            $this->make_field( array( 'id' => 5, 'field_key' => 'agree', 'field_type' => 'checkbox' ) ),
+            $this->make_field( array( 'id' => 6, 'field_key' => 'dob', 'field_type' => 'date' ) ),
+            $this->make_field( array( 'id' => 7, 'field_key' => 'name', 'field_type' => 'text' ) ),
+        ) );
+
+        $_POST['fields'] = array(
+            'wh'    => json_encode( array( array( 'day' => 1, 'entry1' => '08:00' ) ) ),
+            'dep'   => json_encode( array( 'parent' => 'A', 'child' => 'B' ) ),
+            'bio'   => 'Some notes',
+            'age'   => '42',
+            'agree' => 'on',
+            'dob'   => '1990-01-01',
+            'name'  => 'João',
+        );
+        $data = ReregistrationDataProcessor::collect_form_data( $this->make_rereg(), 1 );
+        unset( $_POST['fields'] );
+
+        $f = $data['fields'];
+        $this->assertStringContainsString( '08:00', $f['wh'] );
+        $this->assertSame( array( 'parent' => 'A', 'child' => 'B' ), json_decode( $f['dep'], true ) );
+        $this->assertSame( 'Some notes', $f['bio'] );
+        $this->assertSame( '42', $f['age'] );
+        $this->assertSame( '1', $f['agree'] );
+        $this->assertSame( '1990-01-01', $f['dob'] );
+        $this->assertSame( 'João', $f['name'] );
+    }
+
+    public function test_collect_form_data_number_non_numeric_becomes_empty(): void {
+        $this->setup_wpdb_with_fields( array(
+            $this->make_field( array( 'id' => 1, 'field_key' => 'age', 'field_type' => 'number' ) ),
+        ) );
+
+        $_POST['fields'] = array( 'age' => 'not-a-number' );
+        $data = ReregistrationDataProcessor::collect_form_data( $this->make_rereg(), 1 );
+        unset( $_POST['fields'] );
+
+        $this->assertSame( '', $data['fields']['age'] );
+    }
+
+    public function test_collect_form_data_checkbox_unchecked_is_zero(): void {
+        $this->setup_wpdb_with_fields( array(
+            $this->make_field( array( 'id' => 1, 'field_key' => 'agree', 'field_type' => 'checkbox' ) ),
+        ) );
+
+        // Field present in the form but absent from POST → default '' → '0'.
+        $_POST['fields'] = array();
+        $data = ReregistrationDataProcessor::collect_form_data( $this->make_rereg(), 1 );
+        unset( $_POST['fields'] );
+
+        $this->assertSame( '0', $data['fields']['agree'] );
+    }
+
+    public function test_collect_form_data_dependent_select_missing_keys_becomes_empty_pair(): void {
+        $this->setup_wpdb_with_fields( array(
+            $this->make_field( array( 'id' => 1, 'field_key' => 'dep', 'field_type' => 'dependent_select' ) ),
+        ) );
+
+        $_POST['fields'] = array( 'dep' => json_encode( array( 'foo' => 'bar' ) ) );
+        $data = ReregistrationDataProcessor::collect_form_data( $this->make_rereg(), 1 );
+        unset( $_POST['fields'] );
+
+        $this->assertSame( array( 'parent' => '', 'child' => '' ), json_decode( $data['fields']['dep'], true ) );
+    }
+
+    public function test_collect_form_data_empty_when_no_post_root(): void {
+        $this->setup_wpdb_with_fields( array(
+            $this->make_field( array( 'id' => 1, 'field_key' => 'name', 'field_type' => 'text' ) ),
+        ) );
+
+        unset( $_POST['fields'] );
+        $data = ReregistrationDataProcessor::collect_form_data( $this->make_rereg(), 1 );
+
+        // Field present in definition, absent from POST → '' via sanitize.
+        $this->assertSame( '', $data['fields']['name'] );
+    }
+
+    // ==================================================================
+    // validate_submission() — dependent_select with empty child skips combo check
+    // ==================================================================
+
+    public function test_validate_submission_dependent_select_empty_child_passes(): void {
+        // A dependent_select whose decoded value has an empty child never hits
+        // the processor's group-membership check (guarded by ! empty( child )).
+        // With no `groups` defined the reader's own validator returns true, so
+        // the only path that could add an error is the processor's combo check.
+        $field = $this->make_field( array(
+            'id'            => 1,
+            'field_key'     => 'divisao_setor',
+            'field_label'   => 'Division',
+            'field_type'    => 'dependent_select',
+            'is_required'   => 0,
+            'field_options' => json_encode( array( 'groups' => array() ) ),
+        ) );
+        $this->setup_wpdb_with_fields( array( $field ) );
+
+        $data = array( 'fields' => array(
+            'divisao_setor' => json_encode( array( 'parent' => 'DRE - DIAF', 'child' => '' ) ),
+        ) );
+
+        $errors = ReregistrationDataProcessor::validate_submission( $data, $this->make_rereg(), 1 );
+
+        $this->assertArrayNotHasKey( 'fields[divisao_setor]', $errors );
+    }
+
+    // ==================================================================
+    // process_submission() — full persistence path
+    // ==================================================================
+
+    /**
+     * @runInSeparateProcess
+     * @preserveGlobalState disabled
+     */
+    public function test_process_submission_persists_encrypts_and_notifies(): void {
+        Functions\when( '__' )->returnArg();
+        Functions\when( 'wp_json_encode' )->alias( 'json_encode' );
+        Functions\when( 'wp_cache_get' )->justReturn( false );
+        Functions\when( 'wp_cache_set' )->justReturn( true );
+        // Disable the activity log so the real ActivityLog::log() short-circuits
+        // (SettingsReader::activity_log_enabled() reads ffc_settings).
+        Functions\when( 'get_option' )->justReturn( array() );
+
+        // Two active fields: a sensitive CPF (encrypted + profile-mapped) and a
+        // plain custom field (goes into the user snapshot). The real
+        // CustomFieldReader is driven by the $wpdb mock (get_results).
+        $this->setup_wpdb_with_fields( array(
+            $this->make_field( array(
+                'id'                => 1,
+                'field_key'         => 'cpf',
+                'field_type'        => 'text',
+                'is_sensitive'      => 1,
+                'field_profile_key' => 'cpf',
+            ) ),
+            $this->make_field( array(
+                'id'          => 2,
+                'field_key'   => 'nickname',
+                'field_type'  => 'text',
+                'is_sensitive' => 0,
+            ) ),
+        ) );
+
+        $enc = Mockery::mock( 'overload:FreeFormCertificate\Core\Encryption' );
+        $enc->shouldReceive( 'encrypt' )->andReturn( 'ENC(cpf)' );
+
+        $auth = Mockery::mock( 'overload:FreeFormCertificate\Core\AuthCodeService' );
+        $auth->shouldReceive( 'generate_globally_unique_auth_code' )->andReturn( 'ABC12345' );
+
+        $writer = Mockery::mock( 'overload:FreeFormCertificate\Reregistration\ReregistrationSubmissionWriter' );
+        $captured = null;
+        $writer->shouldReceive( 'update' )->once()->andReturnUsing( function ( $id, $data ) use ( &$captured ) {
+            $captured = array( 'id' => $id, 'data' => $data );
+            return true;
+        } );
+
+        $um = Mockery::mock( 'overload:FreeFormCertificate\UserDashboard\UserManager' );
+        $um_payload = null;
+        $um->shouldReceive( 'update_extended_profile' )->once()->andReturnUsing( function ( $uid, $payload, $sensitive ) use ( &$um_payload ) {
+            $um_payload = array( 'uid' => $uid, 'payload' => $payload, 'sensitive' => $sensitive );
+            return true;
+        } );
+
+        // Snapshot write goes through the real CustomFieldReader::get_user_data
+        // (wpdb mock) then CustomFieldWriter::save_user_data (overloaded).
+        $snapshot = null;
+        $cfw = Mockery::mock( 'overload:FreeFormCertificate\Reregistration\CustomFieldWriter' );
+        $cfw->shouldReceive( 'save_user_data' )->once()->andReturnUsing( function ( $uid, $snap ) use ( &$snapshot ) {
+            $snapshot = $snap;
+            return true;
+        } );
+
+        Functions\when( 'get_user_meta' )->justReturn( array() );
+
+        $emailer = Mockery::mock( 'overload:FreeFormCertificate\Reregistration\ReregistrationEmailHandler' );
+        $emailer->shouldReceive( 'send_confirmation' )->once();
+
+        $submission = (object) array( 'id' => 99 );
+        $rereg      = (object) array( 'id' => 1, 'auto_approve' => 0 );
+        $data       = array( 'fields' => array( 'cpf' => '52998224725', 'nickname' => 'Jo' ) );
+
+        ReregistrationDataProcessor::process_submission( $submission, $rereg, $data, 7 );
+
+        // Writer received the encrypted CPF and a 'submitted' status.
+        $this->assertSame( 99, $captured['id'] );
+        $this->assertSame( 'submitted', $captured['data']['status'] );
+        $this->assertSame( 'ENC(cpf)', $captured['data']['data']['fields']['cpf'] );
+        $this->assertSame( 'Jo', $captured['data']['data']['fields']['nickname'] );
+        $this->assertSame( 'ABC12345', $captured['data']['auth_code'] );
+        $this->assertArrayNotHasKey( 'reviewed_at', $captured['data'] );
+
+        // Profile sync carried the plain CPF, flagged sensitive.
+        $this->assertSame( '52998224725', $um_payload['payload']['cpf'] );
+        $this->assertContains( 'cpf', $um_payload['sensitive'] );
+
+        // Snapshot only carries the non-profile 'nickname' (keyed field_<id>).
+        $this->assertSame( 'Jo', $snapshot['field_2'] );
+        $this->assertArrayNotHasKey( 'field_1', $snapshot );
+    }
+
+    /**
+     * @runInSeparateProcess
+     * @preserveGlobalState disabled
+     */
+    public function test_process_submission_auto_approve_sets_review_fields(): void {
+        Functions\when( '__' )->returnArg();
+        Functions\when( 'wp_json_encode' )->alias( 'json_encode' );
+        Functions\when( 'wp_cache_get' )->justReturn( false );
+        Functions\when( 'wp_cache_set' )->justReturn( true );
+        Functions\when( 'get_option' )->justReturn( array() );
+        Functions\when( 'get_user_meta' )->justReturn( array() );
+
+        // No audiences → no fields; get_col returns [] so the field loop is empty.
+        global $wpdb;
+        $wpdb = Mockery::mock( 'wpdb' )->makePartial();
+        $wpdb->prefix = 'wp_';
+        $wpdb->shouldReceive( 'prepare' )->andReturnUsing( function () {
+            return func_get_args()[0];
+        } )->byDefault();
+        $wpdb->shouldReceive( 'get_col' )->andReturn( array() )->byDefault();
+        $wpdb->shouldReceive( 'get_results' )->andReturn( array() )->byDefault();
+        $wpdb->shouldReceive( 'get_row' )->andReturn( null )->byDefault();
+
+        Mockery::mock( 'overload:FreeFormCertificate\Core\Encryption' );
+        $auth = Mockery::mock( 'overload:FreeFormCertificate\Core\AuthCodeService' );
+        $auth->shouldReceive( 'generate_globally_unique_auth_code' )->andReturn( 'ZZZ99999' );
+
+        $writer = Mockery::mock( 'overload:FreeFormCertificate\Reregistration\ReregistrationSubmissionWriter' );
+        $captured = null;
+        $writer->shouldReceive( 'update' )->once()->andReturnUsing( function ( $id, $data ) use ( &$captured ) {
+            $captured = $data;
+            return true;
+        } );
+
+        $cfw = Mockery::mock( 'overload:FreeFormCertificate\Reregistration\CustomFieldWriter' );
+        $cfw->shouldReceive( 'save_user_data' );
+
+        $emailer = Mockery::mock( 'overload:FreeFormCertificate\Reregistration\ReregistrationEmailHandler' );
+        $emailer->shouldReceive( 'send_confirmation' );
+
+        $submission = (object) array( 'id' => 5 );
+        $rereg      = (object) array( 'id' => 1, 'auto_approve' => 1 );
+
+        ReregistrationDataProcessor::process_submission( $submission, $rereg, array( 'fields' => array() ), 3 );
+
+        $this->assertSame( 'approved', $captured['status'] );
+        $this->assertArrayHasKey( 'reviewed_at', $captured );
+        $this->assertSame( 0, $captured['reviewed_by'] );
+        $this->assertArrayHasKey( 'notes', $captured );
     }
 }

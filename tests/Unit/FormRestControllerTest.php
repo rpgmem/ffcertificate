@@ -14,6 +14,7 @@ use FreeFormCertificate\Repositories\FormRepository;
 /**
  * Tests for FormRestController: route registration, get_forms,
  * get_form, and submit_form endpoints.
+ * @covers \FreeFormCertificate\API\FormRestController
  * @runTestsInSeparateProcesses
  * @preserveGlobalState disabled
  */
@@ -33,6 +34,7 @@ class FormRestControllerTest extends TestCase {
     protected function setUp(): void {
         parent::setUp();
         Monkey\setUp();
+        class_exists( '\\FreeFormCertificate\\API\\FormRestController' );
 
         $this->registered_routes = [];
 
@@ -97,15 +99,21 @@ class FormRestControllerTest extends TestCase {
             return preg_replace( '/[^0-9]/', '', (string) $value ) ?? '';
         } )->byDefault();
 
-        $geofence_mock = Mockery::mock( 'alias:\FreeFormCertificate\Security\Geofence' );
-        $geofence_mock->shouldReceive( 'get_form_config' )->andReturn( null )->byDefault();
-        $geofence_mock->shouldReceive( 'can_access_form' )->andReturn( array( 'allowed' => true ) )->byDefault();
+        $this->geofence_mock = Mockery::mock( 'alias:\FreeFormCertificate\Security\Geofence' );
+        $this->geofence_mock->shouldReceive( 'get_form_config' )->andReturn( null )->byDefault();
+        $this->geofence_mock->shouldReceive( 'can_access_form' )->andReturn( array( 'allowed' => true ) )->byDefault();
 
-        $rate_limiter_mock = Mockery::mock( 'alias:\FreeFormCertificate\Security\RateLimiter' );
-        $rate_limiter_mock->shouldReceive( 'check_ip_limit' )->andReturn( array( 'allowed' => true ) )->byDefault();
-        $rate_limiter_mock->shouldReceive( 'check_email_limit' )->andReturn( array( 'allowed' => true ) )->byDefault();
-        $rate_limiter_mock->shouldReceive( 'check_cpf_limit' )->andReturn( array( 'allowed' => true ) )->byDefault();
+        $this->rate_limiter_mock = Mockery::mock( 'alias:\FreeFormCertificate\Security\RateLimiter' );
+        $this->rate_limiter_mock->shouldReceive( 'check_ip_limit' )->andReturn( array( 'allowed' => true ) )->byDefault();
+        $this->rate_limiter_mock->shouldReceive( 'check_email_limit' )->andReturn( array( 'allowed' => true ) )->byDefault();
+        $this->rate_limiter_mock->shouldReceive( 'check_cpf_limit' )->andReturn( array( 'allowed' => true ) )->byDefault();
     }
+
+    /** @var \Mockery\MockInterface Geofence alias */
+    private $geofence_mock;
+
+    /** @var \Mockery\MockInterface RateLimiter alias */
+    private $rate_limiter_mock;
 
     protected function tearDown(): void {
         Monkey\tearDown();
@@ -758,6 +766,229 @@ class FormRestControllerTest extends TestCase {
         $this->assertArrayHasKey( 'page', $args );
         $this->assertArrayHasKey( 'per_page', $args );
         $this->assertArrayNotHasKey( 'limit', $args );
+    }
+
+    // ------------------------------------------------------------------
+    // permission_read_forms_api()
+    // ------------------------------------------------------------------
+
+    public function test_permission_read_forms_api_delegates_to_current_user_can(): void {
+        Functions\when( 'current_user_can' )->alias( function ( $cap ) {
+            return 'ffc_view_forms_api' === $cap;
+        } );
+
+        $ctrl = new FormRestController( 'ffc/v1', $this->form_repo_mock );
+        $this->assertTrue( $ctrl->permission_read_forms_api() );
+
+        Functions\when( 'current_user_can' )->justReturn( false );
+        $this->assertFalse( $ctrl->permission_read_forms_api() );
+    }
+
+    // ------------------------------------------------------------------
+    // Exception → 500 catch branches
+    // ------------------------------------------------------------------
+
+    public function test_get_forms_returns_500_on_exception(): void {
+        $this->form_repo_mock->shouldReceive( 'countPublished' )->andThrow( new \Exception( 'db down' ) );
+
+        $ctrl = new FormRestController( 'ffc/v1', $this->form_repo_mock );
+        $result = $ctrl->get_forms( $this->make_request( array( 'page' => 1, 'per_page' => 10 ) ) );
+
+        $this->assertInstanceOf( \WP_Error::class, $result );
+        $this->assertSame( 'ffc_internal_error', $result->get_error_code() );
+    }
+
+    public function test_get_form_returns_500_on_exception(): void {
+        Functions\when( 'get_post' )->alias( function () { throw new \Exception( 'boom' ); } );
+
+        $ctrl = new FormRestController( 'ffc/v1', $this->form_repo_mock );
+        $result = $ctrl->get_form( $this->make_request( array( 'id' => 1 ) ) );
+
+        $this->assertInstanceOf( \WP_Error::class, $result );
+        $this->assertSame( 'ffc_internal_error', $result->get_error_code() );
+    }
+
+    public function test_get_form_schema_returns_500_on_exception(): void {
+        Functions\when( 'get_post' )->alias( function () { throw new \Exception( 'boom' ); } );
+
+        $ctrl = new FormRestController( 'ffc/v1', $this->form_repo_mock );
+        $result = $ctrl->get_form_schema( $this->make_request( array( 'id' => 1 ) ) );
+
+        $this->assertInstanceOf( \WP_Error::class, $result );
+        $this->assertSame( 'ffc_internal_error', $result->get_error_code() );
+    }
+
+    public function test_submit_form_returns_500_on_exception(): void {
+        $post = $this->make_post( 1 );
+        Functions\when( 'get_post' )->justReturn( $post );
+        // getConfig throws mid-flight → caught by the outer try/catch.
+        $this->form_repo_mock->shouldReceive( 'getConfig' )->andThrow( new \Exception( 'boom' ) );
+
+        $ctrl = new FormRestController( 'ffc/v1', $this->form_repo_mock );
+        $result = $ctrl->submit_form( $this->make_request(
+            array( 'id' => 1 ),
+            array( 'full_name' => 'John' )
+        ) );
+
+        $this->assertInstanceOf( \WP_Error::class, $result );
+        $this->assertSame( 'ffc_internal_error', $result->get_error_code() );
+    }
+
+    // ------------------------------------------------------------------
+    // get_form_schema: non-array getFields fallback
+    // ------------------------------------------------------------------
+
+    public function test_get_form_schema_handles_non_array_fields(): void {
+        $post = $this->make_post( 9 );
+        Functions\when( 'get_post' )->justReturn( $post );
+        Functions\when( 'apply_filters' )->alias( function ( $hook, $value ) { return $value; } );
+
+        $this->form_repo_mock->shouldReceive( 'getFields' )->with( 9 )->andReturn( 'not-an-array' );
+
+        $ctrl = new FormRestController( 'ffc/v1', $this->form_repo_mock );
+        $result = $ctrl->get_form_schema( $this->make_request( array( 'id' => 9 ) ) );
+
+        $data = $result->get_data();
+        $this->assertIsArray( $data );
+        $this->assertSame( array(), $data['fields'] );
+    }
+
+    // ------------------------------------------------------------------
+    // submit_form: repository null + validation branches
+    // ------------------------------------------------------------------
+
+    public function test_submit_form_returns_error_when_repository_null(): void {
+        $post = $this->make_post( 1 );
+        Functions\when( 'get_post' )->justReturn( $post );
+
+        $ctrl = new FormRestController( 'ffc/v1', null );
+        $result = $ctrl->submit_form( $this->make_request(
+            array( 'id' => 1 ),
+            array( 'full_name' => 'John' )
+        ) );
+
+        $this->assertInstanceOf( \WP_Error::class, $result );
+        $this->assertSame( 'form_repo_unavailable', $result->get_error_code() );
+    }
+
+    public function test_submit_form_returns_error_for_bad_cpf_rf_length(): void {
+        $post = $this->make_post( 1 );
+        Functions\when( 'get_post' )->justReturn( $post );
+        $this->form_repo_mock->shouldReceive( 'getFields' )->with( 1 )->andReturn( array() );
+
+        // 5 digits: neither 7 (RF) nor 11 (CPF).
+        $ctrl = new FormRestController( 'ffc/v1', $this->form_repo_mock );
+        $result = $ctrl->submit_form( $this->make_request(
+            array( 'id' => 1 ),
+            array( 'cpf_rf' => '12345' )
+        ) );
+
+        $this->assertInstanceOf( \WP_Error::class, $result );
+        $this->assertSame( 'invalid_cpf_rf', $result->get_error_code() );
+    }
+
+    // ------------------------------------------------------------------
+    // submit_form: geofence + rate-limit blocked branches
+    // ------------------------------------------------------------------
+
+    public function test_submit_form_returns_error_when_geofence_blocks(): void {
+        $post = $this->make_post( 1 );
+        Functions\when( 'get_post' )->justReturn( $post );
+        $this->form_repo_mock->shouldReceive( 'getFields' )->with( 1 )->andReturn( array() );
+        $this->form_repo_mock->shouldReceive( 'getConfig' )->with( 1 )->andReturn( array() );
+
+        // Override the setUp byDefault() stubs with specific expectations
+        // (specific expectations take precedence over byDefault()).
+        $this->geofence_mock->shouldReceive( 'get_form_config' )->andReturn(
+            array( 'geo_enabled' => true, 'geo_ip_enabled' => true )
+        );
+        $this->geofence_mock->shouldReceive( 'can_access_form' )->andReturn(
+            array( 'allowed' => false, 'message' => 'Outside window', 'reason' => 'datetime' )
+        );
+
+        $ctrl = new FormRestController( 'ffc/v1', $this->form_repo_mock );
+        $result = $ctrl->submit_form( $this->make_request(
+            array( 'id' => 1 ),
+            array( 'full_name' => 'John' )
+        ) );
+
+        $this->assertInstanceOf( \WP_Error::class, $result );
+        $this->assertSame( 'geofence_blocked', $result->get_error_code() );
+    }
+
+    public function test_submit_form_returns_error_when_ip_rate_limited(): void {
+        $post = $this->make_post( 1 );
+        Functions\when( 'get_post' )->justReturn( $post );
+        $this->form_repo_mock->shouldReceive( 'getFields' )->with( 1 )->andReturn( array() );
+        $this->form_repo_mock->shouldReceive( 'getConfig' )->with( 1 )->andReturn( array() );
+
+        $this->rate_limiter_mock->shouldReceive( 'check_ip_limit' )->andReturn( array( 'allowed' => false ) );
+
+        $ctrl = new FormRestController( 'ffc/v1', $this->form_repo_mock );
+        $result = $ctrl->submit_form( $this->make_request(
+            array( 'id' => 1 ),
+            array( 'full_name' => 'John' )
+        ) );
+
+        $this->assertInstanceOf( \WP_Error::class, $result );
+        $this->assertSame( 'rate_limit_exceeded', $result->get_error_code() );
+    }
+
+    public function test_submit_form_returns_error_when_email_rate_limited(): void {
+        $post = $this->make_post( 1 );
+        Functions\when( 'get_post' )->justReturn( $post );
+        $this->form_repo_mock->shouldReceive( 'getFields' )->with( 1 )->andReturn( array() );
+        $this->form_repo_mock->shouldReceive( 'getConfig' )->with( 1 )->andReturn( array() );
+
+        $this->rate_limiter_mock->shouldReceive( 'check_email_limit' )->andReturn( array( 'allowed' => false ) );
+
+        $ctrl = new FormRestController( 'ffc/v1', $this->form_repo_mock );
+        $result = $ctrl->submit_form( $this->make_request(
+            array( 'id' => 1 ),
+            array( 'email' => 'john@example.com' )
+        ) );
+
+        $this->assertInstanceOf( \WP_Error::class, $result );
+        $this->assertSame( 'rate_limit_exceeded', $result->get_error_code() );
+    }
+
+    public function test_submit_form_returns_error_when_cpf_rate_limited(): void {
+        $post = $this->make_post( 1 );
+        Functions\when( 'get_post' )->justReturn( $post );
+        $this->form_repo_mock->shouldReceive( 'getFields' )->with( 1 )->andReturn( array() );
+        $this->form_repo_mock->shouldReceive( 'getConfig' )->with( 1 )->andReturn( array() );
+
+        $this->rate_limiter_mock->shouldReceive( 'check_cpf_limit' )->andReturn( array( 'allowed' => false ) );
+
+        // Valid CPF so cpf_rf survives to the rate-limit pool.
+        $ctrl = new FormRestController( 'ffc/v1', $this->form_repo_mock );
+        $result = $ctrl->submit_form( $this->make_request(
+            array( 'id' => 1 ),
+            array( 'cpf_rf' => '52998224725' ) // known-valid CPF
+        ) );
+
+        $this->assertInstanceOf( \WP_Error::class, $result );
+        $this->assertSame( 'rate_limit_exceeded', $result->get_error_code() );
+    }
+
+    public function test_submit_form_returns_wp_error_from_handler(): void {
+        $post = $this->make_post( 1 );
+        Functions\when( 'get_post' )->justReturn( $post );
+        $this->form_repo_mock->shouldReceive( 'getFields' )->with( 1 )->andReturn( array() );
+        $this->form_repo_mock->shouldReceive( 'getConfig' )->with( 1 )->andReturn( array() );
+
+        $handler_error = new \WP_Error( 'handler_failed', 'nope' );
+        $this->submission_handler_mock->shouldReceive( 'process_submission' )
+            ->andReturn( $handler_error );
+
+        $ctrl = new FormRestController( 'ffc/v1', $this->form_repo_mock );
+        $result = $ctrl->submit_form( $this->make_request(
+            array( 'id' => 1 ),
+            array( 'full_name' => 'John' )
+        ) );
+
+        $this->assertInstanceOf( \WP_Error::class, $result );
+        $this->assertSame( 'handler_failed', $result->get_error_code() );
     }
 }
 

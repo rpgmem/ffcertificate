@@ -171,8 +171,18 @@ jobs:
     # frontend 70.5%→92.4% (both also cleared 90%). Overall statement coverage
     # 77.96% → 82.95% (36579/44095). Bump to 78 locks in the gain with a
     # ~4.95pp buffer (≤5pp policy).
+    #
+    # 78 → 82 — take every remaining sub-80% module to ≥80% (#563): api,
+    # reregistration, repositories, settings, url-shortener, generators, (root),
+    # shortcodes, submissions, migrations — via REST-controller, reader/writer,
+    # renderer, tab, generator, orchestrator and lifecycle coverage. Every
+    # includes/ module is now ≥80% (lowest: audience 80.7%). Overall statement
+    # coverage 82.95% → 86.37% (38087/44095, single-process). Bump to 82 keeps a
+    # ~4.4pp buffer under the measured number (≤5pp policy); note the CI gate
+    # reads the sharded phpcov merge, which runs a hair under the single-process
+    # figure (~0.2pp on #623), so 82 stays comfortably clear.
     env:
-      COVERAGE_FLOOR_LINES: '78'
+      COVERAGE_FLOOR_LINES: '82'
     steps:
       - name: Fail if any coverage shard did not succeed
         if: needs.coverage-shard.result != 'success'

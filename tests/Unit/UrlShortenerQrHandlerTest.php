@@ -212,4 +212,185 @@ class UrlShortenerQrHandlerTest extends TestCase {
         $svg = $this->handler->generate_svg( 'https://example.com/x', 1 );
         $this->assertStringContainsString( '<svg', $svg );
     }
+
+    // ==================================================================
+    // init()
+    // ==================================================================
+
+    public function test_init_registers_download_hooks(): void {
+        $hooks = array();
+        Functions\when( 'add_action' )->alias(
+            static function ( $hook ) use ( &$hooks ) {
+                $hooks[] = $hook;
+            }
+        );
+
+        $this->handler->init();
+
+        $this->assertContains( 'wp_ajax_ffc_download_qr_png', $hooks );
+        $this->assertContains( 'wp_ajax_ffc_download_qr_svg', $hooks );
+    }
+
+    // ==================================================================
+    // generate_qr_base64() — cache hit / miss+persist
+    // ==================================================================
+
+    /**
+     * @runInSeparateProcess
+     * @preserveGlobalState disabled
+     */
+    public function test_generate_qr_base64_returns_cached_when_present(): void {
+        $repo = Mockery::mock( 'overload:FreeFormCertificate\UrlShortener\UrlShortenerRepository' );
+        $repo->shouldReceive( 'findQrCacheByShortCode' )->with( 'code1' )->andReturn( 'CACHED64' );
+        // Generator must NOT run and cache must NOT be written on a hit.
+        $repo->shouldNotReceive( 'setQrCacheForShortCode' );
+
+        $result = $this->handler->generate_qr_base64( 'https://example.com/x', 200, 'code1' );
+
+        $this->assertSame( 'CACHED64', $result );
+    }
+
+    /**
+     * @runInSeparateProcess
+     * @preserveGlobalState disabled
+     */
+    public function test_generate_qr_base64_generates_and_persists_on_miss(): void {
+        $persisted = null;
+        $repo      = Mockery::mock( 'overload:FreeFormCertificate\UrlShortener\UrlShortenerRepository' );
+        $repo->shouldReceive( 'findQrCacheByShortCode' )->with( 'code2' )->andReturn( '' );
+        $repo->shouldReceive( 'setQrCacheForShortCode' )->andReturnUsing(
+            static function ( $code, $b64 ) use ( &$persisted ) {
+                $persisted = array( $code, $b64 );
+            }
+        );
+
+        $gen = Mockery::mock( 'overload:FreeFormCertificate\Generators\QRCodeGenerator' );
+        $gen->shouldReceive( 'generate' )->andReturn( 'FRESH64' );
+
+        $result = $this->handler->generate_qr_base64( 'https://example.com/x', 200, 'code2' );
+
+        $this->assertSame( 'FRESH64', $result );
+        $this->assertSame( array( 'code2', 'FRESH64' ), $persisted );
+    }
+
+    /**
+     * @runInSeparateProcess
+     * @preserveGlobalState disabled
+     */
+    public function test_generate_qr_base64_no_short_code_skips_cache(): void {
+        $gen = Mockery::mock( 'overload:FreeFormCertificate\Generators\QRCodeGenerator' );
+        $gen->shouldReceive( 'generate' )->once()->andReturn( 'NOCODE64' );
+
+        $result = $this->handler->generate_qr_base64( 'https://example.com/x', 200 );
+
+        $this->assertSame( 'NOCODE64', $result );
+    }
+
+    // ==================================================================
+    // handle_download_png() / handle_download_svg() — success + failure
+    // ==================================================================
+
+    /**
+     * @runInSeparateProcess
+     * @preserveGlobalState disabled
+     */
+    public function test_handle_download_png_success(): void {
+        $_POST['nonce'] = 'valid';
+        $_POST['code']  = 'abc';
+
+        Functions\when( 'wp_verify_nonce' )->justReturn( 1 );
+        Functions\when( 'current_user_can' )->justReturn( true );
+
+        $repo = Mockery::mock( 'overload:FreeFormCertificate\UrlShortener\UrlShortenerRepository' );
+        $this->service->shouldReceive( 'get_repository' )->andReturn( $repo );
+        $repo->shouldReceive( 'findByShortCode' )->with( 'abc' )->andReturn( array( 'short_code' => 'abc' ) );
+        $this->service->shouldReceive( 'get_short_url' )->with( 'abc' )->andReturn( 'https://example.com/go/abc' );
+
+        $gen = Mockery::mock( 'overload:FreeFormCertificate\Generators\QRCodeGenerator' );
+        $gen->shouldReceive( 'generate' )->andReturn( 'PNG64' );
+
+        $sent = null;
+        Functions\when( 'wp_send_json_success' )->alias(
+            static function ( $data ) use ( &$sent ) {
+                $sent = $data;
+                throw new \RuntimeException( 'ok' );
+            }
+        );
+
+        try {
+            $this->handler->handle_download_png();
+        } catch ( \RuntimeException $e ) {
+            // Expected.
+        }
+
+        $this->assertSame( 'PNG64', $sent['data'] );
+        $this->assertSame( 'qr-abc.png', $sent['filename'] );
+        $this->assertSame( 'image/png', $sent['mime'] );
+    }
+
+    /**
+     * @runInSeparateProcess
+     * @preserveGlobalState disabled
+     */
+    public function test_handle_download_png_generation_failure_sends_error(): void {
+        $_POST['nonce'] = 'valid';
+        $_POST['code']  = 'abc';
+
+        Functions\when( 'wp_verify_nonce' )->justReturn( 1 );
+        Functions\when( 'current_user_can' )->justReturn( true );
+
+        $repo = Mockery::mock( 'overload:FreeFormCertificate\UrlShortener\UrlShortenerRepository' );
+        $this->service->shouldReceive( 'get_repository' )->andReturn( $repo );
+        $repo->shouldReceive( 'findByShortCode' )->with( 'abc' )->andReturn( array( 'short_code' => 'abc' ) );
+        $this->service->shouldReceive( 'get_short_url' )->with( 'abc' )->andReturn( 'https://example.com/go/abc' );
+
+        $gen = Mockery::mock( 'overload:FreeFormCertificate\Generators\QRCodeGenerator' );
+        $gen->shouldReceive( 'generate' )->andReturn( '' );
+
+        Functions\when( 'wp_send_json_error' )->alias(
+            static function () {
+                throw new \RuntimeException( 'gen_failed' );
+            }
+        );
+
+        $this->expectException( \RuntimeException::class );
+        $this->expectExceptionMessage( 'gen_failed' );
+        $this->handler->handle_download_png();
+    }
+
+    /**
+     * @runInSeparateProcess
+     * @preserveGlobalState disabled
+     */
+    public function test_handle_download_svg_success(): void {
+        $_POST['nonce'] = 'valid';
+        $_POST['code']  = 'abc';
+
+        Functions\when( 'wp_verify_nonce' )->justReturn( 1 );
+        Functions\when( 'current_user_can' )->justReturn( true );
+
+        $repo = Mockery::mock( 'overload:FreeFormCertificate\UrlShortener\UrlShortenerRepository' );
+        $this->service->shouldReceive( 'get_repository' )->andReturn( $repo );
+        $repo->shouldReceive( 'findByShortCode' )->with( 'abc' )->andReturn( array( 'short_code' => 'abc' ) );
+        $this->service->shouldReceive( 'get_short_url' )->with( 'abc' )->andReturn( 'https://example.com/go/abc' );
+
+        $sent = null;
+        Functions\when( 'wp_send_json_success' )->alias(
+            static function ( $data ) use ( &$sent ) {
+                $sent = $data;
+                throw new \RuntimeException( 'ok' );
+            }
+        );
+
+        try {
+            $this->handler->handle_download_svg();
+        } catch ( \RuntimeException $e ) {
+            // Expected.
+        }
+
+        $this->assertSame( 'qr-abc.svg', $sent['filename'] );
+        $this->assertSame( 'image/svg+xml', $sent['mime'] );
+        // Payload is base64-encoded SVG markup.
+        $this->assertStringContainsString( '<svg', base64_decode( $sent['data'] ) );
+    }
 }
