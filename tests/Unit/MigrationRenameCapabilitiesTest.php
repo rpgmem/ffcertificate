@@ -24,7 +24,7 @@ class MigrationRenameCapabilitiesTest extends TestCase {
         Monkey\setUp();
 
         Functions\when( '__' )->returnArg();
-        Functions\when( 'FreeFormCertificate\Migrations\__' )->returnArg();
+        Functions\when( '__' )->returnArg();
     }
 
     protected function tearDown(): void {
@@ -38,14 +38,14 @@ class MigrationRenameCapabilitiesTest extends TestCase {
 
     public function test_is_completed_returns_true_when_option_set(): void {
         Functions\when( 'get_option' )->justReturn( true );
-        Functions\when( 'FreeFormCertificate\Migrations\get_option' )->justReturn( true );
+        Functions\when( 'get_option' )->justReturn( true );
 
         $this->assertTrue( MigrationRenameCapabilities::is_completed() );
     }
 
     public function test_is_completed_returns_false_when_option_not_set(): void {
         Functions\when( 'get_option' )->justReturn( false );
-        Functions\when( 'FreeFormCertificate\Migrations\get_option' )->justReturn( false );
+        Functions\when( 'get_option' )->justReturn( false );
 
         $this->assertFalse( MigrationRenameCapabilities::is_completed() );
     }
@@ -56,7 +56,7 @@ class MigrationRenameCapabilitiesTest extends TestCase {
 
     public function test_run_returns_early_when_already_completed(): void {
         Functions\when( 'get_option' )->justReturn( true );
-        Functions\when( 'FreeFormCertificate\Migrations\get_option' )->justReturn( true );
+        Functions\when( 'get_option' )->justReturn( true );
 
         $result = MigrationRenameCapabilities::run();
 
@@ -71,13 +71,13 @@ class MigrationRenameCapabilitiesTest extends TestCase {
 
     public function test_run_with_no_users_returns_zero_updated(): void {
         Functions\when( 'get_option' )->justReturn( false );
-        Functions\when( 'FreeFormCertificate\Migrations\get_option' )->justReturn( false );
-        Functions\when( 'FreeFormCertificate\Migrations\update_option' )->justReturn( true );
+        Functions\when( 'get_option' )->justReturn( false );
+        Functions\when( 'update_option' )->justReturn( true );
         Functions\when( 'update_option' )->justReturn( true );
         Functions\when( 'get_users' )->justReturn( array() );
-        Functions\when( 'FreeFormCertificate\Migrations\get_users' )->justReturn( array() );
+        Functions\when( 'get_users' )->justReturn( array() );
         Functions\when( 'get_role' )->justReturn( null );
-        Functions\when( 'FreeFormCertificate\Migrations\get_role' )->justReturn( null );
+        Functions\when( 'get_role' )->justReturn( null );
 
         $result = MigrationRenameCapabilities::run();
 
@@ -91,13 +91,13 @@ class MigrationRenameCapabilitiesTest extends TestCase {
 
     public function test_run_migrates_user_capabilities(): void {
         Functions\when( 'get_option' )->justReturn( false );
-        Functions\when( 'FreeFormCertificate\Migrations\get_option' )->justReturn( false );
-        Functions\when( 'FreeFormCertificate\Migrations\update_option' )->justReturn( true );
+        Functions\when( 'get_option' )->justReturn( false );
+        Functions\when( 'update_option' )->justReturn( true );
         Functions\when( 'update_option' )->justReturn( true );
 
         // Two users
         Functions\when( 'get_users' )->justReturn( array( 1, 2 ) );
-        Functions\when( 'FreeFormCertificate\Migrations\get_users' )->justReturn( array( 1, 2 ) );
+        Functions\when( 'get_users' )->justReturn( array( 1, 2 ) );
 
         // User 1 has old cap, User 2 does not
         $user1 = new \WP_User( 1 );
@@ -121,7 +121,7 @@ class MigrationRenameCapabilitiesTest extends TestCase {
         // To test user migration, we need to use get_role path instead.
 
         Functions\when( 'get_role' )->justReturn( null );
-        Functions\when( 'FreeFormCertificate\Migrations\get_role' )->justReturn( null );
+        Functions\when( 'get_role' )->justReturn( null );
 
         $result = MigrationRenameCapabilities::run();
 
@@ -136,11 +136,11 @@ class MigrationRenameCapabilitiesTest extends TestCase {
 
     public function test_run_migrates_role_capabilities(): void {
         Functions\when( 'get_option' )->justReturn( false );
-        Functions\when( 'FreeFormCertificate\Migrations\get_option' )->justReturn( false );
-        Functions\when( 'FreeFormCertificate\Migrations\update_option' )->justReturn( true );
+        Functions\when( 'get_option' )->justReturn( false );
+        Functions\when( 'update_option' )->justReturn( true );
         Functions\when( 'update_option' )->justReturn( true );
         Functions\when( 'get_users' )->justReturn( array() );
-        Functions\when( 'FreeFormCertificate\Migrations\get_users' )->justReturn( array() );
+        Functions\when( 'get_users' )->justReturn( array() );
 
         // Mock WP_Role with has_cap
         $role = Mockery::mock( 'WP_Role' );
@@ -155,7 +155,7 @@ class MigrationRenameCapabilitiesTest extends TestCase {
             ->once();
 
         Functions\when( 'get_role' )->justReturn( $role );
-        Functions\when( 'FreeFormCertificate\Migrations\get_role' )->justReturn( $role );
+        Functions\when( 'get_role' )->justReturn( $role );
 
         $result = MigrationRenameCapabilities::run();
 
@@ -164,11 +164,11 @@ class MigrationRenameCapabilitiesTest extends TestCase {
 
     public function test_run_skips_role_without_old_capability(): void {
         Functions\when( 'get_option' )->justReturn( false );
-        Functions\when( 'FreeFormCertificate\Migrations\get_option' )->justReturn( false );
-        Functions\when( 'FreeFormCertificate\Migrations\update_option' )->justReturn( true );
+        Functions\when( 'get_option' )->justReturn( false );
+        Functions\when( 'update_option' )->justReturn( true );
         Functions\when( 'update_option' )->justReturn( true );
         Functions\when( 'get_users' )->justReturn( array() );
-        Functions\when( 'FreeFormCertificate\Migrations\get_users' )->justReturn( array() );
+        Functions\when( 'get_users' )->justReturn( array() );
 
         // Role without old capability
         $role = Mockery::mock( 'WP_Role' );
@@ -179,7 +179,7 @@ class MigrationRenameCapabilitiesTest extends TestCase {
         $role->shouldNotReceive( 'remove_cap' );
 
         Functions\when( 'get_role' )->justReturn( $role );
-        Functions\when( 'FreeFormCertificate\Migrations\get_role' )->justReturn( $role );
+        Functions\when( 'get_role' )->justReturn( $role );
 
         $result = MigrationRenameCapabilities::run();
 
@@ -192,13 +192,13 @@ class MigrationRenameCapabilitiesTest extends TestCase {
 
     public function test_run_handles_null_role(): void {
         Functions\when( 'get_option' )->justReturn( false );
-        Functions\when( 'FreeFormCertificate\Migrations\get_option' )->justReturn( false );
-        Functions\when( 'FreeFormCertificate\Migrations\update_option' )->justReturn( true );
+        Functions\when( 'get_option' )->justReturn( false );
+        Functions\when( 'update_option' )->justReturn( true );
         Functions\when( 'update_option' )->justReturn( true );
         Functions\when( 'get_users' )->justReturn( array() );
-        Functions\when( 'FreeFormCertificate\Migrations\get_users' )->justReturn( array() );
+        Functions\when( 'get_users' )->justReturn( array() );
         Functions\when( 'get_role' )->justReturn( null );
-        Functions\when( 'FreeFormCertificate\Migrations\get_role' )->justReturn( null );
+        Functions\when( 'get_role' )->justReturn( null );
 
         $result = MigrationRenameCapabilities::run();
 
@@ -212,7 +212,7 @@ class MigrationRenameCapabilitiesTest extends TestCase {
 
     public function test_get_status_returns_completed_and_mappings(): void {
         Functions\when( 'get_option' )->justReturn( true );
-        Functions\when( 'FreeFormCertificate\Migrations\get_option' )->justReturn( true );
+        Functions\when( 'get_option' )->justReturn( true );
 
         $status = MigrationRenameCapabilities::get_status();
 
@@ -224,7 +224,7 @@ class MigrationRenameCapabilitiesTest extends TestCase {
 
     public function test_get_status_returns_not_completed(): void {
         Functions\when( 'get_option' )->justReturn( false );
-        Functions\when( 'FreeFormCertificate\Migrations\get_option' )->justReturn( false );
+        Functions\when( 'get_option' )->justReturn( false );
 
         $status = MigrationRenameCapabilities::get_status();
 

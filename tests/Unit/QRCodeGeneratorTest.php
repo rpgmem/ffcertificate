@@ -49,12 +49,12 @@ class QRCodeGeneratorTest extends TestCase {
         Functions\when( 'wp_delete_file' )->alias( function( $f ) { if ( file_exists( $f ) ) { @unlink( $f ); } } );
 
         // Namespaced stubs: FreeFormCertificate\Generators\*
-        Functions\when( 'FreeFormCertificate\Generators\esc_attr__' )->returnArg();
-        Functions\when( 'FreeFormCertificate\Generators\get_option' )->justReturn( array() );
-        Functions\when( 'FreeFormCertificate\Generators\absint' )->alias( function( $val ) { return abs( intval( $val ) ); } );
-        Functions\when( 'FreeFormCertificate\Generators\sanitize_text_field' )->returnArg();
-        Functions\when( 'FreeFormCertificate\Generators\apply_filters' )->alias( function() { $args = func_get_args(); return $args[1] ?? null; } );
-        Functions\when( 'FreeFormCertificate\Generators\wp_delete_file' )->alias( function( $f ) { if ( file_exists( $f ) ) { @unlink( $f ); } } );
+        Functions\when( 'esc_attr__' )->returnArg();
+        Functions\when( 'get_option' )->justReturn( array() );
+        Functions\when( 'absint' )->alias( function( $val ) { return abs( intval( $val ) ); } );
+        Functions\when( 'sanitize_text_field' )->returnArg();
+        Functions\when( 'apply_filters' )->alias( function() { $args = func_get_args(); return $args[1] ?? null; } );
+        Functions\when( 'wp_delete_file' )->alias( function( $f ) { if ( file_exists( $f ) ) { @unlink( $f ); } } );
 
         $this->generator = new QRCodeGenerator();
         $this->ref = new \ReflectionClass( QRCodeGenerator::class );
@@ -235,7 +235,7 @@ class QRCodeGeneratorTest extends TestCase {
     }
 
     public function test_cache_enabled_when_setting_is_1(): void {
-        Functions\when( 'FreeFormCertificate\Generators\get_option' )->justReturn(
+        Functions\when( 'get_option' )->justReturn(
             array( 'qr_cache_enabled' => 1 )
         );
 
@@ -310,7 +310,7 @@ class QRCodeGeneratorTest extends TestCase {
     // ==================================================================
 
     public function test_defaults_loaded_from_settings(): void {
-        Functions\when( 'FreeFormCertificate\Generators\get_option' )->justReturn( array(
+        Functions\when( 'get_option' )->justReturn( array(
             'qr_default_size'        => '300',
             'qr_default_margin'      => '0',
             'qr_default_error_level' => 'H',
@@ -433,7 +433,7 @@ class QRCodeGeneratorTest extends TestCase {
         // Mirror test_cache_enabled_when_setting_is_1: the class-internal
         // get_option() resolves through the namespaced stub, not the
         // global one.
-        Functions\when( 'FreeFormCertificate\Generators\get_option' )->justReturn(
+        Functions\when( 'get_option' )->justReturn(
             array( 'qr_cache_enabled' => 1 )
         );
 
@@ -546,7 +546,7 @@ class QRCodeGeneratorTest extends TestCase {
     // ──────────────────────────────────────────────────────────────────.
 
     public function test_parse_and_generate_serves_from_cache_when_available(): void {
-        Functions\when( 'FreeFormCertificate\Generators\get_option' )->justReturn(
+        Functions\when( 'get_option' )->justReturn(
             array( 'qr_cache_enabled' => 1 )
         );
         global $wpdb;
@@ -562,7 +562,7 @@ class QRCodeGeneratorTest extends TestCase {
     }
 
     public function test_parse_and_generate_caches_after_generation_on_miss(): void {
-        Functions\when( 'FreeFormCertificate\Generators\get_option' )->justReturn(
+        Functions\when( 'get_option' )->justReturn(
             array( 'qr_cache_enabled' => 1 )
         );
         global $wpdb;

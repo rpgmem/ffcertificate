@@ -219,8 +219,8 @@ class TabUserAccessTest extends TestCase {
         Functions\when( 'wp_verify_nonce' )->justReturn( false );
         Functions\when( 'sanitize_text_field' )->returnArg();
         Functions\when( 'wp_unslash' )->returnArg();
-        Functions\when( 'FreeFormCertificate\Core\sanitize_text_field' )->returnArg();
-        Functions\when( 'FreeFormCertificate\Core\wp_unslash' )->returnArg();
+        Functions\when( 'sanitize_text_field' )->returnArg();
+        Functions\when( 'wp_unslash' )->returnArg();
 
         $this->tab->save_settings();
 
@@ -237,8 +237,8 @@ class TabUserAccessTest extends TestCase {
 
         Functions\when( 'sanitize_text_field' )->returnArg();
         Functions\when( 'wp_unslash' )->returnArg();
-        Functions\when( 'FreeFormCertificate\Core\sanitize_text_field' )->returnArg();
-        Functions\when( 'FreeFormCertificate\Core\wp_unslash' )->returnArg();
+        Functions\when( 'sanitize_text_field' )->returnArg();
+        Functions\when( 'wp_unslash' )->returnArg();
         Functions\when( 'wp_verify_nonce' )->justReturn( false );
         Functions\expect( 'update_option' )->never();
 
@@ -262,8 +262,8 @@ class TabUserAccessTest extends TestCase {
 
         Functions\when( 'sanitize_text_field' )->returnArg();
         Functions\when( 'wp_unslash' )->returnArg();
-        Functions\when( 'FreeFormCertificate\Core\sanitize_text_field' )->returnArg();
-        Functions\when( 'FreeFormCertificate\Core\wp_unslash' )->returnArg();
+        Functions\when( 'sanitize_text_field' )->returnArg();
+        Functions\when( 'wp_unslash' )->returnArg();
         Functions\when( 'wp_verify_nonce' )->justReturn( 1 );
         Functions\when( 'esc_url_raw' )->returnArg();
         Functions\when( 'sanitize_textarea_field' )->returnArg();
@@ -297,8 +297,8 @@ class TabUserAccessTest extends TestCase {
 
         Functions\when( 'sanitize_text_field' )->returnArg();
         Functions\when( 'wp_unslash' )->returnArg();
-        Functions\when( 'FreeFormCertificate\Core\sanitize_text_field' )->returnArg();
-        Functions\when( 'FreeFormCertificate\Core\wp_unslash' )->returnArg();
+        Functions\when( 'sanitize_text_field' )->returnArg();
+        Functions\when( 'wp_unslash' )->returnArg();
         Functions\when( 'wp_verify_nonce' )->justReturn( 1 );
         Functions\when( 'esc_url_raw' )->returnArg();
         Functions\when( 'sanitize_textarea_field' )->returnArg();

@@ -66,7 +66,7 @@ class EmailHelperTraitTest extends TestCase {
 
         // Namespaced stub: prevent "is not defined" error when Sprint 27 tests run first.
         // EmailHelperTrait is in Core namespace; its function calls resolve there.
-        Functions\when( 'FreeFormCertificate\Core\get_option' )->alias( function ( $key, $default = false ) {
+        Functions\when( 'get_option' )->alias( function ( $key, $default = false ) {
             return \get_option( $key, $default );
         } );
     }

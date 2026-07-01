@@ -50,7 +50,7 @@ class EmailTemplateServiceTest extends TestCase {
 
         // Namespaced stub: prevent "is not defined" error when Sprint 27 tests run first.
         // EmailTemplateService is in Scheduling namespace.
-        Functions\when( 'FreeFormCertificate\Scheduling\get_option' )->alias( function ( $key, $default = false ) {
+        Functions\when( 'get_option' )->alias( function ( $key, $default = false ) {
             return \get_option( $key, $default );
         } );
     }

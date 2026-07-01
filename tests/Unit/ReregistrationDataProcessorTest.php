@@ -51,10 +51,10 @@ class ReregistrationDataProcessorTest extends TestCase {
         Functions\when( 'is_wp_error' )->alias( function ( $thing ) {
             return $thing instanceof \WP_Error;
         });
-        Functions\when( 'FreeFormCertificate\Reregistration\is_wp_error' )->alias( function ( $thing ) {
+        Functions\when( 'is_wp_error' )->alias( function ( $thing ) {
             return $thing instanceof \WP_Error;
         });
-        Functions\when( 'FreeFormCertificate\Reregistration\is_email' )->alias( function ( $email ) {
+        Functions\when( 'is_email' )->alias( function ( $email ) {
             return (bool) filter_var( $email, FILTER_VALIDATE_EMAIL );
         });
         // Default $wpdb mock — no fields returned.

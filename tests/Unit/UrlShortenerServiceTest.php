@@ -47,18 +47,18 @@ class UrlShortenerServiceTest extends TestCase {
         } );
 
         // Namespaced WP function stubs (resolved inside FreeFormCertificate\UrlShortener)
-        Functions\when( 'FreeFormCertificate\UrlShortener\get_option' )->justReturn( [] );
-        Functions\when( 'FreeFormCertificate\UrlShortener\sanitize_text_field' )->returnArg();
-        Functions\when( 'FreeFormCertificate\UrlShortener\sanitize_title' )->alias( function ( $title ) {
+        Functions\when( 'get_option' )->justReturn( [] );
+        Functions\when( 'sanitize_text_field' )->returnArg();
+        Functions\when( 'sanitize_title' )->alias( function ( $title ) {
             return strtolower( preg_replace( '/[^a-zA-Z0-9\-]/', '', $title ) );
         } );
-        Functions\when( 'FreeFormCertificate\UrlShortener\esc_url_raw' )->returnArg();
-        Functions\when( 'FreeFormCertificate\UrlShortener\home_url' )->alias( function ( $path = '' ) {
+        Functions\when( 'esc_url_raw' )->returnArg();
+        Functions\when( 'home_url' )->alias( function ( $path = '' ) {
             return 'https://example.com' . $path;
         } );
-        Functions\when( 'FreeFormCertificate\UrlShortener\current_time' )->justReturn( '2026-02-22 12:00:00' );
-        Functions\when( 'FreeFormCertificate\UrlShortener\get_current_user_id' )->justReturn( 1 );
-        Functions\when( 'FreeFormCertificate\UrlShortener\__' )->returnArg();
+        Functions\when( 'current_time' )->justReturn( '2026-02-22 12:00:00' );
+        Functions\when( 'get_current_user_id' )->justReturn( 1 );
+        Functions\when( '__' )->returnArg();
 
         $this->repo    = Mockery::mock( UrlShortenerRepository::class );
         $this->service = new UrlShortenerService( $this->repo );
@@ -128,7 +128,7 @@ class UrlShortenerServiceTest extends TestCase {
     // ==================================================================
 
     public function test_generate_unique_code_returns_correct_length(): void {
-        Functions\when( 'FreeFormCertificate\UrlShortener\get_option' )->justReturn( [ 'url_shortener_code_length' => 8 ] );
+        Functions\when( 'get_option' )->justReturn( [ 'url_shortener_code_length' => 8 ] );
         $this->repo->shouldReceive( 'codeExists' )->andReturn( false );
 
         $code = $this->service->generate_unique_code();
@@ -137,7 +137,7 @@ class UrlShortenerServiceTest extends TestCase {
     }
 
     public function test_generate_unique_code_uses_base62_charset(): void {
-        Functions\when( 'FreeFormCertificate\UrlShortener\get_option' )->justReturn( [] );
+        Functions\when( 'get_option' )->justReturn( [] );
         $this->repo->shouldReceive( 'codeExists' )->andReturn( false );
 
         $code = $this->service->generate_unique_code( 6 );
@@ -186,7 +186,7 @@ class UrlShortenerServiceTest extends TestCase {
     // ==================================================================
 
     public function test_get_short_url_builds_correct_url(): void {
-        Functions\when( 'FreeFormCertificate\UrlShortener\get_option' )->justReturn( [ 'url_shortener_prefix' => 'go' ] );
+        Functions\when( 'get_option' )->justReturn( [ 'url_shortener_prefix' => 'go' ] );
 
         $url = $this->service->get_short_url( 'abc123' );
 
@@ -194,7 +194,7 @@ class UrlShortenerServiceTest extends TestCase {
     }
 
     public function test_get_short_url_custom_prefix(): void {
-        Functions\when( 'FreeFormCertificate\UrlShortener\get_option' )->justReturn( [ 'url_shortener_prefix' => 'link' ] );
+        Functions\when( 'get_option' )->justReturn( [ 'url_shortener_prefix' => 'link' ] );
 
         $url = $this->service->get_short_url( 'xyz789' );
 
@@ -206,19 +206,19 @@ class UrlShortenerServiceTest extends TestCase {
     // ==================================================================
 
     public function test_get_prefix_default_is_go(): void {
-        Functions\when( 'FreeFormCertificate\UrlShortener\get_option' )->justReturn( [] );
+        Functions\when( 'get_option' )->justReturn( [] );
 
         $this->assertSame( 'go', $this->service->get_prefix() );
     }
 
     public function test_get_prefix_from_settings(): void {
-        Functions\when( 'FreeFormCertificate\UrlShortener\get_option' )->justReturn( [ 'url_shortener_prefix' => 'link' ] );
+        Functions\when( 'get_option' )->justReturn( [ 'url_shortener_prefix' => 'link' ] );
 
         $this->assertSame( 'link', $this->service->get_prefix() );
     }
 
     public function test_get_prefix_sanitizes_value(): void {
-        Functions\when( 'FreeFormCertificate\UrlShortener\get_option' )->justReturn( [ 'url_shortener_prefix' => 'My Link!' ] );
+        Functions\when( 'get_option' )->justReturn( [ 'url_shortener_prefix' => 'My Link!' ] );
 
         $prefix = $this->service->get_prefix();
 
@@ -231,25 +231,25 @@ class UrlShortenerServiceTest extends TestCase {
     // ==================================================================
 
     public function test_get_code_length_default_is_6(): void {
-        Functions\when( 'FreeFormCertificate\UrlShortener\get_option' )->justReturn( [] );
+        Functions\when( 'get_option' )->justReturn( [] );
 
         $this->assertSame( 6, $this->service->get_code_length() );
     }
 
     public function test_get_code_length_clamped_to_min_4(): void {
-        Functions\when( 'FreeFormCertificate\UrlShortener\get_option' )->justReturn( [ 'url_shortener_code_length' => 2 ] );
+        Functions\when( 'get_option' )->justReturn( [ 'url_shortener_code_length' => 2 ] );
 
         $this->assertSame( 4, $this->service->get_code_length() );
     }
 
     public function test_get_code_length_clamped_to_max_10(): void {
-        Functions\when( 'FreeFormCertificate\UrlShortener\get_option' )->justReturn( [ 'url_shortener_code_length' => 99 ] );
+        Functions\when( 'get_option' )->justReturn( [ 'url_shortener_code_length' => 99 ] );
 
         $this->assertSame( 10, $this->service->get_code_length() );
     }
 
     public function test_get_code_length_from_settings(): void {
-        Functions\when( 'FreeFormCertificate\UrlShortener\get_option' )->justReturn( [ 'url_shortener_code_length' => 8 ] );
+        Functions\when( 'get_option' )->justReturn( [ 'url_shortener_code_length' => 8 ] );
 
         $this->assertSame( 8, $this->service->get_code_length() );
     }
@@ -259,25 +259,25 @@ class UrlShortenerServiceTest extends TestCase {
     // ==================================================================
 
     public function test_get_redirect_type_default_is_302(): void {
-        Functions\when( 'FreeFormCertificate\UrlShortener\get_option' )->justReturn( [] );
+        Functions\when( 'get_option' )->justReturn( [] );
 
         $this->assertSame( 302, $this->service->get_redirect_type() );
     }
 
     public function test_get_redirect_type_accepts_301(): void {
-        Functions\when( 'FreeFormCertificate\UrlShortener\get_option' )->justReturn( [ 'url_shortener_redirect_type' => 301 ] );
+        Functions\when( 'get_option' )->justReturn( [ 'url_shortener_redirect_type' => 301 ] );
 
         $this->assertSame( 301, $this->service->get_redirect_type() );
     }
 
     public function test_get_redirect_type_accepts_307(): void {
-        Functions\when( 'FreeFormCertificate\UrlShortener\get_option' )->justReturn( [ 'url_shortener_redirect_type' => 307 ] );
+        Functions\when( 'get_option' )->justReturn( [ 'url_shortener_redirect_type' => 307 ] );
 
         $this->assertSame( 307, $this->service->get_redirect_type() );
     }
 
     public function test_get_redirect_type_invalid_falls_back_to_302(): void {
-        Functions\when( 'FreeFormCertificate\UrlShortener\get_option' )->justReturn( [ 'url_shortener_redirect_type' => 404 ] );
+        Functions\when( 'get_option' )->justReturn( [ 'url_shortener_redirect_type' => 404 ] );
 
         $this->assertSame( 302, $this->service->get_redirect_type() );
     }
@@ -287,19 +287,19 @@ class UrlShortenerServiceTest extends TestCase {
     // ==================================================================
 
     public function test_is_enabled_true_by_default(): void {
-        Functions\when( 'FreeFormCertificate\UrlShortener\get_option' )->justReturn( [] );
+        Functions\when( 'get_option' )->justReturn( [] );
 
         $this->assertTrue( $this->service->is_enabled() );
     }
 
     public function test_is_enabled_returns_true_when_setting_is_1(): void {
-        Functions\when( 'FreeFormCertificate\UrlShortener\get_option' )->justReturn( [ 'url_shortener_enabled' => 1 ] );
+        Functions\when( 'get_option' )->justReturn( [ 'url_shortener_enabled' => 1 ] );
 
         $this->assertTrue( $this->service->is_enabled() );
     }
 
     public function test_is_enabled_returns_false_when_disabled(): void {
-        Functions\when( 'FreeFormCertificate\UrlShortener\get_option' )->justReturn( [ 'url_shortener_enabled' => 0 ] );
+        Functions\when( 'get_option' )->justReturn( [ 'url_shortener_enabled' => 0 ] );
 
         $this->assertFalse( $this->service->is_enabled() );
     }
@@ -309,13 +309,13 @@ class UrlShortenerServiceTest extends TestCase {
     // ==================================================================
 
     public function test_is_auto_create_enabled_true_by_default(): void {
-        Functions\when( 'FreeFormCertificate\UrlShortener\get_option' )->justReturn( [] );
+        Functions\when( 'get_option' )->justReturn( [] );
 
         $this->assertTrue( $this->service->is_auto_create_enabled() );
     }
 
     public function test_is_auto_create_enabled_returns_false_when_disabled(): void {
-        Functions\when( 'FreeFormCertificate\UrlShortener\get_option' )->justReturn( [ 'url_shortener_auto_create' => 0 ] );
+        Functions\when( 'get_option' )->justReturn( [ 'url_shortener_auto_create' => 0 ] );
 
         $this->assertFalse( $this->service->is_auto_create_enabled() );
     }
@@ -325,19 +325,19 @@ class UrlShortenerServiceTest extends TestCase {
     // ==================================================================
 
     public function test_get_enabled_post_types_default(): void {
-        Functions\when( 'FreeFormCertificate\UrlShortener\get_option' )->justReturn( [] );
+        Functions\when( 'get_option' )->justReturn( [] );
 
         $this->assertSame( [ 'post', 'page' ], $this->service->get_enabled_post_types() );
     }
 
     public function test_get_enabled_post_types_from_array(): void {
-        Functions\when( 'FreeFormCertificate\UrlShortener\get_option' )->justReturn( [ 'url_shortener_post_types' => [ 'post', 'product' ] ] );
+        Functions\when( 'get_option' )->justReturn( [ 'url_shortener_post_types' => [ 'post', 'product' ] ] );
 
         $this->assertSame( [ 'post', 'product' ], $this->service->get_enabled_post_types() );
     }
 
     public function test_get_enabled_post_types_from_csv_string(): void {
-        Functions\when( 'FreeFormCertificate\UrlShortener\get_option' )->justReturn( [ 'url_shortener_post_types' => 'post, page, product' ] );
+        Functions\when( 'get_option' )->justReturn( [ 'url_shortener_post_types' => 'post, page, product' ] );
 
         $result = $this->service->get_enabled_post_types();
 
@@ -347,7 +347,7 @@ class UrlShortenerServiceTest extends TestCase {
     }
 
     public function test_get_enabled_post_types_empty_falls_back_to_default(): void {
-        Functions\when( 'FreeFormCertificate\UrlShortener\get_option' )->justReturn( [ 'url_shortener_post_types' => [] ] );
+        Functions\when( 'get_option' )->justReturn( [ 'url_shortener_post_types' => [] ] );
 
         $this->assertSame( [ 'post', 'page' ], $this->service->get_enabled_post_types() );
     }

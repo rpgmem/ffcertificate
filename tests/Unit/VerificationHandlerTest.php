@@ -80,18 +80,18 @@ class VerificationHandlerTest extends TestCase {
         // Namespaced WP function stubs (FreeFormCertificate\Core\*)
         // PHP resolves unqualified function calls in the current namespace first.
         // ------------------------------------------------------------------
-        Functions\when( 'FreeFormCertificate\Core\sanitize_text_field' )->returnArg();
-        Functions\when( 'FreeFormCertificate\Core\wp_unslash' )->returnArg();
-        Functions\when( 'FreeFormCertificate\Core\get_option' )->justReturn( '' );
-        Functions\when( 'FreeFormCertificate\Core\absint' )->alias( function( $val ) { return abs( intval( $val ) ); } );
-        Functions\when( 'FreeFormCertificate\Core\get_current_user_id' )->justReturn( 0 );
+        Functions\when( 'sanitize_text_field' )->returnArg();
+        Functions\when( 'wp_unslash' )->returnArg();
+        Functions\when( 'get_option' )->justReturn( '' );
+        Functions\when( 'absint' )->alias( function( $val ) { return abs( intval( $val ) ); } );
+        Functions\when( 'get_current_user_id' )->justReturn( 0 );
 
         // Namespaced stubs for FreeFormCertificate\Security\* (RateLimiter)
-        Functions\when( 'FreeFormCertificate\Security\get_option' )->justReturn( '' );
-        Functions\when( 'FreeFormCertificate\Security\wp_cache_get' )->justReturn( false );
-        Functions\when( 'FreeFormCertificate\Security\wp_cache_set' )->justReturn( true );
-        Functions\when( 'FreeFormCertificate\Security\__' )->returnArg();
-        Functions\when( 'FreeFormCertificate\Security\wp_parse_args' )->alias( function( $args, $defaults = array() ) {
+        Functions\when( 'get_option' )->justReturn( '' );
+        Functions\when( 'wp_cache_get' )->justReturn( false );
+        Functions\when( 'wp_cache_set' )->justReturn( true );
+        Functions\when( '__' )->returnArg();
+        Functions\when( 'wp_parse_args' )->alias( function( $args, $defaults = array() ) {
             if ( is_array( $args ) ) {
                 return array_merge( $defaults, $args );
             }

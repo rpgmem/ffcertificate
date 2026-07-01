@@ -336,8 +336,3 @@ if ( ! class_exists( 'WP_List_Table' ) ) {
 require_once dirname( __DIR__ ) . '/includes/class-ffc-autoloader.php';
 $ffc_autoloader = new \FFC_Autoloader( dirname( __DIR__ ) . '/includes' );
 $ffc_autoloader->register();
-
-// Pre-define namespaced WP-function shims so Brain Monkey redefines/restores
-// them per test instead of leaving lingering creates (which made the suite
-// order-dependent and blocked coverage sharding). See tests/ns-function-shims.php.
-require_once __DIR__ . '/ns-function-shims.php';

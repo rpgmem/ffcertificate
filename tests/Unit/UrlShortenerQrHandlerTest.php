@@ -40,14 +40,14 @@ class UrlShortenerQrHandlerTest extends TestCase {
         Functions\when( 'absint' )->alias( function ( $v ) { return abs( (int) $v ); } );
 
         // Namespaced stubs for AjaxTrait
-        Functions\when( 'FreeFormCertificate\Core\sanitize_text_field' )->returnArg();
-        Functions\when( 'FreeFormCertificate\Core\wp_unslash' )->returnArg();
-        Functions\when( 'FreeFormCertificate\Core\absint' )->alias( function ( $v ) { return abs( (int) $v ); } );
+        Functions\when( 'sanitize_text_field' )->returnArg();
+        Functions\when( 'wp_unslash' )->returnArg();
+        Functions\when( 'absint' )->alias( function ( $v ) { return abs( (int) $v ); } );
 
         // Namespaced stubs for UrlShortener
-        Functions\when( 'FreeFormCertificate\UrlShortener\__' )->returnArg();
-        Functions\when( 'FreeFormCertificate\UrlShortener\sanitize_text_field' )->returnArg();
-        Functions\when( 'FreeFormCertificate\UrlShortener\wp_unslash' )->returnArg();
+        Functions\when( '__' )->returnArg();
+        Functions\when( 'sanitize_text_field' )->returnArg();
+        Functions\when( 'wp_unslash' )->returnArg();
 
         $this->service = Mockery::mock( UrlShortenerService::class );
         $this->handler = new UrlShortenerQrHandler( $this->service );
@@ -76,7 +76,7 @@ class UrlShortenerQrHandlerTest extends TestCase {
 
         $mock_post = Mockery::mock( \WP_Post::class );
         $mock_post->post_name = 'my-page';
-        Functions\when( 'FreeFormCertificate\UrlShortener\get_post' )->justReturn( $mock_post );
+        Functions\when( 'get_post' )->justReturn( $mock_post );
 
         $result = $this->invoke_resolve_qr_target();
 
@@ -91,7 +91,7 @@ class UrlShortenerQrHandlerTest extends TestCase {
         $repo->shouldReceive( 'findByPostId' )->with( 999 )->andReturn( null );
         $this->service->shouldReceive( 'get_repository' )->andReturn( $repo );
 
-        Functions\when( 'FreeFormCertificate\UrlShortener\wp_send_json_error' )->alias( function () {
+        Functions\when( 'wp_send_json_error' )->alias( function () {
             throw new \RuntimeException( 'json_error_post_not_found' );
         } );
 
@@ -126,7 +126,7 @@ class UrlShortenerQrHandlerTest extends TestCase {
         $repo->shouldReceive( 'findByShortCode' )->with( 'nonexistent' )->andReturn( null );
         $this->service->shouldReceive( 'get_repository' )->andReturn( $repo );
 
-        Functions\when( 'FreeFormCertificate\UrlShortener\wp_send_json_error' )->alias( function () {
+        Functions\when( 'wp_send_json_error' )->alias( function () {
             throw new \RuntimeException( 'json_error_code_not_found' );
         } );
 
@@ -139,7 +139,7 @@ class UrlShortenerQrHandlerTest extends TestCase {
     public function test_resolve_qr_target_no_post_id_no_code_sends_error(): void {
         // Neither post_id nor code set
 
-        Functions\when( 'FreeFormCertificate\UrlShortener\wp_send_json_error' )->alias( function () {
+        Functions\when( 'wp_send_json_error' )->alias( function () {
             throw new \RuntimeException( 'json_error_invalid_code' );
         } );
 

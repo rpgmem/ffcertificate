@@ -36,26 +36,26 @@ class IpGeolocationTest extends TestCase {
         Functions\when( 'absint' )->alias( function( $val ) { return abs( intval( $val ) ); } );
 
         // Namespaced stubs: FreeFormCertificate\Integrations\*
-        Functions\when( 'FreeFormCertificate\Integrations\get_option' )->justReturn( '' );
+        Functions\when( 'get_option' )->justReturn( '' );
         // get_location() now reads the geolocation option group via
         // GeolocationSettingsReader (namespace FreeFormCertificate\Settings).
         // Declare its namespaced get_option up front so per-test overrides
         // below can redirect the reader's call site within the same process.
-        Functions\when( 'FreeFormCertificate\Settings\get_option' )->justReturn( '' );
-        Functions\when( 'FreeFormCertificate\Integrations\__' )->returnArg();
-        Functions\when( 'FreeFormCertificate\Integrations\is_wp_error' )->alias( function( $thing ) { return $thing instanceof \WP_Error; } );
-        Functions\when( 'FreeFormCertificate\Integrations\get_transient' )->justReturn( false );
-        Functions\when( 'FreeFormCertificate\Integrations\set_transient' )->justReturn( true );
-        Functions\when( 'FreeFormCertificate\Integrations\delete_transient' )->justReturn( true );
-        Functions\when( 'FreeFormCertificate\Integrations\absint' )->alias( function( $val ) { return abs( intval( $val ) ); } );
-        Functions\when( 'FreeFormCertificate\Integrations\wp_remote_get' )->justReturn( new \WP_Error( 'test', 'stubbed' ) );
-        Functions\when( 'FreeFormCertificate\Integrations\wp_remote_retrieve_body' )->justReturn( '' );
+        Functions\when( 'get_option' )->justReturn( '' );
+        Functions\when( '__' )->returnArg();
+        Functions\when( 'is_wp_error' )->alias( function( $thing ) { return $thing instanceof \WP_Error; } );
+        Functions\when( 'get_transient' )->justReturn( false );
+        Functions\when( 'set_transient' )->justReturn( true );
+        Functions\when( 'delete_transient' )->justReturn( true );
+        Functions\when( 'absint' )->alias( function( $val ) { return abs( intval( $val ) ); } );
+        Functions\when( 'wp_remote_get' )->justReturn( new \WP_Error( 'test', 'stubbed' ) );
+        Functions\when( 'wp_remote_retrieve_body' )->justReturn( '' );
 
-        if ( ! function_exists( 'FreeFormCertificate\Core\sanitize_text_field' ) ) {
-            Functions\when( 'FreeFormCertificate\Core\sanitize_text_field' )->returnArg();
+        if ( ! function_exists( 'sanitize_text_field' ) ) {
+            Functions\when( 'sanitize_text_field' )->returnArg();
         }
-        if ( ! function_exists( 'FreeFormCertificate\Core\wp_unslash' ) ) {
-            Functions\when( 'FreeFormCertificate\Core\wp_unslash' )->returnArg();
+        if ( ! function_exists( 'wp_unslash' ) ) {
+            Functions\when( 'wp_unslash' )->returnArg();
         }
     }
 
@@ -254,7 +254,7 @@ class IpGeolocationTest extends TestCase {
         // reader's all() resolves to depends on whether another test in the
         // same process already declared FreeFormCertificate\Settings\get_option.
         $geo = array( 'ip_api_enabled' => '1', 'ip_api_service' => 'ip-api' );
-        Functions\when( 'FreeFormCertificate\Settings\get_option' )->justReturn( $geo );
+        Functions\when( 'get_option' )->justReturn( $geo );
         Functions\when( 'get_option' )->justReturn( $geo );
 
         $result = IpGeolocation::get_location( '192.168.1.1' );
@@ -268,7 +268,7 @@ class IpGeolocationTest extends TestCase {
         // GeolocationSettingsReader (namespace FreeFormCertificate\Settings).
         // Stub both call sites (see private_ip test for the rationale).
         $geo = array( 'ip_api_enabled' => '1' );
-        Functions\when( 'FreeFormCertificate\Settings\get_option' )->justReturn( $geo );
+        Functions\when( 'get_option' )->justReturn( $geo );
         Functions\when( 'get_option' )->justReturn( $geo );
 
         $result = IpGeolocation::get_location( '127.0.0.1' );
@@ -313,9 +313,9 @@ class IpGeolocationTest extends TestCase {
     /** Enable the geolocation API with the given extra settings. */
     private function enable_geo( array $extra = array() ): void {
         $geo = array_merge( array( 'ip_api_enabled' => '1', 'ip_api_service' => 'ip-api' ), $extra );
-        Functions\when( 'FreeFormCertificate\Settings\get_option' )->justReturn( $geo );
         Functions\when( 'get_option' )->justReturn( $geo );
-        Functions\when( 'FreeFormCertificate\Integrations\apply_filters' )->alias(
+        Functions\when( 'get_option' )->justReturn( $geo );
+        Functions\when( 'apply_filters' )->alias(
             static function ( $tag, $val = null ) {
                 return $val;
             }
@@ -324,12 +324,12 @@ class IpGeolocationTest extends TestCase {
 
     /** Stub wp_remote_get to dispatch by URL, with the body wired through. */
     private function stub_http( callable $byUrl ): void {
-        Functions\when( 'FreeFormCertificate\Integrations\wp_remote_get' )->alias(
+        Functions\when( 'wp_remote_get' )->alias(
             static function ( $url ) use ( $byUrl ) {
                 return $byUrl( (string) $url );
             }
         );
-        Functions\when( 'FreeFormCertificate\Integrations\wp_remote_retrieve_body' )->alias(
+        Functions\when( 'wp_remote_retrieve_body' )->alias(
             static function ( $resp ) {
                 return is_array( $resp ) ? (string) ( $resp['body'] ?? '' ) : '';
             }
@@ -339,7 +339,7 @@ class IpGeolocationTest extends TestCase {
     public function test_get_location_returns_cached_when_present(): void {
         $this->enable_geo( array( 'ip_cache_enabled' => '1' ) );
         $cached = array( 'ip' => '8.8.8.8', 'country' => 'US', 'service' => 'ip-api' );
-        Functions\when( 'FreeFormCertificate\Integrations\get_transient' )->justReturn( $cached );
+        Functions\when( 'get_transient' )->justReturn( $cached );
 
         $result = IpGeolocation::get_location( '8.8.8.8' );
 
@@ -349,7 +349,7 @@ class IpGeolocationTest extends TestCase {
 
     public function test_get_location_ipapi_success_and_caches(): void {
         $this->enable_geo( array( 'ip_cache_enabled' => '1', 'ip_cache_ttl' => 600 ) );
-        Functions\when( 'FreeFormCertificate\Integrations\get_transient' )->justReturn( false );
+        Functions\when( 'get_transient' )->justReturn( false );
         $body = (string) wp_json_encode(
             array(
                 'status'      => 'success',
@@ -486,8 +486,8 @@ class IpGeolocationTest extends TestCase {
         // RequestInput is already autoloaded by other suite tests, so an alias
         // mock would collide in the full run).
         $_SERVER['REMOTE_ADDR'] = '8.8.8.8';
-        Functions\when( 'FreeFormCertificate\Core\sanitize_text_field' )->returnArg();
-        Functions\when( 'FreeFormCertificate\Core\wp_unslash' )->returnArg();
+        Functions\when( 'sanitize_text_field' )->returnArg();
+        Functions\when( 'wp_unslash' )->returnArg();
         $body = (string) wp_json_encode(
             array(
                 'status'      => 'success',

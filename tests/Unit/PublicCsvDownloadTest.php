@@ -98,8 +98,8 @@ class PublicCsvDownloadTest extends TestCase {
         // class resolves there first rather than falling through to the
         // global stub. Re-registering them attaches an expectation for
         // this test run.
-        Functions\when( 'FreeFormCertificate\Core\wp_unslash' )->returnArg();
-        Functions\when( 'FreeFormCertificate\Core\sanitize_text_field' )->returnArg();
+        Functions\when( 'wp_unslash' )->returnArg();
+        Functions\when( 'sanitize_text_field' )->returnArg();
 
         // Global stubs relied on by RateLimiter (called from our handler).
         // IMPORTANT: these are registered as GLOBAL stubs, not as namespaced

@@ -65,21 +65,21 @@ class MigrationManagerTest extends TestCase {
         Functions\when( 'wp_cache_set' )->justReturn( true );
 
         // Namespaced stubs: FreeFormCertificate\Migrations\*
-        Functions\when( 'FreeFormCertificate\Migrations\__' )->returnArg();
-        Functions\when( 'FreeFormCertificate\Migrations\get_option' )->justReturn( '' );
-        Functions\when( 'FreeFormCertificate\Migrations\is_wp_error' )->alias( function( $thing ) { return $thing instanceof \WP_Error; } );
-        Functions\when( 'FreeFormCertificate\Migrations\add_filter' )->justReturn( true );
-        Functions\when( 'FreeFormCertificate\Migrations\update_option' )->justReturn( true );
-        Functions\when( 'FreeFormCertificate\Migrations\get_current_user_id' )->justReturn( 1 );
-        Functions\when( 'FreeFormCertificate\Migrations\sanitize_text_field' )->returnArg();
-        Functions\when( 'FreeFormCertificate\Migrations\wp_unslash' )->returnArg();
-        Functions\when( 'FreeFormCertificate\Migrations\current_time' )->justReturn( '2026-02-19 12:00:00' );
-        Functions\when( 'FreeFormCertificate\Migrations\apply_filters' )->alias( function() { $args = func_get_args(); return $args[1] ?? null; } );
+        Functions\when( '__' )->returnArg();
+        Functions\when( 'get_option' )->justReturn( '' );
+        Functions\when( 'is_wp_error' )->alias( function( $thing ) { return $thing instanceof \WP_Error; } );
+        Functions\when( 'add_filter' )->justReturn( true );
+        Functions\when( 'update_option' )->justReturn( true );
+        Functions\when( 'get_current_user_id' )->justReturn( 1 );
+        Functions\when( 'sanitize_text_field' )->returnArg();
+        Functions\when( 'wp_unslash' )->returnArg();
+        Functions\when( 'current_time' )->justReturn( '2026-02-19 12:00:00' );
+        Functions\when( 'apply_filters' )->alias( function() { $args = func_get_args(); return $args[1] ?? null; } );
 
         // Core namespace stubs
-        Functions\when( 'FreeFormCertificate\Core\get_option' )->justReturn( '' );
-        Functions\when( 'FreeFormCertificate\Core\absint' )->alias( function( $val ) { return abs( intval( $val ) ); } );
-        Functions\when( 'FreeFormCertificate\Core\get_current_user_id' )->justReturn( 0 );
+        Functions\when( 'get_option' )->justReturn( '' );
+        Functions\when( 'absint' )->alias( function( $val ) { return abs( intval( $val ) ); } );
+        Functions\when( 'get_current_user_id' )->justReturn( 0 );
 
         // Create manager WITHOUT calling constructor to avoid loading
         // CpfRfSplitMigrationStrategy which uses DatabaseHelperTrait
