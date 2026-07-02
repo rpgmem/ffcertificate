@@ -126,7 +126,6 @@ jobs:
             --exclude='CLAUDE.md' \
             --exclude='CONTRIBUTING.md' \
             --exclude='SECURITY.md' \
-            --exclude='html/' \
             -e "$SSH_CMD" \
             ./ "${SSH_USER}@${SSH_HOST}:${REMOTE_PATH}/"; do
             status=$?
