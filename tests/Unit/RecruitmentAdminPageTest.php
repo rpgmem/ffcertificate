@@ -46,6 +46,10 @@ class RecruitmentAdminPageTest extends TestCase {
         Functions\when( 'esc_html__' )->returnArg();
         Functions\when( 'esc_html' )->returnArg();
         Functions\when( 'esc_attr' )->returnArg();
+        Functions\when( 'wp_unslash' )->returnArg();
+        Functions\when( 'sanitize_key' )->alias(
+            static fn( $key ) => strtolower( (string) preg_replace( '/[^a-z0-9_\-]/i', '', (string) $key ) )
+        );
 
         $this->settingsMock = Mockery::mock( 'alias:FreeFormCertificate\Recruitment\RecruitmentSettings' );
         $this->settingsMock->shouldReceive( 'all' )->andReturn(
@@ -145,5 +149,51 @@ class RecruitmentAdminPageTest extends TestCase {
             \FreeFormCertificate\Recruitment\RecruitmentAdjutancyReader::DEFAULT_COLOR,
             $html
         );
+    }
+
+    // ==================================================================
+    // highlight_active_tab() — submenu_file filter for tab highlighting
+    // ==================================================================
+
+    public function test_highlight_active_tab_passes_through_on_other_pages(): void {
+        $_GET = array( 'page' => 'some-other-page' );
+        $this->assertSame(
+            'some-other-page.php',
+            RecruitmentAdminPage::highlight_active_tab( 'some-other-page.php' )
+        );
+        $_GET = array();
+    }
+
+    public function test_highlight_active_tab_defaults_to_notices_without_tab(): void {
+        $_GET = array( 'page' => 'ffc-recruitment' );
+        $this->assertSame(
+            'ffc-recruitment',
+            RecruitmentAdminPage::highlight_active_tab( 'ffc-recruitment' )
+        );
+        $_GET = array();
+    }
+
+    public function test_highlight_active_tab_maps_known_tab_to_submenu_slug(): void {
+        $_GET = array(
+            'page' => 'ffc-recruitment',
+            'tab'  => 'candidates',
+        );
+        $this->assertSame(
+            'ffc-recruitment&tab=candidates',
+            RecruitmentAdminPage::highlight_active_tab( 'ffc-recruitment' )
+        );
+        $_GET = array();
+    }
+
+    public function test_highlight_active_tab_falls_back_to_notices_for_invalid_tab(): void {
+        $_GET = array(
+            'page' => 'ffc-recruitment',
+            'tab'  => 'bogus',
+        );
+        $this->assertSame(
+            'ffc-recruitment',
+            RecruitmentAdminPage::highlight_active_tab( 'ffc-recruitment' )
+        );
+        $_GET = array();
     }
 }
