@@ -16,6 +16,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 - Recruitment admin screens — fixed three latent fatal errors in extracted templates that referenced classes retired in the #594 façade cleanup, so the affected branches would `Fatal error: class not found` when rendered: `notice-edit/general-section.php` (`RecruitmentNoticeRepository` → `RecruitmentNoticeReader`), `notice-edit/classification-filters-form.php` (`RecruitmentAdjutancyRepository` → `RecruitmentAdjutancyReader`), and `admin-page/tabs.php` (added the missing `use` import for `RecruitmentAdminPage`). Surfaced by new render smoke-tests. (#618)
 
 ### Changed
+- Internal (CI) — the develop→testes deploy keeps its 3 rsync attempts but spaces them further apart (a fixed 120s between attempts instead of 20s/40s, a ~5.5-minute total window): the old backoff was shorter than a typical managed-hosting restart, so all attempts landed inside the same outage and the testes site silently stayed on a stale version. (#628)
 - URL Shortener is now a top-level admin menu with its own sidebar icon (`dashicons-admin-links`, contiguous with the other FFC menus) instead of a submenu under the `ffc_form` CPT — it's a standalone module. The menu still only appears when the module is enabled in settings (`UrlShortenerLoader::init()` bails before registering it otherwise). The page URL moves from `edit.php?post_type=ffc_form&page=ffc-short-urls` to `admin.php?page=ffc-short-urls`; all in-page links and redirects updated accordingly. (#625)
 
 ### Changed
