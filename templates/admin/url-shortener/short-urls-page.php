@@ -89,7 +89,6 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 			<!-- Search + Filter -->
 			<form method="get" class="ffc-shorturl-filter">
-				<input type="hidden" name="post_type" value="ffc_form" />
 				<input type="hidden" name="page" value="ffc-short-urls" />
 				<div class="ffc-shorturl-filter-row">
 					<select name="status">
@@ -111,7 +110,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 			<?php if ( 'trashed' === $status && $total > 0 ) : ?>
 				<?php
 				$empty_trash_url = wp_nonce_url(
-					admin_url( 'edit.php?post_type=ffc_form&page=ffc-short-urls&ffc_action=empty_trash' ),
+					admin_url( 'admin.php?page=ffc-short-urls&ffc_action=empty_trash' ),
 					'ffc_short_url_empty_trash'
 				);
 				?>
@@ -134,14 +133,13 @@ if ( ! defined( 'ABSPATH' ) ) {
 							<?php
 							$clicks_url = add_query_arg(
 								array(
-									'post_type' => 'ffc_form',
-									'page'      => 'ffc-short-urls',
-									'orderby'   => 'click_count',
-									'order'     => ( 'click_count' === $orderby && 'DESC' === $order ) ? 'asc' : 'desc',
-									's'         => $search,
-									'status'    => $status,
+									'page'    => 'ffc-short-urls',
+									'orderby' => 'click_count',
+									'order'   => ( 'click_count' === $orderby && 'DESC' === $order ) ? 'asc' : 'desc',
+									's'       => $search,
+									'status'  => $status,
 								),
-								admin_url( 'edit.php' )
+								admin_url( 'admin.php' )
 							);
 							?>
 							<a href="<?php echo esc_url( $clicks_url ); ?>"><?php esc_html_e( 'Clicks', 'ffcertificate' ); ?></a>
@@ -195,11 +193,11 @@ if ( ! defined( 'ABSPATH' ) ) {
 									<?php if ( $is_trashed ) : ?>
 										<?php
 										$restore_url = wp_nonce_url(
-											admin_url( 'edit.php?post_type=ffc_form&page=ffc-short-urls&ffc_action=restore&id=' . $item['id'] ),
+											admin_url( 'admin.php?page=ffc-short-urls&ffc_action=restore&id=' . $item['id'] ),
 											'ffc_short_url_restore_' . $item['id']
 										);
 										$delete_url  = wp_nonce_url(
-											admin_url( 'edit.php?post_type=ffc_form&page=ffc-short-urls&ffc_action=delete&id=' . $item['id'] ),
+											admin_url( 'admin.php?page=ffc-short-urls&ffc_action=delete&id=' . $item['id'] ),
 											'ffc_short_url_delete_' . $item['id']
 										);
 										?>
@@ -212,11 +210,11 @@ if ( ! defined( 'ABSPATH' ) ) {
 									<?php else : ?>
 										<?php
 										$toggle_url = wp_nonce_url(
-											admin_url( 'edit.php?post_type=ffc_form&page=ffc-short-urls&ffc_action=toggle&id=' . $item['id'] ),
+											admin_url( 'admin.php?page=ffc-short-urls&ffc_action=toggle&id=' . $item['id'] ),
 											'ffc_short_url_toggle_' . $item['id']
 										);
 										$trash_url  = wp_nonce_url(
-											admin_url( 'edit.php?post_type=ffc_form&page=ffc-short-urls&ffc_action=trash&id=' . $item['id'] ),
+											admin_url( 'admin.php?page=ffc-short-urls&ffc_action=trash&id=' . $item['id'] ),
 											'ffc_short_url_trash_' . $item['id']
 										);
 										?>

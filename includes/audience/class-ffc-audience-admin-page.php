@@ -190,7 +190,14 @@ class AudienceAdminPage {
 
 		add_action( 'admin_menu', array( $this, 'add_admin_menus' ), 20 );
 		add_action( 'admin_menu', array( $this, 'add_menu_separators' ), 99 );
-		add_action( 'admin_head', array( $this, 'print_menu_separator_css' ) );
+		// Register the separator styles on `admin_enqueue_scripts` (fires
+		// before `admin_print_styles`) rather than `admin_head` (fires after
+		// styles are already printed) — otherwise `wp_add_inline_style()`
+		// attaches to the `admin-menu` sheet too late and never outputs, so
+		// the separators lose their icons / non-clickable styling on every
+		// admin page where ffc-audience-admin.css is not loaded (e.g. the
+		// self-scheduling CPT screens). See #563 follow-up.
+		add_action( 'admin_enqueue_scripts', array( $this, 'print_menu_separator_css' ) );
 		// Permanent redirect for the previous standalone Import URL — the
 		// page is now the `import` tab of ffc-scheduling-settings, but old
 		// bookmarks / docs / dashboard links should not 404.
@@ -390,15 +397,19 @@ class AudienceAdminPage {
 	/**
 	 * Print CSS to style menu separators with dashicons
 	 *
-	 * Must remain inline — loaded via admin_head on ALL admin pages,
-	 * while ffc-audience-admin.css only loads on scheduling pages.
+	 * Must remain inline — attached to the always-present core `admin-menu`
+	 * stylesheet on ALL admin pages, while ffc-audience-admin.css only loads
+	 * on scheduling pages. Registered on `admin_enqueue_scripts` (see the
+	 * constructor) so the inline style is added before the sheet is printed.
 	 *
 	 * @return void
 	 */
 	public function print_menu_separator_css(): void {
-		// Menu separator styles live in ffc-audience-admin.css, but that file only.
-		// loads on scheduling pages.  Use wp_add_inline_style attached to the.
-		// always-present 'admin-menu' core stylesheet so the rules apply globally.
+		// Menu separator styles live in ffc-audience-admin.css, but that file only
+		// loads on scheduling pages. Attach the same rules to the always-present
+		// core 'admin-menu' stylesheet so the separators keep their icons and
+		// non-clickable styling on every admin page (including the self-scheduling
+		// CPT screens, which don't enqueue ffc-audience-admin.css).
 		wp_add_inline_style( 'admin-menu', $this->get_menu_separator_css() );
 	}
 

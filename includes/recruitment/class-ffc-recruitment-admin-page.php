@@ -227,6 +227,38 @@ final class RecruitmentAdminPage {
 				array( self::class, 'render_page' )
 			);
 		}
+
+		// Highlight the submenu row that matches the open `?tab=` — WP only
+		// sees the `?page=` value (`ffc-recruitment`) and would otherwise
+		// keep "Notices" highlighted on every tab.
+		add_filter( 'submenu_file', array( self::class, 'highlight_active_tab' ) );
+	}
+
+	/**
+	 * Map the current `?tab=` onto its submenu slug so the wp-admin sidebar
+	 * highlights the open recruitment tab.
+	 *
+	 * The tab submenus register slugs of the form `ffc-recruitment&tab=<tab>`
+	 * (with `notices` as the bare `ffc-recruitment`), but WordPress decides
+	 * which row is "current" from the `?page=` request var alone — which is
+	 * always `ffc-recruitment`. Without this `submenu_file` override the
+	 * Notices row stays highlighted no matter which tab is open.
+	 *
+	 * @param string|null $submenu_file The submenu file WP resolved.
+	 * @return string|null
+	 */
+	public static function highlight_active_tab( $submenu_file ) {
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only menu-highlight routing.
+		$page = isset( $_GET['page'] ) ? sanitize_key( wp_unslash( (string) $_GET['page'] ) ) : '';
+		if ( self::PAGE_SLUG !== $page ) {
+			return $submenu_file;
+		}
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only menu-highlight routing.
+		$tab = isset( $_GET['tab'] ) ? sanitize_key( wp_unslash( (string) $_GET['tab'] ) ) : 'notices';
+		if ( ! in_array( $tab, array( 'notices', 'adjutancies', 'reasons', 'candidates', 'settings' ), true ) ) {
+			$tab = 'notices';
+		}
+		return ( 'notices' === $tab ) ? self::PAGE_SLUG : self::PAGE_SLUG . '&tab=' . $tab;
 	}
 
 	/**

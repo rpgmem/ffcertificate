@@ -116,16 +116,25 @@ class UrlShortenerAdminPage {
 	}
 
 	/**
-	 * Add submenu under the FFC Forms menu.
+	 * Register the URL Shortener as a top-level admin menu.
+	 *
+	 * The module is a first-class feature, so it gets its own sidebar icon
+	 * rather than hiding under the ffc_form CPT. The whole menu only
+	 * registers when the module is enabled in settings — `UrlShortenerLoader`
+	 * bails out of `init()` (which hooks this method) before that point.
+	 *
+	 * Position 26.4 keeps it contiguous with the other FFC top-level menus
+	 * (Scheduling 26.1, Reregistration 26.2, Recruitment 26.3).
 	 */
 	public function register_menu(): void {
-		add_submenu_page(
-			'edit.php?post_type=ffc_form',
+		add_menu_page(
 			__( 'Short URLs', 'ffcertificate' ),
 			__( 'Short URLs', 'ffcertificate' ),
 			'ffc_view_url_shortener',
 			'ffc-short-urls',
-			array( $this, 'render_page' )
+			array( $this, 'render_page' ),
+			'dashicons-admin-links',
+			26.4
 		);
 	}
 
@@ -164,7 +173,7 @@ class UrlShortenerAdminPage {
 				wp_die( esc_html__( 'Security check failed.', 'ffcertificate' ) );
 			}
 			$this->service->trash_short_url( absint( wp_unslash( $_GET['id'] ) ) );
-			wp_safe_redirect( admin_url( 'edit.php?post_type=ffc_form&page=ffc-short-urls&msg=trashed' ) );
+			wp_safe_redirect( admin_url( 'admin.php?page=ffc-short-urls&msg=trashed' ) );
 			exit;
 		}
 
@@ -173,7 +182,7 @@ class UrlShortenerAdminPage {
 				wp_die( esc_html__( 'Security check failed.', 'ffcertificate' ) );
 			}
 			$this->service->restore_short_url( absint( wp_unslash( $_GET['id'] ) ) );
-			wp_safe_redirect( admin_url( 'edit.php?post_type=ffc_form&page=ffc-short-urls&status=trashed&msg=restored' ) );
+			wp_safe_redirect( admin_url( 'admin.php?page=ffc-short-urls&status=trashed&msg=restored' ) );
 			exit;
 		}
 
@@ -182,7 +191,7 @@ class UrlShortenerAdminPage {
 				wp_die( esc_html__( 'Security check failed.', 'ffcertificate' ) );
 			}
 			$this->service->delete_short_url( absint( wp_unslash( $_GET['id'] ) ) );
-			wp_safe_redirect( admin_url( 'edit.php?post_type=ffc_form&page=ffc-short-urls&status=trashed&msg=deleted' ) );
+			wp_safe_redirect( admin_url( 'admin.php?page=ffc-short-urls&status=trashed&msg=deleted' ) );
 			exit;
 		}
 
@@ -199,7 +208,7 @@ class UrlShortenerAdminPage {
 			foreach ( $trashed['items'] as $item ) {
 				$this->service->delete_short_url( (int) $item['id'] );
 			}
-			wp_safe_redirect( admin_url( 'edit.php?post_type=ffc_form&page=ffc-short-urls&msg=emptied' ) );
+			wp_safe_redirect( admin_url( 'admin.php?page=ffc-short-urls&msg=emptied' ) );
 			exit;
 		}
 
@@ -208,7 +217,7 @@ class UrlShortenerAdminPage {
 				wp_die( esc_html__( 'Security check failed.', 'ffcertificate' ) );
 			}
 			$this->service->toggle_status( absint( wp_unslash( $_GET['id'] ) ) );
-			wp_safe_redirect( admin_url( 'edit.php?post_type=ffc_form&page=ffc-short-urls&msg=toggled' ) );
+			wp_safe_redirect( admin_url( 'admin.php?page=ffc-short-urls&msg=toggled' ) );
 			exit;
 		}
 	}
