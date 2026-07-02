@@ -83,6 +83,12 @@ jobs:
           # falha num único blip — deixando o testes numa versão antiga. Aqui
           # cada tentativa falha rápido (30s) e o rsync (idempotente) é
           # repetido até 3× com backoff antes de dar o build como falho.
+          # Backoff de 90s/180s (janela total ~6min): o backoff original de
+          # 20s/40s (~2,5min) era mais curto que um restart típico da
+          # hospedagem — as 3 tentativas caíam dentro da mesma
+          # indisponibilidade (run 229 e o deploy de 6.12.0 falharam assim).
+          # Espaçar mais as mesmas 3 tentativas cobre o restart sem alongar
+          # o caso de falha real além de ~6min.
           SSH_CMD="ssh -i ~/.ssh/deploy_key -p $PORT -o StrictHostKeyChecking=accept-new -o ConnectTimeout=30 -o ServerAliveInterval=15 -o ServerAliveCountMax=4"
           attempt=1
           max_attempts=3
@@ -128,7 +134,7 @@ jobs:
               echo "::error::rsync to testes failed after ${max_attempts} attempts (last exit ${status})."
               exit "$status"
             fi
-            backoff=$((attempt * 20))
+            backoff=$((attempt * 90))
             echo "::warning::rsync attempt ${attempt} failed (exit ${status}); retrying in ${backoff}s…"
             sleep "$backoff"
             attempt=$((attempt + 1))
