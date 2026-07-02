@@ -7,6 +7,9 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Added
+- Short URLs admin page now shows a "Settings" shortcut (a standard `.page-title-action` button next to the page title) linking straight to the URL Shortener settings tab (`ffc-settings&tab=url_shortener`). Gated on the settings view cap so it only appears for users who can open that page. (#627)
+
 ### Fixed
 - Scheduling menu section separators ("Self"/"Audience") lost their dashicons and became clickable on admin screens that don't load `ffc-audience-admin.css` (e.g. the self-scheduling CPT list/new screens). The global fallback registered the separator styles via `wp_add_inline_style( 'admin-menu', … )` on `admin_head`, which fires after `admin_print_styles`, so the inline style was attached too late to ever output. Registered on `admin_enqueue_scripts` instead so the separators keep their icons and non-clickable styling on every admin page. (#625)
 - Recruitment admin tabs now highlight the open tab in the wp-admin sidebar. The tab submenus register slugs like `ffc-recruitment&tab=candidates`, but WordPress resolves the "current" row from the `?page=` value alone (always `ffc-recruitment`), so "Notices" stayed highlighted on every tab and internal pages didn't track the sidebar. Added a `submenu_file` filter mapping the current `?tab=` onto its submenu slug. (#625)
