@@ -703,6 +703,10 @@ class UrlShortenerAdminPageTest extends TestCase {
         Functions\when( 'add_query_arg' )->justReturn( 'https://example.com/x' );
         Functions\when( 'admin_url' )->returnArg();
         Functions\when( 'paginate_links' )->justReturn( '' );
+        // The header now renders a Settings shortcut gated on the settings
+        // view cap (Capabilities::current_user_can_admin_or); grant it so the
+        // link branch renders.
+        Functions\when( 'current_user_can' )->justReturn( true );
 
         $repo = Mockery::mock( UrlShortenerRepository::class );
         $repo->shouldReceive( 'findPaginated' )->once()->andReturn(
