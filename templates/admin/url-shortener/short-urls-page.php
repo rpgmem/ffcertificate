@@ -33,6 +33,11 @@ if ( ! defined( 'ABSPATH' ) ) {
 ?>
 		<div class="wrap">
 			<h1 class="wp-heading-inline"><?php esc_html_e( 'Short URLs', 'ffcertificate' ); ?></h1>
+			<?php if ( \FreeFormCertificate\Core\Capabilities::current_user_can_admin_or( 'ffc_view_settings' ) ) : ?>
+				<a href="<?php echo esc_url( admin_url( 'edit.php?post_type=ffc_form&page=ffc-settings&tab=url_shortener' ) ); ?>" class="page-title-action">
+					<?php esc_html_e( 'Settings', 'ffcertificate' ); ?>
+				</a>
+			<?php endif; ?>
 			<hr class="wp-header-end">
 
 			<?php if ( 'trashed' === $msg ) : ?>
