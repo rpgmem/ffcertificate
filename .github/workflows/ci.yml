@@ -103,7 +103,7 @@ jobs:
           php .github/scripts/shard-tests.php ${{ matrix.shard }} 4 > build/phpunit.shard.xml
           vendor/bin/phpunit -c build/phpunit.shard.xml --coverage-php "build/cov/shard-${{ matrix.shard }}.cov"
       - name: Upload shard coverage
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: coverage-shard-${{ matrix.shard }}
           path: build/cov/shard-${{ matrix.shard }}.cov
