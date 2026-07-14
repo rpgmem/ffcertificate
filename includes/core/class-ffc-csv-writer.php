@@ -125,7 +125,7 @@ final class CsvWriter {
 		$row = array_map(
 			static function ( $cell ) {
 				return is_string( $cell )
-					? mb_convert_encoding( $cell, 'UTF-8', 'UTF-8' )
+					? self::neutralize_formula( mb_convert_encoding( $cell, 'UTF-8', 'UTF-8' ) )
 					: $cell;
 			},
 			$row
@@ -133,6 +133,33 @@ final class CsvWriter {
 
 		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fputcsv -- canonical CSV writer; fputcsv is the documented WP-allowed exception for actual CSV output.
 		fputcsv( $this->handle, $row, $this->delimiter );
+	}
+
+	/**
+	 * Neutralize spreadsheet formula injection (CSV injection / DDE).
+	 *
+	 * Exported cells can contain attacker-supplied form-submission values.
+	 * A spreadsheet (Excel / LibreOffice / Google Sheets) evaluates any cell
+	 * whose first character is `=`, `+`, `-`, `@`, TAB, or CR as a formula,
+	 * so a value like `=HYPERLINK(...)` or `=cmd|...` executes when a
+	 * privileged operator opens the export. Prefixing such cells with a
+	 * single quote forces the spreadsheet to treat the content as literal
+	 * text; the leading quote is a spreadsheet display convention and does
+	 * not change the value a CSV parser reads back.
+	 *
+	 * @param string $cell Cell value (already UTF-8 normalised).
+	 * @return string Neutralised cell value.
+	 */
+	private static function neutralize_formula( string $cell ): string {
+		if ( '' === $cell ) {
+			return $cell;
+		}
+
+		if ( in_array( $cell[0], array( '=', '+', '-', '@', "\t", "\r" ), true ) ) {
+			return "'" . $cell;
+		}
+
+		return $cell;
 	}
 
 	/**

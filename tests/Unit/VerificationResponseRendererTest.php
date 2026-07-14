@@ -129,6 +129,15 @@ class VerificationResponseRendererTest extends TestCase {
         $this->assertStringNotContainsString( 'maria.silva@example.com', $result );
     }
 
+    public function test_format_field_value_masks_bare_rf(): void {
+        // The bare `rf` key is populated alongside cpf_rf for RF-only
+        // submissions; /valid is public so it must be masked, not leaked
+        // in full next to the already-masked cpf_rf row.
+        $result = $this->renderer->format_field_value( 'rf', '1234567' );
+        $this->assertStringContainsString( '*', $result );
+        $this->assertStringNotContainsString( '1234567', $result );
+    }
+
     public function test_format_field_value_does_not_mask_other_fields(): void {
         // Name / program / arbitrary fields stay verbatim — no over-masking.
         $this->assertSame( 'Maria Silva', $this->renderer->format_field_value( 'name', 'Maria Silva' ) );

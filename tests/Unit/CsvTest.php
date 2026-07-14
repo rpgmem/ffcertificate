@@ -139,6 +139,59 @@ class CsvTest extends TestCase {
     }
 
     // ==================================================================
+    // Writer — formula-injection neutralization (CSV injection / DDE)
+    // ==================================================================
+
+    /**
+     * A cell whose first character is a spreadsheet formula trigger is
+     * written with a leading single quote. Asserted through a writer→reader
+     * round-trip so RFC-4180 quoting (which wraps tab/CR cells) is transparent.
+     *
+     * @dataProvider formula_trigger_provider
+     */
+    public function test_writer_neutralizes_formula_triggers( string $cell ): void {
+        $h = $this->tmp_handle();
+        Csv::writer( $h )->row( array( $cell, 'safe' ) );
+        rewind( $h );
+        $row = Csv::reader( $h )->header();
+
+        $this->assertSame( "'" . $cell, $row[0], 'Trigger cell must gain a leading quote' );
+        $this->assertSame( 'safe', $row[1], 'Adjacent safe cell must be untouched' );
+    }
+
+    public function formula_trigger_provider(): array {
+        return array(
+            'equals'   => array( '=HYPERLINK("http://evil.example","x")' ),
+            'plus'     => array( '+1+2' ),
+            'minus'    => array( '-2+3' ),
+            'at'       => array( '@SUM(A1:A9)' ),
+            'tab'      => array( "\t=1+1" ),
+            'carriage' => array( "\r=1+1" ),
+        );
+    }
+
+    public function test_writer_leaves_safe_cells_untouched(): void {
+        // No cell STARTS with a trigger char, so nothing is prefixed — an
+        // interior '=' (Programa =2) is not a formula and must stay verbatim.
+        $h = $this->tmp_handle();
+        Csv::writer( $h )->row( array( 'Alice', 'a@example.com', '123.456.789-09', 'Programa =2' ) );
+        rewind( $h );
+        $row = Csv::reader( $h )->header();
+
+        $this->assertSame( array( 'Alice', 'a@example.com', '123.456.789-09', 'Programa =2' ), $row );
+    }
+
+    public function test_writer_neutralized_value_round_trips_with_quote_prefix(): void {
+        // Neutralization is intentionally not lossless: the leading quote is
+        // what stops formula evaluation, so the reader reads it back with the
+        // quote. Documents the transform as explicit and observable.
+        $h = $this->tmp_handle();
+        Csv::writer( $h )->row( array( '=1+1', 'x' ) );
+        rewind( $h );
+        $this->assertSame( array( "'=1+1", 'x' ), Csv::reader( $h )->header() );
+    }
+
+    // ==================================================================
     // Writer — rows() iterable
     // ==================================================================
 

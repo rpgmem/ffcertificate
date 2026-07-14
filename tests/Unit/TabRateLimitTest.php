@@ -208,6 +208,81 @@ class TabRateLimitTest extends TestCase {
     }
 
     // ==================================================================
+    // render() — capability gate on the inline POST save (real render)
+    // ==================================================================
+
+    /** Stub the WP + collaborator surface the real rate-limit view needs. */
+    private function stub_rate_limit_view(): void {
+        Functions\when( 'get_option' )->justReturn( array() );
+        Functions\when( 'esc_html_e' )->alias( function ( $t ) { echo $t; } );
+        Functions\when( 'esc_attr_e' )->alias( function ( $t ) { echo $t; } );
+        Functions\when( 'esc_attr' )->returnArg();
+        Functions\when( 'esc_textarea' )->returnArg();
+        Functions\when( 'wp_kses' )->returnArg();
+        Functions\when( 'wp_nonce_field' )->justReturn( '' );
+        Functions\when( 'checked' )->justReturn( '' );
+
+        Mockery::mock( 'alias:FreeFormCertificate\Security\RateLimiter' )
+            ->shouldReceive( 'get_stats' )
+            ->andReturn( array( 'today' => 0, 'month' => 0, 'by_type' => array(), 'top_ips' => array() ) )
+            ->byDefault();
+        Mockery::mock( 'alias:FreeFormCertificate\Admin\AdminUI' )
+            ->shouldReceive( 'render_toggle' )->andReturnNull()->byDefault();
+    }
+
+    public function test_render_real_post_save_persists_with_manage_cap(): void {
+        $_POST['ffc_save_rate_limit'] = '1';
+        Functions\when( 'check_admin_referer' )->justReturn( true );
+        Functions\when( 'current_user_can' )->justReturn( true );
+        $this->stub_save_funcs();
+        $this->stub_rate_limit_view();
+
+        $saved = false;
+        Functions\when( 'update_option' )->alias( function ( $key ) use ( &$saved ) {
+            if ( \FreeFormCertificate\Settings\RateLimitSettingsReader::OPTION_KEY === $key ) {
+                $saved = true;
+            }
+            return true;
+        } );
+
+        ob_start();
+        try {
+            $this->tab->render();
+        } finally {
+            $output = ob_get_clean();
+        }
+
+        $this->assertTrue( $saved, 'Manage-capable user must persist rate-limit settings' );
+        $this->assertStringContainsString( 'Settings saved!', $output );
+    }
+
+    public function test_render_real_post_save_blocked_for_view_only_user(): void {
+        $_POST['ffc_save_rate_limit'] = '1';
+        Functions\when( 'check_admin_referer' )->justReturn( true );
+        Functions\when( 'current_user_can' )->justReturn( false );
+        $this->stub_save_funcs();
+        $this->stub_rate_limit_view();
+
+        $saved = false;
+        Functions\when( 'update_option' )->alias( function ( $key ) use ( &$saved ) {
+            if ( \FreeFormCertificate\Settings\RateLimitSettingsReader::OPTION_KEY === $key ) {
+                $saved = true;
+            }
+            return true;
+        } );
+
+        ob_start();
+        try {
+            $this->tab->render();
+        } finally {
+            $output = ob_get_clean();
+        }
+
+        $this->assertFalse( $saved, 'View-only user must not persist rate-limit settings' );
+        $this->assertStringNotContainsString( 'Settings saved!', $output );
+    }
+
+    // ==================================================================
     // Inherited get_option() from SettingsTab
     // ==================================================================
 
