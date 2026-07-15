@@ -6,8 +6,8 @@ Security fixes are applied to the latest minor release line. Older versions rece
 
 | Version | Supported          |
 | ------- | ------------------ |
-| 5.4.x   | :white_check_mark: |
-| < 5.4   | :x:                |
+| 6.12.x  | :white_check_mark: |
+| < 6.12  | :x:                |
 
 ## Reporting a Vulnerability
 
