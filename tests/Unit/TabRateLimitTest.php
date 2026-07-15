@@ -230,6 +230,15 @@ class TabRateLimitTest extends TestCase {
             ->shouldReceive( 'render_toggle' )->andReturnNull()->byDefault();
     }
 
+    /**
+     * Runs in a separate process: this test alias-mocks RateLimiter/AdminUI,
+     * which fails with "class already exists" if either real class was already
+     * autoloaded earlier in the shared suite process. A fresh process gives a
+     * clean class table so the alias mocks load.
+     *
+     * @runInSeparateProcess
+     * @preserveGlobalState disabled
+     */
     public function test_render_real_post_save_persists_with_manage_cap(): void {
         $_POST['ffc_save_rate_limit'] = '1';
         Functions\when( 'check_admin_referer' )->justReturn( true );
@@ -256,6 +265,10 @@ class TabRateLimitTest extends TestCase {
         $this->assertStringContainsString( 'Settings saved!', $output );
     }
 
+    /**
+     * @runInSeparateProcess
+     * @preserveGlobalState disabled
+     */
     public function test_render_real_post_save_blocked_for_view_only_user(): void {
         $_POST['ffc_save_rate_limit'] = '1';
         Functions\when( 'check_admin_referer' )->justReturn( true );
