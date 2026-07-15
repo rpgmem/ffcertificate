@@ -7,6 +7,12 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Security
+- Settings → Geolocation and Rate Limit tabs gated their inline form save on a nonce only, not a capability. Because the Settings page opens on `ffc_view_settings` and the read-only affordance is a client-side `<fieldset disabled>`, a view-only user could POST the page nonce directly to change anti-fraud geolocation/rate-limit settings, whitelist their own IP/email/CPF, and add/edit/delete geofence locations. Both tabs now require `ffc_manage_settings` for every mutation, matching all sibling settings paths. (#637)
+- Public certificate verification leaked unmasked PII: the `/valid` page renderer printed the bare `rf` (Registro Funcional) in full next to the already-masked `cpf_rf`, and the public `/verify` REST endpoint returned raw `email` and `rf`. Both fields are now masked (`mask_rf()` / `mask_email()`) on the public paths, consistent with the existing CPF masking. (#637)
+- Audience booking REST reads (`GET /ffc/v1/audience/bookings` and the conflict probe) applied no schedule-visibility check, so unauthenticated callers could read bookings — dates, times, descriptions, environment and audience-group names — from schedules marked `private`. Reads are now constrained to the caller's readable schedule set (admins/bypass unrestricted, logged-in users their accessible schedules, anonymous users active public schedules only), mirroring the shortcode's visibility gate. (#637)
+- CSV exports were vulnerable to spreadsheet formula injection (CSV/DDE): unauthenticated form-submission values reaching the shared `CsvWriter` were written verbatim, so a cell starting with `=`, `+`, `-`, `@`, TAB or CR would execute as a formula when a privileged operator opened the file. Such cells are now neutralized with a leading single quote at the canonical write point, covering every exporter. (#637)
+
 ### Added
 - Short URLs admin page now shows a "Settings" shortcut (a standard `.page-title-action` button next to the page title) linking straight to the URL Shortener settings tab (`ffc-settings&tab=url_shortener`). Gated on the settings view cap so it only appears for users who can open that page. (#627)
 
