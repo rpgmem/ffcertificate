@@ -7,7 +7,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
-## [6.13.0] (2026-07-15)
+## [6.13.0] (2026-07-15) — `b0d8d9a`
 
 ### Security
 - Settings → Geolocation and Rate Limit tabs gated their inline form save on a nonce only, not a capability. Because the Settings page opens on `ffc_view_settings` and the read-only affordance is a client-side `<fieldset disabled>`, a view-only user could POST the page nonce directly to change anti-fraud geolocation/rate-limit settings, whitelist their own IP/email/CPF, and add/edit/delete geofence locations. Both tabs now require `ffc_manage_settings` for every mutation, matching all sibling settings paths. (#637)
