@@ -7,6 +7,8 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+## [6.13.0] (2026-07-15)
+
 ### Security
 - Settings → Geolocation and Rate Limit tabs gated their inline form save on a nonce only, not a capability. Because the Settings page opens on `ffc_view_settings` and the read-only affordance is a client-side `<fieldset disabled>`, a view-only user could POST the page nonce directly to change anti-fraud geolocation/rate-limit settings, whitelist their own IP/email/CPF, and add/edit/delete geofence locations. Both tabs now require `ffc_manage_settings` for every mutation, matching all sibling settings paths. (#637)
 - Public certificate verification leaked unmasked PII: the `/valid` page renderer printed the bare `rf` (Registro Funcional) in full next to the already-masked `cpf_rf`, and the public `/verify` REST endpoint returned raw `email` and `rf`. Both fields are now masked (`mask_rf()` / `mask_email()`) on the public paths, consistent with the existing CPF masking. (#637)
