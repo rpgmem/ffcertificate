@@ -4,9 +4,9 @@ Thanks for your interest in improving the plugin. This document covers the local
 
 ## Requirements
 
-- PHP 8.1+ (matches the plugin's minimum runtime)
+- PHP 8.3+ (matches the plugin's minimum runtime)
 - Composer 2
-- Node.js 20 (only required when touching `assets/`)
+- Node.js 22 (only required when touching `assets/`)
 
 ## Setup
 
@@ -20,10 +20,13 @@ The pre-commit hook lives in `.githooks/pre-commit` and re-minifies any staged s
 
 ## Branches
 
-- `main` is protected; all changes land via pull request.
-- Feature branches use a short descriptive name (e.g. `fix/email-hash` or `feat/user-profile-service`). AI-assisted branches opened via the Claude Code session use the `claude/<short-description>` prefix.
-- CI runs on `pull_request` (and on `push` to `main` post-merge), so open the PR — even as a draft — to get a green/red signal. Pushing to a feature branch without a PR will not trigger CI.
-- Dependabot manages `chore(deps)` / `chore(ci)(deps)` branches.
+The repository uses a two-tier branch model (adopted in v6.7.7):
+
+- **`develop`** is the integration branch and the **default base for every feature PR**. Each merge into `develop` auto-deploys to the staging ("testes") site via the `Deploy develop → testes` workflow.
+- **`main`** is the production branch. It is updated only by (1) the release PR `develop → main` that consolidates a batch under a single version bump, and (2) hotfix PRs from `hotfix/*` when a critical fix can't wait for the next release. Both branches are protected — all changes land via pull request.
+- Feature branches cut from `develop` use a short descriptive name (e.g. `fix/email-hash` or `feat/user-profile-service`). AI-assisted branches opened via the Claude Code session use the `claude/<short-description>` prefix. Urgent fixes cut from `main` use `hotfix/<short-description>`.
+- CI runs on every `pull_request` targeting `develop`, `main`, or `release/**`, so open the PR — even as a draft — to get a green/red signal. Pushing to a feature branch without a PR will not trigger CI.
+- Dependabot manages `chore(deps)` / `chore(ci)(deps)` branches; it targets `develop`.
 
 ## Commit messages
 
@@ -78,18 +81,18 @@ The `Asset Build Verification` workflow fails the PR if the committed `*.min.*` 
 
 - Keep PRs focused; a single concern per PR makes review easier.
 - Include a short summary and a test plan in the description.
-- The CI matrix runs PHPUnit on PHP 8.1 / 8.2 / 8.3 / 8.4 plus PHPStan on
-  PHP 8.1; all of these must be green to merge.
+- The CI matrix runs PHPUnit on PHP 8.3 / 8.4 plus PHPStan on
+  PHP 8.3; all of these must be green to merge.
 
 ## Releasing
 
-Between releases, every PR adds entries under `## [Unreleased]` in `CHANGELOG.md` and leaves the version constants alone. The version only bumps once, at release time, absorbing everything that accumulated in `[Unreleased]`.
+Between releases, every PR targeting `develop` adds entries under `## [Unreleased]` in `CHANGELOG.md` and leaves the version constants alone. The version only bumps once, at release time, absorbing everything that accumulated in `[Unreleased]`.
 
-To cut a release:
+To cut a release (the `develop → main` release PR):
 
-1. Rename `## [Unreleased]` to `## [X.Y.Z] - YYYY-MM-DD` in `CHANGELOG.md` and insert a fresh empty `## [Unreleased]` above it (use the standard Keep a Changelog subsections: `Added`, `Changed`, `Deprecated`, `Removed`, `Fixed`, `Security`).
-2. Bump `Version:` in `ffcertificate.php` **and** the `FFC_VERSION` constant in the same file. Update `Stable tag` in `readme.txt` and mirror the release notes under `== Changelog ==` in the WordPress plugin format.
-3. Commit, merge to `main`.
+1. On `develop`, rename `## [Unreleased]` to `## [X.Y.Z] - YYYY-MM-DD` in `CHANGELOG.md` and insert a fresh empty `## [Unreleased]` above it (use the standard Keep a Changelog subsections: `Added`, `Changed`, `Deprecated`, `Removed`, `Fixed`, `Security`).
+2. Bump the version in all three sync sites: `Version:` in the `ffcertificate.php` header, the `FFC_VERSION` constant in the same file, and `Stable tag` in `readme.txt` — all three must match. (The changelog lives in `CHANGELOG.md` only; `readme.txt` no longer mirrors it.)
+3. Open the release PR `develop → main` and squash-merge it once CI is green. Afterwards, rebase `develop` onto the new `main` so the next batch starts from the bumped baseline.
 4. Tag `main` with `vX.Y.Z` and push the tag:
    ```bash
    git tag -a vX.Y.Z -m "vX.Y.Z"
