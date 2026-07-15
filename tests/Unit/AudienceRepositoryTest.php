@@ -38,6 +38,9 @@ class AudienceRepositoryTest extends TestCase {
         Functions\when('wp_cache_get')->justReturn(false);
         Functions\when('wp_cache_set')->justReturn(true);
         Functions\when('wp_cache_delete')->justReturn(true);
+        // CacheVersion (query-cache invalidation) reads/writes a wp_options counter.
+        Functions\when('get_option')->justReturn(false);
+        Functions\when('update_option')->justReturn(true);
         Functions\when('__')->returnArg();
 
         // pcov does not record lines for files first autoloaded mid-test-method,
@@ -655,6 +658,64 @@ class AudienceRepositoryTest extends TestCase {
     }
 
     // ==================================================================
+    // Query-cache version invalidation (#644)
+    // ==================================================================
+
+    public function test_create_bumps_query_cache_version(): void {
+        $this->wpdb->insert_id = 42;
+        $this->wpdb->shouldReceive('insert')->once()->andReturn(1);
+
+        $bumped = null;
+        Functions\when('get_option')->justReturn(3);
+        Functions\when('update_option')->alias(function($name, $value, $autoload = null) use (&$bumped) {
+            if ($name === 'ffc_cache_version_audience') {
+                $bumped = $value;
+            }
+            return true;
+        });
+
+        AudienceWriter::create(['name' => 'Bumped']);
+
+        $this->assertSame(4, $bumped, 'create() must bump the audience query-cache version');
+    }
+
+    public function test_update_bumps_query_cache_version(): void {
+        $this->wpdb->shouldReceive('update')->once()->andReturn(1);
+
+        $bumped = null;
+        Functions\when('get_option')->justReturn(3);
+        Functions\when('update_option')->alias(function($name, $value, $autoload = null) use (&$bumped) {
+            if ($name === 'ffc_cache_version_audience') {
+                $bumped = $value;
+            }
+            return true;
+        });
+
+        AudienceWriter::update(7, ['name' => 'Bumped Update']);
+
+        $this->assertSame(4, $bumped, 'update() must bump the audience query-cache version');
+    }
+
+    public function test_delete_bumps_query_cache_version(): void {
+        $this->wpdb->shouldReceive('prepare')->andReturn('QUERY');
+        $this->wpdb->shouldReceive('get_results')->once()->andReturn([]);
+        $this->wpdb->shouldReceive('delete')->andReturn(1);
+
+        $bumped = null;
+        Functions\when('get_option')->justReturn(3);
+        Functions\when('update_option')->alias(function($name, $value, $autoload = null) use (&$bumped) {
+            if ($name === 'ffc_cache_version_audience') {
+                $bumped = $value;
+            }
+            return true;
+        });
+
+        AudienceWriter::delete(8);
+
+        $this->assertSame(4, $bumped, 'delete() must bump the audience query-cache version');
+    }
+
+    // ==================================================================
     // add_member()
     // ==================================================================
 
@@ -1183,7 +1244,7 @@ class AudienceRepositoryTest extends TestCase {
 
     public function test_count_uses_cache(): void {
         Functions\when('wp_cache_get')->alias(function($key, $group = '') {
-            if ($group === 'ffcertificate') {
+            if ($group === 'ffc_audience_queries') {
                 return 42;
             }
             return false;
@@ -1194,6 +1255,20 @@ class AudienceRepositoryTest extends TestCase {
         $result = AudienceReader::count();
 
         $this->assertSame(42, $result);
+    }
+
+    public function test_count_cache_key_carries_version_suffix(): void {
+        Functions\when('get_option')->justReturn(9);
+        $captured_key = '';
+        Functions\when('wp_cache_get')->alias(function($key, $group = '') use (&$captured_key) {
+            $captured_key = $key;
+            return 5;
+        });
+
+        AudienceReader::count();
+
+        $this->assertStringEndsWith('_v9', $captured_key);
+        $this->assertStringStartsWith('aud_count_', $captured_key);
     }
 
     // ==================================================================
@@ -1231,7 +1306,7 @@ class AudienceRepositoryTest extends TestCase {
         $cached = [(object) ['id' => 1, 'name' => 'Cached Result']];
 
         Functions\when('wp_cache_get')->alias(function($key, $group = '') use ($cached) {
-            if ($group === 'ffcertificate') {
+            if ($group === 'ffc_audience_queries') {
                 return $cached;
             }
             return false;
