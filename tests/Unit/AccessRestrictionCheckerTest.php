@@ -34,8 +34,32 @@ class AccessRestrictionCheckerTest extends TestCase {
 
     protected function tearDown(): void {
         unset( $_POST['ffc_password'] );
+        // Reset the global $wpdb some ticket tests install so it never leaks
+        // into a sibling test in the same process.
+        unset( $GLOBALS['wpdb'] );
         Monkey\tearDown();
         parent::tearDown();
+    }
+
+    /**
+     * Install a global $wpdb whose INSERT IGNORE reports `$rows_affected`
+     * rows, so the atomic ticket claim (try_claim_ticket) can be driven
+     * deterministically: 1 = this caller won, 0 = ticket already claimed.
+     *
+     * @param int $rows_affected Rows the mocked query reports as affected.
+     */
+    private function mock_wpdb_claim( int $rows_affected ): void {
+        global $wpdb;
+        $wpdb                = Mockery::mock( 'wpdb' );
+        $wpdb->options       = 'wp_options';
+        $wpdb->rows_affected = 0;
+        $wpdb->shouldReceive( 'prepare' )->andReturn( 'SQL' );
+        $wpdb->shouldReceive( 'query' )->andReturnUsing(
+            function () use ( $wpdb, $rows_affected ) {
+                $wpdb->rows_affected = $rows_affected;
+                return $rows_affected;
+            }
+        );
     }
 
     // ==================================================================
@@ -247,6 +271,7 @@ class AccessRestrictionCheckerTest extends TestCase {
             'generated_codes_list' => "TKT-001\nTKT-002",
         );
 
+        $this->mock_wpdb_claim( 1 ); // This caller wins the atomic claim.
         Functions\when( 'update_post_meta' )->justReturn( true );
 
         $result = AccessRestrictionChecker::check( $config, '12345678901', 'TKT-001', 42 );
@@ -265,9 +290,48 @@ class AccessRestrictionCheckerTest extends TestCase {
             'generated_codes_list' => "  ABC-DEF-123  \n  GHI-JKL-456  ",
         );
 
+        $this->mock_wpdb_claim( 1 ); // This caller wins the atomic claim.
         Functions\when( 'update_post_meta' )->justReturn( true );
 
         $result = AccessRestrictionChecker::check( $config, '', 'abc-def-123', 1 );
+
+        $this->assertTrue( $result['allowed'] );
+        $this->assertTrue( $result['is_ticket'] );
+    }
+
+    public function test_ticket_valid_but_claim_lost_blocks_as_already_used(): void {
+        // The ticket IS still in the list (passes the membership pre-filter),
+        // but a concurrent request already claimed it — INSERT IGNORE reports
+        // 0 rows — so this caller must be rejected, not issued a second cert.
+        $config = array(
+            'restrictions'         => array( 'ticket' => '1' ),
+            'generated_codes_list' => "TKT-001\nTKT-002",
+        );
+
+        $this->mock_wpdb_claim( 0 ); // Lost the race: ticket already claimed.
+        // update_post_meta must NOT run on the losing path.
+        Functions\expect( 'update_post_meta' )->never();
+
+        $result = AccessRestrictionChecker::check( $config, '', 'TKT-001', 42 );
+
+        $this->assertFalse( $result['allowed'] );
+        $this->assertFalse( $result['is_ticket'] );
+        $this->assertStringContainsString( 'Invalid or already used', $result['message'] );
+    }
+
+    public function test_ticket_allowed_when_db_layer_unavailable(): void {
+        // No usable $wpdb (e.g. very early bootstrap): the claim cannot be
+        // made atomic, so fall back to the legacy list check by allowing the
+        // valid ticket rather than hard-failing a legitimate submission.
+        unset( $GLOBALS['wpdb'] );
+        $config = array(
+            'restrictions'         => array( 'ticket' => '1' ),
+            'generated_codes_list' => "TKT-001\nTKT-002",
+        );
+
+        Functions\when( 'update_post_meta' )->justReturn( true );
+
+        $result = AccessRestrictionChecker::check( $config, '', 'TKT-001', 42 );
 
         $this->assertTrue( $result['allowed'] );
         $this->assertTrue( $result['is_ticket'] );

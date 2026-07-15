@@ -168,6 +168,9 @@ class SubmissionVerifyRestControllerTest extends TestCase {
 
     public function test_verify_certificate_happy_path(): void {
         Functions\when( 'get_post' )->justReturn( (object) array( 'post_title' => 'Cert Form' ) );
+        Functions\when( 'is_email' )->alias( function ( $email ) {
+            return false !== filter_var( (string) $email, FILTER_VALIDATE_EMAIL );
+        } );
 
         $repo = Mockery::mock( SubmissionRepository::class );
         $repo->shouldReceive( 'findByAuthCode' )->once()->andReturn(
@@ -179,6 +182,8 @@ class SubmissionVerifyRestControllerTest extends TestCase {
                 'data'            => '{"name":"Bia"}',
                 'email'           => 'bia@x.com',
                 'cpf_rf'          => '11144477735',
+                // Legacy plaintext RF column (pre-encryption installs).
+                'rf'              => '1234567',
             )
         );
 
@@ -192,6 +197,11 @@ class SubmissionVerifyRestControllerTest extends TestCase {
         $this->assertTrue( $result['valid'] );
         $this->assertSame( 22, $result['certificate']['id'] );
         $this->assertSame( 'Cert Form', $result['certificate']['form_title'] );
-        $this->assertSame( 'bia@x.com', $result['certificate']['email'] );
+        // This endpoint is public: email/rf must be masked, not returned raw.
+        $this->assertStringContainsString( '@x.com', $result['certificate']['email'] );
+        $this->assertStringContainsString( '*', $result['certificate']['email'] );
+        $this->assertNotSame( 'bia@x.com', $result['certificate']['email'] );
+        $this->assertStringContainsString( '*', $result['certificate']['rf'] );
+        $this->assertStringNotContainsString( '1234567', $result['certificate']['rf'] );
     }
 }
