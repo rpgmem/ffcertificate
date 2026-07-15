@@ -36,26 +36,26 @@ class IpGeolocationTest extends TestCase {
         Functions\when( 'absint' )->alias( function( $val ) { return abs( intval( $val ) ); } );
 
         // Namespaced stubs: FreeFormCertificate\Integrations\*
-        Functions\when( 'FreeFormCertificate\Integrations\get_option' )->justReturn( '' );
+        Functions\when( 'get_option' )->justReturn( '' );
         // get_location() now reads the geolocation option group via
         // GeolocationSettingsReader (namespace FreeFormCertificate\Settings).
         // Declare its namespaced get_option up front so per-test overrides
         // below can redirect the reader's call site within the same process.
-        Functions\when( 'FreeFormCertificate\Settings\get_option' )->justReturn( '' );
-        Functions\when( 'FreeFormCertificate\Integrations\__' )->returnArg();
-        Functions\when( 'FreeFormCertificate\Integrations\is_wp_error' )->alias( function( $thing ) { return $thing instanceof \WP_Error; } );
-        Functions\when( 'FreeFormCertificate\Integrations\get_transient' )->justReturn( false );
-        Functions\when( 'FreeFormCertificate\Integrations\set_transient' )->justReturn( true );
-        Functions\when( 'FreeFormCertificate\Integrations\delete_transient' )->justReturn( true );
-        Functions\when( 'FreeFormCertificate\Integrations\absint' )->alias( function( $val ) { return abs( intval( $val ) ); } );
-        Functions\when( 'FreeFormCertificate\Integrations\wp_remote_get' )->justReturn( new \WP_Error( 'test', 'stubbed' ) );
-        Functions\when( 'FreeFormCertificate\Integrations\wp_remote_retrieve_body' )->justReturn( '' );
+        Functions\when( 'get_option' )->justReturn( '' );
+        Functions\when( '__' )->returnArg();
+        Functions\when( 'is_wp_error' )->alias( function( $thing ) { return $thing instanceof \WP_Error; } );
+        Functions\when( 'get_transient' )->justReturn( false );
+        Functions\when( 'set_transient' )->justReturn( true );
+        Functions\when( 'delete_transient' )->justReturn( true );
+        Functions\when( 'absint' )->alias( function( $val ) { return abs( intval( $val ) ); } );
+        Functions\when( 'wp_remote_get' )->justReturn( new \WP_Error( 'test', 'stubbed' ) );
+        Functions\when( 'wp_remote_retrieve_body' )->justReturn( '' );
 
-        if ( ! function_exists( 'FreeFormCertificate\Core\sanitize_text_field' ) ) {
-            Functions\when( 'FreeFormCertificate\Core\sanitize_text_field' )->returnArg();
+        if ( ! function_exists( 'sanitize_text_field' ) ) {
+            Functions\when( 'sanitize_text_field' )->returnArg();
         }
-        if ( ! function_exists( 'FreeFormCertificate\Core\wp_unslash' ) ) {
-            Functions\when( 'FreeFormCertificate\Core\wp_unslash' )->returnArg();
+        if ( ! function_exists( 'wp_unslash' ) ) {
+            Functions\when( 'wp_unslash' )->returnArg();
         }
     }
 
@@ -254,7 +254,7 @@ class IpGeolocationTest extends TestCase {
         // reader's all() resolves to depends on whether another test in the
         // same process already declared FreeFormCertificate\Settings\get_option.
         $geo = array( 'ip_api_enabled' => '1', 'ip_api_service' => 'ip-api' );
-        Functions\when( 'FreeFormCertificate\Settings\get_option' )->justReturn( $geo );
+        Functions\when( 'get_option' )->justReturn( $geo );
         Functions\when( 'get_option' )->justReturn( $geo );
 
         $result = IpGeolocation::get_location( '192.168.1.1' );
@@ -268,7 +268,7 @@ class IpGeolocationTest extends TestCase {
         // GeolocationSettingsReader (namespace FreeFormCertificate\Settings).
         // Stub both call sites (see private_ip test for the rationale).
         $geo = array( 'ip_api_enabled' => '1' );
-        Functions\when( 'FreeFormCertificate\Settings\get_option' )->justReturn( $geo );
+        Functions\when( 'get_option' )->justReturn( $geo );
         Functions\when( 'get_option' )->justReturn( $geo );
 
         $result = IpGeolocation::get_location( '127.0.0.1' );
@@ -304,5 +304,213 @@ class IpGeolocationTest extends TestCase {
         $count = IpGeolocation::clear_cache( null );
 
         $this->assertSame( 5, $count );
+    }
+
+    // ==================================================================
+    // get_location() — fetch / cache / cascade paths
+    // ==================================================================
+
+    /** Enable the geolocation API with the given extra settings. */
+    private function enable_geo( array $extra = array() ): void {
+        $geo = array_merge( array( 'ip_api_enabled' => '1', 'ip_api_service' => 'ip-api' ), $extra );
+        Functions\when( 'get_option' )->justReturn( $geo );
+        Functions\when( 'get_option' )->justReturn( $geo );
+        Functions\when( 'apply_filters' )->alias(
+            static function ( $tag, $val = null ) {
+                return $val;
+            }
+        );
+    }
+
+    /** Stub wp_remote_get to dispatch by URL, with the body wired through. */
+    private function stub_http( callable $byUrl ): void {
+        Functions\when( 'wp_remote_get' )->alias(
+            static function ( $url ) use ( $byUrl ) {
+                return $byUrl( (string) $url );
+            }
+        );
+        Functions\when( 'wp_remote_retrieve_body' )->alias(
+            static function ( $resp ) {
+                return is_array( $resp ) ? (string) ( $resp['body'] ?? '' ) : '';
+            }
+        );
+    }
+
+    public function test_get_location_returns_cached_when_present(): void {
+        $this->enable_geo( array( 'ip_cache_enabled' => '1' ) );
+        $cached = array( 'ip' => '8.8.8.8', 'country' => 'US', 'service' => 'ip-api' );
+        Functions\when( 'get_transient' )->justReturn( $cached );
+
+        $result = IpGeolocation::get_location( '8.8.8.8' );
+
+        $this->assertIsArray( $result );
+        $this->assertSame( 'US', $result['country'] );
+    }
+
+    public function test_get_location_ipapi_success_and_caches(): void {
+        $this->enable_geo( array( 'ip_cache_enabled' => '1', 'ip_cache_ttl' => 600 ) );
+        Functions\when( 'get_transient' )->justReturn( false );
+        $body = (string) wp_json_encode(
+            array(
+                'status'      => 'success',
+                'country'     => 'United States',
+                'countryCode' => 'US',
+                'regionName'  => 'California',
+                'region'      => 'CA',
+                'city'        => 'Mountain View',
+                'lat'         => 37.4,
+                'lon'         => -122.0,
+            )
+        );
+        $this->stub_http(
+            static function () use ( $body ) {
+                return array( 'body' => $body );
+            }
+        );
+
+        $result = IpGeolocation::get_location( '8.8.8.8' );
+
+        $this->assertIsArray( $result );
+        $this->assertSame( 'ip-api', $result['service'] );
+        $this->assertSame( 'US', $result['country_code'] );
+        $this->assertSame( 'Mountain View', $result['city'] );
+    }
+
+    public function test_get_location_ipapi_api_error_status(): void {
+        $this->enable_geo();
+        $body = (string) wp_json_encode( array( 'status' => 'fail', 'message' => 'reserved range' ) );
+        $this->stub_http(
+            static function () use ( $body ) {
+                return array( 'body' => $body );
+            }
+        );
+
+        $result = IpGeolocation::get_location( '8.8.8.8' );
+
+        $this->assertInstanceOf( \WP_Error::class, $result );
+        $this->assertSame( 'api_error', $result->get_error_code() );
+    }
+
+    public function test_get_location_ipapi_invalid_response(): void {
+        $this->enable_geo();
+        $this->stub_http(
+            static function () {
+                return array( 'body' => 'not-json' );
+            }
+        );
+
+        $result = IpGeolocation::get_location( '8.8.8.8' );
+
+        $this->assertInstanceOf( \WP_Error::class, $result );
+        $this->assertSame( 'invalid_response', $result->get_error_code() );
+    }
+
+    public function test_get_location_ipinfo_success(): void {
+        $this->enable_geo( array( 'ip_api_service' => 'ipinfo', 'ipinfo_api_key' => 'k' ) );
+        $body = (string) wp_json_encode(
+            array(
+                'country' => 'BR',
+                'region'  => 'SP',
+                'city'    => 'Sao Paulo',
+                'loc'     => '-23.55,-46.63',
+            )
+        );
+        $this->stub_http(
+            static function () use ( $body ) {
+                return array( 'body' => $body );
+            }
+        );
+
+        $result = IpGeolocation::get_location( '8.8.8.8' );
+
+        $this->assertIsArray( $result );
+        $this->assertSame( 'ipinfo', $result['service'] );
+        $this->assertSame( 'Sao Paulo', $result['city'] );
+        $this->assertEqualsWithDelta( -23.55, $result['latitude'], 0.01 );
+    }
+
+    public function test_get_location_ipinfo_api_error(): void {
+        $this->enable_geo( array( 'ip_api_service' => 'ipinfo' ) );
+        $body = (string) wp_json_encode( array( 'error' => array( 'title' => 'rate limited' ) ) );
+        $this->stub_http(
+            static function () use ( $body ) {
+                return array( 'body' => $body );
+            }
+        );
+
+        $result = IpGeolocation::get_location( '8.8.8.8' );
+
+        $this->assertInstanceOf( \WP_Error::class, $result );
+        $this->assertSame( 'api_error', $result->get_error_code() );
+    }
+
+    public function test_get_location_unknown_service_returns_error(): void {
+        $this->enable_geo( array( 'ip_api_service' => 'bogus' ) );
+
+        $result = IpGeolocation::get_location( '8.8.8.8' );
+
+        $this->assertInstanceOf( \WP_Error::class, $result );
+        $this->assertSame( 'unknown_service', $result->get_error_code() );
+    }
+
+    public function test_get_location_cascades_to_alternative_on_primary_failure(): void {
+        $this->enable_geo( array( 'ip_api_service' => 'ip-api', 'ip_api_cascade' => '1' ) );
+        $ipinfo_body = (string) wp_json_encode(
+            array(
+                'country' => 'BR',
+                'region'  => 'SP',
+                'city'    => 'Campinas',
+                'loc'     => '-22.9,-47.0',
+            )
+        );
+        // ip-api (primary) fails; ipinfo (alternative) succeeds.
+        $this->stub_http(
+            static function ( $url ) use ( $ipinfo_body ) {
+                if ( false !== strpos( $url, 'ip-api.com' ) ) {
+                    return new \WP_Error( 'http_fail', 'down' );
+                }
+                return array( 'body' => $ipinfo_body );
+            }
+        );
+
+        $result = IpGeolocation::get_location( '8.8.8.8' );
+
+        $this->assertIsArray( $result );
+        $this->assertSame( 'ipinfo', $result['service'] );
+        $this->assertSame( 'Campinas', $result['city'] );
+    }
+
+    public function test_get_location_defaults_to_request_ip_when_omitted(): void {
+        $this->enable_geo();
+        // Drive the real RequestInput::get_user_ip() via $_SERVER (no alias mock —
+        // RequestInput is already autoloaded by other suite tests, so an alias
+        // mock would collide in the full run).
+        $_SERVER['REMOTE_ADDR'] = '8.8.8.8';
+        Functions\when( 'sanitize_text_field' )->returnArg();
+        Functions\when( 'wp_unslash' )->returnArg();
+        $body = (string) wp_json_encode(
+            array(
+                'status'      => 'success',
+                'country'     => 'United States',
+                'countryCode' => 'US',
+                'regionName'  => 'California',
+                'region'      => 'CA',
+                'city'        => 'Mountain View',
+                'lat'         => 37.4,
+                'lon'         => -122.0,
+            )
+        );
+        $this->stub_http(
+            static function () use ( $body ) {
+                return array( 'body' => $body );
+            }
+        );
+
+        $result = IpGeolocation::get_location();
+
+        $this->assertIsArray( $result );
+        $this->assertSame( 'US', $result['country_code'] );
+
+        unset( $_SERVER['REMOTE_ADDR'] );
     }
 }

@@ -28,8 +28,8 @@ class MigrationRegistryTest extends TestCase {
         Functions\when( 'apply_filters' )->alias( function() { $args = func_get_args(); return $args[1] ?? null; } );
 
         // Namespaced stubs: FreeFormCertificate\Migrations\*
-        Functions\when( 'FreeFormCertificate\Migrations\__' )->returnArg();
-        Functions\when( 'FreeFormCertificate\Migrations\apply_filters' )->alias( function() { $args = func_get_args(); return $args[1] ?? null; } );
+        Functions\when( '__' )->returnArg();
+        Functions\when( 'apply_filters' )->alias( function() { $args = func_get_args(); return $args[1] ?? null; } );
     }
 
     protected function tearDown(): void {
@@ -191,10 +191,10 @@ class MigrationRegistryTest extends TestCase {
         Monkey\setUp();
 
         Functions\when( '__' )->returnArg();
-        Functions\when( 'FreeFormCertificate\Migrations\__' )->returnArg();
+        Functions\when( '__' )->returnArg();
 
         // Expect apply_filters to be called with the registry filter hook
-        Functions\expect( 'FreeFormCertificate\Migrations\apply_filters' )
+        Functions\expect( 'apply_filters' )
             ->once()
             ->with( 'ffcertificate_migrations_registry', Mockery::type( 'array' ) )
             ->andReturnUsing( function( $hook, $migrations ) {
@@ -213,10 +213,10 @@ class MigrationRegistryTest extends TestCase {
         Monkey\setUp();
 
         Functions\when( '__' )->returnArg();
-        Functions\when( 'FreeFormCertificate\Migrations\__' )->returnArg();
+        Functions\when( '__' )->returnArg();
 
         // Simulate a plugin adding a custom migration via the filter
-        Functions\expect( 'FreeFormCertificate\Migrations\apply_filters' )
+        Functions\expect( 'apply_filters' )
             ->once()
             ->with( 'ffcertificate_migrations_registry', Mockery::type( 'array' ) )
             ->andReturnUsing( function( $hook, $migrations ) {

@@ -66,6 +66,14 @@ Pattern: `init()` runs the module's wiring in its original order, gating admin-o
 
 **Documented exception — UserDashboard has no loader (deliberate, B3 phase 2).** Its only bootstrap wiring is `AccessControl::init()` + `UserCleanup::init()` (2 calls, left inline in `Loader`). The bulk of its `Root → UserDashboard` surface is capability/role lifecycle (`RoleRegistrar` / `CapabilityManager` / `CapabilityMigrator`) invoked from `Loader::register_ffc_roles_safe()` / `ensure_*_caps()` — orchestrator responsibility, not module bootstrap. A `UserDashboardLoader` would move 2 lines without shrinking the edge, so it was intentionally skipped.
 
+## Shared-service module directories
+
+A few `includes/` modules are small, single-purpose service buckets whose names are generic enough to invite drift. Keep each scoped to its stated purpose — do NOT let it become a "misc" drawer, since renaming to a crisper namespace later would ripple through the module-boundary baseline, every `use` / `@covers` / alias-mock and the autoloader for only a cosmetic gain (the same namespace-churn cost as any cross-module move). The guard is scope discipline, not a rename:
+
+- **`services/` (`\Services`)** — user-centric query/identity services only (`UserService`, `UserIdentifiersQueryService`). A service that isn't about users belongs in its own domain module, not here.
+- **`integrations/` (`\Integrations`)** — adapters to *external* systems (`EmailHandler` → SMTP, `IpGeolocation` → geolocation API). A class with no outbound/external dependency is not an integration.
+- **`scheduling/` (`\Scheduling`)** — cross-cutting scheduling-domain services shared by the self-scheduling and audience features (`DateBlockingService`, `WorkingHoursService`, `EmailTemplateService`). Distinct from the `self-scheduling/` and `audience/` feature modules and from the "Scheduling" admin menu: feature UI/handlers go in those modules; only shared scheduling logic lives here.
+
 ## Date / time storage convention
 
 Two categories. Pick the right one when adding a new column or touching an existing one — see #249 for the migration roadmap that retires the mixed pre-#244 patterns.

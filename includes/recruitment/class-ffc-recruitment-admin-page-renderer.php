@@ -70,28 +70,7 @@ final class RecruitmentAdminPageRenderer {
 			unset( $tabs['reasons'] );
 		}
 
-		echo '<ul class="ffc-settings-tabs__nav" role="tablist" aria-orientation="vertical">';
-		foreach ( $tabs as $slug => $tab ) {
-			$is_active = ( $slug === $active );
-			$url       = add_query_arg(
-				array(
-					'page' => RecruitmentAdminPage::PAGE_SLUG,
-					'tab'  => $slug,
-				),
-				admin_url( 'admin.php' )
-			);
-			printf(
-				'<li class="ffc-settings-tabs__nav-item" role="presentation"><a href="%1$s" id="ffc-recruitment-tabnav-%2$s" class="ffc-settings-tabs__tab%3$s" role="tab" aria-selected="%4$s" aria-controls="ffc-recruitment-tabpanel-%2$s" tabindex="%5$s"><span class="ffc-settings-tabs__icon dashicons dashicons-%6$s" aria-hidden="true"></span><span class="ffc-settings-tabs__label">%7$s</span></a></li>',
-				esc_url( $url ),
-				esc_attr( $slug ),
-				$is_active ? ' is-active' : '',
-				$is_active ? 'true' : 'false',
-				$is_active ? '0' : '-1',
-				esc_attr( $tab['icon'] ),
-				esc_html( $tab['label'] )
-			);
-		}
-		echo '</ul>';
+		include FFC_PLUGIN_DIR . 'templates/admin/recruitment/admin-page/tabs.php';
 	}
 
 	/**
@@ -142,20 +121,7 @@ final class RecruitmentAdminPageRenderer {
 			),
 			admin_url( 'admin.php' )
 		);
-		echo '<div class="notice notice-info inline ffc-rec-welcome-notice">';
-		echo '<h3 class="ffc-rec-mt-0">' . esc_html__( 'Welcome to Recruitment', 'ffcertificate' ) . '</h3>';
-		echo '<p>' . esc_html__( 'No notices yet. The typical path to your first call is:', 'ffcertificate' ) . '</p>';
-		echo '<ol class="ffc-rec-ml-20">';
-		echo '<li>' . sprintf(
-			/* translators: %s: link to the Adjutancies tab */
-			wp_kses_post( __( 'Define at least one <a href="%s">adjutancy</a> (subject / role) — these are reusable across notices.', 'ffcertificate' ) ),
-			esc_url( $adjutancies_url )
-		) . '</li>';
-		echo '<li>' . esc_html__( 'Create your first notice (Code + Name) using the form below this list.', 'ffcertificate' ) . '</li>';
-		echo '<li>' . esc_html__( 'Open the new notice and attach the relevant adjutancies + import the candidate CSV.', 'ffcertificate' ) . '</li>';
-		echo '<li>' . esc_html__( 'Promote the preliminary list to definitive once you\'re ready, and call candidates per row or in bulk.', 'ffcertificate' ) . '</li>';
-		echo '</ol>';
-		echo '</div>';
+		include FFC_PLUGIN_DIR . 'templates/admin/recruitment/admin-page/notices-empty-state.php';
 	}
 
 	/**
@@ -255,40 +221,7 @@ final class RecruitmentAdminPageRenderer {
 		}
 		$default_color = RecruitmentReasonReader::DEFAULT_COLOR;
 
-		echo '<h3>' . esc_html__( 'Create new reason', 'ffcertificate' ) . '</h3>';
-		echo '<form id="ffc-create-reason" method="post" data-ffc-create-endpoint="reasons">';
-		echo '<table class="form-table"><tbody>';
-		echo '<tr><th><label for="ffc-reason-slug">' . esc_html__( 'Slug', 'ffcertificate' ) . '</label></th>';
-		echo '<td><input id="ffc-reason-slug" name="slug" type="text" class="regular-text" required></td></tr>';
-		echo '<tr><th><label for="ffc-reason-label">' . esc_html__( 'Label', 'ffcertificate' ) . '</label></th>';
-		echo '<td><input id="ffc-reason-label" name="label" type="text" class="regular-text" required></td></tr>';
-		echo '<tr><th><label for="ffc-reason-color">' . esc_html__( 'Badge color', 'ffcertificate' ) . '</label></th>';
-		echo '<td><input id="ffc-reason-color" name="color" type="color" value="' . esc_attr( $default_color ) . '">';
-		echo '<p class="description">' . esc_html__( 'Background color for the reason badge when surfaced. Accepts #RGB / #RRGGBB / #RRGGBBAA.', 'ffcertificate' ) . '</p>';
-		echo '</td></tr>';
-
-		$applies_options = array(
-			'denied'         => __( 'Denied', 'ffcertificate' ),
-			'granted'        => __( 'Granted', 'ffcertificate' ),
-			'appeal_denied'  => __( 'Appeal denied', 'ffcertificate' ),
-			'appeal_granted' => __( 'Appeal granted', 'ffcertificate' ),
-		);
-		echo '<tr><th>' . esc_html__( 'Applies to', 'ffcertificate' ) . '</th><td>';
-		echo '<div class="ffc-rec-flex-wrap">';
-		foreach ( $applies_options as $key => $label ) {
-			$id_attr = 'ffc-reason-applies-' . $key;
-			echo '<label for="' . esc_attr( $id_attr ) . '" class="ffc-rec-flex-center-6">';
-			echo '<input id="' . esc_attr( $id_attr ) . '" type="checkbox" name="applies_to[]" value="' . esc_attr( $key ) . '">';
-			echo esc_html( $label );
-			echo '</label>';
-		}
-		echo '</div>';
-		echo '<p class="description">' . esc_html__( 'Leave all unchecked to make this reason applicable to every preliminary status.', 'ffcertificate' ) . '</p>';
-		echo '</td></tr>';
-
-		echo '</tbody></table>';
-		echo '<p><button type="submit" class="button button-primary">' . esc_html__( 'Create', 'ffcertificate' ) . '</button></p>';
-		echo '</form>';
+		include FFC_PLUGIN_DIR . 'templates/admin/recruitment/admin-page/create-reason-form.php';
 	}
 
 	/**
@@ -362,78 +295,7 @@ final class RecruitmentAdminPageRenderer {
 			}
 		}
 
-		echo '<div class="postbox ffc-rec-mt-20">';
-		echo '<h2 class="hndle"><span>' . esc_html__( 'Import candidates (CSV)', 'ffcertificate' ) . '</span></h2>';
-		echo '<div class="inside">';
-
-		if ( empty( $eligible ) ) {
-			echo '<p>' . esc_html__( 'No notices in `draft` or `preliminary` status are available for CSV import. Create a notice (Notices tab) or move an existing one back to `preliminary` (allowed only when zero calls have been issued).', 'ffcertificate' ) . '</p>';
-			echo '</div></div>';
-			return;
-		}
-
-		$example_url = wp_nonce_url(
-			add_query_arg(
-				array( 'action' => 'ffc_recruitment_download_csv_example' ),
-				admin_url( 'admin-post.php' )
-			),
-			'ffc_recruitment_download_csv_example'
-		);
-
-		echo '<p>' . esc_html__( 'Pick a notice, select the target list, and upload your CSV. The notice picker only lists notices where import is allowed.', 'ffcertificate' ) . '</p>';
-		echo '<p><a class="button" href="' . esc_url( $example_url ) . '">&darr; ' . esc_html__( 'Download example CSV', 'ffcertificate' ) . '</a> ';
-		echo '<span class="description ffc-rec-ml-half">' . esc_html__( 'UTF-8 CSV (BOM optional). Required headers (English): name, cpf, rf, email, adjutancy, rank, score, pcd. Optional: phone, time_points, hab_emebs.', 'ffcertificate' ) . '</span></p>';
-
-		echo '<form id="ffc-recruitment-candidates-import" method="post" enctype="multipart/form-data" onsubmit="return ffcRecruitmentImportFromCandidates(this);">';
-		echo '<table class="form-table"><tbody>';
-
-		echo '<tr><th><label for="ffc-cand-import-notice">' . esc_html__( 'Target notice', 'ffcertificate' ) . '</label></th><td>';
-		echo '<select id="ffc-cand-import-notice" name="notice_id" required onchange="ffcRecruitmentImportNoticeChanged(this);">';
-		echo '<option value="" data-status="">' . esc_html__( '— Select a notice —', 'ffcertificate' ) . '</option>';
-		foreach ( $eligible as $n ) {
-			$nid    = (int) $n->id;
-			$code   = isset( $n->code ) ? (string) $n->code : '';
-			$name   = isset( $n->name ) ? (string) $n->name : '';
-			$status = isset( $n->status ) ? (string) $n->status : '';
-			/* translators: 1: notice code, 2: notice name, 3: notice status */
-			$label = sprintf( _x( '%1$s — %2$s (%3$s)', 'recruitment notice picker', 'ffcertificate' ), $code, $name, $status );
-			echo '<option value="' . esc_attr( (string) $nid ) . '" data-status="' . esc_attr( $status ) . '">' . esc_html( $label ) . '</option>';
-		}
-		echo '</select>';
-		echo '</td></tr>';
-
-		// Target list radios. The "definitive" option is rendered but
-		// disabled by default — the onchange handler enables it only
-		// when the selected notice's status is `preliminary`.
-		echo '<tr><th><label>' . esc_html__( 'Target list', 'ffcertificate' ) . '</label></th><td>';
-		echo '<label class="ffc-rec-mr-1"><input type="radio" name="list_target" value="preliminary" checked> ' . esc_html__( 'Preliminary list', 'ffcertificate' ) . '</label>';
-		echo '<label><input type="radio" name="list_target" value="definitive" disabled> ' . esc_html__( 'Definitive list (also transitions notice to `definitive`)', 'ffcertificate' ) . '</label>';
-		echo '<p class="description" id="ffc-cand-import-target-help">' . esc_html__( 'Pick a notice above to see which lists can receive the import.', 'ffcertificate' ) . '</p>';
-		echo '</td></tr>';
-
-		echo '<tr><th><label for="ffc-cand-csv-file">' . esc_html__( 'CSV file', 'ffcertificate' ) . '</label></th><td>';
-		echo '<input id="ffc-cand-csv-file" name="csv_file" type="file" accept=".csv,text/csv" required>';
-		echo '</td></tr>';
-
-		echo '</tbody></table>';
-		echo '<p>';
-		echo '<button id="ffc-cand-csv-submit" type="submit" class="button button-primary">' . esc_html__( 'Import', 'ffcertificate' ) . '</button> ';
-		echo '<span id="ffc-cand-csv-progress" class="ffc-rec-progress-inline">';
-		echo '<span class="spinner is-active ffc-rec-spinner-flush"></span>';
-		echo '<span id="ffc-cand-csv-progress-text"></span>';
-		echo '</span>';
-		echo '<span id="ffc-cand-csv-status" class="ffc-rec-mono-status"></span>';
-		echo '</p>';
-		echo '</form>';
-
-		// The CSV-import handlers (ffcRecruitmentImportNoticeChanged /
-		// ffcRecruitmentImportFromCandidates) ship in
-		// assets/js/ffc-recruitment-candidates-import.js, enqueued +
-		// localized by RecruitmentAdminAssetsManager. They mirror
-		// ffcRecruitmentImportFromEdit on the Notice Edit page, reusing the
-		// same REST endpoints (no new backend) so the importer service and
-		// activity logger fire unchanged.
-		echo '</div></div>';
+		include FFC_PLUGIN_DIR . 'templates/admin/recruitment/admin-page/candidates-csv-import-section.php';
 	}
 
 	/**
@@ -450,199 +312,7 @@ final class RecruitmentAdminPageRenderer {
 		$settings = RecruitmentSettings::all();
 		$can_edit = RecruitmentAdminPage::can_edit_settings();
 
-		echo '<h2>' . esc_html__( 'Settings', 'ffcertificate' ) . '</h2>';
-		echo '<p>' . esc_html__( 'Email templates and public shortcode tuning. Saved values populate the convocation email and the public shortcode cache/rate-limit/page-size knobs.', 'ffcertificate' ) . '</p>';
-
-		if ( ! $can_edit ) {
-			echo '<p class="description"><em>' . esc_html__( 'Read-only — you do not have permission to change recruitment settings.', 'ffcertificate' ) . '</em></p>';
-		}
-
-		echo '<form method="post" action="' . esc_url( admin_url( 'options.php' ) ) . '">';
-		settings_fields( RecruitmentSettings::OPTION_GROUP );
-		if ( ! $can_edit ) {
-			// A disabled fieldset blocks every input + submission inside it.
-			echo '<fieldset disabled>';
-		}
-
-		$opt = RecruitmentSettings::OPTION_NAME;
-
-		echo '<div class="card">';
-		echo '<h2 class="ffc-icon-email">' . esc_html__( 'Email template', 'ffcertificate' ) . '</h2>';
-		echo '<table class="form-table"><tbody>';
-
-		echo '<tr><th><label for="ffc-rs-subject">' . esc_html__( 'Subject', 'ffcertificate' ) . '</label></th><td>';
-		echo '<input id="ffc-rs-subject" type="text" class="large-text" name="' . esc_attr( $opt ) . '[email_subject]" value="' . esc_attr( (string) $settings['email_subject'] ) . '">';
-		echo '<p class="description">' . esc_html__( 'Placeholders: {{notice_code}}, {{notice_name}}, {{adjutancy}}, {{name}}, {{rank}}, {{score}}, {{date_to_assume}}, {{time_to_assume}}, {{is_pcd}}, {{site_name}}, {{site_url}}, {{notes}}, and the masked variants {{cpf_masked}}, {{rf_masked}}, {{email_masked}}.', 'ffcertificate' ) . '</p>';
-		echo '</td></tr>';
-
-		echo '<tr><th><label for="ffc-rs-from-address">' . esc_html__( 'From address', 'ffcertificate' ) . '</label></th><td>';
-		echo '<input id="ffc-rs-from-address" type="email" class="regular-text" name="' . esc_attr( $opt ) . '[email_from_address]" value="' . esc_attr( (string) $settings['email_from_address'] ) . '" placeholder="(falls back to wp_mail default)">';
-		echo '</td></tr>';
-
-		echo '<tr><th><label for="ffc-rs-from-name">' . esc_html__( 'From name', 'ffcertificate' ) . '</label></th><td>';
-		echo '<input id="ffc-rs-from-name" type="text" class="regular-text" name="' . esc_attr( $opt ) . '[email_from_name]" value="' . esc_attr( (string) $settings['email_from_name'] ) . '" placeholder="(falls back to site name)">';
-		echo '</td></tr>';
-
-		echo '<tr><th><label for="ffc-rs-body">' . esc_html__( 'Body (HTML)', 'ffcertificate' ) . '</label></th><td>';
-		echo '<textarea id="ffc-rs-body" name="' . esc_attr( $opt ) . '[email_body_html]" rows="12" class="large-text code">' . esc_textarea( (string) $settings['email_body_html'] ) . '</textarea>';
-		echo '<p class="description">' . esc_html__( 'Same placeholder set as the subject. The text/plain alternative is auto-derived via wp_strip_all_tags.', 'ffcertificate' ) . '</p>';
-		echo '</td></tr>';
-		echo '</tbody></table>';
-		echo '</div>';
-
-		echo '<div class="card">';
-		echo '<h2 class="ffc-icon-link">' . esc_html__( 'Public shortcode', 'ffcertificate' ) . '</h2>';
-		echo '<table class="form-table"><tbody>';
-
-		echo '<tr><th><label for="ffc-rs-cache">' . esc_html__( 'Cache TTL (seconds)', 'ffcertificate' ) . '</label></th><td>';
-		echo '<input id="ffc-rs-cache" type="number" min="0" name="' . esc_attr( $opt ) . '[public_cache_seconds]" value="' . esc_attr( (string) $settings['public_cache_seconds'] ) . '">';
-		echo '<p class="description">' . esc_html__( 'Transient cache for the public shortcode. 0 disables.', 'ffcertificate' ) . '</p>';
-		echo '</td></tr>';
-
-		echo '<tr><th><label for="ffc-rs-rate">' . esc_html__( 'Rate limit (requests / minute / IP)', 'ffcertificate' ) . '</label></th><td>';
-		echo '<input id="ffc-rs-rate" type="number" min="0" name="' . esc_attr( $opt ) . '[public_rate_limit_per_minute]" value="' . esc_attr( (string) $settings['public_rate_limit_per_minute'] ) . '">';
-		echo '<p class="description">' . esc_html__( '0 disables the per-IP rate limit.', 'ffcertificate' ) . '</p>';
-		echo '</td></tr>';
-
-		echo '<tr><th><label for="ffc-rs-pagesize">' . esc_html__( 'Default page size', 'ffcertificate' ) . '</label></th><td>';
-		echo '<input id="ffc-rs-pagesize" type="number" min="1" max="500" name="' . esc_attr( $opt ) . '[public_default_page_size]" value="' . esc_attr( (string) $settings['public_default_page_size'] ) . '">';
-		echo '</td></tr>';
-		echo '</tbody></table>';
-		echo '</div>';
-
-		echo '<div class="card">';
-		echo '<h2 class="ffc-icon-palette">' . esc_html__( 'Status badge colors', 'ffcertificate' ) . '</h2>';
-		echo '<p class="description">' . esc_html__( 'Background color used for each classification status pill on the public shortcode. Accepts #RGB / #RRGGBB / #RRGGBBAA. Bad values silently fall back to defaults.', 'ffcertificate' ) . '</p>';
-		echo '<table class="form-table"><tbody>';
-
-		$status_color_rows = array(
-			'status_color_empty'     => __( 'Waiting (empty)', 'ffcertificate' ),
-			'status_color_called'    => __( 'Called / Accepted', 'ffcertificate' ),
-			'status_color_hired'     => __( 'Hired', 'ffcertificate' ),
-			'status_color_not_shown' => __( 'Did not show up', 'ffcertificate' ),
-			'status_color_withdrew'  => __( 'Withdrew', 'ffcertificate' ),
-		);
-		foreach ( $status_color_rows as $field => $label ) {
-			echo '<tr><th><label for="ffc-rs-' . esc_attr( $field ) . '">' . esc_html( $label ) . '</label></th><td>';
-			echo '<input id="ffc-rs-' . esc_attr( $field ) . '" type="color" name="' . esc_attr( $opt ) . '[' . esc_attr( $field ) . ']" value="' . esc_attr( (string) $settings[ $field ] ) . '">';
-			echo ' <code class="ffc-rec-ml-half">' . esc_html( (string) $settings[ $field ] ) . '</code>';
-			echo '</td></tr>';
-		}
-		echo '</tbody></table>';
-		echo '</div>';
-
-		echo '<div class="card">';
-		echo '<h2 class="ffc-icon-palette">' . esc_html__( 'Preliminary list — badge colors', 'ffcertificate' ) . '</h2>';
-		echo '<p class="description">' . esc_html__( 'Background color used for each preliminary-list visual status on the public shortcode. These statuses do not change the candidate flow; they only affect the badge color.', 'ffcertificate' ) . '</p>';
-		echo '<table class="form-table"><tbody>';
-
-		$preview_color_rows = array(
-			'preview_color_empty'          => __( 'Empty (no decision)', 'ffcertificate' ),
-			'preview_color_denied'         => __( 'Denied', 'ffcertificate' ),
-			'preview_color_granted'        => __( 'Granted', 'ffcertificate' ),
-			'preview_color_appeal_denied'  => __( 'Appeal denied', 'ffcertificate' ),
-			'preview_color_appeal_granted' => __( 'Appeal granted', 'ffcertificate' ),
-		);
-		foreach ( $preview_color_rows as $field => $label ) {
-			echo '<tr><th><label for="ffc-rs-' . esc_attr( $field ) . '">' . esc_html( $label ) . '</label></th><td>';
-			echo '<input id="ffc-rs-' . esc_attr( $field ) . '" type="color" name="' . esc_attr( $opt ) . '[' . esc_attr( $field ) . ']" value="' . esc_attr( (string) $settings[ $field ] ) . '">';
-			echo ' <code class="ffc-rec-ml-half">' . esc_html( (string) $settings[ $field ] ) . '</code>';
-			echo '</td></tr>';
-		}
-		echo '</tbody></table>';
-		echo '</div>';
-
-		echo '<div class="card">';
-		echo '<h2 class="ffc-icon-clipboard">' . esc_html__( 'Preliminary list — reason required?', 'ffcertificate' ) . '</h2>';
-		echo '<p class="description">' . esc_html__( 'Per-status flag controlling whether a reason from the Reasons catalog must be supplied when an admin sets that preliminary status on a row.', 'ffcertificate' ) . '</p>';
-		echo '<table class="form-table"><tbody>';
-
-		$reason_required_rows = array(
-			'preview_reason_required_denied'         => __( 'Denied requires a reason', 'ffcertificate' ),
-			'preview_reason_required_granted'        => __( 'Granted requires a reason', 'ffcertificate' ),
-			'preview_reason_required_appeal_denied'  => __( 'Appeal denied requires a reason', 'ffcertificate' ),
-			'preview_reason_required_appeal_granted' => __( 'Appeal granted requires a reason', 'ffcertificate' ),
-		);
-		foreach ( $reason_required_rows as $field => $label ) {
-			echo '<tr><th>' . esc_html( $label ) . '</th><td>';
-			\FreeFormCertificate\Admin\AdminUI::render_toggle(
-				array(
-					'name'    => $opt . '[' . $field . ']',
-					'id'      => 'ffc-rs-' . $field,
-					'checked' => ! empty( $settings[ $field ] ),
-					'data'    => array( 'ffc-autosave-key' => 'recruitment_' . $field ),
-				)
-			);
-			echo '</td></tr>';
-		}
-		echo '</tbody></table>';
-		echo '</div>';
-
-		echo '<div class="card">';
-		echo '<h2 class="ffc-icon-palette">' . esc_html__( 'Subscription type — badge colors', 'ffcertificate' ) . '</h2>';
-		echo '<p class="description">' . esc_html__( 'Background color used on the public + admin subscription-type badges. Each candidate is either PCD (pessoa com deficiência) or GERAL — these two knobs paint the corresponding pill.', 'ffcertificate' ) . '</p>';
-		echo '<table class="form-table"><tbody>';
-
-		$subscription_color_rows = array(
-			'subscription_color_pcd'   => __( 'PCD', 'ffcertificate' ),
-			'subscription_color_geral' => __( 'GERAL', 'ffcertificate' ),
-		);
-		foreach ( $subscription_color_rows as $field => $label ) {
-			echo '<tr><th><label for="ffc-rs-' . esc_attr( $field ) . '">' . esc_html( $label ) . '</label></th><td>';
-			echo '<input id="ffc-rs-' . esc_attr( $field ) . '" type="color" name="' . esc_attr( $opt ) . '[' . esc_attr( $field ) . ']" value="' . esc_attr( (string) $settings[ $field ] ) . '">';
-			echo ' <code class="ffc-rec-ml-half">' . esc_html( (string) $settings[ $field ] ) . '</code>';
-			echo '</td></tr>';
-		}
-		echo '</tbody></table>';
-		echo '</div>';
-
-		echo '<div class="card">';
-		echo '<h2 class="ffc-icon-palette">' . esc_html__( 'Notice status — badge colors', 'ffcertificate' ) . '</h2>';
-		echo '<p class="description">' . esc_html__( 'Background color used for each notice lifecycle status (Draft / Preliminary / Definitive / Closed). Drives both the admin Notices list table and the public shortcode banner so both surfaces share one palette.', 'ffcertificate' ) . '</p>';
-		echo '<table class="form-table"><tbody>';
-
-		$notice_status_color_rows = array(
-			'notice_status_color_draft'       => __( 'Draft', 'ffcertificate' ),
-			'notice_status_color_preliminary' => __( 'Preliminary', 'ffcertificate' ),
-			'notice_status_color_definitive'  => __( 'Definitive', 'ffcertificate' ),
-			'notice_status_color_closed'      => __( 'Closed', 'ffcertificate' ),
-		);
-		foreach ( $notice_status_color_rows as $field => $label ) {
-			echo '<tr><th><label for="ffc-rs-' . esc_attr( $field ) . '">' . esc_html( $label ) . '</label></th><td>';
-			echo '<input id="ffc-rs-' . esc_attr( $field ) . '" type="color" name="' . esc_attr( $opt ) . '[' . esc_attr( $field ) . ']" value="' . esc_attr( (string) $settings[ $field ] ) . '">';
-			echo ' <code class="ffc-rec-ml-half">' . esc_html( (string) $settings[ $field ] ) . '</code>';
-			echo '</td></tr>';
-		}
-		echo '</tbody></table>';
-		echo '</div>';
-
-		// PII / audit toggle (#330). Lives at the bottom of the Settings
-		// tab because it's a security knob, not a visual one — operators
-		// who land here are usually adjusting palettes. The default is
-		// `true` so the first save after the upgrade keeps auditing on.
-		echo '<div class="card">';
-		echo '<h2 class="ffc-icon-shield">' . esc_html__( 'PII access audit', 'ffcertificate' ) . '</h2>';
-		echo '<p class="description">' . esc_html__( 'When enabled, every reveal of CPF / RF on the candidate detail screen by a non-admin user writes a row to the activity log (with a 60-second dedup per user + candidate + field). Recommended ON for compliance.', 'ffcertificate' ) . '</p>';
-		echo '<table class="form-table"><tbody>';
-		echo '<tr><th>' . esc_html__( 'Audit PII reveals', 'ffcertificate' ) . '</th><td>';
-		\FreeFormCertificate\Admin\AdminUI::render_toggle(
-			array(
-				'name'    => $opt . '[audit_pii_reveals]',
-				'id'      => 'ffc-rs-audit-pii-reveals',
-				'checked' => ! empty( $settings['audit_pii_reveals'] ),
-				'data'    => array( 'ffc-autosave-key' => 'recruitment_audit_pii_reveals' ),
-			)
-		);
-		echo '</td></tr>';
-		echo '</tbody></table>';
-		echo '</div>';
-
-		if ( $can_edit ) {
-			submit_button();
-		} else {
-			echo '</fieldset>';
-		}
-		echo '</form>';
+		include FFC_PLUGIN_DIR . 'templates/admin/recruitment/admin-page/settings-tab.php';
 	}
 
 	/**
@@ -655,16 +325,7 @@ final class RecruitmentAdminPageRenderer {
 		if ( ! \FreeFormCertificate\Core\Capabilities::current_user_can_admin_or( 'ffc_manage_recruitment' ) ) {
 			return;
 		}
-		echo '<h3>' . esc_html__( 'Create new notice', 'ffcertificate' ) . '</h3>';
-		echo '<form id="ffc-create-notice" method="post" data-ffc-create-endpoint="notices">';
-		echo '<table class="form-table"><tbody>';
-		echo '<tr><th><label for="ffc-notice-code">' . esc_html__( 'Code', 'ffcertificate' ) . '</label></th>';
-		echo '<td><input id="ffc-notice-code" name="code" type="text" class="regular-text" required></td></tr>';
-		echo '<tr><th><label for="ffc-notice-name">' . esc_html__( 'Name', 'ffcertificate' ) . '</label></th>';
-		echo '<td><input id="ffc-notice-name" name="name" type="text" class="regular-text" required></td></tr>';
-		echo '</tbody></table>';
-		echo '<p><button type="submit" class="button button-primary">' . esc_html__( 'Create', 'ffcertificate' ) . '</button></p>';
-		echo '</form>';
+		include FFC_PLUGIN_DIR . 'templates/admin/recruitment/admin-page/create-notice-form.php';
 	}
 
 	/**
@@ -679,20 +340,7 @@ final class RecruitmentAdminPageRenderer {
 		}
 		$default_color = RecruitmentAdjutancyReader::DEFAULT_COLOR;
 
-		echo '<h3>' . esc_html__( 'Create new adjutancy', 'ffcertificate' ) . '</h3>';
-		echo '<form id="ffc-create-adjutancy" method="post" data-ffc-create-endpoint="adjutancies">';
-		echo '<table class="form-table"><tbody>';
-		echo '<tr><th><label for="ffc-adj-slug">' . esc_html__( 'Slug', 'ffcertificate' ) . '</label></th>';
-		echo '<td><input id="ffc-adj-slug" name="slug" type="text" class="regular-text" required></td></tr>';
-		echo '<tr><th><label for="ffc-adj-name">' . esc_html__( 'Name', 'ffcertificate' ) . '</label></th>';
-		echo '<td><input id="ffc-adj-name" name="name" type="text" class="regular-text" required></td></tr>';
-		echo '<tr><th><label for="ffc-adj-color">' . esc_html__( 'Badge color', 'ffcertificate' ) . '</label></th>';
-		echo '<td><input id="ffc-adj-color" name="color" type="color" value="' . esc_attr( $default_color ) . '">';
-		echo '<p class="description">' . esc_html__( 'Background color for this adjutancy badge on the public shortcode. Accepts #RGB / #RRGGBB / #RRGGBBAA. Bad values silently fall back to the default.', 'ffcertificate' ) . '</p>';
-		echo '</td></tr>';
-		echo '</tbody></table>';
-		echo '<p><button type="submit" class="button button-primary">' . esc_html__( 'Create', 'ffcertificate' ) . '</button></p>';
-		echo '</form>';
+		include FFC_PLUGIN_DIR . 'templates/admin/recruitment/admin-page/create-adjutancy-form.php';
 	}
 
 	/**
@@ -701,29 +349,6 @@ final class RecruitmentAdminPageRenderer {
 	 * @return void
 	 */
 	public static function render_rest_pointer(): void {
-		echo '<details class="ffc-rec-mt-1"><summary>' . esc_html__( 'Available REST endpoints', 'ffcertificate' ) . '</summary>';
-		echo '<pre class="ffc-rec-pre-block">'
-			. esc_html(
-				"GET    /wp-json/ffcertificate/v1/recruitment/notices\n"
-				. "POST   /wp-json/ffcertificate/v1/recruitment/notices\n"
-				. "PATCH  /wp-json/ffcertificate/v1/recruitment/notices/{id}\n"
-				. "GET    /wp-json/ffcertificate/v1/recruitment/notices/{id}/classifications\n"
-				. "POST   /wp-json/ffcertificate/v1/recruitment/notices/{id}/import\n"
-				. "POST   /wp-json/ffcertificate/v1/recruitment/notices/{id}/promote-preview\n"
-				. "POST   /wp-json/ffcertificate/v1/recruitment/classifications/{id}/call\n"
-				. "POST   /wp-json/ffcertificate/v1/recruitment/classifications/bulk-call\n"
-				. "PATCH  /wp-json/ffcertificate/v1/recruitment/classifications/{id}/status\n"
-				. "DELETE /wp-json/ffcertificate/v1/recruitment/classifications/{id}\n"
-				. "GET    /wp-json/ffcertificate/v1/recruitment/adjutancies\n"
-				. "DELETE /wp-json/ffcertificate/v1/recruitment/adjutancies/{id}\n"
-				. "GET    /wp-json/ffcertificate/v1/recruitment/candidates?cpf={digits}\n"
-				. "GET    /wp-json/ffcertificate/v1/recruitment/candidates/{id}\n"
-				. "PATCH  /wp-json/ffcertificate/v1/recruitment/candidates/{id}\n"
-				. "DELETE /wp-json/ffcertificate/v1/recruitment/candidates/{id}\n"
-				. "GET    /wp-json/ffcertificate/v1/recruitment/me/recruitment\n"
-			)
-			. '</pre>';
-		echo '<p>' . esc_html__( 'All admin endpoints require the ffc_manage_recruitment capability.', 'ffcertificate' ) . '</p>';
-		echo '</details>';
+		include FFC_PLUGIN_DIR . 'templates/admin/recruitment/admin-page/rest-pointer.php';
 	}
 }

@@ -194,4 +194,192 @@ class DashboardShortcodeTest extends TestCase {
 
         $this->assertStringContainsString( 'redirected from the admin panel', $output );
     }
+
+    // ==================================================================
+    // send_nocache_headers() — shortcode present → cache-busting fires
+    // ==================================================================
+
+    public function test_send_nocache_headers_sets_donotcachepage_when_shortcode_present(): void {
+        global $post;
+        $post = Mockery::mock( 'WP_Post' );
+        $post->post_content = '[user_dashboard_personal]';
+
+        Functions\when( 'has_shortcode' )->justReturn( true );
+
+        $nocache_called = false;
+        Functions\when( 'nocache_headers' )->alias( function () use ( &$nocache_called ) {
+            $nocache_called = true;
+        } );
+        $action_fired = false;
+        Functions\when( 'do_action' )->alias( function ( $hook ) use ( &$action_fired ) {
+            if ( 'litespeed_control_set_nocache' === $hook ) {
+                $action_fired = true;
+            }
+        } );
+        // header() is a native PHP function Brain\Monkey cannot redefine. Under
+        // CLI, output has already been emitted, so the real call would raise a
+        // "headers already sent" warning. Suppress it — the assertions below
+        // verify the observable side effects (DONOTCACHEPAGE, nocache_headers,
+        // the LiteSpeed action) rather than the raw header() call.
+        $prev = error_reporting( error_reporting() & ~E_WARNING );
+        try {
+            DashboardShortcode::send_nocache_headers();
+        } finally {
+            error_reporting( $prev );
+        }
+
+        $this->assertTrue( defined( 'DONOTCACHEPAGE' ) );
+        $this->assertTrue( $nocache_called );
+        $this->assertTrue( $action_fired );
+    }
+
+    // ==================================================================
+    // render() — all capability tabs visible (full render path)
+    // ==================================================================
+
+    /**
+     * Wire up every collaborator the full render path touches so all tab
+     * branches are exercised. Alias-mocks the shortcode's direct collaborators.
+     */
+    private function wireFullRenderCollaborators( bool $view_as = false, ?array $reregistrations = null ): void {
+        Functions\when( 'is_user_logged_in' )->justReturn( true );
+        Functions\when( 'get_current_user_id' )->justReturn( 1 );
+
+        $user = Mockery::mock( 'WP_User' );
+        Functions\when( 'get_user_by' )->justReturn( $user );
+        // Every capability check returns true so all cap-gated tabs render.
+        Functions\when( 'user_can' )->justReturn( true );
+        Functions\when( 'current_user_can' )->justReturn( true );
+
+        $view_mode = Mockery::mock( 'alias:\FreeFormCertificate\Shortcodes\DashboardViewMode' );
+        $view_mode->shouldReceive( 'get_view_as_user_id' )->andReturn( $view_as ? 55 : false )->byDefault();
+        $view_mode->shouldReceive( 'render_admin_viewing_banner' )->andReturn( '<div class="ffc-view-as-banner">viewing</div>' )->byDefault();
+
+        $asset_mgr = Mockery::mock( 'alias:\FreeFormCertificate\Shortcodes\DashboardAssetManager' );
+        $asset_mgr->shouldReceive( 'enqueue_assets' )->andReturn( null )->byDefault();
+        $asset_mgr->shouldReceive( 'user_has_audience_groups' )->andReturn( true )->byDefault();
+
+        $reader = Mockery::mock( 'alias:\FreeFormCertificate\Reregistration\ReregistrationSubmissionReader' );
+        $reader->shouldReceive( 'get_all_by_user' )->andReturn( array( array( 'id' => 1 ) ) )->byDefault();
+
+        $recruitment = Mockery::mock( 'alias:\FreeFormCertificate\Recruitment\RecruitmentDashboardSection' );
+        $recruitment->shouldReceive( 'render_for_user' )->andReturn( '<div class="ffc-recruitment-body">calls</div>' )->byDefault();
+
+        // Reregistration banners: empty unless the caller supplies a set.
+        $frontend = Mockery::mock( 'alias:\FreeFormCertificate\Reregistration\ReregistrationFrontend' );
+        $frontend->shouldReceive( 'get_user_reregistrations' )
+            ->andReturn( null === $reregistrations ? array() : $reregistrations )->byDefault();
+
+        // DateFormatter is only reached by the actionable-banner branch, but
+        // alias-mock it unconditionally so it's stubbed whenever banners render.
+        $fmt = Mockery::mock( 'alias:\FreeFormCertificate\Core\DateFormatter' );
+        $fmt->shouldReceive( 'format_date' )->andReturn( '01/01/2030' )->byDefault();
+
+        $ri = Mockery::mock( 'alias:\FreeFormCertificate\Core\RequestInput' );
+        $ri->shouldReceive( 'get_get_string' )->andReturnUsing( function ( $key, $default = '' ) {
+            return isset( $_GET[ $key ] ) && is_string( $_GET[ $key ] ) ? $_GET[ $key ] : $default;
+        } )->byDefault();
+    }
+
+    public function test_render_all_tabs_visible_when_all_caps_granted(): void {
+        $this->wireFullRenderCollaborators( false );
+
+        $output = DashboardShortcode::render();
+
+        // Every cap-gated tab button + panel present.
+        $this->assertStringContainsString( 'ffc-tab-certificates', $output );
+        $this->assertStringContainsString( 'ffc-tab-appointments', $output );
+        $this->assertStringContainsString( 'ffc-tab-audience', $output );
+        $this->assertStringContainsString( 'ffc-tab-reregistrations', $output );
+        $this->assertStringContainsString( 'ffc-tab-recruitment', $output );
+        $this->assertStringContainsString( 'tab-certificates', $output );
+        $this->assertStringContainsString( 'tab-recruitment', $output );
+        // Server-rendered recruitment body reused as tab content.
+        $this->assertStringContainsString( 'ffc-recruitment-body', $output );
+        // Reregistration form panel present when reregistrations tab visible.
+        $this->assertStringContainsString( 'ffc-rereg-form-panel', $output );
+    }
+
+    // ==================================================================
+    // render() — admin view-as mode renders the banner
+    // ==================================================================
+
+    public function test_render_shows_admin_viewing_banner_in_view_as_mode(): void {
+        // view_as user 55 differs from current user 1 → banner renders.
+        $this->wireFullRenderCollaborators( true );
+
+        $output = DashboardShortcode::render();
+
+        $this->assertStringContainsString( 'ffc-view-as-banner', $output );
+    }
+
+    // ==================================================================
+    // render() — reregistration banners (all status branches)
+    // ==================================================================
+
+    public function test_render_reregistration_banners_all_statuses(): void {
+        Functions\when( '_n' )->alias( function ( $single, $plural, $n ) {
+            return 1 === $n ? $single : $plural;
+        } );
+
+        $this->wireFullRenderCollaborators( false, array(
+            // Completed / approved (can_submit false).
+            array(
+                'id'                => 10,
+                'title'             => 'Approved Campaign',
+                'can_submit'        => false,
+                'submission_status' => 'approved',
+                'magic_link'        => 'https://example.com/ficha/10',
+                'end_date'          => '2030-01-01',
+            ),
+            // Submitted / pending review (can_submit false, no magic link).
+            array(
+                'id'                => 11,
+                'title'             => 'Submitted Campaign',
+                'can_submit'        => false,
+                'submission_status' => 'submitted',
+                'magic_link'        => '',
+                'end_date'          => '2030-01-01',
+            ),
+            // Actionable — in_progress (can_submit true), far deadline.
+            array(
+                'id'                => 12,
+                'title'             => 'In Progress Campaign',
+                'can_submit'        => true,
+                'submission_status' => 'in_progress',
+                'end_date'          => '2030-01-01',
+            ),
+            // Actionable — rejected (can_submit true), urgent (deadline soon).
+            array(
+                'id'                => 13,
+                'title'             => 'Rejected Campaign',
+                'can_submit'        => true,
+                'submission_status' => 'rejected',
+                'end_date'          => gmdate( 'Y-m-d', time() + 86400 ),
+            ),
+            // Actionable — not started (can_submit true), else branch.
+            array(
+                'id'                => 14,
+                'title'             => 'New Campaign',
+                'can_submit'        => true,
+                'submission_status' => 'not_started',
+                'end_date'          => gmdate( 'Y-m-d', time() + ( 5 * 86400 ) ),
+            ),
+        ) );
+
+        $output = DashboardShortcode::render();
+
+        $this->assertStringContainsString( 'Approved Campaign', $output );
+        $this->assertStringContainsString( 'ffc-rereg-completed', $output );
+        $this->assertStringContainsString( 'Submitted Campaign', $output );
+        $this->assertStringContainsString( 'ffc-rereg-pending-review', $output );
+        $this->assertStringContainsString( 'In Progress Campaign', $output );
+        $this->assertStringContainsString( 'Continue Reregistration', $output );
+        $this->assertStringContainsString( 'Rejected Campaign', $output );
+        $this->assertStringContainsString( 'Resubmit Reregistration', $output );
+        // Urgent class present for the near-deadline rejected banner.
+        $this->assertStringContainsString( 'ffc-rereg-urgent', $output );
+        $this->assertStringContainsString( 'New Campaign', $output );
+        $this->assertStringContainsString( 'Complete Reregistration', $output );
+    }
 }

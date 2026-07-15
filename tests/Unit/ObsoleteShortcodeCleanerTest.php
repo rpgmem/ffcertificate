@@ -57,12 +57,12 @@ class ObsoleteShortcodeCleanerTest extends TestCase {
         // leaks as real PHP functions. From inside a FreeFormCertificate\Migrations
         // class, unqualified calls resolve to the namespace first, so we re-stub
         // them here to attach a fresh expectation for this test.
-        Functions\when( 'FreeFormCertificate\Migrations\is_wp_error' )->justReturn( false );
-        Functions\when( 'FreeFormCertificate\Migrations\wp_update_post' )->alias( function ( $postarr, $wp_error = false ) {
+        Functions\when( 'is_wp_error' )->justReturn( false );
+        Functions\when( 'wp_update_post' )->alias( function ( $postarr, $wp_error = false ) {
             $this->updated_posts[] = $postarr;
             return (int) ( $postarr['ID'] ?? 1 );
         } );
-        Functions\when( 'FreeFormCertificate\Migrations\get_post' )->alias( function ( $post_id ) {
+        Functions\when( 'get_post' )->alias( function ( $post_id ) {
             $id = (int) $post_id;
             return $this->post_store[ $id ] ?? null;
         } );

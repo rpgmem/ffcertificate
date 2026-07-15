@@ -39,8 +39,8 @@ class DashboardViewModeTest extends TestCase {
         // Brain Monkey namespaced stubs — needed when other tests in the
         // suite define `FreeFormCertificate\Core\wp_unslash` (which then
         // intercepts our `RequestInput::get_get_string` callsite).
-        Functions\when( 'FreeFormCertificate\Core\sanitize_text_field' )->returnArg();
-        Functions\when( 'FreeFormCertificate\Core\wp_unslash' )->returnArg();
+        Functions\when( 'sanitize_text_field' )->returnArg();
+        Functions\when( 'wp_unslash' )->returnArg();
         Functions\when( 'absint' )->alias( function ( $v ) {
             return abs( (int) $v );
         } );

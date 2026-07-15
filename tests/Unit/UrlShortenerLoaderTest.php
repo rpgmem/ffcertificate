@@ -49,24 +49,24 @@ class UrlShortenerLoaderTest extends TestCase {
         Functions\when( 'wp_cache_flush' )->justReturn( true );
 
         // Namespaced stubs
-        Functions\when( 'FreeFormCertificate\UrlShortener\get_option' )->justReturn( [] );
-        Functions\when( 'FreeFormCertificate\UrlShortener\sanitize_text_field' )->returnArg();
-        Functions\when( 'FreeFormCertificate\UrlShortener\sanitize_title' )->alias( function ( $title ) {
+        Functions\when( 'get_option' )->justReturn( [] );
+        Functions\when( 'sanitize_text_field' )->returnArg();
+        Functions\when( 'sanitize_title' )->alias( function ( $title ) {
             return strtolower( preg_replace( '/[^a-zA-Z0-9\-]/', '', $title ) );
         } );
-        Functions\when( 'FreeFormCertificate\UrlShortener\esc_url_raw' )->returnArg();
-        Functions\when( 'FreeFormCertificate\UrlShortener\home_url' )->alias( function ( $path = '' ) {
+        Functions\when( 'esc_url_raw' )->returnArg();
+        Functions\when( 'home_url' )->alias( function ( $path = '' ) {
             return 'https://example.com' . $path;
         } );
-        Functions\when( 'FreeFormCertificate\UrlShortener\current_time' )->justReturn( '2026-02-22 12:00:00' );
-        Functions\when( 'FreeFormCertificate\UrlShortener\get_current_user_id' )->justReturn( 1 );
-        Functions\when( 'FreeFormCertificate\UrlShortener\__' )->returnArg();
+        Functions\when( 'current_time' )->justReturn( '2026-02-22 12:00:00' );
+        Functions\when( 'get_current_user_id' )->justReturn( 1 );
+        Functions\when( '__' )->returnArg();
         Functions\when( 'wp_unslash' )->returnArg();
-        Functions\when( 'FreeFormCertificate\UrlShortener\wp_unslash' )->returnArg();
+        Functions\when( 'wp_unslash' )->returnArg();
         Functions\when( 'wp_parse_url' )->alias( function ( $url, $component = -1 ) {
             return parse_url( $url, $component );
         } );
-        Functions\when( 'FreeFormCertificate\UrlShortener\wp_parse_url' )->alias( function ( $url, $component = -1 ) {
+        Functions\when( 'wp_parse_url' )->alias( function ( $url, $component = -1 ) {
             return parse_url( $url, $component );
         } );
 
@@ -132,13 +132,13 @@ class UrlShortenerLoaderTest extends TestCase {
 
     public function test_maybe_flush_flushes_on_first_install(): void {
         $this->service->shouldReceive( 'get_prefix' )->andReturn( 'go' );
-        Functions\when( 'FreeFormCertificate\UrlShortener\get_option' )->justReturn( '' );
+        Functions\when( 'get_option' )->justReturn( '' );
 
         $flushed = false;
         Functions\when( 'flush_rewrite_rules' )->alias( function () use ( &$flushed ) {
             $flushed = true;
         } );
-        Functions\when( 'FreeFormCertificate\UrlShortener\update_option' )->justReturn( true );
+        Functions\when( 'update_option' )->justReturn( true );
 
         $this->loader->maybe_flush_rewrite_rules();
 
@@ -147,7 +147,7 @@ class UrlShortenerLoaderTest extends TestCase {
 
     public function test_maybe_flush_skips_when_version_matches(): void {
         $this->service->shouldReceive( 'get_prefix' )->andReturn( 'go' );
-        Functions\when( 'FreeFormCertificate\UrlShortener\get_option' )->justReturn( 'go:1' );
+        Functions\when( 'get_option' )->justReturn( 'go:1' );
 
         $flushed = false;
         Functions\when( 'flush_rewrite_rules' )->alias( function () use ( &$flushed ) {
@@ -161,13 +161,13 @@ class UrlShortenerLoaderTest extends TestCase {
 
     public function test_maybe_flush_flushes_on_prefix_change(): void {
         $this->service->shouldReceive( 'get_prefix' )->andReturn( 'link' );
-        Functions\when( 'FreeFormCertificate\UrlShortener\get_option' )->justReturn( 'go:1' );
+        Functions\when( 'get_option' )->justReturn( 'go:1' );
 
         $flushed = false;
         Functions\when( 'flush_rewrite_rules' )->alias( function () use ( &$flushed ) {
             $flushed = true;
         } );
-        Functions\when( 'FreeFormCertificate\UrlShortener\update_option' )->justReturn( true );
+        Functions\when( 'update_option' )->justReturn( true );
 
         $this->loader->maybe_flush_rewrite_rules();
 
@@ -359,7 +359,7 @@ class UrlShortenerLoaderTest extends TestCase {
     public function test_handle_redirect_empty_target_redirects_home(): void {
         Functions\when( 'get_query_var' )->justReturn( 'empty1' );
         Functions\when( 'home_url' )->justReturn( 'https://example.com/' );
-        Functions\when( 'FreeFormCertificate\UrlShortener\esc_url_raw' )->justReturn( '' );
+        Functions\when( 'esc_url_raw' )->justReturn( '' );
         $this->run_shutdown_callbacks_immediately();
 
         $repo = Mockery::mock( UrlShortenerRepository::class );

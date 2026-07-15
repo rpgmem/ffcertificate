@@ -16,6 +16,7 @@ use FreeFormCertificate\Admin\FormEditorSaveValidator;
  * Uses Reflection to access private methods for testing pure business logic.
  *
  * @covers \FreeFormCertificate\Admin\FormEditorSaveValidator
+ * @covers \FreeFormCertificate\Admin\FormEditorSaveHandler
  */
 class FormEditorSaveHandlerTest extends TestCase {
 
@@ -46,8 +47,9 @@ class FormEditorSaveHandlerTest extends TestCase {
         Monkey\setUp();
 
         // pcov does not record lines for files first autoloaded mid-test-method,
-        // so the extracted validator's coverage would attribute to nothing.
-        // Preload the class here so pcov attributes its lines to this test.
+        // so the handler + extracted validator coverage would attribute to nothing.
+        // Preload both classes here so pcov attributes their lines to this test.
+        class_exists( '\\FreeFormCertificate\\Admin\\FormEditorSaveHandler' );
         class_exists( '\\FreeFormCertificate\\Admin\\FormEditorSaveValidator' );
 
         Functions\when( '__' )->returnArg();

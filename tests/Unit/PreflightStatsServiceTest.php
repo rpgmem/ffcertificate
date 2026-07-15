@@ -21,6 +21,7 @@ use FreeFormCertificate\Admin\PreflightStatsService;
  *
  * @runClassInSeparateProcess
  * @preserveGlobalState disabled
+ * @covers \FreeFormCertificate\Admin\PreflightStatsService
  */
 class PreflightStatsServiceTest extends TestCase {
 
@@ -29,6 +30,7 @@ class PreflightStatsServiceTest extends TestCase {
     protected function setUp(): void {
         parent::setUp();
         Monkey\setUp();
+        class_exists( '\\FreeFormCertificate\\Admin\\PreflightStatsService' );
         Functions\when( '__' )->returnArg();
         if ( ! defined( 'DAY_IN_SECONDS' ) ) {
             define( 'DAY_IN_SECONDS', 86400 );
@@ -113,5 +115,72 @@ class PreflightStatsServiceTest extends TestCase {
         $this->assertSame( 1, $stats['gps_denied'] );
         $this->assertSame( 0, $stats['gps_prompt'] );
         $this->assertSame( 2, $stats['total'] );
+    }
+
+    /**
+     * Helper: stub the escaping / i18n / url helpers render_metabox()
+     * calls so the markup branch executes without WP loaded.
+     */
+    private function stub_render_helpers(): void {
+        Functions\when( 'esc_html__' )->returnArg();
+        Functions\when( 'esc_html_e' )->alias( static function ( $text ) {
+            echo $text;
+        } );
+        Functions\when( 'esc_attr_e' )->alias( static function ( $text ) {
+            echo $text;
+        } );
+        Functions\when( 'esc_html' )->returnArg();
+        Functions\when( 'esc_attr' )->returnArg();
+        Functions\when( 'esc_url' )->returnArg();
+        Functions\when( 'admin_url' )->alias( static function ( $path = '' ) {
+            return 'http://example.com/wp-admin/' . $path;
+        } );
+    }
+
+    public function test_render_metabox_empty_state_when_no_friction(): void {
+        $this->stub_activity_log_rows( array() );
+        $this->stub_render_helpers();
+
+        ob_start();
+        PreflightStatsService::render_metabox( 42 );
+        $html = (string) ob_get_clean();
+
+        $this->assertStringContainsString( 'class="description"', $html );
+        $this->assertStringContainsString( 'No pre-flight or rate-limit friction', $html );
+        // The badges list must NOT render in the empty branch.
+        $this->assertStringNotContainsString( 'ffc-preflight-stats-badges', $html );
+    }
+
+    public function test_render_metabox_renders_badges_with_counts(): void {
+        $this->stub_activity_log_rows( array(
+            array( 'context' => '{"form_id":42,"reason":"cookies"}' ),
+            array( 'context' => '{"form_id":42,"reason":"cookies"}' ),
+            array( 'context' => '{"form_id":42,"reason":"gps_denied"}' ),
+            array( 'context' => '{"form_id":42,"reason":"gps_prompt"}' ),
+        ) );
+        $this->stub_render_helpers();
+
+        ob_start();
+        PreflightStatsService::render_metabox( 42 );
+        $html = (string) ob_get_clean();
+
+        // The badges list renders with the three reason badges.
+        $this->assertStringContainsString( 'ffc-preflight-stats-badges', $html );
+        $this->assertStringContainsString( 'ffc-preflight-badge-cookies', $html );
+        $this->assertStringContainsString( 'ffc-preflight-badge-gps-denied', $html );
+        $this->assertStringContainsString( 'ffc-preflight-badge-gps-prompt', $html );
+
+        // Each count is echoed inside a <strong> tag.
+        $this->assertStringContainsString( '<strong>2</strong>', $html );
+        $this->assertStringContainsString( '<strong>1</strong>', $html );
+
+        // The drill-down link points at the filtered Activity Log.
+        $this->assertStringContainsString(
+            'admin.php?page=ffc-activity-log&log_action=preflight_blocked',
+            $html
+        );
+
+        // The empty-state copy must NOT appear when there is friction.
+        $this->assertStringNotContainsString( 'No pre-flight or rate-limit friction', $html );
     }
 }

@@ -309,6 +309,26 @@ if ( ! class_exists( 'WP_List_Table' ) ) {
         public function get_pagenum() { return 1; }
         public function has_items() { return ! empty( $this->items ); }
         public function no_items() { echo 'No items found.'; }
+        public function get_items_per_page( $option, $default_value = 20 ) { return $default_value; }
+        public function current_action() {
+            if ( isset( $_REQUEST['action'] ) && '-1' !== $_REQUEST['action'] ) {
+                return sanitize_text_field( $_REQUEST['action'] );
+            }
+            if ( isset( $_REQUEST['action2'] ) && '-1' !== $_REQUEST['action2'] ) {
+                return sanitize_text_field( $_REQUEST['action2'] );
+            }
+            return false;
+        }
+        protected function row_actions( $actions, $always_visible = false ) {
+            $out = '<div class="row-actions">';
+            $links = array();
+            foreach ( $actions as $action => $link ) {
+                $links[] = '<span class="' . $action . '">' . $link . '</span>';
+            }
+            $out .= implode( ' | ', $links );
+            $out .= '</div>';
+            return $out;
+        }
     }
 }
 

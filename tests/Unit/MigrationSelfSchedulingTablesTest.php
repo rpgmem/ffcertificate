@@ -40,7 +40,7 @@ class MigrationSelfSchedulingTablesTest extends TestCase {
 
         // Global WP stubs
         Functions\when( '__' )->returnArg();
-        Functions\when( 'FreeFormCertificate\Migrations\__' )->returnArg();
+        Functions\when( '__' )->returnArg();
     }
 
     protected function tearDown(): void {
@@ -54,14 +54,14 @@ class MigrationSelfSchedulingTablesTest extends TestCase {
 
     public function test_is_completed_returns_true_when_option_set(): void {
         Functions\when( 'get_option' )->justReturn( true );
-        Functions\when( 'FreeFormCertificate\Migrations\get_option' )->justReturn( true );
+        Functions\when( 'get_option' )->justReturn( true );
 
         $this->assertTrue( MigrationSelfSchedulingTables::is_completed() );
     }
 
     public function test_is_completed_returns_false_when_option_not_set(): void {
         Functions\when( 'get_option' )->justReturn( false );
-        Functions\when( 'FreeFormCertificate\Migrations\get_option' )->justReturn( false );
+        Functions\when( 'get_option' )->justReturn( false );
 
         $this->assertFalse( MigrationSelfSchedulingTables::is_completed() );
     }
@@ -72,7 +72,7 @@ class MigrationSelfSchedulingTablesTest extends TestCase {
 
     public function test_run_returns_early_when_already_completed(): void {
         Functions\when( 'get_option' )->justReturn( true );
-        Functions\when( 'FreeFormCertificate\Migrations\get_option' )->justReturn( true );
+        Functions\when( 'get_option' )->justReturn( true );
 
         $result = MigrationSelfSchedulingTables::run();
 
@@ -87,9 +87,9 @@ class MigrationSelfSchedulingTablesTest extends TestCase {
 
     public function test_run_skips_when_new_table_already_exists(): void {
         Functions\when( 'get_option' )->justReturn( false );
-        Functions\when( 'FreeFormCertificate\Migrations\get_option' )->justReturn( false );
+        Functions\when( 'get_option' )->justReturn( false );
         Functions\when( 'update_option' )->justReturn( true );
-        Functions\when( 'FreeFormCertificate\Migrations\update_option' )->justReturn( true );
+        Functions\when( 'update_option' )->justReturn( true );
 
         // For each table pair: old_exists check returns '0', new_exists check returns '1'
         // prepare() is called for each information_schema query
@@ -112,9 +112,9 @@ class MigrationSelfSchedulingTablesTest extends TestCase {
 
     public function test_run_succeeds_when_old_tables_dont_exist(): void {
         Functions\when( 'get_option' )->justReturn( false );
-        Functions\when( 'FreeFormCertificate\Migrations\get_option' )->justReturn( false );
+        Functions\when( 'get_option' )->justReturn( false );
         Functions\when( 'update_option' )->justReturn( true );
-        Functions\when( 'FreeFormCertificate\Migrations\update_option' )->justReturn( true );
+        Functions\when( 'update_option' )->justReturn( true );
 
         // Both old and new tables don't exist
         $this->wpdb->shouldReceive( 'get_var' )->andReturn( '0' );
@@ -134,9 +134,9 @@ class MigrationSelfSchedulingTablesTest extends TestCase {
 
     public function test_run_renames_tables_successfully(): void {
         Functions\when( 'get_option' )->justReturn( false );
-        Functions\when( 'FreeFormCertificate\Migrations\get_option' )->justReturn( false );
+        Functions\when( 'get_option' )->justReturn( false );
         Functions\when( 'update_option' )->justReturn( true );
-        Functions\when( 'FreeFormCertificate\Migrations\update_option' )->justReturn( true );
+        Functions\when( 'update_option' )->justReturn( true );
 
         // old_exists = 1, new_exists = 0 for each table pair
         $this->wpdb->shouldReceive( 'get_var' )
@@ -157,7 +157,7 @@ class MigrationSelfSchedulingTablesTest extends TestCase {
 
     public function test_run_reports_failure_when_rename_fails(): void {
         Functions\when( 'get_option' )->justReturn( false );
-        Functions\when( 'FreeFormCertificate\Migrations\get_option' )->justReturn( false );
+        Functions\when( 'get_option' )->justReturn( false );
 
         // old_exists = 1, new_exists = 0
         $this->wpdb->shouldReceive( 'get_var' )
@@ -179,7 +179,7 @@ class MigrationSelfSchedulingTablesTest extends TestCase {
 
     public function test_get_status_returns_completed_status(): void {
         Functions\when( 'get_option' )->justReturn( true );
-        Functions\when( 'FreeFormCertificate\Migrations\get_option' )->justReturn( true );
+        Functions\when( 'get_option' )->justReturn( true );
 
         // 3 table pairs x 2 get_var calls each
         $this->wpdb->shouldReceive( 'get_var' )->andReturn( '0', '1', '0', '1', '0', '1' );
@@ -193,7 +193,7 @@ class MigrationSelfSchedulingTablesTest extends TestCase {
 
     public function test_get_status_shows_table_migration_state(): void {
         Functions\when( 'get_option' )->justReturn( false );
-        Functions\when( 'FreeFormCertificate\Migrations\get_option' )->justReturn( false );
+        Functions\when( 'get_option' )->justReturn( false );
 
         // All tables: old exists, new does not
         $this->wpdb->shouldReceive( 'get_var' )->andReturn( '1', '0', '1', '0', '1', '0' );
@@ -216,7 +216,7 @@ class MigrationSelfSchedulingTablesTest extends TestCase {
 
     public function test_rollback_renames_tables_back(): void {
         Functions\when( 'delete_option' )->justReturn( true );
-        Functions\when( 'FreeFormCertificate\Migrations\delete_option' )->justReturn( true );
+        Functions\when( 'delete_option' )->justReturn( true );
 
         // For rollback: new table exists (current_table = new), original doesn't
         // old_exists check = 1, new_exists check = 0

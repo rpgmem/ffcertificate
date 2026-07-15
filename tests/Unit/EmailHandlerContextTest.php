@@ -22,9 +22,6 @@ class EmailHandlerContextTest extends TestCase {
 
         // Namespaced stub: prevent "is not defined" error when Sprint 27 tests run first.
         // Core\Debug calls get_option from the Core namespace.
-        Functions\when( 'FreeFormCertificate\Core\get_option' )->alias( function ( $key, $default = false ) {
-            return \get_option( $key, $default );
-        } );
     }
 
     protected function tearDown(): void {

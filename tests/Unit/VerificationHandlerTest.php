@@ -77,21 +77,18 @@ class VerificationHandlerTest extends TestCase {
         } );
 
         // ------------------------------------------------------------------
-        // Namespaced WP function stubs (FreeFormCertificate\Core\*)
-        // PHP resolves unqualified function calls in the current namespace first.
-        // ------------------------------------------------------------------
-        Functions\when( 'FreeFormCertificate\Core\sanitize_text_field' )->returnArg();
-        Functions\when( 'FreeFormCertificate\Core\wp_unslash' )->returnArg();
-        Functions\when( 'FreeFormCertificate\Core\get_option' )->justReturn( '' );
-        Functions\when( 'FreeFormCertificate\Core\absint' )->alias( function( $val ) { return abs( intval( $val ) ); } );
-        Functions\when( 'FreeFormCertificate\Core\get_current_user_id' )->justReturn( 0 );
+        // (wp_unslash / sanitize_text_field / absint / get_current_user_id are
+        // already stubbed above as globals; RequestInput in the Core namespace
+        // falls back to them. wp_unslash must stay `stripslashes` — the JSON
+        // slash-fallback paths depend on it — so we do NOT re-stub it here.)
+        Functions\when( 'get_option' )->justReturn( '' );
 
         // Namespaced stubs for FreeFormCertificate\Security\* (RateLimiter)
-        Functions\when( 'FreeFormCertificate\Security\get_option' )->justReturn( '' );
-        Functions\when( 'FreeFormCertificate\Security\wp_cache_get' )->justReturn( false );
-        Functions\when( 'FreeFormCertificate\Security\wp_cache_set' )->justReturn( true );
-        Functions\when( 'FreeFormCertificate\Security\__' )->returnArg();
-        Functions\when( 'FreeFormCertificate\Security\wp_parse_args' )->alias( function( $args, $defaults = array() ) {
+        Functions\when( 'get_option' )->justReturn( '' );
+        Functions\when( 'wp_cache_get' )->justReturn( false );
+        Functions\when( 'wp_cache_set' )->justReturn( true );
+        Functions\when( '__' )->returnArg();
+        Functions\when( 'wp_parse_args' )->alias( function( $args, $defaults = array() ) {
             if ( is_array( $args ) ) {
                 return array_merge( $defaults, $args );
             }
@@ -301,6 +298,174 @@ class VerificationHandlerTest extends TestCase {
         $result = $this->invokePrivate( 'search_certificate', [ 'NONEXISTENT00' ] );
 
         $this->assertFalse( $result['found'] );
+    }
+
+    public function test_search_certificate_appointment_prefix_routes_to_appointment_first(): void {
+        global $wpdb;
+
+        // 'A' prefix + 12 chars → 13-char prefixed code; appointment searched first.
+        $appointment = array(
+            'id'                 => '70',
+            'calendar_id'        => '0',
+            'name'               => 'Prefix Appt',
+            'email'              => 'pa@test.com',
+            'cpf'                => '',
+            'validation_code'    => 'PREFIXAPPT01',
+            'appointment_date'   => '2026-08-01',
+            'start_time'         => '09:00',
+            'end_time'           => '09:30',
+            'status'             => 'confirmed',
+            'confirmation_token' => 'tok',
+            'created_at'         => '2026-07-01',
+        );
+
+        // First get_row is AppointmentRepository::findByValidationCode → hit.
+        $wpdb->shouldReceive( 'get_row' )->andReturn( $appointment );
+
+        $result = $this->invokePrivate( 'search_certificate', [ 'APREFIXAPPT01' ] );
+
+        $this->assertTrue( $result['found'] );
+        $this->assertSame( 'appointment', $result['type'] );
+        $this->assertSame( 'Prefix Appt', $result['data']['name'] );
+    }
+
+    public function test_search_certificate_appointment_prefix_falls_back_to_certificate(): void {
+        global $wpdb;
+
+        $cert_row = array(
+            'id'              => '71',
+            'form_id'         => '1',
+            'email'           => 'fb@test.com',
+            'cpf_rf'          => '',
+            'auth_code'       => 'FALLBKCERT01',
+            'data'            => '{}',
+            'magic_token'     => '',
+            'submission_date' => '2026-01-01',
+        );
+
+        // 1st get_row: appointment lookup → null. 2nd: certificate findByAuthCode → hit.
+        $wpdb->shouldReceive( 'get_row' )->andReturn( null, $cert_row );
+        $this->submission_handler
+            ->shouldReceive( 'decrypt_submission_data' )
+            ->andReturn( $cert_row );
+
+        $result = $this->invokePrivate( 'search_certificate', [ 'AFALLBKCERT01' ] );
+
+        $this->assertTrue( $result['found'] );
+        $this->assertSame( 'fb@test.com', $result['data']['email'] );
+        $this->assertArrayNotHasKey( 'type', $result );
+    }
+
+    public function test_search_certificate_rereg_prefix_routes_to_rereg_first(): void {
+        global $wpdb;
+
+        $submission_obj = (object) array(
+            'id'                => '72',
+            'reregistration_id' => '5',
+            'user_id'           => '0',
+            'auth_code'         => 'REREGPREFIX1',
+            'status'            => 'submitted',
+            'data'              => '{"fields":{"display_name":"Pref Rereg"}}',
+            'magic_token'       => '',
+            'submitted_at'      => '2026-02-01',
+        );
+        $rereg_obj = (object) array( 'id' => '5', 'title' => 'Pref Campaign' );
+
+        // get_by_auth_code → submission, then get_by_id → rereg.
+        $wpdb->shouldReceive( 'get_row' )->andReturn( $submission_obj, $rereg_obj );
+        Functions\when( 'get_userdata' )->justReturn( null );
+
+        $result = $this->invokePrivate( 'search_certificate', [ 'RREREGPREFIX1' ] );
+
+        $this->assertTrue( $result['found'] );
+        $this->assertSame( 'reregistration', $result['type'] );
+        $this->assertSame( 'Pref Campaign', $result['reregistration']['title'] );
+    }
+
+    public function test_search_certificate_rereg_prefix_falls_back_to_certificate(): void {
+        global $wpdb;
+
+        $cert_row = array(
+            'id'              => '73',
+            'form_id'         => '1',
+            'email'           => 'rfb@test.com',
+            'cpf_rf'          => '',
+            'auth_code'       => 'REREGFALLBK1',
+            'data'            => '{}',
+            'magic_token'     => '',
+            'submission_date' => '2026-01-01',
+        );
+
+        // 1st get_row: rereg get_by_auth_code → null. 2nd: certificate → hit.
+        $wpdb->shouldReceive( 'get_row' )->andReturn( null, $cert_row );
+        $this->submission_handler
+            ->shouldReceive( 'decrypt_submission_data' )
+            ->andReturn( $cert_row );
+
+        $result = $this->invokePrivate( 'search_certificate', [ 'RREREGFALLBK1' ] );
+
+        $this->assertTrue( $result['found'] );
+        $this->assertSame( 'rfb@test.com', $result['data']['email'] );
+    }
+
+    public function test_search_certificate_split_cpf_rf_columns_added(): void {
+        global $wpdb;
+
+        $submission_row = array(
+            'id'              => '74',
+            'form_id'         => '1',
+            'email'           => 'split@test.com',
+            'cpf'             => '12345678901',
+            'rf'              => '7654321',
+            'auth_code'       => 'SPLITCPFRF01',
+            'data'            => '{}',
+            'magic_token'     => '',
+            'submission_date' => '2026-01-01',
+        );
+
+        $wpdb->shouldReceive( 'get_row' )->once()->andReturn( $submission_row );
+        $this->submission_handler
+            ->shouldReceive( 'decrypt_submission_data' )
+            ->andReturn( $submission_row );
+
+        $result = $this->invokePrivate( 'search_certificate', [ 'SPLITCPFRF01' ] );
+
+        $this->assertSame( '12345678901', $result['data']['cpf'] );
+        $this->assertSame( '7654321', $result['data']['rf'] );
+    }
+
+    // ==================================================================
+    // verify_certificate() — reregistration renderer path
+    // ==================================================================
+
+    public function test_verify_certificate_reregistration_uses_rereg_renderer(): void {
+        global $wpdb;
+
+        $submission_obj = (object) array(
+            'id'                => '80',
+            'reregistration_id' => '6',
+            'user_id'           => '0',
+            'auth_code'         => 'RRENDER12345',
+            'status'            => 'approved',
+            'data'              => '{"fields":{"display_name":"Render User"}}',
+            'magic_token'       => '',
+            'submitted_at'      => '2026-02-01',
+        );
+        $rereg_obj = (object) array( 'id' => '6', 'title' => 'Render Campaign' );
+
+        // Certificate lookup null, appointment null, then rereg get_by_auth_code hit + rereg get_by_id.
+        $wpdb->shouldReceive( 'get_row' )->andReturn( null, null, $submission_obj, $rereg_obj );
+        Functions\when( 'get_userdata' )->justReturn( null );
+
+        $this->renderer
+            ->shouldReceive( 'format_reregistration_verification_response' )
+            ->once()
+            ->andReturn( '<div class="ffc-rereg">Rereg OK</div>' );
+
+        $result = $this->handler->verify_certificate( 'RRENDER12345' );
+
+        $this->assertTrue( $result['success'] );
+        $this->assertStringContainsString( 'Rereg OK', $result['html'] );
     }
 
     // ==================================================================

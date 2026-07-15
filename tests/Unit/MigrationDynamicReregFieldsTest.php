@@ -40,8 +40,8 @@ class MigrationDynamicReregFieldsTest extends TestCase {
         $this->wpdb = $wpdb;
 
         Functions\when( '__' )->returnArg();
-        Functions\when( 'FreeFormCertificate\Migrations\__' )->returnArg();
-        Functions\when( 'FreeFormCertificate\Migrations\dbDelta' )->justReturn( array() );
+        Functions\when( '__' )->returnArg();
+        Functions\when( 'dbDelta' )->justReturn( array() );
     }
 
     protected function tearDown(): void {
@@ -55,14 +55,14 @@ class MigrationDynamicReregFieldsTest extends TestCase {
 
     public function test_is_completed_returns_true_when_option_set(): void {
         Functions\when( 'get_option' )->justReturn( true );
-        Functions\when( 'FreeFormCertificate\Migrations\get_option' )->justReturn( true );
+        Functions\when( 'get_option' )->justReturn( true );
 
         $this->assertTrue( MigrationDynamicReregFields::is_completed() );
     }
 
     public function test_is_completed_returns_false_when_option_not_set(): void {
         Functions\when( 'get_option' )->justReturn( false );
-        Functions\when( 'FreeFormCertificate\Migrations\get_option' )->justReturn( false );
+        Functions\when( 'get_option' )->justReturn( false );
 
         $this->assertFalse( MigrationDynamicReregFields::is_completed() );
     }
@@ -73,7 +73,7 @@ class MigrationDynamicReregFieldsTest extends TestCase {
 
     public function test_run_returns_early_when_already_completed(): void {
         Functions\when( 'get_option' )->justReturn( true );
-        Functions\when( 'FreeFormCertificate\Migrations\get_option' )->justReturn( true );
+        Functions\when( 'get_option' )->justReturn( true );
 
         $result = MigrationDynamicReregFields::run();
 
@@ -87,9 +87,9 @@ class MigrationDynamicReregFieldsTest extends TestCase {
 
     public function test_run_executes_all_steps_on_success(): void {
         Functions\when( 'get_option' )->justReturn( false );
-        Functions\when( 'FreeFormCertificate\Migrations\get_option' )->justReturn( false );
+        Functions\when( 'get_option' )->justReturn( false );
         Functions\when( 'update_option' )->justReturn( true );
-        Functions\when( 'FreeFormCertificate\Migrations\update_option' )->justReturn( true );
+        Functions\when( 'update_option' )->justReturn( true );
 
         // column_exists checks: return true so the upgrade steps report success
         $this->wpdb->shouldReceive( 'get_var' )->andReturn( 'field_group' )->byDefault();
@@ -109,7 +109,7 @@ class MigrationDynamicReregFieldsTest extends TestCase {
 
     public function test_get_status_returns_completed_and_column_info(): void {
         Functions\when( 'get_option' )->justReturn( true );
-        Functions\when( 'FreeFormCertificate\Migrations\get_option' )->justReturn( true );
+        Functions\when( 'get_option' )->justReturn( true );
 
         $status = MigrationDynamicReregFields::get_status();
 
@@ -123,7 +123,7 @@ class MigrationDynamicReregFieldsTest extends TestCase {
 
     public function test_get_status_not_completed(): void {
         Functions\when( 'get_option' )->justReturn( false );
-        Functions\when( 'FreeFormCertificate\Migrations\get_option' )->justReturn( false );
+        Functions\when( 'get_option' )->justReturn( false );
 
         $status = MigrationDynamicReregFields::get_status();
 

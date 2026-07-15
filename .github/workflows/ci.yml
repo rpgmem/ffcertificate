@@ -73,19 +73,56 @@ jobs:
       - name: Run PHPUnit
         run: vendor/bin/phpunit
 
+  # The #563 coverage campaign grew the suite to ~6200 tests, many of them
+  # @runTestsInSeparateProcesses (alias-mock containment) — slow under pcov on
+  # 2-core runners (the single-process coverage run hit both the 30m timeout and
+  # the 512M memory ceiling on #622). The suite was made order-independent
+  # (namespaced Core stubs converted to globals so no test leaks a lingering
+  # symbol), which lets the coverage run be split into 4 parallel shards. Each
+  # shard runs a balanced subset (.github/scripts/shard-tests.php, balanced by
+  # process-isolated class count) and emits a partial .cov; the `coverage` job
+  # below merges them with phpcov and gates the floor. Wall-clock ~50m → ~15m.
+  coverage-shard:
+    name: Coverage shard ${{ matrix.shard }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2, 3, 4]
+    steps:
+      - uses: actions/checkout@v7
+      - uses: ./.github/actions/setup-composer
+        with:
+          php-version: '8.3'
+          coverage: pcov
+          ini-values: pcov.directory=./includes,pcov.exclude="#(libraries|views)/#",memory_limit=2G
+      - name: Run PHPUnit shard with coverage
+        run: |
+          mkdir -p build/cov
+          php .github/scripts/shard-tests.php ${{ matrix.shard }} 4 > build/phpunit.shard.xml
+          vendor/bin/phpunit -c build/phpunit.shard.xml --coverage-php "build/cov/shard-${{ matrix.shard }}.cov"
+      - name: Upload shard coverage
+        uses: actions/upload-artifact@v7
+        with:
+          name: coverage-shard-${{ matrix.shard }}
+          path: build/cov/shard-${{ matrix.shard }}.cov
+          retention-days: 1
+
+  # Gating job — keeps the exact "Coverage (PHP 8.3)" name the branch protection
+  # requires. Runs always() so a shard failure produces a definitive red here
+  # (never a skipped required check), then merges the shard .cov files and
+  # enforces the floor.
   coverage:
     name: Coverage (PHP 8.3)
+    needs: coverage-shard
+    # Run on shard success OR failure (so a real shard failure produces a
+    # definitive red here), but NOT when the run is cancelled — e.g. a newer
+    # push cancels this run via the concurrency group; without this guard the
+    # merge job would run and report the cancellation as a spurious failure.
+    if: ${{ !cancelled() }}
     runs-on: ubuntu-latest
-    # Bumped 15 → 20 after the pcov+3881-test suite started routinely
-    # finishing at 14m–15m and tripping the previous ceiling on busy
-    # CI runners (#176/#177 cancelled at 15m09s/15m14s/15m12s).
-    #
-    # Bumped 20 → 30 after the suite grew to ~4598 tests (PR #360 added
-    # ~30 tests in the pre-flight pipeline; #361 follow-up added ~11
-    # more). PR #360's Coverage step took 18m51s — within the 20m
-    # ceiling but with no headroom. 30m leaves room for new test
-    # batches without re-bumping on every coverage-heavy PR.
-    timeout-minutes: 30
+    timeout-minutes: 15
     # Promoted from advisory to gating in S3 of #161. The floor is set
     # below the current line-coverage baseline so the gate doesn't fire
     # on day one but does catch a regression. Ratchet the floor upward
@@ -113,17 +150,58 @@ jobs:
     # measured number slipped vs the prior run — no real gain to lock in this
     # batch. Floor stays at 66 (now a ~2.05pp buffer, still within the ≤5pp
     # policy); not lowered, not raised above the lowest observed run.
+    #
+    # 66 → 67 — markup-extraction sweep (#605/#606/#607): the inline admin
+    # markup of RecruitmentAdminPageRenderer / UrlShortenerAdminPage /
+    # ReregistrationAdminRenderer moved into templates/*.php (out of the
+    # coverage scope), removing ~788 uncovered statements from the denominator.
+    # Re-measured 69.16% (30676/44358). Bump to 67 locks in the gain with a
+    # ~2.16pp buffer (≤5pp policy).
+    #
+    # 67 → 73 — module coverage sweep (#563): direct unit/render tests lifted
+    # every remaining sub-70% module over the line — frontend, url-shortener,
+    # settings, self-scheduling, then admin (65.7%→71.1%) and recruitment
+    # (56.6%→82.0%) via AJAX-export, REST-controller, list-table, edit-page and
+    # renderer coverage. Every includes/ module is now ≥70%. Overall statement
+    # coverage 69.16% → 77.96% (34375/44095). Bump to 73 locks in the gain with
+    # a ~4.96pp buffer (≤5pp policy).
+    #
+    # 73 → 78 — push admin + frontend to ≥80% (#563): AJAX-export, list-table,
+    # edit-page, render and pipeline-stage tests took admin 71.1%→91.3% and
+    # frontend 70.5%→92.4% (both also cleared 90%). Overall statement coverage
+    # 77.96% → 82.95% (36579/44095). Bump to 78 locks in the gain with a
+    # ~4.95pp buffer (≤5pp policy).
+    #
+    # 78 → 82 — take every remaining sub-80% module to ≥80% (#563): api,
+    # reregistration, repositories, settings, url-shortener, generators, (root),
+    # shortcodes, submissions, migrations — via REST-controller, reader/writer,
+    # renderer, tab, generator, orchestrator and lifecycle coverage. Every
+    # includes/ module is now ≥80% (lowest: audience 80.7%). Overall statement
+    # coverage 82.95% → 86.37% (38087/44095, single-process). Bump to 82 keeps a
+    # ~4.4pp buffer under the measured number (≤5pp policy); note the CI gate
+    # reads the sharded phpcov merge, which runs a hair under the single-process
+    # figure (~0.2pp on #623), so 82 stays comfortably clear.
     env:
-      COVERAGE_FLOOR_LINES: '66'
+      COVERAGE_FLOOR_LINES: '82'
     steps:
+      - name: Fail if any coverage shard did not succeed
+        if: needs.coverage-shard.result != 'success'
+        run: |
+          echo "::error::One or more coverage shards did not succeed (result=${{ needs.coverage-shard.result }})."
+          exit 1
       - uses: actions/checkout@v7
       - uses: ./.github/actions/setup-composer
         with:
           php-version: '8.3'
-          coverage: pcov
-          ini-values: pcov.directory=./includes,pcov.exclude="#(libraries|views)/#",memory_limit=512M
-      - name: Run PHPUnit with coverage
-        run: vendor/bin/phpunit --coverage-clover coverage.xml
+          coverage: none
+      - name: Download shard coverage
+        uses: actions/download-artifact@v8
+        with:
+          pattern: coverage-shard-*
+          path: build/cov
+          merge-multiple: true
+      - name: Merge shard coverage into clover
+        run: vendor/bin/phpcov merge build/cov --clover coverage.xml
       - name: Enforce line-coverage floor
         run: |
           # Parse the project-level <metrics> element from the clover XML

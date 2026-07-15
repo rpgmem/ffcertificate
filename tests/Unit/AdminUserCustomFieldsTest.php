@@ -45,6 +45,8 @@ class AdminUserCustomFieldsTest extends TestCase {
         parent::setUp();
         Monkey\setUp();
 
+        class_exists('\\FreeFormCertificate\\Admin\\AdminUserCustomFields');
+
         // Common WP function stubs
         Functions\when('__')->returnArg();
         Functions\when('esc_html__')->returnArg();
@@ -389,5 +391,229 @@ class AdminUserCustomFieldsTest extends TestCase {
         $output = ob_get_clean();
 
         $this->assertEmpty($output);
+    }
+
+    public function test_render_section_returns_when_audiences_have_no_fields(): void {
+        $user     = new \WP_User(10);
+        $user->ID = 10;
+
+        $audience       = (object) ['id' => 1, 'name' => 'Doctors', 'color' => '#fff'];
+
+        $this->audience_repo_mock->shouldReceive('get_user_audiences')
+            ->with(10)->andReturn([$audience]);
+        $this->custom_field_repo_mock->shouldReceive('get_user_data')
+            ->with(10)->andReturn([]);
+        // No fields -> the audience section is skipped (continue branch).
+        $this->custom_field_repo_mock->shouldReceive('get_by_audience_with_parents')
+            ->with(1, true)->andReturn([]);
+
+        Functions\when('esc_html_e')->alias(function ($t) { echo $t; });
+        Functions\when('wp_nonce_field')->justReturn('');
+
+        ob_start();
+        AdminUserCustomFields::render_section($user);
+        $output = ob_get_clean();
+
+        // Heading rendered, but no field section markup.
+        $this->assertStringContainsString('FFC Custom Data', $output);
+        $this->assertStringNotContainsString('ffc-cf-section-1', $output);
+    }
+
+    public function test_render_section_renders_all_field_types(): void {
+        $user     = new \WP_User(10);
+        $user->ID = 10;
+
+        $audience = (object) ['id' => 1, 'name' => 'Doctors', 'color' => '#abcdef'];
+
+        $text_field = (object) [
+            'id' => 11, 'field_label' => 'Department', 'field_type' => 'text',
+            'is_required' => 1, 'source_audience_id' => 1, 'source_audience_name' => 'Doctors',
+            'field_options' => ['help_text' => 'Pick one'],
+        ];
+        $textarea_field = (object) [
+            'id' => 12, 'field_label' => 'Bio', 'field_type' => 'textarea',
+            'is_required' => 0, 'source_audience_id' => 1, 'source_audience_name' => 'Doctors',
+            'field_options' => '',
+        ];
+        $select_field = (object) [
+            'id' => 13, 'field_label' => 'Shift', 'field_type' => 'select',
+            'is_required' => 0, 'source_audience_id' => 2, 'source_audience_name' => 'Parent Aud',
+            'field_options' => '',
+        ];
+        $checkbox_field = (object) [
+            'id' => 14, 'field_label' => 'Active', 'field_type' => 'checkbox',
+            'is_required' => 0, 'source_audience_id' => 1, 'source_audience_name' => 'Doctors',
+            'field_options' => '',
+        ];
+        $number_field = (object) [
+            'id' => 15, 'field_label' => 'Age', 'field_type' => 'number',
+            'is_required' => 0, 'source_audience_id' => 1, 'source_audience_name' => 'Doctors',
+            'field_options' => '',
+        ];
+        $date_field = (object) [
+            'id' => 16, 'field_label' => 'Start', 'field_type' => 'date',
+            'is_required' => 0, 'source_audience_id' => 1, 'source_audience_name' => 'Doctors',
+            'field_options' => '',
+        ];
+        $wh_field = (object) [
+            'id' => 17, 'field_label' => 'Hours', 'field_type' => 'working_hours',
+            'is_required' => 0, 'source_audience_id' => 1, 'source_audience_name' => 'Doctors',
+            'field_options' => '',
+        ];
+
+        $fields = [
+            $text_field, $textarea_field, $select_field, $checkbox_field,
+            $number_field, $date_field, $wh_field,
+        ];
+
+        $this->audience_repo_mock->shouldReceive('get_user_audiences')
+            ->with(10)->andReturn([$audience]);
+        $this->custom_field_repo_mock->shouldReceive('get_user_data')
+            ->with(10)->andReturn([
+                'field_11' => 'Cardiology',
+                'field_17' => json_encode([['day' => 1, 'entry1' => '08:00', 'exit2' => '17:00']]),
+            ]);
+        $this->custom_field_repo_mock->shouldReceive('get_by_audience_with_parents')
+            ->with(1, true)->andReturn($fields);
+        $this->custom_field_repo_mock->shouldReceive('get_field_choices')
+            ->andReturn(['Morning', 'Night']);
+
+        Functions\when('esc_html_e')->alias(function ($t) { echo $t; });
+        Functions\when('esc_textarea')->returnArg();
+        Functions\when('wp_nonce_field')->justReturn('');
+        Functions\when('selected')->justReturn('');
+        Functions\when('checked')->justReturn('');
+        Functions\when('wp_json_encode')->alias(static fn($v) => json_encode($v));
+
+        ob_start();
+        AdminUserCustomFields::render_section($user);
+        $output = ob_get_clean();
+
+        $this->assertStringContainsString('FFC Custom Data', $output);
+        $this->assertStringContainsString('ffc-cf-section-1', $output);
+        // Text input + value.
+        $this->assertStringContainsString('ffc_cf_11', $output);
+        $this->assertStringContainsString('Cardiology', $output);
+        // Required marker.
+        $this->assertStringContainsString('required', $output);
+        // Help text.
+        $this->assertStringContainsString('Pick one', $output);
+        // Textarea.
+        $this->assertStringContainsString('<textarea', $output);
+        // Select with choices.
+        $this->assertStringContainsString('<select', $output);
+        $this->assertStringContainsString('Morning', $output);
+        // Inherited marker (source_audience_id != audience id).
+        $this->assertStringContainsString('Inherited from', $output);
+        // Checkbox.
+        $this->assertStringContainsString('type="checkbox"', $output);
+        // Number.
+        $this->assertStringContainsString('type="number"', $output);
+        // Date.
+        $this->assertStringContainsString('type="date"', $output);
+        // Working hours table.
+        $this->assertStringContainsString('ffc-working-hours', $output);
+        $this->assertStringContainsString('ffc-wh-table', $output);
+    }
+
+    public function test_render_section_deduplicates_shared_fields(): void {
+        $user     = new \WP_User(10);
+        $user->ID = 10;
+
+        $audience = (object) ['id' => 1, 'name' => 'Doctors', 'color' => '#fff'];
+
+        $field = (object) [
+            'id' => 50, 'field_label' => 'Code', 'field_type' => 'text',
+            'is_required' => 0, 'source_audience_id' => 1, 'source_audience_name' => 'Doctors',
+            'field_options' => '',
+        ];
+
+        $this->audience_repo_mock->shouldReceive('get_user_audiences')
+            ->with(10)->andReturn([$audience]);
+        $this->custom_field_repo_mock->shouldReceive('get_user_data')
+            ->with(10)->andReturn([]);
+        // Same field returned twice -> second occurrence is skipped.
+        $this->custom_field_repo_mock->shouldReceive('get_by_audience_with_parents')
+            ->with(1, true)->andReturn([$field, $field]);
+
+        Functions\when('esc_html_e')->alias(function ($t) { echo $t; });
+        Functions\when('wp_nonce_field')->justReturn('');
+        Functions\when('selected')->justReturn('');
+
+        ob_start();
+        AdminUserCustomFields::render_section($user);
+        $output = ob_get_clean();
+
+        // The input name appears exactly once despite the duplicate field.
+        $this->assertSame(1, substr_count($output, 'name="ffc_cf_50"'));
+    }
+
+    // ==================================================================
+    // save_section() - working_hours branch
+    // ==================================================================
+
+    public function test_save_section_saves_working_hours_field(): void {
+        $_POST['ffc_user_custom_fields_nonce'] = 'valid_nonce';
+
+        $field = (object) [
+            'id'         => 60,
+            'field_type' => 'working_hours',
+            'field_label' => 'Hours',
+        ];
+
+        $_POST['ffc_cf_60'] = json_encode([
+            ['day' => 1, 'entry1' => '08:00', 'exit1' => '12:00', 'entry2' => '13:00', 'exit2' => '17:00'],
+            // Invalid entry (missing keys) is dropped.
+            ['day' => 2, 'entry1' => '08:00'],
+            'not-an-array',
+        ]);
+
+        Functions\when('wp_verify_nonce')->justReturn(true);
+        Functions\when('current_user_can')->justReturn(true);
+        Functions\when('wp_json_encode')->alias(static fn($v) => json_encode($v));
+
+        $this->custom_field_repo_mock->shouldReceive('get_all_for_user')
+            ->with(8, true)->andReturn([$field]);
+
+        $this->custom_field_writer_mock->shouldReceive('save_user_data')
+            ->once()
+            ->with(8, Mockery::on(function ($data) {
+                $decoded = json_decode($data['field_60'], true);
+                // Only the one fully-formed entry survives sanitization.
+                return is_array($decoded)
+                    && count($decoded) === 1
+                    && $decoded[0]['day'] === 1
+                    && $decoded[0]['entry1'] === '08:00'
+                    && $decoded[0]['exit2'] === '17:00';
+            }));
+
+        AdminUserCustomFields::save_section(8);
+    }
+
+    public function test_save_section_working_hours_invalid_json_stores_empty_array(): void {
+        $_POST['ffc_user_custom_fields_nonce'] = 'valid_nonce';
+
+        $field = (object) [
+            'id'         => 61,
+            'field_type' => 'working_hours',
+            'field_label' => 'Hours',
+        ];
+
+        $_POST['ffc_cf_61'] = 'not valid json {{{';
+
+        Functions\when('wp_verify_nonce')->justReturn(true);
+        Functions\when('current_user_can')->justReturn(true);
+        Functions\when('wp_json_encode')->alias(static fn($v) => json_encode($v));
+
+        $this->custom_field_repo_mock->shouldReceive('get_all_for_user')
+            ->with(9, true)->andReturn([$field]);
+
+        $this->custom_field_writer_mock->shouldReceive('save_user_data')
+            ->once()
+            ->with(9, Mockery::on(function ($data) {
+                return $data['field_61'] === '[]';
+            }));
+
+        AdminUserCustomFields::save_section(9);
     }
 }

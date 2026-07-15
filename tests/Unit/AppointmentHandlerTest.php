@@ -64,41 +64,41 @@ class AppointmentHandlerTest extends TestCase {
         // ------------------------------------------------------------------
         // Namespaced stubs: FreeFormCertificate\SelfScheduling\*
         // ------------------------------------------------------------------
-        Functions\when( 'FreeFormCertificate\SelfScheduling\__' )->returnArg();
-        Functions\when( 'FreeFormCertificate\SelfScheduling\is_wp_error' )->alias( function( $thing ) { return $thing instanceof \WP_Error; } );
-        Functions\when( 'FreeFormCertificate\SelfScheduling\do_action' )->justReturn( null );
-        Functions\when( 'FreeFormCertificate\SelfScheduling\current_time' )->justReturn( '2026-02-17 12:00:00' );
-        Functions\when( 'FreeFormCertificate\SelfScheduling\get_current_user_id' )->justReturn( 1 );
-        Functions\when( 'FreeFormCertificate\SelfScheduling\is_user_logged_in' )->justReturn( false );
-        Functions\when( 'FreeFormCertificate\SelfScheduling\current_user_can' )->justReturn( false );
-        Functions\when( 'FreeFormCertificate\SelfScheduling\apply_filters' )->alias( function() { $args = func_get_args(); return $args[1] ?? null; } );
-        Functions\when( 'FreeFormCertificate\SelfScheduling\wp_timezone' )->alias( function() { return new \DateTimeZone( 'UTC' ); } );
+        Functions\when( '__' )->returnArg();
+        Functions\when( 'is_wp_error' )->alias( function( $thing ) { return $thing instanceof \WP_Error; } );
+        Functions\when( 'do_action' )->justReturn( null );
+        Functions\when( 'current_time' )->justReturn( '2026-02-17 12:00:00' );
+        Functions\when( 'get_current_user_id' )->justReturn( 1 );
+        Functions\when( 'is_user_logged_in' )->justReturn( false );
+        Functions\when( 'current_user_can' )->justReturn( false );
+        Functions\when( 'apply_filters' )->alias( function() { $args = func_get_args(); return $args[1] ?? null; } );
+        Functions\when( 'wp_timezone' )->alias( function() { return new \DateTimeZone( 'UTC' ); } );
 
         // Repositories namespace stubs
-        Functions\when( 'FreeFormCertificate\Repositories\current_user_can' )->justReturn( false );
-        Functions\when( 'FreeFormCertificate\Repositories\user_can' )->justReturn( false );
+        Functions\when( 'current_user_can' )->justReturn( false );
+        Functions\when( 'user_can' )->justReturn( false );
 
         // Scheduling namespace
-        Functions\when( 'FreeFormCertificate\Scheduling\get_option' )->justReturn( array() );
+        Functions\when( 'get_option' )->justReturn( array() );
 
         // Core namespace stubs
-        Functions\when( 'FreeFormCertificate\Core\get_option' )->justReturn( array() );
-        Functions\when( 'FreeFormCertificate\Core\sanitize_text_field' )->returnArg();
-        Functions\when( 'FreeFormCertificate\Core\wp_unslash' )->returnArg();
+        Functions\when( 'get_option' )->justReturn( array() );
+        Functions\when( 'sanitize_text_field' )->returnArg();
+        Functions\when( 'wp_unslash' )->returnArg();
 
         // Generators namespace stubs (for MagicLinkHelper)
-        Functions\when( 'FreeFormCertificate\Generators\home_url' )->alias( function( $path = '' ) {
+        Functions\when( 'home_url' )->alias( function( $path = '' ) {
             return 'https://example.com' . $path;
         } );
-        Functions\when( 'FreeFormCertificate\Generators\trailingslashit' )->alias( function( $url ) {
+        Functions\when( 'trailingslashit' )->alias( function( $url ) {
             return rtrim( $url, '/' ) . '/';
         } );
-        Functions\when( 'FreeFormCertificate\Generators\wp_parse_url' )->alias( function( $url, $component = -1 ) {
+        Functions\when( 'wp_parse_url' )->alias( function( $url, $component = -1 ) {
             return parse_url( $url, $component );
         } );
-        Functions\when( 'FreeFormCertificate\Generators\esc_url' )->returnArg();
-        Functions\when( 'FreeFormCertificate\Generators\esc_attr' )->returnArg();
-        Functions\when( 'FreeFormCertificate\Generators\esc_html' )->returnArg();
+        Functions\when( 'esc_url' )->returnArg();
+        Functions\when( 'esc_attr' )->returnArg();
+        Functions\when( 'esc_html' )->returnArg();
 
         // Create handler — constructor creates real repos using mocked $wpdb
         $this->handler = new AppointmentHandler();
@@ -437,7 +437,7 @@ class AppointmentHandlerTest extends TestCase {
         // For admin bypass test, we need FreeFormCertificate\Repositories\current_user_can to return true.
 
         // Let bypass succeed so we reach the status check
-        Functions\when( 'FreeFormCertificate\Repositories\current_user_can' )->justReturn( true );
+        Functions\when( 'current_user_can' )->justReturn( true );
 
         $result = $this->handler->cancel_appointment( 1 );
 

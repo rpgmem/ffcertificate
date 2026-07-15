@@ -62,22 +62,19 @@ class PdfGeneratorTest extends TestCase {
 
         // Namespaced stubs: prevent "is not defined" errors when Sprint 27 tests run first.
         // PdfGenerator is in Generators namespace.
-        Functions\when( 'FreeFormCertificate\Generators\esc_html' )->returnArg();
-        Functions\when( 'FreeFormCertificate\Generators\esc_html__' )->returnArg();
-        Functions\when( 'FreeFormCertificate\Generators\get_option' )->alias( function ( $key, $default = false ) {
-            return \get_option( $key, $default );
-        } );
-        Functions\when( 'FreeFormCertificate\Generators\home_url' )->alias( function ( $path = '' ) {
+        Functions\when( 'esc_html' )->returnArg();
+        Functions\when( 'esc_html__' )->returnArg();
+        Functions\when( 'home_url' )->alias( function ( $path = '' ) {
             return 'https://example.com' . $path;
         } );
-        Functions\when( 'FreeFormCertificate\Generators\wp_parse_url' )->alias( function ( $url, $component = -1 ) {
+        Functions\when( 'wp_parse_url' )->alias( function ( $url, $component = -1 ) {
             return parse_url( $url, $component );
         } );
-        Functions\when( 'FreeFormCertificate\Generators\trailingslashit' )->alias( function ( $url ) {
+        Functions\when( 'trailingslashit' )->alias( function ( $url ) {
             return rtrim( $url, '/' ) . '/';
         } );
-        Functions\when( 'FreeFormCertificate\Generators\esc_url' )->returnArg();
-        Functions\when( 'FreeFormCertificate\Generators\esc_attr' )->returnArg();
+        Functions\when( 'esc_url' )->returnArg();
+        Functions\when( 'esc_attr' )->returnArg();
         Functions\when( 'wp_date' )->alias( function ( $format, $ts = null, $tz = null ) {
             return gmdate( $format, $ts ?? time() );
         } );
@@ -507,19 +504,19 @@ class PdfGeneratorTest extends TestCase {
         Functions\when( 'get_template_directory' )->justReturn( '/tmp/theme' );
         Functions\when( 'get_stylesheet_directory' )->justReturn( '/tmp/theme' );
         // Generators-namespaced fallbacks (the PdfGenerator class calls these unqualified).
-        Functions\when( 'FreeFormCertificate\Generators\wp_normalize_path' )->alias( fn ( $p ) => str_replace( '\\', '/', (string) $p ) );
-        Functions\when( 'FreeFormCertificate\Generators\get_template_directory' )->justReturn( '/tmp/theme' );
-        Functions\when( 'FreeFormCertificate\Generators\get_stylesheet_directory' )->justReturn( '/tmp/theme' );
-        Functions\when( 'FreeFormCertificate\Generators\apply_filters' )->alias( fn ( $tag, $value = '' ) => $value );
-        Functions\when( 'FreeFormCertificate\Generators\site_url' )->alias( fn ( $p = '' ) => 'https://example.com/' . ltrim( (string) $p, '/' ) );
-        Functions\when( 'FreeFormCertificate\Generators\untrailingslashit' )->alias( fn ( $u ) => rtrim( (string) $u, '/' ) );
-        Functions\when( 'FreeFormCertificate\Generators\get_bloginfo' )->justReturn( 'Test Site' );
-        Functions\when( 'FreeFormCertificate\Generators\get_home_url' )->justReturn( 'https://example.com' );
-        Functions\when( 'FreeFormCertificate\Generators\wp_kses' )->alias( fn ( $v ) => (string) $v );
-        Functions\when( 'FreeFormCertificate\Generators\esc_url' )->returnArg();
+        Functions\when( 'wp_normalize_path' )->alias( fn ( $p ) => str_replace( '\\', '/', (string) $p ) );
+        Functions\when( 'get_template_directory' )->justReturn( '/tmp/theme' );
+        Functions\when( 'get_stylesheet_directory' )->justReturn( '/tmp/theme' );
+        Functions\when( 'apply_filters' )->alias( fn ( $tag, $value = '' ) => $value );
+        Functions\when( 'site_url' )->alias( fn ( $p = '' ) => 'https://example.com/' . ltrim( (string) $p, '/' ) );
+        Functions\when( 'untrailingslashit' )->alias( fn ( $u ) => rtrim( (string) $u, '/' ) );
+        Functions\when( 'get_bloginfo' )->justReturn( 'Test Site' );
+        Functions\when( 'get_home_url' )->justReturn( 'https://example.com' );
+        Functions\when( 'wp_kses' )->alias( fn ( $v ) => (string) $v );
+        Functions\when( 'esc_url' )->returnArg();
         // build_pdf_filename() (Utils, Core namespace) uses _x().
         Functions\when( '_x' )->returnArg();
-        Functions\when( 'FreeFormCertificate\Core\_x' )->returnArg();
+        Functions\when( '_x' )->returnArg();
     }
 
     public function test_generate_html_falls_back_to_default_when_no_layout(): void {
@@ -641,5 +638,247 @@ class PdfGeneratorTest extends TestCase {
         $this->assertIsArray( $result );
         $this->assertSame( 'appointment_receipt', $result['type'] );
         $this->assertArrayHasKey( 'html', $result );
+    }
+
+    /**
+     * Appointment with a confirmation_token → the magic_token branch (line
+     * 392-393) is exercised, so the QR/validation URL uses the token.
+     */
+    public function test_generate_appointment_pdf_data_includes_confirmation_token(): void {
+        $this->stub_html_funcs();
+        Functions\when( 'esc_url' )->returnArg();
+
+        if ( ! defined( 'FFC_PLUGIN_DIR' ) ) {
+            define( 'FFC_PLUGIN_DIR', \dirname( __DIR__, 2 ) . '/' );
+        }
+
+        $appointment = array(
+            'name'               => 'Ana',
+            'appointment_date'   => '2030-05-20',
+            'status'             => 'pending',
+            'validation_code'    => 'V-9',
+            'confirmation_token' => 'tok-xyz-123',
+            'id'                 => 3,
+        );
+        $calendar = array( 'id' => 4, 'title' => 'Cal' );
+
+        $result = $this->invoke( 'generate_appointment_pdf_data', array( $appointment, $calendar ) );
+
+        $this->assertIsArray( $result );
+        // The magic_token flows into the HTML through the QR/validation helpers.
+        $this->assertNotEmpty( $result['html'] );
+        $this->assertSame( 'appointment_receipt', $result['type'] );
+    }
+
+    // ==================================================================
+    // generate_pdf_data() — full submission → PDF data assembly
+    // ==================================================================
+
+    /**
+     * Build a fake submission handler whose get_submission() returns $row
+     * (or false when $row is null).
+     *
+     * @param object|false $row Submission row object (or false).
+     */
+    private function make_submission_handler( $row ): object {
+        return new class( $row ) {
+            /** @var object|false */
+            private $row;
+            /** @param object|false $row */
+            public function __construct( $row ) {
+                $this->row = $row;
+            }
+            /** @return object|false */
+            public function get_submission( int $id ) {
+                return $this->row;
+            }
+        };
+    }
+
+    /** Stub the WP funcs generate_pdf_data() itself calls beyond stub_html_funcs(). */
+    private function stub_generate_pdf_data_funcs(): void {
+        $this->stub_html_funcs();
+        if ( ! defined( 'FFC_PLUGIN_DIR' ) ) {
+            define( 'FFC_PLUGIN_DIR', \dirname( __DIR__, 2 ) . '/' );
+        }
+        Functions\when( 'wp_unslash' )->alias(
+            static function ( $v ) {
+                return is_string( $v ) ? stripslashes( $v ) : $v;
+            }
+        );
+        Functions\when( '_n' )->alias(
+            static function ( $single, $plural, $number ) {
+                return 1 === (int) $number ? $single : $plural;
+            }
+        );
+        Functions\when( 'number_format_i18n' )->alias(
+            static function ( $n ) {
+                return (string) $n;
+            }
+        );
+        Functions\when( 'get_the_title' )->justReturn( 'My Certificate Form' );
+        Functions\when( 'get_post_meta' )->alias(
+            static function ( $id, $key ) {
+                if ( '_ffc_form_config' === $key ) {
+                    return array( 'pdf_layout' => '<p>{{name}} {{email}} {{schedule}}</p>' );
+                }
+                if ( '_ffc_form_bg' === $key ) {
+                    return 'https://example.com/bg.png';
+                }
+                if ( '_ffc_geofence_config' === $key ) {
+                    return array( 'class_time_start' => '08:00', 'class_time_end' => '12:00' );
+                }
+                return '';
+            }
+        );
+    }
+
+    public function test_generate_pdf_data_returns_wp_error_when_submission_missing(): void {
+        $handler = $this->make_submission_handler( false );
+
+        $result = $this->generator->generate_pdf_data( 99, $handler );
+
+        $this->assertInstanceOf( \WP_Error::class, $result );
+        $this->assertSame( 'submission_not_found', $result->get_error_code() );
+    }
+
+    public function test_generate_pdf_data_assembles_full_pdf_array(): void {
+        $this->stub_generate_pdf_data_funcs();
+
+        $row = (object) array(
+            'id'                    => '55',
+            'email'                 => 'user@example.com',
+            'auth_code'             => 'AUTH-77',
+            'cpf_rf'                => '12345678900',
+            'data'                  => json_encode( array( 'name' => 'Marina', 'extra' => 'v1' ) ),
+            'form_id'               => '10',
+            'submission_date'       => (string) 1_700_000_000,
+            'magic_token'           => 'mtok',
+            'schedule_start_override' => '',
+            'schedule_end_override'   => '',
+        );
+        $handler = $this->make_submission_handler( $row );
+
+        $result = $this->generator->generate_pdf_data( 55, $handler );
+
+        $this->assertIsArray( $result );
+        $this->assertArrayHasKey( 'html', $result );
+        $this->assertSame( 'My Certificate Form', $result['form_title'] );
+        $this->assertSame( 'AUTH-77', $result['auth_code'] );
+        $this->assertSame( 55, $result['submission_id'] );
+        $this->assertSame( 'https://example.com/bg.png', $result['bg_image'] );
+        // JSON `name` merged into template data and rendered.
+        $this->assertStringContainsString( 'Marina', $result['html'] );
+        $this->assertStringContainsString( 'user@example.com', $result['html'] );
+        // enrich adds the schedule placeholders resolved from the geofence.
+        $this->assertArrayHasKey( 'schedule', $result['submission'] );
+    }
+
+    public function test_generate_pdf_data_handles_slashed_json_and_missing_optionals(): void {
+        $this->stub_generate_pdf_data_funcs();
+
+        // First json_decode fails (slashed quotes), fallback via wp_unslash.
+        $slashed = '{\"name\":\"Bruno\"}';
+        $row     = (object) array(
+            'id'              => '1',
+            'email'           => 'b@example.com',
+            'data'            => $slashed,
+            'form_id'         => '10',
+            'submission_date' => (string) 1_700_000_000,
+        );
+        $handler = $this->make_submission_handler( $row );
+
+        $result = $this->generator->generate_pdf_data( 1, $handler );
+
+        $this->assertIsArray( $result );
+        // No auth_code/cpf_rf on the row → auth_code falls back to ''.
+        $this->assertSame( '', $result['auth_code'] );
+        $this->assertStringContainsString( 'Bruno', $result['html'] );
+    }
+
+    // ==================================================================
+    // generate_pdf_data_from_form() — frontend path
+    // ==================================================================
+
+    public function test_generate_pdf_data_from_form_returns_error_when_form_missing(): void {
+        Functions\when( '__' )->returnArg();
+        Functions\when( 'get_post' )->justReturn( null );
+
+        $result = $this->generator->generate_pdf_data_from_form( array(), 999 );
+
+        $this->assertInstanceOf( \WP_Error::class, $result );
+        $this->assertSame( 'form_not_found', $result->get_error_code() );
+    }
+
+    public function test_generate_pdf_data_from_form_assembles_array_with_date(): void {
+        $this->stub_html_funcs();
+        if ( ! defined( 'FFC_PLUGIN_DIR' ) ) {
+            define( 'FFC_PLUGIN_DIR', \dirname( __DIR__, 2 ) . '/' );
+        }
+        Functions\when( 'get_post' )->justReturn( (object) array( 'post_title' => 'Frontend Form' ) );
+        Functions\when( 'get_post_meta' )->alias(
+            static function ( $id, $key ) {
+                if ( '_ffc_form_config' === $key ) {
+                    return array( 'pdf_layout' => '<p>{{name}} {{fill_date}}</p>' );
+                }
+                if ( '_ffc_form_bg' === $key ) {
+                    return '';
+                }
+                return '';
+            }
+        );
+
+        $result = $this->generator->generate_pdf_data_from_form(
+            array( 'name' => 'Clara', 'auth_code' => 'FC-1' ),
+            10,
+            1_700_000_000
+        );
+
+        $this->assertIsArray( $result );
+        $this->assertSame( 'Frontend Form', $result['form_title'] );
+        $this->assertStringContainsString( 'Clara', $result['html'] );
+        // Date was injected into submission data.
+        $this->assertArrayHasKey( 'fill_date', $result['submission'] );
+        $this->assertArrayHasKey( 'date', $result['submission'] );
+    }
+
+    public function test_generate_pdf_data_from_form_without_date(): void {
+        $this->stub_html_funcs();
+        if ( ! defined( 'FFC_PLUGIN_DIR' ) ) {
+            define( 'FFC_PLUGIN_DIR', \dirname( __DIR__, 2 ) . '/' );
+        }
+        Functions\when( 'get_post' )->justReturn( (object) array( 'post_title' => 'NoDate Form' ) );
+        Functions\when( 'get_post_meta' )->alias(
+            static function ( $id, $key ) {
+                // `_ffc_form_config` empty (falls back to default HTML);
+                // return an empty array so the array type-hint is satisfied.
+                return '_ffc_form_bg' === $key ? '' : array();
+            }
+        );
+
+        $result = $this->generator->generate_pdf_data_from_form( array( 'name' => 'Zed' ), 11, null );
+
+        $this->assertIsArray( $result );
+        // No date passed → no fill_date injected.
+        $this->assertArrayNotHasKey( 'fill_date', $result['submission'] );
+        $this->assertSame( '', $result['auth_code'] ?? '' );
+    }
+
+    // ==================================================================
+    // generate_magic_link_qr() — static delegator to PdfHtmlRenderer
+    // ==================================================================
+
+    /**
+     * @runInSeparateProcess
+     * @preserveGlobalState disabled
+     */
+    public function test_generate_magic_link_qr_returns_empty_when_no_token(): void {
+        // Overload the repo the renderer news up so findMagicTokenById → null.
+        $repo = \Mockery::mock( 'overload:FreeFormCertificate\Repositories\SubmissionRepository' );
+        $repo->shouldReceive( 'findMagicTokenById' )->andReturn( null );
+
+        $result = PdfGenerator::generate_magic_link_qr( 42 );
+
+        $this->assertSame( '', $result );
     }
 }

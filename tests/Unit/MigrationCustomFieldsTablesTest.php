@@ -42,8 +42,8 @@ class MigrationCustomFieldsTablesTest extends TestCase {
 
         // Global WP stubs
         Functions\when( '__' )->returnArg();
-        Functions\when( 'FreeFormCertificate\Migrations\__' )->returnArg();
-        Functions\when( 'FreeFormCertificate\Migrations\dbDelta' )->justReturn( array() );
+        Functions\when( '__' )->returnArg();
+        Functions\when( 'dbDelta' )->justReturn( array() );
     }
 
     protected function tearDown(): void {
@@ -57,14 +57,14 @@ class MigrationCustomFieldsTablesTest extends TestCase {
 
     public function test_is_completed_returns_true_when_option_set(): void {
         Functions\when( 'get_option' )->justReturn( true );
-        Functions\when( 'FreeFormCertificate\Migrations\get_option' )->justReturn( true );
+        Functions\when( 'get_option' )->justReturn( true );
 
         $this->assertTrue( MigrationCustomFieldsTables::is_completed() );
     }
 
     public function test_is_completed_returns_false_when_option_not_set(): void {
         Functions\when( 'get_option' )->justReturn( false );
-        Functions\when( 'FreeFormCertificate\Migrations\get_option' )->justReturn( false );
+        Functions\when( 'get_option' )->justReturn( false );
 
         $this->assertFalse( MigrationCustomFieldsTables::is_completed() );
     }
@@ -75,7 +75,7 @@ class MigrationCustomFieldsTablesTest extends TestCase {
 
     public function test_run_returns_early_when_already_completed(): void {
         Functions\when( 'get_option' )->justReturn( true );
-        Functions\when( 'FreeFormCertificate\Migrations\get_option' )->justReturn( true );
+        Functions\when( 'get_option' )->justReturn( true );
 
         $result = MigrationCustomFieldsTables::run();
 
@@ -90,9 +90,9 @@ class MigrationCustomFieldsTablesTest extends TestCase {
 
     public function test_run_skips_existing_tables(): void {
         Functions\when( 'get_option' )->justReturn( false );
-        Functions\when( 'FreeFormCertificate\Migrations\get_option' )->justReturn( false );
+        Functions\when( 'get_option' )->justReturn( false );
         Functions\when( 'update_option' )->justReturn( true );
-        Functions\when( 'FreeFormCertificate\Migrations\update_option' )->justReturn( true );
+        Functions\when( 'update_option' )->justReturn( true );
 
         // table_exists checks: get_var(prepare('SHOW TABLES LIKE %s', $table_name)) === $table_name
         // We capture the table name from prepare and return it from get_var so the === passes.
@@ -129,9 +129,9 @@ class MigrationCustomFieldsTablesTest extends TestCase {
 
     public function test_run_creates_tables_successfully(): void {
         Functions\when( 'get_option' )->justReturn( false );
-        Functions\when( 'FreeFormCertificate\Migrations\get_option' )->justReturn( false );
+        Functions\when( 'get_option' )->justReturn( false );
         Functions\when( 'update_option' )->justReturn( true );
-        Functions\when( 'FreeFormCertificate\Migrations\update_option' )->justReturn( true );
+        Functions\when( 'update_option' )->justReturn( true );
 
         // table_exists calls: first check returns null (doesn't exist),
         // after dbDelta, second check returns the table name (exists now).
@@ -169,9 +169,9 @@ class MigrationCustomFieldsTablesTest extends TestCase {
 
     public function test_run_reports_failure_when_table_creation_fails(): void {
         Functions\when( 'get_option' )->justReturn( false );
-        Functions\when( 'FreeFormCertificate\Migrations\get_option' )->justReturn( false );
+        Functions\when( 'get_option' )->justReturn( false );
         Functions\when( 'dbDelta' )->justReturn( array() );
-        Functions\when( 'FreeFormCertificate\Migrations\dbDelta' )->justReturn( array() );
+        Functions\when( 'dbDelta' )->justReturn( array() );
 
         // table_exists always returns null (table never gets created)
         $this->wpdb->shouldReceive( 'get_var' )->andReturn( null );
@@ -194,9 +194,9 @@ class MigrationCustomFieldsTablesTest extends TestCase {
 
     public function test_run_reports_partial_failure(): void {
         Functions\when( 'get_option' )->justReturn( false );
-        Functions\when( 'FreeFormCertificate\Migrations\get_option' )->justReturn( false );
+        Functions\when( 'get_option' )->justReturn( false );
         Functions\when( 'dbDelta' )->justReturn( array() );
-        Functions\when( 'FreeFormCertificate\Migrations\dbDelta' )->justReturn( array() );
+        Functions\when( 'dbDelta' )->justReturn( array() );
 
         // First table: doesn't exist, then created (2 calls)
         // Second table: doesn't exist, still doesn't exist after dbDelta (2 calls)
@@ -226,7 +226,7 @@ class MigrationCustomFieldsTablesTest extends TestCase {
 
     public function test_get_status_when_completed(): void {
         Functions\when( 'get_option' )->justReturn( true );
-        Functions\when( 'FreeFormCertificate\Migrations\get_option' )->justReturn( true );
+        Functions\when( 'get_option' )->justReturn( true );
 
         // table_exists returns table name for all 3 tables
         $this->wpdb->shouldReceive( 'get_var' )
@@ -246,7 +246,7 @@ class MigrationCustomFieldsTablesTest extends TestCase {
 
     public function test_get_status_when_not_completed(): void {
         Functions\when( 'get_option' )->justReturn( false );
-        Functions\when( 'FreeFormCertificate\Migrations\get_option' )->justReturn( false );
+        Functions\when( 'get_option' )->justReturn( false );
 
         // table_exists returns null (tables don't exist)
         $this->wpdb->shouldReceive( 'get_var' )->andReturn( null );
@@ -264,7 +264,7 @@ class MigrationCustomFieldsTablesTest extends TestCase {
 
     public function test_get_status_table_info_structure(): void {
         Functions\when( 'get_option' )->justReturn( false );
-        Functions\when( 'FreeFormCertificate\Migrations\get_option' )->justReturn( false );
+        Functions\when( 'get_option' )->justReturn( false );
 
         $this->wpdb->shouldReceive( 'get_var' )->andReturn( 'wp_ffc_custom_fields' );
 

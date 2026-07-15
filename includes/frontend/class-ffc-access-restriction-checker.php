@@ -26,6 +26,17 @@ if ( ! defined( 'ABSPATH' ) ) {
 class AccessRestrictionChecker {
 
 	/**
+	 * Option-name prefix for the atomic one-use ticket ledger.
+	 *
+	 * Each consumed ticket is recorded as a distinct `wp_options` row whose
+	 * `option_name` is UNIQUE, so the row insertion itself is the lock that
+	 * serializes concurrent claims of the same ticket.
+	 *
+	 * @var string
+	 */
+	private const TICKET_CLAIM_OPTION_PREFIX = 'ffc_ticket_used_';
+
+	/**
 	 * Check if submission passes restriction rules
 	 *
 	 * Validation order: Password → Denylist (priority) → Allowlist → Ticket (consumed)
@@ -147,7 +158,24 @@ class AccessRestrictionChecker {
 				);
 			}
 
-			// Consume ticket (remove from list).
+			// Atomically claim the ticket. The list membership check above is
+			// a fast pre-filter, but the list read-modify-write below is NOT
+			// atomic, so two concurrent submissions could both pass it and
+			// each issue a certificate from one single-use ticket. The claim
+			// is the authoritative one-use gate: only the first concurrent
+			// caller wins the UNIQUE-keyed insert; a loser is rejected as
+			// already-used, closing the TOCTOU race.
+			if ( ! self::try_claim_ticket( $form_id, $ticket ) ) {
+				return array(
+					'allowed'   => false,
+					'message'   => __( 'Invalid or already used ticket.', 'ffcertificate' ),
+					'is_ticket' => false,
+				);
+			}
+
+			// Consume ticket (remove from list). Best-effort bookkeeping so the
+			// admin's remaining-tickets view stays accurate; the claim above,
+			// not this write, is what enforces single use.
 			$tickets                             = array_diff( $tickets, array( $ticket ) );
 			$form_config['generated_codes_list'] = implode( "\n", $tickets );
 			update_post_meta( $form_id, '_ffc_form_config', $form_config );
@@ -167,6 +195,47 @@ class AccessRestrictionChecker {
 			'message'   => '',
 			'is_ticket' => false,
 		);
+	}
+
+	/**
+	 * Atomically claim a one-use ticket.
+	 *
+	 * Inserts a UNIQUE-keyed marker row into `wp_options` for this
+	 * (form, ticket) pair. `INSERT IGNORE` makes the write a no-op when the
+	 * row already exists, so under concurrency exactly one caller sees
+	 * `rows_affected > 0` (the winner) and every other caller sees `0`
+	 * (already claimed). This is the same atomic single-use pattern used by
+	 * {@see ScheduleExceptionSession::try_consume_jti()}. The marker row is
+	 * `autoload => 'no'` so it never enters the alloptions cache.
+	 *
+	 * @param int    $form_id Form ID the ticket belongs to.
+	 * @param string $ticket  Normalised (upper-cased, trimmed) ticket code.
+	 * @return bool True when this caller won the claim (or no DB layer is
+	 *              available to serialize on); false when the ticket was
+	 *              already consumed by a concurrent or prior caller.
+	 */
+	private static function try_claim_ticket( int $form_id, string $ticket ): bool {
+		global $wpdb;
+
+		if ( ! isset( $wpdb ) ) {
+			// No DB layer to serialize on — cannot make the claim atomic.
+			// Fall back to the legacy (non-atomic) list check by allowing;
+			// this preserves prior behaviour rather than hard-failing.
+			return true;
+		}
+
+		$option_name = self::TICKET_CLAIM_OPTION_PREFIX . $form_id . '_' . hash( 'sha256', $ticket );
+
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- atomic single-use claim; the UNIQUE option_name index IS the lock and a cached read would defeat it.
+		$wpdb->query(
+			$wpdb->prepare(
+				"INSERT IGNORE INTO {$wpdb->options} (option_name, option_value, autoload) VALUES (%s, %s, 'no')",
+				$option_name,
+				(string) time()
+			)
+		);
+
+		return (int) $wpdb->rows_affected > 0;
 	}
 
 	/**

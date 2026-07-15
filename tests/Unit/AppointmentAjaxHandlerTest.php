@@ -59,7 +59,7 @@ class AppointmentAjaxHandlerTest extends TestCase {
         Functions\when( 'wp_hash' )->alias( function ( $data ) {
             return md5( $data . 'test-salt' );
         } );
-        Functions\when( 'FreeFormCertificate\Core\wp_rand' )->alias( function ( $min = 0, $max = 0 ) {
+        Functions\when( 'wp_rand' )->alias( function ( $min = 0, $max = 0 ) {
             return rand( $min, $max );
         } );
         Functions\when( 'wp_rand' )->alias( function ( $min = 0, $max = 0 ) {

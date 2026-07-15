@@ -504,6 +504,14 @@ class VerificationResponseRenderer {
 			return esc_html( \FreeFormCertificate\Core\DocumentFormatter::mask_cpf( (string) $value ) );
 		}
 
+		// The bare `rf` key is populated alongside `cpf_rf` for RF-only
+		// submissions (VerificationHandler::search_certificate); it must be
+		// masked too, or the public /valid page leaks the full RF next to the
+		// correctly-masked cpf_rf row for the same person.
+		if ( 'rf' === $field_key && ! empty( $value ) ) {
+			return esc_html( \FreeFormCertificate\Core\DocumentFormatter::mask_rf( (string) $value ) );
+		}
+
 		if ( 'email' === $field_key && ! empty( $value ) ) {
 			return esc_html( \FreeFormCertificate\Core\DocumentFormatter::mask_email( (string) $value ) );
 		}

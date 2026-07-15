@@ -28,6 +28,7 @@ use FreeFormCertificate\Recruitment\CsvValidator;
  *     integration tests in sprint 13.
  *
  * @covers \FreeFormCertificate\Recruitment\RecruitmentCsvImporter
+ * @covers \FreeFormCertificate\Recruitment\CsvValidator
  */
 class RecruitmentCsvImporterTest extends TestCase {
 
@@ -39,6 +40,11 @@ class RecruitmentCsvImporterTest extends TestCase {
 	protected function setUp(): void {
 		parent::setUp();
 		Monkey\setUp();
+
+		// pcov does not record lines for files first autoloaded mid-test-method,
+		// so the extracted CsvValidator coverage would attribute to nothing.
+		// Preload it here so pcov attributes its lines to this test.
+		class_exists( '\\FreeFormCertificate\\Recruitment\\CsvValidator' );
 
 		global $wpdb;
 		$wpdb         = Mockery::mock( 'wpdb' )->makePartial();

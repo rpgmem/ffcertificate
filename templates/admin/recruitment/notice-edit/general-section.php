@@ -19,7 +19,7 @@
  * @since   6.7.7
  */
 
-use FreeFormCertificate\Recruitment\RecruitmentNoticeRepository;
+use FreeFormCertificate\Recruitment\RecruitmentNoticeReader;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
@@ -58,7 +58,7 @@ echo '<p class="description">' . esc_html__( 'Toggle which columns the public sh
 // reason text shows up next to the badge on the public listing.
 $decoded         = json_decode( (string) $notice->public_columns_config, true );
 $decoded         = is_array( $decoded ) ? $decoded : array();
-$preview_default = (array) json_decode( RecruitmentNoticeRepository::DEFAULT_PUBLIC_COLUMNS_CONFIG, true );
+$preview_default = (array) json_decode( RecruitmentNoticeReader::DEFAULT_PUBLIC_COLUMNS_CONFIG, true );
 $preview_state   = array_merge( $preview_default, $decoded );
 $preview_checked = ! empty( $preview_state['preview_reason'] );
 

@@ -304,4 +304,138 @@ class CpfRfSplitMigrationStrategyTest extends TestCase {
         $this->assertTrue( $result['success'] );
         $this->assertSame( 0, $result['processed'] );
     }
+
+    // ==================================================================
+    // process_table() — classifies CPF / RF / unknown-length records
+    // ==================================================================
+
+    /**
+     * Alias-mock ActivityLog (real class references its own LEVEL_* constants,
+     * so we make ActivityLog::log() a no-op by stubbing SettingsReader instead
+     * of alias-mocking ActivityLog itself). Safe under runClassInSeparateProcess
+     * because no other test in this class references ActivityLog / SettingsReader.
+     */
+    private function stubActivityLog(): void {
+        if ( ! class_exists( 'FreeFormCertificate\Settings\SettingsReader', false ) ) {
+            $reader = Mockery::mock( 'alias:FreeFormCertificate\Settings\SettingsReader' );
+            $reader->shouldReceive( 'activity_log_enabled' )->andReturn( false )->byDefault();
+            $reader->shouldReceive( 'activity_log_min_level' )->andReturn( 'info' )->byDefault();
+            $reader->shouldReceive( 'activity_log_category_enabled' )->andReturn( true )->byDefault();
+        }
+    }
+
+    public function test_process_table_splits_cpf_rf_and_unknown_length_records(): void {
+        $this->stubActivityLog();
+
+        $records = array(
+            // 11 digits → CPF branch.
+            array(
+                'id'               => 1,
+                'cpf_rf'           => '123.456.789-01',
+                'cpf_rf_encrypted' => 'enc_cpf',
+                'cpf_rf_hash'      => 'hash_cpf',
+            ),
+            // 7 digits → RF branch.
+            array(
+                'id'               => 2,
+                'cpf_rf'           => '1234567',
+                'cpf_rf_encrypted' => 'enc_rf',
+                'cpf_rf_hash'      => 'hash_rf',
+            ),
+            // 5 digits → unknown-length branch (defaults to CPF + logs warning).
+            array(
+                'id'               => 3,
+                'cpf_rf'           => '12345',
+                'cpf_rf_encrypted' => 'enc_unknown',
+                'cpf_rf_hash'      => 'hash_unknown',
+            ),
+            // Empty resolved value → error path (could not resolve).
+            array(
+                'id'               => 4,
+                'cpf_rf'           => '',
+                'cpf_rf_encrypted' => '',
+                'cpf_rf_hash'      => 'hash_empty',
+            ),
+        );
+
+        $this->wpdb->shouldReceive( 'get_results' )->andReturn( $records );
+        $this->wpdb->shouldReceive( 'update' )->andReturn( 1 );
+
+        $result = $this->invokePrivate( 'process_table', array( 'wp_ffc_submissions', 50 ) );
+
+        // 3 processed (CPF, RF, unknown), 1 error (empty resolve).
+        $this->assertSame( 3, $result['processed'] );
+        $this->assertCount( 1, $result['errors'] );
+    }
+
+    public function test_process_table_records_update_failure_as_error(): void {
+        $this->stubActivityLog();
+
+        $records = array(
+            array(
+                'id'               => 1,
+                'cpf_rf'           => '12345678901',
+                'cpf_rf_encrypted' => 'enc_cpf',
+                'cpf_rf_hash'      => 'hash_cpf',
+            ),
+        );
+
+        $this->wpdb->shouldReceive( 'get_results' )->andReturn( $records );
+        // update() returns false → failure branch records an error.
+        $this->wpdb->shouldReceive( 'update' )->andReturn( false );
+
+        $result = $this->invokePrivate( 'process_table', array( 'wp_ffc_submissions', 50 ) );
+
+        $this->assertSame( 0, $result['processed'] );
+        $this->assertCount( 1, $result['errors'] );
+    }
+
+    public function test_process_table_returns_empty_when_no_records(): void {
+        $this->wpdb->shouldReceive( 'get_results' )->andReturn( array() );
+
+        $result = $this->invokePrivate( 'process_table', array( 'wp_ffc_submissions', 50 ) );
+
+        $this->assertSame( 0, $result['processed'] );
+        $this->assertSame( array(), $result['errors'] );
+    }
+
+    // ==================================================================
+    // count_table_status() — table with pending + migrated rows
+    // ==================================================================
+
+    public function test_count_table_status_with_pending_and_migrated(): void {
+        // table_exists → matches; cpf_rf_hash exists; cpf_hash exists;
+        // then COUNT(*) total = 10, pending = 4 → migrated 6.
+        $this->wpdb->shouldReceive( 'get_var' )->andReturn(
+            'wp_ffc_submissions', // table_exists
+            10,                   // total
+            4                     // pending
+        );
+        // column_exists cpf_rf_hash → present, cpf_hash → present.
+        $this->wpdb->shouldReceive( 'get_results' )->andReturn(
+            array( (object) array( 'Field' => 'cpf_rf_hash' ) )
+        );
+
+        $status = $this->invokePrivate( 'count_table_status', array( 'wp_ffc_submissions' ) );
+
+        $this->assertSame( 10, $status['total'] );
+        $this->assertSame( 6, $status['migrated'] );
+        $this->assertSame( 4, $status['pending'] );
+    }
+
+    // ==================================================================
+    // can_run() — encryption not configured branch
+    // ==================================================================
+
+    public function test_can_run_returns_error_when_encryption_not_configured(): void {
+        // Encryption::is_configured() reads SECURE_AUTH_KEY etc.; alias-mock it
+        // to force the not-configured branch.
+        $enc = Mockery::mock( 'alias:FreeFormCertificate\Core\Encryption' );
+        $enc->shouldReceive( 'is_configured' )->andReturn( false )->byDefault();
+
+        $result = $this->strategy->can_run( 'split_cpf_rf', array() );
+
+        $this->assertInstanceOf( \WP_Error::class, $result );
+        $this->assertSame( 'encryption_not_configured', $result->get_error_code() );
+    }
 }
