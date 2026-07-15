@@ -70,13 +70,16 @@ final class RecruitmentPublicShortcode {
 	private const RATE_PREFIX = 'ffc_recruitment_public_rate_';
 
 	/**
-	 * Versioned cache option. Bumped by {@see self::invalidate_public_cache()}
-	 * on every admin write that affects the public listing; included in
-	 * the cache_key hash so a single increment atomically retires every
-	 * existing transient (the keys simply no longer match anything looked
-	 * up after the bump).
+	 * Cache-version domain for this listing, resolved through the shared
+	 * {@see \FreeFormCertificate\Core\CacheVersion} helper. The version is
+	 * bumped by {@see self::invalidate_public_cache()} on every admin write
+	 * that affects the public listing and folded into the cache_key hash, so
+	 * a single increment atomically retires every existing transient (the
+	 * keys simply no longer match anything looked up after the bump). The
+	 * helper maps this domain to the pre-existing `ffc_recruitment_public_cache_version`
+	 * option, so behaviour is unchanged.
 	 */
-	private const CACHE_VERSION_OPTION = 'ffc_recruitment_public_cache_version';
+	private const CACHE_VERSION_DOMAIN = 'recruitment_public';
 
 	/**
 	 * Register the shortcode.
@@ -383,7 +386,7 @@ final class RecruitmentPublicShortcode {
 	 * @return string Transient key (under WP's 172-char limit).
 	 */
 	private static function cache_key( string $notice_code, string $slug_filter, int $page_top, int $page_bottom, bool $filter_locked = false, string $name_query = '', string $subscription = '' ): string {
-		$version = (int) get_option( self::CACHE_VERSION_OPTION, 0 );
+		$version = \FreeFormCertificate\Core\CacheVersion::current( self::CACHE_VERSION_DOMAIN );
 		return self::CACHE_PREFIX . md5(
 			strtoupper( $notice_code ) . '|' . $slug_filter . '|' . $page_top . '|' . $page_bottom . '|' . ( $filter_locked ? '1' : '0' ) . '|' . strtolower( $name_query ) . '|s:' . $subscription . '|v' . $version
 		);
@@ -413,11 +416,7 @@ final class RecruitmentPublicShortcode {
 	 * @return void
 	 */
 	public static function invalidate_public_cache(): void {
-		$current = (int) get_option( self::CACHE_VERSION_OPTION, 0 );
-		// Wrap around at PHP_INT_MAX is theoretical here — even at one
-		// bump per second it would take ~292 billion years to overflow —
-		// but the modulo guards against accidental misconfiguration.
-		update_option( self::CACHE_VERSION_OPTION, ( $current + 1 ) % PHP_INT_MAX, false );
+		\FreeFormCertificate\Core\CacheVersion::bump( self::CACHE_VERSION_DOMAIN );
 	}
 
 	/**
