@@ -183,8 +183,14 @@ class TabRateLimit extends SettingsTab {
         // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Nonce verified below via check_admin_referer.
 		if ( $_POST && isset( $_POST['ffc_save_rate_limit'] ) ) {
 			check_admin_referer( 'ffc_rate_limit_nonce' );
-			$this->save_settings();
-			echo '<div class="notice notice-success"><p>' . esc_html__( 'Settings saved!', 'ffcertificate' ) . '</p></div>';
+			// The Settings page opens on `ffc_view_settings`; mutating requires
+			// `ffc_manage_settings`. The parent's disabled <fieldset> is a UI
+			// affordance only — a view-only user can still POST the nonce
+			// directly, so gate the save here (matches every sibling path).
+			if ( \FreeFormCertificate\Core\Capabilities::current_user_can_admin_or( 'ffc_manage_settings' ) ) {
+				$this->save_settings();
+				echo '<div class="notice notice-success"><p>' . esc_html__( 'Settings saved!', 'ffcertificate' ) . '</p></div>';
+			}
 		}
 
 		$settings = $this->get_settings();

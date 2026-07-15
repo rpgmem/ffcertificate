@@ -275,6 +275,19 @@ class FormProcessorTest extends TestCase {
 
     public function test_restrictions_ticket_valid_consumes(): void {
         Functions\when( 'update_post_meta' )->justReturn( true );
+        // Ticket consumption now makes an atomic INSERT IGNORE claim; wire a
+        // $wpdb whose insert wins (rows_affected = 1) so this caller is allowed.
+        global $wpdb;
+        $wpdb                = Mockery::mock( 'wpdb' );
+        $wpdb->options       = 'wp_options';
+        $wpdb->rows_affected = 0;
+        $wpdb->shouldReceive( 'prepare' )->andReturn( 'SQL' );
+        $wpdb->shouldReceive( 'query' )->andReturnUsing(
+            function () use ( $wpdb ) {
+                $wpdb->rows_affected = 1;
+                return 1;
+            }
+        );
 
         $config = array(
             'restrictions' => array( 'ticket' => '1' ),
