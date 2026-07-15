@@ -267,8 +267,15 @@ class TabGeolocation extends SettingsTab {
         // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Nonce verified below via check_admin_referer.
 		if ( $_POST && isset( $_POST['ffc_save_geolocation'] ) ) {
 			check_admin_referer( 'ffc_geolocation_nonce' );
-			$this->save_settings();
-			echo '<div class="notice notice-success is-dismissible"><p>' . esc_html__( 'Geolocation settings saved successfully!', 'ffcertificate' ) . '</p></div>';
+			// The Settings page opens on `ffc_view_settings`; mutating requires
+			// `ffc_manage_settings`. The disabled <fieldset> in the parent
+			// display_settings_page() is a UI affordance only — a view-only
+			// user can still POST the nonce directly, so gate the save here to
+			// match every other settings-mutation path.
+			if ( \FreeFormCertificate\Core\Capabilities::current_user_can_admin_or( 'ffc_manage_settings' ) ) {
+				$this->save_settings();
+				echo '<div class="notice notice-success is-dismissible"><p>' . esc_html__( 'Geolocation settings saved successfully!', 'ffcertificate' ) . '</p></div>';
+			}
 		}
 
 		$settings = $this->get_settings();
@@ -417,6 +424,12 @@ class TabGeolocation extends SettingsTab {
 
 		if ( ! wp_verify_nonce( $nonce, 'ffc_delete_location_' . $id ) ) {
 			wp_die( esc_html__( 'Security check failed.', 'ffcertificate' ) );
+		}
+
+		// Deleting a geofence location is a manage action — a view-only
+		// (`ffc_view_settings`) user must not reach the registry write.
+		if ( ! \FreeFormCertificate\Core\Capabilities::current_user_can_admin_or( 'ffc_manage_settings' ) ) {
+			wp_die( esc_html__( 'You do not have permission to manage locations.', 'ffcertificate' ) );
 		}
 
 		GeofenceLocationRegistry::delete( $id );
