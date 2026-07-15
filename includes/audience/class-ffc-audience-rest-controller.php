@@ -270,6 +270,43 @@ class AudienceRestController {
 	}
 
 	/**
+	 * Resolve the set of schedule IDs the current caller may read.
+	 *
+	 * The read endpoints have a public `permission_callback`, so this is the
+	 * authorization boundary that keeps private-schedule booking data out of
+	 * unauthorized responses — mirroring the visibility gate the shortcode
+	 * (`AudienceShortcode::render()`) already enforces:
+	 *   - admin / scheduling-bypass users: unrestricted (returns null).
+	 *   - logged-in users: public schedules + any they have permission on.
+	 *   - anonymous users: active public schedules only.
+	 *
+	 * @return int[]|null Allowlist of schedule IDs, or null when unrestricted.
+	 */
+	private function readable_schedule_ids(): ?array {
+		if ( \FreeFormCertificate\Repositories\CalendarRepository::userHasSchedulingBypass() ) {
+			return null;
+		}
+
+		if ( is_user_logged_in() ) {
+			$schedules = AudienceScheduleRepository::get_by_user_access( get_current_user_id() );
+		} else {
+			$schedules = AudienceScheduleRepository::get_all(
+				array(
+					'status'     => 'active',
+					'visibility' => 'public',
+				)
+			);
+		}
+
+		$ids = array();
+		foreach ( $schedules as $schedule ) {
+			$ids[] = (int) $schedule->id;
+		}
+
+		return $ids;
+	}
+
+	/**
 	 * Get bookings
 	 *
 	 * @param \WP_REST_Request $request Request object.
@@ -298,6 +335,24 @@ class AudienceRestController {
 
 		// Get bookings.
 		$bookings = AudienceBookingReader::get_all( $args );
+
+		// Enforce schedule visibility: drop any booking whose owning schedule
+		// the caller may not read. Covers both the scoped request (a private
+		// schedule_id/environment_id the caller can't see yields no rows) and
+		// the unscoped request (which otherwise returns every schedule's
+		// bookings, including private ones). Each row carries `schedule_id`
+		// from the reader's INNER JOIN on the environments table.
+		$readable_schedule_ids = $this->readable_schedule_ids();
+		if ( null !== $readable_schedule_ids ) {
+			$bookings = array_values(
+				array_filter(
+					$bookings,
+					static function ( $booking ) use ( $readable_schedule_ids ) {
+						return in_array( (int) $booking->schedule_id, $readable_schedule_ids, true );
+					}
+				)
+			);
+		}
 
 		// Get user info for each booking.
 		$user_id      = get_current_user_id();
@@ -710,12 +765,6 @@ class AudienceRestController {
 			// Determine if this schedule is isolated (ignores cross-schedule conflicts).
 			$scope_schedule_id = null;
 			$environment       = AudienceEnvironmentRepository::get_by_id( $environment_id );
-			if ( $environment ) {
-				$schedule = AudienceScheduleRepository::get_by_id( (int) $environment->schedule_id );
-				if ( $schedule && ! empty( $schedule->is_isolated ) ) {
-					$scope_schedule_id = (int) $schedule->id;
-				}
-			}
 
 			$response_data = array(
 				'type'              => 'none',
@@ -723,6 +772,29 @@ class AudienceRestController {
 				'affected_users'    => array(),
 				'audience_same_day' => array(),
 			);
+
+			if ( $environment ) {
+				// Enforce schedule visibility: a caller who may not read this
+				// environment's schedule must not learn its bookings via the
+				// conflict probe. Return the empty "no conflict" shape instead
+				// of leaking times/descriptions of a private schedule.
+				$readable_schedule_ids = $this->readable_schedule_ids();
+				if ( null !== $readable_schedule_ids
+					&& ! in_array( (int) $environment->schedule_id, $readable_schedule_ids, true ) ) {
+					return new \WP_REST_Response(
+						array(
+							'success'   => true,
+							'conflicts' => $response_data,
+						),
+						200
+					);
+				}
+
+				$schedule = AudienceScheduleRepository::get_by_id( (int) $environment->schedule_id );
+				if ( $schedule && ! empty( $schedule->is_isolated ) ) {
+					$scope_schedule_id = (int) $schedule->id;
+				}
+			}
 
 			$is_hard_conflict = false;
 

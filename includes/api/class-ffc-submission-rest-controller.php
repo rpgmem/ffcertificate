@@ -362,8 +362,12 @@ class SubmissionRestController {
 				'message'     => __( 'Certificate is valid and authentic.', 'ffcertificate' ),
 			);
 
+			// This endpoint is public (permission_callback __return_true); mask
+			// every PII field before returning it, matching the /valid page
+			// renderer. email/rf are only populated from legacy plaintext
+			// columns on pre-encryption installs, but must be masked there too.
 			if ( ! empty( $submission['email'] ) ) {
-				$response['certificate']['email'] = $submission['email'];
+				$response['certificate']['email'] = \FreeFormCertificate\Core\DocumentFormatter::mask_email( $submission['email'] );
 			}
 
 			if ( ! empty( $submission['cpf_rf'] ) ) {
@@ -375,7 +379,7 @@ class SubmissionRestController {
 			}
 
 			if ( ! empty( $submission['rf'] ) ) {
-				$response['certificate']['rf'] = $submission['rf'];
+				$response['certificate']['rf'] = \FreeFormCertificate\Core\DocumentFormatter::mask_rf( $submission['rf'] );
 			}
 
 			return rest_ensure_response( $response );
