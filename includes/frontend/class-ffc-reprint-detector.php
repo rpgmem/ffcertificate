@@ -74,14 +74,13 @@ class ReprintDetector {
 
 			// Check if encryption is enabled.
 			if ( class_exists( '\FreeFormCertificate\Core\Encryption' ) && \FreeFormCertificate\Core\Encryption::is_configured() ) {
-				// Classify by digit count and search the specific split column. Using %i instead of
-				// raw interpolation ensures wpdb quotes the identifier even if this allowlist ever changes.
-				$id_hash           = \FreeFormCertificate\Core\Encryption::hash( $clean_cpf );
-				$allowed_hash_cols = array( 'cpf_hash', 'rf_hash' );
-				$hash_column       = strlen( $clean_cpf ) === 7 ? 'rf_hash' : 'cpf_hash';
-				if ( ! in_array( $hash_column, $allowed_hash_cols, true ) ) {
-					$hash_column = 'cpf_hash';
-				}
+				// Classify by digit count and search the specific split column.
+				// The ternary can only yield one of the two fixed literal column
+				// names ('rf_hash' / 'cpf_hash') — no request data reaches it —
+				// and %i quotes the identifier regardless, so no allowlist guard
+				// is needed here.
+				$id_hash     = \FreeFormCertificate\Core\Encryption::hash( $clean_cpf );
+				$hash_column = strlen( $clean_cpf ) === 7 ? 'rf_hash' : 'cpf_hash';
 
                 // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 				$existing_submission = $wpdb->get_row(
