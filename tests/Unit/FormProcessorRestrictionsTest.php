@@ -209,6 +209,7 @@ class FormProcessorRestrictionsTest extends TestCase {
 
         // Stub update_post_meta for ticket consumption
         Functions\when( 'update_post_meta' )->justReturn( true );
+        $this->mock_winning_ticket_claim();
 
         $result = AccessRestrictionChecker::check( $config, '12345678901', 'abc-def-123', 1 );
 
@@ -223,10 +224,30 @@ class FormProcessorRestrictionsTest extends TestCase {
         );
 
         Functions\when( 'update_post_meta' )->justReturn( true );
+        $this->mock_winning_ticket_claim();
 
         $result = AccessRestrictionChecker::check( $config, '12345678901', 'ABC-DEF-123', 1 );
 
         $this->assertTrue( $result['allowed'] );
+    }
+
+    /**
+     * Wire a global $wpdb whose atomic ticket-claim insert wins
+     * (rows_affected = 1) so a valid ticket is allowed deterministically,
+     * regardless of any $wpdb a prior test in the shard left behind.
+     */
+    private function mock_winning_ticket_claim(): void {
+        global $wpdb;
+        $wpdb                = Mockery::mock( 'wpdb' );
+        $wpdb->options       = 'wp_options';
+        $wpdb->rows_affected = 0;
+        $wpdb->shouldReceive( 'prepare' )->andReturn( 'SQL' );
+        $wpdb->shouldReceive( 'query' )->andReturnUsing(
+            function () use ( $wpdb ) {
+                $wpdb->rows_affected = 1;
+                return 1;
+            }
+        );
     }
 
     // ------------------------------------------------------------------

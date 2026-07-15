@@ -87,6 +87,10 @@ class AudienceRestControllerTest extends TestCase {
         $this->schedule_repo_mock->shouldReceive( 'user_can_cancel_others' )->andReturn( false )->byDefault();
         $this->schedule_repo_mock->shouldReceive( 'user_can_book' )->andReturn( true )->byDefault();
         $this->schedule_repo_mock->shouldReceive( 'get_by_id' )->andReturn( null )->byDefault();
+        // Read-path visibility gate (readable_schedule_ids): default to no
+        // accessible schedules so tests must opt a schedule in explicitly.
+        $this->schedule_repo_mock->shouldReceive( 'get_by_user_access' )->andReturn( array() )->byDefault();
+        $this->schedule_repo_mock->shouldReceive( 'get_all' )->andReturn( array() )->byDefault();
 
         $this->date_blocking_mock = Mockery::mock( 'alias:\FreeFormCertificate\Scheduling\DateBlockingService' );
         $this->date_blocking_mock->shouldReceive( 'get_global_holidays' )->andReturn( array() )->byDefault();
@@ -271,11 +275,14 @@ class AudienceRestControllerTest extends TestCase {
         Functions\when( 'is_user_logged_in' )->justReturn( true );
         Functions\when( 'get_current_user_id' )->justReturn( 5 );
         $this->calendar_repo_mock->shouldReceive( 'userHasSchedulingBypass' )->andReturn( false );
+        // User has access to schedule 20 (the booking's owning schedule).
+        $this->schedule_repo_mock->shouldReceive( 'get_by_user_access' )->with( 5 )->andReturn( array( (object) array( 'id' => 20 ) ) );
 
         $booking = (object) array(
             'id'               => 1,
             'environment_id'   => 10,
             'environment_name' => 'Room A',
+            'schedule_id'      => 20,
             'booking_date'     => '2026-04-01',
             'start_time'       => '09:00',
             'end_time'         => '10:00',
@@ -308,6 +315,115 @@ class AudienceRestControllerTest extends TestCase {
         $this->assertCount( 1, $data['bookings'] );
         $this->assertSame( 1, $data['bookings'][0]['id'] );
         $this->assertSame( 'Room A', $data['bookings'][0]['environment_name'] );
+    }
+
+    public function test_get_bookings_filters_out_bookings_from_unreadable_schedules(): void {
+        // Anonymous caller: only active public schedules are readable.
+        Functions\when( 'is_user_logged_in' )->justReturn( false );
+        Functions\when( 'get_current_user_id' )->justReturn( 0 );
+        $this->calendar_repo_mock->shouldReceive( 'userHasSchedulingBypass' )->andReturn( false );
+        // Public schedule set = {20}; schedule 99 is private and must not leak.
+        $this->schedule_repo_mock->shouldReceive( 'get_all' )
+            ->with( array( 'status' => 'active', 'visibility' => 'public' ) )
+            ->andReturn( array( (object) array( 'id' => 20 ) ) );
+
+        $public_booking  = (object) array(
+            'id' => 1, 'environment_id' => 10, 'environment_name' => 'Public Room',
+            'schedule_id' => 20, 'booking_date' => '2026-04-01', 'start_time' => '09:00',
+            'end_time' => '10:00', 'is_all_day' => 0, 'booking_type' => 'audience',
+            'description' => 'Public', 'status' => 'active', 'created_by' => 7,
+        );
+        $private_booking = (object) array(
+            'id' => 2, 'environment_id' => 11, 'environment_name' => 'Private Room',
+            'schedule_id' => 99, 'booking_date' => '2026-04-02', 'start_time' => '11:00',
+            'end_time' => '12:00', 'is_all_day' => 0, 'booking_type' => 'audience',
+            'description' => 'Secret', 'status' => 'active', 'created_by' => 8,
+        );
+
+        $this->booking_repo_mock->shouldReceive( 'get_all' )->once()->andReturn( array( $public_booking, $private_booking ) );
+        $this->booking_repo_mock->shouldReceive( 'get_booking_audiences' )->andReturn( array() );
+        $this->date_blocking_mock->shouldReceive( 'get_global_holidays' )->andReturn( array() );
+
+        $ctrl    = new AudienceRestController();
+        $request = $this->make_request( array(
+            'start_date'     => '2026-04-01',
+            'end_date'       => '2026-04-30',
+            'schedule_id'    => null,
+            'environment_id' => null,
+        ));
+
+        $data = $ctrl->get_bookings( $request )->get_data();
+
+        $this->assertCount( 1, $data['bookings'], 'Private-schedule booking must be filtered out' );
+        $this->assertSame( 1, $data['bookings'][0]['id'] );
+    }
+
+    public function test_get_bookings_unrestricted_for_bypass_user(): void {
+        // Bypass users read everything: readable_schedule_ids() returns null,
+        // so no visibility filtering is applied (private schedule included).
+        Functions\when( 'is_user_logged_in' )->justReturn( true );
+        Functions\when( 'get_current_user_id' )->justReturn( 1 );
+        $this->calendar_repo_mock->shouldReceive( 'userHasSchedulingBypass' )->andReturn( true );
+
+        $private_booking = (object) array(
+            'id' => 2, 'environment_id' => 11, 'environment_name' => 'Private Room',
+            'schedule_id' => 99, 'booking_date' => '2026-04-02', 'start_time' => '11:00',
+            'end_time' => '12:00', 'is_all_day' => 0, 'booking_type' => 'audience',
+            'description' => 'Secret', 'status' => 'active', 'created_by' => 8,
+        );
+
+        $this->booking_repo_mock->shouldReceive( 'get_all' )->once()->andReturn( array( $private_booking ) );
+        $this->booking_repo_mock->shouldReceive( 'get_booking_audiences' )->andReturn( array() );
+        $this->date_blocking_mock->shouldReceive( 'get_global_holidays' )->andReturn( array() );
+
+        $ctrl    = new AudienceRestController();
+        $request = $this->make_request( array(
+            'start_date'     => '2026-04-01',
+            'end_date'       => '2026-04-30',
+            'schedule_id'    => null,
+            'environment_id' => null,
+        ));
+
+        $data = $ctrl->get_bookings( $request )->get_data();
+
+        $this->assertCount( 1, $data['bookings'] );
+        $this->assertSame( 2, $data['bookings'][0]['id'] );
+    }
+
+    public function test_check_conflicts_hides_conflicts_on_unreadable_schedule(): void {
+        // Anonymous caller probing an environment whose schedule (99) is not
+        // in the public set must get the empty "no conflict" shape even though
+        // a real conflict exists — no leak of times/descriptions.
+        Functions\when( 'is_user_logged_in' )->justReturn( false );
+        Functions\when( 'get_current_user_id' )->justReturn( 0 );
+        $this->calendar_repo_mock->shouldReceive( 'userHasSchedulingBypass' )->andReturn( false );
+        $this->schedule_repo_mock->shouldReceive( 'get_all' )
+            ->with( array( 'status' => 'active', 'visibility' => 'public' ) )
+            ->andReturn( array( (object) array( 'id' => 20 ) ) );
+
+        $this->env_repo_mock->shouldReceive( 'get_by_id' )->with( 11 )->andReturn(
+            (object) array( 'id' => 11, 'schedule_id' => 99 )
+        );
+        // A real environment conflict exists on the private schedule.
+        $this->booking_repo_mock->shouldReceive( 'get_conflicts' )->andReturn(
+            array( (object) array( 'id' => 5, 'start_time' => '09:00', 'end_time' => '10:00' ) )
+        );
+
+        $ctrl    = new AudienceRestController();
+        $request = $this->make_request( array(
+            'environment_id' => 11,
+            'booking_date'   => '2026-04-01',
+            'start_time'     => '09:00',
+            'end_time'       => '10:00',
+            'audience_ids'   => array(),
+            'user_ids'       => array(),
+        ));
+
+        $data = $ctrl->check_conflicts( $request )->get_data();
+
+        $this->assertTrue( $data['success'] );
+        $this->assertSame( 'none', $data['conflicts']['type'] );
+        $this->assertSame( array(), $data['conflicts']['bookings'] );
     }
 
     // ------------------------------------------------------------------
