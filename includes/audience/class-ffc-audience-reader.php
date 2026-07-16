@@ -43,6 +43,25 @@ class AudienceReader {
 	}
 
 	/**
+	 * Object-cache group for versioned query/aggregate results (counts,
+	 * searches). Separate from the by-id {@see self::cache_group()} group so
+	 * the whole set can be retired with a single version bump — the keys are
+	 * `md5( args )` hashes that can't be enumerated at write time (#644).
+	 *
+	 * @var string
+	 */
+	private const QUERY_CACHE_GROUP = 'ffc_audience_queries';
+
+	/**
+	 * Cache-version domain shared by every audience query/aggregate cache
+	 * (audience + environment). One {@see \FreeFormCertificate\Core\CacheVersion::bump()}
+	 * retires them all.
+	 *
+	 * @var string
+	 */
+	private const CACHE_DOMAIN = 'audience';
+
+	/**
 	 * Get audiences table name
 	 *
 	 * @return string
@@ -459,8 +478,8 @@ class AudienceReader {
 	 */
 	public static function count( array $args = array() ): int {
 		$args_json = wp_json_encode( $args );
-		$cache_key = 'ffcertificate_aud_count_' . md5( $args_json ? $args_json : '' );
-		$cached    = wp_cache_get( $cache_key, 'ffcertificate' );
+		$cache_key = 'aud_count_' . md5( $args_json ? $args_json : '' ) . '_' . \FreeFormCertificate\Core\CacheVersion::suffix( self::CACHE_DOMAIN );
+		$cached    = wp_cache_get( $cache_key, self::QUERY_CACHE_GROUP );
 		if ( false !== $cached ) {
 			return (int) $cached;
 		}
@@ -495,7 +514,7 @@ class AudienceReader {
 			$wpdb->prepare( "SELECT COUNT(*) FROM %i {$where_clause}", $prepare_args )
 		);
 		// phpcs:enable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
-		wp_cache_set( $cache_key, $result, 'ffcertificate' );
+		wp_cache_set( $cache_key, $result, self::QUERY_CACHE_GROUP );
 
 		return $result;
 	}
@@ -508,8 +527,8 @@ class AudienceReader {
 	 * @return list<AudienceRow>
 	 */
 	public static function search( string $search, int $limit = 10 ): array {
-		$cache_key = 'ffcertificate_aud_search_' . md5( $search . '_' . $limit );
-		$cached    = wp_cache_get( $cache_key, 'ffcertificate' );
+		$cache_key = 'aud_search_' . md5( $search . '_' . $limit ) . '_' . \FreeFormCertificate\Core\CacheVersion::suffix( self::CACHE_DOMAIN );
+		$cached    = wp_cache_get( $cache_key, self::QUERY_CACHE_GROUP );
 		if ( is_array( $cached ) ) {
 			/**
 		 * Cast wpdb result to typed shape.
@@ -542,7 +561,7 @@ class AudienceReader {
 		 */
 		$results = is_array( $results_raw ) ? $results_raw : array();
 
-		wp_cache_set( $cache_key, $results, 'ffcertificate' );
+		wp_cache_set( $cache_key, $results, self::QUERY_CACHE_GROUP );
 
 		return $results;
 	}

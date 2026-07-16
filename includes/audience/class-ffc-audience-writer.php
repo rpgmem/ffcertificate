@@ -41,6 +41,16 @@ class AudienceWriter {
 	}
 
 	/**
+	 * Cache-version domain shared by every audience query/aggregate cache.
+	 * Bumped on every write so {@see AudienceReader::count()} /
+	 * {@see AudienceReader::search()} (md5-keyed, un-enumerable) recompute
+	 * after a mutation (#644).
+	 *
+	 * @var string
+	 */
+	private const CACHE_DOMAIN = 'audience';
+
+	/**
 	 * Get audiences table name
 	 *
 	 * @return string
@@ -100,6 +110,8 @@ class AudienceWriter {
 		}
 
 		$new_id = (int) $wpdb->insert_id;
+
+		\FreeFormCertificate\Core\CacheVersion::bump( self::CACHE_DOMAIN );
 
 		/**
 		 * Fires after an audience is successfully created.
@@ -163,6 +175,7 @@ class AudienceWriter {
 		);
 
 		static::cache_delete( "id_{$id}" );
+		\FreeFormCertificate\Core\CacheVersion::bump( self::CACHE_DOMAIN );
 
 		return false !== $result;
 	}
@@ -236,6 +249,7 @@ class AudienceWriter {
 		$result = $wpdb->delete( $table, array( 'id' => $id ), array( '%d' ) );
 
 		static::cache_delete( "id_{$id}" );
+		\FreeFormCertificate\Core\CacheVersion::bump( self::CACHE_DOMAIN );
 
 		return false !== $result;
 	}

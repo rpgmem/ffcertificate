@@ -7,6 +7,9 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Changed
+- Internal — audience list/search/count and environment holiday/count query caches now invalidate on write via the shared `CacheVersion` counter (a monotonic per-domain version folded into the cache key) instead of relying on TTL expiry. These caches are keyed by `md5( args )` and can't be enumerated to delete individually, so a stale count or search result could previously survive up to an hour after an audience/environment/holiday mutation; every create/update/delete now bumps the `audience` version so the next read recomputes. Reuses the helper extracted from the recruitment public-listing cache. (#644)
+
 ## [6.13.0] (2026-07-15) — `b0d8d9a`
 
 ### Security

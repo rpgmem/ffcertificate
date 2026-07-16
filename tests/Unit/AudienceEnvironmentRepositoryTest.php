@@ -36,6 +36,9 @@ class AudienceEnvironmentRepositoryTest extends TestCase {
         Functions\when('wp_cache_get')->justReturn(false);
         Functions\when('wp_cache_set')->justReturn(true);
         Functions\when('wp_cache_delete')->justReturn(true);
+        // CacheVersion (query-cache invalidation) reads/writes a wp_options counter.
+        Functions\when('get_option')->justReturn(false);
+        Functions\when('update_option')->justReturn(true);
         Functions\when('__')->returnArg();
         Functions\when('wp_parse_args')->alias(function($args, $defaults = array()) {
             return array_merge($defaults, $args);
@@ -817,7 +820,7 @@ class AudienceEnvironmentRepositoryTest extends TestCase {
             if ($key === 'id_1' && $group === 'ffc_audience_environments') {
                 return $env;
             }
-            if ($key === 'ffcertificate_holiday_1_2025-12-25' && $group === 'ffcertificate') {
+            if ($key === 'holiday_1_2025-12-25_v0' && $group === 'ffc_audience_queries') {
                 return 1; // cached as "is a holiday"
             }
             return false;
@@ -884,7 +887,7 @@ class AudienceEnvironmentRepositoryTest extends TestCase {
         $cache_set_key = null;
         $cache_set_value = null;
         Functions\when('wp_cache_set')->alias(function($key, $value, $group = '') use (&$cache_set_key, &$cache_set_value) {
-            if ($group === 'ffcertificate') {
+            if ($group === 'ffc_audience_queries') {
                 $cache_set_key = $key;
                 $cache_set_value = $value;
             }
@@ -893,7 +896,7 @@ class AudienceEnvironmentRepositoryTest extends TestCase {
 
         AudienceEnvironmentRepository::is_holiday(1, '2025-12-25');
 
-        $this->assertSame('ffcertificate_holiday_1_2025-12-25', $cache_set_key);
+        $this->assertSame('holiday_1_2025-12-25_v0', $cache_set_key);
         $this->assertTrue((bool) $cache_set_value);
     }
 
@@ -953,7 +956,7 @@ class AudienceEnvironmentRepositoryTest extends TestCase {
 
     public function test_count_returns_cached_result_on_cache_hit(): void {
         Functions\when('wp_cache_get')->alias(function($key, $group = '') {
-            if ($group === 'ffcertificate') {
+            if ($group === 'ffc_audience_queries') {
                 return 42;
             }
             return false;
@@ -973,7 +976,7 @@ class AudienceEnvironmentRepositoryTest extends TestCase {
 
         $cache_set_value = null;
         Functions\when('wp_cache_set')->alias(function($key, $value, $group = '') use (&$cache_set_value) {
-            if ($group === 'ffcertificate') {
+            if ($group === 'ffc_audience_queries') {
                 $cache_set_value = $value;
             }
             return true;
@@ -996,5 +999,61 @@ class AudienceEnvironmentRepositoryTest extends TestCase {
         AudienceEnvironmentRepository::count();
 
         $this->assertStringNotContainsString('WHERE', $captured_sql);
+    }
+
+    public function test_count_cache_key_carries_version_suffix(): void {
+        Functions\when('get_option')->justReturn(4);
+        $captured_key = '';
+        Functions\when('wp_cache_get')->alias(function($key, $group = '') use (&$captured_key) {
+            $captured_key = $key;
+            return 3;
+        });
+
+        AudienceEnvironmentRepository::count();
+
+        $this->assertStringStartsWith('env_count_', $captured_key);
+        $this->assertStringEndsWith('_v4', $captured_key);
+    }
+
+    // ==================================================================
+    // Query-cache version invalidation (#644)
+    // ==================================================================
+
+    /**
+     * @dataProvider provide_mutations_that_bump
+     * @param callable $mutation
+     */
+    public function test_mutation_bumps_query_cache_version(callable $mutation): void {
+        $this->wpdb->insert_id = 1;
+        $this->wpdb->shouldReceive('insert')->andReturn(1)->byDefault();
+        $this->wpdb->shouldReceive('update')->andReturn(1)->byDefault();
+        $this->wpdb->shouldReceive('delete')->andReturn(1)->byDefault();
+        $this->wpdb->shouldReceive('get_results')->andReturn([])->byDefault();
+
+        $bumped = null;
+        Functions\when('get_option')->justReturn(2);
+        Functions\when('update_option')->alias(function($name, $value, $autoload = null) use (&$bumped) {
+            if ($name === 'ffc_cache_version_audience') {
+                $bumped = $value;
+            }
+            return true;
+        });
+
+        $mutation();
+
+        $this->assertSame(3, $bumped, 'mutation must bump the audience query-cache version');
+    }
+
+    /**
+     * @return array<string, array{callable}>
+     */
+    public static function provide_mutations_that_bump(): array {
+        return [
+            'create'         => [fn() => AudienceEnvironmentRepository::create(['name' => 'Room'])],
+            'update'         => [fn() => AudienceEnvironmentRepository::update(1, ['name' => 'Room'])],
+            'delete'         => [fn() => AudienceEnvironmentRepository::delete(1)],
+            'add_holiday'    => [fn() => AudienceEnvironmentRepository::add_holiday(10, '2025-12-25')],
+            'remove_holiday' => [fn() => AudienceEnvironmentRepository::remove_holiday(5)],
+        ];
     }
 }
