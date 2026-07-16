@@ -63,6 +63,14 @@ class FrontendShortcodesTest extends TestCase {
         Functions\when( 'is_ssl' )->justReturn( false );
         Functions\when( 'setcookie' )->justReturn( true );
         Functions\when( 'wp_json_encode' )->alias( static fn( $v ) => json_encode( $v ) );
+        // render_form() now reads RateLimiter::get_settings() unconditionally
+        // (to decide the LGPD device notice in the global-ON + form-OFF gap),
+        // which parses the settings option via wp_parse_args (#647).
+        Functions\when( 'wp_parse_args' )->alias(
+            static function ( $args, $defaults = array() ) {
+                return array_merge( (array) $defaults, (array) $args );
+            }
+        );
 
         if ( ! defined( 'ABSPATH' ) ) {
             define( 'ABSPATH', '/tmp/' );
@@ -74,8 +82,68 @@ class FrontendShortcodesTest extends TestCase {
     protected function tearDown(): void {
         unset( $_GET['token'] );
         $_COOKIE = array();
+        $this->reset_rate_limit_cache();
         Monkey\tearDown();
         parent::tearDown();
+    }
+
+    /**
+     * Reset RateLimitChecker's private static settings cache so a global
+     * device state set in one test does not leak into the next.
+     */
+    private function reset_rate_limit_cache(): void {
+        if ( ! class_exists( '\FreeFormCertificate\Security\RateLimitChecker' ) ) {
+            return;
+        }
+        $ref = new \ReflectionProperty( '\FreeFormCertificate\Security\RateLimitChecker', 'settings_cache' );
+        $ref->setAccessible( true );
+        $ref->setValue( null, null );
+    }
+
+    /**
+     * Render a minimal form with the device subsystem in a chosen state.
+     *
+     * @param bool $global_on Global Device Fingerprint subsystem enabled.
+     * @param bool $form_on    Per-form device limit enabled.
+     * @param int  $form_id    Form ID to render.
+     * @return string Rendered HTML.
+     */
+    private function render_form_with_device( bool $global_on, bool $form_on, int $form_id ): string {
+        $this->reset_rate_limit_cache();
+        Functions\when( 'shortcode_atts' )->alias( fn( $d, $a ) => array_merge( $d, $a ) );
+        Functions\when( 'get_post_type' )->justReturn( 'ffc_form' );
+        Functions\when( 'get_post' )->justReturn( (object) array( 'post_title' => 'My Certificate' ) );
+        Functions\when( 'wp_rand' )->justReturn( 4 );
+        Functions\when( 'wp_hash' )->justReturn( 'hash' );
+        Functions\when( 'get_post_meta' )->alias(
+            function ( $id, $key, $single = false ) use ( $form_on ) {
+                if ( '_ffc_form_fields' === $key ) {
+                    return array(
+                        array( 'type' => 'text', 'name' => 'name', 'label' => 'Full Name', 'required' => true ),
+                    );
+                }
+                if ( '_ffc_device_limit_enabled' === $key ) {
+                    return $form_on ? '1' : '0';
+                }
+                if ( '_ffc_form_config' === $key ) {
+                    return array( 'restrictions' => array() );
+                }
+                return '';
+            }
+        );
+        Functions\when( 'get_option' )->alias(
+            function ( $key, $default = false ) use ( $global_on ) {
+                if ( is_string( $key ) && 0 === strpos( $key, 'ffc_sched_exc_used_' ) ) {
+                    return $default;
+                }
+                if ( 'ffc_rate_limit_settings' === $key ) {
+                    return array( 'device' => array( 'enabled' => $global_on ) );
+                }
+                return array();
+            }
+        );
+
+        return (string) $this->shortcodes->render_form( array( 'id' => $form_id ) );
     }
 
     // ==================================================================
@@ -240,6 +308,37 @@ class FrontendShortcodesTest extends TestCase {
         $this->assertStringContainsString( 'ffc-lgpd-consent', $html );
         $this->assertStringContainsString( 'ffc-submit-btn', $html );
         $this->assertStringContainsString( 'ffc_honeypot_trap', $html );
+    }
+
+    // ==================================================================
+    // LGPD consent — device notice branches (#647)
+    // ==================================================================
+
+    public function test_render_form_shows_generic_fraud_notice_when_global_on_form_off(): void {
+        $html = $this->render_form_with_device( true, false, 51 );
+
+        // Generic, truthful monitoring line — no device-duplicate claim.
+        $this->assertStringContainsString( 'ffc-fraud-monitoring-notice', $html );
+        $this->assertStringContainsString( 'logged and may be audited', $html );
+        // The device-specific disclosure must NOT appear (no signal collected).
+        $this->assertStringNotContainsString( 'ffc-device-disclosure', $html );
+    }
+
+    public function test_render_form_shows_device_disclosure_when_global_on_form_on(): void {
+        $html = $this->render_form_with_device( true, true, 52 );
+
+        // Form ON: the honest device disclosure appears...
+        $this->assertStringContainsString( 'ffc-device-disclosure', $html );
+        $this->assertStringContainsString( 'anonymously identify your device', $html );
+        // ...and the generic gap-notice does not.
+        $this->assertStringNotContainsString( 'ffc-fraud-monitoring-notice', $html );
+    }
+
+    public function test_render_form_shows_no_device_notice_when_global_off(): void {
+        $html = $this->render_form_with_device( false, false, 53 );
+
+        $this->assertStringNotContainsString( 'ffc-fraud-monitoring-notice', $html );
+        $this->assertStringNotContainsString( 'ffc-device-disclosure', $html );
     }
 
     // ==================================================================

@@ -53,8 +53,38 @@ class FormEditorDeviceLimitMetaboxTest extends TestCase {
     }
 
     protected function tearDown(): void {
+        $this->reset_rate_limit_cache();
         Monkey\tearDown();
         parent::tearDown();
+    }
+
+    /**
+     * Reset RateLimitChecker's private static settings cache so a global
+     * device state set in one test does not leak into the next.
+     */
+    private function reset_rate_limit_cache(): void {
+        if ( ! class_exists( '\FreeFormCertificate\Security\RateLimitChecker' ) ) {
+            return;
+        }
+        $ref = new \ReflectionProperty( '\FreeFormCertificate\Security\RateLimitChecker', 'settings_cache' );
+        $ref->setAccessible( true );
+        $ref->setValue( null, null );
+    }
+
+    /**
+     * Force the global Device Fingerprint subsystem on/off by resetting the
+     * settings cache and feeding a matching `ffc_rate_limit_settings` option.
+     */
+    private function set_global_device_enabled( bool $enabled ): void {
+        $this->reset_rate_limit_cache();
+        Functions\when( 'get_option' )->alias(
+            function ( $key, $default = false ) use ( $enabled ) {
+                if ( 'ffc_rate_limit_settings' === $key ) {
+                    return array( 'device' => array( 'enabled' => $enabled ) );
+                }
+                return array();
+            }
+        );
     }
 
     private function render(): string {
@@ -107,5 +137,41 @@ class FormEditorDeviceLimitMetaboxTest extends TestCase {
         );
         $this->assertStringContainsString( 'inherit the global default', $html );
         $this->assertStringContainsString( 'inherit the global block message', $html );
+    }
+
+    // ==================================================================
+    // "Enable it" nudge — global ON + form OFF (#647)
+    // ==================================================================
+
+    public function test_render_shows_nudge_when_global_on_and_form_off(): void {
+        $this->set_global_device_enabled( true );
+        $this->meta_values['_ffc_device_limit_enabled'] = '0';
+
+        $html = $this->render();
+
+        $this->assertStringContainsString( 'ffc-device-nudge', $html );
+        $this->assertStringContainsString( 'shared devices', $html );
+        // The global-off warning must NOT appear when the subsystem is on.
+        $this->assertStringNotContainsString( 'Disabled globally', $html );
+    }
+
+    public function test_render_hides_nudge_when_form_already_on(): void {
+        $this->set_global_device_enabled( true );
+        $this->meta_values['_ffc_device_limit_enabled'] = '1';
+
+        $html = $this->render();
+
+        $this->assertStringNotContainsString( 'ffc-device-nudge', $html );
+    }
+
+    public function test_render_hides_nudge_when_global_off(): void {
+        $this->set_global_device_enabled( false );
+        $this->meta_values['_ffc_device_limit_enabled'] = '0';
+
+        $html = $this->render();
+
+        // Global-off shows the "disabled globally" warning, not the nudge.
+        $this->assertStringNotContainsString( 'ffc-device-nudge', $html );
+        $this->assertStringContainsString( 'Disabled globally', $html );
     }
 }

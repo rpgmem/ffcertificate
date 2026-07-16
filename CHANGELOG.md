@@ -7,6 +7,9 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Added
+- Device-fingerprint limit, "global on / form off" gap: the form editor now shows a neutral nudge when the subsystem is enabled plugin-wide but off for the form (explaining the shared-device trade-off so operators enable it deliberately), and forms in that state render a generic "submissions are logged and may be audited for fraud prevention" line inside the existing LGPD consent block. The line is intentionally generic — no device signal is collected when the form limit is off, so it makes no device-duplicate claim; the honest device disclosure still appears only when the per-form limit is on. (#647)
+
 ### Changed
 - Internal — audience list/search/count and environment holiday/count query caches now invalidate on write via the shared `CacheVersion` counter (a monotonic per-domain version folded into the cache key) instead of relying on TTL expiry. These caches are keyed by `md5( args )` and can't be enumerated to delete individually, so a stale count or search result could previously survive up to an hour after an audience/environment/holiday mutation; every create/update/delete now bumps the `audience` version so the next read recomputes. Reuses the helper extracted from the recruitment public-listing cache. (#644)
 

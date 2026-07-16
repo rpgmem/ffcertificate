@@ -348,13 +348,13 @@ class Shortcodes {
 					</p>
 
 					<?php
-					$ffc_device_disclosure = false;
-					if ( '1' === (string) get_post_meta( $form_id, '_ffc_device_limit_enabled', true )
-						&& class_exists( '\FreeFormCertificate\Security\RateLimiter' ) ) {
-						$ffc_rl_settings       = \FreeFormCertificate\Security\RateLimiter::get_settings();
-						$ffc_device_disclosure = ! empty( $ffc_rl_settings['device']['enabled'] );
+					$ffc_form_device_on   = '1' === (string) get_post_meta( $form_id, '_ffc_device_limit_enabled', true );
+					$ffc_device_global_on = false;
+					if ( class_exists( '\FreeFormCertificate\Security\RateLimiter' ) ) {
+						$ffc_rl_settings      = \FreeFormCertificate\Security\RateLimiter::get_settings();
+						$ffc_device_global_on = ! empty( $ffc_rl_settings['device']['enabled'] );
 					}
-					if ( $ffc_device_disclosure ) :
+					if ( $ffc_device_global_on && $ffc_form_device_on ) :
 						?>
 						<details class="ffc-consent-description ffc-device-disclosure">
 							<summary>
@@ -365,6 +365,17 @@ class Shortcodes {
 								<?php esc_html_e( 'Technical details: this form uses the open-source thumbmarkjs library (MIT) to produce an anonymized device identifier (browser, screen, GPU, fonts). Everything is processed locally; no data is sent to any third-party server.', 'ffcertificate' ); ?>
 							</p>
 						</details>
+						<?php
+					elseif ( $ffc_device_global_on ) :
+						// Reaching here means the global subsystem is on but this
+						// form has the device limit off — so no device signal is
+						// collected. The notice must stay a generic logging/audit
+						// statement (true regardless of the device limit) and make
+						// NO device-duplicate claim (#647).
+						?>
+						<p class="ffc-consent-description ffc-fraud-monitoring-notice">
+							<?php esc_html_e( 'Submissions to this form are logged and may be audited for fraud prevention.', 'ffcertificate' ); ?>
+						</p>
 					<?php endif; ?>
 				</div>
 
