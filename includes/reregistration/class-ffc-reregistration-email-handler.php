@@ -257,8 +257,12 @@ class ReregistrationEmailHandler {
 			$extra_vars
 		);
 
-		$subject = EmailTemplateService::render_template( $template['subject'], $variables );
-		$body    = EmailTemplateService::render_template( $template['body'], $variables );
+		$tokens = array();
+		foreach ( $variables as $key => $value ) {
+			$tokens[ '{{' . $key . '}}' ] = (string) $value;
+		}
+		$subject = \FreeFormCertificate\Core\TokenResolver::resolve( $template['subject'], $tokens );
+		$body    = \FreeFormCertificate\Core\TokenResolver::resolve( $template['body'], $tokens );
 
 		return EmailTemplateService::send( $user->user_email, $subject, $body );
 	}
