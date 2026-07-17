@@ -24,7 +24,6 @@ return array(
 	'Admin>Core',
 	'Admin>Frontend',
 	'Admin>Generators',
-	'Admin>Integrations',
 	'Admin>Maintenance',
 	'Admin>Migrations',
 	'Admin>Recruitment',

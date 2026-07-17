@@ -183,6 +183,15 @@ class FormEditorSaveHandler {
 				$clean_config['email_body'] = wp_kses_post( (string) ( $config['email_body'] ?? '' ) );
 			}
 
+			// Admin notification — independent opt-in toggle (default off, #649).
+			// The recipient list is only written when the toggle is on, so
+			// turning it off preserves the prior recipients verbatim.
+			$send_admin_email                 = isset( $config['send_admin_email'] ) && '1' === (string) $config['send_admin_email'] ? '1' : '0';
+			$clean_config['send_admin_email'] = $send_admin_email;
+			if ( '1' === $send_admin_email ) {
+				$clean_config['email_admin'] = sanitize_text_field( (string) ( $config['email_admin'] ?? '' ) );
+			}
+
 			// Restrictions — 4 independent toggles. Each gates exactly one
 			// data field; when its toggle is off, the corresponding field
 			// is not written to $clean_config so the prior value rides

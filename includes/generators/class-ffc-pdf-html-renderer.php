@@ -125,7 +125,7 @@ class PdfHtmlRenderer {
 
 		// Process Validation URL placeholders.
 		if ( strpos( $layout, '{{validation_url' ) !== false ) {
-			$layout = $this->process_validation_url_placeholders( $layout, $data );
+			$layout = \FreeFormCertificate\Generators\ValidationUrlPlaceholders::process( $layout, $data );
 		}
 
 		return $layout;
@@ -240,137 +240,6 @@ class PdfHtmlRenderer {
 		$magic_url   = \FreeFormCertificate\Generators\MagicLinkHelper::generate_magic_link( $magic_token );
 
 		return ! empty( $magic_url ) ? $magic_url : $verification_url;
-	}
-	/**
-	 * Process Validation URL placeholders in template
-	 *
-	 * ✅ MOVED FROM FFC_Email_Handler (v2.9.14)
-	 *
-	 * Supports multiple formats:
-	 * - {{validation_url}} → Default: link to magic, text shows /valid
-	 * - {{validation_url link:m>v}} → Link to magic, text /valid
-	 * - {{validation_url link:v>v}} → Link to /valid, text /valid
-	 * - {{validation_url link:m>m}} → Link to magic, text magic
-	 * - {{validation_url link:v>m}} → Link to /valid, text magic
-	 * - {{validation_url link:m>"Custom Text"}} → Link to magic, custom text
-	 * - {{validation_url link:m>v target:_blank}} → With target
-	 * - {{validation_url link:m>v color:blue}} → With color
-	 *
-	 * @param string               $layout Template HTML.
-	 * @param array<string, mixed> $data Submission data.
-	 * @return string Processed HTML
-	 */
-	private function process_validation_url_placeholders( string $layout, array $data ): string {
-		// Get base URLs.
-		$valid_url = untrailingslashit( site_url( 'valid' ) );
-
-		// Get magic link URL (with fallback to /valid).
-		$magic_token = isset( $data['magic_token'] ) ? $data['magic_token'] : '';
-		$magic_url   = \FreeFormCertificate\Generators\MagicLinkHelper::generate_magic_link( $magic_token );
-
-		if ( empty( $magic_url ) ) {
-			$magic_url = $valid_url; // Fallback.
-		}
-
-		// Find all {{validation_url ...}} placeholders.
-		preg_match_all( '/{{validation_url(?:\s+([^}]+))?}}/', $layout, $matches, PREG_SET_ORDER );
-
-		foreach ( $matches as $match ) {
-			$full_placeholder = $match[0];
-			$params_string    = isset( $match[1] ) ? trim( $match[1] ) : '';
-
-			// Parse parameters.
-			$params = $this->parse_validation_url_params( $params_string );
-
-			// Determine href URL.
-			$href = ( 'm' === $params['to'] ) ? $magic_url : $valid_url;
-
-			// Determine text.
-			$text = '';
-			if ( ! in_array( $params['text'], array( 'm', 'v' ), true ) ) {
-				// Custom text literal.
-				$text = $params['text'];
-			} elseif ( 'm' === $params['text'] ) {
-				$text = $magic_url;
-			} else {
-				// Default to /valid.
-				$text = $valid_url;
-			}
-
-			// Build <a> tag.
-			$link = '<a href="' . esc_url( $href ) . '" class="ffc-validation-link"';
-
-			// Add target if specified.
-			if ( ! empty( $params['target'] ) ) {
-				$link .= ' target="' . esc_attr( $params['target'] ) . '"';
-			}
-
-			// Add color style if specified.
-			if ( ! empty( $params['color'] ) ) {
-				$link .= ' style="color: ' . esc_attr( $params['color'] ) . ';"';
-			}
-
-			$link .= '>' . esc_html( $text ) . '</a>';
-
-			// Replace placeholder with generated link.
-			$layout = str_replace( $full_placeholder, $link, $layout );
-		}
-
-		return $layout;
-	}
-
-	/**
-	 * Parse validation URL parameters
-	 *
-	 * ✅ MOVED FROM FFC_Email_Handler (v2.9.14)
-	 *
-	 * @param string $params_string Parameter string (e.g., "link:m>v target:_blank color:blue").
-	 * @return array{to: string, text: string, target: string, color: string} Parsed parameters
-	 */
-	private function parse_validation_url_params( string $params_string ): array {
-		$defaults = array(
-			'to'     => 'm',      // Default destination: magic link.
-			'text'   => 'v',    // Default text: /valid URL.
-			'target' => '',
-			'color'  => '',
-		);
-
-		// Empty params = default (link:m>v).
-		if ( empty( $params_string ) ) {
-			return $defaults;
-		}
-
-		$params = $defaults;
-
-		// Split by spaces to get individual parameters.
-		$parts = preg_split( '/\s+/', $params_string );
-		if ( ! is_array( $parts ) ) {
-			return $defaults;
-		}
-
-		foreach ( $parts as $part ) {
-			// Parse link:X>Y or link:X>"Custom Text".
-			if ( preg_match( '/^link:(.+)$/', $part, $link_match ) ) {
-				$link_value = $link_match[1];
-
-				// Check for custom text: m>"Text" or v>"Text".
-				if ( preg_match( '/^([mv])>"([^"]+)"$/', $link_value, $custom_match ) ) {
-					$params['to']   = $custom_match[1];
-					$params['text'] = $custom_match[2]; // Literal text.
-				} elseif ( preg_match( '/^([mv])>([mv])$/', $link_value, $standard_match ) ) {
-					// Standard format: m>v, v>m, m>m, v>v.
-					$params['to']   = $standard_match[1];
-					$params['text'] = $standard_match[2];
-				}
-			} elseif ( preg_match( '/^target:(.+)$/', $part, $target_match ) ) {
-				// Parse target:_blank.
-				$params['target'] = $target_match[1];
-			} elseif ( preg_match( '/^color:(.+)$/', $part, $color_match ) ) {
-				$params['color'] = $color_match[1];
-			}
-		}
-
-		return $params;
 	}
 
 	/**

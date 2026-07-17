@@ -97,13 +97,19 @@ class EmailHandler {
 		 */
 		do_action( 'ffcertificate_before_email_send', $submission_id, $user_email, $form_id, $form_config );
 
-		// Send user email if enabled.
-		if ( isset( $form_config['send_user_email'] ) && 1 === $form_config['send_user_email'] ) {
+		// Send user email if enabled. Loose check — the flag persists as '1'
+		// (string) from the metabox but callers may pass int 1; `! empty()`
+		// accepts both and rejects '0'/0/'' (#649).
+		if ( ! empty( $form_config['send_user_email'] ) ) {
 			$this->send_user_email( $user_email, $form_title, $form_config, $submission_data, $magic_token );
 		}
 
-		// Send admin notification.
-		$this->send_admin_notification( $form_title, $submission_data, $form_config );
+		// Send admin notification only when explicitly enabled for the form.
+		// Opt-in (default off) so re-wiring the dispatch (#649) doesn't start
+		// emailing the site admin on every submission without consent.
+		if ( ! empty( $form_config['send_admin_email'] ) ) {
+			$this->send_admin_notification( $form_title, $submission_data, $form_config );
+		}
 	}
 
 	/**
@@ -128,18 +134,33 @@ class EmailHandler {
 			return;
 		}
 
-		// Email subject.
+		// Format auth code with certificate prefix.
+		$raw_code  = isset( $submission_data['auth_code'] ) ? $submission_data['auth_code'] : '';
+		$auth_code = ! empty( $raw_code )
+			? \FreeFormCertificate\Core\DocumentFormatter::format_auth_code( $raw_code, \FreeFormCertificate\Core\DocumentFormatter::PREFIX_CERTIFICATE )
+			: '';
+
+		// Scalar placeholder map. {{validation_url ...}} is handled by the
+		// shared DSL below (m = magic/download link, v = public /valid).
+		$replacements = array(
+			'{{name}}'       => isset( $submission_data['name'] ) ? (string) $submission_data['name'] : '',
+			'{{form_title}}' => $form_title,
+			'{{auth_code}}'  => $auth_code,
+			'{{date}}'       => \FreeFormCertificate\Core\DateFormatter::format_date( time() ),
+		);
+
+		// Subject: default carries {{form_title}}; substitute then filter.
 		$subject = ! empty( $form_config['email_subject'] )
-			? $form_config['email_subject']
-			/* translators: %s: form title */
-			: sprintf( __( 'Your Certificate: %s', 'ffcertificate' ), $form_title );
+			? (string) $form_config['email_subject']
+			: \FreeFormCertificate\Core\EmailTemplateDefaults::user_email_subject();
+		$subject = self::apply_placeholders( $subject, $replacements );
 
 		/**
 		 * Filters the user email subject.
 		 *
 		 * @since 4.6.4
-		 * @param string $subject    Email subject.
-		 * @param string $form_title Form title.
+		 * @param string $subject     Email subject.
+		 * @param string $form_title  Form title.
 		 * @param array  $form_config Form configuration.
 		 */
 		$subject = apply_filters( 'ffcertificate_user_email_subject', $subject, $form_title, $form_config );
@@ -148,81 +169,55 @@ class EmailHandler {
 		 * Filters the user email recipient.
 		 *
 		 * @since 4.6.4
-		 * @param string $to          Recipient email address.
-		 * @param string $form_title  Form title.
+		 * @param string $to              Recipient email address.
+		 * @param string $form_title      Form title.
 		 * @param array  $submission_data Submission data.
 		 */
 		$to = apply_filters( 'ffcertificate_user_email_recipients', $to, $form_title, $submission_data );
 
-		// Generate magic link URL.
-		$magic_link_url = '';
-		if ( ! empty( $magic_token ) ) {
-			$magic_link_url = \FreeFormCertificate\Generators\MagicLinkHelper::generate_magic_link( $magic_token );
-		}
+		// The whole email is the (translatable, per-form editable) template —
+		// no locked chrome. Fall back to the shipped default when empty.
+		$body = ( isset( $form_config['email_body'] ) && '' !== trim( (string) $form_config['email_body'] ) )
+			? (string) $form_config['email_body']
+			: \FreeFormCertificate\Core\EmailTemplateDefaults::user_email_body();
 
-		// Format auth code with certificate prefix.
-		$raw_code  = isset( $submission_data['auth_code'] ) ? $submission_data['auth_code'] : '';
-		$auth_code = ! empty( $raw_code )
-			? \FreeFormCertificate\Core\DocumentFormatter::format_auth_code( $raw_code, \FreeFormCertificate\Core\DocumentFormatter::PREFIX_CERTIFICATE )
-			: '';
+		// Normalise TinyMCE-encoded braces so placeholders authored in the
+		// Visual editor (which may percent-encode `{{`/`}}`) still substitute.
+		$body = str_ireplace( array( '%7B%7B', '%7D%7D' ), array( '{{', '}}' ), $body );
 
-		// Custom body text from form config. wp_kses_post() prevents inadvertent script/unsafe-tag injection.
-		$body_text = isset( $form_config['email_body'] ) ? wpautop( wp_kses_post( $form_config['email_body'] ) ) : '';
-
-		// Build email HTML (simple, clean, no certificate preview).
-		$body = '<div style="font-family: -apple-system, BlinkMacSystemFont, \'Segoe UI\', Roboto, Oxygen, Ubuntu, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; background: #f9f9f9; padding: 20px;">';
-
-		// Main content card.
-		$body .= '<div style="background: white; border-radius: 8px; padding: 30px; margin-bottom: 20px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">';
-		$body .= '<h2 style="margin: 0 0 20px 0; color: #0073aa; font-size: 24px;">' . esc_html__( 'Your Certificate has been Issued!', 'ffcertificate' ) . '</h2>';
-
-		// Custom message (if configured).
-		if ( ! empty( $body_text ) ) {
-			$body .= $body_text;
-		}
-
-		// Auth code display.
-		if ( ! empty( $auth_code ) ) {
-			$body .= '<div style="background: #f5f5f5; padding: 20px; border-radius: 8px; margin: 20px 0; text-align: center;">';
-			$body .= '<p style="margin: 0 0 10px 0; font-size: 14px; color: #666;">' . esc_html__( 'Authentication Code:', 'ffcertificate' ) . '</p>';
-			$body .= '<p style="font-size: 24px; font-weight: bold; margin: 0; font-family: monospace; color: #0073aa; letter-spacing: 2px;">' . esc_html( $auth_code ) . '</p>';
-			$body .= '</div>';
-		}
-
-		// Magic link button (primary CTA).
-		if ( ! empty( $magic_link_url ) ) {
-			$body .= '<div style="text-align: center; margin: 30px 0;">';
-			$body .= '<a href="' . esc_url( $magic_link_url ) . '" style="display: inline-block; background: #0073aa; color: white; padding: 15px 40px; text-decoration: none; border-radius: 5px; font-weight: bold; font-size: 16px; box-shadow: 0 2px 4px rgba(0,115,170,0.3);">';
-			$body .= '🔗 ' . esc_html__( 'View and Download Certificate', 'ffcertificate' );
-			$body .= '</a>';
-			$body .= '<p style="margin: 15px 0 0 0; font-size: 12px; color: #666;">' . esc_html__( 'Click the button above to access your certificate online', 'ffcertificate' ) . '</p>';
-			$body .= '</div>';
-		}
-
-		$body .= '</div>';
-
-		// Footer with manual verification link.
-		$body .= '<div style="background: white; border-radius: 8px; padding: 20px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">';
-		$body .= '<p style="margin: 0; font-size: 12px; color: #999; text-align: center;">';
-		$body .= esc_html__( 'You can also verify this certificate manually at', 'ffcertificate' ) . ' ';
-		$body .= '<a href="' . esc_url( untrailingslashit( site_url( 'valid' ) ) ) . '" style="color: #0073aa;">' . esc_url( untrailingslashit( site_url( 'valid' ) ) ) . '</a>';
-		$body .= '</p></div>';
-
-		$body .= '</div>';
+		// Substitute scalar tokens + the {{validation_url ...}} DSL BEFORE
+		// wp_kses_post, so hrefs are already real URLs when sanitised.
+		$body = self::apply_placeholders( $body, $replacements );
+		$body = \FreeFormCertificate\Generators\ValidationUrlPlaceholders::process(
+			$body,
+			array_merge( $submission_data, array( 'magic_token' => $magic_token ) )
+		);
+		$body = wpautop( wp_kses_post( $body ) );
 
 		/**
 		 * Filters the user email body HTML.
 		 *
 		 * @since 4.6.4
-		 * @param string $body       Email body HTML.
-		 * @param string $to         Recipient email.
-		 * @param string $form_title Form title.
+		 * @param string $body            Email body HTML.
+		 * @param string $to              Recipient email.
+		 * @param string $form_title      Form title.
 		 * @param array  $submission_data Submission data.
 		 */
 		$body = apply_filters( 'ffcertificate_user_email_body', $body, $to, $form_title, $submission_data );
 
 		// Send email.
 		self::ffc_send_mail( $to, $subject, $body );
+	}
+
+	/**
+	 * Replace scalar `{{token}}` placeholders in a string.
+	 *
+	 * @param string                $text Text with placeholders.
+	 * @param array<string, string> $map  Placeholder => value.
+	 * @return string
+	 */
+	private static function apply_placeholders( string $text, array $map ): string {
+		return str_replace( array_keys( $map ), array_values( $map ), $text );
 	}
 
 	/**

@@ -63,6 +63,22 @@ class FormEditorEmailMetaboxTest extends TestCase {
         $this->assertStringContainsString( 'ffc_config[send_user_email]', $html );
     }
 
+    public function test_render_exposes_admin_notification_toggle_and_recipient(): void {
+        $html = $this->render();
+
+        $this->assertStringContainsString( 'Notify Admin on Submission?', $html );
+        $this->assertStringContainsString( 'ffc_config[send_admin_email]', $html );
+        $this->assertStringContainsString( 'name="ffc_config[email_admin]"', $html );
+    }
+
+    public function test_render_pre_populates_admin_recipient_from_config(): void {
+        $html = $this->render(
+            array( 'send_admin_email' => '1', 'email_admin' => 'ops@example.com' )
+        );
+
+        $this->assertStringContainsString( 'ops@example.com', $html );
+    }
+
     public function test_render_pre_populates_subject_and_body_from_config(): void {
         $html = $this->render(
             array(
@@ -87,7 +103,7 @@ class FormEditorEmailMetaboxTest extends TestCase {
     public function test_render_uses_default_subject_when_meta_empty(): void {
         $html = $this->render();
 
-        $this->assertStringContainsString( 'Your Certificate', $html );
+        $this->assertStringContainsString( 'Your document is ready', $html );
     }
 
     public function test_render_seeds_default_body_when_email_body_empty(): void {
