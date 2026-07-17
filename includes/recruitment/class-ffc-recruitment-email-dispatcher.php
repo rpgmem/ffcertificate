@@ -209,7 +209,7 @@ final class RecruitmentEmailDispatcher {
 		foreach ( $tokens as $key => $value ) {
 			$replacements[ '{{' . $key . '}}' ] = $value;
 		}
-		return strtr( $template, $replacements );
+		return \FreeFormCertificate\Core\TokenResolver::resolve( $template, $replacements );
 	}
 
 	/**
