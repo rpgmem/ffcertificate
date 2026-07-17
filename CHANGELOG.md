@@ -7,6 +7,9 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Changed
+- Internal (#653) — introduced the shared `Core\TokenResolver` (single-pass `{{token}}` substitution) and `Generators\TemplateRenderer` (composes the token + validation-URL-DSL pipeline for emails), and routed the certificate email and recruitment dispatcher through them, replacing their bespoke `str_replace` / `strtr` substitution. First step of the email-architecture consolidation; no behavior change (single-pass substitution is marginally safer than the prior sequential `str_replace`).
+
 ### Fixed
 - Self-scheduling appointment **reminder email was never sent** — the reminder handler and its whole read/mark pipeline existed, but nothing scheduled a scan or fired the reminder hook, so enabling "Send reminder before appointment" did nothing. Added the missing hourly cron driver (`ffcertificate_self_scheduling_reminder_scan`): it finds confirmed, not-yet-reminded appointments due per their calendar's `reminder_hours_before`, fires the reminder email, and marks them sent (no duplicates); it no-ops when a calendar has reminders off or when emails are globally disabled. (#650)
 - Certificate confirmation email to the submitter was never sent — the async handler was hooked to `ffcertificate_process_submission_hook` but nothing scheduled it (orphaned since a refactor), so no user email (nor admin notification) went out. Submissions now schedule that dispatch again. (#649)

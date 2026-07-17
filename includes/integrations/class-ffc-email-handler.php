@@ -153,7 +153,7 @@ class EmailHandler {
 		$subject = ! empty( $form_config['email_subject'] )
 			? (string) $form_config['email_subject']
 			: \FreeFormCertificate\Core\EmailTemplateDefaults::user_email_subject();
-		$subject = self::apply_placeholders( $subject, $replacements );
+		$subject = \FreeFormCertificate\Core\TokenResolver::resolve( $subject, $replacements );
 
 		/**
 		 * Filters the user email subject.
@@ -187,9 +187,9 @@ class EmailHandler {
 
 		// Substitute scalar tokens + the {{validation_url ...}} DSL BEFORE
 		// wp_kses_post, so hrefs are already real URLs when sanitised.
-		$body = self::apply_placeholders( $body, $replacements );
-		$body = \FreeFormCertificate\Generators\ValidationUrlPlaceholders::process(
+		$body = \FreeFormCertificate\Generators\TemplateRenderer::email(
 			$body,
+			$replacements,
 			array_merge( $submission_data, array( 'magic_token' => $magic_token ) )
 		);
 		$body = wpautop( wp_kses_post( $body ) );
@@ -209,16 +209,6 @@ class EmailHandler {
 		self::ffc_send_mail( $to, $subject, $body );
 	}
 
-	/**
-	 * Replace scalar `{{token}}` placeholders in a string.
-	 *
-	 * @param string                $text Text with placeholders.
-	 * @param array<string, string> $map  Placeholder => value.
-	 * @return string
-	 */
-	private static function apply_placeholders( string $text, array $map ): string {
-		return str_replace( array_keys( $map ), array_values( $map ), $text );
-	}
 
 	/**
 	 * Send admin notification email
