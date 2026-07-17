@@ -9,7 +9,7 @@
  * - Global email disable check
  * - wp_mail() wrapper with failure logging
  * - Admin email parsing (comma-separated string → array)
- * - Consistent HTML email template header/footer
+ * - Rendering templates/emails/ partials + the shared chrome shell
  *
  * @package FreeFormCertificate\Core
  * @since 4.11.2
@@ -69,26 +69,38 @@ trait EmailHelperTrait {
 	}
 
 	/**
-	 * Get standard email template header (inline-CSS for email clients).
+	 * Render an email template partial from templates/emails/ into a string.
 	 *
-	 * @return string Opening HTML wrapper.
+	 * The partial receives the caller-supplied values as `$args` and is
+	 * responsible for escaping each one at its output point. Keeping the markup
+	 * in templates/ (outside the coverage scope) lets the handler classes stay
+	 * thin data-prep orchestrators.
+	 *
+	 * @param string               $template Template basename (no path/extension).
+	 * @param array<string, mixed> $args     Variables exposed to the partial as $args.
+	 * @return string Rendered HTML (empty string when the template is missing).
 	 */
-	protected static function ffc_email_header(): string {
-		return '<div style="font-family: -apple-system, BlinkMacSystemFont, \'Segoe UI\', Roboto, Oxygen, Ubuntu, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; background: #f9f9f9; padding: 20px;">';
+	protected static function ffc_render_email_partial( string $template, array $args = array() ): string {
+		$file = FFC_PLUGIN_DIR . 'templates/emails/' . $template . '.php';
+		if ( ! is_readable( $file ) ) {
+			return '';
+		}
+		ob_start();
+		include $file;
+		return (string) ob_get_clean();
 	}
 
 	/**
-	 * Get standard email template footer with site name.
+	 * Wrap inner email content ("miolo") in the shared chrome shell.
 	 *
-	 * @return string Closing HTML wrapper.
+	 * The shell (templates/emails/layout.php) provides the standard header
+	 * band and the site-name footer card; callers supply only the body.
+	 *
+	 * @param string $content Pre-built inner HTML.
+	 * @return string Full email document HTML.
 	 */
-	protected static function ffc_email_footer(): string {
-		$body  = '<div style="background: white; border-radius: 8px; padding: 20px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">';
-		$body .= '<p style="margin: 0; font-size: 12px; color: #999; text-align: center;">';
-		$body .= esc_html( get_bloginfo( 'name' ) );
-		$body .= '</p></div>';
-		$body .= '</div>';
-		return $body;
+	protected static function ffc_email_document( string $content ): string {
+		return self::ffc_render_email_partial( 'layout', array( 'content' => $content ) );
 	}
 
 	/**

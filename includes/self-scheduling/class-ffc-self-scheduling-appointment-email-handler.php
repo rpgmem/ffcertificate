@@ -88,60 +88,32 @@ class AppointmentEmailHandler {
 			? __( 'Your appointment is pending approval. You will receive a confirmation email once it is approved.', 'ffcertificate' )
 			: __( 'Your appointment has been confirmed!', 'ffcertificate' );
 
-		// Build email HTML.
-		$body = $this->get_email_template_header();
-
-		$body .= '<div style="background: white; border-radius: 8px; padding: 30px; margin-bottom: 20px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">';
-		$body .= '<h2 style="margin: 0 0 20px 0; color: #0073aa; font-size: 24px;">📅 ' . esc_html__( 'Appointment Booked!', 'ffcertificate' ) . '</h2>';
-
-		$body .= '<p style="margin: 0 0 15px 0; font-size: 16px;">' . esc_html( $status_message ) . '</p>';
-
-		// Appointment details box.
-		$body .= '<div style="background: #f5f5f5; padding: 20px; border-radius: 8px; margin: 20px 0;">';
-		$body .= '<p style="margin: 0 0 10px 0;"><strong>' . esc_html__( 'Calendar:', 'ffcertificate' ) . '</strong> ' . esc_html( $calendar['title'] ) . '</p>';
-		$body .= '<p style="margin: 0 0 10px 0;"><strong>' . esc_html__( 'Date:', 'ffcertificate' ) . '</strong> ' . esc_html( $date_formatted ) . '</p>';
-		$body .= '<p style="margin: 0 0 10px 0;"><strong>' . esc_html__( 'Time:', 'ffcertificate' ) . '</strong> ' . esc_html( $time_formatted ) . '</p>';
-		$body .= '<p style="margin: 0;"><strong>' . esc_html__( 'Status:', 'ffcertificate' ) . '</strong> ' . esc_html( $this->get_status_label( $appointment['status'] ) ) . '</p>';
-		$body .= '</div>';
-
-		// User notes if provided.
-		if ( ! empty( $appointment['user_notes'] ) ) {
-			$body .= '<div style="margin: 20px 0;">';
-			$body .= '<p style="margin: 0 0 5px 0; font-weight: bold; color: #666;">' . esc_html__( 'Your Notes:', 'ffcertificate' ) . '</p>';
-			$body .= '<p style="margin: 0; color: #333;">' . esc_html( $appointment['user_notes'] ) . '</p>';
-			$body .= '</div>';
-		}
-
-		// Receipt/Confirmation link.
+		$receipt_url = '';
 		if ( class_exists( '\FreeFormCertificate\SelfScheduling\AppointmentReceiptHandler' ) ) {
 			$receipt_url = \FreeFormCertificate\SelfScheduling\AppointmentReceiptHandler::get_receipt_url(
 				$appointment['id'],
 				$appointment['confirmation_token'] ?? ''
 			);
-			$body       .= '<div style="text-align: center; margin: 30px 0;">';
-			$body       .= '<a href="' . esc_url( $receipt_url ) . '" style="display: inline-block; background: #0073aa; color: white; padding: 12px 24px; text-decoration: none; border-radius: 5px; font-size: 16px; font-weight: bold;">';
-			$body       .= '📄 ' . esc_html__( 'View/Print Receipt', 'ffcertificate' );
-			$body       .= '</a>';
-			$body       .= '</div>';
 		}
 
-		// Cancellation link (if allowed).
-		if ( $calendar['allow_cancellation'] ) {
-			$cancel_url = $this->get_cancellation_url( $appointment );
-			$body      .= '<div style="text-align: center; margin: 30px 0;">';
-			$body      .= '<p style="margin: 0 0 10px 0; font-size: 14px; color: #666;">' . esc_html__( 'Need to cancel?', 'ffcertificate' ) . '</p>';
-			$body      .= '<a href="' . esc_url( $cancel_url ) . '" style="display: inline-block; background: #dc3545; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px; font-size: 14px;">';
-			$body      .= esc_html__( 'Cancel Appointment', 'ffcertificate' );
-			$body      .= '</a>';
-			$body      .= '</div>';
-		}
+		$cancel_url = $calendar['allow_cancellation'] ? $this->get_cancellation_url( $appointment ) : '';
 
-		$body .= '</div>';
-
-		$body .= $this->get_email_template_footer();
+		$content = self::ffc_render_email_partial(
+			'appointment-booking-confirmation',
+			array(
+				'calendar_title' => $calendar['title'],
+				'status_message' => $status_message,
+				'date_formatted' => $date_formatted,
+				'time_formatted' => $time_formatted,
+				'status_label'   => $this->get_status_label( $appointment['status'] ),
+				'user_notes'     => $appointment['user_notes'] ?? '',
+				'receipt_url'    => $receipt_url,
+				'cancel_url'     => $cancel_url,
+			)
+		);
 
 		// Send email.
-		$this->send_mail( $email, $subject, $body );
+		$this->send_mail( $email, $subject, self::ffc_email_document( $content ) );
 	}
 
 	/**
@@ -170,13 +142,9 @@ class AppointmentEmailHandler {
 		$date_formatted = \FreeFormCertificate\Core\DateFormatter::format_wallclock_date( $appointment['appointment_date'] );
 		$time_formatted = \FreeFormCertificate\Core\DateFormatter::format_wallclock_time( $appointment['start_time'] );
 
-		// Build email HTML.
-		$body  = '<div style="font-family: sans-serif; max-width: 600px; margin: 0 auto;">';
-		$body .= '<h3 style="color: #0073aa;">' . __( 'New Appointment Booking', 'ffcertificate' ) . '</h3>';
-
 		$decrypted_phone = \FreeFormCertificate\Core\Encryption::decrypt_field( $appointment, 'phone' );
 
-		$body .= self::ffc_admin_notification_table(
+		$details_table = self::ffc_admin_notification_table(
 			array(
 				__( 'Calendar', 'ffcertificate' ) => $calendar['title'],
 				__( 'Date', 'ffcertificate' )     => $date_formatted,
@@ -189,13 +157,13 @@ class AppointmentEmailHandler {
 			)
 		);
 
-		// Link to manage appointment.
-		$manage_url = admin_url( 'edit.php?post_type=ffc_self_scheduling' );
-		$body      .= '<p style="margin: 20px 0;"><a href="' . esc_url( $manage_url ) . '" style="background: #0073aa; color: white; padding: 10px 20px; text-decoration: none; border-radius: 4px; display: inline-block;">';
-		$body      .= esc_html__( 'Manage Appointments', 'ffcertificate' );
-		$body      .= '</a></p>';
-
-		$body .= '</div>';
+		$body = self::ffc_render_email_partial(
+			'appointment-admin-notification',
+			array(
+				'details_table' => $details_table,
+				'manage_url'    => admin_url( 'edit.php?post_type=ffc_self_scheduling' ),
+			)
+		);
 
 		// Send to all admin emails.
 		foreach ( $admin_emails as $admin_email ) {
@@ -232,40 +200,26 @@ class AppointmentEmailHandler {
 		$date_formatted = \FreeFormCertificate\Core\DateFormatter::format_wallclock_date( $appointment['appointment_date'] );
 		$time_formatted = \FreeFormCertificate\Core\DateFormatter::format_wallclock_time( $appointment['start_time'] );
 
-		// Build email HTML.
-		$body = $this->get_email_template_header();
-
-		$body .= '<div style="background: white; border-radius: 8px; padding: 30px; margin-bottom: 20px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">';
-		$body .= '<h2 style="margin: 0 0 20px 0; color: #28a745; font-size: 24px;">✅ ' . esc_html__( 'Appointment Confirmed!', 'ffcertificate' ) . '</h2>';
-
-		$body .= '<p style="margin: 0 0 15px 0; font-size: 16px;">' . esc_html__( 'Your appointment has been approved and confirmed.', 'ffcertificate' ) . '</p>';
-
-		// Appointment details box.
-		$body .= '<div style="background: #d4edda; padding: 20px; border-radius: 8px; margin: 20px 0; border: 1px solid #c3e6cb;">';
-		$body .= '<p style="margin: 0 0 10px 0;"><strong>' . esc_html__( 'Calendar:', 'ffcertificate' ) . '</strong> ' . esc_html( $calendar['title'] ) . '</p>';
-		$body .= '<p style="margin: 0 0 10px 0;"><strong>' . esc_html__( 'Date:', 'ffcertificate' ) . '</strong> ' . esc_html( $date_formatted ) . '</p>';
-		$body .= '<p style="margin: 0;"><strong>' . esc_html__( 'Time:', 'ffcertificate' ) . '</strong> ' . esc_html( $time_formatted ) . '</p>';
-		$body .= '</div>';
-
-		// Receipt link.
+		$receipt_url = '';
 		if ( class_exists( '\FreeFormCertificate\SelfScheduling\AppointmentReceiptHandler' ) ) {
 			$receipt_url = AppointmentReceiptHandler::get_receipt_url(
 				$appointment['id'],
 				$appointment['confirmation_token'] ?? ''
 			);
-			$body       .= '<div style="text-align: center; margin: 30px 0;">';
-			$body       .= '<a href="' . esc_url( $receipt_url ) . '" style="display: inline-block; background: #0073aa; color: white; padding: 12px 24px; text-decoration: none; border-radius: 5px; font-size: 16px; font-weight: bold;">';
-			$body       .= '📄 ' . esc_html__( 'View/Print Receipt', 'ffcertificate' );
-			$body       .= '</a>';
-			$body       .= '</div>';
 		}
 
-		$body .= '</div>';
-
-		$body .= $this->get_email_template_footer();
+		$content = self::ffc_render_email_partial(
+			'appointment-approval',
+			array(
+				'calendar_title' => $calendar['title'],
+				'date_formatted' => $date_formatted,
+				'time_formatted' => $time_formatted,
+				'receipt_url'    => $receipt_url,
+			)
+		);
 
 		// Send email.
-		$this->send_mail( $email, $subject, $body );
+		$this->send_mail( $email, $subject, self::ffc_email_document( $content ) );
 	}
 
 	/**
@@ -295,35 +249,18 @@ class AppointmentEmailHandler {
 		$date_formatted = \FreeFormCertificate\Core\DateFormatter::format_wallclock_date( $appointment['appointment_date'] );
 		$time_formatted = \FreeFormCertificate\Core\DateFormatter::format_wallclock_time( $appointment['start_time'] );
 
-		// Build email HTML.
-		$body = $this->get_email_template_header();
-
-		$body .= '<div style="background: white; border-radius: 8px; padding: 30px; margin-bottom: 20px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">';
-		$body .= '<h2 style="margin: 0 0 20px 0; color: #dc3545; font-size: 24px;">❌ ' . esc_html__( 'Appointment Cancelled', 'ffcertificate' ) . '</h2>';
-
-		$body .= '<p style="margin: 0 0 15px 0; font-size: 16px;">' . esc_html__( 'Your appointment has been cancelled.', 'ffcertificate' ) . '</p>';
-
-		// Appointment details box.
-		$body .= '<div style="background: #f8d7da; padding: 20px; border-radius: 8px; margin: 20px 0; border: 1px solid #f5c6cb;">';
-		$body .= '<p style="margin: 0 0 10px 0;"><strong>' . esc_html__( 'Calendar:', 'ffcertificate' ) . '</strong> ' . esc_html( $calendar['title'] ) . '</p>';
-		$body .= '<p style="margin: 0 0 10px 0;"><strong>' . esc_html__( 'Date:', 'ffcertificate' ) . '</strong> ' . esc_html( $date_formatted ) . '</p>';
-		$body .= '<p style="margin: 0;"><strong>' . esc_html__( 'Time:', 'ffcertificate' ) . '</strong> ' . esc_html( $time_formatted ) . '</p>';
-		$body .= '</div>';
-
-		// Cancellation reason if provided.
-		if ( ! empty( $appointment['cancellation_reason'] ) ) {
-			$body .= '<div style="margin: 20px 0;">';
-			$body .= '<p style="margin: 0 0 5px 0; font-weight: bold; color: #666;">' . esc_html__( 'Cancellation Reason:', 'ffcertificate' ) . '</p>';
-			$body .= '<p style="margin: 0; color: #333;">' . esc_html( $appointment['cancellation_reason'] ) . '</p>';
-			$body .= '</div>';
-		}
-
-		$body .= '</div>';
-
-		$body .= $this->get_email_template_footer();
+		$content = self::ffc_render_email_partial(
+			'appointment-cancellation',
+			array(
+				'calendar_title'      => $calendar['title'],
+				'date_formatted'      => $date_formatted,
+				'time_formatted'      => $time_formatted,
+				'cancellation_reason' => $appointment['cancellation_reason'] ?? '',
+			)
+		);
 
 		// Send email.
-		$this->send_mail( $email, $subject, $body );
+		$this->send_mail( $email, $subject, self::ffc_email_document( $content ) );
 	}
 
 	/**
@@ -353,38 +290,20 @@ class AppointmentEmailHandler {
 		$date_formatted = \FreeFormCertificate\Core\DateFormatter::format_wallclock_date( $appointment['appointment_date'] );
 		$time_formatted = \FreeFormCertificate\Core\DateFormatter::format_wallclock_time( $appointment['start_time'] );
 
-		// Build email HTML.
-		$body = $this->get_email_template_header();
+		$cancel_url = $calendar['allow_cancellation'] ? $this->get_cancellation_url( $appointment ) : '';
 
-		$body .= '<div style="background: white; border-radius: 8px; padding: 30px; margin-bottom: 20px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">';
-		$body .= '<h2 style="margin: 0 0 20px 0; color: #ff9800; font-size: 24px;">⏰ ' . esc_html__( 'Appointment Reminder', 'ffcertificate' ) . '</h2>';
-
-		$body .= '<p style="margin: 0 0 15px 0; font-size: 16px;">' . esc_html__( 'This is a reminder about your upcoming appointment.', 'ffcertificate' ) . '</p>';
-
-		// Appointment details box.
-		$body .= '<div style="background: #fff3cd; padding: 20px; border-radius: 8px; margin: 20px 0; border: 1px solid #ffeaa7;">';
-		$body .= '<p style="margin: 0 0 10px 0;"><strong>' . esc_html__( 'Calendar:', 'ffcertificate' ) . '</strong> ' . esc_html( $calendar['title'] ) . '</p>';
-		$body .= '<p style="margin: 0 0 10px 0;"><strong>' . esc_html__( 'Date:', 'ffcertificate' ) . '</strong> ' . esc_html( $date_formatted ) . '</p>';
-		$body .= '<p style="margin: 0;"><strong>' . esc_html__( 'Time:', 'ffcertificate' ) . '</strong> ' . esc_html( $time_formatted ) . '</p>';
-		$body .= '</div>';
-
-		// Cancellation link (if allowed and not too late).
-		if ( $calendar['allow_cancellation'] ) {
-			$cancel_url = $this->get_cancellation_url( $appointment );
-			$body      .= '<div style="text-align: center; margin: 20px 0;">';
-			$body      .= '<p style="margin: 0 0 10px 0; font-size: 14px; color: #666;">' . esc_html__( 'Need to cancel?', 'ffcertificate' ) . '</p>';
-			$body      .= '<a href="' . esc_url( $cancel_url ) . '" style="display: inline-block; background: #dc3545; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px; font-size: 14px;">';
-			$body      .= esc_html__( 'Cancel Appointment', 'ffcertificate' );
-			$body      .= '</a>';
-			$body      .= '</div>';
-		}
-
-		$body .= '</div>';
-
-		$body .= $this->get_email_template_footer();
+		$content = self::ffc_render_email_partial(
+			'appointment-reminder',
+			array(
+				'calendar_title' => $calendar['title'],
+				'date_formatted' => $date_formatted,
+				'time_formatted' => $time_formatted,
+				'cancel_url'     => $cancel_url,
+			)
+		);
 
 		// Send email.
-		$this->send_mail( $email, $subject, $body );
+		$this->send_mail( $email, $subject, self::ffc_email_document( $content ) );
 	}
 
 	/**
@@ -398,24 +317,6 @@ class AppointmentEmailHandler {
 	 */
 	private function send_mail( string $to, string $subject, string $body ): bool {
 		return self::ffc_send_mail( $to, $subject, $body );
-	}
-
-	/**
-	 * Get email template header
-	 *
-	 * @return string
-	 */
-	private function get_email_template_header(): string {
-		return self::ffc_email_header();
-	}
-
-	/**
-	 * Get email template footer
-	 *
-	 * @return string
-	 */
-	private function get_email_template_footer(): string {
-		return self::ffc_email_footer();
 	}
 
 	/**
