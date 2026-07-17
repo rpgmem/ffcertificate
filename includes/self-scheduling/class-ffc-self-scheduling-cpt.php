@@ -482,7 +482,7 @@ class SelfSchedulingCPT {
 		);
 
 		// Send email.
-		wp_mail( $email, $subject, $message );
+		\FreeFormCertificate\Core\EmailService::send( $email, $subject, $message );
 
 		// Log notification.
 		if ( class_exists( '\FreeFormCertificate\Core\Utils' ) ) {

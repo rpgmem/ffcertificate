@@ -44,20 +44,7 @@ trait EmailHelperTrait {
 	 * @return bool Whether the email was sent.
 	 */
 	protected static function ffc_send_mail( string $to, string $subject, string $body, array $attachments = array() ): bool {
-		$headers = array( 'Content-Type: text/html; charset=UTF-8' );
-		$sent    = wp_mail( $to, $subject, $body, $headers, $attachments );
-
-		if ( ! $sent && class_exists( '\FreeFormCertificate\Core\Utils' ) ) {
-			Debug::log_email(
-				'Email send failed',
-				array(
-					'to'      => $to,
-					'subject' => $subject,
-				)
-			);
-		}
-
-		return $sent;
+		return EmailService::send( $to, $subject, $body, array( 'Content-Type: text/html; charset=UTF-8' ), $attachments );
 	}
 
 	/**

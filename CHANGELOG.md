@@ -8,6 +8,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 ## [Unreleased]
 
 ### Changed
+- Internal (#653) — all outbound email now funnels through a single transport chokepoint `Core\EmailService::send()`, replacing the three prior paths (`EmailHelperTrait::ffc_send_mail`, `EmailTemplateService::send`, and raw `wp_mail` calls in the capability-manager, recruitment dispatcher and self-scheduling CPT). Behavior-preserving — each caller keeps its own headers/content-type (text/html, default, or recruitment's multipart).
 - Internal (#653) — introduced the shared `Core\TokenResolver` (single-pass `{{token}}` substitution) and `Generators\TemplateRenderer` (composes the token + validation-URL-DSL pipeline for emails), and routed the certificate email and recruitment dispatcher through them, replacing their bespoke `str_replace` / `strtr` substitution. First step of the email-architecture consolidation; no behavior change (single-pass substitution is marginally safer than the prior sequential `str_replace`).
 
 ### Fixed

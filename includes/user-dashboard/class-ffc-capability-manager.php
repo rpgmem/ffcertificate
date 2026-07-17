@@ -431,7 +431,7 @@ class CapabilityManager {
 
 		$message .= __( 'This is an automated message.', 'ffcertificate' ) . "\n";
 
-		wp_mail( $user->user_email, $subject, $message );
+		\FreeFormCertificate\Core\EmailService::send( $user->user_email, $subject, $message );
 	}
 
 	/**
