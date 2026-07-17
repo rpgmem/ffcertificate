@@ -102,6 +102,16 @@ class FormMetaAjaxEndpoint {
 				'meta' => '_ffc_form_config',
 				'path' => array( 'send_user_email' ),
 			),
+			// Admin-notification opt-in (#649). Wired with a
+			// `data-ffc-autosave-form-key` attribute in the email metabox but
+			// originally omitted here, so flipping it returned 403 "key not
+			// allowlisted" and never persisted on autosave (it did survive a
+			// full form save via the save handler) — same class of bug as
+			// `geofence_schedule_exception_enabled` below.
+			'send_admin_email'                    => array(
+				'meta' => '_ffc_form_config',
+				'path' => array( 'send_admin_email' ),
+			),
 			'quiz_enabled'                        => array(
 				'meta' => '_ffc_form_config',
 				'path' => array( 'quiz_enabled' ),

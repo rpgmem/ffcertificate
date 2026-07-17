@@ -233,9 +233,28 @@ class FormMetaAjaxEndpointTest extends TestCase {
 		$this->assertArrayNotHasKey( 'csv_public_enabled', $allowlist );
 	}
 
-	public function test_allowlist_covers_15_toggles(): void {
+	public function test_send_admin_email_autosaves(): void {
+		$_POST = array(
+			'post_id' => 42,
+			'key'     => 'send_admin_email',
+			'value'   => '1',
+			'nonce'   => 'n',
+		);
+
+		$this->dispatch();
+
+		$this->assertTrue( $this->responses[0]['ok'] );
+		$this->assertSame( '1', $this->meta_store[42]['_ffc_form_config']['send_admin_email'] );
+	}
+
+	public function test_allowlist_covers_16_toggles(): void {
 		$allowlist = FormMetaAjaxEndpoint::allowlist();
-		$this->assertSame( 15, count( $allowlist ) );
+		$this->assertSame( 16, count( $allowlist ) );
+		$this->assertArrayHasKey(
+			'send_admin_email',
+			$allowlist,
+			'The admin-notification opt-in (#649) was wired with data-ffc-autosave-form-key but never allowlisted, so its autosave returned 403 until this fix.'
+		);
 		$this->assertArrayHasKey(
 			'csv_public_download_enabled',
 			$allowlist,

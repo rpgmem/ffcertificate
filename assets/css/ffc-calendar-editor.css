@@ -86,10 +86,18 @@
     display: inline-block;
 }
 
-/* Email notification toggles — vertical stack with breathing room. */
-.ffc-email-toggles .ffc-toggle {
+/* Email notification toggles — vertical stack with breathing room.
+   The container drives the stacking (flex column): the base
+   `.form-table td .ffc-toggle { display: inline-flex }` rule in ffc-common.css
+   is more specific than a `.ffc-email-toggles .ffc-toggle` override, so making
+   each toggle a column flex-item is what reliably puts one per line without an
+   !important or a specificity arms race. `flex-start` keeps each toggle at its
+   natural width instead of stretching across the cell. */
+.ffc-email-toggles {
     display: flex;
-    margin-bottom: 8px;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
 }
 
 /* Shortcode input (sidebar metabox) */
