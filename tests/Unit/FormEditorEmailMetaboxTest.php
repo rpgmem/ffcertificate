@@ -38,6 +38,8 @@ class FormEditorEmailMetaboxTest extends TestCase {
         Functions\when( 'get_post_meta' )->justReturn( '' );
         Functions\when( 'checked' )->justReturn( '' );
         Functions\when( 'selected' )->justReturn( '' );
+        Functions\when( 'wp_enqueue_script' )->justReturn( true );
+        Functions\when( 'wp_localize_script' )->justReturn( true );
 
         $this->metabox = new FormEditorEmailMetabox();
     }
@@ -113,6 +115,13 @@ class FormEditorEmailMetaboxTest extends TestCase {
 
         $this->assertStringContainsString( FormEditorEmailMetabox::default_email_body(), $html );
         $this->assertStringContainsString( 'Hello {{name}},', $html );
+    }
+
+    public function test_render_includes_restore_default_button(): void {
+        $html = $this->render( array( 'send_user_email' => '1' ) );
+
+        $this->assertStringContainsString( 'id="ffc-restore-default-email-body"', $html );
+        $this->assertStringContainsString( 'Restore Default Text', $html );
     }
 
     public function test_render_keeps_custom_body_over_default(): void {

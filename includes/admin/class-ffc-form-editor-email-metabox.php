@@ -31,6 +31,8 @@ class FormEditorEmailMetabox {
 	 * @param WP_Post $post The post object.
 	 */
 	public function render( WP_Post $post ): void {
+		$this->enqueue_restore_default_script();
+
 		$config     = get_post_meta( $post->ID, '_ffc_form_config', true );
 		$send_email = isset( $config['send_user_email'] ) ? $config['send_user_email'] : '0';
 		$subject    = isset( $config['email_subject'] ) ? $config['email_subject'] : \FreeFormCertificate\Core\EmailTemplateDefaults::user_email_subject();
@@ -115,6 +117,10 @@ class FormEditorEmailMetabox {
 					<p class="description">
 						<?php esc_html_e( 'Placeholders: {{name}}, {{form_title}}, {{auth_code}}, {{date}}. Links use the validation-URL DSL — e.g. {{validation_url link:m>"Download (PDF)"}} for the magic download link, or {{validation_url link:v>v}} for the public /valid page.', 'ffcertificate' ); ?>
 					</p>
+					<p>
+						<button type="button" class="button" id="ffc-restore-default-email-body"><?php esc_html_e( 'Restore Default Text', 'ffcertificate' ); ?></button>
+						<span class="description"><?php esc_html_e( 'Replaces the message above with the default template. You can also just clear the field — an empty body falls back to the default when the email is sent.', 'ffcertificate' ); ?></span>
+					</p>
 				</td>
 			</tr>
 			<tr>
@@ -163,6 +169,32 @@ class FormEditorEmailMetabox {
 		</table>
 		</div><!-- /.ffc-collapsed-target -->
 		<?php
+	}
+
+	/**
+	 * Enqueue the "Restore Default Text" button wiring for the email body
+	 * editor and hand it the default template + a confirmation string.
+	 *
+	 * The default body is the same one {@see self::default_email_body()} seeds
+	 * into an empty editor, so the button and the initial seed always agree.
+	 */
+	private function enqueue_restore_default_script(): void {
+		$suffix = \FreeFormCertificate\Core\AssetHelper::asset_suffix();
+		wp_enqueue_script(
+			'ffc-form-editor-email-metabox',
+			FFC_PLUGIN_URL . "assets/js/ffc-form-editor-email-metabox{$suffix}.js",
+			array( 'jquery' ),
+			FFC_VERSION,
+			true
+		);
+		wp_localize_script(
+			'ffc-form-editor-email-metabox',
+			'ffcEmailBodyDefault',
+			array(
+				'body'    => self::default_email_body(),
+				'confirm' => __( 'Replace the current message with the default template? Your changes will be lost.', 'ffcertificate' ),
+			)
+		);
 	}
 
 	/**
