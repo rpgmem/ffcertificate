@@ -106,7 +106,7 @@ class EmailTemplateService {
 			)
 		);
 
-		return wp_mail( $email_data['to'], $email_data['subject'], $email_data['body'], $headers, $attachments );
+		return \FreeFormCertificate\Core\EmailService::send( $email_data['to'], $email_data['subject'], $email_data['body'], $headers, $attachments );
 	}
 
 	/**

@@ -119,7 +119,7 @@ final class RecruitmentEmailDispatcher {
 		};
 		add_filter( 'wp_mail_alternative_text', $plain_filter );
 
-		wp_mail( $email_plain, $subject, $body, $headers );
+		\FreeFormCertificate\Core\EmailService::send( $email_plain, $subject, $body, $headers );
 
 		remove_filter( 'wp_mail_alternative_text', $plain_filter );
 
