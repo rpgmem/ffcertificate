@@ -87,7 +87,7 @@ class FormEditorEmailMetaboxTest extends TestCase {
     public function test_render_uses_default_subject_when_meta_empty(): void {
         $html = $this->render();
 
-        $this->assertStringContainsString( 'Your Certificate', $html );
+        $this->assertStringContainsString( 'Your document is ready', $html );
     }
 
     public function test_render_seeds_default_body_when_email_body_empty(): void {

@@ -33,7 +33,7 @@ class FormEditorEmailMetabox {
 	public function render( WP_Post $post ): void {
 		$config     = get_post_meta( $post->ID, '_ffc_form_config', true );
 		$send_email = isset( $config['send_user_email'] ) ? $config['send_user_email'] : '0';
-		$subject    = isset( $config['email_subject'] ) ? $config['email_subject'] : __( 'Your Certificate', 'ffcertificate' );
+		$subject    = isset( $config['email_subject'] ) ? $config['email_subject'] : \FreeFormCertificate\Core\EmailTemplateDefaults::user_email_subject();
 		$body       = isset( $config['email_body'] ) ? (string) $config['email_body'] : '';
 		// When the email is enabled but no custom message was written yet, seed
 		// the editor with a sensible default so the operator starts from a ready
@@ -109,7 +109,7 @@ class FormEditorEmailMetabox {
 					);
 					?>
 					<p class="description">
-						<?php esc_html_e( 'Placeholders such as {{auth_code}} and {{name}} are preserved automatically.', 'ffcertificate' ); ?>
+						<?php esc_html_e( 'Placeholders: {{name}}, {{form_title}}, {{auth_code}}, {{date}}. Links use the validation-URL DSL — e.g. {{validation_url link:m>"Download (PDF)"}} for the magic download link, or {{validation_url link:v>v}} for the public /valid page.', 'ffcertificate' ); ?>
 					</p>
 				</td>
 			</tr>
@@ -127,16 +127,15 @@ class FormEditorEmailMetabox {
 	}
 
 	/**
-	 * Default user-email body (custom message) seeded into the editor when a
-	 * form enables the email without a message of its own. Complements the
-	 * fixed email chrome (heading, authentication-code card, view/download
-	 * button) that {@see \FreeFormCertificate\Integrations\EmailHandler}
-	 * already builds — so this is just a friendly intro, not the whole email.
+	 * Default user-email body seeded into the editor when a form enables the
+	 * email without a message of its own. This is now the **entire** email
+	 * template (heading, download button, auth code, verification link) — the
+	 * send path adds no locked chrome; see
+	 * {@see \FreeFormCertificate\Core\EmailTemplateDefaults::user_email_body()}.
 	 *
-	 * @return string Default email body HTML (with `{{name}}` placeholder).
+	 * @return string Default email body HTML (with placeholders).
 	 */
 	public static function default_email_body(): string {
-		return '<p>' . __( 'Hello {{name}},', 'ffcertificate' ) . '</p>'
-			. '<p>' . __( 'Your certificate has been issued. Use the button below to view and download it, and keep your authentication code for future verification.', 'ffcertificate' ) . '</p>';
+		return \FreeFormCertificate\Core\EmailTemplateDefaults::user_email_body();
 	}
 }

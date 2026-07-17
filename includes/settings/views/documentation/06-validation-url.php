@@ -42,8 +42,10 @@ if ( ! defined( 'ABSPATH' ) ) {
 					<code>{{validation_url link:m>"Custom Text"}}</code> →  <?php esc_html_e( 'Link to magic, custom text', 'ffcertificate' ); ?><br>
 					<code>{{validation_url link:m>v target:_blank}}</code> → <?php esc_html_e( 'With target', 'ffcertificate' ); ?><br>
 					<code>{{validation_url link:m>v color:blue}}</code> → <?php esc_html_e( 'With color link', 'ffcertificate' ); ?><br>
+					<code>{{validation_url link:m>"Download (PDF)" color:#ffffff}}</code> → <?php esc_html_e( 'Magic (download) link with custom text and color — custom text may contain spaces', 'ffcertificate' ); ?><br>
 				</td>
 			</tr>
 		</tbody>
 	</table>
+	<p><?php esc_html_e( 'Available in both the certificate PDF layout and the submitter confirmation email. In the email, "m" (magic link) is the view/download link; pair it with an inline-styled box for a download button.', 'ffcertificate' ); ?></p>
 </div>

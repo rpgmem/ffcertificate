@@ -40,8 +40,6 @@ class PdfGeneratorTest extends TestCase {
         'generate_default_html',
         'process_qrcode_placeholders',
         'get_qr_code_target_url',
-        'process_validation_url_placeholders',
-        'parse_validation_url_params',
         'get_appointment_receipt_template',
     );
 
@@ -105,97 +103,9 @@ class PdfGeneratorTest extends TestCase {
         return $ref->invokeArgs( $target, $args );
     }
 
-    // ==================================================================
-    // parse_validation_url_params()
-    // ==================================================================
-
-    public function test_parse_params_empty_returns_defaults(): void {
-        $result = $this->invoke( 'parse_validation_url_params', array( '' ) );
-
-        $this->assertSame( 'm', $result['to'] );
-        $this->assertSame( 'v', $result['text'] );
-        $this->assertSame( '', $result['target'] );
-        $this->assertSame( '', $result['color'] );
-    }
-
-    public function test_parse_params_link_m_to_v(): void {
-        $result = $this->invoke( 'parse_validation_url_params', array( 'link:m>v' ) );
-
-        $this->assertSame( 'm', $result['to'] );
-        $this->assertSame( 'v', $result['text'] );
-    }
-
-    public function test_parse_params_link_v_to_m(): void {
-        $result = $this->invoke( 'parse_validation_url_params', array( 'link:v>m' ) );
-
-        $this->assertSame( 'v', $result['to'] );
-        $this->assertSame( 'm', $result['text'] );
-    }
-
-    public function test_parse_params_link_m_to_m(): void {
-        $result = $this->invoke( 'parse_validation_url_params', array( 'link:m>m' ) );
-
-        $this->assertSame( 'm', $result['to'] );
-        $this->assertSame( 'm', $result['text'] );
-    }
-
-    public function test_parse_params_link_v_to_v(): void {
-        $result = $this->invoke( 'parse_validation_url_params', array( 'link:v>v' ) );
-
-        $this->assertSame( 'v', $result['to'] );
-        $this->assertSame( 'v', $result['text'] );
-    }
-
-    public function test_parse_params_custom_text_single_word(): void {
-        $result = $this->invoke( 'parse_validation_url_params', array( 'link:m>"Verify"' ) );
-
-        $this->assertSame( 'm', $result['to'] );
-        $this->assertSame( 'Verify', $result['text'] );
-    }
-
-    public function test_parse_params_target_blank(): void {
-        $result = $this->invoke( 'parse_validation_url_params', array( 'target:_blank' ) );
-
-        $this->assertSame( '_blank', $result['target'] );
-    }
-
-    public function test_parse_params_color_named(): void {
-        $result = $this->invoke( 'parse_validation_url_params', array( 'color:blue' ) );
-
-        $this->assertSame( 'blue', $result['color'] );
-    }
-
-    public function test_parse_params_color_hex(): void {
-        $result = $this->invoke( 'parse_validation_url_params', array( 'color:#2271b1' ) );
-
-        $this->assertSame( '#2271b1', $result['color'] );
-    }
-
-    public function test_parse_params_combined(): void {
-        $result = $this->invoke( 'parse_validation_url_params', array( 'link:v>m target:_blank color:red' ) );
-
-        $this->assertSame( 'v', $result['to'] );
-        $this->assertSame( 'm', $result['text'] );
-        $this->assertSame( '_blank', $result['target'] );
-        $this->assertSame( 'red', $result['color'] );
-    }
-
-    public function test_parse_params_custom_text_with_target_and_color(): void {
-        $result = $this->invoke( 'parse_validation_url_params', array( 'link:m>"VerifyCert" target:_self color:#333' ) );
-
-        $this->assertSame( 'm', $result['to'] );
-        $this->assertSame( 'VerifyCert', $result['text'] );
-        $this->assertSame( '_self', $result['target'] );
-        $this->assertSame( '#333', $result['color'] );
-    }
-
-    public function test_parse_params_ignores_unknown_params(): void {
-        $result = $this->invoke( 'parse_validation_url_params', array( 'unknown:value link:m>v' ) );
-
-        // unknown is ignored, link is parsed
-        $this->assertSame( 'm', $result['to'] );
-        $this->assertSame( 'v', $result['text'] );
-    }
+    // parse_validation_url_params() / process_validation_url_placeholders()
+    // moved to \FreeFormCertificate\Generators\ValidationUrlPlaceholders in
+    // #649 (shared by PDF + email). Covered by ValidationUrlPlaceholdersTest.
 
     // 6.6.11 — removed `generate_filename()` private method tests. The
     // helper logic moved to `\FreeFormCertificate\Core\FilenameHelper::build_pdf_filename()`
@@ -558,27 +468,9 @@ class PdfGeneratorTest extends TestCase {
         $this->assertStringContainsString( 'ffc-validation-link', $html );
     }
 
-    // ==================================================================
-    // process_validation_url_placeholders()
-    // ==================================================================
-
-    public function test_validation_url_default_uses_valid_url_fallback(): void {
-        $this->stub_html_funcs();
-        $layout = '{{validation_url}}';
-        $html   = $this->invoke( 'process_validation_url_placeholders', array( $layout, array() ) );
-        // No magic token → both href and text fall back to the /valid URL.
-        $this->assertStringContainsString( 'https://example.com/valid', $html );
-        $this->assertStringNotContainsString( '{{validation_url', $html );
-    }
-
-    public function test_validation_url_custom_text_target_and_color(): void {
-        $this->stub_html_funcs();
-        $layout = '{{validation_url link:v>"ClickHere" target:_blank color:red}}';
-        $html   = $this->invoke( 'process_validation_url_placeholders', array( $layout, array() ) );
-        $this->assertStringContainsString( 'ClickHere', $html );
-        $this->assertStringContainsString( 'target="_blank"', $html );
-        $this->assertStringContainsString( 'color: red', $html );
-    }
+    // process_validation_url_placeholders() integration is covered above via
+    // generate_html(); the unit-level DSL tests live in
+    // ValidationUrlPlaceholdersTest (#649).
 
     // ==================================================================
     // get_qr_code_target_url()

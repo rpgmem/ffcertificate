@@ -7,6 +7,13 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Fixed
+- Certificate confirmation email to the submitter was never sent — the async handler was hooked to `ffcertificate_process_submission_hook` but nothing scheduled it (orphaned since a refactor), so no user email (nor admin notification) went out. Submissions now schedule that dispatch again. (#649)
+
+### Changed
+- The submitter email is now fully driven by its editable/translatable template — subject and body substitute `{{name}}`, `{{form_title}}`, `{{auth_code}}` and `{{date}}`, and the `{{validation_url …}}` link DSL now runs in emails as well (it had been removed), so the magic download link and `/valid` verification link can be placed anywhere in the body (e.g. `{{validation_url link:m>"Download (PDF)"}}`). Substitution runs before sanitising and tolerates TinyMCE-encoded braces. The previously hardcoded heading/auth-code card/button chrome was removed from the send path — the shipped default template (English source, Loco-translatable) now carries all of it. (#649)
+- The `{{validation_url …}}` DSL parser now keeps double-quoted custom text with spaces intact (e.g. `link:m>"Download document (PDF)"`); the previous space-split dropped multi-word custom text. Extracted into the shared `ValidationUrlPlaceholders` helper used by both the PDF layout and the email. (#649)
+
 ### Added
 - Device-fingerprint limit, "global on / form off" gap: the form editor now shows a neutral nudge when the subsystem is enabled plugin-wide but off for the form (explaining the shared-device trade-off so operators enable it deliberately), and forms in that state render a generic "submissions are logged and may be audited for fraud prevention" line inside the existing LGPD consent block. The line is intentionally generic — no device signal is collected when the form limit is off, so it makes no device-duplicate claim; the honest device disclosure still appears only when the per-form limit is on. (#647)
 
