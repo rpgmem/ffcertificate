@@ -20,6 +20,9 @@ class EmailServiceTest extends TestCase {
 		parent::setUp();
 		Monkey\setUp();
 		\class_exists( '\FreeFormCertificate\Core\EmailService' );
+		// On failure EmailService calls Debug::log_email → Debug::is_enabled →
+		// get_option('ffc_settings'); stub it so the debug read no-ops.
+		Functions\when( 'get_option' )->justReturn( array() );
 	}
 
 	protected function tearDown(): void {
