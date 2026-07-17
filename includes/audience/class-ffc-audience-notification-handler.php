@@ -24,6 +24,8 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 /**
  * Handler for audience notification operations.
+ *
+ * @phpstan-import-type ScheduleRow from AudienceScheduleRepository
  */
 class AudienceNotificationHandler {
 
@@ -55,13 +57,7 @@ class AudienceNotificationHandler {
 		}
 
 		$schedule = AudienceScheduleRepository::get_by_id( (int) $environment->schedule_id );
-		if ( ! $schedule || ! $schedule->notify_on_booking ) {
-			return;
-		}
-
-		// Get all affected users.
-		$affected_users = AudienceBookingReader::get_all_affected_users( $booking_id );
-		if ( empty( $affected_users ) ) {
+		if ( ! $schedule ) {
 			return;
 		}
 
@@ -69,7 +65,7 @@ class AudienceNotificationHandler {
 		$creator      = get_user_by( 'id', $booking->created_by );
 		$creator_name = $creator ? $creator->display_name : __( 'Unknown', 'ffcertificate' );
 
-		// Prepare booking data.
+		// Prepare booking data (shared by the admin and user notifications).
 		$environment_label = AudienceScheduleRepository::get_environment_label( $schedule, true );
 		$booking_data      = array(
 			'booking_id'        => $booking_id,
@@ -95,6 +91,21 @@ class AudienceNotificationHandler {
 			$audiences
 		);
 		$booking_data['audiences'] = implode( ', ', $audience_names );
+
+		// Admin notification — opt-in (default off), independent of the
+		// per-schedule user toggle and of whether any users are affected.
+		self::maybe_notify_admin_of_booking( $schedule, $booking_data );
+
+		// User notifications — gated on the per-schedule user toggle.
+		if ( ! $schedule->notify_on_booking ) {
+			return;
+		}
+
+		// Get all affected users.
+		$affected_users = AudienceBookingReader::get_all_affected_users( $booking_id );
+		if ( empty( $affected_users ) ) {
+			return;
+		}
 
 		// Generate ICS if enabled.
 		$ics_content = null;
@@ -140,14 +151,7 @@ class AudienceNotificationHandler {
 		}
 
 		$schedule = AudienceScheduleRepository::get_by_id( (int) $environment->schedule_id );
-		if ( ! $schedule || ! $schedule->notify_on_cancellation ) {
-			return;
-		}
-
-		// Get all affected users (from booking_users table).
-		$affected_users = AudienceBookingReader::get_booking_users( (int) $booking_id );
-
-		if ( empty( $affected_users ) ) {
+		if ( ! $schedule ) {
 			return;
 		}
 
@@ -182,6 +186,21 @@ class AudienceNotificationHandler {
 			$audiences
 		);
 		$booking_data['audiences'] = implode( ', ', $audience_names );
+
+		// Admin notification — opt-in (default off), independent of the
+		// per-schedule user toggle and of whether any users are affected.
+		self::maybe_notify_admin_of_cancellation( $schedule, $booking_data );
+
+		// User notifications — gated on the per-schedule user toggle.
+		if ( ! $schedule->notify_on_cancellation ) {
+			return;
+		}
+
+		// Get all affected users (from booking_users table).
+		$affected_users = AudienceBookingReader::get_booking_users( (int) $booking_id );
+		if ( empty( $affected_users ) ) {
+			return;
+		}
 
 		// Generate ICS cancellation if enabled.
 		$ics_content = null;
@@ -395,6 +414,145 @@ class AudienceNotificationHandler {
 			$booking_data['environment_name'],
 			$booking_data['booking_date']
 		);
+	}
+
+	/**
+	 * Send the admin notification for a new booking when the schedule opted in.
+	 *
+	 * Independent of the per-schedule user toggle: an admin can be notified even
+	 * when end users are not (or when the audience is empty).
+	 *
+	 * @param object               $schedule     Schedule row.
+	 * @param array<string, mixed> $booking_data Prepared booking data.
+	 * @phpstan-param ScheduleRow $schedule
+	 * @return void
+	 */
+	private static function maybe_notify_admin_of_booking( object $schedule, array $booking_data ): void {
+		if ( empty( $schedule->notify_admin_on_booking ) ) {
+			return;
+		}
+
+		$subject = sprintf(
+			/* translators: 1: Environment name, 2: Date */
+			__( '[Admin] New booking in %1$s - %2$s', 'ffcertificate' ),
+			$booking_data['environment_name'],
+			$booking_data['booking_date']
+		);
+
+		$body = self::admin_details_html(
+			__( 'New audience booking', 'ffcertificate' ),
+			array(
+				__( 'Calendar', 'ffcertificate' )    => (string) $booking_data['schedule_name'],
+				__( 'Environment', 'ffcertificate' ) => (string) $booking_data['environment_name'],
+				__( 'Date', 'ffcertificate' )        => (string) $booking_data['booking_date'],
+				__( 'Time', 'ffcertificate' )        => $booking_data['start_time'] . ' - ' . $booking_data['end_time'],
+				__( 'Audiences', 'ffcertificate' )   => (string) ( $booking_data['audiences'] ?? '' ),
+				__( 'Booked by', 'ffcertificate' )   => (string) ( $booking_data['creator_name'] ?? '' ),
+				__( 'Description', 'ffcertificate' ) => (string) ( $booking_data['description'] ?? '' ),
+			)
+		);
+
+		self::send_admin_email( $schedule, $subject, $body );
+	}
+
+	/**
+	 * Send the admin notification for a cancellation when the schedule opted in.
+	 *
+	 * @param object               $schedule     Schedule row.
+	 * @param array<string, mixed> $booking_data Prepared booking data.
+	 * @phpstan-param ScheduleRow $schedule
+	 * @return void
+	 */
+	private static function maybe_notify_admin_of_cancellation( object $schedule, array $booking_data ): void {
+		if ( empty( $schedule->notify_admin_on_cancellation ) ) {
+			return;
+		}
+
+		$subject = sprintf(
+			/* translators: 1: Environment name, 2: Date */
+			__( '[Admin] Booking cancelled in %1$s - %2$s', 'ffcertificate' ),
+			$booking_data['environment_name'],
+			$booking_data['booking_date']
+		);
+
+		$body = self::admin_details_html(
+			__( 'Audience booking cancelled', 'ffcertificate' ),
+			array(
+				__( 'Calendar', 'ffcertificate' )     => (string) $booking_data['schedule_name'],
+				__( 'Environment', 'ffcertificate' )  => (string) $booking_data['environment_name'],
+				__( 'Date', 'ffcertificate' )         => (string) $booking_data['booking_date'],
+				__( 'Time', 'ffcertificate' )         => $booking_data['start_time'] . ' - ' . $booking_data['end_time'],
+				__( 'Audiences', 'ffcertificate' )    => (string) ( $booking_data['audiences'] ?? '' ),
+				__( 'Cancelled by', 'ffcertificate' ) => (string) ( $booking_data['cancelled_by_name'] ?? '' ),
+				__( 'Reason', 'ffcertificate' )       => (string) ( $booking_data['cancellation_reason'] ?? '' ),
+			)
+		);
+
+		self::send_admin_email( $schedule, $subject, $body );
+	}
+
+	/**
+	 * Send an admin notification email to every configured recipient.
+	 *
+	 * @param object $schedule Schedule row.
+	 * @param string $subject  Email subject.
+	 * @param string $body     Inner HTML body (wrapped by SchedulingMailer).
+	 * @phpstan-param ScheduleRow $schedule
+	 * @return void
+	 */
+	private static function send_admin_email( object $schedule, string $subject, string $body ): void {
+		foreach ( self::admin_recipients( $schedule ) as $recipient ) {
+			\FreeFormCertificate\Scheduling\SchedulingMailer::send( $recipient, $subject, $body );
+		}
+	}
+
+	/**
+	 * Resolve the admin-notification recipients for a schedule.
+	 *
+	 * Parses the comma-separated `admin_notification_emails`; when empty (or all
+	 * invalid) falls back to the site admin email.
+	 *
+	 * @param object $schedule Schedule row.
+	 * @phpstan-param ScheduleRow $schedule
+	 * @return array<int, string>
+	 */
+	private static function admin_recipients( object $schedule ): array {
+		$raw        = isset( $schedule->admin_notification_emails ) ? (string) $schedule->admin_notification_emails : '';
+		$recipients = array();
+		foreach ( explode( ',', $raw ) as $email ) {
+			$email = trim( $email );
+			if ( '' !== $email && is_email( $email ) ) {
+				$recipients[] = $email;
+			}
+		}
+
+		if ( empty( $recipients ) ) {
+			$fallback = (string) get_option( 'admin_email' );
+			if ( '' !== $fallback && is_email( $fallback ) ) {
+				$recipients[] = $fallback;
+			}
+		}
+
+		return $recipients;
+	}
+
+	/**
+	 * Build a compact admin-notification HTML body from label/value rows.
+	 *
+	 * Uses the `.info-box` / `.info-row` classes from the SchedulingMailer chrome.
+	 *
+	 * @param string                $heading Section heading.
+	 * @param array<string, string> $rows    Label => value pairs (escaped here).
+	 * @return string Inner HTML (wrapped by SchedulingMailer::wrap_html at send).
+	 */
+	private static function admin_details_html( string $heading, array $rows ): string {
+		$html  = '<h2>' . esc_html( $heading ) . '</h2>';
+		$html .= '<div class="info-box">';
+		foreach ( $rows as $label => $value ) {
+			$html .= '<div class="info-row"><span class="info-label">' . esc_html( $label ) . ':</span> ' . esc_html( $value ) . '</div>';
+		}
+		$html .= '</div>';
+		return $html;
 	}
 
 	/**
