@@ -3,7 +3,7 @@
  * Reregistration Email Handler
  *
  * Sends invitation, reminder, and confirmation emails for reregistration campaigns.
- * Uses EmailTemplateService for rendering and sending.
+ * Uses SchedulingMailer for the shared chrome + transport.
  *
  * @package FreeFormCertificate\Reregistration
  * @since 4.11.0
@@ -13,7 +13,8 @@ declare(strict_types=1);
 
 namespace FreeFormCertificate\Reregistration;
 
-use FreeFormCertificate\Scheduling\EmailTemplateService;
+use FreeFormCertificate\Core\DateFormatter;
+use FreeFormCertificate\Scheduling\SchedulingMailer;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
@@ -249,8 +250,8 @@ class ReregistrationEmailHandler {
 				'user_name'            => $user->display_name,
 				'reregistration_title' => $rereg->title,
 				'audience_name'        => $rereg->audience_name ?? '',
-				'start_date'           => EmailTemplateService::format_date( $rereg->start_date ),
-				'end_date'             => EmailTemplateService::format_date( $rereg->end_date ),
+				'start_date'           => DateFormatter::format_date( $rereg->start_date ),
+				'end_date'             => DateFormatter::format_date( $rereg->end_date ),
 				'dashboard_url'        => $dashboard_url,
 				'site_name'            => get_bloginfo( 'name' ),
 			),
@@ -264,7 +265,7 @@ class ReregistrationEmailHandler {
 		$subject = \FreeFormCertificate\Core\TokenResolver::resolve( $template['subject'], $tokens );
 		$body    = \FreeFormCertificate\Core\TokenResolver::resolve( $template['body'], $tokens );
 
-		return EmailTemplateService::send( $user->user_email, $subject, $body );
+		return SchedulingMailer::send( $user->user_email, $subject, $body );
 	}
 
 	/**

@@ -297,9 +297,9 @@ class ReregistrationEmailHandlerTest extends TestCase {
             );
         });
 
-        Mockery::mock('alias:FreeFormCertificate\Scheduling\EmailTemplateService')
-            ->shouldReceive('format_date')->andReturn('2026-01-01')
-            ->shouldReceive('render_template')->andReturnUsing(fn($t) => $t)
+        Mockery::mock('alias:FreeFormCertificate\Core\DateFormatter')
+            ->shouldReceive('format_date')->andReturn('2026-01-01');
+        Mockery::mock('alias:FreeFormCertificate\Scheduling\SchedulingMailer')
             ->shouldReceive('send')->andReturn(true);
 
         $count = ReregistrationEmailHandler::send_invitations(1);
@@ -333,9 +333,9 @@ class ReregistrationEmailHandlerTest extends TestCase {
             'user_email'   => 'u' . $id . '@example.com',
         ));
 
-        Mockery::mock('alias:FreeFormCertificate\Scheduling\EmailTemplateService')
-            ->shouldReceive('format_date')->andReturn('2026-01-01')
-            ->shouldReceive('render_template')->andReturnUsing(fn($t) => $t)
+        Mockery::mock('alias:FreeFormCertificate\Core\DateFormatter')
+            ->shouldReceive('format_date')->andReturn('2026-01-01');
+        Mockery::mock('alias:FreeFormCertificate\Scheduling\SchedulingMailer')
             ->shouldReceive('send')->andReturn(true);
 
         $count = ReregistrationEmailHandler::send_reminders(1, array(10, 20));
@@ -376,9 +376,9 @@ class ReregistrationEmailHandlerTest extends TestCase {
         Mockery::mock('alias:FreeFormCertificate\Generators\MagicLinkHelper')
             ->shouldReceive('generate_magic_link')->with('tok123')->andReturn('https://example.com/m/tok123');
 
-        Mockery::mock('alias:FreeFormCertificate\Scheduling\EmailTemplateService')
-            ->shouldReceive('format_date')->andReturn('2026-01-01')
-            ->shouldReceive('render_template')->andReturnUsing(fn($t) => $t)
+        Mockery::mock('alias:FreeFormCertificate\Core\DateFormatter')
+            ->shouldReceive('format_date')->andReturn('2026-01-01');
+        Mockery::mock('alias:FreeFormCertificate\Scheduling\SchedulingMailer')
             ->shouldReceive('send')->andReturn(true);
 
         $result = ReregistrationEmailHandler::send_confirmation(1);
