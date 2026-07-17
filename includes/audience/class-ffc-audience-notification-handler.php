@@ -237,7 +237,7 @@ class AudienceNotificationHandler {
 		// Delegate to shared email service. Use try/finally so temp files are always cleaned up,
 		// even if the email service throws.
 		try {
-			$result = \FreeFormCertificate\Scheduling\EmailTemplateService::send( $to, $subject, $body, $attachments );
+			$result = \FreeFormCertificate\Scheduling\SchedulingMailer::send( $to, $subject, $body, $attachments );
 		} finally {
 			foreach ( $temp_files as $file ) {
 				if ( file_exists( $file ) ) {
@@ -265,7 +265,7 @@ class AudienceNotificationHandler {
 
 		$method = ( 'cancelled' === $action ) ? 'CANCEL' : 'REQUEST';
 
-		return \FreeFormCertificate\Scheduling\EmailTemplateService::generate_ics(
+		return \FreeFormCertificate\Scheduling\IcsGenerator::generate(
 			array(
 				'uid'         => 'ffc-booking-' . $booking_data['booking_id'],
 				'summary'     => $summary,
@@ -279,7 +279,7 @@ class AudienceNotificationHandler {
 		);
 	}
 
-	// escape_ics_text() removed — already available in EmailTemplateService (v4.11.2).
+	// escape_ics_text() removed — ICS escaping lives in Scheduling\IcsGenerator (#653).
 
 	/**
 	 * Render email template with variables
