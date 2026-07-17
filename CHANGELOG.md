@@ -8,6 +8,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 ## [Unreleased]
 
 ### Fixed
+- Self-scheduling appointment **reminder email was never sent** — the reminder handler and its whole read/mark pipeline existed, but nothing scheduled a scan or fired the reminder hook, so enabling "Send reminder before appointment" did nothing. Added the missing hourly cron driver (`ffcertificate_self_scheduling_reminder_scan`): it finds confirmed, not-yet-reminded appointments due per their calendar's `reminder_hours_before`, fires the reminder email, and marks them sent (no duplicates); it no-ops when a calendar has reminders off or when emails are globally disabled. (#650)
 - Certificate confirmation email to the submitter was never sent — the async handler was hooked to `ffcertificate_process_submission_hook` but nothing scheduled it (orphaned since a refactor), so no user email (nor admin notification) went out. Submissions now schedule that dispatch again. (#649)
 
 ### Added
