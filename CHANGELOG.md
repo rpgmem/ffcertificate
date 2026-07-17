@@ -8,11 +8,11 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 ## [Unreleased]
 
 ### Added
-- Form editor → Email tab: a **"Restore Default Text"** button that repopulates the message editor with the default template (after a confirm), for when an operator has edited the body and wants the default back. The helper text also notes that simply clearing the body falls back to the default template when the email is sent. (#PRNUM)
+- Form editor → Email tab: a **"Restore Default Text"** button that repopulates the message editor with the default template (after a confirm), for when an operator has edited the body and wants the default back. The helper text also notes that simply clearing the body falls back to the default template when the email is sent. (#660)
 
 ### Fixed
-- Form editor → Email tab: the **"Notify Admin on Submission" toggle failed to auto-save** ("failed to save") — the toggle was wired for incremental autosave but its key was missing from the `FormMetaAjaxEndpoint` allowlist, so flipping it returned a 403 and the choice only persisted through a full form save. Added `send_admin_email` to the allowlist. (#PRNUM)
-- Self-scheduling calendar editor: the five **email-notification toggles rendered on a single line** — a more-specific base `.ffc-toggle` rule (`display: inline-flex`) overrode the intended per-line stacking. The `.ffc-email-toggles` container is now a flex column, so each toggle sits on its own row without a specificity/`!important` fight. (#PRNUM)
+- Form editor → Email tab: the **"Notify Admin on Submission" toggle failed to auto-save** ("failed to save") — the toggle was wired for incremental autosave but its key was missing from the `FormMetaAjaxEndpoint` allowlist, so flipping it returned a 403 and the choice only persisted through a full form save. Added `send_admin_email` to the allowlist. (#660)
+- Self-scheduling calendar editor: the five **email-notification toggles rendered on a single line** — a more-specific base `.ffc-toggle` rule (`display: inline-flex`) overrode the intended per-line stacking. The `.ffc-email-toggles` container is now a flex column, so each toggle sits on its own row without a specificity/`!important` fight. (#660)
 
 ### Changed
 - Internal (#653) — retired the catch-all `Scheduling\EmailTemplateService`, splitting it into two focused classes: `Scheduling\IcsGenerator` (RFC 5545 `.ics` invite/cancellation building) and `Scheduling\SchedulingMailer` (the shared HTML chrome + `ffcertificate_scheduling_email` filter + transport for audience/reregistration emails). The dead `render_template` (single-brace engine, superseded by `Core\TokenResolver`) and the `format_date`/`format_time` passthroughs were dropped — reregistration now calls `Core\DateFormatter::format_date` directly. Behavior-preserving; the `ffcertificate_scheduling_email` filter contract is unchanged. Completes the email-architecture consolidation.
