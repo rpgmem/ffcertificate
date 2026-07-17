@@ -412,6 +412,8 @@ class AudienceActivator {
 			self::migrate_schedule_audience_badge_format_column();
 			self::migrate_schedule_booking_label_columns();
 			self::migrate_schedule_isolated_column();
+			// One-shot: rewrite stored email templates {token} -> {{token}} (#653).
+			AudienceEmailTokenMigration::maybe_migrate();
 		}
 
 		self::migrate_audience_self_join_column();

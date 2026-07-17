@@ -291,24 +291,24 @@ class AudienceNotificationHandler {
 	 */
 	private static function render_template( string $template, array $booking_data, \WP_User $user ): string {
 		$replacements = array(
-			'{user_name}'           => \esc_html( (string) $user->display_name ),
-			'{user_email}'          => \esc_html( (string) $user->user_email ),
-			'{environment_name}'    => \esc_html( (string) $booking_data['environment_name'] ),
-			'{environment_label}'   => \esc_html( (string) ( $booking_data['environment_label'] ?? __( 'Environment', 'ffcertificate' ) ) ),
-			'{schedule_name}'       => \esc_html( (string) $booking_data['schedule_name'] ),
-			'{booking_date}'        => \esc_html( (string) $booking_data['booking_date'] ),
-			'{start_time}'          => \esc_html( (string) $booking_data['start_time'] ),
-			'{end_time}'            => \esc_html( (string) $booking_data['end_time'] ),
-			'{description}'         => \esc_html( (string) $booking_data['description'] ),
-			'{audiences}'           => \esc_html( (string) ( $booking_data['audiences'] ?? '' ) ),
-			'{creator_name}'        => \esc_html( (string) ( $booking_data['creator_name'] ?? '' ) ),
-			'{cancelled_by_name}'   => \esc_html( (string) ( $booking_data['cancelled_by_name'] ?? '' ) ),
-			'{cancellation_reason}' => \esc_html( (string) ( $booking_data['cancellation_reason'] ?? '' ) ),
-			'{site_name}'           => \esc_html( (string) get_bloginfo( 'name' ) ),
-			'{site_url}'            => esc_url( home_url() ),
+			'{{user_name}}'           => \esc_html( (string) $user->display_name ),
+			'{{user_email}}'          => \esc_html( (string) $user->user_email ),
+			'{{environment_name}}'    => \esc_html( (string) $booking_data['environment_name'] ),
+			'{{environment_label}}'   => \esc_html( (string) ( $booking_data['environment_label'] ?? __( 'Environment', 'ffcertificate' ) ) ),
+			'{{schedule_name}}'       => \esc_html( (string) $booking_data['schedule_name'] ),
+			'{{booking_date}}'        => \esc_html( (string) $booking_data['booking_date'] ),
+			'{{start_time}}'          => \esc_html( (string) $booking_data['start_time'] ),
+			'{{end_time}}'            => \esc_html( (string) $booking_data['end_time'] ),
+			'{{description}}'         => \esc_html( (string) $booking_data['description'] ),
+			'{{audiences}}'           => \esc_html( (string) ( $booking_data['audiences'] ?? '' ) ),
+			'{{creator_name}}'        => \esc_html( (string) ( $booking_data['creator_name'] ?? '' ) ),
+			'{{cancelled_by_name}}'   => \esc_html( (string) ( $booking_data['cancelled_by_name'] ?? '' ) ),
+			'{{cancellation_reason}}' => \esc_html( (string) ( $booking_data['cancellation_reason'] ?? '' ) ),
+			'{{site_name}}'           => \esc_html( (string) get_bloginfo( 'name' ) ),
+			'{{site_url}}'            => esc_url( home_url() ),
 		);
 
-		return str_replace( array_keys( $replacements ), array_values( $replacements ), $template );
+		return \FreeFormCertificate\Core\TokenResolver::resolve( $template, $replacements );
 	}
 
 	/**
@@ -320,23 +320,23 @@ class AudienceNotificationHandler {
 		return '
 <h3>' . __( 'New Scheduled Activity', 'ffcertificate' ) . '</h3>
 
-<p>' . __( 'Hello {user_name},', 'ffcertificate' ) . '</p>
+<p>' . __( 'Hello {{user_name}},', 'ffcertificate' ) . '</p>
 
 <p>' . __( 'You have been included in a new scheduled activity:', 'ffcertificate' ) . "</p>
 
 <div class='info-box'>
-    <div class='info-row'><span class='info-label'>" . __( 'Calendar:', 'ffcertificate' ) . "</span> {schedule_name}</div>
-    <div class='info-row'><span class='info-label'>{environment_label}:</span> {environment_name}</div>
-    <div class='info-row'><span class='info-label'>" . __( 'Date:', 'ffcertificate' ) . "</span> {booking_date}</div>
-    <div class='info-row'><span class='info-label'>" . __( 'Time:', 'ffcertificate' ) . "</span> {start_time} - {end_time}</div>
-    <div class='info-row'><span class='info-label'>" . __( 'Description:', 'ffcertificate' ) . "</span> {description}</div>
-    <div class='info-row'><span class='info-label'>" . __( 'Audiences:', 'ffcertificate' ) . "</span> {audiences}</div>
-    <div class='info-row'><span class='info-label'>" . __( 'Scheduled by:', 'ffcertificate' ) . '</span> {creator_name}</div>
+    <div class='info-row'><span class='info-label'>" . __( 'Calendar:', 'ffcertificate' ) . "</span> {{schedule_name}}</div>
+    <div class='info-row'><span class='info-label'>{{environment_label}}:</span> {{environment_name}}</div>
+    <div class='info-row'><span class='info-label'>" . __( 'Date:', 'ffcertificate' ) . "</span> {{booking_date}}</div>
+    <div class='info-row'><span class='info-label'>" . __( 'Time:', 'ffcertificate' ) . "</span> {{start_time}} - {{end_time}}</div>
+    <div class='info-row'><span class='info-label'>" . __( 'Description:', 'ffcertificate' ) . "</span> {{description}}</div>
+    <div class='info-row'><span class='info-label'>" . __( 'Audiences:', 'ffcertificate' ) . "</span> {{audiences}}</div>
+    <div class='info-row'><span class='info-label'>" . __( 'Scheduled by:', 'ffcertificate' ) . '</span> {{creator_name}}</div>
 </div>
 
 <p>' . __( 'Please add this event to your calendar.', 'ffcertificate' ) . '</p>
 
-<p>' . __( 'Best regards,', 'ffcertificate' ) . '<br>{site_name}</p>';
+<p>' . __( 'Best regards,', 'ffcertificate' ) . '<br>{{site_name}}</p>';
 	}
 
 	/**
@@ -348,23 +348,23 @@ class AudienceNotificationHandler {
 		return '
 <h3>' . __( 'Activity Cancelled', 'ffcertificate' ) . '</h3>
 
-<p>' . __( 'Hello {user_name},', 'ffcertificate' ) . '</p>
+<p>' . __( 'Hello {{user_name}},', 'ffcertificate' ) . '</p>
 
 <p>' . __( 'A scheduled activity you were included in has been cancelled:', 'ffcertificate' ) . "</p>
 
 <div class='info-box cancelled'>
-    <div class='info-row'><span class='info-label'>" . __( 'Calendar:', 'ffcertificate' ) . "</span> {schedule_name}</div>
-    <div class='info-row'><span class='info-label'>{environment_label}:</span> {environment_name}</div>
-    <div class='info-row'><span class='info-label'>" . __( 'Date:', 'ffcertificate' ) . "</span> {booking_date}</div>
-    <div class='info-row'><span class='info-label'>" . __( 'Time:', 'ffcertificate' ) . "</span> {start_time} - {end_time}</div>
-    <div class='info-row'><span class='info-label'>" . __( 'Description:', 'ffcertificate' ) . "</span> {description}</div>
-    <div class='info-row'><span class='info-label'>" . __( 'Cancelled by:', 'ffcertificate' ) . "</span> {cancelled_by_name}</div>
-    <div class='info-row'><span class='info-label'>" . __( 'Reason:', 'ffcertificate' ) . '</span> {cancellation_reason}</div>
+    <div class='info-row'><span class='info-label'>" . __( 'Calendar:', 'ffcertificate' ) . "</span> {{schedule_name}}</div>
+    <div class='info-row'><span class='info-label'>{{environment_label}}:</span> {{environment_name}}</div>
+    <div class='info-row'><span class='info-label'>" . __( 'Date:', 'ffcertificate' ) . "</span> {{booking_date}}</div>
+    <div class='info-row'><span class='info-label'>" . __( 'Time:', 'ffcertificate' ) . "</span> {{start_time}} - {{end_time}}</div>
+    <div class='info-row'><span class='info-label'>" . __( 'Description:', 'ffcertificate' ) . "</span> {{description}}</div>
+    <div class='info-row'><span class='info-label'>" . __( 'Cancelled by:', 'ffcertificate' ) . "</span> {{cancelled_by_name}}</div>
+    <div class='info-row'><span class='info-label'>" . __( 'Reason:', 'ffcertificate' ) . '</span> {{cancellation_reason}}</div>
 </div>
 
 <p>' . __( 'Please remove this event from your calendar.', 'ffcertificate' ) . '</p>
 
-<p>' . __( 'Best regards,', 'ffcertificate' ) . '<br>{site_name}</p>';
+<p>' . __( 'Best regards,', 'ffcertificate' ) . '<br>{{site_name}}</p>';
 	}
 
 	/**
