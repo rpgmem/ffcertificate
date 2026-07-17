@@ -260,13 +260,35 @@ class EmailHandlerTest extends TestCase {
             array( 'name' => 'John' ),
             'user@example.com',
             array(),
-            array( 'send_user_email' => 0, 'email_admin' => 'admin@example.com' ),
+            array( 'send_user_email' => 0, 'send_admin_email' => '1', 'email_admin' => 'admin@example.com' ),
             ''
         );
 
         // Only admin notification sent (no user email)
         $this->assertCount( 1, $this->sent_emails );
         $this->assertSame( 'admin@example.com', $this->sent_emails[0]['to'] );
+    }
+
+    public function test_async_skips_admin_notification_when_not_opted_in(): void {
+        Functions\when( 'get_option' )->alias( function ( $key, $default = false ) {
+            return 'admin_email' === $key ? 'admin@example.com' : $default;
+        } );
+        Functions\when( 'is_email' )->justReturn( true );
+
+        $handler = new EmailHandler();
+        $handler->async_process_submission(
+            1,
+            10,
+            'Test Certificate',
+            array( 'name' => 'John' ),
+            'user@example.com',
+            array(),
+            // Neither user nor admin email opted in → nothing sent (default off).
+            array( 'email_admin' => 'admin@example.com' ),
+            ''
+        );
+
+        $this->assertCount( 0, $this->sent_emails, 'admin notification must be opt-in (send_admin_email)' );
     }
 
     // ==================================================================

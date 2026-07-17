@@ -104,8 +104,12 @@ class EmailHandler {
 			$this->send_user_email( $user_email, $form_title, $form_config, $submission_data, $magic_token );
 		}
 
-		// Send admin notification.
-		$this->send_admin_notification( $form_title, $submission_data, $form_config );
+		// Send admin notification only when explicitly enabled for the form.
+		// Opt-in (default off) so re-wiring the dispatch (#649) doesn't start
+		// emailing the site admin on every submission without consent.
+		if ( ! empty( $form_config['send_admin_email'] ) ) {
+			$this->send_admin_notification( $form_title, $submission_data, $form_config );
+		}
 	}
 
 	/**

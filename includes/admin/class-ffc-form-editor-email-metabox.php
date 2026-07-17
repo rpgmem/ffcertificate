@@ -45,6 +45,10 @@ class FormEditorEmailMetabox {
 			$body = self::default_email_body();
 		}
 		$collapsed = ( '1' !== (string) $send_email );
+
+		$send_admin      = isset( $config['send_admin_email'] ) ? $config['send_admin_email'] : '0';
+		$email_admin     = isset( $config['email_admin'] ) ? (string) $config['email_admin'] : '';
+		$admin_collapsed = ( '1' !== (string) $send_admin );
 		?>
 		<table class="form-table">
 			<tr>
@@ -119,6 +123,41 @@ class FormEditorEmailMetabox {
 				<p class="description ffc-mt-15">
 				<em><?php esc_html_e( 'Note: When this option is enabled, the email will only be sent when the user submits the form. This will add them to a waiting list and emails will be sent progressively.', 'ffcertificate' ); ?></em>
 				</p>
+				</td>
+			</tr>
+		</table>
+		</div><!-- /.ffc-collapsed-target -->
+
+		<table class="form-table">
+			<tr>
+				<th><label><?php esc_html_e( 'Notify Admin on Submission?', 'ffcertificate' ); ?></label></th>
+				<td>
+					<input type="hidden" name="ffc_config[send_admin_email]" value="0">
+					<?php
+					\FreeFormCertificate\Admin\AdminUI::render_toggle(
+						array(
+							'name'    => 'ffc_config[send_admin_email]',
+							'id'      => 'ffc_config_send_admin_email',
+							'checked' => '1' === (string) $send_admin,
+							'label'   => __( 'Send an admin notification email after a successful submission.', 'ffcertificate' ),
+							'data'    => array( 'ffc-autosave-form-key' => 'send_admin_email' ),
+						)
+					);
+					?>
+				</td>
+			</tr>
+		</table>
+		<div class="ffc-collapsed-target<?php echo $admin_collapsed ? ' ffc-collapsed' : ''; ?>"
+			data-ffc-master="ffc_config_send_admin_email"
+			aria-hidden="<?php echo $admin_collapsed ? 'true' : 'false'; ?>">
+		<table class="form-table">
+			<tr>
+				<th><label for="ffc_config_email_admin"><?php esc_html_e( 'Admin Recipient(s)', 'ffcertificate' ); ?></label></th>
+				<td>
+					<input type="text" name="ffc_config[email_admin]" id="ffc_config_email_admin" value="<?php echo esc_attr( $email_admin ); ?>" class="ffc-w100">
+					<p class="description">
+						<?php esc_html_e( 'Comma-separated email addresses. Leave empty to use the site admin email.', 'ffcertificate' ); ?>
+					</p>
 				</td>
 			</tr>
 		</table>

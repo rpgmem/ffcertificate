@@ -10,6 +10,9 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 ### Fixed
 - Certificate confirmation email to the submitter was never sent — the async handler was hooked to `ffcertificate_process_submission_hook` but nothing scheduled it (orphaned since a refactor), so no user email (nor admin notification) went out. Submissions now schedule that dispatch again. (#649)
 
+### Added
+- Per-form "Notify Admin on Submission" opt-in (default off) with an optional recipient list, in the form's Email tab. Because re-wiring the dispatch above also revives the admin notification — which previously defaulted to the site admin email with no toggle — it is now gated behind this explicit opt-in so no admin is emailed on every submission without consent. (#649)
+
 ### Changed
 - The submitter email is now fully driven by its editable/translatable template — subject and body substitute `{{name}}`, `{{form_title}}`, `{{auth_code}}` and `{{date}}`, and the `{{validation_url …}}` link DSL now runs in emails as well (it had been removed), so the magic download link and `/valid` verification link can be placed anywhere in the body (e.g. `{{validation_url link:m>"Download (PDF)"}}`). Substitution runs before sanitising and tolerates TinyMCE-encoded braces. The previously hardcoded heading/auth-code card/button chrome was removed from the send path — the shipped default template (English source, Loco-translatable) now carries all of it. (#649)
 - The `{{validation_url …}}` DSL parser now keeps double-quoted custom text with spaces intact (e.g. `link:m>"Download document (PDF)"`); the previous space-split dropped multi-word custom text. Extracted into the shared `ValidationUrlPlaceholders` helper used by both the PDF layout and the email. (#649)
