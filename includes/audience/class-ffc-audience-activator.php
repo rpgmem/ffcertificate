@@ -104,6 +104,9 @@ class AudienceActivator {
             future_days_limit int unsigned DEFAULT NULL COMMENT 'NULL = no limit, only applies to non-admin',
             notify_on_booking tinyint(1) DEFAULT 1,
             notify_on_cancellation tinyint(1) DEFAULT 1,
+            notify_admin_on_booking tinyint(1) DEFAULT 0,
+            notify_admin_on_cancellation tinyint(1) DEFAULT 0,
+            admin_notification_emails text DEFAULT NULL,
             email_template_booking text DEFAULT NULL,
             email_template_cancellation text DEFAULT NULL,
             include_ics tinyint(1) DEFAULT 0,
@@ -412,6 +415,7 @@ class AudienceActivator {
 			self::migrate_schedule_audience_badge_format_column();
 			self::migrate_schedule_booking_label_columns();
 			self::migrate_schedule_isolated_column();
+			self::migrate_schedule_admin_notification_columns();
 			// One-shot: rewrite stored email templates {token} -> {{token}} (#653).
 			AudienceEmailTokenMigration::maybe_migrate();
 		}
@@ -564,6 +568,40 @@ class AudienceActivator {
 			$table_name,
 			'is_isolated',
 			"tinyint(1) DEFAULT 0 COMMENT 'Ignore conflicts from other schedules'"
+		);
+	}
+
+	/**
+	 * Migrate schedules table to add the admin-notification columns.
+	 *
+	 * Adds an opt-in (default off) admin notification for audience bookings and
+	 * cancellations — mirroring the self-scheduling calendars — plus a
+	 * per-schedule recipient list (empty = fall back to the site admin email).
+	 *
+	 * @since 6.14.0
+	 * @return void
+	 */
+	private static function migrate_schedule_admin_notification_columns(): void {
+		global $wpdb;
+		$table_name = $wpdb->prefix . 'ffc_audience_schedules';
+
+		self::add_column_if_missing(
+			$table_name,
+			'notify_admin_on_booking',
+			"tinyint(1) DEFAULT 0 COMMENT 'Notify admin on new booking'",
+			'notify_on_cancellation'
+		);
+		self::add_column_if_missing(
+			$table_name,
+			'notify_admin_on_cancellation',
+			"tinyint(1) DEFAULT 0 COMMENT 'Notify admin on cancellation'",
+			'notify_admin_on_booking'
+		);
+		self::add_column_if_missing(
+			$table_name,
+			'admin_notification_emails',
+			"text DEFAULT NULL COMMENT 'Comma-separated admin recipients (empty = site admin)'",
+			'notify_admin_on_cancellation'
 		);
 	}
 
