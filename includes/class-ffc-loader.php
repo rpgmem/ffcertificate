@@ -230,6 +230,12 @@ class Loader {
 			wp_schedule_event( time(), 'daily', 'ffcertificate_reregistration_expire_hook' );
 		}
 
+		// Ensure the self-scheduling appointment-reminder scan cron is scheduled
+		// (hourly, since reminders fire N hours before an appointment) (#650).
+		if ( ! wp_next_scheduled( \FreeFormCertificate\SelfScheduling\AppointmentReminderScanner::CRON_HOOK ) ) {
+			wp_schedule_event( time(), 'hourly', \FreeFormCertificate\SelfScheduling\AppointmentReminderScanner::CRON_HOOK );
+		}
+
 		$this->ensure_admin_capabilities();
 		$this->ensure_legacy_caps_renamed();
 		$this->ensure_taxonomy_renamed();
@@ -518,6 +524,7 @@ class Loader {
 		);
 		add_action( 'ffcertificate_reregistration_expire_hook', array( ReregistrationRepository::class, 'expire_overdue' ) );
 		add_action( 'ffcertificate_reregistration_expire_hook', array( ReregistrationEmailHandler::class, 'run_automated_reminders' ) );
+		add_action( \FreeFormCertificate\SelfScheduling\AppointmentReminderScanner::CRON_HOOK, array( \FreeFormCertificate\SelfScheduling\AppointmentReminderScanner::class, 'run' ) );
 	}
 
 	/**
