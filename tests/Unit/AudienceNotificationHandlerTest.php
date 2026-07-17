@@ -51,7 +51,7 @@ class AudienceNotificationHandlerTest extends TestCase {
     // ==================================================================
 
     public function test_render_template_replaces_user_variables(): void {
-        $template = 'Hello {user_name}, your email is {user_email}.';
+        $template = 'Hello {{user_name}}, your email is {{user_email}}.';
         $booking_data = array(
             'environment_name' => 'Room A',
             'schedule_name'    => 'Calendar',
@@ -69,12 +69,12 @@ class AudienceNotificationHandlerTest extends TestCase {
 
         $this->assertStringContainsString( 'João Silva', $result );
         $this->assertStringContainsString( 'joao@example.com', $result );
-        $this->assertStringNotContainsString( '{user_name}', $result );
-        $this->assertStringNotContainsString( '{user_email}', $result );
+        $this->assertStringNotContainsString( '{{user_name}}', $result );
+        $this->assertStringNotContainsString( '{{user_email}}', $result );
     }
 
     public function test_render_template_replaces_booking_variables(): void {
-        $template = '{schedule_name} at {environment_name} on {booking_date} from {start_time} to {end_time}. {description}';
+        $template = '{{schedule_name}} at {{environment_name}} on {{booking_date}} from {{start_time}} to {{end_time}}. {{description}}';
         $booking_data = array(
             'environment_name' => 'Lab 3',
             'schedule_name'    => 'Science Schedule',
@@ -94,7 +94,7 @@ class AudienceNotificationHandlerTest extends TestCase {
     }
 
     public function test_render_template_replaces_audience_and_creator(): void {
-        $template = 'Audiences: {audiences}. Created by: {creator_name}';
+        $template = 'Audiences: {{audiences}}. Created by: {{creator_name}}';
         $booking_data = array(
             'environment_name' => 'Room A',
             'schedule_name'    => 'Cal',
@@ -117,7 +117,7 @@ class AudienceNotificationHandlerTest extends TestCase {
     }
 
     public function test_render_template_replaces_cancellation_variables(): void {
-        $template = 'Cancelled by {cancelled_by_name}. Reason: {cancellation_reason}';
+        $template = 'Cancelled by {{cancelled_by_name}}. Reason: {{cancellation_reason}}';
         $booking_data = array(
             'environment_name'    => 'Room',
             'schedule_name'       => 'Cal',
@@ -139,7 +139,7 @@ class AudienceNotificationHandlerTest extends TestCase {
     }
 
     public function test_render_template_replaces_site_variables(): void {
-        $template = '{site_name} ({site_url})';
+        $template = '{{site_name}} ({{site_url}})';
         $booking_data = array(
             'environment_name' => 'Room',
             'schedule_name'    => 'Cal',
@@ -159,7 +159,7 @@ class AudienceNotificationHandlerTest extends TestCase {
     }
 
     public function test_render_template_handles_missing_optional_keys(): void {
-        $template = 'Creator: {creator_name}, Audiences: {audiences}';
+        $template = 'Creator: {{creator_name}}, Audiences: {{audiences}}';
         $booking_data = array(
             'environment_name' => 'Room',
             'schedule_name'    => 'Cal',
@@ -220,16 +220,16 @@ class AudienceNotificationHandlerTest extends TestCase {
         $template = $this->invoke_private( 'get_default_booking_template', [] );
 
         $expected_placeholders = array(
-            '{user_name}',
-            '{schedule_name}',
-            '{environment_name}',
-            '{booking_date}',
-            '{start_time}',
-            '{end_time}',
-            '{description}',
-            '{audiences}',
-            '{creator_name}',
-            '{site_name}',
+            '{{user_name}}',
+            '{{schedule_name}}',
+            '{{environment_name}}',
+            '{{booking_date}}',
+            '{{start_time}}',
+            '{{end_time}}',
+            '{{description}}',
+            '{{audiences}}',
+            '{{creator_name}}',
+            '{{site_name}}',
         );
 
         foreach ( $expected_placeholders as $placeholder ) {
@@ -241,16 +241,16 @@ class AudienceNotificationHandlerTest extends TestCase {
         $template = $this->invoke_private( 'get_default_cancellation_template', [] );
 
         $expected_placeholders = array(
-            '{user_name}',
-            '{schedule_name}',
-            '{environment_name}',
-            '{booking_date}',
-            '{start_time}',
-            '{end_time}',
-            '{description}',
-            '{cancelled_by_name}',
-            '{cancellation_reason}',
-            '{site_name}',
+            '{{user_name}}',
+            '{{schedule_name}}',
+            '{{environment_name}}',
+            '{{booking_date}}',
+            '{{start_time}}',
+            '{{end_time}}',
+            '{{description}}',
+            '{{cancelled_by_name}}',
+            '{{cancellation_reason}}',
+            '{{site_name}}',
         );
 
         foreach ( $expected_placeholders as $placeholder ) {
