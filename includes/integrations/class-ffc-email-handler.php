@@ -245,10 +245,8 @@ class EmailHandler {
 		/* translators: %s: form title */
 		$subject = sprintf( __( 'New Issuance: %s', 'ffcertificate' ), $form_title );
 
-		// Build email body with data table.
-		$body  = '<div style="font-family: sans-serif; max-width: 600px; margin: 0 auto;">';
-		$body .= '<h3 style="color: #0073aa;">' . __( 'Submission Details:', 'ffcertificate' ) . '</h3>';
-		$body .= '<table border="1" cellpadding="10" style="border-collapse:collapse; width:100%; font-family: sans-serif; border: 1px solid #ddd;">';
+		// Build the details table (with document / auth-code formatting).
+		$details_table = '<table border="1" cellpadding="10" style="border-collapse:collapse; width:100%; font-family: sans-serif; border: 1px solid #ddd;">';
 
 		foreach ( $data as $k => $v ) {
 			$display_v = is_array( $v ) ? implode( ', ', $v ) : $v;
@@ -263,13 +261,18 @@ class EmailHandler {
 				$display_v = \FreeFormCertificate\Core\DocumentFormatter::format_auth_code( $display_v, \FreeFormCertificate\Core\DocumentFormatter::PREFIX_CERTIFICATE );
 			}
 
-			$label = ucwords( str_replace( '_', ' ', $k ) );
-			$body .= '<tr>';
-			$body .= '<td style="background:#f9f9f9; width:30%; font-weight: bold; border: 1px solid #ddd;">' . esc_html( $label ) . '</td>';
-			$body .= '<td style="border: 1px solid #ddd;">' . wp_kses( $display_v, \FreeFormCertificate\Core\HtmlPolicy::get_allowed_html_tags() ) . '</td>';
-			$body .= '</tr>';
+			$label          = ucwords( str_replace( '_', ' ', $k ) );
+			$details_table .= '<tr>';
+			$details_table .= '<td style="background:#f9f9f9; width:30%; font-weight: bold; border: 1px solid #ddd;">' . esc_html( $label ) . '</td>';
+			$details_table .= '<td style="border: 1px solid #ddd;">' . wp_kses( $display_v, \FreeFormCertificate\Core\HtmlPolicy::get_allowed_html_tags() ) . '</td>';
+			$details_table .= '</tr>';
 		}
-		$body .= '</table></div>';
+		$details_table .= '</table>';
+
+		// Miolo → shared configurable chrome (#662 PR-8), like every other email.
+		$body = self::ffc_email_document(
+			self::ffc_render_email_partial( 'submission-admin-notification', array( 'details_table' => $details_table ) )
+		);
 
 		// Send to all admin emails (already validated by ffc_parse_admin_emails).
 		foreach ( $admins as $email ) {
