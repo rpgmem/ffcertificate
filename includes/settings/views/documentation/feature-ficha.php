@@ -14,7 +14,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 ?>
 <!-- 11. Ficha PDF Section -->
 <div class="card">
-	<h3 id="ficha-pdf" class="ffc-icon-doc"><?php esc_html_e( '11. Ficha PDF', 'ffcertificate' ); ?></h3>
+	<h3 id="feature-ficha" class="ffc-icon-doc"><?php esc_html_e( 'Ficha PDF', 'ffcertificate' ); ?></h3>
 
 	<p><?php esc_html_e( 'Generate a PDF record (ficha) for reregistration submissions. Available for submitted and approved submissions.', 'ffcertificate' ); ?></p>
 

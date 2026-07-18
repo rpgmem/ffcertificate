@@ -51,22 +51,16 @@ $ffc_doc_sections = array(
 				'file'   => 'feature-reregistration.php',
 			),
 			array(
-				'anchor' => 'ficha-pdf',
+				'anchor' => 'feature-ficha',
 				'icon'   => 'ffc-icon-doc',
 				'title'  => __( 'Ficha PDF', 'ffcertificate' ),
-				'file'   => '11-ficha-pdf.php',
+				'file'   => 'feature-ficha.php',
 			),
 			array(
 				'anchor' => 'feature-certificates',
 				'icon'   => 'ffc-icon-doc',
 				'title'  => __( 'Certificates & Forms', 'ffcertificate' ),
 				'file'   => 'feature-certificates.php',
-			),
-			array(
-				'anchor' => 'custom-fields',
-				'icon'   => 'ffc-icon-edit',
-				'title'  => __( 'Custom Fields', 'ffcertificate' ),
-				'file'   => '08-custom-fields.php',
 			),
 			array(
 				'anchor' => 'feature-audiences',

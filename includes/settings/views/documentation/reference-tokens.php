@@ -115,6 +115,17 @@ if ( ! defined( 'ABSPATH' ) ) {
 	</table>
 	<p class="description">
 		<strong><?php esc_html_e( 'Participant profile fields:', 'ffcertificate' ); ?></strong>
-		<?php esc_html_e( 'Any identity, contact, address or employment field your form collects can also be used as a placeholder by its field key — e.g. {{rg}}, {{celular}}, {{endereco}}, {{bairro}}, {{cargo_funcao_acumulo}}. The full catalog of these standard keys is listed in section 11 (Ficha PDF); they resolve in any PDF template when the form captures them.', 'ffcertificate' ); ?>
+		<?php esc_html_e( 'Any identity, contact, address or employment field your form collects can also be used as a placeholder by its field key — e.g. {{rg}}, {{celular}}, {{endereco}}, {{bairro}}, {{cargo_funcao_acumulo}}. The full catalog of these standard keys is listed on the Ficha PDF page; they resolve in any PDF template when the form captures them.', 'ffcertificate' ); ?>
 	</p>
+
+	<div class="ffc-doc-example">
+		<h4><?php esc_html_e( 'Custom fields as variables', 'ffcertificate' ); ?></h4>
+		<p><?php esc_html_e( 'Any custom field you create in Form Builder automatically becomes a template variable:', 'ffcertificate' ); ?></p>
+		<ul>
+			<li><strong><?php esc_html_e( 'Step 1:', 'ffcertificate' ); ?></strong> <?php esc_html_e( 'Create a field in Form Builder (e.g. field name "company")', 'ffcertificate' ); ?></li>
+			<li><strong><?php esc_html_e( 'Step 2:', 'ffcertificate' ); ?></strong> <?php esc_html_e( 'Use it in the template:', 'ffcertificate' ); ?> <code>{{company}}</code></li>
+			<li><strong><?php esc_html_e( 'Step 3:', 'ffcertificate' ); ?></strong> <?php esc_html_e( 'The value is replaced automatically in the PDF', 'ffcertificate' ); ?></li>
+		</ul>
+		<p><?php esc_html_e( 'So fields named', 'ffcertificate' ); ?> <code>company</code>, <code>department</code>, <code>course_hours</code> <?php esc_html_e( 'become', 'ffcertificate' ); ?> <code>{{company}}</code>, <code>{{department}}</code>, <code>{{course_hours}}</code>.</p>
+	</div>
 </div>
