@@ -145,12 +145,6 @@ $ffc_doc_sections = array(
 				'title'  => __( 'Emails & Delivery', 'ffcertificate' ),
 				'file'   => 'reference-emails.php',
 			),
-			array(
-				'anchor' => 'examples',
-				'icon'   => 'ffc-icon-note',
-				'title'  => __( 'Complete Examples', 'ffcertificate' ),
-				'file'   => '15-examples.php',
-			),
 		),
 	),
 	array(
