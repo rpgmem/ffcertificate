@@ -134,6 +134,15 @@ final class EmailTemplateOptions {
 	}
 
 	/**
+	 * The full font-family key → CSS stack map (for JS-side preview rendering).
+	 *
+	 * @return array<string, string>
+	 */
+	public static function font_stacks(): array {
+		return self::FONT_STACKS;
+	}
+
+	/**
 	 * Sanitize raw input (typically `$_POST`) into a clean, persistable shape.
 	 *
 	 * Every key is present in the result — missing/invalid inputs fall back to

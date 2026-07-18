@@ -87,6 +87,10 @@ class SettingsSaveHandler {
 		$clean = $this->save_date_format_settings( $clean, $new );
 		$clean = $this->save_url_shortener_settings( $clean, $new );
 
+		// "Email Model" chrome lives in its own option (`ffc_email_template`),
+		// posted from its own form in the SMTP tab.
+		$this->save_email_template_settings();
+
 		/**
 		 * Filters plugin settings before they are saved.
 		 *
@@ -291,6 +295,26 @@ class SettingsSaveHandler {
 		}
 
 		return $clean;
+	}
+
+	/**
+	 * Save the "Email Model" chrome options (`ffc_email_template`).
+	 *
+	 * Only runs when the Email Model form was submitted (its `ffc_email_template`
+	 * array is present), so submitting any other settings form leaves the model
+	 * untouched. {@see \FreeFormCertificate\Core\EmailTemplateOptions::update()}
+	 * sanitizes every field.
+	 *
+	 * @return void
+	 */
+	private function save_email_template_settings(): void {
+        // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Nonce verified in handle_all_submissions() via wp_verify_nonce.
+		if ( ! isset( $_POST['ffc_email_template'] ) ) {
+			return;
+		}
+		$raw = \FreeFormCertificate\Core\RequestInput::get_post_array( 'ffc_email_template' );
+		\FreeFormCertificate\Core\EmailTemplateOptions::update( $raw );
+		add_settings_error( 'ffc_settings', 'ffc_email_model_updated', __( 'Email Model saved.', 'ffcertificate' ), 'updated' );
 	}
 
 	/**

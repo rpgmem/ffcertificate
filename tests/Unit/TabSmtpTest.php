@@ -138,6 +138,21 @@ class TabSmtpTest extends TestCase {
             ->once();
         Functions\when( 'wp_create_nonce' )->justReturn( 'autosave-nonce' );
 
+        // "Email Model" box assets (color picker, media, live preview).
+        Functions\when( 'wp_enqueue_media' )->justReturn( null );
+        Functions\when( 'wp_enqueue_style' )->justReturn( null );
+        Functions\when( 'get_bloginfo' )->justReturn( 'Site' );
+        Functions\when( 'home_url' )->justReturn( 'https://site.test' );
+        Functions\when( 'get_option' )->justReturn( '' );
+        Functions\when( 'wp_date' )->justReturn( '2026' );
+        Functions\when( 'wp_timezone' )->justReturn( new \DateTimeZone( 'UTC' ) );
+        Functions\expect( 'wp_enqueue_script' )
+            ->with( 'ffc-email-model', Mockery::type( 'string' ), array( 'jquery', 'wp-color-picker' ), Mockery::type( 'string' ), true )
+            ->once();
+        Functions\expect( 'wp_localize_script' )
+            ->with( 'ffc-email-model', 'ffcEmailModel', Mockery::type( 'array' ) )
+            ->once();
+
         $this->tab->enqueue_scripts( 'ffc_form_page_ffc-settings' );
     }
 

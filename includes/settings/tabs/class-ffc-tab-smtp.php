@@ -59,6 +59,38 @@ class TabSMTP extends SettingsTab {
 			);
 			// Powers the `.ffc-toggle` switch on `disable_all_emails`.
 			$this->enqueue_autosave_infra();
+
+			// "Email Model" box: color pickers, media uploader, live preview.
+			wp_enqueue_media();
+			wp_enqueue_style( 'wp-color-picker' );
+			wp_enqueue_style(
+				'ffc-email-model',
+				FFC_PLUGIN_URL . "assets/css/ffc-email-model{$s}.css",
+				array(),
+				FFC_VERSION
+			);
+			wp_enqueue_script(
+				'ffc-email-model',
+				FFC_PLUGIN_URL . "assets/js/ffc-email-model{$s}.js",
+				array( 'jquery', 'wp-color-picker' ),
+				FFC_VERSION,
+				true
+			);
+			wp_localize_script(
+				'ffc-email-model',
+				'ffcEmailModel',
+				array(
+					'defaults'       => \FreeFormCertificate\Core\EmailTemplateOptions::defaults(),
+					'fontStacks'     => \FreeFormCertificate\Core\EmailTemplateOptions::font_stacks(),
+					'tokens'         => \FreeFormCertificate\Core\EmailTemplateOptions::footer_tokens( array( 'recipient' => 'user@example.com' ) ),
+					'siteName'       => get_bloginfo( 'name' ),
+					'sampleTitle'    => __( 'Sample email', 'ffcertificate' ),
+					'sampleBody'     => __( 'This is how your plugin emails will look with the current model.', 'ffcertificate' ),
+					'sampleLink'     => __( 'A sample link', 'ffcertificate' ),
+					'chooseLogo'     => __( 'Select image', 'ffcertificate' ),
+					'confirmRestore' => __( 'Restore all Email Model fields to their defaults? Unsaved changes will be lost.', 'ffcertificate' ),
+				)
+			);
 		}
 	}
 
