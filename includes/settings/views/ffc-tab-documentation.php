@@ -2,12 +2,186 @@
 /**
  * Documentation Tab
  *
+ * The Quick-Navigation TOC and the section cards are both driven by a single
+ * ordered registry ($ffc_doc_sections), grouped into sections (Overview /
+ * Features / Reference / Developer / Operations) — the reorganization from
+ * #674. Adding or moving a doc page is a one-line registry edit; the nav and
+ * the require order stay in sync automatically.
+ *
+ * NOTE: this Foundation step only regroups/reorders the existing pages under
+ * the new sections — files, anchors and page content are unchanged. The
+ * per-area content tranches rename files to semantic names, merge/split pages
+ * and fill gaps.
+ *
  * @package FreeFormCertificate\Settings
  */
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
+
+/**
+ * Grouped documentation registry.
+ *
+ * Each section has a `label` and an ordered list of `items`; each item is
+ * `[ anchor, icon, title, file ]` — `anchor` matches the id="" on the page's
+ * heading and `file` is a partial under documentation/.
+ *
+ * @var array<int, array{label: string, items: array<int, array<string, string>>}> $ffc_doc_sections
+ */
+$ffc_doc_sections = array(
+	array(
+		'label' => __( 'Overview', 'ffcertificate' ),
+		'items' => array(
+			array(
+				'anchor' => 'features',
+				'icon'   => 'ffc-icon-celebrate',
+				'title'  => __( 'Overview & Features', 'ffcertificate' ),
+				'file'   => '13-features.php',
+			),
+		),
+	),
+	array(
+		'label' => __( 'Features', 'ffcertificate' ),
+		'items' => array(
+			array(
+				'anchor' => 'reregistration',
+				'icon'   => 'ffc-icon-note',
+				'title'  => __( 'Reregistration', 'ffcertificate' ),
+				'file'   => '10-reregistration.php',
+			),
+			array(
+				'anchor' => 'ficha-pdf',
+				'icon'   => 'ffc-icon-doc',
+				'title'  => __( 'Ficha PDF', 'ffcertificate' ),
+				'file'   => '11-ficha-pdf.php',
+			),
+			array(
+				'anchor' => 'geofence-locations',
+				'icon'   => 'ffc-icon-globe',
+				'title'  => __( 'Geofence Locations', 'ffcertificate' ),
+				'file'   => '12-geofence-locations.php',
+			),
+			array(
+				'anchor' => 'custom-fields',
+				'icon'   => 'ffc-icon-edit',
+				'title'  => __( 'Custom Fields', 'ffcertificate' ),
+				'file'   => '08-custom-fields.php',
+			),
+			array(
+				'anchor' => 'audience-custom-fields',
+				'icon'   => 'ffc-icon-user',
+				'title'  => __( 'Audience Custom Fields', 'ffcertificate' ),
+				'file'   => '09-audience-custom-fields.php',
+			),
+			array(
+				'anchor' => 'url-shortener',
+				'icon'   => 'ffc-icon-link',
+				'title'  => __( 'URL Shortener & QR Codes', 'ffcertificate' ),
+				'file'   => '16-url-shortener.php',
+			),
+			array(
+				'anchor' => 'recruitment',
+				'icon'   => 'ffc-icon-user',
+				'title'  => __( 'Recruitment', 'ffcertificate' ),
+				'file'   => '20-recruitment.php',
+			),
+		),
+	),
+	array(
+		'label' => __( 'Reference', 'ffcertificate' ),
+		'items' => array(
+			array(
+				'anchor' => 'shortcodes',
+				'icon'   => 'ffc-icon-pin',
+				'title'  => __( 'Shortcodes', 'ffcertificate' ),
+				'file'   => '01-shortcodes.php',
+			),
+			array(
+				'anchor' => 'variables',
+				'icon'   => 'ffc-icon-tag',
+				'title'  => __( 'Template Variables', 'ffcertificate' ),
+				'file'   => '02-variables.php',
+			),
+			array(
+				'anchor' => 'quiz-variables',
+				'icon'   => 'ffc-icon-tag',
+				'title'  => __( 'Quiz / Evaluation Variables', 'ffcertificate' ),
+				'file'   => '03-quiz-variables.php',
+			),
+			array(
+				'anchor' => 'appointment-variables',
+				'icon'   => 'ffc-icon-tag',
+				'title'  => __( 'Appointment Receipt Variables', 'ffcertificate' ),
+				'file'   => '04-appointment-variables.php',
+			),
+			array(
+				'anchor' => 'qr-code',
+				'icon'   => 'ffc-icon-phone',
+				'title'  => __( 'QR Code Options', 'ffcertificate' ),
+				'file'   => '05-qr-code.php',
+			),
+			array(
+				'anchor' => 'validation-url',
+				'icon'   => 'ffc-icon-link',
+				'title'  => __( 'Validation URL', 'ffcertificate' ),
+				'file'   => '06-validation-url.php',
+			),
+			array(
+				'anchor' => 'html-styling',
+				'icon'   => 'ffc-icon-palette',
+				'title'  => __( 'HTML & Styling', 'ffcertificate' ),
+				'file'   => '07-html-styling.php',
+			),
+			array(
+				'anchor' => 'security',
+				'icon'   => 'ffc-icon-lock',
+				'title'  => __( 'Security Features', 'ffcertificate' ),
+				'file'   => '14-security.php',
+			),
+			array(
+				'anchor' => 'examples',
+				'icon'   => 'ffc-icon-note',
+				'title'  => __( 'Complete Examples', 'ffcertificate' ),
+				'file'   => '15-examples.php',
+			),
+		),
+	),
+	array(
+		'label' => __( 'Developer', 'ffcertificate' ),
+		'items' => array(
+			array(
+				'anchor' => 'hooks',
+				'icon'   => 'ffc-icon-wrench',
+				'title'  => __( 'Developer Hooks', 'ffcertificate' ),
+				'file'   => '17-hooks.php',
+			),
+			array(
+				'anchor' => 'rest-api-auth',
+				'icon'   => 'ffc-icon-lock',
+				'title'  => __( 'REST API Authentication', 'ffcertificate' ),
+				'file'   => '19-rest-api-auth.php',
+			),
+		),
+	),
+	array(
+		'label' => __( 'Operations', 'ffcertificate' ),
+		'items' => array(
+			array(
+				'anchor' => 'maintenance-tools',
+				'icon'   => 'ffc-icon-wrench',
+				'title'  => __( 'Maintenance Tools', 'ffcertificate' ),
+				'file'   => '21-maintenance-tools.php',
+			),
+			array(
+				'anchor' => 'troubleshooting',
+				'icon'   => 'ffc-icon-wrench',
+				'title'  => __( 'Troubleshooting', 'ffcertificate' ),
+				'file'   => '18-troubleshooting.php',
+			),
+		),
+	),
+);
 ?>
 
 <div class="ffc-settings-wrap">
@@ -23,74 +197,25 @@ if ( ! defined( 'ABSPATH' ) ) {
 <div class="ffc-doc-toc-sentinel" aria-hidden="true"></div>
 
 <!-- Table of Contents — sticky on scroll, collapses to a thin strip once
-	the user has scrolled past its original position. -->
+	the user has scrolled past its original position. Grouped by section. -->
 <div class="card ffc-doc-toc">
 	<h3><?php esc_html_e( 'Quick Navigation', 'ffcertificate' ); ?></h3>
 	<ul class="ffc-doc-toc-list">
-			<li><a href="#shortcodes" class="ffc-icon-pin"><?php esc_html_e( '1. Shortcodes', 'ffcertificate' ); ?></a></li>
-			<li><a href="#variables" class="ffc-icon-tag"><?php esc_html_e( '2. Template Variables', 'ffcertificate' ); ?></a></li>
-			<li><a href="#quiz-variables" class="ffc-icon-tag"><?php esc_html_e( '3. Quiz / Evaluation Variables', 'ffcertificate' ); ?></a></li>
-			<li><a href="#appointment-variables" class="ffc-icon-tag"><?php esc_html_e( '4. Appointment Receipt Variables', 'ffcertificate' ); ?></a></li>
-			<li><a href="#qr-code" class="ffc-icon-phone"><?php esc_html_e( '5. QR Code Options', 'ffcertificate' ); ?></a></li>
-			<li><a href="#validation-url" class="ffc-icon-link"><?php esc_html_e( '6. Validation URL', 'ffcertificate' ); ?></a></li>
-			<li><a href="#html-styling" class="ffc-icon-palette"><?php esc_html_e( '7. HTML & Styling', 'ffcertificate' ); ?></a></li>
-			<li><a href="#custom-fields" class="ffc-icon-edit"><?php esc_html_e( '8. Custom Fields', 'ffcertificate' ); ?></a></li>
-			<li><a href="#audience-custom-fields" class="ffc-icon-user"><?php esc_html_e( '9. Audience Custom Fields', 'ffcertificate' ); ?></a></li>
-			<li><a href="#reregistration" class="ffc-icon-note"><?php esc_html_e( '10. Reregistration', 'ffcertificate' ); ?></a></li>
-			<li><a href="#ficha-pdf" class="ffc-icon-doc"><?php esc_html_e( '11. Ficha PDF', 'ffcertificate' ); ?></a></li>
-			<li><a href="#geofence-locations" class="ffc-icon-globe"><?php esc_html_e( '12. Geofence Locations', 'ffcertificate' ); ?></a></li>
-			<li><a href="#features" class="ffc-icon-celebrate"><?php esc_html_e( '13. Features', 'ffcertificate' ); ?></a></li>
-			<li><a href="#security" class="ffc-icon-lock"><?php esc_html_e( '14. Security Features', 'ffcertificate' ); ?></a></li>
-			<li><a href="#examples" class="ffc-icon-note"><?php esc_html_e( '15. Complete Examples', 'ffcertificate' ); ?></a></li>
-			<li><a href="#url-shortener" class="ffc-icon-link"><?php esc_html_e( '16. URL Shortener & QR Codes', 'ffcertificate' ); ?></a></li>
-			<li><a href="#hooks" class="ffc-icon-wrench"><?php esc_html_e( '17. Developer Hooks', 'ffcertificate' ); ?></a></li>
-			<li><a href="#troubleshooting" class="ffc-icon-wrench"><?php esc_html_e( '18. Troubleshooting', 'ffcertificate' ); ?></a></li>
-			<li><a href="#rest-api-auth" class="ffc-icon-lock"><?php esc_html_e( '19. REST API Authentication', 'ffcertificate' ); ?></a></li>
-			<li><a href="#recruitment" class="ffc-icon-user"><?php esc_html_e( '20. Recruitment', 'ffcertificate' ); ?></a></li>
-			<li><a href="#maintenance-tools" class="ffc-icon-wrench"><?php esc_html_e( '21. Maintenance Tools', 'ffcertificate' ); ?></a></li>
+		<?php foreach ( $ffc_doc_sections as $ffc_section ) : ?>
+			<li class="ffc-doc-toc-section"><?php echo esc_html( $ffc_section['label'] ); ?></li>
+			<?php foreach ( $ffc_section['items'] as $ffc_item ) : ?>
+				<li><a href="#<?php echo esc_attr( $ffc_item['anchor'] ); ?>" class="<?php echo esc_attr( $ffc_item['icon'] ); ?>"><?php echo esc_html( $ffc_item['title'] ); ?></a></li>
+			<?php endforeach; ?>
+		<?php endforeach; ?>
 	</ul>
 </div>
 
-<?php require __DIR__ . '/documentation/01-shortcodes.php'; ?>
-
-<?php require __DIR__ . '/documentation/02-variables.php'; ?>
-
-<?php require __DIR__ . '/documentation/03-quiz-variables.php'; ?>
-
-<?php require __DIR__ . '/documentation/04-appointment-variables.php'; ?>
-
-<?php require __DIR__ . '/documentation/05-qr-code.php'; ?>
-
-<?php require __DIR__ . '/documentation/06-validation-url.php'; ?>
-
-<?php require __DIR__ . '/documentation/07-html-styling.php'; ?>
-
-<?php require __DIR__ . '/documentation/08-custom-fields.php'; ?>
-
-<?php require __DIR__ . '/documentation/09-audience-custom-fields.php'; ?>
-
-<?php require __DIR__ . '/documentation/10-reregistration.php'; ?>
-
-<?php require __DIR__ . '/documentation/11-ficha-pdf.php'; ?>
-
-<?php require __DIR__ . '/documentation/12-geofence-locations.php'; ?>
-
-<?php require __DIR__ . '/documentation/13-features.php'; ?>
-
-<?php require __DIR__ . '/documentation/14-security.php'; ?>
-
-<?php require __DIR__ . '/documentation/15-examples.php'; ?>
-
-<?php require __DIR__ . '/documentation/16-url-shortener.php'; ?>
-
-<?php require __DIR__ . '/documentation/17-hooks.php'; ?>
-
-<?php require __DIR__ . '/documentation/18-troubleshooting.php'; ?>
-
-<?php require __DIR__ . '/documentation/19-rest-api-auth.php'; ?>
-
-<?php require __DIR__ . '/documentation/20-recruitment.php'; ?>
-
-<?php require __DIR__ . '/documentation/21-maintenance-tools.php'; ?>
+<?php
+foreach ( $ffc_doc_sections as $ffc_section ) {
+	foreach ( $ffc_section['items'] as $ffc_item ) {
+		require __DIR__ . '/documentation/' . $ffc_item['file'];
+	}
+}
+?>
 
 </div><!-- .ffc-settings-wrap -->
