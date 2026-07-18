@@ -51,7 +51,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 		</li>
 		<li>
 			<strong><?php esc_html_e( 'Sensitive Data Encryption:', 'ffcertificate' ); ?></strong><br>
-			<?php esc_html_e( 'CPF, RF, and RG fields are encrypted at rest using AES-256-CBC (LGPD compliant)', 'ffcertificate' ); ?>
+			<?php esc_html_e( 'CPF and RF fields are encrypted at rest using AES-256-CBC with encrypt-then-HMAC (LGPD compliant)', 'ffcertificate' ); ?>
 		</li>
 	</ul>
 </div>

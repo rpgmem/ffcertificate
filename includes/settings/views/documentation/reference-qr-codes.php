@@ -36,7 +36,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 				<td><code>{{qr_code:size=150}}</code></td>
 				<td>
 					<?php esc_html_e( 'Custom size (150x150 pixels)', 'ffcertificate' ); ?><br>
-					<strong><?php esc_html_e( 'Range:', 'ffcertificate' ); ?></strong> <?php esc_html_e( '100px–500px', 'ffcertificate' ); ?>
+					<strong><?php esc_html_e( 'Range:', 'ffcertificate' ); ?></strong> <?php esc_html_e( '50px–1000px (recommended 100–500)', 'ffcertificate' ); ?>
 				</td>
 			</tr>
 			<tr>
@@ -47,7 +47,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 				</td>
 			</tr>
 			<tr>
-				<td><code>{{qr_code:error_level=H}}</code></td>
+				<td><code>{{qr_code:error=H}}</code></td>
 				<td>
 					<?php esc_html_e( 'Error correction level', 'ffcertificate' ); ?><br>
 					<strong><?php esc_html_e( 'Options:', 'ffcertificate' ); ?></strong><br>
@@ -58,7 +58,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 				</td>
 			</tr>
 			<tr>
-				<td><code>{{qr_code:size=200:margin=1:error_level=M}}</code></td>
+				<td><code>{{qr_code:size=200:margin=1:error=M}}</code></td>
 				<td><?php esc_html_e( 'Combining multiple attributes (separate with colons)', 'ffcertificate' ); ?></td>
 			</tr>
 		</tbody>
