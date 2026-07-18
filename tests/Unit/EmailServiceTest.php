@@ -69,4 +69,22 @@ class EmailServiceTest extends TestCase {
 
 		$this->assertFalse( EmailService::send( 'a@b.c', 'S', 'B' ) );
 	}
+
+	public function test_send_short_circuits_when_emails_globally_disabled(): void {
+		// Master kill-switch is enforced here at the chokepoint (#662 P1):
+		// wp_mail must never run when disable_all_emails is on.
+		Functions\when( 'get_option' )->justReturn( array( 'disable_all_emails' => '1' ) );
+		$called = false;
+		Functions\when( 'wp_mail' )->alias(
+			function () use ( &$called ) {
+				$called = true;
+				return true;
+			}
+		);
+
+		$result = EmailService::send( 'a@b.c', 'S', 'B' );
+
+		$this->assertFalse( $result );
+		$this->assertFalse( $called, 'wp_mail must not run when emails are globally disabled' );
+	}
 }

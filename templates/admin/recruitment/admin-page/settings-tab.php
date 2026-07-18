@@ -42,6 +42,7 @@ $opt = RecruitmentSettings::OPTION_NAME;
 
 echo '<div class="card">';
 echo '<h2 class="ffc-icon-email">' . esc_html__( 'Email template', 'ffcertificate' ) . '</h2>';
+\FreeFormCertificate\Core\EmailDisabledNotice::render();
 echo '<table class="form-table"><tbody>';
 
 echo '<tr><th><label for="ffc-rs-subject">' . esc_html__( 'Subject', 'ffcertificate' ) . '</label></th><td>';

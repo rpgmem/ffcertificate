@@ -8,11 +8,13 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 ## [Unreleased]
 
 ### Added
+- A soft **"emails are turned off" heads-up** now appears at the top of every email-editing surface (form Email tab, recruitment settings, self-scheduling and audience calendar editors, the SMTP tab) whenever the global disable toggle is on, so a disabled switch no longer silently swallows mail while an operator edits a template. First step of the plugin-wide email consolidation. (#662)
 - Audience calendars can now **notify an admin on new bookings and cancellations** — two per-schedule opt-in toggles (default **off**) plus a recipient field (comma-separated; empty falls back to the site admin email), in the calendar editor's Notifications section. Mirrors the self-scheduling calendars, which already had admin notifications. The admin notification is independent of the existing per-schedule user toggles, so an admin can be alerted even when end users are not (or when the audience is empty). Adds `notify_admin_on_booking` / `notify_admin_on_cancellation` / `admin_notification_emails` columns to the schedules table via an idempotent migration. (#661)
 
 - Form editor → Email tab: a **"Restore Default Text"** button that repopulates the message editor with the default template (after a confirm), for when an operator has edited the body and wants the default back. The helper text also notes that simply clearing the body falls back to the default template when the email is sent. (#660)
 
 ### Fixed
+- The global **"disable all emails" kill-switch is now bypass-proof** — enforced inside the single transport chokepoint `Core\EmailService::send()` rather than relying on each caller to check it. Recruitment convocation emails, audience/self-scheduling calendar notifications, the capability-manager and the certificate send-site did not all gate on the toggle, so turning emails off did not fully silence outbound mail; every path now honours it. (#662)
 - Form editor → Email tab: the **"Notify Admin on Submission" toggle failed to auto-save** ("failed to save") — the toggle was wired for incremental autosave but its key was missing from the `FormMetaAjaxEndpoint` allowlist, so flipping it returned a 403 and the choice only persisted through a full form save. Added `send_admin_email` to the allowlist. (#660)
 - Self-scheduling calendar editor: the five **email-notification toggles rendered on a single line** — a more-specific base `.ffc-toggle` rule (`display: inline-flex`) overrode the intended per-line stacking. The `.ffc-email-toggles` container is now a flex column, so each toggle sits on its own row without a specificity/`!important` fight. (#660)
 

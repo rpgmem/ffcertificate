@@ -33,7 +33,8 @@ $ffcertificate_emails_enabled  = ! $ffcertificate_emails_disabled;
 
 <div class="card">
 	<h2 class="ffc-icon-email"><?php esc_html_e( 'Email Configuration', 'ffcertificate' ); ?></h2>
-	
+	<?php \FreeFormCertificate\Core\EmailDisabledNotice::render(); ?>
+
 	<form method="post">
 		<?php wp_nonce_field( 'ffc_settings_action', 'ffc_settings_nonce' ); ?>
 		<input type="hidden" name="_ffc_tab" value="smtp">

@@ -29,17 +29,27 @@ final class EmailService {
 	/**
 	 * Send an email via `wp_mail`, logging failures.
 	 *
-	 * The global "disable all emails" kill-switch and any template rendering
-	 * are the caller's / higher layer's concern — this is pure transport.
+	 * Enforces the global "disable all emails" kill-switch here, at the single
+	 * transport chokepoint, so it is bypass-proof: every path (including
+	 * `SchedulingMailer::send`, recruitment, capability-manager and the
+	 * certificate send-site) funnels through this method and honours the
+	 * toggle regardless of whether the caller remembered to check it. This
+	 * deliberately reverses the earlier "kill-switch stays caller-side"
+	 * decision (#655) — see #662 P1. Template rendering remains the caller's
+	 * concern; this is pure transport plus the master gate.
 	 *
 	 * @param string             $to          Recipient.
 	 * @param string             $subject     Subject.
 	 * @param string             $body        Body (already rendered).
 	 * @param array<int, string> $headers     Mail headers (caller decides content-type).
 	 * @param array<int, string> $attachments Attachment paths.
-	 * @return bool Whether `wp_mail` accepted the message.
+	 * @return bool Whether `wp_mail` accepted the message (false when emails are globally disabled).
 	 */
 	public static function send( string $to, string $subject, string $body, array $headers = array(), array $attachments = array() ): bool {
+		if ( \FreeFormCertificate\Settings\SettingsReader::emails_disabled() ) {
+			return false;
+		}
+
 		$sent = wp_mail( $to, $subject, $body, $headers, $attachments );
 
 		if ( ! $sent && class_exists( '\FreeFormCertificate\Core\Utils' ) ) {

@@ -52,6 +52,7 @@ class FormEditorEmailMetabox {
 		$email_admin     = isset( $config['email_admin'] ) ? (string) $config['email_admin'] : '';
 		$admin_collapsed = ( '1' !== (string) $send_admin );
 		?>
+		<?php \FreeFormCertificate\Core\EmailDisabledNotice::render(); ?>
 		<table class="form-table">
 			<tr>
 				<th><label><?php esc_html_e( 'Send Email to User?', 'ffcertificate' ); ?></label></th>

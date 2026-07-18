@@ -40,6 +40,10 @@ class FormEditorEmailMetaboxTest extends TestCase {
         Functions\when( 'selected' )->justReturn( '' );
         Functions\when( 'wp_enqueue_script' )->justReturn( true );
         Functions\when( 'wp_localize_script' )->justReturn( true );
+        // The EmailDisabledNotice at the top of the metabox reads ffc_settings
+        // via SettingsReader; an empty array keeps emails "enabled" so the
+        // notice no-ops during these render assertions.
+        Functions\when( 'get_option' )->justReturn( array() );
 
         $this->metabox = new FormEditorEmailMetabox();
     }
