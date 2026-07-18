@@ -14,9 +14,14 @@ if ( ! defined( 'ABSPATH' ) ) {
 ?>
 <!-- 9. Audience Custom Fields Section -->
 <div class="card">
-	<h3 id="audience-custom-fields" class="ffc-icon-user"><?php esc_html_e( '9. Audience Custom Fields', 'ffcertificate' ); ?></h3>
+	<h3 id="feature-audiences" class="ffc-icon-user"><?php esc_html_e( 'Audiences', 'ffcertificate' ); ?></h3>
 
-	<p><?php esc_html_e( 'Define custom data fields per audience group. These fields are shown during reregistration and on the WordPress user profile.', 'ffcertificate' ); ?></p>
+	<p><?php esc_html_e( 'Audiences are named groups of people (imported or self-registered) with their own scheduling calendars, booking flow and notifications. Publish an audience booking form with the [ffc_audience] shortcode, import members from CSV, and collect group-specific data with audience custom fields.', 'ffcertificate' ); ?></p>
+
+	<div class="ffc-doc-example">
+		<h4><?php esc_html_e( 'Audience custom fields', 'ffcertificate' ); ?></h4>
+		<p><?php esc_html_e( 'Define custom data fields per audience group. These fields are shown during reregistration and on the WordPress user profile.', 'ffcertificate' ); ?></p>
+	</div>
 
 	<div class="ffc-doc-example">
 		<h4><?php esc_html_e( 'Supported Field Types:', 'ffcertificate' ); ?></h4>
