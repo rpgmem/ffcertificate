@@ -57,10 +57,10 @@ $ffc_doc_sections = array(
 				'file'   => '11-ficha-pdf.php',
 			),
 			array(
-				'anchor' => 'geofence-locations',
-				'icon'   => 'ffc-icon-globe',
-				'title'  => __( 'Geofence Locations', 'ffcertificate' ),
-				'file'   => '12-geofence-locations.php',
+				'anchor' => 'feature-certificates',
+				'icon'   => 'ffc-icon-doc',
+				'title'  => __( 'Certificates & Forms', 'ffcertificate' ),
+				'file'   => 'feature-certificates.php',
 			),
 			array(
 				'anchor' => 'custom-fields',
