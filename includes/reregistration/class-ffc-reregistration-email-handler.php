@@ -53,7 +53,7 @@ class ReregistrationEmailHandler {
 			)
 		);
 
-		$template = self::load_template( 'reregistration-invitation' );
+		$template = \FreeFormCertificate\Core\EmailTemplates::load( 'reregistration-invitation' );
 		if ( ! $template ) {
 			return 0;
 		}
@@ -95,7 +95,7 @@ class ReregistrationEmailHandler {
 			return 0;
 		}
 
-		$template = self::load_template( 'reregistration-reminder' );
+		$template = \FreeFormCertificate\Core\EmailTemplates::load( 'reregistration-reminder' );
 		if ( ! $template ) {
 			return 0;
 		}
@@ -157,7 +157,7 @@ class ReregistrationEmailHandler {
 			return false;
 		}
 
-		$template = self::load_template( 'reregistration-confirmation' );
+		$template = \FreeFormCertificate\Core\EmailTemplates::load( 'reregistration-confirmation' );
 		if ( ! $template ) {
 			return false;
 		}
@@ -266,35 +266,6 @@ class ReregistrationEmailHandler {
 		$body    = \FreeFormCertificate\Core\TokenResolver::resolve( $template['body'], $tokens );
 
 		return SchedulingMailer::send( $user->user_email, $subject, $body );
-	}
-
-	/**
-	 * Load an email template file.
-	 *
-	 * @param string $template_name Template name (without path/extension).
-	 * @return array<string, string>|null Array with 'subject' and 'body', or null.
-	 */
-	private static function load_template( string $template_name ): ?array {
-		$allowed = array(
-			'reregistration-invitation',
-			'reregistration-reminder',
-			'reregistration-confirmation',
-		);
-		if ( ! in_array( $template_name, $allowed, true ) ) {
-			return null;
-		}
-
-		$file = FFC_PLUGIN_DIR . "templates/emails/{$template_name}.php";
-		if ( ! file_exists( $file ) ) {
-			return null;
-		}
-
-		$template = include $file;
-		if ( ! is_array( $template ) || ! isset( $template['subject'], $template['body'] ) ) {
-			return null;
-		}
-
-		return $template;
 	}
 
 	/**

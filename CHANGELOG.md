@@ -15,6 +15,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 - Form editor → Email tab: a **"Restore Default Text"** button that repopulates the message editor with the default template (after a confirm), for when an operator has edited the body and wants the default back. The helper text also notes that simply clearing the body falls back to the default template when the email is sent. (#660)
 
 ### Changed
+- Internal (#662) — the default email "miolo" (inner body) templates now load through one shared `Core\EmailTemplates` loader. The audience booking/cancellation default bodies moved out of `AudienceNotificationHandler` into `templates/emails/audience-{booking,cancellation}.php`, and the reregistration handler's bespoke `load_template()` was folded into the shared loader. Behavior-preserving.
 - Internal (#662) — retired `Scheduling\SchedulingMailer::wrap_html` (the class-based `<style>` chrome). Audience and reregistration emails now render through the single, admin-configurable chrome ("Email Model" → `ffc_email_document`) like every other plugin email, and their info-box markup was inlined (Gmail/Outlook-safe). Behavior-preserving apart from the unified look.
 
 ### Fixed
