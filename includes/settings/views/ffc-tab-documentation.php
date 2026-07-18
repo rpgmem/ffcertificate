@@ -34,10 +34,10 @@ $ffc_doc_sections = array(
 		'label' => __( 'Overview', 'ffcertificate' ),
 		'items' => array(
 			array(
-				'anchor' => 'features',
+				'anchor' => 'overview',
 				'icon'   => 'ffc-icon-celebrate',
 				'title'  => __( 'Overview & Features', 'ffcertificate' ),
-				'file'   => '13-features.php',
+				'file'   => 'overview.php',
 			),
 		),
 	),
@@ -132,6 +132,12 @@ $ffc_doc_sections = array(
 				'icon'   => 'ffc-icon-palette',
 				'title'  => __( 'HTML & Styling', 'ffcertificate' ),
 				'file'   => 'reference-html-styling.php',
+			),
+			array(
+				'anchor' => 'reference-capabilities',
+				'icon'   => 'ffc-icon-lock',
+				'title'  => __( 'Capabilities & Roles', 'ffcertificate' ),
+				'file'   => 'reference-capabilities.php',
 			),
 			array(
 				'anchor' => 'reference-security',

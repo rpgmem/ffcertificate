@@ -14,7 +14,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 ?>
 <!-- 13. Features Section -->
 <div class="card">
-	<h3 id="features" class="ffc-icon-celebrate"><?php esc_html_e( '13. Features', 'ffcertificate' ); ?></h3>
+	<h3 id="overview" class="ffc-icon-celebrate"><?php esc_html_e( 'Overview & Features', 'ffcertificate' ); ?></h3>
 	
 	<ul class="ffc-doc-list">
 		<li>
