@@ -333,6 +333,61 @@ class CapabilityManagerTest extends TestCase {
         CapabilityManager::grant_context_capabilities( 30, 'audience' );
     }
 
+    public function test_grant_context_sends_chromed_access_email_when_enabled(): void {
+        $mock_user = Mockery::mock( 'WP_User' );
+        $mock_user->shouldReceive( 'has_cap' )->andReturn( false );
+        $mock_user->shouldReceive( 'add_cap' );
+        $mock_user->ID = 40;
+        $mock_user->user_email = 'grantee@example.com';
+        $mock_user->display_name = 'Grantee';
+
+        Functions\when( 'get_userdata' )->justReturn( $mock_user );
+        Functions\when( 'get_option' )->alias(
+            static function ( $key, $default = false ) {
+                if ( 'ffc_settings' === $key ) {
+                    return array( 'notify_capability_grant' => true );
+                }
+                if ( 'blogname' === $key ) {
+                    return 'My Site';
+                }
+                if ( 'ffc_dashboard_page_id' === $key ) {
+                    return 5;
+                }
+                if ( 'ffc_email_template' === $key ) {
+                    return array();
+                }
+                return $default;
+            }
+        );
+        Functions\when( 'wp_specialchars_decode' )->returnArg();
+        Functions\when( 'get_permalink' )->justReturn( 'https://my.site/dashboard' );
+        Functions\when( 'esc_html' )->returnArg();
+        Functions\when( 'esc_html__' )->returnArg();
+        Functions\when( 'esc_attr' )->returnArg();
+        Functions\when( 'esc_url' )->returnArg();
+        Functions\when( 'wp_kses_post' )->returnArg();
+        Functions\when( 'get_bloginfo' )->justReturn( 'My Site' );
+        Functions\when( 'home_url' )->justReturn( 'https://my.site' );
+        Functions\when( 'wp_date' )->justReturn( '2026' );
+        Functions\when( 'wp_timezone' )->justReturn( new \DateTimeZone( 'UTC' ) );
+
+        $captured = null;
+        Functions\when( 'wp_mail' )->alias(
+            static function ( $to, $subj, $body ) use ( &$captured ) {
+                $captured = compact( 'to', 'subj', 'body' );
+                return true;
+            }
+        );
+
+        CapabilityManager::grant_context_capabilities( 40, 'certificate' );
+
+        $this->assertNotNull( $captured, 'access-granted email should be sent' );
+        $this->assertSame( 'grantee@example.com', $captured['to'] );
+        $this->assertStringContainsString( 'Hello Grantee,', $captured['body'] );
+        // Wrapped in the shared configurable chrome.
+        $this->assertStringContainsString( '<!DOCTYPE html>', $captured['body'] );
+    }
+
     // ------------------------------------------------------------------
     // grant_*_capabilities() — skips if user already has cap
     // ------------------------------------------------------------------

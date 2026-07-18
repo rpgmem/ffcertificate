@@ -199,11 +199,13 @@ class AppointmentEmailHandler {
 			)
 		);
 
-		$body = self::ffc_render_email_partial(
-			'appointment-admin-notification',
-			array(
-				'details_table' => $details_table,
-				'manage_url'    => admin_url( 'edit.php?post_type=ffc_self_scheduling' ),
+		$body = self::ffc_email_document(
+			self::ffc_render_email_partial(
+				'appointment-admin-notification',
+				array(
+					'details_table' => $details_table,
+					'manage_url'    => admin_url( 'edit.php?post_type=ffc_self_scheduling' ),
+				)
 			)
 		);
 

@@ -22,6 +22,8 @@ if ( ! defined( 'ABSPATH' ) ) {
  */
 class CapabilityManager {
 
+	use \FreeFormCertificate\Core\EmailHelperTrait;
+
 	/**
 	 * Context constants for capability granting
 	 */
@@ -419,19 +421,22 @@ class CapabilityManager {
 		/* translators: %1$s: site name, %2$s: feature name */
 		$subject = sprintf( __( '[%1$s] Access granted: %2$s', 'ffcertificate' ), $site_name, $context_label );
 
-		/* translators: %s: user display name */
-		$message = sprintf( __( 'Hello %s,', 'ffcertificate' ), $user->display_name ) . "\n\n";
-		/* translators: %1$s: feature name, %2$s: site name */
-		$message .= sprintf( __( 'You now have access to %1$s on %2$s.', 'ffcertificate' ), $context_label, $site_name ) . "\n\n";
+		// Miolo → shared configurable chrome (#662 PR-8), like every other email.
+		$content = self::ffc_render_email_partial(
+			'access-granted',
+			array(
+				'user_name'     => $user->display_name,
+				'context_label' => $context_label,
+				'site_name'     => $site_name,
+				'dashboard_url' => $dashboard_url ? $dashboard_url : '',
+			)
+		);
 
-		if ( $dashboard_url ) {
-			/* translators: %s: dashboard URL */
-			$message .= sprintf( __( 'Access your dashboard: %s', 'ffcertificate' ), $dashboard_url ) . "\n\n";
-		}
-
-		$message .= __( 'This is an automated message.', 'ffcertificate' ) . "\n";
-
-		\FreeFormCertificate\Core\EmailService::send( $user->user_email, $subject, $message );
+		self::ffc_send_mail(
+			$user->user_email,
+			$subject,
+			self::ffc_email_document( $content, array( 'recipient' => $user->user_email ) )
+		);
 	}
 
 	/**
