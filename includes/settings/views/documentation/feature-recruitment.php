@@ -11,7 +11,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 ?>
 <!-- 20. Recruitment Section -->
 <div class="card">
-	<h3 id="recruitment" class="ffc-icon-user"><?php esc_html_e( '20. Recruitment', 'ffcertificate' ); ?></h3>
+	<h3 id="feature-recruitment" class="ffc-icon-user"><?php esc_html_e( 'Recruitment', 'ffcertificate' ); ?></h3>
 
 	<p><?php esc_html_e( 'The Recruitment module manages public-tender candidate queues: import classified candidates, publish the ranking, and record call-ups (convocations). It lives under the top-level "Recruitment" admin menu.', 'ffcertificate' ); ?></p>
 
@@ -52,7 +52,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 	<h4><?php esc_html_e( 'Public shortcodes', 'ffcertificate' ); ?></h4>
 	<p>
-		<?php esc_html_e( 'Two shortcodes expose recruitment data on the front end (full attributes in section 1, Shortcodes):', 'ffcertificate' ); ?>
+		<?php esc_html_e( 'Two shortcodes expose recruitment data on the front end (full attributes on the Shortcodes reference page):', 'ffcertificate' ); ?>
 	</p>
 	<ul>
 		<li><code>[ffc_recruitment_queue notice="EDITAL-01"]</code> — <?php esc_html_e( 'the public classification list for a notice. Shows only the columns marked public in the notice editor, and only while the notice is preliminary or active. Supports an "adjutancy" attribute and the ?q / ?adjutancy / ?subscription / ?page_top / ?page_bottom URL filters.', 'ffcertificate' ); ?></li>

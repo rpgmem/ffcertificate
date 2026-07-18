@@ -14,7 +14,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 ?>
 <!-- 16. URL Shortener & QR Codes Section -->
 <div class="card">
-	<h3 id="url-shortener" class="ffc-icon-link"><?php esc_html_e( '16. URL Shortener & QR Codes', 'ffcertificate' ); ?></h3>
+	<h3 id="feature-url-shortener" class="ffc-icon-link"><?php esc_html_e( 'URL Shortener & QR Codes', 'ffcertificate' ); ?></h3>
 
 	<p><?php esc_html_e( 'Create short URLs for any page and track clicks. Each short URL has a unique QR code that can be downloaded as PNG or SVG.', 'ffcertificate' ); ?></p>
 
