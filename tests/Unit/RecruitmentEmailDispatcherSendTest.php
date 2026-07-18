@@ -38,6 +38,16 @@ class RecruitmentEmailDispatcherSendTest extends TestCase {
 		Functions\when( 'wp_specialchars_decode' )->returnArg();
 		Functions\when( 'add_filter' )->justReturn( true );
 		Functions\when( 'remove_filter' )->justReturn( true );
+		// The body is now wrapped in the configurable chrome (ffc_email_document
+		// → layout.php), which needs these escaping / site helpers.
+		Functions\when( 'esc_attr' )->returnArg();
+		Functions\when( 'esc_html' )->returnArg();
+		Functions\when( 'esc_url' )->returnArg();
+		Functions\when( 'wp_kses_post' )->returnArg();
+		Functions\when( 'get_bloginfo' )->justReturn( 'Test Site' );
+		Functions\when( 'home_url' )->justReturn( 'https://example.test' );
+		Functions\when( 'wp_date' )->justReturn( '2026' );
+		Functions\when( 'wp_timezone' )->justReturn( new \DateTimeZone( 'UTC' ) );
 		Functions\when( 'get_option' )->alias(
 			static function ( $key, $default = '' ) {
 				if ( 'blogname' === $key ) {
@@ -150,6 +160,8 @@ class RecruitmentEmailDispatcherSendTest extends TestCase {
 
 		$date = Mockery::mock( 'alias:FreeFormCertificate\Core\DateFormatter' );
 		$date->shouldReceive( 'format_datetime' )->andReturn( '05/05/2026 00:00' );
+		// The chrome footer's {{date}} token calls format_date().
+		$date->shouldReceive( 'format_date' )->andReturn( '05/05/2026' );
 
 		$settings_mock = Mockery::mock( 'alias:FreeFormCertificate\Recruitment\RecruitmentSettings' );
 		$settings_mock->shouldReceive( 'all' )->andReturn( $settings );

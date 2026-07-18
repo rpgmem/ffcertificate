@@ -61,6 +61,12 @@ class RecruitmentAdminPageRendererTest extends TestCase {
 		Functions\when( 'esc_attr' )->returnArg();
 		Functions\when( 'esc_url' )->returnArg();
 		Functions\when( 'esc_textarea' )->returnArg();
+		// The email body now renders via wp_editor (TinyMCE).
+		Functions\when( 'wp_editor' )->alias(
+			static function ( $content, $id ) {
+				echo '<textarea id="' . $id . '">' . $content . '</textarea>';
+			}
+		);
 		Functions\when( 'wp_kses_post' )->returnArg();
 		Functions\when( 'sanitize_key' )->returnArg();
 
@@ -211,6 +217,9 @@ class RecruitmentAdminPageRendererTest extends TestCase {
 		$this->assertStringContainsString( 'Email template', $out );
 		$this->assertStringContainsString( 'Status badge colors', $out );
 		$this->assertStringContainsString( '<button>save</button>', $out );
+		// TinyMCE body editor + the "Restore Default Text" button.
+		$this->assertStringContainsString( 'id="ffc_rs_body"', $out );
+		$this->assertStringContainsString( 'ffc-email-restore-default', $out );
 	}
 
 	public function test_render_settings_tab_read_only(): void {
