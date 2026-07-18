@@ -271,6 +271,7 @@ class AudienceAdminCalendar {
 				<tr>
 					<th scope="row"><?php esc_html_e( 'Notifications', 'ffcertificate' ); ?></th>
 					<td>
+						<?php \FreeFormCertificate\Core\EmailDisabledNotice::render(); ?>
 						<div>
 							<p>
 								<?php

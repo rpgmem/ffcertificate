@@ -563,6 +563,7 @@ class SelfSchedulingEditor {
 		$email_config = array_merge( $defaults, $email_config );
 
 		?>
+		<?php \FreeFormCertificate\Core\EmailDisabledNotice::render(); ?>
 		<table class="form-table">
 			<tr>
 				<th><?php esc_html_e( 'Notifications', 'ffcertificate' ); ?></th>

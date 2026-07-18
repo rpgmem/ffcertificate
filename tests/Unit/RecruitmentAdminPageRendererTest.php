@@ -74,6 +74,10 @@ class RecruitmentAdminPageRendererTest extends TestCase {
 		Functions\when( 'selected' )->justReturn( '' );
 		Functions\when( 'checked' )->justReturn( '' );
 		Functions\when( 'current_user_can' )->justReturn( true );
+		// The Email-template card renders EmailDisabledNotice, which reads
+		// ffc_settings via SettingsReader; an empty array keeps emails enabled
+		// so the notice no-ops during the settings-tab render assertions.
+		Functions\when( 'get_option' )->justReturn( array() );
 	}
 
 	protected function tearDown(): void {
