@@ -58,11 +58,17 @@ final class EmailService {
 	 * decision (#655) — see #662 P1. Template rendering remains the caller's
 	 * concern; this is pure transport plus the master gate.
 	 *
+	 * Just before dispatch it exposes the `ffcertificate_email` filter — the
+	 * single last-mile hook where an integration can inspect or rewrite the
+	 * fully-composed message (recipient, subject, HTML body, headers,
+	 * attachments) without hooking `wp_mail` globally. It fires **after** the
+	 * kill-switch, so a globally-disabled send never reaches it (#673).
+	 *
 	 * For HTML messages it also attaches a derived `text/plain` alternative
 	 * (multipart) so the mail renders in text-only clients and reads better to
-	 * spam filters (#673). The text is derived from the already-composed HTML
-	 * (tokens already resolved) and can be customised — or suppressed — via the
-	 * `ffcertificate_email_plain_text` filter.
+	 * spam filters (#673). The text is derived from the (post-filter) HTML and
+	 * can be customised — or suppressed — via the `ffcertificate_email_plain_text`
+	 * filter.
 	 *
 	 * @param string             $to          Recipient.
 	 * @param string             $subject     Subject.
@@ -75,6 +81,36 @@ final class EmailService {
 		if ( \FreeFormCertificate\Settings\SettingsReader::emails_disabled() ) {
 			return false;
 		}
+
+		/**
+		 * Filter the fully-composed email just before `wp_mail()`.
+		 *
+		 * The single last-mile hook for the whole plugin: inspect or rewrite the
+		 * final recipient, subject, HTML body, headers and attachments in one
+		 * place instead of hooking `wp_mail` globally and pattern-matching the
+		 * plugin's mail. Fires **after** the global kill-switch (a disabled send
+		 * never reaches it) and **before** the `text/plain` alternative is
+		 * derived, so a rewritten body also drives the derived plain text.
+		 *
+		 * @since 6.14.0
+		 * @param array{to: string, subject: string, body: string, headers: array<int, string>, attachments: array<int, string>} $mail The composed message.
+		 */
+		$mail = apply_filters(
+			'ffcertificate_email',
+			array(
+				'to'          => $to,
+				'subject'     => $subject,
+				'body'        => $body,
+				'headers'     => $headers,
+				'attachments' => $attachments,
+			)
+		);
+
+		$to          = $mail['to'];
+		$subject     = $mail['subject'];
+		$body        = $mail['body'];
+		$headers     = $mail['headers'];
+		$attachments = $mail['attachments'];
 
 		$registered = self::maybe_register_plain_text_alternative( $body, $headers );
 
