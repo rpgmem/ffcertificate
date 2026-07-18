@@ -86,6 +86,18 @@ $ffc_doc_sections = array(
 				'title'  => __( 'Recruitment', 'ffcertificate' ),
 				'file'   => 'feature-recruitment.php',
 			),
+			array(
+				'anchor' => 'feature-quiz',
+				'icon'   => 'ffc-icon-tag',
+				'title'  => __( 'Quiz / Evaluation', 'ffcertificate' ),
+				'file'   => 'feature-quiz.php',
+			),
+			array(
+				'anchor' => 'feature-self-scheduling',
+				'icon'   => 'ffc-icon-tag',
+				'title'  => __( 'Self-Scheduling / Appointments', 'ffcertificate' ),
+				'file'   => 'feature-self-scheduling.php',
+			),
 		),
 	),
 	array(
@@ -102,18 +114,6 @@ $ffc_doc_sections = array(
 				'icon'   => 'ffc-icon-tag',
 				'title'  => __( 'Template Variables / Tokens', 'ffcertificate' ),
 				'file'   => 'reference-tokens.php',
-			),
-			array(
-				'anchor' => 'quiz-variables',
-				'icon'   => 'ffc-icon-tag',
-				'title'  => __( 'Quiz / Evaluation Variables', 'ffcertificate' ),
-				'file'   => '03-quiz-variables.php',
-			),
-			array(
-				'anchor' => 'appointment-variables',
-				'icon'   => 'ffc-icon-tag',
-				'title'  => __( 'Appointment Receipt Variables', 'ffcertificate' ),
-				'file'   => '04-appointment-variables.php',
 			),
 			array(
 				'anchor' => 'reference-qr-codes',
