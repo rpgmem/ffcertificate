@@ -14,7 +14,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 ?>
 <!-- 7. HTML & Styling Section -->
 <div class="card">
-	<h3 id="html-styling" class="ffc-icon-palette"><?php esc_html_e( '7. HTML & Styling', 'ffcertificate' ); ?></h3>
+	<h3 id="reference-html-styling" class="ffc-icon-palette"><?php esc_html_e( 'HTML & Styling', 'ffcertificate' ); ?></h3>
 	<p><?php esc_html_e( 'You can use HTML and inline CSS to style your certificate:', 'ffcertificate' ); ?></p>
 
 	<h4><?php esc_html_e( 'Supported HTML Tags:', 'ffcertificate' ); ?></h4>

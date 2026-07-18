@@ -14,7 +14,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 ?>
 <!-- 5. QR Code Options Section -->
 <div class="card">
-	<h3 id="qr-code" class="ffc-icon-phone"><?php esc_html_e( '5. QR Code Options & Attributes', 'ffcertificate' ); ?></h3>
+	<h3 id="reference-qr-codes" class="ffc-icon-phone"><?php esc_html_e( 'QR Code Options & Attributes', 'ffcertificate' ); ?></h3>
 	<p><?php esc_html_e( 'The QR code can be customized with various attributes:', 'ffcertificate' ); ?></p>
 	
 	<table class="widefat striped">
