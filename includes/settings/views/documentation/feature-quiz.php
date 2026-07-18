@@ -14,7 +14,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 ?>
 <!-- 3. Quiz / Evaluation Variables Section -->
 <div class="card">
-	<h3 id="quiz-variables" class="ffc-icon-tag"><?php esc_html_e( '3. Quiz / Evaluation Variables', 'ffcertificate' ); ?></h3>
+	<h3 id="feature-quiz" class="ffc-icon-tag"><?php esc_html_e( 'Quiz / Evaluation', 'ffcertificate' ); ?></h3>
 	<p><?php esc_html_e( 'When a form uses quiz/evaluation mode, these additional variables are available in the PDF template:', 'ffcertificate' ); ?></p>
 
 	<table class="widefat striped">
