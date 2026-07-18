@@ -70,6 +70,16 @@ if ( ! defined( 'ABSPATH' ) ) {
 					• <?php esc_html_e( 'Clear browser cache (Ctrl+F5)', 'ffcertificate' ); ?>
 				</td>
 			</tr>
+			<tr>
+				<td><?php esc_html_e( 'Emails not arriving', 'ffcertificate' ); ?></td>
+				<td>
+					• <?php esc_html_e( 'Confirm the global "Disable all emails" toggle is off (Settings → SMTP)', 'ffcertificate' ); ?><br>
+					• <?php esc_html_e( 'Configure Custom SMTP with a real provider — the server default often lands in spam', 'ffcertificate' ); ?><br>
+					• <?php esc_html_e( 'Check the recipient spam folder and sender reputation (SPF / DKIM)', 'ffcertificate' ); ?><br>
+					• <?php esc_html_e( 'For bulk sends, install the total-mail-queue plugin for queueing + automatic retries', 'ffcertificate' ); ?><br>
+					• <?php esc_html_e( 'See the "Emails &amp; Delivery" reference page for the full pipeline', 'ffcertificate' ); ?>
+				</td>
+			</tr>
 		</tbody>
 	</table>
 
