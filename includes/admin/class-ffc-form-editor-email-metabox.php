@@ -200,9 +200,10 @@ class FormEditorEmailMetabox {
 
 	/**
 	 * Default user-email body seeded into the editor when a form enables the
-	 * email without a message of its own. This is now the **entire** email
-	 * template (heading, download button, auth code, verification link) — the
-	 * send path adds no locked chrome; see
+	 * email without a message of its own. This is the editable **"miolo"**
+	 * (greeting, download button, auth code, verification link); the shared,
+	 * admin-configurable "Email Model" chrome (header/footer) is added around
+	 * it at send time (#662 PR-7). See
 	 * {@see \FreeFormCertificate\Core\EmailTemplateDefaults::user_email_body()}.
 	 *
 	 * @return string Default email body HTML (with placeholders).

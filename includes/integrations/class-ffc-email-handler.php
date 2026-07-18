@@ -175,8 +175,9 @@ class EmailHandler {
 		 */
 		$to = apply_filters( 'ffcertificate_user_email_recipients', $to, $form_title, $submission_data );
 
-		// The whole email is the (translatable, per-form editable) template —
-		// no locked chrome. Fall back to the shipped default when empty.
+		// The editable body is the "miolo" (translatable, per-form editable);
+		// the shared chrome is wrapped around it below. Fall back to the
+		// shipped default when empty.
 		$body = ( isset( $form_config['email_body'] ) && '' !== trim( (string) $form_config['email_body'] ) )
 			? (string) $form_config['email_body']
 			: \FreeFormCertificate\Core\EmailTemplateDefaults::user_email_body();
@@ -205,8 +206,11 @@ class EmailHandler {
 		 */
 		$body = apply_filters( 'ffcertificate_user_email_body', $body, $to, $form_title, $submission_data );
 
-		// Send email.
-		self::ffc_send_mail( $to, $subject, $body );
+		// Wrap the editable body ("miolo") in the single configurable chrome
+		// (the "Email Model") like every other plugin email (#662 PR-7). The
+		// filter above still sees the un-chromed body so integrations keep
+		// operating on the content.
+		self::ffc_send_mail( $to, $subject, self::ffc_email_document( $body, array( 'recipient' => $to ) ) );
 	}
 
 

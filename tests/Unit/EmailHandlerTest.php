@@ -48,6 +48,8 @@ class EmailHandlerTest extends TestCase {
         Functions\when( 'do_action' )->justReturn();
         Functions\when( 'apply_filters' )->returnArg( 2 );
         Functions\when( 'get_bloginfo' )->justReturn( 'Test Site' );
+        // Default for the shared chrome's footer tokens (some tests override).
+        Functions\when( 'home_url' )->justReturn( 'https://example.com' );
         Functions\when( 'site_url' )->alias( function ( $path = '' ) {
             return 'https://example.com' . $path;
         } );
