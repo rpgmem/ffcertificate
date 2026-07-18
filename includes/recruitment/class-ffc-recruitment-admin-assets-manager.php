@@ -107,6 +107,25 @@ final class RecruitmentAdminAssetsManager {
 			true
 		);
 
+		// "Restore Default Text" for the settings-tab email body editor (#662).
+		wp_enqueue_script(
+			'ffc-email-restore-default',
+			FFC_PLUGIN_URL . "assets/js/ffc-email-restore-default{$s}.js",
+			array( 'jquery' ),
+			FFC_VERSION,
+			true
+		);
+		wp_localize_script(
+			'ffc-email-restore-default',
+			'ffcEmailRestoreDefaults',
+			array(
+				'recruitment_body' => array(
+					'body'    => RecruitmentSettings::defaults()['email_body_html'],
+					'confirm' => __( 'Replace the current message with the default template? Your changes will be lost.', 'ffcertificate' ),
+				),
+			)
+		);
+
 		// Batched CSV-import orchestrator, used by the notice edit page's
 		// preview-list flow. The inline submit handler hands off to
 		// `window.ffcRecruitmentImportBatched.run()` so the dependency

@@ -58,6 +58,8 @@ if ( ! defined( 'ABSPATH' ) ) {
  */
 final class RecruitmentEmailDispatcher {
 
+	use \FreeFormCertificate\Core\EmailHelperTrait;
+
 	/**
 	 * Send the convocation email for a freshly-committed call row.
 	 *
@@ -100,11 +102,15 @@ final class RecruitmentEmailDispatcher {
 		$tokens   = self::build_token_map( $candidate, $classification, $notice, $adjutancy, $call );
 		$settings = RecruitmentSettings::all();
 
-		$subject   = self::render( $settings['email_subject'], $tokens );
-		$body      = self::render( $settings['email_body_html'], $tokens );
-		$plain     = wp_strip_all_tags( $body );
-		$headers   = array( 'Content-Type: text/html; charset=UTF-8' );
-		$from_pair = self::build_from_header( $settings );
+		$subject = self::render( $settings['email_subject'], $tokens );
+		// The editable body is now the "miolo": wrap it in the single
+		// configurable chrome ("Email Model") like every other plugin email
+		// (#662 PR-5). The text/plain alternative stays derived from the miolo.
+		$body_miolo = self::render( $settings['email_body_html'], $tokens );
+		$plain      = wp_strip_all_tags( $body_miolo );
+		$body       = self::ffc_email_document( $body_miolo, array( 'recipient' => $email_plain ) );
+		$headers    = array( 'Content-Type: text/html; charset=UTF-8' );
+		$from_pair  = self::build_from_header( $settings );
 		if ( null !== $from_pair ) {
 			$headers[] = 'From: ' . $from_pair;
 		}
