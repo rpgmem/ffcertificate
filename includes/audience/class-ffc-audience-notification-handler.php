@@ -343,14 +343,14 @@ class AudienceNotificationHandler {
 
 <p>' . __( 'You have been included in a new scheduled activity:', 'ffcertificate' ) . "</p>
 
-<div class='info-box'>
-    <div class='info-row'><span class='info-label'>" . __( 'Calendar:', 'ffcertificate' ) . "</span> {{schedule_name}}</div>
-    <div class='info-row'><span class='info-label'>{{environment_label}}:</span> {{environment_name}}</div>
-    <div class='info-row'><span class='info-label'>" . __( 'Date:', 'ffcertificate' ) . "</span> {{booking_date}}</div>
-    <div class='info-row'><span class='info-label'>" . __( 'Time:', 'ffcertificate' ) . "</span> {{start_time}} - {{end_time}}</div>
-    <div class='info-row'><span class='info-label'>" . __( 'Description:', 'ffcertificate' ) . "</span> {{description}}</div>
-    <div class='info-row'><span class='info-label'>" . __( 'Audiences:', 'ffcertificate' ) . "</span> {{audiences}}</div>
-    <div class='info-row'><span class='info-label'>" . __( 'Scheduled by:', 'ffcertificate' ) . '</span> {{creator_name}}</div>
+<div style='background:#f0f6fc;padding:15px;border-radius:4px;margin:20px 0;'>
+    <div style='margin:8px 0;'><span style='font-weight:600;'>" . __( 'Calendar:', 'ffcertificate' ) . "</span> {{schedule_name}}</div>
+    <div style='margin:8px 0;'><span style='font-weight:600;'>{{environment_label}}:</span> {{environment_name}}</div>
+    <div style='margin:8px 0;'><span style='font-weight:600;'>" . __( 'Date:', 'ffcertificate' ) . "</span> {{booking_date}}</div>
+    <div style='margin:8px 0;'><span style='font-weight:600;'>" . __( 'Time:', 'ffcertificate' ) . "</span> {{start_time}} - {{end_time}}</div>
+    <div style='margin:8px 0;'><span style='font-weight:600;'>" . __( 'Description:', 'ffcertificate' ) . "</span> {{description}}</div>
+    <div style='margin:8px 0;'><span style='font-weight:600;'>" . __( 'Audiences:', 'ffcertificate' ) . "</span> {{audiences}}</div>
+    <div style='margin:8px 0;'><span style='font-weight:600;'>" . __( 'Scheduled by:', 'ffcertificate' ) . '</span> {{creator_name}}</div>
 </div>
 
 <p>' . __( 'Please add this event to your calendar.', 'ffcertificate' ) . '</p>
@@ -371,14 +371,14 @@ class AudienceNotificationHandler {
 
 <p>' . __( 'A scheduled activity you were included in has been cancelled:', 'ffcertificate' ) . "</p>
 
-<div class='info-box cancelled'>
-    <div class='info-row'><span class='info-label'>" . __( 'Calendar:', 'ffcertificate' ) . "</span> {{schedule_name}}</div>
-    <div class='info-row'><span class='info-label'>{{environment_label}}:</span> {{environment_name}}</div>
-    <div class='info-row'><span class='info-label'>" . __( 'Date:', 'ffcertificate' ) . "</span> {{booking_date}}</div>
-    <div class='info-row'><span class='info-label'>" . __( 'Time:', 'ffcertificate' ) . "</span> {{start_time}} - {{end_time}}</div>
-    <div class='info-row'><span class='info-label'>" . __( 'Description:', 'ffcertificate' ) . "</span> {{description}}</div>
-    <div class='info-row'><span class='info-label'>" . __( 'Cancelled by:', 'ffcertificate' ) . "</span> {{cancelled_by_name}}</div>
-    <div class='info-row'><span class='info-label'>" . __( 'Reason:', 'ffcertificate' ) . '</span> {{cancellation_reason}}</div>
+<div style='background:#fef2f2;padding:15px;border-radius:4px;margin:20px 0;border-left:4px solid #dc3545;'>
+    <div style='margin:8px 0;'><span style='font-weight:600;'>" . __( 'Calendar:', 'ffcertificate' ) . "</span> {{schedule_name}}</div>
+    <div style='margin:8px 0;'><span style='font-weight:600;'>{{environment_label}}:</span> {{environment_name}}</div>
+    <div style='margin:8px 0;'><span style='font-weight:600;'>" . __( 'Date:', 'ffcertificate' ) . "</span> {{booking_date}}</div>
+    <div style='margin:8px 0;'><span style='font-weight:600;'>" . __( 'Time:', 'ffcertificate' ) . "</span> {{start_time}} - {{end_time}}</div>
+    <div style='margin:8px 0;'><span style='font-weight:600;'>" . __( 'Description:', 'ffcertificate' ) . "</span> {{description}}</div>
+    <div style='margin:8px 0;'><span style='font-weight:600;'>" . __( 'Cancelled by:', 'ffcertificate' ) . "</span> {{cancelled_by_name}}</div>
+    <div style='margin:8px 0;'><span style='font-weight:600;'>" . __( 'Reason:', 'ffcertificate' ) . '</span> {{cancellation_reason}}</div>
 </div>
 
 <p>' . __( 'Please remove this event from your calendar.', 'ffcertificate' ) . '</p>
@@ -539,17 +539,18 @@ class AudienceNotificationHandler {
 	/**
 	 * Build a compact admin-notification HTML body from label/value rows.
 	 *
-	 * Uses the `.info-box` / `.info-row` classes from the SchedulingMailer chrome.
+	 * Inline-styled (Gmail/Outlook-safe) so it renders correctly inside the
+	 * single configurable chrome (SchedulingMailer::send → ffc_email_document).
 	 *
 	 * @param string                $heading Section heading.
 	 * @param array<string, string> $rows    Label => value pairs (escaped here).
-	 * @return string Inner HTML (wrapped by SchedulingMailer::wrap_html at send).
+	 * @return string Inner HTML (wrapped by the shared chrome at send).
 	 */
 	private static function admin_details_html( string $heading, array $rows ): string {
 		$html  = '<h2>' . esc_html( $heading ) . '</h2>';
-		$html .= '<div class="info-box">';
+		$html .= '<div style="background:#f0f6fc;padding:15px;border-radius:4px;margin:20px 0;">';
 		foreach ( $rows as $label => $value ) {
-			$html .= '<div class="info-row"><span class="info-label">' . esc_html( $label ) . ':</span> ' . esc_html( $value ) . '</div>';
+			$html .= '<div style="margin:8px 0;"><span style="font-weight:600;">' . esc_html( $label ) . ':</span> ' . esc_html( $value ) . '</div>';
 		}
 		$html .= '</div>';
 		return $html;

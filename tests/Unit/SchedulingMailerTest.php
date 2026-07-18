@@ -10,7 +10,8 @@ use PHPUnit\Framework\TestCase;
 use FreeFormCertificate\Scheduling\SchedulingMailer;
 
 /**
- * Tests for SchedulingMailer: HTML chrome wrapping and send() transport.
+ * Tests for SchedulingMailer: send() wraps the body in the shared configurable
+ * chrome (ffc_email_document) and transports via EmailService.
  *
  * @covers \FreeFormCertificate\Scheduling\SchedulingMailer
  */
@@ -22,10 +23,21 @@ class SchedulingMailerTest extends TestCase {
         parent::setUp();
         Monkey\setUp();
 
+        Functions\when( '__' )->returnArg();
         Functions\when( 'esc_html' )->returnArg();
         Functions\when( 'esc_html__' )->returnArg();
+        Functions\when( 'esc_attr' )->returnArg();
+        Functions\when( 'esc_url' )->returnArg();
+        Functions\when( 'wp_kses_post' )->returnArg();
         Functions\when( 'get_bloginfo' )->justReturn( 'Test Site' );
-        Functions\when( 'get_option' )->justReturn( array() );
+        Functions\when( 'home_url' )->justReturn( 'https://example.com' );
+        Functions\when( 'wp_date' )->justReturn( '2026' );
+        Functions\when( 'wp_timezone' )->justReturn( new \DateTimeZone( 'UTC' ) );
+        // ffc_settings / ffc_email_template resolve to arrays (defaults);
+        // any other key (admin_email) returns an empty string.
+        Functions\when( 'get_option' )->alias( static function ( $key, $default = false ) {
+            return in_array( $key, array( 'ffc_settings', 'ffc_email_template' ), true ) ? array() : '';
+        } );
         Functions\when( 'wp_mail' )->justReturn( true );
         Functions\when( 'apply_filters' )->alias( function ( $tag, $value ) {
             return $value;
@@ -38,36 +50,10 @@ class SchedulingMailerTest extends TestCase {
     }
 
     // ==================================================================
-    // wrap_html()
-    // ==================================================================
-
-    public function test_wrap_html_contains_body_content(): void {
-        $html = SchedulingMailer::wrap_html( '<p>Test content</p>' );
-        $this->assertStringContainsString( '<p>Test content</p>', $html );
-    }
-
-    public function test_wrap_html_has_doctype(): void {
-        $html = SchedulingMailer::wrap_html( 'body' );
-        $this->assertStringContainsString( '<!DOCTYPE html>', $html );
-    }
-
-    public function test_wrap_html_includes_site_name(): void {
-        $html = SchedulingMailer::wrap_html( 'body' );
-        $this->assertStringContainsString( 'Test Site', $html );
-    }
-
-    public function test_wrap_html_has_header_content_footer(): void {
-        $html = SchedulingMailer::wrap_html( 'body' );
-        $this->assertStringContainsString( "class='header'", $html );
-        $this->assertStringContainsString( "class='content'", $html );
-        $this->assertStringContainsString( "class='footer'", $html );
-    }
-
-    // ==================================================================
     // send()
     // ==================================================================
 
-    public function test_send_wraps_body_by_default(): void {
+    public function test_send_wraps_body_in_configurable_chrome_by_default(): void {
         $sent_body = null;
         Functions\when( 'wp_mail' )->alias( function ( $to, $subj, $body ) use ( &$sent_body ) {
             $sent_body = $body;
@@ -75,7 +61,10 @@ class SchedulingMailerTest extends TestCase {
         } );
 
         SchedulingMailer::send( 'test@example.com', 'Subject', '<p>Body</p>' );
+
+        // Wrapped in the shared chrome (table-based document) with the miolo inside.
         $this->assertStringContainsString( '<!DOCTYPE html>', $sent_body );
+        $this->assertStringContainsString( '<table', $sent_body );
         $this->assertStringContainsString( '<p>Body</p>', $sent_body );
     }
 

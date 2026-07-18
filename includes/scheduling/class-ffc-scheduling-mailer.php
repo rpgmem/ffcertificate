@@ -27,56 +27,22 @@ if ( ! defined( 'ABSPATH' ) ) {
  */
 class SchedulingMailer {
 
-	/**
-	 * Wrap email body in the standard scheduling HTML layout.
-	 *
-	 * @param string $body Inner HTML content.
-	 * @return string Complete HTML email.
-	 */
-	public static function wrap_html( string $body ): string {
-		$site_name = esc_html( get_bloginfo( 'name' ) );
-
-		return "<!DOCTYPE html>
-<html>
-<head>
-    <meta charset='UTF-8'>
-    <meta name='viewport' content='width=device-width, initial-scale=1.0'>
-    <style>
-        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen-Sans, Ubuntu, sans-serif; line-height: 1.6; color: #333; }
-        .container { max-width: 600px; margin: 0 auto; padding: 20px; }
-        .header { background: #2271b1; color: #fff; padding: 20px; text-align: center; border-radius: 4px 4px 0 0; }
-        .content { background: #fff; padding: 30px; border: 1px solid #e0e0e0; }
-        .footer { background: #f5f5f5; padding: 15px; text-align: center; font-size: 12px; color: #666; border-radius: 0 0 4px 4px; }
-        .info-box { background: #f0f6fc; padding: 15px; border-radius: 4px; margin: 20px 0; }
-        .info-row { margin: 8px 0; }
-        .info-label { font-weight: 600; }
-        .cancelled { background: #fef2f2; border-left: 4px solid #dc3545; }
-    </style>
-</head>
-<body>
-    <div class='container'>
-        <div class='header'>
-            <h2>{$site_name}</h2>
-        </div>
-        <div class='content'>
-            {$body}
-        </div>
-        <div class='footer'>
-            <p>" . esc_html__( 'This is an automated notification from', 'ffcertificate' ) . " {$site_name}</p>
-        </div>
-    </div>
-</body>
-</html>";
-	}
+	use \FreeFormCertificate\Core\EmailHelperTrait;
 
 	/**
 	 * Send an HTML email with optional attachments.
+	 *
+	 * The inner body ("miolo") is wrapped in the single, admin-configurable
+	 * chrome ({@see \FreeFormCertificate\Core\EmailTemplateOptions} → layout.php)
+	 * via {@see EmailHelperTrait::ffc_email_document()}, the same shell every
+	 * other plugin email uses (#662 P2). The old class-based `wrap_html` chrome
+	 * was retired here.
 	 *
 	 * @param string        $to          Recipient email.
 	 * @param string        $subject     Email subject.
 	 * @param string        $body        Email body (inner HTML — wrapped automatically unless $wrap is false).
 	 * @param array<string> $attachments File paths to attach.
-	 * @param bool          $wrap        Whether to wrap body in the standard HTML layout (default true).
+	 * @param bool          $wrap        Whether to wrap body in the standard chrome (default true).
 	 * @return bool
 	 */
 	public static function send(
@@ -90,7 +56,7 @@ class SchedulingMailer {
 			'Content-Type: text/html; charset=UTF-8',
 		);
 
-		$html = $wrap ? self::wrap_html( $body ) : $body;
+		$html = $wrap ? self::ffc_email_document( $body, array( 'recipient' => $to ) ) : $body;
 
 		/**
 		 * Filters scheduling email data before sending.
