@@ -92,6 +92,12 @@ $ffc_doc_sections = array(
 				'title'  => __( 'Self-Scheduling / Appointments', 'ffcertificate' ),
 				'file'   => 'feature-self-scheduling.php',
 			),
+			array(
+				'anchor' => 'feature-user-dashboard',
+				'icon'   => 'ffc-icon-user',
+				'title'  => __( 'User Dashboard & Access', 'ffcertificate' ),
+				'file'   => 'feature-user-dashboard.php',
+			),
 		),
 	),
 	array(
