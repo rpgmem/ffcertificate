@@ -89,7 +89,8 @@ class AudienceAdminNotificationTest extends TestCase {
         $this->assertStringContainsString( 'Heading', $html );
         $this->assertStringContainsString( 'Calendar', $html );
         $this->assertStringContainsString( 'Cal A', $html );
-        $this->assertStringContainsString( 'info-box', $html );
+        // The info-box is now inline-styled (Gmail-safe) rather than class-based.
+        $this->assertStringContainsString( 'background:#f0f6fc', $html );
     }
 
     // ==================================================================

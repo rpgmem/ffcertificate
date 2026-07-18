@@ -14,6 +14,9 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 
 - Form editor → Email tab: a **"Restore Default Text"** button that repopulates the message editor with the default template (after a confirm), for when an operator has edited the body and wants the default back. The helper text also notes that simply clearing the body falls back to the default template when the email is sent. (#660)
 
+### Changed
+- Internal (#662) — retired `Scheduling\SchedulingMailer::wrap_html` (the class-based `<style>` chrome). Audience and reregistration emails now render through the single, admin-configurable chrome ("Email Model" → `ffc_email_document`) like every other plugin email, and their info-box markup was inlined (Gmail/Outlook-safe). Behavior-preserving apart from the unified look.
+
 ### Fixed
 - The global **"disable all emails" kill-switch is now bypass-proof** — enforced inside the single transport chokepoint `Core\EmailService::send()` rather than relying on each caller to check it. Recruitment convocation emails, audience/self-scheduling calendar notifications, the capability-manager and the certificate send-site did not all gate on the toggle, so turning emails off did not fully silence outbound mail; every path now honours it. (#662)
 - Form editor → Email tab: the **"Notify Admin on Submission" toggle failed to auto-save** ("failed to save") — the toggle was wired for incremental autosave but its key was missing from the `FormMetaAjaxEndpoint` allowlist, so flipping it returned a 403 and the choice only persisted through a full form save. Added `send_admin_email` to the allowlist. (#660)

@@ -91,16 +91,19 @@ trait EmailHelperTrait {
 	}
 
 	/**
-	 * Wrap inner email content ("miolo") in the shared chrome shell.
+	 * Wrap inner email content ("miolo") in the shared, configurable chrome.
 	 *
-	 * The shell (templates/emails/layout.php) provides the standard header
-	 * band and the site-name footer card; callers supply only the body.
+	 * The shell (templates/emails/layout.php) provides the header band, body
+	 * card, footer and outer wrapper styled from `EmailTemplateOptions`; callers
+	 * supply only the body. `$context` passes extra values to the shell — e.g.
+	 * `array( 'recipient' => $to )` to resolve the `{{recipient}}` footer token.
 	 *
-	 * @param string $content Pre-built inner HTML.
+	 * @param string                $content Pre-built inner HTML.
+	 * @param array<string, string> $context Extra values for the chrome (e.g. 'recipient').
 	 * @return string Full email document HTML.
 	 */
-	protected static function ffc_email_document( string $content ): string {
-		return self::ffc_render_email_partial( 'layout', array( 'content' => $content ) );
+	protected static function ffc_email_document( string $content, array $context = array() ): string {
+		return self::ffc_render_email_partial( 'layout', array_merge( $context, array( 'content' => $content ) ) );
 	}
 
 	/**
