@@ -358,6 +358,7 @@
 .ffc-icon-lock::before { content: "\1F512 "; }
 .ffc-icon-note::before { content: "\1F4DD "; }
 .ffc-icon-wrench::before { content: "\1F527 "; }
+.ffc-icon-code::before { content: "</> "; font-family: Menlo, Consolas, monospace; font-weight: 700; }
 .ffc-icon-shield::before { content: "\1F6E1\FE0F "; }
 .ffc-icon-download::before { content: "\2B07\FE0F "; }
 .ffc-icon-bulb::before { content: "\1F4A1 "; }
