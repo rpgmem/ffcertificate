@@ -23,6 +23,17 @@ class EmailServiceTest extends TestCase {
 		// On failure EmailService calls Debug::log_email → Debug::is_enabled →
 		// get_option('ffc_settings'); stub it so the debug read no-ops.
 		Functions\when( 'get_option' )->justReturn( array() );
+		// Chrome derives a text/plain alternative for HTML sends (#673): stub
+		// the WP glue it touches so plain sends stay behaviour-identical.
+		Functions\when( 'add_action' )->justReturn( true );
+		Functions\when( 'remove_action' )->justReturn( true );
+		Functions\when( 'wp_strip_all_tags' )->alias(
+			static function ( $s ) {
+				return trim( (string) strip_tags( (string) $s ) );
+			}
+		);
+		// apply_filters( $tag, $value, ... ) → return the value unchanged.
+		Functions\when( 'apply_filters' )->returnArg( 2 );
 	}
 
 	protected function tearDown(): void {
@@ -86,5 +97,85 @@ class EmailServiceTest extends TestCase {
 
 		$this->assertFalse( $result );
 		$this->assertFalse( $called, 'wp_mail must not run when emails are globally disabled' );
+	}
+
+	// ==================================================================
+	// multipart text/plain alternative (#673)
+	// ==================================================================
+
+	/**
+	 * Drive an HTML send and run the captured phpmailer_init callback the way
+	 * WordPress would, returning whatever AltBody it set (null if none).
+	 *
+	 * @param string             $body    HTML body.
+	 * @param array<int, string> $headers Mail headers.
+	 * @return string|null
+	 */
+	private function alt_body_for_send( string $body, array $headers ): ?string {
+		$callback = null;
+		Functions\when( 'add_action' )->alias(
+			function ( $hook, $cb ) use ( &$callback ) {
+				if ( 'phpmailer_init' === $hook ) {
+					$callback = $cb;
+				}
+				return true;
+			}
+		);
+		Functions\when( 'remove_action' )->justReturn( true );
+
+		$alt = null;
+		Functions\when( 'wp_mail' )->alias(
+			function () use ( &$callback, &$alt ) {
+				if ( null !== $callback ) {
+					$phpmailer          = new \stdClass();
+					$phpmailer->AltBody = '';
+					\call_user_func( $callback, $phpmailer );
+					$alt = '' === $phpmailer->AltBody ? null : $phpmailer->AltBody;
+				}
+				return true;
+			}
+		);
+
+		EmailService::send( 'a@b.c', 'Subj', $body, $headers );
+		return $alt;
+	}
+
+	public function test_html_to_plain_text_strips_tags_keeps_links_and_collapses_blanks(): void {
+		$html  = '<h2>Hello</h2><p>Visit <a href="https://x.test/go">the site</a> now.</p>';
+		$html .= '<div>Line A</div><div>Line B</div>';
+		$plain = EmailService::html_to_plain_text( $html );
+
+		$this->assertStringContainsString( 'Hello', $plain );
+		$this->assertStringContainsString( 'the site (https://x.test/go)', $plain );
+		$this->assertStringContainsString( 'Line A', $plain );
+		$this->assertStringContainsString( 'Line B', $plain );
+		$this->assertStringNotContainsString( '<', $plain );
+		$this->assertStringNotContainsString( "\n\n\n", $plain, 'blank runs should be collapsed' );
+	}
+
+	public function test_send_sets_alt_body_for_html_email(): void {
+		$alt = $this->alt_body_for_send(
+			'<p>Hello <a href="https://x.test">link</a></p>',
+			array( 'Content-Type: text/html; charset=UTF-8' )
+		);
+
+		$this->assertIsString( $alt );
+		$this->assertStringContainsString( 'Hello', $alt );
+		$this->assertStringContainsString( 'https://x.test', $alt );
+		$this->assertStringNotContainsString( '<p>', $alt );
+	}
+
+	public function test_send_skips_alt_body_for_non_html_email(): void {
+		$alt = $this->alt_body_for_send( 'plain body', array() );
+		$this->assertNull( $alt, 'non-HTML sends must not get an AltBody' );
+	}
+
+	public function test_send_skips_alt_body_when_filter_suppresses_it(): void {
+		Functions\when( 'apply_filters' )->justReturn( '' );
+		$alt = $this->alt_body_for_send(
+			'<p>Body</p>',
+			array( 'Content-Type: text/html; charset=UTF-8' )
+		);
+		$this->assertNull( $alt, 'an empty filtered plain text must suppress the alternative' );
 	}
 }

@@ -42,6 +42,15 @@ class SchedulingMailerTest extends TestCase {
         Functions\when( 'apply_filters' )->alias( function ( $tag, $value ) {
             return $value;
         } );
+        // #673: EmailService::send derives a text/plain alternative for HTML
+        // messages — stub the WP glue that derivation touches.
+        Functions\when( 'wp_strip_all_tags' )->alias(
+            static function ( $s ) {
+                return trim( (string) strip_tags( (string) $s ) );
+            }
+        );
+        Functions\when( 'add_action' )->justReturn( true );
+        Functions\when( 'remove_action' )->justReturn( true );
     }
 
     protected function tearDown(): void {

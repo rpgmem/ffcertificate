@@ -90,6 +90,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 				<tr><td><code>ffcertificate_user_email_subject</code></td><td><?php esc_html_e( 'Filter the email subject sent to users', 'ffcertificate' ); ?></td></tr>
 				<tr><td><code>ffcertificate_user_email_recipients</code></td><td><?php esc_html_e( 'Filter the email recipients list', 'ffcertificate' ); ?></td></tr>
 				<tr><td><code>ffcertificate_user_email_body</code></td><td><?php esc_html_e( 'Filter the email body HTML', 'ffcertificate' ); ?></td></tr>
+				<tr><td><code>ffcertificate_email_plain_text</code></td><td><?php esc_html_e( 'Filter the auto-derived text/plain alternative for every HTML email (return an empty string to send HTML-only)', 'ffcertificate' ); ?></td></tr>
 				<tr><td><code>ffcertificate_admin_email_recipients</code></td><td><?php esc_html_e( 'Filter admin notification recipients', 'ffcertificate' ); ?></td></tr>
 			</tbody>
 		</table>
