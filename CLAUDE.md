@@ -194,6 +194,19 @@ A full security audit confirmed these hold plugin-wide — keep them that way (t
 - **Never log raw PII.** Debug logs hash IPs / CPF (`substr( hash( 'sha256', $v ), 0, 16 )`) — see `IpGeolocation` / `PreflightTelemetry` (#596) — and stay behind the off-by-default debug toggles regardless.
 - **Outbound HTTP.** Validate any request-derived IP/URL before `wp_remote_*` (e.g. `FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE` to block SSRF); prefer `wp_safe_redirect` for redirects.
 
+## Email architecture (one pipeline — #662)
+
+Every plugin-composed email flows through **one shared pipeline**; never hand-roll a chrome, a transport, or an inline body. When adding or touching an email:
+
+1. **Compose the email body only** (the inner content). Resolve placeholders with `Core\TokenResolver::resolve()` (`{{token}}`) — never hand-rolled `str_replace`.
+2. **Wrap in the single configurable chrome**: `EmailHelperTrait::ffc_email_document( $body, array( 'recipient' => $to ) )`. The chrome (header/body/footer/wrapper) is admin-configurable via `Core\EmailTemplateOptions` (the "Email Model" box, Settings → SMTP) and rendered by `templates/emails/layout.php` (table-based, inline styles for Gmail/Outlook). There is exactly **one** chrome — `SchedulingMailer::wrap_html` and the per-email cards were retired.
+3. **Send through the chokepoint** `Core\EmailService::send()` (or `EmailHelperTrait::ffc_send_mail()`, which sets `text/html`). Never call `wp_mail()` directly. The global "disable all emails" kill-switch is enforced **inside** `EmailService::send()` — do **not** re-gate it caller-side.
+4. **Default bodies live in files**, one per case, under `templates/emails/`. Return-array files (`return array( 'body' => __( … ) )`, loaded via the allowlisted `Core\EmailTemplates::load()` / `::body()`) for token/editable-default bodies; echo partials (via `ffc_render_email_partial()`) for handler-built ones. **Never build email HTML inline in a handler class** — extract it to a `templates/emails/*.php` file.
+5. **Editable emails edit the body only, never the chrome.** Use `wp_editor` (TinyMCE) + a "Restore Default Text" button wired by the generic `assets/js/ffc-email-restore-default.js` (`data-editor` + `data-default-key`; default supplied via `wp_localize_script['ffcEmailRestoreDefaults']`).
+6. **Surface the P5 notice**: `Core\EmailDisabledNotice::render()` at the top of any admin surface that edits an email.
+
+**When consolidating or auditing, grep every send site** (`EmailService::send` / `ffc_send_mail` / `wp_mail(`) and confirm none bypasses `ffc_email_document` — the #662 audit found emails the roadmap table had missed (a plain-text calendar-deletion cancellation, two admin notifications). WordPress-core emails (`wp_new_user_notification`, password resets) are out of scope — they use WP templates, not our chrome.
+
 ## Branch naming
 
 Use `claude/<short-kebab-description>` for feature branches that target `develop`. Examples in main history: `claude/js-coverage-sprint-B-audience-smoke`, `claude/csv-import-normalize-cpf-rf`. Use `hotfix/<short-kebab-description>` when cutting an urgent fix from `main` (see "Develop branch workflow" → Hotfixes). The remote refuses pushes to `main` and `develop` directly; always go through a PR.

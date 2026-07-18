@@ -175,7 +175,7 @@ class EmailHandler {
 		 */
 		$to = apply_filters( 'ffcertificate_user_email_recipients', $to, $form_title, $submission_data );
 
-		// The editable body is the "miolo" (translatable, per-form editable);
+		// The editable body is the "email body" (translatable, per-form editable);
 		// the shared chrome is wrapped around it below. Fall back to the
 		// shipped default when empty.
 		$body = ( isset( $form_config['email_body'] ) && '' !== trim( (string) $form_config['email_body'] ) )
@@ -206,7 +206,7 @@ class EmailHandler {
 		 */
 		$body = apply_filters( 'ffcertificate_user_email_body', $body, $to, $form_title, $submission_data );
 
-		// Wrap the editable body ("miolo") in the single configurable chrome
+		// Wrap the editable body ("email body") in the single configurable chrome
 		// (the "Email Model") like every other plugin email (#662 PR-7). The
 		// filter above still sees the un-chromed body so integrations keep
 		// operating on the content.
@@ -269,7 +269,7 @@ class EmailHandler {
 		}
 		$details_table .= '</table>';
 
-		// Miolo → shared configurable chrome (#662 PR-8), like every other email.
+		// Email body → shared configurable chrome (#662 PR-8), like every other email.
 		$body = self::ffc_email_document(
 			self::ffc_render_email_partial( 'submission-admin-notification', array( 'details_table' => $details_table ) )
 		);

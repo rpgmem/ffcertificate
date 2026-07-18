@@ -32,7 +32,7 @@ class SchedulingMailer {
 	/**
 	 * Send an HTML email with optional attachments.
 	 *
-	 * The inner body ("miolo") is wrapped in the single, admin-configurable
+	 * The inner body ("email body") is wrapped in the single, admin-configurable
 	 * chrome ({@see \FreeFormCertificate\Core\EmailTemplateOptions} → layout.php)
 	 * via {@see EmailHelperTrait::ffc_email_document()}, the same shell every
 	 * other plugin email uses (#662 P2). The old class-based `wrap_html` chrome

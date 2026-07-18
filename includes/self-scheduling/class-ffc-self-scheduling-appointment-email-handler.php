@@ -88,7 +88,7 @@ class AppointmentEmailHandler {
 			);
 
 		if ( '' !== $custom_body ) {
-			// Admin-edited "miolo" (#662 PR-6): the confirmation body is now the
+			// Admin-edited "email body" (#662 PR-6): the confirmation body is now the
 			// editable template, wrapped by the shared chrome like every other email.
 			$content = $this->render_confirmation_template( $custom_body, $appointment, $calendar );
 		} else {
@@ -155,7 +155,7 @@ class AppointmentEmailHandler {
 	 * @return string
 	 */
 	public static function default_confirmation_body(): string {
-		return __( '<p>Hello {{user_name}},</p><p>Your appointment for <strong>{{calendar_title}}</strong> is confirmed.</p><ul><li>Date: {{appointment_date}}</li><li>Time: {{appointment_time}}</li></ul><p>See you then!</p>', 'ffcertificate' );
+		return \FreeFormCertificate\Core\EmailTemplates::body( 'selfscheduling-confirmation' );
 	}
 
 	/**

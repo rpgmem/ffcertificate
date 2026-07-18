@@ -5,7 +5,7 @@
  * Single source of truth for the one configurable email chrome shared by every
  * plugin email (#662 P2). The chrome — header band, body card, footer, outer
  * wrapper — is styled from these options and rendered by
- * `templates/emails/layout.php`; the editable/handler-built "miolo" is injected
+ * `templates/emails/layout.php`; the editable/handler-built "email body" is injected
  * into the body cell with no marker.
  *
  * Storage: a dedicated option `ffc_email_template` (NOT `ffc_settings`), so the

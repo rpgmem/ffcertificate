@@ -1,6 +1,6 @@
 <?php
 /**
- * "Calendar deleted → appointment cancelled" email body (miolo).
+ * "Calendar deleted → appointment cancelled" email body.
  *
  * Sent to booked users when an admin deletes a self-scheduling calendar.
  * Wrapped by the configurable chrome (layout.php) at send. Rendered by

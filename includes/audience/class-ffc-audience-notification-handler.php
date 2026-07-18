@@ -331,7 +331,7 @@ class AudienceNotificationHandler {
 	}
 
 	/**
-	 * Get default booking-created email body (miolo).
+	 * Get default booking-created email body.
 	 *
 	 * Loaded from `templates/emails/audience-booking.php` via the shared
 	 * {@see \FreeFormCertificate\Core\EmailTemplates} loader (#662).
@@ -343,7 +343,7 @@ class AudienceNotificationHandler {
 	}
 
 	/**
-	 * Get default booking-cancelled email body (miolo).
+	 * Get default booking-cancelled email body.
 	 *
 	 * Loaded from `templates/emails/audience-cancellation.php` via the shared
 	 * {@see \FreeFormCertificate\Core\EmailTemplates} loader (#662).

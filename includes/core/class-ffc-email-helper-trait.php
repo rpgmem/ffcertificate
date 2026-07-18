@@ -91,7 +91,7 @@ trait EmailHelperTrait {
 	}
 
 	/**
-	 * Wrap inner email content ("miolo") in the shared, configurable chrome.
+	 * Wrap inner email content ("email body") in the shared, configurable chrome.
 	 *
 	 * The shell (templates/emails/layout.php) provides the header band, body
 	 * card, footer and outer wrapper styled from `EmailTemplateOptions`; callers

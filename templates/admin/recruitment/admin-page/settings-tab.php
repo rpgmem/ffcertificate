@@ -74,7 +74,7 @@ wp_editor(
 		'quicktags'     => array( 'buttons' => 'strong,em,link,ul,ol,li,close' ),
 	)
 );
-echo '<p class="description">' . esc_html__( 'The message content ("miolo") only — the shared Email Model chrome (header/footer) is added automatically. Same placeholder set as the subject; the text/plain alternative is auto-derived.', 'ffcertificate' ) . '</p>';
+echo '<p class="description">' . esc_html__( 'The message content ("email body") only — the shared Email Model chrome (header/footer) is added automatically. Same placeholder set as the subject; the text/plain alternative is auto-derived.', 'ffcertificate' ) . '</p>';
 echo '<p><button type="button" class="button ffc-email-restore-default" data-editor="ffc_rs_body" data-default-key="recruitment_body">' . esc_html__( 'Restore Default Text', 'ffcertificate' ) . '</button></p>';
 echo '</td></tr>';
 echo '</tbody></table>';

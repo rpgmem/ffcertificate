@@ -3,14 +3,14 @@
  * Configurable email chrome ("shell").
  *
  * The single, admin-configurable shell wrapping every plugin email (#662 P2).
- * The handler builds the inner "miolo" and passes it as $args['content'];
+ * The handler builds the inner "email body" and passes it as $args['content'];
  * this shell wraps it with the header band, body card, footer and outer
  * wrapper — all styled from {@see \FreeFormCertificate\Core\EmailTemplateOptions}
  * (the "Email Model" box in Settings → SMTP). Table-based + inline styles so it
  * survives Gmail/Outlook `<style>`-stripping.
  *
  * @var array<string, mixed> $args {
- *     @type string $content   Pre-built inner HTML (the miolo).
+ *     @type string $content   Pre-built inner HTML (the email body).
  *     @type string $recipient Optional recipient email (for the {{recipient}} footer token).
  * }
  * @package FreeFormCertificate
@@ -70,7 +70,7 @@ $ffc_has_logo = '' !== (string) $ffc_opt['header_logo_url'];
 				</tr>
 				<tr>
 					<td class="ffc-email-body" valign="top" style="background-color:<?php echo esc_attr( (string) $ffc_opt['body_bg'] ); ?>;color:<?php echo esc_attr( (string) $ffc_opt['body_text_color'] ); ?>;font-family:<?php echo esc_attr( $ffc_font ); ?>;font-size:<?php echo esc_attr( (string) (int) $ffc_opt['body_font_size'] ); ?>px;line-height:1.6;padding:<?php echo esc_attr( (string) (int) $ffc_opt['body_padding'] ); ?>px;">
-						<?php echo $ffc_content; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Pre-escaped miolo built by the email handler; each value is escaped at its own output point. ?>
+						<?php echo $ffc_content; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Pre-escaped email body built by the email handler; each value is escaped at its own output point. ?>
 					</td>
 				</tr>
 				<?php if ( '' !== trim( (string) $ffc_footer ) ) : ?>

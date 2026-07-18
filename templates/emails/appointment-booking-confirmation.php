@@ -1,6 +1,6 @@
 <?php
 /**
- * Appointment booking-confirmation email body (miolo).
+ * Appointment booking-confirmation email body.
  *
  * Wrapped by layout.php. Rendered by AppointmentEmailHandler.
  *

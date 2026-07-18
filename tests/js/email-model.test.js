@@ -81,7 +81,7 @@ describe('ffc-email-model', () => {
 		await loadOnReady();
 		const html = document.querySelector('.ffc-email-model-preview-frame').srcdoc;
 		expect(html).toContain('#2271b1'); // header bg
-		expect(html).toContain('Sample email'); // sample miolo
+		expect(html).toContain('Sample email'); // sample email body
 		expect(html).toContain('Sent by My Site'); // footer token resolved
 	});
 

@@ -1,6 +1,6 @@
 <?php
 /**
- * Appointment admin-notification email body (miolo).
+ * Appointment admin-notification email body.
  *
  * Wrapped by the configurable chrome (layout.php) at send, like every other
  * plugin email. Rendered by AppointmentEmailHandler.

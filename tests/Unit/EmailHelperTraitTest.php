@@ -157,8 +157,8 @@ class EmailHelperTraitTest extends TestCase {
     }
 
     public function test_render_email_partial_renders_layout_with_content(): void {
-        $html = EmailHelperTraitStub::pub_render_email_partial( 'layout', array( 'content' => '<span>MIOLO</span>' ) );
-        $this->assertStringContainsString( '<span>MIOLO</span>', $html );
+        $html = EmailHelperTraitStub::pub_render_email_partial( 'layout', array( 'content' => '<span>BODY</span>' ) );
+        $this->assertStringContainsString( '<span>BODY</span>', $html );
         // The configurable chrome is table-based (Gmail/Outlook safe).
         $this->assertStringContainsString( '<table', $html );
         $this->assertStringContainsString( 'font-family', $html );

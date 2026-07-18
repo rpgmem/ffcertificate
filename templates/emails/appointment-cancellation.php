@@ -1,6 +1,6 @@
 <?php
 /**
- * Appointment cancellation email body (miolo).
+ * Appointment cancellation email body.
  *
  * Wrapped by layout.php. Rendered by AppointmentEmailHandler.
  *
