@@ -405,6 +405,10 @@ class SelfSchedulingCPTTest extends TestCase {
         Functions\when( 'is_email' )->justReturn( true );
         Functions\when( 'get_bloginfo' )->justReturn( 'Site' );
         Functions\when( 'wp_mail' )->justReturn( true );
+        // EmailService::send() now reads the global kill-switch via
+        // SettingsReader (#662); an empty array keeps emails enabled so the
+        // cancellation email still goes out through wp_mail above.
+        Functions\when( 'get_option' )->justReturn( array() );
 
         Mockery::mock( 'alias:FreeFormCertificate\Core\Debug' )
             ->shouldReceive( 'log_self_scheduling' )->andReturnNull();
