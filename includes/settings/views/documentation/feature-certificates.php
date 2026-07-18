@@ -12,11 +12,27 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 ?>
-<!-- 12. Geofence Locations Section -->
+<!-- Certificates & Forms Section -->
 <div class="card">
-	<h3 id="geofence-locations" class="ffc-icon-globe"><?php esc_html_e( '12. Geofence Locations', 'ffcertificate' ); ?></h3>
+	<h3 id="feature-certificates" class="ffc-icon-doc"><?php esc_html_e( 'Certificates & Forms', 'ffcertificate' ); ?></h3>
 
-	<p><?php esc_html_e( 'Define reusable named locations for geofencing restrictions. Locations are shared across all forms and can be assigned as defaults.', 'ffcertificate' ); ?></p>
+	<p><?php esc_html_e( 'Create certificate-issuance forms, generate the certificate PDF automatically on submission, and let anyone verify authenticity by QR code or validation link.', 'ffcertificate' ); ?></p>
+
+	<div class="ffc-doc-example">
+		<h4><?php esc_html_e( 'Building a form', 'ffcertificate' ); ?></h4>
+		<p><?php esc_html_e( 'Place a form on any page with the [ffc_form id="123"] shortcode, then configure its fields, certificate PDF template and email in the form editor. See the Reference section for the details:', 'ffcertificate' ); ?></p>
+		<ul>
+			<li><strong><?php esc_html_e( 'Shortcodes', 'ffcertificate' ); ?></strong> — <?php esc_html_e( 'the [ffc_form] tag and its attributes', 'ffcertificate' ); ?></li>
+			<li><strong><?php esc_html_e( 'Template Variables / Tokens', 'ffcertificate' ); ?></strong> — <?php esc_html_e( 'the {{placeholders}} available in the certificate PDF', 'ffcertificate' ); ?></li>
+			<li><strong><?php esc_html_e( 'QR Codes', 'ffcertificate' ); ?></strong> — <?php esc_html_e( 'the {{qr_code}} verification placeholder', 'ffcertificate' ); ?></li>
+			<li><strong><?php esc_html_e( 'Validation URL', 'ffcertificate' ); ?></strong> — <?php esc_html_e( 'building the certificate verification link', 'ffcertificate' ); ?></li>
+		</ul>
+	</div>
+
+	<div class="ffc-doc-example">
+		<h4><?php esc_html_e( 'Geofence: restrict where a form can be submitted', 'ffcertificate' ); ?></h4>
+		<p><?php esc_html_e( 'Define reusable named locations for geofencing restrictions. Locations are shared across all forms and can be assigned as defaults.', 'ffcertificate' ); ?></p>
+	</div>
 
 	<div class="ffc-doc-example">
 		<h4><?php esc_html_e( 'Managing Locations:', 'ffcertificate' ); ?></h4>
