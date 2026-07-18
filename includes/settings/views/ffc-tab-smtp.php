@@ -252,6 +252,16 @@ $ffcertificate_emails_enabled  = ! $ffcertificate_emails_disabled;
 	</div>
 </div>
 
+<?php if ( ! \FreeFormCertificate\Integrations\MailQueue::is_active() ) : ?>
+<div class="card" id="ffc-mailqueue-recommendation">
+	<h2 class="ffc-icon-bulb"><?php esc_html_e( 'Recommended for reliable delivery', 'ffcertificate' ); ?></h2>
+	<p><?php esc_html_e( 'For queued sending with automatic retries and true multipart (HTML + plain-text) delivery, install the total-mail-queue plugin. Every email this plugin sends already goes through wp_mail(), so it is picked up automatically once activated — no extra configuration.', 'ffcertificate' ); ?></p>
+	<p>
+		<a class="button" href="<?php echo esc_url( 'https://github.com/rpgmem/total-mail-queue' ); ?>" target="_blank" rel="noopener noreferrer"><?php esc_html_e( 'Learn more about total-mail-queue', 'ffcertificate' ); ?></a>
+	</p>
+</div>
+<?php endif; ?>
+
 <?php require FFC_PLUGIN_DIR . 'templates/admin/settings/email-model-box.php'; ?>
 
 </div><!-- .ffc-settings-wrap -->
