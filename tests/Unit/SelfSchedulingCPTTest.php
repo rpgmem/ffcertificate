@@ -32,6 +32,14 @@ class SelfSchedulingCPTTest extends TestCase {
         Functions\when( 'esc_url' )->returnArg();
         Functions\when( 'add_action' )->justReturn( true );
         Functions\when( 'add_filter' )->justReturn( true );
+        // #673: EmailService::send derives a text/plain alternative for HTML
+        // messages — stub the WP glue that derivation touches.
+        Functions\when( 'remove_action' )->justReturn( true );
+        Functions\when( 'wp_strip_all_tags' )->alias(
+            static function ( $s ) {
+                return trim( (string) strip_tags( (string) $s ) );
+            }
+        );
         Functions\when( 'register_post_type' )->justReturn( true );
         Functions\when( 'absint' )->alias( function ( $v ) { return abs( (int) $v ); } );
         Functions\when( 'admin_url' )->justReturn( 'https://example.com/wp-admin/' );

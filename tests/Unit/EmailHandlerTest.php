@@ -47,6 +47,14 @@ class EmailHandlerTest extends TestCase {
         Functions\when( 'add_action' )->justReturn( true );
         Functions\when( 'do_action' )->justReturn();
         Functions\when( 'apply_filters' )->returnArg( 2 );
+        // #673: EmailService::send derives a text/plain alternative for HTML
+        // messages — stub the WP glue that derivation touches.
+        Functions\when( 'remove_action' )->justReturn( true );
+        Functions\when( 'wp_strip_all_tags' )->alias(
+            static function ( $s ) {
+                return trim( (string) strip_tags( (string) $s ) );
+            }
+        );
         Functions\when( 'get_bloginfo' )->justReturn( 'Test Site' );
         // Default for the shared chrome's footer tokens (some tests override).
         Functions\when( 'home_url' )->justReturn( 'https://example.com' );

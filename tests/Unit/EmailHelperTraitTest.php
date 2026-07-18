@@ -51,6 +51,17 @@ class EmailHelperTraitTest extends TestCase {
         parent::setUp();
         Monkey\setUp();
 
+        // #673: EmailService::send derives a text/plain alternative for HTML
+        // messages — stub the WP glue that derivation touches.
+        Functions\when( 'wp_strip_all_tags' )->alias(
+            static function ( $s ) {
+                return trim( (string) strip_tags( (string) $s ) );
+            }
+        );
+        Functions\when( 'add_action' )->justReturn( true );
+        Functions\when( 'remove_action' )->justReturn( true );
+        Functions\when( 'apply_filters' )->returnArg( 2 );
+
         Functions\when( '__' )->returnArg();
         Functions\when( 'esc_html' )->returnArg();
         Functions\when( 'esc_attr' )->returnArg();
