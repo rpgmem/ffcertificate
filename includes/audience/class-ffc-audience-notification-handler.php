@@ -331,59 +331,27 @@ class AudienceNotificationHandler {
 	}
 
 	/**
-	 * Get default booking created email template
+	 * Get default booking-created email body (miolo).
+	 *
+	 * Loaded from `templates/emails/audience-booking.php` via the shared
+	 * {@see \FreeFormCertificate\Core\EmailTemplates} loader (#662).
 	 *
 	 * @return string Template HTML
 	 */
 	private static function get_default_booking_template(): string {
-		return '
-<h3>' . __( 'New Scheduled Activity', 'ffcertificate' ) . '</h3>
-
-<p>' . __( 'Hello {{user_name}},', 'ffcertificate' ) . '</p>
-
-<p>' . __( 'You have been included in a new scheduled activity:', 'ffcertificate' ) . "</p>
-
-<div style='background:#f0f6fc;padding:15px;border-radius:4px;margin:20px 0;'>
-    <div style='margin:8px 0;'><span style='font-weight:600;'>" . __( 'Calendar:', 'ffcertificate' ) . "</span> {{schedule_name}}</div>
-    <div style='margin:8px 0;'><span style='font-weight:600;'>{{environment_label}}:</span> {{environment_name}}</div>
-    <div style='margin:8px 0;'><span style='font-weight:600;'>" . __( 'Date:', 'ffcertificate' ) . "</span> {{booking_date}}</div>
-    <div style='margin:8px 0;'><span style='font-weight:600;'>" . __( 'Time:', 'ffcertificate' ) . "</span> {{start_time}} - {{end_time}}</div>
-    <div style='margin:8px 0;'><span style='font-weight:600;'>" . __( 'Description:', 'ffcertificate' ) . "</span> {{description}}</div>
-    <div style='margin:8px 0;'><span style='font-weight:600;'>" . __( 'Audiences:', 'ffcertificate' ) . "</span> {{audiences}}</div>
-    <div style='margin:8px 0;'><span style='font-weight:600;'>" . __( 'Scheduled by:', 'ffcertificate' ) . '</span> {{creator_name}}</div>
-</div>
-
-<p>' . __( 'Please add this event to your calendar.', 'ffcertificate' ) . '</p>
-
-<p>' . __( 'Best regards,', 'ffcertificate' ) . '<br>{{site_name}}</p>';
+		return \FreeFormCertificate\Core\EmailTemplates::body( 'audience-booking' );
 	}
 
 	/**
-	 * Get default booking cancelled email template
+	 * Get default booking-cancelled email body (miolo).
+	 *
+	 * Loaded from `templates/emails/audience-cancellation.php` via the shared
+	 * {@see \FreeFormCertificate\Core\EmailTemplates} loader (#662).
 	 *
 	 * @return string Template HTML
 	 */
 	private static function get_default_cancellation_template(): string {
-		return '
-<h3>' . __( 'Activity Cancelled', 'ffcertificate' ) . '</h3>
-
-<p>' . __( 'Hello {{user_name}},', 'ffcertificate' ) . '</p>
-
-<p>' . __( 'A scheduled activity you were included in has been cancelled:', 'ffcertificate' ) . "</p>
-
-<div style='background:#fef2f2;padding:15px;border-radius:4px;margin:20px 0;border-left:4px solid #dc3545;'>
-    <div style='margin:8px 0;'><span style='font-weight:600;'>" . __( 'Calendar:', 'ffcertificate' ) . "</span> {{schedule_name}}</div>
-    <div style='margin:8px 0;'><span style='font-weight:600;'>{{environment_label}}:</span> {{environment_name}}</div>
-    <div style='margin:8px 0;'><span style='font-weight:600;'>" . __( 'Date:', 'ffcertificate' ) . "</span> {{booking_date}}</div>
-    <div style='margin:8px 0;'><span style='font-weight:600;'>" . __( 'Time:', 'ffcertificate' ) . "</span> {{start_time}} - {{end_time}}</div>
-    <div style='margin:8px 0;'><span style='font-weight:600;'>" . __( 'Description:', 'ffcertificate' ) . "</span> {{description}}</div>
-    <div style='margin:8px 0;'><span style='font-weight:600;'>" . __( 'Cancelled by:', 'ffcertificate' ) . "</span> {{cancelled_by_name}}</div>
-    <div style='margin:8px 0;'><span style='font-weight:600;'>" . __( 'Reason:', 'ffcertificate' ) . '</span> {{cancellation_reason}}</div>
-</div>
-
-<p>' . __( 'Please remove this event from your calendar.', 'ffcertificate' ) . '</p>
-
-<p>' . __( 'Best regards,', 'ffcertificate' ) . '<br>{{site_name}}</p>';
+		return \FreeFormCertificate\Core\EmailTemplates::body( 'audience-cancellation' );
 	}
 
 	/**
