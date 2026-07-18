@@ -11,7 +11,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 ?>
 <!-- 21. Maintenance Tools Section -->
 <div class="card">
-	<h3 id="maintenance-tools" class="ffc-icon-wrench"><?php esc_html_e( '21. Maintenance Tools', 'ffcertificate' ); ?></h3>
+	<h3 id="operations-maintenance" class="ffc-icon-wrench"><?php esc_html_e( 'Maintenance Tools', 'ffcertificate' ); ?></h3>
 
 	<p><?php esc_html_e( 'Settings → Data Migrations hosts a set of one-off maintenance tools for tidying up accumulated data. Every tool that changes data runs a preview (dry run) first: it reports exactly what would be affected, and the destructive button only unlocks for 5 minutes after a successful preview.', 'ffcertificate' ); ?></p>
 

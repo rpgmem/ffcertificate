@@ -151,16 +151,10 @@ $ffc_doc_sections = array(
 		'label' => __( 'Developer', 'ffcertificate' ),
 		'items' => array(
 			array(
-				'anchor' => 'hooks',
+				'anchor' => 'developer-hooks-api',
 				'icon'   => 'ffc-icon-wrench',
-				'title'  => __( 'Developer Hooks', 'ffcertificate' ),
-				'file'   => '17-hooks.php',
-			),
-			array(
-				'anchor' => 'rest-api-auth',
-				'icon'   => 'ffc-icon-lock',
-				'title'  => __( 'REST API Authentication', 'ffcertificate' ),
-				'file'   => '19-rest-api-auth.php',
+				'title'  => __( 'Hooks, REST & Forms API', 'ffcertificate' ),
+				'file'   => 'developer-hooks-api.php',
 			),
 		),
 	),
@@ -168,16 +162,16 @@ $ffc_doc_sections = array(
 		'label' => __( 'Operations', 'ffcertificate' ),
 		'items' => array(
 			array(
-				'anchor' => 'maintenance-tools',
+				'anchor' => 'operations-maintenance',
 				'icon'   => 'ffc-icon-wrench',
 				'title'  => __( 'Maintenance Tools', 'ffcertificate' ),
-				'file'   => '21-maintenance-tools.php',
+				'file'   => 'operations-maintenance.php',
 			),
 			array(
-				'anchor' => 'troubleshooting',
+				'anchor' => 'operations-troubleshooting',
 				'icon'   => 'ffc-icon-wrench',
 				'title'  => __( 'Troubleshooting', 'ffcertificate' ),
-				'file'   => '18-troubleshooting.php',
+				'file'   => 'operations-troubleshooting.php',
 			),
 		),
 	),
