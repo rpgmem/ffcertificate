@@ -154,6 +154,23 @@ class AppointmentEmailHandlerTest extends TestCase {
         $this->assertStringContainsString( 'Test Calendar', $this->last_mail['subject'] );
     }
 
+    public function test_booking_confirmation_uses_custom_editable_body_when_set(): void {
+        $cal = $this->makeCalendar(
+            array(
+                'email_config' => '{"user_confirmation_subject":"Hi {{user_name}}","user_confirmation_body":"<p>Hello {{user_name}}, your slot for {{calendar_title}} is set.</p>"}',
+            )
+        );
+
+        $this->handler->send_booking_confirmation( $this->makeAppointment(), $cal );
+
+        $this->assertTrue( $this->mail_sent );
+        // Editable subject + body tokens resolved from the appointment/calendar.
+        $this->assertSame( 'Hi John Doe', $this->last_mail['subject'] );
+        $this->assertStringContainsString( 'Hello John Doe, your slot for Test Calendar is set.', $this->last_mail['body'] );
+        // The custom miolo replaces the built-in default (no receipt/cancel buttons).
+        $this->assertStringNotContainsString( 'View/Print Receipt', $this->last_mail['body'] );
+    }
+
     public function test_booking_confirmation_skipped_when_emails_disabled(): void {
         // Override get_option to disable emails
         Functions\when( 'get_option' )->alias( function ( $key, $default = false ) {

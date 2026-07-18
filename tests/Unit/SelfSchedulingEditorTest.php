@@ -201,6 +201,12 @@ class SelfSchedulingEditorTest extends TestCase {
         $post->ID = 10;
 
         Functions\when( 'get_option' )->justReturn( '' );
+        // The confirmation body now renders via wp_editor (TinyMCE).
+        Functions\when( 'wp_editor' )->alias(
+            static function ( $content, $id ) {
+                echo '<textarea id="' . $id . '">' . $content . '</textarea>';
+            }
+        );
 
         $editor = new SelfSchedulingEditor();
         ob_start();
@@ -208,6 +214,9 @@ class SelfSchedulingEditorTest extends TestCase {
         $output = ob_get_clean();
 
         $this->assertStringContainsString( 'send_user_confirmation', $output );
+        // TinyMCE editor + the "Restore Default Text" button for the confirmation body.
+        $this->assertStringContainsString( 'id="user_confirmation_body"', $output );
+        $this->assertStringContainsString( 'ffc-email-restore-default', $output );
     }
 
     // ==================================================================

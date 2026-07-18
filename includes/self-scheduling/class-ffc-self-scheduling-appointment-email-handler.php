@@ -73,47 +73,89 @@ class AppointmentEmailHandler {
 			return;
 		}
 
-		// Email subject.
-		$subject = sprintf(
-			/* translators: %s: calendar title */
-			__( 'Appointment Confirmation: %s', 'ffcertificate' ),
-			$calendar['title']
-		);
+		$email_config   = json_decode( (string) ( $calendar['email_config'] ?? '' ), true );
+		$email_config   = is_array( $email_config ) ? $email_config : array();
+		$custom_body    = trim( (string) ( $email_config['user_confirmation_body'] ?? '' ) );
+		$custom_subject = trim( (string) ( $email_config['user_confirmation_subject'] ?? '' ) );
 
-		$date_formatted = \FreeFormCertificate\Core\DateFormatter::format_wallclock_date( $appointment['appointment_date'] );
-		$time_formatted = \FreeFormCertificate\Core\DateFormatter::format_wallclock_time( $appointment['start_time'] );
+		// Subject: the admin-edited template (token-resolved) or the built-in default.
+		$subject = '' !== $custom_subject
+			? $this->render_confirmation_template( $custom_subject, $appointment, $calendar )
+			: sprintf(
+				/* translators: %s: calendar title */
+				__( 'Appointment Confirmation: %s', 'ffcertificate' ),
+				$calendar['title']
+			);
 
-		// Status message.
-		$status_message = $calendar['requires_approval']
-			? __( 'Your appointment is pending approval. You will receive a confirmation email once it is approved.', 'ffcertificate' )
-			: __( 'Your appointment has been confirmed!', 'ffcertificate' );
+		if ( '' !== $custom_body ) {
+			// Admin-edited "miolo" (#662 PR-6): the confirmation body is now the
+			// editable template, wrapped by the shared chrome like every other email.
+			$content = $this->render_confirmation_template( $custom_body, $appointment, $calendar );
+		} else {
+			// No custom body → the built-in rich default (status + receipt/cancel
+			// buttons), unchanged from before the orphan was wired.
+			$status_message = $calendar['requires_approval']
+				? __( 'Your appointment is pending approval. You will receive a confirmation email once it is approved.', 'ffcertificate' )
+				: __( 'Your appointment has been confirmed!', 'ffcertificate' );
 
-		$receipt_url = '';
-		if ( class_exists( '\FreeFormCertificate\SelfScheduling\AppointmentReceiptHandler' ) ) {
-			$receipt_url = \FreeFormCertificate\SelfScheduling\AppointmentReceiptHandler::get_receipt_url(
-				$appointment['id'],
-				$appointment['confirmation_token'] ?? ''
+			$receipt_url = '';
+			if ( class_exists( '\FreeFormCertificate\SelfScheduling\AppointmentReceiptHandler' ) ) {
+				$receipt_url = \FreeFormCertificate\SelfScheduling\AppointmentReceiptHandler::get_receipt_url(
+					$appointment['id'],
+					$appointment['confirmation_token'] ?? ''
+				);
+			}
+
+			$content = self::ffc_render_email_partial(
+				'appointment-booking-confirmation',
+				array(
+					'calendar_title' => $calendar['title'],
+					'status_message' => $status_message,
+					'date_formatted' => \FreeFormCertificate\Core\DateFormatter::format_wallclock_date( $appointment['appointment_date'] ),
+					'time_formatted' => \FreeFormCertificate\Core\DateFormatter::format_wallclock_time( $appointment['start_time'] ),
+					'status_label'   => $this->get_status_label( $appointment['status'] ),
+					'user_notes'     => $appointment['user_notes'] ?? '',
+					'receipt_url'    => $receipt_url,
+					'cancel_url'     => $calendar['allow_cancellation'] ? $this->get_cancellation_url( $appointment ) : '',
+				)
 			);
 		}
 
-		$cancel_url = $calendar['allow_cancellation'] ? $this->get_cancellation_url( $appointment ) : '';
+		$this->send_mail( $email, $subject, self::ffc_email_document( $content, array( 'recipient' => $email ) ) );
+	}
 
-		$content = self::ffc_render_email_partial(
-			'appointment-booking-confirmation',
-			array(
-				'calendar_title' => $calendar['title'],
-				'status_message' => $status_message,
-				'date_formatted' => $date_formatted,
-				'time_formatted' => $time_formatted,
-				'status_label'   => $this->get_status_label( $appointment['status'] ),
-				'user_notes'     => $appointment['user_notes'] ?? '',
-				'receipt_url'    => $receipt_url,
-				'cancel_url'     => $cancel_url,
-			)
+	/**
+	 * Resolve the editable confirmation template's tokens.
+	 *
+	 * Supports {@see self::default_confirmation_body()}'s placeholder set:
+	 * {{user_name}}, {{user_email}}, {{calendar_title}}, {{appointment_date}},
+	 * {{appointment_time}}.
+	 *
+	 * @param string               $template    Raw template (subject or body).
+	 * @param array<string, mixed> $appointment Appointment data.
+	 * @param array<string, mixed> $calendar    Calendar data.
+	 * @return string
+	 */
+	private function render_confirmation_template( string $template, array $appointment, array $calendar ): string {
+		$tokens = array(
+			'{{user_name}}'        => \FreeFormCertificate\Core\Encryption::decrypt_field( $appointment, 'name' ),
+			'{{user_email}}'       => $this->get_appointment_email( $appointment ),
+			'{{calendar_title}}'   => (string) $calendar['title'],
+			'{{appointment_date}}' => \FreeFormCertificate\Core\DateFormatter::format_wallclock_date( $appointment['appointment_date'] ),
+			'{{appointment_time}}' => \FreeFormCertificate\Core\DateFormatter::format_wallclock_time( $appointment['start_time'] ),
 		);
+		return \FreeFormCertificate\Core\TokenResolver::resolve( $template, $tokens );
+	}
 
-		// Send email.
-		$this->send_mail( $email, $subject, self::ffc_email_document( $content ) );
+	/**
+	 * Default confirmation-email body seeded by the editor's "Restore Default
+	 * Text" button. Token-based (see {@see self::render_confirmation_template()})
+	 * and translatable so pt-BR `.po` files ship a localized default.
+	 *
+	 * @return string
+	 */
+	public static function default_confirmation_body(): string {
+		return __( '<p>Hello {{user_name}},</p><p>Your appointment for <strong>{{calendar_title}}</strong> is confirmed.</p><ul><li>Date: {{appointment_date}}</li><li>Time: {{appointment_time}}</li></ul><p>See you then!</p>', 'ffcertificate' );
 	}
 
 	/**
