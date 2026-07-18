@@ -97,6 +97,13 @@ class AdminConditionalAssets {
 				FFC_VERSION,
 				true
 			);
+			wp_enqueue_script(
+				'ffc-doc-search',
+				FFC_PLUGIN_URL . "assets/js/ffc-doc-search{$s}.js",
+				array(),
+				FFC_VERSION,
+				true
+			);
 		}
 	}
 

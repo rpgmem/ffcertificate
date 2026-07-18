@@ -200,6 +200,9 @@ $ffc_doc_sections = array(
 	the user has scrolled past its original position. Grouped by section. -->
 <div class="card ffc-doc-toc">
 	<h3><?php esc_html_e( 'Quick Navigation', 'ffcertificate' ); ?></h3>
+	<p>
+		<input type="search" id="ffc-doc-search" class="regular-text" placeholder="<?php esc_attr_e( 'Search documentation…', 'ffcertificate' ); ?>" aria-label="<?php esc_attr_e( 'Search documentation', 'ffcertificate' ); ?>">
+	</p>
 	<ul class="ffc-doc-toc-list">
 		<?php foreach ( $ffc_doc_sections as $ffc_section ) : ?>
 			<li class="ffc-doc-toc-section"><?php echo esc_html( $ffc_section['label'] ); ?></li>

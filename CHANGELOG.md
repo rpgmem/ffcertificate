@@ -8,6 +8,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 ## [Unreleased]
 
 ### Added
+- Documentation tab (#674) — an **in-page search box** in the Quick Navigation that filters the section cards and the nav links as you type (client-side, dependency-free). Completes the documentation reorganization.
 - Documentation tab (#674) — new **"Capabilities & Roles"** reference page, **generated at render time** from `CapabilityCatalog::groups()` so it can never drift from the shipped capabilities: it documents the 3-state permission model (no access / read-only / read-write), the `ffc_<action>_[own_]<domain>[_<qualifier>]` grammar, and every FFC capability (slug + label + description) grouped by module and by end-user vs admin level. Also renamed the Features page to `overview` (the Overview group's index).
 - Documentation tab (#674) — new **"User Dashboard & Access"** feature page: the front-end personal panel (`[user_dashboard_personal]`, verified via `add_shortcode`), what it shows (the user's own certificates, appointments, reregistration and profile), its access control (logged-in, own-data-only, no full-page caching) and profile custom fields.
 - Settings → SMTP (#674) — a recommendation box for the sibling **`total-mail-queue`** plugin, shown only when it is not active (via `Integrations\MailQueue::is_active()`), pointing operators to queued delivery with automatic retries + true multipart for reliable and bulk sending. Hides itself once the plugin is installed.
