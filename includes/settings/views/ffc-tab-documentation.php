@@ -45,10 +45,10 @@ $ffc_doc_sections = array(
 		'label' => __( 'Features', 'ffcertificate' ),
 		'items' => array(
 			array(
-				'anchor' => 'reregistration',
+				'anchor' => 'feature-reregistration',
 				'icon'   => 'ffc-icon-note',
 				'title'  => __( 'Reregistration', 'ffcertificate' ),
-				'file'   => '10-reregistration.php',
+				'file'   => 'feature-reregistration.php',
 			),
 			array(
 				'anchor' => 'ficha-pdf',
@@ -69,10 +69,10 @@ $ffc_doc_sections = array(
 				'file'   => '08-custom-fields.php',
 			),
 			array(
-				'anchor' => 'audience-custom-fields',
+				'anchor' => 'feature-audiences',
 				'icon'   => 'ffc-icon-user',
-				'title'  => __( 'Audience Custom Fields', 'ffcertificate' ),
-				'file'   => '09-audience-custom-fields.php',
+				'title'  => __( 'Audiences', 'ffcertificate' ),
+				'file'   => 'feature-audiences.php',
 			),
 			array(
 				'anchor' => 'feature-url-shortener',
