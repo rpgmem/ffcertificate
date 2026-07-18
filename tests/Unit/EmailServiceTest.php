@@ -171,11 +171,66 @@ class EmailServiceTest extends TestCase {
 	}
 
 	public function test_send_skips_alt_body_when_filter_suppresses_it(): void {
-		Functions\when( 'apply_filters' )->justReturn( '' );
+		// Only the plain-text filter returns '' — the message filter must still
+		// return its array payload unchanged.
+		Functions\when( 'apply_filters' )->alias(
+			function ( $tag, $value ) {
+				return 'ffcertificate_email_plain_text' === $tag ? '' : $value;
+			}
+		);
 		$alt = $this->alt_body_for_send(
 			'<p>Body</p>',
 			array( 'Content-Type: text/html; charset=UTF-8' )
 		);
 		$this->assertNull( $alt, 'an empty filtered plain text must suppress the alternative' );
+	}
+
+	// ==================================================================
+	// ffcertificate_email last-mile filter (#673)
+	// ==================================================================
+
+	public function test_send_applies_ffcertificate_email_filter_before_wp_mail(): void {
+		Functions\when( 'apply_filters' )->alias(
+			function ( $tag, $value ) {
+				if ( 'ffcertificate_email' === $tag ) {
+					$value['to']      = 'rewritten@to.test';
+					$value['subject'] = 'REWRITTEN';
+					return $value;
+				}
+				return $value;
+			}
+		);
+		$captured = null;
+		Functions\when( 'wp_mail' )->alias(
+			function ( $to, $subject, $body, $headers = array(), $attachments = array() ) use ( &$captured ) {
+				$captured = compact( 'to', 'subject', 'body', 'headers', 'attachments' );
+				return true;
+			}
+		);
+
+		EmailService::send( 'orig@to.test', 'Original', '<p>Hi</p>', array( 'Content-Type: text/html' ) );
+
+		$this->assertSame( 'rewritten@to.test', $captured['to'] );
+		$this->assertSame( 'REWRITTEN', $captured['subject'] );
+	}
+
+	public function test_ffcertificate_email_filter_not_called_when_globally_disabled(): void {
+		// The last-mile filter fires after the kill-switch, so a disabled send
+		// must never reach it.
+		Functions\when( 'get_option' )->justReturn( array( 'disable_all_emails' => '1' ) );
+		$fired = false;
+		Functions\when( 'apply_filters' )->alias(
+			function ( $tag, $value ) use ( &$fired ) {
+				if ( 'ffcertificate_email' === $tag ) {
+					$fired = true;
+				}
+				return $value;
+			}
+		);
+
+		$result = EmailService::send( 'a@b.c', 'S', '<p>B</p>', array( 'Content-Type: text/html' ) );
+
+		$this->assertFalse( $result );
+		$this->assertFalse( $fired, 'ffcertificate_email must not fire when emails are globally disabled' );
 	}
 }
