@@ -14,7 +14,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 ?>
 <!-- 18. Troubleshooting Section -->
 <div class="card">
-	<h3 id="troubleshooting" class="ffc-icon-wrench"><?php esc_html_e( '18. Troubleshooting', 'ffcertificate' ); ?></h3>
+	<h3 id="operations-troubleshooting" class="ffc-icon-wrench"><?php esc_html_e( 'Troubleshooting', 'ffcertificate' ); ?></h3>
 
 	<table class="widefat striped">
 		<thead>
