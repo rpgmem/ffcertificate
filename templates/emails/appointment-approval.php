@@ -17,7 +17,6 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 ?>
-<div style="background: white; border-radius: 8px; padding: 30px; margin-bottom: 20px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
 	<h2 style="margin: 0 0 20px 0; color: #28a745; font-size: 24px;">✅ <?php echo esc_html__( 'Appointment Confirmed!', 'ffcertificate' ); ?></h2>
 	<p style="margin: 0 0 15px 0; font-size: 16px;"><?php echo esc_html__( 'Your appointment has been approved and confirmed.', 'ffcertificate' ); ?></p>
 	<div style="background: #d4edda; padding: 20px; border-radius: 8px; margin: 20px 0; border: 1px solid #c3e6cb;">
@@ -30,4 +29,3 @@ if ( ! defined( 'ABSPATH' ) ) {
 		<a href="<?php echo esc_url( $args['receipt_url'] ); ?>" style="display: inline-block; background: #0073aa; color: white; padding: 12px 24px; text-decoration: none; border-radius: 5px; font-size: 16px; font-weight: bold;">📄 <?php echo esc_html__( 'View/Print Receipt', 'ffcertificate' ); ?></a>
 	</div>
 	<?php endif; ?>
-</div>

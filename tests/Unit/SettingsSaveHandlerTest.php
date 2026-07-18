@@ -574,6 +574,46 @@ class SettingsSaveHandlerTest extends TestCase {
     }
 
     // ==================================================================
+    // save_email_template_settings()
+    // ==================================================================
+
+    public function test_email_model_saved_when_posted(): void {
+        Functions\when( 'sanitize_hex_color' )->alias( function ( $c ) {
+            return preg_match( '/^#([0-9a-f]{3}|[0-9a-f]{6})$/i', (string) $c ) ? $c : null;
+        } );
+        Functions\when( 'esc_url_raw' )->returnArg();
+        Functions\when( 'wp_kses_post' )->returnArg();
+
+        $_POST['ffc_email_template'] = array( 'header_bg' => '#123456' );
+        $saved                       = null;
+        Functions\when( 'update_option' )->alias( function ( $key, $val ) use ( &$saved ) {
+            $saved = array( $key, $val );
+            return true;
+        } );
+        Functions\expect( 'add_settings_error' )->once();
+
+        $this->invoke( 'save_email_template_settings', array() );
+
+        $this->assertSame( 'ffc_email_template', $saved[0] );
+        $this->assertSame( '#123456', $saved[1]['header_bg'] );
+
+        unset( $_POST['ffc_email_template'] );
+    }
+
+    public function test_email_model_skipped_when_not_posted(): void {
+        unset( $_POST['ffc_email_template'] );
+        $called = false;
+        Functions\when( 'update_option' )->alias( function () use ( &$called ) {
+            $called = true;
+            return true;
+        } );
+
+        $this->invoke( 'save_email_template_settings', array() );
+
+        $this->assertFalse( $called );
+    }
+
+    // ==================================================================
     // handle_all_submissions()
     // ==================================================================
 

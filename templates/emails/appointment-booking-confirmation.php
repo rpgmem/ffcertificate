@@ -21,7 +21,6 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 ?>
-<div style="background: white; border-radius: 8px; padding: 30px; margin-bottom: 20px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
 	<h2 style="margin: 0 0 20px 0; color: #0073aa; font-size: 24px;">📅 <?php echo esc_html__( 'Appointment Booked!', 'ffcertificate' ); ?></h2>
 	<p style="margin: 0 0 15px 0; font-size: 16px;"><?php echo esc_html( $args['status_message'] ); ?></p>
 	<div style="background: #f5f5f5; padding: 20px; border-radius: 8px; margin: 20px 0;">
@@ -47,4 +46,3 @@ if ( ! defined( 'ABSPATH' ) ) {
 		<a href="<?php echo esc_url( $args['cancel_url'] ); ?>" style="display: inline-block; background: #dc3545; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px; font-size: 14px;"><?php echo esc_html__( 'Cancel Appointment', 'ffcertificate' ); ?></a>
 	</div>
 	<?php endif; ?>
-</div>

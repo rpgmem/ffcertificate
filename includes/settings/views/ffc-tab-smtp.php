@@ -216,9 +216,10 @@ $ffcertificate_emails_enabled  = ! $ffcertificate_emails_disabled;
 	</form>
 </div>
 
-<div class="card">
+<?php // Popular providers are only relevant to Custom SMTP — hidden otherwise (JS keeps it in sync with the Mode radio). ?>
+<div class="card<?php echo ( ! $ffcertificate_emails_disabled && 'custom' === $ffcertificate_smtp_mode ) ? '' : ' ffc-hidden'; ?>" id="ffc-smtp-providers">
 	<h2 class="ffc-icon-bulb"><?php esc_html_e( 'Popular SMTP Providers', 'ffcertificate' ); ?></h2>
-	
+
 	<div class="ffc-provider-grid">
 		<div class="ffc-provider-card gmail">
 			<h4>Gmail</h4>
@@ -250,5 +251,7 @@ $ffcertificate_emails_enabled  = ! $ffcertificate_emails_disabled;
 		</div>
 	</div>
 </div>
+
+<?php require FFC_PLUGIN_DIR . 'templates/admin/settings/email-model-box.php'; ?>
 
 </div><!-- .ffc-settings-wrap -->

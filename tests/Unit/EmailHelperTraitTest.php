@@ -53,7 +53,13 @@ class EmailHelperTraitTest extends TestCase {
 
         Functions\when( '__' )->returnArg();
         Functions\when( 'esc_html' )->returnArg();
+        Functions\when( 'esc_attr' )->returnArg();
+        Functions\when( 'esc_url' )->returnArg();
+        Functions\when( 'wp_kses_post' )->returnArg();
         Functions\when( 'get_bloginfo' )->justReturn( 'Test Site' );
+        Functions\when( 'home_url' )->justReturn( 'https://example.com' );
+        Functions\when( 'wp_date' )->justReturn( '2026' );
+        Functions\when( 'wp_timezone' )->justReturn( new \DateTimeZone( 'UTC' ) );
         Functions\when( 'wp_mail' )->justReturn( true );
         Functions\when( 'get_option' )->alias( function ( $key, $default = false ) {
             if ( $key === 'ffc_settings' ) return array();
@@ -153,7 +159,8 @@ class EmailHelperTraitTest extends TestCase {
     public function test_render_email_partial_renders_layout_with_content(): void {
         $html = EmailHelperTraitStub::pub_render_email_partial( 'layout', array( 'content' => '<span>MIOLO</span>' ) );
         $this->assertStringContainsString( '<span>MIOLO</span>', $html );
-        $this->assertStringContainsString( '<div', $html );
+        // The configurable chrome is table-based (Gmail/Outlook safe).
+        $this->assertStringContainsString( '<table', $html );
         $this->assertStringContainsString( 'font-family', $html );
     }
 
