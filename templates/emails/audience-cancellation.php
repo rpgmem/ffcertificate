@@ -1,6 +1,6 @@
 <?php
 /**
- * Audience booking-cancelled default email body (miolo).
+ * Audience booking-cancelled default email body.
  *
  * Default token-based body an audience schedule falls back to when it has no
  * custom cancellation template. Wrapped by the configurable chrome (layout.php)

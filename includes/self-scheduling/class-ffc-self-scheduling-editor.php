@@ -679,7 +679,7 @@ class SelfSchedulingEditor {
 					);
 					?>
 					<p class="description">
-						<?php esc_html_e( 'The message content ("miolo") — the shared Email Model chrome (header/footer) is added automatically. Available variables:', 'ffcertificate' ); ?>
+						<?php esc_html_e( 'The message content ("email body") — the shared Email Model chrome (header/footer) is added automatically. Available variables:', 'ffcertificate' ); ?>
 						<code>{{user_name}}</code>,
 						<code>{{user_email}}</code>,
 						<code>{{calendar_title}}</code>,

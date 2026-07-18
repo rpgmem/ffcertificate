@@ -200,7 +200,7 @@ class FormEditorEmailMetabox {
 
 	/**
 	 * Default user-email body seeded into the editor when a form enables the
-	 * email without a message of its own. This is the editable **"miolo"**
+	 * email without a message of its own. This is the editable **"email body"**
 	 * (greeting, download button, auth code, verification link); the shared,
 	 * admin-configurable "Email Model" chrome (header/footer) is added around
 	 * it at send time (#662 PR-7). See

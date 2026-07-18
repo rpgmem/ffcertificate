@@ -46,15 +46,6 @@ final class EmailTemplateDefaults {
 	 * @return string
 	 */
 	public static function user_email_body(): string {
-		return '<p>' . __( 'Hello {{name}},', 'ffcertificate' ) . '</p>'
-			. '<p>' . __( 'Your document for {{form_title}} was issued on {{date}} ✅', 'ffcertificate' ) . '</p>'
-			. '<p>' . __( 'Click the button below to download it.', 'ffcertificate' ) . '</p>'
-			. '<table role="presentation" cellpadding="0" cellspacing="0" style="margin:24px 0;"><tr>'
-			. '<td style="background:#0073aa;border-radius:6px;padding:14px 28px;">'
-			. '{{validation_url link:m>"' . __( '⬇️ Download document (PDF)', 'ffcertificate' ) . '" color:#ffffff}}'
-			. '</td></tr></table>'
-			. '<p>' . __( 'Keep your authentication code for future verification:', 'ffcertificate' )
-			. ' <strong>{{auth_code}}</strong> — '
-			. __( 'you can check it anytime at', 'ffcertificate' ) . ' {{validation_url link:v>v}}.</p>';
+		return \FreeFormCertificate\Core\EmailTemplates::body( 'certificate-user' );
 	}
 }

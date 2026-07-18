@@ -1,6 +1,6 @@
 <?php
 /**
- * Appointment approval email body (miolo).
+ * Appointment approval email body.
  *
  * Wrapped by layout.php. Rendered by AppointmentEmailHandler.
  *

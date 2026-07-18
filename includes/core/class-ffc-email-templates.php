@@ -1,8 +1,8 @@
 <?php
 /**
- * Default email-miolo loader.
+ * Default email-body loader.
  *
- * Single home for loading the shipped, translatable default "miolo" (inner
+ * Single home for loading the shipped, translatable default "email body" (inner
  * body) templates that live in `templates/emails/` and `return` an associative
  * array — e.g. `array( 'subject' => …, 'body' => … )` for the reregistration
  * emails, or `array( 'body' => … )` for the audience ones. Generalizes the
@@ -26,7 +26,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 /**
- * Loads allowlisted default miolo templates from templates/emails/.
+ * Loads allowlisted default email-body templates from templates/emails/.
  */
 final class EmailTemplates {
 
@@ -42,10 +42,13 @@ final class EmailTemplates {
 		'reregistration-confirmation',
 		'audience-booking',
 		'audience-cancellation',
+		'certificate-user',
+		'recruitment-convocation',
+		'selfscheduling-confirmation',
 	);
 
 	/**
-	 * Load a default miolo template.
+	 * Load a default email-body template.
 	 *
 	 * @param string $name Allowlisted template basename.
 	 * @return array<string, string>|null The returned array, or null when the

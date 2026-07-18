@@ -1,6 +1,6 @@
 <?php
 /**
- * Capability "access granted" email body (miolo).
+ * Capability "access granted" email body.
  *
  * Wrapped by the configurable chrome (layout.php) at send. Rendered by
  * CapabilityManager when a user is granted plugin access.

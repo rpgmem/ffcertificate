@@ -1,6 +1,6 @@
 <?php
 /**
- * Submission admin-notification email body (miolo).
+ * Submission admin-notification email body.
  *
  * Wrapped by the configurable chrome (layout.php) at send. Rendered by
  * EmailHandler::send_admin_notification.

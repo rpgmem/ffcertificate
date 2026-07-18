@@ -461,7 +461,7 @@ class SelfSchedulingCPT {
 		$date_formatted = \FreeFormCertificate\Core\DateFormatter::format_wallclock_date( $appointment['appointment_date'] );
 		$time_formatted = \FreeFormCertificate\Core\DateFormatter::format_wallclock_time( $appointment['start_time'] );
 
-		// Miolo → shared configurable chrome (#662), like every other email.
+		// Email body → shared configurable chrome (#662), like every other email.
 		$body = self::ffc_email_document(
 			self::ffc_render_email_partial(
 				'calendar-deleted-cancellation',

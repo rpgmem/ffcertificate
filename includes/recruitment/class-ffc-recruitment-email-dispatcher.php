@@ -103,12 +103,12 @@ final class RecruitmentEmailDispatcher {
 		$settings = RecruitmentSettings::all();
 
 		$subject = self::render( $settings['email_subject'], $tokens );
-		// The editable body is now the "miolo": wrap it in the single
+		// The editable body is now the "email body": wrap it in the single
 		// configurable chrome ("Email Model") like every other plugin email
-		// (#662 PR-5). The text/plain alternative stays derived from the miolo.
-		$body_miolo = self::render( $settings['email_body_html'], $tokens );
-		$plain      = wp_strip_all_tags( $body_miolo );
-		$body       = self::ffc_email_document( $body_miolo, array( 'recipient' => $email_plain ) );
+		// (#662 PR-5). The text/plain alternative stays derived from the email body.
+		$email_body = self::render( $settings['email_body_html'], $tokens );
+		$plain      = wp_strip_all_tags( $email_body );
+		$body       = self::ffc_email_document( $email_body, array( 'recipient' => $email_plain ) );
 		$headers    = array( 'Content-Type: text/html; charset=UTF-8' );
 		$from_pair  = self::build_from_header( $settings );
 		if ( null !== $from_pair ) {

@@ -421,7 +421,7 @@ class CapabilityManager {
 		/* translators: %1$s: site name, %2$s: feature name */
 		$subject = sprintf( __( '[%1$s] Access granted: %2$s', 'ffcertificate' ), $site_name, $context_label );
 
-		// Miolo → shared configurable chrome (#662 PR-8), like every other email.
+		// Email body → shared configurable chrome (#662 PR-8), like every other email.
 		$content = self::ffc_render_email_partial(
 			'access-granted',
 			array(

@@ -60,7 +60,7 @@ jQuery(function ($) {
 				'" style="display:inline-block;max-width:' + intVal(v.header_logo_max_width, 180) + 'px;height:auto;">'
 			: '<span style="font-size:22px;font-weight:600;color:' + esc(v.header_text_color) + ';">' + esc(cfg.siteName || '') + '</span>';
 		var footer = resolveFooter(v.footer_text);
-		var miolo =
+		var emailBody =
 			'<h2 style="margin:0 0 16px;color:#0073aa;font-size:22px;">' + esc(cfg.sampleTitle || 'Sample email') + '</h2>' +
 			'<p style="margin:0 0 12px;">' + esc(cfg.sampleBody || 'This is how your emails will look.') + '</p>' +
 			'<p style="margin:0;"><a href="#">' + esc(cfg.sampleLink || 'A sample link') + '</a></p>';
@@ -76,7 +76,7 @@ jQuery(function ($) {
 			'<tr><td align="' + esc(v.header_alignment) + '" style="background-color:' + esc(v.header_bg) + ';color:' + esc(v.header_text_color) +
 				';padding:' + intVal(v.header_padding, 24) + 'px;font-family:' + font + ';">' + header + '</td></tr>' +
 			'<tr><td class="ffc-email-body" style="background-color:' + esc(v.body_bg) + ';color:' + esc(v.body_text_color) +
-				';font-family:' + font + ';font-size:' + intVal(v.body_font_size, 14) + 'px;line-height:1.6;padding:' + intVal(v.body_padding, 24) + 'px;">' + miolo + '</td></tr>' +
+				';font-family:' + font + ';font-size:' + intVal(v.body_font_size, 14) + 'px;line-height:1.6;padding:' + intVal(v.body_padding, 24) + 'px;">' + emailBody + '</td></tr>' +
 			(String(footer).trim() !== ''
 				? '<tr><td align="center" style="background-color:' + esc(v.footer_bg) + ';color:' + esc(v.footer_text_color) +
 					';font-family:' + font + ';font-size:12px;line-height:1.6;padding:16px ' + intVal(v.body_padding, 24) + 'px;">' + footer + '</td></tr>'

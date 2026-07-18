@@ -167,7 +167,7 @@ class AppointmentEmailHandlerTest extends TestCase {
         // Editable subject + body tokens resolved from the appointment/calendar.
         $this->assertSame( 'Hi John Doe', $this->last_mail['subject'] );
         $this->assertStringContainsString( 'Hello John Doe, your slot for Test Calendar is set.', $this->last_mail['body'] );
-        // The custom miolo replaces the built-in default (no receipt/cancel buttons).
+        // The custom email body replaces the built-in default (no receipt/cancel buttons).
         $this->assertStringNotContainsString( 'View/Print Receipt', $this->last_mail['body'] );
     }
 

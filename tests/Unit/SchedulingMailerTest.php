@@ -62,7 +62,7 @@ class SchedulingMailerTest extends TestCase {
 
         SchedulingMailer::send( 'test@example.com', 'Subject', '<p>Body</p>' );
 
-        // Wrapped in the shared chrome (table-based document) with the miolo inside.
+        // Wrapped in the shared chrome (table-based document) with the email body inside.
         $this->assertStringContainsString( '<!DOCTYPE html>', $sent_body );
         $this->assertStringContainsString( '<table', $sent_body );
         $this->assertStringContainsString( '<p>Body</p>', $sent_body );

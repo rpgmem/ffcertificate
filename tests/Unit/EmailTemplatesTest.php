@@ -51,4 +51,25 @@ class EmailTemplatesTest extends TestCase {
 	public function test_body_returns_empty_string_for_unknown(): void {
 		$this->assertSame( '', EmailTemplates::body( 'nope' ) );
 	}
+
+	/**
+	 * @dataProvider editable_default_templates
+	 */
+	public function test_editable_default_bodies_load_from_files( string $name, string $token ): void {
+		$body = EmailTemplates::body( $name );
+
+		$this->assertNotSame( '', $body );
+		$this->assertStringContainsString( $token, $body );
+	}
+
+	/**
+	 * @return array<string, array{0:string,1:string}>
+	 */
+	public function editable_default_templates(): array {
+		return array(
+			'certificate'  => array( 'certificate-user', '{{auth_code}}' ),
+			'recruitment'  => array( 'recruitment-convocation', '{{notice_code}}' ),
+			'confirmation' => array( 'selfscheduling-confirmation', '{{calendar_title}}' ),
+		);
+	}
 }

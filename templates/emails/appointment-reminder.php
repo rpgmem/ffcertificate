@@ -1,6 +1,6 @@
 <?php
 /**
- * Appointment reminder email body (miolo).
+ * Appointment reminder email body.
  *
  * Wrapped by layout.php. Rendered by AppointmentEmailHandler.
  *
