@@ -14,7 +14,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 ?>
 <!-- 17. Developer Hooks Section -->
 <div class="card">
-	<h3 id="developer-hooks-api" class="ffc-icon-wrench"><?php esc_html_e( 'Hooks, REST & Forms API', 'ffcertificate' ); ?></h3>
+	<h3 id="developer-hooks-api" class="ffc-icon-code"><?php esc_html_e( 'Hooks, REST & Forms API', 'ffcertificate' ); ?></h3>
 	<p><?php esc_html_e( 'Developer surface of the plugin: action/filter hooks to extend behavior, the REST API for external integrations, and the authenticated Forms API.', 'ffcertificate' ); ?></p>
 
 	<div class="ffc-doc-example">

@@ -158,7 +158,7 @@ $ffc_doc_sections = array(
 		'items' => array(
 			array(
 				'anchor' => 'developer-hooks-api',
-				'icon'   => 'ffc-icon-wrench',
+				'icon'   => 'ffc-icon-code',
 				'title'  => __( 'Hooks, REST & Forms API', 'ffcertificate' ),
 				'file'   => 'developer-hooks-api.php',
 			),
