@@ -76,6 +76,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 				<tr>
 					<th scope="row"><?php esc_html_e( 'Email Notifications', 'ffcertificate' ); ?></th>
 					<td>
+						<?php \FreeFormCertificate\Core\EmailDisabledNotice::render(); ?>
 						<?php
 						// Plain <div> wrapper rather than <fieldset> — WP admin's
 						// `.form-table td fieldset label { display: inline-block }`
