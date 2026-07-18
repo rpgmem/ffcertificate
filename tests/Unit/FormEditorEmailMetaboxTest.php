@@ -124,7 +124,11 @@ class FormEditorEmailMetaboxTest extends TestCase {
     public function test_render_includes_restore_default_button(): void {
         $html = $this->render( array( 'send_user_email' => '1' ) );
 
-        $this->assertStringContainsString( 'id="ffc-restore-default-email-body"', $html );
+        // Uses the shared generic restore button (#673): class + data-attrs,
+        // wired by assets/js/ffc-email-restore-default.js.
+        $this->assertStringContainsString( 'ffc-email-restore-default', $html );
+        $this->assertStringContainsString( 'data-editor="ffc_email_body"', $html );
+        $this->assertStringContainsString( 'data-default-key="certificate_body"', $html );
         $this->assertStringContainsString( 'Restore Default Text', $html );
     }
 
