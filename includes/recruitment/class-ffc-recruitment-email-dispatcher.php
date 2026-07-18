@@ -110,7 +110,7 @@ final class RecruitmentEmailDispatcher {
 		$plain      = wp_strip_all_tags( $body_miolo );
 		$body       = self::ffc_email_document( $body_miolo, array( 'recipient' => $email_plain ) );
 		$headers    = array( 'Content-Type: text/html; charset=UTF-8' );
-		$from_pair = self::build_from_header( $settings );
+		$from_pair  = self::build_from_header( $settings );
 		if ( null !== $from_pair ) {
 			$headers[] = 'From: ' . $from_pair;
 		}
