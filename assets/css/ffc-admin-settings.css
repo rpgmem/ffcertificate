@@ -554,6 +554,23 @@
     margin: 0;
 }
 
+/* Section headings inside the grouped Quick-Navigation TOC (#674): span the
+   full grid row so each section (Overview / Features / Reference / …) reads as
+   a separator above its items. */
+.ffc-doc-toc-list .ffc-doc-toc-section {
+    grid-column: 1 / -1;
+    margin: 16px 0 2px;
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--ffc-text-muted, #646970);
+}
+
+.ffc-doc-toc-list .ffc-doc-toc-section:first-child {
+    margin-top: 0;
+}
+
 .ffc-doc-toc-list a {
     display: block;
     padding: 10px 15px;
