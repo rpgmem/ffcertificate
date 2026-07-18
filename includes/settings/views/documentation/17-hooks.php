@@ -88,6 +88,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 			<tbody>
 				<tr><td><code>ffcertificate_before_email_send</code></td><td><?php esc_html_e( 'Action fired before any email is sent', 'ffcertificate' ); ?></td></tr>
 				<tr><td><code>ffcertificate_email</code></td><td><?php esc_html_e( 'Last-mile filter for every plugin email — inspect or rewrite the composed message (to, subject, body, headers, attachments) just before send; fires after the global disable toggle', 'ffcertificate' ); ?></td></tr>
+				<tr><td><code>ffcertificate_mail_queue_active</code></td><td><?php esc_html_e( 'Filter whether a mail-queue plugin (total-mail-queue) is considered active — force it true/false to control queue-aware behaviour and the install recommendation', 'ffcertificate' ); ?></td></tr>
 				<tr><td><code>ffcertificate_user_email_subject</code></td><td><?php esc_html_e( 'Filter the email subject sent to users', 'ffcertificate' ); ?></td></tr>
 				<tr><td><code>ffcertificate_user_email_recipients</code></td><td><?php esc_html_e( 'Filter the email recipients list', 'ffcertificate' ); ?></td></tr>
 				<tr><td><code>ffcertificate_user_email_body</code></td><td><?php esc_html_e( 'Filter the email body HTML', 'ffcertificate' ); ?></td></tr>
