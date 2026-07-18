@@ -14,7 +14,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 ?>
 <!-- 6. Validation URL Section -->
 <div class="card">
-	<h3 id="validation-url" class="ffc-icon-link"><?php esc_html_e( '6. Validation URL', 'ffcertificate' ); ?></h3>
+	<h3 id="reference-validation-url" class="ffc-icon-link"><?php esc_html_e( 'Validation URL', 'ffcertificate' ); ?></h3>
 	<p><?php esc_html_e( 'The Validation URL can be customized with various attributes:', 'ffcertificate' ); ?></p>
 	
 	<table class="widefat striped">

@@ -14,7 +14,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 ?>
 <!-- 2. Template Variables Section -->
 <div class="card">
-	<h3 id="variables" class="ffc-icon-tag"><?php esc_html_e( '2. PDF Template Variables', 'ffcertificate' ); ?></h3>
+	<h3 id="reference-tokens" class="ffc-icon-tag"><?php esc_html_e( 'Template Variables / Tokens', 'ffcertificate' ); ?></h3>
 	<p><?php esc_html_e( 'Use these variables in your PDF template (HTML editor). They will be automatically replaced with user data:', 'ffcertificate' ); ?></p>
 	
 	<table class="widefat striped">
