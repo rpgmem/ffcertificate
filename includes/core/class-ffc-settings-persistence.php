@@ -113,9 +113,9 @@ final class SettingsPersistence {
 	 * is capability-driven (resolved via {@see Capabilities::current_user_can_admin_or()},
 	 * i.e. `manage_options` OR the cap); roles never enter it.
 	 *
-	 * @param string                                $cap   Capability slug.
+	 * @param string                                 $cap   Capability slug.
 	 * @param array{action?: string, field?: string} $nonce Nonce action + the input key holding the token.
-	 * @param array<string, mixed>                  $input Request payload (e.g. `wp_unslash( $_POST )`).
+	 * @param array<string, mixed>                   $input Request payload (e.g. `wp_unslash( $_POST )`).
 	 * @return bool True when both the nonce and the capability pass.
 	 */
 	public static function authorize( string $cap, array $nonce, array $input ): bool {
