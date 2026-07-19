@@ -41,6 +41,9 @@ class SettingsSaveHandlerTest extends TestCase {
             return abs( (int) $val );
         } );
         Functions\when( 'wp_unslash' )->returnArg();
+        // SMTP / Email Model saves are gated on ffc_manage_settings_smtp (#711);
+        // default to granted so the existing save tests exercise the save path.
+        Functions\when( 'current_user_can' )->justReturn( true );
 
         $mock_handler = Mockery::mock( 'FreeFormCertificate\Submissions\SubmissionHandler' );
         $this->handler = new SettingsSaveHandler( $mock_handler );
@@ -243,6 +246,15 @@ class SettingsSaveHandlerTest extends TestCase {
         $result = $this->invoke( 'save_smtp_settings', array( $existing, $new ) );
         $this->assertSame( 'on', $result['dark_mode'] );
         $this->assertSame( 'mail.test.com', $result['smtp_host'] );
+    }
+
+    public function test_smtp_settings_skipped_without_smtp_cap(): void {
+        // A settings manager lacking ffc_manage_settings_smtp cannot change the
+        // SMTP transport: save_smtp_settings returns $clean untouched (#711).
+        Functions\when( 'current_user_can' )->justReturn( false );
+        $existing = array( 'smtp_host' => 'old.example.com' );
+        $result   = $this->invoke( 'save_smtp_settings', array( $existing, array( 'smtp_host' => 'new.example.com' ) ) );
+        $this->assertSame( 'old.example.com', $result['smtp_host'] );
     }
 
     // ==================================================================
@@ -611,6 +623,23 @@ class SettingsSaveHandlerTest extends TestCase {
         $this->invoke( 'save_email_template_settings', array() );
 
         $this->assertFalse( $called );
+    }
+
+    public function test_email_model_skipped_without_smtp_cap(): void {
+        // Email Model is gated on ffc_manage_settings_smtp (#711): a manager
+        // without it does not persist the model even when the form is posted.
+        Functions\when( 'current_user_can' )->justReturn( false );
+        $_POST['ffc_email_template'] = array( 'header_bg' => '#123456' );
+        $called                      = false;
+        Functions\when( 'update_option' )->alias( function () use ( &$called ) {
+            $called = true;
+            return true;
+        } );
+
+        $this->invoke( 'save_email_template_settings', array() );
+
+        $this->assertFalse( $called );
+        unset( $_POST['ffc_email_template'] );
     }
 
     // ==================================================================

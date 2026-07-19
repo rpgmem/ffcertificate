@@ -304,13 +304,21 @@ final class CapabilityCatalog {
 				'label' => __( 'Settings', 'ffcertificate' ),
 				'level' => 'admin',
 				'caps'  => array(
-					'ffc_view_settings'   => array(
+					'ffc_view_settings'              => array(
 						'label'       => __( 'View settings', 'ffcertificate' ),
 						'description' => __( 'Read-only access to the plugin Settings page.', 'ffcertificate' ),
 					),
-					'ffc_manage_settings' => array(
+					'ffc_manage_settings'            => array(
 						'label'       => __( 'Manage settings', 'ffcertificate' ),
 						'description' => __( 'Access the plugin Settings page.', 'ffcertificate' ),
+					),
+					'ffc_manage_settings_smtp'       => array(
+						'label'       => __( 'Manage SMTP / email settings', 'ffcertificate' ),
+						'description' => __( 'Save the SMTP transport and the Email Model configuration.', 'ffcertificate' ),
+					),
+					'ffc_manage_settings_dangerzone' => array(
+						'label'       => __( 'Run destructive maintenance', 'ffcertificate' ),
+						'description' => __( 'Execute the Settings danger-zone actions: data deletion, cleanup and migrations.', 'ffcertificate' ),
 					),
 				),
 			),

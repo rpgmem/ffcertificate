@@ -243,6 +243,7 @@ class Loader {
 		$this->ensure_export_caps_granted();
 		$this->ensure_import_caps_granted();
 		$this->ensure_reasons_caps_wired();
+		$this->ensure_settings_split_caps_granted();
 		$this->define_admin_hooks();
 		$this->init_rest_api();
 	}
@@ -334,6 +335,26 @@ class Loader {
 		}
 		if ( class_exists( '\FreeFormCertificate\UserDashboard\CapabilityManager' ) ) {
 			\FreeFormCertificate\UserDashboard\CapabilityMigrator::migrate_delete_caps_grant();
+		}
+		update_option( $flag, '1', true );
+	}
+
+	/**
+	 * One-time migration that seeds the settings sub-caps (#711) —
+	 * `ffc_manage_settings_smtp` + `ffc_manage_settings_dangerzone` — onto every
+	 * user/role already holding `ffc_manage_settings`, preserving current SMTP /
+	 * danger-zone behavior when those surfaces are split out of the blanket cap.
+	 * Idempotent + version-flagged via `ffc_settings_split_caps_v1`.
+	 *
+	 * @since 6.15.0
+	 */
+	private function ensure_settings_split_caps_granted(): void {
+		$flag = 'ffc_settings_split_caps_v1';
+		if ( '1' === get_option( $flag, '' ) ) {
+			return;
+		}
+		if ( class_exists( '\FreeFormCertificate\UserDashboard\CapabilityManager' ) ) {
+			\FreeFormCertificate\UserDashboard\CapabilityMigrator::migrate_settings_split_caps_grant();
 		}
 		update_option( $flag, '1', true );
 	}
@@ -432,7 +453,9 @@ class Loader {
 		// v4: added the GAP E destructive `ffc_delete_*` caps — bumping the key
 		// forces the administrator role to pick them up once even on installs
 		// (e.g. the testes site) that don't change FFC_VERSION per batch.
-		$version_key = 'ffc_admin_caps_version_v4';
+		// v5: added the settings sub-caps `ffc_manage_settings_smtp` +
+		// `ffc_manage_settings_dangerzone` (#711) — same one-time re-grant.
+		$version_key = 'ffc_admin_caps_version_v5';
 		$current     = get_option( $version_key, '' );
 
 		if ( FFC_VERSION === $current ) {

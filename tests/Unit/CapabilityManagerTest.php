@@ -822,6 +822,64 @@ class CapabilityManagerTest extends TestCase {
         $this->assertArrayNotHasKey( 'ffc_delete_certificates', $role_added );
     }
 
+    public function test_admin_capabilities_contains_settings_sub_caps(): void {
+        foreach ( array(
+            'ffc_manage_settings_smtp',
+            'ffc_manage_settings_dangerzone',
+        ) as $cap ) {
+            $this->assertContains( $cap, CapabilityManager::ADMIN_CAPABILITIES, "ADMIN_CAPABILITIES must contain {$cap}" );
+        }
+    }
+
+    public function test_settings_split_cap_grant_map_pairs_manage_to_sub_caps(): void {
+        $map = CapabilityMigrator::settings_split_cap_grant_map();
+        $this->assertArrayHasKey( 'ffc_manage_settings', $map );
+        $this->assertSame(
+            array( 'ffc_manage_settings_smtp', 'ffc_manage_settings_dangerzone' ),
+            $map['ffc_manage_settings']
+        );
+        foreach ( $map['ffc_manage_settings'] as $sub ) {
+            $this->assertContains( $sub, CapabilityManager::ADMIN_CAPABILITIES, "{$sub} must be a registered cap" );
+        }
+    }
+
+    public function test_migrate_settings_split_caps_grant_seeds_sub_caps_onto_manage_holders(): void {
+        Functions\when( 'get_users' )->justReturn( array( 1 ) );
+
+        // User holds ffc_manage_settings but neither sub-cap → expect both seeded.
+        $user       = Mockery::mock( 'WP_User' );
+        $user->caps = array( 'ffc_manage_settings' => true );
+        $user_added = array();
+        $user->shouldReceive( 'add_cap' )->andReturnUsing(
+            function ( $cap, $val = true ) use ( &$user_added ) {
+                $user_added[ $cap ] = $val;
+            }
+        );
+        $user->shouldReceive( 'remove_cap' )->never();
+        Functions\when( 'get_userdata' )->justReturn( $user );
+
+        // Role also holds the manage cap → expect both sub-caps on the role too.
+        $role               = Mockery::mock( 'WP_Role' );
+        $role->capabilities = array( 'ffc_manage_settings' => true );
+        $role_added         = array();
+        $role->shouldReceive( 'add_cap' )->andReturnUsing(
+            function ( $cap, $val = true ) use ( &$role_added ) {
+                $role_added[ $cap ] = $val;
+            }
+        );
+        $wp_roles        = Mockery::mock();
+        $wp_roles->roles = array( 'administrator' => array() );
+        Functions\when( 'wp_roles' )->justReturn( $wp_roles );
+        Functions\when( 'get_role' )->justReturn( $role );
+
+        CapabilityMigrator::migrate_settings_split_caps_grant();
+
+        $this->assertTrue( $user_added['ffc_manage_settings_smtp'] ?? null );
+        $this->assertTrue( $user_added['ffc_manage_settings_dangerzone'] ?? null );
+        $this->assertTrue( $role_added['ffc_manage_settings_smtp'] ?? null );
+        $this->assertTrue( $role_added['ffc_manage_settings_dangerzone'] ?? null );
+    }
+
     public function test_admin_capabilities_contains_export_tier(): void {
         foreach ( array(
             'ffc_export_appointments',

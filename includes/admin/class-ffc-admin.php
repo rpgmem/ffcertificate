@@ -608,7 +608,10 @@ class Admin {
 			return;
 		}
 
-		if ( ! current_user_can( 'manage_options' ) ) {
+		// Migration execution is a danger-zone action (#711): gate it on the
+		// dedicated sub-cap so it can be delegated (option A) instead of being
+		// hard-limited to full `manage_options` admins. Admins still pass.
+		if ( ! \FreeFormCertificate\Core\Capabilities::current_user_can_admin_or( 'ffc_manage_settings_dangerzone' ) ) {
 			wp_die( esc_html__( 'Insufficient permissions', 'ffcertificate' ) );
 		}
 

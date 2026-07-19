@@ -106,7 +106,7 @@ class SettingsActionHandler {
 			return;
 		}
 
-		if ( ! \FreeFormCertificate\Core\Capabilities::current_user_can_admin_or( 'ffc_manage_settings' ) ) {
+		if ( ! \FreeFormCertificate\Core\Capabilities::current_user_can_admin_or( 'ffc_manage_settings_dangerzone' ) ) {
 			wp_die( esc_html__( 'You do not have permission to run migrations.', 'ffcertificate' ) );
 		}
 
@@ -175,7 +175,7 @@ class SettingsActionHandler {
 			return;
 		}
 
-		if ( ! \FreeFormCertificate\Core\Capabilities::current_user_can_admin_or( 'ffc_manage_settings' ) ) {
+		if ( ! \FreeFormCertificate\Core\Capabilities::current_user_can_admin_or( 'ffc_manage_settings_dangerzone' ) ) {
 			wp_die( esc_html__( 'You do not have permission to run this action.', 'ffcertificate' ) );
 		}
 
@@ -327,7 +327,7 @@ class SettingsActionHandler {
 			return;
 		}
 
-		if ( ! \FreeFormCertificate\Core\Capabilities::current_user_can_admin_or( 'ffc_manage_settings' ) ) {
+		if ( ! \FreeFormCertificate\Core\Capabilities::current_user_can_admin_or( 'ffc_manage_settings_dangerzone' ) ) {
 			wp_die( esc_html__( 'You do not have permission to run this action.', 'ffcertificate' ) );
 		}
 
@@ -462,7 +462,7 @@ class SettingsActionHandler {
 			return;
 		}
 
-		if ( ! \FreeFormCertificate\Core\Capabilities::current_user_can_admin_or( 'ffc_manage_settings' ) ) {
+		if ( ! \FreeFormCertificate\Core\Capabilities::current_user_can_admin_or( 'ffc_manage_settings_dangerzone' ) ) {
 			wp_die( esc_html__( 'You do not have permission to run this action.', 'ffcertificate' ) );
 		}
 
@@ -571,7 +571,7 @@ class SettingsActionHandler {
 			return;
 		}
 
-		if ( ! \FreeFormCertificate\Core\Capabilities::current_user_can_admin_or( 'ffc_manage_settings' ) ) {
+		if ( ! \FreeFormCertificate\Core\Capabilities::current_user_can_admin_or( 'ffc_manage_settings_dangerzone' ) ) {
 			wp_die( esc_html__( 'You do not have permission to run this action.', 'ffcertificate' ) );
 		}
 
