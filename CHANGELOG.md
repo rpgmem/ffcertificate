@@ -7,7 +7,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
-## [6.14.0] (2026-07-19)
+## [6.14.0] (2026-07-19) — `dba61ae`
 
 ### Added
 - Settings → General (#711) — a **"Module settings"** index card that links straight to the settings surfaces some modules keep next to themselves (Scheduling settings, Recruitment settings). Each link is shown only to users who can open that module's settings, so it improves discoverability of configuration split across the plugin without moving anything.
