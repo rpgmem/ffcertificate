@@ -327,15 +327,19 @@ final class CapabilityCatalog {
 				'label' => __( 'System & tools', 'ffcertificate' ),
 				'level' => 'admin',
 				'caps'  => array(
-					'ffc_view_activity_log' => array(
+					'ffc_view_activity_log'   => array(
 						'label'       => __( 'View activity log', 'ffcertificate' ),
 						'description' => __( 'Inspect the audit trail.', 'ffcertificate' ),
 					),
-					'ffc_view_as_user'      => array(
+					'ffc_export_activity_log' => array(
+						'label'       => __( 'Export activity log', 'ffcertificate' ),
+						'description' => __( 'Download the audit trail as CSV.', 'ffcertificate' ),
+					),
+					'ffc_view_as_user'        => array(
 						'label'       => __( 'View as user', 'ffcertificate' ),
 						'description' => __( "Open the dashboard from another user's perspective.", 'ffcertificate' ),
 					),
-					'ffc_view_forms_api'    => array(
+					'ffc_view_forms_api'      => array(
 						'label'       => __( 'Read forms via REST API', 'ffcertificate' ),
 						'description' => __( 'For external integrators authenticating with Application Passwords.', 'ffcertificate' ),
 						'surface'     => 'api',

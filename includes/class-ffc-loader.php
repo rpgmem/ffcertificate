@@ -244,6 +244,7 @@ class Loader {
 		$this->ensure_import_caps_granted();
 		$this->ensure_reasons_caps_wired();
 		$this->ensure_settings_split_caps_granted();
+		$this->ensure_activity_log_export_cap_granted();
 		$this->define_admin_hooks();
 		$this->init_rest_api();
 	}
@@ -360,6 +361,26 @@ class Loader {
 	}
 
 	/**
+	 * One-time migration that seeds the dedicated `ffc_export_activity_log` cap
+	 * (#711 §5) onto every user/role already holding `ffc_view_activity_log`,
+	 * preserving their audit-trail export ability when export is split out of the
+	 * read-only view cap. Idempotent + version-flagged via
+	 * `ffc_activity_log_export_cap_v1`.
+	 *
+	 * @since 6.15.0
+	 */
+	private function ensure_activity_log_export_cap_granted(): void {
+		$flag = 'ffc_activity_log_export_cap_v1';
+		if ( '1' === get_option( $flag, '' ) ) {
+			return;
+		}
+		if ( class_exists( '\FreeFormCertificate\UserDashboard\CapabilityManager' ) ) {
+			\FreeFormCertificate\UserDashboard\CapabilityMigrator::migrate_activity_log_export_cap_grant();
+		}
+		update_option( $flag, '1', true );
+	}
+
+	/**
 	 * One-time migration that seeds the granular `ffc_export_<domain>` caps
 	 * (GAP G) onto every user/role already holding the matching
 	 * `ffc_manage_<domain>` cap, preserving current bulk-export behavior when the
@@ -455,7 +476,8 @@ class Loader {
 		// (e.g. the testes site) that don't change FFC_VERSION per batch.
 		// v5: added the settings sub-caps `ffc_manage_settings_smtp` +
 		// `ffc_manage_settings_dangerzone` (#711) — same one-time re-grant.
-		$version_key = 'ffc_admin_caps_version_v5';
+		// v6: added the dedicated `ffc_export_activity_log` cap (#711 §5).
+		$version_key = 'ffc_admin_caps_version_v6';
 		$current     = get_option( $version_key, '' );
 
 		if ( FFC_VERSION === $current ) {
