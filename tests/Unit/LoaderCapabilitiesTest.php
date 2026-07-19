@@ -173,7 +173,7 @@ class LoaderCapabilitiesTest extends TestCase {
 		// legacy `=> false` cap stripped from ffc_user role.
 		$this->assertContains( $role_false_cap, $ffc_user_removed );
 		// Version flag written at the end.
-		$this->assertSame( FFC_VERSION, $updated['ffc_admin_caps_version_v5'] ?? null );
+		$this->assertSame( FFC_VERSION, $updated['ffc_admin_caps_version_v6'] ?? null );
 	}
 
 	public function test_ensure_admin_capabilities_no_admin_role_still_writes_flag(): void {
@@ -193,7 +193,7 @@ class LoaderCapabilitiesTest extends TestCase {
 		$this->invoke_private( $loader, 'ensure_admin_capabilities' );
 
 		// No admin role → grant block skipped, but flag still advanced.
-		$this->assertSame( FFC_VERSION, $updated['ffc_admin_caps_version_v5'] ?? null );
+		$this->assertSame( FFC_VERSION, $updated['ffc_admin_caps_version_v6'] ?? null );
 	}
 
 	// ==================================================================
@@ -309,7 +309,7 @@ class LoaderCapabilitiesTest extends TestCase {
 		// returns because the version flag matches FFC_VERSION.
 		Functions\when( 'get_option' )->alias(
 			static function ( $key, $default = false ) {
-				return 'ffc_admin_caps_version_v5' === $key ? FFC_VERSION : '1';
+				return 'ffc_admin_caps_version_v6' === $key ? FFC_VERSION : '1';
 			}
 		);
 		Functions\when( 'update_option' )->justReturn( true );
