@@ -40,6 +40,8 @@ if ( ! defined( 'ABSPATH' ) ) {
  */
 class SettingsActionHandler {
 
+	use \FreeFormCertificate\Core\EmailHelperTrait;
+
 	/**
 	 * Save handler.
 	 *
@@ -700,5 +702,62 @@ class SettingsActionHandler {
 			);
 			exit;
 		}
+	}
+
+	/**
+	 * Handle the "Send a test email" action (Settings → SMTP → Email Model).
+	 *
+	 * Sends one test message through the shared email pipeline so an operator
+	 * can confirm SMTP delivery and the Email Model chrome are working. The
+	 * recipient is ALWAYS the current user's own account email — never taken
+	 * from the request — so there is no way to make it mail an arbitrary
+	 * address. Requires `ffc_manage_settings` (or admin) plus a valid nonce.
+	 *
+	 * Redirects back to the SMTP tab with `ffc_test_email=<flag>` where flag is
+	 * `sent` / `disabled` (global kill-switch on) / `no_address` (account has no
+	 * email) / `failed` (transport returned false), rendered as a notice by the
+	 * SMTP tab view.
+	 *
+	 * @since 6.15.x
+	 */
+	public function handle_send_test_email(): void {
+        // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Presence check only; nonce verified below via check_admin_referer.
+		if ( ! isset( $_POST['ffc_send_test_email'] ) ) {
+			return;
+		}
+
+		if ( ! \FreeFormCertificate\Core\Capabilities::current_user_can_admin_or( 'ffc_manage_settings' ) ) {
+			wp_die( esc_html__( 'You do not have permission to send a test email.', 'ffcertificate' ) );
+		}
+
+		check_admin_referer( 'ffc_send_test_email' );
+
+		$to = (string) wp_get_current_user()->user_email;
+
+		if ( '' === $to || ! is_email( $to ) ) {
+			$flag = 'no_address';
+		} elseif ( \FreeFormCertificate\Settings\SettingsReader::emails_disabled() ) {
+			$flag = 'disabled';
+		} else {
+			$body = self::ffc_email_document(
+				'<p>' . esc_html__( 'This is a test email from Free Form Certificate. If you received it, your email delivery and Email Model settings are working.', 'ffcertificate' ) . '</p>',
+				array( 'recipient' => $to )
+			);
+			$sent = self::ffc_send_mail( $to, __( 'Free Form Certificate — test email', 'ffcertificate' ), $body );
+			$flag = $sent ? 'sent' : 'failed';
+		}
+
+		wp_safe_redirect(
+			add_query_arg(
+				array(
+					'post_type'      => 'ffc_form',
+					'page'           => 'ffc-settings',
+					'tab'            => 'smtp',
+					'ffc_test_email' => $flag,
+				),
+				admin_url( 'edit.php' )
+			)
+		);
+		exit;
 	}
 }

@@ -34,6 +34,28 @@ $ffcertificate_emails_enabled  = ! $ffcertificate_emails_disabled;
 <div class="card">
 	<h2 class="ffc-icon-email"><?php esc_html_e( 'Email Configuration', 'ffcertificate' ); ?></h2>
 	<?php \FreeFormCertificate\Core\EmailDisabledNotice::render(); ?>
+	<?php
+	// Flash notice for the "Send a test email" action (Email Model box). This is
+	// a display-only read after a nonce-checked POST → redirect (PRG); the value
+	// is a fixed allowlisted flag, so no nonce is needed on this GET render.
+	// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Display-only flash after a nonce-checked POST; value allowlisted below.
+	$ffcertificate_test_email_flag = isset( $_GET['ffc_test_email'] ) ? sanitize_key( wp_unslash( $_GET['ffc_test_email'] ) ) : '';
+	if ( '' !== $ffcertificate_test_email_flag ) {
+		$ffcertificate_test_email_notices = array(
+			'sent'       => array( 'notice-success', __( 'Test email sent to your account.', 'ffcertificate' ) ),
+			'disabled'   => array( 'notice-warning', __( 'Emails are globally disabled, so the test email was not sent. Enable email sending above and try again.', 'ffcertificate' ) ),
+			'no_address' => array( 'notice-error', __( 'Your account has no email address, so the test email could not be sent.', 'ffcertificate' ) ),
+			'failed'     => array( 'notice-error', __( 'The test email could not be sent. Check your SMTP settings and try again.', 'ffcertificate' ) ),
+		);
+		if ( isset( $ffcertificate_test_email_notices[ $ffcertificate_test_email_flag ] ) ) {
+			printf(
+				'<div class="notice %1$s inline"><p>%2$s</p></div>',
+				esc_attr( $ffcertificate_test_email_notices[ $ffcertificate_test_email_flag ][0] ),
+				esc_html( $ffcertificate_test_email_notices[ $ffcertificate_test_email_flag ][1] )
+			);
+		}
+	}
+	?>
 
 	<form method="post">
 		<?php wp_nonce_field( 'ffc_settings_action', 'ffc_settings_nonce' ); ?>

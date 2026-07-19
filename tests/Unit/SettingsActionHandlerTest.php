@@ -68,6 +68,12 @@ class SettingsActionHandlerTest extends TestCase {
 		if ( ! defined( 'MINUTE_IN_SECONDS' ) ) {
 			define( 'MINUTE_IN_SECONDS', 60 );
 		}
+		// Point the plugin dir at a non-existent path so the email chrome helper
+		// (EmailHelperTrait::ffc_render_email_partial) returns '' instead of
+		// including the real layout template and its dependency chain.
+		if ( ! defined( 'FFC_PLUGIN_DIR' ) ) {
+			define( 'FFC_PLUGIN_DIR', '/nonexistent-ffc-plugin-dir/' );
+		}
 
 		// Redirects / die / json halt: throw so we can assert via expectException.
 		Functions\when( 'wp_safe_redirect' )->alias(
@@ -100,6 +106,7 @@ class SettingsActionHandlerTest extends TestCase {
 			$_REQUEST['ffc_pubaccess'],
 			$_REQUEST['ffc_submission_audit'],
 			$_REQUEST['_wpnonce'],
+			$_POST['ffc_send_test_email'],
 			$_POST['obsolete_shortcode_days'],
 			$_POST['url_cleanup_days'],
 			$_POST['public_access_disable_days'],
@@ -665,5 +672,138 @@ class SettingsActionHandlerTest extends TestCase {
 		$this->expectException( \RuntimeException::class );
 		$this->expectExceptionMessage( 'redirect' );
 		$this->handler->handle_cache_actions();
+	}
+
+	// ==================================================================
+	// handle_send_test_email()
+	// ==================================================================
+
+	/** Stub wp_get_current_user() to return an object with the given email. */
+	private function mock_current_user_email( string $email ): void {
+		Functions\when( 'wp_get_current_user' )->justReturn( (object) array( 'user_email' => $email ) );
+	}
+
+	/**
+	 * Stub the shared email chrome (EmailHelperTrait::ffc_email_document renders
+	 * templates/emails/layout.php) so the handler can build a body without the
+	 * template's full dependency chain. We only care that a body is produced and
+	 * handed to the transport with the current user's address.
+	 */
+	private function mock_email_chrome(): void {
+		Functions\when( 'esc_html' )->returnArg();
+		Functions\when( 'esc_attr' )->returnArg();
+		Functions\when( 'esc_url' )->returnArg();
+		Functions\when( 'wp_kses_post' )->returnArg();
+		Functions\when( 'get_bloginfo' )->justReturn( 'Test Site' );
+
+		$opts = Mockery::mock( 'alias:FreeFormCertificate\\Core\\EmailTemplateOptions' );
+		$opts->shouldReceive( 'all' )->andReturn(
+			array(
+				'header_bg'             => '#2271b1',
+				'header_text_color'     => '#ffffff',
+				'header_alignment'      => 'center',
+				'header_padding'        => 24,
+				'header_logo_url'       => '',
+				'header_logo_max_width' => 180,
+				'body_bg'               => '#ffffff',
+				'body_text_color'       => '#333333',
+				'body_link_color'       => '#2271b1',
+				'body_font_family'      => 'system',
+				'body_font_size'        => 14,
+				'body_padding'          => 24,
+				'body_max_width'        => 600,
+				'footer_bg'             => '#f5f5f5',
+				'footer_text_color'     => '#666666',
+				'footer_text'           => 'Sent by {{site_title}}',
+				'wrapper_bg'            => '#f0f0f1',
+				'wrapper_border_radius' => 6,
+				'wrapper_padding'       => 32,
+			)
+		);
+		$opts->shouldReceive( 'font_stack' )->andReturn( 'Arial, sans-serif' );
+		$opts->shouldReceive( 'footer_tokens' )->andReturn( array() );
+
+		$tokens = Mockery::mock( 'alias:FreeFormCertificate\\Core\\TokenResolver' );
+		$tokens->shouldReceive( 'resolve' )->andReturn( '' );
+	}
+
+	public function test_send_test_email_returns_early_without_param(): void {
+		$this->handler->handle_send_test_email();
+		$this->assertTrue( true );
+	}
+
+	public function test_send_test_email_denies_without_capability(): void {
+		$_POST['ffc_send_test_email'] = '1';
+		$this->mock_capabilities( false );
+		$this->expectException( \RuntimeException::class );
+		$this->expectExceptionMessage( 'die' );
+		$this->handler->handle_send_test_email();
+	}
+
+	public function test_send_test_email_bad_nonce_dies(): void {
+		$_POST['ffc_send_test_email'] = '1';
+		$this->mock_capabilities( true );
+		Functions\when( 'check_admin_referer' )->alias(
+			static function () { throw new \RuntimeException( 'die' ); }
+		);
+		$this->expectException( \RuntimeException::class );
+		$this->expectExceptionMessage( 'die' );
+		$this->handler->handle_send_test_email();
+	}
+
+	public function test_send_test_email_sent_uses_current_user_email(): void {
+		$_POST['ffc_send_test_email'] = '1';
+		$this->mock_capabilities( true );
+		Functions\when( 'check_admin_referer' )->justReturn( true );
+		Functions\when( 'is_email' )->justReturn( true );
+		$this->mock_current_user_email( 'admin@example.com' );
+		$this->mock_email_chrome();
+
+		$reader = Mockery::mock( 'alias:FreeFormCertificate\\Settings\\SettingsReader' );
+		$reader->shouldReceive( 'emails_disabled' )->andReturn( false );
+
+		// Assert the transport is called with the CURRENT USER's email — never a
+		// request-supplied address.
+		$svc = Mockery::mock( 'alias:FreeFormCertificate\\Core\\EmailService' );
+		$svc->shouldReceive( 'send' )
+			->once()
+			->with( 'admin@example.com', Mockery::any(), Mockery::any(), Mockery::any(), Mockery::any() )
+			->andReturn( true );
+
+		$this->expectException( \RuntimeException::class );
+		$this->expectExceptionMessage( 'redirect' );
+		$this->handler->handle_send_test_email();
+	}
+
+	public function test_send_test_email_disabled_does_not_send(): void {
+		$_POST['ffc_send_test_email'] = '1';
+		$this->mock_capabilities( true );
+		Functions\when( 'check_admin_referer' )->justReturn( true );
+		Functions\when( 'is_email' )->justReturn( true );
+		$this->mock_current_user_email( 'admin@example.com' );
+
+		$reader = Mockery::mock( 'alias:FreeFormCertificate\\Settings\\SettingsReader' );
+		$reader->shouldReceive( 'emails_disabled' )->andReturn( true );
+
+		$svc = Mockery::mock( 'alias:FreeFormCertificate\\Core\\EmailService' );
+		$svc->shouldReceive( 'send' )->never();
+
+		$this->expectException( \RuntimeException::class );
+		$this->expectExceptionMessage( 'redirect' );
+		$this->handler->handle_send_test_email();
+	}
+
+	public function test_send_test_email_no_address_does_not_send(): void {
+		$_POST['ffc_send_test_email'] = '1';
+		$this->mock_capabilities( true );
+		Functions\when( 'check_admin_referer' )->justReturn( true );
+		$this->mock_current_user_email( '' );
+
+		$svc = Mockery::mock( 'alias:FreeFormCertificate\\Core\\EmailService' );
+		$svc->shouldReceive( 'send' )->never();
+
+		$this->expectException( \RuntimeException::class );
+		$this->expectExceptionMessage( 'redirect' );
+		$this->handler->handle_send_test_email();
 	}
 }
