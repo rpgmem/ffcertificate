@@ -541,53 +541,100 @@
     color: var(--ffc-text);
 }
 
-.ffc-doc-toc-list {
+/* Quick-Navigation as a collapsible functional tree (#697). Top list + nested
+   sub-lists are single-column; grouping nodes are <details> branches. */
+.ffc-doc-toc-list,
+.ffc-doc-toc-sublist {
     list-style: none;
     padding: 0;
     margin: 0;
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-    gap: 10px;
 }
 
-.ffc-doc-toc-list li {
-    margin: 0;
+.ffc-doc-toc-list > li {
+    margin: 2px 0;
 }
 
-/* Section headings inside the grouped Quick-Navigation TOC (#674): span the
-   full grid row so each section (Overview / Features / Reference / …) reads as
-   a separator above its items. */
-.ffc-doc-toc-list .ffc-doc-toc-section {
-    grid-column: 1 / -1;
-    margin: 16px 0 2px;
-    font-size: 11px;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-    color: var(--ffc-text-muted, #646970);
+.ffc-doc-toc-sublist > li {
+    margin: 2px 0;
 }
 
-.ffc-doc-toc-list .ffc-doc-toc-section:first-child {
-    margin-top: 0;
+/* Each nested level indents under a soft guide rail. */
+.ffc-doc-toc-sublist {
+    padding-left: 16px;
+    margin-left: 8px;
+    border-left: 1px solid var(--ffc-border-light, #dcdcde);
 }
 
-.ffc-doc-toc-list a {
+/* Collapsible branch header. */
+.ffc-doc-toc-branch > details > summary {
     display: flex;
     align-items: center;
     gap: 8px;
-    padding: 10px 15px;
+    padding: 8px 12px;
+    cursor: pointer;
+    border-radius: 4px;
+    font-weight: 600;
+    color: var(--ffc-text);
+    list-style: none;
+    user-select: none;
+}
+
+.ffc-doc-toc-branch > details > summary::-webkit-details-marker {
+    display: none;
+}
+
+/* Custom disclosure triangle that rotates when the branch is open. */
+.ffc-doc-toc-branch > details > summary::before {
+    content: "\f345"; /* dashicons-arrow-right-alt2 */
+    font-family: dashicons;
+    font-size: 16px;
+    line-height: 1;
+    flex: 0 0 auto;
+    color: var(--ffc-text-muted, #646970);
+    transition: transform 0.15s ease;
+}
+
+.ffc-doc-toc-branch > details[open] > summary::before {
+    transform: rotate(90deg);
+}
+
+.ffc-doc-toc-branch > details > summary:hover {
+    background: var(--ffc-bg-alt);
+}
+
+.ffc-doc-toc-branch > details > summary .dashicons {
+    flex: 0 0 auto;
+    width: 18px;
+    height: 18px;
+    font-size: 18px;
+    line-height: 1;
+    color: var(--ffc-primary);
+}
+
+.ffc-doc-toc-branch > details > summary a,
+.ffc-doc-toc-branch > details > summary .ffc-doc-toc-branch-label {
+    color: inherit;
+    text-decoration: none;
+}
+
+/* Leaf links (direct <li> > <a>, so the branch summary link is not restyled). */
+.ffc-doc-toc-list li > a {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 12px;
     background: var(--ffc-bg-card);
     border-radius: 4px;
     text-decoration: none;
     color: var(--ffc-link);
     font-weight: 500;
-    transition: all 0.2s;
+    transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
     border: 1px solid var(--ffc-border);
 }
 
-/* Dashicon glyph that precedes each nav label (#674). Fixed box so labels
-   stay left-aligned regardless of glyph width. */
-.ffc-doc-toc-list a .dashicons {
+/* Dashicon glyph that precedes each leaf label. Fixed box so labels stay
+   left-aligned regardless of glyph width. */
+.ffc-doc-toc-list li > a .dashicons {
     flex: 0 0 auto;
     width: 18px;
     height: 18px;
@@ -596,22 +643,14 @@
     color: var(--ffc-text-muted, #646970);
 }
 
-.ffc-doc-toc-list a:hover {
+.ffc-doc-toc-list li > a:hover {
     background: var(--ffc-primary);
     color: var(--ffc-text-on-primary);
-    transform: translateX(5px);
     border-color: var(--ffc-primary);
 }
 
-.ffc-doc-toc-list a:hover .dashicons {
+.ffc-doc-toc-list li > a:hover .dashicons {
     color: var(--ffc-text-on-primary);
-}
-
-/* Nested sub-item (e.g. Ficha PDF under Reregistration): indented and slightly
-   recessed so the parent/child relationship reads at a glance (#674). */
-.ffc-doc-toc-list .ffc-doc-toc-child a {
-    margin-left: 22px;
-    background: var(--ffc-bg-alt);
 }
 
 /* Documentation Examples */
@@ -758,10 +797,6 @@ pre code {
 
 /* Responsive */
 @media screen and (max-width: 782px) {
-    .ffc-doc-toc-list {
-        grid-template-columns: 1fr;
-    }
-    
     .ffc-doc-example pre {
         font-size: 12px;
         padding: 10px;
@@ -776,7 +811,8 @@ pre code {
     .ffc-provider-card,
     .ffc-progress-bar-fill,
     .card,
-    .ffc-doc-toc-list a {
+    .ffc-doc-toc-list li > a,
+    .ffc-doc-toc-branch > details > summary::before {
         transition: none;
     }
 }
