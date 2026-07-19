@@ -3,15 +3,18 @@
  * Documentation Tab
  *
  * The Quick-Navigation TOC and the section cards are both driven by a single
- * ordered registry ($ffc_doc_sections), grouped into sections (Overview /
- * Features / Reference / Developer / Operations) — the reorganization from
- * #674. Adding or moving a doc page is a one-line registry edit; the nav and
- * the require order stay in sync automatically.
+ * ordered, **recursive** registry ($ffc_doc_tree): a tree of nodes mirroring
+ * the plugin's functional areas (Certificates / Scheduling / Reregistration /
+ * Recruitment / Short URLs / Developer / Troubleshooting) — the reorganization
+ * from #697. Each node may carry its own page (`file` + `anchor`) and/or a list
+ * of `children`; the nav renders as a collapsible tree and the page partials
+ * are required in tree order. Adding or moving a doc page is a one-line
+ * registry edit; the nav and the require order stay in sync automatically.
  *
- * NOTE: this Foundation step only regroups/reorders the existing pages under
- * the new sections — files, anchors and page content are unchanged. The
- * per-area content tranches rename files to semantic names, merge/split pages
- * and fill gaps.
+ * NOTE (foundation step of #697): this only re-groups the *existing* pages
+ * under the new functional tree — page files, anchors and content are
+ * unchanged. Each functional area is then fleshed out (renames to functional
+ * slugs, merges/splits, new content) in its own follow-up PR.
  *
  * @package FreeFormCertificate\Settings
  */
@@ -21,34 +24,138 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 /**
- * Grouped documentation registry.
+ * Recursive documentation registry.
  *
- * Each section has a `label` and an ordered list of `items`; each item is
- * `[ anchor, icon, title, file ]` — `anchor` matches the id="" on the page's
- * heading and `file` is a partial under documentation/. An optional `child`
- * key marks the item as a nested sub-item of the one above it in the nav.
+ * Each node is an array with:
+ *  - `title`    (string, required)         — display label.
+ *  - `icon`     (string, optional)         — dashicon class (e.g. 'dashicons-info').
+ *  - `anchor`   (string, optional)         — id="" on the page heading; makes the
+ *                                            nav label a link. Required when `file` is set.
+ *  - `file`     (string, optional)         — partial under documentation/ to require.
+ *  - `children` (array<int, node>, opt.)   — nested nodes; renders a collapsible branch.
  *
- * @var array<int, array{label: string, items: array<int, array<string, string>>}> $ffc_doc_sections
+ * A node with `children` but no `file` is a pure grouping branch. A node with a
+ * `file` is a page (and may also carry children).
+ *
+ * @var array<int, array<string, mixed>> $ffc_doc_tree
  */
-$ffc_doc_sections = array(
+$ffc_doc_tree = array(
 	array(
-		'label' => __( 'Overview', 'ffcertificate' ),
-		'items' => array(
+		'anchor' => 'overview',
+		'icon'   => 'dashicons-info',
+		'title'  => __( 'Overview & Features', 'ffcertificate' ),
+		'file'   => 'overview.php',
+	),
+	array(
+		'icon'     => 'dashicons-feedback',
+		'title'    => __( 'Certificates & Forms', 'ffcertificate' ),
+		'children' => array(
 			array(
-				'anchor' => 'overview',
-				'icon'   => 'dashicons-info',
-				'title'  => __( 'Overview & Features', 'ffcertificate' ),
-				'file'   => 'overview.php',
+				'title'    => __( 'Forms', 'ffcertificate' ),
+				'icon'     => 'dashicons-feedback',
+				'children' => array(
+					array(
+						'anchor' => 'feature-certificates',
+						'icon'   => 'dashicons-feedback',
+						'title'  => __( 'Certificates & Forms', 'ffcertificate' ),
+						'file'   => 'feature-certificates.php',
+					),
+					array(
+						'anchor' => 'reference-html-styling',
+						'icon'   => 'dashicons-art',
+						'title'  => __( 'HTML & Styling', 'ffcertificate' ),
+						'file'   => 'reference-html-styling.php',
+					),
+					array(
+						'anchor' => 'reference-tokens',
+						'icon'   => 'dashicons-tag',
+						'title'  => __( 'Template Variables / Tokens', 'ffcertificate' ),
+						'file'   => 'reference-tokens.php',
+					),
+					array(
+						'anchor' => 'reference-validation-url',
+						'icon'   => 'dashicons-yes-alt',
+						'title'  => __( 'Validation URL', 'ffcertificate' ),
+						'file'   => 'reference-validation-url.php',
+					),
+					array(
+						'anchor' => 'reference-qr-codes',
+						'icon'   => 'dashicons-camera',
+						'title'  => __( 'QR Codes', 'ffcertificate' ),
+						'file'   => 'reference-qr-codes.php',
+					),
+					array(
+						'anchor' => 'reference-security',
+						'icon'   => 'dashicons-lock',
+						'title'  => __( 'Security Features', 'ffcertificate' ),
+						'file'   => 'reference-security.php',
+					),
+					array(
+						'anchor' => 'feature-quiz',
+						'icon'   => 'dashicons-chart-bar',
+						'title'  => __( 'Quiz / Evaluation', 'ffcertificate' ),
+						'file'   => 'feature-quiz.php',
+					),
+				),
+			),
+			array(
+				'title'    => __( 'Configuration', 'ffcertificate' ),
+				'icon'     => 'dashicons-admin-generic',
+				'children' => array(
+					array(
+						'anchor' => 'reference-emails',
+						'icon'   => 'dashicons-email',
+						'title'  => __( 'Emails & Delivery', 'ffcertificate' ),
+						'file'   => 'reference-emails.php',
+					),
+					array(
+						'anchor' => 'feature-user-dashboard',
+						'icon'   => 'dashicons-admin-users',
+						'title'  => __( 'User Dashboard & Access', 'ffcertificate' ),
+						'file'   => 'feature-user-dashboard.php',
+					),
+					array(
+						'anchor' => 'reference-capabilities',
+						'icon'   => 'dashicons-admin-network',
+						'title'  => __( 'Capabilities & Roles', 'ffcertificate' ),
+						'file'   => 'reference-capabilities.php',
+					),
+					array(
+						'anchor' => 'operations-maintenance',
+						'icon'   => 'dashicons-admin-tools',
+						'title'  => __( 'Maintenance Tools', 'ffcertificate' ),
+						'file'   => 'operations-maintenance.php',
+					),
+				),
 			),
 		),
 	),
 	array(
-		'label' => __( 'Features', 'ffcertificate' ),
-		'items' => array(
+		'icon'     => 'dashicons-calendar',
+		'title'    => __( 'Scheduling / Appointments', 'ffcertificate' ),
+		'children' => array(
+			array(
+				'anchor' => 'feature-self-scheduling',
+				'icon'   => 'dashicons-calendar',
+				'title'  => __( 'Personal Calendars', 'ffcertificate' ),
+				'file'   => 'feature-self-scheduling.php',
+			),
+			array(
+				'anchor' => 'feature-audiences',
+				'icon'   => 'dashicons-calendar-alt',
+				'title'  => __( 'Audience Calendars', 'ffcertificate' ),
+				'file'   => 'feature-audiences.php',
+			),
+		),
+	),
+	array(
+		'icon'     => 'dashicons-update-alt',
+		'title'    => __( 'Reregistration', 'ffcertificate' ),
+		'children' => array(
 			array(
 				'anchor' => 'feature-reregistration',
 				'icon'   => 'dashicons-update-alt',
-				'title'  => __( 'Reregistration', 'ffcertificate' ),
+				'title'  => __( 'Campaigns', 'ffcertificate' ),
 				'file'   => 'feature-reregistration.php',
 			),
 			array(
@@ -56,136 +163,111 @@ $ffc_doc_sections = array(
 				'icon'   => 'dashicons-media-document',
 				'title'  => __( 'Ficha PDF', 'ffcertificate' ),
 				'file'   => 'feature-ficha.php',
-				// Ficha PDF is an output of a reregistration campaign, so it
-				// reads as a sub-item of Reregistration in the nav (#674).
-				'child'  => '1',
-			),
-			array(
-				'anchor' => 'feature-certificates',
-				'icon'   => 'dashicons-feedback',
-				'title'  => __( 'Certificates & Forms', 'ffcertificate' ),
-				'file'   => 'feature-certificates.php',
-			),
-			array(
-				'anchor' => 'feature-audiences',
-				'icon'   => 'dashicons-calendar-alt',
-				'title'  => __( 'Audiences', 'ffcertificate' ),
-				'file'   => 'feature-audiences.php',
-			),
-			array(
-				'anchor' => 'feature-url-shortener',
-				'icon'   => 'dashicons-admin-links',
-				'title'  => __( 'URL Shortener & QR Codes', 'ffcertificate' ),
-				'file'   => 'feature-url-shortener.php',
-			),
-			array(
-				'anchor' => 'feature-recruitment',
-				'icon'   => 'dashicons-groups',
-				'title'  => __( 'Recruitment', 'ffcertificate' ),
-				'file'   => 'feature-recruitment.php',
-			),
-			array(
-				'anchor' => 'feature-quiz',
-				'icon'   => 'dashicons-chart-bar',
-				'title'  => __( 'Quiz / Evaluation', 'ffcertificate' ),
-				'file'   => 'feature-quiz.php',
-			),
-			array(
-				'anchor' => 'feature-self-scheduling',
-				'icon'   => 'dashicons-calendar',
-				'title'  => __( 'Self-Scheduling / Appointments', 'ffcertificate' ),
-				'file'   => 'feature-self-scheduling.php',
-			),
-			array(
-				'anchor' => 'feature-user-dashboard',
-				'icon'   => 'dashicons-admin-users',
-				'title'  => __( 'User Dashboard & Access', 'ffcertificate' ),
-				'file'   => 'feature-user-dashboard.php',
 			),
 		),
 	),
 	array(
-		'label' => __( 'Reference', 'ffcertificate' ),
-		'items' => array(
-			array(
-				'anchor' => 'reference-shortcodes',
-				'icon'   => 'dashicons-shortcode',
-				'title'  => __( 'Shortcodes', 'ffcertificate' ),
-				'file'   => 'reference-shortcodes.php',
-			),
-			array(
-				'anchor' => 'reference-tokens',
-				'icon'   => 'dashicons-tag',
-				'title'  => __( 'Template Variables / Tokens', 'ffcertificate' ),
-				'file'   => 'reference-tokens.php',
-			),
-			array(
-				'anchor' => 'reference-qr-codes',
-				'icon'   => 'dashicons-camera',
-				'title'  => __( 'QR Codes', 'ffcertificate' ),
-				'file'   => 'reference-qr-codes.php',
-			),
-			array(
-				'anchor' => 'reference-validation-url',
-				'icon'   => 'dashicons-yes-alt',
-				'title'  => __( 'Validation URL', 'ffcertificate' ),
-				'file'   => 'reference-validation-url.php',
-			),
-			array(
-				'anchor' => 'reference-html-styling',
-				'icon'   => 'dashicons-art',
-				'title'  => __( 'HTML & Styling', 'ffcertificate' ),
-				'file'   => 'reference-html-styling.php',
-			),
-			array(
-				'anchor' => 'reference-capabilities',
-				'icon'   => 'dashicons-admin-network',
-				'title'  => __( 'Capabilities & Roles', 'ffcertificate' ),
-				'file'   => 'reference-capabilities.php',
-			),
-			array(
-				'anchor' => 'reference-security',
-				'icon'   => 'dashicons-lock',
-				'title'  => __( 'Security Features', 'ffcertificate' ),
-				'file'   => 'reference-security.php',
-			),
-			array(
-				'anchor' => 'reference-emails',
-				'icon'   => 'dashicons-email',
-				'title'  => __( 'Emails & Delivery', 'ffcertificate' ),
-				'file'   => 'reference-emails.php',
-			),
-		),
+		'anchor' => 'feature-recruitment',
+		'icon'   => 'dashicons-groups',
+		'title'  => __( 'Recruitment', 'ffcertificate' ),
+		'file'   => 'feature-recruitment.php',
 	),
 	array(
-		'label' => __( 'Developer', 'ffcertificate' ),
-		'items' => array(
+		'anchor' => 'feature-url-shortener',
+		'icon'   => 'dashicons-admin-links',
+		'title'  => __( 'Short URLs & QR Codes', 'ffcertificate' ),
+		'file'   => 'feature-url-shortener.php',
+	),
+	array(
+		'icon'     => 'dashicons-editor-code',
+		'title'    => __( 'Developer', 'ffcertificate' ),
+		'children' => array(
 			array(
 				'anchor' => 'developer-hooks-api',
 				'icon'   => 'dashicons-editor-code',
 				'title'  => __( 'Hooks, REST & Forms API', 'ffcertificate' ),
 				'file'   => 'developer-hooks-api.php',
 			),
+			array(
+				'anchor' => 'reference-shortcodes',
+				'icon'   => 'dashicons-shortcode',
+				'title'  => __( 'Shortcodes', 'ffcertificate' ),
+				'file'   => 'reference-shortcodes.php',
+			),
 		),
 	),
 	array(
-		'label' => __( 'Operations', 'ffcertificate' ),
-		'items' => array(
-			array(
-				'anchor' => 'operations-maintenance',
-				'icon'   => 'dashicons-admin-tools',
-				'title'  => __( 'Maintenance Tools', 'ffcertificate' ),
-				'file'   => 'operations-maintenance.php',
-			),
-			array(
-				'anchor' => 'operations-troubleshooting',
-				'icon'   => 'dashicons-sos',
-				'title'  => __( 'Troubleshooting', 'ffcertificate' ),
-				'file'   => 'operations-troubleshooting.php',
-			),
-		),
+		'anchor' => 'operations-troubleshooting',
+		'icon'   => 'dashicons-sos',
+		'title'  => __( 'Troubleshooting', 'ffcertificate' ),
+		'file'   => 'operations-troubleshooting.php',
 	),
 );
+
+/**
+ * Render the Quick-Navigation tree recursively.
+ *
+ * A node with children renders as a collapsible <details> branch; a leaf with
+ * an anchor renders as a link. Leaf <li>s (and branch <li>s) stay filterable by
+ * ffc-doc-search.js — grouping is expressed via nesting, not the retired
+ * `.ffc-doc-toc-section` separator.
+ *
+ * @param array<int, array<string, mixed>> $ffc_nodes Nodes to render.
+ * @param int                              $ffc_depth Current depth (0 = top).
+ * @return void
+ */
+$ffc_render_doc_nav = static function ( array $ffc_nodes, int $ffc_depth ) use ( &$ffc_render_doc_nav ): void {
+	$ffc_list_class = 0 === $ffc_depth ? 'ffc-doc-toc-list' : 'ffc-doc-toc-sublist';
+	echo '<ul class="' . esc_attr( $ffc_list_class ) . '">';
+
+	foreach ( $ffc_nodes as $ffc_node ) {
+		$ffc_icon     = isset( $ffc_node['icon'] ) ? (string) $ffc_node['icon'] : '';
+		$ffc_title    = isset( $ffc_node['title'] ) ? (string) $ffc_node['title'] : '';
+		$ffc_anchor   = isset( $ffc_node['anchor'] ) ? (string) $ffc_node['anchor'] : '';
+		$ffc_children = ( isset( $ffc_node['children'] ) && is_array( $ffc_node['children'] ) ) ? $ffc_node['children'] : array();
+
+		if ( ! empty( $ffc_children ) ) {
+			echo '<li class="ffc-doc-toc-branch"><details open><summary>';
+			if ( '' !== $ffc_icon ) {
+				echo '<span class="dashicons ' . esc_attr( $ffc_icon ) . '" aria-hidden="true"></span> ';
+			}
+			if ( '' !== $ffc_anchor ) {
+				echo '<a href="#' . esc_attr( $ffc_anchor ) . '">' . esc_html( $ffc_title ) . '</a>';
+			} else {
+				echo '<span class="ffc-doc-toc-branch-label">' . esc_html( $ffc_title ) . '</span>';
+			}
+			echo '</summary>';
+			$ffc_render_doc_nav( $ffc_children, $ffc_depth + 1 );
+			echo '</details></li>';
+			continue;
+		}
+
+		echo '<li><a href="#' . esc_attr( $ffc_anchor ) . '">';
+		if ( '' !== $ffc_icon ) {
+			echo '<span class="dashicons ' . esc_attr( $ffc_icon ) . '" aria-hidden="true"></span> ';
+		}
+		echo esc_html( $ffc_title ) . '</a></li>';
+	}
+
+	echo '</ul>';
+};
+
+/**
+ * Require the page partials in tree (depth-first) order.
+ *
+ * @param array<int, array<string, mixed>> $ffc_nodes Nodes to walk.
+ * @return void
+ */
+$ffc_require_doc_pages = static function ( array $ffc_nodes ) use ( &$ffc_require_doc_pages ): void {
+	foreach ( $ffc_nodes as $ffc_node ) {
+		if ( ! empty( $ffc_node['file'] ) ) {
+			require __DIR__ . '/documentation/' . (string) $ffc_node['file'];
+		}
+		if ( isset( $ffc_node['children'] ) && is_array( $ffc_node['children'] ) ) {
+			$ffc_require_doc_pages( $ffc_node['children'] );
+		}
+	}
+};
 ?>
 
 <div class="ffc-settings-wrap">
@@ -201,28 +283,16 @@ $ffc_doc_sections = array(
 <div class="ffc-doc-toc-sentinel" aria-hidden="true"></div>
 
 <!-- Table of Contents — sticky on scroll, collapses to a thin strip once
-	the user has scrolled past its original position. Grouped by section. -->
-<div class="card ffc-doc-toc">
+	the user has scrolled past its original position. Grouped as a tree of
+	collapsible functional areas (#697). -->
+<div class="card ffc-doc-toc ffc-doc-toc--tree">
 	<h3><?php esc_html_e( 'Quick Navigation', 'ffcertificate' ); ?></h3>
 	<p>
 		<input type="search" id="ffc-doc-search" class="regular-text" placeholder="<?php esc_attr_e( 'Search documentation…', 'ffcertificate' ); ?>" aria-label="<?php esc_attr_e( 'Search documentation', 'ffcertificate' ); ?>">
 	</p>
-	<ul class="ffc-doc-toc-list">
-		<?php foreach ( $ffc_doc_sections as $ffc_section ) : ?>
-			<li class="ffc-doc-toc-section"><?php echo esc_html( $ffc_section['label'] ); ?></li>
-			<?php foreach ( $ffc_section['items'] as $ffc_item ) : ?>
-				<li class="ffc-doc-toc-item<?php echo empty( $ffc_item['child'] ) ? '' : ' ffc-doc-toc-child'; ?>"><a href="#<?php echo esc_attr( $ffc_item['anchor'] ); ?>"><span class="dashicons <?php echo esc_attr( $ffc_item['icon'] ); ?>" aria-hidden="true"></span> <?php echo esc_html( $ffc_item['title'] ); ?></a></li>
-			<?php endforeach; ?>
-		<?php endforeach; ?>
-	</ul>
+	<?php $ffc_render_doc_nav( $ffc_doc_tree, 0 ); ?>
 </div>
 
-<?php
-foreach ( $ffc_doc_sections as $ffc_section ) {
-	foreach ( $ffc_section['items'] as $ffc_item ) {
-		require __DIR__ . '/documentation/' . $ffc_item['file'];
-	}
-}
-?>
+<?php $ffc_require_doc_pages( $ffc_doc_tree ); ?>
 
 </div><!-- .ffc-settings-wrap -->
