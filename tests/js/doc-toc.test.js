@@ -162,4 +162,23 @@ describe('ffc-doc-toc — click behaviour', () => {
 		// scroll the user makes restarts from the auto-collapsed state.
 		expect(toc.classList.contains('is-collapsed')).toBe(true);
 	});
+
+	it('does not collapse the card when a branch <summary> is toggled', () => {
+		buildDom();
+		const list = document.querySelector('.ffc-doc-toc-list');
+		const branch = document.createElement('li');
+		branch.className = 'ffc-doc-toc-branch';
+		branch.innerHTML =
+			'<details><summary>Group</summary><ul><li><a href="#x">X</a></li></ul></details>';
+		list.appendChild(branch);
+		loadScript('assets/js/ffc-doc-toc.js');
+
+		const toc = document.querySelector('.ffc-doc-toc');
+		observers[0].fire(true); // expanded
+		expect(toc.classList.contains('is-collapsed')).toBe(false);
+
+		// Toggling a branch must leave the whole card expanded.
+		toc.querySelector('summary').click();
+		expect(toc.classList.contains('is-collapsed')).toBe(false);
+	});
 });
