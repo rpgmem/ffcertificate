@@ -52,6 +52,9 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 - Self-scheduling appointment **reminder email was never sent** — the reminder handler and its whole read/mark pipeline existed, but nothing scheduled a scan or fired the reminder hook, so enabling "Send reminder before appointment" did nothing. Added the missing hourly cron driver (`ffcertificate_self_scheduling_reminder_scan`): it finds confirmed, not-yet-reminded appointments due per their calendar's `reminder_hours_before`, fires the reminder email, and marks them sent (no duplicates); it no-ops when a calendar has reminders off or when emails are globally disabled. (#650)
 - Certificate confirmation email to the submitter was never sent — the async handler was hooked to `ffcertificate_process_submission_hook` but nothing scheduled it (orphaned since a refactor), so no user email (nor admin notification) went out. Submissions now schedule that dispatch again. (#649)
 
+### Security
+- Settings least-privilege: the two most sensitive Settings surfaces are carved out of the blanket `ffc_manage_settings` into dedicated capabilities so each can be delegated or withheld independently (#711). `ffc_manage_settings_smtp` now gates saving the SMTP transport and the Email Model; `ffc_manage_settings_dangerzone` gates every destructive maintenance action — delete-all submissions, obsolete-shortcode and short-URL cleanup, the public-access disabler, the submission-link audit, and migration execution (the `?ffc_migration` runner moves off `manage_options`-only to this delegable cap). A one-shot migration grants both sub-caps to every existing `ffc_manage_settings` holder, so no current admin loses access on upgrade — administrators restrict a role by removing a sub-cap. **New capabilities:** external integrations that enumerate FFC capabilities should account for the two new slugs.
+
 ## [6.13.0] (2026-07-15) — `b0d8d9a`
 
 ### Security
