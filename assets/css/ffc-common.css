@@ -348,16 +348,10 @@
 .ffc-icon-package::before { content: "\1F4E6 "; }
 .ffc-icon-help::before { content: "\2753 "; }
 .ffc-icon-doc::before { content: "\1F4DA "; }
-.ffc-icon-pin::before { content: "\1F4CC "; }
-.ffc-icon-tag::before { content: "\1F3F7\FE0F "; }
 .ffc-icon-phone::before { content: "\1F4F1 "; }
 .ffc-icon-link::before { content: "\1F517 "; }
 .ffc-icon-palette::before { content: "\1F3A8 "; }
-.ffc-icon-edit::before { content: "\270F\FE0F "; }
-.ffc-icon-celebrate::before { content: "\1F389 "; }
 .ffc-icon-lock::before { content: "\1F512 "; }
-.ffc-icon-note::before { content: "\1F4DD "; }
-.ffc-icon-wrench::before { content: "\1F527 "; }
 .ffc-icon-shield::before { content: "\1F6E1\FE0F "; }
 .ffc-icon-download::before { content: "\2B07\FE0F "; }
 .ffc-icon-bulb::before { content: "\1F4A1 "; }
