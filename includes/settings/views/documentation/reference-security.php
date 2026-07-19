@@ -14,7 +14,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 ?>
 <!-- 14. Security Features Section -->
 <div class="card">
-	<h3 id="reference-security" class="ffc-icon-lock"><?php esc_html_e( 'Security Features', 'ffcertificate' ); ?></h3>
+	<h3 id="reference-security"><span class="dashicons dashicons-lock" aria-hidden="true"></span> <?php esc_html_e( 'Security Features', 'ffcertificate' ); ?></h3>
 	
 	<ul class="ffc-doc-list">
 		<li>

@@ -14,7 +14,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 ?>
 <!-- 10. Reregistration Section -->
 <div class="card">
-	<h3 id="feature-reregistration" class="ffc-icon-note"><?php esc_html_e( 'Reregistration', 'ffcertificate' ); ?></h3>
+	<h3 id="feature-reregistration"><span class="dashicons dashicons-update-alt" aria-hidden="true"></span> <?php esc_html_e( 'Reregistration', 'ffcertificate' ); ?></h3>
 
 	<p><?php esc_html_e( 'Create reregistration campaigns to collect updated information from audience members. Campaigns run for a set period and can include email notifications.', 'ffcertificate' ); ?></p>
 

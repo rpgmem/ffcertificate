@@ -572,7 +572,9 @@
 }
 
 .ffc-doc-toc-list a {
-    display: block;
+    display: flex;
+    align-items: center;
+    gap: 8px;
     padding: 10px 15px;
     background: var(--ffc-bg-card);
     border-radius: 4px;
@@ -583,11 +585,33 @@
     border: 1px solid var(--ffc-border);
 }
 
+/* Dashicon glyph that precedes each nav label (#674). Fixed box so labels
+   stay left-aligned regardless of glyph width. */
+.ffc-doc-toc-list a .dashicons {
+    flex: 0 0 auto;
+    width: 18px;
+    height: 18px;
+    font-size: 18px;
+    line-height: 1;
+    color: var(--ffc-text-muted, #646970);
+}
+
 .ffc-doc-toc-list a:hover {
     background: var(--ffc-primary);
     color: var(--ffc-text-on-primary);
     transform: translateX(5px);
     border-color: var(--ffc-primary);
+}
+
+.ffc-doc-toc-list a:hover .dashicons {
+    color: var(--ffc-text-on-primary);
+}
+
+/* Nested sub-item (e.g. Ficha PDF under Reregistration): indented and slightly
+   recessed so the parent/child relationship reads at a glance (#674). */
+.ffc-doc-toc-list .ffc-doc-toc-child a {
+    margin-left: 22px;
+    background: var(--ffc-bg-alt);
 }
 
 /* Documentation Examples */
@@ -719,6 +743,17 @@ pre code {
 /* Section Spacing */
 .ffc-settings-wrap .card h3[id] {
     scroll-margin-top: 20px;
+}
+
+/* Dashicon glyph that precedes each documentation section heading (#674). */
+.ffc-settings-wrap .card h3[id] .dashicons {
+    width: 22px;
+    height: 22px;
+    font-size: 22px;
+    line-height: 1;
+    vertical-align: text-bottom;
+    margin-right: 6px;
+    color: var(--ffc-primary);
 }
 
 /* Responsive */

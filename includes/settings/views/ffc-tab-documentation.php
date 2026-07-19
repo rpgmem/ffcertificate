@@ -25,7 +25,8 @@ if ( ! defined( 'ABSPATH' ) ) {
  *
  * Each section has a `label` and an ordered list of `items`; each item is
  * `[ anchor, icon, title, file ]` — `anchor` matches the id="" on the page's
- * heading and `file` is a partial under documentation/.
+ * heading and `file` is a partial under documentation/. An optional `child`
+ * key marks the item as a nested sub-item of the one above it in the nav.
  *
  * @var array<int, array{label: string, items: array<int, array<string, string>>}> $ffc_doc_sections
  */
@@ -35,7 +36,7 @@ $ffc_doc_sections = array(
 		'items' => array(
 			array(
 				'anchor' => 'overview',
-				'icon'   => 'ffc-icon-celebrate',
+				'icon'   => 'dashicons-info',
 				'title'  => __( 'Overview & Features', 'ffcertificate' ),
 				'file'   => 'overview.php',
 			),
@@ -46,55 +47,58 @@ $ffc_doc_sections = array(
 		'items' => array(
 			array(
 				'anchor' => 'feature-reregistration',
-				'icon'   => 'ffc-icon-note',
+				'icon'   => 'dashicons-update-alt',
 				'title'  => __( 'Reregistration', 'ffcertificate' ),
 				'file'   => 'feature-reregistration.php',
 			),
 			array(
 				'anchor' => 'feature-ficha',
-				'icon'   => 'ffc-icon-doc',
+				'icon'   => 'dashicons-media-document',
 				'title'  => __( 'Ficha PDF', 'ffcertificate' ),
 				'file'   => 'feature-ficha.php',
+				// Ficha PDF is an output of a reregistration campaign, so it
+				// reads as a sub-item of Reregistration in the nav (#674).
+				'child'  => '1',
 			),
 			array(
 				'anchor' => 'feature-certificates',
-				'icon'   => 'ffc-icon-doc',
+				'icon'   => 'dashicons-feedback',
 				'title'  => __( 'Certificates & Forms', 'ffcertificate' ),
 				'file'   => 'feature-certificates.php',
 			),
 			array(
 				'anchor' => 'feature-audiences',
-				'icon'   => 'ffc-icon-user',
+				'icon'   => 'dashicons-calendar-alt',
 				'title'  => __( 'Audiences', 'ffcertificate' ),
 				'file'   => 'feature-audiences.php',
 			),
 			array(
 				'anchor' => 'feature-url-shortener',
-				'icon'   => 'ffc-icon-link',
+				'icon'   => 'dashicons-admin-links',
 				'title'  => __( 'URL Shortener & QR Codes', 'ffcertificate' ),
 				'file'   => 'feature-url-shortener.php',
 			),
 			array(
 				'anchor' => 'feature-recruitment',
-				'icon'   => 'ffc-icon-user',
+				'icon'   => 'dashicons-groups',
 				'title'  => __( 'Recruitment', 'ffcertificate' ),
 				'file'   => 'feature-recruitment.php',
 			),
 			array(
 				'anchor' => 'feature-quiz',
-				'icon'   => 'ffc-icon-tag',
+				'icon'   => 'dashicons-chart-bar',
 				'title'  => __( 'Quiz / Evaluation', 'ffcertificate' ),
 				'file'   => 'feature-quiz.php',
 			),
 			array(
 				'anchor' => 'feature-self-scheduling',
-				'icon'   => 'ffc-icon-tag',
+				'icon'   => 'dashicons-calendar',
 				'title'  => __( 'Self-Scheduling / Appointments', 'ffcertificate' ),
 				'file'   => 'feature-self-scheduling.php',
 			),
 			array(
 				'anchor' => 'feature-user-dashboard',
-				'icon'   => 'ffc-icon-user',
+				'icon'   => 'dashicons-admin-users',
 				'title'  => __( 'User Dashboard & Access', 'ffcertificate' ),
 				'file'   => 'feature-user-dashboard.php',
 			),
@@ -105,49 +109,49 @@ $ffc_doc_sections = array(
 		'items' => array(
 			array(
 				'anchor' => 'reference-shortcodes',
-				'icon'   => 'ffc-icon-pin',
+				'icon'   => 'dashicons-shortcode',
 				'title'  => __( 'Shortcodes', 'ffcertificate' ),
 				'file'   => 'reference-shortcodes.php',
 			),
 			array(
 				'anchor' => 'reference-tokens',
-				'icon'   => 'ffc-icon-tag',
+				'icon'   => 'dashicons-tag',
 				'title'  => __( 'Template Variables / Tokens', 'ffcertificate' ),
 				'file'   => 'reference-tokens.php',
 			),
 			array(
 				'anchor' => 'reference-qr-codes',
-				'icon'   => 'ffc-icon-phone',
+				'icon'   => 'dashicons-camera',
 				'title'  => __( 'QR Codes', 'ffcertificate' ),
 				'file'   => 'reference-qr-codes.php',
 			),
 			array(
 				'anchor' => 'reference-validation-url',
-				'icon'   => 'ffc-icon-link',
+				'icon'   => 'dashicons-yes-alt',
 				'title'  => __( 'Validation URL', 'ffcertificate' ),
 				'file'   => 'reference-validation-url.php',
 			),
 			array(
 				'anchor' => 'reference-html-styling',
-				'icon'   => 'ffc-icon-palette',
+				'icon'   => 'dashicons-art',
 				'title'  => __( 'HTML & Styling', 'ffcertificate' ),
 				'file'   => 'reference-html-styling.php',
 			),
 			array(
 				'anchor' => 'reference-capabilities',
-				'icon'   => 'ffc-icon-lock',
+				'icon'   => 'dashicons-admin-network',
 				'title'  => __( 'Capabilities & Roles', 'ffcertificate' ),
 				'file'   => 'reference-capabilities.php',
 			),
 			array(
 				'anchor' => 'reference-security',
-				'icon'   => 'ffc-icon-lock',
+				'icon'   => 'dashicons-lock',
 				'title'  => __( 'Security Features', 'ffcertificate' ),
 				'file'   => 'reference-security.php',
 			),
 			array(
 				'anchor' => 'reference-emails',
-				'icon'   => 'ffc-icon-note',
+				'icon'   => 'dashicons-email',
 				'title'  => __( 'Emails & Delivery', 'ffcertificate' ),
 				'file'   => 'reference-emails.php',
 			),
@@ -158,7 +162,7 @@ $ffc_doc_sections = array(
 		'items' => array(
 			array(
 				'anchor' => 'developer-hooks-api',
-				'icon'   => 'ffc-icon-code',
+				'icon'   => 'dashicons-editor-code',
 				'title'  => __( 'Hooks, REST & Forms API', 'ffcertificate' ),
 				'file'   => 'developer-hooks-api.php',
 			),
@@ -169,13 +173,13 @@ $ffc_doc_sections = array(
 		'items' => array(
 			array(
 				'anchor' => 'operations-maintenance',
-				'icon'   => 'ffc-icon-wrench',
+				'icon'   => 'dashicons-admin-tools',
 				'title'  => __( 'Maintenance Tools', 'ffcertificate' ),
 				'file'   => 'operations-maintenance.php',
 			),
 			array(
 				'anchor' => 'operations-troubleshooting',
-				'icon'   => 'ffc-icon-wrench',
+				'icon'   => 'dashicons-sos',
 				'title'  => __( 'Troubleshooting', 'ffcertificate' ),
 				'file'   => 'operations-troubleshooting.php',
 			),
@@ -207,7 +211,7 @@ $ffc_doc_sections = array(
 		<?php foreach ( $ffc_doc_sections as $ffc_section ) : ?>
 			<li class="ffc-doc-toc-section"><?php echo esc_html( $ffc_section['label'] ); ?></li>
 			<?php foreach ( $ffc_section['items'] as $ffc_item ) : ?>
-				<li><a href="#<?php echo esc_attr( $ffc_item['anchor'] ); ?>" class="<?php echo esc_attr( $ffc_item['icon'] ); ?>"><?php echo esc_html( $ffc_item['title'] ); ?></a></li>
+				<li class="ffc-doc-toc-item<?php echo empty( $ffc_item['child'] ) ? '' : ' ffc-doc-toc-child'; ?>"><a href="#<?php echo esc_attr( $ffc_item['anchor'] ); ?>"><span class="dashicons <?php echo esc_attr( $ffc_item['icon'] ); ?>" aria-hidden="true"></span> <?php echo esc_html( $ffc_item['title'] ); ?></a></li>
 			<?php endforeach; ?>
 		<?php endforeach; ?>
 	</ul>
