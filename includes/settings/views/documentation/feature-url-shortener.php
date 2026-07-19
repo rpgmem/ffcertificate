@@ -1,9 +1,11 @@
 <?php
 /**
- * Documentation partial — Section 16: URL Shortener & QR Codes.
+ * Documentation partial — Short URLs.
  *
- * Extracted from `ffc-tab-documentation.php` per S8 of the
- * god-object refactor (rpgmem/ffcertificate#141).
+ * The URL shortener: creating and auto-creating short links, the list, QR
+ * codes, click counting, settings and capabilities. Reviewed against the
+ * url-shortener module for the functional reorganization
+ * (rpgmem/ffcertificate#697).
  *
  * @package FreeFormCertificate\Settings
  */
@@ -12,103 +14,51 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 ?>
-<!-- 16. URL Shortener & QR Codes Section -->
+<!-- Short URLs Section -->
 <div class="card">
-	<h3 id="feature-url-shortener"><span class="dashicons dashicons-admin-links" aria-hidden="true"></span> <?php esc_html_e( 'URL Shortener & QR Codes', 'ffcertificate' ); ?></h3>
+	<h3 id="feature-url-shortener"><span class="dashicons dashicons-admin-links" aria-hidden="true"></span> <?php esc_html_e( 'Short URLs', 'ffcertificate' ); ?></h3>
 
-	<p><?php esc_html_e( 'Create short URLs for any page and track clicks. Each short URL has a unique QR code that can be downloaded as PNG or SVG.', 'ffcertificate' ); ?></p>
+	<p><?php esc_html_e( 'The URL shortener turns long links into short, click-counted redirects. It has its own top-level "Short URLs" admin menu.', 'ffcertificate' ); ?></p>
 
-	<div class="ffc-doc-example">
-		<h4><?php esc_html_e( 'How It Works:', 'ffcertificate' ); ?></h4>
-		<ol>
-			<li><?php esc_html_e( 'Short URLs are created automatically when a post/page is published (if auto-create is enabled)', 'ffcertificate' ); ?></li>
-			<li><?php esc_html_e( 'You can also create short URLs manually from the Short URLs admin page', 'ffcertificate' ); ?></li>
-			<li><?php esc_html_e( 'When someone visits a short URL, they are redirected to the destination and the click is counted', 'ffcertificate' ); ?></li>
-			<li><?php esc_html_e( 'QR codes always point to the short URL so that scans are tracked', 'ffcertificate' ); ?></li>
-		</ol>
-	</div>
+	<h4><?php esc_html_e( 'Creating short URLs', 'ffcertificate' ); ?></h4>
+	<ul>
+		<li><strong><?php esc_html_e( 'Manually', 'ffcertificate' ); ?></strong> — <?php esc_html_e( 'enter a destination URL and an optional title; the short code is generated automatically (there is no custom-slug field).', 'ffcertificate' ); ?></li>
+		<li><strong><?php esc_html_e( 'Automatically', 'ffcertificate' ); ?></strong> — <?php esc_html_e( 'when auto-create is on, publishing a post/page (of the enabled post types) creates a short URL for its permalink.', 'ffcertificate' ); ?></li>
+	</ul>
+	<p><?php esc_html_e( 'The public short link is', 'ffcertificate' ); ?> <code>https://your-site/{prefix}/{code}</code> <?php esc_html_e( '(default prefix', 'ffcertificate' ); ?> <code>go</code><?php esc_html_e( ', e.g.', 'ffcertificate' ); ?> <code>/go/abc123</code>). <?php esc_html_e( 'Regenerating a link issues a new code and retires the old one.', 'ffcertificate' ); ?></p>
 
-	<div class="ffc-doc-example">
-		<h4><?php esc_html_e( 'Admin Page:', 'ffcertificate' ); ?></h4>
-		<p><?php esc_html_e( 'Access via FFC Forms > Short URLs. From there you can:', 'ffcertificate' ); ?></p>
-		<ul>
-			<li><?php esc_html_e( 'Create new short URLs with a title and destination URL', 'ffcertificate' ); ?></li>
-			<li><?php esc_html_e( 'View click statistics (total links, active links, total clicks)', 'ffcertificate' ); ?></li>
-			<li><?php esc_html_e( 'Enable/disable individual short URLs', 'ffcertificate' ); ?></li>
-			<li><?php esc_html_e( 'Download QR codes in PNG or SVG format', 'ffcertificate' ); ?></li>
-			<li><?php esc_html_e( 'Trash, restore, or permanently delete short URLs', 'ffcertificate' ); ?></li>
-		</ul>
-	</div>
+	<h4><?php esc_html_e( 'The list & QR codes', 'ffcertificate' ); ?></h4>
+	<p><?php esc_html_e( 'The list shows each link\'s title, short URL, destination, click count and status, with actions to show a QR code, enable/disable, or trash (trashed links can be restored or permanently deleted). Each link has a QR code (PNG or SVG download) that encodes the short URL itself, so scanning it is also counted.', 'ffcertificate' ); ?> <a href="#reference-qr-codes"><?php esc_html_e( 'See QR Codes', 'ffcertificate' ); ?></a>.</p>
 
-	<div class="ffc-doc-example">
-		<h4><?php esc_html_e( 'Post/Page Meta Box:', 'ffcertificate' ); ?></h4>
-		<p><?php esc_html_e( 'When editing a post or page, the "Short URL & QR Code" meta box appears in the sidebar. It shows:', 'ffcertificate' ); ?></p>
-		<ul>
-			<li><?php esc_html_e( 'The short URL with a copy button', 'ffcertificate' ); ?></li>
-			<li><?php esc_html_e( 'Click count for this short URL', 'ffcertificate' ); ?></li>
-			<li><?php esc_html_e( 'QR code preview with PNG/SVG download buttons', 'ffcertificate' ); ?></li>
-			<li><?php esc_html_e( 'Regenerate button to create a new short code (the old one stops working)', 'ffcertificate' ); ?></li>
-		</ul>
-	</div>
-
-	<div class="ffc-doc-example">
-		<h4><?php esc_html_e( 'Settings:', 'ffcertificate' ); ?></h4>
-		<table class="widefat striped">
-			<thead>
-				<tr>
-					<th scope="col"><?php esc_html_e( 'Setting', 'ffcertificate' ); ?></th>
-					<th scope="col"><?php esc_html_e( 'Description', 'ffcertificate' ); ?></th>
-					<th scope="col"><?php esc_html_e( 'Default', 'ffcertificate' ); ?></th>
-				</tr>
-			</thead>
-			<tbody>
-				<tr>
-					<td><strong><?php esc_html_e( 'Enable URL Shortener', 'ffcertificate' ); ?></strong></td>
-					<td><?php esc_html_e( 'Turn the module on or off', 'ffcertificate' ); ?></td>
-					<td><?php esc_html_e( 'Enabled', 'ffcertificate' ); ?></td>
-				</tr>
-				<tr>
-					<td><strong><?php esc_html_e( 'URL Prefix', 'ffcertificate' ); ?></strong></td>
-					<td><?php esc_html_e( 'The path segment before the short code (e.g. "go" makes URLs like /go/abc123)', 'ffcertificate' ); ?></td>
-					<td><code>go</code></td>
-				</tr>
-				<tr>
-					<td><strong><?php esc_html_e( 'Code Length', 'ffcertificate' ); ?></strong></td>
-					<td><?php esc_html_e( 'Number of characters in the generated short code (4–10)', 'ffcertificate' ); ?></td>
-					<td><code>6</code></td>
-				</tr>
-				<tr>
-					<td><strong><?php esc_html_e( 'Redirect Type', 'ffcertificate' ); ?></strong></td>
-					<td><?php esc_html_e( 'HTTP status code for the redirect: 301 (permanent), 302 (temporary), or 307 (temporary, preserves method)', 'ffcertificate' ); ?></td>
-					<td><code>302</code></td>
-				</tr>
-				<tr>
-					<td><strong><?php esc_html_e( 'Auto-Create on Publish', 'ffcertificate' ); ?></strong></td>
-					<td><?php esc_html_e( 'Automatically generate a short URL when a post or page is published', 'ffcertificate' ); ?></td>
-					<td><?php esc_html_e( 'Enabled', 'ffcertificate' ); ?></td>
-				</tr>
-				<tr>
-					<td><strong><?php esc_html_e( 'Post Types', 'ffcertificate' ); ?></strong></td>
-					<td><?php esc_html_e( 'Which post types show the Short URL meta box and support auto-create', 'ffcertificate' ); ?></td>
-					<td><code>post, page</code></td>
-				</tr>
-			</tbody>
-		</table>
-	</div>
-
-	<div class="ffc-doc-example">
-		<h4><?php esc_html_e( 'Short URL Statuses:', 'ffcertificate' ); ?></h4>
-		<ul>
-			<li><strong>active</strong> &mdash; <?php esc_html_e( 'Redirects to the destination and counts clicks', 'ffcertificate' ); ?></li>
-			<li><strong>disabled</strong> &mdash; <?php esc_html_e( 'Redirect is temporarily paused; visitors are sent to the homepage', 'ffcertificate' ); ?></li>
-			<li><strong>trashed</strong> &mdash; <?php esc_html_e( 'Moved to trash; can be restored or permanently deleted', 'ffcertificate' ); ?></li>
-		</ul>
-	</div>
-
-	<div class="ffc-alert ffc-alert-info ffc-mt-20">
+	<div class="ffc-doc-note">
 		<p>
-			<strong class="ffc-icon-info"><?php esc_html_e( 'Tip:', 'ffcertificate' ); ?></strong><br>
-			<?php esc_html_e( 'Configure URL Shortener settings in the "URL Shortener" tab. If you change the prefix, rewrite rules are flushed automatically.', 'ffcertificate' ); ?>
+			<strong class="ffc-icon-info"><?php esc_html_e( 'Clicks are a counter only.', 'ffcertificate' ); ?></strong><br>
+			<?php esc_html_e( 'Each visit increments a click count; the plugin does not store per-click timestamps, referrers or IPs. Disabled and trashed links redirect home and are not counted.', 'ffcertificate' ); ?>
 		</p>
 	</div>
+
+	<h4><?php esc_html_e( 'Settings', 'ffcertificate' ); ?></h4>
+	<table class="widefat striped">
+		<thead>
+			<tr>
+				<th scope="col"><?php esc_html_e( 'Setting', 'ffcertificate' ); ?></th>
+				<th scope="col"><?php esc_html_e( 'Default', 'ffcertificate' ); ?></th>
+			</tr>
+		</thead>
+		<tbody>
+			<tr><td><?php esc_html_e( 'Enable the shortener', 'ffcertificate' ); ?></td><td><?php esc_html_e( 'on', 'ffcertificate' ); ?></td></tr>
+			<tr><td><?php esc_html_e( 'URL prefix (path segment)', 'ffcertificate' ); ?></td><td><code>go</code></td></tr>
+			<tr><td><?php esc_html_e( 'Code length (4–10)', 'ffcertificate' ); ?></td><td><?php esc_html_e( '6', 'ffcertificate' ); ?></td></tr>
+			<tr><td><?php esc_html_e( 'Redirect type (301 / 302 / 307)', 'ffcertificate' ); ?></td><td><?php esc_html_e( '302', 'ffcertificate' ); ?></td></tr>
+			<tr><td><?php esc_html_e( 'Auto-create on publish', 'ffcertificate' ); ?></td><td><?php esc_html_e( 'on', 'ffcertificate' ); ?></td></tr>
+			<tr><td><?php esc_html_e( 'Enabled post types', 'ffcertificate' ); ?></td><td><?php esc_html_e( 'posts & pages', 'ffcertificate' ); ?></td></tr>
+		</tbody>
+	</table>
+
+	<h4><?php esc_html_e( 'Capabilities', 'ffcertificate' ); ?></h4>
+	<ul>
+		<li><code>ffc_view_url_shortener</code> — <?php esc_html_e( 'view the list and download QR codes.', 'ffcertificate' ); ?></li>
+		<li><code>ffc_manage_url_shortener</code> — <?php esc_html_e( 'create, edit, enable/disable and regenerate links.', 'ffcertificate' ); ?></li>
+		<li><code>ffc_delete_url_shortener</code> — <?php esc_html_e( 'trash, restore and permanently delete.', 'ffcertificate' ); ?></li>
+	</ul>
 </div>
