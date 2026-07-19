@@ -14,9 +14,9 @@ if ( ! defined( 'ABSPATH' ) ) {
 ?>
 <!-- 9. Audience Custom Fields Section -->
 <div class="card">
-	<h3 id="feature-audiences"><span class="dashicons dashicons-calendar-alt" aria-hidden="true"></span> <?php esc_html_e( 'Audiences', 'ffcertificate' ); ?></h3>
+	<h3 id="feature-audiences"><span class="dashicons dashicons-id" aria-hidden="true"></span> <?php esc_html_e( 'Audience Custom Fields', 'ffcertificate' ); ?></h3>
 
-	<p><?php esc_html_e( 'Audiences are named groups of people (imported or self-registered) with their own scheduling calendars, booking flow and notifications. Publish an audience booking form with the [ffc_audience] shortcode, import members from CSV, and collect group-specific data with audience custom fields.', 'ffcertificate' ); ?></p>
+	<p><?php esc_html_e( 'Audiences are named groups of people (imported or self-registered). Their calendars, booking flow and notifications are covered under Audience Calendars; this page covers the group-specific custom fields an audience can collect (reused by reregistration and the user profile).', 'ffcertificate' ); ?> <a href="#scheduling-audiences"><?php esc_html_e( 'See Audience Calendars', 'ffcertificate' ); ?></a>.</p>
 
 	<div class="ffc-doc-example">
 		<h4><?php esc_html_e( 'Audience custom fields', 'ffcertificate' ); ?></h4>
