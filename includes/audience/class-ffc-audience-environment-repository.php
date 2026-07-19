@@ -36,6 +36,25 @@ class AudienceEnvironmentRepository {
 	}
 
 	/**
+	 * Object-cache group for versioned query/aggregate results (holiday
+	 * lookups, counts). Separate from the by-id {@see self::cache_group()}
+	 * group so the whole set can be retired with a single version bump — the
+	 * keys can't be enumerated at write time (#644).
+	 *
+	 * @var string
+	 */
+	private const QUERY_CACHE_GROUP = 'ffc_audience_queries';
+
+	/**
+	 * Cache-version domain shared by every audience query/aggregate cache
+	 * (audience + environment). One {@see \FreeFormCertificate\Core\CacheVersion::bump()}
+	 * retires them all.
+	 *
+	 * @var string
+	 */
+	private const CACHE_DOMAIN = 'audience';
+
+	/**
 	 * Get table name
 	 *
 	 * @return string
@@ -211,6 +230,8 @@ class AudienceEnvironmentRepository {
 			array( '%d', '%s', '%s', '%s', '%s', '%s' )
 		);
 
+		\FreeFormCertificate\Core\CacheVersion::bump( self::CACHE_DOMAIN );
+
 		return $result ? $wpdb->insert_id : false;
 	}
 
@@ -267,6 +288,7 @@ class AudienceEnvironmentRepository {
 		);
 
 		static::cache_delete( "id_{$id}" );
+		\FreeFormCertificate\Core\CacheVersion::bump( self::CACHE_DOMAIN );
 
 		return false !== $result;
 	}
@@ -285,6 +307,7 @@ class AudienceEnvironmentRepository {
 		$result = $wpdb->delete( $table, array( 'id' => $id ), array( '%d' ) );
 
 		static::cache_delete( "id_{$id}" );
+		\FreeFormCertificate\Core\CacheVersion::bump( self::CACHE_DOMAIN );
 
 		return false !== $result;
 	}
@@ -365,6 +388,8 @@ class AudienceEnvironmentRepository {
 			array( '%d', '%s', '%s', '%d' )
 		);
 
+		\FreeFormCertificate\Core\CacheVersion::bump( self::CACHE_DOMAIN );
+
 		return $result ? $wpdb->insert_id : false;
 	}
 
@@ -380,6 +405,8 @@ class AudienceEnvironmentRepository {
 
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		$result = $wpdb->delete( $table, array( 'id' => $holiday_id ), array( '%d' ) );
+
+		\FreeFormCertificate\Core\CacheVersion::bump( self::CACHE_DOMAIN );
 
 		return false !== $result;
 	}
@@ -440,8 +467,8 @@ class AudienceEnvironmentRepository {
 			return false;
 		}
 
-		$cache_key = 'ffcertificate_holiday_' . $environment_id . '_' . $date;
-		$cached    = wp_cache_get( $cache_key, 'ffcertificate' );
+		$cache_key = 'holiday_' . $environment_id . '_' . $date . '_' . \FreeFormCertificate\Core\CacheVersion::suffix( self::CACHE_DOMAIN );
+		$cached    = wp_cache_get( $cache_key, self::QUERY_CACHE_GROUP );
 		if ( false !== $cached ) {
 			return (bool) $cached;
 		}
@@ -454,7 +481,7 @@ class AudienceEnvironmentRepository {
         // phpcs:enable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 
 		$result = (int) $count > 0;
-		wp_cache_set( $cache_key, $result, 'ffcertificate' );
+		wp_cache_set( $cache_key, $result, self::QUERY_CACHE_GROUP );
 
 		return $result;
 	}
@@ -467,8 +494,8 @@ class AudienceEnvironmentRepository {
 	 */
 	public static function count( array $args = array() ): int {
 		$args_json = wp_json_encode( $args );
-		$cache_key = 'ffcertificate_env_count_' . md5( $args_json ? $args_json : '' );
-		$cached    = wp_cache_get( $cache_key, 'ffcertificate' );
+		$cache_key = 'env_count_' . md5( $args_json ? $args_json : '' ) . '_' . \FreeFormCertificate\Core\CacheVersion::suffix( self::CACHE_DOMAIN );
+		$cached    = wp_cache_get( $cache_key, self::QUERY_CACHE_GROUP );
 		if ( false !== $cached ) {
 			return (int) $cached;
 		}
@@ -499,7 +526,7 @@ class AudienceEnvironmentRepository {
 			$wpdb->prepare( "SELECT COUNT(*) FROM %i {$where_clause}", $prepare_args )
 		);
         // phpcs:enable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
-		wp_cache_set( $cache_key, $result, 'ffcertificate' );
+		wp_cache_set( $cache_key, $result, self::QUERY_CACHE_GROUP );
 
 		return $result;
 	}

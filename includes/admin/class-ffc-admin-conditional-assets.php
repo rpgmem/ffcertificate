@@ -88,11 +88,11 @@ class AdminConditionalAssets {
 			$this->enqueue_certificates_dashboard_assets();
 		}
 
-		// Documentation tab — sticky/collapsible Quick Navigation TOC.
+		// Documentation tab — in-page search filter for the Quick Navigation tree.
 		if ( $this->is_documentation_tab() ) {
 			wp_enqueue_script(
-				'ffc-doc-toc',
-				FFC_PLUGIN_URL . "assets/js/ffc-doc-toc{$s}.js",
+				'ffc-doc-search',
+				FFC_PLUGIN_URL . "assets/js/ffc-doc-search{$s}.js",
 				array(),
 				FFC_VERSION,
 				true

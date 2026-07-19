@@ -98,7 +98,9 @@ class AdminActivityLogPage {
 			return;
 		}
 
-		if ( ! \FreeFormCertificate\Core\Capabilities::current_user_can_admin_or( 'ffc_view_activity_log' ) ) {
+		// Bulk CSV export of the audit trail requires the dedicated export cap
+		// (#711 §5) — a view-only operator can read the log but not extract it.
+		if ( ! \FreeFormCertificate\Core\Capabilities::current_user_can_admin_or( 'ffc_export_activity_log' ) ) {
 			wp_die( esc_html__( 'Unauthorized.', 'ffcertificate' ) );
 		}
 

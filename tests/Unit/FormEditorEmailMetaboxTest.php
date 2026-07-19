@@ -38,6 +38,12 @@ class FormEditorEmailMetaboxTest extends TestCase {
         Functions\when( 'get_post_meta' )->justReturn( '' );
         Functions\when( 'checked' )->justReturn( '' );
         Functions\when( 'selected' )->justReturn( '' );
+        Functions\when( 'wp_enqueue_script' )->justReturn( true );
+        Functions\when( 'wp_localize_script' )->justReturn( true );
+        // The EmailDisabledNotice at the top of the metabox reads ffc_settings
+        // via SettingsReader; an empty array keeps emails "enabled" so the
+        // notice no-ops during these render assertions.
+        Functions\when( 'get_option' )->justReturn( array() );
 
         $this->metabox = new FormEditorEmailMetabox();
     }
@@ -61,6 +67,22 @@ class FormEditorEmailMetaboxTest extends TestCase {
 
         $this->assertStringContainsString( 'Send Email to User?', $html );
         $this->assertStringContainsString( 'ffc_config[send_user_email]', $html );
+    }
+
+    public function test_render_exposes_admin_notification_toggle_and_recipient(): void {
+        $html = $this->render();
+
+        $this->assertStringContainsString( 'Notify Admin on Submission?', $html );
+        $this->assertStringContainsString( 'ffc_config[send_admin_email]', $html );
+        $this->assertStringContainsString( 'name="ffc_config[email_admin]"', $html );
+    }
+
+    public function test_render_pre_populates_admin_recipient_from_config(): void {
+        $html = $this->render(
+            array( 'send_admin_email' => '1', 'email_admin' => 'ops@example.com' )
+        );
+
+        $this->assertStringContainsString( 'ops@example.com', $html );
     }
 
     public function test_render_pre_populates_subject_and_body_from_config(): void {
@@ -87,7 +109,7 @@ class FormEditorEmailMetaboxTest extends TestCase {
     public function test_render_uses_default_subject_when_meta_empty(): void {
         $html = $this->render();
 
-        $this->assertStringContainsString( 'Your Certificate', $html );
+        $this->assertStringContainsString( 'Your document is ready', $html );
     }
 
     public function test_render_seeds_default_body_when_email_body_empty(): void {
@@ -97,6 +119,17 @@ class FormEditorEmailMetaboxTest extends TestCase {
 
         $this->assertStringContainsString( FormEditorEmailMetabox::default_email_body(), $html );
         $this->assertStringContainsString( 'Hello {{name}},', $html );
+    }
+
+    public function test_render_includes_restore_default_button(): void {
+        $html = $this->render( array( 'send_user_email' => '1' ) );
+
+        // Uses the shared generic restore button (#673): class + data-attrs,
+        // wired by assets/js/ffc-email-restore-default.js.
+        $this->assertStringContainsString( 'ffc-email-restore-default', $html );
+        $this->assertStringContainsString( 'data-editor="ffc_email_body"', $html );
+        $this->assertStringContainsString( 'data-default-key="certificate_body"', $html );
+        $this->assertStringContainsString( 'Restore Default Text', $html );
     }
 
     public function test_render_keeps_custom_body_over_default(): void {

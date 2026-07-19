@@ -541,36 +541,126 @@
     color: var(--ffc-text);
 }
 
-.ffc-doc-toc-list {
+/* Quick-Navigation as a collapsible functional tree (#697). Top list + nested
+   sub-lists are single-column; grouping nodes are <details> branches. */
+.ffc-doc-toc-list,
+.ffc-doc-toc-sublist {
     list-style: none;
     padding: 0;
     margin: 0;
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-    gap: 10px;
 }
 
-.ffc-doc-toc-list li {
-    margin: 0;
+.ffc-doc-toc-list > li {
+    margin: 2px 0;
 }
 
-.ffc-doc-toc-list a {
-    display: block;
-    padding: 10px 15px;
+.ffc-doc-toc-sublist > li {
+    margin: 2px 0;
+}
+
+/* Each nested level indents under a soft guide rail. */
+.ffc-doc-toc-sublist {
+    padding-left: 16px;
+    margin-left: 8px;
+    border-left: 1px solid var(--ffc-border-light, #dcdcde);
+}
+
+/* Collapsible branch header. */
+.ffc-doc-toc-branch > details > summary {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 12px;
+    cursor: pointer;
+    border-radius: 4px;
+    background: var(--ffc-bg-card);
+    border: 1px solid var(--ffc-border);
+    font-weight: 500;
+    color: var(--ffc-link);
+    transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+    list-style: none;
+    user-select: none;
+}
+
+.ffc-doc-toc-branch > details > summary::-webkit-details-marker {
+    display: none;
+}
+
+/* Custom disclosure triangle that rotates when the branch is open. */
+.ffc-doc-toc-branch > details > summary::before {
+    content: "\f345"; /* dashicons-arrow-right-alt2 */
+    font-family: dashicons;
+    font-size: 16px;
+    line-height: 1;
+    flex: 0 0 auto;
+    color: var(--ffc-text-muted, #646970);
+    transition: transform 0.15s ease;
+}
+
+.ffc-doc-toc-branch > details[open] > summary::before {
+    transform: rotate(90deg);
+}
+
+.ffc-doc-toc-branch > details > summary:hover {
+    background: var(--ffc-primary);
+    color: var(--ffc-text-on-primary);
+    border-color: var(--ffc-primary);
+}
+
+.ffc-doc-toc-branch > details > summary:hover::before,
+.ffc-doc-toc-branch > details > summary:hover .dashicons {
+    color: var(--ffc-text-on-primary);
+}
+
+.ffc-doc-toc-branch > details > summary .dashicons {
+    flex: 0 0 auto;
+    width: 18px;
+    height: 18px;
+    font-size: 18px;
+    line-height: 1;
+    color: var(--ffc-primary);
+}
+
+.ffc-doc-toc-branch > details > summary a,
+.ffc-doc-toc-branch > details > summary .ffc-doc-toc-branch-label {
+    color: inherit;
+    text-decoration: none;
+}
+
+/* Leaf links (direct <li> > <a>, so the branch summary link is not restyled). */
+.ffc-doc-toc-list li > a {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 12px;
     background: var(--ffc-bg-card);
     border-radius: 4px;
     text-decoration: none;
     color: var(--ffc-link);
     font-weight: 500;
-    transition: all 0.2s;
+    transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
     border: 1px solid var(--ffc-border);
 }
 
-.ffc-doc-toc-list a:hover {
+/* Dashicon glyph that precedes each leaf label. Fixed box so labels stay
+   left-aligned regardless of glyph width. */
+.ffc-doc-toc-list li > a .dashicons {
+    flex: 0 0 auto;
+    width: 18px;
+    height: 18px;
+    font-size: 18px;
+    line-height: 1;
+    color: var(--ffc-text-muted, #646970);
+}
+
+.ffc-doc-toc-list li > a:hover {
     background: var(--ffc-primary);
     color: var(--ffc-text-on-primary);
-    transform: translateX(5px);
     border-color: var(--ffc-primary);
+}
+
+.ffc-doc-toc-list li > a:hover .dashicons {
+    color: var(--ffc-text-on-primary);
 }
 
 /* Documentation Examples */
@@ -704,12 +794,19 @@ pre code {
     scroll-margin-top: 20px;
 }
 
+/* Dashicon glyph that precedes each documentation section heading (#674). */
+.ffc-settings-wrap .card h3[id] .dashicons {
+    width: 22px;
+    height: 22px;
+    font-size: 22px;
+    line-height: 1;
+    vertical-align: text-bottom;
+    margin-right: 6px;
+    color: var(--ffc-primary);
+}
+
 /* Responsive */
 @media screen and (max-width: 782px) {
-    .ffc-doc-toc-list {
-        grid-template-columns: 1fr;
-    }
-    
     .ffc-doc-example pre {
         font-size: 12px;
         padding: 10px;
@@ -724,7 +821,8 @@ pre code {
     .ffc-provider-card,
     .ffc-progress-bar-fill,
     .card,
-    .ffc-doc-toc-list a {
+    .ffc-doc-toc-list li > a,
+    .ffc-doc-toc-branch > details > summary::before {
         transition: none;
     }
 }
@@ -910,58 +1008,20 @@ pre code {
 .ffc-settings-tabs__nav .ffc-icon-doc::before      { content: "\f331"; }
 
 /* ==========================================================================
-   Documentation tab — sticky/collapsible Quick Navigation TOC.
+   Documentation tab — sticky Quick Navigation card.
 
-   The TOC is `position: sticky` so it follows the user as they scroll
-   through the 21 documentation sections. A sentinel placed just above
-   the TOC card drives an IntersectionObserver in ffc-doc-toc.js: when
-   the sentinel scrolls out of the viewport the TOC collapses into a
-   thin clickable strip; when the user scrolls back to the top, it
-   expands again. The strip can also be expanded manually with a click.
-
-   Pure-CSS fallback: without JS, the TOC just stays sticky and
-   expanded (`.is-collapsed` is never applied). Older browsers without
-   `position: sticky` support degrade to the pre-feature behaviour
-   (TOC at top, scrolls away with the page).
+   The card is `position: sticky` so the search box and section tree stay
+   in view as the user scrolls through the documentation sections. It is
+   always fully expanded — the tree itself is what opens and closes, one
+   branch at a time (native <details>). Older browsers without
+   `position: sticky` support degrade to a plain top-of-page card that
+   scrolls away with the rest of the content.
    ========================================================================== */
 
 .ffc-doc-toc {
     position: sticky;
     top: 16px;
     z-index: 10;
-    transition: padding 0.2s ease;
-}
-
-.ffc-doc-toc.is-collapsed {
-    padding: 10px 16px;
-    cursor: pointer;
-}
-
-.ffc-doc-toc.is-collapsed > h3 {
-    margin: 0;
-    padding: 0;
-    border-bottom: none;
-    font-size: 14px;
-    display: flex;
-    align-items: center;
-}
-
-.ffc-doc-toc.is-collapsed > h3::after {
-    content: "\f140"; /* dashicons-arrow-down-alt2 */
-    font-family: dashicons;
-    font-size: 18px;
-    margin-left: auto;
-    color: var(--ffc-text-muted, #646970);
-}
-
-.ffc-doc-toc.is-collapsed .ffc-doc-toc-list {
-    display: none;
-}
-
-@media (prefers-reduced-motion: reduce) {
-    .ffc-doc-toc {
-        transition: none;
-    }
 }
 
 /* ==========================================================================

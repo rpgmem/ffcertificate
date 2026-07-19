@@ -27,6 +27,8 @@ if ( ! defined( 'ABSPATH' ) ) {
  */
 class SelfSchedulingCPT {
 
+	use \FreeFormCertificate\Core\EmailHelperTrait;
+
 	/**
 	 * Calendar repository instance
 	 *
@@ -459,30 +461,21 @@ class SelfSchedulingCPT {
 		$date_formatted = \FreeFormCertificate\Core\DateFormatter::format_wallclock_date( $appointment['appointment_date'] );
 		$time_formatted = \FreeFormCertificate\Core\DateFormatter::format_wallclock_time( $appointment['start_time'] );
 
-		$message = sprintf(
-			/* translators: %1$s, %2$s, %4$s, %5$s, %6$s, %8$s, %10$s, %12$s, %13$s, %14$s, %15$s: line breaks, %3$s: calendar title, %7$s: appointment date, %9$s: appointment time, %11$s: calendar title, %16$s: site name */
-			__( 'Hello,%1$s%2$sWe regret to inform you that your appointment has been cancelled because the calendar "%3$s" is no longer available.%4$s%5$sAppointment Details:%6$s- Date: %7$s%8$s- Time: %9$s%10$s- Calendar: %11$s%12$s%13$sWe apologize for any inconvenience this may cause.%14$s%15$sBest regards,%16$s%17$s', 'ffcertificate' ),
-			"\n\n",
-			"\n",
-			$calendar_title,
-			"\n\n",
-			"\n",
-			"\n",
-			$date_formatted,
-			"\n",
-			$time_formatted,
-			"\n",
-			$calendar_title,
-			"\n\n",
-			"\n",
-			"\n\n",
-			"\n",
-			"\n",
-			get_bloginfo( 'name' )
+		// Email body → shared configurable chrome (#662), like every other email.
+		$body = self::ffc_email_document(
+			self::ffc_render_email_partial(
+				'calendar-deleted-cancellation',
+				array(
+					'calendar_title' => $calendar_title,
+					'date_formatted' => $date_formatted,
+					'time_formatted' => $time_formatted,
+				)
+			),
+			array( 'recipient' => $email )
 		);
 
 		// Send email.
-		wp_mail( $email, $subject, $message );
+		self::ffc_send_mail( $email, $subject, $body );
 
 		// Log notification.
 		if ( class_exists( '\FreeFormCertificate\Core\Utils' ) ) {

@@ -42,6 +42,7 @@ $opt = RecruitmentSettings::OPTION_NAME;
 
 echo '<div class="card">';
 echo '<h2 class="ffc-icon-email">' . esc_html__( 'Email template', 'ffcertificate' ) . '</h2>';
+\FreeFormCertificate\Core\EmailDisabledNotice::render();
 echo '<table class="form-table"><tbody>';
 
 echo '<tr><th><label for="ffc-rs-subject">' . esc_html__( 'Subject', 'ffcertificate' ) . '</label></th><td>';
@@ -57,9 +58,24 @@ echo '<tr><th><label for="ffc-rs-from-name">' . esc_html__( 'From name', 'ffcert
 echo '<input id="ffc-rs-from-name" type="text" class="regular-text" name="' . esc_attr( $opt ) . '[email_from_name]" value="' . esc_attr( (string) $settings['email_from_name'] ) . '" placeholder="(falls back to site name)">';
 echo '</td></tr>';
 
-echo '<tr><th><label for="ffc-rs-body">' . esc_html__( 'Body (HTML)', 'ffcertificate' ) . '</label></th><td>';
-echo '<textarea id="ffc-rs-body" name="' . esc_attr( $opt ) . '[email_body_html]" rows="12" class="large-text code">' . esc_textarea( (string) $settings['email_body_html'] ) . '</textarea>';
-echo '<p class="description">' . esc_html__( 'Same placeholder set as the subject. The text/plain alternative is auto-derived via wp_strip_all_tags.', 'ffcertificate' ) . '</p>';
+echo '<tr><th><label for="ffc_rs_body">' . esc_html__( 'Body (HTML)', 'ffcertificate' ) . '</label></th><td>';
+wp_editor(
+	(string) $settings['email_body_html'],
+	'ffc_rs_body',
+	array(
+		'textarea_name' => $opt . '[email_body_html]',
+		'textarea_rows' => 12,
+		'media_buttons' => false,
+		'teeny'         => true,
+		'tinymce'       => array(
+			'toolbar1' => 'bold,italic,underline,bullist,numlist,link,unlink,undo,redo',
+			'toolbar2' => '',
+		),
+		'quicktags'     => array( 'buttons' => 'strong,em,link,ul,ol,li,close' ),
+	)
+);
+echo '<p class="description">' . esc_html__( 'The message content ("email body") only — the shared Email Model chrome (header/footer) is added automatically. Same placeholder set as the subject; the text/plain alternative is auto-derived.', 'ffcertificate' ) . '</p>';
+echo '<p><button type="button" class="button ffc-email-restore-default" data-editor="ffc_rs_body" data-default-key="recruitment_body">' . esc_html__( 'Restore Default Text', 'ffcertificate' ) . '</button></p>';
 echo '</td></tr>';
 echo '</tbody></table>';
 echo '</div>';

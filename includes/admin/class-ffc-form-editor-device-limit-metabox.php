@@ -92,6 +92,11 @@ class FormEditorDeviceLimitMetabox {
 						);
 						?>
 					</em>
+				<?php elseif ( '1' !== $enabled ) : ?>
+					<br>
+					<em class="ffc-device-nudge">
+						<?php esc_html_e( 'Available for this form but currently off. Leave it off if your audience submits from shared devices (labs, kiosks); turn it on if each person submits from their own device and you want to prevent repeat issuances.', 'ffcertificate' ); ?>
+					</em>
 				<?php endif; ?>
 			</span>
 		</div>

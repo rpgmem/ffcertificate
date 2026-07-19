@@ -72,7 +72,7 @@ A few `includes/` modules are small, single-purpose service buckets whose names 
 
 - **`services/` (`\Services`)** — user-centric query/identity services only (`UserService`, `UserIdentifiersQueryService`). A service that isn't about users belongs in its own domain module, not here.
 - **`integrations/` (`\Integrations`)** — adapters to *external* systems (`EmailHandler` → SMTP, `IpGeolocation` → geolocation API). A class with no outbound/external dependency is not an integration.
-- **`scheduling/` (`\Scheduling`)** — cross-cutting scheduling-domain services shared by the self-scheduling and audience features (`DateBlockingService`, `WorkingHoursService`, `EmailTemplateService`). Distinct from the `self-scheduling/` and `audience/` feature modules and from the "Scheduling" admin menu: feature UI/handlers go in those modules; only shared scheduling logic lives here.
+- **`scheduling/` (`\Scheduling`)** — cross-cutting scheduling-domain services shared by the self-scheduling and audience features (`DateBlockingService`, `WorkingHoursService`, `IcsGenerator`, `SchedulingMailer`). Distinct from the `self-scheduling/` and `audience/` feature modules and from the "Scheduling" admin menu: feature UI/handlers go in those modules; only shared scheduling logic lives here.
 
 ## Date / time storage convention
 
@@ -105,8 +105,7 @@ Current inventory (point-in-time snapshot — re-verify a column against the liv
 | `ffc_audience_*` (5 tables) | P1 (MySQL auto) | — |
 | `ffc_rate_limit_*` (3 tables) | P1 (MySQL auto) | — |
 | `ffc_custom_fields*` (3 tables) | P1 (MySQL auto) | — |
-| `ffc_dynamic_rereg_*` (2 tables) | P1 (MySQL auto) | — |
-| `ffc_url_shortener` | P2 (PHP-managed, `NOT NULL`) | — |
+| `ffc_short_urls` | P2 (PHP-managed, `NOT NULL`) | table name is `ffc_short_urls` (not `ffc_url_shortener`, which is only an option-key/meta-box id prefix) |
 | `ffc_self_scheduling_*` | P3 (hybrid: `created_at` auto, `updated_at` PHP) | — |
 | `ffc_activity_log` | P2 (PHP-managed, `NOT NULL`) | — |
 
@@ -164,7 +163,9 @@ ffc_<action>_[own_]<domain>[_<qualifier>]
 - **Actions (closed vocabulary):** `view` (read-only) · `manage` (read-write: create/edit/delete/configure) · `export` · `import` · `edit` (modify existing records — narrower than `manage`) · `delete`. Flow-specific verbs: `book`, `cancel`, `download`, `call`, `bypass`.
 - **`own_`** marks a self-scoped end-user cap (frontend; the user's own data).
 - **Domains (canonical):** `certificates`, `appointments`, `audiences`, `reregistration`, `custom_fields`, `activity_log`, `settings`, `recruitment`, `url_shortener`, `forms_api`.
-- **Qualifiers:** `_pii`, `_settings`, `_reasons`, `_history`.
+- **Qualifiers:** `_pii`, `_settings`, `_reasons`, `_history`, `_smtp`, `_dangerzone`. The last two carve the two most sensitive Settings surfaces out of the blanket `ffc_manage_settings` (#711): `ffc_manage_settings_smtp` gates the SMTP transport + Email Model save, and `ffc_manage_settings_dangerzone` gates every destructive maintenance action (delete-all, cleanups, public-access disabler, submission-link audit, migration execution). A dedicated `ffc_export_activity_log` (export tier) was also split out of the read-only `ffc_view_activity_log` so a view-only operator cannot bulk-extract the audit trail. All three ship with one-shot grant migrations that seed the new cap onto current holders, so no one loses access on upgrade.
+
+**Settings-write auth — WP-standard, no engine (deliberate, #711).** Settings-write authorization uses the **WordPress-standard inline pattern**: native nonce funcs (`wp_verify_nonce` / `check_admin_referer` / `check_ajax_referer`) + the existing capability chokepoint `Capabilities::current_user_can_admin_or()`. Do **not** wrap this in a settings persistence/authorize "engine" — one was tried and removed as net-negative indirection (it fit none of the real writers and only hid the nonce from the WPCS sniff).
 
 ### 3-state permission model
 
@@ -193,6 +194,19 @@ A full security audit confirmed these hold plugin-wide — keep them that way (t
 - **PII at rest & display.** CPF / RF / email are stored via `Encryption` (AES-256-CBC, per-record CSPRNG IV, encrypt-then-HMAC, `hash_equals` verify); searchable copies use a salted hash. Display goes through `DocumentFormatter` **masked** unless a PII cap is held. Tokens use `random_bytes` / `wp_generate_password`, never `rand`/`mt_rand`.
 - **Never log raw PII.** Debug logs hash IPs / CPF (`substr( hash( 'sha256', $v ), 0, 16 )`) — see `IpGeolocation` / `PreflightTelemetry` (#596) — and stay behind the off-by-default debug toggles regardless.
 - **Outbound HTTP.** Validate any request-derived IP/URL before `wp_remote_*` (e.g. `FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE` to block SSRF); prefer `wp_safe_redirect` for redirects.
+
+## Email architecture (one pipeline — #662)
+
+Every plugin-composed email flows through **one shared pipeline**; never hand-roll a chrome, a transport, or an inline body. When adding or touching an email:
+
+1. **Compose the email body only** (the inner content). Resolve placeholders with `Core\TokenResolver::resolve()` (`{{token}}`) — never hand-rolled `str_replace`.
+2. **Wrap in the single configurable chrome**: `EmailHelperTrait::ffc_email_document( $body, array( 'recipient' => $to ) )`. The chrome (header/body/footer/wrapper) is admin-configurable via `Core\EmailTemplateOptions` (the "Email Model" box, Settings → SMTP) and rendered by `templates/emails/layout.php` (table-based, inline styles for Gmail/Outlook). There is exactly **one** chrome — `SchedulingMailer::wrap_html` and the per-email cards were retired.
+3. **Send through the chokepoint** `Core\EmailService::send()` (or `EmailHelperTrait::ffc_send_mail()`, which sets `text/html`). Never call `wp_mail()` directly. The global "disable all emails" kill-switch is enforced **inside** `EmailService::send()` — do **not** re-gate it caller-side.
+4. **Default bodies live in files**, one per case, under `templates/emails/`. Return-array files (`return array( 'body' => __( … ) )`, loaded via the allowlisted `Core\EmailTemplates::load()` / `::body()`) for token/editable-default bodies; echo partials (via `ffc_render_email_partial()`) for handler-built ones. **Never build email HTML inline in a handler class** — extract it to a `templates/emails/*.php` file.
+5. **Editable emails edit the body only, never the chrome.** Use `wp_editor` (TinyMCE) + a "Restore Default Text" button wired by the generic `assets/js/ffc-email-restore-default.js` (`data-editor` + `data-default-key`; default supplied via `wp_localize_script['ffcEmailRestoreDefaults']`).
+6. **Surface the P5 notice**: `Core\EmailDisabledNotice::render()` at the top of any admin surface that edits an email.
+
+**When consolidating or auditing, grep every send site** (`EmailService::send` / `ffc_send_mail` / `wp_mail(`) and confirm none bypasses `ffc_email_document` — the #662 audit found emails the roadmap table had missed (a plain-text calendar-deletion cancellation, two admin notifications). WordPress-core emails (`wp_new_user_notification`, password resets) are out of scope — they use WP templates, not our chrome.
 
 ## Branch naming
 

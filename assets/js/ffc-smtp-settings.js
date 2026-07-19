@@ -21,24 +21,29 @@ jQuery(document).ready(function ($) {
 		// Every per-context email toggle row + the Mode row.
 		$('.ffc-email-option-row').toggle(on);
 
-		// The SMTP server block shows only when emails are on AND mode=custom.
-		var $opts = $('#smtp-options');
-		if (on && modeIsCustom()) {
-			$opts.removeClass('ffc-hidden').show();
-		} else {
-			$opts.addClass('ffc-hidden').hide();
-		}
+		// The SMTP server block + the Popular Providers card show only when
+		// emails are on AND mode=custom.
+		var showCustom = on && modeIsCustom();
+		$('#smtp-options, #ffc-smtp-providers').each(function () {
+			var $el = $(this);
+			if (showCustom) {
+				$el.removeClass('ffc-hidden').show();
+			} else {
+				$el.addClass('ffc-hidden').hide();
+			}
+		});
 	}
 
-	// Mode-radio toggle drives the smtp-options block too.
+	// Mode-radio toggle drives the smtp-options block + providers card too.
 	$(document).on('change', 'input[name="ffc_settings[smtp_mode]"]', function () {
 		if (!emailsEnabled()) {
 			return; // master switch is off — nothing to reveal
 		}
+		var $targets = $('#smtp-options, #ffc-smtp-providers');
 		if ($(this).val() === 'custom') {
-			$('#smtp-options').removeClass('ffc-hidden').slideDown(200);
+			$targets.removeClass('ffc-hidden').slideDown(200);
 		} else {
-			$('#smtp-options').slideUp(200, function () {
+			$targets.slideUp(200, function () {
 				$(this).addClass('ffc-hidden');
 			});
 		}

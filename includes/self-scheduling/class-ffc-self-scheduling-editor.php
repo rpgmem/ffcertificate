@@ -73,6 +73,25 @@ class SelfSchedulingEditor {
 			true
 		);
 
+		// "Restore Default Text" for the Confirmation Email Body editor (#662).
+		wp_enqueue_script(
+			'ffc-email-restore-default',
+			FFC_PLUGIN_URL . "assets/js/ffc-email-restore-default{$s}.js",
+			array( 'jquery' ),
+			FFC_VERSION,
+			true
+		);
+		wp_localize_script(
+			'ffc-email-restore-default',
+			'ffcEmailRestoreDefaults',
+			array(
+				'selfsched_confirmation_body' => array(
+					'body'    => AppointmentEmailHandler::default_confirmation_body(),
+					'confirm' => __( 'Replace the current message with the default template? Your changes will be lost.', 'ffcertificate' ),
+				),
+			)
+		);
+
 		wp_enqueue_style(
 			'ffc-common',
 			FFC_PLUGIN_URL . "assets/css/ffc-common{$s}.css",
@@ -563,6 +582,7 @@ class SelfSchedulingEditor {
 		$email_config = array_merge( $defaults, $email_config );
 
 		?>
+		<?php \FreeFormCertificate\Core\EmailDisabledNotice::render(); ?>
 		<table class="form-table">
 			<tr>
 				<th><?php esc_html_e( 'Notifications', 'ffcertificate' ); ?></th>
@@ -641,15 +661,33 @@ class SelfSchedulingEditor {
 			<tr>
 				<th><label for="user_confirmation_body"><?php esc_html_e( 'Confirmation Email Body', 'ffcertificate' ); ?></label></th>
 				<td>
-					<textarea id="user_confirmation_body" name="ffc_self_scheduling_email_config[user_confirmation_body]" rows="10" class="large-text"><?php echo esc_textarea( $email_config['user_confirmation_body'] ); ?></textarea>
+					<?php
+					wp_editor(
+						(string) $email_config['user_confirmation_body'],
+						'user_confirmation_body',
+						array(
+							'textarea_name' => 'ffc_self_scheduling_email_config[user_confirmation_body]',
+							'textarea_rows' => 10,
+							'media_buttons' => false,
+							'teeny'         => true,
+							'tinymce'       => array(
+								'toolbar1' => 'bold,italic,underline,bullist,numlist,link,unlink,undo,redo',
+								'toolbar2' => '',
+							),
+							'quicktags'     => array( 'buttons' => 'strong,em,link,ul,ol,li,close' ),
+						)
+					);
+					?>
 					<p class="description">
-						<?php esc_html_e( 'Available variables:', 'ffcertificate' ); ?>
+						<?php esc_html_e( 'The message content ("email body") — the shared Email Model chrome (header/footer) is added automatically. Available variables:', 'ffcertificate' ); ?>
 						<code>{{user_name}}</code>,
 						<code>{{user_email}}</code>,
 						<code>{{calendar_title}}</code>,
 						<code>{{appointment_date}}</code>,
 						<code>{{appointment_time}}</code>
 					</p>
+					<p class="description"><em><?php esc_html_e( 'Leave empty to use the built-in confirmation (with receipt / cancel buttons).', 'ffcertificate' ); ?></em></p>
+					<p><button type="button" class="button ffc-email-restore-default" data-editor="user_confirmation_body" data-default-key="selfsched_confirmation_body"><?php esc_html_e( 'Restore Default Text', 'ffcertificate' ); ?></button></p>
 				</td>
 			</tr>
 		</table>

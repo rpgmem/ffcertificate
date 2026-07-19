@@ -128,6 +128,43 @@ $ffcertificate_show_divergence = $ffcertificate_date_diverges || $ffcertificate_
 
 <div class="ffc-settings-wrap">
 
+<?php
+// Module-settings index (rpgmem/ffcertificate#711 — discoverability). A few
+// modules keep their own settings next to the module rather than on this page;
+// surface a jump list here, each entry gated by that module's own view cap so a
+// user only sees links they can actually open.
+$ffcertificate_can_view_scheduling  = \FreeFormCertificate\Core\Capabilities::current_user_can_admin_or( 'ffc_view_audiences' );
+$ffcertificate_can_view_recruitment = \FreeFormCertificate\Core\Capabilities::current_user_can_admin_or( 'ffc_view_recruitment_settings' );
+?>
+<?php if ( $ffcertificate_can_view_scheduling || $ffcertificate_can_view_recruitment ) : ?>
+	<div class="card ffc-module-settings-index">
+		<h2 class="ffc-icon-settings"><?php esc_html_e( 'Module settings', 'ffcertificate' ); ?></h2>
+		<p class="description" style="margin-top: 0;">
+			<?php esc_html_e( 'Some modules keep their own settings next to the module rather than on this page. Jump straight to them:', 'ffcertificate' ); ?>
+		</p>
+		<ul class="ffc-module-settings-links">
+			<?php if ( $ffcertificate_can_view_scheduling ) : ?>
+				<li>
+					<a href="<?php echo esc_url( admin_url( 'admin.php?page=ffc-scheduling-settings' ) ); ?>">
+						<span class="dashicons dashicons-calendar-alt" aria-hidden="true"></span>
+						<strong><?php esc_html_e( 'Scheduling settings', 'ffcertificate' ); ?></strong>
+					</a>
+					<span class="description"> — <?php esc_html_e( 'Global holidays and audience / self-scheduling visibility.', 'ffcertificate' ); ?></span>
+				</li>
+			<?php endif; ?>
+			<?php if ( $ffcertificate_can_view_recruitment ) : ?>
+				<li>
+					<a href="<?php echo esc_url( admin_url( 'admin.php?page=ffc-recruitment&tab=settings' ) ); ?>">
+						<span class="dashicons dashicons-groups" aria-hidden="true"></span>
+						<strong><?php esc_html_e( 'Recruitment settings', 'ffcertificate' ); ?></strong>
+					</a>
+					<span class="description"> — <?php esc_html_e( 'Convocation email, public listing tuning and status colors.', 'ffcertificate' ); ?></span>
+				</li>
+			<?php endif; ?>
+		</ul>
+	</div>
+<?php endif; ?>
+
 <?php if ( $ffcertificate_show_divergence ) : ?>
 	<div class="notice notice-info inline ffc-settings-divergence-notice" style="margin: 15px 0; padding: 12px 15px;">
 		<p style="margin: 0 0 8px;">

@@ -37,10 +37,27 @@ class EmailHandlerTest extends TestCase {
         Functions\when( 'wp_kses' )->returnArg();
         Functions\when( 'wp_kses_post' )->returnArg();
         Functions\when( 'wpautop' )->returnArg();
+        Functions\when( 'esc_attr' )->returnArg();
+        Functions\when( 'wp_date' )->alias( function ( $format, $ts = null ) {
+            return gmdate( (string) $format, $ts ?? 0 );
+        } );
+        Functions\when( 'wp_timezone' )->alias( function () {
+            return new \DateTimeZone( 'UTC' );
+        } );
         Functions\when( 'add_action' )->justReturn( true );
         Functions\when( 'do_action' )->justReturn();
         Functions\when( 'apply_filters' )->returnArg( 2 );
+        // #673: EmailService::send derives a text/plain alternative for HTML
+        // messages — stub the WP glue that derivation touches.
+        Functions\when( 'remove_action' )->justReturn( true );
+        Functions\when( 'wp_strip_all_tags' )->alias(
+            static function ( $s ) {
+                return trim( (string) strip_tags( (string) $s ) );
+            }
+        );
         Functions\when( 'get_bloginfo' )->justReturn( 'Test Site' );
+        // Default for the shared chrome's footer tokens (some tests override).
+        Functions\when( 'home_url' )->justReturn( 'https://example.com' );
         Functions\when( 'site_url' )->alias( function ( $path = '' ) {
             return 'https://example.com' . $path;
         } );
@@ -189,6 +206,43 @@ class EmailHandlerTest extends TestCase {
         $this->assertSame( 'user@example.com', $this->sent_emails[0]['to'] );
     }
 
+    public function test_user_email_substitutes_placeholders_and_runs_dsl(): void {
+        Functions\when( 'is_email' )->justReturn( true );
+        Functions\when( 'get_option' )->justReturn( false ); // verification_page_id 0 → home_url fallback
+        Functions\when( 'home_url' )->alias( fn( $p = '' ) => 'https://ex' . (string) $p );
+        Functions\when( 'trailingslashit' )->alias( fn( $u ) => rtrim( (string) $u, '/' ) . '/' );
+
+        $handler = new EmailHandler();
+        $handler->async_process_submission(
+            1,
+            10,
+            'My Form',
+            array( 'auth_code' => 'ABC123', 'name' => 'Ana' ),
+            'ana@example.com',
+            array(),
+            array(
+                'send_user_email' => '1',
+                'email_subject'   => 'Ready: {{form_title}}',
+                // Encoded braces on the DSL token exercise the TinyMCE-encoding
+                // tolerance; the scalar tokens are raw.
+                'email_body'      => '<p>Hi {{name}} on {{date}}</p><p>%7B%7Bvalidation_url link:m>"Download"%7D%7D</p>',
+            ),
+            'tok9'
+        );
+
+        $this->assertNotEmpty( $this->sent_emails );
+        $body    = $this->sent_emails[0]['body'];
+        $subject = $this->sent_emails[0]['subject'];
+
+        $this->assertSame( 'Ready: My Form', $subject, 'subject {{form_title}} substituted' );
+        $this->assertStringContainsString( 'Hi Ana on', $body, '{{name}} substituted' );
+        $this->assertStringContainsString( '#token=tok9', $body, 'DSL rendered the magic download link' );
+        $this->assertStringContainsString( 'Download', $body, 'custom link text preserved' );
+        $this->assertStringNotContainsString( '{{name}}', $body, 'no literal scalar token leaks' );
+        $this->assertStringNotContainsString( '%7B%7B', $body, 'encoded braces normalised' );
+        $this->assertStringNotContainsString( '{{validation_url', $body, 'DSL token consumed' );
+    }
+
     // ==================================================================
     // async_process_submission() — skips user email when disabled
     // ==================================================================
@@ -216,13 +270,35 @@ class EmailHandlerTest extends TestCase {
             array( 'name' => 'John' ),
             'user@example.com',
             array(),
-            array( 'send_user_email' => 0, 'email_admin' => 'admin@example.com' ),
+            array( 'send_user_email' => 0, 'send_admin_email' => '1', 'email_admin' => 'admin@example.com' ),
             ''
         );
 
         // Only admin notification sent (no user email)
         $this->assertCount( 1, $this->sent_emails );
         $this->assertSame( 'admin@example.com', $this->sent_emails[0]['to'] );
+    }
+
+    public function test_async_skips_admin_notification_when_not_opted_in(): void {
+        Functions\when( 'get_option' )->alias( function ( $key, $default = false ) {
+            return 'admin_email' === $key ? 'admin@example.com' : $default;
+        } );
+        Functions\when( 'is_email' )->justReturn( true );
+
+        $handler = new EmailHandler();
+        $handler->async_process_submission(
+            1,
+            10,
+            'Test Certificate',
+            array( 'name' => 'John' ),
+            'user@example.com',
+            array(),
+            // Neither user nor admin email opted in → nothing sent (default off).
+            array( 'email_admin' => 'admin@example.com' ),
+            ''
+        );
+
+        $this->assertCount( 0, $this->sent_emails, 'admin notification must be opt-in (send_admin_email)' );
     }
 
     // ==================================================================

@@ -133,6 +133,27 @@ class SubmissionHandlerTest extends TestCase {
         $this->assertSame( 42, $result );
     }
 
+    public function test_process_submission_schedules_email_dispatch(): void {
+        $this->mockRepo->shouldReceive( 'insert' )->once()->andReturn( 77 );
+
+        $captured = null;
+        Functions\when( 'wp_schedule_single_event' )->alias(
+            function ( $ts, $hook, $args ) use ( &$captured ) {
+                $captured = array( 'hook' => $hook, 'args' => $args );
+                return true;
+            }
+        );
+
+        $data = array( 'name' => 'Test User', 'email' => 'test@example.com' );
+        $this->handler->process_submission( 3, 'Test Form', $data, 'test@example.com', array(), array( 'send_user_email' => '1' ) );
+
+        $this->assertNotNull( $captured, 'the async email/notification hook must be scheduled' );
+        $this->assertSame( 'ffcertificate_process_submission_hook', $captured['hook'] );
+        $this->assertSame( 77, $captured['args'][0], 'submission id passed' );
+        $this->assertSame( 3, $captured['args'][1], 'form id passed' );
+        $this->assertNotEmpty( $captured['args'][7], 'magic token passed to the email pipeline' );
+    }
+
     public function test_process_submission_returns_wp_error_on_insert_failure(): void {
         $this->mockRepo->shouldReceive( 'insert' )
             ->once()

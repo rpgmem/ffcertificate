@@ -26,12 +26,12 @@ class EmailHelperTraitStub {
         return self::ffc_parse_admin_emails( $emails, $fallback );
     }
 
-    public static function pub_email_header(): string {
-        return self::ffc_email_header();
+    public static function pub_render_email_partial( string $template, array $args = array() ): string {
+        return self::ffc_render_email_partial( $template, $args );
     }
 
-    public static function pub_email_footer(): string {
-        return self::ffc_email_footer();
+    public static function pub_email_document( string $content ): string {
+        return self::ffc_email_document( $content );
     }
 
     public static function pub_admin_notification_table( array $details ): string {
@@ -51,9 +51,26 @@ class EmailHelperTraitTest extends TestCase {
         parent::setUp();
         Monkey\setUp();
 
+        // #673: EmailService::send derives a text/plain alternative for HTML
+        // messages — stub the WP glue that derivation touches.
+        Functions\when( 'wp_strip_all_tags' )->alias(
+            static function ( $s ) {
+                return trim( (string) strip_tags( (string) $s ) );
+            }
+        );
+        Functions\when( 'add_action' )->justReturn( true );
+        Functions\when( 'remove_action' )->justReturn( true );
+        Functions\when( 'apply_filters' )->returnArg( 2 );
+
         Functions\when( '__' )->returnArg();
         Functions\when( 'esc_html' )->returnArg();
+        Functions\when( 'esc_attr' )->returnArg();
+        Functions\when( 'esc_url' )->returnArg();
+        Functions\when( 'wp_kses_post' )->returnArg();
         Functions\when( 'get_bloginfo' )->justReturn( 'Test Site' );
+        Functions\when( 'home_url' )->justReturn( 'https://example.com' );
+        Functions\when( 'wp_date' )->justReturn( '2026' );
+        Functions\when( 'wp_timezone' )->justReturn( new \DateTimeZone( 'UTC' ) );
         Functions\when( 'wp_mail' )->justReturn( true );
         Functions\when( 'get_option' )->alias( function ( $key, $default = false ) {
             if ( $key === 'ffc_settings' ) return array();
@@ -142,19 +159,27 @@ class EmailHelperTraitTest extends TestCase {
     }
 
     // ==================================================================
-    // ffc_email_header() / ffc_email_footer()
+    // ffc_render_email_partial() / ffc_email_document()
     // ==================================================================
 
-    public function test_email_header_contains_div(): void {
-        $header = EmailHelperTraitStub::pub_email_header();
-        $this->assertStringContainsString( '<div', $header );
-        $this->assertStringContainsString( 'font-family', $header );
+    public function test_render_email_partial_returns_empty_for_missing_template(): void {
+        $html = EmailHelperTraitStub::pub_render_email_partial( 'does-not-exist-xyz' );
+        $this->assertSame( '', $html );
     }
 
-    public function test_email_footer_contains_site_name(): void {
-        $footer = EmailHelperTraitStub::pub_email_footer();
-        $this->assertStringContainsString( 'Test Site', $footer );
-        $this->assertStringContainsString( '</div>', $footer );
+    public function test_render_email_partial_renders_layout_with_content(): void {
+        $html = EmailHelperTraitStub::pub_render_email_partial( 'layout', array( 'content' => '<span>BODY</span>' ) );
+        $this->assertStringContainsString( '<span>BODY</span>', $html );
+        // The configurable chrome is table-based (Gmail/Outlook safe).
+        $this->assertStringContainsString( '<table', $html );
+        $this->assertStringContainsString( 'font-family', $html );
+    }
+
+    public function test_email_document_wraps_content_in_chrome(): void {
+        $html = EmailHelperTraitStub::pub_email_document( '<p>INNER</p>' );
+        $this->assertStringContainsString( '<p>INNER</p>', $html );
+        // Footer chrome carries the site name.
+        $this->assertStringContainsString( 'Test Site', $html );
     }
 
     // ==================================================================

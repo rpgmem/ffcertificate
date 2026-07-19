@@ -20,7 +20,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 /**
  * Database repository for audience schedule records.
  *
- * @phpstan-type ScheduleRow \stdClass&object{id: numeric-string, name: string, description: string|null, environment_label: string|null, visibility: string, future_days_limit: numeric-string|null, notify_on_booking: numeric-string, notify_on_cancellation: numeric-string, email_template_booking: string|null, email_template_cancellation: string|null, include_ics: numeric-string, is_isolated?: numeric-string, status: string, created_by: numeric-string, created_at: string, updated_at: string}
+ * @phpstan-type ScheduleRow \stdClass&object{id: numeric-string, name: string, description: string|null, environment_label: string|null, visibility: string, future_days_limit: numeric-string|null, notify_on_booking: numeric-string, notify_on_cancellation: numeric-string, notify_admin_on_booking: numeric-string, notify_admin_on_cancellation: numeric-string, admin_notification_emails: string|null, email_template_booking: string|null, email_template_cancellation: string|null, include_ics: numeric-string, is_isolated?: numeric-string, status: string, created_by: numeric-string, created_at: string, updated_at: string}
  * @phpstan-type SchedulePermissionRow \stdClass&object{id: numeric-string, schedule_id: numeric-string, user_id: numeric-string, can_book: numeric-string, can_cancel_others: numeric-string, can_override_conflicts: numeric-string, created_at: string}
  */
 class AudienceScheduleRepository {
@@ -201,40 +201,46 @@ class AudienceScheduleRepository {
 		$table = self::get_table_name();
 
 		$defaults = array(
-			'name'                        => '',
-			'description'                 => null,
-			'environment_label'           => null,
-			'visibility'                  => 'private',
-			'future_days_limit'           => null,
-			'notify_on_booking'           => 1,
-			'notify_on_cancellation'      => 1,
-			'email_template_booking'      => null,
-			'email_template_cancellation' => null,
-			'include_ics'                 => 0,
-			'is_isolated'                 => 0,
-			'status'                      => 'active',
-			'created_by'                  => get_current_user_id(),
+			'name'                         => '',
+			'description'                  => null,
+			'environment_label'            => null,
+			'visibility'                   => 'private',
+			'future_days_limit'            => null,
+			'notify_on_booking'            => 1,
+			'notify_on_cancellation'       => 1,
+			'notify_admin_on_booking'      => 0,
+			'notify_admin_on_cancellation' => 0,
+			'admin_notification_emails'    => null,
+			'email_template_booking'       => null,
+			'email_template_cancellation'  => null,
+			'include_ics'                  => 0,
+			'is_isolated'                  => 0,
+			'status'                       => 'active',
+			'created_by'                   => get_current_user_id(),
 		);
 		$data     = wp_parse_args( $data, $defaults );
 
 		$result = $wpdb->insert(
 			$table,
 			array(
-				'name'                        => $data['name'],
-				'description'                 => $data['description'],
-				'environment_label'           => $data['environment_label'],
-				'visibility'                  => $data['visibility'],
-				'future_days_limit'           => $data['future_days_limit'],
-				'notify_on_booking'           => $data['notify_on_booking'],
-				'notify_on_cancellation'      => $data['notify_on_cancellation'],
-				'email_template_booking'      => $data['email_template_booking'],
-				'email_template_cancellation' => $data['email_template_cancellation'],
-				'include_ics'                 => $data['include_ics'],
-				'is_isolated'                 => $data['is_isolated'],
-				'status'                      => $data['status'],
-				'created_by'                  => $data['created_by'],
+				'name'                         => $data['name'],
+				'description'                  => $data['description'],
+				'environment_label'            => $data['environment_label'],
+				'visibility'                   => $data['visibility'],
+				'future_days_limit'            => $data['future_days_limit'],
+				'notify_on_booking'            => $data['notify_on_booking'],
+				'notify_on_cancellation'       => $data['notify_on_cancellation'],
+				'notify_admin_on_booking'      => $data['notify_admin_on_booking'],
+				'notify_admin_on_cancellation' => $data['notify_admin_on_cancellation'],
+				'admin_notification_emails'    => $data['admin_notification_emails'],
+				'email_template_booking'       => $data['email_template_booking'],
+				'email_template_cancellation'  => $data['email_template_cancellation'],
+				'include_ics'                  => $data['include_ics'],
+				'is_isolated'                  => $data['is_isolated'],
+				'status'                       => $data['status'],
+				'created_by'                   => $data['created_by'],
 			),
-			array( '%s', '%s', '%s', '%s', '%d', '%d', '%d', '%s', '%s', '%d', '%d', '%s', '%d' )
+			array( '%s', '%s', '%s', '%s', '%d', '%d', '%d', '%d', '%d', '%s', '%s', '%s', '%d', '%d', '%s', '%d' )
 		);
 
 		return $result ? $wpdb->insert_id : false;
@@ -263,23 +269,26 @@ class AudienceScheduleRepository {
 		$format      = array();
 
 		$field_formats = array(
-			'name'                        => '%s',
-			'description'                 => '%s',
-			'environment_label'           => '%s',
-			'visibility'                  => '%s',
-			'future_days_limit'           => '%d',
-			'notify_on_booking'           => '%d',
-			'notify_on_cancellation'      => '%d',
-			'email_template_booking'      => '%s',
-			'email_template_cancellation' => '%s',
-			'include_ics'                 => '%d',
-			'is_isolated'                 => '%d',
-			'show_event_list'             => '%d',
-			'event_list_position'         => '%s',
-			'audience_badge_format'       => '%s',
-			'booking_label_singular'      => '%s',
-			'booking_label_plural'        => '%s',
-			'status'                      => '%s',
+			'name'                         => '%s',
+			'description'                  => '%s',
+			'environment_label'            => '%s',
+			'visibility'                   => '%s',
+			'future_days_limit'            => '%d',
+			'notify_on_booking'            => '%d',
+			'notify_on_cancellation'       => '%d',
+			'notify_admin_on_booking'      => '%d',
+			'notify_admin_on_cancellation' => '%d',
+			'admin_notification_emails'    => '%s',
+			'email_template_booking'       => '%s',
+			'email_template_cancellation'  => '%s',
+			'include_ics'                  => '%d',
+			'is_isolated'                  => '%d',
+			'show_event_list'              => '%d',
+			'event_list_position'          => '%s',
+			'audience_badge_format'        => '%s',
+			'booking_label_singular'       => '%s',
+			'booking_label_plural'         => '%s',
+			'status'                       => '%s',
 		);
 
 		foreach ( $data as $key => $value ) {

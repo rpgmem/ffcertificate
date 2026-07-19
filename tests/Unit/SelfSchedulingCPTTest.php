@@ -32,6 +32,14 @@ class SelfSchedulingCPTTest extends TestCase {
         Functions\when( 'esc_url' )->returnArg();
         Functions\when( 'add_action' )->justReturn( true );
         Functions\when( 'add_filter' )->justReturn( true );
+        // #673: EmailService::send derives a text/plain alternative for HTML
+        // messages — stub the WP glue that derivation touches.
+        Functions\when( 'remove_action' )->justReturn( true );
+        Functions\when( 'wp_strip_all_tags' )->alias(
+            static function ( $s ) {
+                return trim( (string) strip_tags( (string) $s ) );
+            }
+        );
         Functions\when( 'register_post_type' )->justReturn( true );
         Functions\when( 'absint' )->alias( function ( $v ) { return abs( (int) $v ); } );
         Functions\when( 'admin_url' )->justReturn( 'https://example.com/wp-admin/' );
@@ -405,6 +413,23 @@ class SelfSchedulingCPTTest extends TestCase {
         Functions\when( 'is_email' )->justReturn( true );
         Functions\when( 'get_bloginfo' )->justReturn( 'Site' );
         Functions\when( 'wp_mail' )->justReturn( true );
+        // EmailService::send() reads the global kill-switch via SettingsReader
+        // (#662); ffc_settings / ffc_email_template resolve to arrays (emails
+        // enabled + chrome defaults), any other key (admin_email) to a string.
+        Functions\when( 'get_option' )->alias(
+            static function ( $key, $default = false ) {
+                return in_array( $key, array( 'ffc_settings', 'ffc_email_template' ), true ) ? array() : '';
+            }
+        );
+        // The cancellation email now renders through the shared chrome.
+        Functions\when( 'esc_html' )->returnArg();
+        Functions\when( 'esc_html__' )->returnArg();
+        Functions\when( 'esc_attr' )->returnArg();
+        Functions\when( 'esc_url' )->returnArg();
+        Functions\when( 'wp_kses_post' )->returnArg();
+        Functions\when( 'home_url' )->justReturn( 'https://example.com' );
+        Functions\when( 'wp_date' )->justReturn( '2026' );
+        Functions\when( 'wp_timezone' )->justReturn( new \DateTimeZone( 'UTC' ) );
 
         Mockery::mock( 'alias:FreeFormCertificate\Core\Debug' )
             ->shouldReceive( 'log_self_scheduling' )->andReturnNull();
@@ -431,7 +456,8 @@ class SelfSchedulingCPTTest extends TestCase {
 
         Mockery::mock( 'alias:FreeFormCertificate\Core\DateFormatter' )
             ->shouldReceive( 'format_wallclock_date' )->andReturn( '01/02/2026' )
-            ->shouldReceive( 'format_wallclock_time' )->andReturn( '09:00' );
+            ->shouldReceive( 'format_wallclock_time' )->andReturn( '09:00' )
+            ->shouldReceive( 'format_date' )->andReturn( '01/02/2026' ); // chrome footer {{date}}
 
         $cpt  = new SelfSchedulingCPT();
         $post = (object) array( 'post_type' => 'ffc_self_scheduling' );

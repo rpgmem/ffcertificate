@@ -61,9 +61,14 @@ class SettingsSaveHandler {
 			$this->save_user_access_settings();
 		}
 
-		// Handle Global Data Deletion (Danger Zone).
+		// Handle Global Data Deletion (Danger Zone). Requires the dedicated
+		// danger-zone sub-cap (#711) on top of the page's ffc_manage_settings —
+		// a settings manager without ffc_manage_settings_dangerzone cannot run
+		// destructive actions.
         // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized, WordPress.Security.ValidatedSanitizedInput.MissingUnslash -- isset() existence check only; nonce verified via check_admin_referer.
-		if ( isset( $_POST['ffc_delete_all_data'] ) && check_admin_referer( 'ffc_delete_all_data', 'ffc_critical_nonce' ) ) {
+		if ( isset( $_POST['ffc_delete_all_data'] )
+			&& \FreeFormCertificate\Core\Capabilities::current_user_can_admin_or( 'ffc_manage_settings_dangerzone' )
+			&& check_admin_referer( 'ffc_delete_all_data', 'ffc_critical_nonce' ) ) {
 			$this->handle_danger_zone();
 		}
 	}
@@ -86,6 +91,10 @@ class SettingsSaveHandler {
 		$clean = $this->save_qrcode_settings( $clean, $new );
 		$clean = $this->save_date_format_settings( $clean, $new );
 		$clean = $this->save_url_shortener_settings( $clean, $new );
+
+		// "Email Model" chrome lives in its own option (`ffc_email_template`),
+		// posted from its own form in the SMTP tab.
+		$this->save_email_template_settings();
 
 		/**
 		 * Filters plugin settings before they are saved.
@@ -231,6 +240,16 @@ class SettingsSaveHandler {
 	 * @return array<string, mixed> Updated settings
 	 */
 	private function save_smtp_settings( array $clean, array $new ): array {
+		// SMTP / email settings carry their own sub-cap (#711): a user with
+		// ffc_manage_settings but not ffc_manage_settings_smtp can save the other
+		// tabs but not the SMTP transport / email config, so leave those fields
+		// untouched. The one-shot migration grants the sub-cap to every existing
+		// ffc_manage_settings holder, so this only restricts deliberately-limited
+		// roles.
+		if ( ! \FreeFormCertificate\Core\Capabilities::current_user_can_admin_or( 'ffc_manage_settings_smtp' ) ) {
+			return $clean;
+		}
+
 		// Email Status checkbox (only when on SMTP tab to prevent unchecking from other tabs).
         // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Nonce verified in handle_all_submissions() via wp_verify_nonce.
 		if ( isset( $_POST['_ffc_tab'] ) && sanitize_key( wp_unslash( $_POST['_ffc_tab'] ) ) === 'smtp' ) {
@@ -291,6 +310,31 @@ class SettingsSaveHandler {
 		}
 
 		return $clean;
+	}
+
+	/**
+	 * Save the "Email Model" chrome options (`ffc_email_template`).
+	 *
+	 * Only runs when the Email Model form was submitted (its `ffc_email_template`
+	 * array is present), so submitting any other settings form leaves the model
+	 * untouched. {@see \FreeFormCertificate\Core\EmailTemplateOptions::update()}
+	 * sanitizes every field.
+	 *
+	 * @return void
+	 */
+	private function save_email_template_settings(): void {
+        // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Nonce verified in handle_all_submissions() via wp_verify_nonce.
+		if ( ! isset( $_POST['ffc_email_template'] ) ) {
+			return;
+		}
+		// The Email Model is part of the SMTP/email surface — gate it on the
+		// same sub-cap as the SMTP transport (#711).
+		if ( ! \FreeFormCertificate\Core\Capabilities::current_user_can_admin_or( 'ffc_manage_settings_smtp' ) ) {
+			return;
+		}
+		$raw = \FreeFormCertificate\Core\RequestInput::get_post_array( 'ffc_email_template' );
+		\FreeFormCertificate\Core\EmailTemplateOptions::update( $raw );
+		add_settings_error( 'ffc_settings', 'ffc_email_model_updated', __( 'Email Model saved.', 'ffcertificate' ), 'updated' );
 	}
 
 	/**

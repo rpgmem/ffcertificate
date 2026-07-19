@@ -293,6 +293,18 @@ class SubmissionHandler {
 		 */
 		do_action( 'ffcertificate_after_submission_save', $submission_id, $form_id, $submission_data, $user_email );
 
+		// Dispatch the async email/notification pipeline. EmailHandler listens
+		// on this hook and decides whether the user email is enabled (and
+		// no-ops when emails are globally disabled). Restores the trigger that
+		// was orphaned — the hook was registered but never scheduled (#649).
+		if ( function_exists( 'wp_schedule_single_event' ) ) {
+			wp_schedule_single_event(
+				time() + 1,
+				'ffcertificate_process_submission_hook',
+				array( (int) $submission_id, $form_id, $form_title, $submission_data, $user_email, $fields_config, $form_config, $magic_token )
+			);
+		}
+
 		return $submission_id;
 	}
 

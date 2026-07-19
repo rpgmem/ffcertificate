@@ -271,6 +271,7 @@ class AudienceAdminCalendar {
 				<tr>
 					<th scope="row"><?php esc_html_e( 'Notifications', 'ffcertificate' ); ?></th>
 					<td>
+						<?php \FreeFormCertificate\Core\EmailDisabledNotice::render(); ?>
 						<div>
 							<p>
 								<?php
@@ -304,6 +305,33 @@ class AudienceAdminCalendar {
 									)
 								);
 								?>
+							</p>
+							<p>
+								<?php
+								\FreeFormCertificate\Admin\AdminUI::render_toggle(
+									array(
+										'name'    => 'schedule_notify_admin_booking',
+										'checked' => 1 === (int) ( $schedule->notify_admin_on_booking ?? 0 ),
+										'label'   => __( 'Also notify admin on new booking', 'ffcertificate' ),
+									)
+								);
+								?>
+							</p>
+							<p>
+								<?php
+								\FreeFormCertificate\Admin\AdminUI::render_toggle(
+									array(
+										'name'    => 'schedule_notify_admin_cancel',
+										'checked' => 1 === (int) ( $schedule->notify_admin_on_cancellation ?? 0 ),
+										'label'   => __( 'Also notify admin on cancellation', 'ffcertificate' ),
+									)
+								);
+								?>
+							</p>
+							<p>
+								<label for="schedule_admin_emails"><?php esc_html_e( 'Admin recipient(s)', 'ffcertificate' ); ?></label><br>
+								<input type="text" id="schedule_admin_emails" name="schedule_admin_emails" class="regular-text" value="<?php echo esc_attr( $schedule->admin_notification_emails ?? '' ); ?>">
+								<span class="description"><?php esc_html_e( 'Comma-separated email addresses for the admin notifications above. Leave empty to use the site admin email.', 'ffcertificate' ); ?></span>
 							</p>
 						</div>
 					</td>
@@ -614,29 +642,32 @@ class AudienceAdminCalendar {
 
 			$id   = isset( $_POST['schedule_id'] ) ? absint( $_POST['schedule_id'] ) : 0;
 			$data = array(
-				'name'                   => RequestInput::get_post_string( 'schedule_name' ),
-				'description'            => isset( $_POST['schedule_description'] ) ? sanitize_textarea_field( wp_unslash( $_POST['schedule_description'] ) ) : '',
-				'environment_label'      => isset( $_POST['schedule_environment_label'] ) ? sanitize_text_field( wp_unslash( $_POST['schedule_environment_label'] ) ) : null,
-				'visibility'             => RequestInput::get_post_string( 'schedule_visibility', 'private' ),
-				'future_days_limit'      => isset( $_POST['schedule_future_days'] ) && '' !== $_POST['schedule_future_days'] ? absint( $_POST['schedule_future_days'] ) : null,
-				'notify_on_booking'      => isset( $_POST['schedule_notify_booking'] ) ? 1 : 0,
-				'notify_on_cancellation' => isset( $_POST['schedule_notify_cancel'] ) ? 1 : 0,
-				'include_ics'            => isset( $_POST['schedule_include_ics'] ) ? 1 : 0,
-				'show_event_list'        => isset( $_POST['schedule_show_event_list'] ) ? 1 : 0,
-				'event_list_position'    => isset( $_POST['schedule_event_list_position'] ) && in_array( $_POST['schedule_event_list_position'], array( 'side', 'below' ), true )
+				'name'                         => RequestInput::get_post_string( 'schedule_name' ),
+				'description'                  => isset( $_POST['schedule_description'] ) ? sanitize_textarea_field( wp_unslash( $_POST['schedule_description'] ) ) : '',
+				'environment_label'            => isset( $_POST['schedule_environment_label'] ) ? sanitize_text_field( wp_unslash( $_POST['schedule_environment_label'] ) ) : null,
+				'visibility'                   => RequestInput::get_post_string( 'schedule_visibility', 'private' ),
+				'future_days_limit'            => isset( $_POST['schedule_future_days'] ) && '' !== $_POST['schedule_future_days'] ? absint( $_POST['schedule_future_days'] ) : null,
+				'notify_on_booking'            => isset( $_POST['schedule_notify_booking'] ) ? 1 : 0,
+				'notify_on_cancellation'       => isset( $_POST['schedule_notify_cancel'] ) ? 1 : 0,
+				'notify_admin_on_booking'      => isset( $_POST['schedule_notify_admin_booking'] ) ? 1 : 0,
+				'notify_admin_on_cancellation' => isset( $_POST['schedule_notify_admin_cancel'] ) ? 1 : 0,
+				'admin_notification_emails'    => isset( $_POST['schedule_admin_emails'] ) ? sanitize_text_field( wp_unslash( $_POST['schedule_admin_emails'] ) ) : null,
+				'include_ics'                  => isset( $_POST['schedule_include_ics'] ) ? 1 : 0,
+				'show_event_list'              => isset( $_POST['schedule_show_event_list'] ) ? 1 : 0,
+				'event_list_position'          => isset( $_POST['schedule_event_list_position'] ) && in_array( $_POST['schedule_event_list_position'], array( 'side', 'below' ), true )
 					? sanitize_text_field( wp_unslash( $_POST['schedule_event_list_position'] ) )
 					: 'side',
-				'audience_badge_format'  => isset( $_POST['schedule_audience_badge_format'] ) && in_array( $_POST['schedule_audience_badge_format'], array( 'name', 'parent_name' ), true )
+				'audience_badge_format'        => isset( $_POST['schedule_audience_badge_format'] ) && in_array( $_POST['schedule_audience_badge_format'], array( 'name', 'parent_name' ), true )
 					? sanitize_text_field( wp_unslash( $_POST['schedule_audience_badge_format'] ) )
 					: 'name',
-				'booking_label_singular' => ! empty( $_POST['schedule_booking_label_singular'] )
+				'booking_label_singular'       => ! empty( $_POST['schedule_booking_label_singular'] )
 					? sanitize_text_field( wp_unslash( $_POST['schedule_booking_label_singular'] ) )
 					: null,
-				'booking_label_plural'   => ! empty( $_POST['schedule_booking_label_plural'] )
+				'booking_label_plural'         => ! empty( $_POST['schedule_booking_label_plural'] )
 					? sanitize_text_field( wp_unslash( $_POST['schedule_booking_label_plural'] ) )
 					: null,
-				'is_isolated'            => isset( $_POST['schedule_is_isolated'] ) ? 1 : 0,
-				'status'                 => RequestInput::get_post_string( 'schedule_status', 'active' ),
+				'is_isolated'                  => isset( $_POST['schedule_is_isolated'] ) ? 1 : 0,
+				'status'                       => RequestInput::get_post_string( 'schedule_status', 'active' ),
 			);
 
 			if ( $id > 0 ) {

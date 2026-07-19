@@ -23,6 +23,17 @@ class CapabilityManagerTest extends TestCase {
         parent::setUp();
         Monkey\setUp();
 
+        // #673: EmailService::send derives a text/plain alternative for HTML
+        // messages — stub the WP glue that derivation touches.
+        Functions\when( 'wp_strip_all_tags' )->alias(
+            static function ( $s ) {
+                return trim( (string) strip_tags( (string) $s ) );
+            }
+        );
+        Functions\when( 'add_action' )->justReturn( true );
+        Functions\when( 'remove_action' )->justReturn( true );
+        Functions\when( 'apply_filters' )->returnArg( 2 );
+
         Functions\when( '__' )->returnArg();
         Functions\when( 'get_option' )->justReturn( 0 );
         Functions\when( 'absint' )->alias( function( $val ) { return abs( intval( $val ) ); } );
@@ -331,6 +342,61 @@ class CapabilityManagerTest extends TestCase {
         Functions\when( 'get_userdata' )->justReturn( $mock_user );
 
         CapabilityManager::grant_context_capabilities( 30, 'audience' );
+    }
+
+    public function test_grant_context_sends_chromed_access_email_when_enabled(): void {
+        $mock_user = Mockery::mock( 'WP_User' );
+        $mock_user->shouldReceive( 'has_cap' )->andReturn( false );
+        $mock_user->shouldReceive( 'add_cap' );
+        $mock_user->ID = 40;
+        $mock_user->user_email = 'grantee@example.com';
+        $mock_user->display_name = 'Grantee';
+
+        Functions\when( 'get_userdata' )->justReturn( $mock_user );
+        Functions\when( 'get_option' )->alias(
+            static function ( $key, $default = false ) {
+                if ( 'ffc_settings' === $key ) {
+                    return array( 'notify_capability_grant' => true );
+                }
+                if ( 'blogname' === $key ) {
+                    return 'My Site';
+                }
+                if ( 'ffc_dashboard_page_id' === $key ) {
+                    return 5;
+                }
+                if ( 'ffc_email_template' === $key ) {
+                    return array();
+                }
+                return $default;
+            }
+        );
+        Functions\when( 'wp_specialchars_decode' )->returnArg();
+        Functions\when( 'get_permalink' )->justReturn( 'https://my.site/dashboard' );
+        Functions\when( 'esc_html' )->returnArg();
+        Functions\when( 'esc_html__' )->returnArg();
+        Functions\when( 'esc_attr' )->returnArg();
+        Functions\when( 'esc_url' )->returnArg();
+        Functions\when( 'wp_kses_post' )->returnArg();
+        Functions\when( 'get_bloginfo' )->justReturn( 'My Site' );
+        Functions\when( 'home_url' )->justReturn( 'https://my.site' );
+        Functions\when( 'wp_date' )->justReturn( '2026' );
+        Functions\when( 'wp_timezone' )->justReturn( new \DateTimeZone( 'UTC' ) );
+
+        $captured = null;
+        Functions\when( 'wp_mail' )->alias(
+            static function ( $to, $subj, $body ) use ( &$captured ) {
+                $captured = compact( 'to', 'subj', 'body' );
+                return true;
+            }
+        );
+
+        CapabilityManager::grant_context_capabilities( 40, 'certificate' );
+
+        $this->assertNotNull( $captured, 'access-granted email should be sent' );
+        $this->assertSame( 'grantee@example.com', $captured['to'] );
+        $this->assertStringContainsString( 'Hello Grantee,', $captured['body'] );
+        // Wrapped in the shared configurable chrome.
+        $this->assertStringContainsString( '<!DOCTYPE html>', $captured['body'] );
     }
 
     // ------------------------------------------------------------------
@@ -756,6 +822,64 @@ class CapabilityManagerTest extends TestCase {
         $this->assertArrayNotHasKey( 'ffc_delete_certificates', $role_added );
     }
 
+    public function test_admin_capabilities_contains_settings_sub_caps(): void {
+        foreach ( array(
+            'ffc_manage_settings_smtp',
+            'ffc_manage_settings_dangerzone',
+        ) as $cap ) {
+            $this->assertContains( $cap, CapabilityManager::ADMIN_CAPABILITIES, "ADMIN_CAPABILITIES must contain {$cap}" );
+        }
+    }
+
+    public function test_settings_split_cap_grant_map_pairs_manage_to_sub_caps(): void {
+        $map = CapabilityMigrator::settings_split_cap_grant_map();
+        $this->assertArrayHasKey( 'ffc_manage_settings', $map );
+        $this->assertSame(
+            array( 'ffc_manage_settings_smtp', 'ffc_manage_settings_dangerzone' ),
+            $map['ffc_manage_settings']
+        );
+        foreach ( $map['ffc_manage_settings'] as $sub ) {
+            $this->assertContains( $sub, CapabilityManager::ADMIN_CAPABILITIES, "{$sub} must be a registered cap" );
+        }
+    }
+
+    public function test_migrate_settings_split_caps_grant_seeds_sub_caps_onto_manage_holders(): void {
+        Functions\when( 'get_users' )->justReturn( array( 1 ) );
+
+        // User holds ffc_manage_settings but neither sub-cap → expect both seeded.
+        $user       = Mockery::mock( 'WP_User' );
+        $user->caps = array( 'ffc_manage_settings' => true );
+        $user_added = array();
+        $user->shouldReceive( 'add_cap' )->andReturnUsing(
+            function ( $cap, $val = true ) use ( &$user_added ) {
+                $user_added[ $cap ] = $val;
+            }
+        );
+        $user->shouldReceive( 'remove_cap' )->never();
+        Functions\when( 'get_userdata' )->justReturn( $user );
+
+        // Role also holds the manage cap → expect both sub-caps on the role too.
+        $role               = Mockery::mock( 'WP_Role' );
+        $role->capabilities = array( 'ffc_manage_settings' => true );
+        $role_added         = array();
+        $role->shouldReceive( 'add_cap' )->andReturnUsing(
+            function ( $cap, $val = true ) use ( &$role_added ) {
+                $role_added[ $cap ] = $val;
+            }
+        );
+        $wp_roles        = Mockery::mock();
+        $wp_roles->roles = array( 'administrator' => array() );
+        Functions\when( 'wp_roles' )->justReturn( $wp_roles );
+        Functions\when( 'get_role' )->justReturn( $role );
+
+        CapabilityMigrator::migrate_settings_split_caps_grant();
+
+        $this->assertTrue( $user_added['ffc_manage_settings_smtp'] ?? null );
+        $this->assertTrue( $user_added['ffc_manage_settings_dangerzone'] ?? null );
+        $this->assertTrue( $role_added['ffc_manage_settings_smtp'] ?? null );
+        $this->assertTrue( $role_added['ffc_manage_settings_dangerzone'] ?? null );
+    }
+
     public function test_admin_capabilities_contains_export_tier(): void {
         foreach ( array(
             'ffc_export_appointments',
@@ -766,6 +890,54 @@ class CapabilityManagerTest extends TestCase {
         }
         // Certificates keeps its long-standing standalone export cap.
         $this->assertContains( 'ffc_export_certificates', CapabilityManager::ADMIN_CAPABILITIES );
+    }
+
+    public function test_admin_capabilities_contains_activity_log_export(): void {
+        $this->assertContains( 'ffc_export_activity_log', CapabilityManager::ADMIN_CAPABILITIES );
+    }
+
+    public function test_activity_log_export_cap_grant_map_pairs_view_to_export(): void {
+        $map = CapabilityMigrator::activity_log_export_cap_grant_map();
+        $this->assertSame( array( 'ffc_view_activity_log' => 'ffc_export_activity_log' ), $map );
+        foreach ( $map as $view => $export ) {
+            $this->assertContains( $view, CapabilityManager::ADMIN_CAPABILITIES );
+            $this->assertContains( $export, CapabilityManager::ADMIN_CAPABILITIES );
+        }
+    }
+
+    public function test_migrate_activity_log_export_cap_grant_seeds_export_onto_view_holders(): void {
+        Functions\when( 'get_users' )->justReturn( array( 1 ) );
+
+        // User holds the view cap but not the export cap → expect export seeded.
+        $user       = Mockery::mock( 'WP_User' );
+        $user->caps = array( 'ffc_view_activity_log' => true );
+        $user_added = array();
+        $user->shouldReceive( 'add_cap' )->andReturnUsing(
+            function ( $cap, $val = true ) use ( &$user_added ) {
+                $user_added[ $cap ] = $val;
+            }
+        );
+        $user->shouldReceive( 'remove_cap' )->never();
+        Functions\when( 'get_userdata' )->justReturn( $user );
+
+        // Role also holds the view cap → expect the export cap on the role too.
+        $role               = Mockery::mock( 'WP_Role' );
+        $role->capabilities = array( 'ffc_view_activity_log' => true );
+        $role_added         = array();
+        $role->shouldReceive( 'add_cap' )->andReturnUsing(
+            function ( $cap, $val = true ) use ( &$role_added ) {
+                $role_added[ $cap ] = $val;
+            }
+        );
+        $wp_roles        = Mockery::mock();
+        $wp_roles->roles = array( 'administrator' => array() );
+        Functions\when( 'wp_roles' )->justReturn( $wp_roles );
+        Functions\when( 'get_role' )->justReturn( $role );
+
+        CapabilityMigrator::migrate_activity_log_export_cap_grant();
+
+        $this->assertTrue( $user_added['ffc_export_activity_log'] ?? null );
+        $this->assertTrue( $role_added['ffc_export_activity_log'] ?? null );
     }
 
     public function test_export_cap_grant_map_pairs_each_manage_to_its_export(): void {

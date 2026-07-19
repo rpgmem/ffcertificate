@@ -31,6 +31,9 @@ class AudienceAdminDashboardTest extends TestCase {
         Functions\when( 'current_time' )->justReturn( '2025-01-01 12:00:00' );
         Functions\when( 'wp_cache_get' )->justReturn( false );
         Functions\when( 'wp_cache_set' )->justReturn( true );
+        // AudienceEnvironmentRepository::count() folds the CacheVersion counter
+        // (a wp_options read) into its query-cache key.
+        Functions\when( 'get_option' )->justReturn( false );
         Functions\when( 'wp_parse_args' )->alias( function ( $args, $defaults = array() ) {
             return array_merge( $defaults, (array) $args );
         } );

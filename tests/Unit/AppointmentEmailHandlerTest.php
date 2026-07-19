@@ -42,6 +42,15 @@ class AppointmentEmailHandlerTest extends TestCase {
 
         // WordPress stubs
         Functions\when( 'add_action' )->justReturn( true );
+        // #673: EmailService::send derives a text/plain alternative for HTML
+        // messages — stub the WP glue that derivation touches.
+        Functions\when( 'remove_action' )->justReturn( true );
+        Functions\when( 'wp_strip_all_tags' )->alias(
+            static function ( $s ) {
+                return trim( (string) strip_tags( (string) $s ) );
+            }
+        );
+        Functions\when( 'apply_filters' )->returnArg( 2 );
         Functions\when( 'get_option' )->alias( function ( $key, $default = false ) {
             if ( $key === 'ffc_settings' ) {
                 return array(); // emails not disabled by default
@@ -152,6 +161,23 @@ class AppointmentEmailHandlerTest extends TestCase {
         $this->assertTrue( $this->mail_sent );
         $this->assertSame( 'john@example.com', $this->last_mail['to'] );
         $this->assertStringContainsString( 'Test Calendar', $this->last_mail['subject'] );
+    }
+
+    public function test_booking_confirmation_uses_custom_editable_body_when_set(): void {
+        $cal = $this->makeCalendar(
+            array(
+                'email_config' => '{"user_confirmation_subject":"Hi {{user_name}}","user_confirmation_body":"<p>Hello {{user_name}}, your slot for {{calendar_title}} is set.</p>"}',
+            )
+        );
+
+        $this->handler->send_booking_confirmation( $this->makeAppointment(), $cal );
+
+        $this->assertTrue( $this->mail_sent );
+        // Editable subject + body tokens resolved from the appointment/calendar.
+        $this->assertSame( 'Hi John Doe', $this->last_mail['subject'] );
+        $this->assertStringContainsString( 'Hello John Doe, your slot for Test Calendar is set.', $this->last_mail['body'] );
+        // The custom email body replaces the built-in default (no receipt/cancel buttons).
+        $this->assertStringNotContainsString( 'View/Print Receipt', $this->last_mail['body'] );
     }
 
     public function test_booking_confirmation_skipped_when_emails_disabled(): void {

@@ -61,6 +61,9 @@ class FormEditorMetaboxRendererTest extends TestCase {
         // its UI-wiring asset instead of echoing inline <script>; stub the
         // enqueue so the render path doesn't fatal under Brain\Monkey.
         Functions\when( 'wp_enqueue_script' )->justReturn( null );
+        // The email metabox now also localizes the "Restore Default Text"
+        // button data; stub it alongside the enqueue.
+        Functions\when( 'wp_localize_script' )->justReturn( null );
 
         if ( ! defined( 'ABSPATH' ) ) {
             define( 'ABSPATH', '/tmp/' );

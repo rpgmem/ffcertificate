@@ -86,10 +86,11 @@ class DeactivatorTest extends TestCase {
         Deactivator::deactivate();
 
         $this->assertContains( 'ffcertificate_daily_cleanup_hook', $cleared );
+        $this->assertContains( 'ffcertificate_self_scheduling_reminder_scan', $cleared );
         $this->assertContains( 'ffc_daily_cleanup_hook', $cleared );
         $this->assertContains( 'ffc_process_submission_hook', $cleared );
         $this->assertContains( 'ffc_warm_cache_hook', $cleared );
-        $this->assertCount( 4, $cleared );
+        $this->assertCount( 5, $cleared );
     }
 
     public function test_deactivate_flushes_rewrite_rules(): void {
@@ -186,10 +187,11 @@ class DeactivatorTest extends TestCase {
 
         $this->assertContains( 'ffcertificate_daily_cleanup_hook', $cleared );
         $this->assertContains( 'ffcertificate_process_submission_hook', $cleared );
+        $this->assertContains( 'ffcertificate_self_scheduling_reminder_scan', $cleared );
         $this->assertContains( 'ffc_daily_cleanup_hook', $cleared );
         $this->assertContains( 'ffc_process_submission_hook', $cleared );
         $this->assertContains( 'ffc_warm_cache_hook', $cleared );
-        $this->assertCount( 5, $cleared );
+        $this->assertCount( 6, $cleared );
     }
 
     public function test_uninstall_cleanup_deletes_form_posts(): void {

@@ -78,6 +78,7 @@ class Settings {
 		add_action( 'admin_init', array( $this, 'load_tabs' ), 5 );
 		add_action( 'admin_init', array( $this, 'handle_settings_submission' ) );
 		add_action( 'admin_init', array( $this, 'handle_clear_qr_cache' ) );
+		add_action( 'admin_init', array( $this, 'handle_send_test_email' ) );
 		add_action( 'admin_init', array( $this, 'handle_migration_execution' ) );
 		add_action( 'admin_init', array( $this, 'handle_obsolete_shortcode_cleanup' ) );
 		add_action( 'admin_init', array( $this, 'handle_url_shortener_cleanup' ) );
@@ -259,6 +260,13 @@ class Settings {
 	 */
 	public function handle_clear_qr_cache(): void {
 		$this->action_handler->handle_clear_qr_cache();
+	}
+
+	/**
+	 * Handle the "Send a test email" action (Settings → SMTP).
+	 */
+	public function handle_send_test_email(): void {
+		$this->action_handler->handle_send_test_email();
 	}
 
 	/**

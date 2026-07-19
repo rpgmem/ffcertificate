@@ -33,7 +33,30 @@ $ffcertificate_emails_enabled  = ! $ffcertificate_emails_disabled;
 
 <div class="card">
 	<h2 class="ffc-icon-email"><?php esc_html_e( 'Email Configuration', 'ffcertificate' ); ?></h2>
-	
+	<?php \FreeFormCertificate\Core\EmailDisabledNotice::render(); ?>
+	<?php
+	// Flash notice for the "Send a test email" action (Email Model box). This is
+	// a display-only read after a nonce-checked POST → redirect (PRG); the value
+	// is a fixed allowlisted flag, so no nonce is needed on this GET render.
+	// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Display-only flash after a nonce-checked POST; value allowlisted below.
+	$ffcertificate_test_email_flag = isset( $_GET['ffc_test_email'] ) ? sanitize_key( wp_unslash( $_GET['ffc_test_email'] ) ) : '';
+	if ( '' !== $ffcertificate_test_email_flag ) {
+		$ffcertificate_test_email_notices = array(
+			'sent'       => array( 'notice-success', __( 'Test email sent to your account.', 'ffcertificate' ) ),
+			'disabled'   => array( 'notice-warning', __( 'Emails are globally disabled, so the test email was not sent. Enable email sending above and try again.', 'ffcertificate' ) ),
+			'no_address' => array( 'notice-error', __( 'Your account has no email address, so the test email could not be sent.', 'ffcertificate' ) ),
+			'failed'     => array( 'notice-error', __( 'The test email could not be sent. Check your SMTP settings and try again.', 'ffcertificate' ) ),
+		);
+		if ( isset( $ffcertificate_test_email_notices[ $ffcertificate_test_email_flag ] ) ) {
+			printf(
+				'<div class="notice %1$s inline"><p>%2$s</p></div>',
+				esc_attr( $ffcertificate_test_email_notices[ $ffcertificate_test_email_flag ][0] ),
+				esc_html( $ffcertificate_test_email_notices[ $ffcertificate_test_email_flag ][1] )
+			);
+		}
+	}
+	?>
+
 	<form method="post">
 		<?php wp_nonce_field( 'ffc_settings_action', 'ffc_settings_nonce' ); ?>
 		<input type="hidden" name="_ffc_tab" value="smtp">
@@ -215,9 +238,10 @@ $ffcertificate_emails_enabled  = ! $ffcertificate_emails_disabled;
 	</form>
 </div>
 
-<div class="card">
+<?php // Popular providers are only relevant to Custom SMTP — hidden otherwise (JS keeps it in sync with the Mode radio). ?>
+<div class="card<?php echo ( ! $ffcertificate_emails_disabled && 'custom' === $ffcertificate_smtp_mode ) ? '' : ' ffc-hidden'; ?>" id="ffc-smtp-providers">
 	<h2 class="ffc-icon-bulb"><?php esc_html_e( 'Popular SMTP Providers', 'ffcertificate' ); ?></h2>
-	
+
 	<div class="ffc-provider-grid">
 		<div class="ffc-provider-card gmail">
 			<h4>Gmail</h4>
@@ -249,5 +273,17 @@ $ffcertificate_emails_enabled  = ! $ffcertificate_emails_disabled;
 		</div>
 	</div>
 </div>
+
+<?php if ( ! \FreeFormCertificate\Integrations\MailQueue::is_active() ) : ?>
+<div class="card" id="ffc-mailqueue-recommendation">
+	<h2 class="ffc-icon-bulb"><?php esc_html_e( 'Recommended for reliable delivery', 'ffcertificate' ); ?></h2>
+	<p><?php esc_html_e( 'For queued sending with automatic retries and true multipart (HTML + plain-text) delivery, install the total-mail-queue plugin. Every email this plugin sends already goes through wp_mail(), so it is picked up automatically once activated — no extra configuration.', 'ffcertificate' ); ?></p>
+	<p>
+		<a class="button" href="<?php echo esc_url( 'https://github.com/rpgmem/total-mail-queue' ); ?>" target="_blank" rel="noopener noreferrer"><?php esc_html_e( 'Learn more about total-mail-queue', 'ffcertificate' ); ?></a>
+	</p>
+</div>
+<?php endif; ?>
+
+<?php require FFC_PLUGIN_DIR . 'templates/admin/settings/email-model-box.php'; ?>
 
 </div><!-- .ffc-settings-wrap -->

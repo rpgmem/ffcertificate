@@ -31,9 +31,11 @@ class FormEditorEmailMetabox {
 	 * @param WP_Post $post The post object.
 	 */
 	public function render( WP_Post $post ): void {
+		$this->enqueue_restore_default_script();
+
 		$config     = get_post_meta( $post->ID, '_ffc_form_config', true );
 		$send_email = isset( $config['send_user_email'] ) ? $config['send_user_email'] : '0';
-		$subject    = isset( $config['email_subject'] ) ? $config['email_subject'] : __( 'Your Certificate', 'ffcertificate' );
+		$subject    = isset( $config['email_subject'] ) ? $config['email_subject'] : \FreeFormCertificate\Core\EmailTemplateDefaults::user_email_subject();
 		$body       = isset( $config['email_body'] ) ? (string) $config['email_body'] : '';
 		// When the email is enabled but no custom message was written yet, seed
 		// the editor with a sensible default so the operator starts from a ready
@@ -45,7 +47,12 @@ class FormEditorEmailMetabox {
 			$body = self::default_email_body();
 		}
 		$collapsed = ( '1' !== (string) $send_email );
+
+		$send_admin      = isset( $config['send_admin_email'] ) ? $config['send_admin_email'] : '0';
+		$email_admin     = isset( $config['email_admin'] ) ? (string) $config['email_admin'] : '';
+		$admin_collapsed = ( '1' !== (string) $send_admin );
 		?>
+		<?php \FreeFormCertificate\Core\EmailDisabledNotice::render(); ?>
 		<table class="form-table">
 			<tr>
 				<th><label><?php esc_html_e( 'Send Email to User?', 'ffcertificate' ); ?></label></th>
@@ -109,7 +116,11 @@ class FormEditorEmailMetabox {
 					);
 					?>
 					<p class="description">
-						<?php esc_html_e( 'Placeholders such as {{auth_code}} and {{name}} are preserved automatically.', 'ffcertificate' ); ?>
+						<?php esc_html_e( 'Placeholders: {{name}}, {{form_title}}, {{auth_code}}, {{date}}. Links use the validation-URL DSL — e.g. {{validation_url link:m>"Download (PDF)"}} for the magic download link, or {{validation_url link:v>v}} for the public /valid page.', 'ffcertificate' ); ?>
+					</p>
+					<p>
+						<button type="button" class="button ffc-email-restore-default" data-editor="ffc_email_body" data-default-key="certificate_body"><?php esc_html_e( 'Restore Default Text', 'ffcertificate' ); ?></button>
+						<span class="description"><?php esc_html_e( 'Replaces the message above with the default template. You can also just clear the field — an empty body falls back to the default when the email is sent.', 'ffcertificate' ); ?></span>
 					</p>
 				</td>
 			</tr>
@@ -123,20 +134,87 @@ class FormEditorEmailMetabox {
 			</tr>
 		</table>
 		</div><!-- /.ffc-collapsed-target -->
+
+		<table class="form-table">
+			<tr>
+				<th><label><?php esc_html_e( 'Notify Admin on Submission?', 'ffcertificate' ); ?></label></th>
+				<td>
+					<input type="hidden" name="ffc_config[send_admin_email]" value="0">
+					<?php
+					\FreeFormCertificate\Admin\AdminUI::render_toggle(
+						array(
+							'name'    => 'ffc_config[send_admin_email]',
+							'id'      => 'ffc_config_send_admin_email',
+							'checked' => '1' === (string) $send_admin,
+							'label'   => __( 'Send an admin notification email after a successful submission.', 'ffcertificate' ),
+							'data'    => array( 'ffc-autosave-form-key' => 'send_admin_email' ),
+						)
+					);
+					?>
+				</td>
+			</tr>
+		</table>
+		<div class="ffc-collapsed-target<?php echo $admin_collapsed ? ' ffc-collapsed' : ''; ?>"
+			data-ffc-master="ffc_config_send_admin_email"
+			aria-hidden="<?php echo $admin_collapsed ? 'true' : 'false'; ?>">
+		<table class="form-table">
+			<tr>
+				<th><label for="ffc_config_email_admin"><?php esc_html_e( 'Admin Recipient(s)', 'ffcertificate' ); ?></label></th>
+				<td>
+					<input type="text" name="ffc_config[email_admin]" id="ffc_config_email_admin" value="<?php echo esc_attr( $email_admin ); ?>" class="ffc-w100">
+					<p class="description">
+						<?php esc_html_e( 'Comma-separated email addresses. Leave empty to use the site admin email.', 'ffcertificate' ); ?>
+					</p>
+				</td>
+			</tr>
+		</table>
+		</div><!-- /.ffc-collapsed-target -->
 		<?php
 	}
 
 	/**
-	 * Default user-email body (custom message) seeded into the editor when a
-	 * form enables the email without a message of its own. Complements the
-	 * fixed email chrome (heading, authentication-code card, view/download
-	 * button) that {@see \FreeFormCertificate\Integrations\EmailHandler}
-	 * already builds — so this is just a friendly intro, not the whole email.
+	 * Enqueue the "Restore Default Text" button wiring for the email body
+	 * editor and hand it the default template + a confirmation string.
 	 *
-	 * @return string Default email body HTML (with `{{name}}` placeholder).
+	 * Uses the shared `ffc-email-restore-default` script (the same generic
+	 * `data-editor` / `data-default-key` button used by the recruitment and
+	 * self-scheduling editors) — there is one restore-button implementation
+	 * plugin-wide (#673). The default body is the same one
+	 * {@see self::default_email_body()} seeds into an empty editor, so the
+	 * button and the initial seed always agree.
+	 */
+	private function enqueue_restore_default_script(): void {
+		$suffix = \FreeFormCertificate\Core\AssetHelper::asset_suffix();
+		wp_enqueue_script(
+			'ffc-email-restore-default',
+			FFC_PLUGIN_URL . "assets/js/ffc-email-restore-default{$suffix}.js",
+			array( 'jquery' ),
+			FFC_VERSION,
+			true
+		);
+		wp_localize_script(
+			'ffc-email-restore-default',
+			'ffcEmailRestoreDefaults',
+			array(
+				'certificate_body' => array(
+					'body'    => self::default_email_body(),
+					'confirm' => __( 'Replace the current message with the default template? Your changes will be lost.', 'ffcertificate' ),
+				),
+			)
+		);
+	}
+
+	/**
+	 * Default user-email body seeded into the editor when a form enables the
+	 * email without a message of its own. This is the editable **"email body"**
+	 * (greeting, download button, auth code, verification link); the shared,
+	 * admin-configurable "Email Model" chrome (header/footer) is added around
+	 * it at send time (#662 PR-7). See
+	 * {@see \FreeFormCertificate\Core\EmailTemplateDefaults::user_email_body()}.
+	 *
+	 * @return string Default email body HTML (with placeholders).
 	 */
 	public static function default_email_body(): string {
-		return '<p>' . __( 'Hello {{name}},', 'ffcertificate' ) . '</p>'
-			. '<p>' . __( 'Your certificate has been issued. Use the button below to view and download it, and keep your authentication code for future verification.', 'ffcertificate' ) . '</p>';
+		return \FreeFormCertificate\Core\EmailTemplateDefaults::user_email_body();
 	}
 }

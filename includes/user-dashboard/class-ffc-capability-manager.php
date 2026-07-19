@@ -22,6 +22,8 @@ if ( ! defined( 'ABSPATH' ) ) {
  */
 class CapabilityManager {
 
+	use \FreeFormCertificate\Core\EmailHelperTrait;
+
 	/**
 	 * Context constants for capability granting
 	 */
@@ -181,11 +183,16 @@ class CapabilityManager {
 		// export cap to everyone who already holds the matching `manage` cap,
 		// preserving current behavior on upgrade; admins restrict by removing the
 		// export cap from a role. See `export_cap_grant_map()`. Certificates
-		// already has `ffc_export_certificates` above, and activity-log export
-		// stays under its read-only `ffc_view_activity_log` cap.
+		// already has `ffc_export_certificates` above. Activity-log export now
+		// gets its own `ffc_export_activity_log` cap too (#711 §5), split out of
+		// the read-only `ffc_view_activity_log` so a view-only operator can no
+		// longer bulk-extract the audit trail; the one-shot
+		// `migrate_activity_log_export_cap_grant()` seeds it onto every current
+		// `ffc_view_activity_log` holder, preserving behavior on upgrade.
 		'ffc_export_appointments',
 		'ffc_export_reregistration',
 		'ffc_export_audiences',
+		'ffc_export_activity_log',
 
 		// Granular "import" tier (GAP H). Bulk CSV ingestion is split out of
 		// `manage` for the domains where loading external data is the most
@@ -197,6 +204,21 @@ class CapabilityManager {
 		// cap onto every holder of the matching `manage` cap, preserving current
 		// behavior on upgrade. See `import_cap_grant_map()`.
 		'ffc_import_audiences',
+
+		// Settings sub-caps (#711). Carve the two most sensitive Settings
+		// surfaces out of the blanket `ffc_manage_settings` so each can be
+		// delegated — or withheld — independently: `ffc_manage_settings_smtp`
+		// gates saving the SMTP transport + Email Model configuration, and
+		// `ffc_manage_settings_dangerzone` gates every destructive maintenance
+		// action (delete-all submissions, obsolete-shortcode / short-URL
+		// cleanup, public-access disabler, submission-link audit, and data
+		// migration execution — previously `manage_options`-only). The one-shot
+		// `migrate_settings_split_caps_grant()` seeds both onto every holder of
+		// `ffc_manage_settings`, preserving current behavior on upgrade; admins
+		// restrict by removing a sub-cap from a role. See
+		// `settings_split_cap_grant_map()`.
+		'ffc_manage_settings_smtp',
+		'ffc_manage_settings_dangerzone',
 	);
 
 	/**
@@ -419,19 +441,22 @@ class CapabilityManager {
 		/* translators: %1$s: site name, %2$s: feature name */
 		$subject = sprintf( __( '[%1$s] Access granted: %2$s', 'ffcertificate' ), $site_name, $context_label );
 
-		/* translators: %s: user display name */
-		$message = sprintf( __( 'Hello %s,', 'ffcertificate' ), $user->display_name ) . "\n\n";
-		/* translators: %1$s: feature name, %2$s: site name */
-		$message .= sprintf( __( 'You now have access to %1$s on %2$s.', 'ffcertificate' ), $context_label, $site_name ) . "\n\n";
+		// Email body → shared configurable chrome (#662 PR-8), like every other email.
+		$content = self::ffc_render_email_partial(
+			'access-granted',
+			array(
+				'user_name'     => $user->display_name,
+				'context_label' => $context_label,
+				'site_name'     => $site_name,
+				'dashboard_url' => $dashboard_url ? $dashboard_url : '',
+			)
+		);
 
-		if ( $dashboard_url ) {
-			/* translators: %s: dashboard URL */
-			$message .= sprintf( __( 'Access your dashboard: %s', 'ffcertificate' ), $dashboard_url ) . "\n\n";
-		}
-
-		$message .= __( 'This is an automated message.', 'ffcertificate' ) . "\n";
-
-		wp_mail( $user->user_email, $subject, $message );
+		self::ffc_send_mail(
+			$user->user_email,
+			$subject,
+			self::ffc_email_document( $content, array( 'recipient' => $user->user_email ) )
+		);
 	}
 
 	/**

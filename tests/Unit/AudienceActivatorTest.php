@@ -309,6 +309,11 @@ class AudienceActivatorTest extends TestCase {
                 return 1;
             } );
 
+        // The email-token migration (#653) runs from maybe_migrate(); mark it
+        // already done so it short-circuits and this test stays focused on the
+        // schema ALTERs.
+        Functions\when( 'get_option' )->justReturn( 1 );
+
         AudienceActivator::maybe_migrate();
 
         // Should have issued ALTER TABLE queries for column additions
