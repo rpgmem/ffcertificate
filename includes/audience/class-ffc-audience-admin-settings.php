@@ -15,6 +15,7 @@ namespace FreeFormCertificate\Audience;
 
 use FreeFormCertificate\Core\Utils;
 use FreeFormCertificate\Core\RequestInput;
+use FreeFormCertificate\Core\SettingsPersistence;
 
 use FreeFormCertificate\Core\ColorValidator;
 
@@ -550,15 +551,14 @@ class AudienceAdminSettings {
 	 * @return void
 	 */
 	public function handle_visibility_settings(): void {
-		if ( ! \FreeFormCertificate\Core\Capabilities::current_user_can_admin_or( 'ffc_manage_audiences' ) ) {
-			return;
-		}
-
 		// Save Self-Scheduling visibility settings.
-        // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Nonce verified inside this block.
+        // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Nonce + capability verified via SettingsPersistence::authorize() below.
 		if ( isset( $_POST['ffc_action'] ) && 'save_ss_visibility_settings' === $_POST['ffc_action'] ) {
-			if ( ! isset( $_POST['ffc_ss_visibility_nonce'] ) ||
-				! wp_verify_nonce( RequestInput::get_post_string( 'ffc_ss_visibility_nonce' ), 'ffc_ss_visibility_settings' ) ) {
+			if ( ! SettingsPersistence::authorize(
+				'ffc_manage_audiences',
+				array( 'action' => 'ffc_ss_visibility_settings', 'field' => 'nonce' ),
+				array( 'nonce' => RequestInput::get_post_string( 'ffc_ss_visibility_nonce' ) )
+			) ) {
 				return;
 			}
 
@@ -581,8 +581,11 @@ class AudienceAdminSettings {
 		// Save Self-Scheduling business hours restriction messages.
         // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Nonce verified inside this block.
 		if ( isset( $_POST['ffc_action'] ) && 'save_ss_business_hours_settings' === $_POST['ffc_action'] ) {
-			if ( ! isset( $_POST['ffc_ss_business_hours_nonce'] ) ||
-				! wp_verify_nonce( RequestInput::get_post_string( 'ffc_ss_business_hours_nonce' ), 'ffc_ss_business_hours_settings' ) ) {
+			if ( ! SettingsPersistence::authorize(
+				'ffc_manage_audiences',
+				array( 'action' => 'ffc_ss_business_hours_settings', 'field' => 'nonce' ),
+				array( 'nonce' => RequestInput::get_post_string( 'ffc_ss_business_hours_nonce' ) )
+			) ) {
 				return;
 			}
 
@@ -597,8 +600,11 @@ class AudienceAdminSettings {
 		// Save Audience visibility settings.
         // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Nonce verified inside this block.
 		if ( isset( $_POST['ffc_action'] ) && 'save_aud_visibility_settings' === $_POST['ffc_action'] ) {
-			if ( ! isset( $_POST['ffc_aud_visibility_nonce'] ) ||
-				! wp_verify_nonce( RequestInput::get_post_string( 'ffc_aud_visibility_nonce' ), 'ffc_aud_visibility_settings' ) ) {
+			if ( ! SettingsPersistence::authorize(
+				'ffc_manage_audiences',
+				array( 'action' => 'ffc_aud_visibility_settings', 'field' => 'nonce' ),
+				array( 'nonce' => RequestInput::get_post_string( 'ffc_aud_visibility_nonce' ) )
+			) ) {
 				return;
 			}
 
@@ -635,12 +641,11 @@ class AudienceAdminSettings {
 		// Add global holiday (POST).
         // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Nonce verified inside this block.
 		if ( isset( $_POST['ffc_action'] ) && 'add_global_holiday' === $_POST['ffc_action'] ) {
-			if ( ! isset( $_POST['ffc_global_holiday_nonce'] ) ||
-				! wp_verify_nonce( RequestInput::get_post_string( 'ffc_global_holiday_nonce' ), 'ffc_global_holiday_action' ) ) {
-				return;
-			}
-
-			if ( ! \FreeFormCertificate\Core\Capabilities::current_user_can_admin_or( 'ffc_manage_audiences' ) ) {
+			if ( ! SettingsPersistence::authorize(
+				'ffc_manage_audiences',
+				array( 'action' => 'ffc_global_holiday_action', 'field' => 'nonce' ),
+				array( 'nonce' => RequestInput::get_post_string( 'ffc_global_holiday_nonce' ) )
+			) ) {
 				return;
 			}
 
@@ -679,12 +684,11 @@ class AudienceAdminSettings {
 		if ( isset( $_GET['ffc_action'] ) && 'delete_global_holiday' === $_GET['ffc_action'] ) {
 			$index = isset( $_GET['holiday_index'] ) ? absint( $_GET['holiday_index'] ) : -1;
 
-			if ( ! isset( $_GET['ffc_global_holiday_nonce'] ) ||
-				! wp_verify_nonce( RequestInput::get_get_string( 'ffc_global_holiday_nonce' ), 'delete_global_holiday_' . $index ) ) {
-				return;
-			}
-
-			if ( ! \FreeFormCertificate\Core\Capabilities::current_user_can_admin_or( 'ffc_manage_audiences' ) ) {
+			if ( ! SettingsPersistence::authorize(
+				'ffc_manage_audiences',
+				array( 'action' => 'delete_global_holiday_' . $index, 'field' => 'nonce' ),
+				array( 'nonce' => RequestInput::get_get_string( 'ffc_global_holiday_nonce' ) )
+			) ) {
 				return;
 			}
 

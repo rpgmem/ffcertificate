@@ -169,4 +169,40 @@ class SettingsPersistenceTest extends TestCase {
 		);
 		$this->assertTrue( SettingsPersistence::save( $spec ) );
 	}
+
+	public function test_authorize_true_when_nonce_and_cap_pass(): void {
+		Functions\when( 'wp_verify_nonce' )->justReturn( 1 );
+		Functions\when( 'current_user_can' )->justReturn( true );
+		$this->assertTrue(
+			SettingsPersistence::authorize(
+				'ffc_manage_audiences',
+				array( 'action' => 'a', 'field' => '_wpnonce' ),
+				array( '_wpnonce' => 'tok' )
+			)
+		);
+	}
+
+	public function test_authorize_false_on_bad_nonce(): void {
+		Functions\when( 'wp_verify_nonce' )->justReturn( false );
+		Functions\when( 'current_user_can' )->justReturn( true );
+		$this->assertFalse(
+			SettingsPersistence::authorize( 'ffc_x', array( 'action' => 'a', 'field' => '_wpnonce' ), array( '_wpnonce' => 'tok' ) )
+		);
+	}
+
+	public function test_authorize_false_without_capability(): void {
+		Functions\when( 'wp_verify_nonce' )->justReturn( 1 );
+		Functions\when( 'current_user_can' )->justReturn( false );
+		$this->assertFalse(
+			SettingsPersistence::authorize( 'ffc_x', array( 'action' => 'a', 'field' => '_wpnonce' ), array( '_wpnonce' => 'tok' ) )
+		);
+	}
+
+	public function test_authorize_false_when_token_missing(): void {
+		Functions\when( 'wp_verify_nonce' )->justReturn( 1 );
+		Functions\when( 'current_user_can' )->justReturn( true );
+		$this->assertFalse(
+			SettingsPersistence::authorize( 'ffc_x', array( 'action' => 'a', 'field' => '_wpnonce' ), array() )
+		);
+	}
 }
