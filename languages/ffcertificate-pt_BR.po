@@ -3,7 +3,7 @@ msgstr ""
 "Project-Id-Version: Free Form Certificate\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-02-06 11:00+0000\n"
-"PO-Revision-Date: 2026-07-19 15:20+0000\n"
+"PO-Revision-Date: 2026-07-19 15:29+0000\n"
 "Last-Translator: Alex Meusburger\n"
 "Language-Team: Português do Brasil\n"
 "Language: pt_BR\n"
@@ -7393,7 +7393,7 @@ msgstr "Quatro novos sinais de impressão digital de dispositivo estão agora at
 #. Name of the plugin
 #: includes/privacy/class-ffc-privacy-handler.php:151
 msgid "Free Form Certificate"
-msgstr "Formulário Grátis para Certificado"
+msgstr "Free Form Certificate"
 
 #: includes/settings/views/documentation/overview.php:20
 msgid "Free Form Certificate turns WordPress into a complete platform for issuing verifiable documents. Build a form, design the certificate once, and let people receive a signed PDF the moment they submit — validated by QR code or a public link, protected against fraud and duplicate issuance, and delivered by email automatically."
@@ -7405,7 +7405,7 @@ msgstr "Free Form Certificate v6.3.2"
 
 #: includes/admin/class-ffc-settings-action-handler.php:746
 msgid "Free Form Certificate — test email"
-msgstr "Formulário Grátis de Certificado — e-mail de teste"
+msgstr "Free Form Certificate — e-mail de teste"
 
 #: includes/settings/views/documentation/scheduling-audiences.php:30
 msgid "Free-form times, not fixed slots."
