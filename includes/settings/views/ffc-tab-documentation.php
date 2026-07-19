@@ -129,14 +129,56 @@ $ffc_doc_tree = array(
 				),
 			),
 			array(
+				'title'    => __( 'Submissions', 'ffcertificate' ),
+				'icon'     => 'dashicons-list-view',
+				'children' => array(
+					array(
+						'anchor' => 'submissions-list',
+						'icon'   => 'dashicons-list-view',
+						'title'  => __( 'Submissions — list & editing', 'ffcertificate' ),
+						'file'   => 'submissions-list.php',
+					),
+					array(
+						'anchor' => 'submissions-download',
+						'icon'   => 'dashicons-download',
+						'title'  => __( 'Downloading the certificate', 'ffcertificate' ),
+						'file'   => 'submissions-download.php',
+					),
+				),
+			),
+			array(
 				'title'    => __( 'Configuration', 'ffcertificate' ),
 				'icon'     => 'dashicons-admin-generic',
 				'children' => array(
+					array(
+						'anchor' => 'config-general',
+						'icon'   => 'dashicons-admin-settings',
+						'title'  => __( 'General', 'ffcertificate' ),
+						'file'   => 'config-general.php',
+					),
 					array(
 						'anchor' => 'reference-emails',
 						'icon'   => 'dashicons-email',
 						'title'  => __( 'Emails & Delivery', 'ffcertificate' ),
 						'file'   => 'reference-emails.php',
+					),
+					array(
+						'anchor' => 'config-cache',
+						'icon'   => 'dashicons-performance',
+						'title'  => __( 'Cache', 'ffcertificate' ),
+						'file'   => 'config-cache.php',
+					),
+					array(
+						'anchor' => 'config-rate-limit',
+						'icon'   => 'dashicons-shield-alt',
+						'title'  => __( 'Rate Limit', 'ffcertificate' ),
+						'file'   => 'config-rate-limit.php',
+					),
+					array(
+						'anchor' => 'config-geolocation',
+						'icon'   => 'dashicons-location-alt',
+						'title'  => __( 'Geolocation', 'ffcertificate' ),
+						'file'   => 'config-geolocation.php',
 					),
 					array(
 						'anchor' => 'feature-user-dashboard',
@@ -149,6 +191,12 @@ $ffc_doc_tree = array(
 						'icon'   => 'dashicons-admin-network',
 						'title'  => __( 'Capabilities & Roles', 'ffcertificate' ),
 						'file'   => 'reference-capabilities.php',
+					),
+					array(
+						'anchor' => 'config-advanced',
+						'icon'   => 'dashicons-admin-tools',
+						'title'  => __( 'Advanced', 'ffcertificate' ),
+						'file'   => 'config-advanced.php',
 					),
 					array(
 						'anchor' => 'operations-maintenance',
