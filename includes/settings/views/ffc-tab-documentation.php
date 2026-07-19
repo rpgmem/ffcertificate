@@ -311,7 +311,7 @@ $ffc_render_doc_nav = static function ( array $ffc_nodes, int $ffc_depth ) use (
 		$ffc_children = ( isset( $ffc_node['children'] ) && is_array( $ffc_node['children'] ) ) ? $ffc_node['children'] : array();
 
 		if ( ! empty( $ffc_children ) ) {
-			echo '<li class="ffc-doc-toc-branch"><details open><summary>';
+			echo '<li class="ffc-doc-toc-branch"><details><summary>';
 			if ( '' !== $ffc_icon ) {
 				echo '<span class="dashicons ' . esc_attr( $ffc_icon ) . '" aria-hidden="true"></span> ';
 			}

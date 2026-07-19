@@ -41,14 +41,20 @@
 		observer.observe( sentinel );
 
 		toc.addEventListener( 'click', function ( event ) {
+			// Let the tree behave natively: expanding/collapsing a branch
+			// (<summary>) or focusing the search field must NOT collapse the
+			// whole Quick-Navigation card.
+			if ( event.target.closest( 'summary' ) || event.target.closest( 'input' ) ) {
+				return;
+			}
 			// Anchor click: navigate normally and ensure the strip
 			// re-collapses (the IO will then resync on the next scroll).
 			if ( event.target.closest( 'a' ) ) {
 				toc.classList.add( 'is-collapsed' );
 				return;
 			}
-			// Any other click on the card toggles the strip — used when
-			// the user wants to peek at the list mid-page.
+			// A click on the card chrome (e.g. the title) toggles the strip —
+			// used when the user wants to peek at the list mid-page.
 			toc.classList.toggle( 'is-collapsed' );
 		} );
 	}

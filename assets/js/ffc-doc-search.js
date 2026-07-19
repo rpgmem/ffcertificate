@@ -26,6 +26,9 @@
 		var navItems = document.querySelectorAll(
 			'.ffc-doc-toc-list li:not(.ffc-doc-toc-section)'
 		);
+		// Collapsible branches default to closed; a query opens the ones that
+		// contain a match, and clearing the query restores the closed state.
+		var branches = document.querySelectorAll( '.ffc-doc-toc-list details' );
 
 		function apply() {
 			var q = input.value.trim().toLowerCase();
@@ -38,6 +41,10 @@
 			Array.prototype.forEach.call( navItems, function ( li ) {
 				var hit = '' === q || li.textContent.toLowerCase().indexOf( q ) !== -1;
 				li.style.display = hit ? '' : 'none';
+			} );
+
+			Array.prototype.forEach.call( branches, function ( d ) {
+				d.open = '' !== q && d.textContent.toLowerCase().indexOf( q ) !== -1;
 			} );
 		}
 

@@ -89,4 +89,28 @@ describe('ffc-doc-search', () => {
 		expect(document.getElementById('card-shortcodes').style.display).toBe('');
 		expect(document.getElementById('card-emails').style.display).toBe('');
 	});
+
+	it('opens a collapsed branch that contains a matching nav item, and re-closes it on clear', () => {
+		document.body.innerHTML = `
+			<div class="ffc-settings-wrap">
+				<div class="card ffc-doc-toc">
+					<input type="search" id="ffc-doc-search">
+					<ul class="ffc-doc-toc-list">
+						<li class="ffc-doc-toc-branch"><details><summary>Certificates</summary>
+							<ul class="ffc-doc-toc-sublist"><li><a href="#emails">Emails and Delivery</a></li></ul>
+						</details></li>
+					</ul>
+				</div>
+				<div class="card" id="card-emails"><h3 id="emails">Emails and Delivery</h3><p>SMTP.</p></div>
+			</div>
+		`;
+		loadScript(SCRIPT);
+		const details = document.querySelector('.ffc-doc-toc-list details');
+
+		expect(details.open).toBe(false); // closed by default
+		type('delivery');
+		expect(details.open).toBe(true); // opened to reveal the match
+		type('');
+		expect(details.open).toBe(false); // restored to closed
+	});
 });

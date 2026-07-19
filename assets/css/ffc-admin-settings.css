@@ -573,8 +573,11 @@
     padding: 8px 12px;
     cursor: pointer;
     border-radius: 4px;
-    font-weight: 600;
-    color: var(--ffc-text);
+    background: var(--ffc-bg-card);
+    border: 1px solid var(--ffc-border);
+    font-weight: 500;
+    color: var(--ffc-link);
+    transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
     list-style: none;
     user-select: none;
 }
@@ -599,7 +602,14 @@
 }
 
 .ffc-doc-toc-branch > details > summary:hover {
-    background: var(--ffc-bg-alt);
+    background: var(--ffc-primary);
+    color: var(--ffc-text-on-primary);
+    border-color: var(--ffc-primary);
+}
+
+.ffc-doc-toc-branch > details > summary:hover::before,
+.ffc-doc-toc-branch > details > summary:hover .dashicons {
+    color: var(--ffc-text-on-primary);
 }
 
 .ffc-doc-toc-branch > details > summary .dashicons {
