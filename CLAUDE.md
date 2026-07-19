@@ -163,7 +163,9 @@ ffc_<action>_[own_]<domain>[_<qualifier>]
 - **Actions (closed vocabulary):** `view` (read-only) · `manage` (read-write: create/edit/delete/configure) · `export` · `import` · `edit` (modify existing records — narrower than `manage`) · `delete`. Flow-specific verbs: `book`, `cancel`, `download`, `call`, `bypass`.
 - **`own_`** marks a self-scoped end-user cap (frontend; the user's own data).
 - **Domains (canonical):** `certificates`, `appointments`, `audiences`, `reregistration`, `custom_fields`, `activity_log`, `settings`, `recruitment`, `url_shortener`, `forms_api`.
-- **Qualifiers:** `_pii`, `_settings`, `_reasons`, `_history`.
+- **Qualifiers:** `_pii`, `_settings`, `_reasons`, `_history`, `_smtp`, `_dangerzone`. The last two carve the two most sensitive Settings surfaces out of the blanket `ffc_manage_settings` (#711): `ffc_manage_settings_smtp` gates the SMTP transport + Email Model save, and `ffc_manage_settings_dangerzone` gates every destructive maintenance action (delete-all, cleanups, public-access disabler, submission-link audit, migration execution). A dedicated `ffc_export_activity_log` (export tier) was also split out of the read-only `ffc_view_activity_log` so a view-only operator cannot bulk-extract the audit trail. All three ship with one-shot grant migrations that seed the new cap onto current holders, so no one loses access on upgrade.
+
+**Settings-write auth — WP-standard, no engine (deliberate, #711).** Settings-write authorization uses the **WordPress-standard inline pattern**: native nonce funcs (`wp_verify_nonce` / `check_admin_referer` / `check_ajax_referer`) + the existing capability chokepoint `Capabilities::current_user_can_admin_or()`. Do **not** wrap this in a settings persistence/authorize "engine" — one was tried and removed as net-negative indirection (it fit none of the real writers and only hid the nonce from the WPCS sniff).
 
 ### 3-state permission model
 
