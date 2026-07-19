@@ -104,14 +104,21 @@ final class SettingsPersistence {
 	}
 
 	/**
-	 * Verify the CSRF nonce and the coarse capability for a write.
+	 * Authorize a settings write: verify the CSRF nonce, then the capability.
 	 *
-	 * @param array<string, mixed> $spec Save specification.
-	 * @return bool
+	 * The gate-only half of the chokepoint. Every settings writer — including
+	 * the ones whose persistence doesn't fit {@see self::save()}'s flat
+	 * field-map (multi-option forms, imperative actions) — can funnel its
+	 * "may this user write this?" decision through one audited place. The gate
+	 * is capability-driven (resolved via {@see Capabilities::current_user_can_admin_or()},
+	 * i.e. `manage_options` OR the cap); roles never enter it.
+	 *
+	 * @param string                                 $cap   Capability slug.
+	 * @param array{action?: string, field?: string} $nonce Nonce action + the input key holding the token.
+	 * @param array<string, mixed>                   $input Request payload (e.g. `wp_unslash( $_POST )`).
+	 * @return bool True when both the nonce and the capability pass.
 	 */
-	private static function verify( array $spec ): bool {
-		$nonce  = ( isset( $spec['nonce'] ) && is_array( $spec['nonce'] ) ) ? $spec['nonce'] : array();
-		$input  = ( isset( $spec['input'] ) && is_array( $spec['input'] ) ) ? $spec['input'] : array();
+	public static function authorize( string $cap, array $nonce, array $input ): bool {
 		$field  = isset( $nonce['field'] ) ? (string) $nonce['field'] : '';
 		$action = isset( $nonce['action'] ) ? (string) $nonce['action'] : '';
 		$token  = ( '' !== $field && isset( $input[ $field ] ) ) ? (string) $input[ $field ] : '';
@@ -120,8 +127,21 @@ final class SettingsPersistence {
 			return false;
 		}
 
-		$cap = isset( $spec['cap'] ) ? (string) $spec['cap'] : '';
 		return '' !== $cap && Capabilities::current_user_can_admin_or( $cap );
+	}
+
+	/**
+	 * Verify the CSRF nonce and the capability for a {@see self::save()} spec.
+	 *
+	 * @param array<string, mixed> $spec Save specification.
+	 * @return bool
+	 */
+	private static function verify( array $spec ): bool {
+		$nonce = ( isset( $spec['nonce'] ) && is_array( $spec['nonce'] ) ) ? $spec['nonce'] : array();
+		$input = ( isset( $spec['input'] ) && is_array( $spec['input'] ) ) ? $spec['input'] : array();
+		$cap   = isset( $spec['cap'] ) ? (string) $spec['cap'] : '';
+
+		return self::authorize( $cap, $nonce, $input );
 	}
 
 	/**
