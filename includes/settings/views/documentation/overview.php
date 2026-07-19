@@ -1,9 +1,10 @@
 <?php
 /**
- * Documentation partial — Section 13: Features.
+ * Documentation partial — Overview.
  *
- * Extracted from `ffc-tab-documentation.php` per S8 of the
- * god-object refactor (rpgmem/ffcertificate#141).
+ * The landing page of the documentation tab: a short "what this plugin does"
+ * introduction plus the headline capabilities, linking into the functional
+ * tree. Rewritten for the functional reorganization (rpgmem/ffcertificate#697).
  *
  * @package FreeFormCertificate\Settings
  */
@@ -12,86 +13,54 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 ?>
-<!-- 13. Features Section -->
+<!-- Overview Section -->
 <div class="card">
-	<h3 id="overview"><span class="dashicons dashicons-info" aria-hidden="true"></span> <?php esc_html_e( 'Overview & Features', 'ffcertificate' ); ?></h3>
-	
+	<h3 id="overview"><span class="dashicons dashicons-info" aria-hidden="true"></span> <?php esc_html_e( 'Overview', 'ffcertificate' ); ?></h3>
+
+	<p><?php esc_html_e( 'Free Form Certificate turns WordPress into a complete platform for issuing verifiable documents. Build a form, design the certificate once, and let people receive a signed PDF the moment they submit — validated by QR code or a public link, protected against fraud and duplicate issuance, and delivered by email automatically.', 'ffcertificate' ); ?></p>
+
+	<p><?php esc_html_e( 'It is much more than certificates: the same foundation powers appointment scheduling, shared-space booking, reregistration campaigns, public-tender candidate queues and a click-tracking URL shortener — all under one roof, one design system and one email pipeline.', 'ffcertificate' ); ?></p>
+
+	<h4><?php esc_html_e( 'What you can do', 'ffcertificate' ); ?></h4>
 	<ul class="ffc-doc-list">
 		<li>
-			<strong><?php esc_html_e( 'Unique Authentication Codes:', 'ffcertificate' ); ?></strong><br> 
-			<?php esc_html_e( 'Every certificate gets a unique 12-character code (e.g., A1B2-C3D4-E5F6)', 'ffcertificate' ); ?>
+			<strong><?php esc_html_e( 'Issue certificates from any form', 'ffcertificate' ); ?></strong><br>
+			<?php esc_html_e( 'Drag-build the fields, design the PDF in a full HTML editor with {{tokens}}, and issue automatically on submission — each with a unique authentication code.', 'ffcertificate' ); ?>
 		</li>
 		<li>
-			<strong><?php esc_html_e( 'QR Code Validation:', 'ffcertificate' ); ?></strong><br> 
-			<?php esc_html_e( 'Scan to instantly verify certificate authenticity', 'ffcertificate' ); ?>
+			<strong><?php esc_html_e( 'Prove authenticity instantly', 'ffcertificate' ); ?></strong><br>
+			<?php esc_html_e( 'Every certificate carries a QR code and a validation link; anyone can confirm it is genuine, and the holder gets a one-click "magic link" to re-download.', 'ffcertificate' ); ?></li>
+		<li>
+			<strong><?php esc_html_e( 'Stop fraud and duplicates', 'ffcertificate' ); ?></strong><br>
+			<?php esc_html_e( 'Single-use tickets, allow/deny lists, one-certificate-per-person reprints, per-device limits, rate limiting, and geofencing by GPS or IP.', 'ffcertificate' ); ?>
 		</li>
 		<li>
-			<strong><?php esc_html_e( 'Magic Links:', 'ffcertificate' ); ?></strong><br> 
-			<?php esc_html_e( 'Links that don\'t pass validation on the website. Shared by email and quickly verifying the certificate\'s.', 'ffcertificate' ); ?>
+			<strong><?php esc_html_e( 'Schedule and book', 'ffcertificate' ); ?></strong><br>
+			<?php esc_html_e( 'Personal appointment calendars (fixed slots) and audience calendars for shared spaces (free-form bookings), each with confirmations, reminders and ICS invites.', 'ffcertificate' ); ?>
 		</li>
 		<li>
-			<strong><?php esc_html_e( 'Reprinting certificates:', 'ffcertificate' ); ?></strong><br> 
-			<?php esc_html_e( 'Previously submitted identification information (CPF/RF) does not generate new certificates.', 'ffcertificate' ); ?>
+			<strong><?php esc_html_e( 'Run campaigns and tenders', 'ffcertificate' ); ?></strong><br>
+			<?php esc_html_e( 'Collect updated data with reregistration campaigns (and a Ficha PDF), or manage classified candidate queues with public rankings and call-ups.', 'ffcertificate' ); ?>
 		</li>
 		<li>
-			<strong><?php esc_html_e( 'CSV Export:', 'ffcertificate' ); ?></strong><br> 
-			<?php esc_html_e( 'Generate a CSV list with the submissions already sent.', 'ffcertificate' ); ?>
+			<strong><?php esc_html_e( 'Protect personal data (LGPD)', 'ffcertificate' ); ?></strong><br>
+			<?php esc_html_e( 'CPF, RF and email are encrypted at rest and masked on screen unless a viewer holds a PII capability; a granular capability system gates every admin area.', 'ffcertificate' ); ?>
 		</li>
 		<li>
-			<strong><?php esc_html_e( 'Email Notifications:', 'ffcertificate' ); ?></strong><br> 
-			<?php esc_html_e( 'Automatic (or not) email sent with certificate PDF attached upon submission', 'ffcertificate' ); ?>
+			<strong><?php esc_html_e( 'Send beautiful, reliable email', 'ffcertificate' ); ?></strong><br>
+			<?php esc_html_e( 'One configurable "Email Model" wraps every message, sent through a single SMTP-aware pipeline with a global kill-switch and multipart delivery.', 'ffcertificate' ); ?>
 		</li>
 		<li>
-			<strong><?php esc_html_e( 'PDF Customization:', 'ffcertificate' ); ?></strong><br> 
-			<?php esc_html_e( 'Full HTML editor to design your own certificate layout', 'ffcertificate' ); ?>
-		</li>
-		<li>
-			<strong><?php esc_html_e( 'Auto-delete:', 'ffcertificate' ); ?></strong><br> 
-			<?php esc_html_e( 'Ensure submissions are deleted after "X" days.', 'ffcertificate' ); ?>
-		</li>
-		<li>
-			<strong><?php esc_html_e( 'Date Format:', 'ffcertificate' ); ?></strong><br>
-			<?php esc_html_e( 'Format used for {{submission_date}} and {{print_date}} placeholders in PDFs and emails.', 'ffcertificate' ); ?>
-		</li>
-		<li>
-			<strong><?php esc_html_e( 'Data Migrations:', 'ffcertificate' ); ?></strong><br> 
-			<?php esc_html_e( 'Migration of all data from the plugin\'s old infrastructure.', 'ffcertificate' ); ?>
-		</li>
-		<li>
-			<strong><?php esc_html_e( 'Form Cache:', 'ffcertificate' ); ?></strong><br> 
-			<?php esc_html_e( 'The cache stores form settings to improve performance.', 'ffcertificate' ); ?>
-		</li>
-		<li>
-			<strong><?php esc_html_e( 'Multi-language Support:', 'ffcertificate' ); ?></strong><br>
-			<?php esc_html_e( 'Supports Portuguese and English languages', 'ffcertificate' ); ?>
-		</li>
-		<li>
-			<strong><?php esc_html_e( 'Audience Custom Fields:', 'ffcertificate' ); ?></strong><br>
-			<?php esc_html_e( 'Define custom data fields per audience group with validation (CPF, email, phone, regex)', 'ffcertificate' ); ?>
-		</li>
-		<li>
-			<strong><?php esc_html_e( 'Reregistration Campaigns:', 'ffcertificate' ); ?></strong><br>
-			<?php esc_html_e( 'Collect updated information from audience members with configurable email notifications and approval workflow', 'ffcertificate' ); ?>
-		</li>
-		<li>
-			<strong><?php esc_html_e( 'Ficha PDF:', 'ffcertificate' ); ?></strong><br>
-			<?php esc_html_e( 'Generate PDF records for reregistration submissions with custom template support', 'ffcertificate' ); ?>
-		</li>
-		<li>
-			<strong><?php esc_html_e( 'Named Geofence Locations:', 'ffcertificate' ); ?></strong><br>
-			<?php esc_html_e( 'Define reusable named locations in Settings > Geolocation, then assign them to forms via dropdown instead of entering coordinates manually', 'ffcertificate' ); ?>
-		</li>
-		<li>
-			<strong><?php esc_html_e( 'Public Operator Access (formerly Public CSV Download):', 'ffcertificate' ); ?></strong><br>
-			<?php esc_html_e( 'Allow trusted operators without WordPress login to download submission CSVs, trigger Start Form Early, and Postpone Close — all gated by the same secure per-form hash, plus form expiration and per-form download quota for the CSV', 'ffcertificate' ); ?>
-		</li>
-		<li>
-			<strong><?php esc_html_e( 'CSV Download Page URL:', 'ffcertificate' ); ?></strong><br>
-			<?php esc_html_e( 'Configure the base URL in Settings > General so the form editor displays the full download link instead of just the query string', 'ffcertificate' ); ?>
-		</li>
-		<li>
-			<strong><?php esc_html_e( 'Quiz / Evaluation Mode:', 'ffcertificate' ); ?></strong><br>
-			<?php esc_html_e( 'Score-based certificates with {{score}}, {{max_score}}, and {{score_percent}} template variables', 'ffcertificate' ); ?>
+			<strong><?php esc_html_e( 'Extend it', 'ffcertificate' ); ?></strong><br>
+			<?php esc_html_e( 'A REST API, an authenticated Forms API and dozens of action/filter hooks let developers integrate and customize everything.', 'ffcertificate' ); ?>
 		</li>
 	</ul>
+
+	<div class="ffc-doc-note">
+		<p>
+			<strong class="ffc-icon-info"><?php esc_html_e( 'Find your way around:', 'ffcertificate' ); ?></strong>
+			<?php esc_html_e( 'Use the Quick Navigation on the left — it mirrors the plugin\'s own menus. Start with', 'ffcertificate' ); ?>
+			<a href="#feature-certificates"><?php esc_html_e( 'Certificates & Forms', 'ffcertificate' ); ?></a>, <?php esc_html_e( 'or jump to any area (Scheduling, Reregistration, Recruitment, Short URLs, Developer).', 'ffcertificate' ); ?>
+		</p>
+	</div>
 </div>
