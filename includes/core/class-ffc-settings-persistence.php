@@ -57,8 +57,11 @@ final class SettingsPersistence {
 	 * per-field cap the user lacks is skipped, not saved, so the rest of the
 	 * write still proceeds; then hand the sanitised map to the caller's store.
 	 *
-	 * @param array<string, mixed> $spec Save specification.
-	 * @phpstan-param SaveSpec $spec
+	 * The `SaveSpec` shape (see the class docblock) documents the expected
+	 * structure; the parameter is typed loosely because the engine validates
+	 * caller-supplied arrays at runtime.
+	 *
+	 * @param array<string, mixed> $spec Save specification (see SaveSpec).
 	 * @return bool True when the write was authorised and persisted; false when
 	 *              the nonce or the coarse capability check failed.
 	 * @throws \InvalidArgumentException When a declared field has no sanitize callback.
@@ -76,7 +79,7 @@ final class SettingsPersistence {
 		foreach ( $fields as $key => $field ) {
 			if ( ! is_array( $field ) || ! isset( $field['sanitize'] ) || ! is_callable( $field['sanitize'] ) ) {
 				throw new \InvalidArgumentException(
-					sprintf( 'SettingsPersistence: field "%s" is missing a sanitize callback.', (string) $key )
+					esc_html( sprintf( 'SettingsPersistence: field "%s" is missing a sanitize callback.', (string) $key ) )
 				);
 			}
 

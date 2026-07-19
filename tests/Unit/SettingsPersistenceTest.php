@@ -27,6 +27,8 @@ class SettingsPersistenceTest extends TestCase {
 		// test body runs (see CLAUDE.md); preload the engine + its collaborator.
 		class_exists( '\\FreeFormCertificate\\Core\\SettingsPersistence' );
 		class_exists( '\\FreeFormCertificate\\Core\\Capabilities' );
+		// The missing-sanitiser guard wraps its message in esc_html (WPCS).
+		Functions\when( 'esc_html' )->returnArg();
 	}
 
 	protected function tearDown(): void {
