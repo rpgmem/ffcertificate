@@ -44,6 +44,11 @@ class TabGeneralTest extends TestCase {
         Functions\when( 'esc_attr' )->returnArg();
         Functions\when( 'esc_attr__' )->returnArg();
         Functions\when( 'esc_url' )->returnArg();
+        Functions\when( 'admin_url' )->returnArg();
+        // The General view now renders a capability-gated "Module settings"
+        // index (rpgmem/ffcertificate#711). Default the cap check to true so the
+        // render tests exercise the card; individual tests override as needed.
+        Functions\when( 'current_user_can' )->justReturn( true );
         Functions\when( 'add_action' )->justReturn( true );
         Functions\when( 'wp_unslash' )->returnArg();
         Functions\when( 'sanitize_key' )->alias( function ( $key ) {
@@ -130,6 +135,46 @@ class TabGeneralTest extends TestCase {
         $this->assertStringContainsString( 'ffc-settings-wrap', $output );
         $this->assertStringContainsString( 'ffc_date_format', $output );
         $this->assertStringContainsString( 'qr_default_size', $output );
+
+        // Module-settings index is shown when the user can view a module's
+        // settings (current_user_can stubbed true in setUp).
+        $this->assertStringContainsString( 'ffc-module-settings-index', $output );
+        $this->assertStringContainsString( 'page=ffc-scheduling-settings', $output );
+        $this->assertStringContainsString( 'page=ffc-recruitment', $output );
+    }
+
+    // ==================================================================
+    // render() — module-settings index hidden without module caps
+    // ==================================================================
+
+    public function test_render_hides_module_index_without_module_caps(): void {
+        $reader = Mockery::mock( 'alias:FreeFormCertificate\Settings\SettingsReader' );
+        $reader->shouldReceive( 'get' )->andReturnUsing(
+            function ( $key, $default = '' ) {
+                return $default;
+            }
+        );
+        Functions\when( 'get_option' )->justReturn( '' );
+        Functions\when( 'date_i18n' )->alias(
+            function ( $fmt, $ts = null ) {
+                return gmdate( (string) $fmt, null === $ts ? time() : (int) $ts );
+            }
+        );
+        Functions\when( 'wp_nonce_field' )->justReturn( '' );
+        Functions\when( 'selected' )->justReturn( '' );
+        Functions\when( 'checked' )->justReturn( '' );
+        Functions\when( 'submit_button' )->justReturn( null );
+
+        // No module view caps -> the index card is not rendered.
+        Functions\when( 'current_user_can' )->justReturn( false );
+
+        ob_start();
+        $this->tab->render();
+        $output = ob_get_clean();
+
+        $this->assertStringNotContainsString( 'ffc-module-settings-index', $output );
+        // The rest of the tab still renders.
+        $this->assertStringContainsString( 'ffc-settings-wrap', $output );
     }
 
     // ==================================================================
