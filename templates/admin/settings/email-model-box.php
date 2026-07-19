@@ -138,4 +138,30 @@ $ffc_font_options  = array(
 			<iframe class="ffc-email-model-preview-frame" title="<?php esc_attr_e( 'Email preview', 'ffcertificate' ); ?>"></iframe>
 		</div>
 	</div>
+
+	<?php
+	$ffc_current_user  = wp_get_current_user();
+	$ffc_test_email_to = is_object( $ffc_current_user ) ? (string) $ffc_current_user->user_email : '';
+	?>
+	<div class="ffc-email-model-test">
+		<h4><?php esc_html_e( 'Send a test email', 'ffcertificate' ); ?></h4>
+		<p class="description">
+			<?php
+			if ( '' !== $ffc_test_email_to ) {
+				printf(
+					/* translators: %s: the current user's account email address. */
+					esc_html__( 'Send a test message to your own account (%s) to confirm SMTP and the Email Model are working. The message is always sent to you, never to another address.', 'ffcertificate' ),
+					'<code>' . esc_html( $ffc_test_email_to ) . '</code>'
+				);
+			} else {
+				esc_html_e( 'Your account has no email address on file, so a test email cannot be sent.', 'ffcertificate' );
+			}
+			?>
+		</p>
+		<form method="post">
+			<?php wp_nonce_field( 'ffc_send_test_email' ); ?>
+			<input type="hidden" name="ffc_send_test_email" value="1">
+			<?php submit_button( __( 'Send Test Email', 'ffcertificate' ), 'secondary', 'ffc_send_test_email_submit', false, '' === $ffc_test_email_to ? array( 'disabled' => 'disabled' ) : array() ); ?>
+		</form>
+	</div>
 </div>
