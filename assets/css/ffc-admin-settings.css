@@ -1008,58 +1008,20 @@ pre code {
 .ffc-settings-tabs__nav .ffc-icon-doc::before      { content: "\f331"; }
 
 /* ==========================================================================
-   Documentation tab — sticky/collapsible Quick Navigation TOC.
+   Documentation tab — sticky Quick Navigation card.
 
-   The TOC is `position: sticky` so it follows the user as they scroll
-   through the 21 documentation sections. A sentinel placed just above
-   the TOC card drives an IntersectionObserver in ffc-doc-toc.js: when
-   the sentinel scrolls out of the viewport the TOC collapses into a
-   thin clickable strip; when the user scrolls back to the top, it
-   expands again. The strip can also be expanded manually with a click.
-
-   Pure-CSS fallback: without JS, the TOC just stays sticky and
-   expanded (`.is-collapsed` is never applied). Older browsers without
-   `position: sticky` support degrade to the pre-feature behaviour
-   (TOC at top, scrolls away with the page).
+   The card is `position: sticky` so the search box and section tree stay
+   in view as the user scrolls through the documentation sections. It is
+   always fully expanded — the tree itself is what opens and closes, one
+   branch at a time (native <details>). Older browsers without
+   `position: sticky` support degrade to a plain top-of-page card that
+   scrolls away with the rest of the content.
    ========================================================================== */
 
 .ffc-doc-toc {
     position: sticky;
     top: 16px;
     z-index: 10;
-    transition: padding 0.2s ease;
-}
-
-.ffc-doc-toc.is-collapsed {
-    padding: 10px 16px;
-    cursor: pointer;
-}
-
-.ffc-doc-toc.is-collapsed > h3 {
-    margin: 0;
-    padding: 0;
-    border-bottom: none;
-    font-size: 14px;
-    display: flex;
-    align-items: center;
-}
-
-.ffc-doc-toc.is-collapsed > h3::after {
-    content: "\f140"; /* dashicons-arrow-down-alt2 */
-    font-family: dashicons;
-    font-size: 18px;
-    margin-left: auto;
-    color: var(--ffc-text-muted, #646970);
-}
-
-.ffc-doc-toc.is-collapsed .ffc-doc-toc-list {
-    display: none;
-}
-
-@media (prefers-reduced-motion: reduce) {
-    .ffc-doc-toc {
-        transition: none;
-    }
 }
 
 /* ==========================================================================
