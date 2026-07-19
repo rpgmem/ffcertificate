@@ -183,11 +183,16 @@ class CapabilityManager {
 		// export cap to everyone who already holds the matching `manage` cap,
 		// preserving current behavior on upgrade; admins restrict by removing the
 		// export cap from a role. See `export_cap_grant_map()`. Certificates
-		// already has `ffc_export_certificates` above, and activity-log export
-		// stays under its read-only `ffc_view_activity_log` cap.
+		// already has `ffc_export_certificates` above. Activity-log export now
+		// gets its own `ffc_export_activity_log` cap too (#711 §5), split out of
+		// the read-only `ffc_view_activity_log` so a view-only operator can no
+		// longer bulk-extract the audit trail; the one-shot
+		// `migrate_activity_log_export_cap_grant()` seeds it onto every current
+		// `ffc_view_activity_log` holder, preserving behavior on upgrade.
 		'ffc_export_appointments',
 		'ffc_export_reregistration',
 		'ffc_export_audiences',
+		'ffc_export_activity_log',
 
 		// Granular "import" tier (GAP H). Bulk CSV ingestion is split out of
 		// `manage` for the domains where loading external data is the most

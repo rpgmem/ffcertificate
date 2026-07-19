@@ -405,6 +405,74 @@ class CapabilityMigrator {
 	}
 
 	/**
+	 * Map of the source cap => the activity-log export cap it seeds on upgrade
+	 * (#711 §5). Unlike the other export caps (which split out of `manage`),
+	 * activity-log export historically rode the read-only `ffc_view_activity_log`
+	 * cap, so the migration seeds `ffc_export_activity_log` onto every current
+	 * `ffc_view_activity_log` holder — preserving their export ability when the
+	 * dedicated cap is introduced. To take export away from a viewer, remove the
+	 * export cap after the migration has run.
+	 *
+	 * @since 6.15.0
+	 * @return array<string, string>
+	 */
+	public static function activity_log_export_cap_grant_map(): array {
+		return array(
+			'ffc_view_activity_log' => 'ffc_export_activity_log',
+		);
+	}
+
+	/**
+	 * Idempotent migration seeding `ffc_export_activity_log` (#711 §5) onto every
+	 * user and role that already holds `ffc_view_activity_log`. Never removes the
+	 * source cap.
+	 *
+	 * Runs once per install via {@see \FreeFormCertificate\Loader} on
+	 * `plugins_loaded`, flagged by the `ffc_activity_log_export_cap_v1` option.
+	 *
+	 * @since 6.15.0
+	 * @return array<string, int> Per-export-cap count of users seeded.
+	 */
+	public static function migrate_activity_log_export_cap_grant(): array {
+		$map    = self::activity_log_export_cap_grant_map();
+		$counts = array();
+
+		// 1. User-meta grants.
+		$users = get_users( array( 'fields' => 'ID' ) );
+		foreach ( $map as $source => $export ) {
+			$counts[ $export ] = 0;
+			foreach ( $users as $user_id ) {
+				$user = get_userdata( (int) $user_id );
+				if ( ! $user ) {
+					continue;
+				}
+				if ( isset( $user->caps[ $source ] ) && true === $user->caps[ $source ]
+					&& ! isset( $user->caps[ $export ] ) ) {
+					$user->add_cap( $export, true );
+					++$counts[ $export ];
+				}
+			}
+		}
+
+		// 2. Role definitions — administrator + every FFC/custom role.
+		$wp_roles = wp_roles();
+		foreach ( array_keys( $wp_roles->roles ) as $role_slug ) {
+			$role = get_role( $role_slug );
+			if ( ! $role ) {
+				continue;
+			}
+			foreach ( $map as $source => $export ) {
+				if ( isset( $role->capabilities[ $source ] ) && true === $role->capabilities[ $source ]
+					&& ! isset( $role->capabilities[ $export ] ) ) {
+					$role->add_cap( $export, true );
+				}
+			}
+		}
+
+		return $counts;
+	}
+
+	/**
 	 * Map of `manage` cap => the `import` cap it seeds on upgrade (GAP H).
 	 *
 	 * The one-shot migration {@see self::migrate_import_caps_grant()} grants the

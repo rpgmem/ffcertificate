@@ -197,7 +197,7 @@ class AdminActivityLogPageTest extends TestCase {
             ->shouldReceive('get_get_string')->with('page')->andReturn('ffc-activity-log');
 
         Mockery::mock('alias:\FreeFormCertificate\Core\Capabilities')
-            ->shouldReceive('current_user_can_admin_or')->with('ffc_view_activity_log')->andReturn(false);
+            ->shouldReceive('current_user_can_admin_or')->with('ffc_export_activity_log')->andReturn(false);
 
         Functions\when('wp_die')->alias(function () {
             throw new \RuntimeException('wp_die');

@@ -892,6 +892,54 @@ class CapabilityManagerTest extends TestCase {
         $this->assertContains( 'ffc_export_certificates', CapabilityManager::ADMIN_CAPABILITIES );
     }
 
+    public function test_admin_capabilities_contains_activity_log_export(): void {
+        $this->assertContains( 'ffc_export_activity_log', CapabilityManager::ADMIN_CAPABILITIES );
+    }
+
+    public function test_activity_log_export_cap_grant_map_pairs_view_to_export(): void {
+        $map = CapabilityMigrator::activity_log_export_cap_grant_map();
+        $this->assertSame( array( 'ffc_view_activity_log' => 'ffc_export_activity_log' ), $map );
+        foreach ( $map as $view => $export ) {
+            $this->assertContains( $view, CapabilityManager::ADMIN_CAPABILITIES );
+            $this->assertContains( $export, CapabilityManager::ADMIN_CAPABILITIES );
+        }
+    }
+
+    public function test_migrate_activity_log_export_cap_grant_seeds_export_onto_view_holders(): void {
+        Functions\when( 'get_users' )->justReturn( array( 1 ) );
+
+        // User holds the view cap but not the export cap → expect export seeded.
+        $user       = Mockery::mock( 'WP_User' );
+        $user->caps = array( 'ffc_view_activity_log' => true );
+        $user_added = array();
+        $user->shouldReceive( 'add_cap' )->andReturnUsing(
+            function ( $cap, $val = true ) use ( &$user_added ) {
+                $user_added[ $cap ] = $val;
+            }
+        );
+        $user->shouldReceive( 'remove_cap' )->never();
+        Functions\when( 'get_userdata' )->justReturn( $user );
+
+        // Role also holds the view cap → expect the export cap on the role too.
+        $role               = Mockery::mock( 'WP_Role' );
+        $role->capabilities = array( 'ffc_view_activity_log' => true );
+        $role_added         = array();
+        $role->shouldReceive( 'add_cap' )->andReturnUsing(
+            function ( $cap, $val = true ) use ( &$role_added ) {
+                $role_added[ $cap ] = $val;
+            }
+        );
+        $wp_roles        = Mockery::mock();
+        $wp_roles->roles = array( 'administrator' => array() );
+        Functions\when( 'wp_roles' )->justReturn( $wp_roles );
+        Functions\when( 'get_role' )->justReturn( $role );
+
+        CapabilityMigrator::migrate_activity_log_export_cap_grant();
+
+        $this->assertTrue( $user_added['ffc_export_activity_log'] ?? null );
+        $this->assertTrue( $role_added['ffc_export_activity_log'] ?? null );
+    }
+
     public function test_export_cap_grant_map_pairs_each_manage_to_its_export(): void {
         $map = CapabilityMigrator::export_cap_grant_map();
         $this->assertCount( 3, $map );
