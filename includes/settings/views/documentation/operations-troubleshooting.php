@@ -80,6 +80,35 @@ if ( ! defined( 'ABSPATH' ) ) {
 					• <?php esc_html_e( 'See the "Emails &amp; Delivery" reference page for the full pipeline', 'ffcertificate' ); ?>
 				</td>
 			</tr>
+			<tr>
+				<td><?php esc_html_e( 'Form is hidden or "not available"', 'ffcertificate' ); ?></td>
+				<td>
+					• <?php esc_html_e( 'Check the Geofence "Time" tab — the form may be outside its open/close window', 'ffcertificate' ); ?><br>
+					• <?php esc_html_e( 'Check Geolocation (GPS/IP) — the visitor may be outside the allowed area', 'ffcertificate' ); ?><br>
+					• <?php esc_html_e( 'Admins can enable "bypass" for date/time and geolocation to test (Settings → Geolocation)', 'ffcertificate' ); ?>
+				</td>
+			</tr>
+			<tr>
+				<td><?php esc_html_e( 'Short URL returns 404', 'ffcertificate' ); ?></td>
+				<td>
+					• <?php esc_html_e( 'Re-save Settings → Permalinks once to flush WordPress rewrite rules', 'ffcertificate' ); ?><br>
+					• <?php esc_html_e( 'Confirm the link is Active (not disabled or trashed) in the Short URLs list', 'ffcertificate' ); ?>
+				</td>
+			</tr>
+			<tr>
+				<td><?php esc_html_e( 'Submission blocked ("limit reached")', 'ffcertificate' ); ?></td>
+				<td>
+					• <?php esc_html_e( 'The IP / email / CPF-RF rate limit was hit — review Settings → Rate Limit', 'ffcertificate' ); ?><br>
+					• <?php esc_html_e( 'Add a trusted IP or identifier to the allowlist there if needed', 'ffcertificate' ); ?>
+				</td>
+			</tr>
+			<tr>
+				<td><?php esc_html_e( 'An admin cannot see a plugin menu', 'ffcertificate' ); ?></td>
+				<td>
+					• <?php esc_html_e( 'Each area is gated by a capability — grant the matching ffc_view_* capability on the user profile', 'ffcertificate' ); ?><br>
+					• <?php esc_html_e( 'A full administrator (manage_options) always sees every FFC menu', 'ffcertificate' ); ?>
+				</td>
+			</tr>
 		</tbody>
 	</table>
 
