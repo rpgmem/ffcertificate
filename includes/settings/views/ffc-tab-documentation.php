@@ -73,6 +73,12 @@ $ffc_doc_tree = array(
 						'file'   => 'reference-tokens.php',
 					),
 					array(
+						'anchor' => 'forms-dynamic-fields',
+						'icon'   => 'dashicons-forms',
+						'title'  => __( 'Dynamic Fields', 'ffcertificate' ),
+						'file'   => 'forms-dynamic-fields.php',
+					),
+					array(
 						'anchor' => 'reference-validation-url',
 						'icon'   => 'dashicons-yes-alt',
 						'title'  => __( 'Validation URL', 'ffcertificate' ),
@@ -87,14 +93,56 @@ $ffc_doc_tree = array(
 					array(
 						'anchor' => 'reference-security',
 						'icon'   => 'dashicons-lock',
-						'title'  => __( 'Security Features', 'ffcertificate' ),
+						'title'  => __( 'Security & Restrictions', 'ffcertificate' ),
 						'file'   => 'reference-security.php',
+					),
+					array(
+						'anchor' => 'forms-schedule',
+						'icon'   => 'dashicons-clock',
+						'title'  => __( 'Schedule', 'ffcertificate' ),
+						'file'   => 'forms-schedule.php',
+					),
+					array(
+						'anchor' => 'forms-geolocation',
+						'icon'   => 'dashicons-location',
+						'title'  => __( 'Geolocation', 'ffcertificate' ),
+						'file'   => 'forms-geolocation.php',
+					),
+					array(
+						'anchor' => 'forms-email',
+						'icon'   => 'dashicons-email-alt',
+						'title'  => __( 'Email', 'ffcertificate' ),
+						'file'   => 'forms-email.php',
 					),
 					array(
 						'anchor' => 'feature-quiz',
 						'icon'   => 'dashicons-chart-bar',
 						'title'  => __( 'Quiz / Evaluation', 'ffcertificate' ),
 						'file'   => 'feature-quiz.php',
+					),
+					array(
+						'anchor' => 'forms-public-operator-access',
+						'icon'   => 'dashicons-share',
+						'title'  => __( 'Public Operator Access', 'ffcertificate' ),
+						'file'   => 'forms-public-operator-access.php',
+					),
+				),
+			),
+			array(
+				'title'    => __( 'Submissions', 'ffcertificate' ),
+				'icon'     => 'dashicons-list-view',
+				'children' => array(
+					array(
+						'anchor' => 'submissions-list',
+						'icon'   => 'dashicons-list-view',
+						'title'  => __( 'Submissions — list & editing', 'ffcertificate' ),
+						'file'   => 'submissions-list.php',
+					),
+					array(
+						'anchor' => 'submissions-download',
+						'icon'   => 'dashicons-download',
+						'title'  => __( 'Downloading the certificate', 'ffcertificate' ),
+						'file'   => 'submissions-download.php',
 					),
 				),
 			),
@@ -103,10 +151,34 @@ $ffc_doc_tree = array(
 				'icon'     => 'dashicons-admin-generic',
 				'children' => array(
 					array(
+						'anchor' => 'config-general',
+						'icon'   => 'dashicons-admin-settings',
+						'title'  => __( 'General', 'ffcertificate' ),
+						'file'   => 'config-general.php',
+					),
+					array(
 						'anchor' => 'reference-emails',
 						'icon'   => 'dashicons-email',
 						'title'  => __( 'Emails & Delivery', 'ffcertificate' ),
 						'file'   => 'reference-emails.php',
+					),
+					array(
+						'anchor' => 'config-cache',
+						'icon'   => 'dashicons-performance',
+						'title'  => __( 'Cache', 'ffcertificate' ),
+						'file'   => 'config-cache.php',
+					),
+					array(
+						'anchor' => 'config-rate-limit',
+						'icon'   => 'dashicons-shield-alt',
+						'title'  => __( 'Rate Limit', 'ffcertificate' ),
+						'file'   => 'config-rate-limit.php',
+					),
+					array(
+						'anchor' => 'config-geolocation',
+						'icon'   => 'dashicons-location-alt',
+						'title'  => __( 'Geolocation', 'ffcertificate' ),
+						'file'   => 'config-geolocation.php',
 					),
 					array(
 						'anchor' => 'feature-user-dashboard',
@@ -119,6 +191,12 @@ $ffc_doc_tree = array(
 						'icon'   => 'dashicons-admin-network',
 						'title'  => __( 'Capabilities & Roles', 'ffcertificate' ),
 						'file'   => 'reference-capabilities.php',
+					),
+					array(
+						'anchor' => 'config-advanced',
+						'icon'   => 'dashicons-admin-tools',
+						'title'  => __( 'Advanced', 'ffcertificate' ),
+						'file'   => 'config-advanced.php',
 					),
 					array(
 						'anchor' => 'operations-maintenance',
