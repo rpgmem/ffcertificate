@@ -11,7 +11,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 ?>
 <!-- 20. Recruitment Section -->
 <div class="card">
-	<h3 id="feature-recruitment" class="ffc-icon-user"><?php esc_html_e( 'Recruitment', 'ffcertificate' ); ?></h3>
+	<h3 id="feature-recruitment"><span class="dashicons dashicons-groups" aria-hidden="true"></span> <?php esc_html_e( 'Recruitment', 'ffcertificate' ); ?></h3>
 
 	<p><?php esc_html_e( 'The Recruitment module manages public-tender candidate queues: import classified candidates, publish the ranking, and record call-ups (convocations). It lives under the top-level "Recruitment" admin menu.', 'ffcertificate' ); ?></p>
 

@@ -14,7 +14,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 ?>
 <!-- 4. Appointment Receipt Variables Section -->
 <div class="card">
-	<h3 id="feature-self-scheduling" class="ffc-icon-tag"><?php esc_html_e( 'Self-Scheduling / Appointments', 'ffcertificate' ); ?></h3>
+	<h3 id="feature-self-scheduling"><span class="dashicons dashicons-calendar" aria-hidden="true"></span> <?php esc_html_e( 'Self-Scheduling / Appointments', 'ffcertificate' ); ?></h3>
 	<p><?php esc_html_e( 'These variables are available in the appointment receipt PDF template (html/default_appointment_receipt_1.html):', 'ffcertificate' ); ?></p>
 
 	<table class="widefat striped">

@@ -14,7 +14,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 ?>
 <!-- Certificates & Forms Section -->
 <div class="card">
-	<h3 id="feature-certificates" class="ffc-icon-doc"><?php esc_html_e( 'Certificates & Forms', 'ffcertificate' ); ?></h3>
+	<h3 id="feature-certificates"><span class="dashicons dashicons-feedback" aria-hidden="true"></span> <?php esc_html_e( 'Certificates & Forms', 'ffcertificate' ); ?></h3>
 
 	<p><?php esc_html_e( 'Create certificate-issuance forms, generate the certificate PDF automatically on submission, and let anyone verify authenticity by QR code or validation link.', 'ffcertificate' ); ?></p>
 

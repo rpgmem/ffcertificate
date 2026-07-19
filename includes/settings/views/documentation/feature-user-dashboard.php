@@ -14,7 +14,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 ?>
 <!-- User Dashboard & Access Section -->
 <div class="card">
-	<h3 id="feature-user-dashboard" class="ffc-icon-user"><?php esc_html_e( 'User Dashboard & Access', 'ffcertificate' ); ?></h3>
+	<h3 id="feature-user-dashboard"><span class="dashicons dashicons-admin-users" aria-hidden="true"></span> <?php esc_html_e( 'User Dashboard & Access', 'ffcertificate' ); ?></h3>
 	<p><?php esc_html_e( 'A front-end panel where each logged-in user sees their own data — issued certificates, appointments and profile — without any admin access.', 'ffcertificate' ); ?></p>
 
 	<div class="ffc-doc-example">

@@ -14,7 +14,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 ?>
 <!-- 1. Shortcodes Section -->
 <div class="card">
-	<h3 id="reference-shortcodes" class="ffc-icon-pin"><?php esc_html_e( 'Shortcodes', 'ffcertificate' ); ?></h3>
+	<h3 id="reference-shortcodes"><span class="dashicons dashicons-shortcode" aria-hidden="true"></span> <?php esc_html_e( 'Shortcodes', 'ffcertificate' ); ?></h3>
 	
 	<table class="widefat striped">
 		<thead>

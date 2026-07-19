@@ -18,7 +18,7 @@ $ffc_cap_catalog = '\FreeFormCertificate\UserDashboard\CapabilityCatalog';
 ?>
 <!-- Capabilities & Roles Section -->
 <div class="card">
-	<h3 id="reference-capabilities" class="ffc-icon-lock"><?php esc_html_e( 'Capabilities & Roles', 'ffcertificate' ); ?></h3>
+	<h3 id="reference-capabilities"><span class="dashicons dashicons-admin-network" aria-hidden="true"></span> <?php esc_html_e( 'Capabilities & Roles', 'ffcertificate' ); ?></h3>
 	<p><?php esc_html_e( 'The plugin ships fine-grained capabilities you can assign to roles or individual users with any capability-management plugin. WordPress administrators (manage_options) always hold every FFC capability.', 'ffcertificate' ); ?></p>
 
 	<div class="ffc-doc-example">
