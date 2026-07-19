@@ -199,6 +199,21 @@ class CapabilityManager {
 		// cap onto every holder of the matching `manage` cap, preserving current
 		// behavior on upgrade. See `import_cap_grant_map()`.
 		'ffc_import_audiences',
+
+		// Settings sub-caps (#711). Carve the two most sensitive Settings
+		// surfaces out of the blanket `ffc_manage_settings` so each can be
+		// delegated — or withheld — independently: `ffc_manage_settings_smtp`
+		// gates saving the SMTP transport + Email Model configuration, and
+		// `ffc_manage_settings_dangerzone` gates every destructive maintenance
+		// action (delete-all submissions, obsolete-shortcode / short-URL
+		// cleanup, public-access disabler, submission-link audit, and data
+		// migration execution — previously `manage_options`-only). The one-shot
+		// `migrate_settings_split_caps_grant()` seeds both onto every holder of
+		// `ffc_manage_settings`, preserving current behavior on upgrade; admins
+		// restrict by removing a sub-cap from a role. See
+		// `settings_split_cap_grant_map()`.
+		'ffc_manage_settings_smtp',
+		'ffc_manage_settings_dangerzone',
 	);
 
 	/**
