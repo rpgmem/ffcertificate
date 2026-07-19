@@ -7,6 +7,8 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+## [6.14.0] (2026-07-19)
+
 ### Added
 - Settings → General (#711) — a **"Module settings"** index card that links straight to the settings surfaces some modules keep next to themselves (Scheduling settings, Recruitment settings). Each link is shown only to users who can open that module's settings, so it improves discoverability of configuration split across the plugin without moving anything.
 - Documentation tab (#674, #697) — greatly expanded the reference, with new or rewritten pages across every functional area: the form builder and per-form settings (dynamic fields, open/close schedule, geofence, per-form email, security/anti-fraud, public operator access), Scheduling (personal calendars and audience calendars), Reregistration campaigns, Recruitment, Short URLs, the Developer Hooks/REST/Forms API, a live-generated **Capabilities & Roles** reference, a **User Dashboard & Access** page, and **Emails & Delivery** — plus an in-page search box and feature-grounded Troubleshooting rows. Every area was verified against the code.
