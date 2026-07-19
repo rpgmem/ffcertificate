@@ -230,24 +230,24 @@ class AdminConditionalAssetsTest extends TestCase {
     // Documentation tab branch.
     // ==================================================================
 
-    public function test_documentation_tab_enqueues_toc_script(): void {
+    public function test_documentation_tab_enqueues_search_script(): void {
         $_GET['page'] = 'ffc-settings';
         $_GET['tab']  = 'documentation';
 
         $assets = new AdminConditionalAssets();
         $assets->enqueue_conditional_assets();
 
-        // Settings page assets load (page=ffc-settings) AND the doc TOC.
-        $this->assertContains( 'ffc-doc-toc', $this->scripts );
+        // Settings page assets load (page=ffc-settings) AND the doc search filter.
+        $this->assertContains( 'ffc-doc-search', $this->scripts );
     }
 
-    public function test_settings_page_non_documentation_tab_skips_toc(): void {
+    public function test_settings_page_non_documentation_tab_skips_search(): void {
         $_GET['page'] = 'ffc-settings';
         $_GET['tab']  = 'general';
 
         $assets = new AdminConditionalAssets();
         $assets->enqueue_conditional_assets();
 
-        $this->assertNotContains( 'ffc-doc-toc', $this->scripts );
+        $this->assertNotContains( 'ffc-doc-search', $this->scripts );
     }
 }

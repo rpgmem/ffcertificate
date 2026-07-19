@@ -362,13 +362,8 @@ $ffc_require_doc_pages = static function ( array $ffc_nodes ) use ( &$ffc_requir
 	<p><?php esc_html_e( 'This plugin allows you to create certificate issuance forms, generate PDFs automatically, and verify authenticity with QR codes.', 'ffcertificate' ); ?></p>
 </div>
 
-<!-- Sentinel: when this scrolls out of the viewport the TOC card below
-	auto-collapses (handled by ffc-doc-toc.js + IntersectionObserver). -->
-<div class="ffc-doc-toc-sentinel" aria-hidden="true"></div>
-
-<!-- Table of Contents — sticky on scroll, collapses to a thin strip once
-	the user has scrolled past its original position. Grouped as a tree of
-	collapsible functional areas (#697). -->
+<!-- Quick Navigation — a sticky card holding the search box and the
+	section tree, grouped as collapsible functional areas (#697). -->
 <div class="card ffc-doc-toc ffc-doc-toc--tree">
 	<h3><?php esc_html_e( 'Quick Navigation', 'ffcertificate' ); ?></h3>
 	<p>
