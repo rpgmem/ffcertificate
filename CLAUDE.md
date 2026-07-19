@@ -105,8 +105,7 @@ Current inventory (point-in-time snapshot — re-verify a column against the liv
 | `ffc_audience_*` (5 tables) | P1 (MySQL auto) | — |
 | `ffc_rate_limit_*` (3 tables) | P1 (MySQL auto) | — |
 | `ffc_custom_fields*` (3 tables) | P1 (MySQL auto) | — |
-| `ffc_dynamic_rereg_*` (2 tables) | P1 (MySQL auto) | — |
-| `ffc_url_shortener` | P2 (PHP-managed, `NOT NULL`) | — |
+| `ffc_short_urls` | P2 (PHP-managed, `NOT NULL`) | table name is `ffc_short_urls` (not `ffc_url_shortener`, which is only an option-key/meta-box id prefix) |
 | `ffc_self_scheduling_*` | P3 (hybrid: `created_at` auto, `updated_at` PHP) | — |
 | `ffc_activity_log` | P2 (PHP-managed, `NOT NULL`) | — |
 
