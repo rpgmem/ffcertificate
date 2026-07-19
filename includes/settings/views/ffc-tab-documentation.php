@@ -219,9 +219,15 @@ $ffc_doc_tree = array(
 				'file'   => 'feature-self-scheduling.php',
 			),
 			array(
-				'anchor' => 'feature-audiences',
+				'anchor' => 'scheduling-audiences',
 				'icon'   => 'dashicons-calendar-alt',
 				'title'  => __( 'Audience Calendars', 'ffcertificate' ),
+				'file'   => 'scheduling-audiences.php',
+			),
+			array(
+				'anchor' => 'feature-audiences',
+				'icon'   => 'dashicons-id',
+				'title'  => __( 'Audience Custom Fields', 'ffcertificate' ),
 				'file'   => 'feature-audiences.php',
 			),
 		),
