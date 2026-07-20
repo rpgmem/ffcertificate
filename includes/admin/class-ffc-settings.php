@@ -411,8 +411,17 @@ class Settings {
 			
 			<div class="ffc-settings-tabs" data-ffc-settings-tabs>
 				<ul class="ffc-settings-tabs__nav" role="tablist" aria-orientation="vertical">
+					<?php $ffc_module_links_rendered = false; ?>
 					<?php foreach ( $this->tabs as $tab_id => $tab_obj ) : ?>
-						<?php $is_active = ( $active_tab === $tab_id ); ?>
+						<?php
+						// Module-settings links sit above the Advanced tab so
+						// module pages read as part of the settings nav.
+						if ( 'advanced' === $tab_id && ! $ffc_module_links_rendered ) {
+							$this->render_module_settings_links();
+							$ffc_module_links_rendered = true;
+						}
+						$is_active = ( $active_tab === $tab_id );
+						?>
 						<li class="ffc-settings-tabs__nav-item" role="presentation">
 							<a href="?post_type=ffc_form&page=ffc-settings&tab=<?php echo esc_attr( $tab_id ); ?>"
 								id="ffc-settings-tabnav-<?php echo esc_attr( $tab_id ); ?>"
@@ -426,6 +435,11 @@ class Settings {
 							</a>
 						</li>
 					<?php endforeach; ?>
+					<?php
+					if ( ! $ffc_module_links_rendered ) {
+						$this->render_module_settings_links();
+					}
+					?>
 				</ul>
 
 				<div id="ffc-settings-tabpanel-<?php echo esc_attr( $active_tab ); ?>" class="ffc-settings-tabs__panel" role="tabpanel" aria-labelledby="ffc-settings-tabnav-<?php echo esc_attr( $active_tab ); ?>" tabindex="0">
@@ -456,6 +470,54 @@ class Settings {
 		</div>
 		<?php
         // phpcs:enable WordPress.Security.NonceVerification.Recommended
+	}
+
+	/**
+	 * Render the module-settings links as items of the settings nav.
+	 *
+	 * A few modules keep their own settings next to the module rather than on
+	 * this page (rpgmem/ffcertificate#711 — discoverability). Each link is
+	 * gated by that module's own view cap so a user only sees links they can
+	 * actually open, and navigates away from this page — hence a plain link
+	 * (no `role="tab"`) with an external-link marker instead of a tab.
+	 *
+	 * @return void
+	 */
+	protected function render_module_settings_links(): void {
+		$links = array();
+
+		if ( \FreeFormCertificate\Core\Capabilities::current_user_can_admin_or( 'ffc_view_audiences' ) ) {
+			$links[] = array(
+				'url'   => admin_url( 'admin.php?page=ffc-scheduling-settings' ),
+				'icon'  => 'ffc-icon-calendar',
+				'label' => __( 'Scheduling', 'ffcertificate' ),
+				'title' => __( 'Global holidays and audience / self-scheduling visibility.', 'ffcertificate' ),
+			);
+		}
+
+		if ( \FreeFormCertificate\Core\Capabilities::current_user_can_admin_or( 'ffc_view_recruitment_settings' ) ) {
+			$links[] = array(
+				'url'   => admin_url( 'admin.php?page=ffc-recruitment&tab=settings' ),
+				'icon'  => 'ffc-icon-users',
+				'label' => __( 'Recruitment', 'ffcertificate' ),
+				'title' => __( 'Convocation email, public listing tuning and status colors.', 'ffcertificate' ),
+			);
+		}
+
+		foreach ( $links as $link ) :
+			?>
+			<li class="ffc-settings-tabs__nav-item" role="presentation">
+				<a href="<?php echo esc_url( $link['url'] ); ?>"
+					class="ffc-settings-tabs__tab ffc-settings-tabs__tab--module"
+					title="<?php echo esc_attr( $link['title'] ); ?>">
+					<span class="ffc-settings-tabs__icon <?php echo esc_attr( $link['icon'] ); ?>" aria-hidden="true"></span>
+					<span class="ffc-settings-tabs__label"><?php echo esc_html( $link['label'] ); ?></span>
+					<span class="ffc-settings-tabs__external" aria-hidden="true"></span>
+					<span class="screen-reader-text"><?php echo esc_html( $link['title'] ); ?></span>
+				</a>
+			</li>
+			<?php
+		endforeach;
 	}
 
 	/**

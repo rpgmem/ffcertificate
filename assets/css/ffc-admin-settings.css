@@ -913,6 +913,19 @@ pre code {
     flex: 1 1 auto;
 }
 
+/* Module-settings links (#711) — nav items that navigate away to a module's
+   own settings page. Same look as the tabs; the only differentiator is the
+   external-link marker after the label. */
+.ffc-settings-tabs__external {
+    flex: 0 0 auto;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 14px;
+    height: 14px;
+    opacity: 0.55;
+}
+
 .ffc-settings-tabs__panel {
     flex: 1 1 auto;
     min-width: 0;
@@ -982,9 +995,12 @@ pre code {
      ffc-icon-users    → groups        (\f307)   — User Access
      ffc-icon-sync     → update        (\f463)   — Migrations
      ffc-icon-doc      → book-alt      (\f331)   — Documentation
+     ffc-icon-calendar → calendar-alt  (\f508)   — Scheduling module link
+     (module links also carry an external marker → external \f504)
    ========================================================================== */
 
-.ffc-settings-tabs__nav .ffc-settings-tabs__icon {
+.ffc-settings-tabs__nav .ffc-settings-tabs__icon,
+.ffc-settings-tabs__nav .ffc-settings-tabs__external {
     font-family: dashicons;
     font-size: 20px;
     line-height: 1;
@@ -1006,6 +1022,16 @@ pre code {
 .ffc-settings-tabs__nav .ffc-icon-users::before    { content: "\f307"; }
 .ffc-settings-tabs__nav .ffc-icon-sync::before     { content: "\f463"; }
 .ffc-settings-tabs__nav .ffc-icon-doc::before      { content: "\f331"; }
+.ffc-settings-tabs__nav .ffc-icon-calendar::before { content: "\f508"; }
+
+.ffc-settings-tabs__nav .ffc-settings-tabs__external {
+    font-size: 14px;
+}
+
+.ffc-settings-tabs__nav .ffc-settings-tabs__external::before {
+    content: "\f504";
+    margin-right: 0;
+}
 
 /* ==========================================================================
    Documentation tab — sticky Quick Navigation card.
