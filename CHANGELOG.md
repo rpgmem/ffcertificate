@@ -7,6 +7,9 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Changed
+- Settings (#711) — the **"Module settings"** jump list moved from a card at the top of Settings → General into the settings sidebar itself: the Scheduling and Recruitment links now render as nav items directly above the **Advanced** tab, with an external-link marker since they navigate to the module's own page. Same per-module view-capability gating as before.
+
 ## [6.14.0] (2026-07-19) — `dba61ae`
 
 ### Added
