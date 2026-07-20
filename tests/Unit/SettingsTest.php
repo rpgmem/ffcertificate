@@ -91,6 +91,9 @@ class SettingsTest extends TestCase {
         Functions\when( 'admin_url' )->alias( function ( $path = '' ) {
             return 'https://example.com/wp-admin/' . $path;
         } );
+        // Brain Monkey does not auto-stub esc_url, and the settings nav now
+        // renders module links through it on every display_settings_page call.
+        Functions\when( 'esc_url' )->returnArg();
         Functions\when( 'get_option' )->justReturn( array() );
         Functions\when( 'current_user_can' )->justReturn( true );
         Functions\when( 'wp_cache_get' )->justReturn( false );
@@ -688,28 +691,38 @@ class SettingsTest extends TestCase {
     // ==================================================================
 
     /**
-     * Inject a single fake tab and render the page, returning the HTML.
+     * Inject fake tabs and render the page, returning the HTML.
+     *
+     * @param string[] $tab_ids Tab ids to inject ('general' stays the active one).
      */
-    private function render_settings_page_html(): string {
+    private function render_settings_page_html( array $tab_ids = array( 'general' ) ): string {
         Functions\when( 'esc_html_e' )->alias( function ( $text ) { echo $text; } );
         Functions\when( 'esc_html' )->returnArg();
         Functions\when( 'esc_attr' )->returnArg();
+        Functions\when( 'esc_url' )->returnArg();
         Functions\when( 'settings_errors' )->justReturn( null );
 
-        $tab = new class() {
-            public function get_id(): string {
-                return 'general'; }
-            public function get_icon(): string {
-                return 'dashicons-admin-generic'; }
-            public function get_title(): string {
-                return 'General'; }
-            public function render(): void {
-                echo '<input type="text" name="ffc_settings[x]">'; }
-        };
+        $tabs = array();
+        foreach ( $tab_ids as $tab_id ) {
+            $tabs[ $tab_id ] = new class( $tab_id ) {
+                /** @var string */
+                private $id;
+                public function __construct( string $id ) {
+                    $this->id = $id; }
+                public function get_id(): string {
+                    return $this->id; }
+                public function get_icon(): string {
+                    return 'dashicons-admin-generic'; }
+                public function get_title(): string {
+                    return ucfirst( $this->id ); }
+                public function render(): void {
+                    echo '<input type="text" name="ffc_settings[x]">'; }
+            };
+        }
 
         $ref  = new \ReflectionProperty( $this->settings, 'tabs' );
         $ref->setAccessible( true );
-        $ref->setValue( $this->settings, array( 'general' => $tab ) );
+        $ref->setValue( $this->settings, $tabs );
 
         $_GET['tab'] = 'general';
         ob_start();
@@ -738,6 +751,47 @@ class SettingsTest extends TestCase {
 
         $this->assertStringNotContainsString( '<fieldset disabled', $html );
         $this->assertStringNotContainsString( 'ffc-settings-readonly-lock', $html );
+    }
+
+    // ==================================================================
+    // Module-settings links in the nav (#711 — moved out of TabGeneral)
+    // ==================================================================
+
+    public function test_display_settings_page_renders_module_links_in_nav(): void {
+        Functions\when( 'current_user_can' )->justReturn( true );
+
+        $html = $this->render_settings_page_html();
+
+        $this->assertStringContainsString( 'ffc-settings-tabs__tab--module', $html );
+        $this->assertStringContainsString( 'page=ffc-scheduling-settings', $html );
+        $this->assertStringContainsString( 'page=ffc-recruitment', $html );
+        // Module links navigate away — they must NOT be ARIA tabs.
+        $this->assertStringNotContainsString( 'ffc-settings-tabnav-scheduling', $html );
+    }
+
+    public function test_display_settings_page_hides_module_links_without_module_caps(): void {
+        Functions\when( 'current_user_can' )->justReturn( false );
+
+        $html = $this->render_settings_page_html();
+
+        $this->assertStringNotContainsString( 'ffc-settings-tabs__tab--module', $html );
+        $this->assertStringNotContainsString( 'page=ffc-scheduling-settings', $html );
+    }
+
+    public function test_display_settings_page_renders_module_links_above_advanced_tab(): void {
+        Functions\when( 'current_user_can' )->justReturn( true );
+
+        $html = $this->render_settings_page_html( array( 'general', 'user_access', 'advanced', 'documentation' ) );
+
+        $scheduling = strpos( $html, 'page=ffc-scheduling-settings' );
+        $advanced   = strpos( $html, 'ffc-settings-tabnav-advanced' );
+        $user       = strpos( $html, 'ffc-settings-tabnav-user_access' );
+
+        $this->assertNotFalse( $scheduling );
+        $this->assertNotFalse( $advanced );
+        $this->assertNotFalse( $user );
+        $this->assertGreaterThan( $user, $scheduling, 'Module links must render after the User Access tab.' );
+        $this->assertLessThan( $advanced, $scheduling, 'Module links must render above the Advanced tab.' );
     }
 
     // ==================================================================
