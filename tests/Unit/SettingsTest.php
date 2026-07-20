@@ -91,6 +91,9 @@ class SettingsTest extends TestCase {
         Functions\when( 'admin_url' )->alias( function ( $path = '' ) {
             return 'https://example.com/wp-admin/' . $path;
         } );
+        // Brain Monkey does not auto-stub esc_url, and the settings nav now
+        // renders module links through it on every display_settings_page call.
+        Functions\when( 'esc_url' )->returnArg();
         Functions\when( 'get_option' )->justReturn( array() );
         Functions\when( 'current_user_can' )->justReturn( true );
         Functions\when( 'wp_cache_get' )->justReturn( false );
