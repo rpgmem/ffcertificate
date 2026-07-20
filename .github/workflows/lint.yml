@@ -16,7 +16,7 @@ jobs:
     # after S1 of #161 (only 9 unused-vars warnings remain, which don't gate).
     steps:
       - uses: actions/checkout@v7
-      - uses: actions/setup-node@v6
+      - uses: actions/setup-node@v7
         with:
           node-version: '22'
           cache: 'npm'
@@ -84,7 +84,7 @@ jobs:
       JS_COVERAGE_FLOOR_LINES: '97'
     steps:
       - uses: actions/checkout@v7
-      - uses: actions/setup-node@v6
+      - uses: actions/setup-node@v7
         with:
           node-version: '22'
           cache: 'npm'
@@ -127,7 +127,7 @@ jobs:
     # changes.
     steps:
       - uses: actions/checkout@v7
-      - uses: actions/setup-node@v6
+      - uses: actions/setup-node@v7
         with:
           node-version: '22'
           cache: 'npm'
