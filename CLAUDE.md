@@ -92,6 +92,8 @@ When the batch on develop is validated against the testes site and ready to ship
 3. Auto-merge SQUASH into `main`. The squash commit subject should follow main's convention: `X.Y.Z — <short summary of the batch>`.
 4. After merge, rebase `develop` on `main` (see Sync below) so the next batch starts from the bumped baseline.
 
+**Landing the bump on `develop` (who can do step 2).** Step 2's bump commit has to sit on `develop` before the `develop → main` PR is opened. A maintainer with direct-push access commits it straight to `develop`. An **agent driving the release cannot push to `develop` directly** (the remote refuses it — see "Branch naming"), so it instead lands the bump via **one dedicated `release: X.Y.Z — bump + finalize CHANGELOG` PR to `develop`** (auto-merge), then opens the `develop → main` PR. That dedicated release-bump PR is **not** what "What not to do" forbids — that prohibition targets *feature* PRs sneaking a version bump; this is the deliberate release-moment bump, delivered through the only channel an agent has. Either way, the `develop → main` PR itself stays **draft until the user confirms the prod deploy**.
+
 #### Hotfix flow (urgent fix that can't wait for the next release)
 
 When a critical bug needs to ship to prod while develop has un-released commits:
@@ -181,7 +183,7 @@ The "Verify minified assets are up to date" CI job catches build freshness on bo
 - Do not bypass the coverage floor — bump it forward or restore the lost coverage. Never lower it — the sole exception is an honest re-measure after deleting covered **product** code (never tests); see "CI gates".
 - Do not add new untested code paths in a coverage-aware PR; either cover them in the same PR or document the deferral.
 - Do not target `main` directly from a feature PR. The only PRs that base on `main` are the release PR (`develop → main`) and hotfix PRs (`hotfix/* → main`).
-- Do not bump `FFC_VERSION` in a PR that targets `develop` — the bump belongs to the release PR.
+- Do not bump `FFC_VERSION` in a **feature** PR that targets `develop` — the bump belongs to the release. (The lone exception is the dedicated `release: X.Y.Z` bump PR an agent uses to land the bump on `develop` when it can't direct-push; see "Release PR" → "Landing the bump on `develop`".)
 
 ---
 
