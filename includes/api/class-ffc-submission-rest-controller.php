@@ -187,8 +187,6 @@ class SubmissionRestController {
 					'submission_date' => $item['submission_date'],
 					'status'          => $item['status'],
 					'email'           => ! empty( $email ) ? $email : null,
-					// Combined cpf_rf retired with the legacy cpf_rf_encrypted column; the split cpf/rf fields below carry the data.
-					'cpf_rf'          => null,
 					'cpf'             => ! empty( $cpf ) ? \FreeFormCertificate\Core\DocumentFormatter::mask_cpf( $cpf ) : null,
 					'rf'              => ! empty( $rf ) ? \FreeFormCertificate\Core\DocumentFormatter::mask_cpf( $rf ) : null,
 					'data'            => $data,
@@ -268,8 +266,6 @@ class SubmissionRestController {
 				'submission_date' => $submission['submission_date'],
 				'status'          => $submission['status'],
 				'email'           => ! empty( $email ) ? $email : null,
-				// Combined cpf_rf retired with the legacy cpf_rf_encrypted column; the split cpf/rf fields below carry the data.
-				'cpf_rf'          => null,
 				'cpf'             => ! empty( $cpf ) ? \FreeFormCertificate\Core\DocumentFormatter::format_document( $cpf ) : null,
 				'rf'              => ! empty( $rf ) ? \FreeFormCertificate\Core\DocumentFormatter::format_document( $rf ) : null,
 				'data'            => $data,
