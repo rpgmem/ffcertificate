@@ -2,7 +2,21 @@
 
 Project conventions for Claude (Anthropic CLI / agent sessions) working on this repository. Sessions inherit nothing across cold starts, so the durable rules live here.
 
-## Pull-request workflow
+**A recurring value across these conventions:** prefer the existing structure over indirection that narrows nothing — churn (renames, façades, per-module "engines", parallel counters/diagnostics) must earn its keep. Where that trade-off bites, the relevant section calls it out as the *bad-façade / namespace-churn trap*.
+
+## Table of contents
+
+1. **[Contributing workflow](#1-contributing-workflow)** — git / PR / release: pull-request workflow, branch naming, develop-branch workflow, versioning, CHANGELOG conventions, what not to do.
+2. **[Quality gates and testing](#2-quality-gates-and-testing)** — CI gates (+ coverage floors, module-boundary guard), test infrastructure, build & assets.
+3. **[Architecture and patterns](#3-architecture-and-patterns)** — repository pattern, module bootstrap (loaders), shared-service directories, email pipeline.
+4. **[Domain conventions](#4-domain-conventions)** — date/time storage, settings reads, capability naming, security & PII.
+5. **[Legacy and tech debt](#5-legacy-and-tech-debt)** — compat shims + evidence-gating.
+
+---
+
+## 1. Contributing workflow
+
+### Pull-request workflow
 
 The repository has **"Allow auto-merge"** enabled in Settings → General.
 Use it on every PR — no manual squash + merge unless auto-merge fails.
@@ -21,7 +35,155 @@ Don't poll CI manually after step 2 unless the user asks. The webhook subscripti
 
 **Closing an issue — leave no false-positive checkboxes.** When an issue closes as `completed`, its acceptance-criteria / delivery checkboxes must reflect reality: either tick every delivered box (`- [x]`) **or** leave a short closing comment that maps each delivered item to the PR that shipped it. An issue that closes with unticked `- [ ]` boxes for work that actually shipped reads as pending to a later scan — this is exactly the false positive reconciled across #249, #647, #649, #650, #697 (delivered work split across separate PRs, boxes never revisited). Legitimately-deferred boxes stay unticked, but the closing comment must name them as deferred (see #711's engine deferral) so "unticked" is never ambiguous between *done* and *dropped*.
 
-## CI gates (all gating, enforced on `main` and `develop`)
+### Branch naming
+
+Use `claude/<short-kebab-description>` for feature branches that target `develop`. Examples in main history: `claude/js-coverage-sprint-B-audience-smoke`, `claude/csv-import-normalize-cpf-rf`. Use `hotfix/<short-kebab-description>` when cutting an urgent fix from `main` (see "Develop branch workflow" → Hotfixes). The remote refuses pushes to `main` and `develop` directly; always go through a PR.
+
+### Develop branch workflow
+
+Adopted v6.7.7 to decouple iteration cadence from production. Source domain (prod) only sees one version bump per batch; the testes domain runs `develop` HEAD and absorbs the per-PR churn.
+
+#### Branch topology
+
+```
+main      ─o──────────────────────o────────────  ← PROD (source domain)
+                                  ↑
+                                  release PR
+                                  with consolidated bump
+develop   ─o─o─o─o─o─o─o─o─o─o─o─/             ← TESTES (testes domain)
+           PR1 PR2 PR3 …                         each merge auto-deploys
+```
+
+- **`main`** — the production branch. Updated only by (1) the release PR `develop → main` (squash merge with the final bump + consolidated CHANGELOG entry) and (2) hotfix PRs `hotfix/* → main` when a critical bug bypasses the queue.
+- **`develop`** — the integration branch. Default base for every feature PR. Each merge into `develop` triggers `.github/workflows/deploy-develop.yml`, which rsyncs the working tree to the testes server.
+- **`hotfix/*`** — short-lived. Cut from `main`, merge back to `main`, then rebase `develop` on top of the new `main` (see Hotfixes).
+
+#### Per-PR flow (the common case)
+
+1. Feature branch `claude/<desc>` cut from `develop`.
+2. PR targets `develop`. CI gates run identically to PRs against main.
+3. **No `FFC_VERSION` bump in the feature PR.** Develop accumulates work under the existing `FFC_VERSION` until release time.
+4. CHANGELOG entries go under the `[Unreleased]` section at the top of `CHANGELOG.md` — they stay there across multiple PRs.
+5. Auto-merge enabled (SQUASH). Once merged, `deploy-develop.yml` pushes the new HEAD to the testes server within ~1 minute.
+
+#### Dependabot PRs
+
+Dependabot is configured with `target-branch: develop` for all three ecosystems (`composer`, `npm`, `github-actions`) in `.github/dependabot.yml`, so **version updates** open against `develop` correctly.
+
+**Security updates are the exception:** GitHub always raises Dependabot *security* updates against the repository's default branch (`main`), ignoring `target-branch` — this is not configurable. The default branch is intentionally kept as `main` (changing it would have repo-wide side effects), so security-update PRs will keep being born against `main`.
+
+**Rule — retarget to `develop`:** whenever a Dependabot PR opens against `main` (in practice, always a security update), change its base to `develop` and leave a one-line comment stating the reason (*correct flow: every change funnels through `develop` and ships in the consolidated release PR, never as an out-of-band `main` commit*). Then comment `@dependabot rebase` so the lockfile diff is recomputed against `develop`. The PR then rides the normal develop batch with auto-merge like any other.
+
+**Exception — genuine hotfix:** if the security fix is in a **runtime dependency** (shipped inside the plugin, not dev/CI tooling) *and* is severe enough to ship to production immediately, treat it as a hotfix (`hotfix/* → main`) instead of retargeting, then sync develop per "Sync `develop` with `main`". Dev/CI-only deps (`vitest`, `@vitest/coverage-v8`, `undici`, `js-yaml`, PHPStan, etc.) never qualify — they always ride the develop batch.
+
+#### Release PR (`develop → main`)
+
+When the batch on develop is validated against the testes site and ready to ship to prod:
+
+1. Open a single PR `develop → main`.
+2. In that PR (committed onto `develop` immediately before opening):
+   - Bump `FFC_VERSION` in the three sync sites (`ffcertificate.php` header, `FFC_VERSION` constant, `readme.txt` `Stable tag`). See "Versioning".
+   - Rename the `[Unreleased]` heading in `CHANGELOG.md` to `[X.Y.Z] (YYYY-MM-DD)` and add a fresh empty `[Unreleased]` heading above it. **Then, once the release PR squash-merges into `main`, backfill the release commit reference onto that heading** by appending `` — `<short-sha>` `` (the 7-char short SHA of the squash commit on `main`), matching every other shipped version header. A missing suffix means the backfill was skipped (as for 6.11.1 / 6.11.2, fixed retroactively).
+   - Run `npm run build:js` if any JS/CSS in `assets/` changed across the batch and the bundles weren't already rebuilt mid-flight (the "Verify minified assets are up to date" gate would catch this anyway).
+3. Auto-merge SQUASH into `main`. The squash commit subject should follow main's convention: `X.Y.Z — <short summary of the batch>`.
+4. After merge, rebase `develop` on `main` (see Sync below) so the next batch starts from the bumped baseline.
+
+#### Hotfix flow (urgent fix that can't wait for the next release)
+
+When a critical bug needs to ship to prod while develop has un-released commits:
+
+1. `git fetch origin && git checkout -b hotfix/<desc> origin/main`.
+2. Apply the fix. Bump `FFC_VERSION` as a real patch (e.g. `6.7.7 → 6.7.8`) — hotfixes consume patch numbers, not the `.x.y.z.N` cache-bust convention.
+3. PR `hotfix/<desc> → main`. Auto-merge SQUASH.
+4. **Then sync develop with the new main** (see below) so develop carries the hotfix and the next release PR doesn't try to "undo" it.
+
+#### Sync `develop` with `main` (post-hotfix or post-release)
+
+```bash
+git fetch origin
+git checkout develop
+git rebase origin/main
+git push --force-with-lease origin develop
+```
+
+This rewrites develop's SHAs on top of the new `main` tip. Force-push is permitted on `develop` by design (the branch protection deliberately omits "Require linear history" and the push restriction) — see "Branch protection" below. If a feature PR was open against develop at the moment of the rebase, the PR author rebases their branch on the new develop tip; this is the cost of keeping develop linear.
+
+#### Branch protection (`develop`)
+
+Configured in Settings → Branches with intentionally lighter rules than `main`:
+
+- ✅ Require a pull request before merging (no required reviewers — solo maintainer).
+- ✅ Require status checks to pass before merging — all gating jobs listed under "CI gates".
+- ❌ Require linear history — left off so the rebase workflow above doesn't need admin bypass.
+- ❌ Restrict who can push to matching branches — leaving force-push permitted is what makes the rebase sync above mechanical.
+- ❌ Require deployments to succeed — `deploy-develop.yml` runs *after* merge, not as a merge gate.
+
+Reasoning: develop is single-maintainer integration territory, not a shared production branch. Stronger protection here would force admin bypass for routine syncs and provide negligible safety benefit.
+
+#### Deploy to testes
+
+`.github/workflows/deploy-develop.yml` runs on every `push` to `develop` and rsyncs the working tree to the testes server. Required GitHub secrets (Settings → Secrets and variables → Actions):
+
+| Secret | Example | Notes |
+| --- | --- | --- |
+| `TESTES_SSH_HOST` | `ssh.testes.example.com` or `185.239.210.8` | DNS or IP of the testes host. **Hostname only, no port, no protocol prefix.** |
+| `TESTES_SSH_USER` | `wp-deploy` | Account with write access to the plugin dir |
+| `TESTES_SSH_KEY` | `-----BEGIN OPENSSH PRIVATE KEY-----…` | Private half of a dedicated keypair; public half goes in `~/.ssh/authorized_keys` on the testes host. **Must have no passphrase** — generate with `ssh-keygen -t ed25519 -N "" -f <path>`. GitHub Actions cannot enter passphrases interactively; a passphrase-protected key surfaces as `Permission denied (publickey,password)` in the rsync step, indistinguishable from a wrong key. |
+| `TESTES_SSH_PORT` | `65002` | **Optional.** Defaults to `22`. Managed hosting (Hostinger, KingHost, Locaweb) usually exposes SSH on a high port — set this when so. |
+| `TESTES_REMOTE_PATH` | `/var/www/testes/wp-content/plugins/ffcertificate` | Absolute path; no trailing slash |
+
+The rsync uses `--delete`, so anything in the remote path that isn't in the develop working tree is removed on each deploy. The workflow excludes `.git/`, `.github/`, `vendor/`, `node_modules/`, `tests/`, and dev tooling (PHPStan, PHPUnit, PHPCS configs) — those don't belong in a runtime plugin dir.
+
+The testes server should have `SCRIPT_DEBUG=true` in `wp-config.php` so non-minified assets load and `?ver=…` cache aggressiveness stays low while iterating.
+
+### Versioning
+
+Three places carry the plugin version and must stay in sync:
+
+1. `ffcertificate.php` plugin header — `* Version: X.Y.Z`. Parsed by WordPress core BEFORE PHP runs, so it must be a literal string.
+2. `ffcertificate.php` PHP constant — `define( 'FFC_VERSION', 'X.Y.Z' )`. Source of `?ver=…` on every `wp_enqueue_*` call.
+3. `readme.txt` `Stable tag: X.Y.Z`. Parsed by WordPress.org before PHP runs; also a literal string.
+
+When changing the version, update all three in the same commit.
+
+#### Patch vs. cache-bust-only releases
+
+- A "real" patch release (any source-code change) consumes the next patch number: `6.6.2 → 6.6.3`.
+- A **cache-bust-only release** (no functional change — exists purely to rotate the `?ver=…` asset cache key after a prior PR shipped an updated `.min.js` / `.min.css` without bumping the version) uses a 4th segment appended to the prior version: `6.6.2 → 6.6.2.1`. The next cache-bust sibling of the same minor would be `6.6.2.2`, and so on. WordPress's `version_compare()` and the plugin update flow both handle 4-segment versions without special-casing.
+- Reason for the convention: a cache-bust release carries no new user-visible behavior, only a key rotation. Burning a real patch number on it would imply meaningful changes that aren't there.
+
+#### When to bump
+
+The trigger has not changed — bundled-asset changes still rotate the cache key. What changed with the develop branch workflow is **where the bump lands**:
+
+- **PRs targeting `main`** (release PR `develop → main`, hotfix PR `hotfix/* → main`): bump `FFC_VERSION` in the same PR. The release PR consolidates every `assets/**/*.min.js`, `assets/**/*.min.css`, `templates/**.php`, and `languages/*.l10n.php` / `.mo` change from the develop batch under one version. Hotfix PRs bump their own patch number.
+- **PRs targeting `develop`**: do **not** bump. Develop sits at the last released version (the cache key on the testes domain stays stable across the batch), and the testes site sidesteps cache aggressiveness via `SCRIPT_DEBUG=true`. Bumping per-PR on develop would consume version numbers that have no production analog.
+
+The "Verify minified assets are up to date" CI job catches build freshness on both bases but does NOT enforce the version bump — that's still a human discipline on the release PR.
+
+### CHANGELOG conventions
+
+`CHANGELOG.md` follows Keep a Changelog. Per change:
+
+- One entry under the top `[Unreleased]` section, grouped by heading (`Added` / `Changed` / `Fixed` / `Security` / `Removed` / `Deprecated`). Entries stay in `[Unreleased]` across PRs until the release PR renames the heading (see "Release PR").
+- **Always cite the issue/PR** (`(#NNN)` / `#NNN`). Every `[Unreleased]` bullet must carry a reference — the linked PR holds the granular detail.
+- **No internal roadmap codenames** in the prose — no "Sprint N", "phase N", or letter-codes (`A6`, `B3`, `E5`, …). Describe the change itself and keep entries concise (one tight paragraph, not a wall of class-by-class text).
+- Ordinary words that happen to look like codes — "A4" (paper size), "four-phase flow" (literal steps) — are fine; the rule targets roadmap taxonomy only.
+
+### What not to do
+
+- Do not amend or rewrite published commits on `main`. On `develop`, force-push is permitted only for the documented sync-with-main rebase ("Develop branch workflow" → Sync) — never to rewrite arbitrary history.
+- Do not skip hooks (`--no-verify`) or signing.
+- Do not bypass the coverage floor — bump it forward or restore the lost coverage. Never lower it.
+- Do not add new untested code paths in a coverage-aware PR; either cover them in the same PR or document the deferral.
+- Do not target `main` directly from a feature PR. The only PRs that base on `main` are the release PR (`develop → main`) and hotfix PRs (`hotfix/* → main`).
+- Do not bump `FFC_VERSION` in a PR that targets `develop` — the bump belongs to the release PR.
+
+---
+
+## 2. Quality gates and testing
+
+### CI gates (all gating, enforced on `main` and `develop`)
 
 - PHP: PHPStan (level 8) · WPCS · PHPUnit (8.3/8.4) · Coverage ≥ floor (clover, env `COVERAGE_FLOOR_LINES` in `.github/workflows/ci.yml`).
 - JS / CSS: ESLint (zero-error) · Stylelint (zero-error) · Vitest + coverage ≥ floor (env `JS_COVERAGE_FLOOR_LINES` in `.github/workflows/lint.yml`).
@@ -35,7 +197,7 @@ The coverage floors are ratcheted upward in the PR that delivers the gain — ne
 
 **Module-boundary guard (#563 B3).** `tests/Unit/ModuleBoundaryTest.php` freezes the cross-module dependency graph of `includes/` (a "module" = the first namespace segment after `FreeFormCertificate\`; an edge = module A referencing `FreeFormCertificate\B\…`) against the committed baseline `tests/fixtures/module-boundary-baseline.php`. It runs in the normal PHPUnit gate. The graph is a **ratchet that can only shrink**: a *new* edge fails (new cross-module coupling — justify it or route through a facade); a *removed* edge also fails (coupling eliminated — lock the win in). After an intentional change, regenerate + review the diff: `FFC_UPDATE_BOUNDARY_BASELINE=1 vendor/bin/phpunit --filter ModuleBoundary`. Never regenerate just to make a red guard green without understanding the new edge.
 
-## Test infrastructure
+### Test infrastructure
 
 - PHP: PHPUnit 9; tests under `tests/Unit` and `tests/Integration`.
 - JS: Vitest 2 with jsdom; tests under `tests/js/*.test.js`. Real jQuery via `jquery/factory` bound to the jsdom window (`tests/js/setup.js`). Scripts under `assets/js/` load via `vm.runInThisContext` so V8 coverage attribution survives (`tests/js/helpers.js`).
@@ -45,11 +207,19 @@ The coverage floors are ratcheted upward in the PR that delivers the gain — ne
 - **Running the suite locally.** Install pcov once (`apt-get install -y --no-install-recommends php8.4-pcov`); the full suite is ~10 min. Scope while iterating with `vendor/bin/phpunit --filter <Test>`; `vendor/bin/phpstan analyse --no-progress <path>` and `vendor/bin/phpcs --standard=phpcs.xml.dist -q <files>` (auto-fix with `vendor/bin/phpcbf`) reproduce the PHPStan/WPCS gates.
 - **PHPStan/phpdoc idioms.** Put `@phpstan-type` on the **class** docblock (not the file docblock); consumers use `@phpstan-import-type X from Y` on their own class docblock. Avoid `@todo (` and other `@tag (` openings — phpdoc parses the `(` and errors; use prose instead.
 
-## Source-of-truth files
+### Build & assets
 
-When editing JS that ships to the browser, also run `npm run build:js` so the matching `*.min.js` and `.map` stay in sync — the `Verify minified assets are up to date` CI job fails otherwise.
+When editing assets that ship to the browser, rebuild the minified bundles so the matching `*.min.*` and `.map` files stay in sync — the `Verify minified assets are up to date` CI job fails otherwise:
 
-## Repository pattern (Reader/Writer split)
+- **JS** → `npm run build:js` (regenerates `assets/js/*.min.js` + `.map`).
+- **CSS** → `npm run build:css` (regenerates `assets/css/*.min.css` + `.map`).
+- Both at once → `npm run build`.
+
+---
+
+## 3. Architecture and patterns
+
+### Repository pattern (Reader/Writer split)
 
 Data-access classes are split read-side vs write-side. Two shapes — pick by whether the repo needs multi-statement transactions:
 
@@ -60,7 +230,7 @@ Data-access classes are split read-side vs write-side. Two shapes — pick by wh
 
 When splitting or adding a repo, default to static; reach for the instance-façade only when callers need a read-modify-write transaction. **Test note:** a caller's alias mock that stubs both reads and writes must become **two** alias mocks — one on the `*Reader`, one on the `*Writer` — or the write call hits the real (un-mocked) class.
 
-## Module bootstrap (per-module loaders)
+### Module bootstrap (per-module loaders)
 
 Each feature module exposes a single bootstrap entry point — a `*Loader` class whose `init()` wires the module's runtime classes — so the orchestrator (`Loader::init_plugin()`) touches **one symbol per module** instead of newing-up its internals inline. This keeps `Loader` a thin composition root and narrows the `Root → <module>` dependency surface (#563 B3 coupling reduction). Current loaders: `AdminLoader`, `AudienceLoader`, `RecruitmentLoader`, `UrlShortenerLoader`, `ReregistrationLoader`, `SelfSchedulingLoader`.
 
@@ -70,7 +240,7 @@ Pattern: `init()` runs the module's wiring in its original order, gating admin-o
 
 **Documented exception — UserDashboard has no loader (deliberate, B3 phase 2).** Its only bootstrap wiring is `AccessControl::init()` + `UserCleanup::init()` (2 calls, left inline in `Loader`). The bulk of its `Root → UserDashboard` surface is capability/role lifecycle (`RoleRegistrar` / `CapabilityManager` / `CapabilityMigrator`) invoked from `Loader::register_ffc_roles_safe()` / `ensure_*_caps()` — orchestrator responsibility, not module bootstrap. A `UserDashboardLoader` would move 2 lines without shrinking the edge, so it was intentionally skipped.
 
-## Shared-service module directories
+### Shared-service module directories
 
 A few `includes/` modules are small, single-purpose service buckets whose names are generic enough to invite drift. Keep each scoped to its stated purpose — do NOT let it become a "misc" drawer, since renaming to a crisper namespace later would ripple through the module-boundary baseline, every `use` / `@covers` / alias-mock and the autoloader for only a cosmetic gain (the same namespace-churn cost as any cross-module move). The guard is scope discipline, not a rename:
 
@@ -78,11 +248,28 @@ A few `includes/` modules are small, single-purpose service buckets whose names 
 - **`integrations/` (`\Integrations`)** — adapters to *external* systems (`EmailHandler` → SMTP, `IpGeolocation` → geolocation API). A class with no outbound/external dependency is not an integration.
 - **`scheduling/` (`\Scheduling`)** — cross-cutting scheduling-domain services shared by the self-scheduling and audience features (`DateBlockingService`, `WorkingHoursService`, `IcsGenerator`, `SchedulingMailer`). Distinct from the `self-scheduling/` and `audience/` feature modules and from the "Scheduling" admin menu: feature UI/handlers go in those modules; only shared scheduling logic lives here.
 
-## Date / time storage convention
+### Email architecture (one pipeline — #662)
+
+Every plugin-composed email flows through **one shared pipeline**; never hand-roll a chrome, a transport, or an inline body. When adding or touching an email:
+
+1. **Compose the email body only** (the inner content). Resolve placeholders with `Core\TokenResolver::resolve()` (`{{token}}`) — never hand-rolled `str_replace`.
+2. **Wrap in the single configurable chrome**: `EmailHelperTrait::ffc_email_document( $body, array( 'recipient' => $to ) )`. The chrome (header/body/footer/wrapper) is admin-configurable via `Core\EmailTemplateOptions` (the "Email Model" box, Settings → SMTP) and rendered by `templates/emails/layout.php` (table-based, inline styles for Gmail/Outlook). There is exactly **one** chrome — `SchedulingMailer::wrap_html` and the per-email cards were retired.
+3. **Send through the chokepoint** `Core\EmailService::send()` (or `EmailHelperTrait::ffc_send_mail()`, which sets `text/html`). Never call `wp_mail()` directly. The global "disable all emails" kill-switch is enforced **inside** `EmailService::send()` — do **not** re-gate it caller-side.
+4. **Default bodies live in files**, one per case, under `templates/emails/`. Return-array files (`return array( 'body' => __( … ) )`, loaded via the allowlisted `Core\EmailTemplates::load()` / `::body()`) for token/editable-default bodies; echo partials (via `ffc_render_email_partial()`) for handler-built ones. **Never build email HTML inline in a handler class** — extract it to a `templates/emails/*.php` file.
+5. **Editable emails edit the body only, never the chrome.** Use `wp_editor` (TinyMCE) + a "Restore Default Text" button wired by the generic `assets/js/ffc-email-restore-default.js` (`data-editor` + `data-default-key`; default supplied via `wp_localize_script['ffcEmailRestoreDefaults']`).
+6. **Surface the P5 notice**: `Core\EmailDisabledNotice::render()` at the top of any admin surface that edits an email.
+
+**When consolidating or auditing, grep every send site** (`EmailService::send` / `ffc_send_mail` / `wp_mail(`) and confirm none bypasses `ffc_email_document` — the #662 audit found emails the roadmap table had missed (a plain-text calendar-deletion cancellation, two admin notifications). WordPress-core emails (`wp_new_user_notification`, password resets) are out of scope — they use WP templates, not our chrome.
+
+---
+
+## 4. Domain conventions
+
+### Date / time storage convention
 
 Two categories. Pick the right one when adding a new column or touching an existing one — see #249 for the migration roadmap that retires the mixed pre-#244 patterns.
 
-### Category A — **Instants** (a moment in physical time)
+#### Category A — **Instants** (a moment in physical time)
 
 Things like "the user submitted this form at X", "the admin called this candidate at Y", "this audit row was written at Z". Use these rules:
 
@@ -94,7 +281,7 @@ Things like "the user submitted this form at X", "the admin called this candidat
 
 Existing examples: the Public Operator Access audit ring buffer (`entry['ts']`) was unix int from day one — that's why the only TZ bug that ever appeared there (#247) was a rendering choice (`gmdate` → `wp_date`), never a storage issue.
 
-#### Category A exception — housekeeping timestamps
+##### Category A exception — housekeeping timestamps
 
 `created_at` / `updated_at` columns that are (1) MySQL auto-managed via `DEFAULT CURRENT_TIMESTAMP` (and `ON UPDATE CURRENT_TIMESTAMP`), or (2) PHP-managed but never rendered to end users, stay as DATETIME.
 
@@ -115,7 +302,7 @@ Current inventory (point-in-time snapshot — re-verify a column against the liv
 
 If a future feature renders one of these columns to a user, that column must be migrated to Category A storage at that point — not left as a hidden TZ-drift trap.
 
-### Category B — **Wall-clock** (a human commitment, no TZ semantics)
+#### Category B — **Wall-clock** (a human commitment, no TZ semantics)
 
 Things like "the appointment is on May 20", "the doctor sees the patient at 09:00". The value means the same thing if the user travels or the server changes TZ — converting to UTC introduces DST/ambiguity bugs.
 
@@ -126,32 +313,12 @@ Things like "the appointment is on May 20", "the doctor sees the patient at 09:0
 
 Existing examples: `appointment_date` (DATE), `start_time` / `end_time` (TIME), `date_to_assume` (DATE), `time_to_assume` (TIME).
 
-### Always
+#### Always
 
 - Display goes through `DateFormatter::format_*()`. No `gmdate()`, no `date_i18n()`, no `wp_date()` outside the helper unless there's a documented reason (e.g. building an iCal `DTSTAMP` per RFC 5545).
 - Filenames / log keys / API contracts that need a stable ISO format may use `gmdate('Y-m-d\TH:i:s\Z', $ts)` — but the column those filenames represent should still follow Category A or B.
 
-## Legacy compat shims — audit log
-
-Inventário dos shims de compatibilidade legada que permanecem no código por design (snapshot — re-confirme a localização no código antes de remover; caminhos e linhas mudam a cada refactor, então a tabela cita arquivos/métodos, nunca números de linha). Removê-los requer evidência de que nenhuma instalação em produção depende deles.
-
-| Shim | Local | Risco se removido | Por que fica |
-|------|-------|--------|----------|
-| `ensure_legacy_caps_renamed()` v1 | `class-ffc-loader.php` (orquestra) → `CapabilityMigrator` | Médio | Idempotent + version-flagged via `ffc_legacy_caps_renamed_v1`; dormant após primeiro `plugins_loaded` post-6.2.0. Custo zero. |
-| Cron cleanup pré-4.6.15 | `class-ffc-activator.php` (`deactivate()` / cleanup) | Baixo | 3× `wp_clear_scheduled_hook`. Sites com upgrade auto pulando versões antigas mantêm crons órfãos sem isso. |
-| Keys `count` / `success` / `fail` em `get_audit_log_summary()` | `class-ffc-public-csv-download.php` | **Alto** | Contrato de API pública. Consumidores externos (filters/hooks) podem depender deles. Removível só com banner ⚠ de breaking change. |
-| `cpf_rf_encrypted` legacy column fallback (3-tier) | `class-ffc-pdf-generator.php` | **Alto** | Data loss em PDFs para installs com dados pré-split. Remover só após confirmar que TODAS instalações ativas têm dados migrados para `cpf_encrypted` / `rf_encrypted`. |
-
-Quando uma feature nova tornar um desses shims inseguro ou inadequado, abra sub-issue específica + breaking-change banner no CHANGELOG.
-
-### Coletando a evidência para remover um shim de risco **Alto**
-
-Os dois shims Alto exigem prova antes de remover — mas só um é comprovável por dados. Antes de propor construir qualquer diagnóstico novo, confira se a evidência já existe:
-
-- **`cpf_rf_encrypted` (fallback 3-tier no PDF)** — **a evidência já existe na UI; não construa um diagnóstico novo.** A migração manual `split_cpf_rf` (Settings → Migrações) já renderiza um card com **Pendentes** = linhas que ainda carregam `cpf_rf_hash` em `ffc_submissions` / `ffc_self_scheduling_appointments` (`CpfRfSplitMigrationStrategy::count_table_status()`; "pending = rows that still have `cpf_rf_hash`", e coluna dropada ⇒ 100% completo). Quando esse card lê **0 pendentes / 100%** (ou nem aparece, porque a coluna legada foi dropada na conclusão) numa instalação de produção, o tier-3 do gerador de PDF (`class-ffc-pdf-generator.php`, que lê `cpf_rf_encrypted`) não tem mais dependente vivo e pode cair. Equivalência que sustenta a leitura: `Encryption` sempre grava hash + ciphertext juntos e a migração nula `cpf_rf`/`cpf_rf_encrypted`/`cpf_rf_hash` atomicamente por linha, então "pendente por `cpf_rf_hash`" ⟺ "pendente por `cpf_rf_encrypted`". Um contador paralelo keyed em `cpf_rf_encrypted` seria indireção redundante (a mesma armadilha de facade que não estreita nada).
-- **Keys `count`/`success`/`fail` de `get_audit_log_summary()`** — **não é comprovável por diagnóstico.** É método público estático (`PublicCsvDownload::get_audit_log_summary()`), sem hook/filter e sem rastro em banco; um consumidor externo lendo `['success']`/`['fail']` é invisível a qualquer query read-only. O que dá pra afirmar estaticamente: internamente `success`/`fail` têm **zero** consumidores (o metabox migrou para `access_success`/`failed_access`) e só `count` ainda é lido (pelo metabox). Logo, de-risk apenas via **ciclo de deprecação versionado** + banner de breaking-change no CHANGELOG — nunca via scan de evidência.
-
-## Settings reads
+### Settings reads
 
 Read `ffc_settings` via `FreeFormCertificate\Settings\SettingsReader`, not `get_option('ffc_settings')` directly:
 
@@ -163,7 +330,7 @@ The 14 debug-area toggles continue to be read via `Debug::is_enabled($area)` —
 
 Classes that already encapsulate `get_option('ffc_settings')` in their own private helper (e.g. `UrlShortenerService::get_settings()`) do NOT need to migrate — they're already centralized.
 
-## Capability naming
+### Capability naming
 
 All FFC capabilities follow one grammar (ratified in #488, applied plugin-wide):
 
@@ -178,7 +345,7 @@ ffc_<action>_[own_]<domain>[_<qualifier>]
 
 **Settings-write auth — WP-standard, no engine (deliberate, #711).** Settings-write authorization uses the **WordPress-standard inline pattern**: native nonce funcs (`wp_verify_nonce` / `check_admin_referer` / `check_ajax_referer`) + the existing capability chokepoint `Capabilities::current_user_can_admin_or()`. Do **not** wrap this in a settings persistence/authorize "engine" — one was tried and removed as net-negative indirection (it fit none of the real writers and only hid the nonce from the WPCS sniff).
 
-### 3-state permission model
+#### 3-state permission model
 
 Every admin domain exposes a `view`/`manage` pair so each surface has three states — *não vê* / *só vê* / *vê e edita* — with the WP admin (`manage_options`) above all:
 
@@ -189,13 +356,13 @@ canEdit = current_user_can('manage_options') || manage_cap
 
 A `manage` role does **not** need to also carry the `view` cap — `canView` already includes `manage`. Hidden when neither; read-only render (disabled inputs, no save, row/bulk actions hidden) when only `view`. Use `Capabilities::current_user_can_admin_or($cap)` for inline gates; menu/tab caps take the slug directly (admins hold every FFC admin cap via the activation/`ensure_admin_capabilities` grant).
 
-### Registry, catalog, migration
+#### Registry, catalog, migration
 
 - Machine list: `CapabilityManager` (`*_CAPABILITIES` consts + `module_roles_definition()`).
 - Human metadata: `CapabilityCatalog::groups()`. **Invariant** (enforced by `CapabilityCatalogTest`): `CapabilityCatalog::all_slugs()` must equal `CapabilityManager::get_all_capabilities()` as a set — adding a cap to one without the other fails CI.
 - Renames ship with a one-shot, option-flagged migration that rewrites grants on every user (`user_meta`) **and** every role definition (see `CapabilityMigrator::migrate_taxonomy_renames()` + `Loader::ensure_taxonomy_renamed()`; the one-shot migrations live in `CapabilityMigrator` and role lifecycle in `RoleRegistrar` since #563 Sprint 2). Renames are a **breaking change** for external integrations referencing old slugs — call it out in the CHANGELOG.
 
-## Security & PII conventions
+### Security & PII conventions
 
 A full security audit confirmed these hold plugin-wide — keep them that way (the #596 IP-hash fix was the only gap found):
 
@@ -206,159 +373,26 @@ A full security audit confirmed these hold plugin-wide — keep them that way (t
 - **Never log raw PII.** Debug logs hash IPs / CPF (`substr( hash( 'sha256', $v ), 0, 16 )`) — see `IpGeolocation` / `PreflightTelemetry` (#596) — and stay behind the off-by-default debug toggles regardless.
 - **Outbound HTTP.** Validate any request-derived IP/URL before `wp_remote_*` (e.g. `FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE` to block SSRF); prefer `wp_safe_redirect` for redirects.
 
-## Email architecture (one pipeline — #662)
+---
 
-Every plugin-composed email flows through **one shared pipeline**; never hand-roll a chrome, a transport, or an inline body. When adding or touching an email:
+## 5. Legacy and tech debt
 
-1. **Compose the email body only** (the inner content). Resolve placeholders with `Core\TokenResolver::resolve()` (`{{token}}`) — never hand-rolled `str_replace`.
-2. **Wrap in the single configurable chrome**: `EmailHelperTrait::ffc_email_document( $body, array( 'recipient' => $to ) )`. The chrome (header/body/footer/wrapper) is admin-configurable via `Core\EmailTemplateOptions` (the "Email Model" box, Settings → SMTP) and rendered by `templates/emails/layout.php` (table-based, inline styles for Gmail/Outlook). There is exactly **one** chrome — `SchedulingMailer::wrap_html` and the per-email cards were retired.
-3. **Send through the chokepoint** `Core\EmailService::send()` (or `EmailHelperTrait::ffc_send_mail()`, which sets `text/html`). Never call `wp_mail()` directly. The global "disable all emails" kill-switch is enforced **inside** `EmailService::send()` — do **not** re-gate it caller-side.
-4. **Default bodies live in files**, one per case, under `templates/emails/`. Return-array files (`return array( 'body' => __( … ) )`, loaded via the allowlisted `Core\EmailTemplates::load()` / `::body()`) for token/editable-default bodies; echo partials (via `ffc_render_email_partial()`) for handler-built ones. **Never build email HTML inline in a handler class** — extract it to a `templates/emails/*.php` file.
-5. **Editable emails edit the body only, never the chrome.** Use `wp_editor` (TinyMCE) + a "Restore Default Text" button wired by the generic `assets/js/ffc-email-restore-default.js` (`data-editor` + `data-default-key`; default supplied via `wp_localize_script['ffcEmailRestoreDefaults']`).
-6. **Surface the P5 notice**: `Core\EmailDisabledNotice::render()` at the top of any admin surface that edits an email.
+### Legacy compat shims — audit log
 
-**When consolidating or auditing, grep every send site** (`EmailService::send` / `ffc_send_mail` / `wp_mail(`) and confirm none bypasses `ffc_email_document` — the #662 audit found emails the roadmap table had missed (a plain-text calendar-deletion cancellation, two admin notifications). WordPress-core emails (`wp_new_user_notification`, password resets) are out of scope — they use WP templates, not our chrome.
+Inventory of the legacy compatibility shims that remain in the code by design (snapshot — re-confirm the location in code before removing; paths and lines change with every refactor, so the table cites files/methods, never line numbers). Removing them requires evidence that no production installation depends on them.
 
-## Branch naming
+| Shim | Location | Risk if removed | Why it stays |
+|------|----------|-----------------|--------------|
+| `ensure_legacy_caps_renamed()` v1 | `class-ffc-loader.php` (orchestrator) → `CapabilityMigrator` | Medium | Idempotent + version-flagged via `ffc_legacy_caps_renamed_v1`; dormant after the first `plugins_loaded` post-6.2.0. Zero cost. |
+| Cron cleanup pre-4.6.15 | `class-ffc-activator.php` (`deactivate()` / cleanup) | Low | 3× `wp_clear_scheduled_hook`. Sites auto-upgrading across skipped old versions keep orphan crons without it. |
+| `count` / `success` / `fail` keys in `get_audit_log_summary()` | `class-ffc-public-csv-download.php` | **High** | Public API contract. External consumers (filters/hooks) may depend on them. Removable only with a ⚠ breaking-change banner. |
+| `cpf_rf_encrypted` legacy column fallback (3-tier) | `class-ffc-pdf-generator.php` | **High** | Data loss in PDFs for installs with pre-split data. Remove only after confirming ALL active installs have data migrated to `cpf_encrypted` / `rf_encrypted`. |
 
-Use `claude/<short-kebab-description>` for feature branches that target `develop`. Examples in main history: `claude/js-coverage-sprint-B-audience-smoke`, `claude/csv-import-normalize-cpf-rf`. Use `hotfix/<short-kebab-description>` when cutting an urgent fix from `main` (see "Develop branch workflow" → Hotfixes). The remote refuses pushes to `main` and `develop` directly; always go through a PR.
+When a new feature makes one of these shims unsafe or inadequate, open a specific sub-issue + a breaking-change banner in the CHANGELOG.
 
-## Develop branch workflow
+#### Gathering the evidence to remove a **High**-risk shim
 
-Adopted v6.7.7 to decouple iteration cadence from production. Source domain (prod) only sees one version bump per batch; the testes domain runs `develop` HEAD and absorbs the per-PR churn.
+The two High shims require proof before removal — but only one is provable by data. Before proposing to build any new diagnostic, check whether the evidence already exists:
 
-### Branch topology
-
-```
-main      ─o──────────────────────o────────────  ← PROD (source domain)
-                                  ↑
-                                  release PR
-                                  with consolidated bump
-develop   ─o─o─o─o─o─o─o─o─o─o─o─/             ← TESTES (testes domain)
-           PR1 PR2 PR3 …                         each merge auto-deploys
-```
-
-- **`main`** — the production branch. Updated only by (1) the release PR `develop → main` (squash merge with the final bump + consolidated CHANGELOG entry) and (2) hotfix PRs `hotfix/* → main` when a critical bug bypasses the queue.
-- **`develop`** — the integration branch. Default base for every feature PR. Each merge into `develop` triggers `.github/workflows/deploy-develop.yml`, which rsyncs the working tree to the testes server.
-- **`hotfix/*`** — short-lived. Cut from `main`, merge back to `main`, then rebase `develop` on top of the new `main` (see Hotfixes).
-
-### Per-PR flow (the common case)
-
-1. Feature branch `claude/<desc>` cut from `develop`.
-2. PR targets `develop`. CI gates run identically to PRs against main.
-3. **No `FFC_VERSION` bump in the feature PR.** Develop accumulates work under the existing `FFC_VERSION` until release time.
-4. CHANGELOG entries go under the `[Unreleased]` section at the top of `CHANGELOG.md` — they stay there across multiple PRs.
-5. Auto-merge enabled (SQUASH). Once merged, `deploy-develop.yml` pushes the new HEAD to the testes server within ~1 minute.
-
-### Dependabot PRs
-
-Dependabot is configured with `target-branch: develop` for all three ecosystems (`composer`, `npm`, `github-actions`) in `.github/dependabot.yml`, so **version updates** open against `develop` correctly.
-
-**Security updates are the exception:** GitHub always raises Dependabot *security* updates against the repository's default branch (`main`), ignoring `target-branch` — this is not configurable. The default branch is intentionally kept as `main` (changing it would have repo-wide side effects), so security-update PRs will keep being born against `main`.
-
-**Rule — retarget to `develop`:** whenever a Dependabot PR opens against `main` (in practice, always a security update), change its base to `develop` and leave a one-line comment stating the reason (*correct flow: every change funnels through `develop` and ships in the consolidated release PR, never as an out-of-band `main` commit*). Then comment `@dependabot rebase` so the lockfile diff is recomputed against `develop`. The PR then rides the normal develop batch with auto-merge like any other.
-
-**Exception — genuine hotfix:** if the security fix is in a **runtime dependency** (shipped inside the plugin, not dev/CI tooling) *and* is severe enough to ship to production immediately, treat it as a hotfix (`hotfix/* → main`) instead of retargeting, then sync develop per "Sync `develop` with `main`". Dev/CI-only deps (`vitest`, `@vitest/coverage-v8`, `undici`, `js-yaml`, PHPStan, etc.) never qualify — they always ride the develop batch.
-
-### Release PR (`develop → main`)
-
-When the batch on develop is validated against the testes site and ready to ship to prod:
-
-1. Open a single PR `develop → main`.
-2. In that PR (committed onto `develop` immediately before opening):
-   - Bump `FFC_VERSION` in the three sync sites (`ffcertificate.php` header, `FFC_VERSION` constant, `readme.txt` `Stable tag`). See "Versioning".
-   - Rename the `[Unreleased]` heading in `CHANGELOG.md` to `[X.Y.Z] (YYYY-MM-DD)` and add a fresh empty `[Unreleased]` heading above it. **Then, once the release PR squash-merges into `main`, backfill the release commit reference onto that heading** by appending `` — `<short-sha>` `` (the 7-char short SHA of the squash commit on `main`), matching every other shipped version header. A missing suffix means the backfill was skipped (as for 6.11.1 / 6.11.2, fixed retroactively).
-   - Run `npm run build:js` if any JS/CSS in `assets/` changed across the batch and the bundles weren't already rebuilt mid-flight (the "Verify minified assets are up to date" gate would catch this anyway).
-3. Auto-merge SQUASH into `main`. The squash commit subject should follow main's convention: `X.Y.Z — <short summary of the batch>`.
-4. After merge, rebase `develop` on `main` (see Sync below) so the next batch starts from the bumped baseline.
-
-### Hotfix flow (urgent fix that can't wait for the next release)
-
-When a critical bug needs to ship to prod while develop has un-released commits:
-
-1. `git fetch origin && git checkout -b hotfix/<desc> origin/main`.
-2. Apply the fix. Bump `FFC_VERSION` as a real patch (e.g. `6.7.7 → 6.7.8`) — hotfixes consume patch numbers, not the `.x.y.z.N` cache-bust convention.
-3. PR `hotfix/<desc> → main`. Auto-merge SQUASH.
-4. **Then sync develop with the new main** (see below) so develop carries the hotfix and the next release PR doesn't try to "undo" it.
-
-### Sync `develop` with `main` (post-hotfix or post-release)
-
-```bash
-git fetch origin
-git checkout develop
-git rebase origin/main
-git push --force-with-lease origin develop
-```
-
-This rewrites develop's SHAs on top of the new `main` tip. Force-push is permitted on `develop` by design (the branch protection deliberately omits "Require linear history" and the push restriction) — see "Branch protection" below. If a feature PR was open against develop at the moment of the rebase, the PR author rebases their branch on the new develop tip; this is the cost of keeping develop linear.
-
-### Branch protection (`develop`)
-
-Configured in Settings → Branches with intentionally lighter rules than `main`:
-
-- ✅ Require a pull request before merging (no required reviewers — solo maintainer).
-- ✅ Require status checks to pass before merging — all gating jobs listed under "CI gates".
-- ❌ Require linear history — left off so the rebase workflow above doesn't need admin bypass.
-- ❌ Restrict who can push to matching branches — leaving force-push permitted is what makes the rebase sync above mechanical.
-- ❌ Require deployments to succeed — `deploy-develop.yml` runs *after* merge, not as a merge gate.
-
-Reasoning: develop is single-maintainer integration territory, not a shared production branch. Stronger protection here would force admin bypass for routine syncs and provide negligible safety benefit.
-
-### Deploy to testes
-
-`.github/workflows/deploy-develop.yml` runs on every `push` to `develop` and rsyncs the working tree to the testes server. Required GitHub secrets (Settings → Secrets and variables → Actions):
-
-| Secret | Example | Notes |
-| --- | --- | --- |
-| `TESTES_SSH_HOST` | `ssh.testes.example.com` or `185.239.210.8` | DNS or IP of the testes host. **Hostname only, no port, no protocol prefix.** |
-| `TESTES_SSH_USER` | `wp-deploy` | Account with write access to the plugin dir |
-| `TESTES_SSH_KEY` | `-----BEGIN OPENSSH PRIVATE KEY-----…` | Private half of a dedicated keypair; public half goes in `~/.ssh/authorized_keys` on the testes host. **Must have no passphrase** — generate with `ssh-keygen -t ed25519 -N "" -f <path>`. GitHub Actions cannot enter passphrases interactively; a passphrase-protected key surfaces as `Permission denied (publickey,password)` in the rsync step, indistinguishable from a wrong key. |
-| `TESTES_SSH_PORT` | `65002` | **Optional.** Defaults to `22`. Managed hosting (Hostinger, KingHost, Locaweb) usually exposes SSH on a high port — set this when so. |
-| `TESTES_REMOTE_PATH` | `/var/www/testes/wp-content/plugins/ffcertificate` | Absolute path; no trailing slash |
-
-The rsync uses `--delete`, so anything in the remote path that isn't in the develop working tree is removed on each deploy. The workflow excludes `.git/`, `.github/`, `vendor/`, `node_modules/`, `tests/`, and dev tooling (PHPStan, PHPUnit, PHPCS configs) — those don't belong in a runtime plugin dir.
-
-The testes server should have `SCRIPT_DEBUG=true` in `wp-config.php` so non-minified assets load and `?ver=…` cache aggressiveness stays low while iterating.
-
-## Versioning
-
-Three places carry the plugin version and must stay in sync:
-
-1. `ffcertificate.php` plugin header — `* Version: X.Y.Z`. Parsed by WordPress core BEFORE PHP runs, so it must be a literal string.
-2. `ffcertificate.php` PHP constant — `define( 'FFC_VERSION', 'X.Y.Z' )`. Source of `?ver=…` on every `wp_enqueue_*` call.
-3. `readme.txt` `Stable tag: X.Y.Z`. Parsed by WordPress.org before PHP runs; also a literal string.
-
-When changing the version, update all three in the same commit.
-
-### Patch vs. cache-bust-only releases
-
-- A "real" patch release (any source-code change) consumes the next patch number: `6.6.2 → 6.6.3`.
-- A **cache-bust-only release** (no functional change — exists purely to rotate the `?ver=…` asset cache key after a prior PR shipped an updated `.min.js` / `.min.css` without bumping the version) uses a 4th segment appended to the prior version: `6.6.2 → 6.6.2.1`. The next cache-bust sibling of the same minor would be `6.6.2.2`, and so on. WordPress's `version_compare()` and the plugin update flow both handle 4-segment versions without special-casing.
-- Reason for the convention: a cache-bust release carries no new user-visible behavior, only a key rotation. Burning a real patch number on it would imply meaningful changes that aren't there.
-
-### When to bump
-
-The trigger has not changed — bundled-asset changes still rotate the cache key. What changed with the develop branch workflow is **where the bump lands**:
-
-- **PRs targeting `main`** (release PR `develop → main`, hotfix PR `hotfix/* → main`): bump `FFC_VERSION` in the same PR. The release PR consolidates every `assets/**/*.min.js`, `assets/**/*.min.css`, `templates/**.php`, and `languages/*.l10n.php` / `.mo` change from the develop batch under one version. Hotfix PRs bump their own patch number.
-- **PRs targeting `develop`**: do **not** bump. Develop sits at the last released version (the cache key on the testes domain stays stable across the batch), and the testes site sidesteps cache aggressiveness via `SCRIPT_DEBUG=true`. Bumping per-PR on develop would consume version numbers that have no production analog.
-
-The "Verify minified assets are up to date" CI job catches build freshness on both bases but does NOT enforce the version bump — that's still a human discipline on the release PR.
-
-## CHANGELOG conventions
-
-`CHANGELOG.md` follows Keep a Changelog. Per change:
-
-- One entry under the top `[Unreleased]` section, grouped by heading (`Added` / `Changed` / `Fixed` / `Security` / `Removed` / `Deprecated`). Entries stay in `[Unreleased]` across PRs until the release PR renames the heading (see "Release PR").
-- **Always cite the issue/PR** (`(#NNN)` / `#NNN`). Every `[Unreleased]` bullet must carry a reference — the linked PR holds the granular detail.
-- **No internal roadmap codenames** in the prose — no "Sprint N", "phase N", or letter-codes (`A6`, `B3`, `E5`, …). Describe the change itself and keep entries concise (one tight paragraph, not a wall of class-by-class text).
-- Ordinary words that happen to look like codes — "A4" (paper size), "four-phase flow" (literal steps) — are fine; the rule targets roadmap taxonomy only.
-
-## What not to do
-
-- Do not amend or rewrite published commits on `main`. On `develop`, force-push is permitted only for the documented sync-with-main rebase ("Develop branch workflow" → Sync) — never to rewrite arbitrary history.
-- Do not skip hooks (`--no-verify`) or signing.
-- Do not bypass the coverage floor — bump it forward or restore the lost coverage. Never lower it.
-- Do not add new untested code paths in a coverage-aware PR; either cover them in the same PR or document the deferral.
-- Do not target `main` directly from a feature PR. The only PRs that base on `main` are the release PR (`develop → main`) and hotfix PRs (`hotfix/* → main`).
-- Do not bump `FFC_VERSION` in a PR that targets `develop` — the bump belongs to the release PR.
+- **`cpf_rf_encrypted` (3-tier fallback in the PDF)** — **the evidence already exists in the UI; do not build a new diagnostic.** The manual `split_cpf_rf` migration (Settings → Migrations) already renders a card with **Pending** = rows that still carry `cpf_rf_hash` in `ffc_submissions` / `ffc_self_scheduling_appointments` (`CpfRfSplitMigrationStrategy::count_table_status()`; "pending = rows that still have `cpf_rf_hash`", and a dropped column ⇒ 100% complete). When that card reads **0 pending / 100%** (or doesn't even appear, because the legacy column was dropped on completion) on a production install, the PDF generator's tier-3 (`class-ffc-pdf-generator.php`, which reads `cpf_rf_encrypted`) no longer has a live dependent and can go. The equivalence that backs this reading: `Encryption` always writes hash + ciphertext together and the migration nulls `cpf_rf`/`cpf_rf_encrypted`/`cpf_rf_hash` atomically per row, so "pending by `cpf_rf_hash`" ⟺ "pending by `cpf_rf_encrypted`". A parallel counter keyed on `cpf_rf_encrypted` would be redundant indirection (the same façade trap that narrows nothing).
+- **`count`/`success`/`fail` keys of `get_audit_log_summary()`** — **not provable by any diagnostic.** It is a public static method (`PublicCsvDownload::get_audit_log_summary()`), with no hook/filter and no DB trace; an external consumer reading `['success']`/`['fail']` is invisible to any read-only query. What can be asserted statically: internally `success`/`fail` have **zero** consumers (the metabox migrated to `access_success`/`failed_access`) and only `count` is still read (by the metabox). So de-risk only via a **versioned deprecation cycle** + a breaking-change banner in the CHANGELOG — never via an evidence scan.
