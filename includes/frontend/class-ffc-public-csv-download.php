@@ -904,9 +904,12 @@ class PublicCsvDownload {
 	 *     future tags fall through to this bucket so a silent
 	 *     "success" inflation is impossible.
 	 *
-	 * The legacy keys `count` / `success` / `fail` are still returned
-	 * so any unforeseen external consumer doesn't blow up; metabox UI
-	 * has migrated to the new three-bucket shape.
+	 * The legacy `success` / `fail` keys are **deprecated** (see #730) and
+	 * scheduled for removal no earlier than the second feature release after
+	 * the announcement — use `access_success` / `download_success` /
+	 * `failed_access` instead. They are still returned for now so any
+	 * unforeseen external consumer survives the deprecation window. `count`
+	 * is NOT deprecated (the metabox reads it) and stays.
 	 *
 	 * @param int $form_id Form ID.
 	 * @return array{count: int, success: int, fail: int, access_success: int, download_success: int, failed_access: int, url: string|null}

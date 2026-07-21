@@ -7,6 +7,11 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Deprecated
+- Two public API surfaces with no internal callers are now deprecated and scheduled for removal **no earlier than the second feature release after this one** (external consumers are invisible to a code scan, so they get a deprecation window instead of an evidence-gated removal). (#730)
+  - `PublicCsvDownload::get_audit_log_summary()` — the legacy `success` / `fail` return keys. Use `access_success` / `download_success` / `failed_access` instead. (`count` is unaffected and stays.)
+  - `UserDataRestController` — the public `get_user_*` facade delegate methods (`get_user_certificates`, `get_user_profile`, `get_user_appointments`, `get_user_summary`, …). Call the corresponding sub-controller (`UserCertificatesRestController`, `UserProfileRestController`, …) directly instead.
+
 ### Removed
 - ⚠ **Breaking (legacy pre-split data):** removed the `cpf_rf_encrypted` legacy-column fallback — the last runtime reads of the pre-split combined CPF/RF column, in the appointment-PDF generator and the two submission REST endpoints. CPF/RF now come exclusively from the split `cpf_encrypted` / `rf_encrypted` columns. This is safe for any install that has completed the **Settings → Migrations → `split_cpf_rf`** migration (card reads **0 pending**); an install still holding pre-split rows would lose CPF/RF in appointment PDFs, so run that migration to completion first. The admin submission REST responses' combined `cpf_rf` field has been removed (it was already `null` for migrated rows) — read the split `cpf` / `rf` fields instead. The `split_cpf_rf` migration itself is unchanged. (#727, #728)
 
