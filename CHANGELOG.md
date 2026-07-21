@@ -7,7 +7,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
-## [6.15.0] (2026-07-21)
+## [6.15.0] (2026-07-21) — `b5a96fe`
 
 ### Deprecated
 - Two public API surfaces with no internal callers are now deprecated and scheduled for removal **no earlier than the second feature release after this one** (external consumers are invisible to a code scan, so they get a deprecation window instead of an evidence-gated removal). (#730)
