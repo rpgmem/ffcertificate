@@ -7,6 +7,9 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Removed
+- ⚠ **Breaking (legacy pre-split data):** removed the `cpf_rf_encrypted` legacy-column fallback — the last runtime reads of the pre-split combined CPF/RF column, in the appointment-PDF generator and the two submission REST endpoints. CPF/RF now come exclusively from the split `cpf_encrypted` / `rf_encrypted` columns. This is safe for any install that has completed the **Settings → Migrations → `split_cpf_rf`** migration (card reads **0 pending**); an install still holding pre-split rows would lose CPF/RF in appointment PDFs, so run that migration to completion first. The admin submission REST responses' combined `cpf_rf` field is now always `null` (it was already `null` for migrated rows) — read the split `cpf` / `rf` fields instead. The `split_cpf_rf` migration itself is unchanged.
+
 ### Changed
 - Settings (#711, #720) — the **"Module settings"** jump list moved from a card at the top of Settings → General into the settings sidebar itself: the Scheduling and Recruitment links now render as nav items directly above the **Advanced** tab, with an external-link marker since they navigate to the module's own page. Same per-module view-capability gating as before.
 
