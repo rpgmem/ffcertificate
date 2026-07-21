@@ -7,7 +7,20 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
-## [6.14.0] (2026-07-19)
+## [6.15.0] (2026-07-21)
+
+### Deprecated
+- Two public API surfaces with no internal callers are now deprecated and scheduled for removal **no earlier than the second feature release after this one** (external consumers are invisible to a code scan, so they get a deprecation window instead of an evidence-gated removal). (#730)
+  - `PublicCsvDownload::get_audit_log_summary()` — the legacy `success` / `fail` return keys. Use `access_success` / `download_success` / `failed_access` instead. (`count` is unaffected and stays.)
+  - `UserDataRestController` — the public `get_user_*` facade delegate methods (`get_user_certificates`, `get_user_profile`, `get_user_appointments`, `get_user_summary`, …). Call the corresponding sub-controller (`UserCertificatesRestController`, `UserProfileRestController`, …) directly instead.
+
+### Removed
+- ⚠ **Breaking (legacy pre-split data):** removed the `cpf_rf_encrypted` legacy-column fallback — the last runtime reads of the pre-split combined CPF/RF column, in the appointment-PDF generator and the two submission REST endpoints. CPF/RF now come exclusively from the split `cpf_encrypted` / `rf_encrypted` columns, introduced in **v5.0.0** (`9742fd9`, "Multi-identifier architecture"). This is safe for any install that has completed the **Settings → Migrations → `split_cpf_rf`** migration (also shipped in v5.0.0; card reads **0 pending**); an install still holding pre-split rows would lose CPF/RF in appointment PDFs, so run that migration to completion first. The admin submission REST responses' combined `cpf_rf` field has been removed (it was already `null` for migrated rows) — read the split `cpf` / `rf` fields instead. The `split_cpf_rf` migration itself is unchanged. (#727, #728)
+
+### Changed
+- Settings (#711, #720) — the **"Module settings"** jump list moved from a card at the top of Settings → General into the settings sidebar itself: the Scheduling and Recruitment links now render as nav items directly above the **Advanced** tab, with an external-link marker since they navigate to the module's own page. Same per-module view-capability gating as before.
+
+## [6.14.0] (2026-07-19) — `dba61ae`
 
 ### Added
 - Settings → General (#711) — a **"Module settings"** index card that links straight to the settings surfaces some modules keep next to themselves (Scheduling settings, Recruitment settings). Each link is shown only to users who can open that module's settings, so it improves discoverability of configuration split across the plugin without moving anything.

@@ -176,10 +176,9 @@ class SubmissionRestController {
 				$data = $this->decrypt_submission_data( $item, is_array( $data ) ? $data : array() );
 
 				// Decrypt individual fields, falling back to plaintext columns.
-				$email  = \FreeFormCertificate\Core\Encryption::decrypt_field( $item, 'email' );
-				$cpf    = \FreeFormCertificate\Core\Encryption::decrypt_field( $item, 'cpf' );
-				$rf     = \FreeFormCertificate\Core\Encryption::decrypt_field( $item, 'rf' );
-				$cpf_rf = \FreeFormCertificate\Core\Encryption::decrypt_field( $item, 'cpf_rf' );
+				$email = \FreeFormCertificate\Core\Encryption::decrypt_field( $item, 'email' );
+				$cpf   = \FreeFormCertificate\Core\Encryption::decrypt_field( $item, 'cpf' );
+				$rf    = \FreeFormCertificate\Core\Encryption::decrypt_field( $item, 'rf' );
 
 				$submissions[] = array(
 					'id'              => (int) $item['id'],
@@ -188,7 +187,6 @@ class SubmissionRestController {
 					'submission_date' => $item['submission_date'],
 					'status'          => $item['status'],
 					'email'           => ! empty( $email ) ? $email : null,
-					'cpf_rf'          => ! empty( $cpf_rf ) ? \FreeFormCertificate\Core\DocumentFormatter::mask_cpf( $cpf_rf ) : null,
 					'cpf'             => ! empty( $cpf ) ? \FreeFormCertificate\Core\DocumentFormatter::mask_cpf( $cpf ) : null,
 					'rf'              => ! empty( $rf ) ? \FreeFormCertificate\Core\DocumentFormatter::mask_cpf( $rf ) : null,
 					'data'            => $data,
@@ -256,10 +254,9 @@ class SubmissionRestController {
 			$form_title = $form ? $form->post_title : 'Unknown Form';
 
 			// Decrypt individual fields, falling back to plaintext columns.
-			$email  = \FreeFormCertificate\Core\Encryption::decrypt_field( $submission, 'email' );
-			$cpf    = \FreeFormCertificate\Core\Encryption::decrypt_field( $submission, 'cpf' );
-			$rf     = \FreeFormCertificate\Core\Encryption::decrypt_field( $submission, 'rf' );
-			$cpf_rf = \FreeFormCertificate\Core\Encryption::decrypt_field( $submission, 'cpf_rf' );
+			$email = \FreeFormCertificate\Core\Encryption::decrypt_field( $submission, 'email' );
+			$cpf   = \FreeFormCertificate\Core\Encryption::decrypt_field( $submission, 'cpf' );
+			$rf    = \FreeFormCertificate\Core\Encryption::decrypt_field( $submission, 'rf' );
 
 			$response = array(
 				'id'              => (int) $submission['id'],
@@ -269,7 +266,6 @@ class SubmissionRestController {
 				'submission_date' => $submission['submission_date'],
 				'status'          => $submission['status'],
 				'email'           => ! empty( $email ) ? $email : null,
-				'cpf_rf'          => ! empty( $cpf_rf ) ? \FreeFormCertificate\Core\DocumentFormatter::format_document( $cpf_rf ) : null,
 				'cpf'             => ! empty( $cpf ) ? \FreeFormCertificate\Core\DocumentFormatter::format_document( $cpf ) : null,
 				'rf'              => ! empty( $rf ) ? \FreeFormCertificate\Core\DocumentFormatter::format_document( $rf ) : null,
 				'data'            => $data,

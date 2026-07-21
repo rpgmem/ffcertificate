@@ -82,10 +82,13 @@ class UserDataRestController {
 	// want to invoke a user-data operation programmatically without
 	// depending on the specific sub-controller class.
 	//
-	// Removing methods here would be a breaking change for those
-	// hypothetical integrators. Audit each call site in production code
-	// before deprecating; add `@deprecated` to the docblock with a
-	// release period before removing.
+	// DEPRECATED (see #730): this facade is being withdrawn. It has zero
+	// internal callers and its external consumers are invisible to grep,
+	// so it follows the standard deprecation cycle — each method carries
+	// an `@deprecated` tag below and a CHANGELOG notice, and the methods
+	// are scheduled for removal no earlier than the second feature release
+	// after the announcement. External integrators should call the
+	// sub-controller methods directly instead.
 	// ------------------------------------------------------------------.
 
 	/**
@@ -93,6 +96,7 @@ class UserDataRestController {
 	 *
 	 * @param \WP_REST_Request $request REST request.
 	 * @return \WP_REST_Response|\WP_Error
+	 * @deprecated Scheduled for removal (see #730); call the matching sub-controller method directly.
 	 */
 	public function get_user_certificates( $request ) {
 		return $this->get_sub( 'certificates' )->get_user_certificates( $request );
@@ -103,6 +107,7 @@ class UserDataRestController {
 	 *
 	 * @param \WP_REST_Request $request REST request.
 	 * @return \WP_REST_Response|\WP_Error
+	 * @deprecated Scheduled for removal (see #730); call the matching sub-controller method directly.
 	 */
 	public function get_user_profile( $request ) {
 		return $this->get_sub( 'profile' )->get_user_profile( $request );
@@ -113,6 +118,7 @@ class UserDataRestController {
 	 *
 	 * @param \WP_REST_Request $request REST request.
 	 * @return \WP_REST_Response|\WP_Error
+	 * @deprecated Scheduled for removal (see #730); call the matching sub-controller method directly.
 	 */
 	public function update_user_profile( $request ) {
 		return $this->get_sub( 'profile' )->update_user_profile( $request );
@@ -123,6 +129,7 @@ class UserDataRestController {
 	 *
 	 * @param \WP_REST_Request $request REST request.
 	 * @return \WP_REST_Response|\WP_Error
+	 * @deprecated Scheduled for removal (see #730); call the matching sub-controller method directly.
 	 */
 	public function get_user_appointments( $request ) {
 		return $this->get_sub( 'appointments' )->get_user_appointments( $request );
@@ -133,6 +140,7 @@ class UserDataRestController {
 	 *
 	 * @param \WP_REST_Request $request REST request.
 	 * @return \WP_REST_Response|\WP_Error
+	 * @deprecated Scheduled for removal (see #730); call the matching sub-controller method directly.
 	 */
 	public function get_user_audience_bookings( $request ) {
 		return $this->get_sub( 'audience' )->get_user_audience_bookings( $request );
@@ -143,6 +151,7 @@ class UserDataRestController {
 	 *
 	 * @param \WP_REST_Request $request REST request.
 	 * @return \WP_REST_Response|\WP_Error
+	 * @deprecated Scheduled for removal (see #730); call the matching sub-controller method directly.
 	 */
 	public function change_password( $request ) {
 		return $this->get_sub( 'profile' )->change_password( $request );
@@ -153,6 +162,7 @@ class UserDataRestController {
 	 *
 	 * @param \WP_REST_Request $request REST request.
 	 * @return \WP_REST_Response|\WP_Error
+	 * @deprecated Scheduled for removal (see #730); call the matching sub-controller method directly.
 	 */
 	public function create_privacy_request( $request ) {
 		return $this->get_sub( 'profile' )->create_privacy_request( $request );
@@ -163,6 +173,7 @@ class UserDataRestController {
 	 *
 	 * @param \WP_REST_Request $request REST request.
 	 * @return \WP_REST_Response|\WP_Error
+	 * @deprecated Scheduled for removal (see #730); call the matching sub-controller method directly.
 	 */
 	public function get_user_summary( $request ) {
 		return $this->get_sub( 'summary' )->get_user_summary( $request );
@@ -173,6 +184,7 @@ class UserDataRestController {
 	 *
 	 * @param \WP_REST_Request $request REST request.
 	 * @return \WP_REST_Response|\WP_Error
+	 * @deprecated Scheduled for removal (see #730); call the matching sub-controller method directly.
 	 */
 	public function get_joinable_groups( $request ) {
 		return $this->get_sub( 'audience' )->get_joinable_groups( $request );
@@ -183,6 +195,7 @@ class UserDataRestController {
 	 *
 	 * @param \WP_REST_Request $request REST request.
 	 * @return \WP_REST_Response|\WP_Error
+	 * @deprecated Scheduled for removal (see #730); call the matching sub-controller method directly.
 	 */
 	public function join_audience_group( $request ) {
 		return $this->get_sub( 'audience' )->join_audience_group( $request );
@@ -193,6 +206,7 @@ class UserDataRestController {
 	 *
 	 * @param \WP_REST_Request $request REST request.
 	 * @return \WP_REST_Response|\WP_Error
+	 * @deprecated Scheduled for removal (see #730); call the matching sub-controller method directly.
 	 */
 	public function leave_audience_group( $request ) {
 		return $this->get_sub( 'audience' )->leave_audience_group( $request );
@@ -203,6 +217,7 @@ class UserDataRestController {
 	 *
 	 * @param \WP_REST_Request $request REST request.
 	 * @return \WP_REST_Response|\WP_Error
+	 * @deprecated Scheduled for removal (see #730); call the matching sub-controller method directly.
 	 */
 	public function get_user_reregistrations( $request ) {
 		return $this->get_sub( 'reregistrations' )->get_user_reregistrations( $request );

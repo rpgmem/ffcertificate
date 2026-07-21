@@ -347,15 +347,10 @@ class PdfGenerator {
 		// Decrypt sensitive data if needed.
 		$email = \FreeFormCertificate\Core\Encryption::decrypt_field( $appointment, 'email' );
 
-		// CPF/RF: after the split migration, data lives in cpf_encrypted or rf_encrypted.
-		// decrypt_field('cpf_rf') only checks cpf_rf_encrypted (legacy), so try the split columns.
+		// CPF/RF: data lives in the split cpf_encrypted / rf_encrypted columns.
 		$cpf_rf = \FreeFormCertificate\Core\Encryption::decrypt_field( $appointment, 'cpf', 'cpf_encrypted' );
 		if ( '' === $cpf_rf ) {
 			$cpf_rf = \FreeFormCertificate\Core\Encryption::decrypt_field( $appointment, 'rf', 'rf_encrypted' );
-		}
-		if ( '' === $cpf_rf ) {
-			// Legacy fallback (pre-migration data).
-			$cpf_rf = \FreeFormCertificate\Core\Encryption::decrypt_field( $appointment, 'cpf_rf' );
 		}
 
 		// Status labels.
