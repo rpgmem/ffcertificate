@@ -142,6 +142,13 @@ Inventário dos shims de compatibilidade legada que permanecem no código por de
 
 Quando uma feature nova tornar um desses shims inseguro ou inadequado, abra sub-issue específica + breaking-change banner no CHANGELOG.
 
+### Coletando a evidência para remover um shim de risco **Alto**
+
+Os dois shims Alto exigem prova antes de remover — mas só um é comprovável por dados. Antes de propor construir qualquer diagnóstico novo, confira se a evidência já existe:
+
+- **`cpf_rf_encrypted` (fallback 3-tier no PDF)** — **a evidência já existe na UI; não construa um diagnóstico novo.** A migração manual `split_cpf_rf` (Settings → Migrações) já renderiza um card com **Pendentes** = linhas que ainda carregam `cpf_rf_hash` em `ffc_submissions` / `ffc_self_scheduling_appointments` (`CpfRfSplitMigrationStrategy::count_table_status()`; "pending = rows that still have `cpf_rf_hash`", e coluna dropada ⇒ 100% completo). Quando esse card lê **0 pendentes / 100%** (ou nem aparece, porque a coluna legada foi dropada na conclusão) numa instalação de produção, o tier-3 do gerador de PDF (`class-ffc-pdf-generator.php`, que lê `cpf_rf_encrypted`) não tem mais dependente vivo e pode cair. Equivalência que sustenta a leitura: `Encryption` sempre grava hash + ciphertext juntos e a migração nula `cpf_rf`/`cpf_rf_encrypted`/`cpf_rf_hash` atomicamente por linha, então "pendente por `cpf_rf_hash`" ⟺ "pendente por `cpf_rf_encrypted`". Um contador paralelo keyed em `cpf_rf_encrypted` seria indireção redundante (a mesma armadilha de facade que não estreita nada).
+- **Keys `count`/`success`/`fail` de `get_audit_log_summary()`** — **não é comprovável por diagnóstico.** É método público estático (`PublicCsvDownload::get_audit_log_summary()`), sem hook/filter e sem rastro em banco; um consumidor externo lendo `['success']`/`['fail']` é invisível a qualquer query read-only. O que dá pra afirmar estaticamente: internamente `success`/`fail` têm **zero** consumidores (o metabox migrou para `access_success`/`failed_access`) e só `count` ainda é lido (pelo metabox). Logo, de-risk apenas via **ciclo de deprecação versionado** + banner de breaking-change no CHANGELOG — nunca via scan de evidência.
+
 ## Settings reads
 
 Read `ffc_settings` via `FreeFormCertificate\Settings\SettingsReader`, not `get_option('ffc_settings')` directly:
