@@ -4,6 +4,8 @@ Project conventions for Claude (Anthropic CLI / agent sessions) working on this 
 
 **A recurring value across these conventions:** prefer the existing structure over indirection that narrows nothing — churn (renames, façades, per-module "engines", parallel counters/diagnostics) must earn its keep. Where that trade-off bites, the relevant section calls it out as the *bad-façade / namespace-churn trap*.
 
+**Priority when anti-churn and consistency collide:** consistency wins when the inconsistency is *recurring and reader-facing* (every new reader re-pays it); anti-churn wins only when the change is *purely cosmetic* — a rename or reshuffle that removes no confusion. "Earn its keep" is **not** counted in functional gain alone: a persistent inconsistency is a real, compounding cost, not a cosmetic one. This leans consistency-first on purpose, because the project is now mature — low debt, high coverage, the #563-era refactor closed — and churn is cheap on clean, well-tested code, so a consistency fix that disturbs the module-boundary baseline or a namespace is usually worth it. (This is a shift from the refactor era, when churn fought an in-flight baseline and stability rightly came first.)
+
 ## Table of contents
 
 1. **[Contributing workflow](#1-contributing-workflow)** — git / PR / release: pull-request workflow, branch naming, develop-branch workflow, versioning, CHANGELOG conventions, what not to do.
@@ -174,7 +176,7 @@ The "Verify minified assets are up to date" CI job catches build freshness on bo
 
 - Do not amend or rewrite published commits on `main`. On `develop`, force-push is permitted only for the documented sync-with-main rebase ("Develop branch workflow" → Sync) — never to rewrite arbitrary history.
 - Do not skip hooks (`--no-verify`) or signing.
-- Do not bypass the coverage floor — bump it forward or restore the lost coverage. Never lower it.
+- Do not bypass the coverage floor — bump it forward or restore the lost coverage. Never lower it — the sole exception is an honest re-measure after deleting covered **product** code (never tests); see "CI gates".
 - Do not add new untested code paths in a coverage-aware PR; either cover them in the same PR or document the deferral.
 - Do not target `main` directly from a feature PR. The only PRs that base on `main` are the release PR (`develop → main`) and hotfix PRs (`hotfix/* → main`).
 - Do not bump `FFC_VERSION` in a PR that targets `develop` — the bump belongs to the release PR.
@@ -192,6 +194,8 @@ The "Verify minified assets are up to date" CI job catches build freshness on bo
 The same gates run on PRs to `develop` and on the release PR `develop → main`. Develop must stay deployable to the testes site, so we don't relax gates there — a green develop is the precondition for opening the next release PR.
 
 The coverage floors are ratcheted upward in the PR that delivers the gain — never lowered. The comment block above each `*_FLOOR_LINES` keeps the audit trail.
+
+**One exception — code deletion.** Removing well-covered **product** code (never tests) can legitimately drop the line-% because high-coverage lines left the denominator — that is not a regression to restore. When a deletion PR lowers the measured coverage, an honest re-measure of the floor down to the new figure is allowed, provided the `*_FLOOR_LINES` comment block records the deleting PR and the new baseline. This is the *only* case the floor may move down; deleting or weakening tests to relax it never qualifies.
 
 **Acceptable floor buffer:** when bumping, the floor may sit up to **5 percentage points** below the freshly measured coverage. A buffer of ≤5pp is acceptable for both JS (`JS_COVERAGE_FLOOR_LINES`) and PHP (`COVERAGE_FLOOR_LINES`) — it absorbs v8/clover run-to-run jitter so the gate doesn't flake on fractional swings, without forcing the floor to chase every decimal. So: still ratchet up when a PR delivers a real gain, but leave no more than ~5pp on the table, and never set the floor *above* the lowest run you've actually observed.
 
