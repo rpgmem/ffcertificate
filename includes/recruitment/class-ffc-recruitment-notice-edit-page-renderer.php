@@ -286,76 +286,26 @@ final class RecruitmentNoticeEditPageRenderer {
 		$current      = (string) $notice->status;
 		$nonce_action = 'ffc_recruitment_transition_notice_' . (int) $notice->id;
 
-		echo '<div class="postbox ffc-rec-mt-20">';
-		echo '<h2 class="hndle"><span>' . esc_html__( 'Status', 'ffcertificate' ) . '</span></h2>';
-		echo '<div class="inside">';
-
-		echo '<p><strong>' . esc_html__( 'Current state:', 'ffcertificate' ) . '</strong> ';
-		// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- helper returns escaped HTML.
-		echo RecruitmentAdminPage::notice_status_badge( $current );
-		if ( '1' === (string) $notice->was_reopened ) {
-			echo ' <em>(' . esc_html__( 'previously reopened — hired/withdrew/not_shown classifications are frozen', 'ffcertificate' ) . ')</em>';
-		}
-		echo '</p>';
+		// LOGIC pass — the escaped state badge, the affordance transition
+		// set for the current state (minus the prelim → definitive path,
+		// surfaced separately), and the per-target confirm-modal copy.
+		$status_badge = RecruitmentAdminPage::notice_status_badge( $current );
+		$transitions  = self::resolve_status_transitions( $current );
+		$modal_config = self::transition_modal_config( $current );
 
 		// Special-case the preliminary → definitive transition: it has two
 		// paths per §5.1 — snapshot the preview list as definitive, or
-		// import a brand-new definitive CSV. We surface the choice
-		// inline only when there are no definitive rows yet; otherwise
-		// the regular "Promote to definitive" button is enough (it just
-		// flips the status).
+		// import a brand-new definitive CSV. Pre-render its dual-path UI
+		// (only relevant while preliminary) so the template stays free of
+		// the private renderer helper.
+		$prelim_options_html = '';
 		if ( 'preliminary' === $current ) {
+			ob_start();
 			self::render_preliminary_to_final_options( $notice, $nonce_action );
+			$prelim_options_html = (string) ob_get_clean();
 		}
 
-		// LOGIC pass — the affordance transition set for the current state,
-		// minus the prelim → definitive path already rendered above.
-		$transitions = self::resolve_status_transitions( $current );
-
-		if ( empty( $transitions ) ) {
-			if ( 'preliminary' !== $current ) {
-				echo '<p>' . esc_html__( 'No transitions available from this state.', 'ffcertificate' ) . '</p>';
-			}
-		} else {
-			// Per-target modal copy. Each transition has a side effect we
-			// want the operator to acknowledge before committing.
-			$modal_config = self::transition_modal_config( $current );
-
-			echo '<p>';
-			foreach ( $transitions as $target => $label ) {
-				$cfg          = isset( $modal_config[ $target ] ) ? $modal_config[ $target ] : null;
-				$consequences = wp_json_encode( $cfg ? $cfg['consequences'] : array() );
-
-				echo '<form method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '" class="ffc-rec-inline-form"';
-				if ( $cfg ) {
-					echo ' data-ffc-confirm'
-						. ' data-ffc-confirm-title="' . esc_attr( $cfg['title'] ) . '"'
-						. ' data-ffc-confirm-body="' . esc_attr( $cfg['body'] ) . '"'
-						. ' data-ffc-confirm-consequences="' . esc_attr( (string) $consequences ) . '"'
-						. ' data-ffc-confirm-cta="' . esc_attr( $cfg['cta'] ) . '"'
-						. ' data-ffc-confirm-style="' . esc_attr( $cfg['style'] ) . '"';
-					if ( ! empty( $cfg['reason_label'] ) ) {
-						echo ' data-ffc-confirm-reason-label="' . esc_attr( $cfg['reason_label'] ) . '"';
-						echo ' data-ffc-confirm-reason-name="reason"';
-					}
-					if ( ! empty( $cfg['countdown'] ) ) {
-						echo ' data-ffc-confirm-countdown="' . esc_attr( (string) (int) $cfg['countdown'] ) . '"';
-					}
-				}
-				echo '>';
-				echo '<input type="hidden" name="action" value="ffc_recruitment_transition_notice">';
-				echo '<input type="hidden" name="notice_id" value="' . esc_attr( (string) $notice->id ) . '">';
-				echo '<input type="hidden" name="target_status" value="' . esc_attr( $target ) . '">';
-				wp_nonce_field( $nonce_action );
-				echo '<button type="submit" class="button button-secondary">';
-				echo esc_html( $label );
-				echo '</button>';
-				echo '</form>';
-			}
-			echo '</p>';
-		}
-
-		echo '</div></div>';
+		include FFC_PLUGIN_DIR . 'templates/admin/recruitment/notice-edit/status-section.php';
 	}
 
 	/**
@@ -377,77 +327,10 @@ final class RecruitmentNoticeEditPageRenderer {
 	 * @return void
 	 */
 	private static function render_preliminary_to_final_options( object $notice, string $nonce_action ): void {
-		$id              = (int) $notice->id;
-		$definitive_rows = RecruitmentClassificationRepository::get_for_notice( $id, 'definitive' );
+		$id             = (int) $notice->id;
+		$has_definitive = ! empty( RecruitmentClassificationRepository::get_for_notice( $id, 'definitive' ) );
 
-		echo '<h3>' . esc_html__( 'Promote to definitive', 'ffcertificate' ) . '</h3>';
-
-		if ( ! empty( $definitive_rows ) ) {
-			// Definitive list already exists — single-button path.
-			echo '<p>' . esc_html__( 'A definitive list already exists for this notice. Promoting just flips the status to `definitive` (the existing definitive list is preserved).', 'ffcertificate' ) . '</p>';
-
-			$promote_consequences = wp_json_encode(
-				array(
-					__( 'The notice transitions from `preliminary` to `definitive`.', 'ffcertificate' ),
-					__( 'The existing definitive list is preserved as-is.', 'ffcertificate' ),
-					__( 'Calls can be issued from this point on; going back is only possible if no call has been issued.', 'ffcertificate' ),
-				)
-			);
-			echo '<form method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '"'
-				. ' data-ffc-confirm'
-				. ' data-ffc-confirm-title="' . esc_attr__( 'Promote to definitive?', 'ffcertificate' ) . '"'
-				. ' data-ffc-confirm-body="' . esc_attr__( 'You are about to flip the notice status to `definitive`.', 'ffcertificate' ) . '"'
-				. ' data-ffc-confirm-consequences="' . esc_attr( (string) $promote_consequences ) . '"'
-				. ' data-ffc-confirm-cta="' . esc_attr__( 'Promote to definitive', 'ffcertificate' ) . '"'
-				. ' data-ffc-confirm-style="primary"'
-				. ' data-ffc-confirm-countdown="15">';
-			echo '<input type="hidden" name="action" value="ffc_recruitment_transition_notice">';
-			echo '<input type="hidden" name="notice_id" value="' . esc_attr( (string) $id ) . '">';
-			echo '<input type="hidden" name="target_status" value="definitive">';
-			wp_nonce_field( $nonce_action );
-			submit_button( __( 'Promote to definitive', 'ffcertificate' ), 'primary', '', false );
-			echo '</form>';
-
-			echo '<hr class="ffc-rec-my-15">';
-			return;
-		}
-
-		echo '<p>' . esc_html__( 'No definitive list exists yet. Choose how to populate it:', 'ffcertificate' ) . '</p>';
-
-		// Path A — snapshot. Hits POST /notices/{id}/promote-preview
-		// mode=snapshot via fetch (the endpoint does the copy +
-		// status flip atomically). Confirmation goes through the shared
-		// confirm-modal in ffc-recruitment-admin.js — we put the data
-		// attributes on the button itself; the modal intercepts the
-		// click and on confirm sets data-ffc-confirm-ok=1 so the
-		// existing handler proceeds.
-		$snapshot_consequences = wp_json_encode(
-			array(
-				__( 'The current preliminary list is copied verbatim into the definitive list.', 'ffcertificate' ),
-				__( 'The notice transitions from `preliminary` to `definitive`.', 'ffcertificate' ),
-				__( 'Calls can be issued from this point on; going back is only possible if no call has been issued.', 'ffcertificate' ),
-			)
-		);
-		echo '<p>';
-		echo '<button type="button" class="button button-primary"'
-			. ' data-ffc-confirm'
-			. ' data-ffc-confirm-title="' . esc_attr__( 'Promote (snapshot) to definitive?', 'ffcertificate' ) . '"'
-			. ' data-ffc-confirm-body="' . esc_attr__( 'You are about to snapshot the preliminary list as the definitive list.', 'ffcertificate' ) . '"'
-			. ' data-ffc-confirm-consequences="' . esc_attr( (string) $snapshot_consequences ) . '"'
-			. ' data-ffc-confirm-cta="' . esc_attr__( 'Promote to definitive', 'ffcertificate' ) . '"'
-			. ' data-ffc-confirm-style="primary"'
-			. ' data-ffc-confirm-countdown="15"'
-			. ' onclick="ffcRecruitmentSnapshotPromote(' . (int) $id . ', this);">'
-			. esc_html__( 'A — Publish preliminary as definitive (snapshot, no changes)', 'ffcertificate' ) . '</button> ';
-		echo '<button type="button" class="button button-secondary" onclick="document.getElementById(\'ffc-recruitment-edit-import\').scrollIntoView({behavior:\'smooth\'});">' . esc_html__( 'B — Import a new list as definitive', 'ffcertificate' ) . '</button>';
-		echo '</p>';
-
-		// The confirm flow (data-ffc-confirm) intercepts the click and
-		// re-fires it with data-ffc-confirm-ok=1; ffcRecruitmentSnapshotPromote
-		// (in ffc-recruitment-notice-edit.js) skips the fetch until that flag
-		// is present so the first click only opens the modal.
-
-		echo '<hr class="ffc-rec-my-15">';
+		include FFC_PLUGIN_DIR . 'templates/admin/recruitment/notice-edit/promote-to-definitive-options.php';
 	}
 
 	/**
@@ -594,38 +477,22 @@ final class RecruitmentNoticeEditPageRenderer {
 		$active_tab         = $data['active_tab'];
 		$filters            = $data['filters'];
 
-		echo '<div class="postbox ffc-rec-mt-20">';
-		echo '<h2 class="hndle"><span>' . esc_html__( 'Classifications', 'ffcertificate' ) . '</span></h2>';
-		echo '<div class="inside">';
-
+		// Pre-render the private sub-blocks (filter form + the two
+		// classification tables) so the template stays free of private
+		// renderer helpers.
+		ob_start();
 		self::render_classification_filters_form( $notice_id, $filters );
+		$filters_form_html = (string) ob_get_clean();
 
-		// Tabs.
-		$prev_is_active = 'preliminary' === $active_tab;
-		$prev_tab_class = $prev_is_active ? 'nav-tab nav-tab-active' : 'nav-tab';
-		$def_tab_class  = $prev_is_active ? 'nav-tab' : 'nav-tab nav-tab-active';
-		$prev_display   = $prev_is_active ? 'block' : 'none';
-		$def_display    = $prev_is_active ? 'none' : 'block';
-
-		echo '<h2 class="nav-tab-wrapper ffc-rec-mb-1">';
-		echo '<a href="#" class="' . esc_attr( $prev_tab_class ) . '" data-ffc-clstab="preliminary" onclick="return ffcRecruitmentClsTabSwitch(this);">' . esc_html__( 'Preliminary', 'ffcertificate' ) . '</a>';
-		echo '<a href="#" class="' . esc_attr( $def_tab_class ) . '" data-ffc-clstab="definitive" onclick="return ffcRecruitmentClsTabSwitch(this);">' . esc_html__( 'Definitive', 'ffcertificate' ) . '</a>';
-		echo '</h2>';
-
-		echo '<div data-ffc-clspanel="preliminary" style="display:' . esc_attr( $prev_display ) . ';">';
+		ob_start();
 		self::render_classifications_table( $preview, false, 'preliminary' );
-		echo '</div>';
+		$preliminary_table_html = (string) ob_get_clean();
 
-		echo '<div data-ffc-clspanel="definitive" data-ffc-empties="' . esc_attr( (string) wp_json_encode( $def_empties_by_adj ) ) . '" style="display:' . esc_attr( $def_display ) . ';">';
+		ob_start();
 		self::render_classifications_table( $definitive_rows, true, 'definitive' );
-		echo '</div>';
+		$definitive_table_html = (string) ob_get_clean();
 
-		// The tab toggle handler (ffcRecruitmentClsTabSwitch) ships in
-		// ffc-recruitment-notice-edit.js: it swaps .nav-tab-active, shows the
-		// matching [data-ffc-clspanel], and writes ffc_cls_tab into the URL so
-		// a later pagination click preserves the operator's chosen tab.
-
-		echo '</div></div>';
+		include FFC_PLUGIN_DIR . 'templates/admin/recruitment/notice-edit/classifications-section.php';
 	}
 
 	/**
