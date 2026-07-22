@@ -75,7 +75,22 @@ class SubmissionsListTest extends TestCase {
     /**
      * Alias-mock the static collaborator classes used across column/render paths.
      */
-    private function stubStaticCollaborators( bool $can_manage = true, bool $can_edit = true ): void {
+    private function stubStaticCollaborators( bool $can_manage = true, bool $can_edit = true, string $pii_tier = 'unmasked' ): void {
+        Mockery::getConfiguration()->setConstantsMap(
+            array(
+                'FreeFormCertificate\Core\PiiAccessPolicy' => array(
+                    'TIER_UNMASKED' => 'unmasked',
+                    'TIER_REVEAL'   => 'reveal',
+                    'TIER_MASKED'   => 'masked',
+                ),
+            )
+        );
+        Mockery::mock( 'alias:FreeFormCertificate\Core\PiiAccessPolicy' )
+            ->shouldReceive( 'resolve' )->andReturn( $pii_tier );
+
+        Mockery::mock( 'alias:FreeFormCertificate\Core\DocumentFormatter' )
+            ->shouldReceive( 'mask_email' )->andReturnUsing( fn( $e ) => 'MASKED:' . (string) $e );
+
         Mockery::mock( 'alias:FreeFormCertificate\Core\Utils' )
             ->shouldReceive( 'truncate' )
             ->andReturnUsing( fn( $text, $len = 100, $suffix = '...' ) => (string) $text );
@@ -180,11 +195,25 @@ class SubmissionsListTest extends TestCase {
         $this->assertSame( '12', $out );
     }
 
-    public function test_column_default_email(): void {
+    public function test_column_default_email_unmasked_tier_shows_plaintext(): void {
         $this->stubStaticCollaborators();
         $list = $this->makeList();
         $out  = $this->call_protected( $list, 'column_default', array( array( 'email' => 'a@b.com' ), 'email' ) );
         $this->assertSame( 'a@b.com', $out );
+    }
+
+    public function test_column_default_email_masked_tier_masks(): void {
+        $this->stubStaticCollaborators( true, true, 'masked' );
+        $list = $this->makeList();
+        $out  = $this->call_protected( $list, 'column_default', array( array( 'email' => 'a@b.com' ), 'email' ) );
+        $this->assertSame( 'MASKED:a@b.com', $out );
+    }
+
+    public function test_column_default_email_empty_returns_empty(): void {
+        $this->stubStaticCollaborators();
+        $list = $this->makeList();
+        $out  = $this->call_protected( $list, 'column_default', array( array( 'email' => '' ), 'email' ) );
+        $this->assertSame( '', $out );
     }
 
     public function test_column_default_unknown_returns_empty(): void {
