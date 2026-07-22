@@ -467,13 +467,13 @@ class AdminAjaxTest extends TestCase {
         $policy = $this->mock_pii_policy();
         $policy->shouldReceive( 'resolve' )->andReturn( 'reveal' );
 
-        $df = Mockery::mock( 'alias:\FreeFormCertificate\Core\DocumentFormatter' );
+        $df = Mockery::mock( 'alias:FreeFormCertificate\Core\DocumentFormatter' );
         $df->shouldReceive( 'format_cpf' )->with( '12345678901' )->andReturn( '123.456.789-01' );
 
         Mockery::getConfiguration()->setConstantsMap(
             array( 'FreeFormCertificate\Core\ActivityLog' => array( 'LEVEL_INFO' => 'info' ) )
         );
-        $log = Mockery::mock( 'alias:\FreeFormCertificate\Core\ActivityLog' );
+        $log = Mockery::mock( 'alias:FreeFormCertificate\Core\ActivityLog' );
         $log->shouldReceive( 'log' )->once()->with( 'submission_pii_revealed', 'info', array( 'field_key' => 'cpf' ), \Mockery::any(), 5 );
 
         $ajax = new AdminAjax();
