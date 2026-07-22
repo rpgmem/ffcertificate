@@ -553,8 +553,14 @@ final class CapabilityCatalog {
 		}
 		// Admin keys are `admin_<domain>`; the domain segment is the hue token
 		// (certificates, forms, calendars, reregistration, custom_fields, …).
-		$domain = str_starts_with( $group_key, 'admin_' ) ? substr( $group_key, 6 ) : $group_key;
-		return '' !== $domain ? $domain : 'neutral';
+		// Anything else (an unknown key) falls back to the neutral hue.
+		if ( str_starts_with( $group_key, 'admin_' ) ) {
+			$domain = substr( $group_key, 6 );
+			if ( '' !== $domain ) {
+				return $domain;
+			}
+		}
+		return 'neutral';
 	}
 
 	/**
