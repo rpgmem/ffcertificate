@@ -14,6 +14,7 @@ use FreeFormCertificate\Recruitment\RecruitmentNoticesListTable;
  * Smoke tests for the Notices list table.
  *
  * @covers \FreeFormCertificate\Recruitment\RecruitmentNoticesListTable
+ * @covers \FreeFormCertificate\Recruitment\AbstractRecruitmentListTable
  * @runTestsInSeparateProcesses
  * @preserveGlobalState disabled
  */
@@ -29,6 +30,8 @@ class RecruitmentNoticesListTableTest extends TestCase {
     protected function setUp(): void {
         parent::setUp();
         Monkey\setUp();
+        // Preload the extracted base so pcov attributes its coverage.
+        class_exists( '\FreeFormCertificate\Recruitment\AbstractRecruitmentListTable' );
 
         Functions\when( '__' )->returnArg();
         Functions\when( 'esc_html__' )->returnArg();
@@ -207,18 +210,18 @@ class RecruitmentNoticesListTableTest extends TestCase {
     }
 
     public function test_sort_rows_ascending_by_code(): void {
-        $out = $this->call_static_private( 'sort_rows', array( $this->rows_for_sort(), 'code', 'asc' ) );
+        $out = $this->call_protected( 'sort_rows', array( $this->rows_for_sort(), 'code', 'asc' ) );
         $this->assertSame( array( 'A', 'B', 'C' ), array_column( $out, 'code' ) );
     }
 
     public function test_sort_rows_descending_by_code(): void {
-        $out = $this->call_static_private( 'sort_rows', array( $this->rows_for_sort(), 'code', 'desc' ) );
+        $out = $this->call_protected( 'sort_rows', array( $this->rows_for_sort(), 'code', 'desc' ) );
         $this->assertSame( array( 'C', 'B', 'A' ), array_column( $out, 'code' ) );
     }
 
     public function test_sort_rows_falls_back_to_created_at_for_disallowed_orderby(): void {
         // 'status' IS allowed; 'id' is NOT → falls back to created_at asc.
-        $out = $this->call_static_private( 'sort_rows', array( $this->rows_for_sort(), 'id', 'asc' ) );
+        $out = $this->call_protected( 'sort_rows', array( $this->rows_for_sort(), 'id', 'asc' ) );
         $this->assertSame(
             array( '2026-01-01', '2026-01-02', '2026-01-03' ),
             array_column( $out, 'created_at' )
@@ -226,7 +229,7 @@ class RecruitmentNoticesListTableTest extends TestCase {
     }
 
     public function test_sort_rows_allows_status_orderby(): void {
-        $out = $this->call_static_private( 'sort_rows', array( $this->rows_for_sort(), 'status', 'asc' ) );
+        $out = $this->call_protected( 'sort_rows', array( $this->rows_for_sort(), 'status', 'asc' ) );
         $this->assertSame(
             array( 'closed', 'definitive', 'draft' ),
             array_column( $out, 'status' )

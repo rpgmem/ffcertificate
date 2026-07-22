@@ -3,14 +3,13 @@
  * Recruitment Notices List Table.
  *
  * `WP_List_Table` subclass that powers the Notices tab of the recruitment
- * admin page. Mirrors the patterns established by
- * {@see \FreeFormCertificate\Admin\SubmissionsList}: paginated rows,
- * sortable columns, search, bulk actions, row actions per item.
+ * admin page. Extends {@see AbstractRecruitmentListTable} for the shared
+ * fetch-all / sort / paginate / bulk-delete mechanics; this class supplies
+ * only the columns, row shape and domain hooks.
  *
  * The table is read-only here — sort / pagination / search / bulk-delete /
- * row actions live on this class, but row creation and per-row editing
- * are owned by the admin page (and, in sprint B, the dedicated edit
- * screen).
+ * row actions live on the base + this class, but row creation and per-row
+ * editing are owned by the admin page and the dedicated edit screen.
  *
  * @package FreeFormCertificate\Recruitment
  * @since   6.1.0
@@ -24,35 +23,12 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-if ( ! class_exists( '\WP_List_Table' ) ) {
-	require_once ABSPATH . 'wp-admin/includes/class-wp-list-table.php';
-}
-
 /**
  * Notices list table.
  *
  * @phpstan-import-type NoticeRow from RecruitmentNoticeReader
  */
-class RecruitmentNoticesListTable extends \WP_List_Table {
-
-	/**
-	 * Default and max page sizes (mirrors `WP_List_Table` defaults).
-	 */
-	private const DEFAULT_PER_PAGE = 20;
-	private const MAX_PER_PAGE     = 100;
-
-	/**
-	 * Constructor.
-	 */
-	public function __construct() {
-		parent::__construct(
-			array(
-				'singular' => 'notice',
-				'plural'   => 'notices',
-				'ajax'     => false,
-			)
-		);
-	}
+class RecruitmentNoticesListTable extends AbstractRecruitmentListTable {
 
 	/**
 	 * Columns rendered in the table header / each row.
@@ -82,34 +58,6 @@ class RecruitmentNoticesListTable extends \WP_List_Table {
 			'name'       => array( 'name', false ),
 			'status'     => array( 'status', false ),
 			'created_at' => array( 'created_at', true ),
-		);
-	}
-
-	/**
-	 * Bulk actions.
-	 *
-	 * Delete is the only bulk action shipped in sprint A1; bulk status
-	 * transitions land in sprint B alongside the per-notice edit screen
-	 * (where the state-machine guards already live).
-	 *
-	 * @return array<string, string>
-	 */
-	protected function get_bulk_actions() {
-		return array(
-			'bulk-delete' => __( 'Delete', 'ffcertificate' ),
-		);
-	}
-
-	/**
-	 * Render the checkbox column.
-	 *
-	 * @param array<string, mixed> $item Row.
-	 * @return string
-	 */
-	protected function column_cb( $item ): string {
-		return sprintf(
-			'<input type="checkbox" name="notice_ids[]" value="%d" />',
-			(int) $item['id']
 		);
 	}
 
@@ -151,14 +99,11 @@ class RecruitmentNoticesListTable extends \WP_List_Table {
 		);
 		$actions             = array(
 			'edit'   => sprintf( '<a href="%s">%s</a>', esc_url( $edit_url ), esc_html__( 'Edit', 'ffcertificate' ) ),
-			'delete' => sprintf(
-				'<a href="%s" class="submitdelete" data-ffc-confirm data-ffc-confirm-title="%s" data-ffc-confirm-body="%s" data-ffc-confirm-consequences="%s" data-ffc-confirm-cta="%s" data-ffc-confirm-style="destructive">%s</a>',
-				esc_url( $delete_url ),
-				esc_attr__( 'Delete this notice?', 'ffcertificate' ),
-				esc_attr__( 'You are about to permanently delete this notice.', 'ffcertificate' ),
-				esc_attr( (string) $delete_consequences ),
-				esc_attr__( 'Delete', 'ffcertificate' ),
-				esc_html__( 'Delete', 'ffcertificate' )
+			'delete' => $this->delete_row_action_link(
+				$delete_url,
+				__( 'Delete this notice?', 'ffcertificate' ),
+				__( 'You are about to permanently delete this notice.', 'ffcertificate' ),
+				(string) $delete_consequences
 			),
 		);
 
@@ -191,8 +136,7 @@ class RecruitmentNoticesListTable extends \WP_List_Table {
 	}
 
 	/**
-	 * Adjutancies column — count of attached adjutancies, linkable to the
-	 * notice edit screen's Adjutancies section once sprint B lands.
+	 * Adjutancies column — count of attached adjutancies.
 	 *
 	 * @param array<string, mixed> $item Row.
 	 * @return string
@@ -206,122 +150,70 @@ class RecruitmentNoticesListTable extends \WP_List_Table {
 		return esc_html( (string) $count );
 	}
 
+	// ------------------------------------------------------------------
+	// AbstractRecruitmentListTable hooks
+	// ------------------------------------------------------------------
+
 	/**
-	 * Created at column.
-	 *
-	 * @param array<string, mixed> $item Row.
-	 * @return string
+	 * {@inheritDoc}
 	 */
-	protected function column_created_at( $item ): string {
-		return esc_html( (string) $item['created_at'] );
+	protected function singular(): string {
+		return 'notice';
 	}
 
 	/**
-	 * Default column renderer (catches `name` and any future plain
-	 * string column without a dedicated method).
-	 *
-	 * @param array<string, mixed> $item        Row.
-	 * @param string               $column_name Column key.
-	 * @return string
+	 * {@inheritDoc}
 	 */
-	protected function column_default( $item, $column_name ) {
-		$value = $item[ $column_name ] ?? '';
-		return esc_html( (string) $value );
+	protected function plural(): string {
+		return 'notices';
 	}
 
 	/**
-	 * Build the dataset, apply pagination + search + sort, and feed the
-	 * parent's `$items`.
-	 *
-	 * The repository returns the full row set; this method paginates +
-	 * filters in PHP. That's fine for the expected data volume (notices
-	 * are tens, not thousands); if a customer ever crosses 1k notices we
-	 * push the WHERE/LIMIT down into the repository.
-	 *
-	 * @return void
+	 * {@inheritDoc}
 	 */
-	public function prepare_items(): void {
-		$columns  = $this->get_columns();
-		$hidden   = array();
-		$sortable = $this->get_sortable_columns();
-
-		$this->_column_headers = array( $columns, $hidden, $sortable );
-
-		$this->process_bulk_action();
-
-		$rows = self::convert_rows( RecruitmentNoticeReader::get_all() );
-
-		// Search.
-		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- read-only filter, list pages don't need a nonce per WP convention.
-		$search = isset( $_REQUEST['s'] ) ? sanitize_text_field( wp_unslash( (string) $_REQUEST['s'] ) ) : '';
-		if ( '' !== $search ) {
-			$needle = strtolower( $search );
-			$rows   = array_values(
-				array_filter(
-					$rows,
-					static function ( $row ) use ( $needle ): bool {
-						return false !== strpos( strtolower( (string) $row['code'] ), $needle )
-							|| false !== strpos( strtolower( (string) $row['name'] ), $needle );
-					}
-				)
-			);
-		}
-
-		// Sort.
-		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- read-only sort, no nonce per WP convention.
-		$orderby = isset( $_REQUEST['orderby'] ) ? sanitize_key( (string) $_REQUEST['orderby'] ) : 'created_at';
-		// phpcs:ignore WordPress.Security.NonceVerification.Recommended
-		$order = isset( $_REQUEST['order'] ) && 'asc' === strtolower( (string) $_REQUEST['order'] ) ? 'asc' : 'desc';
-		$rows  = self::sort_rows( $rows, $orderby, $order );
-
-		// Pagination.
-		$per_page     = $this->get_items_per_page( 'ffc_recruitment_notices_per_page', self::DEFAULT_PER_PAGE );
-		$per_page     = min( max( 1, $per_page ), self::MAX_PER_PAGE );
-		$current_page = max( 1, $this->get_pagenum() );
-		$total_items  = count( $rows );
-		$rows         = array_slice( $rows, ( $current_page - 1 ) * $per_page, $per_page );
-
-		$this->items = $rows;
-		$this->set_pagination_args(
-			array(
-				'total_items' => $total_items,
-				'per_page'    => $per_page,
-				'total_pages' => (int) ceil( $total_items / $per_page ),
-			)
-		);
+	protected function ids_request_key(): string {
+		return 'notice_ids';
 	}
 
 	/**
-	 * Honor the `bulk-delete` action.
-	 *
-	 * @return void
+	 * {@inheritDoc}
 	 */
-	protected function process_bulk_action(): void {
-		if ( 'bulk-delete' !== $this->current_action() ) {
-			return;
-		}
+	protected function per_page_option(): string {
+		return 'ffc_recruitment_notices_per_page';
+	}
 
-		// Bulk delete is gated by the dedicated destructive cap, not the
-		// page-level manage cap that merely renders the table — matching the
-		// Adjutancies/Reasons twins (this table previously checked only the
-		// nonce, #739 taxonomy escape).
-		if ( ! \FreeFormCertificate\Core\Capabilities::current_user_can_admin_or( 'ffc_delete_recruitment' ) ) {
-			return;
-		}
+	/**
+	 * {@inheritDoc}
+	 *
+	 * @return list<string>
+	 */
+	protected function search_fields(): array {
+		return array( 'code', 'name' );
+	}
 
-		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- _wpnonce is checked below.
-		check_admin_referer( 'bulk-' . $this->_args['plural'] );
+	/**
+	 * {@inheritDoc}
+	 */
+	protected function bulk_delete_capability(): string {
+		return 'ffc_delete_recruitment';
+	}
 
-		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- nonce verified above.
-		$ids = isset( $_REQUEST['notice_ids'] ) && is_array( $_REQUEST['notice_ids'] )
-			? array_map( 'absint', wp_unslash( $_REQUEST['notice_ids'] ) )
-			: array();
+	/**
+	 * {@inheritDoc}
+	 *
+	 * @param int $id Row id.
+	 */
+	protected function delete_one( int $id ): void {
+		RecruitmentNoticeWriter::delete( $id );
+	}
 
-		foreach ( $ids as $id ) {
-			if ( $id > 0 ) {
-				RecruitmentNoticeWriter::delete( $id );
-			}
-		}
+	/**
+	 * {@inheritDoc}
+	 *
+	 * @return array<int, array<string, mixed>>
+	 */
+	protected function fetch_rows(): array {
+		return self::convert_rows( RecruitmentNoticeReader::get_all() );
 	}
 
 	/**
@@ -346,32 +238,5 @@ class RecruitmentNoticesListTable extends \WP_List_Table {
 			},
 			$rows
 		);
-	}
-
-	/**
-	 * In-memory sort (small dataset).
-	 *
-	 * @param array<int, array<string, mixed>> $rows    Rows.
-	 * @param string                           $orderby Column key.
-	 * @param string                           $order   'asc' or 'desc'.
-	 * @return array<int, array<string, mixed>>
-	 */
-	private static function sort_rows( array $rows, string $orderby, string $order ): array {
-		$allowed = array( 'code', 'name', 'status', 'created_at' );
-		if ( ! in_array( $orderby, $allowed, true ) ) {
-			$orderby = 'created_at';
-		}
-
-		usort(
-			$rows,
-			static function ( $a, $b ) use ( $orderby, $order ) {
-				$av  = (string) ( $a[ $orderby ] ?? '' );
-				$bv  = (string) ( $b[ $orderby ] ?? '' );
-				$cmp = strnatcasecmp( $av, $bv );
-				return 'asc' === $order ? $cmp : -$cmp;
-			}
-		);
-
-		return $rows;
 	}
 }
