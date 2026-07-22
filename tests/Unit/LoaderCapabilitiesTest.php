@@ -79,7 +79,7 @@ class LoaderCapabilitiesTest extends TestCase {
 		$this->assertFalse( $update_called, 'No option write on the early-return path.' );
 	}
 
-	public function test_ensure_admin_capabilities_grants_caps_and_cleans_overrides(): void {
+	public function test_ensure_admin_capabilities_cleans_overrides_without_granting(): void {
 		$loader = new Loader();
 
 		Functions\when( 'get_option' )->justReturn( 'stale-version' );
@@ -91,11 +91,11 @@ class LoaderCapabilitiesTest extends TestCase {
 		class_exists( '\\FreeFormCertificate\\UserDashboard\\CapabilityManager' );
 		class_exists( '\\FreeFormCertificate\\UserDashboard\\UserManager' );
 
-		// ADMIN_CAPABILITIES is a real const — read it so we grant the same set.
-		$admin_caps  = \FreeFormCertificate\UserDashboard\CapabilityManager::ADMIN_CAPABILITIES;
 		$all_ffc_caps = \FreeFormCertificate\UserDashboard\CapabilityManager::get_all_capabilities();
 
-		// Administrator role: has none of the caps yet → each add_cap fires.
+		// Administrator role — #739: no longer receives a cap grant here, so
+		// add_cap() must never fire (FFC caps live on the ffc_administrator
+		// role now). The role is still fetched to drive the cleanup guard.
 		$granted     = array();
 		$admin_role  = new class( $granted ) {
 			/** @var array<int,string> */
@@ -166,8 +166,8 @@ class LoaderCapabilitiesTest extends TestCase {
 
 		$this->invoke_private( $loader, 'ensure_admin_capabilities' );
 
-		// Admin role received every ADMIN_CAPABILITIES entry.
-		$this->assertSame( count( $admin_caps ), count( $granted ) );
+		// #739: no caps are granted to the native administrator role anymore.
+		$this->assertCount( 0, $granted );
 		// user-level `=> false` denial stripped.
 		$this->assertContains( $user_denial_cap, $user_removed );
 		// legacy `=> false` cap stripped from ffc_user role.
