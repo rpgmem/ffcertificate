@@ -50,7 +50,7 @@ class MigrationActionsAjaxEndpoint {
 	public static function handle(): void {
 		check_ajax_referer( self::AJAX_ACTION, 'nonce' );
 
-		if ( ! \FreeFormCertificate\Core\Capabilities::current_user_can_admin_or( 'ffc_manage_settings' ) ) {
+		if ( ! \FreeFormCertificate\Core\Capabilities::current_user_can_admin_or( 'ffc_manage_settings_dangerzone' ) ) {
 			wp_send_json_error(
 				array( 'message' => __( 'You do not have permission to run migrations.', 'ffcertificate' ) ),
 				403
