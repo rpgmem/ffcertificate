@@ -61,7 +61,7 @@ class AdminAjax {
 		}
 
 		$handler = new \FreeFormCertificate\Submissions\SubmissionHandler();
-		$sub      = $handler->get_submission( $id );
+		$sub     = $handler->get_submission( $id );
 		if ( ! $sub ) {
 			wp_send_json_error( array( 'message' => __( 'Submission not found.', 'ffcertificate' ) ), 404 );
 		}
