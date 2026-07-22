@@ -97,7 +97,7 @@ class CapabilityManagerTest extends TestCase {
 
     public function test_admin_capabilities_contains_pre_6_2_caps(): void {
         $caps = CapabilityManager::ADMIN_CAPABILITIES;
-        $this->assertContains( 'ffc_scheduling_bypass', $caps );
+        $this->assertContains( 'ffc_bypass_appointments', $caps );
         $this->assertContains( 'ffc_manage_reregistration', $caps );
         $this->assertContains( 'ffc_manage_recruitment', $caps );
     }
@@ -297,7 +297,7 @@ class CapabilityManagerTest extends TestCase {
         $this->assertContains( 'ffc_view_own_certificates', $all );
         $this->assertContains( 'ffc_book_own_appointments', $all );
         $this->assertContains( 'ffc_view_own_audience_bookings', $all );
-        $this->assertContains( 'ffc_scheduling_bypass', $all );
+        $this->assertContains( 'ffc_bypass_appointments', $all );
         $this->assertContains( 'ffc_edit_certificates', $all );
     }
 

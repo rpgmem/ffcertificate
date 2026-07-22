@@ -86,14 +86,14 @@ class CapabilityManager {
 	 * @since 6.2.0 Expanded with module-management caps + per-domain
 	 *              recruitment caps to replace blanket `manage_options`
 	 *              gates with delegable, granular permissions. The pre-6.2.0
-	 *              caps (`ffc_scheduling_bypass`, `ffc_manage_reregistration`,
+	 *              caps (`ffc_bypass_appointments`, `ffc_manage_reregistration`,
 	 *              `ffc_manage_recruitment`) remain unchanged so any user
 	 *              already holding them keeps their access; the new caps
 	 *              add scoped delegation paths.
 	 */
 	public const ADMIN_CAPABILITIES = array(
 		// Pre-6.2.0 caps.
-		'ffc_scheduling_bypass',
+		'ffc_bypass_appointments',
 		'ffc_manage_reregistration',
 		'ffc_manage_recruitment',
 
@@ -651,7 +651,7 @@ class CapabilityManager {
 			),
 			'ffc_self_scheduling_manager' => array(
 				'label' => __( 'FFC Self-Scheduling Manager', 'ffcertificate' ),
-				'caps'  => array( 'ffc_view_appointments', 'ffc_manage_appointments', 'ffc_delete_appointments', 'ffc_scheduling_bypass', 'ffc_export_appointments' ),
+				'caps'  => array( 'ffc_view_appointments', 'ffc_manage_appointments', 'ffc_delete_appointments', 'ffc_bypass_appointments', 'ffc_export_appointments' ),
 			),
 			'ffc_audience_manager'        => array(
 				'label' => __( 'FFC Audience Manager', 'ffcertificate' ),

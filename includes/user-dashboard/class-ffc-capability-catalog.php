@@ -213,7 +213,7 @@ final class CapabilityCatalog {
 						'label'       => __( 'Manage self-scheduling', 'ffcertificate' ),
 						'description' => __( 'Configure personal calendars and self-scheduling windows.', 'ffcertificate' ),
 					),
-					'ffc_scheduling_bypass'   => array(
+					'ffc_bypass_appointments' => array(
 						'label'       => __( 'Scheduling bypass', 'ffcertificate' ),
 						'description' => __( 'Private calendars, past dates, out-of-hours and blocked dates.', 'ffcertificate' ),
 						'surface'     => 'frontend',

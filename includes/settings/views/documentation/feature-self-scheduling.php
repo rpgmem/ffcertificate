@@ -50,7 +50,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	<ul>
 		<li><code>ffc_view_appointments</code> / <code>ffc_manage_appointments</code> — <?php esc_html_e( 'view or configure calendars and appointments.', 'ffcertificate' ); ?></li>
 		<li><code>ffc_export_appointments</code> / <code>ffc_delete_appointments</code> — <?php esc_html_e( 'export or delete.', 'ffcertificate' ); ?></li>
-		<li><code>ffc_scheduling_bypass</code> — <?php esc_html_e( 'book outside the normal private/past/out-of-hours/blocked restrictions.', 'ffcertificate' ); ?></li>
+		<li><code>ffc_bypass_appointments</code> — <?php esc_html_e( 'book outside the normal private/past/out-of-hours/blocked restrictions.', 'ffcertificate' ); ?></li>
 		<li><code>ffc_book_own_appointments</code> / <code>ffc_view_own_appointments</code> / <code>ffc_cancel_own_appointments</code> — <?php esc_html_e( 'the end-user self-service caps.', 'ffcertificate' ); ?></li>
 	</ul>
 

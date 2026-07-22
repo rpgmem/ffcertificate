@@ -545,7 +545,7 @@ class SelfSchedulingEditor {
 						)
 					);
 					?>
-					<p class="description"><?php esc_html_e( 'When enabled, users with the "manage_options" capability or the "ffc_scheduling_bypass" capability can book outside the advance-booking window, on blocked dates, outside working hours, and past the daily/interval limits. Slot capacity is always enforced. Disable this to apply all booking rules uniformly, including to administrators.', 'ffcertificate' ); ?></p>
+					<p class="description"><?php esc_html_e( 'When enabled, users with the "manage_options" capability or the "ffc_bypass_appointments" capability can book outside the advance-booking window, on blocked dates, outside working hours, and past the daily/interval limits. Slot capacity is always enforced. Disable this to apply all booking rules uniformly, including to administrators.', 'ffcertificate' ); ?></p>
 				</td>
 			</tr>
 		</table>

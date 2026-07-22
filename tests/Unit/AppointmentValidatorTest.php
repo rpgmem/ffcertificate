@@ -34,7 +34,7 @@ class AppointmentValidatorTest extends TestCase {
         Functions\when( 'current_user_can' )->alias( function ( $cap ) {
             // No bypass, but has booking permission
             if ( $cap === 'manage_options' ) return false;
-            if ( $cap === 'ffc_scheduling_bypass' ) return false;
+            if ( $cap === 'ffc_bypass_appointments' ) return false;
             if ( $cap === 'ffc_book_own_appointments' ) return true;
             return false;
         } );

@@ -115,4 +115,55 @@ class CapabilityMigratorTest extends TestCase {
 		$this->assertSame( 0, $counts['roles_assigned'] );
 		$this->assertSame( 0, $counts['caps_stripped'] );
 	}
+
+	public function test_rbac_cap_renames_rewrites_user_meta_and_roles(): void {
+		Functions\when( 'get_users' )->justReturn( array( 7 ) );
+
+		$user = new class() {
+			/** @var array<string, bool> */
+			public $caps = array( 'ffc_scheduling_bypass' => true );
+			/** @var array<string, bool> */
+			public $added = array();
+			/** @var array<int, string> */
+			public $removed = array();
+			public function add_cap( string $cap, bool $grant = true ): void {
+				$this->added[ $cap ] = $grant;
+			}
+			public function remove_cap( string $cap ): void {
+				$this->removed[] = $cap;
+			}
+		};
+		Functions\when( 'get_userdata' )->justReturn( $user );
+
+		$role = new class() {
+			/** @var array<string, bool> */
+			public $capabilities = array( 'ffc_scheduling_bypass' => true );
+			/** @var array<string, bool> */
+			public $added = array();
+			/** @var array<int, string> */
+			public $removed = array();
+			public function add_cap( string $cap, bool $grant = true ): void {
+				$this->added[ $cap ] = $grant;
+			}
+			public function remove_cap( string $cap ): void {
+				$this->removed[] = $cap;
+			}
+		};
+		$roles_obj = new class() {
+			/** @var array<string, array<string, mixed>> */
+			public $roles = array( 'ffc_appointments_manager' => array() );
+		};
+		Functions\when( 'wp_roles' )->justReturn( $roles_obj );
+		Functions\when( 'get_role' )->justReturn( $role );
+
+		$counts = CapabilityMigrator::migrate_rbac_cap_renames();
+
+		// User-meta: old cap rewritten to the new slug.
+		$this->assertArrayHasKey( 'ffc_bypass_appointments', $user->added );
+		$this->assertContains( 'ffc_scheduling_bypass', $user->removed );
+		// Role definition: same rewrite.
+		$this->assertArrayHasKey( 'ffc_bypass_appointments', $role->added );
+		$this->assertContains( 'ffc_scheduling_bypass', $role->removed );
+		$this->assertSame( 1, $counts['ffc_scheduling_bypass'] );
+	}
 }

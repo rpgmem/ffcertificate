@@ -684,4 +684,67 @@ class CapabilityMigrator {
 
 		return $counts;
 	}
+
+	/**
+	 * #739 RBAC-redesign capability renames (grammar / consistency pass).
+	 *
+	 * Distinct from {@see self::taxonomy_cap_renames()} (already flagged as run
+	 * on existing installs) — these ship in a separate one-shot so upgrades pick
+	 * them up. Role renames are handled apart, in {@see self::migrate_role_renames()}.
+	 *
+	 * @since 6.16.0
+	 * @return array<string, string>
+	 */
+	public static function rbac_cap_renames(): array {
+		return array(
+			'ffc_scheduling_bypass' => 'ffc_bypass_appointments',
+		);
+	}
+
+	/**
+	 * Apply {@see self::rbac_cap_renames()} to user-meta grants + role defs.
+	 *
+	 * @since 6.16.0
+	 * @return array<string, int> Old cap slug => number of user-meta rewrites.
+	 */
+	public static function migrate_rbac_cap_renames(): array {
+		$renames = self::rbac_cap_renames();
+		$counts  = array();
+
+		// 1. User-meta grants.
+		$users = get_users( array( 'fields' => 'ID' ) );
+		foreach ( $renames as $old => $new ) {
+			$counts[ $old ] = 0;
+			foreach ( $users as $user_id ) {
+				$user = get_userdata( (int) $user_id );
+				if ( ! $user ) {
+					continue;
+				}
+				if ( isset( $user->caps[ $old ] ) ) {
+					$value = (bool) $user->caps[ $old ];
+					$user->add_cap( $new, $value );
+					$user->remove_cap( $old );
+					++$counts[ $old ];
+				}
+			}
+		}
+
+		// 2. Role definitions — administrator + every FFC/custom role.
+		$wp_roles = wp_roles();
+		foreach ( array_keys( $wp_roles->roles ) as $role_slug ) {
+			$role = get_role( $role_slug );
+			if ( ! $role ) {
+				continue;
+			}
+			foreach ( $renames as $old => $new ) {
+				if ( isset( $role->capabilities[ $old ] ) ) {
+					$value = (bool) $role->capabilities[ $old ];
+					$role->add_cap( $new, $value );
+					$role->remove_cap( $old );
+				}
+			}
+		}
+
+		return $counts;
+	}
 }

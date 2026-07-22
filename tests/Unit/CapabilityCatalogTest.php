@@ -133,7 +133,7 @@ class CapabilityCatalogTest extends TestCase {
 		}
 		$this->assertSame(
 			array(
-				'ffc_scheduling_bypass' => 'frontend',
+				'ffc_bypass_appointments' => 'frontend',
 				'ffc_view_forms_api'    => 'api',
 			),
 			$tagged

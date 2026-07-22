@@ -237,6 +237,46 @@ class LoaderCapabilitiesTest extends TestCase {
 	}
 
 	// ==================================================================
+	// ensure_rbac_caps_renamed() (#739)
+	// ==================================================================
+
+	public function test_ensure_rbac_caps_renamed_early_returns_when_flag_set(): void {
+		$loader = new Loader();
+		Functions\when( 'get_option' )->justReturn( '1' );
+		$updated = array();
+		Functions\when( 'update_option' )->alias(
+			function ( $k, $v ) use ( &$updated ) {
+				$updated[ $k ] = $v;
+				return true;
+			}
+		);
+
+		$this->invoke_private( $loader, 'ensure_rbac_caps_renamed' );
+
+		$this->assertArrayNotHasKey( 'ffc_rbac_caps_renamed_v1', $updated );
+	}
+
+	public function test_ensure_rbac_caps_renamed_delegates_and_writes_flag(): void {
+		$loader = new Loader();
+		Functions\when( 'get_option' )->justReturn( '' );
+
+		Mockery::mock( 'alias:\\FreeFormCertificate\\UserDashboard\\CapabilityMigrator' )
+			->shouldReceive( 'migrate_rbac_cap_renames' )->once()->andReturn( array() );
+
+		$updated = array();
+		Functions\when( 'update_option' )->alias(
+			function ( $k, $v ) use ( &$updated ) {
+				$updated[ $k ] = $v;
+				return true;
+			}
+		);
+
+		$this->invoke_private( $loader, 'ensure_rbac_caps_renamed' );
+
+		$this->assertSame( '1', $updated['ffc_rbac_caps_renamed_v1'] ?? null );
+	}
+
+	// ==================================================================
 	// init_rest_api()
 	// ==================================================================
 
