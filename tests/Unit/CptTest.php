@@ -147,7 +147,12 @@ class CptTest extends TestCase {
         $this->assertSame( 'dashicons-feedback', $captured_args['menu_icon'] );
         $this->assertSame( array( 'title' ), $captured_args['supports'] );
         $this->assertFalse( $captured_args['has_archive'] );
-        $this->assertSame( 'post', $captured_args['capability_type'] );
+        // #739: decoupled from native post caps — custom capability_type +
+        // map_meta_cap, every primitive mapped to ffc_manage_forms.
+        $this->assertSame( 'ffc_form', $captured_args['capability_type'] );
+        $this->assertTrue( $captured_args['map_meta_cap'] );
+        $this->assertSame( 'ffc_manage_forms', $captured_args['capabilities']['edit_others_posts'] );
+        $this->assertSame( 'ffc_manage_forms', $captured_args['capabilities']['edit_post'] );
     }
 
     // ==================================================================

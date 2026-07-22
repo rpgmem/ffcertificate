@@ -62,6 +62,12 @@ final class CapabilityCatalog {
 	/** Group key: admin self-scheduling / appointment management. */
 	public const GROUP_ADMIN_APPOINTMENTS = 'admin_appointments';
 
+	/** Group key: admin-level certificate-form structure management (#739). */
+	public const GROUP_ADMIN_FORMS = 'admin_forms';
+
+	/** Group key: admin-level self-scheduling calendar structure management (#739). */
+	public const GROUP_ADMIN_CALENDARS = 'admin_calendars';
+
 	/** Group key: admin audience management. */
 	public const GROUP_ADMIN_AUDIENCES = 'admin_audiences';
 
@@ -184,6 +190,17 @@ final class CapabilityCatalog {
 				),
 			),
 			array(
+				'key'   => self::GROUP_ADMIN_FORMS,
+				'label' => __( 'Forms', 'ffcertificate' ),
+				'level' => 'admin',
+				'caps'  => array(
+					'ffc_manage_forms' => array(
+						'label'       => __( 'Manage forms', 'ffcertificate' ),
+						'description' => __( 'Create and edit certificate forms — PDF layout, fields and options. Replaces the native post-editing capability the form CPT relied on before (#739).', 'ffcertificate' ),
+					),
+				),
+			),
+			array(
 				'key'   => self::GROUP_ADMIN_APPOINTMENTS,
 				'label' => __( 'Appointments', 'ffcertificate' ),
 				'level' => 'admin',
@@ -208,6 +225,17 @@ final class CapabilityCatalog {
 					'ffc_delete_appointments' => array(
 						'label'       => __( 'Delete appointments', 'ffcertificate' ),
 						'description' => __( 'Permanently delete appointments and calendar cleanup purges.', 'ffcertificate' ),
+					),
+				),
+			),
+			array(
+				'key'   => self::GROUP_ADMIN_CALENDARS,
+				'label' => __( 'Calendars', 'ffcertificate' ),
+				'level' => 'admin',
+				'caps'  => array(
+					'ffc_manage_calendars' => array(
+						'label'       => __( 'Manage calendars', 'ffcertificate' ),
+						'description' => __( 'Create and edit self-scheduling calendars — structure, working hours and options. Distinct from managing the bookings made against them (#739).', 'ffcertificate' ),
 					),
 				),
 			),

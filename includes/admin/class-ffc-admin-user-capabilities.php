@@ -127,10 +127,18 @@ class AdminUserCapabilities {
 			return;
 		}
 
-		// Don't show for users with manage_options (administrators) — they already.
-		// have full FFC access via role-level capabilities.  Showing checkboxes for.
-		// admins is confusing and saving can accidentally deny role-level grants.
+		// WordPress administrators no longer receive FFC caps automatically
+		// (#739) — access now comes from the `ffc_administrator` role. The
+		// per-cap checkboxes are noise for them (and saving them could deny a
+		// role-level grant), but they still need to be granted or revoked that
+		// aggregator role. So render only the role presets for admins.
 		if ( user_can( $user->ID, 'manage_options' ) ) {
+			wp_nonce_field( 'ffc_user_capabilities', 'ffc_capabilities_nonce' );
+			echo '<h2>' . esc_html__( 'FFC Permissions', 'ffcertificate' ) . '</h2>';
+			echo '<p class="description">' . esc_html__( 'This user is a WordPress administrator. Assign the FFC Administrator role to grant full plugin access — administrators are no longer given FFC capabilities automatically.', 'ffcertificate' ) . '</p>';
+			echo '<div class="ffc-cap-panel">';
+			self::render_role_presets( $user );
+			echo '</div>';
 			return;
 		}
 
@@ -717,8 +725,11 @@ class AdminUserCapabilities {
 			wp_send_json_error( array( 'message' => 'user_not_found' ), 404 );
 		}
 
-		// Never edit administrators through this panel.
-		if ( user_can( $user_id, 'manage_options' ) ) {
+		// Administrators are managed only through the aggregator role: since
+		// #739 they no longer receive FFC caps automatically, so
+		// `ffc_administrator` must be assignable to them — but no partial FFC
+		// role is (that would be a confusing half-grant on a full admin).
+		if ( user_can( $user_id, 'manage_options' ) && 'ffc_administrator' !== $role ) {
 			wp_send_json_error( array( 'message' => 'cannot_edit_admin' ), 409 );
 		}
 

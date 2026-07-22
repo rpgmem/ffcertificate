@@ -199,6 +199,10 @@ class Loader {
 		UserCleanup::init();
 		PrivacyHandler::init();
 
+		// #739 deprecation shim: keep honouring edit_others_posts for the
+		// decoupled form/calendar caps for two releases. Remove in 6.18.0.
+		\FreeFormCertificate\Admin\CptEditorCompat::init();
+
 		// Self-Scheduling module — single bootstrap entry point (#563 B3).
 		$this->self_scheduling_loader = new SelfSchedulingLoader();
 		$this->self_scheduling_loader->init();
@@ -237,6 +241,7 @@ class Loader {
 		}
 
 		$this->ensure_admin_capabilities();
+		$this->ensure_admin_role_assigned();
 		$this->ensure_legacy_caps_renamed();
 		$this->ensure_taxonomy_renamed();
 		$this->ensure_delete_caps_granted();
@@ -488,14 +493,13 @@ class Loader {
 		if ( $admin_role && class_exists( '\FreeFormCertificate\UserDashboard\UserManager' ) ) {
 			$all_ffc_caps = \FreeFormCertificate\UserDashboard\CapabilityManager::get_all_capabilities();
 
-			// 1. Grant admin-level capabilities to the administrator role.
-			foreach ( \FreeFormCertificate\UserDashboard\CapabilityManager::ADMIN_CAPABILITIES as $cap ) {
-				if ( ! $admin_role->has_cap( $cap ) ) {
-					$admin_role->add_cap( $cap, true );
-				}
-			}
+			// FFC admin caps are no longer granted to the native `administrator`
+			// role — admins receive them through the `ffc_administrator` role
+			// assigned by `CapabilityMigrator::migrate_admin_role_assignment()`
+			// (wired via `ensure_admin_role_assigned()`). This method now only
+			// runs the legacy user-meta cleanups below.
 
-			// 2. Clean up user-level overrides for admin users.
+			// 1. Clean up user-level overrides for admin users.
 			// A previous bug in save_capability_fields() used add_cap(false)
 			// which stored explicit denials in user_meta, overriding the role.
 			$admins = get_users(
@@ -517,7 +521,7 @@ class Loader {
 				}
 			}
 
-			// 3. Strip legacy `=> false` cap entries from the `ffc_user` role
+			// 2. Strip legacy `=> false` cap entries from the `ffc_user` role
 			// itself. Pre-6.0.3 the role was registered with every FFC cap as
 			// `=> false`, which broke multi-role users (admin + ffc_user) via
 			// `array_merge()` capability resolution. Issue #86. Idempotent:
@@ -534,6 +538,28 @@ class Loader {
 		}
 
 		update_option( $version_key, FFC_VERSION );
+	}
+
+	/**
+	 * Switch admins to the role model: assign `ffc_administrator` to existing
+	 * administrators and stop granting FFC caps to the native `administrator`
+	 * role. Idempotent + one-shot via the `ffc_admin_role_assigned_v1` option.
+	 *
+	 * New administrators created after this runs are NOT auto-elevated — the
+	 * `ffc_administrator` role is granted explicitly from then on.
+	 *
+	 * @since 6.16.0
+	 * @return void
+	 */
+	private function ensure_admin_role_assigned(): void {
+		$flag = 'ffc_admin_role_assigned_v1';
+		if ( '1' === get_option( $flag, '' ) ) {
+			return;
+		}
+		if ( class_exists( '\FreeFormCertificate\UserDashboard\CapabilityMigrator' ) ) {
+			\FreeFormCertificate\UserDashboard\CapabilityMigrator::migrate_admin_role_assignment();
+		}
+		update_option( $flag, '1', true );
 	}
 
 	/**
