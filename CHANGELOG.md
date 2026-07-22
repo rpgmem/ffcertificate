@@ -7,6 +7,9 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Changed
+- User Access → "Blocked Roles" list is now grouped instead of a flat wall of ~30 checkboxes (#739 follow-up): sections for **FFC end users** (the recommended target), **WordPress** core roles, and **other** (third-party) roles, with the FFC administrative ladder tucked behind a disclosure that carries a caveat — those roles operate through wp-admin, so blocking one locks it out of the screens it is meant to use. The disclosure auto-opens when such a role is already blocked, a responsive grid replaces the inline wrap, and the description shows the current blocked count.
+
 ## [6.16.0] (2026-07-22)
 
 ### Added
