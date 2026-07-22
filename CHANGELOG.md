@@ -8,6 +8,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 ## [Unreleased]
 
 ### Changed
+- Internal (#739 follow-up) — unified the PII access policy: `RecruitmentPiiAccessPolicy` is now a thin adapter over the shared `Core\PiiAccessPolicy` (the generalized 3-tier engine that recruitment's own policy was the model for), pinning the recruitment reveal cap + unmasked role and deriving the owner from the candidate row. One tiering engine instead of two parallel copies; behaviour-preserving (the candidate-keyed public API and the `TIER_*` constants are unchanged, and the reveal audit dedup + `audit_pii_reveals` setting stay caller-side as before).
 - User Access → "Blocked Roles" list is now grouped instead of a flat wall of ~30 checkboxes (#739 follow-up): sections for **FFC end users** (the recommended target), **WordPress** core roles, and **other** (third-party) roles, with the FFC administrative ladder tucked behind a disclosure that carries a caveat — those roles operate through wp-admin, so blocking one locks it out of the screens it is meant to use. The disclosure auto-opens when such a role is already blocked, a responsive grid replaces the inline wrap, and the description shows the current blocked count.
 
 ### Security
