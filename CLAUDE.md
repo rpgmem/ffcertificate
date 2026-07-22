@@ -90,7 +90,15 @@ When the batch on develop is validated against the testes site and ready to ship
    - Rename the `[Unreleased]` heading in `CHANGELOG.md` to `[X.Y.Z] (YYYY-MM-DD)` and add a fresh empty `[Unreleased]` heading above it. **Then, once the release PR squash-merges into `main`, backfill the release commit reference onto that heading** by appending `` — `<short-sha>` `` (the 7-char short SHA of the squash commit on `main`), matching every other shipped version header. A missing suffix means the backfill was skipped (as for 6.11.1 / 6.11.2, fixed retroactively).
    - Run `npm run build:js` if any JS/CSS in `assets/` changed across the batch and the bundles weren't already rebuilt mid-flight (the "Verify minified assets are up to date" gate would catch this anyway).
 3. Auto-merge SQUASH into `main`. The squash commit subject should follow main's convention: `X.Y.Z — <short summary of the batch>`.
-4. After merge, rebase `develop` on `main` (see Sync below) so the next batch starts from the bumped baseline.
+4. **Tag the release to publish it.** The GitHub Release + distributable zip are automated — `.github/workflows/release.yml` triggers on pushing a tag matching `v*`: it validates the tag equals the `ffcertificate.php` `Version:` header, builds `ffcertificate-X.Y.Z.zip` (staged via `.distignore`), extracts the `## [X.Y.Z]` section of `CHANGELOG.md` as the release notes, and publishes the GitHub Release. So there is **no manual "create release" step** — after the squash lands on `main`, tag that commit and push:
+   ```bash
+   git fetch origin
+   git checkout main && git pull --ff-only origin main   # local main = the release squash
+   git tag vX.Y.Z                                         # tag the release commit
+   git push origin vX.Y.Z                                 # → fires release.yml (Release + zip)
+   ```
+   The tagged commit's `Version:` header must already equal `X.Y.Z` (true post-bump) or the workflow's sanity check fails. Do the CHANGELOG short-SHA backfill (step 2) **before** tagging so the tagged tree carries it. Pushing the tag publishes a production release (public zip + Release notes), so **an agent surfaces these four lines for the user to run rather than pushing the tag itself** — the same production-deploy sign-off that keeps the `develop → main` PR draft until the user confirms.
+5. After merge, rebase `develop` on `main` (see Sync below) so the next batch starts from the bumped baseline.
 
 **Landing the bump on `develop` (who can do step 2).** Step 2's bump commit has to sit on `develop` before the `develop → main` PR is opened. A maintainer with direct-push access commits it straight to `develop`. An **agent driving the release cannot push to `develop` directly** (the remote refuses it — see "Branch naming"), so it instead lands the bump via **one dedicated `release: X.Y.Z — bump + finalize CHANGELOG` PR to `develop`** (auto-merge), then opens the `develop → main` PR. That dedicated release-bump PR is **not** what "What not to do" forbids — that prohibition targets *feature* PRs sneaking a version bump; this is the deliberate release-moment bump, delivered through the only channel an agent has. Either way, the `develop → main` PR itself stays **draft until the user confirms the prod deploy**.
 
