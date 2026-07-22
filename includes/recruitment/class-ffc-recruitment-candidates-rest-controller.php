@@ -56,7 +56,7 @@ final class RecruitmentCandidatesRestController {
 			array(
 				'methods'             => \WP_REST_Server::READABLE,
 				'callback'            => array( $this, 'list_candidates' ),
-				'permission_callback' => array( $this, 'check_admin_cap' ),
+				'permission_callback' => array( $this, 'check_can_view_recruitment' ),
 				'args'                => array(
 					'search'       => array(
 						'type'              => 'string',
@@ -89,7 +89,7 @@ final class RecruitmentCandidatesRestController {
 				array(
 					'methods'             => \WP_REST_Server::READABLE,
 					'callback'            => array( $this, 'get_candidate' ),
-					'permission_callback' => array( $this, 'check_admin_cap' ),
+					'permission_callback' => array( $this, 'check_can_view_recruitment' ),
 				),
 				array(
 					'methods'             => \WP_REST_Server::EDITABLE,

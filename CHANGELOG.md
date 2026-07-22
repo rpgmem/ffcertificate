@@ -27,6 +27,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 - Ticket generation authorization (#739): the `ffc_generate_tickets` AJAX handler now requires the certificates domain cap (`ffc_manage_certificates`, administrator **or** the granular cap) instead of the generic `edit_posts` any WordPress author holds.
 - Email sub-cap alignment (#739): the "send a test email" action now requires `ffc_manage_settings_smtp` (it exercises the SMTP transport), and the global "disable all emails" kill-switch now requires `ffc_manage_settings_dangerzone` on every write path (bulk settings save + the per-field autosave endpoint) — a settings operator without those sub-caps can no longer test SMTP or silence all plugin email.
 - URL-shortener QR download (#739): the PNG / SVG QR download now accepts the url-shortener `manage` cap as well as `view` (administrator **or** either granular cap), so a manager role that doesn't separately carry the view cap can still download QR codes.
+- Recruitment read tier (#739): the recruitment REST read endpoints (candidates list/get, notices, classifications and adjutancies lists) now accept `ffc_view_recruitment` as well as `ffc_manage_recruitment`, reactivating the read-only viewer tier that was defined but never wired. PII in those responses stays masked via `RecruitmentPiiAccessPolicy` (reveal remains per-field + audited), and every write route stays manage-gated.
 
 ## [6.15.0] (2026-07-21) — `b5a96fe`
 

@@ -107,6 +107,35 @@ class RecruitmentCandidatesRestControllerTest extends TestCase {
         $this->assertSame( 'check_logged_in', $perm[1] );
     }
 
+    public function test_candidate_reads_accept_view_tier(): void {
+        // #739 §2.3 — list + single-item GET are gated on the view tier, so an
+        // ffc_view_recruitment operator (not just a manager) can read them.
+        $this->controller->register_routes();
+
+        $list = null;
+        $item = null;
+        foreach ( $this->registered_routes as $entry ) {
+            if ( '/recruitment/candidates' === $entry['route'] ) {
+                $list = $entry;
+            }
+            if ( '/recruitment/candidates/(?P<id>\d+)' === $entry['route'] ) {
+                $item = $entry;
+            }
+        }
+        $this->assertNotNull( $list );
+        $this->assertSame( 'check_can_view_recruitment', $list['args']['permission_callback'][1] );
+
+        $this->assertNotNull( $item );
+        $get_perm = null;
+        foreach ( $item['args'] as $method_entry ) {
+            if ( isset( $method_entry['callback'][1] ) && 'get_candidate' === $method_entry['callback'][1] ) {
+                $get_perm = $method_entry['permission_callback'];
+            }
+        }
+        $this->assertNotNull( $get_perm );
+        $this->assertSame( 'check_can_view_recruitment', $get_perm[1] );
+    }
+
     public function test_register_routes_includes_the_me_self_endpoint(): void {
         $this->controller->register_routes();
 
