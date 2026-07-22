@@ -93,7 +93,7 @@ class AdminMenuVisibilityTest extends TestCase {
 
 	public function test_block_url_access_redirects_recruitment_role_off_unrelated_admin_url(): void {
 		Functions\when( 'current_user_can' )->justReturn( false );
-		$user = (object) array( 'roles' => array( 'ffc_recruitment_auditor' ) );
+		$user = (object) array( 'roles' => array( 'ffc_recruitment_viewer' ) );
 		Functions\when( 'wp_get_current_user' )->justReturn( $user );
 
 		// Operator hits `/wp-admin/edit-comments.php` — outside their allow-list.
@@ -119,7 +119,7 @@ class AdminMenuVisibilityTest extends TestCase {
 
 	public function test_block_url_access_allows_recruitment_role_on_their_admin_page(): void {
 		Functions\when( 'current_user_can' )->justReturn( false );
-		$user = (object) array( 'roles' => array( 'ffc_recruitment_auditor' ) );
+		$user = (object) array( 'roles' => array( 'ffc_recruitment_viewer' ) );
 		Functions\when( 'wp_get_current_user' )->justReturn( $user );
 
 		global $pagenow;
@@ -144,7 +144,7 @@ class AdminMenuVisibilityTest extends TestCase {
 
 	public function test_block_url_access_always_allows_profile_page(): void {
 		Functions\when( 'current_user_can' )->justReturn( false );
-		$user = (object) array( 'roles' => array( 'ffc_recruitment_auditor' ) );
+		$user = (object) array( 'roles' => array( 'ffc_recruitment_viewer' ) );
 		Functions\when( 'wp_get_current_user' )->justReturn( $user );
 
 		global $pagenow;

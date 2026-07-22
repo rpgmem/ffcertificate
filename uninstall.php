@@ -213,20 +213,47 @@ foreach ( array( 'ffc_form', 'ffc_self_scheduling' ) as $ffcertificate_cpt ) {
 remove_role( 'ffc_end_user' );
 remove_role( 'ffc_recruitment_manager' );
 
-// 6.2.0 module-manager + recruitment-tier roles. Listed inline rather than
-// through `CapabilityManager::remove_module_roles()` because uninstall.php
-// runs in a stripped-down context that doesn't load the plugin's autoloader.
+// Module tier roles (#739 §3.2 — viewer/operator/manager ladder per domain).
+// Listed inline rather than through `CapabilityManager::remove_module_roles()`
+// because uninstall.php runs in a stripped-down context that doesn't load the
+// plugin's autoloader. The legacy slugs below are kept so an uninstall of an
+// install that never ran the rename migrations still strips the old roles.
 foreach (
 	array(
 		'ffc_administrator',
-		'ffc_certificate_manager',
-		'ffc_appointments_manager',
-		'ffc_audience_manager',
-		'ffc_reregistration_manager',
 		'ffc_readonly',
-		'ffc_recruitment_auditor',
+		// Certificates ladder.
+		'ffc_certificates_viewer',
+		'ffc_certificates_operator',
+		'ffc_certificates_manager',
+		// Forms.
+		'ffc_forms_viewer',
+		'ffc_forms_manager',
+		// Appointments ladder.
+		'ffc_appointments_viewer',
+		'ffc_appointments_operator',
+		'ffc_appointments_manager',
+		// Calendars.
+		'ffc_calendars_viewer',
+		'ffc_calendars_manager',
+		// Audiences ladder.
+		'ffc_audiences_viewer',
+		'ffc_audiences_operator',
+		'ffc_audiences_manager',
+		// Reregistration ladder.
+		'ffc_reregistration_viewer',
+		'ffc_reregistration_operator',
+		'ffc_reregistration_manager',
+		// Recruitment ladder (manager removed above).
+		'ffc_recruitment_viewer',
 		'ffc_recruitment_operator',
 		'ffc_recruitment_admin',
+		// Legacy slugs (pre-#739 renames) — harmless no-ops once migrated.
+		'ffc_operator',
+		'ffc_self_scheduling_manager',
+		'ffc_certificate_manager',
+		'ffc_audience_manager',
+		'ffc_recruitment_auditor',
 	) as $ffc_legacy_role
 ) {
 	remove_role( $ffc_legacy_role );

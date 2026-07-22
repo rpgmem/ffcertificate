@@ -194,6 +194,10 @@ final class CapabilityCatalog {
 				'label' => __( 'Forms', 'ffcertificate' ),
 				'level' => 'admin',
 				'caps'  => array(
+					'ffc_view_forms'   => array(
+						'label'       => __( 'View forms', 'ffcertificate' ),
+						'description' => __( 'Read-only access to certificate forms — structure, fields and options — without the ability to edit them (#739).', 'ffcertificate' ),
+					),
 					'ffc_manage_forms' => array(
 						'label'       => __( 'Manage forms', 'ffcertificate' ),
 						'description' => __( 'Create and edit certificate forms — PDF layout, fields and options. Replaces the native post-editing capability the form CPT relied on before (#739).', 'ffcertificate' ),
@@ -233,6 +237,10 @@ final class CapabilityCatalog {
 				'label' => __( 'Calendars', 'ffcertificate' ),
 				'level' => 'admin',
 				'caps'  => array(
+					'ffc_view_calendars'   => array(
+						'label'       => __( 'View calendars', 'ffcertificate' ),
+						'description' => __( 'Read-only access to self-scheduling calendars — structure, working hours and options — without the ability to edit them (#739).', 'ffcertificate' ),
+					),
 					'ffc_manage_calendars' => array(
 						'label'       => __( 'Manage calendars', 'ffcertificate' ),
 						'description' => __( 'Create and edit self-scheduling calendars — structure, working hours and options. Distinct from managing the bookings made against them (#739).', 'ffcertificate' ),

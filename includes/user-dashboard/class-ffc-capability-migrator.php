@@ -764,6 +764,13 @@ class CapabilityMigrator {
 			'ffc_user'                    => 'ffc_end_user',
 			'ffc_operator'                => 'ffc_readonly',
 			'ffc_self_scheduling_manager' => 'ffc_appointments_manager',
+			// #739 §3.2/§6 — pluralize the domain token to match the caps, and
+			// align the recruitment read-only tier to the uniform vocabulary
+			// (auditor → viewer). Folded into the same one-shot migration so
+			// user-meta / role defs are rewritten a single time.
+			'ffc_certificate_manager'     => 'ffc_certificates_manager',
+			'ffc_audience_manager'        => 'ffc_audiences_manager',
+			'ffc_recruitment_auditor'     => 'ffc_recruitment_viewer',
 		);
 	}
 

@@ -79,62 +79,61 @@ final class AdminMenuVisibility {
 			'comments',    // Pending comment count.
 		);
 
+		// Factory for one policy entry — every role shares the same core-menu
+		// hiding + admin-bar pruning and only differs in landing page + the
+		// pages it may reach. All tiers of a domain (viewer/operator/manager)
+		// share the same navigation; the capability gates decide read vs write
+		// within those pages, so the menu scope is per-domain, not per-tier.
+		$mk = function ( string $landing, array $pages ) use ( $shared_hidden_menus, $shared_admin_bar_nodes ): array {
+			return array(
+				'landing_page'         => $landing,
+				'allowed_pages'        => $pages,
+				'hide_core_menus'      => $shared_hidden_menus,
+				'hide_admin_bar_nodes' => $shared_admin_bar_nodes,
+			);
+		};
+
+		// Per-domain navigation (#739 §3.2 — one page-set per domain, reused
+		// across that domain's tier ladder).
+		$certificates_pages   = array( 'edit.php?post_type=ffc_form', 'ffc-submissions', 'ffc-settings', 'ffc-activity-log' );
+		$forms_pages          = array( 'edit.php?post_type=ffc_form', 'ffc-settings' );
+		$appointments_pages   = array( 'ffc-self-scheduling', 'ffc-self-scheduling-appointments', 'ffc-self-scheduling-settings' );
+		$calendars_pages      = array( 'ffc-self-scheduling', 'ffc-self-scheduling-settings' );
+		$audiences_pages      = array( 'ffc-scheduling', 'ffc-audiences', 'ffc-environments', 'ffc-aud-import', 'ffc-aud-settings' );
+		$reregistration_pages = array( 'ffc-reregistration', 'ffc-custom-fields' );
+		$recruitment_pages    = array( 'ffc-recruitment' );
+		$recruitment_admin_pg = array( 'ffc-recruitment', 'ffc-settings' );
+
 		return array(
-			'ffc_certificate_manager'    => array(
-				'landing_page'         => 'edit.php?post_type=ffc_form',
-				'allowed_pages'        => array( 'edit.php?post_type=ffc_form', 'ffc-submissions', 'ffc-settings', 'ffc-activity-log' ),
-				'hide_core_menus'      => $shared_hidden_menus,
-				'hide_admin_bar_nodes' => $shared_admin_bar_nodes,
-			),
-			'ffc_appointments_manager'   => array(
-				'landing_page'         => 'ffc-self-scheduling',
-				'allowed_pages'        => array( 'ffc-self-scheduling', 'ffc-self-scheduling-appointments', 'ffc-self-scheduling-settings' ),
-				'hide_core_menus'      => $shared_hidden_menus,
-				'hide_admin_bar_nodes' => $shared_admin_bar_nodes,
-			),
-			'ffc_audience_manager'       => array(
-				'landing_page'         => 'ffc-scheduling',
-				'allowed_pages'        => array( 'ffc-scheduling', 'ffc-audiences', 'ffc-environments', 'ffc-aud-import', 'ffc-aud-settings' ),
-				'hide_core_menus'      => $shared_hidden_menus,
-				'hide_admin_bar_nodes' => $shared_admin_bar_nodes,
-			),
-			'ffc_reregistration_manager' => array(
-				'landing_page'         => 'ffc-reregistration',
-				'allowed_pages'        => array( 'ffc-reregistration', 'ffc-custom-fields' ),
-				'hide_core_menus'      => $shared_hidden_menus,
-				'hide_admin_bar_nodes' => $shared_admin_bar_nodes,
-			),
-			'ffc_readonly'               => array(
-				'landing_page'         => 'ffc-activity-log',
-				'allowed_pages'        => array( 'ffc-activity-log', 'ffc-recruitment' ),
-				'hide_core_menus'      => $shared_hidden_menus,
-				'hide_admin_bar_nodes' => $shared_admin_bar_nodes,
-			),
-			// Every recruitment tier shares the recruitment admin landing.
-			'ffc_recruitment_auditor'    => array(
-				'landing_page'         => 'ffc-recruitment',
-				'allowed_pages'        => array( 'ffc-recruitment' ),
-				'hide_core_menus'      => $shared_hidden_menus,
-				'hide_admin_bar_nodes' => $shared_admin_bar_nodes,
-			),
-			'ffc_recruitment_operator'   => array(
-				'landing_page'         => 'ffc-recruitment',
-				'allowed_pages'        => array( 'ffc-recruitment' ),
-				'hide_core_menus'      => $shared_hidden_menus,
-				'hide_admin_bar_nodes' => $shared_admin_bar_nodes,
-			),
-			'ffc_recruitment_manager'    => array(
-				'landing_page'         => 'ffc-recruitment',
-				'allowed_pages'        => array( 'ffc-recruitment', 'ffc-settings' ),
-				'hide_core_menus'      => $shared_hidden_menus,
-				'hide_admin_bar_nodes' => $shared_admin_bar_nodes,
-			),
-			'ffc_recruitment_admin'      => array(
-				'landing_page'         => 'ffc-recruitment',
-				'allowed_pages'        => array( 'ffc-recruitment', 'ffc-settings' ),
-				'hide_core_menus'      => $shared_hidden_menus,
-				'hide_admin_bar_nodes' => $shared_admin_bar_nodes,
-			),
+			// Certificates ladder.
+			'ffc_certificates_viewer'     => $mk( 'edit.php?post_type=ffc_form', $certificates_pages ),
+			'ffc_certificates_operator'   => $mk( 'edit.php?post_type=ffc_form', $certificates_pages ),
+			'ffc_certificates_manager'    => $mk( 'edit.php?post_type=ffc_form', $certificates_pages ),
+			// Forms (certificate-form structure).
+			'ffc_forms_viewer'            => $mk( 'edit.php?post_type=ffc_form', $forms_pages ),
+			'ffc_forms_manager'           => $mk( 'edit.php?post_type=ffc_form', $forms_pages ),
+			// Appointments ladder.
+			'ffc_appointments_viewer'     => $mk( 'ffc-self-scheduling', $appointments_pages ),
+			'ffc_appointments_operator'   => $mk( 'ffc-self-scheduling', $appointments_pages ),
+			'ffc_appointments_manager'    => $mk( 'ffc-self-scheduling', $appointments_pages ),
+			// Calendars (self-scheduling structure).
+			'ffc_calendars_viewer'        => $mk( 'ffc-self-scheduling', $calendars_pages ),
+			'ffc_calendars_manager'       => $mk( 'ffc-self-scheduling', $calendars_pages ),
+			// Audiences ladder.
+			'ffc_audiences_viewer'        => $mk( 'ffc-scheduling', $audiences_pages ),
+			'ffc_audiences_operator'      => $mk( 'ffc-scheduling', $audiences_pages ),
+			'ffc_audiences_manager'       => $mk( 'ffc-scheduling', $audiences_pages ),
+			// Reregistration ladder.
+			'ffc_reregistration_viewer'   => $mk( 'ffc-reregistration', $reregistration_pages ),
+			'ffc_reregistration_operator' => $mk( 'ffc-reregistration', $reregistration_pages ),
+			'ffc_reregistration_manager'  => $mk( 'ffc-reregistration', $reregistration_pages ),
+			// Cross-domain read-only.
+			'ffc_readonly'                => $mk( 'ffc-activity-log', array( 'ffc-activity-log', 'ffc-recruitment' ) ),
+			// Recruitment ladder (every tier shares the recruitment landing).
+			'ffc_recruitment_viewer'      => $mk( 'ffc-recruitment', $recruitment_pages ),
+			'ffc_recruitment_operator'    => $mk( 'ffc-recruitment', $recruitment_pages ),
+			'ffc_recruitment_manager'     => $mk( 'ffc-recruitment', $recruitment_admin_pg ),
+			'ffc_recruitment_admin'       => $mk( 'ffc-recruitment', $recruitment_admin_pg ),
 		);
 	}
 

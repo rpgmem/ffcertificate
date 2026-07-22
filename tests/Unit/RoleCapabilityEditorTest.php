@@ -86,7 +86,7 @@ class RoleCapabilityEditorTest extends TestCase {
 		// ffc_end_user registered; one module role missing; non-FFC roles never appear.
 		Functions\when( 'get_role' )->alias(
 			function ( $slug ) {
-				if ( 'ffc_audience_manager' === $slug ) {
+				if ( 'ffc_audiences_manager' === $slug ) {
 					return null; // not registered on this install
 				}
 				return $this->fake_role();
@@ -98,7 +98,7 @@ class RoleCapabilityEditorTest extends TestCase {
 
 		$this->assertContains( 'ffc_end_user', $slugs );
 		$this->assertContains( 'ffc_recruitment_manager', $slugs );
-		$this->assertNotContains( 'ffc_audience_manager', $slugs ); // unregistered dropped
+		$this->assertNotContains( 'ffc_audiences_manager', $slugs ); // unregistered dropped
 		$this->assertNotContains( 'administrator', $slugs );
 		// Shape.
 		$this->assertSame( 0, $roles[0]['users'] ); // WP_User_Query absent in tests

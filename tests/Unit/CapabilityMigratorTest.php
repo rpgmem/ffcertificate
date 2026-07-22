@@ -208,5 +208,9 @@ class CapabilityMigratorTest extends TestCase {
 		$this->assertContains( 'ffc_user', $removed_roles );
 		$this->assertContains( 'ffc_operator', $removed_roles );
 		$this->assertContains( 'ffc_self_scheduling_manager', $removed_roles );
+		// #739 §3.2/§6 pluralization + recruitment auditor→viewer renames.
+		$this->assertContains( 'ffc_certificate_manager', $removed_roles );
+		$this->assertContains( 'ffc_audience_manager', $removed_roles );
+		$this->assertContains( 'ffc_recruitment_auditor', $removed_roles );
 	}
 }
