@@ -158,11 +158,11 @@ class AdminUserCapabilitiesTest extends TestCase {
         $roles_obj = new class() {
             /** @var array<string,array<string,mixed>> */
             public $roles = array(
-                'ffc_end_user'                 => array(
+                'ffc_end_user'             => array(
                     'capabilities' => array(
                         'read'                      => true,
                         'ffc_view_own_certificates' => true,
-                        'ffc_book_own_appointments'     => true,
+                        'ffc_book_own_appointments' => true,
                     ),
                 ),
                 'ffc_recruitment_manager'  => array(
@@ -184,7 +184,7 @@ class AdminUserCapabilitiesTest extends TestCase {
             );
             public function get_names() {
                 return array(
-                    'ffc_end_user'                => 'FFC End User',
+                    'ffc_end_user'            => 'FFC End User',
                     'ffc_recruitment_manager' => 'Recruitment Manager',
                     'administrator'           => 'Administrator',
                     'subscriber'              => 'Subscriber',
@@ -308,7 +308,7 @@ class AdminUserCapabilitiesTest extends TestCase {
         Functions\when( 'current_user_can' )->justReturn( true );
         Functions\when( 'user_can' )->justReturn( false );
 
-        // No ffc_user role and no FFC capabilities
+        // No ffc_end_user role and no FFC capabilities
         $this->user_manager_mock->shouldReceive( 'has_certificate_access' )
             ->with( 10 )
             ->andReturn( false );
@@ -430,7 +430,7 @@ class AdminUserCapabilitiesTest extends TestCase {
         AdminUserCapabilities::render_capability_fields( $user );
         $output = ob_get_clean();
 
-        // FFC roles render as assignable chips; ffc_user is currently assigned.
+        // FFC roles render as assignable chips; ffc_end_user is currently assigned.
         $this->assertStringContainsString( 'data-ffc-role="ffc_end_user"', $output );
         $this->assertStringContainsString( 'data-ffc-role="ffc_recruitment_manager"', $output );
         $this->assertMatchesRegularExpression( '/data-ffc-role="ffc_end_user"[^>]*aria-pressed="true"/', $output );
@@ -439,7 +439,7 @@ class AdminUserCapabilitiesTest extends TestCase {
         $this->assertStringNotContainsString( 'data-ffc-role="administrator"', $output );
         $this->assertStringNotContainsString( 'data-ffc-role="subscriber"', $output );
 
-        // Caps the ffc_user role grants lock as "Role" (byrole toggle + badge).
+        // Caps the ffc_end_user role grants lock as "Role" (byrole toggle + badge).
         $this->assertStringContainsString( 'ffc-cap-toggle--byrole', $output );
         $this->assertStringContainsString( 'ffc-cap-origin--role', $output );
     }

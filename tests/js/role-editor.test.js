@@ -40,7 +40,7 @@ function setup(fetchImpl) {
 	window.ffcRoleEditor = {
 		ajaxUrl: '/wp-admin/admin-ajax.php',
 		nonce: 'role-cap-nonce',
-		roleCaps: { ffc_user: ['cap_a'], ffc_recruitment_manager: ['cap_b', 'cap_c'] },
+		roleCaps: { ffc_end_user: ['cap_a'], ffc_recruitment_manager: ['cap_b', 'cap_c'] },
 		i18n: { error: 'Err', saved: 'Saved' },
 	};
 	if (fetchImpl) {
@@ -90,7 +90,7 @@ describe('persist toggle', () => {
 		expect(fetchMock).toHaveBeenCalledTimes(1);
 		const body = fetchMock.mock.calls[0][1].body;
 		expect(body).toContain('action=ffc_set_role_cap');
-		expect(body).toContain('role=ffc_user');
+		expect(body).toContain('role=ffc_end_user');
 		expect(body).toContain('cap=cap_b');
 		expect(body).toContain('grant=1');
 
@@ -99,7 +99,7 @@ describe('persist toggle', () => {
 		const state = document.querySelector('[data-ffc-cap-slug="cap_b"] [data-ffc-savestate]');
 		expect(state.textContent).toBe('Saved');
 		// in-memory map updated so re-selecting reflects it
-		expect(window.ffcRoleEditor.roleCaps.ffc_user).toContain('cap_b');
+		expect(window.ffcRoleEditor.roleCaps.ffc_end_user).toContain('cap_b');
 	});
 
 	it('reverts the toggle when the request fails', async () => {
@@ -113,7 +113,7 @@ describe('persist toggle', () => {
 
 		await new Promise((r) => setTimeout(r, 0));
 
-		// reverted back to checked (cap_a is granted by ffc_user)
+		// reverted back to checked (cap_a is granted by ffc_end_user)
 		expect(cb.checked).toBe(true);
 		expect(alertSpy).toHaveBeenCalledWith('Err');
 	});
@@ -137,13 +137,13 @@ describe('persist toggle', () => {
 		const fetchMock = vi.fn(() => Promise.resolve({ json: () => Promise.resolve({ success: true }) }));
 		setup(fetchMock);
 
-		// cap_a is granted to ffc_user; unchecking it should splice it out.
+		// cap_a is granted to ffc_end_user; unchecking it should splice it out.
 		const cb = document.querySelector('[data-ffc-cap-slug="cap_a"] .ffc-role-cap');
 		cb.checked = false;
 		cb.dispatchEvent(new Event('change'));
 
 		await new Promise((r) => setTimeout(r, 0));
-		expect(window.ffcRoleEditor.roleCaps.ffc_user).not.toContain('cap_a');
+		expect(window.ffcRoleEditor.roleCaps.ffc_end_user).not.toContain('cap_a');
 	});
 
 	it('does not POST when ajaxUrl is absent', () => {
@@ -229,7 +229,7 @@ describe('init guards', () => {
 		Object.defineProperty(document, 'readyState', { value: 'loading', configurable: true });
 		try {
 			window.ffcRoleEditor = {
-				ajaxUrl: '/x', nonce: 'n', roleCaps: { ffc_user: ['cap_a'] }, i18n: {},
+				ajaxUrl: '/x', nonce: 'n', roleCaps: { ffc_end_user: ['cap_a'] }, i18n: {},
 			};
 			document.body.innerHTML = markup();
 			// Re-evaluating the IIFE while "loading" registers a
@@ -256,7 +256,7 @@ describe('init guards', () => {
 		window.ffcRoleEditor = {
 			ajaxUrl: '/x',
 			nonce: 'n',
-			roleCaps: { ffc_user: [] },
+			roleCaps: { ffc_end_user: [] },
 			i18n: {},
 		};
 		document.body.innerHTML = `
@@ -277,7 +277,7 @@ describe('init guards', () => {
 		window.ffcRoleEditor = {
 			ajaxUrl: '/x',
 			nonce: 'n',
-			roleCaps: { ffc_user: [] },
+			roleCaps: { ffc_end_user: [] },
 			i18n: { saved: 'Saved' },
 		};
 		window.fetch = fetchMock;
@@ -297,7 +297,7 @@ describe('init guards', () => {
 		cb.dispatchEvent(new Event('change'));
 		await new Promise((r) => setTimeout(r, 0));
 		// No throw despite the missing [data-ffc-savestate] node.
-		expect(window.ffcRoleEditor.roleCaps.ffc_user).toContain('cap_x');
+		expect(window.ffcRoleEditor.roleCaps.ffc_end_user).toContain('cap_x');
 	});
 
 	it('showState clears the indicator after the timeout', async () => {

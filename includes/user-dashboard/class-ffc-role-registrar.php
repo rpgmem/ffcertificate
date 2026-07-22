@@ -261,7 +261,7 @@ class RoleRegistrar {
 	 */
 	public static function ffc_managed_role_labels(): array {
 		$labels = array(
-			'ffc_end_user'                                  => __( 'FFC End User', 'ffcertificate' ),
+			'ffc_end_user'                              => __( 'FFC End User', 'ffcertificate' ),
 			CapabilityManager::RECRUITMENT_MANAGER_ROLE => __( 'Recruitment Manager', 'ffcertificate' ),
 		);
 		foreach ( CapabilityManager::module_roles_definition() as $slug => $def ) {

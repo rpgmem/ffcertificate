@@ -83,7 +83,7 @@ class RoleCapabilityEditorTest extends TestCase {
 	}
 
 	public function test_editable_roles_lists_registered_ffc_roles_only(): void {
-		// ffc_user registered; one module role missing; non-FFC roles never appear.
+		// ffc_end_user registered; one module role missing; non-FFC roles never appear.
 		Functions\when( 'get_role' )->alias(
 			function ( $slug ) {
 				if ( 'ffc_audience_manager' === $slug ) {

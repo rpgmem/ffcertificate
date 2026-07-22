@@ -196,7 +196,7 @@ function roleSetup(fetchImpl) {
 		ajaxUrl: '/wp-admin/admin-ajax.php',
 		nonce: 'role-nonce',
 		userId: 5,
-		roleCaps: { ffc_user: ['cap_a', 'cap_b'], ffc_recruitment_manager: ['cap_c'] },
+		roleCaps: { ffc_end_user: ['cap_a', 'cap_b'], ffc_recruitment_manager: ['cap_c'] },
 		assigned: ['ffc_end_user'],
 		i18n: { user: 'User', role: 'Role', none: '—', error: 'Err' },
 	};
@@ -257,7 +257,7 @@ describe('role presets', () => {
 		const fetchMock = vi.fn(() => Promise.resolve({ json: () => Promise.resolve({ success: true }) }));
 		roleSetup(fetchMock);
 
-		// cap_a is user-granted (data-ffc-user-granted="1"); ffc_user also grants it.
+		// cap_a is user-granted (data-ffc-user-granted="1"); ffc_end_user also grants it.
 		document.querySelector('[data-ffc-role="ffc_end_user"]').click();
 		await new Promise((r) => setTimeout(r, 0));
 

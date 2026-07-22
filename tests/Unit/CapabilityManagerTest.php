@@ -603,7 +603,7 @@ class CapabilityManagerTest extends TestCase {
         $this->assertNotNull( $captured_caps );
         $this->assertTrue( $captured_caps['read'] );
         // FFC caps are intentionally absent (issue #86): an explicit `=> false`
-        // here would break multi-role users (admin + ffc_user) by overriding
+        // here would break multi-role users (admin + ffc_end_user) by overriding
         // admin-granted `true` via array_merge in WP cap resolution.
         $this->assertArrayNotHasKey( 'ffc_view_own_certificates', $captured_caps );
         $this->assertArrayNotHasKey( 'ffc_book_own_appointments', $captured_caps );
@@ -612,7 +612,7 @@ class CapabilityManagerTest extends TestCase {
 
     public function test_register_role_upgrades_existing_role_strips_legacy_false_caps(): void {
         // Pre-6.0.3 the role was saved with FFC caps as `=> false`; upgrade_role()
-        // strips them so multi-role users (admin + ffc_user) can resolve to true
+        // strips them so multi-role users (admin + ffc_end_user) can resolve to true
         // via the admin role.
         $mock_role               = Mockery::mock( 'WP_Role' );
         $mock_role->capabilities = array(

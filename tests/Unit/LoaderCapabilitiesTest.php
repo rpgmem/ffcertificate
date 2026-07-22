@@ -116,7 +116,7 @@ class LoaderCapabilitiesTest extends TestCase {
 		$user_denial_cap = $all_ffc_caps[0];
 		$role_false_cap  = $all_ffc_caps[1] ?? $all_ffc_caps[0];
 
-		// ffc_user role: carries a legacy `=> false` cap that must be stripped.
+		// ffc_end_user role: carries a legacy `=> false` cap that must be stripped.
 		$ffc_user_removed = array();
 		$ffc_user_role    = new class( $ffc_user_removed, $role_false_cap ) {
 			/** @var array<string,bool> */
@@ -170,7 +170,7 @@ class LoaderCapabilitiesTest extends TestCase {
 		$this->assertCount( 0, $granted );
 		// user-level `=> false` denial stripped.
 		$this->assertContains( $user_denial_cap, $user_removed );
-		// legacy `=> false` cap stripped from ffc_user role.
+		// legacy `=> false` cap stripped from ffc_end_user role.
 		$this->assertContains( $role_false_cap, $ffc_user_removed );
 		// Version flag written at the end.
 		$this->assertSame( FFC_VERSION, $updated['ffc_admin_caps_version_v6'] ?? null );
