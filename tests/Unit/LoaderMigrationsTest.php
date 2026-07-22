@@ -111,6 +111,52 @@ class LoaderMigrationsTest extends TestCase {
     }
 
     // ==================================================================
+    // ensure_false_ffc_caps_stripped() — RoleRegistrar, not CapabilityMigrator
+    // ==================================================================
+
+    public function test_ensure_false_ffc_caps_stripped_skips_when_flag_already_set(): void {
+        $loader = new Loader();
+
+        Functions\when( 'get_option' )->justReturn( '1' );
+        Functions\when( 'class_exists' )->justReturn( true );
+        $updated = array();
+        Functions\when( 'update_option' )->alias(
+            function ( $key, $value ) use ( &$updated ) {
+                $updated[ $key ] = $value;
+                return true;
+            }
+        );
+
+        $rr = Mockery::mock( 'alias:FreeFormCertificate\UserDashboard\RoleRegistrar' );
+        $rr->shouldReceive( 'strip_false_ffc_caps' )->never();
+
+        $this->invoke_private( $loader, 'ensure_false_ffc_caps_stripped' );
+
+        $this->assertArrayNotHasKey( 'ffc_false_caps_stripped_v1', $updated, 'No re-write when already stripped.' );
+    }
+
+    public function test_ensure_false_ffc_caps_stripped_runs_and_sets_flag(): void {
+        $loader = new Loader();
+
+        Functions\when( 'get_option' )->justReturn( '' );
+        Functions\when( 'class_exists' )->justReturn( true );
+        $updated = array();
+        Functions\when( 'update_option' )->alias(
+            function ( $key, $value ) use ( &$updated ) {
+                $updated[ $key ] = $value;
+                return true;
+            }
+        );
+
+        $rr = Mockery::mock( 'alias:FreeFormCertificate\UserDashboard\RoleRegistrar' );
+        $rr->shouldReceive( 'strip_false_ffc_caps' )->once();
+
+        $this->invoke_private( $loader, 'ensure_false_ffc_caps_stripped' );
+
+        $this->assertSame( '1', $updated['ffc_false_caps_stripped_v1'] ?? null, 'Flag must be set after stripping.' );
+    }
+
+    // ==================================================================
     // register_ffc_roles_safe()
     // ==================================================================
 

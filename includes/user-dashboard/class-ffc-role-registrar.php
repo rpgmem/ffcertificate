@@ -71,8 +71,47 @@ class RoleRegistrar {
 		// `array_merge()` preserve `true` from a peer role for multi-role
 		// users. See issue #86 / register_role() for the full rationale.
 		foreach ( CapabilityManager::get_all_capabilities() as $cap ) {
-			if ( isset( $role->capabilities[ $cap ] ) && false === $role->capabilities[ $cap ] ) {
+			// `empty()` (not a strict `false ===`) so a legacy denial stored as
+			// `0` / `''` — e.g. a boolean cast during a cap rename — is stripped
+			// too. Any truthy grant is preserved.
+			if ( isset( $role->capabilities[ $cap ] ) && empty( $role->capabilities[ $cap ] ) ) {
 				$role->remove_cap( $cap );
+			}
+		}
+	}
+
+	/**
+	 * Remove every falsy `ffc_*` capability entry from ALL FFC-managed roles.
+	 *
+	 * A role that stores an FFC capability as `false` (a legacy "explicit
+	 * denial" from the pre-#86 seeding, sometimes propagated onto renamed caps)
+	 * masks the SAME capability granted `true` by a peer role whenever a user
+	 * holds both: WordPress merges role capability maps with `array_merge()`, so
+	 * a later role's `false` overrides an earlier role's `true`. This is exactly
+	 * how a user with `ffc_administrator` + `ffc_end_user` loses the CPT caps —
+	 * the aggregator grants `ffc_view_forms` / `ffc_view_calendars`, but a stale
+	 * `false` on `ffc_end_user` (ordered last) wins.
+	 *
+	 * FFC roles never need an explicit denial — an ABSENT cap already denies for
+	 * single-role users while letting a peer role's `true` survive the merge —
+	 * so stripping every falsy `ffc_*` entry is always safe and removes the mask.
+	 * Only touches the FFC-managed roles; the core `administrator` role is left
+	 * alone (and can't mask anyway, since it precedes `ffc_administrator`).
+	 *
+	 * @since 6.16.0
+	 * @return void
+	 */
+	public static function strip_false_ffc_caps(): void {
+		$ffc_caps = CapabilityManager::get_all_capabilities();
+		foreach ( array_keys( self::ffc_managed_role_labels() ) as $slug ) {
+			$role = get_role( (string) $slug );
+			if ( null === $role ) {
+				continue;
+			}
+			foreach ( $ffc_caps as $cap ) {
+				if ( isset( $role->capabilities[ $cap ] ) && empty( $role->capabilities[ $cap ] ) ) {
+					$role->remove_cap( $cap );
+				}
 			}
 		}
 	}
