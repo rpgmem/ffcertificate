@@ -200,6 +200,8 @@ class RecruitmentNoticesListTable extends AbstractRecruitmentListTable {
 
 	/**
 	 * {@inheritDoc}
+	 *
+	 * @param int $id Row id.
 	 */
 	protected function delete_one( int $id ): void {
 		RecruitmentNoticeWriter::delete( $id );

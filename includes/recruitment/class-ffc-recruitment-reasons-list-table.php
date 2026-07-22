@@ -273,6 +273,8 @@ class RecruitmentReasonsListTable extends AbstractRecruitmentListTable {
 	 *
 	 * Per-row guard: a reason still referenced by any classification is skipped
 	 * (mirrors the repository's own delete gate).
+	 *
+	 * @param int $id Row id.
 	 */
 	protected function delete_one( int $id ): void {
 		if ( RecruitmentReasonReader::count_references( $id ) > 0 ) {

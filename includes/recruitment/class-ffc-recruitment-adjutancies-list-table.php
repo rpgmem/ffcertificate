@@ -194,6 +194,8 @@ class RecruitmentAdjutanciesListTable extends AbstractRecruitmentListTable {
 
 	/**
 	 * {@inheritDoc}
+	 *
+	 * @param int $id Row id.
 	 */
 	protected function delete_one( int $id ): void {
 		RecruitmentDeleteService::delete_adjutancy( $id );
