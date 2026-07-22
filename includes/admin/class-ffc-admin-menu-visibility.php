@@ -85,6 +85,8 @@ final class AdminMenuVisibility {
 		// share the same navigation; the capability gates decide read vs write
 		// within those pages, so the menu scope is per-domain, not per-tier.
 		/**
+		 * Build one policy entry from a landing page + allowed-page list.
+		 *
 		 * @param string       $landing Landing-page slug.
 		 * @param list<string> $pages   Allowed-page slugs.
 		 * @return array{landing_page: string, allowed_pages: list<string>, hide_core_menus: list<string>, hide_admin_bar_nodes: list<string>}
