@@ -231,13 +231,31 @@ class AppointmentsListTable extends \WP_List_Table {
 	}
 
 	/**
-	 * Email column (with decryption support)
+	 * Email column (with decryption support).
+	 *
+	 * Masked unless the viewer holds the appointments PII tier (#739 §3.3):
+	 * the domain `_admin` tier (and WP super-admins) see the plaintext address,
+	 * every other tier gets a masked one. Reveal is offered on the appointment
+	 * detail page, where each disclosure is audited.
 	 *
 	 * @param array<string, mixed> $item Row data.
 	 */
 	public function column_email( $item ): string {
 		$email = \FreeFormCertificate\Core\Encryption::decrypt_field( $item, 'email' );
-		return $email ? esc_html( $email ) : '-';
+		if ( ! $email ) {
+			return '-';
+		}
+
+		$tier = \FreeFormCertificate\Core\PiiAccessPolicy::resolve(
+			'ffc_view_appointments_pii',
+			'ffc_appointments_admin',
+			isset( $item['user_id'] ) ? (int) $item['user_id'] : null
+		);
+		if ( \FreeFormCertificate\Core\PiiAccessPolicy::TIER_UNMASKED === $tier ) {
+			return esc_html( $email );
+		}
+
+		return esc_html( \FreeFormCertificate\Core\DocumentFormatter::mask_email( $email ) );
 	}
 
 	/**

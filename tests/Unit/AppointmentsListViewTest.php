@@ -171,6 +171,19 @@ class AppointmentsListViewTest extends TestCase {
         Mockery::mock( 'alias:FreeFormCertificate\Core\RequestInput' )
             ->shouldReceive( 'get_get_string' )->andReturn( '' );
 
+        // #739 §3.3 — the detail view resolves a PII tier; pin it unmasked.
+        Mockery::getConfiguration()->setConstantsMap(
+            array(
+                'FreeFormCertificate\Core\PiiAccessPolicy' => array(
+                    'TIER_UNMASKED' => 'unmasked',
+                    'TIER_REVEAL'   => 'reveal',
+                    'TIER_MASKED'   => 'masked',
+                ),
+            )
+        );
+        Mockery::mock( 'alias:FreeFormCertificate\Core\PiiAccessPolicy' )
+            ->shouldReceive( 'resolve' )->andReturn( 'unmasked' );
+
         $appt = array(
             'id'               => 5,
             'status'           => 'confirmed',

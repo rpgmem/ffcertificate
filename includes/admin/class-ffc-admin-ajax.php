@@ -34,20 +34,83 @@ class AdminAjax {
 	}
 
 	/**
-	 * Reveal one decrypted PII field (CPF / RF / email) of a certificate
-	 * submission, gated by the #739 §3.3 PII policy and audited.
+	 * Per-record-type configuration for {@see reveal_pii()}. Each entry maps a
+	 * record type to the surface cap that gates the endpoint, the PII cap +
+	 * unmasked `_admin` role handed to the shared policy, and the audit action
+	 * written for a `reveal`-tier disclosure.
 	 *
-	 * The submission edit page + list render the masked value only; the
-	 * plaintext is fetched here on demand so it never sits in the initial
-	 * HTML for the `reveal` / `masked` tiers. Returns 403 for the masked tier;
-	 * the `reveal` tier writes an audit row, the unmasked `_admin` tier does not.
+	 * @return array<string, array<string, string>>
+	 */
+	private function pii_reveal_configs(): array {
+		return array(
+			'submission'  => array(
+				'surface_cap'  => 'ffc_view_certificates',
+				'pii_cap'      => 'ffc_view_certificates_pii',
+				'admin_role'   => 'ffc_certificates_admin',
+				'audit_action' => 'submission_pii_revealed',
+			),
+			'appointment' => array(
+				'surface_cap'  => 'ffc_view_appointments',
+				'pii_cap'      => 'ffc_view_appointments_pii',
+				'admin_role'   => 'ffc_appointments_admin',
+				'audit_action' => 'appointment_pii_revealed',
+			),
+		);
+	}
+
+	/**
+	 * Load and decrypt the record whose PII a reveal targets.
+	 *
+	 * @param string $type Record type ('submission' | 'appointment').
+	 * @param int    $id   Record ID.
+	 * @return array<string, mixed>|null Decrypted row (with `cpf` / `rf` /
+	 *                                   `email` / `user_id` keys), or null when
+	 *                                   the record is missing.
+	 */
+	private function load_pii_record( string $type, int $id ): ?array {
+		if ( 'appointment' === $type ) {
+			$repo = new \FreeFormCertificate\Repositories\AppointmentRepository();
+			$row  = $repo->findById( $id );
+			if ( ! $row ) {
+				return null;
+			}
+			return \FreeFormCertificate\Core\Encryption::decrypt_appointment( $row );
+		}
+
+		$handler = new \FreeFormCertificate\Submissions\SubmissionHandler();
+		$sub     = $handler->get_submission( $id );
+		if ( ! $sub ) {
+			return null;
+		}
+		return (array) $sub;
+	}
+
+	/**
+	 * Reveal one decrypted PII field (CPF / RF / email) of a certificate
+	 * submission or self-scheduling appointment, gated by the #739 §3.3 PII
+	 * policy and audited.
+	 *
+	 * The admin surfaces (submission edit page + list, appointment detail +
+	 * list) render the masked value only; the plaintext is fetched here on
+	 * demand so it never sits in the initial HTML for the `reveal` / `masked`
+	 * tiers. Returns 403 for the masked tier; the `reveal` tier writes an audit
+	 * row, the unmasked `_admin` tier does not. The `type` POST field selects
+	 * the record domain (defaults to `submission` for backward compatibility).
 	 *
 	 * @return void
 	 */
 	public function reveal_pii(): void {
 		$this->verify_ajax_nonce( 'ffc_reveal_pii_nonce' );
-		// Surface gate — must at least be able to view the certificates area.
-		if ( ! \FreeFormCertificate\Core\Capabilities::current_user_can_admin_or( 'ffc_view_certificates' ) ) {
+
+		$type    = $this->get_post_param( 'type' );
+		$configs = $this->pii_reveal_configs();
+		if ( ! isset( $configs[ $type ] ) ) {
+			$type = 'submission';
+		}
+		$config = $configs[ $type ];
+
+		// Surface gate — must at least be able to view the record's area.
+		if ( ! \FreeFormCertificate\Core\Capabilities::current_user_can_admin_or( $config['surface_cap'] ) ) {
 			wp_send_json_error( array( 'message' => __( 'You do not have permission.', 'ffcertificate' ) ), 403 );
 		}
 
@@ -57,37 +120,35 @@ class AdminAjax {
 			wp_send_json_error( array( 'message' => __( 'Unsupported field.', 'ffcertificate' ) ) );
 		}
 		if ( $id <= 0 ) {
-			wp_send_json_error( array( 'message' => __( 'Invalid submission.', 'ffcertificate' ) ) );
+			wp_send_json_error( array( 'message' => __( 'Invalid record.', 'ffcertificate' ) ) );
 		}
 
-		$handler = new \FreeFormCertificate\Submissions\SubmissionHandler();
-		$sub     = $handler->get_submission( $id );
-		if ( ! $sub ) {
-			wp_send_json_error( array( 'message' => __( 'Submission not found.', 'ffcertificate' ) ), 404 );
+		$record = $this->load_pii_record( $type, $id );
+		if ( null === $record ) {
+			wp_send_json_error( array( 'message' => __( 'Record not found.', 'ffcertificate' ) ), 404 );
 		}
-		$sub_array = (array) $sub;
-		$owner     = isset( $sub_array['user_id'] ) ? (int) $sub_array['user_id'] : null;
+		$owner = isset( $record['user_id'] ) ? (int) $record['user_id'] : null;
 
 		$tier = \FreeFormCertificate\Core\PiiAccessPolicy::resolve(
-			'ffc_view_certificates_pii',
-			'ffc_certificates_admin',
+			$config['pii_cap'],
+			$config['admin_role'],
 			$owner
 		);
 		if ( \FreeFormCertificate\Core\PiiAccessPolicy::TIER_MASKED === $tier ) {
 			wp_send_json_error( array( 'message' => __( 'You do not have permission to reveal this field.', 'ffcertificate' ) ), 403 );
 		}
 
-		// get_submission() has already decrypted the values into the array;
-		// render through DocumentFormatter so it matches the unmasked display.
+		// The record arrives already decrypted; render through DocumentFormatter
+		// so it matches the unmasked display.
 		switch ( $field ) {
 			case 'cpf':
-				$display = \FreeFormCertificate\Core\DocumentFormatter::format_cpf( (string) ( $sub_array['cpf'] ?? '' ) );
+				$display = \FreeFormCertificate\Core\DocumentFormatter::format_cpf( (string) ( $record['cpf'] ?? '' ) );
 				break;
 			case 'rf':
-				$display = \FreeFormCertificate\Core\DocumentFormatter::format_rf( (string) ( $sub_array['rf'] ?? '' ) );
+				$display = \FreeFormCertificate\Core\DocumentFormatter::format_rf( (string) ( $record['rf'] ?? '' ) );
 				break;
 			default:
-				$display = (string) ( $sub_array['email'] ?? '' );
+				$display = (string) ( $record['email'] ?? '' );
 		}
 		if ( '' === $display ) {
 			wp_send_json_error( array( 'message' => __( 'No value to reveal.', 'ffcertificate' ) ), 404 );
@@ -97,7 +158,7 @@ class AdminAjax {
 		// to keep the per-field log free of high-trust noise.
 		if ( \FreeFormCertificate\Core\PiiAccessPolicy::TIER_REVEAL === $tier ) {
 			\FreeFormCertificate\Core\ActivityLog::log(
-				'submission_pii_revealed',
+				$config['audit_action'],
 				\FreeFormCertificate\Core\ActivityLog::LEVEL_INFO,
 				array( 'field_key' => $field ),
 				get_current_user_id(),

@@ -74,9 +74,15 @@ class AdminAjaxTest extends TestCase {
             return isset( $_POST[ $key ] ) ? (int) $_POST[ $key ] : $default;
         } )->byDefault();
 
-        // Encryption alias mock — needed by search_user_by_cpf
+        // Encryption alias mock — needed by search_user_by_cpf and the
+        // appointment reveal path (decrypt_appointment passes the row through).
         $encryption_mock = Mockery::mock( 'alias:\FreeFormCertificate\Core\Encryption' );
         $encryption_mock->shouldReceive( 'hash' )->andReturn( 'hashed_value' )->byDefault();
+        $encryption_mock->shouldReceive( 'decrypt_appointment' )->andReturnUsing(
+            function ( $row ) {
+                return $row;
+            }
+        )->byDefault();
 
         // WP_User_Query overload mock
         $this->user_query_mock = Mockery::mock( 'overload:\WP_User_Query' );
@@ -91,6 +97,9 @@ class AdminAjaxTest extends TestCase {
         Functions\when( 'get_post_meta' )->justReturn( array() );
         Functions\when( 'get_userdata' )->justReturn( false );
         Functions\when( 'get_avatar_url' )->justReturn( 'https://example.com/avatar.jpg' );
+        // reveal_pii passes get_current_user_id() to ActivityLog::log — the arg
+        // is evaluated even when the audit no-ops, so it must be defined.
+        Functions\when( 'get_current_user_id' )->justReturn( 1 );
 
         // Global wpdb for search_user_by_cpf
         global $wpdb;
@@ -515,6 +524,78 @@ class AdminAjaxTest extends TestCase {
         // touched at all.
         $ajax = new AdminAjax();
         $this->expectException( AdminAjaxSuccessException::class );
+        $ajax->reveal_pii();
+    }
+
+    /**
+     * Overload-mock AppointmentRepository so findById returns a fixed row.
+     *
+     * @param array<string,mixed> $row Row fields.
+     * @return void
+     */
+    private function mock_appointment( array $row ): void {
+        $repo = Mockery::mock( 'overload:\FreeFormCertificate\Repositories\AppointmentRepository' );
+        $repo->shouldReceive( 'findById' )->andReturn( $row );
+    }
+
+    public function test_reveal_pii_appointment_cpf_reveal_tier_returns_value(): void {
+        $_POST['nonce']         = 'n';
+        $_POST['type']          = 'appointment';
+        $_POST['submission_id'] = '7';
+        $_POST['field']         = 'cpf';
+
+        $this->mock_appointment(
+            array(
+                'cpf'     => '12345678901',
+                'user_id' => 3,
+            )
+        );
+
+        $policy = $this->mock_pii_policy();
+        $policy->shouldReceive( 'resolve' )->andReturn( 'reveal' );
+
+        $df = Mockery::mock( 'alias:FreeFormCertificate\Core\DocumentFormatter' );
+        $df->shouldReceive( 'format_cpf' )->with( '12345678901' )->andReturn( '123.456.789-01' );
+
+        // Reveal tier audits via the real ActivityLog; keep the log disabled so
+        // it early-returns without a DB write.
+        Mockery::mock( 'alias:FreeFormCertificate\Settings\SettingsReader' )
+            ->shouldReceive( 'activity_log_enabled' )->andReturn( false );
+
+        $ajax = new AdminAjax();
+        try {
+            $ajax->reveal_pii();
+            $this->fail( 'Expected AdminAjaxSuccessException' );
+        } catch ( AdminAjaxSuccessException $e ) {
+            $this->assertSame(
+                array(
+                    'field' => 'cpf',
+                    'value' => '123.456.789-01',
+                ),
+                $e->getData()
+            );
+        }
+    }
+
+    public function test_reveal_pii_appointment_masked_tier_denied(): void {
+        $_POST['nonce']         = 'n';
+        $_POST['type']          = 'appointment';
+        $_POST['submission_id'] = '7';
+        $_POST['field']         = 'email';
+
+        $this->mock_appointment(
+            array(
+                'email'   => 'x@y.com',
+                'user_id' => 3,
+            )
+        );
+
+        $policy = $this->mock_pii_policy();
+        $policy->shouldReceive( 'resolve' )->andReturn( 'masked' );
+
+        $ajax = new AdminAjax();
+        $this->expectException( \RuntimeException::class );
+        $this->expectExceptionMessageMatches( '/permission to reveal/' );
         $ajax->reveal_pii();
     }
 }
