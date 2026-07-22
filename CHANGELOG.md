@@ -7,6 +7,13 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Changed
+- ⚠ **Breaking (RBAC redesign, #739):** WordPress administrators now receive FFC access through the dedicated **FFC Administrator** role (`ffc_administrator`) instead of the plugin's capabilities being granted onto the native `administrator` role. On upgrade every existing administrator is automatically given the role, so no access is lost; administrators created **afterwards** are granted it explicitly (on the user-edit screen, by any admin) — they are no longer auto-elevated. The per-user FFC role panel now appears for administrators so the aggregator role can be assigned to them.
+- ⚠ **Breaking (RBAC redesign, #739):** the **form** (`ffc_form`) and **calendar** (`ffc_self_scheduling`) post types are decoupled from WordPress's native post capabilities. Form structure is now gated by the new `ffc_manage_forms` capability and calendar structure by the new `ffc_manage_calendars` capability (distinct from `ffc_manage_appointments`, which governs the bookings). Previously a plain WordPress **Editor** could administer every form and calendar via `edit_others_posts` without holding any FFC capability.
+
+### Deprecated
+- WordPress Editors (holders of `edit_others_posts`) can still manage FFC forms and calendars during a two-release compatibility window, with an admin notice, but this stops in **6.18.0**. Grant the FFC Administrator role — or the form/calendar management capability — to the users who need it. (#739)
+
 ## [6.15.0] (2026-07-21) — `b5a96fe`
 
 ### Deprecated

@@ -54,7 +54,7 @@ final class CptEditorCompat {
 	 * Grant the shimmed caps to holders of `edit_others_posts` (WP Editors).
 	 *
 	 * @param array<string, bool> $allcaps All caps the user currently has.
-	 * @param list<string>        $caps    Primitive caps required for this check.
+	 * @param array<int, string>  $caps    Primitive caps required for this check.
 	 * @param array<int, mixed>   $args    [ meta cap, user id, object id, … ].
 	 * @return array<string, bool>
 	 */
