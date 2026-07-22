@@ -241,13 +241,7 @@ if ( $ffc_self_scheduling_appointment_id > 0 ) {
 										<tr><th><?php esc_html_e( 'Date', 'ffcertificate' ); ?></th><td><?php echo esc_html( $ffcertificate_appointment['appointment_date'] ?? '-' ); ?></td></tr>
 										<tr><th><?php esc_html_e( 'Time', 'ffcertificate' ); ?></th><td><?php echo esc_html( ( $ffcertificate_appointment['start_time'] ?? '' ) . ' - ' . ( $ffcertificate_appointment['end_time'] ?? '' ) ); ?></td></tr>
 										<tr><th><?php esc_html_e( 'Name', 'ffcertificate' ); ?></th><td><?php echo esc_html( $ffcertificate_name ); ?></td></tr>
-										<tr><th><?php esc_html_e( 'E-mail', 'ffcertificate' ); ?></th><td><?php
-										if ( $ffcertificate_email ) {
-											$ffcertificate_render_pii( 'email', $ffcertificate_email, \FreeFormCertificate\Core\DocumentFormatter::mask_email( $ffcertificate_email ) );
-										} else {
-											echo '-';
-										}
-										?></td></tr>
+										<tr><th><?php esc_html_e( 'E-mail', 'ffcertificate' ); ?></th><td><?php if ( $ffcertificate_email ) { $ffcertificate_render_pii( 'email', $ffcertificate_email, \FreeFormCertificate\Core\DocumentFormatter::mask_email( $ffcertificate_email ) ); } else { echo '-'; } ?></td></tr>
 										<tr><th><?php esc_html_e( 'Phone', 'ffcertificate' ); ?></th><td><?php echo esc_html( $ffcertificate_phone ? $ffcertificate_phone : '-' ); ?></td></tr>
 										<?php if ( ! empty( $ffcertificate_cpf ) ) : ?>
 										<tr><th><?php esc_html_e( 'CPF', 'ffcertificate' ); ?></th><td><?php $ffcertificate_render_pii( 'cpf', \FreeFormCertificate\Core\DocumentFormatter::format_document( $ffcertificate_cpf ), \FreeFormCertificate\Core\DocumentFormatter::mask_cpf( $ffcertificate_cpf ) ); ?></td></tr>
