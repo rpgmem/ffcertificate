@@ -301,6 +301,14 @@ class RecruitmentNoticesListTable extends \WP_List_Table {
 			return;
 		}
 
+		// Bulk delete is gated by the dedicated destructive cap, not the
+		// page-level manage cap that merely renders the table — matching the
+		// Adjutancies/Reasons twins (this table previously checked only the
+		// nonce, #739 taxonomy escape).
+		if ( ! \FreeFormCertificate\Core\Capabilities::current_user_can_admin_or( 'ffc_delete_recruitment' ) ) {
+			return;
+		}
+
 		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- _wpnonce is checked below.
 		check_admin_referer( 'bulk-' . $this->_args['plural'] );
 

@@ -338,6 +338,8 @@ class RecruitmentNoticesListTableTest extends TestCase {
         $_REQUEST['action']     = 'bulk-delete';
         $_REQUEST['notice_ids'] = array( '3', '4' );
 
+        // Bulk delete now requires the destructive cap (matches Adjutancies/Reasons).
+        Functions\when( 'current_user_can' )->justReturn( true );
         Functions\when( 'check_admin_referer' )->justReturn( true );
 
         $deleted = array();
@@ -352,5 +354,21 @@ class RecruitmentNoticesListTableTest extends TestCase {
         $this->call_protected( 'process_bulk_action' );
 
         $this->assertSame( array( 3, 4 ), $deleted );
+    }
+
+    public function test_process_bulk_action_denied_without_delete_cap(): void {
+        // #739 escape closed: nonce alone no longer authorizes bulk delete —
+        // `ffc_delete_recruitment` (or manage_options) is required.
+        $_REQUEST['action']     = 'bulk-delete';
+        $_REQUEST['notice_ids'] = array( '3', '4' );
+
+        Functions\when( 'current_user_can' )->justReturn( false );
+        Functions\when( 'check_admin_referer' )->justReturn( true );
+
+        Mockery::mock( 'alias:FreeFormCertificate\Recruitment\RecruitmentNoticeWriter' )
+            ->shouldReceive( 'delete' )->never();
+
+        $this->call_protected( 'process_bulk_action' );
+        $this->assertTrue( true );
     }
 }
