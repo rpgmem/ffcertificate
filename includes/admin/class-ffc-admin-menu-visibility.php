@@ -84,6 +84,11 @@ final class AdminMenuVisibility {
 		// pages it may reach. All tiers of a domain (viewer/operator/manager)
 		// share the same navigation; the capability gates decide read vs write
 		// within those pages, so the menu scope is per-domain, not per-tier.
+		/**
+		 * @param string       $landing Landing-page slug.
+		 * @param list<string> $pages   Allowed-page slugs.
+		 * @return array{landing_page: string, allowed_pages: list<string>, hide_core_menus: list<string>, hide_admin_bar_nodes: list<string>}
+		 */
 		$mk = function ( string $landing, array $pages ) use ( $shared_hidden_menus, $shared_admin_bar_nodes ): array {
 			return array(
 				'landing_page'         => $landing,

@@ -655,12 +655,12 @@ class CapabilityManager {
 			// administration without handing out WordPress super-admin. Its cap
 			// set is the live `get_all_capabilities()` list, so any capability
 			// added in a future release is granted to it automatically.
-			'ffc_administrator' => array(
+			'ffc_administrator'           => array(
 				'label' => __( 'FFC Administrator', 'ffcertificate' ),
 				'caps'  => self::get_all_capabilities(),
 			),
 			// Cross-domain read-only: the *só vê* tier across every module.
-			'ffc_readonly' => array(
+			'ffc_readonly'                => array(
 				'label' => __( 'FFC Read-Only (all modules)', 'ffcertificate' ),
 				'caps'  => array(
 					'ffc_view_certificates',
@@ -679,49 +679,49 @@ class CapabilityManager {
 			),
 
 			// ── Certificates ─────────────────────────────────────────────
-			'ffc_certificates_viewer' => array(
+			'ffc_certificates_viewer'     => array(
 				'label' => __( 'FFC Certificates Viewer', 'ffcertificate' ),
 				'caps'  => array( 'ffc_view_certificates' ),
 			),
-			'ffc_certificates_operator' => array(
+			'ffc_certificates_operator'   => array(
 				'label' => __( 'FFC Certificates Operator', 'ffcertificate' ),
 				'caps'  => array( 'ffc_view_certificates', 'ffc_edit_certificates' ),
 			),
-			'ffc_certificates_manager' => array(
+			'ffc_certificates_manager'    => array(
 				'label' => __( 'FFC Certificates Manager', 'ffcertificate' ),
 				'caps'  => array( 'ffc_view_certificates', 'ffc_manage_certificates', 'ffc_export_certificates', 'ffc_edit_certificates', 'ffc_delete_certificates' ),
 			),
 
 			// ── Appointments (self-scheduling bookings) ──────────────────
-			'ffc_appointments_viewer' => array(
+			'ffc_appointments_viewer'     => array(
 				'label' => __( 'FFC Appointments Viewer', 'ffcertificate' ),
 				'caps'  => array( 'ffc_view_appointments' ),
 			),
-			'ffc_appointments_operator' => array(
+			'ffc_appointments_operator'   => array(
 				'label' => __( 'FFC Appointments Operator', 'ffcertificate' ),
 				'caps'  => array( 'ffc_view_appointments', 'ffc_bypass_appointments' ),
 			),
-			'ffc_appointments_manager' => array(
+			'ffc_appointments_manager'    => array(
 				'label' => __( 'FFC Appointments Manager', 'ffcertificate' ),
 				'caps'  => array( 'ffc_view_appointments', 'ffc_manage_appointments', 'ffc_delete_appointments', 'ffc_bypass_appointments', 'ffc_export_appointments' ),
 			),
 
 			// ── Audiences ────────────────────────────────────────────────
-			'ffc_audiences_viewer' => array(
+			'ffc_audiences_viewer'        => array(
 				'label' => __( 'FFC Audiences Viewer', 'ffcertificate' ),
 				'caps'  => array( 'ffc_view_audiences' ),
 			),
-			'ffc_audiences_operator' => array(
+			'ffc_audiences_operator'      => array(
 				'label' => __( 'FFC Audiences Operator', 'ffcertificate' ),
 				'caps'  => array( 'ffc_view_audiences', 'ffc_import_audiences' ),
 			),
-			'ffc_audiences_manager' => array(
+			'ffc_audiences_manager'       => array(
 				'label' => __( 'FFC Audiences Manager', 'ffcertificate' ),
 				'caps'  => array( 'ffc_view_audiences', 'ffc_manage_audiences', 'ffc_delete_audiences', 'ffc_export_audiences', 'ffc_import_audiences' ),
 			),
 
 			// ── Reregistration ───────────────────────────────────────────
-			'ffc_reregistration_viewer' => array(
+			'ffc_reregistration_viewer'   => array(
 				'label' => __( 'FFC Reregistration Viewer', 'ffcertificate' ),
 				'caps'  => array( 'ffc_view_reregistration' ),
 			),
@@ -729,28 +729,28 @@ class CapabilityManager {
 				'label' => __( 'FFC Reregistration Operator', 'ffcertificate' ),
 				'caps'  => array( 'ffc_view_reregistration', 'ffc_export_reregistration' ),
 			),
-			'ffc_reregistration_manager' => array(
+			'ffc_reregistration_manager'  => array(
 				'label' => __( 'FFC Reregistration Manager', 'ffcertificate' ),
 				'caps'  => array( 'ffc_view_reregistration', 'ffc_manage_reregistration', 'ffc_delete_reregistration', 'ffc_export_reregistration' ),
 			),
 
 			// ── Calendars (self-scheduling structure) ────────────────────
 			// Only a view/manage pair exists, so viewer → manager only.
-			'ffc_calendars_viewer' => array(
+			'ffc_calendars_viewer'        => array(
 				'label' => __( 'FFC Calendars Viewer', 'ffcertificate' ),
 				'caps'  => array( 'ffc_view_calendars' ),
 			),
-			'ffc_calendars_manager' => array(
+			'ffc_calendars_manager'       => array(
 				'label' => __( 'FFC Calendars Manager', 'ffcertificate' ),
 				'caps'  => array( 'ffc_view_calendars', 'ffc_manage_calendars' ),
 			),
 
 			// ── Forms (certificate-form structure) ───────────────────────
-			'ffc_forms_viewer' => array(
+			'ffc_forms_viewer'            => array(
 				'label' => __( 'FFC Forms Viewer', 'ffcertificate' ),
 				'caps'  => array( 'ffc_view_forms' ),
 			),
-			'ffc_forms_manager' => array(
+			'ffc_forms_manager'           => array(
 				'label' => __( 'FFC Forms Manager', 'ffcertificate' ),
 				'caps'  => array( 'ffc_view_forms', 'ffc_manage_forms' ),
 			),
@@ -759,15 +759,15 @@ class CapabilityManager {
 			// `ffc_recruitment_manager` already exists (6.0.0) and is upgraded
 			// by `register_recruitment_manager_role()`, so it is not redefined
 			// here. The viewer/operator/admin tiers complete the ladder.
-			'ffc_recruitment_viewer' => array(
+			'ffc_recruitment_viewer'      => array(
 				'label' => __( 'FFC Recruitment Viewer', 'ffcertificate' ),
 				'caps'  => array( 'ffc_view_recruitment', 'ffc_view_recruitment_reasons' ),
 			),
-			'ffc_recruitment_operator' => array(
+			'ffc_recruitment_operator'    => array(
 				'label' => __( 'FFC Recruitment Operator', 'ffcertificate' ),
 				'caps'  => array( 'ffc_view_recruitment', 'ffc_call_recruitment', 'ffc_view_recruitment_reasons' ),
 			),
-			'ffc_recruitment_admin' => array(
+			'ffc_recruitment_admin'       => array(
 				'label' => __( 'FFC Recruitment Admin', 'ffcertificate' ),
 				'caps'  => array(
 					'ffc_view_recruitment',
