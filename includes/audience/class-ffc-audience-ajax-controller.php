@@ -61,7 +61,7 @@ final class AudienceAjaxController {
 	public function ajax_check_conflicts(): void {
 		try {
 			$this->verify_ajax_nonce( 'ffc_admin_nonce' );
-			$this->check_ajax_permission();
+			$this->check_ajax_admin_or( 'ffc_manage_audiences' );
 
 			$environment_id = $this->get_post_int( 'environment_id' );
 			$booking_date   = $this->get_post_param( 'booking_date' );
@@ -94,7 +94,7 @@ final class AudienceAjaxController {
 	 */
 	public function ajax_create_booking(): void {
 		$this->verify_ajax_nonce( 'ffc_admin_nonce' );
-		$this->check_ajax_permission();
+		$this->check_ajax_admin_or( 'ffc_manage_audiences' );
 
 		// Booking creation is handled by AudienceBookingService.
 		// This is a placeholder - actual implementation in Phase 6.
@@ -109,7 +109,7 @@ final class AudienceAjaxController {
 	public function ajax_cancel_booking(): void {
 		try {
 			$this->verify_ajax_nonce( 'ffc_admin_nonce' );
-			$this->check_ajax_permission();
+			$this->check_ajax_admin_or( 'ffc_manage_audiences' );
 
 			$booking_id = $this->get_post_int( 'booking_id' );
             // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Nonce verified via verify_ajax_nonce() above.
@@ -149,7 +149,7 @@ final class AudienceAjaxController {
 	public function ajax_get_booking(): void {
 		try {
 			$this->verify_ajax_nonce( 'ffc_admin_nonce' );
-			$this->check_ajax_permission();
+			$this->check_ajax_admin_or( 'ffc_manage_audiences' );
 
 			$booking_id = $this->get_post_int( 'booking_id' );
 			if ( ! $booking_id ) {
@@ -221,7 +221,7 @@ final class AudienceAjaxController {
 	 */
 	public function ajax_get_schedule_slots(): void {
 		$this->verify_ajax_nonce( 'ffc_admin_nonce' );
-		$this->check_ajax_permission();
+		$this->check_ajax_admin_or( 'ffc_manage_audiences' );
 
 		// Slot retrieval is handled by AudienceScheduleService.
 		// This is a placeholder - actual implementation in Phase 5.
@@ -236,7 +236,7 @@ final class AudienceAjaxController {
 	public function ajax_search_users(): void {
 		try {
 			$this->verify_ajax_nonce( 'ffc_search_users' );
-			$this->check_ajax_permission();
+			$this->check_ajax_admin_or( 'ffc_manage_audiences' );
 
 			$query = $this->get_post_param( 'query' );
 
@@ -276,7 +276,7 @@ final class AudienceAjaxController {
 	public function ajax_get_environments(): void {
 		try {
 			$this->verify_ajax_nonce( 'ffc_admin_nonce' );
-			$this->check_ajax_permission();
+			$this->check_ajax_admin_or( 'ffc_manage_audiences' );
 
 			$schedule_id = $this->get_post_int( 'schedule_id' );
 
@@ -308,7 +308,7 @@ final class AudienceAjaxController {
 	public function ajax_add_user_permission(): void {
 		try {
 			$this->verify_ajax_nonce( 'ffc_schedule_permissions', '_wpnonce' );
-			$this->check_ajax_permission();
+			$this->check_ajax_admin_or( 'ffc_manage_audiences' );
 
 			$schedule_id = $this->get_post_int( 'schedule_id' );
 			$user_id     = $this->get_post_int( 'user_id' );
@@ -383,7 +383,7 @@ final class AudienceAjaxController {
 	public function ajax_update_user_permission(): void {
 		try {
 			$this->verify_ajax_nonce( 'ffc_schedule_permissions', '_wpnonce' );
-			$this->check_ajax_permission();
+			$this->check_ajax_admin_or( 'ffc_manage_audiences' );
 
 			$schedule_id = $this->get_post_int( 'schedule_id' );
 			$user_id     = $this->get_post_int( 'user_id' );
@@ -757,7 +757,7 @@ final class AudienceAjaxController {
 	public function ajax_remove_user_permission(): void {
 		try {
 			$this->verify_ajax_nonce( 'ffc_schedule_permissions', '_wpnonce' );
-			$this->check_ajax_permission();
+			$this->check_ajax_admin_or( 'ffc_manage_audiences' );
 
 			$schedule_id = $this->get_post_int( 'schedule_id' );
 			$user_id     = $this->get_post_int( 'user_id' );
