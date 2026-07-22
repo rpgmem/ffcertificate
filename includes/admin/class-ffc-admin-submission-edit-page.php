@@ -430,9 +430,9 @@ class AdminSubmissionEditPage {
 		<!-- ✅ CPF/RF (read-only se existir) — #739 §3.3 masked unless PII tier -->
 		<?php
 		if ( ! empty( $this->sub_array['cpf_rf'] ) ) :
-			$ffc_is_rf    = ! empty( $this->sub_array['rf'] );
+			$ffc_is_rf     = ! empty( $this->sub_array['rf'] );
 			$ffc_pii_field = $ffc_is_rf ? 'rf' : 'cpf';
-			$ffc_pii_tier = \FreeFormCertificate\Core\PiiAccessPolicy::resolve(
+			$ffc_pii_tier  = \FreeFormCertificate\Core\PiiAccessPolicy::resolve(
 				'ffc_view_certificates_pii',
 				'ffc_certificates_admin',
 				(int) ( $this->sub_array['user_id'] ?? 0 )

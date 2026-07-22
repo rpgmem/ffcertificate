@@ -105,7 +105,12 @@ class AdminAjax {
 			);
 		}
 
-		wp_send_json_success( array( 'field' => $field, 'value' => $display ) );
+		wp_send_json_success(
+			array(
+				'field' => $field,
+				'value' => $display,
+			)
+		);
 	}
 
 	/**

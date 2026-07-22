@@ -70,6 +70,12 @@ class AdminSubmissionEditPageTest extends TestCase {
 		Functions\when( 'get_userdata' )->justReturn( false );
 		Functions\when( 'get_avatar' )->justReturn( '<img>' );
 		Functions\when( 'get_edit_user_link' )->justReturn( 'edit-user' );
+		// #739 §3.3 — the CPF/RF block resolves Core\PiiAccessPolicy; stub the
+		// WP user funcs so it resolves to the UNMASKED tier (super-admin), which
+		// renders the plaintext CPF/RF exactly as before the carve.
+		Functions\when( 'get_current_user_id' )->justReturn( 1 );
+		Functions\when( 'user_can' )->justReturn( true );
+		Functions\when( 'get_user_by' )->justReturn( false );
 		Functions\when( 'check_admin_referer' )->justReturn( true );
 		Functions\when( 'wp_die' )->alias(
 			static function ( $msg = '' ) {
@@ -281,7 +287,10 @@ class AdminSubmissionEditPageTest extends TestCase {
 		);
 		Functions\when( 'get_post_meta' )->justReturn(
 			array(
-				array( 'name' => 'curso', 'label' => 'Curso Label' ),
+				array(
+					'name'  => 'curso',
+					'label' => 'Curso Label',
+				),
 			)
 		);
 

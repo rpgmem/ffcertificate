@@ -437,7 +437,12 @@ class AdminAjaxTest extends TestCase {
         $_POST['submission_id'] = '5';
         $_POST['field']         = 'cpf';
 
-        $this->mock_submission( array( 'cpf' => '12345678901', 'user_id' => 9 ) );
+        $this->mock_submission(
+            array(
+                'cpf'     => '12345678901',
+                'user_id' => 9,
+            )
+        );
         $policy = $this->mock_pii_policy();
         $policy->shouldReceive( 'resolve' )->andReturn( 'masked' );
 
@@ -452,7 +457,12 @@ class AdminAjaxTest extends TestCase {
         $_POST['submission_id'] = '5';
         $_POST['field']         = 'cpf';
 
-        $this->mock_submission( array( 'cpf' => '12345678901', 'user_id' => 9 ) );
+        $this->mock_submission(
+            array(
+                'cpf'     => '12345678901',
+                'user_id' => 9,
+            )
+        );
 
         $policy = $this->mock_pii_policy();
         $policy->shouldReceive( 'resolve' )->andReturn( 'reveal' );
@@ -472,7 +482,13 @@ class AdminAjaxTest extends TestCase {
             $this->fail( 'Expected AdminAjaxSuccessException' );
         } catch ( AdminAjaxSuccessException $e ) {
             $data = $e->getData();
-            $this->assertSame( array( 'field' => 'cpf', 'value' => '123.456.789-01' ), $data );
+            $this->assertSame(
+                array(
+                    'field' => 'cpf',
+                    'value' => '123.456.789-01',
+                ),
+                $data
+            );
         }
     }
 
@@ -481,7 +497,12 @@ class AdminAjaxTest extends TestCase {
         $_POST['submission_id'] = '5';
         $_POST['field']         = 'cpf';
 
-        $this->mock_submission( array( 'cpf' => '12345678901', 'user_id' => 9 ) );
+        $this->mock_submission(
+            array(
+                'cpf'     => '12345678901',
+                'user_id' => 9,
+            )
+        );
 
         $policy = $this->mock_pii_policy();
         $policy->shouldReceive( 'resolve' )->andReturn( 'unmasked' );
