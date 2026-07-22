@@ -80,56 +80,56 @@ final class AdminMenuVisibility {
 		);
 
 		return array(
-			'ffc_certificate_manager'     => array(
+			'ffc_certificate_manager'    => array(
 				'landing_page'         => 'edit.php?post_type=ffc_form',
 				'allowed_pages'        => array( 'edit.php?post_type=ffc_form', 'ffc-submissions', 'ffc-settings', 'ffc-activity-log' ),
 				'hide_core_menus'      => $shared_hidden_menus,
 				'hide_admin_bar_nodes' => $shared_admin_bar_nodes,
 			),
-			'ffc_self_scheduling_manager' => array(
+			'ffc_appointments_manager'   => array(
 				'landing_page'         => 'ffc-self-scheduling',
 				'allowed_pages'        => array( 'ffc-self-scheduling', 'ffc-self-scheduling-appointments', 'ffc-self-scheduling-settings' ),
 				'hide_core_menus'      => $shared_hidden_menus,
 				'hide_admin_bar_nodes' => $shared_admin_bar_nodes,
 			),
-			'ffc_audience_manager'        => array(
+			'ffc_audience_manager'       => array(
 				'landing_page'         => 'ffc-scheduling',
 				'allowed_pages'        => array( 'ffc-scheduling', 'ffc-audiences', 'ffc-environments', 'ffc-aud-import', 'ffc-aud-settings' ),
 				'hide_core_menus'      => $shared_hidden_menus,
 				'hide_admin_bar_nodes' => $shared_admin_bar_nodes,
 			),
-			'ffc_reregistration_manager'  => array(
+			'ffc_reregistration_manager' => array(
 				'landing_page'         => 'ffc-reregistration',
 				'allowed_pages'        => array( 'ffc-reregistration', 'ffc-custom-fields' ),
 				'hide_core_menus'      => $shared_hidden_menus,
 				'hide_admin_bar_nodes' => $shared_admin_bar_nodes,
 			),
-			'ffc_operator'                => array(
+			'ffc_readonly'               => array(
 				'landing_page'         => 'ffc-activity-log',
 				'allowed_pages'        => array( 'ffc-activity-log', 'ffc-recruitment' ),
 				'hide_core_menus'      => $shared_hidden_menus,
 				'hide_admin_bar_nodes' => $shared_admin_bar_nodes,
 			),
 			// Every recruitment tier shares the recruitment admin landing.
-			'ffc_recruitment_auditor'     => array(
+			'ffc_recruitment_auditor'    => array(
 				'landing_page'         => 'ffc-recruitment',
 				'allowed_pages'        => array( 'ffc-recruitment' ),
 				'hide_core_menus'      => $shared_hidden_menus,
 				'hide_admin_bar_nodes' => $shared_admin_bar_nodes,
 			),
-			'ffc_recruitment_operator'    => array(
+			'ffc_recruitment_operator'   => array(
 				'landing_page'         => 'ffc-recruitment',
 				'allowed_pages'        => array( 'ffc-recruitment' ),
 				'hide_core_menus'      => $shared_hidden_menus,
 				'hide_admin_bar_nodes' => $shared_admin_bar_nodes,
 			),
-			'ffc_recruitment_manager'     => array(
+			'ffc_recruitment_manager'    => array(
 				'landing_page'         => 'ffc-recruitment',
 				'allowed_pages'        => array( 'ffc-recruitment', 'ffc-settings' ),
 				'hide_core_menus'      => $shared_hidden_menus,
 				'hide_admin_bar_nodes' => $shared_admin_bar_nodes,
 			),
-			'ffc_recruitment_admin'       => array(
+			'ffc_recruitment_admin'      => array(
 				'landing_page'         => 'ffc-recruitment',
 				'allowed_pages'        => array( 'ffc-recruitment', 'ffc-settings' ),
 				'hide_core_menus'      => $shared_hidden_menus,

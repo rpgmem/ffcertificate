@@ -747,4 +747,55 @@ class CapabilityMigrator {
 
 		return $counts;
 	}
+
+	/**
+	 * #739 RBAC-redesign role renames.
+	 *
+	 * Role slugs (not caps) — the renamed definitions are registered by
+	 * {@see RoleRegistrar::register_module_roles()}; this reassigns every user
+	 * from the old role to the new one and then removes the orphaned old role,
+	 * so no access is lost on upgrade.
+	 *
+	 * @since 6.16.0
+	 * @return array<string, string>
+	 */
+	public static function role_renames(): array {
+		return array(
+			'ffc_operator'                => 'ffc_readonly',
+			'ffc_self_scheduling_manager' => 'ffc_appointments_manager',
+		);
+	}
+
+	/**
+	 * Apply {@see self::role_renames()}: reassign users + drop old roles.
+	 *
+	 * @since 6.16.0
+	 * @return array<string, int> Old role slug => number of users reassigned.
+	 */
+	public static function migrate_role_renames(): array {
+		$renames = self::role_renames();
+
+		// Ensure the renamed roles exist before reassigning users onto them.
+		RoleRegistrar::register_module_roles();
+
+		$counts = array();
+		$users  = get_users( array( 'fields' => 'ID' ) );
+		foreach ( $renames as $old => $new ) {
+			$counts[ $old ] = 0;
+			foreach ( $users as $user_id ) {
+				$user = get_userdata( (int) $user_id );
+				if ( ! $user ) {
+					continue;
+				}
+				if ( in_array( $old, (array) $user->roles, true ) ) {
+					$user->add_role( $new );
+					$user->remove_role( $old );
+					++$counts[ $old ];
+				}
+			}
+			remove_role( $old );
+		}
+
+		return $counts;
+	}
 }

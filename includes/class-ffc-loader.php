@@ -251,6 +251,7 @@ class Loader {
 		$this->ensure_settings_split_caps_granted();
 		$this->ensure_activity_log_export_cap_granted();
 		$this->ensure_rbac_caps_renamed();
+		$this->ensure_rbac_roles_renamed();
 		$this->define_admin_hooks();
 		$this->init_rest_api();
 	}
@@ -577,6 +578,24 @@ class Loader {
 		}
 		if ( class_exists( '\FreeFormCertificate\UserDashboard\CapabilityMigrator' ) ) {
 			\FreeFormCertificate\UserDashboard\CapabilityMigrator::migrate_rbac_cap_renames();
+		}
+		update_option( $flag, '1', true );
+	}
+
+	/**
+	 * Apply the #739 RBAC role renames (reassign users, drop old roles).
+	 * Idempotent + one-shot via the `ffc_rbac_roles_renamed_v1` option.
+	 *
+	 * @since 6.16.0
+	 * @return void
+	 */
+	private function ensure_rbac_roles_renamed(): void {
+		$flag = 'ffc_rbac_roles_renamed_v1';
+		if ( '1' === get_option( $flag, '' ) ) {
+			return;
+		}
+		if ( class_exists( '\FreeFormCertificate\UserDashboard\CapabilityMigrator' ) ) {
+			\FreeFormCertificate\UserDashboard\CapabilityMigrator::migrate_role_renames();
 		}
 		update_option( $flag, '1', true );
 	}

@@ -638,30 +638,30 @@ class CapabilityManager {
 			// administration without handing out WordPress super-admin. Its cap
 			// set is the live `get_all_capabilities()` list, so any capability
 			// added in a future release is granted to it automatically.
-			'ffc_administrator'           => array(
+			'ffc_administrator'          => array(
 				'label' => __( 'FFC Administrator', 'ffcertificate' ),
 				'caps'  => self::get_all_capabilities(),
 			),
 			// Each manage role also carries its matching `view` cap so the
 			// admin menu/tab (gated by a single view-cap string) stays visible
 			// to managers — the inline write gates still require the manage cap.
-			'ffc_certificate_manager'     => array(
+			'ffc_certificate_manager'    => array(
 				'label' => __( 'FFC Certificate Manager', 'ffcertificate' ),
 				'caps'  => array( 'ffc_view_certificates', 'ffc_manage_certificates', 'ffc_export_certificates', 'ffc_edit_certificates', 'ffc_delete_certificates' ),
 			),
-			'ffc_self_scheduling_manager' => array(
+			'ffc_appointments_manager'   => array(
 				'label' => __( 'FFC Self-Scheduling Manager', 'ffcertificate' ),
 				'caps'  => array( 'ffc_view_appointments', 'ffc_manage_appointments', 'ffc_delete_appointments', 'ffc_bypass_appointments', 'ffc_export_appointments' ),
 			),
-			'ffc_audience_manager'        => array(
+			'ffc_audience_manager'       => array(
 				'label' => __( 'FFC Audience Manager', 'ffcertificate' ),
 				'caps'  => array( 'ffc_view_audiences', 'ffc_manage_audiences', 'ffc_delete_audiences', 'ffc_export_audiences', 'ffc_import_audiences' ),
 			),
-			'ffc_reregistration_manager'  => array(
+			'ffc_reregistration_manager' => array(
 				'label' => __( 'FFC Reregistration Manager', 'ffcertificate' ),
 				'caps'  => array( 'ffc_view_reregistration', 'ffc_manage_reregistration', 'ffc_delete_reregistration', 'ffc_export_reregistration' ),
 			),
-			'ffc_operator'                => array(
+			'ffc_readonly'               => array(
 				'label' => __( 'FFC Operator (read-only)', 'ffcertificate' ),
 				'caps'  => array(
 					'ffc_view_certificates',
@@ -678,18 +678,18 @@ class CapabilityManager {
 			),
 
 			// ── Recruitment tier ─────────────────────────────────────────
-			'ffc_recruitment_auditor'     => array(
+			'ffc_recruitment_auditor'    => array(
 				'label' => __( 'FFC Recruitment Auditor', 'ffcertificate' ),
 				'caps'  => array( 'ffc_view_recruitment', 'ffc_view_recruitment_reasons' ),
 			),
-			'ffc_recruitment_operator'    => array(
+			'ffc_recruitment_operator'   => array(
 				'label' => __( 'FFC Recruitment Operator', 'ffcertificate' ),
 				'caps'  => array( 'ffc_view_recruitment', 'ffc_call_recruitment', 'ffc_view_recruitment_reasons' ),
 			),
 			// `ffc_recruitment_manager` already exists (6.0.0). It will be
 			// upgraded by `register_recruitment_manager_role()` — extra caps
 			// are added in 6.2.0 below to fit the new tier model.
-			'ffc_recruitment_admin'       => array(
+			'ffc_recruitment_admin'      => array(
 				'label' => __( 'FFC Recruitment Admin', 'ffcertificate' ),
 				'caps'  => array(
 					'ffc_view_recruitment',

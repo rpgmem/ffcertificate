@@ -167,10 +167,10 @@ class CapabilityManagerTest extends TestCase {
         $expected_slugs = array(
             'ffc_administrator',
             'ffc_certificate_manager',
-            'ffc_self_scheduling_manager',
+            'ffc_appointments_manager',
             'ffc_audience_manager',
             'ffc_reregistration_manager',
-            'ffc_operator',
+            'ffc_readonly',
             'ffc_recruitment_auditor',
             'ffc_recruitment_operator',
             'ffc_recruitment_admin',
@@ -249,9 +249,9 @@ class CapabilityManagerTest extends TestCase {
         $this->assertTrue( $created['ffc_recruitment_admin']['ffc_manage_recruitment_reasons'] );
         $this->assertTrue( $created['ffc_recruitment_admin']['ffc_view_recruitment_pii'] );
 
-        // ffc_operator is the cross-module read-only auditor (GAP D): sees every
+        // ffc_readonly is the cross-module read-only auditor (GAP D): sees every
         // module read-only…
-        $operator = $created['ffc_operator'];
+        $operator = $created['ffc_readonly'];
         foreach ( array(
             'ffc_view_certificates',
             'ffc_view_appointments',
@@ -264,7 +264,7 @@ class CapabilityManagerTest extends TestCase {
             'ffc_view_recruitment_reasons',
             'ffc_view_url_shortener',
         ) as $view_cap ) {
-            $this->assertTrue( $operator[ $view_cap ], "ffc_operator must grant {$view_cap}" );
+            $this->assertTrue( $operator[ $view_cap ], "ffc_readonly must grant {$view_cap}" );
         }
         // …but never write caps, the Settings page, raw PII, the REST
         // integrator cap, or impersonation.
@@ -276,7 +276,7 @@ class CapabilityManagerTest extends TestCase {
             'ffc_view_forms_api',
             'ffc_view_as_user',
         ) as $forbidden ) {
-            $this->assertArrayNotHasKey( $forbidden, $operator, "ffc_operator must NOT grant {$forbidden}" );
+            $this->assertArrayNotHasKey( $forbidden, $operator, "ffc_readonly must NOT grant {$forbidden}" );
         }
     }
 
@@ -773,14 +773,14 @@ class CapabilityManagerTest extends TestCase {
 
         // Each manager role carries the delete cap of the domain it manages.
         $this->assertTrue( $created['ffc_certificate_manager']['ffc_delete_certificates'] );
-        $this->assertTrue( $created['ffc_self_scheduling_manager']['ffc_delete_appointments'] );
+        $this->assertTrue( $created['ffc_appointments_manager']['ffc_delete_appointments'] );
         $this->assertTrue( $created['ffc_audience_manager']['ffc_delete_audiences'] );
         $this->assertTrue( $created['ffc_reregistration_manager']['ffc_delete_reregistration'] );
         $this->assertTrue( $created['ffc_recruitment_admin']['ffc_delete_recruitment'] );
 
         // The read-only operator never receives a delete cap.
         foreach ( CapabilityMigrator::delete_cap_grant_map() as $delete_cap ) {
-            $this->assertArrayNotHasKey( $delete_cap, $created['ffc_operator'], "ffc_operator must NOT grant {$delete_cap}" );
+            $this->assertArrayNotHasKey( $delete_cap, $created['ffc_readonly'], "ffc_readonly must NOT grant {$delete_cap}" );
         }
     }
 
@@ -970,7 +970,7 @@ class CapabilityManagerTest extends TestCase {
         RoleRegistrar::register_module_roles();
 
         // Each manager role carries the export cap of the domain it manages.
-        $this->assertTrue( $created['ffc_self_scheduling_manager']['ffc_export_appointments'] );
+        $this->assertTrue( $created['ffc_appointments_manager']['ffc_export_appointments'] );
         $this->assertTrue( $created['ffc_audience_manager']['ffc_export_audiences'] );
         $this->assertTrue( $created['ffc_reregistration_manager']['ffc_export_reregistration'] );
         // Certificate manager keeps the standalone certificate export cap.
@@ -979,13 +979,13 @@ class CapabilityManagerTest extends TestCase {
         // The Self-Scheduling Manager manages appointments only — it must NOT
         // carry the cross-domain certificate export cap (audit cleanup): that
         // belongs to the Certificate Manager / Administrator.
-        $this->assertArrayNotHasKey( 'ffc_export_certificates', $created['ffc_self_scheduling_manager'] );
+        $this->assertArrayNotHasKey( 'ffc_export_certificates', $created['ffc_appointments_manager'] );
 
         // The read-only operator never receives a granular export cap.
         foreach ( CapabilityMigrator::export_cap_grant_map() as $export_cap ) {
-            $this->assertArrayNotHasKey( $export_cap, $created['ffc_operator'], "ffc_operator must NOT grant {$export_cap}" );
+            $this->assertArrayNotHasKey( $export_cap, $created['ffc_readonly'], "ffc_readonly must NOT grant {$export_cap}" );
         }
-        $this->assertArrayNotHasKey( 'ffc_export_certificates', $created['ffc_operator'] );
+        $this->assertArrayNotHasKey( 'ffc_export_certificates', $created['ffc_readonly'] );
     }
 
     public function test_migrate_export_caps_grant_seeds_export_onto_manage_holders(): void {
@@ -1064,7 +1064,7 @@ class CapabilityManagerTest extends TestCase {
 
         // The read-only operator never receives a granular import cap.
         foreach ( CapabilityMigrator::import_cap_grant_map() as $import_cap ) {
-            $this->assertArrayNotHasKey( $import_cap, $created['ffc_operator'], "ffc_operator must NOT grant {$import_cap}" );
+            $this->assertArrayNotHasKey( $import_cap, $created['ffc_readonly'], "ffc_readonly must NOT grant {$import_cap}" );
         }
     }
 

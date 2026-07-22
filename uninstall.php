@@ -220,10 +220,10 @@ foreach (
 	array(
 		'ffc_administrator',
 		'ffc_certificate_manager',
-		'ffc_self_scheduling_manager',
+		'ffc_appointments_manager',
 		'ffc_audience_manager',
 		'ffc_reregistration_manager',
-		'ffc_operator',
+		'ffc_readonly',
 		'ffc_recruitment_auditor',
 		'ffc_recruitment_operator',
 		'ffc_recruitment_admin',
