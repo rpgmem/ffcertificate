@@ -2,11 +2,12 @@
 /**
  * Recruitment Adjutancies List Table.
  *
- * `WP_List_Table` subclass that powers the Adjutancies tab. Mirrors
- * {@see RecruitmentNoticesListTable}: sortable columns, pagination,
- * search by slug/name, bulk delete (gated per §14 — repository's
- * `delete()` rejects when the adjutancy is referenced by any
- * notice_adjutancy or classification row), row actions (Edit / Delete).
+ * `WP_List_Table` subclass that powers the Adjutancies tab. Extends
+ * {@see AbstractRecruitmentListTable} for the shared fetch-all / sort /
+ * paginate / bulk-delete mechanics; this class supplies only the columns,
+ * row shape and domain hooks. Bulk delete is gated per §14 — the
+ * repository's `delete()` rejects when the adjutancy is referenced by any
+ * notice_adjutancy or classification row.
  *
  * @package FreeFormCertificate\Recruitment
  * @since   6.1.0
@@ -20,32 +21,12 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-if ( ! class_exists( '\WP_List_Table' ) ) {
-	require_once ABSPATH . 'wp-admin/includes/class-wp-list-table.php';
-}
-
 /**
  * Adjutancies list table.
  *
  * @phpstan-import-type AdjutancyRow from RecruitmentAdjutancyReader
  */
-class RecruitmentAdjutanciesListTable extends \WP_List_Table {
-
-	private const DEFAULT_PER_PAGE = 20;
-	private const MAX_PER_PAGE     = 100;
-
-	/**
-	 * Constructor.
-	 */
-	public function __construct() {
-		parent::__construct(
-			array(
-				'singular' => 'adjutancy',
-				'plural'   => 'adjutancies',
-				'ajax'     => false,
-			)
-		);
-	}
+class RecruitmentAdjutanciesListTable extends AbstractRecruitmentListTable {
 
 	/**
 	 * WP_List_Table contract method.
@@ -73,30 +54,6 @@ class RecruitmentAdjutanciesListTable extends \WP_List_Table {
 			'slug'       => array( 'slug', false ),
 			'name'       => array( 'name', false ),
 			'created_at' => array( 'created_at', true ),
-		);
-	}
-
-	/**
-	 * WP_List_Table contract method.
-	 *
-	 * @return array<string, string>
-	 */
-	protected function get_bulk_actions() {
-		return array(
-			'bulk-delete' => __( 'Delete', 'ffcertificate' ),
-		);
-	}
-
-	/**
-	 * WP_List_Table contract method.
-	 *
-	 * @param array<string, mixed> $item Row.
-	 * @return string
-	 */
-	protected function column_cb( $item ): string {
-		return sprintf(
-			'<input type="checkbox" name="adjutancy_ids[]" value="%d" />',
-			(int) $item['id']
 		);
 	}
 
@@ -141,14 +98,11 @@ class RecruitmentAdjutanciesListTable extends \WP_List_Table {
 		);
 		$actions             = array(
 			'edit'   => sprintf( '<a href="%s">%s</a>', esc_url( $edit_url ), esc_html__( 'Edit', 'ffcertificate' ) ),
-			'delete' => sprintf(
-				'<a href="%s" class="submitdelete" data-ffc-confirm data-ffc-confirm-title="%s" data-ffc-confirm-body="%s" data-ffc-confirm-consequences="%s" data-ffc-confirm-cta="%s" data-ffc-confirm-style="destructive">%s</a>',
-				esc_url( $delete_url ),
-				esc_attr__( 'Delete this adjutancy?', 'ffcertificate' ),
-				esc_attr__( 'You are about to permanently delete this adjutancy.', 'ffcertificate' ),
-				esc_attr( (string) $delete_consequences ),
-				esc_attr__( 'Delete', 'ffcertificate' ),
-				esc_html__( 'Delete', 'ffcertificate' )
+			'delete' => $this->delete_row_action_link(
+				$delete_url,
+				__( 'Delete this adjutancy?', 'ffcertificate' ),
+				__( 'You are about to permanently delete this adjutancy.', 'ffcertificate' ),
+				(string) $delete_consequences
 			),
 		);
 
@@ -162,9 +116,7 @@ class RecruitmentAdjutanciesListTable extends \WP_List_Table {
 
 	/**
 	 * Color column — inline color picker that PATCHes the row via the
-	 * REST endpoint on change. The picker UX mirrors the per-status
-	 * pickers in the Settings tab so admins get one consistent affordance
-	 * for every "what color is this badge" choice in the module.
+	 * REST endpoint on change.
 	 *
 	 * @param array<string, mixed> $item Row.
 	 * @return string
@@ -192,110 +144,68 @@ class RecruitmentAdjutanciesListTable extends \WP_List_Table {
 		return esc_html( (string) count( $ids ) );
 	}
 
+	// ------------------------------------------------------------------
+	// AbstractRecruitmentListTable hooks
+	// ------------------------------------------------------------------
+
 	/**
-	 * WP_List_Table contract method.
-	 *
-	 * @param array<string, mixed> $item Row.
-	 * @return string
+	 * {@inheritDoc}
 	 */
-	protected function column_created_at( $item ): string {
-		return esc_html( (string) $item['created_at'] );
+	protected function singular(): string {
+		return 'adjutancy';
 	}
 
 	/**
-	 * Default column renderer.
-	 *
-	 * @param array<string, mixed> $item        Row.
-	 * @param string               $column_name Column key.
-	 * @return string
+	 * {@inheritDoc}
 	 */
-	protected function column_default( $item, $column_name ) {
-		$value = $item[ $column_name ] ?? '';
-		return esc_html( (string) $value );
+	protected function plural(): string {
+		return 'adjutancies';
 	}
 
 	/**
-	 * Build dataset, paginate, search, sort.
-	 *
-	 * @return void
+	 * {@inheritDoc}
 	 */
-	public function prepare_items(): void {
-		$columns  = $this->get_columns();
-		$hidden   = array();
-		$sortable = $this->get_sortable_columns();
-
-		$this->_column_headers = array( $columns, $hidden, $sortable );
-
-		$this->process_bulk_action();
-
-		$rows = self::convert_rows( RecruitmentAdjutancyReader::get_all() );
-
-		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- read-only filter.
-		$search = isset( $_REQUEST['s'] ) ? sanitize_text_field( wp_unslash( (string) $_REQUEST['s'] ) ) : '';
-		if ( '' !== $search ) {
-			$needle = strtolower( $search );
-			$rows   = array_values(
-				array_filter(
-					$rows,
-					static function ( $row ) use ( $needle ): bool {
-						return false !== strpos( strtolower( (string) $row['slug'] ), $needle )
-							|| false !== strpos( strtolower( (string) $row['name'] ), $needle );
-					}
-				)
-			);
-		}
-
-		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- read-only sort.
-		$orderby = isset( $_REQUEST['orderby'] ) ? sanitize_key( (string) $_REQUEST['orderby'] ) : 'created_at';
-		// phpcs:ignore WordPress.Security.NonceVerification.Recommended
-		$order = isset( $_REQUEST['order'] ) && 'asc' === strtolower( (string) $_REQUEST['order'] ) ? 'asc' : 'desc';
-		$rows  = self::sort_rows( $rows, $orderby, $order );
-
-		$per_page     = $this->get_items_per_page( 'ffc_recruitment_adjutancies_per_page', self::DEFAULT_PER_PAGE );
-		$per_page     = min( max( 1, $per_page ), self::MAX_PER_PAGE );
-		$current_page = max( 1, $this->get_pagenum() );
-		$total_items  = count( $rows );
-		$rows         = array_slice( $rows, ( $current_page - 1 ) * $per_page, $per_page );
-
-		$this->items = $rows;
-		$this->set_pagination_args(
-			array(
-				'total_items' => $total_items,
-				'per_page'    => $per_page,
-				'total_pages' => (int) ceil( $total_items / $per_page ),
-			)
-		);
+	protected function ids_request_key(): string {
+		return 'adjutancy_ids';
 	}
 
 	/**
-	 * Honor the `bulk-delete` action via the gated DeleteService.
-	 *
-	 * @return void
+	 * {@inheritDoc}
 	 */
-	protected function process_bulk_action(): void {
-		if ( 'bulk-delete' !== $this->current_action() ) {
-			return;
-		}
+	protected function per_page_option(): string {
+		return 'ffc_recruitment_adjutancies_per_page';
+	}
 
-		// Bulk delete is gated by the dedicated destructive cap (GAP E), not the
-		// page-level manage cap that merely renders the table.
-		if ( ! \FreeFormCertificate\Core\Capabilities::current_user_can_admin_or( 'ffc_delete_recruitment' ) ) {
-			return;
-		}
+	/**
+	 * {@inheritDoc}
+	 *
+	 * @return list<string>
+	 */
+	protected function search_fields(): array {
+		return array( 'slug', 'name' );
+	}
 
-		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- _wpnonce is checked below.
-		check_admin_referer( 'bulk-' . $this->_args['plural'] );
+	/**
+	 * {@inheritDoc}
+	 */
+	protected function bulk_delete_capability(): string {
+		return 'ffc_delete_recruitment';
+	}
 
-		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- nonce verified above.
-		$ids = isset( $_REQUEST['adjutancy_ids'] ) && is_array( $_REQUEST['adjutancy_ids'] )
-			? array_map( 'absint', wp_unslash( $_REQUEST['adjutancy_ids'] ) )
-			: array();
+	/**
+	 * {@inheritDoc}
+	 */
+	protected function delete_one( int $id ): void {
+		RecruitmentDeleteService::delete_adjutancy( $id );
+	}
 
-		foreach ( $ids as $id ) {
-			if ( $id > 0 ) {
-				RecruitmentDeleteService::delete_adjutancy( $id );
-			}
-		}
+	/**
+	 * {@inheritDoc}
+	 *
+	 * @return array<int, array<string, mixed>>
+	 */
+	protected function fetch_rows(): array {
+		return self::convert_rows( RecruitmentAdjutancyReader::get_all() );
 	}
 
 	/**
@@ -319,32 +229,5 @@ class RecruitmentAdjutanciesListTable extends \WP_List_Table {
 			},
 			$rows
 		);
-	}
-
-	/**
-	 * In-memory sort.
-	 *
-	 * @param array<int, array<string, mixed>> $rows    Rows.
-	 * @param string                           $orderby Column key.
-	 * @param string                           $order   'asc' or 'desc'.
-	 * @return array<int, array<string, mixed>>
-	 */
-	private static function sort_rows( array $rows, string $orderby, string $order ): array {
-		$allowed = array( 'slug', 'name', 'created_at' );
-		if ( ! in_array( $orderby, $allowed, true ) ) {
-			$orderby = 'created_at';
-		}
-
-		usort(
-			$rows,
-			static function ( $a, $b ) use ( $orderby, $order ) {
-				$av  = (string) ( $a[ $orderby ] ?? '' );
-				$bv  = (string) ( $b[ $orderby ] ?? '' );
-				$cmp = strnatcasecmp( $av, $bv );
-				return 'asc' === $order ? $cmp : -$cmp;
-			}
-		);
-
-		return $rows;
 	}
 }

@@ -4,8 +4,9 @@
  *
  * `WP_List_Table` subclass that powers the Reasons tab — the global
  * catalog of operator-defined labels attached to a preliminary-list
- * classification's `preview_status`. Mirrors the patterns in
- * {@see RecruitmentAdjutanciesListTable}.
+ * classification's `preview_status`. Extends {@see AbstractRecruitmentListTable}
+ * for the shared fetch-all / sort / paginate / bulk-delete mechanics; this
+ * class adds the read-only (`$can_edit`) rendering variations.
  *
  * @package FreeFormCertificate\Recruitment
  * @since   6.1.0
@@ -19,26 +20,18 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-if ( ! class_exists( '\WP_List_Table' ) ) {
-	require_once ABSPATH . 'wp-admin/includes/class-wp-list-table.php';
-}
-
 /**
  * Reasons list table.
  *
  * @phpstan-import-type ReasonRow from RecruitmentReasonReader
  */
-class RecruitmentReasonsListTable extends \WP_List_Table {
-
-	private const DEFAULT_PER_PAGE = 20;
-	private const MAX_PER_PAGE     = 100;
+class RecruitmentReasonsListTable extends AbstractRecruitmentListTable {
 
 	/**
 	 * Whether the current user may edit reasons (the strict
 	 * `ffc_manage_recruitment_reasons` tier — GAP I). When false the table
 	 * renders read-only: no Edit/Delete row actions, no bulk-delete control,
-	 * and {@see self::process_bulk_action()} refuses to act even on a crafted
-	 * POST.
+	 * and {@see process_bulk_action()} refuses to act even on a crafted POST.
 	 *
 	 * @var bool
 	 */
@@ -51,13 +44,7 @@ class RecruitmentReasonsListTable extends \WP_List_Table {
 	 */
 	public function __construct( bool $can_edit = true ) {
 		$this->can_edit = $can_edit;
-		parent::__construct(
-			array(
-				'singular' => 'reason',
-				'plural'   => 'reasons',
-				'ajax'     => false,
-			)
-		);
+		parent::__construct();
 	}
 
 	/**
@@ -91,37 +78,20 @@ class RecruitmentReasonsListTable extends \WP_List_Table {
 	}
 
 	/**
-	 * WP_List_Table contract method.
+	 * Bulk actions — read-only viewers (GAP I) get no destructive control.
 	 *
 	 * @return array<string, string>
 	 */
 	protected function get_bulk_actions() {
-		// Read-only viewers (GAP I) get no destructive bulk control.
 		if ( ! $this->can_edit ) {
 			return array();
 		}
-		return array(
-			'bulk-delete' => __( 'Delete', 'ffcertificate' ),
-		);
+		return parent::get_bulk_actions();
 	}
 
 	/**
-	 * WP_List_Table contract method.
-	 *
-	 * @param array<string, mixed> $item Row.
-	 * @return string
-	 */
-	protected function column_cb( $item ): string {
-		return sprintf(
-			'<input type="checkbox" name="reason_ids[]" value="%d" />',
-			(int) $item['id']
-		);
-	}
-
-	/**
-	 * Slug column with row actions (Delete only — there's no edit screen
-	 * in this sprint; color and applies_to are edited inline via the
-	 * picker / checkboxes rendered in their own columns).
+	 * Slug column with row actions (Delete only — color and applies_to are
+	 * edited inline via the picker / checkboxes in their own columns).
 	 *
 	 * @param array<string, mixed> $item Row.
 	 * @return string
@@ -129,6 +99,12 @@ class RecruitmentReasonsListTable extends \WP_List_Table {
 	protected function column_slug( $item ): string {
 		$slug = (string) $item['slug'];
 		$id   = (int) $item['id'];
+
+		// Read-only viewers (GAP I) see the slug as plain text — no Edit link
+		// (the edit screen is manage-gated and would wp_die) and no row actions.
+		if ( ! $this->can_edit ) {
+			return sprintf( '<strong><code>%s</code></strong>', esc_html( $slug ) );
+		}
 
 		$edit_url   = add_query_arg(
 			array(
@@ -159,22 +135,13 @@ class RecruitmentReasonsListTable extends \WP_List_Table {
 				__( 'This cannot be undone.', 'ffcertificate' ),
 			)
 		);
-		// Read-only viewers (GAP I) see the slug as plain text — no Edit link
-		// (the edit screen is manage-gated and would wp_die) and no row actions.
-		if ( ! $this->can_edit ) {
-			return sprintf( '<strong><code>%s</code></strong>', esc_html( $slug ) );
-		}
-
-		$actions = array(
+		$actions             = array(
 			'edit'   => sprintf( '<a href="%s">%s</a>', esc_url( $edit_url ), esc_html__( 'Edit', 'ffcertificate' ) ),
-			'delete' => sprintf(
-				'<a href="%s" class="submitdelete" data-ffc-confirm data-ffc-confirm-title="%s" data-ffc-confirm-body="%s" data-ffc-confirm-consequences="%s" data-ffc-confirm-cta="%s" data-ffc-confirm-style="destructive">%s</a>',
-				esc_url( $delete_url ),
-				esc_attr__( 'Delete this reason?', 'ffcertificate' ),
-				esc_attr__( 'You are about to permanently delete this reason.', 'ffcertificate' ),
-				esc_attr( (string) $delete_consequences ),
-				esc_attr__( 'Delete', 'ffcertificate' ),
-				esc_html__( 'Delete', 'ffcertificate' )
+			'delete' => $this->delete_row_action_link(
+				$delete_url,
+				__( 'Delete this reason?', 'ffcertificate' ),
+				__( 'You are about to permanently delete this reason.', 'ffcertificate' ),
+				(string) $delete_consequences
 			),
 		);
 
@@ -187,9 +154,7 @@ class RecruitmentReasonsListTable extends \WP_List_Table {
 	}
 
 	/**
-	 * Color column — inline color picker that PATCHes via REST on
-	 * change. Mirrors the inline picker pattern from the Adjutancies
-	 * list table.
+	 * Color column — inline color picker that PATCHes via REST on change.
 	 *
 	 * @param array<string, mixed> $item Row.
 	 * @return string
@@ -216,9 +181,8 @@ class RecruitmentReasonsListTable extends \WP_List_Table {
 	}
 
 	/**
-	 * Applies-to column — small list of badges showing the preview
-	 * statuses this reason is available for. Empty stored value =
-	 * "applies to every preview status".
+	 * Applies-to column — badges showing the preview statuses this reason is
+	 * available for. Empty stored value = "applies to every preview status".
 	 *
 	 * @param array<string, mixed> $item Row.
 	 * @return string
@@ -231,9 +195,9 @@ class RecruitmentReasonsListTable extends \WP_List_Table {
 			'appeal_denied'  => __( 'Appeal denied', 'ffcertificate' ),
 			'appeal_granted' => __( 'Appeal granted', 'ffcertificate' ),
 		);
-		// When `applies_to` is empty the decoder returns the full set;
-		// surface that as a single "All" pill so the "applies to all"
-		// state is visually distinct from an explicit four-status pick.
+		// When `applies_to` is empty the decoder returns the full set; surface
+		// that as a single "All" pill so the "applies to all" state is visually
+		// distinct from an explicit four-status pick.
 		$is_all = '' === trim( (string) ( $item['applies_to'] ?? '' ) );
 		if ( $is_all ) {
 			return '<em>' . esc_html__( 'All preview statuses', 'ffcertificate' ) . '</em>';
@@ -256,118 +220,74 @@ class RecruitmentReasonsListTable extends \WP_List_Table {
 		return esc_html( (string) $count );
 	}
 
+	// ------------------------------------------------------------------
+	// AbstractRecruitmentListTable hooks
+	// ------------------------------------------------------------------
+
 	/**
-	 * WP_List_Table contract method.
-	 *
-	 * @param array<string, mixed> $item Row.
-	 * @return string
+	 * {@inheritDoc}
 	 */
-	protected function column_created_at( $item ): string {
-		return esc_html( (string) $item['created_at'] );
+	protected function singular(): string {
+		return 'reason';
 	}
 
 	/**
-	 * Default column renderer.
-	 *
-	 * @param array<string, mixed> $item        Row.
-	 * @param string               $column_name Column key.
-	 * @return string
+	 * {@inheritDoc}
 	 */
-	protected function column_default( $item, $column_name ) {
-		$value = $item[ $column_name ] ?? '';
-		return esc_html( (string) $value );
+	protected function plural(): string {
+		return 'reasons';
 	}
 
 	/**
-	 * Build dataset, paginate, search, sort.
-	 *
-	 * @return void
+	 * {@inheritDoc}
 	 */
-	public function prepare_items(): void {
-		$columns  = $this->get_columns();
-		$hidden   = array();
-		$sortable = $this->get_sortable_columns();
-
-		$this->_column_headers = array( $columns, $hidden, $sortable );
-
-		$this->process_bulk_action();
-
-		$rows = self::convert_rows( RecruitmentReasonReader::get_all() );
-
-		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- read-only filter.
-		$search = isset( $_REQUEST['s'] ) ? sanitize_text_field( wp_unslash( (string) $_REQUEST['s'] ) ) : '';
-		if ( '' !== $search ) {
-			$needle = strtolower( $search );
-			$rows   = array_values(
-				array_filter(
-					$rows,
-					static function ( $row ) use ( $needle ): bool {
-						return false !== strpos( strtolower( (string) $row['slug'] ), $needle )
-							|| false !== strpos( strtolower( (string) $row['label'] ), $needle );
-					}
-				)
-			);
-		}
-
-		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- read-only sort.
-		$orderby = isset( $_REQUEST['orderby'] ) ? sanitize_key( (string) $_REQUEST['orderby'] ) : 'created_at';
-		// phpcs:ignore WordPress.Security.NonceVerification.Recommended
-		$order = isset( $_REQUEST['order'] ) && 'asc' === strtolower( (string) $_REQUEST['order'] ) ? 'asc' : 'desc';
-		$rows  = self::sort_rows( $rows, $orderby, $order );
-
-		$per_page     = $this->get_items_per_page( 'ffc_recruitment_reasons_per_page', self::DEFAULT_PER_PAGE );
-		$per_page     = min( max( 1, $per_page ), self::MAX_PER_PAGE );
-		$current_page = max( 1, $this->get_pagenum() );
-		$total_items  = count( $rows );
-		$rows         = array_slice( $rows, ( $current_page - 1 ) * $per_page, $per_page );
-
-		$this->items = $rows;
-		$this->set_pagination_args(
-			array(
-				'total_items' => $total_items,
-				'per_page'    => $per_page,
-				'total_pages' => (int) ceil( $total_items / $per_page ),
-			)
-		);
+	protected function ids_request_key(): string {
+		return 'reason_ids';
 	}
 
 	/**
-	 * Honor the `bulk-delete` action — gated by the deletion-references
-	 * count, mirroring the Adjutancies tab.
-	 *
-	 * @return void
+	 * {@inheritDoc}
 	 */
-	protected function process_bulk_action(): void {
-		if ( 'bulk-delete' !== $this->current_action() ) {
+	protected function per_page_option(): string {
+		return 'ffc_recruitment_reasons_per_page';
+	}
+
+	/**
+	 * {@inheritDoc}
+	 *
+	 * @return list<string>
+	 */
+	protected function search_fields(): array {
+		return array( 'slug', 'label' );
+	}
+
+	/**
+	 * {@inheritDoc}
+	 */
+	protected function bulk_delete_capability(): string {
+		return 'ffc_manage_recruitment_reasons';
+	}
+
+	/**
+	 * {@inheritDoc}
+	 *
+	 * Per-row guard: a reason still referenced by any classification is skipped
+	 * (mirrors the repository's own delete gate).
+	 */
+	protected function delete_one( int $id ): void {
+		if ( RecruitmentReasonReader::count_references( $id ) > 0 ) {
 			return;
 		}
+		RecruitmentReasonWriter::delete( $id );
+	}
 
-		// GAP I: bulk-delete is the strict `ffc_manage_recruitment_reasons` tier.
-		// Previously this method checked only the nonce, so any user who could
-		// reach the Reasons tab (read-only `ffc_view_recruitment` holders, e.g.
-		// the Recruitment Viewer) could delete reasons via a crafted POST. Gate
-		// it server-side regardless of what the table rendered.
-		if ( ! \FreeFormCertificate\Core\Capabilities::current_user_can_admin_or( 'ffc_manage_recruitment_reasons' ) ) {
-			return;
-		}
-
-		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- _wpnonce is checked below.
-		check_admin_referer( 'bulk-' . $this->_args['plural'] );
-
-		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- nonce verified above.
-		$ids = isset( $_REQUEST['reason_ids'] ) && is_array( $_REQUEST['reason_ids'] )
-			? array_map( 'absint', wp_unslash( $_REQUEST['reason_ids'] ) )
-			: array();
-
-		foreach ( $ids as $id ) {
-			if ( $id <= 0 ) {
-				continue;
-			}
-			if ( RecruitmentReasonReader::count_references( $id ) > 0 ) {
-				continue;
-			}
-			RecruitmentReasonWriter::delete( $id );
-		}
+	/**
+	 * {@inheritDoc}
+	 *
+	 * @return array<int, array<string, mixed>>
+	 */
+	protected function fetch_rows(): array {
+		return self::convert_rows( RecruitmentReasonReader::get_all() );
 	}
 
 	/**
@@ -392,32 +312,5 @@ class RecruitmentReasonsListTable extends \WP_List_Table {
 			},
 			$rows
 		);
-	}
-
-	/**
-	 * In-memory sort.
-	 *
-	 * @param array<int, array<string, mixed>> $rows    Rows.
-	 * @param string                           $orderby Column key.
-	 * @param string                           $order   'asc' or 'desc'.
-	 * @return array<int, array<string, mixed>>
-	 */
-	private static function sort_rows( array $rows, string $orderby, string $order ): array {
-		$allowed = array( 'slug', 'label', 'created_at' );
-		if ( ! in_array( $orderby, $allowed, true ) ) {
-			$orderby = 'created_at';
-		}
-
-		usort(
-			$rows,
-			static function ( $a, $b ) use ( $orderby, $order ) {
-				$av  = (string) ( $a[ $orderby ] ?? '' );
-				$bv  = (string) ( $b[ $orderby ] ?? '' );
-				$cmp = strnatcasecmp( $av, $bv );
-				return 'asc' === $order ? $cmp : -$cmp;
-			}
-		);
-
-		return $rows;
 	}
 }
