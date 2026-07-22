@@ -531,4 +531,62 @@ final class CapabilityCatalog {
 		return '<span class="ffc-cap-badge-surface ffc-cap-badge-surface--' . esc_attr( $surface ) . '">'
 			. esc_html( $label ) . '</span>';
 	}
+
+	/**
+	 * Domain hue token for a group, driving the per-domain accent color the
+	 * capability editors paint on each group card and cap row (#739 §3.4). The
+	 * end-user and admin groups of the same domain share a hue so the grid reads
+	 * as one domain across both sections. Unknown keys fall back to `neutral`.
+	 *
+	 * @param string $group_key A {@see self::groups()} `key` value.
+	 * @return string Hue token (a stable CSS selector suffix).
+	 */
+	public static function group_hue( string $group_key ): string {
+		// The end-user singular keys borrow their admin domain's hue.
+		$aliases = array(
+			self::GROUP_CERTIFICATE => 'certificates',
+			self::GROUP_APPOINTMENT => 'appointments',
+			self::GROUP_AUDIENCE    => 'audiences',
+		);
+		if ( isset( $aliases[ $group_key ] ) ) {
+			return $aliases[ $group_key ];
+		}
+		// Admin keys are `admin_<domain>`; the domain segment is the hue token
+		// (certificates, forms, calendars, reregistration, custom_fields, …).
+		$domain = str_starts_with( $group_key, 'admin_' ) ? substr( $group_key, 6 ) : $group_key;
+		return '' !== $domain ? $domain : 'neutral';
+	}
+
+	/**
+	 * Tier token for a capability, driving how strongly the domain hue is
+	 * painted on its row (#739 §3.4) — read-only tiers stay faint, destructive
+	 * ones saturate. Derived from the `ffc_<action>_…` grammar, with the `_pii`
+	 * qualifier promoted to its own `reveal` tier. Unknown actions fall back to
+	 * `view` (the faintest, safest assumption).
+	 *
+	 * @param string $slug Capability slug.
+	 * @return string One of: view, reveal, book, cancel, download, call, export,
+	 *                import, edit, manage, bypass, delete.
+	 */
+	public static function cap_tier( string $slug ): string {
+		if ( str_ends_with( $slug, '_pii' ) ) {
+			return 'reveal';
+		}
+		$parts  = explode( '_', $slug );
+		$action = $parts[1] ?? '';
+		$known  = array(
+			'view',
+			'book',
+			'cancel',
+			'download',
+			'call',
+			'export',
+			'import',
+			'edit',
+			'manage',
+			'bypass',
+			'delete',
+		);
+		return in_array( $action, $known, true ) ? $action : 'view';
+	}
 }

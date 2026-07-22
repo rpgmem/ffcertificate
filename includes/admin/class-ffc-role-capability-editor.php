@@ -247,7 +247,7 @@ final class RoleCapabilityEditor {
 				$desc          = (string) $meta['description'];
 				$surface_badge = CapabilityCatalog::surface_badge_html( $meta );
 				$rows         .= sprintf(
-					'<div class="ffc-cap-row" data-ffc-cap-name="%1$s" data-ffc-cap-slug="%2$s">'
+					'<div class="ffc-cap-row" data-ffc-cap-name="%1$s" data-ffc-cap-slug="%2$s" data-ffc-tier="%7$s">'
 						. '<div class="ffc-cap-row-toggle">%3$s</div>'
 						. '<div class="ffc-cap-row-text"><span class="ffc-cap-row-name">%4$s%6$s</span>'
 						. '<span class="ffc-cap-row-desc">%5$s</span>'
@@ -259,15 +259,17 @@ final class RoleCapabilityEditor {
 					$toggle, // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- AdminUI::get_toggle() returns pre-escaped markup.
 					esc_html( $label ),
 					esc_html( $desc ),
-					$surface_badge // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- built from esc_* in surface_badge().
+					$surface_badge, // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- built from esc_* in surface_badge().
+					esc_attr( CapabilityCatalog::cap_tier( (string) $slug ) )
 				);
 			}
 
 			// Every group starts collapsed for easier navigation; the live
 			// search auto-expands the groups that still have hits.
 			printf(
-				'<section class="ffc-cap-group is-collapsed" data-ffc-group="%1$s">',
-				esc_attr( (string) $group['key'] )
+				'<section class="ffc-cap-group is-collapsed" data-ffc-group="%1$s" data-ffc-hue="%2$s">',
+				esc_attr( (string) $group['key'] ),
+				esc_attr( CapabilityCatalog::group_hue( (string) $group['key'] ) )
 			);
 			echo '<button type="button" class="ffc-cap-group-h" aria-expanded="false">';
 			echo '<span class="ffc-cap-caret" aria-hidden="true"></span>';
