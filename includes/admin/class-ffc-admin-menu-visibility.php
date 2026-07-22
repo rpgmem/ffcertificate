@@ -60,82 +60,166 @@ final class AdminMenuVisibility {
 	 * @return array<string, array{landing_page: string, allowed_pages: list<string>, hide_core_menus: list<string>, hide_admin_bar_nodes: list<string>}>
 	 */
 	private static function policy(): array {
+		// Common boilerplate shared by every operator role: hide the
+		// content-creation surfaces (Posts / Comments / Pages / Tools /
+		// Plugins / Themes / Users) and prune the matching admin-bar nodes.
+		$shared_hidden_menus    = array(
+			'edit.php',
+			'edit.php?post_type=page',
+			'edit-comments.php',
+			'tools.php',
+			'plugins.php',
+			'themes.php',
+			'users.php',
+		);
+		$shared_admin_bar_nodes = array( 'new-content', 'comments' );
+
 		// Per-domain navigation (#739 §3.2 — one page-set per domain, reused
-		// across that domain's tier ladder). Each entry is built by
-		// {@see self::policy_entry()}, which adds the shared core-menu hiding +
-		// admin-bar pruning; all tiers of a domain share the same navigation
-		// (the capability gates decide read vs write), so the menu scope is
-		// per-domain, not per-tier.
-		$certificates_pages   = array( 'edit.php?post_type=ffc_form', 'ffc-submissions', 'ffc-settings', 'ffc-activity-log' );
-		$forms_pages          = array( 'edit.php?post_type=ffc_form', 'ffc-settings' );
-		$appointments_pages   = array( 'ffc-self-scheduling', 'ffc-self-scheduling-appointments', 'ffc-self-scheduling-settings' );
-		$calendars_pages      = array( 'ffc-self-scheduling', 'ffc-self-scheduling-settings' );
-		$audiences_pages      = array( 'ffc-scheduling', 'ffc-audiences', 'ffc-environments', 'ffc-aud-import', 'ffc-aud-settings' );
-		$reregistration_pages = array( 'ffc-reregistration', 'ffc-custom-fields' );
-		$recruitment_pages    = array( 'ffc-recruitment' );
-		$recruitment_admin_pg = array( 'ffc-recruitment', 'ffc-settings' );
+		// across that domain's tier ladder; all tiers of a domain share the
+		// same navigation, the capability gates decide read vs write).
+		$certificates_pages     = array( 'edit.php?post_type=ffc_form', 'ffc-submissions', 'ffc-settings', 'ffc-activity-log' );
+		$forms_pages            = array( 'edit.php?post_type=ffc_form', 'ffc-settings' );
+		$appointments_pages     = array( 'ffc-self-scheduling', 'ffc-self-scheduling-appointments', 'ffc-self-scheduling-settings' );
+		$calendars_pages        = array( 'ffc-self-scheduling', 'ffc-self-scheduling-settings' );
+		$audiences_pages        = array( 'ffc-scheduling', 'ffc-audiences', 'ffc-environments', 'ffc-aud-import', 'ffc-aud-settings' );
+		$reregistration_pages   = array( 'ffc-reregistration', 'ffc-custom-fields' );
+		$recruitment_pages      = array( 'ffc-recruitment' );
+		$recruitment_admin_pg   = array( 'ffc-recruitment', 'ffc-settings' );
 
 		return array(
 			// Certificates ladder.
-			'ffc_certificates_viewer'     => self::policy_entry( 'edit.php?post_type=ffc_form', $certificates_pages ),
-			'ffc_certificates_operator'   => self::policy_entry( 'edit.php?post_type=ffc_form', $certificates_pages ),
-			'ffc_certificates_manager'    => self::policy_entry( 'edit.php?post_type=ffc_form', $certificates_pages ),
-			// Forms (certificate-form structure).
-			'ffc_forms_viewer'            => self::policy_entry( 'edit.php?post_type=ffc_form', $forms_pages ),
-			'ffc_forms_manager'           => self::policy_entry( 'edit.php?post_type=ffc_form', $forms_pages ),
-			// Appointments ladder.
-			'ffc_appointments_viewer'     => self::policy_entry( 'ffc-self-scheduling', $appointments_pages ),
-			'ffc_appointments_operator'   => self::policy_entry( 'ffc-self-scheduling', $appointments_pages ),
-			'ffc_appointments_manager'    => self::policy_entry( 'ffc-self-scheduling', $appointments_pages ),
-			// Calendars (self-scheduling structure).
-			'ffc_calendars_viewer'        => self::policy_entry( 'ffc-self-scheduling', $calendars_pages ),
-			'ffc_calendars_manager'       => self::policy_entry( 'ffc-self-scheduling', $calendars_pages ),
-			// Audiences ladder.
-			'ffc_audiences_viewer'        => self::policy_entry( 'ffc-scheduling', $audiences_pages ),
-			'ffc_audiences_operator'      => self::policy_entry( 'ffc-scheduling', $audiences_pages ),
-			'ffc_audiences_manager'       => self::policy_entry( 'ffc-scheduling', $audiences_pages ),
-			// Reregistration ladder.
-			'ffc_reregistration_viewer'   => self::policy_entry( 'ffc-reregistration', $reregistration_pages ),
-			'ffc_reregistration_operator' => self::policy_entry( 'ffc-reregistration', $reregistration_pages ),
-			'ffc_reregistration_manager'  => self::policy_entry( 'ffc-reregistration', $reregistration_pages ),
-			// Cross-domain read-only.
-			'ffc_readonly'                => self::policy_entry( 'ffc-activity-log', array( 'ffc-activity-log', 'ffc-recruitment' ) ),
-			// Recruitment ladder (every tier shares the recruitment landing).
-			'ffc_recruitment_viewer'      => self::policy_entry( 'ffc-recruitment', $recruitment_pages ),
-			'ffc_recruitment_operator'    => self::policy_entry( 'ffc-recruitment', $recruitment_pages ),
-			'ffc_recruitment_manager'     => self::policy_entry( 'ffc-recruitment', $recruitment_admin_pg ),
-			'ffc_recruitment_admin'       => self::policy_entry( 'ffc-recruitment', $recruitment_admin_pg ),
-		);
-	}
-
-	/**
-	 * Build one per-role policy entry.
-	 *
-	 * Every role shares the same core-menu hiding + admin-bar pruning (hide the
-	 * content-creation surfaces — Posts / Comments / Pages / Tools / Plugins /
-	 * Themes / Users — and prune the matching admin-bar nodes) and only differs
-	 * in its landing page + the pages it may reach.
-	 *
-	 * @param string       $landing Landing-page slug (where a forbidden URL redirects).
-	 * @param list<string> $pages   Allowed-page slugs for this role.
-	 * @return array{landing_page: string, allowed_pages: list<string>, hide_core_menus: list<string>, hide_admin_bar_nodes: list<string>}
-	 */
-	private static function policy_entry( string $landing, array $pages ): array {
-		return array(
-			'landing_page'         => $landing,
-			'allowed_pages'        => $pages,
-			'hide_core_menus'      => array(
-				'edit.php',                // Posts.
-				'edit.php?post_type=page', // Pages.
-				'edit-comments.php',       // Comments.
-				'tools.php',               // Tools.
-				'plugins.php',             // Plugins.
-				'themes.php',              // Appearance.
-				'users.php',               // Users.
+			'ffc_certificates_viewer'     => array(
+				'landing_page'         => 'edit.php?post_type=ffc_form',
+				'allowed_pages'        => $certificates_pages,
+				'hide_core_menus'      => $shared_hidden_menus,
+				'hide_admin_bar_nodes' => $shared_admin_bar_nodes,
 			),
-			'hide_admin_bar_nodes' => array(
-				'new-content', // Top "+ New" dropdown.
-				'comments',    // Pending comment count.
+			'ffc_certificates_operator'   => array(
+				'landing_page'         => 'edit.php?post_type=ffc_form',
+				'allowed_pages'        => $certificates_pages,
+				'hide_core_menus'      => $shared_hidden_menus,
+				'hide_admin_bar_nodes' => $shared_admin_bar_nodes,
+			),
+			'ffc_certificates_manager'    => array(
+				'landing_page'         => 'edit.php?post_type=ffc_form',
+				'allowed_pages'        => $certificates_pages,
+				'hide_core_menus'      => $shared_hidden_menus,
+				'hide_admin_bar_nodes' => $shared_admin_bar_nodes,
+			),
+			// Forms (certificate-form structure).
+			'ffc_forms_viewer'            => array(
+				'landing_page'         => 'edit.php?post_type=ffc_form',
+				'allowed_pages'        => $forms_pages,
+				'hide_core_menus'      => $shared_hidden_menus,
+				'hide_admin_bar_nodes' => $shared_admin_bar_nodes,
+			),
+			'ffc_forms_manager'           => array(
+				'landing_page'         => 'edit.php?post_type=ffc_form',
+				'allowed_pages'        => $forms_pages,
+				'hide_core_menus'      => $shared_hidden_menus,
+				'hide_admin_bar_nodes' => $shared_admin_bar_nodes,
+			),
+			// Appointments ladder.
+			'ffc_appointments_viewer'     => array(
+				'landing_page'         => 'ffc-self-scheduling',
+				'allowed_pages'        => $appointments_pages,
+				'hide_core_menus'      => $shared_hidden_menus,
+				'hide_admin_bar_nodes' => $shared_admin_bar_nodes,
+			),
+			'ffc_appointments_operator'   => array(
+				'landing_page'         => 'ffc-self-scheduling',
+				'allowed_pages'        => $appointments_pages,
+				'hide_core_menus'      => $shared_hidden_menus,
+				'hide_admin_bar_nodes' => $shared_admin_bar_nodes,
+			),
+			'ffc_appointments_manager'    => array(
+				'landing_page'         => 'ffc-self-scheduling',
+				'allowed_pages'        => $appointments_pages,
+				'hide_core_menus'      => $shared_hidden_menus,
+				'hide_admin_bar_nodes' => $shared_admin_bar_nodes,
+			),
+			// Calendars (self-scheduling structure).
+			'ffc_calendars_viewer'        => array(
+				'landing_page'         => 'ffc-self-scheduling',
+				'allowed_pages'        => $calendars_pages,
+				'hide_core_menus'      => $shared_hidden_menus,
+				'hide_admin_bar_nodes' => $shared_admin_bar_nodes,
+			),
+			'ffc_calendars_manager'       => array(
+				'landing_page'         => 'ffc-self-scheduling',
+				'allowed_pages'        => $calendars_pages,
+				'hide_core_menus'      => $shared_hidden_menus,
+				'hide_admin_bar_nodes' => $shared_admin_bar_nodes,
+			),
+			// Audiences ladder.
+			'ffc_audiences_viewer'        => array(
+				'landing_page'         => 'ffc-scheduling',
+				'allowed_pages'        => $audiences_pages,
+				'hide_core_menus'      => $shared_hidden_menus,
+				'hide_admin_bar_nodes' => $shared_admin_bar_nodes,
+			),
+			'ffc_audiences_operator'      => array(
+				'landing_page'         => 'ffc-scheduling',
+				'allowed_pages'        => $audiences_pages,
+				'hide_core_menus'      => $shared_hidden_menus,
+				'hide_admin_bar_nodes' => $shared_admin_bar_nodes,
+			),
+			'ffc_audiences_manager'       => array(
+				'landing_page'         => 'ffc-scheduling',
+				'allowed_pages'        => $audiences_pages,
+				'hide_core_menus'      => $shared_hidden_menus,
+				'hide_admin_bar_nodes' => $shared_admin_bar_nodes,
+			),
+			// Reregistration ladder.
+			'ffc_reregistration_viewer'   => array(
+				'landing_page'         => 'ffc-reregistration',
+				'allowed_pages'        => $reregistration_pages,
+				'hide_core_menus'      => $shared_hidden_menus,
+				'hide_admin_bar_nodes' => $shared_admin_bar_nodes,
+			),
+			'ffc_reregistration_operator' => array(
+				'landing_page'         => 'ffc-reregistration',
+				'allowed_pages'        => $reregistration_pages,
+				'hide_core_menus'      => $shared_hidden_menus,
+				'hide_admin_bar_nodes' => $shared_admin_bar_nodes,
+			),
+			'ffc_reregistration_manager'  => array(
+				'landing_page'         => 'ffc-reregistration',
+				'allowed_pages'        => $reregistration_pages,
+				'hide_core_menus'      => $shared_hidden_menus,
+				'hide_admin_bar_nodes' => $shared_admin_bar_nodes,
+			),
+			// Cross-domain read-only.
+			'ffc_readonly'                => array(
+				'landing_page'         => 'ffc-activity-log',
+				'allowed_pages'        => array( 'ffc-activity-log', 'ffc-recruitment' ),
+				'hide_core_menus'      => $shared_hidden_menus,
+				'hide_admin_bar_nodes' => $shared_admin_bar_nodes,
+			),
+			// Recruitment ladder (every tier shares the recruitment landing).
+			'ffc_recruitment_viewer'      => array(
+				'landing_page'         => 'ffc-recruitment',
+				'allowed_pages'        => $recruitment_pages,
+				'hide_core_menus'      => $shared_hidden_menus,
+				'hide_admin_bar_nodes' => $shared_admin_bar_nodes,
+			),
+			'ffc_recruitment_operator'    => array(
+				'landing_page'         => 'ffc-recruitment',
+				'allowed_pages'        => $recruitment_pages,
+				'hide_core_menus'      => $shared_hidden_menus,
+				'hide_admin_bar_nodes' => $shared_admin_bar_nodes,
+			),
+			'ffc_recruitment_manager'     => array(
+				'landing_page'         => 'ffc-recruitment',
+				'allowed_pages'        => $recruitment_admin_pg,
+				'hide_core_menus'      => $shared_hidden_menus,
+				'hide_admin_bar_nodes' => $shared_admin_bar_nodes,
+			),
+			'ffc_recruitment_admin'       => array(
+				'landing_page'         => 'ffc-recruitment',
+				'allowed_pages'        => $recruitment_admin_pg,
+				'hide_core_menus'      => $shared_hidden_menus,
+				'hide_admin_bar_nodes' => $shared_admin_bar_nodes,
 			),
 		);
 	}
