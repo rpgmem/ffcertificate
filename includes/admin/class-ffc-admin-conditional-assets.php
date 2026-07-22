@@ -398,6 +398,7 @@ class AdminConditionalAssets {
 				'no_users_found'   => __( 'No users found.', 'ffcertificate' ),
 				'search_error'     => __( 'Error searching for users. Please try again.', 'ffcertificate' ),
 				'clear_selection'  => __( 'Clear', 'ffcertificate' ),
+				'reveal_error'     => __( 'Unable to reveal this value.', 'ffcertificate' ),
 			)
 		);
 	}

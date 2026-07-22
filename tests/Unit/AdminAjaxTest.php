@@ -65,6 +65,7 @@ class AdminAjaxTest extends TestCase {
         $this->caps_mock  = Mockery::mock( 'alias:\FreeFormCertificate\Core\Capabilities' );
         $ri_mock = Mockery::mock( 'alias:\FreeFormCertificate\Core\RequestInput' );
         $this->caps_mock->shouldReceive( 'current_user_can_manage' )->andReturn( true )->byDefault();
+        $this->caps_mock->shouldReceive( 'current_user_can_admin_or' )->andReturn( true )->byDefault();
         $this->utils_mock->shouldReceive( 'debug_log' )->byDefault();
         $ri_mock->shouldReceive( 'get_post_string' )->andReturnUsing( function ( $key, $default = '' ) {
             return isset( $_POST[ $key ] ) && is_string( $_POST[ $key ] ) ? $_POST[ $key ] : $default;
@@ -384,6 +385,116 @@ class AdminAjaxTest extends TestCase {
             $this->assertSame( 77, $data['users'][0]['id'] );
             $this->assertSame( 'CPF User', $data['users'][0]['display_name'] );
         }
+    }
+
+    // ==================================================================
+    // reveal_pii (#739 §3.3)
+    // ==================================================================
+
+    /**
+     * Alias-mock Core\PiiAccessPolicy with its TIER_* constants mapped so the
+     * handler's production references resolve.
+     *
+     * @return \Mockery\MockInterface
+     */
+    private function mock_pii_policy() {
+        Mockery::getConfiguration()->setConstantsMap(
+            array(
+                'FreeFormCertificate\Core\PiiAccessPolicy' => array(
+                    'TIER_MASKED'   => 'masked',
+                    'TIER_REVEAL'   => 'reveal',
+                    'TIER_UNMASKED' => 'unmasked',
+                ),
+            )
+        );
+        return Mockery::mock( 'alias:FreeFormCertificate\Core\PiiAccessPolicy' );
+    }
+
+    /**
+     * Overload-mock SubmissionHandler so get_submission returns a fixed row.
+     *
+     * @param array<string,mixed> $row Row fields.
+     * @return void
+     */
+    private function mock_submission( array $row ): void {
+        $handler = Mockery::mock( 'overload:\FreeFormCertificate\Submissions\SubmissionHandler' );
+        $handler->shouldReceive( 'get_submission' )->andReturn( $row );
+    }
+
+    public function test_reveal_pii_rejects_unsupported_field(): void {
+        $_POST['nonce']         = 'n';
+        $_POST['submission_id'] = '5';
+        $_POST['field']         = 'ssn';
+
+        $ajax = new AdminAjax();
+        $this->expectException( \RuntimeException::class );
+        $this->expectExceptionMessageMatches( '/Unsupported field/' );
+        $ajax->reveal_pii();
+    }
+
+    public function test_reveal_pii_denied_for_masked_tier(): void {
+        $_POST['nonce']         = 'n';
+        $_POST['submission_id'] = '5';
+        $_POST['field']         = 'cpf';
+
+        $this->mock_submission( array( 'cpf' => '12345678901', 'user_id' => 9 ) );
+        $policy = $this->mock_pii_policy();
+        $policy->shouldReceive( 'resolve' )->andReturn( 'masked' );
+
+        $ajax = new AdminAjax();
+        $this->expectException( \RuntimeException::class );
+        $this->expectExceptionMessageMatches( '/permission to reveal/' );
+        $ajax->reveal_pii();
+    }
+
+    public function test_reveal_pii_cpf_success_formats_and_audits(): void {
+        $_POST['nonce']         = 'n';
+        $_POST['submission_id'] = '5';
+        $_POST['field']         = 'cpf';
+
+        $this->mock_submission( array( 'cpf' => '12345678901', 'user_id' => 9 ) );
+
+        $policy = $this->mock_pii_policy();
+        $policy->shouldReceive( 'resolve' )->andReturn( 'reveal' );
+
+        $df = Mockery::mock( 'alias:\FreeFormCertificate\Core\DocumentFormatter' );
+        $df->shouldReceive( 'format_cpf' )->with( '12345678901' )->andReturn( '123.456.789-01' );
+
+        Mockery::getConfiguration()->setConstantsMap(
+            array( 'FreeFormCertificate\Core\ActivityLog' => array( 'LEVEL_INFO' => 'info' ) )
+        );
+        $log = Mockery::mock( 'alias:\FreeFormCertificate\Core\ActivityLog' );
+        $log->shouldReceive( 'log' )->once()->with( 'submission_pii_revealed', 'info', array( 'field_key' => 'cpf' ), \Mockery::any(), 5 );
+
+        $ajax = new AdminAjax();
+        try {
+            $ajax->reveal_pii();
+            $this->fail( 'Expected AdminAjaxSuccessException' );
+        } catch ( AdminAjaxSuccessException $e ) {
+            $data = $e->getData();
+            $this->assertSame( array( 'field' => 'cpf', 'value' => '123.456.789-01' ), $data );
+        }
+    }
+
+    public function test_reveal_pii_unmasked_tier_does_not_audit(): void {
+        $_POST['nonce']         = 'n';
+        $_POST['submission_id'] = '5';
+        $_POST['field']         = 'cpf';
+
+        $this->mock_submission( array( 'cpf' => '12345678901', 'user_id' => 9 ) );
+
+        $policy = $this->mock_pii_policy();
+        $policy->shouldReceive( 'resolve' )->andReturn( 'unmasked' );
+
+        $df = Mockery::mock( 'alias:\FreeFormCertificate\Core\DocumentFormatter' );
+        $df->shouldReceive( 'format_cpf' )->andReturn( '123.456.789-01' );
+
+        $log = Mockery::mock( 'alias:\FreeFormCertificate\Core\ActivityLog' );
+        $log->shouldReceive( 'log' )->never();
+
+        $ajax = new AdminAjax();
+        $this->expectException( AdminAjaxSuccessException::class );
+        $ajax->reveal_pii();
     }
 }
 

@@ -427,12 +427,36 @@ class AdminSubmissionEditPage {
 			</td>
 		</tr>
 
-		<!-- ✅ CPF/RF (read-only se existir) -->
-		<?php if ( ! empty( $this->sub_array['cpf_rf'] ) ) : ?>
+		<!-- ✅ CPF/RF (read-only se existir) — #739 §3.3 masked unless PII tier -->
+		<?php
+		if ( ! empty( $this->sub_array['cpf_rf'] ) ) :
+			$ffc_is_rf    = ! empty( $this->sub_array['rf'] );
+			$ffc_pii_field = $ffc_is_rf ? 'rf' : 'cpf';
+			$ffc_pii_tier = \FreeFormCertificate\Core\PiiAccessPolicy::resolve(
+				'ffc_view_certificates_pii',
+				'ffc_certificates_admin',
+				(int) ( $this->sub_array['user_id'] ?? 0 )
+			);
+			if ( \FreeFormCertificate\Core\PiiAccessPolicy::TIER_UNMASKED === $ffc_pii_tier ) {
+				$ffc_pii_display = \FreeFormCertificate\Core\DocumentFormatter::format_document( $this->sub_array['cpf_rf'] );
+			} elseif ( $ffc_is_rf ) {
+				$ffc_pii_display = \FreeFormCertificate\Core\DocumentFormatter::mask_rf( $this->sub_array['cpf_rf'] );
+			} else {
+				$ffc_pii_display = \FreeFormCertificate\Core\DocumentFormatter::mask_cpf( $this->sub_array['cpf_rf'] );
+			}
+			?>
 		<tr>
-			<th><label><?php echo esc_html( ! empty( $this->sub_array['rf'] ) ? __( 'RF', 'ffcertificate' ) : __( 'CPF', 'ffcertificate' ) ); ?></label></th>
+			<th><label><?php echo esc_html( $ffc_is_rf ? __( 'RF', 'ffcertificate' ) : __( 'CPF', 'ffcertificate' ) ); ?></label></th>
 			<td>
-				<input type="text" value="<?php echo esc_attr( \FreeFormCertificate\Core\DocumentFormatter::format_document( $this->sub_array['cpf_rf'] ) ); ?>" class="regular-text ffc-input-readonly" readonly>
+				<input type="text" value="<?php echo esc_attr( $ffc_pii_display ); ?>" class="regular-text ffc-input-readonly" data-ffc-pii-field="<?php echo esc_attr( $ffc_pii_field ); ?>" readonly>
+				<?php if ( \FreeFormCertificate\Core\PiiAccessPolicy::TIER_REVEAL === $ffc_pii_tier ) : ?>
+					<button type="button" class="button button-small ffc-reveal-pii"
+						data-field="<?php echo esc_attr( $ffc_pii_field ); ?>"
+						data-submission-id="<?php echo esc_attr( (string) ( $this->sub_array['id'] ?? 0 ) ); ?>"
+						data-nonce="<?php echo esc_attr( wp_create_nonce( 'ffc_reveal_pii_nonce' ) ); ?>">
+						<?php esc_html_e( 'Reveal', 'ffcertificate' ); ?>
+					</button>
+				<?php endif; ?>
 				<?php if ( ! empty( $this->sub_array['cpf_encrypted'] ) || ! empty( $this->sub_array['rf_encrypted'] ) ) : ?>
 					<p class="description"><span class="ffc-icon-lock"></span><?php esc_html_e( 'This identifier is encrypted in the database.', 'ffcertificate' ); ?></p>
 				<?php endif; ?>

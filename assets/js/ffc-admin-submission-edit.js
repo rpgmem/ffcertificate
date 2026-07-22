@@ -31,6 +31,36 @@ jQuery(document).ready(function($) {
     });
 
     // ========================================
+    // Reveal PII (#739 §3.3) - masked CPF/RF, click to reveal (audited)
+    // ========================================
+    $('.ffc-reveal-pii').on('click', function (e) {
+        e.preventDefault();
+        var $btn = $(this);
+        var field = $btn.data('field');
+        var $input = $btn.closest('td').find('[data-ffc-pii-field="' + field + '"]');
+
+        $btn.prop('disabled', true);
+
+        FFC.request(
+            'ffc_reveal_pii',
+            { submission_id: $btn.data('submission-id'), field: field },
+            { nonce: $btn.data('nonce') }
+        )
+            .then(function (data) {
+                if (data && typeof data.value !== 'undefined') {
+                    $input.val(data.value);
+                    $btn.remove();
+                } else {
+                    $btn.prop('disabled', false);
+                }
+            })
+            .catch(function (err) {
+                $btn.prop('disabled', false);
+                alert((err && err.message) || ffc_submission_edit.reveal_error || 'Unable to reveal this value.');
+            });
+    });
+
+    // ========================================
     // Unlink User Button - Confirmation
     // ========================================
     $('.ffc-unlink-user-btn').on('click', function(e) {

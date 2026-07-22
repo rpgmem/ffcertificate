@@ -30,6 +30,82 @@ class AdminAjax {
 		// Register AJAX handlers (ffc_load_template is handled by FormEditor).
 		add_action( 'wp_ajax_ffc_generate_tickets', array( $this, 'generate_tickets' ) );
 		add_action( 'wp_ajax_ffc_search_user', array( $this, 'search_user' ) );
+		add_action( 'wp_ajax_ffc_reveal_pii', array( $this, 'reveal_pii' ) );
+	}
+
+	/**
+	 * Reveal one decrypted PII field (CPF / RF / email) of a certificate
+	 * submission, gated by the #739 §3.3 PII policy and audited.
+	 *
+	 * The submission edit page + list render the masked value only; the
+	 * plaintext is fetched here on demand so it never sits in the initial
+	 * HTML for the `reveal` / `masked` tiers. Returns 403 for the masked tier;
+	 * the `reveal` tier writes an audit row, the unmasked `_admin` tier does not.
+	 *
+	 * @return void
+	 */
+	public function reveal_pii(): void {
+		$this->verify_ajax_nonce( 'ffc_reveal_pii_nonce' );
+		// Surface gate — must at least be able to view the certificates area.
+		if ( ! \FreeFormCertificate\Core\Capabilities::current_user_can_admin_or( 'ffc_view_certificates' ) ) {
+			wp_send_json_error( array( 'message' => __( 'You do not have permission.', 'ffcertificate' ) ), 403 );
+		}
+
+		$id    = $this->get_post_int( 'submission_id' );
+		$field = $this->get_post_param( 'field' );
+		if ( ! in_array( $field, array( 'cpf', 'rf', 'email' ), true ) ) {
+			wp_send_json_error( array( 'message' => __( 'Unsupported field.', 'ffcertificate' ) ) );
+		}
+		if ( $id <= 0 ) {
+			wp_send_json_error( array( 'message' => __( 'Invalid submission.', 'ffcertificate' ) ) );
+		}
+
+		$handler = new \FreeFormCertificate\Submissions\SubmissionHandler();
+		$sub      = $handler->get_submission( $id );
+		if ( ! $sub ) {
+			wp_send_json_error( array( 'message' => __( 'Submission not found.', 'ffcertificate' ) ), 404 );
+		}
+		$sub_array = (array) $sub;
+		$owner     = isset( $sub_array['user_id'] ) ? (int) $sub_array['user_id'] : null;
+
+		$tier = \FreeFormCertificate\Core\PiiAccessPolicy::resolve(
+			'ffc_view_certificates_pii',
+			'ffc_certificates_admin',
+			$owner
+		);
+		if ( \FreeFormCertificate\Core\PiiAccessPolicy::TIER_MASKED === $tier ) {
+			wp_send_json_error( array( 'message' => __( 'You do not have permission to reveal this field.', 'ffcertificate' ) ), 403 );
+		}
+
+		// get_submission() has already decrypted the values into the array;
+		// render through DocumentFormatter so it matches the unmasked display.
+		switch ( $field ) {
+			case 'cpf':
+				$display = \FreeFormCertificate\Core\DocumentFormatter::format_cpf( (string) ( $sub_array['cpf'] ?? '' ) );
+				break;
+			case 'rf':
+				$display = \FreeFormCertificate\Core\DocumentFormatter::format_rf( (string) ( $sub_array['rf'] ?? '' ) );
+				break;
+			default:
+				$display = (string) ( $sub_array['email'] ?? '' );
+		}
+		if ( '' === $display ) {
+			wp_send_json_error( array( 'message' => __( 'No value to reveal.', 'ffcertificate' ) ), 404 );
+		}
+
+		// Audit only the `reveal` tier — the unmasked `_admin` role is exempt
+		// to keep the per-field log free of high-trust noise.
+		if ( \FreeFormCertificate\Core\PiiAccessPolicy::TIER_REVEAL === $tier ) {
+			\FreeFormCertificate\Core\ActivityLog::log(
+				'submission_pii_revealed',
+				\FreeFormCertificate\Core\ActivityLog::LEVEL_INFO,
+				array( 'field_key' => $field ),
+				get_current_user_id(),
+				$id
+			);
+		}
+
+		wp_send_json_success( array( 'field' => $field, 'value' => $display ) );
 	}
 
 	/**
