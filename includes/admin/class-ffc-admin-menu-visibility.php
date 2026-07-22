@@ -60,48 +60,12 @@ final class AdminMenuVisibility {
 	 * @return array<string, array{landing_page: string, allowed_pages: list<string>, hide_core_menus: list<string>, hide_admin_bar_nodes: list<string>}>
 	 */
 	private static function policy(): array {
-		// Common boilerplate shared by every operator role: hide the
-		// content-creation surfaces (Posts / Comments / Pages / Tools /
-		// Plugins / Themes / Users) and prune the matching admin-bar
-		// nodes. Roles override `landing_page` and `allowed_pages` per
-		// domain.
-		$shared_hidden_menus    = array(
-			'edit.php',                        // Posts.
-			'edit.php?post_type=page',         // Pages.
-			'edit-comments.php',               // Comments.
-			'tools.php',                       // Tools.
-			'plugins.php',                     // Plugins.
-			'themes.php',                      // Appearance.
-			'users.php',                       // Users.
-		);
-		$shared_admin_bar_nodes = array(
-			'new-content', // Top "+ New" dropdown.
-			'comments',    // Pending comment count.
-		);
-
-		// Factory for one policy entry — every role shares the same core-menu
-		// hiding + admin-bar pruning and only differs in landing page + the
-		// pages it may reach. All tiers of a domain (viewer/operator/manager)
-		// share the same navigation; the capability gates decide read vs write
-		// within those pages, so the menu scope is per-domain, not per-tier.
-		/**
-		 * Build one policy entry from a landing page + allowed-page list.
-		 *
-		 * @param string       $landing Landing-page slug.
-		 * @param list<string> $pages   Allowed-page slugs.
-		 * @return array{landing_page: string, allowed_pages: list<string>, hide_core_menus: list<string>, hide_admin_bar_nodes: list<string>}
-		 */
-		$mk = function ( string $landing, array $pages ) use ( $shared_hidden_menus, $shared_admin_bar_nodes ): array {
-			return array(
-				'landing_page'         => $landing,
-				'allowed_pages'        => $pages,
-				'hide_core_menus'      => $shared_hidden_menus,
-				'hide_admin_bar_nodes' => $shared_admin_bar_nodes,
-			);
-		};
-
 		// Per-domain navigation (#739 §3.2 — one page-set per domain, reused
-		// across that domain's tier ladder).
+		// across that domain's tier ladder). Each entry is built by
+		// {@see self::policy_entry()}, which adds the shared core-menu hiding +
+		// admin-bar pruning; all tiers of a domain share the same navigation
+		// (the capability gates decide read vs write), so the menu scope is
+		// per-domain, not per-tier.
 		$certificates_pages   = array( 'edit.php?post_type=ffc_form', 'ffc-submissions', 'ffc-settings', 'ffc-activity-log' );
 		$forms_pages          = array( 'edit.php?post_type=ffc_form', 'ffc-settings' );
 		$appointments_pages   = array( 'ffc-self-scheduling', 'ffc-self-scheduling-appointments', 'ffc-self-scheduling-settings' );
@@ -113,34 +77,66 @@ final class AdminMenuVisibility {
 
 		return array(
 			// Certificates ladder.
-			'ffc_certificates_viewer'     => $mk( 'edit.php?post_type=ffc_form', $certificates_pages ),
-			'ffc_certificates_operator'   => $mk( 'edit.php?post_type=ffc_form', $certificates_pages ),
-			'ffc_certificates_manager'    => $mk( 'edit.php?post_type=ffc_form', $certificates_pages ),
+			'ffc_certificates_viewer'     => self::policy_entry( 'edit.php?post_type=ffc_form', $certificates_pages ),
+			'ffc_certificates_operator'   => self::policy_entry( 'edit.php?post_type=ffc_form', $certificates_pages ),
+			'ffc_certificates_manager'    => self::policy_entry( 'edit.php?post_type=ffc_form', $certificates_pages ),
 			// Forms (certificate-form structure).
-			'ffc_forms_viewer'            => $mk( 'edit.php?post_type=ffc_form', $forms_pages ),
-			'ffc_forms_manager'           => $mk( 'edit.php?post_type=ffc_form', $forms_pages ),
+			'ffc_forms_viewer'            => self::policy_entry( 'edit.php?post_type=ffc_form', $forms_pages ),
+			'ffc_forms_manager'           => self::policy_entry( 'edit.php?post_type=ffc_form', $forms_pages ),
 			// Appointments ladder.
-			'ffc_appointments_viewer'     => $mk( 'ffc-self-scheduling', $appointments_pages ),
-			'ffc_appointments_operator'   => $mk( 'ffc-self-scheduling', $appointments_pages ),
-			'ffc_appointments_manager'    => $mk( 'ffc-self-scheduling', $appointments_pages ),
+			'ffc_appointments_viewer'     => self::policy_entry( 'ffc-self-scheduling', $appointments_pages ),
+			'ffc_appointments_operator'   => self::policy_entry( 'ffc-self-scheduling', $appointments_pages ),
+			'ffc_appointments_manager'    => self::policy_entry( 'ffc-self-scheduling', $appointments_pages ),
 			// Calendars (self-scheduling structure).
-			'ffc_calendars_viewer'        => $mk( 'ffc-self-scheduling', $calendars_pages ),
-			'ffc_calendars_manager'       => $mk( 'ffc-self-scheduling', $calendars_pages ),
+			'ffc_calendars_viewer'        => self::policy_entry( 'ffc-self-scheduling', $calendars_pages ),
+			'ffc_calendars_manager'       => self::policy_entry( 'ffc-self-scheduling', $calendars_pages ),
 			// Audiences ladder.
-			'ffc_audiences_viewer'        => $mk( 'ffc-scheduling', $audiences_pages ),
-			'ffc_audiences_operator'      => $mk( 'ffc-scheduling', $audiences_pages ),
-			'ffc_audiences_manager'       => $mk( 'ffc-scheduling', $audiences_pages ),
+			'ffc_audiences_viewer'        => self::policy_entry( 'ffc-scheduling', $audiences_pages ),
+			'ffc_audiences_operator'      => self::policy_entry( 'ffc-scheduling', $audiences_pages ),
+			'ffc_audiences_manager'       => self::policy_entry( 'ffc-scheduling', $audiences_pages ),
 			// Reregistration ladder.
-			'ffc_reregistration_viewer'   => $mk( 'ffc-reregistration', $reregistration_pages ),
-			'ffc_reregistration_operator' => $mk( 'ffc-reregistration', $reregistration_pages ),
-			'ffc_reregistration_manager'  => $mk( 'ffc-reregistration', $reregistration_pages ),
+			'ffc_reregistration_viewer'   => self::policy_entry( 'ffc-reregistration', $reregistration_pages ),
+			'ffc_reregistration_operator' => self::policy_entry( 'ffc-reregistration', $reregistration_pages ),
+			'ffc_reregistration_manager'  => self::policy_entry( 'ffc-reregistration', $reregistration_pages ),
 			// Cross-domain read-only.
-			'ffc_readonly'                => $mk( 'ffc-activity-log', array( 'ffc-activity-log', 'ffc-recruitment' ) ),
+			'ffc_readonly'                => self::policy_entry( 'ffc-activity-log', array( 'ffc-activity-log', 'ffc-recruitment' ) ),
 			// Recruitment ladder (every tier shares the recruitment landing).
-			'ffc_recruitment_viewer'      => $mk( 'ffc-recruitment', $recruitment_pages ),
-			'ffc_recruitment_operator'    => $mk( 'ffc-recruitment', $recruitment_pages ),
-			'ffc_recruitment_manager'     => $mk( 'ffc-recruitment', $recruitment_admin_pg ),
-			'ffc_recruitment_admin'       => $mk( 'ffc-recruitment', $recruitment_admin_pg ),
+			'ffc_recruitment_viewer'      => self::policy_entry( 'ffc-recruitment', $recruitment_pages ),
+			'ffc_recruitment_operator'    => self::policy_entry( 'ffc-recruitment', $recruitment_pages ),
+			'ffc_recruitment_manager'     => self::policy_entry( 'ffc-recruitment', $recruitment_admin_pg ),
+			'ffc_recruitment_admin'       => self::policy_entry( 'ffc-recruitment', $recruitment_admin_pg ),
+		);
+	}
+
+	/**
+	 * Build one per-role policy entry.
+	 *
+	 * Every role shares the same core-menu hiding + admin-bar pruning (hide the
+	 * content-creation surfaces — Posts / Comments / Pages / Tools / Plugins /
+	 * Themes / Users — and prune the matching admin-bar nodes) and only differs
+	 * in its landing page + the pages it may reach.
+	 *
+	 * @param string       $landing Landing-page slug (where a forbidden URL redirects).
+	 * @param list<string> $pages   Allowed-page slugs for this role.
+	 * @return array{landing_page: string, allowed_pages: list<string>, hide_core_menus: list<string>, hide_admin_bar_nodes: list<string>}
+	 */
+	private static function policy_entry( string $landing, array $pages ): array {
+		return array(
+			'landing_page'         => $landing,
+			'allowed_pages'        => $pages,
+			'hide_core_menus'      => array(
+				'edit.php',                // Posts.
+				'edit.php?post_type=page', // Pages.
+				'edit-comments.php',       // Comments.
+				'tools.php',               // Tools.
+				'plugins.php',             // Plugins.
+				'themes.php',              // Appearance.
+				'users.php',               // Users.
+			),
+			'hide_admin_bar_nodes' => array(
+				'new-content', // Top "+ New" dropdown.
+				'comments',    // Pending comment count.
+			),
 		);
 	}
 
