@@ -68,8 +68,9 @@ class SettingsAjaxEndpoint {
 			'cache_enabled',
 			'cache_auto_warm',
 			'qr_cache_enabled',
-			// SMTP tab.
-			'disable_all_emails',
+			// SMTP tab. Note: `disable_all_emails` is intentionally NOT here —
+			// the kill-switch carries the dangerzone sub-cap (#739 §4.4) and is
+			// registered explicitly below.
 			'send_wp_user_email_submission',
 			'send_wp_user_email_appointment',
 			'send_wp_user_email_csv_import',
@@ -175,7 +176,14 @@ class SettingsAjaxEndpoint {
 				'path'   => array( 'disable_all_emails' ),
 				'type'   => 'bool',
 				'invert' => true,
-				'cap'    => 'ffc_manage_settings',
+				'cap'    => 'ffc_manage_settings_dangerzone',
+			),
+			// Raw kill-switch slot (legacy JS key) — same dangerzone gate as the
+			// inverted `emails_enabled` toggle above (#739 §4.4).
+			'disable_all_emails'            => array(
+				'option' => 'ffc_settings',
+				'type'   => 'bool',
+				'cap'    => 'ffc_manage_settings_dangerzone',
 			),
 		);
 

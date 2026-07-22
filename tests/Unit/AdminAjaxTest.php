@@ -172,8 +172,9 @@ class AdminAjaxTest extends TestCase {
     public function test_generate_tickets_sends_error_without_permission(): void {
         $_POST['nonce'] = 'valid_nonce';
 
-        // Permission denied
-        $this->caps_mock->shouldReceive( 'current_user_can_manage' )->andReturn( false );
+        // Permission denied — neither the certificates manage cap (#739 §4.3)
+        // nor manage_options.
+        $this->caps_mock->shouldReceive( 'current_user_can_admin_or' )->with( 'ffc_manage_certificates' )->andReturn( false );
         Functions\when( 'current_user_can' )->justReturn( false );
 
         $ajax = new AdminAjax();

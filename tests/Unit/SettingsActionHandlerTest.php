@@ -740,6 +740,22 @@ class SettingsActionHandlerTest extends TestCase {
 		$this->handler->handle_send_test_email();
 	}
 
+	public function test_send_test_email_requires_smtp_subcap(): void {
+		// #739 §4.4 — holding every settings cap EXCEPT the SMTP sub-cap is not
+		// enough; the test-send exercises the SMTP transport.
+		$_POST['ffc_send_test_email'] = '1';
+		Mockery::mock( 'alias:FreeFormCertificate\\Core\\Capabilities' )
+			->shouldReceive( 'current_user_can_admin_or' )
+			->andReturnUsing(
+				static function ( $cap ) {
+					return 'ffc_manage_settings_smtp' !== $cap;
+				}
+			);
+		$this->expectException( \RuntimeException::class );
+		$this->expectExceptionMessage( 'die' );
+		$this->handler->handle_send_test_email();
+	}
+
 	public function test_send_test_email_bad_nonce_dies(): void {
 		$_POST['ffc_send_test_email'] = '1';
 		$this->mock_capabilities( true );

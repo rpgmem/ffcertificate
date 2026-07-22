@@ -24,6 +24,8 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 ### Fixed
 - Authorization consistency (#739): the migration-runner AJAX endpoint now requires the `ffc_manage_settings_dangerzone` sub-cap, matching its no-JS counterparts — a settings operator without the dangerzone cap could previously run destructive migrations through the AJAX runner.
 - Audience delegation (#739): the audience booking, schedule-slot, environment and user-permission AJAX actions now accept `ffc_manage_audiences` (administrator **or** the granular cap) instead of requiring `manage_options`, so the **FFC Audience Manager** role can actually use the interactive screens it is meant to delegate.
+- Ticket generation authorization (#739): the `ffc_generate_tickets` AJAX handler now requires the certificates domain cap (`ffc_manage_certificates`, administrator **or** the granular cap) instead of the generic `edit_posts` any WordPress author holds.
+- Email sub-cap alignment (#739): the "send a test email" action now requires `ffc_manage_settings_smtp` (it exercises the SMTP transport), and the global "disable all emails" kill-switch now requires `ffc_manage_settings_dangerzone` on every write path (bulk settings save + the per-field autosave endpoint) — a settings operator without those sub-caps can no longer test SMTP or silence all plugin email.
 
 ## [6.15.0] (2026-07-21) — `b5a96fe`
 

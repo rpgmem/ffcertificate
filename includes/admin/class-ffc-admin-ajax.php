@@ -179,7 +179,9 @@ class AdminAjax {
 	 */
 	public function generate_tickets(): void {
 		$this->verify_ajax_nonce( 'ffc_admin_nonce' );
-		$this->check_ajax_permission( 'edit_posts' );
+		// #739 §4.3 — gate on the certificates domain cap (admin or delegate),
+		// not the generic `edit_posts` any WP author holds.
+		$this->check_ajax_admin_or( 'ffc_manage_certificates' );
 
 		$quantity = $this->get_post_int( 'quantity' );
 		$form_id  = $this->get_post_int( 'form_id' );
