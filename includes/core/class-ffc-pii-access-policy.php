@@ -5,9 +5,9 @@
  * Generic 3-tier resolver for whether a user may see the decrypted PII
  * (CPF / RF / email) of a record, and whether that view is audited. The
  * certificate-submission and appointment surfaces use it (#739 §3.3); it
- * mirrors the recruitment module's dedicated
- * {@see \FreeFormCertificate\Recruitment\RecruitmentPiiAccessPolicy}, generalized
- * so the domain's reveal cap + unmasked role are passed in rather than hard-coded.
+ * mirrors the recruitment module's dedicated `RecruitmentPiiAccessPolicy`,
+ * generalized so the domain's reveal cap + unmasked role are passed in rather
+ * than hard-coded.
  *
  * Tiers:
  *
