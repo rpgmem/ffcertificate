@@ -329,6 +329,54 @@ class UrlShortenerQrHandlerTest extends TestCase {
     }
 
     /**
+     * #739 §4.2 — a url-shortener *manager* (holds `ffc_manage_url_shortener`
+     * but not the `view` cap, and is not a WP admin) can still download the QR.
+     *
+     * @runInSeparateProcess
+     * @preserveGlobalState disabled
+     */
+    public function test_handle_download_png_accepts_manage_cap_without_view(): void {
+        $_POST['nonce'] = 'valid';
+        $_POST['code']  = 'abc';
+
+        Functions\when( 'wp_verify_nonce' )->justReturn( 1 );
+        Functions\when( 'current_user_can' )->alias(
+            static function ( $cap ) {
+                return 'ffc_manage_url_shortener' === $cap;
+            }
+        );
+
+        $repo = Mockery::mock( 'overload:FreeFormCertificate\UrlShortener\UrlShortenerRepository' );
+        $this->service->shouldReceive( 'get_repository' )->andReturn( $repo );
+        $repo->shouldReceive( 'findByShortCode' )->with( 'abc' )->andReturn( array( 'short_code' => 'abc' ) );
+        $this->service->shouldReceive( 'get_short_url' )->with( 'abc' )->andReturn( 'https://example.com/go/abc' );
+
+        $gen = Mockery::mock( 'overload:FreeFormCertificate\Generators\QRCodeGenerator' );
+        $gen->shouldReceive( 'generate' )->andReturn( 'PNG64' );
+
+        $sent = null;
+        Functions\when( 'wp_send_json_success' )->alias(
+            static function ( $data ) use ( &$sent ) {
+                $sent = $data;
+                throw new \RuntimeException( 'ok' );
+            }
+        );
+        Functions\when( 'wp_send_json_error' )->alias(
+            static function () {
+                throw new \RuntimeException( 'denied' );
+            }
+        );
+
+        try {
+            $this->handler->handle_download_png();
+        } catch ( \RuntimeException $e ) {
+            $this->assertSame( 'ok', $e->getMessage() );
+        }
+
+        $this->assertSame( 'PNG64', $sent['data'] );
+    }
+
+    /**
      * @runInSeparateProcess
      * @preserveGlobalState disabled
      */

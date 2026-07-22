@@ -65,6 +65,14 @@ class SettingsAjaxEndpointTest extends TestCase {
         $this->assertSame( 'ffc_manage_settings', $list['admin_bypass_datetime']['cap'] );
     }
 
+    public function test_email_kill_switch_toggles_require_dangerzone(): void {
+        // #739 §4.4 — both the inverted "enable emails" toggle and the raw
+        // kill-switch slot carry the dangerzone sub-cap.
+        $list = SettingsAjaxEndpoint::allowlist();
+        $this->assertSame( 'ffc_manage_settings_dangerzone', $list['emails_enabled']['cap'] );
+        $this->assertSame( 'ffc_manage_settings_dangerzone', $list['disable_all_emails']['cap'] );
+    }
+
     // ==================================================================
     // sanitize_value
     // ==================================================================

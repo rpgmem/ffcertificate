@@ -251,8 +251,12 @@ class SettingsSaveHandler {
 		}
 
 		// Email Status checkbox (only when on SMTP tab to prevent unchecking from other tabs).
+		// The global "disable all emails" kill-switch is a destructive toggle, so
+		// it also requires the dangerzone sub-cap (#739 §4.4): a _smtp-only
+		// operator saves the transport but keeps the current kill-switch value.
         // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Nonce verified in handle_all_submissions() via wp_verify_nonce.
-		if ( isset( $_POST['_ffc_tab'] ) && sanitize_key( wp_unslash( $_POST['_ffc_tab'] ) ) === 'smtp' ) {
+		$ffc_on_smtp_tab = isset( $_POST['_ffc_tab'] ) && sanitize_key( wp_unslash( $_POST['_ffc_tab'] ) ) === 'smtp';
+		if ( $ffc_on_smtp_tab && \FreeFormCertificate\Core\Capabilities::current_user_can_admin_or( 'ffc_manage_settings_dangerzone' ) ) {
 			// The SMTP view emits a hidden `ffc_settings[disable_all_emails]`
 			// mirror alongside the inverted "Enable email sending" toggle,
 			// so the field is ALWAYS present in $new — we check the value,

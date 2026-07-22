@@ -51,7 +51,7 @@ final class RecruitmentNoticesRestController {
 				array(
 					'methods'             => \WP_REST_Server::READABLE,
 					'callback'            => array( $this, 'list_notices' ),
-					'permission_callback' => array( $this, 'check_admin_cap' ),
+					'permission_callback' => array( $this, 'check_can_view_recruitment' ),
 					'args'                => array(
 						'status' => array(
 							'type'              => 'string',
