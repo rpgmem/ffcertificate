@@ -74,15 +74,28 @@ class CPT {
 			// `ffc_manage_forms`, so viewing never implies editing.
 			'capability_type' => 'ffc_form',
 			'map_meta_cap'    => true,
+			// NOTE: only the *primitive* caps are mapped here. The per-post
+			// *meta* caps `read_post` / `edit_post` / `delete_post` are
+			// deliberately NOT mapped: WordPress's
+			// `_post_type_meta_capabilities()` copies any `read_post` /
+			// `edit_post` / `delete_post` value into the global
+			// `$post_type_meta_caps`, registering that string as a meta-cap
+			// alias. Reusing `ffc_view_forms` / `ffc_manage_forms` for BOTH a
+			// primitive (`edit_posts`, `create_posts`) AND a meta cap
+			// (`read_post`, `edit_post`) poisons the primitive: a plain
+			// `current_user_can( 'ffc_view_forms' )` (the admin-menu check) is
+			// then rerouted through `map_meta_cap()` to `read_post`, and with
+			// no post ID in a menu/context check it collapses to
+			// `do_not_allow` — hiding the CPT menus for every holder (the #739
+			// menu regression). Per-post edit/delete stays gated: the shared
+			// {@see CptCapPolicy::gate_cpt_writes} filter forces the write
+			// meta-caps back to `ffc_manage_forms` on `map_meta_cap`.
 			'capabilities'    => array(
 				// Read-only viewer tier (list visibility + read).
 				'edit_posts'             => 'ffc_view_forms',
 				'edit_others_posts'      => 'ffc_view_forms',
 				'read_private_posts'     => 'ffc_view_forms',
-				'read_post'              => 'ffc_view_forms',
-				// Write tier (gated per-post by CptCapPolicy for edit/delete).
-				'edit_post'              => 'ffc_manage_forms',
-				'delete_post'            => 'ffc_manage_forms',
+				// Write tier (primitives only; per-post writes via CptCapPolicy).
 				'delete_posts'           => 'ffc_manage_forms',
 				'delete_others_posts'    => 'ffc_manage_forms',
 				'publish_posts'          => 'ffc_manage_forms',

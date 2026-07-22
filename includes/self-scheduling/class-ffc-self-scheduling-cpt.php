@@ -117,15 +117,22 @@ class SelfSchedulingCPT {
 			// `ffc_manage_calendars`, so viewing never implies editing.
 			'capability_type' => 'ffc_calendar',
 			'map_meta_cap'    => true,
+			// NOTE: only the *primitive* caps are mapped here — the per-post
+			// meta caps `read_post` / `edit_post` / `delete_post` are
+			// deliberately omitted. Mapping them to `ffc_view_calendars` /
+			// `ffc_manage_calendars` would register those strings as meta-cap
+			// aliases in WordPress's global `$post_type_meta_caps`, so a plain
+			// `current_user_can( 'ffc_view_calendars' )` (the admin-menu check)
+			// would be rerouted through `map_meta_cap()` to `read_post` and,
+			// without a post ID, collapse to `do_not_allow` — hiding the
+			// calendar menus (the #739 regression). Per-post edit/delete stays
+			// gated by {@see \FreeFormCertificate\Admin\CptCapPolicy}.
 			'capabilities'    => array(
 				// Read-only viewer tier (list visibility + read).
 				'edit_posts'             => 'ffc_view_calendars',
 				'edit_others_posts'      => 'ffc_view_calendars',
 				'read_private_posts'     => 'ffc_view_calendars',
-				'read_post'              => 'ffc_view_calendars',
-				// Write tier (gated per-post by CptCapPolicy for edit/delete).
-				'edit_post'              => 'ffc_manage_calendars',
-				'delete_post'            => 'ffc_manage_calendars',
+				// Write tier (primitives only; per-post writes via CptCapPolicy).
 				'delete_posts'           => 'ffc_manage_calendars',
 				'delete_others_posts'    => 'ffc_manage_calendars',
 				'publish_posts'          => 'ffc_manage_calendars',
