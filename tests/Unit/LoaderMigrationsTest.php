@@ -118,7 +118,6 @@ class LoaderMigrationsTest extends TestCase {
         $loader = new Loader();
 
         Functions\when( 'get_option' )->justReturn( '1' );
-        Functions\when( 'class_exists' )->justReturn( true );
         $updated = array();
         Functions\when( 'update_option' )->alias(
             function ( $key, $value ) use ( &$updated ) {
@@ -139,7 +138,6 @@ class LoaderMigrationsTest extends TestCase {
         $loader = new Loader();
 
         Functions\when( 'get_option' )->justReturn( '' );
-        Functions\when( 'class_exists' )->justReturn( true );
         $updated = array();
         Functions\when( 'update_option' )->alias(
             function ( $key, $value ) use ( &$updated ) {
