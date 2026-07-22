@@ -219,6 +219,18 @@ class CapabilityManager {
 		// `settings_split_cap_grant_map()`.
 		'ffc_manage_settings_smtp',
 		'ffc_manage_settings_dangerzone',
+
+		// Form / calendar structure management (#739). These decouple the
+		// `ffc_form` and `ffc_self_scheduling` CPTs from WordPress's native
+		// post capabilities: the CPTs register a custom `capability_type` +
+		// `map_meta_cap`, so `current_user_can( 'edit_post', $id )` now maps to
+		// these instead of `edit_others_posts` (which a plain WP Editor holds).
+		// `ffc_manage_forms` governs the certificate-form structure;
+		// `ffc_manage_calendars` governs the self-scheduling calendar structure
+		// + options (distinct from `ffc_manage_appointments`, which governs the
+		// bookings made against a calendar).
+		'ffc_manage_forms',
+		'ffc_manage_calendars',
 	);
 
 	/**

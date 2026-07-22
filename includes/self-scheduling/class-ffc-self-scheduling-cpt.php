@@ -102,7 +102,29 @@ class SelfSchedulingCPT {
 			'show_ui'         => true,
 			'show_in_menu'    => 'ffc-scheduling', // Unified Scheduling menu.
 			'query_var'       => true,
-			'capability_type' => 'post',
+			// Custom capability_type + map_meta_cap so calendar management is
+			// gated by the FFC `ffc_manage_calendars` cap instead of native
+			// post caps (a plain WP Editor holds `edit_others_posts`). This
+			// governs the calendar STRUCTURE + options — distinct from
+			// `ffc_manage_appointments`, which governs the bookings made
+			// against a calendar. `current_user_can( 'edit_post', $id )` keeps
+			// working via map_meta_cap. See issue #739.
+			'capability_type' => 'ffc_calendar',
+			'map_meta_cap'    => true,
+			'capabilities'    => array(
+				'edit_post'              => 'ffc_manage_calendars',
+				'read_post'              => 'ffc_manage_calendars',
+				'delete_post'            => 'ffc_manage_calendars',
+				'edit_posts'             => 'ffc_manage_calendars',
+				'edit_others_posts'      => 'ffc_manage_calendars',
+				'delete_posts'           => 'ffc_manage_calendars',
+				'delete_others_posts'    => 'ffc_manage_calendars',
+				'publish_posts'          => 'ffc_manage_calendars',
+				'read_private_posts'     => 'ffc_manage_calendars',
+				'create_posts'           => 'ffc_manage_calendars',
+				'edit_published_posts'   => 'ffc_manage_calendars',
+				'delete_published_posts' => 'ffc_manage_calendars',
+			),
 			'has_archive'     => false,
 			'hierarchical'    => false,
 			'supports'        => array( 'title' ),

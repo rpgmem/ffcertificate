@@ -60,7 +60,30 @@ class CPT {
 			'show_ui'         => true,
 			'show_in_menu'    => true,
 			'query_var'       => true,
-			'capability_type' => 'post',
+			// Custom capability_type + map_meta_cap so form management is gated
+			// by the FFC `ffc_manage_forms` cap instead of WordPress's native
+			// post caps (a plain WP Editor holds `edit_others_posts` and could
+			// otherwise administer every form). Every primitive maps to the one
+			// `ffc_manage_forms` cap, so holding it grants full form management
+			// and lacking it blocks it. `current_user_can( 'edit_post', $id )`
+			// keeps working — map_meta_cap resolves it to `ffc_manage_forms`.
+			// See issue #739.
+			'capability_type' => 'ffc_form',
+			'map_meta_cap'    => true,
+			'capabilities'    => array(
+				'edit_post'              => 'ffc_manage_forms',
+				'read_post'              => 'ffc_manage_forms',
+				'delete_post'            => 'ffc_manage_forms',
+				'edit_posts'             => 'ffc_manage_forms',
+				'edit_others_posts'      => 'ffc_manage_forms',
+				'delete_posts'           => 'ffc_manage_forms',
+				'delete_others_posts'    => 'ffc_manage_forms',
+				'publish_posts'          => 'ffc_manage_forms',
+				'read_private_posts'     => 'ffc_manage_forms',
+				'create_posts'           => 'ffc_manage_forms',
+				'edit_published_posts'   => 'ffc_manage_forms',
+				'delete_published_posts' => 'ffc_manage_forms',
+			),
 			'has_archive'     => false,
 			'hierarchical'    => false,
 			'menu_icon'       => 'dashicons-feedback',
