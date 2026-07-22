@@ -75,22 +75,126 @@ $ffcertificate_dashboard_url     = $ffcertificate_dashboard_page_id ? get_permal
 						</label>
 					</th>
 					<td>
-						<fieldset>
-							<?php foreach ( $ffcertificate_available_roles as $ffcertificate_role_slug => $ffcertificate_role_name ) : ?>
-								<label class="ffc-checkbox-label">
-									<input type="checkbox"
-											name="blocked_roles[]"
-											value="<?php echo esc_attr( $ffcertificate_role_slug ); ?>"
-											<?php checked( in_array( $ffcertificate_role_slug, $ffcertificate_settings['blocked_roles'], true ) ); ?>>
-									<?php echo esc_html( $ffcertificate_role_name ); ?>
-									<?php if ( 'ffc_end_user' === $ffcertificate_role_slug ) : ?>
-										<em>(<?php esc_html_e( 'recommended', 'ffcertificate' ); ?>)</em>
-									<?php endif; ?>
-								</label>
-							<?php endforeach; ?>
+						<?php
+						// Partition the site roles so the list reads as groups
+						// instead of one flat wall of ~30 checkboxes: end-user
+						// (the one you normally block), core WordPress, third-party,
+						// and the FFC administrative ladder (rarely blocked — those
+						// roles operate through wp-admin, so they are tucked behind a
+						// disclosure with a caveat).
+						$ffc_core_roles    = array( 'administrator', 'editor', 'author', 'contributor', 'subscriber' );
+						$ffc_managed_slugs = class_exists( '\FreeFormCertificate\UserDashboard\RoleRegistrar' )
+							? array_keys( \FreeFormCertificate\UserDashboard\RoleRegistrar::ffc_managed_role_labels() )
+							: array();
+						$ffc_blocked       = (array) $ffcertificate_settings['blocked_roles'];
+
+						$ffc_group_enduser = array();
+						$ffc_group_core    = array();
+						$ffc_group_admin   = array();
+						$ffc_group_other   = array();
+						foreach ( $ffcertificate_available_roles as $ffc_slug => $ffc_name ) {
+							if ( 'ffc_end_user' === $ffc_slug ) {
+								$ffc_group_enduser[ $ffc_slug ] = $ffc_name;
+							} elseif ( in_array( $ffc_slug, $ffc_managed_slugs, true ) ) {
+								$ffc_group_admin[ $ffc_slug ] = $ffc_name;
+							} elseif ( in_array( $ffc_slug, $ffc_core_roles, true ) ) {
+								$ffc_group_core[ $ffc_slug ] = $ffc_name;
+							} else {
+								$ffc_group_other[ $ffc_slug ] = $ffc_name;
+							}
+						}
+
+						// Expand the admin disclosure when one of those roles is
+						// already blocked, so a checked box is never hidden.
+						$ffc_admin_has_blocked = (bool) array_intersect( array_keys( $ffc_group_admin ), $ffc_blocked );
+
+						$ffc_render_role_cb = function ( $slug, $name ) use ( $ffc_blocked ) {
+							?>
+							<label class="ffc-checkbox-label">
+								<input type="checkbox"
+										name="blocked_roles[]"
+										value="<?php echo esc_attr( (string) $slug ); ?>"
+										<?php checked( in_array( $slug, $ffc_blocked, true ) ); ?>>
+								<span><?php echo esc_html( (string) $name ); ?></span>
+								<?php if ( 'ffc_end_user' === $slug ) : ?>
+									<em>(<?php esc_html_e( 'recommended', 'ffcertificate' ); ?>)</em>
+								<?php endif; ?>
+							</label>
+							<?php
+						};
+						?>
+						<fieldset class="ffc-blocked-roles">
+							<?php if ( ! empty( $ffc_group_enduser ) ) : ?>
+								<div class="ffc-blocked-roles__group ffc-blocked-roles__group--recommended">
+									<p class="ffc-blocked-roles__legend"><?php esc_html_e( 'FFC — end users', 'ffcertificate' ); ?></p>
+									<div class="ffc-blocked-roles__grid">
+										<?php
+										foreach ( $ffc_group_enduser as $ffc_slug => $ffc_name ) {
+											$ffc_render_role_cb( $ffc_slug, $ffc_name );
+										}
+										?>
+									</div>
+								</div>
+							<?php endif; ?>
+
+							<?php if ( ! empty( $ffc_group_core ) ) : ?>
+								<div class="ffc-blocked-roles__group">
+									<p class="ffc-blocked-roles__legend"><?php esc_html_e( 'WordPress roles', 'ffcertificate' ); ?></p>
+									<div class="ffc-blocked-roles__grid">
+										<?php
+										foreach ( $ffc_group_core as $ffc_slug => $ffc_name ) {
+											$ffc_render_role_cb( $ffc_slug, $ffc_name );
+										}
+										?>
+									</div>
+								</div>
+							<?php endif; ?>
+
+							<?php if ( ! empty( $ffc_group_other ) ) : ?>
+								<div class="ffc-blocked-roles__group">
+									<p class="ffc-blocked-roles__legend"><?php esc_html_e( 'Other roles', 'ffcertificate' ); ?></p>
+									<div class="ffc-blocked-roles__grid">
+										<?php
+										foreach ( $ffc_group_other as $ffc_slug => $ffc_name ) {
+											$ffc_render_role_cb( $ffc_slug, $ffc_name );
+										}
+										?>
+									</div>
+								</div>
+							<?php endif; ?>
+
+							<?php if ( ! empty( $ffc_group_admin ) ) : ?>
+								<details class="ffc-blocked-roles__group ffc-blocked-roles__group--admin"<?php echo $ffc_admin_has_blocked ? ' open' : ''; ?>>
+									<summary class="ffc-blocked-roles__legend">
+										<?php
+										printf(
+											/* translators: %d: number of FFC administrative roles */
+											esc_html__( 'FFC administrative roles (%d) — rarely blocked', 'ffcertificate' ),
+											count( $ffc_group_admin )
+										);
+										?>
+									</summary>
+									<p class="description ffc-blocked-roles__hint">
+										<?php esc_html_e( 'These roles operate through wp-admin. Block one only if its users should be redirected away from the dashboard — blocking an administrative role locks it out of the screens it is meant to use.', 'ffcertificate' ); ?>
+									</p>
+									<div class="ffc-blocked-roles__grid">
+										<?php
+										foreach ( $ffc_group_admin as $ffc_slug => $ffc_name ) {
+											$ffc_render_role_cb( $ffc_slug, $ffc_name );
+										}
+										?>
+									</div>
+								</details>
+							<?php endif; ?>
 						</fieldset>
 						<p class="description">
-							<?php esc_html_e( 'Select which roles should be blocked from accessing wp-admin.', 'ffcertificate' ); ?>
+							<?php
+							printf(
+								/* translators: %d: number of roles currently blocked */
+								esc_html__( 'Select which roles should be blocked from accessing wp-admin. Currently blocked: %d.', 'ffcertificate' ),
+								count( $ffc_blocked )
+							);
+							?>
 						</p>
 					</td>
 				</tr>
