@@ -43,6 +43,7 @@ class AppointmentsListViewTest extends TestCase {
         Functions\when( 'absint' )->alias( fn( $v ) => abs( (int) $v ) );
         Functions\when( 'wp_unslash' )->returnArg();
         Functions\when( 'get_current_user_id' )->justReturn( 1 );
+        Functions\when( 'wp_create_nonce' )->justReturn( 'nonce123' );
         Functions\when( 'get_transient' )->justReturn( false );
         Functions\when( 'set_transient' )->justReturn( true );
         Functions\when( 'delete_transient' )->justReturn( true );
@@ -211,6 +212,64 @@ class AppointmentsListViewTest extends TestCase {
         $this->assertStringContainsString( 'Appointment Details', $out );
         $this->assertStringContainsString( 'Clinic', $out );
         $this->assertStringContainsString( 'Alice', $out );
+    }
+
+    public function test_view_appointment_detail_reveal_tier_masks_with_button(): void {
+        $_GET['appointment'] = '5';
+        Functions\when( 'get_user_by' )->justReturn( false );
+
+        Mockery::mock( 'alias:FreeFormCertificate\Core\Capabilities' )
+            ->shouldReceive( 'current_user_can_admin_or' )->andReturn( true );
+        Mockery::mock( 'alias:FreeFormCertificate\Core\RequestInput' )
+            ->shouldReceive( 'get_get_string' )->andReturn( '' );
+
+        Mockery::getConfiguration()->setConstantsMap(
+            array(
+                'FreeFormCertificate\Core\PiiAccessPolicy' => array(
+                    'TIER_UNMASKED' => 'unmasked',
+                    'TIER_REVEAL'   => 'reveal',
+                    'TIER_MASKED'   => 'masked',
+                ),
+            )
+        );
+        Mockery::mock( 'alias:FreeFormCertificate\Core\PiiAccessPolicy' )
+            ->shouldReceive( 'resolve' )->andReturn( 'reveal' );
+
+        Mockery::mock( 'alias:FreeFormCertificate\Core\DocumentFormatter' )
+            ->shouldReceive( 'mask_email' )->andReturn( 'm***@x.com' )
+            ->shouldReceive( 'mask_cpf' )->andReturn( '***.***.**1-01' )
+            ->shouldReceive( 'mask_rf' )->andReturn( '**.***.**8' )
+            ->shouldReceive( 'format_document' )->andReturn( 'PLAIN' );
+
+        $appt = array(
+            'id'               => 5,
+            'status'           => 'confirmed',
+            'calendar_id'      => 7,
+            'appointment_date' => '2026-05-20',
+            'start_time'       => '09:00:00',
+            'end_time'         => '10:00:00',
+            'name'             => 'Alice',
+            'created_at'       => '2026-05-01',
+            'email'            => 'alice@x.com',
+            'cpf'              => '12345678901',
+        );
+        $appt_repo = Mockery::mock( 'overload:FreeFormCertificate\Repositories\AppointmentRepository' );
+        $appt_repo->shouldReceive( 'findById' )->with( 5 )->andReturn( $appt );
+
+        $cal_repo = Mockery::mock( 'overload:FreeFormCertificate\Repositories\CalendarRepository' );
+        $cal_repo->shouldReceive( 'findById' )->with( 7 )->andReturn( array( 'id' => 7, 'title' => 'Clinic' ) );
+
+        Mockery::mock( 'alias:FreeFormCertificate\Core\Encryption' )
+            ->shouldReceive( 'decrypt_appointment' )->andReturnUsing( fn( $a ) => $a );
+
+        ob_start();
+        $this->include_view();
+        $out = ob_get_clean();
+
+        $this->assertStringContainsString( 'ffc-reveal-pii', $out );
+        $this->assertStringContainsString( 'data-type="appointment"', $out );
+        $this->assertStringContainsString( 'ffc-pii-value', $out );
+        $this->assertStringContainsString( 'm***@x.com', $out );
     }
 
     public function test_view_detail_not_found_shows_notice(): void {

@@ -142,12 +142,42 @@ if ( $ffc_self_scheduling_appointment_id > 0 ) {
 
 			// #739 §3.3 — mask CPF / RF / email unless the viewer holds the
 			// appointments PII tier (the domain `_admin` role or a WP super-admin).
+			// The `reveal` tier gets a masked value plus a button that fetches the
+			// plaintext through the audited ffc_reveal_pii endpoint.
 			$ffcertificate_pii_tier     = \FreeFormCertificate\Core\PiiAccessPolicy::resolve(
 				'ffc_view_appointments_pii',
 				'ffc_appointments_admin',
 				(int) ( $ffcertificate_appointment['user_id'] ?? 0 )
 			);
 			$ffcertificate_pii_unmasked = ( \FreeFormCertificate\Core\PiiAccessPolicy::TIER_UNMASKED === $ffcertificate_pii_tier );
+			$ffcertificate_pii_reveal   = ( \FreeFormCertificate\Core\PiiAccessPolicy::TIER_REVEAL === $ffcertificate_pii_tier );
+			$ffcertificate_reveal_nonce = wp_create_nonce( 'ffc_reveal_pii_nonce' );
+
+			/**
+			 * Render one PII cell: plaintext for the unmasked tier, otherwise a
+			 * masked value with an optional (reveal-tier) "Reveal" button.
+			 *
+			 * @param string $field            Field key (cpf | rf | email).
+			 * @param string $unmasked_display Formatted plaintext for the unmasked tier.
+			 * @param string $masked_display   Masked placeholder for the other tiers.
+			 * @return void
+			 */
+			$ffcertificate_render_pii = function ( string $field, string $unmasked_display, string $masked_display ) use ( $ffcertificate_pii_unmasked, $ffcertificate_pii_reveal, $ffc_self_scheduling_appointment_id, $ffcertificate_reveal_nonce ) {
+				if ( $ffcertificate_pii_unmasked ) {
+					echo esc_html( $unmasked_display );
+					return;
+				}
+				echo '<span class="ffc-pii-value" data-field="' . esc_attr( $field ) . '">' . esc_html( $masked_display ) . '</span>';
+				if ( $ffcertificate_pii_reveal ) {
+					printf(
+						' <button type="button" class="button button-small ffc-reveal-pii" data-type="appointment" data-field="%1$s" data-submission-id="%2$s" data-nonce="%3$s">%4$s</button>',
+						esc_attr( $field ),
+						esc_attr( (string) $ffc_self_scheduling_appointment_id ),
+						esc_attr( $ffcertificate_reveal_nonce ),
+						esc_html__( 'Reveal', 'ffcertificate' )
+					);
+				}
+			};
 
 			$ffcertificate_name = '';
 			if ( ! empty( $ffcertificate_appointment['user_id'] ) ) {
@@ -211,13 +241,19 @@ if ( $ffc_self_scheduling_appointment_id > 0 ) {
 										<tr><th><?php esc_html_e( 'Date', 'ffcertificate' ); ?></th><td><?php echo esc_html( $ffcertificate_appointment['appointment_date'] ?? '-' ); ?></td></tr>
 										<tr><th><?php esc_html_e( 'Time', 'ffcertificate' ); ?></th><td><?php echo esc_html( ( $ffcertificate_appointment['start_time'] ?? '' ) . ' - ' . ( $ffcertificate_appointment['end_time'] ?? '' ) ); ?></td></tr>
 										<tr><th><?php esc_html_e( 'Name', 'ffcertificate' ); ?></th><td><?php echo esc_html( $ffcertificate_name ); ?></td></tr>
-										<tr><th><?php esc_html_e( 'E-mail', 'ffcertificate' ); ?></th><td><?php echo esc_html( $ffcertificate_email ? ( $ffcertificate_pii_unmasked ? $ffcertificate_email : \FreeFormCertificate\Core\DocumentFormatter::mask_email( $ffcertificate_email ) ) : '-' ); ?></td></tr>
+										<tr><th><?php esc_html_e( 'E-mail', 'ffcertificate' ); ?></th><td><?php
+										if ( $ffcertificate_email ) {
+											$ffcertificate_render_pii( 'email', $ffcertificate_email, \FreeFormCertificate\Core\DocumentFormatter::mask_email( $ffcertificate_email ) );
+										} else {
+											echo '-';
+										}
+										?></td></tr>
 										<tr><th><?php esc_html_e( 'Phone', 'ffcertificate' ); ?></th><td><?php echo esc_html( $ffcertificate_phone ? $ffcertificate_phone : '-' ); ?></td></tr>
 										<?php if ( ! empty( $ffcertificate_cpf ) ) : ?>
-										<tr><th><?php esc_html_e( 'CPF', 'ffcertificate' ); ?></th><td><?php echo esc_html( $ffcertificate_pii_unmasked ? \FreeFormCertificate\Core\DocumentFormatter::format_document( $ffcertificate_cpf ) : \FreeFormCertificate\Core\DocumentFormatter::mask_cpf( $ffcertificate_cpf ) ); ?></td></tr>
+										<tr><th><?php esc_html_e( 'CPF', 'ffcertificate' ); ?></th><td><?php $ffcertificate_render_pii( 'cpf', \FreeFormCertificate\Core\DocumentFormatter::format_document( $ffcertificate_cpf ), \FreeFormCertificate\Core\DocumentFormatter::mask_cpf( $ffcertificate_cpf ) ); ?></td></tr>
 										<?php endif; ?>
 										<?php if ( ! empty( $ffcertificate_rf ) ) : ?>
-										<tr><th><?php esc_html_e( 'RF', 'ffcertificate' ); ?></th><td><?php echo esc_html( $ffcertificate_pii_unmasked ? \FreeFormCertificate\Core\DocumentFormatter::format_document( $ffcertificate_rf ) : \FreeFormCertificate\Core\DocumentFormatter::mask_rf( $ffcertificate_rf ) ); ?></td></tr>
+										<tr><th><?php esc_html_e( 'RF', 'ffcertificate' ); ?></th><td><?php $ffcertificate_render_pii( 'rf', \FreeFormCertificate\Core\DocumentFormatter::format_document( $ffcertificate_rf ), \FreeFormCertificate\Core\DocumentFormatter::mask_rf( $ffcertificate_rf ) ); ?></td></tr>
 										<?php endif; ?>
 										<?php if ( ! empty( $ffcertificate_appointment['validation_code'] ) ) : ?>
 										<tr><th><?php esc_html_e( 'Validation Code', 'ffcertificate' ); ?></th><td><code><?php echo esc_html( \FreeFormCertificate\Core\DocumentFormatter::format_auth_code( $ffcertificate_appointment['validation_code'], \FreeFormCertificate\Core\DocumentFormatter::PREFIX_APPOINTMENT ) ); ?></code></td></tr>

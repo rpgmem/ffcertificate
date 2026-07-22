@@ -77,6 +77,11 @@ class AdminConditionalAssets {
 			$this->enqueue_submission_edit_assets();
 		}
 
+		// Appointment detail page — shared masked-PII reveal handler (#739 §3.3).
+		if ( $this->is_appointment_detail_page() ) {
+			$this->enqueue_pii_reveal_assets( $s );
+		}
+
 		// Submissions list page (when filtered by a single form): "Move to form…" modal.
 		if ( $this->is_submissions_list_page() ) {
 			$this->enqueue_move_submissions_assets();
@@ -398,7 +403,34 @@ class AdminConditionalAssets {
 				'no_users_found'   => __( 'No users found.', 'ffcertificate' ),
 				'search_error'     => __( 'Error searching for users. Please try again.', 'ffcertificate' ),
 				'clear_selection'  => __( 'Clear', 'ffcertificate' ),
-				'reveal_error'     => __( 'Unable to reveal this value.', 'ffcertificate' ),
+			)
+		);
+
+		// Shared masked-PII reveal handler (#739 §3.3).
+		$this->enqueue_pii_reveal_assets( $s );
+	}
+
+	/**
+	 * Enqueue the shared masked-PII reveal script (#739 §3.3). Used on both the
+	 * submission edit page and the appointment detail page; `ffc-core` (which
+	 * provides `FFC.request`) is already enqueued on every FFC admin screen.
+	 *
+	 * @param string $s Asset minification suffix.
+	 * @return void
+	 */
+	private function enqueue_pii_reveal_assets( string $s ): void {
+		wp_enqueue_script(
+			'ffc-pii-reveal',
+			FFC_PLUGIN_URL . "assets/js/ffc-pii-reveal{$s}.js",
+			array( 'jquery', 'ffc-core' ),
+			FFC_VERSION,
+			true
+		);
+		wp_localize_script(
+			'ffc-pii-reveal',
+			'ffcPiiReveal',
+			array(
+				'reveal_error' => __( 'Unable to reveal this value.', 'ffcertificate' ),
 			)
 		);
 	}
@@ -414,6 +446,20 @@ class AdminConditionalAssets {
 			&& sanitize_key( wp_unslash( $_GET['page'] ) ) === 'ffc-submissions'
 			&& isset( $_GET['action'] )
 			&& sanitize_key( wp_unslash( $_GET['action'] ) ) === 'edit';
+        // phpcs:enable WordPress.Security.NonceVerification.Recommended
+	}
+
+	/**
+	 * Check if current page is the appointment detail view (the single-record
+	 * screen that renders masked CPF / RF / email with reveal controls).
+	 *
+	 * @return bool
+	 */
+	private function is_appointment_detail_page(): bool {
+        // phpcs:disable WordPress.Security.NonceVerification.Recommended -- Page routing check for asset loading.
+		return isset( $_GET['page'] )
+			&& sanitize_key( wp_unslash( $_GET['page'] ) ) === 'ffc-appointments'
+			&& isset( $_GET['appointment'] );
         // phpcs:enable WordPress.Security.NonceVerification.Recommended
 	}
 }
