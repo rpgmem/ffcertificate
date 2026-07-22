@@ -85,8 +85,8 @@ class MigrationRenameCapabilities {
 			}
 		}
 
-		// Also update the ffc_user role if it exists.
-		$role = get_role( 'ffc_user' );
+		// Also update the ffc_end_user role if it exists.
+		$role = get_role( 'ffc_end_user' );
 		if ( $role ) {
 			foreach ( self::$capability_mappings as $old_cap => $new_cap ) {
 				if ( $role->has_cap( $old_cap ) ) {

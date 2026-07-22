@@ -95,7 +95,7 @@
                 <element value="ffc_cancel_own_appointments"/>
                 <element value="ffc_view_own_audience_bookings"/>
                 <!-- Admin module caps — manage (vê e edita). -->
-                <element value="ffc_scheduling_bypass"/>
+                <element value="ffc_bypass_appointments"/>
                 <element value="ffc_manage_certificates"/>
                 <element value="ffc_export_certificates"/>
                 <element value="ffc_edit_certificates"/>

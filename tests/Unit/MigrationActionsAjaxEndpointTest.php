@@ -67,8 +67,11 @@ class MigrationActionsAjaxEndpointTest extends TestCase {
     // ==================================================================
 
     public function test_rejects_when_user_lacks_capability(): void {
+        // #739 (B): migration execution is gated on the dangerzone sub-cap,
+        // matching the no-JS handlers — not the broader ffc_manage_settings.
         Mockery::mock( 'alias:FreeFormCertificate\Core\Capabilities' )
             ->shouldReceive( 'current_user_can_admin_or' )
+            ->with( 'ffc_manage_settings_dangerzone' )
             ->andReturn( false );
 
         $this->expectException( \RuntimeException::class );

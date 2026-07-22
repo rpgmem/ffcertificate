@@ -66,7 +66,7 @@ class RecruitmentCapabilityManagerTest extends TestCase {
 
 	public function test_grant_context_capabilities_recruitment_is_a_no_op(): void {
 		// CONTEXT_RECRUITMENT is intentionally a no-op: candidates rely on
-		// the `ffc_user` role's baseline `read` cap. We verify the call
+		// the `ffc_end_user` role's baseline `read` cap. We verify the call
 		// completes without invoking any of the per-cap grant helpers
 		// (no get_userdata, no add_cap on the user).
 		$get_userdata_called = false;

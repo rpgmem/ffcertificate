@@ -493,3 +493,56 @@
 .ffc-cap-group[hidden] {
 	display: none;
 }
+
+/* ---- hue×tier visual system (#739 §3.4) ------------------------------ */
+/* Each domain group carries a hue; each cap row paints that hue as a left
+   accent bar whose opacity rises with the capability's write-power tier
+   (view = faint → delete = solid). Domains read by color, severity by
+   intensity. The bar reinforces the textual label, never replaces it. */
+.ffc-cap-group[data-ffc-hue="certificates"]   { --ffc-cap-hue: #2271b1; }
+.ffc-cap-group[data-ffc-hue="forms"]          { --ffc-cap-hue: #7c3aed; }
+.ffc-cap-group[data-ffc-hue="appointments"]   { --ffc-cap-hue: #0d9488; }
+.ffc-cap-group[data-ffc-hue="calendars"]      { --ffc-cap-hue: #16a34a; }
+.ffc-cap-group[data-ffc-hue="audiences"]      { --ffc-cap-hue: #ca8a04; }
+.ffc-cap-group[data-ffc-hue="reregistration"] { --ffc-cap-hue: #db2777; }
+.ffc-cap-group[data-ffc-hue="custom_fields"]  { --ffc-cap-hue: #dc2626; }
+.ffc-cap-group[data-ffc-hue="url_shortener"]  { --ffc-cap-hue: #ea580c; }
+.ffc-cap-group[data-ffc-hue="settings"]       { --ffc-cap-hue: #64748b; }
+.ffc-cap-group[data-ffc-hue="system"]         { --ffc-cap-hue: #334155; }
+.ffc-cap-group[data-ffc-hue="recruitment"]    { --ffc-cap-hue: #4338ca; }
+.ffc-cap-group[data-ffc-hue="neutral"]        { --ffc-cap-hue: #9ca3af; }
+
+/* Domain accent on the group header so the hue is visible while collapsed. */
+.ffc-cap-group-h {
+	border-left: 4px solid var(--ffc-cap-hue, transparent);
+}
+
+/* Per-row left accent bar: domain hue × tier opacity. */
+.ffc-cap-row {
+	position: relative;
+}
+
+.ffc-cap-row::before {
+	content: "";
+	position: absolute;
+	top: 0;
+	bottom: 0;
+	left: 0;
+	width: 3px;
+	background: var(--ffc-cap-hue, #c3c4c7);
+	opacity: var(--ffc-tier-strength, 0.5);
+}
+
+/* Tier → accent intensity (write-power / severity). */
+.ffc-cap-row[data-ffc-tier="view"]     { --ffc-tier-strength: 0.32; }
+.ffc-cap-row[data-ffc-tier="download"] { --ffc-tier-strength: 0.40; }
+.ffc-cap-row[data-ffc-tier="book"]     { --ffc-tier-strength: 0.42; }
+.ffc-cap-row[data-ffc-tier="cancel"]   { --ffc-tier-strength: 0.46; }
+.ffc-cap-row[data-ffc-tier="call"]     { --ffc-tier-strength: 0.50; }
+.ffc-cap-row[data-ffc-tier="reveal"]   { --ffc-tier-strength: 0.58; }
+.ffc-cap-row[data-ffc-tier="export"]   { --ffc-tier-strength: 0.58; }
+.ffc-cap-row[data-ffc-tier="import"]   { --ffc-tier-strength: 0.64; }
+.ffc-cap-row[data-ffc-tier="edit"]     { --ffc-tier-strength: 0.70; }
+.ffc-cap-row[data-ffc-tier="manage"]   { --ffc-tier-strength: 0.85; }
+.ffc-cap-row[data-ffc-tier="bypass"]   { --ffc-tier-strength: 0.85; }
+.ffc-cap-row[data-ffc-tier="delete"]   { --ffc-tier-strength: 1; }

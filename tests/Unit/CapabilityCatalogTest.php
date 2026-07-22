@@ -133,7 +133,7 @@ class CapabilityCatalogTest extends TestCase {
 		}
 		$this->assertSame(
 			array(
-				'ffc_scheduling_bypass' => 'frontend',
+				'ffc_bypass_appointments' => 'frontend',
 				'ffc_view_forms_api'    => 'api',
 			),
 			$tagged
@@ -154,5 +154,45 @@ class CapabilityCatalogTest extends TestCase {
 	public function test_level_section_label_maps_user_and_admin(): void {
 		$this->assertSame( 'Self-service', CapabilityCatalog::level_section_label( 'user' ) );
 		$this->assertSame( 'Administration', CapabilityCatalog::level_section_label( 'admin' ) );
+	}
+
+	public function test_group_hue_shares_domain_across_user_and_admin(): void {
+		// The end-user and admin groups of one domain resolve to one hue.
+		$this->assertSame(
+			CapabilityCatalog::group_hue( CapabilityCatalog::GROUP_CERTIFICATE ),
+			CapabilityCatalog::group_hue( CapabilityCatalog::GROUP_ADMIN_CERTIFICATES )
+		);
+		$this->assertSame( 'certificates', CapabilityCatalog::group_hue( CapabilityCatalog::GROUP_ADMIN_CERTIFICATES ) );
+		$this->assertSame( 'appointments', CapabilityCatalog::group_hue( CapabilityCatalog::GROUP_APPOINTMENT ) );
+		$this->assertSame( 'forms', CapabilityCatalog::group_hue( CapabilityCatalog::GROUP_ADMIN_FORMS ) );
+		$this->assertSame( 'custom_fields', CapabilityCatalog::group_hue( CapabilityCatalog::GROUP_ADMIN_CUSTOM_FIELDS ) );
+		$this->assertSame( 'neutral', CapabilityCatalog::group_hue( 'not_a_group' ) );
+	}
+
+	public function test_every_group_resolves_a_non_empty_hue(): void {
+		foreach ( CapabilityCatalog::groups() as $group ) {
+			$hue = CapabilityCatalog::group_hue( (string) $group['key'] );
+			$this->assertNotSame( '', $hue, 'Group ' . $group['key'] . ' has no hue.' );
+			$this->assertNotSame( 'neutral', $hue, 'Cataloged group ' . $group['key'] . ' fell back to neutral.' );
+		}
+	}
+
+	public function test_cap_tier_derives_action_and_promotes_pii(): void {
+		$this->assertSame( 'view', CapabilityCatalog::cap_tier( 'ffc_view_certificates' ) );
+		$this->assertSame( 'manage', CapabilityCatalog::cap_tier( 'ffc_manage_settings_smtp' ) );
+		$this->assertSame( 'delete', CapabilityCatalog::cap_tier( 'ffc_delete_certificates' ) );
+		$this->assertSame( 'bypass', CapabilityCatalog::cap_tier( 'ffc_bypass_appointments' ) );
+		// The _pii qualifier is promoted to its own reveal tier.
+		$this->assertSame( 'reveal', CapabilityCatalog::cap_tier( 'ffc_view_certificates_pii' ) );
+		$this->assertSame( 'reveal', CapabilityCatalog::cap_tier( 'ffc_view_appointments_pii' ) );
+		// Unknown action → the faintest, safest tier.
+		$this->assertSame( 'view', CapabilityCatalog::cap_tier( 'ffc_frobnicate_widgets' ) );
+	}
+
+	public function test_every_cataloged_cap_resolves_a_known_tier(): void {
+		$known = array( 'view', 'reveal', 'book', 'cancel', 'download', 'call', 'export', 'import', 'edit', 'manage', 'bypass', 'delete' );
+		foreach ( CapabilityCatalog::all_slugs() as $slug ) {
+			$this->assertContains( CapabilityCatalog::cap_tier( $slug ), $known, $slug . ' resolved an unknown tier.' );
+		}
 	}
 }

@@ -164,8 +164,8 @@ function rolePanelMarkup() {
 	<div class="ffc-cap-panel">
 		<div class="ffc-cap-roles">
 			<div class="ffc-cap-role-chips">
-				<button class="ffc-cap-role is-on" data-ffc-role="ffc_user" aria-pressed="true">
-					<span class="ffc-cap-role-mark"></span><span class="ffc-cap-role-nm">FFC User</span><span class="ffc-cap-role-ct">2 caps</span>
+				<button class="ffc-cap-role is-on" data-ffc-role="ffc_end_user" aria-pressed="true">
+					<span class="ffc-cap-role-mark"></span><span class="ffc-cap-role-nm">FFC End User</span><span class="ffc-cap-role-ct">2 caps</span>
 				</button>
 				<button class="ffc-cap-role" data-ffc-role="ffc_recruitment_manager" aria-pressed="false">
 					<span class="ffc-cap-role-mark"></span><span class="ffc-cap-role-nm">Recruitment Manager</span><span class="ffc-cap-role-ct">1 cap</span>
@@ -196,8 +196,8 @@ function roleSetup(fetchImpl) {
 		ajaxUrl: '/wp-admin/admin-ajax.php',
 		nonce: 'role-nonce',
 		userId: 5,
-		roleCaps: { ffc_user: ['cap_a', 'cap_b'], ffc_recruitment_manager: ['cap_c'] },
-		assigned: ['ffc_user'],
+		roleCaps: { ffc_end_user: ['cap_a', 'cap_b'], ffc_recruitment_manager: ['cap_c'] },
+		assigned: ['ffc_end_user'],
 		i18n: { user: 'User', role: 'Role', none: '—', error: 'Err' },
 	};
 	if (fetchImpl) {
@@ -257,8 +257,8 @@ describe('role presets', () => {
 		const fetchMock = vi.fn(() => Promise.resolve({ json: () => Promise.resolve({ success: true }) }));
 		roleSetup(fetchMock);
 
-		// cap_a is user-granted (data-ffc-user-granted="1"); ffc_user also grants it.
-		document.querySelector('[data-ffc-role="ffc_user"]').click();
+		// cap_a is user-granted (data-ffc-user-granted="1"); ffc_end_user also grants it.
+		document.querySelector('[data-ffc-role="ffc_end_user"]').click();
 		await new Promise((r) => setTimeout(r, 0));
 
 		const rowA = document.querySelector('[data-ffc-cap-slug="cap_a"]');

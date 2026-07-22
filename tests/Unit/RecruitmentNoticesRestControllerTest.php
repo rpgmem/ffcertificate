@@ -104,16 +104,22 @@ class RecruitmentNoticesRestControllerTest extends TestCase {
         $this->assertContains( '/recruitment/notices/(?P<id>\d+)', $routes );
     }
 
-    public function test_register_routes_wires_admin_cap_to_every_endpoint(): void {
+    public function test_register_routes_wires_view_tier_reads_and_admin_writes(): void {
         $this->controller->register_routes();
 
+        $seen = array();
         foreach ( $this->registered_routes as $entry ) {
             $callbacks = $this->collect_permission_callbacks( $entry['args'] );
             foreach ( $callbacks as $cb ) {
                 $this->assertSame( $this->controller, $cb[0] );
-                $this->assertSame( 'check_admin_cap', $cb[1] );
+                // #739 §2.3 — reads accept the view tier; writes stay admin-only.
+                $this->assertContains( $cb[1], array( 'check_admin_cap', 'check_can_view_recruitment' ) );
+                $seen[ $cb[1] ] = true;
             }
         }
+        // The list read was actually rewired to the view tier.
+        $this->assertArrayHasKey( 'check_can_view_recruitment', $seen );
+        $this->assertArrayHasKey( 'check_admin_cap', $seen );
     }
 
     /**

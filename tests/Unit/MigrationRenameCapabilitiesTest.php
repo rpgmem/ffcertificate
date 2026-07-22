@@ -187,7 +187,7 @@ class MigrationRenameCapabilitiesTest extends TestCase {
     }
 
     // ==================================================================
-    // run() — no ffc_user role
+    // run() — no ffc_end_user role
     // ==================================================================
 
     public function test_run_handles_null_role(): void {

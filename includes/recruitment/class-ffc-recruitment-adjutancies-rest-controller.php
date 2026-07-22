@@ -53,7 +53,7 @@ final class RecruitmentAdjutanciesRestController {
 				array(
 					'methods'             => \WP_REST_Server::READABLE,
 					'callback'            => array( $this, 'list_adjutancies' ),
-					'permission_callback' => array( $this, 'check_admin_cap' ),
+					'permission_callback' => array( $this, 'check_can_view_recruitment' ),
 				),
 				array(
 					'methods'             => \WP_REST_Server::CREATABLE,

@@ -151,14 +151,14 @@ class AudienceActivatorTest extends TestCase {
     }
 
     // ==================================================================
-    // register_capabilities() — ffc_user role
+    // register_capabilities() — ffc_end_user role
     // ==================================================================
 
     public function test_register_capabilities_adds_to_ffc_user_role(): void {
         $ffc_user_role = new \WP_Role();
 
         Functions\when( 'get_role' )->alias( function ( $role ) use ( $ffc_user_role ) {
-            if ( $role === 'ffc_user' ) {
+            if ( $role === 'ffc_end_user' ) {
                 return $ffc_user_role;
             }
             return null;
@@ -360,7 +360,7 @@ class AudienceActivatorTest extends TestCase {
         $subscriber_role = new \WP_Role();
 
         Functions\when( 'get_role' )->alias( function ( $role ) use ( $ffc_user_role, $subscriber_role ) {
-            if ( $role === 'ffc_user' ) {
+            if ( $role === 'ffc_end_user' ) {
                 return $ffc_user_role;
             }
             if ( $role === 'subscriber' ) {
@@ -375,7 +375,7 @@ class AudienceActivatorTest extends TestCase {
         $this->assertArrayHasKey(
             'ffc_view_own_audience_bookings',
             $ffc_user_role->capabilities,
-            'create_tables() should call register_capabilities() which adds cap to ffc_user'
+            'create_tables() should call register_capabilities() which adds cap to ffc_end_user'
         );
         $this->assertArrayHasKey(
             'ffc_view_own_audience_bookings',

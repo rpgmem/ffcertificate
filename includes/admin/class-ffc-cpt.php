@@ -60,7 +60,49 @@ class CPT {
 			'show_ui'         => true,
 			'show_in_menu'    => true,
 			'query_var'       => true,
-			'capability_type' => 'post',
+			// Custom capability_type + map_meta_cap so form management is gated
+			// by the FFC `ffc_manage_forms` cap instead of WordPress's native
+			// post caps (a plain WP Editor holds `edit_others_posts` and could
+			// otherwise administer every form). See issue #739.
+			//
+			// #739 §3.2 read-only viewer: the list/read primitives map to the
+			// `ffc_view_forms` cap so a viewer sees the forms list read-only;
+			// every write primitive stays on `ffc_manage_forms`. Because WP
+			// resolves the per-post `edit_post` meta-cap to `edit_others_posts`
+			// for another author's post — which now maps to the view cap —
+			// {@see CptCapPolicy} forces the write meta-caps back to
+			// `ffc_manage_forms`, so viewing never implies editing.
+			'capability_type' => 'ffc_form',
+			'map_meta_cap'    => true,
+			// NOTE: only the *primitive* caps are mapped here. The per-post
+			// *meta* caps `read_post` / `edit_post` / `delete_post` are
+			// deliberately NOT mapped: WordPress's
+			// `_post_type_meta_capabilities()` copies any `read_post` /
+			// `edit_post` / `delete_post` value into the global
+			// `$post_type_meta_caps`, registering that string as a meta-cap
+			// alias. Reusing `ffc_view_forms` / `ffc_manage_forms` for BOTH a
+			// primitive (`edit_posts`, `create_posts`) AND a meta cap
+			// (`read_post`, `edit_post`) poisons the primitive: a plain
+			// `current_user_can( 'ffc_view_forms' )` (the admin-menu check) is
+			// then rerouted through `map_meta_cap()` to `read_post`, and with
+			// no post ID in a menu/context check it collapses to
+			// `do_not_allow` — hiding the CPT menus for every holder (the #739
+			// menu regression). Per-post edit/delete stays gated: the shared
+			// {@see CptCapPolicy::gate_cpt_writes} filter forces the write
+			// meta-caps back to `ffc_manage_forms` on `map_meta_cap`.
+			'capabilities'    => array(
+				// Read-only viewer tier (list visibility + read).
+				'edit_posts'             => 'ffc_view_forms',
+				'edit_others_posts'      => 'ffc_view_forms',
+				'read_private_posts'     => 'ffc_view_forms',
+				// Write tier (primitives only; per-post writes via CptCapPolicy).
+				'delete_posts'           => 'ffc_manage_forms',
+				'delete_others_posts'    => 'ffc_manage_forms',
+				'publish_posts'          => 'ffc_manage_forms',
+				'create_posts'           => 'ffc_manage_forms',
+				'edit_published_posts'   => 'ffc_manage_forms',
+				'delete_published_posts' => 'ffc_manage_forms',
+			),
 			'has_archive'     => false,
 			'hierarchical'    => false,
 			'menu_icon'       => 'dashicons-feedback',

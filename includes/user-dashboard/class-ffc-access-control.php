@@ -60,10 +60,10 @@ class AccessControl {
 
 		// Check if user has blocked role.
 		$user          = wp_get_current_user();
-		$blocked_roles = isset( $settings['blocked_roles'] ) ? $settings['blocked_roles'] : array( 'ffc_user' );
+		$blocked_roles = isset( $settings['blocked_roles'] ) ? $settings['blocked_roles'] : array( 'ffc_end_user' );
 
 		// Block only if ALL of the user's roles are in the blocked list.
-		// If the user has at least one non-blocked role (e.g. editor + ffc_user),.
+		// If the user has at least one non-blocked role (e.g. editor + ffc_end_user),.
 		// they should retain wp-admin access.
 		if ( ! empty( $user->roles ) && ! array_diff( $user->roles, $blocked_roles ) ) {
 			// Get redirect URL.
@@ -94,7 +94,7 @@ class AccessControl {
 
 		// Check if user has blocked role.
 		$user          = wp_get_current_user();
-		$blocked_roles = isset( $settings['blocked_roles'] ) ? $settings['blocked_roles'] : array( 'ffc_user' );
+		$blocked_roles = isset( $settings['blocked_roles'] ) ? $settings['blocked_roles'] : array( 'ffc_end_user' );
 
 		// Hide admin bar only if ALL of the user's roles are blocked.
 		if ( ! empty( $user->roles ) && ! array_diff( $user->roles, $blocked_roles ) ) {
@@ -112,7 +112,7 @@ class AccessControl {
 	public static function get_default_settings(): array {
 		return array(
 			'block_wp_admin'    => false,
-			'blocked_roles'     => array( 'ffc_user' ),
+			'blocked_roles'     => array( 'ffc_end_user' ),
 			'redirect_url'      => home_url( '/dashboard' ),
 			'redirect_message'  => __( 'You were redirected from the admin panel. Use this dashboard to access your certificates.', 'ffcertificate' ),
 			'allow_admin_bar'   => false,

@@ -522,7 +522,7 @@ class CalendarRepositoryTest extends TestCase {
      */
     public function test_userHasSchedulingBypass_returns_true_for_bypass_cap_current_user(): void {
         Functions\when( 'current_user_can' )->alias( function ( $cap ) {
-            return $cap === 'ffc_scheduling_bypass';
+            return $cap === 'ffc_bypass_appointments';
         });
 
         $result = CalendarRepository::userHasSchedulingBypass();
@@ -562,7 +562,7 @@ class CalendarRepositoryTest extends TestCase {
      */
     public function test_userHasSchedulingBypass_with_specific_user_id_bypass_cap(): void {
         Functions\when( 'user_can' )->alias( function ( $user_id, $cap ) {
-            return $user_id === 42 && $cap === 'ffc_scheduling_bypass';
+            return $user_id === 42 && $cap === 'ffc_bypass_appointments';
         });
 
         $result = CalendarRepository::userHasSchedulingBypass( 42 );

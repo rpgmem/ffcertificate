@@ -42,13 +42,13 @@ class CapabilityMigrator {
 
 	/**
 	 * Idempotent migration: rewrites every legacy cap grant on every user
-	 * (user-meta `add_cap(true)`) and on the `ffc_user` role to the new
+	 * (user-meta `add_cap(true)`) and on the `ffc_end_user` role to the new
 	 * `ffc_*` namespace.
 	 *
 	 * Strategy: for each `legacy => new` pair,
 	 *   1. iterate every user that has the legacy cap, add the new cap, drop
 	 *      the legacy cap;
-	 *   2. on the `ffc_user` role, if the legacy cap exists, add the new
+	 *   2. on the `ffc_end_user` role, if the legacy cap exists, add the new
 	 *      cap with the same boolean value and remove the legacy cap.
 	 *
 	 * Run once per FFC version bump via `Loader::ensure_legacy_caps_renamed()`.
@@ -77,8 +77,8 @@ class CapabilityMigrator {
 				}
 			}
 
-			// 2. ffc_user role definition.
-			$role = get_role( 'ffc_user' );
+			// 2. ffc_end_user role definition.
+			$role = get_role( 'ffc_end_user' );
 			if ( $role && isset( $role->capabilities[ $legacy ] ) ) {
 				$value = (bool) $role->capabilities[ $legacy ];
 				$role->add_cap( $renamed, $value );
@@ -611,6 +611,201 @@ class CapabilityMigrator {
 					$role->add_cap( $reasons_cap, true );
 				}
 			}
+		}
+
+		return $counts;
+	}
+
+	/**
+	 * Move admins from role-capability grants to the `ffc_administrator` role.
+	 *
+	 * Historically {@see \FreeFormCertificate\Loader::ensure_admin_capabilities()}
+	 * granted the 43 `ADMIN_CAPABILITIES` directly to the native `administrator`
+	 * role. This one-shot migration switches to the role model instead:
+	 *
+	 *   1. Every EXISTING administrator is given the `ffc_administrator` role as
+	 *      an additional role (they keep `administrator` for `manage_options`),
+	 *      so no FFC access is lost.
+	 *   2. The FFC admin caps previously granted to the native `administrator`
+	 *      role are stripped, so that role stops carrying plugin caps.
+	 *
+	 * Administrators created AFTER this migration are NOT auto-elevated — the
+	 * `ffc_administrator` role is granted explicitly from then on (per the
+	 * agreed model). Order matters: step 1 assigns the role before step 2
+	 * strips the caps, so there is no window where an admin lacks access.
+	 *
+	 * @since 6.16.0
+	 * @return array{roles_assigned:int, caps_stripped:int}
+	 */
+	public static function migrate_admin_role_assignment(): array {
+		$counts = array(
+			'roles_assigned' => 0,
+			'caps_stripped'  => 0,
+		);
+
+		// The `ffc_administrator` role is registered on `init:1`, which runs
+		// after the `plugins_loaded` migration sequence on the very first
+		// request. Self-heal so the back-fill never no-ops against a role that
+		// has not been created yet.
+		if ( ! get_role( 'ffc_administrator' ) ) {
+			RoleRegistrar::register_module_roles();
+		}
+
+		// 1. Back-fill: assign `ffc_administrator` to every current admin.
+		$admins = get_users(
+			array(
+				'role'   => 'administrator',
+				'fields' => 'ID',
+			)
+		);
+		foreach ( $admins as $admin_id ) {
+			$user = get_userdata( (int) $admin_id );
+			if ( ! $user ) {
+				continue;
+			}
+			if ( ! in_array( 'ffc_administrator', (array) $user->roles, true ) ) {
+				$user->add_role( 'ffc_administrator' );
+				++$counts['roles_assigned'];
+			}
+		}
+
+		// 2. Stop polluting the native `administrator` role: strip the FFC admin
+		// caps the old grant added. Admins keep every FFC cap through the
+		// `ffc_administrator` role assigned in step 1.
+		$admin_role = get_role( 'administrator' );
+		if ( $admin_role ) {
+			foreach ( CapabilityManager::ADMIN_CAPABILITIES as $cap ) {
+				if ( isset( $admin_role->capabilities[ $cap ] ) ) {
+					$admin_role->remove_cap( $cap );
+					++$counts['caps_stripped'];
+				}
+			}
+		}
+
+		return $counts;
+	}
+
+	/**
+	 * #739 RBAC-redesign capability renames (grammar / consistency pass).
+	 *
+	 * Distinct from {@see self::taxonomy_cap_renames()} (already flagged as run
+	 * on existing installs) — these ship in a separate one-shot so upgrades pick
+	 * them up. Role renames are handled apart, in {@see self::migrate_role_renames()}.
+	 *
+	 * @since 6.16.0
+	 * @return array<string, string>
+	 */
+	public static function rbac_cap_renames(): array {
+		return array(
+			'ffc_scheduling_bypass' => 'ffc_bypass_appointments',
+		);
+	}
+
+	/**
+	 * Apply {@see self::rbac_cap_renames()} to user-meta grants + role defs.
+	 *
+	 * @since 6.16.0
+	 * @return array<string, int> Old cap slug => number of user-meta rewrites.
+	 */
+	public static function migrate_rbac_cap_renames(): array {
+		$renames = self::rbac_cap_renames();
+		$counts  = array();
+
+		// 1. User-meta grants.
+		$users = get_users( array( 'fields' => 'ID' ) );
+		foreach ( $renames as $old => $new ) {
+			$counts[ $old ] = 0;
+			foreach ( $users as $user_id ) {
+				$user = get_userdata( (int) $user_id );
+				if ( ! $user ) {
+					continue;
+				}
+				if ( isset( $user->caps[ $old ] ) ) {
+					$value = (bool) $user->caps[ $old ];
+					$user->add_cap( $new, $value );
+					$user->remove_cap( $old );
+					++$counts[ $old ];
+				}
+			}
+		}
+
+		// 2. Role definitions — administrator + every FFC/custom role.
+		$wp_roles = wp_roles();
+		foreach ( array_keys( $wp_roles->roles ) as $role_slug ) {
+			$role = get_role( $role_slug );
+			if ( ! $role ) {
+				continue;
+			}
+			foreach ( $renames as $old => $new ) {
+				if ( isset( $role->capabilities[ $old ] ) ) {
+					$value = (bool) $role->capabilities[ $old ];
+					$role->add_cap( $new, $value );
+					$role->remove_cap( $old );
+				}
+			}
+		}
+
+		return $counts;
+	}
+
+	/**
+	 * #739 RBAC-redesign role renames.
+	 *
+	 * Role slugs (not caps) — the renamed definitions are registered by
+	 * {@see RoleRegistrar::register_module_roles()}; this reassigns every user
+	 * from the old role to the new one and then removes the orphaned old role,
+	 * so no access is lost on upgrade.
+	 *
+	 * @since 6.16.0
+	 * @return array<string, string>
+	 */
+	public static function role_renames(): array {
+		return array(
+			'ffc_user'                    => 'ffc_end_user',
+			'ffc_operator'                => 'ffc_readonly',
+			'ffc_self_scheduling_manager' => 'ffc_appointments_manager',
+			// #739 §3.2/§6 — pluralize the domain token to match the caps, and
+			// align the recruitment read-only tier to the uniform vocabulary
+			// (auditor → viewer). Folded into the same one-shot migration so
+			// user-meta / role defs are rewritten a single time.
+			'ffc_certificate_manager'     => 'ffc_certificates_manager',
+			'ffc_audience_manager'        => 'ffc_audiences_manager',
+			'ffc_recruitment_auditor'     => 'ffc_recruitment_viewer',
+		);
+	}
+
+	/**
+	 * Apply {@see self::role_renames()}: reassign users + drop old roles.
+	 *
+	 * @since 6.16.0
+	 * @return array<string, int> Old role slug => number of users reassigned.
+	 */
+	public static function migrate_role_renames(): array {
+		$renames = self::role_renames();
+
+		// Ensure the renamed roles exist before reassigning users onto them.
+		// `register_role()` creates `ffc_end_user` (the end-user role);
+		// `register_module_roles()` creates the module-manager roles
+		// (`ffc_readonly`, `ffc_appointments_manager`, …).
+		RoleRegistrar::register_role();
+		RoleRegistrar::register_module_roles();
+
+		$counts = array();
+		$users  = get_users( array( 'fields' => 'ID' ) );
+		foreach ( $renames as $old => $new ) {
+			$counts[ $old ] = 0;
+			foreach ( $users as $user_id ) {
+				$user = get_userdata( (int) $user_id );
+				if ( ! $user ) {
+					continue;
+				}
+				if ( in_array( $old, (array) $user->roles, true ) ) {
+					$user->add_role( $new );
+					$user->remove_role( $old );
+					++$counts[ $old ];
+				}
+			}
+			remove_role( $old );
 		}
 
 		return $counts;

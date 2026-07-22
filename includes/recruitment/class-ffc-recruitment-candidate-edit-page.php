@@ -128,10 +128,32 @@ final class RecruitmentCandidateEditPage {
 		$id           = (int) $candidate->id;
 		$nonce_action = 'ffc_recruitment_save_candidate_' . $id;
 
-		// LOGIC pass — decrypt the stored email for the editable field.
-		$email = self::resolve_general_email( $candidate );
+		// #739 §4.1 — the email is PII. Only the unmasked tier (WP admin /
+		// domain admin) edits it inline; every lower tier sees a masked,
+		// disabled field and handle_save() preserves the stored address for
+		// them (the write is gated server-side on the same tier, not a form
+		// flag). This mirrors the CPF/RF treatment in the Sensitive section.
+		$tier           = RecruitmentPiiAccessPolicy::resolve( $candidate, get_current_user_id() );
+		$email_editable = RecruitmentPiiAccessPolicy::TIER_UNMASKED === $tier;
+		$email          = $email_editable
+			? self::resolve_general_email( $candidate )
+			: self::masked_general_email( $candidate );
 
 		include FFC_PLUGIN_DIR . 'templates/admin/recruitment/candidate-edit/general-section.php';
+	}
+
+	/**
+	 * Masked form of the stored email for the non-unmasked tiers (#739 §4.1) —
+	 * decrypt server-side then hand back the `f***@example.com` placeholder so
+	 * the plaintext never reaches the rendered General field.
+	 *
+	 * @param object $candidate Candidate row.
+	 * @phpstan-param CandidateRow $candidate
+	 * @return string Masked email, or '' when absent / undecryptable.
+	 */
+	private static function masked_general_email( object $candidate ): string {
+		$plain = self::resolve_general_email( $candidate );
+		return '' === $plain ? '' : DocumentFormatter::mask_email( $plain );
 	}
 
 	/**
@@ -588,7 +610,6 @@ final class RecruitmentCandidateEditPage {
 		}
 
 		$name  = isset( $_POST['name'] ) ? sanitize_text_field( wp_unslash( (string) $_POST['name'] ) ) : '';
-		$email = isset( $_POST['email'] ) ? strtolower( sanitize_email( wp_unslash( (string) $_POST['email'] ) ) ) : '';
 		$phone = isset( $_POST['phone'] ) ? sanitize_text_field( wp_unslash( (string) $_POST['phone'] ) ) : '';
 		$notes = isset( $_POST['notes'] ) ? sanitize_textarea_field( wp_unslash( (string) $_POST['notes'] ) ) : '';
 
@@ -598,21 +619,32 @@ final class RecruitmentCandidateEditPage {
 		// returns the wpdb int affected-rows, not the updated row.
 		$before = RecruitmentCandidateReader::get_by_id( $id );
 
+		// #739 §4.1 — only the unmasked PII tier may edit the email inline.
+		// Enforced on the loaded row (not a form flag), so a masked/reveal-tier
+		// operator can never overwrite or clear the stored address even by
+		// forging the field.
+		$email_editable = null !== $before
+			&& RecruitmentPiiAccessPolicy::TIER_UNMASKED === RecruitmentPiiAccessPolicy::resolve( $before, get_current_user_id() );
+
 		$update = array(
 			'name'  => $name,
 			'phone' => '' === $phone ? null : $phone,
 			'notes' => '' === $notes ? null : $notes,
 		);
 
-		// Email: re-encrypt + re-hash via the registry path so the new
-		// value is consistent with the rest of the system. Empty string
-		// means "clear the email" — repository nulls both columns.
-		if ( '' === $email ) {
-			$update['email_encrypted'] = null;
-			$update['email_hash']      = null;
-		} else {
-			$update['email_encrypted'] = Encryption::encrypt( $email );
-			$update['email_hash']      = Encryption::hash( $email );
+		// Email: re-encrypt + re-hash via the registry path so the new value is
+		// consistent with the rest of the system. Empty string means "clear the
+		// email" — repository nulls both columns. Untouched for the lower tiers.
+		$email = null;
+		if ( $email_editable ) {
+			$email = isset( $_POST['email'] ) ? strtolower( sanitize_email( wp_unslash( (string) $_POST['email'] ) ) ) : '';
+			if ( '' === $email ) {
+				$update['email_encrypted'] = null;
+				$update['email_hash']      = null;
+			} else {
+				$update['email_encrypted'] = Encryption::encrypt( $email );
+				$update['email_hash']      = Encryption::hash( $email );
+			}
 		}
 
 		RecruitmentCandidateWriter::update( $id, $update );
@@ -637,20 +669,20 @@ final class RecruitmentCandidateEditPage {
 	 * logged as-is.
 	 *
 	 * @since 6.6.2
-	 * @param object $before  Pre-update candidate row.
+	 * @param object      $before Pre-update candidate row.
 	 * @phpstan-param CandidateRow $before
-	 * @param string $name    New name.
-	 * @param string $phone   New phone (empty string means "clear").
-	 * @param string $notes   New notes (empty string means "clear").
-	 * @param string $email   New email (empty string means "clear").
+	 * @param string      $name  New name.
+	 * @param string      $phone New phone (empty string means "clear").
+	 * @param string      $notes New notes (empty string means "clear").
+	 * @param string|null $email New email (empty string means "clear"); null
+	 *                           when the email was not editable (#739 §4.1), so
+	 *                           it is left out of the diff entirely.
 	 * @return array<string, array{old: scalar|null, new: scalar|null}>
 	 */
-	private static function diff_general_fields( object $before, string $name, string $phone, string $notes, string $email ): array {
-		$old_name       = (string) ( $before->name ?? '' );
-		$old_phone      = null === $before->phone ? '' : (string) $before->phone;
-		$old_notes      = null === $before->notes ? '' : (string) $before->notes;
-		$old_email_hash = null === $before->email_hash ? '' : (string) $before->email_hash;
-		$new_email_hash = '' === $email ? '' : (string) Encryption::hash( $email );
+	private static function diff_general_fields( object $before, string $name, string $phone, string $notes, ?string $email ): array {
+		$old_name  = (string) ( $before->name ?? '' );
+		$old_phone = null === $before->phone ? '' : (string) $before->phone;
+		$old_notes = null === $before->notes ? '' : (string) $before->notes;
 
 		$changes = array();
 		if ( $old_name !== $name ) {
@@ -671,11 +703,15 @@ final class RecruitmentCandidateEditPage {
 				'new' => $notes,
 			);
 		}
-		if ( $old_email_hash !== $new_email_hash ) {
-			$changes['email_hash'] = array(
-				'old' => $old_email_hash,
-				'new' => $new_email_hash,
-			);
+		if ( null !== $email ) {
+			$old_email_hash = null === $before->email_hash ? '' : (string) $before->email_hash;
+			$new_email_hash = '' === $email ? '' : (string) Encryption::hash( $email );
+			if ( $old_email_hash !== $new_email_hash ) {
+				$changes['email_hash'] = array(
+					'old' => $old_email_hash,
+					'new' => $new_email_hash,
+				);
+			}
 		}
 		return $changes;
 	}

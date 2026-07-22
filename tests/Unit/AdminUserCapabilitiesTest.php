@@ -52,7 +52,7 @@ class AdminUserCapabilitiesTest extends TestCase {
                 'ffc_book_own_appointments'          => false,
                 'ffc_view_own_appointments'       => false,
                 'ffc_cancel_own_appointments'    => false,
-                'ffc_scheduling_bypass'          => false,
+                'ffc_bypass_appointments'          => false,
                 'ffc_view_own_audience_bookings'     => false,
                 'ffc_manage_reregistration'      => false,
                 'ffc_edit_certificates'         => false,
@@ -72,7 +72,7 @@ class AdminUserCapabilitiesTest extends TestCase {
                 'ffc_book_own_appointments',
                 'ffc_view_own_appointments',
                 'ffc_cancel_own_appointments',
-                'ffc_scheduling_bypass',
+                'ffc_bypass_appointments',
                 'ffc_view_own_audience_bookings',
                 'ffc_manage_reregistration',
                 'ffc_manage_recruitment',
@@ -158,11 +158,11 @@ class AdminUserCapabilitiesTest extends TestCase {
         $roles_obj = new class() {
             /** @var array<string,array<string,mixed>> */
             public $roles = array(
-                'ffc_user'                 => array(
+                'ffc_end_user'             => array(
                     'capabilities' => array(
                         'read'                      => true,
                         'ffc_view_own_certificates' => true,
-                        'ffc_book_own_appointments'     => true,
+                        'ffc_book_own_appointments' => true,
                     ),
                 ),
                 'ffc_recruitment_manager'  => array(
@@ -184,7 +184,7 @@ class AdminUserCapabilitiesTest extends TestCase {
             );
             public function get_names() {
                 return array(
-                    'ffc_user'                => 'FFC User',
+                    'ffc_end_user'            => 'FFC End User',
                     'ffc_recruitment_manager' => 'Recruitment Manager',
                     'administrator'           => 'Administrator',
                     'subscriber'              => 'Subscriber',
@@ -276,7 +276,7 @@ class AdminUserCapabilitiesTest extends TestCase {
         Functions\when( 'current_user_can' )->justReturn( false );
 
         $user = new \WP_User( 5 );
-        $user->roles = array( 'ffc_user' );
+        $user->roles = array( 'ffc_end_user' );
 
         ob_start();
         AdminUserCapabilities::render_capability_fields( $user );
@@ -285,7 +285,10 @@ class AdminUserCapabilitiesTest extends TestCase {
         $this->assertEmpty( $output );
     }
 
-    public function test_render_skips_for_admin_users(): void {
+    public function test_render_shows_only_role_presets_for_admin(): void {
+        // #739: admins no longer get FFC caps automatically, so the panel now
+        // renders the role-preset chips (to assign ffc_administrator) — but
+        // NOT the per-cap checkbox groups, which are noise for a full admin.
         Functions\when( 'current_user_can' )->justReturn( true );
         Functions\when( 'user_can' )->justReturn( true );
 
@@ -296,14 +299,16 @@ class AdminUserCapabilitiesTest extends TestCase {
         AdminUserCapabilities::render_capability_fields( $user );
         $output = ob_get_clean();
 
-        $this->assertEmpty( $output );
+        $this->assertStringContainsString( 'FFC Permissions', $output );
+        $this->assertStringContainsString( 'ffc-cap-roles', $output );
+        $this->assertStringNotContainsString( 'ffc-cap-group', $output );
     }
 
     public function test_render_skips_for_non_ffc_users(): void {
         Functions\when( 'current_user_can' )->justReturn( true );
         Functions\when( 'user_can' )->justReturn( false );
 
-        // No ffc_user role and no FFC capabilities
+        // No ffc_end_user role and no FFC capabilities
         $this->user_manager_mock->shouldReceive( 'has_certificate_access' )
             ->with( 10 )
             ->andReturn( false );
@@ -330,7 +335,7 @@ class AdminUserCapabilitiesTest extends TestCase {
         Functions\when( 'user_can' )->justReturn( false );
 
         $user = new \WP_User( 5 );
-        $user->roles = array( 'ffc_user' );
+        $user->roles = array( 'ffc_end_user' );
 
         ob_start();
         AdminUserCapabilities::render_capability_fields( $user );
@@ -363,7 +368,7 @@ class AdminUserCapabilitiesTest extends TestCase {
 
         // Read-only context summary (role + audiences).
         $this->assertStringContainsString( 'ffc-cap-context', $output );
-        $this->assertStringContainsString( 'ffc_user', $output );
+        $this->assertStringContainsString( 'ffc_end_user', $output );
         $this->assertStringContainsString( 'page=ffc-scheduling-audiences', $output );
 
         // Nonce field.
@@ -394,7 +399,7 @@ class AdminUserCapabilitiesTest extends TestCase {
         );
 
         $user        = new \WP_User( 5 );
-        $user->roles = array( 'ffc_user' );
+        $user->roles = array( 'ffc_end_user' );
 
         ob_start();
         AdminUserCapabilities::render_capability_fields( $user );
@@ -419,22 +424,22 @@ class AdminUserCapabilitiesTest extends TestCase {
         Functions\when( 'user_can' )->justReturn( false );
 
         $user        = new \WP_User( 5 );
-        $user->roles = array( 'ffc_user' );
+        $user->roles = array( 'ffc_end_user' );
 
         ob_start();
         AdminUserCapabilities::render_capability_fields( $user );
         $output = ob_get_clean();
 
-        // FFC roles render as assignable chips; ffc_user is currently assigned.
-        $this->assertStringContainsString( 'data-ffc-role="ffc_user"', $output );
+        // FFC roles render as assignable chips; ffc_end_user is currently assigned.
+        $this->assertStringContainsString( 'data-ffc-role="ffc_end_user"', $output );
         $this->assertStringContainsString( 'data-ffc-role="ffc_recruitment_manager"', $output );
-        $this->assertMatchesRegularExpression( '/data-ffc-role="ffc_user"[^>]*aria-pressed="true"/', $output );
+        $this->assertMatchesRegularExpression( '/data-ffc-role="ffc_end_user"[^>]*aria-pressed="true"/', $output );
 
         // administrator (manage_options) and subscriber (no FFC cap) are excluded.
         $this->assertStringNotContainsString( 'data-ffc-role="administrator"', $output );
         $this->assertStringNotContainsString( 'data-ffc-role="subscriber"', $output );
 
-        // Caps the ffc_user role grants lock as "Role" (byrole toggle + badge).
+        // Caps the ffc_end_user role grants lock as "Role" (byrole toggle + badge).
         $this->assertStringContainsString( 'ffc-cap-toggle--byrole', $output );
         $this->assertStringContainsString( 'ffc-cap-origin--role', $output );
     }
@@ -480,31 +485,31 @@ class AdminUserCapabilitiesTest extends TestCase {
         $_POST['assign']  = '1';
 
         $user        = new \WP_User( 5 );
-        $user->roles = array( 'ffc_user' );
+        $user->roles = array( 'ffc_end_user' );
         Functions\when( 'get_userdata' )->justReturn( $user );
 
         $res = $this->run_ajax_role();
 
         $this->assertTrue( $res['ok'] );
         $this->assertContains( 'ffc_recruitment_manager', $user->roles );
-        $this->assertContains( 'ffc_user', $user->roles );
+        $this->assertContains( 'ffc_end_user', $user->roles );
 
         unset( $_POST['user_id'], $_POST['role'], $_POST['assign'] );
     }
 
     public function test_ajax_removes_a_preset_role(): void {
         $_POST['user_id'] = '5';
-        $_POST['role']    = 'ffc_user';
+        $_POST['role']    = 'ffc_end_user';
         $_POST['assign']  = '0';
 
         $user        = new \WP_User( 5 );
-        $user->roles = array( 'ffc_user', 'ffc_recruitment_manager' );
+        $user->roles = array( 'ffc_end_user', 'ffc_recruitment_manager' );
         Functions\when( 'get_userdata' )->justReturn( $user );
 
         $res = $this->run_ajax_role();
 
         $this->assertTrue( $res['ok'] );
-        $this->assertNotContains( 'ffc_user', $user->roles );
+        $this->assertNotContains( 'ffc_end_user', $user->roles );
         $this->assertContains( 'ffc_recruitment_manager', $user->roles );
 
         unset( $_POST['user_id'], $_POST['role'], $_POST['assign'] );
@@ -516,7 +521,7 @@ class AdminUserCapabilitiesTest extends TestCase {
         $_POST['assign']  = '1';
 
         $user        = new \WP_User( 5 );
-        $user->roles = array( 'ffc_user' );
+        $user->roles = array( 'ffc_end_user' );
         Functions\when( 'get_userdata' )->justReturn( $user );
 
         $res = $this->run_ajax_role();
@@ -530,7 +535,7 @@ class AdminUserCapabilitiesTest extends TestCase {
 
     public function test_ajax_refuses_to_edit_admin_target(): void {
         $_POST['user_id'] = '5';
-        $_POST['role']    = 'ffc_user';
+        $_POST['role']    = 'ffc_end_user';
         $_POST['assign']  = '0';
 
         Functions\when( 'user_can' )->justReturn( true ); // target is an administrator
@@ -545,9 +550,43 @@ class AdminUserCapabilitiesTest extends TestCase {
         unset( $_POST['user_id'], $_POST['role'], $_POST['assign'] );
     }
 
+    public function test_ajax_allows_ffc_administrator_on_admin_target(): void {
+        // #739: the aggregator role must be assignable to a WP administrator
+        // (partial FFC roles on an admin are still refused above).
+        $roles_obj = new class() {
+            /** @var array<string, array<string, mixed>> */
+            public $roles = array(
+                'ffc_administrator' => array(
+                    'capabilities' => array( 'ffc_manage_certificates' => true ),
+                ),
+            );
+            /** @return array<string, string> */
+            public function get_names(): array {
+                return array( 'ffc_administrator' => 'FFC Administrator' );
+            }
+        };
+        Functions\when( 'wp_roles' )->justReturn( $roles_obj );
+
+        $_POST['user_id'] = '5';
+        $_POST['role']    = 'ffc_administrator';
+        $_POST['assign']  = '1';
+
+        Functions\when( 'user_can' )->justReturn( true ); // target is an administrator
+        $user        = new \WP_User( 5 );
+        $user->roles = array( 'administrator' );
+        Functions\when( 'get_userdata' )->justReturn( $user );
+
+        $res = $this->run_ajax_role();
+
+        $this->assertTrue( $res['ok'] );
+        $this->assertContains( 'ffc_administrator', $user->roles );
+
+        unset( $_POST['user_id'], $_POST['role'], $_POST['assign'] );
+    }
+
     public function test_ajax_requires_manage_options(): void {
         $_POST['user_id'] = '5';
-        $_POST['role']    = 'ffc_user';
+        $_POST['role']    = 'ffc_end_user';
         $_POST['assign']  = '1';
 
         Functions\when( 'current_user_can' )->justReturn( false );

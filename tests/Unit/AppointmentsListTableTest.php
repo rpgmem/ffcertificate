@@ -144,13 +144,46 @@ class AppointmentsListTableTest extends TestCase {
         $this->assertSame( '(Guest)', $table->column_name( array( 'user_id' => 0 ) ) );
     }
 
-    public function test_column_email_decrypts_and_dashes_when_empty(): void {
+    /**
+     * Alias-mock Core\PiiAccessPolicy with its TIER_* constants mapped and
+     * resolve() pinned to the given tier.
+     *
+     * @param string $tier Tier resolve() should return.
+     * @return void
+     */
+    private function mockPiiPolicy( string $tier ): void {
+        Mockery::getConfiguration()->setConstantsMap(
+            array(
+                'FreeFormCertificate\Core\PiiAccessPolicy' => array(
+                    'TIER_UNMASKED' => 'unmasked',
+                    'TIER_REVEAL'   => 'reveal',
+                    'TIER_MASKED'   => 'masked',
+                ),
+            )
+        );
+        Mockery::mock( 'alias:FreeFormCertificate\Core\PiiAccessPolicy' )
+            ->shouldReceive( 'resolve' )->andReturn( $tier );
+    }
+
+    public function test_column_email_unmasked_tier_shows_plaintext(): void {
         Mockery::mock( 'alias:FreeFormCertificate\Core\Encryption' )
             ->shouldReceive( 'decrypt_field' )->andReturn( 'a@b.com', '' );
+        $this->mockPiiPolicy( 'unmasked' );
 
         $table = new AppointmentsListTable();
         $this->assertSame( 'a@b.com', $table->column_email( array( 'email_encrypted' => 'X' ) ) );
         $this->assertSame( '-', $table->column_email( array() ) );
+    }
+
+    public function test_column_email_masked_tier_masks(): void {
+        Mockery::mock( 'alias:FreeFormCertificate\Core\Encryption' )
+            ->shouldReceive( 'decrypt_field' )->andReturn( 'a@b.com' );
+        $this->mockPiiPolicy( 'masked' );
+        Mockery::mock( 'alias:FreeFormCertificate\Core\DocumentFormatter' )
+            ->shouldReceive( 'mask_email' )->andReturnUsing( fn( $e ) => 'MASKED:' . (string) $e );
+
+        $table = new AppointmentsListTable();
+        $this->assertSame( 'MASKED:a@b.com', $table->column_email( array( 'email_encrypted' => 'X' ) ) );
     }
 
     public function test_column_time_formats_range(): void {

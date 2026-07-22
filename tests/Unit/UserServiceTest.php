@@ -78,7 +78,7 @@ class UserServiceTest extends TestCase {
         $user->display_name = $overrides['display_name'] ?? 'Test User';
         $user->user_email = $overrides['user_email'] ?? 'test@example.com';
         $user->user_registered = $overrides['user_registered'] ?? '2024-01-01 00:00:00';
-        $user->roles = $overrides['roles'] ?? ['ffc_user'];
+        $user->roles = $overrides['roles'] ?? ['ffc_end_user'];
         return $user;
     }
 
@@ -101,7 +101,7 @@ class UserServiceTest extends TestCase {
             'display_name' => 'John Doe',
             'user_email' => 'john@example.com',
             'user_registered' => '2024-01-15 10:30:00',
-            'roles' => ['ffc_user'],
+            'roles' => ['ffc_end_user'],
         ]);
         Functions\when('get_userdata')->justReturn($user);
 
@@ -112,7 +112,7 @@ class UserServiceTest extends TestCase {
         $this->assertSame('John Doe', $result['display_name']);
         $this->assertSame('john@example.com', $result['email']);
         $this->assertSame('2024-01-15 10:30:00', $result['member_since']);
-        $this->assertSame(['ffc_user'], $result['roles']);
+        $this->assertSame(['ffc_end_user'], $result['roles']);
         $this->assertArrayHasKey('capabilities', $result);
     }
 

@@ -2,7 +2,7 @@
 /**
  * RoleRegistrar
  *
- * Lifecycle of the FFC roles — register/upgrade/remove the `ffc_user` role,
+ * Lifecycle of the FFC roles — register/upgrade/remove the `ffc_end_user` role,
  * the recruitment-manager role, and the per-module roles, plus role
  * relabeling. Extracted from CapabilityManager (#563 Sprint 2); reads the
  * capability registry (the `*_CAPABILITIES` consts + `module_roles_definition()`)
@@ -25,37 +25,39 @@ if ( ! defined( 'ABSPATH' ) ) {
 class RoleRegistrar {
 
 	/**
-	 * Register ffc_user role on plugin activation
+	 * Register ffc_end_user role on plugin activation
 	 *
 	 * @return void
 	 */
 	public static function register_role(): void {
-		$existing_role = get_role( 'ffc_user' );
+		$existing_role = get_role( 'ffc_end_user' );
 
 		if ( $existing_role ) {
 			self::upgrade_role( $existing_role );
 			return;
 		}
 
-		// `ffc_user` only owns the WordPress baseline `read` cap. FFC caps are
-		// granted per-user via `grant_*_capabilities()` (user-meta `add_cap(true)`).
+		// `ffc_end_user` only owns the WordPress baseline `read` cap. FFC caps
+		// are granted per-user via `grant_*_capabilities()` (user-meta
+		// `add_cap(true)`).
 		//
 		// Historically every FFC cap was added here as `=> false` to make the
 		// role's surface explicit, but that breaks multi-role users (e.g. an
-		// administrator who is also an `ffc_user` for their own certificates):
+		// administrator who is also an `ffc_end_user` for their own
+		// certificates):
 		// WP's `WP_User::get_role_caps()` merges role capability maps via
 		// `array_merge()`, and an explicit `false` in one role overwrites a
 		// `true` from another. An absent key, by contrast, lets the other
 		// role's `true` survive. See issue #86.
 		add_role(
-			'ffc_user',
-			__( 'FFC User', 'ffcertificate' ),
+			'ffc_end_user',
+			__( 'FFC End User', 'ffcertificate' ),
 			array( 'read' => true )
 		);
 	}
 
 	/**
-	 * Upgrade existing ffc_user role with new capabilities
+	 * Upgrade existing ffc_end_user role with new capabilities
 	 *
 	 * @since 4.4.0
 	 * @param \WP_Role $role Existing role object.
@@ -63,25 +65,64 @@ class RoleRegistrar {
 	 */
 	private static function upgrade_role( \WP_Role $role ): void {
 		// Strip every legacy `=> false` entry for FFC caps so multi-role users
-		// (e.g. administrator + ffc_user) don't have admin-granted caps masked
-		// by ffc_user's explicit denial. New caps are NOT added — absent ≡
+		// (e.g. administrator + ffc_end_user) don't have admin-granted caps
+		// masked by ffc_end_user's explicit denial. New caps are NOT added — absent ≡
 		// false for `current_user_can()` on single-role users, while letting
 		// `array_merge()` preserve `true` from a peer role for multi-role
 		// users. See issue #86 / register_role() for the full rationale.
 		foreach ( CapabilityManager::get_all_capabilities() as $cap ) {
-			if ( isset( $role->capabilities[ $cap ] ) && false === $role->capabilities[ $cap ] ) {
+			// `empty()` (not a strict `false ===`) so a legacy denial stored as
+			// `0` / `''` — e.g. a boolean cast during a cap rename — is stripped
+			// too. Any truthy grant is preserved.
+			if ( isset( $role->capabilities[ $cap ] ) && empty( $role->capabilities[ $cap ] ) ) {
 				$role->remove_cap( $cap );
 			}
 		}
 	}
 
 	/**
-	 * Remove ffc_user role on plugin deactivation
+	 * Remove every falsy `ffc_*` capability entry from ALL FFC-managed roles.
+	 *
+	 * A role that stores an FFC capability as `false` (a legacy "explicit
+	 * denial" from the pre-#86 seeding, sometimes propagated onto renamed caps)
+	 * masks the SAME capability granted `true` by a peer role whenever a user
+	 * holds both: WordPress merges role capability maps with `array_merge()`, so
+	 * a later role's `false` overrides an earlier role's `true`. This is exactly
+	 * how a user with `ffc_administrator` + `ffc_end_user` loses the CPT caps —
+	 * the aggregator grants `ffc_view_forms` / `ffc_view_calendars`, but a stale
+	 * `false` on `ffc_end_user` (ordered last) wins.
+	 *
+	 * FFC roles never need an explicit denial — an ABSENT cap already denies for
+	 * single-role users while letting a peer role's `true` survive the merge —
+	 * so stripping every falsy `ffc_*` entry is always safe and removes the mask.
+	 * Only touches the FFC-managed roles; the core `administrator` role is left
+	 * alone (and can't mask anyway, since it precedes `ffc_administrator`).
+	 *
+	 * @since 6.16.0
+	 * @return void
+	 */
+	public static function strip_false_ffc_caps(): void {
+		$ffc_caps = CapabilityManager::get_all_capabilities();
+		foreach ( array_keys( self::ffc_managed_role_labels() ) as $slug ) {
+			$role = get_role( (string) $slug );
+			if ( null === $role ) {
+				continue;
+			}
+			foreach ( $ffc_caps as $cap ) {
+				if ( isset( $role->capabilities[ $cap ] ) && empty( $role->capabilities[ $cap ] ) ) {
+					$role->remove_cap( $cap );
+				}
+			}
+		}
+	}
+
+	/**
+	 * Remove ffc_end_user role on plugin deactivation
 	 *
 	 * @return void
 	 */
 	public static function remove_role(): void {
-		remove_role( 'ffc_user' );
+		remove_role( 'ffc_end_user' );
 	}
 
 	/**
@@ -248,7 +289,7 @@ class RoleRegistrar {
 	/**
 	 * Canonical map of every FFC-managed role slug → display label.
 	 *
-	 * The authoritative set of roles the plugin owns: `ffc_user`, the
+	 * The authoritative set of roles the plugin owns: `ffc_end_user`, the
 	 * recruitment manager, and the 6.2.0 module/recruitment-tier roles. This
 	 * is the list the role-capability editor (Settings → User Access) is
 	 * allowed to touch — independent of whichever caps a role currently
@@ -259,7 +300,7 @@ class RoleRegistrar {
 	 */
 	public static function ffc_managed_role_labels(): array {
 		$labels = array(
-			'ffc_user'                                  => __( 'FFC User', 'ffcertificate' ),
+			'ffc_end_user'                              => __( 'FFC End User', 'ffcertificate' ),
 			CapabilityManager::RECRUITMENT_MANAGER_ROLE => __( 'Recruitment Manager', 'ffcertificate' ),
 		);
 		foreach ( CapabilityManager::module_roles_definition() as $slug => $def ) {

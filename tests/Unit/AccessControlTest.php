@@ -125,7 +125,7 @@ class AccessControlTest extends TestCase {
         Functions\when( 'add_query_arg' )->justReturn( 'https://example.com?ffc_redirect=access_denied' );
 
         $user = \Mockery::mock( 'WP_User' );
-        $user->roles = array( 'ffc_user' );
+        $user->roles = array( 'ffc_end_user' );
         Functions\when( 'wp_get_current_user' )->justReturn( $user );
 
         // wp_safe_redirect is called right before exit. We throw an exception
@@ -152,7 +152,7 @@ class AccessControlTest extends TestCase {
         Functions\when( 'current_user_can' )->justReturn( false );
 
         $user = \Mockery::mock( 'WP_User' );
-        $user->roles = array( 'editor', 'ffc_user' );
+        $user->roles = array( 'editor', 'ffc_end_user' );
         Functions\when( 'wp_get_current_user' )->justReturn( $user );
 
         Functions\expect( 'wp_safe_redirect' )->never();
@@ -163,7 +163,7 @@ class AccessControlTest extends TestCase {
     public function test_block_wp_admin_blocks_user_with_custom_blocked_roles(): void {
         Functions\when( 'get_option' )->justReturn( array(
             'block_wp_admin' => true,
-            'blocked_roles'  => array( 'ffc_user', 'subscriber' ),
+            'blocked_roles'  => array( 'ffc_end_user', 'subscriber' ),
         ) );
         Functions\when( 'wp_doing_ajax' )->justReturn( false );
         Functions\when( 'current_user_can' )->justReturn( false );
@@ -200,7 +200,7 @@ class AccessControlTest extends TestCase {
             ->andReturn( 'https://example.com/my-dashboard?ffc_redirect=access_denied' );
 
         $user = \Mockery::mock( 'WP_User' );
-        $user->roles = array( 'ffc_user' );
+        $user->roles = array( 'ffc_end_user' );
         Functions\when( 'wp_get_current_user' )->justReturn( $user );
 
         Functions\expect( 'wp_safe_redirect' )
@@ -235,11 +235,11 @@ class AccessControlTest extends TestCase {
     public function test_hide_admin_bar_returns_false_for_users_with_all_blocked_roles(): void {
         Functions\when( 'get_option' )->justReturn( array(
             'allow_admin_bar' => false,
-            'blocked_roles'   => array( 'ffc_user' ),
+            'blocked_roles'   => array( 'ffc_end_user' ),
         ) );
 
         $user = \Mockery::mock( 'WP_User' );
-        $user->roles = array( 'ffc_user' );
+        $user->roles = array( 'ffc_end_user' );
         Functions\when( 'wp_get_current_user' )->justReturn( $user );
 
         $this->assertFalse( AccessControl::hide_admin_bar( true ) );
@@ -248,11 +248,11 @@ class AccessControlTest extends TestCase {
     public function test_hide_admin_bar_returns_original_value_for_users_with_mixed_roles(): void {
         Functions\when( 'get_option' )->justReturn( array(
             'allow_admin_bar' => false,
-            'blocked_roles'   => array( 'ffc_user' ),
+            'blocked_roles'   => array( 'ffc_end_user' ),
         ) );
 
         $user = \Mockery::mock( 'WP_User' );
-        $user->roles = array( 'editor', 'ffc_user' );
+        $user->roles = array( 'editor', 'ffc_end_user' );
         Functions\when( 'wp_get_current_user' )->justReturn( $user );
 
         $this->assertTrue( AccessControl::hide_admin_bar( true ) );
@@ -264,17 +264,17 @@ class AccessControlTest extends TestCase {
         ) );
 
         $user = \Mockery::mock( 'WP_User' );
-        $user->roles = array( 'ffc_user' );
+        $user->roles = array( 'ffc_end_user' );
         Functions\when( 'wp_get_current_user' )->justReturn( $user );
 
-        // Default blocked_roles is ['ffc_user'], so the bar should be hidden
+        // Default blocked_roles is ['ffc_end_user'], so the bar should be hidden
         $this->assertFalse( AccessControl::hide_admin_bar( true ) );
     }
 
     public function test_hide_admin_bar_returns_original_for_non_blocked_user(): void {
         Functions\when( 'get_option' )->justReturn( array(
             'allow_admin_bar' => false,
-            'blocked_roles'   => array( 'ffc_user' ),
+            'blocked_roles'   => array( 'ffc_end_user' ),
         ) );
 
         $user = \Mockery::mock( 'WP_User' );
@@ -322,7 +322,7 @@ class AccessControlTest extends TestCase {
 
         $defaults = AccessControl::get_default_settings();
 
-        $this->assertSame( array( 'ffc_user' ), $defaults['blocked_roles'] );
+        $this->assertSame( array( 'ffc_end_user' ), $defaults['blocked_roles'] );
     }
 
     public function test_get_default_settings_allow_admin_bar_defaults_to_false(): void {

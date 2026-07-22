@@ -195,6 +195,19 @@ class SettingsSaveHandlerTest extends TestCase {
         $this->assertArrayNotHasKey( 'disable_all_emails', $result );
     }
 
+    public function test_smtp_kill_switch_preserved_without_dangerzone(): void {
+        // #739 §4.4 — the kill-switch needs the dangerzone sub-cap. A _smtp-only
+        // operator can save the transport but the current value is preserved.
+        $_POST['_ffc_tab'] = 'smtp';
+        Functions\when( 'current_user_can' )->alias(
+            static function ( $cap ) {
+                return 'ffc_manage_settings_smtp' === $cap;
+            }
+        );
+        $result = $this->invoke( 'save_smtp_settings', array( array( 'disable_all_emails' => 0 ), array( 'disable_all_emails' => '1' ) ) );
+        $this->assertSame( 0, $result['disable_all_emails'] );
+    }
+
     public function test_smtp_host_and_port_stored(): void {
         $new = array( 'smtp_host' => 'smtp.example.com', 'smtp_port' => '587' );
         $result = $this->invoke( 'save_smtp_settings', array( array(), $new ) );
@@ -485,7 +498,7 @@ class SettingsSaveHandlerTest extends TestCase {
 
         $this->assertSame( 'ffc_user_access_settings', $saved[0] );
         $this->assertFalse( $saved[1]['block_wp_admin'] );
-        $this->assertSame( array( 'ffc_user' ), $saved[1]['blocked_roles'] );
+        $this->assertSame( array( 'ffc_end_user' ), $saved[1]['blocked_roles'] );
         $this->assertSame( 'https://site.test/dashboard', $saved[1]['redirect_url'] );
         $this->assertSame( '', $saved[1]['redirect_message'] );
         $this->assertFalse( $saved[1]['allow_admin_bar'] );
@@ -496,7 +509,7 @@ class SettingsSaveHandlerTest extends TestCase {
         Functions\when( 'home_url' )->returnArg();
         Functions\when( 'esc_url_raw' )->returnArg();
         $_POST['block_wp_admin']    = '1';
-        $_POST['blocked_roles']     = array( 'subscriber', 'ffc_user' );
+        $_POST['blocked_roles']     = array( 'subscriber', 'ffc_end_user' );
         $_POST['redirect_url']      = 'https://custom.test/go';
         $_POST['redirect_message']  = 'Access denied';
         $_POST['allow_admin_bar']   = '1';
@@ -512,7 +525,7 @@ class SettingsSaveHandlerTest extends TestCase {
         $this->invoke( 'save_user_access_settings', array() );
 
         $this->assertTrue( $saved['block_wp_admin'] );
-        $this->assertSame( array( 'subscriber', 'ffc_user' ), $saved['blocked_roles'] );
+        $this->assertSame( array( 'subscriber', 'ffc_end_user' ), $saved['blocked_roles'] );
         $this->assertSame( 'https://custom.test/go', $saved['redirect_url'] );
         $this->assertSame( 'Access denied', $saved['redirect_message'] );
         $this->assertTrue( $saved['allow_admin_bar'] );

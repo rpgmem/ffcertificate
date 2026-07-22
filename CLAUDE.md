@@ -114,6 +114,17 @@ git push --force-with-lease origin develop
 
 This rewrites develop's SHAs on top of the new `main` tip. Force-push is permitted on `develop` by design (the branch protection deliberately omits "Require linear history" and the push restriction) — see "Branch protection" below. If a feature PR was open against develop at the moment of the rebase, the PR author rebases their branch on the new develop tip; this is the cost of keeping develop linear.
 
+**Post-release — use `reset`, not `rebase`.** The `rebase` above is the **post-hotfix** recipe, where develop still carries un-released commits to replay on top of the new `main`. After a **release** squash-merge, develop was *fully consumed* by the squash — every develop commit is already inside `main`'s single release commit, so a rebase tries to replay them all and conflicts (typically on `CHANGELOG.md`). In that case skip the rebase and reset develop straight to `main`:
+
+```bash
+git fetch origin
+git checkout develop
+git reset --hard origin/main
+git push --force-with-lease origin develop
+```
+
+Confirm nothing is lost first with `git log --oneline origin/main..develop` — after a release those are only the pre-squash commits, whose content already lives in `main`. (This is the trap that bit the 6.15.0 sync.)
+
 #### Branch protection (`develop`)
 
 Configured in Settings → Branches with intentionally lighter rules than `main`:

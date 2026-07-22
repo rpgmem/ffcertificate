@@ -199,6 +199,15 @@ class Loader {
 		UserCleanup::init();
 		PrivacyHandler::init();
 
+		// #739 deprecation shim: keep honouring edit_others_posts for the
+		// decoupled form/calendar caps for two releases. Remove in 6.18.0.
+		\FreeFormCertificate\Admin\CptEditorCompat::init();
+
+		// #739 §3.2 read-only viewer gate: forms/calendars list-read primitives
+		// map to the view caps, so this forces the per-post write meta-caps back
+		// to the manage cap (viewing must never imply editing). Permanent.
+		\FreeFormCertificate\Admin\CptCapPolicy::init();
+
 		// Self-Scheduling module — single bootstrap entry point (#563 B3).
 		$this->self_scheduling_loader = new SelfSchedulingLoader();
 		$this->self_scheduling_loader->init();
@@ -237,6 +246,7 @@ class Loader {
 		}
 
 		$this->ensure_admin_capabilities();
+		$this->ensure_admin_role_assigned();
 		$this->ensure_legacy_caps_renamed();
 		$this->ensure_taxonomy_renamed();
 		$this->ensure_delete_caps_granted();
@@ -245,6 +255,9 @@ class Loader {
 		$this->ensure_reasons_caps_wired();
 		$this->ensure_settings_split_caps_granted();
 		$this->ensure_activity_log_export_cap_granted();
+		$this->ensure_rbac_caps_renamed();
+		$this->ensure_rbac_roles_renamed();
+		$this->ensure_false_ffc_caps_stripped();
 		$this->define_admin_hooks();
 		$this->init_rest_api();
 	}
@@ -294,6 +307,29 @@ class Loader {
 		}
 		if ( class_exists( '\FreeFormCertificate\UserDashboard\CapabilityManager' ) ) {
 			\FreeFormCertificate\UserDashboard\CapabilityMigrator::migrate_legacy_certificate_caps();
+		}
+		update_option( $flag, '1', true );
+	}
+
+	/**
+	 * One-time migration that removes every stale `ffc_* => false` denial from
+	 * the FFC-managed roles. Such entries (a legacy pre-#86 artifact, sometimes
+	 * carried onto renamed caps) mask the same cap granted `true` by a peer role
+	 * for multi-role users — e.g. an `ffc_administrator` + `ffc_end_user` user
+	 * losing `ffc_view_forms` / `ffc_view_calendars` because `ffc_end_user`
+	 * (ordered last in the WP role merge) still denies them. Idempotent +
+	 * version-flagged via `ffc_false_caps_stripped_v1`; runs on `plugins_loaded`
+	 * so in-place updates self-heal without a deactivate/reactivate cycle.
+	 *
+	 * @since 6.16.0
+	 */
+	private function ensure_false_ffc_caps_stripped(): void {
+		$flag = 'ffc_false_caps_stripped_v1';
+		if ( '1' === get_option( $flag, '' ) ) {
+			return;
+		}
+		if ( class_exists( '\FreeFormCertificate\UserDashboard\CapabilityManager' ) ) {
+			\FreeFormCertificate\UserDashboard\RoleRegistrar::strip_false_ffc_caps();
 		}
 		update_option( $flag, '1', true );
 	}
@@ -488,14 +524,13 @@ class Loader {
 		if ( $admin_role && class_exists( '\FreeFormCertificate\UserDashboard\UserManager' ) ) {
 			$all_ffc_caps = \FreeFormCertificate\UserDashboard\CapabilityManager::get_all_capabilities();
 
-			// 1. Grant admin-level capabilities to the administrator role.
-			foreach ( \FreeFormCertificate\UserDashboard\CapabilityManager::ADMIN_CAPABILITIES as $cap ) {
-				if ( ! $admin_role->has_cap( $cap ) ) {
-					$admin_role->add_cap( $cap, true );
-				}
-			}
+			// FFC admin caps are no longer granted to the native `administrator`
+			// role — admins receive them through the `ffc_administrator` role
+			// assigned by `CapabilityMigrator::migrate_admin_role_assignment()`
+			// (wired via `ensure_admin_role_assigned()`). This method now only
+			// runs the legacy user-meta cleanups below.
 
-			// 2. Clean up user-level overrides for admin users.
+			// 1. Clean up user-level overrides for admin users.
 			// A previous bug in save_capability_fields() used add_cap(false)
 			// which stored explicit denials in user_meta, overriding the role.
 			$admins = get_users(
@@ -517,13 +552,13 @@ class Loader {
 				}
 			}
 
-			// 3. Strip legacy `=> false` cap entries from the `ffc_user` role
+			// 2. Strip legacy `=> false` cap entries from the `ffc_end_user` role
 			// itself. Pre-6.0.3 the role was registered with every FFC cap as
-			// `=> false`, which broke multi-role users (admin + ffc_user) via
+			// `=> false`, which broke multi-role users (admin + ffc_end_user) via
 			// `array_merge()` capability resolution. Issue #86. Idempotent:
 			// only removes caps that exist with the `false` value; per-user
 			// `add_cap($cap, true)` user-meta grants are unaffected.
-			$ffc_user_role = get_role( 'ffc_user' );
+			$ffc_user_role = get_role( 'ffc_end_user' );
 			if ( $ffc_user_role ) {
 				foreach ( $all_ffc_caps as $cap ) {
 					if ( isset( $ffc_user_role->capabilities[ $cap ] ) && false === $ffc_user_role->capabilities[ $cap ] ) {
@@ -534,6 +569,64 @@ class Loader {
 		}
 
 		update_option( $version_key, FFC_VERSION );
+	}
+
+	/**
+	 * Switch admins to the role model: assign `ffc_administrator` to existing
+	 * administrators and stop granting FFC caps to the native `administrator`
+	 * role. Idempotent + one-shot via the `ffc_admin_role_assigned_v1` option.
+	 *
+	 * New administrators created after this runs are NOT auto-elevated — the
+	 * `ffc_administrator` role is granted explicitly from then on.
+	 *
+	 * @since 6.16.0
+	 * @return void
+	 */
+	private function ensure_admin_role_assigned(): void {
+		$flag = 'ffc_admin_role_assigned_v1';
+		if ( '1' === get_option( $flag, '' ) ) {
+			return;
+		}
+		if ( class_exists( '\FreeFormCertificate\UserDashboard\CapabilityMigrator' ) ) {
+			\FreeFormCertificate\UserDashboard\CapabilityMigrator::migrate_admin_role_assignment();
+		}
+		update_option( $flag, '1', true );
+	}
+
+	/**
+	 * Apply the #739 RBAC capability renames (grammar/consistency pass).
+	 * Idempotent + one-shot via the `ffc_rbac_caps_renamed_v1` option.
+	 *
+	 * @since 6.16.0
+	 * @return void
+	 */
+	private function ensure_rbac_caps_renamed(): void {
+		$flag = 'ffc_rbac_caps_renamed_v1';
+		if ( '1' === get_option( $flag, '' ) ) {
+			return;
+		}
+		if ( class_exists( '\FreeFormCertificate\UserDashboard\CapabilityMigrator' ) ) {
+			\FreeFormCertificate\UserDashboard\CapabilityMigrator::migrate_rbac_cap_renames();
+		}
+		update_option( $flag, '1', true );
+	}
+
+	/**
+	 * Apply the #739 RBAC role renames (reassign users, drop old roles).
+	 * Idempotent + one-shot via the `ffc_rbac_roles_renamed_v1` option.
+	 *
+	 * @since 6.16.0
+	 * @return void
+	 */
+	private function ensure_rbac_roles_renamed(): void {
+		$flag = 'ffc_rbac_roles_renamed_v1';
+		if ( '1' === get_option( $flag, '' ) ) {
+			return;
+		}
+		if ( class_exists( '\FreeFormCertificate\UserDashboard\CapabilityMigrator' ) ) {
+			\FreeFormCertificate\UserDashboard\CapabilityMigrator::migrate_role_renames();
+		}
+		update_option( $flag, '1', true );
 	}
 
 	/**

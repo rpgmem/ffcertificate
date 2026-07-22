@@ -185,7 +185,7 @@ class UserCreatorTest extends TestCase {
         $mock_user->ID = 55;
         $mock_user->display_name = 'Existing User';
         $mock_user->user_login = 'existinguser';
-        $mock_user->shouldReceive( 'add_role' )->with( 'ffc_user' )->once();
+        $mock_user->shouldReceive( 'add_role' )->with( 'ffc_end_user' )->once();
 
         Functions\when( 'get_user_by' )->justReturn( $mock_user );
         Functions\when( 'get_userdata' )->justReturn( null );
@@ -417,7 +417,7 @@ class UserCreatorTest extends TestCase {
         $mock_user->ID           = 91;
         $mock_user->display_name = 'Already Has Email';
         $mock_user->user_login   = 'alreadyhasemail';
-        $mock_user->shouldReceive( 'add_role' )->with( 'ffc_user' )->once();
+        $mock_user->shouldReceive( 'add_role' )->with( 'ffc_end_user' )->once();
 
         Functions\when( 'get_user_by' )->justReturn( $mock_user );
         Functions\when( 'get_userdata' )->justReturn( null );

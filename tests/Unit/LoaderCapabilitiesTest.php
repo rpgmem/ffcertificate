@@ -79,7 +79,7 @@ class LoaderCapabilitiesTest extends TestCase {
 		$this->assertFalse( $update_called, 'No option write on the early-return path.' );
 	}
 
-	public function test_ensure_admin_capabilities_grants_caps_and_cleans_overrides(): void {
+	public function test_ensure_admin_capabilities_cleans_overrides_without_granting(): void {
 		$loader = new Loader();
 
 		Functions\when( 'get_option' )->justReturn( 'stale-version' );
@@ -91,11 +91,11 @@ class LoaderCapabilitiesTest extends TestCase {
 		class_exists( '\\FreeFormCertificate\\UserDashboard\\CapabilityManager' );
 		class_exists( '\\FreeFormCertificate\\UserDashboard\\UserManager' );
 
-		// ADMIN_CAPABILITIES is a real const — read it so we grant the same set.
-		$admin_caps  = \FreeFormCertificate\UserDashboard\CapabilityManager::ADMIN_CAPABILITIES;
 		$all_ffc_caps = \FreeFormCertificate\UserDashboard\CapabilityManager::get_all_capabilities();
 
-		// Administrator role: has none of the caps yet → each add_cap fires.
+		// Administrator role — #739: no longer receives a cap grant here, so
+		// add_cap() must never fire (FFC caps live on the ffc_administrator
+		// role now). The role is still fetched to drive the cleanup guard.
 		$granted     = array();
 		$admin_role  = new class( $granted ) {
 			/** @var array<int,string> */
@@ -116,7 +116,7 @@ class LoaderCapabilitiesTest extends TestCase {
 		$user_denial_cap = $all_ffc_caps[0];
 		$role_false_cap  = $all_ffc_caps[1] ?? $all_ffc_caps[0];
 
-		// ffc_user role: carries a legacy `=> false` cap that must be stripped.
+		// ffc_end_user role: carries a legacy `=> false` cap that must be stripped.
 		$ffc_user_removed = array();
 		$ffc_user_role    = new class( $ffc_user_removed, $role_false_cap ) {
 			/** @var array<string,bool> */
@@ -166,11 +166,11 @@ class LoaderCapabilitiesTest extends TestCase {
 
 		$this->invoke_private( $loader, 'ensure_admin_capabilities' );
 
-		// Admin role received every ADMIN_CAPABILITIES entry.
-		$this->assertSame( count( $admin_caps ), count( $granted ) );
+		// #739: no caps are granted to the native administrator role anymore.
+		$this->assertCount( 0, $granted );
 		// user-level `=> false` denial stripped.
 		$this->assertContains( $user_denial_cap, $user_removed );
-		// legacy `=> false` cap stripped from ffc_user role.
+		// legacy `=> false` cap stripped from ffc_end_user role.
 		$this->assertContains( $role_false_cap, $ffc_user_removed );
 		// Version flag written at the end.
 		$this->assertSame( FFC_VERSION, $updated['ffc_admin_caps_version_v6'] ?? null );
@@ -194,6 +194,126 @@ class LoaderCapabilitiesTest extends TestCase {
 
 		// No admin role → grant block skipped, but flag still advanced.
 		$this->assertSame( FFC_VERSION, $updated['ffc_admin_caps_version_v6'] ?? null );
+	}
+
+	// ==================================================================
+	// ensure_admin_role_assigned() (#739)
+	// ==================================================================
+
+	public function test_ensure_admin_role_assigned_early_returns_when_flag_set(): void {
+		$loader = new Loader();
+		Functions\when( 'get_option' )->justReturn( '1' );
+		$updated = array();
+		Functions\when( 'update_option' )->alias(
+			function ( $k, $v ) use ( &$updated ) {
+				$updated[ $k ] = $v;
+				return true;
+			}
+		);
+
+		$this->invoke_private( $loader, 'ensure_admin_role_assigned' );
+
+		$this->assertArrayNotHasKey( 'ffc_admin_role_assigned_v1', $updated );
+	}
+
+	public function test_ensure_admin_role_assigned_delegates_and_writes_flag(): void {
+		$loader = new Loader();
+		Functions\when( 'get_option' )->justReturn( '' );
+
+		Mockery::mock( 'alias:\\FreeFormCertificate\\UserDashboard\\CapabilityMigrator' )
+			->shouldReceive( 'migrate_admin_role_assignment' )->once()->andReturn( array() );
+
+		$updated = array();
+		Functions\when( 'update_option' )->alias(
+			function ( $k, $v ) use ( &$updated ) {
+				$updated[ $k ] = $v;
+				return true;
+			}
+		);
+
+		$this->invoke_private( $loader, 'ensure_admin_role_assigned' );
+
+		$this->assertSame( '1', $updated['ffc_admin_role_assigned_v1'] ?? null );
+	}
+
+	// ==================================================================
+	// ensure_rbac_caps_renamed() (#739)
+	// ==================================================================
+
+	public function test_ensure_rbac_caps_renamed_early_returns_when_flag_set(): void {
+		$loader = new Loader();
+		Functions\when( 'get_option' )->justReturn( '1' );
+		$updated = array();
+		Functions\when( 'update_option' )->alias(
+			function ( $k, $v ) use ( &$updated ) {
+				$updated[ $k ] = $v;
+				return true;
+			}
+		);
+
+		$this->invoke_private( $loader, 'ensure_rbac_caps_renamed' );
+
+		$this->assertArrayNotHasKey( 'ffc_rbac_caps_renamed_v1', $updated );
+	}
+
+	public function test_ensure_rbac_caps_renamed_delegates_and_writes_flag(): void {
+		$loader = new Loader();
+		Functions\when( 'get_option' )->justReturn( '' );
+
+		Mockery::mock( 'alias:\\FreeFormCertificate\\UserDashboard\\CapabilityMigrator' )
+			->shouldReceive( 'migrate_rbac_cap_renames' )->once()->andReturn( array() );
+
+		$updated = array();
+		Functions\when( 'update_option' )->alias(
+			function ( $k, $v ) use ( &$updated ) {
+				$updated[ $k ] = $v;
+				return true;
+			}
+		);
+
+		$this->invoke_private( $loader, 'ensure_rbac_caps_renamed' );
+
+		$this->assertSame( '1', $updated['ffc_rbac_caps_renamed_v1'] ?? null );
+	}
+
+	// ==================================================================
+	// ensure_rbac_roles_renamed() (#739)
+	// ==================================================================
+
+	public function test_ensure_rbac_roles_renamed_early_returns_when_flag_set(): void {
+		$loader = new Loader();
+		Functions\when( 'get_option' )->justReturn( '1' );
+		$updated = array();
+		Functions\when( 'update_option' )->alias(
+			function ( $k, $v ) use ( &$updated ) {
+				$updated[ $k ] = $v;
+				return true;
+			}
+		);
+
+		$this->invoke_private( $loader, 'ensure_rbac_roles_renamed' );
+
+		$this->assertArrayNotHasKey( 'ffc_rbac_roles_renamed_v1', $updated );
+	}
+
+	public function test_ensure_rbac_roles_renamed_delegates_and_writes_flag(): void {
+		$loader = new Loader();
+		Functions\when( 'get_option' )->justReturn( '' );
+
+		Mockery::mock( 'alias:\\FreeFormCertificate\\UserDashboard\\CapabilityMigrator' )
+			->shouldReceive( 'migrate_role_renames' )->once()->andReturn( array() );
+
+		$updated = array();
+		Functions\when( 'update_option' )->alias(
+			function ( $k, $v ) use ( &$updated ) {
+				$updated[ $k ] = $v;
+				return true;
+			}
+		);
+
+		$this->invoke_private( $loader, 'ensure_rbac_roles_renamed' );
+
+		$this->assertSame( '1', $updated['ffc_rbac_roles_renamed_v1'] ?? null );
 	}
 
 	// ==================================================================

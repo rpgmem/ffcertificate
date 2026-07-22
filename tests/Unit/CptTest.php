@@ -147,7 +147,28 @@ class CptTest extends TestCase {
         $this->assertSame( 'dashicons-feedback', $captured_args['menu_icon'] );
         $this->assertSame( array( 'title' ), $captured_args['supports'] );
         $this->assertFalse( $captured_args['has_archive'] );
-        $this->assertSame( 'post', $captured_args['capability_type'] );
+        // #739: decoupled from native post caps — custom capability_type +
+        // map_meta_cap. #739 §3.2: list/read primitives map to the read-only
+        // ffc_view_forms cap; write primitives stay on ffc_manage_forms.
+        $this->assertSame( 'ffc_form', $captured_args['capability_type'] );
+        $this->assertTrue( $captured_args['map_meta_cap'] );
+        // Read-only viewer tier (list visibility + read).
+        $this->assertSame( 'ffc_view_forms', $captured_args['capabilities']['edit_posts'] );
+        $this->assertSame( 'ffc_view_forms', $captured_args['capabilities']['edit_others_posts'] );
+        $this->assertSame( 'ffc_view_forms', $captured_args['capabilities']['read_private_posts'] );
+        // Write primitives stay on manage.
+        $this->assertSame( 'ffc_manage_forms', $captured_args['capabilities']['create_posts'] );
+        $this->assertSame( 'ffc_manage_forms', $captured_args['capabilities']['delete_posts'] );
+        // The per-post meta caps read_post / edit_post / delete_post are
+        // deliberately NOT mapped — mapping them would register
+        // ffc_view_forms / ffc_manage_forms as meta-cap aliases in
+        // $post_type_meta_caps and poison the plain primitive check
+        // (current_user_can( 'ffc_view_forms' ) → do_not_allow), hiding the
+        // CPT menus (the #739 regression). Per-post writes are gated by
+        // CptCapPolicy instead.
+        $this->assertArrayNotHasKey( 'read_post', $captured_args['capabilities'] );
+        $this->assertArrayNotHasKey( 'edit_post', $captured_args['capabilities'] );
+        $this->assertArrayNotHasKey( 'delete_post', $captured_args['capabilities'] );
     }
 
     // ==================================================================

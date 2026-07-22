@@ -30,6 +30,8 @@ jQuery(document).ready(function($) {
         }, 2000);
     });
 
+    // Reveal PII (#739 §3.3) is handled by the shared ffc-pii-reveal.js.
+
     // ========================================
     // Unlink User Button - Confirmation
     // ========================================

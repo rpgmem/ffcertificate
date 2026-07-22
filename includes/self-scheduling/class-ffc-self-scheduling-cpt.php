@@ -102,7 +102,44 @@ class SelfSchedulingCPT {
 			'show_ui'         => true,
 			'show_in_menu'    => 'ffc-scheduling', // Unified Scheduling menu.
 			'query_var'       => true,
-			'capability_type' => 'post',
+			// Custom capability_type + map_meta_cap so calendar management is
+			// gated by the FFC `ffc_manage_calendars` cap instead of native
+			// post caps (a plain WP Editor holds `edit_others_posts`). This
+			// governs the calendar STRUCTURE + options — distinct from
+			// `ffc_manage_appointments`, which governs the bookings made
+			// against a calendar. See issue #739.
+			//
+			// #739 §3.2 read-only viewer: the list/read primitives map to the
+			// `ffc_view_calendars` cap so a viewer sees the calendars list
+			// read-only; every write primitive stays on `ffc_manage_calendars`.
+			// The shared CptCapPolicy map_meta_cap gate (registered in the
+			// orchestrator) forces the per-post write meta-caps back to
+			// `ffc_manage_calendars`, so viewing never implies editing.
+			'capability_type' => 'ffc_calendar',
+			'map_meta_cap'    => true,
+			// NOTE: only the *primitive* caps are mapped here — the per-post
+			// meta caps `read_post` / `edit_post` / `delete_post` are
+			// deliberately omitted. Mapping them to `ffc_view_calendars` /
+			// `ffc_manage_calendars` would register those strings as meta-cap
+			// aliases in WordPress's global `$post_type_meta_caps`, so a plain
+			// `current_user_can( 'ffc_view_calendars' )` (the admin-menu check)
+			// would be rerouted through `map_meta_cap()` to `read_post` and,
+			// without a post ID, collapse to `do_not_allow` — hiding the
+			// calendar menus (the #739 regression). Per-post edit/delete stays
+			// gated by {@see \FreeFormCertificate\Admin\CptCapPolicy}.
+			'capabilities'    => array(
+				// Read-only viewer tier (list visibility + read).
+				'edit_posts'             => 'ffc_view_calendars',
+				'edit_others_posts'      => 'ffc_view_calendars',
+				'read_private_posts'     => 'ffc_view_calendars',
+				// Write tier (primitives only; per-post writes via CptCapPolicy).
+				'delete_posts'           => 'ffc_manage_calendars',
+				'delete_others_posts'    => 'ffc_manage_calendars',
+				'publish_posts'          => 'ffc_manage_calendars',
+				'create_posts'           => 'ffc_manage_calendars',
+				'edit_published_posts'   => 'ffc_manage_calendars',
+				'delete_published_posts' => 'ffc_manage_calendars',
+			),
 			'has_archive'     => false,
 			'hierarchical'    => false,
 			'supports'        => array( 'title' ),
