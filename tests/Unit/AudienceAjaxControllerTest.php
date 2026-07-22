@@ -61,6 +61,11 @@ class AudienceAjaxControllerTest extends TestCase {
 	private function mockUtils(): void {
 		$utils = Mockery::mock( 'alias:FreeFormCertificate\Core\Capabilities' );
 		$utils->shouldReceive( 'current_user_can_manage' )->andReturn( true )->byDefault();
+		// #739 (C): the booking / permission / environment handlers now gate on
+		// `ffc_manage_audiences` via check_ajax_admin_or() (admin OR the granular
+		// cap), so the audience manager role is no longer locked out. Constrain
+		// the arg so a handler regressing to a different cap fails the mock.
+		$utils->shouldReceive( 'current_user_can_admin_or' )->with( 'ffc_manage_audiences' )->andReturn( true )->byDefault();
 
 		// #563 Sprint 3 PR 3b — request-input accessors moved to RequestInput.
 		$ri = Mockery::mock( 'alias:FreeFormCertificate\Core\RequestInput' );

@@ -14,6 +14,10 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 ### Deprecated
 - WordPress Editors (holders of `edit_others_posts`) can still manage FFC forms and calendars during a two-release compatibility window, with an admin notice, but this stops in **6.18.0**. Grant the FFC Administrator role — or the form/calendar management capability — to the users who need it. (#739)
 
+### Fixed
+- Authorization consistency (#739): the migration-runner AJAX endpoint now requires the `ffc_manage_settings_dangerzone` sub-cap, matching its no-JS counterparts — a settings operator without the dangerzone cap could previously run destructive migrations through the AJAX runner.
+- Audience delegation (#739): the audience booking, schedule-slot, environment and user-permission AJAX actions now accept `ffc_manage_audiences` (administrator **or** the granular cap) instead of requiring `manage_options`, so the **FFC Audience Manager** role can actually use the interactive screens it is meant to delegate.
+
 ## [6.15.0] (2026-07-21) — `b5a96fe`
 
 ### Deprecated
