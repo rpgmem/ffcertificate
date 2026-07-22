@@ -148,11 +148,18 @@ class CptTest extends TestCase {
         $this->assertSame( array( 'title' ), $captured_args['supports'] );
         $this->assertFalse( $captured_args['has_archive'] );
         // #739: decoupled from native post caps — custom capability_type +
-        // map_meta_cap, every primitive mapped to ffc_manage_forms.
+        // map_meta_cap. #739 §3.2: list/read primitives map to the read-only
+        // ffc_view_forms cap; write primitives stay on ffc_manage_forms.
         $this->assertSame( 'ffc_form', $captured_args['capability_type'] );
         $this->assertTrue( $captured_args['map_meta_cap'] );
-        $this->assertSame( 'ffc_manage_forms', $captured_args['capabilities']['edit_others_posts'] );
+        // Read-only viewer tier (list visibility + read).
+        $this->assertSame( 'ffc_view_forms', $captured_args['capabilities']['edit_posts'] );
+        $this->assertSame( 'ffc_view_forms', $captured_args['capabilities']['edit_others_posts'] );
+        $this->assertSame( 'ffc_view_forms', $captured_args['capabilities']['read_private_posts'] );
+        // Write primitives stay on manage (per-post edit/delete re-gated by CptCapPolicy).
         $this->assertSame( 'ffc_manage_forms', $captured_args['capabilities']['edit_post'] );
+        $this->assertSame( 'ffc_manage_forms', $captured_args['capabilities']['create_posts'] );
+        $this->assertSame( 'ffc_manage_forms', $captured_args['capabilities']['delete_post'] );
     }
 
     // ==================================================================

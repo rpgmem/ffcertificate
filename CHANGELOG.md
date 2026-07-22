@@ -8,7 +8,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 ## [Unreleased]
 
 ### Added
-- Read-only capabilities `ffc_view_forms` and `ffc_view_calendars` (#739) — the *só vê* tier for the certificate-form and self-scheduling-calendar structures, completing the 3-state model on both CPT surfaces (the view tier deferred from the CPT-decoupling PR).
+- Read-only capabilities `ffc_view_forms` and `ffc_view_calendars` (#739) — the *só vê* tier for the certificate-form and self-scheduling-calendar structures, completing the 3-state model on both CPT surfaces (the view tier deferred from the CPT-decoupling PR). A holder now sees the forms/calendars list read-only; a new `map_meta_cap` gate forces every per-post edit/delete on those CPTs to the matching `manage` cap, so viewing never implies editing.
 
 ### Changed
 - ⚠ **Breaking (RBAC redesign, #739):** WordPress administrators now receive FFC access through the dedicated **FFC Administrator** role (`ffc_administrator`) instead of the plugin's capabilities being granted onto the native `administrator` role. On upgrade every existing administrator is automatically given the role, so no access is lost; administrators created **afterwards** are granted it explicitly (on the user-edit screen, by any admin) — they are no longer auto-elevated. The per-user FFC role panel now appears for administrators so the aggregator role can be assigned to them.

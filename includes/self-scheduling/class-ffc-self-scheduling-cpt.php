@@ -107,20 +107,28 @@ class SelfSchedulingCPT {
 			// post caps (a plain WP Editor holds `edit_others_posts`). This
 			// governs the calendar STRUCTURE + options — distinct from
 			// `ffc_manage_appointments`, which governs the bookings made
-			// against a calendar. `current_user_can( 'edit_post', $id )` keeps
-			// working via map_meta_cap. See issue #739.
+			// against a calendar. See issue #739.
+			//
+			// #739 §3.2 read-only viewer: the list/read primitives map to the
+			// `ffc_view_calendars` cap so a viewer sees the calendars list
+			// read-only; every write primitive stays on `ffc_manage_calendars`.
+			// The shared CptCapPolicy map_meta_cap gate (registered in the
+			// orchestrator) forces the per-post write meta-caps back to
+			// `ffc_manage_calendars`, so viewing never implies editing.
 			'capability_type' => 'ffc_calendar',
 			'map_meta_cap'    => true,
 			'capabilities'    => array(
+				// Read-only viewer tier (list visibility + read).
+				'edit_posts'             => 'ffc_view_calendars',
+				'edit_others_posts'      => 'ffc_view_calendars',
+				'read_private_posts'     => 'ffc_view_calendars',
+				'read_post'              => 'ffc_view_calendars',
+				// Write tier (gated per-post by CptCapPolicy for edit/delete).
 				'edit_post'              => 'ffc_manage_calendars',
-				'read_post'              => 'ffc_manage_calendars',
 				'delete_post'            => 'ffc_manage_calendars',
-				'edit_posts'             => 'ffc_manage_calendars',
-				'edit_others_posts'      => 'ffc_manage_calendars',
 				'delete_posts'           => 'ffc_manage_calendars',
 				'delete_others_posts'    => 'ffc_manage_calendars',
 				'publish_posts'          => 'ffc_manage_calendars',
-				'read_private_posts'     => 'ffc_manage_calendars',
 				'create_posts'           => 'ffc_manage_calendars',
 				'edit_published_posts'   => 'ffc_manage_calendars',
 				'delete_published_posts' => 'ffc_manage_calendars',

@@ -203,6 +203,11 @@ class Loader {
 		// decoupled form/calendar caps for two releases. Remove in 6.18.0.
 		\FreeFormCertificate\Admin\CptEditorCompat::init();
 
+		// #739 §3.2 read-only viewer gate: forms/calendars list-read primitives
+		// map to the view caps, so this forces the per-post write meta-caps back
+		// to the manage cap (viewing must never imply editing). Permanent.
+		\FreeFormCertificate\Admin\CptCapPolicy::init();
+
 		// Self-Scheduling module — single bootstrap entry point (#563 B3).
 		$this->self_scheduling_loader = new SelfSchedulingLoader();
 		$this->self_scheduling_loader->init();
