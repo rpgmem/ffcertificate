@@ -10,6 +10,9 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 ### Changed
 - User Access → "Blocked Roles" list is now grouped instead of a flat wall of ~30 checkboxes (#739 follow-up): sections for **FFC end users** (the recommended target), **WordPress** core roles, and **other** (third-party) roles, with the FFC administrative ladder tucked behind a disclosure that carries a caveat — those roles operate through wp-admin, so blocking one locks it out of the screens it is meant to use. The disclosure auto-opens when such a role is already blocked, a responsive grid replaces the inline wrap, and the description shows the current blocked count.
 
+### Security
+- Closed four authorization escapes from the #739 RBAC taxonomy — admin surfaces that still gated on raw WordPress capabilities instead of the FFC domain caps (all already CSRF-protected; these are authorization-tier fixes). The certificates-dashboard calendar REST read (`GET /ffc/v1/certificates/calendar`) moves from `edit_others_posts` to `ffc_view_certificates` (matching the dashboard page it feeds — this both stopped a plain WordPress Editor from reaching it and unlocked a certificates viewer who could open the page but not load its calendar); the form-editor `ffc_generate_codes` and `ffc_load_template` AJAX handlers move from `edit_posts` to `ffc_manage_forms`; the user-search AJAX (`ffc_search_user`, incl. CPF/RF lookup) moves from `manage_options`-only to `ffc_edit_certificates` (matching the submission-edit page it serves, so a certificates delegate is no longer locked out); and the recruitment **Notices** bulk-delete now requires `ffc_delete_recruitment` (it previously checked only the nonce), matching its Adjutancies/Reasons siblings. (#739)
+
 ## [6.16.0] (2026-07-22)
 
 ### Added

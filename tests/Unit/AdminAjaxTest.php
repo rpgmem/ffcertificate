@@ -274,6 +274,23 @@ class AdminAjaxTest extends TestCase {
     // search_user()
     // ==================================================================
 
+    public function test_search_user_denied_without_certificates_edit_cap(): void {
+        // #739 escape closed: the user search backs the `ffc_edit_certificates`
+        // submission-edit page, so it is gated on that cap (via admin-or), not
+        // the trait's `manage_options` default. A caller lacking the cap and
+        // manage_options is denied.
+        $this->setup_valid_search_user( 'jane' );
+        $this->caps_mock->shouldReceive( 'current_user_can_admin_or' )
+            ->with( 'ffc_edit_certificates' )->andReturn( false );
+
+        $ajax = new AdminAjax();
+
+        $this->expectException( \RuntimeException::class );
+        $this->expectExceptionMessageMatches( '/Permission denied/' );
+
+        $ajax->search_user();
+    }
+
     public function test_search_user_sends_error_for_short_term(): void {
         $this->setup_valid_search_user( 'a' ); // Only 1 character
 
