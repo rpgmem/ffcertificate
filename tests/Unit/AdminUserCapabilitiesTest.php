@@ -158,7 +158,7 @@ class AdminUserCapabilitiesTest extends TestCase {
         $roles_obj = new class() {
             /** @var array<string,array<string,mixed>> */
             public $roles = array(
-                'ffc_user'                 => array(
+                'ffc_end_user'                 => array(
                     'capabilities' => array(
                         'read'                      => true,
                         'ffc_view_own_certificates' => true,
@@ -184,7 +184,7 @@ class AdminUserCapabilitiesTest extends TestCase {
             );
             public function get_names() {
                 return array(
-                    'ffc_user'                => 'FFC User',
+                    'ffc_end_user'                => 'FFC End User',
                     'ffc_recruitment_manager' => 'Recruitment Manager',
                     'administrator'           => 'Administrator',
                     'subscriber'              => 'Subscriber',
@@ -276,7 +276,7 @@ class AdminUserCapabilitiesTest extends TestCase {
         Functions\when( 'current_user_can' )->justReturn( false );
 
         $user = new \WP_User( 5 );
-        $user->roles = array( 'ffc_user' );
+        $user->roles = array( 'ffc_end_user' );
 
         ob_start();
         AdminUserCapabilities::render_capability_fields( $user );
@@ -335,7 +335,7 @@ class AdminUserCapabilitiesTest extends TestCase {
         Functions\when( 'user_can' )->justReturn( false );
 
         $user = new \WP_User( 5 );
-        $user->roles = array( 'ffc_user' );
+        $user->roles = array( 'ffc_end_user' );
 
         ob_start();
         AdminUserCapabilities::render_capability_fields( $user );
@@ -368,7 +368,7 @@ class AdminUserCapabilitiesTest extends TestCase {
 
         // Read-only context summary (role + audiences).
         $this->assertStringContainsString( 'ffc-cap-context', $output );
-        $this->assertStringContainsString( 'ffc_user', $output );
+        $this->assertStringContainsString( 'ffc_end_user', $output );
         $this->assertStringContainsString( 'page=ffc-scheduling-audiences', $output );
 
         // Nonce field.
@@ -399,7 +399,7 @@ class AdminUserCapabilitiesTest extends TestCase {
         );
 
         $user        = new \WP_User( 5 );
-        $user->roles = array( 'ffc_user' );
+        $user->roles = array( 'ffc_end_user' );
 
         ob_start();
         AdminUserCapabilities::render_capability_fields( $user );
@@ -424,16 +424,16 @@ class AdminUserCapabilitiesTest extends TestCase {
         Functions\when( 'user_can' )->justReturn( false );
 
         $user        = new \WP_User( 5 );
-        $user->roles = array( 'ffc_user' );
+        $user->roles = array( 'ffc_end_user' );
 
         ob_start();
         AdminUserCapabilities::render_capability_fields( $user );
         $output = ob_get_clean();
 
         // FFC roles render as assignable chips; ffc_user is currently assigned.
-        $this->assertStringContainsString( 'data-ffc-role="ffc_user"', $output );
+        $this->assertStringContainsString( 'data-ffc-role="ffc_end_user"', $output );
         $this->assertStringContainsString( 'data-ffc-role="ffc_recruitment_manager"', $output );
-        $this->assertMatchesRegularExpression( '/data-ffc-role="ffc_user"[^>]*aria-pressed="true"/', $output );
+        $this->assertMatchesRegularExpression( '/data-ffc-role="ffc_end_user"[^>]*aria-pressed="true"/', $output );
 
         // administrator (manage_options) and subscriber (no FFC cap) are excluded.
         $this->assertStringNotContainsString( 'data-ffc-role="administrator"', $output );
@@ -485,31 +485,31 @@ class AdminUserCapabilitiesTest extends TestCase {
         $_POST['assign']  = '1';
 
         $user        = new \WP_User( 5 );
-        $user->roles = array( 'ffc_user' );
+        $user->roles = array( 'ffc_end_user' );
         Functions\when( 'get_userdata' )->justReturn( $user );
 
         $res = $this->run_ajax_role();
 
         $this->assertTrue( $res['ok'] );
         $this->assertContains( 'ffc_recruitment_manager', $user->roles );
-        $this->assertContains( 'ffc_user', $user->roles );
+        $this->assertContains( 'ffc_end_user', $user->roles );
 
         unset( $_POST['user_id'], $_POST['role'], $_POST['assign'] );
     }
 
     public function test_ajax_removes_a_preset_role(): void {
         $_POST['user_id'] = '5';
-        $_POST['role']    = 'ffc_user';
+        $_POST['role']    = 'ffc_end_user';
         $_POST['assign']  = '0';
 
         $user        = new \WP_User( 5 );
-        $user->roles = array( 'ffc_user', 'ffc_recruitment_manager' );
+        $user->roles = array( 'ffc_end_user', 'ffc_recruitment_manager' );
         Functions\when( 'get_userdata' )->justReturn( $user );
 
         $res = $this->run_ajax_role();
 
         $this->assertTrue( $res['ok'] );
-        $this->assertNotContains( 'ffc_user', $user->roles );
+        $this->assertNotContains( 'ffc_end_user', $user->roles );
         $this->assertContains( 'ffc_recruitment_manager', $user->roles );
 
         unset( $_POST['user_id'], $_POST['role'], $_POST['assign'] );
@@ -521,7 +521,7 @@ class AdminUserCapabilitiesTest extends TestCase {
         $_POST['assign']  = '1';
 
         $user        = new \WP_User( 5 );
-        $user->roles = array( 'ffc_user' );
+        $user->roles = array( 'ffc_end_user' );
         Functions\when( 'get_userdata' )->justReturn( $user );
 
         $res = $this->run_ajax_role();
@@ -535,7 +535,7 @@ class AdminUserCapabilitiesTest extends TestCase {
 
     public function test_ajax_refuses_to_edit_admin_target(): void {
         $_POST['user_id'] = '5';
-        $_POST['role']    = 'ffc_user';
+        $_POST['role']    = 'ffc_end_user';
         $_POST['assign']  = '0';
 
         Functions\when( 'user_can' )->justReturn( true ); // target is an administrator
@@ -586,7 +586,7 @@ class AdminUserCapabilitiesTest extends TestCase {
 
     public function test_ajax_requires_manage_options(): void {
         $_POST['user_id'] = '5';
-        $_POST['role']    = 'ffc_user';
+        $_POST['role']    = 'ffc_end_user';
         $_POST['assign']  = '1';
 
         Functions\when( 'current_user_can' )->justReturn( false );

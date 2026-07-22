@@ -4,7 +4,7 @@
  *
  * Owns the user-dashboard module's activation work, extracted from the
  * monolithic {@see \FreeFormCertificate\Activator} (#563 Sprint 7, A5): the
- * base `ffc_user` role + admin capability grant, the user-profiles and
+ * base `ffc_end_user` role + admin capability grant, the user-profiles and
  * custom-fields tables, and the front-end dashboard page.
  *
  * @package FreeFormCertificate\UserDashboard
@@ -41,7 +41,7 @@ class UserDashboardActivator {
 	}
 
 	/**
-	 * Register the ffc_user role and grant admin-level FFC caps to the
+	 * Register the ffc_end_user role and grant admin-level FFC caps to the
 	 * administrator role.
 	 */
 	private static function register_user_role(): void {

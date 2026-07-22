@@ -19,7 +19,7 @@ function markup() {
 		<div class="ffc-cap-toolbar">
 			<label class="ffc-role-pick">Role:
 				<select class="ffc-role-select">
-					<option value="ffc_user" selected>FFC User</option>
+					<option value="ffc_end_user" selected>FFC End User</option>
 					<option value="ffc_recruitment_manager">Recruitment Manager</option>
 				</select>
 			</label>
@@ -261,7 +261,7 @@ describe('init guards', () => {
 		};
 		document.body.innerHTML = `
 			<div class="ffc-role-editor">
-				<select class="ffc-role-select"><option value="ffc_user" selected>U</option></select>
+				<select class="ffc-role-select"><option value="ffc_end_user" selected>U</option></select>
 				<div class="ffc-cap-group">
 					<div class="ffc-cap-row" data-ffc-cap-slug="orphan"></div>
 				</div>
@@ -284,7 +284,7 @@ describe('init guards', () => {
 		globalThis.fetch = fetchMock;
 		document.body.innerHTML = `
 			<div class="ffc-role-editor">
-				<select class="ffc-role-select"><option value="ffc_user" selected>U</option></select>
+				<select class="ffc-role-select"><option value="ffc_end_user" selected>U</option></select>
 				<div class="ffc-cap-group">
 					<div class="ffc-cap-row" data-ffc-cap-slug="cap_x">
 						<input type="checkbox" class="ffc-role-cap" data-ffc-cap-slug="cap_x">

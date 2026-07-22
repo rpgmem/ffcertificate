@@ -42,13 +42,13 @@ class CapabilityMigrator {
 
 	/**
 	 * Idempotent migration: rewrites every legacy cap grant on every user
-	 * (user-meta `add_cap(true)`) and on the `ffc_user` role to the new
+	 * (user-meta `add_cap(true)`) and on the `ffc_end_user` role to the new
 	 * `ffc_*` namespace.
 	 *
 	 * Strategy: for each `legacy => new` pair,
 	 *   1. iterate every user that has the legacy cap, add the new cap, drop
 	 *      the legacy cap;
-	 *   2. on the `ffc_user` role, if the legacy cap exists, add the new
+	 *   2. on the `ffc_end_user` role, if the legacy cap exists, add the new
 	 *      cap with the same boolean value and remove the legacy cap.
 	 *
 	 * Run once per FFC version bump via `Loader::ensure_legacy_caps_renamed()`.
@@ -77,8 +77,8 @@ class CapabilityMigrator {
 				}
 			}
 
-			// 2. ffc_user role definition.
-			$role = get_role( 'ffc_user' );
+			// 2. ffc_end_user role definition.
+			$role = get_role( 'ffc_end_user' );
 			if ( $role && isset( $role->capabilities[ $legacy ] ) ) {
 				$value = (bool) $role->capabilities[ $legacy ];
 				$role->add_cap( $renamed, $value );
@@ -761,6 +761,7 @@ class CapabilityMigrator {
 	 */
 	public static function role_renames(): array {
 		return array(
+			'ffc_user'                    => 'ffc_end_user',
 			'ffc_operator'                => 'ffc_readonly',
 			'ffc_self_scheduling_manager' => 'ffc_appointments_manager',
 		);
@@ -776,6 +777,10 @@ class CapabilityMigrator {
 		$renames = self::role_renames();
 
 		// Ensure the renamed roles exist before reassigning users onto them.
+		// `register_role()` creates `ffc_end_user` (the end-user role);
+		// `register_module_roles()` creates the module-manager roles
+		// (`ffc_readonly`, `ffc_appointments_manager`, …).
+		RoleRegistrar::register_role();
 		RoleRegistrar::register_module_roles();
 
 		$counts = array();

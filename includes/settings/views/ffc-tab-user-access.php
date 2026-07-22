@@ -18,7 +18,7 @@ $ffcertificate_current_settings = get_option( 'ffc_user_access_settings', array(
 // Defaults.
 $ffcertificate_defaults = array(
 	'block_wp_admin'    => false,
-	'blocked_roles'     => array( 'ffc_user' ),
+	'blocked_roles'     => array( 'ffc_end_user' ),
 	'redirect_url'      => home_url( '/dashboard' ),
 	'redirect_message'  => __( 'You were redirected from the admin panel. Use this dashboard to access your certificates.', 'ffcertificate' ),
 	'allow_admin_bar'   => false,
@@ -83,7 +83,7 @@ $ffcertificate_dashboard_url     = $ffcertificate_dashboard_page_id ? get_permal
 											value="<?php echo esc_attr( $ffcertificate_role_slug ); ?>"
 											<?php checked( in_array( $ffcertificate_role_slug, $ffcertificate_settings['blocked_roles'], true ) ); ?>>
 									<?php echo esc_html( $ffcertificate_role_name ); ?>
-									<?php if ( 'ffc_user' === $ffcertificate_role_slug ) : ?>
+									<?php if ( 'ffc_end_user' === $ffcertificate_role_slug ) : ?>
 										<em>(<?php esc_html_e( 'recommended', 'ffcertificate' ); ?>)</em>
 									<?php endif; ?>
 								</label>
@@ -203,7 +203,7 @@ $ffcertificate_dashboard_url     = $ffcertificate_dashboard_page_id ? get_permal
 		<div class="card ffc-info-card">
 			<h2 class="ffc-icon-info"><?php esc_html_e( 'Information', 'ffcertificate' ); ?></h2>
 			<p>
-				<?php esc_html_e( 'The "FFC User" role is automatically assigned to users who submit forms with CPF/RF.', 'ffcertificate' ); ?>
+				<?php esc_html_e( 'The "FFC End User" role is automatically assigned to users who submit forms with CPF/RF.', 'ffcertificate' ); ?>
 			</p>
 			<p>
 				<?php

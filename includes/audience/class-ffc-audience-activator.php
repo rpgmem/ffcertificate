@@ -65,8 +65,8 @@ class AudienceActivator {
 	 * @return void
 	 */
 	public static function register_capabilities(): void {
-		// Get the ffc_user role.
-		$ffc_user_role = get_role( 'ffc_user' );
+		// Get the ffc_end_user role.
+		$ffc_user_role = get_role( 'ffc_end_user' );
 		if ( $ffc_user_role ) {
 			$ffc_user_role->add_cap( 'ffc_view_own_audience_bookings' );
 		}

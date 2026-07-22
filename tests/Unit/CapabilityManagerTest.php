@@ -656,7 +656,7 @@ class CapabilityManagerTest extends TestCase {
     public function test_remove_role_calls_wp_remove_role(): void {
         $removed = false;
         Functions\when( 'remove_role' )->alias( function( $role ) use ( &$removed ) {
-            $removed = ( $role === 'ffc_user' );
+            $removed = ( $role === 'ffc_end_user' );
         } );
 
         RoleRegistrar::remove_role();

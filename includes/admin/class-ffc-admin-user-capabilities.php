@@ -142,8 +142,8 @@ class AdminUserCapabilities {
 			return;
 		}
 
-		// Only show for users with ffc_user role.
-		if ( ! in_array( 'ffc_user', $user->roles, true ) && ! self::has_any_ffc_capability( $user->ID ) ) {
+		// Only show for users with ffc_end_user role.
+		if ( ! in_array( 'ffc_end_user', $user->roles, true ) && ! self::has_any_ffc_capability( $user->ID ) ) {
 			return;
 		}
 

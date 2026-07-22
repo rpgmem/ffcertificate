@@ -210,7 +210,7 @@ foreach ( array( 'ffc_form', 'ffc_self_scheduling' ) as $ffcertificate_cpt ) {
 // ──────────────────────────────────────
 // 6. Remove FFC roles
 // ──────────────────────────────────────
-remove_role( 'ffc_user' );
+remove_role( 'ffc_end_user' );
 remove_role( 'ffc_recruitment_manager' );
 
 // 6.2.0 module-manager + recruitment-tier roles. Listed inline rather than

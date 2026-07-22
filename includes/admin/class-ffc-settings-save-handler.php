@@ -445,7 +445,7 @@ class SettingsSaveHandler {
         // phpcs:disable WordPress.Security.ValidatedSanitizedInput.InputNotSanitized, WordPress.Security.ValidatedSanitizedInput.MissingUnslash -- isset()/empty()/is_array() are existence and type checks; values are sanitized with wp_unslash + sanitize_text_field/esc_url_raw/sanitize_textarea_field.
 		$settings = array(
 			'block_wp_admin'    => isset( $_POST['block_wp_admin'] ),
-			'blocked_roles'     => \FreeFormCertificate\Core\RequestInput::get_post_array( 'blocked_roles', array( 'ffc_user' ) ),
+			'blocked_roles'     => \FreeFormCertificate\Core\RequestInput::get_post_array( 'blocked_roles', array( 'ffc_end_user' ) ),
 			'redirect_url'      => ! empty( $_POST['redirect_url'] )
 				? esc_url_raw( wp_unslash( $_POST['redirect_url'] ) )
 				: home_url( '/dashboard' ),

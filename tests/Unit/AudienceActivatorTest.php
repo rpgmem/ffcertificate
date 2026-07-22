@@ -158,7 +158,7 @@ class AudienceActivatorTest extends TestCase {
         $ffc_user_role = new \WP_Role();
 
         Functions\when( 'get_role' )->alias( function ( $role ) use ( $ffc_user_role ) {
-            if ( $role === 'ffc_user' ) {
+            if ( $role === 'ffc_end_user' ) {
                 return $ffc_user_role;
             }
             return null;
@@ -360,7 +360,7 @@ class AudienceActivatorTest extends TestCase {
         $subscriber_role = new \WP_Role();
 
         Functions\when( 'get_role' )->alias( function ( $role ) use ( $ffc_user_role, $subscriber_role ) {
-            if ( $role === 'ffc_user' ) {
+            if ( $role === 'ffc_end_user' ) {
                 return $ffc_user_role;
             }
             if ( $role === 'subscriber' ) {

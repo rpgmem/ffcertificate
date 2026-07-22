@@ -82,7 +82,7 @@ class UserCreator {
 
 		if ( $existing_user ) {
 			$user_id = $existing_user->ID;
-			$existing_user->add_role( 'ffc_user' );
+			$existing_user->add_role( 'ffc_end_user' );
 			CapabilityManager::grant_context_capabilities( $user_id, $context );
 
 			if ( empty( $existing_user->display_name ) || $existing_user->display_name === $existing_user->user_login ) {
@@ -183,7 +183,7 @@ class UserCreator {
 		$existing_user = '' !== $email ? get_user_by( 'email', $email ) : false;
 		if ( $existing_user ) {
 			$uid = (int) $existing_user->ID;
-			$existing_user->add_role( 'ffc_user' );
+			$existing_user->add_role( 'ffc_end_user' );
 			CapabilityManager::grant_context_capabilities( $uid, $context );
 
 			if ( empty( $existing_user->display_name ) || $existing_user->display_name === $existing_user->user_login ) {
@@ -293,7 +293,7 @@ class UserCreator {
 		}
 
 		$user = new \WP_User( $user_id );
-		$user->set_role( 'ffc_user' );
+		$user->set_role( 'ffc_end_user' );
 		CapabilityManager::grant_context_capabilities( $user_id, $context );
 		self::sync_user_metadata( $user_id, $submission_data );
 		self::create_user_profile( $user_id );

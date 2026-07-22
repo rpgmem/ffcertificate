@@ -96,7 +96,7 @@ class RoleCapabilityEditorTest extends TestCase {
 		$roles = RoleCapabilityEditor::editable_roles();
 		$slugs = array_column( $roles, 'slug' );
 
-		$this->assertContains( 'ffc_user', $slugs );
+		$this->assertContains( 'ffc_end_user', $slugs );
 		$this->assertContains( 'ffc_recruitment_manager', $slugs );
 		$this->assertNotContains( 'ffc_audience_manager', $slugs ); // unregistered dropped
 		$this->assertNotContains( 'administrator', $slugs );
@@ -108,7 +108,7 @@ class RoleCapabilityEditorTest extends TestCase {
 	public function test_role_caps_map_lists_only_cataloged_caps_a_role_grants(): void {
 		Functions\when( 'get_role' )->alias(
 			function ( $slug ) {
-				if ( 'ffc_user' === $slug ) {
+				if ( 'ffc_end_user' === $slug ) {
 					return $this->fake_role(
 						array(
 							'read'                      => true, // non-catalog: ignored
@@ -123,10 +123,10 @@ class RoleCapabilityEditorTest extends TestCase {
 
 		$map = RoleCapabilityEditor::role_caps_map();
 
-		$this->assertArrayHasKey( 'ffc_user', $map );
-		$this->assertContains( 'ffc_view_own_certificates', $map['ffc_user'] );
-		$this->assertContains( 'ffc_book_own_appointments', $map['ffc_user'] );
-		$this->assertNotContains( 'read', $map['ffc_user'] ); // non-catalog filtered out
+		$this->assertArrayHasKey( 'ffc_end_user', $map );
+		$this->assertContains( 'ffc_view_own_certificates', $map['ffc_end_user'] );
+		$this->assertContains( 'ffc_book_own_appointments', $map['ffc_end_user'] );
+		$this->assertNotContains( 'read', $map['ffc_end_user'] ); // non-catalog filtered out
 	}
 
 	public function test_render_outputs_role_picker_and_grid(): void {
@@ -182,7 +182,7 @@ class RoleCapabilityEditorTest extends TestCase {
 		$role = $this->fake_role();
 		Functions\when( 'get_role' )->alias( fn( $slug ) => $role );
 
-		$_POST['role']  = 'ffc_user';
+		$_POST['role']  = 'ffc_end_user';
 		$_POST['cap']   = 'ffc_view_own_certificates';
 		$_POST['grant'] = '1';
 
@@ -199,7 +199,7 @@ class RoleCapabilityEditorTest extends TestCase {
 		$role = $this->fake_role( array( 'ffc_view_own_certificates' => true ) );
 		Functions\when( 'get_role' )->alias( fn( $slug ) => $role );
 
-		$_POST['role']  = 'ffc_user';
+		$_POST['role']  = 'ffc_end_user';
 		$_POST['cap']   = 'ffc_view_own_certificates';
 		$_POST['grant'] = '0';
 
@@ -229,7 +229,7 @@ class RoleCapabilityEditorTest extends TestCase {
 	public function test_ajax_rejects_cap_outside_catalog(): void {
 		Functions\when( 'get_role' )->alias( fn( $slug ) => $this->fake_role() );
 
-		$_POST['role']  = 'ffc_user';
+		$_POST['role']  = 'ffc_end_user';
 		$_POST['cap']   = 'manage_options';
 		$_POST['grant'] = '1';
 
@@ -244,7 +244,7 @@ class RoleCapabilityEditorTest extends TestCase {
 	public function test_ajax_requires_manage_options(): void {
 		Functions\when( 'current_user_can' )->justReturn( false );
 
-		$_POST['role']  = 'ffc_user';
+		$_POST['role']  = 'ffc_end_user';
 		$_POST['cap']   = 'ffc_view_own_certificates';
 		$_POST['grant'] = '1';
 

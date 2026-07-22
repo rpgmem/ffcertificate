@@ -399,7 +399,7 @@ class AudienceCsvImporter {
 				'user_email'   => $email,
 				'user_pass'    => $password,
 				'display_name' => $name ? $name : $username,
-				'role'         => 'ffc_user',
+				'role'         => 'ffc_end_user',
 			)
 		);
 

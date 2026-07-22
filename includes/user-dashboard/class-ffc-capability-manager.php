@@ -37,7 +37,7 @@ class CapabilityManager {
 	 * Used by `UserCreator::get_or_create_user()` when the candidate is
 	 * being linked or created via the recruitment CSV importer (sprint 4) or
 	 * a manual admin edit (sprint 9.1). No per-user caps are granted on this
-	 * context — candidates rely on the `ffc_user` role's baseline `read` cap
+	 * context — candidates rely on the `ffc_end_user` role's baseline `read` cap
 	 * to access their dashboard "Minhas Convocações" section. The
 	 * `ffc_manage_recruitment` admin cap is registered separately on plugin
 	 * activation (see {@see RoleRegistrar::register_recruitment_manager_role()}).
@@ -53,7 +53,7 @@ class CapabilityManager {
 	 * @since 6.2.0 Renamed from `view_own_certificates`, `download_own_certificates`,
 	 *              `view_certificate_history` (no FFC prefix) to the consistent
 	 *              `ffc_*` namespace. Migration in `LegacyCapMigration` rewrites
-	 *              old grants on every user + the `ffc_user` role definition.
+	 *              old grants on every user + the `ffc_end_user` role definition.
 	 */
 	public const CERTIFICATE_CAPABILITIES = array(
 		'ffc_view_own_certificates',
@@ -297,7 +297,7 @@ class CapabilityManager {
 				break;
 			case self::CONTEXT_RECRUITMENT:
 				// Intentional no-op: recruitment candidates rely on the
-				// `ffc_user` role's baseline `read` cap. The admin-side
+				// `ffc_end_user` role's baseline `read` cap. The admin-side
 				// `ffc_manage_recruitment` cap is registered on activation,
 				// not granted at promotion time.
 				break;

@@ -168,13 +168,16 @@ class CapabilityMigratorTest extends TestCase {
 	}
 
 	public function test_role_renames_reassigns_users_and_drops_old_roles(): void {
-		Mockery::mock( 'alias:\\FreeFormCertificate\\UserDashboard\\RoleRegistrar' )
-			->shouldReceive( 'register_module_roles' )->atLeast()->once();
+		$registrar = Mockery::mock( 'alias:\\FreeFormCertificate\\UserDashboard\\RoleRegistrar' );
+		// `register_role()` creates `ffc_end_user`; `register_module_roles()`
+		// creates the module-manager roles — both must run before reassigning.
+		$registrar->shouldReceive( 'register_role' )->atLeast()->once();
+		$registrar->shouldReceive( 'register_module_roles' )->atLeast()->once();
 
 		Functions\when( 'get_users' )->justReturn( array( 7 ) );
 		$user = new class() {
 			/** @var array<int, string> */
-			public $roles = array( 'ffc_operator' );
+			public $roles = array( 'ffc_user' );
 			/** @var array<int, string> */
 			public $added = array();
 			/** @var array<int, string> */
@@ -197,11 +200,12 @@ class CapabilityMigratorTest extends TestCase {
 
 		$counts = CapabilityMigrator::migrate_role_renames();
 
-		// The user assigned the old role is moved to the new one.
-		$this->assertContains( 'ffc_readonly', $user->added );
-		$this->assertContains( 'ffc_operator', $user->removed );
-		$this->assertSame( 1, $counts['ffc_operator'] );
-		// Every old role slug is dropped, even one no user held.
+		// The user assigned the old end-user role is moved to the new one.
+		$this->assertContains( 'ffc_end_user', $user->added );
+		$this->assertContains( 'ffc_user', $user->removed );
+		$this->assertSame( 1, $counts['ffc_user'] );
+		// Every old role slug is dropped, even ones no user held.
+		$this->assertContains( 'ffc_user', $removed_roles );
 		$this->assertContains( 'ffc_operator', $removed_roles );
 		$this->assertContains( 'ffc_self_scheduling_manager', $removed_roles );
 	}
