@@ -697,6 +697,49 @@ class CapabilityManagerTest extends TestCase {
         RoleRegistrar::register_role();
     }
 
+    public function test_strip_false_ffc_caps_removes_falsy_entries_across_managed_roles(): void {
+        // A stale `ffc_* => false` on any FFC-managed role masks the same cap
+        // granted `true` by a peer role (WP merges role cap maps with
+        // array_merge; a later role's false wins). strip_false_ffc_caps() must
+        // remove every falsy ffc_* entry so the mask disappears — while a truthy
+        // grant on the same role is preserved.
+        $mock_role               = Mockery::mock( 'WP_Role' );
+        $mock_role->capabilities = array(
+            'read'             => true,
+            'ffc_view_forms'   => false,
+            'ffc_view_calendars' => 0,
+            'ffc_manage_forms' => '',
+            'ffc_manage_calendars' => true,
+        );
+
+        $removed = array();
+        $mock_role->shouldReceive( 'remove_cap' )
+            ->andReturnUsing( function ( $cap ) use ( &$removed ) {
+                $removed[] = $cap;
+            } );
+
+        Functions\when( 'get_role' )->justReturn( $mock_role );
+
+        RoleRegistrar::strip_false_ffc_caps();
+
+        // Every falsy variant (false / 0 / '') is stripped.
+        $this->assertContains( 'ffc_view_forms', $removed );
+        $this->assertContains( 'ffc_view_calendars', $removed );
+        $this->assertContains( 'ffc_manage_forms', $removed );
+        // A genuine `true` grant is never removed.
+        $this->assertNotContains( 'ffc_manage_calendars', $removed );
+    }
+
+    public function test_strip_false_ffc_caps_skips_missing_roles(): void {
+        // A managed role that doesn't exist on the site (get_role → null) is
+        // skipped without fataling.
+        Functions\when( 'get_role' )->justReturn( null );
+
+        RoleRegistrar::strip_false_ffc_caps();
+
+        $this->assertTrue( true, 'No fatal when a managed role is absent.' );
+    }
+
     public function test_remove_role_calls_wp_remove_role(): void {
         $removed = false;
         Functions\when( 'remove_role' )->alias( function( $role ) use ( &$removed ) {

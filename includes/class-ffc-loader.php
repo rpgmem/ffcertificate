@@ -257,6 +257,7 @@ class Loader {
 		$this->ensure_activity_log_export_cap_granted();
 		$this->ensure_rbac_caps_renamed();
 		$this->ensure_rbac_roles_renamed();
+		$this->ensure_false_ffc_caps_stripped();
 		$this->define_admin_hooks();
 		$this->init_rest_api();
 	}
@@ -306,6 +307,29 @@ class Loader {
 		}
 		if ( class_exists( '\FreeFormCertificate\UserDashboard\CapabilityManager' ) ) {
 			\FreeFormCertificate\UserDashboard\CapabilityMigrator::migrate_legacy_certificate_caps();
+		}
+		update_option( $flag, '1', true );
+	}
+
+	/**
+	 * One-time migration that removes every stale `ffc_* => false` denial from
+	 * the FFC-managed roles. Such entries (a legacy pre-#86 artifact, sometimes
+	 * carried onto renamed caps) mask the same cap granted `true` by a peer role
+	 * for multi-role users — e.g. an `ffc_administrator` + `ffc_end_user` user
+	 * losing `ffc_view_forms` / `ffc_view_calendars` because `ffc_end_user`
+	 * (ordered last in the WP role merge) still denies them. Idempotent +
+	 * version-flagged via `ffc_false_caps_stripped_v1`; runs on `plugins_loaded`
+	 * so in-place updates self-heal without a deactivate/reactivate cycle.
+	 *
+	 * @since 6.16.0
+	 */
+	private function ensure_false_ffc_caps_stripped(): void {
+		$flag = 'ffc_false_caps_stripped_v1';
+		if ( '1' === get_option( $flag, '' ) ) {
+			return;
+		}
+		if ( class_exists( '\FreeFormCertificate\UserDashboard\CapabilityManager' ) ) {
+			\FreeFormCertificate\UserDashboard\RoleRegistrar::strip_false_ffc_caps();
 		}
 		update_option( $flag, '1', true );
 	}
