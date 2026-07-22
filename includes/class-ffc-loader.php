@@ -199,6 +199,10 @@ class Loader {
 		UserCleanup::init();
 		PrivacyHandler::init();
 
+		// #739 deprecation shim: keep honouring edit_others_posts for the
+		// decoupled form/calendar caps for two releases. Remove in 6.18.0.
+		\FreeFormCertificate\Admin\CptEditorCompat::init();
+
 		// Self-Scheduling module — single bootstrap entry point (#563 B3).
 		$this->self_scheduling_loader = new SelfSchedulingLoader();
 		$this->self_scheduling_loader->init();
