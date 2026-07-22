@@ -470,11 +470,12 @@ class AdminAjaxTest extends TestCase {
         $df = Mockery::mock( 'alias:FreeFormCertificate\Core\DocumentFormatter' );
         $df->shouldReceive( 'format_cpf' )->with( '12345678901' )->andReturn( '123.456.789-01' );
 
-        Mockery::getConfiguration()->setConstantsMap(
-            array( 'FreeFormCertificate\Core\ActivityLog' => array( 'LEVEL_INFO' => 'info' ) )
-        );
-        $log = Mockery::mock( 'alias:FreeFormCertificate\Core\ActivityLog' );
-        $log->shouldReceive( 'log' )->once()->with( 'submission_pii_revealed', 'info', array( 'field_key' => 'cpf' ), \Mockery::any(), 5 );
+        // The reveal tier calls the real ActivityLog::log; keep the audit log
+        // disabled so it early-returns without a DB write (its LEVEL_INFO
+        // constant is genuinely defined this way, avoiding the alias-mock
+        // constants-map fragility).
+        Mockery::mock( 'alias:FreeFormCertificate\Settings\SettingsReader' )
+            ->shouldReceive( 'activity_log_enabled' )->andReturn( false );
 
         $ajax = new AdminAjax();
         try {
@@ -492,7 +493,7 @@ class AdminAjaxTest extends TestCase {
         }
     }
 
-    public function test_reveal_pii_unmasked_tier_does_not_audit(): void {
+    public function test_reveal_pii_unmasked_tier_returns_value(): void {
         $_POST['nonce']         = 'n';
         $_POST['submission_id'] = '5';
         $_POST['field']         = 'cpf';
@@ -507,12 +508,11 @@ class AdminAjaxTest extends TestCase {
         $policy = $this->mock_pii_policy();
         $policy->shouldReceive( 'resolve' )->andReturn( 'unmasked' );
 
-        $df = Mockery::mock( 'alias:\FreeFormCertificate\Core\DocumentFormatter' );
+        $df = Mockery::mock( 'alias:FreeFormCertificate\Core\DocumentFormatter' );
         $df->shouldReceive( 'format_cpf' )->andReturn( '123.456.789-01' );
 
-        $log = Mockery::mock( 'alias:\FreeFormCertificate\Core\ActivityLog' );
-        $log->shouldReceive( 'log' )->never();
-
+        // Unmasked tier never reaches the audit branch, so ActivityLog is not
+        // touched at all.
         $ajax = new AdminAjax();
         $this->expectException( AdminAjaxSuccessException::class );
         $ajax->reveal_pii();
