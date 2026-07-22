@@ -94,6 +94,12 @@ final class AdminMenuVisibility {
 				'hide_core_menus'      => $shared_hidden_menus,
 				'hide_admin_bar_nodes' => $shared_admin_bar_nodes,
 			),
+			'ffc_certificates_admin'      => array(
+				'landing_page'         => 'edit.php?post_type=ffc_form',
+				'allowed_pages'        => array( 'edit.php?post_type=ffc_form', 'ffc-submissions', 'ffc-settings', 'ffc-activity-log' ),
+				'hide_core_menus'      => $shared_hidden_menus,
+				'hide_admin_bar_nodes' => $shared_admin_bar_nodes,
+			),
 			// Forms (certificate-form structure).
 			'ffc_forms_viewer'            => array(
 				'landing_page'         => 'edit.php?post_type=ffc_form',
@@ -115,6 +121,12 @@ final class AdminMenuVisibility {
 				'hide_admin_bar_nodes' => $shared_admin_bar_nodes,
 			),
 			'ffc_appointments_operator'   => array(
+				'landing_page'         => 'ffc-self-scheduling',
+				'allowed_pages'        => array( 'ffc-self-scheduling', 'ffc-self-scheduling-appointments', 'ffc-self-scheduling-settings' ),
+				'hide_core_menus'      => $shared_hidden_menus,
+				'hide_admin_bar_nodes' => $shared_admin_bar_nodes,
+			),
+			'ffc_appointments_admin'      => array(
 				'landing_page'         => 'ffc-self-scheduling',
 				'allowed_pages'        => array( 'ffc-self-scheduling', 'ffc-self-scheduling-appointments', 'ffc-self-scheduling-settings' ),
 				'hide_core_menus'      => $shared_hidden_menus,

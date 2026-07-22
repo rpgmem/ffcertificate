@@ -167,25 +167,29 @@ final class CapabilityCatalog {
 				'label' => __( 'Certificates', 'ffcertificate' ),
 				'level' => 'admin',
 				'caps'  => array(
-					'ffc_view_certificates'   => array(
+					'ffc_view_certificates'     => array(
 						'label'       => __( 'View certificates', 'ffcertificate' ),
 						'description' => __( 'Read-only access to the submissions list and certificates dashboard.', 'ffcertificate' ),
 					),
-					'ffc_manage_certificates' => array(
+					'ffc_manage_certificates'   => array(
 						'label'       => __( 'Manage certificates', 'ffcertificate' ),
 						'description' => __( 'Access the certificate administration screens.', 'ffcertificate' ),
 					),
-					'ffc_edit_certificates'   => array(
+					'ffc_edit_certificates'     => array(
 						'label'       => __( 'Edit submission data on issued certificates', 'ffcertificate' ),
 						'description' => __( 'Fix typos on already-issued certificates without holding manage_options.', 'ffcertificate' ),
 					),
-					'ffc_export_certificates' => array(
+					'ffc_export_certificates'   => array(
 						'label'       => __( 'Export certificates', 'ffcertificate' ),
 						'description' => __( 'Download bulk certificate exports.', 'ffcertificate' ),
 					),
-					'ffc_delete_certificates' => array(
+					'ffc_delete_certificates'   => array(
 						'label'       => __( 'Delete certificates', 'ffcertificate' ),
 						'description' => __( 'Permanently delete certificate submissions (bulk delete).', 'ffcertificate' ),
+					),
+					'ffc_view_certificates_pii' => array(
+						'label'       => __( 'Reveal certificate PII', 'ffcertificate' ),
+						'description' => __( 'Reveal the decrypted CPF / RF / email on a submission (audited). Without it the values stay masked (#739).', 'ffcertificate' ),
 					),
 				),
 			),
@@ -209,26 +213,30 @@ final class CapabilityCatalog {
 				'label' => __( 'Appointments', 'ffcertificate' ),
 				'level' => 'admin',
 				'caps'  => array(
-					'ffc_view_appointments'   => array(
+					'ffc_view_appointments'     => array(
 						'label'       => __( 'View appointments', 'ffcertificate' ),
 						'description' => __( 'Read-only access to all scheduled appointments.', 'ffcertificate' ),
 					),
-					'ffc_manage_appointments' => array(
+					'ffc_manage_appointments'   => array(
 						'label'       => __( 'Manage self-scheduling', 'ffcertificate' ),
 						'description' => __( 'Configure personal calendars and self-scheduling windows.', 'ffcertificate' ),
 					),
-					'ffc_bypass_appointments' => array(
+					'ffc_bypass_appointments'   => array(
 						'label'       => __( 'Scheduling bypass', 'ffcertificate' ),
 						'description' => __( 'Private calendars, past dates, out-of-hours and blocked dates.', 'ffcertificate' ),
 						'surface'     => 'frontend',
 					),
-					'ffc_export_appointments' => array(
+					'ffc_export_appointments'   => array(
 						'label'       => __( 'Export appointments', 'ffcertificate' ),
 						'description' => __( 'Download the bulk appointments CSV.', 'ffcertificate' ),
 					),
-					'ffc_delete_appointments' => array(
+					'ffc_delete_appointments'   => array(
 						'label'       => __( 'Delete appointments', 'ffcertificate' ),
 						'description' => __( 'Permanently delete appointments and calendar cleanup purges.', 'ffcertificate' ),
+					),
+					'ffc_view_appointments_pii' => array(
+						'label'       => __( 'Reveal appointment PII', 'ffcertificate' ),
+						'description' => __( 'Reveal the decrypted CPF / RF / email on an appointment (audited). Without it the values stay masked (#739).', 'ffcertificate' ),
 					),
 				),
 			),

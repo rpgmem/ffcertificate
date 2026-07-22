@@ -171,6 +171,7 @@ class CapabilityManagerTest extends TestCase {
             'ffc_certificates_viewer',
             'ffc_certificates_operator',
             'ffc_certificates_manager',
+            'ffc_certificates_admin',
             // Forms.
             'ffc_forms_viewer',
             'ffc_forms_manager',
@@ -178,6 +179,7 @@ class CapabilityManagerTest extends TestCase {
             'ffc_appointments_viewer',
             'ffc_appointments_operator',
             'ffc_appointments_manager',
+            'ffc_appointments_admin',
             // Calendars.
             'ffc_calendars_viewer',
             'ffc_calendars_manager',
@@ -263,6 +265,15 @@ class CapabilityManagerTest extends TestCase {
         $this->assertArrayNotHasKey( 'ffc_manage_certificates', $created['ffc_certificates_viewer'] );
         $this->assertTrue( $created['ffc_certificates_operator']['ffc_edit_certificates'] );
         $this->assertArrayNotHasKey( 'ffc_manage_certificates', $created['ffc_certificates_operator'] );
+
+        // PII carve (#739 §3.3): manager + admin tiers hold the reveal cap;
+        // viewer/operator do not.
+        $this->assertTrue( $created['ffc_certificates_manager']['ffc_view_certificates_pii'] );
+        $this->assertTrue( $created['ffc_certificates_admin']['ffc_view_certificates_pii'] );
+        $this->assertArrayNotHasKey( 'ffc_view_certificates_pii', $created['ffc_certificates_viewer'] );
+        $this->assertArrayNotHasKey( 'ffc_view_certificates_pii', $created['ffc_certificates_operator'] );
+        $this->assertTrue( $created['ffc_appointments_manager']['ffc_view_appointments_pii'] );
+        $this->assertTrue( $created['ffc_appointments_admin']['ffc_view_appointments_pii'] );
 
         // CPT-domain pairs: viewer holds the new view cap, manager adds manage.
         $this->assertTrue( $created['ffc_forms_viewer']['ffc_view_forms'] );

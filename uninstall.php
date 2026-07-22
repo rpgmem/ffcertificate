@@ -226,6 +226,7 @@ foreach (
 		'ffc_certificates_viewer',
 		'ffc_certificates_operator',
 		'ffc_certificates_manager',
+		'ffc_certificates_admin',
 		// Forms.
 		'ffc_forms_viewer',
 		'ffc_forms_manager',
@@ -233,6 +234,7 @@ foreach (
 		'ffc_appointments_viewer',
 		'ffc_appointments_operator',
 		'ffc_appointments_manager',
+		'ffc_appointments_admin',
 		// Calendars.
 		'ffc_calendars_viewer',
 		'ffc_calendars_manager',

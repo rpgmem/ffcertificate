@@ -8,6 +8,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 ## [Unreleased]
 
 ### Added
+- PII reveal capabilities `ffc_view_certificates_pii` and `ffc_view_appointments_pii` (#739) — carve the decrypted CPF / RF / email out of the plain `view` tier, mirroring recruitment. A shared 3-tier resolver (`Core\PiiAccessPolicy`) grants *unmasked* plaintext to the domain `_admin` role (and WP super-admins), an audited *reveal* tier to holders of the `_pii` cap and to the record's owner, and *masked* to everyone else. The caps ship on the `manager` + new `_admin` tiers; the certificates/appointments ladders gain their fourth (`_admin`) tier.
 - Read-only capabilities `ffc_view_forms` and `ffc_view_calendars` (#739) — the *só vê* tier for the certificate-form and self-scheduling-calendar structures, completing the 3-state model on both CPT surfaces (the view tier deferred from the CPT-decoupling PR). A holder now sees the forms/calendars list read-only; a new `map_meta_cap` gate forces every per-post edit/delete on those CPTs to the matching `manage` cap, so viewing never implies editing.
 
 ### Changed

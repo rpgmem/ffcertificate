@@ -153,6 +153,15 @@ class CapabilityManager {
 		'ffc_view_recruitment_settings',
 		'ffc_view_recruitment_reasons',
 
+		// PII reveal tier (#739 §3.3). Carved out of the read-only `view`
+		// caps so seeing a submission list no longer implies seeing the
+		// decrypted CPF / RF / email. Mirrors `ffc_view_recruitment_pii`:
+		// a holder gets the audited *reveal* tier (masked placeholder →
+		// click to decrypt, which writes an audit row); the domain `_admin`
+		// role sees plaintext unmasked. Lives on the manager + admin tiers.
+		'ffc_view_certificates_pii',
+		'ffc_view_appointments_pii',
+
 		// URL shortener domain (GAP B). Its own view/manage pair so the
 		// Short URLs admin page is delegable without manage_options.
 		'ffc_view_url_shortener',
@@ -689,7 +698,14 @@ class CapabilityManager {
 			),
 			'ffc_certificates_manager'    => array(
 				'label' => __( 'FFC Certificates Manager', 'ffcertificate' ),
-				'caps'  => array( 'ffc_view_certificates', 'ffc_manage_certificates', 'ffc_export_certificates', 'ffc_edit_certificates', 'ffc_delete_certificates' ),
+				'caps'  => array( 'ffc_view_certificates', 'ffc_manage_certificates', 'ffc_export_certificates', 'ffc_edit_certificates', 'ffc_delete_certificates', 'ffc_view_certificates_pii' ),
+			),
+			// Admin tier (#739 §3.3): same domain caps as the manager, but the
+			// PII policy treats this role as *unmasked* (plaintext, no reveal
+			// click / audit noise) — the highest-trust certificates role.
+			'ffc_certificates_admin'      => array(
+				'label' => __( 'FFC Certificates Admin', 'ffcertificate' ),
+				'caps'  => array( 'ffc_view_certificates', 'ffc_manage_certificates', 'ffc_export_certificates', 'ffc_edit_certificates', 'ffc_delete_certificates', 'ffc_view_certificates_pii' ),
 			),
 
 			// ── Appointments (self-scheduling bookings) ──────────────────
@@ -703,7 +719,12 @@ class CapabilityManager {
 			),
 			'ffc_appointments_manager'    => array(
 				'label' => __( 'FFC Appointments Manager', 'ffcertificate' ),
-				'caps'  => array( 'ffc_view_appointments', 'ffc_manage_appointments', 'ffc_delete_appointments', 'ffc_bypass_appointments', 'ffc_export_appointments' ),
+				'caps'  => array( 'ffc_view_appointments', 'ffc_manage_appointments', 'ffc_delete_appointments', 'ffc_bypass_appointments', 'ffc_export_appointments', 'ffc_view_appointments_pii' ),
+			),
+			// Admin tier (#739 §3.3): manager caps + unmasked PII via the policy.
+			'ffc_appointments_admin'      => array(
+				'label' => __( 'FFC Appointments Admin', 'ffcertificate' ),
+				'caps'  => array( 'ffc_view_appointments', 'ffc_manage_appointments', 'ffc_delete_appointments', 'ffc_bypass_appointments', 'ffc_export_appointments', 'ffc_view_appointments_pii' ),
 			),
 
 			// ── Audiences ────────────────────────────────────────────────
