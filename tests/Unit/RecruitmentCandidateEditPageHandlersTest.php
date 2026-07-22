@@ -31,6 +31,9 @@ class RecruitmentCandidateEditPageHandlersTest extends TestCase {
 	/** @var \Mockery\MockInterface */
 	private $utils;
 
+	/** @var \Mockery\MockInterface */
+	private $pii;
+
 	protected function setUp(): void {
 		parent::setUp();
 		Monkey\setUp();
@@ -45,6 +48,7 @@ class RecruitmentCandidateEditPageHandlersTest extends TestCase {
 		Functions\when( 'check_admin_referer' )->justReturn( true );
 		Functions\when( 'admin_url' )->returnArg();
 		Functions\when( 'current_user_can' )->justReturn( true );
+		Functions\when( 'get_current_user_id' )->justReturn( 1 );
 		Functions\when( 'add_query_arg' )->alias(
 			static fn ( $args ) => 'admin.php?' . http_build_query( (array) $args )
 		);
@@ -62,6 +66,21 @@ class RecruitmentCandidateEditPageHandlersTest extends TestCase {
 		// Capabilities::current_user_can_admin_or — used by handle_delete's cap gate.
 		$this->utils = Mockery::mock( 'alias:FreeFormCertificate\Core\Capabilities' );
 		$this->utils->shouldReceive( 'current_user_can_admin_or' )->andReturn( true )->byDefault();
+
+		// RecruitmentPiiAccessPolicy — handle_save resolves the tier to decide
+		// whether the email is editable (#739 §4.1). Default to unmasked so the
+		// existing email-edit tests keep exercising the write path.
+		Mockery::getConfiguration()->setConstantsMap(
+			array(
+				'FreeFormCertificate\Recruitment\RecruitmentPiiAccessPolicy' => array(
+					'TIER_UNMASKED' => 'unmasked',
+					'TIER_REVEAL'   => 'reveal',
+					'TIER_MASKED'   => 'masked',
+				),
+			)
+		);
+		$this->pii = Mockery::mock( 'alias:FreeFormCertificate\Recruitment\RecruitmentPiiAccessPolicy' );
+		$this->pii->shouldReceive( 'resolve' )->andReturn( 'unmasked' )->byDefault();
 	}
 
 	protected function tearDown(): void {
@@ -194,6 +213,39 @@ class RecruitmentCandidateEditPageHandlersTest extends TestCase {
 
 		$this->assertSame( 'e:new@example.test', $captured['email_encrypted'] );
 		$this->assertSame( 'h:new@example.test', $captured['email_hash'] );
+	}
+
+	public function test_handle_save_preserves_email_for_masked_tier(): void {
+		// #739 §4.1 — a masked-tier operator cannot overwrite/clear the email
+		// even with a forged field: the write is gated on the loaded row's tier.
+		$_POST['candidate_id'] = '5';
+		$_POST['name']         = 'Old Name';
+		$_POST['email']        = 'attacker@evil.test';
+		$_POST['phone']        = '111';
+		$_POST['notes']        = '';
+
+		$this->pii->shouldReceive( 'resolve' )->andReturn( 'masked' );
+
+		$repo = Mockery::mock( 'alias:FreeFormCertificate\Recruitment\RecruitmentCandidateReader' );
+		$repo->shouldReceive( 'get_by_id' )->andReturn( $this->candidate_before() );
+		$repo_w   = Mockery::mock( 'alias:FreeFormCertificate\Recruitment\RecruitmentCandidateWriter' );
+		$captured = null;
+		$repo_w->shouldReceive( 'update' )->once()->andReturnUsing(
+			function ( $id, $data ) use ( &$captured ) {
+				$captured = $data;
+				return 1;
+			}
+		);
+
+		$logger = Mockery::mock( 'alias:FreeFormCertificate\Recruitment\RecruitmentActivityLogger' );
+		$logger->shouldReceive( 'candidate_fields_edited' )->andReturn( null );
+
+		$this->capture( array( RecruitmentCandidateEditPage::class, 'handle_save' ) );
+
+		// Email columns are never written, so the stored address is preserved.
+		$this->assertArrayNotHasKey( 'email_encrypted', $captured );
+		$this->assertArrayNotHasKey( 'email_hash', $captured );
+		$this->assertSame( 'Old Name', $captured['name'] );
 	}
 
 	// ==================================================================

@@ -11,10 +11,13 @@
  *
  * Variables in scope (provided by the including method):
  *
- * @var object $candidate    Candidate row.
- * @var int    $id           Candidate id.
- * @var string $nonce_action Nonce action key for the save form.
- * @var string $email        Decrypted email for the editable field.
+ * @var object $candidate      Candidate row.
+ * @var int    $id             Candidate id.
+ * @var string $nonce_action   Nonce action key for the save form.
+ * @var string $email          Email for the field — plaintext when editable,
+ *                             masked otherwise (#739 §4.1).
+ * @var bool   $email_editable Whether the current user may edit the email
+ *                             inline (unmasked PII tier).
  *
  * @package FreeFormCertificate\Recruitment
  * @since   6.7.7
@@ -40,9 +43,16 @@ echo '<tr><th><label for="ffc-cand-name">' . esc_html__( 'Name', 'ffcertificate'
 echo '<td><input id="ffc-cand-name" type="text" class="regular-text" name="name" value="' . esc_attr( (string) $candidate->name ) . '" required></td></tr>';
 
 echo '<tr><th><label for="ffc-cand-email">' . esc_html__( 'Email', 'ffcertificate' ) . '</label></th>';
-echo '<td><input id="ffc-cand-email" type="email" class="regular-text" name="email" value="' . esc_attr( $email ) . '">';
-// §4 trigger 3 — internal reference, not surfaced to operators.
-echo '<p class="description">' . esc_html__( 'Setting / changing the email re-runs the user promotion path: an existing WP user matched by email gets linked here, otherwise a new WP user is created.', 'ffcertificate' ) . '</p>';
+if ( $email_editable ) {
+	echo '<td><input id="ffc-cand-email" type="email" class="regular-text" name="email" value="' . esc_attr( $email ) . '">';
+	// §4 trigger 3 — internal reference, not surfaced to operators.
+	echo '<p class="description">' . esc_html__( 'Setting / changing the email re-runs the user promotion path: an existing WP user matched by email gets linked here, otherwise a new WP user is created.', 'ffcertificate' ) . '</p>';
+} else {
+	// #739 §4.1 — masked + disabled for non-unmasked tiers; the value is not
+	// submitted and handle_save() preserves the stored address server-side.
+	echo '<td><input id="ffc-cand-email" type="text" class="regular-text ffc-input-readonly" value="' . esc_attr( $email ) . '" disabled>';
+	echo '<p class="description">' . esc_html__( 'The email is masked. Editing it requires the recruitment PII capability.', 'ffcertificate' ) . '</p>';
+}
 echo '</td></tr>';
 
 echo '<tr><th><label for="ffc-cand-phone">' . esc_html__( 'Phone', 'ffcertificate' ) . '</label></th>';
