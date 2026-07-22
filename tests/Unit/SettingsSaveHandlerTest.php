@@ -485,7 +485,7 @@ class SettingsSaveHandlerTest extends TestCase {
 
         $this->assertSame( 'ffc_user_access_settings', $saved[0] );
         $this->assertFalse( $saved[1]['block_wp_admin'] );
-        $this->assertSame( array( 'ffc_user' ), $saved[1]['blocked_roles'] );
+        $this->assertSame( array( 'ffc_end_user' ), $saved[1]['blocked_roles'] );
         $this->assertSame( 'https://site.test/dashboard', $saved[1]['redirect_url'] );
         $this->assertSame( '', $saved[1]['redirect_message'] );
         $this->assertFalse( $saved[1]['allow_admin_bar'] );
@@ -496,7 +496,7 @@ class SettingsSaveHandlerTest extends TestCase {
         Functions\when( 'home_url' )->returnArg();
         Functions\when( 'esc_url_raw' )->returnArg();
         $_POST['block_wp_admin']    = '1';
-        $_POST['blocked_roles']     = array( 'subscriber', 'ffc_user' );
+        $_POST['blocked_roles']     = array( 'subscriber', 'ffc_end_user' );
         $_POST['redirect_url']      = 'https://custom.test/go';
         $_POST['redirect_message']  = 'Access denied';
         $_POST['allow_admin_bar']   = '1';
@@ -512,7 +512,7 @@ class SettingsSaveHandlerTest extends TestCase {
         $this->invoke( 'save_user_access_settings', array() );
 
         $this->assertTrue( $saved['block_wp_admin'] );
-        $this->assertSame( array( 'subscriber', 'ffc_user' ), $saved['blocked_roles'] );
+        $this->assertSame( array( 'subscriber', 'ffc_end_user' ), $saved['blocked_roles'] );
         $this->assertSame( 'https://custom.test/go', $saved['redirect_url'] );
         $this->assertSame( 'Access denied', $saved['redirect_message'] );
         $this->assertTrue( $saved['allow_admin_bar'] );

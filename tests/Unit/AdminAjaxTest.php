@@ -65,6 +65,7 @@ class AdminAjaxTest extends TestCase {
         $this->caps_mock  = Mockery::mock( 'alias:\FreeFormCertificate\Core\Capabilities' );
         $ri_mock = Mockery::mock( 'alias:\FreeFormCertificate\Core\RequestInput' );
         $this->caps_mock->shouldReceive( 'current_user_can_manage' )->andReturn( true )->byDefault();
+        $this->caps_mock->shouldReceive( 'current_user_can_admin_or' )->andReturn( true )->byDefault();
         $this->utils_mock->shouldReceive( 'debug_log' )->byDefault();
         $ri_mock->shouldReceive( 'get_post_string' )->andReturnUsing( function ( $key, $default = '' ) {
             return isset( $_POST[ $key ] ) && is_string( $_POST[ $key ] ) ? $_POST[ $key ] : $default;
@@ -73,9 +74,15 @@ class AdminAjaxTest extends TestCase {
             return isset( $_POST[ $key ] ) ? (int) $_POST[ $key ] : $default;
         } )->byDefault();
 
-        // Encryption alias mock — needed by search_user_by_cpf
+        // Encryption alias mock — needed by search_user_by_cpf and the
+        // appointment reveal path (decrypt_appointment passes the row through).
         $encryption_mock = Mockery::mock( 'alias:\FreeFormCertificate\Core\Encryption' );
         $encryption_mock->shouldReceive( 'hash' )->andReturn( 'hashed_value' )->byDefault();
+        $encryption_mock->shouldReceive( 'decrypt_appointment' )->andReturnUsing(
+            function ( $row ) {
+                return $row;
+            }
+        )->byDefault();
 
         // WP_User_Query overload mock
         $this->user_query_mock = Mockery::mock( 'overload:\WP_User_Query' );
@@ -90,6 +97,9 @@ class AdminAjaxTest extends TestCase {
         Functions\when( 'get_post_meta' )->justReturn( array() );
         Functions\when( 'get_userdata' )->justReturn( false );
         Functions\when( 'get_avatar_url' )->justReturn( 'https://example.com/avatar.jpg' );
+        // reveal_pii passes get_current_user_id() to ActivityLog::log — the arg
+        // is evaluated even when the audit no-ops, so it must be defined.
+        Functions\when( 'get_current_user_id' )->justReturn( 1 );
 
         // Global wpdb for search_user_by_cpf
         global $wpdb;
@@ -384,6 +394,209 @@ class AdminAjaxTest extends TestCase {
             $this->assertSame( 77, $data['users'][0]['id'] );
             $this->assertSame( 'CPF User', $data['users'][0]['display_name'] );
         }
+    }
+
+    // ==================================================================
+    // reveal_pii (#739 §3.3)
+    // ==================================================================
+
+    /**
+     * Alias-mock Core\PiiAccessPolicy with its TIER_* constants mapped so the
+     * handler's production references resolve.
+     *
+     * @return \Mockery\MockInterface
+     */
+    private function mock_pii_policy() {
+        Mockery::getConfiguration()->setConstantsMap(
+            array(
+                'FreeFormCertificate\Core\PiiAccessPolicy' => array(
+                    'TIER_MASKED'   => 'masked',
+                    'TIER_REVEAL'   => 'reveal',
+                    'TIER_UNMASKED' => 'unmasked',
+                ),
+            )
+        );
+        return Mockery::mock( 'alias:FreeFormCertificate\Core\PiiAccessPolicy' );
+    }
+
+    /**
+     * Overload-mock SubmissionHandler so get_submission returns a fixed row.
+     *
+     * @param array<string,mixed> $row Row fields.
+     * @return void
+     */
+    private function mock_submission( array $row ): void {
+        $handler = Mockery::mock( 'overload:\FreeFormCertificate\Submissions\SubmissionHandler' );
+        $handler->shouldReceive( 'get_submission' )->andReturn( $row );
+    }
+
+    public function test_reveal_pii_rejects_unsupported_field(): void {
+        $_POST['nonce']         = 'n';
+        $_POST['submission_id'] = '5';
+        $_POST['field']         = 'ssn';
+
+        $ajax = new AdminAjax();
+        $this->expectException( \RuntimeException::class );
+        $this->expectExceptionMessageMatches( '/Unsupported field/' );
+        $ajax->reveal_pii();
+    }
+
+    public function test_reveal_pii_denied_for_masked_tier(): void {
+        $_POST['nonce']         = 'n';
+        $_POST['submission_id'] = '5';
+        $_POST['field']         = 'cpf';
+
+        $this->mock_submission(
+            array(
+                'cpf'     => '12345678901',
+                'user_id' => 9,
+            )
+        );
+        $policy = $this->mock_pii_policy();
+        $policy->shouldReceive( 'resolve' )->andReturn( 'masked' );
+
+        $ajax = new AdminAjax();
+        $this->expectException( \RuntimeException::class );
+        $this->expectExceptionMessageMatches( '/permission to reveal/' );
+        $ajax->reveal_pii();
+    }
+
+    public function test_reveal_pii_cpf_success_formats_and_audits(): void {
+        $_POST['nonce']         = 'n';
+        $_POST['submission_id'] = '5';
+        $_POST['field']         = 'cpf';
+
+        $this->mock_submission(
+            array(
+                'cpf'     => '12345678901',
+                'user_id' => 9,
+            )
+        );
+
+        $policy = $this->mock_pii_policy();
+        $policy->shouldReceive( 'resolve' )->andReturn( 'reveal' );
+
+        $df = Mockery::mock( 'alias:FreeFormCertificate\Core\DocumentFormatter' );
+        $df->shouldReceive( 'format_cpf' )->with( '12345678901' )->andReturn( '123.456.789-01' );
+
+        // The reveal tier calls the real ActivityLog::log; keep the audit log
+        // disabled so it early-returns without a DB write (its LEVEL_INFO
+        // constant is genuinely defined this way, avoiding the alias-mock
+        // constants-map fragility).
+        Mockery::mock( 'alias:FreeFormCertificate\Settings\SettingsReader' )
+            ->shouldReceive( 'activity_log_enabled' )->andReturn( false );
+
+        $ajax = new AdminAjax();
+        try {
+            $ajax->reveal_pii();
+            $this->fail( 'Expected AdminAjaxSuccessException' );
+        } catch ( AdminAjaxSuccessException $e ) {
+            $data = $e->getData();
+            $this->assertSame(
+                array(
+                    'field' => 'cpf',
+                    'value' => '123.456.789-01',
+                ),
+                $data
+            );
+        }
+    }
+
+    public function test_reveal_pii_unmasked_tier_returns_value(): void {
+        $_POST['nonce']         = 'n';
+        $_POST['submission_id'] = '5';
+        $_POST['field']         = 'cpf';
+
+        $this->mock_submission(
+            array(
+                'cpf'     => '12345678901',
+                'user_id' => 9,
+            )
+        );
+
+        $policy = $this->mock_pii_policy();
+        $policy->shouldReceive( 'resolve' )->andReturn( 'unmasked' );
+
+        $df = Mockery::mock( 'alias:FreeFormCertificate\Core\DocumentFormatter' );
+        $df->shouldReceive( 'format_cpf' )->andReturn( '123.456.789-01' );
+
+        // Unmasked tier never reaches the audit branch, so ActivityLog is not
+        // touched at all.
+        $ajax = new AdminAjax();
+        $this->expectException( AdminAjaxSuccessException::class );
+        $ajax->reveal_pii();
+    }
+
+    /**
+     * Overload-mock AppointmentRepository so findById returns a fixed row.
+     *
+     * @param array<string,mixed> $row Row fields.
+     * @return void
+     */
+    private function mock_appointment( array $row ): void {
+        $repo = Mockery::mock( 'overload:\FreeFormCertificate\Repositories\AppointmentRepository' );
+        $repo->shouldReceive( 'findById' )->andReturn( $row );
+    }
+
+    public function test_reveal_pii_appointment_cpf_reveal_tier_returns_value(): void {
+        $_POST['nonce']         = 'n';
+        $_POST['type']          = 'appointment';
+        $_POST['submission_id'] = '7';
+        $_POST['field']         = 'cpf';
+
+        $this->mock_appointment(
+            array(
+                'cpf'     => '12345678901',
+                'user_id' => 3,
+            )
+        );
+
+        $policy = $this->mock_pii_policy();
+        $policy->shouldReceive( 'resolve' )->andReturn( 'reveal' );
+
+        $df = Mockery::mock( 'alias:FreeFormCertificate\Core\DocumentFormatter' );
+        $df->shouldReceive( 'format_cpf' )->with( '12345678901' )->andReturn( '123.456.789-01' );
+
+        // Reveal tier audits via the real ActivityLog; keep the log disabled so
+        // it early-returns without a DB write.
+        Mockery::mock( 'alias:FreeFormCertificate\Settings\SettingsReader' )
+            ->shouldReceive( 'activity_log_enabled' )->andReturn( false );
+
+        $ajax = new AdminAjax();
+        try {
+            $ajax->reveal_pii();
+            $this->fail( 'Expected AdminAjaxSuccessException' );
+        } catch ( AdminAjaxSuccessException $e ) {
+            $this->assertSame(
+                array(
+                    'field' => 'cpf',
+                    'value' => '123.456.789-01',
+                ),
+                $e->getData()
+            );
+        }
+    }
+
+    public function test_reveal_pii_appointment_masked_tier_denied(): void {
+        $_POST['nonce']         = 'n';
+        $_POST['type']          = 'appointment';
+        $_POST['submission_id'] = '7';
+        $_POST['field']         = 'email';
+
+        $this->mock_appointment(
+            array(
+                'email'   => 'x@y.com',
+                'user_id' => 3,
+            )
+        );
+
+        $policy = $this->mock_pii_policy();
+        $policy->shouldReceive( 'resolve' )->andReturn( 'masked' );
+
+        $ajax = new AdminAjax();
+        $this->expectException( \RuntimeException::class );
+        $this->expectExceptionMessageMatches( '/permission to reveal/' );
+        $ajax->reveal_pii();
     }
 }
 

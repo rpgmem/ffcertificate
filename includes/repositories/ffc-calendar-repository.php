@@ -187,7 +187,7 @@ class CalendarRepository extends AbstractRepository {
 	 * Check if user has scheduling bypass capability
 	 *
 	 * A user bypasses calendar booking restrictions when BOTH hold:
-	 *  1. They have the `manage_options` or `ffc_scheduling_bypass` capability, AND
+	 *  1. They have the `manage_options` or `ffc_bypass_appointments` capability, AND
 	 *  2. The target calendar has the per-calendar `admin_bypass` toggle enabled
 	 *     (or the toggle has never been set, in which case legacy calendars
 	 *     keep the pre-5.4.1 default-on behavior).
@@ -204,8 +204,8 @@ class CalendarRepository extends AbstractRepository {
 	 */
 	public static function userHasSchedulingBypass( ?int $user_id = null, ?int $calendar_post_id = null ): bool {
 		$has_capability = null === $user_id
-			? ( current_user_can( 'manage_options' ) || current_user_can( 'ffc_scheduling_bypass' ) )
-			: ( user_can( $user_id, 'manage_options' ) || user_can( $user_id, 'ffc_scheduling_bypass' ) );
+			? ( current_user_can( 'manage_options' ) || current_user_can( 'ffc_bypass_appointments' ) )
+			: ( user_can( $user_id, 'manage_options' ) || user_can( $user_id, 'ffc_bypass_appointments' ) );
 
 		if ( ! $has_capability ) {
 			return false;

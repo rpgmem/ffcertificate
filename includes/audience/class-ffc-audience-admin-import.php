@@ -113,7 +113,7 @@ class AudienceAdminImport {
 											'name'    => 'create_users',
 											'value'   => '1',
 											'checked' => $ffc_create_users_default,
-											'label'   => __( 'Create users if they do not exist (with ffc_user role)', 'ffcertificate' ),
+											'label'   => __( 'Create users if they do not exist (with ffc_end_user role)', 'ffcertificate' ),
 											'data'    => array( 'ffc-autosave-key' => 'audience_csv_create_users_default' ),
 										)
 									);

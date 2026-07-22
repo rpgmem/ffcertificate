@@ -115,4 +115,102 @@ class CapabilityMigratorTest extends TestCase {
 		$this->assertSame( 0, $counts['roles_assigned'] );
 		$this->assertSame( 0, $counts['caps_stripped'] );
 	}
+
+	public function test_rbac_cap_renames_rewrites_user_meta_and_roles(): void {
+		Functions\when( 'get_users' )->justReturn( array( 7 ) );
+
+		$user = new class() {
+			/** @var array<string, bool> */
+			public $caps = array( 'ffc_scheduling_bypass' => true );
+			/** @var array<string, bool> */
+			public $added = array();
+			/** @var array<int, string> */
+			public $removed = array();
+			public function add_cap( string $cap, bool $grant = true ): void {
+				$this->added[ $cap ] = $grant;
+			}
+			public function remove_cap( string $cap ): void {
+				$this->removed[] = $cap;
+			}
+		};
+		Functions\when( 'get_userdata' )->justReturn( $user );
+
+		$role = new class() {
+			/** @var array<string, bool> */
+			public $capabilities = array( 'ffc_scheduling_bypass' => true );
+			/** @var array<string, bool> */
+			public $added = array();
+			/** @var array<int, string> */
+			public $removed = array();
+			public function add_cap( string $cap, bool $grant = true ): void {
+				$this->added[ $cap ] = $grant;
+			}
+			public function remove_cap( string $cap ): void {
+				$this->removed[] = $cap;
+			}
+		};
+		$roles_obj = new class() {
+			/** @var array<string, array<string, mixed>> */
+			public $roles = array( 'ffc_appointments_manager' => array() );
+		};
+		Functions\when( 'wp_roles' )->justReturn( $roles_obj );
+		Functions\when( 'get_role' )->justReturn( $role );
+
+		$counts = CapabilityMigrator::migrate_rbac_cap_renames();
+
+		// User-meta: old cap rewritten to the new slug.
+		$this->assertArrayHasKey( 'ffc_bypass_appointments', $user->added );
+		$this->assertContains( 'ffc_scheduling_bypass', $user->removed );
+		// Role definition: same rewrite.
+		$this->assertArrayHasKey( 'ffc_bypass_appointments', $role->added );
+		$this->assertContains( 'ffc_scheduling_bypass', $role->removed );
+		$this->assertSame( 1, $counts['ffc_scheduling_bypass'] );
+	}
+
+	public function test_role_renames_reassigns_users_and_drops_old_roles(): void {
+		$registrar = Mockery::mock( 'alias:\\FreeFormCertificate\\UserDashboard\\RoleRegistrar' );
+		// `register_role()` creates `ffc_end_user`; `register_module_roles()`
+		// creates the module-manager roles — both must run before reassigning.
+		$registrar->shouldReceive( 'register_role' )->atLeast()->once();
+		$registrar->shouldReceive( 'register_module_roles' )->atLeast()->once();
+
+		Functions\when( 'get_users' )->justReturn( array( 7 ) );
+		$user = new class() {
+			/** @var array<int, string> */
+			public $roles = array( 'ffc_user' );
+			/** @var array<int, string> */
+			public $added = array();
+			/** @var array<int, string> */
+			public $removed = array();
+			public function add_role( string $role ): void {
+				$this->added[] = $role;
+			}
+			public function remove_role( string $role ): void {
+				$this->removed[] = $role;
+			}
+		};
+		Functions\when( 'get_userdata' )->justReturn( $user );
+
+		$removed_roles = array();
+		Functions\when( 'remove_role' )->alias(
+			static function ( $role ) use ( &$removed_roles ) {
+				$removed_roles[] = $role;
+			}
+		);
+
+		$counts = CapabilityMigrator::migrate_role_renames();
+
+		// The user assigned the old end-user role is moved to the new one.
+		$this->assertContains( 'ffc_end_user', $user->added );
+		$this->assertContains( 'ffc_user', $user->removed );
+		$this->assertSame( 1, $counts['ffc_user'] );
+		// Every old role slug is dropped, even ones no user held.
+		$this->assertContains( 'ffc_user', $removed_roles );
+		$this->assertContains( 'ffc_operator', $removed_roles );
+		$this->assertContains( 'ffc_self_scheduling_manager', $removed_roles );
+		// #739 §3.2/§6 pluralization + recruitment auditor→viewer renames.
+		$this->assertContains( 'ffc_certificate_manager', $removed_roles );
+		$this->assertContains( 'ffc_audience_manager', $removed_roles );
+		$this->assertContains( 'ffc_recruitment_auditor', $removed_roles );
+	}
 }

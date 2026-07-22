@@ -254,7 +254,7 @@ class TabUserAccessTest extends TestCase {
     public function test_save_settings_saves_with_valid_nonce(): void {
         $_POST['ffc_user_access_nonce'] = 'valid_nonce';
         $_POST['block_wp_admin'] = '1';
-        $_POST['blocked_roles'] = array( 'ffc_user', 'subscriber' );
+        $_POST['blocked_roles'] = array( 'ffc_end_user', 'subscriber' );
         $_POST['redirect_url'] = 'https://example.com/dashboard';
         $_POST['redirect_message'] = 'You cannot access admin.';
         $_POST['allow_admin_bar'] = '1';
@@ -280,7 +280,7 @@ class TabUserAccessTest extends TestCase {
 
         $this->assertNotNull( $captured_settings );
         $this->assertTrue( $captured_settings['block_wp_admin'] );
-        $this->assertSame( array( 'ffc_user', 'subscriber' ), $captured_settings['blocked_roles'] );
+        $this->assertSame( array( 'ffc_end_user', 'subscriber' ), $captured_settings['blocked_roles'] );
         $this->assertSame( 'https://example.com/dashboard', $captured_settings['redirect_url'] );
         $this->assertSame( 'You cannot access admin.', $captured_settings['redirect_message'] );
         $this->assertTrue( $captured_settings['allow_admin_bar'] );
@@ -315,7 +315,7 @@ class TabUserAccessTest extends TestCase {
 
         $this->assertNotNull( $captured_settings );
         $this->assertFalse( $captured_settings['block_wp_admin'] );
-        $this->assertSame( array( 'ffc_user' ), $captured_settings['blocked_roles'] );
+        $this->assertSame( array( 'ffc_end_user' ), $captured_settings['blocked_roles'] );
         $this->assertSame( 'https://example.com/dashboard', $captured_settings['redirect_url'] );
         $this->assertFalse( $captured_settings['allow_admin_bar'] );
         $this->assertFalse( $captured_settings['bypass_for_admins'] );

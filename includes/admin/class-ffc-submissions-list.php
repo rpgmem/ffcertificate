@@ -115,7 +115,7 @@ class SubmissionsList extends \WP_List_Table {
 				return $form_title ? esc_html( \FreeFormCertificate\Core\Utils::truncate( $form_title, 30 ) ) : esc_html__( '(Deleted)', 'ffcertificate' );
 
 			case 'email':
-				return esc_html( $item['email'] );
+				return $this->render_pii_email( (array) $item );
 
 			case 'data':
 				return $this->format_data_preview( $item['data'] );
@@ -132,6 +132,33 @@ class SubmissionsList extends \WP_List_Table {
 			default:
 				return '';
 		}
+	}
+
+	/**
+	 * Render the email column, masked unless the viewer holds the certificates
+	 * PII tier (#739 §3.3). The full address is never placed in the list HTML
+	 * for the masked/reveal tiers — reveal is offered on the submission detail
+	 * page, where each disclosure is audited.
+	 *
+	 * @param array<string, mixed> $item Decrypted submission row.
+	 * @return string Escaped HTML for the cell.
+	 */
+	private function render_pii_email( array $item ): string {
+		$email = isset( $item['email'] ) ? (string) $item['email'] : '';
+		if ( '' === $email ) {
+			return '';
+		}
+
+		$tier = \FreeFormCertificate\Core\PiiAccessPolicy::resolve(
+			'ffc_view_certificates_pii',
+			'ffc_certificates_admin',
+			isset( $item['user_id'] ) ? (int) $item['user_id'] : null
+		);
+		if ( \FreeFormCertificate\Core\PiiAccessPolicy::TIER_UNMASKED === $tier ) {
+			return esc_html( $email );
+		}
+
+		return esc_html( \FreeFormCertificate\Core\DocumentFormatter::mask_email( $email ) );
 	}
 
 	/**

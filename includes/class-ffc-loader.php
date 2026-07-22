@@ -203,6 +203,11 @@ class Loader {
 		// decoupled form/calendar caps for two releases. Remove in 6.18.0.
 		\FreeFormCertificate\Admin\CptEditorCompat::init();
 
+		// #739 §3.2 read-only viewer gate: forms/calendars list-read primitives
+		// map to the view caps, so this forces the per-post write meta-caps back
+		// to the manage cap (viewing must never imply editing). Permanent.
+		\FreeFormCertificate\Admin\CptCapPolicy::init();
+
 		// Self-Scheduling module — single bootstrap entry point (#563 B3).
 		$this->self_scheduling_loader = new SelfSchedulingLoader();
 		$this->self_scheduling_loader->init();
@@ -250,6 +255,8 @@ class Loader {
 		$this->ensure_reasons_caps_wired();
 		$this->ensure_settings_split_caps_granted();
 		$this->ensure_activity_log_export_cap_granted();
+		$this->ensure_rbac_caps_renamed();
+		$this->ensure_rbac_roles_renamed();
 		$this->define_admin_hooks();
 		$this->init_rest_api();
 	}
@@ -521,13 +528,13 @@ class Loader {
 				}
 			}
 
-			// 2. Strip legacy `=> false` cap entries from the `ffc_user` role
+			// 2. Strip legacy `=> false` cap entries from the `ffc_end_user` role
 			// itself. Pre-6.0.3 the role was registered with every FFC cap as
-			// `=> false`, which broke multi-role users (admin + ffc_user) via
+			// `=> false`, which broke multi-role users (admin + ffc_end_user) via
 			// `array_merge()` capability resolution. Issue #86. Idempotent:
 			// only removes caps that exist with the `false` value; per-user
 			// `add_cap($cap, true)` user-meta grants are unaffected.
-			$ffc_user_role = get_role( 'ffc_user' );
+			$ffc_user_role = get_role( 'ffc_end_user' );
 			if ( $ffc_user_role ) {
 				foreach ( $all_ffc_caps as $cap ) {
 					if ( isset( $ffc_user_role->capabilities[ $cap ] ) && false === $ffc_user_role->capabilities[ $cap ] ) {
@@ -558,6 +565,42 @@ class Loader {
 		}
 		if ( class_exists( '\FreeFormCertificate\UserDashboard\CapabilityMigrator' ) ) {
 			\FreeFormCertificate\UserDashboard\CapabilityMigrator::migrate_admin_role_assignment();
+		}
+		update_option( $flag, '1', true );
+	}
+
+	/**
+	 * Apply the #739 RBAC capability renames (grammar/consistency pass).
+	 * Idempotent + one-shot via the `ffc_rbac_caps_renamed_v1` option.
+	 *
+	 * @since 6.16.0
+	 * @return void
+	 */
+	private function ensure_rbac_caps_renamed(): void {
+		$flag = 'ffc_rbac_caps_renamed_v1';
+		if ( '1' === get_option( $flag, '' ) ) {
+			return;
+		}
+		if ( class_exists( '\FreeFormCertificate\UserDashboard\CapabilityMigrator' ) ) {
+			\FreeFormCertificate\UserDashboard\CapabilityMigrator::migrate_rbac_cap_renames();
+		}
+		update_option( $flag, '1', true );
+	}
+
+	/**
+	 * Apply the #739 RBAC role renames (reassign users, drop old roles).
+	 * Idempotent + one-shot via the `ffc_rbac_roles_renamed_v1` option.
+	 *
+	 * @since 6.16.0
+	 * @return void
+	 */
+	private function ensure_rbac_roles_renamed(): void {
+		$flag = 'ffc_rbac_roles_renamed_v1';
+		if ( '1' === get_option( $flag, '' ) ) {
+			return;
+		}
+		if ( class_exists( '\FreeFormCertificate\UserDashboard\CapabilityMigrator' ) ) {
+			\FreeFormCertificate\UserDashboard\CapabilityMigrator::migrate_role_renames();
 		}
 		update_option( $flag, '1', true );
 	}

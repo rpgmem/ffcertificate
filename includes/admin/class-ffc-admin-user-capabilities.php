@@ -142,8 +142,8 @@ class AdminUserCapabilities {
 			return;
 		}
 
-		// Only show for users with ffc_user role.
-		if ( ! in_array( 'ffc_user', $user->roles, true ) && ! self::has_any_ffc_capability( $user->ID ) ) {
+		// Only show for users with ffc_end_user role.
+		if ( ! in_array( 'ffc_end_user', $user->roles, true ) && ! self::has_any_ffc_capability( $user->ID ) ) {
 			return;
 		}
 
@@ -353,8 +353,9 @@ class AdminUserCapabilities {
 			// Every group starts collapsed for easier navigation; the live
 			// search auto-expands the groups that still have hits.
 			printf(
-				'<section class="ffc-cap-group is-collapsed" data-ffc-group="%1$s">',
-				esc_attr( (string) $group['key'] )
+				'<section class="ffc-cap-group is-collapsed" data-ffc-group="%1$s" data-ffc-hue="%2$s">',
+				esc_attr( (string) $group['key'] ),
+				esc_attr( \FreeFormCertificate\UserDashboard\CapabilityCatalog::group_hue( (string) $group['key'] ) )
 			);
 
 			// Header.
@@ -411,7 +412,7 @@ class AdminUserCapabilities {
 		);
 
 		return sprintf(
-			'<div class="ffc-cap-row" data-ffc-cap-name="%1$s" data-ffc-cap-slug="%2$s" data-ffc-user-granted="%9$s">'
+			'<div class="ffc-cap-row" data-ffc-cap-name="%1$s" data-ffc-cap-slug="%2$s" data-ffc-user-granted="%9$s" data-ffc-tier="%11$s">'
 				. '<div class="ffc-cap-row-toggle">%3$s</div>'
 				. '<div class="ffc-cap-row-text">'
 				. '<span class="ffc-cap-row-name">%4$s%10$s</span><span class="ffc-cap-role-tag" data-ffc-role-tag></span>'
@@ -429,7 +430,8 @@ class AdminUserCapabilities {
 			esc_attr( $origin ),
 			esc_html( self::origin_label( $origin ) ),
 			$checked ? '1' : '0',
-			$surface_badge // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- pre-escaped by CapabilityCatalog::surface_badge_html().
+			$surface_badge, // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- pre-escaped by CapabilityCatalog::surface_badge_html().
+			esc_attr( \FreeFormCertificate\UserDashboard\CapabilityCatalog::cap_tier( $slug ) )
 		);
 	}
 

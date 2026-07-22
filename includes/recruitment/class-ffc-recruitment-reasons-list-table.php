@@ -345,7 +345,7 @@ class RecruitmentReasonsListTable extends \WP_List_Table {
 		// GAP I: bulk-delete is the strict `ffc_manage_recruitment_reasons` tier.
 		// Previously this method checked only the nonce, so any user who could
 		// reach the Reasons tab (read-only `ffc_view_recruitment` holders, e.g.
-		// the Recruitment Auditor) could delete reasons via a crafted POST. Gate
+		// the Recruitment Viewer) could delete reasons via a crafted POST. Gate
 		// it server-side regardless of what the table rendered.
 		if ( ! \FreeFormCertificate\Core\Capabilities::current_user_can_admin_or( 'ffc_manage_recruitment_reasons' ) ) {
 			return;

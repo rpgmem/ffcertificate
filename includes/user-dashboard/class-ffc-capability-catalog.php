@@ -167,25 +167,29 @@ final class CapabilityCatalog {
 				'label' => __( 'Certificates', 'ffcertificate' ),
 				'level' => 'admin',
 				'caps'  => array(
-					'ffc_view_certificates'   => array(
+					'ffc_view_certificates'     => array(
 						'label'       => __( 'View certificates', 'ffcertificate' ),
 						'description' => __( 'Read-only access to the submissions list and certificates dashboard.', 'ffcertificate' ),
 					),
-					'ffc_manage_certificates' => array(
+					'ffc_manage_certificates'   => array(
 						'label'       => __( 'Manage certificates', 'ffcertificate' ),
 						'description' => __( 'Access the certificate administration screens.', 'ffcertificate' ),
 					),
-					'ffc_edit_certificates'   => array(
+					'ffc_edit_certificates'     => array(
 						'label'       => __( 'Edit submission data on issued certificates', 'ffcertificate' ),
 						'description' => __( 'Fix typos on already-issued certificates without holding manage_options.', 'ffcertificate' ),
 					),
-					'ffc_export_certificates' => array(
+					'ffc_export_certificates'   => array(
 						'label'       => __( 'Export certificates', 'ffcertificate' ),
 						'description' => __( 'Download bulk certificate exports.', 'ffcertificate' ),
 					),
-					'ffc_delete_certificates' => array(
+					'ffc_delete_certificates'   => array(
 						'label'       => __( 'Delete certificates', 'ffcertificate' ),
 						'description' => __( 'Permanently delete certificate submissions (bulk delete).', 'ffcertificate' ),
+					),
+					'ffc_view_certificates_pii' => array(
+						'label'       => __( 'Reveal certificate PII', 'ffcertificate' ),
+						'description' => __( 'Reveal the decrypted CPF / RF / email on a submission (audited). Without it the values stay masked (#739).', 'ffcertificate' ),
 					),
 				),
 			),
@@ -194,6 +198,10 @@ final class CapabilityCatalog {
 				'label' => __( 'Forms', 'ffcertificate' ),
 				'level' => 'admin',
 				'caps'  => array(
+					'ffc_view_forms'   => array(
+						'label'       => __( 'View forms', 'ffcertificate' ),
+						'description' => __( 'Read-only access to certificate forms — structure, fields and options — without the ability to edit them (#739).', 'ffcertificate' ),
+					),
 					'ffc_manage_forms' => array(
 						'label'       => __( 'Manage forms', 'ffcertificate' ),
 						'description' => __( 'Create and edit certificate forms — PDF layout, fields and options. Replaces the native post-editing capability the form CPT relied on before (#739).', 'ffcertificate' ),
@@ -205,26 +213,30 @@ final class CapabilityCatalog {
 				'label' => __( 'Appointments', 'ffcertificate' ),
 				'level' => 'admin',
 				'caps'  => array(
-					'ffc_view_appointments'   => array(
+					'ffc_view_appointments'     => array(
 						'label'       => __( 'View appointments', 'ffcertificate' ),
 						'description' => __( 'Read-only access to all scheduled appointments.', 'ffcertificate' ),
 					),
-					'ffc_manage_appointments' => array(
+					'ffc_manage_appointments'   => array(
 						'label'       => __( 'Manage self-scheduling', 'ffcertificate' ),
 						'description' => __( 'Configure personal calendars and self-scheduling windows.', 'ffcertificate' ),
 					),
-					'ffc_scheduling_bypass'   => array(
+					'ffc_bypass_appointments'   => array(
 						'label'       => __( 'Scheduling bypass', 'ffcertificate' ),
 						'description' => __( 'Private calendars, past dates, out-of-hours and blocked dates.', 'ffcertificate' ),
 						'surface'     => 'frontend',
 					),
-					'ffc_export_appointments' => array(
+					'ffc_export_appointments'   => array(
 						'label'       => __( 'Export appointments', 'ffcertificate' ),
 						'description' => __( 'Download the bulk appointments CSV.', 'ffcertificate' ),
 					),
-					'ffc_delete_appointments' => array(
+					'ffc_delete_appointments'   => array(
 						'label'       => __( 'Delete appointments', 'ffcertificate' ),
 						'description' => __( 'Permanently delete appointments and calendar cleanup purges.', 'ffcertificate' ),
+					),
+					'ffc_view_appointments_pii' => array(
+						'label'       => __( 'Reveal appointment PII', 'ffcertificate' ),
+						'description' => __( 'Reveal the decrypted CPF / RF / email on an appointment (audited). Without it the values stay masked (#739).', 'ffcertificate' ),
 					),
 				),
 			),
@@ -233,6 +245,10 @@ final class CapabilityCatalog {
 				'label' => __( 'Calendars', 'ffcertificate' ),
 				'level' => 'admin',
 				'caps'  => array(
+					'ffc_view_calendars'   => array(
+						'label'       => __( 'View calendars', 'ffcertificate' ),
+						'description' => __( 'Read-only access to self-scheduling calendars — structure, working hours and options — without the ability to edit them (#739).', 'ffcertificate' ),
+					),
 					'ffc_manage_calendars' => array(
 						'label'       => __( 'Manage calendars', 'ffcertificate' ),
 						'description' => __( 'Create and edit self-scheduling calendars — structure, working hours and options. Distinct from managing the bookings made against them (#739).', 'ffcertificate' ),
@@ -514,5 +530,69 @@ final class CapabilityCatalog {
 		}
 		return '<span class="ffc-cap-badge-surface ffc-cap-badge-surface--' . esc_attr( $surface ) . '">'
 			. esc_html( $label ) . '</span>';
+	}
+
+	/**
+	 * Domain hue token for a group, driving the per-domain accent color the
+	 * capability editors paint on each group card and cap row (#739 §3.4). The
+	 * end-user and admin groups of the same domain share a hue so the grid reads
+	 * as one domain across both sections. Unknown keys fall back to `neutral`.
+	 *
+	 * @param string $group_key A {@see self::groups()} `key` value.
+	 * @return string Hue token (a stable CSS selector suffix).
+	 */
+	public static function group_hue( string $group_key ): string {
+		// The end-user singular keys borrow their admin domain's hue.
+		$aliases = array(
+			self::GROUP_CERTIFICATE => 'certificates',
+			self::GROUP_APPOINTMENT => 'appointments',
+			self::GROUP_AUDIENCE    => 'audiences',
+		);
+		if ( isset( $aliases[ $group_key ] ) ) {
+			return $aliases[ $group_key ];
+		}
+		// Admin keys are `admin_<domain>`; the domain segment is the hue token
+		// (certificates, forms, calendars, reregistration, custom_fields, …).
+		// Anything else (an unknown key) falls back to the neutral hue.
+		if ( str_starts_with( $group_key, 'admin_' ) ) {
+			$domain = substr( $group_key, 6 );
+			if ( '' !== $domain ) {
+				return $domain;
+			}
+		}
+		return 'neutral';
+	}
+
+	/**
+	 * Tier token for a capability, driving how strongly the domain hue is
+	 * painted on its row (#739 §3.4) — read-only tiers stay faint, destructive
+	 * ones saturate. Derived from the `ffc_<action>_…` grammar, with the `_pii`
+	 * qualifier promoted to its own `reveal` tier. Unknown actions fall back to
+	 * `view` (the faintest, safest assumption).
+	 *
+	 * @param string $slug Capability slug.
+	 * @return string One of: view, reveal, book, cancel, download, call, export,
+	 *                import, edit, manage, bypass, delete.
+	 */
+	public static function cap_tier( string $slug ): string {
+		if ( str_ends_with( $slug, '_pii' ) ) {
+			return 'reveal';
+		}
+		$parts  = explode( '_', $slug );
+		$action = $parts[1] ?? '';
+		$known  = array(
+			'view',
+			'book',
+			'cancel',
+			'download',
+			'call',
+			'export',
+			'import',
+			'edit',
+			'manage',
+			'bypass',
+			'delete',
+		);
+		return in_array( $action, $known, true ) ? $action : 'view';
 	}
 }
