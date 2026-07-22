@@ -615,4 +615,73 @@ class CapabilityMigrator {
 
 		return $counts;
 	}
+
+	/**
+	 * Move admins from role-capability grants to the `ffc_administrator` role.
+	 *
+	 * Historically {@see \FreeFormCertificate\Loader::ensure_admin_capabilities()}
+	 * granted the 43 `ADMIN_CAPABILITIES` directly to the native `administrator`
+	 * role. This one-shot migration switches to the role model instead:
+	 *
+	 *   1. Every EXISTING administrator is given the `ffc_administrator` role as
+	 *      an additional role (they keep `administrator` for `manage_options`),
+	 *      so no FFC access is lost.
+	 *   2. The FFC admin caps previously granted to the native `administrator`
+	 *      role are stripped, so that role stops carrying plugin caps.
+	 *
+	 * Administrators created AFTER this migration are NOT auto-elevated — the
+	 * `ffc_administrator` role is granted explicitly from then on (per the
+	 * agreed model). Order matters: step 1 assigns the role before step 2
+	 * strips the caps, so there is no window where an admin lacks access.
+	 *
+	 * @since 6.16.0
+	 * @return array{roles_assigned:int, caps_stripped:int}
+	 */
+	public static function migrate_admin_role_assignment(): array {
+		$counts = array(
+			'roles_assigned' => 0,
+			'caps_stripped'  => 0,
+		);
+
+		// The `ffc_administrator` role is registered on `init:1`, which runs
+		// after the `plugins_loaded` migration sequence on the very first
+		// request. Self-heal so the back-fill never no-ops against a role that
+		// has not been created yet.
+		if ( ! get_role( 'ffc_administrator' ) ) {
+			RoleRegistrar::register_module_roles();
+		}
+
+		// 1. Back-fill: assign `ffc_administrator` to every current admin.
+		$admins = get_users(
+			array(
+				'role'   => 'administrator',
+				'fields' => 'ID',
+			)
+		);
+		foreach ( $admins as $admin_id ) {
+			$user = get_userdata( (int) $admin_id );
+			if ( ! $user ) {
+				continue;
+			}
+			if ( ! in_array( 'ffc_administrator', (array) $user->roles, true ) ) {
+				$user->add_role( 'ffc_administrator' );
+				++$counts['roles_assigned'];
+			}
+		}
+
+		// 2. Stop polluting the native `administrator` role: strip the FFC admin
+		// caps the old grant added. Admins keep every FFC cap through the
+		// `ffc_administrator` role assigned in step 1.
+		$admin_role = get_role( 'administrator' );
+		if ( $admin_role ) {
+			foreach ( CapabilityManager::ADMIN_CAPABILITIES as $cap ) {
+				if ( isset( $admin_role->capabilities[ $cap ] ) ) {
+					$admin_role->remove_cap( $cap );
+					++$counts['caps_stripped'];
+				}
+			}
+		}
+
+		return $counts;
+	}
 }
