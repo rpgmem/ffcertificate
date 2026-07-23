@@ -90,8 +90,8 @@ class ReregistrationCsvExporter {
 	 * Yield one CSV data row per submission — decrypting sensitive fields and
 	 * formatting the instant timestamps for display.
 	 *
-	 * @param iterable<int, object> $submissions Submission stream.
-	 * @param array<int, object>    $fields      Field definitions.
+	 * @param iterable           $submissions Submission stream.
+	 * @param array<int, object> $fields      Field definitions.
 	 * @phpstan-param iterable<ReregistrationSubmissionRow> $submissions
 	 * @phpstan-param list<CustomFieldRow>                  $fields
 	 * @return \Generator<int, array<int, mixed>>
