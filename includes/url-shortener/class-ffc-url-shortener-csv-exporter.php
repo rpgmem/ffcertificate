@@ -191,7 +191,7 @@ class UrlShortenerCsvExporter {
 					'status'   => $status,
 				)
 			);
-			$items = $result['items'];
+			$items  = $result['items'];
 			foreach ( $items as $row ) {
 				$writer->row( $this->format_row( $row ) );
 			}

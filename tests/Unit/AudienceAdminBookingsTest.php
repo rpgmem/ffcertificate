@@ -45,6 +45,10 @@ class AudienceAdminBookingsTest extends TestCase {
         } );
         Functions\when( 'sanitize_sql_orderby' )->returnArg();
         Functions\when( 'sanitize_key' )->returnArg();
+        // The bookings page now gates an "Export CSV" button on this cap; stub
+        // the check (false ⇒ button hidden) so the view renders without the
+        // real capability API.
+        Functions\when( 'current_user_can' )->justReturn( false );
 
         if ( ! defined( 'ABSPATH' ) ) {
             define( 'ABSPATH', '/tmp/' );
