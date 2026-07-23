@@ -144,8 +144,9 @@ class UrlShortenerCsvExporter {
 		if ( isset( $this->user_names[ $user_id ] ) ) {
 			return $this->user_names[ $user_id ];
 		}
-		$user                          = get_userdata( $user_id );
-		$name                          = $user ? $user->display_name : 'ID: ' . $user_id;
+		$user = get_userdata( $user_id );
+		$name = $user ? $user->display_name : 'ID: ' . $user_id;
+
 		$this->user_names[ $user_id ] = $name;
 		return $name;
 	}
@@ -190,12 +191,13 @@ class UrlShortenerCsvExporter {
 					'status'   => $status,
 				)
 			);
-			$items = is_array( $result['items'] ?? null ) ? $result['items'] : array();
+			$items = $result['items'];
 			foreach ( $items as $row ) {
-				$writer->row( $this->format_row( (array) $row ) );
+				$writer->row( $this->format_row( $row ) );
 			}
 			++$page;
-		} while ( count( $items ) === self::BATCH_SIZE );
+			$fetched = count( $items );
+		} while ( self::BATCH_SIZE === $fetched );
 
 		$writer->close();
 		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose -- closing the php://output handle this method opened.

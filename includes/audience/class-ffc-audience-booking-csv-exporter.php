@@ -199,8 +199,9 @@ class AudienceBookingCsvExporter {
 		if ( isset( $this->user_names[ $user_id ] ) ) {
 			return $this->user_names[ $user_id ];
 		}
-		$user                         = get_userdata( $user_id );
-		$name                         = $user ? $user->display_name : 'ID: ' . $user_id;
+		$user = get_userdata( $user_id );
+		$name = $user ? $user->display_name : 'ID: ' . $user_id;
+
 		$this->user_names[ $user_id ] = $name;
 		return $name;
 	}
@@ -243,7 +244,8 @@ class AudienceBookingCsvExporter {
 				$writer->row( $this->format_row( (array) $row ) );
 			}
 			$offset += self::BATCH_SIZE;
-		} while ( count( $batch ) === self::BATCH_SIZE );
+			$fetched = count( $batch );
+		} while ( self::BATCH_SIZE === $fetched );
 
 		$writer->close();
 		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose -- closing the php://output handle this method opened.
