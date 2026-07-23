@@ -9,6 +9,8 @@ use Mockery;
 use Mockery\Adapter\Phpunit\MockeryPHPUnitIntegration;
 use PHPUnit\Framework\TestCase;
 use FreeFormCertificate\SelfScheduling\AppointmentCsvExporter;
+use FreeFormCertificate\Core\CsvStreamer;
+use FreeFormCertificate\Core\CsvDownloadInterface;
 
 /**
  * Tests for AppointmentCsvExporter: format_csv_row status labels,
@@ -270,5 +272,74 @@ class AppointmentCsvExporterTest extends TestCase {
         $ref->setAccessible( true );
         $headers = $ref->invoke( $this->exporter );
         $this->assertSame( 'ID', $headers[0] );
+    }
+
+    // ==================================================================
+    // export_csv() — full two-pass streaming path
+    // ==================================================================
+
+    /**
+     * A CsvDownloadInterface that captures the export bytes instead of writing
+     * to php://output / calling exit.
+     */
+    private function buffered_download(): CsvDownloadInterface {
+        return new class() implements CsvDownloadInterface {
+            public bool $finished = false;
+            public string $output = '';
+            /** @var resource|null */
+            private $stream = null;
+
+            public function send_headers( string $filename ): void {
+                unset( $filename );
+            }
+
+            public function open_stream() {
+                if ( ! is_resource( $this->stream ) ) {
+                    $this->stream = fopen( 'php://memory', 'w+' );
+                }
+                return $this->stream;
+            }
+
+            public function finish(): void {
+                $this->finished = true;
+                if ( is_resource( $this->stream ) ) {
+                    rewind( $this->stream );
+                    $this->output = (string) stream_get_contents( $this->stream );
+                }
+            }
+        };
+    }
+
+    /**
+     * The formerly-untestable two-pass streaming path: export_csv() peeks the
+     * first page, collects dynamic keys, then streams header + rows. With the
+     * injected CsvStreamer we capture the output and assert the fixed header, a
+     * data row, and the dynamic (custom_data) column header + value are present.
+     */
+    public function test_export_csv_streams_header_and_rows(): void {
+        Functions\when( 'get_userdata' )->justReturn( false );
+
+        $row                          = $this->base_row();
+        $row['custom_data']           = '{"cpf":"123"}';
+        $row['custom_data_encrypted'] = '';
+
+        // Every fetch_export_page() call (peek, dynamic-key pass, stream pass)
+        // returns the single row; 1 < BATCH_SIZE terminates each paging loop.
+        global $wpdb;
+        $wpdb->shouldReceive( 'prepare' )->andReturn( 'SQL' );
+        $wpdb->shouldReceive( 'get_results' )->andReturn( array( $row ) );
+
+        $download = $this->buffered_download();
+        $ref      = new \ReflectionProperty( AppointmentCsvExporter::class, 'streamer' );
+        $ref->setAccessible( true );
+        $ref->setValue( $this->exporter, new CsvStreamer( $download ) );
+
+        $this->exporter->export_csv( array( 1 ), array(), null, null );
+
+        $this->assertTrue( $download->finished, 'stream finished' );
+        $this->assertStringContainsString( 'ID', $download->output, 'fixed header present' );
+        $this->assertStringContainsString( 'Maria Silva', $download->output, 'data row present' );
+        $this->assertStringContainsString( 'Cpf', $download->output, 'dynamic column header (ucwords) present' );
+        $this->assertStringContainsString( '123', $download->output, 'dynamic column value present' );
     }
 }

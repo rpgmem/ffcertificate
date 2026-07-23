@@ -16,6 +16,8 @@ namespace FreeFormCertificate\SelfScheduling;
 
 use FreeFormCertificate\Repositories\AppointmentRepository;
 use FreeFormCertificate\Repositories\CalendarRepository;
+use FreeFormCertificate\Core\CsvStreamer;
+use FreeFormCertificate\Core\HttpCsvDownload;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
@@ -48,11 +50,22 @@ class AppointmentCsvExporter {
 	protected $calendar_repository;
 
 	/**
-	 * Constructor
+	 * CSV streaming orchestrator (injectable so tests can capture the output
+	 * instead of writing to php://output and calling exit).
+	 *
+	 * @var CsvStreamer
 	 */
-	public function __construct() {
+	private CsvStreamer $streamer;
+
+	/**
+	 * Constructor
+	 *
+	 * @param CsvStreamer|null $streamer CSV streamer; defaults to the live HTTP download.
+	 */
+	public function __construct( ?CsvStreamer $streamer = null ) {
 		$this->appointment_repository = new AppointmentRepository();
 		$this->calendar_repository    = new CalendarRepository();
+		$this->streamer               = $streamer ?? new CsvStreamer( new HttpCsvDownload() );
 
 		// Register export action.
 		add_action( 'admin_post_ffc_export_appointments_csv', array( $this, 'handle_export_request' ) );
@@ -269,33 +282,40 @@ class AppointmentCsvExporter {
 
 		$filename = \FreeFormCertificate\Core\FilenameHelper::sanitize_filename( $calendar_title ) . '-appointments-' . gmdate( 'Y-m-d' ) . '.csv';
 
-		$safe_filename = str_replace( array( "\r", "\n", '"' ), '', $filename );
-		header( 'Content-Type: text/csv; charset=utf-8' );
-		header( 'Content-Disposition: attachment; filename="' . $safe_filename . '"' );
-		header( 'Pragma: no-cache' );
-		header( 'Expires: 0' );
-
-		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fopen -- streaming CSV download to php://output.
-		$output = fopen( 'php://output', 'w' );
-		if ( false === $output ) {
-			exit;
-		}
-
-		$writer = \FreeFormCertificate\Core\Csv::writer( $output );
-		$writer->row(
+		// array_values() reindexes to int keys so the merged header matches
+		// CsvStreamer::stream()'s array<int, string> contract (get_dynamic_headers
+		// is typed with string keys). Keys are irrelevant to the CSV output.
+		$header_row = array_values(
 			array_merge(
 				$this->get_fixed_headers(),
 				$this->get_dynamic_headers( $dynamic_keys )
 			)
 		);
 
-		// Second pass: stream each page of full rows, reusing the first page
-		// already fetched for the empty-check above.
+		$this->streamer->stream(
+			$filename,
+			$header_row,
+			$this->export_rows( $first_page, $where_sql, $where_values, $dynamic_keys )
+		);
+	}
+
+	/**
+	 * Yield each formatted CSV row, streaming the result set in pages. The first
+	 * page fetched for the empty-check in {@see self::export_csv()} is reused, so
+	 * peak memory stays bounded by one batch regardless of the appointment count.
+	 *
+	 * @param array<int, array<string, mixed>> $first_page   The already-fetched first page.
+	 * @param string                           $where_sql    WHERE clause.
+	 * @param array<int, mixed>                $where_values Bind values.
+	 * @param array<int, string>               $dynamic_keys Dynamic column keys.
+	 * @return \Generator<int, array<int, string>>
+	 */
+	private function export_rows( array $first_page, string $where_sql, array $where_values, array $dynamic_keys ): \Generator {
 		$page   = $first_page;
 		$offset = 0;
 		do {
 			foreach ( $page as $row ) {
-				$writer->row( $this->format_csv_row( $row, $dynamic_keys ) );
+				yield $this->format_csv_row( $row, $dynamic_keys );
 			}
 			$fetched = count( $page );
 			$offset += self::BATCH_SIZE;
@@ -303,11 +323,6 @@ class AppointmentCsvExporter {
 				? $this->fetch_export_page( '*', $where_sql, $where_values, self::BATCH_SIZE, $offset )
 				: array();
 		} while ( ! empty( $page ) );
-
-		$writer->close();
-		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose -- closing the php://output handle this method opened.
-		fclose( $output );
-		exit;
 	}
 
 	/**
