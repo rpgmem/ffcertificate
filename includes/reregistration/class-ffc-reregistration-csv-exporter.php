@@ -28,11 +28,14 @@ class ReregistrationCsvExporter {
 	/**
 	 * Handle CSV export action.
 	 *
-	 * Verifies nonce, fetches submission data, and streams a CSV file.
+	 * Verifies nonce, fetches submission data, and streams a CSV file. The
+	 * download chrome (headers, output stream, termination) lives in the
+	 * injected {@see \FreeFormCertificate\Core\CsvStreamer}.
 	 *
+	 * @param \FreeFormCertificate\Core\CsvStreamer|null $streamer CSV streamer; defaults to the live HTTP download.
 	 * @return void
 	 */
-	public static function handle_export(): void {
+	public static function handle_export( ?\FreeFormCertificate\Core\CsvStreamer $streamer = null ): void {
         // phpcs:ignore WordPress.Security.NonceVerification.Recommended
 		if ( ! isset( $_GET['action'] ) || 'export_csv' !== $_GET['action'] || ! isset( $_GET['id'] ) ) {
 			return;
@@ -66,19 +69,6 @@ class ReregistrationCsvExporter {
 		// Build CSV.
 		$filename = \FreeFormCertificate\Core\FilenameHelper::get_export_filename( 'reregistration', (string) $rereg->title );
 
-		// Headers.
-		$safe_filename = str_replace( array( "\r", "\n", '"' ), '', $filename );
-		header( 'Content-Type: text/csv; charset=UTF-8' );
-		header( 'Content-Disposition: attachment; filename="' . $safe_filename . '"' );
-		header( 'Pragma: no-cache' );
-		header( 'Expires: 0' );
-
-        // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fopen -- streaming CSV download to php://output.
-		$output = fopen( 'php://output', 'w' );
-		if ( false === $output ) {
-			exit;
-		}
-
 		// Header row — fixed metadata + all dynamic fields in repository order.
 		$headers = array(
 			__( 'User ID', 'ffcertificate' ),
@@ -88,15 +78,25 @@ class ReregistrationCsvExporter {
 			__( 'Submitted At', 'ffcertificate' ),
 			__( 'Reviewed At', 'ffcertificate' ),
 		);
-
 		foreach ( $fields as $f ) {
 			$headers[] = $f->field_label;
 		}
 
-		$writer = \FreeFormCertificate\Core\Csv::writer( $output );
-		$writer->row( $headers );
+		$streamer = $streamer ?? new \FreeFormCertificate\Core\CsvStreamer( new \FreeFormCertificate\Core\HttpCsvDownload() );
+		$streamer->stream( $filename, $headers, self::export_rows( $submissions, $fields ) );
+	}
 
-		// Data rows.
+	/**
+	 * Yield one CSV data row per submission — decrypting sensitive fields and
+	 * formatting the instant timestamps for display.
+	 *
+	 * @param iterable           $submissions Submission stream.
+	 * @param array<int, object> $fields      Field definitions.
+	 * @phpstan-param iterable<ReregistrationSubmissionRow> $submissions
+	 * @phpstan-param list<CustomFieldRow>                  $fields
+	 * @return \Generator<int, array<int, mixed>>
+	 */
+	private static function export_rows( iterable $submissions, array $fields ): \Generator {
 		foreach ( $submissions as $sub ) {
 			$sub_data = $sub->data ? json_decode( $sub->data, true ) : array();
 			$values   = is_array( $sub_data['fields'] ?? null ) ? $sub_data['fields'] : array();
@@ -125,13 +125,8 @@ class ReregistrationCsvExporter {
 				$row[] = self::stringify_value( $f, $values[ (string) $f->field_key ] ?? '' );
 			}
 
-			$writer->row( $row );
+			yield $row;
 		}
-
-		$writer->close();
-        // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose -- closing the php://output handle this method opened.
-		fclose( $output );
-		exit;
 	}
 
 	/**
