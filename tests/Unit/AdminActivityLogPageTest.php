@@ -10,6 +10,8 @@ use Mockery;
 use Mockery\Adapter\Phpunit\MockeryPHPUnitIntegration;
 use PHPUnit\Framework\TestCase;
 use FreeFormCertificate\Admin\AdminActivityLogPage;
+use FreeFormCertificate\Core\CsvStreamer;
+use FreeFormCertificate\Core\CsvDownloadInterface;
 
 /**
  * Tests for AdminActivityLogPage: register_menu, enqueue_scripts,
@@ -210,6 +212,38 @@ class AdminActivityLogPageTest extends TestCase {
         $page->handle_csv_export();
     }
 
+    /**
+     * A CsvDownloadInterface that captures the export bytes instead of writing
+     * to php://output / calling exit.
+     */
+    private function buffered_download(): CsvDownloadInterface {
+        return new class() implements CsvDownloadInterface {
+            public bool $finished = false;
+            public string $output = '';
+            /** @var resource|null */
+            private $stream = null;
+
+            public function send_headers( string $filename ): void {
+                unset( $filename );
+            }
+
+            public function open_stream() {
+                if ( ! is_resource( $this->stream ) ) {
+                    $this->stream = fopen( 'php://memory', 'w+' );
+                }
+                return $this->stream;
+            }
+
+            public function finish(): void {
+                $this->finished = true;
+                if ( is_resource( $this->stream ) ) {
+                    rewind( $this->stream );
+                    $this->output = (string) stream_get_contents( $this->stream );
+                }
+            }
+        };
+    }
+
     public function test_handle_csv_export_happy_path_streams_csv(): void {
         $_GET['ffc_export_logs'] = '1';
         $_GET['level']          = 'error';
@@ -261,33 +295,18 @@ class AdminActivityLogPageTest extends TestCase {
         Mockery::mock('alias:\FreeFormCertificate\Core\FilenameHelper')
             ->shouldReceive('get_export_filename')->andReturn('ffc-activity-log.csv');
 
-        // Stub the Csv writer chain.
-        $writer = Mockery::mock();
-        $writer->shouldReceive('row')->once();
-        $writer->shouldReceive('rows')->once()->with(Mockery::on(function ($rows) {
-            // Two log rows -> two CSV rows.
-            return is_array($rows) && count($rows) === 2;
-        }));
-        // Throw from close() — the last controllable call before fclose()+exit —
-        // so the method body runs to the end without the real exit() killing the
-        // test process.
-        $writer->shouldReceive('close')->once()->andThrow(new \RuntimeException('reached_end'));
-        Mockery::mock('alias:\FreeFormCertificate\Core\Csv')
-            ->shouldReceive('writer')->andReturn($writer);
+        // With the injected CsvStreamer the export is captured into php://memory
+        // (no real Csv::writer alias-mock, no header()/exit) so we can assert on
+        // the actual bytes as well as the filter args passed to the query.
+        $download = $this->buffered_download();
+        $page     = new AdminActivityLogPage( new CsvStreamer( $download ) );
 
-        // Suppress real header() emission (CLI has output already) by
-        // buffering; header() emits a warning but does not fatal.
-        $page = new AdminActivityLogPage();
+        $page->handle_csv_export();
 
-        ob_start();
-        try {
-            @$page->handle_csv_export();
-            ob_end_clean();
-            $this->fail('Expected to reach end of export');
-        } catch (\RuntimeException $e) {
-            ob_end_clean();
-            $this->assertSame('reached_end', $e->getMessage());
-        }
+        $this->assertTrue($download->finished, 'stream finished');
+        $this->assertStringContainsString('Date/Time', $download->output, 'header row present');
+        $this->assertStringContainsString('Jane Doe', $download->output, 'known user resolved');
+        $this->assertStringContainsString('System / Anonymous', $download->output, 'anonymous row present');
 
         $this->assertSame('error', $captured_args['level']);
         $this->assertSame('submission_created', $captured_args['action']);
