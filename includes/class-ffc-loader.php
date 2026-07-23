@@ -286,6 +286,19 @@ class Loader {
 			// See `RoleRegistrar::relabel_ffc_roles()` for full
 			// rationale.
 			add_action( 'wp_roles_init', array( '\FreeFormCertificate\UserDashboard\RoleRegistrar', 'relabel_ffc_roles' ) );
+
+			// `wp_roles_init` usually fires during early auth (on
+			// `plugins_loaded`, when `current_user_can()` first builds
+			// `WP_Roles`) — i.e. BEFORE this `init:1` hook is added, so the
+			// hook above never runs and the FFC role names stay frozen in
+			// their English source (the reported "roles not translated in the
+			// admin" bug). Re-apply the relabel directly now: at `init` the
+			// plugin textdomain resolves via just-in-time loading, so `__()`
+			// returns the translated labels and `WP_Roles::$role_names` is
+			// updated for the rest of the request (users list, role dropdown).
+			if ( function_exists( 'wp_roles' ) ) {
+				\FreeFormCertificate\UserDashboard\RoleRegistrar::relabel_ffc_roles( wp_roles() );
+			}
 		}
 	}
 

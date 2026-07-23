@@ -164,6 +164,11 @@ class LoaderMigrationsTest extends TestCase {
         $rr = Mockery::mock( 'alias:FreeFormCertificate\UserDashboard\RoleRegistrar' );
         $rr->shouldReceive( 'register_role' )->once();
         $rr->shouldReceive( 'register_module_roles' )->once();
+        // Relabel is applied directly too (not only via the wp_roles_init hook)
+        // so it runs even when wp_roles_init already fired during early auth.
+        $rr->shouldReceive( 'relabel_ffc_roles' )->once();
+
+        Functions\when( 'wp_roles' )->justReturn( Mockery::mock( 'WP_Roles' ) );
 
         $added = array();
         Functions\when( 'add_action' )->alias(
