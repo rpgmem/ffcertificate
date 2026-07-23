@@ -473,6 +473,73 @@ class CapabilityMigrator {
 	}
 
 	/**
+	 * Map of the source cap => the URL-shortener export cap it seeds on upgrade.
+	 * Like every other export cap it splits out of `manage`, so the migration
+	 * seeds `ffc_export_url_shortener` onto every current `ffc_manage_url_shortener`
+	 * holder — preserving their bulk-export ability when the dedicated cap is
+	 * introduced. To take export away from a manager, remove the export cap after
+	 * the migration has run.
+	 *
+	 * @since 6.16.0
+	 * @return array<string, string>
+	 */
+	public static function url_shortener_export_cap_grant_map(): array {
+		return array(
+			'ffc_manage_url_shortener' => 'ffc_export_url_shortener',
+		);
+	}
+
+	/**
+	 * Idempotent migration seeding `ffc_export_url_shortener` onto every user and
+	 * role that already holds `ffc_manage_url_shortener`. Never removes the source
+	 * cap.
+	 *
+	 * Runs once per install via {@see \FreeFormCertificate\Loader} on
+	 * `plugins_loaded`, flagged by the `ffc_url_shortener_export_cap_v1` option.
+	 *
+	 * @since 6.16.0
+	 * @return array<string, int> Per-export-cap count of users seeded.
+	 */
+	public static function migrate_url_shortener_export_cap_grant(): array {
+		$map    = self::url_shortener_export_cap_grant_map();
+		$counts = array();
+
+		// 1. User-meta grants.
+		$users = get_users( array( 'fields' => 'ID' ) );
+		foreach ( $map as $source => $export ) {
+			$counts[ $export ] = 0;
+			foreach ( $users as $user_id ) {
+				$user = get_userdata( (int) $user_id );
+				if ( ! $user ) {
+					continue;
+				}
+				if ( isset( $user->caps[ $source ] ) && true === $user->caps[ $source ]
+					&& ! isset( $user->caps[ $export ] ) ) {
+					$user->add_cap( $export, true );
+					++$counts[ $export ];
+				}
+			}
+		}
+
+		// 2. Role definitions — administrator + every FFC/custom role.
+		$wp_roles = wp_roles();
+		foreach ( array_keys( $wp_roles->roles ) as $role_slug ) {
+			$role = get_role( $role_slug );
+			if ( ! $role ) {
+				continue;
+			}
+			foreach ( $map as $source => $export ) {
+				if ( isset( $role->capabilities[ $source ] ) && true === $role->capabilities[ $source ]
+					&& ! isset( $role->capabilities[ $export ] ) ) {
+					$role->add_cap( $export, true );
+				}
+			}
+		}
+
+		return $counts;
+	}
+
+	/**
 	 * Map of `manage` cap => the `import` cap it seeds on upgrade (GAP H).
 	 *
 	 * The one-shot migration {@see self::migrate_import_caps_grant()} grants the

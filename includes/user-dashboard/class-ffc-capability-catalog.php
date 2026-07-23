@@ -341,6 +341,10 @@ final class CapabilityCatalog {
 						'label'       => __( 'Delete short URLs', 'ffcertificate' ),
 						'description' => __( 'Trash, restore, permanently delete and empty the short-URL trash.', 'ffcertificate' ),
 					),
+					'ffc_export_url_shortener' => array(
+						'label'       => __( 'Export short URLs', 'ffcertificate' ),
+						'description' => __( 'Download the short-URL list (codes, targets, click counts) as CSV.', 'ffcertificate' ),
+					),
 				),
 			),
 			array(

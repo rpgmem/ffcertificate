@@ -88,7 +88,20 @@ class AudienceAdminBookings {
 
 		?>
 		<div class="wrap">
-			<h1><?php esc_html_e( 'Bookings', 'ffcertificate' ); ?></h1>
+			<h1 class="wp-heading-inline"><?php esc_html_e( 'Bookings', 'ffcertificate' ); ?></h1>
+			<?php if ( \FreeFormCertificate\Core\Capabilities::current_user_can_admin_or( 'ffc_export_audiences' ) ) : ?>
+				<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" class="ffc-bookings-export" style="display:inline;">
+					<?php wp_nonce_field( 'ffc_export_audience_bookings_nonce', 'ffc_export_audience_bookings_action' ); ?>
+					<input type="hidden" name="action" value="ffc_export_audience_bookings_csv" />
+					<input type="hidden" name="schedule_id" value="<?php echo esc_attr( (string) $schedule_id ); ?>" />
+					<input type="hidden" name="environment_id" value="<?php echo esc_attr( (string) $environment_id ); ?>" />
+					<input type="hidden" name="status" value="<?php echo esc_attr( $status_filter ); ?>" />
+					<input type="hidden" name="date_from" value="<?php echo esc_attr( $date_from ); ?>" />
+					<input type="hidden" name="date_to" value="<?php echo esc_attr( $date_to ); ?>" />
+					<button type="submit" class="page-title-action"><?php esc_html_e( 'Export CSV', 'ffcertificate' ); ?></button>
+				</form>
+			<?php endif; ?>
+			<hr class="wp-header-end">
 
 			<?php settings_errors( 'ffc_audience' ); ?>
 

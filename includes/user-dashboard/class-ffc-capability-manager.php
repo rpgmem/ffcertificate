@@ -202,6 +202,13 @@ class CapabilityManager {
 		'ffc_export_reregistration',
 		'ffc_export_audiences',
 		'ffc_export_activity_log',
+		// URL-shortener export tier. Split out of `ffc_manage_url_shortener`
+		// so the Short URLs list can be delegated without granting bulk CSV
+		// extraction of every short link. The one-shot
+		// `migrate_url_shortener_export_cap_grant()` seeds it onto every current
+		// `ffc_manage_url_shortener` holder, mirroring the activity-log split
+		// (`ffc_activity_log_export_cap_v1`).
+		'ffc_export_url_shortener',
 
 		// Granular "import" tier (GAP H). Bulk CSV ingestion is split out of
 		// `manage` for the domains where loading external data is the most
