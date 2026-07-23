@@ -21,7 +21,8 @@ declare(strict_types=1);
 namespace FreeFormCertificate\UrlShortener;
 
 use FreeFormCertificate\Core\Capabilities;
-use FreeFormCertificate\Core\Csv;
+use FreeFormCertificate\Core\CsvStreamer;
+use FreeFormCertificate\Core\HttpCsvDownload;
 use FreeFormCertificate\Core\RequestInput;
 
 if ( ! defined( 'ABSPATH' ) ) {
@@ -46,6 +47,14 @@ class UrlShortenerCsvExporter {
 	private UrlShortenerService $service;
 
 	/**
+	 * CSV streaming orchestrator (injectable so tests can capture the output
+	 * instead of writing to php://output and calling exit).
+	 *
+	 * @var CsvStreamer
+	 */
+	private CsvStreamer $streamer;
+
+	/**
 	 * Per-request cache of user id => display name (avoids repeated lookups
 	 * when the same creator owns many links).
 	 *
@@ -56,10 +65,12 @@ class UrlShortenerCsvExporter {
 	/**
 	 * Constructor.
 	 *
-	 * @param UrlShortenerService $service Service.
+	 * @param UrlShortenerService $service  Service.
+	 * @param CsvStreamer|null    $streamer CSV streamer; defaults to the live HTTP download.
 	 */
-	public function __construct( UrlShortenerService $service ) {
-		$this->service = $service;
+	public function __construct( UrlShortenerService $service, ?CsvStreamer $streamer = null ) {
+		$this->service  = $service;
+		$this->streamer = $streamer ?? new CsvStreamer( new HttpCsvDownload() );
 		add_action( 'admin_post_ffc_export_short_urls_csv', array( $this, 'handle_export_request' ) );
 	}
 
@@ -152,7 +163,11 @@ class UrlShortenerCsvExporter {
 	}
 
 	/**
-	 * Stream the short-URL list to a CSV download, fetched in pages.
+	 * Stream the short-URL list to a CSV download.
+	 *
+	 * The heavy lifting (headers, output stream, termination) lives in the
+	 * injected {@see CsvStreamer}; here we only supply the filename, the header
+	 * row and a generator that pages the rows.
 	 *
 	 * @param string $search  Search term (title / target / code).
 	 * @param string $status  Status filter ('all' excludes trashed).
@@ -161,23 +176,25 @@ class UrlShortenerCsvExporter {
 	 * @return void
 	 */
 	private function export_csv( string $search, string $status, string $orderby, string $order ): void {
+		$this->streamer->stream(
+			'short-urls-' . gmdate( 'Y-m-d' ) . '.csv',
+			$this->get_headers(),
+			$this->stream_rows( $search, $status, $orderby, $order )
+		);
+	}
+
+	/**
+	 * Yield each short-URL row as a formatted CSV line, paging the repository so
+	 * peak memory stays bounded by one batch regardless of the row count.
+	 *
+	 * @param string $search  Search term.
+	 * @param string $status  Status filter.
+	 * @param string $orderby Sort column.
+	 * @param string $order   Sort direction.
+	 * @return \Generator<int, array<int, string>>
+	 */
+	private function stream_rows( string $search, string $status, string $orderby, string $order ): \Generator {
 		$repository = $this->service->get_repository();
-
-		$filename      = 'short-urls-' . gmdate( 'Y-m-d' ) . '.csv';
-		$safe_filename = str_replace( array( "\r", "\n", '"' ), '', $filename );
-		header( 'Content-Type: text/csv; charset=utf-8' );
-		header( 'Content-Disposition: attachment; filename="' . $safe_filename . '"' );
-		header( 'Pragma: no-cache' );
-		header( 'Expires: 0' );
-
-		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fopen -- streaming CSV download to php://output.
-		$output = fopen( 'php://output', 'w' );
-		if ( false === $output ) {
-			exit;
-		}
-
-		$writer = Csv::writer( $output );
-		$writer->row( $this->get_headers() );
 
 		$page = 1;
 		do {
@@ -191,17 +208,12 @@ class UrlShortenerCsvExporter {
 					'status'   => $status,
 				)
 			);
-			$items  = $result['items'];
+			$items = $result['items'];
 			foreach ( $items as $row ) {
-				$writer->row( $this->format_row( $row ) );
+				yield $this->format_row( $row );
 			}
-			++$page;
 			$fetched = count( $items );
+			++$page;
 		} while ( self::BATCH_SIZE === $fetched );
-
-		$writer->close();
-		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose -- closing the php://output handle this method opened.
-		fclose( $output );
-		exit;
 	}
 }
