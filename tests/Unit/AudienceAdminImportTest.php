@@ -9,9 +9,13 @@ use Mockery;
 use Mockery\Adapter\Phpunit\MockeryPHPUnitIntegration;
 use PHPUnit\Framework\TestCase;
 use FreeFormCertificate\Audience\AudienceAdminImport;
+use FreeFormCertificate\Core\CsvStreamer;
+use FreeFormCertificate\Core\CsvDownloadInterface;
 
 /**
  * @covers \FreeFormCertificate\Audience\AudienceAdminImport
+ * @runTestsInSeparateProcesses
+ * @preserveGlobalState disabled
  */
 class AudienceAdminImportTest extends TestCase {
 
@@ -102,5 +106,98 @@ class AudienceAdminImportTest extends TestCase {
         $page = new AudienceAdminImport( 'ffc-scheduling' );
         $page->handle_csv_import();
         $this->assertTrue( true );
+    }
+
+    // ==================================================================
+    // export_members_csv() / export_audiences_csv() — streaming path
+    // ==================================================================
+
+    /**
+     * A CsvDownloadInterface that captures the export bytes instead of writing
+     * to php://output / calling exit.
+     */
+    private function buffered_download(): CsvDownloadInterface {
+        return new class() implements CsvDownloadInterface {
+            public bool $finished = false;
+            public string $output = '';
+            /** @var resource|null */
+            private $stream = null;
+
+            public function send_headers( string $filename ): void {
+                unset( $filename );
+            }
+
+            public function open_stream() {
+                if ( ! is_resource( $this->stream ) ) {
+                    $this->stream = fopen( 'php://memory', 'w+' );
+                }
+                return $this->stream;
+            }
+
+            public function finish(): void {
+                $this->finished = true;
+                if ( is_resource( $this->stream ) ) {
+                    rewind( $this->stream );
+                    $this->output = (string) stream_get_contents( $this->stream );
+                }
+            }
+        };
+    }
+
+    public function test_export_members_csv_streams_header_and_rows(): void {
+        $download = $this->buffered_download();
+
+        $reader = Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceReader' );
+        $reader->shouldReceive( 'get_all' )->andReturn(
+            array( (object) array( 'id' => 1, 'name' => 'Turma A' ) )
+        );
+        $reader->shouldReceive( 'get_members' )->with( 1 )->andReturn( array( 10, 11 ) );
+
+        Mockery::mock( 'alias:FreeFormCertificate\Core\FilenameHelper' )
+            ->shouldReceive( 'get_export_filename' )->andReturn( 'members-export.csv' );
+
+        $u10 = (object) array( 'user_email' => 'a@example.com', 'display_name' => 'Ana' );
+        $u11 = (object) array( 'user_email' => 'b@example.com', 'display_name' => 'Bruno' );
+        Functions\when( 'get_user_by' )->alias(
+            static fn ( $field, $id ) => 10 === $id ? $u10 : ( 11 === $id ? $u11 : false )
+        );
+
+        $page = new AudienceAdminImport( 'ffc-scheduling', new CsvStreamer( $download ) );
+        $ref  = new \ReflectionMethod( AudienceAdminImport::class, 'export_members_csv' );
+        $ref->setAccessible( true );
+        $ref->invoke( $page );
+
+        $this->assertTrue( $download->finished, 'stream finished' );
+        $this->assertStringContainsString( 'email;name;audience_name', $download->output, 'header' );
+        // Assert on substrings that do not cross fputcsv's RFC-4180 quoting so
+        // the test is robust to whether the audience name gets enclosed.
+        $this->assertStringContainsString( 'a@example.com;Ana;', $download->output );
+        $this->assertStringContainsString( 'b@example.com;Bruno;', $download->output );
+        $this->assertStringContainsString( 'Turma A', $download->output, 'audience name row present' );
+    }
+
+    public function test_export_audiences_csv_streams_hierarchical_rows(): void {
+        $download = $this->buffered_download();
+
+        $child  = (object) array( 'name' => 'Child', 'color' => null );
+        $parent = (object) array(
+            'name'     => 'Parent',
+            'color'    => '#abcdef',
+            'children' => array( $child ),
+        );
+        Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceReader' )
+            ->shouldReceive( 'get_hierarchical' )->andReturn( array( $parent ) );
+        Mockery::mock( 'alias:FreeFormCertificate\Core\FilenameHelper' )
+            ->shouldReceive( 'get_export_filename' )->andReturn( 'audiences-export.csv' );
+
+        $page = new AudienceAdminImport( 'ffc-scheduling', new CsvStreamer( $download ) );
+        $ref  = new \ReflectionMethod( AudienceAdminImport::class, 'export_audiences_csv' );
+        $ref->setAccessible( true );
+        $ref->invoke( $page );
+
+        $this->assertTrue( $download->finished, 'stream finished' );
+        $this->assertStringContainsString( 'name;color;parent', $download->output, 'header' );
+        $this->assertStringContainsString( 'Parent;#abcdef;', $download->output, 'parent row (no parent col)' );
+        $this->assertStringContainsString( 'Child;#3788d8;Parent', $download->output, 'child row (default color, parent set)' );
     }
 }
