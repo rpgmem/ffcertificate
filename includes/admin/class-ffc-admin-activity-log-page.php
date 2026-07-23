@@ -23,6 +23,23 @@ if ( ! defined( 'ABSPATH' ) ) {
 class AdminActivityLogPage {
 
 	/**
+	 * CSV streaming orchestrator (injectable so tests can capture the export
+	 * output instead of writing to php://output and calling exit).
+	 *
+	 * @var \FreeFormCertificate\Core\CsvStreamer
+	 */
+	private \FreeFormCertificate\Core\CsvStreamer $streamer;
+
+	/**
+	 * Constructor.
+	 *
+	 * @param \FreeFormCertificate\Core\CsvStreamer|null $streamer CSV streamer; defaults to the live HTTP download.
+	 */
+	public function __construct( ?\FreeFormCertificate\Core\CsvStreamer $streamer = null ) {
+		$this->streamer = $streamer ?? new \FreeFormCertificate\Core\CsvStreamer( new \FreeFormCertificate\Core\HttpCsvDownload() );
+	}
+
+	/**
 	 * Register admin menu and export handler
 	 */
 	public function register_menu(): void {
@@ -167,25 +184,12 @@ class AdminActivityLogPage {
 			);
 		}
 
-		$filename      = \FreeFormCertificate\Core\FilenameHelper::get_export_filename( 'ffc-activity-log' );
-		$safe_filename = str_replace( array( "\r", "\n", '"' ), '', $filename );
-		header( 'Content-Type: text/csv; charset=utf-8' );
-		header( 'Content-Disposition: attachment; filename="' . $safe_filename . '"' );
-		header( 'Pragma: no-cache' );
-		header( 'Expires: 0' );
+		$filename = \FreeFormCertificate\Core\FilenameHelper::get_export_filename( 'ffc-activity-log' );
 
-		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fopen -- streaming CSV download to php://output.
-		$output = fopen( 'php://output', 'w' );
-		if ( false === $output ) {
-			exit;
-		}
-		$writer = \FreeFormCertificate\Core\Csv::writer( $output );
-		$writer->row( $headers );
-		$writer->rows( $rows );
-		$writer->close();
-		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose -- closing the php://output handle this method opened.
-		fclose( $output );
-		exit;
+		// The download chrome (headers, output stream, termination) lives in the
+		// injected CsvStreamer; the rows are already materialised (bounded by the
+		// activity-log retention window), so pass the array straight through.
+		$this->streamer->stream( $filename, $headers, $rows );
 	}
 
 	/**
