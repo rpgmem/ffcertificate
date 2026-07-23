@@ -9,6 +9,8 @@ use Mockery;
 use Mockery\Adapter\Phpunit\MockeryPHPUnitIntegration;
 use PHPUnit\Framework\TestCase;
 use FreeFormCertificate\Reregistration\ReregistrationCsvExporter;
+use FreeFormCertificate\Core\CsvStreamer;
+use FreeFormCertificate\Core\CsvDownloadInterface;
 
 /**
  * @covers \FreeFormCertificate\Reregistration\ReregistrationCsvExporter
@@ -124,6 +126,90 @@ class ReregistrationCsvExporterTest extends TestCase {
 
         ReregistrationCsvExporter::handle_export();
         $this->assertTrue( true );
+    }
+
+    // ==================================================================
+    // handle_export() — full streaming happy path
+    // ==================================================================
+
+    /**
+     * A CsvDownloadInterface that captures the export bytes instead of writing
+     * to php://output / calling exit.
+     */
+    private function buffered_download(): CsvDownloadInterface {
+        return new class() implements CsvDownloadInterface {
+            public bool $finished = false;
+            public string $output = '';
+            /** @var resource|null */
+            private $stream = null;
+
+            public function send_headers( string $filename ): void {
+                unset( $filename );
+            }
+
+            public function open_stream() {
+                if ( ! is_resource( $this->stream ) ) {
+                    $this->stream = fopen( 'php://memory', 'w+' );
+                }
+                return $this->stream;
+            }
+
+            public function finish(): void {
+                $this->finished = true;
+                if ( is_resource( $this->stream ) ) {
+                    rewind( $this->stream );
+                    $this->output = (string) stream_get_contents( $this->stream );
+                }
+            }
+        };
+    }
+
+    public function test_handle_export_streams_header_and_rows(): void {
+        $_GET['action']   = 'export_csv';
+        $_GET['id']       = '5';
+        $_GET['_wpnonce'] = 'valid';
+        Functions\when( 'wp_verify_nonce' )->justReturn( true );
+        Functions\when( 'current_user_can' )->justReturn( true );
+
+        $rereg = (object) array( 'id' => 5, 'title' => 'Campaign' );
+        Mockery::mock( 'alias:FreeFormCertificate\Reregistration\ReregistrationRepository' )
+            ->shouldReceive( 'get_by_id' )->with( 5 )->andReturn( $rereg )
+            ->shouldReceive( 'get_audience_ids' )->with( 5 )->andReturn( array( 1 ) );
+
+        $field = (object) array(
+            'id'           => 10,
+            'field_label'  => 'City',
+            'field_key'    => 'city',
+            'field_type'   => 'text',
+            'is_sensitive' => 0,
+        );
+        Mockery::mock( 'alias:FreeFormCertificate\Reregistration\CustomFieldReader' )
+            ->shouldReceive( 'get_by_audience_with_parents' )->with( 1, true )->andReturn( array( $field ) );
+
+        $sub = (object) array(
+            'data'         => (string) wp_json_encode( array( 'fields' => array( 'city' => 'SP' ) ) ),
+            'user_id'      => 42,
+            'user_name'    => 'Alice',
+            'user_email'   => 'alice@example.com',
+            'status'       => 'approved',
+            'submitted_at' => 0,
+            'reviewed_at'  => 0,
+        );
+        Mockery::mock( 'alias:FreeFormCertificate\Reregistration\ReregistrationSubmissionReader' )
+            ->shouldReceive( 'stream_for_export' )->with( 5 )->andReturn( array( $sub ) );
+
+        Mockery::mock( 'alias:FreeFormCertificate\Core\FilenameHelper' )
+            ->shouldReceive( 'get_export_filename' )->andReturn( 'reregistration-campaign.csv' );
+
+        $download = $this->buffered_download();
+        ReregistrationCsvExporter::handle_export( new CsvStreamer( $download ) );
+
+        $this->assertTrue( $download->finished, 'stream finished' );
+        $this->assertStringContainsString( 'User ID', $download->output, 'fixed header present' );
+        $this->assertStringContainsString( 'City', $download->output, 'dynamic field header present' );
+        $this->assertStringContainsString( 'Alice', $download->output, 'submission name' );
+        $this->assertStringContainsString( 'alice@example.com', $download->output, 'submission email' );
+        $this->assertStringContainsString( 'SP', $download->output, 'dynamic field value' );
     }
 
     // ==================================================================
