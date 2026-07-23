@@ -18,6 +18,8 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 /**
  * Audience Admin Import.
+ *
+ * @phpstan-import-type AudienceRow from AudienceReader
  */
 class AudienceAdminImport {
 
@@ -501,7 +503,7 @@ class AudienceAdminImport {
 	 * Yield one CSV line per audience — parents first, then their children (the
 	 * same order the importer expects).
 	 *
-	 * @param array<int, object> $audiences Hierarchical audience tree.
+	 * @param list<AudienceRow> $audiences Hierarchical audience tree.
 	 * @return \Generator<int, array<int, string>>
 	 */
 	private function audiences_rows( array $audiences ): \Generator {
