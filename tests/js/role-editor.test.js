@@ -20,7 +20,7 @@ function markup() {
 			<label class="ffc-role-pick">Role:
 				<select class="ffc-role-select">
 					<option value="ffc_end_user" selected>FFC End User</option>
-					<option value="ffc_recruitment_manager">Recruitment Manager</option>
+					<option value="ffc_recruitment_manager">FFC Recruitment - Manager</option>
 				</select>
 			</label>
 			<input type="search" class="ffc-cap-search">

@@ -2853,9 +2853,7 @@ msgstr "Armazene em cache os resultados de geolocalização de IP para reduzir a
 
 #: includes/settings/views/documentation/config-geolocation.php:37
 msgid "Cache lookups (TTL 300–3600s) to save API calls."
-msgstr ""
-"Consultas de cache (TTL de 300 a 3600 s) para economizar chamadas de API.\n"
-""
+msgstr "Consultas de cache (TTL de 300 a 3600 s) para economizar chamadas de API."
 
 #: includes/settings/tabs/class-ffc-tab-cache.php:97
 #| msgid "QR Code settings view file not found."
@@ -6939,26 +6937,26 @@ msgstr "Feminino"
 
 #: includes/user-dashboard/class-ffc-capability-manager.php:668
 msgid "FFC Administrator"
-msgstr "Administrador do FFC"
+msgstr "FFC Administrador"
 
 #: includes/privacy/class-ffc-privacy-handler.php:125 includes/privacy/class-ffc-privacy-exporters.php:323
 msgid "FFC Appointments"
 msgstr "Agendamentos FFC"
 
 #: includes/user-dashboard/class-ffc-capability-manager.php:726
-msgid "FFC Appointments Admin"
+msgid "FFC Appointments - Administrator"
 msgstr "FFC Agendamentos - Administrador"
 
 #: includes/user-dashboard/class-ffc-capability-manager.php:721
-msgid "FFC Appointments Manager"
+msgid "FFC Appointments - Manager"
 msgstr "FFC Agendamentos - Gerenciador"
 
 #: includes/user-dashboard/class-ffc-capability-manager.php:717
-msgid "FFC Appointments Operator"
+msgid "FFC Appointments - Operator"
 msgstr "FFC Agendamentos - Operador"
 
 #: includes/user-dashboard/class-ffc-capability-manager.php:713
-msgid "FFC Appointments Viewer"
+msgid "FFC Appointments - Viewer"
 msgstr "FFC Agendamentos - Visualizador"
 
 #: includes/privacy/class-ffc-privacy-handler.php:133 includes/privacy/class-ffc-privacy-exporters.php:496
@@ -6971,23 +6969,23 @@ msgstr "Grupos de Público-alvo do FFC"
 
 #: includes/user-dashboard/class-ffc-capability-manager.php:740
 #| msgid "FFC Audience Manager"
-msgid "FFC Audiences Manager"
+msgid "FFC Audiences - Manager"
 msgstr "FFC Público-alvo - Gerenciador"
 
 #: includes/user-dashboard/class-ffc-capability-manager.php:736
-msgid "FFC Audiences Operator"
+msgid "FFC Audiences - Operator"
 msgstr "FFC Público-alvo - Operador"
 
 #: includes/user-dashboard/class-ffc-capability-manager.php:732
-msgid "FFC Audiences Viewer"
+msgid "FFC Audiences - Viewer"
 msgstr "FFC Público-alvo - Visualizador"
 
 #: includes/user-dashboard/class-ffc-capability-manager.php:765
-msgid "FFC Calendars Manager"
+msgid "FFC Calendars - Manager"
 msgstr "FFC Calendários - Gerenciador"
 
 #: includes/user-dashboard/class-ffc-capability-manager.php:761
-msgid "FFC Calendars Viewer"
+msgid "FFC Calendars - Viewer"
 msgstr "FFC Calendários - Visualizador"
 
 #: includes/privacy/class-ffc-privacy-handler.php:121 includes/privacy/class-ffc-privacy-exporters.php:211
@@ -6995,20 +6993,20 @@ msgid "FFC Certificates"
 msgstr "Certificados FFC"
 
 #: includes/user-dashboard/class-ffc-capability-manager.php:707
-msgid "FFC Certificates Admin"
+msgid "FFC Certificates - Administrator"
 msgstr "FFC Certificados - Administrador"
 
 #: includes/user-dashboard/class-ffc-capability-manager.php:700
 #| msgid "FFC Certificate Manager"
-msgid "FFC Certificates Manager"
+msgid "FFC Certificates - Manager"
 msgstr "FFC Certificados - Gerenciador"
 
 #: includes/user-dashboard/class-ffc-capability-manager.php:696
-msgid "FFC Certificates Operator"
+msgid "FFC Certificates - Operator"
 msgstr "FFC Certificados - Operador"
 
 #: includes/user-dashboard/class-ffc-capability-manager.php:692
-msgid "FFC Certificates Viewer"
+msgid "FFC Certificates - Viewer"
 msgstr "FFC Certificados - Visualizador"
 
 #: includes/admin/class-ffc-admin-user-custom-fields.php:115
@@ -7024,11 +7022,11 @@ msgid "FFC Form"
 msgstr "FFC Form"
 
 #: includes/user-dashboard/class-ffc-capability-manager.php:775
-msgid "FFC Forms Manager"
+msgid "FFC Forms - Manager"
 msgstr "FFC Formulários - Gerenciador"
 
 #: includes/user-dashboard/class-ffc-capability-manager.php:771
-msgid "FFC Forms Viewer"
+msgid "FFC Forms - Viewer"
 msgstr "FFC Formulários - Visualizador"
 
 #: includes/admin/class-ffc-admin-user-capabilities.php:137 includes/admin/class-ffc-admin-user-capabilities.php:153
@@ -7044,27 +7042,27 @@ msgid "FFC Read-Only (all modules)"
 msgstr "FFC Somente Leitura (todos os módulos)"
 
 #: includes/user-dashboard/class-ffc-capability-manager.php:792
-msgid "FFC Recruitment Admin"
-msgstr "Administrador de Recrutamento do FFC"
+msgid "FFC Recruitment - Administrator"
+msgstr "FFC Recrutamento - Administrador"
 
 #: includes/user-dashboard/class-ffc-capability-manager.php:788
-msgid "FFC Recruitment Operator"
-msgstr "Operador de Recrutamento do FFC"
+msgid "FFC Recruitment - Operator"
+msgstr "FFC Recrutamento - Operador"
 
 #: includes/user-dashboard/class-ffc-capability-manager.php:784
-msgid "FFC Recruitment Viewer"
+msgid "FFC Recruitment - Viewer"
 msgstr "FFC Recrutamento - Visualizador"
 
 #: includes/user-dashboard/class-ffc-capability-manager.php:754
-msgid "FFC Reregistration Manager"
-msgstr "Gerente de Recadastramento do FFC"
+msgid "FFC Reregistration - Manager"
+msgstr "FFC Recadastramento - Gerenciador"
 
 #: includes/user-dashboard/class-ffc-capability-manager.php:750
-msgid "FFC Reregistration Operator"
+msgid "FFC Reregistration - Operator"
 msgstr "FFC Recadastramento - Operador"
 
 #: includes/user-dashboard/class-ffc-capability-manager.php:746
-msgid "FFC Reregistration Viewer"
+msgid "FFC Reregistration - Viewer"
 msgstr "FFC Recadastramento - Visualizador"
 
 #: includes/admin/class-ffc-admin-user-capabilities.php:211
@@ -12507,8 +12505,8 @@ msgid "Recruitment capabilities (manage / import / call / delete)."
 msgstr "Funcionalidades de recrutamento (gerenciar / importar / contatar / excluir)."
 
 #: includes/user-dashboard/class-ffc-role-registrar.php:157 includes/user-dashboard/class-ffc-role-registrar.php:304
-msgid "Recruitment Manager"
-msgstr "Gerente de Recrutamento"
+msgid "FFC Recruitment - Manager"
+msgstr "FFC Recrutamento - Gerenciador"
 
 #. 1: notice code, 2: notice name, 3: notice status
 #: templates/admin/recruitment/admin-page/candidates-csv-import-section.php:53

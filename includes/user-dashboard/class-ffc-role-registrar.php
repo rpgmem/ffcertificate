@@ -154,7 +154,7 @@ class RoleRegistrar {
 
 		add_role(
 			CapabilityManager::RECRUITMENT_MANAGER_ROLE,
-			__( 'Recruitment Manager', 'ffcertificate' ),
+			__( 'FFC Recruitment - Manager', 'ffcertificate' ),
 			array(
 				'read'                   => true,
 				'ffc_manage_recruitment' => true,
@@ -301,11 +301,105 @@ class RoleRegistrar {
 	public static function ffc_managed_role_labels(): array {
 		$labels = array(
 			'ffc_end_user'                              => __( 'FFC End User', 'ffcertificate' ),
-			CapabilityManager::RECRUITMENT_MANAGER_ROLE => __( 'Recruitment Manager', 'ffcertificate' ),
+			CapabilityManager::RECRUITMENT_MANAGER_ROLE => __( 'FFC Recruitment - Manager', 'ffcertificate' ),
 		);
 		foreach ( CapabilityManager::module_roles_definition() as $slug => $def ) {
 			$labels[ $slug ] = $def['label'];
 		}
-		return $labels;
+		return self::sort_managed_role_labels( $labels );
+	}
+
+	/**
+	 * Order the managed-role map for display: the three cross-cutting roles
+	 * (administrator, read-only, end-user) pinned to the top, then each module
+	 * ladder alphabetically by its (translated) module name, and within a
+	 * module from least to most powerful (viewer → operator → manager → admin).
+	 *
+	 * Both admin surfaces that list FFC roles — the Blocked Roles checkboxes and
+	 * the role → capability editor dropdown (Settings → User Access) — consume
+	 * this map, so the canonical order lives here instead of being re-derived
+	 * per view. The module name is read from the label (not the slug) so the
+	 * alphabetical order follows whatever language the admin is viewing.
+	 *
+	 * @since 6.16.0
+	 * @param array<string, string> $labels slug => label, in definition order.
+	 * @return array<string, string> Same map, canonically ordered.
+	 */
+	private static function sort_managed_role_labels( array $labels ): array {
+		// Cross-cutting roles carry no module; pin them to the top, in order.
+		$global_rank = array(
+			'ffc_administrator' => 0,
+			'ffc_readonly'      => 1,
+			'ffc_end_user'      => 2,
+		);
+		// Tier ordering within a module ladder (menor → maior).
+		$tier_rank = array(
+			'viewer'   => 0,
+			'operator' => 1,
+			'manager'  => 2,
+			'admin'    => 3,
+		);
+
+		$keys = array_keys( $labels );
+		usort(
+			$keys,
+			static function ( string $a, string $b ) use ( $labels, $global_rank, $tier_rank ): int {
+				$a_global = array_key_exists( $a, $global_rank );
+				$b_global = array_key_exists( $b, $global_rank );
+				if ( $a_global || $b_global ) {
+					if ( $a_global && $b_global ) {
+						return $global_rank[ $a ] <=> $global_rank[ $b ];
+					}
+					return $a_global ? -1 : 1;
+				}
+
+				$module_cmp = strcasecmp(
+					self::label_module_part( $labels[ $a ] ),
+					self::label_module_part( $labels[ $b ] )
+				);
+				if ( 0 !== $module_cmp ) {
+					return $module_cmp;
+				}
+				$a_tier = $tier_rank[ self::slug_tier( $a ) ] ?? 99;
+				$b_tier = $tier_rank[ self::slug_tier( $b ) ] ?? 99;
+				return $a_tier <=> $b_tier;
+			}
+		);
+
+		$sorted = array();
+		foreach ( $keys as $slug ) {
+			$sorted[ $slug ] = $labels[ $slug ];
+		}
+		return $sorted;
+	}
+
+	/**
+	 * The module portion of a role label — everything before the " - " tier
+	 * suffix, with the leading "FFC " stripped so the alphabetical sort compares
+	 * on the module word itself. A label with no separator returns unchanged.
+	 *
+	 * @param string $label Role display label.
+	 * @return string
+	 */
+	private static function label_module_part( string $label ): string {
+		$pos  = strpos( $label, ' - ' );
+		$core = false === $pos ? $label : substr( $label, 0, $pos );
+		return (string) preg_replace( '/^FFC\s+/u', '', $core );
+	}
+
+	/**
+	 * The tier token of a role slug (viewer|operator|manager|admin), or '' when
+	 * the slug carries no recognized tier suffix.
+	 *
+	 * @param string $slug Role slug.
+	 * @return string
+	 */
+	private static function slug_tier( string $slug ): string {
+		foreach ( array( 'viewer', 'operator', 'manager', 'admin' ) as $tier ) {
+			if ( str_ends_with( $slug, '_' . $tier ) ) {
+				return $tier;
+			}
+		}
+		return '';
 	}
 }

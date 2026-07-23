@@ -6922,19 +6922,19 @@ msgid "FFC Appointments"
 msgstr ""
 
 #: includes/user-dashboard/class-ffc-capability-manager.php:726
-msgid "FFC Appointments Admin"
+msgid "FFC Appointments - Administrator"
 msgstr ""
 
 #: includes/user-dashboard/class-ffc-capability-manager.php:721
-msgid "FFC Appointments Manager"
+msgid "FFC Appointments - Manager"
 msgstr ""
 
 #: includes/user-dashboard/class-ffc-capability-manager.php:717
-msgid "FFC Appointments Operator"
+msgid "FFC Appointments - Operator"
 msgstr ""
 
 #: includes/user-dashboard/class-ffc-capability-manager.php:713
-msgid "FFC Appointments Viewer"
+msgid "FFC Appointments - Viewer"
 msgstr ""
 
 #: includes/privacy/class-ffc-privacy-handler.php:133 includes/privacy/class-ffc-privacy-exporters.php:496
@@ -6946,23 +6946,23 @@ msgid "FFC Audience Groups"
 msgstr ""
 
 #: includes/user-dashboard/class-ffc-capability-manager.php:740
-msgid "FFC Audiences Manager"
+msgid "FFC Audiences - Manager"
 msgstr ""
 
 #: includes/user-dashboard/class-ffc-capability-manager.php:736
-msgid "FFC Audiences Operator"
+msgid "FFC Audiences - Operator"
 msgstr ""
 
 #: includes/user-dashboard/class-ffc-capability-manager.php:732
-msgid "FFC Audiences Viewer"
+msgid "FFC Audiences - Viewer"
 msgstr ""
 
 #: includes/user-dashboard/class-ffc-capability-manager.php:765
-msgid "FFC Calendars Manager"
+msgid "FFC Calendars - Manager"
 msgstr ""
 
 #: includes/user-dashboard/class-ffc-capability-manager.php:761
-msgid "FFC Calendars Viewer"
+msgid "FFC Calendars - Viewer"
 msgstr ""
 
 #: includes/privacy/class-ffc-privacy-handler.php:121 includes/privacy/class-ffc-privacy-exporters.php:211
@@ -6970,19 +6970,19 @@ msgid "FFC Certificates"
 msgstr ""
 
 #: includes/user-dashboard/class-ffc-capability-manager.php:707
-msgid "FFC Certificates Admin"
+msgid "FFC Certificates - Administrator"
 msgstr ""
 
 #: includes/user-dashboard/class-ffc-capability-manager.php:700
-msgid "FFC Certificates Manager"
+msgid "FFC Certificates - Manager"
 msgstr ""
 
 #: includes/user-dashboard/class-ffc-capability-manager.php:696
-msgid "FFC Certificates Operator"
+msgid "FFC Certificates - Operator"
 msgstr ""
 
 #: includes/user-dashboard/class-ffc-capability-manager.php:692
-msgid "FFC Certificates Viewer"
+msgid "FFC Certificates - Viewer"
 msgstr ""
 
 #: includes/admin/class-ffc-admin-user-custom-fields.php:115
@@ -6998,11 +6998,11 @@ msgid "FFC Form"
 msgstr ""
 
 #: includes/user-dashboard/class-ffc-capability-manager.php:775
-msgid "FFC Forms Manager"
+msgid "FFC Forms - Manager"
 msgstr ""
 
 #: includes/user-dashboard/class-ffc-capability-manager.php:771
-msgid "FFC Forms Viewer"
+msgid "FFC Forms - Viewer"
 msgstr ""
 
 #: includes/admin/class-ffc-admin-user-capabilities.php:137 includes/admin/class-ffc-admin-user-capabilities.php:153
@@ -7018,27 +7018,27 @@ msgid "FFC Read-Only (all modules)"
 msgstr ""
 
 #: includes/user-dashboard/class-ffc-capability-manager.php:792
-msgid "FFC Recruitment Admin"
+msgid "FFC Recruitment - Administrator"
 msgstr ""
 
 #: includes/user-dashboard/class-ffc-capability-manager.php:788
-msgid "FFC Recruitment Operator"
+msgid "FFC Recruitment - Operator"
 msgstr ""
 
 #: includes/user-dashboard/class-ffc-capability-manager.php:784
-msgid "FFC Recruitment Viewer"
+msgid "FFC Recruitment - Viewer"
 msgstr ""
 
 #: includes/user-dashboard/class-ffc-capability-manager.php:754
-msgid "FFC Reregistration Manager"
+msgid "FFC Reregistration - Manager"
 msgstr ""
 
 #: includes/user-dashboard/class-ffc-capability-manager.php:750
-msgid "FFC Reregistration Operator"
+msgid "FFC Reregistration - Operator"
 msgstr ""
 
 #: includes/user-dashboard/class-ffc-capability-manager.php:746
-msgid "FFC Reregistration Viewer"
+msgid "FFC Reregistration - Viewer"
 msgstr ""
 
 #: includes/admin/class-ffc-admin-user-capabilities.php:211
@@ -12447,7 +12447,7 @@ msgid "Recruitment capabilities (manage / import / call / delete)."
 msgstr ""
 
 #: includes/user-dashboard/class-ffc-role-registrar.php:157 includes/user-dashboard/class-ffc-role-registrar.php:304
-msgid "Recruitment Manager"
+msgid "FFC Recruitment - Manager"
 msgstr ""
 
 #. 1: notice code, 2: notice name, 3: notice status

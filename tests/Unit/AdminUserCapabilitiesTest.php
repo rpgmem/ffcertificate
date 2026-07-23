@@ -185,7 +185,7 @@ class AdminUserCapabilitiesTest extends TestCase {
             public function get_names() {
                 return array(
                     'ffc_end_user'            => 'FFC End User',
-                    'ffc_recruitment_manager' => 'Recruitment Manager',
+                    'ffc_recruitment_manager' => 'FFC Recruitment - Manager',
                     'administrator'           => 'Administrator',
                     'subscriber'              => 'Subscriber',
                 );

@@ -104,6 +104,19 @@ $ffcertificate_dashboard_url     = $ffcertificate_dashboard_page_id ? get_permal
 							}
 						}
 
+						// Present the FFC administrative ladder in the canonical
+						// order (cross-cutting roles first, then modules
+						// alphabetically, each viewer → administrator) rather than
+						// WordPress role-registration order. `$ffc_managed_slugs`
+						// already carries that order (see RoleRegistrar).
+						$ffc_group_admin_ordered = array();
+						foreach ( $ffc_managed_slugs as $ffc_slug ) {
+							if ( isset( $ffc_group_admin[ $ffc_slug ] ) ) {
+								$ffc_group_admin_ordered[ $ffc_slug ] = $ffc_group_admin[ $ffc_slug ];
+							}
+						}
+						$ffc_group_admin = $ffc_group_admin_ordered;
+
 						// Expand the admin disclosure when one of those roles is
 						// already blocked, so a checked box is never hidden.
 						$ffc_admin_has_blocked = (bool) array_intersect( array_keys( $ffc_group_admin ), $ffc_blocked );
