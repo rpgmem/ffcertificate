@@ -18,6 +18,8 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 /**
  * Audience Admin Import.
+ *
+ * @phpstan-import-type AudienceRow from AudienceReader
  */
 class AudienceAdminImport {
 
@@ -29,12 +31,22 @@ class AudienceAdminImport {
 	private string $menu_slug;
 
 	/**
+	 * CSV streaming orchestrator (injectable so tests can capture the export
+	 * output instead of writing to php://output and calling exit).
+	 *
+	 * @var \FreeFormCertificate\Core\CsvStreamer
+	 */
+	private \FreeFormCertificate\Core\CsvStreamer $streamer;
+
+	/**
 	 * Constructor
 	 *
-	 * @param string $menu_slug Menu slug prefix.
+	 * @param string                                     $menu_slug Menu slug prefix.
+	 * @param \FreeFormCertificate\Core\CsvStreamer|null $streamer  CSV streamer; defaults to the live HTTP download.
 	 */
-	public function __construct( string $menu_slug ) {
+	public function __construct( string $menu_slug, ?\FreeFormCertificate\Core\CsvStreamer $streamer = null ) {
 		$this->menu_slug = $menu_slug;
+		$this->streamer  = $streamer ?? new \FreeFormCertificate\Core\CsvStreamer( new \FreeFormCertificate\Core\HttpCsvDownload() );
 	}
 
 	/**
@@ -432,17 +444,21 @@ class AudienceAdminImport {
 		}
 
 		$filename = \FreeFormCertificate\Core\FilenameHelper::get_export_filename( 'members-export' );
-		header( 'Content-Type: text/csv; charset=utf-8' );
-		header( 'Content-Disposition: attachment; filename="' . $filename . '"' );
+		$this->streamer->stream(
+			$filename,
+			array( 'email', 'name', 'audience_name' ),
+			$this->members_rows( $audience_ids, $audience_map )
+		);
+	}
 
-        // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fopen -- streaming CSV download to php://output.
-		$output = fopen( 'php://output', 'w' );
-		if ( false === $output ) {
-			exit;
-		}
-		$writer = \FreeFormCertificate\Core\Csv::writer( $output );
-		$writer->row( array( 'email', 'name', 'audience_name' ) );
-
+	/**
+	 * Yield one CSV line per unique member+audience pair.
+	 *
+	 * @param array<int, int>    $audience_ids Audience ids to export.
+	 * @param array<int, string> $audience_map Audience id => name.
+	 * @return \Generator<int, array<int, string>>
+	 */
+	private function members_rows( array $audience_ids, array $audience_map ): \Generator {
 		$seen = array(); // Avoid duplicate rows for same user+audience.
 		foreach ( $audience_ids as $aid ) {
 			$member_ids    = AudienceReader::get_members( $aid );
@@ -460,20 +476,13 @@ class AudienceAdminImport {
 					continue;
 				}
 
-				$writer->row(
-					array(
-						$user->user_email,
-						$user->display_name,
-						$audience_name,
-					)
+				yield array(
+					$user->user_email,
+					$user->display_name,
+					$audience_name,
 				);
 			}
 		}
-
-		$writer->close();
-        // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose -- closing the php://output handle this method opened.
-		fclose( $output );
-		exit;
 	}
 
 	/**
@@ -482,46 +491,38 @@ class AudienceAdminImport {
 	 * @return void
 	 */
 	private function export_audiences_csv(): void {
-		$audiences = AudienceReader::get_hierarchical();
-
 		$filename = \FreeFormCertificate\Core\FilenameHelper::get_export_filename( 'audiences-export' );
-		header( 'Content-Type: text/csv; charset=utf-8' );
-		header( 'Content-Disposition: attachment; filename="' . $filename . '"' );
+		$this->streamer->stream(
+			$filename,
+			array( 'name', 'color', 'parent' ),
+			$this->audiences_rows( AudienceReader::get_hierarchical() )
+		);
+	}
 
-        // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fopen -- streaming CSV download to php://output.
-		$output = fopen( 'php://output', 'w' );
-		if ( false === $output ) {
-			exit;
-		}
-		$writer = \FreeFormCertificate\Core\Csv::writer( $output );
-		$writer->row( array( 'name', 'color', 'parent' ) );
-
-		// Parents first, then children (same order as import expects).
+	/**
+	 * Yield one CSV line per audience — parents first, then their children (the
+	 * same order the importer expects).
+	 *
+	 * @param array<int, AudienceRow> $audiences Hierarchical audience tree.
+	 * @return \Generator<int, array<int, string>>
+	 */
+	private function audiences_rows( array $audiences ): \Generator {
 		foreach ( $audiences as $audience ) {
-			$writer->row(
-				array(
-					$audience->name,
-					$audience->color ?? '#3788d8',
-					'', // Parents have no parent.
-				)
+			yield array(
+				$audience->name,
+				$audience->color ?? '#3788d8',
+				'', // Parents have no parent.
 			);
 
 			if ( ! empty( $audience->children ) ) {
 				foreach ( $audience->children as $child ) {
-					$writer->row(
-						array(
-							$child->name,
-							$child->color ?? '#3788d8',
-							$audience->name,
-						)
+					yield array(
+						$child->name,
+						$child->color ?? '#3788d8',
+						$audience->name,
 					);
 				}
 			}
 		}
-
-		$writer->close();
-        // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose -- closing the php://output handle this method opened.
-		fclose( $output );
-		exit;
 	}
 }
