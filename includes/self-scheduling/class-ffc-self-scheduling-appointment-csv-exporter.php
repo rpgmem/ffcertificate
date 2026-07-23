@@ -282,9 +282,14 @@ class AppointmentCsvExporter {
 
 		$filename = \FreeFormCertificate\Core\FilenameHelper::sanitize_filename( $calendar_title ) . '-appointments-' . gmdate( 'Y-m-d' ) . '.csv';
 
-		$header_row = array_merge(
-			$this->get_fixed_headers(),
-			$this->get_dynamic_headers( $dynamic_keys )
+		// array_values() reindexes to int keys so the merged header matches
+		// CsvStreamer::stream()'s array<int, string> contract (get_dynamic_headers
+		// is typed with string keys). Keys are irrelevant to the CSV output.
+		$header_row = array_values(
+			array_merge(
+				$this->get_fixed_headers(),
+				$this->get_dynamic_headers( $dynamic_keys )
+			)
 		);
 
 		$this->streamer->stream(
