@@ -314,14 +314,24 @@
             $submitBtn.prop('disabled', true).text(ffcCalendar.strings.loading);
 
             var formData = $form.serialize();
-            // The form carries `action` as a hidden field. Pull it out so
-            // we can pass it explicitly to FFC.request (the helper re-
-            // appends it to the payload).
+            // The form carries `action` and `nonce` as hidden fields. Pull
+            // `action` out to pass explicitly to FFC.request (the helper
+            // re-appends it), and drop the form's baked-in `nonce` too:
+            // FFC.request unconditionally appends `&nonce=<resolved>` to a
+            // string payload, and with no explicit nonce that resolved value
+            // is the frontend nonce (or empty). As the LAST `nonce=` param it
+            // overrode the self-scheduling nonce the form field carried, so
+            // check_ajax_referer() rejected every booking with a 403. Pass the
+            // live `ffcCalendar.nonce` instead (refreshed by
+            // ffc-dynamic-fragments on cached pages), matching the slot/month
+            // read calls.
             var actionMatch = formData.match(/(?:^|&)action=([^&]*)/);
             var action = actionMatch ? decodeURIComponent(actionMatch[1]) : '';
-            formData = formData.replace(/(^|&)action=[^&]*/, '');
+            formData = formData
+                .replace(/(^|&)action=[^&]*/, '')
+                .replace(/(^|&)nonce=[^&]*/, '');
 
-            FFC.request(action, formData, { ajaxUrl: ffcCalendar.ajaxurl, timeout: 30000 })
+            FFC.request(action, formData, { nonce: ffcCalendar.nonce, ajaxUrl: ffcCalendar.ajaxurl, timeout: 30000 })
                 .then(function (data) {
                     $submitBtn.data('submitting', false);
                     self.showConfirmation(data);

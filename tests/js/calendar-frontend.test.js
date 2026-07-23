@@ -335,3 +335,49 @@ describe('ffc-calendar-frontend.js — validateForm', () => {
 		expect(ok).toBe(true);
 	});
 });
+
+describe('ffc-calendar-frontend.js — submitBooking nonce plumbing', () => {
+	beforeEach(() => {
+		reset();
+		installGlobals();
+		document.body.innerHTML = `
+			<form id="ffc-self-scheduling-form">
+				<input type="hidden" name="nonce" value="STALE-form-nonce" />
+				<input type="hidden" name="action" value="ffc_book_appointment" />
+				<input type="hidden" name="date" value="2026-05-20" />
+				<input type="hidden" name="time" value="09:00" />
+				<input type="checkbox" id="ffc-booking-consent" checked />
+			</form>
+			<div class="ffc-form-messages"></div>
+			<div id="ffc-self-scheduling-modal"><div class="ffc-modal-content"></div></div>
+		`;
+		loadScript('assets/js/ffc-calendar-frontend.js');
+	});
+
+	// Regression: booking submitted the serialized form (which carries its own
+	// `nonce` field) with no explicit nonce, so FFC.request appended the
+	// frontend/empty fallback as the LAST `nonce=` param and check_ajax_referer
+	// rejected every booking with a 403. The fix passes ffcCalendar.nonce and
+	// strips the form-baked nonce/action from the payload.
+	it('sends the self-scheduling nonce and strips the form-baked nonce/action', () => {
+		// Never resolves — we only assert on the outgoing request.
+		window.FFC.request.mockReturnValue(new Promise(() => {}));
+
+		window.ffcCalendarFrontend.submitBooking(window.$('#ffc-self-scheduling-form'));
+
+		expect(window.FFC.request).toHaveBeenCalledTimes(1);
+		const [action, payload, options] = window.FFC.request.mock.calls[0];
+
+		expect(action).toBe('ffc_book_appointment');
+		expect(options).toEqual(
+			expect.objectContaining({
+				nonce: 'test-nonce',
+				ajaxUrl: '/wp-admin/admin-ajax.php',
+			})
+		);
+		expect(typeof payload).toBe('string');
+		expect(payload).not.toMatch(/(^|&)nonce=/);
+		expect(payload).not.toMatch(/(^|&)action=/);
+		expect(payload).toContain('date=2026-05-20');
+	});
+});
