@@ -9,9 +9,10 @@
  * read-only without granting bulk extraction.
  *
  * Memory-safe: rows are fetched in fixed-size pages via
- * `AudienceBookingReader::get_all()` (LIMIT/OFFSET) and streamed straight to
- * `php://output`, so peak memory is bounded by the batch size rather than the
- * total booking count.
+ * `AudienceBookingReader::get_all()` (LIMIT/OFFSET) and streamed through the
+ * injectable {@see \FreeFormCertificate\Core\CsvStreamer}, so peak memory is
+ * bounded by the batch size rather than the total booking count (and the
+ * streaming path is unit-testable via a buffered download double).
  *
  * The bookings tables store no direct PII — only foreign keys to WP users
  * (`created_by`, `cancelled_by`, participants) and to audiences — so this
@@ -27,7 +28,8 @@ declare(strict_types=1);
 namespace FreeFormCertificate\Audience;
 
 use FreeFormCertificate\Core\Capabilities;
-use FreeFormCertificate\Core\Csv;
+use FreeFormCertificate\Core\CsvStreamer;
+use FreeFormCertificate\Core\HttpCsvDownload;
 use FreeFormCertificate\Core\RequestInput;
 
 if ( ! defined( 'ABSPATH' ) ) {
@@ -52,9 +54,20 @@ class AudienceBookingCsvExporter {
 	private array $user_names = array();
 
 	/**
-	 * Constructor. Registers the export action.
+	 * CSV streaming orchestrator (injectable so tests can capture the output
+	 * instead of writing to php://output and calling exit).
+	 *
+	 * @var CsvStreamer
 	 */
-	public function __construct() {
+	private CsvStreamer $streamer;
+
+	/**
+	 * Constructor. Registers the export action.
+	 *
+	 * @param CsvStreamer|null $streamer CSV streamer; defaults to the live HTTP download.
+	 */
+	public function __construct( ?CsvStreamer $streamer = null ) {
+		$this->streamer = $streamer ?? new CsvStreamer( new HttpCsvDownload() );
 		add_action( 'admin_post_ffc_export_audience_bookings_csv', array( $this, 'handle_export_request' ) );
 	}
 
@@ -207,28 +220,31 @@ class AudienceBookingCsvExporter {
 	}
 
 	/**
-	 * Stream the bookings to a CSV download, fetched in pages.
+	 * Stream the bookings to a CSV download.
+	 *
+	 * The heavy lifting (headers, output stream, termination) lives in the
+	 * injected {@see CsvStreamer}; here we only supply the filename, the header
+	 * row and a generator that pages the rows.
 	 *
 	 * @param array<string, mixed> $args Reader filter args (without limit/offset).
 	 * @return void
 	 */
 	private function export_csv( array $args ): void {
-		$filename      = 'audience-bookings-' . gmdate( 'Y-m-d' ) . '.csv';
-		$safe_filename = str_replace( array( "\r", "\n", '"' ), '', $filename );
-		header( 'Content-Type: text/csv; charset=utf-8' );
-		header( 'Content-Disposition: attachment; filename="' . $safe_filename . '"' );
-		header( 'Pragma: no-cache' );
-		header( 'Expires: 0' );
+		$this->streamer->stream(
+			'audience-bookings-' . gmdate( 'Y-m-d' ) . '.csv',
+			$this->get_headers(),
+			$this->stream_rows( $args )
+		);
+	}
 
-		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fopen -- streaming CSV download to php://output.
-		$output = fopen( 'php://output', 'w' );
-		if ( false === $output ) {
-			exit;
-		}
-
-		$writer = Csv::writer( $output );
-		$writer->row( $this->get_headers() );
-
+	/**
+	 * Yield each booking row as a formatted CSV line, paging the reader so peak
+	 * memory stays bounded by one batch regardless of the booking count.
+	 *
+	 * @param array<string, mixed> $args Reader filter args (without limit/offset).
+	 * @return \Generator<int, array<int, string>>
+	 */
+	private function stream_rows( array $args ): \Generator {
 		$offset = 0;
 		do {
 			$batch = AudienceBookingReader::get_all(
@@ -241,15 +257,10 @@ class AudienceBookingCsvExporter {
 				)
 			);
 			foreach ( $batch as $row ) {
-				$writer->row( $this->format_row( (array) $row ) );
+				yield $this->format_row( (array) $row );
 			}
 			$offset += self::BATCH_SIZE;
 			$fetched = count( $batch );
 		} while ( self::BATCH_SIZE === $fetched );
-
-		$writer->close();
-		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose -- closing the php://output handle this method opened.
-		fclose( $output );
-		exit;
 	}
 }

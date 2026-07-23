@@ -9,12 +9,15 @@ use Mockery;
 use Mockery\Adapter\Phpunit\MockeryPHPUnitIntegration;
 use PHPUnit\Framework\TestCase;
 use FreeFormCertificate\Audience\AudienceBookingCsvExporter;
+use FreeFormCertificate\Core\CsvStreamer;
+use FreeFormCertificate\Core\CsvDownloadInterface;
 
 /**
- * Tests for AudienceBookingCsvExporter: header shape and per-row formatting
+ * Tests for AudienceBookingCsvExporter: header shape, per-row formatting
  * (type/status/all-day labels, audience-name join, participant count, user-name
- * resolution). The static reader helpers are alias-mocked, so this test runs in
- * a separate process.
+ * resolution) and the paged streaming path (captured through a buffered download
+ * double). The static reader helpers are alias-mocked, so this test runs in a
+ * separate process.
  *
  * @covers \FreeFormCertificate\Audience\AudienceBookingCsvExporter
  * @runTestsInSeparateProcesses
@@ -130,5 +133,71 @@ class AudienceBookingCsvExporterTest extends TestCase {
 		$this->assertSame( '', $line[14] );           // cancelled_by 0
 		$this->assertSame( '', $line[15] );           // cancelled_at null
 		$this->assertSame( '', $line[16] );           // reason null
+	}
+
+	/**
+	 * A CsvDownloadInterface that captures the export bytes instead of writing
+	 * to php://output / calling exit.
+	 */
+	private function buffered_download(): CsvDownloadInterface {
+		return new class() implements CsvDownloadInterface {
+			public bool $finished = false;
+			public string $output = '';
+			/** @var resource|null */
+			private $stream = null;
+
+			public function send_headers( string $filename ): void {
+				unset( $filename );
+			}
+
+			public function open_stream() {
+				if ( ! is_resource( $this->stream ) ) {
+					$this->stream = fopen( 'php://memory', 'w+' );
+				}
+				return $this->stream;
+			}
+
+			public function finish(): void {
+				$this->finished = true;
+				if ( is_resource( $this->stream ) ) {
+					rewind( $this->stream );
+					$this->output = (string) stream_get_contents( $this->stream );
+				}
+			}
+		};
+	}
+
+	/**
+	 * The formerly-untestable path: export_csv() pages the reader and streams
+	 * header + every row. With the injected CsvStreamer we capture the output and
+	 * assert both the header and rows from *both* pages are present.
+	 */
+	public function test_export_csv_streams_header_and_pages_all_rows(): void {
+		Functions\when( 'get_userdata' )->justReturn( false );
+
+		$download = $this->buffered_download();
+
+		$row   = $this->base_row();
+		$page1 = array_fill( 0, 500, (object) $row );
+		$page2 = array( (object) ( array( 'id' => 8, 'environment_name' => 'Sala Z' ) + $row ) );
+
+		Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceBookingReader' )
+			->shouldReceive( 'get_all' )
+				->with( Mockery::on( fn( $a ) => 0 === $a['offset'] ) )->andReturn( $page1 )
+			->shouldReceive( 'get_all' )
+				->with( Mockery::on( fn( $a ) => 500 === $a['offset'] ) )->andReturn( $page2 )
+			->shouldReceive( 'get_booking_audiences' )->andReturn( array() )
+			->shouldReceive( 'get_booking_users' )->andReturn( array() );
+
+		$exporter = new AudienceBookingCsvExporter( new CsvStreamer( $download ) );
+
+		$ref = new \ReflectionMethod( AudienceBookingCsvExporter::class, 'export_csv' );
+		$ref->setAccessible( true );
+		$ref->invokeArgs( $exporter, array( array( 'orderby' => 'booking_date', 'order' => 'DESC' ) ) );
+
+		$this->assertTrue( $download->finished, 'stream finished' );
+		$this->assertStringContainsString( 'Environment', $download->output, 'header row present' );
+		$this->assertStringContainsString( 'Sala A', $download->output, 'page-1 rows present' );
+		$this->assertStringContainsString( 'Sala Z', $download->output, 'page-2 row present (paging worked)' );
 	}
 }

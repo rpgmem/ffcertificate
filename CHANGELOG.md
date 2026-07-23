@@ -8,6 +8,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 ## [Unreleased]
 
 ### Changed
+- Internal (#764) — migrated the **Audience Bookings** CSV exporter to the injectable `Core\CsvStreamer`: the paged streaming loop is now a generator handed to the streamer, and its formerly-untestable export path (`export_csv`) is unit-tested by capturing the bytes through a buffered download double (both pages of a two-page stream asserted). Behaviour-preserving — same columns, filters and paging; the hand-rolled `header()`/`fopen('php://output')`/`exit` block is gone. Second exporter onto the shared pipeline after the URL-shortener pilot.
 - Appointment CSV export now streams in fixed-size pages instead of loading the entire result set into memory (#757). The exporter previously ran `SELECT * … get_results()` and held every matching appointment at once, so a large date range / all-calendars export could exhaust PHP's memory. It now pages the query (LIMIT/OFFSET) and writes each batch straight to the output stream, with a first pass over just the `custom_data` JSON columns to build the dynamic-column header — peak memory is bounded by one batch regardless of how many appointments match. The ordering gained an `id` tiebreaker so paging stays stable when many rows share an `appointment_date` + `start_time`. Behaviour-preserving: same columns, same order, same filters.
 
 ### Added
