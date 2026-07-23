@@ -7,6 +7,9 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Changed
+- Appointment CSV export now streams in fixed-size pages instead of loading the entire result set into memory (#757). The exporter previously ran `SELECT * … get_results()` and held every matching appointment at once, so a large date range / all-calendars export could exhaust PHP's memory. It now pages the query (LIMIT/OFFSET) and writes each batch straight to the output stream, with a first pass over just the `custom_data` JSON columns to build the dynamic-column header — peak memory is bounded by one batch regardless of how many appointments match. The ordering gained an `id` tiebreaker so paging stays stable when many rows share an `appointment_date` + `start_time`. Behaviour-preserving: same columns, same order, same filters.
+
 ### Added
 - CSV export for the **Audience Bookings** page (`ffc-scheduling-bookings`) (#760): a new `AudienceBookingCsvExporter` + an "Export CSV" button, gated by the existing `ffc_export_audiences` cap and carrying the page's schedule/environment/status/date filters. Streams memory-safely by paging `AudienceBookingReader::get_all()` (LIMIT/OFFSET). Columns cover the booking, its environment/schedule, audiences (names), participant count, and creator/canceller display names; the bookings tables hold no direct PII, only FK ids.
 - CSV export for the **URL Shortener** page (`ffc-short-urls`) (#761): a new `UrlShortenerCsvExporter` + an "Export CSV" button carrying the current search/status/sort, streaming via paged `UrlShortenerReader::findPaginated()`. Introduces a dedicated **`ffc_export_url_shortener`** capability (the domain previously had only view/manage/delete) — a one-shot, option-flagged migration (`ffc_url_shortener_export_cap_v1`) seeds it onto every current `ffc_manage_url_shortener` holder, so no one loses export ability on upgrade (mirrors the activity-log export split).
