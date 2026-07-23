@@ -115,7 +115,7 @@ $ffcertificate_dashboard_url     = $ffcertificate_dashboard_page_id ? get_permal
 										name="blocked_roles[]"
 										value="<?php echo esc_attr( (string) $slug ); ?>"
 										<?php checked( in_array( $slug, $ffc_blocked, true ) ); ?>>
-								<span><?php echo esc_html( (string) $name ); ?></span>
+								<span><?php echo esc_html( translate_user_role( (string) $name ) ); ?></span>
 								<?php if ( 'ffc_end_user' === $slug ) : ?>
 									<em>(<?php esc_html_e( 'recommended', 'ffcertificate' ); ?>)</em>
 								<?php endif; ?>
