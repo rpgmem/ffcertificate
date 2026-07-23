@@ -107,6 +107,7 @@ class LoaderMigrationsTest extends TestCase {
             'reasons caps' => array( 'ensure_reasons_caps_wired', 'ffc_reasons_caps_wired_v1', 'migrate_reasons_caps_grant' ),
             'settings'     => array( 'ensure_settings_split_caps_granted', 'ffc_settings_split_caps_v1', 'migrate_settings_split_caps_grant' ),
             'activity log' => array( 'ensure_activity_log_export_cap_granted', 'ffc_activity_log_export_cap_v1', 'migrate_activity_log_export_cap_grant' ),
+            'url shortener export' => array( 'ensure_url_shortener_export_cap_granted', 'ffc_url_shortener_export_cap_v1', 'migrate_url_shortener_export_cap_grant' ),
         );
     }
 

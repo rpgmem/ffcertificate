@@ -122,6 +122,12 @@ class AudienceLoader {
 			$this->admin_page->init();
 		}
 
+		// Bookings CSV exporter — registers its own `admin_post` handler; the
+		// hook keeps the instance alive for the request.
+		if ( class_exists( '\FreeFormCertificate\Audience\AudienceBookingCsvExporter' ) ) {
+			new AudienceBookingCsvExporter();
+		}
+
 		// Load admin assets.
 		add_action( 'admin_enqueue_scripts', array( $this, 'enqueue_admin_assets' ) );
 	}

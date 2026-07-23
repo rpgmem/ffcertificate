@@ -38,6 +38,17 @@ if ( ! defined( 'ABSPATH' ) ) {
 					<?php esc_html_e( 'Settings', 'ffcertificate' ); ?>
 				</a>
 			<?php endif; ?>
+			<?php if ( \FreeFormCertificate\Core\Capabilities::current_user_can_admin_or( 'ffc_export_url_shortener' ) ) : ?>
+				<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" class="ffc-shorturl-export" style="display:inline;">
+					<?php wp_nonce_field( 'ffc_export_short_urls_nonce', 'ffc_export_short_urls_action' ); ?>
+					<input type="hidden" name="action" value="ffc_export_short_urls_csv" />
+					<input type="hidden" name="s" value="<?php echo esc_attr( $search ); ?>" />
+					<input type="hidden" name="status" value="<?php echo esc_attr( $status ); ?>" />
+					<input type="hidden" name="orderby" value="<?php echo esc_attr( $orderby ); ?>" />
+					<input type="hidden" name="order" value="<?php echo esc_attr( $order ); ?>" />
+					<button type="submit" class="page-title-action"><?php esc_html_e( 'Export CSV', 'ffcertificate' ); ?></button>
+				</form>
+			<?php endif; ?>
 			<hr class="wp-header-end">
 
 			<?php if ( 'trashed' === $msg ) : ?>

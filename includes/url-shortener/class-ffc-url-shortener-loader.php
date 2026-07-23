@@ -76,6 +76,10 @@ class UrlShortenerLoader {
 
 			$meta_box = new UrlShortenerMetaBox( $this->service );
 			$meta_box->init();
+
+			// CSV exporter — registers its own `admin_post` handler; the
+			// hook keeps the instance alive for the request.
+			new UrlShortenerCsvExporter( $this->service );
 		}
 
 		// AJAX handlers (needed for both admin and front-end contexts).

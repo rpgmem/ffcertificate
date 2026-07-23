@@ -255,6 +255,7 @@ class Loader {
 		$this->ensure_reasons_caps_wired();
 		$this->ensure_settings_split_caps_granted();
 		$this->ensure_activity_log_export_cap_granted();
+		$this->ensure_url_shortener_export_cap_granted();
 		$this->ensure_rbac_caps_renamed();
 		$this->ensure_rbac_roles_renamed();
 		$this->ensure_false_ffc_caps_stripped();
@@ -425,6 +426,25 @@ class Loader {
 		}
 		if ( class_exists( '\FreeFormCertificate\UserDashboard\CapabilityManager' ) ) {
 			\FreeFormCertificate\UserDashboard\CapabilityMigrator::migrate_activity_log_export_cap_grant();
+		}
+		update_option( $flag, '1', true );
+	}
+
+	/**
+	 * One-time migration that seeds the dedicated `ffc_export_url_shortener` cap
+	 * onto every user/role already holding `ffc_manage_url_shortener`, preserving
+	 * their bulk short-URL export ability when export is split out of `manage`.
+	 * Idempotent + version-flagged via `ffc_url_shortener_export_cap_v1`.
+	 *
+	 * @since 6.16.0
+	 */
+	private function ensure_url_shortener_export_cap_granted(): void {
+		$flag = 'ffc_url_shortener_export_cap_v1';
+		if ( '1' === get_option( $flag, '' ) ) {
+			return;
+		}
+		if ( class_exists( '\FreeFormCertificate\UserDashboard\CapabilityManager' ) ) {
+			\FreeFormCertificate\UserDashboard\CapabilityMigrator::migrate_url_shortener_export_cap_grant();
 		}
 		update_option( $flag, '1', true );
 	}
