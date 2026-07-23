@@ -503,7 +503,7 @@ class AudienceAdminImport {
 	 * Yield one CSV line per audience — parents first, then their children (the
 	 * same order the importer expects).
 	 *
-	 * @param list<AudienceRow> $audiences Hierarchical audience tree.
+	 * @param array<int, AudienceRow> $audiences Hierarchical audience tree.
 	 * @return \Generator<int, array<int, string>>
 	 */
 	private function audiences_rows( array $audiences ): \Generator {
