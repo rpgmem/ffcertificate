@@ -9,13 +9,17 @@ use Mockery;
 use Mockery\Adapter\Phpunit\MockeryPHPUnitIntegration;
 use PHPUnit\Framework\TestCase;
 use FreeFormCertificate\Recruitment\RecruitmentNoticeEditPage;
+use FreeFormCertificate\Core\CsvStreamer;
+use FreeFormCertificate\Core\CsvDownloadInterface;
 
 /**
- * Behavior tests for RecruitmentNoticeEditPage::handle_save() and
- * handle_transition() — the admin-post handlers. The terminal
- * wp_safe_redirect()/exit is replaced by a marker exception so the flash
- * key (and the repository / state-machine call) is observable without
- * killing the process. wp_die is likewise short-circuited.
+ * Behavior tests for RecruitmentNoticeEditPage::handle_save(),
+ * handle_transition() and handle_download_csv_example() — the admin-post
+ * handlers. The terminal wp_safe_redirect()/exit is replaced by a marker
+ * exception so the flash key (and the repository / state-machine call) is
+ * observable without killing the process; the CSV-example download injects a
+ * buffered CsvStreamer so its output is captured instead of hitting exit.
+ * wp_die is likewise short-circuited.
  *
  * @covers \FreeFormCertificate\Recruitment\RecruitmentNoticeEditPage
  * @runTestsInSeparateProcesses
@@ -225,5 +229,67 @@ class RecruitmentNoticeEditPageHandlersTest extends TestCase {
 		$this->capture( array( RecruitmentNoticeEditPage::class, 'handle_transition' ) );
 
 		$this->assertSame( 'Concluded', $seen_reason );
+	}
+
+	// ==================================================================
+	// handle_download_csv_example()
+	// ==================================================================
+
+	public function test_handle_download_csv_example_dies_without_cap(): void {
+		Functions\when( 'current_user_can' )->justReturn( false );
+
+		$msg = $this->capture( array( RecruitmentNoticeEditPage::class, 'handle_download_csv_example' ) );
+
+		$this->assertStringStartsWith( 'WP_DIE:', $msg );
+	}
+
+	/**
+	 * The formerly-untestable template download: with an injected CsvStreamer we
+	 * capture the bytes and assert the header line + both example rows are present
+	 * (the ';' delimiter that survives the BR/EU spreadsheet round-trip included).
+	 */
+	public function test_handle_download_csv_example_streams_header_and_example_rows(): void {
+		Functions\when( 'nocache_headers' )->justReturn( true );
+
+		$download = $this->buffered_download();
+
+		RecruitmentNoticeEditPage::handle_download_csv_example( new CsvStreamer( $download ) );
+
+		$this->assertTrue( $download->finished, 'stream finished' );
+		$this->assertStringContainsString( 'name;cpf;rf', $download->output, 'header line present' );
+		$this->assertStringContainsString( 'Maria da Silva', $download->output, 'PCD example row present' );
+		$this->assertStringContainsString( 'João Souza', $download->output, 'non-PCD example row present' );
+	}
+
+	/**
+	 * A CsvDownloadInterface that captures the export bytes instead of writing
+	 * to php://output / calling exit.
+	 */
+	private function buffered_download(): CsvDownloadInterface {
+		return new class() implements CsvDownloadInterface {
+			public bool $finished = false;
+			public string $output = '';
+			/** @var resource|null */
+			private $stream = null;
+
+			public function send_headers( string $filename ): void {
+				unset( $filename );
+			}
+
+			public function open_stream() {
+				if ( ! is_resource( $this->stream ) ) {
+					$this->stream = fopen( 'php://memory', 'w+' );
+				}
+				return $this->stream;
+			}
+
+			public function finish(): void {
+				$this->finished = true;
+				if ( is_resource( $this->stream ) ) {
+					rewind( $this->stream );
+					$this->output = (string) stream_get_contents( $this->stream );
+				}
+			}
+		};
 	}
 }
