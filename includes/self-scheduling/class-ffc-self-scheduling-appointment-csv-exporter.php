@@ -29,6 +29,11 @@ class AppointmentCsvExporter {
 	use \FreeFormCertificate\Core\CsvExportTrait;
 
 	/**
+	 * Rows fetched per page while streaming the export (issue #757).
+	 */
+	private const BATCH_SIZE = 500;
+
+	/**
 	 * Appointment repository.
 	 *
 	 * @var AppointmentRepository
@@ -239,12 +244,18 @@ class AppointmentCsvExporter {
 			)
 		);
 
-		// Get appointments based on filters.
-		$rows = $this->get_appointments_for_export( $calendar_ids, $statuses, $start_date, $end_date );
+		[ $where_sql, $where_values ] = $this->build_export_where( $calendar_ids, $statuses, $start_date, $end_date );
 
-		if ( empty( $rows ) ) {
+		// Peek the first page; an empty first page means nothing to export.
+		$first_page = $this->fetch_export_page( '*', $where_sql, $where_values, self::BATCH_SIZE, 0 );
+		if ( empty( $first_page ) ) {
 			wp_die( esc_html__( 'No appointments available for export.', 'ffcertificate' ) );
 		}
+
+		// The header needs the union of every row's custom_data keys, so pass
+		// over the whole result set first — paged, selecting only the JSON
+		// columns — instead of holding all rows in memory at once (issue #757).
+		$dynamic_keys = $this->collect_dynamic_keys( $where_sql, $where_values );
 
 		// Generate filename.
 		if ( $calendar_ids && count( $calendar_ids ) === 1 ) {
@@ -270,18 +281,29 @@ class AppointmentCsvExporter {
 			exit;
 		}
 
-		// Build headers.
-		$dynamic_keys = $this->get_dynamic_columns( $rows );
-		$headers      = array_merge(
-			$this->get_fixed_headers(),
-			$this->get_dynamic_headers( $dynamic_keys )
+		$writer = \FreeFormCertificate\Core\Csv::writer( $output );
+		$writer->row(
+			array_merge(
+				$this->get_fixed_headers(),
+				$this->get_dynamic_headers( $dynamic_keys )
+			)
 		);
 
-		$writer = \FreeFormCertificate\Core\Csv::writer( $output );
-		$writer->row( $headers );
-		foreach ( $rows as $row ) {
-			$writer->row( $this->format_csv_row( $row, $dynamic_keys ) );
-		}
+		// Second pass: stream each page of full rows, reusing the first page
+		// already fetched for the empty-check above.
+		$page   = $first_page;
+		$offset = 0;
+		do {
+			foreach ( $page as $row ) {
+				$writer->row( $this->format_csv_row( $row, $dynamic_keys ) );
+			}
+			$fetched = count( $page );
+			$offset += self::BATCH_SIZE;
+			$page    = self::BATCH_SIZE === $fetched
+				? $this->fetch_export_page( '*', $where_sql, $where_values, self::BATCH_SIZE, $offset )
+				: array();
+		} while ( ! empty( $page ) );
+
 		$writer->close();
 		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose -- closing the php://output handle this method opened.
 		fclose( $output );
@@ -289,18 +311,15 @@ class AppointmentCsvExporter {
 	}
 
 	/**
-	 * Get appointments for export with filters
+	 * Build the shared WHERE clause + bind values for the export query.
 	 *
-	 * @param mixed              $calendar_ids Calendar ids.
-	 * @param array<int, string> $statuses Statuses.
-	 * @param string|null        $start_date Start date.
-	 * @param string|null        $end_date End date.
-	 * @return array<int, array<string, mixed>>
+	 * @param array<int, int>|null $calendar_ids Calendar id(s), or null for all.
+	 * @param array<int, string>   $statuses     Status filter.
+	 * @param string|null          $start_date   Start date (Y-m-d).
+	 * @param string|null          $end_date     End date (Y-m-d).
+	 * @return array{0: string, 1: array<int, mixed>} [ where_sql, bind_values ].
 	 */
-	private function get_appointments_for_export( $calendar_ids, array $statuses, ?string $start_date, ?string $end_date ): array {
-		global $wpdb;
-		$table = $wpdb->prefix . 'ffc_self_scheduling_appointments';
-
+	private function build_export_where( $calendar_ids, array $statuses, ?string $start_date, ?string $end_date ): array {
 		$where_clauses = array();
 		$where_values  = array();
 
@@ -333,16 +352,56 @@ class AppointmentCsvExporter {
 
 		$where_sql = ! empty( $where_clauses ) ? 'WHERE ' . implode( ' AND ', $where_clauses ) : '';
 
-		$sql = "SELECT * FROM %i {$where_sql} ORDER BY appointment_date DESC, start_time DESC";
+		return array( $where_sql, $where_values );
+	}
 
-		if ( ! empty( $where_values ) ) {
-			$sql = $wpdb->prepare( $sql, array_merge( array( $table ), $where_values ) ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- $sql is a query template with placeholders built above.
-		} else {
-			$sql = $wpdb->prepare( $sql, $table ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- $sql is a query template with placeholders built above.
-		}
+	/**
+	 * Fetch one ordered page of the export result set.
+	 *
+	 * The ORDER BY carries an `id` tiebreaker so LIMIT/OFFSET paging stays stable
+	 * across pages even when many rows share an appointment_date + start_time.
+	 *
+	 * @param string            $select       Column list ('*' or a fixed literal — never request data).
+	 * @param string            $where_sql    WHERE clause from {@see self::build_export_where()}.
+	 * @param array<int, mixed> $where_values Bind values for the WHERE placeholders.
+	 * @param int               $limit        Page size.
+	 * @param int               $offset       Page offset.
+	 * @return array<int, array<string, mixed>>
+	 */
+	private function fetch_export_page( string $select, string $where_sql, array $where_values, int $limit, int $offset ): array {
+		global $wpdb;
+		$table = $wpdb->prefix . 'ffc_self_scheduling_appointments';
 
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared -- $where_sql is built from validated placeholders above; $sql is pre-prepared.
+		// $select is a controlled literal supplied by this class, never request data.
+		$sql  = "SELECT {$select} FROM %i {$where_sql} ORDER BY appointment_date DESC, start_time DESC, id DESC LIMIT %d OFFSET %d";
+		$args = array_merge( array( $table ), $where_values, array( $limit, $offset ) );
+
+		$sql = $wpdb->prepare( $sql, $args ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- $sql is a query template with placeholders bound above.
+
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared -- $select is a fixed literal; $where_sql is built from validated placeholders; $sql is pre-prepared.
 		return $wpdb->get_results( $sql, ARRAY_A );
+	}
+
+	/**
+	 * Union of every row's custom_data keys across the whole result set, read in
+	 * pages (selecting only the JSON columns) so the header can be built without
+	 * holding the full result set in memory (issue #757).
+	 *
+	 * @param string            $where_sql    WHERE clause.
+	 * @param array<int, mixed> $where_values Bind values.
+	 * @return array<int, string>
+	 */
+	private function collect_dynamic_keys( string $where_sql, array $where_values ): array {
+		$keys   = array();
+		$offset = 0;
+		do {
+			$page    = $this->fetch_export_page( 'custom_data, custom_data_encrypted', $where_sql, $where_values, self::BATCH_SIZE, $offset );
+			$keys    = array_merge( $keys, $this->get_dynamic_columns( $page ) );
+			$fetched = count( $page );
+			$offset += self::BATCH_SIZE;
+		} while ( self::BATCH_SIZE === $fetched );
+
+		return array_values( array_unique( $keys ) );
 	}
 
 	/**
