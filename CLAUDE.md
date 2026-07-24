@@ -194,6 +194,7 @@ The "Verify minified assets are up to date" CI job catches build freshness on bo
 - **Always cite the issue/PR** (`(#NNN)` / `#NNN`). Every `[Unreleased]` bullet must carry a reference — the linked PR holds the granular detail.
 - **No internal roadmap codenames** in the prose — no "Sprint N", "phase N", or letter-codes (`A6`, `B3`, `E5`, …). Describe the change itself and keep entries concise (one tight paragraph, not a wall of class-by-class text).
 - Ordinary words that happen to look like codes — "A4" (paper size), "four-phase flow" (literal steps) — are fine; the rule targets roadmap taxonomy only.
+- **Aim for ≤300 characters per bullet.** A *soft* target, not a CI gate — a bullet may exceed it when the detail genuinely earns the length (a breaking-change banner, a subtle regression), but prefer trimming first: the linked PR holds the granular detail, so the CHANGELOG line only needs the *what* + the reference. When a batch accumulates several long or near-duplicate bullets, condense before the release PR (the precedent that set this: the #772-era `[Unreleased]` condensation).
 
 ### What not to do
 
