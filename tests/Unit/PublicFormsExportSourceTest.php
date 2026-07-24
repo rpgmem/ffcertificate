@@ -400,8 +400,9 @@ class PublicFormsExportSourceTest extends TestCase {
 
 		$this->assertSame( 'ID', $header[0] );
 		$this->assertSame( 'Form', $header[1] );
-		// build_dynamic_headers (from CsvExportTrait) title-cases the snake key.
-		$this->assertSame( 'City', $header[2] );
+		// build_dynamic_headers (from CsvExportTrait) title-cases the snake key
+		// verbatim (no prefix stripping): 'field_city' → 'Field City'.
+		$this->assertSame( 'Field City', $header[2] );
 	}
 
 	public function test_filename_uses_form_title_and_filters(): void {
