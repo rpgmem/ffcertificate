@@ -831,9 +831,10 @@ describe('audience-admin — bookings CSV export', () => {
 			date_from: '2026-05-01',
 			date_to: '2026-05-31',
 		});
-		expect(typeof arg.callbacks.onProgress).toBe('function');
-		expect(typeof arg.callbacks.onComplete).toBe('function');
-		expect(typeof arg.callbacks.onError).toBe('function');
+		// Progress is now driven by the shared overlay (#786): the caller passes
+		// overlay:true + the button, not per-call callbacks.
+		expect(arg.overlay).toBe(true);
+		expect(arg.button).toBeTruthy();
 	});
 
 	it('is a no-op when the batched-export driver is unavailable', async () => {

@@ -58,59 +58,34 @@
 		safetyTimer: null,
 
 		// ── Overlay helpers ─────────────────────────────────────────
+		// The overlay implementation lives once in window.FFCProgressOverlay
+		// (ffc-batched-export.js), shared with the admin exports (#786) so both
+		// surfaces render the identical modal. These thin delegators keep the
+		// public flow's api.* method names and the api.$overlay handle that the
+		// download flow reads directly.
 
 		showOverlay: function (text) {
-			if (api.$overlay) {
-				api.$overlay.remove();
-			}
-
-			api.$overlay = $(
-				'<div class="ffc-csv-progress-overlay" role="alertdialog" aria-live="assertive">' +
-					'<div class="ffc-csv-progress-card">' +
-						'<div class="ffc-csv-progress-status">' + esc(text) + '</div>' +
-						'<div class="ffc-csv-progress-bar-container">' +
-							'<div class="ffc-csv-progress-bar-fill" style="width:0%"></div>' +
-						'</div>' +
-						'<div class="ffc-csv-progress-percent">0 %</div>' +
-					'</div>' +
-				'</div>'
-			).appendTo('body');
+			if (!window.FFCProgressOverlay) { return; }
+			api.$overlay = window.FFCProgressOverlay.show(text);
 		},
 
 		hideOverlay: function () {
-			if (api.$overlay) {
-				api.$overlay.fadeOut(300, function () { $(this).remove(); });
-				api.$overlay = null;
-			}
+			if (window.FFCProgressOverlay) { window.FFCProgressOverlay.hide(); }
+			api.$overlay = null;
 		},
 
 		updateProgress: function (current, max) {
-			if (!api.$overlay) return;
-			var pct = max > 0 ? Math.min(100, Math.round((current / max) * 100)) : 0;
-			api.$overlay.find('.ffc-csv-progress-bar-fill').css('width', pct + '%');
-			api.$overlay.find('.ffc-csv-progress-percent').text(pct + ' %');
+			if (window.FFCProgressOverlay) { window.FFCProgressOverlay.progress(current, max); }
 		},
 
 		updateStatus: function (text) {
-			if (!api.$overlay) return;
-			api.$overlay.find('.ffc-csv-progress-status').text(text);
+			if (window.FFCProgressOverlay) { window.FFCProgressOverlay.status(text); }
 		},
 
 		showError: function (msg) {
 			clearTimeout(api.safetyTimer);
-			if (api.$overlay) {
-				api.$overlay.find('.ffc-csv-progress-status').text(strings.error || 'Error');
-				api.$overlay.find('.ffc-csv-progress-bar-fill').addClass('ffc-csv-error');
-
-				var $err = api.$overlay.find('.ffc-csv-progress-error');
-				if (!$err.length) {
-					$err = $('<div class="ffc-csv-progress-error"></div>')
-						.appendTo(api.$overlay.find('.ffc-csv-progress-card'));
-				}
-				$err.text(msg);
-
-				setTimeout(function () { api.hideOverlay(); }, 4000);
-			}
+			if (window.FFCProgressOverlay) { window.FFCProgressOverlay.error(msg, strings.error || 'Error'); }
+			setTimeout(function () { api.hideOverlay(); }, 4000);
 		},
 
 		// ── Flash message ───────────────────────────────────────────

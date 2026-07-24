@@ -147,6 +147,14 @@ class SelfSchedulingAdmin {
 			FFC_VERSION,
 			true
 		);
+		// Shared progress-overlay modal styles (#786): the batched-export driver
+		// renders window.FFCProgressOverlay, identical to the public download.
+		wp_enqueue_style(
+			'ffc-progress-overlay',
+			plugins_url( "assets/css/ffc-progress-overlay{$s}.css", dirname( __DIR__, 1 ) ),
+			array(),
+			FFC_VERSION
+		);
 
 		// Row "Cancel" action handler + the batched CSV export button handler for
 		// the appointments list (extracted from an inline onclick in

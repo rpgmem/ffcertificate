@@ -678,7 +678,10 @@ describe('rereg-admin — CSV export', () => {
 		expect(arg.ajaxUrl).toBe('/wp-admin/admin-ajax.php');
 		expect(arg.nonce).toBe('export-nonce');
 		expect(arg.startData).toEqual({ id: 7 });
-		expect(typeof arg.callbacks.onComplete).toBe('function');
+		// Progress is now driven by the shared overlay (#786): the caller passes
+		// overlay:true + the button, not per-call callbacks.
+		expect(arg.overlay).toBe(true);
+		expect(arg.button).toBeTruthy();
 	});
 
 	it('is a no-op when the batched-export driver is unavailable', async () => {

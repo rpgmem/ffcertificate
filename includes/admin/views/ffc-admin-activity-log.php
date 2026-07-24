@@ -92,9 +92,7 @@ $ffcertificate_base_url = admin_url( 'edit.php?post_type=ffc_form&page=ffc-activ
 				data-log_action="<?php echo esc_attr( (string) $action ); ?>"
 				data-s="<?php echo esc_attr( (string) $search ); ?>">
 				<?php esc_html_e( 'Export CSV', 'ffcertificate' ); ?>
-			</button>
-			<span id="ffc-activitylog-export-progress" style="display:none;margin-left:8px;"></span>
-		</div>
+			</button>		</div>
 	</div>
 
 	<!-- Logs Table -->
