@@ -17,7 +17,9 @@ beforeAll(() => {
 
 beforeEach(() => {
 	window.ffcActivityLog = {
-		nonce: 'log-nonce',
+		nonce:       'log-nonce',
+		ajaxUrl:     '/wp-admin/admin-ajax.php',
+		exportNonce: 'export-nonce',
 		strings: {
 			noLogs:    'No activity logs found.',
 			error:     'Failed to fetch logs.',
@@ -28,6 +30,9 @@ beforeEach(() => {
 			colUser:   'User',
 			colIp:     'IP Address',
 			colContext: 'Context',
+			exportPreparing: 'Preparing…',
+			exportProgress:  'Exporting %1$d/%2$d…',
+			exportDone:      'Done!',
 		},
 	};
 
@@ -55,7 +60,9 @@ beforeEach(() => {
 						<input type="search" id="ffc-log-search" name="s" value="bob">
 						<input type="submit" class="button" value="Search">
 					</form>
-					<a href="?post_type=ffc_form&page=ffc-activity-log&ffc_export_logs=1&_wpnonce=x" class="button">Export CSV</a>
+					<button type="button" id="ffc-activitylog-export-btn" class="button"
+						data-level="info" data-log_action="" data-s="bob">Export CSV</button>
+					<span id="ffc-activitylog-export-progress" style="display:none;"></span>
 				</div>
 			</div>
 			<div id="ffc-activity-log-table">
@@ -172,16 +179,32 @@ describe('Activity Log — Clear Filters', () => {
 	});
 });
 
-describe('Activity Log — Export CSV', () => {
-	it('pops a Preparing toast (but does NOT preventDefault — native download proceeds)', () => {
-		const notifySpy = vi.spyOn(window.FFC.Admin, 'showNotification').mockImplementation(() => {});
+describe('Activity Log — Export CSV (batched engine #772)', () => {
+	afterEach(() => {
+		delete window.FFCBatchedExport;
+	});
 
-		const ev = window.$.Event('click');
-		window.$('.tablenav.top a.button[href*="ffc_export_logs"]').trigger(ev);
+	it('drives window.FFCBatchedExport.run with type + current filters + job nonce', () => {
+		const runSpy = vi.fn();
+		window.FFCBatchedExport = { run: runSpy };
 
-		expect(notifySpy).toHaveBeenCalledWith('Preparing CSV download…', 'info', 4000);
-		// Click handler doesn't preventDefault — browser follows href.
-		expect(ev.isDefaultPrevented()).toBe(false);
+		window.$('#ffc-activitylog-export-btn').trigger('click');
+
+		expect(runSpy).toHaveBeenCalledTimes(1);
+		const arg = runSpy.mock.calls[0][0];
+		expect(arg.type).toBe('activity_log');
+		expect(arg.ajaxUrl).toBe('/wp-admin/admin-ajax.php');
+		expect(arg.nonce).toBe('export-nonce');
+		expect(arg.startData).toEqual({ level: 'info', log_action: '', s: 'bob' });
+		expect(typeof arg.callbacks.onStart).toBe('function');
+		expect(typeof arg.callbacks.onProgress).toBe('function');
+		expect(typeof arg.callbacks.onComplete).toBe('function');
+		expect(typeof arg.callbacks.onError).toBe('function');
+	});
+
+	it('is a no-op when the batched-export driver is unavailable', () => {
+		// No window.FFCBatchedExport defined → handler returns early, no throw.
+		expect(() => window.$('#ffc-activitylog-export-btn').trigger('click')).not.toThrow();
 	});
 });
 
