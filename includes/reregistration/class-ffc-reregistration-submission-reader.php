@@ -445,13 +445,12 @@ class ReregistrationSubmissionReader {
 
 		$prepare_values = array( $table, $wpdb->users, $reregistration_id, $cursor, $size );
 
-		// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
+		$results = $wpdb->get_results( $wpdb->prepare( $sql, $prepare_values ) );
 		/**
-		 * Prepared with a merged identifier + value list.
+		 * Cast wpdb result to the typed row shape.
 		 *
-		 * @phpstan-ignore-next-line argument.type
+		 * @var list<ReregistrationSubmissionRow> $results
 		 */
-		$rows = $wpdb->get_results( $wpdb->prepare( $sql, $prepare_values ) );
-		return is_array( $rows ) ? $rows : array();
+		return is_array( $results ) ? $results : array();
 	}
 }

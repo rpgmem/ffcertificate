@@ -19,9 +19,6 @@
  *
  * @package FreeFormCertificate\Reregistration
  * @since   6.17.0
- *
- * @phpstan-import-type CustomFieldRow from CustomFieldReader
- * @phpstan-import-type ReregistrationRow from ReregistrationRepository
  */
 
 declare(strict_types=1);
@@ -38,6 +35,9 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 /**
  * Reregistration-submissions export as a batched source.
+ *
+ * @phpstan-import-type CustomFieldRow from CustomFieldReader
+ * @phpstan-import-type ReregistrationRow from ReregistrationRepository
  */
 class ReregistrationExportSource implements BatchedExportSourceInterface {
 
