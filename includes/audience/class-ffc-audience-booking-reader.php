@@ -222,12 +222,7 @@ class AudienceBookingReader {
                 {$where_clause}";
 
 		$prepare_args = array_merge( array( $table, $env_table ), $values );
-		/**
-		 * Prepared with a merged identifier + value list.
-		 *
-		 * @phpstan-ignore-next-line argument.type
-		 */
-		$sql = $wpdb->prepare( $sql, $prepare_args );
+		$sql          = $wpdb->prepare( $sql, $prepare_args );
 
 		return (int) $wpdb->get_var( $sql );
 	}
@@ -283,12 +278,7 @@ class AudienceBookingReader {
                 LIMIT %d";
 
 		$prepare_args = array_merge( array( $table, $env_table ), $values, array( $size ) );
-		/**
-		 * Prepared with a merged identifier + value list.
-		 *
-		 * @phpstan-ignore-next-line argument.type
-		 */
-		$sql = $wpdb->prepare( $sql, $prepare_args );
+		$sql          = $wpdb->prepare( $sql, $prepare_args );
 
 		$results = $wpdb->get_results( $sql );
 		/**
