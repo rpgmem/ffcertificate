@@ -187,7 +187,7 @@ class Admin {
 
 		// AJAX-driven CSV export (avoids web-server timeouts with large datasets):
 		// register the submissions source with the shared registry; the unified
-		// dispatcher (wired in Loader) routes `type=submissions` to it. (#772)
+		// dispatcher (wired in Loader, #772) routes `type=submissions` to it.
 		$this->csv_exporter->register_source();
 	}
 

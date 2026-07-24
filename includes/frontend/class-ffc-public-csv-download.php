@@ -130,8 +130,8 @@ class PublicCsvDownload {
 		add_action( 'wp_ajax_nopriv_ffc_public_schedule_exception', array( $this, 'ajax_schedule_exception' ) );
 
 		// AJAX batched export (JS path): register the public source with the
-		// shared registry; the unified dispatcher (wired in Loader) routes
-		// `type=public_forms` requests through the `ffc_export_*` endpoints. (#772)
+		// shared registry; the unified dispatcher (wired in Loader, #772) routes
+		// `type=public_forms` requests through the `ffc_export_*` endpoints.
 		\FreeFormCertificate\Core\SourceRegistry::register(
 			PublicFormsExportSource::TYPE,
 			static function (): PublicFormsExportSource {
