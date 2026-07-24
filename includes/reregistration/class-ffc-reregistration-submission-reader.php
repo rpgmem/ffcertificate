@@ -449,7 +449,7 @@ class ReregistrationSubmissionReader {
 		/**
 		 * Cast wpdb result to the typed row shape.
 		 *
-		 * @var list<ReregistrationSubmissionRow> $results
+		 * @var list<ReregistrationSubmissionRow>
 		 */
 		return is_array( $results ) ? $results : array();
 	}
