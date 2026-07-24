@@ -55,7 +55,9 @@ class BatchedCsvExportTest extends TestCase {
 			}
 		);
 		Functions\when( 'get_transient' )->alias(
-			static fn( $k ) => $store[ $k ] ?? false
+			static function ( $k ) use ( &$store ) {
+				return $store[ $k ] ?? false;
+			}
 		);
 		Functions\when( 'delete_transient' )->alias(
 			static function ( $k ) use ( &$store ) {
