@@ -436,12 +436,12 @@ class ReregistrationSubmissionReader {
 		$wpdb  = self::db();
 		$table = self::get_table_name();
 
-		$sql = "SELECT s.*, u.display_name AS user_name, u.user_email AS user_email
+		$sql = 'SELECT s.*, u.display_name AS user_name, u.user_email AS user_email
                 FROM %i s
                 LEFT JOIN %i u ON s.user_id = u.ID
                 WHERE s.reregistration_id = %d AND s.id < %d
                 ORDER BY s.id DESC
-                LIMIT %d";
+                LIMIT %d';
 
 		$prepare_values = array( $table, $wpdb->users, $reregistration_id, $cursor, $size );
 
