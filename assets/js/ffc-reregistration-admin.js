@@ -31,38 +31,23 @@
             if (!exportNonce) { return; }
 
             var $btn = $(this);
-            var $progress = $('#ffc-rereg-export-progress');
-            var originalText = $btn.text();
-            $btn.prop('disabled', true).text(s.exportPreparing || 'Preparing…');
-            $progress.show().text('');
 
-            var exportingTpl = s.exportProgress || 'Exporting %1$d/%2$d…';
-            var total = 0;
-
+            // Progress is shown through the shared FFCProgressOverlay modal,
+            // driven by the driver itself (overlay: true) — same UI as the
+            // public download (#786).
             window.FFCBatchedExport.run({
                 type: 'reregistration',
                 ajaxUrl: cfg.ajaxUrl,
                 nonce: exportNonce,
-                startData: { id: $btn.data('id') || '' },
-                callbacks: {
-                    onStart: function (t) { total = t; },
-                    onProgress: function (processed) {
-                        $progress.text(exportingTpl.replace('%1$d', processed).replace('%2$d', total));
-                    },
-                    onComplete: function (downloadUrl, ctx) {
-                        var $iframe = $('<iframe>', { src: downloadUrl }).css({ display: 'none' }).appendTo('body');
-                        setTimeout(function () {
-                            $btn.prop('disabled', false).text(originalText);
-                            $progress.text('✓ ' + ctx.processed + '/' + total + ' — ' + (s.exportDone || 'Done!'));
-                            setTimeout(function () { $progress.fadeOut(); }, 5000);
-                            $iframe.remove();
-                        }, 2000);
-                    },
-                    onError: function (err) {
-                        $btn.prop('disabled', false).text(originalText);
-                        $progress.text((err && err.fromServer && err.message) || (s.exportError || 'An error occurred.'));
-                    }
-                }
+                button: $btn,
+                overlay: true,
+                strings: {
+                    preparing: s.exportPreparing,
+                    exporting: s.exportProgress,
+                    downloading: s.exportDone,
+                    error: s.exportError
+                },
+                startData: { id: $btn.data('id') || '' }
             });
         });
     }

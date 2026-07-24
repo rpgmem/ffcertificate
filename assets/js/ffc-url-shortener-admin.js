@@ -85,47 +85,31 @@
             if (!window.FFCBatchedExport) {
                 return;
             }
-            var $btn      = $(this);
-            var $progress = $('#ffc-shorturl-export-progress');
-            var i18n      = settings.i18n || {};
-            var nonce     = settings.exportNonce || '';
+            var $btn  = $(this);
+            var i18n  = settings.i18n || {};
+            var nonce = settings.exportNonce || '';
             if (!nonce) {
                 return;
             }
 
-            var originalText = $btn.text();
-            $btn.prop('disabled', true).text(i18n.exportPreparing || 'Preparing…');
-            $progress.show().text('');
-
-            var exportingTpl = i18n.exportProgress || 'Exporting %1$d/%2$d…';
-            var total = 0;
-
+            // Progress is shown through the shared FFCProgressOverlay modal,
+            // driven by the driver itself (overlay: true) — same UI as the
+            // public download (#786).
             window.FFCBatchedExport.run({
                 type: 'url_shortener',
                 ajaxUrl: settings.ajaxUrl,
                 nonce: nonce,
+                button: $btn,
+                overlay: true,
+                strings: {
+                    preparing: i18n.exportPreparing,
+                    exporting: i18n.exportProgress,
+                    downloading: i18n.exportDone,
+                    error: i18n.error
+                },
                 startData: {
                     s: $btn.data('s') || '',
                     status: $btn.data('status') || 'all'
-                },
-                callbacks: {
-                    onStart: function (t) { total = t; },
-                    onProgress: function (processed) {
-                        $progress.text(exportingTpl.replace('%1$d', processed).replace('%2$d', total));
-                    },
-                    onComplete: function (downloadUrl, ctx) {
-                        var $iframe = $('<iframe>', { src: downloadUrl }).css({ display: 'none' }).appendTo('body');
-                        setTimeout(function () {
-                            $btn.prop('disabled', false).text(originalText);
-                            $progress.text('✓ ' + ctx.processed + '/' + total + ' — ' + (i18n.exportDone || 'Done!'));
-                            setTimeout(function () { $progress.fadeOut(); }, 5000);
-                            $iframe.remove();
-                        }, 2000);
-                    },
-                    onError: function (err) {
-                        $btn.prop('disabled', false).text(originalText);
-                        $progress.text((err && err.fromServer && err.message) || (i18n.error || 'An error occurred.'));
-                    }
                 }
             });
         });

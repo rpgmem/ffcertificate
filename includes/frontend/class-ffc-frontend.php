@@ -120,6 +120,10 @@ class Frontend {
 			wp_enqueue_style( 'ffc-pdf-core', FFC_PLUGIN_URL . "assets/css/ffc-pdf-core{$s}.css", array(), FFC_VERSION );
 			wp_enqueue_style( 'ffc-common', FFC_PLUGIN_URL . "assets/css/ffc-common{$s}.css", array(), FFC_VERSION );
 			wp_enqueue_style( 'ffc-frontend-css', FFC_PLUGIN_URL . "assets/css/ffc-frontend{$s}.css", array( 'ffc-pdf-core', 'ffc-common' ), FFC_VERSION );
+			// Shared CSV progress-overlay modal styles (#786) — the base
+			// .ffc-csv-progress-* rules moved here from ffc-frontend.css so the
+			// admin exports render the identical modal; loaded on both surfaces.
+			wp_enqueue_style( 'ffc-progress-overlay', FFC_PLUGIN_URL . "assets/css/ffc-progress-overlay{$s}.css", array(), FFC_VERSION );
 
 			// Dynamic fragments: refresh captcha + nonces on cached pages so
 			// LiteSpeed/Varnish visitors don't submit with a stale nonce. The
@@ -339,8 +343,10 @@ class Frontend {
 				// is the registered handle for ffc-frontend-helpers.js, which
 				// exposes window.FFC.Frontend.Masks.applyCpfRf() — used to
 				// mask the optional CPF input rendered when
-				// _ffc_csv_public_cpf_mode is set.
-				array( 'jquery', 'ffc-core', 'ffc-rate-limit' ),
+				// _ffc_csv_public_cpf_mode is set. 'ffc-batched-export' owns
+				// window.FFCProgressOverlay, which this core's overlay helpers
+				// (used by the info screen's "Validating…" step) delegate to (#786).
+				array( 'jquery', 'ffc-core', 'ffc-rate-limit', 'ffc-batched-export' ),
 				FFC_VERSION,
 				true
 			);

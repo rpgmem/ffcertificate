@@ -196,10 +196,10 @@ describe('Activity Log — Export CSV (batched engine #772)', () => {
 		expect(arg.ajaxUrl).toBe('/wp-admin/admin-ajax.php');
 		expect(arg.nonce).toBe('export-nonce');
 		expect(arg.startData).toEqual({ level: 'info', log_action: '', s: 'bob' });
-		expect(typeof arg.callbacks.onStart).toBe('function');
-		expect(typeof arg.callbacks.onProgress).toBe('function');
-		expect(typeof arg.callbacks.onComplete).toBe('function');
-		expect(typeof arg.callbacks.onError).toBe('function');
+		// Progress is now driven by the shared overlay (#786): the caller passes
+		// overlay:true + the button, not per-call callbacks.
+		expect(arg.overlay).toBe(true);
+		expect(arg.button).toBeTruthy();
 	});
 
 	it('is a no-op when the batched-export driver is unavailable', () => {

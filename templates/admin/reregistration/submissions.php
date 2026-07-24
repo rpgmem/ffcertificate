@@ -66,9 +66,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 			?>
 			<button type="button" id="ffc-rereg-export-btn" class="button ffc-rereg-ml-10" data-id="<?php echo esc_attr( (string) $id ); ?>">
 				<?php esc_html_e( 'Export CSV', 'ffcertificate' ); ?>
-			</button>
-			<span id="ffc-rereg-export-progress" style="display:none;margin-left:8px;"></span>
-		</div>
+			</button>		</div>
 
 		<!-- Bulk actions form -->
 		<form method="post" id="ffc-submissions-form">

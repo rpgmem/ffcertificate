@@ -37,54 +37,27 @@
 			var exportNonce = cfg.exportNonce || '';
 			if (!exportNonce) { return; }
 
-			var progress = document.getElementById('ffc-appointments-export-progress');
-			var originalText = btn.textContent;
-			btn.disabled = true;
-			btn.textContent = s.exportPreparing || 'Preparing…';
-			if (progress) { progress.style.display = ''; progress.textContent = ''; }
-
-			var exportingTpl = s.exportProgress || 'Exporting %1$d/%2$d…';
-			var total = 0;
-
+			// Progress is shown through the shared FFCProgressOverlay modal,
+			// driven by the driver itself (overlay: true) — same UI as the
+			// public download (#786). The raw button element is accepted by the
+			// driver (it wraps it in jQuery).
 			window.FFCBatchedExport.run({
 				type: 'appointments',
 				ajaxUrl: cfg.ajaxUrl,
 				nonce: exportNonce,
+				button: btn,
+				overlay: true,
+				strings: {
+					preparing: s.exportPreparing,
+					exporting: s.exportProgress,
+					downloading: s.exportDone,
+					error: s.error
+				},
 				startData: {
 					calendar_id: btn.getAttribute('data-calendar_id') || '',
 					status:      btn.getAttribute('data-status') || '',
 					start_date:  btn.getAttribute('data-start_date') || '',
 					end_date:    btn.getAttribute('data-end_date') || ''
-				},
-				callbacks: {
-					onStart: function (t) { total = t; },
-					onProgress: function (processed) {
-						if (progress) {
-							progress.textContent = exportingTpl.replace('%1$d', processed).replace('%2$d', total);
-						}
-					},
-					onComplete: function (downloadUrl, ctx) {
-						var iframe = document.createElement('iframe');
-						iframe.style.display = 'none';
-						iframe.src = downloadUrl;
-						document.body.appendChild(iframe);
-						setTimeout(function () {
-							btn.disabled = false;
-							btn.textContent = originalText;
-							if (progress) {
-								progress.textContent = '✓ ' + ctx.processed + '/' + total + ' — ' + (s.exportDone || 'Done!');
-								setTimeout(function () { progress.style.display = 'none'; }, 5000);
-							}
-							if (iframe.parentNode) { iframe.parentNode.removeChild(iframe); }
-						}, 2000);
-					},
-					onError: function (err) {
-						btn.disabled = false;
-						btn.textContent = originalText;
-						if (progress) {
-							progress.textContent = (err && err.fromServer && err.message) || (s.error || 'An error occurred.');
-						}
-					}
 				}
 			});
 		});

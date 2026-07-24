@@ -161,6 +161,8 @@ class AdminActivityLogPageTest extends TestCase {
         Functions\when('wp_enqueue_script')->alias(function ($handle) use (&$scripts) {
             $scripts[] = $handle;
         });
+        // The page also enqueues the shared progress-overlay stylesheet (#786).
+        Functions\when('wp_enqueue_style')->justReturn(true);
         Functions\when('wp_create_nonce')->justReturn('nonce123');
         $localized = null;
         Functions\when('wp_localize_script')->alias(function ($handle, $var, $data) use (&$localized) {

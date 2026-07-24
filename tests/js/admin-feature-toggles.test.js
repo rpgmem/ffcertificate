@@ -233,8 +233,9 @@ describe('admin CSV export — batched flow', () => {
 		expect(calls[1].action).toBe('ffc_export_batch');
 		expect(calls[2].action).toBe('ffc_export_batch');
 
-		// Progress text shows the last interim 10/10 line; iframe inserted.
-		expect(window.$('#ffc-csv-export-progress').text()).toContain('10/10');
+		// Progress is now driven by the shared overlay (#786): the bar reaches
+		// 100% on the done batch and the download iframe is inserted.
+		expect(window.$('.ffc-csv-progress-percent').text()).toContain('100');
 		expect(window.$('iframe[src*="ffc_export_download"]').length).toBe(1);
 	});
 
@@ -248,7 +249,7 @@ describe('admin CSV export — batched flow', () => {
 		window.$('#ffc-csv-export-btn').trigger('click');
 		await flush();
 
-		expect(window.$('#ffc-csv-export-progress').text()).toBe('No rows match');
+		expect(window.$('.ffc-csv-progress-error').text()).toBe('No rows match');
 	});
 
 	it('shows the error message when a batch returns success=false', async () => {
@@ -265,7 +266,7 @@ describe('admin CSV export — batched flow', () => {
 		window.$('#ffc-csv-export-btn').trigger('click');
 		await flush();
 
-		expect(window.$('#ffc-csv-export-progress').text()).toBe('Batch failed');
+		expect(window.$('.ffc-csv-progress-error').text()).toBe('Batch failed');
 	});
 });
 
@@ -704,7 +705,7 @@ describe('admin CSV export — connection errors', () => {
 		vi.spyOn(window.$, 'post').mockImplementation(() => postChain({ fail: { status: 0 } }));
 		window.$('#ffc-csv-export-btn').trigger('click');
 		await flush();
-		expect(window.$('#ffc-csv-export-progress').text()).toBe('Connection error.');
+		expect(window.$('.ffc-csv-progress-error').text()).toBe('Connection error.');
 	});
 
 	it('shows the connection-error string when a batch rejects without fromServer', async () => {
@@ -719,7 +720,7 @@ describe('admin CSV export — connection errors', () => {
 		});
 		window.$('#ffc-csv-export-btn').trigger('click');
 		for (let i = 0; i < 6; i++) { await Promise.resolve(); }
-		expect(window.$('#ffc-csv-export-progress').text()).toBe('Connection error.');
+		expect(window.$('.ffc-csv-progress-error').text()).toBe('Connection error.');
 	});
 
 	it('completes the batch-done branch including the deferred iframe cleanup', async () => {
@@ -742,9 +743,11 @@ describe('admin CSV export — connection errors', () => {
 		window.$('#ffc-csv-export-btn').trigger('click');
 		for (let i = 0; i < 8; i++) { await Promise.resolve(); }
 		expect(window.$('iframe[src*="ffc_export_download"]').length).toBeGreaterThanOrEqual(1);
-		// The 2000ms deferred block re-enables the button, sets the done
-		// text, removes the iframe and schedules the progress fadeOut.
+		// While the overlay is up, its status shows the done text (mapped to the
+		// "downloading" status). The 2000ms deferred block then hides the overlay
+		// and removes the iframe (#786).
+		expect(window.$('.ffc-csv-progress-status').text()).toContain('Done!');
 		await new Promise((r) => setTimeout(r, 2200));
-		expect(window.$('#ffc-csv-export-progress').text()).toContain('Done!');
+		expect(window.$('.ffc-csv-progress-overlay').length).toBe(0);
 	});
 });

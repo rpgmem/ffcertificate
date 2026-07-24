@@ -174,47 +174,31 @@
     // id-DESC (a stable keyset), not the on-screen sort.
     $(document).on('click', '#ffc-activitylog-export-btn', function () {
         if (!window.FFCBatchedExport) { return; }
-        var c         = cfg();
-        var s         = strings();
-        var $btn      = $(this);
-        var $progress = $('#ffc-activitylog-export-progress');
+        var c           = cfg();
+        var s           = strings();
+        var $btn        = $(this);
         var exportNonce = c.exportNonce || '';
         if (!exportNonce) { return; }
 
-        var originalText = $btn.text();
-        $btn.prop('disabled', true).text(s.exportPreparing || 'Preparing…');
-        $progress.show().text('');
-
-        var exportingTpl = s.exportProgress || 'Exporting %1$d/%2$d…';
-        var total = 0;
-
+        // Progress is shown through the shared FFCProgressOverlay modal, driven
+        // by the driver itself (overlay: true) — same UI as the public
+        // download (#786).
         window.FFCBatchedExport.run({
             type: 'activity_log',
             ajaxUrl: c.ajaxUrl,
             nonce: exportNonce,
+            button: $btn,
+            overlay: true,
+            strings: {
+                preparing: s.exportPreparing,
+                exporting: s.exportProgress,
+                downloading: s.exportDone,
+                error: s.error
+            },
             startData: {
                 level:      $btn.data('level') || '',
                 log_action: $btn.data('log_action') || '',
                 s:          $btn.data('s') || ''
-            },
-            callbacks: {
-                onStart: function (t) { total = t; },
-                onProgress: function (processed) {
-                    $progress.text(exportingTpl.replace('%1$d', processed).replace('%2$d', total));
-                },
-                onComplete: function (downloadUrl, ctx) {
-                    var $iframe = $('<iframe>', { src: downloadUrl }).css({ display: 'none' }).appendTo('body');
-                    setTimeout(function () {
-                        $btn.prop('disabled', false).text(originalText);
-                        $progress.text('✓ ' + ctx.processed + '/' + total + ' — ' + (s.exportDone || 'Done!'));
-                        setTimeout(function () { $progress.fadeOut(); }, 5000);
-                        $iframe.remove();
-                    }, 2000);
-                },
-                onError: function (err) {
-                    $btn.prop('disabled', false).text(originalText);
-                    $progress.text((err && err.fromServer && err.message) || (s.error || 'Failed to fetch logs.'));
-                }
             }
         });
     });

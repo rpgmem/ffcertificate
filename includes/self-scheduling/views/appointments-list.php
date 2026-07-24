@@ -344,9 +344,7 @@ $ffcertificate_table->prepare_items();
 			data-calendar_id="<?php echo esc_attr( (string) $ffc_export_calendar_id ); ?>"
 			data-status="<?php echo esc_attr( $ffc_export_status ); ?>">
 			<?php esc_html_e( 'Export CSV', 'ffcertificate' ); ?>
-		</button>
-		<span id="ffc-appointments-export-progress" style="display:none;margin-left:8px;"></span>
-	<?php endif; ?>
+		</button>	<?php endif; ?>
 	<hr class="wp-header-end">
 
 	<form method="get">
