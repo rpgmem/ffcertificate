@@ -83,6 +83,15 @@ class UrlShortenerAdminPage {
 			array(),
 			FFC_VERSION
 		);
+		// Shared batched-export driver (#772): the CSV export button drives the
+		// unified `ffc_export_*` dispatcher through window.FFCBatchedExport.
+		wp_enqueue_script(
+			'ffc-batched-export',
+			FFC_PLUGIN_URL . 'assets/js/ffc-batched-export.js',
+			array( 'jquery', 'ffc-core' ),
+			FFC_VERSION,
+			true
+		);
 		wp_enqueue_script(
 			'ffc-url-shortener-admin',
 			FFC_PLUGIN_URL . 'assets/js/ffc-url-shortener-admin.js',
@@ -92,8 +101,9 @@ class UrlShortenerAdminPage {
 			// WP Rocket Combine, etc.) that flatten the bundle and would
 			// otherwise drop `ffc-core` for not being in the chain. Same
 			// fix shape as 6.6.7 (#367) applied to the 4 public-facing
-			// sites; admin sites missed that pass.
-			array( 'jquery', 'ffc-core' ),
+			// sites; admin sites missed that pass. `ffc-batched-export`
+			// provides the CSV-export driver the button calls.
+			array( 'jquery', 'ffc-core', 'ffc-batched-export' ),
 			FFC_VERSION,
 			true
 		);
@@ -101,15 +111,20 @@ class UrlShortenerAdminPage {
 			'ffc-url-shortener-admin',
 			'ffcUrlShortener',
 			array(
-				'ajaxUrl' => admin_url( 'admin-ajax.php' ),
-				'nonce'   => wp_create_nonce( 'ffc_short_url_nonce' ),
-				'i18n'    => array(
-					'copied'        => __( 'Copied!', 'ffcertificate' ),
-					'copyFailed'    => __( 'Copy failed', 'ffcertificate' ),
-					'error'         => __( 'An error occurred.', 'ffcertificate' ),
-					'qrLoadFailed'  => __( 'Failed to load QR Code', 'ffcertificate' ),
-					'copy'          => __( 'Copy', 'ffcertificate' ),
-					'requestFailed' => __( 'Request failed', 'ffcertificate' ),
+				'ajaxUrl'     => admin_url( 'admin-ajax.php' ),
+				'nonce'       => wp_create_nonce( 'ffc_short_url_nonce' ),
+				'exportNonce' => wp_create_nonce( 'ffc_url_shortener_export' ),
+				'i18n'        => array(
+					'copied'         => __( 'Copied!', 'ffcertificate' ),
+					'copyFailed'     => __( 'Copy failed', 'ffcertificate' ),
+					'error'          => __( 'An error occurred.', 'ffcertificate' ),
+					'qrLoadFailed'   => __( 'Failed to load QR Code', 'ffcertificate' ),
+					'copy'           => __( 'Copy', 'ffcertificate' ),
+					'requestFailed'  => __( 'Request failed', 'ffcertificate' ),
+					'exportPreparing' => __( 'Preparing…', 'ffcertificate' ),
+					/* translators: %1$d processed, %2$d total */
+					'exportProgress' => __( 'Exporting %1$d/%2$d…', 'ffcertificate' ),
+					'exportDone'     => __( 'Done!', 'ffcertificate' ),
 				),
 			)
 		);

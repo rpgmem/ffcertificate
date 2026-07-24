@@ -412,4 +412,39 @@ class UrlShortenerRepositoryTest extends TestCase {
 
         $this->assertSame( $rows, $result );
     }
+
+    // ==================================================================
+    // countForExport() / findByCursor() — batched CSV export (#772)
+    // ==================================================================
+
+    public function test_count_for_export_returns_int(): void {
+        $this->wpdb->shouldReceive( 'prepare' )->andReturn( 'QUERY' );
+        $this->wpdb->shouldReceive( 'get_var' )->once()->andReturn( '7' );
+
+        $this->assertSame( 7, $this->repo->countForExport( array( 'status' => 'all', 'search' => '' ) ) );
+    }
+
+    public function test_find_by_cursor_builds_keyset_query(): void {
+        $captured_query = '';
+        $this->wpdb->shouldReceive( 'prepare' )->andReturnUsing( function () use ( &$captured_query ) {
+            $captured_query = func_get_arg( 0 );
+            return 'QUERY';
+        } );
+        $rows = array( array( 'id' => '5' ), array( 'id' => '4' ) );
+        $this->wpdb->shouldReceive( 'get_results' )->once()->andReturn( $rows );
+
+        $result = $this->repo->findByCursor( array( 'status' => 'all', 'search' => '' ), 10, 50 );
+
+        $this->assertSame( $rows, $result );
+        $this->assertStringContainsString( 'id < %d', $captured_query );
+        $this->assertStringContainsString( 'ORDER BY id DESC', $captured_query );
+        $this->assertStringContainsString( 'LIMIT %d', $captured_query );
+    }
+
+    public function test_find_by_cursor_returns_empty_array_when_no_rows(): void {
+        $this->wpdb->shouldReceive( 'prepare' )->andReturn( 'QUERY' );
+        $this->wpdb->shouldReceive( 'get_results' )->once()->andReturn( null );
+
+        $this->assertSame( array(), $this->repo->findByCursor( array( 'status' => 'active', 'search' => 'x' ), 10, 50 ) );
+    }
 }
