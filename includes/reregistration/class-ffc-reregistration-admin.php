@@ -179,6 +179,14 @@ class ReregistrationAdmin {
 			FFC_VERSION,
 			true
 		);
+		// Shared progress-overlay modal styles (#786): the batched-export driver
+		// renders window.FFCProgressOverlay, identical to the public download.
+		wp_enqueue_style(
+			'ffc-progress-overlay',
+			FFC_PLUGIN_URL . "assets/css/ffc-progress-overlay{$s}.css",
+			array(),
+			FFC_VERSION
+		);
 
 		wp_enqueue_script(
 			'ffc-reregistration-admin',

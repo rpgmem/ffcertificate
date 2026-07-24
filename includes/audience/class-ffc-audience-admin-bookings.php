@@ -106,9 +106,7 @@ class AudienceAdminBookings {
 					data-date_from="<?php echo esc_attr( $date_from ); ?>"
 					data-date_to="<?php echo esc_attr( $date_to ); ?>">
 					<?php esc_html_e( 'Export CSV', 'ffcertificate' ); ?>
-				</button>
-				<span id="ffc-bookings-export-progress" style="display:none;margin-left:8px;"></span>
-			<?php endif; ?>
+				</button>			<?php endif; ?>
 			<hr class="wp-header-end">
 
 			<?php settings_errors( 'ffc_audience' ); ?>

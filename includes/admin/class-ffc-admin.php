@@ -335,9 +335,7 @@ class Admin {
 					<?php $form_ids_json = wp_json_encode( $filter_form_ids ); ?>
 					data-form-ids="<?php echo esc_attr( $form_ids_json ? $form_ids_json : '' ); ?>"
 					data-status="<?php echo esc_attr( $export_status ); ?>"
-				><?php echo esc_html( $btn_label ); ?></button>
-				<span id="ffc-csv-export-progress" style="display:none; margin-left:8px; vertical-align:middle;"></span>
-			</div>
+				><?php echo esc_html( $btn_label ); ?></button>			</div>
 			<hr class="wp-header-end">
 			<form method="GET">
 				<input type="hidden" name="post_type" value="ffc_form">

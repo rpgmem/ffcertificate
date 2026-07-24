@@ -46,9 +46,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 					class="page-title-action"
 					data-s="<?php echo esc_attr( $search ); ?>"
 					data-status="<?php echo esc_attr( $status ); ?>"
-				><?php esc_html_e( 'Export CSV', 'ffcertificate' ); ?></button>
-				<span id="ffc-shorturl-export-progress" class="ffc-shorturl-export-progress" style="display:none;margin-left:8px;"></span>
-			<?php endif; ?>
+				><?php esc_html_e( 'Export CSV', 'ffcertificate' ); ?></button>			<?php endif; ?>
 			<hr class="wp-header-end">
 
 			<?php if ( 'trashed' === $msg ) : ?>
