@@ -166,8 +166,12 @@ class UrlShortenerExportSourceTest extends TestCase {
 	}
 
 	public function test_filename_is_dated(): void {
-		Functions\when( 'gmdate' )->justReturn( '2026-01-15' );
-		$this->assertSame( 'short-urls-2026-01-15.csv', $this->source->filename( array(), array() ) );
+		// gmdate() is an internal function Patchwork can't redefine, so assert
+		// the shape (short-urls-YYYY-MM-DD.csv) rather than a fixed date.
+		$this->assertMatchesRegularExpression(
+			'/^short-urls-\d{4}-\d{2}-\d{2}\.csv$/',
+			$this->source->filename( array(), array() )
+		);
 	}
 
 	// ==================================================================
