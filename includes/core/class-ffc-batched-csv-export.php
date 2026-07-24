@@ -266,6 +266,11 @@ class BatchedCsvExport {
 		$tmp_dir    = trailingslashit( $upload_dir['basedir'] ) . 'ffc-tmp';
 		wp_mkdir_p( $tmp_dir );
 
+		// `.htaccess` is Apache-only. On nginx the temp dir must be denied at the
+		// server block (e.g. `location ^~ /wp-content/uploads/ffc-tmp/ { deny all; }`)
+		// — see CLAUDE.md §3 "CSV export architecture" (the nginx caveat). Defence
+		// in depth here: random-UUID filenames + `unlink` post-download + daily
+		// cleanup cron mean a leaked path is short-lived even without the server rule.
 		$htaccess = $tmp_dir . '/.htaccess';
 		if ( ! file_exists( $htaccess ) ) {
 			// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents
