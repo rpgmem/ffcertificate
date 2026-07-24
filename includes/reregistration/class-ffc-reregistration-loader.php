@@ -41,6 +41,18 @@ class ReregistrationLoader {
 	public function init(): void {
 		if ( is_admin() ) {
 			( new ReregistrationAdmin() )->init();
+
+			// CSV export — register the batched source with the shared registry
+			// (#772); the unified dispatcher (wired in Loader) routes
+			// `type=reregistration` start/batch/download requests to it. Runs
+			// under is_admin(), true on admin-ajax, so the source is reachable
+			// during the export job.
+			\FreeFormCertificate\Core\SourceRegistry::register(
+				ReregistrationExportSource::TYPE,
+				static function (): ReregistrationExportSource {
+					return new ReregistrationExportSource();
+				}
+			);
 		}
 
 		ReregistrationFrontend::init();

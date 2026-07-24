@@ -14,7 +14,58 @@
         initFichaDownload();
         initSubmissionDetailsModal();
         initTransferList();
+        initCsvExport();
     });
+
+    /**
+     * Batched CSV export (#772). The "Export CSV" button drives the unified
+     * ffc_export_* dispatcher via the shared window.FFCBatchedExport driver,
+     * carrying the campaign id. Export order is id-DESC (a stable keyset).
+     */
+    function initCsvExport() {
+        $(document).on('click', '#ffc-rereg-export-btn', function () {
+            if (!window.FFCBatchedExport) { return; }
+            var cfg = window.ffcReregistrationAdmin || {};
+            var s = cfg.strings || {};
+            var exportNonce = cfg.exportNonce || '';
+            if (!exportNonce) { return; }
+
+            var $btn = $(this);
+            var $progress = $('#ffc-rereg-export-progress');
+            var originalText = $btn.text();
+            $btn.prop('disabled', true).text(s.exportPreparing || 'Preparing…');
+            $progress.show().text('');
+
+            var exportingTpl = s.exportProgress || 'Exporting %1$d/%2$d…';
+            var total = 0;
+
+            window.FFCBatchedExport.run({
+                type: 'reregistration',
+                ajaxUrl: cfg.ajaxUrl,
+                nonce: exportNonce,
+                startData: { id: $btn.data('id') || '' },
+                callbacks: {
+                    onStart: function (t) { total = t; },
+                    onProgress: function (processed) {
+                        $progress.text(exportingTpl.replace('%1$d', processed).replace('%2$d', total));
+                    },
+                    onComplete: function (downloadUrl, ctx) {
+                        var $iframe = $('<iframe>', { src: downloadUrl }).css({ display: 'none' }).appendTo('body');
+                        setTimeout(function () {
+                            $btn.prop('disabled', false).text(originalText);
+                            $progress.text('✓ ' + ctx.processed + '/' + total + ' — ' + (s.exportDone || 'Done!'));
+                            setTimeout(function () { $progress.fadeOut(); }, 5000);
+                            $iframe.remove();
+                        }, 2000);
+                    },
+                    onError: function (err) {
+                        $btn.prop('disabled', false).text(originalText);
+                        $progress.text((err && err.fromServer && err.message) || (s.exportError || 'An error occurred.'));
+                    }
+                }
+            });
+        });
+    }
 
     /**
      * Select-all checkbox toggles all submission checkboxes

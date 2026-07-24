@@ -164,10 +164,6 @@ final class ReregistrationAdminRenderer {
 		$submissions = ReregistrationSubmissionReader::get_by_reregistration( $id, $filters );
 		$stats       = ReregistrationSubmissionReader::get_statistics( $id );
 		$back_url    = admin_url( 'admin.php?page=' . $menu_slug );
-		$export_url  = wp_nonce_url(
-			admin_url( 'admin.php?page=' . $menu_slug . '&action=export_csv&id=' . $id ),
-			'export_reregistration_' . $id
-		);
 
 		include FFC_PLUGIN_DIR . 'templates/admin/reregistration/submissions.php';
 	}
