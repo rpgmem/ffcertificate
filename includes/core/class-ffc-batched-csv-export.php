@@ -229,6 +229,10 @@ class BatchedCsvExport {
 			wp_die( esc_html__( 'Export file not found.', 'ffcertificate' ) );
 		}
 
+		// Reliable audit point: the file exists and is about to stream (the
+		// client may abort once readfile starts).
+		$source->on_before_download( $job );
+
 		// Drop any output buffers so readfile streams cleanly.
 		// phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged, Generic.CodeAnalysis.EmptyStatement.DetectedWhile -- body intentionally empty; @ swallows the "no buffer" notice.
 		while ( @ob_end_clean() ) {

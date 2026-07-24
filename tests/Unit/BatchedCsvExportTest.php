@@ -160,6 +160,7 @@ class BatchedCsvExportTest extends TestCase {
 					( $this->completed )( $job_id, $job );
 				}
 			}
+			public function on_before_download( array $job ): void {}
 		};
 	}
 
