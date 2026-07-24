@@ -76,6 +76,60 @@
 
     $(document).ready(function () {
 
+        // --- Batched CSV export (#772) ---
+        // The button drives the unified ffc_export_* dispatcher via the shared
+        // window.FFCBatchedExport driver, carrying the current search/status
+        // filters. Export order is id-DESC (a stable keyset), not the on-screen
+        // sort.
+        $('#ffc-shorturl-export-btn').on('click', function () {
+            if (!window.FFCBatchedExport) {
+                return;
+            }
+            var $btn      = $(this);
+            var $progress = $('#ffc-shorturl-export-progress');
+            var i18n      = settings.i18n || {};
+            var nonce     = settings.exportNonce || '';
+            if (!nonce) {
+                return;
+            }
+
+            var originalText = $btn.text();
+            $btn.prop('disabled', true).text(i18n.exportPreparing || 'Preparing…');
+            $progress.show().text('');
+
+            var exportingTpl = i18n.exportProgress || 'Exporting %1$d/%2$d…';
+            var total = 0;
+
+            window.FFCBatchedExport.run({
+                type: 'url_shortener',
+                ajaxUrl: settings.ajaxUrl,
+                nonce: nonce,
+                startData: {
+                    s: $btn.data('s') || '',
+                    status: $btn.data('status') || 'all'
+                },
+                callbacks: {
+                    onStart: function (t) { total = t; },
+                    onProgress: function (processed) {
+                        $progress.text(exportingTpl.replace('%1$d', processed).replace('%2$d', total));
+                    },
+                    onComplete: function (downloadUrl, ctx) {
+                        var $iframe = $('<iframe>', { src: downloadUrl }).css({ display: 'none' }).appendTo('body');
+                        setTimeout(function () {
+                            $btn.prop('disabled', false).text(originalText);
+                            $progress.text('✓ ' + ctx.processed + '/' + total + ' — ' + (i18n.exportDone || 'Done!'));
+                            setTimeout(function () { $progress.fadeOut(); }, 5000);
+                            $iframe.remove();
+                        }, 2000);
+                    },
+                    onError: function (err) {
+                        $btn.prop('disabled', false).text(originalText);
+                        $progress.text((err && err.fromServer && err.message) || (i18n.error || 'An error occurred.'));
+                    }
+                }
+            });
+        });
+
         // --- Copy short URL (meta box) ---
         $(document).on('click', '.ffc-copy-shorturl', function (e) {
             e.preventDefault();

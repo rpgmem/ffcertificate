@@ -39,15 +39,15 @@ if ( ! defined( 'ABSPATH' ) ) {
 				</a>
 			<?php endif; ?>
 			<?php if ( \FreeFormCertificate\Core\Capabilities::current_user_can_admin_or( 'ffc_export_url_shortener' ) ) : ?>
-				<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" class="ffc-shorturl-export" style="display:inline;">
-					<?php wp_nonce_field( 'ffc_export_short_urls_nonce', 'ffc_export_short_urls_action' ); ?>
-					<input type="hidden" name="action" value="ffc_export_short_urls_csv" />
-					<input type="hidden" name="s" value="<?php echo esc_attr( $search ); ?>" />
-					<input type="hidden" name="status" value="<?php echo esc_attr( $status ); ?>" />
-					<input type="hidden" name="orderby" value="<?php echo esc_attr( $orderby ); ?>" />
-					<input type="hidden" name="order" value="<?php echo esc_attr( $order ); ?>" />
-					<button type="submit" class="page-title-action"><?php esc_html_e( 'Export CSV', 'ffcertificate' ); ?></button>
-				</form>
+				<?php // Batched CSV export (#772): the button drives the unified ffc_export_* dispatcher via window.FFCBatchedExport; carries the current search/status filters. ?>
+				<button
+					type="button"
+					id="ffc-shorturl-export-btn"
+					class="page-title-action"
+					data-s="<?php echo esc_attr( $search ); ?>"
+					data-status="<?php echo esc_attr( $status ); ?>"
+				><?php esc_html_e( 'Export CSV', 'ffcertificate' ); ?></button>
+				<span id="ffc-shorturl-export-progress" class="ffc-shorturl-export-progress" style="display:none;margin-left:8px;"></span>
 			<?php endif; ?>
 			<hr class="wp-header-end">
 

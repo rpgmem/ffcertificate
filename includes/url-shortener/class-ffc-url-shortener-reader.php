@@ -152,6 +152,9 @@ class UrlShortenerReader extends AbstractRepository {
 		);
 		$args     = wp_parse_args( $args, $defaults );
 
+		// Inline WHERE build kept here (rather than build_export_where) so the
+		// query stays a literal-string for the wpdb::prepare() type-check; the
+		// helper is used by the export methods, which suppress the check.
 		$where_clauses = array();
 		$where_values  = array();
 
@@ -204,6 +207,98 @@ class UrlShortenerReader extends AbstractRepository {
 			'items' => $items ? $items : array(),
 			'total' => $total,
 		);
+	}
+
+	/**
+	 * Build the shared WHERE clause (status + search) used by the admin list
+	 * and the CSV export. `status = 'all'` excludes trashed rows.
+	 *
+	 * @param array<string, mixed> $filters {.
+	 *     @type string $status Status filter ('all' excludes trashed).
+	 *     @type string $search Search term (title / target_url / short_code).
+	 * }
+	 * @return array<int, mixed> `[ $where_sql, $where_values ]`.
+	 * @phpstan-return array{0: string, 1: array<int, string>}
+	 */
+	private function build_export_where( array $filters ): array {
+		$status = isset( $filters['status'] ) ? (string) $filters['status'] : 'all';
+		$search = isset( $filters['search'] ) ? (string) $filters['search'] : '';
+
+		$where_clauses = array();
+		$where_values  = array();
+
+		if ( 'all' === $status ) {
+			// "All" excludes trashed items (like WordPress core).
+			$where_clauses[] = 'status != %s';
+			$where_values[]  = 'trashed';
+		} else {
+			$where_clauses[] = 'status = %s';
+			$where_values[]  = $status;
+		}
+
+		if ( '' !== $search ) {
+			$like            = '%' . $this->wpdb->esc_like( $search ) . '%';
+			$where_clauses[] = '(title LIKE %s OR target_url LIKE %s OR short_code LIKE %s)';
+			$where_values[]  = $like;
+			$where_values[]  = $like;
+			$where_values[]  = $like;
+		}
+
+		return array( 'WHERE ' . implode( ' AND ', $where_clauses ), $where_values );
+	}
+
+	/**
+	 * Count rows matching the export filters (status + search).
+	 *
+	 * @param array<string, mixed> $filters Status + search.
+	 * @return int
+	 */
+	public function countForExport( array $filters ): int {
+		list( $where_sql, $where_values ) = $this->build_export_where( $filters );
+
+		$query = "SELECT COUNT(*) FROM %i {$where_sql}";
+		$args  = array_merge( array( $this->table ), $where_values );
+
+		// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+		/**
+		 * The interpolated part is a literal WHERE from build_export_where().
+		 *
+		 * @phpstan-ignore-next-line argument.type
+		 */
+		$prepared = $this->wpdb->prepare( $query, ...$args );
+
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+		return (int) $this->wpdb->get_var( $prepared );
+	}
+
+	/**
+	 * Keyset page for the batched CSV export: rows with `id < $cursor`, newest
+	 * first (`id DESC`), limited to `$size`. Keyset (not LIMIT/OFFSET) so the
+	 * paging stays stable across concurrent inserts/deletes during a long export.
+	 *
+	 * @param array<string, mixed> $filters Status + search.
+	 * @param int                  $cursor  Exclusive upper-bound id (PHP_INT_MAX on the first page).
+	 * @param int                  $size    Page size.
+	 * @return array<int, array<string, mixed>>
+	 */
+	public function findByCursor( array $filters, int $cursor, int $size ): array {
+		list( $where_sql, $where_values ) = $this->build_export_where( $filters );
+
+		$query = "SELECT * FROM %i {$where_sql} AND id < %d ORDER BY id DESC LIMIT %d";
+		$args  = array_merge( array( $this->table ), $where_values, array( $cursor, $size ) );
+
+		// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+		/**
+		 * The interpolated part is a literal WHERE from build_export_where().
+		 *
+		 * @phpstan-ignore-next-line argument.type
+		 */
+		$prepared = $this->wpdb->prepare( $query, ...$args );
+
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+		$rows = $this->wpdb->get_results( $prepared, ARRAY_A );
+
+		return $rows ? $rows : array();
 	}
 
 	/**
