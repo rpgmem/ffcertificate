@@ -45,6 +45,10 @@
 
             // Calendar user access permissions
             this.initCalendarPermissions();
+
+            // Bookings CSV export button (own method so it registers even on
+            // pages where initCalendarPermissions early-returns).
+            this.initBookingsExport();
         },
 
         /**
@@ -421,11 +425,19 @@
                     .catch(function() { /* silent */ });
             });
 
-            // Batched CSV export (#772). The button drives the unified
-            // ffc_export_* dispatcher via the shared window.FFCBatchedExport
-            // driver, carrying the current schedule/environment/status/date
-            // filters. Export order is id-DESC (a stable keyset), not the
-            // on-screen sort.
+        },
+
+        /**
+         * Batched CSV export (#772) for the bookings page. Deliberately its own
+         * method — NOT folded into initCalendarPermissions, whose early-return
+         * on pages without #ffc-permissions-table (e.g. the bookings list) would
+         * otherwise skip registering this handler.
+         */
+        initBookingsExport: function() {
+            // The button drives the unified ffc_export_* dispatcher via the
+            // shared window.FFCBatchedExport driver, carrying the current
+            // schedule/environment/status/date filters. Export order is id-DESC
+            // (a stable keyset), not the on-screen sort.
             $(document).on('click', '#ffc-bookings-export-btn', function() {
                 if (!window.FFCBatchedExport) { return; }
                 var cfg = typeof ffcAudienceAdmin !== 'undefined' ? ffcAudienceAdmin : {};
