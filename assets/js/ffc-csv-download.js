@@ -15,11 +15,11 @@
  *  - ffc-csv-schedule-exception.js → per-participant schedule exception (#366)
  *
  * Flow overview:
- *  1. ffc_public_csv_info     → validate hash → show form details screen
+ *  1. ffc_public_csv_info  → validate hash → show form details screen
  *  2. (optional) cert preview → modal with certificate HTML
- *  3. ffc_public_csv_start    → create export job → returns job_id, total
- *  4. ffc_public_csv_batch    → process 50 rows   → returns processed/total (repeat)
- *  5. ffc_public_csv_download → serve file via iframe → triggers native download
+ *  3. the batched export (steps start → batch → download) runs through the
+ *     shared window.FFCBatchedExport driver against the unified `ffc_export_*`
+ *     dispatcher (type=public_forms); see ffc-csv-download-flow.js.
  *
  * Falls back to normal form POST when JS is unavailable (graceful degradation).
  *

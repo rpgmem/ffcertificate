@@ -780,6 +780,7 @@ class PublicCsvDownloadTest extends TestCase {
     // ==================================================================
 
     public function test_register_hooks_registers_ajax_actions(): void {
+        \FreeFormCertificate\Core\SourceRegistry::reset();
         $registered = array();
         Functions\when( 'add_shortcode' )->justReturn( true );
         Functions\when( 'add_action' )->alias( function ( $tag, $cb ) use ( &$registered ) {
@@ -788,12 +789,17 @@ class PublicCsvDownloadTest extends TestCase {
 
         $this->handler->register_hooks();
 
-        $this->assertContains( 'wp_ajax_ffc_public_csv_start', $registered );
-        $this->assertContains( 'wp_ajax_nopriv_ffc_public_csv_start', $registered );
-        $this->assertContains( 'wp_ajax_ffc_public_csv_batch', $registered );
-        $this->assertContains( 'wp_ajax_nopriv_ffc_public_csv_batch', $registered );
-        $this->assertContains( 'wp_ajax_ffc_public_csv_download', $registered );
-        $this->assertContains( 'wp_ajax_nopriv_ffc_public_csv_download', $registered );
+        // The remaining per-handler AJAX endpoints still register directly.
+        $this->assertContains( 'wp_ajax_ffc_public_csv_info', $registered );
+        $this->assertContains( 'wp_ajax_nopriv_ffc_public_csv_info', $registered );
+
+        // The batched export endpoints were unified (#772): instead of six
+        // `ffc_public_csv_*` add_action calls, register_hooks() now registers
+        // the public source with the shared registry (the dispatcher, wired in
+        // Loader, owns the `ffc_export_*` trio).
+        $this->assertNotContains( 'wp_ajax_ffc_public_csv_start', $registered );
+        $this->assertNotContains( 'wp_ajax_ffc_public_csv_download', $registered );
+        $this->assertTrue( \FreeFormCertificate\Core\SourceRegistry::has( 'public_forms' ) );
     }
 
     // ==================================================================

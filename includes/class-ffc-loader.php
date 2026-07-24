@@ -186,6 +186,13 @@ class Loader {
 		// Frontend + AJAX classes.
 		$this->frontend = new Frontend( $this->submission_handler );
 
+		// Unified batched-CSV-export dispatcher (#772): one `type`-routed AJAX
+		// trio (`ffc_export_start` / `_batch` / `_download`) for every export
+		// source. Concrete sources register a factory in the admin / frontend
+		// bootstraps; the dispatcher (Core) references none of them. Registered
+		// unconditionally so both priv and nopriv admin-ajax requests reach it.
+		( new \FreeFormCertificate\Core\BatchedExportDispatcher() )->register();
+
 		DashboardShortcode::init();
 		// Reregistration module — single bootstrap entry point (#563 B3).
 		( new ReregistrationLoader() )->init();

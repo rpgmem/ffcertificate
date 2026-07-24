@@ -68,6 +68,7 @@ describe('admin generate-codes — AJAX result branches', () => {
 			<div id="ffc-migrations-menu"></div>
 		`;
 		if (!window.FFC) { loadScript('assets/js/ffc-core.js'); }
+		loadScript('assets/js/ffc-batched-export.js');
 		loadScript('assets/js/ffc-admin.js');
 		await new Promise((r) => setTimeout(r, 0));
 	});
@@ -223,17 +224,18 @@ describe('admin CSV export — batched flow', () => {
 		// At this point three $.post calls fired synchronously (mocked).
 		expect(postSpy).toHaveBeenCalledTimes(3);
 		expect(calls[0]).toMatchObject({
-			action: 'ffc_csv_export_start',
+			action: 'ffc_export_start',
+			type: 'submissions',
 			nonce: 'exp-nonce',
 			status: 'publish',
 			form_ids: [1, 2],
 		});
-		expect(calls[1].action).toBe('ffc_csv_export_batch');
-		expect(calls[2].action).toBe('ffc_csv_export_batch');
+		expect(calls[1].action).toBe('ffc_export_batch');
+		expect(calls[2].action).toBe('ffc_export_batch');
 
 		// Progress text shows the last interim 10/10 line; iframe inserted.
 		expect(window.$('#ffc-csv-export-progress').text()).toContain('10/10');
-		expect(window.$('iframe[src*="ffc_csv_export_download"]').length).toBe(1);
+		expect(window.$('iframe[src*="ffc_export_download"]').length).toBe(1);
 	});
 
 	it('shows the error message when start returns success=false', async () => {
@@ -282,6 +284,7 @@ describe('admin migration manager dropdown', () => {
 		// Reload admin.js after mounting these so the dropdown ready-block
 		// finds the elements and wires its private handlers.
 		if (!window.FFC) { loadScript('assets/js/ffc-core.js'); }
+		loadScript('assets/js/ffc-batched-export.js');
 		loadScript('assets/js/ffc-admin.js');
 		await new Promise((r) => setTimeout(r, 0));
 	});
@@ -349,6 +352,7 @@ describe('admin filter overlay', () => {
 			</div>
 		`;
 		if (!window.FFC) { loadScript('assets/js/ffc-core.js'); }
+		loadScript('assets/js/ffc-batched-export.js');
 		loadScript('assets/js/ffc-admin.js');
 		await new Promise((r) => setTimeout(r, 0));
 	});
@@ -389,6 +393,7 @@ describe('admin quiz mode toggle', () => {
 			</div>
 		`;
 		if (!window.FFC) { loadScript('assets/js/ffc-core.js'); }
+		loadScript('assets/js/ffc-batched-export.js');
 		loadScript('assets/js/ffc-admin.js');
 		await new Promise((r) => setTimeout(r, 0));
 	});
@@ -428,6 +433,7 @@ describe('admin CSV public toggle', () => {
 			</div>
 		`;
 		if (!window.FFC) { loadScript('assets/js/ffc-core.js'); }
+		loadScript('assets/js/ffc-batched-export.js');
 		loadScript('assets/js/ffc-admin.js');
 		await new Promise((r) => setTimeout(r, 0));
 	});
@@ -460,6 +466,7 @@ describe('admin device-limit toggle', () => {
 			</div>
 		`;
 		if (!window.FFC) { loadScript('assets/js/ffc-core.js'); }
+		loadScript('assets/js/ffc-batched-export.js');
 		loadScript('assets/js/ffc-admin.js');
 		await new Promise((r) => setTimeout(r, 0));
 
@@ -477,6 +484,7 @@ describe('admin device-limit toggle', () => {
 			</div>
 		`;
 		if (!window.FFC) { loadScript('assets/js/ffc-core.js'); }
+		loadScript('assets/js/ffc-batched-export.js');
 		loadScript('assets/js/ffc-admin.js');
 		await new Promise((r) => setTimeout(r, 0));
 
@@ -500,6 +508,7 @@ describe('admin copy-to-clipboard', () => {
 		if (!window.FFC) { loadScript('assets/js/ffc-core.js'); }
 		// The delegated click handler is bound on document at IIFE eval —
 		// already present from prior suites' loads. Ensure at least one load.
+		loadScript('assets/js/ffc-batched-export.js');
 		loadScript('assets/js/ffc-admin.js');
 	});
 
@@ -582,6 +591,7 @@ describe('admin document.ready field-builder bootstrap', () => {
 		if (window.FFC && window.FFC.Admin) { delete window.FFC.Admin.FieldBuilder; }
 		const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
 		if (!window.FFC) { loadScript('assets/js/ffc-core.js'); }
+		loadScript('assets/js/ffc-batched-export.js');
 		loadScript('assets/js/ffc-admin.js');
 		await new Promise((r) => setTimeout(r, 0));
 		expect(warn).toHaveBeenCalledWith('[FFC Admin] Field Builder module not loaded');
@@ -598,6 +608,7 @@ describe('admin document.ready field-builder bootstrap', () => {
 		window.FFC.Admin = window.FFC.Admin || {};
 		const init = vi.fn();
 		window.FFC.Admin.FieldBuilder = { init };
+		loadScript('assets/js/ffc-batched-export.js');
 		loadScript('assets/js/ffc-admin.js');
 		await new Promise((r) => setTimeout(r, 0));
 		expect(init).toHaveBeenCalled();
@@ -611,6 +622,7 @@ describe('admin document.ready field-builder bootstrap', () => {
 describe('admin notification + status timers', () => {
 	beforeAll(() => {
 		if (!window.FFC) { loadScript('assets/js/ffc-core.js'); }
+		loadScript('assets/js/ffc-batched-export.js');
 		loadScript('assets/js/ffc-admin.js');
 	});
 
@@ -681,6 +693,7 @@ describe('admin CSV export — connection errors', () => {
 
 	beforeAll(() => {
 		if (!window.FFC) { loadScript('assets/js/ffc-core.js'); }
+		loadScript('assets/js/ffc-batched-export.js');
 		loadScript('assets/js/ffc-admin.js');
 	});
 
@@ -699,7 +712,7 @@ describe('admin CSV export — connection errors', () => {
 		window.ajaxurl = '/wp-admin/admin-ajax.php';
 		setupExport();
 		vi.spyOn(window.$, 'post').mockImplementation((url, payload) => {
-			if (payload.action === 'ffc_csv_export_start') {
+			if (payload.action === 'ffc_export_start') {
 				return postChain({ done: { success: true, data: { job_id: 'j', total: 5 } } });
 			}
 			return postChain({ fail: { status: 0 } });
@@ -721,14 +734,14 @@ describe('admin CSV export — connection errors', () => {
 		// prior admin.js load) all resolve consistently rather than racing
 		// over a shift()-based queue.
 		vi.spyOn(window.$, 'post').mockImplementation((url, payload) => {
-			if (payload.action === 'ffc_csv_export_start') {
+			if (payload.action === 'ffc_export_start') {
 				return postChain({ done: { success: true, data: { job_id: 'j', total: 3 } } });
 			}
 			return postChain({ done: { success: true, data: { processed: 3, done: true } } });
 		});
 		window.$('#ffc-csv-export-btn').trigger('click');
 		for (let i = 0; i < 8; i++) { await Promise.resolve(); }
-		expect(window.$('iframe[src*="ffc_csv_export_download"]').length).toBeGreaterThanOrEqual(1);
+		expect(window.$('iframe[src*="ffc_export_download"]').length).toBeGreaterThanOrEqual(1);
 		// The 2000ms deferred block re-enables the button, sets the done
 		// text, removes the iframe and schedules the progress fadeOut.
 		await new Promise((r) => setTimeout(r, 2200));

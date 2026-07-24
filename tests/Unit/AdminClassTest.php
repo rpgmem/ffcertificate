@@ -102,7 +102,7 @@ class AdminClassTest extends TestCase {
         $handler->shouldReceive( 'bulk_restore_submissions' )->byDefault();
         $handler->shouldReceive( 'bulk_delete_submissions' )->byDefault();
         $exporter = Mockery::mock( 'FreeFormCertificate\Admin\CsvExporter' );
-        $exporter->shouldReceive( 'register_ajax_hooks' )->byDefault();
+        $exporter->shouldReceive( 'register_source' )->byDefault();
         return array( new Admin( $handler, $exporter ), $handler );
     }
 

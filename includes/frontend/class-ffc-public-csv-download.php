@@ -129,14 +129,15 @@ class PublicCsvDownload {
 		add_action( 'wp_ajax_ffc_public_schedule_exception', array( $this, 'ajax_schedule_exception' ) );
 		add_action( 'wp_ajax_nopriv_ffc_public_schedule_exception', array( $this, 'ajax_schedule_exception' ) );
 
-		// AJAX batched export (JS path).
-		$exporter = new PublicCsvExporter();
-		add_action( 'wp_ajax_ffc_public_csv_start', array( $exporter, 'ajax_start' ) );
-		add_action( 'wp_ajax_nopriv_ffc_public_csv_start', array( $exporter, 'ajax_start' ) );
-		add_action( 'wp_ajax_ffc_public_csv_batch', array( $exporter, 'ajax_batch' ) );
-		add_action( 'wp_ajax_nopriv_ffc_public_csv_batch', array( $exporter, 'ajax_batch' ) );
-		add_action( 'wp_ajax_ffc_public_csv_download', array( $exporter, 'ajax_download' ) );
-		add_action( 'wp_ajax_nopriv_ffc_public_csv_download', array( $exporter, 'ajax_download' ) );
+		// AJAX batched export (JS path): register the public source with the
+		// shared registry; the unified dispatcher (wired in Loader, #772) routes
+		// `type=public_forms` requests through the `ffc_export_*` endpoints.
+		\FreeFormCertificate\Core\SourceRegistry::register(
+			PublicFormsExportSource::TYPE,
+			static function (): PublicFormsExportSource {
+				return new PublicFormsExportSource( new \FreeFormCertificate\Repositories\SubmissionRepository() );
+			}
+		);
 
 		// 6.3.3: admin-only audit log export. Logged-in only, no nopriv.
 		add_action( 'admin_post_' . self::EXPORT_LOG_ACTION, array( $this, 'handle_export_log_request' ) );

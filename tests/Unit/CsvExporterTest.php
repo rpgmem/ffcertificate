@@ -10,9 +10,10 @@ use PHPUnit\Framework\TestCase;
 use FreeFormCertificate\Admin\CsvExporter;
 
 /**
- * Tests for CsvExporter, the thin façade over the batched export engine
- * (issue #772): it registers the three AJAX hooks and owns the daily stale-job
- * cleanup cron. The export logic now lives in
+ * Tests for CsvExporter (issue #772): it registers the submissions source with
+ * the shared {@see \FreeFormCertificate\Core\SourceRegistry} (the unified
+ * dispatcher routes `type=submissions` to it) and owns the daily stale-job
+ * cleanup cron. The export logic lives in
  * {@see \FreeFormCertificate\Admin\SubmissionsExportSource} (see
  * SubmissionsExportSourceTest) and the job lifecycle in
  * {@see \FreeFormCertificate\Core\BatchedCsvExport} (see BatchedCsvExportTest).
@@ -38,26 +39,18 @@ class CsvExporterTest extends TestCase {
 	}
 
 	// ==================================================================
-	// register_ajax_hooks()
+	// register_source()
 	// ==================================================================
 
-	public function test_register_ajax_hooks_registers_three_actions(): void {
-		$hooks = array();
-		Functions\when( 'add_action' )->alias(
-			static function ( $hook ) use ( &$hooks ) {
-				$hooks[] = $hook;
-				return true;
-			}
-		);
+	public function test_register_source_registers_submissions_type(): void {
+		\FreeFormCertificate\Core\SourceRegistry::reset();
 
 		$ref      = new \ReflectionClass( CsvExporter::class );
 		$exporter = $ref->newInstanceWithoutConstructor();
-		$exporter->register_ajax_hooks();
+		$exporter->register_source();
 
-		$this->assertSame(
-			array( 'wp_ajax_ffc_csv_export_start', 'wp_ajax_ffc_csv_export_batch', 'wp_ajax_ffc_csv_export_download' ),
-			$hooks
-		);
+		$this->assertTrue( \FreeFormCertificate\Core\SourceRegistry::has( 'submissions' ) );
+		$this->assertContains( 'submissions', \FreeFormCertificate\Core\SourceRegistry::types() );
 	}
 
 	// ==================================================================

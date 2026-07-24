@@ -2,23 +2,16 @@
 /**
  * PublicCsvExporter
  *
- * CSV export for the public-facing download feature.
+ * Synchronous (no-JS) CSV export for the public-facing download feature:
+ * `stream_form_csv()` streams the entire CSV in one request, capped at an
+ * admin-configurable row limit (larger forms must use the batched JS path).
  *
- * Two execution paths:
- *
- *  **AJAX batched (primary, when JS is available):**
- *   `ajax_start()` / `ajax_batch()` / `ajax_download()` are thin forwarders to
- *   the shared {@see \FreeFormCertificate\Core\BatchedCsvExport} engine, driven
- *   by a {@see PublicFormsExportSource}. The engine owns the job lifecycle
- *   (temp file, transient, keyset loop, download, cleanup); the source owns the
- *   public specifics (layered auth, quota bump, columns, delivery audit row).
- *
- *  **Synchronous fallback (no-JS):**
- *   `stream_form_csv()` — streams the entire CSV in one request.
- *
- * The column layout intentionally mirrors `CsvExporter::get_fixed_headers()`
- * and `CsvExporter::format_csv_row()` so that admins can compare/download
- * the two sources interchangeably (both share {@see PublicCsvRowFormatter}).
+ * The batched (JS) path was consolidated onto the shared
+ * {@see \FreeFormCertificate\Core\BatchedCsvExport} engine in #772 and now lives
+ * in {@see PublicFormsExportSource} (routed by the unified dispatcher); this
+ * class keeps only the synchronous fallback. Its column layout mirrors the
+ * admin export (both share {@see PublicCsvRowFormatter}) so the two sources
+ * download interchangeably.
  *
  * @package FreeFormCertificate\Frontend
  * @since 5.1.0
@@ -28,7 +21,6 @@ declare(strict_types=1);
 
 namespace FreeFormCertificate\Frontend;
 
-use FreeFormCertificate\Core\BatchedCsvExport;
 use FreeFormCertificate\Core\CsvExportTrait;
 use FreeFormCertificate\Frontend\Csv\PublicCsvRowFormatter;
 use FreeFormCertificate\Repositories\SubmissionRepository;
@@ -38,31 +30,16 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 /**
- * Exporter for public csv data.
+ * Synchronous exporter for public csv data (no-JS fallback).
  */
 class PublicCsvExporter {
 
 	use CsvExportTrait;
 
 	/**
-	 * Rows pulled per batch while streaming.
-	 *
-	 * BC alias of {@see BatchedCsvExport::BATCH_SIZE}; still consumed by the
-	 * synchronous fallback below and by external integrations.
+	 * Rows pulled per page while streaming the synchronous export.
 	 */
-	const EXPORT_BATCH_SIZE = BatchedCsvExport::BATCH_SIZE;
-
-	/**
-	 * Rows pulled per batch during dynamic-key discovery.
-	 */
-	const KEYS_BATCH_SIZE = 500;
-
-	/**
-	 * How long (seconds) the job transient lives before auto-cleanup.
-	 *
-	 * BC alias of {@see BatchedCsvExport::JOB_TTL}.
-	 */
-	const JOB_TTL = BatchedCsvExport::JOB_TTL;
+	const EXPORT_BATCH_SIZE = 50;
 
 	/**
 	 * Default cap for the synchronous (no-JS) export path. Larger forms
@@ -90,20 +67,6 @@ class PublicCsvExporter {
 	protected $repository;
 
 	/**
-	 * Batched export source (public forms).
-	 *
-	 * @var PublicFormsExportSource
-	 */
-	private PublicFormsExportSource $source;
-
-	/**
-	 * Batched export engine.
-	 *
-	 * @var BatchedCsvExport
-	 */
-	private BatchedCsvExport $engine;
-
-	/**
 	 * Row formatter collaborator (headers / row formatting / key scan).
 	 *
 	 * Lazily constructed so it survives `newInstanceWithoutConstructor()` in
@@ -118,8 +81,6 @@ class PublicCsvExporter {
 	 */
 	public function __construct() {
 		$this->repository = new SubmissionRepository();
-		$this->source     = new PublicFormsExportSource( $this->repository );
-		$this->engine     = new BatchedCsvExport( 'ffc_public_csv_', 'ffc-public-export-' );
 	}
 
 	/**
@@ -132,41 +93,6 @@ class PublicCsvExporter {
 		}
 		return $this->row_formatter;
 	}
-
-	// ──────────────────────────────────────────────────────────────.
-	// AJAX batched path — delegated to the shared engine.
-	// ──────────────────────────────────────────────────────────────.
-
-	/**
-	 * Start a new AJAX export job.
-	 *
-	 * @since 5.1.0
-	 */
-	public function ajax_start(): void {
-		$this->engine->handle_start( $this->source );
-	}
-
-	/**
-	 * Process one batch and append rows to the temp file.
-	 *
-	 * @since 5.1.0
-	 */
-	public function ajax_batch(): void {
-		$this->engine->handle_batch( $this->source );
-	}
-
-	/**
-	 * Serve the completed CSV file and clean up.
-	 *
-	 * @since 5.1.0
-	 */
-	public function ajax_download(): void {
-		$this->engine->handle_download( $this->source );
-	}
-
-	// ──────────────────────────────────────────────────────────────.
-	// Synchronous fallback (no-JS)
-	// ──────────────────────────────────────────────────────────────.
 
 	/**
 	 * Stream the CSV file for a single form to the browser.
@@ -216,7 +142,7 @@ class PublicCsvExporter {
 		 * @param array<int,int> $form_ids Array with the single form ID being exported.
 		 * @param string         $status   Submission status filter.
 		 */
-		$filename = (string) apply_filters( 'ffcertificate_csv_export_filename', $filename, $form_ids, $status );
+		$filename = (string) apply_filters( 'ffc_export_filename', $filename, $form_ids, $status );
 
 		// Discard any buffered output so the CSV is the only payload on the wire.
 		// phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged, Generic.CodeAnalysis.EmptyStatement.DetectedWhile -- body intentionally empty; @ swallows the "no buffer" notice.
@@ -245,7 +171,7 @@ class PublicCsvExporter {
 		 * Filters the header row of the public CSV export.
 		 *
 		 * Use this to add custom columns (must match extra values injected
-		 * via `ffcertificate_csv_export_data`) or relabel existing ones.
+		 * via `ffc_export_data`) or relabel existing ones.
 		 *
 		 * @since 5.4.0
 		 *
@@ -253,7 +179,7 @@ class PublicCsvExporter {
 		 * @param bool               $include_edit_columns Whether edit-tracking columns are included.
 		 * @param array<int, int>    $form_ids             Array with the single form ID.
 		 */
-		$headers = (array) apply_filters( 'ffcertificate_csv_export_headers', $headers, $include_edit_columns, $form_ids );
+		$headers = (array) apply_filters( 'ffc_export_headers', $headers, $include_edit_columns, $form_ids );
 
 		$writer = \FreeFormCertificate\Core\Csv::writer( $output );
 		$writer->row( $headers );
@@ -278,7 +204,7 @@ class PublicCsvExporter {
 			 *
 			 * @since 5.1.0
 			 */
-			$batch = apply_filters( 'ffcertificate_csv_export_data', $batch, $form_ids, $status );
+			$batch = apply_filters( 'ffc_export_data', $batch, $form_ids, $status );
 
 			foreach ( $batch as $row ) {
 				$writer->row( $this->format_csv_row( $row, $dynamic_keys, $include_edit_columns ) );
@@ -307,7 +233,7 @@ class PublicCsvExporter {
 		 * @param array<string, mixed> $job      Export context (form_ids, status, filename, mode).
 		 */
 		do_action(
-			'ffcertificate_csv_export_completed',
+			'ffc_export_completed',
 			'',
 			'',
 			(int) $row_count,

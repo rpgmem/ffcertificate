@@ -345,23 +345,35 @@ class Frontend {
 				true
 			);
 
+			// Shared batched-export driver (#772): the start → batch → download
+			// loop for the unified `ffc_export_*` dispatcher, used by the
+			// download-flow module below (and by the admin CSV export button).
+			wp_enqueue_script(
+				'ffc-batched-export',
+				FFC_PLUGIN_URL . "assets/js/ffc-batched-export{$s}.js",
+				array( 'jquery', 'ffc-core' ),
+				FFC_VERSION,
+				true
+			);
+
 			// Flow modules split out of the former monolith. Each depends on
 			// 'ffc-csv-download' (the shared core that owns window.FFCCsv) and
 			// reads the localized config from it — no per-file localize needed.
+			// The batched download flow additionally needs the shared driver.
 			foreach (
 				array(
-					'ffc-csv-info-screen',
-					'ffc-csv-cert-preview',
-					'ffc-csv-download-flow',
-					'ffc-csv-open-early',
-					'ffc-csv-extend-end',
-					'ffc-csv-schedule-exception',
-				) as $ffc_csv_module
+					'ffc-csv-info-screen'        => array( 'jquery', 'ffc-core', 'ffc-csv-download' ),
+					'ffc-csv-cert-preview'       => array( 'jquery', 'ffc-core', 'ffc-csv-download' ),
+					'ffc-csv-download-flow'      => array( 'jquery', 'ffc-core', 'ffc-csv-download', 'ffc-batched-export' ),
+					'ffc-csv-open-early'         => array( 'jquery', 'ffc-core', 'ffc-csv-download' ),
+					'ffc-csv-extend-end'         => array( 'jquery', 'ffc-core', 'ffc-csv-download' ),
+					'ffc-csv-schedule-exception' => array( 'jquery', 'ffc-core', 'ffc-csv-download' ),
+				) as $ffc_csv_module => $ffc_csv_deps
 			) {
 				wp_enqueue_script(
 					$ffc_csv_module,
 					FFC_PLUGIN_URL . "assets/js/{$ffc_csv_module}{$s}.js",
-					array( 'jquery', 'ffc-core', 'ffc-csv-download' ),
+					$ffc_csv_deps,
 					FFC_VERSION,
 					true
 				);

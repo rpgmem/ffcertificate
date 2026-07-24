@@ -185,8 +185,10 @@ class Admin {
 		add_action( 'admin_init', array( $this, 'handle_submission_edit_save' ) );
 		add_action( 'admin_init', array( $this, 'handle_migration_action' ) );
 
-		// AJAX-driven CSV export (avoids web-server timeouts with large datasets).
-		$this->csv_exporter->register_ajax_hooks();
+		// AJAX-driven CSV export (avoids web-server timeouts with large datasets):
+		// register the submissions source with the shared registry; the unified
+		// dispatcher (wired in Loader, #772) routes `type=submissions` to it.
+		$this->csv_exporter->register_source();
 	}
 
 	/**
