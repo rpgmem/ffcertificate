@@ -13,6 +13,18 @@
  * admin export (both share {@see PublicCsvRowFormatter}) so the two sources
  * download interchangeably.
  *
+ * Deliberate keep (#772 audit): `stream_form_csv()` is the one CSV output that
+ * writes to `php://output` directly instead of routing through the two Core
+ * adapters (`SyncCsvExport` / `BatchedCsvExport`). It stays bespoke on purpose —
+ * it is the graceful-degradation half of the only *public/frontend* export: a
+ * plain `<form>` POST to `admin-post.php` that works with JavaScript disabled
+ * (the admin exports have no such fallback because they run in wp-admin, where
+ * JS is assured). It does not become a {@see \FreeFormCertificate\Core\SyncSourceInterface}
+ * because (a) it is a direct `admin_post` streaming handler, not an AJAX job, and
+ * (b) over the row cap it emits an HTML 413 page (`render_sync_limit_exceeded()`),
+ * which does not fit the `rows(): iterable` contract. See CLAUDE.md §3 "CSV export
+ * architecture" (the audit-grep note).
+ *
  * @package FreeFormCertificate\Frontend
  * @since 5.1.0
  */
