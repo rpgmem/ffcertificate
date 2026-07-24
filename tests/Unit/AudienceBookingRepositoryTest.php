@@ -1676,4 +1676,114 @@ class AudienceBookingRepositoryTest extends TestCase {
         $this->assertSame(0, $result);
         $this->assertIsInt($result);
     }
+
+    // ==================================================================
+    // count_for_export() — JOINs the environment table so schedule_id filters
+    // ==================================================================
+
+    public function test_count_for_export_joins_environment_and_counts(): void {
+        $captured_sql = '';
+        $this->wpdb->shouldReceive('prepare')->once()->andReturnUsing(function() use (&$captured_sql) {
+            $captured_sql = func_get_args()[0];
+            return $captured_sql;
+        });
+        $this->wpdb->shouldReceive('get_var')->once()->andReturn('9');
+
+        $result = AudienceBookingReader::count_for_export([]);
+
+        $this->assertSame(9, $result);
+        $this->assertStringContainsString('SELECT COUNT(*)', $captured_sql);
+        $this->assertStringContainsString('INNER JOIN', $captured_sql);
+    }
+
+    public function test_count_for_export_filters_by_schedule_id(): void {
+        $captured_sql = '';
+        $this->wpdb->shouldReceive('prepare')->once()->andReturnUsing(function() use (&$captured_sql) {
+            $captured_sql = func_get_args()[0];
+            return $captured_sql;
+        });
+        $this->wpdb->shouldReceive('get_var')->once()->andReturn('2');
+
+        $result = AudienceBookingReader::count_for_export(['schedule_id' => 4]);
+
+        $this->assertSame(2, $result);
+        $this->assertStringContainsString('e.schedule_id = %d', $captured_sql);
+    }
+
+    public function test_count_for_export_combines_filters(): void {
+        $captured_sql = '';
+        $this->wpdb->shouldReceive('prepare')->once()->andReturnUsing(function() use (&$captured_sql) {
+            $captured_sql = func_get_args()[0];
+            return $captured_sql;
+        });
+        $this->wpdb->shouldReceive('get_var')->once()->andReturn('1');
+
+        AudienceBookingReader::count_for_export([
+            'environment_id' => 3,
+            'status'         => 'active',
+            'start_date'     => '2026-05-01',
+            'end_date'       => '2026-05-31',
+        ]);
+
+        $this->assertStringContainsString('b.environment_id = %d', $captured_sql);
+        $this->assertStringContainsString('b.status = %s', $captured_sql);
+        $this->assertStringContainsString('b.booking_date >= %s', $captured_sql);
+        $this->assertStringContainsString('b.booking_date <= %s', $captured_sql);
+    }
+
+    // ==================================================================
+    // find_by_cursor() — keyset page for the batched CSV export
+    // ==================================================================
+
+    public function test_find_by_cursor_builds_keyset_desc_query(): void {
+        $captured_sql = '';
+        $this->wpdb->shouldReceive('prepare')->once()->andReturnUsing(function() use (&$captured_sql) {
+            $captured_sql = func_get_args()[0];
+            return $captured_sql;
+        });
+        $rows = [(object) ['id' => '5'], (object) ['id' => '4']];
+        $this->wpdb->shouldReceive('get_results')->once()->andReturn($rows);
+
+        $result = AudienceBookingReader::find_by_cursor([], 10, 50);
+
+        $this->assertSame($rows, $result);
+        $this->assertStringContainsString('b.id < %d', $captured_sql);
+        $this->assertStringContainsString('ORDER BY b.id DESC', $captured_sql);
+        $this->assertStringContainsString('LIMIT %d', $captured_sql);
+        $this->assertStringContainsString('INNER JOIN', $captured_sql);
+    }
+
+    public function test_find_by_cursor_applies_filters(): void {
+        $captured_sql = '';
+        $this->wpdb->shouldReceive('prepare')->once()->andReturnUsing(function() use (&$captured_sql) {
+            $captured_sql = func_get_args()[0];
+            return $captured_sql;
+        });
+        $this->wpdb->shouldReceive('get_results')->once()->andReturn([]);
+
+        AudienceBookingReader::find_by_cursor(
+            [
+                'schedule_id'    => 4,
+                'environment_id' => 3,
+                'status'         => 'cancelled',
+                'start_date'     => '2026-05-01',
+                'end_date'       => '2026-05-31',
+            ],
+            PHP_INT_MAX,
+            25
+        );
+
+        $this->assertStringContainsString('e.schedule_id = %d', $captured_sql);
+        $this->assertStringContainsString('b.environment_id = %d', $captured_sql);
+        $this->assertStringContainsString('b.status = %s', $captured_sql);
+        $this->assertStringContainsString('b.booking_date >= %s', $captured_sql);
+        $this->assertStringContainsString('b.booking_date <= %s', $captured_sql);
+    }
+
+    public function test_find_by_cursor_returns_empty_when_no_results(): void {
+        $this->wpdb->shouldReceive('prepare')->once()->andReturn('QUERY');
+        $this->wpdb->shouldReceive('get_results')->once()->andReturn(null);
+
+        $this->assertSame([], AudienceBookingReader::find_by_cursor([], 10, 50));
+    }
 }
