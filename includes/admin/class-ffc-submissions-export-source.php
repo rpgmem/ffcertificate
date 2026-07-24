@@ -140,14 +140,17 @@ class SubmissionsExportSource implements BatchedExportSourceInterface {
 	 * @return array<string, mixed>
 	 */
 	public function sanitize_filters(): array {
+		// The nonce is verified in authorize_start(), which the engine calls
+		// before this. NonceVerification can't see across methods, so disable it
+		// for this request-reading block; inputs are unslashed + sanitized
+		// (absint() per element / sanitize_key()).
+		// phpcs:disable WordPress.Security.NonceVerification.Missing, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized, WordPress.Security.ValidatedSanitizedInput.MissingUnslash
 		$form_ids = null;
-		// phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized, WordPress.Security.ValidatedSanitizedInput.MissingUnslash -- absint() applied to each element; is_array() is a type check only. Nonce verified in authorize_start().
 		if ( ! empty( $_POST['form_ids'] ) && is_array( $_POST['form_ids'] ) ) {
-			// phpcs:ignore WordPress.Security.NonceVerification.Missing -- Nonce verified in authorize_start().
 			$form_ids = array_map( 'absint', wp_unslash( $_POST['form_ids'] ) );
 		}
-		// phpcs:ignore WordPress.Security.NonceVerification.Missing, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized, WordPress.Security.ValidatedSanitizedInput.MissingUnslash -- sanitize_key after unslash; nonce verified in authorize_start().
 		$status = isset( $_POST['status'] ) ? sanitize_key( wp_unslash( $_POST['status'] ) ) : 'publish';
+		// phpcs:enable WordPress.Security.NonceVerification.Missing, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized, WordPress.Security.ValidatedSanitizedInput.MissingUnslash
 
 		return array(
 			'form_ids' => $form_ids,
