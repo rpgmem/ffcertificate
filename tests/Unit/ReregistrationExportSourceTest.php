@@ -41,6 +41,7 @@ class ReregistrationExportSourceTest extends TestCase {
 		Functions\when( 'esc_html__' )->returnArg();
 		Functions\when( 'wp_unslash' )->returnArg();
 		Functions\when( 'sanitize_text_field' )->returnArg();
+		Functions\when( 'sanitize_file_name' )->alias( static fn( $v ) => str_replace( ' ', '-', (string) $v ) );
 		Functions\when( 'absint' )->alias( static fn( $v ) => abs( (int) $v ) );
 
 		$this->source = new ReregistrationExportSource();
