@@ -494,7 +494,8 @@ class AppointmentExportSource implements BatchedExportSourceInterface {
 	 */
 	private function get_calendar_title_cached( int $calendar_id ): string {
 		if ( ! isset( $this->calendar_title_cache[ $calendar_id ] ) ) {
-			$calendar                                    = $this->calendar_repository->findById( $calendar_id );
+			$calendar = $this->calendar_repository->findById( $calendar_id );
+
 			$this->calendar_title_cache[ $calendar_id ] = $calendar['title'] ?? __( '(Deleted)', 'ffcertificate' );
 		}
 		return $this->calendar_title_cache[ $calendar_id ];

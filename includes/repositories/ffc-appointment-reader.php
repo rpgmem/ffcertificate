@@ -655,8 +655,16 @@ class AppointmentReader extends AbstractRepository {
 		list( $where_clause, $args ) = $this->build_export_where( $calendar_ids, $statuses, $start_date, $end_date );
 
 		$sql = "SELECT COUNT(*) FROM %i {$where_clause}";
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- $where_clause is built from validated placeholders; values are bound through wpdb->prepare.
-		return (int) $this->wpdb->get_var( $this->wpdb->prepare( $sql, $args ) );
+		// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared -- $where_clause is built from validated placeholders; values are bound through wpdb->prepare.
+		/**
+		 * $args is a merged identifier + value list bound by wpdb->prepare.
+		 *
+		 * @phpstan-ignore-next-line argument.type
+		 */
+		$sql = $this->wpdb->prepare( $sql, ...$args );
+
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+		return (int) $this->wpdb->get_var( $sql );
 	}
 
 	/**
@@ -681,8 +689,16 @@ class AppointmentReader extends AbstractRepository {
 		$args[]       = $limit;
 
 		$sql = "SELECT * FROM %i {$where_clause} ORDER BY id DESC LIMIT %d";
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- $where_clause is built from validated placeholders; values are bound through wpdb->prepare.
-		$rows = $this->wpdb->get_results( $this->wpdb->prepare( $sql, $args ), ARRAY_A );
+		// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared -- $where_clause is built from validated placeholders; values are bound through wpdb->prepare.
+		/**
+		 * $args is a merged identifier + value list bound by wpdb->prepare.
+		 *
+		 * @phpstan-ignore-next-line argument.type
+		 */
+		$sql = $this->wpdb->prepare( $sql, ...$args );
+
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+		$rows = $this->wpdb->get_results( $sql, ARRAY_A );
 		return is_array( $rows ) ? $rows : array();
 	}
 
@@ -708,8 +724,16 @@ class AppointmentReader extends AbstractRepository {
 		$args[]       = $limit;
 
 		$sql = "SELECT id, custom_data, custom_data_encrypted FROM %i {$where_clause} ORDER BY id DESC LIMIT %d";
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- $where_clause is built from validated placeholders; values are bound through wpdb->prepare.
-		$rows = $this->wpdb->get_results( $this->wpdb->prepare( $sql, $args ), ARRAY_A );
+		// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared -- $where_clause is built from validated placeholders; values are bound through wpdb->prepare.
+		/**
+		 * $args is a merged identifier + value list bound by wpdb->prepare.
+		 *
+		 * @phpstan-ignore-next-line argument.type
+		 */
+		$sql = $this->wpdb->prepare( $sql, ...$args );
+
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+		$rows = $this->wpdb->get_results( $sql, ARRAY_A );
 		return is_array( $rows ) ? $rows : array();
 	}
 
