@@ -10,19 +10,19 @@ use Mockery;
 use Mockery\Adapter\Phpunit\MockeryPHPUnitIntegration;
 use PHPUnit\Framework\TestCase;
 use FreeFormCertificate\Admin\AdminActivityLogPage;
-use FreeFormCertificate\Core\CsvStreamer;
-use FreeFormCertificate\Core\CsvDownloadInterface;
 
 /**
- * Tests for AdminActivityLogPage: register_menu, enqueue_scripts,
- * handle_csv_export, render_page (enabled + disabled), build_query_args,
- * render_rows_html, render_pagination_html, plus the static label/badge/summary
- * helpers.
+ * Tests for AdminActivityLogPage: constructor source registration,
+ * register_menu, enqueue_scripts, render_page (enabled + disabled),
+ * build_query_args, render_rows_html, render_pagination_html, plus the static
+ * label/badge/summary helpers. The CSV export now runs through the batched
+ * engine (issue #772); its per-source behavior lives in
+ * ActivityLogExportSourceTest.
  *
  * Process isolation is required because several tests use Mockery `alias:`
  * mocks for the static core helpers (ActivityLogQuery, Capabilities,
- * RequestInput, FilenameHelper, Csv, DateFormatter, SettingsReader) — alias
- * mocks would otherwise leak across the suite.
+ * RequestInput, DateFormatter, SettingsReader) — alias mocks would otherwise
+ * leak across the suite.
  *
  * @covers \FreeFormCertificate\Admin\AdminActivityLogPage
  * @runTestsInSeparateProcesses
@@ -95,7 +95,7 @@ class AdminActivityLogPageTest extends TestCase {
         $this->assertSame('render_page', $captured_callback[1]);
     }
 
-    public function test_register_menu_registers_export_and_enqueue_hooks(): void {
+    public function test_register_menu_registers_enqueue_hook_only(): void {
         Functions\when('add_submenu_page')->justReturn('hook');
         $hooks = [];
         Functions\when('add_action')->alias(function ($hook, $cb) use (&$hooks) {
@@ -105,10 +105,29 @@ class AdminActivityLogPageTest extends TestCase {
         $page = new AdminActivityLogPage();
         $page->register_menu();
 
-        $this->assertArrayHasKey('admin_init', $hooks);
+        // The synchronous admin_init handle_csv_export handler was removed
+        // when the export moved onto the batched dispatcher (#772).
+        $this->assertArrayNotHasKey('admin_init', $hooks);
         $this->assertArrayHasKey('admin_enqueue_scripts', $hooks);
-        $this->assertSame([$page, 'handle_csv_export'], $hooks['admin_init']);
         $this->assertSame([$page, 'enqueue_scripts'], $hooks['admin_enqueue_scripts']);
+    }
+
+    // ==================================================================
+    // __construct() — batched-export source registration (#772)
+    // ==================================================================
+
+    public function test_construct_registers_activity_log_export_source(): void {
+        new AdminActivityLogPage();
+
+        $this->assertTrue(
+            \FreeFormCertificate\Core\SourceRegistry::has(
+                \FreeFormCertificate\Admin\ActivityLogExportSource::TYPE
+            )
+        );
+        $this->assertSame(
+            'activity_log',
+            \FreeFormCertificate\Admin\ActivityLogExportSource::TYPE
+        );
     }
 
     // ==================================================================
@@ -154,164 +173,16 @@ class AdminActivityLogPageTest extends TestCase {
         $page->enqueue_scripts('ffc_form_page_ffc-activity-log');
 
         $this->assertContains('ffc-core', $scripts);
+        $this->assertContains('ffc-batched-export', $scripts);
         $this->assertContains('ffc-admin-activity-log', $scripts);
         $this->assertNotNull($localized);
         $this->assertSame('nonce123', $localized['nonce']);
+        // Batched export (#772) needs the AJAX url + a dedicated job nonce.
+        $this->assertArrayHasKey('ajaxUrl', $localized);
+        $this->assertSame('nonce123', $localized['exportNonce']);
         $this->assertArrayHasKey('strings', $localized);
         $this->assertArrayHasKey('noLogs', $localized['strings']);
-    }
-
-    // ==================================================================
-    // handle_csv_export()
-    // ==================================================================
-
-    public function test_handle_csv_export_returns_early_when_not_on_page(): void {
-        Mockery::mock('alias:\FreeFormCertificate\Core\RequestInput')
-            ->shouldReceive('get_get_string')->with('page')->andReturn('other-page');
-
-        $caps = Mockery::mock('alias:\FreeFormCertificate\Core\Capabilities');
-        $caps->shouldReceive('current_user_can_admin_or')->never();
-
-        $page = new AdminActivityLogPage();
-        $page->handle_csv_export();
-
-        $this->assertTrue(true);
-    }
-
-    public function test_handle_csv_export_returns_early_without_export_flag(): void {
-        Mockery::mock('alias:\FreeFormCertificate\Core\RequestInput')
-            ->shouldReceive('get_get_string')->with('page')->andReturn('ffc-activity-log');
-        // ffc_export_logs not set in $_GET.
-
-        $caps = Mockery::mock('alias:\FreeFormCertificate\Core\Capabilities');
-        $caps->shouldReceive('current_user_can_admin_or')->never();
-
-        $page = new AdminActivityLogPage();
-        $page->handle_csv_export();
-
-        $this->assertTrue(true);
-    }
-
-    public function test_handle_csv_export_dies_when_unauthorized(): void {
-        $_GET['ffc_export_logs'] = '1';
-
-        Mockery::mock('alias:\FreeFormCertificate\Core\RequestInput')
-            ->shouldReceive('get_get_string')->with('page')->andReturn('ffc-activity-log');
-
-        Mockery::mock('alias:\FreeFormCertificate\Core\Capabilities')
-            ->shouldReceive('current_user_can_admin_or')->with('ffc_export_activity_log')->andReturn(false);
-
-        Functions\when('wp_die')->alias(function () {
-            throw new \RuntimeException('wp_die');
-        });
-
-        $page = new AdminActivityLogPage();
-
-        $this->expectException(\RuntimeException::class);
-        $this->expectExceptionMessage('wp_die');
-        $page->handle_csv_export();
-    }
-
-    /**
-     * A CsvDownloadInterface that captures the export bytes instead of writing
-     * to php://output / calling exit.
-     */
-    private function buffered_download(): CsvDownloadInterface {
-        return new class() implements CsvDownloadInterface {
-            public bool $finished = false;
-            public string $output = '';
-            /** @var resource|null */
-            private $stream = null;
-
-            public function send_headers( string $filename ): void {
-                unset( $filename );
-            }
-
-            public function open_stream() {
-                if ( ! is_resource( $this->stream ) ) {
-                    $this->stream = fopen( 'php://memory', 'w+' );
-                }
-                return $this->stream;
-            }
-
-            public function finish(): void {
-                $this->finished = true;
-                if ( is_resource( $this->stream ) ) {
-                    rewind( $this->stream );
-                    $this->output = (string) stream_get_contents( $this->stream );
-                }
-            }
-        };
-    }
-
-    public function test_handle_csv_export_happy_path_streams_csv(): void {
-        $_GET['ffc_export_logs'] = '1';
-        $_GET['level']          = 'error';
-
-        Mockery::mock('alias:\FreeFormCertificate\Core\RequestInput')
-            ->shouldReceive('get_get_string')
-            ->andReturnUsing(function ($key) {
-                $map = ['page' => 'ffc-activity-log', 'log_action' => 'submission_created', 's' => 'needle'];
-                return $map[$key] ?? '';
-            });
-
-        Mockery::mock('alias:\FreeFormCertificate\Core\Capabilities')
-            ->shouldReceive('current_user_can_admin_or')->andReturn(true);
-
-        Functions\when('check_admin_referer')->justReturn(true);
-        Functions\when('wp_unslash')->returnArg();
-
-        $captured_args = null;
-        Mockery::mock('alias:\FreeFormCertificate\Core\ActivityLogQuery')
-            ->shouldReceive('get_activities')
-            ->andReturnUsing(function ($args) use (&$captured_args) {
-                $captured_args = $args;
-                return [
-                    [
-                        'created_at' => '2026-01-01 00:00:00',
-                        'level'      => 'error',
-                        'action'     => 'submission_created',
-                        'user_id'    => 7,
-                        'user_ip'    => '203.0.113.5',
-                        'context'    => ['form_id' => 42],
-                    ],
-                    [
-                        'created_at' => '2026-01-02 00:00:00',
-                        'level'      => 'info',
-                        'action'     => 'data_accessed',
-                        'user_id'    => 0,
-                        'user_ip'    => '',
-                        'context'    => 'plain string context',
-                    ],
-                ];
-            });
-
-        $user            = new \stdClass();
-        $user->display_name = 'Jane Doe';
-        $user->user_login   = 'jane';
-        Functions\when('get_userdata')->justReturn($user);
-        Functions\when('wp_json_encode')->alias(static fn($v) => json_encode($v));
-
-        Mockery::mock('alias:\FreeFormCertificate\Core\FilenameHelper')
-            ->shouldReceive('get_export_filename')->andReturn('ffc-activity-log.csv');
-
-        // With the injected CsvStreamer the export is captured into php://memory
-        // (no real Csv::writer alias-mock, no header()/exit) so we can assert on
-        // the actual bytes as well as the filter args passed to the query.
-        $download = $this->buffered_download();
-        $page     = new AdminActivityLogPage( new CsvStreamer( $download ) );
-
-        $page->handle_csv_export();
-
-        $this->assertTrue($download->finished, 'stream finished');
-        $this->assertStringContainsString('Date/Time', $download->output, 'header row present');
-        $this->assertStringContainsString('Jane Doe', $download->output, 'known user resolved');
-        $this->assertStringContainsString('System / Anonymous', $download->output, 'anonymous row present');
-
-        $this->assertSame('error', $captured_args['level']);
-        $this->assertSame('submission_created', $captured_args['action']);
-        $this->assertSame('needle', $captured_args['search']);
-        $this->assertSame(999999, $captured_args['limit']);
+        $this->assertArrayHasKey('exportProgress', $localized['strings']);
     }
 
     // ==================================================================

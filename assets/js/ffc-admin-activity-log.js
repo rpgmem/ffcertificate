@@ -7,9 +7,10 @@
  * keeps the URL in sync so results are bookmarkable and the back button
  * restores the previous filter.
  *
- * The Export CSV link is left alone — `php://output` streaming is
- * already correct; we just show a tiny "Preparing…" toast while the
- * download starts.
+ * The Export CSV button drives the shared window.FFCBatchedExport engine
+ * (#772) through the unified `ffc_export_*` dispatcher, carrying the current
+ * level/action/search filters — the timeout-safe start → batch → download
+ * job replaces the former synchronous stream.
  *
  * @since 6.5.8
  */
@@ -167,13 +168,55 @@
         fetch({ level: '', log_action: '', search: '' }, 1);
     });
 
-    // Export CSV — let the native link work, just pop a small toast
-    // so the admin knows something happened.
-    $(document).on('click', '.tablenav.top a.button[href*="ffc_export_logs"]', function () {
-        var s = strings();
-        if (window.FFC.Admin && typeof window.FFC.Admin.showNotification === 'function') {
-            window.FFC.Admin.showNotification(s.preparing || 'Preparing CSV download…', 'info', 4000);
-        }
+    // Export CSV — batched engine (#772). The button drives the unified
+    // ffc_export_* dispatcher via the shared window.FFCBatchedExport driver,
+    // carrying the current level/action/search filters. Export order is
+    // id-DESC (a stable keyset), not the on-screen sort.
+    $(document).on('click', '#ffc-activitylog-export-btn', function () {
+        if (!window.FFCBatchedExport) { return; }
+        var c         = cfg();
+        var s         = strings();
+        var $btn      = $(this);
+        var $progress = $('#ffc-activitylog-export-progress');
+        var exportNonce = c.exportNonce || '';
+        if (!exportNonce) { return; }
+
+        var originalText = $btn.text();
+        $btn.prop('disabled', true).text(s.exportPreparing || 'Preparing…');
+        $progress.show().text('');
+
+        var exportingTpl = s.exportProgress || 'Exporting %1$d/%2$d…';
+        var total = 0;
+
+        window.FFCBatchedExport.run({
+            type: 'activity_log',
+            ajaxUrl: c.ajaxUrl,
+            nonce: exportNonce,
+            startData: {
+                level:      $btn.data('level') || '',
+                log_action: $btn.data('log_action') || '',
+                s:          $btn.data('s') || ''
+            },
+            callbacks: {
+                onStart: function (t) { total = t; },
+                onProgress: function (processed) {
+                    $progress.text(exportingTpl.replace('%1$d', processed).replace('%2$d', total));
+                },
+                onComplete: function (downloadUrl, ctx) {
+                    var $iframe = $('<iframe>', { src: downloadUrl }).css({ display: 'none' }).appendTo('body');
+                    setTimeout(function () {
+                        $btn.prop('disabled', false).text(originalText);
+                        $progress.text('✓ ' + ctx.processed + '/' + total + ' — ' + (s.exportDone || 'Done!'));
+                        setTimeout(function () { $progress.fadeOut(); }, 5000);
+                        $iframe.remove();
+                    }, 2000);
+                },
+                onError: function (err) {
+                    $btn.prop('disabled', false).text(originalText);
+                    $progress.text((err && err.fromServer && err.message) || (s.error || 'Failed to fetch logs.'));
+                }
+            }
+        });
     });
 
     // Back/forward — restore from history state.
