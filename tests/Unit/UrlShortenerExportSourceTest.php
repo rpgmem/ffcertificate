@@ -36,6 +36,10 @@ class UrlShortenerExportSourceTest extends TestCase {
 
 		Functions\when( '__' )->returnArg();
 		Functions\when( 'esc_html__' )->returnArg();
+		// RequestInput::get_post_string / get_get_string read the superglobals
+		// through these unqualified core helpers (global fallback resolution).
+		Functions\when( 'wp_unslash' )->returnArg();
+		Functions\when( 'sanitize_text_field' )->returnArg();
 
 		$this->repository = Mockery::mock( 'FreeFormCertificate\UrlShortener\UrlShortenerRepository' );
 		$this->source     = new UrlShortenerExportSource( $this->repository );
@@ -133,12 +137,8 @@ class UrlShortenerExportSourceTest extends TestCase {
 	// ==================================================================
 
 	public function test_sanitize_filters_defaults_status_to_all(): void {
-		Mockery::mock( 'alias:FreeFormCertificate\Core\RequestInput' )
-			->shouldReceive( 'get_post_string' )->andReturnUsing(
-				static function ( $key ) {
-					return 's' === $key ? 'foo' : '';
-				}
-			);
+		$_POST['s'] = 'foo';
+		// status left unset → get_post_string returns '' → defaults to 'all'.
 
 		$filters = $this->source->sanitize_filters();
 		$this->assertSame( 'foo', $filters['search'] );
@@ -190,8 +190,8 @@ class UrlShortenerExportSourceTest extends TestCase {
 	public function test_authorize_start_rejects_without_capability(): void {
 		$this->stub_terminators();
 		Functions\when( 'check_ajax_referer' )->justReturn( true );
-		Mockery::mock( 'alias:FreeFormCertificate\Core\Capabilities' )
-			->shouldReceive( 'current_user_can_admin_or' )->andReturn( false );
+		// Capabilities::current_user_can_admin_or() delegates to current_user_can().
+		Functions\when( 'current_user_can' )->justReturn( false );
 
 		$this->expectException( \RuntimeException::class );
 		$this->expectExceptionMessage( 'json_error' );
@@ -201,9 +201,8 @@ class UrlShortenerExportSourceTest extends TestCase {
 	public function test_authorize_batch_rejects_on_user_mismatch(): void {
 		$this->stub_terminators();
 		Functions\when( 'check_ajax_referer' )->justReturn( true );
+		Functions\when( 'current_user_can' )->justReturn( true );
 		Functions\when( 'get_current_user_id' )->justReturn( 1 );
-		Mockery::mock( 'alias:FreeFormCertificate\Core\Capabilities' )
-			->shouldReceive( 'current_user_can_admin_or' )->andReturn( true );
 
 		$this->expectException( \RuntimeException::class );
 		$this->expectExceptionMessage( 'json_error' );
@@ -213,8 +212,6 @@ class UrlShortenerExportSourceTest extends TestCase {
 	public function test_authorize_download_rejects_on_bad_nonce(): void {
 		$this->stub_terminators();
 		Functions\when( 'wp_verify_nonce' )->justReturn( false );
-		Mockery::mock( 'alias:FreeFormCertificate\Core\RequestInput' )
-			->shouldReceive( 'get_get_string' )->andReturn( 'n' );
 
 		$this->expectException( \RuntimeException::class );
 		$this->expectExceptionMessage( 'wp_die' );
@@ -224,11 +221,8 @@ class UrlShortenerExportSourceTest extends TestCase {
 	public function test_authorize_download_rejects_on_user_mismatch(): void {
 		$this->stub_terminators();
 		Functions\when( 'wp_verify_nonce' )->justReturn( true );
+		Functions\when( 'current_user_can' )->justReturn( true );
 		Functions\when( 'get_current_user_id' )->justReturn( 1 );
-		Mockery::mock( 'alias:FreeFormCertificate\Core\RequestInput' )
-			->shouldReceive( 'get_get_string' )->andReturn( 'n' );
-		Mockery::mock( 'alias:FreeFormCertificate\Core\Capabilities' )
-			->shouldReceive( 'current_user_can_admin_or' )->andReturn( true );
 
 		$this->expectException( \RuntimeException::class );
 		$this->expectExceptionMessage( 'wp_die' );
