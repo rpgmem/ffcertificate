@@ -93,6 +93,7 @@ async function loadAndReady() {
 		loadScript('assets/js/ffc-core.js');
 	}
 	// Core (window.FFCCsv) first, then the flow modules that extend it.
+	loadScript('assets/js/ffc-batched-export.js');
 	loadScript('assets/js/ffc-csv-download.js');
 	loadScript('assets/js/ffc-csv-info-screen.js');
 	loadScript('assets/js/ffc-csv-cert-preview.js');
@@ -270,7 +271,7 @@ describe('csv-download — download flow', () => {
 		await new Promise((r) => setTimeout(r, 5));
 		expect(window.$('.ffc-csv-progress-status').text()).toContain('Download complete!');
 		// Iframe injected.
-		expect(window.$('iframe[src*="ffc_public_csv_download"]').length).toBe(1);
+		expect(window.$('iframe[src*="ffc_export_download"]').length).toBe(1);
 	});
 
 	it('after completion, the cleanup timer hides the overlay, re-enables the button, and removes the iframe', async () => {
@@ -287,7 +288,7 @@ describe('csv-download — download flow', () => {
 			// MIN_DISPLAY (1ms) + the 2000ms cleanup timer.
 			vi.advanceTimersByTime(2100);
 			// Cleanup callback ran: the hidden download iframe was removed.
-			expect(window.$('iframe[src*="ffc_public_csv_download"]').length).toBe(0);
+			expect(window.$('iframe[src*="ffc_export_download"]').length).toBe(0);
 		} finally {
 			vi.useRealTimers();
 		}

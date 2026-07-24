@@ -40,6 +40,11 @@ class PublicFormsExportSource implements BatchedExportSourceInterface {
 	use CsvExportTrait;
 
 	/**
+	 * Stable source type routed by the dispatcher / registry.
+	 */
+	public const TYPE = 'public_forms';
+
+	/**
 	 * Repository.
 	 *
 	 * @var SubmissionRepository
@@ -78,7 +83,7 @@ class PublicFormsExportSource implements BatchedExportSourceInterface {
 	 * @return string
 	 */
 	public function type(): string {
-		return 'public_forms';
+		return self::TYPE;
 	}
 
 	/**
@@ -238,7 +243,7 @@ class PublicFormsExportSource implements BatchedExportSourceInterface {
 		);
 
 		/** This filter is documented in PublicCsvExporter::stream_form_csv(). */
-		return (array) apply_filters( 'ffcertificate_csv_export_headers', $headers, $include_edit, $filters['form_ids'] );
+		return (array) apply_filters( 'ffc_export_headers', $headers, $include_edit, $filters['form_ids'] );
 	}
 
 	/**
@@ -256,7 +261,7 @@ class PublicFormsExportSource implements BatchedExportSourceInterface {
 		) . '-' . gmdate( 'Y-m-d-His' ) . '.csv';
 
 		/** This filter is documented in PublicCsvExporter::stream_form_csv(). */
-		return (string) apply_filters( 'ffcertificate_csv_export_filename', $filename, $filters['form_ids'], (string) $filters['status'] );
+		return (string) apply_filters( 'ffc_export_filename', $filename, $filters['form_ids'], (string) $filters['status'] );
 	}
 
 	/**
@@ -272,7 +277,7 @@ class PublicFormsExportSource implements BatchedExportSourceInterface {
 		$batch = $this->repository->getExportBatch( $filters['form_ids'], (string) $filters['status'], $cursor, $size );
 
 		/** This filter is documented in PublicCsvExporter::stream_form_csv(). */
-		return (array) apply_filters( 'ffcertificate_csv_export_data', $batch, $filters['form_ids'], (string) $filters['status'] );
+		return (array) apply_filters( 'ffc_export_data', $batch, $filters['form_ids'], (string) $filters['status'] );
 	}
 
 	/**
@@ -317,7 +322,7 @@ class PublicFormsExportSource implements BatchedExportSourceInterface {
 	public function on_complete( string $job_id, array $job ): void {
 		/** This action is documented in PublicCsvExporter::stream_form_csv(). */
 		do_action(
-			'ffcertificate_csv_export_completed',
+			'ffc_export_completed',
 			$job_id,
 			isset( $job['file'] ) ? (string) $job['file'] : '',
 			(int) $job['processed'],

@@ -287,22 +287,13 @@ class PublicCsvExporterTest extends TestCase {
     }
 
     // ==================================================================
-    //  Constants (BC aliases of the engine constants)
+    //  Constants (synchronous streaming page size)
     // ==================================================================
 
-    public function test_batch_size_constants_are_sensible(): void {
+    public function test_export_batch_size_is_sensible(): void {
+        // The batched job constants (JOB_TTL / KEYS_BATCH_SIZE) moved to the
+        // engine / source in #772; only the sync streaming page size remains.
         $this->assertGreaterThan( 0, PublicCsvExporter::EXPORT_BATCH_SIZE );
-        $this->assertGreaterThan( 0, PublicCsvExporter::KEYS_BATCH_SIZE );
-        // Keys batch scans are much cheaper per row than full-row exports,
-        // so the keys batch should never be smaller than the export batch.
-        $this->assertGreaterThanOrEqual(
-            PublicCsvExporter::EXPORT_BATCH_SIZE,
-            PublicCsvExporter::KEYS_BATCH_SIZE
-        );
-    }
-
-    public function test_job_ttl_constant_is_one_hour(): void {
-        $this->assertSame( 3600, PublicCsvExporter::JOB_TTL );
     }
 
     // ==================================================================

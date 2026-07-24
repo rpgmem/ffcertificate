@@ -33,6 +33,11 @@ class SubmissionsExportSource implements BatchedExportSourceInterface {
 	use \FreeFormCertificate\Core\CsvExportTrait;
 
 	/**
+	 * Stable source type routed by the dispatcher / registry.
+	 */
+	public const TYPE = 'submissions';
+
+	/**
 	 * Capability gating every phase.
 	 */
 	private const CAP = 'ffc_export_certificates';
@@ -76,7 +81,7 @@ class SubmissionsExportSource implements BatchedExportSourceInterface {
 	 * @return string
 	 */
 	public function type(): string {
-		return 'submissions';
+		return self::TYPE;
 	}
 
 	/**
@@ -204,7 +209,7 @@ class SubmissionsExportSource implements BatchedExportSourceInterface {
 		 * @param bool                 $include_edit Whether edit-tracking columns are included.
 		 * @param array<int, int>|null $form_ids     Array of form IDs, or null for "all".
 		 */
-		return (array) apply_filters( 'ffcertificate_csv_export_headers', $headers, $include_edit, $filters['form_ids'] );
+		return (array) apply_filters( 'ffc_export_headers', $headers, $include_edit, $filters['form_ids'] );
 	}
 
 	/**
@@ -234,7 +239,7 @@ class SubmissionsExportSource implements BatchedExportSourceInterface {
 		 * @param array<int, int>|null $form_ids Array of form IDs being exported, or null for "all".
 		 * @param string               $status   Submission status filter.
 		 */
-		return (string) apply_filters( 'ffcertificate_csv_export_filename', $filename, $form_ids, (string) $filters['status'] );
+		return (string) apply_filters( 'ffc_export_filename', $filename, $form_ids, (string) $filters['status'] );
 	}
 
 	/**
@@ -254,7 +259,7 @@ class SubmissionsExportSource implements BatchedExportSourceInterface {
 		 *
 		 * @since 5.0.0
 		 */
-		return (array) apply_filters( 'ffcertificate_csv_export_data', $batch, $filters['form_ids'], (string) $filters['status'] );
+		return (array) apply_filters( 'ffc_export_data', $batch, $filters['form_ids'], (string) $filters['status'] );
 	}
 
 	/**
@@ -309,7 +314,7 @@ class SubmissionsExportSource implements BatchedExportSourceInterface {
 		 * @param int                  $processed Number of rows written.
 		 * @param array<string, mixed> $job       Full job state.
 		 */
-		do_action( 'ffcertificate_csv_export_completed', $job_id, $job['file'], (int) $job['processed'], $job );
+		do_action( 'ffc_export_completed', $job_id, $job['file'], (int) $job['processed'], $job );
 	}
 
 	/**

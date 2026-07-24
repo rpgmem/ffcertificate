@@ -166,63 +166,49 @@
         $btn.prop('disabled', true).text(preparingText);
         $progress.show().text('');
 
-        // Step 1: Start export job
+        // Start export job via the shared batched-export driver (#772). The
+        // admin path is capability-gated, so it reuses a single `nonce` for
+        // start + batch + the download URL (the public path uses a per-job
+        // nonce instead).
         var startData = { status: status };
         if (formIds && formIds.length) {
             startData.form_ids = formIds;
         }
+        var exportingTpl = strings.exportProgress || 'Exporting %1$d/%2$d\u2026';
+        var total = 0;
 
-        FFC.request('ffc_csv_export_start', startData, { nonce: nonce })
-            .then(function (data) {
-                var jobId = data.job_id;
-                var total = data.total;
-                var exportingTpl = strings.exportProgress || 'Exporting %1$d/%2$d\u2026';
-
-                function processBatch() {
-                    FFC.request('ffc_csv_export_batch', { job_id: jobId }, { nonce: nonce })
-                        .then(function (batchData) {
-                            var processed = batchData.processed;
-                            $progress.text(exportingTpl.replace('%1$d', processed).replace('%2$d', total));
-
-                            if (batchData.done) {
-                                var downloadUrl = ajaxurl
-                                    + '?action=ffc_csv_export_download'
-                                    + '&job_id=' + encodeURIComponent(jobId)
-                                    + '&nonce=' + encodeURIComponent(nonce);
-                                var $iframe = $('<iframe>', { src: downloadUrl })
-                                    .css({ display: 'none' })
-                                    .appendTo('body');
-                                setTimeout(function () {
-                                    $btn.prop('disabled', false).text(originalText);
-                                    var doneText = strings.exportDone || 'Done!';
-                                    $progress.text('\u2713 ' + processed + '/' + total + ' \u2014 ' + doneText);
-                                    setTimeout(function () { $progress.fadeOut(); }, 5000);
-                                    $iframe.remove();
-                                }, 2000);
-                            } else {
-                                processBatch();
-                            }
-                        })
-                        .catch(function (err) {
-                            $btn.prop('disabled', false).text(originalText);
-                            if (err && err.fromServer) {
-                                $progress.text(err.message || 'Error');
-                            } else {
-                                $progress.text(strings.connectionError || 'Connection error.');
-                            }
-                        });
+        window.FFCBatchedExport.run({
+            type: 'submissions',
+            ajaxUrl: ajaxurl,
+            nonce: nonce,
+            startData: startData,
+            callbacks: {
+                onStart: function (t) { total = t; },
+                onProgress: function (processed) {
+                    $progress.text(exportingTpl.replace('%1$d', processed).replace('%2$d', total));
+                },
+                onComplete: function (downloadUrl, ctx) {
+                    var $iframe = $('<iframe>', { src: downloadUrl })
+                        .css({ display: 'none' })
+                        .appendTo('body');
+                    setTimeout(function () {
+                        $btn.prop('disabled', false).text(originalText);
+                        var doneText = strings.exportDone || 'Done!';
+                        $progress.text('\u2713 ' + ctx.processed + '/' + total + ' \u2014 ' + doneText);
+                        setTimeout(function () { $progress.fadeOut(); }, 5000);
+                        $iframe.remove();
+                    }, 2000);
+                },
+                onError: function (err) {
+                    $btn.prop('disabled', false).text(originalText);
+                    if (err && err.fromServer) {
+                        $progress.text(err.message || strings.error || 'Error');
+                    } else {
+                        $progress.text(strings.connectionError || 'Connection error.');
+                    }
                 }
-
-                processBatch();
-            })
-            .catch(function (err) {
-                $btn.prop('disabled', false).text(originalText);
-                if (err && err.fromServer) {
-                    $progress.text(err.message || strings.error || 'Error');
-                } else {
-                    $progress.text(strings.connectionError || 'Connection error.');
-                }
-            });
+            }
+        });
     });
 
     // ==========================================================================

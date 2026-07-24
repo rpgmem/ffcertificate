@@ -495,7 +495,7 @@ class PublicFormsExportSourceTest extends TestCase {
 		$job = array( 'file' => '/tmp/x.csv', 'processed' => 12 );
 		$this->source->on_complete( 'job-9', $job );
 
-		$this->assertSame( 'ffcertificate_csv_export_completed', $captured[0] );
+		$this->assertSame( 'ffc_export_completed', $captured[0] );
 		$this->assertSame( 'job-9', $captured[1] );
 		$this->assertSame( '/tmp/x.csv', $captured[2] );
 		$this->assertSame( 12, $captured[3] );

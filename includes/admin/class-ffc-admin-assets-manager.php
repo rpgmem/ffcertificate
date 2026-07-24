@@ -302,11 +302,22 @@ class AdminAssetsManager {
 			true
 		);
 
+		// 2b. Shared batched-export driver (#772): the start → batch → download
+		// loop for the unified `ffc_export_*` dispatcher, used by the CSV export
+		// button in ffc-admin.js. Also enqueued on the public download page.
+		wp_enqueue_script(
+			'ffc-batched-export',
+			FFC_PLUGIN_URL . "assets/js/ffc-batched-export{$s}.js",
+			array( 'jquery', 'ffc-core' ),
+			FFC_VERSION,
+			true
+		);
+
 		// 3. Main admin script (depends on modules)
 		wp_enqueue_script(
 			'ffc-admin-js',
 			FFC_PLUGIN_URL . "assets/js/ffc-admin{$s}.js",
-			array( 'jquery', 'ffc-admin-field-builder', 'ffc-admin-pdf' ),
+			array( 'jquery', 'ffc-admin-field-builder', 'ffc-admin-pdf', 'ffc-batched-export' ),
 			FFC_VERSION,
 			true
 		);

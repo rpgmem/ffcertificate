@@ -2,18 +2,13 @@
 /**
  * CsvExporter
  *
- * Admin certificate-submissions CSV export. Thin façade: it wires the
- * submissions {@see SubmissionsExportSource} to the shared, timeout-safe
- * {@see \FreeFormCertificate\Core\BatchedCsvExport} engine and keeps the daily
- * stale-job cleanup cron. All the export logic (columns, formatting, key scan,
- * cursor query) lives in the source; the job lifecycle (temp file, transient,
- * batching, download) lives in the engine. (Split in issue #772; the AJAX flow
- * itself dates to 5.0.0.)
- *
- * Flow (unchanged, driven by JS):
- *  1. wp_ajax_ffc_csv_export_start    → engine::handle_start
- *  2. wp_ajax_ffc_csv_export_batch    → engine::handle_batch (repeat)
- *  3. wp_ajax_ffc_csv_export_download → engine::handle_download
+ * Admin certificate-submissions CSV export wiring. Since the batched-export
+ * consolidation (#772) it no longer owns any endpoints or job logic: it just
+ * registers the submissions {@see SubmissionsExportSource} with the shared
+ * {@see \FreeFormCertificate\Core\SourceRegistry} (so the single
+ * {@see \FreeFormCertificate\Core\BatchedExportDispatcher} can route
+ * `type=submissions` requests to it) and keeps the daily stale-job cleanup cron.
+ * All export logic lives in the source; the job lifecycle lives in the engine.
  *
  * @package FreeFormCertificate\Admin
  * @since   5.0.0  AJAX-driven batched export.
@@ -24,6 +19,7 @@ declare(strict_types=1);
 namespace FreeFormCertificate\Admin;
 
 use FreeFormCertificate\Core\BatchedCsvExport;
+use FreeFormCertificate\Core\SourceRegistry;
 use FreeFormCertificate\Repositories\SubmissionRepository;
 
 if ( ! defined( 'ABSPATH' ) ) {
@@ -31,7 +27,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 /**
- * Certificate-submissions CSV exporter (façade over the batched engine).
+ * Certificate-submissions CSV export registration + cleanup.
  */
 class CsvExporter {
 
@@ -48,73 +44,31 @@ class CsvExporter {
 	public const JOB_TTL = BatchedCsvExport::JOB_TTL;
 
 	/**
-	 * Submissions source.
+	 * Register the submissions source with the shared registry.
 	 *
-	 * @var SubmissionsExportSource
-	 */
-	private SubmissionsExportSource $source;
-
-	/**
-	 * Batched export engine.
-	 *
-	 * @var BatchedCsvExport
-	 */
-	private BatchedCsvExport $engine;
-
-	/**
-	 * Constructor.
-	 */
-	public function __construct() {
-		$this->source = new SubmissionsExportSource( new SubmissionRepository() );
-		$this->engine = new BatchedCsvExport( 'ffc_csv_export_', 'ffc-export-' );
-	}
-
-	/**
-	 * Register AJAX handlers for the three-step export flow.
+	 * The factory is lazy (built only for a request that dispatches
+	 * `type=submissions`), so registering never touches `$wpdb`.
 	 *
 	 * @return void
 	 */
-	public function register_ajax_hooks(): void {
-		add_action( 'wp_ajax_ffc_csv_export_start', array( $this, 'ajax_start' ) );
-		add_action( 'wp_ajax_ffc_csv_export_batch', array( $this, 'ajax_batch' ) );
-		add_action( 'wp_ajax_ffc_csv_export_download', array( $this, 'ajax_download' ) );
-	}
-
-	/**
-	 * AJAX: start a new export job.
-	 *
-	 * @return void
-	 */
-	public function ajax_start(): void {
-		$this->engine->handle_start( $this->source );
-	}
-
-	/**
-	 * AJAX: process one batch.
-	 *
-	 * @return void
-	 */
-	public function ajax_batch(): void {
-		$this->engine->handle_batch( $this->source );
-	}
-
-	/**
-	 * AJAX: serve the completed file and clean up.
-	 *
-	 * @return void
-	 */
-	public function ajax_download(): void {
-		$this->engine->handle_download( $this->source );
+	public function register_source(): void {
+		SourceRegistry::register(
+			SubmissionsExportSource::TYPE,
+			static function (): SubmissionsExportSource {
+				return new SubmissionsExportSource( new SubmissionRepository() );
+			}
+		);
 	}
 
 	/**
 	 * Daily cleanup: remove temp CSV files + transient option rows left behind
 	 * by exports the user abandoned mid-stream (closed the browser before
-	 * clicking the download link, lost network, etc.). Walks both
-	 * `_transient_ffc_csv_export_*` (admin) and `_transient_ffc_public_csv_*`
-	 * (front-end) prefixes; for each row whose `_transient_timeout_*` is past,
-	 * unlinks the temp file referenced in the payload and deletes the option
-	 * pair.
+	 * clicking the download link, lost network, etc.). Walks the unified
+	 * `_transient_ffc_export_*` namespace plus the two legacy prefixes
+	 * (`ffc_csv_export_` admin / `ffc_public_csv_` front-end) so any job still
+	 * in flight across the #772 rename is reclaimed too; for each row whose
+	 * `_transient_timeout_*` is past, unlinks the temp file referenced in the
+	 * payload and deletes the option pair.
 	 *
 	 * Hooked from {@see Loader::define_admin_hooks()} to
 	 * `ffcertificate_daily_cleanup_hook` (existing daily cron).
@@ -126,6 +80,7 @@ class CsvExporter {
 		global $wpdb;
 
 		$prefixes = array(
+			'_transient_timeout_ffc_export_',
 			'_transient_timeout_ffc_csv_export_',
 			'_transient_timeout_ffc_public_csv_',
 		);
