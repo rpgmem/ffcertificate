@@ -593,6 +593,127 @@ class AppointmentReader extends AbstractRepository {
 	}
 
 	/**
+	 * Build the shared WHERE clause + bind values for the batched CSV export.
+	 * Mirrors the filters the export UI offers: calendar id(s), status(es), and a
+	 * date window. `$args` is seeded with the table identifier so the caller can
+	 * hand it straight to `$wpdb->prepare( $sql, $args )` (single-array form — no
+	 * spread — so no `argument.type` widening). Returns an untyped tuple
+	 * deliberately (no `@phpstan-return array{0: string}`) so `$where_clause`
+	 * stays a plain `string` and the interpolated prepare keeps passing.
+	 *
+	 * @param array<int, int>|null $calendar_ids Calendar id(s), or null for all.
+	 * @param array<int, string>   $statuses     Status filter (empty = all).
+	 * @param string|null          $start_date   Start date (`Y-m-d`).
+	 * @param string|null          $end_date     End date (`Y-m-d`).
+	 * @return array{0: string, 1: array<int, mixed>}
+	 */
+	private function build_export_where( ?array $calendar_ids, array $statuses, ?string $start_date, ?string $end_date ): array {
+		$where = array();
+		$args  = array( $this->table );
+
+		if ( ! empty( $calendar_ids ) ) {
+			$calendar_ids_int = array_map( 'absint', $calendar_ids );
+			$placeholders     = implode( ',', array_fill( 0, count( $calendar_ids_int ), '%d' ) );
+			$where[]          = "calendar_id IN ({$placeholders})";
+			$args             = array_merge( $args, $calendar_ids_int );
+		}
+
+		if ( ! empty( $statuses ) ) {
+			$placeholders = implode( ',', array_fill( 0, count( $statuses ), '%s' ) );
+			$where[]      = "status IN ({$placeholders})";
+			$args         = array_merge( $args, array_values( $statuses ) );
+		}
+
+		if ( $start_date && $end_date ) {
+			$where[] = 'appointment_date BETWEEN %s AND %s';
+			$args[]  = $start_date;
+			$args[]  = $end_date;
+		} elseif ( $start_date ) {
+			$where[] = 'appointment_date >= %s';
+			$args[]  = $start_date;
+		} elseif ( $end_date ) {
+			$where[] = 'appointment_date <= %s';
+			$args[]  = $end_date;
+		}
+
+		$where_clause = ! empty( $where ) ? 'WHERE ' . implode( ' AND ', $where ) : '';
+
+		return array( $where_clause, $args );
+	}
+
+	/**
+	 * Count matching appointments for the batched CSV export's progress total.
+	 *
+	 * @since 6.17.0
+	 * @param array<int, int>|null $calendar_ids Calendar id(s), or null for all.
+	 * @param array<int, string>   $statuses     Status filter (empty = all).
+	 * @param string|null          $start_date   Start date (`Y-m-d`).
+	 * @param string|null          $end_date     End date (`Y-m-d`).
+	 * @return int
+	 */
+	public function countForExport( ?array $calendar_ids, array $statuses, ?string $start_date, ?string $end_date ): int {
+		list( $where_clause, $args ) = $this->build_export_where( $calendar_ids, $statuses, $start_date, $end_date );
+
+		$sql = "SELECT COUNT(*) FROM %i {$where_clause}";
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- $where_clause is built from validated placeholders; values are bound through wpdb->prepare.
+		return (int) $this->wpdb->get_var( $this->wpdb->prepare( $sql, $args ) );
+	}
+
+	/**
+	 * Keyset page for the batched CSV export: rows with `id < $cursor_id`, newest
+	 * first (`id DESC`), limited to `$limit`. Keyset (not LIMIT/OFFSET) so paging
+	 * stays stable across concurrent inserts during a long export.
+	 *
+	 * @since 6.17.0
+	 * @param array<int, int>|null $calendar_ids Calendar id(s), or null for all.
+	 * @param array<int, string>   $statuses     Status filter (empty = all).
+	 * @param string|null          $start_date   Start date (`Y-m-d`).
+	 * @param string|null          $end_date     End date (`Y-m-d`).
+	 * @param int                  $cursor_id    Exclusive upper-bound id (PHP_INT_MAX on the first page).
+	 * @param int                  $limit        Page size.
+	 * @return array<int, array<string, mixed>>
+	 */
+	public function getExportBatch( ?array $calendar_ids, array $statuses, ?string $start_date, ?string $end_date, int $cursor_id, int $limit ): array {
+		list( $where_clause, $args ) = $this->build_export_where( $calendar_ids, $statuses, $start_date, $end_date );
+
+		$where_clause = '' === $where_clause ? 'WHERE id < %d' : $where_clause . ' AND id < %d';
+		$args[]       = $cursor_id;
+		$args[]       = $limit;
+
+		$sql = "SELECT * FROM %i {$where_clause} ORDER BY id DESC LIMIT %d";
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- $where_clause is built from validated placeholders; values are bound through wpdb->prepare.
+		$rows = $this->wpdb->get_results( $this->wpdb->prepare( $sql, $args ), ARRAY_A );
+		return is_array( $rows ) ? $rows : array();
+	}
+
+	/**
+	 * Lightweight keyset page selecting only the JSON columns, for dynamic-key
+	 * discovery (the header needs the union of every row's `custom_data` keys).
+	 * Skips the encrypted/heavy columns.
+	 *
+	 * @since 6.17.0
+	 * @param array<int, int>|null $calendar_ids Calendar id(s), or null for all.
+	 * @param array<int, string>   $statuses     Status filter (empty = all).
+	 * @param string|null          $start_date   Start date (`Y-m-d`).
+	 * @param string|null          $end_date     End date (`Y-m-d`).
+	 * @param int                  $cursor_id    Exclusive upper-bound id (PHP_INT_MAX on the first page).
+	 * @param int                  $limit        Page size.
+	 * @return array<int, array<string, mixed>>
+	 */
+	public function getExportKeysBatch( ?array $calendar_ids, array $statuses, ?string $start_date, ?string $end_date, int $cursor_id, int $limit ): array {
+		list( $where_clause, $args ) = $this->build_export_where( $calendar_ids, $statuses, $start_date, $end_date );
+
+		$where_clause = '' === $where_clause ? 'WHERE id < %d' : $where_clause . ' AND id < %d';
+		$args[]       = $cursor_id;
+		$args[]       = $limit;
+
+		$sql = "SELECT id, custom_data, custom_data_encrypted FROM %i {$where_clause} ORDER BY id DESC LIMIT %d";
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- $where_clause is built from validated placeholders; values are bound through wpdb->prepare.
+		$rows = $this->wpdb->get_results( $this->wpdb->prepare( $sql, $args ), ARRAY_A );
+		return is_array( $rows ) ? $rows : array();
+	}
+
+	/**
 	 * SQL fragment for the WP_User_Query orderby rewrite that sorts
 	 * users by "non-cancelled appointments they own". Returns a
 	 * self-contained SELECT subquery — the caller wraps it as

@@ -1644,4 +1644,83 @@ class AppointmentRepositoryTest extends TestCase {
 
         $this->assertSame([], $result);
     }
+
+    // ==================================================================
+    // Batched CSV export queries (#772): countForExport / getExportBatch /
+    // getExportKeysBatch
+    // ==================================================================
+
+    public function test_count_for_export_with_no_filters(): void {
+        $this->wpdb->shouldReceive('prepare')->once()->andReturn('SELECT COUNT(*) FROM ...');
+        $this->wpdb->shouldReceive('get_var')->once()->andReturn('9');
+
+        $this->assertSame(9, $this->repo->countForExport(null, [], null, null));
+    }
+
+    public function test_count_for_export_combines_filters(): void {
+        $captured_sql = '';
+        $this->wpdb->shouldReceive('prepare')->once()->andReturnUsing(function() use (&$captured_sql) {
+            $captured_sql = func_get_args()[0];
+            return $captured_sql;
+        });
+        $this->wpdb->shouldReceive('get_var')->once()->andReturn('2');
+
+        $this->repo->countForExport([3, 4], ['confirmed'], '2026-05-01', '2026-05-31');
+
+        $this->assertStringContainsString('calendar_id IN (%d,%d)', $captured_sql);
+        $this->assertStringContainsString('status IN (%s)', $captured_sql);
+        $this->assertStringContainsString('appointment_date BETWEEN %s AND %s', $captured_sql);
+    }
+
+    public function test_get_export_batch_builds_keyset_desc_query(): void {
+        $captured_sql = '';
+        $this->wpdb->shouldReceive('prepare')->once()->andReturnUsing(function() use (&$captured_sql) {
+            $captured_sql = func_get_args()[0];
+            return $captured_sql;
+        });
+        $rows = [['id' => 5], ['id' => 4]];
+        $this->wpdb->shouldReceive('get_results')->once()->andReturn($rows);
+
+        $result = $this->repo->getExportBatch(null, [], null, null, 10, 50);
+
+        $this->assertSame($rows, $result);
+        $this->assertStringContainsString('WHERE id < %d', $captured_sql);
+        $this->assertStringContainsString('ORDER BY id DESC', $captured_sql);
+        $this->assertStringContainsString('LIMIT %d', $captured_sql);
+    }
+
+    public function test_get_export_batch_appends_cursor_to_existing_where(): void {
+        $captured_sql = '';
+        $this->wpdb->shouldReceive('prepare')->once()->andReturnUsing(function() use (&$captured_sql) {
+            $captured_sql = func_get_args()[0];
+            return $captured_sql;
+        });
+        $this->wpdb->shouldReceive('get_results')->once()->andReturn([]);
+
+        $this->repo->getExportBatch([3], ['confirmed'], null, null, 100, 50);
+
+        $this->assertStringContainsString('calendar_id IN (%d)', $captured_sql);
+        $this->assertStringContainsString('AND id < %d', $captured_sql);
+    }
+
+    public function test_get_export_keys_batch_selects_only_json_columns(): void {
+        $captured_sql = '';
+        $this->wpdb->shouldReceive('prepare')->once()->andReturnUsing(function() use (&$captured_sql) {
+            $captured_sql = func_get_args()[0];
+            return $captured_sql;
+        });
+        $this->wpdb->shouldReceive('get_results')->once()->andReturn([]);
+
+        $this->repo->getExportKeysBatch(null, [], null, null, PHP_INT_MAX, 500);
+
+        $this->assertStringContainsString('SELECT id, custom_data, custom_data_encrypted', $captured_sql);
+        $this->assertStringContainsString('ORDER BY id DESC', $captured_sql);
+    }
+
+    public function test_get_export_batch_returns_empty_when_no_results(): void {
+        $this->wpdb->shouldReceive('prepare')->once()->andReturn('QUERY');
+        $this->wpdb->shouldReceive('get_results')->once()->andReturn(null);
+
+        $this->assertSame([], $this->repo->getExportBatch(null, [], null, null, 10, 50));
+    }
 }
