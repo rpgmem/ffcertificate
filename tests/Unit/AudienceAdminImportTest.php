@@ -14,6 +14,8 @@ use FreeFormCertificate\Core\CsvDownloadInterface;
 
 /**
  * @covers \FreeFormCertificate\Audience\AudienceAdminImport
+ * @covers \FreeFormCertificate\Audience\AudienceMembersExportSource
+ * @covers \FreeFormCertificate\Audience\AudienceAudiencesExportSource
  * @runTestsInSeparateProcesses
  * @preserveGlobalState disabled
  */
@@ -24,6 +26,10 @@ class AudienceAdminImportTest extends TestCase {
     protected function setUp(): void {
         parent::setUp();
         Monkey\setUp();
+        // Preload so pcov attributes the coverage these tests drive through the
+        // export sources; pcov skips a class first autoloaded mid-test (#772).
+        class_exists( '\\FreeFormCertificate\Audience\AudienceMembersExportSource' );
+        class_exists( '\\FreeFormCertificate\Audience\AudienceAudiencesExportSource' );
 
         Functions\when( '__' )->returnArg();
         Functions\when( 'esc_html__' )->returnArg();

@@ -483,31 +483,56 @@ class AudienceCsvImporter {
 	}
 
 	/**
-	 * Generate sample CSV content
+	 * The sample template as structured data — the single source of truth for
+	 * both the on-screen `<pre>` example and the downloadable sample source
+	 * ({@see \FreeFormCertificate\Audience\AudienceSampleCsvSource}, #772).
 	 *
-	 * Mirrors the live export templates (semicolon-separated since 6.3.9
-	 * for Excel-pt-BR / WPS / LibreOffice locale compatibility). The
-	 * importer auto-detects the delimiter, so existing comma-separated
-	 * files keep working.
+	 * @param string $type Type of CSV ('members' or 'audiences').
+	 * @return array<string, mixed>
+	 * @phpstan-return array{header: array<int, string>, rows: array<int, array<int, string>>}
+	 */
+	public static function get_sample_rows( string $type = 'members' ): array {
+		if ( 'audiences' === $type ) {
+			return array(
+				'header' => array( 'name', 'color', 'parent' ),
+				'rows'   => array(
+					array( 'Group A', '#3788d8', '' ),
+					array( 'Group B', '#28a745', '' ),
+					array( 'Subgroup A1', '#dc3545', 'Group A' ),
+					array( 'Subgroup A2', '#ffc107', 'Group A' ),
+					array( 'Subgroup B1', '#17a2b8', 'Group B' ),
+					array( 'Team B1-Alpha', '#6f42c1', 'Subgroup B1' ),
+				),
+			);
+		}
+
+		// Default: members.
+		return array(
+			'header' => array( 'email', 'name', 'audience_name' ),
+			'rows'   => array(
+				array( 'john@example.com', 'John Doe', 'Group A' ),
+				array( 'jane@example.com', 'Jane Smith', 'Subgroup A1' ),
+				array( 'bob@example.com', 'Bob Johnson', 'Group B' ),
+			),
+		);
+	}
+
+	/**
+	 * Generate sample CSV content as a string (for the on-screen `<pre>`
+	 * example). Semicolon-separated since 6.3.9 for Excel-pt-BR / WPS /
+	 * LibreOffice locale compatibility; the importer auto-detects the delimiter,
+	 * so existing comma-separated files keep working. Derives from
+	 * {@see self::get_sample_rows()} so the sample lives in one place.
 	 *
 	 * @param string $type Type of CSV ('members' or 'audiences').
 	 * @return string CSV content
 	 */
 	public static function get_sample_csv( string $type = 'members' ): string {
-		if ( 'audiences' === $type ) {
-			return "name;color;parent\n" .
-					"Group A;#3788d8;\n" .
-					"Group B;#28a745;\n" .
-					"Subgroup A1;#dc3545;Group A\n" .
-					"Subgroup A2;#ffc107;Group A\n" .
-					"Subgroup B1;#17a2b8;Group B\n" .
-					"Team B1-Alpha;#6f42c1;Subgroup B1\n";
+		$sample = self::get_sample_rows( $type );
+		$lines  = array( implode( ';', $sample['header'] ) );
+		foreach ( $sample['rows'] as $row ) {
+			$lines[] = implode( ';', $row );
 		}
-
-		// Default: members.
-		return "email;name;audience_name\n" .
-				"john@example.com;John Doe;Group A\n" .
-				"jane@example.com;Jane Smith;Subgroup A1\n" .
-				"bob@example.com;Bob Johnson;Group B\n";
+		return implode( "\n", $lines ) . "\n";
 	}
 }
