@@ -174,4 +174,15 @@ interface BatchedExportSourceInterface {
 	 * @return void
 	 */
 	public function on_complete( string $job_id, array $job ): void;
+
+	/**
+	 * Fired in the download handler after the file is confirmed to exist and
+	 * immediately before the bytes are streamed — the reliable point to write a
+	 * "delivered" audit row (the client may abort mid-stream once readfile
+	 * starts). No-op for sources that need no pre-delivery side effect.
+	 *
+	 * @param array<string, mixed> $job Job state.
+	 * @return void
+	 */
+	public function on_before_download( array $job ): void;
 }

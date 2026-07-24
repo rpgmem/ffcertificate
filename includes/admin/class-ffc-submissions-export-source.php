@@ -312,6 +312,17 @@ class SubmissionsExportSource implements BatchedExportSourceInterface {
 		do_action( 'ffcertificate_csv_export_completed', $job_id, $job['file'], (int) $job['processed'], $job );
 	}
 
+	/**
+	 * {@inheritDoc}
+	 *
+	 * @param array<string, mixed> $job Job state.
+	 * @return void
+	 */
+	public function on_before_download( array $job ): void {
+		// No pre-delivery side effect for the admin submissions export.
+		unset( $job );
+	}
+
 	// ──────────────────────────────────────────────────────────────.
 	// Domain helpers (moved verbatim from the former CsvExporter).
 	// ──────────────────────────────────────────────────────────────.
