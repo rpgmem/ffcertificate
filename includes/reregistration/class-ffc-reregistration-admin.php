@@ -9,7 +9,7 @@
  *
  * Action handlers are delegated to focused classes:
  * - ReregistrationSubmissionActions (approve, reject, return, bulk)
- * - ReregistrationCsvExporter (CSV export)
+ * - ReregistrationExportSource (batched CSV export via the #772 dispatcher)
  * - ReregistrationCustomFieldsPage (custom fields submenu)
  *
  * @package FreeFormCertificate\Reregistration
@@ -162,10 +162,28 @@ class ReregistrationAdmin {
 			FFC_VERSION
 		);
 
+		// Shared batched-export driver (#772): the submissions "Export CSV" button
+		// drives the unified ffc_export_* dispatcher through window.FFCBatchedExport,
+		// which needs FFC.request from ffc-core.
+		wp_enqueue_script(
+			'ffc-core',
+			FFC_PLUGIN_URL . "assets/js/ffc-core{$s}.js",
+			array( 'jquery' ),
+			FFC_VERSION,
+			true
+		);
+		wp_enqueue_script(
+			'ffc-batched-export',
+			FFC_PLUGIN_URL . "assets/js/ffc-batched-export{$s}.js",
+			array( 'jquery', 'ffc-core' ),
+			FFC_VERSION,
+			true
+		);
+
 		wp_enqueue_script(
 			'ffc-reregistration-admin',
 			FFC_PLUGIN_URL . "assets/js/ffc-reregistration-admin{$s}.js",
-			array( 'jquery' ),
+			array( 'jquery', 'ffc-core', 'ffc-batched-export' ),
 			FFC_VERSION,
 			true
 		);
@@ -178,7 +196,13 @@ class ReregistrationAdmin {
 				'adminNonce'       => wp_create_nonce( 'ffc_reregistration_nonce' ),
 				'fichaNonce'       => wp_create_nonce( 'ffc_generate_ficha' ),
 				'viewDetailsNonce' => wp_create_nonce( 'ffc_view_submission_details' ),
+				'exportNonce'      => wp_create_nonce( 'ffc_reregistration_export' ),
 				'strings'          => array(
+					'exportPreparing'      => __( 'Preparing…', 'ffcertificate' ),
+					/* translators: %1$d processed, %2$d total */
+					'exportProgress'       => __( 'Exporting %1$d/%2$d…', 'ffcertificate' ),
+					'exportDone'           => __( 'Done!', 'ffcertificate' ),
+					'exportError'          => __( 'An error occurred.', 'ffcertificate' ),
 					'confirmDelete'        => __( 'Are you sure you want to delete this reregistration? This will also delete all submissions.', 'ffcertificate' ),
 					'confirmApprove'       => __( 'Approve selected submissions?', 'ffcertificate' ),
 					'confirmReturnToDraft' => __( 'Return this submission to draft? The user will be able to edit and resubmit.', 'ffcertificate' ),
@@ -248,10 +272,10 @@ class ReregistrationAdmin {
 	// ─────────────────────────────────────────────.
 
 	/**
-	 * Handle admin actions (save, delete, approve, reject, bulk, export).
+	 * Handle admin actions (save, delete, approve, reject, bulk).
 	 *
-	 * Delegates submission workflow actions to ReregistrationSubmissionActions
-	 * and CSV export to ReregistrationCsvExporter.
+	 * Delegates submission workflow actions to ReregistrationSubmissionActions.
+	 * CSV export moved to the batched engine (#772) and no longer runs here.
 	 *
 	 * @return void
 	 */
@@ -297,8 +321,10 @@ class ReregistrationAdmin {
 		ReregistrationSubmissionActions::handle_return_to_draft();
 		ReregistrationSubmissionActions::handle_bulk();
 
-		// CSV export (delegated).
-		ReregistrationCsvExporter::handle_export();
+		// CSV export moved to the batched engine (#772): the "Export CSV" button
+		// drives the unified ffc_export_* dispatcher via ReregistrationExportSource
+		// (registered in ReregistrationLoader), so there is no page-action handler
+		// here any more.
 	}
 
 	/**

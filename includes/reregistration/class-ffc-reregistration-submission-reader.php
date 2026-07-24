@@ -418,4 +418,40 @@ class ReregistrationSubmissionReader {
 			$wpdb->prepare( "SELECT COUNT(*) FROM %i {$where}", array_merge( array( $table ), $values ) )
 		);
 	}
+
+	/**
+	 * Keyset page for the batched CSV export: submissions of one reregistration
+	 * with `s.id < $cursor`, newest first (`s.id DESC`), limited to `$size`, with
+	 * the user display-name + email joined (like {@see self::get_by_reregistration()}).
+	 * Keyset (not LIMIT/OFFSET) so paging stays stable across concurrent inserts
+	 * during a long export.
+	 *
+	 * @since 6.17.0
+	 * @param int $reregistration_id Reregistration ID.
+	 * @param int $cursor            Exclusive upper-bound id (PHP_INT_MAX on the first page).
+	 * @param int $size              Page size.
+	 * @return list<ReregistrationSubmissionRow>
+	 */
+	public static function find_by_cursor_for_export( int $reregistration_id, int $cursor, int $size ): array {
+		$wpdb  = self::db();
+		$table = self::get_table_name();
+
+		$sql = "SELECT s.*, u.display_name AS user_name, u.user_email AS user_email
+                FROM %i s
+                LEFT JOIN %i u ON s.user_id = u.ID
+                WHERE s.reregistration_id = %d AND s.id < %d
+                ORDER BY s.id DESC
+                LIMIT %d";
+
+		$prepare_values = array( $table, $wpdb->users, $reregistration_id, $cursor, $size );
+
+		// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
+		/**
+		 * Prepared with a merged identifier + value list.
+		 *
+		 * @phpstan-ignore-next-line argument.type
+		 */
+		$rows = $wpdb->get_results( $wpdb->prepare( $sql, $prepare_values ) );
+		return is_array( $rows ) ? $rows : array();
+	}
 }
