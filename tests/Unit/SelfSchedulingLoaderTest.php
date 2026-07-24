@@ -31,7 +31,6 @@ class SelfSchedulingLoaderTest extends TestCase {
 	private const CLASSES = array(
 		'SelfSchedulingAdmin',
 		'SelfSchedulingEditor',
-		'AppointmentCsvExporter',
 		'SelfSchedulingCPT',
 		'AppointmentHandler',
 		'AppointmentAjaxHandler',
@@ -64,7 +63,13 @@ class SelfSchedulingLoaderTest extends TestCase {
 
 		( new SelfSchedulingLoader() )->init();
 
-		$this->assertTrue( true );
+		// The appointments batched-export source registers (lazily) with the
+		// shared registry when wiring the admin trio (#772).
+		$this->assertTrue(
+			\FreeFormCertificate\Core\SourceRegistry::has(
+				\FreeFormCertificate\SelfScheduling\AppointmentExportSource::TYPE
+			)
+		);
 	}
 
 	public function test_init_skips_admin_trio_on_frontend(): void {

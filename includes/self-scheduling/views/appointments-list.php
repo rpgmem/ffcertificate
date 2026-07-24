@@ -328,28 +328,24 @@ $ffcertificate_table->prepare_items();
 <div class="wrap">
 	<h1 class="wp-heading-inline"><?php esc_html_e( 'Appointments', 'ffcertificate' ); ?></h1>
 	<?php
-	// Export CSV — a real POST to admin-post.php (handled by
-	// AppointmentCsvExporter::handle_export_request). The button was previously
-	// a dead `<a href="#">` with no JS behind it, so clicking did nothing. Only
-	// shown to holders of the dedicated export cap (a view-only operator sees
-	// the list but cannot bulk-extract the attendee dataset). The current
-	// calendar/status filters ride along as hidden fields so "Export CSV"
-	// exports exactly what is on screen.
+	// Export CSV — batched engine (#772): the button drives the shared
+	// window.FFCBatchedExport engine through the unified dispatcher. Only shown
+	// to holders of the dedicated export cap (a view-only operator sees the list
+	// but cannot bulk-extract the attendee dataset). The current calendar/status
+	// filters ride along via data-* so the export matches the on-screen query.
 	if ( \FreeFormCertificate\Core\Capabilities::current_user_can_admin_or( 'ffc_export_appointments' ) ) :
-		$ffc_export_calendar_id = isset( $_GET['calendar_id'] ) ? absint( wp_unslash( $_GET['calendar_id'] ) ) : 0; // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- read-only filter passthrough; the export itself is nonce-verified below.
+		$ffc_export_calendar_id = isset( $_GET['calendar_id'] ) ? absint( wp_unslash( $_GET['calendar_id'] ) ) : 0; // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- read-only filter passthrough; the export itself is nonce-verified in the AJAX source.
 		$ffc_export_status      = \FreeFormCertificate\Core\RequestInput::get_get_string( 'status' );
 		?>
-		<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" class="ffc-appointments-export" style="display:inline;">
-			<?php wp_nonce_field( 'ffc_export_appointments_csv_nonce', 'ffc_export_appointments_csv_action' ); ?>
-			<input type="hidden" name="action" value="ffc_export_appointments_csv" />
-			<?php if ( $ffc_export_calendar_id > 0 ) : ?>
-				<input type="hidden" name="calendar_id" value="<?php echo esc_attr( (string) $ffc_export_calendar_id ); ?>" />
-			<?php endif; ?>
-			<?php if ( '' !== $ffc_export_status ) : ?>
-				<input type="hidden" name="statuses[]" value="<?php echo esc_attr( $ffc_export_status ); ?>" />
-			<?php endif; ?>
-			<button type="submit" class="page-title-action"><?php esc_html_e( 'Export CSV', 'ffcertificate' ); ?></button>
-		</form>
+		<button
+			type="button"
+			id="ffc-appointments-export-btn"
+			class="page-title-action"
+			data-calendar_id="<?php echo esc_attr( (string) $ffc_export_calendar_id ); ?>"
+			data-status="<?php echo esc_attr( $ffc_export_status ); ?>">
+			<?php esc_html_e( 'Export CSV', 'ffcertificate' ); ?>
+		</button>
+		<span id="ffc-appointments-export-progress" style="display:none;margin-left:8px;"></span>
 	<?php endif; ?>
 	<hr class="wp-header-end">
 

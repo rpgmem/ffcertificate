@@ -82,3 +82,51 @@ describe('ffc-self-scheduling-admin-appointments', () => {
 		addSpy.mockRestore();
 	});
 });
+
+describe('ffc-self-scheduling-admin-appointments — batched CSV export (#772)', () => {
+	afterEach(() => {
+		delete window.FFCBatchedExport;
+		delete window.ffcAppointmentsExport;
+	});
+
+	function mountButton() {
+		document.body.innerHTML =
+			'<button type="button" id="ffc-appointments-export-btn" ' +
+			'data-calendar_id="3" data-status="confirmed">Export CSV</button>' +
+			'<span id="ffc-appointments-export-progress" style="display:none;"></span>';
+	}
+
+	it('drives window.FFCBatchedExport.run with type + current filters + job nonce', () => {
+		mountButton();
+		const runSpy = vi.fn();
+		window.FFCBatchedExport = { run: runSpy };
+		window.ffcAppointmentsExport = {
+			ajaxUrl: '/wp-admin/admin-ajax.php',
+			exportNonce: 'export-nonce',
+			strings: { exportPreparing: 'Preparing…' },
+		};
+
+		loadScript(SCRIPT);
+		document.getElementById('ffc-appointments-export-btn').click();
+
+		expect(runSpy).toHaveBeenCalledTimes(1);
+		const arg = runSpy.mock.calls[0][0];
+		expect(arg.type).toBe('appointments');
+		expect(arg.ajaxUrl).toBe('/wp-admin/admin-ajax.php');
+		expect(arg.nonce).toBe('export-nonce');
+		expect(arg.startData).toEqual({
+			calendar_id: '3',
+			status: 'confirmed',
+			start_date: '',
+			end_date: '',
+		});
+		expect(typeof arg.callbacks.onComplete).toBe('function');
+	});
+
+	it('is a no-op when the batched-export driver is unavailable', () => {
+		mountButton();
+		window.ffcAppointmentsExport = { exportNonce: 'n', ajaxUrl: '/x' };
+		loadScript(SCRIPT);
+		expect(() => document.getElementById('ffc-appointments-export-btn').click()).not.toThrow();
+	});
+});

@@ -130,14 +130,48 @@ class SelfSchedulingAdmin {
 			FFC_VERSION
 		);
 
-		// Row "Cancel" action handler for the appointments list (extracted from
-		// an inline onclick in views/appointments-list.php).
+		// Shared batched-export driver (#772): the appointments list "Export CSV"
+		// button drives the unified `ffc_export_*` dispatcher through
+		// window.FFCBatchedExport, which needs FFC.request from ffc-core.
+		wp_enqueue_script(
+			'ffc-core',
+			plugins_url( "assets/js/ffc-core{$s}.js", dirname( __DIR__, 1 ) ),
+			array( 'jquery' ),
+			FFC_VERSION,
+			true
+		);
+		wp_enqueue_script(
+			'ffc-batched-export',
+			plugins_url( "assets/js/ffc-batched-export{$s}.js", dirname( __DIR__, 1 ) ),
+			array( 'jquery', 'ffc-core' ),
+			FFC_VERSION,
+			true
+		);
+
+		// Row "Cancel" action handler + the batched CSV export button handler for
+		// the appointments list (extracted from an inline onclick in
+		// views/appointments-list.php).
 		wp_enqueue_script(
 			'ffc-self-scheduling-admin-appointments',
 			plugins_url( "assets/js/ffc-self-scheduling-admin-appointments{$s}.js", dirname( __DIR__, 1 ) ),
-			array(),
+			array( 'ffc-batched-export' ),
 			FFC_VERSION,
 			true
+		);
+		wp_localize_script(
+			'ffc-self-scheduling-admin-appointments',
+			'ffcAppointmentsExport',
+			array(
+				'ajaxUrl'     => admin_url( 'admin-ajax.php' ),
+				'exportNonce' => wp_create_nonce( 'ffc_appointments_export' ),
+				'strings'     => array(
+					'exportPreparing' => __( 'Preparing…', 'ffcertificate' ),
+					/* translators: %1$d processed, %2$d total */
+					'exportProgress'  => __( 'Exporting %1$d/%2$d…', 'ffcertificate' ),
+					'exportDone'      => __( 'Done!', 'ffcertificate' ),
+					'error'           => __( 'An error occurred.', 'ffcertificate' ),
+				),
+			)
 		);
 	}
 }

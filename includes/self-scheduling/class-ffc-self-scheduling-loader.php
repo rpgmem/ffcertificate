@@ -44,13 +44,6 @@ class SelfSchedulingLoader {
 	protected ?SelfSchedulingEditor $editor = null;
 
 	/**
-	 * Appointment CSV exporter — held to keep the instance alive for its hooks.
-	 *
-	 * @var AppointmentCsvExporter|null
-	 */
-	protected ?AppointmentCsvExporter $csv_exporter = null;
-
-	/**
 	 * Appointment CPT — held to keep the instance alive for its hooks.
 	 *
 	 * @var SelfSchedulingCPT|null
@@ -96,9 +89,23 @@ class SelfSchedulingLoader {
 	 */
 	public function init(): void {
 		if ( is_admin() ) {
-			$this->admin        = new SelfSchedulingAdmin();
-			$this->editor       = new SelfSchedulingEditor();
-			$this->csv_exporter = new AppointmentCsvExporter();
+			$this->admin  = new SelfSchedulingAdmin();
+			$this->editor = new SelfSchedulingEditor();
+
+			// Appointment CSV export — register the batched source with the
+			// shared registry (#772); the unified dispatcher (wired in Loader)
+			// routes `type=appointments` start/batch/download requests to it.
+			// Runs under is_admin(), true on admin-ajax, so it is reachable
+			// during the export job.
+			\FreeFormCertificate\Core\SourceRegistry::register(
+				AppointmentExportSource::TYPE,
+				static function (): AppointmentExportSource {
+					return new AppointmentExportSource(
+						new \FreeFormCertificate\Repositories\AppointmentRepository(),
+						new \FreeFormCertificate\Repositories\CalendarRepository()
+					);
+				}
+			);
 		}
 
 		$this->cpt                 = new SelfSchedulingCPT();

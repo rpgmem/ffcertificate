@@ -294,6 +294,52 @@ class AppointmentRepository extends AbstractRepository {
 		return $this->reader->sql_user_appointment_count_subquery();
 	}
 
+	/**
+	 * Count matching appointments for the batched CSV export's progress total.
+	 *
+	 * @since 6.17.0
+	 * @param array<int, int>|null $calendar_ids Calendar id(s), or null for all.
+	 * @param array<int, string>   $statuses     Status filter (empty = all).
+	 * @param string|null          $start_date   Start date (`Y-m-d`).
+	 * @param string|null          $end_date     End date (`Y-m-d`).
+	 * @return int
+	 */
+	public function countForExport( ?array $calendar_ids, array $statuses, ?string $start_date, ?string $end_date ): int {
+		return $this->reader->countForExport( $calendar_ids, $statuses, $start_date, $end_date );
+	}
+
+	/**
+	 * Keyset page (id-cursor) for the batched CSV export.
+	 *
+	 * @since 6.17.0
+	 * @param array<int, int>|null $calendar_ids Calendar id(s), or null for all.
+	 * @param array<int, string>   $statuses     Status filter (empty = all).
+	 * @param string|null          $start_date   Start date (`Y-m-d`).
+	 * @param string|null          $end_date     End date (`Y-m-d`).
+	 * @param int                  $cursor_id    Exclusive upper-bound id.
+	 * @param int                  $limit        Page size.
+	 * @return array<int, array<string, mixed>>
+	 */
+	public function getExportBatch( ?array $calendar_ids, array $statuses, ?string $start_date, ?string $end_date, int $cursor_id, int $limit ): array {
+		return $this->reader->getExportBatch( $calendar_ids, $statuses, $start_date, $end_date, $cursor_id, $limit );
+	}
+
+	/**
+	 * Lightweight keyset page of only the JSON columns, for dynamic-key discovery.
+	 *
+	 * @since 6.17.0
+	 * @param array<int, int>|null $calendar_ids Calendar id(s), or null for all.
+	 * @param array<int, string>   $statuses     Status filter (empty = all).
+	 * @param string|null          $start_date   Start date (`Y-m-d`).
+	 * @param string|null          $end_date     End date (`Y-m-d`).
+	 * @param int                  $cursor_id    Exclusive upper-bound id.
+	 * @param int                  $limit        Page size.
+	 * @return array<int, array<string, mixed>>
+	 */
+	public function getExportKeysBatch( ?array $calendar_ids, array $statuses, ?string $start_date, ?string $end_date, int $cursor_id, int $limit ): array {
+		return $this->reader->getExportKeysBatch( $calendar_ids, $statuses, $start_date, $end_date, $cursor_id, $limit );
+	}
+
 	// ─────────────────────────────────────────────.
 	// Writes — delegate to AppointmentWriter.
 	// ─────────────────────────────────────────────.
