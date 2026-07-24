@@ -67,43 +67,20 @@ final class RecruitmentNoticeEditPage {
 
 	/**
 	 * Stream a small example CSV that matches the importer's header
-	 * shape (REQUIRED + OPTIONAL_HEADERS in
-	 * {@see RecruitmentCsvImporter}). Two rows, semicolon delimiter to
-	 * survive the BR/EU spreadsheet round-trip — the importer auto-
-	 * detects either delimiter on read.
+	 * shape (REQUIRED + OPTIONAL_HEADERS in {@see RecruitmentCsvImporter}).
 	 *
-	 * Cap-gated; nonce-gated. The download chrome (attachment headers,
-	 * output stream, termination) lives in the injected {@see
-	 * \FreeFormCertificate\Core\CsvStreamer}; here we only supply the
-	 * filename, the header line and the two example rows.
+	 * Thin entry point: the columns, rows, filename and cap/nonce gate live in
+	 * {@see RecruitmentExampleCsvSource}; the download lifecycle lives in
+	 * {@see \FreeFormCertificate\Core\SyncCsvExport}. The `$streamer` parameter is
+	 * kept for test injection — a passed {@see \FreeFormCertificate\Core\CsvStreamer}
+	 * (e.g. a buffered download double) is wrapped into the driver.
 	 *
 	 * @param \FreeFormCertificate\Core\CsvStreamer|null $streamer CSV streamer; defaults to the live HTTP download.
 	 * @return void
 	 */
 	public static function handle_download_csv_example( ?\FreeFormCertificate\Core\CsvStreamer $streamer = null ): void {
-		if ( ! current_user_can( self::CAP ) ) {
-			wp_die( esc_html__( 'Access denied.', 'ffcertificate' ) );
-		}
-		check_admin_referer( 'ffc_recruitment_download_csv_example' );
-
-		nocache_headers();
-
-		// Header line + two example rows. The first candidate is PCD,
-		// the second is not, so operators see both shapes. Adjutancy
-		// slugs match the catalog convention from the Adjutancies tab;
-		// operators must replace them with slugs that exist on the
-		// target notice before importing.
-		// `time_points` and `hab_emebs` are optional headers (v6) — kept
-		// in the example so operators see the canonical column order.
-		// Existing CSVs that omit them keep importing unchanged.
-		$header_row   = array( 'name', 'cpf', 'rf', 'email', 'phone', 'adjutancy', 'rank', 'score', 'time_points', 'hab_emebs', 'pcd' );
-		$example_rows = array(
-			array( 'Maria da Silva', '12345678909', '111111', 'maria@example.com', '11999990000', 'portugues', '1', '85.50', '12.00', '1', '1' ),
-			array( 'João Souza', '98765432100', '222222', 'joao@example.com', '11988887777', 'matematica', '2', '78.25', '8.50', '0', '0' ),
-		);
-
-		$streamer = $streamer ?? new \FreeFormCertificate\Core\CsvStreamer( new \FreeFormCertificate\Core\HttpCsvDownload() );
-		$streamer->stream( 'ffc-recruitment-example.csv', $header_row, $example_rows );
+		$exporter = new \FreeFormCertificate\Core\SyncCsvExport( $streamer );
+		$exporter->handle( new RecruitmentExampleCsvSource() );
 	}
 
 	/**

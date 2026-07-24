@@ -808,78 +808,18 @@ class PublicCsvDownload {
 	 * Auth: nonce + user must satisfy {@see Capabilities::current_user_can_admin_or}
 	 * with `ffc_manage_settings` AND have `edit_post` on the target form.
 	 *
+	 * @param \FreeFormCertificate\Core\SyncCsvExport|null $exporter Sync export driver; defaults to the live HTTP download (injected in tests).
 	 * @return void Streams CSV and exits; never returns on success.
 	 */
-	public function handle_export_log_request(): void {
-        // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Nonce validated below.
+	public function handle_export_log_request( ?\FreeFormCertificate\Core\SyncCsvExport $exporter = null ): void {
+        // phpcs:ignore WordPress.Security.NonceVerification.Recommended, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- form_id sanitized via absint; nonce verified in the source's authorize().
 		$form_id = isset( $_GET['form_id'] ) ? absint( wp_unslash( $_GET['form_id'] ) ) : 0;
-        // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
-		$nonce = RequestInput::get_get_string( '_wpnonce' );
 
-		if ( ! wp_verify_nonce( $nonce, self::EXPORT_LOG_NONCE . '_' . $form_id ) ) {
-			wp_die( esc_html__( 'Security check failed.', 'ffcertificate' ), 403 );
-		}
-		if ( $form_id <= 0 || get_post_type( $form_id ) !== 'ffc_form' ) {
-			wp_die( esc_html__( 'Form not found.', 'ffcertificate' ), 404 );
-		}
-		if ( ! current_user_can( 'edit_post', $form_id ) ) {
-			wp_die( esc_html__( 'You do not have permission to export this log.', 'ffcertificate' ), 403 );
-		}
-		$can_audit = class_exists( '\FreeFormCertificate\Core\Utils' )
-			? \FreeFormCertificate\Core\Capabilities::current_user_can_admin_or( 'ffc_manage_settings' )
-			: current_user_can( 'manage_options' );
-		if ( ! $can_audit ) {
-			wp_die( esc_html__( 'You do not have permission to export this log.', 'ffcertificate' ), 403 );
-		}
-
-		$log = get_post_meta( $form_id, self::META_DOWNLOAD_LOG, true );
-		$log = is_array( $log ) ? $log : array();
-
-		$encryption_ok = class_exists( '\FreeFormCertificate\Core\Encryption' )
-			&& \FreeFormCertificate\Core\Encryption::is_configured();
-
-		$filename = 'ffc-csv-download-log-' . $form_id . '-' . gmdate( 'Y-m-d-His' ) . '.csv';
-
-		nocache_headers();
-		header( 'Content-Type: text/csv; charset=utf-8' );
-		header( 'Content-Disposition: attachment; filename="' . $filename . '"' );
-
-        // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fopen -- streaming CSV download to php://output.
-		$fh = fopen( 'php://output', 'w' );
-		if ( false === $fh ) {
-			wp_die( esc_html__( 'Could not open output stream for CSV export.', 'ffcertificate' ), 500 );
-		}
-
-		$writer = \FreeFormCertificate\Core\Csv::writer( $fh );
-		if ( ! $encryption_ok ) {
-			// One-line preamble so the admin knows why CPFs come out empty.
-			$writer->row( array( '# Encryption is not configured on this site; CPF column will be empty for new entries. See plugin docs.' ) );
-		}
-		$writer->row( array( 'timestamp', 'ip', 'mode', 'cpf', 'result' ) );
-
-		foreach ( $log as $entry ) {
-			if ( ! is_array( $entry ) ) {
-				continue;
-			}
-			// Render in the site timezone so the admin can read the audit
-			// without converting UTC in a spreadsheet. The stored value is a
-			// UTC timestamp (entry['ts'] is unix); `wp_date()` with no
-			// timezone arg uses `wp_timezone()`.
-			$ts = '';
-			if ( isset( $entry['ts'] ) ) {
-				$formatted = wp_date( 'Y-m-d H:i:s', (int) $entry['ts'] );
-				$ts        = false === $formatted ? '' : $formatted;
-			}
-			$ip  = isset( $entry['ip'] ) ? (string) $entry['ip'] : '';
-			$mod = isset( $entry['mode'] ) ? (string) $entry['mode'] : '';
-			$res = isset( $entry['result'] ) ? (string) $entry['result'] : '';
-			$cpf = CsvDownloadAuditLog::decrypt_log_entry_cpf( $entry );
-			$writer->row( array( $ts, $ip, $mod, $cpf, $res ) );
-		}
-		$writer->close();
-        // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose -- closing the php://output handle this method opened.
-		fclose( $fh );
-		exit;
+		// The nonce + form + capability gate, the column layout and the
+		// decrypting row generator live in the source; the download lifecycle
+		// lives in the driver. The `$exporter` param is kept for test injection.
+		$exporter = $exporter ?? new \FreeFormCertificate\Core\SyncCsvExport();
+		$exporter->handle( new \FreeFormCertificate\Frontend\Csv\CsvDownloadLogExportSource( $form_id ) );
 	}
 
 	/**

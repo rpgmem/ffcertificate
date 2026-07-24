@@ -18,8 +18,6 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 /**
  * Audience Admin Import.
- *
- * @phpstan-import-type AudienceRow from AudienceReader
  */
 class AudienceAdminImport {
 
@@ -285,12 +283,8 @@ class AudienceAdminImport {
 		if ( ( $can_manage || $can_import ) && isset( $_GET['download_sample'] ) && isset( $_GET['_wpnonce'] ) ) {
 			$type = \FreeFormCertificate\Core\RequestInput::get_get_string( 'download_sample' );
 			if ( wp_verify_nonce( \FreeFormCertificate\Core\RequestInput::get_get_string( '_wpnonce' ), 'download_sample' ) ) {
-				$filename = 'audiences' === $type ? 'audiences-sample.csv' : 'members-sample.csv';
-				header( 'Content-Type: text/csv' );
-				header( 'Content-Disposition: attachment; filename="' . $filename . '"' );
-                // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
-				echo AudienceCsvImporter::get_sample_csv( $type );
-				exit;
+				( new \FreeFormCertificate\Core\SyncCsvExport( $this->streamer ) )
+					->handle( new AudienceSampleCsvSource( $type ) );
 			}
 		}
 
@@ -422,67 +416,11 @@ class AudienceAdminImport {
 	 * @return void
 	 */
 	private function export_members_csv(): void {
-        // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Nonce verified in caller handle_actions().
+        // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Nonce verified in caller handle_csv_import().
 		$audience_id = isset( $_POST['export_audience_id'] ) ? absint( $_POST['export_audience_id'] ) : 0;
 
-		// Collect audience IDs to export.
-		$audience_ids = array();
-		if ( $audience_id > 0 ) {
-			$audience_ids[] = $audience_id;
-		} else {
-			$all_audiences = AudienceReader::get_all();
-			foreach ( $all_audiences as $aud ) {
-				$audience_ids[] = (int) $aud->id;
-			}
-		}
-
-		// Build audience name map.
-		$audience_map  = array();
-		$all_audiences = AudienceReader::get_all();
-		foreach ( $all_audiences as $aud ) {
-			$audience_map[ (int) $aud->id ] = $aud->name;
-		}
-
-		$filename = \FreeFormCertificate\Core\FilenameHelper::get_export_filename( 'members-export' );
-		$this->streamer->stream(
-			$filename,
-			array( 'email', 'name', 'audience_name' ),
-			$this->members_rows( $audience_ids, $audience_map )
-		);
-	}
-
-	/**
-	 * Yield one CSV line per unique member+audience pair.
-	 *
-	 * @param array<int, int>    $audience_ids Audience ids to export.
-	 * @param array<int, string> $audience_map Audience id => name.
-	 * @return \Generator<int, array<int, string>>
-	 */
-	private function members_rows( array $audience_ids, array $audience_map ): \Generator {
-		$seen = array(); // Avoid duplicate rows for same user+audience.
-		foreach ( $audience_ids as $aid ) {
-			$member_ids    = AudienceReader::get_members( $aid );
-			$audience_name = isset( $audience_map[ $aid ] ) ? $audience_map[ $aid ] : '';
-
-			foreach ( $member_ids as $user_id ) {
-				$key = $user_id . '-' . $aid;
-				if ( isset( $seen[ $key ] ) ) {
-					continue;
-				}
-				$seen[ $key ] = true;
-
-				$user = get_user_by( 'id', $user_id );
-				if ( ! $user ) {
-					continue;
-				}
-
-				yield array(
-					$user->user_email,
-					$user->display_name,
-					$audience_name,
-				);
-			}
-		}
+		( new \FreeFormCertificate\Core\SyncCsvExport( $this->streamer ) )
+			->handle( new AudienceMembersExportSource( $audience_id ) );
 	}
 
 	/**
@@ -491,38 +429,7 @@ class AudienceAdminImport {
 	 * @return void
 	 */
 	private function export_audiences_csv(): void {
-		$filename = \FreeFormCertificate\Core\FilenameHelper::get_export_filename( 'audiences-export' );
-		$this->streamer->stream(
-			$filename,
-			array( 'name', 'color', 'parent' ),
-			$this->audiences_rows( AudienceReader::get_hierarchical() )
-		);
-	}
-
-	/**
-	 * Yield one CSV line per audience — parents first, then their children (the
-	 * same order the importer expects).
-	 *
-	 * @param array<int, AudienceRow> $audiences Hierarchical audience tree.
-	 * @return \Generator<int, array<int, string>>
-	 */
-	private function audiences_rows( array $audiences ): \Generator {
-		foreach ( $audiences as $audience ) {
-			yield array(
-				$audience->name,
-				$audience->color ?? '#3788d8',
-				'', // Parents have no parent.
-			);
-
-			if ( ! empty( $audience->children ) ) {
-				foreach ( $audience->children as $child ) {
-					yield array(
-						$child->name,
-						$child->color ?? '#3788d8',
-						$audience->name,
-					);
-				}
-			}
-		}
+		( new \FreeFormCertificate\Core\SyncCsvExport( $this->streamer ) )
+			->handle( new AudienceAudiencesExportSource() );
 	}
 }

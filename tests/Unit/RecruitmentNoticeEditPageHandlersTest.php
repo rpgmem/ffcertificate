@@ -22,6 +22,7 @@ use FreeFormCertificate\Core\CsvDownloadInterface;
  * wp_die is likewise short-circuited.
  *
  * @covers \FreeFormCertificate\Recruitment\RecruitmentNoticeEditPage
+ * @covers \FreeFormCertificate\Recruitment\RecruitmentExampleCsvSource
  * @runTestsInSeparateProcesses
  * @preserveGlobalState disabled
  */
@@ -32,6 +33,9 @@ class RecruitmentNoticeEditPageHandlersTest extends TestCase {
 	protected function setUp(): void {
 		parent::setUp();
 		Monkey\setUp();
+		// Preload so pcov attributes the coverage this test drives through the
+		// source; pcov skips a class first autoloaded mid-test-method (#772).
+		class_exists( '\\FreeFormCertificate\Recruitment\RecruitmentExampleCsvSource' );
 
 		Functions\when( '__' )->returnArg();
 		Functions\when( 'esc_html__' )->returnArg();
