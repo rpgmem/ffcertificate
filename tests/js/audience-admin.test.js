@@ -803,6 +803,12 @@ describe('audience-admin — bookings CSV export', () => {
 	it('drives window.FFCBatchedExport.run with type + current filters + job nonce', async () => {
 		const runSpy = vi.fn();
 		window.FFCBatchedExport = { run: runSpy };
+		// Regression guard: the DOM here has NO #ffc-permissions-table, exactly
+		// like the real bookings list. Clear delegated click handlers leaked from
+		// earlier reload()s first, so this asserts THIS load registers the export
+		// handler — which fails if it lives behind initCalendarPermissions'
+		// early-return instead of its own initBookingsExport method.
+		window.$(document).off('click');
 		document.body.innerHTML = `
 			<button type="button" id="ffc-bookings-export-btn"
 				data-schedule_id="4" data-environment_id="3" data-status="active"
@@ -813,9 +819,6 @@ describe('audience-admin — bookings CSV export', () => {
 
 		window.$('#ffc-bookings-export-btn').trigger('click');
 
-		// The bindEvents() delegate is attached to `document`, which persists
-		// across the file's many reload() calls, so the handler may fire more
-		// than once — assert it fired and inspect the first (identical) call.
 		expect(runSpy).toHaveBeenCalled();
 		const arg = runSpy.mock.calls[0][0];
 		expect(arg.type).toBe('audience_bookings');
