@@ -174,6 +174,122 @@ class AudienceBookingReader {
 	}
 
 	/**
+	 * Count bookings for the batched CSV export, applying the same filters +
+	 * environment JOIN as {@see self::get_all()} so the export progress total
+	 * matches the rows {@see self::find_by_cursor()} actually yields. The shared
+	 * {@see self::count()} can't be reused because it queries the bookings table
+	 * alone and so can't honour the `schedule_id` filter (which lives on the
+	 * joined environment row).
+	 *
+	 * @since 6.17.0
+	 * @param array<string, mixed> $args Filters: environment_id / schedule_id / status / start_date / end_date.
+	 * @return int
+	 */
+	public static function count_for_export( array $args = array() ): int {
+		$wpdb      = self::db();
+		$table     = self::get_table_name();
+		$env_table = AudienceEnvironmentRepository::get_table_name();
+
+		$where  = array();
+		$values = array();
+
+		if ( ! empty( $args['environment_id'] ) ) {
+			$where[]  = 'b.environment_id = %d';
+			$values[] = $args['environment_id'];
+		}
+		if ( ! empty( $args['schedule_id'] ) ) {
+			$where[]  = 'e.schedule_id = %d';
+			$values[] = $args['schedule_id'];
+		}
+		if ( ! empty( $args['status'] ) ) {
+			$where[]  = 'b.status = %s';
+			$values[] = $args['status'];
+		}
+		if ( ! empty( $args['start_date'] ) ) {
+			$where[]  = 'b.booking_date >= %s';
+			$values[] = $args['start_date'];
+		}
+		if ( ! empty( $args['end_date'] ) ) {
+			$where[]  = 'b.booking_date <= %s';
+			$values[] = $args['end_date'];
+		}
+
+		$where_clause = ! empty( $where ) ? 'WHERE ' . implode( ' AND ', $where ) : '';
+
+		$sql = "SELECT COUNT(*)
+                FROM %i b
+                INNER JOIN %i e ON b.environment_id = e.id
+                {$where_clause}";
+
+		$prepare_args = array_merge( array( $table, $env_table ), $values );
+		$sql          = $wpdb->prepare( $sql, $prepare_args );
+
+		return (int) $wpdb->get_var( $sql );
+	}
+
+	/**
+	 * Keyset page for the batched CSV export: rows with `b.id < $cursor`, newest
+	 * first (`b.id DESC`), limited to `$size`. Keyset (not LIMIT/OFFSET) so paging
+	 * stays stable across concurrent inserts during a long export. Filters +
+	 * environment JOIN mirror {@see self::get_all()}.
+	 *
+	 * @since 6.17.0
+	 * @param array<string, mixed> $args   Filters: environment_id / schedule_id / status / start_date / end_date.
+	 * @param int                  $cursor Exclusive upper-bound id (PHP_INT_MAX on the first page).
+	 * @param int                  $size   Page size.
+	 * @return list<BookingRow>
+	 */
+	public static function find_by_cursor( array $args, int $cursor, int $size ): array {
+		$wpdb      = self::db();
+		$table     = self::get_table_name();
+		$env_table = AudienceEnvironmentRepository::get_table_name();
+
+		$where  = array( 'b.id < %d' );
+		$values = array( $cursor );
+
+		if ( ! empty( $args['environment_id'] ) ) {
+			$where[]  = 'b.environment_id = %d';
+			$values[] = $args['environment_id'];
+		}
+		if ( ! empty( $args['schedule_id'] ) ) {
+			$where[]  = 'e.schedule_id = %d';
+			$values[] = $args['schedule_id'];
+		}
+		if ( ! empty( $args['status'] ) ) {
+			$where[]  = 'b.status = %s';
+			$values[] = $args['status'];
+		}
+		if ( ! empty( $args['start_date'] ) ) {
+			$where[]  = 'b.booking_date >= %s';
+			$values[] = $args['start_date'];
+		}
+		if ( ! empty( $args['end_date'] ) ) {
+			$where[]  = 'b.booking_date <= %s';
+			$values[] = $args['end_date'];
+		}
+
+		$where_clause = 'WHERE ' . implode( ' AND ', $where );
+
+		$sql = "SELECT b.*, e.name as environment_name, e.schedule_id
+                FROM %i b
+                INNER JOIN %i e ON b.environment_id = e.id
+                {$where_clause}
+                ORDER BY b.id DESC
+                LIMIT %d";
+
+		$prepare_args = array_merge( array( $table, $env_table ), $values, array( $size ) );
+		$sql          = $wpdb->prepare( $sql, $prepare_args );
+
+		$results = $wpdb->get_results( $sql );
+		/**
+		 * Cast wpdb result to typed shape.
+		 *
+		 * @var list<BookingRow>
+		 */
+		return is_array( $results ) ? $results : array();
+	}
+
+	/**
 	 * Get booking by ID
 	 *
 	 * Get by id.

@@ -122,11 +122,17 @@ class AudienceLoader {
 			$this->admin_page->init();
 		}
 
-		// Bookings CSV exporter — registers its own `admin_post` handler; the
-		// hook keeps the instance alive for the request.
-		if ( class_exists( '\FreeFormCertificate\Audience\AudienceBookingCsvExporter' ) ) {
-			new AudienceBookingCsvExporter();
-		}
+		// Bookings CSV export — register the batched source with the shared
+		// registry (#772); the unified dispatcher (wired in Loader) routes
+		// `type=audience_bookings` start/batch/download requests to it. Runs
+		// under is_admin(), which is true on admin-ajax, so the source is
+		// reachable during the export job.
+		\FreeFormCertificate\Core\SourceRegistry::register(
+			AudienceBookingExportSource::TYPE,
+			static function (): AudienceBookingExportSource {
+				return new AudienceBookingExportSource();
+			}
+		);
 
 		// Load admin assets.
 		add_action( 'admin_enqueue_scripts', array( $this, 'enqueue_admin_assets' ) );
@@ -260,6 +266,25 @@ class AudienceLoader {
 			);
 		}
 
+		// Bookings page: the batched CSV export button drives the shared
+		// window.FFCBatchedExport engine (#772) via the unified dispatcher.
+		if ( 'ffc-scheduling-bookings' === $page ) {
+			wp_enqueue_script(
+				'ffc-core',
+				FFC_PLUGIN_URL . "assets/js/ffc-core{$s}.js",
+				array( 'jquery' ),
+				FFC_VERSION,
+				true
+			);
+			wp_enqueue_script(
+				'ffc-batched-export',
+				FFC_PLUGIN_URL . "assets/js/ffc-batched-export{$s}.js",
+				array( 'jquery', 'ffc-core' ),
+				FFC_VERSION,
+				true
+			);
+		}
+
 		// Localize script.
 		wp_localize_script(
 			'ffc-audience-admin',
@@ -271,6 +296,7 @@ class AudienceLoader {
 				'searchUsersNonce'         => wp_create_nonce( 'ffc_search_users' ),
 				'schedulePermissionsNonce' => wp_create_nonce( 'ffc_schedule_permissions' ),
 				'adminNonce'               => wp_create_nonce( 'ffc_admin_nonce' ),
+				'exportNonce'              => wp_create_nonce( 'ffc_audience_bookings_export' ),
 				'strings'                  => $this->get_admin_strings(),
 			)
 		);
@@ -400,6 +426,10 @@ class AudienceLoader {
 			'noUsersYet'           => __( 'No users have been granted access yet.', 'ffcertificate' ),
 			'cannotDeleteStandard' => __( 'Standard fields cannot be deleted. Deactivate instead.', 'ffcertificate' ),
 			'confirmReplicate'     => __( "Copy this audience's option lists to all child and grandchild audiences? This overwrites their current lists.", 'ffcertificate' ),
+			'exportPreparing'      => __( 'Preparing…', 'ffcertificate' ),
+			/* translators: %1$d processed, %2$d total */
+			'exportProgress'       => __( 'Exporting %1$d/%2$d…', 'ffcertificate' ),
+			'exportDone'           => __( 'Done!', 'ffcertificate' ),
 		);
 	}
 }

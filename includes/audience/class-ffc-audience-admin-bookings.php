@@ -90,16 +90,24 @@ class AudienceAdminBookings {
 		<div class="wrap">
 			<h1 class="wp-heading-inline"><?php esc_html_e( 'Bookings', 'ffcertificate' ); ?></h1>
 			<?php if ( \FreeFormCertificate\Core\Capabilities::current_user_can_admin_or( 'ffc_export_audiences' ) ) : ?>
-				<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" class="ffc-bookings-export" style="display:inline;">
-					<?php wp_nonce_field( 'ffc_export_audience_bookings_nonce', 'ffc_export_audience_bookings_action' ); ?>
-					<input type="hidden" name="action" value="ffc_export_audience_bookings_csv" />
-					<input type="hidden" name="schedule_id" value="<?php echo esc_attr( (string) $schedule_id ); ?>" />
-					<input type="hidden" name="environment_id" value="<?php echo esc_attr( (string) $environment_id ); ?>" />
-					<input type="hidden" name="status" value="<?php echo esc_attr( $status_filter ); ?>" />
-					<input type="hidden" name="date_from" value="<?php echo esc_attr( $date_from ); ?>" />
-					<input type="hidden" name="date_to" value="<?php echo esc_attr( $date_to ); ?>" />
-					<button type="submit" class="page-title-action"><?php esc_html_e( 'Export CSV', 'ffcertificate' ); ?></button>
-				</form>
+				<?php
+				// Batched CSV export (#772): the button drives the shared
+				// window.FFCBatchedExport engine through the unified dispatcher —
+				// current filters ride along via data-* so the export matches the
+				// on-screen query. No admin-post form; the job nonce is localized.
+				?>
+				<button
+					type="button"
+					id="ffc-bookings-export-btn"
+					class="page-title-action"
+					data-schedule_id="<?php echo esc_attr( (string) $schedule_id ); ?>"
+					data-environment_id="<?php echo esc_attr( (string) $environment_id ); ?>"
+					data-status="<?php echo esc_attr( $status_filter ); ?>"
+					data-date_from="<?php echo esc_attr( $date_from ); ?>"
+					data-date_to="<?php echo esc_attr( $date_to ); ?>">
+					<?php esc_html_e( 'Export CSV', 'ffcertificate' ); ?>
+				</button>
+				<span id="ffc-bookings-export-progress" style="display:none;margin-left:8px;"></span>
 			<?php endif; ?>
 			<hr class="wp-header-end">
 

@@ -420,6 +420,60 @@
                     })
                     .catch(function() { /* silent */ });
             });
+
+            // Batched CSV export (#772). The button drives the unified
+            // ffc_export_* dispatcher via the shared window.FFCBatchedExport
+            // driver, carrying the current schedule/environment/status/date
+            // filters. Export order is id-DESC (a stable keyset), not the
+            // on-screen sort.
+            $(document).on('click', '#ffc-bookings-export-btn', function() {
+                if (!window.FFCBatchedExport) { return; }
+                var cfg = typeof ffcAudienceAdmin !== 'undefined' ? ffcAudienceAdmin : {};
+                var s = cfg.strings || {};
+                var exportNonce = cfg.exportNonce || '';
+                if (!exportNonce) { return; }
+
+                var $btn = $(this);
+                var $progress = $('#ffc-bookings-export-progress');
+                var originalText = $btn.text();
+                $btn.prop('disabled', true).text(s.exportPreparing || 'Preparing…');
+                $progress.show().text('');
+
+                var exportingTpl = s.exportProgress || 'Exporting %1$d/%2$d…';
+                var total = 0;
+
+                window.FFCBatchedExport.run({
+                    type: 'audience_bookings',
+                    ajaxUrl: cfg.ajaxUrl,
+                    nonce: exportNonce,
+                    startData: {
+                        schedule_id:    $btn.data('schedule_id') || '',
+                        environment_id: $btn.data('environment_id') || '',
+                        status:         $btn.data('status') || '',
+                        date_from:      $btn.data('date_from') || '',
+                        date_to:        $btn.data('date_to') || ''
+                    },
+                    callbacks: {
+                        onStart: function(t) { total = t; },
+                        onProgress: function(processed) {
+                            $progress.text(exportingTpl.replace('%1$d', processed).replace('%2$d', total));
+                        },
+                        onComplete: function(downloadUrl, ctx) {
+                            var $iframe = $('<iframe>', { src: downloadUrl }).css({ display: 'none' }).appendTo('body');
+                            setTimeout(function() {
+                                $btn.prop('disabled', false).text(originalText);
+                                $progress.text('✓ ' + ctx.processed + '/' + total + ' — ' + (s.exportDone || 'Done!'));
+                                setTimeout(function() { $progress.fadeOut(); }, 5000);
+                                $iframe.remove();
+                            }, 2000);
+                        },
+                        onError: function(err) {
+                            $btn.prop('disabled', false).text(originalText);
+                            $progress.text((err && err.fromServer && err.message) || (s.error || 'An error occurred. Please try again.'));
+                        }
+                    }
+                });
+            });
         }
     };
 

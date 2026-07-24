@@ -26,7 +26,12 @@ beforeAll(() => {
 		searchUsersNonce: 'search-nonce',
 		schedulePermissionsNonce: 'perm-nonce',
 		adminNonce: 'admin-nonce',
+		ajaxUrl: '/wp-admin/admin-ajax.php',
+		exportNonce: 'export-nonce',
 		strings: {
+			exportPreparing: 'Preparing…',
+			exportProgress: 'Exporting %1$d/%2$d…',
+			exportDone: 'Done!',
 			allEnvironments: 'All Environments',
 			loading: 'Loading…',
 			error: 'Error',
@@ -783,5 +788,54 @@ describe('audience-admin — residual branches', () => {
 		await flush();
 
 		expect(postSpy).not.toHaveBeenCalled();
+	});
+});
+
+// ----------------------------------------------------------------------
+// Batched CSV export (#772) — the bookings-page Export button
+// ----------------------------------------------------------------------
+
+describe('audience-admin — bookings CSV export', () => {
+	afterEach(() => {
+		delete window.FFCBatchedExport;
+	});
+
+	it('drives window.FFCBatchedExport.run with type + current filters + job nonce', async () => {
+		const runSpy = vi.fn();
+		window.FFCBatchedExport = { run: runSpy };
+		document.body.innerHTML = `
+			<button type="button" id="ffc-bookings-export-btn"
+				data-schedule_id="4" data-environment_id="3" data-status="active"
+				data-date_from="2026-05-01" data-date_to="2026-05-31">Export CSV</button>
+			<span id="ffc-bookings-export-progress" style="display:none;"></span>
+		`;
+		await reload();
+
+		window.$('#ffc-bookings-export-btn').trigger('click');
+
+		// The bindEvents() delegate is attached to `document`, which persists
+		// across the file's many reload() calls, so the handler may fire more
+		// than once — assert it fired and inspect the first (identical) call.
+		expect(runSpy).toHaveBeenCalled();
+		const arg = runSpy.mock.calls[0][0];
+		expect(arg.type).toBe('audience_bookings');
+		expect(arg.ajaxUrl).toBe('/wp-admin/admin-ajax.php');
+		expect(arg.nonce).toBe('export-nonce');
+		expect(arg.startData).toEqual({
+			schedule_id: 4,
+			environment_id: 3,
+			status: 'active',
+			date_from: '2026-05-01',
+			date_to: '2026-05-31',
+		});
+		expect(typeof arg.callbacks.onProgress).toBe('function');
+		expect(typeof arg.callbacks.onComplete).toBe('function');
+		expect(typeof arg.callbacks.onError).toBe('function');
+	});
+
+	it('is a no-op when the batched-export driver is unavailable', async () => {
+		document.body.innerHTML = '<button type="button" id="ffc-bookings-export-btn">Export CSV</button>';
+		await reload();
+		expect(() => window.$('#ffc-bookings-export-btn').trigger('click')).not.toThrow();
 	});
 });
