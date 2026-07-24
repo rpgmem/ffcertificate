@@ -274,6 +274,57 @@ describe('csv-download — download flow', () => {
 		expect(window.$('iframe[src*="ffc_export_download"]').length).toBe(1);
 	});
 
+	it('start request preserves the page nonce + type from the serialized form (regression: $.extend string-spread)', async () => {
+		// Mount a form carrying the page nonce, exactly like the real public
+		// download markup. api.formData becomes $form.serialize() (a STRING);
+		// the batched driver used to $.extend({type}, string) which spread the
+		// string into character-index keys and dropped _ffc_pcd_nonce — the
+		// server then failed the page-nonce check ("security check failed").
+		document.body.innerHTML = `
+			<div class="ffc-public-csv-download">
+				<div class="ffc-verification-header">header</div>
+				<form>
+					<input type="hidden" name="action" value="ffc_public_csv_download" />
+					<input type="hidden" name="_ffc_pcd_nonce" value="PAGENONCE" />
+					<input type="text" name="form_id" value="42" />
+					<input type="text" name="hash" value="abc" />
+					<button type="submit" class="ffc-submit-btn">Info</button>
+				</form>
+			</div>
+		`;
+		await loadAndReady();
+		const postSpy = vi.spyOn(window.$, 'ajax');
+		postSpy.mockImplementationOnce(() => postChain({ done: { success: true, data: defaultInfo() } }));
+		window.$('.ffc-public-csv-download form').trigger('submit');
+		await flush();
+
+		// start, then a done batch so the loop stops immediately.
+		const responses = [
+			{ success: true, data: { job_id: 'j-1', nonce_batch: 'nb', total: 1 } },
+			{ success: true, data: { processed: 1, total: 1, done: true } },
+		];
+		postSpy.mockImplementation(() => postChain({
+			done: responses.shift() || { success: true, data: { processed: 1, total: 1, done: true } },
+		}));
+
+		window.$('.ffc-btn-download-csv').trigger('click');
+		await flush();
+
+		// Locate the ffc_export_start request (its payload is the serialized
+		// string with &action=ffc_export_start appended by FFC.request).
+		const startCall = postSpy.mock.calls.find((c) => {
+			const d = c[0] && c[0].data;
+			return typeof d === 'string' && d.indexOf('action=ffc_export_start') !== -1;
+		});
+		expect(startCall).toBeTruthy();
+		const payload = startCall[0].data;
+		expect(payload).toContain('_ffc_pcd_nonce=PAGENONCE');
+		expect(payload).toContain('form_id=42');
+		expect(payload).toContain('type=public_forms');
+		// The old char-spread bug produced 0=a&1=c… index keys; assert none leaked.
+		expect(payload).not.toMatch(/(?:^|&)\d+=/);
+	});
+
 	it('after completion, the cleanup timer hides the overlay, re-enables the button, and removes the iframe', async () => {
 		const postSpy = await reachInfoScreen();
 		const responses = [

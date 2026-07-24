@@ -36,7 +36,16 @@
 		var type      = config.type;
 		var ajaxUrl   = config.ajaxUrl;
 		var cb        = config.callbacks || {};
-		var startData = $.extend({ type: type }, config.startData || {});
+		// startData may be an object (admin export) or a pre-serialised
+		// URL-encoded string from $form.serialize() (public export). Merge the
+		// routing `type` into either shape WITHOUT corrupting it: $.extend on a
+		// string spreads it into character-index keys, dropping every real field
+		// — including the page nonce — which surfaced as a bogus "security check
+		// failed" on the public download. FFC.request accepts both shapes, so we
+		// only need to append `&type=` to a string and object-merge otherwise.
+		var startData = ( typeof config.startData === 'string' )
+			? config.startData + '&type=' + encodeURIComponent( type )
+			: $.extend({ type: type }, config.startData || {});
 		var startOpts = config.nonce ? { nonce: config.nonce } : {};
 
 		FFC.request('ffc_export_start', startData, startOpts)
