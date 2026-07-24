@@ -115,16 +115,16 @@ class UrlShortenerAdminPage {
 				'nonce'       => wp_create_nonce( 'ffc_short_url_nonce' ),
 				'exportNonce' => wp_create_nonce( 'ffc_url_shortener_export' ),
 				'i18n'        => array(
-					'copied'         => __( 'Copied!', 'ffcertificate' ),
-					'copyFailed'     => __( 'Copy failed', 'ffcertificate' ),
-					'error'          => __( 'An error occurred.', 'ffcertificate' ),
-					'qrLoadFailed'   => __( 'Failed to load QR Code', 'ffcertificate' ),
-					'copy'           => __( 'Copy', 'ffcertificate' ),
-					'requestFailed'  => __( 'Request failed', 'ffcertificate' ),
+					'copied'          => __( 'Copied!', 'ffcertificate' ),
+					'copyFailed'      => __( 'Copy failed', 'ffcertificate' ),
+					'error'           => __( 'An error occurred.', 'ffcertificate' ),
+					'qrLoadFailed'    => __( 'Failed to load QR Code', 'ffcertificate' ),
+					'copy'            => __( 'Copy', 'ffcertificate' ),
+					'requestFailed'   => __( 'Request failed', 'ffcertificate' ),
 					'exportPreparing' => __( 'Preparing…', 'ffcertificate' ),
 					/* translators: %1$d processed, %2$d total */
-					'exportProgress' => __( 'Exporting %1$d/%2$d…', 'ffcertificate' ),
-					'exportDone'     => __( 'Done!', 'ffcertificate' ),
+					'exportProgress'  => __( 'Exporting %1$d/%2$d…', 'ffcertificate' ),
+					'exportDone'      => __( 'Done!', 'ffcertificate' ),
 				),
 			)
 		);

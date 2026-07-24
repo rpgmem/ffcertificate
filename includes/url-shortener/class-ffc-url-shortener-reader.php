@@ -152,7 +152,30 @@ class UrlShortenerReader extends AbstractRepository {
 		);
 		$args     = wp_parse_args( $args, $defaults );
 
-		list( $where_sql, $where_values ) = $this->build_export_where( $args );
+		// Inline WHERE build kept here (rather than build_export_where) so the
+		// query stays a literal-string for the wpdb::prepare() type-check; the
+		// helper is used by the export methods, which suppress the check.
+		$where_clauses = array();
+		$where_values  = array();
+
+		if ( 'all' === $args['status'] ) {
+			// "All" excludes trashed items (like WordPress core).
+			$where_clauses[] = 'status != %s';
+			$where_values[]  = 'trashed';
+		} else {
+			$where_clauses[] = 'status = %s';
+			$where_values[]  = $args['status'];
+		}
+
+		if ( ! empty( $args['search'] ) ) {
+			$like            = '%' . $this->wpdb->esc_like( $args['search'] ) . '%';
+			$where_clauses[] = '(title LIKE %s OR target_url LIKE %s OR short_code LIKE %s)';
+			$where_values[]  = $like;
+			$where_values[]  = $like;
+			$where_values[]  = $like;
+		}
+
+		$where_sql = 'WHERE ' . implode( ' AND ', $where_clauses );
 
 		$allowed_columns = array( 'id', 'title', 'short_code', 'click_count', 'created_at', 'status' );
 		$orderby         = in_array( $args['orderby'], $allowed_columns, true ) ? $args['orderby'] : 'created_at';
@@ -190,7 +213,7 @@ class UrlShortenerReader extends AbstractRepository {
 	 * Build the shared WHERE clause (status + search) used by the admin list
 	 * and the CSV export. `status = 'all'` excludes trashed rows.
 	 *
-	 * @param array<string, mixed> $filters {
+	 * @param array<string, mixed> $filters {.
 	 *     @type string $status Status filter ('all' excludes trashed).
 	 *     @type string $search Search term (title / target_url / short_code).
 	 * }
@@ -236,10 +259,16 @@ class UrlShortenerReader extends AbstractRepository {
 		$query = "SELECT COUNT(*) FROM %i {$where_sql}";
 		$args  = array_merge( array( $this->table ), $where_values );
 
+		// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+		/**
+		 * The interpolated part is a literal WHERE from build_export_where().
+		 *
+		 * @phpstan-ignore-next-line argument.type
+		 */
+		$prepared = $this->wpdb->prepare( $query, ...$args );
+
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-		return (int) $this->wpdb->get_var(
-			$this->wpdb->prepare( $query, ...$args ) // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
-		);
+		return (int) $this->wpdb->get_var( $prepared );
 	}
 
 	/**
@@ -258,11 +287,16 @@ class UrlShortenerReader extends AbstractRepository {
 		$query = "SELECT * FROM %i {$where_sql} AND id < %d ORDER BY id DESC LIMIT %d";
 		$args  = array_merge( array( $this->table ), $where_values, array( $cursor, $size ) );
 
+		// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+		/**
+		 * The interpolated part is a literal WHERE from build_export_where().
+		 *
+		 * @phpstan-ignore-next-line argument.type
+		 */
+		$prepared = $this->wpdb->prepare( $query, ...$args );
+
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-		$rows = $this->wpdb->get_results(
-			$this->wpdb->prepare( $query, ...$args ), // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
-			ARRAY_A
-		);
+		$rows = $this->wpdb->get_results( $prepared, ARRAY_A );
 
 		return $rows ? $rows : array();
 	}
