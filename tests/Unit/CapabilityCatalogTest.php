@@ -118,6 +118,23 @@ class CapabilityCatalogTest extends TestCase {
 		$this->assertLessThan( $first_admin, max( $last_user ) );
 	}
 
+	public function test_groups_are_alphabetical_by_label_within_each_section(): void {
+		$by_level = array( 'user' => array(), 'admin' => array() );
+		foreach ( CapabilityCatalog::groups() as $group ) {
+			$by_level[ $group['level'] ][] = $group['label'];
+		}
+
+		foreach ( $by_level as $level => $labels ) {
+			$sorted = $labels;
+			usort( $sorted, 'strcasecmp' );
+			$this->assertSame(
+				$sorted,
+				$labels,
+				"The {$level} groups must render alphabetically by label."
+			);
+		}
+	}
+
 	// ------------------------------------------------------------------
 	// Surface tags + display helpers
 	// ------------------------------------------------------------------
