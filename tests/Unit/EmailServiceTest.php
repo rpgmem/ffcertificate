@@ -214,6 +214,98 @@ class EmailServiceTest extends TestCase {
 		$this->assertSame( 'REWRITTEN', $captured['subject'] );
 	}
 
+	// ==================================================================
+	// mail-queue source headers (X-TMQ-Source-*)
+	// ==================================================================
+
+	public function test_send_adds_source_headers_when_gate_enabled_and_key_given(): void {
+		Functions\when( '__' )->returnArg();
+		// Gate the emit filter on; everything else passes through unchanged.
+		Functions\when( 'apply_filters' )->alias(
+			function ( $tag, $value ) {
+				return 'ffcertificate_emit_source_headers' === $tag ? true : $value;
+			}
+		);
+		$captured = null;
+		Functions\when( 'wp_mail' )->alias(
+			function ( $to, $subject, $body, $headers = array(), $attachments = array() ) use ( &$captured ) {
+				$captured = $headers;
+				return true;
+			}
+		);
+
+		EmailService::send(
+			'a@b.c',
+			'S',
+			'<p>B</p>',
+			array( 'Content-Type: text/html; charset=UTF-8' ),
+			array(),
+			\FreeFormCertificate\Core\EmailSource::CERTIFICATE
+		);
+
+		$this->assertContains( 'X-TMQ-Source-Key: plugin:ffcertificate_certificate', $captured );
+		$label = array_values(
+			array_filter(
+				$captured,
+				static function ( string $h ): bool {
+					return 0 === strpos( $h, 'X-TMQ-Source-Label: ' );
+				}
+			)
+		);
+		$this->assertCount( 1, $label );
+		$this->assertStringContainsString( 'FFCertificate', $label[0] );
+	}
+
+	public function test_send_omits_source_headers_when_gate_disabled(): void {
+		Functions\when( '__' )->returnArg();
+		// Default gate: the emit filter returns its passed value (class_exists →
+		// false in the test env, since the queue plugin isn't loaded).
+		Functions\when( 'apply_filters' )->returnArg( 2 );
+		$captured = null;
+		Functions\when( 'wp_mail' )->alias(
+			function ( $to, $subject, $body, $headers = array(), $attachments = array() ) use ( &$captured ) {
+				$captured = $headers;
+				return true;
+			}
+		);
+
+		EmailService::send(
+			'a@b.c',
+			'S',
+			'<p>B</p>',
+			array( 'Content-Type: text/html; charset=UTF-8' ),
+			array(),
+			\FreeFormCertificate\Core\EmailSource::CERTIFICATE
+		);
+
+		foreach ( $captured as $header ) {
+			$this->assertStringNotContainsString( 'X-TMQ-Source', $header );
+		}
+	}
+
+	public function test_send_omits_source_headers_when_no_key(): void {
+		Functions\when( '__' )->returnArg();
+		// Even with the gate forced on, an empty source key adds nothing.
+		Functions\when( 'apply_filters' )->alias(
+			function ( $tag, $value ) {
+				return 'ffcertificate_emit_source_headers' === $tag ? true : $value;
+			}
+		);
+		$captured = null;
+		Functions\when( 'wp_mail' )->alias(
+			function ( $to, $subject, $body, $headers = array(), $attachments = array() ) use ( &$captured ) {
+				$captured = $headers;
+				return true;
+			}
+		);
+
+		EmailService::send( 'a@b.c', 'S', '<p>B</p>', array( 'Content-Type: text/html; charset=UTF-8' ) );
+
+		foreach ( $captured as $header ) {
+			$this->assertStringNotContainsString( 'X-TMQ-Source', $header );
+		}
+	}
+
 	public function test_ffcertificate_email_filter_not_called_when_globally_disabled(): void {
 		// The last-mile filter fires after the kill-switch, so a disabled send
 		// must never reach it.

@@ -256,7 +256,7 @@ class AudienceNotificationHandler {
 		// Delegate to shared email service. Use try/finally so temp files are always cleaned up,
 		// even if the email service throws.
 		try {
-			$result = \FreeFormCertificate\Scheduling\SchedulingMailer::send( $to, $subject, $body, $attachments );
+			$result = \FreeFormCertificate\Scheduling\SchedulingMailer::send( $to, $subject, $body, $attachments, true, \FreeFormCertificate\Core\EmailSource::AUDIENCE );
 		} finally {
 			foreach ( $temp_files as $file ) {
 				if ( file_exists( $file ) ) {
@@ -470,7 +470,7 @@ class AudienceNotificationHandler {
 	 */
 	private static function send_admin_email( object $schedule, string $subject, string $body ): void {
 		foreach ( self::admin_recipients( $schedule ) as $recipient ) {
-			\FreeFormCertificate\Scheduling\SchedulingMailer::send( $recipient, $subject, $body );
+			\FreeFormCertificate\Scheduling\SchedulingMailer::send( $recipient, $subject, $body, array(), true, \FreeFormCertificate\Core\EmailSource::AUDIENCE );
 		}
 	}
 

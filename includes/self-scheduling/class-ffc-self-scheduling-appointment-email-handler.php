@@ -360,7 +360,7 @@ class AppointmentEmailHandler {
 	 * @return bool Whether the email was sent.
 	 */
 	private function send_mail( string $to, string $subject, string $body ): bool {
-		return self::ffc_send_mail( $to, $subject, $body );
+		return self::ffc_send_mail( $to, $subject, $body, array(), \FreeFormCertificate\Core\EmailSource::SCHEDULING );
 	}
 
 	/**
