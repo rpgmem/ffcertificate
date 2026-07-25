@@ -241,7 +241,7 @@ class UserAudienceRestController {
 			if ( ! self::table_exists( $audiences_table ) || ! self::column_exists( $audiences_table, 'allow_self_join' ) ) {
 				return rest_ensure_response(
 					array(
-						'groups'       => array(),
+						'parents'      => array(),
 						'joined_count' => 0,
 						'max_groups'   => self::MAX_SELF_JOIN_GROUPS,
 					)
@@ -304,11 +304,23 @@ class UserAudienceRestController {
 	}
 
 	/**
-	 * Build a joinable node recursively, counting joined members.
+	 * Recursively assemble a joinable-tree node from a raw audience row.
+	 *
+	 * Per-node model (#792 / CLAUDE.md self-join rules):
+	 *   - A node has a **button** ⟺ its own `allow_self_join` is on.
+	 *   - A node **appears** ⟺ it has a button OR has an appearing
+	 *     descendant (a child that itself appears).
+	 *   - A node is **header-only** when it appears without a button
+	 *     (a non-self-join parent kept visible for its joinable children).
+	 *
+	 * So a node may carry BOTH a `joinable` button (its own membership)
+	 * AND a `children` list (its appearing descendants). The `$count`
+	 * reference tallies the user's memberships in button-bearing nodes —
+	 * the on-screen "joined N of max" counter.
 	 *
 	 * @param array<string, mixed> $node  Audience row with 'children' array.
-	 * @param int                  $count Reference counter for joined leaf audiences.
-	 * @return array<string, mixed>|null  Cleaned node or null if branch is empty.
+	 * @param int                  $count Reference counter for joined self-join nodes.
+	 * @return array<string, mixed>|null  Assembled node, or null when it does not appear.
 	 */
 	private function build_joinable_node( array $node, int &$count ): ?array {
 		$children = array();
@@ -319,31 +331,32 @@ class UserAudienceRestController {
 			}
 		}
 
-		// Leaf node: include if joinable.
-		if ( empty( $children ) && empty( $node['children'] ) ) {
+		$has_button = ! empty( $node['allow_self_join'] );
+
+		// Does not appear: no button of its own and no appearing descendant.
+		if ( ! $has_button && empty( $children ) ) {
+			return null;
+		}
+
+		$out = array(
+			'id'    => $node['id'],
+			'name'  => $node['name'],
+			'color' => $node['color'],
+		);
+
+		if ( $has_button ) {
+			$out['joinable']  = true;
+			$out['is_member'] = (bool) $node['is_member'];
 			if ( $node['is_member'] ) {
 				++$count;
 			}
-			return array(
-				'id'        => $node['id'],
-				'name'      => $node['name'],
-				'color'     => $node['color'],
-				'is_member' => $node['is_member'],
-			);
 		}
 
-		// Branch node: only include if it has joinable descendants.
 		if ( ! empty( $children ) ) {
-			$out = array(
-				'id'       => $node['id'],
-				'name'     => $node['name'],
-				'color'    => $node['color'],
-				'children' => $children,
-			);
-			return $out;
+			$out['children'] = $children;
 		}
 
-		return null;
+		return $out;
 	}
 
 	/**

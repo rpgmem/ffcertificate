@@ -58,7 +58,7 @@ describe('FFCDashboard.audienceJoin.load', () => {
 
 	it('renders a heading + description when parents have items', async () => {
 		mockAjaxSuccess({
-			parents: [{ id: 1, name: 'Adults', color: '#aa0000', children: [], is_member: false }],
+			parents: [{ id: 1, name: 'Adults', color: '#aa0000', joinable: true, is_member: false }],
 			max_groups: 5,
 			joined_count: 0,
 		});
@@ -69,9 +69,9 @@ describe('FFCDashboard.audienceJoin.load', () => {
 		expect(section.querySelector('.ffc-audience-limit-msg').textContent).toContain('5'); // {max} replaced
 	});
 
-	it('renders a Join button on a non-member leaf group', async () => {
+	it('renders a Join button on a non-member joinable group', async () => {
 		mockAjaxSuccess({
-			parents: [{ id: 42, name: 'Beta', color: '#00aa00', children: [], is_member: false }],
+			parents: [{ id: 42, name: 'Beta', color: '#00aa00', joinable: true, is_member: false }],
 			max_groups: 3,
 			joined_count: 0,
 		});
@@ -83,9 +83,9 @@ describe('FFCDashboard.audienceJoin.load', () => {
 		expect(btn.disabled).toBe(false);
 	});
 
-	it('renders a Leave button on a member leaf group', async () => {
+	it('renders a Leave button on a member joinable group', async () => {
 		mockAjaxSuccess({
-			parents: [{ id: 7, name: 'In', color: '#0000aa', children: [], is_member: true }],
+			parents: [{ id: 7, name: 'In', color: '#0000aa', joinable: true, is_member: true }],
 			max_groups: 3,
 			joined_count: 1,
 		});
@@ -98,7 +98,7 @@ describe('FFCDashboard.audienceJoin.load', () => {
 
 	it('disables the Join button when joined_count >= max_groups', async () => {
 		mockAjaxSuccess({
-			parents: [{ id: 9, name: 'Group', color: null, children: [], is_member: false }],
+			parents: [{ id: 9, name: 'Group', color: null, joinable: true, is_member: false }],
 			max_groups: 1,
 			joined_count: 1,
 		});
@@ -108,13 +108,13 @@ describe('FFCDashboard.audienceJoin.load', () => {
 		expect(btn.disabled).toBe(true);
 	});
 
-	it('renders a parent accordion when the parent has children', async () => {
+	it('renders a header-only accordion for a non-joinable parent with children', async () => {
 		mockAjaxSuccess({
 			parents: [{
 				id: 1, name: 'Parent', color: '#000',
 				children: [
-					{ id: 2, name: 'Child A', color: null, children: [], is_member: false },
-					{ id: 3, name: 'Child B', color: null, children: [], is_member: true },
+					{ id: 2, name: 'Child A', color: null, joinable: true, is_member: false },
+					{ id: 3, name: 'Child B', color: null, joinable: true, is_member: true },
 				],
 			}],
 			max_groups: 5,
@@ -123,10 +123,38 @@ describe('FFCDashboard.audienceJoin.load', () => {
 		audienceJoin().load();
 		await flushPromises();
 		const section = document.querySelector('#ffc-audience-join-section');
+		// Non-joinable parent → header-only (no join/leave button on the parent).
 		expect(section.querySelector('.ffc-audience-parent-header')).not.toBeNull();
+		expect(section.querySelector('.ffc-audience-parent-header .ffc-audience-join-btn')).toBeNull();
 		// One join, one leave (child A non-member, child B member).
 		expect(section.querySelectorAll('.ffc-audience-join-btn').length).toBe(1);
 		expect(section.querySelectorAll('.ffc-audience-leave-btn').length).toBe(1);
+	});
+
+	it('renders a node that is BOTH joinable and a parent (own button + expandable children)', async () => {
+		mockAjaxSuccess({
+			parents: [{
+				id: 1, name: 'Parent', color: '#000', joinable: true, is_member: false,
+				children: [
+					{ id: 2, name: 'Child A', color: null, joinable: true, is_member: false },
+				],
+			}],
+			max_groups: 5,
+			joined_count: 0,
+		});
+		audienceJoin().load();
+		await flushPromises();
+		const section = document.querySelector('#ffc-audience-join-section');
+		// The parent's own row carries a join button AND the inline toggle.
+		const parentRow = section.querySelector('.ffc-audience-join-item[data-group-id="1"]');
+		expect(parentRow).not.toBeNull();
+		expect(parentRow.querySelector('.ffc-audience-join-btn')).not.toBeNull();
+		expect(parentRow.querySelector('.ffc-audience-inline-toggle')).not.toBeNull();
+		// Two join buttons total: the parent's own + the child's.
+		expect(section.querySelectorAll('.ffc-audience-join-btn').length).toBe(2);
+		// The child lives in the collapsed children list.
+		const list = section.querySelector('.ffc-audience-parent-group > .ffc-audience-children-list');
+		expect(list.querySelector('.ffc-audience-join-item[data-group-id="2"]')).not.toBeNull();
 	});
 
 	it('toggles the accordion open/closed on header click', async () => {
@@ -145,7 +173,7 @@ describe('FFCDashboard.audienceJoin.load', () => {
 			parents: [{
 				id: 1, name: 'Parent', color: '#000',
 				children: [
-					{ id: 2, name: 'Child A', color: null, children: [], is_member: false },
+					{ id: 2, name: 'Child A', color: null, joinable: true, is_member: false },
 				],
 			}],
 			max_groups: 5,

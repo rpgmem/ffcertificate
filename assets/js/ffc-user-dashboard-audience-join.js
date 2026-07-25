@@ -33,32 +33,63 @@
                 .replace('{max}', data.max_groups) +
             '</p>';
 
+        // Per-node model (#792): a node may carry BOTH a join/leave button
+        // (its own `joinable`) AND a nested `children` list. Three shapes:
+        //   - button only   → a bare join-item row (as before).
+        //   - children only → a header row that expands the children (as before).
+        //   - button + children → a join-item row whose actions include the
+        //     accordion toggle, with the children list below it.
+        function joinLeaveButton(node) {
+            if (node.is_member) {
+                return '<button type="button" class="button ffc-audience-leave-btn" data-id="' + node.id + '">' + (s.leaveGroup || 'Leave') + '</button>';
+            }
+            var disabled = (data.joined_count >= data.max_groups) ? ' disabled' : '';
+            return '<button type="button" class="button button-primary ffc-audience-join-btn" data-id="' + node.id + '"' + disabled + '>' + (s.joinGroup || 'Join') + '</button>';
+        }
+
         function renderNodes(nodes, depth, parentColor) {
             var out = '';
             nodes.forEach(function (node) {
-                if (node.children && node.children.length > 0) {
+                var color = node.color || parentColor || '#2271b1';
+                var hasChildren = node.children && node.children.length > 0;
+
+                if (node.joinable && hasChildren) {
+                    // Combined: own button + expandable children.
+                    out += '<div class="ffc-audience-parent-group' + (depth > 0 ? ' ffc-audience-subgroup' : '') + '">';
+                    out += '<div class="ffc-audience-join-item' + (node.is_member ? ' is-member' : '') + '" data-group-id="' + node.id + '">';
+                    out += '<span class="ffc-audience-name">';
+                    out += '<span class="ffc-audience-dot" style="background-color: ' + color + ';"></span>';
+                    out += esc(node.name);
+                    out += '</span>';
+                    out += '<span class="ffc-audience-item-actions">';
+                    out += joinLeaveButton(node);
+                    out += '<button type="button" class="ffc-audience-accordion-toggle ffc-audience-inline-toggle" aria-expanded="false" aria-label="' + esc(s.showSubgroups || 'Show subgroups') + '">';
+                    out += '<span class="ffc-audience-toggle-icon">+</span>';
+                    out += '</button>';
+                    out += '</span>';
+                    out += '</div>';
+                    out += '<div class="ffc-audience-children-list ffc-audience-collapsed">';
+                    out += renderNodes(node.children, depth + 1, color);
+                    out += '</div></div>';
+                } else if (hasChildren) {
+                    // Header only: non-joinable parent kept visible for its children.
                     out += '<div class="ffc-audience-parent-group' + (depth > 0 ? ' ffc-audience-subgroup' : '') + '">';
                     out += '<button type="button" class="ffc-audience-parent-header ffc-audience-accordion-toggle" aria-expanded="false">';
-                    out += '<span class="ffc-audience-dot" style="background-color: ' + (node.color || parentColor || '#2271b1') + ';"></span>';
+                    out += '<span class="ffc-audience-dot" style="background-color: ' + color + ';"></span>';
                     out += '<span class="ffc-audience-header-name">' + esc(node.name) + '</span>';
                     out += '<span class="ffc-audience-toggle-icon">+</span>';
                     out += '</button>';
                     out += '<div class="ffc-audience-children-list ffc-audience-collapsed">';
-                    out += renderNodes(node.children, depth + 1, node.color || parentColor);
+                    out += renderNodes(node.children, depth + 1, color);
                     out += '</div></div>';
-                } else {
+                } else if (node.joinable) {
+                    // Button only: a bare join-item leaf.
                     out += '<div class="ffc-audience-join-item' + (node.is_member ? ' is-member' : '') + '" data-group-id="' + node.id + '">';
                     out += '<span class="ffc-audience-name">';
-                    out += '<span class="ffc-audience-dot" style="background-color: ' + (node.color || parentColor || '#2271b1') + ';"></span>';
+                    out += '<span class="ffc-audience-dot" style="background-color: ' + color + ';"></span>';
                     out += esc(node.name);
                     out += '</span>';
-
-                    if (node.is_member) {
-                        out += '<button type="button" class="button ffc-audience-leave-btn" data-id="' + node.id + '">' + (s.leaveGroup || 'Leave') + '</button>';
-                    } else {
-                        var disabled = (data.joined_count >= data.max_groups) ? ' disabled' : '';
-                        out += '<button type="button" class="button button-primary ffc-audience-join-btn" data-id="' + node.id + '"' + disabled + '>' + (s.joinGroup || 'Join') + '</button>';
-                    }
+                    out += joinLeaveButton(node);
                     out += '</div>';
                 }
             });
@@ -71,7 +102,9 @@
 
         $section.on('click', '.ffc-audience-accordion-toggle', function () {
             var $btn = $(this);
-            var $list = $btn.next('.ffc-audience-children-list');
+            // Robust across both header-only and combined shapes: the list is
+            // always the direct child of the node's own parent-group wrapper.
+            var $list = $btn.closest('.ffc-audience-parent-group').children('.ffc-audience-children-list').first();
             var expanded = $btn.attr('aria-expanded') === 'true';
 
             $btn.attr('aria-expanded', !expanded);
