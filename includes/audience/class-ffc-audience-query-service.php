@@ -68,7 +68,7 @@ final class AudienceQueryService {
 			$wpdb->prepare(
 				'SELECT COUNT(*) FROM %i m
 				INNER JOIN %i a ON a.id = m.audience_id
-				WHERE m.user_id = %d AND a.allow_self_join = 1 AND a.parent_id IS NOT NULL',
+				WHERE m.user_id = %d AND a.allow_self_join = 1',
 				$members_table,
 				$audiences_table,
 				$user_id
