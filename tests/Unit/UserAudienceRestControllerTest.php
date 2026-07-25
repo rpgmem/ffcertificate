@@ -342,8 +342,9 @@ class UserAudienceRestControllerTest extends TestCase {
         $result  = $ctrl->get_joinable_groups( $request );
 
         $this->assertIsArray( $result );
-        $this->assertArrayHasKey( 'groups', $result );
-        $this->assertEmpty( $result['groups'] );
+        // Empty-schema guard now returns the same `parents` key as the other paths.
+        $this->assertArrayHasKey( 'parents', $result );
+        $this->assertEmpty( $result['parents'] );
         $this->assertSame( 2, $result['max_groups'] );
     }
 
