@@ -258,7 +258,8 @@ final class RecruitmentAdminAssetsManager {
 					'reopenReason'          => __( 'Reopen reason (required):', 'ffcertificate' ),
 					'confirmOverride'       => __( 'This will undo a realized decision (hired / withdrew / no-show), reopen the vacancy and return the candidate to the waiting queue at their original position. The candidate is NOT notified. Continue?', 'ffcertificate' ),
 					'overrideReason'        => __( 'Reason for undoing this decision (required, audited):', 'ffcertificate' ),
-					'notifyByEmailAsk'      => __( 'Notify the candidate by email about this call? (OK = send, Cancel = do not send)', 'ffcertificate' ),
+					'notifyByEmailAsk'      => __( 'Notify the candidate by email about this call', 'ffcertificate' ),
+					'callModalBodyTpl'      => __( 'Convocation to assume on {date} at {time}.', 'ffcertificate' ),
 				),
 			)
 		);

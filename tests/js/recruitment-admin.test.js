@@ -646,6 +646,38 @@ describe('ffc-recruitment-admin: confirm modal', () => {
 		expect(onConfirm.mock.calls[0][0]).toBeNull();
 	});
 
+	it('openConfirmModal: renders a default-checked checkbox and passes its state to onConfirm', () => {
+		const onConfirm = vi.fn();
+		window.ffcRecruitmentAdmin.openConfirmModal(
+			{ title: 'Call?', cta: 'Call', checkboxLabel: 'Notify by email' },
+			onConfirm
+		);
+		const modal = getModalOverlay();
+		const box = modal.querySelector('#ffc-confirm-modal-checkbox-input');
+		expect(box).toBeTruthy();
+		expect(box.checked).toBe(true); // default on
+		expect(modal.querySelector('.ffc-confirm-modal-checkbox label').textContent).toContain('Notify by email');
+
+		// Operator clears it → onConfirm receives false as the 2nd arg.
+		box.checked = false;
+		modal.querySelector('.ffc-confirm-modal-confirm').click();
+		expect(onConfirm).toHaveBeenCalledTimes(1);
+		expect(onConfirm.mock.calls[0][0]).toBeNull();   // no reason input
+		expect(onConfirm.mock.calls[0][1]).toBe(false);  // checkbox state
+	});
+
+	it('openConfirmModal: checkboxChecked:false renders the checkbox unchecked', () => {
+		const onConfirm = vi.fn();
+		window.ffcRecruitmentAdmin.openConfirmModal(
+			{ title: 'Call?', cta: 'Call', checkboxLabel: 'Notify', checkboxChecked: false },
+			onConfirm
+		);
+		const modal = getModalOverlay();
+		expect(modal.querySelector('#ffc-confirm-modal-checkbox-input').checked).toBe(false);
+		modal.querySelector('.ffc-confirm-modal-confirm').click();
+		expect(onConfirm.mock.calls[0][1]).toBe(false); // unchecked → false
+	});
+
 	it('openConfirmModal: countdown gates the CTA the same way trigger-driven modals do', () => {
 		vi.useFakeTimers();
 		const onConfirm = vi.fn();
