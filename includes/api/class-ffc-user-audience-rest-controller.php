@@ -369,26 +369,19 @@ class UserAudienceRestController {
 				return new \WP_Error( 'missing_group', __( 'Group ID is required', 'ffcertificate' ), array( 'status' => 400 ) );
 			}
 
-			// Verify group is active and self-joinable. Joinability follows the
-			// same "leaf" rule the joinable-groups list uses (build_joinable_node):
-			// a self-join audience is directly joinable when it is a LEAF —
-			// whether that leaf is a child or a standalone top-level group. The
-			// previous `parent_id NOT NULL` check wrongly rejected top-level
-			// leaves (the reported bug).
+			// Verify group is active and self-joinable. Joinability is per-node:
+			// a group is directly joinable when its OWN allow_self_join is on —
+			// whether it is a child, a top-level group with no children, or a
+			// parent that also has children (the parent is joinable in its own
+			// right; its children are joinable separately). The previous
+			// `parent_id NOT NULL` check wrongly rejected top-level groups (the
+			// reported bug).
 			$group = \FreeFormCertificate\Audience\AudienceReader::get_by_id( $group_id );
 			if ( ! $group
 				|| 'active' !== (string) ( $group->status ?? '' )
 				|| 1 !== (int) ( $group->allow_self_join ?? 0 )
 			) {
 				return new \WP_Error( 'invalid_group', __( 'Group not found or does not allow self-join', 'ffcertificate' ), array( 'status' => 404 ) );
-			}
-
-			// A group that has active children is a parent (a header in the
-			// list), not a joinable leaf — its children are the joinable units.
-			// This keeps the join API consistent with what the list offers and
-			// enforces "if it has children, the parent itself is not joinable".
-			if ( ! empty( \FreeFormCertificate\Audience\AudienceReader::get_children( $group_id, 'active' ) ) ) {
-				return new \WP_Error( 'invalid_group', __( 'This group has sub-groups — join one of them instead', 'ffcertificate' ), array( 'status' => 422 ) );
 			}
 
 			if ( \FreeFormCertificate\Audience\AudienceReader::is_member( $group_id, $user_id ) ) {

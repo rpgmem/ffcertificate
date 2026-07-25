@@ -72,8 +72,6 @@ class UserAudienceRestControllerTest extends TestCase {
         $this->reader = Mockery::mock( 'alias:\FreeFormCertificate\Audience\AudienceReader' );
         $this->reader->shouldReceive( 'get_by_id' )->andReturn( null )->byDefault();
         $this->reader->shouldReceive( 'is_member' )->andReturn( false )->byDefault();
-        // Default: the joined group is a leaf (no children) so join() proceeds.
-        $this->reader->shouldReceive( 'get_children' )->andReturn( array() )->byDefault();
 
         $this->writer = Mockery::mock( 'alias:\FreeFormCertificate\Audience\AudienceWriter' );
         $this->writer->shouldReceive( 'add_member' )->andReturn( 1 )->byDefault();
@@ -552,21 +550,24 @@ class UserAudienceRestControllerTest extends TestCase {
         $this->assertStringContainsString( 'Solo', $result['message'] );
     }
 
-    public function test_join_audience_group_rejects_a_parent_that_has_children(): void {
-        // "If it has children, the parent itself is not joinable" — only leaves
-        // are directly joinable, matching the list (parents render as headers).
+    public function test_join_audience_group_succeeds_for_a_parent_that_also_has_children(): void {
+        // Joinability is per-node: a parent whose own allow_self_join is on is
+        // joinable in its own right, even though it has children (the children
+        // are joinable separately). Having children does NOT block the parent.
         Functions\when( 'get_current_user_id' )->justReturn( 5 );
         Functions\when( 'current_user_can' )->justReturn( false );
 
         $group = (object) array( 'status' => 'active', 'allow_self_join' => 1, 'parent_id' => null, 'name' => 'Parent' );
         $this->reader->shouldReceive( 'get_by_id' )->andReturn( $group );
-        $this->reader->shouldReceive( 'get_children' )->andReturn( array( (object) array( 'id' => 2 ) ) );
+        $this->reader->shouldReceive( 'is_member' )->andReturn( false );
+        $this->query_service->shouldReceive( 'count_user_self_join_memberships' )->andReturn( 0 );
+        $this->writer->shouldReceive( 'add_member' )->once()->with( 10, 5 )->andReturn( 1 );
 
         $result = ( new UserAudienceRestController( 'ffc/v1' ) )
             ->join_audience_group( $this->make_request( array( 'group_id' => 10 ) ) );
 
-        $this->assertInstanceOf( \WP_Error::class, $result );
-        $this->assertSame( 'invalid_group', $result->get_error_code() );
+        $this->assertIsArray( $result );
+        $this->assertTrue( $result['success'] );
     }
 
     public function test_join_audience_group_returns_500_on_exception(): void {
