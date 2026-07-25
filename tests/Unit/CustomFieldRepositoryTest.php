@@ -1154,4 +1154,27 @@ class CustomFieldRepositoryTest extends TestCase {
 
         $this->assertFalse( CustomFieldWriter::insert_row( array( 'audience_id' => 5 ) ) );
     }
+
+    // ==================================================================
+    // field_type_labels() — translated display map
+    // ==================================================================
+
+    public function test_field_type_labels_covers_exactly_the_supported_types(): void {
+        Functions\when( '__' )->returnArg();
+
+        $this->assertSame(
+            CustomFieldReader::FIELD_TYPES,
+            array_keys( CustomFieldReader::field_type_labels() ),
+            'field_type_labels() must map every FIELD_TYPES slug (and no extras) so the select never renders a raw slug.'
+        );
+    }
+
+    public function test_field_type_labels_are_non_empty_strings(): void {
+        Functions\when( '__' )->returnArg();
+
+        foreach ( CustomFieldReader::field_type_labels() as $slug => $label ) {
+            $this->assertIsString( $label, "Label for '{$slug}' must be a string." );
+            $this->assertNotSame( '', $label, "Label for '{$slug}' must not be empty." );
+        }
+    }
 }
