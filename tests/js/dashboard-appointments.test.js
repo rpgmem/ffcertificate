@@ -43,7 +43,9 @@ function makeAppt(over = {}) {
 		appointment_date: '01/01/2999',
 		appointment_date_raw: FAR_FUTURE,
 		start_time: '10:00',
+		start_time_raw: '10:00',
 		end_time: '11:00',
+		end_time_raw: '11:00',
 		status: 'confirmed',
 		status_label: 'Confirmed',
 		receipt_url: '',
@@ -87,6 +89,19 @@ describe('FFCDashboard.panels.appointments.render', () => {
 		], 1);
 		expect(document.querySelectorAll('#tab-appointments tr.past-row').length).toBe(1);
 		expect(document.querySelectorAll('#tab-appointments tr.cancelled-row').length).toBe(1);
+	});
+
+	it('exports the appointment using the raw wall-clock end time, not the display-formatted end_time', () => {
+		// Regression: end_time is display-formatted and, before the fix, was
+		// TZ-shifted (e.g. 13:25 rendered as 10:25 in UTC-3). The calendar
+		// export must use end_time_raw so the exported end matches the booking.
+		panel().render([makeAppt({ start_time_raw: '13:00', end_time: '10:25', end_time_raw: '13:25' })], 1);
+		const googleLink = document.querySelector('#tab-appointments .ffc-cal-export-dropdown a[href*="calendar.google.com"]');
+		expect(googleLink).not.toBeNull();
+		const href = decodeURIComponent(googleLink.getAttribute('href'));
+		expect(href).toContain('T130000/'); // raw start
+		expect(href).toContain('T132500');  // raw end
+		expect(href).not.toContain('T102500'); // the buggy shifted end must not appear
 	});
 
 	it('renders the receipt button when receipt_url is set, omits it otherwise', () => {
