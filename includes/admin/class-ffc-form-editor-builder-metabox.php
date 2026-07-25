@@ -12,6 +12,7 @@ declare(strict_types=1);
 
 namespace FreeFormCertificate\Admin;
 
+use FreeFormCertificate\Core\LabelSorter;
 use WP_Post;
 
 if ( ! defined( 'ABSPATH' ) ) {
@@ -24,6 +25,99 @@ if ( ! defined( 'ABSPATH' ) ) {
  * @since 3.1.1
  */
 class FormEditorBuilderMetabox {
+
+	/**
+	 * Canonical certificate form field types — the union consumed by both
+	 * entry paths (this server-rendered row `<select>` and the JS field
+	 * builder), so a type saved through one path is always editable in the
+	 * other. Slugs are the stored key; labels come from
+	 * {@see self::field_type_labels()}.
+	 *
+	 * @var array<int, string>
+	 */
+	public const FIELD_TYPES = array(
+		'text',
+		'email',
+		'number',
+		'date',
+		'textarea',
+		'select',
+		'radio',
+		'checkbox',
+		'info',
+		'embed',
+		'hidden',
+	);
+
+	/**
+	 * Display / non-input types pinned to the end of the type `<select>`
+	 * (alphabetized among themselves), after the input types. `hidden` stores
+	 * a value but has no visible control, so it sits with the display block.
+	 *
+	 * @var array<int, string>
+	 */
+	public const TRAILING_TYPES = array(
+		'info',
+		'embed',
+		'hidden',
+	);
+
+	/**
+	 * Human-facing, translated labels for each certificate field type. The
+	 * single source of truth shared by the server-rendered `<select>` and the
+	 * JS builder (localized via `ffc_ajax.fieldTypes`), so both render the same
+	 * label per slug. Kept in sync with `FIELD_TYPES` by
+	 * `FormEditorFieldTypesTest`.
+	 *
+	 * @return array<string, string> slug => translated label.
+	 */
+	public static function field_type_labels(): array {
+		return array(
+			'text'     => __( 'Text', 'ffcertificate' ),
+			'email'    => __( 'Email', 'ffcertificate' ),
+			'number'   => __( 'Number', 'ffcertificate' ),
+			'date'     => __( 'Date', 'ffcertificate' ),
+			'textarea' => __( 'Textarea', 'ffcertificate' ),
+			'select'   => __( 'Dropdown Select', 'ffcertificate' ),
+			'radio'    => __( 'Radio Buttons', 'ffcertificate' ),
+			'checkbox' => __( 'Checkbox', 'ffcertificate' ),
+			'info'     => __( 'Info Block', 'ffcertificate' ),
+			'embed'    => __( 'Embed (Media)', 'ffcertificate' ),
+			'hidden'   => __( 'Hidden Field', 'ffcertificate' ),
+		);
+	}
+
+	/**
+	 * Field types ordered for display: input types alphabetized by their
+	 * translated label, then the display-only block (`info`/`embed`/`hidden`)
+	 * pinned last and alphabetized among themselves. Ordering follows the
+	 * active locale via {@see LabelSorter}. Returns slug => translated label.
+	 *
+	 * @return array<string, string> slug => translated label, in display order.
+	 */
+	public static function field_types_ordered(): array {
+		$labels = self::field_type_labels();
+
+		// The tail is emitted by LabelSorter::sort() in the given order, so
+		// alphabetize the display block among itself first (by translated
+		// label) before pinning it.
+		$tail = self::TRAILING_TYPES;
+		usort(
+			$tail,
+			static function ( string $a, string $b ) use ( $labels ): int {
+				return LabelSorter::compare_labels( $labels[ $a ], $labels[ $b ] );
+			}
+		);
+
+		return LabelSorter::sort(
+			$labels,
+			static function ( string $label ): string {
+				return $label;
+			},
+			array(),
+			$tail
+		);
+	}
 
 	/**
 	 * Section 2: Form Builder (Fields)
@@ -106,7 +200,7 @@ class FormEditorBuilderMetabox {
 		$is_info               = 'info' === $type;
 		$is_embed              = 'embed' === $type;
 		$is_display_only       = $is_info || $is_embed;
-		$options_visible_class = ( 'select' === $type || 'radio' === $type ) ? '' : 'ffc-hidden';
+		$options_visible_class = ( 'select' === $type || 'radio' === $type || 'checkbox' === $type ) ? '' : 'ffc-hidden';
 		?>
 		<div class="ffc-field-row" data-index="<?php echo esc_attr( $index ); ?>">
 			<div class="ffc-field-row-header">
@@ -149,16 +243,9 @@ class FormEditorBuilderMetabox {
 				<div class="ffc-grid-item">
 					<label><?php esc_html_e( 'Type', 'ffcertificate' ); ?></label>
 					<select name="ffc_fields[<?php echo esc_attr( $index ); ?>][type]" class="ffc-field-type-selector ffc-w100">
-						<option value="text" <?php selected( $type, 'text' ); ?>><?php esc_html_e( 'Text', 'ffcertificate' ); ?></option>
-						<option value="email" <?php selected( $type, 'email' ); ?>><?php esc_html_e( 'Email', 'ffcertificate' ); ?></option>
-						<option value="number" <?php selected( $type, 'number' ); ?>><?php esc_html_e( 'Number', 'ffcertificate' ); ?></option>
-						<option value="date" <?php selected( $type, 'date' ); ?>><?php esc_html_e( 'Date', 'ffcertificate' ); ?></option>
-						<option value="textarea" <?php selected( $type, 'textarea' ); ?>><?php esc_html_e( 'Textarea', 'ffcertificate' ); ?></option>
-						<option value="select" <?php selected( $type, 'select' ); ?>><?php esc_html_e( 'Select (Combobox)', 'ffcertificate' ); ?></option>
-						<option value="radio" <?php selected( $type, 'radio' ); ?>><?php esc_html_e( 'Radio Box', 'ffcertificate' ); ?></option>
-						<option value="hidden" <?php selected( $type, 'hidden' ); ?>><?php esc_html_e( 'Hidden Field', 'ffcertificate' ); ?></option>
-						<option value="info" <?php selected( $type, 'info' ); ?>><?php esc_html_e( 'Info Block', 'ffcertificate' ); ?></option>
-						<option value="embed" <?php selected( $type, 'embed' ); ?>><?php esc_html_e( 'Embed (Media)', 'ffcertificate' ); ?></option>
+						<?php foreach ( self::field_types_ordered() as $type_slug => $type_label ) : ?>
+							<option value="<?php echo esc_attr( $type_slug ); ?>" <?php selected( $type, $type_slug ); ?>><?php echo esc_html( $type_label ); ?></option>
+						<?php endforeach; ?>
 					</select>
 				</div>
 				<div class="ffc-grid-item ffc-flex-center ffc-standard-row<?php echo $is_display_only ? ' ffc-hidden' : ''; ?>">
