@@ -163,11 +163,11 @@ final class LabelSorter {
 	 *
 	 * @template T
 	 * @template TKey of array-key
-	 * @param array<TKey, T>                    $items    Items to order (assoc or list).
-	 * @param callable(T): string               $label_of `fn( $item ): string` — the translated label.
-	 * @param array<int, string>                $head     Identifiers pinned first, in order.
-	 * @param array<int, string>                $tail     Identifiers pinned last, in order.
-	 * @param (callable(T, TKey): string)|null  $key_of   `fn( $item, $key ): string` identifier resolver.
+	 * @param array<TKey, T>                   $items    Items to order (assoc or list).
+	 * @param callable(T): string              $label_of `fn( $item ): string` — the translated label.
+	 * @param array<int, string>               $head     Identifiers pinned first, in order.
+	 * @param array<int, string>               $tail     Identifiers pinned last, in order.
+	 * @param (callable(T, TKey): string)|null $key_of   `fn( $item, $key ): string` identifier resolver.
 	 * @return array<TKey, T> Reordered items, keys preserved.
 	 */
 	public static function sort( array $items, callable $label_of, array $head = array(), array $tail = array(), ?callable $key_of = null ): array {

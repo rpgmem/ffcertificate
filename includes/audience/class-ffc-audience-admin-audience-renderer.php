@@ -332,10 +332,10 @@ final class AudienceAdminAudienceRenderer {
 			\FreeFormCertificate\Reregistration\ReregistrationStandardFieldsSeeder::seed_for_audience( $audience_id );
 		}
 
-		$fields = \FreeFormCertificate\Reregistration\CustomFieldReader::get_by_audience( $audience_id, false );
-
-		// Ordered slug => translated label map: A→Z by translated label with
-		// the display-only `acknowledgment` type pinned last.
+		// Custom fields for this audience, plus the ordered slug => translated
+		// label map: A→Z by translated label with the display-only
+		// `acknowledgment` type pinned last.
+		$fields      = \FreeFormCertificate\Reregistration\CustomFieldReader::get_by_audience( $audience_id, false );
 		$field_types = LabelSorter::sort(
 			CustomFieldReader::field_type_labels(),
 			static function ( string $label ): string {
