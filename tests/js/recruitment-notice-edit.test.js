@@ -36,6 +36,7 @@ const CFG = {
 		reopenReason: 'REOPEN?',
 		confirmOverride: 'OVERRIDE_CONFIRM?',
 		overrideReason: 'OVERRIDE_REASON?',
+		notifyByEmailAsk: 'NOTIFY?',
 	},
 };
 
@@ -282,6 +283,23 @@ describe('ffcRecruitmentBulkCall', () => {
 		expect(payload.classification_ids).toEqual([10]);
 		expect(payload.date_to_assume).toBe('2026-05-20');
 	});
+
+	it('sets notify_email from the confirm prompt in ask mode', () => {
+		installBulk({ 'adj-1': [{ id: 10, rank: 1 }] });
+		const openConfirmModal = vi.fn((cfg, cb) => cb(''));
+		window.ffcRecruitmentAdmin = { openConfirmModal };
+		window.ffcRecruitmentNoticeEdit = { ...CFG, emailMode: 'ask' };
+		loadScript(SCRIPT);
+		document.getElementById('ffc-bulk-date').value = '2026-05-20';
+		document.getElementById('ffc-bulk-time').value = '09:00';
+		document.querySelector('.ffc-cls-bulk-cb[value="10"]').checked = true;
+		vi.spyOn(window, 'confirm').mockReturnValue(false); // operator declines → do not send
+
+		window.ffcRecruitmentBulkCall();
+
+		const payload = JSON.parse(fetchSpy.mock.calls[0][1].body);
+		expect(payload.notify_email).toBe(false);
+	});
 });
 
 describe('ffcRecruitmentClsToggleAll', () => {
@@ -325,6 +343,29 @@ describe('ffcRecruitmentClsAct', () => {
 		const fd = fetchSpy.mock.calls[0][1].body;
 		expect(fd.get('out_of_order_reason')).toBe('because reasons');
 		expect(fd.get('date_to_assume')).toBe('2026-05-20');
+	});
+
+	it('appends notify_email in ask mode for an in-order single call', () => {
+		document.body.innerHTML = `
+			<div data-ffc-clspanel="definitive" data-ffc-empties='{"adj-1":[{"id":1,"rank":1}]}'></div>
+			<table><tbody>
+				<tr data-cls-id="1" data-cls-rank="1" data-cls-adjutancy="adj-1">
+					<td><button data-cls-id="1" data-cls-action="call">Call</button></td>
+				</tr>
+			</tbody></table>`;
+		window.ffcRecruitmentNoticeEdit = { ...CFG, emailMode: 'ask' };
+		loadScript(SCRIPT);
+		// In order (rank 1 = lowest), so no OOO prompt: date, then time.
+		vi.spyOn(window, 'prompt')
+			.mockReturnValueOnce('2026-05-20')
+			.mockReturnValueOnce('09:00');
+		vi.spyOn(window, 'confirm').mockReturnValue(true); // notify → send
+
+		window.ffcRecruitmentClsAct(document.querySelector('button'));
+
+		expect(fetchSpy.mock.calls[0][0]).toBe(CLASS + '1/call');
+		const fd = fetchSpy.mock.calls[0][1].body;
+		expect(fd.get('notify_email')).toBe('1');
 	});
 
 	it('aborts the call when the OOO justification is blank', () => {

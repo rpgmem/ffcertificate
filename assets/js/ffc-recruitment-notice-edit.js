@@ -246,6 +246,8 @@
 			status.textContent = '…';
 			var bulkPayload = { classification_ids: ids, date_to_assume: date, time_to_assume: time };
 			if (anyOoO) { bulkPayload.out_of_order_reasons = reasons; }
+			// Ask mode (#794): per-batch opt-in, defaulting to send (OK).
+			if (cfg.emailMode === 'ask') { bulkPayload.notify_email = confirm(strings.notifyByEmailAsk || ''); }
 			fetch(classRoot + 'bulk-call', {
 				method: 'POST',
 				headers: { 'X-WP-Nonce': nonce, 'Content-Type': 'application/json' },
@@ -295,6 +297,10 @@
 			fd.append('date_to_assume', date);
 			fd.append('time_to_assume', time);
 			if (oooReason) { fd.append('out_of_order_reason', oooReason); }
+			// Ask mode (#794): per-call opt-in, defaulting to send (OK).
+			if (cfg.emailMode === 'ask') {
+				fd.append('notify_email', confirm(strings.notifyByEmailAsk || '') ? '1' : '0');
+			}
 			url = base + id + '/call';
 			init = { method: 'POST', headers: { 'X-WP-Nonce': nonce }, body: fd, credentials: 'same-origin' };
 		} else if (action === 'cancel') {
