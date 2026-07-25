@@ -118,12 +118,13 @@ final class LabelSorter {
 	 * supplied, otherwise the item's array key — so a map already keyed by
 	 * slug/id needs no resolver.
 	 *
-	 * @param array<array-key, mixed> $items    Items to order (assoc or list).
-	 * @param callable                $label_of `fn( $item ): string` — the translated label.
-	 * @param list<string>            $head     Identifiers pinned first, in order.
-	 * @param list<string>            $tail     Identifiers pinned last, in order.
-	 * @param callable|null           $key_of   `fn( $item, $key ): string` identifier resolver.
-	 * @return array<array-key, mixed> Reordered items, keys preserved.
+	 * @template T
+	 * @param array<array-key, T>                   $items    Items to order (assoc or list).
+	 * @param callable(T): string                   $label_of `fn( $item ): string` — the translated label.
+	 * @param list<string>                          $head     Identifiers pinned first, in order.
+	 * @param list<string>                          $tail     Identifiers pinned last, in order.
+	 * @param (callable(T, array-key): string)|null $key_of   `fn( $item, $key ): string` identifier resolver.
+	 * @return array<array-key, T> Reordered items, keys preserved.
 	 */
 	public static function sort( array $items, callable $label_of, array $head = array(), array $tail = array(), ?callable $key_of = null ): array {
 		$head_set = array_flip( $head );

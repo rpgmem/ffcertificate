@@ -23,6 +23,8 @@ declare(strict_types=1);
 
 namespace FreeFormCertificate\Admin;
 
+use FreeFormCertificate\Core\LabelSorter;
+
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
@@ -125,13 +127,22 @@ class Settings {
 			}
 		}
 
-		// Sort tabs by order.
-		uasort(
+		// Order tabs alphabetically by their translated title, with the
+		// entry-point tab (General) pinned first and the advanced/maintenance
+		// tabs pinned last, via the shared LabelSorter (same rule the sub-tab
+		// bars and capability catalog use). The per-tab tab_order/get_order()
+		// values are retained as a legacy hint but no longer drive display
+		// order — the alphabetical order follows the active translation.
+		/** @var array<string, object> $sorted */
+		$sorted      = LabelSorter::sort(
 			$this->tabs,
-			function ( $a, $b ) {
-				return $a->get_order() - $b->get_order();
-			}
+			static function ( $tab ): string {
+				return (string) $tab->get_title();
+			},
+			array( 'general' ),
+			array( 'advanced', 'migrations', 'documentation' )
 		);
+		$this->tabs = $sorted;
 
 		// Allow plugins to add custom tabs.
         // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- ffcertificate is the plugin prefix
