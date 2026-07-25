@@ -265,7 +265,7 @@ class ReregistrationEmailHandler {
 		$subject = \FreeFormCertificate\Core\TokenResolver::resolve( $template['subject'], $tokens );
 		$body    = \FreeFormCertificate\Core\TokenResolver::resolve( $template['body'], $tokens );
 
-		return SchedulingMailer::send( $user->user_email, $subject, $body );
+		return SchedulingMailer::send( $user->user_email, $subject, $body, array(), true, \FreeFormCertificate\Core\EmailSource::REREGISTRATION );
 	}
 
 	/**

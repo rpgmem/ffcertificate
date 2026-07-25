@@ -745,7 +745,7 @@ class SettingsActionHandler {
 				'<p>' . esc_html__( 'This is a test email from Free Form Certificate. If you received it, your email delivery and Email Model settings are working.', 'ffcertificate' ) . '</p>',
 				array( 'recipient' => $to )
 			);
-			$sent = self::ffc_send_mail( $to, __( 'Free Form Certificate — test email', 'ffcertificate' ), $body );
+			$sent = self::ffc_send_mail( $to, __( 'Free Form Certificate — test email', 'ffcertificate' ), $body, array(), \FreeFormCertificate\Core\EmailSource::ADMIN );
 			$flag = $sent ? 'sent' : 'failed';
 		}
 

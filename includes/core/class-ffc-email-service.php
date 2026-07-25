@@ -70,14 +70,22 @@ final class EmailService {
 	 * can be customised — or suppressed — via the `ffcertificate_email_plain_text`
 	 * filter.
 	 *
+	 * When `$source_key` is a non-empty {@see EmailSource} key AND a mail-queue
+	 * plugin that understands the contract is present, it also stamps
+	 * `X-TMQ-Source-Key` / `X-TMQ-Source-Label` headers so the queue attributes
+	 * the message to that specific plugin function instead of the blanket
+	 * `plugin:ffcertificate` backtrace source. The queue reads and strips those
+	 * headers, so they never reach the recipient.
+	 *
 	 * @param string             $to          Recipient.
 	 * @param string             $subject     Subject.
 	 * @param string             $body        Body (already rendered).
 	 * @param array<int, string> $headers     Mail headers (caller decides content-type).
 	 * @param array<int, string> $attachments Attachment paths.
+	 * @param string             $source_key  Optional {@see EmailSource} key tagging the sending function.
 	 * @return bool Whether `wp_mail` accepted the message (false when emails are globally disabled).
 	 */
-	public static function send( string $to, string $subject, string $body, array $headers = array(), array $attachments = array() ): bool {
+	public static function send( string $to, string $subject, string $body, array $headers = array(), array $attachments = array(), string $source_key = '' ): bool {
 		if ( \FreeFormCertificate\Settings\SettingsReader::emails_disabled() ) {
 			return false;
 		}
@@ -112,6 +120,8 @@ final class EmailService {
 		$headers     = $mail['headers'];
 		$attachments = $mail['attachments'];
 
+		$headers = self::maybe_add_source_headers( $headers, $source_key );
+
 		$registered = self::maybe_register_plain_text_alternative( $body, $headers );
 
 		$sent = wp_mail( $to, $subject, $body, $headers, $attachments );
@@ -132,6 +142,53 @@ final class EmailService {
 		}
 
 		return $sent;
+	}
+
+	/**
+	 * Append the mail-queue source headers when a caller declared a function
+	 * and a queue plugin that understands them is present.
+	 *
+	 * The headers are internal routing metadata read and stripped by the queue
+	 * (`rpgmem/total-mail-queue`), so they are only emitted when it is active —
+	 * gated on the queue's own class so no email carries a dangling header on
+	 * installs without a queue. The gate (and thus the whole behaviour) is
+	 * overridable via the `ffcertificate_emit_source_headers` filter.
+	 *
+	 * @param array<int, string> $headers    Mail headers.
+	 * @param string             $source_key {@see EmailSource} key, or '' to skip.
+	 * @return array<int, string> Headers, possibly with the source pair appended.
+	 */
+	private static function maybe_add_source_headers( array $headers, string $source_key ): array {
+		if ( '' === $source_key ) {
+			return $headers;
+		}
+
+		/**
+		 * Filter whether to stamp the mail-queue source headers on this email.
+		 *
+		 * Defaults to true only when the sibling queue plugin is active (its
+		 * `Detector` class is loaded). Force it true to emit unconditionally
+		 * (e.g. a queue plugin under a different namespace that also reads the
+		 * `X-TMQ-Source-*` contract), or false to suppress it entirely.
+		 *
+		 * @since 6.17.0
+		 * @param bool   $emit       Whether to add the headers.
+		 * @param string $source_key The declared source key.
+		 */
+		$emit = (bool) apply_filters(
+			'ffcertificate_emit_source_headers',
+			class_exists( '\\TotalMailQueue\\Sources\\Detector' ),
+			$source_key
+		);
+
+		if ( ! $emit ) {
+			return $headers;
+		}
+
+		$headers[] = 'X-TMQ-Source-Key: ' . $source_key;
+		$headers[] = 'X-TMQ-Source-Label: ' . EmailSource::label( $source_key );
+
+		return $headers;
 	}
 
 	/**

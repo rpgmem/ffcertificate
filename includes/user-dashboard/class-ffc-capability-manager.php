@@ -488,7 +488,9 @@ class CapabilityManager {
 		self::ffc_send_mail(
 			$user->user_email,
 			$subject,
-			self::ffc_email_document( $content, array( 'recipient' => $user->user_email ) )
+			self::ffc_email_document( $content, array( 'recipient' => $user->user_email ) ),
+			array(),
+			\FreeFormCertificate\Core\EmailSource::ACCOUNT
 		);
 	}
 

@@ -41,10 +41,11 @@ trait EmailHelperTrait {
 	 * @param string        $subject     Email subject.
 	 * @param string        $body        Email body (HTML).
 	 * @param array<string> $attachments Optional file paths to attach.
+	 * @param string        $source_key  Optional {@see EmailSource} key tagging the sending function.
 	 * @return bool Whether the email was sent.
 	 */
-	protected static function ffc_send_mail( string $to, string $subject, string $body, array $attachments = array() ): bool {
-		return EmailService::send( $to, $subject, $body, array( 'Content-Type: text/html; charset=UTF-8' ), $attachments );
+	protected static function ffc_send_mail( string $to, string $subject, string $body, array $attachments = array(), string $source_key = '' ): bool {
+		return EmailService::send( $to, $subject, $body, array( 'Content-Type: text/html; charset=UTF-8' ), $attachments, $source_key );
 	}
 
 	/**
