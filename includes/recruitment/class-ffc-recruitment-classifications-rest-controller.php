@@ -552,7 +552,8 @@ final class RecruitmentClassificationsRestController {
 			(string) $request->get_param( 'time_to_assume' ),
 			get_current_user_id(),
 			$reason_param,
-			$notes_param
+			$notes_param,
+			$this->notify_email_param( $request )
 		);
 
 		if ( ! $result['success'] ) {
@@ -592,7 +593,8 @@ final class RecruitmentClassificationsRestController {
 			(string) $request->get_param( 'time_to_assume' ),
 			get_current_user_id(),
 			$reasons,
-			$notes_param
+			$notes_param,
+			$this->notify_email_param( $request )
 		);
 
 		if ( ! $result['success'] ) {
@@ -600,6 +602,34 @@ final class RecruitmentClassificationsRestController {
 		}
 
 		return new \WP_REST_Response( $result, 201 );
+	}
+
+	/**
+	 * Read the per-call "notify by email" opt-in from the request.
+	 *
+	 * Returns null when the parameter is absent, so the dispatcher applies
+	 * the configured `email_mode` (only `ask` mode consults the opt-in). In
+	 * `ask` mode a checked box posts a truthy value; unchecked posts nothing,
+	 * which resolves to "don't send". Issue #794.
+	 *
+	 * @param \WP_REST_Request $request Request.
+	 * @return bool|null
+	 */
+	private function notify_email_param( \WP_REST_Request $request ): ?bool {
+		$raw = $request->get_param( 'notify_email' );
+		if ( null === $raw ) {
+			return null;
+		}
+		// Mirror rest_sanitize_boolean semantics without its templated return
+		// type (which PHPStan can't resolve from a mixed param): the string
+		// 'false' / '0' / '' are falsey, everything else coerces normally.
+		if ( is_string( $raw ) ) {
+			$lower = strtolower( $raw );
+			if ( 'false' === $lower || '0' === $lower || '' === $lower ) {
+				return false;
+			}
+		}
+		return (bool) $raw;
 	}
 
 	/**

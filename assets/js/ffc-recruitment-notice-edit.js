@@ -240,12 +240,20 @@
 			style: anyOoO ? 'destructive' : 'primary',
 			reasonLabel: anyOoO ? (strings.bulkReasonLabel || '') : ''
 		};
-		window.ffcRecruitmentAdmin.openConfirmModal(modalCfg, function (sharedReason) {
+		// Ask mode (#794): surface a "Notify by email" checkbox (default on)
+		// inside the confirmation modal instead of a separate native prompt.
+		if (cfg.emailMode === 'ask') {
+			modalCfg.checkboxLabel = strings.notifyByEmailAsk || '';
+			modalCfg.checkboxChecked = true;
+		}
+		window.ffcRecruitmentAdmin.openConfirmModal(modalCfg, function (sharedReason, notifyChecked) {
 			var reasons = {};
 			if (anyOoO) { for (var k2 = 0; k2 < ids.length; k2++) { reasons[String(ids[k2])] = sharedReason; } }
 			status.textContent = '…';
 			var bulkPayload = { classification_ids: ids, date_to_assume: date, time_to_assume: time };
 			if (anyOoO) { bulkPayload.out_of_order_reasons = reasons; }
+			// Ask mode (#794): the modal checkbox drives the per-batch opt-in.
+			if (cfg.emailMode === 'ask') { bulkPayload.notify_email = !!notifyChecked; }
 			fetch(classRoot + 'bulk-call', {
 				method: 'POST',
 				headers: { 'X-WP-Nonce': nonce, 'Content-Type': 'application/json' },
@@ -266,6 +274,18 @@
 				}).catch(function (e) { status.textContent = (strings.networkError || 'Network error:') + ' ' + e.message; });
 		});
 	};
+
+	// Shared dispatch for a single-classification action: POST/PUT, reload
+	// on success, surface the error and re-enable the button on failure.
+	// Reused by the synchronous path and the ask-mode modal callback (#794).
+	function ffcRecruitmentDispatchCls(btn, url, init) {
+		btn.disabled = true;
+		fetch(url, init).then(function (r) { return r.json().then(function (d) { return { status: r.status, body: d }; }); })
+			.then(function (o) {
+				if (o.status >= 200 && o.status < 300) { location.reload(); }
+				else { alert((o.body && o.body.message) ? o.body.message : JSON.stringify(o.body)); btn.disabled = false; }
+			}).catch(function (e) { alert((strings.networkError || 'Network error:') + ' ' + e.message); btn.disabled = false; });
+	}
 
 	window.ffcRecruitmentClsAct = function (btn) {
 		var id = btn.getAttribute('data-cls-id');
@@ -295,8 +315,25 @@
 			fd.append('date_to_assume', date);
 			fd.append('time_to_assume', time);
 			if (oooReason) { fd.append('out_of_order_reason', oooReason); }
-			url = base + id + '/call';
-			init = { method: 'POST', headers: { 'X-WP-Nonce': nonce }, body: fd, credentials: 'same-origin' };
+			var callUrl = base + id + '/call';
+			var callInit = { method: 'POST', headers: { 'X-WP-Nonce': nonce }, body: fd, credentials: 'same-origin' };
+			// Ask mode (#794): confirm via the shared modal carrying a
+			// "Notify by email" checkbox (default on), then dispatch. Other
+			// modes fire immediately through the shared path below.
+			if (cfg.emailMode === 'ask') {
+				var callBodyTpl = strings.callModalBodyTpl || '';
+				window.ffcRecruitmentAdmin.openConfirmModal({
+					body: callBodyTpl.replace('{date}', date).replace('{time}', time),
+					checkboxLabel: strings.notifyByEmailAsk || '',
+					checkboxChecked: true
+				}, function (_reason, notifyChecked) {
+					fd.append('notify_email', notifyChecked ? '1' : '0');
+					ffcRecruitmentDispatchCls(btn, callUrl, callInit);
+				});
+				return;
+			}
+			url = callUrl;
+			init = callInit;
 		} else if (action === 'cancel') {
 			var reason = prompt(strings.cancellationReason || '');
 			if (!reason) { return; }
@@ -331,12 +368,7 @@
 			url = base + id + '/status';
 			init = { method: 'PUT', headers: { 'X-WP-Nonce': nonce, 'Content-Type': 'application/x-www-form-urlencoded' }, body: p3.toString(), credentials: 'same-origin' };
 		}
-		btn.disabled = true;
-		fetch(url, init).then(function (r) { return r.json().then(function (d) { return { status: r.status, body: d }; }); })
-			.then(function (o) {
-				if (o.status >= 200 && o.status < 300) { location.reload(); }
-				else { alert((o.body && o.body.message) ? o.body.message : JSON.stringify(o.body)); btn.disabled = false; }
-			}).catch(function (e) { alert((strings.networkError || 'Network error:') + ' ' + e.message); btn.disabled = false; });
+		ffcRecruitmentDispatchCls(btn, url, init);
 	};
 
 	// -- Section 7: preliminary preview-status + reason dropdowns -------

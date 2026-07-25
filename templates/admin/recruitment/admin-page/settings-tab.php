@@ -45,6 +45,21 @@ echo '<h2 class="ffc-icon-email">' . esc_html__( 'Email template', 'ffcertificat
 \FreeFormCertificate\Core\EmailDisabledNotice::render();
 echo '<table class="form-table"><tbody>';
 
+// Convocation send mode (#794).
+$email_mode  = (string) $settings['email_mode'];
+$email_modes = array(
+	\FreeFormCertificate\Recruitment\RecruitmentEmailDispatcher::MODE_ALWAYS => __( 'Always — send the convocation email on every call', 'ffcertificate' ),
+	\FreeFormCertificate\Recruitment\RecruitmentEmailDispatcher::MODE_NEVER  => __( 'Never — do not send automatically', 'ffcertificate' ),
+	\FreeFormCertificate\Recruitment\RecruitmentEmailDispatcher::MODE_ASK    => __( 'Ask — decide per call via a "Notify by email" checkbox on the call action', 'ffcertificate' ),
+);
+echo '<tr><th>' . esc_html__( 'Send mode', 'ffcertificate' ) . '</th><td><fieldset>';
+foreach ( $email_modes as $mode_val => $mode_label ) {
+	echo '<label style="display:block;margin-bottom:4px;"><input type="radio" name="' . esc_attr( $opt ) . '[email_mode]" value="' . esc_attr( (string) $mode_val ) . '" ' . checked( $email_mode, $mode_val, false ) . '> ' . esc_html( $mode_label ) . '</label>';
+}
+echo '</fieldset>';
+echo '<p class="description">' . esc_html__( 'Controls whether calling a candidate sends the convocation email. The global "disable all emails" switch always wins.', 'ffcertificate' ) . '</p>';
+echo '</td></tr>';
+
 echo '<tr><th><label for="ffc-rs-subject">' . esc_html__( 'Subject', 'ffcertificate' ) . '</label></th><td>';
 echo '<input id="ffc-rs-subject" type="text" class="large-text" name="' . esc_attr( $opt ) . '[email_subject]" value="' . esc_attr( (string) $settings['email_subject'] ) . '">';
 echo '<p class="description">' . esc_html__( 'Placeholders: {{notice_code}}, {{notice_name}}, {{adjutancy}}, {{name}}, {{rank}}, {{score}}, {{date_to_assume}}, {{time_to_assume}}, {{is_pcd}}, {{site_name}}, {{site_url}}, {{notes}}, and the masked variants {{cpf_masked}}, {{rf_masked}}, {{email_masked}}.', 'ffcertificate' ) . '</p>';

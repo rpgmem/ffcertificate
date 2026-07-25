@@ -223,4 +223,36 @@ class RecruitmentEmailDispatcherTest extends TestCase {
 		$this->assertFalse( RecruitmentEmailDispatcher::send_for_call( 7 ) );
 		$this->assertFalse( $wp_mail_called );
 	}
+
+	// ------------------------------------------------------------------
+	// email_mode decision (#794)
+	// ------------------------------------------------------------------
+
+	public function test_valid_modes_are_the_three_known_values(): void {
+		$this->assertSame( array( 'always', 'never', 'ask' ), RecruitmentEmailDispatcher::valid_modes() );
+	}
+
+	public function test_should_send_always_mode_ignores_the_optin(): void {
+		Functions\when( 'get_option' )->justReturn( array( 'email_mode' => 'always' ) );
+		$this->assertTrue( RecruitmentEmailDispatcher::should_send( null ) );
+		$this->assertTrue( RecruitmentEmailDispatcher::should_send( false ) );
+	}
+
+	public function test_should_send_never_mode_ignores_the_optin(): void {
+		Functions\when( 'get_option' )->justReturn( array( 'email_mode' => 'never' ) );
+		$this->assertFalse( RecruitmentEmailDispatcher::should_send( true ) );
+		$this->assertFalse( RecruitmentEmailDispatcher::should_send( null ) );
+	}
+
+	public function test_should_send_ask_mode_follows_the_optin(): void {
+		Functions\when( 'get_option' )->justReturn( array( 'email_mode' => 'ask' ) );
+		$this->assertTrue( RecruitmentEmailDispatcher::should_send( true ) );
+		$this->assertFalse( RecruitmentEmailDispatcher::should_send( false ) );
+		$this->assertFalse( RecruitmentEmailDispatcher::should_send( null ), 'absent opt-in in ask mode → do not send' );
+	}
+
+	public function test_should_send_defaults_to_always_when_mode_unset(): void {
+		Functions\when( 'get_option' )->justReturn( array() );
+		$this->assertTrue( RecruitmentEmailDispatcher::should_send( null ) );
+	}
 }

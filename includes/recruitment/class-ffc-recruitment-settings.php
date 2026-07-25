@@ -50,6 +50,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  *   email_from_address:          string,
  *   email_from_name:             string,
  *   email_body_html:             string,
+ *   email_mode:                  string,
  *   public_cache_seconds:        int,
  *   public_rate_limit_per_minute: int,
  *   public_default_page_size:    int,
@@ -136,6 +137,10 @@ final class RecruitmentSettings {
 			'email_from_address'                     => '',
 			'email_from_name'                        => '',
 			'email_body_html'                        => self::default_body_template(),
+			// Convocation-email send mode: 'always' (default — send on every
+			// call), 'never' (never send), or 'ask' (per-call opt-in via a
+			// "Notify by email" checkbox on the call forms). Issue #794.
+			'email_mode'                             => RecruitmentEmailDispatcher::MODE_ALWAYS,
 			// 12h default: the public listing only changes when admins
 			// edit a notice/classification/candidate/adjutancy/call, and
 			// every such write hits the cache invalidator on the public
@@ -262,6 +267,11 @@ final class RecruitmentSettings {
 			? $value['email_body_html']
 			: $defaults['email_body_html'];
 
+		// Convocation send mode — allowlist to the three known values (#794).
+		$out['email_mode'] = isset( $value['email_mode'] ) && in_array( $value['email_mode'], RecruitmentEmailDispatcher::valid_modes(), true )
+			? (string) $value['email_mode']
+			: $defaults['email_mode'];
+
 		$out['public_cache_seconds']         = self::clamp_int( $value['public_cache_seconds'] ?? null, 0, 86400, $defaults['public_cache_seconds'] );
 		$out['public_rate_limit_per_minute'] = self::clamp_int( $value['public_rate_limit_per_minute'] ?? null, 0, 6000, $defaults['public_rate_limit_per_minute'] );
 		$out['public_default_page_size']     = self::clamp_int( $value['public_default_page_size'] ?? null, 1, 1000, $defaults['public_default_page_size'] );
@@ -356,6 +366,7 @@ final class RecruitmentSettings {
 			'email_from_address'                     => is_string( $value['email_from_address'] ?? null ) ? $value['email_from_address'] : $defaults['email_from_address'],
 			'email_from_name'                        => is_string( $value['email_from_name'] ?? null ) ? $value['email_from_name'] : $defaults['email_from_name'],
 			'email_body_html'                        => is_string( $value['email_body_html'] ?? null ) ? $value['email_body_html'] : $defaults['email_body_html'],
+			'email_mode'                             => in_array( $value['email_mode'] ?? null, RecruitmentEmailDispatcher::valid_modes(), true ) ? $value['email_mode'] : $defaults['email_mode'],
 			'public_cache_seconds'                   => is_int( $value['public_cache_seconds'] ?? null ) ? $value['public_cache_seconds'] : $defaults['public_cache_seconds'],
 			'public_rate_limit_per_minute'           => is_int( $value['public_rate_limit_per_minute'] ?? null ) ? $value['public_rate_limit_per_minute'] : $defaults['public_rate_limit_per_minute'],
 			'public_default_page_size'               => is_int( $value['public_default_page_size'] ?? null ) ? $value['public_default_page_size'] : $defaults['public_default_page_size'],

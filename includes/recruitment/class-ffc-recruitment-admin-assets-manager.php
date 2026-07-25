@@ -217,6 +217,9 @@ final class RecruitmentAdminAssetsManager {
 			array(
 				'restRoot'       => esc_url_raw( rest_url( 'ffcertificate/v1/recruitment/' ) ),
 				'nonce'          => wp_create_nonce( 'wp_rest' ),
+				// Convocation send mode (#794). Only 'ask' surfaces the per-call
+				// "notify by email" prompt in the call flows.
+				'emailMode'      => (string) $rec_settings['email_mode'],
 				'reasonRequired' => array(
 					'denied'         => ! empty( $rec_settings['preview_reason_required_denied'] ),
 					'granted'        => ! empty( $rec_settings['preview_reason_required_granted'] ),
@@ -255,6 +258,8 @@ final class RecruitmentAdminAssetsManager {
 					'reopenReason'          => __( 'Reopen reason (required):', 'ffcertificate' ),
 					'confirmOverride'       => __( 'This will undo a realized decision (hired / withdrew / no-show), reopen the vacancy and return the candidate to the waiting queue at their original position. The candidate is NOT notified. Continue?', 'ffcertificate' ),
 					'overrideReason'        => __( 'Reason for undoing this decision (required, audited):', 'ffcertificate' ),
+					'notifyByEmailAsk'      => __( 'Notify the candidate by email about this call', 'ffcertificate' ),
+					'callModalBodyTpl'      => __( 'Convocation to assume on {date} at {time}.', 'ffcertificate' ),
 				),
 			)
 		);

@@ -71,6 +71,7 @@ final class RecruitmentCallService {
 	 * @param int         $created_by          WP user ID issuing the call.
 	 * @param string|null $out_of_order_reason Required when the target is not the lowest-rank `empty` row.
 	 * @param string|null $notes               Optional.
+	 * @param bool|null   $notify_email        Per-call "notify by email" choice, consulted only in `ask` mode (#794).
 	 * @return CallResult
 	 */
 	public static function call_single(
@@ -79,7 +80,8 @@ final class RecruitmentCallService {
 		string $time_to_assume,
 		int $created_by,
 		?string $out_of_order_reason = null,
-		?string $notes = null
+		?string $notes = null,
+		?bool $notify_email = null
 	): array {
 		global $wpdb;
 		$wpdb->query( 'START TRANSACTION' );
@@ -111,8 +113,10 @@ final class RecruitmentCallService {
 		);
 
 		// Best-effort email dispatch — failures here do NOT roll back the
-		// committed call (§7).
-		RecruitmentEmailDispatcher::send_for_call( $result['call_id'] );
+		// committed call (§7). Gated by the configured send mode (#794).
+		if ( RecruitmentEmailDispatcher::should_send( $notify_email ) ) {
+			RecruitmentEmailDispatcher::send_for_call( $result['call_id'] );
+		}
 
 		return array(
 			'success'  => true,
@@ -139,6 +143,7 @@ final class RecruitmentCallService {
 	 * @param int                $created_by           WP user ID issuing the bulk call.
 	 * @param array<int, string> $out_of_order_reasons Keyed by classification ID. PHP coerces numeric-string keys to int, so the runtime key type is int.
 	 * @param string|null        $notes                Optional, applied to every call row.
+	 * @param bool|null          $notify_email         Per-call "notify by email" choice, consulted only in `ask` mode (#794).
 	 * @return CallResult
 	 */
 	public static function call_bulk(
@@ -147,7 +152,8 @@ final class RecruitmentCallService {
 		string $time_to_assume,
 		int $created_by,
 		array $out_of_order_reasons = array(),
-		?string $notes = null
+		?string $notes = null,
+		?bool $notify_email = null
 	): array {
 		if ( empty( $classification_ids ) ) {
 			return self::failure( 'recruitment_bulk_call_empty_id_list' );
@@ -195,9 +201,12 @@ final class RecruitmentCallService {
 		);
 
 		// Best-effort email dispatch per row — failures here do NOT roll
-		// back the committed batch (§7).
-		foreach ( $call_ids as $cid ) {
-			RecruitmentEmailDispatcher::send_for_call( $cid );
+		// back the committed batch (§7). Gated by the configured send mode (#794);
+		// resolved once for the whole batch.
+		if ( RecruitmentEmailDispatcher::should_send( $notify_email ) ) {
+			foreach ( $call_ids as $cid ) {
+				RecruitmentEmailDispatcher::send_for_call( $cid );
+			}
 		}
 
 		return array(

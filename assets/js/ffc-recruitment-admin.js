@@ -267,6 +267,11 @@
             style: raw.style === 'destructive' ? 'destructive' : 'primary',
             reasonLabel: raw.reasonLabel || '',
             reasonName: raw.reasonName || 'reason',
+            // Optional checkbox (programmatic API only — the DOM-trigger path
+            // has no consumer that needs it). Its checked state is handed to
+            // the onConfirm callback as the 2nd argument; null when absent.
+            checkboxLabel: raw.checkboxLabel || '',
+            checkboxChecked: raw.checkboxChecked !== false,
             countdown: countdown,
         };
     }
@@ -324,9 +329,22 @@
                 + '<input id="' + inputId + '" type="text" class="regular-text" autocomplete="off" />'
                 + '</div>';
         }
+        var checkboxInput = null;
+        if (cfg.checkboxLabel) {
+            var cbId = 'ffc-confirm-modal-checkbox-input';
+            html += '<div class="ffc-confirm-modal-checkbox">'
+                + '<label for="' + cbId + '">'
+                + '<input id="' + cbId + '" type="checkbox"' + (cfg.checkboxChecked ? ' checked' : '') + ' /> '
+                + escText(cfg.checkboxLabel)
+                + '</label>'
+                + '</div>';
+        }
         body.innerHTML = html;
         if (cfg.reasonLabel) {
             reasonInput = body.querySelector('#ffc-confirm-modal-reason-input');
+        }
+        if (cfg.checkboxLabel) {
+            checkboxInput = body.querySelector('#ffc-confirm-modal-checkbox-input');
         }
 
         // CTA gating: countdown (if any) AND reason input (if any) must
@@ -372,7 +390,8 @@
         confirmBtn.onclick = function () {
             if (confirmBtn.disabled) { return; }
             var reasonValue = reasonInput ? reasonInput.value.trim() : null;
-            onConfirm(reasonValue);
+            var checkboxValue = checkboxInput ? checkboxInput.checked : null;
+            onConfirm(reasonValue, checkboxValue);
         };
         cancelBtn.onclick = handleCancel;
         closeBtn.onclick = handleCancel;
@@ -415,15 +434,18 @@
     // copy / reason gate to render).
     //
     //   ffcRecruitmentAdmin.openConfirmModal({
-    //     title, body, consequences[], cta, style, reasonLabel, countdown
-    //   }, function onConfirm(reasonValue) { ... }, function onCancel(){ ... });
+    //     title, body, consequences[], cta, style, reasonLabel, countdown,
+    //     checkboxLabel, checkboxChecked
+    //   }, function onConfirm(reasonValue, checkboxChecked) { ... },
+    //      function onCancel(){ ... });
+    // checkboxChecked is a boolean when checkboxLabel is set, else null.
     window.ffcRecruitmentAdmin.openConfirmModal = function (rawConfig, onConfirm, onCancel) {
         state.trigger = null;
         showModal(
             normalizeConfig(rawConfig),
-            function (reasonValue) {
+            function (reasonValue, checkboxValue) {
                 closeModal();
-                if (typeof onConfirm === 'function') { onConfirm(reasonValue); }
+                if (typeof onConfirm === 'function') { onConfirm(reasonValue, checkboxValue); }
             },
             onCancel || null
         );

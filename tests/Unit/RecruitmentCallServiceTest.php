@@ -41,6 +41,9 @@ class RecruitmentCallServiceTest extends TestCase {
 		Functions\when( 'current_time' )->justReturn( '2026-05-01 10:00:00' );
 		Functions\when( 'get_current_user_id' )->justReturn( 1 );
 		Functions\when( 'get_option' )->justReturn( array() );
+		// call_single / call_bulk consult RecruitmentEmailDispatcher::should_send,
+		// which reads RecruitmentSettings (its defaults() translate strings) — #794.
+		Functions\when( '__' )->returnArg();
 		Functions\when( 'sanitize_text_field' )->returnArg();
 		Functions\when( 'sanitize_key' )->returnArg();
 		Functions\when( 'absint' )->alias( 'intval' );

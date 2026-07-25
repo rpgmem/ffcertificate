@@ -109,6 +109,26 @@ class RecruitmentSettingsTest extends TestCase {
 		$this->assertSame( 12 * HOUR_IN_SECONDS, $out['public_cache_seconds'], 'Negative input falls back to default per the clamp.' );
 	}
 
+	public function test_email_mode_defaults_to_always(): void {
+		$this->assertSame( 'always', RecruitmentSettings::defaults()['email_mode'] );
+	}
+
+	public function test_sanitize_accepts_a_valid_email_mode(): void {
+		Functions\when( 'sanitize_text_field' )->returnArg();
+
+		$out = RecruitmentSettings::sanitize( array( 'email_mode' => 'ask' ) );
+
+		$this->assertSame( 'ask', $out['email_mode'] );
+	}
+
+	public function test_sanitize_rejects_an_unknown_email_mode(): void {
+		Functions\when( 'sanitize_text_field' )->returnArg();
+
+		$out = RecruitmentSettings::sanitize( array( 'email_mode' => 'bogus' ) );
+
+		$this->assertSame( 'always', $out['email_mode'], 'An out-of-allowlist mode collapses to the default.' );
+	}
+
 	public function test_sanitize_caps_oversized_cache_seconds(): void {
 		Functions\when( 'sanitize_text_field' )->returnArg();
 
