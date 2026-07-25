@@ -363,6 +363,8 @@ class AdminAssetsManager {
 		global $post;
 		$form_id = ( $post && isset( $post->ID ) ) ? (int) $post->ID : 0;
 
+		$field_types = FormEditorBuilderMetabox::field_types_ordered();
+
 		return array(
 			'ajax_url'       => admin_url( 'admin-ajax.php' ),
 			'nonce'          => wp_create_nonce( 'ffc_admin_pdf_nonce' ),
@@ -372,6 +374,20 @@ class AdminAssetsManager {
 			// the JS can't drift from the generators' real placeholders.
 			'previewSamples' => \FreeFormCertificate\Core\CertificatePreviewSamples::get_map( $form_id ),
 			'templates'      => self::discover_layout_templates(),
+			// Certificate field types as an ordered {value,label} list — the
+			// single source of truth shared with the server-rendered row
+			// `<select>` (FormEditorBuilderMetabox), so the JS builder offers
+			// the same types in the same locale-aware order.
+			'fieldTypes'     => array_map(
+				static function ( string $slug, string $label ): array {
+					return array(
+						'value' => $slug,
+						'label' => $label,
+					);
+				},
+				array_keys( $field_types ),
+				array_values( $field_types )
+			),
 			'strings'        => array(
 				// General.
 				'generating'              => __( 'Generating...', 'ffcertificate' ),
@@ -445,6 +461,7 @@ class AdminAssetsManager {
 				'date'                    => __( 'Date', 'ffcertificate' ),
 				'infoBlock'               => __( 'Info Block', 'ffcertificate' ),
 				'embedMedia'              => __( 'Embed (Media)', 'ffcertificate' ),
+				'hiddenField'             => __( 'Hidden Field', 'ffcertificate' ),
 
 				// Info Block Field.
 				'content'                 => __( 'Content:', 'ffcertificate' ),
