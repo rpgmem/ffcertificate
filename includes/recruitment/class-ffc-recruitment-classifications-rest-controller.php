@@ -620,7 +620,16 @@ final class RecruitmentClassificationsRestController {
 		if ( null === $raw ) {
 			return null;
 		}
-		return rest_sanitize_boolean( $raw );
+		// Mirror rest_sanitize_boolean semantics without its templated return
+		// type (which PHPStan can't resolve from a mixed param): the string
+		// 'false' / '0' / '' are falsey, everything else coerces normally.
+		if ( is_string( $raw ) ) {
+			$lower = strtolower( $raw );
+			if ( 'false' === $lower || '0' === $lower || '' === $lower ) {
+				return false;
+			}
+		}
+		return (bool) $raw;
 	}
 
 	/**
