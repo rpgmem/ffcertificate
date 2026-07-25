@@ -49,7 +49,7 @@ class DeviceThresholdUpgradeNotice {
 			return;
 		}
 
-		$rate_limit_url = admin_url( 'edit.php?post_type=ffc_form&page=ffc-settings&tab=rate_limit' );
+		$rate_limit_url = admin_url( 'admin.php?page=ffc-settings&tab=rate_limit' );
 		$nonce          = wp_create_nonce( self::NONCE_ACTION );
 		?>
 		<div class="notice notice-info is-dismissible ffc-device-threshold-notice"

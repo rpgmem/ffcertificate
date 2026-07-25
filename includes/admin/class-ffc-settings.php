@@ -109,6 +109,7 @@ class Settings {
 		// v4.6.16: Reorganized tabs for better UX.
 		$tab_classes = array(
 			'general'       => '\\FreeFormCertificate\\Settings\\Tabs\\TabGeneral',
+			'modulos'       => '\\FreeFormCertificate\\Settings\\Tabs\\TabModulos',
 			'smtp'          => '\\FreeFormCertificate\\Settings\\Tabs\\TabSMTP',
 			'cache'         => '\\FreeFormCertificate\\Settings\\Tabs\\TabCache',
 			'url_shortener' => '\\FreeFormCertificate\\Settings\\Tabs\\TabUrlShortener',
@@ -151,13 +152,20 @@ class Settings {
 	 * Add settings page.
 	 */
 	public function add_settings_page(): void {
-		$hook = add_submenu_page(
-			'edit.php?post_type=ffc_form',
-			__( 'Settings', 'ffcertificate' ),
-			__( 'Settings', 'ffcertificate' ),
+		// Dedicated top-level menu (was a submenu of the `ffc_form` CPT until
+		// the module-toggle work): the Settings surface — which now hosts the
+		// "Modules" tab that can enable/disable the Certificate module itself —
+		// cannot live inside the very menu it governs. Promoting it to a
+		// top-level `admin.php?page=ffc-settings` gives it a module-agnostic
+		// home. The page hook suffix consequently changes from the old
+		// `ffc_form_page_ffc-settings` to `toplevel_page_ffc-settings`.
+		$hook = add_menu_page(
+			__( 'Certificate Settings', 'ffcertificate' ),
+			__( 'FFC Settings', 'ffcertificate' ),
 			'ffc_view_settings',
 			'ffc-settings',
-			array( $this, 'display_settings_page' )
+			array( $this, 'display_settings_page' ),
+			'dashicons-admin-settings'
 		);
 
 		if ( $hook ) {
@@ -432,7 +440,7 @@ class Settings {
 						$is_active = ( $active_tab === $tab_id );
 						?>
 						<li class="ffc-settings-tabs__nav-item" role="presentation">
-							<a href="?post_type=ffc_form&page=ffc-settings&tab=<?php echo esc_attr( $tab_id ); ?>"
+							<a href="<?php echo esc_url( admin_url( 'admin.php?page=ffc-settings&tab=' . $tab_id ) ); ?>"
 								id="ffc-settings-tabnav-<?php echo esc_attr( $tab_id ); ?>"
 								class="ffc-settings-tabs__tab<?php echo $is_active ? ' is-active' : ''; ?>"
 								role="tab"

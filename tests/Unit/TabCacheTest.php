@@ -95,7 +95,7 @@ class TabCacheTest extends TestCase {
     public function test_enqueue_scripts_returns_early_when_tab_inactive(): void {
         $_GET['tab'] = 'general';
         Functions\expect( 'wp_enqueue_script' )->never();
-        $this->tab->enqueue_scripts( 'ffc_form_page_ffc-settings' );
+        $this->tab->enqueue_scripts( 'toplevel_page_ffc-settings' );
     }
 
     public function test_enqueue_scripts_enqueues_on_cache_tab(): void {
@@ -111,7 +111,7 @@ class TabCacheTest extends TestCase {
         Functions\when( 'wp_localize_script' )->justReturn( true );
         Functions\when( 'wp_create_nonce' )->justReturn( 'nonce' );
 
-        $this->tab->enqueue_scripts( 'ffc_form_page_ffc-settings' );
+        $this->tab->enqueue_scripts( 'toplevel_page_ffc-settings' );
 
         // From enqueue_autosave_infra().
         $this->assertContains( 'ffc-core', $handles );

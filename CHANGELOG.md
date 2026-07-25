@@ -8,6 +8,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 ## [Unreleased]
 
 ### Changed
+- **Settings moved to a dedicated top-level admin menu** (`admin.php?page=ffc-settings`) instead of hanging under the Certificate CPT menu, so the new Modules tab has a module-agnostic home. ⚠ The page URL changed from `edit.php?post_type=ffc_form&page=ffc-settings`; old bookmarks won't resolve. All in-app links and post-save redirects updated (#799).
 - The dashboard **"Join Groups"** list now follows the per-node self-join model (#791 follow-up): a group shows a Join/Leave button whenever its own self-join is on — child, top-level, or a parent that also has joinable children — and a non-self-join parent still appears as a header when it has joinable descendants; unrelated groups are hidden.
 - The role→capability editor and the per-user permission panel now list the colour-coded permission groups **alphabetically** within each section (Self-service / Administration) instead of module-map order (#787).
 - Admin tab/menu ordering is now **alphabetical by the translated label**, locale-aware (accents collate correctly) with stable anchors, via a new shared `Core\LabelSorter`: the Settings tabs (General first; Advanced/Migrations/Documentation last), the Recruitment sub-tabs (Notices first, Settings last) and the Scheduling Settings sub-tabs (General first). The #787 capability editor now shares the same helper (#797).
@@ -25,6 +26,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 - Both FFC-role admin surfaces (Blocked Roles, role→capability editor) now list roles in one canonical order: cross-cutting roles first, then each module ladder alphabetically, weakest→strongest (#739 follow-up).
 
 ### Added
+- New **Modules** tab in Settings (scaffold) — the future home for per-module enable/disable toggles (#799).
 - Recruitment convocation email now has a **send mode** (#794): Settings → Recruitment offers Always / Never / Ask. "Ask" surfaces a default-on "Notify by email" checkbox in the call confirmation modal — single and bulk — so the operator decides per call whether to notify the candidate; the global "disable all emails" switch still wins. Gated in `RecruitmentEmailDispatcher::should_send()`.
 - Outbound emails are now tagged with a per-function mail-queue source (#793): when the sibling **Total Mail Queue** is active, each email carries an `X-TMQ-Source-*` header so it is attributed per feature (`plugin:ffcertificate_certificate`, `_scheduling`, `_audience`, `_reregistration`, `_recruitment`, `_account`, `_admin`) instead of one blanket `plugin:ffcertificate` row. The queue strips the header; gated on the queue being present (filter `ffcertificate_emit_source_headers`).
 - Internal (#764) — an injectable, unit-testable CSV output boundary: `CsvDownloadInterface` / `HttpCsvDownload` / `CsvStreamer` (pure orchestration over an `iterable` of rows).

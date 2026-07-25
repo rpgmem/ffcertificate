@@ -99,7 +99,7 @@ class TabSmtpTest extends TestCase {
 
         Functions\expect( 'wp_enqueue_script' )->never();
 
-        $this->tab->enqueue_scripts( 'ffc_form_page_ffc-settings' );
+        $this->tab->enqueue_scripts( 'toplevel_page_ffc-settings' );
     }
 
     // ==================================================================
@@ -153,7 +153,7 @@ class TabSmtpTest extends TestCase {
             ->with( 'ffc-email-model', 'ffcEmailModel', Mockery::type( 'array' ) )
             ->once();
 
-        $this->tab->enqueue_scripts( 'ffc_form_page_ffc-settings' );
+        $this->tab->enqueue_scripts( 'toplevel_page_ffc-settings' );
     }
 
     // ==================================================================

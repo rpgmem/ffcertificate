@@ -42,7 +42,7 @@ class TabMigrations extends SettingsTab {
 	 * @param string $hook Hook name.
 	 */
 	public function enqueue_scripts( string $hook ): void {
-		if ( 'ffc_form_page_ffc-settings' !== $hook ) {
+		if ( 'toplevel_page_ffc-settings' !== $hook ) {
 			return;
 		}
 		$active_tab = isset( $_GET['tab'] ) ? sanitize_key( $_GET['tab'] ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Tab parameter for conditional script loading.

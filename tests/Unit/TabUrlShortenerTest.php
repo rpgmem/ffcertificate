@@ -156,7 +156,7 @@ class TabUrlShortenerTest extends TestCase {
     public function test_enqueue_scripts_returns_early_for_wrong_tab(): void {
         $_GET['tab'] = 'general';
         Functions\expect( 'wp_enqueue_script' )->never();
-        $this->tab->enqueue_scripts( 'ffc_form_page_ffc-settings' );
+        $this->tab->enqueue_scripts( 'toplevel_page_ffc-settings' );
     }
 
     public function test_enqueue_scripts_enqueues_autosave_on_url_shortener_tab(): void {
@@ -172,7 +172,7 @@ class TabUrlShortenerTest extends TestCase {
         Functions\when( 'wp_localize_script' )->justReturn( true );
         Functions\when( 'wp_create_nonce' )->justReturn( 'nonce' );
 
-        $this->tab->enqueue_scripts( 'ffc_form_page_ffc-settings' );
+        $this->tab->enqueue_scripts( 'toplevel_page_ffc-settings' );
 
         $this->assertContains( 'ffc-core', $handles );
         $this->assertContains( 'ffc-admin-autosave', $handles );

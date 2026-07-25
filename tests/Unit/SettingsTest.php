@@ -833,10 +833,10 @@ class SettingsTest extends TestCase {
     // add_settings_page()
     // ==================================================================
 
-    public function test_add_settings_page_registers_submenu_and_footer_hook(): void {
+    public function test_add_settings_page_registers_menu_and_footer_hook(): void {
         $captured = array();
-        Functions\when( 'add_submenu_page' )->alias( function () {
-            return 'ffc_form_page_ffc-settings';
+        Functions\when( 'add_menu_page' )->alias( function () {
+            return 'toplevel_page_ffc-settings';
         } );
         Functions\when( 'add_action' )->alias( function ( $hook ) use ( &$captured ) {
             $captured[] = $hook;
@@ -845,13 +845,13 @@ class SettingsTest extends TestCase {
 
         $this->settings->add_settings_page();
 
-        $this->assertContains( 'admin_footer-ffc_form_page_ffc-settings', $captured );
+        $this->assertContains( 'admin_footer-toplevel_page_ffc-settings', $captured );
     }
 
     public function test_add_settings_page_skips_footer_hook_when_no_hook_returned(): void {
         $captured = array();
-        // add_submenu_page returns false when the current user lacks the cap.
-        Functions\when( 'add_submenu_page' )->justReturn( false );
+        // add_menu_page returns false when the current user lacks the cap.
+        Functions\when( 'add_menu_page' )->justReturn( false );
         Functions\when( 'add_action' )->alias( function ( $hook ) use ( &$captured ) {
             $captured[] = $hook;
             return true;
