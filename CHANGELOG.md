@@ -22,6 +22,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 - Both FFC-role admin surfaces (Blocked Roles, role→capability editor) now list roles in one canonical order: cross-cutting roles first, then each module ladder alphabetically, weakest→strongest (#739 follow-up).
 
 ### Added
+- Outbound emails are now tagged with a per-function mail-queue source (#793): when the sibling **Total Mail Queue** is active, each email carries an `X-TMQ-Source-*` header so it is attributed per feature (`plugin:ffcertificate_certificate`, `_scheduling`, `_audience`, `_reregistration`, `_recruitment`, `_account`, `_admin`) instead of one blanket `plugin:ffcertificate` row. The queue strips the header; gated on the queue being present (filter `ffcertificate_emit_source_headers`).
 - Internal (#764) — an injectable, unit-testable CSV output boundary: `CsvDownloadInterface` / `HttpCsvDownload` / `CsvStreamer` (pure orchestration over an `iterable` of rows).
 - CSV export for the **Audience Bookings** page (#760): "Export CSV" gated by `ffc_export_audiences`, carrying the page's schedule/environment/status/date filters (no direct PII — FK ids only).
 - CSV export for the **URL Shortener** page (#761): "Export CSV" carrying search/status/sort; adds a dedicated `ffc_export_url_shortener` cap, seeded onto current `ffc_manage_url_shortener` holders via a one-shot migration.
