@@ -133,8 +133,7 @@ class Settings {
 		// bars and capability catalog use). The per-tab tab_order/get_order()
 		// values are retained as a legacy hint but no longer drive display
 		// order — the alphabetical order follows the active translation.
-		/** @var array<string, object> $sorted */
-		$sorted      = LabelSorter::sort(
+		$this->tabs = LabelSorter::sort(
 			$this->tabs,
 			static function ( $tab ): string {
 				return (string) $tab->get_title();
@@ -142,7 +141,6 @@ class Settings {
 			array( 'general' ),
 			array( 'advanced', 'migrations', 'documentation' )
 		);
-		$this->tabs = $sorted;
 
 		// Allow plugins to add custom tabs.
         // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- ffcertificate is the plugin prefix

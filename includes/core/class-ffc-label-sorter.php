@@ -55,20 +55,63 @@ final class LabelSorter {
 	 *
 	 * @var array<string, string>
 	 */
+	// phpcs:disable WordPress.Arrays.MultipleStatementAlignment -- multibyte keys defeat the byte-based arrow-alignment sniff.
 	private const ACCENT_MAP = array(
-		'á' => 'a', 'à' => 'a', 'â' => 'a', 'ã' => 'a', 'ä' => 'a', 'å' => 'a',
-		'é' => 'e', 'è' => 'e', 'ê' => 'e', 'ë' => 'e',
-		'í' => 'i', 'ì' => 'i', 'î' => 'i', 'ï' => 'i',
-		'ó' => 'o', 'ò' => 'o', 'ô' => 'o', 'õ' => 'o', 'ö' => 'o',
-		'ú' => 'u', 'ù' => 'u', 'û' => 'u', 'ü' => 'u',
-		'ç' => 'c', 'ñ' => 'n', 'ý' => 'y', 'ÿ' => 'y',
-		'Á' => 'A', 'À' => 'A', 'Â' => 'A', 'Ã' => 'A', 'Ä' => 'A', 'Å' => 'A',
-		'É' => 'E', 'È' => 'E', 'Ê' => 'E', 'Ë' => 'E',
-		'Í' => 'I', 'Ì' => 'I', 'Î' => 'I', 'Ï' => 'I',
-		'Ó' => 'O', 'Ò' => 'O', 'Ô' => 'O', 'Õ' => 'O', 'Ö' => 'O',
-		'Ú' => 'U', 'Ù' => 'U', 'Û' => 'U', 'Ü' => 'U',
-		'Ç' => 'C', 'Ñ' => 'N', 'Ý' => 'Y',
+		'á' => 'a',
+		'à' => 'a',
+		'â' => 'a',
+		'ã' => 'a',
+		'ä' => 'a',
+		'å' => 'a',
+		'é' => 'e',
+		'è' => 'e',
+		'ê' => 'e',
+		'ë' => 'e',
+		'í' => 'i',
+		'ì' => 'i',
+		'î' => 'i',
+		'ï' => 'i',
+		'ó' => 'o',
+		'ò' => 'o',
+		'ô' => 'o',
+		'õ' => 'o',
+		'ö' => 'o',
+		'ú' => 'u',
+		'ù' => 'u',
+		'û' => 'u',
+		'ü' => 'u',
+		'ç' => 'c',
+		'ñ' => 'n',
+		'ý' => 'y',
+		'ÿ' => 'y',
+		'Á' => 'A',
+		'À' => 'A',
+		'Â' => 'A',
+		'Ã' => 'A',
+		'Ä' => 'A',
+		'Å' => 'A',
+		'É' => 'E',
+		'È' => 'E',
+		'Ê' => 'E',
+		'Ë' => 'E',
+		'Í' => 'I',
+		'Ì' => 'I',
+		'Î' => 'I',
+		'Ï' => 'I',
+		'Ó' => 'O',
+		'Ò' => 'O',
+		'Ô' => 'O',
+		'Õ' => 'O',
+		'Ö' => 'O',
+		'Ú' => 'U',
+		'Ù' => 'U',
+		'Û' => 'U',
+		'Ü' => 'U',
+		'Ç' => 'C',
+		'Ñ' => 'N',
+		'Ý' => 'Y',
 	);
+	// phpcs:enable WordPress.Arrays.MultipleStatementAlignment
 
 	/**
 	 * Compare two display labels for alphabetical ordering under the active
@@ -119,12 +162,13 @@ final class LabelSorter {
 	 * slug/id needs no resolver.
 	 *
 	 * @template T
-	 * @param array<array-key, T>                   $items    Items to order (assoc or list).
-	 * @param callable(T): string                   $label_of `fn( $item ): string` — the translated label.
-	 * @param list<string>                          $head     Identifiers pinned first, in order.
-	 * @param list<string>                          $tail     Identifiers pinned last, in order.
-	 * @param (callable(T, array-key): string)|null $key_of   `fn( $item, $key ): string` identifier resolver.
-	 * @return array<array-key, T> Reordered items, keys preserved.
+	 * @template TKey of array-key
+	 * @param array<TKey, T>                    $items    Items to order (assoc or list).
+	 * @param callable(T): string               $label_of `fn( $item ): string` — the translated label.
+	 * @param array<int, string>                $head     Identifiers pinned first, in order.
+	 * @param array<int, string>                $tail     Identifiers pinned last, in order.
+	 * @param (callable(T, TKey): string)|null  $key_of   `fn( $item, $key ): string` identifier resolver.
+	 * @return array<TKey, T> Reordered items, keys preserved.
 	 */
 	public static function sort( array $items, callable $label_of, array $head = array(), array $tail = array(), ?callable $key_of = null ): array {
 		$head_set = array_flip( $head );
@@ -212,7 +256,7 @@ final class LabelSorter {
 	private static function locale(): string {
 		if ( function_exists( 'get_locale' ) ) {
 			$locale = get_locale();
-			if ( is_string( $locale ) && '' !== $locale ) {
+			if ( '' !== $locale ) {
 				return $locale;
 			}
 		}
