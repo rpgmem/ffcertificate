@@ -319,4 +319,47 @@ class SettingsReaderTest extends TestCase {
 			SettingsReader::required_certificate_tags()
 		);
 	}
+
+	// ------------------------------------------------------------------
+	// Feature-module toggles
+	// ------------------------------------------------------------------
+
+	public function test_module_option_key_maps_url_shortener_to_legacy_slot(): void {
+		$this->assertSame( 'url_shortener_enabled', SettingsReader::module_option_key( 'url_shortener' ) );
+	}
+
+	public function test_module_option_key_prefixes_other_modules(): void {
+		$this->assertSame( 'module_certificates_enabled', SettingsReader::module_option_key( 'certificates' ) );
+		$this->assertSame( 'module_recruitment_enabled', SettingsReader::module_option_key( 'recruitment' ) );
+	}
+
+	public function test_module_enabled_defaults_to_true_when_unset(): void {
+		$this->stub_option( array() );
+
+		foreach ( SettingsReader::MODULE_SLUGS as $slug ) {
+			$this->assertTrue( SettingsReader::module_enabled( $slug ), $slug . ' must default to enabled' );
+		}
+	}
+
+	public function test_module_enabled_reads_the_stored_slot(): void {
+		$this->stub_option(
+			array(
+				'module_recruitment_enabled' => 0,
+				'url_shortener_enabled'      => 0,
+			)
+		);
+
+		$this->assertFalse( SettingsReader::module_enabled( 'recruitment' ) );
+		$this->assertFalse( SettingsReader::module_enabled( 'url_shortener' ) );
+		// An unset module still defaults to enabled.
+		$this->assertTrue( SettingsReader::module_enabled( 'certificates' ) );
+	}
+
+	public function test_module_slugs_are_unique_and_cover_the_six_modules(): void {
+		$slugs = SettingsReader::MODULE_SLUGS;
+		$this->assertSame( $slugs, array_values( array_unique( $slugs ) ), 'MODULE_SLUGS must not contain duplicates' );
+		$this->assertContains( 'certificates', $slugs );
+		$this->assertContains( 'url_shortener', $slugs );
+		$this->assertCount( 6, $slugs );
+	}
 }

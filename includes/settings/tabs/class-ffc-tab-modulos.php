@@ -36,6 +36,24 @@ class TabModulos extends SettingsTab {
 		$this->tab_title = __( 'Modules', 'ffcertificate' );
 		$this->tab_icon  = 'ffc-icon-package';
 		$this->tab_order = 10;
+
+		add_action( 'admin_enqueue_scripts', array( $this, 'enqueue_scripts' ) );
+	}
+
+	/**
+	 * Enqueue the settings-autosave infra so the per-module `.ffc-toggle`
+	 * switches bind to the incremental settings AJAX endpoint.
+	 *
+	 * @param string $hook Current admin page hook.
+	 */
+	public function enqueue_scripts( string $hook ): void {
+		if ( 'toplevel_page_ffc-settings' !== $hook ) {
+			return;
+		}
+		if ( ! $this->is_active() ) {
+			return;
+		}
+		$this->enqueue_autosave_infra();
 	}
 
 	/**

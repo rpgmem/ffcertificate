@@ -95,6 +95,7 @@ return array(
 	'Root>Reregistration',
 	'Root>Security',
 	'Root>SelfScheduling',
+	'Root>Settings',
 	'Root>Shortcodes',
 	'Root>Submissions',
 	'Root>UrlShortener',

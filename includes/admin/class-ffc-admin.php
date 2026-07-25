@@ -14,7 +14,6 @@ declare(strict_types=1);
 namespace FreeFormCertificate\Admin;
 
 use FreeFormCertificate\Admin\FormEditor;
-use FreeFormCertificate\Admin\Settings;
 use FreeFormCertificate\Migrations\MigrationManager;
 use FreeFormCertificate\Admin\AdminAssetsManager;
 use FreeFormCertificate\Admin\AdminSubmissionEditPage;
@@ -165,8 +164,12 @@ class Admin {
 
 		// Construct admin sub-pages — their constructors register WP hooks
 		// (admin_menu, admin_init, save_post, …); WP holds the references.
+		// NOTE: Settings is NOT wired here — it is a cross-cutting service
+		// (SMTP, cache, migrations, Modules), not part of the Certificates
+		// module, so the orchestrator instantiates it directly (always on) and
+		// the Modules-tab toggle can never disable the Settings surface out of
+		// reach. See Loader::init_plugin().
 		new FormEditor();
-		new Settings( $handler );
 
 		$this->assets_manager = new AdminAssetsManager();
 		$this->assets_manager->register();

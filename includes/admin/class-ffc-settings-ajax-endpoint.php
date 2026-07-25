@@ -78,6 +78,14 @@ class SettingsAjaxEndpoint {
 			// URL Shortener tab.
 			'url_shortener_enabled',
 			'url_shortener_auto_create',
+			// Modules tab — per-module on/off toggles. `url_shortener` reuses
+			// the historical `url_shortener_enabled` slot above; these cover the
+			// remaining feature modules (SettingsReader::module_option_key()).
+			'module_certificates_enabled',
+			'module_audiences_enabled',
+			'module_self_scheduling_enabled',
+			'module_reregistration_enabled',
+			'module_recruitment_enabled',
 			// Data Migrations tab — URL cleanup criteria (persisted so the
 			// last-used selection survives the preview/delete round-trip).
 			'url_cleanup_orphaned',
