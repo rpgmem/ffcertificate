@@ -103,7 +103,7 @@ final class CapabilityCatalog {
 	 * @phpstan-return list<CapGroup>
 	 */
 	public static function groups(): array {
-		return array(
+		$groups = array(
 			// ---------------------------------------------------------------
 			// Self-service (end-user, frontend) — one group per module.
 			// ---------------------------------------------------------------
@@ -442,6 +442,24 @@ final class CapabilityCatalog {
 				),
 			),
 		);
+
+		// Render the "parent" groups alphabetically by their (translated) label
+		// within each section — self-service groups still precede every admin
+		// group (the section split the UI relies on), but inside each section
+		// the colour-coded rows read A→Z instead of module-map order. usort is
+		// stable on PHP 8.0+ (the project's floor), so equal-label ties keep
+		// their definition order.
+		usort(
+			$groups,
+			static function ( array $a, array $b ): int {
+				if ( $a['level'] !== $b['level'] ) {
+					return 'user' === $a['level'] ? -1 : 1;
+				}
+				return strcasecmp( (string) $a['label'], (string) $b['label'] );
+			}
+		);
+
+		return $groups;
 	}
 
 	/**
