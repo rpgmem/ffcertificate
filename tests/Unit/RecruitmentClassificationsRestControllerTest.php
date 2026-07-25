@@ -604,7 +604,7 @@ class RecruitmentClassificationsRestControllerTest extends TestCase {
     public function test_call_classification_success_returns_201(): void {
         $svc = Mockery::mock( 'alias:FreeFormCertificate\Recruitment\RecruitmentCallService' );
         $svc->shouldReceive( 'call_single' )->once()
-            ->with( 5, '2026-05-20', '09:00', 42, null, null )
+            ->with( 5, '2026-05-20', '09:00', 42, null, null, null )
             ->andReturn( array( 'success' => true, 'errors' => array() ) );
 
         $response = $this->controller->call_classification(
@@ -623,7 +623,7 @@ class RecruitmentClassificationsRestControllerTest extends TestCase {
     public function test_call_classification_passes_reason_and_notes(): void {
         $svc = Mockery::mock( 'alias:FreeFormCertificate\Recruitment\RecruitmentCallService' );
         $svc->shouldReceive( 'call_single' )->once()
-            ->with( 5, '2026-05-20', '09:00', 42, 'skip', 'note here' )
+            ->with( 5, '2026-05-20', '09:00', 42, 'skip', 'note here', null )
             ->andReturn( array( 'success' => true, 'errors' => array() ) );
 
         $response = $this->controller->call_classification(

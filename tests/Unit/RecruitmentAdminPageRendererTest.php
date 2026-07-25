@@ -262,6 +262,7 @@ class RecruitmentAdminPageRendererTest extends TestCase {
 			'email_from_address'                     => 'a@b.c',
 			'email_from_name'                        => 'From',
 			'email_body_html'                        => '<p>Body</p>',
+			'email_mode'                             => 'always',
 			'public_cache_seconds'                   => 60,
 			'public_rate_limit_per_minute'           => 30,
 			'public_default_page_size'               => 50,
