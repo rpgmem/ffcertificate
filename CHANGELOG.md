@@ -8,6 +8,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 ## [Unreleased]
 
 ### Changed
+- The dashboard **"Join Groups"** list now follows the per-node self-join model (#791 follow-up): a group shows a Join/Leave button whenever its own self-join is on — child, top-level, or a parent that also has joinable children — and a non-self-join parent still appears as a header when it has joinable descendants; unrelated groups are hidden.
 - The role→capability editor and the per-user permission panel now list the colour-coded permission groups **alphabetically** within each section (Self-service / Administration) instead of module-map order (#787).
 - The six admin CSV exports (submissions, activity-log, url-shortener, appointments, audience-bookings, reregistration) now show the same progress-overlay modal as the public download instead of an inline text line — one shared `FFCProgressOverlay` component drives both surfaces (#786).
 - **⚠ Breaking (#772) — CSV export hook rename.** `ffcertificate_csv_export_{headers,filename,data,completed}` → `ffc_export_{headers,filename,data,completed}` (signatures unchanged). External integrations on the old names must migrate — there is no back-compat shim.
