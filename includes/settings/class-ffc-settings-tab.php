@@ -49,7 +49,14 @@ abstract class SettingsTab {
 	protected $tab_icon;
 
 	/**
-	 * Tab order/priority
+	 * Tab order/priority.
+	 *
+	 * Legacy hint: since 6.16.0 the Settings screen orders tabs
+	 * alphabetically by their translated title (with General pinned first and
+	 * Advanced/Migrations/Documentation pinned last) via
+	 * {@see \FreeFormCertificate\Core\LabelSorter}, so this value no longer
+	 * drives display order. Retained because existing per-tab tests assert it
+	 * and third-party tabs may still read it.
 	 *
 	 * @var int
 	 */

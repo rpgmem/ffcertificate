@@ -18,6 +18,8 @@ declare(strict_types=1);
 
 namespace FreeFormCertificate\Recruitment;
 
+use FreeFormCertificate\Core\LabelSorter;
+
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
@@ -38,27 +40,37 @@ final class RecruitmentAdminPageRenderer {
 	 * @return void
 	 */
 	public static function render_tabs( string $active ): void {
-		$tabs = array(
-			'notices'     => array(
-				'label' => __( 'Notices', 'ffcertificate' ),
-				'icon'  => 'megaphone',
+		// Notices pinned first (landing tab), Settings pinned last; the data
+		// tabs in between read A→Z by translated label. Kept in sync with the
+		// sidebar submenu order in RecruitmentAdminPage::register_menu().
+		$tabs = LabelSorter::sort(
+			array(
+				'notices'     => array(
+					'label' => __( 'Notices', 'ffcertificate' ),
+					'icon'  => 'megaphone',
+				),
+				'adjutancies' => array(
+					'label' => __( 'Adjutancies', 'ffcertificate' ),
+					'icon'  => 'building',
+				),
+				'reasons'     => array(
+					'label' => __( 'Reasons', 'ffcertificate' ),
+					'icon'  => 'format-status',
+				),
+				'candidates'  => array(
+					'label' => __( 'Candidates', 'ffcertificate' ),
+					'icon'  => 'id',
+				),
+				'settings'    => array(
+					'label' => __( 'Settings', 'ffcertificate' ),
+					'icon'  => 'admin-generic',
+				),
 			),
-			'adjutancies' => array(
-				'label' => __( 'Adjutancies', 'ffcertificate' ),
-				'icon'  => 'building',
-			),
-			'reasons'     => array(
-				'label' => __( 'Reasons', 'ffcertificate' ),
-				'icon'  => 'format-status',
-			),
-			'candidates'  => array(
-				'label' => __( 'Candidates', 'ffcertificate' ),
-				'icon'  => 'id',
-			),
-			'settings'    => array(
-				'label' => __( 'Settings', 'ffcertificate' ),
-				'icon'  => 'admin-generic',
-			),
+			static function ( array $tab ): string {
+				return (string) $tab['label'];
+			},
+			array( 'notices' ),
+			array( 'settings' )
 		);
 
 		// Hide the Settings tab from users without its view cap (3-state).

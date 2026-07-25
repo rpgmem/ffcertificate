@@ -35,6 +35,8 @@ declare(strict_types=1);
 
 namespace FreeFormCertificate\UserDashboard;
 
+use FreeFormCertificate\Core\LabelSorter;
+
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
@@ -446,16 +448,18 @@ final class CapabilityCatalog {
 		// Render the "parent" groups alphabetically by their (translated) label
 		// within each section — self-service groups still precede every admin
 		// group (the section split the UI relies on), but inside each section
-		// the colour-coded rows read A→Z instead of module-map order. usort is
-		// stable on PHP 8.0+ (the project's floor), so equal-label ties keep
-		// their definition order.
+		// the colour-coded rows read A→Z instead of module-map order. The label
+		// tie-break delegates to LabelSorter::compare_labels so accented labels
+		// collate correctly under the active locale (shared with the Settings
+		// tabs, sub-tab bars, etc.). usort is stable on PHP 8.0+ (the project's
+		// floor), so equal-label ties keep their definition order.
 		usort(
 			$groups,
 			static function ( array $a, array $b ): int {
 				if ( $a['level'] !== $b['level'] ) {
 					return 'user' === $a['level'] ? -1 : 1;
 				}
-				return strcasecmp( (string) $a['label'], (string) $b['label'] );
+				return LabelSorter::compare_labels( (string) $a['label'], (string) $b['label'] );
 			}
 		);
 

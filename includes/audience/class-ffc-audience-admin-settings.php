@@ -14,6 +14,7 @@ declare(strict_types=1);
 namespace FreeFormCertificate\Audience;
 
 use FreeFormCertificate\Core\Utils;
+use FreeFormCertificate\Core\LabelSorter;
 use FreeFormCertificate\Core\RequestInput;
 
 use FreeFormCertificate\Core\ColorValidator;
@@ -62,23 +63,31 @@ class AudienceAdminSettings {
         // phpcs:ignore WordPress.Security.NonceVerification.Recommended
 		$active_tab = RequestInput::get_get_string( 'tab', 'general' );
 
-		$tabs = array(
-			'general'         => array(
-				'label' => __( 'General', 'ffcertificate' ),
-				'icon'  => 'admin-generic',
+		// General pinned first; the remaining tabs read A→Z by translated
+		// label via the shared LabelSorter.
+		$tabs = LabelSorter::sort(
+			array(
+				'general'         => array(
+					'label' => __( 'General', 'ffcertificate' ),
+					'icon'  => 'admin-generic',
+				),
+				'self-scheduling' => array(
+					'label' => __( 'Self-Scheduling', 'ffcertificate' ),
+					'icon'  => 'calendar-alt',
+				),
+				'audience'        => array(
+					'label' => __( 'Audience', 'ffcertificate' ),
+					'icon'  => 'groups',
+				),
+				'import'          => array(
+					'label' => __( 'Import & Export', 'ffcertificate' ),
+					'icon'  => 'database-import',
+				),
 			),
-			'self-scheduling' => array(
-				'label' => __( 'Self-Scheduling', 'ffcertificate' ),
-				'icon'  => 'calendar-alt',
-			),
-			'audience'        => array(
-				'label' => __( 'Audience', 'ffcertificate' ),
-				'icon'  => 'groups',
-			),
-			'import'          => array(
-				'label' => __( 'Import & Export', 'ffcertificate' ),
-				'icon'  => 'database-import',
-			),
+			static function ( array $tab ): string {
+				return (string) $tab['label'];
+			},
+			array( 'general' )
 		);
 		if ( ! isset( $tabs[ $active_tab ] ) ) {
 			$active_tab = 'general';
