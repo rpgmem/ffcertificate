@@ -293,7 +293,7 @@ class SettingsTabTest extends TestCase {
         $url = $this->tab->public_get_tab_url();
 
         $this->assertSame(
-            'https://example.com/wp-admin/edit.php?post_type=ffc_form&page=ffc-settings&tab=test_tab',
+            'https://example.com/wp-admin/admin.php?page=ffc-settings&tab=test_tab',
             $url
         );
     }

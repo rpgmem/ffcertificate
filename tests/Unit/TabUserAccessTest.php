@@ -103,7 +103,7 @@ class TabUserAccessTest extends TestCase {
         Functions\when( 'admin_url' )->justReturn( '' );
 
         // Method runs without error; enqueues the autosave infra (jQuery + ffc-core + ffc-admin-autosave).
-        $this->tab->enqueue_styles( 'ffc_form_page_ffc-settings' );
+        $this->tab->enqueue_styles( 'toplevel_page_ffc-settings' );
         $this->assertTrue( true );
     }
 

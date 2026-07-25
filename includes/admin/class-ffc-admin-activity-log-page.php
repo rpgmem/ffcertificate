@@ -192,7 +192,7 @@ class AdminActivityLogPage {
 				</p>
 				<p>
 					<?php esc_html_e( 'To enable activity logging, go to:', 'ffcertificate' ); ?>
-					<a href="<?php echo esc_url( admin_url( 'edit.php?post_type=ffc_form&page=ffc-settings&tab=advanced' ) ); ?>">
+					<a href="<?php echo esc_url( admin_url( 'admin.php?page=ffc-settings&tab=advanced' ) ); ?>">
 						<?php esc_html_e( 'Settings > Advanced > Activity Log Settings', 'ffcertificate' ); ?>
 					</a>
 				</p>

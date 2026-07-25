@@ -268,7 +268,7 @@ final class RecruitmentAdminAssetsManager {
 		// toggles in `render_settings_tab()` bind via the shared
 		// ffc-admin-autosave widget against SettingsAjaxEndpoint. Mirrors
 		// SettingsTab::enqueue_autosave_infra() so this off-page screen
-		// (it's `toplevel_page_ffc-recruitment`, not `ffc_form_page_ffc-settings`)
+		// (it's `toplevel_page_ffc-recruitment`, not `toplevel_page_ffc-settings`)
 		// can opt-in without depending on the settings-page asset loader.
 		wp_enqueue_script(
 			'ffc-core',

@@ -54,7 +54,7 @@ final class RoleCapabilityEditor {
 	 * @return void
 	 */
 	public static function enqueue( string $hook ): void {
-		if ( 'ffc_form_page_ffc-settings' !== $hook ) {
+		if ( 'toplevel_page_ffc-settings' !== $hook ) {
 			return;
 		}
 		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- tab read-only resolution for conditional asset loading.

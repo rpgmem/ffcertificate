@@ -86,7 +86,7 @@ class FormEditorDeviceLimitMetabox {
 							sprintf(
 								/* translators: %s: link to global rate-limit settings */
 								__( 'Disabled globally — enable in %s before configuring per-form overrides.', 'ffcertificate' ),
-								'<a href="' . esc_url( admin_url( 'edit.php?post_type=ffc_form&page=ffc-settings&tab=rate_limit' ) ) . '">' . esc_html__( 'Settings → Rate Limit → Device Fingerprint', 'ffcertificate' ) . '</a>'
+								'<a href="' . esc_url( admin_url( 'admin.php?page=ffc-settings&tab=rate_limit' ) ) . '">' . esc_html__( 'Settings → Rate Limit → Device Fingerprint', 'ffcertificate' ) . '</a>'
 							),
 							array( 'a' => array( 'href' => array() ) )
 						);

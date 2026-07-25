@@ -492,7 +492,7 @@ class TabGeolocationTest extends TestCase {
     public function test_enqueue_scripts_skips_on_wrong_tab(): void {
         $_GET['tab'] = 'datetime';
         Functions\when( 'wp_enqueue_script' )->alias( function () { throw new \RuntimeException( 'enqueued' ); } );
-        $this->tab->enqueue_scripts( 'ffc_form_page_ffc-settings' );
+        $this->tab->enqueue_scripts( 'toplevel_page_ffc-settings' );
         unset( $_GET['tab'] );
         $this->assertTrue( true );
     }
@@ -507,7 +507,7 @@ class TabGeolocationTest extends TestCase {
         Functions\when( 'wp_create_nonce' )->justReturn( 'nonce' );
         Functions\when( 'admin_url' )->returnArg();
 
-        $this->tab->enqueue_scripts( 'ffc_form_page_ffc-settings' );
+        $this->tab->enqueue_scripts( 'toplevel_page_ffc-settings' );
         unset( $_GET['tab'] );
 
         $this->assertContains( 'ffc-geolocation-settings', $handles );

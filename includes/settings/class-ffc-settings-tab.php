@@ -196,7 +196,7 @@ abstract class SettingsTab {
 	 * @return string
 	 */
 	protected function get_tab_url() {
-		return admin_url( 'edit.php?post_type=ffc_form&page=ffc-settings&tab=' . $this->tab_id );
+		return admin_url( 'admin.php?page=ffc-settings&tab=' . $this->tab_id );
 	}
 
 	/**
