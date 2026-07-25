@@ -529,6 +529,27 @@ class UserAudienceRestControllerTest extends TestCase {
         $this->assertStringContainsString( 'My Group', $result['message'] );
     }
 
+    public function test_join_audience_group_succeeds_for_a_top_level_self_join_group(): void {
+        // Regression: a standalone top-level self-join audience (parent_id NULL)
+        // is offered by the joinable-groups list (a "root that is itself a leaf")
+        // and must be joinable — join() no longer requires a parent.
+        Functions\when( 'get_current_user_id' )->justReturn( 5 );
+        Functions\when( 'current_user_can' )->justReturn( false );
+
+        $group = (object) array( 'status' => 'active', 'allow_self_join' => 1, 'parent_id' => null, 'name' => 'Solo' );
+        $this->reader->shouldReceive( 'get_by_id' )->andReturn( $group );
+        $this->reader->shouldReceive( 'is_member' )->andReturn( false );
+        $this->query_service->shouldReceive( 'count_user_self_join_memberships' )->andReturn( 0 );
+        $this->writer->shouldReceive( 'add_member' )->once()->with( 10, 5 )->andReturn( 1 );
+
+        $result = ( new UserAudienceRestController( 'ffc/v1' ) )
+            ->join_audience_group( $this->make_request( array( 'group_id' => 10 ) ) );
+
+        $this->assertIsArray( $result );
+        $this->assertTrue( $result['success'] );
+        $this->assertStringContainsString( 'Solo', $result['message'] );
+    }
+
     public function test_join_audience_group_returns_500_on_exception(): void {
         Functions\when( 'get_current_user_id' )->justReturn( 5 );
         Functions\when( 'current_user_can' )->justReturn( false );

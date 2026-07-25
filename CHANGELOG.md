@@ -26,6 +26,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 - CSV export for the **URL Shortener** page (#761): "Export CSV" carrying search/status/sort; adds a dedicated `ffc_export_url_shortener` cap, seeded onto current `ffc_manage_url_shortener` holders via a one-shot migration.
 
 ### Fixed
+- **Self-join to a top-level audience failed** with "Group not found or does not allow self-join" (#791): the join/leave/membership-count paths required `parent_id IS NOT NULL`, rejecting the standalone top-level self-join groups that the dashboard's joinable-groups list already offers. Any active self-join audience is now joinable, whether it's a child or a top-level group.
 - **Audience Bookings** "Export CSV" did nothing — no request, no console error (#772 regression): the click handler sat inside `initCalendarPermissions()`, which early-returns on the bookings page, so it never bound. Moved to its own `initBookingsExport()`; regression test hardened.
 - Public operator **CSV download** failed the page-nonce check at download (#772 regression): the shared driver `$.extend`-ed the routing `type` into a serialized-string `startData`, spreading it to char-index keys and dropping `_ffc_pcd_nonce`. It now appends `&type=` to a string payload.
 - Appointments **Export CSV** button was a dead `<a href="#">` never wired to the exporter (#758); it is now a real nonce'd `POST` gated by `ffc_export_appointments`, carrying the on-screen filters.

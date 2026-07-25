@@ -369,12 +369,15 @@ class UserAudienceRestController {
 				return new \WP_Error( 'missing_group', __( 'Group ID is required', 'ffcertificate' ), array( 'status' => 400 ) );
 			}
 
-			// Verify group is a child, active, and self-joinable.
+			// Verify group is active and self-joinable. A self-join audience is
+			// joinable whether it is a child or a standalone top-level group —
+			// the joinable-groups list presents any self-join leaf as joinable
+			// (including a root that is itself a leaf), so requiring a parent
+			// here rejected exactly those top-level groups the list offered.
 			$group = \FreeFormCertificate\Audience\AudienceReader::get_by_id( $group_id );
 			if ( ! $group
 				|| 'active' !== (string) ( $group->status ?? '' )
 				|| 1 !== (int) ( $group->allow_self_join ?? 0 )
-				|| null === ( $group->parent_id ?? null )
 			) {
 				return new \WP_Error( 'invalid_group', __( 'Group not found or does not allow self-join', 'ffcertificate' ), array( 'status' => 404 ) );
 			}
@@ -442,11 +445,11 @@ class UserAudienceRestController {
 			$audiences_table = $wpdb->prefix . 'ffc_audiences';
 			$members_table   = $wpdb->prefix . 'ffc_audience_members';
 
-			// Verify group is a self-joinable child (can only leave children).
+			// Verify group is self-joinable (top-level or child — mirrors join()).
             // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 			$group = $wpdb->get_row(
 				$wpdb->prepare(
-					'SELECT id, name FROM %i WHERE id = %d AND allow_self_join = 1 AND parent_id IS NOT NULL',
+					'SELECT id, name FROM %i WHERE id = %d AND allow_self_join = 1',
 					$audiences_table,
 					$group_id
 				)
