@@ -335,8 +335,8 @@ final class AudienceAdminAudienceRenderer {
 		// Custom fields for this audience, plus the ordered slug => translated
 		// label map: A→Z by translated label with the display-only
 		// `acknowledgment` type pinned last.
-		$fields      = \FreeFormCertificate\Reregistration\CustomFieldReader::get_by_audience( $audience_id, false );
-		$field_types = LabelSorter::sort(
+		$fields       = \FreeFormCertificate\Reregistration\CustomFieldReader::get_by_audience( $audience_id, false );
+		$field_types  = LabelSorter::sort(
 			CustomFieldReader::field_type_labels(),
 			static function ( string $label ): string {
 				return $label;
