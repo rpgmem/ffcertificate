@@ -233,6 +233,10 @@ class UserAppointmentsRestControllerTest extends TestCase {
         $this->assertNotEmpty( $apt['appointment_date'] );
         $this->assertNotEmpty( $apt['start_time'] );
         $this->assertNotEmpty( $apt['end_time'] );
+        // The calendar export consumes the raw wall-clock times; end_time_raw
+        // must be the stored TIME verbatim (no formatting / TZ shift).
+        $this->assertSame( '14:00:00', $apt['start_time_raw'] );
+        $this->assertSame( '15:00:00', $apt['end_time_raw'] );
         $this->assertNotEmpty( $apt['receipt_url'] );
     }
 

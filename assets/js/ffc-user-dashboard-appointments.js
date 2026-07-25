@@ -171,7 +171,10 @@
                         location: ffcDashboard.mainAddress || '',
                         date: apt.appointment_date_raw,
                         startTime: apt.start_time_raw,
-                        endTime: apt.end_time || apt.start_time_raw
+                        // Use the raw wall-clock end (like start_time_raw), not the
+                        // display-formatted end_time — the calendar export needs a
+                        // parseable HH:MM, and raw avoids any locale/TZ formatting.
+                        endTime: apt.end_time_raw || apt.start_time_raw
                     };
                     html += ' ' + FFCDashboard.calExport.buildButton(aptEvent);
                 }
