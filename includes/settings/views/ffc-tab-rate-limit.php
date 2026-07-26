@@ -8,7 +8,6 @@
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
-// phpcs:disable WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedVariableFound -- Template variables scoped to this file
 $ffcertificate_s     = $settings;
 $ffcertificate_stats = \FreeFormCertificate\Security\RateLimiter::get_stats();
 ?>

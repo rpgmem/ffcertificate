@@ -13,8 +13,6 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-// phpcs:disable WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedVariableFound -- Template variables scoped to this file
-
 // The list-table class now lives in its own autoloaded file
 // (FreeFormCertificate\SelfScheduling\AppointmentsListTable) — it is
 // instantiated near the bottom of this view.

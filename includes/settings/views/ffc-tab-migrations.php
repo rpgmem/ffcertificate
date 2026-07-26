@@ -12,8 +12,6 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-// phpcs:disable WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedVariableFound -- Template variables scoped to this file
-
 // Autoloader handles class loading — wrapped in try-catch to prevent 500 errors.
 $ffcertificate_migration_manager = null;
 $ffcertificate_migrations        = array();

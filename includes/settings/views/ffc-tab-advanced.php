@@ -12,8 +12,6 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-// phpcs:disable WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedVariableFound -- Template variables scoped to this file
-
 $ffcertificate_get_option = \Closure::fromCallable( array( $settings, 'get_option' ) );
 ?>
 
