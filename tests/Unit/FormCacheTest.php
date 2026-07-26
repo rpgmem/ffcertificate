@@ -1024,6 +1024,8 @@ class FormCacheTest extends TestCase {
         Functions\when( 'do_action' )->alias( function () use ( &$hook_fired ) {
             $hook_fired = true;
         } );
+        // The best-effort catch now leaves a gated debug breadcrumb (Debug::log_form → get_option).
+        Functions\when( 'get_option' )->justReturn( array() );
 
         // Must NOT throw — the host action keeps going.
         FormCache::purge_external_caches( 50 );
@@ -1038,6 +1040,8 @@ class FormCacheTest extends TestCase {
 
     public function test_purge_external_caches_for_all_forms_iterates_published_forms(): void {
         Functions\when( 'get_posts' )->justReturn( array( 11, 22, 33 ) );
+        // Defensive: if a per-form purge hits a best-effort catch, the breadcrumb reads get_option.
+        Functions\when( 'get_option' )->justReturn( array() );
 
         $hook_calls = array();
         Functions\when( 'do_action' )->alias(
