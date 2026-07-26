@@ -123,6 +123,14 @@ class SettingsTabTest extends TestCase {
         $this->assertSame( 42, $this->tab->get_order() );
     }
 
+    public function test_get_view_cap_defaults_to_ffc_view_settings(): void {
+        $this->assertSame( 'ffc_view_settings', $this->tab->get_view_cap() );
+    }
+
+    public function test_get_manage_cap_defaults_to_ffc_manage_settings(): void {
+        $this->assertSame( 'ffc_manage_settings', $this->tab->get_manage_cap() );
+    }
+
     public function test_get_order_defaults_to_ten_when_not_set(): void {
         $tab = new class() extends SettingsTab {
             protected function init(): void {

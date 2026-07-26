@@ -88,6 +88,62 @@ class Settings {
 		add_action( 'admin_init', array( $this, 'handle_submission_link_audit' ) );
 		add_action( 'wp_ajax_ffc_preview_date_format', array( $this, 'ajax_preview_date_format' ) );
 		add_action( 'admin_init', array( $this, 'handle_cache_actions' ) );
+
+		// Resolve the virtual `ffc_view_settings_page` menu cap dynamically:
+		// the Settings menu appears iff the user can see at least one tab (see
+		// grant_settings_page_meta_cap()).
+		add_filter( 'user_has_cap', array( $this, 'grant_settings_page_meta_cap' ), 10, 3 );
+	}
+
+	/**
+	 * Capabilities that, when held, grant access to the Settings page — i.e.
+	 * that make at least one tab visible. The computed `ffc_view_settings_page`
+	 * menu cap is `manage_options` ∪ these. Single place to widen the page's
+	 * entry as tabs backed by their own cap are added (e.g. the Activity Log's
+	 * `ffc_view_activity_log`).
+	 *
+	 * @return array<int, string>
+	 */
+	public static function page_entry_caps(): array {
+		/**
+		 * Filter the capabilities that grant entry to the FFC Settings page.
+		 *
+		 * @since 6.16.0
+		 * @param array<int, string> $caps Capability slugs.
+		 */
+		// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- ffcertificate is the plugin prefix.
+		return (array) apply_filters( 'ffcertificate_settings_page_entry_caps', array( 'ffc_view_settings' ) );
+	}
+
+	/**
+	 * Dynamically grant the virtual `ffc_view_settings_page` capability.
+	 *
+	 * `ffc_view_settings_page` is NOT a real, role-granted capability (it is
+	 * deliberately absent from CapabilityManager/CapabilityCatalog) — it is a
+	 * computed meta-cap resolved here so the Settings menu registration under it
+	 * appears exactly when the user holds `manage_options` or any page-entry cap.
+	 *
+	 * @param array<string, bool> $allcaps All caps the user currently has.
+	 * @param array<int, string>  $caps    Required primitive caps (unused).
+	 * @param array<int, mixed>   $args    [ requested_cap, user_id, ... ].
+	 * @return array<string, bool>
+	 */
+	public function grant_settings_page_meta_cap( array $allcaps, array $caps, array $args ): array {
+		$requested = $args[0] ?? '';
+		if ( 'ffc_view_settings_page' !== $requested ) {
+			return $allcaps;
+		}
+		if ( ! empty( $allcaps['manage_options'] ) ) {
+			$allcaps['ffc_view_settings_page'] = true;
+			return $allcaps;
+		}
+		foreach ( self::page_entry_caps() as $entry_cap ) {
+			if ( ! empty( $allcaps[ $entry_cap ] ) ) {
+				$allcaps['ffc_view_settings_page'] = true;
+				return $allcaps;
+			}
+		}
+		return $allcaps;
 	}
 
 	/**
@@ -162,7 +218,11 @@ class Settings {
 		$hook = add_menu_page(
 			__( 'Certificate Settings', 'ffcertificate' ),
 			__( 'FFC Settings', 'ffcertificate' ),
-			'ffc_view_settings',
+			// Virtual meta-cap resolved in grant_settings_page_meta_cap(): the
+			// menu shows iff the user can see at least one tab, rather than being
+			// tied to `ffc_view_settings` alone (which would hide the page from
+			// operators who only hold a per-tab cap such as ffc_view_activity_log).
+			'ffc_view_settings_page',
 			'ffc-settings',
 			array( $this, 'display_settings_page' ),
 			'dashicons-admin-settings'
@@ -297,28 +357,84 @@ class Settings {
 	 * @return array{active_tab: string, can_edit: bool} Resolved page state.
 	 */
 	private function resolve_page_state(): array {
-		// Get active tab (default to first tab).
-		// phpcs:ignore WordPress.Security.NonceVerification.Recommended, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized, WordPress.Security.ValidatedSanitizedInput.MissingUnslash -- display-only URL parameter; sanitize_key applied.
-		$active_tab = isset( $_GET['tab'] ) ? sanitize_key( wp_unslash( $_GET['tab'] ) ) : '';
+		$visible_tabs = $this->visible_tabs();
+		$active_tab   = $this->resolve_active_tab( $visible_tabs );
 
-		// If no tab specified, use first tab.
-		if ( empty( $active_tab ) && ! empty( $this->tabs ) ) {
-			reset( $this->tabs );
-			$first_tab  = current( $this->tabs );
-			$active_tab = $first_tab->get_id();
+		// 3-state Settings, now PER TAB: saving requires the active tab's manage
+		// cap (default `ffc_manage_settings`). For a view-only user the tab body
+		// is wrapped in a disabled <fieldset> so the page is a *real* read-only
+		// surface. A tab with its own tier (e.g. the Activity Log) overrides the
+		// manage cap so the settings lock never disables its legitimate actions.
+		$can_edit = false;
+		if ( isset( $visible_tabs[ $active_tab ] ) ) {
+			$can_edit = \FreeFormCertificate\Core\Capabilities::current_user_can_admin_or(
+				$this->tab_manage_cap( $visible_tabs[ $active_tab ] )
+			);
 		}
-
-		// 3-state Settings: the page menu opens on `ffc_view_settings` (só vê),
-		// but saving requires `ffc_manage_settings`. For a view-only user the
-		// whole tab body is wrapped in a disabled <fieldset> so the page is a
-		// *real* read-only surface (no live inputs that silently fail at the
-		// manage-gated save handler), mirroring the recruitment Settings tab.
-		$can_edit = \FreeFormCertificate\Core\Capabilities::current_user_can_admin_or( 'ffc_manage_settings' );
 
 		return array(
 			'active_tab' => $active_tab,
 			'can_edit'   => $can_edit,
 		);
+	}
+
+	/**
+	 * The subset of loaded tabs the current user is allowed to view. A tab is
+	 * visible when the user holds its view cap OR its manage cap (manage implies
+	 * view in the 3-state model), or is a full WP admin. Tabs are duck-typed —
+	 * third-party tabs added via the filter need not extend SettingsTab — so the
+	 * cap getters fall back to the page-wide defaults when absent.
+	 *
+	 * @return array<string, \FreeFormCertificate\Settings\SettingsTab>
+	 */
+	private function visible_tabs(): array {
+		return array_filter(
+			$this->tabs,
+			function ( $tab ): bool {
+				return \FreeFormCertificate\Core\Capabilities::current_user_can_admin_or( $this->tab_view_cap( $tab ) )
+					|| \FreeFormCertificate\Core\Capabilities::current_user_can_admin_or( $this->tab_manage_cap( $tab ) );
+			}
+		);
+	}
+
+	/**
+	 * Resolve the active tab id to one the user can actually see: the requested
+	 * `?tab=` when visible, otherwise the first visible tab.
+	 *
+	 * @param array<string, \FreeFormCertificate\Settings\SettingsTab> $visible_tabs Tabs the user can view.
+	 * @return string
+	 */
+	private function resolve_active_tab( array $visible_tabs ): string {
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized, WordPress.Security.ValidatedSanitizedInput.MissingUnslash -- display-only URL parameter; sanitize_key applied.
+		$requested = isset( $_GET['tab'] ) ? sanitize_key( wp_unslash( $_GET['tab'] ) ) : '';
+		if ( '' !== $requested && isset( $visible_tabs[ $requested ] ) ) {
+			return $requested;
+		}
+		if ( ! empty( $visible_tabs ) ) {
+			reset( $visible_tabs );
+			return (string) key( $visible_tabs );
+		}
+		return '';
+	}
+
+	/**
+	 * View cap for a (possibly duck-typed) tab, defaulting to the page-wide cap.
+	 *
+	 * @param object $tab Tab instance.
+	 * @return string
+	 */
+	private function tab_view_cap( $tab ): string {
+		return method_exists( $tab, 'get_view_cap' ) ? (string) $tab->get_view_cap() : 'ffc_view_settings';
+	}
+
+	/**
+	 * Manage cap for a (possibly duck-typed) tab, defaulting to the page-wide cap.
+	 *
+	 * @param object $tab Tab instance.
+	 * @return string
+	 */
+	private function tab_manage_cap( $tab ): string {
+		return method_exists( $tab, 'get_manage_cap' ) ? (string) $tab->get_manage_cap() : 'ffc_manage_settings';
 	}
 
 	/**
@@ -390,6 +506,17 @@ class Settings {
 			$this->load_tabs();
 		}
 
+		// Per-tab visibility: only the tabs the current user can view. The menu
+		// cap already gates page entry, but a direct URL hit by someone with no
+		// viewable tab must land on an access notice, not an empty shell.
+		$visible_tabs = $this->visible_tabs();
+		if ( empty( $visible_tabs ) ) {
+			echo '<div class="wrap"><div class="notice notice-error"><p>'
+				. esc_html__( 'You do not have permission to view any settings.', 'ffcertificate' )
+				. '</p></div></div>';
+			return;
+		}
+
         // phpcs:disable WordPress.Security.NonceVerification.Recommended -- These are display-only URL parameters from redirects.
 		// Handle messages.
 		$this->render_qr_cache_message();
@@ -429,7 +556,7 @@ class Settings {
 			<div class="ffc-settings-tabs" data-ffc-settings-tabs>
 				<ul class="ffc-settings-tabs__nav" role="tablist" aria-orientation="vertical">
 					<?php $ffc_module_links_rendered = false; ?>
-					<?php foreach ( $this->tabs as $tab_id => $tab_obj ) : ?>
+					<?php foreach ( $visible_tabs as $tab_id => $tab_obj ) : ?>
 						<?php
 						// Module-settings links sit above the Advanced tab so
 						// module pages read as part of the settings nav.
@@ -470,13 +597,11 @@ class Settings {
 					if ( ! $ffc_settings_can_edit ) {
 						echo '<fieldset disabled class="ffc-settings-readonly-lock">';
 					}
-					if ( isset( $this->tabs[ $active_tab ] ) ) {
-						$this->tabs[ $active_tab ]->render();
-					} elseif ( ! empty( $this->tabs ) ) {
-						// Fallback: render first tab.
-						reset( $this->tabs );
-						$first_tab = current( $this->tabs );
-						$first_tab->render();
+					// $active_tab is resolved to a visible tab above (the set is
+					// guaranteed non-empty by the early-return at the top), so it is
+					// always a key of $visible_tabs; the isset() is defensive.
+					if ( isset( $visible_tabs[ $active_tab ] ) ) {
+						$visible_tabs[ $active_tab ]->render();
 					}
 					if ( ! $ffc_settings_can_edit ) {
 						echo '</fieldset>';
