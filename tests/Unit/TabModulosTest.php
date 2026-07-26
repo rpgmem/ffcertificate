@@ -41,6 +41,9 @@ class TabModulosTest extends TestCase {
         Functions\when( 'esc_html_e' )->alias( function ( $t ) { echo $t; } );
         Functions\when( 'esc_html' )->returnArg();
         Functions\when( 'esc_attr' )->returnArg();
+        // The Modules view reads each module's on/off slot via SettingsReader
+        // (→ get_option) and renders a toggle per module via AdminUI.
+        Functions\when( 'get_option' )->justReturn( array() );
 
         $this->tab = new TabModulos();
     }
@@ -81,6 +84,12 @@ class TabModulosTest extends TestCase {
 
         $this->assertStringContainsString( 'ffc-icon-package', $output );
         $this->assertStringContainsString( 'Modules', $output );
+        // A per-module toggle is rendered for every canonical module: assert the
+        // Certificates and Recruitment autosave keys are present.
+        $this->assertStringContainsString( 'module_certificates_enabled', $output );
+        $this->assertStringContainsString( 'module_recruitment_enabled', $output );
+        // URL Shortener reuses its historical slot rather than a module_ key.
+        $this->assertStringContainsString( 'url_shortener_enabled', $output );
     }
 
     public function test_render_outputs_error_when_view_missing(): void {

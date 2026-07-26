@@ -168,6 +168,9 @@ class LoaderMigrationsTest extends TestCase {
         // Relabel is applied directly too (not only via the wp_roles_init hook)
         // so it runs even when wp_roles_init already fired during early auth.
         $rr->shouldReceive( 'relabel_ffc_roles' )->once();
+        // Recruitment-manager role self-heal was relocated here from
+        // RecruitmentLoader (so a disabled recruitment module keeps its role).
+        $rr->shouldReceive( 'register_recruitment_manager_role' )->once();
 
         Functions\when( 'wp_roles' )->justReturn( Mockery::mock( 'WP_Roles' ) );
 

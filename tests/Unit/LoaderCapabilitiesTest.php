@@ -340,6 +340,10 @@ class LoaderCapabilitiesTest extends TestCase {
 	public function test_define_admin_hooks_registers_cleanup_and_expiry_hooks(): void {
 		$loader = new Loader();
 
+		// Every module toggle defaults ON (empty ffc_settings), so the module
+		// cron callbacks are registered.
+		Functions\when( 'get_option' )->justReturn( array() );
+
 		$added = array();
 		Functions\when( 'add_action' )->alias(
 			function ( $hook, $callback = null ) use ( &$added ) {
@@ -352,9 +356,43 @@ class LoaderCapabilitiesTest extends TestCase {
 
 		$this->assertContains( 'ffcertificate_daily_cleanup_hook', $added );
 		$this->assertContains( 'ffcertificate_reregistration_expire_hook', $added );
+		$this->assertContains( \FreeFormCertificate\SelfScheduling\AppointmentReminderScanner::CRON_HOOK, $added );
 		// Three daily-cleanup callbacks + two expiry callbacks registered.
 		$daily = array_filter( $added, static fn ( $h ) => 'ffcertificate_daily_cleanup_hook' === $h );
 		$this->assertCount( 3, $daily, 'submission cleanup + CSV reap + schedule-exception reap.' );
+	}
+
+	public function test_define_admin_hooks_skips_disabled_module_crons(): void {
+		$loader = new Loader();
+
+		// Reregistration + Self-Scheduling toggled OFF: their cron callbacks must
+		// not be registered, so a disabled module stops its scheduled work.
+		Functions\when( 'get_option' )->alias(
+			static function ( $key, $default = false ) {
+				if ( \FreeFormCertificate\Settings\SettingsReader::OPTION_KEY === $key ) {
+					return array(
+						'module_reregistration_enabled'  => 0,
+						'module_self_scheduling_enabled' => 0,
+					);
+				}
+				return $default;
+			}
+		);
+
+		$added = array();
+		Functions\when( 'add_action' )->alias(
+			function ( $hook, $callback = null ) use ( &$added ) {
+				$added[] = $hook;
+				return true;
+			}
+		);
+
+		$this->invoke_private( $loader, 'define_admin_hooks' );
+
+		// The core daily cleanup stays wired; the disabled modules' crons don't.
+		$this->assertContains( 'ffcertificate_daily_cleanup_hook', $added );
+		$this->assertNotContains( 'ffcertificate_reregistration_expire_hook', $added );
+		$this->assertNotContains( \FreeFormCertificate\SelfScheduling\AppointmentReminderScanner::CRON_HOOK, $added );
 	}
 
 	// ==================================================================
@@ -385,6 +423,11 @@ class LoaderCapabilitiesTest extends TestCase {
 		Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceActivator' )
 			->shouldReceive( 'maybe_migrate' )->zeroOrMoreTimes();
 		Mockery::mock( 'alias:FreeFormCertificate\UrlShortener\UrlShortenerActivator' )
+			->shouldReceive( 'maybe_migrate' )->zeroOrMoreTimes();
+		// Recruitment schema self-heal — relocated from RecruitmentLoader to the
+		// orchestrator so a disabled recruitment module keeps its tables.
+		Mockery::mock( 'alias:FreeFormCertificate\Recruitment\RecruitmentActivator' )
+			->shouldReceive( 'create_tables' )->zeroOrMoreTimes()
 			->shouldReceive( 'maybe_migrate' )->zeroOrMoreTimes();
 
 		// Shared runtime classes.
@@ -445,6 +488,106 @@ class LoaderCapabilitiesTest extends TestCase {
 		$loader->init_plugin();
 
 		// If we got here the entire graph wired without throwing.
+		$this->assertTrue( true );
+	}
+
+	// ==================================================================
+	// init_plugin() — module toggles skip disabled bootstraps
+	// ==================================================================
+
+	public function test_init_plugin_skips_disabled_module_bootstraps(): void {
+		// Every feature module toggled OFF in `ffc_settings`: init_plugin() must
+		// skip each gated bootstrap. The orchestrator-level lifecycle (activator
+		// schema self-heal) still runs regardless of the toggles.
+		Functions\when( 'is_admin' )->justReturn( false );
+
+		$activator = Mockery::mock( 'alias:FreeFormCertificate\Activator' );
+		$activator->shouldReceive( 'maybe_add_columns' )->zeroOrMoreTimes();
+		$activator->shouldReceive( 'maybe_add_perf_indexes' )->zeroOrMoreTimes();
+		$activator->shouldReceive( 'maybe_migrate_submission_date_to_unix' )->zeroOrMoreTimes();
+		$activator->shouldReceive( 'maybe_migrate_submitted_at_to_unix' )->zeroOrMoreTimes();
+		$activator->shouldReceive( 'maybe_migrate_sibling_instants_to_unix' )->zeroOrMoreTimes();
+
+		Mockery::mock( 'alias:FreeFormCertificate\Security\RateLimitActivator' )
+			->shouldReceive( 'maybe_create_tables' )->zeroOrMoreTimes();
+		Mockery::mock( 'alias:FreeFormCertificate\Core\ActivityLog' )
+			->shouldReceive( 'maybe_create_table' )->zeroOrMoreTimes();
+		Mockery::mock( 'alias:FreeFormCertificate\SelfScheduling\SelfSchedulingActivator' )
+			->shouldReceive( 'maybe_migrate' )->zeroOrMoreTimes();
+		Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceActivator' )
+			->shouldReceive( 'maybe_migrate' )->zeroOrMoreTimes();
+		Mockery::mock( 'alias:FreeFormCertificate\UrlShortener\UrlShortenerActivator' )
+			->shouldReceive( 'maybe_migrate' )->zeroOrMoreTimes();
+		// Recruitment schema self-heal runs even when the module is disabled.
+		Mockery::mock( 'alias:FreeFormCertificate\Recruitment\RecruitmentActivator' )
+			->shouldReceive( 'create_tables' )->atLeast()->once()
+			->shouldReceive( 'maybe_migrate' )->atLeast()->once();
+
+		Mockery::mock( 'overload:FreeFormCertificate\Submissions\SubmissionHandler' );
+		Mockery::mock( 'overload:FreeFormCertificate\Integrations\EmailHandler' );
+
+		// Certificates OFF → CPT + Frontend must never be constructed.
+		Mockery::mock( 'overload:FreeFormCertificate\Admin\CPT' )
+			->shouldReceive( '__construct' )->never();
+		Mockery::mock( 'overload:FreeFormCertificate\Frontend\Frontend' )
+			->shouldReceive( '__construct' )->never();
+
+		Mockery::mock( 'alias:FreeFormCertificate\Shortcodes\DashboardShortcode' )
+			->shouldReceive( 'init' )->zeroOrMoreTimes();
+		Mockery::mock( 'alias:FreeFormCertificate\UserDashboard\AccessControl' )
+			->shouldReceive( 'init' )->zeroOrMoreTimes();
+		Mockery::mock( 'alias:FreeFormCertificate\UserDashboard\UserCleanup' )
+			->shouldReceive( 'init' )->zeroOrMoreTimes();
+		Mockery::mock( 'alias:FreeFormCertificate\Privacy\PrivacyHandler' )
+			->shouldReceive( 'init' )->zeroOrMoreTimes();
+
+		// The gated loaders must NOT be constructed/init'd while disabled.
+		Mockery::mock( 'overload:FreeFormCertificate\Reregistration\ReregistrationLoader' )
+			->shouldReceive( 'init' )->never();
+		Mockery::mock( 'overload:FreeFormCertificate\SelfScheduling\SelfSchedulingLoader' )
+			->shouldReceive( 'init' )->never();
+		Mockery::mock( 'overload:FreeFormCertificate\UrlShortener\UrlShortenerLoader' )
+			->shouldReceive( 'init' )->never();
+		Mockery::mock( 'overload:FreeFormCertificate\Recruitment\RecruitmentLoader' )
+			->shouldReceive( 'init' )->never();
+		// AudienceLoader singleton — get_instance() must never be reached.
+		Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceLoader' )
+			->shouldReceive( 'get_instance' )->never();
+
+		Mockery::mock( 'overload:FreeFormCertificate\Core\ActivityLogSubscriber' );
+
+		Functions\when( 'wp_next_scheduled' )->justReturn( true );
+		Functions\when( 'wp_schedule_event' )->justReturn( true );
+		Functions\when( 'update_option' )->justReturn( true );
+		Functions\when( 'add_action' )->justReturn( true );
+		Mockery::mock( 'overload:FreeFormCertificate\API\RestController' );
+
+		// `ffc_settings` carries every module toggled off; the admin-caps version
+		// flag still short-circuits ensure_admin_capabilities().
+		Functions\when( 'get_option' )->alias(
+			static function ( $key, $default = false ) {
+				if ( 'ffc_admin_caps_version_v6' === $key ) {
+					return FFC_VERSION;
+				}
+				if ( \FreeFormCertificate\Settings\SettingsReader::OPTION_KEY === $key ) {
+					return array(
+						'module_certificates_enabled'    => 0,
+						'module_audiences_enabled'       => 0,
+						'module_self_scheduling_enabled' => 0,
+						'module_reregistration_enabled'  => 0,
+						'module_recruitment_enabled'     => 0,
+						'url_shortener_enabled'          => 0,
+					);
+				}
+				return '1';
+			}
+		);
+
+		$loader = new Loader();
+		$loader->init_plugin();
+
+		// Mockery's ->never() expectations verify on tearDown; reaching here with
+		// no BadMethodCallException means every disabled bootstrap was skipped.
 		$this->assertTrue( true );
 	}
 }
