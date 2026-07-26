@@ -23,7 +23,6 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-// phpcs:disable WordPress.DB.DirectDatabaseQuery.SchemaChange
 /**
  * Plugin activation tasks for self scheduling.
  */

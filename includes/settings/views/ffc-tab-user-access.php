@@ -10,8 +10,6 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-// phpcs:disable WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedVariableFound -- Template variables scoped to this file
-
 // Get current settings.
 $ffcertificate_current_settings = get_option( 'ffc_user_access_settings', array() );
 

@@ -22,7 +22,7 @@ namespace FreeFormCertificate\Repositories;
 if ( ! defined( 'ABSPATH' ) ) {
 	exit; }
 
-// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber
+// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared
 /**
  * Write operations for appointment records.
  */
