@@ -16,6 +16,10 @@ use FreeFormCertificate\Admin\AdminLoader;
  * admin-only endpoint exactly once, so a future refactor can't silently drop
  * one when the orchestrator stops newing them up directly.
  *
+ * Also pins the Certificates-module gate on the expired-tickets cleanup cron:
+ * its callback is wired only when `module_enabled('certificates')` is true, so
+ * a disabled module halts the daily `ffc_form` sweep.
+ *
  * @covers \FreeFormCertificate\Admin\AdminLoader
  * @runTestsInSeparateProcesses
  * @preserveGlobalState disabled
@@ -23,6 +27,30 @@ use FreeFormCertificate\Admin\AdminLoader;
 class AdminLoaderTest extends TestCase {
 
 	use MockeryPHPUnitIntegration;
+
+	/**
+	 * Static endpoints wired unconditionally by init() (i.e. every one except
+	 * the certificates-gated ExpiredTicketsCleanup).
+	 *
+	 * @var string[]
+	 */
+	private const UNGATED_ENDPOINTS = array(
+		'AdminUserColumns',
+		'AdminUserCapabilities',
+		'RoleCapabilityEditor',
+		'AdminMenuVisibility',
+		'DeviceThresholdUpgradeNotice',
+		'SettingsAjaxEndpoint',
+		'FormMetaAjaxEndpoint',
+		'LocationsAjaxEndpoint',
+		'CacheActionsAjaxEndpoint',
+		'FormFeaturesAjaxEndpoint',
+		'MigrationActionsAjaxEndpoint',
+		'ActivityLogAjaxEndpoint',
+		'SubmissionsBulkActionsAjaxEndpoint',
+		'FormListColumns',
+		'AdminUserCustomFields',
+	);
 
 	protected function setUp(): void {
 		parent::setUp();
@@ -37,35 +65,28 @@ class AdminLoaderTest extends TestCase {
 		parent::tearDown();
 	}
 
-	public function test_init_wires_every_admin_module_class(): void {
-		// Stateful trio — overload so construction is a side-effect-free no-op.
+	/**
+	 * Wire the stateful trio + every ungated endpoint, each ::init() once.
+	 */
+	private function mock_common_wiring(): void {
 		Mockery::mock( 'overload:FreeFormCertificate\Admin\CsvExporter' );
 		Mockery::mock( 'overload:FreeFormCertificate\Admin\Admin' );
 		Mockery::mock( 'overload:FreeFormCertificate\Admin\AdminAjax' );
 
-		// Static endpoints — each ::init() must fire exactly once.
-		$static_endpoints = array(
-			'AdminUserColumns',
-			'AdminUserCapabilities',
-			'RoleCapabilityEditor',
-			'AdminMenuVisibility',
-			'DeviceThresholdUpgradeNotice',
-			'SettingsAjaxEndpoint',
-			'FormMetaAjaxEndpoint',
-			'LocationsAjaxEndpoint',
-			'CacheActionsAjaxEndpoint',
-			'FormFeaturesAjaxEndpoint',
-			'MigrationActionsAjaxEndpoint',
-			'ActivityLogAjaxEndpoint',
-			'SubmissionsBulkActionsAjaxEndpoint',
-			'ExpiredTicketsCleanup',
-			'FormListColumns',
-			'AdminUserCustomFields',
-		);
-		foreach ( $static_endpoints as $cls ) {
+		foreach ( self::UNGATED_ENDPOINTS as $cls ) {
 			Mockery::mock( 'alias:FreeFormCertificate\Admin\\' . $cls )
 				->shouldReceive( 'init' )->once();
 		}
+	}
+
+	public function test_init_wires_every_admin_module_class(): void {
+		$this->mock_common_wiring();
+
+		// Certificates enabled → the cleanup cron callback is wired.
+		Mockery::mock( 'alias:FreeFormCertificate\Settings\SettingsReader' )
+			->shouldReceive( 'module_enabled' )->with( 'certificates' )->andReturn( true );
+		Mockery::mock( 'alias:FreeFormCertificate\Admin\ExpiredTicketsCleanup' )
+			->shouldReceive( 'init' )->once();
 
 		$handler = Mockery::mock( 'FreeFormCertificate\Submissions\SubmissionHandler' );
 
@@ -73,6 +94,22 @@ class AdminLoaderTest extends TestCase {
 
 		// Mockery's ->once() expectations are verified on tearDown; assert here
 		// too so the test never counts as risky/assertion-less.
+		$this->assertTrue( true );
+	}
+
+	public function test_init_skips_expired_tickets_cleanup_when_certificates_disabled(): void {
+		$this->mock_common_wiring();
+
+		// Certificates disabled → the cleanup cron callback is NOT wired.
+		Mockery::mock( 'alias:FreeFormCertificate\Settings\SettingsReader' )
+			->shouldReceive( 'module_enabled' )->with( 'certificates' )->andReturn( false );
+		Mockery::mock( 'alias:FreeFormCertificate\Admin\ExpiredTicketsCleanup' )
+			->shouldReceive( 'init' )->never();
+
+		$handler = Mockery::mock( 'FreeFormCertificate\Submissions\SubmissionHandler' );
+
+		( new AdminLoader( $handler ) )->init();
+
 		$this->assertTrue( true );
 	}
 }

@@ -29,6 +29,7 @@ class Deactivator {
 		// Clear scheduled cron tasks.
 		wp_clear_scheduled_hook( 'ffcertificate_daily_cleanup_hook' );
 		wp_clear_scheduled_hook( 'ffcertificate_self_scheduling_reminder_scan' );
+		wp_clear_scheduled_hook( 'ffcertificate_reregistration_expire_hook' );
 		\FreeFormCertificate\Admin\ExpiredTicketsCleanup::unschedule();
 
 		// Clear legacy cron hooks from pre-4.6.15 versions.
@@ -71,6 +72,8 @@ class Deactivator {
 		wp_clear_scheduled_hook( 'ffcertificate_daily_cleanup_hook' );
 		wp_clear_scheduled_hook( 'ffcertificate_process_submission_hook' );
 		wp_clear_scheduled_hook( 'ffcertificate_self_scheduling_reminder_scan' );
+		wp_clear_scheduled_hook( 'ffcertificate_reregistration_expire_hook' );
+		\FreeFormCertificate\Admin\ExpiredTicketsCleanup::unschedule();
 
 		// Clear legacy cron hooks from pre-4.6.15 versions.
 		wp_clear_scheduled_hook( 'ffc_daily_cleanup_hook' );

@@ -92,6 +92,17 @@ class TabModulosTest extends TestCase {
         $this->assertStringContainsString( 'url_shortener_enabled', $output );
     }
 
+    public function test_render_shows_certificates_cron_pause_note(): void {
+        ob_start();
+        $this->tab->render();
+        $output = ob_get_clean();
+
+        // Certificates carries a heads-up note that disabling it pauses the
+        // daily expired-ticket cleanup cron (the #806 gating).
+        $this->assertStringContainsString( 'ffc-module-note', $output );
+        $this->assertStringContainsString( 'expired-ticket cleanup is paused', $output );
+    }
+
     public function test_render_outputs_error_when_view_missing(): void {
         // Force the real render()'s file_exists() guard to fail so the
         // error-notice branch executes.

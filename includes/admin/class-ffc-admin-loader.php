@@ -20,6 +20,7 @@ declare(strict_types=1);
 
 namespace FreeFormCertificate\Admin;
 
+use FreeFormCertificate\Settings\SettingsReader;
 use FreeFormCertificate\Submissions\SubmissionHandler;
 
 if ( ! defined( 'ABSPATH' ) ) {
@@ -94,7 +95,14 @@ class AdminLoader {
 		MigrationActionsAjaxEndpoint::init();
 		ActivityLogAjaxEndpoint::init();
 		SubmissionsBulkActionsAjaxEndpoint::init();
-		ExpiredTicketsCleanup::init();
+		// Expired-tickets cleanup is a Certificates-module cron (sweeps
+		// `ffc_form` posts). Gate its callback on the module toggle so a
+		// disabled Certificates module halts the daily sweep: the event stays
+		// scheduled and fires as a no-op, matching the reregistration /
+		// self-scheduling cron gating in Loader::define_admin_hooks().
+		if ( SettingsReader::module_enabled( 'certificates' ) ) {
+			ExpiredTicketsCleanup::init();
+		}
 		FormListColumns::init();
 		AdminUserCustomFields::init();
 	}
