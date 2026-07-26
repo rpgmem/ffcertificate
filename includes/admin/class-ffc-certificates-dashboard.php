@@ -32,8 +32,9 @@ class CertificatesDashboard {
 	 */
 	public function init(): void {
 		add_action( 'admin_menu', array( $this, 'register_menu' ) );
-		// Priority 99 so all CPT-injected items (All / Add New) plus our siblings
-		// (Submissions, Activity Log) are already registered before we reorder.
+		// Priority 99 so all CPT-injected items (All / Add New) plus our sibling
+		// Submissions submenu are already registered before we reorder. Activity
+		// Log left this menu in #804 and now lives as a Settings tab.
 		add_action( 'admin_menu', array( $this, 'reorder_menu' ), 99 );
 	}
 

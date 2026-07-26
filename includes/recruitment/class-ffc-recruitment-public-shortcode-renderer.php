@@ -73,52 +73,12 @@ final class RecruitmentPublicShortcodeRenderer {
 			_n( '%s candidate', '%s candidates', $total, 'ffcertificate' ),
 			number_format_i18n( $total )
 		);
-		$html  = '<section class="ffc-recruitment-section">';
-		$html .= '<h3 class="ffc-recruitment-section-heading">'
-			. '<span class="ffc-recruitment-section-title">' . esc_html( $heading ) . '</span>'
-			. '<span class="ffc-recruitment-section-count">' . esc_html( $count_label ) . '</span>'
-			. '</h3>';
-		$html .= '<table class="ffc-recruitment-table"><thead><tr>';
-		if ( $columns['rank'] ) {
-			$html .= '<th>' . esc_html__( 'Rank', 'ffcertificate' ) . '</th>';
-		}
-		if ( $columns['name'] ) {
-			$html .= '<th>' . esc_html__( 'Name', 'ffcertificate' ) . '</th>';
-		}
-		if ( $columns['adjutancy'] ) {
-			$html .= '<th>' . esc_html__( 'Adjutancy', 'ffcertificate' ) . '</th>';
-		}
-		if ( $columns['cpf_masked'] ) {
-			$html .= '<th>' . esc_html__( 'CPF', 'ffcertificate' ) . '</th>';
-		}
-		if ( $columns['rf_masked'] ) {
-			$html .= '<th>' . esc_html__( 'RF', 'ffcertificate' ) . '</th>';
-		}
-		if ( $columns['email_masked'] ) {
-			$html .= '<th>' . esc_html__( 'E-mail', 'ffcertificate' ) . '</th>';
-		}
-		if ( $columns['score'] ) {
-			$html .= '<th>' . esc_html__( 'Score', 'ffcertificate' ) . '</th>';
-		}
-		if ( $columns['time_points'] ) {
-			$html .= '<th>' . esc_html__( 'Time points', 'ffcertificate' ) . '</th>';
-		}
-		if ( $columns['hab_emebs'] ) {
-			$html .= '<th>' . esc_html__( 'HAB. EMEBs', 'ffcertificate' ) . '</th>';
-		}
-		if ( $columns['status'] ) {
-			$html .= '<th>' . esc_html__( 'Status', 'ffcertificate' ) . '</th>';
-		}
-		if ( $columns['pcd_badge'] ) {
-			$html .= '<th>' . esc_html__( 'Subscription', 'ffcertificate' ) . '</th>';
-		}
-		if ( $show_date && $columns['date_to_assume'] ) {
-			$html .= '<th>' . esc_html__( 'Date to assume', 'ffcertificate' ) . '</th>';
-		}
-		if ( $show_date && $columns['time_to_assume'] ) {
-			$html .= '<th>' . esc_html__( 'Time', 'ffcertificate' ) . '</th>';
-		}
-		$html .= '</tr></thead><tbody>';
+		// Section heading + table head is pure presentation — rendered by
+		// the partial (byte-identical to the prior inline concatenation),
+		// captured back into $html so the row loop below keeps appending.
+		ob_start();
+		include FFC_PLUGIN_DIR . 'templates/public/recruitment/section-open.php';
+		$html = (string) ob_get_clean();
 
 		// Warm the candidate object cache with a single batch SELECT
 		// before the per-row loop. render_row() still calls get_by_id()
@@ -302,14 +262,9 @@ final class RecruitmentPublicShortcodeRenderer {
 	 * @return string
 	 */
 	private static function render_subscription_filter_inputs( string $subscription ): string {
-		$html  = '<label class="ffc-recruitment-subscription-filter">';
-		$html .= esc_html__( 'Subscription:', 'ffcertificate' ) . ' ';
-		$html .= '<select name="subscription" onchange="this.form.submit()">';
-		$html .= '<option value=""' . selected( '', $subscription, false ) . '>' . esc_html__( 'All', 'ffcertificate' ) . '</option>';
-		$html .= '<option value="pcd"' . selected( 'pcd', $subscription, false ) . '>' . esc_html__( 'PCD', 'ffcertificate' ) . '</option>';
-		$html .= '<option value="geral"' . selected( 'geral', $subscription, false ) . '>' . esc_html__( 'GERAL', 'ffcertificate' ) . '</option>';
-		$html .= '</select></label>';
-		return $html;
+		ob_start();
+		include FFC_PLUGIN_DIR . 'templates/public/recruitment/subscription-filter.php';
+		return (string) ob_get_clean();
 	}
 
 	/**
@@ -322,20 +277,9 @@ final class RecruitmentPublicShortcodeRenderer {
 	 * @return string
 	 */
 	private static function render_name_search_input( string $name_query ): string {
-		// Inline magnifying-glass glyph — keeps the asset count flat and
-		// avoids a font dependency. `aria-hidden` so screen readers fall
-		// through to the button label.
-		$icon = '<svg class="ffc-recruitment-search-btn-icon" viewBox="0 0 16 16" width="14" height="14" aria-hidden="true" focusable="false">'
-			. '<path fill="currentColor" d="M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001q.044.06.098.115l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85a1 1 0 0 0-.115-.1zM12 6.5a5.5 5.5 0 1 1-11 0 5.5 5.5 0 0 1 11 0z"/>'
-			. '</svg>';
-
-		$html  = '<label class="ffc-recruitment-name-search">';
-		$html .= esc_html__( 'Search by name:', 'ffcertificate' ) . ' ';
-		$html .= '<input type="search" name="q" value="' . esc_attr( $name_query ) . '" placeholder="' . esc_attr__( 'name…', 'ffcertificate' ) . '">';
-		// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- icon is a constant SVG string with no dynamic content.
-		$html .= ' <button type="submit" class="ffc-recruitment-search-btn">' . $icon . '<span>' . esc_html__( 'Search', 'ffcertificate' ) . '</span></button>';
-		$html .= '</label>';
-		return $html;
+		ob_start();
+		include FFC_PLUGIN_DIR . 'templates/public/recruitment/name-search-input.php';
+		return (string) ob_get_clean();
 	}
 
 	/**
@@ -368,17 +312,9 @@ final class RecruitmentPublicShortcodeRenderer {
 		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only display state.
 		$selected = isset( $_GET['adjutancy'] ) ? sanitize_text_field( wp_unslash( (string) $_GET['adjutancy'] ) ) : '';
 
-		$html  = '<label class="ffc-recruitment-adjutancy-filter">';
-		$html .= esc_html__( 'Filter by adjutancy:', 'ffcertificate' ) . ' ';
-		$html .= '<select name="adjutancy" onchange="this.form.submit()">';
-		$html .= '<option value="">' . esc_html__( 'All', 'ffcertificate' ) . '</option>';
-		foreach ( $adjutancies as $a ) {
-			$is_selected = (string) $a->slug === $selected ? ' selected' : '';
-			$html       .= '<option value="' . esc_attr( (string) $a->slug ) . '"' . $is_selected . '>' . esc_html( (string) $a->name ) . '</option>';
-		}
-		$html .= '</select></label>';
-
-		return $html;
+		ob_start();
+		include FFC_PLUGIN_DIR . 'templates/public/recruitment/adjutancy-filter.php';
+		return (string) ob_get_clean();
 	}
 
 	/**
@@ -413,30 +349,9 @@ final class RecruitmentPublicShortcodeRenderer {
 		$end    = min( $total_pages, $start + $window - 1 );
 		$start  = max( 1, $end - $window + 1 );
 
-		$html = '<nav class="ffc-recruitment-pagination">';
-
-		// First / prev arrows. Hidden when already at the start so the
-		// markup doesn't carry inert affordances.
-		if ( $current_page > 1 ) {
-			$html .= '<a class="ffc-recruitment-pagination-arrow" href="' . esc_url( $url_to( 1 ) ) . '" aria-label="' . esc_attr__( 'First page', 'ffcertificate' ) . '" title="' . esc_attr__( 'First page', 'ffcertificate' ) . '">&laquo;</a>';
-			$html .= '<a class="ffc-recruitment-pagination-arrow" href="' . esc_url( $url_to( $current_page - 1 ) ) . '" aria-label="' . esc_attr__( 'Previous page', 'ffcertificate' ) . '" title="' . esc_attr__( 'Previous page', 'ffcertificate' ) . '">&lsaquo;</a>';
-		}
-
-		for ( $p = $start; $p <= $end; $p++ ) {
-			if ( $p === $current_page ) {
-				$html .= '<span class="current" aria-current="page">' . esc_html( (string) $p ) . '</span>';
-			} else {
-				$html .= '<a href="' . esc_url( $url_to( $p ) ) . '">' . esc_html( (string) $p ) . '</a>';
-			}
-		}
-
-		if ( $current_page < $total_pages ) {
-			$html .= '<a class="ffc-recruitment-pagination-arrow" href="' . esc_url( $url_to( $current_page + 1 ) ) . '" aria-label="' . esc_attr__( 'Next page', 'ffcertificate' ) . '" title="' . esc_attr__( 'Next page', 'ffcertificate' ) . '">&rsaquo;</a>';
-			$html .= '<a class="ffc-recruitment-pagination-arrow" href="' . esc_url( $url_to( $total_pages ) ) . '" aria-label="' . esc_attr__( 'Last page', 'ffcertificate' ) . '" title="' . esc_attr__( 'Last page', 'ffcertificate' ) . '">&raquo;</a>';
-		}
-
-		$html .= '</nav>';
-		return $html;
+		ob_start();
+		include FFC_PLUGIN_DIR . 'templates/public/recruitment/pagination.php';
+		return (string) ob_get_clean();
 	}
 
 	/**

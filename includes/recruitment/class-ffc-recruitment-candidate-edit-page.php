@@ -280,31 +280,36 @@ final class RecruitmentCandidateEditPage {
 	/**
 	 * LOGIC pass for {@see render_classifications_section()}: the candidate's
 	 * classification rows plus — only when at least one exists — the bulk
-	 * call-history grouping and the per-notice adjutancy map. Returns a struct
-	 * the section view consumes; no markup emitted.
+	 * call-history grouping and the per-row presentation cells (notice code +
+	 * Adjutancy control) that each depend on a DB read. Returns a struct the
+	 * section view consumes; no markup emitted.
 	 *
-	 * The two bulk lookups stay gated behind the non-empty check exactly as
+	 * The bulk lookups stay gated behind the non-empty check exactly as
 	 * before, so an empty candidate triggers zero extra queries. The per-row
-	 * notice / adjutancy lookups remain inside the render loop.
+	 * notice / adjutancy resolution moved here from the old render loop so the
+	 * section view is pure markup — output stays byte-identical.
 	 *
 	 * @param object $candidate Candidate row.
 	 * @phpstan-param CandidateRow $candidate
 	 * @return array{
 	 *     classifications: array<int, object>,
 	 *     calls_by_class: array<int, list<object>>,
-	 *     adjutancies_by_notice: array<int, list<int>>
+	 *     notice_labels: array<int, string>,
+	 *     adjutancy_cells: array<int, string>
 	 * }
 	 * @phpstan-return array{
 	 *     classifications: array<int, ClassificationRow>,
 	 *     calls_by_class: array<int, list<CallRow>>,
-	 *     adjutancies_by_notice: array<int, list<int>>
+	 *     notice_labels: array<int, string>,
+	 *     adjutancy_cells: array<int, string>
 	 * }
 	 */
 	private static function prepare_classifications_section_data( object $candidate ): array {
 		$classifications = RecruitmentClassificationRepository::get_for_candidate( (int) $candidate->id );
 
-		$calls_by_class        = array();
-		$adjutancies_by_notice = array();
+		$calls_by_class  = array();
+		$notice_labels   = array();
+		$adjutancy_cells = array();
 
 		if ( ! empty( $classifications ) ) {
 			$classification_ids = array_map( static fn( $c ) => (int) $c->id, $classifications );
@@ -316,12 +321,24 @@ final class RecruitmentCandidateEditPage {
 			// options (anything else would be rejected by the REST
 			// endpoint and lead to a confusing UX).
 			$adjutancies_by_notice = self::adjutancies_per_notice_for_rows( $classifications );
+
+			// Resolve the per-row presentation cells that each require a DB
+			// read (notice code + the Adjutancy <select>/label) here in the
+			// LOGIC pass, keyed by classification id, so the section view
+			// stays pure markup. Byte-identical to the previous inline
+			// resolution done inside the render loop.
+			foreach ( $classifications as $c ) {
+				$notice_obj                      = RecruitmentNoticeReader::get_by_id( (int) $c->notice_id );
+				$notice_labels[ (int) $c->id ]   = null !== $notice_obj ? (string) $notice_obj->code : '#' . (int) $c->notice_id;
+				$adjutancy_cells[ (int) $c->id ] = self::render_adjutancy_cell( $c, $adjutancies_by_notice );
+			}
 		}
 
 		return array(
-			'classifications'       => $classifications,
-			'calls_by_class'        => $calls_by_class,
-			'adjutancies_by_notice' => $adjutancies_by_notice,
+			'classifications' => $classifications,
+			'calls_by_class'  => $calls_by_class,
+			'notice_labels'   => $notice_labels,
+			'adjutancy_cells' => $adjutancy_cells,
 		);
 	}
 
@@ -334,81 +351,17 @@ final class RecruitmentCandidateEditPage {
 	 */
 	private static function render_classifications_section( object $candidate ): void {
 		// LOGIC pass — fetch the candidate's classifications and (when any
-		// exist) the bulk call-history grouping + per-notice adjutancy map.
+		// exist) the bulk call-history grouping + the per-row presentation
+		// cells (notice code + Adjutancy control) that each depend on a DB
+		// read. The section view below consumes these locals and emits only
+		// markup.
 		$data            = self::prepare_classifications_section_data( $candidate );
 		$classifications = $data['classifications'];
+		$calls_by_class  = $data['calls_by_class'];
+		$notice_labels   = $data['notice_labels'];
+		$adjutancy_cells = $data['adjutancy_cells'];
 
-		echo '<div class="postbox ffc-rec-mt-20">';
-		echo '<h2 class="hndle"><span>' . esc_html__( 'Classifications + call history', 'ffcertificate' ) . '</span></h2>';
-		echo '<div class="inside">';
-
-		if ( empty( $classifications ) ) {
-			echo '<p><em>' . esc_html__( '(no classifications)', 'ffcertificate' ) . '</em></p>';
-		} else {
-			$calls_by_class        = $data['calls_by_class'];
-			$adjutancies_by_notice = $data['adjutancies_by_notice'];
-
-			echo '<table class="widefat striped"><thead><tr>';
-			echo '<th>' . esc_html__( 'Notice', 'ffcertificate' ) . '</th>';
-			echo '<th>' . esc_html__( 'Adjutancy', 'ffcertificate' ) . '</th>';
-			echo '<th>' . esc_html__( 'List', 'ffcertificate' ) . '</th>';
-			echo '<th>' . esc_html__( 'Rank', 'ffcertificate' ) . '</th>';
-			echo '<th>' . esc_html__( 'Score', 'ffcertificate' ) . '</th>';
-			echo '<th>' . esc_html__( 'Status', 'ffcertificate' ) . '</th>';
-			echo '<th>' . esc_html__( 'Calls', 'ffcertificate' ) . '</th>';
-			echo '</tr></thead><tbody>';
-
-			foreach ( $classifications as $c ) {
-				$notice_obj = RecruitmentNoticeReader::get_by_id( (int) $c->notice_id );
-				$call_count = isset( $calls_by_class[ (int) $c->id ] ) ? count( $calls_by_class[ (int) $c->id ] ) : 0;
-
-				echo '<tr>';
-				echo '<td>' . esc_html( null !== $notice_obj ? (string) $notice_obj->code : '#' . (int) $c->notice_id ) . '</td>';
-				echo '<td>' . self::render_adjutancy_cell( $c, $adjutancies_by_notice ) . '</td>'; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- render_adjutancy_cell returns pre-escaped HTML.
-				echo '<td>' . esc_html( (string) $c->list_type ) . '</td>';
-				echo '<td>' . esc_html( (string) $c->rank ) . '</td>';
-				echo '<td>' . esc_html( (string) $c->score ) . '</td>';
-				echo '<td><span class="ffc-status-badge ffc-status-' . esc_attr( (string) $c->status ) . '">' . esc_html( (string) $c->status ) . '</span></td>';
-				echo '<td>' . esc_html( (string) $call_count ) . '</td>';
-				echo '</tr>';
-			}
-			echo '</tbody></table>';
-
-			// Render an inline calls table per classification that has any calls.
-			foreach ( $classifications as $c ) {
-				$calls = $calls_by_class[ (int) $c->id ] ?? array();
-				if ( empty( $calls ) ) {
-					continue;
-				}
-				echo '<h4 class="ffc-rec-mt-1-5em">' . sprintf(
-					/* translators: %d — classification id */
-					esc_html__( 'Calls for classification #%d', 'ffcertificate' ),
-					(int) $c->id
-				) . '</h4>';
-				echo '<table class="widefat striped"><thead><tr>';
-				echo '<th>' . esc_html__( 'Called at', 'ffcertificate' ) . '</th>';
-				echo '<th>' . esc_html__( 'Date to assume', 'ffcertificate' ) . '</th>';
-				echo '<th>' . esc_html__( 'Time', 'ffcertificate' ) . '</th>';
-				echo '<th>' . esc_html__( 'Out of order', 'ffcertificate' ) . '</th>';
-				echo '<th>' . esc_html__( 'Cancelled at', 'ffcertificate' ) . '</th>';
-				echo '<th>' . esc_html__( 'Notes', 'ffcertificate' ) . '</th>';
-				echo '</tr></thead><tbody>';
-				foreach ( $calls as $call ) {
-					echo '<tr>';
-					// `called_at` is unix UTC int since 6.6.0 (#249 sub-escopo c).
-					echo '<td>' . esc_html( \FreeFormCertificate\Core\DateFormatter::format_datetime( (int) $call->called_at ) ) . '</td>';
-					echo '<td>' . esc_html( (string) $call->date_to_assume ) . '</td>';
-					echo '<td>' . esc_html( (string) $call->time_to_assume ) . '</td>';
-					echo '<td>' . ( '1' === (string) $call->out_of_order ? esc_html__( 'Yes', 'ffcertificate' ) : '—' ) . '</td>';
-					echo '<td>' . ( null === $call->cancelled_at ? '—' : esc_html( (string) $call->cancelled_at ) ) . '</td>';
-					echo '<td>' . esc_html( null === $call->notes ? '' : (string) $call->notes ) . '</td>';
-					echo '</tr>';
-				}
-				echo '</tbody></table>';
-			}
-		}
-
-		echo '</div></div>';
+		include FFC_PLUGIN_DIR . 'templates/admin/recruitment/candidate-edit/classifications-section.php';
 	}
 
 	/**
@@ -451,38 +404,41 @@ final class RecruitmentCandidateEditPage {
 	private static function render_history_section( object $candidate ): void {
 		$entries = RecruitmentCandidateHistoryService::get_for_candidate( (int) $candidate->id );
 
-		echo '<div class="postbox ffc-rec-mt-20">';
-		echo '<h2 class="hndle"><span>' . esc_html__( 'History', 'ffcertificate' ) . '</span></h2>';
-		echo '<div class="inside">';
+		// LOGIC pass — resolve each entry's actor + event summary (both need
+		// a lookup: get_userdata / summarize_event) here so the section view
+		// stays pure markup. Byte-identical to the previous inline loop.
+		$history_rows = self::prepare_history_rows( $entries );
 
-		if ( empty( $entries ) ) {
-			echo '<p><em>' . esc_html__( '(no activity recorded for this candidate)', 'ffcertificate' ) . '</em></p>';
-			echo '</div></div>';
-			return;
-		}
+		include FFC_PLUGIN_DIR . 'templates/admin/recruitment/candidate-edit/history-section.php';
+	}
 
-		echo '<p class="description">' . esc_html__( 'Most recent first. Pulled from the activity log for events referencing this candidate or any of its classifications.', 'ffcertificate' ) . '</p>';
-		echo '<table class="widefat striped"><thead><tr>';
-		echo '<th>' . esc_html__( 'When', 'ffcertificate' ) . '</th>';
-		echo '<th>' . esc_html__( 'Who', 'ffcertificate' ) . '</th>';
-		echo '<th>' . esc_html__( 'Event', 'ffcertificate' ) . '</th>';
-		echo '</tr></thead><tbody>';
+	/**
+	 * LOGIC pass for {@see render_history_section()}: flatten the raw activity
+	 * entries into the display cells the section view echoes. Each cell is
+	 * resolved exactly as the previous inline loop did — the `when` string
+	 * (formatted datetime or em-dash), the actor label, and the pre-escaped
+	 * event summary — so the rendered output is byte-identical.
+	 *
+	 * @since 6.16.0
+	 * @param array<int, array<string, mixed>> $entries Raw history entries.
+	 * @phpstan-param list<array<string, mixed>> $entries
+	 * @return array<int, array{when: string, who: string, event: string}>
+	 * @phpstan-return list<array{when: string, who: string, event: string}>
+	 */
+	private static function prepare_history_rows( array $entries ): array {
+		$rows = array();
 		foreach ( $entries as $entry ) {
-			$action  = (string) ( $entry['action'] ?? '' );
-			$context = is_array( $entry['context'] ?? null ) ? $entry['context'] : array();
-			$when    = (string) ( $entry['created_at'] ?? '' );
-			$uid     = (int) ( $entry['user_id'] ?? 0 );
-
-			echo '<tr>';
-			echo '<td>' . esc_html( '' === $when ? '—' : DateFormatter::format_datetime( $when ) ) . '</td>';
-			echo '<td>' . esc_html( self::render_history_actor( $uid ) ) . '</td>';
-			// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- summarize_event() returns pre-escaped HTML.
-			echo '<td>' . RecruitmentCandidateHistoryService::summarize_event( $action, $context ) . '</td>';
-			echo '</tr>';
+			$when   = (string) ( $entry['created_at'] ?? '' );
+			$rows[] = array(
+				'when'  => '' === $when ? '—' : DateFormatter::format_datetime( $when ),
+				'who'   => self::render_history_actor( (int) ( $entry['user_id'] ?? 0 ) ),
+				'event' => RecruitmentCandidateHistoryService::summarize_event(
+					(string) ( $entry['action'] ?? '' ),
+					is_array( $entry['context'] ?? null ) ? $entry['context'] : array()
+				),
+			);
 		}
-		echo '</tbody></table>';
-
-		echo '</div></div>';
+		return $rows;
 	}
 
 	/**

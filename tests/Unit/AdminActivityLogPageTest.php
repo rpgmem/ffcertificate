@@ -13,9 +13,10 @@ use FreeFormCertificate\Admin\AdminActivityLogPage;
 
 /**
  * Tests for AdminActivityLogPage: constructor source registration,
- * register_menu, enqueue_scripts, render_page (enabled + disabled),
- * build_query_args, render_rows_html, render_pagination_html, plus the static
- * label/badge/summary helpers. The CSV export now runs through the batched
+ * enqueue_scripts, render_page (enabled + disabled), build_query_args,
+ * render_rows_html, render_pagination_html, plus the static label/badge/summary
+ * helpers. The page has no standalone menu since #804 (it renders as the
+ * Activity Log Settings tab). The CSV export now runs through the batched
  * engine (issue #772); its per-source behavior lives in
  * ActivityLogExportSourceTest.
  *
