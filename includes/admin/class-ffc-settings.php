@@ -385,7 +385,7 @@ class Settings {
 	 * third-party tabs added via the filter need not extend SettingsTab — so the
 	 * cap getters fall back to the page-wide defaults when absent.
 	 *
-	 * @return array<string, object>
+	 * @return array<string, \FreeFormCertificate\Settings\SettingsTab>
 	 */
 	private function visible_tabs(): array {
 		return array_filter(
@@ -401,7 +401,7 @@ class Settings {
 	 * Resolve the active tab id to one the user can actually see: the requested
 	 * `?tab=` when visible, otherwise the first visible tab.
 	 *
-	 * @param array<string, object> $visible_tabs Tabs the user can view.
+	 * @param array<string, \FreeFormCertificate\Settings\SettingsTab> $visible_tabs Tabs the user can view.
 	 * @return string
 	 */
 	private function resolve_active_tab( array $visible_tabs ): string {
@@ -597,13 +597,11 @@ class Settings {
 					if ( ! $ffc_settings_can_edit ) {
 						echo '<fieldset disabled class="ffc-settings-readonly-lock">';
 					}
+					// $active_tab is resolved to a visible tab above (the set is
+					// guaranteed non-empty by the early-return at the top), so it is
+					// always a key of $visible_tabs; the isset() is defensive.
 					if ( isset( $visible_tabs[ $active_tab ] ) ) {
 						$visible_tabs[ $active_tab ]->render();
-					} elseif ( ! empty( $visible_tabs ) ) {
-						// Fallback: render first visible tab.
-						reset( $visible_tabs );
-						$first_tab = current( $visible_tabs );
-						$first_tab->render();
 					}
 					if ( ! $ffc_settings_can_edit ) {
 						echo '</fieldset>';
