@@ -755,9 +755,18 @@ class Loader {
 				\FreeFormCertificate\Frontend\ScheduleExceptionSession::cleanup_expired_consumed();
 			}
 		);
-		add_action( 'ffcertificate_reregistration_expire_hook', array( ReregistrationRepository::class, 'expire_overdue' ) );
-		add_action( 'ffcertificate_reregistration_expire_hook', array( ReregistrationEmailHandler::class, 'run_automated_reminders' ) );
-		add_action( \FreeFormCertificate\SelfScheduling\AppointmentReminderScanner::CRON_HOOK, array( \FreeFormCertificate\SelfScheduling\AppointmentReminderScanner::class, 'run' ) );
+		// Module-specific cron callbacks are bound to their module toggle, so a
+		// disabled module stops its scheduled work (expiring registrations,
+		// emailing reminders) rather than running silently. The cron events stay
+		// scheduled; with no callback registered they fire as harmless no-ops and
+		// resume the moment the module is re-enabled (init runs every request).
+		if ( SettingsReader::module_enabled( 'reregistration' ) ) {
+			add_action( 'ffcertificate_reregistration_expire_hook', array( ReregistrationRepository::class, 'expire_overdue' ) );
+			add_action( 'ffcertificate_reregistration_expire_hook', array( ReregistrationEmailHandler::class, 'run_automated_reminders' ) );
+		}
+		if ( SettingsReader::module_enabled( 'self_scheduling' ) ) {
+			add_action( \FreeFormCertificate\SelfScheduling\AppointmentReminderScanner::CRON_HOOK, array( \FreeFormCertificate\SelfScheduling\AppointmentReminderScanner::class, 'run' ) );
+		}
 	}
 
 	/**

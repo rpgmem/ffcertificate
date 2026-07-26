@@ -65,6 +65,8 @@ $ffc_module_meta = array(
 				'desc'  => '',
 			);
 			$ffc_key  = SettingsReader::module_option_key( $ffc_module_slug );
+			/* translators: %s: module name */
+			$ffc_confirm = sprintf( __( 'Disable the “%s” module? Its screens are hidden and its runtime stops. No data is deleted — you can re-enable it at any time.', 'ffcertificate' ), $ffc_meta['label'] );
 			?>
 			<tr>
 				<th scope="row">
@@ -80,6 +82,7 @@ $ffc_module_meta = array(
 							'label'   => __( 'Enabled', 'ffcertificate' ),
 							'data'    => array(
 								'ffc-autosave-key' => $ffc_key,
+								'ffc-confirm-off'  => $ffc_confirm,
 							),
 						)
 					);

@@ -182,10 +182,31 @@
                 });
         }
 
+        /**
+         * Change handler. When `config.confirmOff` is set and the field is a
+         * checkbox being turned OFF, prompt for confirmation first; declining
+         * reverts the toggle and cancels the save. Used by consequential toggles
+         * (e.g. disabling a plugin module) so an accidental click can't silently
+         * take a feature offline.
+         */
+        function onChange() {
+            if (config.confirmOff && $field.is(':checkbox') && !$field.is(':checked')) {
+                if (!window.confirm(config.confirmOff)) {
+                    $field.prop('checked', true);
+                    return;
+                }
+            }
+            scheduleSave();
+        }
+
         // For multi-checkbox groups the change event must fire from any
         // sibling in the group, so attach the listener to the whole group.
         var $changeSource = config.$group && config.$group.length ? config.$group : $field;
-        $changeSource.on('change.ffcAutoSave input.ffcAutoSave', scheduleSave);
+        // Confirm-on-disable toggles bind to `change` only — a checkbox fires
+        // both `input` and `change`, and a double-bound confirm would prompt
+        // twice per click.
+        var changeEvents = config.confirmOff ? 'change.ffcAutoSave' : 'change.ffcAutoSave input.ffcAutoSave';
+        $changeSource.on(changeEvents, onChange);
 
         return {
             destroy: function () {
@@ -233,6 +254,10 @@
             var debounceAttr = $input.attr('data-ffc-autosave-debounce');
             if (debounceAttr && !isNaN(parseInt(debounceAttr, 10))) {
                 config.debounce = parseInt(debounceAttr, 10);
+            }
+            var confirmOff = $input.attr('data-ffc-confirm-off');
+            if (confirmOff) {
+                config.confirmOff = confirmOff;
             }
             if (isMulti) {
                 var $group = $('[data-ffc-autosave-key="' + key + '"][data-ffc-autosave-multi]');

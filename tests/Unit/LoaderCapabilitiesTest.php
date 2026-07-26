@@ -340,6 +340,10 @@ class LoaderCapabilitiesTest extends TestCase {
 	public function test_define_admin_hooks_registers_cleanup_and_expiry_hooks(): void {
 		$loader = new Loader();
 
+		// Every module toggle defaults ON (empty ffc_settings), so the module
+		// cron callbacks are registered.
+		Functions\when( 'get_option' )->justReturn( array() );
+
 		$added = array();
 		Functions\when( 'add_action' )->alias(
 			function ( $hook, $callback = null ) use ( &$added ) {
@@ -352,9 +356,43 @@ class LoaderCapabilitiesTest extends TestCase {
 
 		$this->assertContains( 'ffcertificate_daily_cleanup_hook', $added );
 		$this->assertContains( 'ffcertificate_reregistration_expire_hook', $added );
+		$this->assertContains( \FreeFormCertificate\SelfScheduling\AppointmentReminderScanner::CRON_HOOK, $added );
 		// Three daily-cleanup callbacks + two expiry callbacks registered.
 		$daily = array_filter( $added, static fn ( $h ) => 'ffcertificate_daily_cleanup_hook' === $h );
 		$this->assertCount( 3, $daily, 'submission cleanup + CSV reap + schedule-exception reap.' );
+	}
+
+	public function test_define_admin_hooks_skips_disabled_module_crons(): void {
+		$loader = new Loader();
+
+		// Reregistration + Self-Scheduling toggled OFF: their cron callbacks must
+		// not be registered, so a disabled module stops its scheduled work.
+		Functions\when( 'get_option' )->alias(
+			static function ( $key, $default = false ) {
+				if ( \FreeFormCertificate\Settings\SettingsReader::OPTION_KEY === $key ) {
+					return array(
+						'module_reregistration_enabled'  => 0,
+						'module_self_scheduling_enabled' => 0,
+					);
+				}
+				return $default;
+			}
+		);
+
+		$added = array();
+		Functions\when( 'add_action' )->alias(
+			function ( $hook, $callback = null ) use ( &$added ) {
+				$added[] = $hook;
+				return true;
+			}
+		);
+
+		$this->invoke_private( $loader, 'define_admin_hooks' );
+
+		// The core daily cleanup stays wired; the disabled modules' crons don't.
+		$this->assertContains( 'ffcertificate_daily_cleanup_hook', $added );
+		$this->assertNotContains( 'ffcertificate_reregistration_expire_hook', $added );
+		$this->assertNotContains( \FreeFormCertificate\SelfScheduling\AppointmentReminderScanner::CRON_HOOK, $added );
 	}
 
 	// ==================================================================
