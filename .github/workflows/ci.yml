@@ -79,9 +79,10 @@ jobs:
   # the 512M memory ceiling on #622). The suite was made order-independent
   # (namespaced Core stubs converted to globals so no test leaks a lingering
   # symbol), which lets the coverage run be split into 4 parallel shards. Each
-  # shard runs a balanced subset (.github/scripts/shard-tests.php, balanced by
-  # process-isolated class count) and emits a partial .cov; the `coverage` job
-  # below merges them with phpcov and gates the floor. Wall-clock ~50m → ~15m.
+  # shard runs a balanced subset (.github/scripts/shard-tests.php, LPT-packed by
+  # per-file test-method count so the process-isolated forks spread evenly) and
+  # emits a partial .cov; the `coverage` job below merges them with phpcov and
+  # gates the floor. Wall-clock ~50m → ~15m.
   coverage-shard:
     name: Coverage shard ${{ matrix.shard }}
     runs-on: ubuntu-latest
