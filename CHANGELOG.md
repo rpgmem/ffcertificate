@@ -8,6 +8,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 ## [Unreleased]
 
 ### Changed
+- Internal (#809) — the CI `Coverage (PHP 8.3)` job's coveralls.io upload step is now `continue-on-error`, so a coveralls outage (503 "queue full") can no longer block merge. The line-coverage floor stays fully enforced by its own separate `Enforce line-coverage floor` step (`COVERAGE_FLOOR_LINES`); only the third-party reporting upload became non-blocking.
 - Internal (#809) — post-audit suppression hygiene: removed a superfluous `EscapeOutput` `phpcs:ignore` in the Documentation tab (the line below it is already `esc_html__`), and the eight third-party cache-purge best-effort catches in `FormCache` now leave a gated `Debug::log_form` breadcrumb (off by default) instead of swallowing silently.
 - Internal (#809) — finished the suppression audit by narrowing the file-wide `phpcs:disable` blocks across 46 files: dropped 28 that were no-ops (the globally-excluded `NonPrefixedVariableFound` in templates) or fully redundant over per-line `phpcs:ignore`, and trimmed 18 others to only their load-bearing sniff. Comment-only; WPCS now flags a future stray query in these data-access files instead of silently swallowing it.
 - Internal (#809 Fase 1) — added dedicated reader tests driving the `$wpdb` mock for `RecruitmentCallReader` (~35% → ~96%) and `RecruitmentNoticeReader` (~25% → ~94%): every SELECT/lookup/count query, the object-cache hit/miss paths, and the batch `IN()` / status-filter branches. Tests only, no product change (#812).

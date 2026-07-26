@@ -238,6 +238,11 @@ jobs:
             }
           '
       - name: Upload coverage to Coveralls
+        # Reporting-only: the merge gate is the "Enforce line-coverage floor"
+        # step above, which fully enforces COVERAGE_FLOOR_LINES on its own. A
+        # coveralls.io outage (503 "queue full") must never block merge, so this
+        # third-party upload is non-blocking.
+        continue-on-error: true
         uses: coverallsapp/github-action@v2
         with:
           file: coverage.xml
