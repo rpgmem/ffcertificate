@@ -387,19 +387,23 @@ class SettingsSaveHandlerTest extends TestCase {
     // save_url_shortener_settings()
     // ==================================================================
 
-    public function test_url_shortener_checkboxes_on_tab(): void {
+    public function test_url_shortener_auto_create_checkbox_on_tab(): void {
         $_POST['_ffc_tab'] = 'url_shortener';
-        $new = array( 'url_shortener_enabled' => '1', 'url_shortener_auto_create' => '1' );
+        $new = array( 'url_shortener_auto_create' => '1' );
         $result = $this->invoke( 'save_url_shortener_settings', array( array(), $new ) );
-        $this->assertSame( 1, $result['url_shortener_enabled'] );
         $this->assertSame( 1, $result['url_shortener_auto_create'] );
+        // The module on/off flag is managed by the Modules tab, not this form.
+        $this->assertArrayNotHasKey( 'url_shortener_enabled', $result );
     }
 
-    public function test_url_shortener_checkboxes_absent_on_tab_set_zero(): void {
+    public function test_url_shortener_form_preserves_enable_flag_and_zeroes_absent_auto_create(): void {
         $_POST['_ffc_tab'] = 'url_shortener';
-        $result = $this->invoke( 'save_url_shortener_settings', array( array(), array() ) );
-        $this->assertSame( 0, $result['url_shortener_enabled'] );
-        $this->assertSame( 0, $result['url_shortener_auto_create'] );
+        // An existing enabled flag must survive a form save with no checkboxes
+        // present — the enable toggle now lives only on the Modules tab, so this
+        // form must not zero it out (regression guard).
+        $result = $this->invoke( 'save_url_shortener_settings', array( array( 'url_shortener_enabled' => 1 ), array() ) );
+        $this->assertSame( 1, $result['url_shortener_enabled'], 'enable flag preserved' );
+        $this->assertSame( 0, $result['url_shortener_auto_create'], 'auto_create zeroed when unchecked' );
     }
 
     public function test_url_shortener_checkboxes_ignored_on_other_tab(): void {

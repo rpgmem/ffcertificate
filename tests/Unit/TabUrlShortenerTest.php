@@ -114,6 +114,7 @@ class TabUrlShortenerTest extends TestCase {
 
         Functions\when( 'get_post_types' )->justReturn( array( 'post' => $pt ) );
         Functions\when( 'wp_nonce_field' )->justReturn( '' );
+        Functions\when( 'admin_url' )->returnArg();
         Functions\when( 'home_url' )->justReturn( 'https://example.com/' );
         Functions\when( 'selected' )->justReturn( '' );
         Functions\when( 'checked' )->justReturn( '' );
