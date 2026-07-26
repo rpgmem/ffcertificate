@@ -114,6 +114,8 @@
                 <element value="ffc_view_reregistration"/>
                 <element value="ffc_view_custom_fields"/>
                 <element value="ffc_view_settings"/>
+                <!-- Virtual meta-cap (computed via user_has_cap, not role-granted): gates Settings-page entry. -->
+                <element value="ffc_view_settings_page"/>
                 <!-- URL shortener domain (GAP B). -->
                 <element value="ffc_view_url_shortener"/>
                 <element value="ffc_manage_url_shortener"/>

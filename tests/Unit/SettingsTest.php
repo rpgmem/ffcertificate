@@ -733,8 +733,13 @@ class SettingsTest extends TestCase {
     }
 
     public function test_display_settings_page_locks_form_for_view_only_user(): void {
-        // current_user_can(false) => current_user_can_admin_or('ffc_manage_settings') is false.
-        Functions\when( 'current_user_can' )->justReturn( false );
+        // View-only: holds the tab view cap (so the tab is visible) but not the
+        // manage cap (so the body is wrapped in the read-only fieldset).
+        Functions\when( 'current_user_can' )->alias(
+            static function ( $cap ) {
+                return 'ffc_view_settings' === $cap;
+            }
+        );
 
         $html = $this->render_settings_page_html();
 
@@ -754,6 +759,124 @@ class SettingsTest extends TestCase {
     }
 
     // ==================================================================
+    // grant_settings_page_meta_cap() — computed page-entry meta cap
+    // ==================================================================
+
+    public function test_meta_cap_granted_for_admin(): void {
+        $out = $this->settings->grant_settings_page_meta_cap(
+            array( 'manage_options' => true ),
+            array(),
+            array( 'ffc_view_settings_page' )
+        );
+        $this->assertTrue( $out['ffc_view_settings_page'] );
+    }
+
+    public function test_meta_cap_granted_for_entry_cap_holder(): void {
+        $out = $this->settings->grant_settings_page_meta_cap(
+            array( 'ffc_view_settings' => true ),
+            array(),
+            array( 'ffc_view_settings_page' )
+        );
+        $this->assertTrue( $out['ffc_view_settings_page'] );
+    }
+
+    public function test_meta_cap_denied_without_any_entry_cap(): void {
+        $out = $this->settings->grant_settings_page_meta_cap(
+            array( 'read' => true ),
+            array(),
+            array( 'ffc_view_settings_page' )
+        );
+        $this->assertArrayNotHasKey( 'ffc_view_settings_page', $out );
+    }
+
+    public function test_meta_cap_filter_ignores_other_requested_caps(): void {
+        $in  = array( 'read' => true );
+        $out = $this->settings->grant_settings_page_meta_cap( $in, array(), array( 'edit_posts' ) );
+        $this->assertSame( $in, $out );
+    }
+
+    // ==================================================================
+    // Per-tab visibility filtering (get_view_cap)
+    // ==================================================================
+
+    /**
+     * Inject a config tab (default cap) + an activity-log tab (own view cap)
+     * and render for a user holding only `ffc_view_settings`.
+     *
+     * @param string $requested_tab Value for $_GET['tab'].
+     * @return string Rendered HTML.
+     */
+    private function render_with_capped_tabs( string $requested_tab ): string {
+        Functions\when( 'esc_html_e' )->alias( function ( $text ) { echo $text; } );
+        Functions\when( 'esc_html' )->returnArg();
+        Functions\when( 'esc_attr' )->returnArg();
+        Functions\when( 'esc_url' )->returnArg();
+        Functions\when( 'settings_errors' )->justReturn( null );
+        // Holds the settings view cap but NOT the activity-log view cap.
+        Functions\when( 'current_user_can' )->alias(
+            static function ( $cap ) {
+                return 'ffc_view_settings' === $cap;
+            }
+        );
+
+        $general = new class() {
+            public function get_id(): string {
+                return 'general'; }
+            public function get_icon(): string {
+                return 'i'; }
+            public function get_title(): string {
+                return 'General'; }
+            public function get_view_cap(): string {
+                return 'ffc_view_settings'; }
+            public function get_manage_cap(): string {
+                return 'ffc_manage_settings'; }
+            public function render(): void {
+                echo 'GENERAL_BODY'; }
+        };
+        $audit = new class() {
+            public function get_id(): string {
+                return 'activity_log'; }
+            public function get_icon(): string {
+                return 'i'; }
+            public function get_title(): string {
+                return 'Activity Log'; }
+            public function get_view_cap(): string {
+                return 'ffc_view_activity_log'; }
+            public function get_manage_cap(): string {
+                return 'ffc_view_activity_log'; }
+            public function render(): void {
+                echo 'AUDIT_BODY'; }
+        };
+
+        $ref = new \ReflectionProperty( $this->settings, 'tabs' );
+        $ref->setAccessible( true );
+        $ref->setValue( $this->settings, array( 'general' => $general, 'activity_log' => $audit ) );
+
+        $_GET['tab'] = $requested_tab;
+        ob_start();
+        $this->settings->display_settings_page();
+        $html = (string) ob_get_clean();
+        unset( $_GET['tab'] );
+        return $html;
+    }
+
+    public function test_display_hides_tab_whose_view_cap_the_user_lacks(): void {
+        $html = $this->render_with_capped_tabs( 'general' );
+
+        $this->assertStringContainsString( 'ffc-settings-tabnav-general', $html );
+        $this->assertStringNotContainsString( 'ffc-settings-tabnav-activity_log', $html, 'A tab whose view cap the user lacks must be hidden.' );
+        $this->assertStringContainsString( 'GENERAL_BODY', $html );
+    }
+
+    public function test_display_falls_back_when_requested_tab_not_visible(): void {
+        // Request the hidden activity_log tab → resolve to the first visible tab.
+        $html = $this->render_with_capped_tabs( 'activity_log' );
+
+        $this->assertStringContainsString( 'GENERAL_BODY', $html, 'Should fall back to the first visible tab.' );
+        $this->assertStringNotContainsString( 'AUDIT_BODY', $html );
+    }
+
+    // ==================================================================
     // Module-settings links in the nav (#711 — moved out of TabGeneral)
     // ==================================================================
 
@@ -770,10 +893,18 @@ class SettingsTest extends TestCase {
     }
 
     public function test_display_settings_page_hides_module_links_without_module_caps(): void {
-        Functions\when( 'current_user_can' )->justReturn( false );
+        // Holds the settings view cap (tabs render) but none of the module-link
+        // caps (ffc_view_audiences / ffc_view_recruitment_settings) — so the
+        // external module links must not appear.
+        Functions\when( 'current_user_can' )->alias(
+            static function ( $cap ) {
+                return 'ffc_view_settings' === $cap;
+            }
+        );
 
         $html = $this->render_settings_page_html();
 
+        $this->assertStringContainsString( 'ffc-settings-tabnav-general', $html, 'The config tab should still render.' );
         $this->assertStringNotContainsString( 'ffc-settings-tabs__tab--module', $html );
         $this->assertStringNotContainsString( 'page=ffc-scheduling-settings', $html );
     }

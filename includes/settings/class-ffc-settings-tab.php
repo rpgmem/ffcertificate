@@ -124,6 +124,35 @@ abstract class SettingsTab {
 	}
 
 	/**
+	 * Capability required to VIEW this tab.
+	 *
+	 * Defaults to the page-wide settings view cap so every existing config tab
+	 * keeps its current gating. Tabs backed by their own capability (e.g. the
+	 * Activity Log) override this to be visible to their own audience even when
+	 * the user lacks `ffc_view_settings`. Consumed by the Settings render loop
+	 * (per-tab visibility) and by the computed `ffc_view_settings_page` menu cap.
+	 *
+	 * @return string
+	 */
+	public function get_view_cap(): string {
+		return 'ffc_view_settings';
+	}
+
+	/**
+	 * Capability required to EDIT (save) on this tab.
+	 *
+	 * Defaults to the page-wide settings manage cap. The Settings page wraps a
+	 * tab's body in a disabled <fieldset> when the current user lacks THIS cap,
+	 * so a read-only surface (e.g. the Activity Log) overrides it to its own
+	 * tier and never has its legitimate actions disabled by the settings lock.
+	 *
+	 * @return string
+	 */
+	public function get_manage_cap(): string {
+		return 'ffc_manage_settings';
+	}
+
+	/**
 	 * Render admin notice
 	 *
 	 * @param string $message Notice message.
