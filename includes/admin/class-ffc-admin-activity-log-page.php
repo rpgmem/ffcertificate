@@ -40,28 +40,21 @@ class AdminActivityLogPage {
 	}
 
 	/**
-	 * Register admin menu and export handler
-	 */
-	public function register_menu(): void {
-		add_submenu_page(
-			'edit.php?post_type=ffc_form',
-			__( 'Activity Log', 'ffcertificate' ),
-			__( 'Activity Log', 'ffcertificate' ),
-			'ffc_view_activity_log',
-			'ffc-activity-log',
-			array( $this, 'render_page' )
-		);
-
-		add_action( 'admin_enqueue_scripts', array( $this, 'enqueue_scripts' ) );
-	}
-
-	/**
-	 * Enqueue the AJAX-filter script on the Activity Log page only.
+	 * Enqueue the AJAX-filter + export scripts on the Settings → Activity Log
+	 * tab only. Since #802 Phase B the Activity Log is a Settings tab, not a
+	 * standalone submenu, so the gate is the Settings page hook + the active
+	 * tab (mirroring the other tabs' enqueue guards). Registered from
+	 * {@see \FreeFormCertificate\Settings\Tabs\TabActivityLog}.
 	 *
 	 * @param string $hook Current admin page hook.
 	 */
 	public function enqueue_scripts( string $hook ): void {
-		if ( 'ffc_form_page_ffc-activity-log' !== $hook ) {
+		if ( 'toplevel_page_ffc-settings' !== $hook ) {
+			return;
+		}
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- display-only tab param.
+		$active_tab = isset( $_GET['tab'] ) ? sanitize_key( wp_unslash( $_GET['tab'] ) ) : '';
+		if ( 'activity_log' !== $active_tab ) {
 			return;
 		}
 		$s = \FreeFormCertificate\Core\AssetHelper::asset_suffix();
@@ -184,8 +177,8 @@ class AdminActivityLogPage {
 	 */
 	private function render_disabled_notice(): void {
 		?>
-		<div class="wrap">
-			<h1><?php esc_html_e( 'Activity Log', 'ffcertificate' ); ?></h1>
+		<div class="ffc-settings-wrap">
+			<h2 class="ffc-icon-clipboard"><?php esc_html_e( 'Activity Log', 'ffcertificate' ); ?></h2>
 			<div class="notice notice-warning">
 				<p>
 					<strong><?php esc_html_e( 'Activity Log is currently disabled.', 'ffcertificate' ); ?></strong>

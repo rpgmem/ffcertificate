@@ -52,7 +52,7 @@ beforeEach(() => {
 							<option value="submission_created">Submission Created</option>
 						</select>
 						<input type="submit" class="button" value="Filter">
-						<a href="?post_type=ffc_form&page=ffc-activity-log" class="button">Clear Filters</a>
+						<a href="?page=ffc-settings&tab=activity_log" class="button">Clear Filters</a>
 					</form>
 				</div>
 				<div class="alignright actions">

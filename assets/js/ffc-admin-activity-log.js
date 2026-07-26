@@ -41,8 +41,8 @@
 
     function buildQuery(filters, paged) {
         var qs = $.param({
-            post_type: 'ffc_form',
-            page:      'ffc-activity-log',
+            page:      'ffc-settings',
+            tab:       'activity_log',
             level:     filters.level,
             log_action: filters.log_action,
             s:         filters.search,
@@ -156,7 +156,7 @@
 
     // Clear filters link — currently a regular anchor with the
     // base URL. Trap the click and reset locally instead of reloading.
-    $(document).on('click', '.tablenav.top .alignleft a.button[href*="ffc-activity-log"]', function (e) {
+    $(document).on('click', '.tablenav.top .alignleft a.button[href*="tab=activity_log"]', function (e) {
         // Only intercept when no `?level=` / `log_action` / `s` in href —
         // that's the Clear Filters button by construction.
         var href = $(this).attr('href') || '';

@@ -158,12 +158,11 @@ class AdminClassTest extends TestCase {
             }
         );
 
-        $activity = Mockery::mock();
-        $activity->shouldReceive( 'register_menu' )->once();
-        $this->inject( $admin, 'activity_log_page', $activity );
-
+        // The Activity Log is a Settings tab since #802 Phase B, so this menu
+        // only registers the Submissions submenu now.
         $admin->register_admin_menu();
 
+        $this->assertCount( 1, $captured );
         $this->assertSame( 'edit.php?post_type=ffc_form', $captured[0][0] );
         $this->assertSame( 'ffc_view_certificates', $captured[0][1] );
         $this->assertSame( 'ffc-submissions', $captured[0][2] );

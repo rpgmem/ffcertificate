@@ -176,7 +176,7 @@ class PreflightStatsServiceTest extends TestCase {
 
         // The drill-down link points at the filtered Activity Log.
         $this->assertStringContainsString(
-            'admin.php?page=ffc-activity-log&log_action=preflight_blocked',
+            'admin.php?page=ffc-settings&tab=activity_log&log_action=preflight_blocked',
             $html
         );
 

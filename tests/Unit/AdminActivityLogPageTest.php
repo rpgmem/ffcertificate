@@ -47,6 +47,7 @@ class AdminActivityLogPageTest extends TestCase {
         Functions\when('wp_kses_post')->returnArg();
         Functions\when('absint')->alias(static fn($v) => (int) $v);
         Functions\when('sanitize_key')->alias(static fn($v) => strtolower((string) $v));
+        Functions\when('wp_unslash')->returnArg();
         Functions\when('admin_url')->returnArg();
     }
 
@@ -55,61 +56,6 @@ class AdminActivityLogPageTest extends TestCase {
         $_POST = array();
         Monkey\tearDown();
         parent::tearDown();
-    }
-
-    // ==================================================================
-    // register_menu()
-    // ==================================================================
-
-    public function test_register_menu_calls_add_submenu_page(): void {
-        $captured_args = [];
-        Functions\when('add_submenu_page')->alias(function () use (&$captured_args) {
-            $captured_args = func_get_args();
-        });
-        Functions\when('add_action')->justReturn(true);
-
-        $page = new AdminActivityLogPage();
-        $page->register_menu();
-
-        $this->assertSame('edit.php?post_type=ffc_form', $captured_args[0]);
-        $this->assertSame('Activity Log', $captured_args[1]);
-        $this->assertSame('Activity Log', $captured_args[2]);
-        $this->assertSame('ffc_view_activity_log', $captured_args[3]);
-        $this->assertSame('ffc-activity-log', $captured_args[4]);
-        $this->assertIsCallable($captured_args[5]);
-    }
-
-    public function test_register_menu_callback_points_to_render_page(): void {
-        $captured_callback = null;
-        Functions\when('add_submenu_page')->alias(function () use (&$captured_callback) {
-            $args = func_get_args();
-            $captured_callback = $args[5];
-        });
-        Functions\when('add_action')->justReturn(true);
-
-        $page = new AdminActivityLogPage();
-        $page->register_menu();
-
-        $this->assertIsArray($captured_callback);
-        $this->assertSame($page, $captured_callback[0]);
-        $this->assertSame('render_page', $captured_callback[1]);
-    }
-
-    public function test_register_menu_registers_enqueue_hook_only(): void {
-        Functions\when('add_submenu_page')->justReturn('hook');
-        $hooks = [];
-        Functions\when('add_action')->alias(function ($hook, $cb) use (&$hooks) {
-            $hooks[$hook] = $cb;
-        });
-
-        $page = new AdminActivityLogPage();
-        $page->register_menu();
-
-        // The synchronous admin_init handle_csv_export handler was removed
-        // when the export moved onto the batched dispatcher (#772).
-        $this->assertArrayNotHasKey('admin_init', $hooks);
-        $this->assertArrayHasKey('admin_enqueue_scripts', $hooks);
-        $this->assertSame([$page, 'enqueue_scripts'], $hooks['admin_enqueue_scripts']);
     }
 
     // ==================================================================
@@ -146,6 +92,19 @@ class AdminActivityLogPageTest extends TestCase {
         $this->assertFalse($called);
     }
 
+    public function test_enqueue_scripts_returns_early_on_settings_hook_but_other_tab(): void {
+        $_GET['tab'] = 'general';
+        $called      = false;
+        Functions\when('wp_enqueue_script')->alias(function () use (&$called) {
+            $called = true;
+        });
+
+        $page = new AdminActivityLogPage();
+        $page->enqueue_scripts('toplevel_page_ffc-settings');
+
+        $this->assertFalse($called);
+    }
+
     public function test_enqueue_scripts_enqueues_and_localizes_on_correct_hook(): void {
         if (!defined('FFC_PLUGIN_URL')) {
             define('FFC_PLUGIN_URL', 'http://example.test/wp-content/plugins/ffcertificate/');
@@ -171,8 +130,9 @@ class AdminActivityLogPageTest extends TestCase {
             }
         });
 
-        $page = new AdminActivityLogPage();
-        $page->enqueue_scripts('ffc_form_page_ffc-activity-log');
+        $_GET['tab'] = 'activity_log';
+        $page        = new AdminActivityLogPage();
+        $page->enqueue_scripts('toplevel_page_ffc-settings');
 
         $this->assertContains('ffc-core', $scripts);
         $this->assertContains('ffc-batched-export', $scripts);

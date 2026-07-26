@@ -12,11 +12,11 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 // phpcs:disable WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedVariableFound -- Template variables scoped to this file
 
-$ffcertificate_base_url = admin_url( 'edit.php?post_type=ffc_form&page=ffc-activity-log' );
+$ffcertificate_base_url = admin_url( 'admin.php?page=ffc-settings&tab=activity_log' );
 ?>
 
-<div class="wrap">
-	<h1 class="wp-heading-inline ffc-icon-clipboard"><?php esc_html_e( 'Activity Log', 'ffcertificate' ); ?></h1>
+<div class="ffc-settings-wrap">
+	<h2 class="wp-heading-inline ffc-icon-clipboard"><?php esc_html_e( 'Activity Log', 'ffcertificate' ); ?></h2>
 
 	<p class="description">
 		<?php esc_html_e( 'Activity logs track important actions for audit and LGPD compliance.', 'ffcertificate' ); ?>
@@ -26,8 +26,8 @@ $ffcertificate_base_url = admin_url( 'edit.php?post_type=ffc_form&page=ffc-activ
 	<div class="tablenav top">
 		<div class="alignleft actions">
 			<form method="get">
-				<input type="hidden" name="post_type" value="ffc_form">
-				<input type="hidden" name="page" value="ffc-activity-log">
+				<input type="hidden" name="page" value="ffc-settings">
+				<input type="hidden" name="tab" value="activity_log">
 
 				<!-- Level Filter -->
 				<label for="filter-by-level" class="screen-reader-text"><?php esc_html_e( 'Filter by level', 'ffcertificate' ); ?></label>
@@ -65,8 +65,8 @@ $ffcertificate_base_url = admin_url( 'edit.php?post_type=ffc_form&page=ffc-activ
 		<!-- Search Box -->
 		<div class="alignright actions">
 			<form method="get" style="display:inline">
-				<input type="hidden" name="post_type" value="ffc_form">
-				<input type="hidden" name="page" value="ffc-activity-log">
+				<input type="hidden" name="page" value="ffc-settings">
+				<input type="hidden" name="tab" value="activity_log">
 				<?php if ( $level ) : ?>
 					<input type="hidden" name="level" value="<?php echo esc_attr( $level ); ?>">
 				<?php endif; ?>
