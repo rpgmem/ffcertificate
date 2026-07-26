@@ -214,8 +214,15 @@ class FormCache {
 						$component->flush_all();
 					}
 				}
-			} catch ( \Throwable $e ) { // phpcs:ignore Generic.CodeAnalysis.EmptyStatement.DetectedCatch -- best-effort.
-				// Swallow.
+			} catch ( \Throwable $e ) {
+				// Swallow — host action must not fail on a third-party glitch; leave a gated breadcrumb.
+				\FreeFormCertificate\Core\Debug::log_form(
+					'External cache purge failed',
+					array(
+						'integration' => 'w3tc',
+						'error'       => $e->getMessage(),
+					)
+				);
 			}
 		}
 
@@ -223,8 +230,15 @@ class FormCache {
 		if ( class_exists( '\LiteSpeed\Purge' ) ) {
 			try {
 				\LiteSpeed\Purge::purge_all( 'FFC ' . $reason );
-			} catch ( \Throwable $e ) { // phpcs:ignore Generic.CodeAnalysis.EmptyStatement.DetectedCatch -- best-effort.
-				// Swallow.
+			} catch ( \Throwable $e ) {
+				// Swallow — host action must not fail on a third-party glitch; leave a gated breadcrumb.
+				\FreeFormCertificate\Core\Debug::log_form(
+					'External cache purge failed',
+					array(
+						'integration' => 'litespeed',
+						'error'       => $e->getMessage(),
+					)
+				);
 			}
 		}
 
@@ -232,8 +246,15 @@ class FormCache {
 		if ( function_exists( 'wp_cache_clear_cache' ) ) {
 			try {
 				wp_cache_clear_cache();
-			} catch ( \Throwable $e ) { // phpcs:ignore Generic.CodeAnalysis.EmptyStatement.DetectedCatch -- best-effort.
-				// Swallow.
+			} catch ( \Throwable $e ) {
+				// Swallow — host action must not fail on a third-party glitch; leave a gated breadcrumb.
+				\FreeFormCertificate\Core\Debug::log_form(
+					'External cache purge failed',
+					array(
+						'integration' => 'wpsupercache',
+						'error'       => $e->getMessage(),
+					)
+				);
 			}
 		}
 
@@ -241,8 +262,15 @@ class FormCache {
 		if ( function_exists( 'rocket_clean_domain' ) ) {
 			try {
 				rocket_clean_domain();
-			} catch ( \Throwable $e ) { // phpcs:ignore Generic.CodeAnalysis.EmptyStatement.DetectedCatch -- best-effort.
-				// Swallow.
+			} catch ( \Throwable $e ) {
+				// Swallow — host action must not fail on a third-party glitch; leave a gated breadcrumb.
+				\FreeFormCertificate\Core\Debug::log_form(
+					'External cache purge failed',
+					array(
+						'integration' => 'wprocket',
+						'error'       => $e->getMessage(),
+					)
+				);
 			}
 		}
 
@@ -289,8 +317,16 @@ class FormCache {
 		if ( class_exists( '\W3TC\Dispatcher' ) ) {
 			try {
 				\W3TC\Dispatcher::component( 'CacheFlush' )->flush_post( $form_id );
-			} catch ( \Throwable $e ) { // phpcs:ignore Generic.CodeAnalysis.EmptyStatement.DetectedCatch -- best-effort.
-				// Swallow — host action must not fail on a third-party glitch.
+			} catch ( \Throwable $e ) {
+				// Swallow — host action must not fail on a third-party glitch; leave a gated breadcrumb.
+				\FreeFormCertificate\Core\Debug::log_form(
+					'External cache purge failed',
+					array(
+						'integration' => 'w3tc',
+						'form_id'     => $form_id,
+						'error'       => $e->getMessage(),
+					)
+				);
 			}
 		}
 
@@ -298,8 +334,16 @@ class FormCache {
 		if ( class_exists( '\LiteSpeed\Purge' ) ) {
 			try {
 				\LiteSpeed\Purge::add( 'P_' . $form_id );
-			} catch ( \Throwable $e ) { // phpcs:ignore Generic.CodeAnalysis.EmptyStatement.DetectedCatch -- best-effort.
-				// Swallow.
+			} catch ( \Throwable $e ) {
+				// Swallow — host action must not fail on a third-party glitch; leave a gated breadcrumb.
+				\FreeFormCertificate\Core\Debug::log_form(
+					'External cache purge failed',
+					array(
+						'integration' => 'litespeed',
+						'form_id'     => $form_id,
+						'error'       => $e->getMessage(),
+					)
+				);
 			}
 		}
 
@@ -307,8 +351,16 @@ class FormCache {
 		if ( function_exists( 'wpsc_delete_post_cache' ) ) {
 			try {
 				wpsc_delete_post_cache( $form_id );
-			} catch ( \Throwable $e ) { // phpcs:ignore Generic.CodeAnalysis.EmptyStatement.DetectedCatch -- best-effort.
-				// Swallow.
+			} catch ( \Throwable $e ) {
+				// Swallow — host action must not fail on a third-party glitch; leave a gated breadcrumb.
+				\FreeFormCertificate\Core\Debug::log_form(
+					'External cache purge failed',
+					array(
+						'integration' => 'wpsupercache',
+						'form_id'     => $form_id,
+						'error'       => $e->getMessage(),
+					)
+				);
 			}
 		}
 
@@ -316,8 +368,16 @@ class FormCache {
 		if ( function_exists( 'rocket_clean_post' ) ) {
 			try {
 				rocket_clean_post( $form_id );
-			} catch ( \Throwable $e ) { // phpcs:ignore Generic.CodeAnalysis.EmptyStatement.DetectedCatch -- best-effort.
-				// Swallow.
+			} catch ( \Throwable $e ) {
+				// Swallow — host action must not fail on a third-party glitch; leave a gated breadcrumb.
+				\FreeFormCertificate\Core\Debug::log_form(
+					'External cache purge failed',
+					array(
+						'integration' => 'wprocket',
+						'form_id'     => $form_id,
+						'error'       => $e->getMessage(),
+					)
+				);
 			}
 		}
 
