@@ -181,8 +181,16 @@ jobs:
     # ~4.4pp buffer under the measured number (≤5pp policy); note the CI gate
     # reads the sharded phpcov merge, which runs a hair under the single-process
     # figure (~0.2pp on #623), so 82 stays comfortably clear.
+    #
+    # 82 → 84 — recruitment coverage push (#809 Fase 1): reader tests (#812)
+    # plus the two heaviest renderers — RecruitmentPublicShortcodeRenderer
+    # (~46%→~99%) and RecruitmentAdminPage (~39%→~99%) — took the recruitment
+    # module ~86% → 90.0%. Overall statement coverage 88.56% (40543/45780,
+    # single-process). Bump to 84 keeps a ~4.4pp buffer under the measured
+    # number (≤5pp policy); the sharded phpcov merge still runs ~0.2pp under,
+    # so 84 stays comfortably clear.
     env:
-      COVERAGE_FLOOR_LINES: '82'
+      COVERAGE_FLOOR_LINES: '84'
     steps:
       - name: Fail if any coverage shard did not succeed
         if: needs.coverage-shard.result != 'success'
