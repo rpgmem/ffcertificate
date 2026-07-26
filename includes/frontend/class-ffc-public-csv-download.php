@@ -845,15 +845,13 @@ class PublicCsvDownload {
 	 *     future tags fall through to this bucket so a silent
 	 *     "success" inflation is impossible.
 	 *
-	 * The legacy `success` / `fail` keys are **deprecated** (see #730) and
-	 * scheduled for removal no earlier than the second feature release after
-	 * the announcement — use `access_success` / `download_success` /
-	 * `failed_access` instead. They are still returned for now so any
-	 * unforeseen external consumer survives the deprecation window. `count`
-	 * is NOT deprecated (the metabox reads it) and stays.
+	 * The legacy `success` / `fail` keys were removed in 6.17.0 (#730) after
+	 * their deprecation window closed — use `access_success` /
+	 * `download_success` / `failed_access` instead. `count` stays (the
+	 * metabox reads it).
 	 *
 	 * @param int $form_id Form ID.
-	 * @return array{count: int, success: int, fail: int, access_success: int, download_success: int, failed_access: int, url: string|null}
+	 * @return array{count: int, access_success: int, download_success: int, failed_access: int, url: string|null}
 	 */
 	public static function get_audit_log_summary( int $form_id ): array {
 		// Thin public delegator. The implementation lives in

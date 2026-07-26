@@ -55,6 +55,9 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 ### Security
 - Closed four #739 RBAC escapes — CSRF-protected surfaces on raw WP caps not FFC caps: certificates-calendar REST → `ffc_view_certificates`; `ffc_generate_codes`/`ffc_load_template` → `ffc_manage_forms`; `ffc_search_user` → `ffc_edit_certificates`; Notices bulk-delete → `ffc_delete_recruitment`.
 
+### Removed
+- **⚠ Breaking (#730) — legacy audit-log summary keys + `UserDataRestController` facade.** `PublicCsvDownload::get_audit_log_summary()` / `CsvDownloadAuditLog::get_summary()` no longer return the deprecated `success` / `fail` keys — use `access_success` / `failed_access` (`count` stays). The 12 `@deprecated` `get_user_*` delegate methods on `UserDataRestController` are removed — call the sub-controllers (`UserProfileRestController`, `UserCertificatesRestController`, …) directly. Both were deprecated in 6.15.0; the removal window (2nd feature release after) has closed. Zero internal callers; external integrators on the old names must migrate.
+
 ## [6.16.0] (2026-07-22)
 
 ### Added
