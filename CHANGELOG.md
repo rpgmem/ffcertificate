@@ -7,7 +7,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
-## [6.17.0] (2026-07-26)
+## [6.17.0] (2026-07-26) — `6f47824`
 
 ### Changed
 - Internal (#809) — CI coverage-job hardening: the shard partitioner now weights test files by test-method count and LPT-packs the four shards (isolated-method spread across shards ~31% → ~0%), and the coveralls.io upload step is `continue-on-error` so a 503 outage can't block merge — the line-coverage floor stays enforced by its own separate step.
