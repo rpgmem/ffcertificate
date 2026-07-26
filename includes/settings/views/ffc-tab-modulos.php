@@ -24,6 +24,7 @@ $ffc_module_meta = array(
 	'certificates'    => array(
 		'label' => __( 'Certificates', 'ffcertificate' ),
 		'desc'  => __( 'The certificate form post type and public form rendering. Disabling hides the certificate admin and stops public submissions.', 'ffcertificate' ),
+		'note'  => __( 'While disabled, the daily expired-ticket cleanup is paused — unredeemed ticket codes of ended forms are no longer purged until the module is re-enabled.', 'ffcertificate' ),
 	),
 	'audiences'       => array(
 		'label' => __( 'Audiences / Scheduling', 'ffcertificate' ),
@@ -89,6 +90,12 @@ $ffc_module_meta = array(
 					?>
 					<?php if ( '' !== $ffc_meta['desc'] ) : ?>
 						<p class="description"><?php echo esc_html( $ffc_meta['desc'] ); ?></p>
+					<?php endif; ?>
+					<?php if ( ! empty( $ffc_meta['note'] ) ) : ?>
+						<p class="description ffc-module-note">
+							<span class="dashicons dashicons-info-outline" aria-hidden="true"></span>
+							<?php echo esc_html( $ffc_meta['note'] ); ?>
+						</p>
 					<?php endif; ?>
 				</td>
 			</tr>

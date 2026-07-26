@@ -103,6 +103,25 @@
     margin-left: 25px;
 }
 
+/* Per-module heads-up note (e.g. the Certificates cron pause) — an inline
+   info line under a module toggle, set apart from the plain description. */
+.ffc-settings-wrap .form-table .description.ffc-module-note {
+    display: flex;
+    align-items: flex-start;
+    gap: 5px;
+    margin-top: 6px;
+    font-style: italic;
+}
+
+.ffc-settings-wrap .form-table .description.ffc-module-note .dashicons {
+    flex: 0 0 auto;
+    margin-top: 1px;
+    width: 16px;
+    height: 16px;
+    font-size: 16px;
+    color: var(--ffc-text-muted);
+}
+
 /* ==========================================================================
    STATISTICS BOXES
    ========================================================================== */
