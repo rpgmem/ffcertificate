@@ -87,62 +87,7 @@ class ReregistrationFormRenderer {
 		$group_labels = ReregistrationStandardFieldsSeeder::get_group_labels();
 
 		ob_start();
-		?>
-		<div class="ffc-rereg-form-container" data-reregistration-id="<?php echo esc_attr( (string) $rereg->id ); ?>">
-			<div class="ffc-rereg-header-bar">
-				<div class="ffc-rereg-header-title"><?php echo esc_html__( 'CITY HALL OF SÃO PAULO / DEPARTMENT OF EDUCATION – SME', 'ffcertificate' ); ?></div>
-				<div class="ffc-rereg-header-subtitle"><?php echo esc_html__( 'REGIONAL EDUCATION BOARD SÃO MIGUEL – MP', 'ffcertificate' ); ?></div>
-			</div>
-
-			<h3><?php echo esc_html( $rereg->title ); ?></h3>
-			<p class="ffc-rereg-deadline">
-				<?php
-				/* translators: %s: end date */
-				echo esc_html( sprintf( __( 'Deadline: %s', 'ffcertificate' ), $end_date ) );
-				?>
-			</p>
-
-			<form id="ffc-rereg-form" novalidate>
-				<input type="hidden" name="reregistration_id" value="<?php echo esc_attr( (string) $rereg->id ); ?>">
-
-				<?php
-				$group_index = 0;
-				$has_ack     = false;
-				foreach ( $grouped as $group_key => $group_fields ) {
-					++$group_index;
-					foreach ( $group_fields as $gf ) {
-						if ( 'acknowledgment' === (string) $gf->field_type ) {
-							$has_ack = true;
-							break;
-						}
-					}
-					$label = $group_labels[ $group_key ] ?? ( '' !== $group_key ? $group_key : __( 'Additional Information', 'ffcertificate' ) );
-					self::render_group_fieldset( $group_index, (string) $label, $group_fields, $values );
-				}
-
-				// Fallback for audiences seeded before the acknowledgment field
-				// existed: render the default notice so the form is never missing
-				// its legal block. Seeded audiences render it via the loop above.
-				if ( ! $has_ack ) {
-					self::render_acknowledgment_fieldset( $group_index + 1 );
-				}
-
-				// Honeypot field (defense-in-depth — form already requires login).
-				?>
-				<div class="ffc-honeypot-field">
-					<label><?php esc_html_e( 'Do not fill this field if you are human:', 'ffcertificate' ); ?></label>
-					<input type="text" name="ffc_honeypot_trap" value="" tabindex="-1" autocomplete="off">
-				</div>
-
-				<div class="ffc-rereg-actions">
-					<button type="button" class="button ffc-rereg-draft-btn"><?php esc_html_e( 'Save Draft', 'ffcertificate' ); ?></button>
-					<button type="submit" class="button button-primary ffc-rereg-submit-btn"><?php esc_html_e( 'Submit', 'ffcertificate' ); ?></button>
-					<button type="button" class="button ffc-rereg-cancel-btn"><?php esc_html_e( 'Cancel', 'ffcertificate' ); ?></button>
-					<span class="ffc-rereg-status"></span>
-				</div>
-			</form>
-		</div>
-		<?php
+		include FFC_PLUGIN_DIR . 'templates/reregistration/form.php';
 		$output = ob_get_clean();
 		return $output ? $output : '';
 	}
@@ -271,22 +216,11 @@ class ReregistrationFormRenderer {
 	 * @phpstan-param list<CustomFieldRow> $fields
 	 * @param array<string, mixed> $values field_key => value.
 	 */
-	private static function render_group_fieldset( int $index, string $label, array $fields, array $values ): void {
+	public static function render_group_fieldset( int $index, string $label, array $fields, array $values ): void {
 		if ( empty( $fields ) ) {
 			return;
 		}
-		?>
-		<fieldset class="ffc-rereg-fieldset">
-			<legend><?php echo esc_html( sprintf( '%d. %s', $index, $label ) ); ?></legend>
-			<?php
-			foreach ( $fields as $field ) {
-				$key   = (string) $field->field_key;
-				$value = $values[ $key ] ?? '';
-				self::render_field( $field, $value );
-			}
-			?>
-		</fieldset>
-		<?php
+		include FFC_PLUGIN_DIR . 'templates/reregistration/group-fieldset.php';
 	}
 
 	/**
@@ -296,7 +230,7 @@ class ReregistrationFormRenderer {
 	 * @phpstan-param CustomFieldRow $field
 	 * @param mixed  $value Current value (already decrypted for sensitive fields).
 	 */
-	private static function render_field( object $field, $value ): void {
+	public static function render_field( object $field, $value ): void {
 		$field_id   = self::FIELD_ID_PREFIX . (int) $field->id;
 		$field_name = self::FIELD_NAME_ROOT . '[' . (string) $field->field_key . ']';
 		$required   = ! empty( $field->is_required );
@@ -314,34 +248,11 @@ class ReregistrationFormRenderer {
 
 		// Checkbox renders its own label inline.
 		if ( 'checkbox' === $field->field_type ) {
-			?>
-			<div class="ffc-rereg-field" data-field-id="<?php echo esc_attr( (string) $field->id ); ?>"
-				data-field-key="<?php echo esc_attr( (string) $field->field_key ); ?>">
-				<?php self::render_input( $field, $field_id, $field_name, $value, $required, $rules ); ?>
-				<span class="ffc-field-error" role="alert"></span>
-			</div>
-			<?php
+			include FFC_PLUGIN_DIR . 'templates/reregistration/field-wrapper-checkbox.php';
 			return;
 		}
-		?>
-		<div class="ffc-rereg-field" data-field-id="<?php echo esc_attr( (string) $field->id ); ?>"
-			data-field-key="<?php echo esc_attr( (string) $field->field_key ); ?>"
-			data-format="<?php echo esc_attr( $rules['format'] ?? '' ); ?>"
-			data-regex="<?php echo esc_attr( $rules['custom_regex'] ?? '' ); ?>"
-			data-regex-msg="<?php echo esc_attr( $rules['custom_regex_message'] ?? '' ); ?>">
-			<label for="<?php echo esc_attr( $field_id ); ?>">
-				<?php echo esc_html( (string) $field->field_label ); ?>
-				<?php
-				if ( $required ) :
-					?>
-					<span class="required">*</span><?php endif; ?>
-			</label>
 
-			<?php self::render_input( $field, $field_id, $field_name, $value, $required, $rules ); ?>
-
-			<span class="ffc-field-error" role="alert"></span>
-		</div>
-		<?php
+		include FFC_PLUGIN_DIR . 'templates/reregistration/field-wrapper-default.php';
 	}
 
 	/**
@@ -355,7 +266,7 @@ class ReregistrationFormRenderer {
 	 * @param bool                 $required   Whether the field is required.
 	 * @param array<string, mixed> $rules     Validation rules.
 	 */
-	private static function render_input( object $field, string $field_id, string $field_name, $value, bool $required, array $rules ): void {
+	public static function render_input( object $field, string $field_id, string $field_name, $value, bool $required, array $rules ): void {
 		$mask = isset( $field->field_mask ) ? (string) $field->field_mask : '';
 		if ( '' === $mask && ! empty( $rules['format'] ) ) {
 			$mask = (string) $rules['format'];
@@ -470,52 +381,7 @@ class ReregistrationFormRenderer {
 		$decoded = null !== $value && '' !== $value ? json_decode( $value, true ) : null;
 		$parent  = is_array( $decoded ) && isset( $decoded['parent'] ) ? (string) $decoded['parent'] : '';
 		$child   = is_array( $decoded ) && isset( $decoded['child'] ) ? (string) $decoded['child'] : '';
-		?>
-		<input type="hidden" id="<?php echo esc_attr( $field_id ); ?>" name="<?php echo esc_attr( $field_name ); ?>"
-				value="
-				<?php
-				$dep_json = wp_json_encode(
-					array(
-						'parent' => $parent,
-						'child'  => $child,
-					)
-				);
-				echo esc_attr( $dep_json ? $dep_json : '' );
-				?>
-						">
-		<div class="ffc-dependent-select" data-target="<?php echo esc_attr( $field_id ); ?>">
-			<div class="ffc-rereg-row ffc-rereg-row-2">
-				<div class="ffc-rereg-field">
-					<label><?php echo esc_html( (string) $parent_label ); ?></label>
-					<select class="ffc-dep-parent">
-						<option value=""><?php esc_html_e( 'Select', 'ffcertificate' ); ?></option>
-						<?php foreach ( array_keys( $groups ) as $group ) : ?>
-							<option value="<?php echo esc_attr( (string) $group ); ?>" <?php selected( $parent, (string) $group ); ?>><?php echo esc_html( (string) $group ); ?></option>
-						<?php endforeach; ?>
-					</select>
-				</div>
-				<div class="ffc-rereg-field">
-					<label><?php echo esc_html( (string) $child_label ); ?></label>
-					<select class="ffc-dep-child">
-						<option value=""><?php esc_html_e( 'Select', 'ffcertificate' ); ?></option>
-						<?php
-						if ( '' !== $parent && isset( $groups[ $parent ] ) ) {
-							foreach ( $groups[ $parent ] as $child_opt ) {
-								printf(
-									'<option value="%s" %s>%s</option>',
-									esc_attr( (string) $child_opt ),
-									selected( $child, (string) $child_opt, false ),
-									esc_html( (string) $child_opt )
-								);
-							}
-						}
-						?>
-					</select>
-				</div>
-			</div>
-			<script type="application/json" class="ffc-dep-groups"><?php echo wp_json_encode( $groups ); ?></script>
-		</div>
-		<?php
+		include FFC_PLUGIN_DIR . 'templates/reregistration/field-dependent-select.php';
 	}
 
 	/**
@@ -547,43 +413,7 @@ class ReregistrationFormRenderer {
 			5 => __( 'Friday', 'ffcertificate' ),
 			6 => __( 'Saturday', 'ffcertificate' ),
 		);
-		?>
-		<?php $wh_json = wp_json_encode( $wh_data ); ?>
-		<input type="hidden" id="<?php echo esc_attr( $field_id ); ?>" name="<?php echo esc_attr( $field_name ); ?>" value="<?php echo esc_attr( $wh_json ? $wh_json : '' ); ?>">
-		<div class="ffc-working-hours" data-target="<?php echo esc_attr( $field_id ); ?>">
-			<table class="ffc-wh-table">
-				<thead>
-					<tr>
-						<th><?php esc_html_e( 'Day', 'ffcertificate' ); ?></th>
-						<th><?php esc_html_e( 'Entry 1', 'ffcertificate' ); ?> <span class="required">*</span></th>
-						<th><?php esc_html_e( 'Exit 1', 'ffcertificate' ); ?></th>
-						<th><?php esc_html_e( 'Entry 2', 'ffcertificate' ); ?></th>
-						<th><?php esc_html_e( 'Exit 2', 'ffcertificate' ); ?> <span class="required">*</span></th>
-						<th></th>
-					</tr>
-				</thead>
-				<tbody>
-					<?php foreach ( $wh_data as $wh_entry ) : ?>
-					<tr>
-						<td>
-							<select class="ffc-wh-day">
-								<?php foreach ( $days_labels as $d_num => $d_name ) : ?>
-									<option value="<?php echo esc_attr( (string) $d_num ); ?>" <?php selected( $wh_entry['day'] ?? 0, $d_num ); ?>><?php echo esc_html( $d_name ); ?></option>
-								<?php endforeach; ?>
-							</select>
-						</td>
-						<td><input type="time" class="ffc-wh-entry1" value="<?php echo esc_attr( $wh_entry['entry1'] ?? '' ); ?>" required></td>
-						<td><input type="time" class="ffc-wh-exit1"  value="<?php echo esc_attr( $wh_entry['exit1'] ?? '' ); ?>"></td>
-						<td><input type="time" class="ffc-wh-entry2" value="<?php echo esc_attr( $wh_entry['entry2'] ?? '' ); ?>"></td>
-						<td><input type="time" class="ffc-wh-exit2"  value="<?php echo esc_attr( $wh_entry['exit2'] ?? '' ); ?>" required></td>
-						<td><button type="button" class="ffc-wh-remove">&times;</button></td>
-					</tr>
-					<?php endforeach; ?>
-				</tbody>
-			</table>
-			<button type="button" class="button ffc-wh-add">+ <?php esc_html_e( 'Add Day', 'ffcertificate' ); ?></button>
-		</div>
-		<?php
+		include FFC_PLUGIN_DIR . 'templates/reregistration/field-working-hours.php';
 	}
 
 	/**
@@ -595,15 +425,8 @@ class ReregistrationFormRenderer {
 	 *
 	 * @param int $index Fieldset index shown in the legend.
 	 */
-	private static function render_acknowledgment_fieldset( int $index ): void {
-		?>
-		<fieldset class="ffc-rereg-fieldset">
-			<legend><?php echo esc_html( sprintf( '%d. %s', $index, __( 'Acknowledgment', 'ffcertificate' ) ) ); ?></legend>
-			<div class="ffc-rereg-termo-text">
-				<?php echo wp_kses_post( ReregistrationFieldOptions::get_default_termo_ciencia_html() ); ?>
-			</div>
-		</fieldset>
-		<?php
+	public static function render_acknowledgment_fieldset( int $index ): void {
+		include FFC_PLUGIN_DIR . 'templates/reregistration/acknowledgment-fieldset.php';
 	}
 
 	/**
