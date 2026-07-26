@@ -401,8 +401,11 @@ class SettingsSaveHandler {
 		$ffc_tab = isset( $_POST['_ffc_tab'] ) ? sanitize_key( wp_unslash( $_POST['_ffc_tab'] ) ) : '';
 
 		// Checkbox fields (unchecked = absent from POST) — only process on URL Shortener tab.
+		// NOTE: `url_shortener_enabled` is intentionally NOT written here — the
+		// module on/off toggle lives solely on the Modules tab (autosaved), so this
+		// form must preserve the existing value rather than zero it out when the
+		// (now-removed) enable checkbox is absent from the POST.
 		if ( 'url_shortener' === $ffc_tab ) {
-			$clean['url_shortener_enabled']     = isset( $new['url_shortener_enabled'] ) ? 1 : 0;
 			$clean['url_shortener_auto_create'] = isset( $new['url_shortener_auto_create'] ) ? 1 : 0;
 		}
 

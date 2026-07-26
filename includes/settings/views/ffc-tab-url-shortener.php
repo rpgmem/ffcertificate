@@ -12,7 +12,6 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 $ffc_settings = \FreeFormCertificate\Settings\SettingsReader::all();
 
-$enabled       = isset( $ffc_settings['url_shortener_enabled'] ) ? (int) $ffc_settings['url_shortener_enabled'] : 1;
 $prefix        = $ffc_settings['url_shortener_prefix'] ?? 'go';
 $code_length   = (int) ( $ffc_settings['url_shortener_code_length'] ?? 6 );
 $auto_create   = isset( $ffc_settings['url_shortener_auto_create'] ) ? (int) $ffc_settings['url_shortener_auto_create'] : 1;
@@ -32,6 +31,15 @@ $all_post_types = get_post_types( array( 'public' => true ), 'objects' );
 	<p class="description">
 		<?php esc_html_e( 'Configure the built-in URL shortener. Short URLs redirect visitors and generate QR Codes.', 'ffcertificate' ); ?>
 	</p>
+	<p class="description">
+		<?php
+		printf(
+			/* translators: %s: link to the Modules settings tab */
+			esc_html__( 'Enable or disable this module in the %s tab.', 'ffcertificate' ),
+			'<a href="' . esc_url( admin_url( 'admin.php?page=ffc-settings&tab=modulos' ) ) . '">' . esc_html__( 'Modules', 'ffcertificate' ) . '</a>'
+		);
+		?>
+	</p>
 
 	<form method="post">
 		<?php wp_nonce_field( 'ffc_settings_action', 'ffc_settings_nonce' ); ?>
@@ -40,28 +48,6 @@ $all_post_types = get_post_types( array( 'public' => true ), 'objects' );
 	<table class="form-table" role="presentation">
 		<tbody>
 		<tr>
-		<th scope="row">
-			<label for="url_shortener_enabled"><?php esc_html_e( 'Enable URL Shortener', 'ffcertificate' ); ?></label>
-		</th>
-		<td>
-			<?php
-			\FreeFormCertificate\Admin\AdminUI::render_toggle(
-				array(
-					'name'    => 'ffc_settings[url_shortener_enabled]',
-					'id'      => 'url_shortener_enabled',
-					'checked' => 1 === (int) $enabled,
-					'label'   => __( 'Enable the URL Shortener module', 'ffcertificate' ),
-					'data'    => array(
-						'ffc-autosave-key'   => 'url_shortener_enabled',
-						'ffc-section-master' => 'url-shortener-enabled',
-					),
-				)
-			);
-			?>
-		</td>
-	</tr>
-
-	<tr data-ffc-section="url-shortener-enabled">
 		<th scope="row">
 			<label for="url_shortener_prefix"><?php esc_html_e( 'URL Prefix', 'ffcertificate' ); ?></label>
 		</th>
@@ -77,7 +63,7 @@ $all_post_types = get_post_types( array( 'public' => true ), 'objects' );
 		</td>
 	</tr>
 
-	<tr data-ffc-section="url-shortener-enabled">
+	<tr>
 		<th scope="row">
 			<label for="url_shortener_code_length"><?php esc_html_e( 'Code Length', 'ffcertificate' ); ?></label>
 		</th>
@@ -91,7 +77,7 @@ $all_post_types = get_post_types( array( 'public' => true ), 'objects' );
 		</td>
 	</tr>
 
-	<tr data-ffc-section="url-shortener-enabled">
+	<tr>
 		<th scope="row">
 			<label for="url_shortener_redirect_type"><?php esc_html_e( 'Redirect Type', 'ffcertificate' ); ?></label>
 		</th>
@@ -107,7 +93,7 @@ $all_post_types = get_post_types( array( 'public' => true ), 'objects' );
 		</td>
 	</tr>
 
-	<tr data-ffc-section="url-shortener-enabled">
+	<tr>
 		<th scope="row">
 			<label for="url_shortener_auto_create"><?php esc_html_e( 'Auto-create Short URLs', 'ffcertificate' ); ?></label>
 		</th>
@@ -126,7 +112,7 @@ $all_post_types = get_post_types( array( 'public' => true ), 'objects' );
 		</td>
 	</tr>
 
-	<tr data-ffc-section="url-shortener-enabled">
+	<tr>
 		<th scope="row"><?php esc_html_e( 'Post Types', 'ffcertificate' ); ?></th>
 		<td>
 			<div class="ffc-checkbox-group">
