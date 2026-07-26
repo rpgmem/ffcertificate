@@ -123,6 +123,14 @@ class SettingsTabTest extends TestCase {
         $this->assertSame( 42, $this->tab->get_order() );
     }
 
+    public function test_get_view_cap_defaults_to_ffc_view_settings(): void {
+        $this->assertSame( 'ffc_view_settings', $this->tab->get_view_cap() );
+    }
+
+    public function test_get_manage_cap_defaults_to_ffc_manage_settings(): void {
+        $this->assertSame( 'ffc_manage_settings', $this->tab->get_manage_cap() );
+    }
+
     public function test_get_order_defaults_to_ten_when_not_set(): void {
         $tab = new class() extends SettingsTab {
             protected function init(): void {
@@ -293,7 +301,7 @@ class SettingsTabTest extends TestCase {
         $url = $this->tab->public_get_tab_url();
 
         $this->assertSame(
-            'https://example.com/wp-admin/edit.php?post_type=ffc_form&page=ffc-settings&tab=test_tab',
+            'https://example.com/wp-admin/admin.php?page=ffc-settings&tab=test_tab',
             $url
         );
     }

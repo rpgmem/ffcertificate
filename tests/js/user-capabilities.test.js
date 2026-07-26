@@ -168,7 +168,7 @@ function rolePanelMarkup() {
 					<span class="ffc-cap-role-mark"></span><span class="ffc-cap-role-nm">FFC End User</span><span class="ffc-cap-role-ct">2 caps</span>
 				</button>
 				<button class="ffc-cap-role" data-ffc-role="ffc_recruitment_manager" aria-pressed="false">
-					<span class="ffc-cap-role-mark"></span><span class="ffc-cap-role-nm">Recruitment Manager</span><span class="ffc-cap-role-ct">1 cap</span>
+					<span class="ffc-cap-role-mark"></span><span class="ffc-cap-role-nm">FFC Recruitment - Manager</span><span class="ffc-cap-role-ct">1 cap</span>
 				</button>
 			</div>
 		</div>
@@ -220,7 +220,7 @@ describe('role presets', () => {
 
 		const rowC = document.querySelector('[data-ffc-cap-slug="cap_c"]');
 		expect(rowC.classList.contains('is-lit')).toBe(true);
-		expect(rowC.querySelector('[data-ffc-role-tag]').textContent).toBe('Recruitment Manager');
+		expect(rowC.querySelector('[data-ffc-role-tag]').textContent).toBe('FFC Recruitment - Manager');
 		// A cap the role does not grant stays dark.
 		expect(document.querySelector('[data-ffc-cap-slug="cap_a"]').classList.contains('is-lit')).toBe(false);
 

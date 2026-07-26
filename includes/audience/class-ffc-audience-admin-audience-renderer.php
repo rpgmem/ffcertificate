@@ -15,6 +15,9 @@ declare(strict_types=1);
 
 namespace FreeFormCertificate\Audience;
 
+use FreeFormCertificate\Core\LabelSorter;
+use FreeFormCertificate\Reregistration\CustomFieldReader;
+
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
@@ -329,8 +332,18 @@ final class AudienceAdminAudienceRenderer {
 			\FreeFormCertificate\Reregistration\ReregistrationStandardFieldsSeeder::seed_for_audience( $audience_id );
 		}
 
+		// Custom fields for this audience, plus the ordered slug => translated
+		// label map: A→Z by translated label with the display-only
+		// `acknowledgment` type pinned last.
 		$fields       = \FreeFormCertificate\Reregistration\CustomFieldReader::get_by_audience( $audience_id, false );
-		$field_types  = \FreeFormCertificate\Reregistration\CustomFieldReader::FIELD_TYPES;
+		$field_types  = LabelSorter::sort(
+			CustomFieldReader::field_type_labels(),
+			static function ( string $label ): string {
+				return $label;
+			},
+			array(),
+			array( 'acknowledgment' )
+		);
 		$group_labels = class_exists( '\FreeFormCertificate\Reregistration\ReregistrationStandardFieldsSeeder' )
 			? \FreeFormCertificate\Reregistration\ReregistrationStandardFieldsSeeder::get_group_labels()
 			: array();
@@ -383,8 +396,8 @@ final class AudienceAdminAudienceRenderer {
 						<span class="ffc-field-source-badge ffc-field-source-custom"><?php esc_html_e( 'Custom', 'ffcertificate' ); ?></span>
 						<input type="text" class="ffc-field-label regular-text" placeholder="<?php esc_attr_e( 'Field Label', 'ffcertificate' ); ?>" value="">
 						<select class="ffc-field-type">
-							<?php foreach ( $field_types as $type ) : ?>
-								<option value="<?php echo esc_attr( $type ); ?>"><?php echo esc_html( ucfirst( $type ) ); ?></option>
+							<?php foreach ( $field_types as $type => $label ) : ?>
+								<option value="<?php echo esc_attr( $type ); ?>"><?php echo esc_html( $label ); ?></option>
 							<?php endforeach; ?>
 						</select>
 						<select class="ffc-field-group">
@@ -467,7 +480,7 @@ final class AudienceAdminAudienceRenderer {
 	 * Render a single custom field row in the editor.
 	 *
 	 * @param object                $field        Field object from database.
-	 * @param array<int, string>    $field_types  Available field types.
+	 * @param array<string, string> $field_types  Ordered slug => translated label map.
 	 * @param array<string, string> $group_labels Map of group_key => translated label.
 	 * @phpstan-param CustomFieldRow $field
 	 * @return void
@@ -523,8 +536,8 @@ final class AudienceAdminAudienceRenderer {
 					<span class="ffc-field-source-badge <?php echo esc_attr( $badge_class ); ?>"><?php echo esc_html( $badge_label ); ?></span>
 					<input type="text" class="ffc-field-label regular-text" placeholder="<?php esc_attr_e( 'Field Label', 'ffcertificate' ); ?>" value="<?php echo esc_attr( $field->field_label ); ?>">
 					<select class="ffc-field-type"<?php echo esc_attr( $locked_attr ); ?>>
-						<?php foreach ( $field_types as $type ) : ?>
-							<option value="<?php echo esc_attr( $type ); ?>" <?php selected( $field->field_type, $type ); ?>><?php echo esc_html( ucfirst( $type ) ); ?></option>
+						<?php foreach ( $field_types as $type => $label ) : ?>
+							<option value="<?php echo esc_attr( $type ); ?>" <?php selected( $field->field_type, $type ); ?>><?php echo esc_html( $label ); ?></option>
 						<?php endforeach; ?>
 					</select>
 					<select class="ffc-field-group">

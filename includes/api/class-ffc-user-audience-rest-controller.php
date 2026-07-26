@@ -241,7 +241,7 @@ class UserAudienceRestController {
 			if ( ! self::table_exists( $audiences_table ) || ! self::column_exists( $audiences_table, 'allow_self_join' ) ) {
 				return rest_ensure_response(
 					array(
-						'groups'       => array(),
+						'parents'      => array(),
 						'joined_count' => 0,
 						'max_groups'   => self::MAX_SELF_JOIN_GROUPS,
 					)
@@ -304,11 +304,23 @@ class UserAudienceRestController {
 	}
 
 	/**
-	 * Build a joinable node recursively, counting joined members.
+	 * Recursively assemble a joinable-tree node from a raw audience row.
+	 *
+	 * Per-node model (#792 / CLAUDE.md self-join rules):
+	 *   - A node has a **button** ⟺ its own `allow_self_join` is on.
+	 *   - A node **appears** ⟺ it has a button OR has an appearing
+	 *     descendant (a child that itself appears).
+	 *   - A node is **header-only** when it appears without a button
+	 *     (a non-self-join parent kept visible for its joinable children).
+	 *
+	 * So a node may carry BOTH a `joinable` button (its own membership)
+	 * AND a `children` list (its appearing descendants). The `$count`
+	 * reference tallies the user's memberships in button-bearing nodes —
+	 * the on-screen "joined N of max" counter.
 	 *
 	 * @param array<string, mixed> $node  Audience row with 'children' array.
-	 * @param int                  $count Reference counter for joined leaf audiences.
-	 * @return array<string, mixed>|null  Cleaned node or null if branch is empty.
+	 * @param int                  $count Reference counter for joined self-join nodes.
+	 * @return array<string, mixed>|null  Assembled node, or null when it does not appear.
 	 */
 	private function build_joinable_node( array $node, int &$count ): ?array {
 		$children = array();
@@ -319,31 +331,32 @@ class UserAudienceRestController {
 			}
 		}
 
-		// Leaf node: include if joinable.
-		if ( empty( $children ) && empty( $node['children'] ) ) {
+		$has_button = ! empty( $node['allow_self_join'] );
+
+		// Does not appear: no button of its own and no appearing descendant.
+		if ( ! $has_button && empty( $children ) ) {
+			return null;
+		}
+
+		$out = array(
+			'id'    => $node['id'],
+			'name'  => $node['name'],
+			'color' => $node['color'],
+		);
+
+		if ( $has_button ) {
+			$out['joinable']  = true;
+			$out['is_member'] = (bool) $node['is_member'];
 			if ( $node['is_member'] ) {
 				++$count;
 			}
-			return array(
-				'id'        => $node['id'],
-				'name'      => $node['name'],
-				'color'     => $node['color'],
-				'is_member' => $node['is_member'],
-			);
 		}
 
-		// Branch node: only include if it has joinable descendants.
 		if ( ! empty( $children ) ) {
-			$out = array(
-				'id'       => $node['id'],
-				'name'     => $node['name'],
-				'color'    => $node['color'],
-				'children' => $children,
-			);
-			return $out;
+			$out['children'] = $children;
 		}
 
-		return null;
+		return $out;
 	}
 
 	/**
@@ -369,12 +382,17 @@ class UserAudienceRestController {
 				return new \WP_Error( 'missing_group', __( 'Group ID is required', 'ffcertificate' ), array( 'status' => 400 ) );
 			}
 
-			// Verify group is a child, active, and self-joinable.
+			// Verify group is active and self-joinable. Joinability is per-node:
+			// a group is directly joinable when its OWN allow_self_join is on —
+			// whether it is a child, a top-level group with no children, or a
+			// parent that also has children (the parent is joinable in its own
+			// right; its children are joinable separately). The previous
+			// `parent_id NOT NULL` check wrongly rejected top-level groups (the
+			// reported bug).
 			$group = \FreeFormCertificate\Audience\AudienceReader::get_by_id( $group_id );
 			if ( ! $group
 				|| 'active' !== (string) ( $group->status ?? '' )
 				|| 1 !== (int) ( $group->allow_self_join ?? 0 )
-				|| null === ( $group->parent_id ?? null )
 			) {
 				return new \WP_Error( 'invalid_group', __( 'Group not found or does not allow self-join', 'ffcertificate' ), array( 'status' => 404 ) );
 			}
@@ -442,11 +460,11 @@ class UserAudienceRestController {
 			$audiences_table = $wpdb->prefix . 'ffc_audiences';
 			$members_table   = $wpdb->prefix . 'ffc_audience_members';
 
-			// Verify group is a self-joinable child (can only leave children).
+			// Verify group is self-joinable (top-level or child — mirrors join()).
             // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 			$group = $wpdb->get_row(
 				$wpdb->prepare(
-					'SELECT id, name FROM %i WHERE id = %d AND allow_self_join = 1 AND parent_id IS NOT NULL',
+					'SELECT id, name FROM %i WHERE id = %d AND allow_self_join = 1',
 					$audiences_table,
 					$group_id
 				)

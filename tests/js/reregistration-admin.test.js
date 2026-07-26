@@ -25,7 +25,12 @@ beforeAll(() => {
 		fichaNonce: 'ficha-nonce',
 		viewDetailsNonce: 'details-nonce',
 		adminNonce: 'admin-nonce',
+		exportNonce: 'export-nonce',
 		strings: {
+			exportPreparing: 'Preparing…',
+			exportProgress: 'Exporting %1$d/%2$d…',
+			exportDone: 'Done!',
+			exportError: 'An error occurred.',
 			confirmApprove: 'Approve?',
 			confirmReturnToDraft: 'Return to draft?',
 			generatingPdf: 'Generating…',
@@ -642,5 +647,46 @@ describe('rereg-admin — audience transfer list', () => {
 		$first.trigger('click');
 		await flush();
 		expect($first.hasClass('ffc-transfer-highlight')).toBe(false);
+	});
+});
+
+// ----------------------------------------------------------------------
+// initCsvExport — batched CSV export (#772)
+// ----------------------------------------------------------------------
+
+describe('rereg-admin — CSV export', () => {
+	afterEach(() => {
+		delete window.FFCBatchedExport;
+	});
+
+	it('drives window.FFCBatchedExport.run with type + campaign id + job nonce', async () => {
+		const runSpy = vi.fn();
+		window.FFCBatchedExport = { run: runSpy };
+		document.body.innerHTML = `
+			<button type="button" id="ffc-rereg-export-btn" data-id="7">Export CSV</button>
+			<span id="ffc-rereg-export-progress" style="display:none;"></span>
+		`;
+		await reload();
+
+		window.$('#ffc-rereg-export-btn').trigger('click');
+
+		// The bindEvents delegate lives on document (persists across reload()),
+		// so it may fire more than once — assert it fired and inspect the first.
+		expect(runSpy).toHaveBeenCalled();
+		const arg = runSpy.mock.calls[0][0];
+		expect(arg.type).toBe('reregistration');
+		expect(arg.ajaxUrl).toBe('/wp-admin/admin-ajax.php');
+		expect(arg.nonce).toBe('export-nonce');
+		expect(arg.startData).toEqual({ id: 7 });
+		// Progress is now driven by the shared overlay (#786): the caller passes
+		// overlay:true + the button, not per-call callbacks.
+		expect(arg.overlay).toBe(true);
+		expect(arg.button).toBeTruthy();
+	});
+
+	it('is a no-op when the batched-export driver is unavailable', async () => {
+		document.body.innerHTML = '<button type="button" id="ffc-rereg-export-btn" data-id="7">Export CSV</button>';
+		await reload();
+		expect(() => window.$('#ffc-rereg-export-btn').trigger('click')).not.toThrow();
 	});
 });

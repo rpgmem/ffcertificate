@@ -23,29 +23,38 @@ if ( ! defined( 'ABSPATH' ) ) {
 class AdminActivityLogPage {
 
 	/**
-	 * Register admin menu and export handler
+	 * Constructor. Registers the batched CSV-export source with the shared
+	 * registry (#772). Done here — not in register_menu(), which is hooked on
+	 * `admin_menu` and never fires on admin-ajax — so the unified dispatcher can
+	 * route `type=activity_log` start/batch/download requests to it. This class
+	 * is instantiated by {@see Admin} on every admin request (admin-ajax
+	 * included).
 	 */
-	public function register_menu(): void {
-		add_submenu_page(
-			'edit.php?post_type=ffc_form',
-			__( 'Activity Log', 'ffcertificate' ),
-			__( 'Activity Log', 'ffcertificate' ),
-			'ffc_view_activity_log',
-			'ffc-activity-log',
-			array( $this, 'render_page' )
+	public function __construct() {
+		\FreeFormCertificate\Core\SourceRegistry::register(
+			ActivityLogExportSource::TYPE,
+			static function (): ActivityLogExportSource {
+				return new ActivityLogExportSource();
+			}
 		);
-
-		add_action( 'admin_init', array( $this, 'handle_csv_export' ) );
-		add_action( 'admin_enqueue_scripts', array( $this, 'enqueue_scripts' ) );
 	}
 
 	/**
-	 * Enqueue the AJAX-filter script on the Activity Log page only.
+	 * Enqueue the AJAX-filter + export scripts on the Settings → Activity Log
+	 * tab only. Since #802 Phase B the Activity Log is a Settings tab, not a
+	 * standalone submenu, so the gate is the Settings page hook + the active
+	 * tab (mirroring the other tabs' enqueue guards). Registered from
+	 * {@see \FreeFormCertificate\Settings\Tabs\TabActivityLog}.
 	 *
 	 * @param string $hook Current admin page hook.
 	 */
 	public function enqueue_scripts( string $hook ): void {
-		if ( 'ffc_form_page_ffc-activity-log' !== $hook ) {
+		if ( 'toplevel_page_ffc-settings' !== $hook ) {
+			return;
+		}
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- display-only tab param.
+		$active_tab = isset( $_GET['tab'] ) ? sanitize_key( wp_unslash( $_GET['tab'] ) ) : '';
+		if ( 'activity_log' !== $active_tab ) {
 			return;
 		}
 		$s = \FreeFormCertificate\Core\AssetHelper::asset_suffix();
@@ -56,10 +65,27 @@ class AdminActivityLogPage {
 			FFC_VERSION,
 			true
 		);
+		// Shared batched-export driver (#772): the CSV export button drives the
+		// unified `ffc_export_*` dispatcher through window.FFCBatchedExport.
+		wp_enqueue_script(
+			'ffc-batched-export',
+			FFC_PLUGIN_URL . "assets/js/ffc-batched-export{$s}.js",
+			array( 'jquery', 'ffc-core' ),
+			FFC_VERSION,
+			true
+		);
+		// Shared progress-overlay modal styles (#786): the batched-export driver
+		// renders window.FFCProgressOverlay, identical to the public download.
+		wp_enqueue_style(
+			'ffc-progress-overlay',
+			FFC_PLUGIN_URL . "assets/css/ffc-progress-overlay{$s}.css",
+			array(),
+			FFC_VERSION
+		);
 		wp_enqueue_script(
 			'ffc-admin-activity-log',
 			FFC_PLUGIN_URL . "assets/js/ffc-admin-activity-log{$s}.js",
-			array( 'jquery', 'ffc-core', 'ffc-admin-js' ),
+			array( 'jquery', 'ffc-core', 'ffc-admin-js', 'ffc-batched-export' ),
 			FFC_VERSION,
 			true
 		);
@@ -67,125 +93,26 @@ class AdminActivityLogPage {
 			'ffc-admin-activity-log',
 			'ffcActivityLog',
 			array(
-				'nonce'   => wp_create_nonce( ActivityLogAjaxEndpoint::AJAX_ACTION ),
-				'strings' => array(
-					'noLogs'     => __( 'No activity logs found.', 'ffcertificate' ),
-					'error'      => __( 'Failed to fetch logs.', 'ffcertificate' ),
-					'preparing'  => __( 'Preparing CSV download…', 'ffcertificate' ),
-					'colDate'    => __( 'Date/Time', 'ffcertificate' ),
-					'colLevel'   => __( 'Level', 'ffcertificate' ),
-					'colAction'  => __( 'Action', 'ffcertificate' ),
-					'colUser'    => __( 'User', 'ffcertificate' ),
-					'colIp'      => __( 'IP Address', 'ffcertificate' ),
-					'colContext' => __( 'Context', 'ffcertificate' ),
+				'nonce'       => wp_create_nonce( ActivityLogAjaxEndpoint::AJAX_ACTION ),
+				'ajaxUrl'     => admin_url( 'admin-ajax.php' ),
+				'exportNonce' => wp_create_nonce( 'ffc_activity_log_export' ),
+				'strings'     => array(
+					'noLogs'          => __( 'No activity logs found.', 'ffcertificate' ),
+					'error'           => __( 'Failed to fetch logs.', 'ffcertificate' ),
+					'preparing'       => __( 'Preparing CSV download…', 'ffcertificate' ),
+					'colDate'         => __( 'Date/Time', 'ffcertificate' ),
+					'colLevel'        => __( 'Level', 'ffcertificate' ),
+					'colAction'       => __( 'Action', 'ffcertificate' ),
+					'colUser'         => __( 'User', 'ffcertificate' ),
+					'colIp'           => __( 'IP Address', 'ffcertificate' ),
+					'colContext'      => __( 'Context', 'ffcertificate' ),
+					'exportPreparing' => __( 'Preparing…', 'ffcertificate' ),
+					/* translators: %1$d processed, %2$d total */
+					'exportProgress'  => __( 'Exporting %1$d/%2$d…', 'ffcertificate' ),
+					'exportDone'      => __( 'Done!', 'ffcertificate' ),
 				),
 			)
 		);
-	}
-
-	/**
-	 * Handle CSV export of activity logs
-	 *
-	 * @since 5.2.0
-	 */
-	public function handle_csv_export(): void {
-        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Nonce checked below
-		if ( \FreeFormCertificate\Core\RequestInput::get_get_string( 'page' ) !== 'ffc-activity-log' ) {
-			return;
-		}
-        // phpcs:ignore WordPress.Security.NonceVerification.Recommended
-		if ( ! isset( $_GET['ffc_export_logs'] ) ) {
-			return;
-		}
-
-		// Bulk CSV export of the audit trail requires the dedicated export cap
-		// (#711 §5) — a view-only operator can read the log but not extract it.
-		if ( ! \FreeFormCertificate\Core\Capabilities::current_user_can_admin_or( 'ffc_export_activity_log' ) ) {
-			wp_die( esc_html__( 'Unauthorized.', 'ffcertificate' ) );
-		}
-
-		check_admin_referer( 'ffc_export_activity_log' );
-
-		// Gather current filters.
-        // phpcs:disable WordPress.Security.NonceVerification.Recommended -- Already verified above
-		$args = array(
-			'limit'   => 999999, // Export all matching rows.
-			'offset'  => 0,
-			'orderby' => 'created_at',
-			'order'   => 'DESC',
-		);
-
-		$level = isset( $_GET['level'] ) ? sanitize_key( wp_unslash( $_GET['level'] ) ) : '';
-		if ( $level ) {
-			$args['level'] = $level;
-		}
-
-		$action = \FreeFormCertificate\Core\RequestInput::get_get_string( 'log_action' );
-		if ( $action ) {
-			$args['action'] = $action;
-		}
-
-		$search = \FreeFormCertificate\Core\RequestInput::get_get_string( 's' );
-		if ( $search ) {
-			$args['search'] = $search;
-		}
-        // phpcs:enable WordPress.Security.NonceVerification.Recommended
-
-		$logs = \FreeFormCertificate\Core\ActivityLogQuery::get_activities( $args );
-
-		$headers = array(
-			__( 'Date/Time', 'ffcertificate' ),
-			__( 'Level', 'ffcertificate' ),
-			__( 'Action', 'ffcertificate' ),
-			__( 'User', 'ffcertificate' ),
-			__( 'IP Address', 'ffcertificate' ),
-			__( 'Context', 'ffcertificate' ),
-		);
-
-		$rows = array();
-		foreach ( $logs as $log ) {
-			$user_display = __( 'System / Anonymous', 'ffcertificate' );
-			if ( ! empty( $log['user_id'] ) && (int) $log['user_id'] > 0 ) {
-				$user         = get_userdata( (int) $log['user_id'] );
-				$user_display = $user ? $user->display_name . ' (' . $user->user_login . ')' : sprintf( 'User #%d', $log['user_id'] );
-			}
-
-			$context = '';
-			if ( ! empty( $log['context'] ) ) {
-				$context = is_array( $log['context'] )
-					? wp_json_encode( $log['context'], JSON_UNESCAPED_UNICODE )
-					: (string) $log['context'];
-			}
-
-			$rows[] = array(
-				$log['created_at'] ?? '',
-				strtoupper( $log['level'] ?? '' ),
-				self::get_action_label( $log['action'] ?? '' ),
-				$user_display,
-				$log['user_ip'] ?? '',
-				$context,
-			);
-		}
-
-		$filename      = \FreeFormCertificate\Core\FilenameHelper::get_export_filename( 'ffc-activity-log' );
-		$safe_filename = str_replace( array( "\r", "\n", '"' ), '', $filename );
-		header( 'Content-Type: text/csv; charset=utf-8' );
-		header( 'Content-Disposition: attachment; filename="' . $safe_filename . '"' );
-		header( 'Pragma: no-cache' );
-		header( 'Expires: 0' );
-
-		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fopen -- streaming CSV download to php://output.
-		$output = fopen( 'php://output', 'w' );
-		if ( false === $output ) {
-			exit;
-		}
-		$writer = \FreeFormCertificate\Core\Csv::writer( $output );
-		$writer->row( $headers );
-		$writer->rows( $rows );
-		$writer->close();
-		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose -- closing the php://output handle this method opened.
-		fclose( $output );
-		exit;
 	}
 
 	/**
@@ -250,15 +177,15 @@ class AdminActivityLogPage {
 	 */
 	private function render_disabled_notice(): void {
 		?>
-		<div class="wrap">
-			<h1><?php esc_html_e( 'Activity Log', 'ffcertificate' ); ?></h1>
+		<div class="ffc-settings-wrap">
+			<h2 class="ffc-icon-clipboard"><?php esc_html_e( 'Activity Log', 'ffcertificate' ); ?></h2>
 			<div class="notice notice-warning">
 				<p>
 					<strong><?php esc_html_e( 'Activity Log is currently disabled.', 'ffcertificate' ); ?></strong>
 				</p>
 				<p>
 					<?php esc_html_e( 'To enable activity logging, go to:', 'ffcertificate' ); ?>
-					<a href="<?php echo esc_url( admin_url( 'edit.php?post_type=ffc_form&page=ffc-settings&tab=advanced' ) ); ?>">
+					<a href="<?php echo esc_url( admin_url( 'admin.php?page=ffc-settings&tab=advanced' ) ); ?>">
 						<?php esc_html_e( 'Settings > Advanced > Activity Log Settings', 'ffcertificate' ); ?>
 					</a>
 				</p>

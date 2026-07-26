@@ -546,3 +546,48 @@
 .ffc-cap-row[data-ffc-tier="manage"]   { --ffc-tier-strength: 0.85; }
 .ffc-cap-row[data-ffc-tier="bypass"]   { --ffc-tier-strength: 0.85; }
 .ffc-cap-row[data-ffc-tier="delete"]   { --ffc-tier-strength: 1; }
+
+/* ── Blocked-roles list (Settings → User Access) ─────────────────────────
+   Groups the wp-admin block list so it reads as sections instead of one
+   flat wrap of ~30 checkboxes. */
+.ffc-blocked-roles__group {
+	margin: 0 0 14px;
+}
+.ffc-blocked-roles__legend {
+	margin: 0 0 6px;
+	font-weight: 600;
+}
+.ffc-blocked-roles__grid {
+	display: grid;
+	grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+	gap: 4px 20px;
+}
+.ffc-blocked-roles__grid .ffc-checkbox-label {
+	display: flex;
+	align-items: center;
+	gap: 6px;
+	margin: 0;
+	padding: 2px 0;
+}
+.ffc-blocked-roles__group--recommended .ffc-blocked-roles__legend {
+	color: #1d6a3c;
+}
+.ffc-blocked-roles__group--recommended em {
+	color: #1d6a3c;
+	font-style: normal;
+	font-size: 12px;
+}
+.ffc-blocked-roles__group--admin {
+	padding: 8px 12px;
+	border: 1px solid #dcdcde;
+	border-radius: 6px;
+	background: #fbfbfc;
+}
+.ffc-blocked-roles__group--admin > summary {
+	cursor: pointer;
+	font-weight: 600;
+	list-style: revert;
+}
+.ffc-blocked-roles__hint {
+	margin: 6px 0 10px;
+}

@@ -46,7 +46,13 @@ class ReregistrationLoaderTest extends TestCase {
 
 		( new ReregistrationLoader() )->init();
 
-		$this->assertTrue( true );
+		// The batched-export source registers (lazily) with the shared registry
+		// when wiring the admin screens (#772).
+		$this->assertTrue(
+			\FreeFormCertificate\Core\SourceRegistry::has(
+				\FreeFormCertificate\Reregistration\ReregistrationExportSource::TYPE
+			)
+		);
 	}
 
 	public function test_init_skips_admin_on_frontend(): void {

@@ -16,8 +16,9 @@
 	var MIN_DISPLAY = api.cfg.min_display_ms || 1500;
 	var SAFETY_MS   = 300000; // 5 min hard timeout
 
-	// Job state — local to this flow (never read by other modules).
-	var jobId, nonceBatch, total, startTime;
+	// Progress state — local to this flow (never read by other modules).
+	// The job id + per-job nonce are owned by window.FFCBatchedExport now.
+	var total, startTime;
 
 	// ── Download CSV (triggers existing export flow) ────────────
 
@@ -30,70 +31,48 @@
 			api.showError(strings.timeout || 'Export timed out.');
 		}, SAFETY_MS);
 
-		// Step 3 — start export job (reuses saved form data).
-		FFC.request('ffc_public_csv_start', api.formData)
-			.then(function (data) {
-				jobId      = data.job_id;
-				nonceBatch = data.nonce_batch;
-				total      = data.total;
-
-				api.updateStatus(
-					(strings.generating || 'Generating CSV — %d records…')
-						.replace('%d', total)
-				);
-				api.updateProgress(0, total);
-
-				// Step 4 — process batches.
-				processBatch($dlBtn);
-			})
-			.catch(function (err) {
-				api.showError((err && err.fromServer && err.message) || strings.connError || 'Connection error.');
-				$dlBtn.prop('disabled', false).removeClass('ffc-btn-loading');
-			});
-	}
-
-	// ── Recursive batch processing ──────────────────────────────
-
-	function processBatch($dlBtn) {
-		// The batch endpoint expects its own per-job nonce (`nonce_batch`),
-		// not the global ffc_ajax nonce. Pass it via options.nonce so
-		// FFC.request injects it as the canonical `nonce` payload field;
-		// also keep it in the data under its server-side key.
-		FFC.request('ffc_public_csv_batch', {
-			job_id: jobId,
-			nonce_batch: nonceBatch
-		})
-			.then(function (data) {
-				api.updateProgress(data.processed, data.total);
-				api.updateStatus(
-					(strings.exporting || 'Exporting %1$d / %2$d…')
-						.replace('%1$d', data.processed)
-						.replace('%2$d', data.total)
-				);
-
-				if (data.done) {
-					onExportComplete($dlBtn);
-				} else {
-					processBatch($dlBtn);
+		// Drive the start → batch → download flow through the shared batched
+		// export module (#772). The public path is anonymous: the page nonce
+		// travels inside api.formData and start returns a per-job nonce_batch,
+		// so no capability nonce is passed here.
+		window.FFCBatchedExport.run({
+			type: 'public_forms',
+			ajaxUrl: api.cfg.ajax_url,
+			startData: api.formData,
+			callbacks: {
+				onStart: function (t) {
+					total = t;
+					api.updateStatus(
+						(strings.generating || 'Generating CSV — %d records…')
+							.replace('%d', total)
+					);
+					api.updateProgress(0, total);
+				},
+				onProgress: function (processed, tot) {
+					api.updateProgress(processed, tot);
+					api.updateStatus(
+						(strings.exporting || 'Exporting %1$d / %2$d…')
+							.replace('%1$d', processed)
+							.replace('%2$d', tot)
+					);
+				},
+				onComplete: function (downloadUrl) {
+					onExportComplete($dlBtn, downloadUrl);
+				},
+				onError: function (err) {
+					api.showError((err && err.fromServer && err.message) || strings.connError || 'Connection error.');
+					$dlBtn.prop('disabled', false).removeClass('ffc-btn-loading');
 				}
-			})
-			.catch(function (err) {
-				api.showError((err && err.fromServer && err.message) || strings.connError || 'Connection error.');
-				if ($dlBtn) $dlBtn.prop('disabled', false).removeClass('ffc-btn-loading');
-			});
+			}
+		});
 	}
 
 	// ── Download via hidden iframe ──────────────────────────────
 
-	function onExportComplete($dlBtn) {
+	function onExportComplete($dlBtn, downloadUrl) {
 		clearTimeout(api.safetyTimer);
 		api.updateProgress(total, total);
 		api.updateStatus(strings.downloading || 'Starting download…');
-
-		var downloadUrl = api.cfg.ajax_url
-			+ '?action=ffc_public_csv_download'
-			+ '&job_id='      + encodeURIComponent(jobId)
-			+ '&nonce_batch=' + encodeURIComponent(nonceBatch);
 
 		var $iframe = $('<iframe>', { src: downloadUrl })
 			.css('display', 'none')

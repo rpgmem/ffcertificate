@@ -58,10 +58,15 @@ if ( ! defined( 'ABSPATH' ) ) {
 				<input type="search" name="s" value="<?php echo esc_attr( $search ?? '' ); ?>" placeholder="<?php esc_attr_e( 'Search name or email...', 'ffcertificate' ); ?>">
 				<?php submit_button( __( 'Filter', 'ffcertificate' ), '', '', false ); ?>
 			</form>
-			<a href="<?php echo esc_url( $export_url ); ?>" class="button ffc-rereg-ml-10">
+			<?php
+			// Batched CSV export (#772): the button drives the shared
+			// window.FFCBatchedExport engine through the unified dispatcher. The
+			// campaign id rides along via data-id; the export covers the whole
+			// campaign (unaffected by the on-screen status/search filter, as before).
+			?>
+			<button type="button" id="ffc-rereg-export-btn" class="button ffc-rereg-ml-10" data-id="<?php echo esc_attr( (string) $id ); ?>">
 				<?php esc_html_e( 'Export CSV', 'ffcertificate' ); ?>
-			</a>
-		</div>
+			</button>		</div>
 
 		<!-- Bulk actions form -->
 		<form method="post" id="ffc-submissions-form">

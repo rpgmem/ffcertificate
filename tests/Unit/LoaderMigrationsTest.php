@@ -107,6 +107,7 @@ class LoaderMigrationsTest extends TestCase {
             'reasons caps' => array( 'ensure_reasons_caps_wired', 'ffc_reasons_caps_wired_v1', 'migrate_reasons_caps_grant' ),
             'settings'     => array( 'ensure_settings_split_caps_granted', 'ffc_settings_split_caps_v1', 'migrate_settings_split_caps_grant' ),
             'activity log' => array( 'ensure_activity_log_export_cap_granted', 'ffc_activity_log_export_cap_v1', 'migrate_activity_log_export_cap_grant' ),
+            'url shortener export' => array( 'ensure_url_shortener_export_cap_granted', 'ffc_url_shortener_export_cap_v1', 'migrate_url_shortener_export_cap_grant' ),
         );
     }
 
@@ -164,6 +165,14 @@ class LoaderMigrationsTest extends TestCase {
         $rr = Mockery::mock( 'alias:FreeFormCertificate\UserDashboard\RoleRegistrar' );
         $rr->shouldReceive( 'register_role' )->once();
         $rr->shouldReceive( 'register_module_roles' )->once();
+        // Relabel is applied directly too (not only via the wp_roles_init hook)
+        // so it runs even when wp_roles_init already fired during early auth.
+        $rr->shouldReceive( 'relabel_ffc_roles' )->once();
+        // Recruitment-manager role self-heal was relocated here from
+        // RecruitmentLoader (so a disabled recruitment module keeps its role).
+        $rr->shouldReceive( 'register_recruitment_manager_role' )->once();
+
+        Functions\when( 'wp_roles' )->justReturn( Mockery::mock( 'WP_Roles' ) );
 
         $added = array();
         Functions\when( 'add_action' )->alias(

@@ -281,6 +281,24 @@ class FormEditorTest extends TestCase {
         $this->assertSame( 'error', $this->json_responses[0]['type'] );
     }
 
+    public function test_ajax_generate_codes_denies_plain_editor(): void {
+        // #739 escape closed: raw edit_posts no longer authorizes — the handler
+        // requires ffc_manage_forms (or manage_options).
+        Functions\when( 'check_ajax_referer' )->justReturn( true );
+        Functions\when( 'current_user_can' )->alias( function ( $cap ) {
+            return 'edit_posts' === $cap;
+        } );
+
+        $editor = new FormEditor();
+        try {
+            $editor->ajax_generate_random_codes();
+        } catch ( \RuntimeException $e ) {
+            // Expected
+        }
+
+        $this->assertSame( 'error', $this->json_responses[0]['type'] );
+    }
+
     // ==================================================================
     // ajax_generate_random_codes() — success
     // ==================================================================
@@ -360,6 +378,24 @@ class FormEditorTest extends TestCase {
     }
 
     // ==================================================================
+    public function test_ajax_load_template_denies_plain_editor(): void {
+        // #739 escape closed: raw edit_posts no longer authorizes — requires
+        // ffc_manage_forms (or manage_options).
+        Functions\when( 'check_ajax_referer' )->justReturn( true );
+        Functions\when( 'current_user_can' )->alias( function ( $cap ) {
+            return 'edit_posts' === $cap;
+        } );
+
+        $editor = new FormEditor();
+        try {
+            $editor->ajax_load_template();
+        } catch ( \RuntimeException $e ) {
+            // Expected
+        }
+
+        $this->assertSame( 'error', $this->json_responses[0]['type'] );
+    }
+
     // ajax_load_template() — success
     // ==================================================================
 

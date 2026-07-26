@@ -298,8 +298,22 @@ class UrlShortenerServiceTest extends TestCase {
         $this->assertTrue( $this->service->is_enabled() );
     }
 
+    public function test_is_enabled_returns_true_when_setting_is_boolean_true(): void {
+        // Regression: the Modules-tab / autosave path persists this slot as a
+        // real bool. A strict `1 === true` check wrongly disabled the module.
+        Functions\when( 'get_option' )->justReturn( [ 'url_shortener_enabled' => true ] );
+
+        $this->assertTrue( $this->service->is_enabled() );
+    }
+
     public function test_is_enabled_returns_false_when_disabled(): void {
         Functions\when( 'get_option' )->justReturn( [ 'url_shortener_enabled' => 0 ] );
+
+        $this->assertFalse( $this->service->is_enabled() );
+    }
+
+    public function test_is_enabled_returns_false_when_boolean_false(): void {
+        Functions\when( 'get_option' )->justReturn( [ 'url_shortener_enabled' => false ] );
 
         $this->assertFalse( $this->service->is_enabled() );
     }

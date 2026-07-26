@@ -115,6 +115,15 @@
 .ffc-confirm-modal-reason input[type="text"] {
     width: 100%;
 }
+.ffc-confirm-modal-checkbox {
+    margin-top: 10px;
+}
+.ffc-confirm-modal-checkbox label {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-weight: 600;
+}
 .ffc-confirm-modal-footer {
     display: flex;
     justify-content: flex-end;

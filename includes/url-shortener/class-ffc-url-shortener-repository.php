@@ -123,6 +123,28 @@ class UrlShortenerRepository extends AbstractRepository {
 	}
 
 	/**
+	 * Count rows matching the export filters (status + search).
+	 *
+	 * @param array<string, mixed> $filters Status + search.
+	 * @return int
+	 */
+	public function countForExport( array $filters ): int {
+		return $this->reader->countForExport( $filters );
+	}
+
+	/**
+	 * Keyset page for the batched CSV export (see UrlShortenerReader::findByCursor).
+	 *
+	 * @param array<string, mixed> $filters Status + search.
+	 * @param int                  $cursor  Exclusive upper-bound id.
+	 * @param int                  $size    Page size.
+	 * @return array<int, array<string, mixed>>
+	 */
+	public function findByCursor( array $filters, int $cursor, int $size ): array {
+		return $this->reader->findByCursor( $filters, $cursor, $size );
+	}
+
+	/**
 	 * Find short URLs that are candidates for cleanup under the enabled criteria.
 	 *
 	 * @param array{orphaned?:bool, never_clicked?:bool, trashed?:bool} $criteria Enabled criteria.

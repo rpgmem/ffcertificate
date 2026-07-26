@@ -14,7 +14,43 @@
         initFichaDownload();
         initSubmissionDetailsModal();
         initTransferList();
+        initCsvExport();
     });
+
+    /**
+     * Batched CSV export (#772). The "Export CSV" button drives the unified
+     * ffc_export_* dispatcher via the shared window.FFCBatchedExport driver,
+     * carrying the campaign id. Export order is id-DESC (a stable keyset).
+     */
+    function initCsvExport() {
+        $(document).on('click', '#ffc-rereg-export-btn', function () {
+            if (!window.FFCBatchedExport) { return; }
+            var cfg = window.ffcReregistrationAdmin || {};
+            var s = cfg.strings || {};
+            var exportNonce = cfg.exportNonce || '';
+            if (!exportNonce) { return; }
+
+            var $btn = $(this);
+
+            // Progress is shown through the shared FFCProgressOverlay modal,
+            // driven by the driver itself (overlay: true) — same UI as the
+            // public download (#786).
+            window.FFCBatchedExport.run({
+                type: 'reregistration',
+                ajaxUrl: cfg.ajaxUrl,
+                nonce: exportNonce,
+                button: $btn,
+                overlay: true,
+                strings: {
+                    preparing: s.exportPreparing,
+                    exporting: s.exportProgress,
+                    downloading: s.exportDone,
+                    error: s.exportError
+                },
+                startData: { id: $btn.data('id') || '' }
+            });
+        });
+    }
 
     /**
      * Select-all checkbox toggles all submission checkboxes

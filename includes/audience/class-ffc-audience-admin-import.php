@@ -29,12 +29,22 @@ class AudienceAdminImport {
 	private string $menu_slug;
 
 	/**
+	 * CSV streaming orchestrator (injectable so tests can capture the export
+	 * output instead of writing to php://output and calling exit).
+	 *
+	 * @var \FreeFormCertificate\Core\CsvStreamer
+	 */
+	private \FreeFormCertificate\Core\CsvStreamer $streamer;
+
+	/**
 	 * Constructor
 	 *
-	 * @param string $menu_slug Menu slug prefix.
+	 * @param string                                     $menu_slug Menu slug prefix.
+	 * @param \FreeFormCertificate\Core\CsvStreamer|null $streamer  CSV streamer; defaults to the live HTTP download.
 	 */
-	public function __construct( string $menu_slug ) {
+	public function __construct( string $menu_slug, ?\FreeFormCertificate\Core\CsvStreamer $streamer = null ) {
 		$this->menu_slug = $menu_slug;
+		$this->streamer  = $streamer ?? new \FreeFormCertificate\Core\CsvStreamer( new \FreeFormCertificate\Core\HttpCsvDownload() );
 	}
 
 	/**
@@ -273,12 +283,8 @@ class AudienceAdminImport {
 		if ( ( $can_manage || $can_import ) && isset( $_GET['download_sample'] ) && isset( $_GET['_wpnonce'] ) ) {
 			$type = \FreeFormCertificate\Core\RequestInput::get_get_string( 'download_sample' );
 			if ( wp_verify_nonce( \FreeFormCertificate\Core\RequestInput::get_get_string( '_wpnonce' ), 'download_sample' ) ) {
-				$filename = 'audiences' === $type ? 'audiences-sample.csv' : 'members-sample.csv';
-				header( 'Content-Type: text/csv' );
-				header( 'Content-Disposition: attachment; filename="' . $filename . '"' );
-                // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
-				echo AudienceCsvImporter::get_sample_csv( $type );
-				exit;
+				( new \FreeFormCertificate\Core\SyncCsvExport( $this->streamer ) )
+					->handle( new AudienceSampleCsvSource( $type ) );
 			}
 		}
 
@@ -410,70 +416,11 @@ class AudienceAdminImport {
 	 * @return void
 	 */
 	private function export_members_csv(): void {
-        // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Nonce verified in caller handle_actions().
+        // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Nonce verified in caller handle_csv_import().
 		$audience_id = isset( $_POST['export_audience_id'] ) ? absint( $_POST['export_audience_id'] ) : 0;
 
-		// Collect audience IDs to export.
-		$audience_ids = array();
-		if ( $audience_id > 0 ) {
-			$audience_ids[] = $audience_id;
-		} else {
-			$all_audiences = AudienceReader::get_all();
-			foreach ( $all_audiences as $aud ) {
-				$audience_ids[] = (int) $aud->id;
-			}
-		}
-
-		// Build audience name map.
-		$audience_map  = array();
-		$all_audiences = AudienceReader::get_all();
-		foreach ( $all_audiences as $aud ) {
-			$audience_map[ (int) $aud->id ] = $aud->name;
-		}
-
-		$filename = \FreeFormCertificate\Core\FilenameHelper::get_export_filename( 'members-export' );
-		header( 'Content-Type: text/csv; charset=utf-8' );
-		header( 'Content-Disposition: attachment; filename="' . $filename . '"' );
-
-        // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fopen -- streaming CSV download to php://output.
-		$output = fopen( 'php://output', 'w' );
-		if ( false === $output ) {
-			exit;
-		}
-		$writer = \FreeFormCertificate\Core\Csv::writer( $output );
-		$writer->row( array( 'email', 'name', 'audience_name' ) );
-
-		$seen = array(); // Avoid duplicate rows for same user+audience.
-		foreach ( $audience_ids as $aid ) {
-			$member_ids    = AudienceReader::get_members( $aid );
-			$audience_name = isset( $audience_map[ $aid ] ) ? $audience_map[ $aid ] : '';
-
-			foreach ( $member_ids as $user_id ) {
-				$key = $user_id . '-' . $aid;
-				if ( isset( $seen[ $key ] ) ) {
-					continue;
-				}
-				$seen[ $key ] = true;
-
-				$user = get_user_by( 'id', $user_id );
-				if ( ! $user ) {
-					continue;
-				}
-
-				$writer->row(
-					array(
-						$user->user_email,
-						$user->display_name,
-						$audience_name,
-					)
-				);
-			}
-		}
-
-		$writer->close();
-        // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose -- closing the php://output handle this method opened.
-		fclose( $output );
-		exit;
+		( new \FreeFormCertificate\Core\SyncCsvExport( $this->streamer ) )
+			->handle( new AudienceMembersExportSource( $audience_id ) );
 	}
 
 	/**
@@ -482,46 +429,7 @@ class AudienceAdminImport {
 	 * @return void
 	 */
 	private function export_audiences_csv(): void {
-		$audiences = AudienceReader::get_hierarchical();
-
-		$filename = \FreeFormCertificate\Core\FilenameHelper::get_export_filename( 'audiences-export' );
-		header( 'Content-Type: text/csv; charset=utf-8' );
-		header( 'Content-Disposition: attachment; filename="' . $filename . '"' );
-
-        // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fopen -- streaming CSV download to php://output.
-		$output = fopen( 'php://output', 'w' );
-		if ( false === $output ) {
-			exit;
-		}
-		$writer = \FreeFormCertificate\Core\Csv::writer( $output );
-		$writer->row( array( 'name', 'color', 'parent' ) );
-
-		// Parents first, then children (same order as import expects).
-		foreach ( $audiences as $audience ) {
-			$writer->row(
-				array(
-					$audience->name,
-					$audience->color ?? '#3788d8',
-					'', // Parents have no parent.
-				)
-			);
-
-			if ( ! empty( $audience->children ) ) {
-				foreach ( $audience->children as $child ) {
-					$writer->row(
-						array(
-							$child->name,
-							$child->color ?? '#3788d8',
-							$audience->name,
-						)
-					);
-				}
-			}
-		}
-
-		$writer->close();
-        // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose -- closing the php://output handle this method opened.
-		fclose( $output );
-		exit;
+		( new \FreeFormCertificate\Core\SyncCsvExport( $this->streamer ) )
+			->handle( new AudienceAudiencesExportSource() );
 	}
 }

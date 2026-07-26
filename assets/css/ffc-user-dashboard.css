@@ -1147,6 +1147,24 @@
     border-color: #c3ddf6;
 }
 
+/* Actions cluster on a node that is both joinable and a parent (#792) */
+.ffc-audience-item-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-shrink: 0;
+}
+
+.ffc-audience-inline-toggle {
+    background: none;
+    border: none;
+    padding: 0;
+    margin: 0;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+}
+
 /* ==========================================================================
    NOTIFICATION TOGGLES
    ========================================================================== */

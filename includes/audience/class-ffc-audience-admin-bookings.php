@@ -88,7 +88,26 @@ class AudienceAdminBookings {
 
 		?>
 		<div class="wrap">
-			<h1><?php esc_html_e( 'Bookings', 'ffcertificate' ); ?></h1>
+			<h1 class="wp-heading-inline"><?php esc_html_e( 'Bookings', 'ffcertificate' ); ?></h1>
+			<?php if ( \FreeFormCertificate\Core\Capabilities::current_user_can_admin_or( 'ffc_export_audiences' ) ) : ?>
+				<?php
+				// Batched CSV export (#772): the button drives the shared
+				// window.FFCBatchedExport engine through the unified dispatcher —
+				// current filters ride along via data-* so the export matches the
+				// on-screen query. No admin-post form; the job nonce is localized.
+				?>
+				<button
+					type="button"
+					id="ffc-bookings-export-btn"
+					class="page-title-action"
+					data-schedule_id="<?php echo esc_attr( (string) $schedule_id ); ?>"
+					data-environment_id="<?php echo esc_attr( (string) $environment_id ); ?>"
+					data-status="<?php echo esc_attr( $status_filter ); ?>"
+					data-date_from="<?php echo esc_attr( $date_from ); ?>"
+					data-date_to="<?php echo esc_attr( $date_to ); ?>">
+					<?php esc_html_e( 'Export CSV', 'ffcertificate' ); ?>
+				</button>			<?php endif; ?>
+			<hr class="wp-header-end">
 
 			<?php settings_errors( 'ffc_audience' ); ?>
 

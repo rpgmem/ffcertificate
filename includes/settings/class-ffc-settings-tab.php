@@ -49,7 +49,14 @@ abstract class SettingsTab {
 	protected $tab_icon;
 
 	/**
-	 * Tab order/priority
+	 * Tab order/priority.
+	 *
+	 * Legacy hint: since 6.16.0 the Settings screen orders tabs
+	 * alphabetically by their translated title (with General pinned first and
+	 * Advanced/Migrations/Documentation pinned last) via
+	 * {@see \FreeFormCertificate\Core\LabelSorter}, so this value no longer
+	 * drives display order. Retained because existing per-tab tests assert it
+	 * and third-party tabs may still read it.
 	 *
 	 * @var int
 	 */
@@ -114,6 +121,35 @@ abstract class SettingsTab {
 	 */
 	public function get_order() {
 		return $this->tab_order;
+	}
+
+	/**
+	 * Capability required to VIEW this tab.
+	 *
+	 * Defaults to the page-wide settings view cap so every existing config tab
+	 * keeps its current gating. Tabs backed by their own capability (e.g. the
+	 * Activity Log) override this to be visible to their own audience even when
+	 * the user lacks `ffc_view_settings`. Consumed by the Settings render loop
+	 * (per-tab visibility) and by the computed `ffc_view_settings_page` menu cap.
+	 *
+	 * @return string
+	 */
+	public function get_view_cap(): string {
+		return 'ffc_view_settings';
+	}
+
+	/**
+	 * Capability required to EDIT (save) on this tab.
+	 *
+	 * Defaults to the page-wide settings manage cap. The Settings page wraps a
+	 * tab's body in a disabled <fieldset> when the current user lacks THIS cap,
+	 * so a read-only surface (e.g. the Activity Log) overrides it to its own
+	 * tier and never has its legitimate actions disabled by the settings lock.
+	 *
+	 * @return string
+	 */
+	public function get_manage_cap(): string {
+		return 'ffc_manage_settings';
 	}
 
 	/**
@@ -189,7 +225,7 @@ abstract class SettingsTab {
 	 * @return string
 	 */
 	protected function get_tab_url() {
-		return admin_url( 'edit.php?post_type=ffc_form&page=ffc-settings&tab=' . $this->tab_id );
+		return admin_url( 'admin.php?page=ffc-settings&tab=' . $this->tab_id );
 	}
 
 	/**

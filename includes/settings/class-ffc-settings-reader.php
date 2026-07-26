@@ -217,6 +217,54 @@ final class SettingsReader {
 		return self::get_bool( 'url_shortener_auto_create', true );
 	}
 
+	// ──────────────────────────────────────────────────────────────.
+	// Feature-module on/off toggles (the "Modules" settings tab).
+	// ──────────────────────────────────────────────────────────────.
+
+	/**
+	 * Canonical feature-module slugs the Modules settings tab can toggle,
+	 * in display order. Each gates the matching bootstrap in
+	 * {@see \FreeFormCertificate\Loader::init_plugin()}.
+	 *
+	 * @var array<int, string>
+	 */
+	public const MODULE_SLUGS = array(
+		'certificates',
+		'audiences',
+		'self_scheduling',
+		'reregistration',
+		'url_shortener',
+		'recruitment',
+	);
+
+	/**
+	 * The `ffc_settings` key backing a module's on/off toggle.
+	 *
+	 * URL Shortener keeps its historical `url_shortener_enabled` slot (already
+	 * read by {@see UrlShortenerService::is_enabled()} and the URL Shortener
+	 * settings tab); every other module uses `module_<slug>_enabled`. Central
+	 * mapping so the reader, the tab UI, and the autosave allowlist agree.
+	 *
+	 * @param string $module Module slug (see MODULE_SLUGS).
+	 * @return string Option key inside `ffc_settings`.
+	 */
+	public static function module_option_key( string $module ): string {
+		return 'url_shortener' === $module
+			? 'url_shortener_enabled'
+			: 'module_' . $module . '_enabled';
+	}
+
+	/**
+	 * Whether a feature module is enabled. Every module defaults to ON, so a
+	 * fresh install (and any pre-toggle install) behaves exactly as before.
+	 *
+	 * @param string $module Module slug (see MODULE_SLUGS).
+	 * @return bool
+	 */
+	public static function module_enabled( string $module ): bool {
+		return self::get_bool( self::module_option_key( $module ), true );
+	}
+
 	/** Whether IP-geolocation lookups are cached. */
 	public static function ip_cache_enabled(): bool {
 		return self::get_bool( 'ip_cache_enabled' );

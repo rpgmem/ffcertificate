@@ -43,6 +43,7 @@ class SchedulingMailer {
 	 * @param string        $body        Email body (inner HTML — wrapped automatically unless $wrap is false).
 	 * @param array<string> $attachments File paths to attach.
 	 * @param bool          $wrap        Whether to wrap body in the standard chrome (default true).
+	 * @param string        $source_key  Optional {@see \FreeFormCertificate\Core\EmailSource} key tagging the sending function.
 	 * @return bool
 	 */
 	public static function send(
@@ -50,7 +51,8 @@ class SchedulingMailer {
 		string $subject,
 		string $body,
 		array $attachments = array(),
-		bool $wrap = true
+		bool $wrap = true,
+		string $source_key = ''
 	): bool {
 		$headers = array(
 			'Content-Type: text/html; charset=UTF-8',
@@ -77,6 +79,6 @@ class SchedulingMailer {
 			)
 		);
 
-		return \FreeFormCertificate\Core\EmailService::send( $email_data['to'], $email_data['subject'], $email_data['body'], $headers, $attachments );
+		return \FreeFormCertificate\Core\EmailService::send( $email_data['to'], $email_data['subject'], $email_data['body'], $headers, $attachments, $source_key );
 	}
 }

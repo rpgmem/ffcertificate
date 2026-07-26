@@ -43,7 +43,7 @@ class TabSMTP extends SettingsTab {
 	 */
 	public function enqueue_scripts( string $hook ): void {
 		// Only load on settings page with this tab active.
-		if ( 'ffc_form_page_ffc-settings' !== $hook ) {
+		if ( 'toplevel_page_ffc-settings' !== $hook ) {
 			return;
 		}
 

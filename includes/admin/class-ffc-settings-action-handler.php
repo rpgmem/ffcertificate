@@ -85,13 +85,12 @@ class SettingsActionHandler {
 		wp_safe_redirect(
 			add_query_arg(
 				array(
-					'post_type' => 'ffc_form',
-					'page'      => 'ffc-settings',
-					'tab'       => 'cache',
-					'msg'       => 'qr_cache_cleared',
-					'cleared'   => $cleared,
+					'page'    => 'ffc-settings',
+					'tab'     => 'cache',
+					'msg'     => 'qr_cache_cleared',
+					'cleared' => $cleared,
 				),
-				admin_url( 'edit.php' )
+				admin_url( 'admin.php' )
 			)
 		);
 		exit;
@@ -127,11 +126,10 @@ class SettingsActionHandler {
 		// Prepare redirect URL.
 		$redirect_url = add_query_arg(
 			array(
-				'post_type' => 'ffc_form',
-				'page'      => 'ffc-settings',
-				'tab'       => 'migrations',
+				'page' => 'ffc-settings',
+				'tab'  => 'migrations',
 			),
-			admin_url( 'edit.php' )
+			admin_url( 'admin.php' )
 		);
 
 		// Add result message.
@@ -198,11 +196,10 @@ class SettingsActionHandler {
 
 		$redirect_url = add_query_arg(
 			array(
-				'post_type' => 'ffc_form',
-				'page'      => 'ffc-settings',
-				'tab'       => 'migrations',
+				'page' => 'ffc-settings',
+				'tab'  => 'migrations',
 			),
-			admin_url( 'edit.php' )
+			admin_url( 'admin.php' )
 		);
 
 		$settings         = get_option( 'ffc_settings', array() );
@@ -349,11 +346,10 @@ class SettingsActionHandler {
 
 		$redirect_url = add_query_arg(
 			array(
-				'post_type' => 'ffc_form',
-				'page'      => 'ffc-settings',
-				'tab'       => 'migrations',
+				'page' => 'ffc-settings',
+				'tab'  => 'migrations',
 			),
-			admin_url( 'edit.php' )
+			admin_url( 'admin.php' )
 		);
 
 		$settings = get_option( 'ffc_settings', array() );
@@ -484,11 +480,10 @@ class SettingsActionHandler {
 
 		$redirect_url = add_query_arg(
 			array(
-				'post_type' => 'ffc_form',
-				'page'      => 'ffc-settings',
-				'tab'       => 'migrations',
+				'page' => 'ffc-settings',
+				'tab'  => 'migrations',
 			),
-			admin_url( 'edit.php' )
+			admin_url( 'admin.php' )
 		);
 
 		$settings = get_option( 'ffc_settings', array() );
@@ -590,11 +585,10 @@ class SettingsActionHandler {
 		$report_key   = 'ffc_submission_audit_report_' . get_current_user_id();
 		$redirect_url = add_query_arg(
 			array(
-				'post_type' => 'ffc_form',
-				'page'      => 'ffc-settings',
-				'tab'       => 'migrations',
+				'page' => 'ffc-settings',
+				'tab'  => 'migrations',
 			),
-			admin_url( 'edit.php' )
+			admin_url( 'admin.php' )
 		);
 
 		$tool = \FreeFormCertificate\Maintenance\MaintenanceToolRegistry::create_default()->get( 'submission_link_audit' );
@@ -668,13 +662,12 @@ class SettingsActionHandler {
 			wp_safe_redirect(
 				add_query_arg(
 					array(
-						'post_type' => 'ffc_form',
-						'page'      => 'ffc-settings',
-						'tab'       => 'cache',
-						'msg'       => 'cache_warmed',
-						'count'     => $warmed,
+						'page'  => 'ffc-settings',
+						'tab'   => 'cache',
+						'msg'   => 'cache_warmed',
+						'count' => $warmed,
 					),
-					admin_url( 'edit.php' )
+					admin_url( 'admin.php' )
 				)
 			);
 			exit;
@@ -692,12 +685,11 @@ class SettingsActionHandler {
 			wp_safe_redirect(
 				add_query_arg(
 					array(
-						'post_type' => 'ffc_form',
-						'page'      => 'ffc-settings',
-						'tab'       => 'cache',
-						'msg'       => 'cache_cleared',
+						'page' => 'ffc-settings',
+						'tab'  => 'cache',
+						'msg'  => 'cache_cleared',
 					),
-					admin_url( 'edit.php' )
+					admin_url( 'admin.php' )
 				)
 			);
 			exit;
@@ -745,19 +737,18 @@ class SettingsActionHandler {
 				'<p>' . esc_html__( 'This is a test email from Free Form Certificate. If you received it, your email delivery and Email Model settings are working.', 'ffcertificate' ) . '</p>',
 				array( 'recipient' => $to )
 			);
-			$sent = self::ffc_send_mail( $to, __( 'Free Form Certificate — test email', 'ffcertificate' ), $body );
+			$sent = self::ffc_send_mail( $to, __( 'Free Form Certificate — test email', 'ffcertificate' ), $body, array(), \FreeFormCertificate\Core\EmailSource::ADMIN );
 			$flag = $sent ? 'sent' : 'failed';
 		}
 
 		wp_safe_redirect(
 			add_query_arg(
 				array(
-					'post_type'      => 'ffc_form',
 					'page'           => 'ffc-settings',
 					'tab'            => 'smtp',
 					'ffc_test_email' => $flag,
 				),
-				admin_url( 'edit.php' )
+				admin_url( 'admin.php' )
 			)
 		);
 		exit;

@@ -14,7 +14,6 @@ declare(strict_types=1);
 namespace FreeFormCertificate\Admin;
 
 use FreeFormCertificate\Admin\FormEditor;
-use FreeFormCertificate\Admin\Settings;
 use FreeFormCertificate\Migrations\MigrationManager;
 use FreeFormCertificate\Admin\AdminAssetsManager;
 use FreeFormCertificate\Admin\AdminSubmissionEditPage;
@@ -59,12 +58,6 @@ class Admin {
 	 * @var AdminSubmissionEditPage
 	 */
 	private $edit_page;
-	/**
-	 * Activity log page.
-	 *
-	 * @var AdminActivityLogPage
-	 */
-	private $activity_log_page;
 	/**
 	 * Certificates dashboard page.
 	 *
@@ -165,13 +158,22 @@ class Admin {
 
 		// Construct admin sub-pages — their constructors register WP hooks
 		// (admin_menu, admin_init, save_post, …); WP holds the references.
+		// NOTE: Settings is NOT wired here — it is a cross-cutting service
+		// (SMTP, cache, migrations, Modules), not part of the Certificates
+		// module, so the orchestrator instantiates it directly (always on) and
+		// the Modules-tab toggle can never disable the Settings surface out of
+		// reach. See Loader::init_plugin().
 		new FormEditor();
-		new Settings( $handler );
 
 		$this->assets_manager = new AdminAssetsManager();
 		$this->assets_manager->register();
-		$this->edit_page              = new AdminSubmissionEditPage( $handler );
-		$this->activity_log_page      = new AdminActivityLogPage();
+		$this->edit_page = new AdminSubmissionEditPage( $handler );
+		// Fire-and-forget: the Activity Log is a Settings tab since #802 Phase B,
+		// so it registers no menu here — but its constructor must still run on
+		// every admin request (admin-ajax included) to register the batched
+		// export source with the shared registry. The tab itself owns render +
+		// enqueue. See Settings\Tabs\TabActivityLog.
+		new AdminActivityLogPage();
 		$this->certificates_dashboard = new CertificatesDashboard();
 		$this->certificates_dashboard->init();
 
@@ -185,8 +187,10 @@ class Admin {
 		add_action( 'admin_init', array( $this, 'handle_submission_edit_save' ) );
 		add_action( 'admin_init', array( $this, 'handle_migration_action' ) );
 
-		// AJAX-driven CSV export (avoids web-server timeouts with large datasets).
-		$this->csv_exporter->register_ajax_hooks();
+		// AJAX-driven CSV export (avoids web-server timeouts with large datasets):
+		// register the submissions source with the shared registry; the unified
+		// dispatcher (wired in Loader, #772) routes `type=submissions` to it.
+		$this->csv_exporter->register_source();
 	}
 
 	/**
@@ -201,8 +205,6 @@ class Admin {
 			'ffc-submissions',
 			array( $this, 'display_submissions_page' )
 		);
-
-		$this->activity_log_page->register_menu();
 	}
 
 	/**
@@ -333,9 +335,7 @@ class Admin {
 					<?php $form_ids_json = wp_json_encode( $filter_form_ids ); ?>
 					data-form-ids="<?php echo esc_attr( $form_ids_json ? $form_ids_json : '' ); ?>"
 					data-status="<?php echo esc_attr( $export_status ); ?>"
-				><?php echo esc_html( $btn_label ); ?></button>
-				<span id="ffc-csv-export-progress" style="display:none; margin-left:8px; vertical-align:middle;"></span>
-			</div>
+				><?php echo esc_html( $btn_label ); ?></button>			</div>
 			<hr class="wp-header-end">
 			<form method="GET">
 				<input type="hidden" name="post_type" value="ffc_form">

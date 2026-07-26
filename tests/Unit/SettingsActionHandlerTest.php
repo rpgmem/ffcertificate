@@ -783,7 +783,7 @@ class SettingsActionHandlerTest extends TestCase {
 		$svc = Mockery::mock( 'alias:FreeFormCertificate\\Core\\EmailService' );
 		$svc->shouldReceive( 'send' )
 			->once()
-			->with( 'admin@example.com', Mockery::any(), Mockery::any(), Mockery::any(), Mockery::any() )
+			->with( 'admin@example.com', Mockery::any(), Mockery::any(), Mockery::any(), Mockery::any(), \FreeFormCertificate\Core\EmailSource::ADMIN )
 			->andReturn( true );
 
 		$this->expectException( \RuntimeException::class );

@@ -202,7 +202,12 @@ class UrlShortenerService {
 	 */
 	public function is_enabled(): bool {
 		$settings = $this->get_settings();
-		return ! isset( $settings['url_shortener_enabled'] ) || (int) 1 === $settings['url_shortener_enabled'];
+		// Cast the STORED value to int rather than strict-comparing against 1:
+		// the Modules-tab / autosave path persists this slot as a real bool
+		// (`true`), so `1 === true` would be false and wrongly disable the
+		// module even with the toggle on. `(int) true === 1` holds for bool,
+		// int and the string '1' alike.
+		return ! isset( $settings['url_shortener_enabled'] ) || 1 === (int) $settings['url_shortener_enabled'];
 	}
 
 	/**
@@ -212,7 +217,9 @@ class UrlShortenerService {
 	 */
 	public function is_auto_create_enabled(): bool {
 		$settings = $this->get_settings();
-		return ! isset( $settings['url_shortener_auto_create'] ) || (int) 1 === $settings['url_shortener_auto_create'];
+		// See is_enabled(): cast the stored value so a bool `true` (autosave)
+		// counts as enabled, not just the integer 1.
+		return ! isset( $settings['url_shortener_auto_create'] ) || 1 === (int) $settings['url_shortener_auto_create'];
 	}
 
 	/**

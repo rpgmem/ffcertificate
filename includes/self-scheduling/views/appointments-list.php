@@ -13,8 +13,6 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-// phpcs:disable WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedVariableFound -- Template variables scoped to this file
-
 // The list-table class now lives in its own autoloaded file
 // (FreeFormCertificate\SelfScheduling\AppointmentsListTable) — it is
 // instantiated near the bottom of this view.
@@ -327,7 +325,24 @@ $ffcertificate_table->prepare_items();
 ?>
 <div class="wrap">
 	<h1 class="wp-heading-inline"><?php esc_html_e( 'Appointments', 'ffcertificate' ); ?></h1>
-	<a href="#" class="page-title-action"><?php esc_html_e( 'Export CSV', 'ffcertificate' ); ?></a>
+	<?php
+	// Export CSV — batched engine (#772): the button drives the shared
+	// window.FFCBatchedExport engine through the unified dispatcher. Only shown
+	// to holders of the dedicated export cap (a view-only operator sees the list
+	// but cannot bulk-extract the attendee dataset). The current calendar/status
+	// filters ride along via data-* so the export matches the on-screen query.
+	if ( \FreeFormCertificate\Core\Capabilities::current_user_can_admin_or( 'ffc_export_appointments' ) ) :
+		$ffc_export_calendar_id = isset( $_GET['calendar_id'] ) ? absint( wp_unslash( $_GET['calendar_id'] ) ) : 0; // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- read-only filter passthrough; the export itself is nonce-verified in the AJAX source.
+		$ffc_export_status      = \FreeFormCertificate\Core\RequestInput::get_get_string( 'status' );
+		?>
+		<button
+			type="button"
+			id="ffc-appointments-export-btn"
+			class="page-title-action"
+			data-calendar_id="<?php echo esc_attr( (string) $ffc_export_calendar_id ); ?>"
+			data-status="<?php echo esc_attr( $ffc_export_status ); ?>">
+			<?php esc_html_e( 'Export CSV', 'ffcertificate' ); ?>
+		</button>	<?php endif; ?>
 	<hr class="wp-header-end">
 
 	<form method="get">

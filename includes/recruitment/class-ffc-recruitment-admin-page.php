@@ -32,6 +32,7 @@ declare(strict_types=1);
 namespace FreeFormCertificate\Recruitment;
 
 use FreeFormCertificate\Core\BadgeHtml;
+use FreeFormCertificate\Core\LabelSorter;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
@@ -207,12 +208,22 @@ final class RecruitmentAdminPage {
 		if ( isset( $submenu[ self::PAGE_SLUG ] ) ) {
 			$submenu[ self::PAGE_SLUG ] = array(); // phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited -- Replacing the auto-generated duplicate row is the canonical pattern.
 		}
-		$tabs = array(
-			'notices'     => __( 'Notices', 'ffcertificate' ),
-			'adjutancies' => __( 'Adjutancies', 'ffcertificate' ),
-			'reasons'     => __( 'Reasons', 'ffcertificate' ),
-			'candidates'  => __( 'Candidates', 'ffcertificate' ),
-			'settings'    => __( 'Settings', 'ffcertificate' ),
+		// Notices pinned first (landing tab), Settings pinned last; the data
+		// tabs in between read A→Z by translated label. Kept in sync with the
+		// in-page tab bar in RecruitmentAdminPageRenderer::render_tabs().
+		$tabs = LabelSorter::sort(
+			array(
+				'notices'     => __( 'Notices', 'ffcertificate' ),
+				'adjutancies' => __( 'Adjutancies', 'ffcertificate' ),
+				'reasons'     => __( 'Reasons', 'ffcertificate' ),
+				'candidates'  => __( 'Candidates', 'ffcertificate' ),
+				'settings'    => __( 'Settings', 'ffcertificate' ),
+			),
+			static function ( string $label ): string {
+				return $label;
+			},
+			array( 'notices' ),
+			array( 'settings' )
 		);
 		foreach ( $tabs as $tab => $label ) {
 			// Settings tab carries its own view cap; the data tabs open read-only

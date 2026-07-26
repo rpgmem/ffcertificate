@@ -44,7 +44,7 @@ class TabGeneral extends SettingsTab {
 	 * @param string $hook Current admin page hook.
 	 */
 	public function enqueue_scripts( string $hook ): void {
-		if ( 'ffc_form_page_ffc-settings' !== $hook ) {
+		if ( 'toplevel_page_ffc-settings' !== $hook ) {
 			return;
 		}
 		if ( ! $this->is_active() ) {

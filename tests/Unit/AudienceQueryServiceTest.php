@@ -71,18 +71,20 @@ class AudienceQueryServiceTest extends TestCase {
 		$this->wpdb->shouldReceive( 'get_results' )->once()->andReturn(
 			array(
 				array(
-					'id'        => '5',
-					'name'      => 'Pais',
-					'color'     => '#fff',
-					'parent_id' => null,
-					'is_member' => '0',
+					'id'              => '5',
+					'name'            => 'Pais',
+					'color'           => '#fff',
+					'parent_id'       => null,
+					'allow_self_join' => '0',
+					'is_member'       => '0',
 				),
 				array(
-					'id'        => '7',
-					'name'      => 'Filho A',
-					'color'     => '#aaa',
-					'parent_id' => '5',
-					'is_member' => '1',
+					'id'              => '7',
+					'name'            => 'Filho A',
+					'color'           => '#aaa',
+					'parent_id'       => '5',
+					'allow_self_join' => '1',
+					'is_member'       => '1',
 				),
 			)
 		);
@@ -92,8 +94,10 @@ class AudienceQueryServiceTest extends TestCase {
 		$this->assertCount( 2, $out );
 		$this->assertSame( 5, $out[0]['id'] );
 		$this->assertNull( $out[0]['parent_id'] );
+		$this->assertFalse( $out[0]['allow_self_join'] );
 		$this->assertFalse( $out[0]['is_member'] );
 		$this->assertSame( 5, $out[1]['parent_id'] );
+		$this->assertTrue( $out[1]['allow_self_join'] );
 		$this->assertTrue( $out[1]['is_member'] );
 	}
 

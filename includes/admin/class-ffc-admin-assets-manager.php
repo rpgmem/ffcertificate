@@ -302,11 +302,30 @@ class AdminAssetsManager {
 			true
 		);
 
+		// 2b. Shared batched-export driver (#772): the start → batch → download
+		// loop for the unified `ffc_export_*` dispatcher, used by the CSV export
+		// button in ffc-admin.js. Also enqueued on the public download page.
+		wp_enqueue_script(
+			'ffc-batched-export',
+			FFC_PLUGIN_URL . "assets/js/ffc-batched-export{$s}.js",
+			array( 'jquery', 'ffc-core' ),
+			FFC_VERSION,
+			true
+		);
+		// Shared progress-overlay modal styles (#786): the batched-export driver
+		// renders window.FFCProgressOverlay, identical to the public download.
+		wp_enqueue_style(
+			'ffc-progress-overlay',
+			FFC_PLUGIN_URL . "assets/css/ffc-progress-overlay{$s}.css",
+			array(),
+			FFC_VERSION
+		);
+
 		// 3. Main admin script (depends on modules)
 		wp_enqueue_script(
 			'ffc-admin-js',
 			FFC_PLUGIN_URL . "assets/js/ffc-admin{$s}.js",
-			array( 'jquery', 'ffc-admin-field-builder', 'ffc-admin-pdf' ),
+			array( 'jquery', 'ffc-admin-field-builder', 'ffc-admin-pdf', 'ffc-batched-export' ),
 			FFC_VERSION,
 			true
 		);
@@ -344,6 +363,8 @@ class AdminAssetsManager {
 		global $post;
 		$form_id = ( $post && isset( $post->ID ) ) ? (int) $post->ID : 0;
 
+		$field_types = FormEditorBuilderMetabox::field_types_ordered();
+
 		return array(
 			'ajax_url'       => admin_url( 'admin-ajax.php' ),
 			'nonce'          => wp_create_nonce( 'ffc_admin_pdf_nonce' ),
@@ -353,6 +374,20 @@ class AdminAssetsManager {
 			// the JS can't drift from the generators' real placeholders.
 			'previewSamples' => \FreeFormCertificate\Core\CertificatePreviewSamples::get_map( $form_id ),
 			'templates'      => self::discover_layout_templates(),
+			// Certificate field types as an ordered {value,label} list — the
+			// single source of truth shared with the server-rendered row
+			// `<select>` (FormEditorBuilderMetabox), so the JS builder offers
+			// the same types in the same locale-aware order.
+			'fieldTypes'     => array_map(
+				static function ( string $slug, string $label ): array {
+					return array(
+						'value' => $slug,
+						'label' => $label,
+					);
+				},
+				array_keys( $field_types ),
+				array_values( $field_types )
+			),
 			'strings'        => array(
 				// General.
 				'generating'              => __( 'Generating...', 'ffcertificate' ),
@@ -426,6 +461,7 @@ class AdminAssetsManager {
 				'date'                    => __( 'Date', 'ffcertificate' ),
 				'infoBlock'               => __( 'Info Block', 'ffcertificate' ),
 				'embedMedia'              => __( 'Embed (Media)', 'ffcertificate' ),
+				'hiddenField'             => __( 'Hidden Field', 'ffcertificate' ),
 
 				// Info Block Field.
 				'content'                 => __( 'Content:', 'ffcertificate' ),

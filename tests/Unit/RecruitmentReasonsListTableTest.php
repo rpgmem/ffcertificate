@@ -18,6 +18,7 @@ use FreeFormCertificate\Recruitment\RecruitmentReasonsListTable;
  * the full WordPress admin runtime and are out of scope.
  *
  * @covers \FreeFormCertificate\Recruitment\RecruitmentReasonsListTable
+ * @covers \FreeFormCertificate\Recruitment\AbstractRecruitmentListTable
  * @runTestsInSeparateProcesses
  * @preserveGlobalState disabled
  */
@@ -30,6 +31,8 @@ class RecruitmentReasonsListTableTest extends TestCase {
     protected function setUp(): void {
         parent::setUp();
         Monkey\setUp();
+        // Preload the extracted base so pcov attributes its coverage.
+        class_exists( '\FreeFormCertificate\Recruitment\AbstractRecruitmentListTable' );
 
         Functions\when( '__' )->returnArg();
         Functions\when( 'esc_html__' )->returnArg();
@@ -347,7 +350,7 @@ class RecruitmentReasonsListTableTest extends TestCase {
             array( 'slug' => 'b', 'label' => 'B', 'created_at' => '2026-01-02' ),
             array( 'slug' => 'a', 'label' => 'A', 'created_at' => '2026-01-01' ),
         );
-        $out = $this->call_static_private( 'sort_rows', array( $rows, 'bogus', 'asc' ) );
+        $out = $this->call_protected( 'sort_rows', array( $rows, 'bogus', 'asc' ) );
 
         $this->assertSame( array( '2026-01-01', '2026-01-02' ), array_column( $out, 'created_at' ) );
     }

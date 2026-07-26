@@ -129,14 +129,15 @@ class PublicCsvDownload {
 		add_action( 'wp_ajax_ffc_public_schedule_exception', array( $this, 'ajax_schedule_exception' ) );
 		add_action( 'wp_ajax_nopriv_ffc_public_schedule_exception', array( $this, 'ajax_schedule_exception' ) );
 
-		// AJAX batched export (JS path).
-		$exporter = new PublicCsvExporter();
-		add_action( 'wp_ajax_ffc_public_csv_start', array( $exporter, 'ajax_start' ) );
-		add_action( 'wp_ajax_nopriv_ffc_public_csv_start', array( $exporter, 'ajax_start' ) );
-		add_action( 'wp_ajax_ffc_public_csv_batch', array( $exporter, 'ajax_batch' ) );
-		add_action( 'wp_ajax_nopriv_ffc_public_csv_batch', array( $exporter, 'ajax_batch' ) );
-		add_action( 'wp_ajax_ffc_public_csv_download', array( $exporter, 'ajax_download' ) );
-		add_action( 'wp_ajax_nopriv_ffc_public_csv_download', array( $exporter, 'ajax_download' ) );
+		// AJAX batched export (JS path): register the public source with the
+		// shared registry; the unified dispatcher (wired in Loader, #772) routes
+		// `type=public_forms` requests through the `ffc_export_*` endpoints.
+		\FreeFormCertificate\Core\SourceRegistry::register(
+			PublicFormsExportSource::TYPE,
+			static function (): PublicFormsExportSource {
+				return new PublicFormsExportSource( new \FreeFormCertificate\Repositories\SubmissionRepository() );
+			}
+		);
 
 		// 6.3.3: admin-only audit log export. Logged-in only, no nopriv.
 		add_action( 'admin_post_' . self::EXPORT_LOG_ACTION, array( $this, 'handle_export_log_request' ) );
@@ -807,78 +808,18 @@ class PublicCsvDownload {
 	 * Auth: nonce + user must satisfy {@see Capabilities::current_user_can_admin_or}
 	 * with `ffc_manage_settings` AND have `edit_post` on the target form.
 	 *
+	 * @param \FreeFormCertificate\Core\SyncCsvExport|null $exporter Sync export driver; defaults to the live HTTP download (injected in tests).
 	 * @return void Streams CSV and exits; never returns on success.
 	 */
-	public function handle_export_log_request(): void {
-        // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Nonce validated below.
+	public function handle_export_log_request( ?\FreeFormCertificate\Core\SyncCsvExport $exporter = null ): void {
+        // phpcs:ignore WordPress.Security.NonceVerification.Recommended, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- form_id sanitized via absint; nonce verified in the source's authorize().
 		$form_id = isset( $_GET['form_id'] ) ? absint( wp_unslash( $_GET['form_id'] ) ) : 0;
-        // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
-		$nonce = RequestInput::get_get_string( '_wpnonce' );
 
-		if ( ! wp_verify_nonce( $nonce, self::EXPORT_LOG_NONCE . '_' . $form_id ) ) {
-			wp_die( esc_html__( 'Security check failed.', 'ffcertificate' ), 403 );
-		}
-		if ( $form_id <= 0 || get_post_type( $form_id ) !== 'ffc_form' ) {
-			wp_die( esc_html__( 'Form not found.', 'ffcertificate' ), 404 );
-		}
-		if ( ! current_user_can( 'edit_post', $form_id ) ) {
-			wp_die( esc_html__( 'You do not have permission to export this log.', 'ffcertificate' ), 403 );
-		}
-		$can_audit = class_exists( '\FreeFormCertificate\Core\Utils' )
-			? \FreeFormCertificate\Core\Capabilities::current_user_can_admin_or( 'ffc_manage_settings' )
-			: current_user_can( 'manage_options' );
-		if ( ! $can_audit ) {
-			wp_die( esc_html__( 'You do not have permission to export this log.', 'ffcertificate' ), 403 );
-		}
-
-		$log = get_post_meta( $form_id, self::META_DOWNLOAD_LOG, true );
-		$log = is_array( $log ) ? $log : array();
-
-		$encryption_ok = class_exists( '\FreeFormCertificate\Core\Encryption' )
-			&& \FreeFormCertificate\Core\Encryption::is_configured();
-
-		$filename = 'ffc-csv-download-log-' . $form_id . '-' . gmdate( 'Y-m-d-His' ) . '.csv';
-
-		nocache_headers();
-		header( 'Content-Type: text/csv; charset=utf-8' );
-		header( 'Content-Disposition: attachment; filename="' . $filename . '"' );
-
-        // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fopen -- streaming CSV download to php://output.
-		$fh = fopen( 'php://output', 'w' );
-		if ( false === $fh ) {
-			wp_die( esc_html__( 'Could not open output stream for CSV export.', 'ffcertificate' ), 500 );
-		}
-
-		$writer = \FreeFormCertificate\Core\Csv::writer( $fh );
-		if ( ! $encryption_ok ) {
-			// One-line preamble so the admin knows why CPFs come out empty.
-			$writer->row( array( '# Encryption is not configured on this site; CPF column will be empty for new entries. See plugin docs.' ) );
-		}
-		$writer->row( array( 'timestamp', 'ip', 'mode', 'cpf', 'result' ) );
-
-		foreach ( $log as $entry ) {
-			if ( ! is_array( $entry ) ) {
-				continue;
-			}
-			// Render in the site timezone so the admin can read the audit
-			// without converting UTC in a spreadsheet. The stored value is a
-			// UTC timestamp (entry['ts'] is unix); `wp_date()` with no
-			// timezone arg uses `wp_timezone()`.
-			$ts = '';
-			if ( isset( $entry['ts'] ) ) {
-				$formatted = wp_date( 'Y-m-d H:i:s', (int) $entry['ts'] );
-				$ts        = false === $formatted ? '' : $formatted;
-			}
-			$ip  = isset( $entry['ip'] ) ? (string) $entry['ip'] : '';
-			$mod = isset( $entry['mode'] ) ? (string) $entry['mode'] : '';
-			$res = isset( $entry['result'] ) ? (string) $entry['result'] : '';
-			$cpf = CsvDownloadAuditLog::decrypt_log_entry_cpf( $entry );
-			$writer->row( array( $ts, $ip, $mod, $cpf, $res ) );
-		}
-		$writer->close();
-        // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose -- closing the php://output handle this method opened.
-		fclose( $fh );
-		exit;
+		// The nonce + form + capability gate, the column layout and the
+		// decrypting row generator live in the source; the download lifecycle
+		// lives in the driver. The `$exporter` param is kept for test injection.
+		$exporter = $exporter ?? new \FreeFormCertificate\Core\SyncCsvExport();
+		$exporter->handle( new \FreeFormCertificate\Frontend\Csv\CsvDownloadLogExportSource( $form_id ) );
 	}
 
 	/**
@@ -904,15 +845,13 @@ class PublicCsvDownload {
 	 *     future tags fall through to this bucket so a silent
 	 *     "success" inflation is impossible.
 	 *
-	 * The legacy `success` / `fail` keys are **deprecated** (see #730) and
-	 * scheduled for removal no earlier than the second feature release after
-	 * the announcement — use `access_success` / `download_success` /
-	 * `failed_access` instead. They are still returned for now so any
-	 * unforeseen external consumer survives the deprecation window. `count`
-	 * is NOT deprecated (the metabox reads it) and stays.
+	 * The legacy `success` / `fail` keys were removed in 6.17.0 (#730) after
+	 * their deprecation window closed — use `access_success` /
+	 * `download_success` / `failed_access` instead. `count` stays (the
+	 * metabox reads it).
 	 *
 	 * @param int $form_id Form ID.
-	 * @return array{count: int, success: int, fail: int, access_success: int, download_success: int, failed_access: int, url: string|null}
+	 * @return array{count: int, access_success: int, download_success: int, failed_access: int, url: string|null}
 	 */
 	public static function get_audit_log_summary( int $form_id ): array {
 		// Thin public delegator. The implementation lives in

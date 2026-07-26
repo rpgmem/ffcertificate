@@ -34,10 +34,19 @@ if ( ! defined( 'ABSPATH' ) ) {
 		<div class="wrap">
 			<h1 class="wp-heading-inline"><?php esc_html_e( 'Short URLs', 'ffcertificate' ); ?></h1>
 			<?php if ( \FreeFormCertificate\Core\Capabilities::current_user_can_admin_or( 'ffc_view_settings' ) ) : ?>
-				<a href="<?php echo esc_url( admin_url( 'edit.php?post_type=ffc_form&page=ffc-settings&tab=url_shortener' ) ); ?>" class="page-title-action">
+				<a href="<?php echo esc_url( admin_url( 'admin.php?page=ffc-settings&tab=url_shortener' ) ); ?>" class="page-title-action">
 					<?php esc_html_e( 'Settings', 'ffcertificate' ); ?>
 				</a>
 			<?php endif; ?>
+			<?php if ( \FreeFormCertificate\Core\Capabilities::current_user_can_admin_or( 'ffc_export_url_shortener' ) ) : ?>
+				<?php // Batched CSV export (#772): the button drives the unified ffc_export_* dispatcher via window.FFCBatchedExport; carries the current search/status filters. ?>
+				<button
+					type="button"
+					id="ffc-shorturl-export-btn"
+					class="page-title-action"
+					data-s="<?php echo esc_attr( $search ); ?>"
+					data-status="<?php echo esc_attr( $status ); ?>"
+				><?php esc_html_e( 'Export CSV', 'ffcertificate' ); ?></button>			<?php endif; ?>
 			<hr class="wp-header-end">
 
 			<?php if ( 'trashed' === $msg ) : ?>

@@ -2,23 +2,28 @@
 /**
  * PublicCsvExporter
  *
- * CSV export for the public-facing download feature.
+ * Synchronous (no-JS) CSV export for the public-facing download feature:
+ * `stream_form_csv()` streams the entire CSV in one request, capped at an
+ * admin-configurable row limit (larger forms must use the batched JS path).
  *
- * Two execution paths:
+ * The batched (JS) path was consolidated onto the shared
+ * {@see \FreeFormCertificate\Core\BatchedCsvExport} engine in #772 and now lives
+ * in {@see PublicFormsExportSource} (routed by the unified dispatcher); this
+ * class keeps only the synchronous fallback. Its column layout mirrors the
+ * admin export (both share {@see PublicCsvRowFormatter}) so the two sources
+ * download interchangeably.
  *
- *  **AJAX batched (primary, when JS is available):**
- *   1. `ajax_start()`    — validate, scan keys, count rows, create temp file,
- *                          write headers, return job_id + total.
- *   2. `ajax_batch()`    — process EXPORT_BATCH_SIZE rows, append to temp file,
- *                          return processed/total. Repeat until done.
- *   3. `ajax_download()` — serve the completed temp file and clean up.
- *
- *  **Synchronous fallback (no-JS):**
- *   `stream_form_csv()` — streams the entire CSV in one request.
- *
- * The column layout intentionally mirrors `CsvExporter::get_fixed_headers()`
- * and `CsvExporter::format_csv_row()` so that admins can compare/download
- * the two sources interchangeably.
+ * Deliberate keep (#772 audit): `stream_form_csv()` is the one CSV output that
+ * writes to `php://output` directly instead of routing through the two Core
+ * adapters (`SyncCsvExport` / `BatchedCsvExport`). It stays bespoke on purpose —
+ * it is the graceful-degradation half of the only *public/frontend* export: a
+ * plain `<form>` POST to `admin-post.php` that works with JavaScript disabled
+ * (the admin exports have no such fallback because they run in wp-admin, where
+ * JS is assured). It does not become a {@see \FreeFormCertificate\Core\SyncSourceInterface}
+ * because (a) it is a direct `admin_post` streaming handler, not an AJAX job, and
+ * (b) over the row cap it emits an HTML 413 page (`render_sync_limit_exceeded()`),
+ * which does not fit the `rows(): iterable` contract. See CLAUDE.md §3 "CSV export
+ * architecture" (the audit-grep note).
  *
  * @package FreeFormCertificate\Frontend
  * @since 5.1.0
@@ -28,39 +33,25 @@ declare(strict_types=1);
 
 namespace FreeFormCertificate\Frontend;
 
-use FreeFormCertificate\Core\Utils;
-use FreeFormCertificate\Core\RequestInput;
-
 use FreeFormCertificate\Core\CsvExportTrait;
 use FreeFormCertificate\Frontend\Csv\PublicCsvRowFormatter;
 use FreeFormCertificate\Repositories\SubmissionRepository;
-use FreeFormCertificate\Security\RateLimiter;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
 /**
- * Exporter for public csv data.
+ * Synchronous exporter for public csv data (no-JS fallback).
  */
 class PublicCsvExporter {
 
 	use CsvExportTrait;
 
 	/**
-	 * Rows pulled per batch while streaming.
+	 * Rows pulled per page while streaming the synchronous export.
 	 */
 	const EXPORT_BATCH_SIZE = 50;
-
-	/**
-	 * Rows pulled per batch during dynamic-key discovery.
-	 */
-	const KEYS_BATCH_SIZE = 500;
-
-	/**
-	 * How long (seconds) the job transient lives before auto-cleanup.
-	 */
-	const JOB_TTL = 3600;
 
 	/**
 	 * Default cap for the synchronous (no-JS) export path. Larger forms
@@ -163,7 +154,7 @@ class PublicCsvExporter {
 		 * @param array<int,int> $form_ids Array with the single form ID being exported.
 		 * @param string         $status   Submission status filter.
 		 */
-		$filename = (string) apply_filters( 'ffcertificate_csv_export_filename', $filename, $form_ids, $status );
+		$filename = (string) apply_filters( 'ffc_export_filename', $filename, $form_ids, $status );
 
 		// Discard any buffered output so the CSV is the only payload on the wire.
 		// phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged, Generic.CodeAnalysis.EmptyStatement.DetectedWhile -- body intentionally empty; @ swallows the "no buffer" notice.
@@ -192,7 +183,7 @@ class PublicCsvExporter {
 		 * Filters the header row of the public CSV export.
 		 *
 		 * Use this to add custom columns (must match extra values injected
-		 * via `ffcertificate_csv_export_data`) or relabel existing ones.
+		 * via `ffc_export_data`) or relabel existing ones.
 		 *
 		 * @since 5.4.0
 		 *
@@ -200,7 +191,7 @@ class PublicCsvExporter {
 		 * @param bool               $include_edit_columns Whether edit-tracking columns are included.
 		 * @param array<int, int>    $form_ids             Array with the single form ID.
 		 */
-		$headers = (array) apply_filters( 'ffcertificate_csv_export_headers', $headers, $include_edit_columns, $form_ids );
+		$headers = (array) apply_filters( 'ffc_export_headers', $headers, $include_edit_columns, $form_ids );
 
 		$writer = \FreeFormCertificate\Core\Csv::writer( $output );
 		$writer->row( $headers );
@@ -225,7 +216,7 @@ class PublicCsvExporter {
 			 *
 			 * @since 5.1.0
 			 */
-			$batch = apply_filters( 'ffcertificate_csv_export_data', $batch, $form_ids, $status );
+			$batch = apply_filters( 'ffc_export_data', $batch, $form_ids, $status );
 
 			foreach ( $batch as $row ) {
 				$writer->row( $this->format_csv_row( $row, $dynamic_keys, $include_edit_columns ) );
@@ -254,7 +245,7 @@ class PublicCsvExporter {
 		 * @param array<string, mixed> $job      Export context (form_ids, status, filename, mode).
 		 */
 		do_action(
-			'ffcertificate_csv_export_completed',
+			'ffc_export_completed',
 			'',
 			'',
 			(int) $row_count,
@@ -308,357 +299,6 @@ class PublicCsvExporter {
 		echo '<p>' . esc_html( $message ) . '</p>';
 		echo '</body></html>';
 	}
-
-	// ──────────────────────────────────────────────────────────────.
-	// AJAX: Start.
-	// ──────────────────────────────────────────────────────────────.
-
-	/**
-	 * Start a new AJAX export job.
-	 *
-	 * Validates request security and form access, scans dynamic keys,
-	 * counts rows, creates a temp file with CSV headers, stores the
-	 * job state in a transient, and returns job_id + total to JS.
-	 *
-	 * @since 5.1.0
-	 */
-	public function ajax_start(): void {
-		// 1. Rate limit.
-		if ( class_exists( RateLimiter::class ) ) {
-			$ip         = \FreeFormCertificate\Core\RequestInput::get_user_ip();
-			$rate_check = RateLimiter::check_ip_limit( $ip );
-			if ( empty( $rate_check['allowed'] ) ) {
-				wp_send_json_error(
-					array(
-						'message'    => $rate_check['message'] ?? __( 'Too many requests. Please wait.', 'ffcertificate' ),
-						'rate_limit' => true,
-					)
-				);
-			}
-		}
-
-		// 2. Nonce.
-		// phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized, WordPress.Security.ValidatedSanitizedInput.MissingUnslash
-		if ( ! wp_verify_nonce( RequestInput::get_post_string( '_ffc_pcd_nonce' ), PublicCsvDownload::NONCE_ACTION ) ) {
-			wp_send_json_error( array( 'message' => __( 'Security check failed. Please refresh the page and try again.', 'ffcertificate' ) ) );
-		}
-
-		// 3. Honeypot + CAPTCHA.
-		// phpcs:ignore WordPress.Security.NonceVerification.Missing -- Nonce verified above.
-		$security_check = \FreeFormCertificate\Core\SecurityService::validate_security_fields( $_POST );
-		if ( true !== $security_check ) {
-			wp_send_json_error( array( 'message' => (string) $security_check ) );
-		}
-
-		// 4. Sanitize input.
-		// phpcs:ignore WordPress.Security.NonceVerification.Missing -- Nonce verified above.
-		$form_id = isset( $_POST['form_id'] ) ? absint( wp_unslash( $_POST['form_id'] ) ) : 0;
-		// phpcs:ignore WordPress.Security.NonceVerification.Missing -- Nonce verified above.
-		$posted_hash = RequestInput::get_post_string( 'hash' );
-
-		if ( $form_id <= 0 || '' === $posted_hash ) {
-			wp_send_json_error( array( 'message' => __( 'Please inform both the Form ID and the Access Hash.', 'ffcertificate' ) ) );
-		}
-
-		// 5–9. Business-logic validation via PublicCsvDownload.
-		$validator = new PublicCsvDownload();
-		$error     = $validator->validate_form_access( $form_id, $posted_hash );
-		if ( null !== $error ) {
-			wp_send_json_error( array( 'message' => $error ) );
-		}
-
-		// 9b. CPF gate (per-form opt-in, no-op when mode = 'none').
-		// phpcs:ignore WordPress.Security.NonceVerification.Missing -- Nonce verified above.
-		$cpf_input = RequestInput::get_post_string( 'cpf' );
-		$cpf_error = $validator->validate_cpf_requirement( $form_id, $cpf_input );
-		if ( null !== $cpf_error ) {
-			wp_send_json_error( array( 'message' => $cpf_error ) );
-		}
-
-		// 10. Increment quota BEFORE generating (race-condition safe).
-		$count = (int) get_post_meta( $form_id, PublicCsvDownload::META_COUNT, true );
-		update_post_meta( $form_id, PublicCsvDownload::META_COUNT, $count + 1 );
-
-		// phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged -- set_time_limit may be disabled.
-		@set_time_limit( 0 );
-		wp_raise_memory_limit( 'admin' );
-
-		$form_ids             = array( $form_id );
-		$status               = 'publish';
-		$dynamic_keys         = $this->scan_dynamic_keys( $form_ids, $status );
-		$include_edit_columns = $this->repository->hasEditInfo();
-
-		$total = $this->repository->count(
-			array(
-				'form_id' => $form_id,
-				'status'  => $status,
-			)
-		);
-
-		if ( 0 === $total ) {
-			wp_send_json_error( array( 'message' => __( 'No records found to export.', 'ffcertificate' ) ) );
-		}
-
-		$form_title_raw = get_the_title( $form_id );
-		$filename       = \FreeFormCertificate\Core\FilenameHelper::sanitize_filename(
-			$form_title_raw ? $form_title_raw : ( 'form-' . $form_id )
-		) . '-' . gmdate( 'Y-m-d-His' ) . '.csv';
-
-		/** This filter is documented in the sync stream path above. */
-		$filename = (string) apply_filters( 'ffcertificate_csv_export_filename', $filename, $form_ids, $status );
-
-		// Create temp file.
-		$upload_dir = wp_upload_dir();
-		$tmp_dir    = trailingslashit( $upload_dir['basedir'] ) . 'ffc-tmp';
-		wp_mkdir_p( $tmp_dir );
-
-		$htaccess = $tmp_dir . '/.htaccess';
-		if ( ! file_exists( $htaccess ) ) {
-			// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents
-			file_put_contents( $htaccess, "Deny from all\n" );
-		}
-
-		$job_id   = wp_generate_uuid4();
-		$tmp_file = $tmp_dir . '/ffc-public-export-' . $job_id . '.csv';
-
-		$headers = array_merge(
-			$this->get_fixed_headers( $include_edit_columns ),
-			$this->build_dynamic_headers( $dynamic_keys )
-		);
-
-		/** This filter is documented in the sync stream path above. */
-		$headers = (array) apply_filters( 'ffcertificate_csv_export_headers', $headers, $include_edit_columns, $form_ids );
-
-		try {
-			$writer = \FreeFormCertificate\Core\Csv::writer( $tmp_file );
-		} catch ( \RuntimeException $e ) {
-			wp_send_json_error( array( 'message' => __( 'Cannot create temp file.', 'ffcertificate' ) ) );
-		}
-		$writer->row( $headers );
-		$writer->close();
-
-		$ip_hash     = sha1( \FreeFormCertificate\Core\RequestInput::get_user_ip() );
-		$nonce_batch = wp_create_nonce( 'ffc_public_csv_batch_' . $job_id );
-
-		// Capture digits-only CPF for the post-streaming audit row
-		// written in `ajax_download()` (post-#241 follow-up). Stored on
-		// the job transient because ajax_download has no POST context;
-		// it only sees job_id + nonce.
-		$cpf_digits_for_audit = preg_replace( '/\D/', '', (string) $cpf_input );
-		$cpf_digits_for_audit = is_string( $cpf_digits_for_audit ) ? $cpf_digits_for_audit : '';
-
-		$job = array(
-			'form_id'              => $form_id,
-			'form_ids'             => $form_ids,
-			'status'               => $status,
-			'dynamic_keys'         => $dynamic_keys,
-			'include_edit_columns' => $include_edit_columns,
-			'cursor'               => PHP_INT_MAX,
-			'processed'            => 0,
-			'total'                => $total,
-			'file'                 => $tmp_file,
-			'filename'             => $filename,
-			'ip_hash'              => $ip_hash,
-			'cpf_digits'           => $cpf_digits_for_audit,
-		);
-		set_transient( 'ffc_public_csv_' . $job_id, $job, self::JOB_TTL );
-
-		wp_send_json_success(
-			array(
-				'job_id'      => $job_id,
-				'total'       => $total,
-				'nonce_batch' => $nonce_batch,
-			)
-		);
-	}
-
-	// ──────────────────────────────────────────────────────────────.
-	// AJAX: Batch.
-	// ──────────────────────────────────────────────────────────────.
-
-	/**
-	 * Process one batch and append rows to the temp file.
-	 *
-	 * @since 5.1.0
-	 */
-	public function ajax_batch(): void {
-		// phpcs:ignore WordPress.Security.NonceVerification.Missing -- Verified via job-scoped nonce below.
-		$job_id = RequestInput::get_post_string( 'job_id' );
-		$job    = get_transient( 'ffc_public_csv_' . $job_id );
-
-		if ( ! $job ) {
-			wp_send_json_error( __( 'Export job not found or expired.', 'ffcertificate' ) );
-		}
-
-		// Verify job-scoped nonce.
-		// phpcs:ignore WordPress.Security.NonceVerification.Missing -- Verified here.
-		$nonce = RequestInput::get_post_string( 'nonce_batch' );
-		if ( ! wp_verify_nonce( $nonce, 'ffc_public_csv_batch_' . $job_id ) ) {
-			wp_send_json_error( __( 'Security check failed.', 'ffcertificate' ) );
-		}
-
-		// IP scope check.
-		$current_ip_hash = sha1( \FreeFormCertificate\Core\RequestInput::get_user_ip() );
-		if ( ! hash_equals( $job['ip_hash'], $current_ip_hash ) ) {
-			wp_send_json_error( __( 'Session mismatch.', 'ffcertificate' ) );
-		}
-
-		// phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged -- set_time_limit may be disabled.
-		@set_time_limit( 60 );
-
-		$batch = $this->repository->getExportBatch(
-			$job['form_ids'],
-			$job['status'],
-			$job['cursor'],
-			self::EXPORT_BATCH_SIZE
-		);
-
-		if ( empty( $batch ) ) {
-			/** This action is documented in the sync stream path above. */
-			do_action(
-				'ffcertificate_csv_export_completed',
-				$job_id,
-				isset( $job['file'] ) ? (string) $job['file'] : '',
-				(int) $job['processed'],
-				array_merge( $job, array( 'mode' => 'public-batch' ) )
-			);
-
-			wp_send_json_success(
-				array(
-					'done'      => true,
-					'processed' => $job['processed'],
-					'total'     => $job['total'],
-				)
-			);
-		}
-
-		/**
-		 * Description.
-		 *
-		 * @since 5.1.0 Same filter as admin CSV + synchronous public export.
-		 */
-		$batch = apply_filters( 'ffcertificate_csv_export_data', $batch, $job['form_ids'], $job['status'] );
-
-		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fopen -- streaming append; CsvWriter does not own this handle.
-		$fh = fopen( $job['file'], 'a' );
-		if ( ! $fh ) {
-			wp_send_json_error( __( 'Cannot write to temp file.', 'ffcertificate' ) );
-		}
-
-		// File already contains its BOM from the init handler.
-		$writer = \FreeFormCertificate\Core\Csv::writer( $fh, ';', true );
-		foreach ( $batch as $row ) {
-			$writer->row( $this->format_csv_row( $row, $job['dynamic_keys'], $job['include_edit_columns'] ) );
-		}
-		$writer->close();
-		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose -- closing the handle this method opened.
-		fclose( $fh );
-
-		$last_row          = end( $batch );
-		$job['cursor']     = (int) $last_row['id'];
-		$job['processed'] += count( $batch );
-
-		set_transient( 'ffc_public_csv_' . $job_id, $job, self::JOB_TTL );
-
-		wp_send_json_success(
-			array(
-				'done'      => false,
-				'processed' => $job['processed'],
-				'total'     => $job['total'],
-			)
-		);
-	}
-
-	// ──────────────────────────────────────────────────────────────.
-	// AJAX: Download.
-	// ──────────────────────────────────────────────────────────────.
-
-	/**
-	 * Serve the completed CSV file and clean up.
-	 *
-	 * AJAX handler for download.
-	 *
-	 * AJAX handler for download.
-	 *
-	 * AJAX handler for download.
-	 *
-	 * AJAX handler for download.
-	 *
-	 * AJAX handler for download.
-	 *
-	 * @since 5.1.0
-	 */
-	public function ajax_download(): void {
-		// phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized, WordPress.Security.ValidatedSanitizedInput.MissingUnslash
-		$job_id = RequestInput::get_get_string( 'job_id' );
-		$job    = get_transient( 'ffc_public_csv_' . $job_id );
-
-		if ( ! $job ) {
-			wp_die( esc_html__( 'Export job not found or expired.', 'ffcertificate' ) );
-		}
-
-		// phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized, WordPress.Security.ValidatedSanitizedInput.MissingUnslash
-		$nonce = RequestInput::get_get_string( 'nonce_batch' );
-		if ( ! wp_verify_nonce( $nonce, 'ffc_public_csv_batch_' . $job_id ) ) {
-			wp_die( esc_html__( 'Security check failed.', 'ffcertificate' ) );
-		}
-
-		$current_ip_hash = sha1( \FreeFormCertificate\Core\RequestInput::get_user_ip() );
-		if ( ! hash_equals( $job['ip_hash'], $current_ip_hash ) ) {
-			wp_die( esc_html__( 'Session mismatch.', 'ffcertificate' ) );
-		}
-
-		$file = $job['file'];
-		if ( ! file_exists( $file ) ) {
-			wp_die( esc_html__( 'Export file not found.', 'ffcertificate' ) );
-		}
-
-		// phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged, Generic.CodeAnalysis.EmptyStatement.DetectedWhile -- body intentionally empty; @ swallows the "no buffer" notice.
-		while ( @ob_end_clean() ) {
-			/* no-op */
-		}
-
-		// Audit row recording the actual delivery (post-#241 follow-up).
-		// Pre-existing CPF-validation rows (`success` / `audit_pass` /
-		// `voluntary`) only confirm the CPF gate passed at start time;
-		// this row confirms the bytes are about to leave the server.
-		// Captured here rather than after `readfile()` because
-		// `readfile()` writes directly to the output stream and the
-		// PHP interpreter may not return cleanly (clients can abort
-		// mid-stream) — logging just before the write keeps the audit
-		// reliable even if the connection drops.
-		$audit_form_id = isset( $job['form_id'] ) ? (int) $job['form_id'] : 0;
-		if ( $audit_form_id > 0 ) {
-			$audit_validator = new \FreeFormCertificate\Frontend\CsvDownloadValidator();
-			$audit_validator->record_download_log_entry(
-				$audit_form_id,
-				(string) get_post_meta( $audit_form_id, '_ffc_csv_public_cpf_mode', true ),
-				isset( $job['cpf_digits'] ) ? (string) $job['cpf_digits'] : '',
-				'download_delivered'
-			);
-		}
-
-		$safe_filename = str_replace( array( "\r", "\n", '"' ), '', $job['filename'] );
-		header( 'Content-Type: text/csv; charset=utf-8' );
-		header( 'Content-Disposition: attachment; filename="' . $safe_filename . '"' );
-		header( 'Content-Length: ' . filesize( $file ) );
-		header( 'Pragma: no-cache' );
-		header( 'Expires: 0' );
-
-		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_readfile
-		readfile( $file );
-
-		// Cleanup.
-		// phpcs:ignore WordPress.WP.AlternativeFunctions.unlink_unlink
-		unlink( $file );
-		delete_transient( 'ffc_public_csv_' . $job_id );
-
-		exit;
-	}
-
-	// ──────────────────────────────────────────────────────────────.
-	// Synchronous fallback (no-JS)
-	// ──────────────────────────────────────────────────────────────.
 
 	/**
 	 * Fixed CSV headers — mirrors `CsvExporter::get_fixed_headers()`.

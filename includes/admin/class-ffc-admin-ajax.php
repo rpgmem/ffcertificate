@@ -292,7 +292,14 @@ class AdminAjax {
 	 */
 	public function search_user(): void {
 		$this->verify_ajax_nonce( 'ffc_user_search_nonce' );
-		$this->check_ajax_permission();
+		// The user search (incl. CPF/RF lookup) backs the submission-edit page,
+		// which is gated on `ffc_edit_certificates`. Match that surface cap via
+		// the admin-or helper (preserving the WP-admin override) instead of the
+		// trait default of `manage_options`, which locked out a certificates
+		// delegate who could open the page but not use its user picker (#739).
+		if ( ! \FreeFormCertificate\Core\Capabilities::current_user_can_admin_or( 'ffc_edit_certificates' ) ) {
+			wp_send_json_error( array( 'message' => __( 'Permission denied.', 'ffcertificate' ) ) );
+		}
 
 		$search_term = $this->get_post_param( 'search' );
 

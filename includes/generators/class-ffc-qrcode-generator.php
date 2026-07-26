@@ -26,7 +26,6 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-// phpcs:disable WordPress.DB.DirectDatabaseQuery.SchemaChange
 /**
  * Generator for q r code output.
  */

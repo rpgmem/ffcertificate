@@ -26,7 +26,6 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-// phpcs:disable WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 /**
  * Stateless service. Public API mirrors what `UserManager` exposed
  * pre-#343 group A — callers route through here now.

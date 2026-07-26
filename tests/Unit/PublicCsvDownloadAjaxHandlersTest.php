@@ -505,109 +505,32 @@ class PublicCsvDownloadAjaxHandlersTest extends TestCase {
     }
 
     // ==================================================================
-    //  handle_export_log_request()
+    //  handle_export_log_request() — delegation to the sync export driver
     // ==================================================================
 
-    public function test_export_log_rejects_bad_nonce(): void {
-        Functions\when( 'wp_verify_nonce' )->justReturn( false );
-        Functions\when( 'FreeFormCertificate\Frontend\wp_verify_nonce' )->justReturn( false );
+    /**
+     * The auth gate + decrypting row generator moved to
+     * {@see \FreeFormCertificate\Frontend\Csv\CsvDownloadLogExportSource} (see
+     * CsvDownloadLogExportSourceTest); the handler now just reads form_id and
+     * hands a source of that type to the injected SyncCsvExport driver. (#772.)
+     */
+    public function test_export_log_delegates_to_sync_export_with_log_source(): void {
         $_GET = array( 'form_id' => '42', '_wpnonce' => 'x' );
 
-        $this->expectException( \RuntimeException::class );
-        $this->expectExceptionMessage( 'wp_die' );
-        ( new PublicCsvDownload() )->handle_export_log_request();
-    }
-
-    public function test_export_log_rejects_when_form_not_found(): void {
-        Functions\when( 'get_post_type' )->justReturn( 'post' );
-        Functions\when( 'FreeFormCertificate\Frontend\get_post_type' )->justReturn( 'post' );
-        $_GET = array( 'form_id' => '42', '_wpnonce' => 'x' );
-
-        try {
-            ( new PublicCsvDownload() )->handle_export_log_request();
-            $this->fail( 'expected wp_die' );
-        } catch ( \RuntimeException $e ) {
-            $this->assertSame( 404, $this->captured['code'] );
-        }
-    }
-
-    public function test_export_log_rejects_when_no_edit_cap(): void {
-        $_GET = array( 'form_id' => '42', '_wpnonce' => 'x' );
-        Functions\when( 'current_user_can' )->justReturn( false );
-        Functions\when( 'FreeFormCertificate\Frontend\current_user_can' )->justReturn( false );
-
-        try {
-            ( new PublicCsvDownload() )->handle_export_log_request();
-            $this->fail( 'expected wp_die' );
-        } catch ( \RuntimeException $e ) {
-            $this->assertSame( 403, $this->captured['code'] );
-        }
-    }
-
-    public function test_export_log_rejects_when_no_audit_cap(): void {
-        $_GET = array( 'form_id' => '42', '_wpnonce' => 'x' );
-        // edit_post passes, but the manage_settings audit cap fails.
-        Functions\when( 'current_user_can' )->alias( fn( $cap ) => 'edit_post' === $cap );
-        Functions\when( 'FreeFormCertificate\Frontend\current_user_can' )->alias( fn( $cap ) => 'edit_post' === $cap );
-        Mockery::mock( 'alias:FreeFormCertificate\Core\Capabilities' )
-            ->shouldReceive( 'current_user_can_admin_or' )->andReturn( false );
-
-        try {
-            ( new PublicCsvDownload() )->handle_export_log_request();
-            $this->fail( 'expected wp_die' );
-        } catch ( \RuntimeException $e ) {
-            $this->assertSame( 403, $this->captured['code'] );
-        }
-    }
-
-    public function test_export_log_streams_csv_happy_path(): void {
-        $_GET = array( 'form_id' => '42', '_wpnonce' => 'x' );
-        Functions\when( 'current_user_can' )->justReturn( true );
-        Functions\when( 'FreeFormCertificate\Frontend\current_user_can' )->justReturn( true );
-        Mockery::mock( 'alias:FreeFormCertificate\Core\Capabilities' )
-            ->shouldReceive( 'current_user_can_admin_or' )->andReturn( true );
-        Mockery::mock( 'alias:FreeFormCertificate\Core\Encryption' )
-            ->shouldReceive( 'is_configured' )->andReturn( true );
-        Mockery::mock( 'alias:FreeFormCertificate\Frontend\Csv\CsvDownloadAuditLog' )
-            ->shouldReceive( 'decrypt_log_entry_cpf' )->andReturn( '52998224725' );
-
-        $log = array(
-            array( 'ts' => 1700000000, 'ip' => '1.2.3.4', 'mode' => 'audit', 'cpf_encrypted' => 'e', 'result' => 'audit_pass' ),
-            'not-an-array', // skipped.
+        $captured = null;
+        $exporter = Mockery::mock( 'FreeFormCertificate\Core\SyncCsvExport' );
+        $exporter->shouldReceive( 'handle' )->once()->with(
+            Mockery::on( function ( $source ) use ( &$captured ) {
+                $captured = $source;
+                return $source instanceof \FreeFormCertificate\Frontend\Csv\CsvDownloadLogExportSource;
+            } )
         );
-        Functions\when( 'get_post_meta' )->alias( function ( $id, $key ) use ( $log ) {
-            return '_ffc_csv_public_download_log' === $key ? $log : '';
-        } );
-        Functions\when( 'wp_date' )->justReturn( '2023-11-14 22:13:20' );
-        Functions\when( 'FreeFormCertificate\Frontend\nocache_headers' )->justReturn( null );
-        Functions\when( 'FreeFormCertificate\Frontend\header' )->justReturn( null );
 
-        // Csv::writer returns a writer that records rows. The real method
-        // ends in exit; we throw a sentinel on close() so the test can
-        // observe the rows that were written before the process would die.
-        $rows   = array();
-        $writer = Mockery::mock( 'FfcCsvWriterStub' );
-        $writer->shouldReceive( 'row' )->andReturnUsing( function ( $r ) use ( &$rows ) { $rows[] = $r; } );
-        $writer->shouldReceive( 'close' )->andReturnUsing( function () {
-            throw new \RuntimeException( 'closed' );
-        } );
-        Mockery::mock( 'alias:FreeFormCertificate\Core\Csv' )
-            ->shouldReceive( 'writer' )->andReturn( $writer );
+        ( new PublicCsvDownload() )->handle_export_log_request( $exporter );
 
-        ob_start();
-        try {
-            ( new PublicCsvDownload() )->handle_export_log_request();
-            ob_end_clean();
-            $this->fail( 'expected the writer close sentinel' );
-        } catch ( \RuntimeException $e ) {
-            ob_end_clean();
-            $this->assertSame( 'closed', $e->getMessage() );
-        }
-
-        // Header row + one data row (the non-array entry is skipped).
-        $this->assertContains( array( 'timestamp', 'ip', 'mode', 'cpf', 'result' ), $rows );
-        $data = array_values( array_filter( $rows, fn( $r ) => isset( $r[4] ) && 'audit_pass' === $r[4] ) );
-        $this->assertNotEmpty( $data );
-        $this->assertSame( '52998224725', $data[0][3] );
+        $this->assertInstanceOf(
+            \FreeFormCertificate\Frontend\Csv\CsvDownloadLogExportSource::class,
+            $captured
+        );
     }
 }

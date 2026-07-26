@@ -8,16 +8,17 @@ use Brain\Monkey\Functions;
 use Brain\Monkey\Actions;
 use PHPUnit\Framework\TestCase;
 use FreeFormCertificate\Recruitment\RecruitmentLoader;
-use FreeFormCertificate\Recruitment\RecruitmentActivator;
 
 /**
- * Tests for RecruitmentLoader's plugins_loaded upgrade-safety wiring.
+ * Tests for RecruitmentLoader's bootstrap wiring.
  *
- * In-place plugin updates DO NOT fire register_activation_hook, so the
- * recruitment module hooks `create_tables`, `register_recruitment_manager_role`,
- * and `maybe_migrate` on `plugins_loaded` to self-heal. This test pins those
- * hook registrations + their priority order (9 < 10 < 11) so future loader
- * refactors don't accidentally drop the safety net.
+ * The schema self-heal (`create_tables` / `maybe_migrate`) and the
+ * recruitment-manager role registration are orchestrator-level lifecycle and
+ * were relocated to `Loader::init_plugin()` / `Loader::register_ffc_roles_safe()`
+ * so the Modules-tab toggle can skip this feature bootstrap without dropping the
+ * recruitment tables or role. This test pins that relocation — the loader must
+ * NOT re-register those lifecycle hooks — and confirms the remaining feature
+ * bootstrap (rest_api_init, admin/init hooks) still wires.
  *
  * @covers \FreeFormCertificate\Recruitment\RecruitmentLoader
  */
@@ -35,11 +36,11 @@ class RecruitmentLoaderTest extends TestCase {
 		parent::tearDown();
 	}
 
-	public function test_plugins_loaded_hooks_create_tables_and_maybe_migrate(): void {
-		// Capture every add_action call so we can pin the safety-net set
+	public function test_loader_does_not_reregister_relocated_lifecycle_hooks(): void {
+		// Capture every add_action call so we can assert the relocated lifecycle
 		// (create_tables@plugins_loaded:9, maybe_migrate@plugins_loaded:11,
-		// role@init:1) without coupling to brain/monkey's expectation
-		// argument-matching quirks.
+		// role@init:1) is NO LONGER wired by the loader — it now lives in the
+		// orchestrator so a disabled recruitment module keeps its schema + role.
 		$plugins_loaded = array();
 		$init_hooks     = array();
 		Functions\when( 'add_action' )->alias(
@@ -62,21 +63,13 @@ class RecruitmentLoaderTest extends TestCase {
 
 		( new RecruitmentLoader() )->init();
 
-		$plugins_loaded_priorities = array_column( $plugins_loaded, 'priority' );
-		$this->assertContains( 9, $plugins_loaded_priorities, 'create_tables must hook plugins_loaded:9' );
-		$this->assertContains( 11, $plugins_loaded_priorities, 'maybe_migrate must hook plugins_loaded:11' );
+		// No plugins_loaded activator hooks remain on the loader.
+		$this->assertSame( array(), $plugins_loaded, 'Loader must not hook create_tables/maybe_migrate on plugins_loaded — relocated to the orchestrator.' );
 
-		$by_priority = array();
-		foreach ( $plugins_loaded as $entry ) {
-			$by_priority[ $entry['priority'] ] = $entry['callback'];
-		}
-		$this->assertSame( array( RecruitmentActivator::class, 'create_tables' ), $by_priority[9] );
-		$this->assertSame( array( RecruitmentActivator::class, 'maybe_migrate' ), $by_priority[11] );
-
-		// Role self-heal moved to init:1 in 6.2.x — the role label uses __()
-		// so it can't run on plugins_loaded without tripping WP 6.7+'s
-		// "translation loading … too early" notice.
+		// The role self-heal (init:1) is gone from the loader; only the feature
+		// bootstrap init hooks (shortcode + dashboard, priority 10) remain.
 		$init_priorities = array_column( $init_hooks, 'priority' );
-		$this->assertContains( 1, $init_priorities, 'role self-heal must hook init:1' );
+		$this->assertNotContains( 1, $init_priorities, 'Role self-heal (init:1) must not be re-registered by the loader.' );
+		$this->assertContains( 10, $init_priorities, 'Feature bootstrap init hooks (shortcode/dashboard) must still wire.' );
 	}
 }

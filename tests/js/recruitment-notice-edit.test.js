@@ -36,6 +36,7 @@ const CFG = {
 		reopenReason: 'REOPEN?',
 		confirmOverride: 'OVERRIDE_CONFIRM?',
 		overrideReason: 'OVERRIDE_REASON?',
+		notifyByEmailAsk: 'NOTIFY?',
 	},
 };
 
@@ -282,6 +283,59 @@ describe('ffcRecruitmentBulkCall', () => {
 		expect(payload.classification_ids).toEqual([10]);
 		expect(payload.date_to_assume).toBe('2026-05-20');
 	});
+
+	it('adds a default-checked notify checkbox to the bulk modal in ask mode', () => {
+		installBulk({ 'adj-1': [{ id: 10, rank: 1 }] });
+		// Operator clears the box → modal reports checkbox=false.
+		const openConfirmModal = vi.fn((cfg, cb) => cb('', false));
+		window.ffcRecruitmentAdmin = { openConfirmModal };
+		window.ffcRecruitmentNoticeEdit = { ...CFG, emailMode: 'ask' };
+		loadScript(SCRIPT);
+		document.getElementById('ffc-bulk-date').value = '2026-05-20';
+		document.getElementById('ffc-bulk-time').value = '09:00';
+		document.querySelector('.ffc-cls-bulk-cb[value="10"]').checked = true;
+
+		window.ffcRecruitmentBulkCall();
+
+		const cfg = openConfirmModal.mock.calls[0][0];
+		expect(cfg.checkboxLabel).toBe('NOTIFY?');
+		expect(cfg.checkboxChecked).toBe(true);
+		const payload = JSON.parse(fetchSpy.mock.calls[0][1].body);
+		expect(payload.notify_email).toBe(false);
+	});
+
+	it('posts notify_email true when the bulk modal checkbox stays checked', () => {
+		installBulk({ 'adj-1': [{ id: 10, rank: 1 }] });
+		const openConfirmModal = vi.fn((cfg, cb) => cb('', true));
+		window.ffcRecruitmentAdmin = { openConfirmModal };
+		window.ffcRecruitmentNoticeEdit = { ...CFG, emailMode: 'ask' };
+		loadScript(SCRIPT);
+		document.getElementById('ffc-bulk-date').value = '2026-05-20';
+		document.getElementById('ffc-bulk-time').value = '09:00';
+		document.querySelector('.ffc-cls-bulk-cb[value="10"]').checked = true;
+
+		window.ffcRecruitmentBulkCall();
+
+		const payload = JSON.parse(fetchSpy.mock.calls[0][1].body);
+		expect(payload.notify_email).toBe(true);
+	});
+
+	it('omits notify_email when not in ask mode', () => {
+		installBulk({ 'adj-1': [{ id: 10, rank: 1 }] });
+		const openConfirmModal = vi.fn((cfg, cb) => cb('', undefined));
+		window.ffcRecruitmentAdmin = { openConfirmModal };
+		loadScript(SCRIPT);
+		document.getElementById('ffc-bulk-date').value = '2026-05-20';
+		document.getElementById('ffc-bulk-time').value = '09:00';
+		document.querySelector('.ffc-cls-bulk-cb[value="10"]').checked = true;
+
+		window.ffcRecruitmentBulkCall();
+
+		const cfg = openConfirmModal.mock.calls[0][0];
+		expect(cfg.checkboxLabel).toBeUndefined();
+		const payload = JSON.parse(fetchSpy.mock.calls[0][1].body);
+		expect('notify_email' in payload).toBe(false);
+	});
 });
 
 describe('ffcRecruitmentClsToggleAll', () => {
@@ -325,6 +379,68 @@ describe('ffcRecruitmentClsAct', () => {
 		const fd = fetchSpy.mock.calls[0][1].body;
 		expect(fd.get('out_of_order_reason')).toBe('because reasons');
 		expect(fd.get('date_to_assume')).toBe('2026-05-20');
+	});
+
+	function installAskRow() {
+		document.body.innerHTML = `
+			<div data-ffc-clspanel="definitive" data-ffc-empties='{"adj-1":[{"id":1,"rank":1}]}'></div>
+			<table><tbody>
+				<tr data-cls-id="1" data-cls-rank="1" data-cls-adjutancy="adj-1">
+					<td><button data-cls-id="1" data-cls-action="call">Call</button></td>
+				</tr>
+			</tbody></table>`;
+	}
+
+	it('opens a default-checked notify modal in ask mode and sends when kept checked', () => {
+		installAskRow();
+		const openConfirmModal = vi.fn((cfg, cb) => cb('', true)); // box checked → send
+		window.ffcRecruitmentAdmin = { openConfirmModal };
+		window.ffcRecruitmentNoticeEdit = { ...CFG, emailMode: 'ask' };
+		loadScript(SCRIPT);
+		// In order (rank 1 = lowest), so no OOO prompt: date, then time.
+		vi.spyOn(window, 'prompt')
+			.mockReturnValueOnce('2026-05-20')
+			.mockReturnValueOnce('09:00');
+
+		window.ffcRecruitmentClsAct(document.querySelector('button'));
+
+		const cfg = openConfirmModal.mock.calls[0][0];
+		expect(cfg.checkboxLabel).toBe('NOTIFY?');
+		expect(cfg.checkboxChecked).toBe(true);
+		expect(fetchSpy.mock.calls[0][0]).toBe(CLASS + '1/call');
+		const fd = fetchSpy.mock.calls[0][1].body;
+		expect(fd.get('notify_email')).toBe('1');
+	});
+
+	it('appends notify_email 0 when the single-call modal checkbox is cleared', () => {
+		installAskRow();
+		const openConfirmModal = vi.fn((cfg, cb) => cb('', false)); // box cleared → do not send
+		window.ffcRecruitmentAdmin = { openConfirmModal };
+		window.ffcRecruitmentNoticeEdit = { ...CFG, emailMode: 'ask' };
+		loadScript(SCRIPT);
+		vi.spyOn(window, 'prompt')
+			.mockReturnValueOnce('2026-05-20')
+			.mockReturnValueOnce('09:00');
+
+		window.ffcRecruitmentClsAct(document.querySelector('button'));
+
+		const fd = fetchSpy.mock.calls[0][1].body;
+		expect(fd.get('notify_email')).toBe('0');
+	});
+
+	it('fires immediately with no notify field when not in ask mode', () => {
+		installAskRow();
+		window.ffcRecruitmentAdmin = { openConfirmModal: vi.fn() };
+		loadScript(SCRIPT);
+		vi.spyOn(window, 'prompt')
+			.mockReturnValueOnce('2026-05-20')
+			.mockReturnValueOnce('09:00');
+
+		window.ffcRecruitmentClsAct(document.querySelector('button'));
+
+		expect(window.ffcRecruitmentAdmin.openConfirmModal).not.toHaveBeenCalled();
+		const fd = fetchSpy.mock.calls[0][1].body;
+		expect(fd.get('notify_email')).toBeNull();
 	});
 
 	it('aborts the call when the OOO justification is blank', () => {

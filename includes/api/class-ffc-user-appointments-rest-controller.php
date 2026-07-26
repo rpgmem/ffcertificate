@@ -139,20 +139,21 @@ class UserAppointmentsRestController {
 					$date_formatted = ( false !== $timestamp ) ? \FreeFormCertificate\Core\DateFormatter::format_date( $timestamp ) : $appointment['appointment_date'];
 				}
 
-				$time_formatted = '';
-				if ( ! empty( $appointment['start_time'] ) ) {
-					$time_timestamp = strtotime( $appointment['start_time'] );
-					$time_formatted = ( false !== $time_timestamp ) ? \FreeFormCertificate\Core\DateFormatter::format_time( $time_timestamp ) : $appointment['start_time'];
-				}
+				// Appointment times are Category-B wall-clock (TIME columns, no TZ
+				// semantics) — render them with the wall-clock formatter. The old
+				// strtotime()+format_time() path re-interpreted the literal time as
+				// a UTC instant and then applied the site TZ, shifting it by the
+				// offset (e.g. 13:00 → 10:00 in UTC-3). See CLAUDE.md §4 Category B.
+				$time_formatted = ! empty( $appointment['start_time'] )
+					? \FreeFormCertificate\Core\DateFormatter::format_wallclock_time( (string) $appointment['start_time'] )
+					: '';
 
 				$email_display = \FreeFormCertificate\Core\Encryption::decrypt_field( $appointment, 'email' );
 				$phone_display = \FreeFormCertificate\Core\Encryption::decrypt_field( $appointment, 'phone' );
 
-				$end_time_formatted = '';
-				if ( ! empty( $appointment['end_time'] ) ) {
-					$end_timestamp      = strtotime( $appointment['end_time'] );
-					$end_time_formatted = ( false !== $end_timestamp ) ? \FreeFormCertificate\Core\DateFormatter::format_time( $end_timestamp ) : '';
-				}
+				$end_time_formatted = ! empty( $appointment['end_time'] )
+					? \FreeFormCertificate\Core\DateFormatter::format_wallclock_time( (string) $appointment['end_time'] )
+					: '';
 
 				$status_labels = array(
 					'pending'   => __( 'Pending', 'ffcertificate' ),
@@ -206,6 +207,7 @@ class UserAppointmentsRestController {
 					'start_time'           => $time_formatted,
 					'start_time_raw'       => $appointment['start_time'] ?? '',
 					'end_time'             => $end_time_formatted,
+					'end_time_raw'         => $appointment['end_time'] ?? '',
 					'status'               => $status,
 					'status_label'         => $status_labels[ $status ] ?? $status,
 					'name'                 => $appointment['name'] ?? '',

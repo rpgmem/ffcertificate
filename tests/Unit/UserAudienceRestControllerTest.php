@@ -342,8 +342,9 @@ class UserAudienceRestControllerTest extends TestCase {
         $result  = $ctrl->get_joinable_groups( $request );
 
         $this->assertIsArray( $result );
-        $this->assertArrayHasKey( 'groups', $result );
-        $this->assertEmpty( $result['groups'] );
+        // Empty-schema guard now returns the same `parents` key as the other paths.
+        $this->assertArrayHasKey( 'parents', $result );
+        $this->assertEmpty( $result['parents'] );
         $this->assertSame( 2, $result['max_groups'] );
     }
 
@@ -368,20 +369,27 @@ class UserAudienceRestControllerTest extends TestCase {
         $this->assertSame( 2, $result['max_groups'] );
     }
 
-    public function test_get_joinable_groups_builds_tree_and_counts_members(): void {
+    public function test_get_joinable_groups_builds_tree_per_node_button_and_header_rules(): void {
         Functions\when( 'get_current_user_id' )->justReturn( 5 );
         Functions\when( 'current_user_can' )->justReturn( false );
 
         $this->wpdb->shouldReceive( 'get_var' )->andReturn( 'wp_ffc_audiences' );
         $this->wpdb->shouldReceive( 'get_results' )->andReturn( array( (object) array( 'Field' => 'allow_self_join' ) ) );
 
-        // Parent (id=1) with two leaf children; one child the user is a member of.
+        // Per-node model (#792): the service now returns EVERY active
+        // audience with its own `allow_self_join` flag; the controller
+        // applies the appears/button/header rules.
         $flat = array(
-            array( 'id' => 1, 'parent_id' => null, 'name' => 'Parent', 'color' => '#000', 'is_member' => false ),
-            array( 'id' => 2, 'parent_id' => 1, 'name' => 'Child A', 'color' => '#111', 'is_member' => true ),
-            array( 'id' => 3, 'parent_id' => 1, 'name' => 'Child B', 'color' => '#222', 'is_member' => false ),
-            // A standalone joinable leaf (root itself is a leaf).
-            array( 'id' => 4, 'parent_id' => null, 'name' => 'Solo', 'color' => '#333', 'is_member' => true ),
+            // Non-joinable parent — kept only as a header for its joinable child.
+            array( 'id' => 1, 'parent_id' => null, 'name' => 'Parent', 'color' => '#000', 'allow_self_join' => false, 'is_member' => false ),
+            // Joinable child (button + member).
+            array( 'id' => 2, 'parent_id' => 1, 'name' => 'Child A', 'color' => '#111', 'allow_self_join' => true, 'is_member' => true ),
+            // Non-joinable leaf child → dropped (no button, no children).
+            array( 'id' => 3, 'parent_id' => 1, 'name' => 'Child B', 'color' => '#222', 'allow_self_join' => false, 'is_member' => false ),
+            // Standalone joinable top-level group (button + member).
+            array( 'id' => 4, 'parent_id' => null, 'name' => 'Solo', 'color' => '#333', 'allow_self_join' => true, 'is_member' => true ),
+            // Non-joinable top-level leaf → dropped entirely.
+            array( 'id' => 5, 'parent_id' => null, 'name' => 'Hidden', 'color' => '#444', 'allow_self_join' => false, 'is_member' => false ),
         );
         $this->query_service->shouldReceive( 'find_user_joinable_audiences' )->andReturn( $flat );
 
@@ -390,21 +398,67 @@ class UserAudienceRestControllerTest extends TestCase {
 
         $this->assertIsArray( $result );
         $this->assertArrayHasKey( 'parents', $result );
-        // Two joined leaves (Child A + Solo).
+        // Two button-bearing memberships (Child A + Solo); Child B / Hidden carry no button.
         $this->assertSame( 2, $result['joined_count'] );
 
-        // Locate the branch node.
+        // Two top-level nodes appear: the header Parent and the button Solo.
+        // Hidden (no button, no children) is filtered out.
+        $this->assertCount( 2, $result['parents'] );
+
         $branch = null;
         $solo   = null;
         foreach ( $result['parents'] as $node ) {
             if ( 1 === $node['id'] ) { $branch = $node; }
             if ( 4 === $node['id'] ) { $solo = $node; }
         }
+
+        // Parent is header-only: appears (for its child) but has no button.
         $this->assertNotNull( $branch );
+        $this->assertArrayNotHasKey( 'joinable', $branch );
         $this->assertArrayHasKey( 'children', $branch );
-        $this->assertCount( 2, $branch['children'] );
+        // Only the joinable Child A survives; Child B is dropped.
+        $this->assertCount( 1, $branch['children'] );
+        $this->assertSame( 2, $branch['children'][0]['id'] );
+        $this->assertTrue( $branch['children'][0]['joinable'] );
+        $this->assertTrue( $branch['children'][0]['is_member'] );
+
+        // Solo is a button node with no children.
         $this->assertNotNull( $solo );
+        $this->assertTrue( $solo['joinable'] );
         $this->assertTrue( $solo['is_member'] );
+        $this->assertArrayNotHasKey( 'children', $solo );
+    }
+
+    public function test_get_joinable_groups_node_can_be_both_button_and_parent(): void {
+        Functions\when( 'get_current_user_id' )->justReturn( 5 );
+        Functions\when( 'current_user_can' )->justReturn( false );
+
+        $this->wpdb->shouldReceive( 'get_var' )->andReturn( 'wp_ffc_audiences' );
+        $this->wpdb->shouldReceive( 'get_results' )->andReturn( array( (object) array( 'Field' => 'allow_self_join' ) ) );
+
+        // A joinable parent that ALSO has a joinable child: it must expose
+        // BOTH its own button (joinable + is_member) AND the child list.
+        $flat = array(
+            array( 'id' => 1, 'parent_id' => null, 'name' => 'Both', 'color' => '#000', 'allow_self_join' => true, 'is_member' => false ),
+            array( 'id' => 2, 'parent_id' => 1, 'name' => 'Kid', 'color' => '#111', 'allow_self_join' => true, 'is_member' => true ),
+        );
+        $this->query_service->shouldReceive( 'find_user_joinable_audiences' )->andReturn( $flat );
+
+        $result = ( new UserAudienceRestController( 'ffc/v1' ) )
+            ->get_joinable_groups( $this->make_request() );
+
+        $this->assertCount( 1, $result['parents'] );
+        $both = $result['parents'][0];
+        $this->assertSame( 1, $both['id'] );
+        // Own button.
+        $this->assertTrue( $both['joinable'] );
+        $this->assertFalse( $both['is_member'] );
+        // And the nested joinable child.
+        $this->assertArrayHasKey( 'children', $both );
+        $this->assertCount( 1, $both['children'] );
+        $this->assertSame( 2, $both['children'][0]['id'] );
+        // Only the child membership counts (parent is not a member).
+        $this->assertSame( 1, $result['joined_count'] );
     }
 
     public function test_get_joinable_groups_returns_500_on_exception(): void {
@@ -527,6 +581,47 @@ class UserAudienceRestControllerTest extends TestCase {
         $this->assertIsArray( $result );
         $this->assertTrue( $result['success'] );
         $this->assertStringContainsString( 'My Group', $result['message'] );
+    }
+
+    public function test_join_audience_group_succeeds_for_a_top_level_self_join_group(): void {
+        // Regression: a standalone top-level self-join audience (parent_id NULL)
+        // is offered by the joinable-groups list (a "root that is itself a leaf")
+        // and must be joinable — join() no longer requires a parent.
+        Functions\when( 'get_current_user_id' )->justReturn( 5 );
+        Functions\when( 'current_user_can' )->justReturn( false );
+
+        $group = (object) array( 'status' => 'active', 'allow_self_join' => 1, 'parent_id' => null, 'name' => 'Solo' );
+        $this->reader->shouldReceive( 'get_by_id' )->andReturn( $group );
+        $this->reader->shouldReceive( 'is_member' )->andReturn( false );
+        $this->query_service->shouldReceive( 'count_user_self_join_memberships' )->andReturn( 0 );
+        $this->writer->shouldReceive( 'add_member' )->once()->with( 10, 5 )->andReturn( 1 );
+
+        $result = ( new UserAudienceRestController( 'ffc/v1' ) )
+            ->join_audience_group( $this->make_request( array( 'group_id' => 10 ) ) );
+
+        $this->assertIsArray( $result );
+        $this->assertTrue( $result['success'] );
+        $this->assertStringContainsString( 'Solo', $result['message'] );
+    }
+
+    public function test_join_audience_group_succeeds_for_a_parent_that_also_has_children(): void {
+        // Joinability is per-node: a parent whose own allow_self_join is on is
+        // joinable in its own right, even though it has children (the children
+        // are joinable separately). Having children does NOT block the parent.
+        Functions\when( 'get_current_user_id' )->justReturn( 5 );
+        Functions\when( 'current_user_can' )->justReturn( false );
+
+        $group = (object) array( 'status' => 'active', 'allow_self_join' => 1, 'parent_id' => null, 'name' => 'Parent' );
+        $this->reader->shouldReceive( 'get_by_id' )->andReturn( $group );
+        $this->reader->shouldReceive( 'is_member' )->andReturn( false );
+        $this->query_service->shouldReceive( 'count_user_self_join_memberships' )->andReturn( 0 );
+        $this->writer->shouldReceive( 'add_member' )->once()->with( 10, 5 )->andReturn( 1 );
+
+        $result = ( new UserAudienceRestController( 'ffc/v1' ) )
+            ->join_audience_group( $this->make_request( array( 'group_id' => 10 ) ) );
+
+        $this->assertIsArray( $result );
+        $this->assertTrue( $result['success'] );
     }
 
     public function test_join_audience_group_returns_500_on_exception(): void {

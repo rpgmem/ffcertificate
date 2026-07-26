@@ -57,7 +57,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 				<tr><td><code>ffcertificate_after_appointment_create</code> / <code>ffcertificate_appointment_cancelled</code></td><td><?php esc_html_e( 'Self-scheduling appointment lifecycle.', 'ffcertificate' ); ?></td></tr>
 				<tr><td><code>ffcertificate_audience_booking_created</code> / <code>ffcertificate_audience_booking_cancelled</code></td><td><?php esc_html_e( 'Audience booking lifecycle ( booking_id ).', 'ffcertificate' ); ?></td></tr>
 				<tr><td><code>ffcertificate_before_short_redirect</code></td><td><?php esc_html_e( 'Before a short-URL redirect is sent.', 'ffcertificate' ); ?></td></tr>
-				<tr><td><code>ffcertificate_csv_export_completed</code></td><td><?php esc_html_e( 'After a background CSV export finishes.', 'ffcertificate' ); ?></td></tr>
+				<tr><td><code>ffc_export_completed</code></td><td><?php esc_html_e( 'After a CSV export finishes ( renamed from ffcertificate_csv_export_completed in 6.17.0 ).', 'ffcertificate' ); ?></td></tr>
 			</tbody>
 		</table>
 		<p class="description"><?php esc_html_e( 'Signatures vary — check the source for the exact argument list before hooking.', 'ffcertificate' ); ?></p>

@@ -294,7 +294,7 @@ class FormEditor {
 	public function ajax_generate_random_codes(): void {
 		check_ajax_referer( 'ffc_admin_pdf_nonce', 'nonce' );
 
-		if ( ! current_user_can( 'edit_posts' ) ) {
+		if ( ! \FreeFormCertificate\Core\Capabilities::current_user_can_admin_or( 'ffc_manage_forms' ) ) {
 			wp_send_json_error();
 		}
 
@@ -313,7 +313,7 @@ class FormEditor {
 	public function ajax_load_template(): void {
 		check_ajax_referer( 'ffc_admin_pdf_nonce', 'nonce' );
 
-		if ( ! current_user_can( 'edit_posts' ) ) {
+		if ( ! \FreeFormCertificate\Core\Capabilities::current_user_can_admin_or( 'ffc_manage_forms' ) ) {
 			wp_send_json_error();
 		}
 

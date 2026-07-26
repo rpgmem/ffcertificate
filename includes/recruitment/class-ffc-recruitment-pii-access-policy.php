@@ -53,16 +53,29 @@ if ( ! defined( 'ABSPATH' ) ) {
  */
 final class RecruitmentPiiAccessPolicy {
 
-	public const TIER_UNMASKED = 'unmasked';
-	public const TIER_REVEAL   = 'reveal';
-	public const TIER_MASKED   = 'masked';
+	public const TIER_UNMASKED = \FreeFormCertificate\Core\PiiAccessPolicy::TIER_UNMASKED;
+	public const TIER_REVEAL   = \FreeFormCertificate\Core\PiiAccessPolicy::TIER_REVEAL;
+	public const TIER_MASKED   = \FreeFormCertificate\Core\PiiAccessPolicy::TIER_MASKED;
+
+	/**
+	 * The recruitment reveal cap handed to the shared policy.
+	 */
+	private const PII_CAP = 'ffc_view_recruitment_pii';
+
+	/**
+	 * The recruitment unmasked-tier role handed to the shared policy.
+	 */
+	private const UNMASKED_ROLE = 'ffc_recruitment_admin';
 
 	/**
 	 * Resolve the access tier for the given user against the given candidate.
 	 *
-	 * The candidate row is the source of truth for the owner check (its
-	 * `user_id` column). Pass null when the candidate isn't loaded yet —
-	 * the owner clause then short-circuits to false and the cap-only path
+	 * Thin recruitment adapter over {@see \FreeFormCertificate\Core\PiiAccessPolicy}
+	 * (the shared 3-tier engine, #739 §3.3): it pins the recruitment reveal cap
+	 * + unmasked role and derives the owner from the candidate row, then
+	 * delegates the tiering. The candidate row is the source of truth for the
+	 * owner check (its `user_id` column); pass null when the candidate isn't
+	 * loaded yet — the owner clause then short-circuits and the cap-only path
 	 * decides.
 	 *
 	 * @param object|null $candidate Candidate row (with at least `user_id`), or null.
@@ -70,35 +83,12 @@ final class RecruitmentPiiAccessPolicy {
 	 * @return string One of TIER_UNMASKED / TIER_REVEAL / TIER_MASKED.
 	 */
 	public static function resolve( ?object $candidate, ?int $user_id = null ): string {
-		$uid = $user_id ?? get_current_user_id();
-		if ( $uid <= 0 ) {
-			return self::TIER_MASKED;
-		}
-
-		if ( user_can( $uid, 'manage_options' ) ) {
-			return self::TIER_UNMASKED;
-		}
-
-		// Role check — `ffc_recruitment_admin` is the highest-trust
-		// recruitment role and shouldn't be slowed down by per-field
-		// clicks. Caps alone don't tell us the role, so we hit get_user().
-		$user = get_user_by( 'id', $uid );
-		if ( $user && in_array( 'ffc_recruitment_admin', (array) $user->roles, true ) ) {
-			return self::TIER_UNMASKED;
-		}
-
-		if ( user_can( $uid, 'ffc_view_recruitment_pii' ) ) {
-			return self::TIER_REVEAL;
-		}
-
-		// Owner clause — the candidate themselves sees their own data.
-		// Audit still fires (so the trail captures who-saw-what across
-		// the lifetime of the row).
-		if ( $candidate && isset( $candidate->user_id ) && (int) $candidate->user_id === $uid ) {
-			return self::TIER_REVEAL;
-		}
-
-		return self::TIER_MASKED;
+		return \FreeFormCertificate\Core\PiiAccessPolicy::resolve(
+			self::PII_CAP,
+			self::UNMASKED_ROLE,
+			self::owner_of( $candidate ),
+			$user_id
+		);
 	}
 
 	/**
@@ -109,21 +99,42 @@ final class RecruitmentPiiAccessPolicy {
 	 * @return bool
 	 */
 	public static function can_reveal( ?object $candidate, ?int $user_id = null ): bool {
-		$tier = self::resolve( $candidate, $user_id );
-		return self::TIER_MASKED !== $tier;
+		return \FreeFormCertificate\Core\PiiAccessPolicy::can_reveal(
+			self::PII_CAP,
+			self::UNMASKED_ROLE,
+			self::owner_of( $candidate ),
+			$user_id
+		);
 	}
 
 	/**
 	 * Convenience predicate: does revealing fire an audit row?
 	 *
-	 * `unmasked` tier explicitly skips audit (high-trust roles, no noise).
-	 * `reveal` tier always audits (subject to dedup + setting toggle).
+	 * `unmasked` tier skips audit (high-trust roles, no noise); `reveal` tier
+	 * audits. The dedup + `audit_pii_reveals` setting are enforced caller-side
+	 * (the reveal handler), not here.
 	 *
 	 * @param object|null $candidate Candidate row, or null.
 	 * @param int|null    $user_id   User to check; defaults to current user.
 	 * @return bool
 	 */
 	public static function should_audit( ?object $candidate, ?int $user_id = null ): bool {
-		return self::TIER_REVEAL === self::resolve( $candidate, $user_id );
+		return \FreeFormCertificate\Core\PiiAccessPolicy::should_audit(
+			self::PII_CAP,
+			self::UNMASKED_ROLE,
+			self::owner_of( $candidate ),
+			$user_id
+		);
+	}
+
+	/**
+	 * Extract the owner user id from a candidate row (null when absent),
+	 * for the shared policy's self-view clause.
+	 *
+	 * @param object|null $candidate Candidate row.
+	 * @return int|null
+	 */
+	private static function owner_of( ?object $candidate ): ?int {
+		return ( $candidate && isset( $candidate->user_id ) ) ? (int) $candidate->user_id : null;
 	}
 }

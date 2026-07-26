@@ -512,7 +512,7 @@ class SelfSchedulingCPT {
 		);
 
 		// Send email.
-		self::ffc_send_mail( $email, $subject, $body );
+		self::ffc_send_mail( $email, $subject, $body, array(), \FreeFormCertificate\Core\EmailSource::SCHEDULING );
 
 		// Log notification.
 		if ( class_exists( '\FreeFormCertificate\Core\Utils' ) ) {

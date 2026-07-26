@@ -76,6 +76,17 @@ class UrlShortenerLoader {
 
 			$meta_box = new UrlShortenerMetaBox( $this->service );
 			$meta_box->init();
+
+			// CSV export — register the batched source with the shared registry
+			// (#772); the unified dispatcher (wired in Loader) routes
+			// `type=url_shortener` start/batch/download requests to it.
+			$repository = $this->service->get_repository();
+			\FreeFormCertificate\Core\SourceRegistry::register(
+				UrlShortenerExportSource::TYPE,
+				static function () use ( $repository ): UrlShortenerExportSource {
+					return new UrlShortenerExportSource( $repository );
+				}
+			);
 		}
 
 		// AJAX handlers (needed for both admin and front-end contexts).

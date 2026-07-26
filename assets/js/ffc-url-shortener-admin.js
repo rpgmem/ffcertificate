@@ -76,6 +76,44 @@
 
     $(document).ready(function () {
 
+        // --- Batched CSV export (#772) ---
+        // The button drives the unified ffc_export_* dispatcher via the shared
+        // window.FFCBatchedExport driver, carrying the current search/status
+        // filters. Export order is id-DESC (a stable keyset), not the on-screen
+        // sort.
+        $('#ffc-shorturl-export-btn').on('click', function () {
+            if (!window.FFCBatchedExport) {
+                return;
+            }
+            var $btn  = $(this);
+            var i18n  = settings.i18n || {};
+            var nonce = settings.exportNonce || '';
+            if (!nonce) {
+                return;
+            }
+
+            // Progress is shown through the shared FFCProgressOverlay modal,
+            // driven by the driver itself (overlay: true) — same UI as the
+            // public download (#786).
+            window.FFCBatchedExport.run({
+                type: 'url_shortener',
+                ajaxUrl: settings.ajaxUrl,
+                nonce: nonce,
+                button: $btn,
+                overlay: true,
+                strings: {
+                    preparing: i18n.exportPreparing,
+                    exporting: i18n.exportProgress,
+                    downloading: i18n.exportDone,
+                    error: i18n.error
+                },
+                startData: {
+                    s: $btn.data('s') || '',
+                    status: $btn.data('status') || 'all'
+                }
+            });
+        });
+
         // --- Copy short URL (meta box) ---
         $(document).on('click', '.ffc-copy-shorturl', function (e) {
             e.preventDefault();

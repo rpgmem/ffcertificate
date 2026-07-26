@@ -210,7 +210,7 @@ class EmailHandler {
 		// (the "Email Model") like every other plugin email (#662 PR-7). The
 		// filter above still sees the un-chromed body so integrations keep
 		// operating on the content.
-		self::ffc_send_mail( $to, $subject, self::ffc_email_document( $body, array( 'recipient' => $to ) ) );
+		self::ffc_send_mail( $to, $subject, self::ffc_email_document( $body, array( 'recipient' => $to ) ), array(), \FreeFormCertificate\Core\EmailSource::CERTIFICATE );
 	}
 
 
@@ -276,7 +276,7 @@ class EmailHandler {
 
 		// Send to all admin emails (already validated by ffc_parse_admin_emails).
 		foreach ( $admins as $email ) {
-			self::ffc_send_mail( $email, $subject, $body );
+			self::ffc_send_mail( $email, $subject, $body, array(), \FreeFormCertificate\Core\EmailSource::CERTIFICATE );
 		}
 	}
 

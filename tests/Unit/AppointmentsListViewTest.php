@@ -44,6 +44,7 @@ class AppointmentsListViewTest extends TestCase {
         Functions\when( 'wp_unslash' )->returnArg();
         Functions\when( 'get_current_user_id' )->justReturn( 1 );
         Functions\when( 'wp_create_nonce' )->justReturn( 'nonce123' );
+        Functions\when( 'wp_nonce_field' )->justReturn( '' );
         Functions\when( 'get_transient' )->justReturn( false );
         Functions\when( 'set_transient' )->justReturn( true );
         Functions\when( 'delete_transient' )->justReturn( true );

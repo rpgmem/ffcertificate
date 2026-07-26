@@ -21,20 +21,28 @@
 
     var fieldCounter = 0;
 
-    // Get localized strings with fallbacks
+    // Field types — the ordered {value,label} list localized from the canonical
+    // PHP source (FormEditorBuilderMetabox::field_types_ordered), so the JS
+    // builder and the server-rendered row <select> offer the same types in the
+    // same locale-aware order. Falls back to a static union (same order,
+    // untranslated) if the localized list is unavailable.
     function getFieldTypes() {
+        if (typeof ffc_ajax !== 'undefined' && Array.isArray(ffc_ajax.fieldTypes) && ffc_ajax.fieldTypes.length) {
+            return ffc_ajax.fieldTypes;
+        }
         var strings = (typeof ffc_ajax !== 'undefined' && ffc_ajax.strings) ? ffc_ajax.strings : {};
         return [
-            { value: 'text', label: strings.textField || 'Text Field' },
+            { value: 'checkbox', label: strings.checkbox || 'Checkbox' },
+            { value: 'date', label: strings.date || 'Date' },
+            { value: 'select', label: strings.dropdownSelect || 'Dropdown Select' },
             { value: 'email', label: strings.email || 'Email' },
             { value: 'number', label: strings.number || 'Number' },
-            { value: 'textarea', label: strings.textarea || 'Textarea' },
-            { value: 'select', label: strings.dropdownSelect || 'Dropdown Select' },
-            { value: 'checkbox', label: strings.checkbox || 'Checkbox' },
             { value: 'radio', label: strings.radioButtons || 'Radio Buttons' },
-            { value: 'date', label: strings.date || 'Date' },
-            { value: 'info', label: strings.infoBlock || 'Info Block' },
-            { value: 'embed', label: strings.embedMedia || 'Embed (Media)' }
+            { value: 'text', label: strings.textField || 'Text Field' },
+            { value: 'textarea', label: strings.textarea || 'Textarea' },
+            { value: 'embed', label: strings.embedMedia || 'Embed (Media)' },
+            { value: 'hidden', label: strings.hiddenField || 'Hidden Field' },
+            { value: 'info', label: strings.infoBlock || 'Info Block' }
         ];
     }
 

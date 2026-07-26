@@ -1034,6 +1034,35 @@ class ReregistrationSubmissionRepositoryTest extends TestCase {
     }
 
     // ==================================================================
+    // find_by_cursor_for_export() — keyset page for the batched CSV export
+    // ==================================================================
+
+    public function test_find_by_cursor_for_export_builds_keyset_desc_query(): void {
+        $captured_sql = '';
+        $this->wpdb->shouldReceive('prepare')->once()->andReturnUsing(function () use (&$captured_sql) {
+            $captured_sql = func_get_args()[0];
+            return $captured_sql;
+        });
+        $rows = [(object) ['id' => 5], (object) ['id' => 4]];
+        $this->wpdb->shouldReceive('get_results')->once()->andReturn($rows);
+
+        $result = ReregistrationSubmissionReader::find_by_cursor_for_export(3, 10, 50);
+
+        $this->assertSame($rows, $result);
+        $this->assertStringContainsString('s.reregistration_id = %d AND s.id < %d', $captured_sql);
+        $this->assertStringContainsString('ORDER BY s.id DESC', $captured_sql);
+        $this->assertStringContainsString('LIMIT %d', $captured_sql);
+        $this->assertStringContainsString('LEFT JOIN', $captured_sql);
+    }
+
+    public function test_find_by_cursor_for_export_returns_empty_when_no_results(): void {
+        $this->wpdb->shouldReceive('prepare')->once()->andReturn('QUERY');
+        $this->wpdb->shouldReceive('get_results')->once()->andReturn(null);
+
+        $this->assertSame([], ReregistrationSubmissionReader::find_by_cursor_for_export(3, 10, 50));
+    }
+
+    // ==================================================================
     // get_by_reregistration()
     // ==================================================================
 

@@ -29,7 +29,7 @@ class CertificatesCalendarRestController {
 	private const POST_TYPE  = 'ffc_form';
 	private const STATUSES   = array( 'publish', 'future', 'private' );
 	private const META_KEY   = '_ffc_geofence_config';
-	private const CAPABILITY = 'edit_others_posts';
+	private const CAPABILITY = 'ffc_view_certificates';
 
 	/**
 	 * API namespace.
@@ -80,7 +80,13 @@ class CertificatesCalendarRestController {
 	 * @return bool
 	 */
 	public function permission_check(): bool {
-		return current_user_can( self::CAPABILITY );
+		// The certificates dashboard calendar is an admin-only read. Gate it on
+		// the certificates domain VIEW cap (matching the dashboard page's own
+		// `CertificatesDashboard::CAPABILITY`) instead of the raw
+		// `edit_others_posts` — that WP-Editor cap both let plain Editors in and
+		// locked out an `ffc_view_certificates` holder who could open the page
+		// but not load its calendar (#739 taxonomy escape).
+		return \FreeFormCertificate\Core\Capabilities::current_user_can_admin_or( self::CAPABILITY );
 	}
 
 	/**

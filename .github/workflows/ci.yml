@@ -79,9 +79,10 @@ jobs:
   # the 512M memory ceiling on #622). The suite was made order-independent
   # (namespaced Core stubs converted to globals so no test leaks a lingering
   # symbol), which lets the coverage run be split into 4 parallel shards. Each
-  # shard runs a balanced subset (.github/scripts/shard-tests.php, balanced by
-  # process-isolated class count) and emits a partial .cov; the `coverage` job
-  # below merges them with phpcov and gates the floor. Wall-clock ~50m → ~15m.
+  # shard runs a balanced subset (.github/scripts/shard-tests.php, LPT-packed by
+  # per-file test-method count so the process-isolated forks spread evenly) and
+  # emits a partial .cov; the `coverage` job below merges them with phpcov and
+  # gates the floor. Wall-clock ~50m → ~15m.
   coverage-shard:
     name: Coverage shard ${{ matrix.shard }}
     runs-on: ubuntu-latest
@@ -181,8 +182,16 @@ jobs:
     # ~4.4pp buffer under the measured number (≤5pp policy); note the CI gate
     # reads the sharded phpcov merge, which runs a hair under the single-process
     # figure (~0.2pp on #623), so 82 stays comfortably clear.
+    #
+    # 82 → 84 — recruitment coverage push (#809 Fase 1): reader tests (#812)
+    # plus the two heaviest renderers — RecruitmentPublicShortcodeRenderer
+    # (~46%→~99%) and RecruitmentAdminPage (~39%→~99%) — took the recruitment
+    # module ~86% → 90.0%. Overall statement coverage 88.56% (40543/45780,
+    # single-process). Bump to 84 keeps a ~4.4pp buffer under the measured
+    # number (≤5pp policy); the sharded phpcov merge still runs ~0.2pp under,
+    # so 84 stays comfortably clear.
     env:
-      COVERAGE_FLOOR_LINES: '82'
+      COVERAGE_FLOOR_LINES: '84'
     steps:
       - name: Fail if any coverage shard did not succeed
         if: needs.coverage-shard.result != 'success'
@@ -230,6 +239,11 @@ jobs:
             }
           '
       - name: Upload coverage to Coveralls
+        # Reporting-only: the merge gate is the "Enforce line-coverage floor"
+        # step above, which fully enforces COVERAGE_FLOOR_LINES on its own. A
+        # coveralls.io outage (503 "queue full") must never block merge, so this
+        # third-party upload is non-blocking.
+        continue-on-error: true
         uses: coverallsapp/github-action@v2
         with:
           file: coverage.xml

@@ -22,7 +22,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 
 /**
  * Read queries for audience-specific custom field definitions.
@@ -57,6 +57,32 @@ class CustomFieldReader {
 	public const DISPLAY_ONLY_TYPES = array(
 		'acknowledgment',
 	);
+
+	/**
+	 * Human-facing, translated labels for each supported field type.
+	 *
+	 * The canonical display map — keyed by the {@see self::FIELD_TYPES}
+	 * slugs — so every custom-field `<select>` renders localized, consistent
+	 * labels instead of a raw `ucfirst()` of the slug. Callers order the
+	 * options for display via {@see \FreeFormCertificate\Core\LabelSorter}
+	 * (display-only `acknowledgment` pinned last). Kept in sync with
+	 * `FIELD_TYPES` by `CustomFieldReaderTest`.
+	 *
+	 * @return array<string, string> slug => translated label.
+	 */
+	public static function field_type_labels(): array {
+		return array(
+			'text'             => __( 'Text', 'ffcertificate' ),
+			'number'           => __( 'Number', 'ffcertificate' ),
+			'date'             => __( 'Date', 'ffcertificate' ),
+			'select'           => __( 'Select', 'ffcertificate' ),
+			'dependent_select' => __( 'Dependent Select', 'ffcertificate' ),
+			'checkbox'         => __( 'Checkbox', 'ffcertificate' ),
+			'textarea'         => __( 'Textarea', 'ffcertificate' ),
+			'working_hours'    => __( 'Working Hours', 'ffcertificate' ),
+			'acknowledgment'   => __( 'Acknowledgment', 'ffcertificate' ),
+		);
+	}
 
 	/**
 	 * Built-in validation formats.

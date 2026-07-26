@@ -60,6 +60,48 @@ final class RecruitmentEmailDispatcher {
 
 	use \FreeFormCertificate\Core\EmailHelperTrait;
 
+	/** Convocation email is sent on every call (default). */
+	public const MODE_ALWAYS = 'always';
+
+	/** Convocation email is never sent automatically. */
+	public const MODE_NEVER = 'never';
+
+	/** Convocation email is sent only when the admin opts in per call. */
+	public const MODE_ASK = 'ask';
+
+	/**
+	 * The allowlist of valid `email_mode` values.
+	 *
+	 * @return list<string>
+	 */
+	public static function valid_modes(): array {
+		return array( self::MODE_ALWAYS, self::MODE_NEVER, self::MODE_ASK );
+	}
+
+	/**
+	 * Decide whether a call action should send its convocation email, given
+	 * the configured `email_mode` and the per-call opt-in (only consulted in
+	 * `ask` mode). The global "disable all emails" kill-switch is enforced
+	 * later, inside `EmailService::send()`, and still wins over a `true` here.
+	 *
+	 * @param bool|null $opted_in Per-call "notify by email" choice; null when
+	 *                            the call form did not supply one (treated as
+	 *                            "no" in `ask` mode).
+	 * @return bool Whether to dispatch the convocation email.
+	 */
+	public static function should_send( ?bool $opted_in ): bool {
+		$mode = (string) RecruitmentSettings::get( 'email_mode' );
+		switch ( $mode ) {
+			case self::MODE_NEVER:
+				return false;
+			case self::MODE_ASK:
+				return true === $opted_in;
+			case self::MODE_ALWAYS:
+			default:
+				return true;
+		}
+	}
+
 	/**
 	 * Send the convocation email for a freshly-committed call row.
 	 *
@@ -125,7 +167,7 @@ final class RecruitmentEmailDispatcher {
 		};
 		add_filter( 'wp_mail_alternative_text', $plain_filter );
 
-		\FreeFormCertificate\Core\EmailService::send( $email_plain, $subject, $body, $headers );
+		\FreeFormCertificate\Core\EmailService::send( $email_plain, $subject, $body, $headers, array(), \FreeFormCertificate\Core\EmailSource::RECRUITMENT );
 
 		remove_filter( 'wp_mail_alternative_text', $plain_filter );
 

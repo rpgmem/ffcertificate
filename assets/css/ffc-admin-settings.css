@@ -103,6 +103,25 @@
     margin-left: 25px;
 }
 
+/* Per-module heads-up note (e.g. the Certificates cron pause) — an inline
+   info line under a module toggle, set apart from the plain description. */
+.ffc-settings-wrap .form-table .description.ffc-module-note {
+    display: flex;
+    align-items: flex-start;
+    gap: 5px;
+    margin-top: 6px;
+    font-style: italic;
+}
+
+.ffc-settings-wrap .form-table .description.ffc-module-note .dashicons {
+    flex: 0 0 auto;
+    margin-top: 1px;
+    width: 16px;
+    height: 16px;
+    font-size: 16px;
+    color: var(--ffc-text-muted);
+}
+
 /* ==========================================================================
    STATISTICS BOXES
    ========================================================================== */
@@ -995,6 +1014,7 @@ pre code {
      ffc-icon-users    → groups        (\f307)   — User Access
      ffc-icon-sync     → update        (\f463)   — Migrations
      ffc-icon-doc      → book-alt      (\f331)   — Documentation
+     ffc-icon-clipboard→ list-view     (\f163)   — Activity Log
      ffc-icon-calendar → calendar-alt  (\f508)   — Scheduling module link
      (module links also carry an external marker → external \f504)
    ========================================================================== */
@@ -1022,6 +1042,7 @@ pre code {
 .ffc-settings-tabs__nav .ffc-icon-users::before    { content: "\f307"; }
 .ffc-settings-tabs__nav .ffc-icon-sync::before     { content: "\f463"; }
 .ffc-settings-tabs__nav .ffc-icon-doc::before      { content: "\f331"; }
+.ffc-settings-tabs__nav .ffc-icon-clipboard::before { content: "\f163"; }
 .ffc-settings-tabs__nav .ffc-icon-calendar::before { content: "\f508"; }
 
 .ffc-settings-tabs__nav .ffc-settings-tabs__external {

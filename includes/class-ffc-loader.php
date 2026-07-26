@@ -31,6 +31,7 @@ use FreeFormCertificate\Reregistration\ReregistrationRepository;
 use FreeFormCertificate\Reregistration\ReregistrationEmailHandler;
 use FreeFormCertificate\UrlShortener\UrlShortenerActivator;
 use FreeFormCertificate\UrlShortener\UrlShortenerLoader;
+use FreeFormCertificate\Settings\SettingsReader;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
@@ -169,26 +170,68 @@ class Loader {
 			UrlShortenerActivator::maybe_migrate();
 		}
 
+		// Recruitment schema — orchestrator-level lifecycle (relocated out of
+		// RecruitmentLoader so the Modules-tab toggle can skip the recruitment
+		// feature bootstrap without dropping its tables). create → migrate order;
+		// runs regardless of the `recruitment` module toggle. The role
+		// registration is relocated to register_ffc_roles_safe() (init:1).
+		if ( class_exists( '\FreeFormCertificate\Recruitment\RecruitmentActivator' ) ) {
+			\FreeFormCertificate\Recruitment\RecruitmentActivator::create_tables();
+			\FreeFormCertificate\Recruitment\RecruitmentActivator::maybe_migrate();
+		}
+
 		// Shared classes (needed in both admin and frontend contexts).
 		$this->submission_handler = new SubmissionHandler();
 		$this->email_handler      = new EmailHandler();
-		$this->cpt                = new CPT();
+
+		// Certificates module — the `ffc_form` CPT + public form rendering.
+		// Toggleable via the Modules tab (default on). The certificate ADMIN
+		// screens (Submissions, Dashboard) hang off the CPT menu, so they
+		// self-hide when the CPT is gated; the always-on admin infrastructure
+		// below (Settings, the AJAX endpoints, role editor) is unaffected —
+		// keeping the Modules tab reachable to re-enable the module.
+		$ffc_certificates_enabled = SettingsReader::module_enabled( 'certificates' );
+		if ( $ffc_certificates_enabled ) {
+			$this->cpt = new CPT();
+		}
 
 		// Admin-only classes skipped on frontend.
 		if ( is_admin() ) {
+			// Settings surface — a cross-cutting service (SMTP, cache,
+			// migrations, Modules), NOT part of the Certificates module. Wired
+			// here at the composition root, always on and decoupled from
+			// AdminLoader, so the Modules tab can never disable the very screen
+			// that hosts it out of reach.
+			new \FreeFormCertificate\Admin\Settings( $this->submission_handler );
+
 			// Admin module — single bootstrap entry point (#563 B3): wires
 			// every admin-only Admin\… class behind one symbol instead of
 			// newing-up ~20 classes here. Mirrors AudienceLoader/RecruitmentLoader.
+			// Always on: it carries the settings-autosave endpoint, role editor
+			// and menu-visibility infra; the certificate-specific screens inside
+			// it self-hide without the CPT above.
 			$this->admin_loader = new AdminLoader( $this->submission_handler );
 			$this->admin_loader->init();
 		}
 
-		// Frontend + AJAX classes.
-		$this->frontend = new Frontend( $this->submission_handler );
+		// Frontend certificate form rendering — gated with the Certificates module.
+		if ( $ffc_certificates_enabled ) {
+			$this->frontend = new Frontend( $this->submission_handler );
+		}
+
+		// Unified batched-CSV-export dispatcher (#772): one `type`-routed AJAX
+		// trio (`ffc_export_start` / `_batch` / `_download`) for every export
+		// source. Concrete sources register a factory in the admin / frontend
+		// bootstraps; the dispatcher (Core) references none of them. Registered
+		// unconditionally so both priv and nopriv admin-ajax requests reach it.
+		( new \FreeFormCertificate\Core\BatchedExportDispatcher() )->register();
 
 		DashboardShortcode::init();
 		// Reregistration module — single bootstrap entry point (#563 B3).
-		( new ReregistrationLoader() )->init();
+		// Toggleable via the Modules tab (default on).
+		if ( SettingsReader::module_enabled( 'reregistration' ) ) {
+			( new ReregistrationLoader() )->init();
+		}
 		// UserDashboard has no module loader by design (#563 B3): these two
 		// init() calls are its only bootstrap wiring. Its larger
 		// Root→UserDashboard surface is capability/role lifecycle
@@ -209,20 +252,31 @@ class Loader {
 		\FreeFormCertificate\Admin\CptCapPolicy::init();
 
 		// Self-Scheduling module — single bootstrap entry point (#563 B3).
-		$this->self_scheduling_loader = new SelfSchedulingLoader();
-		$this->self_scheduling_loader->init();
+		// Toggleable via the Modules tab (default on).
+		if ( SettingsReader::module_enabled( 'self_scheduling' ) ) {
+			$this->self_scheduling_loader = new SelfSchedulingLoader();
+			$this->self_scheduling_loader->init();
+		}
 
-		$this->audience_loader = AudienceLoader::get_instance();
-		$this->audience_loader->init();
+		// Audiences / Scheduling module — toggleable via the Modules tab (default on).
+		if ( SettingsReader::module_enabled( 'audiences' ) ) {
+			$this->audience_loader = AudienceLoader::get_instance();
+			$this->audience_loader->init();
+		}
 
-		// URL Shortener module (v5.1.0).
-		if ( class_exists( UrlShortenerLoader::class ) ) {
+		// URL Shortener module (v5.1.0) — toggleable via the Modules tab (default
+		// on). The loader also self-gates on the same `url_shortener_enabled`
+		// slot (UrlShortenerService::is_enabled()); the outer guard keeps every
+		// module visibly gated in one place.
+		if ( class_exists( UrlShortenerLoader::class ) && SettingsReader::module_enabled( 'url_shortener' ) ) {
 			$url_shortener = new UrlShortenerLoader();
 			$url_shortener->init();
 		}
 
-		// Recruitment module (v6.0.0).
-		if ( class_exists( '\FreeFormCertificate\Recruitment\RecruitmentLoader' ) ) {
+		// Recruitment module (v6.0.0) — toggleable via the Modules tab (default
+		// on). Its schema + role registration are relocated above (orchestrator
+		// lifecycle), so a disabled module keeps its tables and manager role.
+		if ( class_exists( '\FreeFormCertificate\Recruitment\RecruitmentLoader' ) && SettingsReader::module_enabled( 'recruitment' ) ) {
 			$recruitment_loader = new \FreeFormCertificate\Recruitment\RecruitmentLoader();
 			$recruitment_loader->init();
 		}
@@ -255,6 +309,7 @@ class Loader {
 		$this->ensure_reasons_caps_wired();
 		$this->ensure_settings_split_caps_granted();
 		$this->ensure_activity_log_export_cap_granted();
+		$this->ensure_url_shortener_export_cap_granted();
 		$this->ensure_rbac_caps_renamed();
 		$this->ensure_rbac_roles_renamed();
 		$this->ensure_false_ffc_caps_stripped();
@@ -286,6 +341,27 @@ class Loader {
 			// See `RoleRegistrar::relabel_ffc_roles()` for full
 			// rationale.
 			add_action( 'wp_roles_init', array( '\FreeFormCertificate\UserDashboard\RoleRegistrar', 'relabel_ffc_roles' ) );
+
+			// `wp_roles_init` usually fires during early auth (on
+			// `plugins_loaded`, when `current_user_can()` first builds
+			// `WP_Roles`) — i.e. BEFORE this `init:1` hook is added, so the
+			// hook above never runs and the FFC role names stay frozen in
+			// their English source (the reported "roles not translated in the
+			// admin" bug). Re-apply the relabel directly now: at `init` the
+			// plugin textdomain resolves via just-in-time loading, so `__()`
+			// returns the translated labels and `WP_Roles::$role_names` is
+			// updated for the rest of the request (users list, role dropdown).
+			if ( function_exists( 'wp_roles' ) ) {
+				\FreeFormCertificate\UserDashboard\RoleRegistrar::relabel_ffc_roles( wp_roles() );
+			}
+
+			// Recruitment-manager role — relocated from RecruitmentLoader::init()
+			// (which the Modules-tab toggle can now skip) so the role survives a
+			// disabled recruitment module. Same init:1 timing as before, after the
+			// textdomain loads (the label uses __()). Idempotent.
+			if ( class_exists( '\FreeFormCertificate\Recruitment\RecruitmentActivator' ) ) {
+				\FreeFormCertificate\UserDashboard\RoleRegistrar::register_recruitment_manager_role();
+			}
 		}
 	}
 
@@ -412,6 +488,25 @@ class Loader {
 		}
 		if ( class_exists( '\FreeFormCertificate\UserDashboard\CapabilityManager' ) ) {
 			\FreeFormCertificate\UserDashboard\CapabilityMigrator::migrate_activity_log_export_cap_grant();
+		}
+		update_option( $flag, '1', true );
+	}
+
+	/**
+	 * One-time migration that seeds the dedicated `ffc_export_url_shortener` cap
+	 * onto every user/role already holding `ffc_manage_url_shortener`, preserving
+	 * their bulk short-URL export ability when export is split out of `manage`.
+	 * Idempotent + version-flagged via `ffc_url_shortener_export_cap_v1`.
+	 *
+	 * @since 6.16.0
+	 */
+	private function ensure_url_shortener_export_cap_granted(): void {
+		$flag = 'ffc_url_shortener_export_cap_v1';
+		if ( '1' === get_option( $flag, '' ) ) {
+			return;
+		}
+		if ( class_exists( '\FreeFormCertificate\UserDashboard\CapabilityManager' ) ) {
+			\FreeFormCertificate\UserDashboard\CapabilityMigrator::migrate_url_shortener_export_cap_grant();
 		}
 		update_option( $flag, '1', true );
 	}
@@ -660,9 +755,18 @@ class Loader {
 				\FreeFormCertificate\Frontend\ScheduleExceptionSession::cleanup_expired_consumed();
 			}
 		);
-		add_action( 'ffcertificate_reregistration_expire_hook', array( ReregistrationRepository::class, 'expire_overdue' ) );
-		add_action( 'ffcertificate_reregistration_expire_hook', array( ReregistrationEmailHandler::class, 'run_automated_reminders' ) );
-		add_action( \FreeFormCertificate\SelfScheduling\AppointmentReminderScanner::CRON_HOOK, array( \FreeFormCertificate\SelfScheduling\AppointmentReminderScanner::class, 'run' ) );
+		// Module-specific cron callbacks are bound to their module toggle, so a
+		// disabled module stops its scheduled work (expiring registrations,
+		// emailing reminders) rather than running silently. The cron events stay
+		// scheduled; with no callback registered they fire as harmless no-ops and
+		// resume the moment the module is re-enabled (init runs every request).
+		if ( SettingsReader::module_enabled( 'reregistration' ) ) {
+			add_action( 'ffcertificate_reregistration_expire_hook', array( ReregistrationRepository::class, 'expire_overdue' ) );
+			add_action( 'ffcertificate_reregistration_expire_hook', array( ReregistrationEmailHandler::class, 'run_automated_reminders' ) );
+		}
+		if ( SettingsReader::module_enabled( 'self_scheduling' ) ) {
+			add_action( \FreeFormCertificate\SelfScheduling\AppointmentReminderScanner::CRON_HOOK, array( \FreeFormCertificate\SelfScheduling\AppointmentReminderScanner::class, 'run' ) );
+		}
 	}
 
 	/**

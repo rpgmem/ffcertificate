@@ -66,12 +66,32 @@ class CertificatesCalendarRestControllerTest extends TestCase {
     // Permission
     // ------------------------------------------------------------------
 
-    public function test_permission_check_passes_when_user_has_capability(): void {
+    public function test_permission_check_passes_with_certificates_view_cap(): void {
+        // Gated on the certificates domain view cap (matches the dashboard page).
+        Functions\when( 'current_user_can' )->alias( function ( $cap ) {
+            return 'ffc_view_certificates' === $cap;
+        } );
+
+        $this->assertTrue( ( new CertificatesCalendarRestController( 'ffc/v1' ) )->permission_check() );
+    }
+
+    public function test_permission_check_passes_for_wp_admin(): void {
+        // manage_options override (WP admin above all).
+        Functions\when( 'current_user_can' )->alias( function ( $cap ) {
+            return 'manage_options' === $cap;
+        } );
+
+        $this->assertTrue( ( new CertificatesCalendarRestController( 'ffc/v1' ) )->permission_check() );
+    }
+
+    public function test_permission_check_denies_plain_editor(): void {
+        // #739 escape closed: raw `edit_others_posts` (a plain WP Editor) no
+        // longer grants access — only the FFC cap or manage_options.
         Functions\when( 'current_user_can' )->alias( function ( $cap ) {
             return 'edit_others_posts' === $cap;
         } );
 
-        $this->assertTrue( ( new CertificatesCalendarRestController( 'ffc/v1' ) )->permission_check() );
+        $this->assertFalse( ( new CertificatesCalendarRestController( 'ffc/v1' ) )->permission_check() );
     }
 
     public function test_permission_check_fails_without_capability(): void {

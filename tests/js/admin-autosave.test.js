@@ -420,3 +420,64 @@ describe('FFC.Admin.autoSaveField — extra branches', () => {
 		spy.mockRestore();
 	});
 });
+
+// ----------------------------------------------------------------------
+// confirmOff — consequential toggles (e.g. disabling a plugin module)
+// prompt before saving; declining reverts the toggle and cancels the save.
+// ----------------------------------------------------------------------
+
+describe('FFC.Admin.autoSaveField — confirmOff gate', () => {
+	it('declining the prompt reverts the toggle and cancels the save', () => {
+		document.body.innerHTML = '<input type="checkbox" id="t" checked />';
+		const postSpy = vi.spyOn(window.$, 'post').mockImplementation(() => makeChain(() => ({ success: true, data: {} })));
+		const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(false);
+		window.FFC.Admin.autoSaveField(window.$('#t'), { key: 'module_recruitment_enabled', confirmOff: 'Disable?' });
+
+		// User turns the toggle OFF → confirm fires; declined → revert, no save.
+		window.$('#t').prop('checked', false).trigger('change');
+		vi.advanceTimersByTime(400);
+
+		expect(confirmSpy).toHaveBeenCalledWith('Disable?');
+		expect(window.$('#t').is(':checked')).toBe(true);
+		expect(postSpy).not.toHaveBeenCalled();
+	});
+
+	it('accepting the prompt proceeds with the save', () => {
+		document.body.innerHTML = '<input type="checkbox" id="t" checked />';
+		const postSpy = vi.spyOn(window.$, 'post').mockImplementation(() => makeChain(() => ({ success: true, data: {} })));
+		vi.spyOn(window, 'confirm').mockReturnValue(true);
+		window.FFC.Admin.autoSaveField(window.$('#t'), { key: 'module_recruitment_enabled', confirmOff: 'Disable?' });
+
+		window.$('#t').prop('checked', false).trigger('change');
+		vi.advanceTimersByTime(400);
+
+		expect(postSpy).toHaveBeenCalledTimes(1);
+		expect(postSpy.mock.calls[0][1].value).toBe('0');
+	});
+
+	it('turning the toggle ON never prompts', () => {
+		document.body.innerHTML = '<input type="checkbox" id="t" />';
+		const postSpy = vi.spyOn(window.$, 'post').mockImplementation(() => makeChain(() => ({ success: true, data: {} })));
+		const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(false);
+		window.FFC.Admin.autoSaveField(window.$('#t'), { key: 'module_x_enabled', confirmOff: 'Disable?' });
+
+		window.$('#t').prop('checked', true).trigger('change');
+		vi.advanceTimersByTime(400);
+
+		expect(confirmSpy).not.toHaveBeenCalled();
+		expect(postSpy).toHaveBeenCalledTimes(1);
+		expect(postSpy.mock.calls[0][1].value).toBe('1');
+	});
+
+	it('bootAutoSaveFields reads data-ffc-confirm-off into config.confirmOff', () => {
+		document.body.innerHTML =
+			'<input type="checkbox" data-ffc-autosave-key="module_recruitment_enabled" data-ffc-confirm-off="Disable Recruitment?">';
+		const spy = vi.spyOn(window.FFC.Admin, 'autoSaveField').mockImplementation(() => ({ destroy: () => {} }));
+
+		window.FFC.Admin.bootAutoSaveFields();
+
+		expect(spy).toHaveBeenCalledTimes(1);
+		expect(spy.mock.calls[0][1].confirmOff).toBe('Disable Recruitment?');
+		spy.mockRestore();
+	});
+});

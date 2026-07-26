@@ -7,9 +7,10 @@
  * keeps the URL in sync so results are bookmarkable and the back button
  * restores the previous filter.
  *
- * The Export CSV link is left alone — `php://output` streaming is
- * already correct; we just show a tiny "Preparing…" toast while the
- * download starts.
+ * The Export CSV button drives the shared window.FFCBatchedExport engine
+ * (#772) through the unified `ffc_export_*` dispatcher, carrying the current
+ * level/action/search filters — the timeout-safe start → batch → download
+ * job replaces the former synchronous stream.
  *
  * @since 6.5.8
  */
@@ -40,8 +41,8 @@
 
     function buildQuery(filters, paged) {
         var qs = $.param({
-            post_type: 'ffc_form',
-            page:      'ffc-activity-log',
+            page:      'ffc-settings',
+            tab:       'activity_log',
             level:     filters.level,
             log_action: filters.log_action,
             s:         filters.search,
@@ -155,7 +156,7 @@
 
     // Clear filters link — currently a regular anchor with the
     // base URL. Trap the click and reset locally instead of reloading.
-    $(document).on('click', '.tablenav.top .alignleft a.button[href*="ffc-activity-log"]', function (e) {
+    $(document).on('click', '.tablenav.top .alignleft a.button[href*="tab=activity_log"]', function (e) {
         // Only intercept when no `?level=` / `log_action` / `s` in href —
         // that's the Clear Filters button by construction.
         var href = $(this).attr('href') || '';
@@ -167,13 +168,39 @@
         fetch({ level: '', log_action: '', search: '' }, 1);
     });
 
-    // Export CSV — let the native link work, just pop a small toast
-    // so the admin knows something happened.
-    $(document).on('click', '.tablenav.top a.button[href*="ffc_export_logs"]', function () {
-        var s = strings();
-        if (window.FFC.Admin && typeof window.FFC.Admin.showNotification === 'function') {
-            window.FFC.Admin.showNotification(s.preparing || 'Preparing CSV download…', 'info', 4000);
-        }
+    // Export CSV — batched engine (#772). The button drives the unified
+    // ffc_export_* dispatcher via the shared window.FFCBatchedExport driver,
+    // carrying the current level/action/search filters. Export order is
+    // id-DESC (a stable keyset), not the on-screen sort.
+    $(document).on('click', '#ffc-activitylog-export-btn', function () {
+        if (!window.FFCBatchedExport) { return; }
+        var c           = cfg();
+        var s           = strings();
+        var $btn        = $(this);
+        var exportNonce = c.exportNonce || '';
+        if (!exportNonce) { return; }
+
+        // Progress is shown through the shared FFCProgressOverlay modal, driven
+        // by the driver itself (overlay: true) — same UI as the public
+        // download (#786).
+        window.FFCBatchedExport.run({
+            type: 'activity_log',
+            ajaxUrl: c.ajaxUrl,
+            nonce: exportNonce,
+            button: $btn,
+            overlay: true,
+            strings: {
+                preparing: s.exportPreparing,
+                exporting: s.exportProgress,
+                downloading: s.exportDone,
+                error: s.error
+            },
+            startData: {
+                level:      $btn.data('level') || '',
+                log_action: $btn.data('log_action') || '',
+                s:          $btn.data('s') || ''
+            }
+        });
     });
 
     // Back/forward — restore from history state.

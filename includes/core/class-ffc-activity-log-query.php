@@ -111,6 +111,61 @@ class ActivityLogQuery {
 	}
 
 	/**
+	 * Keyset page for the batched CSV export: rows with `id < $cursor`, newest
+	 * first (`id DESC`), limited to `$size`, with `context` decrypted per row.
+	 * Keyset (not LIMIT/OFFSET) so paging stays stable across concurrent inserts
+	 * during a long export. Filters mirror {@see self::count_activities()}
+	 * (level / action / search).
+	 *
+	 * @since 6.17.0
+	 * @param array<string, mixed> $filters Level / action / search.
+	 * @param int                  $cursor  Exclusive upper-bound id (PHP_INT_MAX on the first page).
+	 * @param int                  $size    Page size.
+	 * @return array<int, array<string, mixed>>
+	 */
+	public static function find_by_cursor( array $filters, int $cursor, int $size ): array {
+		global $wpdb;
+		$table_name = $wpdb->prefix . 'ffc_activity_log';
+
+		$where = array( '1=1' );
+
+		if ( ! empty( $filters['level'] ) ) {
+			$where[] = $wpdb->prepare( 'level = %s', sanitize_key( (string) $filters['level'] ) );
+		}
+		if ( ! empty( $filters['action'] ) ) {
+			$where[] = $wpdb->prepare( 'action = %s', sanitize_text_field( (string) $filters['action'] ) );
+		}
+		if ( ! empty( $filters['search'] ) ) {
+			$search  = '%' . $wpdb->esc_like( sanitize_text_field( (string) $filters['search'] ) ) . '%';
+			$where[] = $wpdb->prepare( '(action LIKE %s OR context LIKE %s)', $search, $search );
+		}
+
+		$where_clause = implode( ' AND ', $where );
+
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- $where_clause is built from prepared fragments above.
+		$results = $wpdb->get_results(
+			$wpdb->prepare(
+				"SELECT * FROM %i WHERE {$where_clause} AND id < %d ORDER BY id DESC LIMIT %d",
+				$table_name,
+				$cursor,
+				$size
+			),
+			ARRAY_A
+		);
+
+		if ( ! is_array( $results ) ) {
+			return array();
+		}
+
+		foreach ( $results as &$result ) {
+			$result['context'] = self::resolve_context( $result );
+		}
+		unset( $result );
+
+		return $results;
+	}
+
+	/**
 	 * List every distinct `action` ever written to the activity log,
 	 * ordered alphabetically. Used by the admin-side filter dropdown
 	 * — and by any caller that needs to enumerate the action vocabulary
