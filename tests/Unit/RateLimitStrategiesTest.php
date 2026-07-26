@@ -91,6 +91,39 @@ class RateLimitStrategiesTest extends TestCase {
 		$res = ( new EmailLimiter( $this->support( $s ) ) )->check( 'a@b.co', 7 );
 		$this->assertFalse( $res['allowed'] );
 		$this->assertSame( 'email_day_limit', $res['reason'] );
+		$this->assertSame( 86400, $res['wait_seconds'] );
+	}
+
+	public function test_email_blocks_on_week_limit(): void {
+		// Under the daily cap but at/over the weekly one.
+		$repo = Mockery::mock( 'alias:FreeFormCertificate\Security\RateLimitRepository' );
+		$repo->shouldReceive( 'get_submission_count' )->with( 'email', 'a@b.co', 'day', 7 )->andReturn( 0 );
+		$repo->shouldReceive( 'get_submission_count' )->with( 'email', 'a@b.co', 'week', 7 )->andReturn( 9 );
+		$s   = array( 'email' => array( 'check_database' => true, 'max_per_day' => 3, 'max_per_week' => 9, 'max_per_month' => 20, 'message' => 'limit {count}' ) );
+		$res = ( new EmailLimiter( $this->support( $s ) ) )->check( 'a@b.co', 7 );
+		$this->assertFalse( $res['allowed'] );
+		$this->assertSame( 'email_week_limit', $res['reason'] );
+		$this->assertSame( 604800, $res['wait_seconds'] );
+	}
+
+	public function test_email_blocks_on_month_limit(): void {
+		// Under day + week caps but at/over the monthly one.
+		$repo = Mockery::mock( 'alias:FreeFormCertificate\Security\RateLimitRepository' );
+		$repo->shouldReceive( 'get_submission_count' )->with( 'email', 'a@b.co', 'day', 7 )->andReturn( 0 );
+		$repo->shouldReceive( 'get_submission_count' )->with( 'email', 'a@b.co', 'week', 7 )->andReturn( 0 );
+		$repo->shouldReceive( 'get_submission_count' )->with( 'email', 'a@b.co', 'month', 7 )->andReturn( 20 );
+		$s   = array( 'email' => array( 'check_database' => true, 'max_per_day' => 3, 'max_per_week' => 9, 'max_per_month' => 20, 'message' => 'limit {count}' ) );
+		$res = ( new EmailLimiter( $this->support( $s ) ) )->check( 'a@b.co', 7 );
+		$this->assertFalse( $res['allowed'] );
+		$this->assertSame( 'email_month_limit', $res['reason'] );
+		$this->assertSame( 2592000, $res['wait_seconds'] );
+	}
+
+	public function test_email_allows_when_under_all_limits(): void {
+		$repo = Mockery::mock( 'alias:FreeFormCertificate\Security\RateLimitRepository' );
+		$repo->shouldReceive( 'get_submission_count' )->andReturn( 0 );
+		$s = array( 'email' => array( 'check_database' => true, 'max_per_day' => 3, 'max_per_week' => 9, 'max_per_month' => 20, 'message' => 'limit {count}' ) );
+		$this->assertTrue( ( new EmailLimiter( $this->support( $s ) ) )->check( 'a@b.co', 7 )['allowed'] );
 	}
 
 	// ===================== CpfLimiter =====================
