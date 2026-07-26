@@ -112,7 +112,16 @@ class Settings {
 		 * @param array<int, string> $caps Capability slugs.
 		 */
 		// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- ffcertificate is the plugin prefix.
-		return (array) apply_filters( 'ffcertificate_settings_page_entry_caps', array( 'ffc_view_settings' ) );
+		return (array) apply_filters(
+			'ffcertificate_settings_page_entry_caps',
+			array(
+				// Config tabs.
+				'ffc_view_settings',
+				// Activity Log tab — audit-only operators (e.g. ffc_readonly) hold
+				// this without ffc_view_settings and must still reach the page.
+				'ffc_view_activity_log',
+			)
+		);
 	}
 
 	/**
@@ -172,6 +181,7 @@ class Settings {
 			'rate_limit'    => '\\FreeFormCertificate\\Settings\\Tabs\\TabRateLimit',
 			'geolocation'   => '\\FreeFormCertificate\\Settings\\Tabs\\TabGeolocation',
 			'user_access'   => '\\FreeFormCertificate\\Settings\\Tabs\\TabUserAccess',
+			'activity_log'  => '\\FreeFormCertificate\\Settings\\Tabs\\TabActivityLog',
 			'advanced'      => '\\FreeFormCertificate\\Settings\\Tabs\\TabAdvanced',
 			'migrations'    => '\\FreeFormCertificate\\Settings\\Tabs\\TabMigrations',
 			'documentation' => '\\FreeFormCertificate\\Settings\\Tabs\\TabDocumentation',

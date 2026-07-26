@@ -57,7 +57,7 @@ $ffcertificate_get_option = \Closure::fromCallable( array( $settings, 'get_optio
 							<span class="ffc-text-success ffc-icon-success"><?php esc_html_e( 'Includes user ID, IP address, and timestamp for LGPD compliance.', 'ffcertificate' ); ?></span>
 							<?php if ( $ffcertificate_log_on ) : ?>
 								<br>
-								<a href="<?php echo esc_url( admin_url( 'edit.php?post_type=ffc_form&page=ffc-activity-log' ) ); ?>" class="button button-secondary ffc-mt-10">
+								<a href="<?php echo esc_url( admin_url( 'admin.php?page=ffc-settings&tab=activity_log' ) ); ?>" class="button button-secondary ffc-mt-10">
 									<span class="ffc-icon-chart"></span><?php esc_html_e( 'View Activity Logs', 'ffcertificate' ); ?>
 								</a>
 							<?php endif; ?>

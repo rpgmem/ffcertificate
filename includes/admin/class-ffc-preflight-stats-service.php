@@ -110,7 +110,7 @@ class PreflightStatsService {
 		}
 
 		$activity_log_url = admin_url(
-			'admin.php?page=ffc-activity-log&log_action=preflight_blocked'
+			'admin.php?page=ffc-settings&tab=activity_log&log_action=preflight_blocked'
 		);
 
 		?>

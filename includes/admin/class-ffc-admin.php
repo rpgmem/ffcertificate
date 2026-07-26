@@ -59,12 +59,6 @@ class Admin {
 	 */
 	private $edit_page;
 	/**
-	 * Activity log page.
-	 *
-	 * @var AdminActivityLogPage
-	 */
-	private $activity_log_page;
-	/**
 	 * Certificates dashboard page.
 	 *
 	 * @var CertificatesDashboard
@@ -173,8 +167,13 @@ class Admin {
 
 		$this->assets_manager = new AdminAssetsManager();
 		$this->assets_manager->register();
-		$this->edit_page              = new AdminSubmissionEditPage( $handler );
-		$this->activity_log_page      = new AdminActivityLogPage();
+		$this->edit_page = new AdminSubmissionEditPage( $handler );
+		// Fire-and-forget: the Activity Log is a Settings tab since #802 Phase B,
+		// so it registers no menu here — but its constructor must still run on
+		// every admin request (admin-ajax included) to register the batched
+		// export source with the shared registry. The tab itself owns render +
+		// enqueue. See Settings\Tabs\TabActivityLog.
+		new AdminActivityLogPage();
 		$this->certificates_dashboard = new CertificatesDashboard();
 		$this->certificates_dashboard->init();
 
@@ -206,8 +205,6 @@ class Admin {
 			'ffc-submissions',
 			array( $this, 'display_submissions_page' )
 		);
-
-		$this->activity_log_page->register_menu();
 	}
 
 	/**

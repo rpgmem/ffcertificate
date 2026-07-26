@@ -78,25 +78,25 @@ final class AdminMenuVisibility {
 			// Certificates ladder.
 			'ffc_certificates_viewer'     => array(
 				'landing_page'         => 'edit.php?post_type=ffc_form',
-				'allowed_pages'        => array( 'edit.php?post_type=ffc_form', 'ffc-submissions', 'ffc-settings', 'ffc-activity-log' ),
+				'allowed_pages'        => array( 'edit.php?post_type=ffc_form', 'ffc-submissions', 'ffc-settings' ),
 				'hide_core_menus'      => $shared_hidden_menus,
 				'hide_admin_bar_nodes' => $shared_admin_bar_nodes,
 			),
 			'ffc_certificates_operator'   => array(
 				'landing_page'         => 'edit.php?post_type=ffc_form',
-				'allowed_pages'        => array( 'edit.php?post_type=ffc_form', 'ffc-submissions', 'ffc-settings', 'ffc-activity-log' ),
+				'allowed_pages'        => array( 'edit.php?post_type=ffc_form', 'ffc-submissions', 'ffc-settings' ),
 				'hide_core_menus'      => $shared_hidden_menus,
 				'hide_admin_bar_nodes' => $shared_admin_bar_nodes,
 			),
 			'ffc_certificates_manager'    => array(
 				'landing_page'         => 'edit.php?post_type=ffc_form',
-				'allowed_pages'        => array( 'edit.php?post_type=ffc_form', 'ffc-submissions', 'ffc-settings', 'ffc-activity-log' ),
+				'allowed_pages'        => array( 'edit.php?post_type=ffc_form', 'ffc-submissions', 'ffc-settings' ),
 				'hide_core_menus'      => $shared_hidden_menus,
 				'hide_admin_bar_nodes' => $shared_admin_bar_nodes,
 			),
 			'ffc_certificates_admin'      => array(
 				'landing_page'         => 'edit.php?post_type=ffc_form',
-				'allowed_pages'        => array( 'edit.php?post_type=ffc_form', 'ffc-submissions', 'ffc-settings', 'ffc-activity-log' ),
+				'allowed_pages'        => array( 'edit.php?post_type=ffc_form', 'ffc-submissions', 'ffc-settings' ),
 				'hide_core_menus'      => $shared_hidden_menus,
 				'hide_admin_bar_nodes' => $shared_admin_bar_nodes,
 			),
@@ -191,8 +191,8 @@ final class AdminMenuVisibility {
 			),
 			// Cross-domain read-only.
 			'ffc_readonly'                => array(
-				'landing_page'         => 'ffc-activity-log',
-				'allowed_pages'        => array( 'ffc-activity-log', 'ffc-recruitment' ),
+				'landing_page'         => 'admin.php?page=ffc-settings&tab=activity_log',
+				'allowed_pages'        => array( 'ffc-settings', 'ffc-recruitment' ),
 				'hide_core_menus'      => $shared_hidden_menus,
 				'hide_admin_bar_nodes' => $shared_admin_bar_nodes,
 			),
