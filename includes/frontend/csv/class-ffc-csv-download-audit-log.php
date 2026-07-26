@@ -58,12 +58,12 @@ class CsvDownloadAuditLog {
 	 *     future tags fall through to this bucket so a silent
 	 *     "success" inflation is impossible.
 	 *
-	 * The legacy keys `count` / `success` / `fail` are still returned
-	 * so any unforeseen external consumer doesn't blow up; metabox UI
-	 * has migrated to the new three-bucket shape.
+	 * `count` is retained (the metabox reads it). The legacy `success` /
+	 * `fail` keys were removed in 6.17.0 (#730) after their deprecation
+	 * window — consumers use `access_success` / `failed_access` instead.
 	 *
 	 * @param int $form_id Form ID.
-	 * @return array{count: int, success: int, fail: int, access_success: int, download_success: int, failed_access: int, url: string|null}
+	 * @return array{count: int, access_success: int, download_success: int, failed_access: int, url: string|null}
 	 */
 	public static function get_summary( int $form_id ): array {
 		$log   = get_post_meta( $form_id, PublicCsvDownload::META_DOWNLOAD_LOG, true );
@@ -116,8 +116,6 @@ class CsvDownloadAuditLog {
 		}
 		return array(
 			'count'            => $count,
-			'success'          => $access_success,
-			'fail'             => $failed_access,
 			'access_success'   => $access_success,
 			'download_success' => $download_success,
 			'failed_access'    => $failed_access,

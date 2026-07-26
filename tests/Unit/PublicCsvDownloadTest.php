@@ -434,9 +434,10 @@ class PublicCsvDownloadTest extends TestCase {
         $this->assertSame( 3, $summary['access_success'], 'success + audit_pass + voluntary' );
         $this->assertSame( 7, $summary['download_success'], 'META_COUNT (long-lived counter)' );
         $this->assertSame( 5, $summary['failed_access'], 'all fail_* tags incl. fail_captcha + fail_other' );
-        // Legacy keys still populated for backwards compat.
-        $this->assertSame( 3, $summary['success'] );
-        $this->assertSame( 5, $summary['fail'] );
+        // Legacy `success` / `fail` keys were removed in 6.17.0 (#730) after
+        // their deprecation window; only the three-bucket shape remains.
+        $this->assertArrayNotHasKey( 'success', $summary );
+        $this->assertArrayNotHasKey( 'fail', $summary );
     }
 
     public function test_get_audit_log_summary_unknown_tag_counted_as_failure(): void {
