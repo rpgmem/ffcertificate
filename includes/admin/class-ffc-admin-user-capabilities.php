@@ -23,6 +23,17 @@ if ( ! defined( 'ABSPATH' ) ) {
 class AdminUserCapabilities {
 
 	/**
+	 * Per-request snapshot of the FFC preset roles each user held just before a
+	 * native profile save, keyed by user ID. Populated by {@see
+	 * self::snapshot_ffc_roles()} and consumed (once) by {@see
+	 * self::restore_ffc_roles()} so core's single-role `set_role()` can't drop
+	 * them. Only ever holds roles the user already had — never a fresh grant.
+	 *
+	 * @var array<int, list<string>>
+	 */
+	private static array $ffc_role_snapshot = array();
+
+	/**
 	 * Initialize the class
 	 */
 	public static function init(): void {
@@ -40,6 +51,19 @@ class AdminUserCapabilities {
 		// plugin that also writes roles on the same submit — avoiding a
 		// last-writer-wins conflict over role membership.
 		add_action( 'wp_ajax_ffc_toggle_user_role', array( __CLASS__, 'ajax_toggle_user_role' ) );
+
+		// …but the AJAX-added role is an *additional* role, and WordPress'
+		// native profile save still posts the single-role `<select name="role">`.
+		// Core then runs `WP_User::set_role( $_POST['role'] )`, which COLLAPSES a
+		// multi-role user to that one role — silently dropping the FFC role the
+		// chip just added. Guard against it: snapshot the user's FFC preset roles
+		// before core processes the form (`personal_options_update` /
+		// `edit_user_profile_update` fire *before* `edit_user()`), then re-apply
+		// them on `profile_update` (fires *after* `set_role()`). Priority 5 so the
+		// snapshot is taken before any other handler can mutate roles.
+		add_action( 'personal_options_update', array( __CLASS__, 'snapshot_ffc_roles' ), 5 );
+		add_action( 'edit_user_profile_update', array( __CLASS__, 'snapshot_ffc_roles' ), 5 );
+		add_action( 'profile_update', array( __CLASS__, 'restore_ffc_roles' ), 5 );
 
 		// Enqueue scripts on user profile pages.
 		add_action( 'admin_enqueue_scripts', array( __CLASS__, 'enqueue_scripts' ) );
@@ -796,6 +820,64 @@ class AdminUserCapabilities {
 				'roles'    => array_values( (array) $user->roles ),
 			)
 		);
+	}
+
+	/**
+	 * Snapshot the FFC preset roles a user holds, just before WordPress core
+	 * processes the native profile-edit form.
+	 *
+	 * Hooked on `personal_options_update` / `edit_user_profile_update`, which
+	 * fire BEFORE `edit_user()` runs `set_role()`. At this point the user still
+	 * carries whatever FFC role the chips applied via AJAX, so we can record it
+	 * and re-apply it afterwards (see {@see self::restore_ffc_roles()}).
+	 *
+	 * @param int $user_id User being saved.
+	 * @return void
+	 */
+	public static function snapshot_ffc_roles( int $user_id ): void {
+		$user = get_userdata( $user_id );
+		if ( ! $user instanceof \WP_User ) {
+			return;
+		}
+		$presets                             = array_keys( self::ffc_preset_roles() );
+		self::$ffc_role_snapshot[ $user_id ] = array_values( array_intersect( (array) $user->roles, $presets ) );
+	}
+
+	/**
+	 * Re-apply the FFC preset roles that the native profile save collapsed.
+	 *
+	 * Hooked on `profile_update`, which fires AFTER `set_role()` has run — so by
+	 * now core's single-role `<select name="role">` has reduced a multi-role
+	 * user to that one role, dropping the FFC role. Re-add every FFC preset role
+	 * from the pre-save snapshot that is now missing. Only roles the user
+	 * already held are restored (never a new grant), and the snapshot is
+	 * consumed once so an unrelated later `profile_update` in the same request
+	 * is a no-op.
+	 *
+	 * @param int $user_id User that was saved.
+	 * @return void
+	 */
+	public static function restore_ffc_roles( int $user_id ): void {
+		if ( ! isset( self::$ffc_role_snapshot[ $user_id ] ) ) {
+			return;
+		}
+		$wanted = self::$ffc_role_snapshot[ $user_id ];
+		unset( self::$ffc_role_snapshot[ $user_id ] );
+		if ( empty( $wanted ) ) {
+			return;
+		}
+		$user = get_userdata( $user_id );
+		if ( ! $user instanceof \WP_User ) {
+			return;
+		}
+		// Intersect with the current preset set again so a role removed from the
+		// registry between snapshot and restore is never resurrected.
+		$presets = array_keys( self::ffc_preset_roles() );
+		foreach ( $wanted as $role ) {
+			if ( in_array( $role, $presets, true ) && ! in_array( $role, (array) $user->roles, true ) ) {
+				$user->add_role( $role );
+			}
+		}
 	}
 
 	/**
