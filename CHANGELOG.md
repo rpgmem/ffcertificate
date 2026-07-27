@@ -14,6 +14,9 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 - Internal (#822) — the `user_id → wp_users` foreign-key migration is now flag-guarded (`ffc_foreign_keys_db_version`) so it stops re-confirming and writing an all-skipped `migration_foreign_keys` audit-log line on every activation; it re-runs only on a version change and records completion only once every FK exists (a MyISAM host / not-yet-created table keeps retrying). Documented why it's still necessary (dbDelta can't emit FKs → it's the sole path) and that the covered set is a deliberate subset mirroring `UserCleanup`; corrected the recruitment activator's misleading "no FK = plugin convention" note. Behaviour-preserving.
 - Updated the vendored **thumbmarkjs** device-fingerprint library **1.9.1 → 1.10.1** (#809): a drop-in — the UMD API surface (`ThumbmarkJS.getFingerprintData` / `setOption` / `stableStringify`) is byte-for-byte identical, so `ffc-device-signals.js` is unchanged, and the privacy-critical `setOption('logging', false)` still disables the sampling beacon to `api.thumbmarkjs.com`. Vendored file integrity cross-checked across jsdelivr + unpkg.
 
+### Removed
+- **⚠ Breaking (#739) — `CptEditorCompat` deprecation shim removed.** WordPress Editors (holders of `edit_others_posts`) no longer receive `ffc_manage_forms` / `ffc_manage_calendars` and can no longer manage FFC forms or calendars via that native cap — completing the 6.16.0 CPT-capability decoupling. The two-release compatibility window (announced in 6.16.0 with an admin notice) has closed. **Action:** grant the **FFC Administrator** role — or the form/calendar management capability — to the users who need it.
+
 ## [6.17.0] (2026-07-26) — `6f47824`
 
 ### Changed
