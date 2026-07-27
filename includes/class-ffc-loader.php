@@ -302,7 +302,6 @@ class Loader {
 
 		$this->ensure_admin_capabilities();
 		$this->ensure_admin_role_assigned();
-		$this->ensure_legacy_caps_renamed();
 		$this->ensure_taxonomy_renamed();
 		$this->ensure_delete_caps_granted();
 		$this->ensure_export_caps_granted();
@@ -364,28 +363,6 @@ class Loader {
 				\FreeFormCertificate\UserDashboard\RoleRegistrar::register_recruitment_manager_role();
 			}
 		}
-	}
-
-	/**
-	 * One-time migration that renames the three legacy certificate caps
-	 * (`view_own_certificates`, `download_own_certificates`,
-	 * `view_certificate_history`) to their `ffc_*` namespaced equivalents.
-	 *
-	 * Idempotent + version-flagged via the `ffc_legacy_caps_renamed_v1`
-	 * option. Runs on `plugins_loaded` so in-place plugin updates trigger
-	 * the rewrite without needing a deactivate/reactivate cycle.
-	 *
-	 * @since 6.2.0
-	 */
-	private function ensure_legacy_caps_renamed(): void {
-		$flag = 'ffc_legacy_caps_renamed_v1';
-		if ( '1' === get_option( $flag, '' ) ) {
-			return;
-		}
-		if ( class_exists( '\FreeFormCertificate\UserDashboard\CapabilityManager' ) ) {
-			\FreeFormCertificate\UserDashboard\CapabilityMigrator::migrate_legacy_certificate_caps();
-		}
-		update_option( $flag, '1', true );
 	}
 
 	/**

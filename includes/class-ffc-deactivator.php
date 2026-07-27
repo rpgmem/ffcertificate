@@ -32,11 +32,6 @@ class Deactivator {
 		wp_clear_scheduled_hook( 'ffcertificate_reregistration_expire_hook' );
 		\FreeFormCertificate\Admin\ExpiredTicketsCleanup::unschedule();
 
-		// Clear legacy cron hooks from pre-4.6.15 versions.
-		wp_clear_scheduled_hook( 'ffc_daily_cleanup_hook' );
-		wp_clear_scheduled_hook( 'ffc_process_submission_hook' );
-		wp_clear_scheduled_hook( 'ffc_warm_cache_hook' );
-
 		flush_rewrite_rules();
 	}
 
@@ -74,11 +69,6 @@ class Deactivator {
 		wp_clear_scheduled_hook( 'ffcertificate_self_scheduling_reminder_scan' );
 		wp_clear_scheduled_hook( 'ffcertificate_reregistration_expire_hook' );
 		\FreeFormCertificate\Admin\ExpiredTicketsCleanup::unschedule();
-
-		// Clear legacy cron hooks from pre-4.6.15 versions.
-		wp_clear_scheduled_hook( 'ffc_daily_cleanup_hook' );
-		wp_clear_scheduled_hook( 'ffc_process_submission_hook' );
-		wp_clear_scheduled_hook( 'ffc_warm_cache_hook' );
 
 		// 4. Delete all Custom Post Type 'ffc_form' entries.
 		$args = array(

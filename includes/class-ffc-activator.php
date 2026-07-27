@@ -87,11 +87,6 @@ class Activator {
 		self::maybe_add_foreign_keys();
 		self::run_migrations();
 
-		// Clean up legacy cron hooks from pre-4.6.15 versions.
-		wp_clear_scheduled_hook( 'ffc_daily_cleanup_hook' );
-		wp_clear_scheduled_hook( 'ffc_process_submission_hook' );
-		wp_clear_scheduled_hook( 'ffc_warm_cache_hook' );
-
 		// Schedule daily cleanup cron.
 		if ( ! wp_next_scheduled( 'ffcertificate_daily_cleanup_hook' ) ) {
 			wp_schedule_event( time(), 'daily', 'ffcertificate_daily_cleanup_hook' );
