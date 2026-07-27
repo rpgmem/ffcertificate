@@ -196,6 +196,10 @@ class AdminUserCapabilitiesTest extends TestCase {
 
     protected function tearDown(): void {
         unset( $_POST['ffc_capabilities_nonce'] );
+        // Reset the per-request role snapshot so it never leaks between tests.
+        $ref = new \ReflectionProperty( AdminUserCapabilities::class, 'ffc_role_snapshot' );
+        $ref->setAccessible( true );
+        $ref->setValue( null, array() );
         Monkey\tearDown();
         parent::tearDown();
     }
@@ -224,6 +228,20 @@ class AdminUserCapabilitiesTest extends TestCase {
         Functions\expect( 'add_action' )
             ->once()
             ->with( 'admin_enqueue_scripts', array( AdminUserCapabilities::class, 'enqueue_scripts' ) );
+
+        // Multi-role preservation across the native profile save (snapshot
+        // before core's set_role, restore after).
+        Functions\expect( 'add_action' )
+            ->once()
+            ->with( 'personal_options_update', array( AdminUserCapabilities::class, 'snapshot_ffc_roles' ), 5 );
+
+        Functions\expect( 'add_action' )
+            ->once()
+            ->with( 'edit_user_profile_update', array( AdminUserCapabilities::class, 'snapshot_ffc_roles' ), 5 );
+
+        Functions\expect( 'add_action' )
+            ->once()
+            ->with( 'profile_update', array( AdminUserCapabilities::class, 'restore_ffc_roles' ), 5 );
 
         AdminUserCapabilities::init();
     }
@@ -863,5 +881,60 @@ class AdminUserCapabilitiesTest extends TestCase {
 
         // Clean up
         unset( $_POST['ffc_cap_ffc_view_own_certificates'] );
+    }
+
+    // ==================================================================
+    // snapshot_ffc_roles() / restore_ffc_roles() — survive the native save
+    // ==================================================================
+
+    public function test_snapshot_then_restore_readds_role_core_collapsed(): void {
+        // The user carries an FFC role (added earlier via the AJAX chip) on top
+        // of a plain WordPress role.
+        $user        = new \WP_User( 5 );
+        $user->roles = array( 'subscriber', 'ffc_recruitment_manager' );
+        Functions\when( 'get_userdata' )->justReturn( $user );
+
+        // 1) Snapshot before core processes the profile form.
+        AdminUserCapabilities::snapshot_ffc_roles( 5 );
+
+        // 2) Core's single-role dropdown collapses the user to one role.
+        $user->set_role( 'subscriber' );
+        $this->assertSame( array( 'subscriber' ), $user->roles );
+
+        // 3) Restoring re-adds the dropped FFC role, keeping the primary one.
+        AdminUserCapabilities::restore_ffc_roles( 5 );
+        $this->assertContains( 'ffc_recruitment_manager', $user->roles );
+        $this->assertContains( 'subscriber', $user->roles );
+    }
+
+    public function test_restore_is_noop_without_a_snapshot(): void {
+        $user        = new \WP_User( 7 );
+        $user->roles = array( 'subscriber' );
+        Functions\when( 'get_userdata' )->justReturn( $user );
+
+        AdminUserCapabilities::restore_ffc_roles( 7 );
+
+        $this->assertSame( array( 'subscriber' ), $user->roles );
+    }
+
+    public function test_snapshot_with_no_ffc_roles_restores_nothing(): void {
+        $user        = new \WP_User( 8 );
+        $user->roles = array( 'subscriber' );
+        Functions\when( 'get_userdata' )->justReturn( $user );
+
+        AdminUserCapabilities::snapshot_ffc_roles( 8 );
+        AdminUserCapabilities::restore_ffc_roles( 8 );
+
+        $this->assertSame( array( 'subscriber' ), $user->roles );
+    }
+
+    public function test_snapshot_ignores_a_missing_user(): void {
+        Functions\when( 'get_userdata' )->justReturn( false );
+
+        AdminUserCapabilities::snapshot_ffc_roles( 999 );
+        AdminUserCapabilities::restore_ffc_roles( 999 );
+
+        // No snapshot recorded, no fatal — nothing to assert beyond reaching here.
+        $this->assertTrue( true );
     }
 }

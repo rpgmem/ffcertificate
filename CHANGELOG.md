@@ -8,6 +8,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 ## [Unreleased]
 
 ### Fixed
+- User-edit FFC role assignments now survive WordPress' native **"Update user"** save: the chip applies the role via AJAX as an *additional* role, but core's single-role `<select name="role">` ran `WP_User::set_role()` on save and collapsed the user back to that one role, silently dropping the FFC role. The FFC roles are now snapshotted before the save and re-applied on `profile_update` (after `set_role`), so they persist for both plain and administrator users. (Follow-up to #826.)
 - User-edit role chips no longer fail with a misleading "reload and try again" for WordPress administrators: the per-user FFC role toggle now surfaces the *actual* reason (expired nonce, `cannot_edit_admin`, forbidden, …) instead of one generic alert, and — matching the #739 policy that a WP administrator may only be granted the FFC Administrator role — the panel renders the other FFC role chips disabled for admin targets instead of offering clicks that always 409.
 
 ### Added
