@@ -434,12 +434,9 @@ A full security audit confirmed these hold plugin-wide — keep them that way (t
 
 Inventory of the legacy compatibility shims that remain in the code by design (snapshot — re-confirm the location in code before removing; paths and lines change with every refactor, so the table cites files/methods, never line numbers). Removing them requires evidence that no production installation depends on them.
 
-| Shim | Location | Risk if removed | Why it stays |
-|------|----------|-----------------|--------------|
-| `ensure_legacy_caps_renamed()` v1 | `class-ffc-loader.php` (orchestrator) → `CapabilityMigrator` | Medium | Idempotent + version-flagged via `ffc_legacy_caps_renamed_v1`; dormant after the first `plugins_loaded` post-6.2.0. Zero cost. Scheduled for removal in 6.18.0 (#809). |
-| Cron cleanup pre-4.6.15 | `class-ffc-deactivator.php` (`deactivate()` / `uninstall_cleanup()`) | Low | 3× `wp_clear_scheduled_hook`. Sites auto-upgrading across skipped old versions keep orphan crons without it. Scheduled for removal in 6.18.0 (#809). |
+_The two shims previously tracked here — the `ensure_legacy_caps_renamed()` v1 pre-6.2.0 cap-rename migration and the pre-4.6.15 orphan-cron cleanup (activator + deactivator/uninstall) — were removed in 6.18.0 (#809) as scheduled; the inventory is currently empty._
 
-When a new feature makes one of these shims unsafe or inadequate, open a specific sub-issue + a breaking-change banner in the CHANGELOG.
+When a new shim is added, log it here (Shim · Location · Risk if removed · Why it stays), and when a new feature makes one unsafe or inadequate, open a specific sub-issue + a breaking-change banner in the CHANGELOG.
 
 #### Gathering the evidence to remove a **High**-risk shim
 
