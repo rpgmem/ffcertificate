@@ -316,7 +316,9 @@ class GithubUpdater {
 		}
 		return array(
 			'version'      => (string) ( $raw['version'] ?? '' ),
-			'package'      => (string) ( $raw['package'] ?? '' ),
+			// The empty() guard above already proved 'package' exists and is
+			// truthy, so a ?? here would be a redundant null-coalesce (PHPStan).
+			'package'      => (string) $raw['package'],
 			'sha256'       => (string) ( $raw['sha256'] ?? '' ),
 			'url'          => (string) ( $raw['url'] ?? '' ),
 			'changelog'    => (string) ( $raw['changelog'] ?? '' ),
