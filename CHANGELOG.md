@@ -10,6 +10,9 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 ### Added
 - **Auto-update via GitHub Releases** (#820): the plugin now teaches WordPress's native update check to see its own GitHub Releases — the update appears in Dashboard → Updates, the "View details" modal renders the release changelog, and WordPress's per-plugin auto-update toggle becomes available (opt-in; `auto_update_plugin` is never forced). Points at the built `ffcertificate-X.Y.Z.zip` asset, caches the check for 12h with an ETag conditional request, verifies the package **SHA-256** before install, and adds an `Update URI:` header so wp.org can't hijack the slug. Public repo — no token needed.
 
+### Changed
+- Internal (#822) — the `user_id → wp_users` foreign-key migration is now flag-guarded (`ffc_foreign_keys_db_version`) so it stops re-confirming and writing an all-skipped `migration_foreign_keys` audit-log line on every activation; it re-runs only on a version change and records completion only once every FK exists (a MyISAM host / not-yet-created table keeps retrying). Documented why it's still necessary (dbDelta can't emit FKs → it's the sole path) and that the covered set is a deliberate subset mirroring `UserCleanup`; corrected the recruitment activator's misleading "no FK = plugin convention" note. Behaviour-preserving.
+
 ## [6.17.0] (2026-07-26) — `6f47824`
 
 ### Changed
