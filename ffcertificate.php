@@ -2,6 +2,7 @@
 /**
  * Plugin Name:        Free Form Certificate
  * Plugin URI:         https://github.com/rpgmem/ffcertificate
+ * Update URI:         https://github.com/rpgmem/ffcertificate
  * Description:        Allows creation of dynamic forms, saves submissions, generates a PDF certificate, and enables CSV export.
  * Version:            6.17.0
  * Requires PHP:       8.3
