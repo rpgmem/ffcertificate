@@ -167,7 +167,7 @@ final class RecruitmentPublicShortcodeRenderer {
 				// reference; pass it down to the badge so it renders as
 				// a hover tooltip rather than inline text below.
 				$reason_label = '';
-				if ( ! empty( $columns['preview_reason'] ) && isset( $row->preview_reason_id ) && null !== $row->preview_reason_id ) {
+				if ( ! empty( $columns['preview_reason'] ) && isset( $row->preview_reason_id ) ) {
 					$reason_id = (int) $row->preview_reason_id;
 					if ( $reason_id > 0 ) {
 						$reason = RecruitmentReasonReader::get_by_id( $reason_id );
