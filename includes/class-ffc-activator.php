@@ -84,7 +84,7 @@ class Activator {
 		}
 
 		self::add_composite_indexes();
-		self::add_foreign_keys();
+		self::maybe_add_foreign_keys();
 		self::run_migrations();
 
 		// Clean up legacy cron hooks from pre-4.6.15 versions.
@@ -628,13 +628,41 @@ class Activator {
 	}
 
 	/**
-	 * Add FOREIGN KEY constraints for referential integrity
+	 * Add the `user_id → wp_users` FOREIGN KEY safety net (idempotent, flag-guarded).
+	 *
+	 * These FKs are the DB-level backstop to the app-layer `UserCleanup` hook: on
+	 * user deletion they enforce `ON DELETE SET NULL` / `CASCADE` even if the hook
+	 * is bypassed (a direct SQL delete, a bulk operation). They remain necessary
+	 * because WordPress's `dbDelta()` cannot emit `FOREIGN KEY` clauses — so this
+	 * migration is the *only* path that creates them, and they are absent on a
+	 * fresh install until it runs. The covered set is a deliberate subset (see
+	 * {@see \FreeFormCertificate\Migrations\MigrationForeignKeys}), not every
+	 * `user_id` column.
+	 *
+	 * Flag-guarded like the sibling migrations so it stops re-confirming (and
+	 * writing an all-skipped audit-log line) on every activation. Unlike
+	 * {@see self::maybe_add_perf_indexes()} it records completion *only once all
+	 * FKs actually exist*, so a MyISAM host — or a table not yet created — keeps
+	 * retrying on the next activation instead of being locked out by the flag.
 	 *
 	 * @since 4.9.7
+	 * @since 6.18.0 Flag-guarded via the `ffc_foreign_keys_db_version` option.
 	 */
-	private static function add_foreign_keys(): void {
-		if ( class_exists( '\FreeFormCertificate\Migrations\MigrationForeignKeys' ) ) {
-			\FreeFormCertificate\Migrations\MigrationForeignKeys::run();
+	public static function maybe_add_foreign_keys(): void {
+		if ( FFC_VERSION === get_option( 'ffc_foreign_keys_db_version', '' ) ) {
+			return;
+		}
+		if ( ! class_exists( '\FreeFormCertificate\Migrations\MigrationForeignKeys' ) ) {
+			return;
+		}
+
+		\FreeFormCertificate\Migrations\MigrationForeignKeys::run();
+
+		// Only pin the version once every FK is present; otherwise (MyISAM, or a
+		// table missing this pass) leave the flag unset so the next activation retries.
+		$status = \FreeFormCertificate\Migrations\MigrationForeignKeys::get_status();
+		if ( ! empty( $status['is_complete'] ) ) {
+			update_option( 'ffc_foreign_keys_db_version', FFC_VERSION, true );
 		}
 	}
 

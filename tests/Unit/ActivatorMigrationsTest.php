@@ -192,4 +192,52 @@ class ActivatorMigrationsTest extends TestCase {
 		$this->invoke_private( 'upgrade_auth_code_unique_constraints' );
 		$this->assertTrue( true );
 	}
+
+	// ───────────── maybe_add_foreign_keys (flag-guard) ─────────────
+
+	public function test_foreign_keys_skips_when_version_matches(): void {
+		Functions\when( 'get_option' )->justReturn( FFC_VERSION );
+		$fk = Mockery::mock( 'alias:FreeFormCertificate\Migrations\MigrationForeignKeys' );
+		$fk->shouldNotReceive( 'run' );
+
+		Activator::maybe_add_foreign_keys();
+
+		$this->assertTrue( true );
+	}
+
+	public function test_foreign_keys_pins_version_once_complete(): void {
+		// get_option default '' (≠ FFC_VERSION) → runs.
+		$recorded = array();
+		Functions\when( 'update_option' )->alias(
+			static function ( $key, $value ) use ( &$recorded ) {
+				$recorded[ $key ] = $value;
+				return true;
+			}
+		);
+		$fk = Mockery::mock( 'alias:FreeFormCertificate\Migrations\MigrationForeignKeys' );
+		$fk->shouldReceive( 'run' )->once();
+		$fk->shouldReceive( 'get_status' )->once()->andReturn( array( 'is_complete' => true ) );
+
+		Activator::maybe_add_foreign_keys();
+
+		$this->assertSame( FFC_VERSION, $recorded['ffc_foreign_keys_db_version'] ?? null );
+	}
+
+	public function test_foreign_keys_does_not_pin_when_incomplete(): void {
+		// A MyISAM host / missing table leaves is_complete false → keep retrying.
+		$recorded = array();
+		Functions\when( 'update_option' )->alias(
+			static function ( $key, $value ) use ( &$recorded ) {
+				$recorded[ $key ] = $value;
+				return true;
+			}
+		);
+		$fk = Mockery::mock( 'alias:FreeFormCertificate\Migrations\MigrationForeignKeys' );
+		$fk->shouldReceive( 'run' )->once();
+		$fk->shouldReceive( 'get_status' )->once()->andReturn( array( 'is_complete' => false ) );
+
+		Activator::maybe_add_foreign_keys();
+
+		$this->assertArrayNotHasKey( 'ffc_foreign_keys_db_version', $recorded );
+	}
 }
