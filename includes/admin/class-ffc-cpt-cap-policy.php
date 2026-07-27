@@ -16,8 +16,8 @@
  * editing. It is the authoritative per-post write gate; the primitive remap in
  * the CPT registration only governs list visibility.
  *
- * Distinct from {@see CptEditorCompat}, which is a temporary deprecation shim
- * (removed in 6.18.0) — this gate is permanent.
+ * This gate is permanent — unlike the temporary #739 `edit_others_posts`
+ * compatibility shim (`CptEditorCompat`), which was removed in 6.18.0.
  *
  * @package FreeFormCertificate\Admin
  * @since   6.16.0
