@@ -304,6 +304,87 @@ class AdminUserCapabilitiesTest extends TestCase {
         $this->assertStringNotContainsString( 'ffc-cap-group', $output );
     }
 
+    public function test_render_offers_only_aggregator_chip_for_wp_admin(): void {
+        // #739: a WordPress administrator can only be assigned ffc_administrator.
+        // The UI must offer that chip (enabled) and omit the granular FFC roles
+        // the admin doesn't hold — clicking them would only ever 409.
+        Functions\when( 'current_user_can' )->justReturn( true );
+        Functions\when( 'user_can' )->justReturn( true );
+        Functions\when( 'wp_roles' )->justReturn( self::admin_aware_roles_stub() );
+
+        $user        = new \WP_User( 1 );
+        $user->roles = array( 'administrator' ); // WP admin, holds no FFC preset.
+
+        ob_start();
+        AdminUserCapabilities::render_capability_fields( $user );
+        $output = ob_get_clean();
+
+        // The aggregator chip is offered and NOT disabled.
+        $this->assertStringContainsString( 'data-ffc-role="ffc_administrator"', $output );
+        $this->assertDoesNotMatchRegularExpression(
+            '/data-ffc-role="ffc_administrator"[^>]*\sdisabled/',
+            $output
+        );
+        // The granular role the admin does not hold is omitted entirely.
+        $this->assertStringNotContainsString( 'data-ffc-role="ffc_recruitment_manager"', $output );
+    }
+
+    public function test_render_shows_held_granular_role_disabled_for_wp_admin(): void {
+        // A WP admin who legacy-holds a granular FFC role: the chip stays visible
+        // (so its state shows) but renders disabled — the server refuses to
+        // toggle it (#739), so it must not be a live control.
+        Functions\when( 'current_user_can' )->justReturn( true );
+        Functions\when( 'user_can' )->justReturn( true );
+        Functions\when( 'wp_roles' )->justReturn( self::admin_aware_roles_stub() );
+
+        $user        = new \WP_User( 1 );
+        $user->roles = array( 'administrator', 'ffc_recruitment_manager' );
+
+        ob_start();
+        AdminUserCapabilities::render_capability_fields( $user );
+        $output = ob_get_clean();
+
+        $this->assertMatchesRegularExpression(
+            '/data-ffc-role="ffc_recruitment_manager"[^>]*\sdisabled/',
+            $output
+        );
+        $this->assertStringContainsString( 'is-disabled', $output );
+    }
+
+    /**
+     * wp_roles() stand-in that includes the ffc_administrator aggregator, so the
+     * WP-admin-target rendering path (only ffc_administrator assignable) can be
+     * exercised. Distinct from the setUp() stub, which omits it.
+     *
+     * @return object
+     */
+    private static function admin_aware_roles_stub(): object {
+        return new class() {
+            /** @var array<string,array<string,mixed>> */
+            public $roles = array(
+                'ffc_administrator'       => array(
+                    'capabilities' => array(
+                        'read'                      => true,
+                        'ffc_view_own_certificates' => true,
+                        'ffc_manage_recruitment'    => true,
+                    ),
+                ),
+                'ffc_recruitment_manager' => array(
+                    'capabilities' => array(
+                        'read'                   => true,
+                        'ffc_manage_recruitment' => true,
+                    ),
+                ),
+            );
+            public function get_names() {
+                return array(
+                    'ffc_administrator'       => 'FFC Administrator',
+                    'ffc_recruitment_manager' => 'FFC Recruitment - Manager',
+                );
+            }
+        };
+    }
+
     public function test_render_skips_for_non_ffc_users(): void {
         Functions\when( 'current_user_can' )->justReturn( true );
         Functions\when( 'user_can' )->justReturn( false );

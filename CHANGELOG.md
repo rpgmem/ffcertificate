@@ -7,6 +7,9 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Fixed
+- User-edit role chips no longer fail with a misleading "reload and try again" for WordPress administrators: the per-user FFC role toggle now surfaces the *actual* reason (expired nonce, `cannot_edit_admin`, forbidden, …) instead of one generic alert, and — matching the #739 policy that a WP administrator may only be granted the FFC Administrator role — the panel renders the other FFC role chips disabled for admin targets instead of offering clicks that always 409.
+
 ### Added
 - **Auto-update via GitHub Releases** (#820): the plugin now teaches WordPress's native update check to see its own GitHub Releases — the update appears in Dashboard → Updates, the "View details" modal renders the release changelog, and WordPress's per-plugin auto-update toggle becomes available (opt-in; `auto_update_plugin` is never forced). Points at the built `ffcertificate-X.Y.Z.zip` asset, caches the check for 12h with an ETag conditional request, verifies the package **SHA-256** before install, and adds an `Update URI:` header so wp.org can't hijack the slug. Public repo — no token needed.
 

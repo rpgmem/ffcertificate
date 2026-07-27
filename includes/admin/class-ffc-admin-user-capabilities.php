@@ -106,10 +106,18 @@ class AdminUserCapabilities {
 				'roleCaps' => $role_caps,
 				'assigned' => $assigned,
 				'i18n'     => array(
-					'error' => __( 'Could not update the role. Please reload and try again.', 'ffcertificate' ),
-					'user'  => __( 'User', 'ffcertificate' ),
-					'role'  => __( 'Role', 'ffcertificate' ),
-					'none'  => __( '—', 'ffcertificate' ),
+					'error'        => __( 'Could not update the role. Please reload and try again.', 'ffcertificate' ),
+					// Reason-specific messages so a failure is diagnosable instead
+					// of always reading as a nonce problem.
+					'errNonce'     => __( 'Your session or security token expired. Reload the page and try again.', 'ffcertificate' ),
+					'errAdmin'     => __( 'This user is a WordPress administrator — only the FFC Administrator role can be assigned to them. Grant that role, or remove their WordPress administrator role first.', 'ffcertificate' ),
+					'errRole'      => __( 'That role cannot be assigned from this screen.', 'ffcertificate' ),
+					'errForbidden' => __( 'You do not have permission to change this user’s roles.', 'ffcertificate' ),
+					'errUser'      => __( 'User not found. Reload the page and try again.', 'ffcertificate' ),
+					'errNetwork'   => __( 'Network error. Please check your connection and try again.', 'ffcertificate' ),
+					'user'         => __( 'User', 'ffcertificate' ),
+					'role'         => __( 'Role', 'ffcertificate' ),
+					'none'         => __( '—', 'ffcertificate' ),
 				),
 			)
 		);
@@ -202,17 +210,36 @@ class AdminUserCapabilities {
 		$presets    = self::ffc_preset_roles();
 		$user_roles = (array) $user->roles;
 
+		// A WordPress administrator can only be assigned the aggregator role
+		// (#739): the server refuses every other FFC role for a `manage_options`
+		// user (`ajax_toggle_user_role()` → 409 `cannot_edit_admin`). Mirror that
+		// policy in the UI so the admin isn't offered chips that always fail —
+		// render the non-aggregator presets disabled (skipping the ones they
+		// don't already hold) instead of clickable.
+		$target_is_admin = user_can( $user->ID, 'manage_options' );
+
 		echo '<div class="ffc-cap-context-item ffc-cap-roles">';
 		echo '<span class="ffc-cap-context-label">' . esc_html__( 'Roles (presets)', 'ffcertificate' ) . '</span>';
 
 		if ( empty( $presets ) ) {
 			echo '<span class="ffc-cap-context-val"><em>' . esc_html__( 'No FFC roles available.', 'ffcertificate' ) . '</em></span>';
 		} else {
+			$admin_hint = __( 'This user is a WordPress administrator — only the FFC Administrator role can be assigned. Remove their WordPress administrator role to assign granular FFC roles.', 'ffcertificate' );
+
 			echo '<div class="ffc-cap-role-chips" role="group" aria-label="' . esc_attr__( 'FFC roles', 'ffcertificate' ) . '">';
 			foreach ( $presets as $slug => $def ) {
-				$assigned = in_array( $slug, $user_roles, true );
+				$assigned   = in_array( $slug, $user_roles, true );
+				$assignable = ! $target_is_admin || 'ffc_administrator' === $slug;
+
+				// Non-assignable chip the user doesn't hold anyway → omit it
+				// entirely (it would only ever 409); keep held ones visible but
+				// disabled so their state is still shown.
+				if ( ! $assignable && ! $assigned ) {
+					continue;
+				}
+
 				printf(
-					'<button type="button" class="ffc-cap-role%1$s" data-ffc-role="%2$s" aria-pressed="%3$s">'
+					'<button type="button" class="ffc-cap-role%1$s%6$s" data-ffc-role="%2$s" aria-pressed="%3$s"%7$s%8$s>'
 						. '<span class="ffc-cap-role-mark" aria-hidden="true"></span>'
 						. '<span class="ffc-cap-role-nm">%4$s</span>'
 						. '<span class="ffc-cap-role-ct">%5$s</span>'
@@ -227,7 +254,10 @@ class AdminUserCapabilities {
 							_n( '%d cap', '%d caps', count( $def['caps'] ), 'ffcertificate' ),
 							count( $def['caps'] )
 						)
-					)
+					),
+					$assignable ? '' : ' is-disabled',
+					$assignable ? '' : ' disabled',
+					$assignable ? '' : ' title="' . esc_attr( $admin_hint ) . '"'
 				);
 			}
 			echo '</div>';
