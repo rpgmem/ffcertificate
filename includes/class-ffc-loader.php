@@ -226,6 +226,11 @@ class Loader {
 		// unconditionally so both priv and nopriv admin-ajax requests reach it.
 		( new \FreeFormCertificate\Core\BatchedExportDispatcher() )->register();
 
+		// Self-hosted updater — teaches WordPress's plugin-update check to see
+		// this plugin's GitHub Releases (#820). Always-on and NOT gated by
+		// is_admin(): the update scan runs in cron, outside the admin context.
+		\FreeFormCertificate\Integrations\GithubUpdater::init();
+
 		DashboardShortcode::init();
 		// Reregistration module — single bootstrap entry point (#563 B3).
 		// Toggleable via the Modules tab (default on).

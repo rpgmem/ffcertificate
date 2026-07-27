@@ -7,6 +7,9 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Added
+- **Auto-update via GitHub Releases** (#820): the plugin now teaches WordPress's native update check to see its own GitHub Releases — the update appears in Dashboard → Updates, the "View details" modal renders the release changelog, and WordPress's per-plugin auto-update toggle becomes available (opt-in; `auto_update_plugin` is never forced). Points at the built `ffcertificate-X.Y.Z.zip` asset, caches the check for 12h with an ETag conditional request, verifies the package **SHA-256** before install, and adds an `Update URI:` header so wp.org can't hijack the slug. Public repo — no token needed.
+
 ## [6.17.0] (2026-07-26) — `6f47824`
 
 ### Changed
