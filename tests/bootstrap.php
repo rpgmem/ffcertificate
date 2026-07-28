@@ -85,6 +85,19 @@ if ( ! class_exists( 'wpdb' ) ) {
         public $prefix = '';
         public $last_error = '';
         public $suppress_errors = false;
+        // Core table-name properties. Real wpdb sets these dynamically from the
+        // prefix; declaring them here mirrors that so repositories that read
+        // e.g. `$wpdb->posts` (FormRepository) don't hit an undefined property.
+        public $posts = 'wp_posts';
+        public $postmeta = 'wp_postmeta';
+        public $users = 'wp_users';
+        public $usermeta = 'wp_usermeta';
+        public $options = 'wp_options';
+        public $terms = 'wp_terms';
+        public $term_taxonomy = 'wp_term_taxonomy';
+        public $term_relationships = 'wp_term_relationships';
+        public $comments = 'wp_comments';
+        public $commentmeta = 'wp_commentmeta';
         public function prepare( $query, ...$args ) { return $query; }
         public function query( $query ) { return 0; }
         public function get_var( $query = null, $x = 0, $y = 0 ) { return null; }
