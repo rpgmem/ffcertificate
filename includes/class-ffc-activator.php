@@ -479,8 +479,15 @@ class Activator {
 			array( 'idx_classification_cancelled' => '(classification_id, cancelled_at)' )
 		);
 
-		// Self-scheduling appointments table (#249 expansion).
-		$apt_table = $wpdb->prefix . 'ffc_appointments';
+		// Self-scheduling appointments table (#249 expansion). The physical
+		// table is `ffc_self_scheduling_appointments`; an earlier revision
+		// pointed this at a non-existent `ffc_appointments`, so the loop
+		// silently no-op'd (table_exists() short-circuit). Harmless in
+		// practice — the columns ship as BIGINT on 6.6.0+ and
+		// migrate_datetime_column_to_unix() fast-returns on already-int
+		// columns — but the reference is now correct so the safety net
+		// actually reaches any legacy DATETIME row it was meant to convert.
+		$apt_table = $wpdb->prefix . 'ffc_self_scheduling_appointments';
 		foreach ( array( 'approved_at', 'cancelled_at', 'consent_date', 'reminder_sent_at' ) as $col ) {
 			self::migrate_datetime_column_to_unix( $apt_table, $col, true );
 		}
