@@ -35,6 +35,13 @@ class TabRateLimitTest extends TestCase {
         Functions\when( 'wp_kses_post' )->returnArg();
         Functions\when( 'add_action' )->justReturn( true );
 
+        // Self-initialize $_POST so the render()-under-test's `if ( $_POST … )`
+        // never reads an undefined superglobal. Previously this test only
+        // passed because a neighbouring test in the same shard left $_POST as
+        // an array; the shard packing is test-count-weighted, so adding tests
+        // elsewhere can reorder shards and expose the latent dependency.
+        $_POST = array();
+
         $this->tab = new TabRateLimit();
     }
 
