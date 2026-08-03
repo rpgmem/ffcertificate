@@ -28,6 +28,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 - **⚠ Breaking (#739) — `CptEditorCompat` deprecation shim removed.** WordPress Editors (holders of `edit_others_posts`) no longer receive `ffc_manage_forms` / `ffc_manage_calendars` and can no longer manage FFC forms or calendars via that native cap — completing the 6.16.0 CPT-capability decoupling. The two-release compatibility window (announced in 6.16.0 with an admin notice) has closed. **Action:** grant the **FFC Administrator** role — or the form/calendar management capability — to the users who need it.
 
 ### Security
+- Fixed two JS attribute-context escaping gaps (#837, #564 bug class): the admin submission-edit user search escaped result `data-*="…"` attributes with a helper that skipped quotes, so a crafted `display_name` (any logged-in user can set one) could break out and run a handler in the **admin's** session — a stored XSS crossing a privilege boundary; the helper now encodes `"`/`'`. Also switched the dashboard profile edit `value="…"` / group-chip `style="…"` to the attribute-safe `escAttr` (self-XSS). Bundles rebuilt.
 - Public certificate CSV (`[ffc_csv_download]`) minimized (#836): dropped the magic-link **Token** column (a live access credential that was leaking in bulk) plus the **User IP / Consent Given·Date·IP·Text / Status** columns; the admin export keeps its full layout. Also emits `noindex` on the `/valid` verification page. **Public CSV column layout changed.**
 
 ## [6.17.0] (2026-07-26) — `6f47824`
