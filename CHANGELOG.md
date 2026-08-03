@@ -27,6 +27,9 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 - **⚠ (#809) — removed the pre-6.2.0 legacy certificate-cap rename migration** (`ensure_legacy_caps_renamed()` + `CapabilityMigrator::migrate_legacy_certificate_caps()` / `legacy_cap_renames()`). It renamed `view_own_certificates` / `download_own_certificates` / `view_certificate_history` to their `ffc_*` names and has been dormant on every install that passed through 6.2.0–6.17.0. **Edge case:** a site upgrading directly from **pre-6.2.0** to 6.18.0 skips the rename — first update to any 6.2.0–6.17.0 release, then to 6.18.0.
 - **⚠ Breaking (#739) — `CptEditorCompat` deprecation shim removed.** WordPress Editors (holders of `edit_others_posts`) no longer receive `ffc_manage_forms` / `ffc_manage_calendars` and can no longer manage FFC forms or calendars via that native cap — completing the 6.16.0 CPT-capability decoupling. The two-release compatibility window (announced in 6.16.0 with an admin notice) has closed. **Action:** grant the **FFC Administrator** role — or the form/calendar management capability — to the users who need it.
 
+### Security
+- Public certificate CSV (`[ffc_csv_download]`) minimized (#836): dropped the magic-link **Token** column (a live access credential that was leaking in bulk) plus the **User IP / Consent Given·Date·IP·Text / Status** columns; the admin export keeps its full layout. Also emits `noindex` on the `/valid` verification page. **Public CSV column layout changed.**
+
 ## [6.17.0] (2026-07-26) — `6f47824`
 
 ### Changed

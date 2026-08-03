@@ -100,17 +100,19 @@ class PublicCsvExporterTest extends TestCase {
     //  get_fixed_headers()
     // ==================================================================
 
-    public function test_fixed_headers_without_edit_columns_returns_15(): void {
+    public function test_fixed_headers_without_edit_columns_returns_8(): void {
         $headers = $this->invoke( 'get_fixed_headers', array( false ) );
-        $this->assertCount( 15, $headers );
+        $this->assertCount( 8, $headers );
     }
 
-    public function test_fixed_headers_with_edit_columns_returns_18(): void {
+    public function test_fixed_headers_with_edit_columns_returns_11(): void {
         $headers = $this->invoke( 'get_fixed_headers', array( true ) );
-        $this->assertCount( 18, $headers );
+        $this->assertCount( 11, $headers );
     }
 
-    public function test_fixed_headers_match_admin_csv_exporter_layout(): void {
+    public function test_fixed_headers_public_minimized_layout(): void {
+        // #836 — the public export is deliberately narrower than the admin
+        // CsvExporter: no IP, token, consent-trail or status columns.
         $headers = $this->invoke( 'get_fixed_headers', array( false ) );
         $this->assertSame(
             array(
@@ -119,40 +121,38 @@ class PublicCsvExporterTest extends TestCase {
                 'User ID',
                 'Submission Date',
                 'E-mail',
-                'User IP',
                 'CPF',
                 'RF',
                 'Auth Code',
-                'Token',
-                'Consent Given',
-                'Consent Date',
-                'Consent IP',
-                'Consent Text',
-                'Status',
             ),
             $headers
         );
     }
 
+    public function test_fixed_headers_omit_minimized_columns(): void {
+        // #836 — these columns must NOT appear in the public download.
+        $headers = $this->invoke( 'get_fixed_headers', array( true ) );
+        foreach ( array( 'User IP', 'Token', 'Consent Given', 'Consent Date', 'Consent IP', 'Consent Text', 'Status' ) as $dropped ) {
+            $this->assertNotContains( $dropped, $headers );
+        }
+    }
+
     public function test_fixed_headers_edit_columns_appended_at_end(): void {
         $headers = $this->invoke( 'get_fixed_headers', array( true ) );
-        $this->assertSame( 'Was Edited', $headers[15] );
-        $this->assertSame( 'Edit Date', $headers[16] );
-        $this->assertSame( 'Edited By', $headers[17] );
+        $this->assertSame( 'Was Edited', $headers[8] );
+        $this->assertSame( 'Edit Date', $headers[9] );
+        $this->assertSame( 'Edited By', $headers[10] );
     }
 
     // ==================================================================
     //  format_csv_row()
     //
-    //  Column layout (must match admin CsvExporter):
-    //  [0]  ID              [8]  Auth Code
-    //  [1]  Form            [9]  Token
-    //  [2]  User ID         [10] Consent Given
-    //  [3]  Date            [11] Consent Date
-    //  [4]  Email           [12] Consent IP
-    //  [5]  IP              [13] Consent Text
-    //  [6]  CPF             [14] Status
-    //  [7]  RF
+    //  Minimized public column layout (#836):
+    //  [0]  ID              [4]  E-mail
+    //  [1]  Form            [5]  CPF
+    //  [2]  User ID         [6]  RF
+    //  [3]  Date            [7]  Auth Code
+    //  (edit columns [8..10] and dynamic keys appended after)
     // ==================================================================
 
     /**
@@ -191,8 +191,8 @@ class PublicCsvExporterTest extends TestCase {
     public function test_format_csv_row_basic_count(): void {
         $row    = $this->sample_row();
         $result = $this->invoke( 'format_csv_row', array( $row, array( 'field_name', 'field_city' ), false ) );
-        // 15 fixed + 2 dynamic = 17
-        $this->assertCount( 17, $result );
+        // 8 fixed + 2 dynamic = 10
+        $this->assertCount( 10, $result );
     }
 
     public function test_format_csv_row_fixed_columns_have_expected_values(): void {
@@ -206,24 +206,18 @@ class PublicCsvExporterTest extends TestCase {
         // `date_format` is 'd/m/Y' and `time_format` is 'H:i'.
         $this->assertSame( '15/01/2026 10:30', $result[3] );
         $this->assertSame( 'test@example.com', $result[4] );
-        $this->assertSame( '203.0.113.1', $result[5] );
-        $this->assertSame( '123.456.789-00', $result[6] );
-        $this->assertSame( '', $result[7] );
-        $this->assertSame( 'ABC123', $result[8] );
-        $this->assertSame( 'tok_abc', $result[9] );
-        $this->assertSame( 'Yes', $result[10] );
-        // DateFormatter default ('d/m/Y H:i') under UTC stub.
-        $this->assertSame( '15/01/2026 10:30', $result[11] );
-        $this->assertSame( '203.0.113.1', $result[12] );
-        $this->assertSame( 'I agree', $result[13] );
-        $this->assertSame( 'publish', $result[14] );
+        $this->assertSame( '123.456.789-00', $result[5] );
+        $this->assertSame( '', $result[6] );
+        $this->assertSame( 'ABC123', $result[7] );
     }
 
-    public function test_format_csv_row_consent_no(): void {
-        $row                  = $this->sample_row();
-        $row['consent_given'] = 0;
-        $result               = $this->invoke( 'format_csv_row', array( $row, array(), false ) );
-        $this->assertSame( 'No', $result[10] );
+    public function test_format_csv_row_omits_ip_token_consent_and_status(): void {
+        // #836 — the minimized public row must not carry these values anywhere.
+        $row    = $this->sample_row();
+        $result = $this->invoke( 'format_csv_row', array( $row, array(), false ) );
+        foreach ( array( '203.0.113.1', 'tok_abc', 'I agree', 'publish' ) as $dropped ) {
+            $this->assertNotContains( $dropped, $result );
+        }
     }
 
     public function test_format_csv_row_uses_deleted_placeholder_when_form_is_missing(): void {
@@ -246,35 +240,35 @@ class PublicCsvExporterTest extends TestCase {
         $row['edited_by'] = 5;
         $result           = $this->invoke( 'format_csv_row', array( $row, array(), true ) );
 
-        // 15 fixed + 3 edit = 18
-        $this->assertCount( 18, $result );
-        $this->assertSame( 'Yes', $result[15] );
-        $this->assertSame( '06/02/2026 09:00', $result[16] );
-        $this->assertSame( 'Admin User', $result[17] );
+        // 8 fixed + 3 edit = 11
+        $this->assertCount( 11, $result );
+        $this->assertSame( 'Yes', $result[8] );
+        $this->assertSame( '06/02/2026 09:00', $result[9] );
+        $this->assertSame( 'Admin User', $result[10] );
     }
 
     public function test_format_csv_row_not_edited_leaves_edit_columns_empty(): void {
         $row    = $this->sample_row();
         $result = $this->invoke( 'format_csv_row', array( $row, array(), true ) );
-        $this->assertSame( '', $result[15] );
-        $this->assertSame( '', $result[16] );
-        $this->assertSame( '', $result[17] );
+        $this->assertSame( '', $result[8] );
+        $this->assertSame( '', $result[9] );
+        $this->assertSame( '', $result[10] );
     }
 
     public function test_format_csv_row_dynamic_keys_appended_after_fixed_columns(): void {
         $row          = $this->sample_row();
         $dynamic_keys = array( 'field_name', 'field_city' );
         $result       = $this->invoke( 'format_csv_row', array( $row, $dynamic_keys, false ) );
-        $this->assertSame( 'John', $result[15] );
-        $this->assertSame( 'SP', $result[16] );
+        $this->assertSame( 'John', $result[8] );
+        $this->assertSame( 'SP', $result[9] );
     }
 
     public function test_format_csv_row_missing_dynamic_key_is_empty(): void {
         $row          = $this->sample_row();
         $dynamic_keys = array( 'field_name', 'field_missing' );
         $result       = $this->invoke( 'format_csv_row', array( $row, $dynamic_keys, false ) );
-        $this->assertSame( 'John', $result[15] );
-        $this->assertSame( '', $result[16] );
+        $this->assertSame( 'John', $result[8] );
+        $this->assertSame( '', $result[9] );
     }
 
     public function test_format_csv_row_rf_only(): void {
@@ -282,8 +276,8 @@ class PublicCsvExporterTest extends TestCase {
         $row['cpf'] = '';
         $row['rf']  = '1234567';
         $result     = $this->invoke( 'format_csv_row', array( $row, array(), false ) );
-        $this->assertSame( '', $result[6] );
-        $this->assertSame( '1234567', $result[7] );
+        $this->assertSame( '', $result[5] );
+        $this->assertSame( '1234567', $result[6] );
     }
 
     // ==================================================================

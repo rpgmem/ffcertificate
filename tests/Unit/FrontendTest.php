@@ -325,4 +325,67 @@ class FrontendTest extends TestCase {
         );
         $this->assertContains( 42, array_map( 'intval', $form_keys ), 'extra attributes MUST NOT block localize' );
     }
+
+    // ==================================================================
+    // verification_page_robots() — #836 (P2)
+    // ==================================================================
+
+    public function test_verification_robots_unchanged_when_no_post(): void {
+        global $post;
+        $post = null;
+
+        $frontend = new Frontend( $this->makeSubmissionHandlerMock() );
+        $result   = $frontend->verification_page_robots( array( 'follow' => true ) );
+
+        $this->assertSame( array( 'follow' => true ), $result );
+        $this->assertArrayNotHasKey( 'noindex', $result );
+    }
+
+    public function test_verification_robots_noindex_when_shortcode_present(): void {
+        global $post;
+        $post               = Mockery::mock( 'WP_Post' );
+        $post->ID           = 7;
+        $post->post_content = '[ffc_verification]';
+
+        Functions\when( 'get_option' )->justReturn( 0 );
+        Functions\when( 'has_shortcode' )->alias(
+            static fn( $content, $tag ) => 'ffc_verification' === $tag && false !== strpos( $content, '[ffc_verification' )
+        );
+
+        $frontend = new Frontend( $this->makeSubmissionHandlerMock() );
+        $result   = $frontend->verification_page_robots( array() );
+
+        $this->assertTrue( $result['noindex'] );
+    }
+
+    public function test_verification_robots_noindex_when_configured_page_id_matches(): void {
+        global $post;
+        $post               = Mockery::mock( 'WP_Post' );
+        $post->ID           = 55;
+        $post->post_content = 'No shortcode here.';
+
+        Functions\when( 'get_option' )->justReturn( 55 );
+        Functions\when( 'has_shortcode' )->justReturn( false );
+
+        $frontend = new Frontend( $this->makeSubmissionHandlerMock() );
+        $result   = $frontend->verification_page_robots( array() );
+
+        $this->assertTrue( $result['noindex'] );
+    }
+
+    public function test_verification_robots_unchanged_on_unrelated_page(): void {
+        global $post;
+        $post               = Mockery::mock( 'WP_Post' );
+        $post->ID           = 10;
+        $post->post_content = 'Just a regular page.';
+
+        Functions\when( 'get_option' )->justReturn( 0 );
+        Functions\when( 'has_shortcode' )->justReturn( false );
+
+        $frontend = new Frontend( $this->makeSubmissionHandlerMock() );
+        $result   = $frontend->verification_page_robots( array( 'follow' => true ) );
+
+        $this->assertSame( array( 'follow' => true ), $result );
+        $this->assertArrayNotHasKey( 'noindex', $result );
+    }
 }
