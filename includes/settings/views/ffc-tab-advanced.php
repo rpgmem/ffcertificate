@@ -597,6 +597,7 @@ $ffc_kh_labels = array(
 	'placeholder' => __( 'Placeholder keys', 'ffcertificate' ),
 	'empty'       => __( 'Missing keys', 'ffcertificate' ),
 );
+
 $ffc_kh_label = $ffc_kh_labels[ $ffc_kh_status ] ?? $ffc_kh_status;
 ?>
 <div class="card" id="ffc-encryption-health">

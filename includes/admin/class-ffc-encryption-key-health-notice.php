@@ -53,9 +53,7 @@ class EncryptionKeyHealthNotice {
 			return '';
 		}
 		$report = \FreeFormCertificate\Core\Encryption::key_health_report();
-		$status = isset( $report['status'] ) ? (string) $report['status'] : '';
-		$finger = isset( $report['fingerprint'] ) ? (string) $report['fingerprint'] : '';
-		return $status . ':' . $finger;
+		return (string) $report['status'] . ':' . (string) $report['fingerprint'];
 	}
 
 	/**
@@ -133,7 +131,7 @@ class EncryptionKeyHealthNotice {
 		// Dismissed for this exact health signature (status + fingerprint)?
 		$dismissed = get_option( self::OPTION_DISMISSED, '' );
 		$dismissed = is_scalar( $dismissed ) ? (string) $dismissed : '';
-		return $dismissed !== self::current_signature();
+		return self::current_signature() !== $dismissed;
 	}
 
 	/**
