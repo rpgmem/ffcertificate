@@ -123,6 +123,14 @@ Yes. The plugin includes built-in cache compatibility:
 
 No manual configuration of cache exclusion rules is needed.
 
+= Do I need any server configuration on nginx? =
+
+One optional hardening step. Batched CSV exports stage a temporary file (which may contain decrypted PII) under `wp-content/uploads/ffc-tmp/`. On Apache the plugin protects it automatically with a bundled `.htaccess`; **nginx ignores `.htaccess`**, so add a deny rule to your server block:
+
+`location ^~ /wp-content/uploads/ffc-tmp/ { deny all; return 404; }`
+
+The temp file is already short-lived (random name, deleted right after download, daily cleanup cron), so this is defence-in-depth. See `docs/DEPLOYMENT.md` for details.
+
 = How do I translate the plugin? =
 
 The plugin is fully translation-ready with the `ffcertificate` text domain. Use Loco Translate or Poedit with the `languages/ffcertificate.pot` template file. Portuguese (Brazil) translation is included.
