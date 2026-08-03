@@ -26,6 +26,26 @@ if ( ! defined( 'ABSPATH' ) ) {
 final class RateLimitRepository {
 
 	/**
+	 * Storage key for a rate-limit identifier on the `ffc_rate_limits` counter
+	 * table. Non-IP identifiers (email / CPF) are hashed at rest — a counter row
+	 * only needs a stable equality key, and storing raw CPF/email was a
+	 * PII-at-rest leak (#839 S5). IP identifiers stay plaintext so the stats
+	 * "top IPs" view and operator troubleshooting keep working. Mirrors the
+	 * sibling {@see RateLimitLogger::log_attempt()} hashing on `ffc_rate_limit_logs`.
+	 *
+	 * Applied on both the read (get_count / is_blocked) and write (increment /
+	 * block) sides so lookups stay consistent; existing raw rows simply miss the
+	 * new hashed key and lapse after their window (a one-time reset at most).
+	 *
+	 * @param string $type       Identifier type ('ip' | 'email' | 'cpf' | …).
+	 * @param string $identifier Raw identifier.
+	 * @return string Plaintext IP, or a sha256 hash for any non-IP identifier.
+	 */
+	private static function storage_identifier( string $type, string $identifier ): string {
+		return ( 'ip' === $type ) ? $identifier : hash( 'sha256', $identifier );
+	}
+
+	/**
 	 * Get count from db.
 	 *
 	 * @param string   $type Type.
@@ -36,6 +56,7 @@ final class RateLimitRepository {
 	 */
 	public static function get_count_from_db( string $type, string $identifier, string $window, ?int $form_id ): int {
 		global $wpdb;
+		$identifier  = self::storage_identifier( $type, $identifier );
 		$t           = $wpdb->prefix . 'ffc_rate_limits';
 		$ws          = self::get_window_start( $window );
 		$form_clause = $form_id ? $wpdb->prepare( 'AND form_id = %d', $form_id ) : 'AND form_id IS NULL';
@@ -54,9 +75,10 @@ final class RateLimitRepository {
 	 */
 	public static function increment_counter( string $type, string $identifier, string $window, ?int $form_id ): void {
 		global $wpdb;
-		$t  = $wpdb->prefix . 'ffc_rate_limits';
-		$ws = self::get_window_start( $window );
-		$we = self::get_window_end( $window );
+		$identifier = self::storage_identifier( $type, $identifier );
+		$t          = $wpdb->prefix . 'ffc_rate_limits';
+		$ws         = self::get_window_start( $window );
+		$we         = self::get_window_end( $window );
 
 		$form_clause = $form_id ? $wpdb->prepare( 'AND form_id = %d', $form_id ) : 'AND form_id IS NULL';
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- $form_clause is pre-prepared via $wpdb->prepare().
@@ -137,6 +159,7 @@ final class RateLimitRepository {
 	 */
 	public static function is_temporarily_blocked( string $type, string $identifier, ?int $form_id ): bool {
 		global $wpdb;
+		$identifier  = self::storage_identifier( $type, $identifier );
 		$t           = $wpdb->prefix . 'ffc_rate_limits';
 		$form_clause = $form_id ? $wpdb->prepare( 'AND form_id = %d', $form_id ) : 'AND form_id IS NULL';
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Pre-validated clauses from trusted internal logic.
@@ -153,6 +176,7 @@ final class RateLimitRepository {
 	 */
 	public static function block_temporarily( string $type, string $identifier, ?int $form_id, int $hours ): void {
 		global $wpdb;
+		$identifier = self::storage_identifier( $type, $identifier );
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Pre-validated clauses from trusted internal logic.
 		$blocked_ts_raw = strtotime( "+$hours hours" );
 		$blocked_ts     = $blocked_ts_raw ? $blocked_ts_raw : time();

@@ -36,6 +36,15 @@ final class RecruitmentClassificationsRestController {
 	private const REST_BASE = 'recruitment';
 
 	/**
+	 * Max accepted CSV upload size (#839 S9). Recruitment classifications are
+	 * candidate rosters — a few MB even for large calls; the cap only bounds a
+	 * memory-DoS from reading an arbitrarily large upload whole into a string
+	 * with `file_get_contents`. The endpoints are already admin-gated, so this
+	 * is defense-in-depth, not a hostile-input boundary.
+	 */
+	private const MAX_CSV_UPLOAD_BYTES = 10485760; // 10 MB.
+
+	/**
 	 * Hook callback for `rest_api_init`.
 	 *
 	 * @return void
@@ -330,6 +339,52 @@ final class RecruitmentClassificationsRestController {
 	}
 
 	/**
+	 * Validate an uploaded CSV before it is read whole into memory (#839 S9):
+	 * extension allowlist + a hard size cap. Shared by the three import entry
+	 * points (`import_csv`, `import_job_start`, definitive-import promote), which
+	 * each `file_get_contents()` the upload — an unbounded read that a large
+	 * upload could turn into a memory exhaustion.
+	 *
+	 * The browser-supplied MIME type is trivially spoofable, so the filename
+	 * extension is the reliable signal for an admin upload (a `.csv` is plain
+	 * text); the size cap is the real DoS guard. Returns a 400/413 `WP_Error`
+	 * on rejection, or `null` when the upload is acceptable.
+	 *
+	 * @param array<string, mixed> $file The `$_FILES['csv_file']` entry.
+	 * @return \WP_Error|null
+	 */
+	private function validate_csv_upload( array $file ): ?\WP_Error {
+		$name = isset( $file['name'] ) && is_string( $file['name'] ) ? $file['name'] : '';
+		$ext  = strtolower( pathinfo( $name, PATHINFO_EXTENSION ) );
+		if ( ! in_array( $ext, array( 'csv', 'txt' ), true ) ) {
+			return new \WP_Error(
+				'recruitment_csv_file_type',
+				__( 'Only .csv files are accepted.', 'ffcertificate' ),
+				array( 'status' => 400 )
+			);
+		}
+
+		$size = isset( $file['size'] ) && is_numeric( $file['size'] ) ? (int) $file['size'] : 0;
+		if ( $size <= 0 && isset( $file['tmp_name'] ) && is_string( $file['tmp_name'] ) ) {
+			$on_disk = filesize( $file['tmp_name'] );
+			$size    = false !== $on_disk ? $on_disk : 0;
+		}
+		if ( $size > self::MAX_CSV_UPLOAD_BYTES ) {
+			return new \WP_Error(
+				'recruitment_csv_file_too_large',
+				sprintf(
+					/* translators: %s: human-readable maximum upload size (e.g. "10 MB"). */
+					__( 'CSV file is too large (max %s).', 'ffcertificate' ),
+					size_format( self::MAX_CSV_UPLOAD_BYTES )
+				),
+				array( 'status' => 413 )
+			);
+		}
+
+		return null;
+	}
+
+	/**
 	 * POST /notices/{id}/import
 	 *
 	 * @param \WP_REST_Request $request Request.
@@ -345,6 +400,11 @@ final class RecruitmentClassificationsRestController {
 				__( 'CSV file is required.', 'ffcertificate' ),
 				array( 'status' => 400 )
 			);
+		}
+
+		$upload_error = $this->validate_csv_upload( (array) $files['csv_file'] );
+		if ( null !== $upload_error ) {
+			return $upload_error;
 		}
 
 		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- Local upload tmp file; wp_remote_get is for HTTP only.
@@ -388,6 +448,11 @@ final class RecruitmentClassificationsRestController {
 				__( 'CSV file is required.', 'ffcertificate' ),
 				array( 'status' => 400 )
 			);
+		}
+
+		$upload_error = $this->validate_csv_upload( (array) $files['csv_file'] );
+		if ( null !== $upload_error ) {
+			return $upload_error;
 		}
 
 		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- local upload tmp file.
@@ -505,6 +570,11 @@ final class RecruitmentClassificationsRestController {
 				__( 'CSV file is required for definitive_import mode.', 'ffcertificate' ),
 				array( 'status' => 400 )
 			);
+		}
+
+		$upload_error = $this->validate_csv_upload( (array) $files['csv_file'] );
+		if ( null !== $upload_error ) {
+			return $upload_error;
 		}
 
 		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- Local upload tmp file; wp_remote_get is for HTTP only.
