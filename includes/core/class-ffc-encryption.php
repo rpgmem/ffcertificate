@@ -469,7 +469,8 @@ class Encryption {
 	private static function get_encryption_key(): string {
 		// Check if custom key defined.
 		if ( self::is_decoupled() ) {
-			return substr( (string) FFC_ENCRYPTION_KEY, 0, 32 );
+			// constant() keeps PHPStan happy — is_decoupled() already asserted defined().
+			return substr( (string) constant( 'FFC_ENCRYPTION_KEY' ), 0, 32 );
 		}
 
 		return self::wp_derived_encryption_key();
@@ -521,7 +522,7 @@ class Encryption {
 	 */
 	private static function get_hmac_key(): string {
 		if ( self::is_decoupled() ) {
-			return hash_hmac( 'sha256', 'ffc-hmac-key', (string) FFC_ENCRYPTION_KEY, true );
+			return hash_hmac( 'sha256', 'ffc-hmac-key', (string) constant( 'FFC_ENCRYPTION_KEY' ), true );
 		}
 
 		return self::wp_derived_hmac_key();
@@ -688,7 +689,7 @@ class Encryption {
 		// Encryption key material (FFC_ENCRYPTION_KEY only wins at >= 32 chars —
 		// below that get_encryption_key() ignores it and falls back to WP keys).
 		if ( self::is_decoupled() ) {
-			$secrets[] = (string) FFC_ENCRYPTION_KEY;
+			$secrets[] = (string) constant( 'FFC_ENCRYPTION_KEY' );
 		} else {
 			$secrets[] = defined( 'SECURE_AUTH_KEY' ) ? (string) SECURE_AUTH_KEY : '';
 			$secrets[] = defined( 'LOGGED_IN_KEY' ) ? (string) LOGGED_IN_KEY : '';

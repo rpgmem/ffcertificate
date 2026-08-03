@@ -455,8 +455,8 @@ class KeyRotationMigrationStrategy implements MigrationStrategyInterface {
 
 					$plain = \FreeFormCertificate\Core\Encryption::decrypt( $ciphertext );
 					if ( null === $plain || '' === $plain ) {
-						/* translators: 1: column name, 2: record ID, 3: table name */
 						$errors[] = sprintf(
+							/* translators: 1: column name, 2: record ID, 3: table name */
 							__( 'Could not decrypt %1$s for ID %2$d in %3$s — left unchanged (key may be unrecoverable).', 'ffcertificate' ),
 							$enc_col,
 							(int) $record['id'],
