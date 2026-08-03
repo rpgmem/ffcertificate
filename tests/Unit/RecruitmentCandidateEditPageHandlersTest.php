@@ -37,6 +37,16 @@ class RecruitmentCandidateEditPageHandlersTest extends TestCase {
 	protected function setUp(): void {
 		parent::setUp();
 		Monkey\setUp();
+		Functions\when( 'wp_admin_notice' )->alias(
+			static function ( $message, $args = array() ) {
+				$ffc_type = isset( $args['type'] ) ? $args['type'] : 'info';
+				$ffc_cls  = 'notice notice-' . $ffc_type;
+				if ( ! empty( $args['dismissible'] ) ) { $ffc_cls .= ' is-dismissible'; }
+				if ( ! empty( $args['additional_classes'] ) ) { $ffc_cls .= ' ' . implode( ' ', $args['additional_classes'] ); }
+				$ffc_wrap = ! array_key_exists( 'paragraph_wrap', $args ) || $args['paragraph_wrap'];
+				echo '<div class="' . $ffc_cls . '">' . ( $ffc_wrap ? '<p>' . $message . '</p>' : $message ) . '</div>';
+			}
+		);
 
 		Functions\when( '__' )->returnArg();
 		Functions\when( 'esc_html__' )->returnArg();

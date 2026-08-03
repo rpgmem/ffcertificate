@@ -50,15 +50,55 @@ if ( ! defined( 'ABSPATH' ) ) {
 			<hr class="wp-header-end">
 
 			<?php if ( 'trashed' === $msg ) : ?>
-				<div class="notice notice-success is-dismissible"><p><?php esc_html_e( 'Short URL moved to Trash.', 'ffcertificate' ); ?></p></div>
+				<?php
+				wp_admin_notice(
+					esc_html__( 'Short URL moved to Trash.', 'ffcertificate' ),
+					array(
+						'type'        => 'success',
+						'dismissible' => true,
+					)
+				);
+				?>
 			<?php elseif ( 'restored' === $msg ) : ?>
-				<div class="notice notice-success is-dismissible"><p><?php esc_html_e( 'Short URL restored.', 'ffcertificate' ); ?></p></div>
+				<?php
+				wp_admin_notice(
+					esc_html__( 'Short URL restored.', 'ffcertificate' ),
+					array(
+						'type'        => 'success',
+						'dismissible' => true,
+					)
+				);
+				?>
 			<?php elseif ( 'deleted' === $msg ) : ?>
-				<div class="notice notice-success is-dismissible"><p><?php esc_html_e( 'Short URL permanently deleted.', 'ffcertificate' ); ?></p></div>
+				<?php
+				wp_admin_notice(
+					esc_html__( 'Short URL permanently deleted.', 'ffcertificate' ),
+					array(
+						'type'        => 'success',
+						'dismissible' => true,
+					)
+				);
+				?>
 			<?php elseif ( 'emptied' === $msg ) : ?>
-				<div class="notice notice-success is-dismissible"><p><?php esc_html_e( 'Trash emptied.', 'ffcertificate' ); ?></p></div>
+				<?php
+				wp_admin_notice(
+					esc_html__( 'Trash emptied.', 'ffcertificate' ),
+					array(
+						'type'        => 'success',
+						'dismissible' => true,
+					)
+				);
+				?>
 			<?php elseif ( 'toggled' === $msg ) : ?>
-				<div class="notice notice-success is-dismissible"><p><?php esc_html_e( 'Status updated.', 'ffcertificate' ); ?></p></div>
+				<?php
+				wp_admin_notice(
+					esc_html__( 'Status updated.', 'ffcertificate' ),
+					array(
+						'type'        => 'success',
+						'dismissible' => true,
+					)
+				);
+				?>
 			<?php endif; ?>
 
 			<?php if ( 'trashed' !== $status ) : ?>

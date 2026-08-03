@@ -61,7 +61,10 @@ final class RecruitmentAdjutancyEditPage {
 		$adjutancy    = $adjutancy_id > 0 ? RecruitmentAdjutancyReader::get_by_id( $adjutancy_id ) : null;
 
 		if ( null === $adjutancy ) {
-			echo '<div class="notice notice-error"><p>' . esc_html__( 'Adjutancy not found.', 'ffcertificate' ) . '</p></div>';
+			wp_admin_notice(
+				esc_html__( 'Adjutancy not found.', 'ffcertificate' ),
+				array( 'type' => 'error' )
+			);
 			echo '<p><a href="' . esc_url( self::back_url() ) . '">&larr; ' . esc_html__( 'Back to Adjutancies', 'ffcertificate' ) . '</a></p>';
 			return;
 		}

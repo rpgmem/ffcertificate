@@ -56,21 +56,30 @@ try {
 	<?php
 	// Show initialization error if MigrationManager failed.
 	if ( ! empty( $ffcertificate_init_error ) ) :
+		ob_start();
 		?>
-		<div class="notice notice-error inline">
-			<p>
-				<strong><?php esc_html_e( 'Migration system error:', 'ffcertificate' ); ?></strong>
-				<?php echo esc_html( $ffcertificate_init_error ); ?>
-			</p>
-			<p><?php esc_html_e( 'Try deactivating and reactivating the plugin, or clearing any server-side cache (OPcache).', 'ffcertificate' ); ?></p>
-		</div>
+		<p>
+			<strong><?php esc_html_e( 'Migration system error:', 'ffcertificate' ); ?></strong>
+			<?php echo esc_html( $ffcertificate_init_error ); ?>
+		</p>
+		<p><?php esc_html_e( 'Try deactivating and reactivating the plugin, or clearing any server-side cache (OPcache).', 'ffcertificate' ); ?></p>
 		<?php
+		wp_admin_notice(
+			(string) ob_get_clean(),
+			array(
+				'type'               => 'error',
+				'additional_classes' => array( 'inline' ),
+				'paragraph_wrap'     => false,
+			)
+		);
 	elseif ( empty( $ffcertificate_migrations ) ) :
-		?>
-		<div class="notice notice-info inline">
-			<p><?php esc_html_e( 'No migrations available at this time.', 'ffcertificate' ); ?></p>
-		</div>
-		<?php
+		wp_admin_notice(
+			esc_html__( 'No migrations available at this time.', 'ffcertificate' ),
+			array(
+				'type'               => 'info',
+				'additional_classes' => array( 'inline' ),
+			)
+		);
 	else :
 		foreach ( $ffcertificate_migrations as $ffcertificate_key => $ffcertificate_migration ) :
 			// Check if migration is available.
@@ -139,9 +148,15 @@ try {
 			</p>
 
 			<?php if ( ! empty( $ffcertificate_status_error ) ) : ?>
-				<div class="notice notice-warning inline ffc-set-my-10">
-					<p><strong><?php esc_html_e( 'Status check error:', 'ffcertificate' ); ?></strong> <?php echo esc_html( $ffcertificate_status_error ); ?></p>
-				</div>
+				<?php
+				wp_admin_notice(
+					'<strong>' . esc_html__( 'Status check error:', 'ffcertificate' ) . '</strong> ' . esc_html( $ffcertificate_status_error ),
+					array(
+						'type'               => 'warning',
+						'additional_classes' => array( 'inline', 'ffc-set-my-10' ),
+					)
+				);
+				?>
 			<?php endif; ?>
 
 			<!-- Migration Statistics -->
@@ -297,14 +312,26 @@ try {
 			</div>
 
 			<?php if ( $ffcertificate_cleanup_msg ) : ?>
-				<div class="notice notice-success inline ffc-set-my-10">
-					<p><?php echo esc_html( $ffcertificate_cleanup_msg ); ?></p>
-				</div>
+				<?php
+				wp_admin_notice(
+					esc_html( $ffcertificate_cleanup_msg ),
+					array(
+						'type'               => 'success',
+						'additional_classes' => array( 'inline', 'ffc-set-my-10' ),
+					)
+				);
+				?>
 			<?php endif; ?>
 			<?php if ( $ffcertificate_cleanup_err ) : ?>
-				<div class="notice notice-error inline ffc-set-my-10">
-					<p><?php echo esc_html( $ffcertificate_cleanup_err ); ?></p>
-				</div>
+				<?php
+				wp_admin_notice(
+					esc_html( $ffcertificate_cleanup_err ),
+					array(
+						'type'               => 'error',
+						'additional_classes' => array( 'inline', 'ffc-set-my-10' ),
+					)
+				);
+				?>
 			<?php endif; ?>
 
 			<!-- Grace-window form -->
@@ -511,10 +538,26 @@ try {
 			</div>
 
 			<?php if ( $ffcertificate_url_msg ) : ?>
-				<div class="notice notice-success inline ffc-set-my-10"><p><?php echo esc_html( $ffcertificate_url_msg ); ?></p></div>
+				<?php
+				wp_admin_notice(
+					esc_html( $ffcertificate_url_msg ),
+					array(
+						'type'               => 'success',
+						'additional_classes' => array( 'inline', 'ffc-set-my-10' ),
+					)
+				);
+				?>
 			<?php endif; ?>
 			<?php if ( $ffcertificate_url_err ) : ?>
-				<div class="notice notice-error inline ffc-set-my-10"><p><?php echo esc_html( $ffcertificate_url_err ); ?></p></div>
+				<?php
+				wp_admin_notice(
+					esc_html( $ffcertificate_url_err ),
+					array(
+						'type'               => 'error',
+						'additional_classes' => array( 'inline', 'ffc-set-my-10' ),
+					)
+				);
+				?>
 			<?php endif; ?>
 
 			<form method="post" action="<?php echo esc_url( $ffcertificate_url_preview_url ); ?>" class="ffc-set-my-12">
@@ -700,10 +743,26 @@ try {
 			</p>
 
 			<?php if ( $ffcertificate_pa_msg ) : ?>
-				<div class="notice notice-success inline ffc-set-my-10"><p><?php echo esc_html( $ffcertificate_pa_msg ); ?></p></div>
+				<?php
+				wp_admin_notice(
+					esc_html( $ffcertificate_pa_msg ),
+					array(
+						'type'               => 'success',
+						'additional_classes' => array( 'inline', 'ffc-set-my-10' ),
+					)
+				);
+				?>
 			<?php endif; ?>
 			<?php if ( $ffcertificate_pa_err ) : ?>
-				<div class="notice notice-error inline ffc-set-my-10"><p><?php echo esc_html( $ffcertificate_pa_err ); ?></p></div>
+				<?php
+				wp_admin_notice(
+					esc_html( $ffcertificate_pa_err ),
+					array(
+						'type'               => 'error',
+						'additional_classes' => array( 'inline', 'ffc-set-my-10' ),
+					)
+				);
+				?>
 			<?php endif; ?>
 
 			<form method="post" action="<?php echo esc_url( $ffcertificate_pa_preview_url ); ?>" class="ffc-set-my-12">
@@ -843,10 +902,26 @@ try {
 			</p>
 
 			<?php if ( $ffcertificate_sa_msg ) : ?>
-				<div class="notice notice-success inline ffc-set-my-10"><p><?php echo esc_html( $ffcertificate_sa_msg ); ?></p></div>
+				<?php
+				wp_admin_notice(
+					esc_html( $ffcertificate_sa_msg ),
+					array(
+						'type'               => 'success',
+						'additional_classes' => array( 'inline', 'ffc-set-my-10' ),
+					)
+				);
+				?>
 			<?php endif; ?>
 			<?php if ( $ffcertificate_sa_err ) : ?>
-				<div class="notice notice-error inline ffc-set-my-10"><p><?php echo esc_html( $ffcertificate_sa_err ); ?></p></div>
+				<?php
+				wp_admin_notice(
+					esc_html( $ffcertificate_sa_err ),
+					array(
+						'type'               => 'error',
+						'additional_classes' => array( 'inline', 'ffc-set-my-10' ),
+					)
+				);
+				?>
 			<?php endif; ?>
 
 			<div class="ffc-migration-actions ffc-set-my-12">
