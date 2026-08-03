@@ -83,6 +83,9 @@ class Frontend {
 	private function register_hooks(): void {
 		add_action( 'wp_enqueue_scripts', array( $this, 'frontend_assets' ) );
 
+		// #836 (P2) — keep the certificate-verification page out of search indexes.
+		add_filter( 'wp_robots', array( $this, 'verification_page_robots' ) );
+
 		add_shortcode( 'ffc_form', array( $this->shortcodes, 'render_form' ) );
 		add_shortcode( 'ffc_verification', array( $this->shortcodes, 'render_verification_page' ) );
 
@@ -94,6 +97,37 @@ class Frontend {
 
 		add_action( 'wp_ajax_ffc_verify_magic_token', array( $this->verification_handler, 'handle_magic_verification_ajax' ) );
 		add_action( 'wp_ajax_nopriv_ffc_verify_magic_token', array( $this->verification_handler, 'handle_magic_verification_ajax' ) );
+	}
+
+	/**
+	 * Force `noindex` on the certificate-verification page (#836 / P2).
+	 *
+	 * The `[ffc_verification]` page ("/valid") is a lookup surface: once a code
+	 * or magic link is entered it renders per-certificate holder data. It has no
+	 * standalone content worth indexing, so it should stay out of search engines
+	 * entirely. This is belt-and-suspenders on top of the magic-link design,
+	 * whose token already lives in the URL fragment (never sent to the server,
+	 * so not indexable on its own).
+	 *
+	 * @param array<string, bool> $robots Directives collected by WordPress core.
+	 * @return array<string, bool>
+	 */
+	public function verification_page_robots( array $robots ): array {
+		global $post;
+
+		if ( ! is_a( $post, 'WP_Post' ) ) {
+			return $robots;
+		}
+
+		$verification_page_id = (int) get_option( 'ffc_verification_page_id', 0 );
+		$is_verification_page = ( $verification_page_id > 0 && (int) $post->ID === $verification_page_id )
+			|| has_shortcode( $post->post_content, 'ffc_verification' );
+
+		if ( $is_verification_page ) {
+			$robots['noindex'] = true;
+		}
+
+		return $robots;
 	}
 
 	/**
