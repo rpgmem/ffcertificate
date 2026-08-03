@@ -327,4 +327,57 @@ class EncryptionTest extends TestCase {
         $this->assertNotNull( $result['encrypted'] );
         $this->assertSame( 64, $result['hash_length'] );
     }
+
+    // ------------------------------------------------------------------
+    // key_health() — #839 S7a
+    // ------------------------------------------------------------------
+
+    /**
+     * Invoke the private secret classifier directly — it is the pure logic
+     * behind key_health() and does not depend on the WP secret constants.
+     */
+    private function secret_status( string $value ): string {
+        $m = new \ReflectionMethod( Encryption::class, 'secret_status' );
+        $m->setAccessible( true );
+        return (string) $m->invoke( null, $value );
+    }
+
+    public function test_secret_status_classifies_each_state(): void {
+        $this->assertSame( 'empty', $this->secret_status( '' ) );
+        $this->assertSame( 'placeholder', $this->secret_status( 'put your unique phrase here' ) );
+        // Placeholder detection is substring + case-insensitive.
+        $this->assertSame( 'placeholder', $this->secret_status( 'xx PUT YOUR UNIQUE PHRASE HERE xx' ) );
+        $this->assertSame( 'weak', $this->secret_status( 'short-key' ) );
+        $this->assertSame( 'weak', $this->secret_status( str_repeat( 'a', 31 ) ) );
+        $this->assertSame( 'ok', $this->secret_status( str_repeat( 'a', 32 ) ) );
+        $this->assertSame( 'ok', $this->secret_status( str_repeat( 'x', 64 ) ) );
+    }
+
+    public function test_key_health_returns_a_valid_enum(): void {
+        $this->assertContains(
+            Encryption::key_health(),
+            array( 'ok', 'weak', 'placeholder', 'empty' )
+        );
+    }
+
+    public function test_key_health_report_shape(): void {
+        $report = Encryption::key_health_report();
+
+        // Status mirrors key_health().
+        $this->assertSame( Encryption::key_health(), $report['status'] );
+        // No decoupling constants defined in the unit env → derived from WP keys.
+        $this->assertFalse( $report['encryption_decoupled'] );
+        $this->assertFalse( $report['salt_decoupled'] );
+        $this->assertStringContainsString( 'WordPress', $report['key_source'] );
+        $this->assertStringContainsString( 'WordPress', $report['salt_source'] );
+        // Fingerprint is a 12-char hex slice — never the raw key.
+        $this->assertSame( 12, strlen( $report['fingerprint'] ) );
+        $this->assertMatchesRegularExpression( '/^[0-9a-f]{12}$/', $report['fingerprint'] );
+    }
+
+    public function test_get_info_reports_key_health(): void {
+        $info = Encryption::get_info();
+        $this->assertArrayHasKey( 'key_health', $info );
+        $this->assertSame( Encryption::key_health(), $info['key_health'] );
+    }
 }
