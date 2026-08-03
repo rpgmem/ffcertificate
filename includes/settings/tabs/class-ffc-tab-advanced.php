@@ -50,6 +50,27 @@ class TabAdvanced extends SettingsTab {
 			return;
 		}
 		$this->enqueue_autosave_infra();
+
+		// FFC_ENCRYPTION_KEY suggestion generator for the Encryption Key
+		// Health card (#851). Pure client-side: the key is generated in the
+		// browser and never saved or sent. Self-guards when the card doesn't
+		// render the suggestion block (already decoupled).
+		$s = \FreeFormCertificate\Core\AssetHelper::asset_suffix();
+		wp_enqueue_script(
+			'ffc-encryption-key-suggest',
+			FFC_PLUGIN_URL . "assets/js/ffc-encryption-key-suggest{$s}.js",
+			array(),
+			FFC_VERSION,
+			true
+		);
+		wp_localize_script(
+			'ffc-encryption-key-suggest',
+			'ffcEncKeySuggest',
+			array(
+				'copied'   => __( 'Copied to clipboard.', 'ffcertificate' ),
+				'copyFail' => __( 'Press Ctrl/Cmd+C to copy.', 'ffcertificate' ),
+			)
+		);
 	}
 
 	/**
