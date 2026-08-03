@@ -109,9 +109,6 @@ if ( ! defined( 'ABSPATH' ) ) {
 				<?php esc_html_e( 'Those defend the anonymous public form. The operator endpoint is authenticated and capability-gated, so the gate itself is the control; a generous per-operator rate-limit (300/hour, 2000/day) stays on only as a runaway guard. Per-IP limits are deliberately omitted because many field operators legitimately share one office IP.', 'ffcertificate' ); ?>
 			</p>
 		</div>
-		<pre><code>curl -u operator:app_password -X POST \
-  -H "Content-Type: application/json" \
-  -d '{"form_id":12,"name":"Jane Doe","cpf_rf":"12345678901","email":"jane@example.com"}' \
-  "https://example.com/wp-json/ffc/v1/operator/certificates"</code></pre>
+		<pre><code>curl -u operator:app_password -H "Content-Type: application/json" -d '{"form_id":12,"name":"Jane Doe","cpf_rf":"12345678901","email":"jane@example.com"}' "https://example.com/wp-json/ffc/v1/operator/certificates"</code></pre>
 	</div>
 </div>
