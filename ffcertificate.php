@@ -5,6 +5,7 @@
  * Update URI:         https://github.com/rpgmem/ffcertificate
  * Description:        Allows creation of dynamic forms, saves submissions, generates a PDF certificate, and enables CSV export.
  * Version:            6.17.0
+ * Requires at least:  6.4
  * Requires PHP:       8.3
  * Author:             Alex Meusburger
  * Author URI:         https://github.com/rpgmem

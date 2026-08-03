@@ -1,7 +1,7 @@
 === Free Form Certificate ===
 Contributors: alexmeusburger
 Tags: certificate, form builder, pdf generation, verification, validation
-Requires at least: 6.2
+Requires at least: 6.4
 Tested up to: 7.0
 Stable tag: 6.17.0
 Requires PHP: 8.3
