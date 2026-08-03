@@ -105,9 +105,10 @@ class TabSMTP extends SettingsTab {
 			$settings = $this;
 			include $view_file;
 		} else {
-			echo '<div class="notice notice-error"><p>';
-			echo esc_html__( 'SMTP settings view file not found.', 'ffcertificate' );
-			echo '</p></div>';
+			wp_admin_notice(
+				esc_html__( 'SMTP settings view file not found.', 'ffcertificate' ),
+				array( 'type' => 'error' )
+			);
 		}
 	}
 }

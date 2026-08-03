@@ -158,9 +158,13 @@ final class RoleCapabilityEditor {
 
 		echo '<hr class="ffc-role-editor-sep">';
 		echo '<h2>' . esc_html__( 'FFC Roles & Capabilities', 'ffcertificate' ) . '</h2>';
-		echo '<div class="notice notice-warning inline ffc-role-impact"><p>';
-		echo esc_html__( 'Editing a role changes the capabilities for every user holding that role — immediately, and retroactively. Changes save as you toggle and are recorded in the activity log. The role definition is global; to change a single person, use their profile screen instead.', 'ffcertificate' );
-		echo '</p></div>';
+		wp_admin_notice(
+			esc_html__( 'Editing a role changes the capabilities for every user holding that role — immediately, and retroactively. Changes save as you toggle and are recorded in the activity log. The role definition is global; to change a single person, use their profile screen instead.', 'ffcertificate' ),
+			array(
+				'type'               => 'warning',
+				'additional_classes' => array( 'inline', 'ffc-role-impact' ),
+			)
+		);
 
 		if ( empty( $roles ) ) {
 			echo '<p>' . esc_html__( 'No FFC roles are registered.', 'ffcertificate' ) . '</p>';

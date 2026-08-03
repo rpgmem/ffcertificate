@@ -67,7 +67,10 @@ final class RecruitmentReasonEditPage {
 		$reason    = $reason_id > 0 ? RecruitmentReasonReader::get_by_id( $reason_id ) : null;
 
 		if ( null === $reason ) {
-			echo '<div class="notice notice-error"><p>' . esc_html__( 'Reason not found.', 'ffcertificate' ) . '</p></div>';
+			wp_admin_notice(
+				esc_html__( 'Reason not found.', 'ffcertificate' ),
+				array( 'type' => 'error' )
+			);
 			echo '<p><a href="' . esc_url( self::back_url() ) . '">&larr; ' . esc_html__( 'Back to Reasons', 'ffcertificate' ) . '</a></p>';
 			return;
 		}

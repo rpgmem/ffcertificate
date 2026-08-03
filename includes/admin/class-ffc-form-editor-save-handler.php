@@ -611,11 +611,18 @@ class FormEditorSaveHandler {
 		$error_tags = get_transient( 'ffc_save_error_' . get_current_user_id() );
 		if ( $error_tags ) {
 			delete_transient( 'ffc_save_error_' . get_current_user_id() );
+			ob_start();
 			?>
-			<div class="notice notice-error is-dismissible">
-				<p><strong><?php esc_html_e( 'Warning! Missing required tags in PDF Layout:', 'ffcertificate' ); ?></strong> <code><?php echo esc_html( implode( ', ', $error_tags ) ); ?></code>.</p>
-			</div>
+			<p><strong><?php esc_html_e( 'Warning! Missing required tags in PDF Layout:', 'ffcertificate' ); ?></strong> <code><?php echo esc_html( implode( ', ', $error_tags ) ); ?></code>.</p>
 			<?php
+			wp_admin_notice(
+				(string) ob_get_clean(),
+				array(
+					'type'           => 'error',
+					'dismissible'    => true,
+					'paragraph_wrap' => false,
+				)
+			);
 		}
 
 		// Display geofence validation errors.
@@ -624,16 +631,23 @@ class FormEditorSaveHandler {
 			delete_transient( 'ffc_geofence_error_' . get_current_user_id() );
 			// Companion tab-routing transient set alongside the error list.
 			delete_transient( 'ffc_geofence_error_tabs_' . get_current_user_id() );
+			ob_start();
 			?>
-			<div class="notice notice-error is-dismissible">
-				<p><strong><?php esc_html_e( 'Geolocation Configuration Error:', 'ffcertificate' ); ?></strong></p>
-				<ul class="ffc-list-disc ffc-ml-20">
-					<?php foreach ( $geofence_errors as $error ) : ?>
-						<li><?php echo esc_html( $error ); ?></li>
-					<?php endforeach; ?>
-				</ul>
-			</div>
+			<p><strong><?php esc_html_e( 'Geolocation Configuration Error:', 'ffcertificate' ); ?></strong></p>
+			<ul class="ffc-list-disc ffc-ml-20">
+				<?php foreach ( $geofence_errors as $error ) : ?>
+					<li><?php echo esc_html( $error ); ?></li>
+				<?php endforeach; ?>
+			</ul>
 			<?php
+			wp_admin_notice(
+				(string) ob_get_clean(),
+				array(
+					'type'           => 'error',
+					'dismissible'    => true,
+					'paragraph_wrap' => false,
+				)
+			);
 		}
 	}
 }

@@ -39,6 +39,12 @@ class RoleCapabilityEditorTest extends TestCase {
 		Functions\when( 'current_user_can' )->justReturn( true );
 		Functions\when( 'get_current_user_id' )->justReturn( 1 );
 		Functions\when( 'get_option' )->justReturn( array() );
+		Functions\when( 'wp_admin_notice' )->alias(
+			static function ( $message, $args = array() ) {
+				$classes = implode( ' ', $args['additional_classes'] ?? array() );
+				echo '<div class="notice ' . $classes . '"><p>' . $message . '</p></div>';
+			}
+		);
 		Functions\when( '_n' )->alias(
 			static function ( $single, $plural, $number ) {
 				return 1 === $number ? $single : $plural;
