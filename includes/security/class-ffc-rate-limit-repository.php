@@ -78,7 +78,7 @@ final class RateLimitRepository {
 		$identifier = self::storage_identifier( $type, $identifier );
 		$t          = $wpdb->prefix . 'ffc_rate_limits';
 		$ws         = self::get_window_start( $window );
-		$we = self::get_window_end( $window );
+		$we         = self::get_window_end( $window );
 
 		$form_clause = $form_id ? $wpdb->prepare( 'AND form_id = %d', $form_id ) : 'AND form_id IS NULL';
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- $form_clause is pre-prepared via $wpdb->prepare().
