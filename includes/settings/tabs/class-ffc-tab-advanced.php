@@ -77,7 +77,7 @@ class TabAdvanced extends SettingsTab {
 				'defs'     => array(
 					'FFC_ENCRYPTION_KEY' => sprintf(
 						/* translators: %s: plugin version. */
-						__( "Free Form Certificate — encryption key (FFC_ENCRYPTION_KEY).\nDedicated secret FFC derives its AES-256 at-rest encryption key from, instead\nof the shared WordPress salts, so a WordPress salt rotation can't silently make\nstored CPF / RF / e-mail unreadable. Keep it secret and backed up. Changing it\non a site that already holds data requires a key rotation (WP-Admin → Settings →\nMigrations). Generated for FFC v%s.", 'ffcertificate' ),
+						__( "Free Form Certificate — encryption key (FFC_ENCRYPTION_KEY).\nDedicated secret FFC derives its AES-256 at-rest encryption key from, instead\nof the shared WordPress salts, so a WordPress salt rotation can't silently make\nstored CPF / RF / e-mail unreadable. Keep it secret and backed up. Once records\nare stored under it, treat this exact value as permanent: changing or removing\nit makes those records unreadable until it is restored. Generated for FFC v%s.", 'ffcertificate' ),
 						$ffc_version
 					),
 					'FFC_HASH_SALT'      => sprintf(
