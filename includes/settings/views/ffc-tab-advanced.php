@@ -607,7 +607,7 @@ $ffc_kh_label = $ffc_kh_labels[ $ffc_kh_status ] ?? $ffc_kh_status;
 	</p>
 
 	<?php if ( ! $ffc_kh_ok ) : ?>
-		<div class="notice notice-error inline" style="margin: 12px 0;">
+		<?php ob_start(); ?>
 			<p>
 				<strong><?php echo esc_html( $ffc_kh_label ); ?>.</strong>
 				<?php esc_html_e( 'Your active secret material is not safe. Fix it, but choose the right path:', 'ffcertificate' ); ?>
@@ -632,9 +632,19 @@ $ffc_kh_label = $ffc_kh_labels[ $ffc_kh_status ] ?? $ffc_kh_status;
 					<?php esc_html_e( 'Generate fresh WordPress secret keys ↗', 'ffcertificate' ); ?>
 				</a>
 			</p>
-		</div>
+		<?php
+		wp_admin_notice(
+			(string) ob_get_clean(),
+			array(
+				'type'               => 'error',
+				'additional_classes' => array( 'inline' ),
+				'paragraph_wrap'     => false,
+				'attributes'         => array( 'style' => 'margin: 12px 0;' ),
+			)
+		);
+		?>
 	<?php elseif ( ! $ffc_kh_decpl ) : ?>
-		<div class="notice notice-info inline" style="margin: 12px 0;">
+		<?php ob_start(); ?>
 			<p>
 				<?php
 				echo wp_kses(
@@ -647,11 +657,31 @@ $ffc_kh_label = $ffc_kh_labels[ $ffc_kh_status ] ?? $ffc_kh_status;
 				);
 				?>
 			</p>
-		</div>
+		<?php
+		wp_admin_notice(
+			(string) ob_get_clean(),
+			array(
+				'type'               => 'info',
+				'additional_classes' => array( 'inline' ),
+				'paragraph_wrap'     => false,
+				'attributes'         => array( 'style' => 'margin: 12px 0;' ),
+			)
+		);
+		?>
 	<?php else : ?>
-		<div class="notice notice-success inline" style="margin: 12px 0;">
+		<?php ob_start(); ?>
 			<p><strong><?php esc_html_e( 'Healthy.', 'ffcertificate' ); ?></strong> <?php esc_html_e( 'Encryption key and search-hash salt are strong and decoupled from the WordPress salts.', 'ffcertificate' ); ?></p>
-		</div>
+		<?php
+		wp_admin_notice(
+			(string) ob_get_clean(),
+			array(
+				'type'               => 'success',
+				'additional_classes' => array( 'inline' ),
+				'paragraph_wrap'     => false,
+				'attributes'         => array( 'style' => 'margin: 12px 0;' ),
+			)
+		);
+		?>
 	<?php endif; ?>
 
 	<table class="form-table" role="presentation">
@@ -683,6 +713,30 @@ $ffc_kh_label = $ffc_kh_labels[ $ffc_kh_status ] ?? $ffc_kh_status;
 			</tr>
 		</tbody>
 	</table>
+
+	<?php if ( empty( $ffc_kh['encryption_decoupled'] ) ) : ?>
+	<div class="ffc-encryption-key-suggest" style="margin-top: 16px;">
+		<h3 class="ffc-mt-0"><?php esc_html_e( 'Adopt a decoupled encryption key', 'ffcertificate' ); ?></h3>
+		<p class="description">
+			<?php esc_html_e( "Paste this into wp-config.php to derive FFC's encryption key from a dedicated strong secret instead of the shared WordPress salts. The value is generated in your browser and is never saved or sent anywhere.", 'ffcertificate' ); ?>
+		</p>
+		<p>
+			<label for="ffc-enc-key-suggestion" class="screen-reader-text"><?php esc_html_e( 'Suggested FFC_ENCRYPTION_KEY define for wp-config.php', 'ffcertificate' ); ?></label>
+			<input type="text" id="ffc-enc-key-suggestion" class="large-text code" readonly value=""
+				aria-label="<?php esc_attr_e( 'Suggested FFC_ENCRYPTION_KEY define for wp-config.php', 'ffcertificate' ); ?>"
+				spellcheck="false" autocomplete="off">
+		</p>
+		<p>
+			<button type="button" class="button" id="ffc-enc-key-regenerate"><?php esc_html_e( 'Generate another', 'ffcertificate' ); ?></button>
+			<button type="button" class="button" id="ffc-enc-key-copy"><?php esc_html_e( 'Copy', 'ffcertificate' ); ?></button>
+			<span id="ffc-enc-key-copy-status" class="description" role="status" aria-live="polite"></span>
+		</p>
+		<p class="description ffc-text-warning">
+			<strong><?php esc_html_e( 'Rotation caveat:', 'ffcertificate' ); ?></strong>
+			<?php esc_html_e( 'Apply this directly only on a NEW install with no encrypted data yet. On a site that already stores data whose WordPress salts are weak or the sample placeholder, defining a new FFC_ENCRYPTION_KEY re-derives the key and makes existing encrypted records unreadable — that needs a planned key rotation (S7b), not a blind edit.', 'ffcertificate' ); ?>
+		</p>
+	</div>
+	<?php endif; ?>
 </div>
 
 <!-- Danger Zone Card -->

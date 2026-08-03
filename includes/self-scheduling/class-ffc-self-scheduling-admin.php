@@ -77,11 +77,14 @@ class SelfSchedulingAdmin {
 		try {
 			require_once plugin_dir_path( __FILE__ ) . 'views/appointments-list.php';
 		} catch ( \Throwable $e ) {
-			echo '<div class="wrap"><div class="notice notice-error"><p><strong>'
-				. esc_html__( 'Error:', 'ffcertificate' ) . '</strong> '
-				. esc_html( $e->getMessage() )
-				. ' <em>(' . esc_html( basename( $e->getFile() ) ) . ':' . esc_html( (string) $e->getLine() ) . ')</em>'
-				. '</p></div></div>';
+			echo '<div class="wrap">';
+			wp_admin_notice(
+				'<strong>' . esc_html__( 'Error:', 'ffcertificate' ) . '</strong> '
+					. esc_html( $e->getMessage() )
+					. ' <em>(' . esc_html( basename( $e->getFile() ) ) . ':' . esc_html( (string) $e->getLine() ) . ')</em>',
+				array( 'type' => 'error' )
+			);
+			echo '</div>';
 			\FreeFormCertificate\Core\Debug::log_self_scheduling(
 				'Appointments page error',
 				array(

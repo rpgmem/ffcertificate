@@ -539,19 +539,25 @@ class Admin {
 		}
 
 		if ( $moved > 0 ) {
-			echo "<div class='updated notice is-dismissible'><p>" . esc_html(
-				sprintf(
-					/* translators: 1: number of moved submissions, 2: target form title */
-					_n(
-						'%1$d submission moved to "%2$s".',
-						'%1$d submissions moved to "%2$s".',
+			wp_admin_notice(
+				esc_html(
+					sprintf(
+						/* translators: 1: number of moved submissions, 2: target form title */
+						_n(
+							'%1$d submission moved to "%2$s".',
+							'%1$d submissions moved to "%2$s".',
+							$moved,
+							'ffcertificate'
+						),
 						$moved,
-						'ffcertificate'
-					),
-					$moved,
-					$to_title
+						$to_title
+					)
+				),
+				array(
+					'type'        => 'success',
+					'dismissible' => true,
 				)
-			) . '</p></div>';
+			);
 		}
 
 		if ( $conflicts > 0 ) {
@@ -569,15 +575,27 @@ class Admin {
 				$conflicts,
 				$to_title
 			);
-			echo "<div class='notice notice-warning is-dismissible'><p>" . esc_html( $message );
+			$ffc_move_notice = esc_html( $message );
 			if ( '' !== $ids_text ) {
-				echo ' <strong>' . esc_html__( 'Conflict IDs:', 'ffcertificate' ) . '</strong> ' . esc_html( $ids_text );
+				$ffc_move_notice .= ' <strong>' . esc_html__( 'Conflict IDs:', 'ffcertificate' ) . '</strong> ' . esc_html( $ids_text );
 			}
-			echo '</p></div>';
+			wp_admin_notice(
+				$ffc_move_notice,
+				array(
+					'type'        => 'warning',
+					'dismissible' => true,
+				)
+			);
 		}
 
 		if ( 0 === $moved && 0 === $conflicts ) {
-			echo "<div class='notice notice-warning is-dismissible'><p>" . esc_html__( 'No submissions matched the selection.', 'ffcertificate' ) . '</p></div>';
+			wp_admin_notice(
+				esc_html__( 'No submissions matched the selection.', 'ffcertificate' ),
+				array(
+					'type'        => 'warning',
+					'dismissible' => true,
+				)
+			);
 		}
 	}
 

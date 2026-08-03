@@ -79,6 +79,17 @@ class SettingsTest extends TestCase {
         // Common WP stubs
         Functions\when( '__' )->returnArg();
         Functions\when( 'esc_html__' )->returnArg();
+        Functions\when( 'esc_html' )->returnArg();
+        // wp_admin_notice() is WP 6.4 core — reproduce enough of its markup
+        // (class list + message) for the notice assertions (#850).
+        Functions\when( 'wp_admin_notice' )->alias(
+            static function ( $message, $args = array() ) {
+                $classes = 'notice notice-' . ( $args['type'] ?? 'info' )
+                    . ( ! empty( $args['dismissible'] ) ? ' is-dismissible' : '' )
+                    . ' ' . implode( ' ', $args['additional_classes'] ?? array() );
+                echo '<div class="' . trim( $classes ) . '"><p>' . $message . '</p></div>';
+            }
+        );
         Functions\when( 'sanitize_text_field' )->returnArg();
         Functions\when( 'sanitize_key' )->alias( function ( $key ) {
             return preg_replace( '/[^a-z0-9_\-]/', '', strtolower( $key ) );

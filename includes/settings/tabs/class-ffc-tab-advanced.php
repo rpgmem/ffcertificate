@@ -50,6 +50,27 @@ class TabAdvanced extends SettingsTab {
 			return;
 		}
 		$this->enqueue_autosave_infra();
+
+		// FFC_ENCRYPTION_KEY suggestion generator for the Encryption Key
+		// Health card (#851). Pure client-side: the key is generated in the
+		// browser and never saved or sent. Self-guards when the card doesn't
+		// render the suggestion block (already decoupled).
+		$s = \FreeFormCertificate\Core\AssetHelper::asset_suffix();
+		wp_enqueue_script(
+			'ffc-encryption-key-suggest',
+			FFC_PLUGIN_URL . "assets/js/ffc-encryption-key-suggest{$s}.js",
+			array(),
+			FFC_VERSION,
+			true
+		);
+		wp_localize_script(
+			'ffc-encryption-key-suggest',
+			'ffcEncKeySuggest',
+			array(
+				'copied'   => __( 'Copied to clipboard.', 'ffcertificate' ),
+				'copyFail' => __( 'Press Ctrl/Cmd+C to copy.', 'ffcertificate' ),
+			)
+		);
 	}
 
 	/**
@@ -62,9 +83,10 @@ class TabAdvanced extends SettingsTab {
 			$settings = $this;
 			include $view_file;
 		} else {
-			echo '<div class="notice notice-error"><p>';
-			echo esc_html__( 'Advanced settings view file not found.', 'ffcertificate' );
-			echo '</p></div>';
+			wp_admin_notice(
+				esc_html__( 'Advanced settings view file not found.', 'ffcertificate' ),
+				array( 'type' => 'error' )
+			);
 		}
 	}
 }

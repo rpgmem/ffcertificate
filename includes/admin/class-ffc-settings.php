@@ -463,10 +463,19 @@ class Settings {
 			if ( 'qr_cache_cleared' === $msg ) {
 				// phpcs:ignore WordPress.Security.NonceVerification.Recommended, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized, WordPress.Security.ValidatedSanitizedInput.MissingUnslash -- display-only URL parameter.
 				$cleared = isset( $_GET['cleared'] ) ? absint( wp_unslash( $_GET['cleared'] ) ) : 0;
-				echo '<div class="notice notice-success is-dismissible">';
-				/* translators: %d: number of QR codes cleared */
-				echo '<p>' . esc_html( sprintf( __( '%d QR Code(s) cleared from cache successfully.', 'ffcertificate' ), $cleared ) ) . '</p>';
-				echo '</div>';
+				wp_admin_notice(
+					esc_html(
+						sprintf(
+							/* translators: %d: number of QR codes cleared */
+							__( '%d QR Code(s) cleared from cache successfully.', 'ffcertificate' ),
+							$cleared
+						)
+					),
+					array(
+						'type'        => 'success',
+						'dismissible' => true,
+					)
+				);
 			}
 		}
 	}
@@ -488,21 +497,29 @@ class Settings {
 			if ( 'cache_warmed' === $msg ) {
 				// phpcs:ignore WordPress.Security.NonceVerification.Recommended, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized, WordPress.Security.ValidatedSanitizedInput.MissingUnslash -- display-only URL parameter.
 				$count = isset( $_GET['count'] ) ? absint( wp_unslash( $_GET['count'] ) ) : 0;
-				echo '<div class="notice notice-success is-dismissible">';
-				echo '<p>' . esc_html(
-					sprintf(
-					/* translators: %d: number of forms pre-loaded */
-						__( '✅ Cache warmed! %d form(s) pre-loaded.', 'ffcertificate' ),
-						$count
+				wp_admin_notice(
+					esc_html(
+						sprintf(
+						/* translators: %d: number of forms pre-loaded */
+							__( '✅ Cache warmed! %d form(s) pre-loaded.', 'ffcertificate' ),
+							$count
+						)
+					),
+					array(
+						'type'        => 'success',
+						'dismissible' => true,
 					)
-				) . '</p>';
-				echo '</div>';
+				);
 			}
 
 			if ( 'cache_cleared' === $msg ) {
-				echo '<div class="notice notice-success is-dismissible">';
-				echo '<p>' . esc_html__( '✅ Cache cleared successfully!', 'ffcertificate' ) . '</p>';
-				echo '</div>';
+				wp_admin_notice(
+					esc_html__( '✅ Cache cleared successfully!', 'ffcertificate' ),
+					array(
+						'type'        => 'success',
+						'dismissible' => true,
+					)
+				);
 			}
 		}
 	}
@@ -521,9 +538,12 @@ class Settings {
 		// viewable tab must land on an access notice, not an empty shell.
 		$visible_tabs = $this->visible_tabs();
 		if ( empty( $visible_tabs ) ) {
-			echo '<div class="wrap"><div class="notice notice-error"><p>'
-				. esc_html__( 'You do not have permission to view any settings.', 'ffcertificate' )
-				. '</p></div></div>';
+			echo '<div class="wrap">';
+			wp_admin_notice(
+				esc_html__( 'You do not have permission to view any settings.', 'ffcertificate' ),
+				array( 'type' => 'error' )
+			);
+			echo '</div>';
 			return;
 		}
 
@@ -545,9 +565,13 @@ class Settings {
 			<?php
 			$ffc_settings_can_edit = $page_state['can_edit'];
 			if ( ! $ffc_settings_can_edit ) {
-				echo '<div class="notice notice-info inline"><p>'
-					. esc_html__( 'Read-only — you can view these settings but do not have permission to change them.', 'ffcertificate' )
-					. '</p></div>';
+				wp_admin_notice(
+					esc_html__( 'Read-only — you can view these settings but do not have permission to change them.', 'ffcertificate' ),
+					array(
+						'type'               => 'info',
+						'additional_classes' => array( 'inline' ),
+					)
+				);
 			}
 			?>
 
@@ -555,10 +579,22 @@ class Settings {
 			// Display migration messages.
             // phpcs:disable WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- sanitized via sanitize_text_field().
 			if ( isset( $_GET['migration_success'] ) ) {
-				echo '<div class="notice notice-success is-dismissible"><p>' . esc_html( sanitize_text_field( urldecode( wp_unslash( $_GET['migration_success'] ) ) ) ) . '</p></div>';
+				wp_admin_notice(
+					esc_html( sanitize_text_field( urldecode( wp_unslash( $_GET['migration_success'] ) ) ) ),
+					array(
+						'type'        => 'success',
+						'dismissible' => true,
+					)
+				);
 			}
 			if ( isset( $_GET['migration_error'] ) ) {
-				echo '<div class="notice notice-error is-dismissible"><p>' . esc_html( sanitize_text_field( urldecode( wp_unslash( $_GET['migration_error'] ) ) ) ) . '</p></div>';
+				wp_admin_notice(
+					esc_html( sanitize_text_field( urldecode( wp_unslash( $_GET['migration_error'] ) ) ) ),
+					array(
+						'type'        => 'error',
+						'dismissible' => true,
+					)
+				);
 			}
             // phpcs:enable WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
 			?>
