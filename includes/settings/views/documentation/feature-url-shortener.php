@@ -37,6 +37,9 @@ if ( ! defined( 'ABSPATH' ) ) {
 		</p>
 	</div>
 
+	<h4><?php esc_html_e( 'Exporting', 'ffcertificate' ); ?></h4>
+	<p><?php esc_html_e( 'The "Export CSV" button downloads the list — code, title, destination, click count and status — as a CSV file, honouring the current search box, status filter and sort order. The export runs as a timeout-safe background job (the same batched engine every other list export uses), so it is safe on shared hosting with large link tables. Gated by the', 'ffcertificate' ); ?> <code>ffc_export_url_shortener</code> <?php esc_html_e( 'capability.', 'ffcertificate' ); ?></p>
+
 	<h4><?php esc_html_e( 'Settings', 'ffcertificate' ); ?></h4>
 	<table class="widefat striped">
 		<thead>
@@ -60,5 +63,6 @@ if ( ! defined( 'ABSPATH' ) ) {
 		<li><code>ffc_view_url_shortener</code> — <?php esc_html_e( 'view the list and download QR codes.', 'ffcertificate' ); ?></li>
 		<li><code>ffc_manage_url_shortener</code> — <?php esc_html_e( 'create, edit, enable/disable and regenerate links.', 'ffcertificate' ); ?></li>
 		<li><code>ffc_delete_url_shortener</code> — <?php esc_html_e( 'trash, restore and permanently delete.', 'ffcertificate' ); ?></li>
+		<li><code>ffc_export_url_shortener</code> — <?php esc_html_e( 'download the short-URL list (codes, targets, click counts) as CSV.', 'ffcertificate' ); ?></li>
 	</ul>
 </div>

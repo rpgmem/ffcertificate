@@ -175,6 +175,19 @@ class Encryption {
 			return $result;
 		}
 
+		// Re-key fallback (#863): during a key-to-key rotation the immediately-prior
+		// FFC key is kept temporarily in FFC_ENCRYPTION_KEY_PREVIOUS so rows still
+		// encrypted under it stay readable until the key-rotation migration
+		// re-encrypts them under the new active key. Independent of the WP-derived
+		// fallback below — a WP→FFC adoption and an FFC→FFC re-key can be in flight
+		// at once, so both candidate pairs are tried.
+		if ( self::has_previous_key() ) {
+			$previous = self::try_decrypt( $encrypted, self::previous_encryption_key(), self::previous_hmac_key() );
+			if ( null !== $previous ) {
+				return $previous;
+			}
+		}
+
 		// Key-rotation fallback (S7b): once FFC_ENCRYPTION_KEY is defined, existing
 		// rows are still encrypted under the WP-derived key while new writes use the
 		// custom key. Retry with the legacy WP-derived key so every read stays online
@@ -546,6 +559,41 @@ class Encryption {
 	}
 
 	/**
+	 * Whether a previous FFC encryption key is present for an in-progress
+	 * key-to-key rotation (#863). The temporary FFC_ENCRYPTION_KEY_PREVIOUS
+	 * constant holds the immediately-prior FFC_ENCRYPTION_KEY (≥ 32 chars) so
+	 * rows still encrypted under it decrypt during the re-key window; it is
+	 * removed once the key-rotation migration re-encrypts everything under the
+	 * new active key.
+	 *
+	 * @return bool
+	 */
+	private static function has_previous_key(): bool {
+		return defined( 'FFC_ENCRYPTION_KEY_PREVIOUS' )
+			&& strlen( (string) constant( 'FFC_ENCRYPTION_KEY_PREVIOUS' ) ) >= self::KEY_MIN_LENGTH;
+	}
+
+	/**
+	 * The previous FFC encryption key (32-byte), mirroring get_encryption_key()'s
+	 * decoupled derivation. Only meaningful when {@see has_previous_key()}.
+	 *
+	 * @return string 32-byte encryption key.
+	 */
+	private static function previous_encryption_key(): string {
+		return substr( (string) constant( 'FFC_ENCRYPTION_KEY_PREVIOUS' ), 0, 32 );
+	}
+
+	/**
+	 * The HMAC key paired with {@see previous_encryption_key()}, mirroring the
+	 * decoupled branch of {@see get_hmac_key()}.
+	 *
+	 * @return string 32-byte HMAC key.
+	 */
+	private static function previous_hmac_key(): string {
+		return hash_hmac( 'sha256', 'ffc-hmac-key', (string) constant( 'FFC_ENCRYPTION_KEY_PREVIOUS' ), true );
+	}
+
+	/**
 	 * Get hash salt
 	 *
 	 * Derives salt from WordPress constants for consistent hashing
@@ -732,11 +780,12 @@ class Encryption {
 	 * key/salt sources, and a non-reversible fingerprint of the active
 	 * encryption key so an operator can confirm a rotation without seeing it.
 	 *
-	 * @return array{status: string, encryption_decoupled: bool, salt_decoupled: bool, key_source: string, salt_source: string, fingerprint: string}
+	 * @return array{status: string, encryption_decoupled: bool, salt_decoupled: bool, key_source: string, salt_source: string, fingerprint: string, rekey_in_progress: bool, previous_fingerprint: string}
 	 */
 	public static function key_health_report(): array {
 		$enc_decoupled  = self::is_decoupled();
 		$salt_decoupled = defined( 'FFC_HASH_SALT' ) && '' !== (string) FFC_HASH_SALT;
+		$rekeying       = self::has_previous_key();
 
 		return array(
 			'status'               => self::key_health(),
@@ -745,6 +794,9 @@ class Encryption {
 			'key_source'           => $enc_decoupled ? 'FFC_ENCRYPTION_KEY' : 'WordPress keys (SECURE_AUTH_KEY + LOGGED_IN_KEY + NONCE_KEY)',
 			'salt_source'          => $salt_decoupled ? 'FFC_HASH_SALT' : 'WordPress keys (AUTH_KEY + SECURE_AUTH_KEY)',
 			'fingerprint'          => self::key_fingerprint(),
+			// #863 re-key state: a previous FFC key is temporarily in play.
+			'rekey_in_progress'    => $rekeying,
+			'previous_fingerprint' => $rekeying ? self::fingerprint_of( self::previous_encryption_key() ) : '',
 		);
 	}
 
@@ -759,6 +811,19 @@ class Encryption {
 	 * @return string 12 hex characters.
 	 */
 	public static function key_fingerprint(): string {
-		return substr( hash_hmac( 'sha256', 'ffc-key-fingerprint', self::get_encryption_key() ), 0, 12 );
+		return self::fingerprint_of( self::get_encryption_key() );
+	}
+
+	/**
+	 * Non-reversible 12-char fingerprint of an explicit encryption key. Shared by
+	 * {@see key_fingerprint()} (active key) and the re-key report's previous-key
+	 * fingerprint (#863). A truncated HMAC of a fixed label under the key, so it
+	 * never exposes the key.
+	 *
+	 * @param string $enc_key 32-byte encryption key.
+	 * @return string 12 hex characters.
+	 */
+	private static function fingerprint_of( string $enc_key ): string {
+		return substr( hash_hmac( 'sha256', 'ffc-key-fingerprint', $enc_key ), 0, 12 );
 	}
 }

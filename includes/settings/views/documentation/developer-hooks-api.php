@@ -79,6 +79,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 				<tr><td><code>GET /ffc/v1/calendars</code> · <code>…/{id}/slots</code></td><td><?php esc_html_e( 'Public (IP rate-limited).', 'ffcertificate' ); ?></td></tr>
 				<tr><td><code>GET /ffc/v1/user/*</code> · <code>/ffc/v1/audience/bookings</code></td><td><?php esc_html_e( 'Logged-in (own data).', 'ffcertificate' ); ?></td></tr>
 				<tr><td><code>GET /ffc/v1/submissions</code></td><td><?php esc_html_e( 'Admin capability.', 'ffcertificate' ); ?></td></tr>
+					<tr><td><code>POST /ffc/v1/operator/certificates</code> · <code>GET .../{id}/pdf</code></td><td><?php esc_html_e( 'Operator — Application Password + ffc_manage_certificates (the PDF route: that capability OR ownership of the certificate).', 'ffcertificate' ); ?></td></tr>
 				<tr><td><code>…/ffcertificate/v1/recruitment/*</code></td><td><?php esc_html_e( 'Recruitment capabilities (manage / import / call / delete).', 'ffcertificate' ); ?></td></tr>
 			</tbody>
 		</table>
@@ -93,5 +94,21 @@ if ( ! defined( 'ABSPATH' ) ) {
 			<li><code>GET /ffc/v1/forms/{id}/schema</code> — <?php esc_html_e( 'public; the field structure ( name, label, type, required, options ) integrations need to build a matching form.', 'ffcertificate' ); ?></li>
 		</ul>
 		<pre><code>curl -u user:app_password "https://example.com/wp-json/ffc/v1/forms?per_page=20&amp;page=1"</code></pre>
+	</div>
+
+	<div class="ffc-doc-example">
+		<h4><?php esc_html_e( 'Operator API (authenticated issuance)', 'ffcertificate' ); ?></h4>
+		<p><?php esc_html_e( 'The plugin\'s only authenticated write API: a field-operator app issues certificates over WordPress Application Passwords (HTTP Basic auth, so capability checks work with no nonce). Added in 6.19.0.', 'ffcertificate' ); ?></p>
+		<ul>
+			<li><code>POST /ffc/v1/operator/certificates</code> — <?php esc_html_e( 'issue a certificate. The JSON body carries form_id plus the form\'s fields; it reuses the same required-field / CPF-RF / e-mail validation and the same storage as the public form, so the result is byte-for-byte a normal submission. Gated by ffc_manage_certificates (admins pass via manage_options). Returns the submission id, the formatted authentication code and the PDF endpoint URL.', 'ffcertificate' ); ?></li>
+			<li><code>GET /ffc/v1/operator/certificates/{id}/pdf</code> — <?php esc_html_e( 'fetch a certificate\'s PDF payload (HTML + assets, rendered to PDF client-side — the plugin has no server-side PDF binary). Any logged-in user may call it; the handler then requires ffc_manage_certificates OR ownership of that specific certificate.', 'ffcertificate' ); ?></li>
+		</ul>
+		<div class="ffc-doc-note">
+			<p>
+				<strong class="ffc-icon-info"><?php esc_html_e( 'Why no captcha / geofence / per-IP limit here?', 'ffcertificate' ); ?></strong><br>
+				<?php esc_html_e( 'Those defend the anonymous public form. The operator endpoint is authenticated and capability-gated, so the gate itself is the control; a generous per-operator rate-limit (300/hour, 2000/day) stays on only as a runaway guard. Per-IP limits are deliberately omitted because many field operators legitimately share one office IP.', 'ffcertificate' ); ?>
+			</p>
+		</div>
+		<pre><code>curl -u operator:app_password -H "Content-Type: application/json" -d '{"form_id":12,"name":"Jane Doe","cpf_rf":"12345678901","email":"jane@example.com"}' "https://example.com/wp-json/ffc/v1/operator/certificates"</code></pre>
 	</div>
 </div>
