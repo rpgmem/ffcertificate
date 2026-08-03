@@ -13,15 +13,27 @@ const SCRIPT = 'assets/js/ffc-encryption-key-suggest.js';
 // space/backtick we also exclude).
 const FORBIDDEN = ["'", '"', '\\', '$', '`', ' '];
 
-function installCard() {
-	document.body.innerHTML = `
-		<div class="ffc-encryption-key-suggest">
-			<input type="text" id="ffc-enc-key-suggestion" readonly value="">
-			<button type="button" id="ffc-enc-key-regenerate">Generate another</button>
-			<button type="button" id="ffc-enc-key-copy">Copy</button>
-			<span id="ffc-enc-key-copy-status"></span>
+function widgetMarkup(constName) {
+	return `
+		<div class="ffc-key-suggest-widget" data-ffc-const="${constName}">
+			<textarea class="ffc-key-suggest-input" readonly rows="8"></textarea>
+			<button type="button" class="ffc-key-suggest-regenerate">Generate another</button>
+			<button type="button" class="ffc-key-suggest-copy">Copy</button>
+			<span class="ffc-key-suggest-status"></span>
 		</div>
 	`;
+}
+
+function installCard(consts = ['FFC_ENCRYPTION_KEY']) {
+	document.body.innerHTML =
+		'<div class="ffc-encryption-key-suggest">' + consts.map(widgetMarkup).join('') + '</div>';
+}
+
+function widget(i = 0) {
+	return document.querySelectorAll('.ffc-key-suggest-widget')[i];
+}
+function inputIn(i = 0) {
+	return widget(i).querySelector('.ffc-key-suggest-input');
 }
 
 afterEach(() => {
@@ -76,11 +88,25 @@ describe('ffc-encryption-key-suggest', () => {
 	});
 
 	describe('buildSnippet', () => {
-		it('wraps the key in a wp-config define', () => {
+		it('wraps the key in a wp-config define, defaulting to FFC_ENCRYPTION_KEY', () => {
 			loadScript(SCRIPT);
 			expect(window.FFCEncryptionKeySuggest.buildSnippet('ABC123')).toBe(
 				"define( 'FFC_ENCRYPTION_KEY', 'ABC123' );"
 			);
+		});
+
+		it('honours an explicit constant name (e.g. FFC_HASH_SALT)', () => {
+			loadScript(SCRIPT);
+			expect(window.FFCEncryptionKeySuggest.buildSnippet('ABC123', 'FFC_HASH_SALT')).toBe(
+				"define( 'FFC_HASH_SALT', 'ABC123' );"
+			);
+		});
+
+		it('prepends a phpdoc comment block when a comment is given', () => {
+			loadScript(SCRIPT);
+			expect(
+				window.FFCEncryptionKeySuggest.buildSnippet('K', 'FFC_HASH_SALT', 'line one\nline two')
+			).toBe("/**\n * line one\n * line two\n */\ndefine( 'FFC_HASH_SALT', 'K' );");
 		});
 	});
 
@@ -88,16 +114,31 @@ describe('ffc-encryption-key-suggest', () => {
 		it('fills the input with a define snippet on load', () => {
 			installCard();
 			loadScript(SCRIPT);
-			const value = document.getElementById('ffc-enc-key-suggestion').value;
-			expect(value).toMatch(/^define\( 'FFC_ENCRYPTION_KEY', '.{64}' \);$/);
+			expect(inputIn(0).value).toMatch(/^define\( 'FFC_ENCRYPTION_KEY', '.{64}' \);$/);
+		});
+
+		it('wires each widget to its own constant (key + salt)', () => {
+			installCard(['FFC_ENCRYPTION_KEY', 'FFC_HASH_SALT']);
+			loadScript(SCRIPT);
+			expect(inputIn(0).value).toMatch(/^define\( 'FFC_ENCRYPTION_KEY', '.{64}' \);$/);
+			expect(inputIn(1).value).toMatch(/^define\( 'FFC_HASH_SALT', '.{64}' \);$/);
+		});
+
+		it('prepends the localized comment to the snippet when defs are provided', () => {
+			installCard(['FFC_ENCRYPTION_KEY']);
+			window.ffcEncKeySuggest = { defs: { FFC_ENCRYPTION_KEY: 'purpose line' } };
+			loadScript(SCRIPT);
+			const value = inputIn(0).value;
+			expect(value.startsWith('/**\n * purpose line\n */\n')).toBe(true);
+			expect(value).toMatch(/define\( 'FFC_ENCRYPTION_KEY', '.{64}' \);$/);
 		});
 
 		it('regenerates a different value when "Generate another" is clicked', () => {
 			installCard();
 			loadScript(SCRIPT);
-			const input = document.getElementById('ffc-enc-key-suggestion');
+			const input = inputIn(0);
 			const before = input.value;
-			document.getElementById('ffc-enc-key-regenerate').click();
+			widget(0).querySelector('.ffc-key-suggest-regenerate').click();
 			expect(input.value).not.toBe(before);
 			expect(input.value).toMatch(/^define\( 'FFC_ENCRYPTION_KEY', '.{64}' \);$/);
 		});
@@ -107,9 +148,9 @@ describe('ffc-encryption-key-suggest', () => {
 			window.ffcEncKeySuggest = { copied: 'Copied!', copyFail: 'Use Ctrl/Cmd+C' };
 			document.execCommand = vi.fn(() => true);
 			loadScript(SCRIPT);
-			document.getElementById('ffc-enc-key-copy').click();
+			widget(0).querySelector('.ffc-key-suggest-copy').click();
 			expect(document.execCommand).toHaveBeenCalledWith('copy');
-			expect(document.getElementById('ffc-enc-key-copy-status').textContent).toBe('Copied!');
+			expect(widget(0).querySelector('.ffc-key-suggest-status').textContent).toBe('Copied!');
 		});
 
 		it('reports the fallback message when copy throws', () => {
@@ -118,8 +159,8 @@ describe('ffc-encryption-key-suggest', () => {
 				throw new Error('unsupported');
 			});
 			loadScript(SCRIPT);
-			document.getElementById('ffc-enc-key-copy').click();
-			expect(document.getElementById('ffc-enc-key-copy-status').textContent).toBe(
+			widget(0).querySelector('.ffc-key-suggest-copy').click();
+			expect(widget(0).querySelector('.ffc-key-suggest-status').textContent).toBe(
 				'Press Ctrl/Cmd+C to copy.'
 			);
 		});

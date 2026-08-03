@@ -222,14 +222,16 @@ class KeyRotationMigrationStrategyTest extends TestCase {
 		$this->assertSame( 'Encryption Key Rotation', $this->strategy->get_name() );
 	}
 
-	public function test_can_run_requires_the_key_to_be_decoupled(): void {
-		// The unit env defines only the WordPress salts (no FFC_ENCRYPTION_KEY),
-		// so the site is not decoupled and the rotation must refuse to run with a
-		// clear instruction.
+	public function test_can_run_requires_both_decoupling_constants(): void {
+		// The unit env defines only the WordPress salts (neither FFC_ENCRYPTION_KEY
+		// nor FFC_HASH_SALT), so the site is not decoupled and the rotation must
+		// refuse to run with a clear instruction naming BOTH constants.
 		$result = $this->strategy->can_run( 'key_rotation', array() );
 
 		$this->assertInstanceOf( \WP_Error::class, $result );
 		$this->assertSame( 'encryption_not_decoupled', $result->get_error_code() );
+		$this->assertStringContainsString( 'FFC_ENCRYPTION_KEY', $result->get_error_message() );
+		$this->assertStringContainsString( 'FFC_HASH_SALT', $result->get_error_message() );
 	}
 
 	// ------------------------------------------------------------------

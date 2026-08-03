@@ -87,6 +87,20 @@ try {
 				continue;
 			}
 
+			// The encryption key rotation only surfaces once BOTH decoupling
+			// constants are defined in wp-config.php — otherwise there is nothing
+			// safe to rotate to (mirrors the strategy's can_run gate). Keeps the
+			// card hidden on installs still riding the shared WordPress salts.
+			if (
+				'key_rotation' === $ffcertificate_key
+				&& class_exists( '\\FreeFormCertificate\\Core\\Encryption' )
+			) {
+				$ffcertificate_kh = \FreeFormCertificate\Core\Encryption::key_health_report();
+				if ( empty( $ffcertificate_kh['encryption_decoupled'] ) || empty( $ffcertificate_kh['salt_decoupled'] ) ) {
+					continue;
+				}
+			}
+
 			// Get migration status — wrapped in try-catch to prevent DB errors from crashing the page.
 			try {
 				$ffcertificate_status = $ffcertificate_migration_manager->get_migration_status( $ffcertificate_key );

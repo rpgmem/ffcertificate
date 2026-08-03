@@ -276,12 +276,17 @@ class KeyRotationMigrationStrategy implements MigrationStrategyInterface {
 			);
 		}
 
-		// Rotation only makes sense once a strong FFC_ENCRYPTION_KEY has been
-		// defined in wp-config.php — otherwise there is no new key to rotate to.
-		if ( ! \FreeFormCertificate\Core\Encryption::key_health_report()['encryption_decoupled'] ) {
+		// Rotation only makes sense once BOTH decoupling constants are defined in
+		// wp-config.php: FFC_ENCRYPTION_KEY (the new key to re-encrypt under) and
+		// FFC_HASH_SALT (the salt to rebuild the search hashes under). Rotating
+		// with only the key set would rebuild the hashes under the still-shared
+		// WordPress salt, forcing a second rotation the moment the salt is later
+		// decoupled — so we require both up front and rotate once.
+		$ffc_health = \FreeFormCertificate\Core\Encryption::key_health_report();
+		if ( empty( $ffc_health['encryption_decoupled'] ) || empty( $ffc_health['salt_decoupled'] ) ) {
 			return new WP_Error(
 				'encryption_not_decoupled',
-				__( 'Define a strong FFC_ENCRYPTION_KEY (32+ chars) in wp-config.php first, then run this migration to re-encrypt existing data under it. See Settings → Advanced → Encryption Key Health.', 'ffcertificate' )
+				__( 'Define both FFC_ENCRYPTION_KEY and FFC_HASH_SALT (32+ chars each) in wp-config.php first, then run this migration to re-encrypt existing data and rebuild the search hashes under them. See Settings → Advanced → Encryption Key Health.', 'ffcertificate' )
 			);
 		}
 
