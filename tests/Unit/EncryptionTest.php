@@ -380,4 +380,76 @@ class EncryptionTest extends TestCase {
         $this->assertArrayHasKey( 'key_health', $info );
         $this->assertSame( Encryption::key_health(), $info['key_health'] );
     }
+
+    // ------------------------------------------------------------------
+    // S7b key rotation — HMAC fallback + fingerprint (#857)
+    // ------------------------------------------------------------------
+
+    /**
+     * The parameterized encrypt/decrypt seam: a ciphertext authenticated under
+     * key pair A must decrypt under A and be rejected (null) under a different
+     * key pair B. This is the mechanism the rotation fallback relies on to tell
+     * "old key" from "new key" without decoding into garbage.
+     */
+    public function test_try_decrypt_accepts_matching_key_and_rejects_others(): void {
+        $encrypt = new \ReflectionMethod( Encryption::class, 'encrypt_with_keys' );
+        $encrypt->setAccessible( true );
+        $decrypt = new \ReflectionMethod( Encryption::class, 'try_decrypt' );
+        $decrypt->setAccessible( true );
+
+        $key_a = str_repeat( 'A', 32 );
+        $mac_a = str_repeat( 'a', 32 );
+        $key_b = str_repeat( 'B', 32 );
+        $mac_b = str_repeat( 'b', 32 );
+
+        $ciphertext = $encrypt->invoke( null, 'payload-123', $key_a, $mac_a );
+        $this->assertNotNull( $ciphertext );
+
+        $this->assertSame( 'payload-123', $decrypt->invoke( null, $ciphertext, $key_a, $mac_a ) );
+        // Wrong key pair → HMAC mismatch → null (never a wrong plaintext).
+        $this->assertNull( $decrypt->invoke( null, $ciphertext, $key_b, $mac_b ) );
+        // Right enc key but wrong MAC key → still rejected.
+        $this->assertNull( $decrypt->invoke( null, $ciphertext, $key_a, $mac_b ) );
+    }
+
+    /**
+     * End-to-end rotation window: data encrypted while the site derives its key
+     * from the WordPress salts must stay readable AFTER a strong
+     * FFC_ENCRYPTION_KEY is defined, via the decrypt() WP-derived fallback —
+     * while fresh writes use the new active key. Runs in a separate process so
+     * the FFC_ENCRYPTION_KEY define does not leak into other tests.
+     *
+     * @runInSeparateProcess
+     * @preserveGlobalState disabled
+     */
+    public function test_decrypt_falls_back_to_wp_derived_key_after_decoupling(): void {
+        // Encrypted under the WP-derived key (FFC_ENCRYPTION_KEY not yet defined).
+        $legacy_ciphertext = Encryption::encrypt( 'secret-cpf-000' );
+        $this->assertNotNull( $legacy_ciphertext );
+
+        // Decouple mid-flight: define a strong custom key (simulates the operator
+        // editing wp-config.php partway through the rotation).
+        if ( ! defined( 'FFC_ENCRYPTION_KEY' ) ) {
+            define( 'FFC_ENCRYPTION_KEY', str_repeat( 'N', 64 ) );
+        }
+
+        // The legacy row is now under the "old" key; the fallback must read it.
+        $this->assertSame( 'secret-cpf-000', Encryption::decrypt( $legacy_ciphertext ) );
+
+        // A fresh write now uses the active (custom) key and still round-trips.
+        $fresh_ciphertext = Encryption::encrypt( 'fresh-cpf-999' );
+        $this->assertNotNull( $fresh_ciphertext );
+        $this->assertSame( 'fresh-cpf-999', Encryption::decrypt( $fresh_ciphertext ) );
+        $this->assertNotSame( $legacy_ciphertext, $fresh_ciphertext );
+    }
+
+    public function test_key_fingerprint_is_stable_12_char_hex(): void {
+        $fingerprint = Encryption::key_fingerprint();
+
+        $this->assertSame( 12, strlen( $fingerprint ) );
+        $this->assertMatchesRegularExpression( '/^[0-9a-f]{12}$/', $fingerprint );
+        // Deterministic for a fixed key, and the health report reuses it.
+        $this->assertSame( $fingerprint, Encryption::key_fingerprint() );
+        $this->assertSame( $fingerprint, Encryption::key_health_report()['fingerprint'] );
+    }
 }
