@@ -159,5 +159,9 @@ class RestController {
 
 		$certificates_calendar_controller = new CertificatesCalendarRestController( $this->namespace );
 		$certificates_calendar_controller->register_routes();
+
+		// Authenticated operator app surface (#858): issuance + PDF.
+		$operator_controller = new OperatorCertificatesRestController( $this->namespace, $this->form_repository );
+		$operator_controller->register_routes();
 	}
 }
