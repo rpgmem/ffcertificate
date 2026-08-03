@@ -61,9 +61,10 @@ class MigrationRegistryTest extends TestCase {
         $all = $registry->get_all_migrations();
 
         $this->assertIsArray( $all );
-        $this->assertCount( 3, $all );
+        $this->assertCount( 4, $all );
         $this->assertArrayHasKey( 'split_cpf_rf', $all );
         $this->assertArrayHasKey( 'email_hash_rehash', $all );
+        $this->assertArrayHasKey( 'key_rotation', $all );
         $this->assertArrayHasKey( 'activity_log_clear_plaintext', $all );
     }
 

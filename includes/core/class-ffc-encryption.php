@@ -70,10 +70,24 @@ class Encryption {
 			return null;
 		}
 
-		try {
-			$enc_key = self::get_encryption_key();
-			$mac_key = self::get_hmac_key();
+		return self::encrypt_with_keys( $value, self::get_encryption_key(), self::get_hmac_key() );
+	}
 
+	/**
+	 * Encrypt a value under an explicit key pair.
+	 *
+	 * Extracted from {@see encrypt()} so the S7b key-rotation migration can
+	 * re-encrypt legacy ciphertexts under the active key without duplicating
+	 * the envelope logic. Produces the same "v2:" . base64( HMAC || IV || CT )
+	 * format.
+	 *
+	 * @param string $value   Plain text value (assumed non-empty).
+	 * @param string $enc_key 32-byte encryption key.
+	 * @param string $mac_key HMAC key.
+	 * @return string|null Encrypted value (base64) or null on failure.
+	 */
+	private static function encrypt_with_keys( string $value, string $enc_key, string $mac_key ): ?string {
+		try {
 			// Generate unique IV.
 			$iv = random_bytes( self::IV_LENGTH );
 
@@ -154,14 +168,49 @@ class Encryption {
 	 * @return string|null
 	 */
 	private static function decrypt_internal( string $encrypted ): ?string {
-		try {
-			$enc_key = self::get_encryption_key();
+		// Try the active key first (the common case, and the only key when not
+		// decoupled).
+		$result = self::try_decrypt( $encrypted, self::get_encryption_key(), self::get_hmac_key() );
+		if ( null !== $result ) {
+			return $result;
+		}
 
+		// Key-rotation fallback (S7b): once FFC_ENCRYPTION_KEY is defined, existing
+		// rows are still encrypted under the WP-derived key while new writes use the
+		// custom key. Retry with the legacy WP-derived key so every read stays online
+		// during the rotation window, until the key-rotation migration re-encrypts
+		// everything under the active key. This is a no-op when not decoupled (the two
+		// key pairs are identical), so it never changes behavior on un-rotated sites.
+		if ( self::is_decoupled() ) {
+			$fallback = self::try_decrypt( $encrypted, self::wp_derived_encryption_key(), self::wp_derived_hmac_key() );
+			if ( null !== $fallback ) {
+				return $fallback;
+			}
+		}
+
+		return null;
+	}
+
+	/**
+	 * Attempt to decrypt a ciphertext under an explicit key pair.
+	 *
+	 * Handles both v2 authenticated ciphertexts and legacy v1 ciphertexts.
+	 * Returns null on any failure (malformed envelope, HMAC mismatch, openssl
+	 * error) WITHOUT logging — the caller decides whether a null across every
+	 * candidate key is a real failure worth auditing. Extracted so the active
+	 * key and the WP-derived rotation fallback share one implementation.
+	 *
+	 * @param string $encrypted Encrypted value.
+	 * @param string $enc_key   32-byte encryption key to try.
+	 * @param string $mac_key   HMAC key paired with $enc_key.
+	 * @return string|null Decrypted value or null on failure.
+	 */
+	private static function try_decrypt( string $encrypted, string $enc_key, string $mac_key ): ?string {
+		try {
 			if ( 0 === strpos( $encrypted, self::V2_PREFIX ) ) {
 				// phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.obfuscation_base64_decode -- benign: decoding our own ciphertext envelope.
 				$data = base64_decode( substr( $encrypted, strlen( self::V2_PREFIX ) ), true );
 				if ( false === $data || strlen( $data ) < self::HMAC_LENGTH + self::IV_LENGTH ) {
-					\FreeFormCertificate\Core\Debug::log_encryption( 'v2 decode failed' );
 					return null;
 				}
 
@@ -169,9 +218,8 @@ class Encryption {
 				$iv             = substr( $data, self::HMAC_LENGTH, self::IV_LENGTH );
 				$encrypted_data = substr( $data, self::HMAC_LENGTH + self::IV_LENGTH );
 
-				$expected_hmac = hash_hmac( self::HMAC_ALGO, $iv . $encrypted_data, self::get_hmac_key(), true );
+				$expected_hmac = hash_hmac( self::HMAC_ALGO, $iv . $encrypted_data, $mac_key, true );
 				if ( ! hash_equals( $expected_hmac, $hmac ) ) {
-					\FreeFormCertificate\Core\Debug::log_encryption( 'v2 HMAC mismatch' );
 					return null;
 				}
 			} else {
@@ -179,7 +227,6 @@ class Encryption {
 				// phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.obfuscation_base64_decode -- benign: decoding our own legacy ciphertext envelope.
 				$data = base64_decode( $encrypted, true );
 				if ( false === $data || strlen( $data ) < self::IV_LENGTH ) {
-					\FreeFormCertificate\Core\Debug::log_encryption( 'Base64 decode failed' );
 					return null;
 				}
 				$iv             = substr( $data, 0, self::IV_LENGTH );
@@ -196,19 +243,13 @@ class Encryption {
 			);
 
 			if ( false === $decrypted ) {
-				\FreeFormCertificate\Core\Debug::log_encryption( 'Decryption failed' );
 				return null;
 			}
 
 			return $decrypted;
 
 		} catch ( \Exception $e ) {
-			\FreeFormCertificate\Core\Debug::log_encryption(
-				'Decryption exception',
-				array(
-					'error' => $e->getMessage(),
-				)
-			);
+			unset( $e );
 			return null;
 		}
 	}
@@ -427,11 +468,34 @@ class Encryption {
 	 */
 	private static function get_encryption_key(): string {
 		// Check if custom key defined.
-		if ( defined( 'FFC_ENCRYPTION_KEY' ) && strlen( FFC_ENCRYPTION_KEY ) >= 32 ) {
-			return substr( FFC_ENCRYPTION_KEY, 0, 32 );
+		if ( self::is_decoupled() ) {
+			// constant() keeps PHPStan happy — is_decoupled() already asserted defined().
+			return substr( (string) constant( 'FFC_ENCRYPTION_KEY' ), 0, 32 );
 		}
 
-		// Derive from WordPress keys.
+		return self::wp_derived_encryption_key();
+	}
+
+	/**
+	 * Whether the encryption key has been decoupled from the WordPress salts via
+	 * a strong FFC_ENCRYPTION_KEY constant (≥ 32 chars). Single source of truth for
+	 * the check duplicated across key derivation, key_health, and the S7b rotation.
+	 *
+	 * @return bool
+	 */
+	private static function is_decoupled(): bool {
+		return defined( 'FFC_ENCRYPTION_KEY' ) && strlen( (string) FFC_ENCRYPTION_KEY ) >= self::KEY_MIN_LENGTH;
+	}
+
+	/**
+	 * The encryption key derived from the WordPress salts, ignoring
+	 * FFC_ENCRYPTION_KEY. This is the "old" key an S7b rotation reads legacy
+	 * ciphertexts with (see {@see decrypt_internal()} fallback), and the active
+	 * key whenever the site is not decoupled.
+	 *
+	 * @return string 32-byte encryption key
+	 */
+	private static function wp_derived_encryption_key(): string {
 		$base_keys = array(
 			defined( 'SECURE_AUTH_KEY' ) ? SECURE_AUTH_KEY : '',
 			defined( 'LOGGED_IN_KEY' ) ? LOGGED_IN_KEY : '',
@@ -445,9 +509,7 @@ class Encryption {
 		// to keep existing ciphertexts decryptable without a data-migration step. Entropy is
 		// already provided by the underlying WordPress secret keys, so the PBKDF2 workload
 		// here is only a defense against accidental entropy loss rather than password cracking.
-		$key = hash_pbkdf2( 'sha256', $combined, 'ffc-encryption-salt', 10000, 32, true );
-
-		return $key;
+		return hash_pbkdf2( 'sha256', $combined, 'ffc-encryption-salt', 10000, 32, true );
 	}
 
 	/**
@@ -459,10 +521,20 @@ class Encryption {
 	 * @return string 32-byte HMAC key
 	 */
 	private static function get_hmac_key(): string {
-		if ( defined( 'FFC_ENCRYPTION_KEY' ) && strlen( FFC_ENCRYPTION_KEY ) >= 32 ) {
-			return hash_hmac( 'sha256', 'ffc-hmac-key', FFC_ENCRYPTION_KEY, true );
+		if ( self::is_decoupled() ) {
+			return hash_hmac( 'sha256', 'ffc-hmac-key', (string) constant( 'FFC_ENCRYPTION_KEY' ), true );
 		}
 
+		return self::wp_derived_hmac_key();
+	}
+
+	/**
+	 * The HMAC key derived from the WordPress salts, ignoring FFC_ENCRYPTION_KEY.
+	 * Paired with {@see wp_derived_encryption_key()} for the S7b rotation fallback.
+	 *
+	 * @return string 32-byte HMAC key
+	 */
+	private static function wp_derived_hmac_key(): string {
 		$base_keys = array(
 			defined( 'SECURE_AUTH_KEY' ) ? SECURE_AUTH_KEY : '',
 			defined( 'LOGGED_IN_KEY' ) ? LOGGED_IN_KEY : '',
@@ -616,8 +688,8 @@ class Encryption {
 
 		// Encryption key material (FFC_ENCRYPTION_KEY only wins at >= 32 chars —
 		// below that get_encryption_key() ignores it and falls back to WP keys).
-		if ( defined( 'FFC_ENCRYPTION_KEY' ) && strlen( (string) FFC_ENCRYPTION_KEY ) >= self::KEY_MIN_LENGTH ) {
-			$secrets[] = (string) FFC_ENCRYPTION_KEY;
+		if ( self::is_decoupled() ) {
+			$secrets[] = (string) constant( 'FFC_ENCRYPTION_KEY' );
 		} else {
 			$secrets[] = defined( 'SECURE_AUTH_KEY' ) ? (string) SECURE_AUTH_KEY : '';
 			$secrets[] = defined( 'LOGGED_IN_KEY' ) ? (string) LOGGED_IN_KEY : '';
@@ -663,7 +735,7 @@ class Encryption {
 	 * @return array{status: string, encryption_decoupled: bool, salt_decoupled: bool, key_source: string, salt_source: string, fingerprint: string}
 	 */
 	public static function key_health_report(): array {
-		$enc_decoupled  = defined( 'FFC_ENCRYPTION_KEY' ) && strlen( (string) FFC_ENCRYPTION_KEY ) >= self::KEY_MIN_LENGTH;
+		$enc_decoupled  = self::is_decoupled();
 		$salt_decoupled = defined( 'FFC_HASH_SALT' ) && '' !== (string) FFC_HASH_SALT;
 
 		return array(
@@ -672,7 +744,21 @@ class Encryption {
 			'salt_decoupled'       => $salt_decoupled,
 			'key_source'           => $enc_decoupled ? 'FFC_ENCRYPTION_KEY' : 'WordPress keys (SECURE_AUTH_KEY + LOGGED_IN_KEY + NONCE_KEY)',
 			'salt_source'          => $salt_decoupled ? 'FFC_HASH_SALT' : 'WordPress keys (AUTH_KEY + SECURE_AUTH_KEY)',
-			'fingerprint'          => substr( hash_hmac( 'sha256', 'ffc-key-fingerprint', self::get_encryption_key() ), 0, 12 ),
+			'fingerprint'          => self::key_fingerprint(),
 		);
+	}
+
+	/**
+	 * Non-reversible fingerprint of the active encryption key (12-char hex).
+	 *
+	 * Lets an operator confirm which key is live — and lets the S7b key-rotation
+	 * migration detect that the key changed (the stored fingerprint no longer
+	 * matches) so it re-arms instead of silently reporting "complete". Being a
+	 * truncated HMAC of a fixed label under the key, it never exposes the key.
+	 *
+	 * @return string 12 hex characters.
+	 */
+	public static function key_fingerprint(): string {
+		return substr( hash_hmac( 'sha256', 'ffc-key-fingerprint', self::get_encryption_key() ), 0, 12 );
 	}
 }
