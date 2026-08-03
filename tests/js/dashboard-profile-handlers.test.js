@@ -591,3 +591,38 @@ describe('profile — misc handler branches', () => {
 		delete window.FFCDashboard.audienceJoin;
 	});
 });
+
+// ----------------------------------------------------------------------
+// Attribute-context escaping (#837 S12)
+//
+// esc() encodes < > & but NOT the double quote that would break out of an HTML
+// attribute value, so values interpolated into value="…" / style="…" must use
+// escAttr. A quote in the user's own profile data must stay inside the attribute
+// (self-XSS / defense-in-depth — same bug class as the #564 stored-XSS).
+// ----------------------------------------------------------------------
+
+describe('profile — attribute escaping (S12)', () => {
+	it('encodes a double quote in display_name inside the edit-form value attribute', () => {
+		const payload = 'a" onmouseover="alert(1)';
+		panel().render({ ...PROFILE_FIXTURE, display_name: payload });
+		window.$('.ffc-profile-edit-btn').trigger('click');
+		const input = document.getElementById('ffc-edit-display-name');
+		// Quote encoded → the full string round-trips as the value and the
+		// injected onmouseover never becomes a real attribute.
+		expect(input.value).toBe(payload);
+		expect(input.hasAttribute('onmouseover')).toBe(false);
+	});
+
+	it('encodes a double quote in an audience-group color inside the style attribute', () => {
+		const payload = 'red" onmouseover="alert(1)';
+		panel().render({
+			...PROFILE_FIXTURE,
+			audience_groups: [ { name: 'Alpha', color: payload } ],
+		});
+		const chip = document.querySelector('#tab-profile span[style*="background-color"]');
+		expect(chip).not.toBeNull();
+		// The group name still renders and no rogue handler broke out of style="…".
+		expect(chip.textContent).toBe('Alpha');
+		expect(chip.hasAttribute('onmouseover')).toBe(false);
+	});
+});

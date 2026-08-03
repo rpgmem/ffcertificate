@@ -180,10 +180,18 @@ jQuery(document).ready(function($) {
     // ========================================
     // Helper Functions
     // ========================================
+    // Encodes the five HTML-significant characters. Unlike the createTextNode
+    // + innerHTML idiom (which encodes < > & but NOT quotes), this also encodes
+    // " and ' — required because the output is interpolated into HTML attribute
+    // values (data-*="…", src="…"), where an unencoded quote breaks out of the
+    // attribute and lets a stored display_name inject an event handler that runs
+    // in the admin's session (#837 S4).
     function escapeHtml(text) {
         if (!text) return '';
-        var div = document.createElement('div');
-        div.appendChild(document.createTextNode(text));
-        return div.innerHTML;
+        return String(text).replace(/&/g, '&amp;')
+                           .replace(/</g, '&lt;')
+                           .replace(/>/g, '&gt;')
+                           .replace(/"/g, '&quot;')
+                           .replace(/'/g, '&#39;');
     }
 });
