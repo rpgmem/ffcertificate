@@ -616,7 +616,7 @@ class FormEditorSaveHandler {
 			<p><strong><?php esc_html_e( 'Warning! Missing required tags in PDF Layout:', 'ffcertificate' ); ?></strong> <code><?php echo esc_html( implode( ', ', $error_tags ) ); ?></code>.</p>
 			<?php
 			wp_admin_notice(
-				ob_get_clean(),
+				(string) ob_get_clean(),
 				array(
 					'type'           => 'error',
 					'dismissible'    => true,
@@ -641,7 +641,7 @@ class FormEditorSaveHandler {
 			</ul>
 			<?php
 			wp_admin_notice(
-				ob_get_clean(),
+				(string) ob_get_clean(),
 				array(
 					'type'           => 'error',
 					'dismissible'    => true,

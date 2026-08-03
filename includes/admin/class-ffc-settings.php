@@ -463,9 +463,14 @@ class Settings {
 			if ( 'qr_cache_cleared' === $msg ) {
 				// phpcs:ignore WordPress.Security.NonceVerification.Recommended, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized, WordPress.Security.ValidatedSanitizedInput.MissingUnslash -- display-only URL parameter.
 				$cleared = isset( $_GET['cleared'] ) ? absint( wp_unslash( $_GET['cleared'] ) ) : 0;
-				/* translators: %d: number of QR codes cleared */
 				wp_admin_notice(
-					esc_html( sprintf( __( '%d QR Code(s) cleared from cache successfully.', 'ffcertificate' ), $cleared ) ),
+					esc_html(
+						sprintf(
+							/* translators: %d: number of QR codes cleared */
+							__( '%d QR Code(s) cleared from cache successfully.', 'ffcertificate' ),
+							$cleared
+						)
+					),
 					array(
 						'type'        => 'success',
 						'dismissible' => true,

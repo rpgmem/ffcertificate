@@ -606,7 +606,8 @@ $ffc_kh_label = $ffc_kh_labels[ $ffc_kh_status ] ?? $ffc_kh_status;
 		<?php esc_html_e( 'CPF/RF and e-mail are encrypted at rest using your WordPress secret keys (or the FFC decoupling constants). If those secrets are missing, weak, or still the wp-config sample placeholder, the encryption key and the search-hash salt become predictable — this panel reports their real state.', 'ffcertificate' ); ?>
 	</p>
 
-	<?php if ( ! $ffc_kh_ok ) : ob_start(); ?>
+	<?php if ( ! $ffc_kh_ok ) : ?>
+		<?php ob_start(); ?>
 			<p>
 				<strong><?php echo esc_html( $ffc_kh_label ); ?>.</strong>
 				<?php esc_html_e( 'Your active secret material is not safe. Fix it, but choose the right path:', 'ffcertificate' ); ?>
@@ -633,7 +634,7 @@ $ffc_kh_label = $ffc_kh_labels[ $ffc_kh_status ] ?? $ffc_kh_status;
 			</p>
 		<?php
 		wp_admin_notice(
-			ob_get_clean(),
+			(string) ob_get_clean(),
 			array(
 				'type'               => 'error',
 				'additional_classes' => array( 'inline' ),
@@ -642,7 +643,8 @@ $ffc_kh_label = $ffc_kh_labels[ $ffc_kh_status ] ?? $ffc_kh_status;
 			)
 		);
 		?>
-	<?php elseif ( ! $ffc_kh_decpl ) : ob_start(); ?>
+	<?php elseif ( ! $ffc_kh_decpl ) : ?>
+		<?php ob_start(); ?>
 			<p>
 				<?php
 				echo wp_kses(
@@ -657,7 +659,7 @@ $ffc_kh_label = $ffc_kh_labels[ $ffc_kh_status ] ?? $ffc_kh_status;
 			</p>
 		<?php
 		wp_admin_notice(
-			ob_get_clean(),
+			(string) ob_get_clean(),
 			array(
 				'type'               => 'info',
 				'additional_classes' => array( 'inline' ),
@@ -666,11 +668,12 @@ $ffc_kh_label = $ffc_kh_labels[ $ffc_kh_status ] ?? $ffc_kh_status;
 			)
 		);
 		?>
-	<?php else : ob_start(); ?>
+	<?php else : ?>
+		<?php ob_start(); ?>
 			<p><strong><?php esc_html_e( 'Healthy.', 'ffcertificate' ); ?></strong> <?php esc_html_e( 'Encryption key and search-hash salt are strong and decoupled from the WordPress salts.', 'ffcertificate' ); ?></p>
 		<?php
 		wp_admin_notice(
-			ob_get_clean(),
+			(string) ob_get_clean(),
 			array(
 				'type'               => 'success',
 				'additional_classes' => array( 'inline' ),

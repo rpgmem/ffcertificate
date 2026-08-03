@@ -65,7 +65,7 @@ try {
 		<p><?php esc_html_e( 'Try deactivating and reactivating the plugin, or clearing any server-side cache (OPcache).', 'ffcertificate' ); ?></p>
 		<?php
 		wp_admin_notice(
-			ob_get_clean(),
+			(string) ob_get_clean(),
 			array(
 				'type'               => 'error',
 				'additional_classes' => array( 'inline' ),

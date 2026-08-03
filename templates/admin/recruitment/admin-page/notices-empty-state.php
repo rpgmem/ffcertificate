@@ -30,7 +30,7 @@ echo '<li>' . esc_html__( 'Open the new notice and attach the relevant adjutanci
 echo '<li>' . esc_html__( 'Promote the preliminary list to definitive once you\'re ready, and call candidates per row or in bulk.', 'ffcertificate' ) . '</li>';
 echo '</ol>';
 wp_admin_notice(
-	ob_get_clean(),
+	(string) ob_get_clean(),
 	array(
 		'type'               => 'info',
 		'additional_classes' => array( 'inline', 'ffc-rec-welcome-notice' ),

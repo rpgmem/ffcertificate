@@ -184,7 +184,7 @@ class AdminSubmissionEditPage {
 			</p>
 		<?php
 		wp_admin_notice(
-			ob_get_clean(),
+			(string) ob_get_clean(),
 			array(
 				'type'               => 'warning',
 				'additional_classes' => array( 'ffc-edited-notice' ),
