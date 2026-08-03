@@ -498,24 +498,10 @@ class VerificationResponseRenderer {
 		// auth code (or magic-link token) sees this. Surfacing the full
 		// CPF/RF/email of the participant is a privacy leak — the page's
 		// purpose is to prove "this certificate exists and belongs to
-		// $name", not to dump PII. Mask both before rendering. The masks
-		// already exist in DocumentFormatter (`mask_cpf`, `mask_email`).
-		if ( in_array( $field_key, array( 'cpf', 'cpf_rf', 'rg' ), true ) && ! empty( $value ) ) {
-			return esc_html( \FreeFormCertificate\Core\DocumentFormatter::mask_cpf( (string) $value ) );
-		}
-
-		// The bare `rf` key is populated alongside `cpf_rf` for RF-only
-		// submissions (VerificationHandler::search_certificate); it must be
-		// masked too, or the public /valid page leaks the full RF next to the
-		// correctly-masked cpf_rf row for the same person.
-		if ( 'rf' === $field_key && ! empty( $value ) ) {
-			return esc_html( \FreeFormCertificate\Core\DocumentFormatter::mask_rf( (string) $value ) );
-		}
-
-		if ( 'email' === $field_key && ! empty( $value ) ) {
-			return esc_html( \FreeFormCertificate\Core\DocumentFormatter::mask_email( (string) $value ) );
-		}
-
-		return esc_html( (string) $value );
+		// $name", not to dump PII. The per-key PII masking lives in the
+		// shared DocumentFormatter::mask_field_value() (cpf/cpf_rf/rg → mask_cpf,
+		// rf → mask_rf, email → mask_email) so this page and the /verify REST
+		// endpoint (#838 S3) can't drift apart again; escape the result here.
+		return esc_html( (string) \FreeFormCertificate\Core\DocumentFormatter::mask_field_value( $field_key, $value ) );
 	}
 }
