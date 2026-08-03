@@ -371,6 +371,38 @@ class DocumentFormatterTest extends TestCase {
     }
 
     // ==================================================================
+    // mask_field_value — shared per-key PII masker (#838)
+    // ==================================================================
+
+    public function test_mask_field_value_masks_cpf_family_keys(): void {
+        $this->assertSame('529.***.***-25', DocumentFormatter::mask_field_value('cpf', '52998224725'));
+        $this->assertSame('529.***.***-25', DocumentFormatter::mask_field_value('cpf_rf', '52998224725'));
+        $this->assertSame('529.***.***-25', DocumentFormatter::mask_field_value('rg', '52998224725'));
+    }
+
+    public function test_mask_field_value_masks_rf_key(): void {
+        $this->assertSame('123.***.7', DocumentFormatter::mask_field_value('rf', '1234567'));
+    }
+
+    public function test_mask_field_value_masks_email_key(): void {
+        $this->assertSame('j***@example.com', DocumentFormatter::mask_field_value('email', 'john@example.com'));
+    }
+
+    public function test_mask_field_value_leaves_non_pii_keys_untouched(): void {
+        // Legitimate certificate content must survive verbatim — masking a
+        // course name / hour count would corrupt the certificate.
+        $this->assertSame('Advanced Math', DocumentFormatter::mask_field_value('course', 'Advanced Math'));
+        $this->assertSame('40', DocumentFormatter::mask_field_value('hours', '40'));
+        $this->assertSame(40, DocumentFormatter::mask_field_value('hours', 40));
+    }
+
+    public function test_mask_field_value_passes_through_empty_and_non_scalar(): void {
+        $this->assertSame('', DocumentFormatter::mask_field_value('cpf', ''));
+        $this->assertNull(DocumentFormatter::mask_field_value('email', null));
+        $this->assertSame(array('a', 'b'), DocumentFormatter::mask_field_value('cpf', array('a', 'b')));
+    }
+
+    // ==================================================================
     // parse_prefixed_code
     // ==================================================================
 

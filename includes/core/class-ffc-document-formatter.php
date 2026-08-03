@@ -279,6 +279,42 @@ class DocumentFormatter {
 	}
 
 	/**
+	 * Mask one form-field value by its key, for surfaces that must not leak the
+	 * PII collected inside a submission's `data` blob (the public `/valid`
+	 * verification page and the `/verify` REST endpoint). Returns the raw masked
+	 * value — callers that render to HTML escape it themselves.
+	 *
+	 * PII keys `cpf` / `cpf_rf` / `rg` → {@see mask_cpf()}, `rf` → {@see mask_rf()},
+	 * `email` → {@see mask_email()}. Every other key (course, hours, grade, …) is
+	 * returned unchanged: masking a legitimate non-PII field would corrupt the
+	 * certificate's own content. Empty or non-scalar values pass through as-is.
+	 *
+	 * @since 6.18.0
+	 * @param string $field_key The field key.
+	 * @param mixed  $value     The field value.
+	 * @return mixed The masked value for PII keys, otherwise the original value.
+	 */
+	public static function mask_field_value( string $field_key, $value ) {
+		if ( empty( $value ) || ! is_scalar( $value ) ) {
+			return $value;
+		}
+
+		if ( in_array( $field_key, array( 'cpf', 'cpf_rf', 'rg' ), true ) ) {
+			return self::mask_cpf( (string) $value );
+		}
+
+		if ( 'rf' === $field_key ) {
+			return self::mask_rf( (string) $value );
+		}
+
+		if ( 'email' === $field_key ) {
+			return self::mask_email( (string) $value );
+		}
+
+		return $value;
+	}
+
+	/**
 	 * Parse a potentially prefixed auth code into prefix + raw code.
 	 *
 	 * Accepts: "C-XXXX-XXXX-XXXX", "CXXXXXXXXXXXX", "XXXX-XXXX-XXXX", "XXXXXXXXXXXX".

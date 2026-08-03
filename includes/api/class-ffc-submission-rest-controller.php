@@ -180,16 +180,19 @@ class SubmissionRestController {
 				$cpf   = \FreeFormCertificate\Core\Encryption::decrypt_field( $item, 'cpf' );
 				$rf    = \FreeFormCertificate\Core\Encryption::decrypt_field( $item, 'rf' );
 
+				$owner = isset( $item['user_id'] ) ? (int) $item['user_id'] : null;
+				$pii   = $this->shape_submission_pii( $email, $cpf, $rf, $data, (int) $item['id'], $owner );
+
 				$submissions[] = array(
 					'id'              => (int) $item['id'],
 					'form_id'         => (int) $item['form_id'],
 					'auth_code'       => \FreeFormCertificate\Core\DocumentFormatter::format_auth_code( $item['auth_code'], \FreeFormCertificate\Core\DocumentFormatter::PREFIX_CERTIFICATE ),
 					'submission_date' => $item['submission_date'],
 					'status'          => $item['status'],
-					'email'           => ! empty( $email ) ? $email : null,
-					'cpf'             => ! empty( $cpf ) ? \FreeFormCertificate\Core\DocumentFormatter::mask_cpf( $cpf ) : null,
-					'rf'              => ! empty( $rf ) ? \FreeFormCertificate\Core\DocumentFormatter::mask_cpf( $rf ) : null,
-					'data'            => $data,
+					'email'           => $pii['email'],
+					'cpf'             => $pii['cpf'],
+					'rf'              => $pii['rf'],
+					'data'            => $pii['data'],
 				);
 			}
 
@@ -258,6 +261,9 @@ class SubmissionRestController {
 			$cpf   = \FreeFormCertificate\Core\Encryption::decrypt_field( $submission, 'cpf' );
 			$rf    = \FreeFormCertificate\Core\Encryption::decrypt_field( $submission, 'rf' );
 
+			$owner = isset( $submission['user_id'] ) ? (int) $submission['user_id'] : null;
+			$pii   = $this->shape_submission_pii( $email, $cpf, $rf, $data, (int) $submission['id'], $owner );
+
 			$response = array(
 				'id'              => (int) $submission['id'],
 				'form_id'         => (int) $submission['form_id'],
@@ -265,10 +271,10 @@ class SubmissionRestController {
 				'auth_code'       => \FreeFormCertificate\Core\DocumentFormatter::format_auth_code( $submission['auth_code'], \FreeFormCertificate\Core\DocumentFormatter::PREFIX_CERTIFICATE ),
 				'submission_date' => $submission['submission_date'],
 				'status'          => $submission['status'],
-				'email'           => ! empty( $email ) ? $email : null,
-				'cpf'             => ! empty( $cpf ) ? \FreeFormCertificate\Core\DocumentFormatter::format_document( $cpf ) : null,
-				'rf'              => ! empty( $rf ) ? \FreeFormCertificate\Core\DocumentFormatter::format_document( $rf ) : null,
-				'data'            => $data,
+				'email'           => $pii['email'],
+				'cpf'             => $pii['cpf'],
+				'rf'              => $pii['rf'],
+				'data'            => $pii['data'],
 			);
 
 			return rest_ensure_response( $response );
@@ -353,7 +359,11 @@ class SubmissionRestController {
 					'form_title'      => $form_title,
 					'submission_date' => $submission['submission_date'],
 					'status'          => $submission['status'],
-					'data'            => $data,
+					// #838 S3 — this endpoint is public: the decrypted `data` blob
+					// must be masked per-key (cpf/rf/rg/email) before returning it,
+					// matching the /valid page renderer. Skipping this leaked the
+					// full form-collected PII to any caller with a valid auth code.
+					'data'            => $this->mask_data_pii( $data ),
 				),
 				'message'     => __( 'Certificate is valid and authentic.', 'ffcertificate' ),
 			);
@@ -398,6 +408,77 @@ class SubmissionRestController {
 	 */
 	public function check_admin_permission(): bool {
 		return \FreeFormCertificate\Core\Capabilities::current_user_can_admin_or( 'ffc_view_certificates' );
+	}
+
+	/**
+	 * Shape a submission's PII fields (email / cpf / rf / data) by the caller's
+	 * access tier, mirroring the wp-admin submission screens (#838 S2).
+	 *
+	 * The surface gate ({@see check_admin_permission()}) is the read-only `view`
+	 * tier, which is PII-blind by design — so the plaintext PII is masked by
+	 * default and revealed only for the unmasked (`ffc_certificates_admin` role /
+	 * super-admin) and reveal (`ffc_view_certificates_pii` cap) tiers. The reveal
+	 * tier is audited per record, exactly as the admin reveal endpoint does, so
+	 * the REST surface can no longer bulk-extract certificate PII without a trail.
+	 *
+	 * @param string|null          $email         Decrypted e-mail, or null/empty.
+	 * @param string|null          $cpf           Decrypted CPF, or null/empty.
+	 * @param string|null          $rf            Decrypted RF, or null/empty.
+	 * @param array<string, mixed> $data          Decrypted `data` blob.
+	 * @param int                  $submission_id Submission ID (audit object id).
+	 * @param int|null             $owner         Owner user id (self-view clause).
+	 * @return array{email: ?string, cpf: ?string, rf: ?string, data: array<string, mixed>}
+	 */
+	private function shape_submission_pii( ?string $email, ?string $cpf, ?string $rf, array $data, int $submission_id, ?int $owner ): array {
+		$tier = \FreeFormCertificate\Core\PiiAccessPolicy::resolve(
+			'ffc_view_certificates_pii',
+			'ffc_certificates_admin',
+			$owner
+		);
+
+		if ( \FreeFormCertificate\Core\PiiAccessPolicy::TIER_MASKED === $tier ) {
+			return array(
+				'email' => ! empty( $email ) ? \FreeFormCertificate\Core\DocumentFormatter::mask_email( $email ) : null,
+				'cpf'   => ! empty( $cpf ) ? \FreeFormCertificate\Core\DocumentFormatter::mask_cpf( $cpf ) : null,
+				'rf'    => ! empty( $rf ) ? \FreeFormCertificate\Core\DocumentFormatter::mask_rf( $rf ) : null,
+				'data'  => $this->mask_data_pii( $data ),
+			);
+		}
+
+		// Reveal / unmasked tier — plaintext. Audit only the `reveal` tier; the
+		// unmasked `_admin` / super-admin tier is exempt, matching reveal_pii().
+		if ( \FreeFormCertificate\Core\PiiAccessPolicy::TIER_REVEAL === $tier ) {
+			\FreeFormCertificate\Core\ActivityLog::log(
+				'submission_pii_revealed',
+				\FreeFormCertificate\Core\ActivityLog::LEVEL_INFO,
+				array( 'field_key' => 'rest_api' ),
+				get_current_user_id(),
+				$submission_id
+			);
+		}
+
+		return array(
+			'email' => ! empty( $email ) ? $email : null,
+			'cpf'   => ! empty( $cpf ) ? \FreeFormCertificate\Core\DocumentFormatter::format_document( $cpf ) : null,
+			'rf'    => ! empty( $rf ) ? \FreeFormCertificate\Core\DocumentFormatter::format_document( $rf ) : null,
+			'data'  => $data,
+		);
+	}
+
+	/**
+	 * Mask every PII key inside a decrypted `data` blob (#838 S2 / S3), reusing
+	 * the shared per-key masker so this path and the `/valid` page renderer stay
+	 * in lockstep. Non-PII fields (course, hours, …) pass through untouched.
+	 *
+	 * @param array<string, mixed> $data Decrypted data blob.
+	 * @return array<string, mixed> Blob with cpf/cpf_rf/rg/rf/email keys masked.
+	 */
+	private function mask_data_pii( array $data ): array {
+		$masked = array();
+		foreach ( $data as $key => $value ) {
+			$masked[ $key ] = \FreeFormCertificate\Core\DocumentFormatter::mask_field_value( (string) $key, $value );
+		}
+		return $masked;
 	}
 
 	/**
