@@ -192,5 +192,6 @@ class TabAdvancedTest extends TestCase {
 		$this->assertContains( 'ffc-core', $handles );
 		$this->assertContains( 'ffc-admin-autosave', $handles );
 		$this->assertContains( 'ffc-section-collapse', $handles );
+		$this->assertContains( 'ffc-encryption-key-suggest', $handles );
 	}
 }
