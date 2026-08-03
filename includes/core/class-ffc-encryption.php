@@ -553,6 +553,126 @@ class Encryption {
 			'hash_algorithm' => 'SHA-256',
 			'key_derivation' => 'PBKDF2 (10000 iterations)',
 			'authentication' => 'HMAC-SHA256 (v2 ciphertexts; legacy v1 still decryptable)',
+			// Honest health of the active secret material (#839 S7a): `configured`
+			// only means "keys are defined", which stays true even for the
+			// wp-config placeholder — `key_health` reports whether they are safe.
+			'key_health'     => self::key_health(),
+		);
+	}
+
+	/**
+	 * Well-known placeholder value shipped in wp-config-sample.php. A secret
+	 * still set to this string is effectively public.
+	 */
+	private const KEY_PLACEHOLDER = 'put your unique phrase here';
+
+	/** Minimum length below which a secret is treated as weak. */
+	private const KEY_MIN_LENGTH = 32;
+
+	/**
+	 * Health of the secret material FFC actually uses for encryption + search
+	 * hashing (#839 S7a). Returns the worst status across the *active* secrets:
+	 * the decoupling constants (FFC_ENCRYPTION_KEY / FFC_HASH_SALT) when set,
+	 * otherwise the WordPress salts they fall back to.
+	 *
+	 *   - `empty`       — a required secret is undefined or blank (crypto runs
+	 *                     on predictable/derivable material).
+	 *   - `placeholder` — a secret is still the wp-config-sample placeholder.
+	 *   - `weak`        — a secret is shorter than {@see KEY_MIN_LENGTH}.
+	 *   - `ok`          — every active secret is present, non-placeholder, and
+	 *                     long enough.
+	 *
+	 * Non-blocking by design: this never disables encryption (that would store
+	 * PII in plaintext, which is worse) — {@see is_configured()} still governs
+	 * whether crypto runs. It only drives the advisory admin surfaces.
+	 *
+	 * @return string One of 'ok' | 'weak' | 'placeholder' | 'empty'.
+	 */
+	public static function key_health(): string {
+		$rank  = array(
+			'ok'          => 0,
+			'weak'        => 1,
+			'placeholder' => 2,
+			'empty'       => 3,
+		);
+		$worst = 'ok';
+		foreach ( self::active_secrets() as $secret ) {
+			$status = self::secret_status( $secret );
+			if ( $rank[ $status ] > $rank[ $worst ] ) {
+				$worst = $status;
+			}
+		}
+		return $worst;
+	}
+
+	/**
+	 * The secret strings currently feeding FFC's key + salt derivation, honoring
+	 * the decoupling constants. Consumed by {@see key_health()}.
+	 *
+	 * @return array<int, string>
+	 */
+	private static function active_secrets(): array {
+		$secrets = array();
+
+		// Encryption key material (FFC_ENCRYPTION_KEY only wins at >= 32 chars —
+		// below that get_encryption_key() ignores it and falls back to WP keys).
+		if ( defined( 'FFC_ENCRYPTION_KEY' ) && strlen( (string) FFC_ENCRYPTION_KEY ) >= self::KEY_MIN_LENGTH ) {
+			$secrets[] = (string) FFC_ENCRYPTION_KEY;
+		} else {
+			$secrets[] = defined( 'SECURE_AUTH_KEY' ) ? (string) SECURE_AUTH_KEY : '';
+			$secrets[] = defined( 'LOGGED_IN_KEY' ) ? (string) LOGGED_IN_KEY : '';
+			$secrets[] = defined( 'NONCE_KEY' ) ? (string) NONCE_KEY : '';
+		}
+
+		// Search-hash salt material.
+		if ( defined( 'FFC_HASH_SALT' ) && '' !== (string) FFC_HASH_SALT ) {
+			$secrets[] = (string) FFC_HASH_SALT;
+		} else {
+			$secrets[] = defined( 'AUTH_KEY' ) ? (string) AUTH_KEY : '';
+			$secrets[] = defined( 'SECURE_AUTH_KEY' ) ? (string) SECURE_AUTH_KEY : '';
+		}
+
+		return $secrets;
+	}
+
+	/**
+	 * Classify a single secret string.
+	 *
+	 * @param string $value Secret value.
+	 * @return string 'empty' | 'placeholder' | 'weak' | 'ok'.
+	 */
+	private static function secret_status( string $value ): string {
+		if ( '' === $value ) {
+			return 'empty';
+		}
+		if ( false !== stripos( $value, self::KEY_PLACEHOLDER ) ) {
+			return 'placeholder';
+		}
+		if ( strlen( $value ) < self::KEY_MIN_LENGTH ) {
+			return 'weak';
+		}
+		return 'ok';
+	}
+
+	/**
+	 * Detailed key-health report for the admin status panel (#839 S7a): overall
+	 * status, whether each half is decoupled from the WordPress salts, the human
+	 * key/salt sources, and a non-reversible fingerprint of the active
+	 * encryption key so an operator can confirm a rotation without seeing it.
+	 *
+	 * @return array{status: string, encryption_decoupled: bool, salt_decoupled: bool, key_source: string, salt_source: string, fingerprint: string}
+	 */
+	public static function key_health_report(): array {
+		$enc_decoupled  = defined( 'FFC_ENCRYPTION_KEY' ) && strlen( (string) FFC_ENCRYPTION_KEY ) >= self::KEY_MIN_LENGTH;
+		$salt_decoupled = defined( 'FFC_HASH_SALT' ) && '' !== (string) FFC_HASH_SALT;
+
+		return array(
+			'status'               => self::key_health(),
+			'encryption_decoupled' => $enc_decoupled,
+			'salt_decoupled'       => $salt_decoupled,
+			'key_source'           => $enc_decoupled ? 'FFC_ENCRYPTION_KEY' : 'WordPress keys (SECURE_AUTH_KEY + LOGGED_IN_KEY + NONCE_KEY)',
+			'salt_source'          => $salt_decoupled ? 'FFC_HASH_SALT' : 'WordPress keys (AUTH_KEY + SECURE_AUTH_KEY)',
+			'fingerprint'          => substr( hash_hmac( 'sha256', 'ffc-key-fingerprint', self::get_encryption_key() ), 0, 12 ),
 		);
 	}
 }

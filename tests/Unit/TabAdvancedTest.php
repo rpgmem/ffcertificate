@@ -31,6 +31,9 @@ class TabAdvancedTest extends TestCase {
 		Functions\when( 'wp_kses_post' )->returnArg();
 		class_exists( '\\FreeFormCertificate\\Settings\\Tabs\\TabAdvanced' );
 
+		// The #839 S7a Encryption Key Health card uses wp_kses() with an explicit
+		// allowlist in its warning/advisory branches.
+		Functions\when( 'wp_kses' )->returnArg();
 		Functions\when( '__' )->returnArg();
 		Functions\when( 'esc_html__' )->returnArg();
 		Functions\when( 'esc_html_e' )->alias( function ( $t ) { echo $t; } );
