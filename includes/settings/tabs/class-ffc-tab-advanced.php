@@ -63,12 +63,29 @@ class TabAdvanced extends SettingsTab {
 			FFC_VERSION,
 			true
 		);
+		$ffc_version = defined( 'FFC_VERSION' ) ? (string) FFC_VERSION : '';
 		wp_localize_script(
 			'ffc-encryption-key-suggest',
 			'ffcEncKeySuggest',
 			array(
 				'copied'   => __( 'Copied to clipboard.', 'ffcertificate' ),
 				'copyFail' => __( 'Press Ctrl/Cmd+C to copy.', 'ffcertificate' ),
+				// Per-constant explanatory comment prepended (as a phpdoc block)
+				// to the copyable snippet, mirroring the commented WordPress salt
+				// block so the pasted define is self-identifying. `\n`-separated
+				// lines become ` * …` phpdoc lines client-side.
+				'defs'     => array(
+					'FFC_ENCRYPTION_KEY' => sprintf(
+						/* translators: %s: plugin version. */
+						__( "Free Form Certificate — encryption key (FFC_ENCRYPTION_KEY).\nDedicated secret FFC derives its AES-256 at-rest encryption key from, instead\nof the shared WordPress salts, so a WordPress salt rotation can't silently make\nstored CPF / RF / e-mail unreadable. Keep it secret and backed up. Changing it\non a site that already holds data requires a key rotation (WP-Admin → Settings →\nMigrations). Generated for FFC v%s.", 'ffcertificate' ),
+						$ffc_version
+					),
+					'FFC_HASH_SALT'      => sprintf(
+						/* translators: %s: plugin version. */
+						__( "Free Form Certificate — search-hash salt (FFC_HASH_SALT).\nDedicated secret that salts the blind-index hashes used to look up encrypted\nCPF / RF / e-mail, decoupling them from the shared WordPress salts. Changing it\non a site that already holds data invalidates those hashes until a key rotation\nrebuilds them (WP-Admin → Settings → Migrations). Generated for FFC v%s.", 'ffcertificate' ),
+						$ffc_version
+					),
+				),
 			)
 		);
 	}

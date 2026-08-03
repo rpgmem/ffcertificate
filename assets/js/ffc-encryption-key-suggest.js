@@ -1,12 +1,13 @@
 /**
- * FFC_ENCRYPTION_KEY suggestion generator (#851).
+ * FFC decoupling-constant suggestion generator (#851, salt field added later).
  *
- * Renders a ready-to-paste `define( 'FFC_ENCRYPTION_KEY', '…' )` snippet into
- * the Encryption Key Health card (Settings → Advanced) and regenerates it on
- * demand. The key is produced in the browser with `crypto.getRandomValues`
+ * Renders ready-to-paste `define( '<CONST>', '…' )` snippets into the
+ * Encryption Key Health card (Settings → Advanced) — one widget per decoupling
+ * constant (`FFC_ENCRYPTION_KEY`, `FFC_HASH_SALT`) — and regenerates them on
+ * demand. Each value is produced in the browser with `crypto.getRandomValues`
  * and is NEVER persisted or sent to the server — the plugin never writes
- * wp-config.php (the S7a decision), this only helps an admin *adopt* a
- * decoupled key by hand.
+ * wp-config.php (the S7a decision), this only helps an admin *adopt* the
+ * decoupled secrets by hand.
  *
  * Exposes the pure generator on `window.FFCEncryptionKeySuggest` for testing.
  */
@@ -20,6 +21,9 @@
 
 	// Well above the 32-char minimum enforced by Encryption::key_health().
 	var KEY_LENGTH = 64;
+
+	// Default constant when a widget doesn't declare one (back-compat).
+	var DEFAULT_CONST = 'FFC_ENCRYPTION_KEY';
 
 	/**
 	 * Generate a random key of the given length over the safe charset.
@@ -40,30 +44,50 @@
 	}
 
 	/**
-	 * Wrap a key in the wp-config.php define snippet.
+	 * Wrap a key in the wp-config.php define snippet, optionally prefixed with a
+	 * phpdoc comment that identifies the constant and its purpose (mirrors the
+	 * commented WordPress salt block).
 	 *
-	 * @param {string} key The key.
-	 * @return {string} The `define( … );` line.
+	 * @param {string} key         The key.
+	 * @param {string} [constName] The constant to define; defaults to
+	 *                             FFC_ENCRYPTION_KEY.
+	 * @param {string} [comment]   Explanatory comment body; `\n`-separated lines
+	 *                             are each rendered as a ` * …` phpdoc line.
+	 * @return {string} The (optionally commented) `define( … );` snippet.
 	 */
-	function buildSnippet( key ) {
-		return "define( 'FFC_ENCRYPTION_KEY', '" + key + "' );";
+	function buildSnippet( key, constName, comment ) {
+		var out = '';
+		if ( comment ) {
+			out += '/**\n';
+			var lines = String( comment ).split( '\n' );
+			for ( var i = 0; i < lines.length; i++ ) {
+				out += ' * ' + lines[ i ] + '\n';
+			}
+			out += ' */\n';
+		}
+		return out + "define( '" + ( constName || DEFAULT_CONST ) + "', '" + key + "' );";
 	}
 
 	/**
-	 * Wire the card controls, if present on the page.
+	 * Wire a single suggestion widget.
+	 *
+	 * @param {Element} widget  The `.ffc-key-suggest-widget` container.
+	 * @param {Object}  strings Localized copy-feedback strings.
 	 */
-	function wire() {
-		var input = document.getElementById( 'ffc-enc-key-suggestion' );
+	function wireWidget( widget, strings ) {
+		var input = widget.querySelector( '.ffc-key-suggest-input' );
 		if ( ! input ) {
 			return;
 		}
-		var regen = document.getElementById( 'ffc-enc-key-regenerate' );
-		var copy = document.getElementById( 'ffc-enc-key-copy' );
-		var status = document.getElementById( 'ffc-enc-key-copy-status' );
-		var strings = window.ffcEncKeySuggest || {};
+		var constName = widget.getAttribute( 'data-ffc-const' ) || DEFAULT_CONST;
+		var regen = widget.querySelector( '.ffc-key-suggest-regenerate' );
+		var copy = widget.querySelector( '.ffc-key-suggest-copy' );
+		var status = widget.querySelector( '.ffc-key-suggest-status' );
+		var defs = strings.defs || {};
+		var comment = defs[ constName ] || '';
 
 		function refresh() {
-			input.value = buildSnippet( generateKey( KEY_LENGTH ) );
+			input.value = buildSnippet( generateKey( KEY_LENGTH ), constName, comment );
 			if ( status ) {
 				status.textContent = '';
 			}
@@ -91,6 +115,20 @@
 						: strings.copyFail || 'Press Ctrl/Cmd+C to copy.';
 				}
 			} );
+		}
+	}
+
+	/**
+	 * Wire every suggestion widget present on the page, if any.
+	 */
+	function wire() {
+		var widgets = document.querySelectorAll( '.ffc-key-suggest-widget' );
+		if ( ! widgets.length ) {
+			return;
+		}
+		var strings = window.ffcEncKeySuggest || {};
+		for ( var i = 0; i < widgets.length; i++ ) {
+			wireWidget( widgets[ i ], strings );
 		}
 	}
 
