@@ -80,7 +80,10 @@ final class RecruitmentCandidateEditPage {
 		$candidate_id = isset( $_GET['candidate_id'] ) ? absint( wp_unslash( (string) $_GET['candidate_id'] ) ) : 0;
 		$candidate    = $candidate_id > 0 ? RecruitmentCandidateReader::get_by_id( $candidate_id ) : null;
 		if ( null === $candidate ) {
-			echo '<div class="notice notice-error"><p>' . esc_html__( 'Candidate not found.', 'ffcertificate' ) . '</p></div>';
+			wp_admin_notice(
+				esc_html__( 'Candidate not found.', 'ffcertificate' ),
+				array( 'type' => 'error' )
+			);
 			echo '<p><a href="' . esc_url( self::back_url() ) . '">&larr; ' . esc_html__( 'Back to Candidates', 'ffcertificate' ) . '</a></p>';
 			return;
 		}

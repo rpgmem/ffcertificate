@@ -606,8 +606,7 @@ $ffc_kh_label = $ffc_kh_labels[ $ffc_kh_status ] ?? $ffc_kh_status;
 		<?php esc_html_e( 'CPF/RF and e-mail are encrypted at rest using your WordPress secret keys (or the FFC decoupling constants). If those secrets are missing, weak, or still the wp-config sample placeholder, the encryption key and the search-hash salt become predictable — this panel reports their real state.', 'ffcertificate' ); ?>
 	</p>
 
-	<?php if ( ! $ffc_kh_ok ) : ?>
-		<div class="notice notice-error inline" style="margin: 12px 0;">
+	<?php if ( ! $ffc_kh_ok ) : ob_start(); ?>
 			<p>
 				<strong><?php echo esc_html( $ffc_kh_label ); ?>.</strong>
 				<?php esc_html_e( 'Your active secret material is not safe. Fix it, but choose the right path:', 'ffcertificate' ); ?>
@@ -632,9 +631,18 @@ $ffc_kh_label = $ffc_kh_labels[ $ffc_kh_status ] ?? $ffc_kh_status;
 					<?php esc_html_e( 'Generate fresh WordPress secret keys ↗', 'ffcertificate' ); ?>
 				</a>
 			</p>
-		</div>
-	<?php elseif ( ! $ffc_kh_decpl ) : ?>
-		<div class="notice notice-info inline" style="margin: 12px 0;">
+		<?php
+		wp_admin_notice(
+			ob_get_clean(),
+			array(
+				'type'               => 'error',
+				'additional_classes' => array( 'inline' ),
+				'paragraph_wrap'     => false,
+				'attributes'         => array( 'style' => 'margin: 12px 0;' ),
+			)
+		);
+		?>
+	<?php elseif ( ! $ffc_kh_decpl ) : ob_start(); ?>
 			<p>
 				<?php
 				echo wp_kses(
@@ -647,11 +655,30 @@ $ffc_kh_label = $ffc_kh_labels[ $ffc_kh_status ] ?? $ffc_kh_status;
 				);
 				?>
 			</p>
-		</div>
-	<?php else : ?>
-		<div class="notice notice-success inline" style="margin: 12px 0;">
+		<?php
+		wp_admin_notice(
+			ob_get_clean(),
+			array(
+				'type'               => 'info',
+				'additional_classes' => array( 'inline' ),
+				'paragraph_wrap'     => false,
+				'attributes'         => array( 'style' => 'margin: 12px 0;' ),
+			)
+		);
+		?>
+	<?php else : ob_start(); ?>
 			<p><strong><?php esc_html_e( 'Healthy.', 'ffcertificate' ); ?></strong> <?php esc_html_e( 'Encryption key and search-hash salt are strong and decoupled from the WordPress salts.', 'ffcertificate' ); ?></p>
-		</div>
+		<?php
+		wp_admin_notice(
+			ob_get_clean(),
+			array(
+				'type'               => 'success',
+				'additional_classes' => array( 'inline' ),
+				'paragraph_wrap'     => false,
+				'attributes'         => array( 'style' => 'margin: 12px 0;' ),
+			)
+		);
+		?>
 	<?php endif; ?>
 
 	<table class="form-table" role="presentation">

@@ -111,7 +111,12 @@ if ( $ffc_self_scheduling_appointment_id > 0 ) {
 		try {
 			$ffcertificate_appointment = $ffcertificate_repo->findById( $ffc_self_scheduling_appointment_id );
 			if ( ! $ffcertificate_appointment ) {
-				echo '<div class="wrap"><div class="notice notice-error"><p>' . esc_html__( 'Appointment not found.', 'ffcertificate' ) . '</p></div></div>';
+				echo '<div class="wrap">';
+				wp_admin_notice(
+					esc_html__( 'Appointment not found.', 'ffcertificate' ),
+					array( 'type' => 'error' )
+				);
+				echo '</div>';
 				return;
 			}
 
@@ -289,7 +294,10 @@ if ( $ffc_self_scheduling_appointment_id > 0 ) {
 		} catch ( \Throwable $e ) {
 			echo '<div class="wrap">';
 			echo '<h1>' . esc_html__( 'Appointment Details', 'ffcertificate' ) . '</h1>';
-			echo '<div class="notice notice-error"><p><strong>' . esc_html__( 'Error loading appointment:', 'ffcertificate' ) . '</strong> ' . esc_html( $e->getMessage() ) . '</p></div>';
+			wp_admin_notice(
+				'<strong>' . esc_html__( 'Error loading appointment:', 'ffcertificate' ) . '</strong> ' . esc_html( $e->getMessage() ),
+				array( 'type' => 'error' )
+			);
 			echo '<p><a href="' . esc_url( $ffcertificate_appointments_url ) . '" class="button">' . esc_html__( 'Back to List', 'ffcertificate' ) . '</a></p>';
 			echo '</div>';
 			if ( class_exists( '\\FreeFormCertificate\\Core\\Utils' ) ) {
@@ -312,8 +320,13 @@ if ( $ffc_self_scheduling_appointment_id > 0 ) {
 // Display admin notices from transients.
 $ffcertificate_admin_notice = get_transient( 'ffc_admin_notice_' . get_current_user_id() );
 if ( $ffcertificate_admin_notice && is_array( $ffcertificate_admin_notice ) ) {
-	$ffcertificate_notice_type = 'error' === $ffcertificate_admin_notice['type'] ? 'notice-error' : 'notice-success';
-	echo '<div class="notice ' . esc_attr( $ffcertificate_notice_type ) . ' is-dismissible"><p>' . esc_html( $ffcertificate_admin_notice['message'] ) . '</p></div>';
+	wp_admin_notice(
+		esc_html( $ffcertificate_admin_notice['message'] ),
+		array(
+			'type'        => 'error' === $ffcertificate_admin_notice['type'] ? 'error' : 'success',
+			'dismissible' => true,
+		)
+	);
 	// Delete transient after displaying.
 	delete_transient( 'ffc_admin_notice_' . get_current_user_id() );
 }

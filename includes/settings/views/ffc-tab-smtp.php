@@ -40,16 +40,18 @@ $ffcertificate_emails_enabled  = ! $ffcertificate_emails_disabled;
 	$ffcertificate_test_email_flag = isset( $_GET['ffc_test_email'] ) ? sanitize_key( wp_unslash( $_GET['ffc_test_email'] ) ) : '';
 	if ( '' !== $ffcertificate_test_email_flag ) {
 		$ffcertificate_test_email_notices = array(
-			'sent'       => array( 'notice-success', __( 'Test email sent to your account.', 'ffcertificate' ) ),
-			'disabled'   => array( 'notice-warning', __( 'Emails are globally disabled, so the test email was not sent. Enable email sending above and try again.', 'ffcertificate' ) ),
-			'no_address' => array( 'notice-error', __( 'Your account has no email address, so the test email could not be sent.', 'ffcertificate' ) ),
-			'failed'     => array( 'notice-error', __( 'The test email could not be sent. Check your SMTP settings and try again.', 'ffcertificate' ) ),
+			'sent'       => array( 'success', __( 'Test email sent to your account.', 'ffcertificate' ) ),
+			'disabled'   => array( 'warning', __( 'Emails are globally disabled, so the test email was not sent. Enable email sending above and try again.', 'ffcertificate' ) ),
+			'no_address' => array( 'error', __( 'Your account has no email address, so the test email could not be sent.', 'ffcertificate' ) ),
+			'failed'     => array( 'error', __( 'The test email could not be sent. Check your SMTP settings and try again.', 'ffcertificate' ) ),
 		);
 		if ( isset( $ffcertificate_test_email_notices[ $ffcertificate_test_email_flag ] ) ) {
-			printf(
-				'<div class="notice %1$s inline"><p>%2$s</p></div>',
-				esc_attr( $ffcertificate_test_email_notices[ $ffcertificate_test_email_flag ][0] ),
-				esc_html( $ffcertificate_test_email_notices[ $ffcertificate_test_email_flag ][1] )
+			wp_admin_notice(
+				esc_html( $ffcertificate_test_email_notices[ $ffcertificate_test_email_flag ][1] ),
+				array(
+					'type'               => $ffcertificate_test_email_notices[ $ffcertificate_test_email_flag ][0],
+					'additional_classes' => array( 'inline' ),
+				)
 			);
 		}
 	}

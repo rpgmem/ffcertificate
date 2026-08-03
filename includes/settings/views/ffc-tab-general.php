@@ -130,8 +130,7 @@ $ffcertificate_show_divergence = $ffcertificate_date_diverges || $ffcertificate_
 // The module-settings jump list (rpgmem/ffcertificate#711) moved from this
 // view into the settings nav itself — see Settings::render_module_settings_links().
 ?>
-<?php if ( $ffcertificate_show_divergence ) : ?>
-	<div class="notice notice-info inline ffc-settings-divergence-notice" style="margin: 15px 0; padding: 12px 15px;">
+<?php if ( $ffcertificate_show_divergence ) : ob_start(); ?>
 		<p style="margin: 0 0 8px;">
 			<strong><?php esc_html_e( 'Heads-up: plugin formats differ from the WordPress global formats.', 'ffcertificate' ); ?></strong>
 		</p>
@@ -164,7 +163,17 @@ $ffcertificate_show_divergence = $ffcertificate_date_diverges || $ffcertificate_
 				</li>
 			<?php endif; ?>
 		</ul>
-	</div>
+	<?php
+	wp_admin_notice(
+		ob_get_clean(),
+		array(
+			'type'               => 'info',
+			'additional_classes' => array( 'inline', 'ffc-settings-divergence-notice' ),
+			'paragraph_wrap'     => false,
+			'attributes'         => array( 'style' => 'margin: 15px 0; padding: 12px 15px;' ),
+		)
+	);
+	?>
 <?php endif; ?>
 
 <form method="post">

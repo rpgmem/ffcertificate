@@ -166,8 +166,13 @@ final class RecruitmentAdminPageRenderer {
 		if ( ! isset( $map[ $key ] ) ) {
 			return;
 		}
-		$class = 'success' === $map[ $key ][0] ? 'notice-success' : 'notice-error';
-		echo '<div class="notice ' . esc_attr( $class ) . ' is-dismissible"><p>' . esc_html( $map[ $key ][1] ) . '</p></div>';
+		wp_admin_notice(
+			esc_html( $map[ $key ][1] ),
+			array(
+				'type'        => $map[ $key ][0],
+				'dismissible' => true,
+			)
+		);
 	}
 
 	/**
