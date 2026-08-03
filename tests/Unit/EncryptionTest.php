@@ -443,6 +443,51 @@ class EncryptionTest extends TestCase {
         $this->assertNotSame( $legacy_ciphertext, $fresh_ciphertext );
     }
 
+    /**
+     * FFC→FFC re-key window (#863): after re-keying, rows still encrypted under
+     * the previous FFC key must stay readable via the FFC_ENCRYPTION_KEY_PREVIOUS
+     * fallback, while fresh writes use the new active key. The health report must
+     * flag the re-key with a distinct, non-empty previous fingerprint. Separate
+     * process so the defines don't leak into other tests.
+     *
+     * @runInSeparateProcess
+     * @preserveGlobalState disabled
+     */
+    public function test_decrypt_falls_back_to_previous_ffc_key_during_rekey(): void {
+        define( 'FFC_ENCRYPTION_KEY', str_repeat( 'B', 64 ) );          // new active key
+        define( 'FFC_ENCRYPTION_KEY_PREVIOUS', str_repeat( 'A', 64 ) ); // prior FFC key
+
+        // Forge a row as it was written when key A was active, via the same
+        // encrypt-with-keys seam the code derives the previous pair from.
+        $encrypt  = new \ReflectionMethod( Encryption::class, 'encrypt_with_keys' );
+        $encrypt->setAccessible( true );
+        $prev_enc = substr( str_repeat( 'A', 64 ), 0, 32 );
+        $prev_mac = hash_hmac( 'sha256', 'ffc-hmac-key', str_repeat( 'A', 64 ), true );
+        $old_row  = $encrypt->invoke( null, 'secret-cpf-000', $prev_enc, $prev_mac );
+        $this->assertNotNull( $old_row );
+
+        // Active key is B and the row is under A → only the previous fallback reads it.
+        $this->assertSame( 'secret-cpf-000', Encryption::decrypt( $old_row ) );
+
+        // Fresh writes use the active (B) key and round-trip.
+        $fresh = Encryption::encrypt( 'fresh-999' );
+        $this->assertNotNull( $fresh );
+        $this->assertSame( 'fresh-999', Encryption::decrypt( $fresh ) );
+
+        // Health report reflects the re-key.
+        $report = Encryption::key_health_report();
+        $this->assertTrue( $report['rekey_in_progress'] );
+        $this->assertMatchesRegularExpression( '/^[0-9a-f]{12}$/', $report['previous_fingerprint'] );
+        $this->assertNotSame( $report['fingerprint'], $report['previous_fingerprint'] );
+    }
+
+    public function test_key_health_report_reports_no_rekey_by_default(): void {
+        // No FFC_ENCRYPTION_KEY_PREVIOUS in the default test env.
+        $report = Encryption::key_health_report();
+        $this->assertFalse( $report['rekey_in_progress'] );
+        $this->assertSame( '', $report['previous_fingerprint'] );
+    }
+
     public function test_key_fingerprint_is_stable_12_char_hex(): void {
         $fingerprint = Encryption::key_fingerprint();
 
