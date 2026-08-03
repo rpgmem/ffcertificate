@@ -45,90 +45,99 @@ class UserCleanup {
 	 * @return void
 	 */
 	public static function anonymize_user_data( int $user_id ): void {
-		// Issue #322 short-circuit: when the user has no FFC footprint
-		// at all (no submissions, no appointments, no audience memberships)
-		// every UPDATE / DELETE below would be a no-op. Skip the table
-		// scans entirely. UserService::user_has_ffc_data() does one
-		// COUNT per relevant table — far cheaper than scanning N tables
-		// with WHERE user_id = %d when there's nothing to update.
-		if ( ! \FreeFormCertificate\Services\UserService::user_has_ffc_data( $user_id ) ) {
-			return;
-		}
-
 		global $wpdb;
 
 		$anonymized = array();
 
-		// 1. Submissions: SET user_id = NULL (preserve certificate records)
-		$submissions_table = $wpdb->prefix . 'ffc_submissions';
-		$rows              = $wpdb->query(
-			$wpdb->prepare(
-				'UPDATE %i SET user_id = NULL WHERE user_id = %d',
-				$submissions_table,
-				$user_id
-			)
-		);
-		if ( $rows > 0 ) {
-			$anonymized['submissions'] = $rows;
-		}
-
-		// 2. Self-scheduling appointments: SET user_id = NULL.
-		$appointments_table = $wpdb->prefix . 'ffc_self_scheduling_appointments';
-		if ( self::table_exists( $appointments_table ) ) {
-			$rows = $wpdb->query(
+		// Data-subject footprint cleanup. Issue #322 short-circuit: when the
+		// user has no FFC footprint at all (no submissions, no appointments, no
+		// audience memberships) every UPDATE / DELETE below would be a no-op, so
+		// skip them. UserService::user_has_ffc_data() does one COUNT per relevant
+		// table — far cheaper than scanning those tables with WHERE user_id = %d
+		// when there's nothing to update.
+		if ( \FreeFormCertificate\Services\UserService::user_has_ffc_data( $user_id ) ) {
+			// 1. Submissions: SET user_id = NULL (preserve certificate records)
+			$submissions_table = $wpdb->prefix . 'ffc_submissions';
+			$rows              = $wpdb->query(
 				$wpdb->prepare(
 					'UPDATE %i SET user_id = NULL WHERE user_id = %d',
-					$appointments_table,
+					$submissions_table,
 					$user_id
 				)
 			);
 			if ( $rows > 0 ) {
-				$anonymized['appointments'] = $rows;
+				$anonymized['submissions'] = $rows;
 			}
-		}
 
-		// 3. Activity log: SET user_id = NULL (preserve audit trail)
-		$rows = \FreeFormCertificate\Core\ActivityLogQuery::redact_user_id( $user_id );
-		if ( $rows > 0 ) {
-			$anonymized['activity_log'] = $rows;
-		}
+			// 2. Self-scheduling appointments: SET user_id = NULL.
+			$appointments_table = $wpdb->prefix . 'ffc_self_scheduling_appointments';
+			if ( self::table_exists( $appointments_table ) ) {
+				$rows = $wpdb->query(
+					$wpdb->prepare(
+						'UPDATE %i SET user_id = NULL WHERE user_id = %d',
+						$appointments_table,
+						$user_id
+					)
+				);
+				if ( $rows > 0 ) {
+					$anonymized['appointments'] = $rows;
+				}
+			}
 
-		// 4. Audience members: DELETE.
-		$members_table = $wpdb->prefix . 'ffc_audience_members';
-		if ( self::table_exists( $members_table ) ) {
-			$rows = $wpdb->delete( $members_table, array( 'user_id' => $user_id ), array( '%d' ) );
+			// 3. Activity log: SET user_id = NULL (preserve audit trail)
+			$rows = \FreeFormCertificate\Core\ActivityLogQuery::redact_user_id( $user_id );
 			if ( $rows > 0 ) {
-				$anonymized['audience_members'] = $rows;
+				$anonymized['activity_log'] = $rows;
+			}
+
+			// 4. Audience members: DELETE.
+			$members_table = $wpdb->prefix . 'ffc_audience_members';
+			if ( self::table_exists( $members_table ) ) {
+				$rows = $wpdb->delete( $members_table, array( 'user_id' => $user_id ), array( '%d' ) );
+				if ( $rows > 0 ) {
+					$anonymized['audience_members'] = $rows;
+				}
+			}
+
+			// 5. Audience booking users: DELETE.
+			$booking_users_table = $wpdb->prefix . 'ffc_audience_booking_users';
+			if ( self::table_exists( $booking_users_table ) ) {
+				$rows = $wpdb->delete( $booking_users_table, array( 'user_id' => $user_id ), array( '%d' ) );
+				if ( $rows > 0 ) {
+					$anonymized['booking_users'] = $rows;
+				}
+			}
+
+			// 6. Audience schedule permissions: DELETE.
+			$permissions_table = $wpdb->prefix . 'ffc_audience_schedule_permissions';
+			if ( self::table_exists( $permissions_table ) ) {
+				$rows = $wpdb->delete( $permissions_table, array( 'user_id' => $user_id ), array( '%d' ) );
+				if ( $rows > 0 ) {
+					$anonymized['schedule_permissions'] = $rows;
+				}
+			}
+
+			// 7. User profiles: DELETE.
+			$profiles_table = $wpdb->prefix . 'ffc_user_profiles';
+			if ( self::table_exists( $profiles_table ) ) {
+				$wpdb->delete( $profiles_table, array( 'user_id' => $user_id ), array( '%d' ) );
+				$anonymized['profile'] = 1;
 			}
 		}
 
-		// 5. Audience booking users: DELETE.
-		$booking_users_table = $wpdb->prefix . 'ffc_audience_booking_users';
-		if ( self::table_exists( $booking_users_table ) ) {
-			$rows = $wpdb->delete( $booking_users_table, array( 'user_id' => $user_id ), array( '%d' ) );
-			if ( $rows > 0 ) {
-				$anonymized['booking_users'] = $rows;
-			}
-		}
+		// Actor-attribution + promoted-candidate links (#834). These key on
+		// *_by columns / recruitment_candidate.user_id, which the data-subject
+		// footprint check above does NOT detect — a pure actor (an admin/operator
+		// who only created or approved) or a promoted candidate can have zero
+		// footprint of their own — so this runs on every deletion. Only nullable
+		// columns are touched; the NOT NULL attribution columns are accepted
+		// orphans on retained records (see CLAUDE.md §4). The encrypted row-body
+		// PII is deliberately NOT scrubbed here — that is the manual PrivacyErasers
+		// (LGPD erasure) path, kept distinct from routine account deletion.
+		self::anonymize_authorship( $user_id, $anonymized );
 
-		// 6. Audience schedule permissions: DELETE.
-		$permissions_table = $wpdb->prefix . 'ffc_audience_schedule_permissions';
-		if ( self::table_exists( $permissions_table ) ) {
-			$rows = $wpdb->delete( $permissions_table, array( 'user_id' => $user_id ), array( '%d' ) );
-			if ( $rows > 0 ) {
-				$anonymized['schedule_permissions'] = $rows;
-			}
-		}
-
-		// 7. User profiles: DELETE.
-		$profiles_table = $wpdb->prefix . 'ffc_user_profiles';
-		if ( self::table_exists( $profiles_table ) ) {
-			$wpdb->delete( $profiles_table, array( 'user_id' => $user_id ), array( '%d' ) );
-			$anonymized['profile'] = 1;
-		}
-
-		// Log the anonymization.
-		if ( class_exists( '\FreeFormCertificate\Core\ActivityLog' ) ) {
+		// Log the anonymization only when something actually changed.
+		if ( ! empty( $anonymized ) && class_exists( '\FreeFormCertificate\Core\ActivityLog' ) ) {
 			\FreeFormCertificate\Core\ActivityLog::log(
 				'user_data_anonymized',
 				\FreeFormCertificate\Core\ActivityLog::LEVEL_WARNING,
@@ -137,6 +146,79 @@ class UserCleanup {
 					'tables_affected'    => $anonymized,
 				)
 			);
+		}
+	}
+
+	/**
+	 * Null the nullable actor-attribution columns and the promoted-candidate
+	 * link for a deleted user (#834 clusters 1 + 2).
+	 *
+	 * Map: `table basename => [ nullable columns ]`. Every UPDATE is guarded by
+	 * table_exists() + column_exists(), so a module whose table was never
+	 * created, or an older install missing a migration-added column (e.g.
+	 * `submissions.edited_by`), is silently skipped. Identifiers go through the
+	 * `%i` placeholder — no interpolation.
+	 *
+	 * NOT NULL attribution columns are intentionally absent from the map —
+	 * `ffc_audiences` / `ffc_audience_schedules` / `ffc_audience_holidays` /
+	 * `ffc_audience_bookings.created_by`, `ffc_reregistrations.created_by`,
+	 * `ffc_recruitment_call.created_by` — because a plain `SET … = NULL` would be
+	 * rejected; they are accepted orphans on retained records.
+	 *
+	 * Runs on every deletion (an actor/candidate need not have data-subject
+	 * footprint). The `*_by` columns are unindexed, so a bulk user deletion pays
+	 * a scan per column on large tables — acceptable on this cold admin path;
+	 * index the columns if it ever bites.
+	 *
+	 * @param int                  $user_id    Deleted user id.
+	 * @param array<string, mixed> $anonymized Accumulator (by reference).
+	 * @return void
+	 */
+	private static function anonymize_authorship( int $user_id, array &$anonymized ): void {
+		global $wpdb;
+
+		$map = array(
+			'ffc_submissions'                   => array( 'edited_by' ),
+			'ffc_self_scheduling_appointments'  => array( 'approved_by', 'cancelled_by' ),
+			'ffc_self_scheduling_calendars'     => array( 'created_by', 'updated_by' ),
+			'ffc_self_scheduling_blocked_dates' => array( 'created_by' ),
+			'ffc_audience_bookings'             => array( 'cancelled_by' ),
+			'ffc_reregistration_submissions'    => array( 'reviewed_by' ),
+			'ffc_recruitment_call'              => array( 'cancelled_by' ),
+			'ffc_short_urls'                    => array( 'created_by' ),
+			// Cluster 2: drop the promoted-candidate → WP-user link, retain the
+			// candidacy record (its PII stays; PrivacyErasers scrubs the body).
+			'ffc_recruitment_candidate'         => array( 'user_id' ),
+		);
+
+		foreach ( $map as $basename => $columns ) {
+			$table = $wpdb->prefix . $basename;
+			if ( ! self::table_exists( $table ) ) {
+				continue;
+			}
+
+			$affected = 0;
+			foreach ( $columns as $column ) {
+				if ( ! self::column_exists( $table, $column ) ) {
+					continue;
+				}
+				$rows = $wpdb->query(
+					$wpdb->prepare(
+						'UPDATE %i SET %i = NULL WHERE %i = %d',
+						$table,
+						$column,
+						$column,
+						$user_id
+					)
+				);
+				if ( $rows > 0 ) {
+					$affected += (int) $rows;
+				}
+			}
+
+			if ( $affected > 0 ) {
+				$anonymized[ $basename ] = $affected;
+			}
 		}
 	}
 

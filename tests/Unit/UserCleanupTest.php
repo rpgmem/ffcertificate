@@ -208,6 +208,101 @@ class UserCleanupTest extends TestCase {
     }
 
     // ==================================================================
+    // anonymize_user_data — actor-attribution + candidate sweep (#834)
+    // ==================================================================
+
+    /** @var array<int, string> Recorded UPDATE queries from the sweep harness. */
+    private array $recorded_updates = [];
+
+    /**
+     * Query-inspecting harness: interpolate %i/%d so get_var / get_results /
+     * query can branch on the real SQL, and record the UPDATEs fired into
+     * $this->recorded_updates.
+     *
+     * @param array<int, string> $present_tables Table names to report present.
+     * @param array<int, string> $absent_columns Column names to report missing.
+     * @return void
+     */
+    private function installSweepHarness(array $present_tables, array $absent_columns = []): void {
+        $this->recorded_updates = [];
+
+        $this->wpdb->shouldReceive('esc_like')->andReturnUsing(fn($v) => $v)->byDefault();
+        $this->wpdb->shouldReceive('prepare')->andReturnUsing(function ($q, ...$args) {
+            foreach ($args as $arg) {
+                $q = preg_replace('/%[sdi]/', (string) $arg, $q, 1) ?? $q;
+            }
+            return $q;
+        });
+        // No data-subject footprint (COUNT → 0); SHOW TABLES → present list.
+        $this->wpdb->shouldReceive('get_var')->andReturnUsing(function ($q) use ($present_tables) {
+            if (strpos($q, 'SHOW TABLES') !== false) {
+                foreach ($present_tables as $t) {
+                    if (strpos($q, $t) !== false) {
+                        return $t;
+                    }
+                }
+                return null;
+            }
+            return '0';
+        });
+        // column_exists → present unless the column is in $absent_columns.
+        $this->wpdb->shouldReceive('get_results')->andReturnUsing(function ($q) use ($absent_columns) {
+            if (strpos($q, 'SHOW COLUMNS') !== false) {
+                foreach ($absent_columns as $c) {
+                    if (preg_match('/LIKE\s+' . preg_quote($c, '/') . '\b/', $q)) {
+                        return [];
+                    }
+                }
+                return [(object) ['Field' => 'x']];
+            }
+            return [];
+        });
+        $this->wpdb->shouldReceive('query')->andReturnUsing(function ($q) {
+            $this->recorded_updates[] = $q;
+            return 1;
+        });
+    }
+
+    public function test_authorship_sweep_nulls_attribution_and_candidate_links(): void {
+        $this->installSweepHarness([
+            'wp_ffc_self_scheduling_calendars',
+            'wp_ffc_recruitment_candidate',
+        ]);
+
+        UserCleanup::anonymize_user_data(42);
+
+        $joined = implode("\n", $this->recorded_updates);
+        // Cluster 1: calendars created_by + updated_by nulled.
+        $this->assertStringContainsString('UPDATE wp_ffc_self_scheduling_calendars SET created_by = NULL WHERE created_by = 42', $joined);
+        $this->assertStringContainsString('UPDATE wp_ffc_self_scheduling_calendars SET updated_by = NULL WHERE updated_by = 42', $joined);
+        // Cluster 2: promoted-candidate user_id link dropped.
+        $this->assertStringContainsString('UPDATE wp_ffc_recruitment_candidate SET user_id = NULL WHERE user_id = 42', $joined);
+        // A NOT NULL / not-in-map table is never touched (accepted orphan).
+        $this->assertStringNotContainsString('wp_ffc_audiences ', $joined);
+    }
+
+    public function test_authorship_sweep_skips_absent_tables(): void {
+        // Only the candidate table present → only its UPDATE fires.
+        $this->installSweepHarness(['wp_ffc_recruitment_candidate']);
+
+        UserCleanup::anonymize_user_data(42);
+
+        $joined = implode("\n", $this->recorded_updates);
+        $this->assertStringContainsString('UPDATE wp_ffc_recruitment_candidate SET user_id = NULL', $joined);
+        $this->assertStringNotContainsString('wp_ffc_self_scheduling_calendars', $joined);
+        $this->assertStringNotContainsString('wp_ffc_short_urls', $joined);
+    }
+
+    public function test_authorship_sweep_skips_absent_column(): void {
+        // submissions present but the migration-added edited_by column is missing.
+        $updates = $this->installSweepHarness(['wp_ffc_submissions'], ['edited_by']);
+
+        UserCleanup::anonymize_user_data(42);
+
+        $this->assertStringNotContainsString('edited_by', implode("\n", $this->recorded_updates));
+    }
+
+    // ==================================================================
     // handle_email_change — early returns
     // ==================================================================
 
