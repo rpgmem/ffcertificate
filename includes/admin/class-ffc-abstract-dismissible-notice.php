@@ -90,9 +90,7 @@ abstract class AbstractDismissibleNotice {
 				'type'               => static::notice_type(),
 				'dismissible'        => true,
 				'paragraph_wrap'     => false,
-				'additional_classes' => array_values(
-					array_filter( array( 'ffc-js-dismiss-notice', static::extra_class() ) )
-				),
+				'additional_classes' => array_filter( array( 'ffc-js-dismiss-notice', static::extra_class() ) ),
 				'attributes'         => array(
 					'data-ffc-action' => static::action(),
 					'data-ffc-nonce'  => wp_create_nonce( static::action() ),

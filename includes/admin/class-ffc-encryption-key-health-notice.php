@@ -36,18 +36,30 @@ class EncryptionKeyHealthNotice extends AbstractDismissibleNotice {
 	const NONCE_ACTION     = 'ffc_dismiss_encryption_key_health';
 	const AJAX_ACTION      = 'ffc_dismiss_encryption_key_health';
 
+	/**
+	 * Option key the dismissed signature is stored under.
+	 */
 	protected static function option_key(): string {
 		return self::OPTION_DISMISSED;
 	}
 
+	/**
+	 * Nonce + `wp_ajax_{action}` hook suffix.
+	 */
 	protected static function action(): string {
 		return self::AJAX_ACTION;
 	}
 
+	/**
+	 * A security warning renders as an error-level notice.
+	 */
 	protected static function notice_type(): string {
 		return 'error';
 	}
 
+	/**
+	 * Stable class for styling / test hooks.
+	 */
 	protected static function extra_class(): string {
 		return 'ffc-encryption-key-health-notice';
 	}
@@ -73,6 +85,9 @@ class EncryptionKeyHealthNotice extends AbstractDismissibleNotice {
 		return (string) $report['status'] . ':' . (string) $report['fingerprint'];
 	}
 
+	/**
+	 * The inner notice HTML (two paragraphs, already escaped).
+	 */
 	protected static function notice_message(): string {
 		$advanced_url = admin_url( 'admin.php?page=ffc-settings&tab=advanced#ffc-encryption-health' );
 

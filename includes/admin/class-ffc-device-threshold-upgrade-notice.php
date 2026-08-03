@@ -37,14 +37,23 @@ class DeviceThresholdUpgradeNotice extends AbstractDismissibleNotice {
 	const NONCE_ACTION     = 'ffc_dismiss_device_threshold_v632';
 	const AJAX_ACTION      = 'ffc_dismiss_device_threshold_v632';
 
+	/**
+	 * Option key the dismissed flag is stored under.
+	 */
 	protected static function option_key(): string {
 		return self::OPTION_DISMISSED;
 	}
 
+	/**
+	 * Nonce + `wp_ajax_{action}` hook suffix.
+	 */
 	protected static function action(): string {
 		return self::AJAX_ACTION;
 	}
 
+	/**
+	 * Stable class for styling / test hooks.
+	 */
 	protected static function extra_class(): string {
 		return 'ffc-device-threshold-notice';
 	}
@@ -74,6 +83,9 @@ class DeviceThresholdUpgradeNotice extends AbstractDismissibleNotice {
 		return 5 === (int) ( $device['match_threshold'] ?? 0 );
 	}
 
+	/**
+	 * The inner notice HTML (one paragraph, already escaped).
+	 */
 	protected static function notice_message(): string {
 		$rate_limit_url = admin_url( 'admin.php?page=ffc-settings&tab=rate_limit' );
 
