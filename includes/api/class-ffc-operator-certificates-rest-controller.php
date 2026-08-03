@@ -51,9 +51,9 @@ class OperatorCertificatesRestController {
 	 * Per-user_id rate-limit for issuance — a runaway guard, not friction: an
 	 * operator working a queue can legitimately issue hundreds per hour.
 	 */
-	private const RATE_ACTION       = 'operator_issue_cert';
-	private const RATE_PER_HOUR     = 300;
-	private const RATE_PER_DAY      = 2000;
+	private const RATE_ACTION   = 'operator_issue_cert';
+	private const RATE_PER_HOUR = 300;
+	private const RATE_PER_DAY  = 2000;
 
 	/**
 	 * REST namespace (e.g. "ffc/v1").
@@ -156,7 +156,7 @@ class OperatorCertificatesRestController {
 	public function issue_certificate( $request ) {
 		try {
 			$params = $request->get_json_params();
-			if ( empty( $params ) || ! is_array( $params ) ) {
+			if ( empty( $params ) ) {
 				return new \WP_Error( 'no_data', __( 'No data provided in request body', 'ffcertificate' ), array( 'status' => 400 ) );
 			}
 
