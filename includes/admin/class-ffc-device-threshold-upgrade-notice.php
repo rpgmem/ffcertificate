@@ -11,6 +11,10 @@
  *   - actively use the device limit (device.enabled === true)
  *   - still have the legacy default (match_threshold === 5)
  *
+ * The shared hook/dismiss/gate plumbing lives in
+ * {@see AbstractDismissibleNotice} (#849); this class supplies only the gate,
+ * the message, and the one-shot dismiss flag.
+ *
  * @package FreeFormCertificate\Admin
  * @since   6.3.2
  */
@@ -27,97 +31,36 @@ if ( ! defined( 'ABSPATH' ) ) {
  * Renders + persists a dismissable admin notice for the v6.3.2 device
  * threshold default change.
  */
-class DeviceThresholdUpgradeNotice {
+class DeviceThresholdUpgradeNotice extends AbstractDismissibleNotice {
 
 	const OPTION_DISMISSED = 'ffc_device_threshold_v632_notice_dismissed';
 	const NONCE_ACTION     = 'ffc_dismiss_device_threshold_v632';
 	const AJAX_ACTION      = 'ffc_dismiss_device_threshold_v632';
 
-	/**
-	 * Register hooks.
-	 */
-	public static function init(): void {
-		add_action( 'admin_notices', array( self::class, 'maybe_render' ) );
-		add_action( 'wp_ajax_' . self::AJAX_ACTION, array( self::class, 'ajax_dismiss' ) );
+	protected static function option_key(): string {
+		return self::OPTION_DISMISSED;
+	}
+
+	protected static function action(): string {
+		return self::AJAX_ACTION;
+	}
+
+	protected static function extra_class(): string {
+		return 'ffc-device-threshold-notice';
 	}
 
 	/**
-	 * Render the notice when all gating conditions are met.
+	 * One-shot: a plain flag, so once dismissed it stays dismissed.
 	 */
-	public static function maybe_render(): void {
-		if ( ! self::should_render() ) {
-			return;
-		}
-
-		$rate_limit_url = admin_url( 'admin.php?page=ffc-settings&tab=rate_limit' );
-		$nonce          = wp_create_nonce( self::NONCE_ACTION );
-		?>
-		<div class="notice notice-info is-dismissible ffc-device-threshold-notice"
-			data-ffc-action="<?php echo esc_attr( self::AJAX_ACTION ); ?>"
-			data-ffc-nonce="<?php echo esc_attr( $nonce ); ?>">
-			<p>
-				<strong><?php esc_html_e( 'Free Form Certificate v6.3.2', 'ffcertificate' ); ?></strong>
-				—
-				<?php
-				echo wp_kses(
-					sprintf(
-						/* translators: %s: link to the rate-limit settings tab */
-						__( 'Four new device fingerprint signals are now active (plugins, permissions, media queries, math precision). Consider raising the match threshold from 5 to 7 in %s to maintain the same false-positive ratio against the larger 13-signal palette.', 'ffcertificate' ),
-						'<a href="' . esc_url( $rate_limit_url ) . '">' . esc_html__( 'Settings → Rate Limit → Device Fingerprint', 'ffcertificate' ) . '</a>'
-					),
-					array( 'a' => array( 'href' => array() ) )
-				);
-				?>
-			</p>
-		</div>
-		<?php
-		$s = \FreeFormCertificate\Core\AssetHelper::asset_suffix();
-		wp_enqueue_script(
-			'ffc-device-threshold-notice',
-			FFC_PLUGIN_URL . "assets/js/ffc-device-threshold-notice{$s}.js",
-			array(),
-			FFC_VERSION,
-			true
-		);
+	protected static function dismiss_signature(): string {
+		return '1';
 	}
 
 	/**
-	 * Dismiss endpoint.
+	 * Only nudge sites actively using the device limit that still hold the
+	 * legacy default threshold of 5.
 	 */
-	public static function ajax_dismiss(): void {
-		check_ajax_referer( self::NONCE_ACTION );
-		if ( ! current_user_can( 'manage_options' )
-			&& ! (
-				class_exists( '\FreeFormCertificate\Core\Utils' )
-				&& \FreeFormCertificate\Core\Capabilities::current_user_can_admin_or( 'ffc_manage_settings' )
-			)
-		) {
-			wp_send_json_error( array( 'message' => 'forbidden' ), 403 );
-		}
-		update_option( self::OPTION_DISMISSED, '1', true );
-		wp_send_json_success();
-	}
-
-	/**
-	 * Decide whether to render the notice on the current admin request.
-	 */
-	private static function should_render(): bool {
-		// Already dismissed.
-		$dismissed = get_option( self::OPTION_DISMISSED, '' );
-		if ( '1' === ( is_scalar( $dismissed ) ? (string) $dismissed : '' ) ) {
-			return false;
-		}
-
-		// Only show to admins / Certificate Managers.
-		$can_manage = current_user_can( 'manage_options' )
-			|| (
-				class_exists( '\FreeFormCertificate\Core\Utils' )
-				&& \FreeFormCertificate\Core\Capabilities::current_user_can_admin_or( 'ffc_manage_settings' )
-			);
-		if ( ! $can_manage ) {
-			return false;
-		}
-
+	protected static function should_show(): bool {
 		if ( ! class_exists( '\FreeFormCertificate\Security\RateLimiter' ) ) {
 			return false;
 		}
@@ -127,8 +70,24 @@ class DeviceThresholdUpgradeNotice {
 			return false;
 		}
 
-		// Only nudge sites that still hold the legacy default; sites that
-		// already moved to 7 (or any other value) have made an active choice.
+		// Sites that already moved to 7 (or any other value) made an active choice.
 		return 5 === (int) ( $device['match_threshold'] ?? 0 );
+	}
+
+	protected static function notice_message(): string {
+		$rate_limit_url = admin_url( 'admin.php?page=ffc-settings&tab=rate_limit' );
+
+		return '<p><strong>'
+			. esc_html__( 'Free Form Certificate v6.3.2', 'ffcertificate' )
+			. '</strong> — '
+			. wp_kses(
+				sprintf(
+					/* translators: %s: link to the rate-limit settings tab */
+					__( 'Four new device fingerprint signals are now active (plugins, permissions, media queries, math precision). Consider raising the match threshold from 5 to 7 in %s to maintain the same false-positive ratio against the larger 13-signal palette.', 'ffcertificate' ),
+					'<a href="' . esc_url( $rate_limit_url ) . '">' . esc_html__( 'Settings → Rate Limit → Device Fingerprint', 'ffcertificate' ) . '</a>'
+				),
+				array( 'a' => array( 'href' => array() ) )
+			)
+			. '</p>';
 	}
 }

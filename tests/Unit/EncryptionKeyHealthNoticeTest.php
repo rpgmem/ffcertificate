@@ -38,6 +38,16 @@ class EncryptionKeyHealthNoticeTest extends TestCase {
 		Functions\when( 'admin_url' )->returnArg();
 		Functions\when( 'wp_create_nonce' )->justReturn( 'nonce' );
 		Functions\when( 'wp_enqueue_script' )->justReturn( null );
+		// wp_admin_notice() is WP 6.4 core — reproduce enough of its markup for
+		// the render assertions (class list + message).
+		Functions\when( 'wp_admin_notice' )->alias(
+			static function ( $message, $args ) {
+				$classes = 'notice notice-' . ( $args['type'] ?? 'info' )
+					. ( ! empty( $args['dismissible'] ) ? ' is-dismissible' : '' )
+					. ' ' . implode( ' ', $args['additional_classes'] ?? array() );
+				echo '<div class="' . $classes . '">' . $message . '</div>';
+			}
+		);
 
 		if ( ! defined( 'FFC_PLUGIN_URL' ) ) {
 			define( 'FFC_PLUGIN_URL', 'https://example.test/wp-content/plugins/ffcertificate/' );
@@ -149,6 +159,49 @@ class EncryptionKeyHealthNoticeTest extends TestCase {
 			$this->fail( 'expected halt' );
 		} catch ( \RuntimeException $e ) {
 			$this->assertSame( 'weak:abc123abc123', $captured[ EncryptionKeyHealthNotice::OPTION_DISMISSED ] ?? null );
+		}
+	}
+
+	// ------------------------------------------------------------------
+	// Shared AbstractDismissibleNotice plumbing (#849), exercised through
+	// this concrete subclass.
+	// ------------------------------------------------------------------
+
+	public function test_init_registers_admin_notice_and_ajax_hooks(): void {
+		$hooks = array();
+		Functions\when( 'add_action' )->alias(
+			static function ( $hook ) use ( &$hooks ) {
+				$hooks[] = $hook;
+				return true;
+			}
+		);
+
+		EncryptionKeyHealthNotice::init();
+
+		$this->assertContains( 'admin_notices', $hooks );
+		$this->assertContains( 'wp_ajax_' . EncryptionKeyHealthNotice::AJAX_ACTION, $hooks );
+	}
+
+	public function test_ajax_dismiss_forbidden_when_cannot_manage(): void {
+		$this->mock_encryption( 'weak', array( 'status' => 'weak', 'fingerprint' => 'abc123abc123' ) );
+		Functions\when( 'check_ajax_referer' )->justReturn( true );
+		Functions\when( 'current_user_can' )->justReturn( false );
+		Mockery::mock( 'alias:FreeFormCertificate\Core\Capabilities' )
+			->shouldReceive( 'current_user_can_admin_or' )->andReturn( false );
+
+		$code = null;
+		Functions\when( 'wp_send_json_error' )->alias(
+			static function ( $payload, $status ) use ( &$code ) {
+				$code = $status;
+				throw new \RuntimeException( 'json_error' );
+			}
+		);
+
+		try {
+			EncryptionKeyHealthNotice::ajax_dismiss();
+			$this->fail( 'expected halt' );
+		} catch ( \RuntimeException $e ) {
+			$this->assertSame( 403, $code );
 		}
 	}
 }

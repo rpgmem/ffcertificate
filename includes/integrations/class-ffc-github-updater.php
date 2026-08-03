@@ -226,7 +226,7 @@ class GithubUpdater {
 			);
 			return new WP_Error(
 				'ffc_updater_checksum',
-				__( 'A verificação de integridade (SHA-256) do pacote de atualização falhou. Instalação abortada.', 'ffcertificate' )
+				__( 'Update package integrity check (SHA-256) failed. Installation aborted.', 'ffcertificate' )
 			);
 		}
 
