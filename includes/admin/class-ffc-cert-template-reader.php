@@ -47,10 +47,7 @@ class CertTemplateReader {
 		$defaults = array();
 		$mine     = array();
 
-		foreach ( (array) $posts as $post ) {
-			if ( ! $post instanceof \WP_Post ) {
-				continue;
-			}
+		foreach ( $posts as $post ) {
 			$is_default = '1' === (string) get_post_meta( $post->ID, CertTemplateCpt::META_IS_DEFAULT, true );
 			$entry      = array(
 				'id'         => (int) $post->ID,

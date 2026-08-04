@@ -84,7 +84,9 @@ class CertTemplateSeeder {
 				),
 				true
 			);
-			if ( ! is_int( $id ) || $id <= 0 ) {
+			// wp_insert_post( …, true ) returns WP_Error on failure, a positive
+			// post id on success — is_int() rejects the error case.
+			if ( ! is_int( $id ) ) {
 				continue;
 			}
 
