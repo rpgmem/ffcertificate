@@ -193,6 +193,13 @@ class Loader {
 		$ffc_certificates_enabled = SettingsReader::module_enabled( 'certificates' );
 		if ( $ffc_certificates_enabled ) {
 			$this->cpt = new CPT();
+			// Certificate-template pool (#865): the reusable-template CPT + a
+			// non-destructive, versioned seed of the shipped defaults (admin
+			// only — the pool is authored/consumed in wp-admin).
+			new \FreeFormCertificate\Admin\CertTemplateCpt();
+			if ( is_admin() ) {
+				add_action( 'admin_init', array( \FreeFormCertificate\Admin\CertTemplateSeeder::class, 'maybe_seed' ) );
+			}
 		}
 
 		// Admin-only classes skipped on frontend.

@@ -44,6 +44,9 @@ final class CptCapPolicy {
 	private const MANAGE_CAP = array(
 		'ffc_form'            => 'ffc_manage_forms',
 		'ffc_self_scheduling' => 'ffc_manage_calendars',
+		// Certificate-template pool (#865) — shares the "Forms" management
+		// domain, so per-post writes route to the same manage cap as forms.
+		'ffc_cert_template'   => 'ffc_manage_forms',
 	);
 
 	/**
