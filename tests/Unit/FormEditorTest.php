@@ -66,7 +66,7 @@ class FormEditorTest extends TestCase {
     }
 
     protected function tearDown(): void {
-        unset( $_POST['qty'], $_POST['filename'] );
+        unset( $_POST['qty'], $_POST['filename'], $_POST['template_id'] );
         Monkey\tearDown();
         parent::tearDown();
     }
@@ -419,5 +419,54 @@ class FormEditorTest extends TestCase {
         $this->assertSame( '<div>Template</div>', $this->json_responses[0]['data'] );
 
         @unlink( $dir . '/test_tpl.html' );
+    }
+
+    // ==================================================================
+    // ajax_load_template() — DB-backed pool by id (#865)
+    // ==================================================================
+
+    public function test_ajax_load_template_returns_pool_html_by_id(): void {
+        // Primary path: a positive template_id resolves through the pool
+        // reader (CertTemplateReader::get_html), exercised here via its real
+        // get_post / get_post_meta reads.
+        Functions\when( 'check_ajax_referer' )->justReturn( true );
+        Functions\when( 'current_user_can' )->justReturn( true );
+
+        $post            = new \WP_Post();
+        $post->ID        = 5;
+        $post->post_type = \FreeFormCertificate\Admin\CertTemplateCpt::POST_TYPE;
+        Functions\when( 'get_post' )->justReturn( $post );
+        Functions\when( 'get_post_meta' )->justReturn( '<div>DB Template</div>' );
+
+        $_POST['template_id'] = 5;
+
+        $editor = new FormEditor();
+        try {
+            $editor->ajax_load_template();
+        } catch ( \RuntimeException $e ) {
+            // Expected — wp_send_json_* throws in the test double.
+        }
+
+        $this->assertSame( 'success', $this->json_responses[0]['type'] );
+        $this->assertSame( '<div>DB Template</div>', $this->json_responses[0]['data'] );
+    }
+
+    public function test_ajax_load_template_by_id_errors_when_not_in_pool(): void {
+        // A positive id that is not a pool post → reader returns '' → error,
+        // without ever falling through to the legacy filename path.
+        Functions\when( 'check_ajax_referer' )->justReturn( true );
+        Functions\when( 'current_user_can' )->justReturn( true );
+        Functions\when( 'get_post' )->justReturn( null );
+
+        $_POST['template_id'] = 999;
+
+        $editor = new FormEditor();
+        try {
+            $editor->ajax_load_template();
+        } catch ( \RuntimeException $e ) {
+            // Expected.
+        }
+
+        $this->assertSame( 'error', $this->json_responses[0]['type'] );
     }
 }

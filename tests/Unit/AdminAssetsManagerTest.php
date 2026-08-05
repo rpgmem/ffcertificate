@@ -56,6 +56,13 @@ class AdminAssetsManagerTest extends TestCase {
         Functions\when('wp_date')->justReturn('01/01/2026');
         Functions\when('wp_timezone')->alias(static fn() => new \DateTimeZone('UTC'));
 
+        // The localization payload now lists the certificate-template pool
+        // (#865) via CertTemplateReader::list_for_editor() → get_posts().
+        // Default to an empty pool so the discover helper takes its legacy
+        // glob fallback (empty in the test dir); the dedicated pool test
+        // overrides get_posts to exercise the id-keyed branch.
+        Functions\when('get_posts')->justReturn(array());
+
         // Utils alias mock
         $this->utils_mock = Mockery::mock('alias:\FreeFormCertificate\Core\AssetHelper');
         $ri_mock = Mockery::mock( 'alias:\FreeFormCertificate\Core\RequestInput' );
@@ -161,6 +168,56 @@ class AdminAssetsManagerTest extends TestCase {
         $this->assertContains('ffc-admin-utilities', $enqueued_styles);
         $this->assertContains('ffc-admin-css', $enqueued_styles);
         $this->assertContains('ffc-admin-submissions-css', $enqueued_styles);
+    }
+
+    // ==================================================================
+    // Localized template catalog — DB pool (#865)
+    // ==================================================================
+
+    public function test_localized_templates_come_from_db_pool_keyed_by_id(): void {
+        global $post_type;
+        $post_type = 'ffc_form';
+
+        // Two visible pool templates: one shipped default, one user template.
+        $default_post             = new \WP_Post();
+        $default_post->ID         = 10;
+        $default_post->post_title = 'Certificate model 1';
+        $user_post                = new \WP_Post();
+        $user_post->ID            = 20;
+        $user_post->post_title    = 'My layout';
+        Functions\when('get_posts')->justReturn(array($default_post, $user_post));
+        Functions\when('get_post_meta')->alias(static function ($id, $key) {
+            // list_for_editor() reads META_IS_DEFAULT per post; only id 10 is a default.
+            return (10 === $id) ? '1' : '';
+        });
+
+        $captured = null;
+        Functions\when('wp_enqueue_media')->justReturn(true);
+        Functions\when('wp_enqueue_script')->justReturn(true);
+        Functions\when('wp_enqueue_style')->justReturn(true);
+        Functions\when('admin_url')->justReturn('https://example.com/wp-admin/admin-ajax.php');
+        Functions\when('wp_create_nonce')->justReturn('test_nonce');
+        Functions\when('wp_localize_script')->alias(static function ($handle, $name, $data) use (&$captured) {
+            if ('ffc_ajax' === $name) {
+                $captured = $data;
+            }
+            return true;
+        });
+
+        $manager = new AdminAssetsManager();
+        $manager->enqueue_admin_assets('post.php');
+
+        $this->assertIsArray($captured);
+        $this->assertArrayHasKey('templates', $captured);
+        $templates = $captured['templates'];
+        $this->assertCount(2, $templates);
+        // Defaults first, addressed by post id; `file` is empty for pool
+        // entries (the JS posts template_id, not the legacy filename).
+        $this->assertSame(10, $templates[0]['id']);
+        $this->assertTrue($templates[0]['is_default']);
+        $this->assertSame('', $templates[0]['file']);
+        $this->assertSame(20, $templates[1]['id']);
+        $this->assertFalse($templates[1]['is_default']);
     }
 
     // ==================================================================

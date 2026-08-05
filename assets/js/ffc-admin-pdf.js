@@ -84,6 +84,8 @@
         $modal.find('#ffc-modal-cancel').text(cancelText);
 
         var $list = $modal.find('.ffc-template-list');
+        var defaultBadge = strings.templateDefaultBadge || 'Default template';
+        var customBadge = strings.templateCustomBadge || 'My template';
         templates.forEach(function(template) {
             var $opt = $(
                 '<div class="ffc-template-option" style="padding:15px;margin:10px 0;border:2px solid #ddd;border-radius:4px;cursor:pointer;transition:all 0.2s;">' +
@@ -91,9 +93,13 @@
                     '<div style="color:#666;font-size:13px;margin-top:5px;"></div>' +
                 '</div>'
             );
-            $opt.attr('data-file', template.value);
+            // Templates are addressed by DB post id (#865). Legacy html/ glob
+            // fallback entries carry id 0 + a `file` basename; both attributes
+            // are stored so loadTemplateFile can pick the right POST param.
+            $opt.attr('data-id', (template.id != null) ? template.id : 0);
+            $opt.attr('data-file', template.file || '');
             $opt.find('strong').text(template.label);
-            $opt.find('div').text(template.value);
+            $opt.find('div').text(template.is_default ? defaultBadge : customBadge);
             $list.append($opt);
         });
 
@@ -127,6 +133,7 @@
 
         // Template selection
         $('.ffc-template-option').on('click', function() {
+            var templateId = $(this).data('id');
             var templateFile = $(this).data('file');
             var templateName = $(this).find('strong').text();
 
@@ -141,54 +148,64 @@
                 return;
             }
 
-            loadTemplateFile(templateFile, templateName);
+            loadTemplateFile(templateId, templateFile, templateName);
         });
     });
 
-    // Function to load template file via fetch
-    function loadTemplateFile(filename, displayName) {
-        var templateUrl = '/wp-content/plugins/ffcertificate/html/' + filename;
+    // Load a certificate template into the layout editor.
+    //
+    // Primary path (#865): POST ffc_load_template with the DB pool post id
+    // (template_id) — the server resolves the HTML via CertTemplateReader.
+    // When the id is 0 (a legacy html/ glob fallback entry) it posts the
+    // `filename` param instead, which the handler serves from html/ as a
+    // deprecated shim (#865 phase-4). Replaces the old direct fetch() of
+    // /wp-content/plugins/.../html/<file>, so template resolution is now
+    // gated by the nonce + capability check server-side.
+    function loadTemplateFile(templateId, filename, displayName) {
         var showNotification = window.FFC.Admin.showNotification || function() {};
-        var strings = (typeof ffc_ajax !== 'undefined' && ffc_ajax.strings) ? ffc_ajax.strings : {};
+        var ajaxData = (typeof ffc_ajax !== 'undefined') ? ffc_ajax : {};
+        var strings = ajaxData.strings || {};
+        var ajaxUrl = ajaxData.ajax_url || (typeof ajaxurl !== 'undefined' ? ajaxurl : '');
 
         // Show loading notification
         var loadingText = strings.loadingTemplate || 'Loading template...';
         showNotification(loadingText, 'info', 0);
 
-        fetch(templateUrl)
-            .then(function(response) {
-                if (!response.ok) {
-                    throw new Error('HTTP error! status: ' + response.status);
-                }
+        var postData = { action: 'ffc_load_template', nonce: ajaxData.nonce || '' };
+        templateId = parseInt(templateId, 10) || 0;
+        if (templateId > 0) {
+            postData.template_id = templateId;
+        } else {
+            postData.filename = filename || '';
+        }
 
-                return response.text();
-            })
-            .then(function(htmlContent) {
-                var $htmlField = $('#ffc_pdf_layout');
-
-                if ($htmlField.length) {
-                    setLayoutContent($htmlField, htmlContent);
-                    var successTemplate = strings.templateLoadedSuccess || 'Template "%s" loaded successfully!';
-                    var successMsg = successTemplate.replace('%s', displayName || filename);
-                    showNotification('✓ ' + successMsg, 'success', 3000);
+        $.post(ajaxUrl, postData)
+            .done(function(response) {
+                if (response && response.success) {
+                    var $htmlField = $('#ffc_pdf_layout');
+                    if ($htmlField.length) {
+                        setLayoutContent($htmlField, response.data);
+                        var successTemplate = strings.templateLoadedSuccess || 'Template "%s" loaded successfully!';
+                        var successMsg = successTemplate.replace('%s', displayName || filename || '');
+                        showNotification('✓ ' + successMsg, 'success', 3000);
+                    } else {
+                        var fieldMsg = strings.htmlFieldNotFound || 'HTML field not found.';
+                        showNotification('✗ ' + fieldMsg, 'error');
+                    }
                 } else {
-                    var errorMsg = strings.htmlFieldNotFound || 'HTML field not found.';
-                    showNotification('✗ ' + errorMsg, 'error');
+                    var notFoundMsg = strings.templateFileNotFound || 'Template file not found. Check if file exists in html/ folder.';
+                    showNotification('✗ ' + notFoundMsg, 'error', 8000);
                 }
             })
-            .catch(function(error) {
-                var errorMsg = '';
-                if (error.message.includes('404')) {
-                    errorMsg = strings.templateFileNotFound || 'Template file not found. Check if file exists in html/ folder.';
-                } else if (error.message.includes('403')) {
+            .fail(function(jqXHR) {
+                var errorMsg;
+                if (jqXHR && jqXHR.status === 403) {
                     errorMsg = strings.accessDenied || 'Access denied. Check file permissions.';
-                } else if (error.message.includes('Failed to fetch')) {
-                    errorMsg = strings.networkError || 'Network error. Check your connection.';
+                } else if (jqXHR && jqXHR.status === 404) {
+                    errorMsg = strings.templateFileNotFound || 'Template file not found. Check if file exists in html/ folder.';
                 } else {
-                    var errorTemplate = strings.errorLoadingTemplate || 'Error loading template: %s';
-                    errorMsg = errorTemplate.replace('%s', error.message);
+                    errorMsg = strings.networkError || 'Network error. Check your connection.';
                 }
-
                 showNotification('✗ ' + errorMsg, 'error', 8000);
             });
     }

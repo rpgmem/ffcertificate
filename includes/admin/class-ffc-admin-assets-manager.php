@@ -479,6 +479,8 @@ class AdminAssetsManager {
 
 				// Template Manager.
 				'selectTemplate'          => __( 'Select a Template', 'ffcertificate' ),
+				'templateDefaultBadge'    => __( 'Default template', 'ffcertificate' ),
+				'templateCustomBadge'     => __( 'My template', 'ffcertificate' ),
 				'cancel'                  => __( 'Cancel', 'ffcertificate' ),
 				'loadingTemplate'         => __( 'Loading template...', 'ffcertificate' ),
 				/* translators: %s: error message, %s: error message */
@@ -510,19 +512,53 @@ class AdminAssetsManager {
 	 * Build the certificate-layout template list shown in the form-editor
 	 * "Load template" modal.
 	 *
-	 * Scans `html/*.html` and keeps filenames whose basename contains
-	 * "certificate" anywhere (case-insensitive) — that's the convention
-	 * agreed in #443 for which bundled HTML files are valid layouts for
-	 * the Certificate HTML Editor (excludes receipt / ficha / atestado
-	 * templates that live in the same directory).
+	 * Primary source (#865): the DB-backed template pool, via
+	 * {@see CertTemplateReader::list_for_editor()} — visible templates,
+	 * defaults first, each carrying its post `id` (the JS posts `template_id`
+	 * to load it). The `file` key is empty for pool entries.
 	 *
-	 * Labels are derived from the filename: strip `.html`, replace `_`
-	 * with space, title-case the words. So `default_certificate_1.html`
-	 * → "Default Certificate 1".
+	 * Falls back to the legacy `html/` glob when the pool is empty (a site
+	 * whose pool hasn't seeded yet) — a deprecated shim (#865 phase-4) whose
+	 * entries carry `id` 0 and a `file` basename, so the JS posts the legacy
+	 * `filename` param instead. Removed once the pool seeds on every install.
 	 *
-	 * @return array<int,array{value: string, label: string}>
+	 * @return array<int,array{id: int, label: string, is_default: bool, file: string}>
 	 */
 	private static function discover_layout_templates(): array {
+		$pool = CertTemplateReader::list_for_editor();
+		if ( ! empty( $pool ) ) {
+			return array_map(
+				static function ( array $tpl ): array {
+					return array(
+						'id'         => $tpl['id'],
+						'label'      => $tpl['label'],
+						'is_default' => $tpl['is_default'],
+						'file'       => '',
+					);
+				},
+				$pool
+			);
+		}
+
+		return self::discover_layout_templates_legacy_glob();
+	}
+
+	/**
+	 * Deprecated fallback (#865 phase-4): the pre-pool `html/` glob.
+	 *
+	 * Scans `html/*.html` and keeps filenames whose basename contains
+	 * "certificate" anywhere (case-insensitive) — the #443 convention for
+	 * which bundled HTML files are valid certificate layouts (excludes
+	 * receipt / ficha / atestado templates in the same directory). Labels
+	 * are derived from the filename: strip `.html`, replace `_` with space,
+	 * title-case. So `default_certificate_1.html` → "Default Certificate 1".
+	 *
+	 * Entries carry `id` 0 and the `file` basename so the front-end posts the
+	 * legacy `filename` param. Removed once the pool is the sole source.
+	 *
+	 * @return array<int,array{id: int, label: string, is_default: bool, file: string}>
+	 */
+	private static function discover_layout_templates_legacy_glob(): array {
 		$dir   = FFC_PLUGIN_DIR . 'html/';
 		$paths = glob( $dir . '*.html' );
 		if ( ! $paths ) {
@@ -538,8 +574,10 @@ class AdminAssetsManager {
 			$stem  = (string) preg_replace( '/\.html$/i', '', $name );
 			$label = ucwords( str_replace( '_', ' ', $stem ) );
 			$out[] = array(
-				'value' => $name,
-				'label' => $label,
+				'id'         => 0,
+				'label'      => $label,
+				'is_default' => true,
+				'file'       => $name,
 			);
 		}
 		return $out;

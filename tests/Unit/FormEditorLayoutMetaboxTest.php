@@ -30,7 +30,12 @@ class FormEditorLayoutMetaboxTest extends TestCase {
         Functions\when( 'esc_url' )->returnArg();
         Functions\when( 'esc_textarea' )->returnArg();
         Functions\when( 'esc_html_e' )->alias( function ( $text ) { echo $text; } );
+        Functions\when( 'esc_attr_e' )->alias( function ( $text ) { echo $text; } );
         Functions\when( 'get_post_meta' )->justReturn( '' );
+        // The layout dropdown now lists the DB-backed template pool (#865) via
+        // CertTemplateReader::list_for_editor() → get_posts(); default empty so
+        // the base render tests emit no <select> (the dedicated test overrides).
+        Functions\when( 'get_posts' )->justReturn( array() );
         Functions\when( 'wp_nonce_field' )->alias( function ( $action, $name ) { echo "<input name=\"{$name}\" />"; } );
 
         if ( ! defined( 'FFC_PLUGIN_DIR' ) ) {
@@ -76,5 +81,36 @@ class FormEditorLayoutMetaboxTest extends TestCase {
         $this->assertStringContainsString( 'id="ffc_btn_import_html"', $html );
         $this->assertStringContainsString( 'id="ffc_btn_media_lib"', $html );
         $this->assertStringContainsString( 'id="ffc_btn_preview"', $html );
+    }
+
+    public function test_render_lists_pool_templates_grouped_by_id(): void {
+        // #865: the "Load" dropdown is populated from the DB-backed pool,
+        // grouped defaults / user templates, each <option> valued by post id.
+        $default_post             = new \WP_Post();
+        $default_post->ID         = 10;
+        $default_post->post_title = 'Certificate model 1';
+        $user_post                = new \WP_Post();
+        $user_post->ID            = 20;
+        $user_post->post_title    = 'My layout';
+        Functions\when( 'get_posts' )->justReturn( array( $default_post, $user_post ) );
+        Functions\when( 'get_post_meta' )->alias( static function ( $id, $key ) {
+            if ( '_ffc_form_config' === $key ) {
+                return array();
+            }
+            // META_IS_DEFAULT — only post 10 is a shipped default.
+            return ( 10 === $id ) ? '1' : '';
+        } );
+
+        $post     = Mockery::mock( 'WP_Post' );
+        $post->ID = 11;
+        ob_start();
+        $this->metabox->render( $post );
+        $html = (string) ob_get_clean();
+
+        $this->assertStringContainsString( '<optgroup label="Default templates">', $html );
+        $this->assertStringContainsString( '<optgroup label="My templates">', $html );
+        $this->assertStringContainsString( '<option value="10">Certificate model 1</option>', $html );
+        $this->assertStringContainsString( '<option value="20">My layout</option>', $html );
+        $this->assertStringContainsString( 'id="ffc_load_template_btn"', $html );
     }
 }
