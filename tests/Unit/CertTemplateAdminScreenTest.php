@@ -32,7 +32,7 @@ class CertTemplateAdminScreenTest extends TestCase {
 	}
 
 	protected function tearDown(): void {
-		unset( $_GET['post'] );
+		unset( $_GET['post'], $_POST['ffc_cert_template_nonce'], $_POST['ffc_template_html'], $_POST['ffc_template_visible'] );
 		Monkey\tearDown();
 		parent::tearDown();
 	}
@@ -178,6 +178,103 @@ class CertTemplateAdminScreenTest extends TestCase {
 		}
 
 		$this->assertContains( array( 5, CertTemplateCpt::META_VISIBLE, '0' ), $written );
+	}
+
+	// ==================================================================
+	// Edit-screen metabox (#865)
+	// ==================================================================
+
+	public function test_add_edit_metabox_registers_box(): void {
+		$captured = array();
+		Functions\when( 'add_meta_box' )->alias(
+			static function ( $id, $title, $cb, $screen ) use ( &$captured ) {
+				$captured = array( $id, $screen );
+			}
+		);
+
+		( new CertTemplateAdminScreen() )->add_edit_metabox();
+
+		$this->assertSame( 'ffc_cert_template_body', $captured[0] );
+		$this->assertSame( CertTemplateCpt::POST_TYPE, $captured[1] );
+	}
+
+	public function test_render_edit_metabox_outputs_editor_and_visibility(): void {
+		Functions\when( 'esc_html_e' )->alias( static fn( $t ) => print( $t ) );
+		Functions\when( 'esc_textarea' )->returnArg();
+		Functions\when( 'checked' )->justReturn( '' );
+		Functions\when( 'wp_nonce_field' )->alias( static fn() => print( '<input name="ffc_cert_template_nonce" />' ) );
+		Functions\when( 'get_post_meta' )->justReturn( '<div>Body</div>' );
+
+		$html = $this->capture(
+			fn() => ( new CertTemplateAdminScreen() )->render_edit_metabox( $this->pool_post( 5 ) )
+		);
+
+		$this->assertStringContainsString( 'name="ffc_template_html"', $html );
+		$this->assertStringContainsString( '<div>Body</div>', $html );
+		$this->assertStringContainsString( 'name="ffc_template_visible"', $html );
+		$this->assertStringContainsString( 'name="ffc_cert_template_nonce"', $html );
+	}
+
+	public function test_save_edit_metabox_persists_html_and_visibility(): void {
+		Functions\when( 'current_user_can' )->justReturn( true );
+		Functions\when( 'sanitize_key' )->returnArg();
+		Functions\when( 'wp_unslash' )->returnArg();
+		Functions\when( 'wp_verify_nonce' )->justReturn( true );
+		Functions\when( 'wp_kses' )->alias( static fn( $html ) => $html );
+		Functions\when( 'get_post' )->justReturn( $this->pool_post( 5 ) );
+
+		$written = array();
+		Functions\when( 'update_post_meta' )->alias(
+			static function ( $id, $key, $value ) use ( &$written ) {
+				$written[] = array( $id, $key, $value );
+				return true;
+			}
+		);
+
+		$_POST['ffc_cert_template_nonce'] = 'n';
+		$_POST['ffc_template_html']       = '<div>New body</div>';
+		$_POST['ffc_template_visible']    = '1';
+
+		( new CertTemplateAdminScreen() )->save_edit_metabox( 5, $this->pool_post( 5 ) );
+
+		$this->assertContains( array( 5, CertTemplateCpt::META_HTML, '<div>New body</div>' ), $written );
+		$this->assertContains( array( 5, CertTemplateCpt::META_VISIBLE, '1' ), $written );
+	}
+
+	public function test_save_edit_metabox_bails_on_bad_nonce(): void {
+		Functions\when( 'sanitize_key' )->returnArg();
+		Functions\when( 'wp_unslash' )->returnArg();
+		Functions\when( 'wp_verify_nonce' )->justReturn( false );
+
+		$updated = false;
+		Functions\when( 'update_post_meta' )->alias(
+			static function () use ( &$updated ) {
+				$updated = true;
+				return true;
+			}
+		);
+
+		$_POST['ffc_cert_template_nonce'] = 'bad';
+		( new CertTemplateAdminScreen() )->save_edit_metabox( 5, $this->pool_post( 5 ) );
+
+		$this->assertFalse( $updated, 'no write on an invalid nonce' );
+	}
+
+	public function test_save_edit_metabox_ignores_other_post_types(): void {
+		$updated = false;
+		Functions\when( 'update_post_meta' )->alias(
+			static function () use ( &$updated ) {
+				$updated = true;
+				return true;
+			}
+		);
+
+		$other            = new \WP_Post();
+		$other->ID        = 9;
+		$other->post_type = 'page';
+		( new CertTemplateAdminScreen() )->save_edit_metabox( 9, $other );
+
+		$this->assertFalse( $updated );
 	}
 
 	/**

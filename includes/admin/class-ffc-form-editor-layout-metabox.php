@@ -64,6 +64,10 @@ class FormEditorLayoutMetabox {
 								<span class="dashicons dashicons-visibility" style="vertical-align:text-bottom;margin-right:2px;"></span>
 								<?php esc_html_e( 'Preview', 'ffcertificate' ); ?>
 							</button>
+							<button type="button" class="button" id="ffc_save_as_model_btn">
+								<span class="dashicons dashicons-media-default" style="vertical-align:text-bottom;margin-right:2px;"></span>
+								<?php esc_html_e( 'Save as model', 'ffcertificate' ); ?>
+							</button>
 						</div>
 
 						<?php if ( $templates ) : ?>

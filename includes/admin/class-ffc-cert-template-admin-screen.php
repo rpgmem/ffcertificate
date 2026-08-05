@@ -41,6 +41,11 @@ class CertTemplateAdminScreen {
 	private const TOGGLE_ACTION = 'ffc_toggle_cert_template_visibility';
 
 	/**
+	 * Nonce action for the edit-screen metabox save.
+	 */
+	private const SAVE_NONCE = 'ffc_save_cert_template';
+
+	/**
 	 * Register the list-table + row-action hooks.
 	 */
 	public function __construct() {
@@ -49,6 +54,10 @@ class CertTemplateAdminScreen {
 		add_action( "manage_{$pt}_posts_custom_column", array( $this, 'render_column' ), 10, 2 );
 		add_filter( 'post_row_actions', array( $this, 'row_actions' ), 10, 2 );
 		add_action( 'admin_action_' . self::TOGGLE_ACTION, array( $this, 'handle_toggle_visibility' ) );
+		// Edit screen: HTML body + visibility metabox (the CPT only `supports`
+		// title, so the template body needs its own field).
+		add_action( 'add_meta_boxes_' . $pt, array( $this, 'add_edit_metabox' ) );
+		add_action( 'save_post_' . $pt, array( $this, 'save_edit_metabox' ), 10, 2 );
 	}
 
 	/**
@@ -155,5 +164,84 @@ class CertTemplateAdminScreen {
 
 		wp_safe_redirect( admin_url( 'edit.php?post_type=' . CertTemplateCpt::POST_TYPE ) );
 		exit;
+	}
+
+	/**
+	 * Register the HTML-body + visibility metabox on the edit screen.
+	 *
+	 * @return void
+	 */
+	public function add_edit_metabox(): void {
+		add_meta_box(
+			'ffc_cert_template_body',
+			__( 'Template', 'ffcertificate' ),
+			array( $this, 'render_edit_metabox' ),
+			CertTemplateCpt::POST_TYPE,
+			'normal',
+			'high'
+		);
+	}
+
+	/**
+	 * Render the HTML editor + visibility checkbox.
+	 *
+	 * @param \WP_Post $post Current template post.
+	 * @return void
+	 */
+	public function render_edit_metabox( \WP_Post $post ): void {
+		$html    = (string) get_post_meta( $post->ID, CertTemplateCpt::META_HTML, true );
+		$visible = '1' === (string) get_post_meta( $post->ID, CertTemplateCpt::META_VISIBLE, true );
+
+		wp_nonce_field( self::SAVE_NONCE, 'ffc_cert_template_nonce' );
+		?>
+		<p>
+			<label class="ffc-block-label" for="ffc_template_html"><strong><?php esc_html_e( 'Certificate HTML', 'ffcertificate' ); ?></strong></label>
+			<textarea name="ffc_template_html" id="ffc_template_html" class="ffc-w100" rows="16"><?php echo esc_textarea( $html ); ?></textarea>
+		</p>
+		<p class="description">
+			<?php esc_html_e( 'Mandatory Tags:', 'ffcertificate' ); ?> <code>{{auth_code}}</code>, <code>{{name}}</code>, <code>{{cpf_rf}}</code>.
+		</p>
+		<p>
+			<label>
+				<input type="checkbox" name="ffc_template_visible" value="1" <?php checked( $visible ); ?>>
+				<?php esc_html_e( 'Show this template in the form editor\'s "Load" list', 'ffcertificate' ); ?>
+			</label>
+		</p>
+		<?php
+	}
+
+	/**
+	 * Persist the HTML body + visibility from the edit screen.
+	 *
+	 * @param int      $post_id Saved post id.
+	 * @param \WP_Post $post    Saved post.
+	 * @return void
+	 */
+	public function save_edit_metabox( int $post_id, \WP_Post $post ): void {
+		if ( defined( 'DOING_AUTOSAVE' ) && DOING_AUTOSAVE ) {
+			return;
+		}
+		if ( CertTemplateCpt::POST_TYPE !== $post->post_type ) {
+			return;
+		}
+
+		$nonce = isset( $_POST['ffc_cert_template_nonce'] )
+			? sanitize_key( wp_unslash( $_POST['ffc_cert_template_nonce'] ) )
+			: '';
+		if ( ! wp_verify_nonce( $nonce, self::SAVE_NONCE ) ) {
+			return;
+		}
+		if ( ! \FreeFormCertificate\Core\Capabilities::current_user_can_admin_or( 'ffc_manage_forms' ) ) {
+			return;
+		}
+
+		// Certificate HTML legitimately carries rich markup (tables, inline
+		// styles) — sanitize through the same allowlist the form-layout save
+		// uses, never a plain sanitize_text_field.
+		$raw  = isset( $_POST['ffc_template_html'] ) ? (string) wp_unslash( $_POST['ffc_template_html'] ) : '';
+		$html = wp_kses( $raw, \FreeFormCertificate\Core\HtmlPolicy::get_allowed_html_tags() );
+		CertTemplateWriter::update_html( $post_id, $html );
+
+		CertTemplateWriter::set_visibility( $post_id, isset( $_POST['ffc_template_visible'] ) );
 	}
 }

@@ -171,6 +171,54 @@ describe('ffc-admin-pdf.js — loadTemplate (ajax path)', () => {
 	});
 });
 
+describe('ffc-admin-pdf.js — save as model', () => {
+	beforeEach(() => {
+		reset();
+		installFFC();
+		document.body.innerHTML =
+			'<button id="ffc_save_as_model_btn">Save as model</button>' +
+			'<textarea id="ffc_pdf_layout"><div>{{name}}</div></textarea>';
+		window.ffc_ajax = {
+			ajax_url: '/wp-admin/admin-ajax.php',
+			nonce: 'test-nonce',
+			strings: { saveModelPrompt: 'Name?', templateSaved: 'Saved!' },
+		};
+		loadScript('assets/js/ffc-admin-pdf.js');
+	});
+
+	afterEach(() => {
+		if (window.prompt && window.prompt.mockRestore) {
+			window.prompt.mockRestore();
+		}
+		reset();
+	});
+
+	it('POSTs ffc_save_template with the prompted title and current layout', () => {
+		vi.spyOn(window, 'prompt').mockReturnValue('My Model');
+		const jqxhr = { done(cb) { cb({ success: true, data: { id: 9 } }); return jqxhr; }, fail() { return jqxhr; } };
+		window.$.post = vi.fn(() => jqxhr);
+
+		window.$('#ffc_save_as_model_btn').trigger('click');
+
+		expect(window.$.post).toHaveBeenCalled();
+		const [url, data] = window.$.post.mock.calls[0];
+		expect(url).toBe('/wp-admin/admin-ajax.php');
+		expect(data.action).toBe('ffc_save_template');
+		expect(data.nonce).toBe('test-nonce');
+		expect(data.title).toBe('My Model');
+		expect(data.html).toContain('{{name}}');
+	});
+
+	it('does not POST when the prompt is cancelled', () => {
+		vi.spyOn(window, 'prompt').mockReturnValue(null);
+		window.$.post = vi.fn();
+
+		window.$('#ffc_save_as_model_btn').trigger('click');
+
+		expect(window.$.post).not.toHaveBeenCalled();
+	});
+});
+
 describe('ffc-admin-pdf.js — preview button', () => {
 	beforeEach(() => {
 		reset();

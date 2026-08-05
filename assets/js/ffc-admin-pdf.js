@@ -210,6 +210,53 @@
             });
     }
 
+    // Save the current layout HTML as a new template in the DB pool (#865).
+    $(document).on('click', '#ffc_save_as_model_btn', function(e) {
+        e.preventDefault();
+        var showNotification = window.FFC.Admin.showNotification || function() {};
+        var ajaxData = (typeof ffc_ajax !== 'undefined') ? ffc_ajax : {};
+        var strings = ajaxData.strings || {};
+
+        // Flush CodeMirror into the textarea before reading (mirrors preview).
+        var $layout = $('#ffc_pdf_layout');
+        var $cm = $layout.nextAll('.CodeMirror').first();
+        if ($cm.length && $cm[0].CodeMirror && typeof $cm[0].CodeMirror.save === 'function') {
+            $cm[0].CodeMirror.save();
+        }
+        var html = $layout.val();
+        if (!html || !html.trim()) {
+            alert(strings.previewEmpty || 'The HTML editor is empty. Add a template first.');
+            return;
+        }
+
+        var title = window.prompt(strings.saveModelPrompt || 'Name for this template:', '');
+        if (title === null) {
+            return; // cancelled
+        }
+        title = title.trim();
+        if (!title) {
+            return;
+        }
+
+        showNotification(strings.loading || 'Loading...', 'info', 0);
+        $.post(ajaxData.ajax_url || (typeof ajaxurl !== 'undefined' ? ajaxurl : ''), {
+            action: 'ffc_save_template',
+            nonce: ajaxData.nonce || '',
+            title: title,
+            html: html
+        })
+            .done(function(response) {
+                if (response && response.success) {
+                    showNotification('✓ ' + (strings.templateSaved || 'Template saved!'), 'success', 3000);
+                } else {
+                    showNotification('✗ ' + (strings.error || 'Error: '), 'error', 8000);
+                }
+            })
+            .fail(function() {
+                showNotification('✗ ' + (strings.connectionError || 'Connection error.'), 'error', 8000);
+            });
+    });
+
     // ==========================================================================
     // IMPORT HTML FILE
     // ==========================================================================
