@@ -41,6 +41,7 @@ class SettingsSaveHandlerTest extends TestCase {
             return abs( (int) $val );
         } );
         Functions\when( 'wp_unslash' )->returnArg();
+        Functions\when( 'esc_url_raw' )->returnArg();
         // SMTP / Email Model saves are gated on ffc_manage_settings_smtp (#711);
         // default to granted so the existing save tests exercise the save path.
         Functions\when( 'current_user_can' )->justReturn( true );

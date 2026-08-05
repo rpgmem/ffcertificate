@@ -10,9 +10,9 @@
  * (`logo_gov` / `logo_org`, a Media Library URL), falling back to a generic
  * shipped placeholder under `assets/img/certificate-defaults/` when unset — so
  * the default templates never render a broken image, and no instance-specific
- * logo is hardcoded into the plugin. Both PDF renderers (the certificate
- * {@see \FreeFormCertificate\Generators\PdfHtmlRenderer} and the reregistration
- * ficha generator) route through this one helper so the fallback stays uniform.
+ * logo is hardcoded into the plugin. Both PDF renderers (the certificate/receipt
+ * renderer and the reregistration ficha generator) route through this one
+ * helper so the fallback stays uniform.
  *
  * @package FreeFormCertificate\Core
  * @since   6.20.0

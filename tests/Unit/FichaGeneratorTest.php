@@ -35,6 +35,12 @@ class FichaGeneratorTest extends TestCase {
         Functions\when('esc_attr')->returnArg();
         Functions\when('wp_kses_post')->returnArg();
         Functions\when('sanitize_text_field')->alias('trim');
+        // #865 Phase 2: FichaGenerator now resolves {{logo_gov}}/{{logo_org}} via
+        // BrandingTokens → SettingsReader::get() → get_option( 'ffc_settings' ).
+        Functions\when('get_option')->justReturn(array(
+            'logo_gov' => 'https://cdn.example/gov.png',
+            'logo_org' => 'https://cdn.example/org.png',
+        ));
         Functions\when('sanitize_file_name')->alias(function ($name) {
             return preg_replace('/[^a-zA-Z0-9_\-.]/', '_', $name);
         });
