@@ -315,8 +315,8 @@ class CertTemplateAdminScreen {
 		}
 		$post_id = isset( $postarr['ID'] ) ? (int) $postarr['ID'] : 0;
 		if ( $post_id > 0 && CertTemplateReader::is_default( $post_id ) ) {
-			$existing = (string) get_post_field( 'post_title', $post_id );
-			if ( '' !== $existing ) {
+			$existing = get_post_field( 'post_title', $post_id );
+			if ( is_string( $existing ) && '' !== $existing ) {
 				$data['post_title'] = wp_slash( $existing );
 			}
 		}
