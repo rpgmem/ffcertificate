@@ -224,6 +224,8 @@ class CertTemplateAdminScreenTest extends TestCase {
 		Functions\when( 'wp_verify_nonce' )->justReturn( true );
 		Functions\when( 'wp_kses' )->alias( static fn( $html ) => $html );
 		Functions\when( 'get_post' )->justReturn( $this->pool_post( 5 ) );
+		// A non-default template (is_default reads META_IS_DEFAULT): '' → editable.
+		Functions\when( 'get_post_meta' )->justReturn( '' );
 
 		$written = array();
 		Functions\when( 'update_post_meta' )->alias(
