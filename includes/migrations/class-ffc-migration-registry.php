@@ -93,6 +93,17 @@ class MigrationRegistry {
 			'requires_column' => false,
 		);
 
+		// v6.20.0 (#865): import certificate layouts left in the legacy `html/`
+		// drop-folder into the database-backed template pool, then retire the glob.
+		$this->migrations['import_legacy_templates'] = array(
+			'name'            => __( 'Import Legacy Certificate Templates', 'ffcertificate' ),
+			'description'     => __( 'Import certificate layouts left in the plugin\'s html/ drop-folder into the reusable template pool (Certificate → Templates). Non-destructive and idempotent: shipped defaults are skipped and each file is imported once.', 'ffcertificate' ),
+			'icon'            => 'ffc-icon-scroll',
+			'batch_size'      => 20,
+			'order'           => 5,
+			'requires_column' => false,
+		);
+
 		// Allow plugins to add custom migrations.
         // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- ffcertificate is the plugin prefix
 		$this->migrations = apply_filters( 'ffcertificate_migrations_registry', $this->migrations );
