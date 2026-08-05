@@ -61,12 +61,29 @@ class MigrationRegistryTest extends TestCase {
         $all = $registry->get_all_migrations();
 
         $this->assertIsArray( $all );
-        $this->assertCount( 5, $all );
+        $this->assertCount( 6, $all );
         $this->assertArrayHasKey( 'split_cpf_rf', $all );
         $this->assertArrayHasKey( 'email_hash_rehash', $all );
         $this->assertArrayHasKey( 'key_rotation', $all );
         $this->assertArrayHasKey( 'activity_log_clear_plaintext', $all );
         $this->assertArrayHasKey( 'import_legacy_templates', $all );
+        $this->assertArrayHasKey( 'rewrite_html_image_refs', $all );
+    }
+
+    public function test_rewrite_html_image_refs_migration_has_expected_keys(): void {
+        $registry  = new MigrationRegistry();
+        $migration = $registry->get_all_migrations()['rewrite_html_image_refs'];
+
+        $expected_keys = array( 'name', 'description', 'icon', 'batch_size', 'order', 'requires_column' );
+
+        foreach ( $expected_keys as $key ) {
+            $this->assertArrayHasKey( $key, $migration, "Missing expected key: {$key}" );
+        }
+
+        $this->assertSame( 'ffc-icon-palette', $migration['icon'] );
+        $this->assertSame( 10, $migration['batch_size'] );
+        $this->assertSame( 6, $migration['order'] );
+        $this->assertFalse( $migration['requires_column'] );
     }
 
     public function test_import_legacy_templates_migration_has_expected_keys(): void {

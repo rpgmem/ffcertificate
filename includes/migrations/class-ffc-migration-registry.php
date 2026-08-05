@@ -104,6 +104,18 @@ class MigrationRegistry {
 			'requires_column' => false,
 		);
 
+		// v6.20.0 (#865): move images referenced from the legacy `html/` folder
+		// into the Media Library and rewrite stored form layouts / backgrounds /
+		// pool templates to point at the new attachments.
+		$this->migrations['rewrite_html_image_refs'] = array(
+			'name'            => __( 'Rewrite html/ Image References', 'ffcertificate' ),
+			'description'     => __( 'Move images referenced from the legacy html/ folder into the Media Library and update stored certificate layouts, backgrounds and template-pool bodies to point at the new attachments. Idempotent; missing files are reported as errors.', 'ffcertificate' ),
+			'icon'            => 'ffc-icon-palette',
+			'batch_size'      => 10,
+			'order'           => 6,
+			'requires_column' => false,
+		);
+
 		// Allow plugins to add custom migrations.
         // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- ffcertificate is the plugin prefix
 		$this->migrations = apply_filters( 'ffcertificate_migrations_registry', $this->migrations );
