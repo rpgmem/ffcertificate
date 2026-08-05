@@ -92,10 +92,12 @@ class CertTemplateCpt {
 		$args = array(
 			'labels'          => $labels,
 			'public'          => false,
-			// Management UI (submenu, columns, actions) lands in a follow-up
-			// phase; for now this is a data container queried by CertTemplateReader.
-			'show_ui'         => false,
-			'show_in_menu'    => false,
+			// Management UI (#865): the native list table + edit screen are
+			// exposed as a "Templates" submenu under the Certificate (ffc_form)
+			// menu, gated by the same forms caps below. Visibility, columns and
+			// the HTML-editing metabox are wired by CertTemplateAdminScreen.
+			'show_ui'         => true,
+			'show_in_menu'    => 'edit.php?post_type=ffc_form',
 			'query_var'       => false,
 			// Same #739 decoupling as `ffc_form`: gate by the FFC forms caps, not
 			// native post caps. List/read primitives map to the read-only

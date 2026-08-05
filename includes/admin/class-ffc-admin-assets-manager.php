@@ -481,6 +481,9 @@ class AdminAssetsManager {
 				'selectTemplate'          => __( 'Select a Template', 'ffcertificate' ),
 				'templateDefaultBadge'    => __( 'Default template', 'ffcertificate' ),
 				'templateCustomBadge'     => __( 'My template', 'ffcertificate' ),
+				/* translators: prompt asking for a name when saving the current layout as a reusable template */
+				'saveModelPrompt'         => __( 'Name for this template:', 'ffcertificate' ),
+				'templateSaved'           => __( 'Template saved!', 'ffcertificate' ),
 				'cancel'                  => __( 'Cancel', 'ffcertificate' ),
 				'loadingTemplate'         => __( 'Loading template...', 'ffcertificate' ),
 				/* translators: %s: error message, %s: error message */

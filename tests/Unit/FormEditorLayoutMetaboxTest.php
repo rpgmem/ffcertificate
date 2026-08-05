@@ -81,6 +81,7 @@ class FormEditorLayoutMetaboxTest extends TestCase {
         $this->assertStringContainsString( 'id="ffc_btn_import_html"', $html );
         $this->assertStringContainsString( 'id="ffc_btn_media_lib"', $html );
         $this->assertStringContainsString( 'id="ffc_btn_preview"', $html );
+        $this->assertStringContainsString( 'id="ffc_save_as_model_btn"', $html );
     }
 
     public function test_render_lists_pool_templates_grouped_by_id(): void {

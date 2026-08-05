@@ -57,6 +57,7 @@ class FormEditor {
 		// AJAX handlers for the editor.
 		add_action( 'wp_ajax_ffc_generate_codes', array( $this, 'ajax_generate_random_codes' ) );
 		add_action( 'wp_ajax_ffc_load_template', array( $this, 'ajax_load_template' ) );
+		add_action( 'wp_ajax_ffc_save_template', array( $this, 'ajax_save_template' ) );
 	}
 
 	/**
@@ -347,5 +348,44 @@ class FormEditor {
 		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- reading bundled plugin HTML template; no remote URL.
 		$content = file_get_contents( $filepath );
 		wp_send_json_success( $content );
+	}
+
+	/**
+	 * AJAX: Save the current layout HTML as a new template in the DB pool (#865).
+	 *
+	 * The editor's "Save as model" button posts the current title + layout HTML;
+	 * this stores it as a new user template via {@see CertTemplateWriter::create()}.
+	 * The HTML is sanitized through the same allowlist as the form-layout save
+	 * ({@see \FreeFormCertificate\Core\HtmlPolicy}).
+	 */
+	public function ajax_save_template(): void {
+		check_ajax_referer( 'ffc_admin_pdf_nonce', 'nonce' );
+
+		if ( ! \FreeFormCertificate\Core\Capabilities::current_user_can_admin_or( 'ffc_manage_forms' ) ) {
+			wp_send_json_error();
+		}
+
+		$title = isset( $_POST['title'] ) ? sanitize_text_field( wp_unslash( $_POST['title'] ) ) : '';
+		if ( '' === $title ) {
+			wp_send_json_error();
+		}
+
+		$raw  = isset( $_POST['html'] ) ? (string) wp_unslash( $_POST['html'] ) : '';
+		$html = wp_kses( $raw, \FreeFormCertificate\Core\HtmlPolicy::get_allowed_html_tags() );
+		if ( '' === trim( $html ) ) {
+			wp_send_json_error();
+		}
+
+		$id = CertTemplateWriter::create( $title, $html );
+		if ( $id <= 0 ) {
+			wp_send_json_error();
+		}
+
+		wp_send_json_success(
+			array(
+				'id'    => $id,
+				'label' => $title,
+			)
+		);
 	}
 }

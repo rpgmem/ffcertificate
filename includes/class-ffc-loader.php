@@ -199,6 +199,8 @@ class Loader {
 			new \FreeFormCertificate\Admin\CertTemplateCpt();
 			if ( is_admin() ) {
 				add_action( 'admin_init', array( \FreeFormCertificate\Admin\CertTemplateSeeder::class, 'maybe_seed' ) );
+				// Management UI: list-table columns + visibility toggle (#865).
+				new \FreeFormCertificate\Admin\CertTemplateAdminScreen();
 			}
 		}
 
