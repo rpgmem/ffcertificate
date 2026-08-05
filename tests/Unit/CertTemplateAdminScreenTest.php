@@ -29,6 +29,8 @@ class CertTemplateAdminScreenTest extends TestCase {
 		Functions\when( 'add_action' )->justReturn( true );
 		Functions\when( 'admin_url' )->returnArg();
 		Functions\when( 'wp_nonce_url' )->alias( static fn( $url ) => $url );
+		// render_edit_metabox marks a default's textarea readonly (#865 #11).
+		Functions\when( 'wp_readonly' )->justReturn( null );
 	}
 
 	protected function tearDown(): void {
@@ -222,6 +224,8 @@ class CertTemplateAdminScreenTest extends TestCase {
 		Functions\when( 'wp_verify_nonce' )->justReturn( true );
 		Functions\when( 'wp_kses' )->alias( static fn( $html ) => $html );
 		Functions\when( 'get_post' )->justReturn( $this->pool_post( 5 ) );
+		// A non-default template (is_default reads META_IS_DEFAULT): '' → editable.
+		Functions\when( 'get_post_meta' )->justReturn( '' );
 
 		$written = array();
 		Functions\when( 'update_post_meta' )->alias(
@@ -275,6 +279,118 @@ class CertTemplateAdminScreenTest extends TestCase {
 		( new CertTemplateAdminScreen() )->save_edit_metabox( 9, $other );
 
 		$this->assertFalse( $updated );
+	}
+
+	// ==================================================================
+	// Default templates are read-only (#865 decision #11)
+	// ==================================================================
+
+	public function test_protect_default_caps_denies_delete_of_default(): void {
+		Functions\when( 'get_post' )->justReturn( $this->pool_post( 5 ) );
+		Functions\when( 'get_post_meta' )->justReturn( '1' ); // META_IS_DEFAULT → default
+
+		$out = ( new CertTemplateAdminScreen() )->protect_default_caps(
+			array( 'ffc_manage_forms' ),
+			'delete_post',
+			1,
+			array( 5 )
+		);
+
+		$this->assertSame( array( 'do_not_allow' ), $out );
+	}
+
+	public function test_protect_default_caps_allows_delete_of_user_template(): void {
+		Functions\when( 'get_post' )->justReturn( $this->pool_post( 6 ) );
+		Functions\when( 'get_post_meta' )->justReturn( '' ); // not a default
+
+		$out = ( new CertTemplateAdminScreen() )->protect_default_caps(
+			array( 'ffc_manage_forms' ),
+			'delete_post',
+			1,
+			array( 6 )
+		);
+
+		$this->assertSame( array( 'ffc_manage_forms' ), $out );
+	}
+
+	public function test_protect_default_caps_ignores_non_delete_caps(): void {
+		$out = ( new CertTemplateAdminScreen() )->protect_default_caps(
+			array( 'ffc_manage_forms' ),
+			'edit_post',
+			1,
+			array( 5 )
+		);
+
+		$this->assertSame( array( 'ffc_manage_forms' ), $out );
+	}
+
+	public function test_preserve_default_title_restores_shipped_title(): void {
+		Functions\when( 'get_post_meta' )->justReturn( '1' ); // is_default true
+		Functions\when( 'get_post_field' )->justReturn( 'Certificate model 1' );
+		Functions\when( 'wp_slash' )->returnArg();
+
+		$data = ( new CertTemplateAdminScreen() )->preserve_default_title(
+			array( 'post_type' => CertTemplateCpt::POST_TYPE, 'post_title' => 'Renamed!' ),
+			array( 'ID' => 5 )
+		);
+
+		$this->assertSame( 'Certificate model 1', $data['post_title'] );
+	}
+
+	public function test_preserve_default_title_leaves_user_template_untouched(): void {
+		Functions\when( 'get_post_meta' )->justReturn( '' ); // not a default
+
+		$data = ( new CertTemplateAdminScreen() )->preserve_default_title(
+			array( 'post_type' => CertTemplateCpt::POST_TYPE, 'post_title' => 'My new name' ),
+			array( 'ID' => 6 )
+		);
+
+		$this->assertSame( 'My new name', $data['post_title'] );
+	}
+
+	public function test_save_edit_metabox_skips_html_for_default(): void {
+		Functions\when( 'current_user_can' )->justReturn( true );
+		Functions\when( 'sanitize_key' )->returnArg();
+		Functions\when( 'wp_unslash' )->returnArg();
+		Functions\when( 'wp_verify_nonce' )->justReturn( true );
+		Functions\when( 'wp_kses' )->alias( static fn( $html ) => $html );
+		Functions\when( 'get_post' )->justReturn( $this->pool_post( 5 ) );
+		Functions\when( 'get_post_meta' )->justReturn( '1' ); // is_default true
+
+		$written = array();
+		Functions\when( 'update_post_meta' )->alias(
+			static function ( $id, $key, $value ) use ( &$written ) {
+				$written[] = array( $id, $key, $value );
+				return true;
+			}
+		);
+
+		$_POST['ffc_cert_template_nonce'] = 'n';
+		$_POST['ffc_template_html']       = '<div>hacked default</div>';
+		$_POST['ffc_template_visible']    = '1';
+
+		( new CertTemplateAdminScreen() )->save_edit_metabox( 5, $this->pool_post( 5 ) );
+
+		$keys = array_map( static fn( $w ) => $w[1], $written );
+		$this->assertNotContains( CertTemplateCpt::META_HTML, $keys, 'a default HTML is never overwritten' );
+		$this->assertContains( CertTemplateCpt::META_VISIBLE, $keys, 'visibility still applies to a default' );
+	}
+
+	public function test_render_edit_metabox_marks_default_readonly(): void {
+		Functions\when( 'esc_html_e' )->alias( static fn( $t ) => print( $t ) );
+		Functions\when( 'esc_html__' )->returnArg();
+		Functions\when( 'esc_textarea' )->returnArg();
+		Functions\when( 'checked' )->justReturn( '' );
+		Functions\when( 'wp_readonly' )->alias( static fn( $a ) => $a ? print( 'readonly' ) : null );
+		Functions\when( 'wp_nonce_field' )->justReturn( null );
+		Functions\when( 'get_post_meta' )->justReturn( '1' ); // is_default true
+
+		$html = $this->capture(
+			fn() => ( new CertTemplateAdminScreen() )->render_edit_metabox( $this->pool_post( 5 ) )
+		);
+
+		$this->assertStringContainsString( 'readonly', $html );
+		$this->assertStringContainsString( 'read-only', $html );
 	}
 
 	/**
