@@ -459,7 +459,7 @@ class FichaGenerator {
 	 * @return string HTML template with placeholders.
 	 */
 	private static function load_template(): string {
-		$template_file = FFC_PLUGIN_DIR . 'html/default_ficha_template.html';
+		$template_file = FFC_PLUGIN_DIR . 'templates/documents/default_ficha_template.html';
 
 		/**
 		 * Filters the ficha template file path.
