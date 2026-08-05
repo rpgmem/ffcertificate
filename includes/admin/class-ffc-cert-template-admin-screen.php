@@ -102,11 +102,13 @@ class CertTemplateAdminScreen {
 	 * deletion.
 	 *
 	 * @param array<string, string> $actions Row actions.
-	 * @param \WP_Post               $post    Row post.
+	 * @param \WP_Post              $post    Row post.
 	 * @return array<string, string>
 	 */
 	public function row_actions( array $actions, $post ): array {
-		if ( ! $post instanceof \WP_Post || CertTemplateCpt::POST_TYPE !== $post->post_type ) {
+		// $post is always a WP_Post here (the post_row_actions filter contract);
+		// only act on our pool's rows.
+		if ( CertTemplateCpt::POST_TYPE !== $post->post_type ) {
 			return $actions;
 		}
 
@@ -126,7 +128,7 @@ class CertTemplateAdminScreen {
 			admin_url( 'admin.php?action=' . self::TOGGLE_ACTION . '&post=' . (int) $post->ID ),
 			self::TOGGLE_ACTION . '_' . (int) $post->ID
 		);
-		$label = $visible ? __( 'Hide', 'ffcertificate' ) : __( 'Show', 'ffcertificate' );
+		$label   = $visible ? __( 'Hide', 'ffcertificate' ) : __( 'Show', 'ffcertificate' );
 
 		$actions['ffc_toggle_visibility'] = '<a href="' . esc_url( $url ) . '">' . esc_html( $label ) . '</a>';
 
