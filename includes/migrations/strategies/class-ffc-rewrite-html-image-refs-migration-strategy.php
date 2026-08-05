@@ -516,20 +516,18 @@ class RewriteHtmlImageRefsMigrationStrategy implements MigrationStrategyInterfac
 		}
 		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_copy -- Copying a bundled plugin file to a WP temp path for media_handle_sideload.
 		if ( ! @copy( $src_path, $tmp ) ) { // phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged -- copy failure is handled via the empty-return path below.
-			// phpcs:ignore WordPress.WP.AlternativeFunctions.unlink_unlink
-			@unlink( $tmp );
+			wp_delete_file( $tmp );
 			return '';
 		}
 
-		$file_array = array(
+		$file_array    = array(
 			'name'     => $basename,
 			'tmp_name' => $tmp,
 		);
 		$attachment_id = media_handle_sideload( $file_array, 0 );
 
 		if ( is_wp_error( $attachment_id ) ) {
-			// phpcs:ignore WordPress.WP.AlternativeFunctions.unlink_unlink
-			@unlink( $tmp );
+			wp_delete_file( $tmp );
 			return '';
 		}
 
