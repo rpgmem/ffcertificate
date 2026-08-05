@@ -77,6 +77,17 @@ class PdfHtmlRenderer {
 			$data['site_name'] = get_bloginfo( 'name' );
 		}
 
+		// Branding logo tokens {{logo_gov}} / {{logo_org}} (#865 Phase 2): the
+		// URL configured in Settings → General → Branding, or a shipped generic
+		// placeholder. Injected as bare URLs so the template author owns the
+		// <img> markup; the generic replacement loop below resolves them.
+		if ( ! isset( $data['logo_gov'] ) ) {
+			$data['logo_gov'] = \FreeFormCertificate\Core\BrandingTokens::logo_gov_url();
+		}
+		if ( ! isset( $data['logo_org'] ) ) {
+			$data['logo_org'] = \FreeFormCertificate\Core\BrandingTokens::logo_org_url();
+		}
+
 		// Ensure email field exists.
 		if ( ! isset( $data['email'] ) && isset( $data['user_email'] ) ) {
 			$data['email'] = $data['user_email'];

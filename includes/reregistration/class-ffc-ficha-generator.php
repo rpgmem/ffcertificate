@@ -131,6 +131,16 @@ class FichaGenerator {
 		 */
 		$variables = apply_filters( 'ffcertificate_ficha_data', $variables, $submission_id, $submission, $rereg );
 
+		// Branding logo tokens {{logo_gov}} / {{logo_org}} (#865 Phase 2): shared
+		// resolver + shipped fallback with the certificate renderer, so the ficha
+		// template no longer hardcodes the instance-specific logos.
+		if ( ! isset( $variables['logo_gov'] ) ) {
+			$variables['logo_gov'] = \FreeFormCertificate\Core\BrandingTokens::logo_gov_url();
+		}
+		if ( ! isset( $variables['logo_org'] ) ) {
+			$variables['logo_org'] = \FreeFormCertificate\Core\BrandingTokens::logo_org_url();
+		}
+
 		// Build custom fields section HTML (only non-standard fields).
 		$custom_section = self::build_custom_fields_section( $custom_fields, $decrypted_values );
 

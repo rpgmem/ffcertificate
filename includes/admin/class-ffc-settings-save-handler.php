@@ -149,6 +149,14 @@ class SettingsSaveHandler {
 			$clean['csv_download_page_url'] = esc_url_raw( $new['csv_download_page_url'] );
 		}
 
+		// Branding logos (#865 Phase 2) — {{logo_gov}} / {{logo_org}} sources.
+		if ( isset( $new['logo_gov'] ) ) {
+			$clean['logo_gov'] = esc_url_raw( $new['logo_gov'] );
+		}
+		if ( isset( $new['logo_org'] ) ) {
+			$clean['logo_org'] = esc_url_raw( $new['logo_org'] );
+		}
+
 		// v4.6.16: Activity Log + Debug moved to Advanced tab.
 		$ffc_tab = isset( $_POST['_ffc_tab'] ) ? sanitize_key( wp_unslash( $_POST['_ffc_tab'] ) ) : '';
 

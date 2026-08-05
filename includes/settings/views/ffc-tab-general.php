@@ -396,6 +396,32 @@ $ffcertificate_show_divergence = $ffcertificate_date_diverges || $ffcertificate_
 						</p>
 					</td>
 				</tr>
+				<tr>
+					<th scope="row">
+						<label for="logo_gov"><?php esc_html_e( 'Branding — Government / institution logo', 'ffcertificate' ); ?></label>
+					</th>
+					<td>
+						<input type="url" name="ffc_settings[logo_gov]" id="logo_gov" value="<?php echo esc_attr( $ffcertificate_get_option( 'logo_gov', '' ) ); ?>" class="large-text" placeholder="https://example.com/wp-content/uploads/logo.png" data-ffc-autosave-key="logo_gov">
+						<button type="button" class="button ffc-media-select" data-ffc-media-target="#logo_gov"><?php esc_html_e( 'Select image', 'ffcertificate' ); ?></button>
+						<button type="button" class="button-link ffc-media-clear" data-ffc-media-target="#logo_gov"><?php esc_html_e( 'Clear', 'ffcertificate' ); ?></button>
+						<p class="description">
+							<?php esc_html_e( 'Resolves the {{logo_gov}} placeholder in the default ficha and appointment-receipt templates. Falls back to a generic placeholder when empty.', 'ffcertificate' ); ?>
+						</p>
+					</td>
+				</tr>
+				<tr>
+					<th scope="row">
+						<label for="logo_org"><?php esc_html_e( 'Branding — Organization logo', 'ffcertificate' ); ?></label>
+					</th>
+					<td>
+						<input type="url" name="ffc_settings[logo_org]" id="logo_org" value="<?php echo esc_attr( $ffcertificate_get_option( 'logo_org', '' ) ); ?>" class="large-text" placeholder="https://example.com/wp-content/uploads/logo.png" data-ffc-autosave-key="logo_org">
+						<button type="button" class="button ffc-media-select" data-ffc-media-target="#logo_org"><?php esc_html_e( 'Select image', 'ffcertificate' ); ?></button>
+						<button type="button" class="button-link ffc-media-clear" data-ffc-media-target="#logo_org"><?php esc_html_e( 'Clear', 'ffcertificate' ); ?></button>
+						<p class="description">
+							<?php esc_html_e( 'Resolves the {{logo_org}} placeholder in the default ficha and appointment-receipt templates. Falls back to a generic placeholder when empty.', 'ffcertificate' ); ?>
+						</p>
+					</td>
+				</tr>
 				</tbody>
 		</table>
 </div>

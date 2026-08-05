@@ -90,6 +90,22 @@ class SettingsSaveHandlerTest extends TestCase {
         $this->assertSame( '123 Main St', $result['main_address'] );
     }
 
+    public function test_general_branding_logos_sanitized_as_urls(): void {
+        // #865 Phase 2 — {{logo_gov}} / {{logo_org}} sources go through esc_url_raw.
+        $result = $this->invoke(
+            'save_general_settings',
+            array(
+                array(),
+                array(
+                    'logo_gov' => 'https://cdn.example/gov.png',
+                    'logo_org' => 'https://cdn.example/org.png',
+                ),
+            )
+        );
+        $this->assertSame( 'https://cdn.example/gov.png', $result['logo_gov'] );
+        $this->assertSame( 'https://cdn.example/org.png', $result['logo_org'] );
+    }
+
     public function test_general_existing_settings_not_overwritten(): void {
         $existing = array( 'smtp_host' => 'mail.example.com', 'custom_key' => 'value' );
         $result = $this->invoke( 'save_general_settings', array( $existing, array( 'main_address' => 'New Addr' ) ) );
