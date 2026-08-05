@@ -28,7 +28,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 	<div class="ffc-doc-example">
 		<h4><?php esc_html_e( 'Template Variables:', 'ffcertificate' ); ?></h4>
-		<p><?php esc_html_e( 'The ficha template (html/default_ficha_template.html) supports these variables:', 'ffcertificate' ); ?></p>
+		<p><?php esc_html_e( 'The ficha template (templates/documents/default_ficha_template.html) supports these variables:', 'ffcertificate' ); ?></p>
 
 		<h5><?php esc_html_e( 'System Variables', 'ffcertificate' ); ?></h5>
 		<table class="widefat striped">
