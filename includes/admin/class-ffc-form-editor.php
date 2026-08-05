@@ -308,7 +308,13 @@ class FormEditor {
 	}
 
 	/**
-	 * AJAX: Loads a local HTML template from the plugin directory
+	 * AJAX: Loads a certificate template's HTML for the layout editor.
+	 *
+	 * Primary path (#865): resolve a template from the DB-backed pool by post
+	 * id via {@see CertTemplateReader::get_html()}. Falls back to the legacy
+	 * `html/` glob by filename — a deprecated shim (#865 phase-4) kept for the
+	 * transition window (a site whose pool hasn't seeded yet, or a third-party
+	 * drop-in under `html/`); it is removed once the pool is the sole source.
 	 */
 	public function ajax_load_template(): void {
 		check_ajax_referer( 'ffc_admin_pdf_nonce', 'nonce' );
@@ -317,6 +323,17 @@ class FormEditor {
 			wp_send_json_error();
 		}
 
+		// Primary: DB-backed template pool, addressed by post id.
+		$template_id = isset( $_POST['template_id'] ) ? absint( wp_unslash( $_POST['template_id'] ) ) : 0;
+		if ( $template_id > 0 ) {
+			$html = CertTemplateReader::get_html( $template_id );
+			if ( '' === $html ) {
+				wp_send_json_error();
+			}
+			wp_send_json_success( $html );
+		}
+
+		// Deprecated fallback (#865 phase-4): legacy `html/` glob by filename.
 		$filename = isset( $_POST['filename'] ) ? sanitize_file_name( wp_unslash( $_POST['filename'] ) ) : '';
 		if ( empty( $filename ) ) {
 			wp_send_json_error();
