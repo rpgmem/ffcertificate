@@ -10,9 +10,14 @@
  * Adds two columns — **Type** (Default vs Custom) and **Visible** (whether the
  * template appears in the form editor's "Load" list) — plus a nonce-protected
  * "Show / Hide" row action that flips {@see CertTemplateCpt::META_VISIBLE} via
- * {@see CertTemplateWriter::set_visibility()}. Shipped defaults are protected
- * from deletion (the seeder would re-create them anyway), so their Trash/Delete
- * row actions are removed.
+ * {@see CertTemplateWriter::set_visibility()}.
+ *
+ * Shipped defaults are **read-only** (#865 decision #11), enforced server-side:
+ * their HTML cannot be edited (the save handler skips a default's body), they
+ * cannot be renamed (`wp_insert_post_data` restores the title) or deleted
+ * (`map_meta_cap` returns `do_not_allow`, and the Trash/Delete row actions are
+ * hidden). Only visibility stays togglable — a default can be hidden, not
+ * changed; customizing one means Duplicate → an editable user template.
  *
  * Authorization: the toggle requires the manage cap (`ffc_manage_forms`, admins
  * via `manage_options`) exactly like the CPT's write primitives; a view-only
@@ -58,6 +63,12 @@ class CertTemplateAdminScreen {
 		// title, so the template body needs its own field).
 		add_action( 'add_meta_boxes_' . $pt, array( $this, 'add_edit_metabox' ) );
 		add_action( 'save_post_' . $pt, array( $this, 'save_edit_metabox' ), 10, 2 );
+		// Shipped defaults are read-only (#865 decision #11): block delete
+		// server-side (priority 20 so it runs after CptCapPolicy's map at 10)
+		// and block rename via the insert filter. HTML-edit is blocked in the
+		// save handler; customizing a default means Duplicate → user template.
+		add_filter( 'map_meta_cap', array( $this, 'protect_default_caps' ), 20, 4 );
+		add_filter( 'wp_insert_post_data', array( $this, 'preserve_default_title' ), 10, 2 );
 	}
 
 	/**
@@ -189,14 +200,21 @@ class CertTemplateAdminScreen {
 	 * @return void
 	 */
 	public function render_edit_metabox( \WP_Post $post ): void {
-		$html    = (string) get_post_meta( $post->ID, CertTemplateCpt::META_HTML, true );
-		$visible = '1' === (string) get_post_meta( $post->ID, CertTemplateCpt::META_VISIBLE, true );
+		$html       = (string) get_post_meta( $post->ID, CertTemplateCpt::META_HTML, true );
+		$visible    = '1' === (string) get_post_meta( $post->ID, CertTemplateCpt::META_VISIBLE, true );
+		$is_default = CertTemplateReader::is_default( (int) $post->ID );
 
 		wp_nonce_field( self::SAVE_NONCE, 'ffc_cert_template_nonce' );
+
+		if ( $is_default ) {
+			echo '<p class="description">' .
+				esc_html__( 'This is a shipped default template — its HTML is read-only. Duplicate it to create an editable copy; you can still show/hide it below.', 'ffcertificate' ) .
+				'</p>';
+		}
 		?>
 		<p>
 			<label class="ffc-block-label" for="ffc_template_html"><strong><?php esc_html_e( 'Certificate HTML', 'ffcertificate' ); ?></strong></label>
-			<textarea name="ffc_template_html" id="ffc_template_html" class="ffc-w100" rows="16"><?php echo esc_textarea( $html ); ?></textarea>
+			<textarea name="ffc_template_html" id="ffc_template_html" class="ffc-w100" rows="16" <?php wp_readonly( $is_default, true ); ?>><?php echo esc_textarea( $html ); ?></textarea>
 		</p>
 		<p class="description">
 			<?php esc_html_e( 'Mandatory Tags:', 'ffcertificate' ); ?> <code>{{auth_code}}</code>, <code>{{name}}</code>, <code>{{cpf_rf}}</code>.
@@ -235,13 +253,73 @@ class CertTemplateAdminScreen {
 			return;
 		}
 
-		// Certificate HTML legitimately carries rich markup (tables, inline
-		// styles) — sanitize through the same allowlist the form-layout save
-		// uses, never a plain sanitize_text_field.
-		$raw  = isset( $_POST['ffc_template_html'] ) ? (string) wp_unslash( $_POST['ffc_template_html'] ) : '';
-		$html = wp_kses( $raw, \FreeFormCertificate\Core\HtmlPolicy::get_allowed_html_tags() );
-		CertTemplateWriter::update_html( $post_id, $html );
+		// Shipped defaults are read-only (#865 decision #11): never rewrite a
+		// default's HTML from the edit screen, even if the request carries a
+		// body (the textarea is rendered `readonly`, but enforce server-side).
+		if ( ! CertTemplateReader::is_default( $post_id ) ) {
+			// Certificate HTML legitimately carries rich markup (tables, inline
+			// styles) — sanitize through the same allowlist the form-layout save
+			// uses, never a plain sanitize_text_field.
+			$raw  = isset( $_POST['ffc_template_html'] ) ? (string) wp_unslash( $_POST['ffc_template_html'] ) : '';
+			$html = wp_kses( $raw, \FreeFormCertificate\Core\HtmlPolicy::get_allowed_html_tags() );
+			CertTemplateWriter::update_html( $post_id, $html );
+		}
 
+		// Visibility is togglable for every template, defaults included
+		// (decision #10/#11: a default can be hidden, just not edited/deleted).
 		CertTemplateWriter::set_visibility( $post_id, isset( $_POST['ffc_template_visible'] ) );
+	}
+
+	/**
+	 * Deny deletion of shipped default templates at the capability layer
+	 * (#865 decision #11 — server-side, not just hiding the row action).
+	 *
+	 * Runs after {@see CptCapPolicy::gate_cpt_writes} (priority 20 > 10) so it
+	 * overrides the manage-cap mapping with `do_not_allow` for defaults.
+	 *
+	 * @param array<int, string> $caps    Mapped primitive caps.
+	 * @param string             $cap     Meta cap being checked.
+	 * @param int                $user_id User id (unused).
+	 * @param array<int, mixed>  $args    `[0]` is the post id for delete_post.
+	 * @return array<int, string>
+	 */
+	public function protect_default_caps( array $caps, string $cap, int $user_id, array $args ): array {
+		if ( 'delete_post' !== $cap ) {
+			return $caps;
+		}
+		$post_id = isset( $args[0] ) ? (int) $args[0] : 0;
+		if ( $post_id <= 0 ) {
+			return $caps;
+		}
+		$post = get_post( $post_id );
+		if ( $post instanceof \WP_Post
+			&& CertTemplateCpt::POST_TYPE === $post->post_type
+			&& CertTemplateReader::is_default( $post_id )
+		) {
+			return array( 'do_not_allow' );
+		}
+		return $caps;
+	}
+
+	/**
+	 * Prevent renaming a shipped default (#865 decision #11): restore the
+	 * stored title on any save of a default template.
+	 *
+	 * @param array<string, mixed> $data    Sanitized post data to be written.
+	 * @param array<string, mixed> $postarr Raw post array (carries `ID`).
+	 * @return array<string, mixed>
+	 */
+	public function preserve_default_title( array $data, array $postarr ): array {
+		if ( CertTemplateCpt::POST_TYPE !== ( $data['post_type'] ?? '' ) ) {
+			return $data;
+		}
+		$post_id = isset( $postarr['ID'] ) ? (int) $postarr['ID'] : 0;
+		if ( $post_id > 0 && CertTemplateReader::is_default( $post_id ) ) {
+			$existing = (string) get_post_field( 'post_title', $post_id );
+			if ( '' !== $existing ) {
+				$data['post_title'] = wp_slash( $existing );
+			}
+		}
+		return $data;
 	}
 }
