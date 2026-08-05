@@ -100,4 +100,29 @@ class CertTemplateSeederTest extends TestCase {
 
 		$this->assertTrue( true ); // No insert attempted = non-destructive.
 	}
+
+	public function test_seed_html_references_shipped_assets_not_html_folder(): void {
+		// #865 crit #7: default images moved to the versioned assets/ dir so
+		// html/ can eventually be retired; guard against a seed reference
+		// regressing back to the update-fragile plugin html/ folder.
+		$dir   = dirname( __DIR__, 2 ) . '/templates/certificate-defaults/';
+		$files = glob( $dir . '*.html' );
+		$this->assertNotEmpty( $files );
+
+		foreach ( (array) $files as $file ) {
+			$html = (string) file_get_contents( $file );
+			$this->assertStringNotContainsString(
+				'plugins/ffcertificate/html/',
+				$html,
+				basename( (string) $file ) . ' must not reference the update-fragile html/ folder'
+			);
+			if ( false !== strpos( $html, '<img' ) ) {
+				$this->assertStringContainsString(
+					'assets/img/certificate-defaults/',
+					$html,
+					basename( (string) $file ) . ' images must resolve under the shipped assets/ dir'
+				);
+			}
+		}
+	}
 }
