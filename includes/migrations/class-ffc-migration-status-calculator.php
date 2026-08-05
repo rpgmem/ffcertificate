@@ -166,6 +166,20 @@ class MigrationStatusCalculator {
 					$this->strategies['key_rotation'] = new \FreeFormCertificate\Migrations\Strategies\KeyRotationMigrationStrategy();
 					unset( $this->strategy_errors['key_rotation'] );
 					break;
+
+				case 'import_legacy_templates':
+					$strategy_dir = __DIR__ . '/strategies/';
+
+					if ( ! interface_exists( '\\FreeFormCertificate\\Migrations\\Strategies\\MigrationStrategyInterface', false ) ) {
+						include $strategy_dir . 'interface-ffc-migration-strategy-interface.php';
+					}
+					if ( ! class_exists( '\\FreeFormCertificate\\Migrations\\Strategies\\ImportLegacyTemplatesMigrationStrategy', false ) ) {
+						include $strategy_dir . 'class-ffc-import-legacy-templates-migration-strategy.php';
+					}
+
+					$this->strategies['import_legacy_templates'] = new \FreeFormCertificate\Migrations\Strategies\ImportLegacyTemplatesMigrationStrategy();
+					unset( $this->strategy_errors['import_legacy_templates'] );
+					break;
 			}
 		} catch ( \Throwable $e ) {
 			$this->strategy_errors[ $migration_key ] = $e->getMessage();

@@ -61,11 +61,28 @@ class MigrationRegistryTest extends TestCase {
         $all = $registry->get_all_migrations();
 
         $this->assertIsArray( $all );
-        $this->assertCount( 4, $all );
+        $this->assertCount( 5, $all );
         $this->assertArrayHasKey( 'split_cpf_rf', $all );
         $this->assertArrayHasKey( 'email_hash_rehash', $all );
         $this->assertArrayHasKey( 'key_rotation', $all );
         $this->assertArrayHasKey( 'activity_log_clear_plaintext', $all );
+        $this->assertArrayHasKey( 'import_legacy_templates', $all );
+    }
+
+    public function test_import_legacy_templates_migration_has_expected_keys(): void {
+        $registry  = new MigrationRegistry();
+        $migration = $registry->get_all_migrations()['import_legacy_templates'];
+
+        $expected_keys = array( 'name', 'description', 'icon', 'batch_size', 'order', 'requires_column' );
+
+        foreach ( $expected_keys as $key ) {
+            $this->assertArrayHasKey( $key, $migration, "Missing expected key: {$key}" );
+        }
+
+        $this->assertSame( 'ffc-icon-scroll', $migration['icon'] );
+        $this->assertSame( 20, $migration['batch_size'] );
+        $this->assertSame( 5, $migration['order'] );
+        $this->assertFalse( $migration['requires_column'] );
     }
 
     public function test_activity_log_clear_plaintext_migration_has_expected_keys(): void {
