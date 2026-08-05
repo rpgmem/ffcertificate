@@ -38,6 +38,16 @@ class DeviceThresholdUpgradeNoticeTest extends TestCase {
         // maybe_render() instead of an inline <script>; stub the enqueue so the
         // render path doesn't fatal under Brain\Monkey.
         Functions\when( 'wp_enqueue_script' )->justReturn( null );
+        // wp_admin_notice() is WP 6.4 core — reproduce enough of its markup for
+        // the render assertion (class list + message).
+        Functions\when( 'wp_admin_notice' )->alias(
+            static function ( $message, $args ) {
+                $classes = 'notice notice-' . ( $args['type'] ?? 'info' )
+                    . ( ! empty( $args['dismissible'] ) ? ' is-dismissible' : '' )
+                    . ' ' . implode( ' ', $args['additional_classes'] ?? array() );
+                echo '<div class="' . $classes . '">' . $message . '</div>';
+            }
+        );
     }
 
     protected function tearDown(): void {

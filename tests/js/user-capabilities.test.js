@@ -191,14 +191,14 @@ function capRow(slug, userGranted) {
 	</div>`;
 }
 
-function roleSetup(fetchImpl) {
+function roleSetup(fetchImpl, i18nOverride) {
 	window.ffcUserPerms = {
 		ajaxUrl: '/wp-admin/admin-ajax.php',
 		nonce: 'role-nonce',
 		userId: 5,
 		roleCaps: { ffc_end_user: ['cap_a', 'cap_b'], ffc_recruitment_manager: ['cap_c'] },
 		assigned: ['ffc_end_user'],
-		i18n: { user: 'User', role: 'Role', none: '—', error: 'Err' },
+		i18n: Object.assign({ user: 'User', role: 'Role', none: '—', error: 'Err' }, i18nOverride || {}),
 	};
 	if (fetchImpl) {
 		window.fetch = fetchImpl;
@@ -310,6 +310,59 @@ describe('role presets', () => {
 
 		expect(alertSpy).toHaveBeenCalledWith('Err');
 		expect(chip.disabled).toBe(false);
+	});
+
+	it('surfaces the server reason code (cannot_edit_admin) rather than the generic error', async () => {
+		const fetchMock = vi.fn(() =>
+			Promise.resolve({ json: () => Promise.resolve({ success: false, data: { message: 'cannot_edit_admin' } }) })
+		);
+		const alertSpy = vi.spyOn(window, 'alert').mockImplementation(() => {});
+		roleSetup(fetchMock, { errAdmin: 'AdminOnly' });
+
+		document.querySelector('[data-ffc-role="ffc_recruitment_manager"]').click();
+		await new Promise((r) => setTimeout(r, 0));
+
+		expect(alertSpy).toHaveBeenCalledWith('AdminOnly');
+	});
+
+	it('shows the nonce/session message when the server dies with a bare -1', async () => {
+		const fetchMock = vi.fn(() => Promise.resolve({ json: () => Promise.resolve(-1) }));
+		const alertSpy = vi.spyOn(window, 'alert').mockImplementation(() => {});
+		roleSetup(fetchMock, { errNonce: 'NonceExpired' });
+
+		document.querySelector('[data-ffc-role="ffc_recruitment_manager"]').click();
+		await new Promise((r) => setTimeout(r, 0));
+
+		expect(alertSpy).toHaveBeenCalledWith('NonceExpired');
+	});
+
+	it('uses the network-specific message when the request rejects and one is localized', async () => {
+		const fetchMock = vi.fn(() => Promise.reject(new Error('offline')));
+		const alertSpy = vi.spyOn(window, 'alert').mockImplementation(() => {});
+		roleSetup(fetchMock, { errNetwork: 'Offline' });
+
+		document.querySelector('[data-ffc-role="ffc_recruitment_manager"]').click();
+		await new Promise((r) => setTimeout(r, 0));
+
+		expect(alertSpy).toHaveBeenCalledWith('Offline');
+	});
+
+	it.each([
+		['role_not_assignable', 'errRole', 'RoleNo'],
+		['forbidden', 'errForbidden', 'Forbidden'],
+		['user_not_found', 'errUser', 'NoUser'],
+		['something_unmapped', 'error', 'Err'],
+	])('maps server code %s to its localized message', async (code, key, expected) => {
+		const fetchMock = vi.fn(() =>
+			Promise.resolve({ json: () => Promise.resolve({ success: false, data: { message: code } }) })
+		);
+		const alertSpy = vi.spyOn(window, 'alert').mockImplementation(() => {});
+		roleSetup(fetchMock, { [key]: expected });
+
+		document.querySelector('[data-ffc-role="ffc_recruitment_manager"]').click();
+		await new Promise((r) => setTimeout(r, 0));
+
+		expect(alertSpy).toHaveBeenCalledWith(expected);
 	});
 
 	it('does not POST on chip click when ajaxUrl is absent', () => {

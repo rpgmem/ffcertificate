@@ -168,6 +168,21 @@ class ReregistrationActivator {
 
 		// `submitted_at` is Category A (instant) since 6.6.0 — unix UTC
 		// seconds. See CLAUDE.md "Date / time storage convention".
+		//
+		// User-deletion policy (#822): `user_id` is a `NOT NULL` reference to
+		// `wp_users.ID` covered by NEITHER the `UserCleanup` hook NOR the
+		// `MigrationForeignKeys` backstop — by deliberate decision, not
+		// oversight. A reregistration submission is a retained record: the
+		// row (and its `data` JSON of form answers) must survive the user
+		// account, so it is NOT anonymised or deleted on `deleted_user`. The
+		// `user_id` therefore becomes an accepted orphan (like `activity_log`,
+		// which is FK-only and never app-nulled). Nulling `user_id` alone
+		// would be a half-measure anyway — the identifying PII lives in the
+		// `data` body, not the FK. Consumers that JOIN `wp_users` already
+		// degrade gracefully (the admin listing renders "—" for a deleted
+		// user). `reviewed_by` follows the same retain-the-row rule. See
+		// CLAUDE.md §4 "User-deletion integrity" for the plugin-wide policy +
+		// gap inventory.
 		$sql = "CREATE TABLE {$table_name} (
             id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
             reregistration_id bigint(20) unsigned NOT NULL,

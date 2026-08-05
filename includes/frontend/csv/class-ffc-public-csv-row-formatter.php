@@ -7,10 +7,13 @@
  * Sprint E3): owns `get_fixed_headers()`, `format_csv_row()` and the
  * dynamic-key scan so the exporter is left with request orchestration only.
  *
- * The column layout intentionally mirrors `CsvExporter::get_fixed_headers()`
- * and `CsvExporter::format_csv_row()` so admins can compare/download the two
- * sources interchangeably. Headers, row order and escaping are byte-identical
- * to the pre-extraction implementation.
+ * Historically the column layout mirrored `CsvExporter` byte-for-byte. Since
+ * #836 the public export is deliberately minimized for data protection: the
+ * `User IP`, `Token` (magic link), the consent trail (`Consent Given` /
+ * `Consent Date` / `Consent IP` / `Consent Text`) and `Status` columns were
+ * dropped here — they remain in the admin export. The public download now
+ * exposes only ID / Form / User ID / Submission Date / E-mail / CPF / RF /
+ * Auth Code, plus the dynamic form fields.
  *
  * @package FreeFormCertificate\Frontend\Csv
  * @since   6.7.x
@@ -49,9 +52,10 @@ class PublicCsvRowFormatter {
 	private array $form_title_cache = array();
 
 	/**
-	 * Fixed CSV headers — mirrors `CsvExporter::get_fixed_headers()`.
+	 * Fixed CSV headers for the public export (minimized — see class docblock).
 	 *
-	 * Kept in sync with the admin export so both files have identical columns.
+	 * Deliberately narrower than the admin `CsvExporter` layout (#836): the
+	 * public download carries no IP, token, consent-trail or status columns.
 	 *
 	 * @param bool $include_edit_columns Whether to append edit-tracking columns.
 	 * @return array<int, string>
@@ -63,16 +67,9 @@ class PublicCsvRowFormatter {
 			__( 'User ID', 'ffcertificate' ),
 			__( 'Submission Date', 'ffcertificate' ),
 			__( 'E-mail', 'ffcertificate' ),
-			__( 'User IP', 'ffcertificate' ),
 			__( 'CPF', 'ffcertificate' ),
 			__( 'RF', 'ffcertificate' ),
 			__( 'Auth Code', 'ffcertificate' ),
-			__( 'Token', 'ffcertificate' ),
-			__( 'Consent Given', 'ffcertificate' ),
-			__( 'Consent Date', 'ffcertificate' ),
-			__( 'Consent IP', 'ffcertificate' ),
-			__( 'Consent Text', 'ffcertificate' ),
-			__( 'Status', 'ffcertificate' ),
 		);
 
 		if ( $include_edit_columns ) {
@@ -85,8 +82,9 @@ class PublicCsvRowFormatter {
 	}
 
 	/**
-	 * Format one submission row as a CSV line — mirrors
-	 * `CsvExporter::format_csv_row()`.
+	 * Format one submission row as a CSV line for the public export.
+	 *
+	 * Minimized layout (#836) — narrower than the admin `CsvExporter`.
 	 *
 	 * @param array<string, mixed> $row Row.
 	 * @param array<int, string>   $dynamic_keys Dynamic keys.
@@ -97,29 +95,22 @@ class PublicCsvRowFormatter {
 		$form_display = $this->get_form_title_cached( (int) $row['form_id'] );
 
 		$email   = \FreeFormCertificate\Core\Encryption::decrypt_field( $row, 'email' );
-		$user_ip = \FreeFormCertificate\Core\Encryption::decrypt_field( $row, 'user_ip' );
 		$cpf_val = \FreeFormCertificate\Core\Encryption::decrypt_field( $row, 'cpf' );
 		$rf_val  = \FreeFormCertificate\Core\Encryption::decrypt_field( $row, 'rf' );
 
 		// `submission_date` is unix UTC int since 6.6.0 (#249 sub-escopo a).
 		// Format for the public CSV — admin/operator reads this in a spreadsheet.
+		// Minimized layout (#836): IP, token, the consent trail and status are
+		// intentionally omitted from the public export.
 		$line = array(
 			$row['id'],
 			$form_display,
 			! empty( $row['user_id'] ) ? $row['user_id'] : '',
 			\FreeFormCertificate\Core\DateFormatter::format_datetime( (int) ( $row['submission_date'] ?? 0 ) ),
 			$email,
-			$user_ip,
 			$cpf_val,
 			$rf_val,
 			! empty( $row['auth_code'] ) ? $row['auth_code'] : '',
-			! empty( $row['magic_token'] ) ? $row['magic_token'] : '',
-			isset( $row['consent_given'] ) ? ( $row['consent_given'] ? __( 'Yes', 'ffcertificate' ) : __( 'No', 'ffcertificate' ) ) : '',
-			// `consent_date` is unix UTC int since 6.6.0 (#249 sub-escopo d).
-			! empty( $row['consent_date'] ) ? \FreeFormCertificate\Core\DateFormatter::format_datetime( (int) $row['consent_date'] ) : '',
-			$user_ip, // Consent IP.
-			! empty( $row['consent_text'] ) ? $row['consent_text'] : '',
-			! empty( $row['status'] ) ? $row['status'] : 'publish',
 		);
 
 		if ( $include_edit_columns ) {

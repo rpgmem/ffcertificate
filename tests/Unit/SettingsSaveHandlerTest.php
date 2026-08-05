@@ -41,6 +41,7 @@ class SettingsSaveHandlerTest extends TestCase {
             return abs( (int) $val );
         } );
         Functions\when( 'wp_unslash' )->returnArg();
+        Functions\when( 'esc_url_raw' )->returnArg();
         // SMTP / Email Model saves are gated on ffc_manage_settings_smtp (#711);
         // default to granted so the existing save tests exercise the save path.
         Functions\when( 'current_user_can' )->justReturn( true );
@@ -88,6 +89,22 @@ class SettingsSaveHandlerTest extends TestCase {
     public function test_general_main_address_preserved(): void {
         $result = $this->invoke( 'save_general_settings', array( array(), array( 'main_address' => '123 Main St' ) ) );
         $this->assertSame( '123 Main St', $result['main_address'] );
+    }
+
+    public function test_general_branding_logos_sanitized_as_urls(): void {
+        // #865 Phase 2 — {{logo_gov}} / {{logo_org}} sources go through esc_url_raw.
+        $result = $this->invoke(
+            'save_general_settings',
+            array(
+                array(),
+                array(
+                    'logo_gov' => 'https://cdn.example/gov.png',
+                    'logo_org' => 'https://cdn.example/org.png',
+                ),
+            )
+        );
+        $this->assertSame( 'https://cdn.example/gov.png', $result['logo_gov'] );
+        $this->assertSame( 'https://cdn.example/org.png', $result['logo_org'] );
     }
 
     public function test_general_existing_settings_not_overwritten(): void {

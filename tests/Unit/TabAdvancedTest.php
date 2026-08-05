@@ -25,12 +25,25 @@ class TabAdvancedTest extends TestCase {
 	protected function setUp(): void {
 		parent::setUp();
 		Monkey\setUp();
+		Functions\when( 'wp_admin_notice' )->alias(
+			static function ( $message, $args = array() ) {
+				$ffc_type = isset( $args['type'] ) ? $args['type'] : 'info';
+				$ffc_cls  = 'notice notice-' . $ffc_type;
+				if ( ! empty( $args['dismissible'] ) ) { $ffc_cls .= ' is-dismissible'; }
+				if ( ! empty( $args['additional_classes'] ) ) { $ffc_cls .= ' ' . implode( ' ', $args['additional_classes'] ); }
+				$ffc_wrap = ! array_key_exists( 'paragraph_wrap', $args ) || $args['paragraph_wrap'];
+				echo '<div class="' . $ffc_cls . '">' . ( $ffc_wrap ? '<p>' . $message . '</p>' : $message ) . '</div>';
+			}
+		);
 
 		// The SettingsTab base require_once's formatting.php unless wp_kses_post
 		// already exists, so pre-stub it BEFORE the class autoloads.
 		Functions\when( 'wp_kses_post' )->returnArg();
 		class_exists( '\\FreeFormCertificate\\Settings\\Tabs\\TabAdvanced' );
 
+		// The #839 S7a Encryption Key Health card uses wp_kses() with an explicit
+		// allowlist in its warning/advisory branches.
+		Functions\when( 'wp_kses' )->returnArg();
 		Functions\when( '__' )->returnArg();
 		Functions\when( 'esc_html__' )->returnArg();
 		Functions\when( 'esc_html_e' )->alias( function ( $t ) { echo $t; } );
@@ -179,5 +192,6 @@ class TabAdvancedTest extends TestCase {
 		$this->assertContains( 'ffc-core', $handles );
 		$this->assertContains( 'ffc-admin-autosave', $handles );
 		$this->assertContains( 'ffc-section-collapse', $handles );
+		$this->assertContains( 'ffc-encryption-key-suggest', $handles );
 	}
 }

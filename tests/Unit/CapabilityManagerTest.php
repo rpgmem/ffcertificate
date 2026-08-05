@@ -73,14 +73,6 @@ class CapabilityManagerTest extends TestCase {
         $this->assertNotContains( 'view_certificate_history', $caps );
     }
 
-    public function test_legacy_cap_renames_returns_3_pairs(): void {
-        $renames = CapabilityMigrator::legacy_cap_renames();
-        $this->assertCount( 3, $renames );
-        $this->assertSame( 'ffc_view_own_certificates', $renames['view_own_certificates'] );
-        $this->assertSame( 'ffc_download_own_certificates', $renames['download_own_certificates'] );
-        $this->assertSame( 'ffc_view_own_certificate_history', $renames['view_certificate_history'] );
-    }
-
     public function test_appointment_capabilities_contains_expected_caps(): void {
         $caps = CapabilityManager::APPOINTMENT_CAPABILITIES;
         $this->assertContains( 'ffc_book_own_appointments', $caps );

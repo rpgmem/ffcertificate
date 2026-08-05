@@ -717,7 +717,7 @@ final class RecruitmentNoticeEditPageRenderer {
 			echo '<td>' . esc_html( (string) $row->score ) . '</td>';
 			if ( $is_preview_tab ) {
 				$current_preview = isset( $row->preview_status ) ? (string) $row->preview_status : 'empty';
-				$current_reason  = isset( $row->preview_reason_id ) && null !== $row->preview_reason_id ? (int) $row->preview_reason_id : 0;
+				$current_reason  = isset( $row->preview_reason_id ) ? (int) $row->preview_reason_id : 0;
 				// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- helper returns escaped HTML.
 				echo '<td>' . self::render_preview_status_select( (int) $row->id, $current_preview ) . '</td>';
 				// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- helper returns escaped HTML.

@@ -77,6 +77,16 @@ if ( ! defined( 'ABSPATH' ) ) {
 				<td><em>My Organization</em></td>
 			</tr>
 			<tr>
+				<td><code>{{logo_gov}}</code></td>
+				<td><?php esc_html_e( 'Government / institution logo URL from Settings > General > Branding (falls back to a shipped placeholder). Use inside an <img src="{{logo_gov}}">.', 'ffcertificate' ); ?></td>
+				<td><em>https://example.com/wp-content/uploads/logo.png</em></td>
+			</tr>
+			<tr>
+				<td><code>{{logo_org}}</code></td>
+				<td><?php esc_html_e( 'Organization logo URL from Settings > General > Branding (falls back to a shipped placeholder). Use inside an <img src="{{logo_org}}">.', 'ffcertificate' ); ?></td>
+				<td><em>https://example.com/wp-content/uploads/logo.png</em></td>
+			</tr>
+			<tr>
 				<td><code>{{program}}</code></td>
 				<td><?php esc_html_e( 'Program/Course name (if custom field exists)', 'ffcertificate' ); ?></td>
 				<td><em>Advanced Training</em></td>

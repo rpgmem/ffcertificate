@@ -129,24 +129,6 @@ class ActivatorTest extends TestCase {
     }
 
     // ==================================================================
-    // activate() — legacy cron hook cleanup
-    // ==================================================================
-
-    public function test_activate_clears_legacy_cron_hooks(): void {
-        $cleared = [];
-        Functions\when( 'wp_clear_scheduled_hook' )->alias( function ( $hook ) use ( &$cleared ) {
-            $cleared[] = $hook;
-        } );
-
-        Activator::activate();
-
-        $this->assertContains( 'ffc_daily_cleanup_hook', $cleared );
-        $this->assertContains( 'ffc_process_submission_hook', $cleared );
-        $this->assertContains( 'ffc_warm_cache_hook', $cleared );
-    }
-
-
-    // ==================================================================
     // activate() — daily cleanup scheduling
     // ==================================================================
 

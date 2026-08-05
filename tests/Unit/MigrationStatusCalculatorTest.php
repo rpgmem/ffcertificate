@@ -539,4 +539,26 @@ class MigrationStatusCalculatorTest extends TestCase {
         $result_b = $this->calculator->calculate( 'migration_b' );
         $this->assertSame( $status_b, $result_b );
     }
+
+    // ==================================================================
+    // try_create_strategy() — key_rotation (S7b, #857)
+    // ==================================================================
+
+    public function test_try_create_strategy_instantiates_key_rotation(): void {
+        global $wpdb;
+        $wpdb         = Mockery::mock( 'wpdb' );
+        $wpdb->prefix = 'wp_';
+
+        $method = $this->ref->getMethod( 'try_create_strategy' );
+        $method->setAccessible( true );
+        $method->invoke( $this->calculator, 'key_rotation' );
+
+        $strategies = $this->getPrivate( 'strategies' );
+
+        $this->assertArrayHasKey( 'key_rotation', $strategies );
+        $this->assertInstanceOf(
+            \FreeFormCertificate\Migrations\Strategies\KeyRotationMigrationStrategy::class,
+            $strategies['key_rotation']
+        );
+    }
 }

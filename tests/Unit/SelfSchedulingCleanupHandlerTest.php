@@ -121,7 +121,12 @@ class SelfSchedulingCleanupHandlerTest extends TestCase {
 
     protected function tearDown(): void {
         Monkey\tearDown();
-        unset( $_POST );
+        // Reset — not `unset()` — the superglobal: fully removing $_POST leaves
+        // it *undefined* for the next test in the shard, so any neighbour that
+        // reads `$_POST` (e.g. TabRateLimitTest) errors with "Undefined global
+        // variable". Shard packing is test-count-weighted, so which neighbour
+        // lands here shifts as tests are added. Reset to an empty array instead.
+        $_POST = array();
         parent::tearDown();
     }
 

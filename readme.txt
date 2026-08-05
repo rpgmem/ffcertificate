@@ -1,7 +1,7 @@
 === Free Form Certificate ===
 Contributors: alexmeusburger
 Tags: certificate, form builder, pdf generation, verification, validation
-Requires at least: 6.2
+Requires at least: 6.4
 Tested up to: 7.0
 Stable tag: 6.17.0
 Requires PHP: 8.3
@@ -122,6 +122,14 @@ Yes. The plugin includes built-in cache compatibility:
 * **Diagnostics:** Go to FFC Settings > Cache tab to see the "Page Cache Compatibility" card, which shows the status of all cache-related features and detects your active cache plugin.
 
 No manual configuration of cache exclusion rules is needed.
+
+= Do I need any server configuration on nginx? =
+
+One optional hardening step. Batched CSV exports stage a temporary file (which may contain decrypted PII) under `wp-content/uploads/ffc-tmp/`. On Apache the plugin protects it automatically with a bundled `.htaccess`; **nginx ignores `.htaccess`**, so add a deny rule to your server block:
+
+`location ^~ /wp-content/uploads/ffc-tmp/ { deny all; return 404; }`
+
+The temp file is already short-lived (random name, deleted right after download, daily cleanup cron), so this is defence-in-depth. See `docs/DEPLOYMENT.md` for details.
 
 = How do I translate the plugin? =
 

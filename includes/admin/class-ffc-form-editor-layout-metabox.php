@@ -35,21 +35,15 @@ class FormEditorLayoutMetabox {
 		$layout   = isset( $config['pdf_layout'] ) ? $config['pdf_layout'] : '';
 		$bg_image = isset( $config['bg_image'] ) ? $config['bg_image'] : '';
 
-		// Surface only certificate-shaped templates in the layout-editor
-		// dropdown — the same `html/` folder holds receipts (appointment),
-		// ficha PDFs, and one-off atestados that aren't valid layouts for
-		// this metabox. Case-insensitive substring match keeps a third-party
-		// `My_Certificate_Template.html` discoverable.
-		$templates_dir = FFC_PLUGIN_DIR . 'html/';
-		$all_html      = glob( $templates_dir . '*.html' );
-		$templates     = $all_html
-			? array_values(
-				array_filter(
-					$all_html,
-					static fn( string $path ): bool => false !== stripos( basename( $path ), 'certificate' )
-				)
-			)
-			: array();
+		// Populate the layout-editor "Load" dropdown from the DB-backed
+		// template pool (#865): visible templates, defaults first, addressed
+		// by post id. The legacy `html/` glob is retained only as the modal's
+		// deprecated fallback (AdminAssetsManager::discover_layout_templates,
+		// #865 phase-4) — this server-rendered select is pool-only, since the
+		// pool is seeded on admin_init before the editor renders.
+		$templates    = CertTemplateReader::list_for_editor();
+		$default_tpls = array_values( array_filter( $templates, static fn( array $t ): bool => $t['is_default'] ) );
+		$user_tpls    = array_values( array_filter( $templates, static fn( array $t ): bool => ! $t['is_default'] ) );
 
 		wp_nonce_field( 'ffc_save_form_data', 'ffc_form_nonce' );
 		?>
@@ -70,18 +64,30 @@ class FormEditorLayoutMetabox {
 								<span class="dashicons dashicons-visibility" style="vertical-align:text-bottom;margin-right:2px;"></span>
 								<?php esc_html_e( 'Preview', 'ffcertificate' ); ?>
 							</button>
+							<button type="button" class="button" id="ffc_save_as_model_btn">
+								<span class="dashicons dashicons-media-default" style="vertical-align:text-bottom;margin-right:2px;"></span>
+								<?php esc_html_e( 'Save as model', 'ffcertificate' ); ?>
+							</button>
 						</div>
 
 						<?php if ( $templates ) : ?>
 						<div class="ffc-template-loader">
 							<select id="ffc_template_select">
-								<option value=""><?php esc_html_e( 'Select Server Template...', 'ffcertificate' ); ?></option>
-								<?php
-								foreach ( $templates as $tpl ) :
-									$filename = basename( $tpl );
-									?>
-									<option value="<?php echo esc_attr( $filename ); ?>"><?php echo esc_html( $filename ); ?></option>
-								<?php endforeach; ?>
+								<option value=""><?php esc_html_e( 'Select a template…', 'ffcertificate' ); ?></option>
+								<?php if ( $default_tpls ) : ?>
+									<optgroup label="<?php esc_attr_e( 'Default templates', 'ffcertificate' ); ?>">
+										<?php foreach ( $default_tpls as $tpl ) : ?>
+											<option value="<?php echo esc_attr( (string) $tpl['id'] ); ?>"><?php echo esc_html( $tpl['label'] ); ?></option>
+										<?php endforeach; ?>
+									</optgroup>
+								<?php endif; ?>
+								<?php if ( $user_tpls ) : ?>
+									<optgroup label="<?php esc_attr_e( 'My templates', 'ffcertificate' ); ?>">
+										<?php foreach ( $user_tpls as $tpl ) : ?>
+											<option value="<?php echo esc_attr( (string) $tpl['id'] ); ?>"><?php echo esc_html( $tpl['label'] ); ?></option>
+										<?php endforeach; ?>
+									</optgroup>
+								<?php endif; ?>
 							</select>
 							<button type="button" id="ffc_load_template_btn" class="button"><?php esc_html_e( 'Load', 'ffcertificate' ); ?></button>
 						</div>

@@ -58,14 +58,12 @@ describe('ffc-admin-pdf.js — load-template button', () => {
 				selectTemplate: 'Choose a template',
 				cancel: 'Cancel',
 			},
-			// PHP localizes the actual catalog now (the script no longer
-			// ships a hardcoded fallback). Provide a realistic stub for the
-			// tests so we can assert on the rendered options.
+			// PHP localizes the DB-backed pool now (#865): each entry is keyed
+			// by post id (defaults first), with an empty `file` for pool rows.
 			templates: [
-				{ value: 'default_certificate_1.html', label: 'Default Certificate 1' },
-				{ value: 'default_certificate_2.html', label: 'Default Certificate 2' },
-				{ value: 'default_certificate_3.html', label: 'Default Certificate 3' },
-				{ value: 'my_certificate_template.html', label: 'My Certificate Template' },
+				{ id: 10, label: 'Certificate model 1', is_default: true, file: '' },
+				{ id: 11, label: 'Certificate model 2', is_default: true, file: '' },
+				{ id: 20, label: 'My Certificate Template', is_default: false, file: '' },
 			],
 		};
 		loadScript('assets/js/ffc-admin-pdf.js');
@@ -84,64 +82,140 @@ describe('ffc-admin-pdf.js — load-template button', () => {
 		);
 	});
 
-	it('lists the localized template catalog from ffc_ajax.templates', () => {
+	it('lists the localized template catalog from ffc_ajax.templates keyed by id', () => {
 		window.$('#ffc_load_template_btn').trigger('click');
 
 		// loadScript is re-evaluated in each beforeEach, so additional click
 		// handlers stack — assert "at least one set" rather than the exact
-		// count and verify the actual filenames make it through.
+		// count and verify the pool post ids make it through as data-id.
 		const options = document.querySelectorAll('.ffc-template-option');
-		expect(options.length).toBeGreaterThanOrEqual(4);
-		const files = Array.from(options).map((o) => o.getAttribute('data-file'));
-		expect(files).toContain('default_certificate_1.html');
-		expect(files).toContain('my_certificate_template.html');
+		expect(options.length).toBeGreaterThanOrEqual(3);
+		const ids = Array.from(options).map((o) => o.getAttribute('data-id'));
+		expect(ids).toContain('10');
+		expect(ids).toContain('20');
 	});
 });
 
-describe('ffc-admin-pdf.js — loadTemplate (fetch path)', () => {
+describe('ffc-admin-pdf.js — loadTemplate (ajax path)', () => {
 	beforeEach(() => {
 		reset();
 		installFFC();
 		document.body.innerHTML = '<textarea id="ffc_pdf_layout"></textarea>';
+		window.ffc_ajax = {
+			ajax_url: '/wp-admin/admin-ajax.php',
+			nonce: 'test-nonce',
+			strings: {
+				loadingTemplate: 'Loading…',
+				templateLoadedSuccess: 'Template "%s" loaded!',
+				templateFileNotFound: 'Template file not found.',
+			},
+		};
 		loadScript('assets/js/ffc-admin-pdf.js');
 	});
 
 	afterEach(reset);
 
-	it('writes fetched HTML into #ffc_pdf_layout on success', async () => {
-		window.fetch = vi.fn().mockResolvedValue({
-			ok: true,
-			status: 200,
-			text: () => Promise.resolve('<h1>Certificado</h1>'),
-		});
+	function stubPost(response) {
+		const jqxhr = {
+			done(cb) {
+				cb(response);
+				return jqxhr;
+			},
+			fail() {
+				return jqxhr;
+			},
+		};
+		window.$.post = vi.fn(() => jqxhr);
+		return jqxhr;
+	}
 
-		window.FFC.Admin.PDF.loadTemplate('certificado_1.html', 'Modelo 1');
-		// Flush fetch → response → text → populate chain.
-		await new Promise((r) => setTimeout(r, 0));
-		await new Promise((r) => setTimeout(r, 0));
+	it('POSTs ffc_load_template with template_id and writes the pool HTML', () => {
+		stubPost({ success: true, data: '<h1>Certificado</h1>' });
+
+		window.FFC.Admin.PDF.loadTemplate(5, '', 'Modelo 1');
+
+		expect(window.$.post).toHaveBeenCalled();
+		const [url, data] = window.$.post.mock.calls[0];
+		expect(url).toBe('/wp-admin/admin-ajax.php');
+		expect(data.action).toBe('ffc_load_template');
+		expect(data.nonce).toBe('test-nonce');
+		expect(data.template_id).toBe(5);
+		expect(data.filename).toBeUndefined();
 
 		expect(document.querySelector('#ffc_pdf_layout').value).toBe(
 			'<h1>Certificado</h1>'
 		);
-		// Success notification was fired (in addition to the initial "loading").
+		// Loading + success notifications.
 		expect(window.FFC.Admin.showNotification).toHaveBeenCalledTimes(2);
 	});
 
-	it('surfaces a 404 error notification via showNotification', async () => {
-		window.fetch = vi.fn().mockResolvedValue({
-			ok: false,
-			status: 404,
-			text: () => Promise.resolve(''),
-		});
+	it('posts the legacy filename when the id is 0 (deprecated fallback)', () => {
+		stubPost({ success: true, data: '<p>legacy</p>' });
 
-		window.FFC.Admin.PDF.loadTemplate('missing.html', 'Missing');
-		await new Promise((r) => setTimeout(r, 0));
-		await new Promise((r) => setTimeout(r, 0));
+		window.FFC.Admin.PDF.loadTemplate(0, 'legacy_certificate.html', 'Legacy');
+
+		const [, data] = window.$.post.mock.calls[0];
+		expect(data.template_id).toBeUndefined();
+		expect(data.filename).toBe('legacy_certificate.html');
+	});
+
+	it('surfaces a not-found error when the server responds unsuccessfully', () => {
+		stubPost({ success: false });
+
+		window.FFC.Admin.PDF.loadTemplate(999, '', 'Missing');
 
 		const calls = window.FFC.Admin.showNotification.mock.calls;
 		const errorCall = calls.find((c) => c[1] === 'error');
 		expect(errorCall).toBeDefined();
 		expect(errorCall[0]).toMatch(/not found/i);
+	});
+});
+
+describe('ffc-admin-pdf.js — save as model', () => {
+	beforeEach(() => {
+		reset();
+		installFFC();
+		document.body.innerHTML =
+			'<button id="ffc_save_as_model_btn">Save as model</button>' +
+			'<textarea id="ffc_pdf_layout"><div>{{name}}</div></textarea>';
+		window.ffc_ajax = {
+			ajax_url: '/wp-admin/admin-ajax.php',
+			nonce: 'test-nonce',
+			strings: { saveModelPrompt: 'Name?', templateSaved: 'Saved!' },
+		};
+		loadScript('assets/js/ffc-admin-pdf.js');
+	});
+
+	afterEach(() => {
+		if (window.prompt && window.prompt.mockRestore) {
+			window.prompt.mockRestore();
+		}
+		reset();
+	});
+
+	it('POSTs ffc_save_template with the prompted title and current layout', () => {
+		vi.spyOn(window, 'prompt').mockReturnValue('My Model');
+		const jqxhr = { done(cb) { cb({ success: true, data: { id: 9 } }); return jqxhr; }, fail() { return jqxhr; } };
+		window.$.post = vi.fn(() => jqxhr);
+
+		window.$('#ffc_save_as_model_btn').trigger('click');
+
+		expect(window.$.post).toHaveBeenCalled();
+		const [url, data] = window.$.post.mock.calls[0];
+		expect(url).toBe('/wp-admin/admin-ajax.php');
+		expect(data.action).toBe('ffc_save_template');
+		expect(data.nonce).toBe('test-nonce');
+		expect(data.title).toBe('My Model');
+		expect(data.html).toContain('{{name}}');
+	});
+
+	it('does not POST when the prompt is cancelled', () => {
+		vi.spyOn(window, 'prompt').mockReturnValue(null);
+		window.$.post = vi.fn();
+
+		window.$('#ffc_save_as_model_btn').trigger('click');
+
+		expect(window.$.post).not.toHaveBeenCalled();
 	});
 });
 

@@ -98,7 +98,10 @@ final class RecruitmentNoticeEditPage {
 		$notice_id = isset( $_GET['notice_id'] ) ? absint( wp_unslash( (string) $_GET['notice_id'] ) ) : 0;
 		$notice    = $notice_id > 0 ? RecruitmentNoticeReader::get_by_id( $notice_id ) : null;
 		if ( null === $notice ) {
-			echo '<div class="notice notice-error"><p>' . esc_html__( 'Notice not found.', 'ffcertificate' ) . '</p></div>';
+			wp_admin_notice(
+				esc_html__( 'Notice not found.', 'ffcertificate' ),
+				array( 'type' => 'error' )
+			);
 			echo '<p><a href="' . esc_url( self::back_url() ) . '">&larr; ' . esc_html__( 'Back to Notices', 'ffcertificate' ) . '</a></p>';
 			return;
 		}

@@ -66,7 +66,7 @@ class FormEditorTest extends TestCase {
     }
 
     protected function tearDown(): void {
-        unset( $_POST['qty'], $_POST['filename'] );
+        unset( $_POST['qty'], $_POST['filename'], $_POST['template_id'], $_POST['title'], $_POST['html'] );
         Monkey\tearDown();
         parent::tearDown();
     }
@@ -419,5 +419,119 @@ class FormEditorTest extends TestCase {
         $this->assertSame( '<div>Template</div>', $this->json_responses[0]['data'] );
 
         @unlink( $dir . '/test_tpl.html' );
+    }
+
+    // ==================================================================
+    // ajax_load_template() — DB-backed pool by id (#865)
+    // ==================================================================
+
+    public function test_ajax_load_template_returns_pool_html_by_id(): void {
+        // Primary path: a positive template_id resolves through the pool
+        // reader (CertTemplateReader::get_html), exercised here via its real
+        // get_post / get_post_meta reads.
+        Functions\when( 'check_ajax_referer' )->justReturn( true );
+        Functions\when( 'current_user_can' )->justReturn( true );
+
+        $post            = new \WP_Post();
+        $post->ID        = 5;
+        $post->post_type = \FreeFormCertificate\Admin\CertTemplateCpt::POST_TYPE;
+        Functions\when( 'get_post' )->justReturn( $post );
+        Functions\when( 'get_post_meta' )->justReturn( '<div>DB Template</div>' );
+
+        $_POST['template_id'] = 5;
+
+        $editor = new FormEditor();
+        try {
+            $editor->ajax_load_template();
+        } catch ( \RuntimeException $e ) {
+            // Expected — wp_send_json_* throws in the test double.
+        }
+
+        $this->assertSame( 'success', $this->json_responses[0]['type'] );
+        $this->assertSame( '<div>DB Template</div>', $this->json_responses[0]['data'] );
+    }
+
+    public function test_ajax_load_template_by_id_errors_when_not_in_pool(): void {
+        // A positive id that is not a pool post → reader returns '' → error,
+        // without ever falling through to the legacy filename path.
+        Functions\when( 'check_ajax_referer' )->justReturn( true );
+        Functions\when( 'current_user_can' )->justReturn( true );
+        Functions\when( 'get_post' )->justReturn( null );
+
+        $_POST['template_id'] = 999;
+
+        $editor = new FormEditor();
+        try {
+            $editor->ajax_load_template();
+        } catch ( \RuntimeException $e ) {
+            // Expected.
+        }
+
+        $this->assertSame( 'error', $this->json_responses[0]['type'] );
+    }
+
+    // ==================================================================
+    // ajax_save_template() — save current layout as a pool template (#865)
+    // ==================================================================
+
+    public function test_ajax_save_template_creates_pool_template(): void {
+        Functions\when( 'check_ajax_referer' )->justReturn( true );
+        Functions\when( 'current_user_can' )->justReturn( true );
+        Functions\when( 'sanitize_text_field' )->returnArg();
+        // wp_kses runs against the real HtmlPolicy allowlist; pass the body
+        // through unchanged so we can assert on the stored id/label.
+        Functions\when( 'wp_kses' )->alias( static fn( $html ) => $html );
+        // CertTemplateWriter::create() → wp_insert_post + update_post_meta.
+        Functions\when( 'wp_insert_post' )->justReturn( 55 );
+        Functions\when( 'update_post_meta' )->justReturn( true );
+
+        $_POST['title'] = 'My Model';
+        $_POST['html']  = '<div>{{name}}</div>';
+
+        $editor = new FormEditor();
+        try {
+            $editor->ajax_save_template();
+        } catch ( \RuntimeException $e ) {
+            // Expected.
+        }
+
+        $this->assertSame( 'success', $this->json_responses[0]['type'] );
+        $this->assertSame( 55, $this->json_responses[0]['data']['id'] );
+        $this->assertSame( 'My Model', $this->json_responses[0]['data']['label'] );
+    }
+
+    public function test_ajax_save_template_denies_without_permission(): void {
+        Functions\when( 'check_ajax_referer' )->justReturn( true );
+        Functions\when( 'current_user_can' )->justReturn( false );
+
+        $_POST['title'] = 'X';
+        $_POST['html']  = '<div>x</div>';
+
+        $editor = new FormEditor();
+        try {
+            $editor->ajax_save_template();
+        } catch ( \RuntimeException $e ) {
+            // Expected.
+        }
+
+        $this->assertSame( 'error', $this->json_responses[0]['type'] );
+    }
+
+    public function test_ajax_save_template_errors_on_empty_title(): void {
+        Functions\when( 'check_ajax_referer' )->justReturn( true );
+        Functions\when( 'current_user_can' )->justReturn( true );
+        Functions\when( 'sanitize_text_field' )->returnArg();
+
+        $_POST['title'] = '';
+        $_POST['html']  = '<div>x</div>';
+
+        $editor = new FormEditor();
+        try {
+            $editor->ajax_save_template();
+        } catch ( \RuntimeException $e ) {
+            // Expected.
+        }
+
+        $this->assertSame( 'error', $this->json_responses[0]['type'] );
     }
 }

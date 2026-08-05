@@ -160,11 +160,15 @@ abstract class SettingsTab {
 	 * @return void
 	 */
 	protected function render_notice( $message, $type = 'success' ) {
-		?>
-		<div class="notice notice-<?php echo esc_attr( $type ); ?> is-dismissible">
-			<p><?php echo wp_kses_post( $message ); ?></p>
-		</div>
-		<?php
+		// paragraph_wrap (default true) supplies the <p>; the message is
+		// wp_kses_post-sanitized as before, so rich-HTML callers still work.
+		wp_admin_notice(
+			wp_kses_post( $message ),
+			array(
+				'type'        => $type,
+				'dismissible' => true,
+			)
+		);
 	}
 
 	/**

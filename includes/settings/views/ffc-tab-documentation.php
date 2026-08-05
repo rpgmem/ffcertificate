@@ -157,6 +157,12 @@ $ffc_doc_tree = array(
 						'file'   => 'config-general.php',
 					),
 					array(
+						'anchor' => 'config-modules',
+						'icon'   => 'dashicons-screenoptions',
+						'title'  => __( 'Modules', 'ffcertificate' ),
+						'file'   => 'config-modules.php',
+					),
+					array(
 						'anchor' => 'reference-emails',
 						'icon'   => 'dashicons-email',
 						'title'  => __( 'Emails & Delivery', 'ffcertificate' ),
@@ -193,16 +199,34 @@ $ffc_doc_tree = array(
 						'file'   => 'reference-capabilities.php',
 					),
 					array(
+						'anchor' => 'reference-privacy',
+						'icon'   => 'dashicons-privacy',
+						'title'  => __( 'Privacy & LGPD', 'ffcertificate' ),
+						'file'   => 'reference-privacy.php',
+					),
+					array(
 						'anchor' => 'config-advanced',
 						'icon'   => 'dashicons-admin-tools',
 						'title'  => __( 'Advanced', 'ffcertificate' ),
 						'file'   => 'config-advanced.php',
 					),
 					array(
+						'anchor' => 'config-activity-log',
+						'icon'   => 'dashicons-clipboard',
+						'title'  => __( 'Activity Log', 'ffcertificate' ),
+						'file'   => 'config-activity-log.php',
+					),
+					array(
 						'anchor' => 'operations-maintenance',
 						'icon'   => 'dashicons-admin-tools',
 						'title'  => __( 'Maintenance Tools', 'ffcertificate' ),
 						'file'   => 'operations-maintenance.php',
+					),
+					array(
+						'anchor' => 'operations-updates',
+						'icon'   => 'dashicons-update',
+						'title'  => __( 'Updates', 'ffcertificate' ),
+						'file'   => 'operations-updates.php',
 					),
 				),
 			),

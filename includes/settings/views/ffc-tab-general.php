@@ -131,7 +131,7 @@ $ffcertificate_show_divergence = $ffcertificate_date_diverges || $ffcertificate_
 // view into the settings nav itself — see Settings::render_module_settings_links().
 ?>
 <?php if ( $ffcertificate_show_divergence ) : ?>
-	<div class="notice notice-info inline ffc-settings-divergence-notice" style="margin: 15px 0; padding: 12px 15px;">
+	<?php ob_start(); ?>
 		<p style="margin: 0 0 8px;">
 			<strong><?php esc_html_e( 'Heads-up: plugin formats differ from the WordPress global formats.', 'ffcertificate' ); ?></strong>
 		</p>
@@ -164,7 +164,17 @@ $ffcertificate_show_divergence = $ffcertificate_date_diverges || $ffcertificate_
 				</li>
 			<?php endif; ?>
 		</ul>
-	</div>
+	<?php
+	wp_admin_notice(
+		(string) ob_get_clean(),
+		array(
+			'type'               => 'info',
+			'additional_classes' => array( 'inline', 'ffc-settings-divergence-notice' ),
+			'paragraph_wrap'     => false,
+			'attributes'         => array( 'style' => 'margin: 15px 0; padding: 12px 15px;' ),
+		)
+	);
+	?>
 <?php endif; ?>
 
 <form method="post">
@@ -383,6 +393,32 @@ $ffcertificate_show_divergence = $ffcertificate_date_diverges || $ffcertificate_
 						<input type="url" name="ffc_settings[csv_download_page_url]" id="csv_download_page_url" value="<?php echo esc_attr( $ffcertificate_get_option( 'csv_download_page_url', '' ) ); ?>" class="large-text" placeholder="https://example.com/csv-download/" data-ffc-autosave-key="csv_download_page_url">
 						<p class="description">
 							<?php esc_html_e( 'URL of the page containing the [ffc_csv_download] shortcode. When set, the form editor will display the full download link instead of just the query string.', 'ffcertificate' ); ?>
+						</p>
+					</td>
+				</tr>
+				<tr>
+					<th scope="row">
+						<label for="logo_gov"><?php esc_html_e( 'Branding — Government / institution logo', 'ffcertificate' ); ?></label>
+					</th>
+					<td>
+						<input type="url" name="ffc_settings[logo_gov]" id="logo_gov" value="<?php echo esc_attr( $ffcertificate_get_option( 'logo_gov', '' ) ); ?>" class="large-text" placeholder="https://example.com/wp-content/uploads/logo.png" data-ffc-autosave-key="logo_gov">
+						<button type="button" class="button ffc-media-select" data-ffc-media-target="#logo_gov"><?php esc_html_e( 'Select image', 'ffcertificate' ); ?></button>
+						<button type="button" class="button-link ffc-media-clear" data-ffc-media-target="#logo_gov"><?php esc_html_e( 'Clear', 'ffcertificate' ); ?></button>
+						<p class="description">
+							<?php esc_html_e( 'Resolves the {{logo_gov}} placeholder in the default ficha and appointment-receipt templates. Falls back to a generic placeholder when empty.', 'ffcertificate' ); ?>
+						</p>
+					</td>
+				</tr>
+				<tr>
+					<th scope="row">
+						<label for="logo_org"><?php esc_html_e( 'Branding — Organization logo', 'ffcertificate' ); ?></label>
+					</th>
+					<td>
+						<input type="url" name="ffc_settings[logo_org]" id="logo_org" value="<?php echo esc_attr( $ffcertificate_get_option( 'logo_org', '' ) ); ?>" class="large-text" placeholder="https://example.com/wp-content/uploads/logo.png" data-ffc-autosave-key="logo_org">
+						<button type="button" class="button ffc-media-select" data-ffc-media-target="#logo_org"><?php esc_html_e( 'Select image', 'ffcertificate' ); ?></button>
+						<button type="button" class="button-link ffc-media-clear" data-ffc-media-target="#logo_org"><?php esc_html_e( 'Clear', 'ffcertificate' ); ?></button>
+						<p class="description">
+							<?php esc_html_e( 'Resolves the {{logo_org}} placeholder in the default ficha and appointment-receipt templates. Falls back to a generic placeholder when empty.', 'ffcertificate' ); ?>
 						</p>
 					</td>
 				</tr>

@@ -84,13 +84,8 @@ class Activator {
 		}
 
 		self::add_composite_indexes();
-		self::add_foreign_keys();
+		self::maybe_add_foreign_keys();
 		self::run_migrations();
-
-		// Clean up legacy cron hooks from pre-4.6.15 versions.
-		wp_clear_scheduled_hook( 'ffc_daily_cleanup_hook' );
-		wp_clear_scheduled_hook( 'ffc_process_submission_hook' );
-		wp_clear_scheduled_hook( 'ffc_warm_cache_hook' );
 
 		// Schedule daily cleanup cron.
 		if ( ! wp_next_scheduled( 'ffcertificate_daily_cleanup_hook' ) ) {
@@ -484,8 +479,15 @@ class Activator {
 			array( 'idx_classification_cancelled' => '(classification_id, cancelled_at)' )
 		);
 
-		// Self-scheduling appointments table (#249 expansion).
-		$apt_table = $wpdb->prefix . 'ffc_appointments';
+		// Self-scheduling appointments table (#249 expansion). The physical
+		// table is `ffc_self_scheduling_appointments`; an earlier revision
+		// pointed this at a non-existent `ffc_appointments`, so the loop
+		// silently no-op'd (table_exists() short-circuit). Harmless in
+		// practice — the columns ship as BIGINT on 6.6.0+ and
+		// migrate_datetime_column_to_unix() fast-returns on already-int
+		// columns — but the reference is now correct so the safety net
+		// actually reaches any legacy DATETIME row it was meant to convert.
+		$apt_table = $wpdb->prefix . 'ffc_self_scheduling_appointments';
 		foreach ( array( 'approved_at', 'cancelled_at', 'consent_date', 'reminder_sent_at' ) as $col ) {
 			self::migrate_datetime_column_to_unix( $apt_table, $col, true );
 		}
@@ -628,13 +630,41 @@ class Activator {
 	}
 
 	/**
-	 * Add FOREIGN KEY constraints for referential integrity
+	 * Add the `user_id → wp_users` FOREIGN KEY safety net (idempotent, flag-guarded).
+	 *
+	 * These FKs are the DB-level backstop to the app-layer `UserCleanup` hook: on
+	 * user deletion they enforce `ON DELETE SET NULL` / `CASCADE` even if the hook
+	 * is bypassed (a direct SQL delete, a bulk operation). They remain necessary
+	 * because WordPress's `dbDelta()` cannot emit `FOREIGN KEY` clauses — so this
+	 * migration is the *only* path that creates them, and they are absent on a
+	 * fresh install until it runs. The covered set is a deliberate subset (see
+	 * {@see \FreeFormCertificate\Migrations\MigrationForeignKeys}), not every
+	 * `user_id` column.
+	 *
+	 * Flag-guarded like the sibling migrations so it stops re-confirming (and
+	 * writing an all-skipped audit-log line) on every activation. Unlike
+	 * {@see self::maybe_add_perf_indexes()} it records completion *only once all
+	 * FKs actually exist*, so a MyISAM host — or a table not yet created — keeps
+	 * retrying on the next activation instead of being locked out by the flag.
 	 *
 	 * @since 4.9.7
+	 * @since 6.18.0 Flag-guarded via the `ffc_foreign_keys_db_version` option.
 	 */
-	private static function add_foreign_keys(): void {
-		if ( class_exists( '\FreeFormCertificate\Migrations\MigrationForeignKeys' ) ) {
-			\FreeFormCertificate\Migrations\MigrationForeignKeys::run();
+	public static function maybe_add_foreign_keys(): void {
+		if ( FFC_VERSION === get_option( 'ffc_foreign_keys_db_version', '' ) ) {
+			return;
+		}
+		if ( ! class_exists( '\FreeFormCertificate\Migrations\MigrationForeignKeys' ) ) {
+			return;
+		}
+
+		\FreeFormCertificate\Migrations\MigrationForeignKeys::run();
+
+		// Only pin the version once every FK is present; otherwise (MyISAM, or a
+		// table missing this pass) leave the flag unset so the next activation retries.
+		$status = \FreeFormCertificate\Migrations\MigrationForeignKeys::get_status();
+		if ( ! empty( $status['is_complete'] ) ) {
+			update_option( 'ffc_foreign_keys_db_version', FFC_VERSION, true );
 		}
 	}
 

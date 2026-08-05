@@ -193,6 +193,15 @@ class Loader {
 		$ffc_certificates_enabled = SettingsReader::module_enabled( 'certificates' );
 		if ( $ffc_certificates_enabled ) {
 			$this->cpt = new CPT();
+			// Certificate-template pool (#865): the reusable-template CPT + a
+			// non-destructive, versioned seed of the shipped defaults (admin
+			// only — the pool is authored/consumed in wp-admin).
+			new \FreeFormCertificate\Admin\CertTemplateCpt();
+			if ( is_admin() ) {
+				add_action( 'admin_init', array( \FreeFormCertificate\Admin\CertTemplateSeeder::class, 'maybe_seed' ) );
+				// Management UI: list-table columns + visibility toggle (#865).
+				new \FreeFormCertificate\Admin\CertTemplateAdminScreen();
+			}
 		}
 
 		// Admin-only classes skipped on frontend.
@@ -226,6 +235,11 @@ class Loader {
 		// unconditionally so both priv and nopriv admin-ajax requests reach it.
 		( new \FreeFormCertificate\Core\BatchedExportDispatcher() )->register();
 
+		// Self-hosted updater — teaches WordPress's plugin-update check to see
+		// this plugin's GitHub Releases (#820). Always-on and NOT gated by
+		// is_admin(): the update scan runs in cron, outside the admin context.
+		\FreeFormCertificate\Integrations\GithubUpdater::init();
+
 		DashboardShortcode::init();
 		// Reregistration module — single bootstrap entry point (#563 B3).
 		// Toggleable via the Modules tab (default on).
@@ -241,10 +255,6 @@ class Loader {
 		AccessControl::init();
 		UserCleanup::init();
 		PrivacyHandler::init();
-
-		// #739 deprecation shim: keep honouring edit_others_posts for the
-		// decoupled form/calendar caps for two releases. Remove in 6.18.0.
-		\FreeFormCertificate\Admin\CptEditorCompat::init();
 
 		// #739 §3.2 read-only viewer gate: forms/calendars list-read primitives
 		// map to the view caps, so this forces the per-post write meta-caps back
@@ -301,7 +311,6 @@ class Loader {
 
 		$this->ensure_admin_capabilities();
 		$this->ensure_admin_role_assigned();
-		$this->ensure_legacy_caps_renamed();
 		$this->ensure_taxonomy_renamed();
 		$this->ensure_delete_caps_granted();
 		$this->ensure_export_caps_granted();
@@ -363,28 +372,6 @@ class Loader {
 				\FreeFormCertificate\UserDashboard\RoleRegistrar::register_recruitment_manager_role();
 			}
 		}
-	}
-
-	/**
-	 * One-time migration that renames the three legacy certificate caps
-	 * (`view_own_certificates`, `download_own_certificates`,
-	 * `view_certificate_history`) to their `ffc_*` namespaced equivalents.
-	 *
-	 * Idempotent + version-flagged via the `ffc_legacy_caps_renamed_v1`
-	 * option. Runs on `plugins_loaded` so in-place plugin updates trigger
-	 * the rewrite without needing a deactivate/reactivate cycle.
-	 *
-	 * @since 6.2.0
-	 */
-	private function ensure_legacy_caps_renamed(): void {
-		$flag = 'ffc_legacy_caps_renamed_v1';
-		if ( '1' === get_option( $flag, '' ) ) {
-			return;
-		}
-		if ( class_exists( '\FreeFormCertificate\UserDashboard\CapabilityManager' ) ) {
-			\FreeFormCertificate\UserDashboard\CapabilityMigrator::migrate_legacy_certificate_caps();
-		}
-		update_option( $flag, '1', true );
 	}
 
 	/**
