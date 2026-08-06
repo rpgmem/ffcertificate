@@ -35,9 +35,16 @@ class CertTemplateSeeder {
 	private const SEED_FLAG = 'ffc_cert_templates_seeded_version';
 
 	/**
-	 * Current seed version — bump when adding a new shipped default.
+	 * Current seed version — bump when adding a new shipped default OR when a
+	 * shipped default's body changes and existing installs must pick it up.
+	 *
+	 * Version 2 corrected the default templates' background/signature image refs
+	 * from the update-fragile `html/` path to `assets/` (#871). Installs seeded
+	 * under v1 kept the stale `html/` ref, which the image-rewrite migration then
+	 * sideloaded into the Media Library; the bump refreshes those bodies to the
+	 * shipped `assets/` source on upgrade.
 	 */
-	private const SEED_VERSION = 1;
+	private const SEED_VERSION = 2;
 
 	/**
 	 * Directory (relative to the plugin root) holding the seed HTML files.
@@ -50,10 +57,24 @@ class CertTemplateSeeder {
 	 * @return void
 	 */
 	public static function maybe_seed(): void {
-		if ( (int) get_option( self::SEED_FLAG, 0 ) >= self::SEED_VERSION ) {
+		$applied = (int) get_option( self::SEED_FLAG, 0 );
+		if ( $applied >= self::SEED_VERSION ) {
 			return;
 		}
-		self::seed();
+
+		if ( $applied > 0 ) {
+			// A version bump on an already-seeded install: refresh existing
+			// default bodies to the current shipped source (and add any newly
+			// shipped default) so corrections like the #871 assets/ image-path
+			// fix reach installs seeded under an older version. restore() is
+			// non-destructive — user templates are never touched and each
+			// default's admin-chosen visibility is preserved.
+			self::restore();
+		} else {
+			// First-ever seed: create the shipped defaults.
+			self::seed();
+		}
+
 		update_option( self::SEED_FLAG, self::SEED_VERSION );
 	}
 

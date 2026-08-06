@@ -1,9 +1,11 @@
 /**
  * FFC — CodeMirror initializer for the certificate HTML template textarea.
  *
- * Wraps the native #ffc_pdf_layout textarea with WordPress's bundled CodeMirror
- * so admins get HTML syntax highlighting plus a custom overlay that paints
- * `{{placeholder}}` tokens in a distinct color.
+ * Wraps a certificate-HTML textarea (id supplied via `ffcCodeEditor.textareaId`
+ * — the form editor's `ffc_pdf_layout` or the cert-template CPT edit screen's
+ * `ffc_template_html`) with WordPress's bundled CodeMirror so admins get HTML
+ * syntax highlighting plus a custom overlay that paints `{{placeholder}}` tokens
+ * in a distinct color.
  *
  * The underlying textarea is preserved and its value continues to be synced on
  * every change, so form submission behaviour is byte-for-byte identical to the
@@ -17,12 +19,16 @@
 	'use strict';
 
 	$( function () {
-		var $textarea = $( '#ffc_pdf_layout' );
+		var config = window.ffcCodeEditor || {};
+
+		// The textarea id is supplied by the enqueuing screen (the form editor
+		// uses `ffc_pdf_layout`; the cert-template CPT edit screen uses
+		// `ffc_template_html`). Fall back to the form-editor id for safety.
+		var textareaId = config.textareaId || 'ffc_pdf_layout';
+		var $textarea  = $( '#' + textareaId );
 		if ( ! $textarea.length ) {
 			return;
 		}
-
-		var config = window.ffcCodeEditor || {};
 
 		if ( ! config.enabled || ! config.settings || 'undefined' === typeof window.wp || ! window.wp.codeEditor ) {
 			renderDisabledNotice( $textarea, config );
@@ -48,7 +54,7 @@
 
 		var editor;
 		try {
-			editor = window.wp.codeEditor.initialize( 'ffc_pdf_layout', config.settings );
+			editor = window.wp.codeEditor.initialize( textareaId, config.settings );
 		} catch ( err ) {
 			renderDisabledNotice( $textarea, config );
 			return;

@@ -419,6 +419,29 @@
     margin-right: 6px;
 }
 
+/* Certificate layout actions: a consistent, wrapping toolbar of icon buttons.
+   Every button carries a leading dashicon; align and space them uniformly
+   instead of per-button inline styles. */
+.ffc-action-group {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    align-items: center;
+}
+
+.ffc-action-group .button {
+    display: inline-flex;
+    align-items: center;
+}
+
+.ffc-action-group .button .dashicons {
+    margin-right: 4px;
+    font-size: 17px;
+    width: 17px;
+    height: 17px;
+    line-height: 1;
+}
+
 /* ==========================================================================
    GEOFENCE META BOX STYLES - v3.0.0
    ========================================================================== */

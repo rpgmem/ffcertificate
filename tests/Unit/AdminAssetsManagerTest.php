@@ -447,4 +447,87 @@ class AdminAssetsManagerTest extends TestCase {
 
         $this->assertSame('dark', AdminAssetsManager::resolve_code_editor_theme());
     }
+
+    // ==================================================================
+    // enqueue_admin_base_styles() / enqueue_code_editor_for() — static,
+    // shared by the form editor and the cert-template CPT edit screen.
+    // ==================================================================
+
+    public function test_enqueue_admin_base_styles_enqueues_the_chain(): void {
+        $styles = array();
+        Functions\when('wp_enqueue_style')->alias(
+            static function ($handle) use (&$styles) {
+                $styles[] = $handle;
+                return true;
+            }
+        );
+
+        AdminAssetsManager::enqueue_admin_base_styles();
+
+        foreach (array('ffc-pdf-core', 'ffc-common', 'ffc-admin-utilities', 'ffc-admin-css') as $handle) {
+            $this->assertContains($handle, $styles);
+        }
+    }
+
+    public function test_enqueue_code_editor_for_localizes_textarea_and_readonly(): void {
+        Functions\when('wp_enqueue_style')->justReturn(true);
+        Functions\when('get_option')->justReturn(array('code_editor_theme' => 'light'));
+
+        $cm_config = null;
+        Functions\when('wp_enqueue_code_editor')->alias(
+            static function ($args) use (&$cm_config) {
+                $cm_config = $args['codemirror'] ?? array();
+                return array('codemirror' => $cm_config);
+            }
+        );
+        $scripts = array();
+        Functions\when('wp_enqueue_script')->alias(
+            static function ($handle) use (&$scripts) {
+                $scripts[] = $handle;
+                return true;
+            }
+        );
+        $localized = null;
+        Functions\when('wp_localize_script')->alias(
+            static function ($handle, $obj, $data) use (&$localized) {
+                $localized = $data;
+                return true;
+            }
+        );
+        Functions\when('admin_url')->returnArg();
+
+        AdminAssetsManager::enqueue_code_editor_for('ffc_template_html', true);
+
+        $this->assertContains('ffc-admin-code-editor', $scripts);
+        $this->assertSame('ffc_template_html', $localized['textareaId']);
+        $this->assertTrue($localized['enabled']);
+        $this->assertSame('nocursor', $cm_config['readOnly'], 'read-only editor for shipped defaults');
+    }
+
+    public function test_enqueue_code_editor_for_omits_readonly_for_editable(): void {
+        Functions\when('wp_enqueue_style')->justReturn(true);
+        Functions\when('get_option')->justReturn(array('code_editor_theme' => 'light'));
+
+        $cm_config = null;
+        Functions\when('wp_enqueue_code_editor')->alias(
+            static function ($args) use (&$cm_config) {
+                $cm_config = $args['codemirror'] ?? array();
+                return array('codemirror' => $cm_config);
+            }
+        );
+        Functions\when('wp_enqueue_script')->justReturn(true);
+        $localized = null;
+        Functions\when('wp_localize_script')->alias(
+            static function ($handle, $obj, $data) use (&$localized) {
+                $localized = $data;
+                return true;
+            }
+        );
+        Functions\when('admin_url')->returnArg();
+
+        AdminAssetsManager::enqueue_code_editor_for('ffc_pdf_layout');
+
+        $this->assertArrayNotHasKey('readOnly', $cm_config);
+        $this->assertSame('ffc_pdf_layout', $localized['textareaId']);
+    }
 }

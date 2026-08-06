@@ -95,6 +95,10 @@ class CertTemplateAdminScreen {
 		// link navigates to the page directly).
 		add_action( 'admin_action_' . self::PREVIEW_ACTION, array( $this, 'handle_preview' ) );
 		add_action( 'admin_enqueue_scripts', array( $this, 'enqueue_preview_assets' ) );
+		// Edit screen gets the same CodeMirror HTML editor as the form-editor
+		// layout box, so editing a template looks identical to editing a form's
+		// certificate HTML.
+		add_action( 'admin_enqueue_scripts', array( $this, 'enqueue_edit_assets' ) );
 		// Edit screen: HTML body + visibility metabox (the CPT only `supports`
 		// title, so the template body needs its own field).
 		add_action( 'add_meta_boxes_' . $pt, array( $this, 'add_edit_metabox' ) );
@@ -459,6 +463,28 @@ class CertTemplateAdminScreen {
 	}
 
 	/**
+	 * Enqueue the shared CodeMirror HTML editor on the template edit screen.
+	 *
+	 * Mirrors what the form editor does for its layout box, so the two HTML
+	 * editors are visually identical. Shipped defaults get a read-only editor,
+	 * matching the server-rendered `readonly` textarea (#865 decision #11).
+	 *
+	 * @return void
+	 */
+	public function enqueue_edit_assets(): void {
+		$screen = function_exists( 'get_current_screen' ) ? get_current_screen() : null;
+		if ( ! $screen instanceof \WP_Screen || 'post' !== $screen->base || CertTemplateCpt::POST_TYPE !== $screen->post_type ) {
+			return;
+		}
+
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only routing: which post is being edited, to decide the read-only editor state. No state change; no nonce applies.
+		$post_id    = isset( $_GET['post'] ) ? absint( wp_unslash( $_GET['post'] ) ) : 0;
+		$is_default = $post_id > 0 && CertTemplateReader::is_default( $post_id );
+
+		AdminAssetsManager::enqueue_code_editor_for( 'ffc_template_html', $is_default );
+	}
+
+	/**
 	 * Register the HTML-body + visibility metabox on the edit screen.
 	 *
 	 * @return void
@@ -497,10 +523,10 @@ class CertTemplateAdminScreen {
 				'</p>';
 		}
 		?>
-		<p>
-			<label class="ffc-block-label" for="ffc_template_html"><strong><?php esc_html_e( 'Certificate HTML', 'ffcertificate' ); ?></strong></label>
+		<label class="ffc-block-label" for="ffc_template_html"><strong><?php esc_html_e( 'Certificate HTML', 'ffcertificate' ); ?></strong></label>
+		<div class="ffc-code-editor-wrapper">
 			<textarea name="ffc_template_html" id="ffc_template_html" class="ffc-w100" rows="16" <?php wp_readonly( $is_default, true ); ?>><?php echo esc_textarea( $html ); ?></textarea>
-		</p>
+		</div>
 		<p class="description">
 			<?php esc_html_e( 'Mandatory Tags:', 'ffcertificate' ); ?> <code>{{auth_code}}</code>, <code>{{name}}</code>, <code>{{cpf_rf}}</code>.
 		</p>
