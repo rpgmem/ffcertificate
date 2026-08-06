@@ -558,11 +558,12 @@ class CertTemplateAdminScreenTest extends TestCase {
 		$this->assertSame( '', $out );
 	}
 
-	public function test_render_edit_metabox_new_template_defaults_visible(): void {
+	public function test_render_options_metabox_new_template_defaults_visible(): void {
+		// The visibility toggle lives in the sidebar "Template options" metabox
+		// (moved out of the HTML-body metabox); assert its default-visible state
+		// for a new auto-draft there.
 		Functions\when( 'esc_html_e' )->alias( static fn( $t ) => print( $t ) );
-		Functions\when( 'esc_textarea' )->returnArg();
-		Functions\when( 'wp_nonce_field' )->justReturn( null );
-		Functions\when( 'get_post_meta' )->justReturn( '' ); // no stored HTML / visibility yet
+		Functions\when( 'get_post_meta' )->justReturn( '' ); // no stored visibility yet
 		Functions\when( 'checked' )->alias(
 			static function ( $a, $b = true ) {
 				// phpcs:ignore Universal.Operators.StrictComparisons.LooseEqual -- mirrors WP core checked() loose comparison.
@@ -574,7 +575,7 @@ class CertTemplateAdminScreenTest extends TestCase {
 		$new->post_status = 'auto-draft';
 
 		$html = $this->capture(
-			fn() => ( new CertTemplateAdminScreen() )->render_edit_metabox( $new )
+			fn() => ( new CertTemplateAdminScreen() )->render_options_metabox( $new )
 		);
 
 		$this->assertStringContainsString( 'checked', $html, 'a new (auto-draft) template is visible by default' );
@@ -659,6 +660,8 @@ class CertTemplateAdminScreenTest extends TestCase {
 	public function test_enqueue_edit_assets_mounts_code_editor_on_edit_screen(): void {
 		$scripts = array();
 		Functions\when( 'wp_enqueue_style' )->justReturn( true );
+		Functions\when( 'wp_enqueue_media' )->justReturn( true ); // image-tools path (non-default) mounts wp.media.
+		Functions\when( 'wp_create_nonce' )->justReturn( 'nonce' ); // ffc_ajax localization in enqueue_image_tools().
 		Functions\when( 'wp_enqueue_script' )->alias(
 			static function ( $handle ) use ( &$scripts ) {
 				$scripts[] = $handle;
