@@ -101,6 +101,40 @@ class CertTemplateSeederTest extends TestCase {
 		$this->assertTrue( true ); // No insert attempted = non-destructive.
 	}
 
+	public function test_restore_refreshes_existing_and_adds_missing(): void {
+		// One shipped default already present (slug _1 → id 11); the other two missing.
+		Functions\when( 'get_posts' )->justReturn( array( 11 ) );
+		Functions\when( 'get_post_meta' )->alias(
+			static fn( $id ) => 11 === $id ? 'default_certificate_1' : ''
+		);
+
+		$updated = array();
+		Functions\when( 'update_post_meta' )->alias(
+			static function ( $id, $key, $value ) use ( &$updated ) {
+				$updated[] = array( $id, $key, $value );
+				return true;
+			}
+		);
+		$inserted = 0;
+		Functions\when( 'wp_insert_post' )->alias(
+			static function () use ( &$inserted ) {
+				return 100 + ( ++$inserted );
+			}
+		);
+
+		CertTemplateSeeder::restore();
+
+		// Existing default #11 had its HTML refreshed in place (not re-inserted).
+		$refreshed = array_filter(
+			$updated,
+			static fn( $u ) => 11 === $u[0] && CertTemplateCpt::META_HTML === $u[1] && '' !== (string) $u[2]
+		);
+		$this->assertNotEmpty( $refreshed, 'existing default HTML is refreshed' );
+
+		// The two missing defaults were (re)created; the present one was not.
+		$this->assertSame( 2, $inserted, 'only the two missing defaults are inserted' );
+	}
+
 	public function test_seed_html_references_shipped_assets_not_html_folder(): void {
 		// #865 crit #7: default images moved to the versioned assets/ dir so
 		// html/ can eventually be retired; guard against a seed reference
