@@ -95,7 +95,10 @@ class FormEditorLayoutMetabox {
 									</optgroup>
 								<?php endif; ?>
 							</select>
-							<button type="button" id="ffc_load_template_btn" class="button"><?php esc_html_e( 'Load', 'ffcertificate' ); ?></button>
+							<button type="button" id="ffc_load_template_btn" class="button">
+									<span class="dashicons dashicons-download" aria-hidden="true"></span>
+									<?php esc_html_e( 'Load', 'ffcertificate' ); ?>
+								</button>
 						</div>
 						<?php endif; ?>
 					</div>
