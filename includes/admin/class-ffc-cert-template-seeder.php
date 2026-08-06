@@ -38,11 +38,11 @@ class CertTemplateSeeder {
 	 * Current seed version — bump when adding a new shipped default OR when a
 	 * shipped default's body changes and existing installs must pick it up.
 	 *
-	 * v2: the default templates' background/signature image refs were corrected
+	 * Version 2 corrected the default templates' background/signature image refs
 	 * from the update-fragile `html/` path to `assets/` (#871). Installs seeded
 	 * under v1 kept the stale `html/` ref, which the image-rewrite migration then
-	 * sideloaded into the Media Library; bumping to v2 refreshes those bodies to
-	 * the shipped `assets/` source on upgrade.
+	 * sideloaded into the Media Library; the bump refreshes those bodies to the
+	 * shipped `assets/` source on upgrade.
 	 */
 	private const SEED_VERSION = 2;
 

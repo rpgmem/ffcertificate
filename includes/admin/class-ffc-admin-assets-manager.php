@@ -101,14 +101,14 @@ class AdminAssetsManager {
 	 *
 	 * When the user disabled "Syntax Highlighting" in their profile
 	 * `wp_enqueue_code_editor()` returns false and the JS falls back to the plain
-	 * textarea. Pass `$readonly = true` for shipped defaults so the editor
+	 * textarea. Pass `$read_only = true` for shipped defaults so the editor
 	 * renders non-editable, matching the server-side read-only textarea.
 	 *
 	 * @param string $textarea_id Id of the textarea to enhance.
-	 * @param bool   $readonly    Whether the editor should be read-only.
+	 * @param bool   $read_only   Whether the editor should be read-only.
 	 * @return void
 	 */
-	public static function enqueue_code_editor_for( string $textarea_id, bool $readonly = false ): void {
+	public static function enqueue_code_editor_for( string $textarea_id, bool $read_only = false ): void {
 		self::enqueue_admin_base_styles();
 
 		$theme_choice = self::resolve_code_editor_theme();
@@ -124,7 +124,7 @@ class AdminAssetsManager {
 			'lint'          => false,
 		);
 
-		if ( $readonly ) {
+		if ( $read_only ) {
 			// 'nocursor' keeps the read-only editor from taking focus/caret,
 			// reinforcing that shipped defaults can't be edited here.
 			$codemirror_config['readOnly'] = 'nocursor';
