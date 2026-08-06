@@ -11,12 +11,13 @@
  * The plugin-scoped marker deliberately carries the plugin slug so
  * `.../ffcertificate/assets/...` (a shipped, update-safe asset) never matches —
  * only the user drop-folder does. Three consumers share this definition rather
- * than each carrying its own copy:
- *   - {@see \FreeFormCertificate\Admin\HtmlRefsNotice} (Phase 0 admin notice),
- *   - {@see \FreeFormCertificate\Migrations\Strategies\RewriteHtmlImageRefsMigrationStrategy}
- *     (the migration that side-loads them into the Media Library),
- *   - {@see \FreeFormCertificate\Admin\FormEditorSaveHandler} (the Phase 4
- *     save-time linter).
+ * than each carrying its own copy: the `HtmlRefsNotice` (Phase 0 admin notice),
+ * the `RewriteHtmlImageRefsMigrationStrategy` (which side-loads the images into
+ * the Media Library) and the `FormEditorSaveHandler` (the Phase 4 save-time
+ * linter). Their fully-qualified names are intentionally omitted here: Core is
+ * a leaf module (depended-upon, never depending), and a `FreeFormCertificate\
+ * Admin\…` reference even in a docblock would register a reverse edge in the
+ * module-boundary guard.
  *
  * @package FreeFormCertificate\Core
  * @since   6.20.0
