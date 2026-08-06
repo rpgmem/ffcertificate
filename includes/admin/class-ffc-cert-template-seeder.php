@@ -76,7 +76,7 @@ class CertTemplateSeeder {
 				continue;
 			}
 
-			self::insert_default( $slug, $def, $html );
+			self::insert_default( $slug, $def['title'], $html );
 		}
 	}
 
@@ -104,24 +104,24 @@ class CertTemplateSeeder {
 				continue;
 			}
 
-			self::insert_default( $slug, $def, $html );
+			self::insert_default( $slug, $def['title'], $html );
 		}
 	}
 
 	/**
 	 * Insert one shipped default template with its canonical meta.
 	 *
-	 * @param string                        $slug Stable default slug.
-	 * @param array{title:string,file:string} $def  Definition.
-	 * @param string                        $html Seed HTML body.
+	 * @param string $slug  Stable default slug.
+	 * @param string $title Template title.
+	 * @param string $html  Seed HTML body.
 	 * @return void
 	 */
-	private static function insert_default( string $slug, array $def, string $html ): void {
+	private static function insert_default( string $slug, string $title, string $html ): void {
 		$id = wp_insert_post(
 			array(
 				'post_type'   => CertTemplateCpt::POST_TYPE,
 				'post_status' => 'publish',
-				'post_title'  => $def['title'],
+				'post_title'  => $title,
 			),
 			true
 		);

@@ -179,6 +179,7 @@ class CertTemplateAdminScreen {
 			admin_url( 'admin.php?action=' . self::DUPLICATE_ACTION . '&post=' . (int) $post->ID ),
 			self::DUPLICATE_ACTION . '_' . (int) $post->ID
 		);
+
 		$actions['ffc_duplicate'] = '<a href="' . esc_url( $dup_url ) . '">' . esc_html__( 'Duplicate', 'ffcertificate' ) . '</a>';
 
 		// Export the raw template HTML as a `.html` download.
@@ -186,6 +187,7 @@ class CertTemplateAdminScreen {
 			admin_url( 'admin.php?action=' . self::EXPORT_ACTION . '&post=' . (int) $post->ID ),
 			self::EXPORT_ACTION . '_' . (int) $post->ID
 		);
+
 		$actions['ffc_export'] = '<a href="' . esc_url( $exp_url ) . '">' . esc_html__( 'Export', 'ffcertificate' ) . '</a>';
 
 		return $actions;
