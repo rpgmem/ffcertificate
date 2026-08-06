@@ -528,6 +528,82 @@ class CertTemplateAdminScreenTest extends TestCase {
 		$this->assertStringContainsString( 'checked', $html, 'a new (auto-draft) template is visible by default' );
 	}
 
+	// ==================================================================
+	// Sample-data preview (#865)
+	// ==================================================================
+
+	public function test_row_actions_adds_preview_even_for_view_only(): void {
+		// View-only (no manage cap): toggle/duplicate/export are skipped, but the
+		// read-only Preview link is still present.
+		Functions\when( 'current_user_can' )->justReturn( false );
+		Functions\when( 'get_post_meta' )->justReturn( '' ); // not a default
+		$screen = new CertTemplateAdminScreen();
+
+		$actions = $screen->row_actions( array( 'edit' => 'e' ), $this->pool_post( 7 ) );
+
+		$this->assertArrayHasKey( 'ffc_preview', $actions );
+		$this->assertStringContainsString( 'ffc-template-preview', $actions['ffc_preview'] );
+		$this->assertArrayNotHasKey( 'ffc_toggle_visibility', $actions );
+		$this->assertArrayNotHasKey( 'ffc_duplicate', $actions );
+	}
+
+	public function test_handle_preview_renders_sample_and_emits(): void {
+		Functions\when( 'current_user_can' )->justReturn( true );
+		Functions\when( 'wp_unslash' )->returnArg();
+		Functions\when( 'absint' )->alias( static fn( $v ) => abs( (int) $v ) );
+		Functions\when( 'check_admin_referer' )->justReturn( true );
+
+		$post             = $this->pool_post( 5 );
+		$post->post_title = 'My Template';
+		Functions\when( 'get_post' )->justReturn( $post );
+		Functions\when( 'get_post_meta' )->justReturn( '<div>Body</div>' );
+
+		$_GET['post'] = '5';
+		$screen       = new TestableCertTemplateAdminScreen();
+		try {
+			$screen->handle_preview();
+		} catch ( \RuntimeException $e ) {
+			// Expected — emit_preview_page override throws in place of header()/exit.
+		}
+
+		$this->assertSame( 'My Template', $screen->preview_title );
+		$this->assertSame( '<rendered><div>Body</div></rendered>', $screen->preview_body );
+	}
+
+	public function test_handle_preview_denies_without_view_cap(): void {
+		Functions\when( 'current_user_can' )->justReturn( false );
+		Functions\when( 'wp_die' )->alias(
+			static function () {
+				throw new \RuntimeException( 'wp_die' );
+			}
+		);
+
+		$this->expectException( \RuntimeException::class );
+		( new CertTemplateAdminScreen() )->handle_preview();
+	}
+
+	public function test_enqueue_preview_assets_gated_to_pool_list(): void {
+		$enqueued = array();
+		Functions\when( 'wp_enqueue_script' )->alias(
+			static function ( $handle ) use ( &$enqueued ) {
+				$enqueued[] = $handle;
+			}
+		);
+		Functions\when( 'wp_localize_script' )->justReturn( true );
+
+		// Wrong hook → never reaches the screen check, no enqueue.
+		( new CertTemplateAdminScreen() )->enqueue_preview_assets( 'post.php' );
+		$this->assertSame( array(), $enqueued );
+
+		// Right hook + our CPT screen → enqueues the overlay script.
+		$screen            = new \WP_Screen();
+		$screen->post_type = CertTemplateCpt::POST_TYPE;
+		Functions\when( 'get_current_screen' )->justReturn( $screen );
+
+		( new CertTemplateAdminScreen() )->enqueue_preview_assets( 'edit.php' );
+		$this->assertContains( 'ffc-cert-template-preview', $enqueued );
+	}
+
 	/**
 	 * Capture echoed output of a callable.
 	 */
@@ -550,9 +626,26 @@ class TestableCertTemplateAdminScreen extends CertTemplateAdminScreen {
 	/** @var string */
 	public string $emitted_body = '';
 
+	/** @var string */
+	public string $preview_title = '';
+
+	/** @var string */
+	public string $preview_body = '';
+
 	protected function emit_download( string $filename, string $body ): void {
 		$this->emitted_filename = $filename;
 		$this->emitted_body     = $body;
 		throw new \RuntimeException( 'emit' );
+	}
+
+	protected function render_sample( string $template_html, string $title ): string {
+		// Stub the real PdfHtmlRenderer/CertificatePreviewSamples pipeline.
+		return '<rendered>' . $template_html . '</rendered>';
+	}
+
+	protected function emit_preview_page( string $title, string $body ): void {
+		$this->preview_title = $title;
+		$this->preview_body  = $body;
+		throw new \RuntimeException( 'preview' );
 	}
 }
