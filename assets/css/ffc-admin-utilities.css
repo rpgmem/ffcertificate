@@ -26,18 +26,14 @@
 /**
  * Margin top utilities
  */
-.ffc-mt15 {
-    margin-top: 15px;
-}
-
-.ffc-mt20 {
-    margin-top: 20px;
+.ffc-mt-5 {
+    margin-top: 5px;
 }
 
 /**
  * Margin bottom utilities
  */
-.ffc-mb5 {
+.ffc-mb-5 {
     margin-bottom: 5px;
 }
 

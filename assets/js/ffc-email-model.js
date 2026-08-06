@@ -93,14 +93,14 @@ jQuery(function ($) {
 
 	// Color pickers.
 	if ($.fn.wpColorPicker) {
-		$box.find('.ffc-em-color').wpColorPicker({ change: refreshPreview, clear: refreshPreview });
+		$box.find('.ffc-email-model-color').wpColorPicker({ change: refreshPreview, clear: refreshPreview });
 	}
 
 	// Live preview on any field change.
 	$box.on('change keyup', '[data-ffc-model-field]', refreshPreview);
 
 	// Header logo media uploader.
-	$box.on('click', '.ffc-em-logo-select', function (e) {
+	$box.on('click', '.ffc-email-model-logo-select', function (e) {
 		e.preventDefault();
 		if (!window.wp || !window.wp.media) {
 			return;
@@ -112,7 +112,7 @@ jQuery(function ($) {
 		});
 		frame.open();
 	});
-	$box.on('click', '.ffc-em-logo-clear', function (e) {
+	$box.on('click', '.ffc-email-model-logo-clear', function (e) {
 		e.preventDefault();
 		$box.find('[data-ffc-model-field="header_logo_url"]').val('').trigger('change');
 	});
@@ -129,7 +129,7 @@ jQuery(function ($) {
 			if (!(key in defaults)) {
 				return;
 			}
-			if ($f.hasClass('ffc-em-color') && $f.wpColorPicker) {
+			if ($f.hasClass('ffc-email-model-color') && $f.wpColorPicker) {
 				$f.wpColorPicker('color', String(defaults[key]));
 			} else {
 				$f.val(defaults[key]);

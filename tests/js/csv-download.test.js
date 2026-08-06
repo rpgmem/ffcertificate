@@ -651,8 +651,8 @@ describe('csv-download — schedule exception modal', () => {
 		window.$('.ffc-btn-schedule-exception').trigger('click');
 
 		expect(window.$('.ffc-schedule-exception-modal').length).toBe(1);
-		expect(window.$('.ffc-sched-exc-start').val()).toBe('08:00');
-		expect(window.$('.ffc-sched-exc-end').val()).toBe('18:00');
+		expect(window.$('.ffc-schedule-exception-start').val()).toBe('08:00');
+		expect(window.$('.ffc-schedule-exception-end').val()).toBe('18:00');
 	});
 
 	it('blocks submit and shows error when override matches the baseline', async () => {
@@ -661,12 +661,12 @@ describe('csv-download — schedule exception modal', () => {
 		// Leave the inputs at their baseline values, click confirm.
 		const postSpy = vi.spyOn(window.$, 'post');
 		postSpy.mockClear();
-		window.$('.ffc-sched-exc-confirm').trigger('click');
+		window.$('.ffc-schedule-exception-confirm').trigger('click');
 
 		// No AJAX call fired.
 		expect(postSpy).not.toHaveBeenCalled();
 		// Error visible.
-		const $err = window.$('.ffc-sched-exc-error');
+		const $err = window.$('.ffc-schedule-exception-error');
 		expect($err.attr('hidden')).toBeFalsy();
 		expect($err.text().length).toBeGreaterThan(0);
 	});
@@ -674,15 +674,15 @@ describe('csv-download — schedule exception modal', () => {
 	it('blocks submit when the range is inverted', async () => {
 		await renderInfoWith(infoWithException());
 		window.$('.ffc-btn-schedule-exception').trigger('click');
-		window.$('.ffc-sched-exc-start').val('17:00');
-		window.$('.ffc-sched-exc-end').val('09:00');
+		window.$('.ffc-schedule-exception-start').val('17:00');
+		window.$('.ffc-schedule-exception-end').val('09:00');
 
 		const postSpy = vi.spyOn(window.$, 'post');
 		postSpy.mockClear();
-		window.$('.ffc-sched-exc-confirm').trigger('click');
+		window.$('.ffc-schedule-exception-confirm').trigger('click');
 
 		expect(postSpy).not.toHaveBeenCalled();
-		const $err = window.$('.ffc-sched-exc-error');
+		const $err = window.$('.ffc-schedule-exception-error');
 		expect($err.attr('hidden')).toBeFalsy();
 	});
 
@@ -691,18 +691,18 @@ describe('csv-download — schedule exception modal', () => {
 		window.$('.ffc-btn-schedule-exception').trigger('click');
 
 		// Type a valid override different from baseline.
-		window.$('.ffc-sched-exc-start').val('09:00');
-		window.$('.ffc-sched-exc-end').val('17:00');
+		window.$('.ffc-schedule-exception-start').val('09:00');
+		window.$('.ffc-schedule-exception-end').val('17:00');
 
 		// Mock the AJAX call to succeed with a form_url.
 		vi.spyOn(window.$, 'post').mockImplementation(() => postChain({
 			done: { success: true, data: { token: 'abc.def', form_url: 'https://example.test/landing' } },
 		}));
 
-		window.$('.ffc-sched-exc-confirm').trigger('click');
+		window.$('.ffc-schedule-exception-confirm').trigger('click');
 		await flush();
 
-		const $cta = window.$('.ffc-sched-exc-open');
+		const $cta = window.$('.ffc-schedule-exception-open');
 		expect($cta.length).toBe(1);
 		expect($cta.attr('href')).toBe('https://example.test/landing');
 		expect($cta.attr('target')).toBe('_blank');
@@ -712,20 +712,20 @@ describe('csv-download — schedule exception modal', () => {
 	it('on AJAX failure, restores the confirm button and surfaces the error', async () => {
 		await renderInfoWith(infoWithException());
 		window.$('.ffc-btn-schedule-exception').trigger('click');
-		window.$('.ffc-sched-exc-start').val('09:00');
-		window.$('.ffc-sched-exc-end').val('17:00');
+		window.$('.ffc-schedule-exception-start').val('09:00');
+		window.$('.ffc-schedule-exception-end').val('17:00');
 
 		vi.spyOn(window.$, 'post').mockImplementation(() => postChain({
 			fail: true,
 		}));
 
-		window.$('.ffc-sched-exc-confirm').trigger('click');
+		window.$('.ffc-schedule-exception-confirm').trigger('click');
 		await flush();
 
 		// Modal still present, confirm button re-enabled.
 		expect(window.$('.ffc-schedule-exception-modal').length).toBe(1);
-		expect(window.$('.ffc-sched-exc-confirm').prop('disabled')).toBe(false);
-		const $err = window.$('.ffc-sched-exc-error');
+		expect(window.$('.ffc-schedule-exception-confirm').prop('disabled')).toBe(false);
+		const $err = window.$('.ffc-schedule-exception-error');
 		expect($err.attr('hidden')).toBeFalsy();
 	});
 
@@ -745,63 +745,63 @@ describe('csv-download — schedule exception modal', () => {
 		window.$('.ffc-btn-schedule-exception').trigger('click');
 
 		// Start locked to baseline, disabled; end auto-filled to a valid HH:MM.
-		expect(window.$('.ffc-sched-exc-start').prop('disabled')).toBe(true);
-		expect(window.$('.ffc-sched-exc-start').val()).toBe('08:00');
-		expect(window.$('.ffc-sched-exc-end').prop('disabled')).toBe(false);
-		expect(window.$('.ffc-sched-exc-end').val()).toMatch(/^([01]\d|2[0-3]):[0-5]\d$/);
+		expect(window.$('.ffc-schedule-exception-start').prop('disabled')).toBe(true);
+		expect(window.$('.ffc-schedule-exception-start').val()).toBe('08:00');
+		expect(window.$('.ffc-schedule-exception-end').prop('disabled')).toBe(false);
+		expect(window.$('.ffc-schedule-exception-end').val()).toMatch(/^([01]\d|2[0-3]):[0-5]\d$/);
 	});
 
 	it('switching the mode radio from manual to now re-applies the now-mode field state', async () => {
 		await renderInfoWith(infoWithException());
 		window.$('.ffc-btn-schedule-exception').trigger('click');
 		// Start enabled in manual mode.
-		expect(window.$('.ffc-sched-exc-start').prop('disabled')).toBe(false);
+		expect(window.$('.ffc-schedule-exception-start').prop('disabled')).toBe(false);
 
-		window.$('input[name="ffc-sched-exc-mode"][value="now"]').prop('checked', true).trigger('change');
-		expect(window.$('.ffc-sched-exc-start').prop('disabled')).toBe(true);
+		window.$('input[name="ffc-schedule-exception-mode"][value="now"]').prop('checked', true).trigger('change');
+		expect(window.$('.ffc-schedule-exception-start').prop('disabled')).toBe(true);
 	});
 
 	it('blocks submit when the start falls before the allowed window', async () => {
 		await renderInfoWith(infoWithException({ schedule_window_start: '09:00', schedule_window_end: '18:00' }));
 		window.$('.ffc-btn-schedule-exception').trigger('click');
-		window.$('.ffc-sched-exc-start').val('08:30');
-		window.$('.ffc-sched-exc-end').val('17:00');
+		window.$('.ffc-schedule-exception-start').val('08:30');
+		window.$('.ffc-schedule-exception-end').val('17:00');
 
 		const postSpy = vi.spyOn(window.$, 'post');
 		postSpy.mockClear();
-		window.$('.ffc-sched-exc-confirm').trigger('click');
+		window.$('.ffc-schedule-exception-confirm').trigger('click');
 
 		expect(postSpy).not.toHaveBeenCalled();
-		expect(window.$('.ffc-sched-exc-error').attr('hidden')).toBeFalsy();
+		expect(window.$('.ffc-schedule-exception-error').attr('hidden')).toBeFalsy();
 	});
 
 	it('blocks submit when the end falls after the allowed window', async () => {
 		await renderInfoWith(infoWithException({ schedule_window_start: '08:00', schedule_window_end: '17:00' }));
 		window.$('.ffc-btn-schedule-exception').trigger('click');
-		window.$('.ffc-sched-exc-start').val('09:00');
-		window.$('.ffc-sched-exc-end').val('17:30');
+		window.$('.ffc-schedule-exception-start').val('09:00');
+		window.$('.ffc-schedule-exception-end').val('17:30');
 
 		const postSpy = vi.spyOn(window.$, 'post');
 		postSpy.mockClear();
-		window.$('.ffc-sched-exc-confirm').trigger('click');
+		window.$('.ffc-schedule-exception-confirm').trigger('click');
 
 		expect(postSpy).not.toHaveBeenCalled();
-		expect(window.$('.ffc-sched-exc-error').attr('hidden')).toBeFalsy();
+		expect(window.$('.ffc-schedule-exception-error').attr('hidden')).toBeFalsy();
 	});
 
 	it('on success, clicking "Open participant form" schedules the modal teardown', async () => {
 		await renderInfoWith(infoWithException());
 		window.$('.ffc-btn-schedule-exception').trigger('click');
-		window.$('.ffc-sched-exc-start').val('09:00');
-		window.$('.ffc-sched-exc-end').val('17:00');
+		window.$('.ffc-schedule-exception-start').val('09:00');
+		window.$('.ffc-schedule-exception-end').val('17:00');
 
 		vi.spyOn(window.$, 'post').mockImplementation(() => postChain({
 			done: { success: true, data: { token: 'abc.def', form_url: 'https://example.test/landing' } },
 		}));
-		window.$('.ffc-sched-exc-confirm').trigger('click');
+		window.$('.ffc-schedule-exception-confirm').trigger('click');
 		await flush();
 
-		const $open = window.$('.ffc-sched-exc-open');
+		const $open = window.$('.ffc-schedule-exception-open');
 		expect($open.length).toBe(1);
 		vi.useFakeTimers();
 		// triggerHandler runs the bound handler without jsdom following the
@@ -810,7 +810,7 @@ describe('csv-download — schedule exception modal', () => {
 		// Hand-off swaps to a spinner + notice and holds the modal for a
 		// forced beat (1200ms) before teardown — gives the operator a clear
 		// signal a new tab is launching.
-		expect(window.$('.ffc-sched-exc-spinner').length).toBe(1);
+		expect(window.$('.ffc-schedule-exception-spinner').length).toBe(1);
 		expect(window.$('.ffc-schedule-exception-modal').length).toBe(1);
 		vi.advanceTimersByTime(1200);
 		expect(window.$('.ffc-schedule-exception-modal').length).toBe(0);
@@ -1121,7 +1121,7 @@ describe('csv-download — event schedule (reference) section', () => {
 		const $sec = window.$('.ffc-info-availability-schedule');
 		expect($sec.length).toBe(1);
 		// Two-column header (Access / Reference) present.
-		expect($sec.find('table.ffc-info-jtable thead th').length).toBe(3);
+		expect($sec.find('table.ffc-info-table thead th').length).toBe(3);
 		const text = $sec.text();
 		// Reference baseline times shown alongside the access window.
 		expect(text).toContain('00:00');
@@ -1140,7 +1140,7 @@ describe('csv-download — event schedule (reference) section', () => {
 		const $sec = window.$('.ffc-info-availability-schedule');
 		expect($sec.length).toBe(1); // availability still rendered
 		// No two-column header, no reference note.
-		expect($sec.find('table.ffc-info-jtable thead').length).toBe(0);
+		expect($sec.find('table.ffc-info-table thead').length).toBe(0);
 		expect($sec.find('.ffc-info-schedule-ref-note').length).toBe(0);
 	});
 
@@ -1182,9 +1182,9 @@ describe('csv-download — summary consolidation + joint table', () => {
 				schedule_baseline_end:   '23:59',
 			},
 		}));
-		const $tbl = window.$('.ffc-info-availability-schedule table.ffc-info-jtable');
+		const $tbl = window.$('.ffc-info-availability-schedule table.ffc-info-table');
 		expect($tbl.length).toBe(1);
 		// Date rows (2) contribute the only em-dash cells (Reference side).
-		expect($tbl.find('.ffc-jdash').length).toBe(2);
+		expect($tbl.find('.ffc-info-table-dash').length).toBe(2);
 	});
 });

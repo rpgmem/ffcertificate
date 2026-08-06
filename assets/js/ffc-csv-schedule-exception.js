@@ -40,40 +40,40 @@
 		$('.ffc-schedule-exception-modal').remove();
 
 		var modalHtml = ''
-			+ '<div class="ffc-schedule-exception-modal ffc-open-early-modal" role="dialog" aria-modal="true" aria-labelledby="ffc-sched-exc-title">'
+			+ '<div class="ffc-schedule-exception-modal ffc-open-early-modal" role="dialog" aria-modal="true" aria-labelledby="ffc-schedule-exception-title">'
 			+   '<div class="ffc-open-early-backdrop"></div>'
 			+   '<div class="ffc-open-early-container">'
 			+     '<div class="ffc-open-early-header">'
-			+       '<h2 id="ffc-sched-exc-title">'
+			+       '<h2 id="ffc-schedule-exception-title">'
 			+         '<span aria-hidden="true">⏱️</span> '
 			+         esc(strings.scheduleExceptionTitle || 'Schedule exception')
 			+       '</h2>'
-			+       '<button type="button" class="ffc-open-early-close ffc-sched-exc-close" title="' + esc(strings.cancel || 'Cancel') + '">&times;</button>'
+			+       '<button type="button" class="ffc-open-early-close ffc-schedule-exception-close" title="' + esc(strings.cancel || 'Cancel') + '">&times;</button>'
 			+     '</div>'
-			+     '<div class="ffc-open-early-body ffc-sched-exc-body">'
+			+     '<div class="ffc-open-early-body ffc-schedule-exception-body">'
 			+       '<p>' + esc(strings.scheduleExceptionBody || 'Set a different schedule for one participant. The next form submission opened from this modal will record this exception.') + '</p>'
 			+       '<p>'
-			+         '<label><input type="radio" name="ffc-sched-exc-mode" value="now" ' + (opts.defaultMode === 'now' ? 'checked' : '') + '> '
+			+         '<label><input type="radio" name="ffc-schedule-exception-mode" value="now" ' + (opts.defaultMode === 'now' ? 'checked' : '') + '> '
 			+         esc(strings.scheduleExceptionModeNow || 'End now (start stays at baseline)')
 			+         '</label><br>'
-			+         '<label><input type="radio" name="ffc-sched-exc-mode" value="manual" ' + (opts.defaultMode === 'manual' ? 'checked' : '') + '> '
+			+         '<label><input type="radio" name="ffc-schedule-exception-mode" value="manual" ' + (opts.defaultMode === 'manual' ? 'checked' : '') + '> '
 			+         esc(strings.scheduleExceptionModeManual || 'Edit both ends manually')
 			+         '</label>'
 			+       '</p>'
 			+       '<p>'
-			+         '<label for="ffc-sched-exc-start"><strong>' + esc(strings.scheduleExceptionStartLabel || 'New start:') + '</strong></label> '
-			+         '<input type="time" id="ffc-sched-exc-start" class="ffc-extend-end-input ffc-sched-exc-start" value="' + esc(opts.baselineStart) + '">'
+			+         '<label for="ffc-schedule-exception-start"><strong>' + esc(strings.scheduleExceptionStartLabel || 'New start:') + '</strong></label> '
+			+         '<input type="time" id="ffc-schedule-exception-start" class="ffc-extend-end-input ffc-schedule-exception-start" value="' + esc(opts.baselineStart) + '">'
 			+         '&nbsp;&nbsp;'
-			+         '<label for="ffc-sched-exc-end"><strong>' + esc(strings.scheduleExceptionEndLabel || 'New end:') + '</strong></label> '
-			+         '<input type="time" id="ffc-sched-exc-end" class="ffc-extend-end-input ffc-sched-exc-end" value="' + esc(opts.baselineEnd) + '">'
+			+         '<label for="ffc-schedule-exception-end"><strong>' + esc(strings.scheduleExceptionEndLabel || 'New end:') + '</strong></label> '
+			+         '<input type="time" id="ffc-schedule-exception-end" class="ffc-extend-end-input ffc-schedule-exception-end" value="' + esc(opts.baselineEnd) + '">'
 			+       '</p>'
-			+       '<p class="ffc-sched-exc-error" role="alert" style="color:#d63638;margin:6px 0 0;font-size:13px;" hidden></p>'
+			+       '<p class="ffc-schedule-exception-error" role="alert" style="color:#d63638;margin:6px 0 0;font-size:13px;" hidden></p>'
 			+     '</div>'
-			+     '<div class="ffc-open-early-actions ffc-sched-exc-actions">'
-			+       '<button type="button" class="ffc-info-btn ffc-info-btn-primary ffc-sched-exc-cancel" autofocus>'
+			+     '<div class="ffc-open-early-actions ffc-schedule-exception-actions">'
+			+       '<button type="button" class="ffc-info-btn ffc-info-btn-primary ffc-schedule-exception-cancel" autofocus>'
 			+         esc(strings.cancel || 'Cancel')
 			+       '</button>'
-			+       '<button type="button" class="ffc-info-btn ffc-info-btn-warning ffc-sched-exc-confirm">'
+			+       '<button type="button" class="ffc-info-btn ffc-info-btn-warning ffc-schedule-exception-confirm">'
 			+         esc(strings.scheduleExceptionConfirm || 'Create exception')
 			+       '</button>'
 			+     '</div>'
@@ -81,9 +81,9 @@
 			+ '</div>';
 
 		var $modal = $(modalHtml).appendTo(document.body);
-		var $start = $modal.find('.ffc-sched-exc-start');
-		var $end   = $modal.find('.ffc-sched-exc-end');
-		var $err   = $modal.find('.ffc-sched-exc-error');
+		var $start = $modal.find('.ffc-schedule-exception-start');
+		var $end   = $modal.find('.ffc-schedule-exception-end');
+		var $err   = $modal.find('.ffc-schedule-exception-error');
 
 		function setError(msg) {
 			$err.text(msg).removeAttr('hidden');
@@ -93,7 +93,7 @@
 		}
 
 		function applyMode() {
-			var mode = $modal.find('input[name="ffc-sched-exc-mode"]:checked').val();
+			var mode = $modal.find('input[name="ffc-schedule-exception-mode"]:checked').val();
 			if (mode === 'now') {
 				// Start stays baseline (disabled), end gets current local time.
 				$start.val(opts.baselineStart).prop('disabled', true);
@@ -107,7 +107,7 @@
 			}
 			clearError();
 		}
-		$modal.find('input[name="ffc-sched-exc-mode"]').on('change', applyMode);
+		$modal.find('input[name="ffc-schedule-exception-mode"]').on('change', applyMode);
 		applyMode();
 
 		$start.add($end).on('input change', clearError);
@@ -144,18 +144,18 @@
 			return null;
 		}
 
-		$modal.find('.ffc-sched-exc-cancel, .ffc-sched-exc-close, .ffc-open-early-backdrop').on('click', closeModal);
-		$modal.find('.ffc-sched-exc-confirm').on('click', function () {
+		$modal.find('.ffc-schedule-exception-cancel, .ffc-schedule-exception-close, .ffc-open-early-backdrop').on('click', closeModal);
+		$modal.find('.ffc-schedule-exception-confirm').on('click', function () {
 			var err = validate();
 			if (err) { setError(err); return; }
 			submitScheduleException($start.val(), $end.val(), $modal, opts);
 		});
 
-		setTimeout(function () { $modal.find('.ffc-sched-exc-cancel').focus(); }, 0);
+		setTimeout(function () { $modal.find('.ffc-schedule-exception-cancel').focus(); }, 0);
 	}
 
 	function submitScheduleException(startVal, endVal, $modal, opts) {
-		var $confirm = $modal.find('.ffc-sched-exc-confirm');
+		var $confirm = $modal.find('.ffc-schedule-exception-confirm');
 		$confirm.prop('disabled', true).text(strings.scheduleExceptionSubmitting || 'Creating…');
 
 		// Send empty string when the value matches the baseline — the
@@ -174,34 +174,34 @@
 				// click-driven user gesture for the window.open call below
 				// so popup blockers don't engage.
 				var url = (data && data.form_url) ? data.form_url : '/';
-				$modal.find('.ffc-sched-exc-body').html(
+				$modal.find('.ffc-schedule-exception-body').html(
 					'<p>' + esc(strings.scheduleExceptionStaged || 'Exception staged. Open the participant\'s form in the next tab to consume it.') + '</p>'
 				);
-				$modal.find('.ffc-sched-exc-actions').html(
-					'<a class="ffc-info-btn ffc-info-btn-primary ffc-sched-exc-open" href="' + esc(url) + '" target="_blank" rel="noopener">'
+				$modal.find('.ffc-schedule-exception-actions').html(
+					'<a class="ffc-info-btn ffc-info-btn-primary ffc-schedule-exception-open" href="' + esc(url) + '" target="_blank" rel="noopener">'
 					+ esc(strings.scheduleExceptionOpenForm || 'Open participant form')
 					+ '</a>'
 				);
-				$modal.find('.ffc-sched-exc-open').on('click', function () {
+				$modal.find('.ffc-schedule-exception-open').on('click', function () {
 					// The native anchor (target="_blank") opens the form in a
 					// new tab on THIS same click, preserving the user gesture
 					// so popup blockers stay quiet. Swap this tab's modal to a
 					// spinner + "opening" notice and hold it for a forced beat
 					// so the operator clearly sees a new screen is launching
 					// before the modal disappears.
-					$modal.find('.ffc-sched-exc-body').html(
-						'<p class="ffc-sched-exc-opening">'
-						+ '<span class="ffc-sched-exc-spinner" aria-hidden="true"></span> '
+					$modal.find('.ffc-schedule-exception-body').html(
+						'<p class="ffc-schedule-exception-opening">'
+						+ '<span class="ffc-schedule-exception-spinner" aria-hidden="true"></span> '
 						+ esc(strings.scheduleExceptionOpening || 'Opening the participant form in a new tab…')
 						+ '</p>'
 					);
-					$modal.find('.ffc-sched-exc-actions').empty();
+					$modal.find('.ffc-schedule-exception-actions').empty();
 					setTimeout(function () { $modal.remove(); }, SCHED_EXC_OPEN_DELAY_MS);
 				});
 			})
 			.catch(function (err) {
 				$confirm.prop('disabled', false).text(strings.scheduleExceptionConfirm || 'Create exception');
-				$modal.find('.ffc-sched-exc-error')
+				$modal.find('.ffc-schedule-exception-error')
 					.text((err && err.fromServer && err.message) || strings.error || 'Action failed.')
 					.removeAttr('hidden');
 			});
