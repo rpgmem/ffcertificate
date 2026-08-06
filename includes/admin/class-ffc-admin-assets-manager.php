@@ -86,6 +86,31 @@ class AdminAssetsManager {
 			return;
 		}
 
+		self::enqueue_code_editor_for( 'ffc_pdf_layout' );
+	}
+
+	/**
+	 * Mount the shared CodeMirror HTML editor on an arbitrary textarea.
+	 *
+	 * Wires `wp_enqueue_code_editor()` + `ffc-admin-code-editor.js` + the
+	 * `ffcCodeEditor` localization for the given textarea id, so every screen
+	 * that edits certificate HTML (the form-editor layout box and the
+	 * cert-template CPT edit screen) gets a byte-for-byte identical editor. Also
+	 * enqueues the admin base styles so the `.ffc-code-editor-wrapper` and
+	 * placeholder-token styling are present on screens outside the main bundle.
+	 *
+	 * When the user disabled "Syntax Highlighting" in their profile
+	 * `wp_enqueue_code_editor()` returns false and the JS falls back to the plain
+	 * textarea. Pass `$readonly = true` for shipped defaults so the editor
+	 * renders non-editable, matching the server-side read-only textarea.
+	 *
+	 * @param string $textarea_id Id of the textarea to enhance.
+	 * @param bool   $readonly    Whether the editor should be read-only.
+	 * @return void
+	 */
+	public static function enqueue_code_editor_for( string $textarea_id, bool $readonly = false ): void {
+		self::enqueue_admin_base_styles();
+
 		$theme_choice = self::resolve_code_editor_theme();
 		$s            = \FreeFormCertificate\Core\AssetHelper::asset_suffix();
 
@@ -98,6 +123,12 @@ class AdminAssetsManager {
 			'tabSize'       => 2,
 			'lint'          => false,
 		);
+
+		if ( $readonly ) {
+			// 'nocursor' keeps the read-only editor from taking focus/caret,
+			// reinforcing that shipped defaults can't be edited here.
+			$codemirror_config['readOnly'] = 'nocursor';
+		}
 
 		if ( 'dark' === $theme_choice ) {
 			$codemirror_config['theme'] = 'ffc-dark';
@@ -130,6 +161,7 @@ class AdminAssetsManager {
 			array(
 				'enabled'    => false !== $editor_settings,
 				'settings'   => false !== $editor_settings ? $editor_settings : null,
+				'textareaId' => $textarea_id,
 				'profileUrl' => admin_url( 'profile.php#syntax_highlighting' ),
 				'theme'      => $theme_choice,
 				'strings'    => array(
@@ -229,6 +261,36 @@ class AdminAssetsManager {
 	private function enqueue_css_assets(): void {
 		$s = \FreeFormCertificate\Core\AssetHelper::asset_suffix();
 
+		// 1-4. The shared admin base-style chain (pdf-core → common →
+		// admin-utilities → admin-css). Extracted so screens outside the main
+		// FFC bundle (e.g. the cert-template CPT edit screen) can load the same
+		// foundation — notably the `.ffc-code-editor-wrapper` styling — without
+		// duplicating the chain.
+		self::enqueue_admin_base_styles();
+
+		// 5. Submissions page styles (depends on ffc-admin.css)
+		wp_enqueue_style(
+			'ffc-admin-submissions-css',
+			FFC_PLUGIN_URL . "assets/css/ffc-admin-submissions{$s}.css",
+			array( 'ffc-admin-css' ),
+			FFC_VERSION
+		);
+	}
+
+	/**
+	 * Enqueue the shared admin base-style chain (pdf-core → common →
+	 * admin-utilities → admin-css).
+	 *
+	 * Idempotent: WordPress no-ops a second enqueue of an already-queued handle,
+	 * so screens that also run the full bundle pay nothing. Exposed static so the
+	 * cert-template CPT edit screen can mount the same CodeMirror styling as the
+	 * form editor.
+	 *
+	 * @return void
+	 */
+	public static function enqueue_admin_base_styles(): void {
+		$s = \FreeFormCertificate\Core\AssetHelper::asset_suffix();
+
 		// 1. Base styles (PDF core)
 		wp_enqueue_style(
 			'ffc-pdf-core',
@@ -258,14 +320,6 @@ class AdminAssetsManager {
 			'ffc-admin-css',
 			FFC_PLUGIN_URL . "assets/css/ffc-admin{$s}.css",
 			array( 'ffc-pdf-core', 'ffc-common', 'ffc-admin-utilities' ),
-			FFC_VERSION
-		);
-
-		// 5. Submissions page styles (depends on ffc-admin.css)
-		wp_enqueue_style(
-			'ffc-admin-submissions-css',
-			FFC_PLUGIN_URL . "assets/css/ffc-admin-submissions{$s}.css",
-			array( 'ffc-admin-css' ),
 			FFC_VERSION
 		);
 	}

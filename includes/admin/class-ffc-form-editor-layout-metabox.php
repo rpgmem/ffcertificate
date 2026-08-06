@@ -55,21 +55,23 @@ class FormEditorLayoutMetabox {
 						<div class="ffc-action-group">
 							<input type="file" id="ffc_import_html_file" accept=".html,.txt" class="ffc-hidden">
 							<button type="button" class="button" id="ffc_btn_import_html">
+								<span class="dashicons dashicons-upload" aria-hidden="true"></span>
 								<?php esc_html_e( 'Import HTML', 'ffcertificate' ); ?>
 							</button>
 							<button type="button" class="button" id="ffc_btn_media_lib">
+								<span class="dashicons dashicons-cover-image" aria-hidden="true"></span>
 								<?php esc_html_e( 'Background Image', 'ffcertificate' ); ?>
 							</button>
 							<button type="button" class="button" id="ffc_btn_insert_image">
-								<span class="dashicons dashicons-format-image" style="vertical-align:text-bottom;margin-right:2px;"></span>
+								<span class="dashicons dashicons-format-image" aria-hidden="true"></span>
 								<?php esc_html_e( 'Insert Image', 'ffcertificate' ); ?>
 							</button>
 							<button type="button" class="button button-primary" id="ffc_btn_preview">
-								<span class="dashicons dashicons-visibility" style="vertical-align:text-bottom;margin-right:2px;"></span>
+								<span class="dashicons dashicons-visibility" aria-hidden="true"></span>
 								<?php esc_html_e( 'Preview', 'ffcertificate' ); ?>
 							</button>
 							<button type="button" class="button" id="ffc_save_as_model_btn">
-								<span class="dashicons dashicons-media-default" style="vertical-align:text-bottom;margin-right:2px;"></span>
+								<span class="dashicons dashicons-saved" aria-hidden="true"></span>
 								<?php esc_html_e( 'Save as model', 'ffcertificate' ); ?>
 							</button>
 						</div>

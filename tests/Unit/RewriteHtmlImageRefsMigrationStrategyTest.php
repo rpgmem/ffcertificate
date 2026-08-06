@@ -307,6 +307,36 @@ class RewriteHtmlImageRefsMigrationStrategyTest extends TestCase {
 		$this->assertNull( $this->last_written( 10, '_ffc_form_config' ) );
 	}
 
+	public function test_default_pool_templates_are_never_sideloaded(): void {
+		// A shipped default carrying a stale legacy /html/ ref must be skipped
+		// (#865): defaults are repaired by re-seeding (SEED_VERSION bump), never
+		// sideloaded into the Media Library. Guards the seed/migration bug where
+		// a v1-seeded default's html/ ref got copied into wp-content/uploads.
+		$this->put_file( 'default_background_certificate_1.png' );
+		$bg = $this->html_url( 'default_background_certificate_1.png' );
+		$this->wire(
+			array(),
+			array( 20 ),
+			array(
+				'20|' . CertTemplateCpt::META_HTML       => '<img src="' . $bg . '">',
+				'20|' . CertTemplateCpt::META_IS_DEFAULT => '1',
+			)
+		);
+
+		$strategy = new TestableRewriteHtmlImageRefsMigrationStrategy( $this->dir );
+
+		// The default is not a target at all → nothing to migrate.
+		$status = $strategy->calculate_status( 'rewrite_html_image_refs', array() );
+		$this->assertSame( 0, $status['total'] );
+		$this->assertSame( 0, $status['pending'] );
+
+		// And execute never sideloads or rewrites it.
+		$result = $strategy->execute( 'rewrite_html_image_refs', array() );
+		$this->assertSame( 0, $result['processed'] );
+		$this->assertEmpty( $strategy->sideloaded );
+		$this->assertNull( $this->last_written( 20, CertTemplateCpt::META_HTML ) );
+	}
+
 	public function test_idempotent_when_post_already_processed(): void {
 		$this->put_file( 'default_background_certificate_1.png' );
 		$this->wire(

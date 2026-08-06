@@ -125,6 +125,33 @@ describe('ffc-admin-code-editor.js — CodeMirror init path', () => {
 		).toBe(true);
 	});
 
+	it('binds to the textarea id supplied via config.textareaId', async () => {
+		document.body.innerHTML =
+			'<form><div class="ffc-code-editor-wrapper"><textarea id="ffc_template_html">html</textarea></div></form>';
+		const initialize = vi.fn(() => ({
+			codemirror: {
+				addOverlay: vi.fn(),
+				on: vi.fn(),
+				save: vi.fn(),
+			},
+		}));
+		window.ffcCodeEditor = {
+			enabled: true,
+			textareaId: 'ffc_template_html',
+			settings: { codemirror: { lineNumbers: true } },
+			theme: 'light',
+			strings: {},
+		};
+		window.wp = { codeEditor: { initialize } };
+
+		await loadOnReady();
+
+		expect(initialize).toHaveBeenCalledWith(
+			'ffc_template_html',
+			window.ffcCodeEditor.settings
+		);
+	});
+
 	it('syncs the textarea on form submit via cm.save()', async () => {
 		document.body.innerHTML =
 			'<form id="f"><textarea id="ffc_pdf_layout">html</textarea></form>';

@@ -246,7 +246,15 @@ class RewriteHtmlImageRefsMigrationStrategy implements MigrationStrategyInterfac
 			)
 		);
 		foreach ( (array) $pool as $post_id ) {
-			$post_id   = (int) $post_id;
+			$post_id = (int) $post_id;
+			// Shipped defaults are update-safe assets and must never be
+			// sideloaded into the Media Library (#865). Their bodies reference
+			// `assets/`; a stale legacy ref on a default is repaired by
+			// re-seeding (SEED_VERSION bump), not by rewriting it to an uploads
+			// URL. Skip defaults so a default is never sideloaded.
+			if ( '1' === (string) get_post_meta( $post_id, CertTemplateCpt::META_IS_DEFAULT, true ) ) {
+				continue;
+			}
 			$targets[] = array(
 				'type' => 'pool',
 				'id'   => $post_id,

@@ -604,6 +604,40 @@ class CertTemplateAdminScreenTest extends TestCase {
 		$this->assertContains( 'ffc-cert-template-preview', $enqueued );
 	}
 
+	public function test_enqueue_edit_assets_mounts_code_editor_on_edit_screen(): void {
+		$scripts = array();
+		Functions\when( 'wp_enqueue_style' )->justReturn( true );
+		Functions\when( 'wp_enqueue_script' )->alias(
+			static function ( $handle ) use ( &$scripts ) {
+				$scripts[] = $handle;
+				return true;
+			}
+		);
+		Functions\when( 'wp_localize_script' )->justReturn( true );
+		Functions\when( 'wp_enqueue_code_editor' )->justReturn( array( 'codemirror' => array() ) );
+		Functions\when( 'get_option' )->justReturn( array() );
+		Functions\when( 'wp_unslash' )->returnArg();
+		Functions\when( 'absint' )->alias( static fn( $v ) => (int) $v );
+		Functions\when( 'get_post_meta' )->justReturn( '' ); // is_default → editable
+
+		// Wrong screen base → returns early, nothing mounted.
+		$wrong            = new \WP_Screen();
+		$wrong->base      = 'edit';
+		$wrong->post_type = CertTemplateCpt::POST_TYPE;
+		Functions\when( 'get_current_screen' )->justReturn( $wrong );
+		( new CertTemplateAdminScreen() )->enqueue_edit_assets();
+		$this->assertNotContains( 'ffc-admin-code-editor', $scripts );
+
+		// The CPT edit screen (post base + our CPT) mounts the shared editor.
+		$_GET['post']      = 5;
+		$screen            = new \WP_Screen();
+		$screen->base      = 'post';
+		$screen->post_type = CertTemplateCpt::POST_TYPE;
+		Functions\when( 'get_current_screen' )->justReturn( $screen );
+		( new CertTemplateAdminScreen() )->enqueue_edit_assets();
+		$this->assertContains( 'ffc-admin-code-editor', $scripts );
+	}
+
 	/**
 	 * Capture echoed output of a callable.
 	 */
