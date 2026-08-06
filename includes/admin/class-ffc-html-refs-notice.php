@@ -22,6 +22,8 @@ declare(strict_types=1);
 
 namespace FreeFormCertificate\Admin;
 
+use FreeFormCertificate\Core\LegacyHtmlRefs;
+
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
@@ -34,12 +36,6 @@ class HtmlRefsNotice extends AbstractDismissibleNotice {
 	const OPTION_DISMISSED = 'ffc_html_refs_notice_dismissed';
 	const AJAX_ACTION      = 'ffc_dismiss_html_refs_notice';
 	const TRANSIENT        = 'ffc_html_refs_present';
-
-	/**
-	 * Plugin-scoped marker that identifies a legacy `html/` reference (never
-	 * matches `ffcertificate/assets/`).
-	 */
-	private const MARKER = 'ffcertificate/html/';
 
 	/**
 	 * Option key the dismissed signature is stored under.
@@ -130,7 +126,7 @@ class HtmlRefsNotice extends AbstractDismissibleNotice {
 	private static function has_html_refs(): bool {
 		global $wpdb;
 
-		$like = '%' . $wpdb->esc_like( self::MARKER ) . '%';
+		$like = '%' . $wpdb->esc_like( LegacyHtmlRefs::MARKER ) . '%';
 
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Memoized in a transient (see should_show); a single LIMIT 1 existence probe.
 		$found = $wpdb->get_var(

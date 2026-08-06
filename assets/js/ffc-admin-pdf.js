@@ -40,6 +40,30 @@
         $textarea.trigger('change');
     }
 
+    /**
+     * Insert an HTML snippet at the cursor of the certificate-layout editor.
+     *
+     * Prefers the CodeMirror instance (replaceSelection at the caret so the
+     * image lands where the user is typing); falls back to appending to the raw
+     * textarea via setLayoutContent when CodeMirror hasn't mounted (JS-lite,
+     * tests) so the value still updates.
+     *
+     * @param {jQuery} $textarea The #ffc_pdf_layout jQuery node.
+     * @param {string} snippet   HTML to insert.
+     */
+    function insertAtCursor($textarea, snippet) {
+        var $cm = $textarea.nextAll('.CodeMirror').first();
+        if ($cm.length && $cm[0].CodeMirror && typeof $cm[0].CodeMirror.replaceSelection === 'function') {
+            var cm = $cm[0].CodeMirror;
+            cm.replaceSelection(snippet);
+            cm.save();
+            $textarea.trigger('change');
+            cm.focus();
+            return;
+        }
+        setLayoutContent($textarea, ($textarea.val() || '') + snippet);
+    }
+
     // ==========================================================================
     // TEMPLATE MANAGEMENT
     // ==========================================================================
@@ -611,6 +635,63 @@
         });
 
         mediaUploader.open();
+    });
+
+    // ==========================================================================
+    // MEDIA LIBRARY - Inline Image Insert (#865 Phase 4)
+    // ==========================================================================
+    //
+    // Separate cached frame from the background picker above: this one's
+    // `select` handler inserts an <img> into the layout editor rather than
+    // writing the bg_image URL field, so the two must not share state.
+
+    var imageInserter;
+
+    $(document).on('click', '#ffc_btn_insert_image', function(e) {
+        e.preventDefault();
+        var showNotification = window.FFC.Admin.showNotification || function() {};
+        var strings = (typeof ffc_ajax !== 'undefined' && ffc_ajax.strings) ? ffc_ajax.strings : {};
+
+        if (typeof wp === 'undefined' || typeof wp.media === 'undefined') {
+            showNotification(strings.wpMediaNotAvailable || 'WordPress Media Library is not available. Please reload the page.', 'error');
+            return;
+        }
+
+        if (imageInserter) {
+            imageInserter.open();
+            return;
+        }
+
+        imageInserter = wp.media({
+            title: strings.insertImageTitle || 'Insert Image',
+            button: { text: strings.insertImageButton || 'Insert into layout' },
+            library: { type: 'image' },
+            multiple: false
+        });
+
+        imageInserter.on('select', function() {
+            var attachment = imageInserter.state().get('selection').first().toJSON();
+            var url = attachment.url || '';
+            if (!url) {
+                return;
+            }
+
+            var $textarea = $('#ffc_pdf_layout');
+            if (!$textarea.length) {
+                showNotification(strings.htmlTextareaNotFound || 'Error: HTML textarea not found', 'error');
+                return;
+            }
+
+            // Media Library URLs are Media-Library-hosted (update-safe), so the
+            // <img> the picker inserts never trips the save-time html/ linter.
+            var alt = (attachment.alt || '').replace(/"/g, '&quot;');
+            var tag = '<img src="' + url + '"' + (alt ? ' alt="' + alt + '"' : '') + ' />';
+            insertAtCursor($textarea, tag);
+
+            showNotification(strings.imageInserted || 'Image inserted into the layout.', 'success');
+        });
+
+        imageInserter.open();
     });
 
     // ==========================================================================

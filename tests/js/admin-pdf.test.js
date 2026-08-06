@@ -219,6 +219,100 @@ describe('ffc-admin-pdf.js — save as model', () => {
 	});
 });
 
+describe('ffc-admin-pdf.js — inline image insert', () => {
+	// Stub wp.media into a frame whose select callback yields a chosen
+	// attachment. Mirrors the real API surface the picker touches:
+	// frame.on('select', cb) · frame.open() · frame.state().get('selection')
+	// .first().toJSON().
+	function stubWpMedia(attachment) {
+		const frame = {
+			_selectCb: null,
+			on(evt, cb) {
+				if (evt === 'select') {
+					this._selectCb = cb;
+				}
+				return this;
+			},
+			open() {
+				if (this._selectCb) {
+					this._selectCb();
+				}
+			},
+			state() {
+				return {
+					get() {
+						return { first: () => ({ toJSON: () => attachment }) };
+					},
+				};
+			},
+		};
+		window.wp = { media: vi.fn(() => frame) };
+		return frame;
+	}
+
+	beforeEach(() => {
+		reset();
+		installFFC();
+		document.body.innerHTML =
+			'<button id="ffc_btn_insert_image">Insert Image</button>' +
+			'<textarea id="ffc_pdf_layout"><p>{{name}}</p></textarea>';
+		window.ffc_ajax = {
+			strings: {
+				insertImageTitle: 'Insert Image',
+				insertImageButton: 'Insert into layout',
+				imageInserted: 'Image inserted!',
+				wpMediaNotAvailable: 'Media unavailable',
+			},
+		};
+		loadScript('assets/js/ffc-admin-pdf.js');
+	});
+
+	afterEach(() => {
+		delete window.wp;
+		reset();
+	});
+
+	it('appends an <img> with the selected Media Library URL to the layout', () => {
+		stubWpMedia({ url: 'https://example.com/wp-content/uploads/logo.png', alt: '' });
+
+		window.$('#ffc_btn_insert_image').trigger('click');
+
+		const value = document.querySelector('#ffc_pdf_layout').value;
+		expect(value).toContain(
+			'<img src="https://example.com/wp-content/uploads/logo.png" />'
+		);
+		// Original content is preserved (insert, not replace).
+		expect(value).toContain('{{name}}');
+		expect(window.FFC.Admin.showNotification).toHaveBeenCalledWith(
+			'Image inserted!',
+			'success'
+		);
+	});
+
+	it('carries the attachment alt text into the img tag, quote-escaped', () => {
+		stubWpMedia({
+			url: 'https://example.com/a.png',
+			alt: 'Some "quoted" logo',
+		});
+
+		window.$('#ffc_btn_insert_image').trigger('click');
+
+		const value = document.querySelector('#ffc_pdf_layout').value;
+		expect(value).toContain(
+			'<img src="https://example.com/a.png" alt="Some &quot;quoted&quot; logo" />'
+		);
+	});
+
+	it('warns and inserts nothing when wp.media is unavailable', () => {
+		// No stubWpMedia → window.wp undefined.
+		window.$('#ffc_btn_insert_image').trigger('click');
+
+		expect(document.querySelector('#ffc_pdf_layout').value).toBe('<p>{{name}}</p>');
+		const calls = window.FFC.Admin.showNotification.mock.calls;
+		expect(calls.some((c) => c[1] === 'error')).toBe(true);
+	});
+});
+
 describe('ffc-admin-pdf.js — preview button', () => {
 	beforeEach(() => {
 		reset();

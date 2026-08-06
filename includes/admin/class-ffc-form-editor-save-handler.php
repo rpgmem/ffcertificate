@@ -237,6 +237,19 @@ class FormEditorSaveHandler {
 				set_transient( 'ffc_save_error_' . get_current_user_id(), $missing_tags, 45 );
 			}
 
+			// Legacy html/ reference linter (#865 Phase 4): warn — non-blocking —
+			// when the saved layout or background URL still points at the
+			// update-fragile plugin `html/` drop-folder, whose files a plugin
+			// update or deploy deletes. Same detection the Phase 0 notice and the
+			// Rewrite-html/-image-refs migration use.
+			$html_refs = array_merge(
+				\FreeFormCertificate\Core\LegacyHtmlRefs::find_urls( $clean_config['pdf_layout'] ),
+				\FreeFormCertificate\Core\LegacyHtmlRefs::find_urls( $clean_config['bg_image'] )
+			);
+			if ( ! empty( $html_refs ) ) {
+				set_transient( 'ffc_html_lint_' . get_current_user_id(), array_values( array_unique( $html_refs ) ), 45 );
+			}
+
 			$current_config = get_post_meta( $post_id, '_ffc_form_config', true );
 			if ( ! is_array( $current_config ) ) {
 				$current_config = array();
@@ -619,6 +632,36 @@ class FormEditorSaveHandler {
 				(string) ob_get_clean(),
 				array(
 					'type'           => 'error',
+					'dismissible'    => true,
+					'paragraph_wrap' => false,
+				)
+			);
+		}
+
+		// Display legacy html/ reference warnings (#865 Phase 4). Non-blocking:
+		// the post already saved; this only nudges the admin to move the image
+		// into the Media Library before an update deletes it.
+		$html_lint = get_transient( 'ffc_html_lint_' . get_current_user_id() );
+		if ( $html_lint ) {
+			delete_transient( 'ffc_html_lint_' . get_current_user_id() );
+			$migrations_url = admin_url( 'admin.php?page=ffc-settings&tab=migrations' );
+			ob_start();
+			?>
+			<p><strong><?php esc_html_e( 'Heads up — this certificate references images inside the plugin folder:', 'ffcertificate' ); ?></strong></p>
+			<ul class="ffc-list-disc ffc-ml-20">
+				<?php foreach ( (array) $html_lint as $ref ) : ?>
+					<li><code><?php echo esc_html( (string) $ref ); ?></code></li>
+				<?php endforeach; ?>
+			</ul>
+			<p>
+				<?php esc_html_e( 'A plugin update or deploy will delete these files and break the images. Use the "Insert Image" button to add them from the Media Library instead, or run', 'ffcertificate' ); ?>
+				<a href="<?php echo esc_url( $migrations_url ); ?>"><?php esc_html_e( 'Settings → Migrations → Rewrite html/ Image References', 'ffcertificate' ); ?></a>.
+			</p>
+			<?php
+			wp_admin_notice(
+				(string) ob_get_clean(),
+				array(
+					'type'           => 'warning',
 					'dismissible'    => true,
 					'paragraph_wrap' => false,
 				)
