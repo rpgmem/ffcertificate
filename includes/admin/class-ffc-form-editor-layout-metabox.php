@@ -60,6 +60,10 @@ class FormEditorLayoutMetabox {
 							<button type="button" class="button" id="ffc_btn_media_lib">
 								<?php esc_html_e( 'Background Image', 'ffcertificate' ); ?>
 							</button>
+							<button type="button" class="button" id="ffc_btn_insert_image">
+								<span class="dashicons dashicons-format-image" style="vertical-align:text-bottom;margin-right:2px;"></span>
+								<?php esc_html_e( 'Insert Image', 'ffcertificate' ); ?>
+							</button>
 							<button type="button" class="button button-primary" id="ffc_btn_preview">
 								<span class="dashicons dashicons-visibility" style="vertical-align:text-bottom;margin-right:2px;"></span>
 								<?php esc_html_e( 'Preview', 'ffcertificate' ); ?>

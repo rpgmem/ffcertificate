@@ -36,6 +36,7 @@ declare(strict_types=1);
 namespace FreeFormCertificate\Migrations\Strategies;
 
 use FreeFormCertificate\Admin\CertTemplateCpt;
+use FreeFormCertificate\Core\LegacyHtmlRefs;
 use WP_Error;
 
 if ( ! defined( 'ABSPATH' ) ) {
@@ -49,10 +50,10 @@ class RewriteHtmlImageRefsMigrationStrategy implements MigrationStrategyInterfac
 
 	/**
 	 * Plugin-scoped path segment that identifies a legacy `html/` reference.
-	 * Deliberately includes the plugin slug so `.../ffcertificate/assets/...`
-	 * never matches.
+	 * Sourced from {@see LegacyHtmlRefs::MARKER} so the migration, the Phase 0
+	 * notice and the Phase 4 save-linter share one definition.
 	 */
-	private const HTML_MARKER = 'ffcertificate/html/';
+	private const HTML_MARKER = LegacyHtmlRefs::MARKER;
 
 	/**
 	 * Form config post meta key (a plain string literal across the codebase).
@@ -401,13 +402,7 @@ class RewriteHtmlImageRefsMigrationStrategy implements MigrationStrategyInterfac
 	 * @return array<int, string> Distinct matched URLs.
 	 */
 	private function find_marker_urls( string $content ): array {
-		if ( '' === $content || false === strpos( $content, self::HTML_MARKER ) ) {
-			return array();
-		}
-		if ( ! preg_match_all( '~[^\s"\'()<>]*ffcertificate/html/[^\s"\'()<>]*~i', $content, $matches ) ) {
-			return array();
-		}
-		return array_values( array_unique( $matches[0] ) );
+		return LegacyHtmlRefs::find_urls( $content );
 	}
 
 	/**

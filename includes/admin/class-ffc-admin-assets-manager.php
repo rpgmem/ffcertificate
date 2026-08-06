@@ -501,6 +501,9 @@ class AdminAssetsManager {
 				'htmlTextareaNotFound'    => __( 'Error: HTML textarea not found', 'ffcertificate' ),
 				'wpMediaNotAvailable'     => __( 'WordPress Media Library is not available. Please reload the page.', 'ffcertificate' ),
 				'backgroundImageSelected' => __( 'Background image selected!', 'ffcertificate' ),
+				'insertImageTitle'        => __( 'Insert Image', 'ffcertificate' ),
+				'insertImageButton'       => __( 'Insert into layout', 'ffcertificate' ),
+				'imageInserted'           => __( 'Image inserted into the layout.', 'ffcertificate' ),
 
 				// Certificate Preview.
 				'previewTitle'            => __( 'Certificate Preview', 'ffcertificate' ),
