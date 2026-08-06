@@ -393,6 +393,141 @@ class CertTemplateAdminScreenTest extends TestCase {
 		$this->assertStringContainsString( 'read-only', $html );
 	}
 
+	// ==================================================================
+	// Management actions: Duplicate / Export / Restore defaults (#865)
+	// ==================================================================
+
+	public function test_row_actions_adds_duplicate_and_export_for_manager(): void {
+		Functions\when( 'current_user_can' )->justReturn( true );
+		Functions\when( 'get_post_meta' )->justReturn( '1' );
+		$screen = new CertTemplateAdminScreen();
+
+		$actions = $screen->row_actions( array( 'edit' => 'e' ), $this->pool_post( 7 ) );
+
+		$this->assertArrayHasKey( 'ffc_duplicate', $actions );
+		$this->assertArrayHasKey( 'ffc_export', $actions );
+		$this->assertStringContainsString( 'Duplicate', $actions['ffc_duplicate'] );
+		$this->assertStringContainsString( 'Export', $actions['ffc_export'] );
+	}
+
+	public function test_handle_duplicate_creates_copy_and_redirects(): void {
+		Functions\when( 'current_user_can' )->justReturn( true );
+		Functions\when( 'wp_unslash' )->returnArg();
+		Functions\when( 'absint' )->alias( static fn( $v ) => abs( (int) $v ) );
+		Functions\when( 'check_admin_referer' )->justReturn( true );
+
+		$src             = $this->pool_post( 5 );
+		$src->post_title = 'My Template';
+		Functions\when( 'get_post' )->justReturn( $src );
+		Functions\when( 'get_post_meta' )->justReturn( '<div>Body</div>' );
+
+		// CertTemplateWriter::create → wp_insert_post + update_post_meta.
+		$created_title = null;
+		Functions\when( 'wp_insert_post' )->alias(
+			static function ( $arr ) use ( &$created_title ) {
+				$created_title = $arr['post_title'];
+				return 99;
+			}
+		);
+		Functions\when( 'update_post_meta' )->justReturn( true );
+
+		$redirected = null;
+		Functions\when( 'wp_safe_redirect' )->alias(
+			static function ( $url ) use ( &$redirected ) {
+				$redirected = $url;
+				throw new \RuntimeException( 'redirect' );
+			}
+		);
+
+		$_GET['post'] = '5';
+		try {
+			( new CertTemplateAdminScreen() )->handle_duplicate();
+		} catch ( \RuntimeException $e ) {
+			// Expected — the redirect throws in place of exit.
+		}
+
+		$this->assertSame( 'My Template (copy)', $created_title );
+		$this->assertStringContainsString( 'post=99', (string) $redirected );
+	}
+
+	public function test_handle_export_emits_download(): void {
+		Functions\when( 'current_user_can' )->justReturn( true );
+		Functions\when( 'wp_unslash' )->returnArg();
+		Functions\when( 'absint' )->alias( static fn( $v ) => abs( (int) $v ) );
+		Functions\when( 'check_admin_referer' )->justReturn( true );
+		Functions\when( 'sanitize_file_name' )->alias( static fn( $s ) => strtolower( str_replace( ' ', '-', (string) $s ) ) );
+
+		$post             = $this->pool_post( 5 );
+		$post->post_title = 'My Template';
+		Functions\when( 'get_post' )->justReturn( $post );
+		Functions\when( 'get_post_meta' )->justReturn( '<div>Body</div>' );
+
+		$_GET['post'] = '5';
+		$screen       = new TestableCertTemplateAdminScreen();
+		try {
+			$screen->handle_export();
+		} catch ( \RuntimeException $e ) {
+			// Expected — emit_download override throws in place of header()/exit.
+		}
+
+		$this->assertSame( 'my-template.html', $screen->emitted_filename );
+		$this->assertSame( '<div>Body</div>', $screen->emitted_body );
+	}
+
+	public function test_handle_restore_denies_without_cap(): void {
+		Functions\when( 'current_user_can' )->justReturn( false );
+		Functions\when( 'wp_die' )->alias(
+			static function () {
+				throw new \RuntimeException( 'wp_die' );
+			}
+		);
+
+		$this->expectException( \RuntimeException::class );
+		( new CertTemplateAdminScreen() )->handle_restore_defaults();
+	}
+
+	public function test_render_restore_button_only_on_our_cpt_for_manager(): void {
+		Functions\when( 'current_user_can' )->justReturn( true );
+		$screen = new CertTemplateAdminScreen();
+
+		$out = $this->capture( fn() => $screen->render_restore_button( CertTemplateCpt::POST_TYPE ) );
+		$this->assertStringContainsString( 'Restore defaults', $out );
+		$this->assertStringContainsString( 'class="button"', $out );
+
+		$other = $this->capture( fn() => $screen->render_restore_button( 'page' ) );
+		$this->assertSame( '', $other );
+	}
+
+	public function test_render_restore_button_hidden_without_cap(): void {
+		Functions\when( 'current_user_can' )->justReturn( false );
+		$screen = new CertTemplateAdminScreen();
+
+		$out = $this->capture( fn() => $screen->render_restore_button( CertTemplateCpt::POST_TYPE ) );
+		$this->assertSame( '', $out );
+	}
+
+	public function test_render_edit_metabox_new_template_defaults_visible(): void {
+		Functions\when( 'esc_html_e' )->alias( static fn( $t ) => print( $t ) );
+		Functions\when( 'esc_textarea' )->returnArg();
+		Functions\when( 'wp_nonce_field' )->justReturn( null );
+		Functions\when( 'get_post_meta' )->justReturn( '' ); // no stored HTML / visibility yet
+		Functions\when( 'checked' )->alias(
+			static function ( $a, $b = true ) {
+				// phpcs:ignore Universal.Operators.StrictComparisons.LooseEqual -- mirrors WP core checked() loose comparison.
+				return print( $a == $b ? 'checked' : '' );
+			}
+		);
+
+		$new              = $this->pool_post( 0 );
+		$new->post_status = 'auto-draft';
+
+		$html = $this->capture(
+			fn() => ( new CertTemplateAdminScreen() )->render_edit_metabox( $new )
+		);
+
+		$this->assertStringContainsString( 'checked', $html, 'a new (auto-draft) template is visible by default' );
+	}
+
 	/**
 	 * Capture echoed output of a callable.
 	 */
@@ -400,5 +535,24 @@ class CertTemplateAdminScreenTest extends TestCase {
 		ob_start();
 		$fn();
 		return (string) ob_get_clean();
+	}
+}
+
+/**
+ * Subclass that intercepts the terminal file-download so the export handler can
+ * be asserted without emitting real headers or calling exit.
+ */
+class TestableCertTemplateAdminScreen extends CertTemplateAdminScreen {
+
+	/** @var string */
+	public string $emitted_filename = '';
+
+	/** @var string */
+	public string $emitted_body = '';
+
+	protected function emit_download( string $filename, string $body ): void {
+		$this->emitted_filename = $filename;
+		$this->emitted_body     = $body;
+		throw new \RuntimeException( 'emit' );
 	}
 }

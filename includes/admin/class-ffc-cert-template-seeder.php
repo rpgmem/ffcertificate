@@ -76,25 +76,65 @@ class CertTemplateSeeder {
 				continue;
 			}
 
-			$id = wp_insert_post(
-				array(
-					'post_type'   => CertTemplateCpt::POST_TYPE,
-					'post_status' => 'publish',
-					'post_title'  => $def['title'],
-				),
-				true
-			);
-			// wp_insert_post( …, true ) returns WP_Error on failure, a positive
-			// post id on success — is_int() rejects the error case.
-			if ( ! is_int( $id ) ) {
+			self::insert_default( $slug, $def, $html );
+		}
+	}
+
+	/**
+	 * "Restore defaults" (#865 decision #13) — non-destructive re-seed:
+	 * re-adds any missing shipped default and refreshes the HTML body of the
+	 * defaults that already exist to the current shipped source. User templates
+	 * (no default slug) are never touched, and an existing default's visibility
+	 * choice is preserved (only its body is refreshed).
+	 *
+	 * @return void
+	 */
+	public static function restore(): void {
+		$existing_map = self::existing_default_map();
+
+		foreach ( self::definitions() as $slug => $def ) {
+			$html = self::read_seed_file( $def['file'] );
+			if ( '' === $html ) {
 				continue;
 			}
 
-			update_post_meta( $id, CertTemplateCpt::META_IS_DEFAULT, '1' );
-			update_post_meta( $id, CertTemplateCpt::META_DEFAULT_SLUG, $slug );
-			update_post_meta( $id, CertTemplateCpt::META_VISIBLE, '1' );
-			update_post_meta( $id, CertTemplateCpt::META_HTML, $html );
+			if ( isset( $existing_map[ $slug ] ) ) {
+				// Refresh the shipped body only — leave visibility as the admin set it.
+				update_post_meta( $existing_map[ $slug ], CertTemplateCpt::META_HTML, $html );
+				continue;
+			}
+
+			self::insert_default( $slug, $def, $html );
 		}
+	}
+
+	/**
+	 * Insert one shipped default template with its canonical meta.
+	 *
+	 * @param string                        $slug Stable default slug.
+	 * @param array{title:string,file:string} $def  Definition.
+	 * @param string                        $html Seed HTML body.
+	 * @return void
+	 */
+	private static function insert_default( string $slug, array $def, string $html ): void {
+		$id = wp_insert_post(
+			array(
+				'post_type'   => CertTemplateCpt::POST_TYPE,
+				'post_status' => 'publish',
+				'post_title'  => $def['title'],
+			),
+			true
+		);
+		// wp_insert_post( …, true ) returns WP_Error on failure, a positive
+		// post id on success — is_int() rejects the error case.
+		if ( ! is_int( $id ) ) {
+			return;
+		}
+
+		update_post_meta( $id, CertTemplateCpt::META_IS_DEFAULT, '1' );
+		update_post_meta( $id, CertTemplateCpt::META_DEFAULT_SLUG, $slug );
+		update_post_meta( $id, CertTemplateCpt::META_VISIBLE, '1' );
+		update_post_meta( $id, CertTemplateCpt::META_HTML, $html );
 	}
 
 	/**
@@ -125,6 +165,15 @@ class CertTemplateSeeder {
 	 * @return array<int, string>
 	 */
 	private static function existing_default_slugs(): array {
+		return array_keys( self::existing_default_map() );
+	}
+
+	/**
+	 * Map of shipped-default slug → post id for the defaults present in the pool.
+	 *
+	 * @return array<string, int>
+	 */
+	private static function existing_default_map(): array {
 		$ids = get_posts(
 			array(
 				'post_type'        => CertTemplateCpt::POST_TYPE,
@@ -136,14 +185,14 @@ class CertTemplateSeeder {
 			)
 		);
 
-		$slugs = array();
+		$map = array();
 		foreach ( (array) $ids as $id ) {
 			$slug = (string) get_post_meta( (int) $id, CertTemplateCpt::META_DEFAULT_SLUG, true );
 			if ( '' !== $slug ) {
-				$slugs[] = $slug;
+				$map[ $slug ] = (int) $id;
 			}
 		}
-		return $slugs;
+		return $map;
 	}
 
 	/**

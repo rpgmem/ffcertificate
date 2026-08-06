@@ -46,6 +46,21 @@ class CertTemplateAdminScreen {
 	private const TOGGLE_ACTION = 'ffc_toggle_cert_template_visibility';
 
 	/**
+	 * The `admin_action_{$action}` slug for duplicating a template.
+	 */
+	private const DUPLICATE_ACTION = 'ffc_duplicate_cert_template';
+
+	/**
+	 * The `admin_action_{$action}` slug for exporting a template as `.html`.
+	 */
+	private const EXPORT_ACTION = 'ffc_export_cert_template';
+
+	/**
+	 * The `admin_action_{$action}` slug for the "Restore defaults" toolbar button.
+	 */
+	private const RESTORE_ACTION = 'ffc_restore_cert_templates';
+
+	/**
 	 * Nonce action for the edit-screen metabox save.
 	 */
 	private const SAVE_NONCE = 'ffc_save_cert_template';
@@ -59,6 +74,12 @@ class CertTemplateAdminScreen {
 		add_action( "manage_{$pt}_posts_custom_column", array( $this, 'render_column' ), 10, 2 );
 		add_filter( 'post_row_actions', array( $this, 'row_actions' ), 10, 2 );
 		add_action( 'admin_action_' . self::TOGGLE_ACTION, array( $this, 'handle_toggle_visibility' ) );
+		// Row + toolbar management actions (#865 decision #11/#13): Duplicate and
+		// Export any template; Restore defaults re-seeds shipped defaults.
+		add_action( 'admin_action_' . self::DUPLICATE_ACTION, array( $this, 'handle_duplicate' ) );
+		add_action( 'admin_action_' . self::EXPORT_ACTION, array( $this, 'handle_export' ) );
+		add_action( 'admin_action_' . self::RESTORE_ACTION, array( $this, 'handle_restore_defaults' ) );
+		add_action( 'restrict_manage_posts', array( $this, 'render_restore_button' ) );
 		// Edit screen: HTML body + visibility metabox (the CPT only `supports`
 		// title, so the template body needs its own field).
 		add_action( 'add_meta_boxes_' . $pt, array( $this, 'add_edit_metabox' ) );
@@ -152,6 +173,21 @@ class CertTemplateAdminScreen {
 
 		$actions['ffc_toggle_visibility'] = '<a href="' . esc_url( $url ) . '">' . esc_html( $label ) . '</a>';
 
+		// Duplicate — allowed for every template (customizing a shipped default
+		// means Duplicate → editable user template, #865 decision #11).
+		$dup_url = wp_nonce_url(
+			admin_url( 'admin.php?action=' . self::DUPLICATE_ACTION . '&post=' . (int) $post->ID ),
+			self::DUPLICATE_ACTION . '_' . (int) $post->ID
+		);
+		$actions['ffc_duplicate'] = '<a href="' . esc_url( $dup_url ) . '">' . esc_html__( 'Duplicate', 'ffcertificate' ) . '</a>';
+
+		// Export the raw template HTML as a `.html` download.
+		$exp_url = wp_nonce_url(
+			admin_url( 'admin.php?action=' . self::EXPORT_ACTION . '&post=' . (int) $post->ID ),
+			self::EXPORT_ACTION . '_' . (int) $post->ID
+		);
+		$actions['ffc_export'] = '<a href="' . esc_url( $exp_url ) . '">' . esc_html__( 'Export', 'ffcertificate' ) . '</a>';
+
 		return $actions;
 	}
 
@@ -178,6 +214,124 @@ class CertTemplateAdminScreen {
 	}
 
 	/**
+	 * Duplicate a template into a new editable user template, then open it.
+	 *
+	 * @return void
+	 */
+	public function handle_duplicate(): void {
+		if ( ! \FreeFormCertificate\Core\Capabilities::current_user_can_admin_or( 'ffc_manage_forms' ) ) {
+			wp_die( esc_html__( 'You do not have permission to manage certificate templates.', 'ffcertificate' ) );
+		}
+
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Nonce verified immediately below via check_admin_referer.
+		$post_id = isset( $_GET['post'] ) ? absint( wp_unslash( $_GET['post'] ) ) : 0;
+		check_admin_referer( self::DUPLICATE_ACTION . '_' . $post_id );
+
+		$post = get_post( $post_id );
+		if ( ! $post instanceof \WP_Post || CertTemplateCpt::POST_TYPE !== $post->post_type ) {
+			wp_die( esc_html__( 'Template not found.', 'ffcertificate' ) );
+		}
+
+		$html = (string) get_post_meta( $post_id, CertTemplateCpt::META_HTML, true );
+		/* translators: %s: source template title */
+		$title  = sprintf( __( '%s (copy)', 'ffcertificate' ), (string) $post->post_title );
+		$new_id = CertTemplateWriter::create( $title, $html, true );
+
+		// Open the new copy for editing; fall back to the list on failure.
+		$redirect = $new_id > 0
+			? admin_url( 'post.php?post=' . $new_id . '&action=edit' )
+			: admin_url( 'edit.php?post_type=' . CertTemplateCpt::POST_TYPE );
+
+		wp_safe_redirect( $redirect );
+		exit;
+	}
+
+	/**
+	 * Export a template's raw HTML as a `.html` file download.
+	 *
+	 * @return void
+	 */
+	public function handle_export(): void {
+		if ( ! \FreeFormCertificate\Core\Capabilities::current_user_can_admin_or( 'ffc_manage_forms' ) ) {
+			wp_die( esc_html__( 'You do not have permission to manage certificate templates.', 'ffcertificate' ) );
+		}
+
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Nonce verified immediately below via check_admin_referer.
+		$post_id = isset( $_GET['post'] ) ? absint( wp_unslash( $_GET['post'] ) ) : 0;
+		check_admin_referer( self::EXPORT_ACTION . '_' . $post_id );
+
+		$post = get_post( $post_id );
+		if ( ! $post instanceof \WP_Post || CertTemplateCpt::POST_TYPE !== $post->post_type ) {
+			wp_die( esc_html__( 'Template not found.', 'ffcertificate' ) );
+		}
+
+		$html = (string) get_post_meta( $post_id, CertTemplateCpt::META_HTML, true );
+		$slug = sanitize_file_name( '' !== (string) $post->post_title ? (string) $post->post_title : 'template' );
+		if ( '' === $slug ) {
+			$slug = 'template';
+		}
+
+		$this->emit_download( $slug . '.html', $html );
+	}
+
+	/**
+	 * Send a file download and terminate. Isolated so tests can override the
+	 * terminal `header()`/`echo`/`exit` without emitting real headers.
+	 *
+	 * @param string $filename Download filename.
+	 * @param string $body     File body.
+	 * @return void
+	 */
+	protected function emit_download( string $filename, string $body ): void {
+		nocache_headers();
+		header( 'Content-Type: text/html; charset=utf-8' );
+		header( 'Content-Disposition: attachment; filename="' . $filename . '"' );
+		header( 'Content-Length: ' . strlen( $body ) );
+		// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Raw `.html` file download of the pre-sanitized (HtmlPolicy) stored template body; escaping would corrupt the exported file.
+		echo $body;
+		exit;
+	}
+
+	/**
+	 * Re-seed the shipped default templates (non-destructive) — the "Restore
+	 * defaults" toolbar action (#865 decision #13).
+	 *
+	 * @return void
+	 */
+	public function handle_restore_defaults(): void {
+		if ( ! \FreeFormCertificate\Core\Capabilities::current_user_can_admin_or( 'ffc_manage_forms' ) ) {
+			wp_die( esc_html__( 'You do not have permission to manage certificate templates.', 'ffcertificate' ) );
+		}
+		check_admin_referer( self::RESTORE_ACTION );
+
+		CertTemplateSeeder::restore();
+
+		wp_safe_redirect( admin_url( 'edit.php?post_type=' . CertTemplateCpt::POST_TYPE . '&ffc_restored=1' ) );
+		exit;
+	}
+
+	/**
+	 * Render the "Restore defaults" button in the list-table toolbar.
+	 *
+	 * @param string $post_type Current list-table post type.
+	 * @return void
+	 */
+	public function render_restore_button( string $post_type ): void {
+		if ( CertTemplateCpt::POST_TYPE !== $post_type ) {
+			return;
+		}
+		if ( ! \FreeFormCertificate\Core\Capabilities::current_user_can_admin_or( 'ffc_manage_forms' ) ) {
+			return;
+		}
+
+		$url = wp_nonce_url(
+			admin_url( 'admin.php?action=' . self::RESTORE_ACTION ),
+			self::RESTORE_ACTION
+		);
+		echo '<a href="' . esc_url( $url ) . '" class="button">' . esc_html__( 'Restore defaults', 'ffcertificate' ) . '</a>';
+	}
+
+	/**
 	 * Register the HTML-body + visibility metabox on the edit screen.
 	 *
 	 * @return void
@@ -200,8 +354,12 @@ class CertTemplateAdminScreen {
 	 * @return void
 	 */
 	public function render_edit_metabox( \WP_Post $post ): void {
-		$html       = (string) get_post_meta( $post->ID, CertTemplateCpt::META_HTML, true );
-		$visible    = '1' === (string) get_post_meta( $post->ID, CertTemplateCpt::META_VISIBLE, true );
+		$html = (string) get_post_meta( $post->ID, CertTemplateCpt::META_HTML, true );
+		// New templates ("Add New" → an auto-draft) are born visible (#865
+		// decision #10); existing ones reflect their stored flag.
+		$visible    = 'auto-draft' === $post->post_status
+			? true
+			: '1' === (string) get_post_meta( $post->ID, CertTemplateCpt::META_VISIBLE, true );
 		$is_default = CertTemplateReader::is_default( (int) $post->ID );
 
 		wp_nonce_field( self::SAVE_NONCE, 'ffc_cert_template_nonce' );
