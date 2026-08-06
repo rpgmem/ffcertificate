@@ -208,7 +208,18 @@
                 if (response && response.success) {
                     var $htmlField = $('#ffc_pdf_layout');
                     if ($htmlField.length) {
-                        setLayoutContent($htmlField, response.data);
+                        // #865: the load response is a structured payload
+                        // { html, bg_image }. Tolerate the legacy bare-string
+                        // shape (older responses) by using response.data as-is.
+                        var data = response.data;
+                        var html = (data && typeof data === 'object') ? (data.html || '') : data;
+                        setLayoutContent($htmlField, html);
+                        // Carry the template's background image into the form's
+                        // Background Image URL field so a loaded template brings
+                        // its background with it (empty clears any prior value).
+                        if (data && typeof data === 'object' && 'bg_image' in data) {
+                            $('#ffc_bg_image_input').val(data.bg_image || '').trigger('change');
+                        }
                         var successTemplate = strings.templateLoadedSuccess || 'Template "%s" loaded successfully!';
                         var successMsg = successTemplate.replace('%s', displayName || filename || '');
                         showNotification('✓ ' + successMsg, 'success', 3000);
@@ -267,7 +278,10 @@
             action: 'ffc_save_template',
             nonce: ajaxData.nonce || '',
             title: title,
-            html: html
+            html: html,
+            // Round-trip the current background so a saved model carries it back
+            // when re-loaded (#865).
+            bg_image: $('#ffc_bg_image_input').val() || ''
         })
             .done(function(response) {
                 if (response && response.success) {
@@ -676,7 +690,10 @@
                 return;
             }
 
-            var $textarea = $('#ffc_pdf_layout');
+            // Resolve the active certificate-HTML editor: the form editor uses
+            // #ffc_pdf_layout, the cert-template edit screen uses
+            // #ffc_template_html. Whichever is present on this screen wins.
+            var $textarea = $('#ffc_pdf_layout, #ffc_template_html').first();
             if (!$textarea.length) {
                 showNotification(strings.htmlTextareaNotFound || 'Error: HTML textarea not found', 'error');
                 return;

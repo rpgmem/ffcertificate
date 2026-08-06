@@ -34,7 +34,7 @@ class CertTemplateAdminScreenTest extends TestCase {
 	}
 
 	protected function tearDown(): void {
-		unset( $_GET['post'], $_POST['ffc_cert_template_nonce'], $_POST['ffc_template_html'], $_POST['ffc_template_visible'] );
+		unset( $_GET['post'], $_POST['ffc_cert_template_nonce'], $_POST['ffc_template_html'], $_POST['ffc_template_visible'], $_POST['ffc_template_bg_image'] );
 		Monkey\tearDown();
 		parent::tearDown();
 	}
@@ -186,25 +186,31 @@ class CertTemplateAdminScreenTest extends TestCase {
 	// Edit-screen metabox (#865)
 	// ==================================================================
 
-	public function test_add_edit_metabox_registers_box(): void {
+	public function test_add_edit_metabox_registers_body_and_options_boxes(): void {
 		$captured = array();
 		Functions\when( 'add_meta_box' )->alias(
-			static function ( $id, $title, $cb, $screen ) use ( &$captured ) {
-				$captured = array( $id, $screen );
+			static function ( $id, $title, $cb, $screen, $context = 'advanced' ) use ( &$captured ) {
+				$captured[] = array( $id, $screen, $context );
 			}
 		);
 
 		( new CertTemplateAdminScreen() )->add_edit_metabox();
 
-		$this->assertSame( 'ffc_cert_template_body', $captured[0] );
-		$this->assertSame( CertTemplateCpt::POST_TYPE, $captured[1] );
+		$this->assertCount( 2, $captured );
+		// The body editor box (normal context) + the sidebar options box (side).
+		$this->assertSame( 'ffc_cert_template_body', $captured[0][0] );
+		$this->assertSame( CertTemplateCpt::POST_TYPE, $captured[0][1] );
+		$this->assertSame( 'normal', $captured[0][2] );
+		$this->assertSame( 'ffc_cert_template_options', $captured[1][0] );
+		$this->assertSame( 'side', $captured[1][2] );
 	}
 
-	public function test_render_edit_metabox_outputs_editor_and_visibility(): void {
+	public function test_render_edit_metabox_outputs_editor_bg_field_and_image_tools(): void {
 		Functions\when( 'esc_html_e' )->alias( static fn( $t ) => print( $t ) );
 		Functions\when( 'esc_textarea' )->returnArg();
-		Functions\when( 'checked' )->justReturn( '' );
 		Functions\when( 'wp_nonce_field' )->alias( static fn() => print( '<input name="ffc_cert_template_nonce" />' ) );
+		// Non-default (META_IS_DEFAULT is not '1') → editable, so the image
+		// toolbar + editable bg field render.
 		Functions\when( 'get_post_meta' )->justReturn( '<div>Body</div>' );
 
 		$html = $this->capture(
@@ -213,8 +219,25 @@ class CertTemplateAdminScreenTest extends TestCase {
 
 		$this->assertStringContainsString( 'name="ffc_template_html"', $html );
 		$this->assertStringContainsString( '<div>Body</div>', $html );
-		$this->assertStringContainsString( 'name="ffc_template_visible"', $html );
+		$this->assertStringContainsString( 'name="ffc_template_bg_image"', $html );
+		$this->assertStringContainsString( 'id="ffc_btn_media_lib"', $html );
+		$this->assertStringContainsString( 'id="ffc_btn_insert_image"', $html );
 		$this->assertStringContainsString( 'name="ffc_cert_template_nonce"', $html );
+		// The visibility control moved out of the body box into the sidebar box.
+		$this->assertStringNotContainsString( 'name="ffc_template_visible"', $html );
+	}
+
+	public function test_render_options_metabox_outputs_visibility_toggle(): void {
+		Functions\when( 'esc_html_e' )->alias( static fn( $t ) => print( $t ) );
+		Functions\when( 'checked' )->justReturn( 'checked' );
+		Functions\when( 'get_post_meta' )->justReturn( '1' );
+
+		$html = $this->capture(
+			fn() => ( new CertTemplateAdminScreen() )->render_options_metabox( $this->pool_post( 5 ) )
+		);
+
+		$this->assertStringContainsString( 'name="ffc_template_visible"', $html );
+		$this->assertStringContainsString( 'ffc-toggle', $html );
 	}
 
 	public function test_save_edit_metabox_persists_html_and_visibility(): void {
@@ -243,6 +266,34 @@ class CertTemplateAdminScreenTest extends TestCase {
 
 		$this->assertContains( array( 5, CertTemplateCpt::META_HTML, '<div>New body</div>' ), $written );
 		$this->assertContains( array( 5, CertTemplateCpt::META_VISIBLE, '1' ), $written );
+	}
+
+	public function test_save_edit_metabox_persists_background_image(): void {
+		Functions\when( 'current_user_can' )->justReturn( true );
+		Functions\when( 'sanitize_key' )->returnArg();
+		Functions\when( 'wp_unslash' )->returnArg();
+		Functions\when( 'wp_verify_nonce' )->justReturn( true );
+		Functions\when( 'wp_kses' )->alias( static fn( $html ) => $html );
+		Functions\when( 'esc_url_raw' )->returnArg();
+		Functions\when( 'get_post' )->justReturn( $this->pool_post( 5 ) );
+		// Non-default → editable.
+		Functions\when( 'get_post_meta' )->justReturn( '' );
+
+		$written = array();
+		Functions\when( 'update_post_meta' )->alias(
+			static function ( $id, $key, $value ) use ( &$written ) {
+				$written[] = array( $id, $key, $value );
+				return true;
+			}
+		);
+
+		$_POST['ffc_cert_template_nonce'] = 'n';
+		$_POST['ffc_template_html']       = '<div>Body</div>';
+		$_POST['ffc_template_bg_image']   = 'https://example.com/bg.png';
+
+		( new CertTemplateAdminScreen() )->save_edit_metabox( 5, $this->pool_post( 5 ) );
+
+		$this->assertContains( array( 5, CertTemplateCpt::META_BG_IMAGE, 'https://example.com/bg.png' ), $written );
 	}
 
 	public function test_save_edit_metabox_bails_on_bad_nonce(): void {
@@ -373,6 +424,7 @@ class CertTemplateAdminScreenTest extends TestCase {
 
 		$keys = array_map( static fn( $w ) => $w[1], $written );
 		$this->assertNotContains( CertTemplateCpt::META_HTML, $keys, 'a default HTML is never overwritten' );
+		$this->assertNotContains( CertTemplateCpt::META_BG_IMAGE, $keys, 'a default background is never overwritten' );
 		$this->assertContains( CertTemplateCpt::META_VISIBLE, $keys, 'visibility still applies to a default' );
 	}
 

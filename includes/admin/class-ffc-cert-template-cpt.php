@@ -64,6 +64,13 @@ class CertTemplateCpt {
 	public const META_VISIBLE = '_ffc_template_visible';
 
 	/**
+	 * Meta key holding the template's background-image URL (mirrors how a form
+	 * stores its background in `_ffc_form_config['bg_image']`). Carried into the
+	 * form's Background Image URL field when the template is loaded in the editor.
+	 */
+	public const META_BG_IMAGE = '_ffc_template_bg_image';
+
+	/**
 	 * Constructor — registers the post type on `init`.
 	 */
 	public function __construct() {

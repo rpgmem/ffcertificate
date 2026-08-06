@@ -173,6 +173,78 @@ class AdminAssetsManager {
 	}
 
 	/**
+	 * Enqueue the certificate image tools (Background Image + Insert Image) on a
+	 * screen outside the main form-editor bundle — currently the cert-template
+	 * CPT edit screen.
+	 *
+	 * The buttons are the same delegated handlers as the form editor
+	 * (`#ffc_btn_media_lib` / `#ffc_btn_insert_image` in `ffc-admin-pdf.js`), so
+	 * this loads that module + `wp.media` + a compact `ffc_ajax` localization
+	 * carrying only the strings those two handlers read. The insert-image handler
+	 * resolves its target textarea generically (`#ffc_pdf_layout, #ffc_template_html`),
+	 * so no per-screen JS is needed.
+	 *
+	 * @return void
+	 */
+	public static function enqueue_image_tools(): void {
+		$s = \FreeFormCertificate\Core\AssetHelper::asset_suffix();
+
+		wp_enqueue_media();
+
+		// ffc-admin-pdf depends on ffc-core (namespace + module registry).
+		wp_enqueue_script(
+			'ffc-core',
+			FFC_PLUGIN_URL . "assets/js/ffc-core{$s}.js",
+			array( 'jquery' ),
+			FFC_VERSION,
+			true
+		);
+		wp_localize_script( 'ffc-core', 'ffcCoreConfig', array( 'version' => FFC_VERSION ) );
+
+		wp_enqueue_script(
+			'ffc-admin-pdf',
+			FFC_PLUGIN_URL . "assets/js/ffc-admin-pdf{$s}.js",
+			array( 'jquery', 'ffc-core' ),
+			FFC_VERSION,
+			true
+		);
+		wp_localize_script(
+			'ffc-admin-pdf',
+			'ffc_ajax',
+			array(
+				'ajax_url' => admin_url( 'admin-ajax.php' ),
+				'nonce'    => wp_create_nonce( 'ffc_admin_pdf_nonce' ),
+				'strings'  => self::image_tool_strings(),
+			)
+		);
+	}
+
+	/**
+	 * The `ffc_ajax.strings` subset the Background Image + Insert Image handlers
+	 * in `ffc-admin-pdf.js` read.
+	 *
+	 * The canonical form-editor localization in {@see self::get_localization_data()}
+	 * carries the same msgids inline; kept here so screens outside that bundle
+	 * (the cert-template edit screen) localize an identical, translated set
+	 * without pulling the full form-editor payload. Both resolve through the same
+	 * `__()` msgids, so translations never diverge.
+	 *
+	 * @return array<string, string>
+	 */
+	public static function image_tool_strings(): array {
+		return array(
+			'wpMediaNotAvailable'     => __( 'WordPress Media Library is not available. Please reload the page.', 'ffcertificate' ),
+			'chooseBackgroundImage'   => __( 'Choose Background Image', 'ffcertificate' ),
+			'useThisImage'            => __( 'Use this image', 'ffcertificate' ),
+			'backgroundImageSelected' => __( 'Background image selected!', 'ffcertificate' ),
+			'insertImageTitle'        => __( 'Insert Image', 'ffcertificate' ),
+			'insertImageButton'       => __( 'Insert into layout', 'ffcertificate' ),
+			'htmlTextareaNotFound'    => __( 'Error: HTML textarea not found', 'ffcertificate' ),
+			'imageInserted'           => __( 'Image inserted into the layout.', 'ffcertificate' ),
+		);
+	}
+
+	/**
 	 * Resolve the effective code-editor theme ('light' or 'dark').
 	 *
 	 * User setting `code_editor_theme` has three values:

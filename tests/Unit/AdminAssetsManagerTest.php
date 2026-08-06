@@ -530,4 +530,53 @@ class AdminAssetsManagerTest extends TestCase {
         $this->assertArrayNotHasKey('readOnly', $cm_config);
         $this->assertSame('ffc_pdf_layout', $localized['textareaId']);
     }
+
+    // ==================================================================
+    // enqueue_image_tools() / image_tool_strings() (#865)
+    // ==================================================================
+
+    public function test_image_tool_strings_exposes_the_media_handler_keys(): void {
+        $strings = AdminAssetsManager::image_tool_strings();
+
+        foreach (
+            array(
+                'wpMediaNotAvailable',
+                'chooseBackgroundImage',
+                'useThisImage',
+                'backgroundImageSelected',
+                'insertImageTitle',
+                'insertImageButton',
+                'htmlTextareaNotFound',
+                'imageInserted',
+            ) as $key
+        ) {
+            $this->assertArrayHasKey($key, $strings);
+        }
+    }
+
+    public function test_enqueue_image_tools_loads_pdf_module_media_and_localizes(): void {
+        $media_called = false;
+        Functions\when('wp_enqueue_media')->alias(function () use (&$media_called) {
+            $media_called = true;
+        });
+        $scripts = array();
+        Functions\when('wp_enqueue_script')->alias(function ($handle) use (&$scripts) {
+            $scripts[] = $handle;
+        });
+        Functions\when('admin_url')->justReturn('https://example.com/wp-admin/admin-ajax.php');
+        Functions\when('wp_create_nonce')->justReturn('test_nonce');
+        $localized = array();
+        Functions\when('wp_localize_script')->alias(function ($handle, $name, $data) use (&$localized) {
+            $localized[$name] = $data;
+        });
+
+        AdminAssetsManager::enqueue_image_tools();
+
+        $this->assertTrue($media_called, 'wp.media must be loaded for the picker');
+        $this->assertContains('ffc-core', $scripts);
+        $this->assertContains('ffc-admin-pdf', $scripts);
+        $this->assertArrayHasKey('ffc_ajax', $localized);
+        $this->assertSame('test_nonce', $localized['ffc_ajax']['nonce']);
+        $this->assertArrayHasKey('chooseBackgroundImage', $localized['ffc_ajax']['strings']);
+    }
 }

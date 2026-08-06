@@ -159,6 +159,47 @@ describe('ffc-admin-pdf.js — loadTemplate (ajax path)', () => {
 		expect(data.filename).toBe('legacy_certificate.html');
 	});
 
+	it('carries the structured payload {html,bg_image} into the layout + bg field', () => {
+		document.body.insertAdjacentHTML('beforeend', '<input id="ffc_bg_image_input" />');
+		stubPost({
+			success: true,
+			data: { html: '<h1>Cert</h1>', bg_image: 'https://example.com/bg.png' },
+		});
+
+		window.FFC.Admin.PDF.loadTemplate(7, '', 'Modelo');
+
+		expect(document.querySelector('#ffc_pdf_layout').value).toBe('<h1>Cert</h1>');
+		expect(document.querySelector('#ffc_bg_image_input').value).toBe(
+			'https://example.com/bg.png'
+		);
+	});
+
+	it('clears the bg field when the loaded template carries an empty bg_image', () => {
+		document.body.insertAdjacentHTML(
+			'beforeend',
+			'<input id="ffc_bg_image_input" value="https://old.example/bg.png" />'
+		);
+		stubPost({ success: true, data: { html: '<h1>X</h1>', bg_image: '' } });
+
+		window.FFC.Admin.PDF.loadTemplate(8, '', 'Modelo');
+
+		expect(document.querySelector('#ffc_bg_image_input').value).toBe('');
+	});
+
+	it('leaves the bg field untouched for a legacy bare-string response', () => {
+		document.body.insertAdjacentHTML(
+			'beforeend',
+			'<input id="ffc_bg_image_input" value="keep-me" />'
+		);
+		stubPost({ success: true, data: '<p>legacy</p>' });
+
+		window.FFC.Admin.PDF.loadTemplate(9, '', 'Legacy');
+
+		expect(document.querySelector('#ffc_pdf_layout').value).toBe('<p>legacy</p>');
+		// A string payload has no bg_image key → the field is not written.
+		expect(document.querySelector('#ffc_bg_image_input').value).toBe('keep-me');
+	});
+
 	it('surfaces a not-found error when the server responds unsuccessfully', () => {
 		stubPost({ success: false });
 
@@ -216,6 +257,21 @@ describe('ffc-admin-pdf.js — save as model', () => {
 		window.$('#ffc_save_as_model_btn').trigger('click');
 
 		expect(window.$.post).not.toHaveBeenCalled();
+	});
+
+	it('includes the current background image URL so the model round-trips it', () => {
+		vi.spyOn(window, 'prompt').mockReturnValue('My Model');
+		document.body.insertAdjacentHTML(
+			'beforeend',
+			'<input id="ffc_bg_image_input" value="https://example.com/bg.png" />'
+		);
+		const jqxhr = { done(cb) { cb({ success: true, data: { id: 9 } }); return jqxhr; }, fail() { return jqxhr; } };
+		window.$.post = vi.fn(() => jqxhr);
+
+		window.$('#ffc_save_as_model_btn').trigger('click');
+
+		const [, data] = window.$.post.mock.calls[0];
+		expect(data.bg_image).toBe('https://example.com/bg.png');
 	});
 });
 
@@ -310,6 +366,24 @@ describe('ffc-admin-pdf.js — inline image insert', () => {
 		expect(document.querySelector('#ffc_pdf_layout').value).toBe('<p>{{name}}</p>');
 		const calls = window.FFC.Admin.showNotification.mock.calls;
 		expect(calls.some((c) => c[1] === 'error')).toBe(true);
+	});
+
+	it('targets #ffc_template_html when the form layout textarea is absent (template screen)', () => {
+		// The cert-template edit screen has no #ffc_pdf_layout — the handler
+		// resolves the active editor generically and inserts into the template
+		// textarea instead. Delegated on document, so no script reload is needed.
+		document.body.innerHTML =
+			'<button id="ffc_btn_insert_image">Insert Image</button>' +
+			'<textarea id="ffc_template_html"><p>{{name}}</p></textarea>';
+		stubWpMedia({ url: 'https://example.com/uploads/logo.png', alt: '' });
+
+		window.$('#ffc_btn_insert_image').trigger('click');
+
+		const value = document.querySelector('#ffc_template_html').value;
+		expect(value).toContain(
+			'<img src="https://example.com/uploads/logo.png" />'
+		);
+		expect(value).toContain('{{name}}');
 	});
 });
 

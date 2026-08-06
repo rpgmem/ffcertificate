@@ -416,7 +416,10 @@ class FormEditorTest extends TestCase {
         }
 
         $this->assertSame( 'success', $this->json_responses[0]['type'] );
-        $this->assertSame( '<div>Template</div>', $this->json_responses[0]['data'] );
+        // #865: the response is a { html, bg_image } payload; legacy html/
+        // drop-ins carry no background image.
+        $this->assertSame( '<div>Template</div>', $this->json_responses[0]['data']['html'] );
+        $this->assertSame( '', $this->json_responses[0]['data']['bg_image'] );
 
         @unlink( $dir . '/test_tpl.html' );
     }
@@ -436,7 +439,16 @@ class FormEditorTest extends TestCase {
         $post->ID        = 5;
         $post->post_type = \FreeFormCertificate\Admin\CertTemplateCpt::POST_TYPE;
         Functions\when( 'get_post' )->justReturn( $post );
-        Functions\when( 'get_post_meta' )->justReturn( '<div>DB Template</div>' );
+        // Differentiate the HTML body from the background-image meta so the
+        // structured payload can be asserted per field.
+        Functions\when( 'get_post_meta' )->alias(
+            static function ( $id, $key ) {
+                if ( \FreeFormCertificate\Admin\CertTemplateCpt::META_BG_IMAGE === $key ) {
+                    return 'https://example.com/bg.png';
+                }
+                return '<div>DB Template</div>';
+            }
+        );
 
         $_POST['template_id'] = 5;
 
@@ -448,7 +460,9 @@ class FormEditorTest extends TestCase {
         }
 
         $this->assertSame( 'success', $this->json_responses[0]['type'] );
-        $this->assertSame( '<div>DB Template</div>', $this->json_responses[0]['data'] );
+        // #865: structured payload carries the template's stored background image.
+        $this->assertSame( '<div>DB Template</div>', $this->json_responses[0]['data']['html'] );
+        $this->assertSame( 'https://example.com/bg.png', $this->json_responses[0]['data']['bg_image'] );
     }
 
     public function test_ajax_load_template_by_id_errors_when_not_in_pool(): void {
@@ -498,6 +512,39 @@ class FormEditorTest extends TestCase {
         $this->assertSame( 'success', $this->json_responses[0]['type'] );
         $this->assertSame( 55, $this->json_responses[0]['data']['id'] );
         $this->assertSame( 'My Model', $this->json_responses[0]['data']['label'] );
+    }
+
+    public function test_ajax_save_template_stores_background_image(): void {
+        Functions\when( 'check_ajax_referer' )->justReturn( true );
+        Functions\when( 'current_user_can' )->justReturn( true );
+        Functions\when( 'sanitize_text_field' )->returnArg();
+        Functions\when( 'wp_kses' )->alias( static fn( $html ) => $html );
+        Functions\when( 'esc_url_raw' )->returnArg();
+        Functions\when( 'wp_insert_post' )->justReturn( 56 );
+        $writes = array();
+        Functions\when( 'update_post_meta' )->alias(
+            static function ( $id, $key, $value ) use ( &$writes ) {
+                $writes[ $key ] = $value;
+                return true;
+            }
+        );
+
+        $_POST['title']    = 'With BG';
+        $_POST['html']     = '<div>{{name}}</div>';
+        $_POST['bg_image'] = 'https://example.com/bg.png';
+
+        $editor = new FormEditor();
+        try {
+            $editor->ajax_save_template();
+        } catch ( \RuntimeException $e ) {
+            // Expected.
+        }
+
+        $this->assertSame( 'success', $this->json_responses[0]['type'] );
+        $this->assertSame(
+            'https://example.com/bg.png',
+            $writes[ \FreeFormCertificate\Admin\CertTemplateCpt::META_BG_IMAGE ]
+        );
     }
 
     public function test_ajax_save_template_denies_without_permission(): void {

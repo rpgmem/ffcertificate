@@ -482,6 +482,12 @@ class CertTemplateAdminScreen {
 		$is_default = $post_id > 0 && CertTemplateReader::is_default( $post_id );
 
 		AdminAssetsManager::enqueue_code_editor_for( 'ffc_template_html', $is_default );
+
+		// Editable templates get the same Background Image + Insert Image tools as
+		// the form-editor layout box (the buttons render only for non-defaults).
+		if ( ! $is_default ) {
+			AdminAssetsManager::enqueue_image_tools();
+		}
 	}
 
 	/**
@@ -498,6 +504,18 @@ class CertTemplateAdminScreen {
 			'normal',
 			'high'
 		);
+
+		// Template options (currently the "Load list" visibility toggle) live in
+		// a sidebar box, WP-idiomatically grouped beside the editor rather than
+		// buried under the HTML textarea.
+		add_meta_box(
+			'ffc_cert_template_options',
+			__( 'Template options', 'ffcertificate' ),
+			array( $this, 'render_options_metabox' ),
+			CertTemplateCpt::POST_TYPE,
+			'side',
+			'default'
+		);
 	}
 
 	/**
@@ -507,20 +525,34 @@ class CertTemplateAdminScreen {
 	 * @return void
 	 */
 	public function render_edit_metabox( \WP_Post $post ): void {
-		$html = (string) get_post_meta( $post->ID, CertTemplateCpt::META_HTML, true );
-		// New templates ("Add New" → an auto-draft) are born visible (#865
-		// decision #10); existing ones reflect their stored flag.
-		$visible    = 'auto-draft' === $post->post_status
-			? true
-			: '1' === (string) get_post_meta( $post->ID, CertTemplateCpt::META_VISIBLE, true );
+		$html       = (string) get_post_meta( $post->ID, CertTemplateCpt::META_HTML, true );
+		$bg_image   = (string) get_post_meta( $post->ID, CertTemplateCpt::META_BG_IMAGE, true );
 		$is_default = CertTemplateReader::is_default( (int) $post->ID );
 
 		wp_nonce_field( self::SAVE_NONCE, 'ffc_cert_template_nonce' );
 
 		if ( $is_default ) {
 			echo '<p class="description">' .
-				esc_html__( 'This is a shipped default template — its HTML is read-only. Duplicate it to create an editable copy; you can still show/hide it below.', 'ffcertificate' ) .
+				esc_html__( 'This is a shipped default template — its HTML is read-only. Duplicate it to create an editable copy; you can still show/hide it in Template options.', 'ffcertificate' ) .
 				'</p>';
+		}
+
+		// Image tools mirror the form editor's layout toolbar (same button ids →
+		// same delegated handlers in ffc-admin-pdf.js). Rendered only for editable
+		// templates: a shipped default's HTML and background can't be changed.
+		if ( ! $is_default ) {
+			?>
+			<div class="ffc-action-group">
+				<button type="button" class="button" id="ffc_btn_media_lib">
+					<span class="dashicons dashicons-cover-image" aria-hidden="true"></span>
+					<?php esc_html_e( 'Background Image', 'ffcertificate' ); ?>
+				</button>
+				<button type="button" class="button" id="ffc_btn_insert_image">
+					<span class="dashicons dashicons-format-image" aria-hidden="true"></span>
+					<?php esc_html_e( 'Insert Image', 'ffcertificate' ); ?>
+				</button>
+			</div>
+			<?php
 		}
 		?>
 		<label class="ffc-block-label" for="ffc_template_html"><strong><?php esc_html_e( 'Certificate HTML', 'ffcertificate' ); ?></strong></label>
@@ -530,11 +562,36 @@ class CertTemplateAdminScreen {
 		<p class="description">
 			<?php esc_html_e( 'Mandatory Tags:', 'ffcertificate' ); ?> <code>{{auth_code}}</code>, <code>{{name}}</code>, <code>{{cpf_rf}}</code>.
 		</p>
-		<p>
-			<label>
-				<input type="checkbox" name="ffc_template_visible" value="1" <?php checked( $visible ); ?>>
-				<?php esc_html_e( 'Show this template in the form editor\'s "Load" list', 'ffcertificate' ); ?>
-			</label>
+
+		<div class="ffc-input-group ffc-mt15">
+			<label class="ffc-block-label" for="ffc_template_bg_image"><strong><?php esc_html_e( 'Background Image URL:', 'ffcertificate' ); ?></strong></label>
+			<input type="text" name="ffc_template_bg_image" id="ffc_template_bg_image" value="<?php echo esc_url( $bg_image ); ?>" class="ffc-w100" <?php wp_readonly( $is_default, true ); ?>>
+		</div>
+		<?php
+	}
+
+	/**
+	 * Render the sidebar "Template options" metabox — the "Load list" visibility
+	 * toggle. Posts in the same edit form as the body metabox, so its value is
+	 * read by {@see self::save_edit_metabox()} under the same nonce.
+	 *
+	 * @param \WP_Post $post Current template post.
+	 * @return void
+	 */
+	public function render_options_metabox( \WP_Post $post ): void {
+		// New templates ("Add New" → an auto-draft) are born visible (#865
+		// decision #10); existing ones reflect their stored flag.
+		$visible = 'auto-draft' === $post->post_status
+			? true
+			: '1' === (string) get_post_meta( $post->ID, CertTemplateCpt::META_VISIBLE, true );
+		?>
+		<label class="ffc-toggle">
+			<input type="checkbox" name="ffc_template_visible" value="1" <?php checked( $visible ); ?>>
+			<span class="ffc-toggle-track" aria-hidden="true"></span>
+			<span class="ffc-toggle-label"><?php esc_html_e( 'Show in the form editor’s “Load” list', 'ffcertificate' ); ?></span>
+		</label>
+		<p class="description">
+			<?php esc_html_e( 'When on, this template appears in the certificate form editor’s “Load” dropdown.', 'ffcertificate' ); ?>
 		</p>
 		<?php
 	}
@@ -574,6 +631,13 @@ class CertTemplateAdminScreen {
 			$raw  = isset( $_POST['ffc_template_html'] ) ? (string) wp_unslash( $_POST['ffc_template_html'] ) : '';
 			$html = wp_kses( $raw, \FreeFormCertificate\Core\HtmlPolicy::get_allowed_html_tags() );
 			CertTemplateWriter::update_html( $post_id, $html );
+
+			// Background image URL: carried into the form's Background Image field
+			// when this template is loaded in the editor (#865).
+			$bg_image = isset( $_POST['ffc_template_bg_image'] )
+				? esc_url_raw( wp_unslash( $_POST['ffc_template_bg_image'] ) )
+				: '';
+			CertTemplateWriter::set_bg_image( $post_id, $bg_image );
 		}
 
 		// Visibility is togglable for every template, defaults included

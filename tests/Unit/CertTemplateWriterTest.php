@@ -129,4 +129,37 @@ class CertTemplateWriterTest extends TestCase {
 		$this->assertFalse( CertTemplateWriter::update_html( 404, '<h1>x</h1>' ) );
 		$this->assertSame( array(), $this->meta_writes );
 	}
+
+	public function test_create_stores_background_image(): void {
+		Functions\when( 'wp_insert_post' )->justReturn( 79 );
+
+		CertTemplateWriter::create( 'With bg', '<p>x</p>', true, 'https://example.com/bg.png' );
+
+		$this->assertSame( 'https://example.com/bg.png', $this->written( CertTemplateCpt::META_BG_IMAGE ) );
+	}
+
+	public function test_create_defaults_background_image_to_empty(): void {
+		Functions\when( 'wp_insert_post' )->justReturn( 80 );
+
+		CertTemplateWriter::create( 'No bg', '<p>x</p>' );
+
+		$this->assertSame( '', $this->written( CertTemplateCpt::META_BG_IMAGE ) );
+	}
+
+	public function test_set_bg_image_updates_pool_post(): void {
+		Functions\when( 'get_post' )->justReturn( $this->pool_post( 15 ) );
+
+		$this->assertTrue( CertTemplateWriter::set_bg_image( 15, 'https://example.com/x.png' ) );
+		$this->assertSame( 'https://example.com/x.png', $this->written( CertTemplateCpt::META_BG_IMAGE ) );
+	}
+
+	public function test_set_bg_image_rejects_non_pool_post(): void {
+		$other            = new \WP_Post();
+		$other->ID        = 9;
+		$other->post_type = 'page';
+		Functions\when( 'get_post' )->justReturn( $other );
+
+		$this->assertFalse( CertTemplateWriter::set_bg_image( 9, 'https://x/y.png' ) );
+		$this->assertSame( array(), $this->meta_writes );
+	}
 }
