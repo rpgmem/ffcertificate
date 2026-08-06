@@ -61,6 +61,16 @@ class CertTemplateAdminScreen {
 	private const RESTORE_ACTION = 'ffc_restore_cert_templates';
 
 	/**
+	 * The `admin_action_{$action}` slug for the sample-data preview page.
+	 */
+	private const PREVIEW_ACTION = 'ffc_preview_cert_template';
+
+	/**
+	 * Script handle for the preview overlay.
+	 */
+	private const PREVIEW_HANDLE = 'ffc-cert-template-preview';
+
+	/**
 	 * Nonce action for the edit-screen metabox save.
 	 */
 	private const SAVE_NONCE = 'ffc_save_cert_template';
@@ -80,6 +90,11 @@ class CertTemplateAdminScreen {
 		add_action( 'admin_action_' . self::EXPORT_ACTION, array( $this, 'handle_export' ) );
 		add_action( 'admin_action_' . self::RESTORE_ACTION, array( $this, 'handle_restore_defaults' ) );
 		add_action( 'restrict_manage_posts', array( $this, 'render_restore_button' ) );
+		// Sample-data preview (#865 decision #13): a read-only preview page a
+		// "Preview" row action opens in an overlay iframe (graceful no-JS: the
+		// link navigates to the page directly).
+		add_action( 'admin_action_' . self::PREVIEW_ACTION, array( $this, 'handle_preview' ) );
+		add_action( 'admin_enqueue_scripts', array( $this, 'enqueue_preview_assets' ) );
 		// Edit screen: HTML body + visibility metabox (the CPT only `supports`
 		// title, so the template body needs its own field).
 		add_action( 'add_meta_boxes_' . $pt, array( $this, 'add_edit_metabox' ) );
@@ -158,6 +173,17 @@ class CertTemplateAdminScreen {
 		if ( CertTemplateReader::is_default( (int) $post->ID ) ) {
 			unset( $actions['trash'], $actions['delete'] );
 		}
+
+		// Preview is read-only — available to anyone who can see the list
+		// (`ffc_view_forms`, which list access already requires), before the
+		// manage-cap gate below. The class hooks the JS overlay; the href is a
+		// working no-JS fallback that opens the preview page directly.
+		$preview_url = wp_nonce_url(
+			admin_url( 'admin.php?action=' . self::PREVIEW_ACTION . '&post=' . (int) $post->ID ),
+			self::PREVIEW_ACTION . '_' . (int) $post->ID
+		);
+
+		$actions['ffc_preview'] = '<a href="' . esc_url( $preview_url ) . '" class="ffc-template-preview" target="_blank" rel="noopener">' . esc_html__( 'Preview', 'ffcertificate' ) . '</a>';
 
 		// The visibility toggle is a write — manage cap only.
 		if ( ! \FreeFormCertificate\Core\Capabilities::current_user_can_admin_or( 'ffc_manage_forms' ) ) {
@@ -331,6 +357,105 @@ class CertTemplateAdminScreen {
 			self::RESTORE_ACTION
 		);
 		echo '<a href="' . esc_url( $url ) . '" class="button">' . esc_html__( 'Restore defaults', 'ffcertificate' ) . '</a>';
+	}
+
+	/**
+	 * Render a template's sample-data preview page (#865 decision #13). Read-only,
+	 * so gated on the view cap (list access already requires `ffc_view_forms`).
+	 *
+	 * @return void
+	 */
+	public function handle_preview(): void {
+		if ( ! \FreeFormCertificate\Core\Capabilities::current_user_can_admin_or( 'ffc_view_forms' ) ) {
+			wp_die( esc_html__( 'You do not have permission to preview certificate templates.', 'ffcertificate' ) );
+		}
+
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Nonce verified immediately below via check_admin_referer.
+		$post_id = isset( $_GET['post'] ) ? absint( wp_unslash( $_GET['post'] ) ) : 0;
+		check_admin_referer( self::PREVIEW_ACTION . '_' . $post_id );
+
+		$post = get_post( $post_id );
+		if ( ! $post instanceof \WP_Post || CertTemplateCpt::POST_TYPE !== $post->post_type ) {
+			wp_die( esc_html__( 'Template not found.', 'ffcertificate' ) );
+		}
+
+		$html     = (string) get_post_meta( $post_id, CertTemplateCpt::META_HTML, true );
+		$rendered = $this->render_sample( $html, (string) $post->post_title );
+
+		$this->emit_preview_page( (string) $post->post_title, $rendered );
+	}
+
+	/**
+	 * Render a template body with sample token values + the configured logos,
+	 * reusing the real certificate render pipeline. Isolated so tests can stub it.
+	 *
+	 * @param string $template_html Stored template HTML.
+	 * @param string $title         Template title (used as the sample form title).
+	 * @return string The rendered body fragment.
+	 */
+	protected function render_sample( string $template_html, string $title ): string {
+		$renderer = new \FreeFormCertificate\Generators\PdfHtmlRenderer();
+		$samples  = \FreeFormCertificate\Core\CertificatePreviewSamples::get_map();
+
+		return $renderer->generate_html( $samples, $title, array( 'pdf_layout' => $template_html ) );
+	}
+
+	/**
+	 * Emit the self-contained preview HTML document and terminate. Isolated so
+	 * tests can override the terminal `header()`/`echo`/`exit`.
+	 *
+	 * @param string $title Template title (page title).
+	 * @param string $body  Rendered body fragment.
+	 * @return void
+	 */
+	protected function emit_preview_page( string $title, string $body ): void {
+		nocache_headers();
+		header( 'Content-Type: text/html; charset=utf-8' );
+		header( 'X-Robots-Tag: noindex, nofollow', true );
+
+		$doc = '<!DOCTYPE html><html><head><meta charset="utf-8">'
+			. '<meta name="robots" content="noindex,nofollow">'
+			. '<title>' . esc_html( $title ) . '</title>'
+			. '<style>html,body{margin:0;padding:0;background:#e5e5e5;}'
+			. '.ffc-preview-canvas{background:#fff;margin:24px auto;max-width:1123px;box-shadow:0 2px 12px rgba(0,0,0,.25);}'
+			. '</style></head><body><div class="ffc-preview-canvas">' . $body . '</div></body></html>';
+
+		// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Self-contained preview page: the title is esc_html'd and the body is the HtmlPolicy-sanitized template rendered through PdfHtmlRenderer (which wp_kses-filters every injected value); the frame is sandboxed script-less.
+		echo $doc;
+		exit;
+	}
+
+	/**
+	 * Enqueue the preview overlay script on the pool list screen only.
+	 *
+	 * @param string $hook Current admin page hook.
+	 * @return void
+	 */
+	public function enqueue_preview_assets( string $hook ): void {
+		if ( 'edit.php' !== $hook ) {
+			return;
+		}
+		$screen = get_current_screen();
+		if ( ! $screen instanceof \WP_Screen || CertTemplateCpt::POST_TYPE !== $screen->post_type ) {
+			return;
+		}
+
+		$suffix = \FreeFormCertificate\Core\AssetHelper::asset_suffix();
+		wp_enqueue_script(
+			self::PREVIEW_HANDLE,
+			FFC_PLUGIN_URL . "assets/js/ffc-cert-template-preview{$suffix}.js",
+			array( 'jquery' ),
+			FFC_VERSION,
+			true
+		);
+		wp_localize_script(
+			self::PREVIEW_HANDLE,
+			'ffcCertTemplatePreview',
+			array(
+				'title' => __( 'Template preview', 'ffcertificate' ),
+				'close' => __( 'Close', 'ffcertificate' ),
+			)
+		);
 	}
 
 	/**

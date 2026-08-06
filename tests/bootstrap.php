@@ -160,6 +160,15 @@ if ( ! class_exists( 'WP_Post' ) ) {
     }
 }
 
+// Stub WP_Screen class for admin-screen tests (get_current_screen()).
+if ( ! class_exists( 'WP_Screen' ) ) {
+    class WP_Screen {
+        public $id        = '';
+        public $base      = '';
+        public $post_type = '';
+    }
+}
+
 // Stub WP_REST_Server class for REST controller tests.
 if ( ! class_exists( 'WP_REST_Server' ) ) {
     class WP_REST_Server {
