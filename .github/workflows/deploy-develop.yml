@@ -26,6 +26,11 @@ jobs:
   deploy:
     name: rsync to testes
     runs-on: ubuntu-latest
+    # Rede de segurança final: com BatchMode + `timeout 300` por tentativa e 3
+    # tentativas (2× backoff de 120s), o pior caso é ~19min; 25min cobre isso
+    # mais o checkout/keyscan. Garante que o job nunca fique pendurado até o
+    # cancelamento (o caso de ~15min do deploy do 35befc1).
+    timeout-minutes: 25
     # Sem environment gating — develop é território livre por design.
     # Se um dia esse workflow virar `deploy-prod`, aí sim entra
     # `environment: production` com required reviewers.
@@ -89,10 +94,23 @@ jobs:
           # mesma indisponibilidade (run 229 e o deploy de 6.12.0 falharam
           # assim). Espaçar mais as mesmas 3 tentativas cobre o restart sem
           # alongar o caso de falha real além de ~5,5min.
-          SSH_CMD="ssh -i ~/.ssh/deploy_key -p $PORT -o StrictHostKeyChecking=accept-new -o ConnectTimeout=30 -o ServerAliveInterval=15 -o ServerAliveCountMax=4"
+          #
+          # `BatchMode=yes`: nunca cair num prompt interativo. Sem isso, se a
+          # autenticação por chave não vinga (chave com passphrase, chave
+          # errada, ou fallback pra senha), o SSH bloqueia esperando input que
+          # o runner nunca fornece — o job pendura até ser cancelado (o hang de
+          # ~15min visto no deploy do 35befc1). Com BatchMode, esse caso vira
+          # um "Permission denied (publickey)" imediato e legível.
+          #
+          # `timeout 300` no rsync: o ConnectTimeout só cobre o SYN inicial —
+          # uma transferência que trava DEPOIS de conectar (stall de I/O,
+          # ServerAlive não disparando) ainda penduraria a tentativa. O wrapper
+          # aborta (exit 124) qualquer tentativa que passe de 5min (um deploy
+          # real leva ~1-2min), e o `until` trata como falha e faz o retry.
+          SSH_CMD="ssh -i ~/.ssh/deploy_key -p $PORT -o BatchMode=yes -o StrictHostKeyChecking=accept-new -o ConnectTimeout=30 -o ServerAliveInterval=15 -o ServerAliveCountMax=4"
           attempt=1
           max_attempts=3
-          until rsync -avz --delete \
+          until timeout 300 rsync -avz --delete \
             --exclude='.git/' \
             --exclude='.github/' \
             --exclude='.githooks/' \
