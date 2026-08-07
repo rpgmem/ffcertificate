@@ -482,3 +482,84 @@ describe('url-shortener — create form', () => {
 		expect(window.$('#ffc-shorturl-result').text()).toContain('Request failed');
 	});
 });
+
+// ----------------------------------------------------------------------
+// Edit short URL modal (manual rows only) — #888
+// ----------------------------------------------------------------------
+
+describe('url-shortener — edit modal', () => {
+	function mountEditModal() {
+		document.body.innerHTML = `
+			<button class="ffc-edit-shorturl" data-id="7" data-target="https://example.com/old" data-title="Old title">Edit</button>
+			<div id="ffc-edit-modal" class="ffc-qr-modal" style="display:none">
+				<button class="ffc-qr-modal__close">×</button>
+				<form id="ffc-edit-short-url">
+					<input type="hidden" name="id" value="" />
+					<input id="ffc-edit-target" name="target_url" value="" />
+					<input id="ffc-edit-title" name="title" value="" />
+					<input type="hidden" id="ffc_edit_short_url_nonce" value="edit-nonce" />
+					<button type="submit">Save</button>
+				</form>
+				<div id="ffc-edit-short-url-result" style="display:none"></div>
+			</div>
+		`;
+	}
+
+	it('opens the modal populated from the row data attributes', async () => {
+		mountEditModal();
+		await loadAdmin();
+
+		window.$('.ffc-edit-shorturl').trigger('click');
+		await flush();
+
+		expect(window.$('#ffc-edit-modal').css('display')).not.toBe('none');
+		expect(window.$('#ffc-edit-modal input[name="id"]').val()).toBe('7');
+		expect(window.$('#ffc-edit-target').val()).toBe('https://example.com/old');
+		expect(window.$('#ffc-edit-title').val()).toBe('Old title');
+	});
+
+	it('POSTs ffc_edit_short_url with id+target+title and reloads on success', async () => {
+		mountEditModal();
+		await loadAdmin();
+
+		const originalLocation = window.location;
+		Object.defineProperty(window, 'location', {
+			configurable: true,
+			writable: true,
+			value: { reload: vi.fn(), href: '/', pathname: '/' },
+		});
+
+		const postSpy = vi.spyOn(window.$, 'post').mockImplementation(() => postChain({ done: { success: true, data: { id: 7 } } }));
+
+		window.$('.ffc-edit-shorturl').trigger('click');
+		await flush();
+		window.$('#ffc-edit-target').val('https://example.com/new');
+		window.$('#ffc-edit-title').val('New');
+		window.$('#ffc-edit-short-url').trigger('submit');
+		await flush();
+
+		expect(postSpy.mock.calls[0][1].action).toBe('ffc_edit_short_url');
+		expect(postSpy.mock.calls[0][1].id).toBe('7');
+		expect(postSpy.mock.calls[0][1].target_url).toBe('https://example.com/new');
+		expect(window.location.reload).toHaveBeenCalled();
+
+		Object.defineProperty(window, 'location', {
+			configurable: true,
+			writable: true,
+			value: originalLocation,
+		});
+	});
+
+	it('renders the server error and does not close on failure', async () => {
+		mountEditModal();
+		await loadAdmin();
+		vi.spyOn(window.$, 'post').mockImplementation(() => postChain({ done: { success: false, data: { message: 'Not editable' } } }));
+
+		window.$('.ffc-edit-shorturl').trigger('click');
+		await flush();
+		window.$('#ffc-edit-short-url').trigger('submit');
+		await flush();
+
+		expect(window.$('#ffc-edit-short-url-result').text()).toBe('Not editable');
+	});
+});

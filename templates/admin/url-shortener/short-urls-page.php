@@ -212,6 +212,9 @@ if ( ! defined( 'ABSPATH' ) ) {
 							<?php
 							$short_url  = $this->service->get_short_url( $item['short_code'] );
 							$is_trashed = 'trashed' === $item['status'];
+							$is_manual  = empty( $item['post_id'] );
+							// Post-linked rows follow the page permalink (#888).
+							$dest_url = \FreeFormCertificate\UrlShortener\UrlShortenerService::resolve_target( $item );
 
 							if ( $is_trashed ) {
 								$status_css_class = 'ffc-shorturl-status ffc-shorturl-status-trashed';
@@ -237,9 +240,12 @@ if ( ! defined( 'ABSPATH' ) ) {
 									</code>
 								</td>
 								<td>
-									<a href="<?php echo esc_url( $item['target_url'] ); ?>" target="_blank" rel="noopener noreferrer" title="<?php echo esc_attr( $item['target_url'] ); ?>">
-										<?php echo esc_html( \FreeFormCertificate\Core\Utils::truncate( $item['target_url'], 50, '...' ) ); ?>
+									<a href="<?php echo esc_url( $dest_url ); ?>" target="_blank" rel="noopener noreferrer" title="<?php echo esc_attr( $dest_url ); ?>">
+										<?php echo esc_html( \FreeFormCertificate\Core\Utils::truncate( $dest_url, 50, '...' ) ); ?>
 									</a>
+									<?php if ( ! $is_manual ) : ?>
+										<br><small class="ffc-shorturl-dest-note"><?php esc_html_e( 'follows the page', 'ffcertificate' ); ?></small>
+									<?php endif; ?>
 								</td>
 								<td><strong><?php echo esc_html( number_format_i18n( (int) $item['click_count'] ) ); ?></strong></td>
 								<td><span class="<?php echo esc_attr( $status_css_class ); ?>"><?php echo esc_html( $status_label ); ?></span></td>
@@ -272,6 +278,15 @@ if ( ! defined( 'ABSPATH' ) ) {
 											'ffc_short_url_trash_' . $item['id']
 										);
 										?>
+										<?php if ( $is_manual ) : ?>
+											<button type="button" class="button button-small ffc-edit-shorturl"
+													data-id="<?php echo esc_attr( (string) $item['id'] ); ?>"
+													data-target="<?php echo esc_attr( $item['target_url'] ); ?>"
+													data-title="<?php echo esc_attr( (string) $item['title'] ); ?>">
+												<span class="dashicons dashicons-edit ffc-dashicon-sm-inline"></span>
+												<?php esc_html_e( 'Edit', 'ffcertificate' ); ?>
+											</button>
+										<?php endif; ?>
 										<button type="button" class="button button-small ffc-show-qr-modal"
 												data-code="<?php echo esc_attr( $item['short_code'] ); ?>"
 												data-url="<?php echo esc_attr( $short_url ); ?>"
@@ -340,6 +355,31 @@ if ( ! defined( 'ABSPATH' ) ) {
 							SVG
 						</button>
 					</div>
+				</div>
+			</div>
+
+			<!-- Edit Short URL Modal (manual short URLs only) -->
+			<div id="ffc-edit-modal" class="ffc-qr-modal" style="display:none;" role="dialog" aria-modal="true" aria-labelledby="ffc-edit-modal-title">
+				<div class="ffc-qr-modal__backdrop"></div>
+				<div class="ffc-qr-modal__content">
+					<button type="button" class="ffc-qr-modal__close" aria-label="<?php esc_attr_e( 'Close', 'ffcertificate' ); ?>">&times;</button>
+					<h2 id="ffc-edit-modal-title" class="ffc-qr-modal__title"><?php esc_html_e( 'Edit Short URL', 'ffcertificate' ); ?></h2>
+					<form id="ffc-edit-short-url">
+						<?php wp_nonce_field( 'ffc_short_url_nonce', 'ffc_edit_short_url_nonce' ); ?>
+						<input type="hidden" name="id" value="" />
+						<div>
+							<label for="ffc-edit-target"><strong><?php esc_html_e( 'Destination URL', 'ffcertificate' ); ?></strong></label><br>
+							<input type="url" id="ffc-edit-target" name="target_url" class="widefat" required />
+						</div>
+						<div>
+							<label for="ffc-edit-title"><strong><?php esc_html_e( 'Title (optional)', 'ffcertificate' ); ?></strong></label><br>
+							<input type="text" id="ffc-edit-title" name="title" class="widefat" />
+						</div>
+						<div class="ffc-qr-modal__actions">
+							<button type="submit" class="button button-primary"><?php esc_html_e( 'Save', 'ffcertificate' ); ?></button>
+						</div>
+						<div id="ffc-edit-short-url-result"></div>
+					</form>
 				</div>
 			</div>
 		</div>

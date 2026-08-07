@@ -355,6 +355,38 @@ class UrlShortenerLoaderTest extends TestCase {
         $this->loader->handle_redirect();
     }
 
+    public function test_handle_redirect_post_linked_follows_current_permalink(): void {
+        // A post-linked short URL (post_id set) must redirect to the post's
+        // CURRENT permalink, not the stale stored target_url (#888).
+        Functions\when( 'get_query_var' )->justReturn( 'plnk1' );
+        Functions\when( 'home_url' )->justReturn( 'https://example.com/' );
+        Functions\when( 'do_action' )->justReturn( null );
+        Functions\when( 'get_permalink' )->justReturn( 'https://example.com/new-slug' );
+        $this->run_shutdown_callbacks_immediately();
+
+        $repo = Mockery::mock( UrlShortenerRepository::class );
+        $repo->shouldReceive( 'findByShortCode' )->with( 'plnk1' )->andReturn( [
+            'id'         => 30,
+            'short_code' => 'plnk1',
+            'target_url' => 'https://example.com/old-slug',
+            'post_id'    => 55,
+            'status'     => 'active',
+        ] );
+        $repo->shouldReceive( 'incrementClickCount' )->with( 30 )->once();
+        $this->service->shouldReceive( 'get_repository' )->andReturn( $repo );
+        $this->service->shouldReceive( 'get_redirect_type' )->andReturn( 302 );
+
+        Functions\when( 'wp_validate_redirect' )->justReturn( true );
+        Functions\when( 'wp_safe_redirect' )->alias( function ( $url, $code ) {
+            throw new \RuntimeException( "safe_redirect:{$url}:{$code}" );
+        } );
+
+        $this->expectException( \RuntimeException::class );
+        $this->expectExceptionMessage( 'safe_redirect:https://example.com/new-slug:302' );
+
+        $this->loader->handle_redirect();
+    }
+
     public function test_handle_redirect_uses_wp_redirect_for_external_urls(): void {
         Functions\when( 'get_query_var' )->justReturn( 'ext123' );
         Functions\when( 'home_url' )->justReturn( 'https://example.com/' );

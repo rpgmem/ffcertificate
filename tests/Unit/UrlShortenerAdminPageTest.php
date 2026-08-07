@@ -172,6 +172,117 @@ class UrlShortenerAdminPageTest extends TestCase {
     }
 
     // ==================================================================
+    // ajax_edit_short_url()
+    // ==================================================================
+
+    public function test_ajax_edit_manual_success(): void {
+        $_POST['nonce']      = 'valid';
+        $_POST['id']         = '7';
+        $_POST['target_url'] = 'https://example.com/new';
+        $_POST['title']      = 'Updated';
+
+        Functions\when( 'wp_verify_nonce' )->justReturn( 1 );
+        Functions\when( 'current_user_can' )->justReturn( true );
+
+        $repo = Mockery::mock( UrlShortenerRepository::class );
+        $repo->shouldReceive( 'findById' )->with( 7 )->andReturn(
+            array( 'id' => 7, 'post_id' => null, 'target_url' => 'https://example.com/old', 'title' => 'Old' )
+        );
+        $this->service->shouldReceive( 'get_repository' )->andReturn( $repo );
+        $this->service->shouldReceive( 'update_short_url' )->once()->with( 7, 'https://example.com/new', 'Updated' )->andReturn( true );
+
+        $sent = null;
+        Functions\when( 'wp_send_json_success' )->alias( function ( $data ) use ( &$sent ) {
+            $sent = $data;
+            throw new \RuntimeException( 'ok' );
+        } );
+
+        try {
+            $this->page->ajax_edit_short_url();
+        } catch ( \RuntimeException $e ) {
+            // Expected.
+        }
+
+        $this->assertSame( 7, $sent['id'] );
+        $this->assertSame( 'https://example.com/new', $sent['target_url'] );
+    }
+
+    public function test_ajax_edit_rejects_post_linked(): void {
+        $_POST['nonce']      = 'valid';
+        $_POST['id']         = '8';
+        $_POST['target_url'] = 'https://example.com/hack';
+
+        Functions\when( 'wp_verify_nonce' )->justReturn( 1 );
+        Functions\when( 'current_user_can' )->justReturn( true );
+
+        $repo = Mockery::mock( UrlShortenerRepository::class );
+        $repo->shouldReceive( 'findById' )->with( 8 )->andReturn(
+            array( 'id' => 8, 'post_id' => 42, 'target_url' => 'https://example.com/post' )
+        );
+        $this->service->shouldReceive( 'get_repository' )->andReturn( $repo );
+        // Must NOT persist a post-linked edit.
+        $this->service->shouldNotReceive( 'update_short_url' );
+
+        $error = '';
+        Functions\when( 'wp_send_json_error' )->alias( function ( $data ) use ( &$error ) {
+            $error = $data['message'] ?? '';
+            throw new \RuntimeException( 'err' );
+        } );
+
+        try {
+            $this->page->ajax_edit_short_url();
+        } catch ( \RuntimeException $e ) {
+            // Expected.
+        }
+
+        $this->assertStringContainsString( 'follows the page', $error );
+    }
+
+    public function test_ajax_edit_not_found_sends_error(): void {
+        $_POST['nonce']      = 'valid';
+        $_POST['id']         = '99';
+        $_POST['target_url'] = 'https://example.com/x';
+
+        Functions\when( 'wp_verify_nonce' )->justReturn( 1 );
+        Functions\when( 'current_user_can' )->justReturn( true );
+
+        $repo = Mockery::mock( UrlShortenerRepository::class );
+        $repo->shouldReceive( 'findById' )->with( 99 )->andReturn( null );
+        $this->service->shouldReceive( 'get_repository' )->andReturn( $repo );
+        $this->service->shouldNotReceive( 'update_short_url' );
+
+        Functions\when( 'wp_send_json_error' )->alias( function () {
+            throw new \RuntimeException( 'err' );
+        } );
+
+        $this->expectException( \RuntimeException::class );
+        $this->page->ajax_edit_short_url();
+    }
+
+    public function test_ajax_edit_empty_url_sends_error(): void {
+        $_POST['nonce']      = 'valid';
+        $_POST['id']         = '7';
+        $_POST['target_url'] = '';
+
+        Functions\when( 'wp_verify_nonce' )->justReturn( 1 );
+        Functions\when( 'current_user_can' )->justReturn( true );
+
+        $repo = Mockery::mock( UrlShortenerRepository::class );
+        $repo->shouldReceive( 'findById' )->with( 7 )->andReturn(
+            array( 'id' => 7, 'post_id' => null, 'target_url' => 'https://example.com/old' )
+        );
+        $this->service->shouldReceive( 'get_repository' )->andReturn( $repo );
+        $this->service->shouldNotReceive( 'update_short_url' );
+
+        Functions\when( 'wp_send_json_error' )->alias( function () {
+            throw new \RuntimeException( 'err' );
+        } );
+
+        $this->expectException( \RuntimeException::class );
+        $this->page->ajax_edit_short_url();
+    }
+
+    // ==================================================================
     // ajax_delete()
     // ==================================================================
 
