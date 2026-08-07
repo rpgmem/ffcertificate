@@ -43,6 +43,7 @@ class UrlShortenerBackfillHandlerTest extends TestCase {
 
         // AjaxTrait reads POST through RequestInput (\FreeFormCertificate\Core\*).
         Functions\when( 'FreeFormCertificate\Core\wp_unslash' )->returnArg();
+        Functions\when( 'FreeFormCertificate\Core\sanitize_text_field' )->returnArg();
         Functions\when( 'FreeFormCertificate\Core\absint' )->alias( static function ( $v ) {
             return abs( (int) $v );
         } );
