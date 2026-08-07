@@ -168,7 +168,7 @@ class FormEditorBuilderMetabox {
 		<?php esc_html_e( 'Minimal fields (Tag):', 'ffcertificate' ); ?> <code>name</code>, <code>email</code>, <code>cpf_rf</code>.
 		</p>
 		</div>
-		<div class="ffc-builder-actions ffc-mt20">
+		<div class="ffc-builder-actions ffc-mt-20">
 			<button type="button" class="button button-primary ffc-add-field">
 				<span class="dashicons dashicons-plus-alt"></span>
 				<?php esc_html_e( 'Add New Field', 'ffcertificate' ); ?>
@@ -288,7 +288,7 @@ class FormEditorBuilderMetabox {
 				</p>
 				<input type="text" name="ffc_fields[<?php echo esc_attr( $index ); ?>][options]" value="<?php echo esc_attr( $opts ); ?>" placeholder="<?php esc_attr_e( 'Ex: Option 1, Option 2, Option 3', 'ffcertificate' ); ?>" class="ffc-w100">
 				<div class="ffc-quiz-points ffc-hidden">
-					<p class="description ffc-options-desc ffc-mt5">
+					<p class="description ffc-options-desc ffc-mt-5">
 						<?php esc_html_e( 'Points per option (same order, separate with commas):', 'ffcertificate' ); ?>
 					</p>
 					<input type="text" name="ffc_fields[<?php echo esc_attr( $index ); ?>][points]" value="<?php echo esc_attr( $points ); ?>" placeholder="<?php esc_attr_e( 'Ex: 0, 10, 0', 'ffcertificate' ); ?>" class="ffc-w100">

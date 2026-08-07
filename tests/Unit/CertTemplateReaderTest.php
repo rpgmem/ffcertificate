@@ -91,4 +91,21 @@ class CertTemplateReaderTest extends TestCase {
 	public function test_is_default_false_for_nonpositive_id(): void {
 		$this->assertFalse( CertTemplateReader::is_default( 0 ) );
 	}
+
+	public function test_get_bg_image_returns_meta_for_pool_post(): void {
+		Functions\when( 'get_post' )->justReturn( $this->fake_post( 5, 'X' ) );
+		Functions\when( 'get_post_meta' )->justReturn( 'https://example.com/bg.png' );
+
+		$this->assertSame( 'https://example.com/bg.png', CertTemplateReader::get_bg_image( 5 ) );
+	}
+
+	public function test_get_bg_image_returns_empty_for_wrong_post_type(): void {
+		Functions\when( 'get_post' )->justReturn( $this->fake_post( 5, 'X', 'page' ) );
+
+		$this->assertSame( '', CertTemplateReader::get_bg_image( 5 ) );
+	}
+
+	public function test_get_bg_image_returns_empty_for_nonpositive_id(): void {
+		$this->assertSame( '', CertTemplateReader::get_bg_image( 0 ) );
+	}
 }

@@ -249,14 +249,14 @@
 
 		var html = '<div class="ffc-info-section ffc-info-availability-schedule">';
 		html += '<h3>' + esc(title) + '</h3>';
-		html += '<table class="ffc-info-jtable">';
+		html += '<table class="ffc-info-table">';
 
 		// Column headers only when both columns are present.
 		if (twoCol) {
 			html += '<thead><tr><th></th>';
-			html += '<th class="ffc-jcol" title="' + esc(strings.accessColumnTip || 'Form access window') + '">'
+			html += '<th class="ffc-info-table-col" title="' + esc(strings.accessColumnTip || 'Form access window') + '">'
 				+ esc(strings.accessColumn || 'Access') + '</th>';
-			html += '<th class="ffc-jcol" title="' + esc(strings.referenceColumnTip || 'Event schedule printed on the certificate') + '">'
+			html += '<th class="ffc-info-table-col" title="' + esc(strings.referenceColumnTip || 'Event schedule printed on the certificate') + '">'
 				+ esc(strings.referenceColumn || 'Reference') + '</th>';
 			html += '</tr></thead>';
 		}
@@ -266,12 +266,12 @@
 		// refVal === null → em-dash (date rows have no reference value);
 		// refVal === undefined → no reference cell at all (single column).
 		function row(label, accessVal, refVal) {
-			var h = '<tr><td class="ffc-jlbl">' + esc(label) + '</td>';
-			h += '<td class="ffc-jval">' + accessVal + '</td>';
+			var h = '<tr><td class="ffc-info-table-label">' + esc(label) + '</td>';
+			h += '<td class="ffc-info-table-value">' + accessVal + '</td>';
 			if (twoCol) {
 				h += (refVal === null)
-					? '<td class="ffc-jdash">—</td>'
-					: '<td class="ffc-jval">' + refVal + '</td>';
+					? '<td class="ffc-info-table-dash">—</td>'
+					: '<td class="ffc-info-table-value">' + refVal + '</td>';
 			}
 			return h + '</tr>';
 		}

@@ -95,7 +95,10 @@ class FormEditorLayoutMetabox {
 									</optgroup>
 								<?php endif; ?>
 							</select>
-							<button type="button" id="ffc_load_template_btn" class="button"><?php esc_html_e( 'Load', 'ffcertificate' ); ?></button>
+							<button type="button" id="ffc_load_template_btn" class="button">
+									<span class="dashicons dashicons-download" aria-hidden="true"></span>
+									<?php esc_html_e( 'Load', 'ffcertificate' ); ?>
+								</button>
 						</div>
 						<?php endif; ?>
 					</div>
@@ -111,7 +114,7 @@ class FormEditorLayoutMetabox {
 						<?php esc_html_e( 'Mandatory Tags:', 'ffcertificate' ); ?> <code>{{auth_code}}</code>, <code>{{name}}</code>, <code>{{cpf_rf}}</code>.
 					</p>
 
-					<div class="ffc-input-group ffc-mt15">
+					<div class="ffc-input-group ffc-mt-15">
 						<label class="ffc-block-label"><strong><?php esc_html_e( 'Background Image URL:', 'ffcertificate' ); ?></strong></label>
 						<input type="text" name="ffc_config[bg_image]" id="ffc_bg_image_input" value="<?php echo esc_url( $bg_image ); ?>" class="ffc-w100">
 					</div>

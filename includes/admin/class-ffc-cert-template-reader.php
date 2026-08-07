@@ -83,6 +83,24 @@ class CertTemplateReader {
 	}
 
 	/**
+	 * Resolve a template's stored background-image URL by post id.
+	 *
+	 * @param int $id Template post id.
+	 * @return string The background-image URL, or an empty string when the id is
+	 *                not a template of this pool or none is set.
+	 */
+	public static function get_bg_image( int $id ): string {
+		if ( $id <= 0 ) {
+			return '';
+		}
+		$post = get_post( $id );
+		if ( ! $post instanceof \WP_Post || CertTemplateCpt::POST_TYPE !== $post->post_type ) {
+			return '';
+		}
+		return (string) get_post_meta( $id, CertTemplateCpt::META_BG_IMAGE, true );
+	}
+
+	/**
 	 * Whether the given id is a plugin-shipped default template.
 	 *
 	 * @param int $id Template post id.

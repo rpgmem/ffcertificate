@@ -1604,14 +1604,14 @@ details.ffc-consent-description > p {
 /* Schedule-exception hand-off: spinner + notice shown for a forced beat
    after the operator clicks "Open participant form", signalling the new
    tab is launching. Reuses the global `spin` keyframes. */
-.ffc-sched-exc-opening {
+.ffc-schedule-exception-opening {
     display: flex;
     align-items: center;
     gap: 10px;
     margin: 0;
 }
 
-.ffc-sched-exc-spinner {
+.ffc-schedule-exception-spinner {
     display: inline-block;
     flex: 0 0 auto;
     width: 22px;
@@ -1636,13 +1636,13 @@ details.ffc-consent-description > p {
 }
 
 /* Merged availability + event-schedule (reference) comparison table. */
-.ffc-public-csv-download .ffc-info-jtable {
+.ffc-public-csv-download .ffc-info-table {
     width: 100%;
     border-collapse: collapse;
     font-size: 14px;
 }
 
-.ffc-public-csv-download .ffc-info-jtable thead th {
+.ffc-public-csv-download .ffc-info-table thead th {
     font-size: 11px;
     font-weight: 700;
     text-transform: uppercase;
@@ -1652,31 +1652,31 @@ details.ffc-consent-description > p {
     padding: 4px 6px;
 }
 
-.ffc-public-csv-download .ffc-info-jtable thead th.ffc-jcol {
+.ffc-public-csv-download .ffc-info-table thead th.ffc-info-table-col {
     text-align: right;
 }
 
-.ffc-public-csv-download .ffc-info-jtable td {
+.ffc-public-csv-download .ffc-info-table td {
     padding: 6px;
     border-bottom: 1px solid var(--ffc-border, #e0e0e0);
 }
 
-.ffc-public-csv-download .ffc-info-jtable tbody tr:last-child td {
+.ffc-public-csv-download .ffc-info-table tbody tr:last-child td {
     border-bottom: 0;
 }
 
-.ffc-public-csv-download .ffc-info-jtable .ffc-jlbl {
+.ffc-public-csv-download .ffc-info-table .ffc-info-table-label {
     color: var(--ffc-text-muted, #666);
 }
 
-.ffc-public-csv-download .ffc-info-jtable .ffc-jval {
+.ffc-public-csv-download .ffc-info-table .ffc-info-table-value {
     text-align: right;
     font-weight: 500;
     color: var(--ffc-text, #333);
     font-variant-numeric: tabular-nums;
 }
 
-.ffc-public-csv-download .ffc-info-jtable .ffc-jdash {
+.ffc-public-csv-download .ffc-info-table .ffc-info-table-dash {
     text-align: right;
     color: var(--ffc-border, #c3c4c7);
 }

@@ -17,14 +17,14 @@ function installDom() {
 	document.body.innerHTML = `
 		<div id="ffc-email-model">
 			<form class="ffc-email-model-form">
-				<input type="text" class="ffc-em-color" data-ffc-model-field="wrapper_bg" value="#f0f0f1">
-				<input type="text" class="ffc-em-color" data-ffc-model-field="header_bg" value="#2271b1">
-				<input type="text" class="ffc-em-color" data-ffc-model-field="header_text_color" value="#ffffff">
-				<input type="text" class="ffc-em-color" data-ffc-model-field="body_bg" value="#ffffff">
-				<input type="text" class="ffc-em-color" data-ffc-model-field="body_text_color" value="#333333">
-				<input type="text" class="ffc-em-color" data-ffc-model-field="body_link_color" value="#2271b1">
-				<input type="text" class="ffc-em-color" data-ffc-model-field="footer_bg" value="#f5f5f5">
-				<input type="text" class="ffc-em-color" data-ffc-model-field="footer_text_color" value="#666666">
+				<input type="text" class="ffc-email-model-color" data-ffc-model-field="wrapper_bg" value="#f0f0f1">
+				<input type="text" class="ffc-email-model-color" data-ffc-model-field="header_bg" value="#2271b1">
+				<input type="text" class="ffc-email-model-color" data-ffc-model-field="header_text_color" value="#ffffff">
+				<input type="text" class="ffc-email-model-color" data-ffc-model-field="body_bg" value="#ffffff">
+				<input type="text" class="ffc-email-model-color" data-ffc-model-field="body_text_color" value="#333333">
+				<input type="text" class="ffc-email-model-color" data-ffc-model-field="body_link_color" value="#2271b1">
+				<input type="text" class="ffc-email-model-color" data-ffc-model-field="footer_bg" value="#f5f5f5">
+				<input type="text" class="ffc-email-model-color" data-ffc-model-field="footer_text_color" value="#666666">
 				<select data-ffc-model-field="header_alignment"><option value="center" selected>c</option></select>
 				<select data-ffc-model-field="body_font_family"><option value="system" selected>s</option></select>
 				<input type="number" data-ffc-model-field="header_padding" value="24">
@@ -36,7 +36,7 @@ function installDom() {
 				<input type="number" data-ffc-model-field="wrapper_padding" value="32">
 				<input type="text" data-ffc-model-field="header_logo_url" value="https://x/logo.png">
 				<textarea data-ffc-model-field="footer_text">Sent by {{site_title}}</textarea>
-				<button type="button" class="ffc-em-logo-clear">clear</button>
+				<button type="button" class="ffc-email-model-logo-clear">clear</button>
 				<button type="button" class="ffc-email-model-restore">restore</button>
 			</form>
 			<iframe class="ffc-email-model-preview-frame"></iframe>
@@ -115,7 +115,7 @@ describe('ffc-email-model', () => {
 	it('clears the logo field', async () => {
 		installDom();
 		await loadOnReady();
-		window.$('.ffc-em-logo-clear').trigger('click');
+		window.$('.ffc-email-model-logo-clear').trigger('click');
 		expect(window.$('[data-ffc-model-field="header_logo_url"]').val()).toBe('');
 	});
 });

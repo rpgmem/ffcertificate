@@ -331,7 +331,15 @@ class FormEditor {
 			if ( '' === $html ) {
 				wp_send_json_error();
 			}
-			wp_send_json_success( $html );
+			// #865: structured payload so a loaded template carries its stored
+			// background image into the form's Background Image URL field. The JS
+			// load handler tolerates the legacy bare-string shape for safety.
+			wp_send_json_success(
+				array(
+					'html'     => $html,
+					'bg_image' => CertTemplateReader::get_bg_image( $template_id ),
+				)
+			);
 		}
 
 		// Deprecated fallback (#865 phase-4): legacy `html/` glob by filename.
@@ -347,7 +355,14 @@ class FormEditor {
 
 		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- reading bundled plugin HTML template; no remote URL.
 		$content = file_get_contents( $filepath );
-		wp_send_json_success( $content );
+		// Legacy html/ drop-ins carry no background image; keep the response
+		// shape identical to the pool path ({ html, bg_image }).
+		wp_send_json_success(
+			array(
+				'html'     => (string) $content,
+				'bg_image' => '',
+			)
+		);
 	}
 
 	/**
@@ -376,7 +391,11 @@ class FormEditor {
 			wp_send_json_error();
 		}
 
-		$id = CertTemplateWriter::create( $title, $html );
+		// Round-trip the current background so a saved model carries it back
+		// when re-loaded (#865).
+		$bg_image = isset( $_POST['bg_image'] ) ? esc_url_raw( wp_unslash( $_POST['bg_image'] ) ) : '';
+
+		$id = CertTemplateWriter::create( $title, $html, true, $bg_image );
 		if ( $id <= 0 ) {
 			wp_send_json_error();
 		}

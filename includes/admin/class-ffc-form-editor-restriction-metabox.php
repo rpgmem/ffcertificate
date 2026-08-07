@@ -171,7 +171,7 @@ class FormEditorRestrictionMetabox {
 				aria-hidden="<?php echo $ticket_active ? 'false' : 'true'; ?>">
 				<th><label class="ffc-label-accent"><?php esc_html_e( 'Ticket Generator', 'ffcertificate' ); ?></label></th>
 				<td>
-					<div class="ffc-admin-flex-row ffc-mb5">
+					<div class="ffc-admin-flex-row ffc-mb-5">
 						<input type="number" id="ffc_qty_codes" value="10" min="1" max="500" class="ffc-input-small">
 						<button type="button" class="button button-secondary" id="ffc_btn_generate_codes"><?php esc_html_e( 'Generate Tickets', 'ffcertificate' ); ?></button>
 						<span id="ffc_gen_status" class="ffc-gen-status"></span>

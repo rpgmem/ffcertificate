@@ -375,20 +375,6 @@
     font-size: 14px;
 }
 
-/* Adicionar ícones aos botões (opcional) */
-#ffc_load_template_btn::before {
-    content: "📋 ";
-}
-
-#ffc_btn_import_html::before {
-    content: "📁 ";
-}
-
-#ffc_btn_media_lib::before {
-    content: "🖼️ ";
-}
-
-
 /* ==========================================================================
    17. DATA MIGRATIONS TAB STYLES
    ========================================================================== */
@@ -413,11 +399,6 @@
    CORREÇÕES SPRINT 3.0 - v3.0.0
    ========================================================================== */
 
-/* Fix: Ícones não duplicar nos botões */
-.ffc-template-loader .button::before {
-    display: inline-block;
-    margin-right: 6px;
-}
 
 /* Certificate layout actions: a consistent, wrapping toolbar of icon buttons.
    Every button carries a leading dashicon; align and space them uniformly
@@ -429,12 +410,14 @@
     align-items: center;
 }
 
-.ffc-action-group .button {
+.ffc-action-group .button,
+.ffc-template-loader .button {
     display: inline-flex;
     align-items: center;
 }
 
-.ffc-action-group .button .dashicons {
+.ffc-action-group .button .dashicons,
+.ffc-template-loader .button .dashicons {
     margin-right: 4px;
     font-size: 17px;
     width: 17px;
