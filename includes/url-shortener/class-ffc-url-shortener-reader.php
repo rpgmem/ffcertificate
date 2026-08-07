@@ -328,12 +328,8 @@ class UrlShortenerReader extends AbstractRepository {
 			$post_types
 		);
 
+		// The interpolated part is a literal `%s, %s, …` placeholder list.
 		// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
-		/**
-		 * The interpolated part is a literal `%s, %s, …` placeholder list.
-		 *
-		 * @phpstan-ignore-next-line argument.type
-		 */
 		$prepared = $this->wpdb->prepare( $sql, ...$args );
 
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
@@ -375,12 +371,8 @@ class UrlShortenerReader extends AbstractRepository {
 			array( $cursor, $size )
 		);
 
+		// The interpolated part is a literal `%s, %s, …` placeholder list.
 		// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
-		/**
-		 * The interpolated part is a literal `%s, %s, …` placeholder list.
-		 *
-		 * @phpstan-ignore-next-line argument.type
-		 */
 		$prepared = $this->wpdb->prepare( $sql, ...$args );
 
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
