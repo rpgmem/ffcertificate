@@ -75,6 +75,10 @@ class UrlShortenerLoader {
 		$shortlink = new UrlShortenerShortlink( $this->service );
 		$shortlink->init();
 
+		// REST: QR endpoint for external reuse (#889). REST runs in a non-admin
+		// context, so this sits outside the is_admin() gate.
+		add_action( 'rest_api_init', array( $this, 'register_rest_routes' ) );
+
 		// Admin components.
 		if ( is_admin() ) {
 			$admin_page = new UrlShortenerAdminPage( $this->service );
@@ -101,6 +105,14 @@ class UrlShortenerLoader {
 		// AJAX handlers (needed for both admin and front-end contexts).
 		$qr_handler = new UrlShortenerQrHandler( $this->service );
 		$qr_handler->init();
+	}
+
+	/**
+	 * Register the module's REST routes (the QR endpoint, #889).
+	 */
+	public function register_rest_routes(): void {
+		$controller = new UrlShortenerQrRestController( $this->service );
+		$controller->register_routes();
 	}
 
 	/**
