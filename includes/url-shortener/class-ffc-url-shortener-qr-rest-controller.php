@@ -107,7 +107,7 @@ class UrlShortenerQrRestController {
 	 * The QR always encodes the *short* URL (so scans hit the redirect and are
 	 * click-counted), matching the admin download.
 	 *
-	 * @param \WP_REST_Request<array<string, mixed>> $request Request.
+	 * @param \WP_REST_Request $request Request.
 	 * @return \WP_REST_Response|\WP_Error
 	 */
 	public function get_qr( \WP_REST_Request $request ) {
