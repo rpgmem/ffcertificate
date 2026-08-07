@@ -226,3 +226,16 @@
     font-style: italic;
     color: var(--ffc-text-muted, #50575e);
 }
+
+/* 6.18.0 (#886) — URL Shortener settings: per-post-type Shorten/Expose grid
+   + backfill status line. */
+.ffc-url-shortener-types .ffc-col-center {
+    text-align: center;
+    width: 6em;
+}
+
+.ffc-inline-status {
+    margin-left: 8px;
+    font-style: italic;
+    color: var(--ffc-text-muted, #50575e);
+}

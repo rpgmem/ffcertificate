@@ -21,6 +21,11 @@ if ( is_string( $post_types ) ) {
 	$post_types = array_filter( array_map( 'trim', explode( ',', $post_types ) ) );
 }
 
+$expose_types = $ffc_settings['url_shortener_expose_post_types'] ?? array();
+if ( is_string( $expose_types ) ) {
+	$expose_types = array_filter( array_map( 'trim', explode( ',', $expose_types ) ) );
+}
+
 $all_post_types = get_post_types( array( 'public' => true ), 'objects' );
 ?>
 
@@ -115,24 +120,60 @@ $all_post_types = get_post_types( array( 'public' => true ), 'objects' );
 	<tr>
 		<th scope="row"><?php esc_html_e( 'Post Types', 'ffcertificate' ); ?></th>
 		<td>
-			<div class="ffc-checkbox-group">
-			<?php foreach ( $all_post_types as $pt ) : ?>
-				<?php
-				if ( in_array( $pt->name, array( 'attachment', 'ffc_form', 'ffc_calendar' ), true ) ) {
-					continue;
-				}
-				?>
-				<label>
-					<input type="checkbox"
-							name="ffc_settings[url_shortener_post_types][]"
-							value="<?php echo esc_attr( $pt->name ); ?>"
-							<?php checked( in_array( $pt->name, $post_types, true ) ); ?> />
-					<?php echo esc_html( $pt->labels->singular_name ); ?> <code>(<?php echo esc_html( $pt->name ); ?>)</code>
-				</label>
-			<?php endforeach; ?>
-			</div>
+			<table class="widefat striped ffc-url-shortener-types">
+				<thead>
+					<tr>
+						<th scope="col"><?php esc_html_e( 'Post type', 'ffcertificate' ); ?></th>
+						<th scope="col" class="ffc-col-center"><?php esc_html_e( 'Shorten', 'ffcertificate' ); ?></th>
+						<th scope="col" class="ffc-col-center"><?php esc_html_e( 'Expose', 'ffcertificate' ); ?></th>
+					</tr>
+				</thead>
+				<tbody>
+				<?php foreach ( $all_post_types as $pt ) : ?>
+					<?php
+					if ( in_array( $pt->name, array( 'attachment', 'ffc_form', 'ffc_calendar' ), true ) ) {
+						continue;
+					}
+					$ffc_is_shortened = in_array( $pt->name, $post_types, true );
+					$ffc_is_exposed   = in_array( $pt->name, $expose_types, true );
+					?>
+					<tr>
+						<td><?php echo esc_html( $pt->labels->singular_name ); ?> <code>(<?php echo esc_html( $pt->name ); ?>)</code></td>
+						<td class="ffc-col-center">
+							<input type="checkbox"
+									class="ffc-shorten-type"
+									name="ffc_settings[url_shortener_post_types][]"
+									value="<?php echo esc_attr( $pt->name ); ?>"
+									<?php checked( $ffc_is_shortened ); ?> />
+						</td>
+						<td class="ffc-col-center">
+							<input type="checkbox"
+									class="ffc-expose-type"
+									name="ffc_settings[url_shortener_expose_post_types][]"
+									value="<?php echo esc_attr( $pt->name ); ?>"
+									<?php checked( $ffc_is_exposed ); ?>
+									<?php disabled( ! $ffc_is_shortened ); ?> />
+						</td>
+					</tr>
+				<?php endforeach; ?>
+				</tbody>
+			</table>
 			<p class="description">
-				<?php esc_html_e( 'Select which post types will show the URL Shortener meta box.', 'ffcertificate' ); ?>
+				<?php esc_html_e( '"Shorten" shows the URL Shortener meta box on that post type. "Expose" publishes the page\'s short URL as the site\'s canonical shortlink — the rel="shortlink" tag in the page head and the HTTP Link header (also used by the editor\'s "Get Shortlink" button and REST). Expose depends on Shorten and only takes effect once a short URL exists for the page.', 'ffcertificate' ); ?>
+			</p>
+		</td>
+	</tr>
+
+	<tr>
+		<th scope="row"><?php esc_html_e( 'Existing pages', 'ffcertificate' ); ?></th>
+		<td>
+			<button type="button" class="button" id="ffc-url-shortener-backfill">
+				<?php esc_html_e( 'Generate missing short URLs', 'ffcertificate' ); ?>
+			</button>
+			<span id="ffc-url-shortener-backfill-status" class="ffc-inline-status" role="status" aria-live="polite"></span>
+			<?php wp_nonce_field( \FreeFormCertificate\UrlShortener\UrlShortenerBackfillHandler::NONCE_ACTION, 'ffc_url_shortener_backfill_nonce' ); ?>
+			<p class="description">
+				<?php esc_html_e( 'Create short URLs for already-published posts of the shortened post types that do not have one yet. Runs in the background in batches; safe to leave running. This only creates the short URLs — tick "Expose" above to publish them as shortlinks.', 'ffcertificate' ); ?>
 			</p>
 		</td>
 	</tr>

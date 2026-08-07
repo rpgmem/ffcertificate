@@ -239,6 +239,30 @@ class UrlShortenerService {
 	}
 
 	/**
+	 * Get post types whose short URL is exposed publicly as the site's
+	 * canonical shortlink (the `rel="shortlink"` `<head>` tag + HTTP `Link:`
+	 * header, via the `pre_get_shortlink` filter).
+	 *
+	 * Unlike {@see get_enabled_post_types()}, this has **no** `post`/`page`
+	 * default — the empty array means "expose nothing" (opt-in). Exposure is
+	 * a strict subset of the shortened types: the save handler intersects this
+	 * with `url_shortener_post_types`, so a stored value never contains a type
+	 * that is not also shortened.
+	 *
+	 * @return array<string>
+	 */
+	public function get_exposed_post_types(): array {
+		$settings   = $this->get_settings();
+		$post_types = $settings['url_shortener_expose_post_types'] ?? array();
+
+		if ( is_string( $post_types ) ) {
+			$post_types = array_filter( array_map( 'trim', explode( ',', $post_types ) ) );
+		}
+
+		return is_array( $post_types ) ? array_values( $post_types ) : array();
+	}
+
+	/**
 	 * Delete a short URL by ID.
 	 *
 	 * @param int $id Record ID.

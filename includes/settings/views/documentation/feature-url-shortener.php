@@ -27,6 +27,10 @@ if ( ! defined( 'ABSPATH' ) ) {
 	</ul>
 	<p><?php esc_html_e( 'The public short link is', 'ffcertificate' ); ?> <code>https://your-site/{prefix}/{code}</code> <?php esc_html_e( '(default prefix', 'ffcertificate' ); ?> <code>go</code><?php esc_html_e( ', e.g.', 'ffcertificate' ); ?> <code>/go/abc123</code>). <?php esc_html_e( 'Regenerating a link issues a new code and retires the old one.', 'ffcertificate' ); ?></p>
 
+	<h4><?php esc_html_e( 'Exposing short URLs as the site shortlink', 'ffcertificate' ); ?></h4>
+	<p><?php esc_html_e( 'The Post Types setting has two columns per type: "Shorten" (show the meta box and allow short URLs for that type) and "Expose". When a type is exposed, a published post\'s short URL becomes the site\'s canonical shortlink — WordPress emits it as the', 'ffcertificate' ); ?> <code>rel="shortlink"</code> <?php esc_html_e( 'tag in the page head and the HTTP Link header, and it also backs the editor\'s "Get Shortlink" button and REST. Expose is off by default (opt-in), depends on Shorten, and only takes effect once a short URL exists for the page — otherwise WordPress falls back to its native shortlink.', 'ffcertificate' ); ?></p>
+	<p><?php esc_html_e( 'The "Generate missing short URLs" button creates short URLs for already-published posts of the shortened types that do not have one yet (it runs in timeout-safe batches). This only creates the short URLs — tick "Expose" to publish them as shortlinks.', 'ffcertificate' ); ?></p>
+
 	<h4><?php esc_html_e( 'The list & QR codes', 'ffcertificate' ); ?></h4>
 	<p><?php esc_html_e( 'The list shows each link\'s title, short URL, destination, click count and status, with actions to show a QR code, enable/disable, or trash (trashed links can be restored or permanently deleted). Each link has a QR code (PNG or SVG download) that encodes the short URL itself, so scanning it is also counted.', 'ffcertificate' ); ?> <a href="#reference-qr-codes"><?php esc_html_e( 'See QR Codes', 'ffcertificate' ); ?></a>.</p>
 
@@ -54,7 +58,8 @@ if ( ! defined( 'ABSPATH' ) ) {
 			<tr><td><?php esc_html_e( 'Code length (4–10)', 'ffcertificate' ); ?></td><td><?php esc_html_e( '6', 'ffcertificate' ); ?></td></tr>
 			<tr><td><?php esc_html_e( 'Redirect type (301 / 302 / 307)', 'ffcertificate' ); ?></td><td><?php esc_html_e( '302', 'ffcertificate' ); ?></td></tr>
 			<tr><td><?php esc_html_e( 'Auto-create on publish', 'ffcertificate' ); ?></td><td><?php esc_html_e( 'on', 'ffcertificate' ); ?></td></tr>
-			<tr><td><?php esc_html_e( 'Enabled post types', 'ffcertificate' ); ?></td><td><?php esc_html_e( 'posts & pages', 'ffcertificate' ); ?></td></tr>
+			<tr><td><?php esc_html_e( 'Shortened post types', 'ffcertificate' ); ?></td><td><?php esc_html_e( 'posts & pages', 'ffcertificate' ); ?></td></tr>
+			<tr><td><?php esc_html_e( 'Exposed post types (as shortlink)', 'ffcertificate' ); ?></td><td><?php esc_html_e( 'none', 'ffcertificate' ); ?></td></tr>
 		</tbody>
 	</table>
 

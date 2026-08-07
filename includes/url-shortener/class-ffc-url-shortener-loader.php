@@ -69,6 +69,12 @@ class UrlShortenerLoader {
 		// Auto-flush rewrite rules when prefix changes or first install.
 		add_action( 'init', array( $this, 'maybe_flush_rewrite_rules' ), 99 );
 
+		// Expose short URLs as the canonical WordPress shortlink for opted-in
+		// post types. Registered in both contexts (front-end `<head>`/header +
+		// admin "Get Shortlink" button), so it sits outside the is_admin() gate.
+		$shortlink = new UrlShortenerShortlink( $this->service );
+		$shortlink->init();
+
 		// Admin components.
 		if ( is_admin() ) {
 			$admin_page = new UrlShortenerAdminPage( $this->service );
@@ -76,6 +82,9 @@ class UrlShortenerLoader {
 
 			$meta_box = new UrlShortenerMetaBox( $this->service );
 			$meta_box->init();
+
+			$backfill = new UrlShortenerBackfillHandler( $this->service );
+			$backfill->init();
 
 			// CSV export — register the batched source with the shared registry
 			// (#772); the unified dispatcher (wired in Loader) routes
