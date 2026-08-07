@@ -367,6 +367,32 @@ class UrlShortenerServiceTest extends TestCase {
     }
 
     // ==================================================================
+    // get_exposed_post_types()
+    // ==================================================================
+
+    public function test_get_exposed_post_types_defaults_to_empty(): void {
+        Functions\when( 'get_option' )->justReturn( [] );
+
+        // No post/page default — expose is opt-in.
+        $this->assertSame( [], $this->service->get_exposed_post_types() );
+    }
+
+    public function test_get_exposed_post_types_from_array(): void {
+        Functions\when( 'get_option' )->justReturn( [ 'url_shortener_expose_post_types' => [ 'post', 'page' ] ] );
+
+        $this->assertSame( [ 'post', 'page' ], $this->service->get_exposed_post_types() );
+    }
+
+    public function test_get_exposed_post_types_from_csv_string(): void {
+        Functions\when( 'get_option' )->justReturn( [ 'url_shortener_expose_post_types' => 'post, page' ] );
+
+        $result = $this->service->get_exposed_post_types();
+
+        $this->assertContains( 'post', $result );
+        $this->assertContains( 'page', $result );
+    }
+
+    // ==================================================================
     // delete_short_url()
     // ==================================================================
 

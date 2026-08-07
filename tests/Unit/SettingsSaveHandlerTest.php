@@ -500,6 +500,34 @@ class SettingsSaveHandlerTest extends TestCase {
         $this->assertSame( array(), $result['url_shortener_post_types'] );
     }
 
+    public function test_url_shortener_expose_types_subset_of_shortened(): void {
+        $_POST['_ffc_tab']     = 'url_shortener';
+        $_POST['ffc_settings'] = array(
+            'url_shortener_post_types'        => array( 'post', 'page' ),
+            // 'product' is exposed but NOT shortened → must be dropped.
+            'url_shortener_expose_post_types' => array( 'post', 'product' ),
+        );
+        $result = $this->invoke( 'save_url_shortener_settings', array( array(), array() ) );
+        $this->assertSame( array( 'post' ), $result['url_shortener_expose_post_types'] );
+        unset( $_POST['ffc_settings'] );
+    }
+
+    public function test_url_shortener_expose_types_missing_on_tab_empty_array(): void {
+        $_POST['_ffc_tab']     = 'url_shortener';
+        $_POST['ffc_settings'] = array( 'url_shortener_post_types' => array( 'post' ) );
+        $result = $this->invoke( 'save_url_shortener_settings', array( array(), array() ) );
+        $this->assertSame( array(), $result['url_shortener_expose_post_types'] );
+        unset( $_POST['ffc_settings'] );
+    }
+
+    public function test_url_shortener_expose_types_ignored_on_other_tab(): void {
+        $_POST['_ffc_tab']     = 'general';
+        $_POST['ffc_settings'] = array( 'url_shortener_expose_post_types' => array( 'post' ) );
+        $result = $this->invoke( 'save_url_shortener_settings', array( array(), array() ) );
+        $this->assertArrayNotHasKey( 'url_shortener_expose_post_types', $result );
+        unset( $_POST['ffc_settings'] );
+    }
+
     // ==================================================================
     // save_user_access_settings()
     // ==================================================================

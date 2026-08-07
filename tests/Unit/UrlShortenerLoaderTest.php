@@ -118,6 +118,34 @@ class UrlShortenerLoaderTest extends TestCase {
         $this->assertTrue( has_action( 'template_redirect', 'FreeFormCertificate\UrlShortener\UrlShortenerLoader->handle_redirect()' ) !== false );
     }
 
+    public function test_init_registers_shortlink_filter_in_frontend(): void {
+        $this->service->shouldReceive( 'is_enabled' )->once()->andReturn( true );
+        Functions\when( 'is_admin' )->justReturn( false );
+
+        $this->loader->init();
+
+        // The shortlink exposer must wire even outside admin (the <head>/header path).
+        $this->assertNotFalse(
+            has_filter( 'pre_get_shortlink', 'FreeFormCertificate\UrlShortener\UrlShortenerShortlink->filter_shortlink()' )
+        );
+    }
+
+    public function test_init_registers_backfill_ajax_in_admin(): void {
+        $this->service->shouldReceive( 'is_enabled' )->once()->andReturn( true );
+        Functions\when( 'is_admin' )->justReturn( true );
+
+        // Admin path composes the export source (needs the repository once) and
+        // the admin page / meta box (register add_action hooks only).
+        $repo = Mockery::mock( UrlShortenerRepository::class );
+        $this->service->shouldReceive( 'get_repository' )->andReturn( $repo );
+
+        $this->loader->init();
+
+        $this->assertNotFalse(
+            has_action( 'wp_ajax_ffc_url_shortener_backfill', 'FreeFormCertificate\UrlShortener\UrlShortenerBackfillHandler->ajax_backfill()' )
+        );
+    }
+
     public function test_init_skips_hooks_when_disabled(): void {
         $this->service->shouldReceive( 'is_enabled' )->once()->andReturn( false );
 

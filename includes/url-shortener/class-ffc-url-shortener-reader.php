@@ -302,6 +302,86 @@ class UrlShortenerReader extends AbstractRepository {
 	}
 
 	/**
+	 * Count published posts of the given post types that do NOT yet have an
+	 * active short URL — the number of rows the backfill would create.
+	 *
+	 * @param array<string> $post_types Post types to consider.
+	 * @return int
+	 */
+	public function countBackfillCandidates( array $post_types ): int {
+		$post_types = array_values( array_filter( array_map( 'strval', $post_types ) ) );
+		if ( empty( $post_types ) ) {
+			return 0;
+		}
+
+		$placeholders = implode( ', ', array_fill( 0, count( $post_types ), '%s' ) );
+
+		$sql = "SELECT COUNT(*)
+			FROM %i p
+			LEFT JOIN %i s ON s.post_id = p.ID AND s.status = %s
+			WHERE p.post_status = 'publish'
+				AND p.post_type IN ( {$placeholders} )
+				AND s.id IS NULL";
+
+		$args = array_merge(
+			array( $this->wpdb->posts, $this->table, 'active' ),
+			$post_types
+		);
+
+		// The interpolated part is a literal `%s, %s, …` placeholder list.
+		// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+		$prepared = $this->wpdb->prepare( $sql, ...$args );
+
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+		return (int) $this->wpdb->get_var( $prepared );
+	}
+
+	/**
+	 * Keyset page of published posts of the given post types that have no
+	 * active short URL yet, newest first (`ID DESC`), bounded by `id < $cursor`.
+	 * Keyset (not LIMIT/OFFSET) so paging stays stable while the batch inserts
+	 * new short URLs mid-run. Used by the settings-tab backfill.
+	 *
+	 * @param array<string> $post_types Post types to consider.
+	 * @param int           $cursor     Exclusive upper-bound post ID (PHP_INT_MAX on the first page).
+	 * @param int           $size       Page size.
+	 * @return array<int, array<string, mixed>> Rows with `ID` and `post_title`.
+	 */
+	public function findBackfillCandidates( array $post_types, int $cursor, int $size ): array {
+		$post_types = array_values( array_filter( array_map( 'strval', $post_types ) ) );
+		if ( empty( $post_types ) ) {
+			return array();
+		}
+
+		$placeholders = implode( ', ', array_fill( 0, count( $post_types ), '%s' ) );
+
+		$sql = "SELECT p.ID, p.post_title
+			FROM %i p
+			LEFT JOIN %i s ON s.post_id = p.ID AND s.status = %s
+			WHERE p.post_status = 'publish'
+				AND p.post_type IN ( {$placeholders} )
+				AND s.id IS NULL
+				AND p.ID < %d
+			ORDER BY p.ID DESC
+			LIMIT %d";
+
+		$args = array_merge(
+			array( $this->wpdb->posts, $this->table, 'active' ),
+			$post_types,
+			array( $cursor, $size )
+		);
+
+		// The interpolated part is a literal `%s, %s, …` placeholder list.
+		// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+		$prepared = $this->wpdb->prepare( $sql, ...$args );
+
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+		$rows = $this->wpdb->get_results( $prepared, ARRAY_A );
+
+		return $rows ? $rows : array();
+	}
+
+	/**
 	 * Find short URLs that are candidates for cleanup under the enabled criteria.
 	 *
 	 * Three independent criteria, OR-combined:

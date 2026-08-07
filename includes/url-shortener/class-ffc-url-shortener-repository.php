@@ -145,6 +145,30 @@ class UrlShortenerRepository extends AbstractRepository {
 	}
 
 	/**
+	 * Count published posts of the given types lacking an active short URL
+	 * (see UrlShortenerReader::countBackfillCandidates).
+	 *
+	 * @param array<string> $post_types Post types to consider.
+	 * @return int
+	 */
+	public function countBackfillCandidates( array $post_types ): int {
+		return $this->reader->countBackfillCandidates( $post_types );
+	}
+
+	/**
+	 * Keyset page of published posts lacking an active short URL
+	 * (see UrlShortenerReader::findBackfillCandidates).
+	 *
+	 * @param array<string> $post_types Post types to consider.
+	 * @param int           $cursor     Exclusive upper-bound post ID.
+	 * @param int           $size       Page size.
+	 * @return array<int, array<string, mixed>>
+	 */
+	public function findBackfillCandidates( array $post_types, int $cursor, int $size ): array {
+		return $this->reader->findBackfillCandidates( $post_types, $cursor, $size );
+	}
+
+	/**
 	 * Find short URLs that are candidates for cleanup under the enabled criteria.
 	 *
 	 * @param array{orphaned?:bool, never_clicked?:bool, trashed?:bool} $criteria Enabled criteria.

@@ -128,6 +128,7 @@ class TabUrlShortenerTest extends TestCase {
         Functions\when( 'home_url' )->justReturn( 'https://example.com/' );
         Functions\when( 'selected' )->justReturn( '' );
         Functions\when( 'checked' )->justReturn( '' );
+        Functions\when( 'disabled' )->justReturn( '' );
         Functions\when( 'submit_button' )->justReturn( null );
 
         ob_start();
@@ -182,12 +183,14 @@ class TabUrlShortenerTest extends TestCase {
         } );
         Functions\when( 'wp_localize_script' )->justReturn( true );
         Functions\when( 'wp_create_nonce' )->justReturn( 'nonce' );
+        Functions\when( 'admin_url' )->returnArg();
 
         $this->tab->enqueue_scripts( 'toplevel_page_ffc-settings' );
 
         $this->assertContains( 'ffc-core', $handles );
         $this->assertContains( 'ffc-admin-autosave', $handles );
         $this->assertContains( 'ffc-section-collapse', $handles );
+        $this->assertContains( 'ffc-url-shortener-settings', $handles );
     }
 
     // ==================================================================
