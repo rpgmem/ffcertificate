@@ -41,9 +41,23 @@ if ( ! defined( 'ABSPATH' ) ) {
 class CertTemplateAdminScreen {
 
 	/**
-	 * The `admin_action_{$action}` slug for the visibility toggle.
+	 * The `admin_action_{$action}` slug for the visibility toggle (list-screen
+	 * row action — a full-page nonce-protected navigation).
 	 */
 	private const TOGGLE_ACTION = 'ffc_toggle_cert_template_visibility';
+
+	/**
+	 * The `wp_ajax_{$action}` slug for the edit-screen visibility autosave. The
+	 * sidebar "Template options" toggle persists over AJAX so a shipped default —
+	 * whose Publish/Update box is removed — stays live-editable for that one flag.
+	 */
+	private const AJAX_TOGGLE_ACTION = 'ffc_cert_template_toggle_visibility';
+
+	/**
+	 * Script handle for the edit-screen admin behaviours (title lock + toggle
+	 * autosave).
+	 */
+	private const EDIT_HANDLE = 'ffc-cert-template-admin';
 
 	/**
 	 * The `admin_action_{$action}` slug for duplicating a template.
@@ -84,6 +98,9 @@ class CertTemplateAdminScreen {
 		add_action( "manage_{$pt}_posts_custom_column", array( $this, 'render_column' ), 10, 2 );
 		add_filter( 'post_row_actions', array( $this, 'row_actions' ), 10, 2 );
 		add_action( 'admin_action_' . self::TOGGLE_ACTION, array( $this, 'handle_toggle_visibility' ) );
+		// Edit-screen visibility autosave (the sidebar toggle persists without the
+		// Publish/Update box, which is removed for shipped defaults). Priv-only.
+		add_action( 'wp_ajax_' . self::AJAX_TOGGLE_ACTION, array( $this, 'ajax_toggle_visibility' ) );
 		// Row + toolbar management actions (#865 decision #11/#13): Duplicate and
 		// Export any template; Restore defaults re-seeds shipped defaults.
 		add_action( 'admin_action_' . self::DUPLICATE_ACTION, array( $this, 'handle_duplicate' ) );
@@ -243,6 +260,35 @@ class CertTemplateAdminScreen {
 
 		wp_safe_redirect( admin_url( 'edit.php?post_type=' . CertTemplateCpt::POST_TYPE ) );
 		exit;
+	}
+
+	/**
+	 * Autosave the edit-screen "Show in Load list" visibility toggle over AJAX.
+	 *
+	 * The one editable control on a shipped default (its Publish/Update box is
+	 * removed) and a live switch on user templates too. Gated by the same
+	 * `ffc_manage_forms` capability + a per-action nonce as every other template
+	 * mutation.
+	 *
+	 * @return void
+	 */
+	public function ajax_toggle_visibility(): void {
+		if ( ! \FreeFormCertificate\Core\Capabilities::current_user_can_admin_or( 'ffc_manage_forms' ) ) {
+			wp_send_json_error( array( 'message' => __( 'You do not have permission to manage certificate templates.', 'ffcertificate' ) ), 403 );
+		}
+
+		check_ajax_referer( self::AJAX_TOGGLE_ACTION, 'nonce' );
+
+		$post_id = isset( $_POST['post_id'] ) ? absint( wp_unslash( $_POST['post_id'] ) ) : 0;
+		$post    = $post_id > 0 ? get_post( $post_id ) : null;
+		if ( ! $post instanceof \WP_Post || CertTemplateCpt::POST_TYPE !== $post->post_type ) {
+			wp_send_json_error( array( 'message' => __( 'Template not found.', 'ffcertificate' ) ), 404 );
+		}
+
+		$visible = isset( $_POST['visible'] ) && '1' === (string) wp_unslash( $_POST['visible'] );
+		CertTemplateWriter::set_visibility( $post_id, $visible );
+
+		wp_send_json_success( array( 'visible' => $visible ) );
 	}
 
 	/**
@@ -488,14 +534,48 @@ class CertTemplateAdminScreen {
 		if ( ! $is_default ) {
 			AdminAssetsManager::enqueue_image_tools();
 		}
+
+		// Edit-screen behaviours: lock the title on defaults + autosave the
+		// visibility toggle (so the removed Publish box isn't needed for it).
+		$suffix = \FreeFormCertificate\Core\AssetHelper::asset_suffix();
+		wp_enqueue_script(
+			self::EDIT_HANDLE,
+			FFC_PLUGIN_URL . "assets/js/ffc-cert-template-admin{$suffix}.js",
+			array( 'jquery' ),
+			FFC_VERSION,
+			true
+		);
+		wp_localize_script(
+			self::EDIT_HANDLE,
+			'ffcCertTemplateAdmin',
+			array(
+				'ajaxUrl'      => admin_url( 'admin-ajax.php' ),
+				'toggleAction' => self::AJAX_TOGGLE_ACTION,
+				'nonce'        => wp_create_nonce( self::AJAX_TOGGLE_ACTION ),
+				'postId'       => $post_id,
+				'isDefault'    => $is_default,
+				'savingText'   => __( 'Saving…', 'ffcertificate' ),
+				'savedText'    => __( 'Saved', 'ffcertificate' ),
+				'errorText'    => __( 'Save failed', 'ffcertificate' ),
+			)
+		);
 	}
 
 	/**
 	 * Register the HTML-body + visibility metabox on the edit screen.
 	 *
+	 * @param \WP_Post $post Post being edited (passed by `add_meta_boxes_{cpt}`).
 	 * @return void
 	 */
-	public function add_edit_metabox(): void {
+	public function add_edit_metabox( \WP_Post $post ): void {
+		// Shipped defaults are read-only except the visibility toggle, which
+		// autosaves over AJAX — so drop the Publish/Update box entirely (there is
+		// nothing else to save, and its presence implied an editable name/body).
+		if ( CertTemplateReader::is_default( (int) $post->ID ) ) {
+			remove_meta_box( 'submitdiv', CertTemplateCpt::POST_TYPE, 'side' );
+			remove_meta_box( 'slugdiv', CertTemplateCpt::POST_TYPE, 'normal' );
+		}
+
 		add_meta_box(
 			'ffc_cert_template_body',
 			__( 'Template', 'ffcertificate' ),
@@ -586,10 +666,11 @@ class CertTemplateAdminScreen {
 			: '1' === (string) get_post_meta( $post->ID, CertTemplateCpt::META_VISIBLE, true );
 		?>
 		<label class="ffc-toggle">
-			<input type="checkbox" name="ffc_template_visible" value="1" <?php checked( $visible ); ?>>
+			<input type="checkbox" id="ffc_template_visible" name="ffc_template_visible" value="1" <?php checked( $visible ); ?>>
 			<span class="ffc-toggle-track" aria-hidden="true"></span>
 			<span class="ffc-toggle-label"><?php esc_html_e( 'Show in the form editor’s “Load” list', 'ffcertificate' ); ?></span>
 		</label>
+		<span id="ffc_template_visible_status" class="ffc-autosave-status" role="status" aria-live="polite"></span>
 		<p class="description">
 			<?php esc_html_e( 'When on, this template appears in the certificate form editor’s “Load” dropdown.', 'ffcertificate' ); ?>
 		</p>

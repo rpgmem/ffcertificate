@@ -33,7 +33,7 @@ class CertTemplateSeederTest extends TestCase {
 	}
 
 	public function test_maybe_seed_skips_when_already_seeded(): void {
-		Functions\when( 'get_option' )->justReturn( 2 ); // >= SEED_VERSION
+		Functions\when( 'get_option' )->justReturn( 3 ); // >= SEED_VERSION
 		Functions\expect( 'wp_insert_post' )->never();
 		Functions\expect( 'update_option' )->never();
 
@@ -43,7 +43,7 @@ class CertTemplateSeederTest extends TestCase {
 	}
 
 	public function test_maybe_seed_refreshes_default_bodies_on_version_bump(): void {
-		// Already seeded under an older version (applied 1 < SEED_VERSION 2):
+		// Already seeded under an older version (applied 1 < current SEED_VERSION):
 		// maybe_seed() must refresh existing default bodies via restore() so the
 		// #871 assets/ image-path fix reaches the install — not re-run the
 		// create-only seed() (which would leave the stale body in place).
@@ -84,7 +84,7 @@ class CertTemplateSeederTest extends TestCase {
 		foreach ( $refreshed as $html ) {
 			$this->assertStringContainsString( 'assets/img/certificate-defaults/', (string) $html );
 		}
-		$this->assertSame( 2, $bumped[1], 'flag bumped to the new seed version' );
+		$this->assertSame( 3, $bumped[1], 'flag bumped to the new seed version' );
 	}
 
 	public function test_maybe_seed_seeds_the_three_defaults_and_bumps_flag(): void {
@@ -122,9 +122,13 @@ class CertTemplateSeederTest extends TestCase {
 			$this->assertSame( '1', $kv[ CertTemplateCpt::META_VISIBLE ] );
 			$this->assertNotSame( '', $kv[ CertTemplateCpt::META_DEFAULT_SLUG ] );
 			$this->assertStringContainsString( '<div', $kv[ CertTemplateCpt::META_HTML ] );
+			// Seed v3: the background lives in the dedicated field, not baked into
+			// the body as an <img> (which the body no longer carries).
+			$this->assertStringContainsString( 'certificate-defaults/default_background_certificate', $kv[ CertTemplateCpt::META_BG_IMAGE ] );
+			$this->assertStringNotContainsString( 'default_background_certificate', $kv[ CertTemplateCpt::META_HTML ] );
 		}
 		$this->assertSame( 'ffc_cert_templates_seeded_version', $bumped[0] );
-		$this->assertSame( 2, $bumped[1] );
+		$this->assertSame( 3, $bumped[1] );
 	}
 
 	public function test_seed_is_non_destructive_when_all_slugs_exist(): void {
