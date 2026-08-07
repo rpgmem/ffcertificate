@@ -182,6 +182,55 @@ class CertTemplateAdminScreenTest extends TestCase {
 		$this->assertContains( array( 5, CertTemplateCpt::META_VISIBLE, '0' ), $written );
 	}
 
+	public function test_ajax_toggle_denies_without_cap(): void {
+		Functions\when( 'current_user_can' )->justReturn( false );
+		Functions\when( 'wp_send_json_error' )->alias(
+			static function () {
+				throw new \RuntimeException( 'json_error' );
+			}
+		);
+
+		$this->expectException( \RuntimeException::class );
+		( new CertTemplateAdminScreen() )->ajax_toggle_visibility();
+	}
+
+	public function test_ajax_toggle_sets_visibility_and_returns_success(): void {
+		Functions\when( 'current_user_can' )->justReturn( true );
+		Functions\when( 'check_ajax_referer' )->justReturn( true );
+		Functions\when( 'wp_unslash' )->returnArg();
+		Functions\when( 'absint' )->alias( static fn( $v ) => abs( (int) $v ) );
+		Functions\when( 'get_post' )->justReturn( $this->pool_post( 9 ) );
+
+		$written = array();
+		Functions\when( 'update_post_meta' )->alias(
+			static function ( $id, $key, $value ) use ( &$written ) {
+				$written[] = array( $id, $key, $value );
+				return true;
+			}
+		);
+		$payload = null;
+		Functions\when( 'wp_send_json_success' )->alias(
+			static function ( $data ) use ( &$payload ) {
+				$payload = $data;
+				throw new \RuntimeException( 'json_success' );
+			}
+		);
+
+		$_POST['post_id'] = '9';
+		$_POST['visible'] = '1';
+
+		try {
+			( new CertTemplateAdminScreen() )->ajax_toggle_visibility();
+		} catch ( \RuntimeException $e ) {
+			// Expected — wp_send_json_success throws in place of the terminal exit.
+		}
+
+		$this->assertContains( array( 9, CertTemplateCpt::META_VISIBLE, '1' ), $written );
+		$this->assertSame( array( 'visible' => true ), $payload );
+
+		unset( $_POST['post_id'], $_POST['visible'] );
+	}
+
 	// ==================================================================
 	// Edit-screen metabox (#865)
 	// ==================================================================
@@ -193,8 +242,10 @@ class CertTemplateAdminScreenTest extends TestCase {
 				$captured[] = array( $id, $screen, $context );
 			}
 		);
+		Functions\when( 'get_post_meta' )->justReturn( '' ); // not a default → no box removal
+		Functions\expect( 'remove_meta_box' )->never();
 
-		( new CertTemplateAdminScreen() )->add_edit_metabox();
+		( new CertTemplateAdminScreen() )->add_edit_metabox( $this->pool_post( 5 ) );
 
 		$this->assertCount( 2, $captured );
 		// The body editor box (normal context) + the sidebar options box (side).
@@ -203,6 +254,24 @@ class CertTemplateAdminScreenTest extends TestCase {
 		$this->assertSame( 'normal', $captured[0][2] );
 		$this->assertSame( 'ffc_cert_template_options', $captured[1][0] );
 		$this->assertSame( 'side', $captured[1][2] );
+	}
+
+	public function test_add_edit_metabox_removes_publish_box_for_default(): void {
+		Functions\when( 'add_meta_box' )->justReturn( null );
+		Functions\when( 'get_post_meta' )->justReturn( '1' ); // META_IS_DEFAULT → default
+
+		$removed = array();
+		Functions\when( 'remove_meta_box' )->alias(
+			static function ( $id ) use ( &$removed ) {
+				$removed[] = $id;
+			}
+		);
+
+		( new CertTemplateAdminScreen() )->add_edit_metabox( $this->pool_post( 7 ) );
+
+		// A shipped default drops the Publish/Update box (nothing but the toggle
+		// is editable, and the toggle autosaves over AJAX).
+		$this->assertContains( 'submitdiv', $removed );
 	}
 
 	public function test_render_edit_metabox_outputs_editor_bg_field_and_image_tools(): void {

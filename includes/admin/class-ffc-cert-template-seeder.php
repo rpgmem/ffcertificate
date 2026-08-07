@@ -43,8 +43,20 @@ class CertTemplateSeeder {
 	 * under v1 kept the stale `html/` ref, which the image-rewrite migration then
 	 * sideloaded into the Media Library; the bump refreshes those bodies to the
 	 * shipped `assets/` source on upgrade.
+	 *
+	 * Version 3 lifts each default's full-page background out of the body (a baked
+	 * `<img>` at z-index 0) into the dedicated `META_BG_IMAGE` field, so a default
+	 * uses the same background mechanism as any user template — the field shows the
+	 * image, and Load carries it into the form's `_ffc_form_bg`. The bump refreshes
+	 * existing installs' bodies (background `<img>` removed) and populates the field.
 	 */
-	private const SEED_VERSION = 2;
+	private const SEED_VERSION = 3;
+
+	/**
+	 * Directory (relative to the plugin root) holding the default background
+	 * images referenced by {@see self::definitions()}.
+	 */
+	private const BG_DIR = 'assets/img/certificate-defaults/';
 
 	/**
 	 * Directory (relative to the plugin root) holding the seed HTML files.
@@ -97,7 +109,7 @@ class CertTemplateSeeder {
 				continue;
 			}
 
-			self::insert_default( $slug, $def['title'], $html );
+			self::insert_default( $slug, $def['title'], $html, self::bg_url( $def['bg'] ) );
 		}
 	}
 
@@ -120,12 +132,14 @@ class CertTemplateSeeder {
 			}
 
 			if ( isset( $existing_map[ $slug ] ) ) {
-				// Refresh the shipped body only — leave visibility as the admin set it.
+				// Refresh the shipped body + background field only — leave
+				// visibility as the admin set it (#865 decision #13).
 				update_post_meta( $existing_map[ $slug ], CertTemplateCpt::META_HTML, $html );
+				update_post_meta( $existing_map[ $slug ], CertTemplateCpt::META_BG_IMAGE, self::bg_url( $def['bg'] ) );
 				continue;
 			}
 
-			self::insert_default( $slug, $def['title'], $html );
+			self::insert_default( $slug, $def['title'], $html, self::bg_url( $def['bg'] ) );
 		}
 	}
 
@@ -135,9 +149,10 @@ class CertTemplateSeeder {
 	 * @param string $slug  Stable default slug.
 	 * @param string $title Template title.
 	 * @param string $html  Seed HTML body.
+	 * @param string $bg    Background-image URL for the dedicated field. Default ''.
 	 * @return void
 	 */
-	private static function insert_default( string $slug, string $title, string $html ): void {
+	private static function insert_default( string $slug, string $title, string $html, string $bg = '' ): void {
 		$id = wp_insert_post(
 			array(
 				'post_type'   => CertTemplateCpt::POST_TYPE,
@@ -156,28 +171,45 @@ class CertTemplateSeeder {
 		update_post_meta( $id, CertTemplateCpt::META_DEFAULT_SLUG, $slug );
 		update_post_meta( $id, CertTemplateCpt::META_VISIBLE, '1' );
 		update_post_meta( $id, CertTemplateCpt::META_HTML, $html );
+		update_post_meta( $id, CertTemplateCpt::META_BG_IMAGE, $bg );
 	}
 
 	/**
-	 * The shipped default templates: stable slug → title + seed filename.
+	 * The shipped default templates: stable slug → title + seed filename + the
+	 * background-image basename (under {@see self::BG_DIR}) lifted out of the body
+	 * into `META_BG_IMAGE` since seed v3.
 	 *
-	 * @return array<string, array{title:string, file:string}>
+	 * @return array<string, array{title:string, file:string, bg:string}>
 	 */
 	private static function definitions(): array {
 		return array(
 			'default_certificate_1' => array(
 				'title' => __( 'Certificate model 1', 'ffcertificate' ),
 				'file'  => 'default_certificate_1.html',
+				'bg'    => 'default_background_certificate_1.png',
 			),
 			'default_certificate_2' => array(
 				'title' => __( 'Certificate model 2', 'ffcertificate' ),
 				'file'  => 'default_certificate_2.html',
+				'bg'    => 'default_background_certificate_2.png',
 			),
 			'default_certificate_3' => array(
 				'title' => __( 'Certificate model 3', 'ffcertificate' ),
 				'file'  => 'default_certificate_3.html',
+				'bg'    => 'default_background_certificate_3.png',
 			),
 		);
+	}
+
+	/**
+	 * Absolute URL of a shipped default background image, or '' when the default
+	 * has no background.
+	 *
+	 * @param string $bg Background basename under {@see self::BG_DIR}.
+	 * @return string
+	 */
+	private static function bg_url( string $bg ): string {
+		return '' === $bg ? '' : FFC_PLUGIN_URL . self::BG_DIR . $bg;
 	}
 
 	/**

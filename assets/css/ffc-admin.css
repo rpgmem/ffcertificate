@@ -354,26 +354,19 @@
    16. TEMPLATE LOADER CUSTOMIZATIONS
    ======================================== */
 
-/* Esconder o combo de templates */
+/* Hide the legacy template <select> in the layout metabox — the "Load" button
+   opens the JS-built template modal (ffc-admin-pdf.js) instead; the dropdown is
+   dead markup kept only for backward compatibility. */
 #ffc_template_select {
     display: none !important;
 }
 
-/* Organizar os botões lado a lado */
-#ffc_load_template_btn,
-#ffc_btn_import_html,
-#ffc_btn_media_lib {
-    display: inline-block;
-    margin-right: 10px;
-}
-
-/* Opcional: Melhorar estilo dos botões */
-#ffc_load_template_btn,
-#ffc_btn_import_html,
-#ffc_btn_media_lib {
-    padding: 8px 16px;
-    font-size: 14px;
-}
+/* NOTE: the former per-id overrides here (padding/font-size/inline-block on
+   #ffc_btn_import_html / #ffc_btn_media_lib / #ffc_load_template_btn) were
+   removed — they over-sized those three buttons and broke icon centering by
+   overriding the unified `.ffc-action-group .button` toolbar (inline-flex).
+   All layout-action buttons now share that single rule for consistent
+   sizing, borders, and dashicon alignment. */
 
 /* ==========================================================================
    17. DATA MIGRATIONS TAB STYLES
@@ -423,6 +416,23 @@
     width: 17px;
     height: 17px;
     line-height: 1;
+}
+
+/* Inline autosave feedback for the template visibility toggle (edit screen). */
+.ffc-autosave-status {
+    display: inline-block;
+    margin-left: 8px;
+    font-size: 12px;
+    font-style: italic;
+    vertical-align: middle;
+}
+
+.ffc-autosave-status.ffc-saved {
+    color: var(--ffc-success, #1a7f37);
+}
+
+.ffc-autosave-status.ffc-error {
+    color: var(--ffc-danger, #b32d2e);
 }
 
 /* ==========================================================================
