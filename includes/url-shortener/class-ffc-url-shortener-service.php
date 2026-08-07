@@ -263,6 +263,56 @@ class UrlShortenerService {
 	}
 
 	/**
+	 * Resolve the effective destination of a short URL record.
+	 *
+	 * For **post-linked** short URLs (`post_id` set) the destination is derived
+	 * from the post's current permalink, so it self-heals when the slug — or the
+	 * whole permalink structure — changes (the stored `target_url` captured at
+	 * creation would otherwise go stale, #888). Falls back to the stored
+	 * `target_url` when the post is gone or has no permalink. **Manual** short
+	 * URLs (`post_id` NULL) always use the stored `target_url`.
+	 *
+	 * Static so the redirect (loader), the admin list and the CSV export all
+	 * resolve the destination identically without wiring a service instance.
+	 *
+	 * @param array<string, mixed> $record Short URL row.
+	 * @return string Effective destination URL.
+	 */
+	public static function resolve_target( array $record ): string {
+		$post_id = isset( $record['post_id'] ) ? (int) $record['post_id'] : 0;
+		if ( $post_id > 0 ) {
+			$permalink = get_permalink( $post_id );
+			if ( is_string( $permalink ) && '' !== $permalink ) {
+				return $permalink;
+			}
+		}
+		return isset( $record['target_url'] ) ? (string) $record['target_url'] : '';
+	}
+
+	/**
+	 * Update the destination and title of a **manually-created** short URL.
+	 *
+	 * The caller (`UrlShortenerAdminPage::ajax_edit_short_url`) enforces the
+	 * manual-only rule (`post_id` NULL) — post-linked destinations follow the
+	 * page and must not be hand-edited (#888).
+	 *
+	 * @param int    $id         Record ID.
+	 * @param string $target_url New destination URL.
+	 * @param string $title      New title.
+	 * @return bool
+	 */
+	public function update_short_url( int $id, string $target_url, string $title ): bool {
+		return (bool) $this->repository->update(
+			$id,
+			array(
+				'target_url' => esc_url_raw( $target_url ),
+				'title'      => sanitize_text_field( $title ),
+				'updated_at' => current_time( 'mysql' ),
+			)
+		);
+	}
+
+	/**
 	 * Delete a short URL by ID.
 	 *
 	 * @param int $id Record ID.

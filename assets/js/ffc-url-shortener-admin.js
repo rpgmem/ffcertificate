@@ -231,14 +231,64 @@
                 });
         });
 
-        // Close modal
+        // Close modal (QR + Edit share the .ffc-qr-modal chrome). Only one is
+        // ever open, so hiding both on any close/backdrop/Escape is harmless.
         $(document).on('click', '.ffc-qr-modal__close, .ffc-qr-modal__backdrop', function () {
-            $('#ffc-qr-modal').hide();
+            $('#ffc-qr-modal, #ffc-edit-modal').hide();
         });
         $(document).on('keydown', function (e) {
             if (e.key === 'Escape') {
-                $('#ffc-qr-modal').hide();
+                $('#ffc-qr-modal, #ffc-edit-modal').hide();
             }
+        });
+
+        // --- Edit short URL (manual rows only) ---
+        $(document).on('click', '.ffc-edit-shorturl', function (e) {
+            e.preventDefault();
+            var $btn = $(this);
+            var $modal = $('#ffc-edit-modal');
+            $modal.find('input[name="id"]').val($btn.data('id'));
+            $('#ffc-edit-target').val($btn.data('target') || '');
+            $('#ffc-edit-title').val($btn.data('title') || '');
+            $('#ffc-edit-short-url-result').empty().hide();
+            $modal.show();
+        });
+
+        $('#ffc-edit-short-url').on('submit', function (e) {
+            e.preventDefault();
+            var $form = $(this);
+            var $btn = $form.find('button[type="submit"]');
+            var $result = $('#ffc-edit-short-url-result');
+            var payload = {
+                id: $form.find('input[name="id"]').val(),
+                target_url: $('#ffc-edit-target').val(),
+                title: $('#ffc-edit-title').val()
+            };
+            var nonce = $form.find('#ffc_edit_short_url_nonce').val();
+            var i18n = settings.i18n || {};
+
+            $btn.prop('disabled', true);
+
+            FFC.request(
+                'ffc_edit_short_url',
+                payload,
+                { nonce: nonce, ajaxUrl: settings.ajaxUrl || (window.ajaxurl || '/wp-admin/admin-ajax.php') }
+            )
+                .then(function () {
+                    $btn.prop('disabled', false);
+                    $('#ffc-edit-modal').hide();
+                    window.location.reload();
+                })
+                .catch(function (err) {
+                    $btn.prop('disabled', false);
+                    var $span = $('<span class="ffc-shorturl-error">');
+                    if (err && err.fromServer) {
+                        $span.text(err.message || i18n.error || 'Error');
+                    } else {
+                        $span.text(i18n.requestFailed || 'Request failed');
+                    }
+                    $result.empty().append($span).show();
+                });
         });
 
         // --- Create short URL (admin page form) ---

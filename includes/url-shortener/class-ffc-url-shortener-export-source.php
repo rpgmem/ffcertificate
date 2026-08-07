@@ -247,7 +247,9 @@ class UrlShortenerExportSource implements BatchedExportSourceInterface {
 			(string) ( $row['id'] ?? '' ),
 			(string) ( $row['short_code'] ?? '' ),
 			(string) ( $row['title'] ?? '' ),
-			(string) ( $row['target_url'] ?? '' ),
+			// Resolved destination — post-linked rows follow the current
+			// permalink, matching the redirect (#888).
+			UrlShortenerService::resolve_target( $row ),
 			(string) ( $row['click_count'] ?? '0' ),
 			(string) ( $row['status'] ?? '' ),
 			(string) ( $row['post_id'] ?? '' ),

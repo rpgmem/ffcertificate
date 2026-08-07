@@ -31,6 +31,13 @@ if ( ! defined( 'ABSPATH' ) ) {
 	<p><?php esc_html_e( 'The Post Types setting has two columns per type: "Shorten" (show the meta box and allow short URLs for that type) and "Expose". When a type is exposed, a published post\'s short URL becomes the site\'s canonical shortlink — WordPress emits it as the', 'ffcertificate' ); ?> <code>rel="shortlink"</code> <?php esc_html_e( 'tag in the page head and the HTTP Link header, and it also backs the editor\'s "Get Shortlink" button and REST. Expose is off by default (opt-in), depends on Shorten, and only takes effect once a short URL exists for the page — otherwise WordPress falls back to its native shortlink.', 'ffcertificate' ); ?></p>
 	<p><?php esc_html_e( 'The "Generate missing short URLs" button creates short URLs for already-published posts of the shortened types that do not have one yet (it runs in timeout-safe batches). This only creates the short URLs — tick "Expose" to publish them as shortlinks.', 'ffcertificate' ); ?></p>
 
+	<div class="ffc-doc-note">
+		<p>
+			<strong class="ffc-icon-info"><?php esc_html_e( 'Editing & the destination.', 'ffcertificate' ); ?></strong><br>
+			<?php esc_html_e( 'Manually-created links can be edited (destination URL + title) from the list. Links created for a post/page are not editable — their destination automatically follows the page: if you change the post slug (or the site permalink structure), the short URL keeps redirecting to the current permalink.', 'ffcertificate' ); ?>
+		</p>
+	</div>
+
 	<h4><?php esc_html_e( 'The list & QR codes', 'ffcertificate' ); ?></h4>
 	<p><?php esc_html_e( 'The list shows each link\'s title, short URL, destination, click count and status, with actions to show a QR code, enable/disable, or trash (trashed links can be restored or permanently deleted). Each link has a QR code (PNG or SVG download) that encodes the short URL itself, so scanning it is also counted.', 'ffcertificate' ); ?> <a href="#reference-qr-codes"><?php esc_html_e( 'See QR Codes', 'ffcertificate' ); ?></a>.</p>
 

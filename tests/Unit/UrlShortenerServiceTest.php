@@ -393,6 +393,59 @@ class UrlShortenerServiceTest extends TestCase {
     }
 
     // ==================================================================
+    // resolve_target()
+    // ==================================================================
+
+    public function test_resolve_target_manual_uses_stored_target(): void {
+        // No post_id → stored target_url, no get_permalink call.
+        $this->assertSame(
+            'https://example.com/page',
+            UrlShortenerService::resolve_target( array( 'target_url' => 'https://example.com/page' ) )
+        );
+    }
+
+    public function test_resolve_target_post_linked_uses_current_permalink(): void {
+        Functions\when( 'get_permalink' )->justReturn( 'https://example.com/new-slug' );
+
+        $this->assertSame(
+            'https://example.com/new-slug',
+            UrlShortenerService::resolve_target(
+                array( 'post_id' => 5, 'target_url' => 'https://example.com/old-slug' )
+            )
+        );
+    }
+
+    public function test_resolve_target_post_linked_falls_back_when_post_gone(): void {
+        Functions\when( 'get_permalink' )->justReturn( false );
+
+        $this->assertSame(
+            'https://example.com/old',
+            UrlShortenerService::resolve_target(
+                array( 'post_id' => 9, 'target_url' => 'https://example.com/old' )
+            )
+        );
+    }
+
+    // ==================================================================
+    // update_short_url()
+    // ==================================================================
+
+    public function test_update_short_url_persists_target_and_title(): void {
+        $this->repo->shouldReceive( 'update' )->once()->with(
+            7,
+            Mockery::on(
+                function ( $data ) {
+                    return 'https://x/y' === $data['target_url']
+                        && 'New title' === $data['title']
+                        && isset( $data['updated_at'] );
+                }
+            )
+        )->andReturn( true );
+
+        $this->assertTrue( $this->service->update_short_url( 7, 'https://x/y', 'New title' ) );
+    }
+
+    // ==================================================================
     // delete_short_url()
     // ==================================================================
 

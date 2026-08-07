@@ -232,7 +232,10 @@ class UrlShortenerLoader {
 			}
 		);
 
-		$target_url    = esc_url_raw( $record['target_url'] );
+		// Resolve the destination dynamically: post-linked short URLs follow the
+		// post's current permalink (self-heals on slug / permalink-structure
+		// change), manual ones use the stored target (#888).
+		$target_url    = esc_url_raw( UrlShortenerService::resolve_target( $record ) );
 		$redirect_type = $this->service->get_redirect_type();
 
 		// Prevent redirect loops.
