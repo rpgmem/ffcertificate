@@ -40,6 +40,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 	<h4><?php esc_html_e( 'The list & QR codes', 'ffcertificate' ); ?></h4>
 	<p><?php esc_html_e( 'The list shows each link\'s title, short URL, destination, click count and status, with actions to show a QR code, enable/disable, or trash (trashed links can be restored or permanently deleted). Each link has a QR code (PNG or SVG download) that encodes the short URL itself, so scanning it is also counted.', 'ffcertificate' ); ?> <a href="#reference-qr-codes"><?php esc_html_e( 'See QR Codes', 'ffcertificate' ); ?></a>.</p>
+	<p><?php esc_html_e( 'QR Codes are also available over REST for external automations:', 'ffcertificate' ); ?> <code>GET /ffc/v1/short-urls/{code}/qr</code> (<?php esc_html_e( 'base64 png/svg, cap-gated by ffc_view_url_shortener via an Application Password).', 'ffcertificate' ); ?> <a href="#developer-hooks-api"><?php esc_html_e( 'See the REST API', 'ffcertificate' ); ?></a>.</p>
 
 	<div class="ffc-doc-note">
 		<p>

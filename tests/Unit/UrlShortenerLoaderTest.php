@@ -130,6 +130,28 @@ class UrlShortenerLoaderTest extends TestCase {
         );
     }
 
+    public function test_init_registers_rest_route_hook(): void {
+        $this->service->shouldReceive( 'is_enabled' )->once()->andReturn( true );
+        Functions\when( 'is_admin' )->justReturn( false );
+
+        $this->loader->init();
+
+        $this->assertNotFalse(
+            has_action( 'rest_api_init', 'FreeFormCertificate\UrlShortener\UrlShortenerLoader->register_rest_routes()' )
+        );
+    }
+
+    public function test_register_rest_routes_registers_the_qr_controller(): void {
+        $registered = false;
+        Functions\when( 'register_rest_route' )->alias( function () use ( &$registered ) {
+            $registered = true;
+        } );
+
+        $this->loader->register_rest_routes();
+
+        $this->assertTrue( $registered );
+    }
+
     public function test_init_registers_backfill_ajax_in_admin(): void {
         $this->service->shouldReceive( 'is_enabled' )->once()->andReturn( true );
         Functions\when( 'is_admin' )->justReturn( true );

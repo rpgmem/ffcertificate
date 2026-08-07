@@ -80,6 +80,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 				<tr><td><code>GET /ffc/v1/user/*</code> · <code>/ffc/v1/audience/bookings</code></td><td><?php esc_html_e( 'Logged-in (own data).', 'ffcertificate' ); ?></td></tr>
 				<tr><td><code>GET /ffc/v1/submissions</code></td><td><?php esc_html_e( 'Admin capability.', 'ffcertificate' ); ?></td></tr>
 					<tr><td><code>POST /ffc/v1/operator/certificates</code> · <code>GET .../{id}/pdf</code></td><td><?php esc_html_e( 'Operator — Application Password + ffc_manage_certificates (the PDF route: that capability OR ownership of the certificate).', 'ffcertificate' ); ?></td></tr>
+				<tr><td><code>GET /ffc/v1/short-urls/{code}/qr</code></td><td><?php esc_html_e( 'Read tier — Application Password + ffc_view_url_shortener. Returns the short URL\'s QR Code as base64 (png/svg).', 'ffcertificate' ); ?></td></tr>
 				<tr><td><code>…/ffcertificate/v1/recruitment/*</code></td><td><?php esc_html_e( 'Recruitment capabilities (manage / import / call / delete).', 'ffcertificate' ); ?></td></tr>
 			</tbody>
 		</table>
@@ -110,5 +111,12 @@ if ( ! defined( 'ABSPATH' ) ) {
 			</p>
 		</div>
 		<pre><code>curl -u operator:app_password -H "Content-Type: application/json" -d '{"form_id":12,"name":"Jane Doe","cpf_rf":"12345678901","email":"jane@example.com"}' "https://example.com/wp-json/ffc/v1/operator/certificates"</code></pre>
+
+		<h4><?php esc_html_e( 'Short URL QR Code (base64)', 'ffcertificate' ); ?></h4>
+		<p><?php esc_html_e( 'Fetch a short URL\'s QR Code for reuse in an external automation (e.g. N8N). Cap-gated by ffc_view_url_shortener via an Application Password. The QR encodes the short URL itself, so scans are click-counted, and PNGs are served from the same database cache the admin uses.', 'ffcertificate' ); ?></p>
+		<ul>
+			<li><code>GET /ffc/v1/short-urls/{code}/qr</code> — <?php esc_html_e( 'returns JSON', 'ffcertificate' ); ?> <code>{ code, short_url, format, mime, data_base64 }</code>. <?php esc_html_e( 'Query args:', 'ffcertificate' ); ?> <code>format=png|svg</code> (<?php esc_html_e( 'default png', 'ffcertificate' ); ?>), <code>size</code> (100–1000, <?php esc_html_e( 'default 300', 'ffcertificate' ); ?>). <?php esc_html_e( '404 for an unknown code.', 'ffcertificate' ); ?></li>
+		</ul>
+		<pre><code>curl -u user:app_password "https://example.com/wp-json/ffc/v1/short-urls/abc123/qr?format=png"</code></pre>
 	</div>
 </div>
