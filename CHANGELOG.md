@@ -9,7 +9,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 
 ### Fixed
 - **Certificate preview now resolves the `{{logo_gov}}` / `{{logo_org}}` branding tokens** (#903): the client-side previews (form-editor live preview and public CSV-download preview) substitute placeholders from `CertificatePreviewSamples`, which lacked the two branding keys, so the logos showed as raw `{{…}}`; the sample map now mirrors the URLs the real generators inject (the server-side template preview already resolved them via `PdfHtmlRenderer`).
-- Internal (#865) — corrected the `@since` tag on the certificate-template pool, branding-token and legacy-`html/` migration classes from a mistaken `6.20.0` to their real ship version `6.18.0`. Docs only.
+- Internal (#865, #897) — corrected forward-dated `@since` tags to their real ship version `6.18.0`: the certificate-template pool, branding-token and legacy-`html/` migration classes (mistaken `6.20.0`), and the operator-certificates REST controller + key-rotation migration strategy (mistaken `6.19.0`). Docs only.
 
 ### Added
 - Internal (#899, #900) — **client-IP resolution consolidated into one `ClientIpResolver`** (phase 1 of 3): a single Core class now owns both the pre-existing `legacy` header-walk and a new `secure` trusted-proxy strategy (Cloudflare `CF-Connecting-IP` when the peer is a CF edge, right→left `X-Forwarded-For` walk for configured proxies, else the direct TCP peer). `RequestInput::get_user_ip()` delegates to it with `legacy` effective by default, so **behaviour is unchanged**; the `secure` tree and a dormant, hashed-IP shadow-divergence log ship behind filters (`ffc_ip_resolver_mode`, `ffc_trusted_proxies`, `ffc_ip_shadow_logging`) for the later flip. No version bump.
