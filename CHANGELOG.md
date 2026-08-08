@@ -7,7 +7,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
-## [6.18.0] (2026-08-08)
+## [6.18.0] (2026-08-08) — `cffec5f`
 
 ### Fixed
 - **Short URLs of posts/pages now follow the current permalink** (#888): a post's short URL stored the permalink captured at creation, so changing the slug (or the site's permalink structure) stranded it; the redirect, the admin *Destination* column and the CSV export now resolve a post-linked short URL from the post's **current** permalink (falling back to the stored target only if the post is gone). Manual links keep their stored destination. Self-healing, no migration.
