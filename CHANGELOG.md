@@ -8,6 +8,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 ## [Unreleased]
 
 ### Fixed
+- **Certificate preview now resolves the `{{logo_gov}}` / `{{logo_org}}` branding tokens** (#903): the client-side previews (form-editor live preview and public CSV-download preview) substitute placeholders from `CertificatePreviewSamples`, which lacked the two branding keys, so the logos showed as raw `{{…}}`; the sample map now mirrors the URLs the real generators inject (the server-side template preview already resolved them via `PdfHtmlRenderer`).
 - Internal (#865) — corrected the `@since` tag on the certificate-template pool, branding-token and legacy-`html/` migration classes from a mistaken `6.20.0` to their real ship version `6.18.0`. Docs only.
 
 ### Added

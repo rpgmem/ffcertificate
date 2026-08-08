@@ -20,6 +20,11 @@ class CertificatePreviewSamplesTest extends TestCase {
         parent::setUp();
         Monkey\setUp();
 
+        // BrandingTokens' fallback logo URL (via get_map) needs the plugin URL.
+        if ( ! defined( 'FFC_PLUGIN_URL' ) ) {
+            define( 'FFC_PLUGIN_URL', 'https://example.com/wp-content/plugins/ffcertificate/' );
+        }
+
         Functions\when( 'get_option' )->justReturn( array() );
         Functions\when( 'get_bloginfo' )->justReturn( 'Test Site' );
         Functions\when( 'wp_date' )->alias( static fn( $fmt, $ts = null, $tz = null ) => '01/01/2026' );
@@ -72,6 +77,18 @@ class CertificatePreviewSamplesTest extends TestCase {
     public function test_reference_year_is_a_four_digit_year(): void {
         $map = CertificatePreviewSamples::get_map();
         $this->assertMatchesRegularExpression( '/^\d{4}$/', $map['reference_year'] );
+    }
+
+    public function test_branding_logo_tokens_are_present(): void {
+        // #903 — the client-side previews substitute {{logo_gov}}/{{logo_org}}
+        // from this map; without them the preview left the raw tokens showing.
+        $map = CertificatePreviewSamples::get_map();
+        $this->assertArrayHasKey( 'logo_gov', $map );
+        $this->assertArrayHasKey( 'logo_org', $map );
+        // With no configured URL (get_option stubbed empty), BrandingTokens
+        // resolves to the shipped placeholder under the plugin URL.
+        $this->assertStringContainsString( 'logo-placeholder.svg', $map['logo_gov'] );
+        $this->assertStringContainsString( 'logo-placeholder.svg', $map['logo_org'] );
     }
 
     public function test_special_js_handled_placeholders_are_excluded(): void {
