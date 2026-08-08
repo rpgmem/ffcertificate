@@ -62,7 +62,7 @@ $ffcertificate_base_url = admin_url( 'admin.php?page=ffc-settings&tab=activity_l
 
 		<!-- Search Box -->
 		<div class="alignright actions">
-			<form method="get" style="display:inline">
+			<form method="get" class="ffc-inline">
 				<input type="hidden" name="page" value="ffc-settings">
 				<input type="hidden" name="tab" value="activity_log">
 				<?php if ( $level ) : ?>

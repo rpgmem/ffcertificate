@@ -242,7 +242,7 @@ $ffcertificate_stats = \FreeFormCertificate\Security\RateLimiter::get_stats();
 			'max_per_hour'   => 0,
 		);
 		?>
-		<h3 style="margin-top:1.5em;"><?php echo esc_html( $ffc_ep_label ); ?></h3>
+		<h3 class="ffc-rl-endpoint-heading"><?php echo esc_html( $ffc_ep_label ); ?></h3>
 		<table class="form-table" role="presentation"><tbody>
 			<tr><th><?php esc_html_e( 'Enable', 'ffcertificate' ); ?></th><td>
 				<?php
@@ -375,7 +375,7 @@ $ffcertificate_stats = \FreeFormCertificate\Security\RateLimiter::get_stats();
 						)
 					);
 					printf(
-						' <span class="ffc-signal-badge ffc-signal-badge--%1$s" style="%2$s display:inline-block;padding:1px 7px;border-radius:9px;font-size:11px;font-weight:600;vertical-align:middle;">%3$s</span>',
+						' <span class="ffc-signal-badge ffc-signal-badge--%1$s" style="%2$s">%3$s</span>',
 						esc_attr( $group ),
 						esc_attr( $ffcertificate_badge_styles[ $group ] ),
 						esc_html( $ffcertificate_badge_labels[ $group ] )
@@ -388,12 +388,12 @@ $ffcertificate_stats = \FreeFormCertificate\Security\RateLimiter::get_stats();
 					<?php $ffcertificate_render_signal( $ffcertificate_sig_key, $ffcertificate_sig_label, 'cookie' ); ?>
 				<?php endforeach; ?>
 
-				<p class="ffc-signal-group-heading" style="margin-bottom:2px;"><strong><?php esc_html_e( 'Strong signals', 'ffcertificate' ); ?></strong> — <span class="description"><?php esc_html_e( 'high entropy; hard to coincide between different physical devices and resistant to incognito. The strong-signal minimum is counted from these.', 'ffcertificate' ); ?></span></p>
+				<p class="ffc-signal-group-heading"><strong><?php esc_html_e( 'Strong signals', 'ffcertificate' ); ?></strong> — <span class="description"><?php esc_html_e( 'high entropy; hard to coincide between different physical devices and resistant to incognito. The strong-signal minimum is counted from these.', 'ffcertificate' ); ?></span></p>
 				<?php foreach ( $ffcertificate_signal_groups['strong'] as $ffcertificate_sig_key => $ffcertificate_sig_label ) : ?>
 					<?php $ffcertificate_render_signal( $ffcertificate_sig_key, $ffcertificate_sig_label, 'strong' ); ?>
 				<?php endforeach; ?>
 
-				<p class="ffc-signal-group-heading" style="margin-bottom:2px;"><strong><?php esc_html_e( 'Weak signals', 'ffcertificate' ); ?></strong> — <span class="description"><?php esc_html_e( 'low entropy; commonly identical across many devices of the same model/OS/browser, so matching these alone does not indicate the same device.', 'ffcertificate' ); ?></span></p>
+				<p class="ffc-signal-group-heading"><strong><?php esc_html_e( 'Weak signals', 'ffcertificate' ); ?></strong> — <span class="description"><?php esc_html_e( 'low entropy; commonly identical across many devices of the same model/OS/browser, so matching these alone does not indicate the same device.', 'ffcertificate' ); ?></span></p>
 				<?php foreach ( $ffcertificate_signal_groups['weak'] as $ffcertificate_sig_key => $ffcertificate_sig_label ) : ?>
 					<?php $ffcertificate_render_signal( $ffcertificate_sig_key, $ffcertificate_sig_label, 'weak' ); ?>
 				<?php endforeach; ?>

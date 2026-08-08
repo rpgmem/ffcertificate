@@ -53,6 +53,42 @@
     margin-bottom: 15px;
 }
 
+/* 6.18.0 (#890 slice 1) — spacing/layout utilities lifted from inline styles
+   across the admin/settings views. */
+.ffc-mt-8 {
+    margin-top: 8px;
+}
+
+.ffc-mt-12 {
+    margin-top: 12px;
+}
+
+.ffc-mt-16 {
+    margin-top: 16px;
+}
+
+.ffc-mb-2 {
+    margin-bottom: 2px;
+}
+
+.ffc-mb-4 {
+    margin-bottom: 4px;
+}
+
+.ffc-ml-18 {
+    margin-left: 18px;
+}
+
+.ffc-inline {
+    display: inline;
+}
+
+/* Disc bullet list with indent (WP admin resets ul list-style). */
+.ffc-list-disc {
+    list-style: disc;
+    margin-left: 20px;
+}
+
 /* ==========================================================================
    FORM UTILITIES
    ========================================================================== */

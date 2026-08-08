@@ -132,13 +132,13 @@ $ffcertificate_show_divergence = $ffcertificate_date_diverges || $ffcertificate_
 ?>
 <?php if ( $ffcertificate_show_divergence ) : ?>
 	<?php ob_start(); ?>
-		<p style="margin: 0 0 8px;">
+		<p>
 			<strong><?php esc_html_e( 'Heads-up: plugin formats differ from the WordPress global formats.', 'ffcertificate' ); ?></strong>
 		</p>
-		<p style="margin: 0 0 8px;">
+		<p>
 			<?php esc_html_e( 'The plugin uses its own date and time formats (configured below) for everything it renders — admin lists, frontend pages, emails, REST responses and PDFs. The rest of WordPress (themes, other plugins, posts) keeps using the global formats from Settings → General. This is intentional, but worth knowing when comparing dates across the dashboard.', 'ffcertificate' ); ?>
 		</p>
-		<ul style="margin: 6px 0 0 18px; list-style: disc;">
+		<ul>
 			<?php if ( $ffcertificate_date_diverges ) : ?>
 				<li>
 					<?php
@@ -171,7 +171,6 @@ $ffcertificate_show_divergence = $ffcertificate_date_diverges || $ffcertificate_
 			'type'               => 'info',
 			'additional_classes' => array( 'inline', 'ffc-settings-divergence-notice' ),
 			'paragraph_wrap'     => false,
-			'attributes'         => array( 'style' => 'margin: 15px 0; padding: 12px 15px;' ),
 		)
 	);
 	?>
