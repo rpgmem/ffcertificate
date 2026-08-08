@@ -114,7 +114,7 @@ final class AudienceAdminAudienceRenderer {
 				<strong><a href="<?php echo esc_url( $edit_url ); ?>"><?php echo esc_html( $audience->name ); ?></a></strong>
 			</td>
 			<td class="column-color">
-				<span class="ffc-color-swatch" style="background-color: <?php echo esc_attr( $audience->color ); ?>;"></span>
+				<span class="ffc-color-swatch" style="--ffc-color: <?php echo esc_attr( $audience->color ); ?>;"></span>
 			</td>
 			<td class="column-members">
 				<a href="<?php echo esc_url( $members_url ); ?>">
@@ -189,11 +189,11 @@ final class AudienceAdminAudienceRenderer {
 				foreach ( $ancestors as $ancestor ) :
 					$ancestor_edit_url = admin_url( 'admin.php?page=' . $menu_slug . '-audiences&action=edit&id=' . $ancestor->id );
 					?>
-					<span class="ffc-color-swatch" style="background-color: <?php echo esc_attr( $ancestor->color ); ?>; width:12px; height:12px; display:inline-block; border-radius:50%; vertical-align:middle;"></span>
+					<span class="ffc-color-dot" style="--ffc-color: <?php echo esc_attr( $ancestor->color ); ?>;"></span>
 					<a href="<?php echo esc_url( $ancestor_edit_url ); ?>"><?php echo esc_html( $ancestor->name ); ?></a>
 					<span class="ffc-breadcrumb-sep">&rsaquo;</span>
 				<?php endforeach; ?>
-				<span class="ffc-color-swatch" style="background-color: <?php echo esc_attr( $audience->color ); ?>; width:12px; height:12px; display:inline-block; border-radius:50%; vertical-align:middle;"></span>
+				<span class="ffc-color-dot" style="--ffc-color: <?php echo esc_attr( $audience->color ); ?>;"></span>
 				<strong><?php echo esc_html( $audience->name ); ?></strong>
 			</div>
 			<?php endif; ?>
