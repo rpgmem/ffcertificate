@@ -273,7 +273,10 @@ class ClientIpResolver {
 		 */
 		$filtered = apply_filters( 'ffc_cloudflare_ip_ranges', $ranges );
 
-		return is_array( $filtered ) ? array_values( array_filter( $filtered, 'is_string' ) ) : $ranges;
+		// The `(array)` cast + is_string filter keep runtime safety against a
+		// misbehaving third-party filter; PHPStan already knows the declared
+		// return type, so no `is_array()` guard (it flags as always-true).
+		return array_values( array_filter( (array) $filtered, 'is_string' ) );
 	}
 
 	/**
@@ -291,7 +294,9 @@ class ClientIpResolver {
 		 */
 		$proxies = apply_filters( 'ffc_trusted_proxies', array() );
 
-		return is_array( $proxies ) ? array_values( array_filter( $proxies, 'is_string' ) ) : array();
+		// See cloudflare_ranges(): defensive cast/filter without an is_array()
+		// guard that PHPStan would report as always-true.
+		return array_values( array_filter( (array) $proxies, 'is_string' ) );
 	}
 
 	/**
