@@ -134,13 +134,15 @@
     color: var(--ffc-danger);
 }
 
-/* Color Swatch */
+/* Color Swatch — the per-row colour comes from the --ffc-color custom
+   property (set inline) instead of an inline background-color (#890 slice 3). */
 .ffc-color-swatch {
     width: 24px;
     height: 24px;
     border-radius: 4px;
     display: inline-block;
     border: 1px solid var(--ffc-border);
+    background-color: var(--ffc-color);
 }
 
 /* Hierarchy */
@@ -585,4 +587,42 @@
 .ffc-aud-check {
     color: #00a32a;
     font-weight: 600;
+}
+
+/* 6.18.0 (#890 slice 3) — component styles lifted from inline styles across the
+   audience admin pages (environment list + editor). */
+
+/* Environment list: narrower, centred colour column (scoped so it doesn't
+   change the shared .column-color width on the audience list). */
+.ffc-environments-table .column-color {
+    width: 50px;
+    text-align: center;
+}
+
+/* Environment colour indicator (20px circle with a hairline border). */
+.ffc-env-color-dot {
+    display: inline-block;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background-color: var(--ffc-color);
+    border: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+/* Environment colour picker + its hex-value label. */
+.ffc-color-input {
+    width: 60px;
+    height: 36px;
+    padding: 2px;
+    cursor: pointer;
+}
+
+.ffc-color-input-value {
+    vertical-align: middle;
+    margin-left: 8px;
+}
+
+/* Bookings list: total-count note under the table. */
+.ffc-audience-total-note {
+    margin-top: 15px;
 }

@@ -521,7 +521,7 @@
    ========================================================================== */
 .ffc-flex          { display: flex; }
 .ffc-mb-md         { margin-bottom: 12px; }
-.ffc-color-dot     { display: inline-block; width: 12px; height: 12px; border-radius: 50%; background-color: var(--ffc-color, currentColor); }
+.ffc-color-dot     { display: inline-block; width: 12px; height: 12px; border-radius: 50%; vertical-align: middle; background-color: var(--ffc-color, currentColor); }
 
 /* ==========================================================================
    TOGGLE SWITCH — mobile-style ON/OFF for boolean settings.

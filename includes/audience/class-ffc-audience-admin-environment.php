@@ -127,10 +127,10 @@ class AudienceAdminEnvironment {
 			<?php submit_button( __( 'Filter', 'ffcertificate' ), 'secondary', 'filter', false ); ?>
 		</form>
 
-		<table class="wp-list-table widefat fixed striped">
+		<table class="wp-list-table widefat fixed striped ffc-environments-table">
 			<thead>
 				<tr>
-					<th scope="col" class="column-color" style="width: 50px;"><?php esc_html_e( 'Color', 'ffcertificate' ); ?></th>
+					<th scope="col" class="column-color"><?php esc_html_e( 'Color', 'ffcertificate' ); ?></th>
 					<th scope="col" class="column-name"><?php esc_html_e( 'Name', 'ffcertificate' ); ?></th>
 					<th scope="col" class="column-calendar"><?php esc_html_e( 'Calendar', 'ffcertificate' ); ?></th>
 					<th scope="col" class="column-status"><?php esc_html_e( 'Status', 'ffcertificate' ); ?></th>
@@ -170,8 +170,8 @@ class AudienceAdminEnvironment {
 						}
 						?>
 						<tr>
-							<td class="column-color" style="text-align: center;">
-								<span style="display: inline-block; width: 20px; height: 20px; border-radius: 50%; background-color: <?php echo esc_attr( $env->color ?? '#3788d8' ); ?>; border: 1px solid rgba(0,0,0,0.1);"></span>
+							<td class="column-color">
+								<span class="ffc-env-color-dot" style="--ffc-color: <?php echo esc_attr( $env->color ?? '#3788d8' ); ?>;"></span>
 							</td>
 							<td class="column-name">
 								<strong><a href="<?php echo esc_url( $edit_url ); ?>"><?php echo esc_html( $env->name ); ?></a></strong>
@@ -314,8 +314,8 @@ class AudienceAdminEnvironment {
 					<td>
 						<input type="color" name="environment_color" id="environment_color"
 								value="<?php echo esc_attr( $environment->color ?? '#3788d8' ); ?>"
-								style="width: 60px; height: 36px; padding: 2px; cursor: pointer;">
-						<span class="description" style="vertical-align: middle; margin-left: 8px;">
+								class="ffc-color-input">
+						<span class="description ffc-color-input-value">
 							<?php echo esc_html( $environment->color ?? '#3788d8' ); ?>
 						</span>
 						<p class="description">
