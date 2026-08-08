@@ -7,6 +7,12 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Fixed
+- Internal (#865) — corrected the `@since` tag on the certificate-template pool, branding-token and legacy-`html/` migration classes from a mistaken `6.20.0` to their real ship version `6.18.0`. Docs only.
+
+### Added
+- Internal (#899, #900) — **client-IP resolution consolidated into one `ClientIpResolver`** (phase 1 of 3): a single Core class now owns both the pre-existing `legacy` header-walk and a new `secure` trusted-proxy strategy (Cloudflare `CF-Connecting-IP` when the peer is a CF edge, right→left `X-Forwarded-For` walk for configured proxies, else the direct TCP peer). `RequestInput::get_user_ip()` delegates to it with `legacy` effective by default, so **behaviour is unchanged**; the `secure` tree and a dormant, hashed-IP shadow-divergence log ship behind filters (`ffc_ip_resolver_mode`, `ffc_trusted_proxies`, `ffc_ip_shadow_logging`) for the later flip. No version bump.
+
 ## [6.18.0] (2026-08-08) — `cffec5f`
 
 ### Fixed

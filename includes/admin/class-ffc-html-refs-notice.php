@@ -15,7 +15,7 @@
  * {@see AbstractDismissibleNotice} (#849).
  *
  * @package FreeFormCertificate\Admin
- * @since   6.20.0
+ * @since   6.18.0
  */
 
 declare(strict_types=1);

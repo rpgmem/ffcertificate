@@ -13,7 +13,7 @@
  * option; the option is bumped when new shipped defaults are added.
  *
  * @package FreeFormCertificate\Admin
- * @since   6.20.0
+ * @since   6.18.0
  */
 
 declare(strict_types=1);

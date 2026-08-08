@@ -20,7 +20,7 @@
  * — the failure is surfaced in the result's `errors`.
  *
  * @package FreeFormCertificate\Migrations\Strategies
- * @since   6.20.0
+ * @since   6.18.0
  */
 
 declare(strict_types=1);

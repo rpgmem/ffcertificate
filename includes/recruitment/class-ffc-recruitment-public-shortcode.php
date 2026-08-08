@@ -458,6 +458,11 @@ final class RecruitmentPublicShortcode {
 	 * Best-effort client-IP detection. Returns '' when we can't identify
 	 * the caller (rate-limit then falls open per `check_rate_limit`).
 	 *
+	 * NOTE (#899 phase 1): kept bespoke on purpose. Its empty-string fail-open
+	 * contract differs from `ClientIpResolver`'s `'0.0.0.0'` sentinel, so it is
+	 * reconciled into the shared secure resolver at the phase-3 flip (#902),
+	 * not now — swapping it today would change the fail-open behaviour.
+	 *
 	 * @return string
 	 */
 	private static function client_ip(): string {
