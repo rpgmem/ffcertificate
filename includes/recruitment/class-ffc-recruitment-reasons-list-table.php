@@ -166,7 +166,7 @@ class RecruitmentReasonsListTable extends AbstractRecruitmentListTable {
 		// PATCHes via the manage-gated REST route and would 403.
 		if ( ! $this->can_edit ) {
 			return sprintf(
-				'<span class="ffc-reason-color-swatch" style="display:inline-block;width:1em;height:1em;border:1px solid #ccc;vertical-align:middle;background:%s"></span> <code>%s</code>',
+				'<span class="ffc-reason-color-swatch" style="--ffc-color:%s"></span> <code>%s</code>',
 				esc_attr( $color ),
 				esc_html( $color )
 			);

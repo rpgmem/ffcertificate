@@ -28,7 +28,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 				<?php else : ?>
 					<?php foreach ( $audiences as $aud ) : ?>
 						<span class="ffc-audience-badge">
-							<span class="ffc-color-dot" style="background:<?php echo esc_attr( $aud->color ); ?>"></span>
+							<span class="ffc-color-dot" style="--ffc-color:<?php echo esc_attr( $aud->color ); ?>"></span>
 							<?php echo esc_html( $aud->name ); ?>
 						</span>
 					<?php endforeach; ?>
