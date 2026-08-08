@@ -1119,3 +1119,23 @@ p.ffc-datetime-order-error {
 		border-bottom-color: var(--ffc-primary);
 	}
 }
+
+/* 6.18.0 (#890 slices 4-5) — component styles lifted from inline styles in the
+   recruitment/reregistration admin templates. */
+
+/* Recruitment reasons list: colour swatch (the reason colour comes from the
+   --ffc-color custom property set inline). */
+.ffc-reason-color-swatch {
+    display: inline-block;
+    width: 1em;
+    height: 1em;
+    border: 1px solid #ccc;
+    vertical-align: middle;
+    background-color: var(--ffc-color);
+}
+
+/* Block radio option in a fieldset (repeated per choice). */
+.ffc-radio-option {
+    display: block;
+    margin-bottom: 4px;
+}

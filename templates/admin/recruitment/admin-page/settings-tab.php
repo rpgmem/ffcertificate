@@ -54,7 +54,7 @@ $email_modes = array(
 );
 echo '<tr><th>' . esc_html__( 'Send mode', 'ffcertificate' ) . '</th><td><fieldset>';
 foreach ( $email_modes as $mode_val => $mode_label ) {
-	echo '<label style="display:block;margin-bottom:4px;"><input type="radio" name="' . esc_attr( $opt ) . '[email_mode]" value="' . esc_attr( (string) $mode_val ) . '" ' . checked( $email_mode, $mode_val, false ) . '> ' . esc_html( $mode_label ) . '</label>';
+	echo '<label class="ffc-radio-option"><input type="radio" name="' . esc_attr( $opt ) . '[email_mode]" value="' . esc_attr( (string) $mode_val ) . '" ' . checked( $email_mode, $mode_val, false ) . '> ' . esc_html( $mode_label ) . '</label>';
 }
 echo '</fieldset>';
 echo '<p class="description">' . esc_html__( 'Controls whether calling a candidate sends the convocation email. The global "disable all emails" switch always wins.', 'ffcertificate' ) . '</p>';
