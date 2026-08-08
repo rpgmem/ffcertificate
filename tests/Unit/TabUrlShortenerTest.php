@@ -30,6 +30,16 @@ class TabUrlShortenerTest extends TestCase {
     protected function setUp(): void {
         parent::setUp();
         Monkey\setUp();
+        Functions\when( 'wp_admin_notice' )->alias(
+            static function ( $message, $args = array() ) {
+                $ffc_type = isset( $args['type'] ) ? $args['type'] : 'info';
+                $ffc_cls  = 'notice notice-' . $ffc_type;
+                if ( ! empty( $args['dismissible'] ) ) { $ffc_cls .= ' is-dismissible'; }
+                if ( ! empty( $args['additional_classes'] ) ) { $ffc_cls .= ' ' . implode( ' ', $args['additional_classes'] ); }
+                $ffc_wrap = ! array_key_exists( 'paragraph_wrap', $args ) || $args['paragraph_wrap'];
+                echo '<div class="' . $ffc_cls . '">' . ( $ffc_wrap ? '<p>' . $message . '</p>' : $message ) . '</div>';
+            }
+        );
 
         // Pre-stub wp_kses_post BEFORE the SettingsTab base autoloads — its
         // file-level guard require_once's wp-includes/formatting.php when the
@@ -118,6 +128,7 @@ class TabUrlShortenerTest extends TestCase {
         Functions\when( 'home_url' )->justReturn( 'https://example.com/' );
         Functions\when( 'selected' )->justReturn( '' );
         Functions\when( 'checked' )->justReturn( '' );
+        Functions\when( 'disabled' )->justReturn( '' );
         Functions\when( 'submit_button' )->justReturn( null );
 
         ob_start();
@@ -172,12 +183,14 @@ class TabUrlShortenerTest extends TestCase {
         } );
         Functions\when( 'wp_localize_script' )->justReturn( true );
         Functions\when( 'wp_create_nonce' )->justReturn( 'nonce' );
+        Functions\when( 'admin_url' )->returnArg();
 
         $this->tab->enqueue_scripts( 'toplevel_page_ffc-settings' );
 
         $this->assertContains( 'ffc-core', $handles );
         $this->assertContains( 'ffc-admin-autosave', $handles );
         $this->assertContains( 'ffc-section-collapse', $handles );
+        $this->assertContains( 'ffc-url-shortener-settings', $handles );
     }
 
     // ==================================================================

@@ -56,6 +56,13 @@ class AdminAssetsManagerTest extends TestCase {
         Functions\when('wp_date')->justReturn('01/01/2026');
         Functions\when('wp_timezone')->alias(static fn() => new \DateTimeZone('UTC'));
 
+        // The localization payload now lists the certificate-template pool
+        // (#865) via CertTemplateReader::list_for_editor() → get_posts().
+        // Default to an empty pool so the discover helper takes its legacy
+        // glob fallback (empty in the test dir); the dedicated pool test
+        // overrides get_posts to exercise the id-keyed branch.
+        Functions\when('get_posts')->justReturn(array());
+
         // Utils alias mock
         $this->utils_mock = Mockery::mock('alias:\FreeFormCertificate\Core\AssetHelper');
         $ri_mock = Mockery::mock( 'alias:\FreeFormCertificate\Core\RequestInput' );
@@ -161,6 +168,56 @@ class AdminAssetsManagerTest extends TestCase {
         $this->assertContains('ffc-admin-utilities', $enqueued_styles);
         $this->assertContains('ffc-admin-css', $enqueued_styles);
         $this->assertContains('ffc-admin-submissions-css', $enqueued_styles);
+    }
+
+    // ==================================================================
+    // Localized template catalog — DB pool (#865)
+    // ==================================================================
+
+    public function test_localized_templates_come_from_db_pool_keyed_by_id(): void {
+        global $post_type;
+        $post_type = 'ffc_form';
+
+        // Two visible pool templates: one shipped default, one user template.
+        $default_post             = new \WP_Post();
+        $default_post->ID         = 10;
+        $default_post->post_title = 'Certificate model 1';
+        $user_post                = new \WP_Post();
+        $user_post->ID            = 20;
+        $user_post->post_title    = 'My layout';
+        Functions\when('get_posts')->justReturn(array($default_post, $user_post));
+        Functions\when('get_post_meta')->alias(static function ($id, $key) {
+            // list_for_editor() reads META_IS_DEFAULT per post; only id 10 is a default.
+            return (10 === $id) ? '1' : '';
+        });
+
+        $captured = null;
+        Functions\when('wp_enqueue_media')->justReturn(true);
+        Functions\when('wp_enqueue_script')->justReturn(true);
+        Functions\when('wp_enqueue_style')->justReturn(true);
+        Functions\when('admin_url')->justReturn('https://example.com/wp-admin/admin-ajax.php');
+        Functions\when('wp_create_nonce')->justReturn('test_nonce');
+        Functions\when('wp_localize_script')->alias(static function ($handle, $name, $data) use (&$captured) {
+            if ('ffc_ajax' === $name) {
+                $captured = $data;
+            }
+            return true;
+        });
+
+        $manager = new AdminAssetsManager();
+        $manager->enqueue_admin_assets('post.php');
+
+        $this->assertIsArray($captured);
+        $this->assertArrayHasKey('templates', $captured);
+        $templates = $captured['templates'];
+        $this->assertCount(2, $templates);
+        // Defaults first, addressed by post id; `file` is empty for pool
+        // entries (the JS posts template_id, not the legacy filename).
+        $this->assertSame(10, $templates[0]['id']);
+        $this->assertTrue($templates[0]['is_default']);
+        $this->assertSame('', $templates[0]['file']);
+        $this->assertSame(20, $templates[1]['id']);
+        $this->assertFalse($templates[1]['is_default']);
     }
 
     // ==================================================================
@@ -389,5 +446,137 @@ class AdminAssetsManagerTest extends TestCase {
         Functions\when('get_option')->justReturn('corrupt');
 
         $this->assertSame('dark', AdminAssetsManager::resolve_code_editor_theme());
+    }
+
+    // ==================================================================
+    // enqueue_admin_base_styles() / enqueue_code_editor_for() — static,
+    // shared by the form editor and the cert-template CPT edit screen.
+    // ==================================================================
+
+    public function test_enqueue_admin_base_styles_enqueues_the_chain(): void {
+        $styles = array();
+        Functions\when('wp_enqueue_style')->alias(
+            static function ($handle) use (&$styles) {
+                $styles[] = $handle;
+                return true;
+            }
+        );
+
+        AdminAssetsManager::enqueue_admin_base_styles();
+
+        foreach (array('ffc-pdf-core', 'ffc-common', 'ffc-admin-utilities', 'ffc-admin-css') as $handle) {
+            $this->assertContains($handle, $styles);
+        }
+    }
+
+    public function test_enqueue_code_editor_for_localizes_textarea_and_readonly(): void {
+        Functions\when('wp_enqueue_style')->justReturn(true);
+        Functions\when('get_option')->justReturn(array('code_editor_theme' => 'light'));
+
+        $cm_config = null;
+        Functions\when('wp_enqueue_code_editor')->alias(
+            static function ($args) use (&$cm_config) {
+                $cm_config = $args['codemirror'] ?? array();
+                return array('codemirror' => $cm_config);
+            }
+        );
+        $scripts = array();
+        Functions\when('wp_enqueue_script')->alias(
+            static function ($handle) use (&$scripts) {
+                $scripts[] = $handle;
+                return true;
+            }
+        );
+        $localized = null;
+        Functions\when('wp_localize_script')->alias(
+            static function ($handle, $obj, $data) use (&$localized) {
+                $localized = $data;
+                return true;
+            }
+        );
+        Functions\when('admin_url')->returnArg();
+
+        AdminAssetsManager::enqueue_code_editor_for('ffc_template_html', true);
+
+        $this->assertContains('ffc-admin-code-editor', $scripts);
+        $this->assertSame('ffc_template_html', $localized['textareaId']);
+        $this->assertTrue($localized['enabled']);
+        $this->assertSame('nocursor', $cm_config['readOnly'], 'read-only editor for shipped defaults');
+    }
+
+    public function test_enqueue_code_editor_for_omits_readonly_for_editable(): void {
+        Functions\when('wp_enqueue_style')->justReturn(true);
+        Functions\when('get_option')->justReturn(array('code_editor_theme' => 'light'));
+
+        $cm_config = null;
+        Functions\when('wp_enqueue_code_editor')->alias(
+            static function ($args) use (&$cm_config) {
+                $cm_config = $args['codemirror'] ?? array();
+                return array('codemirror' => $cm_config);
+            }
+        );
+        Functions\when('wp_enqueue_script')->justReturn(true);
+        $localized = null;
+        Functions\when('wp_localize_script')->alias(
+            static function ($handle, $obj, $data) use (&$localized) {
+                $localized = $data;
+                return true;
+            }
+        );
+        Functions\when('admin_url')->returnArg();
+
+        AdminAssetsManager::enqueue_code_editor_for('ffc_pdf_layout');
+
+        $this->assertArrayNotHasKey('readOnly', $cm_config);
+        $this->assertSame('ffc_pdf_layout', $localized['textareaId']);
+    }
+
+    // ==================================================================
+    // enqueue_image_tools() / image_tool_strings() (#865)
+    // ==================================================================
+
+    public function test_image_tool_strings_exposes_the_media_handler_keys(): void {
+        $strings = AdminAssetsManager::image_tool_strings();
+
+        foreach (
+            array(
+                'wpMediaNotAvailable',
+                'chooseBackgroundImage',
+                'useThisImage',
+                'backgroundImageSelected',
+                'insertImageTitle',
+                'insertImageButton',
+                'htmlTextareaNotFound',
+                'imageInserted',
+            ) as $key
+        ) {
+            $this->assertArrayHasKey($key, $strings);
+        }
+    }
+
+    public function test_enqueue_image_tools_loads_pdf_module_media_and_localizes(): void {
+        $media_called = false;
+        Functions\when('wp_enqueue_media')->alias(function () use (&$media_called) {
+            $media_called = true;
+        });
+        $scripts = array();
+        Functions\when('wp_enqueue_script')->alias(function ($handle) use (&$scripts) {
+            $scripts[] = $handle;
+        });
+        Functions\when('admin_url')->justReturn('https://example.com/wp-admin/admin-ajax.php');
+        Functions\when('wp_create_nonce')->justReturn('test_nonce');
+        $localized = array();
+        Functions\when('wp_localize_script')->alias(function ($handle, $name, $data) use (&$localized) {
+            $localized[$name] = $data;
+        });
+
+        AdminAssetsManager::enqueue_image_tools();
+
+        $this->assertTrue($media_called, 'wp.media must be loaded for the picker');
+        $this->assertContains('ffc-core', $scripts);
+        $this->assertContains('ffc-admin-pdf', $scripts);
+        $this->assertArrayHasKey('ffc_ajax', $localized);
+        $this->assertSame('test_nonce', $localized['ffc_ajax']['nonce']);
+        $this->assertArrayHasKey('chooseBackgroundImage', $localized['ffc_ajax']['strings']);
     }
 }

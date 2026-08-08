@@ -83,7 +83,12 @@ class AdminSubmissionEditPage {
 	public function render( int $submission_id ): void {
 		// Permission check.
 		if ( ! $this->can_edit_submission() ) {
-			echo '<div class="wrap"><div class="notice notice-error"><p>' . esc_html__( 'You do not have permission to edit submissions.', 'ffcertificate' ) . '</p></div></div>';
+			echo '<div class="wrap">';
+			wp_admin_notice(
+				esc_html__( 'You do not have permission to edit submissions.', 'ffcertificate' ),
+				array( 'type' => 'error' )
+			);
+			echo '</div>';
 			return;
 		}
 
@@ -157,8 +162,8 @@ class AdminSubmissionEditPage {
 			$edited_by_name = $user ? $user->display_name : 'ID: ' . $edited_by_id;
 		}
 
+		ob_start();
 		?>
-		<div class="notice notice-warning ffc-edited-notice">
 			<p>
 				<strong class="ffc-icon-warning"><?php esc_html_e( 'Warning:', 'ffcertificate' ); ?></strong>
 				<?php
@@ -177,8 +182,15 @@ class AdminSubmissionEditPage {
 					?>
 				<?php endif; ?>.
 			</p>
-		</div>
 		<?php
+		wp_admin_notice(
+			(string) ob_get_clean(),
+			array(
+				'type'               => 'warning',
+				'additional_classes' => array( 'ffc-edited-notice' ),
+				'paragraph_wrap'     => false,
+			)
+		);
 	}
 
 	/**

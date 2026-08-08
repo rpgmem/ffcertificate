@@ -70,6 +70,24 @@ class AdminConditionalAssets {
 					),
 				)
 			);
+
+			// Branding logo media picker (#865 Phase 2) — the generic
+			// data-ffc-media-target handler for the Settings → General logo
+			// fields. wp_enqueue_media() already runs for FFC admin pages.
+			wp_enqueue_script(
+				'ffc-branding-media',
+				FFC_PLUGIN_URL . "assets/js/ffc-branding-media{$s}.js",
+				array( 'jquery' ),
+				FFC_VERSION,
+				true
+			);
+			wp_localize_script(
+				'ffc-branding-media',
+				'ffcBrandingMedia',
+				array(
+					'chooseImage' => __( 'Select image', 'ffcertificate' ),
+				)
+			);
 		}
 
 		// Submission edit page assets.

@@ -57,6 +57,7 @@ class FormEditor {
 		// AJAX handlers for the editor.
 		add_action( 'wp_ajax_ffc_generate_codes', array( $this, 'ajax_generate_random_codes' ) );
 		add_action( 'wp_ajax_ffc_load_template', array( $this, 'ajax_load_template' ) );
+		add_action( 'wp_ajax_ffc_save_template', array( $this, 'ajax_save_template' ) );
 	}
 
 	/**
@@ -308,7 +309,13 @@ class FormEditor {
 	}
 
 	/**
-	 * AJAX: Loads a local HTML template from the plugin directory
+	 * AJAX: Loads a certificate template's HTML for the layout editor.
+	 *
+	 * Primary path (#865): resolve a template from the DB-backed pool by post
+	 * id via {@see CertTemplateReader::get_html()}. Falls back to the legacy
+	 * `html/` glob by filename — a deprecated shim (#865 phase-4) kept for the
+	 * transition window (a site whose pool hasn't seeded yet, or a third-party
+	 * drop-in under `html/`); it is removed once the pool is the sole source.
 	 */
 	public function ajax_load_template(): void {
 		check_ajax_referer( 'ffc_admin_pdf_nonce', 'nonce' );
@@ -317,6 +324,25 @@ class FormEditor {
 			wp_send_json_error();
 		}
 
+		// Primary: DB-backed template pool, addressed by post id.
+		$template_id = isset( $_POST['template_id'] ) ? absint( wp_unslash( $_POST['template_id'] ) ) : 0;
+		if ( $template_id > 0 ) {
+			$html = CertTemplateReader::get_html( $template_id );
+			if ( '' === $html ) {
+				wp_send_json_error();
+			}
+			// #865: structured payload so a loaded template carries its stored
+			// background image into the form's Background Image URL field. The JS
+			// load handler tolerates the legacy bare-string shape for safety.
+			wp_send_json_success(
+				array(
+					'html'     => $html,
+					'bg_image' => CertTemplateReader::get_bg_image( $template_id ),
+				)
+			);
+		}
+
+		// Deprecated fallback (#865 phase-4): legacy `html/` glob by filename.
 		$filename = isset( $_POST['filename'] ) ? sanitize_file_name( wp_unslash( $_POST['filename'] ) ) : '';
 		if ( empty( $filename ) ) {
 			wp_send_json_error();
@@ -329,6 +355,56 @@ class FormEditor {
 
 		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- reading bundled plugin HTML template; no remote URL.
 		$content = file_get_contents( $filepath );
-		wp_send_json_success( $content );
+		// Legacy html/ drop-ins carry no background image; keep the response
+		// shape identical to the pool path ({ html, bg_image }).
+		wp_send_json_success(
+			array(
+				'html'     => (string) $content,
+				'bg_image' => '',
+			)
+		);
+	}
+
+	/**
+	 * AJAX: Save the current layout HTML as a new template in the DB pool (#865).
+	 *
+	 * The editor's "Save as model" button posts the current title + layout HTML;
+	 * this stores it as a new user template via {@see CertTemplateWriter::create()}.
+	 * The HTML is sanitized through the same allowlist as the form-layout save
+	 * ({@see \FreeFormCertificate\Core\HtmlPolicy}).
+	 */
+	public function ajax_save_template(): void {
+		check_ajax_referer( 'ffc_admin_pdf_nonce', 'nonce' );
+
+		if ( ! \FreeFormCertificate\Core\Capabilities::current_user_can_admin_or( 'ffc_manage_forms' ) ) {
+			wp_send_json_error();
+		}
+
+		$title = isset( $_POST['title'] ) ? sanitize_text_field( wp_unslash( $_POST['title'] ) ) : '';
+		if ( '' === $title ) {
+			wp_send_json_error();
+		}
+
+		$raw  = isset( $_POST['html'] ) ? (string) wp_unslash( $_POST['html'] ) : '';
+		$html = wp_kses( $raw, \FreeFormCertificate\Core\HtmlPolicy::get_allowed_html_tags() );
+		if ( '' === trim( $html ) ) {
+			wp_send_json_error();
+		}
+
+		// Round-trip the current background so a saved model carries it back
+		// when re-loaded (#865).
+		$bg_image = isset( $_POST['bg_image'] ) ? esc_url_raw( wp_unslash( $_POST['bg_image'] ) ) : '';
+
+		$id = CertTemplateWriter::create( $title, $html, true, $bg_image );
+		if ( $id <= 0 ) {
+			wp_send_json_error();
+		}
+
+		wp_send_json_success(
+			array(
+				'id'    => $id,
+				'label' => $title,
+			)
+		);
 	}
 }

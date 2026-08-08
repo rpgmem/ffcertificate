@@ -40,6 +40,30 @@
         $textarea.trigger('change');
     }
 
+    /**
+     * Insert an HTML snippet at the cursor of the certificate-layout editor.
+     *
+     * Prefers the CodeMirror instance (replaceSelection at the caret so the
+     * image lands where the user is typing); falls back to appending to the raw
+     * textarea via setLayoutContent when CodeMirror hasn't mounted (JS-lite,
+     * tests) so the value still updates.
+     *
+     * @param {jQuery} $textarea The #ffc_pdf_layout jQuery node.
+     * @param {string} snippet   HTML to insert.
+     */
+    function insertAtCursor($textarea, snippet) {
+        var $cm = $textarea.nextAll('.CodeMirror').first();
+        if ($cm.length && $cm[0].CodeMirror && typeof $cm[0].CodeMirror.replaceSelection === 'function') {
+            var cm = $cm[0].CodeMirror;
+            cm.replaceSelection(snippet);
+            cm.save();
+            $textarea.trigger('change');
+            cm.focus();
+            return;
+        }
+        setLayoutContent($textarea, ($textarea.val() || '') + snippet);
+    }
+
     // ==========================================================================
     // TEMPLATE MANAGEMENT
     // ==========================================================================
@@ -84,6 +108,8 @@
         $modal.find('#ffc-modal-cancel').text(cancelText);
 
         var $list = $modal.find('.ffc-template-list');
+        var defaultBadge = strings.templateDefaultBadge || 'Default template';
+        var customBadge = strings.templateCustomBadge || 'My template';
         templates.forEach(function(template) {
             var $opt = $(
                 '<div class="ffc-template-option" style="padding:15px;margin:10px 0;border:2px solid #ddd;border-radius:4px;cursor:pointer;transition:all 0.2s;">' +
@@ -91,9 +117,13 @@
                     '<div style="color:#666;font-size:13px;margin-top:5px;"></div>' +
                 '</div>'
             );
-            $opt.attr('data-file', template.value);
+            // Templates are addressed by DB post id (#865). Legacy html/ glob
+            // fallback entries carry id 0 + a `file` basename; both attributes
+            // are stored so loadTemplateFile can pick the right POST param.
+            $opt.attr('data-id', (template.id != null) ? template.id : 0);
+            $opt.attr('data-file', template.file || '');
             $opt.find('strong').text(template.label);
-            $opt.find('div').text(template.value);
+            $opt.find('div').text(template.is_default ? defaultBadge : customBadge);
             $list.append($opt);
         });
 
@@ -127,6 +157,7 @@
 
         // Template selection
         $('.ffc-template-option').on('click', function() {
+            var templateId = $(this).data('id');
             var templateFile = $(this).data('file');
             var templateName = $(this).find('strong').text();
 
@@ -141,57 +172,128 @@
                 return;
             }
 
-            loadTemplateFile(templateFile, templateName);
+            loadTemplateFile(templateId, templateFile, templateName);
         });
     });
 
-    // Function to load template file via fetch
-    function loadTemplateFile(filename, displayName) {
-        var templateUrl = '/wp-content/plugins/ffcertificate/html/' + filename;
+    // Load a certificate template into the layout editor.
+    //
+    // Primary path (#865): POST ffc_load_template with the DB pool post id
+    // (template_id) — the server resolves the HTML via CertTemplateReader.
+    // When the id is 0 (a legacy html/ glob fallback entry) it posts the
+    // `filename` param instead, which the handler serves from html/ as a
+    // deprecated shim (#865 phase-4). Replaces the old direct fetch() of
+    // /wp-content/plugins/.../html/<file>, so template resolution is now
+    // gated by the nonce + capability check server-side.
+    function loadTemplateFile(templateId, filename, displayName) {
         var showNotification = window.FFC.Admin.showNotification || function() {};
-        var strings = (typeof ffc_ajax !== 'undefined' && ffc_ajax.strings) ? ffc_ajax.strings : {};
+        var ajaxData = (typeof ffc_ajax !== 'undefined') ? ffc_ajax : {};
+        var strings = ajaxData.strings || {};
+        var ajaxUrl = ajaxData.ajax_url || (typeof ajaxurl !== 'undefined' ? ajaxurl : '');
 
         // Show loading notification
         var loadingText = strings.loadingTemplate || 'Loading template...';
         showNotification(loadingText, 'info', 0);
 
-        fetch(templateUrl)
-            .then(function(response) {
-                if (!response.ok) {
-                    throw new Error('HTTP error! status: ' + response.status);
-                }
+        var postData = { action: 'ffc_load_template', nonce: ajaxData.nonce || '' };
+        templateId = parseInt(templateId, 10) || 0;
+        if (templateId > 0) {
+            postData.template_id = templateId;
+        } else {
+            postData.filename = filename || '';
+        }
 
-                return response.text();
-            })
-            .then(function(htmlContent) {
-                var $htmlField = $('#ffc_pdf_layout');
-
-                if ($htmlField.length) {
-                    setLayoutContent($htmlField, htmlContent);
-                    var successTemplate = strings.templateLoadedSuccess || 'Template "%s" loaded successfully!';
-                    var successMsg = successTemplate.replace('%s', displayName || filename);
-                    showNotification('✓ ' + successMsg, 'success', 3000);
+        $.post(ajaxUrl, postData)
+            .done(function(response) {
+                if (response && response.success) {
+                    var $htmlField = $('#ffc_pdf_layout');
+                    if ($htmlField.length) {
+                        // #865: the load response is a structured payload
+                        // { html, bg_image }. Tolerate the legacy bare-string
+                        // shape (older responses) by using response.data as-is.
+                        var data = response.data;
+                        var html = (data && typeof data === 'object') ? (data.html || '') : data;
+                        setLayoutContent($htmlField, html);
+                        // Carry the template's background image into the form's
+                        // Background Image URL field so a loaded template brings
+                        // its background with it (empty clears any prior value).
+                        if (data && typeof data === 'object' && 'bg_image' in data) {
+                            $('#ffc_bg_image_input').val(data.bg_image || '').trigger('change');
+                        }
+                        var successTemplate = strings.templateLoadedSuccess || 'Template "%s" loaded successfully!';
+                        var successMsg = successTemplate.replace('%s', displayName || filename || '');
+                        showNotification('✓ ' + successMsg, 'success', 3000);
+                    } else {
+                        var fieldMsg = strings.htmlFieldNotFound || 'HTML field not found.';
+                        showNotification('✗ ' + fieldMsg, 'error');
+                    }
                 } else {
-                    var errorMsg = strings.htmlFieldNotFound || 'HTML field not found.';
-                    showNotification('✗ ' + errorMsg, 'error');
+                    var notFoundMsg = strings.templateFileNotFound || 'Template file not found. Check if file exists in html/ folder.';
+                    showNotification('✗ ' + notFoundMsg, 'error', 8000);
                 }
             })
-            .catch(function(error) {
-                var errorMsg = '';
-                if (error.message.includes('404')) {
-                    errorMsg = strings.templateFileNotFound || 'Template file not found. Check if file exists in html/ folder.';
-                } else if (error.message.includes('403')) {
+            .fail(function(jqXHR) {
+                var errorMsg;
+                if (jqXHR && jqXHR.status === 403) {
                     errorMsg = strings.accessDenied || 'Access denied. Check file permissions.';
-                } else if (error.message.includes('Failed to fetch')) {
-                    errorMsg = strings.networkError || 'Network error. Check your connection.';
+                } else if (jqXHR && jqXHR.status === 404) {
+                    errorMsg = strings.templateFileNotFound || 'Template file not found. Check if file exists in html/ folder.';
                 } else {
-                    var errorTemplate = strings.errorLoadingTemplate || 'Error loading template: %s';
-                    errorMsg = errorTemplate.replace('%s', error.message);
+                    errorMsg = strings.networkError || 'Network error. Check your connection.';
                 }
-
                 showNotification('✗ ' + errorMsg, 'error', 8000);
             });
     }
+
+    // Save the current layout HTML as a new template in the DB pool (#865).
+    $(document).on('click', '#ffc_save_as_model_btn', function(e) {
+        e.preventDefault();
+        var showNotification = window.FFC.Admin.showNotification || function() {};
+        var ajaxData = (typeof ffc_ajax !== 'undefined') ? ffc_ajax : {};
+        var strings = ajaxData.strings || {};
+
+        // Flush CodeMirror into the textarea before reading (mirrors preview).
+        var $layout = $('#ffc_pdf_layout');
+        var $cm = $layout.nextAll('.CodeMirror').first();
+        if ($cm.length && $cm[0].CodeMirror && typeof $cm[0].CodeMirror.save === 'function') {
+            $cm[0].CodeMirror.save();
+        }
+        var html = $layout.val();
+        if (!html || !html.trim()) {
+            alert(strings.previewEmpty || 'The HTML editor is empty. Add a template first.');
+            return;
+        }
+
+        var title = window.prompt(strings.saveModelPrompt || 'Name for this template:', '');
+        if (title === null) {
+            return; // cancelled
+        }
+        title = title.trim();
+        if (!title) {
+            return;
+        }
+
+        showNotification(strings.loading || 'Loading...', 'info', 0);
+        $.post(ajaxData.ajax_url || (typeof ajaxurl !== 'undefined' ? ajaxurl : ''), {
+            action: 'ffc_save_template',
+            nonce: ajaxData.nonce || '',
+            title: title,
+            html: html,
+            // Round-trip the current background so a saved model carries it back
+            // when re-loaded (#865).
+            bg_image: $('#ffc_bg_image_input').val() || ''
+        })
+            .done(function(response) {
+                if (response && response.success) {
+                    showNotification('✓ ' + (strings.templateSaved || 'Template saved!'), 'success', 3000);
+                } else {
+                    showNotification('✗ ' + (strings.error || 'Error: '), 'error', 8000);
+                }
+            })
+            .fail(function() {
+                showNotification('✗ ' + (strings.connectionError || 'Connection error.'), 'error', 8000);
+            });
+    });
 
     // ==========================================================================
     // IMPORT HTML FILE
@@ -547,6 +649,66 @@
         });
 
         mediaUploader.open();
+    });
+
+    // ==========================================================================
+    // MEDIA LIBRARY - Inline Image Insert (#865 Phase 4)
+    // ==========================================================================
+    //
+    // Separate cached frame from the background picker above: this one's
+    // `select` handler inserts an <img> into the layout editor rather than
+    // writing the bg_image URL field, so the two must not share state.
+
+    var imageInserter;
+
+    $(document).on('click', '#ffc_btn_insert_image', function(e) {
+        e.preventDefault();
+        var showNotification = window.FFC.Admin.showNotification || function() {};
+        var strings = (typeof ffc_ajax !== 'undefined' && ffc_ajax.strings) ? ffc_ajax.strings : {};
+
+        if (typeof wp === 'undefined' || typeof wp.media === 'undefined') {
+            showNotification(strings.wpMediaNotAvailable || 'WordPress Media Library is not available. Please reload the page.', 'error');
+            return;
+        }
+
+        if (imageInserter) {
+            imageInserter.open();
+            return;
+        }
+
+        imageInserter = wp.media({
+            title: strings.insertImageTitle || 'Insert Image',
+            button: { text: strings.insertImageButton || 'Insert into layout' },
+            library: { type: 'image' },
+            multiple: false
+        });
+
+        imageInserter.on('select', function() {
+            var attachment = imageInserter.state().get('selection').first().toJSON();
+            var url = attachment.url || '';
+            if (!url) {
+                return;
+            }
+
+            // Resolve the active certificate-HTML editor: the form editor uses
+            // #ffc_pdf_layout, the cert-template edit screen uses
+            // #ffc_template_html. Whichever is present on this screen wins.
+            var $textarea = $('#ffc_pdf_layout, #ffc_template_html').first();
+            if (!$textarea.length) {
+                showNotification(strings.htmlTextareaNotFound || 'Error: HTML textarea not found', 'error');
+                return;
+            }
+
+            // Media Library URLs are Media-Library-hosted (update-safe), so the
+            // <img> the picker inserts never trips the save-time html/ linter.
+            var alt = (attachment.alt || '').replace(/"/g, '&quot;');
+            var tag = '<img src="' + url + '"' + (alt ? ' alt="' + alt + '"' : '') + ' />';
+            insertAtCursor($textarea, tag);
+
+            showNotification(strings.imageInserted || 'Image inserted into the layout.', 'success');
+        });
+
+        imageInserter.open();
     });
 
     // ==========================================================================

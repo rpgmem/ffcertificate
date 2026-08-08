@@ -94,12 +94,12 @@ async function reachInfoScreen(infoOverride) {
 async function reachStagedCta(postSpy, formUrl) {
 	window.$('.ffc-btn-schedule-exception').trigger('click');
 	await flush();
-	window.$('.ffc-sched-exc-end').val('17:00').trigger('change');
+	window.$('.ffc-schedule-exception-end').val('17:00').trigger('change');
 	postSpy.mockImplementation(() => postChain({ done: {
 		success: true,
 		data: { token: 'a.b', form_url: formUrl },
 	} }));
-	window.$('.ffc-sched-exc-confirm').trigger('click');
+	window.$('.ffc-schedule-exception-confirm').trigger('click');
 	await flush();
 }
 
@@ -176,7 +176,7 @@ describe('csv schedule-exception — staged CTA hand-off', () => {
 		const lastPayload = postSpy.mock.calls[postSpy.mock.calls.length - 1][1];
 		expect(lastPayload).toContain('action=ffc_public_schedule_exception');
 
-		const $open = window.$('.ffc-sched-exc-open');
+		const $open = window.$('.ffc-schedule-exception-open');
 		expect($open.length).toBe(1);
 		expect($open.attr('href')).toBe('https://example.test/the-form-page/');
 		expect($open.attr('target')).toBe('_blank');
@@ -188,12 +188,12 @@ describe('csv schedule-exception — staged CTA hand-off', () => {
 		const postSpy = await reachInfoScreen();
 		window.$('.ffc-btn-schedule-exception').trigger('click');
 		await flush();
-		window.$('.ffc-sched-exc-end').val('17:00').trigger('change');
+		window.$('.ffc-schedule-exception-end').val('17:00').trigger('change');
 		postSpy.mockImplementation(() => postChain({ done: { success: true, data: { token: 'a.b' } } }));
-		window.$('.ffc-sched-exc-confirm').trigger('click');
+		window.$('.ffc-schedule-exception-confirm').trigger('click');
 		await flush();
 
-		expect(window.$('.ffc-sched-exc-open').attr('href')).toBe('/');
+		expect(window.$('.ffc-schedule-exception-open').attr('href')).toBe('/');
 	});
 
 	it('shows a spinner + opening notice and holds the modal for a forced beat before removing it', async () => {
@@ -203,10 +203,10 @@ describe('csv schedule-exception — staged CTA hand-off', () => {
 		vi.useFakeTimers();
 		// triggerHandler invokes the bound click handler without jsdom
 		// attempting to follow the target="_blank" anchor.
-		window.$('.ffc-sched-exc-open').triggerHandler('click');
+		window.$('.ffc-schedule-exception-open').triggerHandler('click');
 
 		// Spinner + notice appear immediately; modal is still on screen.
-		expect(window.$('.ffc-sched-exc-spinner').length).toBe(1);
+		expect(window.$('.ffc-schedule-exception-spinner').length).toBe(1);
 		expect(window.$('.ffc-schedule-exception-modal').text()).toContain('Opening the participant form in a new tab…');
 		expect(window.$('.ffc-schedule-exception-modal').length).toBe(1);
 

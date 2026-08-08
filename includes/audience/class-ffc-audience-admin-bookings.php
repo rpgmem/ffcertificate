@@ -247,7 +247,7 @@ class AudienceAdminBookings {
 				</tbody>
 			</table>
 
-			<p class="description" style="margin-top: 15px;">
+			<p class="description ffc-audience-total-note">
 				<?php /* translators: %d: number of bookings */ printf( esc_html__( 'Total: %d bookings', 'ffcertificate' ), count( $bookings ) ); ?>
 			</p>
 		</div>

@@ -2,12 +2,29 @@
 /**
  * MigrationForeignKeys
  *
- * Adds FOREIGN KEY constraints to FFC tables for referential integrity.
- * Safety net: if the deleted_user hook (UserCleanup) fails, the database
- * enforces ON DELETE SET NULL / CASCADE automatically.
+ * Adds `user_id → wp_users(ID)` FOREIGN KEY constraints as the DB-level backstop
+ * to the app-layer `UserCleanup` hook: on user deletion the database enforces
+ * ON DELETE SET NULL / CASCADE even if the hook is bypassed (a direct SQL
+ * delete, a bulk operation).
  *
- * Requires InnoDB engine on all involved tables. If any table uses MyISAM,
- * that specific FK is skipped with a warning.
+ * **Why a migration (still necessary):** WordPress's `dbDelta()` cannot emit
+ * FOREIGN KEY clauses — none of the `CREATE TABLE` schemas declare them — so
+ * this is the *only* code path that creates these FKs. They are absent on a
+ * fresh install until this runs; it is not a spent one-off migration.
+ *
+ * **Covered set = a deliberate subset, not every `user_id` column.** The seven
+ * tables here mirror the tables `UserCleanup` anonymises on `deleted_user`
+ * (submissions, appointments, audience members/booking-users/schedule-perms,
+ * user-profiles) plus the `activity_log` audit table (FK-only — the audit trail
+ * is intentionally not app-nulled). Other user-linked tables enforce integrity
+ * at the app layer only: recruitment by design (a candidate is not a WP user
+ * until promotion). `ffc_reregistration_submissions` and the custom-field value
+ * tables carry a `user_id` covered by *neither* layer — tracked as a separate
+ * follow-up, not a gap this migration silently owns.
+ *
+ * Requires InnoDB on all involved tables. A MyISAM table skips its FK with a
+ * warning; the activation guard (`Activator::maybe_add_foreign_keys`) then keeps
+ * retrying until every FK exists rather than pinning an incomplete version.
  *
  * @package FreeFormCertificate\Migrations
  * @since 4.9.7

@@ -99,7 +99,6 @@ class LoaderMigrationsTest extends TestCase {
      */
     public static function migration_method_provider(): array {
         return array(
-            'legacy caps'  => array( 'ensure_legacy_caps_renamed', 'ffc_legacy_caps_renamed_v1', 'migrate_legacy_certificate_caps' ),
             'taxonomy'     => array( 'ensure_taxonomy_renamed', 'ffc_taxonomy_caps_renamed_v1', 'migrate_taxonomy_renames' ),
             'delete caps'  => array( 'ensure_delete_caps_granted', 'ffc_delete_caps_granted_v1', 'migrate_delete_caps_grant' ),
             'export caps'  => array( 'ensure_export_caps_granted', 'ffc_export_caps_granted_v1', 'migrate_export_caps_grant' ),

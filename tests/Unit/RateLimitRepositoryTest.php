@@ -114,6 +114,89 @@ class RateLimitRepositoryTest extends TestCase {
     }
 
     // ------------------------------------------------------------------
+    // #839 S5 — PII identifiers are hashed at rest on ffc_rate_limits;
+    // IP stays plaintext for the stats "top IPs" view.
+    // ------------------------------------------------------------------
+
+    public function test_increment_counter_hashes_non_ip_identifier(): void {
+        $email = 'user@example.com';
+        $this->wpdb->shouldReceive( 'get_row' )->once()->andReturn( null );
+        $this->wpdb->shouldReceive( 'insert' )
+            ->once()
+            ->with(
+                'wp_ffc_rate_limits',
+                Mockery::on(
+                    function ( $data ) use ( $email ) {
+                        return $data['identifier'] === hash( 'sha256', $email )
+                            && $data['identifier'] !== $email
+                            && 'email' === $data['type'];
+                    }
+                ),
+                Mockery::type( 'array' )
+            )
+            ->andReturn( 1 );
+
+        RateLimitRepository::increment_counter( 'email', $email, 'day', null );
+    }
+
+    public function test_increment_counter_keeps_ip_identifier_plaintext(): void {
+        $this->wpdb->shouldReceive( 'get_row' )->once()->andReturn( null );
+        $this->wpdb->shouldReceive( 'insert' )
+            ->once()
+            ->with(
+                'wp_ffc_rate_limits',
+                Mockery::on(
+                    static function ( $data ) {
+                        return '203.0.113.9' === $data['identifier'];
+                    }
+                ),
+                Mockery::type( 'array' )
+            )
+            ->andReturn( 1 );
+
+        RateLimitRepository::increment_counter( 'ip', '203.0.113.9', 'hour', null );
+    }
+
+    public function test_block_temporarily_hashes_non_ip_identifier(): void {
+        $cpf = '12345678909';
+        $this->wpdb->shouldReceive( 'insert' )
+            ->once()
+            ->with(
+                'wp_ffc_rate_limits',
+                Mockery::on(
+                    function ( $data ) use ( $cpf ) {
+                        return $data['identifier'] === hash( 'sha256', $cpf )
+                            && $data['identifier'] !== $cpf;
+                    }
+                ),
+                Mockery::type( 'array' )
+            )
+            ->andReturn( 1 );
+
+        RateLimitRepository::block_temporarily( 'cpf', $cpf, null, 24 );
+    }
+
+    public function test_read_side_hashes_non_ip_identifier_consistently(): void {
+        // The lookup must hash the same way the write does, or a hashed row
+        // would never be found. Capture the prepare() bind args and assert the
+        // hash — not the raw email — is what the query searches for.
+        $email    = 'user@example.com';
+        $captured = array();
+        $this->wpdb->shouldReceive( 'prepare' )->andReturnUsing(
+            function ( $sql, ...$args ) use ( &$captured ) {
+                $captured = array_merge( $captured, $args );
+                return $sql;
+            }
+        );
+        $this->wpdb->shouldReceive( 'get_var' )->once()->andReturn( '3' );
+
+        RateLimitRepository::get_count_from_db( 'email', $email, 'day', null );
+
+        $this->assertContains( hash( 'sha256', $email ), $captured );
+        $this->assertNotContains( $email, $captured );
+    }
+
+    // ------------------------------------------------------------------
     // get_submission_count
     // ------------------------------------------------------------------
 

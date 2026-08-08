@@ -354,40 +354,19 @@
    16. TEMPLATE LOADER CUSTOMIZATIONS
    ======================================== */
 
-/* Esconder o combo de templates */
+/* Hide the legacy template <select> in the layout metabox — the "Load" button
+   opens the JS-built template modal (ffc-admin-pdf.js) instead; the dropdown is
+   dead markup kept only for backward compatibility. */
 #ffc_template_select {
     display: none !important;
 }
 
-/* Organizar os botões lado a lado */
-#ffc_load_template_btn,
-#ffc_btn_import_html,
-#ffc_btn_media_lib {
-    display: inline-block;
-    margin-right: 10px;
-}
-
-/* Opcional: Melhorar estilo dos botões */
-#ffc_load_template_btn,
-#ffc_btn_import_html,
-#ffc_btn_media_lib {
-    padding: 8px 16px;
-    font-size: 14px;
-}
-
-/* Adicionar ícones aos botões (opcional) */
-#ffc_load_template_btn::before {
-    content: "📋 ";
-}
-
-#ffc_btn_import_html::before {
-    content: "📁 ";
-}
-
-#ffc_btn_media_lib::before {
-    content: "🖼️ ";
-}
-
+/* NOTE: the former per-id overrides here (padding/font-size/inline-block on
+   #ffc_btn_import_html / #ffc_btn_media_lib / #ffc_load_template_btn) were
+   removed — they over-sized those three buttons and broke icon centering by
+   overriding the unified `.ffc-action-group .button` toolbar (inline-flex).
+   All layout-action buttons now share that single rule for consistent
+   sizing, borders, and dashicon alignment. */
 
 /* ==========================================================================
    17. DATA MIGRATIONS TAB STYLES
@@ -413,10 +392,47 @@
    CORREÇÕES SPRINT 3.0 - v3.0.0
    ========================================================================== */
 
-/* Fix: Ícones não duplicar nos botões */
-.ffc-template-loader .button::before {
+
+/* Certificate layout actions: a consistent, wrapping toolbar of icon buttons.
+   Every button carries a leading dashicon; align and space them uniformly
+   instead of per-button inline styles. */
+.ffc-action-group {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    align-items: center;
+}
+
+.ffc-action-group .button,
+.ffc-template-loader .button {
+    display: inline-flex;
+    align-items: center;
+}
+
+.ffc-action-group .button .dashicons,
+.ffc-template-loader .button .dashicons {
+    margin-right: 4px;
+    font-size: 17px;
+    width: 17px;
+    height: 17px;
+    line-height: 1;
+}
+
+/* Inline autosave feedback for the template visibility toggle (edit screen). */
+.ffc-autosave-status {
     display: inline-block;
-    margin-right: 6px;
+    margin-left: 8px;
+    font-size: 12px;
+    font-style: italic;
+    vertical-align: middle;
+}
+
+.ffc-autosave-status.ffc-saved {
+    color: var(--ffc-success, #1a7f37);
+}
+
+.ffc-autosave-status.ffc-error {
+    color: var(--ffc-danger, #b32d2e);
 }
 
 /* ==========================================================================
@@ -1102,4 +1118,24 @@ p.ffc-datetime-order-error {
 		border-left: none;
 		border-bottom-color: var(--ffc-primary);
 	}
+}
+
+/* 6.18.0 (#890 slices 4-5) — component styles lifted from inline styles in the
+   recruitment/reregistration admin templates. */
+
+/* Recruitment reasons list: colour swatch (the reason colour comes from the
+   --ffc-color custom property set inline). */
+.ffc-reason-color-swatch {
+    display: inline-block;
+    width: 1em;
+    height: 1em;
+    border: 1px solid #ccc;
+    vertical-align: middle;
+    background-color: var(--ffc-color);
+}
+
+/* Block radio option in a fieldset (repeated per choice). */
+.ffc-radio-option {
+    display: block;
+    margin-bottom: 4px;
 }

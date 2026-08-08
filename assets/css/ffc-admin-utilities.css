@@ -26,18 +26,14 @@
 /**
  * Margin top utilities
  */
-.ffc-mt15 {
-    margin-top: 15px;
-}
-
-.ffc-mt20 {
-    margin-top: 20px;
+.ffc-mt-5 {
+    margin-top: 5px;
 }
 
 /**
  * Margin bottom utilities
  */
-.ffc-mb5 {
+.ffc-mb-5 {
     margin-bottom: 5px;
 }
 
@@ -55,6 +51,42 @@
 
 .ffc-mb-15 {
     margin-bottom: 15px;
+}
+
+/* 6.18.0 (#890 slice 1) — spacing/layout utilities lifted from inline styles
+   across the admin/settings views. */
+.ffc-mt-8 {
+    margin-top: 8px;
+}
+
+.ffc-mt-12 {
+    margin-top: 12px;
+}
+
+.ffc-mt-16 {
+    margin-top: 16px;
+}
+
+.ffc-mb-2 {
+    margin-bottom: 2px;
+}
+
+.ffc-mb-4 {
+    margin-bottom: 4px;
+}
+
+.ffc-ml-18 {
+    margin-left: 18px;
+}
+
+.ffc-inline {
+    display: inline;
+}
+
+/* Disc bullet list with indent (WP admin resets ul list-style). */
+.ffc-list-disc {
+    list-style: disc;
+    margin-left: 20px;
 }
 
 /* ==========================================================================
@@ -227,6 +259,19 @@
 
 .ffc-debug-group-blurb {
     margin: 0 0 8px 0;
+    font-style: italic;
+    color: var(--ffc-text-muted, #50575e);
+}
+
+/* 6.18.0 (#886) — URL Shortener settings: per-post-type Shorten/Expose grid
+   + backfill status line. */
+.ffc-url-shortener-types .ffc-col-center {
+    text-align: center;
+    width: 6em;
+}
+
+.ffc-inline-status {
+    margin-left: 8px;
     font-style: italic;
     color: var(--ffc-text-muted, #50575e);
 }

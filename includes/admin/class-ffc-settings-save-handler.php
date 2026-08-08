@@ -149,6 +149,14 @@ class SettingsSaveHandler {
 			$clean['csv_download_page_url'] = esc_url_raw( $new['csv_download_page_url'] );
 		}
 
+		// Branding logos (#865 Phase 2) — {{logo_gov}} / {{logo_org}} sources.
+		if ( isset( $new['logo_gov'] ) ) {
+			$clean['logo_gov'] = esc_url_raw( $new['logo_gov'] );
+		}
+		if ( isset( $new['logo_org'] ) ) {
+			$clean['logo_org'] = esc_url_raw( $new['logo_org'] );
+		}
+
 		// v4.6.16: Activity Log + Debug moved to Advanced tab.
 		$ffc_tab = isset( $_POST['_ffc_tab'] ) ? sanitize_key( wp_unslash( $_POST['_ffc_tab'] ) ) : '';
 
@@ -436,6 +444,20 @@ class SettingsSaveHandler {
 			} else {
 				$clean['url_shortener_post_types'] = array();
 			}
+
+			// "Expose as shortlink" is a strict subset of the shortened types:
+			// intersect the submitted expose list with the (already-sanitized)
+			// post-types list so the stored value can never expose a type that
+			// is not also shortened, even if the coupling JS was bypassed.
+            // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized, WordPress.Security.ValidatedSanitizedInput.MissingUnslash
+			if ( isset( $_POST['ffc_settings']['url_shortener_expose_post_types'] ) && is_array( $_POST['ffc_settings']['url_shortener_expose_post_types'] ) ) {
+				$expose = array_map( 'sanitize_key', wp_unslash( $_POST['ffc_settings']['url_shortener_expose_post_types'] ) );
+			} else {
+				$expose = array();
+			}
+			$clean['url_shortener_expose_post_types'] = array_values(
+				array_intersect( $expose, $clean['url_shortener_post_types'] )
+			);
 		}
 
         // phpcs:enable WordPress.Security.NonceVerification.Missing

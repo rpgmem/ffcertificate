@@ -46,6 +46,13 @@ class SubmissionVerifyRestControllerTest extends TestCase {
         Functions\when( 'wp_unslash' )->returnArg();
         Functions\when( 'FreeFormCertificate\Core\sanitize_text_field' )->returnArg();
         Functions\when( 'FreeFormCertificate\Core\wp_unslash' )->returnArg();
+        Functions\when( 'is_email' )->alias(
+            fn ( $email ) => false !== filter_var( (string) $email, FILTER_VALIDATE_EMAIL )
+        );
+        // Default the PII tier to MASKED (uid <= 0 short-circuits in
+        // PiiAccessPolicy). The admin list/single handlers now resolve a tier
+        // (#838 S2); tests that need reveal/unmasked override this per-test.
+        Functions\when( 'get_current_user_id' )->justReturn( 0 );
         $_SERVER['REMOTE_ADDR'] = '203.0.113.7';
     }
 
@@ -125,8 +132,118 @@ class SubmissionVerifyRestControllerTest extends TestCase {
     }
 
     // ------------------------------------------------------------------
+    // get_submission() — PII tier (#838 S2)
+    // ------------------------------------------------------------------
+
+    /**
+     * Fixture row carrying every PII surface: top-level email/cpf/rf columns
+     * plus a `data` blob mixing a PII key (cpf) with a legitimate non-PII field.
+     *
+     * @return array<string, mixed>
+     */
+    private function pii_submission_row(): array {
+        return array(
+            'id'              => 30,
+            'form_id'         => 3,
+            'auth_code'       => 'RAWCODE30303',
+            'submission_date' => '2030-05-05',
+            'status'          => 'publish',
+            'user_id'         => 99,
+            'data'            => '{"cpf":"11144477735","course":"Math"}',
+            'email'           => 'ana@x.com',
+            'cpf'             => '11144477735',
+            'rf'              => '7654321',
+        );
+    }
+
+    public function test_get_submission_masks_pii_for_view_tier(): void {
+        Functions\when( 'get_post' )->justReturn( (object) array( 'post_title' => 'Cert' ) );
+        // uid 5, no manage_options, non-admin role, no PII cap, not the owner
+        // (99) → MASKED tier.
+        Functions\when( 'get_current_user_id' )->justReturn( 5 );
+        Functions\when( 'user_can' )->justReturn( false );
+        Functions\when( 'get_user_by' )->justReturn( (object) array( 'roles' => array( 'subscriber' ) ) );
+
+        $repo = Mockery::mock( SubmissionRepository::class );
+        $repo->shouldReceive( 'findById' )->once()->andReturn( $this->pii_submission_row() );
+
+        $ctrl    = new SubmissionRestController( 'ffc/v1', $repo );
+        $request = Mockery::mock( 'WP_REST_Request' );
+        $request->shouldReceive( 'get_param' )->with( 'id' )->andReturn( 30 );
+
+        $result = $ctrl->get_submission( $request );
+
+        // Top-level PII masked, never raw.
+        $this->assertStringContainsString( '*', $result['cpf'] );
+        $this->assertStringContainsString( '*', $result['rf'] );
+        $this->assertStringContainsString( '*', $result['email'] );
+        $this->assertNotSame( '11144477735', $result['cpf'] );
+        $this->assertNotSame( 'ana@x.com', $result['email'] );
+        // PII inside the data blob masked; the non-PII field survives verbatim.
+        $this->assertStringContainsString( '*', $result['data']['cpf'] );
+        $this->assertNotSame( '11144477735', $result['data']['cpf'] );
+        $this->assertSame( 'Math', $result['data']['course'] );
+    }
+
+    public function test_get_submission_reveals_plaintext_for_pii_cap_holder(): void {
+        Functions\when( 'get_post' )->justReturn( (object) array( 'post_title' => 'Cert' ) );
+        // uid 7, holds ffc_view_certificates_pii (not manage_options) → REVEAL.
+        Functions\when( 'get_current_user_id' )->justReturn( 7 );
+        Functions\when( 'get_user_by' )->justReturn( (object) array( 'roles' => array( 'subscriber' ) ) );
+        Functions\when( 'user_can' )->alias( fn ( $uid, $cap ) => 'ffc_view_certificates_pii' === $cap );
+        // Activity log stays disabled (get_option → array()), so the reveal-tier
+        // audit call no-ops without a DB write; we assert the reveal output.
+
+        $repo = Mockery::mock( SubmissionRepository::class );
+        $repo->shouldReceive( 'findById' )->once()->andReturn( $this->pii_submission_row() );
+
+        $ctrl    = new SubmissionRestController( 'ffc/v1', $repo );
+        $request = Mockery::mock( 'WP_REST_Request' );
+        $request->shouldReceive( 'get_param' )->with( 'id' )->andReturn( 30 );
+
+        $result = $ctrl->get_submission( $request );
+
+        // Reveal tier: plaintext, not masked.
+        $this->assertSame( 'ana@x.com', $result['email'] );
+        $this->assertStringNotContainsString( '*', $result['cpf'] );
+        $this->assertStringContainsString( '111', $result['cpf'] );
+        // The data blob is returned raw for the reveal tier.
+        $this->assertSame( '11144477735', $result['data']['cpf'] );
+        $this->assertSame( 'Math', $result['data']['course'] );
+    }
+
+    // ------------------------------------------------------------------
     // verify_certificate()
     // ------------------------------------------------------------------
+
+    public function test_verify_certificate_masks_data_blob(): void {
+        Functions\when( 'get_post' )->justReturn( (object) array( 'post_title' => 'Cert Form' ) );
+
+        $repo = Mockery::mock( SubmissionRepository::class );
+        $repo->shouldReceive( 'findByAuthCode' )->once()->andReturn(
+            array(
+                'id'              => 40,
+                'form_id'         => 4,
+                'status'          => 'publish',
+                'submission_date' => '2030-06-06',
+                'data'            => '{"cpf":"11144477735","email":"bob@y.com","course":"Chemistry"}',
+            )
+        );
+
+        $ctrl    = new SubmissionRestController( 'ffc/v1', $repo );
+        $request = Mockery::mock( 'WP_REST_Request' );
+        $request->shouldReceive( 'get_param' )->with( 'auth_code' )->andReturn( 'CLEANCODE123' );
+
+        $result = $ctrl->verify_certificate( $request );
+
+        $data = $result['certificate']['data'];
+        // PII keys inside the public /verify blob are masked; non-PII survives.
+        $this->assertStringContainsString( '*', $data['cpf'] );
+        $this->assertNotSame( '11144477735', $data['cpf'] );
+        $this->assertStringContainsString( '*', $data['email'] );
+        $this->assertNotSame( 'bob@y.com', $data['email'] );
+        $this->assertSame( 'Chemistry', $data['course'] );
+    }
 
     public function test_verify_certificate_returns_error_without_repo(): void {
         $ctrl    = new SubmissionRestController( 'ffc/v1', null );

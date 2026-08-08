@@ -86,13 +86,13 @@ $ffc_font_options  = array(
 						<?php
 						list( $ffc_key, $ffc_type, $ffc_label ) = $ffc_field;
 						$ffc_name                               = 'ffc_email_template[' . $ffc_key . ']';
-						$ffc_id                                 = 'ffc-em-' . $ffc_key;
+						$ffc_id                                 = 'ffc-email-model-' . $ffc_key;
 						$ffc_value                              = (string) ( $ffc_model[ $ffc_key ] ?? '' );
 						?>
 						<div class="ffc-email-model-row">
 							<label for="<?php echo esc_attr( $ffc_id ); ?>"><?php echo esc_html( $ffc_label ); ?></label>
 							<?php if ( 'color' === $ffc_type ) : ?>
-								<input type="text" class="ffc-em-color" id="<?php echo esc_attr( $ffc_id ); ?>" name="<?php echo esc_attr( $ffc_name ); ?>" value="<?php echo esc_attr( $ffc_value ); ?>" data-ffc-model-field="<?php echo esc_attr( $ffc_key ); ?>" data-default-color="<?php echo esc_attr( $ffc_value ); ?>">
+								<input type="text" class="ffc-email-model-color" id="<?php echo esc_attr( $ffc_id ); ?>" name="<?php echo esc_attr( $ffc_name ); ?>" value="<?php echo esc_attr( $ffc_value ); ?>" data-ffc-model-field="<?php echo esc_attr( $ffc_key ); ?>" data-default-color="<?php echo esc_attr( $ffc_value ); ?>">
 							<?php elseif ( 'number' === $ffc_type ) : ?>
 								<input type="number" min="0" class="small-text" id="<?php echo esc_attr( $ffc_id ); ?>" name="<?php echo esc_attr( $ffc_name ); ?>" value="<?php echo esc_attr( $ffc_value ); ?>" data-ffc-model-field="<?php echo esc_attr( $ffc_key ); ?>">
 							<?php elseif ( 'align' === $ffc_type ) : ?>
@@ -108,10 +108,10 @@ $ffc_font_options  = array(
 									<?php endforeach; ?>
 								</select>
 							<?php elseif ( 'logo' === $ffc_type ) : ?>
-								<span class="ffc-em-logo">
+								<span class="ffc-email-model-logo">
 									<input type="text" class="regular-text" id="<?php echo esc_attr( $ffc_id ); ?>" name="<?php echo esc_attr( $ffc_name ); ?>" value="<?php echo esc_attr( $ffc_value ); ?>" data-ffc-model-field="<?php echo esc_attr( $ffc_key ); ?>" placeholder="https://…">
-									<button type="button" class="button ffc-em-logo-select"><?php esc_html_e( 'Select image', 'ffcertificate' ); ?></button>
-									<button type="button" class="button-link ffc-em-logo-clear"><?php esc_html_e( 'Clear', 'ffcertificate' ); ?></button>
+									<button type="button" class="button ffc-email-model-logo-select"><?php esc_html_e( 'Select image', 'ffcertificate' ); ?></button>
+									<button type="button" class="button-link ffc-email-model-logo-clear"><?php esc_html_e( 'Clear', 'ffcertificate' ); ?></button>
 								</span>
 							<?php elseif ( 'textarea' === $ffc_type ) : ?>
 								<textarea class="large-text" rows="2" id="<?php echo esc_attr( $ffc_id ); ?>" name="<?php echo esc_attr( $ffc_name ); ?>" data-ffc-model-field="<?php echo esc_attr( $ffc_key ); ?>"><?php echo esc_textarea( $ffc_value ); ?></textarea>
@@ -121,7 +121,7 @@ $ffc_font_options  = array(
 				</fieldset>
 			<?php endforeach; ?>
 
-			<p class="description ffc-em-tokens">
+			<p class="description ffc-email-model-tokens">
 				<?php esc_html_e( 'Footer tokens:', 'ffcertificate' ); ?>
 				<code>{{site_title}}</code> <code>{{site_url}}</code> <code>{{home_url}}</code>
 				<code>{{admin_email}}</code> <code>{{recipient}}</code> <code>{{date}}</code> <code>{{year}}</code>

@@ -62,7 +62,7 @@ $ffcertificate_base_url = admin_url( 'admin.php?page=ffc-settings&tab=activity_l
 
 		<!-- Search Box -->
 		<div class="alignright actions">
-			<form method="get" style="display:inline">
+			<form method="get" class="ffc-inline">
 				<input type="hidden" name="page" value="ffc-settings">
 				<input type="hidden" name="tab" value="activity_log">
 				<?php if ( $level ) : ?>
@@ -96,9 +96,12 @@ $ffcertificate_base_url = admin_url( 'admin.php?page=ffc-settings&tab=activity_l
 	<!-- Logs Table -->
 	<div id="ffc-activity-log-table">
 	<?php if ( empty( $logs ) ) : ?>
-		<div class="notice notice-info">
-			<p><?php esc_html_e( 'No activity logs found.', 'ffcertificate' ); ?></p>
-		</div>
+		<?php
+		wp_admin_notice(
+			esc_html__( 'No activity logs found.', 'ffcertificate' ),
+			array( 'type' => 'info' )
+		);
+		?>
 	<?php else : ?>
 		<table class="wp-list-table widefat fixed striped">
 			<thead>

@@ -86,6 +86,31 @@ class AdminAssetsManager {
 			return;
 		}
 
+		self::enqueue_code_editor_for( 'ffc_pdf_layout' );
+	}
+
+	/**
+	 * Mount the shared CodeMirror HTML editor on an arbitrary textarea.
+	 *
+	 * Wires `wp_enqueue_code_editor()` + `ffc-admin-code-editor.js` + the
+	 * `ffcCodeEditor` localization for the given textarea id, so every screen
+	 * that edits certificate HTML (the form-editor layout box and the
+	 * cert-template CPT edit screen) gets a byte-for-byte identical editor. Also
+	 * enqueues the admin base styles so the `.ffc-code-editor-wrapper` and
+	 * placeholder-token styling are present on screens outside the main bundle.
+	 *
+	 * When the user disabled "Syntax Highlighting" in their profile
+	 * `wp_enqueue_code_editor()` returns false and the JS falls back to the plain
+	 * textarea. Pass `$read_only = true` for shipped defaults so the editor
+	 * renders non-editable, matching the server-side read-only textarea.
+	 *
+	 * @param string $textarea_id Id of the textarea to enhance.
+	 * @param bool   $read_only   Whether the editor should be read-only.
+	 * @return void
+	 */
+	public static function enqueue_code_editor_for( string $textarea_id, bool $read_only = false ): void {
+		self::enqueue_admin_base_styles();
+
 		$theme_choice = self::resolve_code_editor_theme();
 		$s            = \FreeFormCertificate\Core\AssetHelper::asset_suffix();
 
@@ -98,6 +123,12 @@ class AdminAssetsManager {
 			'tabSize'       => 2,
 			'lint'          => false,
 		);
+
+		if ( $read_only ) {
+			// 'nocursor' keeps the read-only editor from taking focus/caret,
+			// reinforcing that shipped defaults can't be edited here.
+			$codemirror_config['readOnly'] = 'nocursor';
+		}
 
 		if ( 'dark' === $theme_choice ) {
 			$codemirror_config['theme'] = 'ffc-dark';
@@ -130,6 +161,7 @@ class AdminAssetsManager {
 			array(
 				'enabled'    => false !== $editor_settings,
 				'settings'   => false !== $editor_settings ? $editor_settings : null,
+				'textareaId' => $textarea_id,
 				'profileUrl' => admin_url( 'profile.php#syntax_highlighting' ),
 				'theme'      => $theme_choice,
 				'strings'    => array(
@@ -137,6 +169,78 @@ class AdminAssetsManager {
 					'openProfile'          => __( 'Open profile', 'ffcertificate' ),
 				),
 			)
+		);
+	}
+
+	/**
+	 * Enqueue the certificate image tools (Background Image + Insert Image) on a
+	 * screen outside the main form-editor bundle — currently the cert-template
+	 * CPT edit screen.
+	 *
+	 * The buttons are the same delegated handlers as the form editor
+	 * (`#ffc_btn_media_lib` / `#ffc_btn_insert_image` in `ffc-admin-pdf.js`), so
+	 * this loads that module + `wp.media` + a compact `ffc_ajax` localization
+	 * carrying only the strings those two handlers read. The insert-image handler
+	 * resolves its target textarea generically (`#ffc_pdf_layout, #ffc_template_html`),
+	 * so no per-screen JS is needed.
+	 *
+	 * @return void
+	 */
+	public static function enqueue_image_tools(): void {
+		$s = \FreeFormCertificate\Core\AssetHelper::asset_suffix();
+
+		wp_enqueue_media();
+
+		// ffc-admin-pdf depends on ffc-core (namespace + module registry).
+		wp_enqueue_script(
+			'ffc-core',
+			FFC_PLUGIN_URL . "assets/js/ffc-core{$s}.js",
+			array( 'jquery' ),
+			FFC_VERSION,
+			true
+		);
+		wp_localize_script( 'ffc-core', 'ffcCoreConfig', array( 'version' => FFC_VERSION ) );
+
+		wp_enqueue_script(
+			'ffc-admin-pdf',
+			FFC_PLUGIN_URL . "assets/js/ffc-admin-pdf{$s}.js",
+			array( 'jquery', 'ffc-core' ),
+			FFC_VERSION,
+			true
+		);
+		wp_localize_script(
+			'ffc-admin-pdf',
+			'ffc_ajax',
+			array(
+				'ajax_url' => admin_url( 'admin-ajax.php' ),
+				'nonce'    => wp_create_nonce( 'ffc_admin_pdf_nonce' ),
+				'strings'  => self::image_tool_strings(),
+			)
+		);
+	}
+
+	/**
+	 * The `ffc_ajax.strings` subset the Background Image + Insert Image handlers
+	 * in `ffc-admin-pdf.js` read.
+	 *
+	 * The canonical form-editor localization in {@see self::get_localization_data()}
+	 * carries the same msgids inline; kept here so screens outside that bundle
+	 * (the cert-template edit screen) localize an identical, translated set
+	 * without pulling the full form-editor payload. Both resolve through the same
+	 * `__()` msgids, so translations never diverge.
+	 *
+	 * @return array<string, string>
+	 */
+	public static function image_tool_strings(): array {
+		return array(
+			'wpMediaNotAvailable'     => __( 'WordPress Media Library is not available. Please reload the page.', 'ffcertificate' ),
+			'chooseBackgroundImage'   => __( 'Choose Background Image', 'ffcertificate' ),
+			'useThisImage'            => __( 'Use this image', 'ffcertificate' ),
+			'backgroundImageSelected' => __( 'Background image selected!', 'ffcertificate' ),
+			'insertImageTitle'        => __( 'Insert Image', 'ffcertificate' ),
+			'insertImageButton'       => __( 'Insert into layout', 'ffcertificate' ),
+			'htmlTextareaNotFound'    => __( 'Error: HTML textarea not found', 'ffcertificate' ),
+			'imageInserted'           => __( 'Image inserted into the layout.', 'ffcertificate' ),
 		);
 	}
 
@@ -229,6 +333,36 @@ class AdminAssetsManager {
 	private function enqueue_css_assets(): void {
 		$s = \FreeFormCertificate\Core\AssetHelper::asset_suffix();
 
+		// 1-4. The shared admin base-style chain (pdf-core → common →
+		// admin-utilities → admin-css). Extracted so screens outside the main
+		// FFC bundle (e.g. the cert-template CPT edit screen) can load the same
+		// foundation — notably the `.ffc-code-editor-wrapper` styling — without
+		// duplicating the chain.
+		self::enqueue_admin_base_styles();
+
+		// 5. Submissions page styles (depends on ffc-admin.css)
+		wp_enqueue_style(
+			'ffc-admin-submissions-css',
+			FFC_PLUGIN_URL . "assets/css/ffc-admin-submissions{$s}.css",
+			array( 'ffc-admin-css' ),
+			FFC_VERSION
+		);
+	}
+
+	/**
+	 * Enqueue the shared admin base-style chain (pdf-core → common →
+	 * admin-utilities → admin-css).
+	 *
+	 * Idempotent: WordPress no-ops a second enqueue of an already-queued handle,
+	 * so screens that also run the full bundle pay nothing. Exposed static so the
+	 * cert-template CPT edit screen can mount the same CodeMirror styling as the
+	 * form editor.
+	 *
+	 * @return void
+	 */
+	public static function enqueue_admin_base_styles(): void {
+		$s = \FreeFormCertificate\Core\AssetHelper::asset_suffix();
+
 		// 1. Base styles (PDF core)
 		wp_enqueue_style(
 			'ffc-pdf-core',
@@ -258,14 +392,6 @@ class AdminAssetsManager {
 			'ffc-admin-css',
 			FFC_PLUGIN_URL . "assets/css/ffc-admin{$s}.css",
 			array( 'ffc-pdf-core', 'ffc-common', 'ffc-admin-utilities' ),
-			FFC_VERSION
-		);
-
-		// 5. Submissions page styles (depends on ffc-admin.css)
-		wp_enqueue_style(
-			'ffc-admin-submissions-css',
-			FFC_PLUGIN_URL . "assets/css/ffc-admin-submissions{$s}.css",
-			array( 'ffc-admin-css' ),
 			FFC_VERSION
 		);
 	}
@@ -479,6 +605,11 @@ class AdminAssetsManager {
 
 				// Template Manager.
 				'selectTemplate'          => __( 'Select a Template', 'ffcertificate' ),
+				'templateDefaultBadge'    => __( 'Default template', 'ffcertificate' ),
+				'templateCustomBadge'     => __( 'My template', 'ffcertificate' ),
+				/* translators: prompt asking for a name when saving the current layout as a reusable template */
+				'saveModelPrompt'         => __( 'Name for this template:', 'ffcertificate' ),
+				'templateSaved'           => __( 'Template saved!', 'ffcertificate' ),
 				'cancel'                  => __( 'Cancel', 'ffcertificate' ),
 				'loadingTemplate'         => __( 'Loading template...', 'ffcertificate' ),
 				/* translators: %s: error message, %s: error message */
@@ -496,6 +627,9 @@ class AdminAssetsManager {
 				'htmlTextareaNotFound'    => __( 'Error: HTML textarea not found', 'ffcertificate' ),
 				'wpMediaNotAvailable'     => __( 'WordPress Media Library is not available. Please reload the page.', 'ffcertificate' ),
 				'backgroundImageSelected' => __( 'Background image selected!', 'ffcertificate' ),
+				'insertImageTitle'        => __( 'Insert Image', 'ffcertificate' ),
+				'insertImageButton'       => __( 'Insert into layout', 'ffcertificate' ),
+				'imageInserted'           => __( 'Image inserted into the layout.', 'ffcertificate' ),
 
 				// Certificate Preview.
 				'previewTitle'            => __( 'Certificate Preview', 'ffcertificate' ),
@@ -510,19 +644,53 @@ class AdminAssetsManager {
 	 * Build the certificate-layout template list shown in the form-editor
 	 * "Load template" modal.
 	 *
-	 * Scans `html/*.html` and keeps filenames whose basename contains
-	 * "certificate" anywhere (case-insensitive) — that's the convention
-	 * agreed in #443 for which bundled HTML files are valid layouts for
-	 * the Certificate HTML Editor (excludes receipt / ficha / atestado
-	 * templates that live in the same directory).
+	 * Primary source (#865): the DB-backed template pool, via
+	 * {@see CertTemplateReader::list_for_editor()} — visible templates,
+	 * defaults first, each carrying its post `id` (the JS posts `template_id`
+	 * to load it). The `file` key is empty for pool entries.
 	 *
-	 * Labels are derived from the filename: strip `.html`, replace `_`
-	 * with space, title-case the words. So `default_certificate_1.html`
-	 * → "Default Certificate 1".
+	 * Falls back to the legacy `html/` glob when the pool is empty (a site
+	 * whose pool hasn't seeded yet) — a deprecated shim (#865 phase-4) whose
+	 * entries carry `id` 0 and a `file` basename, so the JS posts the legacy
+	 * `filename` param instead. Removed once the pool seeds on every install.
 	 *
-	 * @return array<int,array{value: string, label: string}>
+	 * @return array<int,array{id: int, label: string, is_default: bool, file: string}>
 	 */
 	private static function discover_layout_templates(): array {
+		$pool = CertTemplateReader::list_for_editor();
+		if ( ! empty( $pool ) ) {
+			return array_map(
+				static function ( array $tpl ): array {
+					return array(
+						'id'         => $tpl['id'],
+						'label'      => $tpl['label'],
+						'is_default' => $tpl['is_default'],
+						'file'       => '',
+					);
+				},
+				$pool
+			);
+		}
+
+		return self::discover_layout_templates_legacy_glob();
+	}
+
+	/**
+	 * Deprecated fallback (#865 phase-4): the pre-pool `html/` glob.
+	 *
+	 * Scans `html/*.html` and keeps filenames whose basename contains
+	 * "certificate" anywhere (case-insensitive) — the #443 convention for
+	 * which bundled HTML files are valid certificate layouts (excludes
+	 * receipt / ficha / atestado templates in the same directory). Labels
+	 * are derived from the filename: strip `.html`, replace `_` with space,
+	 * title-case. So `default_certificate_1.html` → "Default Certificate 1".
+	 *
+	 * Entries carry `id` 0 and the `file` basename so the front-end posts the
+	 * legacy `filename` param. Removed once the pool is the sole source.
+	 *
+	 * @return array<int,array{id: int, label: string, is_default: bool, file: string}>
+	 */
+	private static function discover_layout_templates_legacy_glob(): array {
 		$dir   = FFC_PLUGIN_DIR . 'html/';
 		$paths = glob( $dir . '*.html' );
 		if ( ! $paths ) {
@@ -538,8 +706,10 @@ class AdminAssetsManager {
 			$stem  = (string) preg_replace( '/\.html$/i', '', $name );
 			$label = ucwords( str_replace( '_', ' ', $stem ) );
 			$out[] = array(
-				'value' => $name,
-				'label' => $label,
+				'id'         => 0,
+				'label'      => $label,
+				'is_default' => true,
+				'file'       => $name,
 			);
 		}
 		return $out;

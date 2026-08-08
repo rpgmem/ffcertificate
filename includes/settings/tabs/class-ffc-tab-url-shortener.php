@@ -47,6 +47,28 @@ class TabUrlShortener extends SettingsTab {
 		$active_tab = isset( $_GET['tab'] ) ? sanitize_key( $_GET['tab'] ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Tab parameter for conditional script loading.
 		if ( 'url_shortener' === $active_tab ) {
 			$this->enqueue_autosave_infra();
+
+			$suffix = \FreeFormCertificate\Core\AssetHelper::asset_suffix();
+			wp_enqueue_script(
+				'ffc-url-shortener-settings',
+				FFC_PLUGIN_URL . "assets/js/ffc-url-shortener-settings{$suffix}.js",
+				array( 'jquery' ),
+				FFC_VERSION,
+				true
+			);
+			wp_localize_script(
+				'ffc-url-shortener-settings',
+				'ffcUrlShortenerSettings',
+				array(
+					'ajaxUrl' => admin_url( 'admin-ajax.php' ),
+					'i18n'    => array(
+						'working'       => __( 'Generating…', 'ffcertificate' ),
+						'done'          => __( 'Done.', 'ffcertificate' ),
+						'createdSuffix' => __( 'short URLs created.', 'ffcertificate' ),
+						'error'         => __( 'An error occurred.', 'ffcertificate' ),
+					),
+				)
+			);
 		}
 	}
 
@@ -60,9 +82,10 @@ class TabUrlShortener extends SettingsTab {
 			$settings = $this;
 			include $view_file;
 		} else {
-			echo '<div class="notice notice-error"><p>';
-			echo esc_html__( 'URL Shortener settings view file not found.', 'ffcertificate' );
-			echo '</p></div>';
+			wp_admin_notice(
+				esc_html__( 'URL Shortener settings view file not found.', 'ffcertificate' ),
+				array( 'type' => 'error' )
+			);
 		}
 	}
 }

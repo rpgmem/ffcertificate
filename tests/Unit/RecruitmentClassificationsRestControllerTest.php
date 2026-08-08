@@ -48,6 +48,7 @@ class RecruitmentClassificationsRestControllerTest extends TestCase {
         Functions\when( 'is_user_logged_in' )->justReturn( false );
         Functions\when( 'get_current_user_id' )->justReturn( 42 );
         Functions\when( 'sanitize_text_field' )->returnArg();
+        Functions\when( 'size_format' )->justReturn( '10 MB' );
 
         $this->registered_routes = array();
         Functions\when( 'register_rest_route' )->alias(
@@ -84,13 +85,19 @@ class RecruitmentClassificationsRestControllerTest extends TestCase {
      * controller's file_get_contents() succeeds.
      *
      * @param string $content CSV body.
-     * @return array<string, array{tmp_name: string}>
+     * @return array<string, array{tmp_name: string, name: string, size: int}>
      */
     private function csv_files( string $content = "rank,name\n1,Ana\n" ): array {
         $path = tempnam( sys_get_temp_dir(), 'ffc-csv-' );
         file_put_contents( $path, $content );
         $this->tmp_files[] = $path;
-        return array( 'csv_file' => array( 'tmp_name' => $path ) );
+        return array(
+            'csv_file' => array(
+                'tmp_name' => $path,
+                'name'     => 'ranking.csv',
+                'size'     => strlen( $content ),
+            ),
+        );
     }
 
     private function make_request( array $params, array $files = array() ): \WP_REST_Request {
@@ -193,6 +200,26 @@ class RecruitmentClassificationsRestControllerTest extends TestCase {
     // ------------------------------------------------------------------
     // import_csv() — failure path
     // ------------------------------------------------------------------
+
+    public function test_import_csv_rejects_non_csv_extension(): void {
+        // #839 S9 — a spoofed non-CSV upload is rejected before the whole-file
+        // read, regardless of the (spoofable) browser MIME type.
+        $files                     = $this->csv_files();
+        $files['csv_file']['name'] = 'payload.php';
+        $result                    = $this->controller->import_csv( $this->make_request( array( 'id' => 7 ), $files ) );
+        $this->assertInstanceOf( \WP_Error::class, $result );
+        $this->assertSame( 'recruitment_csv_file_type', $result->get_error_code() );
+    }
+
+    public function test_import_csv_rejects_oversize_upload(): void {
+        // #839 S9 — an upload over the size cap is rejected (413) before it is
+        // read whole into memory.
+        $files                     = $this->csv_files();
+        $files['csv_file']['size'] = 20 * 1024 * 1024; // 20 MB > 10 MB cap.
+        $result                    = $this->controller->import_csv( $this->make_request( array( 'id' => 7 ), $files ) );
+        $this->assertInstanceOf( \WP_Error::class, $result );
+        $this->assertSame( 'recruitment_csv_file_too_large', $result->get_error_code() );
+    }
 
     public function test_import_csv_returns_400_when_file_missing(): void {
         $result = $this->controller->import_csv( $this->make_request( array( 'id' => 7 ), array() ) );

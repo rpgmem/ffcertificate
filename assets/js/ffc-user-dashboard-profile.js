@@ -13,6 +13,9 @@
 
     var helpers = FFCDashboard.helpers;
     var esc = helpers.esc;
+    // Attribute-safe escape (encodes the double quote esc() leaves through) for
+    // values interpolated into value="…"/style="…" attributes — #837 S12.
+    var escAttr = helpers.escAttr;
 
     // Profile shows three multi-value fields (names, emails, CPFs) that all
     // share the same single/list/fallback pattern with different list classes.
@@ -49,16 +52,16 @@
         html += '<h3>' + (s.editProfile || 'Edit Profile') + '</h3>';
 
         html += '<div class="ffc-profile-field"><label for="ffc-edit-display-name">' + s.name + '</label>';
-        html += '<input type="text" id="ffc-edit-display-name" value="' + esc(profile.display_name) + '" maxlength="250" /></div>';
+        html += '<input type="text" id="ffc-edit-display-name" value="' + escAttr(profile.display_name) + '" maxlength="250" /></div>';
 
         html += '<div class="ffc-profile-field"><label for="ffc-edit-phone">' + (s.phone || 'Phone:') + '</label>';
-        html += '<input type="tel" id="ffc-edit-phone" value="' + esc(profile.phone) + '" maxlength="50" /></div>';
+        html += '<input type="tel" id="ffc-edit-phone" value="' + escAttr(profile.phone) + '" maxlength="50" /></div>';
 
         html += '<div class="ffc-profile-field"><label for="ffc-edit-department">' + (s.department || 'Department:') + '</label>';
-        html += '<input type="text" id="ffc-edit-department" value="' + esc(profile.department) + '" maxlength="250" /></div>';
+        html += '<input type="text" id="ffc-edit-department" value="' + escAttr(profile.department) + '" maxlength="250" /></div>';
 
         html += '<div class="ffc-profile-field"><label for="ffc-edit-organization">' + (s.organization || 'Organization:') + '</label>';
-        html += '<input type="text" id="ffc-edit-organization" value="' + esc(profile.organization) + '" maxlength="250" /></div>';
+        html += '<input type="text" id="ffc-edit-organization" value="' + escAttr(profile.organization) + '" maxlength="250" /></div>';
 
         html += '<div class="ffc-profile-field"><label for="ffc-edit-notes">' + (s.notesLabel || 'Notes:') + '</label>';
         html += '<textarea id="ffc-edit-notes" rows="3" maxlength="1000" placeholder="' + (s.notesPlaceholder || 'Personal notes...') + '">' + esc(profile.notes) + '</textarea></div>';
@@ -271,7 +274,7 @@
                 html += '<label>' + (s.audienceGroups || 'Groups') + '</label>';
                 html += '<div class="value" style="display: flex; flex-wrap: wrap; gap: 6px;">';
                 profile.audience_groups.forEach(function (group) {
-                    html += '<span style="background-color: ' + esc(group.color || '#2271b1') + '; color: #fff; padding: 4px 12px; border-radius: 3px; font-size: 13px;">' + esc(group.name) + '</span>';
+                    html += '<span style="background-color: ' + escAttr(group.color || '#2271b1') + '; color: #fff; padding: 4px 12px; border-radius: 3px; font-size: 13px;">' + esc(group.name) + '</span>';
                 });
                 html += '</div></div>';
             }

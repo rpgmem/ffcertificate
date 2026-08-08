@@ -120,6 +120,20 @@ class VerificationHandlerAjaxTest extends TestCase {
 		}
 	}
 
+	public function test_verify_certificate_no_js_fallback_is_rate_limited(): void {
+		// #839 S11 — the no-JS shortcode fallback must apply the same
+		// verification throttle as the AJAX path, before any lookup. A blocked
+		// check returns the rate-limit message and never touches the repository
+		// (the un-stubbed SubmissionHandler mock would throw if it were called).
+		$rl = Mockery::mock( 'alias:\FreeFormCertificate\Security\RateLimiter' );
+		$rl->shouldReceive( 'check_verification' )->andReturn( array( 'allowed' => false ) );
+
+		$result = $this->handler->verify_certificate( 'CODE12345678' );
+
+		$this->assertFalse( $result['success'] );
+		$this->assertStringContainsString( 'Too many', $result['message'] );
+	}
+
 	public function test_verification_ajax_security_fields_fail_refreshes_captcha(): void {
 		Functions\when( 'wp_verify_nonce' )->justReturn( true );
 		$svc = Mockery::mock( 'alias:\FreeFormCertificate\Core\SecurityService' );

@@ -1215,3 +1215,57 @@ html:has(.ffc-settings-back-to-top) {
     padding: 0;
     min-width: 0;
 }
+
+/* 6.18.0 (#890 slice 1) — component styles lifted from inline styles across the
+   settings tabs (advanced / rate-limit / geolocation / general). */
+
+/* Advanced tab: encryption-key adopt/rotate blocks. */
+.ffc-encryption-key-suggest {
+    margin-top: 16px;
+}
+
+.ffc-key-suggest-widget {
+    margin-top: 12px;
+}
+
+/* Rate-limit tab: per-endpoint section heading + device-signal group headings. */
+.ffc-rl-endpoint-heading {
+    margin-top: 1.5em;
+}
+
+.ffc-signal-group-heading {
+    margin-bottom: 2px;
+}
+
+/* Rate-limit tab: device-signal badge chrome (the per-group colour stays inline
+   as it is data-driven). */
+.ffc-signal-badge {
+    display: inline-block;
+    padding: 1px 7px;
+    border-radius: 9px;
+    font-size: 11px;
+    font-weight: 600;
+    vertical-align: middle;
+}
+
+/* Geolocation tab: GPS fallback-cases table (the JS-toggled display stays
+   inline — the companion JS flips it via jQuery .toggle()). */
+.ffc-gps-fallback-cases {
+    margin-top: 12px;
+    max-width: 720px;
+}
+
+/* General tab: date/time format divergence notice body. */
+.ffc-settings-divergence-notice {
+    margin: 15px 0;
+    padding: 12px 15px;
+}
+
+.ffc-settings-divergence-notice p {
+    margin: 0 0 8px;
+}
+
+.ffc-settings-divergence-notice ul {
+    margin: 6px 0 0 18px;
+    list-style: disc;
+}

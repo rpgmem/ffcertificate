@@ -69,6 +69,16 @@ class UrlShortenerLoader {
 		// Auto-flush rewrite rules when prefix changes or first install.
 		add_action( 'init', array( $this, 'maybe_flush_rewrite_rules' ), 99 );
 
+		// Expose short URLs as the canonical WordPress shortlink for opted-in
+		// post types. Registered in both contexts (front-end `<head>`/header +
+		// admin "Get Shortlink" button), so it sits outside the is_admin() gate.
+		$shortlink = new UrlShortenerShortlink( $this->service );
+		$shortlink->init();
+
+		// REST: QR endpoint for external reuse (#889). REST runs in a non-admin
+		// context, so this sits outside the is_admin() gate.
+		add_action( 'rest_api_init', array( $this, 'register_rest_routes' ) );
+
 		// Admin components.
 		if ( is_admin() ) {
 			$admin_page = new UrlShortenerAdminPage( $this->service );
@@ -76,6 +86,9 @@ class UrlShortenerLoader {
 
 			$meta_box = new UrlShortenerMetaBox( $this->service );
 			$meta_box->init();
+
+			$backfill = new UrlShortenerBackfillHandler( $this->service );
+			$backfill->init();
 
 			// CSV export — register the batched source with the shared registry
 			// (#772); the unified dispatcher (wired in Loader) routes
@@ -92,6 +105,14 @@ class UrlShortenerLoader {
 		// AJAX handlers (needed for both admin and front-end contexts).
 		$qr_handler = new UrlShortenerQrHandler( $this->service );
 		$qr_handler->init();
+	}
+
+	/**
+	 * Register the module's REST routes (the QR endpoint, #889).
+	 */
+	public function register_rest_routes(): void {
+		$controller = new UrlShortenerQrRestController( $this->service );
+		$controller->register_routes();
 	}
 
 	/**
@@ -223,7 +244,10 @@ class UrlShortenerLoader {
 			}
 		);
 
-		$target_url    = esc_url_raw( $record['target_url'] );
+		// Resolve the destination dynamically: post-linked short URLs follow the
+		// post's current permalink (self-heals on slug / permalink-structure
+		// change), manual ones use the stored target (#888).
+		$target_url    = esc_url_raw( UrlShortenerService::resolve_target( $record ) );
 		$redirect_type = $this->service->get_redirect_type();
 
 		// Prevent redirect loops.

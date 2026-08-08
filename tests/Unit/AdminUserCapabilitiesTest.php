@@ -196,6 +196,10 @@ class AdminUserCapabilitiesTest extends TestCase {
 
     protected function tearDown(): void {
         unset( $_POST['ffc_capabilities_nonce'] );
+        // Reset the per-request role snapshot so it never leaks between tests.
+        $ref = new \ReflectionProperty( AdminUserCapabilities::class, 'ffc_role_snapshot' );
+        $ref->setAccessible( true );
+        $ref->setValue( null, array() );
         Monkey\tearDown();
         parent::tearDown();
     }
@@ -224,6 +228,20 @@ class AdminUserCapabilitiesTest extends TestCase {
         Functions\expect( 'add_action' )
             ->once()
             ->with( 'admin_enqueue_scripts', array( AdminUserCapabilities::class, 'enqueue_scripts' ) );
+
+        // Multi-role preservation across the native profile save (snapshot
+        // before core's set_role, restore after).
+        Functions\expect( 'add_action' )
+            ->once()
+            ->with( 'personal_options_update', array( AdminUserCapabilities::class, 'snapshot_ffc_roles' ), 5 );
+
+        Functions\expect( 'add_action' )
+            ->once()
+            ->with( 'edit_user_profile_update', array( AdminUserCapabilities::class, 'snapshot_ffc_roles' ), 5 );
+
+        Functions\expect( 'add_action' )
+            ->once()
+            ->with( 'profile_update', array( AdminUserCapabilities::class, 'restore_ffc_roles' ), 5 );
 
         AdminUserCapabilities::init();
     }
@@ -302,6 +320,87 @@ class AdminUserCapabilitiesTest extends TestCase {
         $this->assertStringContainsString( 'FFC Permissions', $output );
         $this->assertStringContainsString( 'ffc-cap-roles', $output );
         $this->assertStringNotContainsString( 'ffc-cap-group', $output );
+    }
+
+    public function test_render_offers_only_aggregator_chip_for_wp_admin(): void {
+        // #739: a WordPress administrator can only be assigned ffc_administrator.
+        // The UI must offer that chip (enabled) and omit the granular FFC roles
+        // the admin doesn't hold — clicking them would only ever 409.
+        Functions\when( 'current_user_can' )->justReturn( true );
+        Functions\when( 'user_can' )->justReturn( true );
+        Functions\when( 'wp_roles' )->justReturn( self::admin_aware_roles_stub() );
+
+        $user        = new \WP_User( 1 );
+        $user->roles = array( 'administrator' ); // WP admin, holds no FFC preset.
+
+        ob_start();
+        AdminUserCapabilities::render_capability_fields( $user );
+        $output = ob_get_clean();
+
+        // The aggregator chip is offered and NOT disabled.
+        $this->assertStringContainsString( 'data-ffc-role="ffc_administrator"', $output );
+        $this->assertDoesNotMatchRegularExpression(
+            '/data-ffc-role="ffc_administrator"[^>]*\sdisabled/',
+            $output
+        );
+        // The granular role the admin does not hold is omitted entirely.
+        $this->assertStringNotContainsString( 'data-ffc-role="ffc_recruitment_manager"', $output );
+    }
+
+    public function test_render_shows_held_granular_role_disabled_for_wp_admin(): void {
+        // A WP admin who legacy-holds a granular FFC role: the chip stays visible
+        // (so its state shows) but renders disabled — the server refuses to
+        // toggle it (#739), so it must not be a live control.
+        Functions\when( 'current_user_can' )->justReturn( true );
+        Functions\when( 'user_can' )->justReturn( true );
+        Functions\when( 'wp_roles' )->justReturn( self::admin_aware_roles_stub() );
+
+        $user        = new \WP_User( 1 );
+        $user->roles = array( 'administrator', 'ffc_recruitment_manager' );
+
+        ob_start();
+        AdminUserCapabilities::render_capability_fields( $user );
+        $output = ob_get_clean();
+
+        $this->assertMatchesRegularExpression(
+            '/data-ffc-role="ffc_recruitment_manager"[^>]*\sdisabled/',
+            $output
+        );
+        $this->assertStringContainsString( 'is-disabled', $output );
+    }
+
+    /**
+     * wp_roles() stand-in that includes the ffc_administrator aggregator, so the
+     * WP-admin-target rendering path (only ffc_administrator assignable) can be
+     * exercised. Distinct from the setUp() stub, which omits it.
+     *
+     * @return object
+     */
+    private static function admin_aware_roles_stub(): object {
+        return new class() {
+            /** @var array<string,array<string,mixed>> */
+            public $roles = array(
+                'ffc_administrator'       => array(
+                    'capabilities' => array(
+                        'read'                      => true,
+                        'ffc_view_own_certificates' => true,
+                        'ffc_manage_recruitment'    => true,
+                    ),
+                ),
+                'ffc_recruitment_manager' => array(
+                    'capabilities' => array(
+                        'read'                   => true,
+                        'ffc_manage_recruitment' => true,
+                    ),
+                ),
+            );
+            public function get_names() {
+                return array(
+                    'ffc_administrator'       => 'FFC Administrator',
+                    'ffc_recruitment_manager' => 'FFC Recruitment - Manager',
+                );
+            }
+        };
     }
 
     public function test_render_skips_for_non_ffc_users(): void {
@@ -782,5 +881,60 @@ class AdminUserCapabilitiesTest extends TestCase {
 
         // Clean up
         unset( $_POST['ffc_cap_ffc_view_own_certificates'] );
+    }
+
+    // ==================================================================
+    // snapshot_ffc_roles() / restore_ffc_roles() — survive the native save
+    // ==================================================================
+
+    public function test_snapshot_then_restore_readds_role_core_collapsed(): void {
+        // The user carries an FFC role (added earlier via the AJAX chip) on top
+        // of a plain WordPress role.
+        $user        = new \WP_User( 5 );
+        $user->roles = array( 'subscriber', 'ffc_recruitment_manager' );
+        Functions\when( 'get_userdata' )->justReturn( $user );
+
+        // 1) Snapshot before core processes the profile form.
+        AdminUserCapabilities::snapshot_ffc_roles( 5 );
+
+        // 2) Core's single-role dropdown collapses the user to one role.
+        $user->set_role( 'subscriber' );
+        $this->assertSame( array( 'subscriber' ), $user->roles );
+
+        // 3) Restoring re-adds the dropped FFC role, keeping the primary one.
+        AdminUserCapabilities::restore_ffc_roles( 5 );
+        $this->assertContains( 'ffc_recruitment_manager', $user->roles );
+        $this->assertContains( 'subscriber', $user->roles );
+    }
+
+    public function test_restore_is_noop_without_a_snapshot(): void {
+        $user        = new \WP_User( 7 );
+        $user->roles = array( 'subscriber' );
+        Functions\when( 'get_userdata' )->justReturn( $user );
+
+        AdminUserCapabilities::restore_ffc_roles( 7 );
+
+        $this->assertSame( array( 'subscriber' ), $user->roles );
+    }
+
+    public function test_snapshot_with_no_ffc_roles_restores_nothing(): void {
+        $user        = new \WP_User( 8 );
+        $user->roles = array( 'subscriber' );
+        Functions\when( 'get_userdata' )->justReturn( $user );
+
+        AdminUserCapabilities::snapshot_ffc_roles( 8 );
+        AdminUserCapabilities::restore_ffc_roles( 8 );
+
+        $this->assertSame( array( 'subscriber' ), $user->roles );
+    }
+
+    public function test_snapshot_ignores_a_missing_user(): void {
+        Functions\when( 'get_userdata' )->justReturn( false );
+
+        AdminUserCapabilities::snapshot_ffc_roles( 999 );
+        AdminUserCapabilities::restore_ffc_roles( 999 );
+
+        // No snapshot recorded, no fatal — nothing to assert beyond reaching here.
+        $this->assertTrue( true );
     }
 }

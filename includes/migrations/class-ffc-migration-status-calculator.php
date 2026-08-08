@@ -148,6 +148,52 @@ class MigrationStatusCalculator {
 					$this->strategies['activity_log_clear_plaintext'] = new \FreeFormCertificate\Migrations\Strategies\ActivityLogClearPlaintextMigrationStrategy();
 					unset( $this->strategy_errors['activity_log_clear_plaintext'] );
 					break;
+
+				case 'key_rotation':
+					$strategy_dir = __DIR__ . '/strategies/';
+					$core_dir     = dirname( __DIR__ ) . '/core/';
+
+					if ( ! trait_exists( '\\FreeFormCertificate\\Core\\DatabaseHelperTrait', false ) ) {
+						include $core_dir . 'class-ffc-database-helper-trait.php';
+					}
+					if ( ! interface_exists( '\\FreeFormCertificate\\Migrations\\Strategies\\MigrationStrategyInterface', false ) ) {
+						include $strategy_dir . 'interface-ffc-migration-strategy-interface.php';
+					}
+					if ( ! class_exists( '\\FreeFormCertificate\\Migrations\\Strategies\\KeyRotationMigrationStrategy', false ) ) {
+						include $strategy_dir . 'class-ffc-key-rotation-migration-strategy.php';
+					}
+
+					$this->strategies['key_rotation'] = new \FreeFormCertificate\Migrations\Strategies\KeyRotationMigrationStrategy();
+					unset( $this->strategy_errors['key_rotation'] );
+					break;
+
+				case 'import_legacy_templates':
+					$strategy_dir = __DIR__ . '/strategies/';
+
+					if ( ! interface_exists( '\\FreeFormCertificate\\Migrations\\Strategies\\MigrationStrategyInterface', false ) ) {
+						include $strategy_dir . 'interface-ffc-migration-strategy-interface.php';
+					}
+					if ( ! class_exists( '\\FreeFormCertificate\\Migrations\\Strategies\\ImportLegacyTemplatesMigrationStrategy', false ) ) {
+						include $strategy_dir . 'class-ffc-import-legacy-templates-migration-strategy.php';
+					}
+
+					$this->strategies['import_legacy_templates'] = new \FreeFormCertificate\Migrations\Strategies\ImportLegacyTemplatesMigrationStrategy();
+					unset( $this->strategy_errors['import_legacy_templates'] );
+					break;
+
+				case 'rewrite_html_image_refs':
+					$strategy_dir = __DIR__ . '/strategies/';
+
+					if ( ! interface_exists( '\\FreeFormCertificate\\Migrations\\Strategies\\MigrationStrategyInterface', false ) ) {
+						include $strategy_dir . 'interface-ffc-migration-strategy-interface.php';
+					}
+					if ( ! class_exists( '\\FreeFormCertificate\\Migrations\\Strategies\\RewriteHtmlImageRefsMigrationStrategy', false ) ) {
+						include $strategy_dir . 'class-ffc-rewrite-html-image-refs-migration-strategy.php';
+					}
+
+					$this->strategies['rewrite_html_image_refs'] = new \FreeFormCertificate\Migrations\Strategies\RewriteHtmlImageRefsMigrationStrategy();
+					unset( $this->strategy_errors['rewrite_html_image_refs'] );
+					break;
 			}
 		} catch ( \Throwable $e ) {
 			$this->strategy_errors[ $migration_key ] = $e->getMessage();

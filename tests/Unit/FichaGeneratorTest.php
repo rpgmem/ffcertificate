@@ -35,6 +35,12 @@ class FichaGeneratorTest extends TestCase {
         Functions\when('esc_attr')->returnArg();
         Functions\when('wp_kses_post')->returnArg();
         Functions\when('sanitize_text_field')->alias('trim');
+        // #865 Phase 2: FichaGenerator now resolves {{logo_gov}}/{{logo_org}} via
+        // BrandingTokens → SettingsReader::get() → get_option( 'ffc_settings' ).
+        Functions\when('get_option')->justReturn(array(
+            'logo_gov' => 'https://cdn.example/gov.png',
+            'logo_org' => 'https://cdn.example/org.png',
+        ));
         Functions\when('sanitize_file_name')->alias(function ($name) {
             return preg_replace('/[^a-zA-Z0-9_\-.]/', '_', $name);
         });
@@ -749,5 +755,15 @@ class FichaGeneratorTest extends TestCase {
         $this->assertStringContainsString('submitted', $result['html']);
         // Synthetic code S{submission_id} is used when auth_code is empty.
         $this->assertSame('S55', $captured_code);
+    }
+
+    public function test_default_document_templates_relocated_out_of_html(): void {
+        // #865: the ficha + appointment-receipt defaults moved out of the
+        // update-fragile html/ folder to the versioned templates/documents/.
+        $root = dirname(__DIR__, 2);
+        $this->assertFileExists($root . '/templates/documents/default_ficha_template.html');
+        $this->assertFileExists($root . '/templates/documents/default_appointment_receipt_1.html');
+        $this->assertFileDoesNotExist($root . '/html/default_ficha_template.html');
+        $this->assertFileDoesNotExist($root . '/html/default_appointment_receipt_1.html');
     }
 }

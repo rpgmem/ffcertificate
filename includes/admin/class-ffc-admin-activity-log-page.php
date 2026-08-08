@@ -168,7 +168,11 @@ class AdminActivityLogPage {
 			include $view_file;
 		} else {
 			echo '<div class="wrap"><h1>' . esc_html__( 'Activity Log', 'ffcertificate' ) . '</h1>';
-			echo '<div class="notice notice-error"><p>' . esc_html__( 'View file not found.', 'ffcertificate' ) . '</p></div></div>';
+			wp_admin_notice(
+				esc_html__( 'View file not found.', 'ffcertificate' ),
+				array( 'type' => 'error' )
+			);
+			echo '</div>';
 		}
 	}
 
@@ -179,17 +183,27 @@ class AdminActivityLogPage {
 		?>
 		<div class="ffc-settings-wrap">
 			<h2 class="ffc-icon-clipboard"><?php esc_html_e( 'Activity Log', 'ffcertificate' ); ?></h2>
-			<div class="notice notice-warning">
-				<p>
-					<strong><?php esc_html_e( 'Activity Log is currently disabled.', 'ffcertificate' ); ?></strong>
-				</p>
-				<p>
-					<?php esc_html_e( 'To enable activity logging, go to:', 'ffcertificate' ); ?>
-					<a href="<?php echo esc_url( admin_url( 'admin.php?page=ffc-settings&tab=advanced' ) ); ?>">
-						<?php esc_html_e( 'Settings > Advanced > Activity Log Settings', 'ffcertificate' ); ?>
-					</a>
-				</p>
-			</div>
+			<?php
+			ob_start();
+			?>
+			<p>
+				<strong><?php esc_html_e( 'Activity Log is currently disabled.', 'ffcertificate' ); ?></strong>
+			</p>
+			<p>
+				<?php esc_html_e( 'To enable activity logging, go to:', 'ffcertificate' ); ?>
+				<a href="<?php echo esc_url( admin_url( 'admin.php?page=ffc-settings&tab=advanced' ) ); ?>">
+					<?php esc_html_e( 'Settings > Advanced > Activity Log Settings', 'ffcertificate' ); ?>
+				</a>
+			</p>
+			<?php
+			wp_admin_notice(
+				(string) ob_get_clean(),
+				array(
+					'type'           => 'warning',
+					'paragraph_wrap' => false,
+				)
+			);
+			?>
 		</div>
 		<?php
 	}

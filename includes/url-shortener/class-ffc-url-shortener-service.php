@@ -239,6 +239,80 @@ class UrlShortenerService {
 	}
 
 	/**
+	 * Get post types whose short URL is exposed publicly as the site's
+	 * canonical shortlink (the `rel="shortlink"` `<head>` tag + HTTP `Link:`
+	 * header, via the `pre_get_shortlink` filter).
+	 *
+	 * Unlike {@see get_enabled_post_types()}, this has **no** `post`/`page`
+	 * default — the empty array means "expose nothing" (opt-in). Exposure is
+	 * a strict subset of the shortened types: the save handler intersects this
+	 * with `url_shortener_post_types`, so a stored value never contains a type
+	 * that is not also shortened.
+	 *
+	 * @return array<string>
+	 */
+	public function get_exposed_post_types(): array {
+		$settings   = $this->get_settings();
+		$post_types = $settings['url_shortener_expose_post_types'] ?? array();
+
+		if ( is_string( $post_types ) ) {
+			$post_types = array_filter( array_map( 'trim', explode( ',', $post_types ) ) );
+		}
+
+		return is_array( $post_types ) ? array_values( $post_types ) : array();
+	}
+
+	/**
+	 * Resolve the effective destination of a short URL record.
+	 *
+	 * For **post-linked** short URLs (`post_id` set) the destination is derived
+	 * from the post's current permalink, so it self-heals when the slug — or the
+	 * whole permalink structure — changes (the stored `target_url` captured at
+	 * creation would otherwise go stale, #888). Falls back to the stored
+	 * `target_url` when the post is gone or has no permalink. **Manual** short
+	 * URLs (`post_id` NULL) always use the stored `target_url`.
+	 *
+	 * Static so the redirect (loader), the admin list and the CSV export all
+	 * resolve the destination identically without wiring a service instance.
+	 *
+	 * @param array<string, mixed> $record Short URL row.
+	 * @return string Effective destination URL.
+	 */
+	public static function resolve_target( array $record ): string {
+		$post_id = isset( $record['post_id'] ) ? (int) $record['post_id'] : 0;
+		if ( $post_id > 0 ) {
+			$permalink = get_permalink( $post_id );
+			if ( is_string( $permalink ) && '' !== $permalink ) {
+				return $permalink;
+			}
+		}
+		return isset( $record['target_url'] ) ? (string) $record['target_url'] : '';
+	}
+
+	/**
+	 * Update the destination and title of a **manually-created** short URL.
+	 *
+	 * The caller (`UrlShortenerAdminPage::ajax_edit_short_url`) enforces the
+	 * manual-only rule (`post_id` NULL) — post-linked destinations follow the
+	 * page and must not be hand-edited (#888).
+	 *
+	 * @param int    $id         Record ID.
+	 * @param string $target_url New destination URL.
+	 * @param string $title      New title.
+	 * @return bool
+	 */
+	public function update_short_url( int $id, string $target_url, string $title ): bool {
+		return (bool) $this->repository->update(
+			$id,
+			array(
+				'target_url' => esc_url_raw( $target_url ),
+				'title'      => sanitize_text_field( $title ),
+				'updated_at' => current_time( 'mysql' ),
+			)
+		);
+	}
+
+	/**
 	 * Delete a short URL by ID.
 	 *
 	 * @param int $id Record ID.

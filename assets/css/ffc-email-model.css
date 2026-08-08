@@ -38,14 +38,14 @@
 	font-weight: 500;
 }
 
-.ffc-em-logo {
+.ffc-email-model-logo {
 	display: inline-flex;
 	align-items: center;
 	gap: 6px;
 	flex-wrap: wrap;
 }
 
-.ffc-em-tokens code {
+.ffc-email-model-tokens code {
 	font-size: 11px;
 }
 

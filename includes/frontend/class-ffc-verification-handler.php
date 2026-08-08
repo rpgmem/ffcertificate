@@ -627,6 +627,21 @@ class VerificationHandler {
 	 * @return array<string, mixed>
 	 */
 	public function verify_certificate( string $auth_code ): array {
+		// Throttle the no-JS fallback with the same verification rate-limit pool
+		// as the AJAX handlers (#839 S11) — before any lookup, so auth-code
+		// probing is throttled regardless of which entry point is used. The
+		// AJAX paths (handle_verification_ajax / verify_by_magic_token) already
+		// gate here; this fallback was the one hole.
+		$user_ip    = \FreeFormCertificate\Core\RequestInput::get_user_ip();
+		$rate_check = \FreeFormCertificate\Security\RateLimiter::check_verification( $user_ip );
+		if ( ! $rate_check['allowed'] ) {
+			return array(
+				'success' => false,
+				'html'    => '',
+				'message' => $rate_check['message'] ?? __( 'Too many requests. Please wait a moment and try again.', 'ffcertificate' ),
+			);
+		}
+
 		$result = $this->search_certificate( $auth_code );
 		if ( $result['found'] && isset( $result['submission']->id ) ) {
 			// Log access for LGPD compliance.

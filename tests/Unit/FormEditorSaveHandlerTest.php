@@ -45,6 +45,16 @@ class FormEditorSaveHandlerTest extends TestCase {
     protected function setUp(): void {
         parent::setUp();
         Monkey\setUp();
+        Functions\when( 'wp_admin_notice' )->alias(
+            static function ( $message, $args = array() ) {
+                $ffc_type = isset( $args['type'] ) ? $args['type'] : 'info';
+                $ffc_cls  = 'notice notice-' . $ffc_type;
+                if ( ! empty( $args['dismissible'] ) ) { $ffc_cls .= ' is-dismissible'; }
+                if ( ! empty( $args['additional_classes'] ) ) { $ffc_cls .= ' ' . implode( ' ', $args['additional_classes'] ); }
+                $ffc_wrap = ! array_key_exists( 'paragraph_wrap', $args ) || $args['paragraph_wrap'];
+                echo '<div class="' . $ffc_cls . '">' . ( $ffc_wrap ? '<p>' . $message . '</p>' : $message ) . '</div>';
+            }
+        );
 
         // pcov does not record lines for files first autoloaded mid-test-method,
         // so the handler + extracted validator coverage would attribute to nothing.
@@ -97,6 +107,56 @@ class FormEditorSaveHandlerTest extends TestCase {
     // ==================================================================
     // validate_geofence_config()
     // ==================================================================
+
+    // ==================================================================
+    // display_save_errors() — legacy html/ linter warning (#865 Phase 4)
+    // ==================================================================
+
+    public function test_display_save_errors_renders_html_lint_warning(): void {
+        Functions\when( 'get_current_user_id' )->justReturn( 7 );
+        Functions\when( 'esc_html' )->returnArg();
+        Functions\when( 'esc_html_e' )->alias( static function ( $t ) { echo $t; } );
+        Functions\when( 'esc_html__' )->returnArg();
+        Functions\when( 'esc_url' )->returnArg();
+        Functions\when( 'admin_url' )->returnArg();
+        // Only the html_lint transient is present; the missing-tags and
+        // geofence probes return false (no other notices).
+        Functions\when( 'get_transient' )->alias(
+            static function ( $key ) {
+                return false !== strpos( $key, 'ffc_html_lint_' )
+                    ? array( 'https://x.test/plugins/ffcertificate/html/logo.png' )
+                    : false;
+            }
+        );
+        $deleted = array();
+        Functions\when( 'delete_transient' )->alias(
+            static function ( $key ) use ( &$deleted ) {
+                $deleted[] = $key;
+                return true;
+            }
+        );
+
+        ob_start();
+        $this->handler->display_save_errors();
+        $html = (string) ob_get_clean();
+
+        // The offending URL is surfaced, at warning severity, and dismissed.
+        $this->assertStringContainsString( 'ffcertificate/html/logo.png', $html );
+        $this->assertStringContainsString( 'notice-warning', $html );
+        $this->assertContains( 'ffc_html_lint_7', $deleted );
+    }
+
+    public function test_display_save_errors_silent_when_no_html_lint(): void {
+        Functions\when( 'get_current_user_id' )->justReturn( 7 );
+        Functions\when( 'get_transient' )->justReturn( false );
+        Functions\when( 'delete_transient' )->justReturn( true );
+
+        ob_start();
+        $this->handler->display_save_errors();
+        $html = (string) ob_get_clean();
+
+        $this->assertStringNotContainsString( 'notice-warning', $html );
+    }
 
     public function test_geofence_valid_gps_config_returns_no_errors(): void {
         $config = array(

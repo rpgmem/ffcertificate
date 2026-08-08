@@ -60,13 +60,35 @@ class DeviceSignalsLoggingOffTest extends TestCase {
         );
     }
 
-    public function test_vendored_thumbmarkjs_present_at_pinned_path(): void {
-        $path = dirname( __DIR__, 2 ) . '/libs/js/thumbmark-1.9.1.umd.js';
+    public function test_vendored_thumbmarkjs_matches_pinned_version(): void {
+        $root = dirname( __DIR__, 2 );
+
+        // Read the pinned version from the plugin header constant so this test
+        // tracks a version bump automatically (no hard-coded version to drift),
+        // and so a bump that forgets to swap the vendored file is caught.
+        $plugin = file_get_contents( $root . '/ffcertificate.php' );
+        $this->assertNotFalse( $plugin, 'Could not read ffcertificate.php' );
+        $this->assertSame(
+            1,
+            preg_match( "/define\(\s*'FFC_THUMBMARK_VERSION',\s*'([^']+)'/", (string) $plugin, $m ),
+            'FFC_THUMBMARK_VERSION constant not found in ffcertificate.php'
+        );
+        $version = $m[1];
+
+        $path = $root . "/libs/js/thumbmark-{$version}.umd.js";
         $this->assertFileExists(
             $path,
-            'Vendored thumbmarkjs UMD bundle is missing. Re-download from '
-            . 'https://cdn.jsdelivr.net/npm/@thumbmarkjs/thumbmarkjs@1.9.1/dist/thumbmark.umd.js'
+            "Vendored thumbmarkjs bundle for the pinned FFC_THUMBMARK_VERSION ({$version}) is missing. "
+            . "Re-download from https://cdn.jsdelivr.net/npm/@thumbmarkjs/thumbmarkjs@{$version}/dist/thumbmark.umd.js"
         );
-        $this->assertGreaterThan( 10000, filesize( $path ), 'Vendored bundle looks truncated.' );
+        $this->assertGreaterThan( 10000, (int) filesize( $path ), 'Vendored bundle looks truncated.' );
+
+        // Exactly one bundle — a stale older version must not be left behind.
+        $bundles = glob( $root . '/libs/js/thumbmark-*.umd.js' );
+        $this->assertCount(
+            1,
+            (array) $bundles,
+            'Exactly one vendored thumbmarkjs bundle expected — a stale version was left behind by a bump.'
+        );
     }
 }

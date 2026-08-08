@@ -98,6 +98,24 @@
 		});
 	}
 
+	// Map a failed AJAX payload to a human message. A bare `-1` (a number, or
+	// the string "-1") is WordPress' `check_ajax_referer` die — i.e. an
+	// expired/invalid nonce; a structured `{data:{message}}` carries the
+	// server's own reason code (see AdminUserCapabilities::ajax_toggle_user_role).
+	function roleErrorMessage(res) {
+		if (res === -1 || res === '-1' || !res || 'object' !== typeof res) {
+			return i18n.errNonce || i18n.error || 'Error';
+		}
+		var code = (res.data && res.data.message) ? res.data.message : '';
+		switch (code) {
+			case 'cannot_edit_admin':   return i18n.errAdmin || i18n.error || 'Error';
+			case 'role_not_assignable': return i18n.errRole || i18n.error || 'Error';
+			case 'forbidden':           return i18n.errForbidden || i18n.error || 'Error';
+			case 'user_not_found':      return i18n.errUser || i18n.error || 'Error';
+			default:                    return i18n.error || 'Error';
+		}
+	}
+
 	function toggleRole(panel, chip) {
 		var role = chip.getAttribute('data-ffc-role');
 		var willAssign = !assigned.has(role);
@@ -117,13 +135,13 @@
 			.then(function (r) { return r.json(); })
 			.then(function (res) {
 				chip.disabled = false;
-				if (!res || !res.success) { window.alert(i18n.error || 'Error'); return; }
+				if (!res || !res.success) { window.alert(roleErrorMessage(res)); return; }
 				if (willAssign) { assigned.add(role); } else { assigned.delete(role); }
 				chip.classList.toggle('is-on', willAssign);
 				chip.setAttribute('aria-pressed', willAssign ? 'true' : 'false');
 				recompute(panel);
 			})
-			.catch(function () { chip.disabled = false; window.alert(i18n.error || 'Error'); });
+			.catch(function () { chip.disabled = false; window.alert(i18n.errNetwork || i18n.error || 'Error'); });
 	}
 
 	function applyPreset(panel, grant) {

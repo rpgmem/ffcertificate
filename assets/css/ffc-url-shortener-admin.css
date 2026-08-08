@@ -365,6 +365,17 @@
     margin-top: 3px;
 }
 
+/* Admin page: inline error text (edit modal / AJAX failures) */
+.ffc-shorturl-error {
+    color: #dc3232;
+}
+
+/* Admin page: destination "follows the page" note (post-linked rows, #888) */
+.ffc-shorturl-dest-note {
+    color: #646970;
+    font-style: italic;
+}
+
 /* Admin page: small dashicon (QR button in table) */
 .ffc-dashicon-sm-inline {
     margin-top: 3px;

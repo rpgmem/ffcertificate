@@ -220,6 +220,49 @@ describe('User search', () => {
 });
 
 // ----------------------------------------------------------------------
+// User search — attribute-context escaping (#837 S4)
+//
+// display_name is user-controlled (any logged-in user can set it via the
+// profile REST endpoint, sanitized only with sanitize_text_field, which keeps
+// quotes) and is echoed unescaped by the admin AJAX search into a
+// data-display-name="…" attribute. escapeHtml must encode the double quote so
+// a value like `a" onmouseover="…"` cannot break out of the attribute and run
+// an event handler in the admin's session.
+// ----------------------------------------------------------------------
+
+describe('User search result — attribute escaping (S4)', () => {
+	beforeEach(async () => {
+		document.body.innerHTML = `
+			<input id="ffc-user-search-input" type="text" />
+			<button class="ffc-search-user-btn" data-nonce="n">Search</button>
+			<span id="ffc-search-spinner"></span>
+			<div id="ffc-user-search-results"></div>
+			<div id="ffc-selected-user-preview"></div>
+			<input id="ffc-selected-user-id" type="hidden" />
+		`;
+		await loadOnReady();
+	});
+
+	it('encodes a double quote in display_name so it cannot break out of the data attribute', async () => {
+		const payload = 'a" onmouseover="alert(document.cookie)';
+		vi.spyOn(window.$, 'post').mockImplementation(() => postChain({ done: {
+			success: true,
+			data: { users: [ { id: 9, display_name: payload, email: 'x@y.z', avatar: '' } ] },
+		} }));
+		document.getElementById('ffc-user-search-input').value = 'qu';
+		document.querySelector('.ffc-search-user-btn').click();
+		await flush();
+
+		const item = document.querySelector('#ffc-user-search-results .ffc-search-result-item');
+		expect(item).not.toBeNull();
+		// Quote encoded → the raw value round-trips through the attribute and the
+		// injected `onmouseover=` never becomes a real attribute.
+		expect(item.getAttribute('data-display-name')).toBe(payload);
+		expect(item.hasAttribute('onmouseover')).toBe(false);
+	});
+});
+
+// ----------------------------------------------------------------------
 // Select / clear user from results (delegated handlers)
 // ----------------------------------------------------------------------
 

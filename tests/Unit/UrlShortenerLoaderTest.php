@@ -118,6 +118,56 @@ class UrlShortenerLoaderTest extends TestCase {
         $this->assertTrue( has_action( 'template_redirect', 'FreeFormCertificate\UrlShortener\UrlShortenerLoader->handle_redirect()' ) !== false );
     }
 
+    public function test_init_registers_shortlink_filter_in_frontend(): void {
+        $this->service->shouldReceive( 'is_enabled' )->once()->andReturn( true );
+        Functions\when( 'is_admin' )->justReturn( false );
+
+        $this->loader->init();
+
+        // The shortlink exposer must wire even outside admin (the <head>/header path).
+        $this->assertNotFalse(
+            has_filter( 'pre_get_shortlink', 'FreeFormCertificate\UrlShortener\UrlShortenerShortlink->filter_shortlink()' )
+        );
+    }
+
+    public function test_init_registers_rest_route_hook(): void {
+        $this->service->shouldReceive( 'is_enabled' )->once()->andReturn( true );
+        Functions\when( 'is_admin' )->justReturn( false );
+
+        $this->loader->init();
+
+        $this->assertNotFalse(
+            has_action( 'rest_api_init', 'FreeFormCertificate\UrlShortener\UrlShortenerLoader->register_rest_routes()' )
+        );
+    }
+
+    public function test_register_rest_routes_registers_the_qr_controller(): void {
+        $registered = false;
+        Functions\when( 'register_rest_route' )->alias( function () use ( &$registered ) {
+            $registered = true;
+        } );
+
+        $this->loader->register_rest_routes();
+
+        $this->assertTrue( $registered );
+    }
+
+    public function test_init_registers_backfill_ajax_in_admin(): void {
+        $this->service->shouldReceive( 'is_enabled' )->once()->andReturn( true );
+        Functions\when( 'is_admin' )->justReturn( true );
+
+        // Admin path composes the export source (needs the repository once) and
+        // the admin page / meta box (register add_action hooks only).
+        $repo = Mockery::mock( UrlShortenerRepository::class );
+        $this->service->shouldReceive( 'get_repository' )->andReturn( $repo );
+
+        $this->loader->init();
+
+        $this->assertNotFalse(
+            has_action( 'wp_ajax_ffc_url_shortener_backfill', 'FreeFormCertificate\UrlShortener\UrlShortenerBackfillHandler->ajax_backfill()' )
+        );
+    }
+
     public function test_init_skips_hooks_when_disabled(): void {
         $this->service->shouldReceive( 'is_enabled' )->once()->andReturn( false );
 
@@ -323,6 +373,38 @@ class UrlShortenerLoaderTest extends TestCase {
 
         $this->expectException( \RuntimeException::class );
         $this->expectExceptionMessage( 'safe_redirect:https://target.com/page:302' );
+
+        $this->loader->handle_redirect();
+    }
+
+    public function test_handle_redirect_post_linked_follows_current_permalink(): void {
+        // A post-linked short URL (post_id set) must redirect to the post's
+        // CURRENT permalink, not the stale stored target_url (#888).
+        Functions\when( 'get_query_var' )->justReturn( 'plnk1' );
+        Functions\when( 'home_url' )->justReturn( 'https://example.com/' );
+        Functions\when( 'do_action' )->justReturn( null );
+        Functions\when( 'get_permalink' )->justReturn( 'https://example.com/new-slug' );
+        $this->run_shutdown_callbacks_immediately();
+
+        $repo = Mockery::mock( UrlShortenerRepository::class );
+        $repo->shouldReceive( 'findByShortCode' )->with( 'plnk1' )->andReturn( [
+            'id'         => 30,
+            'short_code' => 'plnk1',
+            'target_url' => 'https://example.com/old-slug',
+            'post_id'    => 55,
+            'status'     => 'active',
+        ] );
+        $repo->shouldReceive( 'incrementClickCount' )->with( 30 )->once();
+        $this->service->shouldReceive( 'get_repository' )->andReturn( $repo );
+        $this->service->shouldReceive( 'get_redirect_type' )->andReturn( 302 );
+
+        Functions\when( 'wp_validate_redirect' )->justReturn( true );
+        Functions\when( 'wp_safe_redirect' )->alias( function ( $url, $code ) {
+            throw new \RuntimeException( "safe_redirect:{$url}:{$code}" );
+        } );
+
+        $this->expectException( \RuntimeException::class );
+        $this->expectExceptionMessage( 'safe_redirect:https://example.com/new-slug:302' );
 
         $this->loader->handle_redirect();
     }

@@ -447,4 +447,60 @@ class UrlShortenerRepositoryTest extends TestCase {
 
         $this->assertSame( array(), $this->repo->findByCursor( array( 'status' => 'active', 'search' => 'x' ), 10, 50 ) );
     }
+
+    // ==================================================================
+    // countBackfillCandidates() / findBackfillCandidates() — backfill (#886)
+    // ==================================================================
+
+    public function test_count_backfill_candidates_empty_types_returns_zero_without_query(): void {
+        $this->wpdb->shouldNotReceive( 'prepare' );
+
+        $this->assertSame( 0, $this->repo->countBackfillCandidates( array() ) );
+    }
+
+    public function test_count_backfill_candidates_returns_int(): void {
+        $this->wpdb->posts = 'wp_posts';
+        $captured_query    = '';
+        $this->wpdb->shouldReceive( 'prepare' )->andReturnUsing( function () use ( &$captured_query ) {
+            $captured_query = func_get_arg( 0 );
+            return 'QUERY';
+        } );
+        $this->wpdb->shouldReceive( 'get_var' )->once()->andReturn( '3' );
+
+        $this->assertSame( 3, $this->repo->countBackfillCandidates( array( 'post', 'page' ) ) );
+        $this->assertStringContainsString( 'LEFT JOIN', $captured_query );
+        $this->assertStringContainsString( 's.id IS NULL', $captured_query );
+    }
+
+    public function test_find_backfill_candidates_empty_types_returns_empty_without_query(): void {
+        $this->wpdb->shouldNotReceive( 'prepare' );
+
+        $this->assertSame( array(), $this->repo->findBackfillCandidates( array(), PHP_INT_MAX, 50 ) );
+    }
+
+    public function test_find_backfill_candidates_builds_keyset_query(): void {
+        $this->wpdb->posts = 'wp_posts';
+        $captured_query    = '';
+        $this->wpdb->shouldReceive( 'prepare' )->andReturnUsing( function () use ( &$captured_query ) {
+            $captured_query = func_get_arg( 0 );
+            return 'QUERY';
+        } );
+        $rows = array( array( 'ID' => '10', 'post_title' => 'A' ), array( 'ID' => '8', 'post_title' => 'B' ) );
+        $this->wpdb->shouldReceive( 'get_results' )->once()->andReturn( $rows );
+
+        $result = $this->repo->findBackfillCandidates( array( 'post' ), 20, 50 );
+
+        $this->assertSame( $rows, $result );
+        $this->assertStringContainsString( 'p.ID < %d', $captured_query );
+        $this->assertStringContainsString( 'ORDER BY p.ID DESC', $captured_query );
+        $this->assertStringContainsString( 'LIMIT %d', $captured_query );
+    }
+
+    public function test_find_backfill_candidates_returns_empty_array_when_no_rows(): void {
+        $this->wpdb->posts = 'wp_posts';
+        $this->wpdb->shouldReceive( 'prepare' )->andReturn( 'QUERY' );
+        $this->wpdb->shouldReceive( 'get_results' )->once()->andReturn( null );
+
+        $this->assertSame( array(), $this->repo->findBackfillCandidates( array( 'post' ), 20, 50 ) );
+    }
 }

@@ -27,6 +27,16 @@ class TabRateLimitTest extends TestCase {
     protected function setUp(): void {
         parent::setUp();
         Monkey\setUp();
+        Functions\when( 'wp_admin_notice' )->alias(
+            static function ( $message, $args = array() ) {
+                $ffc_type = isset( $args['type'] ) ? $args['type'] : 'info';
+                $ffc_cls  = 'notice notice-' . $ffc_type;
+                if ( ! empty( $args['dismissible'] ) ) { $ffc_cls .= ' is-dismissible'; }
+                if ( ! empty( $args['additional_classes'] ) ) { $ffc_cls .= ' ' . implode( ' ', $args['additional_classes'] ); }
+                $ffc_wrap = ! array_key_exists( 'paragraph_wrap', $args ) || $args['paragraph_wrap'];
+                echo '<div class="' . $ffc_cls . '">' . ( $ffc_wrap ? '<p>' . $message . '</p>' : $message ) . '</div>';
+            }
+        );
 
         Functions\when( '__' )->returnArg();
         Functions\when( 'esc_html__' )->returnArg();
@@ -34,6 +44,13 @@ class TabRateLimitTest extends TestCase {
         Functions\when( 'esc_attr' )->returnArg();
         Functions\when( 'wp_kses_post' )->returnArg();
         Functions\when( 'add_action' )->justReturn( true );
+
+        // Self-initialize $_POST so the render()-under-test's `if ( $_POST … )`
+        // never reads an undefined superglobal. Previously this test only
+        // passed because a neighbouring test in the same shard left $_POST as
+        // an array; the shard packing is test-count-weighted, so adding tests
+        // elsewhere can reorder shards and expose the latent dependency.
+        $_POST = array();
 
         $this->tab = new TabRateLimit();
     }

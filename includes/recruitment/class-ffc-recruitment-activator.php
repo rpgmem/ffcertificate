@@ -19,9 +19,14 @@
  * failure via ROLLBACK), and utf8mb4 ensures full Unicode coverage on free-form
  * fields (accented names, emoji in notes).
  *
- * No DB-level FOREIGN KEY constraints are declared: cross-table integrity is
- * enforced at the repository/state-machine layer (matches the existing plugin
- * convention).
+ * No DB-level FOREIGN KEY constraints are declared. Two distinct axes:
+ * (1) intra-module relationships (candidate ↔ notice ↔ classification) are
+ * enforced at the repository/state-machine layer, not by DB FKs; (2) the
+ * `user_id → wp_users` link is intentionally absent because a candidate is not
+ * a WordPress user until promotion. This is a deliberate module choice, not the
+ * plugin-wide rule: the core user-owned tables DO carry a `user_id → wp_users`
+ * FK as a user-deletion safety net (see MigrationForeignKeys), because dbDelta
+ * cannot emit FKs and those rows must not outlive the deleted user.
  *
  * All DATETIME columns are written via `current_time( 'mysql' )` (site
  * timezone, matching the rest of the plugin); display likewise uses the WP

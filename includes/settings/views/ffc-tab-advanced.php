@@ -124,7 +124,7 @@ $ffcertificate_get_option = \Closure::fromCallable( array( $settings, 'get_optio
 						);
 						foreach ( $ffcertificate_log_cats as $ffcertificate_cat_key => $ffcertificate_cat_label ) :
 							?>
-							<div style="margin-bottom:4px;">
+							<div class="ffc-mb-4">
 								<?php
 								\FreeFormCertificate\Admin\AdminUI::render_toggle(
 									array(
@@ -583,6 +583,332 @@ $ffcertificate_get_option = \Closure::fromCallable( array( $settings, 'get_optio
 
 	<?php submit_button(); ?>
 </form>
+
+<!-- Encryption Key Health Card (#839 S7a) -->
+<?php
+$ffc_kh        = \FreeFormCertificate\Core\Encryption::key_health_report();
+$ffc_kh_status = isset( $ffc_kh['status'] ) ? (string) $ffc_kh['status'] : 'ok';
+$ffc_kh_ok     = ( 'ok' === $ffc_kh_status );
+$ffc_kh_decpl  = ! empty( $ffc_kh['encryption_decoupled'] ) && ! empty( $ffc_kh['salt_decoupled'] );
+$ffc_salt_url  = 'https://api.wordpress.org/secret-key/1.1/salt/';
+$ffc_kh_labels = array(
+	'ok'          => __( 'Healthy', 'ffcertificate' ),
+	'weak'        => __( 'Weak keys', 'ffcertificate' ),
+	'placeholder' => __( 'Placeholder keys', 'ffcertificate' ),
+	'empty'       => __( 'Missing keys', 'ffcertificate' ),
+);
+
+$ffc_kh_label = $ffc_kh_labels[ $ffc_kh_status ] ?? $ffc_kh_status;
+?>
+<div class="card" id="ffc-encryption-health">
+	<h2 class="ffc-icon-warning"><?php esc_html_e( 'Encryption Key Health', 'ffcertificate' ); ?></h2>
+	<p class="description">
+		<?php esc_html_e( 'CPF/RF and e-mail are encrypted at rest using your WordPress secret keys (or the FFC decoupling constants). If those secrets are missing, weak, or still the wp-config sample placeholder, the encryption key and the search-hash salt become predictable — this panel reports their real state.', 'ffcertificate' ); ?>
+	</p>
+
+	<?php if ( ! $ffc_kh_ok ) : ?>
+		<?php ob_start(); ?>
+			<p>
+				<strong><?php echo esc_html( $ffc_kh_label ); ?>.</strong>
+				<?php esc_html_e( 'Your active secret material is not safe. Fix it, but choose the right path:', 'ffcertificate' ); ?>
+			</p>
+			<ul class="ffc-list-disc">
+				<li><?php esc_html_e( 'New install (no data yet): generate fresh secret keys and paste them into wp-config.php.', 'ffcertificate' ); ?></li>
+				<li>
+					<?php
+					echo wp_kses(
+						sprintf(
+							/* translators: %s: FFC_ENCRYPTION_KEY / FFC_HASH_SALT constant names. */
+							__( 'Site already storing data: do NOT edit the WordPress salts blindly — that re-derives the FFC key and makes existing encrypted records unreadable. Decouple instead by defining %s in wp-config.php, then plan a proper key rotation (S7b).', 'ffcertificate' ),
+							'<code>FFC_ENCRYPTION_KEY</code> / <code>FFC_HASH_SALT</code>'
+						),
+						array( 'code' => array() )
+					);
+					?>
+				</li>
+			</ul>
+			<p>
+				<a href="<?php echo esc_url( $ffc_salt_url ); ?>" target="_blank" rel="noopener noreferrer">
+					<?php esc_html_e( 'Generate fresh WordPress secret keys ↗', 'ffcertificate' ); ?>
+				</a>
+			</p>
+		<?php
+		wp_admin_notice(
+			(string) ob_get_clean(),
+			array(
+				'type'               => 'error',
+				'additional_classes' => array( 'inline' ),
+				'paragraph_wrap'     => false,
+				'attributes'         => array( 'style' => 'margin: 12px 0;' ),
+			)
+		);
+		?>
+	<?php elseif ( ! $ffc_kh_decpl ) : ?>
+		<?php ob_start(); ?>
+			<p>
+				<?php
+				echo wp_kses(
+					sprintf(
+						/* translators: %s: FFC_ENCRYPTION_KEY / FFC_HASH_SALT constant names. */
+						__( 'Optional hardening: your keys are healthy, but FFC derives its encryption key from the shared WordPress salts. Defining %s in wp-config.php decouples FFC so a future WordPress salt rotation cannot silently make your encrypted data unreadable. Advanced / optional — no action required.', 'ffcertificate' ),
+						'<code>FFC_ENCRYPTION_KEY</code> / <code>FFC_HASH_SALT</code>'
+					),
+					array( 'code' => array() )
+				);
+				?>
+			</p>
+		<?php
+		wp_admin_notice(
+			(string) ob_get_clean(),
+			array(
+				'type'               => 'info',
+				'additional_classes' => array( 'inline' ),
+				'paragraph_wrap'     => false,
+				'attributes'         => array( 'style' => 'margin: 12px 0;' ),
+			)
+		);
+		?>
+	<?php else : ?>
+		<?php ob_start(); ?>
+			<p><strong><?php esc_html_e( 'Healthy.', 'ffcertificate' ); ?></strong> <?php esc_html_e( 'Encryption key and search-hash salt are strong and decoupled from the WordPress salts.', 'ffcertificate' ); ?></p>
+		<?php
+		wp_admin_notice(
+			(string) ob_get_clean(),
+			array(
+				'type'               => 'success',
+				'additional_classes' => array( 'inline' ),
+				'paragraph_wrap'     => false,
+				'attributes'         => array( 'style' => 'margin: 12px 0;' ),
+			)
+		);
+		?>
+	<?php endif; ?>
+
+	<table class="form-table" role="presentation">
+		<tbody>
+			<tr>
+				<th scope="row"><?php esc_html_e( 'Status', 'ffcertificate' ); ?></th>
+				<td><code><?php echo esc_html( $ffc_kh_status ); ?></code> — <?php echo esc_html( $ffc_kh_label ); ?></td>
+			</tr>
+			<tr>
+				<th scope="row"><?php esc_html_e( 'Encryption key source', 'ffcertificate' ); ?></th>
+				<td>
+					<?php echo esc_html( isset( $ffc_kh['key_source'] ) ? (string) $ffc_kh['key_source'] : '' ); ?>
+					<?php echo ! empty( $ffc_kh['encryption_decoupled'] ) ? '<span class="description">(' . esc_html__( 'decoupled', 'ffcertificate' ) . ')</span>' : ''; ?>
+				</td>
+			</tr>
+			<tr>
+				<th scope="row"><?php esc_html_e( 'Search-hash salt source', 'ffcertificate' ); ?></th>
+				<td>
+					<?php echo esc_html( isset( $ffc_kh['salt_source'] ) ? (string) $ffc_kh['salt_source'] : '' ); ?>
+					<?php echo ! empty( $ffc_kh['salt_decoupled'] ) ? '<span class="description">(' . esc_html__( 'decoupled', 'ffcertificate' ) . ')</span>' : ''; ?>
+				</td>
+			</tr>
+			<tr>
+				<th scope="row"><?php esc_html_e( 'Active key fingerprint', 'ffcertificate' ); ?></th>
+				<td>
+					<code><?php echo esc_html( isset( $ffc_kh['fingerprint'] ) ? (string) $ffc_kh['fingerprint'] : '' ); ?></code>
+					<p class="description"><?php esc_html_e( 'A non-reversible fingerprint of the active encryption key. It changes if the underlying secret changes — use it to confirm a rotation without exposing the key.', 'ffcertificate' ); ?></p>
+				</td>
+			</tr>
+			<?php if ( ! empty( $ffc_kh['rekey_in_progress'] ) ) : ?>
+			<tr>
+				<th scope="row"><?php esc_html_e( 'Previous key fingerprint', 'ffcertificate' ); ?></th>
+				<td>
+					<code><?php echo esc_html( isset( $ffc_kh['previous_fingerprint'] ) ? (string) $ffc_kh['previous_fingerprint'] : '' ); ?></code>
+					<p class="description"><?php esc_html_e( 'FFC_ENCRYPTION_KEY_PREVIOUS is set — a key-to-key rotation is in progress. Remove it once the rotation completes.', 'ffcertificate' ); ?></p>
+				</td>
+			</tr>
+			<?php endif; ?>
+		</tbody>
+	</table>
+
+	<?php
+	// Forward pointer to the key rotation (closes the S7b UX gap): once both
+	// decoupling constants are defined, records still encrypted under the
+	// previous (WordPress-derived) key are read only via the fallback and should
+	// be re-encrypted. The generator block below hides exactly when decoupled, so
+	// surface the pending count + a link to the rotation here. Gated on BOTH
+	// constants, matching where the rotation card becomes visible.
+	if (
+		! empty( $ffc_kh['encryption_decoupled'] ) && ! empty( $ffc_kh['salt_decoupled'] )
+		&& class_exists( '\\FreeFormCertificate\\Migrations\\MigrationManager' )
+	) {
+		$ffc_rot_pending = 0;
+		$ffc_rot_known   = false;
+		try {
+			$ffc_mig_manager = new \FreeFormCertificate\Migrations\MigrationManager();
+			$ffc_rot_status  = $ffc_mig_manager->get_migration_status( 'key_rotation' );
+			if ( ! is_wp_error( $ffc_rot_status ) && isset( $ffc_rot_status['pending'] ) ) {
+				$ffc_rot_known   = true;
+				$ffc_rot_pending = (int) $ffc_rot_status['pending'];
+			}
+		} catch ( \Throwable $ffc_rot_e ) {
+			$ffc_rot_known = false;
+		}
+
+		$ffc_rekeying = ! empty( $ffc_kh['rekey_in_progress'] );
+		// Show when records are pending, or when a re-key is in progress even at
+		// 0 pending (so the "now remove FFC_ENCRYPTION_KEY_PREVIOUS" step is
+		// surfaced once the rotation completes).
+		if ( $ffc_rot_known && ( $ffc_rot_pending > 0 || $ffc_rekeying ) ) {
+			$ffc_rot_url  = admin_url( 'admin.php?page=ffc-settings&tab=migrations' );
+			$ffc_rot_type = 'warning';
+			ob_start();
+			if ( $ffc_rekeying && 0 === $ffc_rot_pending ) {
+				// Re-key rotation finished: prompt removal of the previous constant.
+				$ffc_rot_type = 'success';
+				?>
+				<p>
+					<strong><?php esc_html_e( 'Re-key complete.', 'ffcertificate' ); ?></strong>
+					<?php esc_html_e( 'Every record is now encrypted under the new key. Remove FFC_ENCRYPTION_KEY_PREVIOUS from wp-config.php to finish.', 'ffcertificate' ); ?>
+				</p>
+				<?php
+			} else {
+				?>
+				<p>
+					<strong>
+					<?php
+					echo esc_html(
+						sprintf(
+							/* translators: %s: number of records pending re-encryption. */
+							_n(
+								'%s record is still encrypted under a previous key.',
+								'%s records are still encrypted under a previous key.',
+								$ffc_rot_pending,
+								'ffcertificate'
+							),
+							number_format_i18n( $ffc_rot_pending )
+						)
+					);
+					?>
+					</strong>
+					<?php
+					if ( $ffc_rekeying ) {
+						esc_html_e( 'Run the rotation to re-encrypt them under the new key, then remove FFC_ENCRYPTION_KEY_PREVIOUS. Do not change the keys again until it reaches 100%.', 'ffcertificate' );
+					} else {
+						esc_html_e( 'They remain readable via the fallback, but you should re-encrypt them under the active key so a future WordPress salt rotation cannot orphan them.', 'ffcertificate' );
+					}
+					?>
+				</p>
+				<?php
+			}
+			?>
+			<p>
+				<a class="button button-secondary" href="<?php echo esc_url( $ffc_rot_url ); ?>">
+					<?php esc_html_e( 'Go to Encryption Key Rotation', 'ffcertificate' ); ?>
+				</a>
+			</p>
+			<?php
+			wp_admin_notice(
+				(string) ob_get_clean(),
+				array(
+					'type'               => $ffc_rot_type,
+					'additional_classes' => array( 'inline' ),
+					'paragraph_wrap'     => false,
+					'attributes'         => array( 'style' => 'margin: 12px 0;' ),
+				)
+			);
+		}
+	}
+
+	// One suggestion widget per decoupling constant that is NOT yet defined, so
+	// each disappears once adopted. Values are generated client-side by
+	// assets/js/ffc-encryption-key-suggest.js (never persisted or sent).
+	$ffc_key_widgets = array();
+	if ( empty( $ffc_kh['encryption_decoupled'] ) ) {
+		$ffc_key_widgets[] = array(
+			'const' => 'FFC_ENCRYPTION_KEY',
+			'label' => __( 'Suggested FFC_ENCRYPTION_KEY define for wp-config.php', 'ffcertificate' ),
+		);
+	}
+	if ( empty( $ffc_kh['salt_decoupled'] ) ) {
+		$ffc_key_widgets[] = array(
+			'const' => 'FFC_HASH_SALT',
+			'label' => __( 'Suggested FFC_HASH_SALT define for wp-config.php', 'ffcertificate' ),
+		);
+	}
+	?>
+	<?php if ( ! empty( $ffc_key_widgets ) ) : ?>
+	<div class="ffc-encryption-key-suggest">
+		<h3 class="ffc-mt-0"><?php esc_html_e( 'Adopt decoupled secrets', 'ffcertificate' ); ?></h3>
+		<p class="description">
+			<?php esc_html_e( "Paste these into wp-config.php to derive FFC's encryption key and search-hash salt from dedicated strong secrets instead of the shared WordPress salts. Each value is generated in your browser and is never saved or sent anywhere.", 'ffcertificate' ); ?>
+		</p>
+		<?php foreach ( $ffc_key_widgets as $ffc_widget ) : ?>
+		<div class="ffc-key-suggest-widget" data-ffc-const="<?php echo esc_attr( $ffc_widget['const'] ); ?>">
+			<p class="ffc-mb-4"><code><?php echo esc_html( $ffc_widget['const'] ); ?></code></p>
+			<p>
+				<label class="screen-reader-text"><?php echo esc_html( $ffc_widget['label'] ); ?></label>
+				<textarea class="ffc-key-suggest-input large-text code" readonly rows="8"
+					aria-label="<?php echo esc_attr( $ffc_widget['label'] ); ?>"
+					spellcheck="false" autocomplete="off"></textarea>
+			</p>
+			<p>
+				<button type="button" class="button ffc-key-suggest-regenerate"><?php esc_html_e( 'Generate another', 'ffcertificate' ); ?></button>
+				<button type="button" class="button ffc-key-suggest-copy"><?php esc_html_e( 'Copy', 'ffcertificate' ); ?></button>
+				<span class="ffc-key-suggest-status description" role="status" aria-live="polite"></span>
+			</p>
+		</div>
+		<?php endforeach; ?>
+		<p class="description ffc-text-warning">
+			<strong><?php esc_html_e( 'Rotation caveat:', 'ffcertificate' ); ?></strong>
+			<?php esc_html_e( 'Apply these directly only on a NEW install with no encrypted data yet. On a site that already stores data, defining a new FFC_ENCRYPTION_KEY makes existing encrypted records unreadable, and a new FFC_HASH_SALT invalidates the stored search hashes — both are repaired by a planned key rotation (S7b) at Settings → Migrations, not a blind edit.', 'ffcertificate' ); ?>
+		</p>
+	</div>
+	<?php endif; ?>
+
+	<?php
+	// Re-key helper (#863): once both secrets are decoupled, offer an in-place
+	// FFC→FFC rotation — generate a fresh key here and keep the current one as
+	// FFC_ENCRYPTION_KEY_PREVIOUS during the rotation window. Hidden while a
+	// re-key is already in progress (previous constant set); the notice above
+	// drives that phase.
+	if (
+		! empty( $ffc_kh['encryption_decoupled'] ) && ! empty( $ffc_kh['salt_decoupled'] )
+		&& empty( $ffc_kh['rekey_in_progress'] )
+	) :
+		$ffc_migrations_url = admin_url( 'admin.php?page=ffc-settings&tab=migrations' );
+		?>
+		<details class="ffc-encryption-key-suggest">
+			<summary><strong><?php esc_html_e( 'Rotate to a new encryption key (advanced)', 'ffcertificate' ); ?></strong></summary>
+			<p class="description ffc-mt-8">
+				<?php esc_html_e( 'Replace the active FFC_ENCRYPTION_KEY with a fresh one without losing existing data — do this only when you have a reason to (e.g. a suspected key exposure), as it re-encrypts every stored record.', 'ffcertificate' ); ?>
+			</p>
+			<ol class="description ffc-ml-18">
+				<li><?php esc_html_e( 'In wp-config.php, copy your current FFC_ENCRYPTION_KEY line and rename the copy to FFC_ENCRYPTION_KEY_PREVIOUS (keep its value).', 'ffcertificate' ); ?></li>
+				<li><?php esc_html_e( 'Replace FFC_ENCRYPTION_KEY with the new value generated below.', 'ffcertificate' ); ?></li>
+				<li>
+				<?php
+				echo wp_kses(
+					sprintf(
+						/* translators: %s: link to the Encryption Key Rotation migration. */
+						__( 'Run the %s to re-encrypt every record under the new key.', 'ffcertificate' ),
+						'<a href="' . esc_url( $ffc_migrations_url ) . '">' . esc_html__( 'Encryption Key Rotation', 'ffcertificate' ) . '</a>'
+					),
+					array( 'a' => array( 'href' => array() ) )
+				);
+				?>
+				</li>
+				<li><?php esc_html_e( 'When it reaches 100%, remove FFC_ENCRYPTION_KEY_PREVIOUS from wp-config.php.', 'ffcertificate' ); ?></li>
+			</ol>
+			<div class="ffc-key-suggest-widget" data-ffc-const="FFC_ENCRYPTION_KEY">
+				<p class="ffc-mb-4"><code>FFC_ENCRYPTION_KEY</code> <span class="description"><?php esc_html_e( '(new)', 'ffcertificate' ); ?></span></p>
+				<p>
+					<label class="screen-reader-text"><?php esc_html_e( 'Suggested new FFC_ENCRYPTION_KEY define for wp-config.php', 'ffcertificate' ); ?></label>
+					<textarea class="ffc-key-suggest-input large-text code" readonly rows="8"
+						aria-label="<?php esc_attr_e( 'Suggested new FFC_ENCRYPTION_KEY define for wp-config.php', 'ffcertificate' ); ?>"
+						spellcheck="false" autocomplete="off"></textarea>
+				</p>
+				<p>
+					<button type="button" class="button ffc-key-suggest-regenerate"><?php esc_html_e( 'Generate another', 'ffcertificate' ); ?></button>
+					<button type="button" class="button ffc-key-suggest-copy"><?php esc_html_e( 'Copy', 'ffcertificate' ); ?></button>
+					<span class="ffc-key-suggest-status description" role="status" aria-live="polite"></span>
+				</p>
+			</div>
+		</details>
+	<?php endif; ?>
+</div>
 
 <!-- Danger Zone Card -->
 <div class="card ffc-danger-zone">

@@ -95,8 +95,8 @@ describe('csv schedule-exception — End now mode (start stays at baseline)', ()
 		vi.setSystemTime(new Date('2026-06-10T15:40:00'));
 		api.onScheduleExceptionClick();
 
-		const $start = window.$('.ffc-sched-exc-start');
-		const $end = window.$('.ffc-sched-exc-end');
+		const $start = window.$('.ffc-schedule-exception-start');
+		const $end = window.$('.ffc-schedule-exception-end');
 		expect($start.val()).toBe('00:00');
 		expect($start.prop('disabled')).toBe(true);
 		expect($end.val()).toBe('15:40');
@@ -111,7 +111,7 @@ describe('csv schedule-exception — End now mode (start stays at baseline)', ()
 
 		const reqSpy = vi.spyOn(window.FFC, 'request').mockResolvedValue({ form_url: '/x' });
 
-		window.$('.ffc-sched-exc-confirm').trigger('click');
+		window.$('.ffc-schedule-exception-confirm').trigger('click');
 		await flush();
 
 		// validate() passed (the bug blocked it with out-of-window): the
@@ -121,7 +121,7 @@ describe('csv schedule-exception — End now mode (start stays at baseline)', ()
 		// Start kept at baseline → empty override; new end carried through.
 		expect(payload).toContain('start_override=&');
 		expect(payload).toContain('end_override=15%3A40');
-		expect(window.$('.ffc-sched-exc-open').length).toBe(1);
+		expect(window.$('.ffc-schedule-exception-open').length).toBe(1);
 	});
 
 	it('still rejects a manually-overridden start below the window', async () => {
@@ -129,14 +129,14 @@ describe('csv schedule-exception — End now mode (start stays at baseline)', ()
 		api.onScheduleExceptionClick();
 		await flush();
 		// Manual mode: set start below window.
-		window.$('.ffc-sched-exc-start').val('13:00');
-		window.$('.ffc-sched-exc-end').val('15:40');
+		window.$('.ffc-schedule-exception-start').val('13:00');
+		window.$('.ffc-schedule-exception-end').val('15:40');
 		const reqSpy = vi.spyOn(window.FFC, 'request');
-		window.$('.ffc-sched-exc-confirm').trigger('click');
+		window.$('.ffc-schedule-exception-confirm').trigger('click');
 		await flush();
 
-		expect(window.$('.ffc-sched-exc-error').attr('hidden')).toBeUndefined();
-		expect(window.$('.ffc-sched-exc-error').text()).toContain('14:30');
+		expect(window.$('.ffc-schedule-exception-error').attr('hidden')).toBeUndefined();
+		expect(window.$('.ffc-schedule-exception-error').text()).toContain('14:30');
 		expect(reqSpy).not.toHaveBeenCalled();
 	});
 });

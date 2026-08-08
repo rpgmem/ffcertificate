@@ -129,7 +129,7 @@ class AdminUserCustomFields {
 			<div class="ffc-cf-section">
 				<h3 class="ffc-audience-section-heading ffc-cf-toggle" data-target="<?php echo esc_attr( $section_id ); ?>" role="button" tabindex="0" aria-expanded="true">
 					<span class="ffc-cf-toggle-icon dashicons dashicons-arrow-down-alt2"></span>
-					<span class="ffc-color-dot" style="background-color: <?php echo esc_attr( $audience->color ); ?>;"></span>
+					<span class="ffc-color-dot" style="--ffc-color: <?php echo esc_attr( $audience->color ); ?>;"></span>
 					<?php echo esc_html( $audience->name ); ?>
 					<span class="ffc-cf-field-count"><?php echo esc_html( (string) count( $fields ) ); ?></span>
 				</h3>
@@ -260,7 +260,7 @@ class AdminUserCustomFields {
 				<?php $wh_data_json = wp_json_encode( $wh_data ); ?>
 				<input type="hidden" name="<?php echo esc_attr( $input_name ); ?>" id="<?php echo esc_attr( $input_name ); ?>" value="<?php echo esc_attr( $wh_data_json ? $wh_data_json : '' ); ?>">
 				<div class="ffc-working-hours" data-target="<?php echo esc_attr( $input_name ); ?>">
-					<table class="widefat ffc-wh-table" style="max-width:800px">
+					<table class="widefat ffc-wh-table">
 						<thead>
 							<tr>
 								<th><?php esc_html_e( 'Day', 'ffcertificate' ); ?></th>

@@ -59,6 +59,7 @@ class UrlShortenerAdminPage {
 		add_action( 'admin_init', array( $this, 'handle_actions' ) );
 		add_action( 'admin_enqueue_scripts', array( $this, 'enqueue_assets' ) );
 		add_action( 'wp_ajax_ffc_create_short_url', array( $this, 'ajax_create' ) );
+		add_action( 'wp_ajax_ffc_edit_short_url', array( $this, 'ajax_edit_short_url' ) );
 		add_action( 'wp_ajax_ffc_delete_short_url', array( $this, 'ajax_delete' ) );
 		add_action( 'wp_ajax_ffc_toggle_short_url', array( $this, 'ajax_toggle' ) );
 		add_action( 'wp_ajax_ffc_trash_short_url', array( $this, 'ajax_trash' ) );
@@ -269,6 +270,55 @@ class UrlShortenerAdminPage {
 		} else {
 			wp_send_json_error( array( 'message' => $result['error'] ?? '' ) );
 		}
+	}
+
+	/**
+	 * AJAX: Edit the destination + title of a manually-created short URL.
+	 *
+	 * Post-linked short URLs (`post_id` set) are rejected server-side — their
+	 * destination follows the page's permalink and must not be hand-edited
+	 * (#888).
+	 */
+	public function ajax_edit_short_url(): void {
+		$this->verify_ajax_nonce( 'ffc_short_url_nonce' );
+		$this->check_ajax_permission( 'ffc_manage_url_shortener' );
+
+		// phpcs:ignore WordPress.Security.NonceVerification.Missing -- Nonce verified in $this->verify_ajax_nonce() above.
+		$id = (int) ( $_POST['id'] ?? 0 );
+		if ( $id <= 0 ) {
+			wp_send_json_error( array( 'message' => __( 'Invalid short URL.', 'ffcertificate' ) ) );
+		}
+
+		$record = $this->service->get_repository()->findById( $id );
+		if ( ! is_array( $record ) ) {
+			wp_send_json_error( array( 'message' => __( 'Short URL not found.', 'ffcertificate' ) ) );
+		}
+
+		if ( ! empty( $record['post_id'] ) ) {
+			wp_send_json_error(
+				array( 'message' => __( 'Short URLs linked to a post or page are not editable — their destination follows the page.', 'ffcertificate' ) )
+			);
+		}
+
+		// phpcs:ignore WordPress.Security.NonceVerification.Missing -- Nonce verified above.
+		$url   = esc_url_raw( wp_unslash( $_POST['target_url'] ?? '' ) );
+		$title = \FreeFormCertificate\Core\RequestInput::get_post_string( 'title' );
+
+		if ( empty( $url ) ) {
+			wp_send_json_error( array( 'message' => __( 'URL is required.', 'ffcertificate' ) ) );
+		}
+
+		if ( $this->service->update_short_url( $id, $url, $title ) ) {
+			wp_send_json_success(
+				array(
+					'id'         => $id,
+					'target_url' => $url,
+					'title'      => $title,
+				)
+			);
+		}
+
+		wp_send_json_error( array( 'message' => __( 'Failed to update short URL.', 'ffcertificate' ) ) );
 	}
 
 	/**

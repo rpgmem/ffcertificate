@@ -33,6 +33,10 @@ class FormEditorMetaboxRendererTest extends TestCase {
         Functions\when( 'esc_attr_e' )->alias( function ( $text ) { echo $text; } );
         Functions\when( 'wp_kses_post' )->returnArg();
         Functions\when( 'get_post_meta' )->justReturn( '' );
+        // The layout metabox's "Load" dropdown now lists the DB template pool
+        // (#865) via CertTemplateReader::list_for_editor() → get_posts(); an
+        // empty pool keeps the rendered <select> absent for these tests.
+        Functions\when( 'get_posts' )->justReturn( array() );
         Functions\when( 'wp_nonce_field' )->justReturn( '' );
         Functions\when( 'checked' )->justReturn( '' );
         Functions\when( 'selected' )->justReturn( '' );

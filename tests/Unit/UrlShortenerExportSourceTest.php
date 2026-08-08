@@ -95,13 +95,16 @@ class UrlShortenerExportSourceTest extends TestCase {
 
 	public function test_format_row_maps_columns_in_order(): void {
 		Functions\when( 'get_userdata' )->justReturn( (object) array( 'display_name' => 'Alice' ) );
+		// The sample row is post-linked (post_id 55), so the Target URL column
+		// resolves to the post's current permalink, matching the redirect (#888).
+		Functions\when( 'get_permalink' )->justReturn( 'https://example.com/current-permalink' );
 
 		$result = $this->source->format_row( $this->sample_row(), array() );
 
 		$this->assertSame( '7', $result[0] );
 		$this->assertSame( 'abc123', $result[1] );
 		$this->assertSame( 'My Link', $result[2] );
-		$this->assertSame( 'https://example.com/very/long', $result[3] );
+		$this->assertSame( 'https://example.com/current-permalink', $result[3] );
 		$this->assertSame( '42', $result[4] );
 		$this->assertSame( 'active', $result[5] );
 		$this->assertSame( '55', $result[6] );
