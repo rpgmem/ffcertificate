@@ -14,7 +14,7 @@
  * Uses dbDelta so it is idempotent and safe to run multiple times.
  *
  * @package FreeFormCertificate\Migrations
- * @since 4.13.0
+ * @since 5.0.0
  */
 
 declare(strict_types=1);

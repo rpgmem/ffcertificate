@@ -8,7 +8,7 @@
  * custom-fields tables, and the front-end dashboard page.
  *
  * @package FreeFormCertificate\UserDashboard
- * @since   6.11.3
+ * @since   6.12.0
  */
 
 declare(strict_types=1);

@@ -618,7 +618,7 @@ class Admin {
 	/**
 	 * Handle migration action (unified handler for all migrations)
 	 *
-	 * @since 2.9.13
+	 * @since 2.10.0
 	 */
 	public function handle_migration_action(): void {
         // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Nonce verified below via check_admin_referer.
@@ -710,7 +710,7 @@ class Admin {
 	 * For example: {{validation_url link:m>v}} stays as is,
 	 * instead of being converted to {{validation_url link:m&gt;v}}
 	 *
-	 * @since 2.9.3
+	 * @since 2.10.0
 	 * @param array<string, mixed> $init TinyMCE initialization settings.
 	 * @return array<string, mixed> Modified settings
 	 */

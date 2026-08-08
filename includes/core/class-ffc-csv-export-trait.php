@@ -15,7 +15,7 @@
  *   - extract_dynamic_values: pluck values for one row in a fixed key order
  *
  * @package FreeFormCertificate\Core
- * @since 4.11.2
+ * @since 4.12.0
  * @since 6.4.0 output_csv() removed; CSV IO moved to {@see CsvWriter}.
  */
 

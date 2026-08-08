@@ -12,7 +12,7 @@
  * Processes both submissions and appointments tables.
  *
  * @package FreeFormCertificate\Migrations\Strategies
- * @since 4.13.0
+ * @since 5.0.0
  */
 
 declare(strict_types=1);
@@ -428,7 +428,7 @@ class CpfRfSplitMigrationStrategy implements MigrationStrategyInterface {
 	 *
 	 * Safe to call multiple times (idempotent).
 	 *
-	 * @since 4.14.0
+	 * @since 5.0.0
 	 * @return void
 	 */
 	private function drop_legacy_columns(): void {

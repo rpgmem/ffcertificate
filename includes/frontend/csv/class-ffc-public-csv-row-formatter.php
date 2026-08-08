@@ -16,7 +16,7 @@
  * Auth Code, plus the dynamic form fields.
  *
  * @package FreeFormCertificate\Frontend\Csv
- * @since   6.7.x
+ * @since   6.12.0
  */
 
 declare(strict_types=1);
@@ -33,7 +33,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 /**
  * Builds the header row, formats data rows, and harvests dynamic JSON keys.
  *
- * @since 6.7.x
+ * @since 6.12.0
  */
 class PublicCsvRowFormatter {
 

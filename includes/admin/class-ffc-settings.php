@@ -748,7 +748,7 @@ class Settings {
 	 *  - `apply`   (GET) : refuse unless a recent preview exists, then run the
 	 *    destructive pass using the persisted options.
 	 *
-	 * @since 6.7.x
+	 * @since 6.8.0
 	 */
 	public function handle_url_shortener_cleanup(): void {
 		$this->action_handler->handle_url_shortener_cleanup();
@@ -766,7 +766,7 @@ class Settings {
 	 *  - `apply`   (GET) : refuse unless a recent preview exists, then run the
 	 *    destructive pass using the persisted grace window.
 	 *
-	 * @since 6.7.x
+	 * @since 6.8.0
 	 */
 	public function handle_public_access_disabler(): void {
 		$this->action_handler->handle_public_access_disabler();
@@ -779,7 +779,7 @@ class Settings {
 	 * `ffc_manage_settings`) runs the read-only {@see SubmissionLinkAuditor}
 	 * and stores the report in a transient. Nothing is mutated.
 	 *
-	 * @since 6.7.x
+	 * @since 6.8.0
 	 */
 	public function handle_submission_link_audit(): void {
 		$this->action_handler->handle_submission_link_audit();

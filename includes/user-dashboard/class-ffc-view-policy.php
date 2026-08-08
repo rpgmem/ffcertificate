@@ -12,7 +12,7 @@
  * the service only audits and dispatches.
  *
  * @package FreeFormCertificate\UserDashboard
- * @since 5.5.0
+ * @since 6.0.0
  */
 
 declare(strict_types=1);

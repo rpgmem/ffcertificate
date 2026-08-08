@@ -13,7 +13,7 @@
  * shared across the façade/reader/writer keeps transactions coherent.
  *
  * @package FreeFormCertificate\Repositories
- * @since   6.11.3
+ * @since   6.12.0
  */
 
 declare(strict_types=1);

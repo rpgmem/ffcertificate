@@ -8,7 +8,7 @@
  * Extracted from Utils.php (Sprint 31) for single-responsibility compliance.
  *
  * @package FreeFormCertificate\Core
- * @since 4.12.27
+ * @since 5.0.0
  */
 
 declare(strict_types=1);

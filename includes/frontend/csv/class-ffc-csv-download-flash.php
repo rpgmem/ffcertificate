@@ -11,7 +11,7 @@
  * flash messages survive the refactor.
  *
  * @package FreeFormCertificate\Frontend\Csv
- * @since   6.7.x
+ * @since   6.12.0
  */
 
 declare(strict_types=1);
@@ -27,7 +27,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 /**
  * Flash messages (transient keyed by IP hash).
  *
- * @since 6.7.x
+ * @since 6.12.0
  */
 class CsvDownloadFlash {
 

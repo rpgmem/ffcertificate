@@ -8,7 +8,7 @@
  * the writer (writes) directly; the delegating façade was retired in #563 B3-A.
  *
  * @package FreeFormCertificate\Recruitment
- * @since   6.11.3
+ * @since   6.12.0
  */
 
 declare(strict_types=1);
@@ -22,7 +22,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 /**
  * Read queries for `ffc_recruitment_adjutancy` rows.
  *
- * @since 6.11.3
+ * @since 6.12.0
  *
  * @phpstan-type AdjutancyRow \stdClass&object{id: numeric-string, slug: string, name: string, color: string, created_at: string, updated_at: string}
  */

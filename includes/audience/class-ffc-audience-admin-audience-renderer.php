@@ -8,7 +8,7 @@
  * as explicit parameters so it never reaches back through controller state.
  *
  * @package FreeFormCertificate\Audience
- * @since 6.7.x  Extracted from AudienceAdminAudience (#591 phase-3, Sprint E5c)
+ * @since 6.12.0  Extracted from AudienceAdminAudience (#591 phase-3, Sprint E5c)
  */
 
 declare(strict_types=1);

@@ -13,7 +13,7 @@
  * keeps caching and queries coherent.
  *
  * @package FreeFormCertificate\UrlShortener
- * @since 6.11.3
+ * @since 6.12.0
  */
 
 declare(strict_types=1);

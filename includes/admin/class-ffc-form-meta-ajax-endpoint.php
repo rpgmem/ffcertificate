@@ -24,7 +24,7 @@
  *     simple toggles where flipping the flag is the entire write.
  *
  * @package FreeFormCertificate\Admin
- * @since   6.5.15
+ * @since   6.6.0
  */
 
 declare(strict_types=1);

@@ -11,7 +11,7 @@
  * - POST parameter sanitization helpers
  *
  * @package FreeFormCertificate\Core
- * @since 4.11.2
+ * @since 4.12.0
  */
 
 declare(strict_types=1);
@@ -34,8 +34,8 @@ trait AjaxTrait {
 	 * Each AJAX handler must use a single, specific nonce action.
 	 * Sends wp_send_json_error() and dies if verification fails.
 	 *
-	 * @since 4.11.2
-	 * @since 5.1.1 Accepts only a single nonce action (array fallback removed for security).
+	 * @since 4.12.0
+	 * @since 5.2.0 Accepts only a single nonce action (array fallback removed for security).
 	 *
 	 * @param string $action Nonce action name to verify.
 	 * @param string $field  POST field name containing the nonce value.
@@ -145,7 +145,7 @@ trait AjaxTrait {
 	 * Logs the error via Debug::log_form() and sends a generic JSON error
 	 * to prevent internal details from leaking to the frontend.
 	 *
-	 * @since 5.1.1
+	 * @since 5.2.0
 	 *
 	 * @param \Throwable $e The caught exception.
 	 * @return void Dies with JSON error.

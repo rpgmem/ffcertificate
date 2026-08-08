@@ -410,7 +410,7 @@ class Encryption {
 	 *   if (!empty($row['field_encrypted'])) { decrypt(...) }
 	 *   elseif (!empty($row['field'])) { $row['field']; }
 	 *
-	 * @since 4.11.2
+	 * @since 4.12.0
 	 * @param array<string, mixed> $row            Row data.
 	 * @param string               $field          Plain-text field name (e.g. 'email').
 	 * @param string               $encrypted_key  Encrypted field name. Defaults to "{$field}_encrypted".
@@ -436,7 +436,7 @@ class Encryption {
 	 *
 	 * Similar to decrypt_submission() but for the appointment table schema.
 	 *
-	 * @since 4.11.2
+	 * @since 4.12.0
 	 * @param array<string, mixed> $appointment Appointment row data with encrypted fields.
 	 * @return array<string, mixed> Row with plain-text fields populated.
 	 */

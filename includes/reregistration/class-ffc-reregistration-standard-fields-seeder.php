@@ -13,7 +13,7 @@
  * deactivated). Fields created by admins have field_source = 'custom'.
  *
  * @package FreeFormCertificate\Reregistration
- * @since 4.13.0
+ * @since 5.0.0
  */
 
 declare(strict_types=1);
@@ -36,7 +36,7 @@ class ReregistrationStandardFieldsSeeder {
 	 *
 	 * Auto-seeds standard fields whenever a new audience is created.
 	 *
-	 * @since 4.13.0
+	 * @since 5.0.0
 	 * @return void
 	 */
 	public static function register(): void {
@@ -46,7 +46,7 @@ class ReregistrationStandardFieldsSeeder {
 	/**
 	 * Hook handler for `ffc_audience_created`.
 	 *
-	 * @since 4.13.0
+	 * @since 5.0.0
 	 * @param int                  $audience_id New audience ID.
 	 * @param array<string, mixed> $data        Audience creation data.
 	 * @return void

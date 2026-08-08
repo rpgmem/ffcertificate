@@ -26,7 +26,7 @@
  * and shares candidate writes with this service via {@see CandidatePersister}.
  *
  * @package FreeFormCertificate\Recruitment
- * @since   6.11.3
+ * @since   6.12.0
  */
 
 declare(strict_types=1);

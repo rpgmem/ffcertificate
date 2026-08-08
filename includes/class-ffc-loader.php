@@ -585,7 +585,7 @@ class Loader {
 	 * granted during plugin activation.  For sites that update without
 	 * reactivating, this one-time check fills the gap.
 	 *
-	 * @since 4.11.1
+	 * @since 4.12.0
 	 */
 	private function ensure_admin_capabilities(): void {
 		// v2: added cleanup of user-level false overrides for admin users.

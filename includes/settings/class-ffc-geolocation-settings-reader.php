@@ -5,7 +5,7 @@
  * Centralized accessor for `ffc_geolocation_settings` option reads.
  *
  * @package FreeFormCertificate\Settings
- * @since   6.7.x
+ * @since   6.12.0
  */
 
 declare(strict_types=1);

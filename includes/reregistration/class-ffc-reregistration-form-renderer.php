@@ -21,7 +21,7 @@
  * Encryption helper before being rendered back into the form.
  *
  * @package FreeFormCertificate\Reregistration
- * @since 4.13.0 Fully dynamic field system
+ * @since 5.0.0 Fully dynamic field system
  * @since 4.12.8 Extracted from ReregistrationFrontend
  */
 

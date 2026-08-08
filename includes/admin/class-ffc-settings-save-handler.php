@@ -5,7 +5,7 @@
  * Handles saving and validation of all settings types.
  * Extracted from FFC_Settings (v3.1.1) following Single Responsibility Principle.
  *
- * @since   3.1.1
+ * @since   3.2.0
  * @package FreeFormCertificate\Admin
  */
 
@@ -22,7 +22,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 /**
  * Validates, sanitizes, and persists plugin settings.
  *
- * @since 3.1.1
+ * @since 3.2.0
  */
 class SettingsSaveHandler {
 

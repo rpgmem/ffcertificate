@@ -4,7 +4,7 @@
  *
  * Extracted from FormEditorMetaboxRenderer as part of S3 god-object refactor.
  *
- * @since   3.1.1
+ * @since   3.2.0
  * @package FreeFormCertificate\Admin
  */
 
@@ -31,7 +31,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  * save path is unchanged. {@see render()} keeps the old stacked behaviour for
  * any caller still using the single entry point.
  *
- * @since 3.1.1
+ * @since 3.2.0
  */
 class FormEditorGeofenceMetabox {
 

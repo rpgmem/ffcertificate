@@ -20,7 +20,7 @@
  * writing any meta.
  *
  * @package FreeFormCertificate\Maintenance
- * @since 6.7.x
+ * @since 6.8.0
  */
 
 declare(strict_types=1);

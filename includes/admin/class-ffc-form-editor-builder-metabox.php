@@ -4,7 +4,7 @@
  *
  * Extracted from FormEditorMetaboxRenderer as part of S3 god-object refactor.
  *
- * @since   3.1.1
+ * @since   3.2.0
  * @package FreeFormCertificate\Admin
  */
 
@@ -22,7 +22,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 /**
  * Form Editor Builder Metabox Renderer.
  *
- * @since 3.1.1
+ * @since 3.2.0
  */
 class FormEditorBuilderMetabox {
 

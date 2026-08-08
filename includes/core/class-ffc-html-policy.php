@@ -7,7 +7,7 @@
  * user HTML against one identical rule set.
  *
  * @package FreeFormCertificate\Core
- * @since   6.11.3
+ * @since   6.12.0
  */
 
 declare(strict_types=1);

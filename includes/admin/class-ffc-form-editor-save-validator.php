@@ -8,7 +8,7 @@
  * mutable instance state.
  *
  * @package FreeFormCertificate\Admin
- * @since 6.7.x (Extracted from FormEditorSaveHandler — #591 phase-3, Sprint E5b)
+ * @since 6.12.0 (Extracted from FormEditorSaveHandler — #591 phase-3, Sprint E5b)
  */
 
 declare(strict_types=1);

@@ -36,7 +36,7 @@
  * threads this helper through the user-visible call sites.
  *
  * @package FreeFormCertificate\Core
- * @since   6.5.15
+ * @since   6.6.0
  */
 
 declare(strict_types=1);

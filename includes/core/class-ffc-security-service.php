@@ -8,7 +8,7 @@
  * Extracted from Utils.php (Sprint 31) for single-responsibility compliance.
  *
  * @package FreeFormCertificate\Core
- * @since 4.12.27
+ * @since 5.0.0
  */
 
 declare(strict_types=1);
@@ -138,7 +138,7 @@ class SecurityService {
 	/**
 	 * Validate security fields (honeypot + captcha)
 	 *
-	 * @since 2.9.11
+	 * @since 2.10.0
 	 * @param array<string, mixed> $data Form data containing security fields.
 	 * @return bool|string True if valid, error message string if invalid
 	 */

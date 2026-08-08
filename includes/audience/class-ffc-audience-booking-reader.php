@@ -9,7 +9,7 @@
  * in #563 B3-A.
  *
  * @package FreeFormCertificate\Audience
- * @since 6.11.3
+ * @since 6.12.0
  */
 
 declare(strict_types=1);
@@ -24,7 +24,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 /**
  * Read queries for audience booking records.
  *
- * @since 6.11.3
+ * @since 6.12.0
  *
  * @phpstan-type BookingRow \stdClass&object{id: numeric-string, environment_id: numeric-string, booking_date: string, start_time: string, end_time: string, booking_type: string, description: string, status: string, created_by: numeric-string, created_at: string, cancelled_by: numeric-string|null, cancelled_at: string|null, cancellation_reason: string|null, is_all_day?: numeric-string, environment_name?: string|null, schedule_id?: numeric-string|null, audience_name?: string, audience_id?: numeric-string, title?: string, audiences?: array<int, mixed>, users?: array<int, int>}
  */

@@ -165,7 +165,7 @@ class RecruitmentActivator {
 	 * `cleanup_stale_staging_jobs`) and only ever holds in-flight CSV-import
 	 * scratch state. Sites mid-import lose their job; the admin reuploads.
 	 *
-	 * @since 6.8.x
+	 * @since 6.9.0
 	 */
 	private static function migrate_recreate_staging_table_plaintext(): void {
 		global $wpdb;

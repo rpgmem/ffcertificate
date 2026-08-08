@@ -94,7 +94,7 @@ class VerificationHandler {
 	 * sequentially (backwards compatible).
 	 *
 	 * @param string $auth_code Auth code.
-	 * @since 4.13.0 Added prefix-based routing.
+	 * @since 5.0.0 Added prefix-based routing.
 	 * @return array<string, mixed>
 	 */
 	private function search_certificate( string $auth_code ): array {
@@ -434,7 +434,7 @@ class VerificationHandler {
 	 * Decode a reregistration submission's stored fields, decrypting any
 	 * values whose field definition is marked as sensitive.
 	 *
-	 * @since 4.13.0
+	 * @since 5.0.0
 	 * @param object      $submission Submission row.
 	 * @param object|null $rereg      Reregistration row.
 	 * @phpstan-param ReregistrationSubmissionRow $submission
