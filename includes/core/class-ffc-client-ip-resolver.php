@@ -22,7 +22,7 @@
  * the real-world blast radius before the phase-3 flip to `secure`.
  *
  * @package FreeFormCertificate\Core
- * @since 6.18.1
+ * @since 6.19.0
  */
 
 declare(strict_types=1);
@@ -151,7 +151,7 @@ class ClientIpResolver {
 		/**
 		 * Filter the effective client-IP resolution strategy.
 		 *
-		 * @since 6.18.1
+		 * @since 6.19.0
 		 * @param string $mode Either 'legacy' or 'secure'. Default 'legacy'.
 		 */
 		$mode = (string) apply_filters( 'ffc_ip_resolver_mode', self::MODE_LEGACY );
@@ -268,7 +268,7 @@ class ClientIpResolver {
 		 * Filter the Cloudflare edge CIDR ranges used to detect a CF request.
 		 * Phase 2 feeds a cron-refreshed list here.
 		 *
-		 * @since 6.18.1
+		 * @since 6.19.0
 		 * @param array<int, string> $ranges Bundled Cloudflare CIDR ranges.
 		 */
 		$filtered = apply_filters( 'ffc_cloudflare_ip_ranges', $ranges );
@@ -289,7 +289,7 @@ class ClientIpResolver {
 		/**
 		 * Filter the set of trusted reverse-proxy CIDR ranges / literal IPs.
 		 *
-		 * @since 6.18.1
+		 * @since 6.19.0
 		 * @param array<int, string> $proxies Trusted proxy ranges. Default empty.
 		 */
 		$proxies = apply_filters( 'ffc_trusted_proxies', array() );
@@ -317,7 +317,7 @@ class ClientIpResolver {
 		/**
 		 * Filter: enable dormant legacy-vs-secure divergence logging.
 		 *
-		 * @since 6.18.1
+		 * @since 6.19.0
 		 * @param bool $enabled Default false.
 		 */
 		if ( ! apply_filters( 'ffc_ip_shadow_logging', false ) ) {
