@@ -19,6 +19,12 @@
     font-size: 13px;
 }
 
+/* Admin custom-fields working-hours field: slightly wider cap (was an inline
+   max-width:800px override — #890 slice 1). */
+.ffc-working-hours .ffc-wh-table {
+    max-width: 800px;
+}
+
 .ffc-wh-table th {
     text-align: left;
     padding: 6px 6px;

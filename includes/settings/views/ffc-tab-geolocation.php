@@ -407,10 +407,10 @@ if ( ! defined( 'ABSPATH' ) ) {
 						// origin and wins the cascade), so initial visibility is
 						// driven by inline display:none instead. The companion JS
 						// toggles inline display via jQuery `.toggle()`.
-						$table_style = 'margin-top: 12px; max-width: 720px;';
-						if ( 'custom' !== $fallback_preset ) {
-							$table_style .= ' display: none;';
-						}
+						// Layout (margin/max-width) now lives in the
+						// .ffc-gps-fallback-cases class; only the JS-toggled
+						// initial visibility stays inline.
+						$table_style = ( 'custom' !== $fallback_preset ) ? 'display: none;' : '';
 						?>
 						<table class="ffc-gps-fallback-cases widefat striped" style="<?php echo esc_attr( $table_style ); ?>">
 							<thead>

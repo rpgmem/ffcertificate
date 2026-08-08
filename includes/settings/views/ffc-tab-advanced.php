@@ -124,7 +124,7 @@ $ffcertificate_get_option = \Closure::fromCallable( array( $settings, 'get_optio
 						);
 						foreach ( $ffcertificate_log_cats as $ffcertificate_cat_key => $ffcertificate_cat_label ) :
 							?>
-							<div style="margin-bottom:4px;">
+							<div class="ffc-mb-4">
 								<?php
 								\FreeFormCertificate\Admin\AdminUI::render_toggle(
 									array(
@@ -612,7 +612,7 @@ $ffc_kh_label = $ffc_kh_labels[ $ffc_kh_status ] ?? $ffc_kh_status;
 				<strong><?php echo esc_html( $ffc_kh_label ); ?>.</strong>
 				<?php esc_html_e( 'Your active secret material is not safe. Fix it, but choose the right path:', 'ffcertificate' ); ?>
 			</p>
-			<ul style="list-style: disc; margin-left: 20px;">
+			<ul class="ffc-list-disc">
 				<li><?php esc_html_e( 'New install (no data yet): generate fresh secret keys and paste them into wp-config.php.', 'ffcertificate' ); ?></li>
 				<li>
 					<?php
@@ -830,14 +830,14 @@ $ffc_kh_label = $ffc_kh_labels[ $ffc_kh_status ] ?? $ffc_kh_status;
 	}
 	?>
 	<?php if ( ! empty( $ffc_key_widgets ) ) : ?>
-	<div class="ffc-encryption-key-suggest" style="margin-top: 16px;">
+	<div class="ffc-encryption-key-suggest">
 		<h3 class="ffc-mt-0"><?php esc_html_e( 'Adopt decoupled secrets', 'ffcertificate' ); ?></h3>
 		<p class="description">
 			<?php esc_html_e( "Paste these into wp-config.php to derive FFC's encryption key and search-hash salt from dedicated strong secrets instead of the shared WordPress salts. Each value is generated in your browser and is never saved or sent anywhere.", 'ffcertificate' ); ?>
 		</p>
 		<?php foreach ( $ffc_key_widgets as $ffc_widget ) : ?>
-		<div class="ffc-key-suggest-widget" data-ffc-const="<?php echo esc_attr( $ffc_widget['const'] ); ?>" style="margin-top: 12px;">
-			<p style="margin-bottom: 4px;"><code><?php echo esc_html( $ffc_widget['const'] ); ?></code></p>
+		<div class="ffc-key-suggest-widget" data-ffc-const="<?php echo esc_attr( $ffc_widget['const'] ); ?>">
+			<p class="ffc-mb-4"><code><?php echo esc_html( $ffc_widget['const'] ); ?></code></p>
 			<p>
 				<label class="screen-reader-text"><?php echo esc_html( $ffc_widget['label'] ); ?></label>
 				<textarea class="ffc-key-suggest-input large-text code" readonly rows="8"
@@ -870,12 +870,12 @@ $ffc_kh_label = $ffc_kh_labels[ $ffc_kh_status ] ?? $ffc_kh_status;
 	) :
 		$ffc_migrations_url = admin_url( 'admin.php?page=ffc-settings&tab=migrations' );
 		?>
-		<details class="ffc-encryption-key-suggest" style="margin-top: 16px;">
+		<details class="ffc-encryption-key-suggest">
 			<summary><strong><?php esc_html_e( 'Rotate to a new encryption key (advanced)', 'ffcertificate' ); ?></strong></summary>
-			<p class="description" style="margin-top: 8px;">
+			<p class="description ffc-mt-8">
 				<?php esc_html_e( 'Replace the active FFC_ENCRYPTION_KEY with a fresh one without losing existing data — do this only when you have a reason to (e.g. a suspected key exposure), as it re-encrypts every stored record.', 'ffcertificate' ); ?>
 			</p>
-			<ol class="description" style="margin-left: 18px;">
+			<ol class="description ffc-ml-18">
 				<li><?php esc_html_e( 'In wp-config.php, copy your current FFC_ENCRYPTION_KEY line and rename the copy to FFC_ENCRYPTION_KEY_PREVIOUS (keep its value).', 'ffcertificate' ); ?></li>
 				<li><?php esc_html_e( 'Replace FFC_ENCRYPTION_KEY with the new value generated below.', 'ffcertificate' ); ?></li>
 				<li>
@@ -892,8 +892,8 @@ $ffc_kh_label = $ffc_kh_labels[ $ffc_kh_status ] ?? $ffc_kh_status;
 				</li>
 				<li><?php esc_html_e( 'When it reaches 100%, remove FFC_ENCRYPTION_KEY_PREVIOUS from wp-config.php.', 'ffcertificate' ); ?></li>
 			</ol>
-			<div class="ffc-key-suggest-widget" data-ffc-const="FFC_ENCRYPTION_KEY" style="margin-top: 12px;">
-				<p style="margin-bottom: 4px;"><code>FFC_ENCRYPTION_KEY</code> <span class="description"><?php esc_html_e( '(new)', 'ffcertificate' ); ?></span></p>
+			<div class="ffc-key-suggest-widget" data-ffc-const="FFC_ENCRYPTION_KEY">
+				<p class="ffc-mb-4"><code>FFC_ENCRYPTION_KEY</code> <span class="description"><?php esc_html_e( '(new)', 'ffcertificate' ); ?></span></p>
 				<p>
 					<label class="screen-reader-text"><?php esc_html_e( 'Suggested new FFC_ENCRYPTION_KEY define for wp-config.php', 'ffcertificate' ); ?></label>
 					<textarea class="ffc-key-suggest-input large-text code" readonly rows="8"
