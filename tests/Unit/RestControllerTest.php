@@ -28,6 +28,10 @@ class RestControllerTest extends TestCase {
         Functions\when( 'register_rest_route' )->justReturn( true );
         Functions\when( 'wp_cache_get' )->justReturn( false );
         Functions\when( 'wp_cache_set' )->justReturn( true );
+        // ClientIpResolver (behind RequestInput::get_user_ip) legacy path helpers.
+        Functions\when( 'get_option' )->justReturn( array() );
+        Functions\when( 'wp_unslash' )->returnArg();
+        Functions\when( 'sanitize_text_field' )->returnArg();
 
         // Namespaced stubs for repositories
         Functions\when( 'wp_cache_get' )->justReturn( false );
@@ -140,5 +144,94 @@ class RestControllerTest extends TestCase {
         foreach ( $namespaces as $ns ) {
             $this->assertSame( 'ffc/v1', $ns );
         }
+    }
+
+    // ==================================================================
+    // suppress_rest_api_notices() — the rest_pre_serve_request closure
+    // ==================================================================
+
+    public function test_suppress_notices_closure_cleans_active_buffer(): void {
+        if ( ! defined( 'REST_REQUEST' ) ) {
+            define( 'REST_REQUEST', true );
+        }
+
+        $captured = null;
+        Functions\when( 'add_filter' )->alias( function ( $tag, $cb = null ) use ( &$captured ) {
+            if ( 'rest_pre_serve_request' === $tag ) {
+                $captured = $cb;
+            }
+            return true;
+        } );
+
+        $level_before = ob_get_level();
+
+        ( new RestController() )->suppress_rest_api_notices();
+
+        $this->assertIsCallable( $captured );
+
+        // Invoke the registered closure with an active buffer holding stray output;
+        // it must ob_clean() and return the untouched $served flag.
+        ob_start();
+        echo 'stray notice';
+        $served = $captured( 'SERVED', null, null, null );
+
+        $this->assertSame( 'SERVED', $served );
+
+        while ( ob_get_level() > $level_before ) {
+            ob_end_clean();
+        }
+    }
+
+    // ==================================================================
+    // add_rate_limit_headers() — FFC-scoped X-RateLimit-* headers
+    // ==================================================================
+
+    public function test_rate_limit_headers_skipped_for_non_ffc_route(): void {
+        $response = new \WP_REST_Response( array(), 200 );
+        $request  = Mockery::mock( 'WP_REST_Request' );
+        $request->shouldReceive( 'get_route' )->andReturn( '/wp/v2/posts' );
+
+        $out = ( new RestController() )->add_rate_limit_headers( $response, null, $request );
+
+        $this->assertSame( $response, $out );
+        $this->assertSame( array(), $out->get_headers() );
+    }
+
+    public function test_rate_limit_headers_skipped_when_ip_limiting_disabled(): void {
+        Functions\when( 'get_option' )->alias( function ( $key ) {
+            return 'ffc_rate_limit_settings' === $key ? array( 'ip' => array( 'enabled' => false ) ) : array();
+        } );
+        $_SERVER['REMOTE_ADDR'] = '203.0.113.7';
+
+        $response = new \WP_REST_Response( array(), 200 );
+        $request  = Mockery::mock( 'WP_REST_Request' );
+        $request->shouldReceive( 'get_route' )->andReturn( '/ffc/v1/forms' );
+
+        $out = ( new RestController() )->add_rate_limit_headers( $response, null, $request );
+
+        $this->assertSame( array(), $out->get_headers() );
+    }
+
+    public function test_rate_limit_headers_set_when_enabled(): void {
+        Functions\when( 'get_option' )->alias( function ( $key ) {
+            return 'ffc_rate_limit_settings' === $key
+                ? array( 'ip' => array( 'enabled' => true, 'max_per_hour' => 5 ) )
+                : array();
+        } );
+        Functions\when( 'wp_cache_get' )->justReturn( 2 ); // 2 requests already spent this hour.
+        $_SERVER['REMOTE_ADDR'] = '203.0.113.7';
+
+        $headers  = array();
+        $response = Mockery::mock( 'WP_REST_Response' );
+        $response->shouldReceive( 'header' )->andReturnUsing( function ( $key, $value ) use ( &$headers ) {
+            $headers[ $key ] = $value;
+        } );
+        $request = Mockery::mock( 'WP_REST_Request' );
+        $request->shouldReceive( 'get_route' )->andReturn( '/ffc/v1/forms' );
+
+        ( new RestController() )->add_rate_limit_headers( $response, null, $request );
+
+        $this->assertSame( '5', $headers['X-RateLimit-Limit'] );
+        $this->assertSame( '3', $headers['X-RateLimit-Remaining'] );
     }
 }

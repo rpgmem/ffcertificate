@@ -254,6 +254,150 @@ class AppointmentValidatorTest extends TestCase {
     }
 
     // ==================================================================
+    // validate() — window / blocking / permission error branches
+    // ==================================================================
+
+    public function test_validate_past_date_returns_error(): void {
+        $data                     = $this->valid_data();
+        $data['appointment_date'] = '2020-01-01';
+
+        $result = $this->validator->validate( $data, $this->permissive_calendar() );
+
+        $this->assertSame( 'past_date', $result->get_error_code() );
+    }
+
+    public function test_validate_too_soon_for_advance_min(): void {
+        $calendar                        = $this->permissive_calendar();
+        $calendar['advance_booking_min'] = 1000000; // hours → an effectively unreachable minimum.
+        $data                            = $this->valid_data();
+        $data['appointment_date']        = gmdate( 'Y-m-d', time() + 86400 ); // tomorrow: not past, inside the window.
+
+        $result = $this->validator->validate( $data, $calendar );
+
+        $this->assertSame( 'too_soon', $result->get_error_code() );
+    }
+
+    public function test_validate_too_far_for_advance_max(): void {
+        $calendar                        = $this->permissive_calendar();
+        $calendar['advance_booking_max'] = 1; // days → 2030 is well beyond it.
+
+        $result = $this->validator->validate( $this->valid_data(), $calendar );
+
+        $this->assertSame( 'too_far', $result->get_error_code() );
+    }
+
+    public function test_validate_global_holiday_returns_error(): void {
+        Functions\when( 'get_option' )->alias( function ( $key, $default = false ) {
+            if ( 'ffc_global_holidays' === $key ) {
+                return array( array( 'date' => '2030-01-15' ) );
+            }
+            if ( 'date_format' === $key ) return 'Y-m-d';
+            if ( 'time_format' === $key ) return 'H:i';
+            return $default;
+        } );
+
+        $result = $this->validator->validate( $this->valid_data(), $this->permissive_calendar() );
+
+        $this->assertSame( 'date_blocked', $result->get_error_code() );
+    }
+
+    public function test_validate_blocked_date_returns_error(): void {
+        $this->blockedDateRepo->shouldReceive( 'isDateBlocked' )->andReturn( true );
+
+        $result = $this->validator->validate( $this->valid_data(), $this->permissive_calendar() );
+
+        $this->assertSame( 'date_blocked', $result->get_error_code() );
+    }
+
+    public function test_validate_outside_working_hours_returns_error(): void {
+        $calendar                  = $this->permissive_calendar();
+        // A day that never matches (0-6) → WorkingHoursService reports outside hours.
+        $calendar['working_hours'] = array( array( 'day' => 99, 'start' => '09:00', 'end' => '10:00' ) );
+
+        $result = $this->validator->validate( $this->valid_data(), $calendar );
+
+        $this->assertSame( 'outside_hours', $result->get_error_code() );
+    }
+
+    public function test_validate_capability_denied_when_missing_book_cap(): void {
+        // Logged in, no bypass, and lacks ffc_book_own_appointments.
+        Functions\when( 'current_user_can' )->justReturn( false );
+
+        $result = $this->validator->validate( $this->valid_data(), $this->permissive_calendar() );
+
+        $this->assertSame( 'capability_denied', $result->get_error_code() );
+    }
+
+    public function test_validate_email_required_when_logged_out(): void {
+        Functions\when( 'is_user_logged_in' )->justReturn( false );
+        $data = $this->valid_data();
+        unset( $data['email'] );
+
+        $result = $this->validator->validate( $data, $this->permissive_calendar() );
+
+        $this->assertSame( 'email_required', $result->get_error_code() );
+    }
+
+    public function test_validate_invalid_cpf_returns_error(): void {
+        $data           = $this->valid_data();
+        $data['cpf_rf'] = '11111111111'; // 11 digits, fails the CPF checksum.
+
+        $result = $this->validator->validate( $data, $this->permissive_calendar() );
+
+        $this->assertSame( 'invalid_cpf', $result->get_error_code() );
+    }
+
+    public function test_validate_interval_error_bubbles_up(): void {
+        $calendar                                        = $this->permissive_calendar();
+        $calendar['minimum_interval_between_bookings']   = 24;
+        $soon_ts                                         = time() + 3600;
+        $this->appointmentRepo->shouldReceive( 'findByUserId' )->andReturn( array(
+            array(
+                'status'           => 'confirmed',
+                'calendar_id'      => 1,
+                'appointment_date' => gmdate( 'Y-m-d', $soon_ts ),
+                'start_time'       => gmdate( 'H:i:s', $soon_ts ),
+            ),
+        ) );
+        $data            = $this->valid_data();
+        $data['user_id'] = 1;
+
+        $result = $this->validator->validate( $data, $calendar );
+
+        $this->assertSame( 'booking_too_soon', $result->get_error_code() );
+    }
+
+    public function test_validate_interval_passes_when_no_recent(): void {
+        $calendar                                      = $this->permissive_calendar();
+        $calendar['minimum_interval_between_bookings'] = 24;
+        $this->appointmentRepo->shouldReceive( 'findByUserId' )->andReturn( array() );
+        $data            = $this->valid_data();
+        $data['user_id'] = 1;
+
+        $this->assertTrue( $this->validator->validate( $data, $calendar ) );
+    }
+
+    public function test_validate_interval_resolves_identifier_from_email(): void {
+        $calendar                                      = $this->permissive_calendar();
+        $calendar['minimum_interval_between_bookings'] = 24;
+        $this->appointmentRepo->shouldReceive( 'findByEmail' )->andReturn( array() );
+        $data = $this->valid_data();
+        unset( $data['user_id'] ); // no user id → falls back to the email identifier.
+
+        $this->assertTrue( $this->validator->validate( $data, $calendar ) );
+    }
+
+    public function test_validate_interval_resolves_identifier_from_cpf_rf(): void {
+        $calendar                                      = $this->permissive_calendar();
+        $calendar['minimum_interval_between_bookings'] = 24;
+        $this->appointmentRepo->shouldReceive( 'findByCpfRf' )->andReturn( array() );
+        $data = $this->valid_data();
+        unset( $data['user_id'], $data['email'] ); // no user id / email → CPF-RF identifier (logged-in skips email check).
+
+        $this->assertTrue( $this->validator->validate( $data, $calendar ) );
+    }
+
+    // ==================================================================
     // check_booking_interval() — user identifier resolution
     // ==================================================================
 
