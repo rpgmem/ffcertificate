@@ -7,6 +7,13 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Added
+- **IP Diagnostics detects Cloudflare behind a host proxy** (#920): a new `cloudflare_via_proxy` verdict covers the CF → host-LB → PHP topology — the `secure` strategy auto-trusts `CF-Connecting-IP` when the TCP peer is a private/reserved load balancer with a Cloudflare edge as the first public `X-Forwarded-For` hop (no manual proxy CIDR needed), and the misleading "put Cloudflare in front" guide no longer shows. The tab is redesigned: one Legacy×Secure comparison table, a headers table with a Situation column (incl. `CF-Ray`), and a warning against pasting Cloudflare ranges into the custom-proxy field.
+- **Cloudflare page-cache safety check** (#921): when the site is behind Cloudflare, the Cache tab runs a best-effort loopback probe of the edge `cf-cache-status` and warns if HTML is being cached (a "Cache Everything"/APO misconfiguration that can serve forms stale or leak the per-user dashboard), with guidance to exclude FFC URLs. Result cached up to 6h.
+
+### Security
+- **Per-user dashboard kept off the Cloudflare edge cache** (#921): the `[user_dashboard_personal]` page now also emits `Cloudflare-CDN-Cache-Control: no-store` / `CDN-Cache-Control: no-store` — Cloudflare ignores `DONOTCACHEPAGE` / `X-LiteSpeed-Cache-Control`, so these edge-specific directives keep per-user HTML from being shared across visitors under CDN cache rules that honour them.
+
 ## [6.19.0] (2026-08-09) — `d93c277`
 
 ### Fixed

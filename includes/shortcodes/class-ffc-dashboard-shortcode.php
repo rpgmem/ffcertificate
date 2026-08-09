@@ -60,6 +60,16 @@ class DashboardShortcode {
 		// Standard WordPress no-cache headers.
 		nocache_headers();
 
+		// Cloudflare (#921): CF ignores DONOTCACHEPAGE / X-LiteSpeed-Cache-Control
+		// — it only honours Cache-Control. `Cloudflare-CDN-Cache-Control` (and the
+		// generic `CDN-Cache-Control`) are CF's edge-specific directives and are
+		// respected even under Cache Rules that would otherwise override the
+		// browser Cache-Control, so this keeps per-user dashboard HTML off the CF
+		// edge. Not a substitute for NOT enabling "Cache Everything" on FFC URLs
+		// (a forced Page Rule can still override), but closes the common cases.
+		header( 'Cloudflare-CDN-Cache-Control: no-store' );
+		header( 'CDN-Cache-Control: no-store' );
+
 		// LiteSpeed Cache: programmatic exclusion — hook name is defined by LiteSpeed Cache plugin.
         // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound
 		do_action( 'litespeed_control_set_nocache', 'FFC dashboard page requires user-specific content' );
