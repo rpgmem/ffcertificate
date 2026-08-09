@@ -29,6 +29,9 @@ class UserProfileRestControllerTest extends TestCase {
     /** @var Mockery\MockInterface Mock UserManager */
     private $user_manager_mock;
 
+    /** @var Mockery\MockInterface Mock RateLimiter */
+    private $rate_limiter_mock;
+
     protected function setUp(): void {
         parent::setUp();
         Monkey\setUp();
@@ -90,8 +93,8 @@ class UserProfileRestControllerTest extends TestCase {
         $activity_log_mock->shouldReceive( 'log_password_changed' )->byDefault();
         $activity_log_mock->shouldReceive( 'log_privacy_request' )->byDefault();
 
-        $rate_limiter_mock = Mockery::mock( 'alias:\FreeFormCertificate\Security\RateLimiter' );
-        $rate_limiter_mock->shouldReceive( 'check_user_limit' )->andReturn( array( 'allowed' => true ) )->byDefault();
+        $this->rate_limiter_mock = Mockery::mock( 'alias:\FreeFormCertificate\Security\RateLimiter' );
+        $this->rate_limiter_mock->shouldReceive( 'check_user_limit' )->andReturn( array( 'allowed' => true ) )->byDefault();
 
         // Global $wpdb mock
         $this->wpdb = Mockery::mock( 'wpdb' )->makePartial();
@@ -466,5 +469,194 @@ class UserProfileRestControllerTest extends TestCase {
 
         $this->assertIsArray( $result );
         $this->assertTrue( $result['success'] );
+    }
+
+    // ==================================================================
+    // Additional error branches + catch blocks (#910)
+    // ==================================================================
+
+    public function test_get_user_profile_includes_audience_groups(): void {
+        Functions\when( 'get_current_user_id' )->justReturn( 5 );
+        Functions\when( 'get_user_by' )->justReturn( $this->make_user( 5 ) );
+        Functions\when( 'get_userdata' )->justReturn( $this->make_user( 5 ) );
+        // table_exists(ffc_audience_members) → true: echo args through prepare so
+        // the SHOW TABLES query carries the table name, then match it in get_var.
+        $this->wpdb->shouldReceive( 'prepare' )->andReturnUsing(
+            static fn( $sql, ...$a ) => $sql . ' ' . implode( ',', array_map( 'strval', $a ) )
+        );
+        $this->wpdb->shouldReceive( 'get_var' )->andReturnUsing(
+            static fn( $q ) => ( is_string( $q ) && false !== strpos( $q, 'ffc_audience_members' ) ) ? 'wp_ffc_audience_members' : null
+        );
+        Mockery::mock( 'alias:\FreeFormCertificate\Audience\AudienceReader' )
+            ->shouldReceive( 'get_user_audience_badges' )->andReturn( array( array( 'name' => 'Group A' ) ) );
+
+        $result = ( new UserProfileRestController( 'ffc/v1' ) )->get_user_profile( $this->make_request() );
+
+        $this->assertIsArray( $result );
+        $this->assertSame( array( array( 'name' => 'Group A' ) ), $result['audience_groups'] );
+    }
+
+    public function test_get_user_profile_wraps_exception(): void {
+        Functions\when( 'get_current_user_id' )->justReturn( 5 );
+        Functions\when( 'get_user_by' )->justReturn( $this->make_user( 5 ) );
+        Functions\when( 'get_userdata' )->justReturn( $this->make_user( 5 ) );
+        $this->user_manager_mock->shouldReceive( 'get_user_cpfs_masked' )->andThrow( new \RuntimeException( 'boom' ) );
+        Mockery::mock( 'alias:\FreeFormCertificate\Core\Debug' )->shouldReceive( 'log_rest_api' )->byDefault();
+
+        $result = ( new UserProfileRestController( 'ffc/v1' ) )->get_user_profile( $this->make_request() );
+
+        $this->assertInstanceOf( \WP_Error::class, $result );
+        $this->assertSame( 'get_profile_error', $result->get_error_code() );
+    }
+
+    public function test_update_user_profile_accepts_preferences_and_wraps_exception(): void {
+        Functions\when( 'get_current_user_id' )->justReturn( 5 );
+        Functions\when( 'get_user_by' )->justReturn( $this->make_user( 5 ) );
+        Functions\when( 'get_userdata' )->justReturn( $this->make_user( 5 ) );
+        $captured = null;
+        $this->user_manager_mock->shouldReceive( 'update_profile' )->andReturnUsing(
+            function ( $uid, $data ) use ( &$captured ) {
+                $captured = $data;
+                return true;
+            }
+        );
+
+        $result = ( new UserProfileRestController( 'ffc/v1' ) )->update_user_profile(
+            $this->make_request( array( 'preferences' => array( 'theme' => 'dark' ) ) )
+        );
+
+        $this->assertIsArray( $result );
+        $this->assertSame( array( 'theme' => 'dark' ), $captured['preferences'] );
+    }
+
+    public function test_update_user_profile_wraps_exception(): void {
+        Functions\when( 'get_current_user_id' )->justReturn( 5 );
+        $this->user_manager_mock->shouldReceive( 'update_profile' )->andThrow( new \RuntimeException( 'boom' ) );
+        Mockery::mock( 'alias:\FreeFormCertificate\Core\Debug' )->shouldReceive( 'log_rest_api' )->byDefault();
+
+        $result = ( new UserProfileRestController( 'ffc/v1' ) )->update_user_profile(
+            $this->make_request( array( 'display_name' => 'X' ) )
+        );
+
+        $this->assertInstanceOf( \WP_Error::class, $result );
+        $this->assertSame( 'update_profile_error', $result->get_error_code() );
+    }
+
+    public function test_change_password_rate_limited(): void {
+        Functions\when( 'get_current_user_id' )->justReturn( 5 );
+        $this->rate_limiter_mock->shouldReceive( 'check_user_limit' )->andReturn( array( 'allowed' => false, 'message' => 'slow' ) );
+
+        $result = ( new UserProfileRestController( 'ffc/v1' ) )->change_password(
+            $this->make_request( array( 'new_password' => 'longenough1' ) )
+        );
+
+        $this->assertInstanceOf( \WP_Error::class, $result );
+        $this->assertSame( 'rate_limited', $result->get_error_code() );
+    }
+
+    public function test_change_password_user_not_found(): void {
+        Functions\when( 'get_current_user_id' )->justReturn( 5 );
+        Functions\when( 'get_user_by' )->justReturn( false );
+
+        $result = ( new UserProfileRestController( 'ffc/v1' ) )->change_password(
+            $this->make_request( array( 'new_password' => 'longenough1' ) )
+        );
+
+        $this->assertInstanceOf( \WP_Error::class, $result );
+        $this->assertSame( 'user_not_found', $result->get_error_code() );
+    }
+
+    public function test_change_password_requires_current_password(): void {
+        Functions\when( 'get_current_user_id' )->justReturn( 5 );
+        Functions\when( 'get_user_by' )->justReturn( $this->make_user( 5 ) );
+
+        // Valid new password but no current password (and not view-as).
+        $result = ( new UserProfileRestController( 'ffc/v1' ) )->change_password(
+            $this->make_request( array( 'new_password' => 'longenough1' ) )
+        );
+
+        $this->assertInstanceOf( \WP_Error::class, $result );
+        $this->assertSame( 'missing_fields', $result->get_error_code() );
+    }
+
+    public function test_change_password_wraps_exception(): void {
+        Functions\when( 'get_current_user_id' )->justReturn( 5 );
+        Functions\when( 'get_user_by' )->alias( static function () {
+            throw new \RuntimeException( 'boom' );
+        } );
+
+        $result = ( new UserProfileRestController( 'ffc/v1' ) )->change_password(
+            $this->make_request( array( 'new_password' => 'longenough1', 'current_password' => 'x' ) )
+        );
+
+        $this->assertInstanceOf( \WP_Error::class, $result );
+        $this->assertSame( 'password_error', $result->get_error_code() );
+    }
+
+    public function test_create_privacy_request_rate_limited(): void {
+        Functions\when( 'get_current_user_id' )->justReturn( 5 );
+        $this->rate_limiter_mock->shouldReceive( 'check_user_limit' )->andReturn( array( 'allowed' => false, 'message' => 'slow' ) );
+
+        $result = ( new UserProfileRestController( 'ffc/v1' ) )->create_privacy_request(
+            $this->make_request( array( 'type' => 'export_personal_data' ) )
+        );
+
+        $this->assertInstanceOf( \WP_Error::class, $result );
+        $this->assertSame( 'rate_limited', $result->get_error_code() );
+    }
+
+    public function test_create_privacy_request_user_not_found(): void {
+        Functions\when( 'get_current_user_id' )->justReturn( 5 );
+        Functions\when( 'get_user_by' )->justReturn( false );
+
+        $result = ( new UserProfileRestController( 'ffc/v1' ) )->create_privacy_request(
+            $this->make_request( array( 'type' => 'export_personal_data' ) )
+        );
+
+        $this->assertInstanceOf( \WP_Error::class, $result );
+        $this->assertSame( 'user_not_found', $result->get_error_code() );
+    }
+
+    public function test_create_privacy_request_bubbles_wp_error(): void {
+        Functions\when( 'get_current_user_id' )->justReturn( 5 );
+        Functions\when( 'get_user_by' )->justReturn( $this->make_user( 5 ) );
+        Functions\when( 'wp_create_user_request' )->justReturn( new \WP_Error( 'dup', 'already pending' ) );
+
+        $result = ( new UserProfileRestController( 'ffc/v1' ) )->create_privacy_request(
+            $this->make_request( array( 'type' => 'remove_personal_data' ) )
+        );
+
+        $this->assertInstanceOf( \WP_Error::class, $result );
+        $this->assertSame( 'privacy_request_error', $result->get_error_code() );
+    }
+
+    public function test_create_privacy_request_adds_admin_hint_for_admin(): void {
+        Functions\when( 'get_current_user_id' )->justReturn( 5 );
+        Functions\when( 'current_user_can' )->justReturn( true ); // admin → hint appended.
+        Functions\when( 'get_user_by' )->justReturn( $this->make_user( 5 ) );
+        Functions\when( 'wp_create_user_request' )->justReturn( 42 );
+
+        $result = ( new UserProfileRestController( 'ffc/v1' ) )->create_privacy_request(
+            $this->make_request( array( 'type' => 'export_personal_data' ) )
+        );
+
+        $this->assertIsArray( $result );
+        $this->assertTrue( $result['success'] );
+        $this->assertStringContainsString( 'Tools', $result['message'] );
+    }
+
+    public function test_create_privacy_request_wraps_exception(): void {
+        Functions\when( 'get_current_user_id' )->justReturn( 5 );
+        Functions\when( 'get_user_by' )->justReturn( $this->make_user( 5 ) );
+        Functions\when( 'wp_create_user_request' )->alias( static function () {
+            throw new \RuntimeException( 'boom' );
+        } );
+
+        $result = ( new UserProfileRestController( 'ffc/v1' ) )->create_privacy_request(
+            $this->make_request( array( 'type' => 'export_personal_data' ) )
+        );
+
+        $this->assertInstanceOf( \WP_Error::class, $result );
+        $this->assertSame( 'privacy_error', $result->get_error_code() );
     }
 }
