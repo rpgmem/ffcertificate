@@ -60,6 +60,27 @@ class ClientIpResolver {
 	public const UNKNOWN = '0.0.0.0';
 
 	/**
+	 * Environment verdict: the TCP peer is a Cloudflare edge address.
+	 *
+	 * @var string
+	 */
+	public const VERDICT_CLOUDFLARE = 'cloudflare';
+
+	/**
+	 * Environment verdict: the TCP peer is a configured trusted proxy.
+	 *
+	 * @var string
+	 */
+	public const VERDICT_TRUSTED_PROXY = 'trusted_proxy';
+
+	/**
+	 * Environment verdict: direct connection — REMOTE_ADDR is the client.
+	 *
+	 * @var string
+	 */
+	public const VERDICT_DIRECT = 'direct';
+
+	/**
 	 * Forwarded-for header precedence for the legacy walk. Kept byte-for-byte
 	 * identical to the historical `RequestInput::get_user_ip()` order so the
 	 * legacy strategy is a pure move (no behaviour change).
@@ -162,6 +183,35 @@ class ClientIpResolver {
 	}
 
 	/**
+	 * Classify the connection environment of a TCP peer — the verdict the
+	 * phase-2 diagnostic surface (#901) renders and the "should we show the
+	 * Cloudflare setup guide?" decision hinges on.
+	 *
+	 * @param string|null $remote TCP peer to classify. Defaults to the current
+	 *                            request's `REMOTE_ADDR`.
+	 * @return string One of self::VERDICT_* (unresolvable peer → `direct`).
+	 */
+	public static function classify( ?string $remote = null ): string {
+		if ( null === $remote ) {
+			$remote = self::server_string( 'REMOTE_ADDR' );
+		}
+
+		if ( '' === $remote || ! filter_var( $remote, FILTER_VALIDATE_IP ) ) {
+			return self::VERDICT_DIRECT;
+		}
+
+		if ( self::ip_in_any_range( $remote, self::cloudflare_ranges() ) ) {
+			return self::VERDICT_CLOUDFLARE;
+		}
+
+		if ( self::ip_in_any_range( $remote, self::trusted_proxies() ) ) {
+			return self::VERDICT_TRUSTED_PROXY;
+		}
+
+		return self::VERDICT_DIRECT;
+	}
+
+	/**
 	 * Legacy strategy — walk the forwarded-for chain left→right and return the
 	 * first public, non-reserved IP. Spoofable; retained only for phase-1
 	 * behavioural parity.
@@ -261,7 +311,7 @@ class ClientIpResolver {
 	 *
 	 * @return array<int, string>
 	 */
-	private static function cloudflare_ranges(): array {
+	public static function cloudflare_ranges(): array {
 		$ranges = array_merge( self::CLOUDFLARE_IPV4, self::CLOUDFLARE_IPV6 );
 
 		/**
@@ -285,7 +335,7 @@ class ClientIpResolver {
 	 *
 	 * @return array<int, string>
 	 */
-	private static function trusted_proxies(): array {
+	public static function trusted_proxies(): array {
 		/**
 		 * Filter the set of trusted reverse-proxy CIDR ranges / literal IPs.
 		 *

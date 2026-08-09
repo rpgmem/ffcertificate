@@ -173,18 +173,19 @@ class Settings {
 		// Tab classes with proper namespaces.
 		// v4.6.16: Reorganized tabs for better UX.
 		$tab_classes = array(
-			'general'       => '\\FreeFormCertificate\\Settings\\Tabs\\TabGeneral',
-			'modulos'       => '\\FreeFormCertificate\\Settings\\Tabs\\TabModulos',
-			'smtp'          => '\\FreeFormCertificate\\Settings\\Tabs\\TabSMTP',
-			'cache'         => '\\FreeFormCertificate\\Settings\\Tabs\\TabCache',
-			'url_shortener' => '\\FreeFormCertificate\\Settings\\Tabs\\TabUrlShortener',
-			'rate_limit'    => '\\FreeFormCertificate\\Settings\\Tabs\\TabRateLimit',
-			'geolocation'   => '\\FreeFormCertificate\\Settings\\Tabs\\TabGeolocation',
-			'user_access'   => '\\FreeFormCertificate\\Settings\\Tabs\\TabUserAccess',
-			'activity_log'  => '\\FreeFormCertificate\\Settings\\Tabs\\TabActivityLog',
-			'advanced'      => '\\FreeFormCertificate\\Settings\\Tabs\\TabAdvanced',
-			'migrations'    => '\\FreeFormCertificate\\Settings\\Tabs\\TabMigrations',
-			'documentation' => '\\FreeFormCertificate\\Settings\\Tabs\\TabDocumentation',
+			'general'        => '\\FreeFormCertificate\\Settings\\Tabs\\TabGeneral',
+			'modulos'        => '\\FreeFormCertificate\\Settings\\Tabs\\TabModulos',
+			'smtp'           => '\\FreeFormCertificate\\Settings\\Tabs\\TabSMTP',
+			'cache'          => '\\FreeFormCertificate\\Settings\\Tabs\\TabCache',
+			'url_shortener'  => '\\FreeFormCertificate\\Settings\\Tabs\\TabUrlShortener',
+			'rate_limit'     => '\\FreeFormCertificate\\Settings\\Tabs\\TabRateLimit',
+			'geolocation'    => '\\FreeFormCertificate\\Settings\\Tabs\\TabGeolocation',
+			'ip_diagnostics' => '\\FreeFormCertificate\\Settings\\Tabs\\TabIpDiagnostics',
+			'user_access'    => '\\FreeFormCertificate\\Settings\\Tabs\\TabUserAccess',
+			'activity_log'   => '\\FreeFormCertificate\\Settings\\Tabs\\TabActivityLog',
+			'advanced'       => '\\FreeFormCertificate\\Settings\\Tabs\\TabAdvanced',
+			'migrations'     => '\\FreeFormCertificate\\Settings\\Tabs\\TabMigrations',
+			'documentation'  => '\\FreeFormCertificate\\Settings\\Tabs\\TabDocumentation',
 		);
 
 		// Instantiate each tab.
