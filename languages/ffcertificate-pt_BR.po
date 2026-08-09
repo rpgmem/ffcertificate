@@ -3,7 +3,7 @@ msgstr ""
 "Project-Id-Version: Free Form Certificate\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-02-06 11:00+0000\n"
-"PO-Revision-Date: 2026-08-08 02:30+0000\n"
+"PO-Revision-Date: 2026-08-09 21:34+0000\n"
 "Last-Translator: Alex Meusburger\n"
 "Language-Team: Português do Brasil\n"
 "Language: pt_BR\n"
@@ -211,7 +211,7 @@ msgid "%d published calendar(s)"
 msgstr "%d calendário(s) publicado(s)"
 
 #. %d: number of QR codes cleared
-#: includes/admin/class-ffc-settings.php:470
+#: includes/admin/class-ffc-settings.php:471
 msgid "%d QR Code(s) cleared from cache successfully."
 msgstr "%d Códigos QR removidos do cache com sucesso."
 
@@ -459,6 +459,10 @@ msgstr "(visualização inicial do calendário — \"mês\" ou \"semana\")."
 msgid "(inspect/rewrite the composed message before send) and"
 msgstr "(inspecionar/reescrever a mensagem composta antes de enviar) e"
 
+#: includes/settings/tabs/class-ffc-tab-ip-diagnostics.php:376
+msgid "(legacy is currently effective)"
+msgstr "(a versão legada está atualmente em vigor)"
+
 #: includes/settings/views/documentation/forms-email.php:27
 msgid "(magic download link) and"
 msgstr "(link mágico para download) e"
@@ -539,6 +543,10 @@ msgstr "(recomendado)"
 msgid "(scope to one environment),"
 msgstr "(escopo para um ambiente),"
 
+#: includes/settings/tabs/class-ffc-tab-ip-diagnostics.php:375
+msgid "(secure is currently effective)"
+msgstr "(o modo seguro está ativo no momento)"
+
 #: includes/settings/views/documentation/feature-self-scheduling.php:43
 msgid "(the id is the calendar post ID shown in the editor). The visitor picks an open slot and submits name, email, CPF/RF and optional notes (with honeypot + captcha + LGPD consent). A guest booking auto-creates or links a WordPress user from the CPF/RF + email."
 msgstr "(o ID é o ID da publicação do calendário exibido no editor). O visitante seleciona um horário disponível e envia nome, e-mail, CPF/RF e observações opcionais (com *honeypot*, *captcha* e consentimento da LGPD). Uma reserva de visitante cria automaticamente ou vincula um usuário do WordPress com base no CPF/RF e no e-mail."
@@ -571,7 +579,7 @@ msgstr "O valor 0 desativa o limite de taxa por IP."
 msgid "04 of January, 2026"
 msgstr "04 de janeiro de 2026"
 
-#: includes/security/class-ffc-ip-limiter.php:68 includes/security/class-ffc-rate-limit-checker.php:714
+#: includes/security/class-ffc-ip-limiter.php:68 includes/security/class-ffc-rate-limit-checker.php:720
 msgid "1 hour"
 msgstr "1 hora"
 
@@ -579,7 +587,7 @@ msgstr "1 hora"
 msgid "1 hour (default)"
 msgstr "1 hora (padrão)"
 
-#: includes/security/class-ffc-rate-limit-checker.php:700
+#: includes/security/class-ffc-rate-limit-checker.php:706
 msgid "1 minute"
 msgstr "1 minuto"
 
@@ -1818,6 +1826,10 @@ msgstr "Aplica-se a"
 msgid "Applies to the Certificate HTML editor on the form edit screen. \"Auto\" mirrors the admin Dark Mode setting (General tab); fresh installs default to Dark."
 msgstr "Aplica-se ao editor HTML do certificado na tela de edição do formulário. \"Automático\" espelha a configuração do Modo Escuro do administrador (guia Geral); novas instalações usam o Modo Escuro por padrão."
 
+#: includes/settings/tabs/class-ffc-tab-ip-diagnostics.php:468
+msgid "Applies when the secure strategy is effective."
+msgstr "Aplica-se quando a estratégia de segurança é eficaz."
+
 #: templates/admin/reregistration/submissions.php:85
 msgid "Apply"
 msgstr "Aplicar"
@@ -2343,6 +2355,10 @@ msgstr "Automático (seguir a opção de \"Modo Escuro\")"
 msgid "Auto / Light / Dark for the certificate HTML editor on the form screen."
 msgstr "Automático / Claro / Escuro para o editor de HTML de certificados na tela do formulário."
 
+#: includes/settings/tabs/class-ffc-tab-ip-diagnostics.php:461
+msgid "Auto — detect Cloudflare / known proxy, else use REMOTE_ADDR (recommended)"
+msgstr "Detectar automaticamente Cloudflare / proxy conhecido; caso contrário, usar REMOTE_ADDR (recomendado)"
+
 #: templates/admin/reregistration/list.php:57 includes/settings/views/documentation/feature-reregistration.php:38
 msgid "Auto-approve"
 msgstr "Aprovação automática"
@@ -2506,7 +2522,7 @@ msgstr "Voltar aos Motivos"
 msgid "Back to Reregistrations"
 msgstr "Voltar para Recadastramentos"
 
-#: includes/admin/class-ffc-settings.php:259
+#: includes/admin/class-ffc-settings.php:260
 msgid "Back to top"
 msgstr "Voltar ao topo"
 
@@ -2601,6 +2617,10 @@ msgstr "Antes, durante ou após a exibição da janela, você pode, de forma ind
 #: includes/settings/views/documentation/developer-hooks-api.php:59
 msgid "Before a short-URL redirect is sent."
 msgstr "Antes de um redirecionamento de URL curta ser enviado."
+
+#: includes/settings/tabs/class-ffc-tab-ip-diagnostics.php:329
+msgid "Behind a configured trusted proxy — X-Forwarded-For is honoured."
+msgstr "Atrás de um proxy confiável configurado, o cabeçalho X-Forwarded-For é respeitado."
 
 #: includes/settings/views/documentation/feature-recruitment.php:51
 msgid "Being prepared; never shown publicly."
@@ -3534,7 +3554,7 @@ msgstr "A pré-visualização do certificado só está disponível antes do iní
 msgid "Certificate previously issued (Reprint)."
 msgstr "Certificado emitido anteriormente (Reimpressão)."
 
-#: includes/admin/class-ffc-settings.php:229 includes/admin/class-ffc-settings.php:563
+#: includes/admin/class-ffc-settings.php:230 includes/admin/class-ffc-settings.php:564
 msgid "Certificate Settings"
 msgstr "Configurações de Certificado"
 
@@ -3812,6 +3832,28 @@ msgstr "Fechado hoje"
 #: includes/recruitment/class-ffc-recruitment-notice-edit-page-renderer.php:249
 msgid "Closing freezes the notice and its calls history."
 msgstr "O encerramento congela o edital e seu histórico de chamadas."
+
+#: includes/settings/tabs/class-ffc-tab-ip-diagnostics.php:327
+msgid "Cloudflare detected — CF-Connecting-IP is authoritative."
+msgstr "Cloudflare detectado — CF-Connecting-IP é a fonte autoritativa."
+
+#: includes/settings/tabs/class-ffc-tab-ip-diagnostics.php:92
+msgid "Cloudflare IP ranges refresh requested."
+msgstr "Solicitada a atualização dos intervalos de IP da Cloudflare."
+
+#. 1: range count, 2: "refreshed X ago"
+#: includes/settings/tabs/class-ffc-tab-ip-diagnostics.php:422
+#, php-format
+msgid "Cloudflare ranges: %1$d entries (%2$s)."
+msgstr "Intervalos da Cloudflare: %1$d entradas (%2$s)."
+
+#: includes/settings/tabs/class-ffc-tab-ip-diagnostics.php:427
+msgid "Cloudflare ranges: using the bundled fallback list (daily refresh not run yet)."
+msgstr "Intervalos de IP da Cloudflare: utilizando a lista de fallback integrada (a atualização diária ainda não foi executada)."
+
+#: includes/settings/tabs/class-ffc-tab-ip-diagnostics.php:463
+msgid "Cloudflare — trust the Cloudflare edge ranges"
+msgstr "Cloudflare — confie nas faixas de IP de borda da Cloudflare"
 
 #: includes/settings/views/documentation/forms-geolocation.php:25
 msgid "coarse (roughly 1–50 km) — use a larger radius. IP validation requires the global geolocation API to be enabled (Settings → Geolocation); the per-form IP toggle stays disabled until then."
@@ -4142,7 +4184,7 @@ msgstr "Controla a aparência do modo escuro para as páginas de administração
 msgid "Controls whether calling a candidate sends the convocation email. The global \"disable all emails\" switch always wins."
 msgstr "Controla se ligar para um candidato envia o e-mail de convocação. A configuração global de \"desativar todos os e-mails\" sempre prevalece."
 
-#: includes/admin/class-ffc-settings.php:691
+#: includes/admin/class-ffc-settings.php:692
 msgid "Convocation email, public listing tuning and status colors."
 msgstr "E-mail de convocação, ajustes na listagem pública e cores de status."
 
@@ -4533,6 +4575,10 @@ msgstr "Crie uma campanha e vincule-a a um ou mais públicos."
 msgid "Create a field in Form Builder (e.g. field name \"company\")"
 msgstr "Crie um campo no Form Builder (por exemplo, com o nome \"company\")."
 
+#: includes/settings/tabs/class-ffc-tab-ip-diagnostics.php:527
+msgid "Create a free Cloudflare account and add this site."
+msgstr "Crie uma conta gratuita na Cloudflare e adicione este site."
+
 #: includes/frontend/class-ffc-frontend.php:554
 msgid "Create a one-use schedule exception for a single participant submission."
 msgstr "Criar uma exceção de horário de uso único para uma submissão de participante."
@@ -4752,6 +4798,10 @@ msgstr "A senha atual está incorreta."
 msgid "Current Position/Role"
 msgstr "Cargo/Função atual"
 
+#: includes/settings/tabs/class-ffc-tab-ip-diagnostics.php:342
+msgid "Current request diagnosis"
+msgstr "Diagnóstico da solicitação atual"
+
 #: includes/frontend/class-ffc-frontend.php:540
 msgid "Current scheduled close:"
 msgstr "Fechamento programado atual:"
@@ -4812,6 +4862,10 @@ msgstr "Formato Personalizado:"
 msgid "Custom label for the environments of this calendar (e.g. \"Rooms\", \"Categories\", \"Services\"). Leave empty to use the default \"Environments\"."
 msgstr "Rótulo personalizado para os ambientes deste calendário (ex.: \"Salas\", \"Categorias\", \"Serviços\"). Deixe em branco para usar o padrão \"Ambientes\"."
 
+#: includes/settings/tabs/class-ffc-tab-ip-diagnostics.php:472
+msgid "Custom proxy CIDRs"
+msgstr "CIDRs de proxy personalizados"
+
 #: includes/audience/class-ffc-audience-admin-audience-renderer.php:458 includes/audience/class-ffc-audience-admin-audience-renderer.php:643
 msgid "Custom Regex"
 msgstr "Regex Personalizada"
@@ -4844,6 +4898,10 @@ msgstr "Usuários Personalizados"
 msgid "Custom — choose case by case"
 msgstr "Personalizado — escolha caso a caso"
 
+#: includes/settings/tabs/class-ffc-tab-ip-diagnostics.php:465
+msgid "Custom — trust the proxy CIDRs below"
+msgstr "Personalizado — confiar nos CIDRs de proxy abaixo"
+
 #: includes/settings/views/documentation/feature-ficha.php:150
 msgid "Customization:"
 msgstr "Personalização:"
@@ -4860,7 +4918,7 @@ msgstr "Limite Diário de Agendamentos"
 msgid "Daily booking limit reached for this date."
 msgstr "Limite diário de agendamentos atingido para esta data."
 
-#: includes/security/class-ffc-rate-limit-checker.php:650
+#: includes/security/class-ffc-rate-limit-checker.php:656
 msgid "Daily limit reached. Please try again tomorrow."
 msgstr "Limite diário atingido. Tente novamente amanhã."
 
@@ -5543,6 +5601,14 @@ msgstr "Não conseguiu baixar? Clique aqui para abrir o PDF em uma nova aba."
 msgid "Dimension"
 msgstr "Dimensão"
 
+#: includes/settings/tabs/class-ffc-tab-ip-diagnostics.php:331
+msgid "Direct connection — REMOTE_ADDR is already the client."
+msgstr "Conexão direta — REMOTE_ADDR já é o cliente."
+
+#: includes/settings/tabs/class-ffc-tab-ip-diagnostics.php:467
+msgid "Direct — ignore every forwarded header"
+msgstr "Direto — ignore todos os cabeçalhos de encaminhamento"
+
 #: templates/admin/url-shortener/short-urls-page.php:298
 msgid "Disable"
 msgstr "Desativar"
@@ -5702,6 +5768,10 @@ msgstr "Domínios"
 #: includes/reregistration/class-ffc-reregistration-field-options.php:142
 msgid "Domestic partnership"
 msgstr "União estável"
+
+#: includes/settings/tabs/class-ffc-tab-ip-diagnostics.php:530
+msgid "Done — the real client IP now reaches PHP via CF-Connecting-IP, and this tab will report \"Cloudflare detected\"."
+msgstr "Pronto — o IP real do cliente agora chega ao PHP via CF-Connecting-IP, e esta aba indicará \"Cloudflare detectado\"."
 
 #: includes/admin/class-ffc-admin-assets-manager.php:555 includes/admin/class-ffc-admin-activity-log-page.php:112 includes/self-scheduling/class-ffc-self-scheduling-admin.php:182 includes/reregistration/class-ffc-reregistration-admin.php:212 includes/url-shortener/class-ffc-url-shortener-admin-page.php:136 includes/audience/class-ffc-audience-loader.php:441
 msgid "Done!"
@@ -6104,6 +6174,10 @@ msgstr "Editando uma submissão"
 msgid "Editor Preferences"
 msgstr "Preferências do Editor"
 
+#: includes/settings/tabs/class-ffc-tab-ip-diagnostics.php:453
+msgid "Effective strategy"
+msgstr "Estratégia eficaz"
+
 #: includes/settings/views/documentation/reference-tokens.php:116
 msgid "Effective wall-clock schedule range — the per-submission \"Entry/exit exception\" override wins (Geofence: Schedule Exception), then the form-level Class Schedule baseline (Geofence → Time → Class Schedule), then the form's Time Range, then empty."
 msgstr "Intervalo efetivo de horário de trabalho — a exceção de \"Entrada/Saída\" por envio prevalece (Geofence: Exceção de Agendamento), seguida pela linha de base do Cronograma de Aulas no nível do formulário (Geofence → Horário → Cronograma de Aulas), depois pelo Intervalo de Tempo do formulário e, por último, vazio."
@@ -6436,6 +6510,10 @@ msgstr "Ativar Modo Quiz"
 msgid "Enable Schedule Exception"
 msgstr "Habilitar exceção de horário"
 
+#: includes/settings/tabs/class-ffc-tab-ip-diagnostics.php:529
+msgid "Enable the proxy (orange cloud) for the site record."
+msgstr "Ative o proxy (nuvem laranja) para o registro do site."
+
 #: includes/settings/views/documentation/feature-url-shortener.php:64
 msgid "Enable the shortener"
 msgstr "Ativar o encurtador"
@@ -6636,6 +6714,10 @@ msgstr "Rótulo de Ambiente"
 #: includes/audience/class-ffc-audience-admin-environment.php:236
 msgid "Environment not found."
 msgstr "Ambiente não encontrado."
+
+#: includes/settings/tabs/class-ffc-tab-ip-diagnostics.php:354
+msgid "Environment verdict"
+msgstr "Veredito ambiental"
 
 #: includes/audience/class-ffc-audience-admin-calendar.php:235 includes/audience/class-ffc-audience-admin-page.php:256 includes/audience/class-ffc-audience-admin-page.php:257 includes/audience/class-ffc-audience-schedule-repository.php:543 templates/admin/audience/audience-tab.php:34
 msgid "Environments"
@@ -7445,7 +7527,7 @@ msgstr "funções do FFC"
 msgid "FFC Roles & Capabilities"
 msgstr "Funções e Capacidades do FFC"
 
-#: includes/admin/class-ffc-settings.php:230
+#: includes/admin/class-ffc-settings.php:231
 msgid "FFC Settings"
 msgstr "FFC Configurações"
 
@@ -8162,7 +8244,7 @@ msgstr "Catálogo global de etiquetas definidas pelo operador e anexadas a um ca
 msgid "Global Holidays"
 msgstr "Feriados Globais"
 
-#: includes/admin/class-ffc-settings.php:682
+#: includes/admin/class-ffc-settings.php:683
 msgid "Global holidays and audience / self-scheduling visibility."
 msgstr "Feriados globais e visibilidade de agendamento pelo público-alvo/próprio usuário."
 
@@ -8344,6 +8426,10 @@ msgstr "Tem prioridade sobre a lista de permissões. Aceita os mesmos formatos."
 #: templates/admin/settings/email-model-box.php:28
 msgid "Header"
 msgstr "Cabeçalho"
+
+#: includes/settings/tabs/class-ffc-tab-ip-diagnostics.php:390
+msgid "Header-injection self-test"
+msgstr "Autoteste de injeção de cabeçalho"
 
 #: includes/settings/views/documentation/reference-html-styling.php:63
 msgid "Headers/titles"
@@ -8603,6 +8689,10 @@ msgstr "Quantos sinais FORTES (canvas, WebGL, áudio, fontes, plugins, permissõ
 #: includes/settings/views/ffc-tab-migrations.php:988
 msgid "How many times should I run it?"
 msgstr "Quantas vezes devo executar o teste?"
+
+#: includes/settings/tabs/class-ffc-tab-ip-diagnostics.php:343
+msgid "How this very request would be resolved. IPs are masked unless you are a full administrator."
+msgstr "Como essa solicitação específica seria resolvida. Os endereços IP são mascarados, a menos que você seja um administrador pleno."
 
 #: includes/admin/class-ffc-form-editor-geofence-metabox.php:265
 msgid "How to display the form after the end date / end time."
@@ -9200,6 +9290,10 @@ msgstr "Cache de IP + TTL"
 msgid "IP Cache Duration (TTL)"
 msgstr "Duração do cache IP (TTL)"
 
+#: includes/settings/tabs/class-ffc-tab-ip-diagnostics.php:49
+msgid "IP Diagnostics"
+msgstr "Diagnóstico de IP"
+
 #: includes/settings/views/ffc-tab-geolocation.php:197
 msgid "IP Geolocation"
 msgstr "Geolocalização de IP"
@@ -9249,6 +9343,10 @@ msgstr "Localizações de IP"
 #: includes/settings/views/ffc-tab-rate-limit.php:19
 msgid "IP Rate Limit"
 msgstr "Taxa Limite de IP"
+
+#: includes/settings/tabs/class-ffc-tab-ip-diagnostics.php:95
+msgid "IP resolution settings saved."
+msgstr "Configurações de resolução de IP salvas."
 
 #: includes/settings/views/ffc-tab-geolocation.php:232
 msgid "ip-api.com (Free, 45 req/min, no key)"
@@ -9505,6 +9603,14 @@ msgstr "Deixe os horários vazios para usar o padrão (08:00 - 18:00)."
 msgid "Left"
 msgstr "Esquerda"
 
+#: includes/settings/tabs/class-ffc-tab-ip-diagnostics.php:454
+msgid "Legacy (current behaviour, spoofable) — recommended until a trusted proxy is configured"
+msgstr "Legado (comportamento atual, passível de falsificação) — recomendado até que um proxy confiável seja configurado"
+
+#: includes/settings/tabs/class-ffc-tab-ip-diagnostics.php:444
+msgid "Legacy stays effective by default (no behaviour change). Opt into secure to apply the trusted-proxy model now; otherwise it becomes the default in a later release."
+msgstr "O modo legado permanece ativo por padrão (sem alteração de comportamento). Opte pelo modo seguro para aplicar o modelo de *trusted-proxy* agora; caso contrário, ele se tornará o padrão em uma versão futura."
+
 #: includes/reregistration/class-ffc-reregistration-field-options.php:140
 msgid "Legally separated"
 msgstr "Separados legalmente"
@@ -9759,6 +9865,10 @@ msgstr "A verificação de localização falhou."
 #: includes/settings/views/documentation/config-rate-limit.php:56
 msgid "Log"
 msgstr "Registro"
+
+#: includes/settings/tabs/class-ffc-tab-ip-diagnostics.php:487
+msgid "Log (with a hashed IP) when legacy and secure would disagree — measure the impact before switching."
+msgstr "Registre (com IP hasheado) os casos de divergência entre o sistema legado e o seguro — avalie o impacto antes de realizar a mudança."
 
 #: includes/settings/views/ffc-tab-rate-limit.php:528
 msgid "Log allowed requests"
@@ -10457,7 +10567,7 @@ msgstr "Campos obrigatórios ausentes."
 msgid "Missing required parameters."
 msgstr "Parâmetros obrigatórios faltando."
 
-#: includes/admin/class-ffc-settings-ajax-endpoint.php:511
+#: includes/admin/class-ffc-settings-ajax-endpoint.php:519
 msgid "Missing setting key."
 msgstr "Chave de configuração ausente."
 
@@ -10872,6 +10982,10 @@ msgstr "Nenhum calendário encontrado."
 msgid "No candidates classified yet."
 msgstr "Nenhum candidato classificado ainda."
 
+#: includes/settings/tabs/class-ffc-tab-ip-diagnostics.php:521
+msgid "No CDN was detected. Cloudflare is optional — the Auto/Direct mode plus device fingerprinting already protects you — but it gives an unspoofable client IP for free."
+msgstr "Nenhuma CDN foi detectada. O Cloudflare é opcional — o modo Auto/Direct combinado com a identificação de dispositivo (*device fingerprinting*) já oferece proteção —, mas ele fornece gratuitamente um IP de cliente que não pode ser falsificado."
+
 #: includes/shortcodes/class-ffc-dashboard-asset-manager.php:204
 msgid "No certificates found"
 msgstr "Nenhum certificado encontrado"
@@ -11191,6 +11305,10 @@ msgstr "Nota: Se nenhuma restrição for selecionada, o formulário ficará Aber
 msgid "Note: if none of the three is selected, the public page renders the access screen but exposes no actions."
 msgstr "Observação: se nenhuma das três opções for selecionada, a página pública exibirá a tela de acesso, mas não apresentará nenhuma ação."
 
+#: includes/settings/tabs/class-ffc-tab-ip-diagnostics.php:537
+msgid "Note: TLS-fingerprint (JA3/JA4) headers are Enterprise-only and out of scope for shared hosting."
+msgstr "Nota: Os cabeçalhos de impressão digital TLS (JA3/JA4) estão disponíveis apenas para planos Enterprise e não se aplicam à hospedagem compartilhada."
+
 #: includes/admin/class-ffc-form-editor-email-metabox.php:131
 msgid "Note: When this option is enabled, the email will only be sent when the user submits the form. This will add them to a waiting list and emails will be sent progressively."
 msgstr "Observação: Quando esta opção estiver ativada, o e-mail será enviado somente quando o usuário enviar o formulário. Isso o adicionará a uma lista de espera e os e-mails serão enviados progressivamente."
@@ -11366,6 +11484,10 @@ msgstr "desligado; 100/minuto, 1000/hora quando ligado"
 msgid "off; 5/month, 50/year when on"
 msgstr "desativado; 5/mês, 50/ano quando ativado"
 
+#: includes/settings/tabs/class-ffc-tab-ip-diagnostics.php:535
+msgid "Official Cloudflare setup guide"
+msgstr "Guia oficial de configuração da Cloudflare"
+
 #: includes/recruitment/class-ffc-recruitment-admin-assets-manager.php:234
 msgid "OK"
 msgstr "OK"
@@ -11429,6 +11551,10 @@ msgstr "Além do limite mencionado, é necessário que pelo menos essa quantidad
 #: includes/core/class-ffc-security-service.php:90
 msgid "one"
 msgstr "um"
+
+#: includes/settings/tabs/class-ffc-tab-ip-diagnostics.php:474
+msgid "One CIDR or IP per line. Used only with the Custom mode above."
+msgstr "Um CIDR ou IP por linha. Utilizado apenas com o modo Personalizado acima."
 
 #: includes/settings/views/documentation/overview.php:51
 msgid "One configurable \"Email Model\" wraps every message, sent through a single SMTP-aware pipeline with a global kill-switch and multipart delivery."
@@ -11613,6 +11739,10 @@ msgstr "Opção para sobrescrever o gerador de PDF. \"Herdar\" reutiliza o forma
 #: includes/frontend/class-ffc-public-csv-download.php:263
 msgid "Optional. If the form requires a CPF, enter it here. If filled, it will be recorded (encrypted at rest) in the form's audit log even when the form does not require it."
 msgstr "Opcional. Se um CPF for preenchido ele será registrado (criptografado) para auditoria do formulário."
+
+#: includes/settings/tabs/class-ffc-tab-ip-diagnostics.php:520
+msgid "Optional: put Cloudflare in front of this site"
+msgstr "Opcional: coloque o Cloudflare na frente deste site."
 
 #: includes/settings/views/documentation/config-geolocation.php:51
 msgid "Optionally let administrators ignore the date/time restriction and/or the geolocation restriction, so they can test forms from anywhere at any time."
@@ -12208,7 +12338,7 @@ msgstr "Por favor, conclua seu novo cadastro antes do prazo final."
 msgid "Please confirm that you want to cancel the following appointment."
 msgstr "Por favor, confirme que deseja cancelar o próximo agendamento."
 
-#: includes/class-ffc-deactivator.php:52
+#: includes/class-ffc-deactivator.php:53
 msgid "Please confirm the uninstallation to proceed."
 msgstr "Por favor, confirme a desinstalação para prosseguir."
 
@@ -12340,6 +12470,10 @@ msgstr "mais"
 #: includes/settings/views/documentation/forms-email.php:27
 msgid "plus the validation-URL link DSL — e.g."
 msgstr "além da DSL de link de URL de validação — p. ex."
+
+#: includes/settings/tabs/class-ffc-tab-ip-diagnostics.php:528
+msgid "Point your domain's nameservers to the ones Cloudflare gives you (at your registrar)."
+msgstr "Aponte os servidores de nome (nameservers) do seu domínio para aqueles fornecidos pela Cloudflare (no seu registrador)."
 
 #: includes/admin/class-ffc-form-editor-builder-metabox.php:292
 msgid "Points per option (same order, separate with commas):"
@@ -12724,6 +12858,10 @@ msgstr "Comprove a autenticidade instantaneamente"
 #: includes/settings/views/documentation/feature-recruitment.php:52
 msgid "Provisional ranking published for review."
 msgstr "Classificação provisória publicada para revisão."
+
+#: includes/settings/tabs/class-ffc-tab-ip-diagnostics.php:370
+msgid "Proxy headers received"
+msgstr "Cabeçalhos de proxy recebidos"
 
 #: includes/self-scheduling/class-ffc-self-scheduling-editor.php:478 includes/self-scheduling/class-ffc-self-scheduling-editor.php:488 includes/audience/class-ffc-audience-admin-calendar.php:128 includes/audience/class-ffc-audience-admin-calendar.php:251
 msgid "Public"
@@ -13125,7 +13263,7 @@ msgstr "Acesso somente leitura à lista de submissões e ao painel de certificad
 msgid "Read-only access to user/audience custom field definitions."
 msgstr "Acesso somente leitura às definições de campos personalizados de usuário/público-alvo."
 
-#: includes/admin/class-ffc-settings.php:569
+#: includes/admin/class-ffc-settings.php:570
 msgid "Read-only — you can view these settings but do not have permission to change them."
 msgstr "Somente leitura — você pode visualizar essas configurações, mas não tem permissão para alterá-las."
 
@@ -13193,6 +13331,10 @@ msgstr "Recomendado para sites com muitos formulários ou alto tráfego."
 msgid "Recommended. Caches geolocation by IP to avoid repeated API calls."
 msgstr "Recomendado. Armazena geolocalização por IP em cache para evitar chamadas repetidas à API."
 
+#: includes/settings/tabs/class-ffc-tab-ip-diagnostics.php:124
+msgid "Recommended:"
+msgstr "Recomendado:"
+
 #: includes/settings/views/documentation/operations-troubleshooting.php:47
 msgid "Recommended: 100-200px for certificates"
 msgstr "Recomendado: 100-200px para certificados"
@@ -13233,7 +13375,7 @@ msgstr "Registra o nível selecionado e todos os níveis abaixo dele (destacados
 msgid "records..."
 msgstr "registros..."
 
-#: includes/admin/class-ffc-settings.php:690 includes/user-dashboard/class-ffc-capability-catalog.php:401 includes/recruitment/class-ffc-recruitment-admin-page.php:189 includes/recruitment/class-ffc-recruitment-admin-page.php:190 includes/recruitment/class-ffc-recruitment-admin-page.php:304 includes/recruitment/class-ffc-recruitment-admin-page.php:344 includes/settings/views/ffc-tab-modulos.php:46 includes/settings/views/ffc-tab-advanced.php:121 includes/settings/views/ffc-tab-documentation.php:280 includes/settings/views/documentation/config-modules.php:37 includes/settings/views/documentation/feature-recruitment.php:19
+#: includes/admin/class-ffc-settings.php:691 includes/user-dashboard/class-ffc-capability-catalog.php:401 includes/recruitment/class-ffc-recruitment-admin-page.php:189 includes/recruitment/class-ffc-recruitment-admin-page.php:190 includes/recruitment/class-ffc-recruitment-admin-page.php:304 includes/recruitment/class-ffc-recruitment-admin-page.php:344 includes/settings/views/ffc-tab-modulos.php:46 includes/settings/views/ffc-tab-advanced.php:121 includes/settings/views/ffc-tab-documentation.php:280 includes/settings/views/documentation/config-modules.php:37 includes/settings/views/documentation/feature-recruitment.php:19
 msgid "Recruitment"
 msgstr "Recrutamento"
 
@@ -13279,6 +13421,16 @@ msgstr "Referência"
 #: includes/frontend/class-ffc-frontend.php:474
 msgid "Reference event schedule (printed on the certificate) — not the form access window."
 msgstr "Referência é horário da programação do evento (impressa no certificado) — não a janela de acesso ao formulário."
+
+#: includes/settings/tabs/class-ffc-tab-ip-diagnostics.php:497
+msgid "Refresh Cloudflare ranges now"
+msgstr "Atualizar intervalos da Cloudflare agora"
+
+#. %s: human time-diff
+#: includes/settings/tabs/class-ffc-tab-ip-diagnostics.php:417
+#, php-format
+msgid "refreshed %s ago"
+msgstr "atualizado há %s"
 
 #: includes/url-shortener/class-ffc-url-shortener-meta-box.php:166
 msgid "Regenerate"
@@ -13365,6 +13517,10 @@ msgstr "Lembrete: Agendamento Amanhã - %s"
 #| msgid "Reminder: {reregistration_title} — {days_left} days left"
 msgid "Reminder: {{reregistration_title}} — {{days_left}} days left"
 msgstr "Lembrete: {{reregistration_title}} — {{days_left}} dias restantes"
+
+#: includes/settings/tabs/class-ffc-tab-ip-diagnostics.php:349
+msgid "REMOTE_ADDR (TCP peer)"
+msgstr "REMOTE_ADDR (par TCP)"
 
 #: includes/admin/class-ffc-form-editor-builder-metabox.php:221 includes/admin/class-ffc-admin-assets-manager.php:569 includes/self-scheduling/class-ffc-self-scheduling-editor.php:118 includes/self-scheduling/class-ffc-self-scheduling-editor.php:366 includes/audience/class-ffc-audience-ajax-controller.php:366 includes/audience/class-ffc-audience-admin-calendar.php:536 includes/audience/class-ffc-audience-admin-audience-renderer.php:470 includes/audience/class-ffc-audience-admin-audience-renderer.php:656 includes/audience/class-ffc-audience-admin-audience-renderer.php:734
 msgid "Remove"
@@ -13718,9 +13874,17 @@ msgstr "Redefinir contador de ID para 1"
 msgid "Reset the download counter to zero on save."
 msgstr "Ao salvar, o contador de downloads é zerado."
 
+#: includes/settings/tabs/class-ffc-tab-ip-diagnostics.php:443
+msgid "Resolution strategy"
+msgstr "Estratégia de resolução"
+
 #: includes/settings/views/documentation/reference-emails.php:54
 msgid "Resolved in"
 msgstr "Resolvido em"
+
+#: includes/settings/tabs/class-ffc-tab-ip-diagnostics.php:378
+msgid "Resolved IP by strategy"
+msgstr "IP resolvido por estratégia"
 
 #: templates/admin/recruitment/candidate-edit/sensitive-section.php:99
 msgid "Resolved via WP_User lookup (numeric → ID, contains @ → email, otherwise login). Does NOT create users; only links existing ones."
@@ -14149,6 +14313,10 @@ msgstr "Salvar Campos"
 msgid "Save general"
 msgstr "Salvar geral"
 
+#: includes/settings/tabs/class-ffc-tab-ip-diagnostics.php:495
+msgid "Save IP settings"
+msgstr "Salvar configurações de IP"
+
 #: includes/recruitment/class-ffc-recruitment-reason-edit-page.php:155
 msgid "Save reason"
 msgstr "Salvar motivo"
@@ -14257,7 +14425,7 @@ msgstr "Horário reservado para a agendamento"
 msgid "Schedules & environments"
 msgstr "Cronogramas e ambientes"
 
-#: includes/admin/class-ffc-settings.php:681 includes/self-scheduling/class-ffc-self-scheduling-editor.php:485 includes/audience/class-ffc-audience-admin-page.php:216 includes/audience/class-ffc-audience-admin-page.php:217 includes/settings/views/ffc-tab-advanced.php:118
+#: includes/admin/class-ffc-settings.php:682 includes/self-scheduling/class-ffc-self-scheduling-editor.php:485 includes/audience/class-ffc-audience-admin-page.php:216 includes/audience/class-ffc-audience-admin-page.php:217 includes/settings/views/ffc-tab-advanced.php:118
 msgid "Scheduling"
 msgstr "Agendamento"
 
@@ -14412,6 +14580,10 @@ msgstr "segundos"
 #: includes/settings/views/documentation/feature-ficha.php:73
 msgid "Sector"
 msgstr "Setor"
+
+#: includes/settings/tabs/class-ffc-tab-ip-diagnostics.php:456
+msgid "Secure (trusted-proxy model)"
+msgstr "Seguro (modelo de proxy confiável)"
 
 #: includes/shortcodes/class-ffc-dashboard-asset-manager.php:257 includes/admin/class-ffc-form-editor-metabox-renderer.php:303
 msgid "Security"
@@ -14996,6 +15168,10 @@ msgstr "sete"
 #: includes/reregistration/class-ffc-reregistration-standard-fields-seeder.php:126
 msgid "Sex"
 msgstr "Sexo"
+
+#: includes/settings/tabs/class-ffc-tab-ip-diagnostics.php:481
+msgid "Shadow-divergence logging"
+msgstr "Registro por divergência de sombra"
 
 #: includes/admin/class-ffc-form-editor-restriction-metabox.php:85
 msgid "Shared password for all users"
@@ -15834,6 +16010,10 @@ msgstr "Desative o Acesso Público do Operador (e seus sub-recursos) em formulá
 msgid "Switch off Public Operator Access (and its sub-features) on published forms whose collection period ended more than the grace window ago. The access token and other settings are preserved, so access can be re-enabled later if needed."
 msgstr "Desative o Acesso Público do Operador (e seus sub-recursos) em formulários publicados cujo período de coleta terminou há mais tempo do que o prazo de tolerância. O token de acesso e outras configurações são preservados, portanto, o acesso pode ser reativado posteriormente, se necessário."
 
+#: includes/settings/tabs/class-ffc-tab-ip-diagnostics.php:125
+msgid "Switch the effective strategy to Secure (trusted-proxy) below, so forged headers can no longer spoof rate-limiting, geofencing or the activity log. Ideally, also put Cloudflare in front of this site for an unspoofable client IP (free plan). The current default (Legacy) trusts client-supplied headers."
+msgstr "Altere a estratégia para \"Seguro (modelo de proxy confiável)\" abaixo, para que cabeçalhos forjados não possam mais burlar a limitação de taxa (rate-limiting), o geofencing ou o registro de atividades. O ideal é também colocar o Cloudflare à frente deste site para garantir um IP de cliente que não possa ser falsificado (plano gratuito). A configuração padrão atual (\"Legado\") confia nos cabeçalhos fornecidos pelo cliente."
+
 #: includes/settings/views/documentation/operations-maintenance.php:36
 msgid "Switches off Public Operator Access (and its sub-features) on published forms whose collection period ended more than the grace window ago. The access token and other configuration are preserved, so access can be re-enabled later — only the behaviour is turned off."
 msgstr "Desativa o Acesso Público de Operador (e seus sub-recursos) em formulários publicados cujo período de coleta terminou há mais tempo do que o período de tolerância. O token de acesso e outras configurações são preservados, de modo que o acesso pode ser reativado posteriormente — apenas o comportamento é desativado."
@@ -16538,6 +16718,10 @@ msgstr "A rotação só está disponível quando tanto `FFC_ENCRYPTION_KEY` quan
 msgid "The same _parent / _child split is available for any dependent_select field by appending those suffixes to its field key."
 msgstr "A mesma divisão _parent / _child está disponível para qualquer campo dependent_select, adicionando esses sufixos à sua chave de campo."
 
+#: includes/settings/tabs/class-ffc-tab-ip-diagnostics.php:388
+msgid "The secure strategy does not trust the forged header for this request."
+msgstr "A estratégia segura não confia no cabeçalho forjado para esta solicitação."
+
 #: includes/recruitment/class-ffc-recruitment-classifications-rest-controller.php:860
 msgid "The selected adjutancy is not attached to this notice."
 msgstr "O cargo de matéria selecionado não está vinculado a este aviso."
@@ -16958,7 +17142,7 @@ msgstr "Este recadastramento já foi concluído ou expirou."
 msgid "This setting is controlled by the parent audience."
 msgstr "Essa configuração é controlada pelo público-alvo principal."
 
-#: includes/admin/class-ffc-settings-ajax-endpoint.php:516
+#: includes/admin/class-ffc-settings-ajax-endpoint.php:524
 msgid "This setting is not exposed for incremental updates."
 msgstr "Essa configuração não está disponível para atualizações incrementais."
 
@@ -17274,7 +17458,7 @@ msgid "Too many attempts. Please try again in 1 minute."
 msgstr "Muitas tentativas. Por favor, tente novamente em 1 minuto."
 
 #. %s: formatted wait time
-#: includes/security/class-ffc-rate-limit-checker.php:638
+#: includes/security/class-ffc-rate-limit-checker.php:644
 #, php-format
 msgid "Too many attempts. Please wait %s."
 msgstr "Muitas tentativas. Aguarde %s."
@@ -17295,7 +17479,7 @@ msgstr "Muitas solicitações. Tente novamente mais tarde."
 msgid "Too many requests. Please wait a moment and try again."
 msgstr "Muitas solicitações. Por favor, aguarde um momento e tente novamente."
 
-#: includes/security/class-ffc-rate-limit-checker.php:690 includes/settings/tabs/class-ffc-tab-rate-limit.php:142
+#: includes/security/class-ffc-rate-limit-checker.php:696 includes/settings/tabs/class-ffc-tab-rate-limit.php:142
 msgid "Too many requests. Please wait {time}."
 msgstr "Muitas solicitações. Aguarde {time}."
 
@@ -17407,6 +17591,10 @@ msgstr "Destruído"
 #| msgid "18. Troubleshooting"
 msgid "Troubleshooting"
 msgstr "Solução de Problemas"
+
+#: includes/settings/tabs/class-ffc-tab-ip-diagnostics.php:460
+msgid "Trusted-proxy configuration"
+msgstr "Configuração de proxy confiável"
 
 #: includes/frontend/class-ffc-frontend.php:353
 msgid "Try again"
@@ -18685,6 +18873,10 @@ msgstr "Quem pode fazer o quê"
 msgid "Who has access to your data"
 msgstr "Quem tem acesso aos seus dados"
 
+#: includes/settings/tabs/class-ffc-tab-ip-diagnostics.php:525
+msgid "Why it helps: an unforgeable CF-Connecting-IP header, plus Bot Fight Mode and Turnstile, on the free plan."
+msgstr "Por que ajuda: um cabeçalho `CF-Connecting-IP` infalsificável, além do Bot Fight Mode e do Turnstile, no plano gratuito."
+
 #: includes/settings/views/documentation/developer-hooks-api.php:109
 msgid "Why no captcha / geofence / per-IP limit here?"
 msgstr "Por que não há captcha, geofencing ou limite por IP aqui?"
@@ -18692,6 +18884,12 @@ msgstr "Por que não há captcha, geofencing ou limite por IP aqui?"
 #: includes/reregistration/class-ffc-reregistration-field-options.php:143
 msgid "Widowed"
 msgstr "Viúvo(a)"
+
+#. %s: forged sentinel IP
+#: includes/settings/tabs/class-ffc-tab-ip-diagnostics.php:393
+#, php-format
+msgid "With a forged %s:"
+msgstr "Com um %s forjado:"
 
 #: includes/settings/views/documentation/reference-validation-url.php:44
 msgid "With color link"
@@ -18931,7 +19129,7 @@ msgstr "Você não tem permissão para cancelar agendamentos."
 msgid "You do not have permission to cancel this appointment."
 msgstr "Você não tem permissão para cancelar este agendamento."
 
-#: includes/admin/class-ffc-settings-ajax-endpoint.php:522
+#: includes/admin/class-ffc-settings-ajax-endpoint.php:530
 msgid "You do not have permission to change this setting."
 msgstr "Você não tem permissão para alterar essa configuração."
 
@@ -19051,7 +19249,7 @@ msgstr "Você não tem permissão para enviar um e-mail de teste."
 msgid "You do not have permission to view activity logs."
 msgstr "Você não tem permissão para visualizar os registros de atividades."
 
-#: includes/admin/class-ffc-settings.php:543
+#: includes/admin/class-ffc-settings.php:544
 msgid "You do not have permission to view any settings."
 msgstr "Você não tem permissão para visualizar nenhuma configuração."
 
@@ -19328,12 +19526,16 @@ msgstr "— Selecione um aviso —"
 msgid "← Back"
 msgstr "← Voltar"
 
-#: includes/admin/class-ffc-settings.php:517
+#: includes/settings/tabs/class-ffc-tab-ip-diagnostics.php:387
+msgid "⚠️ The legacy strategy would trust a forged X-Forwarded-For; the secure strategy ignores it."
+msgstr "⚠️ A estratégia legada confiava em um cabeçalho `X-Forwarded-For` forjado; a estratégia segura o ignora."
+
+#: includes/admin/class-ffc-settings.php:518
 msgid "✅ Cache cleared successfully!"
 msgstr "✅ Cache limpo com sucesso!"
 
 #. %d: number of forms pre-loaded
-#: includes/admin/class-ffc-settings.php:504
+#: includes/admin/class-ffc-settings.php:505
 msgid "✅ Cache warmed! %d form(s) pre-loaded."
 msgstr "✅ Cache aquecido! %d formulário(s) pré-carregados."
 

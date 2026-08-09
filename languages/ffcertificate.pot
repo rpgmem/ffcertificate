@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Free Form Certificate\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-08-08 01:51+0000\n"
+"POT-Creation-Date: 2026-08-09 21:27+0000\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -213,7 +213,7 @@ msgid "%d published calendar(s)"
 msgstr ""
 
 #. %d: number of QR codes cleared
-#: includes/admin/class-ffc-settings.php:470
+#: includes/admin/class-ffc-settings.php:471
 msgid "%d QR Code(s) cleared from cache successfully."
 msgstr ""
 
@@ -461,6 +461,10 @@ msgstr ""
 msgid "(inspect/rewrite the composed message before send) and"
 msgstr ""
 
+#: includes/settings/tabs/class-ffc-tab-ip-diagnostics.php:376
+msgid "(legacy is currently effective)"
+msgstr ""
+
 #: includes/settings/views/documentation/forms-email.php:27
 msgid "(magic download link) and"
 msgstr ""
@@ -541,6 +545,10 @@ msgstr ""
 msgid "(scope to one environment),"
 msgstr ""
 
+#: includes/settings/tabs/class-ffc-tab-ip-diagnostics.php:375
+msgid "(secure is currently effective)"
+msgstr ""
+
 #: includes/settings/views/documentation/feature-self-scheduling.php:43
 msgid "(the id is the calendar post ID shown in the editor). The visitor picks an open slot and submits name, email, CPF/RF and optional notes (with honeypot + captcha + LGPD consent). A guest booking auto-creates or links a WordPress user from the CPF/RF + email."
 msgstr ""
@@ -573,7 +581,7 @@ msgstr ""
 msgid "04 of January, 2026"
 msgstr ""
 
-#: includes/security/class-ffc-ip-limiter.php:68 includes/security/class-ffc-rate-limit-checker.php:714
+#: includes/security/class-ffc-ip-limiter.php:68 includes/security/class-ffc-rate-limit-checker.php:720
 msgid "1 hour"
 msgstr ""
 
@@ -581,7 +589,7 @@ msgstr ""
 msgid "1 hour (default)"
 msgstr ""
 
-#: includes/security/class-ffc-rate-limit-checker.php:700
+#: includes/security/class-ffc-rate-limit-checker.php:706
 msgid "1 minute"
 msgstr ""
 
@@ -1817,6 +1825,10 @@ msgstr ""
 msgid "Applies to the Certificate HTML editor on the form edit screen. \"Auto\" mirrors the admin Dark Mode setting (General tab); fresh installs default to Dark."
 msgstr ""
 
+#: includes/settings/tabs/class-ffc-tab-ip-diagnostics.php:468
+msgid "Applies when the secure strategy is effective."
+msgstr ""
+
 #: templates/admin/reregistration/submissions.php:85
 msgid "Apply"
 msgstr ""
@@ -2337,6 +2349,10 @@ msgstr ""
 msgid "Auto / Light / Dark for the certificate HTML editor on the form screen."
 msgstr ""
 
+#: includes/settings/tabs/class-ffc-tab-ip-diagnostics.php:461
+msgid "Auto — detect Cloudflare / known proxy, else use REMOTE_ADDR (recommended)"
+msgstr ""
+
 #: templates/admin/reregistration/list.php:57 includes/settings/views/documentation/feature-reregistration.php:38
 msgid "Auto-approve"
 msgstr ""
@@ -2499,7 +2515,7 @@ msgstr ""
 msgid "Back to Reregistrations"
 msgstr ""
 
-#: includes/admin/class-ffc-settings.php:259
+#: includes/admin/class-ffc-settings.php:260
 msgid "Back to top"
 msgstr ""
 
@@ -2593,6 +2609,10 @@ msgstr ""
 
 #: includes/settings/views/documentation/developer-hooks-api.php:59
 msgid "Before a short-URL redirect is sent."
+msgstr ""
+
+#: includes/settings/tabs/class-ffc-tab-ip-diagnostics.php:329
+msgid "Behind a configured trusted proxy — X-Forwarded-For is honoured."
 msgstr ""
 
 #: includes/settings/views/documentation/feature-recruitment.php:51
@@ -3524,7 +3544,7 @@ msgstr ""
 msgid "Certificate previously issued (Reprint)."
 msgstr ""
 
-#: includes/admin/class-ffc-settings.php:229 includes/admin/class-ffc-settings.php:563
+#: includes/admin/class-ffc-settings.php:230 includes/admin/class-ffc-settings.php:564
 msgid "Certificate Settings"
 msgstr ""
 
@@ -3801,6 +3821,28 @@ msgstr ""
 
 #: includes/recruitment/class-ffc-recruitment-notice-edit-page-renderer.php:249
 msgid "Closing freezes the notice and its calls history."
+msgstr ""
+
+#: includes/settings/tabs/class-ffc-tab-ip-diagnostics.php:327
+msgid "Cloudflare detected — CF-Connecting-IP is authoritative."
+msgstr ""
+
+#: includes/settings/tabs/class-ffc-tab-ip-diagnostics.php:92
+msgid "Cloudflare IP ranges refresh requested."
+msgstr ""
+
+#. 1: range count, 2: "refreshed X ago"
+#: includes/settings/tabs/class-ffc-tab-ip-diagnostics.php:422
+#, php-format
+msgid "Cloudflare ranges: %1$d entries (%2$s)."
+msgstr ""
+
+#: includes/settings/tabs/class-ffc-tab-ip-diagnostics.php:427
+msgid "Cloudflare ranges: using the bundled fallback list (daily refresh not run yet)."
+msgstr ""
+
+#: includes/settings/tabs/class-ffc-tab-ip-diagnostics.php:463
+msgid "Cloudflare — trust the Cloudflare edge ranges"
 msgstr ""
 
 #: includes/settings/views/documentation/forms-geolocation.php:25
@@ -4129,7 +4171,7 @@ msgstr ""
 msgid "Controls whether calling a candidate sends the convocation email. The global \"disable all emails\" switch always wins."
 msgstr ""
 
-#: includes/admin/class-ffc-settings.php:691
+#: includes/admin/class-ffc-settings.php:692
 msgid "Convocation email, public listing tuning and status colors."
 msgstr ""
 
@@ -4519,6 +4561,10 @@ msgstr ""
 msgid "Create a field in Form Builder (e.g. field name \"company\")"
 msgstr ""
 
+#: includes/settings/tabs/class-ffc-tab-ip-diagnostics.php:527
+msgid "Create a free Cloudflare account and add this site."
+msgstr ""
+
 #: includes/frontend/class-ffc-frontend.php:554
 msgid "Create a one-use schedule exception for a single participant submission."
 msgstr ""
@@ -4735,6 +4781,10 @@ msgstr ""
 msgid "Current Position/Role"
 msgstr ""
 
+#: includes/settings/tabs/class-ffc-tab-ip-diagnostics.php:342
+msgid "Current request diagnosis"
+msgstr ""
+
 #: includes/frontend/class-ffc-frontend.php:540
 msgid "Current scheduled close:"
 msgstr ""
@@ -4795,6 +4845,10 @@ msgstr ""
 msgid "Custom label for the environments of this calendar (e.g. \"Rooms\", \"Categories\", \"Services\"). Leave empty to use the default \"Environments\"."
 msgstr ""
 
+#: includes/settings/tabs/class-ffc-tab-ip-diagnostics.php:472
+msgid "Custom proxy CIDRs"
+msgstr ""
+
 #: includes/audience/class-ffc-audience-admin-audience-renderer.php:458 includes/audience/class-ffc-audience-admin-audience-renderer.php:643
 msgid "Custom Regex"
 msgstr ""
@@ -4827,6 +4881,10 @@ msgstr ""
 msgid "Custom — choose case by case"
 msgstr ""
 
+#: includes/settings/tabs/class-ffc-tab-ip-diagnostics.php:465
+msgid "Custom — trust the proxy CIDRs below"
+msgstr ""
+
 #: includes/settings/views/documentation/feature-ficha.php:150
 msgid "Customization:"
 msgstr ""
@@ -4843,7 +4901,7 @@ msgstr ""
 msgid "Daily booking limit reached for this date."
 msgstr ""
 
-#: includes/security/class-ffc-rate-limit-checker.php:650
+#: includes/security/class-ffc-rate-limit-checker.php:656
 msgid "Daily limit reached. Please try again tomorrow."
 msgstr ""
 
@@ -5524,6 +5582,14 @@ msgstr ""
 msgid "Dimension"
 msgstr ""
 
+#: includes/settings/tabs/class-ffc-tab-ip-diagnostics.php:331
+msgid "Direct connection — REMOTE_ADDR is already the client."
+msgstr ""
+
+#: includes/settings/tabs/class-ffc-tab-ip-diagnostics.php:467
+msgid "Direct — ignore every forwarded header"
+msgstr ""
+
 #: templates/admin/url-shortener/short-urls-page.php:298
 msgid "Disable"
 msgstr ""
@@ -5682,6 +5748,10 @@ msgstr ""
 
 #: includes/reregistration/class-ffc-reregistration-field-options.php:142
 msgid "Domestic partnership"
+msgstr ""
+
+#: includes/settings/tabs/class-ffc-tab-ip-diagnostics.php:530
+msgid "Done — the real client IP now reaches PHP via CF-Connecting-IP, and this tab will report \"Cloudflare detected\"."
 msgstr ""
 
 #: includes/admin/class-ffc-admin-assets-manager.php:555 includes/admin/class-ffc-admin-activity-log-page.php:112 includes/self-scheduling/class-ffc-self-scheduling-admin.php:182 includes/reregistration/class-ffc-reregistration-admin.php:212 includes/url-shortener/class-ffc-url-shortener-admin-page.php:136 includes/audience/class-ffc-audience-loader.php:441
@@ -6085,6 +6155,10 @@ msgstr ""
 msgid "Editor Preferences"
 msgstr ""
 
+#: includes/settings/tabs/class-ffc-tab-ip-diagnostics.php:453
+msgid "Effective strategy"
+msgstr ""
+
 #: includes/settings/views/documentation/reference-tokens.php:116
 msgid "Effective wall-clock schedule range — the per-submission \"Entry/exit exception\" override wins (Geofence: Schedule Exception), then the form-level Class Schedule baseline (Geofence → Time → Class Schedule), then the form's Time Range, then empty."
 msgstr ""
@@ -6415,6 +6489,10 @@ msgstr ""
 msgid "Enable Schedule Exception"
 msgstr ""
 
+#: includes/settings/tabs/class-ffc-tab-ip-diagnostics.php:529
+msgid "Enable the proxy (orange cloud) for the site record."
+msgstr ""
+
 #: includes/settings/views/documentation/feature-url-shortener.php:64
 msgid "Enable the shortener"
 msgstr ""
@@ -6613,6 +6691,10 @@ msgstr ""
 
 #: includes/audience/class-ffc-audience-admin-environment.php:236
 msgid "Environment not found."
+msgstr ""
+
+#: includes/settings/tabs/class-ffc-tab-ip-diagnostics.php:354
+msgid "Environment verdict"
 msgstr ""
 
 #: includes/audience/class-ffc-audience-admin-calendar.php:235 includes/audience/class-ffc-audience-admin-page.php:256 includes/audience/class-ffc-audience-admin-page.php:257 includes/audience/class-ffc-audience-schedule-repository.php:543 templates/admin/audience/audience-tab.php:34
@@ -7421,7 +7503,7 @@ msgstr ""
 msgid "FFC Roles & Capabilities"
 msgstr ""
 
-#: includes/admin/class-ffc-settings.php:230
+#: includes/admin/class-ffc-settings.php:231
 msgid "FFC Settings"
 msgstr ""
 
@@ -8134,7 +8216,7 @@ msgstr ""
 msgid "Global Holidays"
 msgstr ""
 
-#: includes/admin/class-ffc-settings.php:682
+#: includes/admin/class-ffc-settings.php:683
 msgid "Global holidays and audience / self-scheduling visibility."
 msgstr ""
 
@@ -8314,6 +8396,10 @@ msgstr ""
 
 #: templates/admin/settings/email-model-box.php:28
 msgid "Header"
+msgstr ""
+
+#: includes/settings/tabs/class-ffc-tab-ip-diagnostics.php:390
+msgid "Header-injection self-test"
 msgstr ""
 
 #: includes/settings/views/documentation/reference-html-styling.php:63
@@ -8561,6 +8647,10 @@ msgstr ""
 
 #: includes/settings/views/ffc-tab-migrations.php:988
 msgid "How many times should I run it?"
+msgstr ""
+
+#: includes/settings/tabs/class-ffc-tab-ip-diagnostics.php:343
+msgid "How this very request would be resolved. IPs are masked unless you are a full administrator."
 msgstr ""
 
 #: includes/admin/class-ffc-form-editor-geofence-metabox.php:265
@@ -9156,6 +9246,10 @@ msgstr ""
 msgid "IP Cache Duration (TTL)"
 msgstr ""
 
+#: includes/settings/tabs/class-ffc-tab-ip-diagnostics.php:49
+msgid "IP Diagnostics"
+msgstr ""
+
 #: includes/settings/views/ffc-tab-geolocation.php:197
 msgid "IP Geolocation"
 msgstr ""
@@ -9204,6 +9298,10 @@ msgstr ""
 
 #: includes/settings/views/ffc-tab-rate-limit.php:19
 msgid "IP Rate Limit"
+msgstr ""
+
+#: includes/settings/tabs/class-ffc-tab-ip-diagnostics.php:95
+msgid "IP resolution settings saved."
 msgstr ""
 
 #: includes/settings/views/ffc-tab-geolocation.php:232
@@ -9460,6 +9558,14 @@ msgstr ""
 msgid "Left"
 msgstr ""
 
+#: includes/settings/tabs/class-ffc-tab-ip-diagnostics.php:454
+msgid "Legacy (current behaviour, spoofable) — recommended until a trusted proxy is configured"
+msgstr ""
+
+#: includes/settings/tabs/class-ffc-tab-ip-diagnostics.php:444
+msgid "Legacy stays effective by default (no behaviour change). Opt into secure to apply the trusted-proxy model now; otherwise it becomes the default in a later release."
+msgstr ""
+
 #: includes/reregistration/class-ffc-reregistration-field-options.php:140
 msgid "Legally separated"
 msgstr ""
@@ -9713,6 +9819,10 @@ msgstr ""
 
 #: includes/settings/views/documentation/config-rate-limit.php:56
 msgid "Log"
+msgstr ""
+
+#: includes/settings/tabs/class-ffc-tab-ip-diagnostics.php:487
+msgid "Log (with a hashed IP) when legacy and secure would disagree — measure the impact before switching."
 msgstr ""
 
 #: includes/settings/views/ffc-tab-rate-limit.php:528
@@ -10410,7 +10520,7 @@ msgstr ""
 msgid "Missing required parameters."
 msgstr ""
 
-#: includes/admin/class-ffc-settings-ajax-endpoint.php:511
+#: includes/admin/class-ffc-settings-ajax-endpoint.php:519
 msgid "Missing setting key."
 msgstr ""
 
@@ -10825,6 +10935,10 @@ msgstr ""
 msgid "No candidates classified yet."
 msgstr ""
 
+#: includes/settings/tabs/class-ffc-tab-ip-diagnostics.php:521
+msgid "No CDN was detected. Cloudflare is optional — the Auto/Direct mode plus device fingerprinting already protects you — but it gives an unspoofable client IP for free."
+msgstr ""
+
 #: includes/shortcodes/class-ffc-dashboard-asset-manager.php:204
 msgid "No certificates found"
 msgstr ""
@@ -11144,6 +11258,10 @@ msgstr ""
 msgid "Note: if none of the three is selected, the public page renders the access screen but exposes no actions."
 msgstr ""
 
+#: includes/settings/tabs/class-ffc-tab-ip-diagnostics.php:537
+msgid "Note: TLS-fingerprint (JA3/JA4) headers are Enterprise-only and out of scope for shared hosting."
+msgstr ""
+
 #: includes/admin/class-ffc-form-editor-email-metabox.php:131
 msgid "Note: When this option is enabled, the email will only be sent when the user submits the form. This will add them to a waiting list and emails will be sent progressively."
 msgstr ""
@@ -11318,6 +11436,10 @@ msgstr ""
 msgid "off; 5/month, 50/year when on"
 msgstr ""
 
+#: includes/settings/tabs/class-ffc-tab-ip-diagnostics.php:535
+msgid "Official Cloudflare setup guide"
+msgstr ""
+
 #: includes/recruitment/class-ffc-recruitment-admin-assets-manager.php:234
 msgid "OK"
 msgstr ""
@@ -11380,6 +11502,10 @@ msgstr ""
 
 #: includes/core/class-ffc-security-service.php:90
 msgid "one"
+msgstr ""
+
+#: includes/settings/tabs/class-ffc-tab-ip-diagnostics.php:474
+msgid "One CIDR or IP per line. Used only with the Custom mode above."
 msgstr ""
 
 #: includes/settings/views/documentation/overview.php:51
@@ -11562,6 +11688,10 @@ msgstr ""
 
 #: includes/frontend/class-ffc-public-csv-download.php:263
 msgid "Optional. If the form requires a CPF, enter it here. If filled, it will be recorded (encrypted at rest) in the form's audit log even when the form does not require it."
+msgstr ""
+
+#: includes/settings/tabs/class-ffc-tab-ip-diagnostics.php:520
+msgid "Optional: put Cloudflare in front of this site"
 msgstr ""
 
 #: includes/settings/views/documentation/config-geolocation.php:51
@@ -12154,7 +12284,7 @@ msgstr ""
 msgid "Please confirm that you want to cancel the following appointment."
 msgstr ""
 
-#: includes/class-ffc-deactivator.php:52
+#: includes/class-ffc-deactivator.php:53
 msgid "Please confirm the uninstallation to proceed."
 msgstr ""
 
@@ -12285,6 +12415,10 @@ msgstr ""
 
 #: includes/settings/views/documentation/forms-email.php:27
 msgid "plus the validation-URL link DSL — e.g."
+msgstr ""
+
+#: includes/settings/tabs/class-ffc-tab-ip-diagnostics.php:528
+msgid "Point your domain's nameservers to the ones Cloudflare gives you (at your registrar)."
 msgstr ""
 
 #: includes/admin/class-ffc-form-editor-builder-metabox.php:292
@@ -12668,6 +12802,10 @@ msgstr ""
 
 #: includes/settings/views/documentation/feature-recruitment.php:52
 msgid "Provisional ranking published for review."
+msgstr ""
+
+#: includes/settings/tabs/class-ffc-tab-ip-diagnostics.php:370
+msgid "Proxy headers received"
 msgstr ""
 
 #: includes/self-scheduling/class-ffc-self-scheduling-editor.php:478 includes/self-scheduling/class-ffc-self-scheduling-editor.php:488 includes/audience/class-ffc-audience-admin-calendar.php:128 includes/audience/class-ffc-audience-admin-calendar.php:251
@@ -13067,7 +13205,7 @@ msgstr ""
 msgid "Read-only access to user/audience custom field definitions."
 msgstr ""
 
-#: includes/admin/class-ffc-settings.php:569
+#: includes/admin/class-ffc-settings.php:570
 msgid "Read-only — you can view these settings but do not have permission to change them."
 msgstr ""
 
@@ -13135,6 +13273,10 @@ msgstr ""
 msgid "Recommended. Caches geolocation by IP to avoid repeated API calls."
 msgstr ""
 
+#: includes/settings/tabs/class-ffc-tab-ip-diagnostics.php:124
+msgid "Recommended:"
+msgstr ""
+
 #: includes/settings/views/documentation/operations-troubleshooting.php:47
 msgid "Recommended: 100-200px for certificates"
 msgstr ""
@@ -13175,7 +13317,7 @@ msgstr ""
 msgid "records..."
 msgstr ""
 
-#: includes/admin/class-ffc-settings.php:690 includes/user-dashboard/class-ffc-capability-catalog.php:401 includes/recruitment/class-ffc-recruitment-admin-page.php:189 includes/recruitment/class-ffc-recruitment-admin-page.php:190 includes/recruitment/class-ffc-recruitment-admin-page.php:304 includes/recruitment/class-ffc-recruitment-admin-page.php:344 includes/settings/views/ffc-tab-modulos.php:46 includes/settings/views/ffc-tab-advanced.php:121 includes/settings/views/ffc-tab-documentation.php:280 includes/settings/views/documentation/config-modules.php:37 includes/settings/views/documentation/feature-recruitment.php:19
+#: includes/admin/class-ffc-settings.php:691 includes/user-dashboard/class-ffc-capability-catalog.php:401 includes/recruitment/class-ffc-recruitment-admin-page.php:189 includes/recruitment/class-ffc-recruitment-admin-page.php:190 includes/recruitment/class-ffc-recruitment-admin-page.php:304 includes/recruitment/class-ffc-recruitment-admin-page.php:344 includes/settings/views/ffc-tab-modulos.php:46 includes/settings/views/ffc-tab-advanced.php:121 includes/settings/views/ffc-tab-documentation.php:280 includes/settings/views/documentation/config-modules.php:37 includes/settings/views/documentation/feature-recruitment.php:19
 msgid "Recruitment"
 msgstr ""
 
@@ -13220,6 +13362,16 @@ msgstr ""
 
 #: includes/frontend/class-ffc-frontend.php:474
 msgid "Reference event schedule (printed on the certificate) — not the form access window."
+msgstr ""
+
+#: includes/settings/tabs/class-ffc-tab-ip-diagnostics.php:497
+msgid "Refresh Cloudflare ranges now"
+msgstr ""
+
+#. %s: human time-diff
+#: includes/settings/tabs/class-ffc-tab-ip-diagnostics.php:417
+#, php-format
+msgid "refreshed %s ago"
 msgstr ""
 
 #: includes/url-shortener/class-ffc-url-shortener-meta-box.php:166
@@ -13303,6 +13455,10 @@ msgstr ""
 
 #: templates/emails/reregistration-reminder.php:20
 msgid "Reminder: {{reregistration_title}} — {{days_left}} days left"
+msgstr ""
+
+#: includes/settings/tabs/class-ffc-tab-ip-diagnostics.php:349
+msgid "REMOTE_ADDR (TCP peer)"
 msgstr ""
 
 #: includes/admin/class-ffc-form-editor-builder-metabox.php:221 includes/admin/class-ffc-admin-assets-manager.php:569 includes/self-scheduling/class-ffc-self-scheduling-editor.php:118 includes/self-scheduling/class-ffc-self-scheduling-editor.php:366 includes/audience/class-ffc-audience-ajax-controller.php:366 includes/audience/class-ffc-audience-admin-calendar.php:536 includes/audience/class-ffc-audience-admin-audience-renderer.php:470 includes/audience/class-ffc-audience-admin-audience-renderer.php:656 includes/audience/class-ffc-audience-admin-audience-renderer.php:734
@@ -13652,8 +13808,16 @@ msgstr ""
 msgid "Reset the download counter to zero on save."
 msgstr ""
 
+#: includes/settings/tabs/class-ffc-tab-ip-diagnostics.php:443
+msgid "Resolution strategy"
+msgstr ""
+
 #: includes/settings/views/documentation/reference-emails.php:54
 msgid "Resolved in"
+msgstr ""
+
+#: includes/settings/tabs/class-ffc-tab-ip-diagnostics.php:378
+msgid "Resolved IP by strategy"
 msgstr ""
 
 #: templates/admin/recruitment/candidate-edit/sensitive-section.php:99
@@ -14077,6 +14241,10 @@ msgstr ""
 msgid "Save general"
 msgstr ""
 
+#: includes/settings/tabs/class-ffc-tab-ip-diagnostics.php:495
+msgid "Save IP settings"
+msgstr ""
+
 #: includes/recruitment/class-ffc-recruitment-reason-edit-page.php:155
 msgid "Save reason"
 msgstr ""
@@ -14185,7 +14353,7 @@ msgstr ""
 msgid "Schedules & environments"
 msgstr ""
 
-#: includes/admin/class-ffc-settings.php:681 includes/self-scheduling/class-ffc-self-scheduling-editor.php:485 includes/audience/class-ffc-audience-admin-page.php:216 includes/audience/class-ffc-audience-admin-page.php:217 includes/settings/views/ffc-tab-advanced.php:118
+#: includes/admin/class-ffc-settings.php:682 includes/self-scheduling/class-ffc-self-scheduling-editor.php:485 includes/audience/class-ffc-audience-admin-page.php:216 includes/audience/class-ffc-audience-admin-page.php:217 includes/settings/views/ffc-tab-advanced.php:118
 msgid "Scheduling"
 msgstr ""
 
@@ -14339,6 +14507,10 @@ msgstr ""
 
 #: includes/settings/views/documentation/feature-ficha.php:73
 msgid "Sector"
+msgstr ""
+
+#: includes/settings/tabs/class-ffc-tab-ip-diagnostics.php:456
+msgid "Secure (trusted-proxy model)"
 msgstr ""
 
 #: includes/shortcodes/class-ffc-dashboard-asset-manager.php:257 includes/admin/class-ffc-form-editor-metabox-renderer.php:303
@@ -14918,6 +15090,10 @@ msgstr ""
 
 #: includes/reregistration/class-ffc-reregistration-standard-fields-seeder.php:126
 msgid "Sex"
+msgstr ""
+
+#: includes/settings/tabs/class-ffc-tab-ip-diagnostics.php:481
+msgid "Shadow-divergence logging"
 msgstr ""
 
 #: includes/admin/class-ffc-form-editor-restriction-metabox.php:85
@@ -15754,6 +15930,10 @@ msgstr ""
 msgid "Switch off Public Operator Access (and its sub-features) on published forms whose collection period ended more than the grace window ago. The access token and other settings are preserved, so access can be re-enabled later if needed."
 msgstr ""
 
+#: includes/settings/tabs/class-ffc-tab-ip-diagnostics.php:125
+msgid "Switch the effective strategy to Secure (trusted-proxy) below, so forged headers can no longer spoof rate-limiting, geofencing or the activity log. Ideally, also put Cloudflare in front of this site for an unspoofable client IP (free plan). The current default (Legacy) trusts client-supplied headers."
+msgstr ""
+
 #: includes/settings/views/documentation/operations-maintenance.php:36
 msgid "Switches off Public Operator Access (and its sub-features) on published forms whose collection period ended more than the grace window ago. The access token and other configuration are preserved, so access can be re-enabled later — only the behaviour is turned off."
 msgstr ""
@@ -16456,6 +16636,10 @@ msgstr ""
 msgid "The same _parent / _child split is available for any dependent_select field by appending those suffixes to its field key."
 msgstr ""
 
+#: includes/settings/tabs/class-ffc-tab-ip-diagnostics.php:388
+msgid "The secure strategy does not trust the forged header for this request."
+msgstr ""
+
 #: includes/recruitment/class-ffc-recruitment-classifications-rest-controller.php:860
 msgid "The selected adjutancy is not attached to this notice."
 msgstr ""
@@ -16875,7 +17059,7 @@ msgstr ""
 msgid "This setting is controlled by the parent audience."
 msgstr ""
 
-#: includes/admin/class-ffc-settings-ajax-endpoint.php:516
+#: includes/admin/class-ffc-settings-ajax-endpoint.php:524
 msgid "This setting is not exposed for incremental updates."
 msgstr ""
 
@@ -17190,7 +17374,7 @@ msgid "Too many attempts. Please try again in 1 minute."
 msgstr ""
 
 #. %s: formatted wait time
-#: includes/security/class-ffc-rate-limit-checker.php:638
+#: includes/security/class-ffc-rate-limit-checker.php:644
 #, php-format
 msgid "Too many attempts. Please wait %s."
 msgstr ""
@@ -17211,7 +17395,7 @@ msgstr ""
 msgid "Too many requests. Please wait a moment and try again."
 msgstr ""
 
-#: includes/security/class-ffc-rate-limit-checker.php:690 includes/settings/tabs/class-ffc-tab-rate-limit.php:142
+#: includes/security/class-ffc-rate-limit-checker.php:696 includes/settings/tabs/class-ffc-tab-rate-limit.php:142
 msgid "Too many requests. Please wait {time}."
 msgstr ""
 
@@ -17321,6 +17505,10 @@ msgstr ""
 
 #: includes/settings/views/ffc-tab-documentation.php:310 includes/settings/views/documentation/operations-troubleshooting.php:17
 msgid "Troubleshooting"
+msgstr ""
+
+#: includes/settings/tabs/class-ffc-tab-ip-diagnostics.php:460
+msgid "Trusted-proxy configuration"
 msgstr ""
 
 #: includes/frontend/class-ffc-frontend.php:353
@@ -18599,12 +18787,22 @@ msgstr ""
 msgid "Who has access to your data"
 msgstr ""
 
+#: includes/settings/tabs/class-ffc-tab-ip-diagnostics.php:525
+msgid "Why it helps: an unforgeable CF-Connecting-IP header, plus Bot Fight Mode and Turnstile, on the free plan."
+msgstr ""
+
 #: includes/settings/views/documentation/developer-hooks-api.php:109
 msgid "Why no captcha / geofence / per-IP limit here?"
 msgstr ""
 
 #: includes/reregistration/class-ffc-reregistration-field-options.php:143
 msgid "Widowed"
+msgstr ""
+
+#. %s: forged sentinel IP
+#: includes/settings/tabs/class-ffc-tab-ip-diagnostics.php:393
+#, php-format
+msgid "With a forged %s:"
 msgstr ""
 
 #: includes/settings/views/documentation/reference-validation-url.php:44
@@ -18844,7 +19042,7 @@ msgstr ""
 msgid "You do not have permission to cancel this appointment."
 msgstr ""
 
-#: includes/admin/class-ffc-settings-ajax-endpoint.php:522
+#: includes/admin/class-ffc-settings-ajax-endpoint.php:530
 msgid "You do not have permission to change this setting."
 msgstr ""
 
@@ -18964,7 +19162,7 @@ msgstr ""
 msgid "You do not have permission to view activity logs."
 msgstr ""
 
-#: includes/admin/class-ffc-settings.php:543
+#: includes/admin/class-ffc-settings.php:544
 msgid "You do not have permission to view any settings."
 msgstr ""
 
@@ -19241,12 +19439,16 @@ msgstr ""
 msgid "← Back"
 msgstr ""
 
-#: includes/admin/class-ffc-settings.php:517
+#: includes/settings/tabs/class-ffc-tab-ip-diagnostics.php:387
+msgid "⚠️ The legacy strategy would trust a forged X-Forwarded-For; the secure strategy ignores it."
+msgstr ""
+
+#: includes/admin/class-ffc-settings.php:518
 msgid "✅ Cache cleared successfully!"
 msgstr ""
 
 #. %d: number of forms pre-loaded
-#: includes/admin/class-ffc-settings.php:504
+#: includes/admin/class-ffc-settings.php:505
 msgid "✅ Cache warmed! %d form(s) pre-loaded."
 msgstr ""
 
