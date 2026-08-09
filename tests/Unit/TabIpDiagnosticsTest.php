@@ -25,17 +25,21 @@ class TabIpDiagnosticsTest extends TestCase {
 	protected function setUp(): void {
 		parent::setUp();
 		Monkey\setUp();
+		// Stub WP first: loading SettingsTab checks function_exists('wp_kses_post')
+		// and would otherwise `require` a real wp-includes/formatting.php (absent
+		// in the test env). The stubs must exist before the class_exists preload.
+		$this->stub_wp();
 		class_exists( '\FreeFormCertificate\Settings\Tabs\TabIpDiagnostics' );
 		class_exists( '\FreeFormCertificate\Core\Capabilities' );
 		$this->server_backup = $_SERVER;
 		foreach ( array( 'HTTP_X_FORWARDED_FOR', 'HTTP_CF_CONNECTING_IP', 'REMOTE_ADDR' ) as $k ) {
 			unset( $_SERVER[ $k ] );
 		}
-		$this->stub_wp();
 	}
 
 	protected function tearDown(): void {
 		$_SERVER = $this->server_backup;
+		$_POST   = array();
 		Monkey\tearDown();
 		parent::tearDown();
 	}
@@ -54,6 +58,11 @@ class TabIpDiagnosticsTest extends TestCase {
 		Functions\when( 'submit_button' )->justReturn( null );
 		Functions\when( 'get_option' )->justReturn( array() );
 		Functions\when( 'human_time_diff' )->justReturn( '1 hour' );
+		Functions\when( 'wp_admin_notice' )->justReturn( null );
+		Functions\when( 'sanitize_textarea_field' )->returnArg();
+		Functions\when( 'sanitize_key' )->alias(
+			static fn( $key ) => preg_replace( '/[^a-z0-9_\-]/', '', strtolower( (string) $key ) )
+		);
 		// Passthrough filters → legacy mode, bundled CF ranges, empty proxies.
 		Functions\when( 'apply_filters' )->alias(
 			static function ( $hook, $value = null ) {
@@ -87,5 +96,35 @@ class TabIpDiagnosticsTest extends TestCase {
 		$this->assertStringContainsString( 'name="ffc_ip_strategy"', $html );
 		$this->assertStringContainsString( 'name="ffc_ip_trusted_proxy_mode"', $html );
 		$this->assertStringContainsString( 'name="ffc_ip_custom_proxies"', $html );
+	}
+
+	public function test_save_persists_sanitized_settings(): void {
+		Functions\when( 'current_user_can' )->justReturn( true );
+		Functions\when( 'check_admin_referer' )->justReturn( true );
+		$captured = null;
+		Functions\when( 'update_option' )->alias(
+			static function ( $key, $value ) use ( &$captured ) {
+				$captured = $value;
+				return true;
+			}
+		);
+
+		$_SERVER['REMOTE_ADDR'] = '198.51.100.7';
+		$_POST                  = array(
+			'ffc_save_ip_diagnostics'   => '1',
+			'ffc_ip_strategy'           => 'secure',
+			'ffc_ip_trusted_proxy_mode' => 'custom',
+			'ffc_ip_custom_proxies'     => "192.0.2.0/24\nnot-a-cidr\n10.0.0.0/8",
+			'ffc_ip_shadow_logging'     => '1',
+		);
+
+		$this->render_to_string();
+
+		$this->assertIsArray( $captured );
+		$this->assertSame( 'secure', $captured['strategy'] );
+		$this->assertSame( 'custom', $captured['trusted_proxy_mode'] );
+		// The invalid entry is dropped; valid CIDRs survive.
+		$this->assertSame( "192.0.2.0/24\n10.0.0.0/8", $captured['custom_proxies'] );
+		$this->assertSame( 1, $captured['shadow_logging'] );
 	}
 }

@@ -50,8 +50,14 @@ final class CloudflareCidrRefresh {
 	 * injector. Called unconditionally at orchestrator boot.
 	 */
 	public static function init(): void {
-		add_action( self::CRON_HOOK, array( self::class, 'run' ) );
-		add_action( self::REFRESH_ACTION, array( self::class, 'run' ) );
+		// Void closures: run() returns a count, but an action callback must not
+		// return anything (PHPStan return.void).
+		add_action( self::CRON_HOOK, static function (): void {
+			self::run();
+		} );
+		add_action( self::REFRESH_ACTION, static function (): void {
+			self::run();
+		} );
 		add_filter( 'ffc_cloudflare_ip_ranges', array( self::class, 'inject_ranges' ), 10 );
 	}
 
@@ -157,8 +163,13 @@ final class CloudflareCidrRefresh {
 			return array();
 		}
 
+		$lines = preg_split( '/\r\n|\r|\n/', $body );
+		if ( ! is_array( $lines ) ) {
+			$lines = array();
+		}
+
 		$out = array();
-		foreach ( preg_split( '/\r\n|\r|\n/', $body ) ?: array() as $line ) {
+		foreach ( $lines as $line ) {
 			$line = trim( (string) $line );
 			if ( '' !== $line && self::is_valid_cidr( $line ) ) {
 				$out[] = $line;

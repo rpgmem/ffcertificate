@@ -133,7 +133,10 @@ final class IpDiagnosticsSettingsReader {
 		if ( is_array( $raw ) ) {
 			$parts = $raw;
 		} else {
-			$parts = preg_split( '/[\r\n,]+/', (string) $raw ) ?: array();
+			$parts = preg_split( '/[\r\n,]+/', (string) $raw );
+			if ( ! is_array( $parts ) ) {
+				$parts = array();
+			}
 		}
 
 		$out = array();

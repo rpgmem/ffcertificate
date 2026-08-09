@@ -69,6 +69,7 @@ class TabIpDiagnostics extends SettingsTab {
 				 * Integrations refresh class listens for this; using the action
 				 * (not a class call) keeps this tab free of a module edge.
 				 */
+				// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- CF_REFRESH_ACTION is the ffc_-prefixed 'ffc_cloudflare_cidr_refresh_now'.
 				do_action( self::CF_REFRESH_ACTION );
 				$this->render_notice( __( 'Cloudflare IP ranges refresh requested.', 'ffcertificate' ), 'success' );
 			} else {
@@ -103,6 +104,7 @@ class TabIpDiagnostics extends SettingsTab {
 		$proxy_mode = isset( $_POST['ffc_ip_trusted_proxy_mode'] )
 			? sanitize_key( wp_unslash( $_POST['ffc_ip_trusted_proxy_mode'] ) )
 			: IpDiagnosticsSettingsReader::PROXY_AUTO;
+
 		$valid_modes = array(
 			IpDiagnosticsSettingsReader::PROXY_AUTO,
 			IpDiagnosticsSettingsReader::PROXY_CLOUDFLARE,
@@ -116,6 +118,7 @@ class TabIpDiagnostics extends SettingsTab {
 		$custom_raw = isset( $_POST['ffc_ip_custom_proxies'] )
 			? sanitize_textarea_field( wp_unslash( $_POST['ffc_ip_custom_proxies'] ) )
 			: '';
+
 		$custom = $this->sanitize_cidr_list( $custom_raw );
 
 		$settings = array(
@@ -136,8 +139,11 @@ class TabIpDiagnostics extends SettingsTab {
 	 * @return array<int, string>
 	 */
 	private function sanitize_cidr_list( string $raw ): array {
-		$parts = preg_split( '/[\r\n,]+/', $raw ) ?: array();
-		$out   = array();
+		$parts = preg_split( '/[\r\n,]+/', $raw );
+		if ( ! is_array( $parts ) ) {
+			$parts = array();
+		}
+		$out = array();
 		foreach ( $parts as $part ) {
 			$part = trim( (string) $part );
 			if ( '' !== $part && $this->is_valid_cidr( $part ) ) {
@@ -184,6 +190,7 @@ class TabIpDiagnostics extends SettingsTab {
 			'X-Forwarded'      => 'HTTP_X_FORWARDED',
 			'Forwarded'        => 'HTTP_FORWARDED',
 		);
+
 		$headers = array();
 		foreach ( $header_keys as $label => $server_key ) {
 			$headers[ $label ] = $this->server_value( $server_key );
@@ -217,9 +224,10 @@ class TabIpDiagnostics extends SettingsTab {
 		$sentinel = '203.0.113.7';
 		$had      = array_key_exists( 'HTTP_X_FORWARDED_FOR', $_SERVER );
 		// phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized, WordPress.Security.ValidatedSanitizedInput.MissingUnslash -- Captured verbatim only to restore the exact original after the probe; never used as data.
-		$prev     = $had ? $_SERVER['HTTP_X_FORWARDED_FOR'] : null;
+		$prev = $had ? $_SERVER['HTTP_X_FORWARDED_FOR'] : null;
 
 		$_SERVER['HTTP_X_FORWARDED_FOR'] = $sentinel;
+
 		$legacy = ClientIpResolver::resolve_legacy();
 		$secure = ClientIpResolver::resolve_secure();
 
