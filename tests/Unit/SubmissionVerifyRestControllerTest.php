@@ -321,4 +321,32 @@ class SubmissionVerifyRestControllerTest extends TestCase {
         $this->assertStringContainsString( '*', $result['certificate']['rf'] );
         $this->assertStringNotContainsString( '1234567', $result['certificate']['rf'] );
     }
+
+    public function test_verify_certificate_rate_limited(): void {
+        Mockery::mock( 'alias:\FreeFormCertificate\Security\RateLimiter' )
+            ->shouldReceive( 'check_verification' )->andReturn( array( 'allowed' => false, 'message' => 'slow' ) );
+
+        $ctrl    = new SubmissionRestController( 'ffc/v1', Mockery::mock( SubmissionRepository::class ) );
+        $request = Mockery::mock( 'WP_REST_Request' );
+        $request->shouldReceive( 'get_param' )->with( 'auth_code' )->andReturn( 'CODE' );
+
+        $result = $ctrl->verify_certificate( $request );
+
+        $this->assertInstanceOf( \WP_Error::class, $result );
+        $this->assertSame( 'ffc_rate_limited', $result->get_error_code() );
+    }
+
+    public function test_verify_certificate_wraps_exception(): void {
+        $repo = Mockery::mock( SubmissionRepository::class );
+        $repo->shouldReceive( 'findByAuthCode' )->andThrow( new \RuntimeException( 'boom' ) );
+
+        $ctrl    = new SubmissionRestController( 'ffc/v1', $repo );
+        $request = Mockery::mock( 'WP_REST_Request' );
+        $request->shouldReceive( 'get_param' )->with( 'auth_code' )->andReturn( 'CODE' );
+
+        $result = $ctrl->verify_certificate( $request );
+
+        $this->assertInstanceOf( \WP_Error::class, $result );
+        $this->assertSame( 'ffc_internal_error', $result->get_error_code() );
+    }
 }
