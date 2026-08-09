@@ -209,4 +209,36 @@ class SubmissionRestControllerTest extends TestCase {
         $this->assertInstanceOf( \WP_Error::class, $result );
         $this->assertSame( 'submission_not_found', $result->get_error_code() );
     }
+
+    // ------------------------------------------------------------------
+    // catch blocks → ffc_internal_error (+ log_rest_error)
+    // ------------------------------------------------------------------
+
+    public function test_get_submissions_wraps_exception(): void {
+        Functions\when( 'get_option' )->justReturn( array() ); // Debug::is_enabled short-circuits.
+        $repo = Mockery::mock( SubmissionRepository::class );
+        $repo->shouldReceive( 'findPaginated' )->andThrow( new \RuntimeException( 'boom' ) );
+
+        $ctrl    = new SubmissionRestController( 'ffc/v1', $repo );
+        $request = Mockery::mock( 'WP_REST_Request' );
+        $request->shouldReceive( 'get_param' )->andReturn( null );
+
+        $result = $ctrl->get_submissions( $request );
+        $this->assertInstanceOf( \WP_Error::class, $result );
+        $this->assertSame( 'ffc_internal_error', $result->get_error_code() );
+    }
+
+    public function test_get_submission_wraps_exception(): void {
+        Functions\when( 'get_option' )->justReturn( array() );
+        $repo = Mockery::mock( SubmissionRepository::class );
+        $repo->shouldReceive( 'findById' )->andThrow( new \RuntimeException( 'boom' ) );
+
+        $ctrl    = new SubmissionRestController( 'ffc/v1', $repo );
+        $request = Mockery::mock( 'WP_REST_Request' );
+        $request->shouldReceive( 'get_param' )->with( 'id' )->andReturn( 5 );
+
+        $result = $ctrl->get_submission( $request );
+        $this->assertInstanceOf( \WP_Error::class, $result );
+        $this->assertSame( 'ffc_internal_error', $result->get_error_code() );
+    }
 }

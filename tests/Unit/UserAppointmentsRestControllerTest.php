@@ -277,6 +277,22 @@ class UserAppointmentsRestControllerTest extends TestCase {
         $this->assertSame( 'Pending', $apt['status_label'] );
     }
 
+    public function test_get_user_appointments_wraps_repository_exception(): void {
+        Functions\when( 'get_current_user_id' )->justReturn( 5 );
+        Functions\when( 'current_user_can' )->justReturn( true );
+
+        // The repository blows up mid-fetch → the catch converts it to a 500 WP_Error.
+        Mockery::mock( 'alias:\FreeFormCertificate\Core\Debug' )
+            ->shouldReceive( 'log_rest_api' )->andReturnNull()->byDefault();
+        $this->appointment_repo->shouldReceive( 'findByUserId' )->andThrow( new \RuntimeException( 'db down' ) );
+
+        $ctrl   = new UserAppointmentsRestController( 'ffc/v1' );
+        $result = $ctrl->get_user_appointments( $this->make_request() );
+
+        $this->assertInstanceOf( \WP_Error::class, $result );
+        $this->assertSame( 'get_appointments_error', $result->get_error_code() );
+    }
+
     public function test_get_user_appointments_skips_invalid_entries(): void {
         Functions\when( 'get_current_user_id' )->justReturn( 5 );
         Functions\when( 'current_user_can' )->justReturn( true );

@@ -382,4 +382,73 @@ class SelfSchedulingActivatorTest extends TestCase {
         // 3 tables: calendars, appointments, blocked_dates
         $this->assertSame( 3, $delta_count, 'dbDelta should be called 3 times for 3 tables' );
     }
+
+    // ==================================================================
+    // generate_validation_codes_for_existing_appointments()
+    // ==================================================================
+
+    public function test_generate_validation_codes_backfills_rows_without_codes(): void {
+        Functions\when( 'wp_rand' )->justReturn( 0 ); // deterministic AuthCodeService output.
+        // One appointment lacks a validation_code.
+        $this->wpdb->shouldReceive( 'get_results' )->andReturn( array( (object) array( 'id' => 7 ) ) );
+        // get_var default returns null for the uniqueness SELECT → the do/while runs once.
+        $updated = array();
+        $this->wpdb->shouldReceive( 'update' )->andReturnUsing(
+            function ( $table, $data, $where ) use ( &$updated ) {
+                $updated[] = array( 'data' => $data, 'where' => $where );
+                return 1;
+            }
+        );
+
+        $method = new \ReflectionMethod(
+            SelfSchedulingActivator::class,
+            'generate_validation_codes_for_existing_appointments'
+        );
+        $method->setAccessible( true );
+        $method->invoke( null );
+
+        $this->assertCount( 1, $updated );
+        $this->assertArrayHasKey( 'validation_code', $updated[0]['data'] );
+        $this->assertSame( 12, strlen( (string) $updated[0]['data']['validation_code'] ) );
+        $this->assertSame( 7, $updated[0]['where']['id'] );
+    }
+
+    // ==================================================================
+    // migrate_visibility_columns() — legacy require_login → visibility
+    // ==================================================================
+
+    public function test_migrate_visibility_columns_ports_legacy_require_login(): void {
+        $this->wpdb->shouldReceive( 'esc_like' )->andReturnUsing( static fn( $s ) => $s );
+        $this->wpdb->shouldReceive( 'suppress_errors' )->andReturn( false );
+        $this->wpdb->shouldReceive( 'print_error' )->andReturnNull();
+
+        // column_exists() runs SHOW COLUMNS … LIKE '<col>': the legacy
+        // require_login column exists; visibility / scheduling_visibility don't.
+        $this->wpdb->shouldReceive( 'get_results' )->andReturnUsing(
+            static function ( $query ) {
+                if ( is_string( $query ) && false !== strpos( $query, "'require_login'" ) ) {
+                    return array( (object) array( 'Field' => 'require_login' ) );
+                }
+                return array();
+            }
+        );
+
+        $queries = array();
+        $this->wpdb->shouldReceive( 'query' )->andReturnUsing(
+            function ( $query ) use ( &$queries ) {
+                $queries[] = $query;
+                return 1;
+            }
+        );
+
+        $method = new \ReflectionMethod( SelfSchedulingActivator::class, 'migrate_visibility_columns' );
+        $method->setAccessible( true );
+        $method->invoke( null );
+
+        // The legacy branch issues the two data-migration UPDATEs + the DROP.
+        $joined = implode( ' || ', $queries );
+        $this->assertStringContainsString( "visibility = 'private'", $joined );
+        $this->assertStringContainsString( "visibility = 'public'", $joined );
+        $this->assertStringContainsString( 'DROP COLUMN require_login', $joined );
+    }
 }

@@ -16,9 +16,8 @@ use FreeFormCertificate\SelfScheduling\AppointmentsListTable;
  * Tests for the self-scheduling appointments WP_List_Table.
  *
  * Focus: the column data/formatting logic, prepare_items() query assembly, and
- * the filter dropdown nav. column_id() is skipped — it builds row-action HTML
- * via the parent's row_actions() (unavailable in the bootstrap stub) and is
- * pure markup/url assembly.
+ * the filter dropdown nav — including column_id()'s row-action assembly (the
+ * bootstrap WP_List_Table stub does provide row_actions()).
  *
  * @covers \FreeFormCertificate\SelfScheduling\AppointmentsListTable
  * @runTestsInSeparateProcesses
@@ -106,6 +105,49 @@ class AppointmentsListTableTest extends TestCase {
 
         $this->assertStringContainsString( 'name="appointment[]"', $html );
         $this->assertStringContainsString( 'value="33"', $html );
+    }
+
+    public function test_column_id_pending_editable_builds_all_actions(): void {
+        Functions\when( 'current_user_can' )->justReturn( true ); // manage → can edit.
+        Functions\when( 'add_query_arg' )->alias( fn( $a, $u = '' ) => $u . '?' . http_build_query( (array) $a ) );
+        Functions\when( 'wp_nonce_url' )->alias( fn( $u, $a = '' ) => $u . '&_n=1' );
+        Mockery::mock( 'alias:FreeFormCertificate\Generators\MagicLinkHelper' )
+            ->shouldReceive( 'generate_magic_link' )->andReturn( 'https://example.com/magic' );
+
+        $table = new AppointmentsListTable();
+        $html  = $table->column_id( array( 'id' => 7, 'status' => 'pending', 'confirmation_token' => 'tok' ) );
+
+        $this->assertStringContainsString( '#7', $html );
+        $this->assertStringContainsString( 'Confirm', $html );
+        $this->assertStringContainsString( 'ffc-appointment-cancel', $html );
+        $this->assertStringContainsString( 'View', $html );
+        $this->assertStringContainsString( 'https://example.com/magic', $html );
+    }
+
+    public function test_column_id_readonly_cancelled_shows_only_view(): void {
+        Functions\when( 'current_user_can' )->justReturn( false ); // read-only viewer.
+        Functions\when( 'add_query_arg' )->alias( fn( $a, $u = '' ) => $u . '?' . http_build_query( (array) $a ) );
+
+        $table = new AppointmentsListTable();
+        $html  = $table->column_id( array( 'id' => 9, 'status' => 'cancelled', 'confirmation_token' => 'tok' ) );
+
+        $this->assertStringContainsString( '#9', $html );
+        $this->assertStringNotContainsString( 'Confirm', $html );
+        $this->assertStringNotContainsString( 'ffc-appointment-cancel', $html );
+        $this->assertStringContainsString( 'View', $html );
+        $this->assertStringNotContainsString( 'View Receipt', $html ); // cancelled → no receipt.
+    }
+
+    public function test_column_id_receipt_falls_back_to_handler_when_token_empty(): void {
+        Functions\when( 'current_user_can' )->justReturn( false );
+        Functions\when( 'add_query_arg' )->alias( fn( $a, $u = '' ) => $u . '?' . http_build_query( (array) $a ) );
+        Mockery::mock( 'alias:FreeFormCertificate\SelfScheduling\AppointmentReceiptHandler' )
+            ->shouldReceive( 'get_receipt_url' )->andReturn( 'https://example.com/receipt' );
+
+        $table = new AppointmentsListTable();
+        $html  = $table->column_id( array( 'id' => 11, 'status' => 'confirmed', 'confirmation_token' => '' ) );
+
+        $this->assertStringContainsString( 'https://example.com/receipt', $html );
     }
 
     public function test_column_calendar_links_to_post_when_found(): void {

@@ -199,8 +199,17 @@ jobs:
     # Overall line coverage 89.38% (43381/48537, single-process). Bump to 85 keeps
     # a ~4.4pp buffer under the measured number (≤5pp policy); the sharded phpcov
     # merge still runs ~0.2pp under, so 85 stays comfortably clear.
+    #
+    # 85 → 86 — api/self-scheduling coverage-tail sweep (#910, #809 Fase 3): raised
+    # every remaining api/ REST controller + self-scheduling/ handler under 90% to
+    # ≥90% (or its pcov guard/multi-line-artifact ceiling). Deliberately a
+    # conservative +1: the added coverage is dominated by process-isolated tests,
+    # whose lines the single-process local measure under-counts (PHPUnit merges
+    # isolated coverage per-shard on CI but not in a mixed single-process run), so
+    # the true (CI, sharded) figure sits above the ~89% baseline — 86 stays well
+    # clear while still ratcheting the pending #910 gain.
     env:
-      COVERAGE_FLOOR_LINES: '85'
+      COVERAGE_FLOOR_LINES: '86'
     steps:
       - name: Fail if any coverage shard did not succeed
         if: needs.coverage-shard.result != 'success'

@@ -121,7 +121,8 @@ class AppointmentAjaxHandlerTest extends TestCase {
             $_POST['ffc_honeypot_trap'],
             $_POST['ffc_captcha_ans'],
             $_POST['ffc_captcha_hash'],
-            $_SERVER['HTTP_USER_AGENT']
+            $_SERVER['HTTP_USER_AGENT'],
+            $_SERVER['REMOTE_ADDR']
         );
         Monkey\tearDown();
         parent::tearDown();
@@ -318,9 +319,118 @@ class AppointmentAjaxHandlerTest extends TestCase {
         $this->assertSame( 'Slot is full', $error['message'] );
     }
 
+    public function test_book_appointment_success_sends_json_with_email_flag(): void {
+        $_POST['nonce']            = 'valid';
+        $_POST['calendar_id']      = '1';
+        $_POST['date']             = '2026-03-15';
+        $_POST['time']             = '09:00';
+        $_POST['name']             = 'John';
+        $_POST['email']            = 'john@example.com';
+        $_POST['cpf_rf']           = '12345678901';
+        $_POST['consent']          = '1';
+        $_POST['ffc_captcha_ans']  = '7';
+        $_POST['ffc_captcha_hash'] = $this->makeCaptchaHash( 7 );
+        $_SERVER['REMOTE_ADDR']    = '127.0.0.1';
+        Functions\when( 'is_user_logged_in' )->justReturn( true );
+        Functions\when( 'get_current_user_id' )->justReturn( 5 );
+
+        // findById(appointment) → null keeps the PDF-generation branch out of the
+        // path (no newed PdfGenerator), while the calendar drives the email flag.
+        $apptRepo = Mockery::mock( 'FreeFormCertificate\Repositories\AppointmentRepository' );
+        $apptRepo->shouldReceive( 'findById' )->andReturn( null );
+        $calRepo = Mockery::mock( 'FreeFormCertificate\Repositories\CalendarRepository' );
+        $calRepo->shouldReceive( 'findById' )->andReturn( array( 'email_config' => '{"send_user_confirmation":1}' ) );
+        $this->handler->shouldReceive( 'get_appointment_repository' )->andReturn( $apptRepo );
+        $this->handler->shouldReceive( 'get_calendar_repository' )->andReturn( $calRepo );
+        $this->handler->shouldReceive( 'process_appointment' )->andReturn(
+            array(
+                'appointment_id'     => 9,
+                'requires_approval'  => false,
+                'confirmation_token' => 'tok',
+                'receipt_url'        => 'https://example.com/r',
+            )
+        );
+
+        $this->callAjax( 'ajax_book_appointment' );
+
+        $success = $this->firstResponse( 'success' );
+        $this->assertNotNull( $success );
+        $this->assertSame( 9, $success['appointment_id'] );
+        $this->assertFalse( $success['requires_approval'] );
+        $this->assertTrue( $success['email_sent'] );
+        $this->assertSame( 'https://example.com/r', $success['receipt_url'] );
+    }
+
+    public function test_book_appointment_success_requires_approval(): void {
+        $_POST['nonce']            = 'valid';
+        $_POST['calendar_id']      = '1';
+        $_POST['date']             = '2026-03-15';
+        $_POST['time']             = '09:00';
+        $_POST['name']             = 'John';
+        $_POST['email']            = 'john@example.com';
+        $_POST['cpf_rf']           = '12345678901';
+        $_POST['consent']          = '1';
+        $_POST['ffc_captcha_ans']  = '7';
+        $_POST['ffc_captcha_hash'] = $this->makeCaptchaHash( 7 );
+        $_SERVER['REMOTE_ADDR']    = '127.0.0.1';
+
+        $apptRepo = Mockery::mock( 'FreeFormCertificate\Repositories\AppointmentRepository' );
+        $apptRepo->shouldReceive( 'findById' )->andReturn( array( 'validation_code' => 'ABC123DEF456' ) );
+        $calRepo = Mockery::mock( 'FreeFormCertificate\Repositories\CalendarRepository' );
+        $calRepo->shouldReceive( 'findById' )->andReturn( null );
+        $this->handler->shouldReceive( 'get_appointment_repository' )->andReturn( $apptRepo );
+        $this->handler->shouldReceive( 'get_calendar_repository' )->andReturn( $calRepo );
+        $this->handler->shouldReceive( 'process_appointment' )->andReturn(
+            array( 'appointment_id' => 9, 'requires_approval' => true )
+        );
+
+        $this->callAjax( 'ajax_book_appointment' );
+
+        $success = $this->firstResponse( 'success' );
+        $this->assertNotNull( $success );
+        $this->assertTrue( $success['requires_approval'] );
+        $this->assertStringContainsString( 'approval', $success['message'] );
+        $this->assertNotNull( $success['validation_code'] );
+    }
+
     // ==================================================================
     // ajax_get_month_bookings()
     // ==================================================================
+
+    public function test_get_month_bookings_with_holidays_and_full_day_blocks(): void {
+        $_POST['nonce']       = 'valid';
+        $_POST['calendar_id'] = '1';
+        $_POST['year']        = '2026';
+        $_POST['month']       = '3';
+        // Global holiday resolved from options.
+        Functions\when( 'get_option' )->justReturn(
+            array( array( 'date' => '2026-03-10', 'description' => 'Carnaval' ) )
+        );
+
+        $apptRepo = Mockery::mock( 'FreeFormCertificate\Repositories\AppointmentRepository' );
+        $apptRepo->shouldReceive( 'getBookingCountsByDateRange' )->andReturn( array() );
+        $blockedRepo = Mockery::mock( 'FreeFormCertificate\Repositories\BlockedDateRepository' );
+        $blockedRepo->shouldReceive( 'getBlockedDatesInRange' )->andReturn(
+            array(
+                array(
+                    'block_type' => 'full_day',
+                    'start_date' => '2026-03-20',
+                    'end_date'   => '2026-03-21',
+                    'reason'     => 'Maintenance',
+                ),
+            )
+        );
+        $this->handler->shouldReceive( 'get_appointment_repository' )->andReturn( $apptRepo );
+        $this->handler->shouldReceive( 'get_blocked_date_repository' )->andReturn( $blockedRepo );
+
+        $this->callAjax( 'ajax_get_month_bookings' );
+
+        $success = $this->firstResponse( 'success' );
+        $this->assertNotNull( $success );
+        $this->assertArrayHasKey( '2026-03-10', $success['holidays'] );
+        $this->assertArrayHasKey( '2026-03-20', $success['holidays'] );
+        $this->assertArrayHasKey( '2026-03-21', $success['holidays'] );
+    }
 
     public function test_get_month_bookings_missing_calendar_sends_error(): void {
         $_POST['nonce'] = 'valid';

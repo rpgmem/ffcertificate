@@ -90,4 +90,25 @@ class SelfSchedulingLoaderTest extends TestCase {
 
 		$this->assertTrue( true );
 	}
+
+	public function test_registered_export_source_factory_constructs_the_source(): void {
+		Functions\when( 'is_admin' )->justReturn( true );
+		$this->overload_all();
+		// The factory news both repositories; overload them so construction is a
+		// no-op. AppointmentExportSource stays real so ::TYPE resolves and the
+		// returned instance type-checks.
+		Mockery::mock( 'overload:FreeFormCertificate\Repositories\AppointmentRepository' );
+		Mockery::mock( 'overload:FreeFormCertificate\Repositories\CalendarRepository' );
+
+		( new SelfSchedulingLoader() )->init();
+
+		$source = \FreeFormCertificate\Core\SourceRegistry::get(
+			\FreeFormCertificate\SelfScheduling\AppointmentExportSource::TYPE
+		);
+
+		$this->assertInstanceOf(
+			\FreeFormCertificate\SelfScheduling\AppointmentExportSource::class,
+			$source
+		);
+	}
 }
