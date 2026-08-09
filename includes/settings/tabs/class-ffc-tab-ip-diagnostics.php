@@ -49,6 +49,24 @@ class TabIpDiagnostics extends SettingsTab {
 		$this->tab_title = __( 'IP Diagnostics', 'ffcertificate' );
 		$this->tab_icon  = 'ffc-icon-shield';
 		$this->tab_order = 45;
+
+		add_action( 'admin_enqueue_scripts', array( $this, 'enqueue_scripts' ) );
+	}
+
+	/**
+	 * Enqueue the auto-save infrastructure when this tab is active — powers the
+	 * `shadow_logging` `.ffc-toggle` switch.
+	 *
+	 * @param string $hook Current admin page hook.
+	 */
+	public function enqueue_scripts( string $hook ): void {
+		if ( 'toplevel_page_ffc-settings' !== $hook ) {
+			return;
+		}
+		if ( ! $this->is_active() ) {
+			return;
+		}
+		$this->enqueue_autosave_infra();
 	}
 
 	/**
@@ -456,10 +474,20 @@ class TabIpDiagnostics extends SettingsTab {
 		echo '<p class="description">' . esc_html__( 'One CIDR or IP per line. Used only with the Custom mode above.', 'ffcertificate' ) . '</p>';
 		echo '</td></tr>';
 
-		// Shadow logging.
+		// Shadow logging — a `.ffc-toggle` with autosave (allowlisted key
+		// `shadow_logging`). Kept a NAMED field in this form so the form Save
+		// also writes its current state: autosave + form-save stay consistent,
+		// never clobber (the settings-autosave invariant, see CLAUDE.md).
 		echo '<tr><th scope="row">' . esc_html__( 'Shadow-divergence logging', 'ffcertificate' ) . '</th><td>';
-		echo '<label><input type="checkbox" name="ffc_ip_shadow_logging" value="1"' . checked( $shadow, true, false ) . '> '
-			. esc_html__( 'Log (with a hashed IP) when legacy and secure would disagree — measure the impact before switching.', 'ffcertificate' ) . '</label>';
+		\FreeFormCertificate\Admin\AdminUI::render_toggle(
+			array(
+				'name'    => 'ffc_ip_shadow_logging',
+				'id'      => 'ffc_ip_shadow_logging',
+				'checked' => $shadow,
+				'label'   => __( 'Log (with a hashed IP) when legacy and secure would disagree — measure the impact before switching.', 'ffcertificate' ),
+				'data'    => array( 'ffc-autosave-key' => 'shadow_logging' ),
+			)
+		);
 		echo '</td></tr>';
 
 		echo '</tbody></table>';

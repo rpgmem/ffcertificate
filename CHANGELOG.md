@@ -17,6 +17,9 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 - **IP Diagnostics tab recommends the Secure strategy + Cloudflare** (#899, #902, phase 3 — *recommend* step): a short notice on the IP Diagnostics tab strongly recommends switching to the `secure` (trusted-proxy) strategy and putting Cloudflare in front, shown while the effective strategy is still `legacy`. The default is **not** forced — the flip is deliberately deferred (gated on shadow-mode telemetry, per #902). Non-breaking.
 - Internal (#899, #900) — **client-IP resolution consolidated into one `ClientIpResolver`** (phase 1 of 3): a single Core class now owns both the pre-existing `legacy` header-walk and a new `secure` trusted-proxy strategy (Cloudflare `CF-Connecting-IP` when the peer is a CF edge, right→left `X-Forwarded-For` walk for configured proxies, else the direct TCP peer). `RequestInput::get_user_ip()` delegates to it with `legacy` effective by default, so **behaviour is unchanged**; the `secure` tree and a dormant, hashed-IP shadow-divergence log ship behind filters (`ffc_ip_resolver_mode`, `ffc_trusted_proxies`, `ffc_ip_shadow_logging`) for the later flip. No version bump.
 
+### Changed
+- **IP Diagnostics `shadow_logging` is now an inline autosave toggle** (#901 follow-up, #899): the shadow-divergence-logging control on the IP Diagnostics tab became a `.ffc-toggle` switch that saves on flip (`ffc_update_setting`, allowlisted) — kept a named field in the tab's Save form so autosave and the form-save never clobber each other. Also documents that no-clobber invariant (autosave toggle = named in-form field + central `_ffc_tab`-guarded section) in CLAUDE.md.
+
 ## [6.18.0] (2026-08-08) — `cffec5f`
 
 ### Fixed
