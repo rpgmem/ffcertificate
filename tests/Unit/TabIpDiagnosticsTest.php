@@ -127,4 +127,18 @@ class TabIpDiagnosticsTest extends TestCase {
 		$this->assertSame( "192.0.2.0/24\n10.0.0.0/8", $captured['custom_proxies'] );
 		$this->assertSame( 1, $captured['shadow_logging'] );
 	}
+
+	public function test_recommendation_shown_when_strategy_legacy(): void {
+		$_SERVER['REMOTE_ADDR'] = '198.51.100.7';
+		$html                   = $this->render_to_string();
+		$this->assertStringContainsString( 'Recommended', $html );
+		$this->assertStringContainsString( 'The current default (Legacy)', $html );
+	}
+
+	public function test_recommendation_hidden_when_strategy_secure(): void {
+		Functions\when( 'get_option' )->justReturn( array( 'strategy' => 'secure' ) );
+		$_SERVER['REMOTE_ADDR'] = '198.51.100.7';
+		$html                   = $this->render_to_string();
+		$this->assertStringNotContainsString( 'Recommended', $html );
+	}
 }

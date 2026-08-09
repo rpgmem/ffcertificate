@@ -81,12 +81,31 @@ class TabIpDiagnostics extends SettingsTab {
 		$diag = $this->diagnostics();
 
 		echo '<div class="ffc-ip-diagnostics">';
+		$this->render_recommendation();
 		$this->render_diagnostics_section( $diag );
 		$this->render_config_form();
 		if ( ClientIpResolver::VERDICT_DIRECT === $diag['verdict'] ) {
 			$this->render_cloudflare_guide();
 		}
 		echo '</div>';
+	}
+
+	/**
+	 * Short, prominent recommendation to adopt the secure strategy + Cloudflare.
+	 *
+	 * Shown while the effective strategy is still `legacy` (the default). This
+	 * is a RECOMMENDATION only: #902's default flip is deliberately NOT forced
+	 * (it is gated on shadow-mode telemetry) — we nudge the admin here instead.
+	 */
+	private function render_recommendation(): void {
+		if ( IpDiagnosticsSettingsReader::STRATEGY_SECURE === IpDiagnosticsSettingsReader::strategy() ) {
+			return;
+		}
+
+		echo '<div class="notice notice-warning inline"><p>';
+		echo '<strong>' . esc_html__( 'Recommended:', 'ffcertificate' ) . '</strong> ';
+		echo esc_html__( 'Switch the effective strategy to Secure (trusted-proxy) below, so forged headers can no longer spoof rate-limiting, geofencing or the activity log. Ideally, also put Cloudflare in front of this site for an unspoofable client IP (free plan). The current default (Legacy) trusts client-supplied headers.', 'ffcertificate' );
+		echo '</p></div>';
 	}
 
 	/**
